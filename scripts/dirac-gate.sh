@@ -18,15 +18,21 @@
 #      and BLB above INSTR_PB_MAX times the accepted program base below.
 #   6. inlining: the hot accessors stay inlinable.
 #   7. escapes: no dirac local moves to the heap.
-#   8. tests: ./dirac, ./dirac/crcoverage, internal/archtest, and any refused entry the branch adds.
+#   8. tests: ./dirac, ./dirac/crcoverage, internal/archtest; and every refused entry still diverges
+#      (about 12 s for the whole list), whatever the change touched: a gorge fix can make a refusal
+#      stale as easily as a dirac one.
 #   9. synthetic pools: a short kfuzz -synth on the cards the slices of step 4 don't reach. A pair
 #      divergent on the merge base and the head is an open divergence, counted and not failed; a
 #      pair newly divergent fails.
 #
-# Steps 2-3 and 5-8 run only when a non-test file under dirac/ changed. A merge base without dirac/
-# has nothing to compare, so the base rows print a note. About 2 minutes on 4 cores with dirac/
-# changed, 1 with only its dependencies changed, plus the base build and step 9 when nothing else
-# built the base.
+# Steps 2-3 and 5-7 and step 8's package tests run only when a non-test file under dirac/ changed. A
+# merge base without dirac/ has nothing to compare, so the base rows print a note.
+#
+# A commit's measurements (State size, the FDN bench line, instructions per bench, each synthetic
+# pool's divergent pairs) are cached under $DIRAC_GATE_CACHE, keyed by the commit, the corpus digest
+# and the knobs that shape them. A landing's head is the next landing's merge base, so the base side
+# is read from the cache and the base worktree is built only on a miss. Steps 4 and 9 run their
+# kfuzz replays concurrently; each pair's result does not depend on what else runs.
 set -uo pipefail
 export LC_ALL=C # comm and sort must agree on the order of card names
 base=${1:?usage: dirac-gate.sh <base>}
@@ -86,21 +92,54 @@ trap 'git -C "$top" worktree remove --force "$S/base" >/dev/null 2>&1; rm -rf --
 make dirac-tables >"$S/tables.log" 2>&1 || { tail -20 "$S/tables.log"; bad "make dirac-tables failed"; exit 1; }
 go build -o "$S/kfuzz" ./dirac/oracle/cmd/kfuzz || { bad "kfuzz does not build"; exit 1; }
 
+synth_pools=${GATE_SYNTH_POOLS:-std-blb std-otj std-mkm}
+synth_pairs=${GATE_SYNTH_PAIRS:-300}
+head=$(git rev-parse HEAD)
+dirty=$(git status --porcelain --untracked-files=no)
+corpus=$(sed -nE 's/.*"digest": *"([0-9a-f]{16}).*/\1/p' "$GORGE_CARDS/cards.lock" | head -1)
+cache=${DIRAC_GATE_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/dirac-gate}
+mkdir -p "$cache" && find "$cache" -mindepth 1 -maxdepth 1 -mtime +3 -exec rm -rf {} + 2>/dev/null
+ckey() { echo "$cache/$1-${corpus:-nocorpus}-c$INSTR_CORE-p$synth_pairs"; }
+# cache_get <commit> <name>: the commit's stored value; fails when there is none.
+cache_get() { local f; f=$(ckey "$1")/$2; [ -f "$f" ] && cat "$f"; }
+# cache_put <commit> <name> <value>: stores a value measured on that commit, never on a dirty tree
+# or without a corpus digest, since neither names what was measured.
+cache_put() {
+	[ -z "$dirty" ] && [ -n "$corpus" ] || return 0
+	local d; d=$(ckey "$1"); mkdir -p "$d" && printf '%s\n' "$3" >"$d/$2.tmp" && mv "$d/$2.tmp" "$d/$2"
+}
+# The base side, built only when the cache misses.
+base_wt() {
+	[ -d "$S/base" ] && return 0
+	git -C "$top" worktree add -q --detach "$S/base" "$mb" && (cd "$S/base" && make dirac-tables >/dev/null 2>&1)
+}
+base_test() { [ -x "$S/base.test" ] || { base_wt && (cd "$S/base" && go test -c -o "$S/base.test" ./dirac/); }; }
+base_kfuzz() { [ -x "$S/kfuzz.base" ] || { base_wt && (cd "$S/base" && go build -o "$S/kfuzz.base" ./dirac/oracle/cmd/kfuzz); }; }
+# base_value <name> <measure...>: the merge base's value from the cache, else measured (the measure
+# builds what it needs) and stored. Exit 2 when the base cannot be built.
+base_value() {
+	local name=$1 v; shift
+	if v=$(cache_get "$mb" "$name"); then printf '%s\n' "$v"; return 0; fi
+	v=$("$@") || { echo "dirac gate: base build failed (infrastructure)" >&2; return 2; }
+	[ -n "$v" ] && cache_put "$mb" "$name" "$v" # an empty measure (a crashed bench) is not stored
+	printf '%s\n' "$v"
+}
+
 if [ -n "$dirac_changed" ]; then
 	[ -n "$have_base" ] || echo "the merge base has no dirac/: base rows below are notes"
 	go test -c -o "$S/head.test" ./dirac/ || { bad "dirac test binary does not build"; exit 1; }
-	if [ -n "$have_base" ]; then
-		git -C "$top" worktree add -q --detach "$S/base" "$mb" || exit 2
-		(cd "$S/base" && make dirac-tables >/dev/null 2>&1 && go test -c -o "$S/base.test" ./dirac/) || { echo "dirac gate: base build failed (infrastructure)"; exit 2; }
-	fi
 
 	echo "== 2 State layout"
 	size() { (cd "$2" && "$1" -test.run '^TestStateSize$' -test.v 2>&1 | sed -nE 's/.*State size: ([0-9]+) bytes.*/\1/p'); }
+	base_size() { base_test && size "$S/base.test" "$S/base/dirac"; }
 	sh=$(size "$S/head.test" "$top/dirac")
+	[ -n "$sh" ] && cache_put "$head" state "$sh"
 	barsrc=$top/dirac/kernel_test.go
 	if [ -n "$have_base" ]; then
-		barsrc=$S/base/dirac/kernel_test.go
-		echo "State: base $(size "$S/base.test" "$S/base/dirac") B, head ${sh:-?} B"
+		barsrc=$S/bar_kernel_test.go
+		git show "$mb:dirac/kernel_test.go" >"$barsrc" || exit 2
+		bs=$(base_value state base_size) || exit 2
+		echo "State: base $bs B, head ${sh:-?} B"
 	else
 		echo "State: head ${sh:-?} B"
 	fi
@@ -112,12 +151,14 @@ if [ -n "$dirac_changed" ]; then
 
 	echo "== 3 allocs and speed (BenchmarkTransitionFDN)"
 	bench() { (cd "$2" && taskset -c "$3" env GOMAXPROCS=1 "$1" -test.run XXX -test.bench 'BenchmarkTransitionFDN$' -test.benchtime 2s -test.benchmem 2>&1 | grep '^BenchmarkTransitionFDN'); }
+	base_bench() { base_test && bench "$S/base.test" "$S/base/dirac" "$INSTR_CORE"; }
 	bh=$(bench "$S/head.test" "$top/dirac" "$INSTR_CORE")
 	ah=$(awk '{print $(NF-1)}' <<<"$bh")
 	echo "head: $bh"
 	[ "${ah:-x}" = 0 ] || bad "BenchmarkTransitionFDN allocates (${ah:-?} allocs/op)"
+	[ -n "$bh" ] && cache_put "$head" bench "$bh"
 	if [ -n "$have_base" ]; then
-		bb=$(bench "$S/base.test" "$S/base/dirac" "$INSTR_CORE")
+		bb=$(base_value bench base_bench) || exit 2
 		r=$(awk -v h="$(awk '{print $3}' <<<"$bh")" -v b="$(awk '{print $3}' <<<"$bb")" 'BEGIN{printf "%.4f", h/b}')
 		echo "head/base wall time $r"
 		awk -v m="$r" -v x="$PERF_MAX" 'BEGIN{exit !(m > x)}' && echo "dirac gate: WARN (advisory) -- wall time ${r}x the base"
@@ -125,11 +166,20 @@ if [ -n "$dirac_changed" ]; then
 fi
 
 echo "== 4 lockstep, absolute"
+lockstep() {
+	"$S/kfuzz" -kernel "$1" -first-pair 0 -pairs 1500 -seed 1 -keep-going -surface "$2" -mulligans 1 -shrink 0 -workers "${GATE_KFUZZ_WORKERS:-4}" -absolute -v >"$S/lockstep-$1-$2.log" 2>&1
+	echo $? >"$S/lockstep-$1-$2.rc"
+}
+# The four replays run two at a time (two surfaces of one set), reported in order below.
+for set in fdn blb; do
+	lockstep "$set" autopay &
+	lockstep "$set" full &
+	wait
+done
 for set in fdn blb; do
 	for surface in autopay full; do
 		log=$S/lockstep-$set-$surface.log
-		"$S/kfuzz" -kernel "$set" -first-pair 0 -pairs 1500 -seed 1 -keep-going -surface "$surface" -mulligans 1 -shrink 0 -workers "${GATE_KFUZZ_WORKERS:-4}" -absolute -v >"$log" 2>&1
-		rc=$?
+		rc=$(cat "$S/lockstep-$set-$surface.rc" 2>/dev/null || echo 2)
 		grep "^$set:" "$log"
 		if [ "$rc" -ne 0 ]; then
 			grep -E '^ *(pair |options:|implicates:)' "$log" | head -6
@@ -165,12 +215,14 @@ if [ -n "$dirac_changed" ]; then
 	if ! command -v perf >/dev/null 2>&1 || [ -z "$(perf stat -x, -e instructions:u true 2>&1 | awk -F, '$1 ~ /^[0-9]+$/')" ]; then
 		bad "perf stat unavailable (instructions:u not counted): this step cannot pass without it"
 	else
+		base_instr() { base_test && per_op "$S/base.test" "$S/base/dirac" "$1"; }
 		for row in BenchmarkTransitionFDN:$INSTR_PB_FDN BenchmarkTransitionBLB:$INSTR_PB_BLB BenchmarkTransitionFDNPool:; do
 			bn=${row%%:*} pb=${row#*:}
 			ih=$(per_op "$S/head.test" "$top/dirac" "$bn")
 			if [ -z "$ih" ]; then bad "$bn: bench crashed or missing"; continue; fi
+			cache_put "$head" "instr-$bn" "$ih"
 			im=
-			[ -n "$have_base" ] && im=$(per_op "$S/base.test" "$S/base/dirac" "$bn")
+			if [ -n "$have_base" ]; then im=$(base_value "instr-$bn" base_instr "$bn") || exit 2; fi
 			echo "$bn: head $ih instr/op, merge base ${im:-none} (max ${INSTR_MB_MAX}x), program base ${pb:-none} (max ${INSTR_PB_MAX}x)"
 			if [ -n "$im" ] && over "$ih" "$im" "$INSTR_MB_MAX"; then bad "$bn: head $ih is over ${INSTR_MB_MAX}x the merge base's $im instructions"; fi
 			if [ -n "$pb" ] && over "$ih" "$pb" "$INSTR_PB_MAX"; then bad "$bn: head $ih is over ${INSTR_PB_MAX}x the program base's $pb instructions"; fi
@@ -195,29 +247,36 @@ if [ -n "$dirac_changed" ]; then
 	echo "== 8 tests"
 	out=$(cd "$top/dirac" && "$S/head.test" -test.timeout 2m 2>&1) && echo ok || bad "./dirac tests failed: $(tail -20 <<<"$out")"
 	out=$(go test -timeout 2m ./dirac/crcoverage ./internal/archtest 2>&1) || bad "./dirac/crcoverage or ./internal/archtest failed: $(tail -20 <<<"$out")"
-	out=$(KERNEL_REFUSED_BASE=$mb go test -v -timeout 2m -run '^TestRefusedEntriesStillDiverge$' ./dirac/oracle 2>&1) || bad "a refused entry no longer diverges: $(tail -20 <<<"$out")"
-	skip=$(grep -F -- '--- SKIP: TestRefusedEntriesStillDiverge' <<<"$out")
-	[ -z "$skip" ] || bad "nothing shows a refused entry diverges, since its pool is not on this machine (set GORGE_POOLS): $skip"
 fi
 
+# The whole refused list, whatever changed: a gorge fix leaves a refusal stale as easily as a dirac
+# one, and a stale refusal otherwise first fails in the hourly train.
+[ -n "$dirac_changed" ] || echo "== 8 tests (refused entries)"
+out=$(go test -v -timeout 5m -run '^TestRefusedEntriesStillDiverge$' ./dirac/oracle 2>&1) || bad "a refused entry no longer diverges: $(tail -20 <<<"$out")"
+skip=$(grep -F -- '--- SKIP: TestRefusedEntriesStillDiverge' <<<"$out")
+[ -z "$skip" ] || bad "nothing shows a refused entry diverges, since its pool is not on this machine (set GORGE_POOLS): $skip"
+
 echo "== 9 synthetic pools, against the merge base"
-synth_pools=${GATE_SYNTH_POOLS:-std-blb std-otj std-mkm}
-synth_pairs=${GATE_SYNTH_PAIRS:-300}
+# synth_divergent prints one line per divergent pair, then an end marker, so a pool with no
+# divergent pair still caches a value.
 synth_divergent() {
 	"$1" -synth "$2" -first-pair 0 -pairs "$synth_pairs" -seed 1 -keep-going -shrink 0 -workers "${GATE_KFUZZ_WORKERS:-4}" -v 2>&1 |
 		sed -nE 's/^pair ([0-9]+) \((.*), seed [0-9]+\) after .*/\1 \2/p' | sort -u
+	echo '#end'
 }
+base_synth() { base_kfuzz && synth_divergent "$S/kfuzz.base" "$1"; }
 if [ -z "$have_base" ]; then
 	echo "the merge base has no dirac/: nothing to compare"
 else
-	if [ ! -d "$S/base" ]; then
-		git -C "$top" worktree add -q --detach "$S/base" "$mb" || exit 2
-		(cd "$S/base" && make dirac-tables >/dev/null 2>&1) || { echo "dirac gate: base build failed (infrastructure)"; exit 2; }
-	fi
-	(cd "$S/base" && go build -o "$S/kfuzz.base" ./dirac/oracle/cmd/kfuzz) || { echo "dirac gate: base build failed (infrastructure)"; exit 2; }
+	# The head's pools replay concurrently while the base side is read from the cache (or measured).
+	for pool in $synth_pools; do synth_divergent "$S/kfuzz" "$pool" >"$S/synth-head-$pool" & done
+	for pool in $synth_pools; do base_value "synth-$pool" base_synth "$pool" >"$S/synth-base-$pool" || exit 2; done
+	wait
 	for pool in $synth_pools; do
-		onbase=$(synth_divergent "$S/kfuzz.base" "$pool")
-		onhead=$(synth_divergent "$S/kfuzz" "$pool")
+		grep -qx '#end' "$S/synth-head-$pool" || { bad "$pool: the head's synthetic replay did not finish"; continue; }
+		cache_put "$head" "synth-$pool" "$(cat "$S/synth-head-$pool")"
+		onbase=$(grep -v '^#end$' "$S/synth-base-$pool")
+		onhead=$(grep -v '^#end$' "$S/synth-head-$pool")
 		fresh=$(comm -13 <(printf '%s\n' "$onbase") <(printf '%s\n' "$onhead") | grep -v '^$')
 		echo "$pool: $(grep -c . <<<"$onbase") divergent on the merge base, $(grep -c . <<<"$onhead") on the head, $(grep -c . <<<"$fresh") new"
 		if [ -n "$fresh" ]; then
