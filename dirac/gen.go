@@ -1323,6 +1323,7 @@ const (
 	fxOnceStash              // the permanent's printed abilities were activated once-only before a copy layer began, which the layer's end returns (copy_clone.go onceBasisBegin)
 	fxCopyHeld               // a token copy's own copy exception (r.idx), held aside while an until-end-of-turn copy overrides it (copy_clone.go cloneHold)
 	fxCopyMint               // a token copy's own copy (r.src the card it was minted as), held aside likewise (copy_clone.go cloneHold)
+	fxAegisBase              // the copy a bearer wore (r.src its card) when an Assimilation Aegis copy took over, which shows again when the last Aegis copy ends (copy_aegisunder.go)
 )
 
 // maxFx bounds the effect records live at once (all permanents); a full

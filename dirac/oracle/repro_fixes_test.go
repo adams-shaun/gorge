@@ -71,6 +71,7 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// is payable, but no mode is, so neither engine offers the cast (CR
 		// 702.172a/702.183a: the mode cost is part of the cheapest legal total).
 		{"explosive_derailment_needs_a_mode_cost", false, false},
+		{"aegis_on_temporary_copy_bearer", true, false}, // CR 613.7e, 707.2: Assimilation Aegis attached to a creature Fleeting Reflection made a copy until end of turn copies over it (the later copy wins), and gives it back to that copy when unattached
 	})
 }
 
