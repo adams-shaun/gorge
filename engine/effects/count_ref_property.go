@@ -319,8 +319,15 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			spec := strings.TrimSpace(strings.TrimPrefix(prop, "Valid"))
 			sc := c.SpecContext(c.Controller)
 			sc.DerivedPTs = append(sc.DerivedPTs, GreatestPowerDerivedPTs(g, spec, h)...)
+			// A copy the resolution itself remembered (a destroy-all's token
+			// copy, now in the graveyard) still exists until the next
+			// state-based check (CR 111.7, 707.10a), so the plain Remembered
+			// read matches it past the ceased-copy rejection, as the
+			// remembered-set condition reader does (conditions.go).
+			remembered := ref == "Remembered" && !lki
 			if (lki && MatchesObjectCtx(g, spec, o, sc)) ||
-				(!lki && matchesZoneSpecCtx(g, spec, t.Obj, sc, o.Zone)) {
+				(remembered && matchesZoneSpecObj(g, spec, o, sc, o.Zone)) ||
+				(!lki && !remembered && matchesZoneSpecCtx(g, spec, t.Obj, sc, o.Zone)) {
 				n++
 			}
 		case prop == "Converge":
