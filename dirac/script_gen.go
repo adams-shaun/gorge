@@ -481,6 +481,9 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 		if k.multiMana && s.filterSource(k, p) {
 			continue // a controlled filter (Rumble Arena's {1},{T}: any colour) is no unit of the census here, yet it funds Ba Sing Se's {G} (CR 605.1a, 106.1)
 		}
+		if k.gen.anyFiltFirst && s.scriptFilt(k, p).any() {
+			continue // nor is a first-and-only filter (Prophetic Prism's {1},{T}) funded by a granted {G}: scriptOffers' filter search listed the play (CR 605.1a, 106.1)
+		}
 		if cost, ex, ok := s.grantPlayCost(k, p, a, true); ok && !s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
 			d.remove(a)
 		}

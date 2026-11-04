@@ -232,19 +232,30 @@ func (d *Divergence) fieldClass() string {
 }
 
 // InstanceCard names game object o, the index a Canon's #n and a projection's
-// Cards[n] share: the two decks in order, card by card. A token or copy is past
+// Cards[n] share: the two decks in order, card by card, then the two sideboards. A token or copy is past
 // them and names no card ("").
 func (m *Matchup) InstanceCard(o int) string {
-	for s := range m.Deck {
-		if o < len(m.Deck[s]) {
-			if o >= 0 && int(m.Deck[s][o]) < len(m.Table) {
-				return m.Table[m.Deck[s][o]]
-			}
-			return ""
-		}
-		o -= len(m.Deck[s])
+	if i := m.instanceTable(o); i >= 0 && i < len(m.Table) {
+		return m.Table[i]
 	}
 	return ""
+}
+
+// instanceTable is the table index of card instance o: the two decks in
+// order, then the two sideboards; -1 for a token or copy, past them.
+func (m *Matchup) instanceTable(o int) int {
+	if o < 0 {
+		return -1
+	}
+	for _, part := range [...]*[2][]uint8{&m.Deck, &m.Side} {
+		for s := range part {
+			if o < len(part[s]) {
+				return int(part[s][o])
+			}
+			o -= len(part[s])
+		}
+	}
+	return -1
 }
 
 // Lockstep plays one game of m on seed with gorge (the oracle) leading and k

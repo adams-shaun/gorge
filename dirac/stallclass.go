@@ -83,7 +83,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallShield, StallReplCtr, StallReplLeave, StallCopyFace, StallRoleMulti, StallDefenderPW,
 	StallTokAtkAsk, StallEnterDefender, StallEndureN, StallLinkCtr, StallNumTimes, StallAegis, StallSacOther,
 	StallCopyCast, StallNetMana, StallTokenPT, StallStaticAsk, StallHandSize, StallMayRaise, StallUncounterOrder,
-	StallEntryOrder, StallCopyAllAsk, StallCloneLayer,
+	StallEntryOrder, StallCopyAllAsk, StallCloneLayer, StallTokRewrite,
 	StallGravePower, // no longer raised: FeatCDAPT evaluates every lowered CDA amount
 	StallLandGrant,  // gorge offers both productions of a land with a granted basic type; pcard holds one (static_landtype.go:148,161)
 	StallOutsideType, StallExileOnMoved, StallMultiRetarget, StallL6Walk, StallLowering,

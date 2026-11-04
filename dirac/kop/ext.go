@@ -375,6 +375,18 @@ const ExtEnterUntapped ExtOp = 228
 
 func init() { extOpNames[ExtEnterUntapped] = "EnterUntapped" }
 
+// ExtEnterAttacking (CR 508.4, 614.12): the second half of "creatures you
+// control enter tapped and attacking" (Kira Nerys, Firebrand; gorge R:Event$
+// Moved ... ReplaceWith$ DB$ ChangeZone | Defined$ ReplacedCard | Tapped$ True
+// | Attacking$ True), after OpEnterTapped. Run on the entering permanent (the
+// replaced object) it marks it attacking the controller's opponent (the one
+// CR 508.4 defender; two or more stall), declared nothing, so no Attacks
+// trigger fires. Only in declare attackers..end of combat of the controller's
+// own turn. No other field. dirac/repl_enterattacking.go.
+const ExtEnterAttacking ExtOp = 250
+
+func init() { extOpNames[ExtEnterAttacking] = "EnterAttacking" }
+
 // ExtExchangeControl (CR 701.12; gorge effects/exchange_control.go
 // effExchangeControl): C is a bit set of the resolving entry's target slots.
 // The battlefield objects they name that are still legal, in slot then pick

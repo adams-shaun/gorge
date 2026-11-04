@@ -412,3 +412,11 @@ func TestKeywordRemovalAfterAGrantLockstep(t *testing.T) {
 		{"keyword_removal_resolved_after_a_grant", true, false},
 	})
 }
+
+// std-woe's, on the same terms.
+func TestStdWoeReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-woe", []stdRepro{
+		{"filter_fed_by_granted_mana", false, false}, // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
+	})
+}
