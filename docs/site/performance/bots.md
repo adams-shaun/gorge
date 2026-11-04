@@ -1,7 +1,7 @@
 # Bot speed
 
 What a bot costs to run, per game, per decision and per simulation, so that a host can size a table and a bot author can budget a search. For
-what each policy does, see [The bots gorge ships](../bots/index.md#the-bots-gorge-ships). This page is about speed only.
+what each policy does, see [Bots](../bots/index.md) and [Each bot in detail](../bots/catalogue.md#the-six-registered-bots). This page is about speed only.
 
 ## The heuristic bot
 

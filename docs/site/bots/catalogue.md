@@ -1,0 +1,110 @@
+# Each bot in detail
+
+The one-screen table is on [Bots](index.md). This page says what each registered bot does, then how its
+fair-or-clairvoyant verdict was reached, with the code that decides it. To select or connect a bot, see
+[Using and plugging in bots](using.md).
+
+## The six registered bots
+
+Six policies register themselves in the bot registry
+([`bots/registry.go`](https://github.com/adams-shaun/gorge/blob/main/bots/registry.go)) from the
+packages [`bots/all`](https://github.com/adams-shaun/gorge/blob/main/bots/all/all.go) links, so every
+binary that imports `bots/all` has them. Each entry's `bots.Info` carries its label, tier, formats, seat
+limit, description and cost. [Bot speed](../performance/bots.md) measures them.
+
+| Name | Formats, seats | Offered by `gorged` | Package |
+|---|---|---|---|
+| `bot` | constructed and Commander, any | yes | [`bots/bot`](https://github.com/adams-shaun/gorge/blob/main/bots/bot/bot.go) |
+| `forge-heuristic` | constructed and Commander, any | yes | [`bots/forgeheuristic`](https://github.com/adams-shaun/gorge/blob/main/bots/forgeheuristic/forgeheuristic.go) |
+| `forge-heuristic-hold` | constructed and Commander, any | yes | [`bots/forgeheuristic`](https://github.com/adams-shaun/gorge/blob/main/bots/forgeheuristic/forgeheuristic.go) |
+| `lethal-pressure` | constructed and Commander, any | yes; `gorged`'s default `-bot-policy` | [`bots/lethalpressure`](https://github.com/adams-shaun/gorge/blob/main/bots/lethalpressure/lethalpressure.go) |
+| `sb-tactical` | constructed, 2 | no: reads every seat's decklist | [`bots/sbtactical`](https://github.com/adams-shaun/gorge/blob/main/bots/sbtactical/sbtactical.go) |
+| `az-redeal` | constructed, 2 | no: reads every seat's decklist | [`bots/azredeal`](https://github.com/adams-shaun/gorge/blob/main/bots/azredeal/azredeal.go) |
+
+**`bot`** is the production heuristic: hand-written rules
+([`bots/botpolicy`](https://github.com/adams-shaun/gorge/blob/main/bots/botpolicy), driven by
+[`bots/heuristic`](https://github.com/adams-shaun/gorge/blob/main/bots/heuristic)) that score each offered
+option. On a table with automatic mana payment, the default for hosted bots, it casts through the engine's
+payment plans and picks attacks and blocks with a two-ply combat simulation; on a manual-tap table it is the
+plain heuristic. It answers the London mulligan with a re-expression of Forge's keep and bottom rule
+(`botpolicy.MulliganForge`).
+
+**`forge-heuristic`** is `bot`, built by the same constructor (`bot.BaseWithSim`), with every opt-in rule
+family re-expressed from Forge's AI switched on. Each family is a clean-room rule in gorge's own vocabulary,
+not translated Forge code:
+
+| Family | Rules armed |
+|---|---|
+| Removal timing | hold a one-shot destroy, damage or bounce spell until the best opposing creature is a real threat, the spell is lethal to a face, or it could never be cast later |
+| Targeting | prefer a land the opponent's colours depend on and the opponent's prominent colour; skip a target that is a strictly worse copy of another of their creatures |
+| Forge AI hints | a card's `PlayMain1` hint earns a first-main-phase bonus; a `RemoveDeck` card is never chosen |
+| Deck-shape posture | an aggro deck releases its last held-back blocker, the combat simulation weighs life by deck shape, and the mana reserve scales by shape |
+| Attachments | aim an Aura by its `AttachAILogic` hint, rank its own creatures as carriers, hold a boon Aura while nothing can carry it |
+| Timing | counter only the top foreign spell; hold draw and token spells for Forge's window |
+| Combat, inside the simulation | gang blocks, a gang-aware predicted reply, Double Strike in blocked combat |
+
+The rules live in `bots/botpolicy` (`TargetRules`, `RemovalRules`, `TimingRules`, `AIHints`, `AttachRules`,
+`PostureRules`, `CombatRules`), and `bots/forgeheuristic.New` shows how to arm any subset on a policy of your own.
+
+**`forge-heuristic-hold`** is `forge-heuristic` with its one option, `hold-instant`, switched on: it keeps instants
+back outside the respond, opponent post-combat and combat-trick windows.
+
+**`lethal-pressure`** is the older configuration: the plain heuristic plus an attack rule (a creature whose unblocked
+power reaches the defender's life attacks even into a cheaper blocker). It has no combat simulation on any table, and it
+keeps the heuristic's original mulligan, a one-in-three coin whatever the hand.
+
+**`sb-tactical`** is a scored tactical heuristic ported from the SpellBench project. It values creatures, timing, the
+damage race and removal over what its seat can see, reads printed card facts from the card registry, and at priority
+prices its plays through a payment planner built on an *honest root*: a copy of the game with every hidden card redealt
+from what the seat has seen. That redeal draws from each seat's real decklist, which is why the policy is marked `Env`
+and is never seated against a person.
+
+**`az-redeal`** is an AlphaZero-style tree search
+([`bots/azmcts`](https://github.com/adams-shaun/gorge/blob/main/bots/azmcts)) with no network: a uniform prior and a
+heuristic leaf value. At each priority, attackers, blockers and target decision it runs 100 simulations, each over a
+freshly redealt world built from its own observations, and `bot` answers every other decision. It is `Env` like
+`sb-tactical`. A hosted search seat has a 2-second budget per decision (`hostedDecisionDeadlineMS`); a search that runs
+out plays `bot`'s answer.
+
+## Fair or clairvoyant
+
+A **fair** bot uses only what its seat may see. A **clairvoyant** bot reads hidden information: the opponent's hand, the
+library order, or a clone of the real engine. **No registered bot is clairvoyant.** The two search bots are fair about hidden
+cards but read every seat's decklist, so they never seat against a person. Verdicts, with where the code decides them:
+
+| Bot | Verdict | Why | Code |
+|---|---|---|---|
+| `bot`, `forge-heuristic`, `forge-heuristic-hold`, `lethal-pressure` | fair | `Decide` takes the seat's redacted `view.View`. `DecideBoard` takes a `Board` of public facts (the engine's derived power, toughness and keywords for visible permanents, life, zone sizes). No search, no determinisation, no engine handle. They register without `Env`. | `bots/heuristic/bot.go:616` (`Decide`), `:627` (`DecideBoard`), `:642` (`BoardFromView`, what the `Board` carries); `bots/bot/bot.go:12` (no `Env`) |
+| `sb-tactical` | fair on hidden cards, reads decklists | Its planner is a root the host redeals from the seat's own observation feed, so which hidden card is where never reaches it. The redeal draws from every seat's real decklist, so it knows the opponent's list. It is not offered against a person. Search is off: the root only prices payments, at priority. | `bots/sbtactical/sbtactical.go:50` (`Env: true, Search: false`); `bots/searchseat/honestroot.go:30-53` (`HonestRoot`); `bots/registry.go:205` (`ReadsDecklists`); `server/gorged/botpolicies.go:53` (refused in `-bot-policies`) |
+| `az-redeal` | fair on hidden cards, reads decklists. Determinised search | 100 simulations, each over a freshly redealt world (`WorldRedeal`), so no belief model and no clone of the real engine. Like `sb-tactical`, it deals from the real decklists. | `bots/azredeal/azredeal.go:52` (`Env: true, Search: true`), `:66-70` (`Hosted`, `WorldRedeal`); `bots/azmcts/redeal.go:19-21` (`WorldRedeal`) |
+
+Two further points.
+
+- **The clairvoyant world exists, for benches only.** `azmcts.WorldClairvoyant` clones the real engine
+  (`bots/azmcts/redeal.go:14-18`), and `searchseat.Options.Clairvoyant` searches a clone of the actual engine
+  (`bots/searchseat/searchseat.go:149-153`). They are ceilings for measuring what hidden information is worth. The hosted
+  `az-redeal` leaves `SeatConfig.Source` nil, which `NewSeat` refuses for a clairvoyant world (`bots/azredeal/azredeal.go:16-18`,
+  `:64-65`), and a seat whose honest root is refused plays its fallback, never a clairvoyant one
+  (`bots/searchseat/honestroot.go:49-52`).
+- **A belief model exists, and the browser can use it.** `azmcts.WorldRedealClosed` closes the opponents' lists: their unknown
+  cards are dealt from a list drawn from a belief corpus (`bots/azmcts/redeal.go:22-28`;
+  `bots/azredeal/azredeal.go:100-105`, `ClosedFactory`). Such a seat declares `ClosedLists` and may sit against a person; the host
+  checks the declaration at match start (`server/host/closedlist.go:23-38`). gorge ships no trained network and no belief corpus, so
+  no registered bot uses it. A binary links one with `gorged.RegisterNetBot` (`server/gorged/netbots.go:76`). Net runtime details are
+  on [Search and bots on dirac](../architecture/dirac/search.md).
+
+## Cost and engines
+
+Costs are on [Bot speed](../performance/bots.md), measured 2026-10-31. The registry's own `Cost` field is a declared number, not a
+measurement, for every bot but `az-redeal` (`bots/bot/bot.go:14`, `bots/sbtactical/sbtactical.go:45-50`,
+`bots/azredeal/azredeal.go:47-52`). On dirac, `bot`, `lethal-pressure`, `forge-heuristic`, `forge-heuristic-hold` and, at a bot-only
+table, `sb-tactical` take a seat. Searching policies are refused because dirac deals no search roots
+(`server/host/table.go:340`, `engine/game/gorgegame/gorgegame.go:130`; [dirac server](../guide/dirac.md#what-it-refuses)). dirac's
+`hbot` is a port of `bot` and `sbt` runs gorge's `sb-tactical` through `dirac/oracle` (`dirac/cmd/dplay/game.go:20-21`).
+
+## Not registered
+
+`bots/searchseat` (a determinized rollout seat), `bots/searchprobe` (the sampler, redealer and belief) and the learned-policy
+runtime in `bots/policynet` are building blocks for benches, not registered policies. `bots/explain` is the per-decision note a match record
+carries, and `bots/sanity` is the guard `-bot-common-sense` wraps around a policy.
+

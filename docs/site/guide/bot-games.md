@@ -39,7 +39,7 @@ lethal-pressure	Lethal Pressure	experimental
 sb-tactical	sb-tactical (SpellBench tactical heuristic)	experimental
 ```
 
-[Bots](../bots/index.md#the-bots-gorge-ships) describes each one, with its formats and seats.
+[Bots](../bots/index.md) tabulates each one with its engines, cost and whether it is fair or clairvoyant; [Each bot in detail](../bots/catalogue.md) gives its formats and seats.
 
 `sb-tactical` and `az-redeal` are *environment* policies: they need a driver that supplies a rebuilt
 game to search or score. The matchup program below does, and `mtgsim` doesn't.

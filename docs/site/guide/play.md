@@ -255,7 +255,7 @@ what is supported.
 ## Bots at the table
 
 Every bot seat runs a registered **policy**, a named bot strategy
-([the list](../bots/index.md#the-bots-gorge-ships)). Policies run inside the `gorged` process,
+([the list](../bots/catalogue.md#the-six-registered-bots)). Policies run inside the `gorged` process,
 deterministically from the match seed.
 
 | Flag | Default | Meaning |
