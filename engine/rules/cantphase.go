@@ -34,6 +34,16 @@ type cantPhaseEngine interface {
 	staticSpecCtx(sv staticView) effects.SpecContext
 }
 
+// untapStepPhaseInText marks a PhaseOut Amount -1 the untap-step scan
+// (finishUntapStep) emitted for a candidate its pre-evaluation allowed. CR
+// 502.1 / 702.26a: the untap step's phase-ins are one simultaneous action, so
+// the CantPhaseIn block for the whole set was decided before the first
+// emission against the board as the step began; re-consulting it against the
+// moved board would let a source that just phased in hold back its siblings.
+// The marker rides the Text field like effects' "wont-phase-in-normal"; the
+// PhaseOut fold reads no other Text value.
+const untapStepPhaseInText = "untap-step-phase-in"
+
 // suppressPhaseEvent reports whether ev is a phase change a live CantPhaseIn
 // / CantPhaseOut forbids. Only a real change is consulted: a phase-out of a
 // phased-in battlefield permanent, a phase-in of a phased-out one.
@@ -48,6 +58,9 @@ func suppressPhaseEvent(e cantPhaseEngine, ev events.Event) bool {
 	in := ev.Amount < 0
 	if in != o.PhasedOut {
 		return false
+	}
+	if in && ev.Text == untapStepPhaseInText {
+		return false // decided for the whole simultaneous set already
 	}
 	return phaseBlocked(e, ev.Obj, in)
 }
