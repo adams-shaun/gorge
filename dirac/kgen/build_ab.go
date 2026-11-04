@@ -1941,6 +1941,8 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplCantBeCountered
 	case "DoesntUntap":
 		rp.Kind = kop.ReplDoesntUntap
+	case "MayNotUntap":
+		rp.Kind = kop.ReplMayNotUntap
 	case "OthersDoesntUntap":
 		rp.Kind = kop.ReplOthersDoesntUntap
 		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {

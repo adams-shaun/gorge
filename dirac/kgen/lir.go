@@ -799,7 +799,7 @@ type lOverride struct {
 
 // Replacement-lite kinds.
 type lRepl struct {
-	Kind string // EntersTapped, EntersWithCounters, CantBeCountered, DoesntUntap, EntersAsChoice, CantLoseGame, OthersEnterTapped, OthersEnterWithCounters
+	Kind string // EntersTapped, EntersWithCounters, CantBeCountered, DoesntUntap, MayNotUntap, EntersAsChoice, CantLoseGame, OthersEnterTapped, OthersEnterWithCounters
 	F    *lFilter
 	Cond lCond
 	N    lValue

@@ -855,6 +855,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					pc.hasStat = true
 				case kop.ReplGraveToLibrary:
 					g.replBits[i] |= rbGraveLib
+				case kop.ReplMayNotUntap:
+					g.untapRepl = true // the untap step runs untapStepGen, which asks (repl_untapchoice.go)
 				case kop.ReplOthersDoesntUntap:
 					g.untapRepl = true
 					pc.hasStat = true // scanned through statM
@@ -1407,6 +1409,15 @@ type genState struct {
 	embN [2][maxEmb]uint8  // the Effect's frozen SetChosenNumber$
 	nemb [2]uint8
 	nlA  [2]uint8 // locked permanents, object+1, compacted (act_lockpermanent.go; fills the padding before lki)
+	// the untap step suspended on a keep-tapped ask (repl_untapchoice.go):
+	// untapUp the slots untapped so far, untapNext the scan index of the
+	// asked permanent, untapSl its slot, untapAns its answer (0 unanswered,
+	// 1 untap, 2 keep tapped), untapOn the step being in progress
+	untapUp   slotMask
+	untapNext uint8
+	untapSl   Slot
+	untapAns  uint8
+	untapOn   bool
 
 	lki [maxLKI]lkiRec // the shared LKI pool (zone_lki.go)
 

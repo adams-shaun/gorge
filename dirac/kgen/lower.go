@@ -757,6 +757,10 @@ func plainQuality(f *lFilter) error {
 	return nil
 }
 
+// mayNotUntapKW is the keyword line of a permanent whose controller may
+// choose not to untap it (gorge engine/rules/untap.go hasUntapStepChoice).
+const mayNotUntapKW = "You may choose not to untap CARDNAME during your untap step."
+
 func (lc *lowerCtx) lowerKeywords() {
 	for _, k := range lc.face.Keywords {
 		head := cards.KeywordHead(k)
@@ -793,6 +797,10 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Cascade++
 		case head == "Devoid" && param == "":
 			// lowerRecord reads it (the face is colourless)
+		case strings.TrimSpace(k) == mayNotUntapKW:
+			// CR 502.3: gorge hasUntapStepChoice reads this bare line; the
+			// kernel's untap step asks the controller (repl_untapchoice.go)
+			lc.out.Repls = append(lc.out.Repls, lRepl{Kind: "MayNotUntap"})
 		case head == "Changeling" && param == "":
 			lc.out.Changeling = true
 		case strings.HasPrefix(k, "Protection from ") && protColourLetters[strings.TrimPrefix(k, "Protection from ")] != "":

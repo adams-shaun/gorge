@@ -106,6 +106,7 @@ const (
 	ChGenNumber                               // mode = the number chosen as a permanent enters (gorge's ETB "number" option, its value on Amount)
 	ChGenEnterDefender                        // source = the CR 508.4 defender an Attacking$ True entry attacks: PlayerTarget0+p a player, else the planeswalker/battle Obj (gorge's entering_defender, chooseEnteringDefender)
 	ChCostPutToLib                            // source = the card put from a graveyard on the bottom of its owner's library to pay a cost (gorge's puttolibcost; one pick per part, asked even with one candidate)
+	ChGenKeepTapped                           // source = a tapped permanent whose controller may keep it tapped; mode 0 = untap it, 1 = keep it tapped (gorge's untap-step KChoose "untap" / "keep_tapped", CR 502.3; repl_untapchoice.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);

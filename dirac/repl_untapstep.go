@@ -19,16 +19,24 @@ import (
 func (s *State) untapStepGen(k *prep) {
 	var ord [MaxPerm]Slot
 	n := s.battlefieldOrder(s.active, s.ctrlM[s.active], ord[:], 0)
-	// CR 502.3: gorge folds the sickness clearing into the StepChange event
-	// (apply_turn.go), before finishUntapStep scans.
-	for _, sl := range ord[:n] {
-		if p := &s.perms[sl]; p.flags&pfSick != 0 {
-			p.flags &^= pfSick
-			s.touchSl(sl)
+	from := 0
+	var up slotMask
+	if s.g.untapOn {
+		// resumed after a keep-tapped ask (repl_untapchoice.go): the scan
+		// goes on from the asked permanent
+		from, up = int(s.g.untapNext), s.g.untapUp
+	} else {
+		// CR 502.3: gorge folds the sickness clearing into the StepChange event
+		// (apply_turn.go), before finishUntapStep scans.
+		for _, sl := range ord[:n] {
+			if p := &s.perms[sl]; p.flags&pfSick != 0 {
+				p.flags &^= pfSick
+				s.touchSl(sl)
+			}
 		}
 	}
-	var up slotMask
-	for _, sl := range ord[:n] {
+	for i := from; i < n; i++ {
+		sl := ord[i]
 		p := &s.perms[sl]
 		f := p.flags
 		if p.flags&pfSkipUntap != 0 {
@@ -39,6 +47,19 @@ func (s *State) untapStepGen(k *prep) {
 		if p.flags&pfTapped != 0 && k.gen.anySkipUntap && s.skipsUntap(k, sl) {
 			// gorge's Effect replacement (Layer$ CantHappen): it stays tapped
 		} else if p.flags&pfTapped != 0 {
+			if k.cards[s.cardAt(sl)].mayNotUntap {
+				// CR 502.3: asked before the untap event meets any replacement
+				// (gorge finishUntapStep), and once per permanent
+				if s.g.untapAns == 0 {
+					s.untapAsk(i, sl, up)
+					return
+				}
+				keep := s.g.untapAns == 2
+				s.g.untapAns = 0
+				if keep {
+					continue
+				}
+			}
 			c := s.untapCands(k, sl)
 			if s.g.stalled != 0 {
 				return // more than the ask holds: the game stops here, not at the next ask
@@ -62,6 +83,7 @@ func (s *State) untapStepGen(k *prep) {
 			s.touchSl(sl)
 		}
 	}
+	s.g.untapOn = false
 	s.fireUntapsOrdered(k, up, &ord, n)
 	if k.gen.anyUntapOther {
 		s.untapOthers(k)
