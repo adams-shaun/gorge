@@ -154,6 +154,10 @@ type lowerCtx struct {
 	// granted > 0 while an ability or trigger another object is granted
 	// (an AddAbility$/AddTrigger$ SVar, an emblem's trigger) is lowered
 	granted int
+	// grantExile while the activated ability an Animate Abilities$ grants an
+	// exiled card is lowered (lower_exilegrant.go): the one place an
+	// ExileFromHand<1/Card> cost and a paid Play of Card.Self lower
+	grantExile bool
 	// grantAttached while the trigger an Equipment's or Aura's static grants
 	// its attached permanent is lowered (AffectedDefined$ Equipped/Enchanted)
 	grantAttached bool
@@ -1707,6 +1711,18 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				}
 			}
 			c.ExileG, c.ExileGN = f, n
+		case "ExileFromHand":
+			// ExileFromHand<1/Card[/description]> (gorge exAsk over the
+			// hand): one card of the payer's choice. Only the exile-granted
+			// ability's cost reads it (lc.grantExile; lower_exilegrant.go)
+			if !lc.grantExile || len(parts) < 2 || len(parts) > 3 || n != 1 || parts[1] != "Card" || c.ExileG != nil {
+				return c, refuse("cost token %q", t)
+			}
+			f, err := lc.filter("Card")
+			if err != nil {
+				return c, err
+			}
+			c.ExileG, c.ExileGN, c.ExileHand = f, n, true
 		case "PutCardToLibFromGrave":
 			if err := putLibSelfCost(&c, parts, n, t); err != nil {
 				return c, err
