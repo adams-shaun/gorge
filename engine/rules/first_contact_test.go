@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -29,8 +30,9 @@ func TestFirstContactGorge(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	fc := lookup(t, reg, "First Contact")
 	filler := card(t, firstContactFillerSrc)
+	twincast := lookup(t, reg, "Twincast")
 	setup := func(t *testing.T) (*Engine, Config) {
-		return corpusEngineCfg(t, reg, []*cards.Card{fc, fc, filler, filler}, nil)
+		return corpusEngineCfg(t, reg, []*cards.Card{fc, fc, filler, filler, twincast}, nil)
 	}
 	hand := func(t *testing.T, e *Engine, name, mana string) {
 		t.Helper()
@@ -85,6 +87,51 @@ func TestFirstContactGorge(t *testing.T) {
 			t.Fatalf("first-cast spell with a response life change = %d, want +2", got)
 		}
 		replayCheck(t, e, cfg)
+	})
+	// A copy of the spell resolves against the stored value its original's cast
+	// wrote (Forge copies the card's SVars): a copy of a first-cast First
+	// Contact gains too, a copy of a later one does not. Twincast is the second
+	// spell in both, so the original is first only when Twincast is cast after
+	// it.
+	copyCase := func(t *testing.T, earlier bool) int32 {
+		e, _ := setup(t)
+		if earlier {
+			hand(t, e, "Test Filler Instant", "R")
+			castNamed(t, e, "Test Filler Instant")
+			drainFirstContact(t, e)
+		}
+		hand(t, e, "First Contact", "1G")
+		moveByName(t, e, 0, "Twincast", state.ZHand)
+		addMana(t, e, 0, "UU")
+		fcID := findInHand(e, 0, "First Contact")
+		before := lifeOf(t, e, 0)
+		castNamed(t, e, "First Contact")
+		castNamed(t, e, "Twincast")
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KTarget {
+			t.Fatalf("Twincast asked no target: %+v", d)
+		}
+		for _, o := range d.Options {
+			if o.Obj == fcID {
+				chooseIdx(t, e, o.Index)
+			}
+		}
+		drainFirstContact(t, e)
+		copies := countEvents(e, func(ev events.Event) bool { return ev.Kind == events.StackCopy })
+		if copies != 1 {
+			t.Fatalf("StackCopy events = %d, want 1 (the copy resolved)", copies)
+		}
+		return lifeOf(t, e, 0) - before
+	}
+	t.Run("a copy of the first spell gains with it", func(t *testing.T) {
+		if got := copyCase(t, false); got != 4 {
+			t.Fatalf("original and copy life change = %d, want +4", got)
+		}
+	})
+	t.Run("a copy of a later spell gains nothing", func(t *testing.T) {
+		if got := copyCase(t, true); got != 0 {
+			t.Fatalf("original and copy life change = %d, want 0", got)
+		}
 	})
 	t.Run("the opponent's casts are not yours", func(t *testing.T) {
 		e, _ := setup(t)

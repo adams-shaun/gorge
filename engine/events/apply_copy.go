@@ -6,6 +6,7 @@
 package events
 
 import (
+	"maps"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -124,6 +125,11 @@ func foldStackCopy(g *state.Game, e *Event) {
 	// A copy resolves the same compiled SA, so it reads the same owning face.
 	abilityFace, gainedFrom := src.AbilityFace, src.GainedFrom
 	copyNonLegendary := src.CopyNonLegendary
+	// A copy of a spell copies the card as it stands, and with it the runtime
+	// SVars its cast wrote (Forge copies the host card's SVars): First
+	// Contact's cast-time Count$YouCastThisGame store is read by the copy as
+	// the original's. Deep-copied so the two stay independent.
+	runtimeSVars := maps.Clone(src.RuntimeSVars)
 	copyLoyalty, copyLoyaltySet := src.CopyLoyalty, src.CopyLoyaltySet
 	// The copy inherits the original's CastFlags -- a copy of a fused,
 	// bestowed or kicked spell resolves as one -- EXCEPT the cast
@@ -200,6 +206,7 @@ func foldStackCopy(g *state.Game, e *Event) {
 	o.SetFaceIdx(faceIdx)
 	o.Intensity = intensity
 	o.Ability, o.Source = ability, source
+	o.RuntimeSVars = runtimeSVars
 	o.CastBattlefield = castBattlefield
 	o.StackKind, o.StackKindKnown = stackKind, stackKindKnown
 	o.AbilityFace, o.GainedFrom = abilityFace, gainedFrom
