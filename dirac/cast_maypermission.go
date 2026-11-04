@@ -127,6 +127,27 @@ func (s *State) offerMayKind(k *prep, d *Decision, p uint8, r mayPlay, sorc, lan
 //
 //go:noinline
 func (s *State) spendMayKind(k *prep, o Obj, p uint8, mode uint8) bool {
+	i := s.mayKindAt(k, o, p, mode)
+	if i < 0 {
+		return false
+	}
+	r := s.g.may[i]
+	if r.kind&kop.MayPlayAnyType != 0 {
+		s.bld().e.flags |= sfAnyMana
+	} else if r.kind&kop.MayPlayIgnoreColor != 0 {
+		s.bld().bfl |= bflAnyColor
+	}
+	if r.kind&mayKindRaise != 0 {
+		s.g.raiseB = uint8(r.turn) // the cast's surcharge (cast_whileexiled.go)
+	}
+	s.removeMay(i)
+	return true
+}
+
+// mayKindAt is the index of the permission record spendMayKind spends for a
+// cast of o by p in mode, -1 for none: the first record of the card that
+// carries a kind rider (free only for a free cast) and is not spent.
+func (s *State) mayKindAt(k *prep, o Obj, p uint8, mode uint8) int {
 	free := mode&castFree != 0
 	for i := 0; i < int(s.g.nmay); i++ {
 		r := s.g.may[i]
@@ -141,18 +162,23 @@ func (s *State) spendMayKind(k *prep, o Obj, p uint8, mode uint8) bool {
 			// exists the caller's fallback spends a plain record.
 			continue
 		}
-		if r.kind&kop.MayPlayAnyType != 0 {
-			s.bld().e.flags |= sfAnyMana
-		} else if r.kind&kop.MayPlayIgnoreColor != 0 {
-			s.bld().bfl |= bflAnyColor
-		}
-		if r.kind&mayKindRaise != 0 {
-			s.g.raiseB = uint8(r.turn) // the cast's surcharge (cast_whileexiled.go)
-		}
-		s.removeMay(i)
-		return true
+		return i
 	}
-	return false
+	return -1
+}
+
+// mayRaiseOwed is the may-play surcharge the cast a (before it is built) will
+// owe: the raise of the record spendMayKind will spend, 0 for none. The
+// prefix searches price the play with it (grantPlayCost), as the cast does.
+func (s *State) mayRaiseOwed(k *prep, p uint8, a Action) uint8 {
+	if !isCastKind(a.Kind()) || a.Mode()&castMayPlay == 0 || k.gen == nil || !k.gen.anyMayKind || s.g.nmay == 0 {
+		return 0
+	}
+	i := s.mayKindAt(k, Obj(a.Source()), p, a.Mode())
+	if i < 0 || s.g.may[i].kind&mayKindRaise == 0 {
+		return 0
+	}
+	return uint8(s.g.may[i].turn)
 }
 
 // mayPlayAnyType reports whether a permission lets p spend mana of any type on the

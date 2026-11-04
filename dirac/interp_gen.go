@@ -1908,7 +1908,16 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 		// step and does nothing (gorge scheduleAtEOTNone)
 		s.delayEmpty(e)
 	}
-	return s.copyTokens(k, in, c, s.replTokens(k, e.ctrl, c, v))
+	tc, n, rewritten, ok := s.copyTokenRewrite(k, in, e.ctrl, c, v)
+	if !ok {
+		return false // StallTokRewrite
+	}
+	if rewritten {
+		// a CreateToken rewriter replaced the copy mints (repl_tokrewrite.go)
+		s.mintRewritten(k, e.ctrl, tc, n)
+		return false
+	}
+	return s.copyTokens(k, in, c, n)
 }
 
 // copyTokens creates n token copies of card c for the resolving entry's
