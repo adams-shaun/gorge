@@ -67,7 +67,9 @@ func (s *State) altAddPipsFirst(k *prep) bool {
 // A restricted source this payment may spend leaves its window census incomplete,
 // and with any source untapped the target menu keeps its candidates
 // (affordableTargetCandidates): the cast reverses in the window, after the target
-// is chosen.
+// is chosen. Only the mana can wait for the window: a part whose other costs
+// can't be paid (Bitter Triumph's discard as the last card in hand) empties the
+// menu, so the cast reverses at once.
 func (s *State) altAddOpenTargets(k *prep) bool {
 	e := &s.bld().e
 	if e.kind != seSpell || k.gen == nil || !s.requiredTarget(k) {
@@ -76,7 +78,7 @@ func (s *State) altAddOpenTargets(k *prep) bool {
 	if k.t.Cards[e.card].Cost.Hyb[0] != 0 {
 		return true // the pip ask comes first, then the menu (altAddTargetAbort)
 	}
-	return s.altAddWindowOpen(k, e)
+	return s.altAddPickPayable(k, s.bld().altAdd) && s.altAddWindowOpen(k, e)
 }
 
 // altAddWindowOpen: the window census is incomplete and a source is left to tap.
@@ -98,7 +100,7 @@ func (s *State) altAddWindowOpen(k *prep, e *stackEntry) bool {
 func (s *State) altAddTargetAbort(k *prep) bool {
 	b := s.bld()
 	return b.altAdd == 1 && b.pipN != 0 && b.e.kind == seSpell && k.gen != nil && k.t.Cards[b.e.card].HasAltAdd &&
-		!s.altAddPayable(k, 1) && !s.altAddWindowOpen(k, &b.e)
+		!s.altAddPayable(k, 1) && (!s.altAddPickPayable(k, 1) || !s.altAddWindowOpen(k, &b.e))
 }
 
 // loweredPipWindow pays a lowered hybrid cast's pips through the window before its
