@@ -159,7 +159,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.55c | not-impl | - | - | The Valeyard inert |
 | 701.55d | partial | `engine/effects/context.go#definedSpec` | - | order from controller, not AP |
 | 701.56a | partial | `engine/effects/time_travel.go#timeTravelObjects` | - | misses granted-suspend; offers 0-counter cards |
-| 701.57a | deviates | `engine/effects/discover.go#effDiscover` | `TestCR70157DiscoverRandomBottomOrder` | bottom order not random (known) |
+| 701.57a | deviates | `engine/effects/discover.go#effDiscover` `engine/effects/discover.go#withoutCaptured` | `TestCR70157DiscoverRandomBottomOrder` `TestDiscoverOffersTheFoundCardItsTriggerCaptured` | bottom order not random (known); the found card is offered even when the trigger captured it as an earlier object (CR 400.7) |
 | 701.57b-c | follows | `engine/effects/discover.go#effDiscover` `engine/effects/discover.go#effDiscoverBottom` | `TestDiscoverExilesUntilCastableCardAndOffersItFree` |  |
 | 701.58a,e | follows | `engine/effects/zone_manifest.go#effCloak` `engine/rules/chars/derive.go#BaseKeywords` | - |  |
 | 701.58b-d | not-impl | - | - | no turn-face-up |
