@@ -1443,21 +1443,22 @@ type genState struct {
 		sl Slot
 		m  uint8
 	} // per restricted charm source: m bits 0-3 picked modes, bit 7 ThisGame scope (modal_charmpick.go)
-	nchPick    uint8    // entries of chPick in use
-	trigTurn   uint16   // triggered abilities resolved this turn (StallLoop)
-	dilemmas   [2]uint8 // the dilemmas each player faced this turn (trig_dilemma.go)
-	on         bool     // the State plays a generated table
-	tapBatch   uint8    // trig_tapall.go: the open tap batch's first pending index + 1 (0 = none)
-	batchLatch uint8    // trig_oneormore.go: bit 7 a leave to a graveyard is being checked; bits 0-4 the open batch's first pending index + 1 (0 = none). Was pendOver (unused), so State is unchanged
-	tyM        slotMask // slots whose perm.gty holds override-derived types (ovGenTy)
-	stalled    uint8    // why the game was stopped at the kernel's capacity (a draw); 0 = it wasn't
-	noTgtRed   bool     // cost computation without target-dependent reductions
-	mayPlayAny bool     // the may-play cast being priced is under the any-type rider
-	probe      probe    // the spell / ability a priority feasibility check is for
-	tgtSelf    uint8    // the graveyard card a feasibility check is for, plus one (0: none): it leaves the graveyard for the stack when cast, so it is no target of its own cast
-	inLoop     bool     // executing one object of a multi-object target slot
-	each       eachSusp // an each-target loop parked on a copy token's as-enters ask (copy_eachtarget.go)
-	mt         multiTgt // the multi-object target slot being chosen
+	nchPick    uint8     // entries of chPick in use
+	trigTurn   uint16    // triggered abilities resolved this turn (StallLoop)
+	dilemmas   [2]uint8  // the dilemmas each player faced this turn (trig_dilemma.go)
+	on         bool      // the State plays a generated table
+	tapBatch   uint8     // trig_tapall.go: the open tap batch's first pending index + 1 (0 = none)
+	batchLatch uint8     // trig_oneormore.go: bit 7 a leave to a graveyard is being checked; bits 0-4 the open batch's first pending index + 1 (0 = none). Was pendOver (unused), so State is unchanged
+	tyM        slotMask  // slots whose perm.gty holds override-derived types (ovGenTy)
+	stalled    uint8     // why the game was stopped at the kernel's capacity (a draw); 0 = it wasn't
+	noTgtRed   bool      // cost computation without target-dependent reductions
+	mayPlayAny bool      // the may-play cast being priced is under the any-type rider
+	probe      probe     // the spell / ability a priority feasibility check is for
+	tgtSelf    uint8     // the graveyard card a feasibility check is for, plus one (0: none): it leaves the graveyard for the stack when cast, so it is no target of its own cast
+	inLoop     bool      // executing one object of a multi-object target slot
+	each       eachSusp  // an each-target loop parked on a copy token's as-enters ask (copy_eachtarget.go)
+	sweep      sweepSusp // a copy-all sweep parked on a copy's as-enters ask (copy_allpark.go)
+	mt         multiTgt  // the multi-object target slot being chosen
 	lastCK     kop.CounterKind
 	disc       Obj      // the card being discarded (TrigDiscarded)
 	nlB        [2]uint8 // locked permanents 3 and 4 (nlA; fills the padding before kicked)

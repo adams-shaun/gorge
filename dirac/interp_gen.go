@@ -1899,22 +1899,14 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 			s.stall(StallBoard)
 			return false
 		}
-		host := NoSlot
-		if aura {
-			var buf [MaxOptions]uint8
-			switch s.enchantCands(k, c, e.ctrl, &buf) {
-			case 0:
-				continue // CR 303.4g: the Aura token isn't created
-			case 1:
-				host = s.objs[buf[0]].slot
-			default:
-				t := s.newToken(c, e.ctrl)
-				s.objs[t].of |= ofCopy | ofPending
-				s.res.lastTok = t
-				s.g.pickLeft = uint8(n - i - 1)
-				s.res.ask, s.res.askP = raGenEnchant, e.ctrl
-				return true
-			}
+		host, st := s.auraHostFor(k, c, e.ctrl, aura)
+		switch st {
+		case hostNone:
+			continue // CR 303.4g: the Aura token isn't created
+		case hostAsk:
+			s.parkCopy(c, e.ctrl, raGenEnchant)
+			s.g.pickLeft = uint8(n - i - 1)
+			return true
 		}
 		kind := s.enterChoiceKind(k, c)
 		if kind == 0 && k.gen.anyBecomeCopy {
@@ -1924,12 +1916,9 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 			// an as-enters choice (Heraldic Banner's colour): gorge's
 			// minted token waits outside every zone (zone 0) for it, as a
 			// permanent spell does on the stack (preEnterAsk)
-			t := s.newToken(c, e.ctrl)
-			s.objs[t].of |= ofCopy | ofPending
-			s.res.lastTok = t
+			t := s.parkCopy(c, e.ctrl, raGenTokChoice)
 			s.g.pickLeft = uint8(n - i - 1)
 			s.g.pre = preAsk{obj: t, kind: kind}
-			s.res.ask, s.res.askP = raGenTokChoice, e.ctrl
 			return true
 		}
 		t := s.newToken(c, e.ctrl)
