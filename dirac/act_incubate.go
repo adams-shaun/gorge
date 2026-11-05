@@ -30,13 +30,16 @@ func (s *State) incubate(k *prep, in *kop.Instr) {
 		p = s.res.e.ctrl
 	}
 	for ; times > 0; times-- {
-		t := s.replTokens(k, p, CardID(in.C), 1)
+		tc, t, ok := s.replTokensCard(k, p, CardID(in.C), 1) // a rewriter's card (repl_tokrewrite.go)
+		if !ok {
+			return
+		}
 		for i := 0; i < t; i++ {
 			if s.nearCapacity(k) {
 				s.stall(StallBoard)
 				return
 			}
-			o := s.newToken(CardID(in.C), p)
+			o := s.newToken(tc, p)
 			if n > 0 {
 				// the Incubator enters with its counters (gorge
 				// entryWithCounters, CR 122.6, 614.1c): the staged entry

@@ -771,77 +771,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			return false, true
 		}
 	case kop.OpCreateToken, kop.OpCreateTokenEx:
-		in := in // a rewriter swaps the card on this copy
-		p := s.playerRef(k, in.Obj)
-		if p == 255 {
-			p = e.ctrl
-		}
-		if in.Op == kop.OpCreateTokenEx && s.tokenDefenderAsk(k, in, p) {
-			return false, true // the CR 508.4 defender ask (filter_combatwords.go)
-		}
-		tc, n, ok := s.replTokensCard(k, p, CardID(in.C), s.value(k, in.A))
-		if !ok {
-			return true, true // StallTokRewrite
-		}
-		if tc != CardID(in.C) {
-			if in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokAttach != 0 {
-				// a Role mint rewritten: gorge mints the rewriter's card as a plain
-				// script mint (not an Aura, so nothing is withheld); the attach path
-				// would look for a host for the non-Aura card (repl_tokrewrite.go)
-				s.capFull(StallTokRewrite)
-				return true, true
-			}
-			rw := *in // a rewriter: the mint makes its card (repl_tokrewrite.go)
-			rw.C = int16(tc)
-			in = &rw
-		}
-		if in.Op == kop.OpCreateTokenEx {
-			s.g.tokMade = 0
-			if in.B.N&kop.TokAttach != 0 {
-				if ok, done := s.createAttachedToken(k, in, p, n); done {
-					return ok, true
-				}
-			}
-		}
-		if n > 1 {
-			if s.createTokensHeld(k, in, p, n) {
-				return true, true
-			}
-			s.g.tokDefSet = false
-			break
-		}
-		for i := 0; i < n; i++ {
-			if s.nearCapacity(k) {
-				s.stall(StallBoard)
-				return true, true
-			}
-			o := s.newToken(CardID(in.C), p)
-			tapped := in.B.N&kop.TrTapped != 0
-			if in.Op == kop.OpCreateTokenEx {
-				tapped = in.B.N&kop.TokTapped != 0
-				s.g.tokMade++
-				if in.B.N&kop.TokRememberObj != 0 {
-					s.remember(o)
-				}
-			}
-			sl := s.enter(k, o, p, tapped, kop.ZoneLibrary)
-			if in.Op == kop.OpCreateTokenEx && in.B.N&(kop.TokSacAtEnd|kop.TokExileAtEnd) != 0 {
-				s.tokenAtEOT(in, o)
-			}
-			if in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokAttacking != 0 {
-				s.tokenAttacks(k, sl, p) // filter_combatwords.go
-			}
-			if k.gen.anyTokCr {
-				s.fireTokenCreated(k, sl)
-			}
-			if in.Op == kop.OpCreateToken && in.B.N&kop.TrHasteEOT != 0 {
-				s.perms[sl].eotKw |= kop.KwHaste
-				s.touchSl(sl)
-				s.promoKw(k, sl, kop.KwHaste)
-			}
-			s.res.lastTok = o
-		}
-		s.g.tokDefSet = false
+		return s.execCreateToken(k, in)
 	case kop.OpEndTurn:
 		s.endTurnExile()
 		e.flags |= sfFlashback // exiled, not put into the graveyard
