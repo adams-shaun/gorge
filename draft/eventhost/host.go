@@ -416,7 +416,11 @@ func (h *Host) CreateEvent(req protocol.CreateEventRequest) (protocol.CreateEven
 			ms.TokenSHA256 = hex.EncodeToString(sum[:])
 			invites = append(invites, protocol.EventInvite{Seat: s, Token: tok})
 		case "bot":
-			policy, perr := h.botPolicy(cs.Policy)
+			name := cs.Policy
+			if name == "" {
+				name = h.opts.DefaultPolicy
+			}
+			policy, perr := h.botPolicy(name)
 			if perr != nil {
 				h.mu.Unlock()
 				return protocol.CreateEventResponse{}, perr

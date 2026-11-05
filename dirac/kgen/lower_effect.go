@@ -2219,12 +2219,19 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 		if obj.Kind != rTarget {
 			return refuse("divided damage without targets")
 		}
-		if !dv.isConst() {
-			// Targets[].Divided and Divide are literal totals; a count
-			// (Ureni's lands) read as dv.N would divide 0
-			return refuse("divided over a value total")
+		if dv.isConst() {
+			lc.ab.Targets[obj.N].Divided = dv.N
+		} else if sameValue(dv, lc.ab.Targets[obj.N].Max) {
+			// A value total (Ureni's land count) is read where the ability is
+			// put on the stack, exactly where gorge's divisionTotalFor reads
+			// DividedAsYouChoose$ (CR 601.2d, 603.3d). The slot's TargetMax$
+			// must be that same value: gorge clamps a divided slot's target
+			// count to the announced total, and the kernel does not.
+			lc.ab.Targets[obj.N].Divided = kop.DivValue
+			lc.ab.Targets[obj.N].DividedV = dv
+		} else {
+			return refuse("divided over a value total that is not TargetMax$")
 		}
-		lc.ab.Targets[obj.N].Divided = dv.N
 		in.Op = "DealDamageDivided"
 	}
 	if ps.is("DamageMap", "True") {

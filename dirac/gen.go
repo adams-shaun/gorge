@@ -731,7 +731,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.HasBestow {
 			g.anyBestow = true
 		}
-		if c.OptCost.Flags != 0 || c.OptBehold {
+		if c.OptCost.Flags != 0 || c.OptBehold || c.OptWaterbend != 0 {
 			g.anyOptCost = true
 		}
 		if c.KickerCost.Flags != 0 {
@@ -1190,7 +1190,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.exwRec[f] |= bits
 		}
 	}
-	anyTaps, manaGrant := false, false
+	anyTaps, manaGrant, manaTapsPrinted := false, false, false
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
@@ -1206,9 +1206,15 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				g.anyGameOnce = true
 			}
 			manaGrant = manaGrant || a.Kind == kop.AbMana && a.AFlags&kop.AfLatent != 0
+			// A printed mana ability whose activation cost taps ({T}: Add …,
+			// tap X creatures for mana) is a mana tap the TrigTaps lines must
+			// fire on; without this the gate prices only granted mana and
+			// ordinary sources, so Hawkeye's Bow never triggers on a planned
+			// tap for a cast.
+			manaTapsPrinted = manaTapsPrinted || a.Kind == kop.AbMana && a.Cost.Flags&(kop.CostTap|kop.CostTapX) != 0
 		}
 	}
-	g.manaTaps = anyTaps && (manaGrant || g.anyTapAll)
+	g.manaTaps = anyTaps && (manaGrant || manaTapsPrinted || g.anyTapAll)
 	for i := range t.Emblems {
 		for j := range t.Emblems[i].Abilities {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatNoMaxHandSize {

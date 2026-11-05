@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -201,6 +202,12 @@ type lValue struct {
 }
 
 func cst(n int) lValue { return lValue{Kind: vConst, N: n} }
+
+// sameValue reports whether a and b lower to the same amount. It is the
+// divided-total check: gorge's target ask clamps a divided slot's target count
+// to the announced total, so only a slot whose TargetMax$ is the divided
+// total's own value reads exactly (Ureni's TargetMax$ X / DividedAsYouChoose$ X).
+func sameValue(a, b lValue) bool { return reflect.DeepEqual(a, b) }
 
 func (v lValue) isConst() bool {
 	return v.Kind == vConst && v.Mul == 0 && v.Div == 0 && v.Add == 0 && !v.Neg
@@ -416,11 +423,16 @@ type lTarget struct {
 	DistinctName bool // TargetsWithDifferentNames$: no two chosen cards share a name
 	MaxMV        int  // MaxTotalTargetCMC$ N + 1 (0 = no cap): the chosen cards' total mana value is at most N
 	Divided      int  // damage divided as the controller chooses among the chosen
-	LKIDiv       bool // 0..X targets and X divided counters, X the triggering source's last-known +1/+1 counters (kop.DivLKIP1P1)
-	Spell        bool // a spell on the stack
-	StackAb      bool // with Spell: an activated or triggered ability on the stack too (TgtStackObj)
-	AbOnly       bool // with StackAb: abilities only, no spell (TgtStackAb)
-	TrigOnly     bool // with StackAb: triggered abilities only beside the spells (TgtStackObjTrig)
+
+	// DividedV: with Divided == kop.DivValue, the divided total, evaluated
+	// where the spell or ability is put on the stack (gorge divisionTotalFor).
+	DividedV lValue
+
+	LKIDiv   bool // 0..X targets and X divided counters, X the triggering source's last-known +1/+1 counters (kop.DivLKIP1P1)
+	Spell    bool // a spell on the stack
+	StackAb  bool // with Spell: an activated or triggered ability on the stack too (TgtStackObj)
+	AbOnly   bool // with StackAb: abilities only, no spell (TgtStackAb)
+	TrigOnly bool // with StackAb: triggered abilities only beside the spells (TgtStackObjTrig)
 	// VTgt: with Spell, TargetValidTargeting$: a spell whose own object targets
 	// include a battlefield object matching it (TgtSpellTgting)
 	VTgt *lFilter
@@ -884,6 +896,7 @@ type lCard struct {
 	Sneak          *manaCost // K:Sneak:<cost> (CR 702.190a): the declare-blockers alternative cost (plus the return)
 	WebSling       *manaCost // K:Web-slinging:<cost> (CR 702.188a): the hand's alternative cost (plus returning a tapped creature)
 	MayFlash       *manaCost // K:MayFlashCost:<cost> (CR 702.8): the extra mana that buys an instant-timing cast from the hand
+	MayFlashBehold *lFilter  // K:MayFlashCost:Behold<1/Type>: the extra is beholding one of these, no mana (MayFlash is empty)
 	Evoke          *manaCost // K:Evoke:<cost> (CR 702.74a): the hand's alternative cost; the permanent is sacrificed as it enters
 	Bestow         *manaCost // K:Bestow:<cost> (CR 702.103a): the hand's alternative cost of the Aura cast
 	BestowT        *lTarget  // the bestowed Aura's enchant creature target (gorge bestowedAttachSA)
@@ -901,6 +914,7 @@ type lCard struct {
 	Offspring      *manaCost // K:Offspring:<cost> (CR 702.175): the kernel's kicked cast and Kicker cost, CardDef.Offspring
 	Casualty       int       // printed K:Casualty:<N> (CR 702.153a, fixed N >= 1), CardDef.Casualty
 	Bargain        bool      // printed K:Bargain (CR 702.166), CardDef.Bargain
+	Storm          bool      // printed K:Storm (CR 702.40a), CardDef.Storm: the kernel's own native cast trigger (dirac/kw_storm.go)
 	BeholdN        int       // RaiseCost Cost$ BeholdExile<1/Type> (the Lorwyn Champions): behold one permanent or hand card of BeholdF and exile it (lower_beholdexile.go)
 	BeholdF        *lFilter
 	BeholdExile    bool

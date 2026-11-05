@@ -115,7 +115,10 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		}
 	}
 	n0 := s.npend
-	if fl&sfKicked != 0 && k.t.Cards[c].Cost.X == 0 {
+	if fl&sfKicked != 0 && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
+		// (an optional waterbend cast taps nothing here: its window pays after
+		// the picks, manaStep's waterbendCastWindow, as gorge's convokeAsk
+		// precedes its manual window)
 		// gorge has no planned kicked cast: the oracle lowers it by tapping
 		// the witness's sources at priority, then casts from the floating
 		// pool; the mana is spent at payment as usual. The witness is
@@ -486,7 +489,7 @@ func (s *State) buildCostPreRaw(k *prep, pre bool) (kop.ManaCost, bool) {
 	}
 	if k.gen != nil {
 		if c, done, ok := s.buildCostGenPre(k, pre); ok {
-			if k.gen.anyWaterbend && k.t.Cards[s.bld().e.card].SpellWaterbend != 0 {
+			if k.gen.anyWaterbend && spellWaterbends(k, s.bld().e.card) {
 				c = s.waterbendApplyPicks(c) // a spell's own waterbend (act_waterbend.go)
 			}
 			return c, done
@@ -545,7 +548,7 @@ func (s *State) buildCostPreRaw(k *prep, pre bool) (kop.ManaCost, bool) {
 		if s.statM.any() || k.gen != nil {
 			c = s.adjustCost(k, e.ctrl, e.card, e.obj, c)
 		}
-		if k.gen != nil && k.gen.anyWaterbend && cd.SpellWaterbend != 0 {
+		if k.gen != nil && k.gen.anyWaterbend && spellWaterbends(k, e.card) {
 			c = s.waterbendApplyPicks(c) // a spell's own waterbend (act_waterbend.go)
 		}
 		return c, done
@@ -713,15 +716,15 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				// + 1 + what the window's sources make (it raises the bound for
 				// a reduction only in the named-count case): a CR 601.2f
 				// reduction past it is not offered (GORGE-FINDINGS.md "X ceiling")
-				mx = min(mx, av.total+s.filtBoundExtra(k, e.ctrl)+int(s.pl[e.ctrl&1].graveN)+s.convokePickN()+1)
+				mx = min(mx, av.total+s.filtBoundExtra(k, e.ctrl)+int(s.pl[e.ctrl&1].graveN)+s.convokeXCredit(k)+1)
 			}
 			if k.gen != nil && k.gen.anyLifeX {
 				mx = s.lifeXClamp(k, &cost, mx) // PayLife<X> bounds the ask by life
 			}
 			d.Kind, d.Sub, d.Player = DkChoose, ChX, e.ctrl
 			hi := s.xReducedCeiling(k, e, &cost, &av, mx)
-			if np := s.convokePickCount(); np > 0 {
-				hi = min(maxXAsk, max(hi, mx+np)) // each announced pick pays one generic of the X total
+			if np := s.convokeXCredit(k); np > 0 {
+				hi = min(maxXAsk, max(hi, mx+np)) // each announced pick pays one generic (a harmonize pick its power) of the X total
 			}
 			s.addXOptions(k, d, e, mx, hi, &av)
 			s.bld().stage = bsX | 0x80 // awaiting X

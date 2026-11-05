@@ -40,16 +40,18 @@ const potentialScriptNodes = 160 // gorge rules/potential_script.go
 const relaxedPaidLimit = 3
 
 // filterTapMana: a, a mana ability of cd, is a filter the kernel models:
-// {N}, {T} (generic N only), one mana of any colour or a dynamic amount of
-// one colour (Three Tree City's {2},{T}), no other cost or restriction, on a
-// card whose first mana ability is a free {T} one. A filter that is the card's
-// first mana ability (Three Tree Mascot's untapped {1}, Prophetic Prism) is
-// kop.FilterManaAb's (mana_filterfirst.go).
+// {N}, {T} (generic N only), one mana of any colour, a dynamic amount of
+// one colour (Three Tree City's {2},{T}), or a literal amount above one in
+// any combination (Baxter Building's {4},{T}: four mana, a Combo Any
+// allocation; mana_filter.go's filtCombo), no other cost or restriction, on
+// a card whose first mana ability is a free {T} one. A filter that is the
+// card's first mana ability (Three Tree Mascot's untapped {1}, Prophetic
+// Prism) is kop.FilterManaAb's (mana_filterfirst.go).
 func filterTapMana(cd *kop.CardDef, a *kop.Ability) bool {
 	m := &a.Cost.Mana
-	if a.Kind != kop.AbMana || a.AFlags&^kop.AfManaDynamic != 0 || a.ManaRestrict != 0 || a.Cost.Flags != kop.CostTap ||
+	if a.Kind != kop.AbMana || a.AFlags&^(kop.AfManaDynamic|kop.AfManaChoice) != 0 || a.ManaRestrict != 0 || a.Cost.Flags != kop.CostTap ||
 		m.Generic == 0 || m.X != 0 || m.Hyb[0] != 0 || m.Pips != ([kop.NumManaKinds]uint8{}) ||
-		a.ManaColors != kop.ColAny || a.ManaN > 1 {
+		a.ManaColors != kop.ColAny || a.ManaN == 0 || a.ManaN > 1 && (a.AFlags&kop.AfManaChoice == 0 || !comboFiltAb(a)) {
 		return false
 	}
 	f := firstManaAb(cd)
@@ -58,6 +60,13 @@ func filterTapMana(cd *kop.CardDef, a *kop.Ability) bool {
 	}
 	fa := &cd.Abilities[f]
 	return fa.Cost.Flags == kop.CostTap && fa.Cost.Mana.MV() == 0 && fa.Cost.Mana.X == 0 && fa.AFlags == 0 && fa.ManaRestrict == 0
+}
+
+// comboFiltAb reports whether a produces its literal amount of mana as a
+// combination (Produced$ Combo Any | Amount$ 4), so one activation makes
+// Ab.ManaN mana split over any of the five colours.
+func comboFiltAb(a *kop.Ability) bool {
+	return a.AFlags&kop.AfManaChoice != 0 && a.ManaColors == kop.ColAny && a.ManaN > 1
 }
 
 // scriptFilt: p's activatable filter sources (untapped), a slot mask.
@@ -106,8 +115,12 @@ func (s *State) filtFee(k *prep, sl Slot) int {
 
 // filtUnits is the mana the filter at sl makes.
 func (s *State) filtUnits(k *prep, sl Slot) int {
-	if a := s.filtAb(k, sl); a.AFlags&kop.AfManaDynamic != 0 {
+	a := s.filtAb(k, sl)
+	if a.AFlags&kop.AfManaDynamic != 0 {
 		return s.dynManaN(k, a, sl)
+	}
+	if comboFiltAb(a) {
+		return int(a.ManaN)
 	}
 	return 1
 }
@@ -405,6 +418,10 @@ type filtStep struct {
 	sl  Slot
 	ans uint8
 	gap bool
+	// alloc: a combination filter's production (Baxter Building: four mana
+	// in any combination), one count per W U B R G slot. It replaces ans's
+	// single colour; the step is still a gap activation (ans > 0).
+	alloc [kop.NumManaKinds]uint8
 	// restr: a funding source's answer is its restricted ability's mana
 	// (ans its colour): gorge's activation ask lists the restricted
 	// ability beside the census one, and the search reads no restriction
@@ -547,6 +564,20 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		}
 		if k.artMana {
 			s.artSync(p) // a slot the fee emptied no longer holds an artifact's mana
+		}
+		if st.alloc != ([kop.NumManaKinds]uint8{}) {
+			// a combination filter: its allocation, each colour registered
+			// as the tap's (Baxter Building). It taps a land, so a live
+			// tap-extra must stall like every other filter activation's.
+			for c, n := range st.alloc {
+				if n == 0 {
+					continue
+				}
+				pl.pool[c] += n
+				s.artTag(k, p, st.sl, c)
+			}
+			s.tapExtraStall(k, st.sl)
+			break
 		}
 		pl.pool[st.ans-1] += uint8(s.filtUnits(k, st.sl))
 		s.tapExtraStall(k, st.sl)
@@ -787,10 +818,14 @@ func (fs *filtSearch) settle(k *prep, t *State, funded int, gapUsed bool) bool {
 
 // filtColours is the filter's colour ask at sl: the colours in turn, Any's
 // W U B R G or a Combo's in printed order (manaColourOrder; gorge's
-// askManaColor offers effects.ComboColours in script order).
+// askManaColor offers effects.ComboColours in script order). A combination
+// filter (Baxter Building) asks for a whole allocation instead (filtCombo).
 func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 	if !fs.tick() {
 		return false
+	}
+	if comboFiltAb(t.filtAb(k, sl)) {
+		return fs.filtCombo(k, t, sl, funded)
 	}
 	var order [5]uint8
 	n := manaColourOrder(t.filtAb(k, sl), &order)
@@ -798,6 +833,41 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 		c := order[i]
 		if fs.try(k, t, filtStep{sl: sl, ans: uint8(1 + c), gap: true}, funded, true) {
 			return true
+		}
+	}
+	return false
+}
+
+// filtCombo is the allocation ask of a combination filter at sl: gorge's
+// scriptAnswers enumerates a Min == Max == n colour allocation unit by unit,
+// the last unit varying fastest, and stops at 64 combinations. Each is one
+// activation producing its counts (filtStep.alloc); the first whose
+// production pays later is the script's.
+func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
+	n := int(t.filtAb(k, sl).ManaN)
+	if n <= 0 || n > 6 {
+		return false
+	}
+	const per = 5 // Any's W U B R G, the order askManaColor offers
+	var idx [6]uint8
+	for tries := 0; tries < 64; tries++ {
+		var st filtStep
+		st.sl, st.ans, st.gap = sl, 1, true
+		for u := 0; u < n; u++ {
+			st.alloc[idx[u]]++
+		}
+		if fs.try(k, t, st, funded, true) {
+			return true
+		}
+		u := n - 1
+		for ; u >= 0; u-- {
+			if idx[u]++; idx[u] < per {
+				break
+			}
+			idx[u] = 0
+		}
+		if u < 0 {
+			break
 		}
 	}
 	return false

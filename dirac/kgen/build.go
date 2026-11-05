@@ -459,6 +459,11 @@ func (cb *cardBuilder) record() error {
 		d.Bargain = true
 		cb.bargain = true
 	}
+	if c.Storm {
+		// the printed K:Storm trigger is the kernel's own native trigger
+		// (dirac/kw_storm.go); no ability, no cast-action bit
+		d.Storm = true
+	}
 	if c.OptCost != nil {
 		// an OptionalCost part rides sfKicked and the kicked cast action
 		// (dirac/cost_optional.go): no other optional cost may share it
@@ -476,6 +481,16 @@ func (cb *cardBuilder) record() error {
 		if oc.EvidenceN != 0 {
 			d.OptEvidence = uint8(min(oc.EvidenceN, 255)) // a table byte (kernel cost_optionalevidence.go)
 			oc.EvidenceN = 0
+		}
+		if oc.Waterbend != 0 {
+			// the kicked cast's {N} rides Kicker (no KwKicker, as Offspring's);
+			// the taps are the spell waterbend pick (kernel act_waterbend.go)
+			if oc.Waterbend > 255 {
+				return fmt.Errorf("optional waterbend %d", oc.Waterbend)
+			}
+			d.OptWaterbend = uint8(oc.Waterbend)
+			d.Kicker = kop.ManaCost{Generic: uint8(oc.Waterbend)}
+			oc.Waterbend, oc.Mana = 0, manaCost{None: true}
 		}
 		if d.OptCost, err = cb.cost(oc); err != nil {
 			return err
@@ -628,6 +643,17 @@ func (cb *cardBuilder) record() error {
 		d.HasMayFlash = true
 		if d.MayFlashCost, err = manaCostOf(*c.MayFlash); err != nil {
 			return err
+		}
+		if c.MayFlashBehold != nil {
+			// the extra is a behold (kernel kw_mayflash.go): the card's
+			// behold fields, which no other behold cost may share
+			if d.BeholdN != 0 || c.BeholdExile || c.SpellCost != nil || c.OptCost != nil {
+				return fmt.Errorf("may-flash behold beside another behold or additional cost")
+			}
+			d.MayFlashBehold, d.BeholdN = true, 1
+			if d.BeholdF, err = cb.filter(c.MayFlashBehold, kop.ZoneBattlefield); err != nil {
+				return err
+			}
 		}
 	}
 	if c.Evoke != nil {

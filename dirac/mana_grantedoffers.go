@@ -264,6 +264,16 @@ func (s *State) grantsAdmitted(k *prep, sl Slot, gi *[maxGrants]int16, ng int, d
 	return n
 }
 
+// walkHandAvail is the potential walk's census for a hand alternative-cost
+// payment d: availFor with each granted mana ability whose spend restriction
+// refuses d left out (CR 106.6: Mm'menon's granted blue spends only on a spell
+// not cast from the hand; gorge potentialRestrictionAdmits).
+func (s *State) walkHandAvail(k *prep, p uint8, d payDesc, a *avail) {
+	a.xd, a.xdOn = d, true
+	s.availFor(k, p, a)
+	a.xdOn = false
+}
+
 func (s *State) availGrantExtra(k *prep, sl Slot, pc *pcard, gi *[maxGrants]int16, ng int, own bool, a *avail) {
 	if !k.gen.anyTapExtra {
 		return

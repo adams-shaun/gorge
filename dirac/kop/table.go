@@ -147,6 +147,14 @@ type CardDef struct {
 	// card never has both, so this field picks the row). The paid flag rides
 	// the kicked provenance; dirac/kw_bargain.go.
 	Bargain bool
+	// Storm is K:Storm (CR 702.40a; false = none): the spell's cast trigger
+	// (gorge kwStorm's expansion, engine/cards/kw_storm.go) copies it once
+	// for each spell cast before it this turn, its controller choosing new
+	// targets for the copies. The kernel enqueues its own native trigger on
+	// the cast (abStorm; dirac/kw_storm.go) — no CardDef ability to index —
+	// and a copy of a permanent spell resolves into a token
+	// (genPrep.anyPermCopy; dirac/copy_permanentspell.go, CR 707.10f).
+	Storm bool
 	// OptCost, OptBehold: S:Mode$ OptionalCost ("as an additional cost to
 	// cast this spell, you may blight N / behold a <type>", CR 601.2b): the
 	// optional cast is the kicked cast (AkCast mode 1, gorge's
@@ -160,6 +168,11 @@ type CardDef struct {
 	// the bsEvidence graveyard pick (gorge postTargetAsks evidenceAsk).
 	// dirac/cost_optionalevidence.go.
 	OptEvidence uint8
+	// OptWaterbend is the OptionalCost part Waterbend<N> (N 1..255, 0 =
+	// none; CR 701.67a, 601.2b): the paid cast is the kicked cast, Kicker
+	// holds its {N} (no KwKicker, as Offspring's), and the build asks the
+	// spell waterbend pick (kernel act_waterbend.go).
+	OptWaterbend uint8
 	// Teamwork is K:Teamwork:<N> (CR 702.194; 0 = none, N 1..15): the caster
 	// may declare the teamworked cast (the same AkCastCasualty action as
 	// Casualty/Bargain; a card never has two of them) and tap untapped
@@ -380,6 +393,10 @@ type CardDef struct {
 	HasMayFlash bool
 	// MayFlashCost is the extra mana the may-flash cast adds (HasMayFlash).
 	MayFlashCost ManaCost
+	// MayFlashBehold: the may-flash extra is Behold<1/Type> (Molten
+	// Exhale), no mana: the cast is offered only with a candidate and owes
+	// the behold (BeholdN/BeholdF) in its cost-pick stage (kw_mayflash.go).
+	MayFlashBehold bool
 	// HasEvoke is printed evoke (CR 702.74a; no KwMask bit is free): the
 	// hand offers the evoked cast at EvokeCost (gorge's "evoked" option,
 	// FlagEvoked), and a permanent cast that way queues a mandatory

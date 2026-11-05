@@ -287,7 +287,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		// mode to ""), and the pay-time CastInfo rides the trailing
 		// FlagMultikicked event.
 	case castModeHarmonize:
-		if hc, ok := harmonizeCost(f); ok {
+		if hc, ok := e.harmonizeCostFor(id); ok {
 			cost = hc
 		}
 	case castModeSuspend:
