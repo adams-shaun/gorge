@@ -25,13 +25,19 @@ import (
 //   - the first is a plain unrestricted "{T}: Add ..." and each other is a
 //     census gap the kernel models or the frozen lockstep pools prove: a
 //     restricted "{T}: Add ..." (Secluded Courtyard's any-colour one,
-//     genPrep.anyR; the Villages' creature-only colour) or a "{N}, {T}:
+//     genPrep.anyR; the Villages' creature-only colour), a "{N}, {T}:
 //     Add one mana of any color" (Hidden Grotto's filter, genPrep.filt;
-//     Three Tree City's dynamic amount). gorge's census excludes both
-//     (RestrictValid; a cost beyond {T}), so its planner pays from the
-//     first ability alone, as the kernel does.
+//     Three Tree City's dynamic amount) or "{N}, {T}: Add N mana in any
+//     combination of colors" (Baxter Building's combination filter,
+//     mana_filter.go filtCombo). gorge's census excludes both (RestrictValid;
+//     a cost beyond {T}), so its planner pays from the first ability alone,
+//     as the kernel does;
+//   - a plain first ability ({C} or a two-colour {T} choice) beside a
+//     "{T}, Pay N life" ability (Starting Town, Haunted Screen): gorge's
+//     last-resort Consequence{Life: N} beside its normal alternatives,
+//     which the kernel models as a pain source (mana_pain.go painLife).
 //
-// Every other shape (a second ability with a sacrifice, life, counter or
+// Every other shape (a second ability with a sacrifice, counter or
 // tap-another cost: a last-resort alternative gorge's planner may take; an
 // unrestricted choice beside a fixed one; a paid fixed-colour or hybrid
 // filter; a dynamic fixed colour) is refused.
@@ -65,10 +71,12 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// (pay.PaymentPlanDamageRider; kernel mana_pain.go)
 		return
 	}
-	if len(ms) == 2 && plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && ms[0].Mana.Colors == "C" && lifeTapMana(ms[1]) {
+	if len(ms) == 2 && plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && primaryMana(ms[0]) && lifeTapMana(ms[1]) {
 		// {T}: Add {C}, then {T}, Pay N life: Add one mana of any colour
-		// (Starting Town): gorge's last-resort Consequence{Life: N}, priced
-		// and guarded as a painland's damage (kernel painLife)
+		// (Starting Town), or a plain two-colour {T} choice beside a
+		// three-colour life ability (Haunted Screen): gorge's last-resort
+		// Consequence{Life: N} beside its normal alternatives, priced and
+		// guarded as a painland's damage (kernel painLife)
 		return
 	}
 	if len(ms) > 2 || !plainTapMana(ms[0], false) || !unrestrictedOne(ms[0]) {
@@ -81,6 +89,20 @@ func (lc *lowerCtx) refuseMultiMana() {
 			return
 		}
 	}
+}
+
+// primaryMana reports whether a is a first mana ability the kernel's pain
+// source models as the normal alternative (pcard.manaCol): {C}, one WUBRG
+// colour, or a two-colour {T} choice (Produced$ Combo W B).
+func primaryMana(a *lAbility) bool {
+	c := a.Mana.Colors
+	if a.Mana.Each {
+		return false
+	}
+	if a.Mana.Choice {
+		return len(c) == 2 && strings.Trim(c, "WUBRG") == ""
+	}
+	return c == "C" || len(c) == 1 && strings.Contains("WUBRG", c)
 }
 
 // redundantMana reports whether a, a mana ability after the card's first,
@@ -195,11 +217,17 @@ func manaGapModelled(first, a *lAbility) bool {
 			!first.Mana.Choice && (first.Mana.Colors == "WUBRG" || len(first.Mana.Colors) == 1 && strings.Contains("WUBRG", first.Mana.Colors))
 	case plainTapMana(a, true):
 		// {N}, {T}: one mana of any colour, unrestricted (Hidden Grotto;
-		// Three Tree City's dynamic amount)
-		// (the kernel's filt reads amount 1; a literal amount above it,
-		// Baxter Building's {4},{T}: four mana, is not modelled)
+		// Three Tree City's dynamic amount), or a literal amount above one
+		// in any combination (Baxter Building's {4},{T}: four mana, the
+		// kernel's combination filt)
 		amt := a.Mana.Amount
-		return a.Mana.Restrict == nil && a.Mana.RestrictAb == nil && a.Mana.Colors == "WUBRG" && (amt.Kind == vConst && amt.N == 1 || amt.Kind > vConst)
+		if a.Mana.Restrict != nil || a.Mana.RestrictAb != nil || a.Mana.Colors != "WUBRG" {
+			return false
+		}
+		if amt.Kind == vConst && amt.N == 1 || amt.Kind > vConst {
+			return true
+		}
+		return a.Mana.Choice && amt.Kind == vConst && amt.N > 1 && amt.N <= maxComboMana
 	}
 	return false
 }
@@ -208,6 +236,11 @@ func manaGapModelled(first, a *lAbility) bool {
 // ability the kernel's pair unit plans (its planner's unit counts are bytes
 // of small width, and a larger Produced$ Any amount has no card).
 const maxRestrictedAmount = 4
+
+// maxComboMana bounds the literal amount of a combination filter (Baxter
+// Building's four mana in any combination). gorge's scriptAnswers enumerates
+// at most 64 per-unit combinations, so the kernel's search does too.
+const maxComboMana = 4
 
 // unrestrictedOne: a's mana is unrestricted, amount 1.
 func unrestrictedOne(a *lAbility) bool {
@@ -325,7 +358,7 @@ func painRider(a *lAbility) bool {
 }
 
 // lifeTapMana: a {T}, Pay N life mana ability (amount 1, unrestricted, no
-// program) of one colour, a choice of two, or any colour.
+// program) of one colour, a choice of two or three, or any colour.
 func lifeTapMana(a *lAbility) bool {
 	if a.Kind != akMana || len(a.Prog) != 0 || a.Cost.PayLife < 1 {
 		return false
@@ -338,7 +371,7 @@ func lifeTapMana(a *lAbility) bool {
 	switch n := len(c.Mana.Colors); {
 	case n == 1:
 		return strings.Contains("WUBRG", c.Mana.Colors)
-	case n == 2:
+	case n == 2, n == 3:
 		return c.Mana.Choice && strings.Trim(c.Mana.Colors, "WUBRG") == ""
 	case n == 5:
 		return c.Mana.Colors == "WUBRG" // Produced$ Any

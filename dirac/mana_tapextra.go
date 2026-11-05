@@ -203,7 +203,7 @@ func (s *State) addExtraCol(k *prep, p uint8, sl Slot, pc *pcard, col int) {
 	if !ok {
 		return
 	}
-	if pc.painOnly || col != kop.C {
+	if pc.painOnly || uint8(pc.manaCol)&(1<<col) == 0 {
 		xc = xp
 	}
 	s.addXv(p, &xc)
