@@ -87,6 +87,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallGravePower, // no longer raised: FeatCDAPT evaluates every lowered CDA amount
 	StallLandGrant,  // gorge offers both productions of a land with a granted basic type; pcard holds one (static_landtype.go:148,161)
 	StallOutsideType, StallExileOnMoved, StallMultiRetarget, StallL6Walk, StallLowering,
+	StallStackKwGrant, // a granted convoke/improvise on a both-keywords or {X} spell: gorge poses one mixed announcement the kernel does not model (kw_convoke.go)
 }
 
 // initStall is the reason a game on this table stalls at its start, StallNone when

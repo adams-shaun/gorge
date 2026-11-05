@@ -1006,6 +1006,7 @@ StWithoutManaCost	StaticFlags	8
 StYouHexproof	StaticFlags	512
 StackKwCascade	int16	3
 StackKwCasualty	int16	2
+StackKwConvoke	int16	7
 StackKwImprovise	int16	1
 StackKwLifelink	int16	4
 StackKwSplitSecond	int16	6

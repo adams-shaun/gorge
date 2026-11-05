@@ -202,7 +202,7 @@ type genPrep struct {
 	anySneak       bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
 	anyWebSling    bool           // some card has web-slinging (CardDef.HasWebSling; kw_websling.go)
 	anyMayFlash    bool           // some card has K:MayFlashCost (CardDef.HasMayFlash; kw_mayflash.go)
-	anyConvoke     bool           // some card has printed or granted convoke/improvise or harmonize (CardDef.Convoke/Improvise/Harmonize, StatStackKw Improvise; kw_convoke.go)
+	anyConvoke     bool           // some card has printed or granted convoke/improvise or harmonize (CardDef.Convoke/Improvise/Harmonize, StatStackKw Improvise/Convoke; kw_convoke.go)
 	anyBeam        bool           // some card has printed beam me up (CardDef.BeamMeUp; kw_beammeup.go)
 	anyBeamBar     bool           // some card has a StatCantBeBeamedUp static
 	anyHarmonize   bool           // some card has printed harmonize (CardDef.Harmonize; kw_harmonize.go)
