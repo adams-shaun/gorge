@@ -265,7 +265,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 		s.pl[p].pool[col] += pc.manaN
 		s.addExtraCol(k, p, sl, pc, col)
 		s.artTag(k, p, sl, col)
-		if k.painMana && pc.painCol != 0 && (pc.painOnly || col != kop.C) {
+		if k.painMana && pc.painCol != 0 && (pc.painOnly || uint8(pc.manaCol)&(1<<col) == 0) {
 			s.painDamage(k, sl, p, int(pc.painN)) // the painful ability's rider (mana_pain.go)
 		}
 		if pc.manaSac || sacOnly {
@@ -489,6 +489,20 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 		}
 	}
 	if k.painMana && pc.painCol != 0 && !pc.painOnly && !anyColor {
+		if prim := uint8(pc.manaCol) & 0x1f; prim != 0 {
+			// A two-colour normal ability beside the painful one (Haunted
+			// Screen: {W} or {B}, then {G}, {U} or {R} for 1 life): the ask
+			// lists both abilities' colours, so an owed colour either
+			// ability makes has answered above (owedColoursFirst) and
+			// otherwise the answer is the lowest listed colour, mask's (W),
+			// not the painful ability's lowest for its own sake
+			// (payexec.WindowAnswer, TestPayWindowTapsLowestColour). A
+			// noOwed ask (a ward/unless window) owes nothing at all, so it
+			// takes the same lowest colour and pays no life. A {C} normal
+			// ability (a painland, Starting Town) keeps the measured answer
+			// below.
+			return bits.TrailingZeros8(mask)
+		}
 		// a painland: gorge's "Choose a mana ability" ask carries no
 		// payment, so the answer is its lowest colour option whatever
 		// the window owes (mana_pain.go)
@@ -2171,6 +2185,14 @@ func (s *State) manaStep(k *prep) bool {
 		}
 		var saved [len(build{}.picks)]uint8
 		s.holdCostTaps(k, &saved)
+		wbCast := false
+		if k.gen != nil && k.gen.anyWaterbend {
+			_, wbCast = s.waterbendPartFor(k, e) // a waterbend cast (act_waterbend.go): its cost before the picks, read before the cost is fixed
+		}
+		wbFull := cost
+		if wbCast && s.bld().bfl&bflCostFixed == 0 {
+			wbFull = xFolded(s.waterbendFullCost(k), int(e.x))
+		}
 		s.bld().bfl |= bflManaStep | bflCostFixed
 		anyColor := s.bld().bfl&bflAnyColor != 0
 		if (e.flags&sfAnyMana != 0 || anyColor) && s.bld().bfl&bflMsDone == 0 {
@@ -2200,6 +2222,8 @@ func (s *State) manaStep(k *prep) bool {
 			}
 			s.windowTapUseful(k, e.ctrl, &cost, &raw, true, anyColor, s.bld().pipN == 0, false)
 			s.occ = occ
+		} else if wbCast && cost.X == 0 {
+			s.waterbendCastWindow(k, e, &cost, &wbFull, anyColor) // act_waterbend.go
 		} else if planCut {
 			s.windowTapRider(k, e.ctrl, &cost, true, anyColor)
 		} else if k.t.Cards[e.card].HasModeCost {

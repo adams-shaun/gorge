@@ -238,7 +238,7 @@ type genPrep struct {
 	anyLandPlayed  bool           // a trigger is TrigLandPlayed (trig_modes.go)
 	anyCzPair      bool           // a TrigLeaves line has a destination mask (N) (trig_zonepairs.go)
 	anyLeavesGrave bool           // a TrigLeaves line also fires for a graveyard leave (kop.Tf2LeavesGrave; trig_leavesgrave.go)
-	anyKwAct       bool           // a trigger is TrigSearchedLibrary, TrigForage or TrigDiscover
+	anyKwAct       bool           // a trigger is TrigSearchedLibrary, TrigForage, TrigDiscover or TrigManifestDread
 	anyDilemma     bool           // some table reads ExDilemmasFaced or TrigFacesDilemma (trig_dilemma.go)
 	anyScryTally   bool           // some expr is ExScriedThisTurn (value_scrytally.go)
 	anyTokCr       bool           // some trigger is TrigTokenCreated (act_proliferate.go)
@@ -731,7 +731,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.HasBestow {
 			g.anyBestow = true
 		}
-		if c.OptCost.Flags != 0 || c.OptBehold {
+		if c.OptCost.Flags != 0 || c.OptBehold || c.OptWaterbend != 0 {
 			g.anyOptCost = true
 		}
 		if c.KickerCost.Flags != 0 {
@@ -801,7 +801,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 						g.anyLeavesGrave = true
 					}
 				}
-				if a.Trig.Event == kop.TrigSearchedLibrary || a.Trig.Event == kop.TrigForage || a.Trig.Event == kop.TrigDiscover {
+				if a.Trig.Event == kop.TrigSearchedLibrary || a.Trig.Event == kop.TrigForage || a.Trig.Event == kop.TrigDiscover || a.Trig.Event == kop.TrigManifestDread {
 					g.anyKwAct = true
 				}
 				if a.Trig.Event == kop.TrigExplores || a.Trig.Event == kop.TrigCollectEvidence {

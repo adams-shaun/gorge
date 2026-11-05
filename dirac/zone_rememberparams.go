@@ -124,6 +124,18 @@ func (s *State) remController() uint8 {
 	return s.ctrlOfObj(o)
 }
 
+// remOwner is RefRememberedOwner: the first remembered object's owner (CR
+// 108.3: an object's owner never changes, so no LKI capture), 255 with
+// nothing remembered (gorge ownersOf over an empty set: nobody manifests).
+//
+//go:noinline
+func (s *State) remOwner() uint8 {
+	if s.g.nrem == 0 {
+		return 255
+	}
+	return s.objs[s.g.rem[0]].owner()
+}
+
 // bounceRemember is OpBounce with move flags (RememberLKI$: MvRemember and
 // MvLKI): the bounced object is remembered, and its target capture marked.
 //

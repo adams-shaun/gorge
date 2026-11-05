@@ -38,12 +38,12 @@ var DebugOptCostNeverPaid bool
 // optCostCard: card c has an OptionalCost part.
 func optCostCard(k *prep, c CardID) bool {
 	cd := &k.t.Cards[c]
-	return cd.OptCost.Flags != 0 || cd.OptBehold || cd.OptEvidence != 0
+	return cd.OptCost.Flags != 0 || cd.OptBehold || cd.OptEvidence != 0 || cd.OptWaterbend != 0
 }
 
 // optCostOffer: p may cast o (card c) from hand paying its optional part.
 // The plain cast's mana, targets and pick costs were gated by the caller;
-// the part adds no mana.
+// the part adds no mana, but a Waterbend<N> part, whose {N} is priced here.
 func (s *State) optCostOffer(k *prep, p uint8, c CardID, o Obj) bool {
 	if !optCostCard(k, c) {
 		return false
@@ -57,6 +57,9 @@ func (s *State) optCostOffer(k *prep, p uint8, c CardID, o Obj) bool {
 	}
 	if cd.OptCost.Flags != 0 && !s.costObjPayable(k, p, &cd.OptCost, NoObj, o) {
 		return false
+	}
+	if cd.OptWaterbend != 0 && !s.optWaterbendAffords(k, p, c, o) {
+		return false // the {N} the taps don't credit is mana (gorge offerCastable's withWaterbendOfferCredit)
 	}
 	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) == 0 || s.g.availX&availWalk != 0 {
 		return true

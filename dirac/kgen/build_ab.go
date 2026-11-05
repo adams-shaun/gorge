@@ -928,7 +928,7 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"AttackersDeclared": kop.TrigAttackersDeclared, "Phase": kop.TrigPhase, "SpellCast": kop.TrigSpellCast,
 	"LifeGained": kop.TrigLifeGained, "LifeLost": kop.TrigLifeLost, "DamageDone": kop.TrigDamageDone,
 	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence,
-	"LandPlayed": kop.TrigLandPlayed, "SearchedLibrary": kop.TrigSearchedLibrary, "Forage": kop.TrigForage, "Discover": kop.TrigDiscover,
+	"LandPlayed": kop.TrigLandPlayed, "SearchedLibrary": kop.TrigSearchedLibrary, "Forage": kop.TrigForage, "Discover": kop.TrigDiscover, "ManifestDread": kop.TrigManifestDread,
 	"CounterAddedOnce": kop.TrigCounterAddedOnce, "CounterAdded": kop.TrigCounterAddedOnce, "Untaps": kop.TrigUntaps,
 	"Sacrificed": kop.TrigSacrificed, "GiveGift": kop.TrigGiveGift, "Proliferate": kop.TrigProliferate, "FacesDilemma": kop.TrigFacesDilemma, "TokenCreated": kop.TrigTokenCreated, "BecomeMonstrous": kop.TrigBecomeMonstrous, "ManaExpend": kop.TrigManaExpend, "AttackerBlocked": kop.TrigBecomesBlocked, "TurnFaceUp": kop.TrigTurnFaceUp, "Transformed": kop.TrigTransformed, "CommitCrime": kop.TrigCommitCrime, "UnlockDoor": kop.TrigUnlockDoor, "FullyUnlock": kop.TrigFullyUnlock,
 	"BecomesTarget":    kop.TrigBecomesTarget,    // the Valiant, watcher and self shapes (lower_trigger.go)
@@ -3785,7 +3785,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, fmt.Errorf("ChooseEach %q", in.CS)
 		}
 	case "CastFree":
-		// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6 | Repeat<<7
+		// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6 | Repeat<<7 | Paid<<8 | UpTo<<9
 		// (Repeat: A is the copy count, AllowRepeats$ with Amount$ X)
 		// Obj: RefRemembered (P1), a target slot (P2), or
 		// RefNone with F (P3/P4 filter population).
@@ -3808,6 +3808,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, ok := fl["Paid"]; ok {
 			ki.C |= 1 << 8 // the copy pays its mana cost (an exile-granted ability's Play)
+		}
+		if _, ok := fl["UpTo"]; ok {
+			ki.C |= 1 << 9 // a literal Amount$ N: the ask closes after A picks
 		}
 		if err := objFilter(zoneMap[in.C]); err != nil {
 			return ki, err
@@ -4073,6 +4076,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// the DigUntil's cards still in exile to the library bottom in a
 		// random order (lower_digimprint.go; kernel act_discoverbottom.go)
 		ki.Op, ki.Obj, ki.C = kop.OpDiscover, kop.RefController, kop.DiscoverDugBottom
+	case "RemBottom":
+		// the remembered cards still in the library to its bottom in a
+		// random order (lower_playlibrary.go; kernel act_discoverbottom.go)
+		ki.Op, ki.Obj, ki.C = kop.OpDiscover, kop.RefController, kop.DiscoverRemBottom
 	case "ClearRemembered":
 		ki.Op = kop.OpClearRemembered
 	case "ClearChosen":

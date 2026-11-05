@@ -544,6 +544,12 @@ const (
 // Fisher-Yates'd through the engine rng). High, clear of cascade's 2/3.
 const DiscoverDugBottom = 240
 
+// DiscoverRemBottom is OpDiscover's C for Cosmic Cube's tail (kernel
+// act_discoverbottom.go remBottom): the remembered cards still in the
+// resolving controller's library and not queued to be cast go to its bottom
+// in a random order (gorge ChangeZoneAll RandomOrder$ over the library).
+const DiscoverRemBottom = 241
+
 // CzUntilLeaves is OpChangeZoneAllEx's B bit 0:
 // Duration$ UntilHostLeavesPlay on a battlefield-to-exile sweep. Nothing
 // moves when the source has left the battlefield; each exiled non-token

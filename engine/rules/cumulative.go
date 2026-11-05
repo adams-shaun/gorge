@@ -182,6 +182,11 @@ type triggeredEffectCost struct {
 	// settled by forageSettle.
 	forageDone bool
 	forageFood state.ObjID
+	// beholds accumulates the settled Behold picks and beholdIdx is the next
+	// unsettled Behold part (trigger_cost_behold.go): recorded by beholdAsk /
+	// beholdAnswer, announced by beholdSettle.
+	beholds   []state.ObjID
+	beholdIdx int
 	// res is the pay-first funding state (respay.go): the pay/decline
 	// election is posed before any mana window, and a pay the pool does not
 	// cover is funded afterwards, by the planner or the manual window.
@@ -1263,6 +1268,12 @@ func (e *Engine) triggeredCostPayable(tc *triggeredEffectCost) bool {
 		// decline-only ask.
 		return tc.foragePayable(e, rest)
 	}
+	if len(rest.Behold) > 0 {
+		// The behold cost (trigger_cost_behold.go): payable when every part
+		// has its candidates beside a priceable mana/life half; any other
+		// shape keeps the decline-only ask.
+		return tc.beholdPayable(e, rest)
+	}
 	if len(rest.Sac)+len(rest.Discard)+len(rest.Exile)+len(rest.MoveToGrave)+len(rest.Return) > 0 || len(rest.Evidence) > 0 || len(rest.Blight) > 0 {
 		// A component-bearing cost is payable ONLY through the settle gate:
 		// the Draw arm alone would offer "pay" while silently
@@ -1823,6 +1834,15 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 		tc.forageFood = chosen[0].Obj
 		e.triggeredCostAnswer([]decision.Option{{Kind: "trigger_cost_pay", Obj: tc.source}})
 		return
+	case triggeredCostAnswerBeholdcost:
+		// The behold pick (trigger_cost_behold.go): record it and re-enter
+		// the pay arm, which asks for the next part or settles.
+		if !tc.beholdAnswer(e, chosen) {
+			e.triggeredCostDecline(tc)
+			return
+		}
+		e.triggeredCostAnswer([]decision.Option{{Kind: "trigger_cost_pay", Obj: tc.source}})
+		return
 	case triggeredCostAnswerPayPip:
 		// A flexible-pip announcement answer (the cast flow's own pay_W
 		// family): record the face the payer elected and advance to the next
@@ -1864,6 +1884,13 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 				return
 			}
 			paid = tc.forageSettle(e, announced)
+		} else if len(announced.Behold) > 0 {
+			// The behold cost: pick the beheld objects (unasked when a part's
+			// candidates are exactly its count), then settle.
+			if tc.beholdAsk(e, announced) {
+				return
+			}
+			paid = tc.beholdSettle(e, announced)
 		} else if len(announced.SubCounter) > 0 {
 			// The counter-removal cost: pick the kind of every "Any" unit
 			// (an ask only when more than one kind is left), then settle.
@@ -2663,6 +2690,7 @@ const (
 	triggeredCostAnswerTriggerCostAmong
 	triggeredCostAnswerForageExile
 	triggeredCostAnswerForageFood
+	triggeredCostAnswerBeholdcost
 )
 
 var triggeredCostAnswerCodes = state.NewStrCodes(
@@ -2675,6 +2703,7 @@ var triggeredCostAnswerCodes = state.NewStrCodes(
 	state.StrEntry[triggeredCostAnswerCode]{Key: "trigger_cost_among", Val: triggeredCostAnswerTriggerCostAmong},
 	state.StrEntry[triggeredCostAnswerCode]{Key: "forage_exile", Val: triggeredCostAnswerForageExile},
 	state.StrEntry[triggeredCostAnswerCode]{Key: "forage_food", Val: triggeredCostAnswerForageFood},
+	state.StrEntry[triggeredCostAnswerCode]{Key: "beholdcost", Val: triggeredCostAnswerBeholdcost},
 	state.StrEntry[triggeredCostAnswerCode]{Key: "pay_W", Val: triggeredCostAnswerPayPip},
 	state.StrEntry[triggeredCostAnswerCode]{Key: "pay_U", Val: triggeredCostAnswerPayPip},
 	state.StrEntry[triggeredCostAnswerCode]{Key: "pay_B", Val: triggeredCostAnswerPayPip},
