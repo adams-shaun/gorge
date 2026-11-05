@@ -20,7 +20,7 @@ import (
 // Player 0 holds only Plains: white spells grow Ramos (one counter each), and
 // Elfsworn Giant ({3}{G}{G}) and Shivan Dragon ({4}{R}{R}) can be paid only by
 // Ramos's ten mana. Lockstep checks every decision against gorge; the scenario
-// also checks the positions the brief names: with five counters and the
+// also checks the positions named in the ticket: with five counters and the
 // activation unused the Elemental cast is offered (the activation removes
 // five counters), and with four counters it is not offered.
 var kramosDecks = [2][]cardset.Entry{
