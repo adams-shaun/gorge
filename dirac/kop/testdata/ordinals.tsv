@@ -255,6 +255,7 @@ DigTapped	untyped int	1024
 DiscoverDugBottom	untyped int	240
 DivLKIP1P1	untyped int	255
 DivMaxV	untyped int	254
+DivValue	untyped int	253
 DmgEQ	DmgCmp	3
 DmgExileIfDealt	untyped int	16
 DmgExileIfDiesThisTurn	untyped int	2
