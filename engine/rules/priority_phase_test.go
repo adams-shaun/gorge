@@ -5,6 +5,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
@@ -81,16 +82,25 @@ func TestTestBotOnlyActivatesInAMainPhase(t *testing.T) {
 // decisions matched".
 func TestBotMatchIsDeterministicAcrossRuns(t *testing.T) {
 	t.Parallel()
-	// The two runs are independent games, so they play at once. SampleDecks
-	// runs on the test goroutine; the games only return errors.
-	names, decks := testutil.SampleDecks(t, 4)
+	// The two runs are independent games, so they play at once. Each run gets
+	// its own freshly sampled decks (the determinism check covers rebuilt
+	// decks); SampleDecks runs here on the test goroutine, and the games only
+	// return errors.
+	type sample struct {
+		names []string
+		decks [][]*cards.Card
+	}
+	var samples [2]sample
+	for i := range samples {
+		samples[i].names, samples[i].decks = testutil.SampleDecks(t, 4)
+	}
 	type result struct {
 		head   string
 		events int
 		err    error
 	}
-	run := func() result {
-		e := New(Config{Seed: 3, Names: names, Decks: decks})
+	run := func(sm sample) result {
+		e := New(Config{Seed: 3, Names: sm.names, Decks: sm.decks})
 		b := newTestBot(3 * 31)
 		e.Advance()
 		n := 0
@@ -111,7 +121,7 @@ func TestBotMatchIsDeterministicAcrossRuns(t *testing.T) {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			results[i] = run()
+			results[i] = run(samples[i])
 		}(i)
 	}
 	wg.Wait()

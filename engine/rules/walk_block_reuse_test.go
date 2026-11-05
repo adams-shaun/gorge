@@ -24,6 +24,7 @@ func TestWalkBlockReuseInGames(t *testing.T) {
 	all := testutil.LegacyDeckNames()
 	var mu sync.Mutex
 	var served, members uint64
+	var ran int
 	for _, seed := range []uint64{3, 8} {
 		seed := seed
 		t.Run(fmt.Sprintf("seed%d", seed), func(t *testing.T) {
@@ -50,10 +51,14 @@ func TestWalkBlockReuseInGames(t *testing.T) {
 			mu.Lock()
 			served += e.walkBlocksServed
 			members += e.walkMembersServed
+			ran++
 			mu.Unlock()
 		})
 	}
 	t.Cleanup(func() {
+		if ran < 2 { // one seed selected with -run, or a seed already failed: the aggregate needs both
+			return
+		}
 		if served == 0 {
 			t.Fatal("no potential walk served a recorded block: the reuse path went unexercised")
 		}

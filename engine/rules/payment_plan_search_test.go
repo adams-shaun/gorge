@@ -485,7 +485,7 @@ func TestPaymentPlanSearchZoneSeqIndexAgreesInGames(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	all := testutil.LegacyDeckNames()
 	var mu sync.Mutex
-	var tokens, reentered, checked, decisions int
+	var tokens, reentered, checked, decisions, ran int
 	// Seeds 6 and 7 seat Empty the Warrens and flicker effects: the storm
 	// deck makes goblin tokens and several permanents leave and re-enter.
 	for _, seed := range []uint64{6, 7} {
@@ -513,11 +513,14 @@ func TestPaymentPlanSearchZoneSeqIndexAgreesInGames(t *testing.T) {
 				}
 			}
 			mu.Lock()
-			tokens, reentered, checked, decisions = tokens+tk, reentered+re, checked+ch, decisions+dec
+			tokens, reentered, checked, decisions, ran = tokens+tk, reentered+re, checked+ch, decisions+dec, ran+1
 			mu.Unlock()
 		})
 	}
 	t.Cleanup(func() {
+		if ran < 2 { // one seed selected with -run, or a seed already failed: the aggregate needs both
+			return
+		}
 		if tokens == 0 || reentered == 0 {
 			t.Fatalf("checked %d tokens and %d re-entered objects: the property test must cover both", tokens, reentered)
 		}
