@@ -17,6 +17,7 @@ func (r *run) stateFor(seat int) protocol.EventState {
 		Event: r.meta.ID, Set: r.meta.Set,
 		Phase: string(r.ev.Phase()), Round: r.ev.Round(),
 		BestOf: r.bestOf(),
+		Format: r.meta.Format,
 		// The pick-timer mode as the meta stores it; a meta written
 		// before the field existed reads back as "" (no timer).
 		PickTimer: r.meta.PickTimer,
