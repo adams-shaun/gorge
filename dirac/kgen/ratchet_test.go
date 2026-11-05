@@ -64,8 +64,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (a variable CollectEvidence cost and evidence beside the triggered-card exile: Incinerator of the Guilty, Urgent Necropsy, Lamplight Phoenix lower; land; merged MKM 236 -> 239, ALL 21570 -> 21573).
 	// +6 (the ExtTurnFaceUp effect turn-up, Urgent Necropsy's collect-evidence X, the each-target Aura-copy enchant ask and the DamageAll planeswalker/battle clause lower, with land's re-measure after its rebase; land; merged ALL 21573 -> 21579).
 	// +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; land; merged ALL 21579 -> 21584).
-	// +1 over land's 21591 (this branch's King T'Challa: Black Panther's printed prevent-all-to-self R: line lowers as CardDef.PreventDmgTo; merged MSH 226 -> 227, ALL 21591 -> 21592).
-	// +1 over land's 21592 (this branch's The Mindskinner: the prevent-and-mill DamageDone replacement lowers as ReplPreventMillOpps; merged DSK 236 -> 237, ALL 21592 -> 21593).
+	// +1 (Doomsday Excruciator: a RepeatEach player body's DigNum$ Count$ValidLibrary Card.RememberedPlayerCtrl/Minus.6 and its blind face-down exile; this branch; merged DSK 236 -> 237, ALL 21584 -> 21585).
+	// +1 (Worlds Within Worlds: a RepeatEach player body's hand move DefinedPlayer$ Remembered up to Count$ValidHand Creature.RememberedPlayerCtrl, and the remembered set's return from exile as the Return walk; this branch; merged MSH 226 -> 227, ALL 21585 -> 21586).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
 	"ALL": {21593, 34442},
 	"BIG": {23, 30},
