@@ -83,29 +83,46 @@ func addManaCost(a, b manaCost) manaCost {
 // shape: the unlock pays the printed cost only), and a hybrid door cost
 // (the unlock's pool pricing reads no hybrid symbol).
 //
-// A door line that names another SVar to be read when it resolves or
-// applies (an Effect's StaticAbilities$, a static's AddAbility$, ...) is
-// refused too: gorge looks the name up on the FaceIdx face's SVar table, so
-// the other door's named body is missing there (Painter's Studio's
-// may-play Effect resolves without its STPlay static when the Room shows
-// Defaced Gallery: seed 141).
+// A body that names another SVar is refused when gorge would read the name
+// on the shown face's table. A trigger resolution is not that shape: the
+// kernel compiles each unlocked door's program with lc.face set to that door
+// (lowerRoomEntry's lowerLines loop), and every body read on the chain
+// (effectStaticBodies, emblem, effectPrevent, the replacement walk) resolves
+// the name in lc.face.SVars -- the door's own table, exactly what gorge
+// binds when it queues the trigger (rules/rooms.go queueUnlockTriggers:
+// TriggerSVars: face.SVars). So StaticAbilities$, Triggers$ and
+// ReplacementEffects$ on a trigger's Execute$/SubAbility$ chain are safe.
+//
+// A STATIC's own AddAbility$/AddStaticAbility$/AddTrigger$/AddReplacementEffects$
+// stays refused (Greenhouse): gorge's layer walk binds an unlocked other
+// door's static to the shown face's table (rules/layers.go:187), a gorge
+// defect briefed separately. The lifted names are therefore allowed only for
+// bodies reached from a trigger, and the static's four stay refused
+// everywhere.
 func (lc *lowerCtx) refuseRoomDoors(c *cards.Card) {
-	named := []string{"StaticAbilities$", "Triggers$", "AddAbility$", "AddTrigger$", "AddStaticAbility$", "ReplacementEffects$", "AddReplacementEffects$"}
+	named := [...]string{"StaticAbilities$", "Triggers$", "AddAbility$", "AddTrigger$", "AddStaticAbility$", "ReplacementEffects$", "AddReplacementEffects$"}
+	staticNamed := [...]string{"AddAbility$", "AddTrigger$", "AddStaticAbility$", "AddReplacementEffects$"}
 	for _, f := range c.Faces {
-		var bodies []string
-		for _, b := range f.SVars {
-			bodies = append(bodies, b)
+		triggerBodies := roomTriggerBodies(f)
+		hit := "" // the least key found: map order must not reach the reason
+		for name, b := range f.SVars {
+			keys := named[:]
+			if triggerBodies[name] {
+				keys = staticNamed[:]
+			}
+			for _, k := range keys {
+				if strings.Contains(b, k) && (hit == "" || k < hit) {
+					hit = k
+				}
+			}
 		}
 		for _, s := range f.Statics {
 			for k, v := range s.Params {
-				bodies = append(bodies, k+"$ "+v)
-			}
-		}
-		hit := "" // the least key found: map order must not reach the reason
-		for _, b := range bodies {
-			for _, k := range named {
-				if strings.Contains(b, k) && (hit == "" || k < hit) {
-					hit = k
+				b := k + "$ " + v
+				for _, n := range named {
+					if strings.Contains(b, n) && (hit == "" || n < hit) {
+						hit = n
+					}
 				}
 			}
 		}
@@ -128,6 +145,49 @@ func (lc *lowerCtx) refuseRoomDoors(c *cards.Card) {
 			}
 		}
 	}
+}
+
+// roomTriggerBodies is the SVar names a face's triggers execute, following
+// their SubAbility$ chains: the bodies a trigger resolves with its own door's
+// table. A trigger line that names another SVar body is a trigger-chain body;
+// one only a static names is not (its read is the shown-face layer walk).
+func roomTriggerBodies(f *cards.Face) map[string]bool {
+	out := map[string]bool{}
+	var mark func(string)
+	mark = func(name string) {
+		name = strings.TrimSpace(name)
+		if name == "" || out[name] {
+			return
+		}
+		body, ok := f.SVars[name]
+		if !ok {
+			return
+		}
+		out[name] = true
+		// Follow every SVar reference a body may resolve: the plain and
+		// branch SubAbility$ spellings, a trigger's Execute$, a charm's
+		// Choices$ and a replacement's ReplaceWith$. Each resolves with the
+		// same door table the trigger binds, so its body is on the chain.
+		for _, part := range strings.Split(body, "|") {
+			k, v, ok := strings.Cut(strings.TrimSpace(part), "$")
+			if !ok {
+				continue
+			}
+			k, v = strings.TrimSpace(k), strings.TrimSpace(v)
+			if k != "Execute" && k != "Choices" && k != "ReplaceWith" && !strings.HasSuffix(k, "SubAbility") {
+				continue
+			}
+			for _, n := range strings.FieldsFunc(v, func(r rune) bool {
+				return r == ',' || r == '&' || r == ' ' || r == '\t'
+			}) {
+				mark(n)
+			}
+		}
+	}
+	for _, t := range f.Triggers {
+		mark(t.ParamStr(cards.PKExecute))
+	}
+	return out
 }
 
 // lowerRoomEntry lowers Room state key k as its own pool entry.

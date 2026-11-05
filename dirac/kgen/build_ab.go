@@ -923,7 +923,7 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"AttackersDeclared": kop.TrigAttackersDeclared, "Phase": kop.TrigPhase, "SpellCast": kop.TrigSpellCast,
 	"LifeGained": kop.TrigLifeGained, "LifeLost": kop.TrigLifeLost, "DamageDone": kop.TrigDamageDone,
 	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence,
-	"LandPlayed": kop.TrigLandPlayed, "SearchedLibrary": kop.TrigSearchedLibrary, "Forage": kop.TrigForage, "Discover": kop.TrigDiscover,
+	"LandPlayed": kop.TrigLandPlayed, "SearchedLibrary": kop.TrigSearchedLibrary, "Forage": kop.TrigForage, "Discover": kop.TrigDiscover, "ManifestDread": kop.TrigManifestDread,
 	"CounterAddedOnce": kop.TrigCounterAddedOnce, "CounterAdded": kop.TrigCounterAddedOnce, "Untaps": kop.TrigUntaps,
 	"Sacrificed": kop.TrigSacrificed, "GiveGift": kop.TrigGiveGift, "Proliferate": kop.TrigProliferate, "FacesDilemma": kop.TrigFacesDilemma, "TokenCreated": kop.TrigTokenCreated, "BecomeMonstrous": kop.TrigBecomeMonstrous, "ManaExpend": kop.TrigManaExpend, "AttackerBlocked": kop.TrigBecomesBlocked, "TurnFaceUp": kop.TrigTurnFaceUp, "Transformed": kop.TrigTransformed, "CommitCrime": kop.TrigCommitCrime, "UnlockDoor": kop.TrigUnlockDoor, "FullyUnlock": kop.TrigFullyUnlock,
 	"BecomesTarget":    kop.TrigBecomesTarget,    // the Valiant, watcher and self shapes (lower_trigger.go)
@@ -2085,6 +2085,8 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		}
 	case "PreventNoncombatToOthers":
 		rp.Kind = kop.ReplPreventNoncombatToOthers
+	case "PreventMillOpps":
+		rp.Kind = kop.ReplPreventMillOpps
 	case "DoubleTokens":
 		rp.Kind = kop.ReplDoubleTokens
 		if r.N.isConst() && r.N.N > 2 {

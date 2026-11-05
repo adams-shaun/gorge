@@ -293,6 +293,15 @@ func (s *State) firePlayerGen(k *prep, ev kop.TrigEvent, who uint8, amt int16) {
 // playerTrigGen queues listener l's ability a for a player event if it
 // matches.
 func (s *State) playerTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Ability, who uint8, amt int16) {
+	s.playerTrigGenObj(k, ev, l, a, who, amt, NoObj)
+}
+
+// playerTrigGenObj is playerTrigGen with the event's object: the
+// ManifestDread marker's milled card (the body's TriggeredCards), NoObj for
+// every other player event, which derives its own.
+//
+//go:noinline
+func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Ability, who uint8, amt int16, passed Obj) {
 	t := &a.Trig
 	if !whoseOK(t.Whose, l.ctrl, who) {
 		return
@@ -300,7 +309,7 @@ func (s *State) playerTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.
 	if t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl || t.Flags2&kop.Tf2OppTurn != 0 && s.active == l.ctrl {
 		return
 	}
-	tobj := NoObj
+	tobj := passed
 	switch ev {
 	case kop.TrigDrawn:
 		if t.Flags&kop.TfSecondDraw != 0 && !s.nthDrawOK(t, who) {

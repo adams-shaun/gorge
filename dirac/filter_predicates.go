@@ -51,6 +51,19 @@ func (s *State) notTriggerObj(o Obj) bool {
 	return e.trigObj != o
 }
 
+// isTriggerObj: PredTriggerObj, the ChooseFromDefined$ TriggeredCards pool's
+// membership test (gorge chooseFromDefinedPool over the trigger's capture):
+// o IS the triggering object of the ability being resolved or put on the
+// stack. An unbound referent never matches: the pool is empty (gorge
+// trigger_match.go, the ManifestDreadAction arm's empty list stays empty).
+func (s *State) isTriggerObj(o Obj) bool {
+	e := s.curEntry()
+	if e == nil || e.trigObj == NoObj {
+		return false
+	}
+	return e.trigObj == o
+}
+
 // activateCondHolds: an activated ability's activation restriction (gorge
 // CheckSVar$/SVarCompare$ on an AB$, CR 602.5b), carried in the otherwise
 // unused Trig.Cond of an AbActivated ability, holds now.

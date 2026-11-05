@@ -47,12 +47,13 @@ const (
 	rOppNonRemCtrl                // the opponent unless a remembered object's controller is that opponent (OppNonRememberedController)
 	rSrcOwner                     // the source object's owner (Defined$ CardOwner)
 	rTriggerAttackers             // the attacker group of the AttackersDeclared event (Defined$ TriggeredAttackers)
+	rRememberedOwner              // the remembered object's owner (Unidentified Hovership's leave trigger)
 	rCount
 )
 
 var refNames = [...]string{"None", "Target", "Self", "You", "EachOpp", "EachPlayer", "TargetController",
 	"TargetOwner", "Triggered", "TriggeredNew", "TriggeredSource", "TriggeredPlayer", "TriggeredTgtCtrl", "Equipped", "Remembered",
-	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers"}
+	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner"}
 
 type lRef struct {
 	Kind refKind
