@@ -32,35 +32,39 @@ type PickView = draft.PickView
 type CardLookup func(name string) *cards.Card
 
 // Tuning is every constant the drafter and builder read, so the draftsim
-// tuning loop turns one knob set.
+// tuning loop turns one knob set. It is also the knob file a `knobs:<path>`
+// agent reads (ParseTuning): every field is a JSON key, and a zero field
+// means today's default (Filled), so the zero Tuning is the committed
+// drafter and the best23 builder. A field that should really be zero is
+// set to a negligible value (1e-9), as the research variants do.
 type Tuning struct {
 	// RatingCentre is the win rate a centred rating of zero stands for
 	// ((gih_wr - RatingCentre) * RatingScale).
-	RatingCentre float64
+	RatingCentre float64 `json:"rating_centre"`
 	// RatingScale converts a win-rate gap to rating points.
-	RatingScale float64
+	RatingScale float64 `json:"rating_scale"`
 	// HeuristicCentre and HeuristicScale put the heuristic's raw points on
 	// the same rough centred scale as a rated card.
-	HeuristicCentre float64
-	HeuristicScale  float64
+	HeuristicCentre float64 `json:"heuristic_centre"`
+	HeuristicScale  float64 `json:"heuristic_scale"`
 	// ColourFitMax is the full weight k of the colour term; ColourFitRamp
 	// is how many picks of pack 1 ramp k from 0 to it (full by pick
 	// ColourFitRamp+1).
-	ColourFitMax  float64
-	ColourFitRamp int
+	ColourFitMax  float64 `json:"colour_fit_max"`
+	ColourFitRamp int     `json:"colour_fit_ramp"`
 	// ColourlessFit is the colour term a colourless card earns (0.5 of the
 	// maximum fit of 1).
-	ColourlessFit float64
+	ColourlessFit float64 `json:"colourless_fit"`
 	// MainSize is how many non-land cards the builder plays, DeckSize the
 	// total it fills to with basics.
-	MainSize int
-	DeckSize int
+	MainSize int `json:"main_size"`
+	DeckSize int `json:"deck_size"`
 	// MinCreatures is the creature count the builder prefers; HighValueMV
 	// and MaxHighValue cap how many cards of that mana value or more it
 	// plays.
-	MinCreatures int
-	HighValueMV  int
-	MaxHighValue int
+	MinCreatures int `json:"min_creatures"`
+	HighValueMV  int `json:"high_value_mv"`
+	MaxHighValue int `json:"max_high_value"`
 	// ShortPairPenalty is what the builder's pair scan charges a colour pair
 	// per maindeck slot its own cards cannot fill, so a thin pair padded
 	// with the pool's best off-colour cards cannot outscores a deep real
@@ -68,7 +72,38 @@ type Tuning struct {
 	// off-colour fill is build-side only). The default −15 puts one
 	// unfilled slot at about what a 0.40-GIH card would earn on the centred
 	// rating scale, and is insensitive between −5 and −30.
-	ShortPairPenalty float64
+	ShortPairPenalty float64 `json:"short_pair_penalty"`
+
+	// Drafter knobs read by Knobbed (zero = the committed drafter).
+
+	// Need is the committed drafter's needs weight; zero is
+	// DefaultNeedWeight.
+	Need float64 `json:"need"`
+	// SignalWeight is the table-signal term's weight (Signals.Weight);
+	// zero leaves it off. SignalStart is the pack 1 pick it starts from;
+	// zero is pick 4.
+	SignalWeight float64 `json:"signal_weight"`
+	SignalStart  int     `json:"signal_start"`
+	// Bias is added to a card's score per colour, WUBRG, as the mean over
+	// the card's colours. PairBias is added to a card whose colour identity
+	// is exactly one two-colour pair, in PairNames order.
+	Bias     [5]float64  `json:"bias"`
+	PairBias [10]float64 `json:"pair_bias"`
+	// Deny is the hate-draft weight: from the 10th pick a card off the
+	// seat's pair earns Deny*max(0, centred)/10.
+	Deny float64 `json:"deny"`
+
+	// Builder knobs read by Best23 beyond the ones above (zero = no bound).
+
+	// Lands is the basic-land count; zero is DeckSize-MainSize, and a
+	// non-zero Lands with a zero MainSize sets MainSize to DeckSize-Lands.
+	Lands int `json:"lands"`
+	// CreatureMax caps the main's creatures; zero is no cap.
+	CreatureMax int `json:"creature_max"`
+	// CurveMin and CurveMax bound the main's count per curve bucket (mana
+	// value <=1, 2, 3, 4, 5, 6+); zero is no bound.
+	CurveMin [6]int `json:"curve_min"`
+	CurveMax [6]int `json:"curve_max"`
 }
 
 // DefaultTuning is the default knob set.

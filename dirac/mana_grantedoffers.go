@@ -378,7 +378,10 @@ type grantSrch struct {
 	skipPool bool          // the next branch's mana is restricted past the play: it prices nothing
 	// filt: the candidate also has a filter ability ({1},{T}: Add one mana of any
 	// color), a paid census gap of gorge's like the grants (mana_filter.go)
-	filt  [MaxPerm]bool
+	filt [MaxPerm]bool
+	// tapx: the candidate's own ability is a tap-another-permanent one, a census
+	// gap of gorge's beside the grants (mana_granttapx.go)
+	tapx  [MaxPerm]bool
 	nodes int
 	nseen int
 	seen  [potentialScriptNodes]grantKey
@@ -414,6 +417,7 @@ type grantStep struct {
 	// and the answer act gives to the ask that trigger poses
 	kind uint8
 	act  Action
+	cand Slot // stepTapX: the permanent its cost taps
 }
 
 const (
@@ -439,6 +443,7 @@ func (g *grantSrch) candidates(s *State) {
 	if k := g.k; k.gen.anyFilt {
 		fm = s.scriptFilt(k, g.p)
 	}
+	tm := s.grantTapXGaps(g.k, g.p)
 	g.n = 0
 	holders := 0
 	for i := 0; i < n; i++ {
@@ -447,13 +452,13 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		ng := s.grantIdxs(g.k, sl, &g.gi[g.n])
-		if ng == 0 && !fm.has(sl) {
+		if ng == 0 && !fm.has(sl) && !tm.has(sl) {
 			continue
 		}
 		if ng > 0 {
 			holders++
 		}
-		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n] = sl, uint8(ng), s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil, fm.has(sl)
+		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), !tm.has(sl) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
 		g.n++
 	}
 	if holders == 0 {
@@ -517,7 +522,9 @@ func (g *grantSrch) visit(t *State) bool {
 			}
 			continue
 		}
-		if !t.canTapForMana(g.k, sl) {
+		tx := g.tapx[i] && t.scriptTapX(g.k, g.p).has(sl)
+		grants := t.canTapForMana(g.k, sl)
+		if !grants && !tx {
 			continue
 		}
 		// several abilities (its own beside a grant, two grants): the
@@ -525,15 +532,27 @@ func (g *grantSrch) visit(t *State) bool {
 		// answers first (gorge flattens a Combo's colours into that ask;
 		// an Any ability still asks its colour)
 		fok := g.filt[i] && poolTotal(&t.pl[g.p&1])+t.filtFeeRestrN(g.k, g.p, sl) >= t.filtFee(g.k, sl)
-		alts := int(g.ng[i])
+		alts := 0
+		if grants {
+			alts = int(g.ng[i])
+		}
 		if g.dual[i] {
 			alts++
 		}
 		if fok {
 			alts++
 		}
+		if tx {
+			alts++
+		}
 		if alts > 1 && !g.node() {
 			return false
+		}
+		if tx && g.tapXBranch(t, i, sl) { // the printed tap-another ability first (mana_granttapx.go)
+			return true
+		}
+		if !grants {
+			continue
 		}
 		if g.dual[i] {
 			mask, n := uint8(0), uint8(0)
@@ -625,6 +644,9 @@ func (g *grantSrch) settle(t *State) bool {
 	}
 	if !g.node() {
 		return false
+	}
+	if d.Kind == DkTarget {
+		t.gorgeTargetOrder(&d)
 	}
 	if !gorgeAskOrder(&d) {
 		return false // (Jett Reno's surveil: the card to the graveyard first)
@@ -870,6 +892,9 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		}
 		sl := st.sl
 		switch st.gi {
+		case stepTapX:
+			s.tapXDo(k, g.p, tapXStep{sl: sl, cand: st.cand, cand2: NoSlot, col: st.col, kind: tapXAct})
+			continue
 		case stepFilt:
 			s.filtDo(k, g.p, filtStep{sl: sl, gap: true, ans: 1 + st.col})
 			if !s.filtNoTap(k, sl) {

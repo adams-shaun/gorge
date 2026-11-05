@@ -304,7 +304,7 @@ func (s *State) applyAskWardDisc(k *prep, a Action) bool {
 	if s.res.ask != raWardDiscard {
 		return s.applyAskWardSac(k, a) // kw_wardcost.go
 	}
-	s.discardObj(k, Obj(a.Source()))
+	s.discardCost(k, Obj(a.Source()))
 	s.payDone(k, true)
 	return true
 }
@@ -389,7 +389,7 @@ func (s *State) applyAskWardAlt(k *prep, a Action) {
 		s.payWardN(k, uint8(s.res.e.trigAmt&^wardAltBits), true)
 		return
 	}
-	s.discardObj(k, Obj(a.Source()))
+	s.discardCost(k, Obj(a.Source()))
 	s.payDone(k, true)
 }
 

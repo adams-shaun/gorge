@@ -1000,6 +1000,12 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 		return false
 	}
 	var av avail
+	// the window's sources are what the payment can spend (CR 106.6): a
+	// restricted grant (Mm'menon's blue for a spell cast from anywhere other
+	// than the hand) is no unit of a pip ask the building hand warp cannot
+	// spend it on, as gorge's announceFeasible probes the same sources the
+	// window can activate (the X ask's availXWindow keeps the same rule)
+	av.xd, av.xdOn = s.payDescNow(NoObj), true
 	s.availCastWindowFor(k, e.ctrl, &av)
 	if e.kind == seAbility {
 		s.excludeTapSource(k, &av)

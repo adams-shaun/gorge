@@ -574,8 +574,10 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		// join the remembered set (ForgetOtherTargets$ first forgets the
 		// rest). Lowered only for a targeted battlefield exile, where the
 		// kernel's ExileEx MvRemember remembers exactly the moved targets
-		// (a legal battlefield target always moves); with no target it is
-		// a no-op in gorge.
+		// (a legal battlefield target always moves), and a targeted
+		// graveyard-to-hand return, where ReturnEx MvRemember remembers the
+		// returned card (an illegal target does not move: CR 608.2b;
+		// Cemetery Recruitment); with no target it is a no-op in gorge.
 		if rt != "True" {
 			return refuse("RememberTargets %q", rt)
 		}
@@ -587,7 +589,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if !lc.restReadsRemembered() && !lc.remPersistShape() { // lower_rempersist.go
 				return refuse("RememberTargets read outside its own resolution")
 			}
-			if dest != zExile || tz != zBattlefield {
+			if !(dest == zExile && tz == zBattlefield) && !(origin == zGraveyard && dest == zHand) {
 				return refuse("RememberTargets on a %s->%s move", zoneLabel[origin], zoneLabel[dest])
 			}
 			if ps.is("ForgetOtherTargets", "True") {
