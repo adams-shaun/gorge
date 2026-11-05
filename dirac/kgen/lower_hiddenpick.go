@@ -7,14 +7,20 @@ import (
 // publicPick lowers a Hidden$ True ChangeZone over a public origin with no
 // object selector (gorge effHiddenPick): Origin$ Battlefield -> Hand or
 // Exile, or Origin$ Graveyard -> Hand or Exile. The pool is the matching
-// cards of every player's battlefield (seat order; game-wide) or, with
-// ValidTgts$ a player and DefinedPlayer$ Targeted, of that player's zone
-// (SrOwnZone; a graveyard pick needs the target). The chooser is the
-// zone's player, or the controller with Chooser$ You; ChangeNum$ a
-// constant; Mandatory$ True Min = the bound, else Min 0; Optional$
-// True/You poses the yes/no confirmation first; RememberChanged$
-// remembers the moved cards. Without Hidden$ gorge takes the object path,
-// not lowered here.
+// cards of every player's zone (seat order; game-wide), of that zone's
+// player with ValidTgts$ a player and DefinedPlayer$ Targeted (SrOwnZone on
+// a battlefield origin; a graveyard walk is that player's zone anyway), or,
+// with a DefinedPlayer$ whose spelling the kernel holds as a Ref, of the
+// player that Ref names (gorge gameWide is false: the pick loops over the
+// resolved players' zones). The chooser is the zone's player, or the
+// controller with Chooser$ You; ChangeNum$ a constant; Mandatory$ True Min
+// = the bound, else Min 0; Optional$ True/You poses the yes/no confirmation
+// first; RememberChanged$ remembers the moved cards. A game-wide graveyard
+// pick (no ValidTgts$, no DefinedPlayer$) is lowered only over an Exile
+// destination, where both engines enter the card under its owner; over a
+// hand destination gorge would enter an opponent's card into its owner's
+// hand, which the kernel's per-player walk cannot pose. Without Hidden$
+// gorge takes the object path, not lowered here.
 func (lc *lowerCtx) publicPick(ps *params, f *lFilter, n lValue, flags []string, counterKind string, override *lOverride, origin, dest int) error {
 	if !ps.is("Hidden", "True") {
 		return refuse("ChangeType$ move %s->%s without Hidden$", zoneLabel[origin], zoneLabel[dest])
@@ -58,7 +64,30 @@ func (lc *lowerCtx) publicPick(ps *params, f *lFilter, n lValue, flags []string,
 			cs = append(cs, "OwnZone")
 		}
 	} else if origin == zGraveyard {
-		return refuse("graveyard pick without a target player")
+		// No target player: gorge's pool is game-wide when no fetch player
+		// was named (gameWide), else the DefinedPlayer$ spellings' zones --
+		// the same player a Ref already names, so the pool lowers through
+		// lc.definedPlayer and no target slot is declared here.
+		if dp := ps.str("DefinedPlayer"); dp != "" {
+			o, err := lc.definedPlayer(dp)
+			if err != nil {
+				return refuse("public pick DefinedPlayer$ %q: %v", dp, err)
+			}
+			switch o.Kind {
+			case rTarget:
+				owner = o
+			case rYou:
+				// gorge's fetch player is the controller: the pool is its own
+				// graveyard, the kernel's default
+			default:
+				return refuse("public pick DefinedPlayer$ %q is not a player Ref", dp)
+			}
+		} else {
+			if dest != zExile {
+				return refuse("game-wide graveyard pick to %s", zoneLabel[dest])
+			}
+			cs = append(cs, "GameGrave")
+		}
 	}
 	if ch, ok := ps.get("Chooser"); ok {
 		switch {

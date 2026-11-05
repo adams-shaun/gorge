@@ -1341,7 +1341,7 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 	s.g.pickP = p
 	s.g.pickLeft = uint8(s.value(k, in.A))
 	s.g.pickZ = uint8(in.C & 7)
-	s.g.pickF = uint16(in.C>>3) | uint16(in.B.N)&(kop.SrAttacking|kop.SrDifferentNames|kop.SrNoShuffle|kop.SrRandom)
+	s.g.pickF = uint16(in.C>>3) | uint16(in.B.N)&(kop.SrAttacking|kop.SrDifferentNames|kop.SrNoShuffle|kop.SrRandom|kop.SrGameGrave)
 	s.g.nlook = 0
 	if altOp(in) {
 		s.altBegin() // OriginAlternative$ (zone_originalternative.go)
@@ -1439,8 +1439,8 @@ func (s *State) searchCands(k *prep, d *Decision) {
 	case kop.ZoneLibrary:
 		list = pl.lib[pl.libLo:pl.libHi]
 	case kop.ZoneGraveyard:
-		if in.Op == kop.OpChooseMove && s.g.pickF&kop.SrUnderYourControl != 0 {
-			s.gameGraveCands(k, in, d) // trig_sacqueueorder.go: an ownerless GainControl$ pick
+		if in.Op == kop.OpChooseMove && s.g.pickF&(kop.SrUnderYourControl|kop.SrGameGrave) != 0 {
+			s.gameGraveCands(k, in, d) // trig_sacqueueorder.go: an ownerless GainControl$ pick, or a game-wide graveyard pick (gorge effHiddenPick gameWide)
 			return
 		}
 		list = pl.grave[:pl.graveN]
