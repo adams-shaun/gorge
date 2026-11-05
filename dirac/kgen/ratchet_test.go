@@ -65,7 +65,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Molten Exhale: a may-flash extra that is a behold, CardDef.MayFlashBehold; merged TDM 245 -> 246, ALL 21569 -> 21570).
 	// +2 (Baxter Building's four-mana combination filter and Haunted Screen's life-paid three-colour ability lower beside their first mana ability; msh-second-mana-ability; merged DSK 241 -> 242, MSH 228 -> 229, ALL 21630 -> 21632).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21632, 34442},
+	"ALL": {21636, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -81,7 +81,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"LCI": {251, 290},
 	"MKM": {240, 279},
 	"MOM": {198, 296},
-	"MSH": {229, 276},
+	"MSH": {231, 276},
 	"NEO": {198, 287},
 	"ONE": {195, 271},
 	"OTJ": {241, 276},

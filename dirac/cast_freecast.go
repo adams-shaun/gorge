@@ -21,11 +21,12 @@ func (s *State) freeQueued(o Obj) bool {
 // instruction, so nothing here reads it).
 //
 // OpCastFree's operands:
-//   - C low 3 bits: the population zone (Exile / Hand / Graveyard).
+//   - C low 3 bits: the population zone (Exile / Hand / Graveyard / Library).
 //   - C bit 3: Amount$ 1 (close the ask after one pick).
 //   - C bit 4: ForgetPlayed$ True (drop the begun card from s.g.rem).
 //   - C bit 5: ReplaceGraveyard$ Exile (exile when it leaves the stack).
 //   - C bit 6: CopyCard$ True; bit 7: AllowRepeats$ True with Amount$ A (cast_freerepeat.go).
+//   - C bit 8: the copy pays its mana cost; bit 9: a literal Amount$ A (the ask closes after A picks).
 //   - Obj: RefRemembered (P1), a target slot (P2), or RefNone with F (P3/P4
 //     filter population over the zone).
 //

@@ -171,7 +171,7 @@ import (
 // +1 (Molten Exhale: a may-flash extra that is a behold, CardDef.MayFlashBehold; ALL build-level 21569 -> 21570).
 // +2 (Baxter Building's four-mana combination filter and Haunted Screen's life-paid three-colour ability lower beside their first mana ability; msh-second-mana-ability; merged ALL build-level 21630 -> 21632).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21632, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21636, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
