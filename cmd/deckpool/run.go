@@ -31,9 +31,23 @@ type indexEntry struct {
 	meta
 }
 
-// run drafts o.pods pods and writes their decks, the index and, last, the
-// manifest under o.out.
+// run drafts o.pods pods, pairs their decks and writes the decks, the
+// index, pool.tsv, pairs.tsv and, last, the manifest under o.out.
 func run(o options, stdout io.Writer) error {
+	// The pairing flags' zero values are their defaults, as --collation's
+	// empty is the set's default.
+	if o.pairing == "" {
+		o.pairing = "roundrobin"
+	}
+	if o.gamesN == 0 {
+		o.gamesN = 1
+	}
+	if o.split == "" {
+		o.split = "all"
+	}
+	if err := o.validate(); err != nil {
+		return err
+	}
 	if err := checkOutEmpty(o.out); err != nil {
 		return err
 	}
@@ -68,6 +82,8 @@ func run(o options, stdout io.Writer) error {
 	}
 	var index []byte
 	var metas []meta
+	var pods [][]string // each pod's deck ids in seat order, for the pairs
+	var poolRows []poolRow
 	n := 0
 	for i := 0; i < o.pods; i++ {
 		podSeed := o.seed + uint64(i)
@@ -79,6 +95,7 @@ func run(o options, stdout io.Writer) error {
 		if err != nil {
 			return fmt.Errorf("pod %d (seed %d): %w", i, podSeed, err)
 		}
+		var ids []string
 		for seat := 0; seat < seats; seat++ {
 			d, err := lab.Build(res.Pools[seat], nb)
 			if err != nil {
@@ -91,6 +108,12 @@ func run(o options, stdout io.Writer) error {
 			f.Name = id
 			f.Format = "limited"
 			f.Archetype = m.Archetype
+			cards := 0
+			for _, e := range f.Cards {
+				cards += e.Count
+			}
+			ids = append(ids, id)
+			poolRows = append(poolRows, poolRow{Deck: id, Colours: m.Colours, Splash: m.Splash, Cards: cards})
 			rel := filepath.ToSlash(filepath.Join("decks", id+".json"))
 			if err := writeJSON(filepath.Join(o.out, rel), f); err != nil {
 				return err
@@ -106,8 +129,19 @@ func run(o options, stdout io.Writer) error {
 			index = append(append(index, line...), '\n')
 			n++
 		}
+		pods = append(pods, ids)
 	}
 	if err := os.WriteFile(filepath.Join(o.out, "decks.jsonl"), index, 0o644); err != nil {
+		return err
+	}
+	pairs, err := pairsFor(o, pods)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(o.out, "pool.tsv"), poolTSV(poolRows, o.split), 0o644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(o.out, "pairs.tsv"), pairsTSV(pairs, o), 0o644); err != nil {
 		return err
 	}
 	m := lab.NewManifest("deckpool", o.seed, []draftlab.RoleRef{
@@ -118,6 +152,13 @@ func run(o options, stdout io.Writer) error {
 	m.Collation = string(coll)
 	m.Mode = "draft"
 	m.Seats = seats
+	m.Pairing = o.pairing
+	m.Pairs = len(pairs)
+	m.GamesPerPair = o.gamesN
+	m.PoolSplit = o.split
+	if o.pairing == "random" {
+		m.PairsPerPod = o.pairsN
+	}
 	if err := writeJSON(filepath.Join(o.out, "manifest.json"), m); err != nil {
 		return err
 	}
