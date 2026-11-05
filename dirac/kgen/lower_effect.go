@@ -328,6 +328,17 @@ func (lc *lowerCtx) objOrTargetOpt(ps *params, dflt string, zone int, allowParen
 			return lRef{}, err
 		}
 		t := lTarget{F: f, Zone: zone}
+		if lc.permOrGraveCard {
+			if f.Players != 0 {
+				return lRef{}, refuse("ChangeZone Origin$ Battlefield,Graveyard with a player target")
+			}
+			for _, c := range f.Clauses {
+				if c.Ctrl != whoAny || c.Owner != whoAny {
+					return lRef{}, refuse("ChangeZone Origin$ Battlefield,Graveyard with a controller/owner filter")
+				}
+			}
+			t.PermOrGraveCard = true
+		}
 		if z, ok := ps.get("TgtZone"); ok {
 			t.Zone = zoneNames[z]
 			if t.Zone == 0 {

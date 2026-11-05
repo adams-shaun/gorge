@@ -269,6 +269,12 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 	f := t.F
 	var err error
 	switch {
+	case t.PermOrGraveCard:
+		ts.Kind = kop.TgtPermOrGraveCard
+		// parsed in the graveyard: matchCardOneAt reads the zone, matchPerm ignores it
+		if ts.Filter, err = cb.filter(f, kop.ZoneGraveyard); err != nil {
+			return ts, err
+		}
 	case t.PermOrSpell:
 		ts.Kind = kop.TgtPermOrSpell
 		if ts.Filter, err = cb.filter(f, kop.ZoneBattlefield); err != nil {
@@ -1188,7 +1194,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.XBound {
 		// kxpaid (lower_xbound.go): the body's X is the trigger object's
 		// spell's paid X, captured as it triggers
-		if t.Event != "ETB" && t.Event != "SpellCast" && !(t.Event == "Discarded" && t.Cycled) {
+		if t.Event != "ETB" && t.Event != "SpellCast" && t.Event != "TurnFaceUp" && !(t.Event == "Discarded" && t.Cycled) {
 			return kt, fmt.Errorf("bound X on a %s trigger", t.Event)
 		}
 		kt.Flags2 |= kop.Tf2XBound
@@ -1816,7 +1822,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		st.Kind = kop.StatMayPlayFrom
 		st.Zone = zoneMap[s.Zone]
 		fz := st.Zone
-		if slices.Contains(s.Flags, "AlsoSideboard") {
+		if slices.Contains(s.Flags, "AlsoSideboard") || slices.Contains(s.Flags, "FreeOnly") {
 			fz = kop.ZoneNone // the filter also reads a sideboard card; the static's zones are tested apart (mayPlayFromZone)
 		}
 		if st.Filter, err = filter(s.F, fz); err != nil {
@@ -1842,6 +1848,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StFunctionsInExile
 			case "AlsoSideboard":
 				st.StFlags |= kop.StAlsoSideboard
+			case "FreeOnly":
+				st.StFlags |= kop.StFreeOnly
 			case "RaiseCostRemove6CountersFromCreatures":
 				st.StFlags |= kop.StRemove6Counters
 			case "MayRaise":
@@ -1907,7 +1915,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			case "Convoke":
 				st.A = kop.StackKwConvoke
 			}
-		case "Lifelink", "Storm", "Split second", "Conspire":
+		case "Lifelink", "Storm", "Split second", "Conspire", "Delve":
 			if param != "" {
 				return ka, nil, fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
 			}
@@ -1919,6 +1927,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.A = kop.StackKwStorm
 			case "Split second":
 				st.A = kop.StackKwSplitSecond
+			case "Delve":
+				st.A = kop.StackKwDelve
 			}
 		case "Casualty":
 			n, err := strconv.Atoi(param)

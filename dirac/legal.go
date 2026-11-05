@@ -126,6 +126,12 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			adj = s.waterbendSpellCredit(k, p, c, o, *cost) // the offer gate's waterbend credit (act_waterbend.go)
 			cost = &adj
 		}
+		preDelve := cost
+		var dc kop.ManaCost
+		if k.gen != nil && k.gen.anyDelve {
+			dc = s.delveOfferCreditHand(k, p, c, o, *cost)
+			cost = &dc // (the either-or check below takes the pre-delve cost: it credits its own total)
+		}
 		if !av.affords(cost, pipMaskOf(cost), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, &av)) {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
@@ -140,7 +146,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		} else {
 			tgtOK = s.spellTargetsFeasible(k, c, p)
 		}
-		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, cost, &base, false, &av) {
+		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, &base, false, &av) {
 			continue
 		}
 		if s.castHeldOut(o) {
@@ -220,6 +226,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				fc = s.adjustCost(k, p, c, o, k.t.Cards[c].Cost)
 			}
 		}
+		fc = s.delveOfferCredit(k, p, c, o, false, fc)
 		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, &av) || !s.spellTargetsFeasibleFrom(k, c, p, o) || k.gen != nil && !s.spellCostsFeasible(k, c, p, o) {
 			continue // (an additional cost too: Thrill of Possibility's discard with an empty hand)
 		}
@@ -681,7 +688,7 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 	k := s.k()
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
-	if s.tapPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand) {
+	if s.contribPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand) {
 		return false // gorge's potential planner refuses a convoke cost
 	}
 	if s.waterbendOwnPart(k, p, c, o) != 0 {
@@ -838,6 +845,9 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 	t := addCost(*cost, cd.AltAddCost.Mana)
 	if base != nil && (s.statM.any() || k.gen != nil) {
 		t = s.adjustFit(k, av, p, c, o, addCost(*base, cd.AltAddCost.Mana), gen)
+	}
+	if k.gen != nil && k.gen.anyDelve && o != NoObj {
+		t = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, t) // the total's one credit
 	}
 	return av.affords(&t, pipMaskOf(&t), 0)
 }
@@ -1054,6 +1064,9 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 	if t.Kind == kop.TgtPermOrSpell {
 		return s.targetOKPermOrSpell(k, t, p, src, self, o) // tgt_permorspell.go
 	}
+	if t.Kind == kop.TgtPermOrGraveCard {
+		return s.targetOKPermOrGraveCard(k, t, p, src, self, o) // tgt_permorgravecard.go
+	}
 	ob := &s.objs[o]
 	switch t.Kind {
 	case kop.TgtObject, kop.TgtAny:
@@ -1134,6 +1147,8 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 		n = s.stackTgtCands(k, t, p, self, out, n) // tgt_stackability.go
 	case kop.TgtPermOrSpell:
 		n = s.permOrSpellCands(k, t, p, src, self, out, n) // tgt_permorspell.go
+	case kop.TgtPermOrGraveCard:
+		n = s.permOrGraveCardCands(k, t, p, src, self, out, n) // tgt_permorgravecard.go
 	case kop.TgtCard:
 		for pp := 0; pp < 2; pp++ {
 			pl := &s.pl[pp]

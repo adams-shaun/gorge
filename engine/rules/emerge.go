@@ -147,7 +147,7 @@ func (e *Engine) emergeOfferCost(p state.PlayerID, id state.ObjID, f *cards.Face
 func (e *Engine) emergeSacPayable(pc *pendingCast, oid state.ObjID) bool {
 	candidate := e.emergeCandidateCost(pc.cost, oid)
 	delve := int32(0)
-	if e.hasCastDelve(pc.card) {
+	if e.hasCastDelve(pc.card, pc.isAbility()) {
 		delve = int32(len(e.G.Zone(state.ZGraveyard, pc.player)))
 	}
 	return e.manaFeasiblePriced(pc.player, paymentFor(pc.card, false, Cost{}), candidate, pc.mods, pc.taxGeneric, delve, nil)

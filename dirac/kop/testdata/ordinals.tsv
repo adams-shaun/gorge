@@ -995,6 +995,7 @@ StBeamGranted	StaticFlags	1
 StCasterActive	StaticFlags	64
 StDynamic	StaticFlags	1
 StEmbNum	StaticFlags	16384
+StFreeOnly	StaticFlags	128
 StFunctionsInExile	StaticFlags	1024
 StFunctionsInGraveyard	StaticFlags	16
 StMayRaise	StaticFlags	32768
@@ -1015,6 +1016,7 @@ StackKwCascade	int16	3
 StackKwCasualty	int16	2
 StackKwConspire	int16	8
 StackKwConvoke	int16	7
+StackKwDelve	int16	9
 StackKwImprovise	int16	1
 StackKwLifelink	int16	4
 StackKwSplitSecond	int16	6
@@ -1165,6 +1167,7 @@ TgtCopyAb	TargetKind	236
 TgtCopyTrig	TargetKind	237
 TgtNone	TargetKind	0
 TgtObject	TargetKind	1
+TgtPermOrGraveCard	TargetKind	240
 TgtPermOrSpell	TargetKind	235
 TgtPlayer	TargetKind	2
 TgtSpell	TargetKind	4

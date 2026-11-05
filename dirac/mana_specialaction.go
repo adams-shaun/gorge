@@ -147,14 +147,16 @@ func (s *State) restrSpecialFilter(k *prep, p uint8, src Slot, f kop.FilterID, s
 }
 
 // specialAffords reports whether p's floating pool, with the restricted mana a
-// special action's restriction admits, pays cost: gorge prices a special action
-// against AvailableFor's pool alone (pay.CostPayableSpecial), never tapping a
-// source, so the offer and the payment read the same mana.
+// special action's restriction admits, pays cost at the announced X = x: gorge
+// prices a special action against AvailableFor's pool alone
+// (pay.CostPayableSpecial), never tapping a source, so the offer and the
+// payment read the same mana. x is 0 unless the action announces an X (a
+// keyword turn-up's Disguise {X}).
 //
 //go:noinline
-func (s *State) specialAffords(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot) bool {
+func (s *State) specialAffords(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot, x int) bool {
 	m := s.restrPoolSpecial(k, p, sp, sl)
-	if m == 0 {
+	if m == 0 && x == 0 {
 		return s.poolPays(p, cost)
 	}
 	var a avail
@@ -164,8 +166,10 @@ func (s *State) specialAffords(k *prep, p uint8, cost *kop.ManaCost, sp kop.Spec
 			a.addUnits(1<<c, pl.pool[c])
 		}
 	}
-	s.restrAvailAdd(p, m, &a)
-	return a.affords(cost, pipMaskOf(cost), 0)
+	if m != 0 {
+		s.restrAvailAdd(p, m, &a)
+	}
+	return a.affords(cost, pipMaskOf(cost), cost.XGeneric(x))
 }
 
 // paySpecial spends a special action's mana: the restricted batches its
@@ -174,10 +178,10 @@ func (s *State) specialAffords(k *prep, p uint8, cost *kop.ManaCost, sp kop.Spec
 // its restriction.
 //
 //go:noinline
-func (s *State) paySpecial(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot) {
+func (s *State) paySpecial(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot, x int) {
 	if m := s.restrPoolSpecial(k, p, sp, sl); m != 0 {
-		s.payRestrSpend(k, p, m, cost, 0, NoObj, false)
+		s.payRestrSpend(k, p, m, cost, x, NoObj, false)
 		return
 	}
-	s.payFromPool(p, cost, 0)
+	s.payFromPool(p, cost, x)
 }
