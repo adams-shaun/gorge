@@ -100,3 +100,84 @@ func (s *State) nonSpellRestrAffords(k *prep, p uint8, cost *kop.ManaCost) bool 
 	s.availWindowFor(k, p, &av)
 	return s.plotRestrFallback(k, p, cost, &av)
 }
+
+// restrPoolSpecial is the mask of p's restricted mana batches (State.rb) whose
+// RestrictValid$ Static.* clause admits the special action sp on the paid
+// object at sl (CR 106.6, 116.2): turning that permanent face up or unlocking
+// that Room door. A spell- or activated-ability-only batch admits none.
+//
+//go:noinline
+func (s *State) restrPoolSpecial(k *prep, p uint8, sp kop.SpecialMask, sl Slot) uint8 {
+	if k.gen == nil || sp == 0 {
+		return 0
+	}
+	var m uint8
+	for i := range s.rb[p&1] {
+		b := &s.rb[p&1][i]
+		if b.kind == 0 {
+			break
+		}
+		if b.units() != 0 && s.restrSpecialFilter(k, p, NoSlot, k.gen.restrFOf(b.kind), sp, sl) {
+			m |= 1 << i
+		}
+	}
+	return m
+}
+
+// restrSpecialFilter reports whether the restriction filter f has a Static.*
+// alternative admitting sp on the object at target. src is the mana source's
+// slot when known (a source-relative predicate), NoSlot for a floating batch.
+func (s *State) restrSpecialFilter(k *prep, p uint8, src Slot, f kop.FilterID, sp kop.SpecialMask, target Slot) bool {
+	for ; f != 0; f = k.t.Filters[f].Or {
+		fl := k.t.Filters[f]
+		if fl.Special&sp == 0 {
+			continue
+		}
+		fl.Special = 0
+		fl.Zone = kop.ZoneNone
+		fl.Flags2 &^= kop.F2ChosenType
+		if fl == (kop.Filter{}) {
+			return true // bare Static (or an SA-property-only tail): every object
+		}
+		if target != NoSlot && s.matchPermOne(k, &fl, target, p, src, layerFull) {
+			return true
+		}
+	}
+	return false
+}
+
+// specialAffords reports whether p's floating pool, with the restricted mana a
+// special action's restriction admits, pays cost: gorge prices a special action
+// against AvailableFor's pool alone (pay.CostPayableSpecial), never tapping a
+// source, so the offer and the payment read the same mana.
+//
+//go:noinline
+func (s *State) specialAffords(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot) bool {
+	m := s.restrPoolSpecial(k, p, sp, sl)
+	if m == 0 {
+		return s.poolPays(p, cost)
+	}
+	var a avail
+	pl := &s.pl[p&1]
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if pl.pool[c] > 0 {
+			a.addUnits(1<<c, pl.pool[c])
+		}
+	}
+	s.restrAvailAdd(p, m, &a)
+	return a.affords(cost, pipMaskOf(cost), 0)
+}
+
+// paySpecial spends a special action's mana: the restricted batches its
+// Static.* restriction admits first (gorge's emitRestrictedManaSpend carves
+// them out), then the ordinary pool; what the payment leaves floats back under
+// its restriction.
+//
+//go:noinline
+func (s *State) paySpecial(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot) {
+	if m := s.restrPoolSpecial(k, p, sp, sl); m != 0 {
+		s.payRestrSpend(k, p, m, cost, 0, NoObj, false)
+		return
+	}
+	s.payFromPool(p, cost, 0)
+}

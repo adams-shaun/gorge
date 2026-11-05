@@ -976,7 +976,13 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 						pk.rdyn, pk.rdynOn, pk.rF, pk.rV = sl, true, ab.ManaRestrict, k.gen.restrVarOf(ab)
 					}
 				} else if dmask != 0 {
-					rk[i], dm[i] = rkWiden, dmask
+					// the restricted alternative may not spend this payment:
+					// the source is still a unit of its census ability, whose
+					// search shape (deterministic or choice) stays its own, but
+					// it ranks over every alternative's colours (gorge's
+					// Alt.Flex/Alt.Colours). rk stays 0: the tap made no
+					// restricted mana.
+					dm[i] = dmask
 				}
 			}
 		}

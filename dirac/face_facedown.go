@@ -223,6 +223,29 @@ func (s *State) offerTurnFaceUp(k *prep, d *Decision, p uint8) {
 	}
 }
 
+// turnUpSpecial is the CR 116.2b special action a turn-up procedure pays as
+// (gorge morphFaceUp.special / pay.SpecialHasProperty): the printed Morph and
+// Megamorph keywords are MorphUp, a manifested card is ManifestUp, a cloaked
+// one CloakUp, and its printed Disguise alternative is DisguiseUp.
+func turnUpSpecial(mode uint8, family uint8) kop.SpecialMask {
+	switch mode {
+	case 1:
+		return kop.SpmManifestUp
+	case 2:
+		return kop.SpmCloakUp
+	case 3, 4:
+		return kop.SpmMorphUp
+	case 5:
+		return kop.SpmDisguiseUp
+	case 0:
+		if family == kop.MorphDisguise {
+			return kop.SpmDisguiseUp
+		}
+		return kop.SpmMorphUp
+	}
+	return 0
+}
+
 // offerTurnUpSl offers the turn-face-up action of the permanent at sl, if it
 // is face down and the floating pool pays for it.
 func (s *State) offerTurnUpSl(k *prep, d *Decision, p uint8, sl Slot) {
@@ -237,17 +260,17 @@ func (s *State) offerTurnUpSl(k *prep, d *Decision, p uint8, sl Slot) {
 		// a printed Morph/Megamorph/Disguise is an alternative.
 		if (cd.Types&kop.TCreature != 0 || DebugTurnUpNoncreature) && !cd.CostEmpty {
 			cost := cd.Cost
-			if turnUpHybOK(&cost) && s.poolPays(p, &cost) {
-				mode := uint8(1)
-				if s.cloaked(sl) {
-					mode = 2
-				}
+			mode := uint8(1)
+			if s.cloaked(sl) {
+				mode = 2
+			}
+			if turnUpHybOK(&cost) && s.specialAffords(k, p, &cost, turnUpSpecial(mode, cd.MorphFamily), sl) {
 				d.add(MakeAction(AkTurnFaceUp, uint8(pm.obj), 0, mode))
 			}
 		}
 		if fam := cd.MorphFamily; fam != 0 {
 			cost := cd.MorphCost
-			if turnUpHybOK(&cost) && s.poolPays(p, &cost) {
+			if turnUpHybOK(&cost) && s.specialAffords(k, p, &cost, turnUpSpecial(fam+2, cd.MorphFamily), sl) {
 				d.add(MakeAction(AkTurnFaceUp, uint8(pm.obj), 0, fam+2))
 			}
 		}
@@ -257,7 +280,7 @@ func (s *State) offerTurnUpSl(k *prep, d *Decision, p uint8, sl Slot) {
 		return
 	}
 	cost := cd.MorphCost
-	if !turnUpHybOK(&cost) || !s.poolPays(p, &cost) {
+	if !turnUpHybOK(&cost) || !s.specialAffords(k, p, &cost, turnUpSpecial(0, cd.MorphFamily), sl) {
 		return
 	}
 	d.add(MakeAction(AkTurnFaceUp, uint8(pm.obj), 0, 0))
@@ -315,13 +338,14 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 	default:
 		return
 	}
-	if !turnUpHybOK(&cost) || !s.poolPays(p, &cost) {
+	sp := turnUpSpecial(mode, cd.MorphFamily)
+	if !turnUpHybOK(&cost) || !s.specialAffords(k, p, &cost, sp, sl) {
 		return
 	}
 	if cost.Hyb[0] != 0 {
 		cost = s.turnUpHybResolve(p, cost) // face_turnfaceup.go
 	}
-	s.payFromPool(p, &cost, 0)
+	s.paySpecial(k, p, &cost, sp, sl)
 	if k.gen.anyTurnUpRepl {
 		s.turnUpRepls(k, sl, o) // face_turnfaceup.go: the body runs while still face down
 	}

@@ -1088,6 +1088,7 @@ var flag1 = map[uint64]kop.FilterFlags{
 func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	var kf kop.Filter
 	kf.Zone = zone
+	kf.Special = c.Special
 	if zone == kop.ZoneBattlefield {
 		kf.Zone = kop.ZoneNone
 	}

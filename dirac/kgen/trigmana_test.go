@@ -41,7 +41,7 @@ var dbmanaForms = []formCase{
 	{card: "Quintorius Kand", form: "a loyalty ability's DB$ Mana sub resolves on the stack", lir: "AddMana"},
 	{card: "Desolation of Smaug", form: "a restricted colour-choice DB$ Mana (RestrictValid$ Spell.Dragon) lowers", lir: "ManaChoice"},
 	{card: "Abstract Paintmage", form: "a restricted fixed-colour DB$ Mana (RestrictValid$ Spell.Instant,Spell.Sorcery) lowers", lir: "AddMana obj=You A=1"},
-	{card: "Smoky Lounge // Misty Salon", form: "a Room's DB$ Mana (Defined$ TriggeredPlayer) stays refused on its restriction", refused: "mana restriction"},
+	{card: "Smoky Lounge // Misty Salon", form: "a Room's DB$ Mana (Defined$ TriggeredPlayer) lowers its Static.Unlock and Spell.Room restriction", lir: "AddMana obj=You A=2 CS=R F={types=0x0 sub=Room | types=0x0 special=0x10}"},
 }
 
 func TestDbmanaForms(t *testing.T) { checkForms(t, dbmanaForms) }

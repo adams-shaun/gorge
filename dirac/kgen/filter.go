@@ -224,6 +224,9 @@ type lClause struct {
 	// filter.go "unblocked", K:Ninjutsu's Return cost). Its own field: the
 	// Flags word has no free bit.
 	Unblocked bool
+	// Special: a RestrictValid$ Static.<tail> alternative's special actions
+	// (kop.SpecialMask). Every other clause leaves it 0.
+	Special kop.SpecialMask
 }
 
 // lFilter is a Forge Valid expression: any clause matching (OR), plus the
@@ -310,6 +313,9 @@ func (c lClause) String() string {
 	}
 	if c.CmpStat != 0 {
 		fmt.Fprintf(&b, " cmp(%d %d %d %s %s)", c.CmpStat, c.CmpOp, c.CmpN, c.CmpX, c.CmpCounter)
+	}
+	if c.Special != 0 {
+		fmt.Fprintf(&b, " special=%#x", c.Special)
 	}
 	return b.String()
 }
