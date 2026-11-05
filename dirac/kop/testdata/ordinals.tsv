@@ -67,6 +67,7 @@ CfTapped	untyped int	1
 ChooseOpp	untyped int	2
 ChooseRandom	untyped int	1
 ChooseSelf	untyped int	0
+CloneBatch	untyped int	64
 CloneEOT	untyped int	1
 CloneExclTmpl	untyped int	2
 ClonePick	untyped int	8
