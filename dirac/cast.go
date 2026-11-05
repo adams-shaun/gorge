@@ -716,15 +716,15 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				// + 1 + what the window's sources make (it raises the bound for
 				// a reduction only in the named-count case): a CR 601.2f
 				// reduction past it is not offered (GORGE-FINDINGS.md "X ceiling")
-				mx = min(mx, av.total+s.filtBoundExtra(k, e.ctrl)+int(s.pl[e.ctrl&1].graveN)+s.convokePickN()+1)
+				mx = min(mx, av.total+s.filtBoundExtra(k, e.ctrl)+int(s.pl[e.ctrl&1].graveN)+s.convokeXCredit(k)+1)
 			}
 			if k.gen != nil && k.gen.anyLifeX {
 				mx = s.lifeXClamp(k, &cost, mx) // PayLife<X> bounds the ask by life
 			}
 			d.Kind, d.Sub, d.Player = DkChoose, ChX, e.ctrl
 			hi := s.xReducedCeiling(k, e, &cost, &av, mx)
-			if np := s.convokePickCount(); np > 0 {
-				hi = min(maxXAsk, max(hi, mx+np)) // each announced pick pays one generic of the X total
+			if np := s.convokeXCredit(k); np > 0 {
+				hi = min(maxXAsk, max(hi, mx+np)) // each announced pick pays one generic (a harmonize pick its power) of the X total
 			}
 			s.addXOptions(k, d, e, mx, hi, &av)
 			s.bld().stage = bsX | 0x80 // awaiting X

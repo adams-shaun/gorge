@@ -52,29 +52,26 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (the WISH counter kind, kop.CtrWish: Wishclaw Talisman and Ring of Three Wishes lower; FDN 509 -> 510, ALL 21532 -> 21534).
 	// +1 (Carnelian Orb of Dragonkind: the AddsKeywords$ Haste mana rider lowers; FDN 510 -> 511, ALL 21534 -> 21535).
 	// +6 (the printed K:Prevent damage keywords: Fog Bank and kin; FDN 511 -> 512, ALL 21535 -> 21541).
-	// +1 over land's 21541 (this branch's Vizier of the Menagerie: FDN 512 -> 513, ALL 21541 -> 21542).
-	// +2 (Animate Duration$ UntilUntaps, kop.Override.WhileTapped: Hedge Whisperer and The Blackstaff of Waterdeep lower; MKM 231 -> 232, ALL 21542 -> 21544).
-	// +1 (Ramos, Dragon Engine: the all-at-once counter-removal mana ability, kop.CtrEachManaAb; merged with land's Animate Duration$/Mazemind lowerings; FDN 514 -> 515, ALL 21545 -> 21546).
-	// +1 over land's 21546 (this branch's Vannifar, Evolved Enigma: the cloak-from-hand shape lowers; merged with land's Ramos mana ability; MKM 232 -> 233, ALL 21546 -> 21547).
-	// +1 over land's 21547 (the merge with land: land's cloak-from-hand lowering, kop.CfChosen, lowers Vannifar, Evolved Enigma on top of this branch's DamageDoneOnce scan scoping; MKM 233 -> 234, ALL 21561 -> 21562).
-	// +2 (Sorcerous Spyglass: the as-enters look and any-card name choice and CantBeActivated over the chosen name; Phyrexian Revoker, the same class over the nonland name; land; merged FDN 516 -> 517, LCI 250 -> 251, ALL 21562 -> 21564).
-	// +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; land; merged FDN 516 -> 517, ALL 21564 -> 21565).
-	// +4 (No Witnesses' withMostTypeCreature investigate and the counted Num$ arm lower; land; merged MKM 234 -> 235, ALL 21565 -> 21569).
-	// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged MKM 235 -> 236, ALL 21569 -> 21570).
-	// +3 (a variable CollectEvidence cost and evidence beside the triggered-card exile: Incinerator of the Guilty, Urgent Necropsy, Lamplight Phoenix lower; land; merged MKM 236 -> 239, ALL 21570 -> 21573).
-	// +6 (the ExtTurnFaceUp effect turn-up, Urgent Necropsy's collect-evidence X, the each-target Aura-copy enchant ask and the DamageAll planeswalker/battle clause lower, with land's re-measure after its rebase; land; merged ALL 21573 -> 21579).
-	// +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; land; merged ALL 21579 -> 21584).
-	// +1 (Doomsday Excruciator: a RepeatEach player body's DigNum$ Count$ValidLibrary Card.RememberedPlayerCtrl/Minus.6 and its blind face-down exile; this branch; merged DSK 236 -> 237, ALL 21584 -> 21585).
-	// +1 (Worlds Within Worlds: a RepeatEach player body's hand move DefinedPlayer$ Remembered up to Count$ValidHand Creature.RememberedPlayerCtrl, and the remembered set's return from exile as the Return walk; this branch; merged MSH 226 -> 227, ALL 21585 -> 21586).
-	// +2 (Ruinous Waterbending, Spirit Water Revival: an OptionalCost Waterbend<N> part, the kicked cast's {N} and spell waterbend pick; this branch; merged TLA 246 -> 248, ALL 21593 -> 21595).
+	// +2 (Sorcerous Spyglass: the as-enters look and any-card name choice and CantBeActivated over the chosen name; Phyrexian Revoker, the same class over the nonland name; land; merged FDN 512 -> 513, LCI 250 -> 251, ALL 21541 -> 21543).
+	// +1 (Vizier of the Menagerie: the ManaConvert static lowering for creature spells; land; merged FDN 513 -> 514, ALL 21543 -> 21544).
+	// +1 (Ramos, Dragon Engine: the all-at-once counter-removal mana ability, kop.CtrEachManaAb; land; merged FDN 514 -> 515, ALL 21544 -> 21545).
+	// +2 (Animate Duration$ UntilUntaps, kop.Override.WhileTapped: Hedge Whisperer and The Blackstaff of Waterdeep lower; land; merged MKM 231 -> 232, ALL 21545 -> 21547).
+	// +1 (Vannifar, Evolved Enigma: the cloak-from-hand shape lowers; land; merged MKM 232 -> 233, ALL 21547 -> 21548).
+	// +1 (Mazemind Tome: the counter-threshold state trigger, Tf4StateCtr; land; merged FDN 515 -> 516, ALL 21548 -> 21549).
+	// +3 (a variable CollectEvidence cost and evidence beside the triggered-card exile: Incinerator of the Guilty, Urgent Necropsy, Lamplight Phoenix lower; merged MKM 233 -> 236, ALL 21549 -> 21552).
+	// +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; this branch; merged FDN 516 -> 517, ALL 21556 -> 21557).
+	// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged MKM 237 -> 238, ALL 21557 -> 21558).
+	// +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; ALL 21564 -> 21569).
+	// +1 (Molten Exhale: a may-flash extra that is a behold, CardDef.MayFlashBehold; merged TDM 245 -> 246, ALL 21569 -> 21570).
+	// +2 (Ruinous Waterbending, Spirit Water Revival: an OptionalCost Waterbend<N> part, the kicked cast's {N} and spell waterbend pick; this branch; merged TLA 246 -> 248, ALL 21630 -> 21632).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21595, 34442},
+	"ALL": {21632, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
 	"DFT": {247, 276},
 	"DMU": {193, 270},
-	"DSK": {237, 276},
+	"DSK": {241, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
 	"FDN": {517, 517},
@@ -84,14 +81,14 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"LCI": {251, 290},
 	"MKM": {240, 279},
 	"MOM": {198, 296},
-	"MSH": {227, 276},
+	"MSH": {228, 276},
 	"NEO": {198, 287},
 	"ONE": {195, 271},
 	"OTJ": {241, 276},
 	"SNC": {185, 266},
 	"SOS": {248, 270},
 	"SPM": {160, 192},
-	"TDM": {245, 276},
+	"TDM": {248, 276},
 	"TLA": {248, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},

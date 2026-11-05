@@ -289,6 +289,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	if c.MayFlash != nil {
 		fmt.Fprintf(w, " mayflash=%s", c.MayFlash)
+		if c.MayFlashBehold != nil {
+			fmt.Fprintf(w, "+behold1%s", c.MayFlashBehold)
+		}
 	}
 	if c.Evoke != nil {
 		fmt.Fprintf(w, " evoke=%s", c.Evoke)

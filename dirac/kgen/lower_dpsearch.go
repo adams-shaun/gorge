@@ -45,6 +45,15 @@ func (lc *lowerCtx) definedPlayer(v string) (lRef, error) {
 			return lRef{}, refuse("ChangeZone DefinedPlayer$ %s: %v", v, err)
 		}
 		return r, nil
+	case "RememberedOwner":
+		// gorge definedSpecRememberedOwner: the remembered object's owner
+		// (CR 108.3). Only the remembered-persist shape lowers it — the
+		// enters trigger's set is kept for the leave trigger's resolution
+		// (lower_rempersist.go) — anything else refuses.
+		if !lc.remPersistShape() {
+			return lRef{}, refuse("ChangeZone DefinedPlayer$ %s outside the remembered-persist shape", v)
+		}
+		return lRef{Kind: rRememberedOwner}, nil
 	}
 	return lRef{}, refuse("ChangeZone DefinedPlayer$ %s", v)
 }

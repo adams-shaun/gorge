@@ -202,6 +202,11 @@ func (s *State) faceDownFromTop(k *prep, p, ctrl uint8, n int, cloaked, tapped, 
 func (s *State) manifestDread(k *prep, in *kop.Instr) bool {
 	p := s.playerRef(k, in.Obj)
 	if p == 255 {
+		if in.Obj == kop.RefRememberedOwner {
+			// gorge definedSpecRememberedOwner over an empty remembered
+			// set (the ETB exiled nothing): nobody manifests dread.
+			return true
+		}
 		p = s.res.e.ctrl
 	}
 	n := s.value(k, in.A)
@@ -235,6 +240,10 @@ func (s *State) dreadAsk(k *prep) bool {
 				s.remember(o)
 			}
 			s.res.left--
+			// the one-card window's marker (gorge manifestDreadMove): the
+			// action's ID list is empty, so TrigManifestDread fires with no
+			// trigger object
+			s.fireKwActObj(k, kop.TrigManifestDread, s.res.askP, 0, NoObj)
 			continue
 		}
 		s.res.peek[0] = pl.lib[pl.libLo]
@@ -274,10 +283,16 @@ func (s *State) dreadMove(k *prep, chosen, other Obj) {
 			s.remember(chosen)
 		}
 	}
+	mill := NoObj
 	if ob := &s.objs[other]; ob.zone == kop.ZoneLibrary {
 		from := s.detach(other)
 		s.placeFrom(other, kop.ZoneGraveyard, false, from, false)
+		mill = other
 	}
+	// the window's marker (gorge manifestDreadMove: emitted after the moves,
+	// its ID list the card the window put into its owner's graveyard, empty
+	// when neither card moved): the Mode$ ManifestDread trigger's firing event
+	s.fireKwActObj(k, kop.TrigManifestDread, p, 0, mill)
 }
 
 // cardMintsFaceDown reports whether a card's programs contain an op that puts

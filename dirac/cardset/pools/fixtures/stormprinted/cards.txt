@@ -1,0 +1,13 @@
+# printed K:Storm (CR 702.40a; dirac/oracle/storm_printed_test.go): Stormscale
+# Scion (a creature spell: its copies resolve into tokens, CR 707.10f),
+# Chatterstorm and Brain Freeze (printed-storm instants; their copies choose
+# new targets), cheap spells to stack the turn, creatures and lands
+Stormscale Scion
+Chatterstorm
+Brain Freeze
+Lightning Bolt
+Opt
+Grizzly Bears
+Elite Vanguard
+Island
+Mountain

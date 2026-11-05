@@ -680,6 +680,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		if fl.Pred == kop.PredExiledWith {
 			return s.exwCard(o) // zone_exiledwith.go
 		}
+		if fl.Pred == kop.PredTriggerObj {
+			return s.isTriggerObj(o) // filter_predicates.go: the ChooseFromDefined$ TriggeredCards pool
+		}
 		if fl.Pred == kop.PredWasCastEnter {
 			return s.wasCastPred(fl, o, ctrl) // cast_wascastenter.go
 		}
