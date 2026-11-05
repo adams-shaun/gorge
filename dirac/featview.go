@@ -342,6 +342,10 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	if k.gen != nil && k.t.Cards[c].SpellWaterbend != 0 {
 		cost = s.waterbendSpellCredit(k, p&1, c, o, cost) // act_waterbend.go
 	}
+	if mode&1 != 0 && k.gen != nil && k.t.Cards[c].OptWaterbend != 0 {
+		// the kicked cast's OptionalCost Waterbend<N> credits with the own part (act_waterbend.go)
+		cost = s.waterbendCreditN(k, p&1, NoSlot, s.waterbendOwnPart(k, p&1, c, o)+int(k.t.Cards[c].OptWaterbend), cost)
+	}
 	if mode&2 != 0 && k.t.Cards[c].Harmonize {
 		cost = s.harmonizeCredit(k, p&1, cost) // gorge harmonizePayment prices the offer after the reductions
 	}

@@ -169,9 +169,9 @@ import (
 // +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged ALL build-level 21557 -> 21558).
 // +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; ALL build-level 21564 -> 21569).
 // +1 (Molten Exhale: a may-flash extra that is a behold, CardDef.MayFlashBehold; ALL build-level 21569 -> 21570).
-// +1 (Yue, the Moon Spirit: the free noncreature cast's ValidSA$ nonCreature+YouOwn over its own-hand population; this branch; merged ALL build-level 21630 -> 21631).
+// +1 (Yue, the Moon Spirit: the free noncreature cast's ValidSA$ nonCreature+YouOwn over its own-hand population; this branch; merged ALL build-level 21636 -> 21637).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21631, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21637, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
