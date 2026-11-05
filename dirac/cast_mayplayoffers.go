@@ -42,6 +42,13 @@ func (s *State) mayPlayOffers(k *prep, p uint8, o Obj) int {
 	return n
 }
 
+// mayPlayPlannedZone reports whether gorge's payment builder plans an untyped
+// may-play cast from z (payment_plan.go plannedMayPlayZone): only the
+// graveyard and exile, never a top-of-library or hand permission.
+func mayPlayPlannedZone(z kop.Zone) bool {
+	return z == kop.ZoneGraveyard || z == kop.ZoneExile
+}
+
 // mayPlayFolds reports whether some unlimited static lets p play o: gorge
 // then lists the empty-key offer first and the lockstep takes it, so the
 // cast spends no limited static's use (mayPlayPermissions).
