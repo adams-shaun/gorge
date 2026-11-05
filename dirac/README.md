@@ -129,7 +129,7 @@ A new import in the no column is a review failure even if the tests pass.
 | `dirac` | The engine: state, `Step`/`Apply`, combat, stack, mulligans, projection, and the hand-written interpreter for the `kop` ops. Start at `doc.go`. |
 | `dirac/kop` | The card-effect vocabulary: `Table`, `CardDef`, `Ability`, `Instr` and the op enum that card tables and the interpreter share. |
 | `dirac/cardset` | The engine-neutral `Set` interface and the loader of binary card tables (`ByName`, `Names`). It imports `dirac/kop` and the root package's table key. |
-| `dirac/cardset/pools` | One directory per card pool, with its committed inputs, `cards.txt` and `ids.tsv`. `fdn` and `blb` are full-set pools; the pools under `fixtures/` exercise one mechanic at a time. |
+| `dirac/cardset/pools` | One directory per card pool, with its committed inputs, `cards.txt` and `ids.tsv`. `fdn`, `blb` and `pauper` are full-set pools; the pools under `fixtures/` exercise one mechanic at a time. |
 | `dirac/oracle` | The engine-neutral seam to gorge: `Side`, `GorgeSide`, `RealKernel`/`FDNSide`, `Lockstep`, `Fuzz`, `Replay`, `Repro` and the policies. "Lockstep" means both engines get the same decks and seed and every decision and projection is compared. Its commands are `cmd/kfuzz` (lockstep fuzzer), `cmd/khbot` (dirac heuristic-bot parity) and `cmd/ksbt` (dirac sb-tactical parity). |
 | `dirac/adapter` | A dirac game behind `engine/game`: what `gorged -engine dirac` serves, with a log and views derived from positions. See [serving](docs/serving.md). |
 | `dirac/canon` | The canonical vocabulary the oracle and the adapter share, and dirac's translation into it. |

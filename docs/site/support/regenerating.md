@@ -163,9 +163,9 @@ that each set's counts and each lockstep row add up. To ask about one pool's car
 prints one line per card.
 
 **The evidence behind those counts** is in `dirac/support/evidence/`. `scripts/dirac-evidence.sh <out>` plays the evidence
-corpus and `scripts/dirac-first-refusals.py evidence <out>` writes the lists. The corpus is the committed FDN and BLB slices
-and one synthetic pool per Standard list, so a clone can run all of it. The full deck pools aren't published and have no
-download, so a clone can't earn FDN and BLB evidence from real decks beyond the slices.
+corpus and `scripts/dirac-first-refusals.py evidence <out>` writes the lists. The corpus is the committed FDN and BLB slices,
+the pauper real decks and one synthetic pool per Standard list. The full FDN and BLB deck pools aren't published and have
+no download, so a clone can't earn FDN and BLB evidence from real decks beyond the slices.
 
 ## gorge: corpus coverage
 

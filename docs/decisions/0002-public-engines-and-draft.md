@@ -46,7 +46,8 @@ and `kgen` import gorge's engine, and `gorged` will import dirac's adapter.
    17Lands public datasets (CC BY 4.0), MTGJSON (MIT), XMage-derived set lists
    (MIT), MageZero's encoder design (MIT), SpellBench (MIT), mtg-kernel's pauper deck
    catalog (MIT). Deck pools are 17Lands derivatives under CC BY 4.0 and ship as an
-   attributed release asset, not in git.
+   attributed release asset, not in git. *(Superseded 2026-11-05: deck pools
+   are not published as a release asset; see the amendment below.)*
 8. **Zero divergence.** A card dirac supports plays identically to gorge, decision
    by decision. gorge leads and dirac catches up; until it has, dirac refuses the
    card.
@@ -125,3 +126,10 @@ findings, architecture drawings and per-set card strength lists are published in
 code and data stay in the companion module, so the pages describe that code in
 words and name no private path. `TestPublicBoundary` holds them to the same
 boundary as every other file.
+
+## Amendment (2026-11-05): deck pools are not a release asset
+
+Decision 7 said deck pools ship as an attributed release asset. They do not:
+the full deck pools are not published and have no download. The committed pool
+inputs under `dirac/cardset/pools/` and the committed slices are what a clone
+has. The original text of decision 7 stays above, marked superseded.

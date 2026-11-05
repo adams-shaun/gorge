@@ -101,7 +101,7 @@ with the kind of difference and the game (pool, surface, pair, policy) that show
 every ability the card has used. A token earns no evidence of its own, since it is played through the card that makes it.
 A card no human deck holds earns it through **synthetic evidence pools**: tables built from a set's list or from the
 lowered corpus outside the Standard lists, which exist only to be played in lockstep. The evidence corpus is the FDN and BLB
-slices and one synthetic pool per Standard list, on both surfaces, at mulligan limits 0 and 1, and `scripts/dirac-evidence.sh`
+slices, the pauper real decks and one synthetic pool per Standard list, on both surfaces, at mulligan limits 0 and 1, and `scripts/dirac-evidence.sh`
 plays it. A card is listed when it meets the floor across its runs.
 
 **A pair can be refused when neither card is.** A few interactions are refused at matchup time because the game would
