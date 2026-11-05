@@ -72,7 +72,7 @@ func (s *State) czall3(k *prep, in *kop.Instr, mv int16, z kop.Zone) {
 	for zi := 0; zi < nz; zi++ {
 		zsrc := zbase
 		if zi == 1 {
-			zsrc = kop.ZoneExile
+			zsrc = czallSecondZone(in)
 		}
 		for p := uint8(0); p < 2; p++ {
 			pl := &s.pl[p]
@@ -155,6 +155,44 @@ func (s *State) overrideRemembered(k *prep, in *kop.Instr) {
 			s.ovChosenColor(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N))
 		default:
 			s.applyOverrideFl(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N))
+		}
+	}
+}
+
+// czallSecondZone decodes OpChangeZoneAllEx's second source zone for a
+// MvGraveExile sweep: B.N == 0 is the legacy Graveyard,Exile; B.N ==
+// ZoneHand is Graveyard,Hand (Weftwalking). B.N's CzUntilLeaves bit is
+// never set on the dual shape.
+func czallSecondZone(in *kop.Instr) kop.Zone {
+	if in.B.N == int16(kop.ZoneHand) {
+		return kop.ZoneHand
+	}
+	return kop.ZoneExile
+}
+
+// czallPend collects the library-bound cards of a two-zone sweep per owner
+// across both zones, so they are placed once in move order (gorge
+// libraryOrderPlacement: zone-major moves, then the rest), not
+// per zone, which would leave the second zone's cards on top.
+type czallPend struct {
+	list [2][2 * MaxDeck]Obj
+	from [2][2 * MaxDeck]kop.Zone
+	n    [2]int
+}
+
+func (c *czallPend) add(p uint8, os []Obj, from []kop.Zone) {
+	for i := range os {
+		if c.n[p] < len(c.list[p]) {
+			c.list[p][c.n[p]], c.from[p][c.n[p]] = os[i], from[i]
+			c.n[p]++
+		}
+	}
+}
+
+func (c *czallPend) place(s *State) {
+	for p := 0; p < 2; p++ {
+		if c.n[p] > 0 {
+			s.libTopInOrder(c.list[p][:c.n[p]], c.from[p][:c.n[p]])
 		}
 	}
 }

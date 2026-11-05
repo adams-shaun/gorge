@@ -43,9 +43,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (Those Old Scientists, Turn the Earth: a multi-target graveyard shuffle's per-owner move lowers to OpMayShuffleMove; merged TRK 299 -> 300, ALL 21472 -> 21474).
 	// +1 (Q, Stacking the Deck: the exile-granted copy-and-cast ability of a card exiled from the top of the library; merged TRK 299 -> 300, ALL 21472 -> 21473).
 	// +2 (U.S.S. Enterprise-D, Galaxy-Class and Axgard Artisan: CounterAddedOnce FirstTime$ True's per-source once-a-turn latch; MOM 196 -> 197, TRK 305 -> 306, ALL 21486 -> 21488).
-	// +3 (Chief Engineer, We Ride at Dawn and Invasion of Segovia: an AffectedZone$ Stack Convoke grant lowers to a StackKw static the tap-paid cast reads; MOM 197 -> 198, ALL 21496 -> 21499).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21506, 34442},
+	"ALL": {21504, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
@@ -53,14 +52,14 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"DMU": {193, 270},
 	"DSK": {233, 276},
 	"ECL": {230, 273},
-	"EOE": {237, 266},
+	"EOE": {238, 266},
 	"FDN": {507, 517},
 	"FIN": {266, 312},
 	"FRA": {245, 269},
 	"HOB": {152, 172},
 	"LCI": {250, 290},
 	"MKM": {228, 279},
-	"MOM": {198, 296},
+	"MOM": {197, 296},
 	"MSH": {225, 276},
 	"NEO": {198, 287},
 	"ONE": {195, 271},

@@ -1535,6 +1535,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	var eb entBatch
 	stamp := s.ts
 	var rid sweepRiders // MvEntryRiders (zone_sweepriders.go)
+	var pend czallPend  // a two-zone sweep into the library places once, in move order
 	if mv&kop.MvEntryRiders != 0 && z == kop.ZoneBattlefield {
 		rid = s.sweepRidersOf(k, in)
 	}
@@ -1548,7 +1549,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	for zi := 0; zi < nz; zi++ {
 		zsrc := zbase
 		if zi == 1 {
-			zsrc = kop.ZoneExile
+			zsrc = czallSecondZone(in)
 		}
 		for p := uint8(0); p < 2; p++ {
 			if only != 255 && p != only {
@@ -1681,10 +1682,15 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 				}
 			}
 			if nl > 0 {
-				s.libTopInOrder(list[:nl], listFrom[:nl])
+				if nz == 2 {
+					pend.add(p, list[:nl], listFrom[:nl])
+				} else {
+					s.libTopInOrder(list[:nl], listFrom[:nl])
+				}
 			}
 		}
 	}
+	pend.place(s)
 	if resume {
 		s.holdBatch(&eb)
 		s.fireHeld(k, s.g.retTS)
