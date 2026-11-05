@@ -227,6 +227,7 @@ CtrlHitBySrc	CtrlSel	4
 CtrlOpp	CtrlSel	2
 CtrlYou	CtrlSel	1
 CzUntilLeaves	untyped int	1
+DelayBeginCombat	untyped int	6
 DelayDiesThisTurn	untyped int	5
 DelayEndCombat	untyped int	3
 DelaySpellCast	untyped int	4
@@ -755,6 +756,7 @@ PayBReveal	untyped int	5
 PayBSubBlight	untyped int	1
 PayBSubChain	untyped int	8
 PayBSubEvidence	untyped int	2
+PayBSubExileHand	untyped int	9
 PayBSubSacHost	untyped int	7
 PayBSubTrigNew	untyped int	3
 PayDiscard	untyped int	2

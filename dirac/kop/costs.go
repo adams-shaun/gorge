@@ -219,7 +219,7 @@ const PayBSubTrigNew = 3
 // PayBSubExileHand: a PayExileGrave whose B.N carries this sentinel is a
 // trigger's own ExileFromHand<N/Card> cost (N cards of the payer's hand
 // exiled), not a graveyard exile.
-const PayBSubExileHand = 8
+const PayBSubExileHand = 9
 
 // PayBSubSacHost: a PaySacSelf whose B.N carries this sentinel is a granted
 // trigger's own Sac<1/OriginalHost> cost: the Equipment or Aura whose static
