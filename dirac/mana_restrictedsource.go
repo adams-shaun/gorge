@@ -590,6 +590,7 @@ func (s *State) filtDeadEnd(k *prep, p uint8, a Action, fs *filtSearch) bool {
 	}
 	t := s.fork()
 	defer s.unfork()
+	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 	t.filtPlay(k, p, fs.path[:fs.n], false)
 	var d Decision
 	if !restr {

@@ -152,8 +152,12 @@ import (
 // +3 (Dream Harvest; Improvisation Capstone: RememberRevealed$+MinTotalCMC$ DigUntil, ECL/SOS +1; Black Widow, Super Spy: ImprintFound$ alone, MSH +1; ALL build-level 21496 -> 21499).
 // +1 (Sanar, Innovative First-Year: the DigUntil RememberRevealed$ library reveal and its five per-colour picks; ALL build-level 21523 -> 21524; ratchet ECL 232 -> 233).
 // +1 (Teval, Arbiter of Virtue: a granted Delve on the stack lowers and the cast announces its graveyard exiles; merged ALL 21523 -> 21524; ratchet TDM 244 -> 245).
+// +3 (Cemetery Recruitment, Vengeful Rebirth, Tamiyo, Inquisitive Student: RememberTargets$ on a targeted Graveyard->Hand return; ALL build-level 21526 -> 21529).
+// +3 (Wilt-Leaf Liege, Obstinate Baloth, Loxodon Smiter: the opponent-caused discard-to-battlefield replacement, lowered on land, absent here before the merge; ALL build-level 21529 -> 21532).
+// +2 (the WISH counter kind, kop.CtrWish: Wishclaw Talisman and Ring of Three Wishes lower; ALL build-level 21532 -> 21534).
+// +6 (the printed K:Prevent damage keywords: Fog Bank and kin; ALL build-level 21534 -> 21540).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21532, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21540, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

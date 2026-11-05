@@ -304,6 +304,7 @@ func (s *State) walkKey(a Action, p uint8, i int) uint64 {
 func (s *State) scriptDeadEnd(k *prep, a Action, p uint8, restr slotMask) bool {
 	t := s.fork()
 	defer s.unfork()
+	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 	var order [MaxPerm]Slot
 	n := t.battlefieldOrder(p, t.scriptGaps(k, p).or(restr), order[:], 0)
 	var d Decision
@@ -496,6 +497,9 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 		}
 		if s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(a)) {
 			continue // priced by the printed sources, restricted ones the play may spend included
+		}
+		if k.tapMana && hasOption(d, a) && s.scriptTapXModelled(k, p).any() && s.tapXScript(k, a, p, false) {
+			continue // a tap-another source (Gene Pollinator) pays it in scriptOffers' search, which the grant search does not run (mana_tapanother.go)
 		}
 		if n++; n > potentialScriptPlays {
 			d.remove(a) // never searched: unpriced

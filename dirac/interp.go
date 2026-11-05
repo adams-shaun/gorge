@@ -736,10 +736,16 @@ func (s *State) damageBetween(k *prep, a, b Slot, n int) {
 }
 
 // discardObj discards hand card o.
-func (s *State) discardObj(k *prep, o Obj) {
+func (s *State) discardObj(k *prep, o Obj) { s.discardObjAs(k, o, true) }
+
+// discardObjAs is discardObj; effect false marks a cost discard, which no
+// ReplDiscardOppToBattlefield card replaces (repl_discardetb.go).
+func (s *State) discardObjAs(k *prep, o Obj, effect bool) {
 	from := s.detach(o)
 	mad := s.madnessExiled(k, o) // CR 702.35a: discarded into exile instead
-	if mad {
+	if effect && k.gen != nil && k.gen.anyRepl&rbDiscETB != 0 && s.discardToBattlefield(k, o, from) {
+		mad = false
+	} else if mad {
 		s.placeFromK(k, o, kop.ZoneExile, false, from, false)
 	} else {
 		s.placeFromK(k, o, kop.ZoneGraveyard, false, from, false)

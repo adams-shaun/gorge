@@ -422,6 +422,7 @@ const (
 	rbPrevDmgTo                       // CardDef.PreventDmgTo: every damage event to the permanent is prevented (combat_prevention.go)
 	rbPrevCombatTo                    // CardDef.PreventCombatTo: its combat damage events are prevented (combat_prevention.go)
 	rbPrevCombatBy                    // CardDef.PreventCombatBy: the combat damage it would deal is prevented (combat_preventfrom.go)
+	rbDiscETB                         // ReplDiscardOppToBattlefield (repl_discardetb.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -921,6 +922,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 						g.destroyHeal = make([]kop.FilterID, len(t.Cards))
 					}
 					g.destroyHeal[i] = a.Repl.Filter
+				case kop.ReplDiscardOppToBattlefield:
+					g.replBits[i] |= rbDiscETB
 				case kop.ReplGraveToLibrary:
 					g.replBits[i] |= rbGraveLib
 				case kop.ReplMayNotUntap:
@@ -1452,6 +1455,7 @@ type genState struct {
 	nchosen uint8
 	remCnt  uint16 // OpRemoveCounterRem's count
 	availX  uint8  // transient availFor mode while scriptOffers re-walks priority (script_gen.go)
+	noGrant bool   // transient: an activated ability's prefix search prices without granted mana (its grant prefix is its own search; script_gen.go)
 	roleOut uint8  // a Role token may be on the battlefield: the SBA scans for CR 704.5z (static_roletokens.go)
 	digLo   uint8  // a DuDugMark DigUntil's first exile index (act_discoverbottom.go; the padding before excess)
 	// raiseO / raiseB: a may-play surcharge being offered / owed by the cast

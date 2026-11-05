@@ -89,7 +89,7 @@ func init() {
 		"kop.ReplDoubleCountersOn", kop.ReplDoubleCountersOn, "kop.ReplAddCountersOn", kop.ReplAddCountersOn, "kop.ReplOnePoison", kop.ReplOnePoison, "kop.ReplDoubleCountersYou", kop.ReplDoubleCountersYou,
 		"kop.ReplOthersDoesntUntap", kop.ReplOthersDoesntUntap, "kop.ReplLifeDouble", kop.ReplLifeDouble, "kop.ReplLifeLossDouble", kop.ReplLifeLossDouble,
 		"kop.ReplLifePlus", kop.ReplLifePlus, "kop.ReplTurnUpProgram", kop.ReplTurnUpProgram, "kop.ReplCantTurnUp", kop.ReplCantTurnUp,
-		"kop.ReplSpellsCantBeCountered", kop.ReplSpellsCantBeCountered, "kop.ReplAnyUntap", kop.ReplAnyUntap, "kop.ReplDrawMore", kop.ReplDrawMore, "kop.ReplRewriteTokens", kop.ReplRewriteTokens, "kop.ReplMayNotUntap", kop.ReplMayNotUntap, "kop.ReplDestroyHeal", kop.ReplDestroyHeal)
+		"kop.ReplSpellsCantBeCountered", kop.ReplSpellsCantBeCountered, "kop.ReplAnyUntap", kop.ReplAnyUntap, "kop.ReplDrawMore", kop.ReplDrawMore, "kop.ReplRewriteTokens", kop.ReplRewriteTokens, "kop.ReplMayNotUntap", kop.ReplMayNotUntap, "kop.ReplDestroyHeal", kop.ReplDestroyHeal, "kop.ReplDiscardOppToBattlefield", kop.ReplDiscardOppToBattlefield)
 	enum[kop.AbilityKind]("kop.AbSpell", kop.AbSpell, "kop.AbActivated", kop.AbActivated, "kop.AbMana", kop.AbMana,
 		"kop.AbTriggered", kop.AbTriggered, "kop.AbStatic", kop.AbStatic, "kop.AbReplacement", kop.AbReplacement,
 		"kop.AbAltCost", kop.AbAltCost)
@@ -164,7 +164,7 @@ func init() {
 		"kop.CtrInvasion", kop.CtrInvasion, "kop.CtrLoot", kop.CtrLoot, "kop.CtrRev", kop.CtrRev, "kop.CtrPage", kop.CtrPage,
 		"kop.CtrIngenuity", kop.CtrIngenuity, "kop.CtrFilm", kop.CtrFilm, "kop.CtrFire", kop.CtrFire, "kop.CtrHone", kop.CtrHone, "kop.CtrCoin", kop.CtrCoin,
 		"kop.CtrDivinity", kop.CtrDivinity, "kop.CtrImpostor", kop.CtrImpostor, "kop.CtrBore", kop.CtrBore, "kop.CtrPoint", kop.CtrPoint,
-		"kop.CtrBloodstain", kop.CtrBloodstain, "kop.CtrPossession", kop.CtrPossession, "kop.CtrPromotion", kop.CtrPromotion, "kop.CtrPeace", kop.CtrPeace,
+		"kop.CtrBloodstain", kop.CtrBloodstain, "kop.CtrPossession", kop.CtrPossession, "kop.CtrPromotion", kop.CtrPromotion, "kop.CtrPeace", kop.CtrPeace, "kop.CtrWish", kop.CtrWish,
 		"kop.CtrAll", kop.CtrAll)
 	enum[kop.Whose]("kop.WhoseAny", kop.WhoseAny, "kop.WhoseYou", kop.WhoseYou, "kop.WhoseOpp", kop.WhoseOpp,
 		"kop.WhoseEnchCtrl", kop.WhoseEnchCtrl, "kop.WhoseNonActive", kop.WhoseNonActive)

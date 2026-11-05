@@ -2837,6 +2837,12 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			rl.Kind = "GraveToLibrary"
 			break
 		}
+		if ok, err := lc.discardOppToBattlefield(rp, r.With, &rl); ok || err != nil { // lower_discardetb.go
+			if err != nil {
+				return err
+			}
+			break
+		}
 		if rp.str("Destination") != "Battlefield" {
 			return refuse("repl-hard: Moved to %s", rp.str("Destination"))
 		}
