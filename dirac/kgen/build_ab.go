@@ -891,6 +891,18 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		ka.AFlags |= kop.AfManaNonSpell
 	}
 	if m.HasteValid != nil {
+		// the kernel reads the rider off the tapped card's mana ability
+		// (dirac/mana_spentrider.go): a second mana ability beside it would
+		// carry the rider onto its own taps
+		n := 0
+		for _, a := range cb.c.Abilities {
+			if a.Kind == akMana {
+				n++
+			}
+		}
+		if n != 1 {
+			return fmt.Errorf("AddsKeywords$ mana rider beside another mana ability")
+		}
 		id, err := cb.filter(m.HasteValid, kop.ZoneStack)
 		if err != nil {
 			return err

@@ -44,7 +44,8 @@ func (s *State) noteHasteSrc(k *prep, sl Slot) {
 
 // manaHasteRider stamps the spell just pushed when its payment tapped a rider
 // source and the spell matches that source's ManaHasteValid (gorge
-// RestrictValidMatches with the source's controller as "you").
+// RestrictValidMatches with the source's controller as "you"; the filter
+// carries no cast-provenance word, kgen lower_manaspent.go).
 //
 //go:noinline
 func (s *State) manaHasteRider(k *prep) {
@@ -67,7 +68,10 @@ func (s *State) manaHasteRider(k *prep) {
 	}
 	fl := k.t.Filters[f]
 	fl.Zone = kop.ZoneNone // the spell as it is paid for
-	if s.restrFilterMatch(k, &fl, e.card, s.perms[sl].ctrl, restrOrigin{from: b.origin, cast: true, byYou: true}) {
+	// the pushed spell object, not its printed card: a face-down spell is a
+	// colourless typeless-but-creature 2/2 and a bestowed spell an Aura
+	// (CR 708.4, 702.103b; gorge state.Object.FaceDownHidden)
+	if p := s.perms[sl].ctrl; s.matchCardOne(k, &fl, e.card, p, p, e.obj) {
 		e.remVer |= spellManaHaste
 		b.e.remVer |= spellManaHaste // a later syncBuild keeps it
 	}

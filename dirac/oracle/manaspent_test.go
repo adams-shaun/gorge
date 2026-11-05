@@ -12,19 +12,23 @@ import (
 
 // The mana-spent riders lockstep: Carnelian Orb of Dragonkind's {R} gives a
 // Dragon creature spell it paid for haste until end of turn (AddsKeywords$),
-// and does nothing for any other spell (a Hill Giant, a Grizzly Bears, a
-// Shock, a Giant Growth). The expected answer at every decision is gorge's,
+// a changeling creature spell included (Barkform Harvester, CR 702.73a), and
+// does nothing for any other spell (a Hill Giant, a Grizzly Bears, a Shock, a
+// Giant Growth). A Dragon cast face down (CR 708.4) is pinned in the kernel
+// (TestManaHasteRiderMatchesTheSpell): a face-down cast pays from floating
+// mana only, so the Orb's tap never pays one here. The expected answer at every decision is gorge's,
 // on both surfaces. Pyromancer's Goggles (TriggersWhenSpent$) stays refused:
 // gorge's planner defers its source (kgen lower_manaspent.go).
 var kmanaspentDecks = [][2][]cardset.Entry{{
 	{
-		{Name: "Carnelian Orb of Dragonkind", Count: 6}, {Name: "Dragon Hatchling", Count: 8},
-		{Name: "Hill Giant", Count: 4}, {Name: "Flame Slash", Count: 3}, {Name: "Shock", Count: 3}, {Name: "Mountain", Count: 16},
+		{Name: "Carnelian Orb of Dragonkind", Count: 6}, {Name: "Dragon Hatchling", Count: 6}, {Name: "Barkform Harvester", Count: 4},
+		{Name: "Imperial Hellkite", Count: 2}, {Name: "Hill Giant", Count: 2}, {Name: "Flame Slash", Count: 2}, {Name: "Shock", Count: 2},
+		{Name: "Mountain", Count: 16},
 	},
 	{
-		{Name: "Carnelian Orb of Dragonkind", Count: 4}, {Name: "Grizzly Bears", Count: 4},
-		{Name: "Giant Growth", Count: 3}, {Name: "Lava Axe", Count: 3}, {Name: "Shock", Count: 3}, {Name: "Dragon Hatchling", Count: 4},
-		{Name: "Mountain", Count: 11}, {Name: "Forest", Count: 8},
+		{Name: "Carnelian Orb of Dragonkind", Count: 5}, {Name: "Grizzly Bears", Count: 4}, {Name: "Giant Growth", Count: 3},
+		{Name: "Lava Axe", Count: 3}, {Name: "Shock", Count: 3}, {Name: "Dragon Hatchling", Count: 3}, {Name: "Barkform Harvester", Count: 2},
+		{Name: "Mountain", Count: 11}, {Name: "Forest", Count: 6},
 	},
 }}
 
@@ -32,7 +36,9 @@ var kmanaspentDecks = [][2][]cardset.Entry{{
 // for (by whether the rider applies) and the grants.
 type kmanaspentTally struct {
 	orbDragon, orbOther int // Carnelian tapped while paying a Dragon / another spell
-	haste, games        int // AddsKeywords grants
+	orbChangeling       int // ... a changeling creature spell
+	haste, hasteChg     int // AddsKeywords grants, those to the changeling
+	games               int
 }
 
 func kmanaspentRun(t *testing.T, n uint64, report bool, tal *kmanaspentTally) int {
@@ -92,6 +98,9 @@ func kmanaspentRun(t *testing.T, n uint64, report bool, tal *kmanaspentTally) in
 					case events.CastInfo:
 						if events.FlagsFrom(ev.Counter)&state.FlagAddsKeywords != 0 {
 							tal.haste++
+							if cur == "Barkform Harvester" {
+								tal.hasteChg++
+							}
 						}
 						cur = ""
 					case events.Tap:
@@ -99,6 +108,8 @@ func kmanaspentRun(t *testing.T, n uint64, report bool, tal *kmanaspentTally) in
 						case cur == "":
 						case name == "Carnelian Orb of Dragonkind" && cur == "Dragon Hatchling":
 							tal.orbDragon++
+						case name == "Carnelian Orb of Dragonkind" && cur == "Barkform Harvester":
+							tal.orbChangeling++
 						case name == "Carnelian Orb of Dragonkind":
 							tal.orbOther++
 						}
@@ -138,6 +149,11 @@ func TestManaSpentRidersLockstep(t *testing.T) {
 	// non-Dragon spell paid with the rider's mana)
 	if tal.orbDragon < 10 || tal.orbOther < 10 || tal.haste < 10 {
 		t.Errorf("rider coverage too thin: %+v", tal)
+	}
+	// the changeling is a Dragon creature spell on gorge's side (a grant),
+	// so the lockstep compared dirac on it
+	if tal.orbChangeling < 3 || tal.hasteChg < 3 {
+		t.Errorf("changeling coverage: %+v", tal)
 	}
 }
 
