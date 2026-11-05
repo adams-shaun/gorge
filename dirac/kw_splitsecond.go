@@ -53,7 +53,7 @@ func (s *State) filterSplitSecond(k *prep, d *Decision) {
 
 func (s *State) splitSecondBars(k *prep, a Action) bool {
 	switch a.Kind() {
-	case AkCast, AkCastCasualty, AkPlot, AkSneak, AkWebSling, AkBestow, AkActivate:
+	case AkCast, AkCastCasualty, AkCastConspire, AkPlot, AkSneak, AkWebSling, AkBestow, AkActivate:
 		return true
 	}
 	return false

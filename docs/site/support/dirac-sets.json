@@ -12,7 +12,7 @@
     "BLB": {"cards": 278, "lowered": 256, "refused": 3, "unverified": 33, "supported": 220},
     "DFT": {"cards": 276, "lowered": 247, "refused": 0, "unverified": 23, "supported": 224},
     "DSK": {"cards": 276, "lowered": 233, "refused": 4, "unverified": 41, "supported": 188},
-    "ECL": {"cards": 273, "lowered": 231, "refused": 8, "unverified": 33, "supported": 190},
+    "ECL": {"cards": 273, "lowered": 232, "refused": 5, "unverified": 37, "supported": 190},
     "EOE": {"cards": 266, "lowered": 238, "refused": 0, "unverified": 117, "supported": 121},
     "FDN": {"cards": 517, "lowered": 507, "refused": 1, "unverified": 13, "supported": 493},
     "FIN": {"cards": 312, "lowered": 266, "refused": 2, "unverified": 19, "supported": 245},

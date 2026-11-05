@@ -209,6 +209,7 @@ type genPrep struct {
 	anyHarmonize   bool           // some card has printed harmonize (CardDef.Harmonize; kw_harmonize.go)
 	anyCascade     bool           // some card has printed cascade (CardDef.Cascade; kw_cascade.go)
 	anyStackKw     bool           // some card has a StatStackKw: AffectedZone$ Stack keyword grant (static_stackkeyword.go)
+	anyConspire    bool           // some card has a StatStackKw Conspire grant (kw_conspire.go)
 	anyStorm       bool           // some card has a StatStackKw Storm grant (kw_storm.go)
 	anySplitSecond bool           // some card has a StatStackKw Split second grant (kw_splitsecond.go)
 	anyStackLife   bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)

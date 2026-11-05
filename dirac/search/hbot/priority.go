@@ -301,7 +301,7 @@ func (bt *Bot) allCands(s *dirac.State, d *dirac.Decision, cs *[dirac.MaxOptions
 			c.key = secPass << 24
 		case dirac.AkPlayLand:
 			c.key = secHand<<24 | uint32(s.FeatZoneIndex(o))<<8
-		case dirac.AkCast, dirac.AkCastCasualty:
+		case dirac.AkCast, dirac.AkCastCasualty, dirac.AkCastConspire:
 			c.offHand = s.ObjZone(o) != kop.ZoneHand
 			if a.Mode()&2 != 0 {
 				c.key = secGrave<<24 | uint32(s.FeatZoneIndex(o))<<8

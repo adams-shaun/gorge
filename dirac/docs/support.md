@@ -12,7 +12,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | BLB | 278 | 256 | 3 | 33 | 220 |
 | DFT | 276 | 247 | 0 | 23 | 224 |
 | DSK | 276 | 233 | 4 | 41 | 188 |
-| ECL | 273 | 231 | 8 | 33 | 190 |
+| ECL | 273 | 232 | 5 | 37 | 190 |
 | EOE | 266 | 238 | 0 | 117 | 121 |
 | FDN | 517 | 507 | 1 | 13 | 493 |
 | FIN | 312 | 266 | 2 | 19 | 245 |
@@ -30,7 +30,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 13 | 239 |
-| ALL | 34442 | 21515 | 44 | 16977 | 4494 |
+| ALL | 34442 | 21517 | 41 | 16982 | 4494 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -70,17 +70,17 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-44 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+41 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 2 |
-| options | 13 |
+| options | 12 |
 | projection | 1 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Counters | 1 |
 | projection-Cards.Damage | 1 |
-| projection-Cards.Flags | 6 |
+| projection-Cards.Flags | 4 |
 | projection-Cards.Pos | 2 |
 | projection-Cards.Power | 2 |
 | projection-Cards.Zone | 1 |

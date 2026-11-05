@@ -108,6 +108,7 @@ const (
 	ChCostPutToLib                            // source = the card put from a graveyard on the bottom of its owner's library to pay a cost (gorge's puttolibcost; one pick per part, asked even with one candidate)
 	ChGenKeepTapped                           // source = a tapped permanent whose controller may keep it tapped; mode 0 = untap it, 1 = keep it tapped (gorge's untap-step KChoose "untap" / "keep_tapped", CR 502.3; repl_untapchoice.go)
 	ChGenName                                 // mode = the CardID of the nonland card whose name a permanent chooses as it enters (gorge's ETB "name" option; repl_choosename.go)
+	ChGenConspire                             // source = a creature tapped for conspire (gorge conspireAsk's KChoose "conspire", Min=Max=2, CR 702.78a); two sequential picks; kw_conspire.go
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -1476,10 +1477,11 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done bool) {
 	e := &s.res.e
 	fl := k.t.Filters[in.F]
-	if (fl.Zone == kop.ZoneGraveyard || in.Op == kop.OpChangeZoneAllEx && in.C>>3&kop.MvGraveExile != 0) && k.gen.anyBatch &&
-		kop.Zone(in.C&7) == kop.ZoneBattlefield {
-		// one graveyard-leave batch: gorge opens a sweep's zone batch only for an entry
-		// (effChangeZoneAll's BeginZoneBatch), so a sweep to another zone triggers per card
+	if (fl.Zone == kop.ZoneGraveyard || in.Op == kop.OpChangeZoneAllEx && in.C>>3&kop.MvGraveExile != 0) && k.gen.anyBatch {
+		// one graveyard-leave batch: gorge's effChangeZoneAll brackets EVERY sweep
+		// in its zone batch (CR 603.2c: the sweep is one occurrence of the trigger
+		// event), so a graveyard sweep to exile queues once, not per card. (dirac
+		// copied gorge's narrower entry-only condition; both engines widen together.)
 		old := s.batchOpen()
 		if resume {
 			old &^= batchOpenMask

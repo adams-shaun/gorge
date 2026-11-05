@@ -636,6 +636,7 @@ const (
 	bsConvoke  // the CR 702.51a convoke announcement (gorge convokeAsk, after the tap costs and before X)
 	bsCasualty // the casualty sacrifice election (CR 702.153a: gorge optionalSacrificeAsk, before convoke / X; kw_casualty.go)
 	bsEvidence // the CollectEvidence<N> graveyard pick of an activation (CR 701.59a: gorge evidenceAsk, after the division and before payment; cost_collectevidence.go)
+	bsConspire // the granted-conspire tap election (CR 702.78a: gorge conspireAsk, after the tap costs, before convoke; kw_conspire.go)
 	nBuildStages
 )
 

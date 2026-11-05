@@ -92,7 +92,7 @@ func (sr *Searcher) reoffered(s *dirac.State, a dirac.Action) bool {
 
 func castOrActivate(a dirac.Action) bool {
 	k := a.Kind()
-	return k == dirac.AkCast || k == dirac.AkCastCasualty || k == dirac.AkActivate
+	return k == dirac.AkCast || k == dirac.AkCastCasualty || k == dirac.AkCastConspire || k == dirac.AkActivate
 }
 
 // rootPassCand is the root's one-action pass candidate, -1 none.
@@ -248,7 +248,7 @@ func shRoot(res *Result) bool {
 		switch res.CandAct[i].Kind() {
 		case dirac.AkPass:
 			pass = true
-		case dirac.AkCast, dirac.AkCastCasualty:
+		case dirac.AkCast, dirac.AkCastCasualty, dirac.AkCastConspire:
 			cast = true
 		}
 	}
