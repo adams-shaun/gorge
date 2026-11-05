@@ -3,8 +3,10 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // prepEquipAnim sets genPrep.equipAnim: CR 704.5p's Equipment arm of sba is
-// reachable only when an Equipment can be a creature. That takes an Equip
-// ability (kop.AfEquip) and an animator that can reach an Equipment: an
+// reachable only when an Equipment can be a creature. That takes an Equipment
+// card (kop.TEquipment: an Equipment can be attached without ever having an
+// Equip ability, by its own ETB trigger or an effect — Cryptic Coat) or an
+// Equip ability (kop.AfEquip), and an animator that can reach an Equipment: an
 // override that adds or sets the Creature type and is carried by an Equipment
 // itself (Ensouled Scimitar), by an effect on another object (Karn's Touch,
 // Relic's Roar), by a static whose affected filter admits an artifact (Ensoul
@@ -16,6 +18,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 func prepEquipAnim(t *kop.Table, g *genPrep) {
 	equip := false
 	for i := 0; i < len(t.Cards) && !equip; i++ {
+		if t.Cards[i].Types&kop.TEquipment != 0 { // an Equipment need not have Equip (Cryptic Coat)
+			equip = true
+			break
+		}
 		for j := range t.Cards[i].Abilities {
 			if t.Cards[i].Abilities[j].AFlags&kop.AfEquip != 0 {
 				equip = true

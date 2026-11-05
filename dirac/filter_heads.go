@@ -33,8 +33,11 @@ func (s *State) ctrlRoleF2(f kop.FilterFlags2, ctrl uint8) bool {
 		if e == nil {
 			return false
 		}
-		for i := 0; i < int(e.nt); i++ {
-			if e.tgt[i] == PlayerTarget0+ctrl {
+		// the slots and a multi-pick slot's extras (Officious Interrogation's
+		// second player)
+		var codes [kop.MaxTargets + maxXTgt]uint8
+		for _, c := range codes[:s.chainTargets(e, &codes)] {
+			if c == PlayerTarget0+ctrl {
 				return true
 			}
 		}

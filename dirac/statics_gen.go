@@ -82,6 +82,11 @@ func (s *State) adjustCostGenB(k *prep, p uint8, c CardID, o, priced Obj, base k
 	if mo == NoObj && priced != NoObj && s.objs[priced].zone == kop.ZoneStack {
 		mo = priced
 	}
+	if k.gen.anyRaise {
+		// CR 601.2f: the raises come first, so a reduction takes the raised
+		// pips too (gorge CostMods.ApplyTo)
+		g += s.raiseCostGen(k, p, c, o, priced, &base.Pips)
+	}
 	apply := func(a *kop.Ability, ctx evalCtx, emb uint8) {
 		ctx.uncounted = priced + 1
 		st := &a.Static
@@ -134,9 +139,6 @@ func (s *State) adjustCostGenB(k *prep, p uint8, c CardID, o, priced Obj, base k
 		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceCost && a.Static.Zone == kop.ZoneCommand {
 			apply(a, evalCtx{src: o, srcSl: NoSlot, ctrl: p}, 0)
 		}
-	}
-	if k.gen.anyRaise {
-		g += s.raiseCostGen(k, p, c, o, priced) // CR 601.2f: the raises, before the floor at zero
 	}
 	if cd.SpellWaterbend != 0 {
 		own := o

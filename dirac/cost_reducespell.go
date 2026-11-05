@@ -172,6 +172,9 @@ func (s *State) offerBargainOnly(k *prep, d *Decision, p uint8, o Obj, c CardID,
 // potential planner prices one from the composed cost (gorgeLowers,
 // witnessAtCheapest).
 func tgtDepCost(a *kop.Ability) bool {
+	if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatIncreaseCost && a.Static.StFlags&kop.StRaisePerTarget != 0 {
+		return true // priced by the targets chosen: "more for each target beyond the first"
+	}
 	return a.Kind == kop.AbStatic && (a.Static.Kind == kop.StatReduceCost || a.Static.Kind == kop.StatIncreaseCost) &&
 		a.Static.StFlags&kop.StTargetsFilter2 != 0 && a.Static.StFlags&kop.StRaiseLife == 0 // (a life raise prices no mana: cost_raiselife.go)
 }
