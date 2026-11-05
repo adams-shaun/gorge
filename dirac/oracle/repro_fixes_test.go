@@ -180,6 +180,7 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"tap_another_source_beside_restricted_grant", false, false},        // CR 601.2g-h: beside Mm'menon's hand-barred granted blue, Gene Pollinator's tap-another-permanent mana pays Mechanozoa's {U}{U} from hand, so the plain cast is offered
 		{"each_return_asks_election_per_target", false, false},              // CR 614.12, 608.2c: Pull Through the Weft returns its two shock lands one at a time, each one's pay-life election asked before the next moves
 		{"unspendable_grant_is_a_prefix_gap", false, false},                 // CR 601.2g-h: Mm'menon's hand-barred granted blue prices no hand cast (Glacier Godmaw is not offered off it), yet gorge's prefix still taps Nanoform Sentinel for it as a gap step, the blue floating
+		{"warp_cast_from_hand_spends_no_hand_barred_grant", true, false},    // CR 106.6, 702.185a: a warp cast is from the hand, so Nanoform Sentinel's Mm'menon-granted blue cannot pay Codecracker Hound's warp {2}{U} beside two Plains; the warp cast is not offered
 	})
 }
 
