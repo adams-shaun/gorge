@@ -1242,6 +1242,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.Flags |= kop.TfNotToGrave
 	}
+	if t.AlsoGrave {
+		if t.Event != "Leaves" || !t.Batch || t.N == 0 {
+			return kt, fmt.Errorf("graveyard-too flag on a %s trigger", t.Event)
+		}
+		kt.Flags2 |= kop.Tf2LeavesGrave
+	}
 	if t.CastSpent {
 		switch {
 		case t.Event != "SpellCast":
@@ -1828,6 +1834,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StAnyManaType
 			case "WithoutManaCost":
 				st.StFlags |= kop.StWithoutManaCost
+			case "SeatActive":
+				st.StFlags |= kop.StSeatActive
 			case "FunctionsInGraveyard":
 				st.StFlags |= kop.StFunctionsInGraveyard
 			case "FunctionsInExile":
@@ -2758,6 +2766,17 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			}
 			ki.Op = kop.OpChangeZoneAllEx
 			ki.C = int16(int(zoneMap[in.C]) | (moveFlags()|kop.MvGraveExile)<<3)
+			break
+		}
+		if fl["from"] == "Graveyard,Hand" {
+			// graveyard then hand (Weftwalking): the second zone rides in B
+			// (czallSecondZone); ZoneHand leaves B.N&CzUntilLeaves clear.
+			if err := objFilter(kop.ZoneNone); err != nil {
+				return ki, err
+			}
+			ki.Op = kop.OpChangeZoneAllEx
+			ki.C = int16(int(zoneMap[in.C]) | (moveFlags()|kop.MvGraveExile)<<3)
+			ki.B = kop.Const(int(kop.ZoneHand))
 			break
 		}
 		if err := objFilter(zoneMap[from]); err != nil {

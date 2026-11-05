@@ -1,0 +1,11 @@
+# the Weftwalking pool: the Graveyard,Hand shuffle-in enters trigger and the
+# active player's first-spell free cast, with creatures, removal, self-mill
+# and a high-cost spell to fill the graveyard and the hand
+# (dirac/oracle/weftwalking_test.go)
+Air Elemental
+Doom Blade
+Grizzly Bears
+Island
+Plains
+Thought Scour
+Weftwalking

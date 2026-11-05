@@ -232,6 +232,7 @@ type genPrep struct {
 	anyScryTrig    bool           // some trigger is TrigScry or TrigSurveil (trig_scrysurveil.go)
 	anyLandPlayed  bool           // a trigger is TrigLandPlayed (trig_modes.go)
 	anyCzPair      bool           // a TrigLeaves line has a destination mask (N) (trig_zonepairs.go)
+	anyLeavesGrave bool           // a TrigLeaves line also fires for a graveyard leave (kop.Tf2LeavesGrave; trig_leavesgrave.go)
 	anyKwAct       bool           // a trigger is TrigSearchedLibrary, TrigForage or TrigDiscover
 	anyDilemma     bool           // some table reads ExDilemmasFaced or TrigFacesDilemma (trig_dilemma.go)
 	anyScryTally   bool           // some expr is ExScriedThisTurn (value_scrytally.go)
@@ -753,6 +754,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 				if czPairLine(a) {
 					g.anyCzPair = true
+					if a.Trig.Flags2&kop.Tf2LeavesGrave != 0 {
+						g.anyLeavesGrave = true
+					}
 				}
 				if a.Trig.Event == kop.TrigSearchedLibrary || a.Trig.Event == kop.TrigForage || a.Trig.Event == kop.TrigDiscover {
 					g.anyKwAct = true

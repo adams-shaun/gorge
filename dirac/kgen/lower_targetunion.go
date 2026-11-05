@@ -27,7 +27,7 @@ import (
 //     (unionOps).
 
 // unionOps are the ops a union subject is lowered for.
-var unionOps = map[string]bool{"Destroy": true, "GrantKeyword": true, "Return": true, "Override": true}
+var unionOps = map[string]bool{"Destroy": true, "GrantKeyword": true, "Return": true, "Override": true, "Exile": true}
 
 // targetUnion is an effect subject's Defined$ Targeted over len(chainT) > 1
 // slots.
