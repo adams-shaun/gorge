@@ -984,6 +984,9 @@ func (lc *lowerCtx) changeZoneAll(ps *params) error {
 		return err
 	}
 	dual := strings.TrimSpace(ps.str("Origin")) == "Graveyard,Exile"
+	if strings.TrimSpace(ps.str("Origin")) == "Graveyard,Hand" {
+		return lc.originGraveHand(ps) // lower_changezoneall.go
+	}
 	origin := zNone
 	if !dual {
 		if origin, err = zoneOf(ps, "Origin", zNone); err != nil {

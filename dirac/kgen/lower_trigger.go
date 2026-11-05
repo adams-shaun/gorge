@@ -2518,7 +2518,17 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 	}
 	st.Kind = "MayPlayFrom"
 	st.F = f
-	z := sp.str("AffectedZone")
+	zRaw := sp.str("AffectedZone")
+	z := zRaw
+	if z == "All" {
+		// Weftwalking's first-spell free cast: the exact shape only
+		if !sp.is("MayPlayDontGrantZonePermissions", "True") ||
+			sp.str("MayPlayPlayer") != "Player.Active" ||
+			!sp.is("MayPlayWithoutManaCost", "True") {
+			return refuse("MayPlay zone %q outside the first-spell free shape", zRaw)
+		}
+		z = "Hand"
+	}
 	// "from outside the game" (The Holodeck's AffectedZone$ Sideboard,Graveyard,
 	// CR 400.11): the sideboard rides beside the one real zone as a flag, so a
 	// two-zone permission stays ONE static with one once-per-turn count
@@ -2530,6 +2540,15 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 	st.Zone = zoneNames[z]
 	if st.Zone != zGraveyard && st.Zone != zExile && st.Zone != zHand && st.Zone != zLibrary {
 		return refuse("MayPlay zone %q", z)
+	}
+	if dg, ok := sp.get("MayPlayDontGrantZonePermissions"); ok && (dg != "True" || zRaw != "All") {
+		return refuse("MayPlayDontGrantZonePermissions$ %q on zone %q", dg, zRaw)
+	}
+	if mp, ok := sp.get("MayPlayPlayer"); ok {
+		if mp != "Player.Active" || zRaw != "All" {
+			return refuse("MayPlayPlayer$ %q", mp)
+		}
+		st.Flags = append(st.Flags, "SeatActive")
 	}
 	if ez, ok := sp.get("EffectZone"); ok {
 		switch ez {
