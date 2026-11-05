@@ -1000,6 +1000,7 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	// 118.9d: Etali, Primal Storm casting Eaten Alive still sacrifices a
 	// creature or pays {3}{B}).
 	e.cast.altAddParts = altAddCostParts(o.Face())
+	e.cast.repriceOnPush = copyCard
 	e.continueCast()
 }
 
@@ -1080,7 +1081,7 @@ func (e *Engine) continueCast() {
 	// recompute is byte-identical to the offer snapshot (both are the
 	// nil-target base snapshot), so no existing price — and no chain head —
 	// moves.
-	if pc := e.cast; pc != nil && pc.pushed && !pc.provenanceRepriced && e.CostProvenanceSeen {
+	if pc := e.cast; pc != nil && pc.pushed && !pc.provenanceRepriced && (e.CostProvenanceSeen || pc.repriceOnPush) {
 		pc.provenanceRepriced = true
 		// The pending cast's own push is in the log now but is not yet a cast
 		// for pricing (CR 601.2f): a "second spell you cast each turn" gate

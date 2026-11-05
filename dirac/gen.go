@@ -1669,7 +1669,8 @@ type genState struct {
 	// progress (build), a resolution's look / pileOrd / dmgSeqOrd (armRes).
 	// The discriminants stay outside it (scratch.go).
 	scr [scrWords]uint64
-	nc  ncDmg // a noncombat damage event parked on that ask (ro.on false; repl_gen.go)
+	nc  ncDmg  // a noncombat damage event parked on that ask (ro.on false; repl_gen.go)
+	tok tokOrd // a CreateToken op deciding a contested creation on gorge's CR 616.1 token order ask: ro carries the candidates (repl_tokorder.go)
 	// a multi-event damage op paused on one of those asks: its recipients are
 	// frozen at the op in gorge's sweep order (effDamageAll: seat 0's
 	// battlefield in entry order, then seat 1's; the players arm last, bit 0

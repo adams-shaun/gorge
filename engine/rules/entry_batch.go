@@ -65,10 +65,16 @@ func (e *Engine) holdEntryCheck(ev *events.Event, lki *state.Object) bool {
 func (e *Engine) flushHeldEntries() {
 	held := e.entryHeld
 	e.entryHeld = nil
-	saved := e.entryFlushing
+	saved, savedFloor := e.entryFlushing, e.entryFlushFloor
 	e.entryFlushing = true
+	e.entryFlushFloor = 0
+	for i := range held {
+		if o := e.G.Obj(held[i].ev.Obj); o != nil && o.Zone == state.ZBattlefield && (e.entryFlushFloor == 0 || o.Timestamp < e.entryFlushFloor) {
+			e.entryFlushFloor = o.Timestamp
+		}
+	}
 	for i := range held {
 		e.checkTriggers(&held[i].ev, held[i].lki, 0, 0, false)
 	}
-	e.entryFlushing = saved
+	e.entryFlushing, e.entryFlushFloor = saved, savedFloor
 }

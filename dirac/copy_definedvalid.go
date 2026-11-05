@@ -44,8 +44,23 @@ func (s *State) copyAllEach(k *prep, in *kop.Instr) bool {
 	n := s.sweepHits(k, in.F, &ord)
 	ctrl := s.res.e.ctrl
 	var cnt [MaxPerm]int16
+	var rwCard CardID
+	rwN, rewritten := 0, false
 	for i := 0; i < n; i++ {
-		cnt[i] = int16(s.replTokens(k, ctrl, s.cardAt(ord[i]), 1))
+		tc, c, rw, ok := s.copyTokenRewrite(k, ctrl, s.cardAt(ord[i]), 1)
+		if !ok {
+			return false // StallTokRewrite
+		}
+		if rw {
+			rwCard, rwN, rewritten = tc, rwN+c, true
+		}
+		cnt[i] = int16(c)
+	}
+	if rewritten {
+		// a CreateToken rewriter replaced every copy with a plain mint of its
+		// card: no copy is left for the sweep's riders (repl_tokrewrite.go)
+		s.mintRewritten(k, ctrl, rwCard, rwN)
+		return false
 	}
 	if DebugDefValidFirstOnly && n > 1 {
 		n = 1

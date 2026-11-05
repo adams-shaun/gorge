@@ -800,9 +800,19 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		ctrl := s.g.freeP & 1
 		if s.g.freeP&32 != 0 {
 			paid := s.g.freeP&64 != 0
-			// gorge casts the copy whatever became of the original
-			if paid && s.copyCastRefused(k, c, ctrl, o) {
-				continue // the cast began and was reversed: the copy ceased (cast_exilegrant.go)
+			// gorge casts the copy whatever became of the original: a paid
+			// cast the pool cannot cover is begun and reversed after its
+			// mana window (CR 733.1, cast_exilegrant.go); a required target
+			// aborts it at the target ask first, tapping nothing
+			if paid && s.copyCastAbortsBeforeWindow(k, c, ctrl, o) {
+				// the copy is minted and ceases in its holding zone, no
+				// source tapped: gorge's abort at the target ask
+				if s.beginCopyCast(k, o, ctrl) {
+					s.reverseCast(k)
+				} else if s.over {
+					return false
+				}
+				continue
 			}
 			if !s.spellTargetsFeasible(k, c, ctrl) || !s.spellCostsFeasible(k, c, ctrl, o) || !s.beginCopyCast(k, o, ctrl) {
 				if s.over {

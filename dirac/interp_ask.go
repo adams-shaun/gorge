@@ -944,6 +944,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 	case raGenCtrOrder:
 		s.applyCtrOrder(k, a) // repl_ctrorder.go
 	case raGenReplOrder:
+		if s.g.tok.on {
+			s.tokAnswer(k, a) // a contested token creation (repl_tokorder.go)
+			return
+		}
 		if s.replOrderPick(a) {
 			return // ask again
 		}

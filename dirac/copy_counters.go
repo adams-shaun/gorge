@@ -31,7 +31,16 @@ func (s *State) copyTokenCtr(k *prep, in *kop.Instr) {
 	// a clean copy instruction: the copy path reads B as CopyFlags and C as
 	// the copy-exception override, neither of which this op carries
 	cin := kop.Instr{Op: kop.OpCopyAsTokenEx, Obj: in.Obj, A: kop.Const(1)}
-	n := s.replTokens(k, e.ctrl, c, 1)
+	tc, n, rewritten, ok := s.copyTokenRewrite(k, e.ctrl, c, 1)
+	if !ok {
+		return
+	}
+	if rewritten {
+		// a CreateToken rewriter replaced the copy with a plain mint of its
+		// card: no copy is left for the counters (repl_tokrewrite.go)
+		s.mintRewritten(k, e.ctrl, tc, n)
+		return
+	}
 	if n > 0 && (k.cards[c].types&kop.TAura != 0 && k.t.Cards[c].Enchant.Kind == kop.TgtObject || s.enterChoiceKind(k, c) != 0 || k.gen != nil && k.gen.anyBecomeCopy && s.cloneTokenAsk(k, &cin, c) != 0) {
 		s.stall(StallCopyAllAsk)
 		return

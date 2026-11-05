@@ -110,6 +110,7 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"granted_any_mana_beside_own_trigger_x", false, false}, // New Horizons on a Forest adds an any-colour ability beside its own, so Wildborn Preserver's "you may pay {X}" counts it in the potential pool as gorge's walk does
 		{"trigger_paid_x_zero_binds", false, false},             // CR 107.3: Wildborn Preserver paid X = 0 puts no counters, whatever X the creature that triggered it was cast with
 		{"dies_trigger_reads_attacking_lki", true, false},       // CR 603.10a: Garna, Bloodfist of Keld draws for a Perforating Artist that died attacking, its last known status
+		{"any_type_rider_hybrid_pips", true, false},             // CR 107.4e, 601.2b: Tinybones lets any mana pay Teach by Example's two hybrid pips, so W and B afford the cast
 	})
 }
 
@@ -123,6 +124,7 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"granted_batch_attack_trigger_once_per_declaration", false, false}, // CR 508.1, 603.2: a granted "whenever you attack" trigger fires once for a declaration split across two defenders, not once per defender
 		{"dies_trigger_power_threshold_lki", true, false},                   // CR 603.3b: Syr Vondam's own dies trigger queues before the dies trigger Perigee Beckoner granted it
 		{"return_defender_asked_before_move", true, false},                  // CR 508.4: Chorale of the Void's attacking return asks its defender while the card is still in the graveyard, as gorge does, not after it entered
+		{"station_reads_off_battlefield_cda_power", true, false},            // CR 604.3, 702.184a: Adagia's Station counts a sacrificed Harmonious Grovestrider by its lands-you-control power, which works in the graveyard, not by its printed 0
 	})
 }
 
@@ -207,6 +209,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"exiled_target_keeps_was_damaged", false, false},                  // CR 120.3a: Sold Out exiles its combat-damaged target, and the exile leaves WasDealtDamageThisTurn standing, so the "if that creature was dealt damage this turn" Clue is still made (gorge events.foldDamage)
 		{"first_only_filter_funds_play", false, false},                     // CR 605.1a, 106.1: Barrels of Blasting Jelly's first-and-only {1} any-colour filter funds Waterbender Ascension's {1}{U} and Fire Nation Palace's {1}{R} activation, so both stay on the menu
 		{"first_only_filter_funds_play_autopay", true, false},              // CR 605.1a, 106.1: ... and on the autopay surface, where the same first-and-only filter funds Fire Nation Palace's activation from the floating pool
+		{"tap_cost_source_not_its_own_granted_mana", true, false},          // CR 602.2b, 605.3a: Agna Qel'a's {2}{U},{T} is not paid by the tap that is its cost, so Great Divide Guide's grant on it adds no third mana beside Guide and Badgermole Cub's extra {G}
 	})
 }
 
@@ -240,6 +243,8 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"sacrifice_cost_granted_prefix", true, false},          // CR 601.2g-h: the granted mana is the prefix, so the printed plan leaves the Treasure to sacrifice
 		{"modal_cost_granted_mana_prefix", false, false},        // CR 601.2b, 601.2g-h: Tifa's Limit Break's cheapest Tiered mode costs only its printed {G}, which the granted any-colour source (A Realm Reborn) pays through the prefix
 		{"granted_mana_pays_tiered_cast", false, false},         // CR 601.2g: A Realm Reborn's granted any-colour mana from two untapped artifacts pays Ice Magic's {1}{U}, so the Tiered cast is offered
+		{"free_tiered_mode_cost_reduction", false, false},       // CR 601.2f, 118.9d: The Wind Crystal's ReduceCost applies to the Tiered mode cost of a free cast
+		{"graveyard_leave_sees_batch_entrant", true, false},     // CR 603.10a: Fang returned by Random Encounter beside the cards it returns did not see them leave
 	})
 }
 
@@ -262,6 +267,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"each_color_among_valid_pay_unaffordable", true, false},     // CR 118.3: Trystan's "may pay {B}" upkeep ask is offered, as gorge's potential over-bound does, when Bloom Tender is the only untapped source
 		{"convoke_tap_another_source_keeps_target", true, false},     // CR 601.2c, 601.2g: a Springleaf Drum left beside a convoke cast's picks keeps its target on gorge's menu, however short the window is
 		{"evoke_hybrid_paid_from_floating_pool", false, false},       // CR 601.2h: Deceit evoked with a floating {U} and {B} pays its {U/B}{U/B} from the pool and taps no untapped Island
+		{"planned_mana_sacrifice_token_waits_for_sba", true, false},  // CR 704.5d, 111.7: a Treasure sacrificed by the payment plan for Appeal to Eirdu stays in the graveyard until the next state-based check, as gorge leaves it
 	})
 }
 
