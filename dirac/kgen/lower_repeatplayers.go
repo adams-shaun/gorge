@@ -58,7 +58,7 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 		var bad []string
 		for k, v := range n.Params {
 			v = strings.TrimSpace(v)
-			if (k == "Defined" || k == "TokenOwner" || k == "UnlessPayer") && (v == "Remembered" || v == "Player.IsRemembered") || k == "SubAbility" {
+			if (k == "Defined" || k == "TokenOwner" || k == "UnlessPayer" || k == "DefinedPlayer") && (v == "Remembered" || v == "Player.IsRemembered") || k == "SubAbility" {
 				continue
 			}
 			if k == "TokenAttacking" && v == tokenAttackingRemembered && who.Kind == rEachOpp {
@@ -104,7 +104,8 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 var repeatPlayerOps = map[string]bool{
 	"LoseLife": true, "GainLife": true, "Draw": true, "Discard": true, "Mill": true, "Sacrifice": true,
 	"CreateToken": true, "UnlessPaid": true,
-	"Dig": true, // the library dug (Doomsday Excruciator)
+	"ChooseMove": true, // a hand move's owner (DefinedPlayer$ Remembered; startSearch's playerRef)
+	"Dig":        true, // the library dug (Doomsday Excruciator)
 }
 
 // repeatChooseGreatest lowers Gix's Command's fourth mode body: RepeatEach

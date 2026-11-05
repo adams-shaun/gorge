@@ -168,8 +168,9 @@ import (
 // +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; this branch; merged ALL build-level 21556 -> 21557).
 // +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged ALL build-level 21557 -> 21558).
 // +1 (Doomsday Excruciator: a RepeatEach player body's library count and blind face-down Dig; this branch; merged ALL build-level 21564 -> 21565).
+// +1 (Worlds Within Worlds: a RepeatEach player body's per-player hand move; this branch; merged ALL build-level 21565 -> 21566).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21565, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21566, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

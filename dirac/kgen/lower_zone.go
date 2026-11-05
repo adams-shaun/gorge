@@ -632,7 +632,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		in.Op = "Exile"
 	case zHand:
 		in.Op = "Bounce"
-		if origin == zGraveyard {
+		// a remembered set from exile (Worlds Within Worlds' return) is
+		// the Return walk: Bounce moves the set's first object only
+		if origin == zGraveyard || origin == zExile && obj.Kind == rRemembered {
 			in.Op = "Return"
 			in.C = zHand
 		}
