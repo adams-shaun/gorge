@@ -57,6 +57,7 @@ func mustBlockUses(in *kop.Instr, u *[numMech]bool) {
 func (s *State) mustBlockNewTurn(k *prep) {
 	s.mSlZero(k, mechMustBlocked)
 	s.mSlZero(k, mechMustBlockedPost)
+	s.mSlZero(k, mechAttacksIfAble) // combat_attacksifable.go
 }
 
 // mustBlockExt is ExtMustBeBlocked: Obj, or every battlefield permanent
