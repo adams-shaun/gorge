@@ -678,7 +678,8 @@
   16776960,
   16776960,
   16776960,
-  16776960
+  16776960,
+  55770880
  ],
  "readable": [
   "pass(-,-,0)",
@@ -1262,23 +1263,35 @@
   "pass(-,-,0)",
   "pass(-,-,0)",
   "pass(-,-,0)",
-  "pass(-,-,0)"
+  "pass(-,-,0)",
+  "activate(#82,-,0)"
  ],
  "divergence": {
-  "at": 582,
-  "what": "options",
-  "field": "options",
-  "ref_options": [
-   "pass(-,-,0)",
-   "activate(#82,-,0)",
-   "special(#79,-,4)"
+  "at": 583,
+  "what": "projection",
+  "field": "Cards[45].Flags",
+  "diff": [
+   "Cards[45].Flags: ref=1 kernel=0",
+   "Cards[53].Flags: ref=1 kernel=0",
+   "Cards[66].Flags: ref=1 kernel=0",
+   "Cards[67].Flags: ref=1 kernel=0",
+   "Cards[79].Flags: ref=1 kernel=0",
+   "Pool[1][1]: ref=4 kernel=0",
+   "NStack: ref=2 kernel=1",
+   "Stack[0].Kind: ref=2 kernel=1",
+   "Stack[0].Source: ref=67 kernel=82",
+   "Stack[0].Ability: ref=128 kernel=0",
+   "Stack[0].NTargets: ref=1 kernel=0",
+   "Stack[0].Targets[0]: ref=9 kernel=255",
+   "Stack[1].Kind: ref=1 kernel=0",
+   "Stack[1].Source: ref=82 kernel=0",
+   "Stack[1].Controller: ref=1 kernel=0",
+   "Stack[1].Targets[0]: ref=255 kernel=0",
+   "Stack[1].Targets[1]: ref=255 kernel=0",
+   "Stack[1].Targets[2]: ref=255 kernel=0",
+   "Stack[1].Targets[3]: ref=255 kernel=0"
   ],
-  "ker_options": [
-   "pass(-,-,0)",
-   "special(#79,-,4)"
-  ],
-  "detail": "priority decision for p1",
   "lead": "gorge",
-  "last_sourced": "cast(#54,-,0)"
+  "last_sourced": "activate(#82,-,0)"
  }
 }
