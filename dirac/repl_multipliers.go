@@ -181,7 +181,7 @@ func (s *State) dblDmgLive(k *prep, b Slot) bool {
 // tok multiplies by its A (0: twice).
 func (s *State) replTokensMult(k *prep, p uint8, tok CardID, n int) int {
 	g := k.gen
-	for m := s.statM.and(s.ctrlM[p]); m.any() && n < 1<<8; m = m.rest() {
+	for m := s.tokSrcM(p); m.any() && n < 1<<8; m = m.rest() {
 		b := m.first()
 		if g.replBits[s.cardAt(b)]&rbDblTok == 0 || s.genLost(k, b) {
 			continue

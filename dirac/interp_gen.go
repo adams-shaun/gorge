@@ -1007,6 +1007,9 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 	if s.leaveTogether(k, in, i) {
 		return false
 	}
+	if in.Op == kop.OpCopyAsTokenEx {
+		s.g.tokFrz, s.g.tokFrzOn = s.statM, true // copy_eachtarget.go tokSrcM
+	}
 	s.g.inLoop = true
 	w := eachSusp{slot: i, t: saveT, v: saveV, bad: saveBad}
 	if !s.exec(k, in) && s.eachParks(in) {

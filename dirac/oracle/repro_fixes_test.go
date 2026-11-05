@@ -91,6 +91,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-trk", []stdRepro{
 		{"granted_mana_taps_stack_one_at_a_time", false, false},         // CR 603.3b: Deep Space 9 paid by Rok-Tahk's {G}{G} from Beckett Mariner and Erica Ortegas: each tap's trigger is stacked before the next activation, and both resolve before the sorcery-speed cast
 		{"entry_counter_put_by_returned_owner", false, false},           // CR 122.6a: Dr. Leonard "Bones" McCoy returns the opponent's Moopsy under its owner's control, so its owner puts the +1/+1 counter and the owner's Dr. Joseph M'Benga doubles it
+		{"copy_each_target_token_replacement", false, false},            // CR 111.1, 614.1: Dominion Infiltration's three copies are created together, so the Holo-Engineer copy that entered first does not turn the Sarek copy into an Illusion
 		{"entry_counter_put_by_opposing_grant", false, false},           // CR 122.6a: Overflow Submatrix's finality counter on the opponent's Storied Veteran is put by the Submatrix's controller, so Dr. Joseph M'Benga doubles only the Veteran's own grant
 		{"stack_spell_controller_not_owner", true, false},               // CR 108.4, 110.2: Brazen Bluff asks the controller of the spell it targets, the player casting Transporter Malfunction from the opponent's exile, not its owner
 		{"copy_cast_x_targets_ask_after_x", false, false},               // CR 601.2b, 601.2c: Q's Play of Dominion Infiltration announces X before its "X target creatures", so a copy cast no mana can pay still asks X and reaches its mana window
@@ -282,6 +283,14 @@ func TestStdFraReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-fra", []stdRepro{
 		{"sweep_returns_aura_after_earlier_entrants", true, false}, // CR 303.4f: Return to the Light Realms asks for Infinite Coursework's host with the cards before it entered and the ones after still in the graveyard
 		{"sacrificed_mana_source_moves_its_aura", false, false},    // CR 704.3, 704.5m: the check after a mana source's sacrifice while paying a cast takes its Aura before the cast's next choice
+	})
+}
+
+// std-spm's, on the same terms.
+func TestStdSpmReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-spm", []stdRepro{
+		{"tapcost_source_not_paid_with_itself", false, false}, // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
 	})
 }
 
