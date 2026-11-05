@@ -68,7 +68,7 @@ func TestKgenCloakSourcesLower(t *testing.T) {
 
 	e := byName["Etrata, Deadly Fugitive"]
 	if len(e.Refusals) == 0 {
-		t.Fatal("Etrata no longer refuses; the brief's next-refusal stop needs revisiting")
+		t.Fatal("Etrata no longer refuses; the TurnFaceUp static grant lowered unexpectedly")
 	}
 	if !strings.Contains(e.Refusals[0].Reason, "TurnFaceUp") {
 		t.Fatalf("Etrata's first refusal is %q, want the TurnFaceUp static grant", e.Refusals[0].Reason)

@@ -313,11 +313,11 @@ const (
 
 // Cloak/ManifestDread flags (OpCloak/OpManifestDread B.N).
 const (
-	CfTapped = 1 << iota // the cloaked cards enter tapped (gorge Tapped$)
-	CfShuffle            // shuffle the library afterwards (gorge Shuffle$)
-	CfRemember           // the moved cards join the remembered set (RememberCloaked$/RememberManifested$)
-	CfChosen             // cloak the resolution's chosen card from where it sits, under the resolving controller (gorge effCloak's Choices$ pick, Vannifar)
-	CfCloakCtrl          // Obj names only the library's owner: the cloaked cards enter under the resolving controller (gorge's cloak(t.Obj, c.Controller), Etrata)
+	CfTapped    = 1 << iota // the cloaked cards enter tapped (gorge Tapped$)
+	CfShuffle               // shuffle the library afterwards (gorge Shuffle$)
+	CfRemember              // the moved cards join the remembered set (RememberCloaked$/RememberManifested$)
+	CfChosen                // cloak the resolution's chosen card from where it sits, under the resolving controller (gorge effCloak's Choices$ pick, Vannifar)
+	CfCloakCtrl             // Obj names only the library's owner: the cloaked cards enter under the resolving controller (gorge's cloak(t.Obj, c.Controller), Etrata)
 )
 
 // CostTapHost: tap the granting host (an Equipment's granted ability).

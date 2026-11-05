@@ -12,7 +12,7 @@ import (
 )
 
 // Vannifar, Evolved Enigma's combat trigger (dirac lowers its DB$ Cloak with
-// the Choices$ hand pick, r1 mkm-cloak-sources). The cloak picks are counted
+// the Choices$ hand pick). The cloak picks are counted
 // from the canonical actions; the empty-hand positions from the kernel's
 // pending-trigger view at each agreed decision.
 type kcloakCounts struct {
