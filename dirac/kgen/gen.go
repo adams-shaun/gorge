@@ -447,6 +447,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 		if s.PwVsSrc != 0 {
 			fmt.Fprintf(w, " pwvs=%d", s.PwVsSrc)
 		}
+		if s.OvGate != 0 {
+			fmt.Fprintf(w, " ovgate=%d", s.OvGate)
+		}
 		if s.Kind == "CantPutCounter" {
 			fmt.Fprintf(w, " ctr=%d", s.Ctr)
 		}
@@ -473,6 +476,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 			eot = " until=EOT"
 		} else if e.UntilNextTurn {
 			eot = " until=next"
+		}
+		if e.CaptureSet {
+			eot += " remembers=" + e.Capture.String()
 		}
 		fmt.Fprintf(w, "  emblem[%d] trigger=%d statics=%d%s\n", i, e.Trigger, len(e.Statics), eot)
 	}

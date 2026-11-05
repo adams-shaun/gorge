@@ -65,6 +65,9 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 	if k.gen.anyHandAct {
 		s.priorityHandAct(k, d, p, sorc, &av)
 	}
+	if k.gen.anyExileGrant {
+		s.priorityExileGrant(k, d, p) // cast_exilegrant.go
+	}
 	// granted activated abilities
 	for m := s.ctrlM[p]; m.any() && s.grantsLive(k); m = m.rest() {
 		sl := m.first()
@@ -591,7 +594,9 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 		if seen.has(o) {
 			return
 		}
-		if ob := &s.objs[o]; zones&(1<<ob.zone) == 0 && (ob.zone != kop.ZoneGraveyard || ob.owner() != p || k.gen.sCls[ob.card]&sclsGyMay == 0) {
+		if ob := &s.objs[o]; zones&(1<<ob.zone) == 0 &&
+			(ob.zone != kop.ZoneGraveyard || ob.owner() != p || k.gen.sCls[ob.card]&sclsGyMay == 0) &&
+			(ob.zone != kop.ZoneExile || ob.owner() != p || k.gen.sCls[ob.card]&sclsExMay == 0) {
 			return
 		}
 		s.mayPlayStatics(k, p, o, func(st statSrc) bool {

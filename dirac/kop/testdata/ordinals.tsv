@@ -378,6 +378,7 @@ ExtBreachChoose	ExtOp	160
 ExtBreachReturn	ExtOp	161
 ExtChangeTargets	ExtOp	225
 ExtChooseColorRes	ExtOp	5
+ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230
 ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
@@ -398,6 +399,7 @@ ExtExchangeControl	ExtOp	244
 ExtExileExMark	ExtOp	51
 ExtExileLandChoose	ExtOp	162
 ExtFinalityCtr	ExtOp	198
+ExtGrantExile	ExtOp	249
 ExtGrantPanharm	ExtOp	248
 ExtHideaway	ExtOp	8
 ExtLibSweep	ExtOp	101
@@ -414,7 +416,7 @@ ExtPreventDamageScope	ExtOp	246
 ExtRecruit	ExtOp	94
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
-ExtSearchCounters	ExtOp	249
+ExtSearchCounters	ExtOp	252
 ExtSuspect	ExtOp	190
 ExtSweepFrom	ExtOp	97
 ExtToGraveyard	ExtOp	192
@@ -749,6 +751,7 @@ PayBBehold	untyped int	6
 PayBRemember	untyped int	4
 PayBReveal	untyped int	5
 PayBSubBlight	untyped int	1
+PayBSubChain	untyped int	8
 PayBSubEvidence	untyped int	2
 PayBSubSacHost	untyped int	7
 PayBSubTrigNew	untyped int	3
@@ -893,10 +896,11 @@ ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	32
+ReplCount	ReplKind	33
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamagePlus	ReplKind	16
+ReplDestroyHeal	ReplKind	32
 ReplDmgCtrHost	untyped int	128
 ReplDmgNonCombat	untyped int	16
 ReplDmgOppPerm	untyped int	2
@@ -962,13 +966,14 @@ SrShuffleOptional	untyped int	8
 SrTapped	untyped int	1
 SrThenTop	untyped int	2
 SrUnderYourControl	untyped int	2048
-StAlsoSideboard	StaticFlags	1024
+StAlsoSideboard	StaticFlags	512
 StAnyManaType	StaticFlags	4
 StBargained	StaticFlags	4096
 StBeamGranted	StaticFlags	1
 StCasterActive	StaticFlags	64
 StDynamic	StaticFlags	1
 StEmbNum	StaticFlags	16384
+StFunctionsInExile	StaticFlags	1024
 StFunctionsInGraveyard	StaticFlags	16
 StMayRaise	StaticFlags	32768
 StOncePerTurn	StaticFlags	2
@@ -1100,6 +1105,7 @@ Tf3MayPlaySrc	TrigFlags3	32
 Tf3OrTargets	TrigFlags3	8
 Tf3Static	TrigFlags3	16
 Tf4CounterCell	TrigFlags4	4
+Tf4NamedCast	TrigFlags4	16
 Tf4NthFiltered	TrigFlags4	8
 Tf4SingleCauseTarget	TrigFlags4	2
 Tf4SingleTarget	TrigFlags4	1

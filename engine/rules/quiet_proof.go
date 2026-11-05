@@ -106,6 +106,7 @@ var quietCoveredSections = map[string]bool{
 	"verifyAbilityCold":         true,
 	"verifyManaCold":            true,
 	"offBattlefieldGrantedWalk": true,
+	"exileGrantedWalk":          true,
 	"grantedKeywordLines":       true,
 	"offerCastable":             true,
 	"recordAbilityBlock":        true,

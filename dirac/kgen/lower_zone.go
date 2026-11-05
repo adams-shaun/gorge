@@ -946,6 +946,9 @@ func overrideString(o *lOverride) string {
 	if o.RemoveLegendary {
 		p = append(p, "nonlegendary")
 	}
+	if o.GrantStatics != 0 {
+		p = append(p, "grantstatics="+strconv.Itoa(int(o.GrantStatics)))
+	}
 	if o.LoseAbilities {
 		p = append(p, "loseabilities")
 	}
@@ -1458,7 +1461,8 @@ func (lc *lowerCtx) chooseLibraryUpTo(ps *params, f *lFilter) error {
 
 // playSAExpr translates ValidSA$ to a filter expression, ANDed with the
 // population filter by the caller. The accepted spellings:
-// Spell, Spell.cmcLE<n>, Spell.cmcLEX, and Instant[.cmc...],Sorcery[.cmc...].
+// Spell, Spell.cmcLE<n>, Spell.cmcLE<letter> (the bound is the ability's SVar
+// of that letter, lowered by lc.filter like X), and Instant[.cmc...],Sorcery[.cmc...].
 // A plain Spell is the land skip OpCastFree already applies, so it adds
 // nothing; a Spell cmc bound adds just the bound (lands are still skipped).
 // Gorge tests the printed face; kgen refuses a multi-face card before here.
@@ -1485,8 +1489,8 @@ func (lc *lowerCtx) playSAExpr(v string) (string, error) {
 		}
 		for _, p := range parts[1:] {
 			switch {
-			case p == "cmcLEX":
-				clause = andClause(clause, "cmcLEX")
+			case isCmcLEVar(p):
+				clause = andClause(clause, p)
 			case spellHead && lc.bluffPlay && playNonCreatureYouOwn(p):
 				// Spell.nonCreature+YouOwn (Brazen Bluff's free cast from hand)
 				clause = andClause(clause, p)
@@ -1507,6 +1511,14 @@ func (lc *lowerCtx) playSAExpr(v string) (string, error) {
 		}
 	}
 	return strings.Join(alts, ","), nil
+}
+
+// isCmcLEVar reports a mana-value bound named by a one-letter SVar: cmcLEX,
+// cmcLEY (Captain Benjamin Sisko's Officer count). gorge reads any one
+// capital letter from the resolving ability's SVar table
+// (effects/play.go validSAOK).
+func isCmcLEVar(p string) bool {
+	return len(p) == 6 && strings.HasPrefix(p, "cmcLE") && p[5] >= 'A' && p[5] <= 'Z'
 }
 
 // playNonCreatureYouOwn is the ValidSA$ property pair nonCreature+YouOwn.
@@ -1551,7 +1563,7 @@ func andFilterExpr(a, b string) (string, error) {
 }
 
 // playRememberedClause reads the P1 Valid$ shapes:
-// Card.IsRemembered[+nonLand][+cmcLEX]. IsRemembered is the population and
+// Card.IsRemembered[+nonLand][+YouOwn][+cmcLE<letter>]. IsRemembered is the population and
 // nonLand is the kernel's land skip, so only the cmc bound reaches the filter.
 func (lc *lowerCtx) playRememberedClause(valid string) (string, error) {
 	if strings.Contains(valid, ",") {
@@ -1561,8 +1573,12 @@ func (lc *lowerCtx) playRememberedClause(valid string) (string, error) {
 	for _, part := range strings.Split(valid, "+") {
 		switch {
 		case part == "Card.IsRemembered", part == "IsRemembered", part == "nonLand", part == "Card.nonLand":
-		case part == "cmcLEX":
-			cmc = andClause(cmc, "cmcLEX")
+		case part == "YouOwn":
+			// owned by the controller: kept as a filter clause (a library can
+			// hold a card another player owns), not assumed from the Dig
+			cmc = andClause(cmc, part)
+		case isCmcLEVar(part):
+			cmc = andClause(cmc, part)
 		case strings.HasPrefix(part, "cmcLE"), strings.HasPrefix(part, "cmcLT"), strings.HasPrefix(part, "cmcEQ"):
 			if _, err := strconv.Atoi(part[5:]); err != nil {
 				return "", refuse("Play Valid$ %q", valid)
@@ -1599,7 +1615,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		if v != "True" {
 			return refuse("Play CopyCard %q", v)
 		}
-		if ps.m["ValidSA"] != "Spell" || ps.m["ValidZone"] != "Exile" || !strings.Contains(ps.m["Valid"], "IsRemembered") ||
+		if ps.m["ValidSA"] != "Spell" || ps.m["ValidZone"] != "Exile" || !(strings.Contains(ps.m["Valid"], "IsRemembered") || lc.grantExile && ps.m["Valid"] == "Card.Self") ||
 			ps.m["Defined"] != "" || ps.m["ValidTgts"] != "" || ps.m["ForgetPlayed"] != "" || ps.m["ReplaceGraveyard"] != "" {
 			return refuse("Play CopyCard outside Valid$ IsRemembered, ValidZone$ Exile, ValidSA$ Spell")
 		}
@@ -1622,7 +1638,10 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 	}
 	ps.consume("DefinedDesc", "IfDesc")
-	if !ps.is("WithoutManaCost", "True") {
+	// the exile-granted ability's copy is cast paying its mana cost (gorge
+	// beginPlay: the printed cost, mana window and all; lower_exilegrant.go)
+	paid := lc.grantExile && copyCard && ps.m["Valid"] == "Card.Self" && ps.m["WithoutManaCost"] == ""
+	if !paid && !ps.is("WithoutManaCost", "True") {
 		return refuse("Play without WithoutManaCost")
 	}
 	if !ps.is("Optional", "True") {
@@ -1697,6 +1716,9 @@ func (lc *lowerCtx) play(ps *params) error {
 	if copyCard {
 		cs += "|Copy"
 	}
+	if paid {
+		cs += "|Paid"
+	}
 	var repeatN lValue
 	if repeat {
 		if repeatN, err = lc.value(amount); err != nil {
@@ -1765,6 +1787,14 @@ func (lc *lowerCtx) play(ps *params) error {
 	}
 	if !hasValid {
 		return refuse("Play shape")
+	}
+	if paid {
+		// the source card itself, in exile (lower_exilegrant.go): Valid$
+		// Card.Self + ValidZone$ Exile, Amount$ All, ValidSA$ Spell
+		if saExpr != "" || amount != "All" || vzone != "Exile" || valid != "Card.Self" || forget || replace || repeat {
+			return refuse("Play Card.Self outside Amount$ All, ValidZone$ Exile, ValidSA$ Spell")
+		}
+		return emit(lRef{Kind: rSelf}, zExile, "")
 	}
 	switch vzone {
 	case "Exile":
@@ -2163,6 +2193,13 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if t.Effect == nil {
 		t.Effect = cards.ResolveSVar(lc.face.SVars, t.Params["Execute"])
 	}
+	// RememberObjects$ Targeted beside ValidTgts$ (The Inner Light: "choose
+	// target creature. Whenever it deals combat damage to a player this
+	// turn"): the chain's target slot is the emblem's capture
+	capture, hasCap, err := lc.emblemCapture(ps, t, eot)
+	if err != nil {
+		return err
+	}
 	saved := len(lc.out.Abilities)
 	if err := lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") }); err != nil {
 		return err
@@ -2171,6 +2208,11 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return refuse("emblem trigger lowering")
 	}
 	ab := lc.out.Abilities[saved]
+	if hasCap {
+		if err := emblemCaptureFilter(ab); err != nil {
+			return err
+		}
+	}
 	if eot || next {
 		if err := emblemFiltersRefuse("Effect trigger", ab.Trigger.F, ab.Trigger.F2); err != nil {
 			return err
@@ -2181,7 +2223,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	}
 	ab.Latent = true
 	ab.Name = "EmblemTrigger"
-	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next})
+	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap})
 	lc.emit(lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}, C: len(lc.out.Emblems) - 1})
 	return nil
 }
@@ -2216,6 +2258,9 @@ func (lc *lowerCtx) emblemUnimplementedMayPlay(list string) error {
 }
 
 func (lc *lowerCtx) animate(ps *params) error {
+	if _, ok := ps.get("Abilities"); ok {
+		return lc.animateGrantExile(ps) // lower_exilegrant.go
+	}
 	if d, ok := ps.get("Defined"); ok && strings.HasPrefix(d, "ValidGraveyard ") {
 		return lc.animateGraveMayPlay(ps, strings.TrimPrefix(d, "ValidGraveyard "))
 	}
@@ -3326,6 +3371,9 @@ func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) er
 		return nil
 	}
 	name := strings.TrimSpace(v)
+	if strings.Contains(name, ",") {
+		return lc.animateGrantStatics(ps, name, o)
+	}
 	ss, ok := cards.ParseStaticLines(lc.face.SVars[name])
 	if ok && len(ss) == 1 && ss[0].Mode == "Continuous" {
 		return lc.animateLivePT(name, ss[0], o, obj)
@@ -3345,6 +3393,54 @@ func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) er
 		return refuse("Animate staticAbilities$ with a host-bound duration")
 	}
 	o.AddKw = append(o.AddKw, "Unblockable")
+	return nil
+}
+
+// animateGrantStatics lowers an Animate's staticAbilities$ list of
+// permission and land-play statics (Nog, Ambitious Cadet's "You may play
+// lands from your graveyard" and "You may play an additional land on each of
+// your turns"; gorge registerAnimateStaticAbilities registers each body as a
+// continuous effect of the animated object for the animation's lifetime). Each
+// body lowers as the printed static it reads as (a may-play permission, an
+// extra land play) on the source card, switched on by a bit of the override
+// record the Animate applies (kop.Static.OvGate, kop.Override.GrantStatics),
+// so the grant is source-scoped and lasts as long as the record. Only a
+// permanent grant on Self reaches the source.
+func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride) error {
+	if ps.str("Duration") != "Permanent" || ps.str("Defined") != "Self" {
+		return refuse("Animate staticAbilities$ %q beside a duration other than Permanent on Self", names)
+	}
+	for _, name := range strings.Split(names, ",") {
+		name = strings.TrimSpace(name)
+		ss, ok := cards.ParseStaticLines(lc.face.SVars[name])
+		if !ok || len(ss) != 1 || ss[0].Mode != "Continuous" {
+			return refuse("Animate staticAbilities$ %q", name)
+		}
+		_, may := ss[0].Params["MayPlay"]
+		_, land := ss[0].Params["AdjustLandPlays"]
+		if may == land {
+			return refuse("Animate staticAbilities$ %q shape", name)
+		}
+		gated := 0
+		for _, st := range lc.out.Statics {
+			if st.OvGate != 0 {
+				gated++
+			}
+		}
+		if gated >= 8 {
+			return refuse("Animate staticAbilities$ grants more than 8 statics")
+		}
+		before := len(lc.out.Statics)
+		if err := lc.lowerStatic(ss[0]); err != nil {
+			return err
+		}
+		if len(lc.out.Statics) != before+1 {
+			return refuse("Animate staticAbilities$ %q lowered to %d statics", name, len(lc.out.Statics)-before)
+		}
+		bit := uint8(1) << gated
+		lc.out.Statics[before].OvGate = bit
+		o.GrantStatics |= bit
+	}
 	return nil
 }
 

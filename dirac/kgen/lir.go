@@ -475,6 +475,7 @@ type lCost struct {
 	Forage       *lFilter // forage: exile three cards from your graveyard or sacrifice a Food matching (CR 701.61a)
 	ExileG       *lFilter // ExileFromGrave<N/Spec>: exile ExileGN cards matching from your graveyard (CARDNAME: Self)
 	ExileGN      int
+	ExileHand    bool     // ExileFromHand<1/Card>: the ExileG cards come from the payer's hand (kop.Cost.ExileHand; a granted exile ability's cost only)
 	ExileGBf     bool     // ExileCtrlOrGrave<N/Spec>: the battlefield (the payer's permanents) as well (kop.CostExileCtrlOrGrave, Craft)
 	Energy       int      // PayEnergy<N>: pay N energy (an activated ability's cost only)
 	Waterbend    int      // Waterbend<N>: N generic payable by tapping artifacts/creatures (an activated ability's cost only)
@@ -604,6 +605,7 @@ type lTrigger struct {
 	GameOnce      bool  // GameActivationLimit$ 1: once per source object (kop.Tf3GameOnce)
 	SingleTarget  bool  // SpellCast: the cast spell's root target list has exactly one target (kop.Tf4SingleTarget)
 	CounterCell   bool  // CounterAddedOnce from Mode$ CounterPlayerAddedAll: one fire per put action per recipient (kop.Tf4CounterCell)
+	NamedCast     bool  // SpellCast lowered from Mode$ SpellAbilityCast over the source's chosen card name: also fires on an activation of a source with that name (kop.Tf4NamedCast; lower_choosename.go)
 	CauseTarget   bool  // DamageDone: ValidCause$ Spell.numTargets EQ1 + TargetRelativeToCause$ Creature.targetedBy (kop.Tf4SingleCauseTarget)
 	// Watch: BecomesTarget watching ValidTarget$ objects (F) targeted by an
 	// opponent's spell or ability (ValidSource$ SpellAbility.OppCtrl);
@@ -763,6 +765,9 @@ type lStatic struct {
 	// Ctr: a CantPutCounter's CounterType$ kind, -1 for every kind
 	// (kop.Static.A; Blossombind, Blightbeetle)
 	Ctr int16
+	// OvGate: the bit of lOverride.GrantStatics that switches this static on
+	// (kop.Static.OvGate); 0 = a printed static
+	OvGate uint8
 }
 
 // lOverride is the override record a hard static/effect applies.
@@ -796,6 +801,7 @@ type lOverride struct {
 	NoCost            bool     // a copy exception's "with no mana cost" (RemoveCost$)
 	AddColors         string   // a copy exception's AddColors$: colour letters added after any set
 	RemoveLegendary   bool     // a copy exception's NonLegendary$ (CR 707.9b)
+	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
 }
 
 // Replacement-lite kinds.
@@ -939,6 +945,11 @@ type lEmblem struct {
 	UntilEOT      bool // an Effect without a Duration$: it ends at cleanup
 	UntilNextTurn bool // Duration$ UntilYourNextTurn: it ends at the next turn's cleanup
 	WhileHost     bool // Duration$ UntilHostLeavesPlayOrEOT: it ends when its host leaves too
+	// Capture: RememberObjects$ Targeted over the chain's target slot
+	// (CaptureSet); the trigger's ValidSource$ ...IsRemembered is then the
+	// emblem's own capture, lowered without the Remembered flag
+	Capture    lRef
+	CaptureSet bool
 }
 
 type refusal struct {

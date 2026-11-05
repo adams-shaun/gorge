@@ -347,8 +347,14 @@ func (lc *lowerCtx) handMoveDefinedOwner(ps *params) (lRef, bool, error) {
 	if strings.TrimSpace(dp) != "Targeted" {
 		return lRef{}, false, refuse("hand move DefinedPlayer$ %q", dp)
 	}
-	slot := -1
+	// a charm's ability holds every mode's targets: only the chosen mode's
+	// own slots count (the slot number stays the ability-wide one)
+	slot, nTgts := -1, 0
 	for i, t := range lc.ab.Targets {
+		if lc.mode >= 0 && t.Mode != lc.mode {
+			continue
+		}
+		nTgts++
 		if t.F != nil && t.F.Players != 0 && len(t.F.Clauses) == 0 {
 			if slot >= 0 {
 				return lRef{}, false, refuse("hand move DefinedPlayer$ Targeted over two player targets")
@@ -356,7 +362,7 @@ func (lc *lowerCtx) handMoveDefinedOwner(ps *params) (lRef, bool, error) {
 			slot = i
 		}
 	}
-	if slot < 0 || len(lc.ab.Targets) != 1 {
+	if slot < 0 || nTgts != 1 {
 		return lRef{}, false, refuse("hand move DefinedPlayer$ Targeted without one player target")
 	}
 	ps.consume("DefinedPlayer")

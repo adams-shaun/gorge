@@ -131,11 +131,21 @@ import (
 // +1 (Ensign Pavel Chekov: RepeatEach Opponent over ChooseCard in exile with ImprintChosen$, then MayPlay over the chosen; 21446 -> 21447; ratchet TRK 279 -> 280).
 // +1 (Brad Boimler, Eager Ensign: the tap-triggered until-end-of-turn AddCounter replacement; 21447 -> 21448; ratchet TRK 280 -> 281).
 // +1 (Daniels, Temporal Agent: PutCardToLibFromGrave<1/-1/CARDNAME> self cost; 21448 -> 21449; ratchet TRK 281 -> 282).
-// +1 (First Contact: the static SpellCast StoreSVar of Count$YouCastThisGame read by an EQ1 ConditionCheckSVar; 21449 -> 21450; ratchet TRK 282 -> 283).
-// +1 (Lwaxana Troi, Charming Guest: the keep-tapped untap election and the tap-bound Effect-delivered Panharmonicon; 21450 -> 21451; ratchet TRK 283 -> 284).
-// +4 (a library search's WithCountersType$ entry rider: Captain Jean-Luc Picard, Magmatic Hellkite, Neoform and Wakanda Forever!; 21456 -> 21460; ratchet TDM 243 -> 244, TRK 289 -> 290).
+// +3 (Khan, Vengeful Heart; Misthollow Griffin; Eternal Scourge: MayPlay from exile; 21449 -> 21452; ratchet TRK 282 -> 283).
+// +1 (Infinite Diversity: X free copies of an exiled instant or sorcery; 21452 -> 21453; ratchet TRK 283 -> 284).
+// +3 (Kira Nerys; The Holodeck; Gabriel Lorca: land's TRK cards, Holo-Engineer already counted; 21454 -> 21457; ratchet TRK 285 -> 288).
+// +1 (First Contact: the static SpellCast StoreSVar of Count$YouCastThisGame read by an EQ1 ConditionCheckSVar; 21457 -> 21458; ratchet TRK 288 -> 289).
+// +1 (Lwaxana Troi, Charming Guest: the keep-tapped untap election and the tap-bound Effect-delivered Panharmonicon; land; merged 21458 -> 21459; ratchet TRK 289 -> 290).
+// +1 (Dr. McCoy, Surly Surgeon: Destroy replacement removes +1/+1 counters and heals damage; 21459 -> 21460; ratchet TRK 290 -> 291).
+// +2 (Gowron, Eager for Battle: Sacrificed$Valid Card.Klingon; Shilgengar, Sire of Famine: Card.Angel; 21460 -> 21462; ratchet TRK 291 -> 292).
+// +1 (Nog, Ambitious Cadet: the Officer Animate grants a graveyard land permission and an extra land play; 21462 -> 21463; ratchet TRK 292 -> 293).
+// +1 (Stray from History: a charm mode's hand move reads the owner from that mode's own player slot; 21463 -> 21464; ratchet TRK 293 -> 294).
+// +1 (Kai Winn, Faithless Leader: the as-enters nonland card name and the opponent cast/activation trigger over it; 21464 -> 21465; ratchet TRK 294 -> 295).
+// +4 (Captain Benjamin Sisko: a Play's mana-value bound names any one-letter SVar and Valid$ carries YouOwn; land; merged 21465 -> 21469; ratchet TRK 295 -> 296).
+// +1 (The Inner Light: an Effect's remembered target and the damage amount reach its DamageDone emblem trigger; merged 21470 -> 21471; ratchet TRK 297 -> 298).
+// +4 (a library search's WithCountersType$ entry rider: Captain Jean-Luc Picard, Magmatic Hellkite, Neoform and Wakanda Forever!; merged 21472 -> 21476; ratchet TDM 243 -> 244, TRK 299 -> 300).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21460, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21476, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

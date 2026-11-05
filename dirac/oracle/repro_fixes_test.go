@@ -65,11 +65,14 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// enters" see the Duelist and the later copies enter before the copy
 		// the answer was made on
 		{"copy_all_sweep_batch_spans_parked_ask", false, false},
+		{"plot_cast_pays_additional_sacrifice", false, false}, // CR 118.9, 701.34d: a plotted Corrupted Conviction is cast free of its mana cost but still sacrifices a creature
 		// Explosive Derailment ({R}, Spree, every mode {2}) on a board whose
 		// only red source is Conduit Pylons' {1},{T} filter: the printed cost
 		// is payable, but no mode is, so neither engine offers the cast (CR
 		// 702.172a/702.183a: the mode cost is part of the cheapest legal total).
 		{"explosive_derailment_needs_a_mode_cost", false, false},
+		{"aegis_on_temporary_copy_bearer", true, false},     // CR 613.7e, 707.2: Assimilation Aegis attached to a creature Fleeting Reflection made a copy until end of turn copies over it (the later copy wins), and gives it back to that copy when unattached
+		{"resolved_spell_copy_rests_in_exile", true, false}, // CR 707.10a: a copy of a spell is exiled as it leaves the stack (gorge's spellRestZone), not put in a graveyard and ceased later
 	})
 }
 
@@ -119,6 +122,7 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"restricted_grant_no_unit_for_trigger_cost", true, false},          // ... and Oreplate Pangolin's "you may pay {1}" is no spell, so an artifact holding Mm'menon's blue pays nothing: only decline is asked
 		{"granted_batch_attack_trigger_once_per_declaration", false, false}, // CR 508.1, 603.2: a granted "whenever you attack" trigger fires once for a declaration split across two defenders, not once per defender
 		{"dies_trigger_power_threshold_lki", true, false},                   // CR 603.3b: Syr Vondam's own dies trigger queues before the dies trigger Perigee Beckoner granted it
+		{"return_defender_asked_before_move", true, false},                  // CR 508.4: Chorale of the Void's attacking return asks its defender while the card is still in the graveyard, as gorge does, not after it entered
 	})
 }
 
@@ -199,6 +203,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"granted_mana_once_beside_another_grant", true, false},            // Great Divide Guide's granted mana is one ability of each grantee on a board with another global grant, so the prefix search finds Earthen Ally's {2}{W}{U}{B}{R}{G} within its budget
 		{"waterbend_no_picks_falls_to_manual_window", false, false},        // CR 602.2b, 605.3a: a waterbend cost no printed source pays falls to the manual window, which taps Great Divide Guide's granted sources in battlefield order
 		{"waterbend_no_picks_falls_to_manual_window_autopay", true, false}, // CR 602.2b, 605.3a: ... on the autopay surface too, where the planner's granted unit would otherwise pick a different source
+		{"waterbend_credit_paid_source_live_pool", true, false},            // CR 701.67a: a paid mana ability earns the waterbend credit only while its fee is unpayable, so the prefix taps it once a grant floats the fee
 		{"exiled_target_keeps_was_damaged", false, false},                  // CR 120.3a: Sold Out exiles its combat-damaged target, and the exile leaves WasDealtDamageThisTurn standing, so the "if that creature was dealt damage this turn" Clue is still made (gorge events.foldDamage)
 	})
 }
@@ -231,6 +236,7 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"free_cast_targets_resolving_ability", true, false},    // CR 608.2m: Buster Sword's offer may target the trigger itself
 		{"granted_prefix_sacrifices_own_treasure", true, false}, // CR 704.5d: Gysahl Greens flashback, paid by Plains, a Treasure and The Earth Crystal activated at priority, so the sacrificed Treasure has ceased before the cast
 		{"sacrifice_cost_granted_prefix", true, false},          // CR 601.2g-h: the granted mana is the prefix, so the printed plan leaves the Treasure to sacrifice
+		{"modal_cost_granted_mana_prefix", false, false},        // CR 601.2b, 601.2g-h: Tifa's Limit Break's cheapest Tiered mode costs only its printed {G}, which the granted any-colour source (A Realm Reborn) pays through the prefix
 		{"granted_mana_pays_tiered_cast", false, false},         // CR 601.2g: A Realm Reborn's granted any-colour mana from two untapped artifacts pays Ice Magic's {1}{U}, so the Tiered cast is offered
 	})
 }
@@ -241,6 +247,7 @@ func TestStdSosReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-sos", []stdRepro{
 		{"printed_flashback_beside_granted", false, false},        // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
 		{"granted_and_printed_flashback_ambiguous", false, false}, // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
+		{"graveyard_ability_source_new_object", true, false},      // CR 400.7: a second Postmortem Professor return ability resolves after the card came back and died again, and finds a new object
 	})
 }
 
@@ -295,6 +302,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-dsk", []stdRepro{
 		{"room_shown_face_plain_cast", false, false},            // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
 		{"sacrificed_panharmonicon_host_departs", false, false}, // CR 603.2d: a sacrificed Panharmonicon host is gone when Popular Egotist's "whenever you sacrifice" trigger is checked, so it echoes nothing
+		{"returning_aura_during_paid_cost", false, false},       // CR 303.4f: a sacrificed "until this leaves" host returns its exiled Aura while the sacrifice cost's payment is still resolving: the Aura waits in exile and its owner chooses what it enchants
 	})
 }
 
@@ -426,6 +434,7 @@ func TestKeywordRemovalAfterAGrantLockstep(t *testing.T) {
 func TestStdWoeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-woe", []stdRepro{
-		{"filter_fed_by_granted_mana", false, false}, // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
+		{"filter_fed_by_granted_mana", false, false},   // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
+		{"act_paid_filter_second_colour", true, false}, // CR 601.2g, 602.2b: Restless Fortress's {1}{W}{B} animation is offered when a free filter (Crystal Grotto) makes one pip and Rootrider Faun's paid filter the other
 	})
 }

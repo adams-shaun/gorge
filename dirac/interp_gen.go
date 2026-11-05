@@ -107,6 +107,7 @@ const (
 	ChGenEnterDefender                        // source = the CR 508.4 defender an Attacking$ True entry attacks: PlayerTarget0+p a player, else the planeswalker/battle Obj (gorge's entering_defender, chooseEnteringDefender)
 	ChCostPutToLib                            // source = the card put from a graveyard on the bottom of its owner's library to pay a cost (gorge's puttolibcost; one pick per part, asked even with one candidate)
 	ChGenKeepTapped                           // source = a tapped permanent whose controller may keep it tapped; mode 0 = untap it, 1 = keep it tapped (gorge's untap-step KChoose "untap" / "keep_tapped", CR 502.3; repl_untapchoice.go)
+	ChGenName                                 // mode = the CardID of the nonland card whose name a permanent chooses as it enters (gorge's ETB "name" option; repl_choosename.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -590,6 +591,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C&64 != 0 {
 			s.g.freeP |= 32 // Play CopyCard$ True: the cast is of a copy (cast_copycast.go)
 		}
+		if in.C&256 != 0 {
+			s.g.freeP |= 64 // the copy pays its mana cost (cast_exilegrant.go)
+		}
 		s.res.ask, s.res.askP = raGenCastFree, e.ctrl
 		return false, true
 	case kop.OpMayPlay:
@@ -634,6 +638,14 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.g.embC[p][s.g.nemb[p]] = e.card
 			s.g.embO[p][s.g.nemb[p]] = e.obj
 			s.g.embN[p][s.g.nemb[p]] = s.freezeEmbNum(k, in.A, s.ctxEntry(e))
+			if cr := k.t.Emblems[in.C].Capture; cr != kop.RefNone {
+				// the Effect's RememberObjects$ Targeted: the chain's target object + 1
+				// (0 none; an emblem with a capture has no frozen number)
+				s.g.embN[p][s.g.nemb[p]] = 0
+				if o := s.objRefObj(cr); o != NoObj {
+					s.g.embN[p][s.g.nemb[p]] = uint8(o) + 1
+				}
+			}
 			s.g.nemb[p]++
 		} else {
 			s.capFull(StallEmblem)
@@ -760,6 +772,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if p == 255 {
 			p = e.ctrl
 		}
+		if in.Op == kop.OpCreateTokenEx && s.tokenDefenderAsk(k, in, p) {
+			return false, true // the CR 508.4 defender ask (filter_combatwords.go)
+		}
 		tc, n, ok := s.replTokensCard(k, p, CardID(in.C), s.value(k, in.A))
 		if !ok {
 			return true, true // StallTokRewrite
@@ -788,10 +803,11 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			if s.createTokensHeld(k, in, p, n) {
 				return true, true
 			}
+			s.g.tokDefSet = false
 			break
 		}
 		for i := 0; i < n; i++ {
-			if s.nearCapacity() {
+			if s.nearCapacity(k) {
 				s.stall(StallBoard)
 				return true, true
 			}
@@ -809,7 +825,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				s.tokenAtEOT(in, o)
 			}
 			if in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokAttacking != 0 {
-				s.tokenAttacks(k, in, sl, p) // filter_combatwords.go
+				s.tokenAttacks(k, sl, p) // filter_combatwords.go
 			}
 			if k.gen.anyTokCr {
 				s.fireTokenCreated(k, sl)
@@ -821,6 +837,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			}
 			s.res.lastTok = o
 		}
+		s.g.tokDefSet = false
 	case kop.OpEndTurn:
 		s.endTurnExile()
 		e.flags |= sfFlashback // exiled, not put into the graveyard
@@ -1386,7 +1403,14 @@ func (s *State) returnAura(k *prep, o Obj, host Slot) bool {
 // host, its chosen permanent); with none it stays where it is (CR
 // 303.4g).
 func (s *State) execReturn(k *prep, in *kop.Instr, host Slot) bool {
-	return s.execReturnObj(k, in, host, s.returningObj(in))
+	if s.returnDefenderAsk(k, in, host) { // the CR 508.4 defender ask, before the move (zone_returndefender.go)
+		return true
+	}
+	ask := s.execReturnObj(k, in, host, s.returningObj(in))
+	if !ask {
+		s.g.tokDefSet = false // a parked card (clone election) keeps the answer for its re-run (rerunReturn)
+	}
+	return ask
 }
 
 // execReturnObj is execReturn for object o (named by in.Obj).
@@ -1887,7 +1911,16 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 		// step and does nothing (gorge scheduleAtEOTNone)
 		s.delayEmpty(e)
 	}
-	return s.copyTokens(k, in, c, s.replTokens(k, e.ctrl, c, v))
+	tc, n, rewritten, ok := s.copyTokenRewrite(k, in, e.ctrl, c, v)
+	if !ok {
+		return false // StallTokRewrite
+	}
+	if rewritten {
+		// a CreateToken rewriter replaced the copy mints (repl_tokrewrite.go)
+		s.mintRewritten(k, e.ctrl, tc, n)
+		return false
+	}
+	return s.copyTokens(k, in, c, n)
 }
 
 // copyTokens creates n token copies of card c for the resolving entry's
@@ -1896,7 +1929,7 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 	e := &s.res.e
 	if src := s.objRefObj(in.Obj); src != NoObj && s.faceDownAt(k, src) {
 		for i := 0; i < n; i++ {
-			if s.nearCapacity() {
+			if s.nearCapacity(k) {
 				s.stall(StallBoard)
 				return false
 			}
@@ -1912,7 +1945,7 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 	var eb entBatch
 	defer s.fireEntries(k, &eb)
 	for i := 0; i < n; i++ {
-		if s.nearCapacity() {
+		if s.nearCapacity(k) {
 			s.stall(StallBoard)
 			return false
 		}

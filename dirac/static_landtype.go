@@ -116,7 +116,10 @@ func (s *State) blgPrintedMask(k *prep, sl Slot) uint8 {
 }
 
 // blgPlain reports whether card c's own mana abilities (pc its facts) are
-// all plain {T} abilities making one mana of one colour, or it has none.
+// all plain {T} abilities making one mana of one colour, or it has none. A
+// later ability the planner census misses (a {1},{T} filter, Rumble Arena) or
+// counts per payment (a restricted one, Jasmine Dragon Tea Shop) is not part of
+// the view: the gap and restricted-source models read it from the card.
 func blgPlain(c *kop.CardDef, pc *pcard) bool {
 	if pc.manaChosen || pc.manaDyn || pc.painCol != 0 || pc.ctrMana {
 		return false
@@ -125,6 +128,9 @@ func blgPlain(c *kop.CardDef, pc *pcard) bool {
 		a := &c.Abilities[j]
 		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
 			continue
+		}
+		if j != int(pc.manaAb) && (censusGapMana(a) || restrSrcAb(a)) {
+			continue // a costed or restricted ability beside the first: the census gap / restricted-source machinery's, not a view colour
 		}
 		if a.AFlags != 0 || a.ManaRestrict != 0 || a.ManaN > 1 || a.Cost.Flags != kop.CostTap || a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0 ||
 			bits.OnesCount8(uint8(a.ManaColors&0x3f)) != 1 || len(a.Prog) != 0 || a.Trig.Cond != 0 {

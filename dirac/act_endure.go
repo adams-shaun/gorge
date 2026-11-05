@@ -92,7 +92,7 @@ func (s *State) endureSpirit(k *prep, in *kop.Instr, p uint8, n int) {
 		s.capFull(StallEndureN) // a token doubler: no pool card has one
 		return
 	}
-	if s.nearCapacity() {
+	if s.nearCapacity(k) {
 		s.stall(StallBoard)
 		return
 	}

@@ -954,7 +954,11 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		if c.ExileGBf {
 			out.Flags |= kop.CostExileCtrlOrGrave
 		}
-		if out.Filter, err = cb.filter(c.ExileG, kop.ZoneGraveyard); err != nil {
+		zone := kop.ZoneGraveyard
+		if c.ExileHand {
+			out.ExileHand, zone = true, kop.ZoneHand
+		}
+		if out.Filter, err = cb.filter(c.ExileG, zone); err != nil {
 			return out, err
 		}
 	}
@@ -1897,6 +1901,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.WhileHost, ko.CantAttack = o.WhileHost, o.CantAttack
 	ko.NoCost = o.NoCost
 	ko.RemoveLegendary = o.RemoveLegendary
+	ko.GrantStatics = o.GrantStatics
 	ko.AddColors = colorMask(o.AddColors)
 	if ko.AddKw, err = kwMask(o.AddKw); err != nil {
 		return 0, err

@@ -177,6 +177,22 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 			}
 		}
 		if cards.StaticModeOf(mode) == cards.StaticContinuous {
+			if ce, ok := animatePlayGrant(params); ok {
+				// A granted may-play or extra-land-play static that is not over the
+				// animated card itself (Nog, Ambitious Cadet's Officer step: "You
+				// may play lands from your graveyard", "You may play an additional
+				// land on each of your turns"): the animated permanent HAS the
+				// static, so it registers as the Effect route's grant with the
+				// permanent as its source and the animation's own lifetime, read by
+				// rules' land-play gates like any other effect-delivered grant.
+				ce.Source, ce.Controller = id, c.Controller
+				ce.Duration, ce.Permanent, ce.UntilEOT, ce.DurationSource = dur, permanent, untilEOT, durSource
+				ce.ExileOnMoved, ce.ExileOnMovedAlso, ce.Remembered = exileOn, exileAlso, remembered
+				effectContinuous(h, ce)
+				continue
+			}
+		}
+		if cards.StaticModeOf(mode) == cards.StaticContinuous {
 			lt := staticGrantLifetime{Remembered: remembered, ExileOnMoved: exileOn,
 				ExileOnMovedAlso: exileAlso, DurationSource: durSource, GrantedStatic: true}
 			if registerAnimateContinuousGrant(h, c, id, params, dur, permanent, untilEOT, lt) {
@@ -436,6 +452,31 @@ var registerLeaveExileCodes = state.NewStrCodes(
 	state.StrEntry[registerLeaveExileCode]{Key: "", Val: registerLeaveExileEmpty},
 	state.StrEntry[registerLeaveExileCode]{Key: "Exile", Val: registerLeaveExileExile},
 )
+
+// animatePlayGrant builds the ContinuousEffect an Animate staticAbilities$
+// body grants the animated permanent when the body is a MayPlay$ True static
+// over cards other than the permanent itself or an AdjustLandPlays$ static,
+// each with only the riders the Effect route reads (mayPlayGrantFromLine,
+// adjustLandPlaysGrantFromLine) and EffectZone$ Battlefield, the printed
+// default. The caller owns the source, controller and lifetime fields.
+func animatePlayGrant(params staticLineParams) (state.ContinuousEffect, bool) {
+	if z, ok := params["EffectZone"]; ok && !strings.EqualFold(strings.TrimSpace(z), "Battlefield") {
+		return state.ContinuousEffect{}, false
+	}
+	body := maps.Clone(params)
+	delete(body, "EffectZone")
+	if n, affected, ok := adjustLandPlaysGrantFromLine(body); ok {
+		return state.ContinuousEffect{Affects: affected, AdjustLandPlays: n}, true
+	}
+	if _, has := body["MayPlay"]; !has || body["AffectedZone"] == "" {
+		return state.ContinuousEffect{}, false
+	}
+	ce, ok := mayPlayGrantFromLine(body)
+	if !ok || ce.MayPlayValidAfterStack != "" || ce.MayPlayPlayer != "" || ce.MayPlayCheckSVar != "" {
+		return state.ContinuousEffect{}, false
+	}
+	return ce, true
+}
 
 // animateSelfMayPlayGrant builds the may-play ContinuousEffect an Animate
 // staticAbilities$ body grants the animated card: a Mode$ Continuous static

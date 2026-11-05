@@ -7,8 +7,9 @@ import (
 
 // TestGhostVacuumSweep pins a ChangeZoneAll sweep
 // onto the battlefield reads WithCountersType$ and StaticEffect$ as per
-// entrant riders (kop.MvEntryRiders), and the two neighbouring carriers stay
-// refused for their own reasons.
+// entrant riders (kop.MvEntryRiders). Ghost Vacuum's neighbour Grimoire of
+// the Dead stays refused for its own reason; Shilgengar's ChangeZoneAll arm
+// lowers, and its Angel sacrifice gate lowers with it.
 func TestGhostVacuumSweep(t *testing.T) {
 	cs := lowerNamed(t, []string{"Ghost Vacuum", "Grimoire of the Dead", "Shilgengar, Sire of Famine"})
 	seen := 0
@@ -39,8 +40,18 @@ func TestGhostVacuumSweep(t *testing.T) {
 			}
 		case "Shilgengar, Sire of Famine":
 			seen++
-			if !strings.Contains(got, "AB$ Token") {
-				t.Errorf("Shilgengar: want the A[0] Token refusal, got %q", got)
+			// The Angel gate is the same sacrifice-time creature-type read as
+			// Gowron's, so its Token arm now lowers and the card builds whole.
+			if got != "" {
+				t.Errorf("Shilgengar refused: %s", got)
+			}
+			var sb strings.Builder
+			dumpLIR(&sb, c)
+			lir := sb.String()
+			for _, want := range []string{"ChangeZoneAll", "RefCount({types=0x0 sub=Angel},Sacrificed)"} {
+				if !strings.Contains(lir, want) {
+					t.Errorf("Shilgengar LIR lacks %q:\n%s", want, lir)
+				}
 			}
 		}
 	}

@@ -63,6 +63,11 @@ type Static struct {
 	// ValidBlocker$ powerLTX / powerGTX with X = Count$CardPower; kernel
 	// static_powercompare.go). 0 = no such compare.
 	PwVsSrc int8
+	// OvGate: the static applies only while a live override record on its
+	// source grants it, i.e. Override.GrantStatics has this one bit (an
+	// Animate staticAbilities$ grant of a permission or an extra land play:
+	// Nog, Ambitious Cadet's Officer step). 0 = a printed static.
+	OvGate uint8
 }
 
 // Override is a fixed-order override record (the plan's replacement for a
@@ -132,6 +137,11 @@ type Override struct {
 	// a Forest). KeepTypes holds the subtypes TypeMask carries as bits.
 	KeepSub   SubMask
 	KeepTypes TypeMask
+	// GrantStatics: the source card's statics whose OvGate bit is set here
+	// are in force on the object while this record lasts (an Animate
+	// staticAbilities$ grant that no layer reads: a may-play permission, an
+	// extra land play).
+	GrantStatics uint8
 }
 
 // Emblem is a command-zone object with abilities (triggered or static).
@@ -149,6 +159,14 @@ type Emblem struct {
 	// UntilHostLeavesPlayOrEOT), and its statics read the host as their
 	// source (an EffectSource filter is FSelf).
 	WhileHost bool
+	// Capture: the target slot (a Ref) whose object the emblem remembers
+	// (the Effect's RememberObjects$ Targeted); RefNone when it remembers
+	// none. OpCreateEmblem stores the object in State.g.embN (object+1;
+	// 0 = none), and a DamageDone trigger of an EOT emblem with Capture set
+	// fires only for that object as the damage source (gorge's
+	// Creature.IsRemembered over the registration's Remembered set; The Inner
+	// Light). The trigger's filter carries no Remembered flag.
+	Capture Ref
 }
 
 // Panharmonicon's Static.A: the one trigger mode a ValidMode$ names without

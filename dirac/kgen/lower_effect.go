@@ -1091,6 +1091,13 @@ func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 					return err
 				}
 			}
+			var chain *lInstr
+			if lc.trigOwnCost && cost.ExileG != nil && !cost.Mana.None {
+				if chain, cost, err = lc.exileChainSplit(cost); err != nil { // lower_exilechain.go
+					lc.trigOwnCost = false
+					return err
+				}
+			}
 			in, err := lc.payInstr(cost, lRef{Kind: rYou}, lc.trigOwnCost)
 			lc.trigOwnCost = false
 			lc.trigXMax = nil
@@ -1103,6 +1110,9 @@ func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 			in.Op = "IfPaid"
 			at := len(lc.ab.Prog)
 			lc.emit(in)
+			if chain != nil {
+				lc.emit(*chain)
+			}
 			if err := lc.unless(ps, func() error { return lc.api(sa, ps) }); err != nil {
 				return err
 			}

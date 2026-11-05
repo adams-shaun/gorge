@@ -1,0 +1,8 @@
+# the Q, Stacking the Deck pool: the card an enters trigger exiles from the
+# top of the library gains an "exile a card from your hand: copy it and cast
+# the copy" ability usable from exile on its owner's turn, for the oracle's
+# constructed lockstep (dirac/oracle/qdeck_test.go)
+Hill Giant
+Mountain
+Q, Stacking the Deck
+Shock

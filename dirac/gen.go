@@ -64,10 +64,10 @@ type genPrep struct {
 	anyNTOv         bool  // an OpOverride / OpOverrideAll lasts until its controller's next turn
 	legendGrant     bool  // some Override adds or sets the Legendary supertype (legendRule reads derived types)
 	anyMayPlay      bool
-	anyMayRaise     bool    // some may-play static owes a non-mana RaiseCost$ (cost_mayplayraise.go)
-	anyMayKind      bool    // some OpMayPlay grants a record with a kind rider (cast_maypermission.go)
-	anyMayLimit     bool    // some OpMayPlay record carries a MayPlayLimit cap (cast_maypermission.go)
-	sCls            []uint8 // per card: its static classes (static_classgates.go scls*)
+	anyMayRaise     bool     // some may-play static owes a non-mana RaiseCost$ (cost_mayplayraise.go)
+	anyMayKind      bool     // some OpMayPlay grants a record with a kind rider (cast_maypermission.go)
+	anyMayLimit     bool     // some OpMayPlay record carries a MayPlayLimit cap (cast_maypermission.go)
+	sCls            []uint16 // per card: its static classes (static_classgates.go scls*)
 	anyGraveAct     bool
 	anyHandAct      bool // an activated ability works from the hand (cycling; repl_regenerate.go)
 	anyRemPersist   bool // a card's enters trigger remembers what its leaves trigger reads (CardDef.RemPersist; zone_rememberpersist.go)
@@ -244,6 +244,7 @@ type genPrep struct {
 	anyAddPhase    bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
 	anyAttackedObj bool           // the table gives mechAttackedObj an arena mask: finishAttacks marks the declared attackers
 	anySuspect     bool           // the table gives mechSuspected an arena mask (act_suspect.go)
+	anySacSub      bool           // some ExRefCount is a Sacrificed$Valid type read (N 1): snapLKI captures the subtype set (value_countheads.go, zone_lki.go)
 	ix             [numMech]uint8 // mechanic -> index in State's ms or mo, by its width; arenaNone (0xFF) when the table does not use it (arenaAssign; arena.go)
 	anyInit        bool           // some program is OpTakeInitiative (act_initiative.go)
 	dungeon        CardID         // anyInit: the dungeon card it ventures into
@@ -274,6 +275,7 @@ type genPrep struct {
 	anyLoyaltyX    bool           // some ability costs a planeswalker's [-X] (CostLoyaltyX; cost_loyaltyx.go)
 	anyLifeX       bool           // some spell or ability costs an announced PayLife<X> (Cost.N 0; cost_paylifex.go)
 	anyCopyCast    bool           // some OpCastFree casts a copy (C bit 6; cast_copycast.go)
+	anyExileGrant  bool           // some program holds an ExtGrantExile (cast_exilegrant.go)
 	anyNumTimes    bool           // some ability announces a pay-N-times count (Ext NumTimes; cast_announcetimes.go)
 	anyExHaste     bool           // some ability can't be blocked except by creatures with haste (Ext ExHaste; static_cantblockexcept.go)
 	anyColGrant    bool           // some ability grants by a chosen colour (Ext ColorGrant; static_colourgrant.go)
@@ -306,6 +308,7 @@ type genPrep struct {
 	anyRepl      uint32
 	exileOnLeave []kop.FilterID // per card: ReplExileOnLeave's filter (nil when no card has one)
 	exileAnyC    []bool         // per card: its ReplExileOnLeave is the any-zone reading (Repl.C 1; nil when none; repl_exileonleave.go)
+	destroyHeal  []kop.FilterID // per card: ReplDestroyHeal's filter (nil when no card has one; repl_destroyheal.go)
 	anyExileAny  bool           // some ReplExileOnLeave has Repl.C 1: a move to a graveyard from any zone checks it (placeFrom)
 	altFree      []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
@@ -407,6 +410,7 @@ const (
 	rbPlProt                          // StatPlayerHexproof with Static.A == 1: protection from each opponent, its damage is prevented (static_playerstats.go)
 	rbDrawMore                        // ReplDrawMore (repl_draw.go)
 	rbPlusCtrEOT                      // Ext CounterPlusEOT: the table can put one more of each kind for a player until end of turn (anyRepl only; ctr_pluseot.go)
+	rbDestroyHeal                     // ReplDestroyHeal (repl_destroyheal.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -465,6 +469,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if t.Exprs[i].Kind == kop.ExRedNCDmg {
 			p.anyRedNC = true // the tally rides replDamage, which anyRepl&rbPlusDmg gates open (value_damagetally.go)
+		}
+		if t.Exprs[i].Kind == kop.ExRefCount && t.Exprs[i].N == 1 {
+			g.anySacSub = true // Sacrificed$Valid Card/creature-type: snapLKI keeps the subtype set
 		}
 	}
 	prepParadigm(t, g) // kw_paradigm.go: before the ring's Treasure scan
@@ -543,6 +550,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepCharmPick(t, g)
 	prepPermCopy(t, g)
 	prepCopyCast(t, g)
+	prepExileGrant(t, g) // cast_exilegrant.go
 	prepWaterbend(t, g)
 	prepCostEvidence(t, g)
 	prepLure(t, g)
@@ -862,6 +870,13 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplLifeLossDouble:
 					g.replBits[i] |= rbDblLoss
 					pc.hasStat = true
+				case kop.ReplDestroyHeal:
+					g.replBits[i] |= rbDestroyHeal
+					pc.hasStat = true
+					if g.destroyHeal == nil {
+						g.destroyHeal = make([]kop.FilterID, len(t.Cards))
+					}
+					g.destroyHeal[i] = a.Repl.Filter
 				case kop.ReplGraveToLibrary:
 					g.replBits[i] |= rbGraveLib
 				case kop.ReplMayNotUntap:
@@ -1319,6 +1334,7 @@ const (
 	fxOnceStash              // the permanent's printed abilities were activated once-only before a copy layer began, which the layer's end returns (copy_clone.go onceBasisBegin)
 	fxCopyHeld               // a token copy's own copy exception (r.idx), held aside while an until-end-of-turn copy overrides it (copy_clone.go cloneHold)
 	fxCopyMint               // a token copy's own copy (r.src the card it was minted as), held aside likewise (copy_clone.go cloneHold)
+	fxAegisBase              // the copy a bearer wore (r.src its card) when an Assimilation Aegis copy took over, which shows again when the last Aegis copy ends (copy_aegisunder.go)
 )
 
 // maxFx bounds the effect records live at once (all permanents); a full
@@ -1398,6 +1414,8 @@ type genState struct {
 	excess         int16
 	lostAmt        int16
 	tokMade        uint8
+	tokDef         uint8 // the CR 508.4 defender the TokenAttacking$ True ask was answered with (a player or planeswalker/battle target byte), valid while tokDefSet; transient within one mint (filter_combatwords.go)
+	tokDefSet      bool
 	entHost        uint8 // host slot + 1 of an Aura about to enter attached: enter attaches it before its enters check (zone_handmoveaura.go; transient, 0 between moves)
 
 	dmg  [maxDmgMap]struct{ code, amt uint8 }
@@ -1420,6 +1438,9 @@ type genState struct {
 	embO [2][maxEmb]Obj    // that card's object (the source of the emblem's triggers)
 	embN [2][maxEmb]uint8  // the Effect's frozen SetChosenNumber$
 	nemb [2]uint8
+	qgO  [qgN]uint8 // exile grants (Q, Stacking the Deck): the granted exiled object+1, 0 = free (cast_exilegrant.go)
+	qgV  [qgN]uint8 // each grant's object version: stale once the card left exile
+	qgH  [qgN]uint8 // each grant's host (the card whose ability was granted) object+1
 	pgT  [pgN]uint8 // Panharmonicon grants: the granted object+1, compacted (act_grantpanharm.go)
 	pgH  [pgN]uint8 // each grant's host (the tapped source) object+1
 	nlA  [2]uint8   // locked permanents, object+1, compacted (act_lockpermanent.go; fills the padding before lki)
@@ -1724,9 +1745,17 @@ func wardAmt(c *kop.CardDef) int16 {
 
 // nearCapacity reports whether the battlefield or the object table is
 // about to overflow the kernel's fixed capacity (gorge stops such a game at
-// its object cap as a "bigboard" stall).
-func (s *State) nearCapacity() bool {
-	return s.occ.count() >= MaxPerm-4 || int(s.nobj) >= MaxObj
+// its object cap as a "bigboard" stall). A phased-out permanent keeps its
+// slot off every mask (kw_phasing.go), so a phasing table measures the slots
+// an entrant can actually take: enterNF's freeSlots branch.
+func (s *State) nearCapacity(k *prep) bool {
+	if int(s.nobj) >= MaxObj {
+		return true
+	}
+	if k != nil && k.phasing {
+		return s.freeSlots().count() <= 4
+	}
+	return s.occ.count() >= MaxPerm-4
 }
 
 // Stall reasons (StallReason). Most are a capacity; StallClassOf says which are
@@ -1802,6 +1831,7 @@ const (
 	StallExiledWith    = 96  // more than maxExw live exiled-with links (zone_exiledwith.go)
 	StallBreach        = 94  // more picks than the chosen set holds (Breach the Multiverse; act_millthenreturn.go) (reinstate maxDynMana 40 + loud StallDynMana on the rebased tree (The Core's dynamic amount reached 21 in the gravecounts lockstep: gorge produced 21, kernel truncated to 20); NumStall 128 untouched, the name registers cold-side)
 	StallNetLock       = 85  // a ninth permanent locked by Braided Net at once (nlA, nlB, nlC; act_lockpermanent.go)
+	StallExileGrant    = 138 // a ninth live exile grant (Q, Stacking the Deck; genState.qgO; cast_exilegrant.go)
 	StallPanharmGrant  = 142 // a fifth Panharmonicon grant (Lwaxana Troi) live at once (genState.pgT; act_grantpanharm.go)
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
@@ -2340,7 +2370,7 @@ func (s *State) preAskFor(k *prep, o Obj, c CardID, land bool) bool {
 }
 
 // enterChoiceKind is the as-enters choice card c's enters replacement
-// opens with (akColor, akType, akNumber, akPayLife), or 0.
+// opens with (akColor, akType, akNumber, akName, akPayLife), or 0.
 func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 	if k.gen == nil || !k.gen.has(c, gfEnterRepl) {
 		return 0
@@ -2364,8 +2394,11 @@ func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 		case kop.OpChooseType:
 			return akType
 		case kop.OpExt:
-			if a.Prog[0].Ext() == kop.ExtChooseNumber {
+			switch a.Prog[0].Ext() {
+			case kop.ExtChooseNumber:
 				return akNumber
+			case kop.ExtChooseName:
+				return akName
 			}
 		case kop.OpUnlessPaid:
 			// the shock lands' as-enters pay-life election

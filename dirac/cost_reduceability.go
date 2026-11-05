@@ -72,7 +72,7 @@ func (s *State) abReduced(k *prep, a *kop.Ability, sl Slot, ctrl uint8, c kop.Ma
 // slot order), then the emblems'. A floored reduction (MinMana$) does not
 // commute with the others, so abReduced needs this order. Cold: it selects
 // the next-oldest slot each round (no sort, no allocation).
-func (s *State) eachStaticTS(k *prep, cls uint8, f func(st statSrc) bool) {
+func (s *State) eachStaticTS(k *prep, cls uint16, f func(st statSrc) bool) {
 	var lastTs uint16
 	lastSl := NoSlot
 	for {

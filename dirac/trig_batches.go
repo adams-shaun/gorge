@@ -119,7 +119,7 @@ func (s *State) fireEntries(k *prep, b *entBatch) {
 func (s *State) createTokensHeld(k *prep, in *kop.Instr, p uint8, n int) bool {
 	var eb entBatch
 	for i := 0; i < n; i++ {
-		if s.nearCapacity() {
+		if s.nearCapacity(k) {
 			s.fireEntries(k, &eb)
 			s.stall(StallBoard)
 			return true
@@ -138,7 +138,7 @@ func (s *State) createTokensHeld(k *prep, in *kop.Instr, p uint8, n int) bool {
 			s.tokenAtEOT(in, o)
 		}
 		if in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokAttacking != 0 {
-			s.tokenAttacks(k, in, sl, p) // filter_combatwords.go
+			s.tokenAttacks(k, sl, p) // filter_combatwords.go
 		}
 		if k.gen.anyTokCr {
 			s.fireTokenCreated(k, sl)
