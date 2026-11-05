@@ -210,6 +210,19 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	if k.gen == nil || !k.gen.anyConvoke || e.kind != seSpell || !s.tapPaysEntry(k, e) {
 		return false
 	}
+	if cd := &k.t.Cards[e.card]; harmonizeEntry(cd, e) || cd.Impending != 0 || cd.HasPlot || cd.HasSneak || cd.HasWarp ||
+		cd.Mayhem || cd.HasWebSling || cd.HasMayFlash {
+		// kgen refuses these routes beside a printed Convoke or Improvise, so
+		// a live one is a grant. gorge's convokeAsk offers harmonize and
+		// convoke/improvise picks together, and prices the alternative-cost
+		// routes' announcement itself; the kernel's menu for them is
+		// unverified under a grant, so stall rather than pose it.
+		fh := s.castFromHandBy(e, e.ctrl)
+		if s.hasConvoke(k, e.ctrl, e.card, e.obj, fh) || s.isImprovise(k, e.ctrl, e.card, e.obj, fh) {
+			s.capFull(StallStackKwGrant)
+			return false
+		}
+	}
 	if harmonizeEntry(&k.t.Cards[e.card], e) {
 		return s.harmonizeOptions(k, d) // kw_harmonize.go
 	}

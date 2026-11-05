@@ -87,3 +87,37 @@ func TestStackKwGrantPlainCastDoesNotStall(t *testing.T) {
 		t.Fatalf("Pilgrim's Eye: decision %v/%d, want the convoke ask", d.Kind, d.Sub)
 	}
 }
+
+// TestStackKwGrantHarmonizeStalls: Chief Engineer grants Convoke to a spell
+// cast with Harmonize. gorge's convokeAsk offers harmonize and convoke picks
+// together; the kernel would pose harmonize only, so it stalls.
+func TestStackKwGrantHarmonizeStalls(t *testing.T) {
+	sc, m := stackKwStallScen(t, "Pilgrim's Eye")
+	k := sc.k
+	k.t.Cards[sc.s.objs[m].card].Harmonize = true
+	sc.do(t, AkCast, uint8(m), 0xff)
+	sc.s.bld().e.flags |= sfFlashback
+	if !harmonizeEntry(&k.t.Cards[sc.s.bld().e.card], &sc.s.bld().e) {
+		t.Fatal("entry is not a harmonize cast")
+	}
+	d := sc.s.Step()
+	if !sc.s.Stalled() || sc.s.StallReason() != StallStackKwGrant {
+		t.Fatalf("no StallStackKwGrant; stalled=%v decision %v/%d", sc.s.Stalled(), d.Kind, d.Sub)
+	}
+	if d.Kind != DkNone {
+		t.Fatalf("posed decision %v/%d past the stall", d.Kind, d.Sub)
+	}
+}
+
+// TestStackKwGrantAltRouteStalls: a granted Convoke on a card with an
+// alternative-cost route (here Impending) stalls rather than pose a menu
+// unverified against gorge.
+func TestStackKwGrantAltRouteStalls(t *testing.T) {
+	sc, m := stackKwStallScen(t, "Pilgrim's Eye")
+	sc.k.t.Cards[sc.s.objs[m].card].Impending = 2
+	sc.do(t, AkCast, uint8(m), 0xff)
+	d := sc.s.Step()
+	if !sc.s.Stalled() || sc.s.StallReason() != StallStackKwGrant || d.Kind != DkNone {
+		t.Fatalf("no StallStackKwGrant; stalled=%v decision %v/%d", sc.s.Stalled(), d.Kind, d.Sub)
+	}
+}
