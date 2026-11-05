@@ -34,8 +34,15 @@ func (s *State) damageAllOpp(k *prep, in *kop.Instr, ctrl uint8, n int) {
 		s.damageSeqNext(k, n)
 		return
 	}
-	for m := hit; m.any(); m = m.rest() {
-		s.damageTo(k, uint8(s.perms[m.first()].obj), n)
+	// Same sweep order as OpDamageAll's plain path (gorge effDamageAll:
+	// seat 0's battlefield in entry order, then seat 1's, players last).
+	var ord [MaxPerm]Slot
+	hi := 0
+	for p := uint8(0); p < 2; p++ {
+		hi = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), ord[:], hi)
+	}
+	for _, sl := range ord[:hi] {
+		s.damageTo(k, uint8(s.perms[sl].obj), n)
 	}
 	if pl != 0 {
 		s.damageTo(k, PlayerTarget0+1-ctrl, n)

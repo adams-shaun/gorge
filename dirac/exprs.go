@@ -454,6 +454,12 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 	switch r {
 	case kop.RefTriggerPlayer:
 		return e.trigPl
+	case kop.RefTriggerTgtCtrl:
+		// gorge TriggeredTargetController, read live (resolve.go playerRef)
+		if o := e.trigObj; o != NoObj {
+			return s.ctrlOfObj(o)
+		}
+		return e.trigPl
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4, kop.RefTargetController, kop.RefTargetOwner:
 		i, _ := tgtSlot(r)
 		t := e.tgt[i]
@@ -476,6 +482,9 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 	}
 	if r == kop.RefRememberedController {
 		return s.remController() // zone_rememberparams.go
+	}
+	if r == kop.RefRememberedOwner {
+		return s.remOwner() // zone_rememberparams.go
 	}
 	return 255
 }

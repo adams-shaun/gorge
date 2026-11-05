@@ -39,6 +39,14 @@ const (
 func (s *State) offerWarpHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
 	cd := &k.t.Cards[c]
 	wc := s.adjustCost(k, p, c, o, cd.WarpCost) // the reduction applies to an alternative cost too (CR 601.2f)
+	var ha avail
+	if len(k.gen.grantPC) != 0 && s.g.availX&availWalk != 0 {
+		// gorge's potential walk counts a restricted mana ability only for
+		// a payment its restriction admits (potentialManaFor): a hand-barred
+		// grant puts no warp cast on the walk grantCap reads
+		s.warpHandAvail(k, p, c, o, &ha)
+		av = &ha
+	}
 	if !av.affords(&wc, pipMaskOf(&wc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &wc, av)) {
 		return
 	}
@@ -49,6 +57,17 @@ func (s *State) offerWarpHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av
 		return
 	}
 	d.add(MakeAction(AkCast, uint8(o), 0, castWarp))
+}
+
+// warpHandAvail is the potential walk's mana for hand card o's warp cast:
+// availFor with each granted mana ability whose spend restriction refuses a
+// spell cast from the hand left out (CR 106.6: Mm'menon's granted blue
+// spends only on a spell cast from elsewhere, and a warp cast is a hand
+// cast, CR 702.185a; gorge potentialRestrictionAdmits).
+func (s *State) warpHandAvail(k *prep, p uint8, c CardID, o Obj, a *avail) {
+	a.xd, a.xdOn = payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}, true
+	s.availFor(k, p, a)
+	a.xdOn = false
 }
 
 // offerWarpRecasts offers casting p's warp-exiled cards from exile on a

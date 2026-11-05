@@ -172,6 +172,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			return refuse("LibraryPosition %q", lp)
 		}
 	}
+	if raw, ok := ps.m["ChooseFromDefined"]; ok && !lc.digRememberedLibrary && strings.TrimSpace(raw) == "TriggeredCards" {
+		return lc.dreadTriggeredPick(ps) // lower_dreadtriggerpick.go
+	}
 	if _, ok := ps.m["ChooseFromDefined"]; ok && lc.digRememberedLibrary {
 		return lc.digChosenLibraryPick(ps, ps.m["ChooseFromDefined"]) // lower_digimprint.go
 	}
@@ -632,7 +635,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		in.Op = "Exile"
 	case zHand:
 		in.Op = "Bounce"
-		if origin == zGraveyard {
+		// a remembered set from exile (Worlds Within Worlds' return) is
+		// the Return walk: Bounce moves the set's first object only
+		if origin == zGraveyard || origin == zExile && obj.Kind == rRemembered {
 			in.Op = "Return"
 			in.C = zHand
 		}
@@ -1146,6 +1151,16 @@ func (lc *lowerCtx) dig(ps *params) error {
 			flags = append(flags, k)
 		}
 	}
+	if ps.is("PromptToSkipOptionalAbility", "True") || ps.str("OptionalAbilityPrompt") != "" {
+		// gorge effDig's promptToSkipOptional: either spelling names the same
+		// optional take as Optional$ True (the take is a 0..N election, and
+		// with ChangeNum$ All a yes/no), which the kernel's Optional flag
+		// already carries. The corpus writes it only beside Optional$ True.
+		if !ps.is("Optional", "True") {
+			return refuse("Dig optional prompt without Optional$ True")
+		}
+		ps.consume("PromptToSkipOptionalAbility", "OptionalAbilityPrompt")
+	}
 	if dest == zBattlefield && ps.is("Tapped", "True") {
 		flags = append(flags, "Tapped")
 	}
@@ -1154,14 +1169,14 @@ func (lc *lowerCtx) dig(ps *params) error {
 	// WithMayLook$ with an exile destination; every other combination is
 	// not read exactly (a blind face-down exile, a look on a non-exile move)
 	fd, look := ps.is("ExileFaceDown", "True"), ps.is("WithMayLook", "True")
-	blind := fd && !look && dest == zExile && lc.blindDigShape(ps) // lower_blinddig.go
+	blind := fd && !look && dest == zExile && (lc.repeatBlindDig(ps) || lc.blindDigShape(ps)) // lower_blinddig.go
 	if fd != look && !blind || fd && dest != zExile {
 		return refuse("Dig ExileFaceDown$ shape")
 	}
 	if fd {
 		flags = append(flags, "ExileFaceDown")
 	}
-	if blind && lc.blind.exilerOther {
+	if blind && lc.blind != nil && lc.blind.exilerOther {
 		flags = append(flags, "ExilerOther")
 	}
 	if err := lc.digImprint(ps); err != nil { // lower_handmove.go
@@ -2141,6 +2156,20 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		ps.consume("ForgetOnMoved")
 		in := lInstr{Op: "MayPlay", Obj: obj, C: zone, CS: dur}
 		fl := 0
+		// EffectOwner$ RememberedController (CR 611.2): gorge's effect
+		// belongs to the remembered card's controller, and its may-play
+		// grant is that player's. A remembered card is in exile here, where
+		// gorge's controller read is the card's owner (a move resets
+		// Controller to Owner; a RememberLKI$ capture is the only other
+		// source and this shape has none), so MayPlayPlayer$ CardOwner --
+		// the kernel's MayPlayOwner record -- names the same seat.
+		// Expedited Inheritance's Dig from the damaged creature's
+		// controller's library.
+		if owner, ok := ps.m["EffectOwner"]; ok && strings.TrimSpace(owner) == "RememberedController" &&
+			obj.Kind == rRemembered && zone == zExile {
+			fl |= kop.MayPlayOwner
+			ps.consume("EffectOwner")
+		}
 		if _, ok := ps.get("ExileOnMoved"); ok && obj.Kind == rRemembered {
 			// gorge effectMoveSweep: a remembered card leaving the zone ENDS
 			// the whole effect; the kernel's per-card permissions match it

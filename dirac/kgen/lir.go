@@ -30,6 +30,7 @@ const (
 	rTriggeredNew                 // the triggering object in the zone it moved to
 	rTriggeredSource              // the source of the triggering damage
 	rTriggeredPlayer              // the player the trigger names (activator / controller)
+	rTriggeredTgtCtrl             // the triggering referent's controller, read live at resolution (gorge TriggeredTargetController; a dead referent reads its owner)
 	rEquipped                     // the object the source is attached to
 	rRemembered                   // the resolution's remembered objects
 	rDelayedRemembered            // the objects a delayed trigger remembered
@@ -46,12 +47,13 @@ const (
 	rOppNonRemCtrl                // the opponent unless a remembered object's controller is that opponent (OppNonRememberedController)
 	rSrcOwner                     // the source object's owner (Defined$ CardOwner)
 	rTriggerAttackers             // the attacker group of the AttackersDeclared event (Defined$ TriggeredAttackers)
+	rRememberedOwner              // the remembered object's owner (Unidentified Hovership's leave trigger)
 	rCount
 )
 
 var refNames = [...]string{"None", "Target", "Self", "You", "EachOpp", "EachPlayer", "TargetController",
-	"TargetOwner", "Triggered", "TriggeredNew", "TriggeredSource", "TriggeredPlayer", "Equipped", "Remembered",
-	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers"}
+	"TargetOwner", "Triggered", "TriggeredNew", "TriggeredSource", "TriggeredPlayer", "TriggeredTgtCtrl", "Equipped", "Remembered",
+	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner"}
 
 type lRef struct {
 	Kind refKind
