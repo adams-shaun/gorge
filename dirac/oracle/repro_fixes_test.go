@@ -96,9 +96,11 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"stack_spell_controller_not_owner", true, false},               // CR 108.4, 110.2: Brazen Bluff asks the controller of the spell it targets, the player casting Transporter Malfunction from the opponent's exile, not its owner
 		{"copy_cast_x_targets_ask_after_x", false, false},               // CR 601.2b, 601.2c: Q's Play of Dominion Infiltration announces X before its "X target creatures", so a copy cast no mana can pay still asks X and reaches its mana window
 		{"refused_paid_copy_cast_keeps_window_tap", true, false},        // CR 733.1: Encounter the Unknown's copy cast that gorge cannot pay is reversed after its mana window, so the tapped source and its mana stay
+		{"exile_grant_host_is_a_copy", false, false},                    // CR 707.2, 603.6a: Dominion Saboteur enters as Q, Stacking the Deck, so its enter trigger's exiled Assembly Specialist gains Q's exile-from-hand cast ability, which the copy's host offers
 		{"turn_once_resets_while_phased_out", false, false},             // CR 602.5b, 702.26d: DOT-7 Repair Squad activated, then phased out through its turn's end, has its once-each-turn limit lifted when it phases back in
 		{"clone_template_choice_asked_on_stack", false, false},          // CR 614.12, 707.9: Dominion Saboteur entering as a copy of Nyota Uhura is asked her "choose a number" with the Saboteur still on the stack, after the copy election
 		{"returned_clone_order_ask_beside_counter_source", true, false}, // CR 616.1: Dominion Saboteur returned from exile as a copy of Troubling Tribbles beside Deanna Troi's extra counter is asked the replacement order with the card still in exile
+		{"until_next_turn_pump_misses_returned_creature", false, false}, // CR 400.7, 611.2c: V'Ger's "-1/-0 until your next turn" does not reach Hologram Janeway that Ghost of Illyria blinked back, a new object
 	})
 }
 
@@ -285,6 +287,14 @@ func TestStdFraReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-fra", []stdRepro{
 		{"sweep_returns_aura_after_earlier_entrants", true, false}, // CR 303.4f: Return to the Light Realms asks for Infinite Coursework's host with the cards before it entered and the ones after still in the graveyard
 		{"sacrificed_mana_source_moves_its_aura", false, false},    // CR 704.3, 704.5m: the check after a mana source's sacrifice while paying a cast takes its Aura before the cast's next choice
+	})
+}
+
+// std-lci's, on the same terms.
+func TestStdLciReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-lci", []stdRepro{
+		{"granted_sac_host_cost_poses_no_choice", false, false}, // CR 602.2b, 701.21a: Deconstruction Hammer's granted "Sacrifice Deconstruction Hammer" cost has one possible payment, so it is paid without a choice after the targets
 	})
 }
 
