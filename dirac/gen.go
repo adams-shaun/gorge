@@ -1552,6 +1552,7 @@ type genState struct {
 	speed    uint8    // both seats' speed (3 bits each) and the once-per-turn speed trigger latch (bit 6; kw_speed.go; padding)
 	noPoison uint8    // bit p: player p can't get additional poison counters this turn (Melira's replacement; trig_leavereturn.go; padding)
 	plusCtr  [2]uint8 // per player, how many Brad Boimler counter-plus-one effects are active this turn (ctr_pluseot.go; padding)
+	plusSrc  [2]Obj   // per player, the Boimler that made them (NoObj: more than one; the order ask's source, repl_ctrorder.go; padding)
 	cast1    uint8    // bit p: seat p has cast a spell this game, recorded only for a table reading ExFirstCast (cast_firstcast.go; padding)
 	ctrAdder uint8    // transient: the player putting the counters being placed, +1 (0: the resolving / building controller; trig_leavereturn.go; padding)
 	// this turn's counter placements (ExCtrAdded; ctr_addedthisturn.go).
@@ -1668,7 +1669,8 @@ type genState struct {
 	// progress (build), a resolution's look / pileOrd / dmgSeqOrd (armRes).
 	// The discriminants stay outside it (scratch.go).
 	scr [scrWords]uint64
-	nc  ncDmg // a noncombat damage event parked on that ask (ro.on false; repl_gen.go)
+	nc  ncDmg  // a noncombat damage event parked on that ask (ro.on false; repl_gen.go)
+	tok tokOrd // a CreateToken op deciding a contested creation on gorge's CR 616.1 token order ask: ro carries the candidates (repl_tokorder.go)
 	// a multi-event damage op paused on one of those asks: its recipients are
 	// frozen at the op in gorge's sweep order (effDamageAll: seat 0's
 	// battlefield in entry order, then seat 1's; the players arm last, bit 0
@@ -1801,7 +1803,7 @@ const (
 	StallGrants    = 31 // more than maxGrants granted mana abilities on one permanent (mana_grantedoffers.go grantIdxs)
 	StallShield    = 32 // a SHIELD counter and another damage replacement match one event: gorge asks the CR 616.1 order, the kernel stalls (ctr_shield.go)
 	StallActs      = 33 // 127 non-mana activations of one object in a turn: object.acts keeps the count in seven bits beside the owner
-	StallReplCtr   = 34 // a filtered counter doubler and a filtered plus/minus replacement match one event, or a plus and a minus replacement do: they do not commute (repl_counters.go)
+	StallReplCtr   = 34 // a filtered counter doubler and a filtered plus/minus replacement match one event, or a plus and a minus replacement do: they do not commute; only a two-candidate doubler+plus on an OpPutCounter is asked (repl_ctrorder.go)
 	StallReplLeave = 35 // two or more replacements compete for one death (including two dies-to-exile sources or two turn-scoped exile marks on one creature): gorge asks the CR 616.1 order, the kernel stalls (repl_counters.go)
 	StallLinger    = 36 // more than maxLinger attachments lose their host in one state-based pass (genState.linger; static_lingerattach.go)
 	StallSac       = 37 // one effect sacrifices more than maxSacOrd permanents (genState.sacOrd)

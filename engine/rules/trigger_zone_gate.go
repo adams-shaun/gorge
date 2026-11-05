@@ -38,6 +38,14 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 		// creating card, so the card's zone is irrelevant (CR 611.2a).
 		return true
 	}
+	if e.entryFlushing && e.entryFlushFloor != 0 && source != ev.Obj && o.Timestamp >= e.entryFlushFloor &&
+		leavesOtherZoneTrigger(t) {
+		// CR 603.10a: a held entry check runs after the whole batch entered, but
+		// a "whenever cards leave your graveyard" ability looks back to the board
+		// before it: a source that entered in the same batch (Fang returned by
+		// Random Encounter beside the cards it returns) was not there to see it.
+		return false
+	}
 	spec := t.ParamStr(cards.PKTriggerZones)
 	if spec == "" {
 		// Forge's ActiveZones$ is the trigger-side spelling of the same gate

@@ -86,26 +86,8 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.touchSl(sl)
 		}
 	case kop.OpPutCounter:
-		if sl := s.objRef(k, in.Obj); sl != NoSlot {
-			n := s.placeCounters(k, sl, int(in.C), s.value(k, in.A), s.perms[sl].ctrl, ctrPutEffect)
-			if n > 0 && k.anyCtrAdded {
-				s.ctrNote(k, sl, int(in.C))
-			}
-			if in.B.N >= kop.PutCtrCellFirst {
-				if in.B.N == kop.PutCtrCellFirst {
-					s.g.ctrCell.clr(sl)
-				}
-				s.fireCounterCell(k, sl, n) // trig_countercell.go
-			} else if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
-				s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(n))
-			}
-			if in.B.N != 0 {
-				if in.B.N == 1 {
-					s.putCounterRemAmount(k, in, n) // RememberAmount$ (act_remember.go)
-				} else if in.B.N == 2 {
-					s.putCounterRemPut(k, in, sl) // RememberPut$ (ctr_putparams.go)
-				}
-			}
+		if !s.execPutCounter(k, in) {
+			return false // the CR 616.1 order ask (repl_ctrorder.go)
 		}
 	case kop.OpRemoveCounter:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
@@ -913,13 +895,9 @@ func (s *State) applyResolve(k *prep, a Action) {
 		if chained {
 			s.flushHeldDiscard(k, r.chosen^1)
 		}
-		if chained && !s.parkedDiscardWaiting() {
-			for i := 0; i < int(r.peekI); i++ {
-				s.discardObj(k, r.arr[i])
-			}
-		} else { // behind a held pick's ask the chained picks wait too
-			s.discardPicks(k, r.arr[:r.peekI], 0)
-		}
+		// a competing pick waits for its order ask, and the picks behind it, or
+		// behind a held pick's ask, wait too (discardPicks)
+		s.discardPicks(k, r.arr[:r.peekI], 0)
 		r.peekI = 0
 	case raScryTop, raSurveil:
 		if r.restPh {
