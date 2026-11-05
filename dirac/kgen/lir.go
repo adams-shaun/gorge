@@ -773,6 +773,9 @@ type lStatic struct {
 	// RedCol: a ReduceCost's Color$ counts, two bits per colour W U B R G C
 	// (flag "ReduceColor"; lower_reducespell.go)
 	RedCol uint16
+	// RaiseCol: a per-target RaiseCost's Cost$ pips per charge, packed like
+	// RedCol (flag "RaisePerTarget"; lower_raisecost.go)
+	RaiseCol uint16
 	// Ctr: a CantPutCounter's CounterType$ kind, -1 for every kind
 	// (kop.Static.A; Blossombind, Blightbeetle)
 	Ctr int16
