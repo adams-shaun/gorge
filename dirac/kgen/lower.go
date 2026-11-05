@@ -124,6 +124,7 @@ type lowerCtx struct {
 	trigXMax       *lValue   // payInstr: the XMax$ cap of a trigger's own announced {X} cost (Shanna); nil = none read
 	trigRemX       bool      // the ImmediateTrigger's RememberSVarAmount$ X is the announced X (lower_zone.go immediateTrigger)
 	trigXPaid      bool      // the body's Count$xPaid is that announced X (set once the PayManaX cost lowered)
+	wbOK           bool      // costParts: a Waterbend<N> part may lower (an UnlessCost$ read by unless(); payInstr gates the shape)
 	unlessCost     bool      // payInstr: the cost is an UnlessCost$ of a non-delayed body
 	wardCost       bool      // payInstr: the cost is a Ward keyword's UnlessCost$
 	unlessSubs     []usGate  // UnlessResolveSubs$ gates awaiting their chain level's end (lower_unlesssubs.go)
@@ -1500,7 +1501,7 @@ func (lc *lowerCtx) costParts(c lCost) error {
 	if c.TapPowN != 0 {
 		return refuse("tap-any-number cost outside an activated ability")
 	}
-	if c.Waterbend != 0 {
+	if c.Waterbend != 0 && !lc.wbOK {
 		return refuse("waterbend cost outside an activated ability's own cost")
 	}
 	if c.ExileHandN != 0 {
