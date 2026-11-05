@@ -2967,7 +2967,14 @@ func (lc *lowerCtx) immediateTrigger(ps *params) error {
 		return err
 	}
 	lat := lc.newLatent("ReflexiveTrigger")
-	lat.TrigRem = trigRemAllowed(ps)                   // lower_trigremembered.go
+	lat.TrigRem = trigRemAllowed(ps) // lower_trigremembered.go
+	savedRemX := lc.trigRemX
+	lc.trigRemX = false
+	if lc.trigXPaid && strings.TrimSpace(ps.m["RememberSVarAmount"]) == "X" {
+		ps.consume("RememberSVarAmount") // CollectEvidence<X>: the announced X (Incinerator of the Guilty)
+		lc.trigRemX = true
+	}
+	defer func() { lc.trigRemX = savedRemX }()
 	capt, err := lc.reflexRememberTargeted(ps, lat, n) // lower_remembered.go
 	if err != nil {
 		return err

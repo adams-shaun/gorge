@@ -768,9 +768,11 @@ PayBReveal	untyped int	5
 PayBSubBlight	untyped int	1
 PayBSubChain	untyped int	8
 PayBSubEvidence	untyped int	2
+PayBSubEvidenceX	untyped int	11
 PayBSubExileHand	untyped int	9
 PayBSubSacHost	untyped int	7
 PayBSubTrigNew	untyped int	3
+PayBSubTrigNewEvidence	untyped int	10
 PayDiscard	untyped int	2
 PayDiscardHand	untyped int	11
 PayDiscardRandom	untyped int	10
