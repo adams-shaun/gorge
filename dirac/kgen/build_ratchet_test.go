@@ -149,7 +149,7 @@ import (
 // +2 (Those Old Scientists, Turn the Earth: a multi-target graveyard shuffle's per-owner move lowers to OpMayShuffleMove; merged 21472 -> 21474; ratchet TRK 299 -> 300).
 // +1 (Q, Stacking the Deck: the exile-granted copy-and-cast ability of a card exiled from the top of the library; merged 21472 -> 21473; ratchet TRK 299 -> 300).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21486, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21491, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

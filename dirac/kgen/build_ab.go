@@ -3888,6 +3888,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		} else {
 			switch in.CS {
 			case "NextEndStep":
+			case "YourNextEndStep":
+				ki.A = kop.Const(kop.DelayYourEndStep) // the controller's next end step (dirac/trig_delayedtiming.go)
 			case "NextUpkeep":
 				ki.A = kop.Const(kop.DelayUpkeep)
 			case "YourNextUpkeep":

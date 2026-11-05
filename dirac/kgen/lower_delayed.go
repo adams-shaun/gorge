@@ -167,7 +167,10 @@ func (lc *lowerCtx) delayedRemember(ro string, exec *cards.SA) (lRef, error) {
 		}
 		return lRef{}, nil
 	case "Remembered":
-		if lc.ab.Kind != akSpell && lc.ab.Kind != akActivated {
+		if lc.ab.Kind != akSpell && lc.ab.Kind != akActivated && !lc.hasRememberWriter() {
+			// a triggered ability's plain Remembered group is its fire-time
+			// capture unless this resolution wrote its own set (the `!` arm:
+			// DigUntil RememberFound$ True, Will Riker)
 			return lRef{}, refuse("delayed trigger RememberObjects %q in a triggered ability (the trigger capture)", ro)
 		}
 		if lc.czForgetSet {

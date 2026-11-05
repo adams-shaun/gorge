@@ -1367,7 +1367,7 @@ type dprog struct {
 	objs [4]Obj // two with DpGroup; up to four with DpMany (trig_delayedmany.go)
 	vers [4]uint8
 	n    uint8
-	ext  uint8 // dpExtBeginCombat (trig_delaybegincombat.go): n's timing bits are full
+	ext  uint8 // dpExtBeginCombat/dpExtYourEndStep (trig_delaybegincombat.go, trig_delayedtiming.go): n's timing bits are full
 }
 
 // usedRec marks a once-per-turn use (a trigger, a MayPlay static).
