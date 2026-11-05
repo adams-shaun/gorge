@@ -325,6 +325,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	if c.OptCost != nil {
 		fmt.Fprintf(w, " optcost=blight%d/behold%d%s", c.OptCost.BlightN, c.OptCost.BeholdN, c.OptCost.BeholdF)
+		if c.OptCost.Waterbend != 0 {
+			fmt.Fprintf(w, " optwaterbend=%d", c.OptCost.Waterbend)
+		}
 	}
 	if c.Leyline {
 		fmt.Fprintf(w, " leyline")

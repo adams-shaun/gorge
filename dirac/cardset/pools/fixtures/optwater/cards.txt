@@ -1,0 +1,17 @@
+# the OptionalCost Waterbend<N> pool (CR 701.67a, 601.2b): the TLA carriers
+# beside the enters-mana and adds-mana spells whose floating pool pays an
+# optional cast (Priest of Gix's BBB, Rapturous Moment's UURRR), artifacts
+# and creatures to tap for the waterbend, basics
+# (dirac/oracle/optcost_waterbend_test.go)
+Ruinous Waterbending
+Spirit Water Revival
+Priest of Gix
+Rapturous Moment
+Memnite
+Ornithopter
+Grizzly Bears
+Gray Ogre
+Swamp
+Island
+Mountain
+Forest

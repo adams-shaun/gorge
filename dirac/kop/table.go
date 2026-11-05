@@ -160,6 +160,11 @@ type CardDef struct {
 	// the bsEvidence graveyard pick (gorge postTargetAsks evidenceAsk).
 	// dirac/cost_optionalevidence.go.
 	OptEvidence uint8
+	// OptWaterbend is the OptionalCost part Waterbend<N> (N 1..255, 0 =
+	// none; CR 701.67a, 601.2b): the paid cast is the kicked cast, Kicker
+	// holds its {N} (no KwKicker, as Offspring's), and the build asks the
+	// spell waterbend pick (kernel act_waterbend.go).
+	OptWaterbend uint8
 	// Teamwork is K:Teamwork:<N> (CR 702.194; 0 = none, N 1..15): the caster
 	// may declare the teamworked cast (the same AkCastCasualty action as
 	// Casualty/Bargain; a card never has two of them) and tap untapped

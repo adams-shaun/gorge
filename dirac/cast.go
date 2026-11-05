@@ -115,7 +115,10 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		}
 	}
 	n0 := s.npend
-	if fl&sfKicked != 0 && k.t.Cards[c].Cost.X == 0 {
+	if fl&sfKicked != 0 && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
+		// (an optional waterbend cast taps nothing here: its window pays after
+		// the picks, manaStep's waterbendCastWindow, as gorge's convokeAsk
+		// precedes its manual window)
 		// gorge has no planned kicked cast: the oracle lowers it by tapping
 		// the witness's sources at priority, then casts from the floating
 		// pool; the mana is spent at payment as usual. The witness is
@@ -486,7 +489,7 @@ func (s *State) buildCostPreRaw(k *prep, pre bool) (kop.ManaCost, bool) {
 	}
 	if k.gen != nil {
 		if c, done, ok := s.buildCostGenPre(k, pre); ok {
-			if k.gen.anyWaterbend && k.t.Cards[s.bld().e.card].SpellWaterbend != 0 {
+			if k.gen.anyWaterbend && spellWaterbends(k, s.bld().e.card) {
 				c = s.waterbendApplyPicks(c) // a spell's own waterbend (act_waterbend.go)
 			}
 			return c, done
@@ -545,7 +548,7 @@ func (s *State) buildCostPreRaw(k *prep, pre bool) (kop.ManaCost, bool) {
 		if s.statM.any() || k.gen != nil {
 			c = s.adjustCost(k, e.ctrl, e.card, e.obj, c)
 		}
-		if k.gen != nil && k.gen.anyWaterbend && cd.SpellWaterbend != 0 {
+		if k.gen != nil && k.gen.anyWaterbend && spellWaterbends(k, e.card) {
 			c = s.waterbendApplyPicks(c) // a spell's own waterbend (act_waterbend.go)
 		}
 		return c, done

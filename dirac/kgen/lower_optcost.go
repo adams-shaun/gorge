@@ -16,8 +16,9 @@ import (
 // that flag. The kernel's paid flag is the kicked provenance (sfKicked, as
 // Bargain's), so only a part the kernel already pays as a cost lowers:
 // Blight<N> (the pkBlight pick), Behold<1/Type> (the ChCostBehold pick) or
-// CollectEvidence<N> (the bsEvidence pick; lower_collectedevidence.go). Waterbend and
-// mana parts refuse by name.
+// CollectEvidence<N> (the bsEvidence pick; lower_collectedevidence.go) or
+// Waterbend<N> (the kicked cast's {N} with the waterbend pick; kernel
+// act_waterbend.go). Waterbend<X> and mana parts refuse by name.
 
 // optCostStatic lowers the card's one OptionalCost static into lc.out.OptCost.
 func (lc *lowerCtx) optCostStatic(s cards.Static) error {
@@ -46,20 +47,32 @@ func (lc *lowerCtx) optCostStatic(s cards.Static) error {
 	}
 	raw := strings.TrimSpace(s.Params["Cost"])
 	lc.beholdOK = true
-	c, err := lc.cost(raw)
+	var c lCost
+	var err error
+	if strings.HasPrefix(raw, "Waterbend<") {
+		// costParts holds a waterbend to an activated ability's own cost; the
+		// optional part is the kicked cast's (the checks below bound the rest)
+		c, err = lc.costHand(raw)
+	} else {
+		c, err = lc.cost(raw)
+	}
 	lc.beholdOK = false
 	if err != nil {
 		return refuse("OptionalCost cost %q", raw)
 	}
 	rest := c
-	rest.BlightN, rest.BeholdN, rest.BeholdF, rest.EvidenceN = 0, 0, nil, 0
+	rest.BlightN, rest.BeholdN, rest.BeholdF, rest.EvidenceN, rest.Waterbend = 0, 0, nil, 0, 0
+	// lc.cost folds Waterbend<N>'s {N} into the mana (gorge ParseCost): that
+	// generic is the part's own, and nothing else may be
+	wbMana := c.Waterbend != 0 && c.Mana.Generic == c.Waterbend && c.Mana.Pips == [5]int{} && c.Mana.C == 0 &&
+		len(c.Mana.Hybrid)+len(c.Mana.Twobrid)+len(c.Mana.Phyrexian) == 0 && !c.Mana.X && !c.Mana.None
 	parts := 0
-	for _, on := range []bool{c.BlightN != 0, c.BeholdN != 0, c.EvidenceN != 0} {
+	for _, on := range []bool{c.BlightN != 0, c.BeholdN != 0, c.EvidenceN != 0, c.Waterbend != 0} {
 		if on {
 			parts++
 		}
 	}
-	if !rest.pureMana() || !c.Mana.None || parts != 1 || c.BeholdN > 1 {
+	if !rest.pureMana() || !c.Mana.None && !wbMana || parts != 1 || c.BeholdN > 1 {
 		return refuse("OptionalCost cost %q", raw)
 	}
 	lc.out.OptCost = &c

@@ -2171,6 +2171,14 @@ func (s *State) manaStep(k *prep) bool {
 		}
 		var saved [len(build{}.picks)]uint8
 		s.holdCostTaps(k, &saved)
+		wbCast := false
+		if k.gen != nil && k.gen.anyWaterbend {
+			_, wbCast = s.waterbendPartFor(k, e) // a waterbend cast (act_waterbend.go): its cost before the picks, read before the cost is fixed
+		}
+		wbFull := cost
+		if wbCast && s.bld().bfl&bflCostFixed == 0 {
+			wbFull = xFolded(s.waterbendFullCost(k), int(e.x))
+		}
 		s.bld().bfl |= bflManaStep | bflCostFixed
 		anyColor := s.bld().bfl&bflAnyColor != 0
 		if (e.flags&sfAnyMana != 0 || anyColor) && s.bld().bfl&bflMsDone == 0 {
@@ -2200,6 +2208,8 @@ func (s *State) manaStep(k *prep) bool {
 			}
 			s.windowTapUseful(k, e.ctrl, &cost, &raw, true, anyColor, s.bld().pipN == 0, false)
 			s.occ = occ
+		} else if wbCast && cost.X == 0 {
+			s.waterbendCastWindow(k, e, &cost, &wbFull, anyColor) // act_waterbend.go
 		} else if planCut {
 			s.windowTapRider(k, e.ctrl, &cost, true, anyColor)
 		} else if k.t.Cards[e.card].HasModeCost {
