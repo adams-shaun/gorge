@@ -510,11 +510,10 @@ func boardSig(s *dirac.State, seat uint8) uint64 {
 	}
 	for p := uint8(0); p < 2; p++ {
 		h = mix(h, uint64(uint32(s.LifeOf(p))))
-		pool, rc, rn := s.PoolOf(p)
-		for _, m := range pool {
-			h = mix(h, uint64(m))
+		pool, restr := s.PoolOf(p)
+		for i, m := range pool {
+			h = mix(h, uint64(m)|uint64(restr[i])<<8)
 		}
-		h = mix(h, uint64(rc)<<8|uint64(rn))
 	}
 	return h
 }
