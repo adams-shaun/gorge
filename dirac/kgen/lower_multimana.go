@@ -71,7 +71,7 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// and guarded as a painland's damage (kernel painLife)
 		return
 	}
-	if len(ms) > 2 || !plainTapMana(ms[0], false) || !unrestrictedOne(ms[0]) {
+	if len(ms) > 2 && !anyRFiltMana(ms) || !plainTapMana(ms[0], false) || !unrestrictedOne(ms[0]) {
 		lc.refuseNode("card", "%d mana abilities: not a fixed-colour set, nor a plain {T} ability beside one modelled gap", len(ms))
 		return
 	}
@@ -81,6 +81,24 @@ func (lc *lowerCtx) refuseMultiMana() {
 			return
 		}
 	}
+}
+
+// anyRFiltMana: three mana abilities, a plain {T} one of one fixed colour,
+// a restricted {T}: Add one mana of any colour, then a {N}, {T}: Add one mana
+// of any colour (White Lotus Hideout), in that printed order: the order of
+// gorge's "choose a mana ability" ask the kernel's search mirrors. The
+// kernel plans the source as one slot, a restricted planner source
+// (mana_restrictedsource.go) and a filter gap, its search branching every
+// answer of that ask (mana_mixsrc.go) as gorge's prefix search does; the
+// per-ability loop still enforces that each is a modelled gap.
+func anyRFiltMana(ms []*lAbility) bool {
+	if len(ms) != 3 || len(ms[0].Mana.Colors) != 1 || ms[0].Mana.Choice {
+		return false
+	}
+	r, f := ms[1], ms[2]
+	return plainTapMana(r, false) && r.Mana.Restrict != nil && r.Mana.Colors == "WUBRG" && !r.Mana.Choice &&
+		r.Mana.Amount.Kind == vConst && r.Mana.Amount.N == 1 &&
+		plainTapMana(f, true) && f.Mana.Restrict == nil && f.Mana.Colors == "WUBRG"
 }
 
 // redundantMana reports whether a, a mana ability after the card's first,
