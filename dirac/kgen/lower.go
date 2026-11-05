@@ -166,7 +166,7 @@ type lowerCtx struct {
 	// RememberObjects$ Imprinted, its MayPlay and the Cleanup's
 	// ClearImprinted$ read it
 	digImprintChosen bool
-	known               func(string) bool
+	known            func(string) bool
 	// granted > 0 while an ability or trigger another object is granted
 	// (an AddAbility$/AddTrigger$ SVar, an emblem's trigger) is lowered
 	granted int

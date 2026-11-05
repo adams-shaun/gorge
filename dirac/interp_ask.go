@@ -1657,7 +1657,7 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.handExileLink(o) // until the source leaves (act_mayask.go)
 			}
 		}
-		s.forgetFound(k, o) // ForgetChanged$ (SrForgetChanged): the moved card leaves the remembered set
+		s.forgetFound(k, o)  // ForgetChanged$ (SrForgetChanged): the moved card leaves the remembered set
 		s.imprintFound(k, o) // Imprint$ (SrImprint): the moved card joins the chosen set
 		if z == kop.ZoneBattlefield && s.parkEnterDefender(tailSearchEnter) {
 			// the entry posed the CR 508.4 defender ask: the cards after it
