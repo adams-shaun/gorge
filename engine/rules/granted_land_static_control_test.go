@@ -25,7 +25,7 @@ func nogOfficer(t *testing.T) (*Engine, state.ObjID) {
 		[]*cards.Card{lookup(t, reg, "Humility")})
 	nog := moveCorpusCard(t, e, "Nog, Ambitious Cadet", 0, state.ZBattlefield)
 	animates := nogAnimates(t, e, nog)
-	for n, mana := range []string{"1", "3"} {
+	for n, mana := range []string{"C", "CCC"} {
 		addMana(t, e, 0, mana)
 		pick := -1
 		for _, o := range e.Pending().Options {
