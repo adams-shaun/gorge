@@ -281,7 +281,7 @@ func prepare(t *kop.Table) *prep {
 						pc.manaN = 1
 					}
 					pc.manaOne = manaOneColour(a, pc.manaN)
-					if a.ManaEach {
+					if a.ManaEach && !kop.CtrEachManaAb(a) { // (a counter-cost one keeps its whole mask: mana_countercost.go)
 						prepEachMana(a, pc)
 						p.manaEach = true
 					}
