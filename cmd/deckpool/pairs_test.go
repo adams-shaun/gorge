@@ -226,6 +226,21 @@ func TestDeckpoolPoolTSVReadable(t *testing.T) {
 func TestDeckpoolDeterministic(t *testing.T) {
 	_, out1 := pairRun(t, 1, 1000, func(o *options) { o.pairing, o.pairsN = "random", 6 })
 	_, out2 := pairRun(t, 1, 1000, func(o *options) { o.pairing, o.pairsN = "random", 6 })
+	// The precondition the byte comparison depends on: the run drew its 6
+	// pairs (6 data lines after the comment header).
+	b, err := os.ReadFile(filepath.Join(out1, "pairs.tsv"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := 0
+	for _, l := range strings.Split(strings.TrimRight(string(b), "\n"), "\n") {
+		if !strings.HasPrefix(l, "#") {
+			data++
+		}
+	}
+	if data != 6 {
+		t.Fatalf("pairs.tsv holds %d data lines, want 6 pairs", data)
+	}
 	for _, f := range []string{"pool.tsv", "pairs.tsv"} {
 		a, err := os.ReadFile(filepath.Join(out1, f))
 		if err != nil {
@@ -240,8 +255,14 @@ func TestDeckpoolDeterministic(t *testing.T) {
 		}
 	}
 	_, out3 := pairRun(t, 1, 1001, func(o *options) { o.pairing, o.pairsN = "random", 6 })
-	a, _ := os.ReadFile(filepath.Join(out1, "pairs.tsv"))
-	b, _ := os.ReadFile(filepath.Join(out3, "pairs.tsv"))
+	a, aerr := os.ReadFile(filepath.Join(out1, "pairs.tsv"))
+	if aerr != nil {
+		t.Fatal(aerr)
+	}
+	b, berr := os.ReadFile(filepath.Join(out3, "pairs.tsv"))
+	if berr != nil {
+		t.Fatal(berr)
+	}
 	if bytes.Equal(a, b) {
 		t.Error("seed 1001 wrote seed 1000's pairs.tsv")
 	}
