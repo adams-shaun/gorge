@@ -682,7 +682,7 @@ func (s *State) tapPlanNeed(k *prep, p uint8, cost *kop.ManaCost, x int, exclude
 	pk.lastSl = NoSlot
 	if pk.needT > 0 {
 		pk.first = first
-		s.plan(k, p, pk, exclude)
+		s.planTiered(k, p, pk, exclude)
 	}
 }
 
@@ -901,7 +901,7 @@ func (s *State) payFromPoolAnyColor(p uint8, cost *kop.ManaCost, x int) {
 	}
 }
 
-func (s *State) planPass(k *prep, p uint8, pk *planner, exclude Obj) {
+func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// units: fixed-production sources in battlefield (entry) order, then
 	// choice-shaped sources (any colour, a choice of colours) in battlefield
 	// order (gorge payment_plan.go paymentPlanManaUnitsOnlyCompute).

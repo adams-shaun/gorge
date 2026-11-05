@@ -64,25 +64,25 @@ func (s *State) tapsDeferred(k *prep, p uint8, sl Slot) bool {
 	return d
 }
 
-// plan is the payment plan with gorge's tiers: the sources a Taps watcher
+// planTiered is plan with gorge's tiers: the sources a Taps watcher
 // defers are no unit of the first pass. gorge's planner never lists them, but
 // a play the planner then proves insufficient is paid through the potential
 // play's prefix (they are census gaps, activated first), which taps them: so
 // when no plan exists without them a second pass plans with them, in
 // battlefield order like any source.
-func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
+func (s *State) planTiered(k *prep, p uint8, pk *planner, exclude Obj) {
 	if k.gen == nil || !k.gen.anyTapsDefer || DebugNoTapsDefer {
-		s.planPass(k, p, pk, exclude)
+		s.plan(k, p, pk, exclude)
 		return
 	}
 	saved := *pk
 	pk.try = true
-	s.planPass(k, p, pk, exclude)
+	s.plan(k, p, pk, exclude)
 	if pk.found {
 		pk.try = saved.try
 		return
 	}
 	*pk = saved
 	pk.tapsIn = true
-	s.planPass(k, p, pk, exclude)
+	s.plan(k, p, pk, exclude)
 }
