@@ -66,15 +66,15 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; land; merged ALL 21579 -> 21584).
 	// +1 (Doomsday Excruciator: a RepeatEach player body's DigNum$ Count$ValidLibrary Card.RememberedPlayerCtrl/Minus.6 and its blind face-down exile; this branch; merged DSK 236 -> 237, ALL 21584 -> 21585).
 	// +1 (Worlds Within Worlds: a RepeatEach player body's hand move DefinedPlayer$ Remembered up to Count$ValidHand Creature.RememberedPlayerCtrl, and the remembered set's return from exile as the Return walk; this branch; merged MSH 226 -> 227, ALL 21585 -> 21586).
+	// +1 (Painter's Studio // Defaced Gallery: the unlock trigger's DB$ Effect statics read the door's own SVar table; this branch; merged DSK 238 -> 239, ALL 21595 -> 21596).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21598, 34442},
-	// +3 (Paranormal Analyst and Unidentified Hovership: the DSK manifest-dread lowers — Mode$ ManifestDread with the ChooseFromDefined$ TriggeredCards hidden pick (kop.TrigManifestDread, PredTriggerObj) and the remembered-persist leave trigger's ManifestDread DefinedPlayer$ RememberedOwner (kop.RefRememberedOwner); Petradon: remPersistShape allows remembered-clean abilities beside the O-ring pair; this branch; merged DSK 238 -> 240, ALL 21595 -> 21598).
+	"ALL": {21596, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
 	"DFT": {247, 276},
 	"DMU": {193, 270},
-	"DSK": {240, 276},
+	"DSK": {239, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
 	"FDN": {517, 517},

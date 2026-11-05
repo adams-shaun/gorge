@@ -171,9 +171,9 @@ import (
 // +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; land; merged ALL build-level 21579 -> 21584).
 // +1 (Doomsday Excruciator: a RepeatEach player body's library count and blind face-down Dig; this branch; merged ALL build-level 21584 -> 21585).
 // +1 (Worlds Within Worlds: a RepeatEach player body's per-player hand move; this branch; merged ALL build-level 21585 -> 21586).
+// +1 (Painter's Studio // Defaced Gallery: the unlock trigger's DB$ Effect statics read the door's own SVar table; this branch; merged ALL build-level 21595 -> 21596).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21598, 34442} // {built, cards}
-// +3 (Paranormal Analyst and Unidentified Hovership: the DSK manifest-dread lowers — Mode$ ManifestDread with the ChooseFromDefined$ TriggeredCards hidden pick (kop.TrigManifestDread, PredTriggerObj) and the remembered-persist leave trigger's ManifestDread DefinedPlayer$ RememberedOwner (kop.RefRememberedOwner); Petradon: remPersistShape allows remembered-clean abilities beside the O-ring pair; this branch; merged ALL build-level 21595 -> 21598).
+var buildAcceptancePin = [2]int{21596, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
