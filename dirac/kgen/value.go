@@ -966,6 +966,8 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vLifeLostThisTurn}, nil
 	case "YourTurns":
 		return lValue{Kind: vYourTurns}, nil // gorge TurnsTaken
+	case "YourExtraTurns":
+		return lValue{Kind: vYourExtraTurns}, nil // gorge ExtraTurnsBegun
 	case "LifeOppsLostThisTurn":
 		return lValue{Kind: vOppLifeLostThisTurn}, nil
 	case "RememberedSize":

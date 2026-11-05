@@ -39,7 +39,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (The Inner Light: an Effect's remembered target and the damage amount reach its DamageDone emblem trigger; merged TRK 297 -> 298, ALL 21470 -> 21471).
 	// +2 (Those Old Scientists, Turn the Earth: a multi-target graveyard shuffle's per-owner move lowers to OpMayShuffleMove; merged TRK 299 -> 300, ALL 21472 -> 21474).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21474, 34442},
+	"ALL": {21478, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
@@ -66,7 +66,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TLA": {245, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
-	"TRK": {300, 311},
+	"TRK": {301, 311},
 	"WOE": {252, 281},
 }
 
