@@ -2070,6 +2070,8 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplDoubleCounters
 	case "GraveToLibrary":
 		rp.Kind = kop.ReplGraveToLibrary
+	case "DiscardOppToBattlefield":
+		rp.Kind = kop.ReplDiscardOppToBattlefield
 	case "DestroyHeal":
 		rp.Kind = kop.ReplDestroyHeal
 		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
