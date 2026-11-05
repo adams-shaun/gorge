@@ -132,6 +132,11 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			dc = s.delveOfferCreditHand(k, p, c, o, *cost)
 			cost = &dc // (the either-or check below takes the pre-delve cost: it credits its own total)
 		}
+		var conv kop.ManaCost
+		if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
+			conv = anyType(*cost) // any mana pays a creature's pips (mana_convertcreature.go)
+			cost = &conv
+		}
 		if !av.affords(cost, pipMaskOf(cost), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, &av)) {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)

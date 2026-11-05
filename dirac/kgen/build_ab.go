@@ -1729,6 +1729,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "CantGainLife":
 		st.Kind = kop.StatCantGainLife
+	case "ManaConvert":
+		st.Kind = kop.StatAnyTypeCreatures // lower_manaconvert.go
 	case "CantDraw":
 		st.Kind = kop.StatCantDraw
 	case "MinMaxBlocker":

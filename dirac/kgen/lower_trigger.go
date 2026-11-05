@@ -2037,6 +2037,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		if st.F, err = readF("ValidCard"); err != nil {
 			return nil, err
 		}
+	case "ManaConvert":
+		if err := manaConvertStatic(sp); err != nil {
+			return nil, err // lower_manaconvert.go
+		}
 	case "DisableTriggers":
 		if err := lc.disableTriggersStatic(sp, &st); err != nil {
 			return nil, err // lower_disabletriggers.go
