@@ -174,8 +174,15 @@ func (s *State) copyCastAbortsBeforeWindow(k *prep, c CardID, p uint8, o Obj) bo
 	if !spellRequiresTarget(k, c) {
 		return false
 	}
+	return s.copyCastUnpayable(k, c, p, o, s.restrOriginOfObj(o))
+}
+
+// copyCastUnpayable reports whether the paid cast of c by p, as object o and
+// cast from og, cannot be covered by what p can produce (the cast offer's own
+// affordability read).
+func (s *State) copyCastUnpayable(k *prep, c CardID, p uint8, o Obj, og restrOrigin) bool {
 	var av avail
 	s.availFor(k, p, &av)
 	cost := s.adjustFit(k, &av, p, c, o, k.cards[c].cost, true)
-	return !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, &av)
+	return !s.castAffordsR(k, p, c, og, &cost, &av)
 }

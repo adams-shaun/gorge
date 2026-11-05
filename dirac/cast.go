@@ -835,6 +835,12 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.nextStage(k)
 				continue
 			}
+			if k.gen != nil && k.gen.anyCopyCast && s.copyCastTargetAbort(k, t) {
+				// a mode-gated required target of a paid copy cast the pool
+				// cannot cover (cast_copycast.go)
+				s.reverseCast(k)
+				return false
+			}
 			if k.gen != nil && k.gen.anyWaterbend && s.waterbendTargetAbort(k) {
 				// the same census after a waterbend ability's picks
 				// (act_waterbend.go)
