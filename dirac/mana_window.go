@@ -978,6 +978,9 @@ func (s *State) wideAdmits(k *prep, a Action, p uint8, anyR slotMask) bool {
 		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]
 		for f := ab.ManaRestrict; f != 0; f = k.t.Filters[f].Or {
 			fl := k.t.Filters[f]
+			if fl.Special != 0 {
+				continue // a Static.* alternative: only a special action may spend it
+			}
 			fl.Zone = kop.ZoneNone // the spell is matched before it moves to the stack
 			if s.restrFilterMatch(k, &fl, c, p&1, og) {
 				return true
@@ -2122,7 +2125,7 @@ func (s *State) manaStep(k *prep) bool {
 		if s.bld().bfl&bflLowered != 0 && s.bld().pipN != 0 {
 			s.loweredPipWindow(k, e, &cost)
 		}
-		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || s.rbAny(e.ctrl) || e.trigPl == trigPlMadness && debugMadnessMutate == 0 {
+		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || s.rbAny(e.ctrl) && s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)) != 0 || e.trigPl == trigPlMadness && debugMadnessMutate == 0 {
 			return false
 		}
 		var saved [len(build{}.picks)]uint8
