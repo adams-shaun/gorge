@@ -285,6 +285,14 @@ func TestStdFraReprosLockstep(t *testing.T) {
 	})
 }
 
+// std-spm's, on the same terms.
+func TestStdSpmReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-spm", []stdRepro{
+		{"tapcost_source_not_paid_with_itself", false, false}, // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
+	})
+}
+
 // std-dft's, on the same terms.
 func TestStdDftReprosLockstep(t *testing.T) {
 	t.Parallel()
