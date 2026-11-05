@@ -14,5 +14,9 @@ func TestPhasedOutOptionsLockstep(t *testing.T) {
 		// CR 733.1, 707.10a: the Play resolves with every land tapped, gorge's copy cast is
 		// reversed before any mana window opens and the copy ceases; the kernel stalled
 		{"copy_cast_reversed_without_mana_source", true, false},
+		// CR 601.2f, 707.12: the copy of Ravenous Cosmozoan costs {1} less for each noncreature,
+		// nonland card in its caster's graveyard, as the card does; gorge priced the copy
+		// in its holding zone, where its own cost static was not yet collected
+		{"copy_cast_own_cost_reduction", false, false},
 	})
 }
