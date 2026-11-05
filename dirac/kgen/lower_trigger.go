@@ -810,6 +810,27 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if tr.F, err = readF("ValidCard"); err != nil {
 			return err
 		}
+		if t.Mode == "CounterAddedOnce" {
+			// gorge counterAddedMatches: FirstTime$ True is the once-a-turn
+			// latch over the same CounterChange batch event (kernel
+			// Tf2FirstTime, trig_counterfirst.go). The latch is per SOURCE
+			// (usedThisTurn), so it carries only the Card.Self reading
+			// ("the first time each turn", U.S.S. Enterprise-D, Axgard
+			// Artisan); Botanical Brawler's "the first time ... on that
+			// permanent" is a per-RECIPIENT latch the kernel does not have,
+			// so it refuses. The per-counter CounterAdded shape has no such
+			// latch at all: leave the param unread there so the census
+			// refuses it.
+			if v, ok := tp.get("FirstTime"); ok {
+				if v != "True" {
+					return refuse("CounterAddedOnce FirstTime$ %q", v)
+				}
+				if vc := tp.str("ValidCard"); vc != "Card.Self" {
+					return refuse("CounterAddedOnce FirstTime$ on ValidCard$ %q", vc)
+				}
+				tr.First = true
+			}
+		}
 		ct := tp.str("CounterType")
 		if ct == "" {
 			// gorge counterAddedMatches: an absent CounterType$ admits every
