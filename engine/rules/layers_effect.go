@@ -1193,6 +1193,17 @@ func (e *Engine) continuousLive(ce *ContinuousEffect) bool {
 		// while the current turn is at or before that boundary; the
 		// `<=` is the guard that keeps an effect from lingering if a
 		// cleanup were ever skipped.
+		//
+		// A self-scoped grant stamped with the incarnation that registered it
+		// (PumpAll's per-object "-1/-0 until your next turn") is the one
+		// exception: it covers the objects present at resolution only (CR
+		// 611.2c), so the same ObjID back from a zone change is a new object
+		// (CR 400.7) and does not inherit it.
+		if ce.SourceIncarnation != 0 {
+			if source := e.G.Obj(ce.Source); source != nil && source.Incarnation != ce.SourceIncarnation {
+				return false
+			}
+		}
 		return e.G.Turn <= ce.UntilTurn
 	}
 	o := e.G.Obj(ce.Source)

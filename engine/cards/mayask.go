@@ -390,6 +390,9 @@ func saChainMayAsk(sa *SA, svars map[string]string, self *Face, root bool, depth
 			if _, ok := s.Params["TypeList"]; ok {
 				return true // CounterTypes$ ChosenFromList: a per-recipient kind pick
 			}
+			if s.ParamStr(PKCounterType) == "ExistingCounter" {
+				return true // "choose a counter on it": the kind pick (putCounterExisting)
+			}
 		case "Charm":
 			if !first || choices == "" || depth > 0 {
 				return true // a Charm reached mid-chain picks its modes here
