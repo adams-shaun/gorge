@@ -179,6 +179,14 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// the battlefield (kernel tliRemLKI); every other characteristic
 		// is read live, as Remembered's
 		return lRef{Kind: rRemembered}, nil
+	case "Imprinted":
+		// DigUntil's ImprintFound$ chain (lower_digimprint.go): gorge
+		// effectRemembered reads the source's seek-found Imprint, which the
+		// kernel holds in the chosen set (DuImprintFound).
+		if !lc.digImprintFoundMode {
+			return lRef{}, refuse("Defined$ Imprinted outside a DigUntil ImprintFound$")
+		}
+		return lRef{Kind: rChosen}, nil
 	case "Player.IsRemembered":
 		if lc.repeatPl == 0 {
 			return lRef{}, refuse("Defined$ %q outside a RepeatEach body", v)
@@ -1737,6 +1745,12 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 				return refuse("Cleanup ClearImprinted$ without ClearRemembered$")
 			}
 		}
+		if lc.digImprintFoundMode && ps.is("ClearImprinted", "True") {
+			// the imprint is the kernel's chosen set (lower_digimprint.go):
+			// gorge's seek-found Imprint "clear" clears it
+			ps.consume("ClearImprinted")
+			lc.emit(lInstr{Op: "ClearChosen"})
+		}
 	case "ChooseCard":
 		return lc.chooseCard(ps)
 	case "ChoosePlayer":
@@ -2832,6 +2846,9 @@ func (lc *lowerCtx) earthbend(ps *params) error {
 }
 
 func (lc *lowerCtx) putCounter(ps *params) error {
+	if lc.digImprintFoundMode {
+		return lc.digImprintFoundPut(ps) // lower_digimprint.go
+	}
 	if _, ok := ps.m["DividedAsYouChoose"]; ok {
 		if ok, err := lc.dividedCountersN(ps); ok || err != nil {
 			return err

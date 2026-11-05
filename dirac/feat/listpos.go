@@ -107,7 +107,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 				return secHand<<24 | 1<<20 | uint32(z.idx)<<8
 			}
 			return secHand<<24 | uint32(z.idx)<<8
-		case dirac.AkCast, dirac.AkCastCasualty:
+		case dirac.AkCast, dirac.AkCastCasualty, dirac.AkCastConspire:
 			if e.st0.FeatScripted(d.Player, a) {
 				return noPos // a scripted potential play (Bloom Tender's prefix)
 			}

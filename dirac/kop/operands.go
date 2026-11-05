@@ -53,6 +53,12 @@ const MayGuardCloneCopy = 8
 // spell on the stack, else nothing is asked and the move is skipped.
 const MayGuardStackSpell = 9
 
+// MayGuardPut: the OpMayAsk guard of an Optional$ PutCounter with
+// RememberPut$ True (gorge putCounterOptionalDeclined): the next op is an
+// OpPutCounter whose Defined target is live (a dead source has no slot), else
+// nothing is asked and the counter is not put.
+const MayGuardPut = 10
+
 // MayGuardAnimateAll: the OpMayAsk guard of Animate over Defined$ Valid: the
 // next op is an OpOverrideAll whose F has at least one battlefield hit (gorge
 // animateWouldChange), else nothing is asked.
@@ -315,6 +321,21 @@ const (
 	DuRememberFound     = 1 << 7 // the found cards replace the remembered set (RememberFound$)
 	DuDugMark           = 1 << 8 // mark where the resolving controller's exile starts the dug cards (OpDiscover C=DiscoverDugBottom; Jodah)
 	DuFoundAttacking    = 1 << 9 // a found card put onto the battlefield enters attacking (Attacking$ True; gorge effects/diguntil.go:176-184)
+	// DuRememberRevealed (A=3): digRememberRevealed appends every scanned
+	// card — found and revealed, in scan order — to the remembered set, per
+	// player (gorge RememberRevealed$ True: gorge appends the whole reveal at
+	// the end of the player's walk; the scan order is the same list).
+	DuRememberRevealed = 1 << 10
+	// DuMinTotalCMC: the scan reads its bound from B (A$ MinTotalCMC) and
+	// stops once the revealed matches' mana values sum to at least that
+	// bound (gorge digUntil's MinTotalCMC$; the amount bound is ignored
+	// then, and a card beyond want still gets found).
+	DuMinTotalCMC = 1 << 11
+	// DuImprintFound (A=4): digImprintFound dedupe-appends the found cards to
+	// the chosen set (gorge ImprintFound$ True emits one seek-found Imprint
+	// on the source after the player walk; the kernel accumulates per
+	// player, which only the later Effect reads).
+	DuImprintFound = 1 << 12
 )
 
 // CopyFlags (OpCopyAsTokenEx B.N). The copy's characteristic exceptions
@@ -406,6 +427,14 @@ const LibTopShuffleSelf = 5
 // not the top's). Origin$ Battlefield only: an object no longer on the
 // battlefield does not move, but the library is still shuffled.
 const LibBottomShuffle = 7
+
+// LibBottomRememberGrave is OpToLibrary's C for a trigger object's
+// Origin$ Graveyard move to the bottom of its owner's library with
+// RememberChanged$ True (The Spot, Living Portal's "put him on the bottom of
+// his owner's library. If you do, ..."): a card no longer in the graveyard
+// does not move (gorge's Origin$ precondition), and a card that reached the
+// library joins the remembered set.
+const LibBottomRememberGrave = 9
 
 // Delayed program timings (OpDelayedProgram A; 0 = the next end step).
 const (

@@ -297,7 +297,16 @@ func (s *State) mayPlayStatics(k *prep, p uint8, o Obj, f func(st statSrc) bool)
 	stopped := false
 	check := func(st statSrc) bool {
 		a := st.a
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom || st.ctrl != p || !mayPlayFromZone(&a.Static, ob.zone) {
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom || !mayPlayFromZone(&a.Static, ob.zone) {
+			return true
+		}
+		if a.Static.StFlags&kop.StSeatActive != 0 {
+			// the beneficiary is the active player, whoever controls the static
+			if p != s.active {
+				return true
+			}
+			st.ctrl = p
+		} else if st.ctrl != p {
 			return true
 		}
 		if a.Static.StFlags&(kop.StFunctionsInGraveyard|kop.StFunctionsInExile) != 0 {
@@ -413,10 +422,16 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 		if k.gen.anyRaise {
 			n = s.freeDropTargets(k, buf, n)
 		}
+		if k.gen.anyRaiseLife {
+			n = s.raiseLifeDropTargets(k, buf, n)
+		}
 		return n
 	}
 	if k.gen.anyRaise {
 		n = s.raiseDropTargets(k, buf, n) // a target-dependent raise (cost_reducespell.go)
+	}
+	if k.gen.anyRaiseLife {
+		n = s.raiseLifeDropTargets(k, buf, n) // a target-dependent life raise (cost_raiselife.go)
 	}
 	cd := &k.t.Cards[e.card]
 	var f kop.FilterID

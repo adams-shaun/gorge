@@ -13,6 +13,19 @@ import (
 
 const convokePickMask pickKind = 0x4400
 
+// StallStackKwGrant: a spell carries a granted tap-paid keyword (Convoke or
+// Improvise) and the cast needs an announcement the kernel cannot mirror:
+// both keywords live at once (gorge's one ConvokeAsk offers creature colour,
+// creature generic and artifact generic picks; the kernel poses one
+// keyword's), or an {X} cost (gorge announces before X and offers every
+// creature a possible generic payment; the kernel's convoke paths never
+// model X). kgen refuses the printed forms; a grant reopens them, so the
+// cast stalls rather than diverging. Unmodelled (kw_convoke.go
+// convokeOptions).
+const StallStackKwGrant = 140
+
+func init() { stallNames[StallStackKwGrant] = "stackkwgrant" }
+
 // Mutation-test switches (dirac/oracle TestConvokeMutation): the lockstep
 // must diverge when either is set.
 var (
@@ -60,40 +73,64 @@ func (s *State) tapPayCand(k *prep, sl Slot, imp bool) bool {
 
 func isConvokePick(f pickKind) bool { return f&convokePickMask == convokePickMask }
 
-// convokeCredit returns cost less the greedy convoke credit: in p's
-// battlefield order, each untapped creature that is not bestowed or
+// convokeCredit returns cost less the greedy tap-paid credit: convoke first,
+// in p's battlefield order, each untapped creature that is not bestowed or
 // reconfigured pays the first owed colour among W,U,B,R,G it has, else one
-// generic. Hybrid and {C} pips are never paid (gorge convokeCost).
+// generic; then improvise over the remaining generic, each untapped artifact
+// not already committed by convoke pays one generic (gorge castOfferBase:
+// convokeCost then improviseCost). Hybrid and {C} pips are never paid. A
+// spell with both keywords is unmodelled and stalls at the announcement
+// (convokeOptions), but its offer must still be priced like gorge's or the
+// kernel would not reach that announcement.
 func (s *State) convokeCredit(k *prep, p uint8, c CardID, o Obj, cost kop.ManaCost) kop.ManaCost {
 	if k.gen == nil || !k.gen.anyConvoke {
 		return cost
 	}
 	fromHand := s.objs[o].zone == kop.ZoneHand // the offer: the card is still in the hand
-	if !s.tapPays(k, p, c, o, fromHand) {
+	convoke := s.hasConvoke(k, p, c, o, fromHand)
+	improvise := s.isImprovise(k, p, c, o, fromHand)
+	if !convoke && !improvise {
 		return cost
 	}
-	imp := s.isImprovise(k, p, c, o, fromHand)
 	var rem [5]uint8
 	for i := range rem {
 		rem[i] = cost.Pips[i]
 	}
 	gen := cost.Generic
+	var used slotMask
 	var ord [MaxPerm]Slot
 	n := s.battlefieldOrder(p&1, s.ctrlM[p&1].and(s.occ), ord[:], 0)
-	for _, sl := range ord[:n] {
-		if !s.tapPayCand(k, sl, imp) {
-			continue
-		}
-		col := s.colorsAt(k, sl)
-		paid := false
-		for ci := 0; ci < 5 && !imp; ci++ {
-			if rem[ci] > 0 && col&(1<<ci) != 0 {
-				rem[ci]--
+	if convoke {
+		for _, sl := range ord[:n] {
+			if !s.tapPayCand(k, sl, false) {
+				continue
+			}
+			col := s.colorsAt(k, sl)
+			paid := false
+			for ci := 0; ci < 5; ci++ {
+				if rem[ci] > 0 && col&(1<<ci) != 0 {
+					rem[ci]--
+					paid = true
+					break
+				}
+			}
+			if !paid && gen > 0 {
+				gen--
 				paid = true
-				break
+			}
+			if paid {
+				used = used.with(sl)
 			}
 		}
-		if !paid && gen > 0 {
+	}
+	if improvise {
+		for _, sl := range ord[:n] {
+			if gen == 0 {
+				break
+			}
+			if used.has(sl) || !s.tapPayCand(k, sl, true) {
+				continue
+			}
 			gen--
 		}
 	}
@@ -173,6 +210,19 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	if k.gen == nil || !k.gen.anyConvoke || e.kind != seSpell || !s.tapPaysEntry(k, e) {
 		return false
 	}
+	if cd := &k.t.Cards[e.card]; harmonizeEntry(cd, e) || cd.Impending != 0 || cd.HasPlot || cd.HasSneak || cd.HasWarp ||
+		cd.Mayhem || cd.HasWebSling || cd.HasMayFlash {
+		// kgen refuses these routes beside a printed Convoke or Improvise, so
+		// a live one is a grant. gorge's convokeAsk offers harmonize and
+		// convoke/improvise picks together, and prices the alternative-cost
+		// routes' announcement itself; the kernel's menu for them is
+		// unverified under a grant, so stall rather than pose it.
+		fh := s.castFromHandBy(e, e.ctrl)
+		if s.hasConvoke(k, e.ctrl, e.card, e.obj, fh) || s.isImprovise(k, e.ctrl, e.card, e.obj, fh) {
+			s.capFull(StallStackKwGrant)
+			return false
+		}
+	}
 	if harmonizeEntry(&k.t.Cards[e.card], e) {
 		return s.harmonizeOptions(k, d) // kw_harmonize.go
 	}
@@ -186,7 +236,23 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	// longer absorbs, so a fully paid announcement still poses a Done-only
 	// menu. Offer only the picks the post-pick remainder absorbs.
 	raw := s.buildCost(k)
-	imp := s.isImprovise(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl))
+	fromHand := s.castFromHandBy(e, e.ctrl)
+	convoke := s.hasConvoke(k, e.ctrl, e.card, e.obj, fromHand)
+	improvise := s.isImprovise(k, e.ctrl, e.card, e.obj, fromHand)
+	// A granted tap-paid keyword reopens two shapes kgen refuses for the
+	// printed forms: a spell with both convoke and improvise (gorge offers
+	// creature colour, creature generic and artifact generic picks in one
+	// announcement; the kernel poses one keyword's), and an {X} cost (gorge
+	// announces before X and offers every creature a possible generic
+	// payment). Stall unmodelled rather than pose the wrong menu.
+	if raw.MV() > 0 || raw.X > 0 {
+		cd := &k.t.Cards[e.card]
+		if convoke && improvise || raw.X > 0 && (!cd.Convoke && convoke || !cd.Improvise && improvise) {
+			s.capFull(StallStackKwGrant)
+			return false
+		}
+	}
+	imp := improvise
 	// gorge's ask closes at Max = min(#options, slots), the uncredited
 	// Colored.Total()+Generic (pay.ConvokeAsk): an announcement whose picks
 	// reach the slot count commits without a Done.

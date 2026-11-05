@@ -342,7 +342,7 @@ func (s *State) syncBuild() {
 // these rows. A triggered ability is pushed by takePending before its
 // program starts.
 var buildProgram = [3][]uint8{
-	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsConvoke, bsX, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
+	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsConspire, bsConvoke, bsX, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seAbility: {bsPush, bsModes, bsTapCost, bsX, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seTrigger: {bsModes, bsPips, bsTargets, bsDivide, bsPay},
 }
@@ -620,6 +620,12 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				return true
 			}
 			if k.gen != nil && k.gen.anyWaterbend && s.waterbendOptions(k, d) {
+				return true
+			}
+			s.nextStage(k)
+			continue
+		case bsConspire:
+			if s.bld().cas >= casConspire && s.bld().cas <= casConspHalf && e.kind == seSpell && s.conspireOptions(k, d) {
 				return true
 			}
 			s.nextStage(k)
@@ -1071,6 +1077,10 @@ func (s *State) applyBuild(k *prep, a Action) {
 			s.answerCasualty(k, a)
 			break
 		}
+		if s.bld().stage == bsConspire {
+			s.answerConspire(k, a)
+			return
+		}
 		if s.bld().stage == bsEvidence {
 			s.answerCostEvidence(k, a)
 			break
@@ -1177,7 +1187,9 @@ func (s *State) applyBuild(k *prep, a Action) {
 				e.nt = ti + 1
 			}
 			if k.gen != nil && k.gen.crimeOn {
-				s.crimePick(k, a.Target())
+				// the plain target step takes one pick per ask: the ask
+				// completes here (act_commitcrime.go crimePick)
+				s.crimePick(k, a.Target(), true)
 			}
 		}
 		s.bld().ti++
@@ -1209,6 +1221,9 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 	}
 	if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 {
 		s.payLifeCost(k, e.ctrl, pc, e.x)
+	}
+	if k.gen != nil && k.gen.anyRaiseLife {
+		s.payRaiseLife(k) // a RaiseCost PayLife<N> the chosen target owes (cost_raiselife.go)
 	}
 	if k.phyMana {
 		s.payPhyrexianLife(k) // the two-life faces (mana_phyrexian.go)
@@ -1296,6 +1311,7 @@ func (s *State) finishBuild(k *prep) {
 			s.noteFirstCast() // cast_firstcast.go
 		}
 		s.onCast(k, &e)
+		s.conspireTrigger(k, &e)
 		s.casualtyTrigger(k, &e)
 		s.passes = 0
 		if s.bld().bfl&bflDefeatCast != 0 {

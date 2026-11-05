@@ -116,13 +116,15 @@ func (s *State) mayPlayZones(k *prep, p uint8) uint16 {
 	z := uint16(0)
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()
-		if k.gen.sCls[s.cardAt(sl)]&sclsMayPlay == 0 || s.perms[sl].ctrl != p || s.genLost(k, sl) {
+		if k.gen.sCls[s.cardAt(sl)]&sclsMayPlay == 0 || s.genLost(k, sl) {
 			continue
 		}
 		cd := &k.t.Cards[s.cardAt(sl)]
+		mine := s.perms[sl].ctrl == p
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom && a.Static.StFlags&(kop.StFunctionsInGraveyard|kop.StFunctionsInExile) == 0 {
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom && a.Static.StFlags&(kop.StFunctionsInGraveyard|kop.StFunctionsInExile) == 0 &&
+				(mine || a.Static.StFlags&kop.StSeatActive != 0 && p == s.active) {
 				z |= mayPlayZoneBits(&a.Static)
 			}
 		}

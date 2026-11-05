@@ -688,7 +688,7 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 	case "Attached":
 		// gorge objectAttachedToSource: the candidate is attached to the source
 		return c.setCmp(cmpAttached, 0, 0, "", "")
-	case "ActivePlayerCtrl":
+	case "ActivePlayerCtrl", "ControlledBy Player.Active":
 		// gorge wordActivePlayerCtrl: its controller is the active player
 		return c.setCmp(cmpActiveCtrl, 0, 0, "", "")
 	case "enchanted", "Enchanted":

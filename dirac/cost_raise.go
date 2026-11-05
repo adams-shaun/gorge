@@ -17,6 +17,9 @@ func (s *State) raiseCostGen(k *prep, p uint8, c CardID, o, priced Obj) int {
 	add := func(a *kop.Ability, ctx evalCtx) {
 		ctx.uncounted = priced + 1
 		st := &a.Static
+		if st.StFlags&kop.StRaiseLife != 0 {
+			return // life, not generic mana (cost_raiselife.go)
+		}
 		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) {
 			return
 		}

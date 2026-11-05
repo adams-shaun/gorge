@@ -62,9 +62,9 @@ func (Heuristic) Pick(s *dirac.State, d *dirac.Decision) int {
 			switch a.Kind() {
 			case dirac.AkPlayLand:
 				return i
-			case dirac.AkCast, dirac.AkCastCasualty, dirac.AkActivate:
+			case dirac.AkCast, dirac.AkCastCasualty, dirac.AkCastConspire, dirac.AkActivate:
 				m := 0
-				if a.Kind() == dirac.AkCast || a.Kind() == dirac.AkCastCasualty {
+				if a.Kind() == dirac.AkCast || a.Kind() == dirac.AkCastCasualty || a.Kind() == dirac.AkCastConspire {
 					m = mv(t, s.ObjCard(dirac.Obj(a.Source())))
 					if a.Mode()&1 != 0 {
 						m += 10 // prefer the kicked cast

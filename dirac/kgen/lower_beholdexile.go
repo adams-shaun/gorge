@@ -24,8 +24,11 @@ func (lc *lowerCtx) raiseSelfBehold(sp *params, st *lStatic) (bool, error) {
 	if !ok || sp.m["Amount"] != "" {
 		return false, nil
 	}
-	sp.consume("Cost")
 	cost = strings.TrimSpace(cost)
+	if _, life := raiseLifeN(cost); life {
+		return false, nil // a life raise: raiseCost lowers it (lower_raiselife.go)
+	}
+	sp.consume("Cost")
 	rest, found := strings.CutPrefix(cost, "BeholdExile<")
 	if !found {
 		return true, refuse("RaiseCost Cost$ %q", cost)
