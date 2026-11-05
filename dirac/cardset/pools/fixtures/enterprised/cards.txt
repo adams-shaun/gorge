@@ -1,0 +1,12 @@
+# the U.S.S. Enterprise-D first-time counter pool: the Station
+# Spacecraft whose CounterAddedOnce line gates on FirstTime$ True, beside
+# several cheap creatures to station with and basics, for the oracle's
+# constructed lockstep (dirac/oracle/enterprised_test.go)
+Elite Vanguard
+Forest
+Grizzly Bears
+Hill Giant
+Mountain
+Plains
+Savannah Lions
+U.S.S. Enterprise-D, Galaxy-Class

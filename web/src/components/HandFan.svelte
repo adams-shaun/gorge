@@ -312,6 +312,9 @@
         {#if zoneOf.has(c.id)}
           <span class="zone-tag data" data-offhand-zone={zoneOf.get(c.id)}>{zoneOf.get(c.id)}</span>
         {/if}
+        {#if c.types.includes('Land') && options && !payment && !landPlay && player.land_drop_spent === true}
+          <span class="land-hint data" data-land-hint>No land drop left this turn</span>
+        {/if}
         <!-- Gate on the object ID, never object identity: every live view
              refresh hands this keyed each a FRESH CardView for the same id,
              so `hovered === c` flipped false and unmounted the open panel
@@ -618,6 +621,22 @@
     color: var(--felt-sunk);
     font-size: var(--t-10);
     font-weight: 700;
+    pointer-events: none;
+  }
+  /* The one explanation a hand land gets when the drop is spent: a neutral
+     chip beside the face, never an action and never a tone. */
+  .land-hint {
+    position: absolute;
+    top: 1.5rem;
+    left: 1px;
+    z-index: 21;
+    padding: 0 0.25rem;
+    border-radius: 3px;
+    background: var(--instrument-raised);
+    color: var(--ink-dim);
+    font-size: var(--t-10);
+    font-weight: 700;
+    white-space: nowrap;
     pointer-events: none;
   }
   .payment-shortcut {

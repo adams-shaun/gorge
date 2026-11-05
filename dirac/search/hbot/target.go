@@ -165,6 +165,9 @@ func (bt *Bot) targetKey(s *dirac.State, tg uint8) uint32 {
 	if tg >= dirac.PlayerTarget0 {
 		return uint32(tg - dirac.PlayerTarget0)
 	}
+	if i, ok := dirac.StackTargetIndex(tg); ok {
+		return uint32(i) // a stack ability: the stack class, by its place from the bottom
+	}
 	o := dirac.Obj(tg)
 	var zone, seat, idx uint32
 	switch s.ObjZone(o) {
@@ -195,6 +198,13 @@ func (bt *Bot) targetKey(s *dirac.State, tg uint8) uint32 {
 func optPlayer(s *dirac.State, tg uint8) uint8 {
 	if tg >= dirac.PlayerTarget0 {
 		return tg - dirac.PlayerTarget0
+	}
+	if i, ok := dirac.StackTargetIndex(tg); ok {
+		if i < s.StackLen() {
+			_, _, _, ctrl := s.StackEntry(i)
+			return ctrl
+		}
+		return 0
 	}
 	o := dirac.Obj(tg)
 	switch s.ObjZone(o) {
@@ -286,7 +296,7 @@ func (bt *Bot) removalRank(r *tgtRank, tg uint8, me uint8, te *TgtEff) {
 		return
 	}
 	value := r.score
-	if value == 0 {
+	if value == 0 && dirac.IsObjTarget(tg) {
 		if i := b.cardX[tg]; i > 0 {
 			value = b.card[i-1].cmc * 3
 		}

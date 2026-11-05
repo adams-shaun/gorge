@@ -109,7 +109,37 @@ func counterAddedMatches(e Board, t cards.Trigger, source state.ObjID, ev events
 			}
 		}
 	}
+	if t.ModeKind() == cards.TriggerCounterAddedOnce && ParamTrue(t, cards.PKFirstTime) && !firstCounterAddedThisTurn(e, ev) {
+		return false
+	}
 	return true
+}
+
+// firstCounterAddedThisTurn answers FirstTime$ True on a CounterAddedOnce
+// line ("Whenever one or more charge counters are put on ~ for the first time
+// each turn", U.S.S. Enterprise-D): no earlier positive CounterChange of the
+// SAME kind landed on the same object since the last TurnChange. The current
+// event is already in the log (the matcher runs after the record), so the
+// backward scan -- the firstLifeGainThisTurn / firstDamageToThisTurn shape --
+// sees exactly one matching event for the line's first batch and two or more
+// for every later batch. A counter of another kind is a different placement
+// event and never spends the latch.
+func firstCounterAddedThisTurn(e Board, ev events.Event) bool {
+	seenCurrent := false
+	for i := len(e.Log().Events) - 1; i >= 0; i-- {
+		le := e.Log().Events[i]
+		if le.Kind == events.TurnChange {
+			return seenCurrent
+		}
+		if le.Kind != events.CounterChange || le.Amount <= 0 || le.Obj != ev.Obj || le.Counter != ev.Counter {
+			continue
+		}
+		if seenCurrent {
+			return false
+		}
+		seenCurrent = true
+	}
+	return seenCurrent
 }
 
 // counterRemovedMatches is CounterAdded's mirror for Mode$ CounterRemoved AND

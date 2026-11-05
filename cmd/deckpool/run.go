@@ -28,6 +28,7 @@ type indexEntry struct {
 	DraftID string `json:"draft_id"`
 	Drafter string `json:"drafter"`
 	Builder string `json:"builder"`
+	meta
 }
 
 // run drafts o.pods pods and writes their decks, the index and, last, the
@@ -66,6 +67,7 @@ func run(o options, stdout io.Writer) error {
 		return err
 	}
 	var index []byte
+	var metas []meta
 	n := 0
 	for i := 0; i < o.pods; i++ {
 		podSeed := o.seed + uint64(i)
@@ -83,9 +85,12 @@ func run(o options, stdout io.Writer) error {
 				return fmt.Errorf("pod %d (seed %d) seat %d: %w", i, podSeed, seat, err)
 			}
 			id := o.set + "-" + res.DraftIDs[seat]
+			m := describe(lab, res.Pools[seat], d)
+			metas = append(metas, m)
 			f := d.File
 			f.Name = id
 			f.Format = "limited"
+			f.Archetype = m.Archetype
 			rel := filepath.ToSlash(filepath.Join("decks", id+".json"))
 			if err := writeJSON(filepath.Join(o.out, rel), f); err != nil {
 				return err
@@ -93,6 +98,7 @@ func run(o options, stdout io.Writer) error {
 			line, err := json.Marshal(indexEntry{
 				ID: id, File: rel, Set: o.set, Seed: podSeed, Seat: seat,
 				DraftID: res.DraftIDs[seat], Drafter: nd.Ref.String(), Builder: nb.Ref.String(),
+				meta: m,
 			})
 			if err != nil {
 				return err
@@ -115,7 +121,12 @@ func run(o options, stdout io.Writer) error {
 	if err := writeJSON(filepath.Join(o.out, "manifest.json"), m); err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(stdout, "deckpool: wrote %d decks to %s\n", n, o.out)
+	if _, err = fmt.Fprintf(stdout, "deckpool: wrote %d decks to %s\n", n, o.out); err != nil {
+		return err
+	}
+	if !o.quiet {
+		_, err = fmt.Fprint(stdout, summarise(metas))
+	}
 	return err
 }
 

@@ -42,8 +42,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +4 (H.M.S. Bounty: Count$YourExtraTurns beside Defined$ You on AddTurn; land; merged ALL 21476 -> 21480, TRK 300 -> 301).
 	// +2 (Those Old Scientists, Turn the Earth: a multi-target graveyard shuffle's per-owner move lowers to OpMayShuffleMove; merged TRK 299 -> 300, ALL 21472 -> 21474).
 	// +1 (Q, Stacking the Deck: the exile-granted copy-and-cast ability of a card exiled from the top of the library; merged TRK 299 -> 300, ALL 21472 -> 21473).
+	// +2 (U.S.S. Enterprise-D, Galaxy-Class and Axgard Artisan: CounterAddedOnce FirstTime$ True's per-source once-a-turn latch; MOM 196 -> 197, TRK 305 -> 306, ALL 21486 -> 21488).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21492, 34442},
+	"ALL": {21494, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
@@ -58,7 +59,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {152, 172},
 	"LCI": {250, 290},
 	"MKM": {228, 279},
-	"MOM": {196, 296},
+	"MOM": {197, 296},
 	"MSH": {225, 276},
 	"NEO": {198, 287},
 	"ONE": {195, 271},
@@ -70,7 +71,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TLA": {245, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
-	"TRK": {308, 311},
+	"TRK": {309, 311},
 	"WOE": {252, 281},
 }
 

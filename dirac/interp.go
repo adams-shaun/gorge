@@ -895,13 +895,9 @@ func (s *State) applyResolve(k *prep, a Action) {
 		if chained {
 			s.flushHeldDiscard(k, r.chosen^1)
 		}
-		if chained && !s.parkedDiscardWaiting() {
-			for i := 0; i < int(r.peekI); i++ {
-				s.discardObj(k, r.arr[i])
-			}
-		} else { // behind a held pick's ask the chained picks wait too
-			s.discardPicks(k, r.arr[:r.peekI], 0)
-		}
+		// a competing pick waits for its order ask, and the picks behind it, or
+		// behind a held pick's ask, wait too (discardPicks)
+		s.discardPicks(k, r.arr[:r.peekI], 0)
 		r.peekI = 0
 	case raScryTop, raSurveil:
 		if r.restPh {

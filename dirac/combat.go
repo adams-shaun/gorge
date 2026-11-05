@@ -1105,15 +1105,21 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 	// state-based actions run right after each damage pass (gorge
 	// completeCombatPass -> checkStateBased); a legend-rule ask waits for
 	// the next priority check
+	ask := false
 	if ctl := s.ctl; s.sba(k) {
 		if s.over {
 			return
 		}
+		// a casualty's order ask is posed inside the check (CR 616.1)
+		ask = s.ctl == ctlExileOrder
 		s.ctl = ctl
 	}
 	// CR 510.3: a priority round in the combat damage step, so its damage
 	// triggers resolve before end of combat's
 	s.openPriority()
+	if ask {
+		s.ctl = ctlExileOrder
+	}
 }
 
 // liveBlockers writes attacker a's blockers in block order.
