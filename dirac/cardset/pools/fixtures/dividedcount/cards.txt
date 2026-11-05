@@ -1,0 +1,13 @@
+# the value-total divided-damage pool: Ureni, the Song Unending's
+# "deals X damage divided as you choose ... where X is the number of lands you
+# control" (DividedAsYouChoose$ X, a count) beside elves that let it enter with
+# five lands, bodies to divide the damage among, and dual lands for its GUR
+# cost (dirac/oracle/divided_counttotal_test.go)
+Ureni, the Song Unending
+Llanowar Elves
+Fyndhorn Elves
+Grizzly Bears
+Forest
+Taiga
+Tropical Island
+Volcanic Island

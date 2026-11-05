@@ -72,8 +72,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (Waterbending Lesson, The Unagi of Kyoshi Island: an UnlessCost$ Waterbend<N> and Ward:Waterbend<N>; this branch; merged TLA 246 -> 248, ALL 21595 -> 21597).
 	// +2 (the merge with land: this branch's UnlessCost$/Ward Waterbend<N> beside land's OptionalCost Waterbend<N> spell, whose two TLA cards land had already lowered; merged TLA 248 -> 250, ALL 21638 -> 21640).
 	// +3 (the merge with land: land's Taps watchers over your own and the equipped creature beside this branch's UnlessCost$/Ward Waterbend<N>; merged MSH 231 -> 232, ALL 21640 -> 21643).
+	// +2 (the merge with land: land's re-measure after its rebase (a TDM card and one more) beside this branch's Waterbend unless/ward cards, each side's two disjoint; merged TDM 248 -> 249, ALL 21643 -> 21645).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21643, 34442},
+	"ALL": {21645, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -96,7 +97,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SNC": {185, 266},
 	"SOS": {248, 270},
 	"SPM": {160, 192},
-	"TDM": {248, 276},
+	"TDM": {249, 276},
 	"TLA": {250, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
