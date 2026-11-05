@@ -36,11 +36,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Stray from History: a charm mode's hand move reads the owner from that mode's own player slot; TRK 293 -> 294, ALL 21463 -> 21464).
 	// +1 (Kai Winn, Faithless Leader: the as-enters nonland card name and the opponent cast/activation trigger over it; TRK 294 -> 295, ALL 21464 -> 21465).
 	// +4 (Captain Benjamin Sisko: a Play's mana-value bound names any one-letter SVar and Valid$ carries YouOwn; land; merged TRK 295 -> 296, ALL 21465 -> 21469).
+	// +1 (Dominion Saboteur: the remembered-origin counter rider of an ETB copy; merged TRK 297 -> 298, ALL 21470 -> 21471).
 	// +1 (The Inner Light: an Effect's remembered target and the damage amount reach its DamageDone emblem trigger; merged TRK 297 -> 298, ALL 21470 -> 21471).
 	// +4 (a library search's WithCountersType$ entry rider: Captain Jean-Luc Picard, Magmatic Hellkite, Neoform and Wakanda Forever!; merged ALL 21472 -> 21476; TDM 243 -> 244, TRK 299 -> 300).
 	// +4 (H.M.S. Bounty: Count$YourExtraTurns beside Defined$ You on AddTurn; land; merged ALL 21476 -> 21480, TRK 300 -> 301).
+	// +1 (Q, Stacking the Deck: the exile-granted copy-and-cast ability of a card exiled from the top of the library; merged TRK 299 -> 300, ALL 21472 -> 21473).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21480, 34442},
+	"ALL": {21481, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
@@ -67,7 +69,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TLA": {245, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
-	"TRK": {301, 311},
+	"TRK": {302, 311},
 	"WOE": {252, 281},
 }
 

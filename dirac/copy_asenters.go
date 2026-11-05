@@ -151,6 +151,13 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 	if pc.enterCtr != 0 && !(k.gen.anyEntryMerge && s.entryAcc(int(pc.enterCK), int(pc.enterCtr))) {
 		s.placeCounters(k, sl, int(pc.enterCK), int(pc.enterCtr), p.ctrl, ctrPutBy)
 	}
+	if in.B.K == kop.VConst && in.B.N&kop.BecomeCopyCtr != 0 {
+		// RememberCloneOrigin$ True + EachFromSource$ Remembered (Dominion
+		// Saboteur): the copy carries the origin's counters as it enters,
+		// before any enters trigger matches (and on top of the template's own
+		// printed counters just placed, CR 707.5).
+		s.copyEnteredCounters(k, sl, src)
+	}
 	if k.gen.has(c, gfEnterRepl) {
 		cd := &k.t.Cards[c]
 		for i := range cd.Abilities {
