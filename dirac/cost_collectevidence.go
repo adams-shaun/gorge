@@ -65,6 +65,9 @@ func prepCostEvidence(t *kop.Table, g *genPrep) {
 			g.anyOptCost = true // a spell's evidence part is an OptionalCost part (cost_optionalevidence.go)
 		}
 		for j := range t.Cards[i].Abilities {
+			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbSpell && a.Evidence == kop.EvidenceTargetsMV {
+				g.anyEvTargets = true
+			}
 			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbActivated {
 				for ti := 0; ti < int(a.NTargets); ti++ {
 					g.anyXBoundAb = g.anyXBoundAb || xBoundTarget(t, &a.Targets[ti])
@@ -78,7 +81,10 @@ func prepCostEvidence(t *kop.Table, g *genPrep) {
 // 0 for none.
 func (s *State) buildEvidenceN(k *prep) uint8 {
 	if s.bld().e.kind == seSpell {
-		return s.optEvidenceN(k) // cost_optionalevidence.go
+		if n := s.optEvidenceN(k); n != 0 { // cost_optionalevidence.go
+			return n
+		}
+		return s.targetsEvidenceN(k) // cost_collectevidencex.go
 	}
 	if s.bld().e.kind != seAbility {
 		return 0
@@ -121,6 +127,11 @@ func (s *State) evidenceGreedyMin(k *prep, p uint8, need int) int {
 	for i := 0; i < n; i++ {
 		mv[i] = uint8(min(s.graveMV(k, pl.grave[i]), 255))
 	}
+	ex := s.evExcl(p)
+	if ex >= 0 {
+		mv[ex] = mv[n-1] // the reserved triggered card is no candidate (cost_collectevidencex.go)
+		n--
+	}
 	tot, cnt := 0, 0
 	for tot < need && cnt < n {
 		best := cnt
@@ -141,8 +152,9 @@ func (s *State) evidenceGreedyMin(k *prep, p uint8, need int) int {
 func (s *State) evidenceOptions(k *prep, d *Decision, p uint8, need int) {
 	d.Kind, d.Sub, d.Player = DkChoose, ChCostEvidence, p
 	pl := &s.pl[p&1]
+	ex := s.evExcl(p)
 	for i := 0; i < int(pl.graveN); i++ {
-		if s.g.evSel&(1<<i) == 0 {
+		if s.g.evSel&(1<<i) == 0 && i != ex {
 			d.add(MakeAction(AkChoose, uint8(pl.grave[i]), 0, 0))
 		}
 	}
@@ -163,7 +175,7 @@ func (s *State) evidencePick(p uint8, a Action) bool {
 			break
 		}
 	}
-	return s.g.evSel == 1<<pl.graveN-1
+	return s.g.evSel == s.evAllMask(p)
 }
 
 // evidenceSelectAll selects player p's whole graveyard in gorge's option
@@ -171,10 +183,15 @@ func (s *State) evidencePick(p uint8, a Action) bool {
 func (s *State) evidenceSelectAll(k *prep, p uint8) {
 	pl := &s.pl[p&1]
 	picks := s.evPicks()
+	ex, c := s.evExcl(p), 0
 	for i := 0; i < int(pl.graveN); i++ {
+		if i == ex {
+			continue
+		}
 		o := pl.grave[i]
 		mv := s.graveMV(k, o)
-		j := i
+		j := c
+		c++
 		for ; j > 0; j-- {
 			prev := s.graveMV(k, picks[j-1])
 			if prev > mv || prev == mv && picks[j-1] < o {
@@ -184,7 +201,7 @@ func (s *State) evidenceSelectAll(k *prep, p uint8) {
 		}
 		picks[j] = o
 	}
-	s.g.evSel = 1<<pl.graveN - 1
+	s.g.evSel = s.evAllMask(p)
 }
 
 // exileEvidence exiles the selected graveyard cards in pick order and clears
@@ -253,17 +270,18 @@ func (s *State) unpushActivation() {
 func (s *State) startCostEvidence(k *prep) {
 	p := s.g.pickP
 	need := int(s.g.pickLeft)
-	if need <= 0 || s.graveTotalMV(k, p) < need {
+	if need <= 0 || s.graveTotalMV(k, p)-s.evExclMV(k, p) < need {
+		s.g.pickZ = payKindEvidence
 		s.payDone(k, false)
 		return
 	}
-	pl := &s.pl[p&1]
-	if s.evidenceGreedyMin(k, p, need) == int(pl.graveN) {
+	if s.evidenceGreedyMin(k, p, need) == s.evCandN(p) {
 		if DebugCostEvidenceStats != nil {
 			DebugCostEvidenceStats.Paid.Add(1)
 			DebugCostEvidenceStats.Auto.Add(1)
 		}
 		s.evidenceSelectAll(k, p)
+		s.exileTrigNewFirst()
 		if s.exileEvidence() > 0 && k.gen.anyExplEvTrig {
 			s.fireEvidence(k, p)
 		}
@@ -292,6 +310,7 @@ func (s *State) applyAskCostEvidence(k *prep, a Action) bool {
 	if DebugCostEvidenceStats != nil {
 		DebugCostEvidenceStats.Paid.Add(1)
 	}
+	s.exileTrigNewFirst()
 	if s.exileEvidence() > 0 && k.gen.anyExplEvTrig {
 		s.fireEvidence(k, s.g.pickP)
 	}

@@ -810,7 +810,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.BeholdN != 0 {
 		return out, fmt.Errorf("behold cost outside a spell's alternate additional cost")
 	}
-	if c.EvidenceN > 0 {
+	if c.EvidenceN > 0 || c.EvidenceX {
 		// an activated ability's evidence is a table byte (kop.Ability.Evidence,
 		// set by ability() from the lCost; cost is handed it zeroed); anywhere
 		// else (a spell's additional cost, a flashback cost) it is refused
@@ -1469,6 +1469,11 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		}
 		switch {
 		case c.CmpOp == opGE:
+			if c.CmpN > 127 {
+				// the threshold is the int16 high byte: above 127 it would
+				// wrap negative and the predicate would match everything
+				return kf, fmt.Errorf("counter compare %d on %s", c.CmpOp, c.CmpCounter)
+			}
 			kf.Pred = kop.PredCountersGE
 			kf.PredN = int16(c.CmpN<<8 | int(k))
 		case c.CmpOp == opLT && c.CmpN >= 1 || c.CmpOp == opLE || c.CmpOp == opEQ && c.CmpN == 0:

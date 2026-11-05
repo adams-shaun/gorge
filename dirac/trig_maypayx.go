@@ -72,6 +72,9 @@ func (s *State) applyAskTrigX(k *prep, a Action) bool {
 	if s.res.ask != raTrigX {
 		return s.applyAskManaChoice(k, a) // mana_colourchoice.go
 	}
+	if s.g.pickZ == payKindEvidence {
+		return s.applyAskEvidenceX(k, a) // CollectEvidence<X> (cost_collectevidencex.go)
+	}
 	s.g.pickZ = kop.PayMana
 	s.g.pickLeft = a.Mode()
 	p := s.g.pickP

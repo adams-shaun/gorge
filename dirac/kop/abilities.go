@@ -75,6 +75,9 @@ type Ability struct {
 	// Evidence: CollectEvidence<N> in the activation cost (CR 701.59a; gorge
 	// cast_targets.go evidenceAsk); 0 = none. A table byte: CostFlags has no
 	// free bit.
+	// A spell's AbSpell Evidence of EvidenceTargetsMV is a mandatory
+	// CollectEvidence<X> additional cost whose X is the total mana value of
+	// the spell's targets (Urgent Necropsy).
 	Evidence uint8
 	// GrantedKw: the trigger a granted keyword gives its holder (Firebending),
 	// a layer-6 grant listed by timestamp among the grants, where a trigger a

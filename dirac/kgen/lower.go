@@ -119,6 +119,7 @@ type lowerCtx struct {
 	spellBaseOK    bool      // the filter being read is a ReduceCost ValidTarget$: a Spell head may lower (lower_trigger.go)
 	trigOwnCost    bool      // payInstr: the cost is a printed trigger's own Cost$ (first instruction of its body)
 	trigXMax       *lValue   // payInstr: the XMax$ cap of a trigger's own announced {X} cost (Shanna); nil = none read
+	trigRemX       bool      // the ImmediateTrigger's RememberSVarAmount$ X is the announced X (lower_zone.go immediateTrigger)
 	trigXPaid      bool      // the body's Count$xPaid is that announced X (set once the PayManaX cost lowered)
 	unlessCost     bool      // payInstr: the cost is an UnlessCost$ of a non-delayed body
 	wardCost       bool      // payInstr: the cost is a Ward keyword's UnlessCost$
@@ -1579,12 +1580,18 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			// CollectEvidence<N> (CR 701.59a): exile graveyard cards with
 			// total mana value N or greater (gorge cost.parse's Evidence
 			// part). A variable <X> or a named amount is not modelled.
-			if len(parts) != 1 || c.EvidenceN != 0 {
+			if len(parts) != 1 || c.EvidenceN != 0 || c.EvidenceX {
 				return c, refuse("evidence cost %q", t)
+			}
+			if parts[0] == "X" {
+				// CollectEvidence<X>: the announced X (gorge costCarriesEvidenceX);
+				// only a trigger's own cost lowers it (lower_effect.go payInstr)
+				c.EvidenceX = true
+				continue
 			}
 			n, err := strconv.Atoi(parts[0])
 			if err != nil {
-				return c, refuse("evidence cost %q: a variable amount", t)
+				return c, refuse("evidence cost %q: a named amount", t)
 			}
 			if n < 1 {
 				return c, refuse("evidence cost %q", t)
@@ -1973,10 +1980,11 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			return c, refuse("cost token %q", t)
 		}
 	}
-	if c.EvidenceN > 0 && (c.Forage != nil || c.ExileG != nil || c.ExileTrigNew) {
+	if (c.EvidenceN > 0 || c.EvidenceX) && (c.Forage != nil || c.ExileG != nil) || c.EvidenceX && c.ExileTrigNew {
 		// gorge reserves a graveyard component's picks before the evidence
-		// stage (cumulative.go evidenceReserveOrder): not modelled
-		// (Lamplight Phoenix pairs the exile with evidence)
+		// stage (cumulative.go evidenceReserveOrder): only the dies trigger's
+		// own triggered-card exile is modelled (Lamplight Phoenix,
+		// payInstr's ExileTrigNew + evidence pair)
 		return c, refuse("evidence cost beside a graveyard-reading part")
 	}
 	if c.Forage != nil || c.ExileG != nil || c.DiscardF != nil {
@@ -2209,6 +2217,17 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 			if cost.Return != nil {
 				return refuse("return cost on a spell")
+			}
+			if cost.EvidenceX {
+				// CollectEvidence<X>, X the targets' total mana value (Urgent
+				// Necropsy; gorge cast_targets.go evidenceAmount): the
+				// kernel's bsEvidence stage reads the chosen targets
+				// (cost_collectevidencex.go)
+				if x := strings.TrimSpace(lc.face.SVars["X"]); x != "AllTargeted$CardManaCost" || lc.out.Types&(tInstant|tSorcery) == 0 {
+					return refuse("evidence cost %q: a named amount", "CollectEvidence<X>")
+				}
+				ab.EvidenceTargets = true
+				cost.EvidenceX = false
 			}
 			// The printed mana cost rides on the card record; the SP
 			// Cost$ adds the non-mana additional costs.
