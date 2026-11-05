@@ -236,11 +236,8 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 		if clamp && !anyColor && k.gen != nil && k.gen.anyRestrSrc && s.windowRestrOwedTap(k, p, sl, useful) {
 			continue
 		}
-		pc := &k.cards[s.cardAt(sl)]
-		own := pc
-		if k.gen != nil {
-			pc = s.manaPCGen(k, sl)
-		}
+		own := &k.cards[s.cardAt(sl)]
+		pc := s.windowGrantPC(k, sl)
 		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && own.castSrc != 0 {
 			s.noteTapSrc(k, own, sl)
 		}
@@ -328,7 +325,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if s.buildLive() && s.bld().pickN != 0 && s.waterbendPicked(s.perms[o].obj) {
 			continue // a waterbend pick cannot also pay the mana (gorge convokeCommitted)
 		}
-		if s.canTapForMana(k, o) || k.sacOnlyMana && s.canSacOnlyNowAt(k, o) {
+		if s.windowCanTap(k, o) || k.sacOnlyMana && s.canSacOnlyNowAt(k, o) {
 			if decided && (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) && !s.windowRestrUseful(k, o, want) {
 				continue
 			}
@@ -360,6 +357,44 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		}
 	}
 	return NoSlot, false
+}
+
+// windowCanTap is canTapForMana for the window's walk: a source whose only
+// usable mana ability is one effects granted it, and whose grant the payment
+// being built cannot spend, is not offered (CR 106.6), the same gate windowGap
+// puts on a printed restricted source. A source with an admitted grant, or a
+// usable printed ability, is.
+func (s *State) windowCanTap(k *prep, sl Slot) bool {
+	if k.gen == nil {
+		return s.canTapForMana(k, sl)
+	}
+	return s.canTapForManaPC(k, sl, s.windowGrantPC(k, sl))
+}
+
+// windowGrantPC is the view of the mana ability a window activation of sl
+// takes: the source's own printed ability, or the first granted one the
+// payment being built may spend (grantsAdmitted). &noManaPC when every
+// granted ability refuses the payment.
+func (s *State) windowGrantPC(k *prep, sl Slot) *pcard {
+	if k.gen == nil {
+		return &k.cards[s.cardAt(sl)]
+	}
+	if k.gen.anyCantAct && s.actForbidden(k, sl, true) {
+		return &noManaPC // a CantBeActivated lock, a granted ability's too (cast_cantactivate.go)
+	}
+	if len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) || s.ownManaUsable(k, sl) {
+		return s.manaPCGen(k, sl)
+	}
+	var gi [maxGrants]int16
+	n := s.grantIdxs(k, sl, &gi)
+	if n == 0 {
+		return s.manaPCGen(k, sl)
+	}
+	d := s.payDescNow(NoObj)
+	if n = s.grantsAdmitted(k, sl, &gi, n, &d); n == 0 {
+		return &noManaPC
+	}
+	return s.grantView(k.gen, gi[0], sl)
 }
 
 // windowWide: sl is p's untapped wide any-colour restricted source (Flamebraider)
@@ -501,10 +536,7 @@ func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (
 			s.windowDryFilter(k, p, cost, sl)
 			continue
 		}
-		pc := &k.cards[s.cardAt(sl)]
-		if k.gen != nil {
-			pc = s.manaPCGen(k, sl)
-		}
+		pc := s.windowGrantPC(k, sl)
 		if gap || k.sacOnlyMana && pc.manaSacOnly || s.perms[sl].flags&pfTapped != 0 ||
 			k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDynMask(k, p, sl) != 0 {
 			ok, known = false, false
@@ -1303,6 +1335,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR 
 	for {
 		if depth > 0 {
 			t := s.fork()
+			t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 			var spill [kop.NumManaKinds]uint8
 			for j := 0; j < depth; j++ {
 				t.tapGapChoice(k, p, order[j], restr, anyR, int(path[j]), &spill)
@@ -1554,10 +1587,7 @@ func (s *State) windowSrcMask(k *prep, sl Slot) uint8 {
 // windowOwnMask is the colours sl's own mana ability makes in the window
 // (colourless when it names none).
 func (s *State) windowOwnMask(k *prep, sl Slot) uint8 {
-	pc := &k.cards[s.cardAt(sl)]
-	if k.gen != nil {
-		pc = s.manaPCGen(k, sl)
-	}
+	pc := s.windowGrantPC(k, sl)
 	if mask := s.srcMaskAt(pc, sl); mask != 0 {
 		if k.painMana && pc.painCol != 0 && !pc.painOnly {
 			// a painland: gorge's ability ask flattens the painful Combo

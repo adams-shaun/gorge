@@ -1,0 +1,8 @@
+# The opponent-caused discard-to-battlefield pool: Wilt-Leaf Liege, a discard
+# spell (Mind Rot), a self-discard (Faithless Looting) and basics, for the
+# oracle's lockstep (dirac/oracle/discardetb_test.go).
+Wilt-Leaf Liege
+Mind Rot
+Faithless Looting
+Swamp
+Forest

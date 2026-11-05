@@ -22,7 +22,7 @@ func (s *State) payDiscardRandom(k *prep, p uint8, n int) {
 		m--
 	}
 	for i := 0; i < np; i++ {
-		s.discardObj(k, picks[i])
+		s.discardCost(k, picks[i])
 	}
 }
 
@@ -33,7 +33,7 @@ func (s *State) payDiscardHand(k *prep, p uint8) {
 	var picks [MaxHand]Obj
 	copy(picks[:n], pl.hand[:n])
 	for i := 0; i < n; i++ {
-		s.discardObj(k, picks[i])
+		s.discardCost(k, picks[i])
 	}
 }
 

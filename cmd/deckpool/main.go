@@ -37,6 +37,11 @@ func main() {
 }
 
 // newRoot is the command tree: one command, flags only.
+// defaultBuilder is the builder deckpool uses without --builder: best23,
+// the strongest measured (53.1% against balanced's 49.0%, 300 pods on the
+// same pools).
+const defaultBuilder = "best23"
+
 func newRoot() *cli.Command {
 	var o options
 	return &cli.Command{
@@ -54,8 +59,8 @@ func newRoot() *cli.Command {
 			fs.StringVar(&o.collation, "collation", "", "booster collation; empty = the set's default")
 			fs.IntVar(&o.pods, "pods", 125, "draft pods to run (8 decks each); at least 1")
 			fs.Uint64Var(&o.seed, "seed", 1, "first pod's seed; pod i uses seed+i")
-			fs.StringVar(&o.drafter, "drafter", "balanced", "drafter: name or name@version")
-			fs.StringVar(&o.builder, "builder", "balanced", "builder: name or name@version")
+			fs.StringVar(&o.drafter, "drafter", "balanced", "drafter: name, name@version or knobs:path.json (a pickbot.Tuning knob file)")
+			fs.StringVar(&o.builder, "builder", defaultBuilder, "builder: name, name@version or knobs:path.json (a pickbot.Tuning knob file)")
 			fs.StringVar(&o.corpus, "corpus", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
 			fs.StringVar(&o.out, "out", "", "output directory (required); must not exist or be empty")
 			fs.StringVar(&o.pairing, "pairing", "roundrobin",
