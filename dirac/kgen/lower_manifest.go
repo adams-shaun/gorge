@@ -51,9 +51,12 @@ func (lc *lowerCtx) manifest(ps *params) error {
 // with ward {2}. Supported shapes: DefinedPlayer$ (searchPlayers) or a bare
 // Defined$ TopOfLibrary (the resolving controller); the Choices$ hand pick
 // (Vannifar, Evolved Enigma); the ValidLibrary Card.TopLibrary+OwnedBy shape
-// (Etrata, Deadly Fugitive); Tapped$/Shuffle$/RememberCloaked$ True. The
-// Remembered object shape refuses.
+// (Etrata, Deadly Fugitive); Defined$ Remembered (cloakRemembered);
+// Tapped$/Shuffle$/RememberCloaked$ True.
 func (lc *lowerCtx) cloak(ps *params) error {
+	if strings.TrimSpace(ps.str("Defined")) == "Remembered" {
+		return lc.cloakRemembered(ps)
+	}
 	if v, ok := ps.get("Choices"); ok {
 		return lc.cloakChoices(ps, v)
 	}
@@ -112,6 +115,35 @@ func (lc *lowerCtx) cloakRiders(ps *params) (int, error) {
 		}
 	}
 	return fl, nil
+}
+
+// cloakRemembered lowers Defined$ Remembered: every card of the resolution's
+// remembered set cloaks from where it sits under the resolving controller
+// (gorge effCloak's Remembered arm, CR 701.58a, 110.2a). Shuffle$ is gorge's
+// pile shuffle, a no-op (no event, no RNG), so the kernel ignores CfShuffle.
+// Choices$, DefinedPlayer$ and a non-default Amount$ (ignored by gorge on
+// this arm) refuse.
+func (lc *lowerCtx) cloakRemembered(ps *params) error {
+	if _, ok := ps.get("Choices"); ok {
+		return refuse("Cloak Defined$ Remembered with Choices$")
+	}
+	if _, ok := ps.get("DefinedPlayer"); ok {
+		return refuse("Cloak Defined$ Remembered with DefinedPlayer$")
+	}
+	if v, ok := ps.get("Amount"); ok {
+		switch strings.TrimSpace(v) {
+		case "", "1":
+		default:
+			return refuse("Cloak Defined$ Remembered with Amount$ %q", strings.TrimSpace(v))
+		}
+	}
+	fl, err := lc.cloakRiders(ps)
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "Cloak", Obj: lRef{Kind: rYou}, A: cst(1), C: fl | kop.CfCloakRemembered,
+		Note: "cloak each remembered card under the resolving controller"})
+	return nil
 }
 
 // cloakChoices lowers the Choices$ hand-pick shape (Vannifar, Evolved

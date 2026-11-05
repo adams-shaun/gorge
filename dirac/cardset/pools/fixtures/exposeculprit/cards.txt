@@ -1,0 +1,11 @@
+# the Expose the Culprit pool: the Charm (turn a face-down creature up, or
+# exile and cloak disguise creatures) beside two disguise creatures, Priest of
+# Gix (its three floating mana pay a face-down cast) and basic lands, for the
+# oracle's constructed lockstep (dirac/oracle/expose_culprit_test.go)
+Expose the Culprit
+Basilica Stalker
+Vengeful Creeper
+Priest of Gix
+Mountain
+Swamp
+Forest
