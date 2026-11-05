@@ -26,6 +26,13 @@ import (
 // heads) and runs only derived_transparent.go's event half, with the
 // per-effect equality known and locality cached from the list's build.
 //
+// One more input is read at assembly: a granted land static's Controller is
+// its source's current controller (grantedStaticController). It is safe to
+// leave out of the key only because ControlChange is in no quiet or inert
+// kind set, so a control change always rescans statics and bumps
+// staticBuildSeq; adding ControlChange to such a set would freeze the
+// controller here.
+//
 // layerInertVerify assembles the full list anyway on every such build and
 // panics if it differs.
 
@@ -81,9 +88,7 @@ func (e *Engine) verifyActiveSame() {
 	fresh := make([]ContinuousEffect, 0, len(src))
 	for _, p := range src {
 		fresh = append(fresh, *p)
-		if p.GrantedStatic && (p.MayPlay || p.AdjustLandPlays != 0) {
-			e.grantedStaticController(&fresh[len(fresh)-1])
-		}
+		grantedStaticController(e.G, &fresh[len(fresh)-1])
 	}
 	if len(fresh) != len(e.activeBuf) || (len(fresh) > 0 && !continuousEffectsEqual(fresh, e.activeBuf)) {
 		panic(fmt.Sprintf("rules: unchanged-list active() rebuild at log %d disagrees with a full build (%d vs %d effects)", len(e.L.Events), len(e.activeBuf), len(fresh)))
