@@ -755,6 +755,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.batchLatch&batchSac != 0 {
 			s.batchClose(0) // the payment's sacrifice batch (payPickSacBatch)
 		}
+		if s.payReturnPark() {
+			return
+		}
 		s.payDone(k, true)
 	case raGenSac:
 		// every player's picks are sacrificed together once all have chosen
@@ -1032,12 +1035,18 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.rerunReturn(k)
 			return
 		}
+		paying := s.g.pre.state == preReturnPay
 		s.g.pre.state = 2
 		if s.objs[o].zone == kop.ZoneExile {
 			from := s.detach(o)
 			s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from) // the enters program reads the choice
 		}
 		s.g.pre = preAsk{}
+		if paying {
+			s.res.ask = raNone
+			s.payDone(k, true) // the payment's sacrifice finished: the cost resumes
+			return
+		}
 		s.continueRes(k, 0)
 	case raGenTokChoice:
 		in := &s.prog(k)[r.pc]
@@ -1558,7 +1567,10 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 		if z == kop.ZoneBattlefield && s.handAuraArmed(k) {
 			var parked, stay bool
 			if host, parked, stay = s.handAuraEnter(k, o, p, host); parked {
-				return // the card waits in the hand for the enchant ask; nlook stays
+				// the card waits in its zone for the enchant ask; its answer moves the
+				// cards from this one on, not the earlier ones that entered
+				s.g.nlook = uint8(copy(s.resArm().look[:], s.resArm().look[i:s.g.nlook]))
+				return
 			} else if stay {
 				if fl&kop.SrRemember != 0 {
 					s.remember(o) // gorge settleHandMove remembers a card whose entry was swallowed too
@@ -1647,6 +1659,7 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			s.g.nlook = uint8(copy(s.resArm().look[:], s.resArm().look[i+1:s.g.nlook]))
 			return
 		}
+		host = NoSlot // an Aura's host is for its own entry; the next card finds its own
 	}
 	s.g.nlook = 0
 }

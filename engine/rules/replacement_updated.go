@@ -317,6 +317,7 @@ var updatedNeutralBodySet = state.NewNameSet(
 	"ChooseType",
 	"ChooseNumber",
 	"ChooseCard",
+	"NameCard",
 	"Cleanup",
 	"Hideaway",
 )
