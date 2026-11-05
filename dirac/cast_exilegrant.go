@@ -191,11 +191,13 @@ func (s *State) copyCastUnpayable(k *prep, c CardID, p uint8, o Obj, x int) bool
 // copyCastTargetAbort: the target ask of a paid Play's copy cast that X, now
 // announced, leaves unpayable: gorge's menu withholds every candidate
 // (affordableTargetCandidates), so a required target aborts the cast
-// (CR 601.2c, 733.1; copyCastAbortsBeforeWindow for the spells without X).
+// (CR 601.2c, 733.1; copyCastAbortsBeforeWindow for the spells without X). A
+// modal copy cast reaches here too: its target is mode-gated, so the mode is
+// announced first (CR 601.2b) and the chosen mode's target ask aborts it.
 func (s *State) copyCastTargetAbort(k *prep, t *kop.TargetSpec) bool {
 	b := s.bld()
 	if k.gen == nil || !k.gen.anyCopyCast || b.e.kind != seSpell || b.bfl&bflLowered == 0 || b.origin != kop.ZoneLibrary ||
-		t.UpTo || t.TFlags&kop.TgfBoundsV != 0 || k.t.Cards[b.e.card].Cost.X == 0 {
+		t.UpTo || t.TFlags&kop.TgfBoundsV != 0 {
 		return false
 	}
 	return s.copyCastUnpayable(k, b.e.card, b.e.ctrl, b.e.obj, int(b.e.x))
