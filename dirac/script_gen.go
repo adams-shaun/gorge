@@ -50,7 +50,7 @@ func (s *State) scriptRestr(k *prep, p uint8) slotMask {
 	if !k.gen.anyRestrScript {
 		return slotMask{}
 	}
-	return s.gapMask(k, p, gfRestrScript)
+	return s.gapMask(k, p, gfRestrScript|gfDeferred)
 }
 
 // windowRestr: p's activatable restricted-mana sources (Giada), the ward /
@@ -122,6 +122,10 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	// spell may then spend it (scriptDeadEnd decides)
 	for b := s.scriptRestr(k, p); b.any(); b = b.rest() {
 		c := s.cardAt(b.first())
+		if k.gen.has(c, gfDeferred) {
+			a.addUnits(1<<kop.R, 1) // Goggles' plain {R} (mana_deferred.go)
+			continue
+		}
 		ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]
 		a.addUnits(1<<bits.TrailingZeros8(uint8(ab.ManaColors)), max(ab.ManaN, 1))
 	}
@@ -337,6 +341,10 @@ func (s *State) tapGap(k *prep, p uint8, sl Slot, restr slotMask, held *[kop.Num
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
+	if k.gen.has(s.cardAt(sl), gfDeferred) {
+		s.floatDeferred(k, p, sl) // (the window's gap too: restr is empty there)
+		return
+	}
 	if restr.has(sl) {
 		c := s.cardAt(sl)
 		ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]

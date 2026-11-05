@@ -724,6 +724,7 @@ type lMana struct {
 	NonSpell   bool     // ... or on any payment that is not a spell (CantCastNonArtifactSpells)
 	Special    string
 	SpecialF   *lFilter
+	Deferred   bool // a TriggersWhenSpent$ source gorge's planner defers (kop.Ability.ManaDeferred; lower_deferredmana.go)
 }
 
 type lUnless struct {

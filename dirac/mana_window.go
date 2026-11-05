@@ -602,7 +602,7 @@ func (s *State) windowPoolPays(p uint8, cost *kop.ManaCost, anyColor bool) bool 
 // ward / unless mana window; a restricted one only when the payment may spend its mana.
 func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
 	c := s.cardAt(sl)
-	if k.gen.flags[c]&(gfEachCol|gfRestr) == 0 {
+	if k.gen.flags[c]&(gfEachCol|gfRestr|gfDeferred) == 0 {
 		return false
 	}
 	pm := &s.perms[sl]
@@ -667,7 +667,7 @@ func (s *State) windowGapAnyColour(k *prep, p uint8, sl Slot, cost, useful *kop.
 // windowAffords: gorge's mana window pays cost from p's sources counting
 // the Tenders' mana (availFor does not), simulated on a copy.
 func (s *State) windowAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
-	if k.gen == nil || !k.gen.anyEachCol || !s.scriptGaps(k, p).any() {
+	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || s.scriptDeferred(k, p).any()) {
 		return false
 	}
 	t := s.fork()
@@ -1256,7 +1256,7 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR slotMask, c 
 		var held [kop.NumManaKinds]uint8
 		rb := s.rb[p&1]
 		s.tapGap(k, p, sl, restr, &held)
-		if restr.has(sl) && s.rb[p&1] == rb {
+		if restr.has(sl) && s.rb[p&1] == rb && !k.gen.has(s.cardAt(sl), gfDeferred) {
 			a := &cd.Abilities[k.gen.restr(s.cardAt(sl))]
 			spill[bits.TrailingZeros8(uint8(a.ManaColors))] += max(a.ManaN, 1)
 		}

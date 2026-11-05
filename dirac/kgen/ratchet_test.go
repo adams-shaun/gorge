@@ -47,7 +47,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Sanar, Innovative First-Year: the DigUntil RememberRevealed$ library reveal and its five per-colour picks; ECL 232 -> 233, ALL 21523 -> 21524).
 	// +1 (Teval, Arbiter of Virtue: a granted Delve on the stack lowers and the cast announces its graveyard exiles; merged ALL 21523 -> 21524, TDM 244 -> 245).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21529, 34442},
+	"ALL": {21530, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -56,7 +56,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"DSK": {236, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
-	"FDN": {508, 517},
+	"FDN": {509, 517},
 	"FIN": {266, 312},
 	"FRA": {245, 269},
 	"HOB": {152, 172},

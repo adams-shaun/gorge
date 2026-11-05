@@ -1290,6 +1290,11 @@ func (e *Engine) fireManaSpentTriggers(ev events.Event, lki *state.Object) {
 				continue // cascade bound: see maxTriggerFires.
 			}
 			e.triggerFireCount[key]++
+			ci := effects.CtxInit{TriggerContext: e.triggerReferents(t, src, ev, lki)}
+			if ev.Kind == events.PutOnStack {
+				// Defined$ TriggeredSpellAbility (Pyromancer's Goggles' copy) reads the cast spell here
+				ci.Remembered = []state.Target{{Obj: ev.Obj}}
+			}
 			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 				Source:     src,
 				Controller: o.Controller,
@@ -1297,9 +1302,7 @@ func (e *Engine) fireManaSpentTriggers(ev events.Event, lki *state.Object) {
 				SA:         sa,
 				Granted:    true,
 				Execute:    exec,
-				Ctx: effects.NewCtx(src, o.Controller, effects.CtxInit{
-					TriggerContext: e.triggerReferents(t, src, ev, lki),
-				}),
+				Ctx:        effects.NewCtx(src, o.Controller, ci),
 			})
 		}
 	}

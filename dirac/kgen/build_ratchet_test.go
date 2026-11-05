@@ -153,7 +153,7 @@ import (
 // +1 (Sanar, Innovative First-Year: the DigUntil RememberRevealed$ library reveal and its five per-colour picks; ALL build-level 21523 -> 21524; ratchet ECL 232 -> 233).
 // +1 (Teval, Arbiter of Virtue: a granted Delve on the stack lowers and the cast announces its graveyard exiles; merged ALL 21523 -> 21524; ratchet TDM 244 -> 245).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21529, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21530, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
