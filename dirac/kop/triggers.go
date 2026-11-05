@@ -451,3 +451,12 @@ const (
 // TrigNAnyCounter in Trigger.N of a TrigCounterAddedOnce trigger: every
 // counter kind (CounterPlayerAddedAll without CounterType$).
 const TrigNAnyCounter int16 = -1
+
+// Tf2LeavesGrave (Trigger.Flags2, bit 17, shared with Tf2Cycled whose
+// readers all test a Discarded line): a Leaves line with a destination mask
+// (Trigger.N) that also fires for a card leaving a graveyard to a zone in the
+// mask, once per batch with the battlefield leaves (gorge Mode$ ChangesZoneAll
+// Origin$ Battlefield,Graveyard, ZoneChangeMatches' Origin$ set; Ketramose,
+// the New Dawn). The graveyard side is fired where the card is placed
+// (kernel trig_leavesgrave.go).
+const Tf2LeavesGrave = Tf2Cycled

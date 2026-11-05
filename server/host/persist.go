@@ -116,6 +116,17 @@ func (sc sidecar) info() protocol.MatchInfo {
 // are what an in-place rewind truncates against (truncateTo). They are
 // touched only by append and truncateTo, always on the match goroutine
 // under the match lock.
+//
+// sync is the per-match journal durability from matchJournalSync: true for a
+// match with a human seat, false for an all-bot match. With sync false the
+// journal's crash tail is advisory for that all-bot match: reconcileLog
+// still trims any read to a replayable prefix, restart.load rewrites a live
+// match as aborted either way, and the sidecar (still written with
+// Options.Sync) carries the match's bookkeeping. A non-durable truncateTo on
+// an embedder-driven bot table that then crashes can leave the pre-rewind
+// prefix on disk; the log then serves longer than the in-memory rewound
+// state, within the same advisory contract. Human-seat matches keep the full
+// per-burst durability.
 type matchFiles struct {
 	events, intents *os.File
 	sync            bool
@@ -129,6 +140,18 @@ func tableDir(dir string, t TableID) string { return filepath.Join(dir, string(t
 
 func matchPath(dir string, t TableID, k int, ext string) string {
 	return filepath.Join(tableDir(dir, t), strconv.Itoa(k)+ext)
+}
+
+// matchJournalSync is the one home for the per-match journal durability rule:
+// the registry-wide Options.Sync gate still applies, but an all-bot match
+// (no human seat in its fixed slot plan) defers the per-burst journal fsyncs.
+// Its crash tail is worthless — the bots are deterministic functions of the
+// seed and a restart aborts in-progress matches rather than replaying them —
+// and sidecar writes, tables.json and the event log keep Options.Sync. The
+// predicate is derived from the table config so a restart-rebuilt or
+// embedder-supplied config cannot disagree with the live path.
+func matchJournalSync(o Options, c TableConfig) bool {
+	return o.Sync && len(c.Humans) > 0
 }
 
 // openMatchFiles creates (truncating) a match's two logs.
@@ -149,8 +172,10 @@ func openMatchFiles(dir string, t TableID, k int, sync bool) (*matchFiles, error
 }
 
 // append writes one burst: the new events and the intent that produced
-// them (nil for genesis), one JSON object per line, then fsyncs when
-// configured (opts.Sync). The per-burst byte offsets are recorded
+// them (nil for genesis), one JSON object per line, then fsyncs when the
+// per-match journal durability is on (f.sync, see matchJournalSync). With
+// f.sync false that crash tail is advisory for an all-bot match, as
+// matchFiles documents. The per-burst byte offsets are recorded
 // here on success, so a later rewind (truncateTo) can cut both files back
 // to any recorded burst boundary in place.
 //

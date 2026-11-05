@@ -45,11 +45,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (U.S.S. Enterprise-D, Galaxy-Class and Axgard Artisan: CounterAddedOnce FirstTime$ True's per-source once-a-turn latch; MOM 196 -> 197, TRK 305 -> 306, ALL 21486 -> 21488).
 	// +3 (Chief Engineer, We Ride at Dawn and Invasion of Segovia: an AffectedZone$ Stack Convoke grant lowers to a StackKw static the tap-paid cast reads; MOM 197 -> 198, ALL 21496 -> 21499).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21504, 34442},
+	"ALL": {21506, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
-	"DFT": {246, 276},
+	"DFT": {247, 276},
 	"DMU": {193, 270},
 	"DSK": {233, 276},
 	"ECL": {230, 273},
@@ -67,7 +67,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"OTJ": {239, 276},
 	"SNC": {185, 266},
 	"SOS": {247, 270},
-	"SPM": {159, 192},
+	"SPM": {160, 192},
 	"TDM": {244, 276},
 	"TLA": {245, 285},
 	"TMT": {171, 194},

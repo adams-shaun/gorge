@@ -1,0 +1,17 @@
+# ChangesZoneAll / ChangeZone with Origin$ Battlefield,Graveyard to exile:
+# Ketramose, the New Dawn's trigger and The Spot, Living Portal's exile of a
+# permanent and a graveyard card, beside the exile and fill-the-graveyard
+# support that moves them (dirac/oracle/originmultizone_test.go)
+Ketramose, the New Dawn
+The Spot, Living Portal
+Swords to Plowshares
+Journey to Nowhere
+Tormod's Crypt
+Murder
+Raise Dead
+Shock
+Savannah Lions
+Walking Corpse
+Plains
+Swamp
+Mountain
