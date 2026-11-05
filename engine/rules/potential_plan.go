@@ -669,6 +669,9 @@ func (e *Engine) planWitnessOffersNeeded(f *cards.Face, plan decision.PaymentPla
 	if !e.planConsumptionOnly || e.planKeepSources || paymentPlanConsumes(plan) {
 		return true
 	}
+	if f == nil {
+		return true // fail open: an unknown face keeps the gate
+	}
 	return len(altAddCostParts(f)) != 0
 }
 
