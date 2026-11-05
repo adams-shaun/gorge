@@ -25,12 +25,12 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | SOS | 270 | 248 | 1 | 26 | 221 |
 | SPM | 192 | 160 | 1 | 23 | 136 |
 | TDM | 276 | 249 | 4 | 56 | 189 |
-| TLA | 285 | 250 | 2 | 63 | 185 |
+| TLA | 285 | 250 | 1 | 64 | 185 |
 | TMT | 194 | 171 | 1 | 10 | 160 |
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 13 | 239 |
-| ALL | 34442 | 21645 | 29 | 17122 | 4494 |
+| ALL | 34442 | 21645 | 28 | 17123 | 4494 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -70,7 +70,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-29 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+28 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
@@ -80,7 +80,6 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Damage | 1 |
 | projection-Cards.Flags | 4 |
-| projection-Cards.Pos | 1 |
 | projection-Cards.Power | 2 |
 | projection-Cards.Zone | 1 |
 | projection-NStack | 2 |
