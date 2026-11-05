@@ -208,6 +208,11 @@ func (s *State) anyManaSource(k *prep, p uint8) bool {
 				return true
 			}
 		}
+		// an each-colour source (Bloom Tender) is a census gap with no manaAb,
+		// yet gorge's walk counts it, and reads its production as open
+		if c := s.cardAt(sl); k.gen.eachCol(c) >= 0 && s.potentialAdmits(k, p, sl, int(k.gen.eachCol(c)), &k.t.Cards[c].Abilities[k.gen.eachCol(c)], nil) {
+			return true
+		}
 		// gorge untappedManaSource: any available mana ability counts here,
 		// whatever its RestrictValid$ (availPotentialFor prices the
 		// restriction against this payment next), so a source whose only
@@ -2062,7 +2067,11 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 	default:
 		s.placeFromK(k, o, z, false, kop.ZoneLibrary, false)
 		if fl&kop.DigFaceDown != 0 && z == kop.ZoneExile {
-			s.faceDownExile(o, s.res.e.obj, s.res.e.ctrl) // zone_exilefacedown.go
+			exiler := s.res.e.ctrl
+			if fl&kop.DigExilerOther != 0 {
+				exiler = 1 - exiler // DefinedExiler$ Targeted: the opponent exiled it
+			}
+			s.faceDownExile(o, s.res.e.obj, exiler) // zone_exilefacedown.go
 		}
 	}
 }

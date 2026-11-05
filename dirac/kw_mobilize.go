@@ -27,10 +27,11 @@ func (s *State) delayGroup(e *stackEntry, in *kop.Instr) {
 		s.delayEmptyGen(e, uint8(in.C))
 		if in.A.N != 0 {
 			s.g.dp[s.g.ndp-1].n |= dpWhen(in)
+			s.g.dp[s.g.ndp-1].ext = dpExt(in)
 		}
 		return
 	}
-	d := dprog{card: e.card, ab: uint8(in.C), ctrl: e.ctrl, src: e.obj, n: uint8(n) | dpWhen(in)}
+	d := dprog{card: e.card, ab: uint8(in.C), ctrl: e.ctrl, src: e.obj, n: uint8(n) | dpWhen(in), ext: dpExt(in)}
 	for i := 0; i < n; i++ {
 		o := s.g.rem[i]
 		d.objs[i], d.vers[i] = o, s.objs[o].ver

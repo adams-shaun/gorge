@@ -142,6 +142,10 @@ type Override struct {
 	// staticAbilities$ grant that no layer reads: a may-play permission, an
 	// extra land play).
 	GrantStatics uint8
+	// PTDelta: PA/TA (ValPT) are a +N/+M pump added after counters (layer
+	// 7c, CR 613.4c) instead of a base P/T; HasPT is false. A PumpAll
+	// Duration$ UntilYourNextTurn NumAtt$/NumDef$ (V'Ger, the Intruder).
+	PTDelta bool
 }
 
 // Emblem is a command-zone object with abilities (triggered or static).

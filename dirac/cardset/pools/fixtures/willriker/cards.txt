@@ -1,0 +1,14 @@
+# Will Riker, First in the Field's reveal-until-two-lands trigger and the
+# delayed "sacrifice those lands at your next end step" body, for the
+# oracle's constructed lockstep (dirac/oracle/willriker_test.go). The second
+# deck is short of lands (one Mountain, the rest zero-cost Moxen) so the dig
+# sometimes finds fewer than two.
+Will Riker, First in the Field
+Forest
+Island
+Mountain
+Mox Emerald
+Mox Jet
+Mox Pearl
+Mox Ruby
+Mox Sapphire

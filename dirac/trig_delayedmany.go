@@ -45,10 +45,11 @@ func (s *State) delayMany(e *stackEntry, in *kop.Instr) {
 		s.delayEmptyGen(e, uint8(in.C))
 		if in.A.N != 0 {
 			s.g.dp[s.g.ndp-1].n |= dpWhen(in)
+			s.g.dp[s.g.ndp-1].ext = dpExt(in)
 		}
 		return
 	}
-	d := dprog{card: e.card, ab: uint8(in.C), ctrl: e.ctrl, src: e.obj, n: 1 | dpMany | dpWhen(in)}
+	d := dprog{card: e.card, ab: uint8(in.C), ctrl: e.ctrl, src: e.obj, n: 1 | dpMany | dpWhen(in), ext: dpExt(in)}
 	for i := range d.objs {
 		d.objs[i] = NoObj
 		if i < n {

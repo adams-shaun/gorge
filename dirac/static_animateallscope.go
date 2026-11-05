@@ -16,7 +16,7 @@ func (s *State) overrideAll(k *prep, in *kop.Instr) {
 	cnt := s.sweepHits(k, in.F, &ord)
 	src := s.res.e.card
 	p, t := s.overridePT(k, int(in.C))
-	fl := s.ovDurFl(in.A.N)
+	fl := s.ptDeltaFl(k, int(in.C), s.ovDurFl(in.A.N))
 	for _, sl := range ord[:cnt] {
 		if s.occ.has(sl) {
 			s.animAllTally(k, int(in.C), sl)

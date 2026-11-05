@@ -30,7 +30,7 @@ func (r RoleRef) String() string {
 type Manifest struct {
 	Format        string `json:"format"`
 	GorgeRevision string `json:"gorge_revision"`
-	// Kind is the run shape: "games", "tournament", "gauntlet" or "event".
+	// Kind is the run shape: "games", "tournament", "gauntlet", "event" or "deckpool".
 	Kind string `json:"kind"`
 	Seed uint64 `json:"seed"`
 	// Agents is every resolved agent ref the run played, spelled

@@ -804,6 +804,7 @@ type lOverride struct {
 	NoCost            bool     // a copy exception's "with no mana cost" (RemoveCost$)
 	AddColors         string   // a copy exception's AddColors$: colour letters added after any set
 	RemoveLegendary   bool     // a copy exception's NonLegendary$ (CR 707.9b)
+	PTDelta           bool     // PVal/TVal are a +N/+M pump (layer 7c), not a base P/T: PumpAll Duration$ UntilYourNextTurn NumAtt$/NumDef$ (kop.Override.PTDelta)
 	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
 }
 

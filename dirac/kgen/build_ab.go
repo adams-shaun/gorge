@@ -3547,7 +3547,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		rest := zoneNames[fl["rest"]]
 		df := int(zoneMap[rest])
 		for k, b := range map[string]int{"Optional": kop.DigOptional, "RestRandomOrder": kop.DigRandomOrder, "Reveal": kop.DigReveal,
-			"RememberChanged": kop.DigRemember, "ForceRevealToController": kop.DigRevealToCtrl, "Tapped": kop.DigTapped, "RestTop": kop.DigRestTop, "ExileFaceDown": kop.DigFaceDown} {
+			"RememberChanged": kop.DigRemember, "ForceRevealToController": kop.DigRevealToCtrl, "Tapped": kop.DigTapped, "RestTop": kop.DigRestTop, "ExileFaceDown": kop.DigFaceDown, "ExilerOther": kop.DigExilerOther} {
 			if _, ok := fl[k]; ok {
 				df |= b
 			}
@@ -3888,6 +3888,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		} else {
 			switch in.CS {
 			case "NextEndStep":
+			case "YourNextEndStep":
+				ki.A = kop.Const(kop.DelayYourEndStep) // the controller's next end step (dirac/trig_delayedtiming.go)
 			case "NextUpkeep":
 				ki.A = kop.Const(kop.DelayUpkeep)
 			case "YourNextUpkeep":

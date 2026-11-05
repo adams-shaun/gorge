@@ -101,6 +101,7 @@ type lowerCtx struct {
 	replEnter      bool      // inside an ETB replacement's ReplaceWith chain
 	breachStage    int       // Breach the Multiverse's imprint chain: 1 the ChangeZone of Imprinted is next, 2 the Cleanup (lower_repeatgravechoice.go)
 	exileLandStage int       // Ensign Pavel Chekov's imprint chain: 1 the Imprinted Effect is next, 2 the Cleanup (lower_repeatexilechoice.go)
+	blind          *blindDig // a blind face-down Dig whose Effect lowers next (lower_blinddig.go)
 	grantInner     []lStatic // a station self grant's inner statics, emitted after the outer static (lower_stationgrant.go)
 	station        string    // K:Station's parameter (lower_station.go)
 	beholdOK       bool      // the cost being read is a spell's AlternateAdditionalCost first part: Behold<N/Type> may lower (kernel act_behold.go)

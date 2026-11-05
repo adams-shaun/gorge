@@ -28,6 +28,9 @@ func dpExt(in *kop.Instr) uint8 {
 	if in.A.N == kop.DelayBeginCombat {
 		return dpExtBeginCombat
 	}
+	if in.A.N == kop.DelayYourEndStep {
+		return dpExtYourEndStep
+	}
 	return 0
 }
 
@@ -40,14 +43,16 @@ func (s *State) fireDelayedBeginCombat(k *prep) {
 }
 
 // dropDelayedBeginCombat drops every beginning-of-combat registration at the
-// turn change (ThisTurn$ True), keeping the other records in order.
+// turn change (ThisTurn$ True), keeping the other records in order. A
+// controller's-next-end-step registration survives (its own end step may be
+// in a later turn).
 //
 //go:noinline
 func (s *State) dropDelayedBeginCombat() {
 	n := int(s.g.ndp)
 	keep := 0
 	for i := 0; i < n; i++ {
-		if s.g.dp[i].ext == 0 {
+		if s.g.dp[i].ext != dpExtBeginCombat {
 			s.g.dp[keep], s.g.dpLKI[keep] = s.g.dp[i], s.g.dpLKI[i]
 			keep++
 		}

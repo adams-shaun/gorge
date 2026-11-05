@@ -1159,7 +1159,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	if pk.dry {
 		return
 	}
-	if k.gen != nil && k.gen.blgOn {
+	if k.gen != nil {
 		s.limitPlan(k, pk)
 	}
 	// key 8 (consider): among the tied count vectors, the lexicographically

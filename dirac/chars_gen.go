@@ -497,6 +497,11 @@ func (s *State) ptGen(k *prep, sl Slot) (int, int) {
 	if k.ctrMana {
 		bt -= p.ctrN(s, int(kop.CtrM0M1)) // -0/-1 counters (mana_countercost.go)
 	}
+	if k.gen.anyPTDelta && s.fxM.has(sl) {
+		dp, dt := s.ptDeltaRecs(k, sl) // layer 7c override pumps (static_ptdelta.go)
+		bp += dp
+		bt += dt
+	}
 	if k.gen.anyHone {
 		bp += s.honePower(k, sl) // CR 122.1j hone counters on attached permanents (ctr_hone.go)
 	}
