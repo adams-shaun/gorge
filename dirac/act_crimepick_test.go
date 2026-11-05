@@ -3,99 +3,69 @@ package dirac
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// boomScen builds a scen over the std-otj pool (the Boom Box + Slickshot
-// Vault-Buster lockstep fixture's table).
-func boomScen(t *testing.T) (*scen, func(string) CardID) {
-	t.Helper()
-	set := cardsettest.Synth(t, "std-otj")
-	tbl, err := set.Pool()
-	if err != nil {
-		t.Fatal(err)
-	}
-	id := func(name string) CardID {
-		i, ok := set.Lookup(name)
-		if !ok {
-			t.Fatalf("%s not in the pool", name)
-		}
-		return CardID(set.PoolID(i))
-	}
-	sc := newScenTableLib(t, tbl, id("Mountain"), Config{})
-	if !sc.k.gen.crimeOn {
-		t.Fatal("the std-otj table does not turn crimeOn on")
-	}
-	return sc, id
-}
-
 // TestCrimeAbilityPickActivation: CR 700.13 judges a crime at the frame the
 // target is chosen, and CR 601.2c/602.2a record an activated ability's
-// targets at their answers, before payment (601.2h) — the root's ask and
-// the SubAbility$ chain links' alike. Boom Box ({6},{T}, sac it: pump an
-// artifact; then its chain asks a creature, a land, and destroys the
-// targeted) names the opponent's Boom Box on the root ask: from that answer
-// on the ledger bit is set and Slickshot Vault-Buster's
-// CheckSVar$Count$CommittedCrimeThisTurn static reads it 3-power (gorge's
-// TargetsChosen fold, turn_ledgers.go, agrees at that frame).
+// targets at their answers, before payment (601.2h). Goblin Cratermaker's
+// "{T}: deal 1 damage to target creature" names the opponent's Hardbristle
+// Bandit on the root ask: from that answer on the ledger bit is set and
+// Slickshot Vault-Buster's CheckSVar$Count$CommittedCrimeThisTurn static
+// reads it 3-power (gorge's TargetsChosen fold, turn_ledgers.go, agrees at
+// that frame; the Boom Box chain-link shape is the lockstep oracle's
+// TestCrimeSubAbilityTargetsLockstep).
 func TestCrimeAbilityPickActivation(t *testing.T) {
-	sc, id := boomScen(t)
+	sc, id := crimeScen(t)
 	s := sc.s
-	boom, slick := sc.perm(id("Boom Box"), 0), sc.perm(id("Slickshot Vault-Buster"), 0)
-	theirBoom, omen := sc.perm(id("Boom Box"), 1), sc.perm(id("Omenport Vigilante"), 1)
+	maker, slick := sc.perm(id("Goblin Cratermaker"), 0), sc.perm(id("Slickshot Vault-Buster"), 0)
+	bandit := sc.perm(id("Hardbristle Bandit"), 1)
 	// preconditions: the target is in the opponent's zone and the two
 	// compared powers differ
-	if !sc.onBF(theirBoom) || !sc.onBF(omen) {
-		t.Fatal("the opponent's Boom Box or creature is not on the battlefield")
+	if !sc.onBF(bandit) || !sc.onBF(slick) {
+		t.Fatal("the Bandit or Slickshot is not on the battlefield")
 	}
-	s.pl[0].pool[kop.R] = 8
+	s.pl[0].pool[kop.R] = 1 // the activation's {1}
 	s.ctl = ctlPriority
 	if s.CrimeLedger(0) {
 		t.Fatal("the ledger is set before the activation")
-	}
-	if p := s.power(sc.k, sc.slot(slick)); p != 1 {
-		t.Fatalf("Slickshot power %d before the crime, want 1", p)
 	}
 	// the activation is offered and taken through the real option flow
 	found := false
 	d := s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(boom) {
+		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(maker) {
 			s.Apply(a)
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Fatalf("Boom Box's activation not offered: %v", d.Options[:d.N])
+		t.Fatalf("Goblin Cratermaker's activation not offered: %v", d.Options[:d.N])
 	}
-	// the root ask: the opponent's Boom Box. The bit moves at THIS answer.
+	// precondition of the comparison: before the answer the ledger is clear
+	// and Slickshot is at base power
+	if p := s.power(sc.k, sc.slot(slick)); p != 1 {
+		t.Fatalf("Slickshot power %d before the crime, want 1", p)
+	}
+	// the root ask: the opponent's creature. The bit moves at THIS answer.
 	found = false
 	d = s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkTarget && a.Target() == uint8(theirBoom) {
+		if a := d.Options[i]; a.Kind() == AkTarget && a.Target() == uint8(bandit) {
 			s.Apply(a)
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Fatalf("the opponent's Boom Box not offered as the root target: kind %d opts %v", d.Kind, d.Options[:d.N])
+		t.Fatalf("the Bandit not offered as the root target: kind %d opts %v", d.Kind, d.Options[:d.N])
 	}
 	if !s.CrimeLedger(0) {
 		t.Fatalf("after the root answer: ledger %b, want player 0 set", s.g.crime)
 	}
 	if p := s.power(sc.k, sc.slot(slick)); p != 3 {
 		t.Fatalf("Slickshot power %d after the root answer, want 3", p)
-	}
-	// the chain's creature link names the opponent's creature: the bit stays
-	sc.do(t, AkTarget, 0xff, uint8(omen))
-	if !s.CrimeLedger(0) {
-		t.Fatalf("after the creature link's answer: ledger %b, want player 0 set", s.g.crime)
-	}
-	if p := s.power(sc.k, sc.slot(slick)); p != 3 {
-		t.Fatalf("Slickshot power %d after the link's answer, want 3", p)
 	}
 }
 
