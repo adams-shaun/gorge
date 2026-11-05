@@ -188,6 +188,9 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 				ce.Source, ce.Controller = id, c.Controller
 				ce.Duration, ce.Permanent, ce.UntilEOT, ce.DurationSource = dur, permanent, untilEOT, durSource
 				ce.ExileOnMoved, ce.ExileOnMovedAlso, ce.Remembered = exileOn, exileAlso, remembered
+				// The permanent's own gained static: it stops while the permanent is
+				// phased out (CR 702.26b) or has lost all abilities (CR 613.1f).
+				ce.GrantedStatic = true
 				effectContinuous(h, ce)
 				continue
 			}

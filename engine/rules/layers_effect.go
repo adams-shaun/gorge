@@ -1156,6 +1156,14 @@ func (e *Engine) continuousLive(ce *ContinuousEffect) bool {
 			return false
 		}
 	}
+	if ce.GrantedStatic {
+		// CR 702.26b: a phased-out permanent is treated as though it does not
+		// exist, so a static ability it gained (Animate's staticAbilities$)
+		// does not function either, as its printed statics do not.
+		if source := e.G.Obj(ce.Source); source != nil && source.PhasedOut {
+			return false
+		}
+	}
 	if ce.Permanent {
 		return true
 	}
