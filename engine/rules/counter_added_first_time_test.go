@@ -10,8 +10,8 @@ import (
 // FirstTime$ True, the shape of U.S.S. Enterprise-D's charge-counter trigger
 // with a harmless body.
 const firstTimeCounterProbe = "Name:First-Time Counter Probe\nTypes:Artifact\n" +
-	"T:Mode$ CounterAddedOnce | ValidCard$ Card.Self | TriggerZones$ Battlefield | CounterType$ CHARGE | FirstTime$ True | Execute$ TrigGain | TriggerDescription$ Whenever one or more charge counters are put on CARDNAME for the first time each turn, you gain 1 life.\n" +
-	"SVar:TrigGain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+	"T:Mode$ CounterAddedOnce | ValidCard$ Card.Self | TriggerZones$ Battlefield | CounterType$ CHARGE | FirstTime$ True | Execute$ TrigFirstTimeProbe | TriggerDescription$ Whenever one or more charge counters are put on CARDNAME for the first time each turn, CARDNAME gets +2/+2 until end of turn.\n" +
+	"SVar:TrigFirstTimeProbe:DB$ Pump | Defined$ Self | NumAtt$ +2 | NumDef$ +2\nOracle:x\n"
 
 // TestCounterAddedOnceFirstTimeEachTurn pins FirstTime$ True on a
 // CounterAddedOnce line: only the turn's first matching CounterChange batch
