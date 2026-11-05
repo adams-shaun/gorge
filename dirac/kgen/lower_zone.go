@@ -1942,7 +1942,7 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	if ok, err := lc.cantAttackRemembered(ps, ss); ok || err != nil { // lower_effectcantattackplayer.go
 		return err
 	}
-	if len(ss) != 1 {
+	if len(ss) != 1 && !attackBlockPair(ss) { // lower_effectattacksifable.go
 		return refuse("Effect static %q", st)
 	}
 	s := ss[0]
@@ -1974,6 +1974,15 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 			return err
 		}
 	}
+	if len(ss) == 2 {
+		return lc.attacksOrBlocksIfAble(ps, ss, obj) // lower_effectattacksifable.go
+	}
+	return lc.effectTargetStatic(ps, s, obj)
+}
+
+// effectTargetStatic lowers the one static s of a targeted (or remembered)
+// Effect over its resolved object obj.
+func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) error {
 	sp := newParams(s.Params)
 	sp.consume("Mode", "Description")
 	switch s.Mode {
@@ -2037,6 +2046,10 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 			break
 		}
 		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: "Unblockable"})
+	case "MustAttack":
+		if err := lc.attacksIfAble(ps, sp, obj); err != nil { // lower_effectattacksifable.go
+			return err
+		}
 	case "CantBeActivated":
 		// (Braided Net) "its activated abilities can't be activated
 		// for as long as it remains tapped" on the tapped target. Only the
