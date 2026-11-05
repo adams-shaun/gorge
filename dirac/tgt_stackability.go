@@ -24,6 +24,17 @@ const maxStackTgt = int(PlayerTarget0 - StackTarget0)
 // isStackTarget reports whether target byte c names a stack ability.
 func isStackTarget(c uint8) bool { return c >= StackTarget0 && c < PlayerTarget0 }
 
+// StackTargetIndex is isStackTarget for the kernel's clients (the search
+// bots): the stack index, from the bottom, that target byte c names. A byte
+// that names a stack ability is not an Obj, so a client that indexes an
+// object table with it reads past MaxObj.
+func StackTargetIndex(c uint8) (int, bool) {
+	if !isStackTarget(c) {
+		return 0, false
+	}
+	return int(c - StackTarget0), true
+}
+
 // DebugStackTgtByIndex finds a stack-ability target by its index rather
 // than its identity (the kertai mutation test).
 var DebugStackTgtByIndex bool
