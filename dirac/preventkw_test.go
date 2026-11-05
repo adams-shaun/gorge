@@ -8,14 +8,15 @@ import (
 
 // newPreventKWScen builds a scenario over the preventkw fixture pool: the
 // printed K:Prevent carriers and the creatures and burn the tests play
-// against them. The pool is loaded raw (lowered, unverified included): the
-// keyword's card-def facts are what is under test.
+// against them. The pool plays unverified cards (AllowUnverified): the
+// keyword's card-def facts are what is under test, not the evidence sweep.
 func newPreventKWScen(t *testing.T, deck []cardset.Entry) (*scen, map[string]CardID) {
 	t.Helper()
-	set, err := cardset.RawByName("preventkw")
+	set, err := cardset.ByName("preventkw")
 	if err != nil {
 		t.Fatal(err)
 	}
+	set = cardset.AllowUnverified(set)
 	for _, e := range deck {
 		if _, ok := set.Lookup(e.Name); !ok {
 			t.Fatalf("%s not in the preventkw pool", e.Name)
