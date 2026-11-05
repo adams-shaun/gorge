@@ -604,41 +604,53 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 			(ob.zone != kop.ZoneExile || ob.owner() != p || k.gen.sCls[ob.card]&sclsExMay == 0) {
 			return
 		}
+		// the parts of every permission admitting o join into one offer: a
+		// free-only static (Weftwalking) opens no zone but waives the cost of
+		// the cast another static grants (CR 118.9)
+		grant, free, anyMana := false, false, false
 		s.mayPlayStatics(k, p, o, func(st statSrc) bool {
 			fl := st.a.Static.StFlags
 			if fl&kop.StRemove6Counters != 0 && s.creatureCounters(k, p) < int(st.a.Static.A) {
 				return true // the extra cost can't be paid (Quilled Greatwurm)
 			}
-			seen.set(o)
-			mode := castMayPlay
-			if fl&kop.StWithoutManaCost != 0 {
-				mode |= castFree
+			if fl&kop.StFreeOnly == 0 || s.objs[o].zone == kop.ZoneHand {
+				grant = true // a free-only static opens no zone; a hand cast is already legal
 			}
-			// Config.GorgeUnpriced: gorge's planner funds an any-type cast's pips
-			// as generic where it plans the shape (Tinybones), and prices no cast
-			// two permissions offer (Muldrotha's per-type statics for an artifact
-			// creature: "ambiguous"); gorge lists those only when the pool pays
-			unpriced := false
-			if s.cfg&cfgGorgeUnpriced != 0 {
-				if fl&kop.StAnyManaType != 0 {
-					cost := s.adjustCostGen(k, p, s.objs[o].card, o, k.cards[s.objs[o].card].cost)
-					cost = planUnderRider(cost, true, false)                                           // a hybrid pip is generic to the plan too (pay.PlanManaUnderRider)
-					unpriced = !s.castAffordsR(k, p, s.objs[o].card, s.restrOriginOfObj(o), &cost, av) // (the restricted sources the planner counts price it too)
-				} else {
-					// Two offers are ambiguous to gorge's potential planner,
-					// but its payment builder still plans the untyped
-					// (MayPlayPerm=="") offer from a graveyard or exile
-					// (payment_plan.go plannedMayPlayZone), so that cast is
-					// priced rather than ambiguous (Storied Veteran beside
-					// The Holodeck). A top-of-library cast has no such plan
-					// (Boltwave beside Madame Web and Johann).
-					unpriced = s.mayPlayOffers(k, p, o) >= 2 &&
-						!(s.mayPlayFolds(k, p, o) && mayPlayPlannedZone(s.objs[o].zone))
-				}
-			}
-			s.offerPlay(k, d, p, o, mode, sorc, landOK, fl&kop.StAnyManaType != 0, false, unpriced, av)
-			return false
+			free = free || fl&kop.StWithoutManaCost != 0
+			anyMana = anyMana || fl&kop.StAnyManaType != 0
+			return true
 		})
+		if !grant {
+			return
+		}
+		seen.set(o)
+		mode := castMayPlay
+		if free {
+			mode |= castFree
+		}
+		// Config.GorgeUnpriced: gorge's planner funds an any-type cast's pips
+		// as generic where it plans the shape (Tinybones), and prices no cast
+		// two permissions offer (Muldrotha's per-type statics for an artifact
+		// creature: "ambiguous"); gorge lists those only when the pool pays
+		unpriced := false
+		if s.cfg&cfgGorgeUnpriced != 0 {
+			if anyMana {
+				cost := s.adjustCostGen(k, p, s.objs[o].card, o, k.cards[s.objs[o].card].cost)
+				cost = planUnderRider(cost, true, false)                                           // a hybrid pip is generic to the plan too (pay.PlanManaUnderRider)
+				unpriced = !s.castAffordsR(k, p, s.objs[o].card, s.restrOriginOfObj(o), &cost, av) // (the restricted sources the planner counts price it too)
+			} else {
+				// Two offers are ambiguous to gorge's potential planner,
+				// but its payment builder still plans the untyped
+				// (MayPlayPerm=="") offer from a graveyard or exile
+				// (payment_plan.go plannedMayPlayZone), so that cast is
+				// priced rather than ambiguous (Storied Veteran beside
+				// The Holodeck). A top-of-library cast has no such plan
+				// (Boltwave beside Madame Web and Johann).
+				unpriced = s.mayPlayOffers(k, p, o) >= 2 &&
+					!(s.mayPlayFolds(k, p, o) && mayPlayPlannedZone(s.objs[o].zone))
+			}
+		}
+		s.offerPlay(k, d, p, o, mode, sorc, landOK, anyMana, false, unpriced, av)
 	}
 	for pp := uint8(0); pp < 2; pp++ {
 		q := &s.pl[pp]
