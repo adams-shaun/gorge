@@ -61,6 +61,10 @@ type morphFaceUp struct {
 	procedure string
 	// megamorph is true when the turn-up must also put a +1/+1 counter.
 	megamorph bool
+	// reduceToken is the KeywordWithCost line's second colon-field: the
+	// ReduceCost$ amount token (Fugitive Codebreaker's "X", resolved through
+	// its SVar). Empty when the keyword prints no reduction rider.
+	reduceToken string
 }
 
 // special is the CR 116.2b turn-up procedure's special action, read off the
@@ -109,6 +113,35 @@ func (e *Engine) morphTurnUpMods(p state.PlayerID, id state.ObjID, mf morphFaceU
 	if mods.HasExtra {
 		return costMods{}, false
 	}
+	// The printed KeywordWithCost rider is part of the turn-up cost itself,
+	// not an S: static, so it joins the composition here (the one choke point
+	// the offer, the action's re-proof and the settlement share). Resolve it
+	// exactly like ownReduceCost's ReduceCost$: a decimal literal is the
+	// amount, anything else is an SVar NAME or an inline Count$ expression.
+	// An unresolvable amount degrades to ZERO ("no reduction"), never 1: a
+	// wrong reduction is a wrong cost.
+	if tok := mf.reduceToken; tok != "" {
+		n := int32(0)
+		if v, ok := parseInt10(tok); ok {
+			if v > 0 && v <= int64(1<<31-1) {
+				n = int32(v)
+			}
+		} else {
+			svars := e.pileSVars(id, 0)
+			body := tok
+			if b, ok := svars[tok]; ok {
+				body = b
+			}
+			if v, ok := effects.EvalCountOK(e, effects.NewCtxPtr(id, p, effects.CtxInit{SVars: svars}), body); ok && v > 0 {
+				n = v
+			}
+		}
+		if n > 0 {
+			// LAST, after the external statics: the printed rider has no
+			// MinMana$ floor, so order cannot interact with one.
+			mods.Reduces = append(mods.Reduces, costMod{Generic: n})
+		}
+	}
 	return mods, true
 }
 
@@ -144,6 +177,25 @@ func morphFaceUpCost(o *state.Object) (morphFaceUp, bool) {
 	return mf, true
 }
 
+// keywordColonField returns the n-th colon-separated field of a keyword
+// parameter (0 is the field before the first colon) and whether it exists.
+// It is a hand split because the strings package is ratcheted in this
+// package and the rider read runs once per turn-up price.
+func keywordColonField(s string, n int) (string, bool) {
+	for i := 0; i < len(s); i++ {
+		if s[i] != ':' {
+			continue
+		}
+		if n == 0 {
+			return s[:i], true
+		}
+		s = s[i+1:]
+		n--
+		i = -1
+	}
+	return s, n == 0
+}
+
 // keywordFaceUp prices the Morph/Megamorph/Disguise procedure head on a
 // face-down permanent's printed face. It is shared by the cast path
 // (morphFaceUpCost) and by the keyword alternative a manifested or cloaked
@@ -162,8 +214,18 @@ func keywordFaceUp(o *state.Object, head string) (morphFaceUp, bool) {
 	// whole remainder to ParseCost polluted it (20 phantom generic + Unknown,
 	// failing the fail-closed gate below and withholding the turn-up).
 	raw, ok := f.KeywordCostParam(head)
-	if !ok || strings.TrimSpace(raw) == "" {
+	if !ok || raw == "" {
 		return morphFaceUp{}, false
+	}
+	// The KeywordWithCost grammar puts a reduction rider in the SECOND
+	// colon-field: "Disguise:5 R:X:This cost is reduced by …". Keep the token
+	// (Fugitive Codebreaker's "X", an SVar name) so morphTurnUpMods can fold
+	// it into the price; the trailing reminder text is never read again.
+	reduceToken := ""
+	if whole, ok := f.KeywordParam(head); ok {
+		if token, found := keywordColonField(whole, 1); found {
+			reduceToken = strings.TrimSpace(token)
+		}
 	}
 	c := ParseCost(raw)
 	// A cost token the parser could not model (an unknown symbol) is charged
@@ -181,10 +243,11 @@ func keywordFaceUp(o *state.Object, head string) (morphFaceUp, bool) {
 		return morphFaceUp{}, false
 	}
 	return morphFaceUp{
-		cost:      c,
-		family:    head,
-		procedure: "keyword",
-		megamorph: head == "Megamorph",
+		cost:        c,
+		family:      head,
+		procedure:   "keyword",
+		megamorph:   head == "Megamorph",
+		reduceToken: reduceToken,
 	}, true
 }
 
