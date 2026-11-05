@@ -392,7 +392,7 @@ func (lc *lowerCtx) refuseEachMana(ms []*lAbility) bool {
 			// Tin Street Gossip's Static.isTurnFaceUp clause is modelled with
 			// the all-at-once extra.
 			lc.refuseNode("card", "mana ability adding several colours at once under a spend restriction")
-		case !plainTapMana(a, false):
+		case !plainTapMana(a, false) && !ctrEachMana(a):
 			// gorge's planner defers any cost beyond {T} (a filter's fee, a
 			// sacrifice of another permanent, removed counters): a census gap
 			// the kernel's gap searches model for one colour only
@@ -405,6 +405,20 @@ func (lc *lowerCtx) refuseEachMana(ms []*lAbility) bool {
 		return true
 	}
 	return false
+}
+
+// ctrEachMana: a is "Remove N counters from this: Add ... of each colour.
+// Activate only once each turn." (Ramos, Dragon Engine), the one cost beyond
+// {T} the kernel models all at once: its relaxed census alternative is one
+// free fixed production (gorge paymentPlanRelaxedAlternatives), activated by
+// the counter-cost gap (kernel mana_countercost.go, kop.CtrEachManaAb).
+func ctrEachMana(a *lAbility) bool {
+	if a.Cost.SubCtr < 1 || a.Cost.Tap || !a.TurnOnce {
+		return false
+	}
+	c := *a
+	c.Cost.Tap, c.Cost.SubCtr, c.Cost.SubCtrKnd, c.TurnOnce = true, 0, "", false
+	return plainTapMana(&c, false)
 }
 
 // filterHasSpecial reports whether f carries a RestrictValid$ Static.*
