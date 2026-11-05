@@ -1000,7 +1000,7 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 		defer s.tapBatchClose(s.tapBatchOpen(k)) // one Tap resolution is one tapping action (trig_tapall.go)
 	}
 	var hr holdRec
-	if in.Op == kop.OpReturn && kop.Zone(in.C) == kop.ZoneBattlefield || in.Op == kop.OpReturnEx && kop.Zone(in.C&7) == kop.ZoneBattlefield {
+	if returnToBattlefield(in) {
 		hr = s.holdEntries() // gorge's zone batch: the targets enter together (CR 603.6a)
 	} else {
 		hr = s.holdOpen(k)
@@ -1014,7 +1014,8 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 	}
 	s.g.inLoop = true
 	w := eachSusp{slot: i, t: saveT, v: saveV, bad: saveBad}
-	if !s.exec(k, in) && s.eachParks(in) {
+	n0 := s.g.nask
+	if ok := s.exec(k, in); !ok && s.eachParks(in) || ok && s.eachReturnParks(k, in, n0) {
 		w.j = 1 // copy_eachtarget.go: the extra targets wait for the answer
 		s.g.each = w
 		s.g.inLoop = false
