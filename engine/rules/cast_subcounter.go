@@ -1055,6 +1055,16 @@ func (e *Engine) sacAsk() bool {
 			pc.SacPaid = 0
 			continue
 		}
+		// A granted ability's bound OriginalHost (Deconstruction Hammer's
+		// "Sacrifice Deconstruction Hammer") names exactly the grantor, so a sole
+		// candidate is the same one-object payment: no choice (CR 602.2b,
+		// 701.21a).
+		if part.N == 1 && part.Referent != 0 && len(candidates) == 1 && candidates[0] == part.Referent {
+			pc.Sacs = append(pc.Sacs, part.Referent)
+			pc.SacPart++
+			pc.SacPaid = 0
+			continue
+		}
 		verb := "cast"
 		if pc.isAbility() {
 			verb = "activate"

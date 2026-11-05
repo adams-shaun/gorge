@@ -1,0 +1,24 @@
+# the combined all-of type + mana-value pool (resistance): Resistance Is
+# Futile's second mode (artifact creature card with mana value 3 or less from
+# your graveyard, CR 202.3/608.2b) beside artifact creatures it may return
+# (Collective Drone, Tenacious Drone, Automated Warfare System) and ones it may
+# not (Assault Drone, Hive Mind Coprocessor), a nonartifact creature and
+# creatures that trade in combat, for the oracle's constructed lockstep
+# (dirac/oracle/resistance_test.go)
+Resistance Is Futile
+Collective Drone
+Tenacious Drone
+Automated Warfare System
+Assault Drone
+Hive Mind Coprocessor
+D'Ghor Bloodletter
+Savannah Lions
+Grizzly Bears
+Hill Giant
+Coral Merfolk
+Elite Vanguard
+Swamp
+Plains
+Forest
+Mountain
+Island

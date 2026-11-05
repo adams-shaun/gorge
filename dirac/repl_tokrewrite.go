@@ -67,7 +67,7 @@ func (s *State) replTokensRewApplied(k *prep, p uint8, tok CardID, n int) (CardI
 	}
 	card, cands, rew := tok, 0, 0
 	mult := n
-	for m := s.statM.and(s.ctrlM[p]); m.any(); m = m.rest() {
+	for m := s.tokSrcM(p); m.any(); m = m.rest() {
 		b := m.first()
 		if g.replBits[s.cardAt(b)]&rbDblTok == 0 || s.genLost(k, b) {
 			continue

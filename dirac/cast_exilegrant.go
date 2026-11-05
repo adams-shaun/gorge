@@ -114,11 +114,18 @@ func (s *State) priorityExileGrant(k *prep, d *Decision, p uint8) {
 				continue
 			}
 			host := Obj(s.g.qgH[j] - 1)
-			ai := exileGrantAb(k, s.objs[host].card)
+			// a host on the battlefield is read as it is now (a Dominion
+			// Saboteur that entered as Q, Stacking the Deck grants Q's body,
+			// CR 707.2); one that left keeps its printed card, as activateGen
+			hc := s.objs[host].card
+			if s.objs[host].zone == kop.ZoneBattlefield {
+				hc = s.cardAt(s.objs[host].slot)
+			}
+			ai := exileGrantAb(k, hc)
 			if ai < 0 {
 				continue
 			}
-			a := &k.t.Cards[s.objs[host].card].Abilities[ai]
+			a := &k.t.Cards[hc].Abilities[ai]
 			if !s.graveActCond(k, a, p, o) || !s.costObjPayable(k, p, &a.Cost, o, NoObj) {
 				continue
 			}

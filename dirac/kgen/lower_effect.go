@@ -2884,6 +2884,9 @@ func (lc *lowerCtx) putCounter(ps *params) error {
 	if ct == "EachFromSource" {
 		return lc.putCounterEachFromSource(ps, obj)
 	}
+	if ct == "ExistingCounter" {
+		return lc.putCounterExisting(ps, obj, n)
+	}
 	in := lInstr{Op: "PutCounter", Obj: obj, A: n, CS: ct}
 	if err := putCounterRememberPut(ps, &in); err != nil { // lower_putcounterparams.go
 		return err
@@ -4256,5 +4259,29 @@ func (lc *lowerCtx) counterLoseEffect(ps *params) error {
 	}
 	lc.out.overrides = append(lc.out.overrides, &lOverride{LoseAbilities: true, WhileHost: true})
 	lc.ab.Prog[at].C = len(lc.out.overrides) - 1
+	return nil
+}
+
+// putCounterExisting lowers CounterType$ ExistingCounter (gorge
+// putCounterExisting): the controller chooses a kind of counter already on
+// the recipient and puts CounterNum$ more of it (Dathon, His Heart Open).
+// Only a target or Self recipient and a constant amount of at least 1; the
+// each-kind, remember, placer and remembered-set forms refuse by name.
+func (lc *lowerCtx) putCounterExisting(ps *params, obj lRef, n lValue) error {
+	if ps.is("EachExistingCounter", "True") {
+		return refuse("PutCounter ExistingCounter with EachExistingCounter$")
+	}
+	for _, k := range []string{"RememberPut", "RememberAmount", "Placer"} {
+		if _, ok := ps.m[k]; ok {
+			return refuse("PutCounter ExistingCounter with %s$", k)
+		}
+	}
+	if obj.Kind == rRemembered {
+		return refuse("PutCounter ExistingCounter on the remembered set")
+	}
+	if !n.isConst() || n.N < 1 {
+		return refuse("PutCounter ExistingCounter CounterNum %v", n)
+	}
+	lc.emit(lInstr{Op: "PutCounterExisting", Obj: obj, B: n})
 	return nil
 }

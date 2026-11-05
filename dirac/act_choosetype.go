@@ -62,7 +62,7 @@ var DebugChooseTypeAllVocab bool
 func (s *State) typeAskCard() CardID {
 	switch {
 	case s.g.pre.state == 1 || s.res.ask == raGenTokChoice || s.res.ask == raGenRetChoice:
-		return s.objs[s.g.pre.obj].card
+		return s.preAskCard()
 	case s.g.nask > 0:
 		return s.cardAt(s.g.ask[0].sl)
 	}
