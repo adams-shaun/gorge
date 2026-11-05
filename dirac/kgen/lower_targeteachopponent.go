@@ -27,15 +27,30 @@ import "strings"
 // OppCtrl (filter.go maps YouDontCtrl to whoOpp). Lowered Max 1 over that
 // candidate set equals gorge's distinct-owner count (targets_ask.go:127-148):
 // one owner group, so the same single ask over the same candidates.
-// otherOneEach reports the PlayerCountOther$ spelling, whose bounds the
+// otherOneEach reports the accepted PlayerCountOther$ shape, whose bounds the
 // caller sets directly (value.go knows no PlayerCountOther head, and that
-// alias is deliberately not added).
-func (lc *lowerCtx) otherOneEach(ps *params) bool {
+// alias is deliberately not added). It requires the same opponent-permanent
+// filter forEachOpp does, so any other shape still reaches the value reads and
+// refuses with their message.
+func (lc *lowerCtx) otherOneEach(ps *params, f *lFilter, zone int) bool {
 	fe, _ := ps.get("TargetsForEachPlayer")
 	mn, _ := ps.get("TargetMin")
 	mx, _ := ps.get("TargetMax")
 	return strings.TrimSpace(fe) == "True" && strings.TrimSpace(mn) == "0" && strings.TrimSpace(mx) == "OneEach" &&
-		strings.TrimSpace(lc.face.SVars["OneEach"]) == "PlayerCountOther$Amount"
+		strings.TrimSpace(lc.face.SVars["OneEach"]) == "PlayerCountOther$Amount" && oppPermFilter(f, zone)
+}
+
+// oppPermFilter: the filter targets permanents only, every alternative OppCtrl.
+func oppPermFilter(f *lFilter, zone int) bool {
+	if f == nil || f.Players != 0 || len(f.Clauses) == 0 || zone != zBattlefield {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.Ctrl != whoOpp {
+			return false
+		}
+	}
+	return true
 }
 
 func (lc *lowerCtx) forEachOpp(ps *params, f *lFilter, t *lTarget) error {
@@ -59,7 +74,7 @@ func (lc *lowerCtx) forEachOpp(ps *params, f *lFilter, t *lTarget) error {
 	}
 	mx, _ := ps.get("TargetMax")
 	mx = strings.TrimSpace(mx)
-	oneEach := mx == "OneEach" && (strings.TrimSpace(lc.face.SVars["OneEach"]) == "PlayerCountOpponents$Amount" || lc.otherOneEach(ps))
+	oneEach := mx == "OneEach" && (strings.TrimSpace(lc.face.SVars["OneEach"]) == "PlayerCountOpponents$Amount" || lc.otherOneEach(ps, f, t.Zone))
 	if !oneEach && (!t.Max.isConst() || t.Max.N != 1) {
 		return refuse("TargetsForEachPlayer$ shape %q: TargetMax$ %q", v, mx)
 	}
