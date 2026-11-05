@@ -45,6 +45,7 @@ const (
 	StackKwLifelink    int16 = 4
 	StackKwStorm       int16 = 5
 	StackKwSplitSecond int16 = 6 // read off each spell on the stack: while one holds it, no spell is cast and no non-mana ability is activated (CR 702.61a)
+	StackKwConvoke     int16 = 7 // read wherever the printed convoke is (tapPays): the cast announces tapped creatures toward its mana cost (CR 702.51a)
 )
 
 // Appended keyword bits.

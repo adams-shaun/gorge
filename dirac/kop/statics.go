@@ -250,6 +250,12 @@ const StatCantActivate StaticKind = 236
 // the StaticFlags iota tail in table.go stays untouched.
 const StCasterActive = StTargetsFilter2
 
+// StSeatActive: on a StatMayPlayFrom only, the permission's beneficiary is
+// the active player (MayPlayPlayer$ Player.Active; Weftwalking), not the
+// static's controller. It aliases StEmbNum (1<<14), a ReduceCost-emblem bit
+// no MayPlayFrom static reads; StaticFlags is full at 16 bits.
+const StSeatActive = StEmbNum
+
 // StatDisableETB: S:Mode$ DisableTriggers | ValidMode$
 // ChangesZone[,ChangesZoneAll] | Destination$ Battlefield (CR 603.2g; gorge
 // disableTriggersExcludes). Filter = ValidCause$, matched against the
@@ -270,6 +276,13 @@ const StatDisableETB StaticKind = 234
 // Static.VA (so StDynamic is clear and Static.A stays 0). A byte above any
 // generic cost is saturated at 255 (an exact discount).
 const StEmbNum StaticFlags = 1 << 14
+
+// StRaiseLife (aliases StPanhETB, a Panharmonicon-only bit) on a
+// StatIncreaseCost: Static.A is LIFE the matching spell's caster pays on top
+// of its cost, not generic mana (RaiseCost Cost$ PayLife<N>: Terror of the
+// Peaks; gorge composeRaiseCost's RaiseLife). With StTargetsFilter2 the life
+// is owed once a chosen target matches Filter2.
+const StRaiseLife = StPanhETB
 
 // StatMaxBlockers: creatures matching Filter (battlefield,
 // scanned against the attacker with the static's controller) can't be

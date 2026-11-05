@@ -994,6 +994,9 @@ func (lc *lowerCtx) changeZoneAll(ps *params) error {
 		return err
 	}
 	dual := strings.TrimSpace(ps.str("Origin")) == "Graveyard,Exile"
+	if strings.TrimSpace(ps.str("Origin")) == "Graveyard,Hand" {
+		return lc.originGraveHand(ps) // lower_changezoneall.go
+	}
 	origin := zNone
 	if !dual {
 		if origin, err = zoneOf(ps, "Origin", zNone); err != nil {
@@ -1242,8 +1245,14 @@ func (lc *lowerCtx) digUntil(ps *params) error {
 		in.C = rev
 		in.CS += "|FoundWithRevealed"
 	}
-	if ps.is("ImprintFound", "True") || ps.is("RememberRevealed", "True") {
-		return lc.digUntilImprint(ps, in, found, rev) // lower_digimprint.go
+	if ps.is("ImprintFound", "True") {
+		if ps.is("RememberRevealed", "True") {
+			return lc.digUntilImprint(ps, in, found, rev) // lower_digimprint.go
+		}
+		return lc.digImprintFound(ps, in, found, rev) // lower_digimprint.go
+	}
+	if ps.is("RememberRevealed", "True") {
+		return lc.digRememberedRevealed(ps, in, found, rev) // lower_digimprint.go
 	}
 	if v, ok := ps.get("RememberFound"); ok {
 		// gorge effDigUntil: the found cards replace the resolution's
@@ -2065,7 +2074,7 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 		}
 		aff := sp.str("Affected")
 		nonLand := false
-		if obj.Kind == rRemembered && (aff == "Card.IsRemembered+nonLand" || aff == "Card.nonLand+IsRemembered") {
+		if (obj.Kind == rRemembered || lc.digImprintFoundMode && obj.Kind == rChosen) && (aff == "Card.IsRemembered+nonLand" || aff == "Card.nonLand+IsRemembered") {
 			// "you may cast" the remembered nonland cards: the grant skips a
 			// remembered land (its type cannot change off the battlefield)
 			aff, nonLand = "Card.IsRemembered", true

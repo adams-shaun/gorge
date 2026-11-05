@@ -124,6 +124,32 @@ func (s *State) digUntilRemember(first bool, found []Obj) {
 	}
 }
 
+// digRememberRevealed is DigUntil's RememberRevealed$ (DuRememberRevealed,
+// OpDigUntil C>>3): every scanned card — found and revealed, in scan order —
+// joins the remembered set, per player, without clearing (gorge effDigUntil's
+// RememberRevealed arm keeps its append semantics across the player walk).
+//
+//go:noinline
+func (s *State) digRememberRevealed(revealed []Obj) {
+	for _, o := range revealed {
+		s.remember(o)
+	}
+}
+
+// digImprintFound is DigUntil's ImprintFound$ (DuImprintFound): the found
+// cards join the chosen set, deduped (gorge's seek-found Imprint accumulates
+// ImprintFound across the player walk; only a later Effect reads it).
+//
+//go:noinline
+func (s *State) digImprintFound(found []Obj) {
+	for _, o := range found {
+		if !s.inSet(&s.g.chosen, s.g.nchosen, o) && s.g.nchosen < maxRem {
+			s.g.chosen[s.g.nchosen] = o
+			s.g.nchosen++
+		}
+	}
+}
+
 // Destroy's RememberDestroyed$ (OpDestroy C&2) and
 // PutCounter's RememberAmount$ (OpPutCounter B=1). Cold code, reached
 // through one operand test at each interp.go site.

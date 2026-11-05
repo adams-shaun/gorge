@@ -154,6 +154,9 @@ func (s *State) crimePick(k *prep, t uint8, done bool) {
 	e := s.bld().e
 	if e.kind != seSpell {
 		if done {
+			// a chain link's targets past the root's are asks of their own
+			// (the plain step's one pick per ask, cast.go): gorge records
+			// them at their own answer, before payment (recordSubTargets)
 			s.noteCrime(k, e.ctrl, t)
 		}
 		return
