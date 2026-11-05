@@ -33,6 +33,7 @@ func boardCapDecks() []genDeck {
 // carry the boundary record's "bigboard" classification vocabulary AND the
 // mid-resolution provenance a boundary record can never carry.
 func TestMidResolutionObjectCap(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	decks := boardCapDecks()
 	f, _ := playOne(reg, decks, 17, 6, 20000, 121, false, false)
@@ -65,6 +66,7 @@ func TestMidResolutionObjectCap(t *testing.T) {
 // the 3-turn cap ends the game as a plain stall and no failure record
 // exists at all.
 func TestMidResolutionObjectCapInertUnderBudget(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	if f, _ := playOne(reg, boardCapDecks(), 17, 3, 20000, 100000, false, false); f != nil {
 		t.Fatalf("game under the object budget recorded %+v", f)
@@ -77,6 +79,7 @@ func TestMidResolutionObjectCapInertUnderBudget(t *testing.T) {
 // volume budget (rules.DefaultMaxObjs) under that 0, so this game is also
 // the ordinary-game proof that the default cap never trips on a real game.
 func TestMidResolutionObjectCapDisabled(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	if f, _ := playOne(reg, boardCapDecks(), 17, 2, 20000, 0, false, false); f != nil {
 		t.Fatalf("disabled budget recorded %+v", f)

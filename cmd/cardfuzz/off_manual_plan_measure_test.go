@@ -42,6 +42,7 @@ func planMeasurementFixture() []genDeck {
 // identical: the measurement run must submit no plan of its own (Planned ==
 // 0), and neither run may carry a failure.
 func TestOffModeManualSeatPlanMeasurement(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	decks := planMeasurementFixture()
 

@@ -191,6 +191,7 @@ func krenkoCap(goblins int) int { return 80 + goblins + krenkoCapOffset }
 // event kind -- the mid-resolution provenance a decision-boundary record
 // can never carry.
 func TestKrenkoBoardCapFiresMidResolution(t *testing.T) {
+	t.Parallel()
 	const goblins = 4000
 	maxObjs := krenkoCap(goblins)
 	e, _, kid, abilityIdx := krenkoFixture(t, goblins, maxObjs)
@@ -257,6 +258,7 @@ func TestKrenkoBoardCapFiresMidResolution(t *testing.T) {
 // This is the "before" behaviour the armed cap truncates, and it is also
 // the precondition the benchmark's before/after reading stands on.
 func TestKrenkoBoardUnarmedDoubles(t *testing.T) {
+	t.Parallel()
 	const goblins = 4000
 	e, _, kid, abilityIdx := krenkoFixture(t, goblins, 0)
 	if got := goblinTokens(t, e, 0); got != goblins {

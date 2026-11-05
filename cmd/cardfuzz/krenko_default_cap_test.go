@@ -20,6 +20,7 @@ import (
 // minting event kind -- the same shape the explicit -max-objects proof
 // (TestKrenkoBoardCapFiresMidResolution) pins, at the default budget.
 func TestKrenkoBoardDefaultCapFiresMidResolution(t *testing.T) {
+	t.Parallel()
 	// Precondition: the default arming the harness and host paths share
 	// produces exactly this budget.
 	if rules.WithDefaultObjectCap(nil).MaxObjs != rules.DefaultMaxObjs {

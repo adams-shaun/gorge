@@ -73,29 +73,33 @@ func TestEveryOfferedPriorityOptionActs(t *testing.T) {
 	all := testutil.LegacyDeckNames()
 	const perGame = 400
 	for g := 0; g+1 < len(all); g += 2 {
-		names := []string{all[g], all[g+1]}
-		decks := [][]*cards.Card{testutil.RepoDeck(t, reg, all[g]), testutil.RepoDeck(t, reg, all[g+1])}
-		cfg := Config{Seed: uint64(9100 + g), Names: names, Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Universe()}
-		e := New(cfg)
-		e.Advance()
-		b := newTestBot(uint64(g) + 3)
-		swept := 0
-		for n := 0; !e.G.Over && e.Pending() != nil && n < 20000 && swept < perGame; n++ {
-			d := e.Pending()
-			if d.Kind == decision.KPriority && len(d.Options) > 2 {
-				if msg := priorityOptionsInert(e, d); msg != "" {
-					t.Fatalf("%s vs %s: %s", names[0], names[1], msg)
+		g := g
+		t.Run(fmt.Sprintf("%d", g), func(t *testing.T) {
+			t.Parallel()
+			names := []string{all[g], all[g+1]}
+			decks := [][]*cards.Card{testutil.RepoDeck(t, reg, all[g]), testutil.RepoDeck(t, reg, all[g+1])}
+			cfg := Config{Seed: uint64(9100 + g), Names: names, Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Universe()}
+			e := New(cfg)
+			e.Advance()
+			b := newTestBot(uint64(g) + 3)
+			swept := 0
+			for n := 0; !e.G.Over && e.Pending() != nil && n < 20000 && swept < perGame; n++ {
+				d := e.Pending()
+				if d.Kind == decision.KPriority && len(d.Options) > 2 {
+					if msg := priorityOptionsInert(e, d); msg != "" {
+						t.Fatalf("%s vs %s: %s", names[0], names[1], msg)
+					}
+					swept++
 				}
-				swept++
+				if err := e.Submit(b.answer(e, d)); err != nil {
+					t.Fatalf("%s vs %s, intent %d: %v", names[0], names[1], n, err)
+				}
 			}
-			if err := e.Submit(b.answer(e, d)); err != nil {
-				t.Fatalf("%s vs %s, intent %d: %v", names[0], names[1], n, err)
+			t.Logf("%s vs %s: swept %d priority decisions to turn %d", names[0], names[1], swept, e.G.Turn)
+			if swept == 0 {
+				t.Fatalf("%s vs %s: no priority decision with an action was swept", names[0], names[1])
 			}
-		}
-		t.Logf("%s vs %s: swept %d priority decisions to turn %d", names[0], names[1], swept, e.G.Turn)
-		if swept == 0 {
-			t.Fatalf("%s vs %s: no priority decision with an action was swept", names[0], names[1])
-		}
+		})
 	}
 }
 

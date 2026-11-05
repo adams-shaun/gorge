@@ -10,6 +10,7 @@ import (
 )
 
 func TestAbigaleEloquentFirstYearPutsAKeywordCounterOfEachType(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	abigale := lookup(t, reg, "Abigale, Eloquent First-Year")
 	bears := lookup(t, reg, "Grizzly Bears")

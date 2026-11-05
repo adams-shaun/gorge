@@ -15,6 +15,7 @@ import (
 // existed the summary printed only the opaque total and the failure was
 // invisible.
 func TestCardfuzzTwinRebuildBreakdown(t *testing.T) {
+	t.Parallel()
 	const (
 		kind   = "priority"
 		reason = "no native option for candidate kind activate_ability"

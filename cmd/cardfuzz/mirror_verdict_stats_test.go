@@ -9,6 +9,7 @@ import (
 )
 
 func TestMirrorVerdictsIncludedInStatsAndSummary(t *testing.T) {
+	t.Parallel()
 	counts := map[string]int{"equivalent": 3, "mismatch base_option_window|state_differs": 1}
 	if got := formatMirrorVerdicts(counts); got != "equivalent=3, mismatch base_option_window|state_differs=1" {
 		t.Fatalf("summary counts = %q", got)

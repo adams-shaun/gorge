@@ -24,6 +24,7 @@ func faceToFaceDeck() genDeck {
 // cardfuzz builds must throw at random (AILogic$ Random), so a tied match
 // re-throws with fresh draws and no game livelocks.
 func TestFaceToFaceEndsUnderEveryAutoPayMode(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	decks := []genDeck{faceToFaceDeck(), faceToFaceDeck()}
 	for _, mode := range autoPayModes {

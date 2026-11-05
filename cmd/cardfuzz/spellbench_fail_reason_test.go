@@ -23,6 +23,7 @@ func rebuildFailLine(out string) string {
 // -min-agree 99.5 under the default 0.5% rebuild budget; with the budget at 0
 // the same tally fails and the FAIL line names rebuild_fail.
 func TestSpellbenchFailReasonNamed(t *testing.T) {
+	t.Parallel()
 	sum := newSBTwinSummary()
 	sum.Total["priority"], sum.Agree["priority"] = 5865, 5865
 	sum.Total[twin.Opaque] = 1
