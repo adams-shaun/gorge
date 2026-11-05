@@ -8,12 +8,17 @@
 <script lang="ts">
   import { RAIL_MAX, RAIL_MIN } from '../lib/layoutprofile';
 
-  let { side, width, onWidth, onDrag, onReset }: {
+  let { side, width, onWidth, onDrag, onReset, min = RAIL_MIN, max = RAIL_MAX, name = 'Rail' }: {
+    /** the side of the table the resized rail sits on; the handle is on its inner edge */
     side: 'left' | 'right';
     width: number;
     onWidth: (width: number) => void;
     onDrag: (width: number | null) => void;
     onReset: () => void;
+    min?: number;
+    max?: number;
+    /** what the separator resizes, for its accessible name */
+    name?: string;
   } = $props();
   let el = $state<HTMLElement | null>(null);
   let dragging = $state(false);
@@ -24,7 +29,7 @@
   function move(e: PointerEvent): void {
     if (pointer !== e.pointerId || window.innerWidth <= 0) return;
     const edge = side === 'left' ? e.clientX : window.innerWidth - e.clientX;
-    draft = Math.min(RAIL_MAX, Math.max(RAIL_MIN, edge / window.innerWidth));
+    draft = Math.min(max, Math.max(min, edge / window.innerWidth));
     onDrag(draft);
   }
   function start(e: PointerEvent): void {
@@ -67,11 +72,12 @@
   role="separator"
   tabindex="0"
   aria-orientation="vertical"
-  aria-label="Rail width: drag, or use arrow keys; Home resets"
-  aria-valuemin={Math.round(RAIL_MIN * 100)}
-  aria-valuemax={Math.round(RAIL_MAX * 100)}
+  aria-label="{name} width: drag, or use arrow keys; Home resets"
+  aria-valuemin={Math.round(min * 100)}
+  aria-valuemax={Math.round(max * 100)}
   aria-valuenow={Math.round(shown * 100)}
   data-rail-resizer
+  data-side={side}
   onpointerdown={start}
   onpointermove={move}
   onpointerup={end}
@@ -90,8 +96,8 @@
     cursor: col-resize;
     touch-action: none;
   }
-  :global(.rail-right) .rail-resizer { left: -6px; }
-  :global(.rail-left) .rail-resizer { right: -6px; }
+  .rail-resizer[data-side='right'] { left: -6px; }
+  .rail-resizer[data-side='left'] { right: -6px; }
   .rail-resizer:focus-visible { outline: 2px solid var(--gilt); outline-offset: -2px; }
   .rail-resizer.dragging { background: color-mix(in srgb, var(--gilt) 30%, transparent); }
 </style>

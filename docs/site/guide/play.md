@@ -281,7 +281,8 @@ with it armed.
 
 A server can seat a bot beside you that weighs each of your decisions as it arrives
 ([Play with a bot beside you](../web/paired-play.md)). It is off by default: start the server with
-`-paired-bot az-closed`, and the **Paired bot** panel appears at the top of the rail. Its switch starts on
+`-paired-bot az-closed`, and the **Paired bot** panel appears in a rail of its own, on the side of the board away from the stack and log
+(the Layout drawer's **Paired bot** setting can keep it in the main rail or hide it at the screen's edge). Its switch starts on
 when you play alone against bots and off at a table with another human; your browser remembers what you
 choose for each. When you start a game against a bot, the **Paired bot** picker chooses for that game: the
 server's default, another bot the server offers, or none, which takes the panel away. A restart keeps the

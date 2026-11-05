@@ -25,6 +25,8 @@ export type Anchor = 'start' | 'center' | 'end';
 export type RegionOrder = 'entry' | 'name' | 'power';
 export type Overflow = 'overlap' | 'scroll' | 'wrap';
 export type RailSide = 'left' | 'right' | 'hidden';
+/** Where the paired bot's panel goes: its own rail opposite the main one, inside the main rail, or an edge drawer. */
+export type PartnerPlacement = 'opposite' | 'same' | 'hidden';
 export type LogMode = 'remember' | 'show' | 'hide';
 export type PromptPlacement = 'table' | 'dock' | 'dock-bottom' | 'float';
 
@@ -35,6 +37,7 @@ export const ANCHORS: readonly Anchor[] = ['start', 'center', 'end'];
 export const REGION_ORDERS: readonly RegionOrder[] = ['entry', 'name', 'power'];
 export const OVERFLOWS: readonly Overflow[] = ['overlap', 'scroll', 'wrap'];
 export const RAIL_SIDES: readonly RailSide[] = ['left', 'right', 'hidden'];
+export const PARTNER_PLACEMENTS: readonly PartnerPlacement[] = ['opposite', 'same', 'hidden'];
 export const LOG_MODES: readonly LogMode[] = ['remember', 'show', 'hide'];
 export const PROMPT_PLACEMENTS: readonly PromptPlacement[] = ['table', 'dock', 'dock-bottom', 'float'];
 
@@ -45,6 +48,7 @@ export const ANCHOR_LABELS: Record<Anchor, string> = { start: 'Left', center: 'C
 export const ORDER_LABELS: Record<RegionOrder, string> = { entry: 'Entry order', name: 'Name', power: 'Power' };
 export const OVERFLOW_LABELS: Record<Overflow, string> = { overlap: 'Overlap', scroll: 'Scroll', wrap: 'Wrap' };
 export const RAIL_LABELS: Record<RailSide, string> = { left: 'Left', right: 'Right', hidden: 'Hidden' };
+export const PARTNER_LABELS: Record<PartnerPlacement, string> = { opposite: 'Opposite side', same: 'In the rail', hidden: 'Hidden' };
 export const LOG_LABELS: Record<LogMode, string> = { remember: 'Per table', show: 'Show', hide: 'Hide' };
 export const PROMPT_LABELS: Record<PromptPlacement, string> = { table: 'Near table', dock: 'Rail top', 'dock-bottom': 'Rail bottom', float: 'Floating' };
 
@@ -60,6 +64,9 @@ export const SPLIT_MIN = 0.18;
 export const SPLIT_MAX = 0.72;
 export const RAIL_MIN = 0.14;
 export const RAIL_MAX = 0.4;
+export const PARTNER_MIN = 0.14;
+/** Lower than the rail's ceiling, so both rails at their widest still leave the board 30% of the width. */
+export const PARTNER_MAX = 0.3;
 export const WEIGHT_MIN = 0.2;
 export const WEIGHT_MAX = 3;
 export const ART_MIN = 0;
@@ -113,6 +120,10 @@ export interface LayoutProfile {
     rail: RailSide;
     /** rail width as a fraction of the viewport */
     railWidth: number;
+    /** where the paired bot's panel goes when the table offers one */
+    partner: PartnerPlacement;
+    /** the paired bot's own rail width as a fraction of the viewport */
+    partnerWidth: number;
     log: LogMode;
     /** where the decision prompt goes; x/y are the floating prompt's top-left as a fraction of the viewport */
     prompt: { placement: PromptPlacement; x: number; y: number };
@@ -168,6 +179,10 @@ export function defaultRailWidth(_seats = 2): number {
   return 0.21;
 }
 
+export function defaultPartnerWidth(): number {
+  return 0.2;
+}
+
 export function defaultSplit(seats: number): number {
   if (seats <= 2) return PRESET_SHAPES.duel.table.split;
   if (seats <= 4) return PRESET_SHAPES.cmd4.table.split;
@@ -187,7 +202,7 @@ export function defaultProfile(): LayoutProfile {
       regions: cloneRegions(PRESET_SHAPES.duel.regions),
       cards: { stacking: true, overflow: 'overlap', artBelow: 58, outlines: false },
       hand: { visible: 0.72, scale: HAND_SCALE_DEFAULT, raise: true },
-      panels: { rail: 'right', railWidth: defaultRailWidth(), log: 'remember', prompt: { placement: 'dock-bottom', x: 0.6, y: 0.12 } },
+      panels: { rail: 'right', railWidth: defaultRailWidth(), partner: 'opposite', partnerWidth: defaultPartnerWidth(), log: 'remember', prompt: { placement: 'dock-bottom', x: 0.6, y: 0.12 } },
     },
     'duel',
   );
@@ -248,7 +263,14 @@ function canonical(p: LayoutProfile): unknown {
     regions: Object.fromEntries(REGION_KEYS.map((k) => [k, { row: p.regions[k].row, weight: p.regions[k].weight, anchor: p.regions[k].anchor, order: p.regions[k].order }])),
     cards: { stacking: p.cards.stacking, overflow: p.cards.overflow, artBelow: p.cards.artBelow, outlines: p.cards.outlines },
     hand: { visible: p.hand.visible, scale: p.hand.scale, raise: p.hand.raise },
-    panels: { rail: p.panels.rail, railWidth: p.panels.railWidth, log: p.panels.log, prompt: { placement: p.panels.prompt.placement, x: p.panels.prompt.x, y: p.panels.prompt.y } },
+    panels: {
+      rail: p.panels.rail,
+      railWidth: p.panels.railWidth,
+      partner: p.panels.partner,
+      partnerWidth: p.panels.partnerWidth,
+      log: p.panels.log,
+      prompt: { placement: p.panels.prompt.placement, x: p.panels.prompt.x, y: p.panels.prompt.y },
+    },
   };
 }
 
@@ -307,6 +329,10 @@ export function validate(v: unknown): LayoutProfile | null {
   if (!oneOf(panels.rail, RAIL_SIDES) || !oneOf(panels.log, LOG_MODES) || !isObj(prompt)) return null;
   const railWidth = panels.railWidth === undefined ? defaultRailWidth() : panels.railWidth;
   if (!num(railWidth, RAIL_MIN, RAIL_MAX)) return null;
+  // Profiles saved before the paired bot had its own rail carry neither field.
+  const partner = panels.partner === undefined ? 'opposite' : panels.partner;
+  const partnerWidth = panels.partnerWidth === undefined ? defaultPartnerWidth() : panels.partnerWidth;
+  if (!oneOf(partner, PARTNER_PLACEMENTS) || !num(partnerWidth, PARTNER_MIN, PARTNER_MAX)) return null;
   if (!oneOf(prompt.placement, PROMPT_PLACEMENTS) || !num(prompt.x, 0, 1) || !num(prompt.y, 0, 1)) return null;
   return {
     version: 1,
@@ -314,7 +340,7 @@ export function validate(v: unknown): LayoutProfile | null {
     regions: compactRows(regs),
     cards: { stacking: cards.stacking, overflow: cards.overflow, artBelow: cards.artBelow, outlines: cards.outlines },
     hand: { visible: hand.visible, scale: handScale, raise: hand.raise },
-    panels: { rail: panels.rail, railWidth, log: panels.log, prompt: { placement: prompt.placement, x: prompt.x, y: prompt.y } },
+    panels: { rail: panels.rail, railWidth, partner, partnerWidth, log: panels.log, prompt: { placement: prompt.placement, x: prompt.x, y: prompt.y } },
   };
 }
 

@@ -21,6 +21,8 @@
     ORIENTATION_LABELS,
     ORIENTATIONS,
     OVERFLOW_LABELS,
+    PARTNER_LABELS,
+    PARTNER_PLACEMENTS,
     OVERFLOWS,
     PRESET_IDS,
     PRESET_LABELS,
@@ -43,8 +45,8 @@
    * LayoutDrawer is every layout choice without drag and drop: presets, the
    * table (arrangement, the opponents'
    * share, orientation), the board template's regions, cards (stacking,
-   * overflow, art tiles, the hand) and panels (the rail, the log, the prompt
-   * placement), plus saving named profiles and exporting/importing them as a
+   * overflow, art tiles, the hand) and panels (the rail, the paired bot's
+   * rail, the log, the prompt placement), plus saving named profiles and exporting/importing them as a
    * gorge-layout file. Every control writes the working copy at once
    * (layoutStore.edit), so the table behind the drawer is the preview.
    *
@@ -183,6 +185,8 @@
 
     <h3>Panels</h3>
     {@render seg('Stack & log rail', RAIL_SIDES, RAIL_LABELS, p.panels.rail, (v) => layoutStore.edit((q) => (q.panels.rail = v)), 'rail')}
+    {@render seg('Paired bot', PARTNER_PLACEMENTS, PARTNER_LABELS, p.panels.partner, (v) => layoutStore.edit((q) => (q.panels.partner = v)), 'partner')}
+    <p class="note">The paired bot's own rail goes on the side away from the stack and log. On a narrow screen it joins the main rail.</p>
     {@render seg('Log', LOG_MODES, LOG_LABELS, p.panels.log, (v) => layoutStore.edit((q) => (q.panels.log = v)), 'log')}
     {@render seg('Prompt', PROMPT_PLACEMENTS, PROMPT_LABELS, p.panels.prompt.placement, (v) => layoutStore.edit((q) => (q.panels.prompt.placement = v)), 'prompt')}
 
