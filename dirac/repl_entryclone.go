@@ -150,6 +150,9 @@ func (s *State) cloneEntryOrderOptions(k *prep, d *Decision) {
 // cloneEntryCtrl is the player the ask is posed to: the resolving spell's
 // controller, or the entered permanent's once gorge has moved it in.
 func (s *State) cloneEntryCtrl() uint8 {
+	if s.res.ask == raGenRetChoice {
+		return s.res.askP // a returning clone's controller (copy_returnorder.go)
+	}
 	if s.g.pre.ordMid {
 		return s.perms[s.objs[s.g.pre.obj].slot].ctrl
 	}
