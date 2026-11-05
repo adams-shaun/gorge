@@ -1,12 +1,6 @@
 package dirac
 
-import (
-	"fmt"
-	"os"
-	"runtime"
-
-	"github.com/adams-shaun/gorge/dirac/kop"
-)
+import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Gift (CR 702.174, Bloomburrow), copied from gorge (rules cast_asks.go
 // giftAsk, cast_targets.go foldGiftPromise, stack.go's gift splice,
@@ -173,16 +167,6 @@ func (s *State) giftNoSlot(t *kop.TargetSpec, e *stackEntry) bool {
 func (s *State) reverseCast(k *prep) {
 	e := &s.bld().e
 	tokenGone := s.bld().bfl&bflTokenGone != 0
-	if os.Getenv("DIRAC_RC_TRACE") != "" {
-		_, f, l, _ := runtime.Caller(1)
-		pt := 0
-		for i := range s.perms {
-			if s.perms[i].flags&pfTapped != 0 {
-				pt++
-			}
-		}
-		fmt.Fprintf(os.Stderr, "RC %s:%d kind=%d pool=%v taps=%d\n", f, l, e.kind, s.pl[e.ctrl].pool, pt)
-	}
 	s.ctl = ctlPriority
 	s.undos++
 	if s.bld().bfl&bflUsedMark != 0 && s.g.nused > 0 {

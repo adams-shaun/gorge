@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -2104,9 +2102,6 @@ func (s *State) manaStep(k *prep) bool {
 	e := &s.bld().e
 	planCut := s.bld().bfl&bflPlanCut != 0
 	s.bld().bfl &^= bflPlanCut
-	if os.Getenv("DIRAC_RC_TRACE") != "" {
-		fmt.Fprintf(os.Stderr, "MS kind=%d obj=%d card=%d of=%x stage=%d flags=%x lower=%d free=%d pool=%v cost=%v\n", e.kind, e.obj, s.objs[e.obj].card, s.objs[e.obj].of, s.bld().stage, s.bld().bfl, s.bld().bfl&bflLowered, e.flags&sfFree, s.pl[e.ctrl].pool, s.buildCost(k))
-	}
 	switch e.kind {
 	case seSpell:
 		cost := s.buildCost(k)
