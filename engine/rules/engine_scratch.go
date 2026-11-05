@@ -65,8 +65,14 @@ type engineScratch struct {
 	planLastX  int32 `clone:"reset"`
 	// planIgnoreCredit makes a potential cast's plan price the printed cost
 	// where a convoke-like credit would decline it (targetPaidNeedsPlannedPayment).
-	planIgnoreCredit bool   `clone:"reset"`
-	derivedMemoGen   uint64 `clone:"reset"`
+	planIgnoreCredit bool `clone:"reset"`
+	// planConsumptionOnly marks the one planner query whose answer is read
+	// only for whether a payable plan consumes something
+	// (targetPaidNeedsPlannedPayment): a plan that consumes nothing is
+	// declined by the reader itself, so its witness need not be confirmed by
+	// the offer walk (planWitnessOffersNeeded) and the walk is skipped.
+	planConsumptionOnly bool   `clone:"reset"`
+	derivedMemoGen      uint64 `clone:"reset"`
 	// typesMemo is the derived-types memo (engine/rules/types_memo.go): each
 	// object's layer-4 answer under the Derived memo's cross-walk key, served
 	// to derivedTypesOf and every top-level Derived build. typesMemoLocal*

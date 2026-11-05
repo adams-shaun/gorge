@@ -621,7 +621,7 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 			return got
 		}
 	}
-	if !e.potentialWitnessOffers(p, o, *best.Plan) {
+	if e.planWitnessOffersNeeded(f, *best.Plan) && !e.potentialWitnessOffers(p, o, *best.Plan) {
 		if parts := altAddCostParts(f); len(parts) != 0 && o.Mode == "" {
 			return e.potentialAltAddPlan(p, o, base, parts)
 		}
@@ -649,10 +649,27 @@ func (e *Engine) potentialTargetPricedPlan(statics costStaticViews, p state.Play
 		got = e.planComposedCost(p, o.Obj, pay.PlanManaUnderRider(c, rider), false, false)
 		return got.Plan != nil && got.Reason == ""
 	})
-	if got.Plan != nil && got.Reason == "" && len(e.PaymentPlanRelaxed) == 0 && !e.potentialWitnessOffers(p, o, *got.Plan) {
+	if got.Plan != nil && got.Reason == "" && len(e.PaymentPlanRelaxed) == 0 &&
+		e.planWitnessOffersNeeded(e.G.Obj(o.Obj).Face(), *got.Plan) && !e.potentialWitnessOffers(p, o, *got.Plan) {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
 	}
 	return got
+}
+
+// planWitnessOffersNeeded reports whether plan's offer gate
+// (potentialWitnessOffers) must run. A consumption-only query
+// (planConsumptionOnly, targetPaidNeedsPlannedPayment) reads its plan only
+// for whether it consumes something: a plan that consumes nothing is
+// declined by the reader itself, so the gate cannot change the answer --
+// except on a cast with either-or additional cost parts, whose witness
+// fallback (potentialAltAddPlan) the gate's failure arms, and never for the
+// keep-sources plan (potentialWitnessKeeping), whose own consumption filter
+// the gate's failure would flip.
+func (e *Engine) planWitnessOffersNeeded(f *cards.Face, plan decision.PaymentPlan) bool {
+	if !e.planConsumptionOnly || e.planKeepSources || paymentPlanConsumes(plan) {
+		return true
+	}
+	return len(altAddCostParts(f)) != 0
 }
 
 // potentialAltAddSacrificePlan prices an either-or additional cost none of

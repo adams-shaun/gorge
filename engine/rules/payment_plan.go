@@ -1213,7 +1213,9 @@ func (e *Engine) targetPaidNeedsPlannedPayment(p state.PlayerID, id state.ObjID)
 	e.planIgnoreCredit = true
 	defer func() { e.planIgnoreCredit = false }()
 	o := decision.Option{Kind: "cast", Obj: id}
+	e.planConsumptionOnly = true
 	got := e.potentialModeCastPlan(p, o)
+	e.planConsumptionOnly = false
 	if got.Plan == nil || got.Reason != "" || !paymentPlanConsumes(*got.Plan) || e.witnessReachesMode(e, p, o, *got.Plan, true) {
 		return false
 	}
