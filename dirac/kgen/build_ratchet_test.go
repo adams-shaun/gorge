@@ -169,8 +169,9 @@ import (
 // +3 (a variable CollectEvidence cost and evidence beside the triggered-card exile: Incinerator of the Guilty, Urgent Necropsy, Lamplight Phoenix lower; land; merged ALL build-level 21570 -> 21573).
 // +6 (the ExtTurnFaceUp effect turn-up, Urgent Necropsy's collect-evidence X, the each-target Aura-copy enchant ask and the DamageAll planeswalker/battle clause lower, with land's re-measure after its rebase; land; merged ALL build-level 21573 -> 21579).
 // +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; land; merged ALL build-level 21579 -> 21584).
+// +28 (the printed K:Storm keyword lowers: Stormscale Scion (TDM) and 27 further K:Storm cards in the non-Standard lists; ALL build-level 21584 -> 21612).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21584, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21612, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

@@ -64,8 +64,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (a variable CollectEvidence cost and evidence beside the triggered-card exile: Incinerator of the Guilty, Urgent Necropsy, Lamplight Phoenix lower; land; merged MKM 236 -> 239, ALL 21570 -> 21573).
 	// +6 (the ExtTurnFaceUp effect turn-up, Urgent Necropsy's collect-evidence X, the each-target Aura-copy enchant ask and the DamageAll planeswalker/battle clause lower, with land's re-measure after its rebase; land; merged ALL 21573 -> 21579).
 	// +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; land; merged ALL 21579 -> 21584).
+	// +28 (the printed K:Storm keyword lowers to CardDef.Storm and the kernel's native cast trigger: Stormscale Scion (TDM), Chatterstorm, Brain Freeze, Grapeshot and 24 further K:Storm cards in the non-Standard lists; TDM 245 -> 246, ALL 21584 -> 21612).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21584, 34442},
+	"ALL": {21612, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -88,7 +89,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SNC": {185, 266},
 	"SOS": {248, 270},
 	"SPM": {160, 192},
-	"TDM": {245, 276},
+	"TDM": {246, 276},
 	"TLA": {246, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
