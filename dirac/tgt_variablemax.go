@@ -68,3 +68,16 @@ func (s *State) tgtBoundsV(k *prep, t *kop.TargetSpec, e *stackEntry, mt *multiT
 	}
 	mt.min, mt.max = uint8(lo), uint8(hi)
 }
+
+// tgtAsksNothing reports whether slot t of entry e is a TgfBoundsV slot whose
+// evaluated maximum is 0 ("X target creatures" at X = 0): gorge poses no target
+// menu for it, so the menu's affordability census (affordableTargetCandidates)
+// never runs and an unpayable cast reaches its mana window instead of reversing
+// at the target stage (CR 601.2c, 601.2g, 733.1).
+func (s *State) tgtAsksNothing(k *prep, t *kop.TargetSpec, e *stackEntry) bool {
+	if t.TFlags&kop.TgfBoundsV == 0 {
+		return false
+	}
+	_, hi := s.tgtBoundsEval(k, t, e)
+	return hi == 0
+}
