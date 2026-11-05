@@ -245,7 +245,7 @@ func (s *State) phaseUntap(k *prep) {
 			s.phaseIn(k, q)
 		}
 	}
-	if n != 0 && !blocked {
+	if n != 0 && !blocked && k.gen != nil {
 		// The phase-ins put slots back on occ, so the override-derived
 		// types and the layer walk the refresh recomputed while they were
 		// phased out are stale until the next instruction would refresh
