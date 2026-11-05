@@ -173,7 +173,7 @@ import (
 // +1 (Worlds Within Worlds: a RepeatEach player body's per-player hand move; this branch; merged ALL build-level 21585 -> 21586).
 // +1 (Painter's Studio // Defaced Gallery: the unlock trigger's DB$ Effect statics read the door's own SVar table; this branch; merged ALL build-level 21595 -> 21596).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21600, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21599, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

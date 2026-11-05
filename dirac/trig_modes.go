@@ -2,10 +2,10 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// TrigLandPlayed, TrigSearchedLibrary, TrigForage and
-// TrigDiscover. None has a slot subscription; every fire is behind a prep
-// bool (genPrep.anyLandPlayed / anyKwAct), so a table without them runs
-// the old paths.
+// TrigLandPlayed, TrigSearchedLibrary, TrigForage,
+// TrigDiscover and TrigManifestDread. None has a slot subscription; every
+// fire is behind a prep bool (genPrep.anyLandPlayed / anyKwAct), so a table
+// without them runs the old paths.
 //
 // gorge: landPlayedMatches (trigmatch/actions.go) is the land's move to the
 // battlefield while it is a land play (a Play effect's too, so hideaway's
@@ -14,18 +14,31 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // order and per line in ability order (enterLandPlayed). The three player
 // events fire once each: a hidden library search (also when nothing is
 // found; trigmatch/cards.go), a paid forage after its moves, a discover at
-// its completion with the discover value as the amount.
+// its completion with the discover value as the amount, a manifest dread
+// after each window's moves, the milled card as the trigger object (the
+// one-card window's marker has none).
 
 // DebugTrigModes2Off is the mutation hook (TestLandSearchForageDiscoverTriggersMutation): no
 // LandPlayed / SearchedLibrary / Forage / Discover line fires.
 var DebugTrigModes2Off bool
 
 // fireKwAct fires "whenever <Whose> searches their library / forages /
-// discovers" (ev is TrigSearchedLibrary, TrigForage or TrigDiscover) for
-// player who; amt is the trigger amount (the discover value).
+// discovers / manifests dread" (ev is TrigSearchedLibrary, TrigForage,
+// TrigDiscover or TrigManifestDread) for player who; amt is the trigger
+// amount (the discover value).
 //
 //go:noinline
 func (s *State) fireKwAct(k *prep, ev kop.TrigEvent, who uint8, amt int16) {
+	s.fireKwActObj(k, ev, who, amt, NoObj)
+}
+
+// fireKwActObj is fireKwAct with the action's moved object as the queued
+// trigger's object: the ManifestDread marker's milled card (gorge
+// trigger_match.go binds the marker's IDs as the body's TriggeredCards), NoObj
+// on the one-card shortcut's marker whose ID list is empty.
+//
+//go:noinline
+func (s *State) fireKwActObj(k *prep, ev kop.TrigEvent, who uint8, amt int16, tobj Obj) {
 	if k.gen == nil || !k.gen.anyKwAct || DebugTrigModes2Off {
 		return
 	}
@@ -33,7 +46,7 @@ func (s *State) fireKwAct(k *prep, ev kop.TrigEvent, who uint8, amt int16) {
 	n := s.listenerOrder(s.occ, &ord)
 	for _, sl := range ord[:n] {
 		s.slotTriggers(k, sl, func(a *kop.Ability) bool { return a.Trig.Event == ev }, func(l trigListener, a *kop.Ability) {
-			s.playerTrigGen(k, ev, l, a, who, amt)
+			s.playerTrigGenObj(k, ev, l, a, who, amt, tobj)
 		})
 	}
 }

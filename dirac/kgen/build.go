@@ -1374,6 +1374,11 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		// is Defined$ ExiledWith, which also honours a resolving trigger's
 		// fire ver (gorge exiledWithSet)
 		kf.Pred, kf.PredN = kop.PredExiledWith, int16(c.CmpN)
+	case cmpTriggerObj:
+		// the resolving trigger's object (kernel isTriggerObj), wherever
+		// it is now: the ChooseFromDefined$ TriggeredCards pool's
+		// membership (Paranormal Analyst's return)
+		kf.Pred, kf.PredN = kop.PredTriggerObj, int16(c.CmpN)
 	case cmpFaceDown:
 		kf.Pred = kop.PredFaceDown // a face-down battlefield permanent (kernel faceDownPred)
 	case cmpPowerGTBase:
@@ -1616,6 +1621,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefSrcOwner, nil
 	case rTriggerAttackers:
 		return kop.RefTriggerAttackers, nil
+	case rRememberedOwner:
+		return kop.RefRememberedOwner, nil
 	case rTargetUnion:
 		switch r.N {
 		case 3:
