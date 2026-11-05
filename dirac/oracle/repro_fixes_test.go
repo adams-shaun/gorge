@@ -91,6 +91,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-trk", []stdRepro{
 		{"granted_mana_taps_stack_one_at_a_time", false, false}, // CR 603.3b: Deep Space 9 paid by Rok-Tahk's {G}{G} from Beckett Mariner and Erica Ortegas: each tap's trigger is stacked before the next activation, and both resolve before the sorcery-speed cast
 		{"entry_counter_put_by_returned_owner", false, false},   // CR 122.6a: Dr. Leonard "Bones" McCoy returns the opponent's Moopsy under its owner's control, so its owner puts the +1/+1 counter and the owner's Dr. Joseph M'Benga doubles it
+		{"exile_grant_host_is_a_copy", false, false},            // CR 707.2, 603.6a: Dominion Saboteur enters as Q, Stacking the Deck, so its enter trigger's exiled Assembly Specialist gains Q's exile-from-hand cast ability, which the copy's host offers
 	})
 }
 
