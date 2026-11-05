@@ -391,7 +391,7 @@ func (lc *lowerCtx) refuseEachMana(ms []*lAbility) bool {
 			// spell-only restriction (Troyan, Gutsy Explorer) stays refused;
 			// Tin Street Gossip's Static.isTurnFaceUp clause is modelled with
 			// the all-at-once extra.
-			lc.refuseNode("card", "mana ability adding several colours at once under a spell, activated-ability or non-spell restriction")
+			lc.refuseNode("card", "mana ability adding several colours at once under a spend restriction")
 		case !plainTapMana(a, false):
 			// gorge's planner defers any cost beyond {T} (a filter's fee, a
 			// sacrifice of another permanent, removed counters): a census gap
