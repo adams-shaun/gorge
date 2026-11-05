@@ -141,6 +141,10 @@ type Entry struct {
 	// Collation is the booster collation the packs came from,
 	// informational only (the packs are logged in full).
 	Collation string `json:"collation,omitempty"`
+	// Promos is a sealed event's promo cards per seat (0..MaxPromos): each
+	// promo is a one-card pack of rarity R or M, opened as pack round
+	// Packs+1.. after the boosters. 0 = none (every log before the field).
+	Promos int `json:"promos,omitempty"`
 	// Rebuild turns on continuous construction (MTR 7.3): from round 2 on,
 	// each series opens with a rebuild window in which both sides lock their
 	// game-1 deck with a Sideboarded entry (Game 1). false = every log

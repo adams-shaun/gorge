@@ -12,7 +12,7 @@ so it can stay out of every turn's context.
 | [do-not.md](do-not.md) | Before you touch git, run a server, or merge. Every entry has happened here. |
 | [runtime-behavior.md](runtime-behavior.md) | When changing trigger-relative filters, cast provenance, host observer hooks, or seat privacy/session handling. |
 | [repro.md](repro.md) | Turning a player's bug report into a failing test. |
-| [README § Bot player training and adoption](../../README.md#bot-player-training-and-adoption-guidelines) | Building, training or evaluating a bot policy. |
+| [Bots: training and adoption](../site/bots/training-and-adoption.md) | Building, training or evaluating a bot policy. |
 | [`docs/design/2026-09-22-engine-contracts.md`](../design/2026-09-22-engine-contracts.md) | Behaviour that looks like a bug but is a deliberate contract. |
 | [`docs/design/`](../design/ARCHIVE.md) and [`docs/decisions/`](../decisions/0001-repo-layout.md) | Living designs (flat, date-prefixed) and architecture decisions. Finished records were parked; `docs/design/ARCHIVE.md` indexes them. |
 

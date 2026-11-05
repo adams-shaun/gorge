@@ -70,7 +70,7 @@ is strictly additive.
 
 - **Search bots** (az, sbsearch) need clones of the live engine
   (`MatchSeat` / `MatchContext.Engine`) or the honest redeal world
-  (`x_gorge_view_v1` on gorge, kshadow/neutral elsewhere). The v2 observation
+  (`x_gorge_view_v1` on gorge, a private shadow check or neutral view elsewhere). The v2 observation
   hides that by design, so these bots keep their native path or the extension
   and are outside phase 1's "default interface". v2 is **not** the training
   interface, because it loses hidden information and is slower (see the

@@ -75,7 +75,7 @@ All rows below are self-paired play gates with seats swapped. They differ in net
 --8<-- "research/figs/search-scaling.svg"
 </figure>
 
-**g7 vs sb-tactical on the dirac kernel** (the az-c6 g7 net, `kplay`, the kernel's stand-in fallback bot of 2026-10-18; ±0.017 at 3,000 games):
+**g7 vs sb-tactical on the dirac kernel** (the az-c6 g7 net, the private self-play runner, the kernel's stand-in fallback bot of 2026-10-18; ±0.017 at 3,000 games):
 
 | Sims | Score | Games | µs/sim |
 |---|---|---|---|
@@ -88,7 +88,7 @@ With gorge's heuristic bot ported to the kernel, the same curve on the xp scale:
 
 === "g7 against itself"
 
-    `kplay`, 1,500 pairs = 3,000 games:
+    the private self-play runner, 1,500 pairs = 3,000 games:
 
     | A vs B | Score | Wall |
     |---|---|---|

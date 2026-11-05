@@ -20,7 +20,7 @@ The loop is a variant of the kernel's xp loop script, adapted to MageZero's sche
 - **Records:** UWTempo's seat only. Value label TD 0.92 (their ParallelDataGenerator label). Window: the last 10 generations (their `replay_buffer_gens`). Net g+1 trains from scratch at g1 and from net g after.
 - **Net:** the production d64 MLP config, visit-count policy target, value blend 0.
 - **Decks:** their lists, with no substitutes.
-- **Binaries:** `kplay` from an unmerged branch of the private module, and the private trainer.
+- **Binaries:** The private self-play runner from an unmerged branch of the private module, and the private trainer.
 - **Arms**, all started 2026-10-28 between 01:27 and 01:37Z and run to g17:
     - **K**: the mono decks are piloted by the heuristic bot (`hbot`).
     - **L**: the mono decks are piloted by `az:sims=300:cpuct=1:autopay:oppnodes:oppfull:morekinds:clairvoyant`.

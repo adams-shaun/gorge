@@ -2,7 +2,7 @@
 // generated and hand-written card tables target, and the Table / CardDef /
 // Ability / Instr types they are written in.
 //
-// Interpreter contract (implemented by package kernel):
+// Interpreter contract (implemented by package dirac):
 //
 //   - A resolving spell or ability runs its Ability.Prog front to back. Each
 //     Instr is executed against the stack entry's source, controller, chosen
