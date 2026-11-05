@@ -41,7 +41,9 @@ func (s *State) tokSrcM(p uint8) slotMask {
 // eachParks reports whether op in, run for one object of the loop, left an
 // ask the loop must wait for.
 func (s *State) eachParks(in *kop.Instr) bool {
-	return !DebugCopyEachNoPark && in.Op == kop.OpCopyAsTokenEx && s.res.ask == raGenTokChoice
+	// an Aura copy's enchant ask (CR 303.4f) parks it too: gorge's
+	// effCopyPermanent asks it as that copy enters (Doppelgang over an Aura)
+	return !DebugCopyEachNoPark && in.Op == kop.OpCopyAsTokenEx && (s.res.ask == raGenTokChoice || s.res.ask == raGenEnchant)
 }
 
 // eachRun runs in for the extra targets of slot i from index j0 on. It returns

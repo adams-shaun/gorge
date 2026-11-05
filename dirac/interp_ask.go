@@ -1144,6 +1144,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.copyTokenEnter(k, in, t, s.objs[a.Source()].slot, nil)
 			r.ask = raNone
 			parked = s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
+			if !parked {
+				parked = s.eachResume(k, in) // copy_eachtarget.go: the targets after it
+			}
 		}
 		r.e.ctrl = was
 		if parked {
