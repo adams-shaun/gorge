@@ -75,6 +75,14 @@ func (s *State) mayAsk(k *prep, in *kop.Instr) bool {
 		if !s.cloneAsks(k, next) { // copy_clone.go
 			return true
 		}
+	case kop.MayGuardPut:
+		// gorge putCounterOptionalDeclined: an Optional$ PutCounter with
+		// RememberPut$ True asks only when it would actually put (n > 0) on
+		// a live Defined target; a dead source has no slot (objRef), and a
+		// declined put skips RememberPut$ too (gorge counters_put.go:73).
+		if s.value(k, next.A) <= 0 || s.objRef(k, next.Obj) == NoSlot {
+			return true
+		}
 	}
 	askP := s.res.e.ctrl
 	if in.Obj != kop.RefNone {

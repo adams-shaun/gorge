@@ -151,7 +151,12 @@ type lowerCtx struct {
 	// Play of the Imprinted card and the random-order bottom of the
 	// Remembered exile read it
 	digImprinted bool
-	known        func(string) bool
+	// digImprintFoundMode: this chain's DigUntil imprinted its found cards
+	// (ImprintFound$ alone, Black Widow, Super Spy; lower_digimprint.go): the
+	// chain's optional PutCounter, the Effect's RememberObjects$ Imprinted
+	// and the Cleanup's ClearImprinted$ read it
+	digImprintFoundMode bool
+	known               func(string) bool
 	// granted > 0 while an ability or trigger another object is granted
 	// (an AddAbility$/AddTrigger$ SVar, an emblem's trigger) is lowered
 	granted int
