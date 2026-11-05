@@ -129,7 +129,12 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 		case pc.manaAb >= 0 && pc.manaTap && !pc.manaChosen && !pc.manaMulti && pc.painCol == 0:
 			rec.kind = rkWiden
 			v := *pc
-			v.manaCol |= a.ManaColors & 0x3f
+			if !a.ManaEach {
+				// a ManaEach ability's view already split its first colour from
+				// pcard.manaXv (prepEachMana); OR-ing the whole mask would count
+				// the extra colours twice.
+				v.manaCol |= a.ManaColors & 0x3f
+			}
 			if n > pc.manaN && a.ManaColors&kop.ColAny == kop.ColAny && a.AFlags&kop.AfManaChoice == 0 {
 				// two mana of one colour beside the census ability's one:
 				// gorge's planner offers both alternatives (restrPairUnit)
@@ -139,7 +144,11 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 			g.rs.views = append(g.rs.views, v)
 		default:
 			rec.kind = rkExt
-			g.rs.views = append(g.rs.views, pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: n, manaTap: true})
+			v := pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: n, manaTap: true}
+			if a.ManaEach {
+				prepEachMana(a, &v)
+			}
+			g.rs.views = append(g.rs.views, v)
 		}
 		g.rs.recs = append(g.rs.recs, rec)
 		g.rs.ext = g.rs.ext || rec.kind != rkWiden || g.rs.views[rec.view].wideN != 0
@@ -262,6 +271,9 @@ func (s *State) restrActB(k *prep, p uint8, b *rbatch, d *payDesc) bool {
 func (s *State) restrSpellMatch(k *prep, p uint8, sl Slot, f kop.FilterID, c CardID, og restrOrigin) bool {
 	for ; f != 0; f = k.t.Filters[f].Or {
 		fl := k.t.Filters[f]
+		if fl.Special != 0 {
+			continue // a Static.* alternative: only a special action's mana batch may spend it
+		}
 		fl.Zone = kop.ZoneNone // the spell is matched before it moves to the stack
 		chosen := fl.Flags2&kop.F2ChosenType != 0
 		fl.Flags2 &^= kop.F2ChosenType
@@ -293,6 +305,9 @@ func (s *State) restrActMatch(k *prep, p uint8, sl Slot, f kop.FilterID, d *payD
 	}
 	for ; f != 0; f = k.t.Filters[f].Or {
 		fl := k.t.Filters[f]
+		if fl.Special != 0 {
+			continue // a Static.* alternative: never an activated ability
+		}
 		fl.Zone = kop.ZoneNone
 		chosen := fl.Flags2&kop.F2ChosenType != 0
 		fl.Flags2 &^= kop.F2ChosenType
@@ -432,8 +447,10 @@ func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot)
 				break
 			}
 			t.addUnits(s.srcMaskAt(v, sl), v.manaN)
+			t.addXv(v)
 		case rkExt:
 			t.addUnits(srcMask(v), v.manaN)
+			t.addXv(v)
 		case rkDyn:
 			if nm == len(multi) {
 				s.capFull(StallRestrSrc)
@@ -444,6 +461,17 @@ func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot)
 		}
 	}
 	return t, multi, nm
+}
+
+// addXv adds an all-at-once source's fixed rest (pcard.manaXv) to a: a
+// restricted ManaEach ability's extra colours are restricted too (Tin Street
+// Gossip's {R}{G}).
+func (a *avail) addXv(v *pcard) {
+	for c, n := range v.manaXv {
+		if n > 0 {
+			a.addUnits(1<<c, n)
+		}
+	}
 }
 
 // affordsMulti: a, with each of ns a unit of that many mana of one colour

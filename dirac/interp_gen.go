@@ -108,6 +108,7 @@ const (
 	ChCostPutToLib                            // source = the card put from a graveyard on the bottom of its owner's library to pay a cost (gorge's puttolibcost; one pick per part, asked even with one candidate)
 	ChGenKeepTapped                           // source = a tapped permanent whose controller may keep it tapped; mode 0 = untap it, 1 = keep it tapped (gorge's untap-step KChoose "untap" / "keep_tapped", CR 502.3; repl_untapchoice.go)
 	ChGenName                                 // mode = the CardID of the nonland card whose name a permanent chooses as it enters (gorge's ETB "name" option; repl_choosename.go)
+	ChGenConspire                             // source = a creature tapped for conspire (gorge conspireAsk's KChoose "conspire", Min=Max=2, CR 702.78a); two sequential picks; kw_conspire.go
 	ChGenDelve                                // source = a graveyard card exiled toward a granted-delve cast's generic cost, one pick per decision (gorge delveAsk's multi-pick KChoose; kw_delve.go)
 )
 
@@ -1477,10 +1478,11 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done bool) {
 	e := &s.res.e
 	fl := k.t.Filters[in.F]
-	if (fl.Zone == kop.ZoneGraveyard || in.Op == kop.OpChangeZoneAllEx && in.C>>3&kop.MvGraveExile != 0) && k.gen.anyBatch &&
-		kop.Zone(in.C&7) == kop.ZoneBattlefield {
-		// one graveyard-leave batch: gorge opens a sweep's zone batch only for an entry
-		// (effChangeZoneAll's BeginZoneBatch), so a sweep to another zone triggers per card
+	if (fl.Zone == kop.ZoneGraveyard || in.Op == kop.OpChangeZoneAllEx && in.C>>3&kop.MvGraveExile != 0) && k.gen.anyBatch {
+		// one graveyard-leave batch: gorge's effChangeZoneAll brackets EVERY sweep
+		// in its zone batch (CR 603.2c: the sweep is one occurrence of the trigger
+		// event), so a graveyard sweep to exile queues once, not per card. (dirac
+		// copied gorge's narrower entry-only condition; both engines widen together.)
 		old := s.batchOpen()
 		if resume {
 			old &^= batchOpenMask
@@ -1717,6 +1719,11 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 		resume = false
 		pl := &s.pl[p]
 		want := s.value(k, in.A)
+		fl := in.C >> 3
+		minCMC := 0
+		if fl&kop.DuMinTotalCMC != 0 {
+			minCMC = s.value(k, in.B)
+		}
 		scan := MaxDeck
 		if resumed {
 			want = int(s.g.pickLeft)
@@ -1727,18 +1734,34 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 		nr := 0
 		var fnd [MaxDeck]Obj
 		nf := 0
-		for i := 0; (found < want || resumed) && i < scan && int(pl.libLo)+i < int(pl.libHi); i++ {
+		// the scan window in scan order (DuRememberRevealed's reveal list:
+		// gorge appends every revealed card, found ones included, at the end
+		// of the player's walk)
+		var all [MaxDeck]Obj
+		na := 0
+		cmc := 0
+		// MinTotalCMC$ bounds the scan by the matches' cumulative mana value;
+		// the amount bound is ignored then (gorge digUntil), and a zero
+		// Amount$ still reveals nothing (gorge's amount > 0 gate).
+		for i := 0; (resumed || minCMC > 0 && want > 0 && cmc < minCMC || minCMC == 0 && found < want) && i < scan && int(pl.libLo)+i < int(pl.libHi); i++ {
 			o := pl.lib[int(pl.libLo)+i]
-			if found < want && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, NoObj) && nf < len(fnd) {
+			if fl&kop.DuRememberRevealed != 0 {
+				all[na] = o
+				na++
+			}
+			if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, NoObj) && (minCMC > 0 || found < want) && nf < len(fnd) {
 				fnd[nf] = o
 				nf++
 				found++
+				if minCMC > 0 {
+					// the printed face cost (gorge o.Face().ManaValue())
+					cmc += int(k.t.Cards[s.objs[o].card].Cost.MV())
+				}
 			} else {
 				rev[nr] = o
 				nr++
 			}
 		}
-		fl := in.C >> 3
 		fz := kop.Zone(in.C & 7)
 		rz := kop.Zone(fl & 7)
 		entering := fz == kop.ZoneBattlefield && fl&kop.DuFoundWithRevealed == 0
@@ -1751,6 +1774,16 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 			}
 			if fl&kop.DuDugMark != 0 {
 				s.g.digLo = pl.exileN // the dug cards start here (act_discoverbottom.go)
+			}
+			if fl&kop.DuRememberRevealed != 0 {
+				// RememberRevealed$ alone keeps its append semantics (gorge
+				// effDigUntil: c.Remembered grows, never cleared)
+				s.digRememberRevealed(all[:na])
+			}
+			if fl&kop.DuImprintFound != 0 {
+				// ImprintFound$ accumulates the found cards into the chosen
+				// set (gorge's one seek-found Imprint after the walk)
+				s.digImprintFound(fnd[:nf])
 			}
 		}
 		if fl&kop.DuFoundWithRevealed != 0 {

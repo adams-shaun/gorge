@@ -339,6 +339,9 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 		// flashback Inspiration from Beyond
 		cost = s.adjustFit(k, &a, p&1, c, o, cost, false) // a twobrid cost is priced on the face the pool pays
 	}
+	if k.gen != nil && k.t.Cards[c].SpellWaterbend != 0 {
+		cost = s.waterbendSpellCredit(k, p&1, c, o, cost) // act_waterbend.go
+	}
 	if mode&2 != 0 && k.t.Cards[c].Harmonize {
 		cost = s.harmonizeCredit(k, p&1, cost) // gorge harmonizePayment prices the offer after the reductions
 	}
@@ -538,7 +541,7 @@ func (s *State) plannedCastCost(k *prep, p uint8, o Obj, mode uint8) (kop.ManaCo
 // searches potentialScriptPlays caps.
 func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, composed bool) (kop.ManaCost, bool) {
 	c := s.objs[o].card
-	refused := planNeverPricesCore(k, c, hyb, composed, false)
+	refused := planNeverPricesCore(k, c, hyb, composed, false) || s.boardLifeTgtDep(k, p, c, o)
 	optRefused := k.gen != nil && k.gen.anyOptCost && optCostCard(k, c)
 	spendRefused := !composed && k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k)
 	tapRefused := !refused && !optRefused && !spendRefused && s.contribPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand)
@@ -594,7 +597,7 @@ func planNeverPricesOf(k *prep, c CardID, hyb, composed bool) bool {
 // life/energy additional cost, a mana-spent read, a target-dependent price.
 func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 	cd := &k.t.Cards[c]
-	if cd.BeholdExile || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !hyb && !cd.Cost.Phyrexian() ||
+	if cd.BeholdExile || cd.SpellWaterbend != 0 || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !hyb && !cd.Cost.Phyrexian() ||
 		!modal && (cd.HasAltAdd || cd.AltAddOne || cd.HasModeCost || !composed && (cd.SpendRead || cd.SpentSelf)) {
 		return true // (a hybrid cost: the planner's "cost:hybrid"; a Phyrexian one is priced by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold")
 	}

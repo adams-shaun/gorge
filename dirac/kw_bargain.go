@@ -81,7 +81,7 @@ func (s *State) bargainOptions(k *prep, d *Decision) bool {
 // bargainElected: the entry being built is a bargained cast whose sacrifice is yet to
 // be paid.
 func (s *State) bargainElected(k *prep, e *stackEntry) bool {
-	return e.kind == seSpell && k.t.Cards[e.card].Bargain && s.bld().cas != 0
+	return e.kind == seSpell && k.t.Cards[e.card].Bargain && s.bld().cas != 0 && s.bld().cas < casConspire
 }
 
 // FeatBargainCard reports whether o's card has Bargain (the oracle's cast

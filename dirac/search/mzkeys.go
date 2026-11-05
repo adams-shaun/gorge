@@ -30,7 +30,7 @@ func altKind(k dirac.ActionKind) bool {
 
 // castLike reports whether CastDedup merges candidates of kind k.
 func castLike(k dirac.ActionKind) bool {
-	return k == dirac.AkCast || k == dirac.AkCastCasualty || altKind(k)
+	return k == dirac.AkCast || k == dirac.AkCastCasualty || k == dirac.AkCastConspire || altKind(k)
 }
 
 // castDup reports whether a repeats the card, mode and target of a

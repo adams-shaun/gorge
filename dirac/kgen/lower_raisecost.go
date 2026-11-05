@@ -17,8 +17,12 @@ func (lc *lowerCtx) raiseCost(sp *params, st *lStatic) error {
 			return err
 		}
 	}
-	if st.Amount, err = lc.value(sp.str("Amount")); err != nil {
+	if life, err := lc.raiseLife(sp, st); err != nil {
 		return err
+	} else if !life {
+		if st.Amount, err = lc.value(sp.str("Amount")); err != nil {
+			return err
+		}
 	}
 	if vt, ok := sp.get("ValidTarget"); ok {
 		// a raise that applies once a chosen target matches (Dragon's Prey;

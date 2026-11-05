@@ -269,6 +269,12 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 	f := t.F
 	var err error
 	switch {
+	case t.PermOrGraveCard:
+		ts.Kind = kop.TgtPermOrGraveCard
+		// parsed in the graveyard: matchCardOneAt reads the zone, matchPerm ignores it
+		if ts.Filter, err = cb.filter(f, kop.ZoneGraveyard); err != nil {
+			return ts, err
+		}
 	case t.PermOrSpell:
 		ts.Kind = kop.TgtPermOrSpell
 		if ts.Filter, err = cb.filter(f, kop.ZoneBattlefield); err != nil {
@@ -1188,7 +1194,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.XBound {
 		// kxpaid (lower_xbound.go): the body's X is the trigger object's
 		// spell's paid X, captured as it triggers
-		if t.Event != "ETB" && t.Event != "SpellCast" && !(t.Event == "Discarded" && t.Cycled) {
+		if t.Event != "ETB" && t.Event != "SpellCast" && t.Event != "TurnFaceUp" && !(t.Event == "Discarded" && t.Cycled) {
 			return kt, fmt.Errorf("bound X on a %s trigger", t.Event)
 		}
 		kt.Flags2 |= kop.Tf2XBound
@@ -1689,6 +1695,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StRaiseYou
 			case "ActivatorOpp":
 				st.StFlags |= kop.StRaiseOpp
+			case "RaiseLife":
+				st.StFlags |= kop.StRaiseLife // Static.A is life (kernel cost_raiselife.go)
 			default:
 				return ka, nil, fmt.Errorf("raise cost flag %q", fl)
 			}
@@ -1905,12 +1913,14 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			case "Convoke":
 				st.A = kop.StackKwConvoke
 			}
-		case "Lifelink", "Storm", "Split second", "Delve":
+		case "Lifelink", "Storm", "Split second", "Conspire", "Delve":
 			if param != "" {
 				return ka, nil, fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
 			}
 			st.A = kop.StackKwLifelink
 			switch head {
+			case "Conspire":
+				st.A = kop.StackKwConspire
 			case "Storm":
 				st.A = kop.StackKwStorm
 			case "Split second":
@@ -3633,6 +3643,15 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, ok := fl["DugMark"]; ok {
 			df |= kop.DuDugMark
+		}
+		if _, ok := fl["RememberRevealed"]; ok {
+			df |= kop.DuRememberRevealed
+		}
+		if _, ok := fl["ImprintFound"]; ok {
+			df |= kop.DuImprintFound
+		}
+		if _, ok := fl["MinTotalCMC"]; ok {
+			df |= kop.DuMinTotalCMC
 		}
 		ki.C = int16(int(zoneMap[in.C]) | df<<3)
 		if err := objFilter(kop.ZoneLibrary); err != nil {

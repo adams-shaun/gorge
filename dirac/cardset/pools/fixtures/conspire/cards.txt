@@ -1,0 +1,20 @@
+# the granted-conspire pool: Raiding Schemes ("each noncreature spell you cast
+# has conspire") beside instants and sorceries of every colour, creatures of
+# each colour to tap and basics (dirac/oracle/stackkw_conspire_test.go)
+Raiding Schemes
+Shock
+Lightning Bolt
+Giant Growth
+Divination
+Johann's Stopgap
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Merfolk of the Pearl Trident
+Burning-Tree Emissary
+Iridescent Tiger
+Forest
+Island
+Mountain
+Plains
+Swamp

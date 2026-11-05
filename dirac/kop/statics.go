@@ -277,6 +277,13 @@ const StatDisableETB StaticKind = 234
 // generic cost is saturated at 255 (an exact discount).
 const StEmbNum StaticFlags = 1 << 14
 
+// StRaiseLife (aliases StPanhETB, a Panharmonicon-only bit) on a
+// StatIncreaseCost: Static.A is LIFE the matching spell's caster pays on top
+// of its cost, not generic mana (RaiseCost Cost$ PayLife<N>: Terror of the
+// Peaks; gorge composeRaiseCost's RaiseLife). With StTargetsFilter2 the life
+// is owed once a chosen target matches Filter2.
+const StRaiseLife = StPanhETB
+
 // StatMaxBlockers: creatures matching Filter (battlefield,
 // scanned against the attacker with the static's controller) can't be
 // blocked by more than one creature while Cond2 holds (CR 509.1b; gorge

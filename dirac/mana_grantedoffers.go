@@ -369,12 +369,13 @@ type grantSrch struct {
 	// d is the payment the play makes, read by a granted source's spend
 	// restriction (Mm'menon's Spell.!wasCastFromYourHand): the payment read,
 	// the cast's origin known and the spell on the stack when paid
-	d    payDesc
-	n    int
-	cand [MaxPerm]Slot
-	gi   [MaxPerm][maxGrants]int16 // each candidate's granted abilities (grantPC indices)
-	ng   [MaxPerm]uint8
-	dual [MaxPerm]bool // the candidate's own ability is tried first
+	d        payDesc
+	n        int
+	cand     [MaxPerm]Slot
+	gi       [MaxPerm][maxGrants]int16 // each candidate's granted abilities (grantPC indices)
+	ng       [MaxPerm]uint8
+	dual     [MaxPerm]bool // the candidate's own ability is tried first
+	skipPool bool          // the next branch's mana is restricted past the play: it prices nothing
 	// filt: the candidate also has a filter ability ({1},{T}: Add one mana of any
 	// color), a paid census gap of gorge's like the grants (mana_filter.go)
 	filt  [MaxPerm]bool
@@ -452,7 +453,7 @@ func (g *grantSrch) candidates(s *State) {
 		if ng > 0 {
 			holders++
 		}
-		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n] = sl, uint8(ng), s.ownManaUsable(g.k, sl), fm.has(sl)
+		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n] = sl, uint8(ng), s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil, fm.has(sl)
 		g.n++
 	}
 	if holders == 0 {
@@ -535,8 +536,17 @@ func (g *grantSrch) visit(t *State) bool {
 			return false
 		}
 		if g.dual[i] {
-			ppc := t.manaPCGen(g.k, sl)
-			if g.branch(t, i, sl, -1, t.srcMaskAt(ppc, sl), ppc.manaN, alts == 1) {
+			mask, n := uint8(0), uint8(0)
+			if ra := t.ownRestrAb(g.k, sl); ra != nil && !t.ownManaUsable(g.k, sl) {
+				mask, n = uint8(ra.ManaColors)&0x3f, max(ra.ManaN, 1) // the restricted printed ability
+				// gorge's search taps it first whether or not the play may spend
+				// it; mana the play cannot spend prices nothing
+				g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
+			} else {
+				ppc := t.manaPCGen(g.k, sl)
+				mask, n = t.srcMaskAt(ppc, sl), ppc.manaN
+			}
+			if g.branch(t, i, sl, -1, mask, n, alts == 1) {
 				return true
 			}
 		}
@@ -664,8 +674,14 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 	if mask == 0 {
 		mask = 1 << kop.C
 	}
+	skip := g.skipPool // the printed restricted ability's unspendable mana (mana_grantrestrictedown.go)
+	g.skipPool = false
 	if ask && mask&(mask-1) != 0 && !g.node() {
 		return false
+	}
+	pn := n
+	if skip {
+		pn = 0
 	}
 	var pc *pcard
 	if g.k.gen.anyTapExtra {
@@ -675,7 +691,7 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 	no := t.stepColours(g.k, sl, gi, mask, &order)
 	for _, c := range order[:no] {
 		t.perms[sl].flags |= pfTapped
-		t.pl[g.p&1].pool[c] += n
+		t.pl[g.p&1].pool[c] += pn
 		xv := t.srcExtraPick(g.k, sl, pc, int(c))
 		t.addXv(g.p&1, &xv)
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl}
@@ -685,7 +701,7 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 		}
 		g.np--
 		t.subXv(g.p&1, &xv)
-		t.pl[g.p&1].pool[c] -= n
+		t.pl[g.p&1].pool[c] -= pn
 		t.perms[sl].flags &^= pfTapped
 	}
 	return false
@@ -698,7 +714,9 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 func (s *State) stepColours(k *prep, sl Slot, gi int16, mask uint8, out *[kop.NumManaKinds]uint8) (n int) {
 	var ab *kop.Ability
 	if gi < 0 {
-		if pc := s.manaPCGen(k, sl); pc.manaAb >= 0 {
+		if ra := s.ownRestrAb(k, sl); ra != nil && !s.ownManaUsable(k, sl) {
+			ab = ra // the printed restricted ability (mana_grantrestrictedown.go)
+		} else if pc := s.manaPCGen(k, sl); pc.manaAb >= 0 {
 			ab = &k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb]
 		}
 	} else if r := k.gen.grantOf[gi]; !k.gen.grantSelf[gi] {
@@ -798,7 +816,7 @@ func (s *State) grantPayDesc(a Action) payDesc {
 func (s *State) grantPayDescOf(a Action) payDesc {
 	o := Obj(a.Source())
 	switch a.Kind() {
-	case AkCast, AkCastCasualty:
+	case AkCast, AkCastCasualty, AkCastConspire:
 		og := restrOrigin{from: s.objs[o].zone}
 		return payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: og}
 	case AkActivate:
@@ -870,7 +888,12 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
 		s.manaTapped(k, sl)
-		if r := restrOfStep(k, st); r != 0 {
+		if ra := s.ownRestrAb(k, sl); st.gi < 0 && ra != nil && !s.ownManaUsable(k, sl) {
+			// the printed restricted ability (mana_grantrestrictedown.go)
+			if !s.floatRestrAb(k, g.p&1, sl, ra, int(st.col), st.n) {
+				s.capFull(StallRestrSrc)
+			}
+		} else if r := restrOfStep(k, st); r != 0 {
 			// a restricted grant floats beside the pool (State.rb), spendable only
 			// as its restriction allows; never a silent spill into the pool
 			if !s.addRestr(k, g.p&1, r, int(st.col), st.n) {
@@ -952,7 +975,7 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			cost = s.waterbendPlanCost(k, p, Obj(a.Source()), a.Mode(), cost)
 		}
 		return cost, ex, ok
-	case AkCast, AkCastCasualty:
+	case AkCast, AkCastCasualty, AkCastConspire:
 		if alt, ok := s.altPlayCost(k, p, a); ok {
 			return alt, ex, true
 		}

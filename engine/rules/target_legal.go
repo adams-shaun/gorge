@@ -408,31 +408,17 @@ func changeZoneTargetZones(sa *cards.SA, isChangeZone bool) ([]state.Zone, bool)
 		}
 		if len(altZones) == 0 {
 			// An unmarked alternative (Swat Away's Creature next to
-			// Card.inZoneStack) is attributed to the Origin$'s one
-			// non-stack zone; any other unmarked shape fails closed.
-			z, ok := soleNonStackZone(cz.OriginOwn)
-			if !ok {
-				return nil, false
-			}
-			if !containsZone(zones, z) {
-				zones = append(zones, z)
+			// Card.inZoneStack; Aurelia's Vindicator's "Creature.Other" over
+			// Origin$ Battlefield,Graveyard) names the same kind of object
+			// in every non-stack zone the Origin$ names.
+			for _, z := range cz.OriginOwn {
+				if z != state.ZStack && !containsZone(zones, z) {
+					zones = append(zones, z)
+				}
 			}
 		}
 	}
 	return zones, len(zones) > 0
-}
-
-// soleNonStackZone returns the only zone in zs other than the stack.
-func soleNonStackZone(zs []state.Zone) (state.Zone, bool) {
-	var sole state.Zone
-	n := 0
-	for _, z := range zs {
-		if z != state.ZStack {
-			sole = z
-			n++
-		}
-	}
-	return sole, n == 1
 }
 
 func containsZone(zones []state.Zone, want state.Zone) bool {

@@ -1245,8 +1245,14 @@ func (lc *lowerCtx) digUntil(ps *params) error {
 		in.C = rev
 		in.CS += "|FoundWithRevealed"
 	}
-	if ps.is("ImprintFound", "True") || ps.is("RememberRevealed", "True") {
-		return lc.digUntilImprint(ps, in, found, rev) // lower_digimprint.go
+	if ps.is("ImprintFound", "True") {
+		if ps.is("RememberRevealed", "True") {
+			return lc.digUntilImprint(ps, in, found, rev) // lower_digimprint.go
+		}
+		return lc.digImprintFound(ps, in, found, rev) // lower_digimprint.go
+	}
+	if ps.is("RememberRevealed", "True") {
+		return lc.digRememberedRevealed(ps, in, found, rev) // lower_digimprint.go
 	}
 	if v, ok := ps.get("RememberFound"); ok {
 		// gorge effDigUntil: the found cards replace the resolution's
@@ -2068,7 +2074,7 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 		}
 		aff := sp.str("Affected")
 		nonLand := false
-		if obj.Kind == rRemembered && (aff == "Card.IsRemembered+nonLand" || aff == "Card.nonLand+IsRemembered") {
+		if (obj.Kind == rRemembered || lc.digImprintFoundMode && obj.Kind == rChosen) && (aff == "Card.IsRemembered+nonLand" || aff == "Card.nonLand+IsRemembered") {
 			// "you may cast" the remembered nonland cards: the grant skips a
 			// remembered land (its type cannot change off the battlefield)
 			aff, nonLand = "Card.IsRemembered", true
@@ -3097,16 +3103,107 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 	return lc.finishMana(sa, ps, ab, m)
 }
 
+// staticRestrictWords maps a RestrictValid$ Static.<tail> SA-property token to
+// the special actions it admits (gorge pay.SpecialHasProperty). The turn-up
+// procedures are Forge's MorphUp/ManifestUp/CloakUp and the isTurnFaceUp
+// union; Unlock is the Room door special action.
+var staticRestrictWords = map[string]kop.SpecialMask{
+	"MorphUp":      kop.SpmMorphUp,
+	"ManifestUp":   kop.SpmManifestUp,
+	"CloakUp":      kop.SpmCloakUp,
+	"Unlock":       kop.SpmUnlock,
+	"isTurnFaceUp": kop.SpmTurnFaceUp,
+}
+
+// staticRestrictUnsupported is every other SA-property token the corpus's
+// Static.<tail> alternatives can name. A special action the kernel does not
+// price for a restricted mana batch (foretell, plot) stays refused.
+var staticRestrictUnsupported = map[string]bool{"Foretelling": true, "Plotting": true}
+
+// staticRestrictClauses lowers one `Static.<tail>` RestrictValid$ alternative
+// into card-filter clauses carrying its special-action mask. Tail tokens are
+// '+' separated: the SA-property words set the mask, every other token is the
+// paid object's card filter (Tin Street Gossip's `isTurnFaceUp+Creature`).
+func (lc *lowerCtx) staticRestrictClauses(term string) ([]lClause, error) {
+	tail := strings.TrimPrefix(term, "Static")
+	tail = strings.TrimPrefix(tail, ".")
+	if tail == "" {
+		// bare Static: every special action (gorge's AbilityStatic root)
+		return []lClause{{Special: kop.SpmTurnFaceUp | kop.SpmUnlock}}, nil
+	}
+	mask := kop.SpecialMask(0)
+	var card []string
+	for _, tok := range strings.Split(tail, "+") {
+		tok = strings.TrimSpace(tok)
+		if tok == "" {
+			continue
+		}
+		if m, ok := staticRestrictWords[tok]; ok {
+			mask |= m
+			continue
+		}
+		if staticRestrictUnsupported[tok] {
+			return nil, refuse("mana restriction %q: Static.%s special action", term, tok)
+		}
+		card = append(card, tok)
+	}
+	if mask == 0 {
+		return nil, refuse("mana restriction %q", term)
+	}
+	if len(card) == 0 {
+		return []lClause{{Special: mask}}, nil
+	}
+	f, err := lc.filter("Card." + strings.Join(card, "+"))
+	if err != nil {
+		return nil, err
+	}
+	if f.Players != 0 {
+		return nil, refuse("mana restriction %q: player filter", term)
+	}
+	for i := range f.Clauses {
+		f.Clauses[i].Special = mask
+	}
+	return f.Clauses, nil
+}
+
 // manaRestrict reads a mana ability's RestrictValid$ rv into m (Restrict for
-// the Spell. alternatives, RestrictAb for the Activated ones, NonSpell for
-// CantCastNonArtifactSpells); shared by finishMana and the resolving
-// DB$ Mana (lower_dbmanarestr.go).
+// the Spell. and Static. alternatives, RestrictAb for the Activated ones,
+// NonSpell for CantCastNonArtifactSpells); shared by finishMana and the
+// resolving DB$ Mana (lower_dbmanarestr.go). A Static.<tail> alternative is a
+// card-filter clause carrying the special actions it admits (kop.Filter.Special);
+// the kernel's spell matcher skips those clauses and its special-action payment
+// matches them instead.
 func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
-	var spell, act []string
+	// the cast-provenance words (wasCastFromExile, !wasCastFromYourHand)
+	// read the spell being paid for: allowed on this filter only, never
+	// the Activated one (gorge restrictValidTermMatches)
+	save := lc.spellProvOK
+	lc.spellProvOK = true
+	defer func() { lc.spellProvOK = save }()
+	var spellClauses, staticClauses []lClause
+	var act []string
 	for _, alt := range strings.Split(rv, ",") {
+		alt = strings.TrimSpace(alt)
 		switch {
 		case strings.HasPrefix(alt, "Spell."):
-			spell = append(spell, "Card."+strings.TrimPrefix(alt, "Spell."))
+			spec := strings.TrimPrefix(alt, "Spell.")
+			if spec == "isCastFaceDown" {
+				// Forge's Spell.isCastFaceDown is an SA-property word, not a
+				// card filter: gorge's RestrictValidMatches falls through to a
+				// filter match that no card satisfies (fail-closed). Mirror
+				// that exact reading so Tin Street Gossip's mana pays what
+				// gorge's pays, not the printed oracle text.
+				spellClauses = append(spellClauses, lClause{NotTypes: tAnyCard})
+				continue
+			}
+			f, err := lc.filter("Card." + spec)
+			if err != nil {
+				return err
+			}
+			if f.Players != 0 {
+				return refuse("mana restriction %q: player filter", rv)
+			}
+			spellClauses = append(spellClauses, f.Clauses...)
 		case strings.HasPrefix(alt, "Activated."):
 			act = append(act, "Card."+strings.TrimPrefix(alt, "Activated."))
 		case alt == "Activated":
@@ -3119,40 +3216,41 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 		case alt == "CantCastNonArtifactSpells":
 			// Gorge restrictValidTermMatches: a spell whose face is an
 			// artifact (Powerstone tokens).
-			spell = append(spell, "Card.Artifact")
+			spellClauses = append(spellClauses, lClause{Types: tArtifact})
 			m.NonSpell = true
 		case alt == "CantCastSpellFromHand":
 			// Gorge restrictValidTermMatches: every payment but a spell,
 			// and a spell that was not cast from hand (the same pending-
 			// guarded read as Spell.!wasCastFromYourHand).
-			spell = append(spell, "Card.!wasCastFromYourHand")
+			f, err := lc.filter("Card.!wasCastFromYourHand")
+			if err != nil {
+				return err
+			}
+			spellClauses = append(spellClauses, f.Clauses...)
 			m.NonSpell = true
+		case alt == "Static" || strings.HasPrefix(alt, "Static."):
+			cl, err := lc.staticRestrictClauses(alt)
+			if err != nil {
+				return err
+			}
+			staticClauses = append(staticClauses, cl...)
 		default:
 			return refuse("mana restriction %q", rv)
 		}
 	}
-	var err error
-	if len(spell) > 0 {
-		// the cast-provenance words (wasCastFromExile, !wasCastFromYourHand)
-		// read the spell being paid for: allowed on this filter only, never
-		// the Activated one
-		save := lc.spellProvOK
-		lc.spellProvOK = true
-		m.Restrict, err = lc.filter(strings.Join(spell, ","))
-		lc.spellProvOK = save
-		if err != nil {
-			return err
-		}
-		if f := m.Restrict; f != nil {
-			for _, c := range f.Clauses {
-				if c.CmpStat == cmpWasCastSpell && c.CmpN&15 == spellCast {
-					// gorge's bare wasCast is no pending-guarded family:
-					// its off-stack read can see an earlier cast
-					return refuse("mana restriction %q: bare wasCast", rv)
-				}
-			}
+	lc.spellProvOK = save
+	m.Restrict = nil
+	if len(spellClauses)+len(staticClauses) > 0 {
+		m.Restrict = &lFilter{Clauses: append(spellClauses, staticClauses...)}
+	}
+	for _, c := range spellClauses {
+		if c.CmpStat == cmpWasCastSpell && c.CmpN&15 == spellCast {
+			// gorge's bare wasCast is no pending-guarded family:
+			// its off-stack read can see an earlier cast
+			return refuse("mana restriction %q: bare wasCast", rv)
 		}
 	}
+	var err error
 	if len(act) > 0 {
 		if m.RestrictAb, err = lc.filter(strings.Join(act, ",")); err != nil {
 			return err

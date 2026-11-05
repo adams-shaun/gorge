@@ -907,6 +907,9 @@ func (s *State) restrSpendable(k *prep, p uint8, c CardID, og restrOrigin) uint8
 func (s *State) restrSpendableB(k *prep, p uint8, b *rbatch, c CardID, og restrOrigin) bool {
 	for f := k.gen.restrFOf(b.kind); f != 0; f = k.t.Filters[f].Or {
 		fl := k.t.Filters[f]
+		if fl.Special != 0 {
+			continue // a Static.* alternative: only a special action may spend it
+		}
 		fl.Zone = kop.ZoneNone // the spell is matched before it moves to the stack
 		chosen := fl.Flags2&kop.F2ChosenType != 0
 		fl.Flags2 &^= kop.F2ChosenType
@@ -975,6 +978,9 @@ func (s *State) wideAdmits(k *prep, a Action, p uint8, anyR slotMask) bool {
 		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]
 		for f := ab.ManaRestrict; f != 0; f = k.t.Filters[f].Or {
 			fl := k.t.Filters[f]
+			if fl.Special != 0 {
+				continue // a Static.* alternative: only a special action may spend it
+			}
 			fl.Zone = kop.ZoneNone // the spell is matched before it moves to the stack
 			if s.restrFilterMatch(k, &fl, c, p&1, og) {
 				return true
@@ -995,6 +1001,17 @@ func (s *State) floatRestrFrom(k *prep, p uint8, sl Slot, f kop.FilterID, col in
 // floatRestrAb is floatRestrFrom for mana ability ab, whose activated half
 // names the batch with its spell half.
 func (s *State) floatRestrAb(k *prep, p uint8, sl Slot, ab *kop.Ability, col int, n uint8) bool {
+	if ab.ManaEach {
+		// an all-at-once restricted source (Tin Street Gossip's {R}{G}) floats
+		// every colour it makes, not the one colour a normal tap is "for"
+		ok := true
+		for c := 0; c < 5; c++ {
+			if ab.ManaColors&(1<<c) != 0 && !s.floatRestrV(k, p, sl, ab.ManaRestrict, k.gen.restrVarOf(ab), c, n) {
+				ok = false
+			}
+		}
+		return ok
+	}
 	return s.floatRestrV(k, p, sl, ab.ManaRestrict, k.gen.restrVarOf(ab), col, n)
 }
 
@@ -1640,7 +1657,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			} else {
 				ok = true
 			}
-			if !ok && (!cardTgtDepCost(&k.t.Cards[s.bld().e.card]) || severalTargets(k, s.bld().e.card)) {
+			if !ok && (!s.spellTgtDep(k, s.bld().e.ctrl, s.bld().e.card, s.bld().e.obj) || severalTargets(k, s.bld().e.card)) {
 				s.g.noTgtRed = false
 				return
 			}
@@ -1740,7 +1757,7 @@ func (s *State) witnessAtCheapest(k *prep, p uint8, cost *kop.ManaCost, av *avai
 		*cost = s.altAddReduced(k, *cost, s.altAddManaPart(k, e.card))
 		return
 	}
-	if cardTgtDepCost(cd) && !severalTargets(k, e.card) && cost.Hyb[0] == 0 {
+	if s.spellTgtDep(k, p, e.card, e.obj) && !severalTargets(k, e.card) && cost.Hyb[0] == 0 {
 		funded := av.affords(cost, pipMaskOf(cost), 0)
 		if k.gen != nil && len(k.gen.grantPC) != 0 {
 			// the planner's census has no granted source (Imprisoned in the Moon's {C})
@@ -2108,7 +2125,7 @@ func (s *State) manaStep(k *prep) bool {
 		if s.bld().bfl&bflLowered != 0 && s.bld().pipN != 0 {
 			s.loweredPipWindow(k, e, &cost)
 		}
-		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || s.rbAny(e.ctrl) || e.trigPl == trigPlMadness && debugMadnessMutate == 0 {
+		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || s.rbAny(e.ctrl) && s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)) != 0 || e.trigPl == trigPlMadness && debugMadnessMutate == 0 {
 			return false
 		}
 		var saved [len(build{}.picks)]uint8

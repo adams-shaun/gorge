@@ -387,7 +387,7 @@ func (e *Engine) xAnnouncementEscapes(sv staticView, spec string, p state.Player
 	if pool != nil {
 		bound = *pool
 	}
-	ceiling := min(int64(bound.Total())+int64(e.delveCredit(p, id, math.MaxInt32)), math.MaxInt32)
+	ceiling := min(int64(bound.Total())+int64(e.delveCredit(p, id, math.MaxInt32, false)), math.MaxInt32)
 	minX := int64(cost.XMin)
 	if minX < 1 {
 		minX = 1
@@ -929,7 +929,7 @@ func (e *Engine) adjustedCost(p state.PlayerID, id state.ObjID) Cost {
 func (e *Engine) castWithFlash(p state.PlayerID, id state.ObjID) bool {
 	// Fast path: with no CastWithFlash static anywhere (the overwhelming
 	// majority of offers), do not pay for a potential-target census.
-	if len(e.withSelfStatics(e.activeStatics("CastWithFlash"), id, "CastWithFlash")) == 0 {
+	if len(e.withSelfStatics(e.activeStatics("CastWithFlash"), id, "CastWithFlash", p)) == 0 {
 		return false
 	}
 	return e.castWithFlashTargets(p, id, e.costPotentialTargets(p, id, spellScope("")), false)
@@ -947,7 +947,7 @@ func (e *Engine) castWithFlashTargets(p state.PlayerID, id state.ObjID, targets 
 	if o == nil || o.Face() == nil {
 		return false
 	}
-	for _, sv := range e.withSelfStatics(e.activeStatics("CastWithFlash"), id, "CastWithFlash") {
+	for _, sv := range e.withSelfStatics(e.activeStatics("CastWithFlash"), id, "CastWithFlash", p) {
 		if !e.actorMatches(sv, "Caster", p) || !e.staticTimingGate(sv) {
 			continue
 		}
@@ -989,11 +989,13 @@ func (e *Engine) castWithFlashAsFace(p state.PlayerID, id state.ObjID, f *cards.
 // withSelfStatics appends the named statics the card carries on its OWN face
 // to a collected list: activeStatics never sees a self-carried static while
 // the card is still in hand (the same second source alternativeCosts reads
-// for a self-carried AlternativeCost). A self static's source and controller
-// are the card itself, so its Caster$/You context resolves relative to the
-// caster's own card. base is copied before any append because activeStatics
-// returns a cached slice during a legal-actions walk and must never be
-// mutated.
+// for a self-carried AlternativeCost). A self static's source is the card
+// itself, but its "you" is the would-be controller (CR 109.5): you names the
+// player attempting the cast, not the card's controller in its origin zone --
+// a card in another player's exile has its owner there, and CR 109.5's
+// would-be-controller clause outranks it while p attempts the cast. base is
+// copied before any append because activeStatics returns a cached slice
+// during a legal-actions walk and must never be mutated.
 //
 // Only a self static that names its own EffectZone$ is appended (CR 113.6:
 // an ability of a permanent card functions only on the battlefield unless it
@@ -1003,7 +1005,7 @@ func (e *Engine) castWithFlashAsFace(p state.PlayerID, id state.ObjID, f *cards.
 // Illusion Spinners' `EffectZone$ All` "this spell" grant does (CR 113.6e);
 // the caller still checks the named zone against the source. The same
 // default applies to any mode a later caller passes.
-func (e *Engine) withSelfStatics(base []staticView, id state.ObjID, mode string) []staticView {
+func (e *Engine) withSelfStatics(base []staticView, id state.ObjID, mode string, you state.PlayerID) []staticView {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return base
@@ -1020,7 +1022,7 @@ func (e *Engine) withSelfStatics(base []staticView, id state.ObjID, mode string)
 	out := append([]staticView(nil), base...)
 	for _, st := range o.Face().Statics {
 		if st.Mode == mode && st.HasParam(cards.PKEffectZone) {
-			out = append(out, staticView{Source: id, Controller: o.Controller, Params: st.Params, PS: st.ParamSetOf()})
+			out = append(out, staticView{Source: id, Controller: you, Params: st.Params, PS: st.ParamSetOf()})
 		}
 	}
 	return out
@@ -1032,7 +1034,7 @@ func (e *Engine) withSelfStatics(base []staticView, id state.ObjID, mode string)
 // cast's timing rested on a target-conditional grant (a card with no such
 // static keeps its existing CR 601.2e behaviour).
 func (e *Engine) hasTargetConditionalFlash(p state.PlayerID, id state.ObjID) bool {
-	for _, sv := range e.withSelfStatics(e.activeStatics("CastWithFlash"), id, "CastWithFlash") {
+	for _, sv := range e.withSelfStatics(e.activeStatics("CastWithFlash"), id, "CastWithFlash", p) {
 		if !e.actorMatches(sv, "Caster", p) {
 			continue
 		}

@@ -616,6 +616,7 @@ const (
 	ctlDivide               // combat damage division picks (or the damage step continuing)
 	ctlOver
 	ctlExileOrder // a parked move to a graveyard with several exile-instead effects: which applies (CR 616.1)
+	ctlTurnUpX    // a keyword turn-up awaiting its announced X (face_turnfaceup.go; parked in genState.pick*)
 )
 
 // build stages.
@@ -636,6 +637,7 @@ const (
 	bsCasualty // the casualty sacrifice election (CR 702.153a: gorge optionalSacrificeAsk, before convoke / X; kw_casualty.go)
 	bsEvidence // the CollectEvidence<N> graveyard pick of an activation (CR 701.59a: gorge evidenceAsk, after the division and before payment; cost_collectevidence.go)
 	bsDelve    // the granted-delve graveyard announcement (CR 702.66a: gorge delveAsk, after convoke and X and before the pip asks; kw_delve.go)
+	bsConspire // the granted-conspire tap election (CR 702.78a: gorge conspireAsk, after the tap costs, before convoke; kw_conspire.go)
 	nBuildStages
 )
 

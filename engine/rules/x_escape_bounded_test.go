@@ -113,7 +113,7 @@ func TestXEscapesMatchesSlowWalkOnSmallPools(t *testing.T) {
 					cost := base
 					cost.XMin = xMin
 					for _, pool := range pools {
-						last := pool.Total() + e.delveCredit(0, id, math.MaxInt32)
+						last := pool.Total() + e.delveCredit(0, id, math.MaxInt32, false)
 						want := slowXEscape(e, sv, spec, 0, id, cost, &pool, last)
 						if got := e.xAnnouncementEscapes(sv, spec, 0, id, cost, &pool, false); got != want {
 							t.Errorf("%q XMin %d pool %v: priced answer %v, the full walk %v", spec, xMin, pool, got, want)

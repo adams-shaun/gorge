@@ -1,12 +1,12 @@
 {
   "card": "Wanderbrine Trapper",
-  "class": "projection-Cards.Flags",
-  "why": "the engines' state differs at projection Cards[].Flags; Wanderbrine Trapper is among the latest actions and Eclipsed Realms is the card the divergence implicates",
+  "class": "options",
+  "why": "the engines offer different options; Wanderbrine Trapper is among the latest actions and Kinsbaile Aspirant is the card the divergence implicates",
   "repro": {
     "pool": "std-ecl",
     "surface": "full",
     "seed": 1,
-    "pair": 1975,
+    "pair": 7833,
     "policy": "random",
     "mulligans": 0
   }
