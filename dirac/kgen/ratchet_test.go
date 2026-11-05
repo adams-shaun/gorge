@@ -63,8 +63,20 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged MKM 237 -> 238, ALL 21557 -> 21558).
 	// +4 (Cosmic Cube, Doom Reigns Supreme, Aetherworks Marvel, Perception Bobblehead: Play from the remembered library top with its random-order bottom, and a literal Play Amount$ N; this branch; MSH 226 -> 228, ALL 21564 -> 21568).
 	// +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; land; merged ALL 21568 -> 21573).
+	// +1 over land's 21541 (this branch's Vizier of the Menagerie: FDN 512 -> 513, ALL 21541 -> 21542).
+	// +2 (Animate Duration$ UntilUntaps, kop.Override.WhileTapped: Hedge Whisperer and The Blackstaff of Waterdeep lower; MKM 231 -> 232, ALL 21542 -> 21544).
+	// +1 (Ramos, Dragon Engine: the all-at-once counter-removal mana ability, kop.CtrEachManaAb; merged with land's Animate Duration$/Mazemind lowerings; FDN 514 -> 515, ALL 21545 -> 21546).
+	// +1 over land's 21546 (this branch's Vannifar, Evolved Enigma: the cloak-from-hand shape lowers; merged with land's Ramos mana ability; MKM 232 -> 233, ALL 21546 -> 21547).
+	// +1 over land's 21547 (the merge with land: land's cloak-from-hand lowering, kop.CfChosen, lowers Vannifar, Evolved Enigma on top of this branch's DamageDoneOnce scan scoping; MKM 233 -> 234, ALL 21561 -> 21562).
+	// +2 (Sorcerous Spyglass: the as-enters look and any-card name choice and CantBeActivated over the chosen name; Phyrexian Revoker, the same class over the nonland name; land; merged FDN 516 -> 517, LCI 250 -> 251, ALL 21562 -> 21564).
+	// +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; land; merged FDN 516 -> 517, ALL 21564 -> 21565).
+	// +4 (No Witnesses' withMostTypeCreature investigate and the counted Num$ arm lower; land; merged MKM 234 -> 235, ALL 21565 -> 21569).
+	// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged MKM 235 -> 236, ALL 21569 -> 21570).
+	// +3 (a variable CollectEvidence cost and evidence beside the triggered-card exile: Incinerator of the Guilty, Urgent Necropsy, Lamplight Phoenix lower; land; merged MKM 236 -> 239, ALL 21570 -> 21573).
+	// +6 (the ExtTurnFaceUp effect turn-up, Urgent Necropsy's collect-evidence X, the each-target Aura-copy enchant ask and the DamageAll planeswalker/battle clause lower, with land's re-measure after its rebase; land; merged ALL 21573 -> 21579).
+	// +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; land; merged ALL 21579 -> 21584).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21573, 34442},
+	"ALL": {21588, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -78,7 +90,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FRA": {245, 269},
 	"HOB": {152, 172},
 	"LCI": {251, 290},
-	"MKM": {238, 279},
+	"MKM": {239, 279},
 	"MOM": {198, 296},
 	"MSH": {228, 276},
 	"NEO": {198, 287},

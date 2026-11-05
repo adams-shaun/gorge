@@ -596,6 +596,15 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return 255
 	case kop.RefTriggerPlayer:
 		return e.trigPl
+	case kop.RefTriggerTgtCtrl:
+		// gorge TriggeredTargetController: the controller of the trigger's
+		// target object, read live (a referent that left the battlefield
+		// since it was dealt the damage reads its owner). No referent (a
+		// trigger kind that binds no object) keeps the queue-time player.
+		if o := e.trigObj; o != NoObj {
+			return s.ctrlOfObj(o)
+		}
+		return e.trigPl
 	case kop.RefTargetController:
 		return s.tgtCtrlSlot(k, 0)
 	case kop.RefTgtCtrl1, kop.RefTgtCtrl2:

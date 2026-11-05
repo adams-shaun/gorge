@@ -436,6 +436,12 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		if d.N == 0 || s.digMayStop(k) {
 			d.add(MakeAction(AkDone, 0, 0, 0))
 		}
+	case raGenDigAllOpt:
+		// the ChangeNum$ All election: yes first, then no (gorge effDig's
+		// allOrNothing options, "yes"/"no").
+		d.Sub = ChGenDigOpt
+		d.add(MakeAction(AkChoose, 0, 0, 1))
+		d.add(MakeAction(AkChoose, 0, 0, 0))
 	case raGenPileSplit:
 		d.Sub = ChGenPileSplit
 		for i := 0; i < int(s.g.nrem); i++ {
@@ -844,6 +850,23 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.finishDig(k) {
 			return // the rest are arranged on the bottom, or a taken card's as-enters ask
 		}
+		s.continueRes(k, 0)
+	case raGenDigAllOpt:
+		r.ask = raNone
+		if a.Mode() == 1 {
+			in := &s.prog(k)[r.pc]
+			for i := 0; i < int(s.g.nlook); i++ {
+				o := s.resArm().look[i]
+				if s.matchCardGen(k, in.F, s.objs[o].card, s.objs[o].owner(), r.e.ctrl, o) {
+					s.g.lookSel |= 1 << i
+				}
+			}
+			if s.finishDig(k) {
+				return
+			}
+		}
+		// no (or nothing to place): the looked-at window stays in place,
+		// with no rest placement, reveal or capture.
 		s.continueRes(k, 0)
 	case raGenDigArrange:
 		o := Obj(a.Source())
@@ -1758,6 +1781,14 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 		s.g.pickP = p
 		for i := 0; i < n; i++ {
 			s.resArm().look[i] = pl.lib[int(pl.libLo)+i]
+		}
+		if take == -1 && second == 255 && (in.C>>3)&kop.DigOptional != 0 && s.g.nlook > 0 && s.digHasPick(k) {
+			// ChangeNum$ All beside Optional$ True (gorge effDig's
+			// allOrNothing election): one yes/no, never a subset. Yes takes
+			// every matching card; no leaves the looked-at window in place
+			// and moves nothing (no rest placement, reveal or capture).
+			s.res.ask, s.res.askP = raGenDigAllOpt, s.res.e.ctrl
+			return false
 		}
 		if take == -1 {
 			// ChangeNum$ All: every matching card, not every looked-at

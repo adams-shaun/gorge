@@ -53,6 +53,7 @@ const (
 	RefLibTop                                               // the top card of the resolving controller's library (gorge definedSpecTopOrBottomOfLibrary); none when it is empty
 	RefTriggerAttackers                                     // the attacker group of the AttackersDeclared event that raised this trigger (gorge definedSpecTriggeredAttackers); only OpPumpUntilEOT / OpPutCounter / OpGrantKeyword read it
 	RefTargets0123                                          // every legal target of slots 0 to 3
+	RefTriggerTgtCtrl                                       // a player ref: the controller of the triggering referent, read live at resolution (gorge TriggeredTargetController: a referent that left the battlefield reads its owner, CR 603.7a)
 )
 
 // RefTgtCtrl1 / RefTgtCtrl2 are RefTargetController for target slot 1 / 2

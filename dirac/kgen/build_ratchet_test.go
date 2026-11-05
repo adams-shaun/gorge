@@ -169,8 +169,19 @@ import (
 // +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged ALL build-level 21557 -> 21558).
 // +4 (Cosmic Cube, Doom Reigns Supreme, Aetherworks Marvel, Perception Bobblehead: Play from the remembered library top and a literal Play Amount$ N; this branch; ALL build-level 21564 -> 21568).
 // +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; land; merged ALL build-level 21568 -> 21573).
+// +1 over land's 21541 (this branch's Vizier of the Menagerie: ALL build-level 21541 -> 21542).
+// +2 (Animate Duration$ UntilUntaps, kop.Override.WhileTapped: Hedge Whisperer and The Blackstaff of Waterdeep lower; ALL build-level 21542 -> 21544).
+// +1 over land's 21546 (this branch's Vannifar, Evolved Enigma: the cloak-from-hand shape lowers; merged with land's Ramos mana ability; ALL build-level 21546 -> 21547).
+// +1 over land's 21547 (the merge with land: land's cloak-from-hand lowering, kop.CfChosen, lowers Vannifar, Evolved Enigma on top of this branch's DamageDoneOnce scan scoping; ALL build-level 21561 -> 21562).
+// +2 (Sorcerous Spyglass: the as-enters look and any-card name choice and CantBeActivated over the chosen name; Phyrexian Revoker, the same class over the nonland name; land; merged ALL build-level 21562 -> 21564).
+// +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; land; merged ALL build-level 21564 -> 21565).
+// +4 (No Witnesses: the withMostTypeCreature investigate and the counted Num$ arm lower, with land's other merged lowerings; land; merged ALL build-level 21565 -> 21569).
+// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged ALL build-level 21569 -> 21570).
+// +3 (a variable CollectEvidence cost and evidence beside the triggered-card exile: Incinerator of the Guilty, Urgent Necropsy, Lamplight Phoenix lower; land; merged ALL build-level 21570 -> 21573).
+// +6 (the ExtTurnFaceUp effect turn-up, Urgent Necropsy's collect-evidence X, the each-target Aura-copy enchant ask and the DamageAll planeswalker/battle clause lower, with land's re-measure after its rebase; land; merged ALL build-level 21573 -> 21579).
+// +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; land; merged ALL build-level 21579 -> 21584).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21573, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21588, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
