@@ -3788,7 +3788,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, fmt.Errorf("ChooseEach %q", in.CS)
 		}
 	case "CastFree":
-		// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6 | Repeat<<7
+		// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6 | Repeat<<7 | Paid<<8 | UpTo<<9
 		// (Repeat: A is the copy count, AllowRepeats$ with Amount$ X)
 		// Obj: RefRemembered (P1), a target slot (P2), or
 		// RefNone with F (P3/P4 filter population).
@@ -3811,6 +3811,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, ok := fl["Paid"]; ok {
 			ki.C |= 1 << 8 // the copy pays its mana cost (an exile-granted ability's Play)
+		}
+		if _, ok := fl["UpTo"]; ok {
+			ki.C |= 1 << 9 // a literal Amount$ N: the ask closes after A picks
 		}
 		if err := objFilter(zoneMap[in.C]); err != nil {
 			return ki, err
@@ -4076,6 +4079,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// the DigUntil's cards still in exile to the library bottom in a
 		// random order (lower_digimprint.go; kernel act_discoverbottom.go)
 		ki.Op, ki.Obj, ki.C = kop.OpDiscover, kop.RefController, kop.DiscoverDugBottom
+	case "RemBottom":
+		// the remembered cards still in the library to its bottom in a
+		// random order (lower_playlibrary.go; kernel act_discoverbottom.go)
+		ki.Op, ki.Obj, ki.C = kop.OpDiscover, kop.RefController, kop.DiscoverRemBottom
 	case "ClearRemembered":
 		ki.Op = kop.OpClearRemembered
 	case "ClearChosen":

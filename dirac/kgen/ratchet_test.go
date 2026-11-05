@@ -66,7 +66,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
 	// +2 (a divided damage total that is its TargetMax$ value is announced as a value:
 	// Ureni, the Song Unending and Monstrous Onslaught; TDM 245 -> 246, ALL 21591 -> 21593).
-	"ALL": {21632, 34442},
+	"ALL": {21634, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -82,7 +82,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"LCI": {251, 290},
 	"MKM": {240, 279},
 	"MOM": {198, 296},
-	"MSH": {228, 276},
+	"MSH": {230, 276},
 	"NEO": {198, 287},
 	"ONE": {195, 271},
 	"OTJ": {241, 276},

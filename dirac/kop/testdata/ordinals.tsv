@@ -253,6 +253,7 @@ DigRevealToCtrl	untyped int	512
 DigTakeToTop	untyped int	128
 DigTapped	untyped int	1024
 DiscoverDugBottom	untyped int	240
+DiscoverRemBottom	untyped int	241
 DivLKIP1P1	untyped int	255
 DivMaxV	untyped int	254
 DivValue	untyped int	253
