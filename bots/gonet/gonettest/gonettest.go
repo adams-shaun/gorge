@@ -19,15 +19,25 @@ import (
 	"github.com/adams-shaun/gorge/bots/policynet"
 )
 
-// Config is the network's shape; New is the smallest the loader accepts.
-const (
-	d    = 8 // state and option width
-	ff   = 8 // block feed-forward width
-	e    = 4 // identity-row embedding width
-	cd   = 4 // card vector width
-	hh   = 8 // head hidden width
-	grps = 4
-)
+// grps is the number of entity groups the pooled card vectors cover.
+const grps = 4
+
+// Shape is a network's widths.
+type Shape struct {
+	D  int // state and option width
+	FF int // block feed-forward width
+	E  int // identity-row embedding width
+	CD int // card vector width
+	HH int // head hidden width
+}
+
+// Small is the shape Write writes: the smallest the loader accepts.
+var Small = Shape{D: 8, FF: 8, E: 4, CD: 4, HH: 8}
+
+// Wide is the production layout's widths (d == head_hidden == 64, e == cd
+// == 32), the shape bots/netsimd runs on its dedicated 64-lane kernels; its
+// loader refuses Small (it needs d, ff, hh and cd multiples of 32).
+var Wide = Shape{D: 64, FF: 64, E: 32, CD: 32, HH: 64}
 
 type tensor struct {
 	name  string
@@ -50,6 +60,13 @@ func WriteWith(dir, name string, extra map[string]any) (string, error) {
 // sequence is what Write produced before the relational slots), then written
 // with rawW columns; the extra columns are zero.
 func WriteRaw(dir, name string, rawW int, extra map[string]any) (string, error) {
+	return WriteShape(dir, name, Small, rawW, extra)
+}
+
+// WriteShape is WriteRaw at shape sh. Its weights follow the same
+// pseudo-random sequence, so the same arguments always write the same bytes.
+func WriteShape(dir, name string, sh Shape, rawW int, extra map[string]any) (string, error) {
+	d, ff, e, cd, hh := sh.D, sh.FF, sh.E, sh.CD, sh.HH
 	if rawW < policynet.EntityRawWidthV1 {
 		return "", fmt.Errorf("gonettest: rawW %d is below the format-1 width %d", rawW, policynet.EntityRawWidthV1)
 	}
@@ -136,7 +153,7 @@ func WriteRaw(dir, name string, rawW int, extra map[string]any) (string, error) 
 			body = binary.LittleEndian.AppendUint32(body, math.Float32bits(v))
 		}
 	}
-	header, err := headerRaw(table, rawW, extra)
+	header, err := headerShape(table, sh, rawW, extra)
 	if err != nil {
 		return "", err
 	}
@@ -168,6 +185,12 @@ func Header(tensors []Entry, extra map[string]any) ([]byte, error) {
 
 // headerRaw is Header with an explicit RAW_W const.
 func headerRaw(tensors []Entry, rawW int, extra map[string]any) ([]byte, error) {
+	return headerShape(tensors, Small, rawW, extra)
+}
+
+// headerShape is headerRaw for a network of shape sh.
+func headerShape(tensors []Entry, sh Shape, rawW int, extra map[string]any) ([]byte, error) {
+	d, ff, e, cd, hh := float64(sh.D), float64(sh.FF), float64(sh.E), float64(sh.CD), float64(sh.HH)
 	h := map[string]any{
 		"format": "dzgw-1",
 		"arch":   "mlp",

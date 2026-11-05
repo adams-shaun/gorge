@@ -389,6 +389,13 @@ func (h *Host) CreateEvent(req protocol.CreateEventRequest) (protocol.CreateEven
 	if m.Format == formatPrerelease && req.BestOf == 0 {
 		m.BestOf = 3
 	}
+	// Rebuild (MTR 7.3 continuous construction) defaults to the format:
+	// sealed supply rebuilds between rounds, a draft does not. A create
+	// body that names it overrides.
+	m.Rebuild = m.sealed()
+	if req.Rebuild != nil {
+		m.Rebuild = *req.Rebuild
+	}
 	humans := 0
 	var invites []protocol.EventInvite
 	for s, cs := range req.Seats {

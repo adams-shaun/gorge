@@ -1,10 +1,13 @@
 <script lang="ts">
+  import { sealedFormat } from '../../lib/newevent';
+
   /**
    * The event's phase rail: Draft · Build · Round 1 · Round 2 ·
    * Round 3 · Results. A step is done, now, or still ahead, read from the
-   * server's phase string alone.
+   * server's phase string alone. A sealed or prerelease event opens packs
+   * instead of drafting them, so its supply step is named for that.
    */
-  let { phase }: { phase: string } = $props();
+  let { phase, format }: { phase: string; format?: string } = $props();
 
   const STEPS: { key: string; label: string }[] = [
     { key: 'DRAFT', label: 'Draft' },
@@ -15,12 +18,13 @@
     { key: 'COMPLETE', label: 'Results' },
   ];
   const at = $derived(phase === 'LOBBY' ? -1 : STEPS.findIndex((s) => s.key === phase));
+  const packStep = $derived(sealedFormat(format) ? 'Open packs' : 'Draft');
 </script>
 
 <ol class="ev-phases" aria-label="Event phases">
   {#each STEPS as s, i (s.key)}
     <li class="ph" class:done={i < at || (phase === 'COMPLETE' && i === at)} class:now={i === at && phase !== 'COMPLETE'} aria-current={i === at ? 'step' : undefined}>
-      <i aria-hidden="true"></i>{s.label}
+      <i aria-hidden="true"></i>{s.key === 'DRAFT' ? packStep : s.label}
     </li>
   {/each}
 </ol>

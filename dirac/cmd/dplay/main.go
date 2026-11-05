@@ -50,7 +50,7 @@ func (o *options) flags(errs io.Writer) *flag.FlagSet {
 	fs := flag.NewFlagSet("dplay", flag.ContinueOnError)
 	fs.SetOutput(errs)
 	fs.StringVar(&o.cards, "cards", "", "gorge corpus directory (default: $GORGE_CARDS, else .cards in or above the working directory)")
-	fs.StringVar(&o.set, "set", "fdn", "the card set to play, a name in dirac/cardset")
+	fs.StringVar(&o.set, "set", "fdn", "the card set to play: a deck pool by name, or a synthetic pool (std-trk, tail-NN)")
 	fs.StringVar(&o.decks, "decks", "", "deck directory (default: the set's pool, under $GORGE_POOLS or the module's .pools, else its committed slice)")
 	fs.StringVar(&o.pool, "pool", "", "pool.tsv (default: <decks>/../pool.tsv)")
 	fs.StringVar(&o.split, "split", "all", "pool split the decks come from: train, eval or all")
@@ -178,9 +178,10 @@ type deckEntry struct {
 	refused *cardset.RefusedError // the first card the set will not play
 }
 
-// readDecks reads every deck of ps. A card outside the set is an error, whatever
-// -skip-refused says: those decks belong to another set.
-func readDecks(set cardset.Set, ps []oracle.Pairing, dir string) (map[string]*deckEntry, error) {
+// readDecks reads every deck of ps. A card outside the set is an error unless
+// skipRefused is set, when it is the deck's first refusal: a drafted deck can hold a
+// card outside its pool, while an unflagged run still fails loudly on a wrong set.
+func readDecks(set cardset.Set, ps []oracle.Pairing, dir string, skipRefused bool) (map[string]*deckEntry, error) {
 	out := map[string]*deckEntry{}
 	supported := set.Supported()
 	read := func(name string) error {
@@ -204,7 +205,13 @@ func readDecks(set cardset.Set, ps []oracle.Pairing, dir string) (map[string]*de
 			e.lines = append(e.lines, cardset.Entry{Name: c.Name, Count: c.Count})
 			i, ok := set.Lookup(c.Name)
 			if !ok {
-				return fmt.Errorf("deck %s: card %q is not in set %s", name, c.Name, set.Name())
+				if !skipRefused {
+					return fmt.Errorf("deck %s: card %q is not in set %s", name, c.Name, set.Name())
+				}
+				if e.refused == nil {
+					e.refused = &cardset.RefusedError{Card: c.Name, Status: cardset.StatusNotLowered, Reason: "not in set " + set.Name()}
+				}
+				continue
 			}
 			if !supported[i] && e.refused == nil {
 				e.refused = &cardset.RefusedError{Card: c.Name, Status: set.Status(i), Reason: set.Reason(i)}
@@ -365,7 +372,7 @@ func (o *options) play(stdout, stderr io.Writer) error {
 	if o.cards != "" {
 		os.Setenv("GORGE_CARDS", o.cards) // the tables come from the corpus this run plays
 	}
-	set, err := cardset.ByName(o.set)
+	set, err := oracle.PlaySet(o.set)
 	if err != nil {
 		return err
 	}
@@ -374,7 +381,7 @@ func (o *options) play(stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	decks, err := readDecks(set, all, dir)
+	decks, err := readDecks(set, all, dir, o.skipRefused)
 	if err != nil {
 		return err
 	}

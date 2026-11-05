@@ -6,9 +6,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/adams-shaun/gorge/draft/draftlab"
 	"github.com/adams-shaun/gorge/draft/limited/setdata"
+	"github.com/adams-shaun/gorge/engine/deck"
 )
 
 // seats and rounds are the pod shape: eight seats, three packs each.
@@ -108,12 +110,22 @@ func run(o options, stdout io.Writer) error {
 			f.Name = id
 			f.Format = "limited"
 			f.Archetype = m.Archetype
-			cards := 0
+			cards := make([]deck.Entry, len(f.Cards))
+			for i, e := range f.Cards {
+				cards[i] = e
+				c, ok := lab.Card(e.Name)
+				if !ok || len(c.Faces) == 0 || c.Faces[0] == nil || slices.Contains(c.Faces[0].Types, "Basic") {
+					continue
+				}
+				cards[i].Name = c.Faces[0].Name
+			}
+			f.Cards = cards
+			ncards := 0
 			for _, e := range f.Cards {
-				cards += e.Count
+				ncards += e.Count
 			}
 			ids = append(ids, id)
-			poolRows = append(poolRows, poolRow{Deck: id, Colours: m.Colours, Splash: m.Splash, Cards: cards})
+			poolRows = append(poolRows, poolRow{Deck: id, Colours: m.Colours, Splash: m.Splash, Cards: ncards})
 			rel := filepath.ToSlash(filepath.Join("decks", id+".json"))
 			if err := writeJSON(filepath.Join(o.out, rel), f); err != nil {
 				return err

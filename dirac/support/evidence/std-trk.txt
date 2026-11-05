@@ -2,6 +2,7 @@
 A Good Day to Die
 Academy Instructor
 Adversary by Algorithm
+All Good Things . . .
 Amok Time
 Andoria
 Andromedan Automatons
@@ -21,9 +22,14 @@ Blastoneuron
 Blood Crypt
 Boarding Action
 Borg Cube
+Brad Boimler, Eager Ensign
 Branching Timeline
+Brazen Bluff
 Breeding Pool
 Cantankerous Captain
+Captain Benjamin Sisko
+Captain James T. Kirk
+Captain Jean-Luc Picard
 Captain Jonathan Archer
 Captain Kathryn Janeway
 Captain Michael Burnham
@@ -39,6 +45,7 @@ Cloistered Telepath
 Cold-Blooded Crew
 Collation Trimatrix
 Collective Drone
+Combadge
 Command Decision
 Command Subadjunct
 Commander Raffi Musiker
@@ -55,8 +62,10 @@ D-7 Battle Cruiser
 DOT-7 Repair Squad
 Dahar Master
 Dal R'El, Augment Orphan
+Daniels, Temporal Agent
 Data, New Life
 Dathon and Picard at El-Adrel
+Dathon, His Heart Open
 David and Carol Marcus, Creators
 De-evolve
 Deanna Troi, Psychic Counsel
@@ -64,15 +73,22 @@ Death Is Irrelevant
 Deep Space 9
 Deep Space Scan
 Dominion Assault Force
+Dominion Infiltration
+Dominion Saboteur
 Dominion Supervisor
+Dr. Beverly Crusher
 Dr. Joseph M'Benga
 Dr. Leonard "Bones" McCoy
+Dr. McCoy, Surly Surgeon
 Earth, Sector 001
 Eject the Warp Core
 Elim Garak, Simple Tailor
 Emergency Holographic Crew
 Emergency Medical Hologram
+Encounter the Unknown
 Energize
+Engineered Explosives
+Ensign Pavel Chekov
 Enterprise NX-01
 Erica Ortegas, Plucky Pilot
 Excalbian Gamemaster
@@ -83,9 +99,11 @@ Federation Probe
 Federation Resupply
 Ferenginar
 Final Frontier
+First Contact
 Forest
 Free Borg Revolutionaries
 Fugitive Listener
+Gabriel Lorca, Mirror Menace
 Gaseous Anomaly
 General Chang, Cold Warrior
 Genesis Device
@@ -93,14 +111,20 @@ Genesis Effect
 Georgiou, Terran Emperor
 Ghost of Illyria
 Godless Shrine
+Gowron, Eager for Battle
 Grand Nagus Zek
+Gray and Adira, Forever Joined
 Guidance Failure
+Gul Dukat, Colonial Prefect
+Gwyndala, the Progeny
+H.M.S. Bounty, Unlikely Timeship
 Hallowed Fountain
 He's Dead, Jim
 Hemmer, Fixing What Is Broken
 Highly Illogical
 Hit It!
 Hive Mind Coprocessor
+Holo-Engineer
 Hologram Janeway
 Hologram Stalker
 Horta
@@ -109,14 +133,18 @@ Humpback Whales
 I'm a Doctor, Not a . . .
 Impossible Choice
 In the Pale Moonlight
+Infinite Diversity
 Interstellar Effigy
 Island
 Isolinear Processor
 Jadzia Dax, Living Legacy
 Jake Sisko, War Correspondent
 Jett Reno, Problem Solver
+Kai Winn, Faithless Leader
 Khaaaaaaaaaaaannn!
 Khan, Despot by Design
+Khan, Vengeful Heart
+Kira Nerys, Firebrand
 Kirk, Commanding Officer
 Kobayashi Maru Scenario
 L'Rell, Fierce Visionary
@@ -126,12 +154,14 @@ Live Long and Prosper
 Locutus, the One Who Speaks
 Lore, Positronic Provocateur
 Lt. Cmdr. Geordi La Forge
+Lwaxana Troi, Charming Guest
 MACO Strike Team
 Make It So
 Malfunctioning Holodeck
 Marooned
 Melkotian Adjudicator
 Miles O'Brien, Transporter Ops
+Mirror Universe Intrusion
 Moopsy
 Mountain
 Mr. Spock, Science Officer
@@ -139,6 +169,8 @@ Mugato
 Munitions Enthusiast
 Neelix, Moral Support
 Ni'Var Science Academy
+Nog, Ambitious Cadet
+Nyota Uhura, Communications
 Oberth-Class Starship
 Obsidian Order Operative
 Open Communications
@@ -148,7 +180,9 @@ Overflow Submatrix
 Overgrown Tomb
 Pah-Wraith
 Pattern Buffer Preservation
+Peace in Our Time
 Perils of the Past
+Pet Sehlat
 Phlox, Unorthodox Doctor
 Photosynthetic Physician
 Picard, Leading by Example
@@ -159,12 +193,16 @@ Plasma Cascade
 Primary Unimatrix Adjunct
 Pure Energy
 Q Continuum
+Q, Stacking the Deck
 Qo'noS
 Quark's Bar
+Quark, Humble Proprietor
 Ravenous Cosmozoan
 Reckless Impulse
 Red Alert!
 Relentless Drednok
+Replicator
+Resistance Is Futile
 Risa
 Rogue Artificial Intelligence
 Rok-Tahk, Budding Scientist
@@ -190,6 +228,7 @@ Shuttle Ace
 Sickbay
 Silicate Surveyor
 Spatial Anomaly
+Species 8472
 Spock, Always Your Friend
 Stable Wormhole
 Starfleet Academy
@@ -198,6 +237,7 @@ Starfleet Spanner Jockey
 Steam Vents
 Stomping Ground
 Storied Veteran
+Stray from History
 Subcommander T'Pol
 Subspace Anomaly
 Sulu, Space Swashbuckler
@@ -205,6 +245,7 @@ Support Mission
 Suurok-Class Science Vessel
 Suus Mahna Practitioner
 Swamp
+Sylvia Tilly, Joy of Discovery
 Syndicate Liquidators
 Tactical Officer
 Tal Shiar Analyst
@@ -214,6 +255,7 @@ Tasha Yar, Out of Time
 Tea, Earl Grey, Hot
 Tell Me What You See
 Temple Garden
+Temporal Anomaly
 Temporal Conqueror
 Tenacious Drone
 Test of Conviction
@@ -222,14 +264,20 @@ Test of Identity
 Test of Loyalty
 Test of Priorities
 The Caretaker
+The City on the Edge of Forever
 The Destruction of Praxis
 The Doctor, EMH
 The Duras Sisters
+The Holodeck
+The Inner Light
 The Measure of a Man
+The Naked Time
 The Needs of the Many
 The Traveler
 The Unicomplex
+The Wrath of Khan
 There's Coffee in that Nebula
+Those Old Scientists
 Transporter Malfunction
 Tricorder
 Troubling Tribbles
@@ -237,22 +285,27 @@ Type-2 Phaser
 U.S.S. Cerritos, Following Up
 U.S.S. Discovery, at Black Alert
 U.S.S. Enterprise-A, Free Spirit
+U.S.S. Enterprise-D, Galaxy-Class
 U.S.S. Excelsior, Cutting Edge
 U.S.S. Reliant, From Hell's Heart
 U.S.S. Voyager, Lone Wanderer
 Una Chin-Riley, Number One
 Unexplored Territory
+V'Ger, the Intruder
 Vash, Freelance Archaeologist
 Vengeance Mission
 Vexing Drone
 Vulcan
+Vulcan Mind-Meld
 Warp Core
 Warp Speed
 Watery Grave
 Wesley Crusher, Starfleet Cadet
+Will Riker, First in the Field
 Worf, Honor-Bound Warrior
 Worf, Intelligence Contractor
 Xenobotanist
 Xindi Surveyors
 Year of Hell
 Zefram Cochrane, Warp Pioneer
+Zero, Incorporeal Sensate

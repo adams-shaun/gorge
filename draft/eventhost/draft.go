@@ -74,6 +74,7 @@ func (r *run) advanceLobby() bool {
 	}
 	created := event.Entry{
 		Kind: event.KindEventCreated, Seed: r.meta.Seed, Set: r.meta.Set, Seats: seats[:],
+		Rebuild: r.meta.Rebuild,
 	}
 	if r.meta.sealed() {
 		created.Mode, created.Promos = event.ModeSealed, r.meta.promos()

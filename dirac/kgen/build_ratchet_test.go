@@ -151,7 +151,7 @@ import (
 // +2 (U.S.S. Enterprise-D, Galaxy-Class and Axgard Artisan: CounterAddedOnce FirstTime$ True's per-source once-a-turn latch; 21486 -> 21488; ratchet MOM 196 -> 197, TRK 305 -> 306).
 // +3 (Chief Engineer, We Ride at Dawn and Invasion of Segovia: an AffectedZone$ Stack Convoke grant lowers to a StackKw static the tap-paid cast reads; 21496 -> 21499; ratchet MOM 197 -> 198).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21499, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21504, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

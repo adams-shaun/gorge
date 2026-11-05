@@ -45,7 +45,10 @@ window.fetch = async (input, init) => {
   return json(404, {});
 };
 
-const series: EventSeries = { round: 1, a: 0, b: 3, best_of: 3, state: 'between', table: 'e1-r1-s03-g1-a1', game: 2, games: [3], chooser: 0, waiting: [0, 3], score: [0, 1], winner: null };
+const rebuildWindow = new URLSearchParams(location.search).get('game') === '1';
+const series: EventSeries = rebuildWindow
+  ? { round: 2, a: 0, b: 2, best_of: 3, state: 'between', game: 1, games: [], chooser: null, waiting: [0, 2], score: [0, 0], winner: null }
+  : { round: 1, a: 0, b: 3, best_of: 3, state: 'between', table: 'e1-r1-s03-g1-a1', game: 2, games: [3], chooser: 0, waiting: [0, 3], score: [0, 1], winner: null };
 const seats = [0, 1, 2, 3].map((s) => ({ seat: s, kind: s === 0 ? 'human' : 'bot', name: s === 0 ? 'Ada' : `Bot ${s + 1}`, joined: true, picks: 42, ready: true }));
 
 mount(BetweenGames, {
