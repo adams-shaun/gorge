@@ -94,7 +94,7 @@ from after the first pair's table is built. The games file depends only on the f
 | flag | default | meaning |
 |---|---|---|
 | `-cards` | `$GORGE_CARDS`, else `.cards` in or above the working directory | the corpus |
-| `-set` | `fdn` | the card set, a name in `dirac/cardset` |
+| `-set` | `fdn` | the card set: a deck pool by name, or a synthetic pool (`std-trk`, `tail-NN`) |
 | `-decks` | the set's pool, else its committed slice | deck directory, `<name>.json` per deck |
 | `-pool` | `<decks>/../pool.tsv` | the decks pairs are drawn from |
 | `-split` | `all` | pool split: `train`, `eval` or `all` |
