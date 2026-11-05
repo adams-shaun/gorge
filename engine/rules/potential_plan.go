@@ -1384,10 +1384,12 @@ type paymentPlanCensus struct {
 	// cost includes mana (a filter: Heap Gate's "{1}, {T}: Add one mana of
 	// any color"), each with its fee; relaxed holds the free ones.
 	paid []relaxedPaid
-	// funding is the mana every missed ability's own cost spends, relaxed or
-	// not: how many other sources a prefix may activate to pay a gap's fee
-	// (Starfleet Academy's "{5}, {T}: Add X mana of any one color", whose
-	// unbounded X leaves no relaxed alternative to carry its fee in paid).
+	// funding is the FIXED mana every missed ability's own cost spends,
+	// relaxed or not: how many other sources a prefix may activate to pay a
+	// gap's fee (Starfleet Academy's "{5}, {T}: Add X mana of any one
+	// color", whose unbounded X leaves no relaxed alternative to carry its
+	// fee in paid). A variable or hybrid cost part is not counted, so this
+	// can under-fund such a gap, never over-fund it.
 	funding int
 	// gaps lists, in zone order, the sources with an ability the census
 	// misses (potentialPrefixScript activates them).
@@ -1400,8 +1402,11 @@ func (c paymentPlanCensus) fees() int {
 	return c.funding
 }
 
-// manaAbilityFee is the mana an ability's own activation cost spends, which
-// a prefix must fund before the ability can produce anything.
+// manaAbilityFee is the fixed mana an ability's own activation cost spends,
+// which a prefix must fund before the ability can produce anything. X/XMin,
+// hybrid, phyrexian, twobrid, hybrid-phyrexian and snow parts are not
+// counted (a relaxation declines those shapes; an unrelaxable gap's funding
+// is then a lower bound).
 func manaAbilityFee(c Cost) int32 {
 	return c.Generic + c.Colored.Total()
 }
