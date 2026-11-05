@@ -801,6 +801,7 @@ PlayerPredArtOrEnch	untyped int	4
 PlayerPredControlsCreature	untyped int	1
 PlayerPredCorrupted	untyped int	3
 PlayerPredMaxSpeed	untyped int	2
+PlayerPredMostCreatures	untyped int	5
 PlayerPredNeg	untyped int	256
 PredActiveCtrl	Pred	23
 PredAdventureCard	Pred	253
