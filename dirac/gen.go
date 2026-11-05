@@ -429,6 +429,7 @@ const (
 	rbPrevCombatTo                    // CardDef.PreventCombatTo: its combat damage events are prevented (combat_prevention.go)
 	rbPrevCombatBy                    // CardDef.PreventCombatBy: the combat damage it would deal is prevented (combat_preventfrom.go)
 	rbDiscETB                         // ReplDiscardOppToBattlefield (repl_discardetb.go)
+	rbPrevMill                        // ReplPreventMillOpps (repl_preventmill.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -881,6 +882,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					pc.hasStat = true
 				case kop.ReplPreventNoncombatToOthers:
 					g.replBits[i] |= rbPrevNC
+					pc.hasStat = true
+				case kop.ReplPreventMillOpps:
+					g.replBits[i] |= rbPrevMill
 					pc.hasStat = true
 				case kop.ReplDoubleTokens, kop.ReplRewriteTokens:
 					g.replBits[i] |= rbDblTok

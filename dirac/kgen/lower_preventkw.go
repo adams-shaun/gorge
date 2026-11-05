@@ -59,3 +59,23 @@ func printedPreventRepl(r cards.Repl) bool {
 	}
 	return false
 }
+
+// selfPreventRepl lowers a printed R: line that is the K:Prevent "any to"
+// sentence written out (Black Panther, Hope Enduring): R:Event$ DamageDone |
+// ActiveZones$ Battlefield | Prevent$ True | ValidTarget$ Card.Self, no body,
+// no source or combat filter. gorge's damageReplacementMatches reads it the
+// same as the keyword-minted line (every damage event to the card, combat and
+// noncombat), so it becomes the same CardDef.PreventDmgTo fact.
+func (lc *lowerCtx) selfPreventRepl(r cards.Repl) bool {
+	if r.Event != "DamageDone" || r.With != nil {
+		return false
+	}
+	rp := newParams(r.Params)
+	rp.consume("Event")
+	if rp.str("ActiveZones") != "Battlefield" || !rp.is("Prevent", "True") || rp.str("ValidTarget") != "Card.Self" ||
+		len(rp.unread()) != 0 {
+		return false
+	}
+	lc.out.PreventDmgTo = true
+	return true
+}

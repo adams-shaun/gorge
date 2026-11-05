@@ -632,7 +632,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		in.Op = "Exile"
 	case zHand:
 		in.Op = "Bounce"
-		if origin == zGraveyard {
+		// a remembered set from exile (Worlds Within Worlds' return) is
+		// the Return walk: Bounce moves the set's first object only
+		if origin == zGraveyard || origin == zExile && obj.Kind == rRemembered {
 			in.Op = "Return"
 			in.C = zHand
 		}
@@ -1164,14 +1166,14 @@ func (lc *lowerCtx) dig(ps *params) error {
 	// WithMayLook$ with an exile destination; every other combination is
 	// not read exactly (a blind face-down exile, a look on a non-exile move)
 	fd, look := ps.is("ExileFaceDown", "True"), ps.is("WithMayLook", "True")
-	blind := fd && !look && dest == zExile && lc.blindDigShape(ps) // lower_blinddig.go
+	blind := fd && !look && dest == zExile && (lc.repeatBlindDig(ps) || lc.blindDigShape(ps)) // lower_blinddig.go
 	if fd != look && !blind || fd && dest != zExile {
 		return refuse("Dig ExileFaceDown$ shape")
 	}
 	if fd {
 		flags = append(flags, "ExileFaceDown")
 	}
-	if blind && lc.blind.exilerOther {
+	if blind && lc.blind != nil && lc.blind.exilerOther {
 		flags = append(flags, "ExilerOther")
 	}
 	if err := lc.digImprint(ps); err != nil { // lower_handmove.go
