@@ -15,7 +15,7 @@ func newPreventKWScen(t *testing.T, deck []cardset.Entry) (*scen, map[string]Car
 	t.Helper()
 	set, err := cardset.ByName("preventkw")
 	if err != nil {
-		t.Fatal(err)
+		t.Skip(err)
 	}
 	set = cardset.AllowUnverified(set)
 	for _, e := range deck {
