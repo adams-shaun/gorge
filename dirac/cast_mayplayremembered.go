@@ -4,6 +4,12 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+// DebugVulcanWrongHolder is the mutation hook (TestVulcanMindMeldMutation):
+// the opponent-exiler permission goes to the controller and the
+// controller-exiler permission to the opponent, as a kernel that gave every
+// exiled card to the wrong player would.
+var DebugVulcanWrongHolder bool
+
 // mayPlayRemembered is OpMayPlay over the remembered set (B=1: the
 // Effect's ExileOnMoved$ lifetime, exact for one remembered card only): gorge's Effect
 // registers its static with the whole Remembered list (effectRemembered),
@@ -21,6 +27,9 @@ func (s *State) mayPlayRemembered(k *prep, in *kop.Instr, ctrl uint8) {
 		// card leaves; per-card permissions cannot follow that
 		s.capFull(StallExileOnMoved)
 		return
+	}
+	if in.B.N&kop.MayPlayOpponent != 0 != DebugVulcanWrongHolder {
+		ctrl = 1 - ctrl // the permission is the exiler's: the controller's opponent
 	}
 	headed := false // the first limited record heads the grant (cast_mayplaylimit.go)
 	for i := 0; i < n; i++ {

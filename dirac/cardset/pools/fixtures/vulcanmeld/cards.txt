@@ -1,0 +1,14 @@
+# the Vulcan Mind-Meld pool: each player exiles face down from the other's
+# library (the controller's top card by the opponent, the opponent's top two
+# by the controller) and the exiler may play those cards with mana of any
+# type, for the oracle's constructed lockstep (dirac/oracle/vulcanmeld_test.go)
+Burglar Rat
+Forest
+Grizzly Bears
+Hill Giant
+Island
+Mountain
+Ornithopter
+Shock
+Swamp
+Vulcan Mind-Meld

@@ -2062,7 +2062,11 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 	default:
 		s.placeFromK(k, o, z, false, kop.ZoneLibrary, false)
 		if fl&kop.DigFaceDown != 0 && z == kop.ZoneExile {
-			s.faceDownExile(o, s.res.e.obj, s.res.e.ctrl) // zone_exilefacedown.go
+			exiler := s.res.e.ctrl
+			if fl&kop.DigExilerOther != 0 {
+				exiler = 1 - exiler // DefinedExiler$ Targeted: the opponent exiled it
+			}
+			s.faceDownExile(o, s.res.e.obj, exiler) // zone_exilefacedown.go
 		}
 	}
 }

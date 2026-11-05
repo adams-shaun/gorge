@@ -1133,11 +1133,15 @@ func (lc *lowerCtx) dig(ps *params) error {
 	// WithMayLook$ with an exile destination; every other combination is
 	// not read exactly (a blind face-down exile, a look on a non-exile move)
 	fd, look := ps.is("ExileFaceDown", "True"), ps.is("WithMayLook", "True")
-	if fd != look || fd && dest != zExile {
+	blind := fd && !look && dest == zExile && lc.blindDigShape(ps) // lower_blinddig.go
+	if fd != look && !blind || fd && dest != zExile {
 		return refuse("Dig ExileFaceDown$ shape")
 	}
 	if fd {
 		flags = append(flags, "ExileFaceDown")
+	}
+	if blind && lc.blind.exilerOther {
+		flags = append(flags, "ExilerOther")
 	}
 	if err := lc.digImprint(ps); err != nil { // lower_handmove.go
 		return err
@@ -1873,6 +1877,11 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	// already gives an Effect. Only You is the default; any other spelling
 	// (Opponent, TriggeredTarget, ...) stays unread, so the node check
 	// refuses it by name.
+	if lc.blind != nil {
+		if err := lc.blindEffectOwner(ps); err != nil {
+			return err
+		}
+	}
 	if v, ok := ps.m["EffectOwner"]; ok && strings.TrimSpace(v) == "You" {
 		ps.consume("EffectOwner")
 	}
@@ -3548,6 +3557,15 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 	}
 	may.consume("Mode", "Description", "MayPlay", "Affected", "AffectedZone", "MayPlayPlayer")
 	flags := 0
+	if lc.blind != nil && !owner && may.is("MayLookAt", "True") {
+		// the look the blind Dig's exile leaves to this static
+		// (lower_blinddig.go): the kernel's looker is the exiler
+		may.consume("MayLookAt")
+		if lc.blind.exilerOther {
+			flags |= kop.MayPlayOpponent
+		}
+		lc.blind = nil
+	}
 	if owner {
 		flags = kop.MayPlayOwner
 	}
@@ -3555,7 +3573,7 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 		if strings.TrimSpace(v) != "True" || owner {
 			return true, refuse("Effect MayPlayIgnoreType %q beside a %s permission", v, map[bool]string{true: "card-owner", false: "controller"}[owner])
 		}
-		flags = kop.MayPlayAnyType
+		flags |= kop.MayPlayAnyType
 	}
 	var valid *lFilter
 	if name, ok := may.get("CheckSVar"); ok && !owner {

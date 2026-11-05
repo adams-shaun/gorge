@@ -296,6 +296,13 @@ const (
 	// and the fold in apply_zone.go:222-240). C is int16: the zone takes bits
 	// 0-2 and the flags shift by 3, so bit 11 here is bit 14 of C.
 	DigFaceDown = 1 << 11
+	// DigExilerOther (bit 15 of C, the sign bit; every reader masks the
+	// shifted flags): the cards exiled face down are exiled by the
+	// controller's opponent (DefinedExiler$ Targeted over Defined$ You), so
+	// the exiler's seat, not the controller's, is the card's looker. A blind
+	// face-down exile (no WithMayLook$) rides DigFaceDown with this bit or
+	// without it for the controller as exiler (Vulcan Mind-Meld).
+	DigExilerOther = 1 << 12
 )
 
 // DigUntilFlags (OpDigUntil C>>3): bits 0..2 the revealed rest's zone.
@@ -484,6 +491,12 @@ const (
 	// Instant.IsRemembered,Sorcery.IsRemembered). B bit 13 (above MayPlayOwner's
 	// bit 9 and the surcharge bits 10-12), grant-time only.
 	MayPlayInstSorc = 0x2000
+
+	// MayPlayOpponent (B bit 14): the permission is the effect controller's
+	// opponent's (EffectOwner$ Targeted over an opponent target, Vulcan
+	// Mind-Meld: the player who exiled each card may play it). Grant-time
+	// only; the record's holder is that player.
+	MayPlayOpponent = 0x4000
 
 	// MayPlayKinds are the B flags a permission record keeps (mayPlay.kind).
 	MayPlayKinds = MayPlayFree | MayPlayAnyType | MayPlayIgnoreColor | MayPlayLimitMask
