@@ -79,11 +79,12 @@ const (
 	AkBestow                         // source = a hand card; cast it bestowed, for its bestow cost (CR 702.103a; kw_bestow.go)
 	AkWebSling                       // source = a hand card; cast it for its web-slinging cost (CR 702.188a; kw_websling.go)
 	AkMayFlash                       // source = a hand card; cast it as though it had flash for its mana cost plus the extra (CR 702.8; kw_mayflash.go)
+	AkCastConspire                   // source = a hand card; the conspired cast of a spell with granted conspire (CR 702.78a; kw_conspire.go)
 	AkCount
 )
 
 // isCastKind reports whether k is a cast action (plain or casualty).
-func isCastKind(k ActionKind) bool { return k == AkCast || k == AkCastCasualty }
+func isCastKind(k ActionKind) bool { return k == AkCast || k == AkCastCasualty || k == AkCastConspire }
 
 // MakeAction packs an Action.
 func MakeAction(k ActionKind, source, target, mode uint8) Action {

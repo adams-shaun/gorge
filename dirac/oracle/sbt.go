@@ -255,9 +255,11 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 			pass, hasPass = x, true
 		case dirac.AkPlayLand:
 			es = append(es, sbtPrio{act: x, key: 0<<40 | zidx(src)<<8, src: builtins.KeyOption, kind: "play_land", obj: sbtObjID(src)})
-		case dirac.AkCast, dirac.AkCastCasualty:
+		case dirac.AkCast, dirac.AkCastCasualty, dirac.AkCastConspire:
 			cm := ""
 			switch {
+			case x.Kind() == dirac.AkCastConspire:
+				cm = "conspired" // CR 702.78a: gorge's "conspired" cast option
 			case x.Kind() == dirac.AkCastCasualty && s.FeatTeamworkCard(dirac.Obj(src)):
 				cm = "teamworked" // CR 702.194: gorge's "teamworked" cast option
 			case x.Kind() == dirac.AkCastCasualty && s.FeatBargainCard(dirac.Obj(src)):

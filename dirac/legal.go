@@ -149,8 +149,13 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		// the kicked cast is gorge's lowered potential play even when the
 		// plain one is left out (pair 8638: Grow from the Ashes paid only
 		// through the imprisoned lands)
-		if tgtOK && s.gorgeOffers(p, o, 0) && (cost.X == 0 || s.spellXBoundPayable(k, c, p, cost)) {
+		plainOK := tgtOK && s.gorgeOffers(p, o, 0) && (cost.X == 0 || s.spellXBoundPayable(k, c, p, cost))
+		if plainOK {
 			d.add(MakeAction(AkCast, uint8(o), 0, 0))
+		}
+		if plainOK && k.gen != nil && k.gen.anyConspire && s.conspireOffer(k, p, c, o) && s.casualtyOffers(p, o) {
+			// the conspired cast (kw_conspire.go): beside the plain cast; like the casualty cast, gorge offers it only against a pool that pays
+			d.add(MakeAction(AkCastConspire, uint8(o), 0, 0))
 		}
 		if twOK && s.teamworkOffer(k, p, c) && s.casualtyOffers(p, o) {
 			// the teamworked cast (kw_teamwork.go): the same action kind
@@ -1444,6 +1449,8 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if face {
 			s.lowerFaceCast(k, p, Obj(a.Source())) // cast_faceroute.go
 		}
+	case AkCastConspire:
+		s.beginConspireCast(k, Obj(a.Source())) // CR 702.78a; kw_conspire.go
 	case AkCastCasualty:
 		s.beginCasualtyCast(k, Obj(a.Source()))
 	case AkActivate:

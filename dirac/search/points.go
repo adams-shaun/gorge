@@ -329,7 +329,7 @@ func (sr *Searcher) priorityCands(s *dirac.State, d *dirac.Decision, bot, limit 
 	}
 	for i := 0; i < int(d.N); i++ {
 		switch d.Options[i].Kind() {
-		case dirac.AkCast, dirac.AkCastCasualty, dirac.AkActivate:
+		case dirac.AkCast, dirac.AkCastCasualty, dirac.AkCastConspire, dirac.AkActivate:
 			add(i)
 		default:
 			if sr.Opts.AltCands && altKind(d.Options[i].Kind()) {

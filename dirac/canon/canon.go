@@ -147,6 +147,7 @@ var ChooseKinds = []string{
 	"ward_mana",    // gorge ward.go's {N} option of a discard-or-pay ward
 	"puttolibcost", // gorge putToLibAsk's PutCardToLibFrom<Zone> pick
 	"keep_tapped",  // gorge finishUntapStep's untap-step election (CR 502.3), beside "untap"
+	"conspire",     // CR 702.78a: gorge conspireAsk's tap pick (kw_conspire.go)
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.

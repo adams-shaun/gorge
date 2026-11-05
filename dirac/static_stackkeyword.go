@@ -53,6 +53,8 @@ func prepStackKw(t *Table, g *genPrep, p *prep) {
 				g.anyStackLife = true
 			case kop.StackKwSplitSecond:
 				g.anySplitSecond = true
+			case kop.StackKwConspire:
+				g.anyConspire, g.anyCopyElect, g.anyPermCopy = true, true, true // its copy chooses new targets; a granted spell may be a permanent
 			case kop.StackKwStorm:
 				g.anyStorm, g.anyHist = true, true         // the count reads the history bank
 				g.anyCopyElect, g.anyPermCopy = true, true // its copies choose new targets, and a granted spell may be a permanent
@@ -98,6 +100,16 @@ func (s *State) grantImprovise(k *prep, p uint8, c CardID, o Obj, fromHand bool)
 		return false
 	}
 	n, _ := s.stackKwN(k, kop.StackKwImprovise, c, o, p, fromHand)
+	return n > 0
+}
+
+// grantConspire: a live StatStackKw Conspire grant reaches p's spell card c
+// (object o). Behind genPrep.anyConspire.
+func (s *State) grantConspire(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
+	if k.gen == nil || !k.gen.anyConspire {
+		return false
+	}
+	n, _ := s.stackKwN(k, kop.StackKwConspire, c, o, p, fromHand)
 	return n > 0
 }
 
