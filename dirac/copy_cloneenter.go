@@ -71,6 +71,9 @@ func (s *State) execReturnSimple(k *prep, in *kop.Instr, o Obj) {
 //go:noinline
 func (s *State) answerCloneReturn(k *prep, a Action) {
 	s.g.pre.val = cloneAnswer(a)
+	if s.cloneReturnOrderPark(k) {
+		return // the CR 616.1 order between the copy and another entry replacement (copy_returnorder.go)
+	}
 	s.rerunReturn(k)
 }
 

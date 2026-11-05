@@ -484,6 +484,11 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			d.add(MakeAction(AkDone, 0, 0, 0)) // up to one (gorge choiceBounds Min 0)
 		}
 	case raGenTokChoice, raGenRetChoice:
+		if s.g.pre.kind == akEntryOrder {
+			d.Sub = ChGenReplOrder // a returning clone's order ask (copy_returnorder.go)
+			s.cloneEntryOrderOptions(k, d)
+			break
+		}
 		s.askOptions(k, d, s.g.pre.kind)
 	case raGenEnterAsk:
 		s.askOptions(k, d, s.g.ask[0].kind)
@@ -988,6 +993,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.continueRes(k, 0)
 	case raGenRetChoice:
 		o := s.g.pre.obj
+		if s.g.pre.kind == akEntryOrder {
+			s.answerReturnOrder(k, a)
+			return
+		}
 		if s.g.pre.kind == akClone {
 			s.answerCloneReturn(k, a)
 			return
