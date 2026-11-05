@@ -170,7 +170,7 @@ import (
 // +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; ALL build-level 21564 -> 21569).
 // +1 (Molten Exhale: a may-flash extra that is a behold, CardDef.MayFlashBehold; ALL build-level 21569 -> 21570).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21600, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21602, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
