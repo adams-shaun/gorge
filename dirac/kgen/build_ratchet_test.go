@@ -158,7 +158,7 @@ import (
 // +1 (Carnelian Orb of Dragonkind: the AddsKeywords$ Haste mana rider lowers; ALL build-level 21534 -> 21535).
 // +6 (the printed K:Prevent damage keywords: Fog Bank and kin; ALL build-level 21535 -> 21541).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21541, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21543, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

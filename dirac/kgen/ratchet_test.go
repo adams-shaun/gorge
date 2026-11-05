@@ -52,7 +52,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Carnelian Orb of Dragonkind: the AddsKeywords$ Haste mana rider lowers; FDN 510 -> 511, ALL 21534 -> 21535).
 	// +6 (the printed K:Prevent damage keywords: Fog Bank and kin; FDN 511 -> 512, ALL 21535 -> 21541).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21541, 34442},
+	"ALL": {21543, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -61,11 +61,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"DSK": {236, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
-	"FDN": {512, 517},
+	"FDN": {513, 517},
 	"FIN": {266, 312},
 	"FRA": {245, 269},
 	"HOB": {152, 172},
-	"LCI": {250, 290},
+	"LCI": {251, 290},
 	"MKM": {231, 279},
 	"MOM": {198, 296},
 	"MSH": {226, 276},
