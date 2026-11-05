@@ -31,8 +31,8 @@ var ktapsDeferDecks = [2][]cardset.Entry{
 // GAP in gorge (the potential play's prefix script taps it before the cast, its
 // Taps trigger resolving apart from the spell), which the kernel's scripted-
 // prefix machinery (script_gen.go) does not model for a source made a gap by a
-// watcher. See .ds4/new-tickets/taps-defer-prefix-gap.md. Remove this skip with
-// that ticket.
+// watcher. See the taps-defer-prefix-gap follow-up ticket (filed 2026-11-05).
+// Remove this skip with that ticket.
 const tapsDeferBlocked = "blocked on taps-defer-prefix-gap: a Taps-deferred source is a scripted-prefix census gap the kernel does not model"
 
 func TestTapsPlannerDefer(t *testing.T) {
