@@ -494,6 +494,7 @@ type lCost struct {
 	ReturnN      int
 	DrawN        int      // Draw<N/You>: draw N cards (a trigger's own cost only)
 	EvidenceN    int      // CollectEvidence<N>: exile graveyard cards with total mana value >= N (CR 701.59a)
+	EvidenceX    bool     // CollectEvidence<X>: the announced X (a trigger's own cost only)
 	ExileTrigNew bool     // ExileAnyGrave<1/Card.TriggeredNewCard>: exile the triggered card from any graveyard (a dies trigger's own cost)
 	PutLibSelf   bool     // PutCardToLibFromGrave<1/-1/CARDNAME>: the source card goes from its graveyard to the bottom of its owner's library (a graveyard activated ability's cost)
 	BeholdN      int      // Behold<N/Type>: reveal or choose N permanents or hand cards matching BeholdF (CR 701.4a; a spell's AlternateAdditionalCost part only)
@@ -508,7 +509,7 @@ func (c lCost) pureMana() bool {
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardSelf && c.DiscardF == nil && c.Loyalty == 0 && !c.LoyaltyX &&
 		c.SubCtr == 0 && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.TapN == 0 && !c.TapHost && !c.SacHost && c.TapPowN == 0 &&
 		c.Forage == nil && c.ExileG == nil && c.ExileHandN == 0 && c.Energy == 0 && !c.ReturnSelf &&
-		!c.ExileSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.ExileTrigNew &&
+		!c.ExileSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.ExileTrigNew &&
 		!c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil
 }
 
@@ -659,30 +660,31 @@ const (
 )
 
 type lAbility struct {
-	Kind           int
-	Latent         bool   // not active on the card itself: reached through an op or a grant
-	TrigRem        string // a reflexive trigger's TriggerRemembered$ rest (lower_trigremembered.go)
-	RemTgt         bool   // a Pump RememberObjects$ ThisTargetedCard (lower_remembered.go)
-	ReflexObj      bool   // a reflexive latent whose ImmediateTrigger captured a target (lower_remembered.go)
-	DelayedObjOnly bool   // a delayed latent whose RememberObjects$ set holds objects only (lower_delayedobjects.go)
-	DelayedSelf    bool   // the delayed program remembered the source's own card (Transformed$ return; lower_delayedobjects.go)
-	Origin         int    // gorge's Face.Abilities index, or 0x80|Face.Triggers index; 0 is ambiguous with A[0], so Origin is valid only when OriginOK
-	OriginOK       bool
-	Index          int // position in the card's ability list (latent abilities included)
-	Name           string
-	Cost           lCost
-	Optional       bool // the cost is optional ("you may pay ... if you do")
-	Sorcery        bool
-	Zone           int // activation zone (battlefield unless graveyard/hand)
-	Loyalty        bool
-	Exhaust        bool    // Exhaust$ True (CR 702.177a): the AbilityCast class test (kop.Ability.Exhaust)
-	Limit          int     // activations per game (0 = unlimited)
-	PowerUp        bool    // PowerUp$ True (CR 702.193): once per object stint, cost reduced on its entry turn
-	TurnOnce       bool    // ActivationLimit$ 1: once each turn
-	Reduce         *lValue // ReduceCost$: the generic reduction of an activated ability's own cost (lower_ownreduce.go)
-	ActCond        lCond   // CheckSVar$/SVarCompare$: activate only if (CR 602.5b)
-	Targets        []lTarget
-	Modes          int // charm: number of modes to choose from
+	Kind            int
+	Latent          bool   // not active on the card itself: reached through an op or a grant
+	TrigRem         string // a reflexive trigger's TriggerRemembered$ rest (lower_trigremembered.go)
+	RemTgt          bool   // a Pump RememberObjects$ ThisTargetedCard (lower_remembered.go)
+	ReflexObj       bool   // a reflexive latent whose ImmediateTrigger captured a target (lower_remembered.go)
+	DelayedObjOnly  bool   // a delayed latent whose RememberObjects$ set holds objects only (lower_delayedobjects.go)
+	DelayedSelf     bool   // the delayed program remembered the source's own card (Transformed$ return; lower_delayedobjects.go)
+	Origin          int    // gorge's Face.Abilities index, or 0x80|Face.Triggers index; 0 is ambiguous with A[0], so Origin is valid only when OriginOK
+	OriginOK        bool
+	Index           int // position in the card's ability list (latent abilities included)
+	Name            string
+	Cost            lCost
+	Optional        bool // the cost is optional ("you may pay ... if you do")
+	Sorcery         bool
+	Zone            int // activation zone (battlefield unless graveyard/hand)
+	Loyalty         bool
+	Exhaust         bool    // Exhaust$ True (CR 702.177a): the AbilityCast class test (kop.Ability.Exhaust)
+	Limit           int     // activations per game (0 = unlimited)
+	EvidenceTargets bool    // CollectEvidence<X> with SVar:X AllTargeted$CardManaCost (a spell's mandatory additional cost; kop.EvidenceTargetsMV)
+	PowerUp         bool    // PowerUp$ True (CR 702.193): once per object stint, cost reduced on its entry turn
+	TurnOnce        bool    // ActivationLimit$ 1: once each turn
+	Reduce          *lValue // ReduceCost$: the generic reduction of an activated ability's own cost (lower_ownreduce.go)
+	ActCond         lCond   // CheckSVar$/SVarCompare$: activate only if (CR 602.5b)
+	Targets         []lTarget
+	Modes           int // charm: number of modes to choose from
 	// charm: CharmNum$ (the most picks) and MinCharmNum$ (default: the most)
 	ModesPick, ModesMin int
 	ModeRestrict        uint8 // charm ChoiceRestriction$: 0 none, 1 ThisTurn, 2 ThisGame (lower_charmrestrict.go)

@@ -73,6 +73,8 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		return true // X = 0 is always payable
 	case payKindEvidence:
 		return s.graveTotalMV(k, p) >= amt // gorge evidenceStage: the graveyard reaches N
+	case payKindTrigNewEvidence:
+		return s.trigNewEvidencePayable(k, p, amt) // cost_collectevidencex.go
 	case payKindTrigNew:
 		return s.trigNewInGrave() != NoObj // the triggered card is still in a graveyard (trig_mayexile.go)
 	}
@@ -102,6 +104,9 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	}
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubExileHand {
 		kind = payKindExileHand // a trigger's own ExileFromHand<N/Card> cost rides PayExileGrave (cost_exilefromhand.go)
+	}
+	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubTrigNewEvidence {
+		kind = payKindTrigNewEvidence // a dies trigger's own triggered-card exile beside evidence (cost_collectevidencex.go)
 	}
 	skip := uint16(in.C >> 4)
 	amt := s.value(k, in.A)
@@ -139,6 +144,9 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 		if ch := s.exileChain(k); ch != nil {
 			return s.execPayChain(k, p, ch, skip, amt, pips) // cost_exilepool.go
 		}
+	}
+	if kind == kop.PayManaX && in.B.N == kop.PayBSubEvidenceX {
+		return s.execTrigEvidenceX(k, p, skip, amt) // cost_collectevidencex.go
 	}
 	if kind == kop.PayManaX {
 		return s.execTrigX(k, p, skip, amt) // trig_maypayx.go
@@ -657,6 +665,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		case payKindEvidence:
 			s.startCostEvidence(k) // a trigger's own cost (cost_collectevidence.go)
 			return
+		case payKindTrigNewEvidence:
+			s.startTrigNewEvidence(k) // cost_collectevidencex.go
+			return
 		case payKindTrigNew:
 			s.exileTrigNew() // the triggered card, unasked (trig_mayexile.go)
 		case kop.PayLife:
@@ -1156,6 +1167,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.copyTokenEnter(k, in, t, s.objs[a.Source()].slot, nil)
 			r.ask = raNone
 			parked = s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
+			if !parked {
+				parked = s.eachResume(k, in) // copy_eachtarget.go: the targets after it
+			}
 		}
 		r.e.ctrl = was
 		if parked {
@@ -1202,6 +1216,9 @@ func (s *State) payDone(k *prep, paid bool) {
 			s.loseLife(k, s.g.pickP, int(life)) // the mana-and-life cost's life (Zoraline)
 		}
 		s.trigXBind(k) // a PayManaX cost: the announced X is Count$xPaid
+	}
+	if paid && s.g.pickZ == payKindEvidence && s.res.e.kind == seTrigger {
+		s.evidenceXBind(k) // CollectEvidence<X>: the announced X is Count$xPaid
 	}
 	s.continueRes(k, skip)
 }

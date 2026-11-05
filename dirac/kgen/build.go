@@ -810,7 +810,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.BeholdN != 0 {
 		return out, fmt.Errorf("behold cost outside a spell's alternate additional cost")
 	}
-	if c.EvidenceN > 0 {
+	if c.EvidenceN > 0 || c.EvidenceX {
 		// an activated ability's evidence is a table byte (kop.Ability.Evidence,
 		// set by ability() from the lCost; cost is handed it zeroed); anywhere
 		// else (a spell's additional cost, a flashback cost) it is refused

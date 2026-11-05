@@ -102,6 +102,13 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	if lc.numTimesK > 0 && body == "Count$TriggerRememberAmount" {
 		return cst(lc.numTimesK), nil // the announced count (lower_numtimes.go)
 	}
+	if lc.trigXPaid && body == "Count$TriggerRememberAmount" && lc.trigRemX {
+		// RememberSVarAmount$ X under a CollectEvidence<X> cost: the
+		// parent's announced X (lower_triggerxcost.go)
+		if v, ok, err := lc.reflexXPaid(); ok || err != nil {
+			return v, err
+		}
+	}
 	var v lValue
 	var err error
 	// <group>$HasPropertyHasCardsIn... (value_hascards.go) takes the

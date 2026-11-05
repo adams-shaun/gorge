@@ -181,6 +181,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 			s.queueAsk(s.objs[o].slot, nameAskKind(in))
 		}
 		return true, true
+	case kop.ExtTurnFaceUp:
+		return s.extTurnFaceUp(k, in), true // face_turnupeffect.go
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }

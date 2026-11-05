@@ -634,3 +634,15 @@ func init() { extOpNames[ExtGrantExile] = "GrantExile" }
 const ExtChooseName ExtOp = 251
 
 func init() { extOpNames[ExtChooseName] = "ChooseName" }
+
+// ExtTurnFaceUp (CR 708.6; gorge effSetState Mode$ TurnFaceUp): an effect
+// turns a face-down battlefield permanent face up, no cost paid; its
+// turned-face-up triggers fire. A permanent that is not face down, or whose
+// printed face is an instant or sorcery, is left alone. C 0: the object in
+// Obj (a target; Expose the Culprit). C 1: the resolving controller picks
+// up to one battlefield permanent matching F that would turn up, seat 0's
+// first in battlefield order, or Done (gorge setStateChoose's
+// "setstate_pick", Min 0 Max 1; Hustle // Bustle). dirac/face_turnupeffect.go.
+const ExtTurnFaceUp ExtOp = 254
+
+func init() { extOpNames[ExtTurnFaceUp] = "TurnFaceUp" }

@@ -545,6 +545,9 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 	}
 	if a.Kind == akSpell {
 		ka.Cost = cb.spellCost
+		if a.EvidenceTargets {
+			ka.Evidence = kop.EvidenceTargetsMV // the targets' total mana value (cost_collectevidencex.go)
+		}
 		if a.ActCond.Kind != cNone {
 			// a spell's cast restriction (IsPresent$; kernel castForbidden,
 			// cast_spellcondition.go)
@@ -2330,7 +2333,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		} else if in.Op == "UnlessSwitched" {
 			ki.Op = kop.OpUnlessSwitched
 		}
-		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileGraveChain": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
+		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
 		if pk == 0 {
 			return ki, fmt.Errorf("pay kind %q", in.CS)
 		}
@@ -2343,6 +2346,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if in.CS == "Evidence" {
 			ki.B = kop.Const(kop.PayBSubEvidence) // CollectEvidence, not {X}: PayEvidence's nibble value is PayManaX's
+		}
+		if in.CS == "EvidenceX" {
+			ki.B = kop.Const(kop.PayBSubEvidenceX) // the announced X, not {X} (cost_collectevidencex.go)
+		}
+		if in.CS == "ExileTrigNewEvidence" {
+			ki.B = kop.Const(kop.PayBSubTrigNewEvidence) // the triggered card, then evidence A (cost_collectevidencex.go)
 		}
 		if in.CS == "SacrificeHost" {
 			ki.B = kop.Const(kop.PayBSubSacHost) // the granting host, not the source
@@ -2436,6 +2445,15 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.Op = kop.OpDamageAll
 			if err := objFilter(kop.ZoneBattlefield); err != nil {
 				return ki, err
+			}
+			// a planeswalker or battle clause ("each creature and each
+			// planeswalker that player controls", Incinerator of the
+			// Guilty): B.N bit 4, the filter's types choose (gorge
+			// effDamageAll damages every matching permanent; CR 120.3c)
+			for _, c := range in.F.Clauses {
+				if c.Types&(tPlaneswalker|tBattle) != 0 {
+					ki.B = kop.ValueRef{N: 4}
+				}
 			}
 		case in.F != nil && in.F.Players == plOpp && len(in.F.Clauses) > 0:
 			// "each opponent and each creature and planeswalker they
@@ -3281,6 +3299,15 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "RemoveCounterAny":
 		// (Glissa Sunslayer) OpExt ExtRemoveCounterAny
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtRemoveCounterAny)), int16(in.C)
+	case "TurnFaceUp":
+		// (CR 708.6; gorge effSetState Mode$ TurnFaceUp) OpExt ExtTurnFaceUp:
+		// C 0 the target in Obj, C 1 the up-to-one pick over F
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtTurnFaceUp)), int16(in.C)
+		if in.F != nil {
+			if err := objFilter(kop.ZoneBattlefield); err != nil {
+				return ki, err
+			}
+		}
 	case "UnlockDoor":
 		// (CR 709.5f-g; gorge effUnlockDoor) OpExt
 		// ExtUnlockDoor over the Room target slot, C 0 unlock / 1 lock-or-unlock

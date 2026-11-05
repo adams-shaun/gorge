@@ -966,6 +966,12 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			return true
 		case bsEvidence:
 			if n := s.buildEvidenceN(k); n != 0 {
+				if s.graveTotalMV(k, s.bld().e.ctrl) < int(n) {
+					// a named amount the graveyard cannot reach: gorge aborts
+					// the cast (CR 733.1; cast_targets.go evidenceAsk)
+					s.reverseCast(k)
+					return false
+				}
 				s.evidenceStageOpts(k, d, int(n))
 				return true
 			}
@@ -1259,6 +1265,9 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 	s.payBlightPicks(k)
 	if e.flags&sfKicked != 0 && k.gen != nil && k.gen.anyOptCost {
 		s.payOptEvidence(k) // a paid OptionalCost's evidence part (cost_optionalevidence.go)
+	}
+	if e.kind == seSpell && k.gen != nil && k.gen.anyEvTargets {
+		s.payTargetsEvidence(k) // a spell's mandatory evidence part (cost_collectevidencex.go)
 	}
 	if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 {
 		s.payLifeCost(k, e.ctrl, pc, e.x)
