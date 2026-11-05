@@ -42,6 +42,7 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"facedown_ward_of_a_printed_ward_card", false, false},     // CR 701.58a/702.168b: a cloaked Axebane Ferox (prints Ward) targeted by an opponent: the face-down ward trigger has no face trigger index (gorge 255)
 		{"hybrid_activation_printed_witness", false, false},        // a lowered {G/W} activation resolves over printed mana only: Insidious Roots' granted any-colour token is not the {G} face gorge's planHybridCost prices
 		{"each_target_aura_copy_host_ask", false, false},           // CR 303.4f: Doppelgang's copy of a targeted Curious Inquiry asks its host before the copies of the targets after it
+		{"copy_each_target_aura_enchant", false, false},            // CR 303.4f: Doppelgang's copy of an Aura asks what it enchants as it enters, the later targets' copies after the answer
 		{"animated_equipment_without_equip_ability", false, false}, // CR 704.5p: Cryptic Coat (Equipment, attached by its ETB trigger, no Equip ability) detaches when Behind the Mask animates it, so its Equipped static stops on the Forest
 	})
 }

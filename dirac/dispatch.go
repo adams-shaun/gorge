@@ -511,6 +511,9 @@ func (s *State) askOptionsUnread(k *prep, d *Decision) bool {
 		if s.askOptionsBlight(k, d) { // act_blight.go
 			return true
 		}
+		if s.askOptionsTurnUpEff(k, d) { // face_turnupeffect.go
+			return true
+		}
 		if s.askOptionsPauperkw(k, d) { // kw_madness.go
 			return true
 		}
@@ -577,6 +580,9 @@ func (s *State) applyAskUnread(k *prep, a Action) bool {
 			return true
 		}
 		if s.applyAskBlight(k, a) { // act_blight.go
+			return true
+		}
+		if s.applyAskTurnUpEff(k, a) { // face_turnupeffect.go
 			return true
 		}
 		if s.applyAskPauperkw(k, a) { // kw_madness.go

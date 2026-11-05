@@ -10,9 +10,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // accepted; an absent Defined$ is Self only when the node declares no
 // ValidTgts$ (gorge context.go DefinedRef's fallback). Every other Mode$
 // (Flip, TurnFaceUp, TurnFaceDown, Unspecialize, the default), Optional$,
-// RememberChanged$, a target or another Defined$ refuses.
+// RememberChanged$, a target or another Defined$ refuses. Mode$ TurnFaceUp
+// is lower_setstateturnup.go's.
 func (lc *lowerCtx) setState(ps *params) error {
-	if m := ps.str("Mode"); m != "Transform" {
+	m := ps.str("Mode")
+	if m == "TurnFaceUp" {
+		return lc.setStateTurnUp(ps) // lower_setstateturnup.go
+	}
+	if m != "Transform" {
 		return refuse("SetState Mode$ %q", m)
 	}
 	if lc.out.FaceMode != kop.FaceModal && lc.out.FaceMode != kop.FaceTransform {

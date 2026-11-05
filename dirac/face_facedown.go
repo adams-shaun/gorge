@@ -378,18 +378,11 @@ func (s *State) settleTurnUp(k *prep, o Obj, p uint8, mode uint8, x int) {
 	if !s.specialAffords(k, p, &cost, sp, sl, x) {
 		return
 	}
-	c := s.cardAt(sl)
 	if cost.Hyb[0] != 0 {
 		cost = s.turnUpHybResolve(p, cost, cost.XGeneric(x)) // face_turnfaceup.go
 	}
 	s.paySpecial(k, p, &cost, sp, sl, x)
-	if k.gen.anyTurnUpRepl {
-		s.turnUpRepls(k, sl, o) // face_turnfaceup.go: the body runs while still face down
-	}
-	s.clearFaceDown(sl) // marks the slot changed (marks.go: every mutation marks)
-	s.subscribe(sl, &k.cards[c], true)
-	s.refreshTy(k)
-	s.fireTurnFaceUp(k, sl, o, p, uint8(x))
+	s.turnUpFlip(k, sl, o, p, uint8(x))
 	if megamorph {
 		s.g.lastCK = kop.CtrP1P1
 		n := s.placeCounters(k, sl, int(kop.CtrP1P1), 1, pm.ctrl, ctrPutEffect)
@@ -401,6 +394,21 @@ func (s *State) settleTurnUp(k *prep, o Obj, p uint8, mode uint8, x int) {
 		}
 	}
 	s.passes = 0
+}
+
+// turnUpFlip turns the face-down permanent at sl face up once any cost is
+// paid (the special action's settleTurnUp and an effect's turn-up,
+// face_turnupeffect.go): its turn-up replacements, the face-up
+// characteristics and subscriptions, then the TurnFaceUp triggers.
+func (s *State) turnUpFlip(k *prep, sl Slot, o Obj, p uint8, x uint8) {
+	c := s.cardAt(sl)
+	if k.gen.anyTurnUpRepl {
+		s.turnUpRepls(k, sl, o) // face_turnfaceup.go: the body runs while still face down
+	}
+	s.clearFaceDown(sl) // marks the slot changed (marks.go: every mutation marks)
+	s.subscribe(sl, &k.cards[c], true)
+	s.refreshTy(k)
+	s.fireTurnFaceUp(k, sl, o, p, x)
 }
 
 // fireTurnFaceUp fires "when <filter> turns face up" (gorge Mode$
