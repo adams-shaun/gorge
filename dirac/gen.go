@@ -2475,7 +2475,7 @@ func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 			case kop.ExtChooseNumber:
 				return akNumber
 			case kop.ExtChooseName:
-				return akName
+				return nameAskKind(&a.Prog[0])
 			}
 		case kop.OpUnlessPaid:
 			// the shock lands' as-enters pay-life election
