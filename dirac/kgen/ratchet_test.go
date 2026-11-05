@@ -51,6 +51,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (the WISH counter kind, kop.CtrWish: Wishclaw Talisman and Ring of Three Wishes lower; FDN 509 -> 510, ALL 21532 -> 21534).
 	// +1 (Carnelian Orb of Dragonkind: the AddsKeywords$ Haste mana rider lowers; FDN 510 -> 511, ALL 21534 -> 21535).
 	// +6 (the printed K:Prevent damage keywords: Fog Bank and kin; FDN 511 -> 512, ALL 21535 -> 21541).
+	// +2 (Sorcerous Spyglass: the as-enters look and any-card name choice and CantBeActivated over the chosen name; Phyrexian Revoker, the same class over the nonland name; FDN 512 -> 513, LCI 250 -> 251, ALL 21541 -> 21543).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
 	"ALL": {21543, 34442},
 	"BIG": {23, 30},

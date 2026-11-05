@@ -157,6 +157,7 @@ import (
 // +2 (the WISH counter kind, kop.CtrWish: Wishclaw Talisman and Ring of Three Wishes lower; ALL build-level 21532 -> 21534).
 // +1 (Carnelian Orb of Dragonkind: the AddsKeywords$ Haste mana rider lowers; ALL build-level 21534 -> 21535).
 // +6 (the printed K:Prevent damage keywords: Fog Bank and kin; ALL build-level 21535 -> 21541).
+// +2 (Sorcerous Spyglass: the as-enters look and any-card name choice and CantBeActivated over the chosen name; Phyrexian Revoker, the same class over the nonland name; ALL build-level 21541 -> 21543).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
 var buildAcceptancePin = [2]int{21543, 34442} // {built, cards}
 
