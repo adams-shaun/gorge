@@ -11,7 +11,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | BIG | 30 | 23 | 1 | 8 | 14 |
 | BLB | 278 | 256 | 3 | 33 | 220 |
 | DFT | 276 | 246 | 0 | 22 | 224 |
-| DSK | 276 | 233 | 4 | 41 | 188 |
+| DSK | 276 | 236 | 3 | 45 | 188 |
 | ECL | 273 | 230 | 8 | 32 | 190 |
 | EOE | 266 | 237 | 0 | 116 | 121 |
 | FDN | 517 | 507 | 1 | 13 | 493 |
@@ -19,7 +19,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | FRA | 269 | 245 | 1 | 24 | 220 |
 | HOB | 172 | 152 | 0 | 9 | 143 |
 | LCI | 290 | 250 | 2 | 20 | 228 |
-| MKM | 279 | 228 | 2 | 40 | 186 |
+| MKM | 279 | 229 | 1 | 42 | 186 |
 | MSH | 276 | 225 | 4 | 14 | 207 |
 | OTJ | 276 | 239 | 2 | 25 | 212 |
 | SOS | 270 | 247 | 4 | 22 | 221 |
@@ -30,7 +30,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 13 | 239 |
-| ALL | 34442 | 21501 | 49 | 16958 | 4494 |
+| ALL | 34442 | 21505 | 47 | 16964 | 4494 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -70,7 +70,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-49 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+47 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
@@ -85,13 +85,11 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-Cards.Pos | 2 |
 | projection-Cards.Power | 2 |
 | projection-Cards.Zone | 1 |
-| projection-Life | 1 |
 | projection-NStack | 5 |
 | projection-Pool | 2 |
 | projection-Stack.Ability | 1 |
 | unmodelled | 2 |
 | unmodelled-clonelayer | 1 |
-| unmodelled-copycast | 1 |
 | unmodelled-handsize | 1 |
 | unmodelled-outsidetype | 1 |
 | unmodelled-tokatkask | 2 |
