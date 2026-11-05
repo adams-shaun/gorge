@@ -9,9 +9,10 @@
 #   Moss Viper's {G} is payable only through the life ability; Valiant
 #   Guard's {W} through the free one.
 #
-# Each deck holds exactly as many colourless lands as one activation of the
-# mana source needs, so no payment ever chooses between two identical
-# sources: the comparison is the shapes, not the tie-break.
+# Each deck holds many identical copies of each mana source, so most
+# payments that tap one choose among identical copies: the comparison is
+# the source tie-break (gorge's census-order witness) too, not only the
+# shapes.
 #
 # Groundchuck & Dirtbag is a tap-extra carrier (a land tap adds {G}) for the
 # test that Baxter Building's combination activation stalls rather than
@@ -24,3 +25,5 @@ Haunted Screen
 Moss Viper
 Valiant Guard
 Groundchuck & Dirtbag
+Grizzly Bears
+Suntail Hawk
