@@ -25,7 +25,7 @@ Does a net trained from scratch on the eight SpellBench pauper-bo1 decks beat M_
 
     M_CTLX's recipe, changed only where the pool required it:
 
-    - Self-play: `kplay`, 200 sims, `:explore`, one hour per generation, seed 9800+n, 16 workers (12 in run 2). Two mulligans with the constructed mulligan policy.
+    - Self-play: the private self-play runner, 200 sims, `:explore`, one hour per generation, seed 9800+n, 16 workers (12 in run 2). Two mulligans with the constructed mulligan policy.
     - g1 has no net: uniform prior and the heuristic leaf.
     - Pack in format 1. Train the MLP, 602,370 parameters, config `{"d":64,"ff":128,"layers":1,"d_emb":32,"card_d":32,"head_hidden":64,"policy_layers":2,"value_layers":1}`, lr 3e-4, 3,000 steps, the last 3 packs, cq target with c-scale 0.03, value blend 0.5. g1 trains from scratch; later generations start from the previous best.
     - Gate: gN against the champion, 1,000 pairs (2,000 games) at 100 sims, seed 78. The title moves when the 95% lower bound clears 0.5. References: sb-tactical and the no-net search, 250 pairs (500 games) each.

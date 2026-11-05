@@ -55,6 +55,16 @@ type Manifest struct {
 	Mode      string `json:"mode,omitempty"`
 	Structure string `json:"structure,omitempty"`
 	Seats     int    `json:"seats,omitempty"`
+	// The deckpool pairing fields; every other kind leaves them unset.
+	// Pairing is how the pods' seats pair for play (roundrobin, random or
+	// cross), PairsPerPod the random mode's pair count, GamesPerPair the
+	// games each pair plays and PoolSplit the pool.tsv split column; Pairs
+	// counts pairs.tsv's lines.
+	Pairing      string `json:"pairing,omitempty"`
+	PairsPerPod  int    `json:"pairs_per_pod,omitempty"`
+	GamesPerPair int    `json:"games_per_pair,omitempty"`
+	PoolSplit    string `json:"pool_split,omitempty"`
+	Pairs        int    `json:"pairs,omitempty"`
 }
 
 // NewManifest fills a manifest for kind ("games", "tournament",

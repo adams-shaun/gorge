@@ -24,7 +24,7 @@ and `kgen` import gorge's engine, and `gorged` will import dirac's adapter.
    demo server.
 2. **What is private.** Machine learning, reinforcement learning and private
    experimentation stay in a private companion module: trainers, networks and
-   weights, the az bots, `dzgorge`, `kplay`'s research keys, draft RL and its
+   weights, the az bots, `dzgorge`, the private self-play runner's research keys, draft RL and its
    networks, `dirac`'s search and network evaluator until promoted, and operations
    and deploy scripts. Nothing public needs it to build or test. No new repository.
 3. **Dependency direction.** gorge never imports the companion module, which imports
