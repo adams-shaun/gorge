@@ -1247,6 +1247,60 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			return refuse("TapAll body reads the batch")
 		}
 		tr.Event, tr.Batch = "Taps", true
+	case "Always":
+		// CR 603.8 state trigger, the counter-threshold shape (Mazemind
+		// Tome: TriggerZones$ Battlefield, IsPresent$
+		// Card.Self+counters_GE<N>_<KIND>, N a literal 1..255). gorge
+		// matches every event -- the Always matcher is vacuously true
+		// (trigmatch/registry.go) -- and gates on the condition, which only
+		// a counter put can newly satisfy: counters change only through
+		// counter-put events, and a zone move only empties the count. The
+		// kernel rides the counter-put event of ANY kind on the source
+		// itself (the kind and the threshold ride the condition, not the
+		// event), checked as the event happens and again when an instance
+		// leaves the stack (dirac trig_statectr.go). gorge holds one
+		// instance at a time (stateTriggerOutstanding, trigger_condition.go):
+		// Outstanding marks the latch; noResolvingCheck exempts Mode$ Always
+		// from the resolution recheck (trigger_condition.go), the kernel's
+		// AfCheckOnTrigger. Every other Always shape keeps the refusal: its
+		// condition can newly hold on events the kernel's re-check sites
+		// never see (a life total, a hand size, another object's counters,
+		// a PresentCompare$ or an X threshold).
+		if zone != "" {
+			return refuse("Always trigger on an Effect")
+		}
+		if tr.Zone != zBattlefield {
+			return refuse("Always TriggerZones %q", tp.str("TriggerZones"))
+		}
+		ip := strings.TrimSpace(tp.str("IsPresent"))
+		rest, ok := strings.CutPrefix(ip, "Card.Self+counters_GE")
+		if !ok {
+			return refuse("Always IsPresent$ %q", ip)
+		}
+		thr, kind, ok := strings.Cut(rest, "_")
+		if !ok {
+			return refuse("Always IsPresent$ %q", ip)
+		}
+		n, err := strconv.Atoi(thr)
+		if err != nil || n < 1 || n > 255 {
+			return refuse("Always IsPresent$ %q (threshold %q)", ip, thr)
+		}
+		if _, err := counterKind(kind); err != nil {
+			return refuse("Always IsPresent$ %q (%v)", ip, err)
+		}
+		for k := range t.Params {
+			switch k {
+			case "Mode", "Execute", "TriggerZones", "IsPresent", "TriggerDescription":
+			default:
+				return refuse("Always %s$", k)
+			}
+		}
+		tr.Event, tr.Step = "CounterAdded", "*"
+		if tr.F, err = lc.filter("Card.Self"); err != nil {
+			return err
+		}
+		tr.Outstanding = true
+		ab.Name = "CheckOnTriggerOnly"
 	case "LandPlayed", "SearchedLibrary", "Forage", "Discover":
 		if err := lc.trigModes2(tp, tr, t.Mode, zone, readF); err != nil {
 			return err

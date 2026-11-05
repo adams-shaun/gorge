@@ -776,6 +776,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.execCreateToken(k, in)
 	case kop.OpEndTurn:
 		s.endTurnExile()
+		if k.anyStateCtr {
+			s.stateCtrRefire(k) // the sweep exiled the remaining trigger instances: re-check the threshold (trig_statectr.go)
+		}
 		e.flags |= sfFlashback // exiled, not put into the graveyard
 		s.g.endTurn = true
 	case kop.OpExileUntilLeaves:

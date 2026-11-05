@@ -1407,6 +1407,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.Flags4 |= kop.Tf4NamedCast
 	}
+	if t.Outstanding {
+		if t.Event != "CounterAddedOnce" && t.Event != "CounterAdded" || kt.Flags&kop.TfSelf == 0 {
+			return kt, fmt.Errorf("outstanding latch on a %s trigger", t.Event)
+		}
+		kt.Flags4 |= kop.Tf4StateCtr
+	}
 	if t.CastSnap {
 		if t.Event != "SpellCast" {
 			return kt, fmt.Errorf("cast-count snapshot on a %s trigger", t.Event)
