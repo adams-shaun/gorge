@@ -39,9 +39,10 @@ func (s *State) tokSrcM(p uint8) slotMask {
 }
 
 // eachParks reports whether op in, run for one object of the loop, left an
-// ask the loop must wait for.
+// ask the loop must wait for: a copy's as-enters choice, or the host an Aura
+// copy enchants (CR 303.4f; Doppelgang copying a targeted Curious Inquiry).
 func (s *State) eachParks(in *kop.Instr) bool {
-	return !DebugCopyEachNoPark && in.Op == kop.OpCopyAsTokenEx && s.res.ask == raGenTokChoice
+	return !DebugCopyEachNoPark && in.Op == kop.OpCopyAsTokenEx && (s.res.ask == raGenTokChoice || s.res.ask == raGenEnchant)
 }
 
 // eachRun runs in for the extra targets of slot i from index j0 on. It returns

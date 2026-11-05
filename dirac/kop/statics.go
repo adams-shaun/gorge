@@ -295,6 +295,15 @@ const StEmbNum StaticFlags = 1 << 14
 // is owed once a chosen target matches Filter2.
 const StRaiseLife = StPanhETB
 
+// StRaisePerTarget (aliases StOncePerTurn, a MayPlayFrom-only bit) on a
+// StatIncreaseCost: the spell's own "costs more for each target beyond the
+// first" (Officious Interrogation; gorge composeRaiseCost, Relative$ True with
+// Amount$ TargetedObjects$Amount/Minus.1). Static.A is the generic mana per
+// charge, Static.B the coloured pips per charge packed as StReduceColor packs
+// them; the charge count is the targets chosen so far less one (0 with none),
+// read from the build in progress (raiseCostGen).
+const StRaisePerTarget = StOncePerTurn
+
 // StatMaxBlockers: creatures matching Filter (battlefield,
 // scanned against the attacker with the static's controller) can't be
 // blocked by more than one creature while Cond2 holds (CR 509.1b; gorge

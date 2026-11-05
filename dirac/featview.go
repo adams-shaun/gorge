@@ -601,6 +601,9 @@ func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 		!modal && (cd.HasAltAdd || cd.AltAddOne || cd.HasModeCost || !composed && (cd.SpendRead || cd.SpentSelf)) {
 		return true // (a hybrid cost: the planner's "cost:hybrid"; a Phyrexian one is priced by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold")
 	}
+	if k.gen != nil && k.gen.anyEvTargets && spellEvidenceTargets(cd) {
+		return true // gorge's planner declines a CollectEvidence part ("cost:evidence", classify.go): offered by the pool only (cost_collectevidencex.go)
+	}
 	if modal {
 		// gorge's PlanTargetPaidManaHalf funds the mana without life and energy
 		return spellAddCost(k, c).Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered|kop.CostPayLife|kop.CostPayEnergy) != 0

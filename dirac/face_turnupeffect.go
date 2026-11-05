@@ -1,0 +1,104 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// An effect's turn-up: OpExt ExtTurnFaceUp, api:SetState Mode$ TurnFaceUp
+// (gorge effSetState's turnUp arm, rules effects/resolve.go). It is not the
+// CR 708.6 special action: nothing is paid and no Megamorph counter is put,
+// but the permanent turns face up through the same turnUpFlip (its turn-up
+// replacements, its face-up characteristics, the TurnFaceUp triggers; gorge
+// emits the same events.TurnFaceUp). A Layer$ CantHappen replacement stops
+// it (gorge's TurnFaceUp dispatch). C 0 turns up the target in Obj (Expose
+// the Culprit); C 1 is gorge setStateChoose's "setstate_pick": the
+// resolving controller picks up to one permanent matching F that would turn
+// up, or Done (Hustle // Bustle).
+
+// raGenTurnUpPick is ExtTurnFaceUp C 1's pick (ChGenTurnUpPick).
+const raGenTurnUpPick = raGenManifestDread + 45
+
+// ChGenTurnUpPick is ExtTurnFaceUp's pick (gorge's "setstate_pick" KChoose):
+// source = the permanent turned face up; AkDone declines.
+const ChGenTurnUpPick ChoiceKind = 203
+
+// extTurnFaceUp runs one ExtTurnFaceUp instruction; false: it asks.
+func (s *State) extTurnFaceUp(k *prep, in *kop.Instr) bool {
+	if in.C == 0 {
+		if sl := s.objRef(k, in.Obj); sl != NoSlot {
+			s.turnUpByEffect(k, sl)
+		}
+		return true
+	}
+	var buf [MaxPerm]Slot
+	if s.turnUpEffCands(k, in, &buf) == 0 {
+		return true // gorge: an empty pool asks nothing
+	}
+	s.res.ask, s.res.askP = raGenTurnUpPick, s.res.e.ctrl
+	return false
+}
+
+// turnUpEffOK is gorge setStateObjWouldChange's turnUp arm: a face-down
+// permanent whose printed face is a permanent's (setStateTurnUpVerdict:
+// an instant or sorcery is revealed, not turned up).
+func (s *State) turnUpEffOK(k *prep, sl Slot) bool {
+	return s.faceDown(k, sl) && !s.blankCopy(sl) &&
+		k.t.Cards[s.cardAt(sl)].Types&(kop.TInstant|kop.TSorcery) == 0
+}
+
+// turnUpByEffect turns the battlefield permanent at sl face up, if it would.
+func (s *State) turnUpByEffect(k *prep, sl Slot) {
+	if !s.turnUpEffOK(k, sl) {
+		return
+	}
+	if k.gen.anyTurnUpRepl && s.turnUpBlocked(k, sl) {
+		return // face_turnfaceup.go: the CantHappen replacement prevents it
+	}
+	pm := &s.perms[sl]
+	s.turnUpFlip(k, sl, pm.obj, pm.ctrl, 0) // face_facedown.go
+}
+
+// turnUpEffCands writes the permanents matching the op's filter that would
+// turn up, seat 0 first, each seat in battlefield order (gorge
+// setStateChoose's AliveFrom(0) walk).
+func (s *State) turnUpEffCands(k *prep, in *kop.Instr, buf *[MaxPerm]Slot) int {
+	var m slotMask
+	src := s.resSrcSlot(k)
+	for q := s.occ; q.any(); q = q.rest() {
+		sl := q.first()
+		if s.matchPerm(k, in.F, sl, s.res.e.ctrl, src) && s.turnUpEffOK(k, sl) {
+			m = m.with(sl)
+		}
+	}
+	n := s.battlefieldOrder(0, m.and(s.ctrlM[0]), buf[:], 0)
+	return s.battlefieldOrder(1, m.and(s.ctrlM[1]), buf[:], n)
+}
+
+// askOptionsTurnUpEff builds the pick's options: each candidate, then Done
+// (gorge's Min 0); false: not this ask.
+func (s *State) askOptionsTurnUpEff(k *prep, d *Decision) bool {
+	if s.res.ask != raGenTurnUpPick {
+		return false
+	}
+	d.Sub = ChGenTurnUpPick
+	var buf [MaxPerm]Slot
+	n := s.turnUpEffCands(k, &s.prog(k)[s.res.pc], &buf)
+	for _, sl := range buf[:n] {
+		d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+	}
+	d.add(MakeAction(AkDone, 0, 0, 0))
+	return true
+}
+
+// applyAskTurnUpEff applies the pick (Done declines); false: not this ask.
+func (s *State) applyAskTurnUpEff(k *prep, a Action) bool {
+	if s.res.ask != raGenTurnUpPick {
+		return false
+	}
+	s.res.ask = raNone
+	if a.Kind() == AkChoose {
+		if ob := &s.objs[Obj(a.Source())]; ob.zone == kop.ZoneBattlefield {
+			s.turnUpByEffect(k, ob.slot)
+		}
+	}
+	s.continueRes(k, 0)
+	return true
+}

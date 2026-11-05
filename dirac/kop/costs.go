@@ -221,6 +221,18 @@ const PayBSubTrigNew = 3
 // exiled), not a graveyard exile.
 const PayBSubExileHand = 9
 
+// PayBSubTrigNewEvidence: a PayExileGrave whose B.N carries this sentinel is
+// a dies trigger's own ExileAnyGrave<1/Card.TriggeredNewCard>
+// CollectEvidence<A> cost (Lamplight Phoenix): the triggered card is exiled
+// first, then the evidence is collected from the rest of the graveyard.
+const PayBSubTrigNewEvidence = 10
+
+// PayBSubEvidenceX: a PayManaX whose B.N carries this sentinel is a trigger's
+// own CollectEvidence<X> cost (Incinerator of the Guilty), A the cap on the
+// announced X: the payer announces X over 0..the graveyard's total mana
+// value, then pays (collects evidence X).
+const PayBSubEvidenceX = 11
+
 // PayBSubSacHost: a PaySacSelf whose B.N carries this sentinel is a granted
 // trigger's own Sac<1/OriginalHost> cost: the Equipment or Aura whose static
 // grants the trigger is sacrificed, not the creature carrying it (CR 701.21a).
@@ -395,3 +407,9 @@ const CostBlight CostFlags = CostWaterbend << 1
 // Alone among the counted parts (Cost.N / Cost.Filter), a battlefield
 // activated ability's own cost only; kgen refuses the rest.
 const CostDiscardFiltered CostFlags = CostBlight << 1
+
+// EvidenceTargetsMV: an AbSpell's Ability.Evidence of this value is a
+// mandatory CollectEvidence<X> additional cost, X the total mana value of
+// the spell's targets (gorge cast_targets.go evidenceAmount, SVar:X
+// AllTargeted$CardManaCost; Urgent Necropsy). Not a literal threshold.
+const EvidenceTargetsMV = 255

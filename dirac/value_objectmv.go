@@ -51,7 +51,11 @@ func (s *State) triggerLKIMV(r kop.Ref, o Obj, ctx evalCtx) (int, bool) {
 //
 //go:noinline
 func (s *State) targetMV(k *prep, r kop.Ref, ctx evalCtx) int {
-	o := s.refObjCtx(r, ctx)
+	return s.objTargetMV(k, s.refObjCtx(r, ctx))
+}
+
+// objTargetMV is targetMV's read over the target object o.
+func (s *State) objTargetMV(k *prep, o Obj) int {
 	if o == NoObj {
 		return 0
 	}

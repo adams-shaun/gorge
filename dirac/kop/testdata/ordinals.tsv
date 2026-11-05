@@ -297,6 +297,7 @@ EntryKindMask	untyped int	63
 EvHorsemanship	uint8	1
 EvIntimidate	uint8	2
 EvSkulk	uint8	4
+EvidenceTargetsMV	untyped int	255
 ExAdamant	ExprKind	244
 ExAttackedThisTurn	ExprKind	9
 ExAttackedTurn	ExprKind	235
@@ -436,6 +437,7 @@ ExtSuspect	ExtOp	190
 ExtSweepFrom	ExtOp	97
 ExtToGraveyard	ExtOp	192
 ExtTokenPT	ExtOp	170
+ExtTurnFaceUp	ExtOp	254
 ExtTwoPilesSac	ExtOp	4
 ExtUnlockDoor	ExtOp	227
 F2AttachedToT0	FilterFlags2	512
@@ -771,9 +773,11 @@ PayBReveal	untyped int	5
 PayBSubBlight	untyped int	1
 PayBSubChain	untyped int	8
 PayBSubEvidence	untyped int	2
+PayBSubEvidenceX	untyped int	11
 PayBSubExileHand	untyped int	9
 PayBSubSacHost	untyped int	7
 PayBSubTrigNew	untyped int	3
+PayBSubTrigNewEvidence	untyped int	10
 PayDiscard	untyped int	2
 PayDiscardHand	untyped int	11
 PayDiscardRandom	untyped int	10
@@ -1011,6 +1015,7 @@ StOncePerTurn	StaticFlags	2
 StPanhETB	StaticFlags	2048
 StRaiseLife	StaticFlags	2048
 StRaiseOpp	StaticFlags	256
+StRaisePerTarget	StaticFlags	2
 StRaiseYou	StaticFlags	128
 StReduceAny	StaticFlags	256
 StReduceColor	StaticFlags	8192

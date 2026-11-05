@@ -1,0 +1,8 @@
+# the RaiseCostRelative pool: a spell costing {W}{U} more for each target beyond the first
+# (dirac/oracle/raisecost_relative_test.go)
+Officious Interrogation
+Savannah Lions
+Raging Goblin
+Shock
+Island
+Plains

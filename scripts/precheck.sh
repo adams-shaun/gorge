@@ -36,7 +36,7 @@ if [ -n "$files" ]; then
 fi
 
 echo "== 2 census and coverage tests"
-C='Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|PublicBoundary|Acceptance|ReprosLockstep|^TestHeads$|^TestSetHeads$'
+C='Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|PublicBoundary|Acceptance|ReprosLockstep|EnumConst|^TestHeads$|^TestSetHeads$'
 cpkgs=$(git grep -lE "^func Test[A-Za-z0-9_]*($C)" -- '*_test.go' | xargs -n1 dirname | sort -u | sed 's|^|./|')
 out=$(go test -timeout 10m -run "$C" $cpkgs ./internal/archtest 2>&1) || bad "census tests: $(grep -E -A8 -- '^--- FAIL|^FAIL|panic' <<<"$out" | head -40)"
 

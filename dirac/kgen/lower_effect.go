@@ -118,6 +118,14 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		return lRef{}, refuse("Defined$ %q outside a whenever-this-blocks trigger", v)
 	case "TriggeredNewCard", "TriggeredNewCardLKICopy":
 		return lRef{Kind: rTriggeredNew}, nil
+	case "ExiledCards":
+		// the card a dies trigger's own ExileAnyGrave<1/Card.TriggeredNewCard>
+		// CollectEvidence<N> cost exiled (Lamplight Phoenix): the triggered
+		// card in exile
+		if lc.ab == nil || lc.ab.Kind != akTriggered || len(lc.ab.Prog) == 0 || lc.ab.Prog[0].CS != "ExileTrigNewEvidence" {
+			return lRef{}, refuse("Defined$ %q outside a dies trigger's own exile-and-evidence cost", v)
+		}
+		return lRef{Kind: rTriggeredNew}, nil
 	case "TriggeredSource", "TriggeredSources", "TriggeredSourceLKICopy":
 		// gorge definedSpecTriggeredSource
 		return lRef{Kind: rTriggeredSource}, nil
@@ -1015,7 +1023,36 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 			return in, refuse("resolution evidence cost shape")
 		}
 		in.CS, in.A = "Evidence", cst(c.EvidenceN)
+		if c.ExileTrigNew {
+			// Lamplight Phoenix's ExileAnyGrave<1/Card.TriggeredNewCard>
+			// CollectEvidence<N>: gorge reserves the triggered card's exile
+			// first (cumulative.go evidenceReserveOrder), then the evidence
+			// stage runs over the rest of the graveyard
+			// (cost_collectevidence.go)
+			if !lc.selfDiesTrigger() {
+				return in, refuse("resolution ExileAnyGrave cost shape")
+			}
+			in.CS = "ExileTrigNewEvidence"
+			c.ExileTrigNew = false
+		}
 		c.EvidenceN = 0
+		n++
+	}
+	if c.EvidenceX {
+		// CollectEvidence<X> as a printed trigger's own cost (Incinerator of
+		// the Guilty): gorge's triggeredCostXAsk announces X over 0..the
+		// graveyard's total mana value (capped at 64), then the ordinary
+		// pay election and the evidence stage; the body's Count$xPaid is X
+		// (kernel cost_collectevidencex.go). Alone, and only there.
+		if !lc.trigOwnCost || n != 0 || !c.Mana.None {
+			return in, refuse("resolution evidence X cost shape")
+		}
+		if x, ok := lc.face.SVars["X"]; !ok || strings.TrimSpace(x) != "Count$xPaid" {
+			return in, refuse("trigger CollectEvidence<X> cost with SVar:X other than Count$xPaid")
+		}
+		in.CS, in.A = "EvidenceX", cst(trigXFoldCap)
+		lc.trigXPaid = true
+		c.EvidenceX = false
 		n++
 	}
 	if c.SubAmongN > 0 {
@@ -1104,7 +1141,7 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		c.ExileHandN = 0
 		n++
 	}
-	if n != 1 || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.SubAmongN != 0 || c.TapN != 0 || c.TapHost || c.SacHost || c.BlightN != 0 || c.EvidenceN != 0 {
+	if n != 1 || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.SubAmongN != 0 || c.TapN != 0 || c.TapHost || c.SacHost || c.BlightN != 0 || c.EvidenceN != 0 || c.EvidenceX {
 		return in, refuse("resolution cost shape")
 	}
 	return in, nil

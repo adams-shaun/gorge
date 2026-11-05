@@ -1,0 +1,28 @@
+# the SetState Mode$ TurnFaceUp pool: Zimone, Mystery Unraveler (its second
+# landfall a turn: you may turn a face-down permanent you control face up)
+# and Ugin's Mastery (an attack with total power 6 or more: the same pick
+# over face-down creatures), the manifesters that make face-down
+# permanents, Temur War Shaman and Aven Farseer
+# (turned-face-up triggers), and the land ramp that gives Zimone a second
+# landfall; Break Open and Skirk Alarmist turn up one target, the shape of
+# Expose the Culprit's first mode (dirac/oracle/turnfaceup_test.go)
+Zimone, Mystery Unraveler
+Ugin's Mastery
+Temur War Shaman
+Aven Farseer
+Mastery of the Unseen
+Manifest Dread
+Soul Summons
+Memnite
+Ornithopter
+Rampant Growth
+Evolving Wilds
+Explosive Vegetation
+Mox Emerald
+Mox Sapphire
+Mox Ruby
+Break Open
+Skirk Alarmist
+Forest
+Island
+Mountain

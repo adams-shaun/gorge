@@ -148,6 +148,7 @@ var ChooseKinds = []string{
 	"puttolibcost",     // gorge putToLibAsk's PutCardToLibFrom<Zone> pick
 	"keep_tapped",      // gorge finishUntapStep's untap-step election (CR 502.3), beside "untap"
 	"conspire",         // CR 702.78a: gorge conspireAsk's tap pick (kw_conspire.go)
+	"setstate_pick",    // gorge setStateChoose's pick (SetState Choices$; Hustle // Bustle)
 	"face_down_choice", // gorge effCloak's cloak-from-hand pick (chooseFromZoneForFaceDown, CR 701.58a)
 }
 
