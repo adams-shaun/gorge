@@ -26,6 +26,7 @@ type candidate struct {
 	pips     [5]int
 	mv       int
 	creature bool
+	class    cardClass
 }
 
 // Best23 is the default builder: it picks the colour pair whose best
@@ -91,6 +92,7 @@ func (b *Best23) candidates(set string, pool []limited.CardRef) []candidate {
 			}
 			c.creature = f.IsCreature()
 			c.mv = int(f.Cmc())
+			c.class = classOf(f)
 		}
 		if b.Ratings != nil {
 			c.rating = (b.Ratings.Value(ref.Name) - t.RatingCentre) * t.RatingScale
