@@ -1114,6 +1114,18 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 	// until-end-of-turn / Permanent classes. Hoisting it keeps the halves from
 	// disagreeing (see animateUntilEOT).
 	untilEOT := animateUntilEOT(ag.duration)
+	// Duration$ UntilUntaps (Hedge Whisperer, The Blackstaff of Waterdeep):
+	// "for as long as CARDNAME remains tapped" (CR 611.2b), the same lifetime
+	// registerPumpEffects gives the Pump: nothing when the activating host is
+	// not a tapped permanent (Forge checkValidDuration), and every half carries
+	// the host so rules ends it on the host's untap or departure.
+	var untapHost state.ObjID
+	if untilUntapsDuration(ag.duration) {
+		if host := h.Game().Obj(c.Source); host == nil || host.Zone != state.ZBattlefield || !host.Tapped {
+			return
+		}
+		untapHost, untilEOT = c.Source, false
+	}
 	// Duration$ Perpetual registers every half Permanent, like Duration$
 	// Permanent, but WITHOUT the zone-scoped sweep below: a perpetual grant
 	// follows its object through hand, stack, battlefield and graveyard
@@ -1173,7 +1185,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			// half-permanent — types kept while an UntilEOT P/T set
 			// strips them to an untransformed-basis 0/0 the CR 704.5f
 			// SBA destroys.
-			Duration: ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource,
+			Duration: ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource, UntilUntapOf: untapHost,
 			ExileOnMoved: exileOn, ExileOnMovedAlso: exileAlso, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -1186,7 +1198,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			AddAllCreatureTypes: ag.allCreatureTypes, RemoveCardTypes: ag.removeCardTypes,
 			RemoveLandTypes:     ag.removeLandTypes,
 			RemoveArtifactTypes: ag.removeArtifactTypes, RemoveEnchantmentTypes: ag.removeEnchantmentTypes,
-			Duration: ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource,
+			Duration: ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource, UntilUntapOf: untapHost,
 			ExileOnMoved: exileOn, ExileOnMovedAlso: exileAlso, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -1202,7 +1214,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LText, SetName: ag.name,
-			Duration: ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource,
+			Duration: ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource, UntilUntapOf: untapHost,
 			ExileOnMoved: exileOn, ExileOnMovedAlso: exileAlso, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -1211,7 +1223,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LColor, AddColors: ag.colors, OverwriteColors: ag.overwriteColors,
-			Duration: ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource,
+			Duration: ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource, UntilUntapOf: untapHost,
 			ExileOnMoved: exileOn, ExileOnMovedAlso: exileAlso, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -1257,7 +1269,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, RemoveAbilities: ag.removeAbilities,
 			AddKeywords: kws, RemoveKeywords: ag.removeKeywords,
-			Duration: ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource,
+			Duration: ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource, UntilUntapOf: untapHost,
 			ExileOnMoved: exileOn, ExileOnMovedAlso: exileAlso, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -1267,7 +1279,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddAbilities: ag.abilities,
 			SVars: c.SVars, AbilityGrantor: svarTableOwner(h, c),
-			Duration: ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource,
+			Duration: ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource, UntilUntapOf: untapHost,
 			ExileOnMoved: exileOn, ExileOnMovedAlso: exileAlso, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -1288,7 +1300,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Layer:          state.LAbilities,
 			AddTrigger:     &t,
 			TriggerGrantor: ag.triggerGrantor,
-			Duration:       ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource,
+			Duration:       ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource, UntilUntapOf: untapHost,
 			ExileOnMoved: exileOn, ExileOnMovedAlso: exileAlso, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
