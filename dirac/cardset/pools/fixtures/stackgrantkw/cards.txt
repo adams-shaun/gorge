@@ -1,7 +1,10 @@
 # the AffectedZone$ Stack cost-keyword-grant pool: Chief Engineer ("artifact
 # spells you cast have convoke") and We Ride at Dawn ("legendary creature
 # spells you cast have convoke") beside artifact, legendary and plain
-# creatures, noncreature spells and basics (dirac/oracle/stackgrantkw_test.go)
+# creatures, noncreature spells and basics (dirac/oracle/stackgrantkw_test.go).
+# Kappa Cannoneer (printed Improvise) and Walking Ballista (an {X} artifact
+# spell) exercise the unmodelled stalls a grant reopens
+# (dirac/stackkw_grant_stall_test.go).
 Chief Engineer
 We Ride at Dawn
 Isamaru, Hound of Konda
@@ -15,6 +18,8 @@ Lightning Bolt
 Grizzly Bears
 Hill Giant
 Gray Ogre
+Kappa Cannoneer
+Walking Ballista
 Giant Spider
 Walking Corpse
 Savannah Lions

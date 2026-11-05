@@ -5,10 +5,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // StatStackKw: AffectedZone$ Stack keyword grants to the
 // spells the static's controller casts: Cascade (Quandrix, the Proof), read
 // live when the cast trigger queues (rules cascade.go queueCascadeTriggers);
-// Improvise (Ironheart, Inspiring Statuary), Convoke (Dazzling Theater,
-// Eirdu) and Casualty:<n> (Silverquill),
+// Improvise (Ironheart, Inspiring Statuary), Convoke (Chief Engineer,
+// We Ride at Dawn, Invasion of Segovia) and Casualty:<n> (Silverquill),
 // read wherever the printed CardDef.Improvise / Convoke / Casualty are
-// (tapPays, isImprovise, casualtyN). gorge derives the spell under the
+// (tapPays, hasConvoke, isImprovise, casualtyN). A grant beside the other
+// tap-paid keyword, or on an {X} cost, stalls unmodelled (kw_convoke.go).
+// gorge derives the spell under the
 // stack-zone override (keywordmay.go stackKeywordPossibleH), so the kernel
 // asks the live statics at the same moment. gorge offers a tap-paid or
 // casualty cast only against a floating pool, which the canonical vocabulary
@@ -113,7 +115,15 @@ func (s *State) grantConvoke(k *prep, p uint8, c CardID, o Obj, fromHand bool) b
 // convoke or improvise, or a granted one (the cast announces tapped
 // permanents toward its mana cost). fromHand: the spell is cast from hand.
 func (s *State) tapPays(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
-	return k.t.Cards[c].TapPays() || s.grantImprovise(k, p, c, o, fromHand) || s.grantConvoke(k, p, c, o, fromHand)
+	return s.hasConvoke(k, p, c, o, fromHand) || s.isImprovise(k, p, c, o, fromHand)
+}
+
+// hasConvoke is CardDef.Convoke for p's spell card c (object o): printed or
+// granted convoke (the tap-paid permanents are creatures). A grant beside an
+// improvise source is unmodelled, so kw_convoke.go stalls it rather than
+// posing one keyword's announcement.
+func (s *State) hasConvoke(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
+	return k.t.Cards[c].Convoke || s.grantConvoke(k, p, c, o, fromHand)
 }
 
 // isImprovise is CardDef.Improvise for p's spell card c (object o): printed
