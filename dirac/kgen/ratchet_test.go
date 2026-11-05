@@ -50,7 +50,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (Wilt-Leaf Liege, Obstinate Baloth, Loxodon Smiter: the opponent-caused discard-to-battlefield replacement, lowered on land, absent here before the merge; FDN 508 -> 509, ALL 21529 -> 21532).
 	// +2 (the WISH counter kind, kop.CtrWish: Wishclaw Talisman and Ring of Three Wishes lower; FDN 509 -> 510, ALL 21532 -> 21534).
 	// +3 (a variable CollectEvidence cost and evidence beside the triggered-card exile: Incinerator of the Guilty, Urgent Necropsy, Lamplight Phoenix lower; MKM 231 -> 234, ALL 21534 -> 21537).
-// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
+	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
 	"ALL": {21537, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
