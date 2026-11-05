@@ -44,9 +44,24 @@ func kstackkwDelvePolicy(seed uint64, cnt map[string]int) Policy {
 	rnd := RandomPolicy(seed)
 	prng := rand.New(rand.NewPCG(seed, 0x64656c7665)) // "delve"
 	var buf []Canon
+	run := 0 // delve picks made in the open ask
 	return PolicyFunc(func(c *PickCtx) Canon {
 		if c.G == nil {
 			return rnd.Pick(c)
+		}
+		if c.D.Kind != DChoose {
+			run = 0
+		}
+		if c.D.Kind == DChoose && run > 0 && prng.IntN(3) == 0 {
+			// close the ask early: the generic the picks leave is paid
+			// from lands through gorge's manual window
+			for _, a := range c.D.Options {
+				if a.Kind() == ActDone {
+					run = 0
+					cnt["delve-short"]++
+					return a
+				}
+			}
 		}
 		if cp, ok := chooseCode("exile"); ok && c.D.Kind == DChoose {
 			for _, a := range c.D.Options {
@@ -54,6 +69,7 @@ func kstackkwDelvePolicy(seed uint64, cnt map[string]int) Policy {
 					if kstackkwDelveTeval(c.G) {
 						cnt["delve-picks"]++
 					}
+					run++
 					return a
 				}
 			}
@@ -165,6 +181,9 @@ func TestStackkwDelveLockstep(t *testing.T) {
 	t.Logf("%d games, %d divergences, %d stalls, counts %v", games, divs, stalls, cnt)
 	if cnt["delve-picks"] < 10 {
 		t.Errorf("only %d accepted delve picks with Teval in play (want >= 10)", cnt["delve-picks"])
+	}
+	if cnt["delve-short"] < 3 {
+		t.Errorf("only %d delve asks closed early (want >= 3): no leftover generic paid from lands", cnt["delve-short"])
 	}
 }
 

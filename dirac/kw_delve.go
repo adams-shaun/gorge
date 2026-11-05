@@ -42,6 +42,13 @@ func (s *State) contribPays(k *prep, p uint8, c CardID, o Obj, fromHand bool) bo
 	return s.tapPays(k, p, c, o, fromHand) || s.hasCastDelve(k, p, c, o, fromHand)
 }
 
+// delvePaysEntry reports a spell on the stack cast with a granted delve:
+// gorge's planner declines it ("shape:contribution"), so it pays through the
+// manual CR 601.2g window like a convoke cast (manaStep).
+func (s *State) delvePaysEntry(k *prep, e *stackEntry) bool {
+	return k.gen != nil && k.gen.anyDelve && s.hasCastDelve(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl))
+}
+
 // delveOfferCredit is cost less the graveyard cards the cast could delve
 // away: min(generic, graveyard size) (gorge delveCredit).
 func (s *State) delveOfferCredit(k *prep, p uint8, c CardID, o Obj, fromHand bool, cost kop.ManaCost) kop.ManaCost {

@@ -2123,7 +2123,7 @@ func (s *State) manaStep(k *prep) bool {
 			// plan at the printed cost (state.go bflTargetPaid): the planner
 			// pays, the Treasure for the colour the cost owes
 			s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
-		} else if k.gen != nil && k.gen.anyConvoke && s.tapPaysEntry(k, e) {
+		} else if k.gen != nil && (k.gen.anyConvoke && s.tapPaysEntry(k, e) || s.delvePaysEntry(k, e)) {
 			// the announced creatures pay their share before the plan runs
 			// (CR 702.51a; gorge convokeAsk before manaWindowAsk) and are
 			// withheld from the planner as mana sources. Gorge's planner
