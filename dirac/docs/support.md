@@ -28,9 +28,9 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TLA | 285 | 245 | 3 | 57 | 185 |
 | TMT | 194 | 171 | 1 | 10 | 160 |
 | TRC | 337 | 287 | 0 | 21 | 266 |
-| TRK | 311 | 303 | 0 | 45 | 258 |
+| TRK | 311 | 304 | 0 | 46 | 258 |
 | WOE | 281 | 252 | 0 | 13 | 239 |
-| ALL | 34442 | 21483 | 50 | 16992 | 4441 |
+| ALL | 34442 | 21485 | 50 | 16994 | 4441 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
