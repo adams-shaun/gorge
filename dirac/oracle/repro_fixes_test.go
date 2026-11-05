@@ -91,6 +91,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-trk", []stdRepro{
 		{"granted_mana_taps_stack_one_at_a_time", false, false}, // CR 603.3b: Deep Space 9 paid by Rok-Tahk's {G}{G} from Beckett Mariner and Erica Ortegas: each tap's trigger is stacked before the next activation, and both resolve before the sorcery-speed cast
 		{"entry_counter_put_by_returned_owner", false, false},   // CR 122.6a: Dr. Leonard "Bones" McCoy returns the opponent's Moopsy under its owner's control, so its owner puts the +1/+1 counter and the owner's Dr. Joseph M'Benga doubles it
+		{"stack_spell_controller_not_owner", true, false},       // CR 108.4, 110.2: Brazen Bluff asks the controller of the spell it targets, the player casting Transporter Malfunction from the opponent's exile, not its owner
 	})
 }
 

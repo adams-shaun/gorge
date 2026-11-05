@@ -208,7 +208,7 @@ func (s *State) stackTgtProj(c, sid uint8) uint8 {
 
 // tgtCtrlSlot is the controller of target slot i (RefTargetController for
 // slot 0, RefTgtCtrl1/2): a player target is that player; a stack-ability
-// target its controller; a spell this resolution countered the controller it
+// target or a spell still on the stack its controller; a spell this resolution countered the controller it
 // had; another object that left since it was targeted (once) its last known
 // controller (lkiCtrl).
 func (s *State) tgtCtrlSlot(k *prep, i int) uint8 {
@@ -222,6 +222,11 @@ func (s *State) tgtCtrlSlot(k *prep, i int) uint8 {
 	}
 	if isStackTarget(t) {
 		return s.stackTgtCtrl(i)
+	}
+	if ob := &s.objs[t]; ob.zone == kop.ZoneStack {
+		if j := s.stackIndexOf(Obj(t)); j >= 0 {
+			return s.stack[j].ctrl // a spell is controlled by whoever cast it, not its owner (CR 108.4, 110.2)
+		}
 	}
 	if ob := &s.objs[t]; ob.zone != kop.ZoneBattlefield && ob.ver == e.tver[i]+1 {
 		if s.g.stkCt != 0 {
