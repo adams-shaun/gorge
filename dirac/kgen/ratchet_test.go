@@ -61,8 +61,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (a variable CollectEvidence cost and evidence beside the triggered-card exile: Incinerator of the Guilty, Urgent Necropsy, Lamplight Phoenix lower; merged MKM 233 -> 236, ALL 21549 -> 21552).
 	// +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; this branch; merged FDN 516 -> 517, ALL 21556 -> 21557).
 	// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged MKM 237 -> 238, ALL 21557 -> 21558).
+	// +1 (King T'Challa: Black Panther's printed prevent-all-to-self R: line lowers as CardDef.PreventDmgTo; this branch; MSH 226 -> 227, ALL 21564 -> 21565).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21564, 34442},
+	"ALL": {21565, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -78,7 +79,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"LCI": {251, 290},
 	"MKM": {238, 279},
 	"MOM": {198, 296},
-	"MSH": {226, 276},
+	"MSH": {227, 276},
 	"NEO": {198, 287},
 	"ONE": {195, 271},
 	"OTJ": {240, 276},

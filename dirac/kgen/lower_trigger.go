@@ -2865,6 +2865,9 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		// minted bodyless prevention line must not also lower (lower_preventkw.go)
 		return nil
 	}
+	if lc.selfPreventRepl(r) { // lower_preventkw.go
+		return nil
+	}
 	rp := newParams(r.Params)
 	rp.consume("Event", "ReplaceWith", "ReplacementResult")
 	rl := lRepl{}
