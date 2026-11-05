@@ -1383,6 +1383,12 @@ func (s *State) searchPick(k *prep) bool {
 	}
 	var d Decision
 	s.searchCands(k, &d)
+	if d.N == 0 && s.prog(k)[s.res.pc].B.N&kop.SrImprint != 0 {
+		// gorge effSearchLibrary's fail-to-find drops the resolution's remembered
+		// objects (zone_search.go, c.Remembered = nil): Sanar's later colour
+		// picks then see an empty set.
+		s.g.nrem = 0
+	}
 	if d.N == 0 || s.g.pickLeft == 0 {
 		s.finishSearchNow(k)
 		return true
@@ -1535,7 +1541,7 @@ func (s *State) finishSearchNow(k *prep) {
 // as-enters choice, after the choice is answered: gorge suspends the search
 // at the ask).
 func (s *State) finishSearchTail(k *prep) {
-	if k.gen != nil && k.gen.anyKwAct && s.searchZone(k) == kop.ZoneLibrary && s.g.pickF&kop.SrGraveExile == 0 && s.isSearchOp(k) {
+	if k.gen != nil && k.gen.anyKwAct && s.searchZone(k) == kop.ZoneLibrary && s.g.pickF&kop.SrGraveExile == 0 {
 		if q := s.chooserOf(s.g.pickP); q == s.g.pickP {
 			s.fireKwAct(k, kop.TrigSearchedLibrary, q, 0) // trig_modes.go
 		}

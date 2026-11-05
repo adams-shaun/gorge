@@ -169,7 +169,7 @@ func (lc *lowerCtx) digChosenLibraryPick(ps *params, raw string) error {
 		return err
 	}
 	lc.digImprintChosen = true
-	lc.emit(lInstr{Op: "ChooseMove", Obj: lRef{Kind: rYou}, A: cst(n), F: f, C: zExile, CS: "from=Library|Imprint|NoShuffle"})
+	lc.emit(lInstr{Op: "ChooseMove", Obj: lRef{Kind: rYou}, A: cst(n), F: f, C: zExile, CS: "from=Library|Imprint|Mandatory"})
 	return nil
 }
 

@@ -39,12 +39,3 @@ func (s *State) imprintFound(k *prep, o Obj) {
 		s.imprintChosen(o)
 	}
 }
-
-// isSearchOp reports whether the resolving pick is a real library search
-// (OpSearchEx); an OpChooseMove from the library is a hidden pick, which
-// does not fire "whenever you search your library". Outside a program
-// (kernel tests) it is a search.
-func (s *State) isSearchOp(k *prep) bool {
-	p := s.prog(k)
-	return !s.res.active || int(s.res.pc) >= len(p) || p[s.res.pc].Op == kop.OpSearchEx
-}

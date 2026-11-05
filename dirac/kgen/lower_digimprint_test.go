@@ -70,6 +70,7 @@ func TestSanarInnovativeFirstYearLowers(t *testing.T) {
 		t.Errorf("refused: %s", rf.Reason)
 	}
 	var digs, picks, plays, clears int
+	cols := map[string]int{}
 	for _, a := range lc.Abilities {
 		for _, in := range a.Prog {
 			switch in.Op {
@@ -81,9 +82,11 @@ func TestSanarInnovativeFirstYearLowers(t *testing.T) {
 				}
 			case "ChooseMove":
 				picks++
-				if in.C != zExile || !strings.Contains(in.CS, "from=Library|Imprint|NoShuffle") ||
+				if in.C != zExile || !strings.Contains(in.CS, "from=Library|Imprint|Mandatory") ||
 					in.F == nil || in.F.Clauses[0].Flags&fRemembered == 0 {
 					t.Errorf("ChooseMove = %s", in)
+				} else {
+					cols[in.F.Clauses[0].Colors]++
 				}
 			case "MayPlay":
 				plays++
@@ -93,6 +96,11 @@ func TestSanarInnovativeFirstYearLowers(t *testing.T) {
 			case "ClearChosen":
 				clears++
 			}
+		}
+	}
+	for _, c := range []string{"W", "U", "B", "R", "G"} {
+		if cols[c] != 1 {
+			t.Errorf("colour %s picks = %d, want 1 (%v)", c, cols[c], cols)
 		}
 	}
 	if digs != 1 || picks != 5 || plays != 1 || clears != 1 {
