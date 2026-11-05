@@ -1,8 +1,8 @@
 {
   "about": "dirac's per-set support, rendered by scripts/docs_sets.py. corpus and sets are the table in dirac/docs/support.md (corpus is its ALL row): scripts/docs_sets.py --refresh-dirac copies it and docs_sets_test.py holds this file to it. A card is supported when kgen lowers it, it is not refused by name, and clean lockstep games evidence it; lowered counts every card kgen can represent, refused and unverified included. commit is the gorge revision the counts were read at. lockstep is make dirac-slices on the full surface: seeded games played in both engines, compared at every decision.",
   "date": "2026-11-05",
-  "commit": "964cca1c1",
-  "corpus": {"cards": 34442, "lowered": 21513, "refused": 44, "unverified": 16975, "supported": 4494},
+  "commit": "7b91814c5",
+  "corpus": {"cards": 34442, "lowered": 21513, "refused": 41, "unverified": 16978, "supported": 4494},
   "lockstep": {
     "BLB": {"games": 1456, "agree": 1456, "stalls": 0, "disagree": 0},
     "FDN": {"games": 1399, "agree": 1395, "stalls": 4, "disagree": 0}
@@ -12,7 +12,7 @@
     "BLB": {"cards": 278, "lowered": 256, "refused": 3, "unverified": 33, "supported": 220},
     "DFT": {"cards": 276, "lowered": 247, "refused": 0, "unverified": 23, "supported": 224},
     "DSK": {"cards": 276, "lowered": 233, "refused": 4, "unverified": 41, "supported": 188},
-    "ECL": {"cards": 273, "lowered": 232, "refused": 8, "unverified": 34, "supported": 190},
+    "ECL": {"cards": 273, "lowered": 232, "refused": 5, "unverified": 37, "supported": 190},
     "EOE": {"cards": 266, "lowered": 238, "refused": 0, "unverified": 117, "supported": 121},
     "FDN": {"cards": 517, "lowered": 507, "refused": 1, "unverified": 13, "supported": 493},
     "FIN": {"cards": 312, "lowered": 266, "refused": 2, "unverified": 19, "supported": 245},
