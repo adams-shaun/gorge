@@ -107,6 +107,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"unpayable_x_copy_cast_asks_x", false, false},                  // CR 601.2b, 601.2c: Q's Play of Khaaaaaaaaaaaannn! with every source tapped still announces X before its target, so the copy sits on the stack at the X ask
 		{"graveyard_shuffle_moves_one_batch", false, false},             // CR 603.2c: Those Old Scientists' two-card shuffle is one event, so Sela's "one or more cards leave your graveyard" triggers once
 		{"stale_trigger_referent_reentered", false, false},              // CR 400.7: Support Mission's counter trigger fired for Dr. Leonard "Bones" McCoy's first entry puts nothing on the copy that left and was cast back in
+		{"phased_out_copy_statics_stop_applying", false, false},         // CR 702.26b: Dominion Saboteur entered as a copy of Sarcophagus, Ship of the Dead and phased out with it, so neither gives Species 8472 +1/+0
 	})
 }
 

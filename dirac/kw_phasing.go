@@ -176,7 +176,7 @@ func (s *State) phaseOut(k *prep, sl Slot, indirect bool) {
 	}
 	p.flags &^= pfAttacking | pfBlocking | pfBlocked | pfDealtFirst
 	p.blocking, p.nblock = NoSlot, 0
-	s.subscribe(sl, &k.cards[p.card], false)
+	s.subscribe(sl, &k.cards[s.cardAt(sl)], false) // a copy's statics ride its copied card (zones.go leave)
 	z := kop.ZonePhased
 	if indirect {
 		z = kop.ZonePhasedInd
@@ -200,7 +200,7 @@ func (s *State) phaseIn(k *prep, sl Slot) {
 	s.objs[p.obj].zone = kop.ZoneBattlefield
 	s.occ.set(sl)
 	s.ctrlM[p.ctrl&1].set(sl)
-	s.subscribe(sl, &k.cards[p.card], true)
+	s.subscribe(sl, &k.cards[s.cardAt(sl)], true)
 	for q := 0; q < MaxPerm; q++ {
 		if qs := Slot(q); s.perms[qs].attached == sl && s.hiddenAt(qs) && s.objs[s.perms[qs].obj].zone == kop.ZonePhasedInd {
 			s.phaseIn(k, qs)
