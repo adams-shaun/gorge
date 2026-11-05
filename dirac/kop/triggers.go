@@ -169,7 +169,24 @@ type Trigger struct {
 	N       int16      // AttackersDeclared: minimum attackers; CounterAddedOnce: the counter kind (TrigNAnyCounter = every kind); BecomesTarget: TrigNValiant; AbilityCast: TrigAbCast*; LandPlayed: origin mask 1<<kop.Zone, 0 = any; Leaves: destination mask 1<<kop.Zone, 0 = any
 	Flags3  TrigFlags3 // still more qualifiers (values.go; a padding byte)
 	Flags4  TrigFlags4 // single-target qualifiers (triggers.go)
+
+	// TapPlan classes a lowered non-Self TrigTaps watcher for the payment
+	// planner (TapPlan); TapPainN is the vetted literal damage amount of a
+	// TapPlanPain watcher. Both are read only on a TrigTaps trigger.
+	TapPlan  TapPlan
+	TapPainN uint8
 }
+
+// TapPlan is a lowered Taps watcher's payment-planner class (gorge
+// pay.PaymentPlanAbilityTier over the source a planned tap would tap).
+type TapPlan uint8
+
+const (
+	TapPlanNone     TapPlan = iota // not a lowered non-Self Taps watcher
+	TapPlanOrdinary                // vetted damage that cannot reach the payer: the tapped source stays an ordinary unit
+	TapPlanPain                    // vetted damage to the payer (Trigger.TapPainN): the tapped source is a last-resort unit
+	TapPlanDefer                   // any other body: the planner never taps the source (manual only)
+)
 
 // TrigNValiant in Trigger.N of a TrigBecomesTarget trigger (TfSelf, Whose
 // WhoseYou) is Valiant (CR 603.2 ability word): only the first targeting

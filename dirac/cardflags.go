@@ -37,6 +37,8 @@ const (
 	gfSpendRd                        // a Tf2CastSpent or Tf3CastConverge reader: gorge's planner prices no cast while it is out (trig_castmanaspent.go)
 	gfCtrAdd                         // an ExCtrAdded Self reader (ctr_addedthisturn.go)
 	gfDeferred                       // a TriggersWhenSpent$ mana source gorge's planner defers (Pyromancer's Goggles; kop.Ability.ManaDeferred; mana_deferred.go)
+	gfTapsDefer                      // a TrigTaps watcher classed kop.TapPlanDefer: its tapped mana source is a payment tier gorge defers (mana_tapsdefer.go)
+	gfTapsPain                       // a TrigTaps watcher classed kop.TapPlanPain: its tapped mana source is a last-resort unit (mana_tapsdefer.go)
 )
 
 // cardSmall is a card's sparse generated-table values, all -1 when absent.

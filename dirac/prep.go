@@ -360,8 +360,9 @@ func prepare(t *kop.Table) *prep {
 			p.phyMana = p.phyMana || t.Cards[i].Abilities[j].Cost.Mana.Phyrexian() // an activation's {W/P}
 		}
 	}
-	p.availExt = p.painMana || p.phyMana
 	p.gen = prepareGen(t, p)
+	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
+	p.availExt = p.painMana || p.phyMana
 	p.restrSrc = p.gen != nil && p.gen.anyRestrSrc
 	p.embComb = prepEmbComb(t, p)
 	p.cold.size()

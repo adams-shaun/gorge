@@ -1,0 +1,20 @@
+# The Taps watchers whose tapped source gorge's payment planner classes:
+# Judge of Currents ("whenever a Merfolk you control becomes tapped, you may
+# gain 1 life") defers a Merfolk {T} mana source -- Firdoch Core, a changeling
+# artifact, the only lowering one: the census never lists it, so autopay taps
+# an ordinary source instead. Hawkeye's Bow's vetted damage to each opponent
+# leaves its creature an ordinary unit. Magda (no lowering Dwarf mana source),
+# Quest for Renewal (an UntapOtherPlayer line), Volshe Tideturner, Sea Scryer,
+# Hydro-Channeler and Rubble Rouser refuse in kgen.
+# Decks play it in dirac/oracle/taps_planner_defer_test.go.
+Judge of Currents
+Firdoch Core
+Birds of Paradise
+Savannah Lions
+Hawkeye's Bow
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Shock
+Plains
+Mountain

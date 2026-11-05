@@ -390,6 +390,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 						return refuse("Taps ValidCard %q", vc)
 					}
 				}
+				tp8, pn := tapsPlanClass(t.Effect)
+				tr.TapPlan, tr.TapPainN = uint8(tp8), pn
 				break
 			}
 			for _, c := range tr.F.Clauses {

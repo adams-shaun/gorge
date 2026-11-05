@@ -1111,6 +1111,10 @@ TPlaneswalker	TypeMask	16
 TSorcery	TypeMask	64
 TToken	TypeMask	8192
 TVehicle	TypeMask	16384
+TapPlanDefer	TapPlan	3
+TapPlanNone	TapPlan	0
+TapPlanOrdinary	TapPlan	1
+TapPlanPain	TapPlan	2
 TapPowToughness	int8	-128
 Tf2Alone	TrigFlags2	2048
 Tf2AtkOpp	TrigFlags2	16384
