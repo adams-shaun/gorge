@@ -67,13 +67,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Doomsday Excruciator: a RepeatEach player body's DigNum$ Count$ValidLibrary Card.RememberedPlayerCtrl/Minus.6 and its blind face-down exile; this branch; merged DSK 236 -> 237, ALL 21584 -> 21585).
 	// +1 (Worlds Within Worlds: a RepeatEach player body's hand move DefinedPlayer$ Remembered up to Count$ValidHand Creature.RememberedPlayerCtrl, and the remembered set's return from exile as the Return walk; this branch; merged MSH 226 -> 227, ALL 21585 -> 21586).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21593, 34442},
+	"ALL": {21599, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
 	"DFT": {247, 276},
 	"DMU": {193, 270},
-	"DSK": {237, 276},
+	"DSK": {238, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
 	"FDN": {517, 517},
@@ -83,7 +83,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"LCI": {251, 290},
 	"MKM": {240, 279},
 	"MOM": {198, 296},
-	"MSH": {229, 276},
+	"MSH": {230, 276},
 	"NEO": {198, 287},
 	"ONE": {195, 271},
 	"OTJ": {241, 276},

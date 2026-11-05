@@ -72,6 +72,9 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if sl != NoSlot && s.prevAnyTo(k, sl) {
 		return 0 // "Prevent all damage that would be dealt to CARDNAME." (combat_prevention.go)
 	}
+	if g.anyRepl&rbPrevMill != 0 && sl == NoSlot && rcp != srcCtrl && s.preventMill(k, srcCtrl, rcp, n) {
+		return 0 // The Mindskinner: prevented, the opponent mills that many (repl_preventmill.go)
+	}
 	if g.anyRepl&rbShield != 0 && !combat && sl != NoSlot && s.shieldN(sl) > 0 {
 		n = s.shieldNC(k, srcCtrl, srcSl, srcCard, sl, n) // CR 122.1c (combat: shieldCombat)
 		if k.anyRedNC && !combat && n > 0 {

@@ -172,7 +172,7 @@ import (
 // +1 (Doomsday Excruciator: a RepeatEach player body's library count and blind face-down Dig; this branch; merged ALL build-level 21584 -> 21585).
 // +1 (Worlds Within Worlds: a RepeatEach player body's per-player hand move; this branch; merged ALL build-level 21585 -> 21586).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21593, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21599, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
