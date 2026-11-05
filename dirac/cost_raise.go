@@ -12,7 +12,7 @@ import (
 // "this spell costs more" (Zone ZoneCommand).
 //
 //go:noinline
-func (s *State) raiseCostGen(k *prep, p uint8, c CardID, o, priced Obj) int {
+func (s *State) raiseCostGen(k *prep, p uint8, c CardID, o, priced Obj, pips *[kop.NumManaKinds]uint8) int {
 	g := 0
 	add := func(a *kop.Ability, ctx evalCtx) {
 		ctx.uncounted = priced + 1
@@ -29,10 +29,17 @@ func (s *State) raiseCostGen(k *prep, p uint8, c CardID, o, priced Obj) int {
 		if st.StFlags&kop.StTargetsFilter2 != 0 && !s.raiseTargetOK(k, st.Filter2, p, c) {
 			return // a ValidTarget$ raise: the charge with a matching target only (cost_reducespell.go)
 		}
+		n := 1
+		if st.StFlags&kop.StRaisePerTarget != 0 {
+			if n = s.raisePerTargetCharge(c, p); n == 0 {
+				return
+			}
+			addRaisePips(pips, st.B, n)
+		}
 		if st.StFlags&kop.StDynamic != 0 {
-			g += max(s.evalV(k, st.VA, ctx), 0)
+			g += n * max(s.evalV(k, st.VA, ctx), 0)
 		} else {
-			g += int(st.A)
+			g += n * int(st.A)
 		}
 	}
 	s.eachStatic(k, func(stc statSrc) bool {
@@ -73,3 +80,28 @@ func tableRaises(t *Table) bool {
 // owe something to the cost statics: a table with a RaiseCost, whose generic
 // lands on the empty cost.
 func (s *State) freeOwes(k *prep) bool { return k.gen != nil && k.gen.anyRaise }
+
+// raisePerTargetCharge is the number of times a StRaisePerTarget raise is
+// owed on card c cast by p: the targets the cast being built holds, less the
+// first. It is 0 outside a build of that card (the offer and the priority
+// walk price no targets yet; gorge modAmountX counts none in the potential
+// pass).
+func (s *State) raisePerTargetCharge(c CardID, p uint8) int {
+	if !s.buildLive() {
+		return 0
+	}
+	e := &s.bld().e
+	if e.kind != seSpell || e.card != c || e.ctrl != p {
+		return 0
+	}
+	return max(0, s.ksrTotal(e)-1)
+}
+
+// addRaisePips adds n charges of the packed pips b (StReduceColor's packing)
+// to pips, saturating at 255.
+func addRaisePips(pips *[kop.NumManaKinds]uint8, b int16, n int) {
+	for i := 0; i < kop.NumManaKinds; i++ {
+		w := int(b>>(kop.ReduceColorBits*i)) & (1<<kop.ReduceColorBits - 1)
+		pips[i] = uint8(min(int(pips[i])+w*n, 255))
+	}
+}

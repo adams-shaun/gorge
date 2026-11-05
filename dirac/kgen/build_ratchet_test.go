@@ -165,8 +165,9 @@ import (
 // +2 (Sorcerous Spyglass: the as-enters look and any-card name choice and CantBeActivated over the chosen name; Phyrexian Revoker, the same class over the nonland name; land; merged ALL build-level 21562 -> 21564).
 // +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; land; merged ALL build-level 21564 -> 21565).
 // +4 (No Witnesses: the withMostTypeCreature investigate and the counted Num$ arm lower, with land's other merged lowerings; land; merged ALL build-level 21565 -> 21569).
+// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged ALL build-level 21569 -> 21570).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21569, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21570, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

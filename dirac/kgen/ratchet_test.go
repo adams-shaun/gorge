@@ -60,8 +60,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (Sorcerous Spyglass: the as-enters look and any-card name choice and CantBeActivated over the chosen name; Phyrexian Revoker, the same class over the nonland name; land; merged FDN 516 -> 517, LCI 250 -> 251, ALL 21562 -> 21564).
 	// +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; land; merged FDN 516 -> 517, ALL 21564 -> 21565).
 	// +4 (No Witnesses' withMostTypeCreature investigate and the counted Num$ arm lower; land; merged MKM 234 -> 235, ALL 21565 -> 21569).
+	// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged MKM 235 -> 236, ALL 21569 -> 21570).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21569, 34442},
+	"ALL": {21570, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -75,7 +76,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FRA": {245, 269},
 	"HOB": {152, 172},
 	"LCI": {251, 290},
-	"MKM": {235, 279},
+	"MKM": {236, 279},
 	"MOM": {198, 296},
 	"MSH": {226, 276},
 	"NEO": {198, 287},
