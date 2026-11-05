@@ -2180,16 +2180,17 @@ func (s *State) recordSubCtr(o Obj, c uint8) {
 // poolRPays: p's floating pool, with the restricted mana the cast being built
 // may spend, pays its composed cost, so the oracle's lowering of the cast taps
 // nothing: a hybrid pip is then paid by whichever face the pool covers
-// (Flamebraider's {W}{W} floating beside an untapped Mountain pays an evoked
+// (a floating {U} and {B} beside an untapped Island pay an evoked Deceit's
+// {U/B}{U/B}, CR 601.2h; Flamebraider's {W}{W} floating beside an untapped Mountain pays an evoked
 // Catharsis, where a witness over the pool would take the {W}{R} face first
 // and tap the Mountain).
 func (s *State) poolRPays(k *prep, p uint8, c CardID, o Obj) bool {
-	if !s.rbAny(p & 1) {
-		return false
-	}
 	var av avail
 	s.availPool(p, &av)
-	if !s.restrAvail(k, p, c, s.restrOriginOfObj(o), &av) {
+	if s.rbAny(p & 1) {
+		s.restrAvail(k, p, c, s.restrOriginOfObj(o), &av)
+	}
+	if av.total == 0 {
 		return false
 	}
 	cost := s.buildCost(k)
