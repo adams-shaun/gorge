@@ -320,6 +320,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.BeholdExile {
 		fmt.Fprintf(w, " beholdexile=%d%s", c.BeholdN, c.BeholdF)
 	}
+	if c.SpellWaterbend != 0 {
+		fmt.Fprintf(w, " spellwaterbend=%d", c.SpellWaterbend)
+	}
 	if c.OptCost != nil {
 		fmt.Fprintf(w, " optcost=blight%d/behold%d%s", c.OptCost.BlightN, c.OptCost.BeholdN, c.OptCost.BeholdF)
 	}

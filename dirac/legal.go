@@ -122,6 +122,10 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			adj = s.adjustFit(k, &av, p, c, o, *cost, false)
 			cost = &adj
 		}
+		if k.gen != nil && k.t.Cards[c].SpellWaterbend != 0 {
+			adj = s.waterbendSpellCredit(k, p, c, o, *cost) // the offer gate's waterbend credit (act_waterbend.go)
+			cost = &adj
+		}
 		if !av.affords(cost, pipMaskOf(cost), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, &av)) {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
@@ -674,6 +678,9 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 	cd := &k.t.Cards[c]
 	if s.tapPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand) {
 		return false // gorge's potential planner refuses a convoke cost
+	}
+	if s.waterbendOwnPart(k, p, c, o) != 0 {
+		return false // ... and a waterbend one (potentialModeCastPlan, "shape:contribution")
 	}
 	if cd.Cost.Hyb[0] == kop.HybTwobrid {
 		return false // ... and a twobrid one ("cost:twobrid", pay.PlanCostDetail)
