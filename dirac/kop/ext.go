@@ -589,6 +589,18 @@ const ExtSearchCounters ExtOp = 252
 
 func init() { extOpNames[ExtSearchCounters] = "SearchCounters" }
 
+// ExtPutCounterExisting (Dathon, His Heart Open): "choose a counter on target
+// enchantment you control, put another of that kind on it" (gorge
+// putCounterExisting, CounterType$ ExistingCounter). Obj is the recipient and B
+// the amount (a constant of at least 1). The kinds on the recipient are listed
+// in kernel kind order: none does nothing, one is put unasked, two or more
+// ask the controller (the Glissa Sunslayer kind ask, ChRemCtrKind). The put is
+// an ordinary OpPutCounter of the pick, so its replacements, the CR 616.1
+// order ask and the counter-added triggers all run. dirac/ctr_putexisting.go.
+const ExtPutCounterExisting ExtOp = 253
+
+func init() { extOpNames[ExtPutCounterExisting] = "PutCounterExisting" }
+
 // ExtChooseNumber: an as-enters number choice (CR 614.12; gorge's ETB
 // ChooseNumber replacement, etbOptions' "number" arm through
 // effects.ETBNumberChoices): the entering permanent's controller chooses a

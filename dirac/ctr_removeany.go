@@ -51,12 +51,22 @@ func (s *State) rcaPending(c int) int {
 // rcaKinds lists the kinds of the permanent at sl still present after the
 // picks so far, in kernel kind order.
 func (s *State) rcaKinds(sl Slot, out *[kop.NumCounterKinds3]uint8) int {
+	return s.ctrKindsOn(sl, out, true)
+}
+
+// ctrKindsOn lists the counter kinds of the permanent at sl in kernel kind
+// order; pending subtracts the removal picks so far.
+func (s *State) ctrKindsOn(sl Slot, out *[kop.NumCounterKinds3]uint8, pending bool) int {
 	n := 0
 	for c := 0; c < int(kop.NumCounterKinds3); c++ {
 		if !kop.IsCounterKind(c) || c == int(kop.CtrOther) {
 			continue
 		}
-		if s.perms[sl].ctrN(s, c)-s.rcaPending(c) > 0 {
+		have := s.perms[sl].ctrN(s, c)
+		if pending {
+			have -= s.rcaPending(c)
+		}
+		if have > 0 {
 			out[n] = uint8(c)
 			n++
 		}
@@ -109,14 +119,15 @@ func (s *State) askOptionsRca(k *prep, d *Decision) bool {
 	}
 	in := &s.prog(k)[s.res.pc]
 	d.Sub = ChRemCtrKind
+	put := in.Ext() == kop.ExtPutCounterExisting // ctr_putexisting.go
 	if sl := s.objRef(k, in.Obj); sl != NoSlot {
 		var kinds [kop.NumCounterKinds3]uint8
-		n := s.rcaKinds(sl, &kinds)
+		n := s.ctrKindsOn(sl, &kinds, !put)
 		for i := 0; i < n; i++ {
 			d.add(MakeAction(AkChoose, 0, 0, kinds[i]))
 		}
 	}
-	if in.C&1 != 0 {
+	if in.C&1 != 0 && !put {
 		d.add(MakeAction(AkDone, 0, 0, 0))
 	}
 	return true
@@ -132,6 +143,10 @@ func (s *State) applyAskRca(k *prep, a Action) bool {
 	r := &s.res
 	r.ask = raNone
 	in := &s.prog(k)[r.pc]
+	if in.Ext() == kop.ExtPutCounterExisting {
+		s.pceAnswer(k, in, a) // ctr_putexisting.go
+		return true
+	}
 	sl := s.objRef(k, in.Obj)
 	if sl == NoSlot {
 		r.peekN, r.left = 0, 0

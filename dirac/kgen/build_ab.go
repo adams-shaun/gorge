@@ -3183,6 +3183,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.F = 1 // no AnnounceMax$: stall loud past the maximum
 		}
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtNumTimes))
+	case "PutCounterExisting":
+		// (Dathon, His Heart Open) OpExt ExtPutCounterExisting; Obj and B
+		// are converted above
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtPutCounterExisting))
 	case "RemoveCounterAny":
 		// (Glissa Sunslayer) OpExt ExtRemoveCounterAny
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtRemoveCounterAny)), int16(in.C)
