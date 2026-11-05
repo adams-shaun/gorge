@@ -13,8 +13,8 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | DFT | 276 | 247 | 0 | 23 | 224 |
 | DSK | 276 | 236 | 3 | 45 | 188 |
 | ECL | 273 | 233 | 2 | 41 | 190 |
-| EOE | 266 | 238 | 1 | 116 | 121 |
-| FDN | 517 | 510 | 0 | 17 | 493 |
+| EOE | 266 | 238 | 0 | 117 | 121 |
+| FDN | 517 | 513 | 0 | 20 | 493 |
 | FIN | 312 | 266 | 2 | 19 | 245 |
 | FRA | 269 | 245 | 1 | 24 | 220 |
 | HOB | 172 | 152 | 0 | 9 | 143 |
@@ -30,7 +30,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 13 | 239 |
-| ALL | 34442 | 21536 | 35 | 17007 | 4494 |
+| ALL | 34442 | 21544 | 34 | 17016 | 4494 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -70,12 +70,12 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-35 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+34 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 2 |
-| options | 9 |
+| options | 8 |
 | projection | 1 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Counters | 1 |

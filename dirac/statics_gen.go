@@ -404,11 +404,12 @@ func (s *State) markUsed(o Obj, ab uint8) {
 }
 
 // preventCombatGen prevents the combat damage that would be dealt to a
-// creature with KwPreventCombatDamageTo (Fleeting Flight).
+// creature with KwPreventCombatDamageTo (Fleeting Flight), or one whose
+// printed K:Prevent sentence stops combat damage to it (combat_prevention.go).
 func (s *State) preventCombatGen(k *prep, r *dmgRec) {
 	for m := s.occ; m.any(); m = m.rest() {
 		sl := m.first()
-		if r.toPerm[sl] > 0 && s.kwGen(k, sl)&kop.KwPreventCombatDamageTo != 0 {
+		if r.toPerm[sl] > 0 && s.prevCombatTo(k, sl) {
 			r.prevent(sl)
 		}
 	}

@@ -50,6 +50,7 @@ type genPrep struct {
 	enteredNeed     bool  // some expression reads the ring
 	actRingOn       bool  // some expression reads the ring (ExThisTurnActGrave): the activation push records it
 	castTapOn       bool  // castRingOn, or some card carries a Tf2ManaFromSelf reader: the planner's tap sites record a Treasure or observed source (noteTapSrc)
+	anyManaHaste    bool  // some mana ability carries a ManaHasteValid rider (mana_spentrider.go)
 	castRingOn      bool  // some expression reads the ring (ExThisTurnCastSpec): the push records it
 	embSubGrant     bool  // an emblem has a Continuous subtype grant (walked on every walk slot)
 	anyTypeValid    bool  // some card's as-enters type ask is narrowed by ValidTypes$ (CardDef.TypeValid; act_choosetype.go)
@@ -100,6 +101,7 @@ type genPrep struct {
 	anyTapExtra              bool // a card has a StatTapExtra static (mana_tapextra.go)
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
 	anyCantGain, anyCantDraw bool // StatCantGainLife / StatCantDraw statics (static_cantdraw.go)
+	anyTypeCreat             bool // a StatAnyTypeCreatures static (mana_convertcreature.go)
 	anyCdmgTough             bool // a card has a StatCombatDmgToughness static (combat_toughnessassign.go)
 	anyDisETB                bool // a card has a DisableTriggers enters static (kop.StatDisableETB; trig_disable.go)
 	anyLatentDies            bool // a card has a latent dies trigger an override or static can grant (trig_diesleaves.go)
@@ -420,6 +422,9 @@ const (
 	rbDrawMore                        // ReplDrawMore (repl_draw.go)
 	rbPlusCtrEOT                      // Ext CounterPlusEOT: the table can put one more of each kind for a player until end of turn (anyRepl only; ctr_pluseot.go)
 	rbDestroyHeal                     // ReplDestroyHeal (repl_destroyheal.go)
+	rbPrevDmgTo                       // CardDef.PreventDmgTo: every damage event to the permanent is prevented (combat_prevention.go)
+	rbPrevCombatTo                    // CardDef.PreventCombatTo: its combat damage events are prevented (combat_prevention.go)
+	rbPrevCombatBy                    // CardDef.PreventCombatBy: the combat damage it would deal is prevented (combat_preventfrom.go)
 	rbDiscETB                         // ReplDiscardOppToBattlefield (repl_discardetb.go)
 )
 
@@ -435,10 +440,23 @@ type grantRef struct {
 // override took away.
 var noManaPC = pcard{manaAb: -1}
 
+// tableHasPrevent reports whether any card carries a printed K:Prevent damage
+// fact (CardDef.Prevent*), which prepareGen must carry in replBits even on an
+// otherwise featureless table.
+func tableHasPrevent(t *kop.Table) bool {
+	for i := range t.Cards {
+		c := &t.Cards[i]
+		if c.PreventDmgTo || c.PreventCombatTo || c.PreventCombatBy {
+			return true
+		}
+	}
+	return false
+}
+
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) {
 		return nil
 	}
 	enteredNeed := false
@@ -451,6 +469,19 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		enteredNeed: enteredNeed,
 		flags:       make([]uint32, len(t.Cards)),
 		replBits:    make([]uint32, len(t.Cards)),
+	}
+	for i := range t.Cards {
+		// the printed K:Prevent facts (dirac/kgen/lower_preventkw.go)
+		c := &t.Cards[i]
+		if c.PreventDmgTo {
+			g.replBits[i] |= rbPrevDmgTo
+		}
+		if c.PreventCombatTo {
+			g.replBits[i] |= rbPrevCombatTo
+		}
+		if c.PreventCombatBy {
+			g.replBits[i] |= rbPrevCombatBy
+		}
 	}
 	for i, n := range t.Subtypes {
 		if creatureTypeWords[n] {
@@ -611,6 +642,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyDisETB = tableHasStatic(t, kop.StatDisableETB)
 	g.anyCantGain = tableHasStatic(t, kop.StatCantGainLife)
 	g.anyCantDraw = tableHasStatic(t, kop.StatCantDraw)
+	g.anyTypeCreat = tableHasStatic(t, kop.StatAnyTypeCreatures)
 	g.anyDiscard = tableHasOp(t, kop.OpDiscard)
 	g.anyRemDisc = tableRemembersDiscards(t)
 	g.anySpellMana = prepDbMana(t) // mana_dbresolve.go
@@ -1234,7 +1266,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	// a filter a reducer takes to nothing is the source's own mana (mana_filterfree.go)
 	prepFiltFree(t, g, p)
 	g.anyScriptGap = g.anyEachCol || g.anyRestrScript || g.anyAnyR || g.anyFilt || p.tapMana // (a tap-another-permanent mana gap: mana_tapanother.go)
-	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom)
+	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
 	prepInfect(t, g)
 	prepPoison(t, g)

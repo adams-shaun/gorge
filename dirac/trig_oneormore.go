@@ -188,7 +188,7 @@ func (s *State) replPlus(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp
 				}
 			}
 		}
-		if combat && sl != NoSlot && s.kwGen(k, sl)&kop.KwPreventCombatDamageTo != 0 {
+		if combat && sl != NoSlot && s.prevCombatTo(k, sl) {
 			c++
 		}
 	}

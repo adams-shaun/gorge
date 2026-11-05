@@ -425,3 +425,12 @@ const StatTapExtra StaticKind = 254
 
 // StTapOnC on a StatTapExtra static: it fires only for a tap that makes {C}.
 const StTapOnC StaticFlags = 1 << 1
+
+// StatAnyTypeCreatures: the static's controller may spend mana as though it
+// were mana of any type to cast creature spells (S:Mode$ ManaConvert |
+// ValidPlayer$ You | ValidCard$ Creature.YouCtrl | ValidSA$ Spell |
+// ManaConversion$ AnyType->AnyType; CR 609.4b; Vizier of the Menagerie;
+// gorge rules/mana_convert.go manaConversionParts). No operands: the fact is
+// read from the battlefield. Explicit ordinal: the StaticKind iota tail
+// stays untouched.
+const StatAnyTypeCreatures StaticKind = 239
