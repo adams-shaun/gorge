@@ -1430,6 +1430,9 @@ func (e *Engine) enteringObjectMatches(spec string, ev events.Event, sc effects.
 			entering.IsCopy = false
 			return effects.MatchesObjectCtx(e.G, spec, &entering, sc)
 		}
+		if b := e.entryBasis; b != nil && b.ID == ev.Obj {
+			return effects.MatchesObjectCtx(e.G, spec, b, sc)
+		}
 	}
 	return e.matchesSpec(spec, ev.Obj, sc)
 }

@@ -816,7 +816,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.bld().ti++ // chosen mid-resolution (OpChooseTargets), as gorge asks it
 				continue
 			}
-			if s.convokeTargetAbort(k) || s.altAddTargetAbort(k) || s.copyCastTargetAbort(k, t) {
+			if s.convokeTargetAbort(k) || s.altAddTargetAbort(k) || s.copyCastXTargetAbort(k, t) {
 				// Gorge's target menu (affordableTargetCandidates) probes the
 				// CR 601.2g window and withholds every candidate of a convoke
 				// cast the announced picks plus the pool cannot complete: a
@@ -841,6 +841,12 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.bld().ti = kop.MaxTargets
 				s.nextStage(k)
 				continue
+			}
+			if k.gen != nil && k.gen.anyCopyCast && s.copyCastTargetAbort(k, t) {
+				// a mode-gated required target of a paid copy cast the pool
+				// cannot cover (cast_copycast.go)
+				s.reverseCast(k)
+				return false
 			}
 			if k.gen != nil && k.gen.anyWaterbend && s.waterbendTargetAbort(k) {
 				// the same census after a waterbend ability's picks
