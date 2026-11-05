@@ -63,7 +63,7 @@ func (s *State) manifest(k *prep, in *kop.Instr) {
 	if p == 255 {
 		p = s.res.e.ctrl
 	}
-	s.faceDownFromTop(k, p, p, s.value(k, in.A), false, false, false, false)
+	s.faceDownFromTop(k, p, p, s.value(k, in.A), false, false, false)
 }
 
 // cloak is OpCloak (gorge effCloak): player Obj cloaks A cards from the top of
@@ -75,6 +75,10 @@ func (s *State) manifest(k *prep, in *kop.Instr) {
 // 110.2a).
 func (s *State) cloak(k *prep, in *kop.Instr) {
 	fl := int(in.B.N)
+	if fl&kop.CfCloakRemembered != 0 {
+		s.cloakRemembered(k, fl)
+		return
+	}
 	if fl&kop.CfChosen != 0 {
 		s.cloakChosen(k, fl)
 		return
@@ -91,7 +95,7 @@ func (s *State) cloak(k *prep, in *kop.Instr) {
 		ctrl = s.res.e.ctrl
 	}
 	s.faceDownFromTop(k, p, ctrl, s.value(k, in.A), true,
-		fl&kop.CfTapped != 0, fl&kop.CfShuffle != 0, fl&kop.CfRemember != 0)
+		fl&kop.CfTapped != 0, fl&kop.CfRemember != 0)
 }
 
 // chooseFaceDownPick is OpChooseCard C: the cloak-from-hand pick (gorge
@@ -125,6 +129,30 @@ func (s *State) cloakChosen(k *prep, fl int) {
 	s.faceDownRiders(k, o, sl, fl&kop.CfTapped != 0, fl&kop.CfRemember != 0)
 }
 
+// cloakRemembered is OpCloak with CfCloakRemembered (gorge effCloak's
+// Defined$ Remembered arm): each card of the remembered set cloaks from where
+// it sits under the resolving controller, in set order. A battlefield object
+// is skipped (gorge's cloak closure), a full battlefield stalls and stops.
+// CfShuffle is gorge's pile shuffle, a no-op: no shuffle, no RNG draw. The
+// count is fixed up front because CfRemember can append to the set.
+func (s *State) cloakRemembered(k *prep, fl int) {
+	n := int(s.g.nrem)
+	for i := 0; i < n; i++ {
+		o := s.g.rem[i]
+		if o == NoObj || s.objs[o].zone == kop.ZoneBattlefield {
+			continue
+		}
+		if k.gen != nil && s.occ.full() {
+			s.stall(StallBoard)
+			return
+		}
+		from := s.detach(o)
+		sl := s.enterFaceDown(k, o, s.res.e.ctrl, kop.MorphMorph, from)
+		s.markFaceDown(sl, true)
+		s.faceDownRiders(k, o, sl, fl&kop.CfTapped != 0, fl&kop.CfRemember != 0)
+	}
+}
+
 // faceDownRiders applies the cloak/manifest entry riders to the face-down
 // permanent at sl: tapped enters tapped and fires the taps triggers as the
 // MoveZone-then-Tap pair gorge emits; remember joins the resolution's
@@ -146,14 +174,14 @@ func (s *State) faceDownRiders(k *prep, o Obj, sl Slot, tapped, remember bool) {
 // the battlefield face down for ctrl, marked with mark. A full battlefield
 // stalls and stops the move (the capacity draw). Tapped fires the taps
 // triggers as the MoveZone-then-Tap pair gorge emits; remember joins the
-// resolution's remembered set; shuffle shuffles once after any card moved.
-func (s *State) faceDownFromTop(k *prep, p, ctrl uint8, n int, cloaked, tapped, shuffle, remember bool) {
+// resolution's remembered set. Cloak's Shuffle$ is gorge's pile shuffle: it
+// shuffles no library and draws no RNG.
+func (s *State) faceDownFromTop(k *prep, p, ctrl uint8, n int, cloaked, tapped, remember bool) {
 	p &= 1
 	if n <= 0 {
 		return
 	}
 	pl := &s.pl[p]
-	moved := false
 	for ; n > 0 && pl.libLo < pl.libHi; n-- {
 		if k.gen != nil && s.occ.full() {
 			s.stall(StallBoard)
@@ -164,10 +192,6 @@ func (s *State) faceDownFromTop(k *prep, p, ctrl uint8, n int, cloaked, tapped, 
 		sl := s.enterFaceDown(k, o, ctrl, kop.MorphMorph, kop.ZoneLibrary)
 		s.markFaceDown(sl, cloaked)
 		s.faceDownRiders(k, o, sl, tapped, remember)
-		moved = true
-	}
-	if shuffle && moved {
-		s.shuffleLib(p)
 	}
 }
 

@@ -67,6 +67,11 @@ func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 		if mode == 1 {
 			o.kind = okYes
 		}
+	case dirac.ChGenDigOpt:
+		o.kind, o.obj = okNo, noObj // gorge effDig's allOrNothing yes / no
+		if mode == 1 {
+			o.kind = okYes
+		}
 	case dirac.ChGenExplore:
 		o.kind = okGraveyard // gorge's explore "graveyard" / "top" over the revealed card
 		if mode == 1 {

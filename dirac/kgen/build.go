@@ -1114,7 +1114,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	kf.Colors, kf.NotColors = colorMask(c.Colors), colorMask(c.NotColors)
 	switch c.Ctrl {
 	case whoEachPl:
-		if zone != kop.ZoneBattlefield {
+		// a hand or library card is controlled by its owner, the
+		// kernel card matcher's owner (matchCardOneAt)
+		if zone != kop.ZoneBattlefield && zone != kop.ZoneHand && zone != kop.ZoneLibrary {
 			return kf, refuse("RememberedPlayerCtrl off the battlefield")
 		}
 		kf.Ctrl = kop.CtrlEachPl
@@ -1587,6 +1589,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefTriggerSource, nil
 	case rTriggeredPlayer:
 		return kop.RefTriggerPlayer, nil
+	case rTriggeredTgtCtrl:
+		return kop.RefTriggerTgtCtrl, nil
 	case rEquipped:
 		return kop.RefAttached, nil
 	case rRemembered:

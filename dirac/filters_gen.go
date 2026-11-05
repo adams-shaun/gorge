@@ -516,6 +516,10 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 			if owner == ctrl {
 				return false
 			}
+		case kop.CtrlEachPl:
+			if !s.ctrlEachPl(owner, ctrl) {
+				return false // a hand or library card of the repeated player (act_repeatplayer.go)
+			}
 		}
 	}
 	pc := &k.cards[c]

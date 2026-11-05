@@ -117,11 +117,32 @@ func (lc *lowerCtx) ddoReads(sa *cards.SA) string {
 		return out
 	}
 	var reads []string
+	seen := map[string]bool{}
+	var work []string
 	for ; sa != nil; sa = sa.Sub {
 		reads = read(sa.Line, reads)
+		for _, v := range sa.Params {
+			work = append(work, v)
+		}
 	}
-	names := make([]string, 0, len(lc.face.SVars))
-	for k := range lc.face.SVars {
+	// Only the SVars the body names (transitively) are this body's reads:
+	// another ability's SVar on the same face (Yarus, Roar of the Old Gods'
+	// ChangesZone return beside its DamageDoneOnce draw) is not, exactly as
+	// saReadsBatch below scopes its own batch scan.
+	for len(work) > 0 {
+		w := work[len(work)-1]
+		work = work[:len(work)-1]
+		for _, name := range strings.FieldsFunc(w, func(r rune) bool {
+			return !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_')
+		}) {
+			if body, ok := lc.face.SVars[name]; ok && !seen[name] {
+				seen[name] = true
+				work = append(work, body)
+			}
+		}
+	}
+	names := make([]string, 0, len(seen))
+	for k := range seen {
 		names = append(names, k)
 	}
 	sort.Strings(names)
@@ -227,6 +248,13 @@ func ddoAttackingPlayer(tr *lTrigger) bool {
 func ddoReadOK(spelling string, tr *lTrigger) bool {
 	switch spelling {
 	case "TriggeredTarget", "TriggeredTargetLKICopy":
+		return ddoObjectReferent(tr)
+	case "TriggeredTargetController":
+		// gorge definedSpecTriggeredTargetController: the controller of the
+		// damaged object, read live at resolution (the kernel lowers it to
+		// rTriggeredTgtCtrl, whose read covers a referent that left the
+		// battlefield since), so the role is exact only on an object
+		// referent.
 		return ddoObjectReferent(tr)
 	case "TriggeredAttackingPlayer":
 		return ddoAttackingPlayer(tr)
