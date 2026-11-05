@@ -30,6 +30,15 @@ var DebugStackKwOff bool
 // Casualty grant the casualty offer (p.casualty); one restricted to spells
 // cast from hand reads the cast provenance (stackEntry.prov, castemit).
 func prepStackKw(t *Table, g *genPrep, p *prep) {
+	for i := range t.Cards {
+		if t.Cards[i].Storm {
+			// the printed K:Storm trigger (CR 702.40a): its count reads the
+			// history bank, its copies choose new targets and a copy of a
+			// permanent spell becomes a token (kw_storm.go,
+			// copy_permanentspell.go)
+			g.anyHist, g.anyCopyElect, g.anyPermCopy = true, true, true
+		}
+	}
 	if !tableHasStatic(t, kop.StatStackKw) {
 		return
 	}

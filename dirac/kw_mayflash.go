@@ -3,6 +3,12 @@ package dirac
 // May-flash (CR 702.8, Forge's K:MayFlashCost), cold: reached only when the
 // table has a card with the keyword (genPrep.anyMayFlash).
 //
+// A Behold<1/Type> extra (Molten Exhale, CardDef.MayFlashBehold) adds no
+// mana: the cast is offered only while the caster has a candidate (a
+// permanent they control or another hand card of the type), and it owes the
+// behold in the cost-pick stage after its targets, as gorge's beholdCostAsk
+// poses it for the composed cost (act_behold.go beholdOptions).
+//
 // "You may cast this as though it had flash if you pay {2} more to cast
 // it." gorge (rules mayflash.go, legal_walk_hand.go): when the ordinary
 // timing gate refuses the card -- not an instant, no flash, no flash grant,
@@ -45,6 +51,9 @@ func (s *State) offerMayFlashHand(k *prep, d *Decision, p uint8, o Obj, c CardID
 		return // castTargetsAvailable; offerCastable's non-mana census
 	}
 	cd := &k.t.Cards[c]
+	if cd.MayFlashBehold && s.beholdCands(k, p, c, o, nil) < int(cd.BeholdN) {
+		return // the Behold<1/Type> extra needs a candidate (offerCastable's non-mana census)
+	}
 	cost := s.adjustCost(k, p, c, o, addCost(cd.Cost, cd.MayFlashCost)) // spellScope("mayflash")
 	cost = s.delveOfferCredit(k, p, c, o, true, cost)
 	if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
