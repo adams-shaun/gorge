@@ -3200,6 +3200,9 @@ func (lc *lowerCtx) damageRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		rl.Kind = "DoubleDamageToOpps"
 		return nil
 	}
+	if ok, err := lc.preventMillRepl(rp, w, rl); ok || err != nil { // lower_replmult.go
+		return err
+	}
 	return lc.damageDoubler(rp, w, rl)
 }
 

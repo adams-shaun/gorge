@@ -8,5 +8,5 @@ import "testing"
 // Mindskinner's prevent-and-mill DamageDone replacement as PreventMillOpps
 // (lower_replmult.go preventMillRepl).
 func TestDamagePreventionShapesLower(t *testing.T) {
-	checkCarrier(t, []string{"King T'Challa"}, nil, nil)
+	checkCarrier(t, []string{"King T'Challa", "The Mindskinner"}, nil, []string{"PreventMillOpps"})
 }

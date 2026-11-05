@@ -62,14 +62,15 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; this branch; merged FDN 516 -> 517, ALL 21556 -> 21557).
 	// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged MKM 237 -> 238, ALL 21557 -> 21558).
 	// +1 (King T'Challa: Black Panther's printed prevent-all-to-self R: line lowers as CardDef.PreventDmgTo; this branch; MSH 226 -> 227, ALL 21564 -> 21565).
+	// +1 (The Mindskinner: the prevent-and-mill DamageDone replacement lowers as ReplPreventMillOpps; this branch; DSK 236 -> 237, ALL 21565 -> 21566).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21565, 34442},
+	"ALL": {21566, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
 	"DFT": {247, 276},
 	"DMU": {193, 270},
-	"DSK": {236, 276},
+	"DSK": {237, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
 	"FDN": {517, 517},
