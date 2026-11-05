@@ -808,12 +808,15 @@ func (s *State) damageSeqNext(k *prep, n int) {
 // opponent or the opponent's permanent, a Crystal Barricade of a creature
 // recipient's controller other than the creature itself (noncombat only),
 // and the recipient's SHIELD counter (CR 122.1c, appended last as gorge
-// appends it after the printed matches). Protection prevents the damage
-// before the replacements (gorge emit).
+// appends it after the printed matches). The recipient's own printed
+// K:Prevent "all damage" line (Dawn Elemental) is one of those printed
+// matches: it is collected in the scan too, so it is a candidate here before
+// the shield. Protection prevents the damage before the replacements
+// (gorge emit).
 func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uint8, n int, kw kop.KwMask) bool {
 	g := k.gen
 	ro := &s.g.ro
-	if g.anyRepl&(rbDblDmg|rbPrevNC|rbShield|rbPrevCol) == 0 || n <= 0 || ctrl > 1 || ro.n > 0 || ro.on || s.g.nc.n > 0 {
+	if g.anyRepl&(rbDblDmg|rbPrevNC|rbShield|rbPrevCol|rbPrevDmgTo) == 0 || n <= 0 || ctrl > 1 || ro.n > 0 || ro.on || s.g.nc.n > 0 {
 		return false
 	}
 	rcp := uint8(255)
@@ -861,6 +864,18 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 				c++
 			}
 		}
+	}
+	// the recipient's own printed K:Prevent "all damage" line (replDamage's
+	// prevAnyTo arm): a printed match, so it is offered before the shield
+	// (gorge appends the shield after the printed matches)
+	if sl != NoSlot && s.prevAnyTo(k, sl) {
+		if c == len(cand) {
+			s.capFull(StallReplCands) // loud: never truncate the candidates
+			return false
+		}
+		cand[c] = s.perms[sl].obj
+		prev |= 1 << c
+		c++
 	}
 	var pcol uint8
 	if g.anyRepl&rbPrevCol != 0 {
