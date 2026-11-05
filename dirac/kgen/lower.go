@@ -29,6 +29,7 @@ var ignoredParams = map[string]bool{
 	"NoPutDesc":          true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
 	"PrimaryPrompt":      true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
 	"AINoRecursiveCheck": true, // Forge AI hint: only in gorge's accepted-key lists (params/mana.go, params/dealdamage.go, changezone_params.go), never read
+	"AIXMax":             true, // Forge AI hint for the X it announces: only in gorge's accepted-key lists (changezone_params.go, params/*.go), never read
 }
 
 // params tracks which parameters of one IR node the lowering read, so an
@@ -111,7 +112,7 @@ type lowerCtx struct {
 	blind          *blindDig // a blind face-down Dig whose Effect lowers next (lower_blinddig.go)
 	grantInner     []lStatic // a station self grant's inner statics, emitted after the outer static (lower_stationgrant.go)
 	station        string    // K:Station's parameter (lower_station.go)
-	beholdOK       bool      // the cost being read is a spell's AlternateAdditionalCost first part: Behold<N/Type> may lower (kernel act_behold.go)
+	beholdOK       bool      // the cost being read is a spell's AlternateAdditionalCost first part or a MayFlashCost extra: Behold<N/Type> may lower (kernel act_behold.go)
 	unblockedOK    bool      // the filter being read is K:Ninjutsu's Return cost: "unblocked" may lower (lower_ninjutsu.go)
 	exwSynth       bool      // the ExiledWithSource filter is synthesised for a Defined$ ExiledWith (the card's text does not name the word)
 	batchPoolOK    bool      // the trigger being lowered is a ChangesZoneAll exile line whose body picks among its batch members (lower_trigzonebatch.go kayaBatchBody)
@@ -455,7 +456,9 @@ func (lc *lowerCtx) refuseHarmonizeCombos() {
 		lc.refuseNode("K:Harmonize", "Harmonize beside Convoke or Improvise")
 	}
 	if out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Sneak != nil || out.Impending != nil || out.Bestow != nil ||
-		out.SpellCost != nil || out.AltAddCost != nil || out.Offspring != nil || out.Gift || out.MorphCost != nil || out.Casualty != 0 || out.Cost.X {
+		out.SpellCost != nil || out.AltAddCost != nil || out.Offspring != nil || out.Gift || out.MorphCost != nil || out.Casualty != 0 || out.Cost.X != out.Harmonize.X {
+		// a printed {X} with an X-less harmonize cost (or the reverse) reads
+		// an X the graveyard cast never announces
 		lc.refuseNode("K:Harmonize", "Harmonize beside another cast route or additional cost")
 	}
 	if out.Flashback != nil {
@@ -1156,9 +1159,11 @@ func (lc *lowerCtx) lowerKeywords() {
 		case head == "Harmonize":
 			// CR 702.180a: a graveyard cast for the printed cost, one
 			// creature tapped for its power (dirac/kw_harmonize.go).
-			// An {X} cost, a rider or a non-mana part is not read exactly.
+			// An {X} cost announces X before the tap pick reads the total
+			// (gorge xAsk after convokeAsk); {X}{X}, a rider or a non-mana
+			// part is not read exactly.
 			mc, err := parseManaCost(param)
-			if err != nil || mc.X || mc.None || strings.ContainsAny(param, ":<") {
+			if err != nil || mc.XX || mc.XXX || mc.None || strings.ContainsAny(param, ":<") {
 				lc.refuseNode(node, "harmonize cost %q", param)
 				continue
 			}
@@ -1297,8 +1302,27 @@ func (lc *lowerCtx) lowerKeywords() {
 			// CR 702.8 (gorge rules/mayflash.go): "you may cast this as
 			// though it had flash if you pay <cost> more". The instant-timing
 			// cast pays the mana cost plus this (dirac/kw_mayflash.go).
-			// X, hybrid, CardManaCost and any non-mana part (Behold<..>,
-			// tapXType<..>) are refused.
+			// X, hybrid, CardManaCost and any other non-mana part
+			// (tapXType<..>) are refused. A lone Behold<1/Type> is the
+			// extra (Molten Exhale): no mana, the behold folded into the
+			// cast's cost-pick stage (CardDef.MayFlashBehold).
+			if strings.HasPrefix(param, "Behold<") {
+				lc.beholdOK = true
+				bc, err := lc.cost(param)
+				lc.beholdOK = false
+				rest := bc
+				rest.BeholdN, rest.BeholdF = 0, nil
+				if err != nil || bc.BeholdN != 1 || !rest.pureMana() || !bc.Mana.None {
+					lc.refuseNode(node, "may-flash cost %q", param)
+					continue
+				}
+				if lc.out.MayFlash != nil {
+					lc.refuseNode(node, "two MayFlashCost keywords")
+					continue
+				}
+				lc.out.MayFlash, lc.out.MayFlashBehold = &manaCost{}, bc.BeholdF
+				continue
+			}
 			mc, err := parseManaCost(param)
 			if err != nil || param == "" || strings.ContainsAny(param, ":<") || mc.X || mc.None || len(mc.Hybrid) != 0 || len(mc.Twobrid) != 0 || len(mc.Phyrexian) != 0 {
 				lc.refuseNode(node, "may-flash cost %q", param)
@@ -1651,7 +1675,8 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		if head == "Behold" {
 			// Behold<N/Type> (CR 701.4a): reveal or choose N permanents or
 			// hand cards of the type, as a spell's additional cost. Only
-			// an AlternateAdditionalCost's first part reads it (beholdOK).
+			// an AlternateAdditionalCost's first part and a MayFlashCost
+			// extra read it (beholdOK).
 			if !lc.beholdOK || len(parts) != 2 || c.BeholdN != 0 {
 				return c, refuse("behold cost %q", t)
 			}

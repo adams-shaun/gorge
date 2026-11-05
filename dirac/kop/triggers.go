@@ -102,6 +102,7 @@ const (
 	TrigSearchedLibrary             // a player (Whose) searches their own library (gorge Mode$ SearchedLibrary, SearchOwnLibrary$ True, trigmatch cards.go: one marker per hidden library search, also when nothing is found); no slot subscription (trig_modes.go)
 	TrigForage                      // a player (Whose) forages (gorge Mode$ Forage, trigmatch ForageAction: once per paid forage, after its moves); no slot subscription (trig_modes.go)
 	TrigDiscover                    // a player (Whose) discovers (gorge Mode$ Discover, trigmatch cards.go: once per discover, at completion); the trigger amount is the discover value; no slot subscription (trig_modes.go)
+	TrigManifestDread               // a player (Whose) manifests dread (gorge Mode$ ManifestDread, trigmatch keyword_action.go on the completed events.ManifestDreadAction marker, emitted after each window's moves; the trigger object is the card the window put into its owner's graveyard, or none on the one-card shortcut); no slot subscription (trig_modes.go)
 	TrigFacesDilemma                // a player (Whose) chooses one or more modes for a spell or ability (gorge Mode$ FacesDilemma, trigmatch facesDilemmaMatches on the ModeChosen marker)
 	TrigEventCount                  // number of trigger events; append above
 )

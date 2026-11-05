@@ -54,6 +54,12 @@ const (
 	RefTriggerAttackers                                     // the attacker group of the AttackersDeclared event that raised this trigger (gorge definedSpecTriggeredAttackers); only OpPumpUntilEOT / OpPutCounter / OpGrantKeyword read it
 	RefTargets0123                                          // every legal target of slots 0 to 3
 	RefTriggerTgtCtrl                                       // a player ref: the controller of the triggering referent, read live at resolution (gorge TriggeredTargetController: a referent that left the battlefield reads its owner, CR 603.7a)
+	// RefRememberedOwner is a player ref: the first remembered object's
+	// OWNER (CR 108.3: an object's owner never changes; gorge definedSpecRememberedOwner
+	// over the source's persistent Remembered). Unidentified Hovership's
+	// leave trigger manifests dread for the owner of the card its ETB exiled
+	// (the RemPersist seed); none when the remembered set is empty.
+	RefRememberedOwner
 )
 
 // RefTgtCtrl1 / RefTgtCtrl2 are RefTargetController for target slot 1 / 2

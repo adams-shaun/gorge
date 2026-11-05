@@ -1,0 +1,18 @@
+# The {X} Harmonize pool (CR 702.180a-b): Nature's Rhythm is harmonized
+# from the graveyard, the one creature tapped for its power announced before
+# X (gorge convokeAsk then xAsk); mill and discard fill the graveyards
+# (dirac/oracle/harmonize_xgrant_test.go)
+Nature's Rhythm
+Mulch
+Tormenting Voice
+Satyr Wayfinder
+Giant Growth
+Shock
+Lightning Bolt
+Llanowar Elves
+Grizzly Bears
+Hill Giant
+Fire Elemental
+Forest
+Island
+Mountain

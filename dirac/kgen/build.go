@@ -634,6 +634,17 @@ func (cb *cardBuilder) record() error {
 		if d.MayFlashCost, err = manaCostOf(*c.MayFlash); err != nil {
 			return err
 		}
+		if c.MayFlashBehold != nil {
+			// the extra is a behold (kernel kw_mayflash.go): the card's
+			// behold fields, which no other behold cost may share
+			if d.BeholdN != 0 || c.BeholdExile || c.SpellCost != nil || c.OptCost != nil {
+				return fmt.Errorf("may-flash behold beside another behold or additional cost")
+			}
+			d.MayFlashBehold, d.BeholdN = true, 1
+			if d.BeholdF, err = cb.filter(c.MayFlashBehold, kop.ZoneBattlefield); err != nil {
+				return err
+			}
+		}
 	}
 	if c.Evoke != nil {
 		// CR 702.74a: no KwMask bit is free, so the evoke marker is its own
@@ -1379,6 +1390,11 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		// is Defined$ ExiledWith, which also honours a resolving trigger's
 		// fire ver (gorge exiledWithSet)
 		kf.Pred, kf.PredN = kop.PredExiledWith, int16(c.CmpN)
+	case cmpTriggerObj:
+		// the resolving trigger's object (kernel isTriggerObj), wherever
+		// it is now: the ChooseFromDefined$ TriggeredCards pool's
+		// membership (Paranormal Analyst's return)
+		kf.Pred, kf.PredN = kop.PredTriggerObj, int16(c.CmpN)
 	case cmpFaceDown:
 		kf.Pred = kop.PredFaceDown // a face-down battlefield permanent (kernel faceDownPred)
 	case cmpPowerGTBase:
@@ -1621,6 +1637,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefSrcOwner, nil
 	case rTriggerAttackers:
 		return kop.RefTriggerAttackers, nil
+	case rRememberedOwner:
+		return kop.RefRememberedOwner, nil
 	case rTargetUnion:
 		switch r.N {
 		case 3:
