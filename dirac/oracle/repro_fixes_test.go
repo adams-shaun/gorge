@@ -268,6 +268,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"first_only_filter_funds_play", false, false},                     // CR 605.1a, 106.1: Barrels of Blasting Jelly's first-and-only {1} any-colour filter funds Waterbender Ascension's {1}{U} and Fire Nation Palace's {1}{R} activation, so both stay on the menu
 		{"first_only_filter_funds_play_autopay", true, false},              // CR 605.1a, 106.1: ... and on the autopay surface, where the same first-and-only filter funds Fire Nation Palace's activation from the floating pool
 		{"tap_cost_source_not_its_own_granted_mana", true, false},          // CR 602.2b, 605.3a: Agna Qel'a's {2}{U},{T} is not paid by the tap that is its cost, so Great Divide Guide's grant on it adds no third mana beside Guide and Badgermole Cub's extra {G}
+		{"unless_tap_extra_offers_pay", true, false},                       // CR 106.12a, 605.4a: Badgermole Cub's static TapsForMana trigger adds {G} to an animated Forest's tap, so the {2} unless cost is payable and gorge must offer Pay
 	})
 }
 
