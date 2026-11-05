@@ -355,6 +355,17 @@ const Tf4NthFiltered TrigFlags4 = 1 << 3
 // fireAbilityCast); the chosen name is the permanent's chosen byte, a CardID.
 const Tf4NamedCast TrigFlags4 = 1 << 4
 
+// Tf4StateCtr (Trigger.Flags4): a CR 603.8 state trigger (Mode$ Always)
+// lowered over a counter threshold (Mazemind Tome's IsPresent$
+// Card.Self+counters_GE4_PAGE). It rides the counter-put event of any kind,
+// but one instance at a time: a put while an instance of the same source and
+// ability is queued or on the stack does not queue another
+// (stateTrigOutstanding), and the instance's leave re-checks the threshold
+// (stateCtrRefire, trig_statectr.go). The threshold itself is the trigger's
+// Cond, and AfCheckOnTrigger marks it not re-checked on resolution (gorge
+// noResolvingCheck exempts Mode$ Always).
+const Tf4StateCtr TrigFlags4 = 1 << 6
+
 // the packed constants of the Increment keyword's ops.
 
 // Tf2Increment (Trigger.Flags2): SpellCast -- "whenever

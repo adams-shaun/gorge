@@ -100,6 +100,10 @@ type prep struct {
 	// anyGate: some ability has a threshold gate (Ability.Gate, kw_class.go):
 	// guards the gated trigger/activation checks on the hot paths
 	anyGate bool
+	// anyStateCtr: some trigger is a counter-threshold state trigger
+	// (kop.Tf4StateCtr, trig_statectr.go): guards the outstanding gate on
+	// the counter-put path and the re-check at an instance's leave
+	anyStateCtr bool
 	// anyRoom: some card is a two-door Room (kop.FaceRoom;
 	// face_rooms.go): guards the Room entry, leave and unlock paths
 	anyRoom bool
@@ -254,6 +258,7 @@ func prepare(t *kop.Table) *prep {
 		for j := range c.Abilities {
 			a := &c.Abilities[j]
 			p.anyGate = p.anyGate || a.Gate.Ctr != 0
+			p.anyStateCtr = p.anyStateCtr || a.Kind == kop.AbTriggered && a.Trig.Flags4&kop.Tf4StateCtr != 0
 			p.costObj = p.costObj || a.Cost.Flags&costObjFlags != 0 || a.Cost.PutLibSelf
 			p.subAmong = p.subAmong || a.Cost.Flags&kop.CostSubAmong != 0
 			p.bargainRed = p.bargainRed || a.Kind == kop.AbStatic && a.Static.StFlags&kop.StBargained != 0

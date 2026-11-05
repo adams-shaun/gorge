@@ -375,7 +375,7 @@ type grantSrch struct {
 	gi       [MaxPerm][maxGrants]int16 // each candidate's granted abilities (grantPC indices)
 	ng       [MaxPerm]uint8
 	dual     [MaxPerm]bool // the candidate's own ability is tried first
-	skipPool bool          // the next branch's mana is restricted past the play: it prices nothing
+	skipPool bool          // the next branch's mana is restricted past the play (a printed ability or a grant): the step is taken, its mana prices nothing
 	// filt: the candidate also has a filter ability ({1},{T}: Add one mana of any
 	// color), a paid census gap of gorge's like the grants (mana_filter.go)
 	filt [MaxPerm]bool
@@ -574,11 +574,12 @@ func (g *grantSrch) visit(t *State) bool {
 		}
 		for j := 0; j < int(g.ng[i]); j++ {
 			gi := g.gi[i][j]
-			if !g.grantAdmits(t, sl, gi) {
-				continue // the play's origin or class cannot spend this grant's restricted mana
-			}
 			pc := t.grantView(g.k.gen, gi, sl)
 			mask := t.srcMaskAt(pc, sl)
+			// gorge's search taps a granted census gap whether or not the play may
+			// spend it (the mana floats, the tap fires its triggers); mana the
+			// play's origin or class cannot spend prices nothing
+			g.skipPool = !g.grantAdmits(t, sl, gi)
 			if g.branch(t, i, sl, gi, mask, pc.manaN, alts == 1 || mask&uint8(kop.ColAny) == uint8(kop.ColAny)) {
 				return true
 			}
@@ -715,6 +716,9 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 		t.perms[sl].flags |= pfTapped
 		t.pl[g.p&1].pool[c] += pn
 		xv := t.srcExtraPick(g.k, sl, pc, int(c))
+		if skip {
+			xv = [kop.NumManaKinds]uint8{} // the unspendable tap prices no extra either
+		}
 		t.addXv(g.p&1, &xv)
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl}
 		g.np++
@@ -810,7 +814,8 @@ func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
 // grantAdmits: the play g.d makes may spend granted ability gi's mana (an
 // unrestricted grant always; a restricted one as restrSrcAdmits reads the
 // play). The search is feasibility-only, so mana the play cannot spend
-// must not make it payable (the offer would stall the payment).
+// must not price it (the offer would stall the payment); the grant is still
+// a gap step, tapped as gorge's search taps it (visit sets skipPool).
 func (g *grantSrch) grantAdmits(t *State, sl Slot, gi int16) bool {
 	if g.k.gen.grantRestr[gi] == 0 {
 		return true
@@ -953,6 +958,83 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		s.tapXNext(g.p, &d) // the trigger the last step queued is stacked and asked now
 		s.Decisions = n
 	}
+}
+
+// grantTapXPrefix plays gorge's prefix script for play a when a spell-only
+// grant is the only census pricing it: the granted sources tapped in
+// battlefield order, their mana floating beside the pool (State.rb), and the
+// tap-another gap's step where it sits in that order (tapXScript's path), the
+// play re-priced after each (gorge potential_script.go: gaps first, then
+// priced; it stops at the first that prices it). The granted taps are
+// dead-end taps on gorge's script — their mana cannot pay the play (CR
+// 605.1a) — and the play then prices from the printed sources and the
+// tap-another gap's own mana (CR 601.2g-h).
+func (s *State) grantTapXPrefix(k *prep, a Action, p uint8) {
+	if !s.grantsLive(k) || !s.tapXScript(k, a, p, false) {
+		return // no tap-another script within gorge's node budget (mana_grantedoffers.go)
+	}
+	cost, ex, ok := s.grantPlayCost(k, p, a, true)
+	if !ok {
+		return
+	}
+	desc := s.grantPayDesc(a)
+	var gaps, tx slotMask
+	tx = s.scriptTapXModelled(k, p)
+	for b := s.ctrlM[p&1].and(s.occ); b.any(); b = b.rest() {
+		sl := b.first()
+		if s.canTapForMana(k, sl) && s.grantIdx(k, sl) >= 0 {
+			gaps = gaps.with(sl)
+		}
+	}
+	var order [MaxPerm]Slot
+	n := s.battlefieldOrder(p, gaps.or(tx), order[:], 0)
+	for i := 0; i < n; i++ {
+		sl := order[i]
+		if tx.has(sl) {
+			s.tapXScript(k, a, p, true) // the tap-another gap's step (mana_tapanother.go)
+		} else {
+			s.tapGrantedGap(k, p, sl)
+		}
+		if s.npend != 0 {
+			s.flushPrefixTriggers(k) // the tap's trigger is asked as gorge's script answers it (CR 603.3b)
+		}
+		if s.affordsUngrantedPlay(k, p, a, &cost, ex, desc) {
+			return // gorge's search stops: the play prices now
+		}
+	}
+}
+
+// tapGrantedGap taps one granted mana source of p in gorge's prefix script:
+// the first granted ability's mana floats beside the pool (State.rb),
+// spendable only as its restriction allows (grantApply's step; never a
+// silent spill), in the colour the source's ask lists first (gorge's search
+// answers in order).
+func (s *State) tapGrantedGap(k *prep, p uint8, sl Slot) {
+	var gi [maxGrants]int16
+	if ng := s.grantIdxs(k, sl, &gi); ng == 0 {
+		return
+	}
+	pc := s.grantView(k.gen, gi[0], sl)
+	var order [kop.NumManaKinds]uint8
+	no := s.stepColours(k, sl, gi[0], s.srcMaskAt(pc, sl), &order)
+	if no == 0 {
+		return
+	}
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	n := max(pc.manaN, 1)
+	if k.gen.anyTapExtra {
+		xv := s.srcExtraPick(k, sl, pc, int(order[0]))
+		s.addXv(p&1, &xv)
+	}
+	if r := k.gen.grantRestr[gi[0]]; r != 0 {
+		if !s.addRestr(k, p&1, r, int(order[0]), n) {
+			s.capFull(StallRestrSrc)
+		}
+		return
+	}
+	s.pl[p&1].pool[order[0]] += n
 }
 
 // stepView is the mana ability a prefix step taps on sl: the source's own

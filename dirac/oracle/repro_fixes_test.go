@@ -162,6 +162,7 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"restricted_grant_no_unit_for_hand_cast_x_two", false, false},      // ... and Devastating Onslaught's X likewise stops one short
 		{"restricted_grant_no_unit_for_hand_cast_pip", true, false},         // ... and a hand warp's {U/R} pip asks one colour, not the blue the Freighter's grant cannot pay a hand cast with (CR 106.6)
 		{"restricted_grant_no_unit_for_trigger_cost", true, false},          // ... and Oreplate Pangolin's "you may pay {1}" is no spell, so an artifact holding Mm'menon's blue pays nothing: only decline is asked
+		{"restricted_grant_no_unit_for_unless_window", true, false},         // CR 106.6: ... and no source for an unless cost either, so Divert Disaster's {2} taps Godless Shrine, not the Freighter holding the granted blue
 		{"granted_batch_attack_trigger_once_per_declaration", false, false}, // CR 508.1, 603.2: a granted "whenever you attack" trigger fires once for a declaration split across two defenders, not once per defender
 		{"dies_trigger_power_threshold_lki", true, false},                   // CR 603.3b: Syr Vondam's own dies trigger queues before the dies trigger Perigee Beckoner granted it
 		{"return_defender_asked_before_move", true, false},                  // CR 508.4: Chorale of the Void's attacking return asks its defender while the card is still in the graveyard, as gorge does, not after it entered
@@ -171,6 +172,7 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"tap_another_activation_beside_granted_mana", true, false},         // CR 605.1a, 601.2g: the grant cap prunes a Lander's {2},{T},Sac activation the granted spell-only mana cannot pay, but a tap-another-permanent source beside it can, so the activation stays on autopay's menu
 		{"tap_another_source_beside_restricted_grant", false, false},        // CR 601.2g-h: beside Mm'menon's hand-barred granted blue, Gene Pollinator's tap-another-permanent mana pays Mechanozoa's {U}{U} from hand, so the plain cast is offered
 		{"each_return_asks_election_per_target", false, false},              // CR 614.12, 608.2c: Pull Through the Weft returns its two shock lands one at a time, each one's pay-life election asked before the next moves
+		{"unspendable_grant_is_a_prefix_gap", false, false},                 // CR 601.2g-h: Mm'menon's hand-barred granted blue prices no hand cast (Glacier Godmaw is not offered off it), yet gorge's prefix still taps Nanoform Sentinel for it as a gap step, the blue floating
 	})
 }
 
