@@ -77,9 +77,8 @@ type mrfaceCase struct {
 	name     string
 	pool     string
 	decks    [2][]cardset.Entry
-	skip     map[uint64]string // seeds left out, each with the divergence it hits
-	produced []string          // carriers whose restricted mana must be produced
-	entered  []string          // carriers that must be cast
+	produced []string // carriers whose restricted mana must be produced
+	entered  []string // carriers that must be cast
 }
 
 func mrfaceCases() []mrfaceCase {
@@ -138,10 +137,8 @@ func mrfaceCases() []mrfaceCase {
 					{Name: "Forest", Count: 6}, {Name: "Island", Count: 6},
 				},
 			},
-			// seed 23 taps another land than gorge's planner for an Overlord cast with
-			// both Peepers untapped beside the grant; it is not the restricted-mana
-			// order this test pins (filed as its own ticket).
-			skip:     map[uint64]string{23: "planner tie-break beside a granted mana ability"},
+			// seed 23: both Peepers are census units of the Overlord cast, so the
+			// planner leaves a Forest beside them rather than an Island (rank key 7).
 			produced: []string{"Creeping Peeper"},
 		},
 		{
@@ -210,9 +207,6 @@ func mrfaceRun(t *testing.T, c mrfaceCase, seeds int) {
 	produced, entered := map[string]int{}, map[string]int{}
 	unlocks, games, divs := 0, 0, 0
 	for seed := uint64(1); seed <= uint64(seeds); seed++ {
-		if _, skip := c.skip[seed]; skip {
-			continue
-		}
 		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 		m, err := NewMatchup(reg, [2]string{c.name + "-a", c.name + "-b"}, cs, 0)
 		if err != nil {

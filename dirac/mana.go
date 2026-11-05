@@ -998,7 +998,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			for i := 0; i < no && pk.nu < maxUnits; i++ {
 				sl := order[i]
 				pc := pcs[i]
-				if phase < 2 && granted[i] {
+				if phase < 2 && granted[i] && rk[i] == 0 { // (an admitted restricted printed ability stays a census unit)
 					// one whose mana ability an effect grants (gorge's census
 					// holds printed abilities only: Imprisoned in the Moon's
 					// land)
