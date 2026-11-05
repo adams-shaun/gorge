@@ -47,6 +47,7 @@ BncDelayedMany	untyped int	8192
 BncFromLibrary	untyped int	4096
 BncShuffleOwed	untyped int	16384
 C	untyped int	5
+CantActNamed	untyped int	4
 CantLoseLife	untyped int	1
 CantTgtActivated	untyped int	2
 CantTgtSpell	untyped int	1
@@ -61,6 +62,8 @@ CastSpecNotHand	untyped int	8
 CastSpecTreasure	untyped int	16
 CastSpecTypes	untyped int	256
 CastSpecYou	untyped int	1
+CfChosen	untyped int	8
+CfCloakCtrl	untyped int	16
 CfRemember	untyped int	4
 CfShuffle	untyped int	2
 CfTapped	untyped int	1
@@ -801,6 +804,7 @@ PlayerPredArtOrEnch	untyped int	4
 PlayerPredControlsCreature	untyped int	1
 PlayerPredCorrupted	untyped int	3
 PlayerPredMaxSpeed	untyped int	2
+PlayerPredMostCreatures	untyped int	5
 PlayerPredNeg	untyped int	256
 PredActiveCtrl	Pred	23
 PredAdventureCard	Pred	253

@@ -87,6 +87,9 @@ func (r *Translator) BindSet(set cardset.Set, tbl *kop.Table, reg *cards.Registr
 			return 255, true
 		}
 		o := set.AbilityOrigin(pool[c], int(ab))
+		if abs := tbl.Cards[c].Abilities; o == 0xFF && int(ab) < len(abs) && abs[ab].Kind == kop.AbTriggered && abs[ab].Trig.Flags2&kop.Tf2ManaFromSelf != 0 {
+			return 255, true // a TriggersWhenSpent$ rider (Pyromancer's Goggles): gorge queues it as a granted trigger, no face index
+		}
 		return o, o != 0xFF
 	}
 }

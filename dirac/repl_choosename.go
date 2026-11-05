@@ -51,9 +51,21 @@ var (
 // sorted, and the table's cards are sorted by name).
 //
 //go:noinline
-func (s *State) nameOptions(k *prep, d *Decision) {
+func (s *State) nameOptions(k *prep, d *Decision, kind uint8) {
+	names := k.t.NameCards
+	if kind != akName {
+		names = k.t.NameCardsAny
+	}
+	if kind == akNameLook {
+		if s.pl[1-d.Player&1].handN > 0 {
+			d.Sub = ChGenLookAck // gorge's one-option look_ack before the look (poseLookAck)
+			d.add(MakeAction(AkChoose, 0, 0, 0))
+			return
+		}
+		s.nameLookDone()
+	}
 	d.Sub = ChGenName
-	for _, c := range k.t.NameCards {
+	for _, c := range names {
 		d.add(MakeAction(AkChoose, 0, 0, uint8(c)))
 	}
 }
@@ -105,5 +117,33 @@ func noteNamedCast(spell bool) {
 		st.SpellFires.Add(1)
 	} else {
 		st.ActFires.Add(1)
+	}
+}
+
+// nameAskKind is the ask kind of an ExtChooseName instruction: B = 0 the
+// nonland names (Kai Winn), 1 every card's name, 2 every card's name after a
+// look at the opponent's hand (Sorcerous Spyglass: ChoosePlayer, RevealHand
+// Look$ True, NameCard; the lookless hand is posed no look_ack).
+func nameAskKind(in *kop.Instr) uint8 {
+	switch in.B.N {
+	case 1:
+		return akNameAny
+	case 2:
+		return akNameLook
+	}
+	return akName
+}
+
+// isNameAsk reports an as-enters card-name ask kind.
+func isNameAsk(kind uint8) bool { return kind == akName || kind == akNameAny || kind == akNameLook }
+
+// nameLookDone turns a pending look-then-name ask into the plain name ask
+// (the opponent's hand is empty, so gorge poses no look_ack).
+func (s *State) nameLookDone() {
+	if s.g.pre.state == 1 && s.g.pre.kind == akNameLook {
+		s.g.pre.kind = akNameAny
+	}
+	if s.g.nask > 0 && s.g.ask[0].kind == akNameLook {
+		s.g.ask[0].kind = akNameAny
 	}
 }

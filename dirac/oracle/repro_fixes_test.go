@@ -37,6 +37,8 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"ward_failed_payment_granted_type_first", false, false}, // Leyline of the Guildpact: a ward payment too small to pay floats the Mountain's own {R}, the first of its abilities, not a granted {W}
 		{"granted_types_any_land_hybrid_pool", true, false},      // Leyline of the Guildpact: Fuss after three {W} floated by hand pays its generic from the same lands in both engines
 		{"adventure_card_copy_cast", true, false},                // CR 707.12, 715.3: Reenact the Crime's copy of Kellan, Inquisitive Prodigy is cast as its front face (gorge never offers the Adventure)
+		{"facedown_ward_of_a_printed_ward_card", false, false},   // CR 701.58a/702.168b: a cloaked Axebane Ferox (prints Ward) targeted by an opponent: the face-down ward trigger has no face trigger index (gorge 255)
+		{"hybrid_activation_printed_witness", false, false},      // a lowered {G/W} activation resolves over printed mana only: Insidious Roots' granted any-colour token is not the {G} face gorge's planHybridCost prices
 	})
 }
 
@@ -432,6 +434,7 @@ func TestStdPoolReprosLockstepFull(t *testing.T) {
 		{"maralen_blinked_regains_its_permission", "std-ecl"},            // CR 400.7: Personify cast free through Maralen blinks her, and the returned Maralen is a new object whose once-each-turn permission is unspent
 		{"alt_add_cost_reduced_as_a_total", "std-tla"},                   // CR 601.2f: Uncle Iroh's {1} off Redirect Lightning comes off {R} plus the {2} part, so the lowered cast floats two mana, not three
 		{"hybrid_trial_leaves_granted_sources_out", "std-tla"},           // Long Feng's {B/G}{B/G} over Great Divide Guide: gorge's resolution search has no witness for {B}{B} from a granted source, so it pays {G}{B}
+		{"mayplay_hybrid_witness_prices_the_rider", "std-mkm"},           // CR 601.2b: Outrageous Robbery's any-type cast of the exiled Trostani, Three Whispers ({G}{G/W}{W}, no pip ask): the witness prices the rider's cost, one generic per hybrid pip
 		{"waterbend_armed_witness_stands_after_picks", "std-tla"},        // Katara's waterbend {6}: the offer armed Island, Island for the credit's {2}, four picks bring the cost to {2}, and gorge runs that witness rather than ranking again without the Waterskin
 		{"window_combo_answers_its_own_colour", "std-tla"},               // Misty Palms Oasis, {W} or {B} printed and any colour granted, owing {R}: the window answers {W}, the granted option has no symbol
 		{"sweep_damage_is_one_batch_for_dealt_once", "std-fin"},          // Nibelheim Aflame with Cecil, Dark Knight: his damage to three creatures is one batch, so his trigger queues once with the total

@@ -319,6 +319,8 @@ type genPrep struct {
 	destroyHeal  []kop.FilterID // per card: ReplDestroyHeal's filter (nil when no card has one; repl_destroyheal.go)
 	anyExileAny  bool           // some ReplExileOnLeave has Repl.C 1: a move to a graveyard from any zone checks it (placeFrom)
 	altFree      []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
+	// anyDeferred: some card has a deferred mana source (gfDeferred; mana_deferred.go)
+	anyDeferred bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
 	// a potential play's scripted prefix (script_gen.go)
@@ -326,7 +328,7 @@ type genPrep struct {
 	anyRestr   bool // some card has restr (kperf-blb: the ward / unless window's gate)
 	// anyRestrScript: some card has a restricted source gorge's census still
 	// misses (a reflected one: Plaza of Heroes), a scripted-prefix gap
-	// (gfRestrScript); anyRestrSrc: some card has a restricted source the
+	// (gfRestrScript), or a deferred source (gfDeferred; mana_deferred.go); anyRestrSrc: some card has a restricted source the
 	// payment planner counts per payment (gorge; restrSrcAb), and
 	// rs holds its records (mana_restrictedsource.go)
 	anyRestrScript bool
@@ -380,8 +382,8 @@ type genPrep struct {
 	// anyScriptGap: some card has eachCol, restr or anyR (a scripted play
 	// is possible)
 	anyScriptGap bool
-	// anyWindowGap: some card has eachCol or restr (gorge's ward / unless
-	// window activates them, mana.go windowTap)
+	// anyWindowGap: some card has eachCol, restr or a deferred source (gorge's
+	// ward / unless window activates them, mana.go windowTap)
 	anyWindowGap bool
 	// l6Stall: a global lose-all override static shares the table with a
 	// subtype lord the layer-4 walk reads (the loss check would re-enter
@@ -1036,6 +1038,11 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.anyOwnReduce = true
 				}
 			case kop.AbMana:
+				if a.ManaDeferred && a.AFlags&kop.AfLatent == 0 {
+					// a scripted-prefix gap beside the restricted ones (mana_deferred.go)
+					g.setFlag(CardID(i), gfDeferred)
+					g.anyDeferred, g.anyRestrScript, g.anyWindowGap = true, true, true
+				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).eachCol = int8(j)
 					g.setFlag(CardID(i), gfEachCol)
@@ -1111,7 +1118,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 							g.varPC = append(g.varPC, vp)
 						}
 					}
-					if int(pc.manaAb) == j && (a.AFlags&(kop.AfManaChosen|kop.AfManaDynamic|kop.AfLatent) != 0 || a.ManaRestrict != 0 || a.ManaColors == 0) {
+					if int(pc.manaAb) == j && (a.AFlags&(kop.AfManaChosen|kop.AfManaDynamic|kop.AfLatent) != 0 || a.ManaRestrict != 0 || a.ManaColors == 0 || a.ManaDeferred) {
 						pc.manaAb = -1
 					}
 				}
@@ -1600,6 +1607,7 @@ type genState struct {
 	nlinger  uint8
 	poison   [2]uint8 // each player's poison counters (CR 122.1f; infect and toxic, kw_infect.go; padding before lingerM)
 	poolArt  [2]uint8 // per player, the pool slots holding mana an artifact produced (mana_artifact.go; padding)
+	defSrc   [2]uint8 // per player, the slot + 1 of the deferred source whose {R} floats in the pool (mana_deferred.go; padding)
 	speed    uint8    // both seats' speed (3 bits each) and the once-per-turn speed trigger latch (bit 6; kw_speed.go; padding)
 	noPoison uint8    // bit p: player p can't get additional poison counters this turn (Melira's replacement; trig_leavereturn.go; padding)
 	plusCtr  [2]uint8 // per player, how many Brad Boimler counter-plus-one effects are active this turn (ctr_pluseot.go; padding)
@@ -2467,7 +2475,7 @@ func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 			case kop.ExtChooseNumber:
 				return akNumber
 			case kop.ExtChooseName:
-				return akName
+				return nameAskKind(&a.Prog[0])
 			}
 		case kop.OpUnlessPaid:
 			// the shock lands' as-enters pay-life election

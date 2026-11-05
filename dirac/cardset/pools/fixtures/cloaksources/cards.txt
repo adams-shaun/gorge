@@ -1,0 +1,11 @@
+# the cloak-source pool: Vannifar, Evolved Enigma (the Choices$ cloak
+# from hand) beside cheap creatures and lands, for the kernel scen
+# (dirac/face_cloakpick_test.go) and the oracle's constructed lockstep
+# (dirac/oracle/cloak_sources_test.go)
+Vannifar, Evolved Enigma
+Ornithopter
+Grizzly Bears
+Hill Giant
+Plains
+Forest
+Island

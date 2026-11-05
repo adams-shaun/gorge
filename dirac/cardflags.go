@@ -36,6 +36,7 @@ const (
 	gfFiltFee                        // a filter whose fee a reducer may take to nothing: varPC holds the fee-paid and fee-free views (mana_filterfree.go)
 	gfSpendRd                        // a Tf2CastSpent or Tf3CastConverge reader: gorge's planner prices no cast while it is out (trig_castmanaspent.go)
 	gfCtrAdd                         // an ExCtrAdded Self reader (ctr_addedthisturn.go)
+	gfDeferred                       // a TriggersWhenSpent$ mana source gorge's planner defers (Pyromancer's Goggles; kop.Ability.ManaDeferred; mana_deferred.go)
 )
 
 // cardSmall is a card's sparse generated-table values, all -1 when absent.

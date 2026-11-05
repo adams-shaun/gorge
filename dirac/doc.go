@@ -356,6 +356,15 @@
 //     Heroes, gfRestrScript) still is: gorge's search taps it when it comes
 //     first and its mana prices the play, and the oracle then completes the
 //     script only when the unrestricted pool pays the play alone.
+//     A deferred source (Pyromancer's Goggles' TriggersWhenSpent$ {R},
+//     kop.Ability.ManaDeferred, gfDeferred; mana_deferred.go) is a gap too:
+//     gorge's planner defers it, so autopay never taps it, and its census
+//     is relaxable (a free {R}), so it is searched, in scriptRestr's order,
+//     by the same sixteen-play prefix search; its {R} floats in the plain
+//     pool (typed, an artifact's), the cast that spends it records the
+//     source (genState.defSrc, build.obsSl) and the source's own SpellCast
+//     rider (Tf2ManaFromSelf) copies the spell. The window (a ward payment)
+//     taps it as a gap as well.
 //     Restricted mana floats beside the pool, restricted
 //     (State.rb, gorge's RestrictedMana: up to four batches, each of one
 //     restriction, in the projected pool), and while it floats gorge's

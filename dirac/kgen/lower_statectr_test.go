@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -87,6 +88,64 @@ func TestStateCounterThresholdBounds(t *testing.T) {
 			t.Fatalf("%s accepted, want a refusal", isp)
 		}
 		t.Logf("%s -> %s", isp, refusals[0])
+	}
+}
+
+// TestCounterFilterThresholdBounds: the generic filter path funnels the same
+// PredCountersGE packing through clause's GE arm, so a threshold above 127
+// must be refused there too instead of lowering a wrapped, always-true
+// predicate (the Always state-trigger arm has its own bound and never gets
+// here).
+func TestCounterFilterThresholdBounds(t *testing.T) {
+	page, err := counterKind("PAGE")
+	if err != nil {
+		t.Fatal(err)
+	}
+	build := func(thr string) ([]string, *poolTables) {
+		src := strings.Join([]string{
+			"Name:Counter Bound Probe",
+			"ManaCost:1",
+			"Types:Artifact",
+			"S:Mode$ Continuous | Affected$ Creature.YouCtrl+counters_" + thr + "_PAGE | AddKeyword$ Flying | Description$ probe",
+		}, "\n")
+		_, pt, rs := kdiscfiltBuild(t, "Counter Bound Probe", src)
+		var reasons []string
+		for _, r := range rs {
+			reasons = append(reasons, r.Reason)
+		}
+		return reasons, pt
+	}
+	// Control: 127 is representable and is really compared (precondition).
+	rs, pt := build("GE127")
+	if len(rs) != 0 {
+		t.Fatalf("GE127 refused: %v", rs)
+	}
+	found := false
+	for _, f := range pt.filters {
+		if f.Pred == kop.PredCountersGE {
+			if f.PredN != int16(127<<8|int(page)) {
+				t.Fatalf("GE127 PredN = %d, want %d", f.PredN, int16(127<<8|int(page)))
+			}
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("GE127 interned no PredCountersGE filter: the static was not lowered")
+	}
+	// 128 and above cannot be packed (int16 high byte): refuse, never wrap.
+	for _, thr := range []string{"GE128", "GE200", "GE255", "GE1000"} {
+		rs, pt := build(thr)
+		if len(rs) == 0 {
+			t.Fatalf("%s accepted, want a refusal", thr)
+		}
+		if !strings.Contains(rs[0], "counter compare") {
+			t.Fatalf("%s refusal = %q, want the counter compare refusal", thr, rs[0])
+		}
+		for _, f := range pt.filters {
+			if f.Pred == kop.PredCountersGE && f.PredN < 0 {
+				t.Fatalf("%s interned a wrapped PredCountersGE (PredN=%d)", thr, f.PredN)
+			}
+		}
 	}
 }
 
