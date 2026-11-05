@@ -66,7 +66,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (Baxter Building's four-mana combination filter and Haunted Screen's life-paid three-colour ability lower beside their first mana ability; msh-second-mana-ability; merged DSK 241 -> 242, MSH 228 -> 229, ALL 21630 -> 21632).
 	// +3 (the Taps watchers over your own and the equipped creature lower: Hawkeye's Bow (EquippedBy), Judge of Currents and Magda, Brazen Outlaw (YouCtrl); the AttachedBy aura family still refuses; this branch; merged MSH 230 -> 231, ALL 21636 -> 21639).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21641, 34442},
+	"ALL": {21643, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -89,7 +89,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SNC": {185, 266},
 	"SOS": {248, 270},
 	"SPM": {160, 192},
-	"TDM": {248, 276},
+	"TDM": {249, 276},
 	"TLA": {248, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},

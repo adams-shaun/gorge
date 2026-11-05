@@ -172,7 +172,7 @@ import (
 // +2 (Baxter Building's four-mana combination filter and Haunted Screen's life-paid three-colour ability lower beside their first mana ability; msh-second-mana-ability; merged ALL build-level 21630 -> 21632).
 // +3 (the Taps watchers over your own and the equipped creature lower: Hawkeye's Bow (EquippedBy), Judge of Currents and Magda, Brazen Outlaw (YouCtrl); the AttachedBy aura family still refuses; this branch; merged ALL build-level 21636 -> 21639).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21641, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21643, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
