@@ -3248,6 +3248,15 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "RemoveCounterAny":
 		// (Glissa Sunslayer) OpExt ExtRemoveCounterAny
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtRemoveCounterAny)), int16(in.C)
+	case "TurnFaceUp":
+		// (CR 708.6; gorge effSetState Mode$ TurnFaceUp) OpExt ExtTurnFaceUp:
+		// C 0 the target in Obj, C 1 the up-to-one pick over F
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtTurnFaceUp)), int16(in.C)
+		if in.F != nil {
+			if err := objFilter(kop.ZoneBattlefield); err != nil {
+				return ki, err
+			}
+		}
 	case "UnlockDoor":
 		// (CR 709.5f-g; gorge effUnlockDoor) OpExt
 		// ExtUnlockDoor over the Room target slot, C 0 unlock / 1 lock-or-unlock

@@ -790,6 +790,10 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 	case dirac.ChWardEvidence:
 		// gorge's ward_evidence KChoose over the payer's graveyard
 		return Pack(kind("ward_evidence"), src, RefNone, 0), true
+	case dirac.ChGenTurnUpPick:
+		// gorge setStateChoose's "setstate_pick" KChoose over the Choices$
+		// permanents that would turn face up
+		return Pack(kind("setstate_pick"), src, RefNone, 0), true
 	case dirac.ChGenUntapPick:
 		// gorge's "untap" KChoose over the UntapType$ candidates
 		return Pack(kind("untap"), src, RefNone, 0), true
