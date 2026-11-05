@@ -64,7 +64,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; ALL 21564 -> 21569).
 	// +1 (Molten Exhale: a may-flash extra that is a behold, CardDef.MayFlashBehold; merged TDM 245 -> 246, ALL 21569 -> 21570).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21634, 34442},
+	"ALL": {21636, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -88,7 +88,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SOS": {248, 270},
 	"SPM": {160, 192},
 	"TDM": {248, 276},
-	"TLA": {246, 285},
+	"TLA": {248, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
 	"TRK": {311, 311},
