@@ -46,28 +46,33 @@ Knobs for the `make` targets are `BUDGET` (wall seconds for the whole measured p
 
 ## Current numbers
 
-Measured 2026-10-31 at `17767dd48`, Go 1.26.3, `GOMAXPROCS=1`, by the commands in [How it is measured](methodology.md#gorge): three reps of a row at
-once on cores 24, 26 and 30, 20 CPU-seconds a run (15 for Burn). The medians are below, with min-max in brackets. The machine was shared, at a 1-minute load average of 13-19.
+A 2026-11-05 paired comparison (`make enginebench-pair BASE=b78e4c8b1 CAND=HEAD`, pinned to core 24, `GOMAXPROCS=1`, three ABBA reps per row) measured gorge
+HEAD (`0ec285f67`) at 1.06-1.25× the `b78e4c8b1` baseline's CPU per turn on every row: ×1.24-1.25 on `random -autopay`, ×1.11-1.13 on `random`, ×1.12-1.13 on
+`bot -autopay`, ×1.06-1.08 on `bot`, and ×1.05-1.10 on the Burn mirror. That regression is engine work, not a published number: until it is fixed, the rows
+below are the `b78e4c8b1` baseline re-measured on 2026-11-05 as the base arm of that paired run — Go 1.26.3, `GOMAXPROCS=1`, 15 CPU-seconds a run, three reps
+per row, Burn from its own paired run. The [comparison page](index.md) keeps gorge's 2026-11-02 baseline figures and measures dirac at HEAD. HEAD's `clone`
+measures the same as the baseline and `step` about 5% more CPU with GC off.
 
 | Row | Pair A | Pair B | Burn |
 |---|---|---|---|
-| `random -autopay`, games per core-second | 69.9 (69.6-72.3) | 67.6 (67.3-68.0) | 140 (140-141) |
-| `random -autopay`, µs per turn / per decision | 620 / 25.9 | 566 / 24.0 | 287 / 13.1 |
-| `random`, games per core-second | 71.7 (71.6-73.8) | 76.6 (75.7-78.4) | 166 (163-166) |
-| `random`, µs per turn / per decision | 330 / 12.1 | 326 / 11.8 | 173 / 7.90 |
-| `bot -autopay`, games per core-second | 74.4 (73.8-74.4) | 84.4 (82.0-84.5) | 111 (111-112) |
-| `bot -autopay`, µs per turn / per decision | 746 / 29.7 | 673 / 27.7 | 460 / 19.7 |
-| `bot`, games per core-second | 105 (100-105) | 110 (110-111) | 132 (129-132) |
-| `bot`, µs per turn / per decision | 534 / 19.1 | 507 / 18.4 | 391 / 15.5 |
-| Turns per game: `random -autopay` / `random` / bots | 22.7 / 41.9 / 18.0 | 26.1 / 40.0 / 17.8 | 24.9 / 35.0 / 19.5 |
-| Peak RSS, corpus loaded | 353-365 MB | 347-367 MB | 348-365 MB |
+| `random -autopay`, games per core-second | 81.4 (80.8-82.1) | 75.7 (74.7-76.0) | 152 (149-153) |
+| `random -autopay`, µs per turn / per decision | 532 / 22.2 | 507 / 21.5 | 264 / 12.1 |
+| `random`, games per core-second | 87.7 (87.4-88.0) | 90.5 (85.2-91.3) | 178 (176-179) |
+| `random`, µs per turn / per decision | 273 / 9.99 | 275 / 10.5 | 161 / 7.37 |
+| `bot -autopay`, games per core-second | 87.5 (87.3-88.6) | 98.8 (96.0-99.0) | 125 (123-126) |
+| `bot -autopay`, µs per turn / per decision | 631 / 25.2 | 568 / 24.0 | 408 / 17.6 |
+| `bot`, games per core-second | 113 (113-114) | 126 (124-128) | 155 (154-156) |
+| `bot`, µs per turn / per decision | 485 / 17.3 | 443 / 16.2 | 328 / 13.1 |
+| Turns per game: `random -autopay` / `random` / bots | 23.1 / 41.8 / 18.2 | 26.1 / 40.2 / 17.9 | 24.9 / 34.8 / 19.6 |
+| Peak RSS, corpus loaded¹ | 360-409 MB | 368-405 MB | 363-407 MB |
+
+¹ Peak RSS is set by the corpus, not the engine revision, and these runs are from the HEAD side of the paired comparison (one run per row, one core each; peak
+RSS is a distribution, so the range spans rows). Live heap after the corpus loads is 36 MB, the same on both arms.
 
 | One operation, pair A roots (turns 5-8) | No GC | With GC | Per operation |
 |---|--:|--:|---|
-| `clone` | 22.7 µs | 45.3 µs | 200 KB, 51 mallocs |
-| `step` | 74.9 µs | 114 µs | 389 KB, 153 mallocs |
-
-Live heap after the corpus loads is 41 MB.
+| `clone` | 12.9 µs | 27.2 µs | 195 KB, 50 mallocs |
+| `step` | 43.5 µs | 71.2 µs | 369 KB, 140 mallocs |
 
 ## Comparing two revisions
 
@@ -91,24 +96,25 @@ That line came from two reps of the same code, with `BUDGET=30 PIN=26 REPS=2 ROW
 
 ## Where the time goes
 
-CPU profiles of one 20-second pair-A run each, 2026-10-31 at `17767dd48`, pinned to core 26, `GOMAXPROCS=1`. Flat time is grouped by package, and
-`engine/rules` includes its sub-packages.
+CPU profiles of one 20-second pair-A run each, 2026-11-05 at `0ec285f67` (HEAD; the profiles describe the current code, regression included), pinned to core 26,
+`GOMAXPROCS=1`. Flat time is grouped by package, and `engine/rules` includes its sub-packages.
 
 | Package | `random -autopay` | `bot -autopay` |
 |---|--:|--:|
-| `engine/rules` (legal-action walk, payment planning, resolution, triggers) | 61.2% | 52.1% |
-| Go runtime (GC, allocation, maps) | 13.8% | 14.9% |
-| `engine/state` | 7.8% | 7.4% |
-| `engine/cards` | 6.3% | 5.4% |
-| `engine/effects` | 5.3% | 4.6% |
-| Go standard library | 3.7% | 4.0% |
-| `engine/events` | 1.5% | 1.8% |
-| `bots/botpolicy` + `bots/heuristic` | - | 7.2% + 1.1% |
+| `engine/rules` (legal-action walk, payment planning, resolution, triggers) | 63.3% | 58.8% |
+| Go runtime (GC, allocation, maps) | 15.3% | 11.6% |
+| `engine/state` | 6.6% | 5.4% |
+| `engine/cards` | 6.2% | 5.4% |
+| `engine/effects` | 3.6% | 4.3% |
+| Go standard library | 4.4% | 5.2% |
+| `engine/events` | 0.6% | 1.0% |
+| `bots/botpolicy` + `bots/heuristic` | - | 7.1% + 0.4% |
 
-By call tree (cumulative), in the random auto-pay run: `Engine.Submit` 75% and `Engine.Advance` 40% (they nest), the legal-action walk over the hand
-(`legalWalk.handWalk`) 24%, payment planning (`paymentActions`) 22%, and emitting events through `events.Apply` (`Engine.emit`) 17%. In the bot run, the
-bot's own work is about 15% cumulative: building its board (`botpolicy.BoardFromGameInto`) 11% and deciding (`heuristic.(*Bot).DecideBoard`) 4.4%. In both, the
-engine rather than the policy is most of the cost. Listing what a player may do, with payments planned, is the hot path.
+By call tree (cumulative), in the random auto-pay run: `Engine.Submit` 63% and `Engine.Advance` 33% (they nest), payment planning
+(`paymentActionsForPriority`) 35%, the legal-action walk over the hand (`legalWalk.handWalk`) 25%, and emitting events through `events.Apply`
+(`Engine.emit`) 14%. In the bot run, the bot's own work is about 14% cumulative: building its board (`botpolicy.BoardFromGameInto`) 9.8% and deciding
+(`heuristic.(*Bot).DecideBoard`) 4.2%. In both, the engine rather than the policy is most of the cost. Listing what a player may do, with payments planned,
+is the hot path.
 
 To reproduce:
 
