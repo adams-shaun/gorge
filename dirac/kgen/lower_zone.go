@@ -991,6 +991,9 @@ func (lc *lowerCtx) changeZoneAll(ps *params) error {
 	if lc.digImprinted && ps.is("RandomOrder", "True") {
 		return lc.digImprintBottom(ps) // lower_digimprint.go
 	}
+	if lc.playLibrary && ps.is("RandomOrder", "True") {
+		return lc.playLibraryBottom(ps) // lower_playlibrary.go
+	}
 	if _, ok := ps.get("Transformed"); ok {
 		return refuse("ChangeZoneAll Transformed$")
 	}
@@ -1701,14 +1704,20 @@ func (lc *lowerCtx) play(ps *params) error {
 	// may cast the copies", Infinite Diversity): the one remembered card is
 	// offered X times, each pick one copy cast. Read only for the copy-cast
 	// shape the kernel proves in lockstep (CopyCard$ above).
-	repeat := false
+	repeat, upTo := false, false
 	if v, ok := ps.get("AllowRepeats"); ok {
 		if v != "True" || !copyCard || amount == "" || amount == "1" || amount == "All" {
 			return refuse("Play AllowRepeats %q", v)
 		}
 		repeat = true
 	} else if amount != "" && amount != "1" && amount != "All" {
-		return refuse("Play Amount %q", amount)
+		// a literal Amount$ N (gorge effPlay: one ask, Max N, the picks
+		// begun in answer order) on P1's remembered-exile population only
+		// (Doom Reigns Supreme's "up to two spells")
+		if n, err := strconv.Atoi(amount); err != nil || n < 2 || ps.m["ValidZone"] != "Exile" || !strings.Contains(ps.m["Valid"], "IsRemembered") || ps.m["Defined"] != "" || copyCard {
+			return refuse("Play Amount %q", amount)
+		}
+		upTo = true
 	}
 	forget := false
 	if v, ok := ps.get("ForgetPlayed"); ok {
@@ -1771,6 +1780,12 @@ func (lc *lowerCtx) play(ps *params) error {
 			return err
 		}
 		cs += "|Repeat"
+	}
+	if upTo {
+		if repeatN, err = lc.value(amount); err != nil {
+			return err
+		}
+		cs += "|UpTo"
 	}
 	if forget {
 		cs += "|Forget"
@@ -1857,6 +1872,14 @@ func (lc *lowerCtx) play(ps *params) error {
 			return err
 		}
 		return emit(lRef{Kind: rRemembered}, zExile, expr)
+	case "Library":
+		// P1l: the remembered cards still in the controller's library (Cosmic
+		// Cube's peeked six), gorge's Valid$ + ValidZone$ walk
+		if valid != "Card.IsRemembered" || replace {
+			return refuse("Play ValidZone$ Library with Valid$ %q", valid)
+		}
+		lc.playLibrary = true
+		return emit(lRef{Kind: rRemembered}, zLibrary, saExpr)
 	case "Hand", "Graveyard":
 		// P3/P4: untargeted filter population over the controller's hand or
 		// the graveyards, in seat order.
