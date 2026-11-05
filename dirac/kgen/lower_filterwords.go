@@ -84,7 +84,9 @@ func filterWordPred2(p string) (n int, ok bool) {
 // PredWord7 sub-kinds (kop.W7GreatestPowerTgt, kop.W7CrewedBySrc,
 // kop.W7WithWarp). withWarp is gorge's printed-keyword read (effects/filter.go
 // keywordPredicates registers Warp); only that spelling lowers: withoutWarp
-// and hasKeywordWarp stay unknown properties.
+// and hasKeywordWarp stay unknown properties. withDisguise
+// (kop.W7WithDisguise) is the same read for Disguise; withoutDisguise and
+// hasKeywordDisguise stay unknown.
 func filterWordPred3(p string) (n int, ok bool) {
 	switch p {
 	case "greatestPowerControlledByTargeted":
@@ -93,6 +95,8 @@ func filterWordPred3(p string) (n int, ok bool) {
 		return int(kop.W7CrewedBySrc), true
 	case "withWarp":
 		return int(kop.W7WithWarp), true
+	case "withDisguise":
+		return int(kop.W7WithDisguise), true
 	case "ManaCostPartialBlue":
 		return int(kop.W7CostBlue), true
 	case "NoAbilities":
@@ -170,6 +174,27 @@ func (c *lClause) noNameTwinGrave(p string) (handled bool, err error) {
 	}
 	if p == "doesNotShareNameWith YourGraveyard" {
 		return true, c.setCmp(cmpWord7, 0, cmpNoNameGrave, "", "")
+	}
+	return false, nil
+}
+
+// faceUpDisguise reads the faceUp and withDisguise words Expose the Culprit
+// writes in one clause (Creature.faceUp+YouCtrl+withDisguise) into the one
+// PredWord7 sub-kind they make together (kop.W7FaceUpDisguise); either order.
+// A lone withDisguise is kop.W7WithDisguise. handled is false for any other
+// property or a lone faceUp.
+func (c *lClause) faceUpDisguise(p string) (handled bool, err error) {
+	switch p {
+	case "withDisguise":
+		if c.CmpStat == cmpWord7 && c.CmpN == int(kop.W7FaceUp) {
+			c.CmpN = int(kop.W7FaceUpDisguise)
+			return true, nil
+		}
+	case "faceUp":
+		if c.CmpStat == cmpWord7 && c.CmpN == int(kop.W7WithDisguise) {
+			c.CmpN = int(kop.W7FaceUpDisguise)
+			return true, nil
+		}
 	}
 	return false, nil
 }

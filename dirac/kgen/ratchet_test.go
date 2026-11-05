@@ -62,7 +62,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; MKM 234 -> 235, ALL 21553 -> 21554).
 	// +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; this branch; merged FDN 516 -> 517, ALL 21553 -> 21554).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21564, 34442},
+	"ALL": {21571, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -76,12 +76,12 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FRA": {245, 269},
 	"HOB": {152, 172},
 	"LCI": {251, 290},
-	"MKM": {238, 279},
+	"MKM": {239, 279},
 	"MOM": {198, 296},
 	"MSH": {226, 276},
 	"NEO": {198, 287},
 	"ONE": {195, 271},
-	"OTJ": {240, 276},
+	"OTJ": {241, 276},
 	"SNC": {185, 266},
 	"SOS": {248, 270},
 	"SPM": {160, 192},
