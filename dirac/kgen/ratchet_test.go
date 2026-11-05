@@ -55,7 +55,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 over land's 21541 (this branch's Vizier of the Menagerie: FDN 512 -> 513, ALL 21541 -> 21542).
 	// +2 (Animate Duration$ UntilUntaps, kop.Override.WhileTapped: Hedge Whisperer and The Blackstaff of Waterdeep lower; MKM 231 -> 232, ALL 21542 -> 21544).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21544, 34442},
+	"ALL": {21545, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -64,7 +64,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"DSK": {236, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
-	"FDN": {513, 517},
+	"FDN": {514, 517},
 	"FIN": {266, 312},
 	"FRA": {245, 269},
 	"HOB": {152, 172},

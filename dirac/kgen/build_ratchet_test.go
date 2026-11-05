@@ -161,7 +161,7 @@ import (
 // +1 over land's 21541 (this branch's Vizier of the Menagerie: ALL build-level 21541 -> 21542).
 // +2 (Animate Duration$ UntilUntaps, kop.Override.WhileTapped: Hedge Whisperer and The Blackstaff of Waterdeep lower; ALL build-level 21542 -> 21544).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21544, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21545, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
