@@ -145,7 +145,7 @@ import (
 // +1 (The Inner Light: an Effect's remembered target and the damage amount reach its DamageDone emblem trigger; merged 21470 -> 21471; ratchet TRK 297 -> 298).
 // +2 (The Wrath of Khan: a next-combat delayed gain-control and an exile-from-hand cost; merged 21471 -> 21473; ratchet TRK 298 -> 299).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21474, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21478, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
