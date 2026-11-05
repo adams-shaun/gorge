@@ -49,8 +49,10 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (Cemetery Recruitment, Vengeful Rebirth, Tamiyo, Inquisitive Student: RememberTargets$ on a targeted Graveyard->Hand return; FDN 507 -> 508, ALL 21526 -> 21529).
 	// +3 (Wilt-Leaf Liege, Obstinate Baloth, Loxodon Smiter: the opponent-caused discard-to-battlefield replacement, lowered on land, absent here before the merge; FDN 508 -> 509, ALL 21529 -> 21532).
 	// +2 (the WISH counter kind, kop.CtrWish: Wishclaw Talisman and Ring of Three Wishes lower; FDN 509 -> 510, ALL 21532 -> 21534).
+	// +1 (Carnelian Orb of Dragonkind: the AddsKeywords$ Haste mana rider lowers; FDN 510 -> 511, ALL 21534 -> 21535).
+	// +6 (the printed K:Prevent damage keywords: Fog Bank and kin; FDN 511 -> 512, ALL 21535 -> 21541).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21537, 34442}, // merged: land's Carnelian Orb of Dragonkind + this branch's Sorcerous Spyglass (FDN and LCI printings)
+	"ALL": {21541, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -59,11 +61,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"DSK": {236, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
-	"FDN": {512, 517}, // merged: land's Carnelian Orb of Dragonkind + this branch's Sorcerous Spyglass
+	"FDN": {512, 517},
 	"FIN": {266, 312},
 	"FRA": {245, 269},
 	"HOB": {152, 172},
-	"LCI": {251, 290},
+	"LCI": {250, 290},
 	"MKM": {231, 279},
 	"MOM": {198, 296},
 	"MSH": {226, 276},

@@ -432,6 +432,7 @@ func (cb *cardBuilder) record() error {
 	if d.Keywords, err = kwMask(c.Kw); err != nil {
 		return err
 	}
+	d.PreventDmgTo, d.PreventCombatTo, d.PreventCombatBy = c.PreventDmgTo, c.PrevCmbTo, c.PrevCmbBy
 	d.Colors = colorMask(c.Colors)
 	d.Power, d.Toughness, d.Loyalty = int8(c.P), int8(c.T), int8(c.Loyalty)
 	d.NoPT = c.NoPT
