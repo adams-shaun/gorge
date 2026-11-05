@@ -127,8 +127,10 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		return Pack(ActCast, src, RefNone, CastModeOther)
 	case dirac.AkCastConspire:
 		// gorge's "conspired" cast option (CR 702.78a; kw_conspire.go): the
-		// cast-mode table is full, so it canonicalises to CastModeOther
-		return Pack(ActCast, src, RefNone, CastModeOther)
+		// cast-mode table is full, so it canonicalises to CastModeOther with
+		// the top alt-cost nibble set: a granted conspire pairs with a
+		// bargain/teamwork cast of one card, which owns the plain CastModeOther
+		return Pack(ActCast, src, RefNone, ConspiredCastCode)
 	case dirac.AkBestow:
 		cm, _ := CastModeCode("bestowed") // gorge's "bestowed" cast option (CR 702.103a; kw_bestow.go)
 		return Pack(ActCast, src, RefNone, cm)
@@ -914,3 +916,9 @@ func NameOrdinal(v uint16, earlier []string) uint8 {
 	}
 	return uint8(min(n, 255))
 }
+
+// ConspiredCastCode is the cast-mode byte of the conspired cast: CastModeOther
+// with the alt-cost nibble at its top value, distinct from the bargained and
+// teamworked casts (CastModeOther, nibble 0) and the optional-cost casts
+// (nibble i+1 of a short list).
+const ConspiredCastCode = CastModeOther | 15<<4

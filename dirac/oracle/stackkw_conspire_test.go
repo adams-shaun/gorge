@@ -18,11 +18,10 @@ import (
 // cast, and counts the conspired casts and the copies that reach the stack.
 
 var kconspireDeck = []cardset.Entry{
-	{Name: "Raiding Schemes", Count: 4}, {Name: "Shock", Count: 3}, {Name: "Lightning Bolt", Count: 2}, {Name: "Giant Growth", Count: 3},
-	{Name: "Divination", Count: 1}, {Name: "Burning-Tree Emissary", Count: 3}, {Name: "Iridescent Tiger", Count: 2},
-	{Name: "Grizzly Bears", Count: 3}, {Name: "Hill Giant", Count: 2}, {Name: "Gray Ogre", Count: 2}, {Name: "Walking Corpse", Count: 1},
-	{Name: "Savannah Lions", Count: 1},
-	{Name: "Forest", Count: 4}, {Name: "Mountain", Count: 4}, {Name: "Island", Count: 1}, {Name: "Plains", Count: 2}, {Name: "Swamp", Count: 2},
+	{Name: "Raiding Schemes", Count: 5}, {Name: "Johann's Stopgap", Count: 5}, {Name: "Shock", Count: 1},
+	{Name: "Burning-Tree Emissary", Count: 2}, {Name: "Iridescent Tiger", Count: 4},
+	{Name: "Merfolk of the Pearl Trident", Count: 4}, {Name: "Grizzly Bears", Count: 3},
+	{Name: "Forest", Count: 5}, {Name: "Mountain", Count: 4}, {Name: "Island", Count: 7},
 }
 
 // kconspirePay is the ETB mana creatures: gorge offers the conspired cast
@@ -31,7 +30,7 @@ var kconspireDeck = []cardset.Entry{
 var kconspirePay = map[string]bool{"Burning-Tree Emissary": true, "Iridescent Tiger": true}
 
 var kconspireCreature = map[string]bool{
-	"Grizzly Bears": true, "Hill Giant": true, "Gray Ogre": true, "Walking Corpse": true, "Savannah Lions": true,
+	"Grizzly Bears": true, "Merfolk of the Pearl Trident": true,
 }
 
 func kconspirePolicy(seed uint64, cnt map[string]int) Policy {
@@ -53,6 +52,9 @@ func kconspirePolicy(seed uint64, cnt map[string]int) Policy {
 			if a.Kind() == ActCast {
 				if o, ok := c.G.GorgeOption(a); ok && o.Mode == "conspired" {
 					cnt["conspired"]++
+					if kbargainName(c.G, a.Src()) == "Johann's Stopgap" {
+						cnt["conspired-bargain"]++ // a Bargain spell cast conspired is never priced bargained
+					}
 				}
 			}
 			if cp, ok := chooseCode("conspire"); ok && a.Kind() == ActChoose+CanonKind(cp) {
@@ -68,6 +70,11 @@ func kconspirePolicy(seed uint64, cnt map[string]int) Policy {
 			}
 			for _, a := range c.D.Options {
 				if a.Kind() == ActCast && kconspireCreature[kbargainName(c.G, a.Src())] {
+					return note(a)
+				}
+			}
+			for _, a := range c.D.Options {
+				if o, ok := c.G.GorgeOption(a); ok && a.Kind() == ActCast && o.Mode == "conspired" && kbargainName(c.G, a.Src()) == "Johann's Stopgap" {
 					return note(a)
 				}
 			}
@@ -165,8 +172,8 @@ func TestStackkwConspireLockstep(t *testing.T) {
 	}
 	games, divs, stalls, cnt := runStackkwConspire(t, 256, true)
 	t.Logf("%d games, %d divergences, %d stalls, granted plays %v", games, divs, stalls, cnt)
-	for _, w := range []string{"conspired", "copy", "conspire-pick"} {
-		if cnt[w] < 5 {
+	for _, w := range []string{"conspired", "copy", "conspire-pick", "conspired-bargain"} {
+		if cnt[w] < 1 || (w != "conspired-bargain" && cnt[w] < 5) {
 			t.Errorf("only %d granted %s plays (want >= 5)", cnt[w], w)
 		}
 	}
