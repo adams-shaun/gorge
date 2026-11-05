@@ -81,6 +81,9 @@ func (e *Engine) verifyActiveSame() {
 	fresh := make([]ContinuousEffect, 0, len(src))
 	for _, p := range src {
 		fresh = append(fresh, *p)
+		if p.GrantedStatic && (p.MayPlay || p.AdjustLandPlays != 0) {
+			e.grantedStaticController(&fresh[len(fresh)-1])
+		}
 	}
 	if len(fresh) != len(e.activeBuf) || (len(fresh) > 0 && !continuousEffectsEqual(fresh, e.activeBuf)) {
 		panic(fmt.Sprintf("rules: unchanged-list active() rebuild at log %d disagrees with a full build (%d vs %d effects)", len(e.L.Events), len(e.activeBuf), len(fresh)))

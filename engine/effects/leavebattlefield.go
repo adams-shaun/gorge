@@ -185,7 +185,7 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 				// static, so it registers as the Effect route's grant with the
 				// permanent as its source and the animation's own lifetime, read by
 				// rules' land-play gates like any other effect-delivered grant.
-				ce.Source, ce.Controller = id, c.Controller
+				ce.Source, ce.Controller, ce.GrantedStatic = id, c.Controller, true
 				ce.Duration, ce.Permanent, ce.UntilEOT, ce.DurationSource = dur, permanent, untilEOT, durSource
 				ce.ExileOnMoved, ce.ExileOnMovedAlso, ce.Remembered = exileOn, exileAlso, remembered
 				effectContinuous(h, ce)
