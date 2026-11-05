@@ -154,9 +154,16 @@ import (
 // +1 (Teval, Arbiter of Virtue: a granted Delve on the stack lowers and the cast announces its graveyard exiles; merged ALL 21523 -> 21524; ratchet TDM 244 -> 245).
 // +3 (Cemetery Recruitment, Vengeful Rebirth, Tamiyo, Inquisitive Student: RememberTargets$ on a targeted Graveyard->Hand return; ALL build-level 21526 -> 21529).
 // +3 (Wilt-Leaf Liege, Obstinate Baloth, Loxodon Smiter: the opponent-caused discard-to-battlefield replacement, lowered on land, absent here before the merge; ALL build-level 21529 -> 21532).
+// +1 (Vizier of the Menagerie: the ManaConvert static lowering for creature spells; ALL build-level 21532 -> 21533).
 // +2 (the WISH counter kind, kop.CtrWish: Wishclaw Talisman and Ring of Three Wishes lower; ALL build-level 21532 -> 21534).
+// +1 (Carnelian Orb of Dragonkind: the AddsKeywords$ Haste mana rider lowers; ALL build-level 21534 -> 21535).
+// +6 (the printed K:Prevent damage keywords: Fog Bank and kin; ALL build-level 21535 -> 21541).
+// +1 over land's 21541 (this branch's Vizier of the Menagerie: ALL build-level 21541 -> 21542).
+// +1 (Ramos, Dragon Engine: the all-at-once counter-removal mana ability, kop.CtrEachManaAb; merged with land's Animate Duration$/Mazemind lowerings; ALL build-level 21545 -> 21546).
+// +2 (Animate Duration$ UntilUntaps, kop.Override.WhileTapped: Hedge Whisperer and The Blackstaff of Waterdeep lower; ALL build-level 21542 -> 21544).
+// +1 over land's 21546 (this branch's Vannifar, Evolved Enigma: the cloak-from-hand shape lowers; merged with land's Ramos mana ability; ALL build-level 21546 -> 21547).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21538, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21551, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

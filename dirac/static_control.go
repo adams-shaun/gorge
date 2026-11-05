@@ -450,9 +450,7 @@ func (s *State) opGainControl(k *prep, in *kop.Instr) {
 			p.subCtrN(s, int(kop.CtrStun), 1) // CR 122.1d (gorge TryUntap)
 		} else if !s.untapBlocked(k, sl) {
 			p.flags &^= pfTapped
-			if s.g.netAny() {
-				s.netDrop(p.obj) // the lock ends at the first untap (act_lockpermanent.go)
-			}
+			s.untapEnds(k, p.obj) // the lock and the host-tapped grants end at the first untap (static_animatewhiletapped.go)
 		}
 	}
 	if in.B.N&kop.GcHasteEOT != 0 {

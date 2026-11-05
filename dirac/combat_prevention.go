@@ -2,6 +2,40 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
+// prevCombatTo reports whether the permanent at sl prevents every combat
+// damage event dealt to it: the granted/derived KwPreventCombatDamageTo bit
+// (Fleeting Flight), or a printed K:Prevent sentence's card-def fact
+// (PreventCombatTo, or PreventDmgTo which covers combat too). The printed
+// fact is the card's face replacement, so it is gone when the permanent has
+// lost all abilities or is face down (gorge replacementFace's
+// printedAbilitiesLost, CR 708.2), like every other printed per-card
+// replacement bit (replCandLive, parkNC, kw_wither).
+func (s *State) prevCombatTo(k *prep, sl Slot) bool {
+	if s.kwGen(k, sl)&kop.KwPreventCombatDamageTo != 0 {
+		return true
+	}
+	return k.gen != nil && k.gen.replBits[s.cardAt(sl)]&(rbPrevCombatTo|rbPrevDmgTo) != 0 && !s.genLost(k, sl)
+}
+
+// prevCombatFrom reports whether the permanent at sl prevents every combat
+// damage event it would deal: the granted/derived KwPreventCombatDamageFrom
+// bit (Maze of Ith) or the printed "dealt by" sentence (Fog Bank), the
+// latter gone with lost abilities or face down (prevCombatTo).
+func (s *State) prevCombatFrom(k *prep, sl Slot) bool {
+	if s.kwGen(k, sl)&kop.KwPreventCombatDamageFrom != 0 {
+		return true
+	}
+	return k.gen != nil && k.gen.replBits[s.cardAt(sl)]&rbPrevCombatBy != 0 && !s.genLost(k, sl)
+}
+
+// prevAnyTo reports whether the permanent at sl prevents every damage event
+// dealt to it, combat and noncombat ("Prevent all damage that would be dealt
+// to CARDNAME."), the printed fact gone with lost abilities or face down
+// (prevCombatTo).
+func (s *State) prevAnyTo(k *prep, sl Slot) bool {
+	return k.gen != nil && k.gen.replBits[s.cardAt(sl)]&rbPrevDmgTo != 0 && !s.genLost(k, sl)
+}
+
 // preventCombatEv takes combat damage event ev out of r's accounting: the
 // event is prevented whole (a shield counter, protection), so it is not
 // damage dealt — no DamageDone/DamageDealtOnce trigger, no lifelink, no

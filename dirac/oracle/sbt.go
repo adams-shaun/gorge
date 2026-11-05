@@ -685,7 +685,7 @@ func (a *SBT) chooseKey(s *dirac.State, d *dirac.Decision, x dirac.Action, zkey 
 		return uint32(mode)
 	case dirac.ChGenType:
 		return s.FeatTypeKey(d.Player, int(x.Target())<<8|int(mode))
-	case dirac.ChGenChooseCard, dirac.ChGenCastFree:
+	case dirac.ChGenChooseCard, dirac.ChGenFaceDownPick, dirac.ChGenCastFree:
 		return uint32(src)
 	}
 	if src == uint8(dirac.NoObj) || src >= dirac.PlayerTarget0 {

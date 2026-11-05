@@ -143,11 +143,12 @@ var ChooseKinds = []string{
 	"permanent",            // gorge's clone_choice pick
 	"beholdcost",           // gorge's beholdCostAsk pick
 	"unlock", "lock",       // gorge effUnlockDoor's election
-	"revealcost",   // gorge's AdvanceUnless reveal pick
-	"ward_mana",    // gorge ward.go's {N} option of a discard-or-pay ward
-	"puttolibcost", // gorge putToLibAsk's PutCardToLibFrom<Zone> pick
-	"keep_tapped",  // gorge finishUntapStep's untap-step election (CR 502.3), beside "untap"
-	"conspire",     // CR 702.78a: gorge conspireAsk's tap pick (kw_conspire.go)
+	"revealcost",       // gorge's AdvanceUnless reveal pick
+	"ward_mana",        // gorge ward.go's {N} option of a discard-or-pay ward
+	"puttolibcost",     // gorge putToLibAsk's PutCardToLibFrom<Zone> pick
+	"keep_tapped",      // gorge finishUntapStep's untap-step election (CR 502.3), beside "untap"
+	"conspire",         // CR 702.78a: gorge conspireAsk's tap pick (kw_conspire.go)
+	"face_down_choice", // gorge effCloak's cloak-from-hand pick (chooseFromZoneForFaceDown, CR 701.58a)
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.

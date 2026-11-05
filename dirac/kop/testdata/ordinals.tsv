@@ -61,6 +61,8 @@ CastSpecNotHand	untyped int	8
 CastSpecTreasure	untyped int	16
 CastSpecTypes	untyped int	256
 CastSpecYou	untyped int	1
+CfChosen	untyped int	8
+CfCloakCtrl	untyped int	16
 CfRemember	untyped int	4
 CfShuffle	untyped int	2
 CfTapped	untyped int	1
@@ -1027,6 +1029,7 @@ StackKwLifelink	int16	4
 StackKwSplitSecond	int16	6
 StackKwStorm	int16	5
 StatAlternativeCost	StaticKind	5
+StatAnyTypeCreatures	StaticKind	239
 StatBeamGrant	StaticKind	253
 StatCDAPT	StaticKind	10
 StatCanAttackDefender	StaticKind	250
@@ -1144,6 +1147,7 @@ Tf4NthFiltered	TrigFlags4	8
 Tf4OptTrigPlayer	TrigFlags4	32
 Tf4SingleCauseTarget	TrigFlags4	2
 Tf4SingleTarget	TrigFlags4	1
+Tf4StateCtr	TrigFlags4	64
 TfCombat	TrigFlags	4
 TfNontokenSrc	TrigFlags	64
 TfNotToGrave	TrigFlags	128

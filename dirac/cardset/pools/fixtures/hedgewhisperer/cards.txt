@@ -1,0 +1,13 @@
+# the Hedge Whisperer pool: the keep-tapped untap election and the Animate
+# that lasts for as long as its host stays tapped (Duration$ UntilUntaps),
+# paid with collect evidence from a graveyard Crow of Dark Tidings mills,
+# for the oracle's constructed lockstep
+# (dirac/oracle/animate_untiluntaps_test.go)
+Burglar Rat
+Crow of Dark Tidings
+Forest
+Hedge Whisperer
+Hill Giant
+Mountain
+Shock
+Swamp
