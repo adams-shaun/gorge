@@ -110,11 +110,34 @@ func ClosedFactory(belief *searchprobe.Belief, sims int) bots.Factory {
 		// A human meets modes, may-triggers, small choices and multi-target
 		// picks, so the paired bot weighs them; they stay off for hosted seats.
 		cfg.Search.Kinds = azmcts.FullKinds()
+		// The mulligan too, both asks, on its own budget; the seat's own
+		// answer there, and every fallback, reads the hand (never the
+		// default bot's coin).
+		cfg.Search.Kinds.Mulligan = true
+		cfg.Search.MulliganWorlds, cfg.Search.MulliganTurns = MulliganWorlds, MulliganTurns
+		cfg.Mulligan = botpolicy.MulliganConstructed
 		cfg.Search.AutoPayment = o.AutoPayMana
 		cfg.Search.Line = o.ExpectedLine
 		return New(o, cfg)
 	}
 }
+
+// The paired bot's mulligan budget (azmcts.Options.MulliganWorlds,
+// MulliganTurns), measured on rigged and dealt sevens of three repo decks.
+const (
+	// MulliganWorlds is the deals every candidate is played in. At
+	// thirty-two the search kept every rigged three-land seven of cheap
+	// spells and kept no rigged seven of 0, 6 or 7 lands, and a keep or
+	// mulligan ask stays under a second of CPU, a three-candidate bottoming
+	// ask well inside the two-second advice deadline.
+	MulliganWorlds = 32
+	// MulliganTurns is the game turns a walk plays, five a seat. At six the
+	// leaf, which reads a land in play as material and a card in hand as two
+	// points, still preferred keeping a six-land seven; at ten it kept none
+	// of 0, 6 or 7 lands; sixteen doubled the CPU without judging those
+	// hands better.
+	MulliganTurns = 10
+)
 
 // DecisionBudgetMS is the factory's per-decision wall-clock budget
 // (bots.Options.DecisionDeadlineMS), for the host to arm as the DecideEnv

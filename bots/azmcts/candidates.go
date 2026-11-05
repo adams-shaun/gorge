@@ -205,8 +205,50 @@ func kindOf(d *decision.Decision, kinds Kinds) string {
 		return "optional"
 	case d.Kind == decision.KChoose && kinds.Choose && smallChoose(d, kinds.chooseLimit()):
 		return "choose"
+	case d.Kind == decision.KMulligan && kinds.Mulligan:
+		return "mulligan"
 	}
 	return ""
+}
+
+// mulliganBottomCands caps a bottoming ask's candidates. Every candidate of
+// a mulligan search costs a full set of walks (Options.MulliganWorlds, a few
+// hundred milliseconds at the paired bot's budget), and three -- the policy's
+// split and its first two alternatives -- keeps a bottoming ask well inside
+// the paired bot's advice deadline.
+const mulliganBottomCands = 3
+
+// mulliganCandidates are the answers a mulligan search weighs, the bot's
+// own first. A keep/mulligan ask offers both options when a mulligan is
+// still allowed. A bottoming ask offers the policy's split with one land
+// more or one land fewer put back, or one other spell
+// (botpolicy.BottomingAlternatives): the cards within lands and within
+// spells are the policy's own picks, so the search weighs how many lands the
+// kept hand holds, which is what a few turns of play can tell apart, rather
+// than every subset of seven. Capped at limit and mulliganBottomCands.
+func mulliganCandidates(e *rules.Engine, d *decision.Decision, bot decision.Intent, limit int, scratch *boardScratch) []decision.Intent {
+	if len(d.Options) == 0 || d.Options[0].Kind != "bottom" {
+		return subsetCandidates(d, bot, limit)
+	}
+	if bot.Payment != nil || len(bot.Rest) > 0 || d.Validate(bot) != nil {
+		return nil
+	}
+	botSet := sortedChoices(bot).Choices
+	out := []decision.Intent{{Seq: d.Seq, Player: d.Player, Choices: append([]int(nil), bot.Choices...)}}
+	for _, alt := range botpolicy.BottomingAlternatives(boardInto(e, d.Player, scratch), d) {
+		if len(out) >= min(limit, mulliganBottomCands) {
+			break
+		}
+		in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: alt}
+		if sameInts(sortedChoices(in).Choices, botSet) || d.Validate(in) != nil {
+			continue
+		}
+		out = append(out, in)
+	}
+	if len(out) < 2 {
+		return nil
+	}
+	return out
 }
 
 // Searches reports whether a seat with these kinds searches decision d: the
@@ -246,6 +288,8 @@ func enumerateLimit(obs *searchprobe.Collector, e *rules.Engine, d *decision.Dec
 		ins = searchprobe.TargetCandidates(d, bot, limit)
 	case "multitarget", "modes", "optional", "choose":
 		ins = subsetCandidates(d, bot, limit)
+	case "mulligan":
+		ins = mulliganCandidates(e, d, bot, limit, scratch)
 	case "priority":
 		var one [1]searchprobe.Action
 		base, err := obs.AppendIntentActions(one[:0], d, bot)

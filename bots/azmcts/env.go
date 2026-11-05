@@ -91,6 +91,12 @@ type walkConfig struct {
 	// line is Options.Line: when positive, every in-walk point describes
 	// its candidates (Point.lines).
 	line int
+	// horizon, when positive, makes the walk flat (a mulligan root,
+	// Options.MulliganTurns): no in-walk point for any seat, and the walk
+	// stops for its leaf once the game's turn passes horizon. mulligan is
+	// the rule both seats' walk bots answer a later mulligan ask with.
+	horizon  int32
+	mulligan botpolicy.MulliganRule
 }
 
 // priorNet is the network in-walk priors read: nil under uniformPrior.
@@ -311,7 +317,7 @@ func newEngineEnv(w World, cfg *walkConfig) (*engineEnv, error) {
 	}
 	if cfg.autoPayment {
 		env.actorPCG = heuristic.BotSource(splitmix(cfg.envSeed ^ 0x6163746f722d6270 ^ uint64(cfg.actor)))
-		env.actorBot = heuristic.NewBotOn(env.actorPCG).EnableAutoPayMana()
+		env.actorBot = heuristic.NewBotOn(env.actorPCG).EnableAutoPayMana().WithMulligan(cfg.mulligan)
 	}
 	if cfg.oppAutoPay {
 		env.oppPCGs = make([]*rand.PCG, n)
@@ -321,6 +327,11 @@ func newEngineEnv(w World, cfg *walkConfig) (*engineEnv, error) {
 			}
 		}
 		env.oppBots = oppBotsOn(env.oppPCGs)
+		for _, b := range env.oppBots {
+			if b != nil {
+				b.WithMulligan(cfg.mulligan)
+			}
+		}
 	}
 	if cfg.rootPerWorld {
 		if err := env.matchRoot(); err != nil {
@@ -458,6 +469,12 @@ func (e *engineEnv) advance() (*Point, error) {
 			e.cur, e.cands = nil, nil
 			return nil, nil
 		}
+		if e.cfg.horizon > 0 && g.Turn > e.cfg.horizon {
+			// A flat walk (a mulligan root) has played its turns: the leaf is
+			// scored here.
+			e.cur, e.cands = nil, nil
+			return nil, nil
+		}
 		pd := e.e.Pending()
 		if pd == nil {
 			return nil, fmt.Errorf("%w: no pending decision and the game is not over", ErrSubmit)
@@ -498,10 +515,17 @@ func (e *engineEnv) advance() (*Point, error) {
 			in, free = botpolicy.DecideBoardFree(pd, g.Step.IsMain())
 			if !free {
 				b := botpolicy.BoardFromGameInto(g, e.e, pd.Player, e.board)
+				if pd.Kind == decision.KMulligan {
+					// The walk's later mulligan asks, both seats', answer by
+					// the searching seat's own rule (walkConfig.mulligan).
+					b.Mulligan = e.cfg.mulligan
+				}
 				in = botpolicy.Decide(b, pd, e.rngs[pd.Player])
 			}
 		}
-		if pd.Player == e.cfg.actor {
+		if e.cfg.horizon > 0 {
+			// A flat walk (a mulligan root) has no point past its root.
+		} else if pd.Player == e.cfg.actor {
 			if cands, kind, _, ok, cut := enumerateCutInto(e.obs, e.e, pd, in, e.cfg.kinds, e.cfg.enumLimit(), e.cfg.autoPayment, e.cfg.enumBoard); ok {
 				if cut {
 					e.cfg.stats.Truncated++
