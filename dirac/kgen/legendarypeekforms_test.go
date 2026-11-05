@@ -123,6 +123,7 @@ func TestThisTurnCastCount(t *testing.T) {
 		"Card.YouCtrl+!wasCastFromYourHandByYou":                                kop.CastSpecYou | kop.CastSpecNotHand,
 		"Card.YouCtrl+!CastSaSource":                                            kop.CastSpecYou | kop.CastSpecExclude,
 		"Card.!CastSaSource":                                                    kop.CastSpecExclude,
+		"Card.ControlledBy Player.Active":                                       0, // Weftwalking: the active player's casts (cmpActiveCtrl)
 		"Card.ActivePlayerCtrl":                                                 0, // read off the pushed object itself on both matchers
 		"Creature.ActivePlayerCtrl":                                             0,
 		"Card.Historic+YouCtrl":                                                 kop.CastSpecYou,
@@ -152,7 +153,7 @@ func TestThisTurnCastCount(t *testing.T) {
 		"Card.YouCtrl+!CastSaSource$CardManaCost", "Instant.YouCtrl,Sorcery.YouCtrl$GreatestCardManaCost",
 		"Card.Self", "Creature.nonLemur+withFlying+YouCtrl",
 		"Card.YouCtrl+CastSa Spell.ManaFromTreasure,Card.YouCtrl",
-		"Card.YouCtrl+CastSa", "Card.nonCreature+ControlledBy TriggeredActivator", "Card.ControlledBy Player.Active",
+		"Card.YouCtrl+CastSa", "Card.nonCreature+ControlledBy TriggeredActivator",
 		"Card.RememberedPlayerCtrl+sharesNameWith",
 		"Card.YouCtrl+wasCastFromYourHand,Card.OppCtrl",
 	} {

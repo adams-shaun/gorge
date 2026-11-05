@@ -250,6 +250,12 @@ const StatCantActivate StaticKind = 236
 // the StaticFlags iota tail in table.go stays untouched.
 const StCasterActive = StTargetsFilter2
 
+// StSeatActive: on a StatMayPlayFrom only, the permission's beneficiary is
+// the active player (MayPlayPlayer$ Player.Active; Weftwalking), not the
+// static's controller. It aliases StEmbNum (1<<14), a ReduceCost-emblem bit
+// no MayPlayFrom static reads; StaticFlags is full at 16 bits.
+const StSeatActive = StEmbNum
+
 // StatDisableETB: S:Mode$ DisableTriggers | ValidMode$
 // ChangesZone[,ChangesZoneAll] | Destination$ Battlefield (CR 603.2g; gorge
 // disableTriggersExcludes). Filter = ValidCause$, matched against the
