@@ -1647,9 +1647,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			case "ActivatorOpp":
 				st.StFlags |= kop.StRaiseOpp
 			case "SpareMana":
-				st.A = 1
+				st.A |= 1
 			case "LoyaltyOnly":
-				st.A = 2
+				st.A |= 2
+			case "NamedCard":
+				st.A |= kop.CantActNamed
 			default:
 				return ka, nil, fmt.Errorf("cant be activated flag %q", fl)
 			}
@@ -4025,7 +4027,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "ChooseType":
 		ki.Op, ki.C = kop.OpChooseType, int16(in.C) // C: a card-type category's offered types (lower_choosetype.go)
 	case "ChooseName":
-		buildChooseName(&ki) // an as-enters nonland card name (lower_choosename.go)
+		buildChooseName(&ki, in.B.N) // an as-enters card name (lower_choosename.go)
 	case "ChooseNumber":
 		// an as-enters number from B to C (lower_choosenumber.go)
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)

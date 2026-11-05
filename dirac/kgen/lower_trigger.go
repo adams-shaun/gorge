@@ -2911,6 +2911,11 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		}
 		rl.Prog = ab.Prog
 		rl.Kind = "EntersWith"
+		if spyglassChain(r.With) {
+			// gorge runs this chain (not a bare NameCard body) once the permanent
+			// is on the battlefield: the queued ask, not the stack pre-ask
+			rl.S = "Updated"
+		}
 		if other {
 			rl.Kind = "OthersEnterWith"
 		}
@@ -3558,6 +3563,25 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			if err := lc.etbChooseNumber(ps, node, sa, other, cond); err != nil { // lower_choosenumber.go
 				return err
 			}
+		case "ChoosePlayer":
+			// Sorcerous Spyglass's chain head (lower_choosename.go spyglassChain)
+			if other || node != sa || !spyglassChain(sa) {
+				return refuse("ETB replacement api ChoosePlayer")
+			}
+			if err := lc.choosePlayer(ps); err != nil {
+				return err
+			}
+		case "RevealHand":
+			// the chain's look: folded into the name ask's decisions (B = 2)
+			if other || !spyglassChain(sa) {
+				return refuse("ETB replacement api RevealHand")
+			}
+			ps.consume("Defined", "Look")
+		case "Cleanup":
+			if other || !spyglassChain(sa) {
+				return refuse("ETB replacement api Cleanup")
+			}
+			lc.clearChosenPlayer(ps)
 		case "NameCard":
 			if err := lc.etbChooseName(ps, node, sa, other, cond); err != nil { // lower_choosename.go
 				return err

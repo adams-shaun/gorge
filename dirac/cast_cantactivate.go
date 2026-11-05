@@ -66,8 +66,14 @@ func (s *State) actForbiddenAb(k *prep, sl Slot, mana, loyal bool) bool {
 		if st.StFlags&kop.StRaiseYou != 0 && stc.ctrl != p || st.StFlags&kop.StRaiseOpp != 0 && stc.ctrl == p {
 			return true
 		}
-		if mana && st.A == 1 || st.A == 2 && !loyal {
+		if mana && st.A&3 == 1 || st.A&3 == 2 && !loyal {
 			return true
+		}
+		if st.A&kop.CantActNamed != 0 {
+			// Sorcerous Spyglass: only a source with the static source's chosen name
+			if c, ok := s.chosenNameOf(stc.sl); !ok || s.nameCardAt(sl) != c {
+				return true
+			}
 		}
 		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, s.ctxStatic(stc)) {
 			return true

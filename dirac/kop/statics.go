@@ -238,9 +238,15 @@ const (
 // the iota tail in ops.go): activated abilities of battlefield permanents
 // matching Filter can't be activated (StRaiseOpp: by the static
 // controller's opponents only; StRaiseYou: by its controller only; under
-// Cond2; A = 1 spares mana abilities; A = 2 reaches loyalty abilities only)
-// (CR 602.5; gorge abilityRestricted).
+// Cond2; A&3 = 1 spares mana abilities; A&3 = 2 reaches loyalty abilities only;
+// A&CantActNamed: only sources whose card is the static source's as-enters
+// chosen name) (CR 602.5; gorge abilityRestricted).
 const StatCantActivate StaticKind = 236
+
+// CantActNamed is the StatCantActivate A bit for ValidCard$ Card.NamedCard
+// (Sorcerous Spyglass): the filter holds only for a source with the static
+// source's chosen name (ExtChooseName).
+const CantActNamed = 4
 
 // StCasterActive: on a StatCantBeCast only, the
 // restriction binds a caster who is the active player (Caster$
