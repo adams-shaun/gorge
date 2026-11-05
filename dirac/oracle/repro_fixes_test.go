@@ -98,15 +98,24 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"refused_paid_copy_cast_keeps_window_tap", true, false},        // CR 733.1: Encounter the Unknown's copy cast that gorge cannot pay is reversed after its mana window, so the tapped source and its mana stay
 		{"exile_grant_host_is_a_copy", false, false},                    // CR 707.2, 603.6a: Dominion Saboteur enters as Q, Stacking the Deck, so its enter trigger's exiled Assembly Specialist gains Q's exile-from-hand cast ability, which the copy's host offers
 		{"turn_once_resets_while_phased_out", false, false},             // CR 602.5b, 702.26d: DOT-7 Repair Squad activated, then phased out through its turn's end, has its once-each-turn limit lifted when it phases back in
+		{"phased_in_permanent_rederives_override_types", true, false},   // CR 702.26c, 613.1: an assimilated Lwaxana Troi and a Station-charged Borg Cube phase in during the untap step, and the next decision projects their continuous artifact/creature types
 		{"clone_template_choice_asked_on_stack", false, false},          // CR 614.12, 707.9: Dominion Saboteur entering as a copy of Nyota Uhura is asked her "choose a number" with the Saboteur still on the stack, after the copy election
 		{"returned_clone_order_ask_beside_counter_source", true, false}, // CR 616.1: Dominion Saboteur returned from exile as a copy of Troubling Tribbles beside Deanna Troi's extra counter is asked the replacement order with the card still in exile
 		{"until_next_turn_pump_misses_returned_creature", false, false}, // CR 400.7, 611.2c: V'Ger's "-1/-0 until your next turn" does not reach Hologram Janeway that Ghost of Illyria blinked back, a new object
+		{"copy_cast_x_spell_asks_x_before_abort", false, false},         // CR 601.2b, 601.2c: Q's Play of Khaaaaaaaaaaaannn! announces X before its target ask, so a copy cast no mana can pay still asks X = 0 and puts the copy on the stack before the target ask reverses it
+		{"clone_entry_replacement_sees_copy", false, false},             // CR 614.12, 707.9b: Dominion Saboteur entering as a copy of U.S.S. Enterprise-D is a Spacecraft as it enters, so Zefram Cochrane's two extra charge counters join the copied one
+		{"copy_cast_mode_target_unpayable", false, false},               // CR 601.2c, 733.1: Q's Play of Make It So announces its untap mode, whose required target the opponent's three untapped lands cannot pay for, so the cast is reversed at the target ask
 		{"dilemma_cast_reversed_no_target", true, false},                // CR 601.2c, 733.1: Q's Play of Stray from History, a copy cast the opponent's two Mountains cannot pay, is reversed at the "target opponent" ask, after the dilemma and before any tap, as gorge withholds every target of an unpayable cast
 		{"unpayable_x_copy_cast_asks_x", false, false},                  // CR 601.2b, 601.2c: Q's Play of Khaaaaaaaaaaaannn! with every source tapped still announces X before its target, so the copy sits on the stack at the X ask
+		{"unpayable_modal_copy_cast_aborts_at_target", true, false},     // CR 601.2b, 601.2c: Q's Play of Set Phasers to . . . with every source tapped announces its mode, then aborts at the chosen mode's target ask
 		{"graveyard_shuffle_moves_one_batch", false, false},             // CR 603.2c: Those Old Scientists' two-card shuffle is one event, so Sela's "one or more cards leave your graveyard" triggers once
 		{"name_choice_beside_counter_rider_no_order", false, false},     // CR 614.12, 616.1: Kai Winn entering beside Deanna Troi's extra counter is asked only the name, as the two compose in either order
 		{"name_hash_collision_both_offered", false, false},              // CR 201.4: Jadzia Dax and Xenobotanist hash alike as chosen names, yet both stay distinct options on each side
 		{"exile_return_name_asked_mid_cost", false, false},              // CR 614.12, 610.3: In the Pale Moonlight's sacrifice of Malfunctioning Holodeck returns Kai Winn, who is asked her name in exile before the two Romulan tokens are made
+		{"copy_cast_unaffordable_target_reverses", true, false},         // CR 601.2c, 733.1: Q's Play of Perils of the Past copies a {1}{R} instant with no red source untapped, so the cast is reversed before its target is asked
+		{"stale_trigger_referent_reentered", false, false},              // CR 400.7: Support Mission's counter trigger fired for Dr. Leonard "Bones" McCoy's first entry puts nothing on the copy that left and was cast back in
+		{"phased_out_permanent_grants_no_land_plays", false, false},     // CR 702.26b: Nog, Ambitious Cadet phased out by The City on the Edge of Forever does not exist, so its granted "play lands from your graveyard" offers no graveyard Forest
+		{"unpayable_x_copy_cast_aborts_at_target", true, false},         // CR 601.2b, 601.2c: Q's Play of Khaaaaaaaaaaaannn! (a copy cast no source can pay) asks X, then aborts at its target ask, leaving no copy on the stack
 	})
 }
 

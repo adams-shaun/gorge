@@ -252,7 +252,7 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	}
 	var placed []state.Target
 	var amountPlaced []state.Target // RememberAmount$: see putCounterLanded
-	for ti, t := range Defined(h, c, sa) {
+	for ti, t := range putCounterDefined(h, c, sa) {
 		if perKind && len(counterKinds) > 1 {
 			if ti >= len(kindAnswers) || kindAnswers[ti] == "" {
 				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind", ResumeSA: sa, ResumeTarget: ti, Prompt: "Choose a counter kind"}
@@ -552,6 +552,21 @@ func putCounterKindsFor(pc *PutCounterParams, kind string) []string {
 		return pc.OneOfEach
 	}
 	return []string{kind}
+}
+
+// putCounterDefined is the PutCounter recipient list: Defined, minus -- for
+// the Defined$ Triggered* card family -- an object that changed zones between
+// the trigger firing and its resolution. That object is a new one the trigger
+// cannot find (CR 400.7): Support Mission's "put a +1/+1 counter on that
+// creature" finds nothing when the creature left and came back while the
+// trigger waited on the stack. Moves the resolution itself makes never
+// list (CR 400.7j).
+func putCounterDefined(h Host, c *Ctx, sa *cards.SA) []state.Target {
+	ts := Defined(h, c, sa)
+	if len(c.TriggerRememberedMoved) > 0 && definedSpecCodes.Code(DefinedRefOf(sa).Text) == definedSpecTriggeredCard {
+		ts = dropTriggerRememberedMoved(c, ts)
+	}
+	return ts
 }
 
 // putCounterEachFromSource runs the CounterType$ EachFromSource shape (task
