@@ -63,9 +63,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged MKM 237 -> 238, ALL 21557 -> 21558).
 	// +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; ALL 21564 -> 21569).
 	// +1 (Molten Exhale: a may-flash extra that is a behold, CardDef.MayFlashBehold; merged TDM 245 -> 246, ALL 21569 -> 21570).
-	// +3 (the Taps watchers over your own and the equipped creature lower: Hawkeye's Bow (EquippedBy), Judge of Currents and Magda, Brazen Outlaw (YouCtrl); the AttachedBy aura family still refuses; this branch; merged MSH 228 -> 229, ALL 21630 -> 21633).
+	// +3 (the Taps watchers over your own and the equipped creature lower: Hawkeye's Bow (EquippedBy), Judge of Currents and Magda, Brazen Outlaw (YouCtrl); the AttachedBy aura family still refuses; this branch; merged MSH 230 -> 231, ALL 21636 -> 21639).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21633, 34442},
+	"ALL": {21639, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -81,7 +81,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"LCI": {251, 290},
 	"MKM": {240, 279},
 	"MOM": {198, 296},
-	"MSH": {229, 276},
+	"MSH": {231, 276},
 	"NEO": {198, 287},
 	"ONE": {195, 271},
 	"OTJ": {241, 276},
@@ -89,7 +89,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SOS": {248, 270},
 	"SPM": {160, 192},
 	"TDM": {248, 276},
-	"TLA": {246, 285},
+	"TLA": {248, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
 	"TRK": {311, 311},

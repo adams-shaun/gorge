@@ -1,0 +1,17 @@
+# the play-library pool: Cosmic Cube's free cast from the peeked top six
+# under the attackers' greatest power (then the rest to the bottom in a
+# random order) and Doom Reigns Supreme's up-to-two free casts from the
+# opponent's exiled top five, beside cheap Villains, creatures and burn
+# (dirac/oracle/play_library_amount_test.go)
+Cosmic Cube
+Doom Reigns Supreme
+Merciless Enforcers
+Kingpin's Enforcers
+Glamorous Grapplers
+Hill Giant
+Grizzly Bears
+Shock
+Lightning Bolt
+Mountain
+Forest
+Swamp
