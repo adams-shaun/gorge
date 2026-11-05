@@ -237,38 +237,19 @@ const roomsSeeds = 600
 // anywhere else, a moved or resized one, a changed value, or a pinned one
 // that no longer happens fails the test.
 //
-// Seeds 19, 169, 185, 457 and 595 are the non-live Room
-// door's trigger resolving against the live face's SVar table (Unholy Annex's
-// DBBranch: the Demon drain and the "otherwise" life loss). Seeds 351 and 497, where
-// Roaring Furnace's X:Count$CardsInYourHand read the live face's table, agree since
-// gorge resolves an unlocked door's trigger against that door's own SVars. The face-down power filter deviation (Restricted
-// Office's DestroyAll powerGE3) is gone: gorge (mass effects read
-// current P/T) fixed it at pin 01fc61aa7, so those 13 seeds now agree.
+// No seed is pinned: the non-live Room door's trigger (Unholy Annex's
+// DBBranch, seeds 19, 169, 185, 457 and 595) resolves against that door's
+// own SVars in gorge and the kernel alike since 7f89f7d2f, as Roaring
+// Furnace's X:Count$CardsInYourHand (seeds 351 and 497) did before it. The
+// face-down power filter deviation (Restricted Office's DestroyAll powerGE3)
+// is gone: gorge (mass effects read current P/T) fixed it at pin 01fc61aa7.
 var roomsKnown = map[uint64]struct {
 	at    int
 	what  string
 	field string
 	why   string
 	diff  []string
-}{
-	19: {369, "projection", "Life[0]", "non-live Room door SVar", []string{
-		"Life[0]: ref=12 kernel=10",
-		"Life[1]: ref=18 kernel=20",
-	}},
-	169: {593, "projection", "Life[1]", "non-live Room door SVar", []string{
-		"Life[1]: ref=10 kernel=8",
-	}},
-	185: {444, "projection", "Life[0]", "non-live Room door SVar", []string{
-		"Life[0]: ref=5 kernel=3",
-		"Life[1]: ref=12 kernel=14",
-	}},
-	457: {660, "projection", "Life[1]", "non-live Room door SVar", []string{
-		"Life[1]: ref=10 kernel=8",
-	}},
-	595: {512, "projection", "Life[1]", "non-live Room door SVar", []string{
-		"Life[1]: ref=19 kernel=17",
-	}},
-}
+}{}
 
 // roomsKnownDiv reports whether d is seed's pinned gorge deviation.
 func roomsKnownDiv(seed uint64, d *Divergence) (why string, known, ok bool) {

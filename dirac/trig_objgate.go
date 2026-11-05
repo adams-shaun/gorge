@@ -31,12 +31,12 @@ func (s *State) objTrigGate(k *prep, l trigListener, a *kop.Ability, evSl Slot) 
 // Tf2CastFromHand (one mask test on the hot path).
 //
 //go:noinline
-func (s *State) batchOrProvOK(l trigListener, a *kop.Ability) bool {
+func (s *State) batchOrProvOK(l trigListener, a *kop.Ability, o Obj) bool {
 	if a.Trig.Flags2&kop.Tf2CastFromHand != 0 {
 		e := s.resSpellOf(l.obj)
 		if e == nil || !s.castFromHandBy(e, l.ctrl) {
 			return false
 		}
 	}
-	return a.Trig.Flags2&kop.Tf2Batch == 0 || s.batchTrigOK(l, a)
+	return a.Trig.Flags2&kop.Tf2Batch == 0 || s.batchTrigOK(l, a, o)
 }

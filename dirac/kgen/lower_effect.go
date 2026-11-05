@@ -183,7 +183,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// DigUntil's ImprintFound$ chain (lower_digimprint.go): gorge
 		// effectRemembered reads the source's seek-found Imprint, which the
 		// kernel holds in the chosen set (DuImprintFound).
-		if !lc.digImprintFoundMode {
+		if !lc.digImprintChosen {
 			return lRef{}, refuse("Defined$ Imprinted outside a DigUntil ImprintFound$")
 		}
 		return lRef{Kind: rChosen}, nil
@@ -348,14 +348,18 @@ func (lc *lowerCtx) objOrTargetOpt(ps *params, dflt string, zone int, allowParen
 		if f.Players != 0 && len(f.Clauses) == 0 {
 			t.Zone = zNone
 		}
-		if v, ok := ps.get("TargetMin"); ok {
-			if t.Min, err = lc.value(v); err != nil {
-				return lRef{}, err
+		if lc.otherOneEach(ps, f, t.Zone) { // the bounds are set here; forEachOpp checks the rest
+			t.Min, t.Max = cst(0), cst(1)
+		} else {
+			if v, ok := ps.get("TargetMin"); ok {
+				if t.Min, err = lc.value(v); err != nil {
+					return lRef{}, err
+				}
 			}
-		}
-		if v, ok := ps.get("TargetMax"); ok {
-			if t.Max, err = lc.value(v); err != nil {
-				return lRef{}, err
+			if v, ok := ps.get("TargetMax"); ok {
+				if t.Max, err = lc.value(v); err != nil {
+					return lRef{}, err
+				}
 			}
 		}
 		if allowParent {
@@ -1756,7 +1760,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 				return refuse("Cleanup ClearImprinted$ without ClearRemembered$")
 			}
 		}
-		if lc.digImprintFoundMode && ps.is("ClearImprinted", "True") {
+		if lc.digImprintChosen && ps.is("ClearImprinted", "True") {
 			// the imprint is the kernel's chosen set (lower_digimprint.go):
 			// gorge's seek-found Imprint "clear" clears it
 			ps.consume("ClearImprinted")

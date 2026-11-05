@@ -1822,7 +1822,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		st.Kind = kop.StatMayPlayFrom
 		st.Zone = zoneMap[s.Zone]
 		fz := st.Zone
-		if slices.Contains(s.Flags, "AlsoSideboard") {
+		if slices.Contains(s.Flags, "AlsoSideboard") || slices.Contains(s.Flags, "FreeOnly") {
 			fz = kop.ZoneNone // the filter also reads a sideboard card; the static's zones are tested apart (mayPlayFromZone)
 		}
 		if st.Filter, err = filter(s.F, fz); err != nil {
@@ -1848,6 +1848,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StFunctionsInExile
 			case "AlsoSideboard":
 				st.StFlags |= kop.StAlsoSideboard
+			case "FreeOnly":
+				st.StFlags |= kop.StFreeOnly
 			case "RaiseCostRemove6CountersFromCreatures":
 				st.StFlags |= kop.StRemove6Counters
 			case "MayRaise":
@@ -1913,7 +1915,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			case "Convoke":
 				st.A = kop.StackKwConvoke
 			}
-		case "Lifelink", "Storm", "Split second", "Conspire":
+		case "Lifelink", "Storm", "Split second", "Conspire", "Delve":
 			if param != "" {
 				return ka, nil, fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
 			}
@@ -1925,6 +1927,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.A = kop.StackKwStorm
 			case "Split second":
 				st.A = kop.StackKwSplitSecond
+			case "Delve":
+				st.A = kop.StackKwDelve
 			}
 		case "Casualty":
 			n, err := strconv.Atoi(param)
@@ -2621,6 +2625,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				zone = kop.ZoneBattlefield
 			case "Exile":
 				zone = kop.ZoneExile // every seat's exile (zone_exiledwithpick.go)
+			case "Library":
+				zone = kop.ZoneLibrary // a hidden pick, not a search (Sanar's per-colour picks)
 			case "Graveyard,Exile":
 				// graveexile: a game-wide pool over both zones; the walk in
 				// dirac/value_tappower.go restricts the zones itself.
@@ -2660,10 +2666,16 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			sb |= kop.SrDifferentNames
 		}
 		if _, ok := fl["NoShuffle"]; ok {
-			if in.Op != "Search" {
+			if in.Op != "Search" && zone != kop.ZoneLibrary {
 				return ki, fmt.Errorf("NoShuffle on a %s", in.Op)
 			}
 			sb |= kop.SrNoShuffle
+		}
+		if _, ok := fl["Imprint"]; ok {
+			if in.Op != "ChooseMove" || zone != kop.ZoneLibrary || zoneMap[in.C] != kop.ZoneExile {
+				return ki, fmt.Errorf("Imprint on a %s from %s", in.Op, fl["from"])
+			}
+			sb |= kop.SrImprint
 		}
 		if _, ok := fl["Random"]; ok {
 			if in.Op != "ChooseMove" || zone != kop.ZoneGraveyard && zone != kop.ZoneExile {

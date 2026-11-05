@@ -24,8 +24,9 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   exclusion to the improvise branch of tapPayCand). Improvise taps are not
   mana: the per-turn expend tally and CastTotalManaSpent both exclude them
   (convoke picks count toward the expend tally but not CastTotalManaSpent).
-  A card with both keywords is
-  refused in kgen. gorge offers an improvise cast only when the floating pool
+  A printed card with both keywords is
+  refused in kgen; a grant beside the other keyword (or on an {X} cost)
+  poses gorge's one mixed announcement (convokeOptions, convokeXCost). gorge offers an improvise cast only when the floating pool
   plus the greedy artifact credit pays the whole cost (its planner refuses
   the shape), so a cast with a coloured pip is offered only with that colour
   floating, which the lockstep reproduces.

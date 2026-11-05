@@ -204,9 +204,19 @@ func (s *State) clonePermNote(sl Slot, src Obj, idx uint8) {
 //
 //go:noinline
 func (s *State) cloneCopy(k *prep, in *kop.Instr) {
-	tmpl := s.cloneTmpl(k, in)
-	if tmpl == NoSlot {
+	var tmpl Slot
+	var c CardID
+	if in.B.N&kop.CloneBatch != 0 {
+		// a batch pick is a card in exile, copied as its printed card (gorge
+		// checks the template is still in the chosen zone, clone.go)
+		if s.g.nchosen == 0 || s.objs[s.g.chosen[0]].zone != kop.ZoneExile {
+			return
+		}
+		tmpl, c = NoSlot, s.objs[s.g.chosen[0]].card
+	} else if tmpl = s.cloneTmpl(k, in); tmpl == NoSlot {
 		return // the template left (or was never chosen): nothing happens
+	} else {
+		c = s.cardAt(tmpl)
 	}
 	var ord [MaxPerm]Slot
 	n := s.cloneBecomers(k, in, tmpl, &ord)
@@ -214,7 +224,6 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		return
 	}
 	eot := in.B.N&kop.CloneEOT != 0
-	c := s.cardAt(tmpl)
 	made := 0
 	for i := 0; i < n; i++ {
 		sl := ord[i]
@@ -284,6 +293,9 @@ func (s *State) clonePick(k *prep, in *kop.Instr) bool {
 
 // cloneCands counts (and lists in d) the pick's candidates.
 func (s *State) cloneCands(k *prep, in *kop.Instr, d *Decision) int {
+	if in.B.N&kop.CloneBatch != 0 {
+		return s.cloneBatchCands(k, in, d) // trig_batchmembers.go
+	}
 	src := s.objRef(k, kop.RefSelf)
 	n := 0
 	for m := s.occ; m.any(); m = m.rest() {
@@ -302,6 +314,9 @@ func (s *State) cloneCands(k *prep, in *kop.Instr, d *Decision) int {
 // clone_choice KChoose.
 func (s *State) cloneCopyOptions(k *prep, d *Decision) {
 	d.Sub = ChCloneCopyPick
+	if s.prog(k)[s.res.pc].B.N&kop.CloneBatch != 0 {
+		d.Sub = ChCloneBatchPick // gorge's card pick over the zone's cards
+	}
 	s.cloneCands(k, &s.prog(k)[s.res.pc], d)
 }
 

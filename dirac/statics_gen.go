@@ -304,7 +304,8 @@ func (s *State) mayPlayStatics(k *prep, p uint8, o Obj, f func(st statSrc) bool)
 	stopped := false
 	check := func(st statSrc) bool {
 		a := st.a
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom || !mayPlayFromZone(&a.Static, ob.zone) {
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom ||
+			a.Static.StFlags&kop.StFreeOnly == 0 && !mayPlayFromZone(&a.Static, ob.zone) {
 			return true
 		}
 		if a.Static.StFlags&kop.StSeatActive != 0 {

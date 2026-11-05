@@ -33,6 +33,7 @@ const (
 	CloneTmplPick  = 1 << 2 // the template is the Choices$ pick (chosen[0]), else target slot (B.N>>CloneTmplShift)
 	ClonePick      = 1 << 3 // the Choices$ pick itself (F the candidates)
 	CloneTmplShift = 4      // bits 4-5: the template's target slot
+	CloneBatch     = 1 << 6 // the Choices$ pool is the trigger's batch members in exile (with ClonePick and CloneTmplPick; the copy is of the picked card, not a permanent)
 )
 
 // BecomeCopyCtr is OpBecomeCopy's B.N bit (a different op from ExtCloneCopy,
@@ -228,6 +229,7 @@ const (
 	SrHandGrave      = 1 << 2  // OpChooseMove: the pool is the fetching player's Hand then Graveyard (gorge effSearchLibrary over Origin$ Hand,Graveyard); read from the instruction's B, never ORed into pickF. B bits 4..11 hold the entry counter kind+1 (WithCountersType$, amount 1; 0 = none)
 	SrGameGrave      = 1 << 3  // OpChooseMove from a graveyard with no fetch player: the pool is every player's graveyard in seat order (gorge effHiddenPick gameWide), not player Obj's; picked cards enter their owner's zone (gorge zoneOwner). B bit 3 is free on an OpChooseMove (bits 4..11 are the entry counter kind, and this bit is read in startSearch, not by a move scan)
 	SrNoShuffle      = 1 << 14 // Shuffle$ False: the library is not shuffled after the moves; a library destination puts the found cards on top in pick order, remembered with SrRemember (Flourishing Bloom-Kin)
+	SrImprint        = 1 << 8  // OpChooseMove from the Library (ChangeZone Imprint$ True under a DigUntil RememberRevealed$): each moved card joins the chosen set (imprint). Read from the instruction's B, never ORed into pickF (bit 8 there is SrOwnZone); bits 4..11 are the graveyard-pick counter kind, which a library pick never reads
 	SrAltOrigin      = 1 << 4  // OpSearchEx only (bits 4..11 are OpChooseMove's entry counter kind, unread on a library search): OriginAlternative$ -- the searcher first elects which of the library and the alternative zone to search (gorge originAlternativeZones), the pool is the elected zones' cards (library first), the shuffle is owed only when the library was elected. B bits 5..7 (SrAltZoneShift) hold the alternative zone (Graveyard or Hand); read from the instruction, never ORed into pickF
 )
 

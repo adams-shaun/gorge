@@ -12,6 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules"
+	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -138,6 +139,10 @@ type GorgeSide struct {
 	// options seen at priority, so a convoke announcement (which carries
 	// no cost) can be projected against the same cost the offer used.
 	castCost map[state.ObjID]decision.PaymentCost
+	// castX marks the cached plain casts whose face mana cost has an {X}
+	// (gorge's ConvokeOffer.HasX): PaymentCost drops X, and the convoke
+	// announcement is posed before X is announced.
+	castX map[state.ObjID]bool
 	// manaUses are the mana abilities the engine resolved since
 	// ArmCoverage (coverage.go); nil until armed.
 	manaUses  []manaUse
@@ -194,6 +199,10 @@ func manaChoiceResolving(d *decision.Decision) bool {
 type convokeFrame struct {
 	gen  uint32
 	pips [6]uint32
+	// open: the spell's {X} is not announced yet (the cast's face cost has
+	// an X), so a generic pick against {0} is tentatively legal
+	// (gorge convokeAbsorbs, xOpen) and pays nothing until X is folded.
+	open bool
 }
 
 func (c *convokeFrame) admits(d *decision.Decision, chosen []int, i int) bool {
@@ -205,7 +214,7 @@ func (c *convokeFrame) admits(d *decision.Decision, chosen []int, i int) bool {
 		}
 		if o.Kind == "convoke_generic" || o.Kind == "improvise_generic" {
 			if gen == 0 {
-				return false
+				return c.open
 			}
 			gen--
 			return true
@@ -482,16 +491,34 @@ func hasManaOption(d *decision.Decision) bool {
 	return false
 }
 
+// castHasX reports whether o's face mana cost has an {X} (the plain cast's
+// HasX in gorge's convoke offer).
+func castHasX(o *state.Object) bool {
+	return o != nil && o.Face() != nil && pay.FaceCostOf(o.Face()).X > 0
+}
+
+// convokeFrameFor is the absorption frame of a convoke announcement d, or
+// nil when d is not one or its cast cost was not cached.
+func (g *GorgeSide) convokeFrameFor(d *decision.Decision) *convokeFrame {
+	if d.Kind != decision.KChoose || len(d.Options) == 0 || !(strings.HasPrefix(d.Options[0].Kind, "convoke_") || d.Options[0].Kind == "improvise_generic") {
+		return nil
+	}
+	pc, ok := g.castCost[d.Source]
+	if !ok {
+		return nil
+	}
+	// open is the cast's unannounced {X} itself: Max == #options also
+	// holds for an X-less menu no larger than its slot count, where gorge
+	// refuses a generic pick once the generic is used (convokeAbsorbs).
+	return &convokeFrame{gen: pc.Generic, pips: pc.Mana, open: g.castX[d.Source]}
+}
+
 // build makes the canonical frame of gorge decision d.
 func (g *GorgeSide) build(d0 *decision.Decision) *frame {
 	g.id.sync(g.E.G)
 	d := d0.Clone()
 	fr := &frame{seq: d.Seq, d: d, dk: decisionKinds[d.Kind]}
-	if d.Kind == decision.KChoose && len(d.Options) > 0 && (strings.HasPrefix(d.Options[0].Kind, "convoke_") || d.Options[0].Kind == "improvise_generic") {
-		if pc, ok := g.castCost[d.Source]; ok {
-			fr.convoke = &convokeFrame{gen: pc.Generic, pips: pc.Mana}
-		}
-	}
+	fr.convoke = g.convokeFrameFor(d)
 	if d.Kind == decision.KPriority {
 		g.priorityVocabulary(fr)
 		fr.reposeSingle()
@@ -575,8 +602,10 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				if pc, ok := e.CastPaymentCost(d.Player, o.Obj); ok {
 					if g.castCost == nil {
 						g.castCost = map[state.ObjID]decision.PaymentCost{}
+						g.castX = map[state.ObjID]bool{}
 					}
 					g.castCost[o.Obj] = pc
+					g.castX[o.Obj] = castHasX(e.G.Obj(o.Obj))
 				}
 			}
 			if fc, ok := faceCastCode(o.Mode); ok && o.AltCostIndex == 0 {

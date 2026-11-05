@@ -86,9 +86,35 @@ func (lc *lowerCtx) changesZoneAll(tp *params, tr *lTrigger, t cards.Trigger) er
 	}
 	tr.Batch = true
 	if lc.saReadsBatch(t.Effect) {
-		return refuse("ChangesZoneAll body reads the batch")
+		// the one batch read that lowers: the exile line's body picks a card
+		// among the batch's members (kayaBatchBody); every other read refuses
+		if !tr.AlsoGrave || !kayaBatchBody(t.Effect) {
+			return refuse("ChangesZoneAll body reads the batch")
+		}
+		lc.batchPoolOK = true
 	}
 	return nil
+}
+
+// kayaBatchBody reports exactly Kaya, Spirits' Justice's trigger body: one DB$
+// Clone whose Choices$ pool is the exiled batch's creature cards
+// (Card.TriggeredCards+Creature, ChoiceZone$ Exile), the target token
+// (ValidTgts$ the battlefield, the becomer) copying the pick until end of
+// turn with a keyword exception. The kernel's queued instance holds the
+// batch's members for that pick only (trig_batchmembers.go).
+func kayaBatchBody(sa *cards.SA) bool {
+	if sa == nil || sa.API != "Clone" || sa.Sub != nil {
+		return false
+	}
+	p := newParams(sa.Params)
+	for _, k := range []string{"Optional", "CloneTarget", "Defined", "ChoiceOptional", "ExcludeChosen"} {
+		if _, ok := p.get(k); ok {
+			return false
+		}
+	}
+	return p.is("Choices", "Card.TriggeredCards+Creature") && p.is("ChoiceZone", "Exile") &&
+		p.is("ValidTgts", "Permanent.token+YouCtrl") && p.is("Duration", "UntilEndOfTurn") &&
+		p.is("AddKeywords", "Flying")
 }
 
 // blockedByCreature lowers Mode$ AttackerBlockedByCreature (gorge

@@ -134,7 +134,7 @@ func (s *State) charmTargetAskDead(k *prep) bool {
 	if s.tapPaysEntry(k, e) {
 		// gor's gate prices paymentMana, which folds the announced
 		// Convoke/Improvise/Harmonize picks in; the pool pays only the remainder
-		cost = s.convokeApplyPicks(k, cost)
+		cost = s.convokeApplyPicks(k, xFolded(cost, int(e.x)))
 	}
 	if s.windowPoolPays(e.ctrl, &cost, s.bld().bfl&bflAnyColor != 0) {
 		return false

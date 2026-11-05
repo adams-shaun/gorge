@@ -49,7 +49,7 @@ func (s *State) batchClose(old uint8) {
 // and a batch line already queued in the open batch is not queued again.
 //
 //go:noinline
-func (s *State) batchTrigOK(l trigListener, a *kop.Ability) bool {
+func (s *State) batchTrigOK(l trigListener, a *kop.Ability, o Obj) bool {
 	if a.Trig.Flags&kop.TfNotToGrave != 0 && s.g.batchLatch&batchGrave != 0 {
 		return false
 	}
@@ -64,6 +64,7 @@ func (s *State) batchTrigOK(l trigListener, a *kop.Ability) bool {
 	}
 	for i := int(s.g.batchLatch&batchOpenMask) - 1; i < int(s.npend); i++ {
 		if p := &s.pend[i]; p.obj == l.obj && p.card == l.card && p.ab == l.ab {
+			s.batchMemberAdd(i, a, o) // trig_batchmembers.go
 			return false
 		}
 	}

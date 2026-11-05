@@ -9,7 +9,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // We Ride at Dawn, Invasion of Segovia) and Casualty:<n> (Silverquill),
 // read wherever the printed CardDef.Improvise / Convoke / Casualty are
 // (tapPays, hasConvoke, isImprovise, casualtyN). A grant beside the other
-// tap-paid keyword, or on an {X} cost, stalls unmodelled (kw_convoke.go).
+// tap-paid keyword, or on an {X} cost, poses the mixed or pre-X announcement;
+// a Harmonize or alternative-cost route stalls unmodelled (kw_convoke.go).
 // gorge derives the spell under the
 // stack-zone override (keywordmay.go stackKeywordPossibleH), so the kernel
 // asks the live statics at the same moment. gorge offers a tap-paid or
@@ -47,6 +48,8 @@ func prepStackKw(t *Table, g *genPrep, p *prep) {
 				g.anyCascade = true
 			case kop.StackKwImprovise, kop.StackKwConvoke:
 				g.anyConvoke = true
+			case kop.StackKwDelve:
+				g.anyDelve = true
 			case kop.StackKwCasualty:
 				p.casualty = true
 			case kop.StackKwLifelink:
@@ -100,6 +103,16 @@ func (s *State) grantImprovise(k *prep, p uint8, c CardID, o Obj, fromHand bool)
 		return false
 	}
 	n, _ := s.stackKwN(k, kop.StackKwImprovise, c, o, p, fromHand)
+	return n > 0
+}
+
+// grantDelve: a live StatStackKw Delve grant reaches p's spell card c
+// (object o). Behind genPrep.anyDelve.
+func (s *State) grantDelve(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
+	if k.gen == nil || !k.gen.anyDelve {
+		return false
+	}
+	n, _ := s.stackKwN(k, kop.StackKwDelve, c, o, p, fromHand)
 	return n > 0
 }
 

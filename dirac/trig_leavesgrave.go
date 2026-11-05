@@ -36,7 +36,7 @@ func (s *State) fireLeavesGraveTo(k *prep, o Obj, z kop.Zone) {
 		if !s.trigOK(k, l, a) {
 			return
 		}
-		if t.Flags2&kop.Tf2Batch != 0 && !s.batchTrigOK(l, a) {
+		if t.Flags2&kop.Tf2Batch != 0 && !s.batchTrigOK(l, a, o) {
 			return
 		}
 		s.queueTrig(k, l, a, o, owner, 0)

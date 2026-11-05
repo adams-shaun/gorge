@@ -60,6 +60,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	ab := &lAbility{Kind: akTriggered, Index: len(lc.out.Abilities)}
 	defer func(b bool) { lc.trigBody = b }(lc.trigBody)
 	lc.trigBody = false
+	defer func(b bool) { lc.batchPoolOK = b }(lc.batchPoolOK)
+	lc.batchPoolOK = false
 	// a Melee trigger's pump reads the declaration's capture (value.go)
 	defer func(b bool) { lc.mlTrigger = b }(lc.mlTrigger)
 	var svars map[string]string
@@ -2532,6 +2534,7 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 			return refuse("MayPlay zone %q outside the first-spell free shape", zRaw)
 		}
 		z = "Hand"
+		st.Flags = append(st.Flags, "FreeOnly")
 	}
 	// "from outside the game" (The Holodeck's AffectedZone$ Sideboard,Graveyard,
 	// CR 400.11): the sideboard rides beside the one real zone as a flag, so a

@@ -203,6 +203,7 @@ type genPrep struct {
 	anySneak       bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
 	anyWebSling    bool           // some card has web-slinging (CardDef.HasWebSling; kw_websling.go)
 	anyMayFlash    bool           // some card has K:MayFlashCost (CardDef.HasMayFlash; kw_mayflash.go)
+	anyDelve       bool           // some card grants Delve to a spell as it is cast (StatStackKw Delve; kw_delve.go)
 	anyConvoke     bool           // some card has printed or granted convoke/improvise or harmonize (CardDef.Convoke/Improvise/Harmonize, StatStackKw Improvise/Convoke; kw_convoke.go)
 	anyBeam        bool           // some card has printed beam me up (CardDef.BeamMeUp; kw_beammeup.go)
 	anyBeamBar     bool           // some card has a StatCantBeBeamedUp static
@@ -386,6 +387,9 @@ type genPrep struct {
 	// anyTriggerAttackers: some program reads RefTriggerAttackers
 	// (trig_attackers.go)
 	anyTriggerAttackers bool
+	// anyBatchPool: some trigger picks among its batch's members
+	// (trig_batchmembers.go); it shares the attacker-group pool
+	anyBatchPool bool
 	// anyFirstCast: some expression is ExFirstCast, so the cast path stamps the
 	// first spell each seat casts (cast_firstcast.go)
 	anyFirstCast bool
@@ -1264,6 +1268,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.tyPost = g.anyBestow || g.anyImpending
 	prepEquipAnim(t, g) // static_equipanimated.go
 	prepTrigAtk(t, g)   // trig_attackers.go
+	prepBatchPool(t, g) // trig_batchmembers.go
 	g.anyCopyElect = g.anyCopyElect || p.casualty
 	prepCold(g, &p.cold)
 	return g

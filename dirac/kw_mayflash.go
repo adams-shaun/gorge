@@ -46,6 +46,7 @@ func (s *State) offerMayFlashHand(k *prep, d *Decision, p uint8, o Obj, c CardID
 	}
 	cd := &k.t.Cards[c]
 	cost := s.adjustCost(k, p, c, o, addCost(cd.Cost, cd.MayFlashCost)) // spellScope("mayflash")
+	cost = s.delveOfferCredit(k, p, c, o, true, cost)
 	if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
 		return // offerCastable on the composed cost
 	}

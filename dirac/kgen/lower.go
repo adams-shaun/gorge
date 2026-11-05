@@ -110,6 +110,7 @@ type lowerCtx struct {
 	beholdOK       bool      // the cost being read is a spell's AlternateAdditionalCost first part: Behold<N/Type> may lower (kernel act_behold.go)
 	unblockedOK    bool      // the filter being read is K:Ninjutsu's Return cost: "unblocked" may lower (lower_ninjutsu.go)
 	exwSynth       bool      // the ExiledWithSource filter is synthesised for a Defined$ ExiledWith (the card's text does not name the word)
+	batchPoolOK    bool      // the trigger being lowered is a ChangesZoneAll exile line whose body picks among its batch members (lower_trigzonebatch.go kayaBatchBody)
 	wasCastOK      bool      // the filter being read is a battlefield-entering trigger's ValidCard(s)$: wasCast may lower
 	spellProvOK    bool      // the filter being read is a SpellCast ValidCard$, a spell's own ConditionPresent$ or a mana ability's Spell. RestrictValid$: the cast-provenance words may lower
 	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
@@ -159,7 +160,17 @@ type lowerCtx struct {
 	// chain's optional PutCounter, the Effect's RememberObjects$ Imprinted
 	// and the Cleanup's ClearImprinted$ read it
 	digImprintFoundMode bool
-	known               func(string) bool
+	// digRememberedLibrary: this chain's DigUntil remembered every revealed
+	// card and left them in the library (RememberRevealed$ with
+	// RevealedDestination$ Library, Sanar; lower_digimprint.go): the chain's
+	// ChooseFromDefined$ Remembered.<colour> picks read it
+	digRememberedLibrary bool
+	// digImprintChosen: the chain's imprint is the kernel's chosen set (set by
+	// digImprintFound and digChosenLibraryPick): the Effect's
+	// RememberObjects$ Imprinted, its MayPlay and the Cleanup's
+	// ClearImprinted$ read it
+	digImprintChosen bool
+	known            func(string) bool
 	// granted > 0 while an ability or trigger another object is granted
 	// (an AddAbility$/AddTrigger$ SVar, an emblem's trigger) is lowered
 	granted int
