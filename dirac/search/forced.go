@@ -24,9 +24,9 @@ func forcedVisits(k, prior float64, total int32) float64 {
 // (azmcts selectAt). It lives in its own file, out of line, so the hot
 // files keep their code layout.
 func (sr *Searcher) selectAt(ni int32, pt *point) int32 {
-	if ni == 0 && (sr.Opts.ForcedK > 0 || sr.i42.shOn) {
-		if sr.i42.shOn {
-			return sr.shSelect(ni, pt) // zzzi42.go: RootSH
+	if ni == 0 && (sr.Opts.ForcedK > 0 || sr.ik.shOn) {
+		if sr.ik.shOn {
+			return sr.shSelect(ni, pt) // instkeys.go: RootSH
 		}
 		return sr.t.selectForced(ni, pt, &sr.Opts, &sr.St)
 	}

@@ -15,7 +15,7 @@ import (
 // learned-belief weights contract: hand networks (format 1) and deck
 // networks (formats 1-3) trained offline load here and predict exactly what
 // the reference implementation of the contract predicts
-// (TestBeliefNetsMatchDZ), and the dealt rows below (DealtHandMix,
+// (TestBeliefNetsMatchReference), and the dealt rows below (DealtHandMix,
 // DealtPool) are the trainers' input.
 //
 // One small MLP over BeliefFeatures observable features of the opponent

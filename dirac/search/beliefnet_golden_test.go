@@ -2,9 +2,9 @@ package search
 
 // Values computed by the learned-belief contract's reference implementation
 // (HandFeatures, HandBelief.Predict and DeckBelief.predict) on the
-// synthetic fixtures in testdata; see TestBeliefNetsMatchDZ. DO NOT EDIT.
+// synthetic fixtures in testdata; see TestBeliefNetsMatchReference. DO NOT EDIT.
 
-var dzBeliefCases = []dzBeliefCase{
+var beliefGoldenCases = []beliefGoldenCase{
 	{seed: 1, steps: 0, seat: 0,
 		f: [BeliefFeatures]float64{0.05, 1.0, 0.825, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
 		hand: map[string][3]float64{

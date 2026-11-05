@@ -137,7 +137,7 @@ func (sr *Searcher) buildPoint(s *dirac.State, d *dirac.Decision, bot int, pt *p
 	if topK > 0 {
 		limit = MaxCands
 	}
-	rank := sr.netPrior && (o.PriorRankMaxOptions <= 0 || sr.ranks(d, topK)) // zseat.go
+	rank := sr.netPrior && (o.PriorRankMaxOptions <= 0 || sr.ranks(d, topK)) // seat.go
 	switch kind {
 	case kindAttackers:
 		if o.PerCreature&PerCreatureAttack == 0 || !sr.chainCands(s, d, bot, limit, pt) {
@@ -155,7 +155,7 @@ func (sr *Searcher) buildPoint(s *dirac.State, d *dirac.Decision, bot int, pt *p
 		if dedup {
 			sr.singleDedup(s, d, bot, limit, pt)
 		} else if o.ReactAim && kind == kindTarget && !opp && sr.aimNow(s, d) {
-			sr.singleAim(s, d, bot, limit, pt) // zzzi42.go
+			sr.singleAim(s, d, bot, limit, pt) // instkeys.go
 		} else {
 			sr.single(d, bot, limit, pt)
 		}
@@ -197,7 +197,7 @@ func (sr *Searcher) buildPoint(s *dirac.State, d *dirac.Decision, bot int, pt *p
 			}
 		}
 		if sr.raidMark > 0 {
-			sr.raidBotMark(d) // zztiming.go: the bot's own held raid cast
+			sr.raidBotMark(d) // timing.go: the bot's own held raid cast
 		}
 		ev := sr.Eval
 		if sr.atRoot {
@@ -217,7 +217,7 @@ func (sr *Searcher) buildPoint(s *dirac.State, d *dirac.Decision, bot int, pt *p
 	}
 	if rank {
 		if o.PriorTemp > 0 {
-			sr.temper(pt, opp) // zztiming.go
+			sr.temper(pt, opp) // timing.go
 		}
 		softmax(pt.prior[:pt.n])
 	} else {
@@ -226,10 +226,10 @@ func (sr *Searcher) buildPoint(s *dirac.State, d *dirac.Decision, bot int, pt *p
 		}
 	}
 	if o.Defer > 0 && kind == kindPriority && !opp {
-		sr.deferScale(s, pt) // zztiming.go
+		sr.deferScale(s, pt) // timing.go
 	}
 	if o.CastPrior > 0 && kind == kindPriority && !opp {
-		sr.castPrior(s, pt) // zzzi42.go
+		sr.castPrior(s, pt) // instkeys.go
 	}
 	if topK > 0 {
 		cutTopK(pt, topK)
@@ -238,7 +238,7 @@ func (sr *Searcher) buildPoint(s *dirac.State, d *dirac.Decision, bot int, pt *p
 		renorm(pt)
 	}
 	if sr.rootBuild && o.CardSimsForce && kind == kindPriority {
-		sr.forceCards(s, d, pt, rank) // zzcsims.go
+		sr.forceCards(s, d, pt, rank) // cardsims.go
 	}
 	return true
 }
@@ -283,7 +283,7 @@ func (sr *Searcher) dedupKeys(pt *point) {
 // answer outside the vocabulary (a land play) makes the decision unsearched.
 // The bot's candidate moves to the front (botFirst). Options.LandSearch
 // and LandPick (landsearch.go) make a land-play bot answer a point;
-// AltCands and CastDedup (zzzmzx.go) widen and merge the casts.
+// AltCands and CastDedup (mzkeys.go) widen and merge the casts.
 func (sr *Searcher) priorityCands(s *dirac.State, d *dirac.Decision, bot, limit int, pt *point) bool {
 	if d.Options[bot].Kind() == dirac.AkPlayLand && !sr.landOn(d) {
 		return false
@@ -291,7 +291,7 @@ func (sr *Searcher) priorityCands(s *dirac.State, d *dirac.Decision, bot, limit 
 	var hold, raid bool
 	if sr.tmWalk {
 		var ok bool
-		if hold, raid, ok = sr.timingCands(s, d, bot); !ok { // zztiming.go
+		if hold, raid, ok = sr.timingCands(s, d, bot); !ok { // timing.go
 			return false
 		}
 	}
@@ -302,17 +302,17 @@ func (sr *Searcher) priorityCands(s *dirac.State, d *dirac.Decision, bot, limit 
 	ef := sr.Opts.EndFire && sr.endFireNow(s, d)
 	add := func(i int) {
 		if ef && d.Options[i].Kind() == dirac.AkPass {
-			return // zzinstwin.go: EndFire never passes with removal castable
+			return // instwin.go: EndFire never passes with removal castable
 		}
 		if own && sr.instBlocked(s, d.Options[i]) {
 			if sr.inRoot && i != bot && sr.nHeld < MaxCands {
 				sr.held[sr.nHeld] = uint8(i) // InstWinReact: the root's pruned casts
 				sr.nHeld++
 			}
-			return // zzinstwin.go: outside the seat's own-turn window
+			return // instwin.go: outside the seat's own-turn window
 		}
 		if sr.Opts.CastDedup && castDup(s, pt, d.Options[i]) {
-			return // zzzmzx.go
+			return // mzkeys.go
 		}
 		if i != bot && pt.n < limit && !((hold || raid) && sr.timingDrop(s, d.Options[i], hold, raid)) {
 			one[0] = uint32(d.Options[i])
@@ -333,7 +333,7 @@ func (sr *Searcher) priorityCands(s *dirac.State, d *dirac.Decision, bot, limit 
 			add(i)
 		default:
 			if sr.Opts.AltCands && altKind(d.Options[i].Kind()) {
-				add(i) // zzzmzx.go
+				add(i) // mzkeys.go
 			}
 		}
 	}

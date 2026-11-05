@@ -8,7 +8,7 @@ import (
 
 // Pre-game helpers for a host's value-based opening decisions (:mullvalue,
 // :playdraw): states the caller values with the seat's Evaluator outside
-// any search. They live in this last file, out of line, so the hot files
+// any search. They live in their own file, out of line, so the hot files
 // keep their layout.
 
 // NewEpoch returns a fresh epoch, unique across every Searcher of the
@@ -31,7 +31,7 @@ func NewEpoch() uint32 {
 // deal, so the result is a function of the decklists and (a, b) alone and
 // never of which cards either real hand holds (Clairvoyant is ignored). The
 // state's chance is re-seeded with b, as a search world's is. The learned
-// beliefs (zzzbelief.go) are not used here: they deal a Search's worlds only.
+// beliefs (beliefnet.go) are not used here: they deal a Search's worlds only.
 func (sr *Searcher) DealUnseen(s *dirac.State, seat uint8, a, b uint64) {
 	r := dirac.NewRand(a, b)
 	for p := uint8(0); p < 2; p++ {

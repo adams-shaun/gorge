@@ -2,7 +2,7 @@ package search
 
 import "github.com/adams-shaun/gorge/dirac"
 
-// zzzmzx.go: the MageZero like-for-like priority keys, each off by default
+// mzkeys.go: the MageZero like-for-like priority keys, each off by default
 // and the search exactly as without it.
 //
 //   - AltCands (:altcands): the special-action and alternative-cast

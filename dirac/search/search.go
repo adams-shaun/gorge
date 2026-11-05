@@ -39,7 +39,7 @@ type Stats struct {
 	// RootPrior is 1 when Searcher.RootEval supplied this search's root
 	// prior.
 	RootPrior int
-	// Options.ForcedK (zforced.go; azmcts's counters): ForcedSearched is 1
+	// Options.ForcedK (forced.go; azmcts's counters): ForcedSearched is 1
 	// for a search run with it; ForcedPlayouts counts the root selections
 	// the forced rule changed; PrunedVisits and PrunedChildren are what
 	// policy target pruning took out of Result.Target.
@@ -54,7 +54,7 @@ type Stats struct {
 	// PriorSkips counts points whose network ranking LazyPriors skipped
 	// (every key already an edge of the point's node, no cut possible).
 	PriorSkips int
-	// The timing options' counters (zztiming.go), all 0 with them off.
+	// The timing options' counters (timing.go), all 0 with them off.
 	// HoldUpkeep: the root dropped a cast / played pass for a held bot
 	// cast; in-walk decisions it changed (the seat's, a mirrored
 	// opponent's). CardSims: the budget a CardSims entry set; candidates
@@ -70,16 +70,16 @@ type Stats struct {
 	// the land keys' counters (landsearch.go), all 0 with them off
 	LandSearched, LandDeferred, LandPicked, LandWalk, LandOpp, DedupSearched, LandAbNow int
 	// OppViewSims counts the simulations OppView/OppFair re-dealt the
-	// seat's hand in (zzinfo.go).
+	// seat's hand in (hiddeninfo.go).
 	OppViewSims int
-	// The remaining instant-timing keys (zzzi42.go), all 0 with them off: HoldEps
+	// The remaining instant-timing keys (instkeys.go), all 0 with them off: HoldEps
 	// played pass / could; seat points CastPrior scaled; DeferQ played pass
 	// / compared; Replan's unsearched pass; RootSH picked the move; Reuse
 	// warmed the root (and with how many visits); ReactAim's probes that
 	// kept a cast and target points it narrowed.
 	HoldEps, HoldEpsEligible, CastPriorPoints, DeferQ, DeferQEligible     int
 	Replanned, RootSH, Reused, ReusedVisits, ReactAimKept, ReactAimPoints int
-	// PerCreature's counters (zzzzpercreature.go): root creature searches
+	// PerCreature's counters (percreature.go): root creature searches
 	// run, walk points built per creature, and declarations the bot had to
 	// complete because AkDone was not offered.
 	ChainSteps, ChainPoints, ChainFallbacks int
@@ -108,11 +108,11 @@ type Result struct {
 	Acts  [MaxPerm + 1]dirac.Action
 	Stats Stats
 	// Target, under Options.ForcedK (HasTarget), is the policy target:
-	// Visits with the forced playouts pruned out (zforced.go). The record
+	// Visits with the forced playouts pruned out (forced.go). The record
 	// carries it and Sample draws from it; the argmax is unchanged.
 	Target    [MaxCands]int32
 	HasTarget bool
-	// Set by SeatSearch (zseat.go): the decision was a playout-cap cheap or
+	// Set by SeatSearch (seat.go): the decision was a playout-cap cheap or
 	// a decided-game search, its record's training weight (1, or
 	// DecidedWeight), and whether it is recorded.
 	Cheap, Decided bool
@@ -122,7 +122,7 @@ type Result struct {
 	// at least one cast; N is 1 (visits [1], prior [1], q and RootValue 0.5,
 	// Sims 0) and nothing was searched.
 	HeldSingle bool
-	// The timing options (zztiming.go): VisitBest is the argmax-visits
+	// The timing options (timing.go): VisitBest is the argmax-visits
 	// child (Choice unless RootQ/RootLCB, WaitTie or Sample picked
 	// another); Waited, under WaitTie, is 1 + the candidate the rule
 	// replaced by pass (Choice is pass's); RaidBot, under RaidHold, is 1 +
@@ -173,7 +173,7 @@ type Searcher struct {
 	Eval   Evaluator
 	Bot    Bot
 	Belief *Belief // closed-list corpus (Options.ClosedList)
-	// bel is the learned beliefs' state (zzzbelief.go SetBeliefs; nil:
+	// bel is the learned beliefs' state (beliefnet.go SetBeliefs; nil:
 	// off), belBuf its storage kept across SetBeliefs(nil, nil)
 	bel, belBuf *beliefState
 	// RootEval, when set and Eval supplies a network prior (PriorSource),
@@ -230,7 +230,7 @@ type Searcher struct {
 	// at every point exactly as before it: tests use it to compare the two
 	// paths (TestLazyPointSearchIdentical).
 	noLazyBot bool
-	// InstWinReact (zzinstwin.go): rootReact is the seat's tracker at the
+	// InstWinReact (instwin.go): rootReact is the seat's tracker at the
 	// root (SeatSearch copies it from the SeatState), curReact the one the
 	// walk's buildPoint and instBot read; inRoot marks the root's
 	// buildPoint, whose pruned casts priorityCands lists in held[:nHeld].
@@ -242,7 +242,7 @@ type Searcher struct {
 	merged    Result
 	St        Stats
 
-	// The timing options (zztiming.go): holdDrops counts HoldUpkeep's
+	// The timing options (timing.go): holdDrops counts HoldUpkeep's
 	// drops and walk passes; rootBuild marks the root's buildPoint
 	// (CardSimsForce); raidMark is 1 + the bot's held raid cast while its
 	// point is built (the prior's bot mark); rootDec marks the root's bot
@@ -252,7 +252,7 @@ type Searcher struct {
 	rootBuild bool
 	rootDec   bool
 	tmWalk    bool
-	landRoot  bool // the root is a LandSearch land root (Search; zztiming.go isLandRoot)
+	landRoot  bool // the root is a LandSearch land root (Search; timing.go isLandRoot)
 
 	// the batched path's per-descent state (batch.go): worlds and the
 	// paths/marks each descent commits when its leaf value arrives. Only
@@ -282,7 +282,7 @@ type Searcher struct {
 	declL   []dirac.Action
 	declS   *dirac.State // declL's decision (pickBot), nil none
 	declD   *dirac.Decision
-	// OppView/OppFair (zzinfo.go): hidOn for the search; the simulation's
+	// OppView/OppFair (hiddeninfo.go): hidOn for the search; the simulation's
 	// re-deal draw, whether it happened, its update mode and index; markLo
 	// is each path depth's first availability mark
 	hidOn, hidSim, hidDealt bool
@@ -291,9 +291,9 @@ type Searcher struct {
 	markLo                  [maxDepth]int32
 	pathOpp                 [maxDepth]bool
 	hidDealtCommits         int // re-dealt simulations backed up (tests)
-	// The remaining instant-timing keys' state (zzzi42.go)
-	i42 i42State
-	// PerCreature's chain state (zzzzpercreature.go): chainCur and
+	// The remaining instant-timing keys' state (instkeys.go)
+	ik instKeyState
+	// PerCreature's chain state (percreature.go): chainCur and
 	// chainRoot are 1+obj of the creature a point decides (0 none)
 	chainOn, inChain bool
 	chainCur         uint8
@@ -371,7 +371,7 @@ func (sr *Searcher) UseForkPool(p *dirac.ForkPool) {
 	sr.root.UseForkPool(p)
 	sr.tmp.UseForkPool(p)
 	sr.w.s.UseForkPool(p)
-	sr.i42.aimS.UseForkPool(p)
+	sr.ik.aimS.UseForkPool(p)
 	for i := range sr.worlds {
 		sr.worlds[i].s.UseForkPool(p)
 	}
@@ -440,7 +440,7 @@ func (sr *Searcher) Search(root *dirac.State, seatSeed uint64) *Result {
 	}
 	sr.seed = DecisionSeed(seatSeed, uint64(sr.root.SeqNo()))
 	sr.envSeed = splitmix(sr.seed ^ 0x656e762d73656564)
-	sr.i42.wseed = sr.seed
+	sr.ik.wseed = sr.seed
 	n := sr.root.NumObjs()
 	for o := 0; o < n; o++ {
 		sr.seen[o] = !sr.root.Hidden(dirac.Obj(o), sr.seat)
@@ -449,13 +449,13 @@ func (sr *Searcher) Search(root *dirac.State, seatSeed uint64) *Result {
 	// an earlier, larger root left past n, or their keys name stale objects
 	clear(sr.seen[n:])
 	if sr.Opts.InfoSeed {
-		sr.i42.wseed = sr.infoSeed(seatSeed) // zzzi42.go
+		sr.ik.wseed = sr.infoSeed(seatSeed) // instkeys.go
 	}
 	sr.rootDec = true
 	sr.tmWalk = sr.Opts.HoldUpkeep || sr.Opts.RaidHold
 	bot := sr.endFireBot(&sr.root, d, sr.instBot(&sr.root, d, sr.pickBot(&sr.root, d)))
 	if sr.Opts.RaidHold {
-		bot = sr.timingRootBot(d, bot, res) // zztiming.go
+		bot = sr.timingRootBot(d, bot, res) // timing.go
 	}
 	drops := sr.holdDrops
 	useRoot := sr.RootEval != nil && sr.netPrior
@@ -463,7 +463,7 @@ func (sr *Searcher) Search(root *dirac.State, seatSeed uint64) *Result {
 		sr.rootWR.NewWorld()
 	}
 	sr.atRoot = useRoot
-	sr.inRoot = react && (!sr.Opts.ReactDan || sr.Opts.ReactTarget)
+	sr.inRoot = react && (!sr.Opts.ReactHorizon || sr.Opts.ReactTarget)
 	sr.rootBuild = true
 	abNow := sr.Opts.LandAbNow && sr.landAbNow(&sr.root, d, &bot) // landsearch.go
 	if abNow {
@@ -477,7 +477,7 @@ func (sr *Searcher) Search(root *dirac.State, seatSeed uint64) *Result {
 	}
 	if !built {
 		if sr.Opts.HoldUpkeep {
-			bot = sr.timingRootHeld(d, bot) // zztiming.go
+			bot = sr.timingRootHeld(d, bot) // timing.go
 		}
 		sr.St.Skipped = 1
 		if sr.nHeld > 0 {
@@ -515,11 +515,11 @@ func (sr *Searcher) Search(root *dirac.State, seatSeed uint64) *Result {
 		sr.nHeld = min(sr.nHeld, MaxCands-sr.rootPt.n)
 	}
 	if sr.bel != nil {
-		sr.beliefRoot(&sr.root, sr.seat) // zzzbelief.go
+		sr.beliefRoot(&sr.root, sr.seat) // beliefnet.go
 	}
 	sims := sr.Opts.Sims
 	if sr.Opts.CardSims[0].Name != "" {
-		sims = sr.cardRootSims(sims) // zzcsims.go
+		sims = sr.cardRootSims(sims) // cardsims.go
 	}
 	res.Kind, res.Sims = sr.kindAt(&sr.root, d), sims
 	if sr.Opts.DedupSearch && libSearch(d) {
@@ -541,9 +541,9 @@ func (sr *Searcher) Search(root *dirac.State, seatSeed uint64) *Result {
 	landRoot := sr.Opts.LandSearch && d.Options[bot].Kind() == dirac.AkPlayLand
 	sr.landRoot = landRoot
 	sr.explore(pt.n, landRoot)
-	sr.i42.shOn, sr.i42.warmOn = false, false
+	sr.ik.shOn, sr.ik.warmOn = false, false
 	if sr.Opts.RootSH || sr.Opts.Reuse > 0 {
-		sr.i42.shOn = sr.Opts.RootSH && d.Kind == dirac.DkPriority && shRoot(res) // zzzi42.go
+		sr.ik.shOn = sr.Opts.RootSH && d.Kind == dirac.DkPriority && shRoot(res) // instkeys.go
 		if sr.Opts.Reuse > 0 {
 			sr.reuseMatch()
 		}
@@ -589,11 +589,11 @@ func (sr *Searcher) Search(root *dirac.State, seatSeed uint64) *Result {
 		}
 	}
 	res.VisitBest = best
-	if sr.i42.shOn {
-		best = sr.shBest(res, best) // zzzi42.go
+	if sr.ik.shOn {
+		best = sr.shBest(res, best) // instkeys.go
 	}
 	if sr.Opts.RootQ || sr.Opts.RootLCB || sr.Opts.WaitTie > 0 || sr.Opts.WaitSorcOn || sr.Opts.DeferQ > 0 {
-		best = sr.finalMove(res, d, best) // zztiming.go
+		best = sr.finalMove(res, d, best) // timing.go
 	}
 	played := &res.Visits
 	if sr.Opts.ForcedK > 0 {
@@ -609,7 +609,7 @@ func (sr *Searcher) Search(root *dirac.State, seatSeed uint64) *Result {
 		}
 	}
 	if sr.Opts.HoldEps > 0 {
-		best = sr.holdEps(res, best) // zzzi42.go
+		best = sr.holdEps(res, best) // instkeys.go
 	}
 	res.Choice = best
 	res.NActs = 0
@@ -655,10 +655,10 @@ func (sr *Searcher) runTree(sims, wi int, fixed bool) {
 	sr.t.reset()
 	top := sr.t.newNode(&sr.rootPt)
 	sr.noiseRoot(top)
-	if sr.i42.shOn {
-		sr.shInit(sims) // zzzi42.go
+	if sr.ik.shOn {
+		sr.shInit(sims) // instkeys.go
 	}
-	if sr.i42.warmOn && top >= 0 {
+	if sr.ik.warmOn && top >= 0 {
 		sr.reuseWarm(top)
 	}
 	useCache := fixed && sr.Opts.NodeCache > 0
@@ -700,10 +700,10 @@ func (sr *Searcher) newWorld(w *world, sim, wi int, fixed bool) {
 	w.steps, w.plies, w.capped = 0, 0, false
 	var a, b uint64
 	if fixed {
-		a, b = redealSeed(sr.i42.wseed, wi)
-		b = splitmix(sr.i42.wseed ^ splitmix(uint64(wi)+0x51))
+		a, b = redealSeed(sr.ik.wseed, wi)
+		b = splitmix(sr.ik.wseed ^ splitmix(uint64(wi)+0x51))
 	} else {
-		a, b = redealSeed(sr.i42.wseed, sim)
+		a, b = redealSeed(sr.ik.wseed, sim)
 	}
 	sr.redeal(&w.s, a, b)
 	w.s.SetLine(sr.nextLine())
@@ -763,7 +763,7 @@ func (sr *Searcher) redeal(s *dirac.State, a, b uint64) {
 			n = s.LibrarySize(p)
 		}
 		if sr.bel != nil {
-			sr.beliefRedeal(s, p, sr.seat, &r, n, revealed) // zzzbelief.go
+			sr.beliefRedeal(s, p, sr.seat, &r, n, revealed) // beliefnet.go
 			continue
 		}
 		pool := sr.pool[:n]
@@ -862,7 +862,7 @@ func (sr *Searcher) advance(w *world, next *point) bool {
 		if react {
 			w.react.observe(&w.s, sr.seat)
 		}
-		if sr.Opts.SkipPass > 0 && w.plies > 0 && sr.skipWindow(w) { // zztiming.go
+		if sr.Opts.SkipPass > 0 && w.plies > 0 && sr.skipWindow(w) { // timing.go
 			continue
 		}
 		abNow := sr.Opts.LandAbNow && landAbility(&w.s, &w.d) >= 0 // landsearch.go
@@ -874,7 +874,7 @@ func (sr *Searcher) advance(w *world, next *point) bool {
 			// the land ability is played at once, unsearched (landsearch.go)
 		} else if sr.tmWalk {
 			var ok bool
-			if bot, ok = sr.timingWalk(&w.s, &w.d, bot, next); ok { // zztiming.go
+			if bot, ok = sr.timingWalk(&w.s, &w.d, bot, next); ok { // timing.go
 				if sr.Opts.LandSearch && w.d.Options[bot].Kind() == dirac.AkPlayLand {
 					sr.landWalk(&w.d)
 				}
@@ -946,7 +946,7 @@ func (sr *Searcher) walk(ni int32, pt *point, depth, nm, unavail, cur int) bool 
 			}
 		}
 		t0 := profStart()
-		sel := sr.selectAt(ni, pt) // zforced.go
+		sel := sr.selectAt(ni, pt) // forced.go
 		profAdd(phBackup, t0)
 		if sel < 0 {
 			// every available edge is a no-op: so is the edge here

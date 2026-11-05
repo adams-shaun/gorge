@@ -5,7 +5,7 @@ import (
 	v "github.com/adams-shaun/gorge/dirac/vanilla"
 )
 
-// Test helpers for the self-play options (zseat.go, zforced.go): a fake
+// Test helpers for the self-play options (seat.go, forced.go): a fake
 // network and a seat-search game.
 
 // fakeNet is a network stand-in: a real prior (PriorSource) whose logit

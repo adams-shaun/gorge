@@ -81,10 +81,10 @@ type Options struct {
 	// hidden cards from a list drawn from Searcher.Belief (an open list --
 	// the opponent's real hidden cards re-dealt -- when Belief is nil).
 	ClosedList bool
-	// InstWin != InstWinOff (zzinstwin.go) restricts the seat's
+	// InstWin != InstWinOff (instwin.go) restricts the seat's
 	// own-turn instant-speed casts to a combat / response window.
 	InstWin uint8
-	// EndFire (:endfire, zzinstwin.go): at the opponent's end step the
+	// EndFire (:endfire, instwin.go): at the opponent's end step the
 	// seat never passes while it can cast an instant-speed removal spell.
 	EndFire bool
 	Seed    uint64
@@ -115,7 +115,7 @@ type Options struct {
 	// search exactly as without it. PriorRankMaxOptions and ForcedK are
 	// per-search knobs read by Search; SimsByKind, the playout-cap fields
 	// and the decided-game fields are the seat's (azmcts SeatConfig), read
-	// once per decision by SeatSearch (zseat.go) and ignored by Search.
+	// once per decision by SeatSearch (seat.go) and ignored by Search.
 
 	// PriorRankMaxOptions > 0 (azmcts Options.PriorRankMaxOptions): under
 	// a PriorTopK cut, a point whose decision has more options than this
@@ -123,14 +123,14 @@ type Options struct {
 	// and the enumeration's next PriorTopK-1 candidates under a uniform
 	// prior, counted in Stats.PriorFallbacks.
 	PriorRankMaxOptions int
-	// ForcedK > 0 (azmcts Options.ForcedK; zforced.go): forced playouts at
+	// ForcedK > 0 (azmcts Options.ForcedK; forced.go): forced playouts at
 	// the root and policy target pruning into Result.Target.
 	ForcedK float64
 	// SimsByKind[k] > 0 (azmcts SeatConfig.SimsByKind) is the simulation
 	// budget at a decision of searched kind k (KindNames; index 0 unused);
 	// 0 uses Sims.
 	SimsByKind [NumKinds]int32
-	// FullProb > 0 (azmcts SeatConfig.FullProb; zseat.go) is playout-cap
+	// FullProb > 0 (azmcts SeatConfig.FullProb; seat.go) is playout-cap
 	// randomisation: a searched decision is a FULL search (the configured
 	// one) with probability FullProb -- FullProbByKind[k] for a kind whose
 	// bit is set in FullProbKinds -- else a CHEAP one: CheapSims, no root
@@ -139,7 +139,7 @@ type Options struct {
 	CheapSims      int
 	FullProbByKind [NumKinds]float64
 	FullProbKinds  uint16 // bit k: FullProbByKind[k] is set
-	// DecidedHigh > 0 (azmcts SeatConfig.DecidedHigh; zseat.go): once a
+	// DecidedHigh > 0 (azmcts SeatConfig.DecidedHigh; seat.go): once a
 	// seat's last DecidedN completed searches all valued its position above
 	// DecidedHigh, or all below 1-DecidedHigh, each later full search is a
 	// DECIDED one -- DecidedSims, no root noise, no sampling, no forced
@@ -166,7 +166,7 @@ type Options struct {
 	LazyPriors bool
 
 	// The instant-timing options: each off by default, the search exactly
-	// as without it when off. zztiming.go has the rules, Validate's
+	// as without it when off. timing.go has the rules, Validate's
 	// validateTiming the cross-checks.
 	//
 	// RootQ / RootLCB (:rootq, :rootlcb, :rootqf=F, :rootlcbz=Z): the final
@@ -218,13 +218,13 @@ type Options struct {
 	WaitSorcOn        bool
 	WaitTieUntap      bool
 	PassMax           bool
-	// ReactRoot / ReactDan (:react, :reactin, :reacttarget), read with InstWin == InstWinReact: ReactDan takes the rule's
+	// ReactRoot / ReactHorizon (:react, :reactin, :reacttarget), read with InstWin == InstWinReact: ReactHorizon takes the rule's
 	// last window from the untap-step horizon (laterStep, OutlastsTurn)
 	// instead of "the opponent's end step on", and lists the held root
 	// casts for the record only with ReactTarget; ReactRoot holds at the
 	// root only (:react without :reactin).
-	ReactRoot, ReactDan bool
-	ReactTarget         bool
+	ReactRoot, ReactHorizon bool
+	ReactTarget             bool
 	// SkipPass L > 0 (:skippass[=L], gorge azmcts Options.SkipPass): a simulation shortcut; the walk passes
 	// every priority decision (either seat's) with an empty stack outside a
 	// main phase -- at level 2 also the non-active seat's main-phase one --
@@ -242,16 +242,16 @@ type Options struct {
 	LandSearch, LandPick, DedupSearch, LandAbNow bool
 
 	// AltCands, CastDedup: the MageZero like-for-like priority keys
-	// (zzzmzx.go), each off by default and the search exactly as without
+	// (mzkeys.go), each off by default and the search exactly as without
 	// it: AltCands makes plot, bestow, sneak, unlock and turn-face-up
 	// options candidates; CastDedup merges cast candidates of one card.
 	AltCands, CastDedup bool
 
 	// HoldBonus, OppView, OppFair: the value and hidden-information keys
-	// (:holdbonus, :oppview, :oppfair; zzinfo.go). 0 = off.
+	// (:holdbonus, :oppview, :oppfair; hiddeninfo.go). 0 = off.
 	HoldBonus, OppView, OppFair float64
 
-	// The remaining instant-timing keys (zzzi42.go has the rules),
+	// The remaining instant-timing keys (instkeys.go has the rules),
 	// each 0 / false = off, the search exactly as without it:
 	// HoldEps (:holdeps=E) plays pass for a re-offered root cast with
 	// probability E; CastPrior (:castprior=B) scales the seat's re-offered
@@ -269,7 +269,7 @@ type Options struct {
 	Reuse                      float64
 	InfoSeed, ReactAim         bool
 	// PerCreature (0 is off; :percreature=attack) is a bitmask of the
-	// declarations searched one creature at a time (zzzzpercreature.go):
+	// declarations searched one creature at a time (percreature.go):
 	// PerCreatureAttack makes a searched attackers decision a chain of
 	// points, one per eligible creature, each {not attacking} or an attack
 	// at one of its defenders.

@@ -43,7 +43,7 @@ var InstantTrick func(c dirac.CardID, def *kop.CardDef) bool
 // is an own-turn instant-speed cast outside the window.
 func (sr *Searcher) instBlocked(s *dirac.State, a dirac.Action) bool {
 	if sr.Opts.Defer > 0 && sr.deferBlocked(s, a) {
-		return true // zztiming.go: :defer='s own upkeep/draw ban
+		return true // timing.go: :defer='s own upkeep/draw ban
 	}
 	mode := sr.Opts.InstWin
 	if mode == InstWinOff || a.Kind() != dirac.AkCast || (mode != InstWinHold && mode != InstWinReact && s.ActivePlayer() != sr.seat) {
@@ -62,8 +62,8 @@ func (sr *Searcher) instBlocked(s *dirac.State, a dirac.Action) bool {
 		if sr.Opts.ReactRoot && !sr.rootDec {
 			return false // :react without :reactin: the root only
 		}
-		if sr.Opts.ReactDan {
-			return sr.reactHoldDan(s, a, st) // zztiming.go
+		if sr.Opts.ReactHorizon {
+			return sr.reactHoldHorizon(s, a, st) // timing.go
 		}
 		return sr.reactHold(s, st)
 	}
@@ -96,7 +96,7 @@ func (sr *Searcher) instBlocked(s *dirac.State, a dirac.Action) bool {
 func (sr *Searcher) instBot(s *dirac.State, d *dirac.Decision, bot int) int {
 	if (sr.Opts.InstWin == InstWinOff && sr.Opts.Defer <= 0) || d.Kind != dirac.DkPriority || d.Player != sr.seat || !sr.instBlocked(s, d.Options[bot]) {
 		if sr.Opts.ReactAim && d.Kind == dirac.DkTarget {
-			return sr.aimBot(s, d, bot) // zzzi42.go
+			return sr.aimBot(s, d, bot) // instkeys.go
 		}
 		return bot
 	}

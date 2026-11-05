@@ -18,8 +18,8 @@ import (
 //   - the candidate rules Defer (deferBlocked, deferScale), HoldUpkeep,
 //     RaidHold and CardSims / CardSimsForce;
 //   - the prior temperature PriorTemp;
-//   - the :react scope (ReactRoot, ReactDan, ReactTarget) on top of
-//     zzinstwin.go's InstWinReact tracker.
+//   - the :react scope (ReactRoot, ReactHorizon, ReactTarget) on top of
+//     instwin.go's InstWinReact tracker.
 
 // rootFloor is RootQ's eligibility floor at res's root: max(2, F x the
 // visits of vb, the most-visited child), F = RootQFrac, not > 0 (NaN
@@ -55,7 +55,7 @@ func (sr *Searcher) finalMove(res *Result, d *dirac.Decision, best int) int {
 		best = sr.waitTie(res, best)
 	}
 	if sr.Opts.DeferQ > 0 && !land && res.Waited == 0 {
-		best = sr.deferQ(res, best) // zzzi42.go
+		best = sr.deferQ(res, best) // instkeys.go
 	}
 	return best
 }
@@ -222,7 +222,7 @@ func laterStep(st kop.Step, instant, past bool) bool {
 // the last tree only (Validate refuses PassMax with CachedWorlds).
 func (sr *Searcher) passLine(pass int) (float64, bool) {
 	t := &sr.t
-	ni := sr.passNext(pass) // zzzi42.go
+	ni := sr.passNext(pass) // instkeys.go
 	if ni < 0 {
 		return 0, false
 	}
@@ -248,12 +248,12 @@ func (sr *Searcher) passLine(pass int) (float64, bool) {
 	return v, ok
 }
 
-// reactHoldDan is InstWinReact under ReactDan (the horizon form of :react):
+// reactHoldHorizon is InstWinReact under ReactHorizon (the horizon form of :react):
 // an instant-speed cast into an empty stack is held unless the opponent
 // did something this turn (the reactTrack tracker), or the timing rules
 // offer it no later window before the seat's next untap step (laterStep
 // under the untap-step horizon: its last window).
-func (sr *Searcher) reactHoldDan(s *dirac.State, a dirac.Action, st kop.Step) bool {
+func (sr *Searcher) reactHoldHorizon(s *dirac.State, a dirac.Action, st kop.Step) bool {
 	if s.StackLen() != 0 {
 		return false
 	}
@@ -266,7 +266,7 @@ func (sr *Searcher) reactHoldDan(s *dirac.State, a dirac.Action, st kop.Step) bo
 	if sr.curReact.firedNow(s, sr.seat) {
 		return false
 	}
-	return !(sr.Opts.ReactAim && sr.aimKeeps(s, a, st)) // zzzi42.go
+	return !(sr.Opts.ReactAim && sr.aimKeeps(s, a, st)) // instkeys.go
 }
 
 // ---- Defer (:defer=w / :noupkeep) -------------------------------------------
@@ -465,7 +465,7 @@ func (sr *Searcher) skipWindow(w *world) bool {
 // RootQFrac outside (0, 1] or RootLCBZ <= 0 when set, a negative or
 // non-finite Defer, PriorTemp, WaitTie or WaitSorc, WaitTie or WaitSorc
 // above 1, WaitTieUntap or PassMax without a wait margin, PassMax with
-// CachedWorlds (it reads one tree), ReactRoot / ReactDan / ReactTarget
+// CachedWorlds (it reads one tree), ReactRoot / ReactHorizon / ReactTarget
 // without InstWin == InstWinReact, and the card-name lists'.
 func (o *Options) validateTiming() error {
 	fin := func(x float64) bool { return x >= 0 && !math.IsInf(x, 1) }
@@ -482,7 +482,7 @@ func (o *Options) validateTiming() error {
 		return fmt.Errorf("search: WaitTie %g and WaitSorc %g must be in [0, 1]", o.WaitTie, o.WaitSorc)
 	case o.WaitSorc != 0 && !o.WaitSorcOn:
 		return errors.New("search: WaitSorc needs WaitSorcOn")
-	case o.WaitTieUntap && !o.ReadsHorizon(): // zzzi42.go: the one list of the horizon's readers
+	case o.WaitTieUntap && !o.ReadsHorizon(): // instkeys.go: the one list of the horizon's readers
 		return errors.New("search: WaitTieUntap needs a wait margin (WaitTie > 0 or WaitSorc > 0), HoldEps, CastPrior, DeferQ or Replan")
 	case o.PassMax && !(o.WaitTie > 0 || o.WaitSorcOn && o.WaitSorc > 0):
 		return errors.New("search: PassMax needs a wait margin (WaitTie > 0 or WaitSorc > 0)")
@@ -490,8 +490,8 @@ func (o *Options) validateTiming() error {
 		return errors.New("search: PassMax reads one tree; it is incompatible with CachedWorlds")
 	case o.SkipPass < 0:
 		return fmt.Errorf("search: SkipPass %d must be >= 0 (0 is off)", o.SkipPass)
-	case (o.ReactRoot || o.ReactDan || o.ReactTarget) && o.InstWin != InstWinReact:
-		return errors.New("search: ReactRoot, ReactDan and ReactTarget need InstWin == InstWinReact")
+	case (o.ReactRoot || o.ReactHorizon || o.ReactTarget) && o.InstWin != InstWinReact:
+		return errors.New("search: ReactRoot, ReactHorizon and ReactTarget need InstWin == InstWinReact")
 	}
 	return o.validateCardNames()
 }

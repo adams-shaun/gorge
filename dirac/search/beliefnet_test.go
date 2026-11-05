@@ -406,9 +406,9 @@ func BenchmarkBeliefRedeal(b *testing.B) {
 	})
 }
 
-// dzBeliefCase is one state's features and predictions as the contract's
-// reference implementation computes them (zzzbelief_dz_test.go).
-type dzBeliefCase struct {
+// beliefGoldenCase is one state's features and predictions as the contract's
+// reference implementation computes them (beliefnet_golden_test.go).
+type beliefGoldenCase struct {
 	seed        uint64
 	steps, seat int
 	f           [BeliefFeatures]float64
@@ -417,14 +417,14 @@ type dzBeliefCase struct {
 	card        map[string]map[string]float64
 }
 
-// TestBeliefNetsMatchDZ: on fixed vanilla states, the features and every
+// TestBeliefNetsMatchReference: on fixed vanilla states, the features and every
 // head's prediction of the synthetic network files in testdata (two
 // sparse ones and two dense ones, a format-1 hand file and a format-3 deck
 // file) equal what the contract's reference implementation (HandFeatures,
 // HandBelief.Predict, DeckBelief.predict) computes, within 1e-5: the same
 // feature order and scaling, standardisation, trunk, seen bag, heads and
 // softmaxes, so networks trained to the contract predict the same here.
-func TestBeliefNetsMatchDZ(t *testing.T) {
+func TestBeliefNetsMatchReference(t *testing.T) {
 	nets := map[string]*BeliefNet{}
 	for _, f := range []string{"handbelief_v1.json", "handbelief_x1.json", "deckbelief_v3.json", "deckbelief_x3.json"} {
 		n, err := LoadBeliefNet(filepath.Join("testdata", f))
@@ -434,7 +434,7 @@ func TestBeliefNetsMatchDZ(t *testing.T) {
 		nets[f] = n
 	}
 	const tol = 1e-5
-	for _, c := range dzBeliefCases {
+	for _, c := range beliefGoldenCases {
 		s := new(dirac.State)
 		s.Init(vanilla.Table, vanilla.Decks[0], vanilla.Decks[1], c.seed, dirac.Config{})
 		pol := dirac.NewRandomPolicy(c.seed ^ 0x77)

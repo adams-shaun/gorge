@@ -13,7 +13,7 @@ import (
 
 // Tests for the instant-timing options: Options.LandSearch
 // (points.go priorityCands), HoldUpkeep (holdupkeep.go) and CardSims /
-// CardSimsForce (csims.go). The scenarios are FDN games of a red deck --
+// CardSimsForce (cardsims.go). The scenarios are FDN games of a red deck --
 // Mountains, Burst Lightning (an instant, kicker {4}) and Fanatical
 // Firebrand (a {R} haste 1/1 with "{T}, sacrifice: 1 damage to any
 // target", an instant-speed activation) -- played by a script to the
@@ -719,7 +719,7 @@ func TestCardSimsForcePrior(t *testing.T) {
 }
 
 // TestTreeBytesPerSim pins the tree's size per simulation that TreeBytes
-// and the CardSims memory note quote (zzcsims.go): a
+// and the CardSims memory note quote (cardsims.go): a
 // node and MaxCands edges per MaxSims+2, preallocated per Searcher.
 func TestTreeBytesPerSim(t *testing.T) {
 	if n := unsafe.Sizeof(node{}) + MaxCands*unsafe.Sizeof(edge{}); n != 4648 {

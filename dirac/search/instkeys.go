@@ -52,9 +52,8 @@ import (
 //     built, its target decisions keep only the opponent's objects where
 //     any is offered.
 
-
-// i42State is the Searcher's state for these keys (Searcher.i42).
-type i42State struct {
+// instKeyState is the Searcher's state for these keys (Searcher.ik).
+type instKeyState struct {
 	// RootSH's schedule at the current root
 	shOn                   bool
 	shK, shPhase, shPhases int
@@ -260,7 +259,7 @@ func shRoot(res *Result) bool {
 // root's m candidates: ceil(log2 m) phases, each of floor(sims / (phases x
 // survivors)) visits per survivor (at least 1).
 func (sr *Searcher) shInit(sims int) {
-	x := &sr.i42
+	x := &sr.ik
 	m := sr.rootPt.n
 	x.shK, x.shPhase, x.shPos, x.shSims = m, 0, 0, sims
 	x.shPhases = max(1, int(math.Ceil(math.Log2(float64(m)))))
@@ -277,7 +276,7 @@ func (sr *Searcher) shInit(sims int) {
 // turn to the end of the budget. A survivor this world does not offer (or
 // a dead edge) falls back to PUCT.
 func (sr *Searcher) shSelect(ni int32, pt *point) int32 {
-	x := &sr.i42
+	x := &sr.ik
 	t := &sr.t
 	if x.shLeft == 0 && x.shPhase < x.shPhases-1 && x.shK > 1 {
 		sr.shHalve()
@@ -303,7 +302,7 @@ func (sr *Searcher) shSelect(ni int32, pt *point) int32 {
 // shHalve keeps the better half of the survivors by their root edges' Q
 // (an unvisited edge last), in a stable order, and starts the next phase.
 func (sr *Searcher) shHalve() {
-	x := &sr.i42
+	x := &sr.ik
 	var q [MaxCands]float64
 	for i := 0; i < x.shK; i++ {
 		q[i] = sr.shQ(x.shSurv[i])
@@ -340,7 +339,7 @@ func (sr *Searcher) shQ(c int32) float64 {
 // shBest is RootSH's move: the visited survivor of best Q (the earliest of
 // equals in survivor order), else best.
 func (sr *Searcher) shBest(res *Result, best int) int {
-	x := &sr.i42
+	x := &sr.ik
 	pick := -1
 	for i := 0; i < x.shK; i++ {
 		c := int(x.shSurv[i])
@@ -374,7 +373,7 @@ type reuseState struct {
 // the same turn, a priority decision with an empty stack; each candidate
 // whose key the line has starts with F times its visits and the same Q.
 func (sr *Searcher) reuseMatch() {
-	x := &sr.i42
+	x := &sr.ik
 	x.warmOn = false
 	st := x.seatSt
 	if st == nil || !st.reuse.on || sr.rootD.Kind != dirac.DkPriority || sr.root.StackLen() != 0 ||
@@ -402,7 +401,7 @@ func (sr *Searcher) reuseMatch() {
 // one edge per candidate in order) their warm visits; every root edge's
 // availability counts them too, as if those simulations had run here.
 func (sr *Searcher) reuseWarm(top int32) {
-	x := &sr.i42
+	x := &sr.ik
 	t := &sr.t
 	var total int32
 	i := 0
@@ -575,19 +574,19 @@ func replanNote(root *dirac.State, d *dirac.Decision, res *Result, st *SeatState
 	copy(rp.opts[:], d.Options[:d.N])
 }
 
-// seatSearchI42 is SeatSearch with Replan or Reuse on: Replan's skip
+// seatSearchKeys is SeatSearch with Replan or Reuse on: Replan's skip
 // before the search, the search with the SeatState in reach (Reuse), and
 // both records after it.
-func (sr *Searcher) seatSearchI42(root *dirac.State, d *dirac.Decision, seatSeed uint64, st *SeatState) *Result {
+func (sr *Searcher) seatSearchKeys(root *dirac.State, d *dirac.Decision, seatSeed uint64, st *SeatState) *Result {
 	if sr.Opts.Replan {
 		if res := sr.replanSkip(root, d, st); res != nil {
 			st.reuse.on = false
 			return res
 		}
 	}
-	sr.i42.seatSt = st
+	sr.ik.seatSt = st
 	res := sr.seatSearch(root, d, seatSeed, st)
-	sr.i42.seatSt = nil
+	sr.ik.seatSt = nil
 	if sr.Opts.Reuse > 0 {
 		sr.reuseKeep(root, d, res, st)
 	}
@@ -660,7 +659,7 @@ func (sr *Searcher) aimKeeps(s *dirac.State, a dirac.Action, st kop.Step) bool {
 	if st != kop.StepMain1 || s.ActivePlayer() != sr.seat {
 		return false
 	}
-	x := &sr.i42
+	x := &sr.ik
 	x.aimS.CopyFrom(s)
 	x.aimS.StepInto(&x.aimD)
 	x.aimS.Apply(a)
@@ -740,8 +739,8 @@ func (sr *Searcher) singleAim(s *dirac.State, d *dirac.Decision, bot, limit int,
 
 // ---- validation --------------------------------------------------------------
 
-// validateI42 refuses these keys' bad values (Options.Validate).
-func (o *Options) validateI42() error {
+// validateInstKeys refuses these keys' bad values (Options.Validate).
+func (o *Options) validateInstKeys() error {
 	fin := func(x float64) bool { return x >= 0 && !math.IsInf(x, 1) }
 	switch {
 	case !(o.HoldEps >= 0 && o.HoldEps <= 1):
@@ -760,8 +759,8 @@ func (o *Options) validateI42() error {
 		return errors.New("search: Reuse warms one serial tree; it is incompatible with CachedWorlds and Batch")
 	case o.RootSH && (o.CachedWorlds > 0 || o.Batch > 0 || o.NodeCache > 0 || o.ForcedK > 0 || o.EarlyCutGap || o.EarlyCutShare > 0):
 		return errors.New("search: RootSH runs on one serial tree; it is incompatible with CachedWorlds, Batch, NodeCache, ForcedK and the early cut")
-	case o.ReactAim && (o.InstWin != InstWinReact || !o.ReactDan):
-		return errors.New("search: ReactAim needs the horizon react (InstWin == InstWinReact with ReactDan)")
+	case o.ReactAim && (o.InstWin != InstWinReact || !o.ReactHorizon):
+		return errors.New("search: ReactAim needs the horizon react (InstWin == InstWinReact with ReactHorizon)")
 	}
 	return nil
 }

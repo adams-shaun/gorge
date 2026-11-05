@@ -106,7 +106,7 @@ func (c *nodeCache) simulate(sr *Searcher, wi int) bool {
 			}
 		}
 		fp0 := sr.St.ForcedPlayouts
-		sel := sr.selectAt(ni, pt) // zforced.go
+		sel := sr.selectAt(ni, pt) // forced.go
 		if pt.opp {
 			sr.St.OppPoints++
 		}

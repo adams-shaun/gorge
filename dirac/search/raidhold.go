@@ -1,6 +1,5 @@
 package search
 
-
 import (
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/kop"

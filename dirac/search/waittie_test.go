@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// Tests for Options.WaitTie (waittie.go), the "when tied, wait" final-move
+// Tests for Options.WaitTie (timing.go), the "when tied, wait" final-move
 // rule, and dirac State.InstantSpeed, which it reads the timing from. The
 // scenarios are FDN games of a red deck of Mountains, Gorehorn Raider (a
 // {4}{R} creature: sorcery-speed), Burst Lightning (an instant) and

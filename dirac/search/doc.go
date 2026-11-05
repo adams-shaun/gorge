@@ -51,11 +51,11 @@
 //
 // The self-play options (azmcts's names; every one 0 = off,
 // the search exactly as without it): PriorRankMaxOptions (points.go: skip
-// the network ranking above that many options), ForcedK (zforced.go: forced
+// the network ranking above that many options), ForcedK (forced.go: forced
 // root playouts, Result.Target pruned), and the seat's SimsByKind,
 // playout-cap randomisation (FullProb, CheapSims, FullProbByKind) and
 // decided-game searches (DecidedHigh, DecidedN, DecidedSims,
-// DecidedWeight), which SeatSearch (zseat.go) applies around Search, read
+// DecidedWeight), which SeatSearch (seat.go) applies around Search, read
 // once per decision. PCRFull and DecisionSeed are gorge's bit for bit; the
 // kinds are dirac's searched kinds (KindNames), so azmcts's
 // "multitarget" is dirac's "target".

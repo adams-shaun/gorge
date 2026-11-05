@@ -77,7 +77,7 @@ type SeatState struct {
 	Decided, Winning int
 	// react is the seat's InstWinReact turn tracker (ObserveReact).
 	react reactTrack
-	// Replan's last pass and Reuse's kept pass line (zzzi42.go)
+	// Replan's last pass and Reuse's kept pass line (instkeys.go)
 	rp    replanState
 	reuse reuseState
 }
@@ -116,7 +116,7 @@ func (st *SeatState) observe(v, hi float64) {
 // sr.Opts is left as it was. Allocation-free.
 func (sr *Searcher) SeatSearch(root *dirac.State, d *dirac.Decision, seatSeed uint64, st *SeatState) *Result {
 	if sr.Opts.Replan || sr.Opts.Reuse > 0 {
-		return sr.seatSearchI42(root, d, seatSeed, st) // zzzi42.go
+		return sr.seatSearchKeys(root, d, seatSeed, st) // instkeys.go
 	}
 	return sr.seatSearch(root, d, seatSeed, st)
 }
@@ -194,7 +194,7 @@ func MaxSims(o *Options) int {
 	if o.DecidedHigh > 0 {
 		n = max(n, o.DecidedSims)
 	}
-	for _, c := range o.CardSims { // zzcsims.go: Search's per-card budget
+	for _, c := range o.CardSims { // cardsims.go: Search's per-card budget
 		n = max(n, int(c.Sims))
 	}
 	return n
@@ -217,13 +217,13 @@ func (o *Options) Validate() error {
 	case o.LandPick && !o.LandSearch, o.DedupSearch && !o.Kinds.Choose: // landsearch.go
 		return errors.New("search: LandPick needs LandSearch, DedupSearch needs Kinds.Choose")
 	}
-	if err := o.validateTiming(); err != nil { // zztiming.go
+	if err := o.validateTiming(); err != nil { // timing.go
 		return err
 	}
-	if err := o.validateI42(); err != nil { // zzzi42.go
+	if err := o.validateInstKeys(); err != nil { // instkeys.go
 		return err
 	}
-	if err := o.validatePerCreature(); err != nil { // zzzzpercreature.go
+	if err := o.validatePerCreature(); err != nil { // percreature.go
 		return err
 	}
 	for k := 1; k < NumKinds; k++ {
@@ -368,7 +368,7 @@ func (sr *Searcher) lazyPoint(s *dirac.State, d *dirac.Decision, pt *point) bool
 	pt.n, pt.opp, pt.off[0] = 0, opp, 0
 	switch kind {
 	case kindPriority:
-		// zzinstwin.go: the instwin / endfire filter drops options from
+		// instwin.go: the instwin / endfire filter drops options from
 		// the seat's own set by the state, and the bot's answer is first
 		// replaced (instBot, endFireBot), so the stand-in set would keep
 		// casts (or a pass) the real point never offers.
@@ -400,7 +400,7 @@ func (sr *Searcher) lazyPoint(s *dirac.State, d *dirac.Decision, pt *point) bool
 		}
 	default:
 		if o.ReactAim && kind == kindTarget && !opp {
-			return false // zzzi42.go: ReactAim may narrow the seat's targets
+			return false // instkeys.go: ReactAim may narrow the seat's targets
 		}
 		sr.single(d, 0, limit, pt)
 	}

@@ -1,6 +1,5 @@
 package search
 
-
 import (
 	"errors"
 	"fmt"

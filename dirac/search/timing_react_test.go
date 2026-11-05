@@ -8,7 +8,7 @@ import (
 )
 
 // Tests for the timing options WaitSorc and PassMax, the :react scope
-// (ReactRoot, ReactDan, ReactTarget) and :defer.
+// (ReactRoot, ReactHorizon, ReactTarget) and :defer.
 
 // TestWaitSorc: under WaitSorcOn, a sorcery-speed move waits by WaitSorc
 // and an instant-speed one by WaitTie: the Raider in main 1 at margins
@@ -122,14 +122,14 @@ func TestPassMax(t *testing.T) {
 	}
 }
 
-// TestReactDanWindows: under ReactDan the react rule holds an own
+// TestReactHorizonWindows: under ReactHorizon the react rule holds an own
 // instant-speed cast into an empty stack unless the opponent did something
 // this turn or the untap-step horizon offers it no later window
 // (laterStep); under ReactRoot it holds at the root's decision only.
-func TestReactDanWindows(t *testing.T) {
+func TestReactHorizonWindows(t *testing.T) {
 	tbl, da, db := reactMatchup(t)
 	o := DefaultOptions()
-	o.InstWin, o.ReactDan = InstWinReact, true
+	o.InstWin, o.ReactHorizon = InstWinReact, true
 	sr := NewSearcher(o, &fakeNet{val: -1}, Heuristic{})
 	or := o
 	or.ReactRoot = true
@@ -196,7 +196,7 @@ func TestReactDanWindows(t *testing.T) {
 	}
 }
 
-// TestReactTarget: under ReactDan the root's held casts are listed for the
+// TestReactTarget: under ReactHorizon the root's held casts are listed for the
 // record (RootHeld, HeldSingle) only with ReactTarget; the move is the
 // same either way, and so are the statistics of every searched root (a
 // held singleton is a one-candidate record of an unsearched root).
@@ -204,7 +204,7 @@ func TestReactTarget(t *testing.T) {
 	tbl, da, db := reactMatchup(t)
 	mk := func(target bool) *Searcher {
 		sr := reactSearcher()
-		sr.Opts.ReactDan, sr.Opts.ReactTarget = true, target
+		sr.Opts.ReactHorizon, sr.Opts.ReactTarget = true, target
 		return sr
 	}
 	off, on := mk(false), mk(true)

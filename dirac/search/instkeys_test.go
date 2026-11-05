@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// Tests for the remaining instant-timing keys (zzzi42.go): HoldEps, CastPrior,
+// Tests for the remaining instant-timing keys (instkeys.go): HoldEps, CastPrior,
 // DeferQ, Replan, RootSH, Reuse, InfoSeed and ReactAim, each shown acting
 // when on and inert when off.
 
@@ -274,7 +274,7 @@ func TestRootSH(t *testing.T) {
 			t.Errorf("candidate %d: %d visits, under the first phase's %d", i, on.Visits[i], per)
 		}
 	}
-	x := &sr.i42
+	x := &sr.ik
 	if x.shK != 1 && x.shK != 2 {
 		t.Errorf("%d survivors at the end", x.shK)
 	}
@@ -328,7 +328,7 @@ func TestReuse(t *testing.T) {
 	}{{s.SeqNo() - 2, int32(s.Turn()), true}, {s.SeqNo() - 1, int32(s.Turn()), false}, {s.SeqNo() - 2, int32(s.Turn()) - 1, false}} {
 		st := keep(c.seq, c.turn)
 		sr := NewSearcher(o, HeuristicLeaf{}, passBot{})
-		sr.i42.seatSt = &st
+		sr.ik.seatSt = &st
 		r := *sr.Search(s, 4)
 		var sum, sumB int32
 		for i := 0; i < r.N; i++ {
@@ -393,13 +393,13 @@ func TestInfoSeed(t *testing.T) {
 	o := timingOpts()
 	sr := NewSearcher(o, HeuristicLeaf{}, Heuristic{})
 	sr.Search(s, 3)
-	if sr.i42.wseed != sr.seed {
+	if sr.ik.wseed != sr.seed {
 		t.Fatal("InfoSeed off: the worlds' seed is not the decision seed")
 	}
 	o.InfoSeed = true
 	on := NewSearcher(o, HeuristicLeaf{}, Heuristic{})
 	on.Search(s, 3)
-	w0 := on.i42.wseed
+	w0 := on.ik.wseed
 	// the next decision of seat 0 after passes only, in the same turn
 	var s2 dirac.State
 	s2.CopyFrom(s)
@@ -425,15 +425,15 @@ func TestInfoSeed(t *testing.T) {
 	if s2.SeqNo() == s.SeqNo() {
 		t.Fatal("the same decision")
 	}
-	if same && on.i42.wseed != w0 {
+	if same && on.ik.wseed != w0 {
 		t.Errorf("same information, different worlds' seeds")
 	}
 	on.Search(s, 4)
-	if on.i42.wseed == w0 {
+	if on.ik.wseed == w0 {
 		t.Error("another seat seed, the same worlds' seed")
 	}
 	sr.Search(&s2, 3)
-	if sr.i42.wseed == w0 {
+	if sr.ik.wseed == w0 {
 		t.Error("off: the worlds' seed followed the information")
 	}
 }
@@ -464,7 +464,7 @@ func TestReactAim(t *testing.T) {
 	s := aimRoot(t)
 	isBurst := func(a dirac.Action) bool { return castsCard(s, a, burst, false) }
 	o := timingOpts()
-	o.InstWin, o.ReactDan, o.ReactRoot = InstWinReact, true, true
+	o.InstWin, o.ReactHorizon, o.ReactRoot = InstWinReact, true, true
 	plain := NewSearcher(o, HeuristicLeaf{}, passBot{})
 	rp := plain.Search(s, 2)
 	if rp.Stats.Searched == 1 && rootHas(plain, rp, isBurst) {
@@ -514,9 +514,9 @@ func TestReactAim(t *testing.T) {
 	}
 }
 
-// TestI42Validate: the keys' bad values and combinations are refused, and
+// TestInstKeysValidate: the keys' bad values and combinations are refused, and
 // the untap-step horizon is accepted with any reader of it (ReadsHorizon).
-func TestI42Validate(t *testing.T) {
+func TestInstKeysValidate(t *testing.T) {
 	ok := func(f func(o *Options)) Options {
 		o := DefaultOptions()
 		f(&o)
@@ -547,7 +547,7 @@ func TestI42Validate(t *testing.T) {
 		ok(func(o *Options) { o.DeferQ, o.DeferQMin, o.WaitTieUntap = 0.03, 4, true }),
 		ok(func(o *Options) { o.Replan, o.WaitTieUntap = true, true }),
 		ok(func(o *Options) { o.RootSH, o.Reuse, o.InfoSeed = true, 0.5, true }),
-		ok(func(o *Options) { o.ReactAim, o.InstWin, o.ReactDan = true, InstWinReact, true }),
+		ok(func(o *Options) { o.ReactAim, o.InstWin, o.ReactHorizon = true, InstWinReact, true }),
 	} {
 		if err := o.Validate(); err != nil {
 			t.Errorf("refused: %v", err)
@@ -555,9 +555,9 @@ func TestI42Validate(t *testing.T) {
 	}
 }
 
-// TestI42ZeroAllocs: a search with every one of these keys on allocates
+// TestInstKeysZeroAllocs: a search with every one of these keys on allocates
 // nothing (the SeatSearch path included).
-func TestI42ZeroAllocs(t *testing.T) {
+func TestInstKeysZeroAllocs(t *testing.T) {
 	o := timingOpts()
 	o.Sims = 32
 	o.HoldEps, o.CastPrior, o.DeferQ, o.Replan, o.RootSH, o.Reuse, o.InfoSeed, o.WaitTieUntap = 0.5, 0.3, 0.03, true, true, 0.5, true, true
@@ -572,7 +572,7 @@ func TestI42ZeroAllocs(t *testing.T) {
 		}
 	}
 	o = timingOpts()
-	o.Sims, o.InstWin, o.ReactDan, o.ReactAim = 32, InstWinReact, true, true
+	o.Sims, o.InstWin, o.ReactHorizon, o.ReactAim = 32, InstWinReact, true, true
 	sr = NewSearcher(o, HeuristicLeaf{}, Heuristic{})
 	s := aimRoot(t)
 	if allocs := testing.AllocsPerRun(5, func() { sr.Search(s, 1) }); allocs != 0 {
