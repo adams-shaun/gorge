@@ -91,6 +91,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-trk", []stdRepro{
 		{"granted_mana_taps_stack_one_at_a_time", false, false}, // CR 603.3b: Deep Space 9 paid by Rok-Tahk's {G}{G} from Beckett Mariner and Erica Ortegas: each tap's trigger is stacked before the next activation, and both resolve before the sorcery-speed cast
 		{"entry_counter_put_by_returned_owner", false, false},   // CR 122.6a: Dr. Leonard "Bones" McCoy returns the opponent's Moopsy under its owner's control, so its owner puts the +1/+1 counter and the owner's Dr. Joseph M'Benga doubles it
+		{"entry_counter_put_by_opposing_grant", false, false},   // CR 122.6a: Overflow Submatrix's finality counter on the opponent's Storied Veteran is put by the Submatrix's controller, so Dr. Joseph M'Benga doubles only the Veteran's own grant
 	})
 }
 
