@@ -508,11 +508,13 @@ components:
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/engine/view.CardView"
     CreateEventRequest:
-      description: "CreateEventRequest is the POST /api/events body: the drafted set, the series format and the four seats. BestOf is 1 or 3 (0 = 1). PickTimer is \"\", \"off\", \"standard\" or \"relaxed\". The seed is always minted by the server; no client field may choose it."
+      description: "CreateEventRequest is the POST /api/events body: the drafted set, the series format and the four seats. BestOf is 1 or 3 (0 = 1). PickTimer is \"\", \"off\", \"standard\" or \"relaxed\". The seed is always minted by the server; no client field may choose it. Format is the supply: a booster draft (default), sealed (six Play Boosters per seat) or prerelease (sealed plus one rare/mythic promo per seat, best of 3 by default)."
       properties:
         best_of:
           format: "int64"
           type: "integer"
+        format:
+          type: "string"
         pick_timer:
           type: "string"
         seats:
@@ -931,6 +933,8 @@ components:
           type: "string"
         number:
           type: "string"
+        promo:
+          type: "boolean"
         rarity:
           type: "string"
         set:
@@ -1374,6 +1378,8 @@ components:
         error:
           type: "string"
         event:
+          type: "string"
+        format:
           type: "string"
         phase:
           type: "string"
