@@ -86,30 +86,8 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.touchSl(sl)
 		}
 	case kop.OpPutCounter:
-		if sl := s.objRef(k, in.Obj); sl != NoSlot {
-			amt := s.value(k, in.A)
-			if k.gen != nil && s.ctrOrderPark(k, sl, int(in.C), amt) {
-				return false // the CR 616.1 order ask; the instruction runs again (repl_ctrorder.go)
-			}
-			n := s.placeCounters(k, sl, int(in.C), amt, s.perms[sl].ctrl, ctrPutEffect)
-			if n > 0 && k.anyCtrAdded {
-				s.ctrNote(k, sl, int(in.C))
-			}
-			if in.B.N >= kop.PutCtrCellFirst {
-				if in.B.N == kop.PutCtrCellFirst {
-					s.g.ctrCell.clr(sl)
-				}
-				s.fireCounterCell(k, sl, n) // trig_countercell.go
-			} else if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
-				s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(n))
-			}
-			if in.B.N != 0 {
-				if in.B.N == 1 {
-					s.putCounterRemAmount(k, in, n) // RememberAmount$ (act_remember.go)
-				} else if in.B.N == 2 {
-					s.putCounterRemPut(k, in, sl) // RememberPut$ (ctr_putparams.go)
-				}
-			}
+		if !s.execPutCounter(k, in) {
+			return false // the CR 616.1 order ask (repl_ctrorder.go)
 		}
 	case kop.OpRemoveCounter:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
