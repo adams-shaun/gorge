@@ -347,6 +347,13 @@ func (r *Translator) Action(a dirac.Action) Canon {
 				return ch("yes", RefNone, 0)
 			}
 			return ch("no", RefNone, 0)
+		case dirac.ChGenDigOpt:
+			// gorge effDig's allOrNothing election (KChoose kinds "yes"/"no",
+			// no object): ChangeNum$ All beside Optional$.
+			if mode == 1 {
+				return ch("yes", RefNone, 0)
+			}
+			return ch("no", RefNone, 0)
 		case dirac.ChLegend:
 			return ch("keep", src, 0)
 		case dirac.ChDivide:
