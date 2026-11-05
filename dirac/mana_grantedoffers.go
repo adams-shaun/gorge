@@ -375,7 +375,7 @@ type grantSrch struct {
 	gi       [MaxPerm][maxGrants]int16 // each candidate's granted abilities (grantPC indices)
 	ng       [MaxPerm]uint8
 	dual     [MaxPerm]bool // the candidate's own ability is tried first
-	skipPool bool          // the next branch's mana is restricted past the play: it prices nothing
+	skipPool bool          // the next branch's mana is restricted past the play (a printed ability or a grant): the step is taken, its mana prices nothing
 	// filt: the candidate also has a filter ability ({1},{T}: Add one mana of any
 	// color), a paid census gap of gorge's like the grants (mana_filter.go)
 	filt [MaxPerm]bool
@@ -574,11 +574,12 @@ func (g *grantSrch) visit(t *State) bool {
 		}
 		for j := 0; j < int(g.ng[i]); j++ {
 			gi := g.gi[i][j]
-			if !g.grantAdmits(t, sl, gi) {
-				continue // the play's origin or class cannot spend this grant's restricted mana
-			}
 			pc := t.grantView(g.k.gen, gi, sl)
 			mask := t.srcMaskAt(pc, sl)
+			// gorge's search taps a granted census gap whether or not the play may
+			// spend it (the mana floats, the tap fires its triggers); mana the
+			// play's origin or class cannot spend prices nothing
+			g.skipPool = !g.grantAdmits(t, sl, gi)
 			if g.branch(t, i, sl, gi, mask, pc.manaN, alts == 1 || mask&uint8(kop.ColAny) == uint8(kop.ColAny)) {
 				return true
 			}
@@ -715,6 +716,9 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 		t.perms[sl].flags |= pfTapped
 		t.pl[g.p&1].pool[c] += pn
 		xv := t.srcExtraPick(g.k, sl, pc, int(c))
+		if skip {
+			xv = [kop.NumManaKinds]uint8{} // the unspendable tap prices no extra either
+		}
 		t.addXv(g.p&1, &xv)
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl}
 		g.np++
@@ -810,7 +814,8 @@ func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
 // grantAdmits: the play g.d makes may spend granted ability gi's mana (an
 // unrestricted grant always; a restricted one as restrSrcAdmits reads the
 // play). The search is feasibility-only, so mana the play cannot spend
-// must not make it payable (the offer would stall the payment).
+// must not price it (the offer would stall the payment); the grant is still
+// a gap step, tapped as gorge's search taps it (visit sets skipPool).
 func (g *grantSrch) grantAdmits(t *State, sl Slot, gi int16) bool {
 	if g.k.gen.grantRestr[gi] == 0 {
 		return true
