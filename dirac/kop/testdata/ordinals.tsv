@@ -389,6 +389,7 @@ ExYourTurns	ExprKind	251
 ExtAddPhase	ExtOp	193
 ExtAegisClone	ExtOp	80
 ExtAirbend	ExtOp	95
+ExtAttacksIfAble	ExtOp	255
 ExtBreachChoose	ExtOp	160
 ExtBreachReturn	ExtOp	161
 ExtChangeTargets	ExtOp	225
@@ -914,6 +915,7 @@ RefTriggerAttackers	Ref	31
 RefTriggerObj	Ref	9
 RefTriggerPlayer	Ref	10
 RefTriggerSource	Ref	21
+RefTriggerTgtCtrl	Ref	33
 RepeatEachSeatOrder	untyped int	2
 ReplAddCountersOn	ReplKind	21
 ReplAfterEnter	untyped int	1

@@ -19,10 +19,12 @@ const mayKindRaise uint8 = 2
 
 // partitionRecord makes r the owner's while-exiled permission for o, with
 // the surcharge raise owed when the owner is not the effect's controller.
+// turn is only the raise when one is owed; otherwise it stays the record's
+// creation turn, which the DurYourNextTurn cleanup reads (Expedited
+// Inheritance's EffectOwner$ RememberedController grant).
 func (s *State) partitionRecord(r *mayPlay, o Obj, ctrl uint8, raise int) {
 	owner := s.objs[o].owner()
 	r.ctrl = owner
-	r.turn = 0
 	if raise > 0 && owner != ctrl {
 		r.kind |= mayKindRaise
 		r.turn = uint16(raise)
