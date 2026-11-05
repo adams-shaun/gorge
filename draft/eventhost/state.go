@@ -16,7 +16,9 @@ func (r *run) stateFor(seat int) protocol.EventState {
 	st := protocol.EventState{
 		Event: r.meta.ID, Set: r.meta.Set,
 		Phase: string(r.ev.Phase()), Round: r.ev.Round(),
-		BestOf: r.bestOf(),
+		BestOf:  r.bestOf(),
+		Format:  r.meta.Format,
+		Rebuild: r.meta.Rebuild,
 		// The pick-timer mode as the meta stores it; a meta written
 		// before the field existed reads back as "" (no timer).
 		PickTimer: r.meta.PickTimer,
@@ -105,6 +107,19 @@ func (r *run) seriesFor(seat int, results []event.SeriesOutcome, rd, a, b int) p
 			}
 			return ser
 		}
+		if v, ok := r.ev.SeriesState(a, b); ok && v.Opening {
+			// A rebuild event's window before game 1 (MTR 7.3): no game
+			// of this series has a table yet, so the row is between with
+			// game 1 and the seats still to lock their deck.
+			ser.State = "between"
+			ser.Game = v.NextGame
+			for side, s := range []int{a, b} {
+				if v.Locked[side] == 0 {
+					ser.Waiting = append(ser.Waiting, s)
+				}
+			}
+			return ser
+		}
 		ser.State = "live"
 		for _, att := range r.ev.InFlight() {
 			if att.A != a || att.B != b {
@@ -162,7 +177,13 @@ func (r *run) seriesForBo3(seat int, results []event.SeriesOutcome, rd, a, b int
 		joinLink(r, &ser, seat, a, b, v.InFlight.Table)
 		return ser
 	}
-	if v.Between {
+	if v.Between || v.Opening {
+		// Between games, or in a rebuild event's window before game 1
+		// (MTR 7.3). An opening row carries no table (no game of this
+		// series has one yet) and no chooser (game 1's chooser is the
+		// toss at its GameStarted): lastGameTable finds no GameStarted
+		// for the round's series and NextChooser is -1, so both fall out
+		// of the shared body.
 		ser.State = "between"
 		ser.Table = r.lastGameTable(rd, a, b)
 		ser.Game = v.NextGame

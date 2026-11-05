@@ -10,8 +10,9 @@ import (
 // game. Keep re-locks the revision the seat played last game; a
 // Deck request is validated against the seat's pool and saved as a new
 // revision first. Exactly one of the two is set. The series must be in its
-// between window, the request's Game must be the series' next game, and
-// the seat must not have sideboarded yet; every other state is a 409.
+// between window or its rebuild window (Game 1, MTR 7.3), the request's
+// Game must be the series' next game, and the seat must not have
+// sideboarded yet; every other state is a 409.
 func (h *Host) Sideboard(id, token string, req protocol.SideboardRequest) (protocol.EventState, error) {
 	r, ferr := h.find(id)
 	if ferr != nil {
@@ -39,8 +40,8 @@ func (h *Host) Sideboard(id, token string, req protocol.SideboardRequest) (proto
 		return protocol.EventState{}, errConflict("eventhost: seat %d is not in a series this round", seat)
 	}
 	v, ok := r.ev.SeriesState(a, b)
-	if !ok || !v.Between {
-		return protocol.EventState{}, errConflict("eventhost: seat %d's series is not between games", seat)
+	if !ok || (!v.Between && !v.Opening) {
+		return protocol.EventState{}, errConflict("eventhost: seat %d's series is not between games or in its rebuild window", seat)
 	}
 	if req.Game != v.NextGame {
 		return protocol.EventState{}, errConflict("eventhost: seat %d's series next game is %d, not %d",
@@ -53,7 +54,7 @@ func (h *Host) Sideboard(id, token string, req protocol.SideboardRequest) (proto
 	if v.Locked[side] != 0 {
 		return protocol.EventState{}, errConflict("eventhost: seat %d already sideboarded for game %d", seat, req.Game)
 	}
-	rev := v.PlayRevs[side]
+	rev := r.keepRev(v, seat, side)
 	if !req.Keep {
 		nrev, serr := r.saveDeck(seat, build.Deck{Main: req.Deck.Main, Basics: req.Deck.Basics})
 		if serr != nil {

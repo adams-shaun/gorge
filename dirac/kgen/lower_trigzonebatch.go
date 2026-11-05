@@ -40,9 +40,12 @@ func (lc *lowerCtx) changesZoneAll(tp *params, tr *lTrigger, t cards.Trigger) er
 		}
 	}
 	origin, dests := zAny, map[int]bool{}
+	bfGrave := false
 	if o, ok := tp.get("Origin"); ok {
 		if origin, ok = zoneNames[o]; !ok {
-			return refuse("ChangesZoneAll Origin %q", o)
+			if bfGrave = isBattlefieldGraveSet(o); !bfGrave {
+				return refuse("ChangesZoneAll Origin %q", o)
+			}
 		}
 	}
 	d, ok := tp.get("Destination")
@@ -73,6 +76,11 @@ func (lc *lowerCtx) changesZoneAll(tp *params, tr *lTrigger, t cards.Trigger) er
 		tr.Event, tr.From = "Leaves", zGraveyard
 	case notGrave:
 		tr.Event, tr.NotToGrave = "Leaves", true
+	case bfGrave && len(dests) == 1 && dests[zExile]:
+		// Origin$ Battlefield,Graveyard to exile (Ketramose, the New Dawn):
+		// the Leaves line to exile plus the graveyard leave to exile, one
+		// batch line (kop.Tf2LeavesGrave, kernel trig_leavesgrave.go)
+		tr.Event, tr.N, tr.AlsoGrave = "Leaves", 1<<zoneBit(zExile), true
 	default:
 		return refuse("ChangesZoneAll %s->%s", zoneLabel[origin], d)
 	}
@@ -113,4 +121,16 @@ func (lc *lowerCtx) blockedByCreature(tp *params, tr *lTrigger) error {
 	tr.Event = "AttackerBlocked"
 	tr.ByCreature = true
 	return nil
+}
+
+// isBattlefieldGraveSet reports an Origin$ list naming exactly the
+// battlefield and the graveyard, in either order (gorge's ZoneList admits a
+// move whose origin is in the set).
+func isBattlefieldGraveSet(o string) bool {
+	ws := strings.Split(o, ",")
+	if len(ws) != 2 {
+		return false
+	}
+	a, b := strings.TrimSpace(ws[0]), strings.TrimSpace(ws[1])
+	return a == "Battlefield" && b == "Graveyard" || a == "Graveyard" && b == "Battlefield"
 }

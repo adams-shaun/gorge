@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { eventSeatFor, forgetEventSeat } from './eventseat';
 import { cardNames, countNames, pickHistory, revealDecks } from './eventlog';
 import { pct, record, standingRows } from './standings';
-import { createRequest, defaultSeats, eventPolicies, inviteURL, maskToken, ratedBy17Lands, setNote, timerLabel, timerOffered, type SeatChoice } from './newevent';
+import { createRequest, defaultBestOf, defaultRebuild, defaultSeats, eventPolicies, inviteURL, maskToken, ratedBy17Lands, sealedFormat, setNote, timerLabel, timerOffered, type SeatChoice } from './newevent';
 import { gameDots, inPlay, seriesScore, seriesStatus } from './series';
 import { pickSecondsLeft } from './pickclock';
 import { createEvent, listEventPersonas, listEventSets } from './eventapi';
@@ -150,6 +150,46 @@ describe('create request: seat kinds, best of, pick timer', () => {
     const url = inviteURL('https://x.test', '/e/ev1?seat=1&token=abcDEF');
     expect(url).toBe('https://x.test/e/ev1?seat=1&token=abcDEF');
     expect(maskToken(url)).toBe('https://x.test/e/ev1?seat=1&token=••••••');
+  });
+});
+
+describe('create request: formats and rebuild', () => {
+  const pod = (...kinds: ('human' | 'bot')[]): SeatChoice[] => kinds.map((kind) => ({ kind, policy: kind === 'human' ? 'ignored' : '', drafter: '' }));
+  it('prerelease and sealed default to the server\'s supply and rebuild choice', () => {
+    expect(sealedFormat('sealed')).toBe(true);
+    expect(sealedFormat('prerelease')).toBe(true);
+    expect(sealedFormat('draft')).toBe(false);
+    expect(defaultBestOf('prerelease')).toBe(3);
+    expect(defaultBestOf('sealed')).toBe(1);
+    expect(defaultBestOf('draft')).toBe(1);
+    expect(defaultRebuild('sealed')).toBe(true);
+    expect(defaultRebuild('prerelease')).toBe(true);
+    expect(defaultRebuild('draft')).toBe(false);
+  });
+  it('createRequest prerelease sends format and no pick_timer', () => {
+    const req = createRequest('FDN', pod('human', 'human', 'bot', 'bot'), { format: 'prerelease', bestOf: 3, rebuild: true, pickTimer: 'relaxed' });
+    expect(req).toEqual({ set: 'FDN', format: 'prerelease', seats: [{ kind: 'human' }, { kind: 'human' }, { kind: 'bot' }, { kind: 'bot' }] });
+    expect(req).not.toHaveProperty('best_of');
+    expect(req).not.toHaveProperty('rebuild');
+    expect(req).not.toHaveProperty('pick_timer');
+  });
+  it('createRequest prerelease best of 1 sends best_of 1', () => {
+    expect(createRequest('FDN', pod('human', 'bot', 'bot', 'bot'), { format: 'prerelease', bestOf: 1, rebuild: true })).toEqual({
+      set: 'FDN', format: 'prerelease', best_of: 1, seats: [{ kind: 'human' }, { kind: 'bot' }, { kind: 'bot' }, { kind: 'bot' }],
+    });
+  });
+  it('createRequest sealed rebuild off sends rebuild false', () => {
+    expect(createRequest('FDN', pod('human', 'bot', 'bot', 'bot'), { format: 'sealed', bestOf: 1, rebuild: false })).toEqual({
+      set: 'FDN', format: 'sealed', rebuild: false, seats: [{ kind: 'human' }, { kind: 'bot' }, { kind: 'bot' }, { kind: 'bot' }],
+    });
+  });
+  it('createRequest draft is unchanged', () => {
+    expect(createRequest('FDN', pod('human', 'human', 'bot', 'bot'), { format: 'draft', bestOf: 3, rebuild: false, pickTimer: 'relaxed' })).toEqual({
+      set: 'FDN', best_of: 3, pick_timer: 'relaxed', seats: [{ kind: 'human' }, { kind: 'human' }, { kind: 'bot' }, { kind: 'bot' }],
+    });
+    expect(createRequest('FDN', pod('human', 'bot', 'bot', 'bot'), { bestOf: 1 })).toEqual({
+      set: 'FDN', seats: [{ kind: 'human' }, { kind: 'bot' }, { kind: 'bot' }, { kind: 'bot' }],
+    });
   });
 });
 

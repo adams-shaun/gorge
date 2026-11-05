@@ -600,6 +600,7 @@ type lTrigger struct {
 	Attacked      uint8 // Attacks: Attacked$ as atkYou|atkYourPW|atkOpp bits (0 = any defender)
 	Batch         bool  // a "one or more" mode (ChangesZoneAll, DamageDoneOnce): once per simultaneous batch
 	NotToGrave    bool  // Leaves: only to a zone other than a graveyard (ChangesZoneAll Destination$ without Graveyard)
+	AlsoGrave     bool  // Leaves: the line also fires for a card leaving a graveyard to a zone in N (ChangesZoneAll Origin$ Battlefield,Graveyard; kop.Tf2LeavesGrave)
 	Training      bool  // Attacks: Training$ True, the source attacks with a greater-power attacker (kop.TrigNTraining)
 	Valiant       bool  // BecomesTarget: Valiant$ True with ValidTarget$ Card.Self, ValidSource$ SpellAbility.YouCtrl
 	TeamworkTap   bool  // Taps: Teamwork$ True, only a teamwork-cost tap (kop.TrigNTeamworkTap)

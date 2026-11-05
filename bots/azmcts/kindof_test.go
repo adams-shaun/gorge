@@ -53,6 +53,9 @@ func TestKindsSearches(t *testing.T) {
 			t.Errorf("FullKinds().Searches(%s) = %v, want %v", c.name, got, c.fuller)
 		}
 	}
+	if !(Kinds{Mulligan: true}).Searches(mulligan) {
+		t.Error("a Kinds with Mulligan does not search the mulligan")
+	}
 	if (Kinds{}).Searches(priority) {
 		t.Error("the zero Kinds searches a priority decision")
 	}

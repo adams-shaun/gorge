@@ -16,7 +16,9 @@
    * compact sideboard over the seat's working copy — the deck it played
    * last game against the rest of its pool, basics +/-, the server's live
    * deck check — with Keep and Submit deck, and "Open full builder" for
-   * the same working copy in the BUILD screen.
+   * the same working copy in the BUILD screen. In a rebuild event's window
+   * before game 1 of a round-2-or-later series it is the same panel without
+   * a previous game: the headline names the round and the rebuild choice.
    *
    * Everything shown is the server's: the series row (score, games,
    * chooser, waiting), the pool and the deck check. The play/draw choice
@@ -72,8 +74,10 @@
   const side = $derived(b.sideCards);
 
   const headline = $derived(
-    `Game ${game} of ${series.best_of || 3}` +
-      (last === null ? '' : last === 'drawn' ? ` — game ${game - 1} was drawn` : ` — you ${last} game ${game - 1}`),
+    game === 1
+      ? `Round ${series.round}: before your match, keep your deck or rebuild it from your pool`
+      : `Game ${game} of ${series.best_of || 3}` +
+          (last === null ? '' : last === 'drawn' ? ` — game ${game - 1} was drawn` : ` — you ${last} game ${game - 1}`),
   );
 
   function chooserLine(): string | null {

@@ -220,6 +220,7 @@ const (
 	SrRandom         = 1 << 15 // OpChooseMove from a graveyard (AtRandom$ True): the engine rng picks the card(s), nobody is asked (Tersa Lightshatter)
 	SrForgetChanged  = 1 << 1  // ForgetChanged$ True on a library search (OpSearchEx): each found card that moved leaves the remembered set (gorge zone_search eventForgetChanged). B bit 1 is read from the instruction (moveFound / pickLeaves), never ORed into pickF; bit 0 is the UntilLeaves hand-exile link
 	SrHandGrave      = 1 << 2  // OpChooseMove: the pool is the fetching player's Hand then Graveyard (gorge effSearchLibrary over Origin$ Hand,Graveyard); read from the instruction's B, never ORed into pickF. B bits 4..11 hold the entry counter kind+1 (WithCountersType$, amount 1; 0 = none)
+	SrGameGrave      = 1 << 3  // OpChooseMove from a graveyard with no fetch player: the pool is every player's graveyard in seat order (gorge effHiddenPick gameWide), not player Obj's; picked cards enter their owner's zone (gorge zoneOwner). B bit 3 is free on an OpChooseMove (bits 4..11 are the entry counter kind, and this bit is read in startSearch, not by a move scan)
 	SrNoShuffle      = 1 << 14 // Shuffle$ False: the library is not shuffled after the moves; a library destination puts the found cards on top in pick order, remembered with SrRemember (Flourishing Bloom-Kin)
 	SrAltOrigin      = 1 << 4  // OpSearchEx only (bits 4..11 are OpChooseMove's entry counter kind, unread on a library search): OriginAlternative$ -- the searcher first elects which of the library and the alternative zone to search (gorge originAlternativeZones), the pool is the elected zones' cards (library first), the shuffle is owed only when the library was elected. B bits 5..7 (SrAltZoneShift) hold the alternative zone (Graveyard or Hand); read from the instruction, never ORed into pickF
 )
@@ -405,6 +406,14 @@ const LibTopShuffleSelf = 5
 // not the top's). Origin$ Battlefield only: an object no longer on the
 // battlefield does not move, but the library is still shuffled.
 const LibBottomShuffle = 7
+
+// LibBottomRememberGrave is OpToLibrary's C for a trigger object's
+// Origin$ Graveyard move to the bottom of its owner's library with
+// RememberChanged$ True (The Spot, Living Portal's "put him on the bottom of
+// his owner's library. If you do, ..."): a card no longer in the graveyard
+// does not move (gorge's Origin$ precondition), and a card that reached the
+// library joins the remembered set.
+const LibBottomRememberGrave = 9
 
 // Delayed program timings (OpDelayedProgram A; 0 = the next end step).
 const (

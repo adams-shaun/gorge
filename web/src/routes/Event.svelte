@@ -6,7 +6,7 @@
   import { DeckBuilder } from '../lib/deckbuild.svelte';
   import { eventSeatFor, forgetEventSeat, rememberName, rememberedName } from '../lib/eventseat';
   import { eventApi, listEventSets } from '../lib/eventapi';
-  import { ratedBy17Lands } from '../lib/newevent';
+  import { ratedBy17Lands, sealedFormat } from '../lib/newevent';
   import { seatLabel } from '../lib/draftcards';
   import PhaseRail from '../components/event/PhaseRail.svelte';
   import LobbyView from '../components/event/LobbyView.svelte';
@@ -97,7 +97,19 @@
   }
 
   const phaseLabel = $derived(
-    phase === 'LOBBY' ? 'lobby' : phase === 'DRAFT' ? 'draft' : phase === 'BUILD' ? 'build' : isRound(phase) ? `round ${st?.round ?? ''} of 3 · Bo${st?.best_of === 3 ? 3 : 1}` : phase === 'COMPLETE' ? 'results' : '',
+    phase === 'LOBBY'
+      ? 'lobby'
+      : phase === 'DRAFT'
+        ? sealedFormat(st?.format)
+          ? 'opening packs'
+          : 'draft'
+        : phase === 'BUILD'
+          ? 'build'
+          : isRound(phase)
+            ? `round ${st?.round ?? ''} of 3 · Bo${st?.best_of === 3 ? 3 : 1}`
+            : phase === 'COMPLETE'
+              ? 'results'
+              : '',
   );
 </script>
 
@@ -119,7 +131,7 @@
       {#if client.error}<p class="ev-error" role="alert">{client.error}</p>{:else}<p class="dim">Loading the event…</p>{/if}
     </section>
   {:else}
-    <PhaseRail phase={st.phase} />
+    <PhaseRail phase={st.phase} format={st.format} />
     {#if client.unauthorised}
       <p class="ev-notice banner" role="status">This link's seat token is not valid for this event, so you are watching as a spectator.</p>
     {/if}

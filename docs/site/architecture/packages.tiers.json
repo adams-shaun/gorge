@@ -647,6 +647,10 @@
       "tier": "dirac",
       "status": "EXT"
     },
+    "dirac/neteval": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
     "dirac/oracle": {
       "tier": "dirac",
       "status": "EXT"
@@ -660,6 +664,14 @@
       "status": "EXT"
     },
     "dirac/oracle/cmd/ksbt": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/oracle/searchtest": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/search": {
       "tier": "dirac",
       "status": "EXT"
     },

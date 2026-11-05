@@ -1,12 +1,14 @@
-import { mount } from 'svelte';
+import { mount, tick } from 'svelte';
 import NewEvent from './NewEvent.svelte';
 
 // The create screen against a recording fetch double: the three discovery
 // GETs answer from fixtures, and POST /api/events records its body and
 // answers with one invite per human seat the body asked for — the shape
 // eventhost's Create replies with. navigateTo is the real router's, so a
-// navigation shows as a changed location.pathname.
+// navigation shows as a changed location.pathname. ?format=sealed or
+// ?format=prerelease selects that Mode before the browser test looks.
 type W = { createBodies: unknown[] };
+const initialFormat = new URLSearchParams(location.search).get('format');
 (window as unknown as W).createBodies = [];
 history.replaceState(null, '', '/events/new');
 window.fetch = async (input, init) => {
@@ -28,3 +30,8 @@ window.fetch = async (input, init) => {
 };
 
 mount(NewEvent, { target: document.getElementById('app')! });
+
+if (initialFormat === 'sealed' || initialFormat === 'prerelease') {
+  document.querySelector<HTMLButtonElement>(`[data-testid="format-${initialFormat}"]`)?.click();
+  await tick();
+}

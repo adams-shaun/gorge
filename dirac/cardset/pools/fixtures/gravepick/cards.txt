@@ -1,0 +1,31 @@
+# the untargeted graveyard-pick pool: the corpus cards the hidden pick
+# over a graveyard with no target player lowered for (the kernel's
+# lockstep and mutation tests). Bloodcurdler's pick names its fetch player
+# (DefinedPlayer$ You); the other four are game-wide (gorge effHiddenPick
+# gameWide): Charnel Troll, Deathbonnet Hulk's back face, Entrails
+# Feaster (Optional$ confirm, Chooser$ You) and False Memories (seven
+# picks). Beside them the creatures and removal that fill the graveyards
+# the pools read, the loot that reaches Bloodcurdler's threshold and the
+# lands.
+Bloodcurdler
+Cathartic Reunion
+Charnel Troll
+Deathbonnet Sprout
+Doom Blade
+Elite Vanguard
+Entrails Feaster
+False Memories
+Frantic Search
+Grizzly Bears
+Island
+Murder
+Plains
+Savannah Lions
+Shock
+Silvercoat Lion
+Swamp
+Terror
+Tome Scour
+Walking Corpse
+Mountain
+Forest

@@ -225,9 +225,9 @@ func (r *run) owesDecision(seat int) bool {
 			if !r.ev.Started(sp.A, sp.B) || r.inFlight(sp.A, sp.B) != nil {
 				return true
 			}
-			// Between games, a side still to submit its deck owes
-			// one sideboarding submission.
-			if v, ok := r.ev.SeriesState(sp.A, sp.B); ok && v.Between {
+			// Between games, or in a series' rebuild window, a side
+			// still to submit its deck owes one sideboarding submission.
+			if v, ok := r.ev.SeriesState(sp.A, sp.B); ok && (v.Between || v.Opening) {
 				side := 0
 				if seat == sp.B {
 					side = 1
@@ -444,11 +444,12 @@ func (r *run) concedeSeries(sp event.SeriesSpec, idle map[int]bool) error {
 }
 
 // idleSideboard locks the deck an idle human seat played last game for its
-// series' next game (one auto-keep per between window, the host's
-// action, Auto on the entry). When the next game then goes live and the
-// seat still owes its game decisions, the sweep's concession path ends
-// the series. It reports whether anything was applied. The caller holds
-// run.mu.
+// series' next game (one auto-keep per between or rebuild window, the
+// host's action, Auto on the entry) — in the between window the deck it
+// played last game, in a rebuild window the deck it played last round.
+// When the next game then goes live and the seat still owes its game
+// decisions, the sweep's concession path ends the series. It reports
+// whether anything was applied. The caller holds run.mu.
 func (r *run) idleSideboard(now time.Time) bool {
 	acted := false
 	for s := 0; s < draft.Seats; s++ {
@@ -460,7 +461,7 @@ func (r *run) idleSideboard(now time.Time) bool {
 			continue
 		}
 		v, ok := r.ev.SeriesState(a, b)
-		if !ok || !v.Between || v.NextGame == 0 {
+		if !ok || (!v.Between && !v.Opening) || v.NextGame == 0 {
 			continue
 		}
 		side := 0
@@ -472,7 +473,7 @@ func (r *run) idleSideboard(now time.Time) bool {
 		}
 		if err := r.apply(event.Entry{
 			Kind: event.KindSideboarded, Round: v.Round, A: a, B: b,
-			Game: v.NextGame, Seat: s, Rev: v.PlayRevs[side], Auto: true,
+			Game: v.NextGame, Seat: s, Rev: r.keepRev(v, s, side), Auto: true,
 		}); err != nil {
 			if r.halted == "" {
 				r.halted = fmt.Sprintf("event %s: idle seat %d sideboard failed: %v", r.meta.ID, s, err)

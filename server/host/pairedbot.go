@@ -444,6 +444,21 @@ func (r *Registry) advise(ctx context.Context, job adviceJob) (protocol.Advice, 
 	if rulesOnly {
 		return r.adviseByRules(ctx, out, s, e, d, rulesReason(&d))
 	}
+	res, err := r.adviseBySearch(ctx, out, s, es, feed, e, seatSeed, job)
+	if err == nil && res.State != protocol.AdviceReady && d.Kind == decision.KMulligan {
+		// A mulligan is a decision every human meets: when search cannot
+		// weigh it, the bot's rules answer it as before search could.
+		return r.adviseByRules(ctx, out, s, e, d, rulesReason(&d))
+	}
+	return res, err
+}
+
+// adviseBySearch is advise for a decision the seat searches: it builds the
+// seat's honest root and asks the seat about it.
+func (r *Registry) adviseBySearch(ctx context.Context, out protocol.Advice, s seat.Seat, es bots.EnvSeat, feed *searchseat.Feed, e *rules.Engine, seatSeed uint64, job adviceJob) (protocol.Advice, error) {
+	m, d := job.m, job.d
+	p := d.Player
+	entry := r.pairedBotOf(&m.table.cfg)
 	setup := searchseat.SeatSetup(searchprobe.PublicGame{
 		Names: m.gc.Names, Decks: m.gc.Decks, Tokens: m.gc.Tokens, StartingLife: m.gc.StartingLife,
 	}, es, p)

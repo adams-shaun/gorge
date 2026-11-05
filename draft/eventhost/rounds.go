@@ -75,10 +75,11 @@ func (r *run) startGame(sp event.SeriesSpec, game int) error {
 		return err
 	}
 	revA, revB := r.ev.ReadyRev(a), r.ev.ReadyRev(b)
-	if game > 1 {
-		if v, ok := r.ev.SeriesState(a, b); ok {
-			revA, revB = v.Locked[0], v.Locked[1]
-		}
+	if v, ok := r.ev.SeriesState(a, b); ok && (game > 1 || (v.Locked[0] != 0 && v.Locked[1] != 0)) {
+		// A later game plays the between window's locks; game 1 plays its
+		// locks only when a rebuild window locked both sides — a plain
+		// game 1, which has no locks, plays the readied decks.
+		revA, revB = v.Locked[0], v.Locked[1]
 	}
 	var humanSlots []int
 	for i, s := range []int{a, b} {
@@ -226,6 +227,20 @@ func (r *run) advanceRounds() bool {
 			}
 			applied = true
 		}
+		// A rebuild event's round-2-or-later series opens with its rebuild
+		// window: an unlocked bot side keeps its deck (one entry per
+		// pass), a human side waits to submit its deck. With both sides
+		// locked the window is closed and the game starts below.
+		p, waiting, err := r.lockOpening(sp)
+		if err != nil {
+			return applied
+		}
+		if p {
+			applied = true
+		}
+		if p || waiting {
+			continue
+		}
 		if _, buffered := r.outcomes[[2]int{sp.A, sp.B}]; buffered {
 			continue
 		}
@@ -299,6 +314,16 @@ func (r *run) advanceSeriesBo3(sp event.SeriesSpec) (bool, error) {
 		}
 		return true, nil
 	}
+	if v.Opening {
+		// The rebuild window before game 1 (MTR 7.3): an unlocked bot
+		// side keeps the deck it played last, a human side waits to
+		// submit its deck. With both sides locked the window is closed
+		// and game 1 starts below, on the series' own new table.
+		p, waiting, err := r.lockOpening(sp)
+		if err != nil || p || waiting {
+			return p, err
+		}
+	}
 	if !v.Between {
 		// Not between games and no attempt in flight: game 1 is about to
 		// start, or a crashed attempt is restarting — either way on a new
@@ -319,7 +344,7 @@ func (r *run) advanceSeriesBo3(sp event.SeriesSpec) (bool, error) {
 		}
 		if err := r.apply(event.Entry{
 			Kind: event.KindSideboarded, Round: sp.Round, A: sp.A, B: sp.B,
-			Game: game, Seat: seat, Rev: v.PlayRevs[side],
+			Game: game, Seat: seat, Rev: r.keepRev(v, seat, side),
 		}); err != nil {
 			return false, err
 		}

@@ -1939,7 +1939,9 @@ export interface EventSeat {
   /**
    * EventSeries is one pairing of an event round. State is "pending", "live",
    * "between" or "ended" — "between" names the sideboarding step between two
-   * games of a series. Table names the live (or last) game's host
+   * games of a series, and a rebuild event's window before game 1 of a round 2
+   * or 3 series (MTR 7.3), where Game is 1 and Table is empty (no game of the
+   * series has a table yet). Table names the live (or last) game's host
    * table, so a spectator can watch at /t/{table}; Attempt is the game
    * attempt in flight. Game is the live game, or the next one while between.
    * Games is the winner seat per played game (-1 for a draw); Chooser names
@@ -1994,6 +1996,8 @@ export interface EventState {
   round: number;
   best_of: number;
   pick_timer?: string;
+  format?: string;
+  rebuild?: boolean;
   seats: EventSeat[];
   you: number | null;
   series: EventSeries[];
@@ -2016,6 +2020,7 @@ export interface DraftCard {
   mana_value?: number;
   colors?: string;
   type_line?: string;
+  promo?: boolean;
 }
 
   /**
@@ -2070,12 +2075,19 @@ export interface CreateEventSeat {
    * CreateEventRequest is the POST /api/events body: the drafted set, the
    * series format and the four seats. BestOf is 1 or 3 (0 = 1). PickTimer is
    * "", "off", "standard" or "relaxed". The seed is always minted by the
-   * server; no client field may choose it.
+   * server; no client field may choose it. Format is the supply: a booster draft
+   * (default), sealed (six Play Boosters per seat) or prerelease (sealed plus one
+   * rare/mythic promo per seat, best of 3 by default). Rebuild turns on MTR 7.3
+   * continuous construction: a rebuild window before game 1 of every series from
+   * round 2. When nil, the format decides: true for sealed and prerelease, false
+   * for draft.
    */
 export interface CreateEventRequest {
   set: string;
+  format?: string;
   best_of?: number;
   pick_timer?: string;
+  rebuild?: boolean | null;
   seats: CreateEventSeat[];
 }
 
@@ -2171,8 +2183,9 @@ export interface ReadyRequest {
   /**
    * SideboardRequest is the POST /api/events/{id}/sideboard body: the seat's
    * deck for game Game of its current series. Keep re-submits the deck it
-   * played last game; otherwise Deck is the new list (pool CardRef ids plus
-   * basics), saved as a new revision. Exactly one of Keep and Deck is set.
+   * played last game (in a rebuild event's round-2-or-later window, Game 1, the
+   * deck the seat played last); otherwise Deck is the new list (pool CardRef ids
+   * plus basics), saved as a new revision. Exactly one of Keep and Deck is set.
    * Game is compared with the server's next game; a stale one is a 409.
    */
 export interface SideboardRequest {

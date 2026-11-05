@@ -76,8 +76,8 @@ func kindsGame(t *testing.T, humanDeck, oppDeck string, seed uint64, maxAsks int
 
 // Every kind of decision a human meets gets an answer: the search's when it can
 // rank the options, otherwise the bot's rules with the reason search did not
-// weigh it. None of them is left as "none", and a rules answer names the
-// options it picks and carries no search.
+// weigh it. None of them is left as "none", a rules answer names the options
+// it picks and carries no search, and the keep-or-mulligan ask is searched.
 func TestPairedBotAnswersEveryKindAHumanMeets(t *testing.T) {
 	if testing.Short() {
 		t.Skip("plays whole games")
@@ -99,6 +99,9 @@ func TestPairedBotAnswersEveryKindAHumanMeets(t *testing.T) {
 			var n explain.Note
 			if err := json.Unmarshal(a.Explain, &n); err != nil {
 				t.Fatal(err)
+			}
+			if d.Kind == decision.KMulligan && len(d.Options) == 2 && d.Options[1].Kind == "mulligan" && (n.Search == nil || n.Search.Sims == 0) {
+				t.Errorf("mulligan decision %d (%q): not searched (%s)", d.Seq, d.Prompt, a.Reason)
 			}
 			if n.Search == nil {
 				rules[d.Kind]++
@@ -128,38 +131,44 @@ func TestPairedBotAnswersEveryKindAHumanMeets(t *testing.T) {
 			t.Errorf("fixture: no %s decision was asked", k)
 		}
 	}
-	if rules[decision.KMulligan] == 0 {
-		t.Error("the mulligan was not answered by the bot's rules")
-	}
 	t.Logf("asked %v; answered by rules %v", seen, rules)
 }
 
-// A rules answer reads only what the seat holds: two games that differ in the
-// opponent's list, and so its hidden cards, give the same bytes at the London
-// mulligan, which comes before the opponent shows a card.
+// Advice reads only what the seat holds: two games that differ in the
+// opponent's list, and so its hidden cards, give the same bytes before the
+// opponent shows a card -- for the searched London mulligan, whose worlds deal
+// the opponent's cards from the belief, and for a rules answer, the choice of
+// who plays first.
 func TestPairedBotRulesAdviceIgnoresHiddenOpponentCards(t *testing.T) {
-	first := func(opp string) []byte {
-		var out []byte
-		n := 0
-		kindsGame(t, "uw-control", opp, 20261103, 3, func(d *decision.Decision, a protocol.Advice) {
-			if d.Kind != decision.KMulligan {
-				return
-			}
+	first := func(opp string) (mull, toss []byte) {
+		// The human wins the toss at this seed and chooses who plays first.
+		kindsGame(t, "uw-control", opp, 20261104, 3, func(d *decision.Decision, a protocol.Advice) {
 			b, _ := json.Marshal(a)
-			out = append(out, b...)
-			n++
+			switch d.Kind {
+			case decision.KMulligan:
+				mull = append(mull, b...)
+			case decision.KStartingPlayer:
+				toss = append(toss, b...)
+			}
 		})
-		if n == 0 {
-			t.Fatal("fixture: no mulligan was asked")
+		if len(mull) == 0 || len(toss) == 0 {
+			t.Fatalf("fixture: asked %d bytes of mulligan and %d of who plays first, want both", len(mull), len(toss))
 		}
-		return out
+		return mull, toss
 	}
-	a, b := first("mono-red-goblins"), first("mono-blue-tempo")
-	if !bytes.Equal(a, b) {
-		t.Fatalf("the mulligan advice differs with the opponent's list:\n%s\n%s", a, b)
+	am, at := first("mono-red-goblins")
+	bm, bt := first("mono-blue-tempo")
+	if !bytes.Equal(am, bm) {
+		t.Fatalf("the mulligan advice differs with the opponent's list:\n%s\n%s", am, bm)
 	}
-	if !strings.Contains(string(a), "rules would do") {
-		t.Fatalf("the mulligan advice does not say it is the bot's rules: %s", a)
+	if !strings.Contains(string(am), `"search":`) {
+		t.Fatalf("the mulligan advice carries no search: %s", am)
+	}
+	if !bytes.Equal(at, bt) {
+		t.Fatalf("the advice on who plays first differs with the opponent's list:\n%s\n%s", at, bt)
+	}
+	if !strings.Contains(string(at), "rules would do") {
+		t.Fatalf("the advice on who plays first does not say it is the bot's rules: %s", at)
 	}
 }
 

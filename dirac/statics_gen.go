@@ -297,7 +297,16 @@ func (s *State) mayPlayStatics(k *prep, p uint8, o Obj, f func(st statSrc) bool)
 	stopped := false
 	check := func(st statSrc) bool {
 		a := st.a
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom || st.ctrl != p || !mayPlayFromZone(&a.Static, ob.zone) {
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom || !mayPlayFromZone(&a.Static, ob.zone) {
+			return true
+		}
+		if a.Static.StFlags&kop.StSeatActive != 0 {
+			// the beneficiary is the active player, whoever controls the static
+			if p != s.active {
+				return true
+			}
+			st.ctrl = p
+		} else if st.ctrl != p {
 			return true
 		}
 		if a.Static.StFlags&(kop.StFunctionsInGraveyard|kop.StFunctionsInExile) != 0 {

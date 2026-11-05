@@ -8,16 +8,21 @@
   import { message } from '../lib/draftevent.svelte';
   import {
     DEFAULT_PERSONA,
+    FORMATS,
     PICK_TIMERS,
     RATINGS_17LANDS,
     createRequest,
+    defaultBestOf,
+    defaultRebuild,
     defaultSeats,
     eventPolicies,
     humanCount,
     inviteURL,
     maskToken,
+    sealedFormat,
     setNote,
     timerOffered,
+    type EventFormat,
     type PickTimer,
     type SeatKind,
   } from '../lib/newevent';
@@ -26,11 +31,14 @@
   /**
    * /events/new (mockup 3a): a 4-player pod, pick one. Each seat is a bot
    * (with its game policy and pickbot persona) or a human who gets an
-   * invite link; seat 1 starts as you. Best of 1 or 3, and — for a pod with
-   * two or more humans — the pick timer. Everything offered is the
-   * server's: the sets (GET /api/events/sets), the pickbot personas (GET
-   * /api/events/personas) and the bot game policies (/api/bot-policies,
-   * which never lists a policy that reads opponents' decklists).
+   * invite link; seat 1 starts as you. The Mode segment picks the supply —
+   * a booster draft, a sealed pool, or a prerelease pool plus one promo —
+   * and each format resets Matches and Deck changes to its server default.
+   * A sealed format has no picks, so it hides the pick timer and names the
+   * persona a builder. Everything offered is the server's: the sets
+   * (GET /api/events/sets), the pickbot personas (GET /api/events/personas)
+   * and the bot game policies (/api/bot-policies, which never lists a
+   * policy that reads opponents' decklists).
    *
    * With one human, creating the event sends you to your own invite link.
    * With more, the server's invite links are shown once (it keeps only
@@ -52,6 +60,8 @@
   let defaultPolicy = $state('');
   let seats = $state(defaultSeats());
   let bestOf = $state<1 | 3>(1);
+  let format = $state<EventFormat>('draft');
+  let rebuild = $state(false);
   let pickTimer = $state<PickTimer>('');
   let busy = $state(false);
   let error = $state<string | null>(null);
@@ -65,6 +75,7 @@
   const defaultLabel = $derived(policies.find((p) => p.name === defaultPolicy)?.label ?? defaultPolicy);
   const humans = $derived(humanCount(seats));
   const timed = $derived(timerOffered(seats));
+  const sealed = $derived(sealedFormat(format));
   // The segment shown as on: Off when the server will not time this pod;
   // otherwise the player's choice, else the server's default (standard).
   const timerShown = $derived(!timed ? 'off' : pickTimer || 'standard');
@@ -98,6 +109,14 @@
     seats[i].kind = kind;
   }
 
+  // chooseFormat applies the server's defaults for the chosen supply; the
+  // player can still change Matches and Deck changes afterwards.
+  function chooseFormat(f: EventFormat) {
+    format = f;
+    bestOf = defaultBestOf(f);
+    rebuild = defaultRebuild(f);
+  }
+
   function seatTitle(i: number): string {
     if (seats[i].kind === 'bot') return 'Bot';
     return seats.findIndex((s) => s.kind === 'human') === i ? 'You' : 'Human';
@@ -108,7 +127,7 @@
     busy = true;
     error = null;
     try {
-      const res = await createEvent(createRequest(set, seats, { bestOf, pickTimer }));
+      const res = await createEvent(createRequest(set, seats, { bestOf, pickTimer, format, rebuild }));
       const links = res.invites ?? [];
       if (links.length > 1) {
         invites = links;
@@ -204,9 +223,21 @@
       <div class="field">
         <span class="ev-h5">Mode</span>
         <div class="seg" role="group" aria-label="Mode">
-          <button type="button" class="on" aria-pressed="true">Draft</button>
-          <button type="button" disabled>Sealed (later)</button>
+          {#each FORMATS as f (f.format)}
+            <button
+              type="button"
+              class:on={format === f.format}
+              aria-pressed={format === f.format}
+              data-testid={`format-${f.format}`}
+              onclick={() => chooseFormat(f.format)}
+            >{f.label}</button>
+          {/each}
         </div>
+        {#if format === 'sealed'}
+          <p class="dim small">Six Play Boosters per player, opened straight into your pool. Build a 40-card deck with any number of basic lands.</p>
+        {:else if format === 'prerelease'}
+          <p class="dim small">Six Play Boosters and one rare or mythic promo per player, opened straight into your pool. Build a 40-card deck with any number of basic lands.</p>
+        {/if}
       </div>
       <div class="field">
         <span class="ev-h5">Seats · pod of 4 · {humans} {humans === 1 ? 'human' : 'humans'}</span>
@@ -224,10 +255,10 @@
                 </span>
               {:else}
                 <span class="persona">
-                  <select aria-label={`Seat ${i + 1} drafts as`} bind:value={seat.drafter} data-testid={`seat-${i + 1}-drafter`}>
-                    <option value="">Drafter: server default ({DEFAULT_PERSONA})</option>
+                  <select aria-label={`Seat ${i + 1} ${sealed ? 'builds' : 'drafts'} as`} bind:value={seat.drafter} data-testid={`seat-${i + 1}-drafter`}>
+                    <option value="">{sealed ? 'Builder' : 'Drafter'}: server default ({DEFAULT_PERSONA})</option>
                     {#each personas as name (name)}
-                      <option value={name}>Drafter: {name}</option>
+                      <option value={name}>{sealed ? 'Builder' : 'Drafter'}: {name}</option>
                     {/each}
                   </select>
                   <span class="data dim">Builder: {seat.drafter || DEFAULT_PERSONA}</span>
@@ -258,25 +289,37 @@
         </p>
       </div>
       <div class="field">
-        <span class="ev-h5">Pick timer</span>
-        <div class="seg" role="group" aria-label="Pick timer" data-testid="pick-timer">
-          {#each PICK_TIMERS as t (t.mode)}
-            <button
-              type="button"
-              class:on={timerShown === t.mode}
-              aria-pressed={timerShown === t.mode}
-              disabled={!timed}
-              data-testid={`timer-${t.mode}`}
-              onclick={() => (pickTimer = t.mode)}
-            >{t.label}</button>
-          {/each}
+        <span class="ev-h5">Deck changes between rounds</span>
+        <div class="seg" role="group" aria-label="Deck changes between rounds">
+          <button type="button" class:on={rebuild} aria-pressed={rebuild} data-testid="rebuild-on" onclick={() => (rebuild = true)}>On</button>
+          <button type="button" class:on={!rebuild} aria-pressed={!rebuild} data-testid="rebuild-off" onclick={() => (rebuild = false)}>Off</button>
         </div>
         <p class="dim small">
-          {timed
-            ? 'Each pick has a time limit (shorter as the pack empties); the server picks for a seat that runs out.'
-            : 'A pod with one human drafts without a timer.'}
+          Between rounds, keep your deck or rebuild it from your pool before each match (Magic Tournament Rules 7.3). Bots keep theirs.
         </p>
       </div>
+      {#if !sealed}
+        <div class="field">
+          <span class="ev-h5">Pick timer</span>
+          <div class="seg" role="group" aria-label="Pick timer" data-testid="pick-timer">
+            {#each PICK_TIMERS as t (t.mode)}
+              <button
+                type="button"
+                class:on={timerShown === t.mode}
+                aria-pressed={timerShown === t.mode}
+                disabled={!timed}
+                data-testid={`timer-${t.mode}`}
+                onclick={() => (pickTimer = t.mode)}
+              >{t.label}</button>
+            {/each}
+          </div>
+          <p class="dim small">
+            {timed
+              ? 'Each pick has a time limit (shorter as the pack empties); the server picks for a seat that runs out.'
+              : 'A pod with one human drafts without a timer.'}
+          </p>
+        </div>
+      {/if}
     </section>
     <aside class="ev-rail">
       <span class="ev-h5">Set</span>

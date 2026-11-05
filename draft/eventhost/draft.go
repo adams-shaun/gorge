@@ -72,9 +72,14 @@ func (r *run) advanceLobby() bool {
 		}
 		seats[i] = spec
 	}
-	if err := r.apply(event.Entry{
+	created := event.Entry{
 		Kind: event.KindEventCreated, Seed: r.meta.Seed, Set: r.meta.Set, Seats: seats[:],
-	}); err != nil {
+		Rebuild: r.meta.Rebuild,
+	}
+	if r.meta.sealed() {
+		created.Mode, created.Promos = event.ModeSealed, r.meta.promos()
+	}
+	if err := r.apply(created); err != nil {
 		return false
 	}
 	return r.openPacks()
@@ -92,7 +97,7 @@ func (r *run) openPacks() bool {
 	}
 	applied := false
 	for s := 0; s < draft.Seats; s++ {
-		for rd := 1; rd <= draft.Rounds; rd++ {
+		for rd := 1; rd <= r.meta.supplyRounds(); rd++ {
 			if opened[s][rd-1] || r.ev.Phase() != event.PhaseDraft {
 				continue
 			}
@@ -109,12 +114,16 @@ func (r *run) openPacks() bool {
 
 // openedInLog records which (seat, round-1) PackOpened entries the log
 // holds.
-func (r *run) openedInLog() [draft.Seats][draft.Rounds]bool {
-	var out [draft.Seats][draft.Rounds]bool
+func (r *run) openedInLog() [draft.Seats][]bool {
+	var out [draft.Seats][]bool
+	rounds := r.meta.supplyRounds()
+	for s := range out {
+		out[s] = make([]bool, rounds)
+	}
 	for _, en := range r.ev.Log() {
 		if en.Kind == event.KindPackOpened &&
 			en.Seat >= 0 && en.Seat < draft.Seats &&
-			en.Round >= 1 && en.Round <= draft.Rounds {
+			en.Round >= 1 && en.Round <= rounds {
 			out[en.Seat][en.Round-1] = true
 		}
 	}

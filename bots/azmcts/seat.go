@@ -69,8 +69,10 @@ type SeatConfig struct {
 	// by that world and ignored by the others. Shared and read-only.
 	Belief *searchprobe.Belief
 	// Mulligan is the London-mulligan rule of the seat's own bot (heuristic.Bot.
-	// WithMulligan), which answers every KMulligan ask (the round is never
-	// searched). The zero value is the default bot's 1/3 coin.
+	// WithMulligan), which answers every KMulligan ask the seat does not
+	// search. Under Search.Kinds.Mulligan it is the search's candidate 0 and
+	// every fallback, and the rule the walks' bots answer later mulligan asks
+	// with. The zero value is the default bot's 1/3 coin.
 	Mulligan botpolicy.MulliganRule
 	// FullProb, CheapSims and FullProbByKind are KataGo's playout-cap
 	// randomization (pcr.go): with FullProb > 0 each searched root
@@ -341,6 +343,7 @@ func (s *Seat) DecideSearch(ctx context.Context, env searchseat.Env, d decision.
 	// The budget, seed, root noise and sampling; cheap is a playout-cap
 	// cheap search (never with SeatConfig.FullProb 0).
 	opts, cheap := s.rootOptions(&d, env.Engine.G.Turn)
+	opts.mulligan = s.cfg.Mulligan
 	// A full search once the game is decided is a decided one (decided.go).
 	decided := !cheap && s.decided()
 	if decided {
