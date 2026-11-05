@@ -2442,6 +2442,15 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			if err := objFilter(kop.ZoneBattlefield); err != nil {
 				return ki, err
 			}
+			// a planeswalker or battle clause ("each creature and each
+			// planeswalker that player controls", Incinerator of the
+			// Guilty): B.N bit 4, the filter's types choose (gorge
+			// effDamageAll damages every matching permanent; CR 120.3c)
+			for _, c := range in.F.Clauses {
+				if c.Types&(tPlaneswalker|tBattle) != 0 {
+					ki.B = kop.ValueRef{N: 4}
+				}
+			}
 		case in.F != nil && in.F.Players == plOpp && len(in.F.Clauses) > 0:
 			// "each opponent and each creature and planeswalker they
 			// control" (End the Festivities): the permanents, then the
