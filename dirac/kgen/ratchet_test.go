@@ -50,7 +50,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (Wilt-Leaf Liege, Obstinate Baloth, Loxodon Smiter: the opponent-caused discard-to-battlefield replacement, lowered on land, absent here before the merge; FDN 508 -> 509, ALL 21529 -> 21532).
 	// +2 (the WISH counter kind, kop.CtrWish: Wishclaw Talisman and Ring of Three Wishes lower; FDN 509 -> 510, ALL 21532 -> 21534).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21534, 34442},
+	"ALL": {21535, 34442}, // merged: land's 21534 + this branch's Carnelian Orb of Dragonkind (21527 + 8)
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -59,7 +59,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"DSK": {236, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
-	"FDN": {510, 517},
+	"FDN": {511, 517}, // merged: land's 510 + this branch's Carnelian Orb of Dragonkind
 	"FIN": {266, 312},
 	"FRA": {245, 269},
 	"HOB": {152, 172},

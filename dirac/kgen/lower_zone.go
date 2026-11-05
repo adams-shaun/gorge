@@ -3340,6 +3340,9 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 		// dirac/mana_pain.go).
 		return refuse("mana ability with a rider program")
 	}
+	if err := lc.manaSpentRiders(ps, ab, m); err != nil {
+		return err
+	}
 	if left := ps.unread(); len(left) > 0 {
 		return refuse("unread params %v", left)
 	}

@@ -262,6 +262,7 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 		filt(ab.ManaRestrict)
 		filt(ab.ManaRestrictAb)
 		filt(ab.ManaAmong)
+		filt(ab.ManaHasteValid) // AddsKeywords$ Haste's Spell.Dragon+Creature
 		val(ab.ManaV)
 		val(ab.OwnReduce) // ReduceCost$ (a subtype filter in its count)
 		for _, in := range ab.Prog {
