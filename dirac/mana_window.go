@@ -379,6 +379,9 @@ func (s *State) windowGrantPC(k *prep, sl Slot) *pcard {
 	if k.gen == nil {
 		return &k.cards[s.cardAt(sl)]
 	}
+	if k.gen.anyCantAct && s.actForbidden(k, sl, true) {
+		return &noManaPC // a CantBeActivated lock, a granted ability's too (cast_cantactivate.go)
+	}
 	if len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) || s.ownManaUsable(k, sl) {
 		return s.manaPCGen(k, sl)
 	}
@@ -533,10 +536,7 @@ func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (
 			s.windowDryFilter(k, p, cost, sl)
 			continue
 		}
-		pc := &k.cards[s.cardAt(sl)]
-		if k.gen != nil {
-			pc = s.manaPCGen(k, sl)
-		}
+		pc := s.windowGrantPC(k, sl)
 		if gap || k.sacOnlyMana && pc.manaSacOnly || s.perms[sl].flags&pfTapped != 0 ||
 			k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDynMask(k, p, sl) != 0 {
 			ok, known = false, false
@@ -1587,10 +1587,7 @@ func (s *State) windowSrcMask(k *prep, sl Slot) uint8 {
 // windowOwnMask is the colours sl's own mana ability makes in the window
 // (colourless when it names none).
 func (s *State) windowOwnMask(k *prep, sl Slot) uint8 {
-	pc := &k.cards[s.cardAt(sl)]
-	if k.gen != nil {
-		pc = s.manaPCGen(k, sl)
-	}
+	pc := s.windowGrantPC(k, sl)
 	if mask := s.srcMaskAt(pc, sl); mask != 0 {
 		if k.painMana && pc.painCol != 0 && !pc.painOnly {
 			// a painland: gorge's ability ask flattens the painful Combo
