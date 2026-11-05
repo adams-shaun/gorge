@@ -66,15 +66,16 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; land; merged ALL 21579 -> 21584).
 	// +1 (Doomsday Excruciator: a RepeatEach player body's DigNum$ Count$ValidLibrary Card.RememberedPlayerCtrl/Minus.6 and its blind face-down exile; land; merged DSK 236 -> 237, ALL 21584 -> 21585).
 	// +1 (Worlds Within Worlds: a RepeatEach player body's hand move DefinedPlayer$ Remembered up to Count$ValidHand Creature.RememberedPlayerCtrl, and the remembered set's return from exile as the Return walk; land; merged MSH 226 -> 227, ALL 21585 -> 21586).
+	// +1 (Painter's Studio // Defaced Gallery: the unlock trigger's DB$ Effect statics read the door's own SVar table; land; merged DSK 238 -> 239, ALL 21595 -> 21596).
 	// +28 (the printed K:Storm keyword lowers to CardDef.Storm and the kernel's native cast trigger: Stormscale Scion (TDM), Chatterstorm, Brain Freeze, Grapeshot and 24 further K:Storm cards in the non-Standard lists; TDM 245 -> 246, ALL 21584 -> 21612).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21623, 34442},
+	"ALL": {21624, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
 	"DFT": {247, 276},
 	"DMU": {193, 270},
-	"DSK": {238, 276},
+	"DSK": {239, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
 	"FDN": {517, 517},

@@ -13,9 +13,10 @@ import (
 )
 
 // TestRoomsRefusals: a two-door Room lowers as kop.FaceRoom with its two
-// doors and six state keys (lower_rooms.go); a Room door line naming an
-// SVar body refuses with its named reason, and every state entry carries
-// the unlocked doors' summed cost.
+// doors and six state keys (lower_rooms.go); a static's own door line naming
+// an SVar body still refuses with its named reason (Greenhouse), while a
+// trigger's resolution chain may name one (Painter's Studio lowers fully),
+// and every state entry carries the unlocked doors' summed cost.
 func TestRoomsRefusals(t *testing.T) {
 	cs := lowerNamed(t, []string{"Bottomless Pool", "Painter's Studio", "Greenhouse"})
 	by := map[string]*lCard{}
@@ -29,15 +30,11 @@ func TestRoomsRefusals(t *testing.T) {
 	if bp.Faces[1] != faceKey("Bottomless Pool", 1) || bp.Faces[2] != "room:Bottomless Pool#00" || bp.Faces[7] != "room:Bottomless Pool#13" {
 		t.Errorf("Bottomless Pool faces %v", bp.Faces)
 	}
-	for _, n := range []string{"Painter's Studio", "Greenhouse"} {
-		c := by[n]
-		hit := false
-		for _, r := range c.Refusals {
-			hit = hit || strings.HasPrefix(r.Reason, "Room door line naming an SVar body")
-		}
-		if !hit {
-			t.Errorf("%s: not refused for a named SVar body: %v", n, c.Refusals)
-		}
+	if ps := by["Painter's Studio"]; ps == nil || len(ps.Refusals) > 0 {
+		t.Errorf("Painter's Studio: trigger SVar bodies must lower, refusals: %v", ps.Refusals)
+	}
+	if gh := by["Greenhouse"]; gh == nil || len(gh.Refusals) == 0 || !strings.HasPrefix(gh.Refusals[0].Reason, "Room door line naming an SVar body") {
+		t.Errorf("Greenhouse: a static's own named SVar body must stay refused: %+v", gh)
 	}
 	list := filepath.Join(t.TempDir(), "cards.txt")
 	if err := os.WriteFile(list, []byte("Bottomless Pool\n"), 0o644); err != nil {

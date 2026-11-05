@@ -171,9 +171,10 @@ import (
 // +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; land; merged ALL build-level 21579 -> 21584).
 // +1 (Doomsday Excruciator: a RepeatEach player body's library count and blind face-down Dig; land; merged ALL build-level 21584 -> 21585).
 // +1 (Worlds Within Worlds: a RepeatEach player body's per-player hand move; land; merged ALL build-level 21585 -> 21586).
+// +1 (Painter's Studio // Defaced Gallery: the unlock trigger's DB$ Effect statics read the door's own SVar table; land; merged ALL build-level 21595 -> 21596).
 // +28 (the printed K:Storm keyword lowers: Stormscale Scion (TDM) and 27 further K:Storm cards in the non-Standard lists; ALL build-level 21584 -> 21612).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21623, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21624, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
