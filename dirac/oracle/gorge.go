@@ -194,8 +194,8 @@ func manaChoiceResolving(d *decision.Decision) bool {
 type convokeFrame struct {
 	gen  uint32
 	pips [6]uint32
-	// open: the {X} is not announced yet (the ask's Max exceeds the
-	// outstanding slots), so a generic pick against {0} is tentatively legal
+	// open: the {X} is not announced yet (the ask's Max is uncapped,
+	// equal to the option count), so a generic pick against {0} is tentatively legal
 	// (gorge convokeAbsorbs, xOpen) and pays nothing until X is folded.
 	open bool
 }
@@ -493,11 +493,9 @@ func (g *GorgeSide) build(d0 *decision.Decision) *frame {
 	fr := &frame{seq: d.Seq, d: d, dk: decisionKinds[d.Kind]}
 	if d.Kind == decision.KChoose && len(d.Options) > 0 && (strings.HasPrefix(d.Options[0].Kind, "convoke_") || d.Options[0].Kind == "improvise_generic") {
 		if pc, ok := g.castCost[d.Source]; ok {
-			slots := int(pc.Generic)
-			for _, p := range pc.Mana {
-				slots += int(p)
-			}
-			fr.convoke = &convokeFrame{gen: pc.Generic, pips: pc.Mana, open: d.Max > slots}
+			// gorge caps Max by the outstanding slots only when no {X} is
+			// unannounced, so an uncapped Max (== #options) marks the open X.
+			fr.convoke = &convokeFrame{gen: pc.Generic, pips: pc.Mana, open: d.Max == len(d.Options)}
 		}
 	}
 	if d.Kind == decision.KPriority {

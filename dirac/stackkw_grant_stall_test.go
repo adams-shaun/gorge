@@ -154,7 +154,8 @@ func TestStackKwGrantXCostAnnounces(t *testing.T) {
 	got, done := convokeMenu(t, sc, d)
 	wantMenu(t, got, done, "Chief Engineer/5", "Pilgrim's Eye/5", "Grizzly Bears/5")
 	// Walking Ballista has no Improvise: only the grant is live, so the
-	// artifacts offer no improvise pick; Max is the option count.
+	// artifacts offer no improvise pick. (The kernel's pick cap, the option
+	// count under {X}, is not observable on the Decision.)
 }
 
 // TestStackKwGrantXCostPickPaysX: a generic pick announced before X pays one
