@@ -1,0 +1,65 @@
+// Command deckpool drafts seeded 8-seat pods with bot drafters, builds each
+// seat's 40-card deck with a bot builder and writes every deck as a
+// loadable deck file, plus an index (decks.jsonl) and a manifest
+// (manifest.json), under --out. Pod i opens with seed --seed+i, so the same
+// flags write byte-identical files; no game is played.
+//
+//	deckpool --set TRK --pods 125 --seed 1 --out DIR
+package main
+
+import (
+	"os"
+
+	"github.com/adams-shaun/gorge/cli"
+)
+
+// options is one deckpool invocation, gathered from the flags.
+type options struct {
+	set       string
+	collation string
+	pods      int
+	seed      uint64
+	drafter   string
+	builder   string
+	corpus    string
+	out       string
+	quiet     bool
+}
+
+func main() {
+	os.Exit(cli.Execute(newRoot(), os.Args[1:], os.Environ(), os.Stdout, os.Stderr))
+}
+
+// newRoot is the command tree: one command, flags only.
+func newRoot() *cli.Command {
+	var o options
+	return &cli.Command{
+		Name:  "deckpool",
+		Short: "draft seeded 8-seat pods and write every seat's deck as a deck file",
+		Long: "deckpool opens pod i with seed --seed+i, drafts it with eight bots, builds each\n" +
+			"seat's 40-card deck and writes it to OUT/decks/<set>-<seed>-s<seat>.json, with\n" +
+			"OUT/decks.jsonl (one line per deck) and OUT/manifest.json. --out must not exist\n" +
+			"or be empty.",
+		ValidArgs: cli.NoArgs,
+		Flags: func(fs *cli.FlagSet) {
+			fs.StringVar(&o.set, "set", "TRK", "set code the pods are cut from")
+			fs.StringVar(&o.collation, "collation", "", "booster collation; empty = the set's default")
+			fs.IntVar(&o.pods, "pods", 125, "draft pods to run (8 decks each); at least 1")
+			fs.Uint64Var(&o.seed, "seed", 1, "first pod's seed; pod i uses seed+i")
+			fs.StringVar(&o.drafter, "drafter", "balanced", "drafter: name or name@version")
+			fs.StringVar(&o.builder, "builder", "balanced", "builder: name or name@version")
+			fs.StringVar(&o.corpus, "corpus", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
+			fs.StringVar(&o.out, "out", "", "output directory (required); must not exist or be empty")
+			fs.BoolVar(&o.quiet, "quiet", false, "print only the wrote line, not the pool summary")
+		},
+		Run: func(c *cli.Context, _ []string) error {
+			if o.pods < 1 {
+				return cli.Usagef("--pods must be >= 1, got %d", o.pods)
+			}
+			if o.out == "" {
+				return cli.Usagef("--out is required")
+			}
+			return run(o, c.Stdout)
+		},
+	}
+}

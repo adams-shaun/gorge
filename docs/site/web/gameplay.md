@@ -107,7 +107,11 @@ Hold `Ctrl` while you click to hold priority. `Ctrl` alone is never a hotkey for
 
 -   **CAST on a hand card**
 
-    A hand card you can cast shows a CAST button. With auto-pay on it casts with the suggested mana. With it off, the cast starts and you then choose the mana (`web/src/components/HandFan.svelte:321`).
+    A hand card you can cast shows a CAST button. With auto-pay on it casts with the suggested mana. With it off, the cast starts and you then choose the mana (`web/src/components/HandFan.svelte:328`).
+
+-   **PLAY on a hand land**
+
+    A hand land you can play shows a PLAY button while your priority decision is open in a main phase (`web/src/components/HandFan.svelte:330`). You get one land drop per turn. When the button is missing it is because it is not your priority, the step is not a main phase, or your land drop is spent; the seat panel still names what you are being asked.
 
 -   **AUTO MANA**
 

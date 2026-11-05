@@ -42,6 +42,11 @@ func prepCtrPlusEOT(t *kop.Table, g *genPrep) {
 func (s *State) ctrPlusEOT(k *prep) {
 	p := s.res.e.ctrl
 	if s.g.plusCtr[p] < 255 {
+		if s.g.plusCtr[p] == 0 {
+			s.g.plusSrc[p] = s.res.e.obj
+		} else if s.g.plusSrc[p] != s.res.e.obj {
+			s.g.plusSrc[p] = NoObj // two Boimlers: the order ask stalls
+		}
 		s.g.plusCtr[p]++
 	}
 }

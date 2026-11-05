@@ -208,6 +208,11 @@ func (s *State) anyManaSource(k *prep, p uint8) bool {
 				return true
 			}
 		}
+		// an each-colour source (Bloom Tender) is a census gap with no manaAb,
+		// yet gorge's walk counts it, and reads its production as open
+		if c := s.cardAt(sl); k.gen.eachCol(c) >= 0 && s.potentialAdmits(k, p, sl, int(k.gen.eachCol(c)), &k.t.Cards[c].Abilities[k.gen.eachCol(c)], nil) {
+			return true
+		}
 		// gorge untappedManaSource: any available mana ability counts here,
 		// whatever its RestrictValid$ (availPotentialFor prices the
 		// restriction against this payment next), so a source whose only
@@ -479,12 +484,17 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			d.add(MakeAction(AkDone, 0, 0, 0)) // up to one (gorge choiceBounds Min 0)
 		}
 	case raGenTokChoice, raGenRetChoice:
+		if s.g.pre.kind == akEntryOrder {
+			d.Sub = ChGenReplOrder // a returning clone's order ask (copy_returnorder.go)
+			s.cloneEntryOrderOptions(k, d)
+			break
+		}
 		s.askOptions(k, d, s.g.pre.kind)
 	case raGenEnterAsk:
 		s.askOptions(k, d, s.g.ask[0].kind)
 	case raGenEntryOrder:
 		s.entryOrderOptions(k, d)
-	case raGenReplOrder:
+	case raGenReplOrder, raGenCtrOrder:
 		s.replOrderOptions(d)
 	case raGenCopyTarget, raGenCopyTargets:
 		s.copyTargetOptions(k, d, int(r.left))
@@ -936,7 +946,13 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 	case raGenEntryOrder:
 		s.applyEntryResolve(k, a) // repl_entryorder.go
+	case raGenCtrOrder:
+		s.applyCtrOrder(k, a) // repl_ctrorder.go
 	case raGenReplOrder:
+		if s.g.tok.on {
+			s.tokAnswer(k, a) // a contested token creation (repl_tokorder.go)
+			return
+		}
 		if s.replOrderPick(a) {
 			return // ask again
 		}
@@ -977,6 +993,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.continueRes(k, 0)
 	case raGenRetChoice:
 		o := s.g.pre.obj
+		if s.g.pre.kind == akEntryOrder {
+			s.answerReturnOrder(k, a)
+			return
+		}
 		if s.g.pre.kind == akClone {
 			s.answerCloneReturn(k, a)
 			return
@@ -2062,7 +2082,11 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 	default:
 		s.placeFromK(k, o, z, false, kop.ZoneLibrary, false)
 		if fl&kop.DigFaceDown != 0 && z == kop.ZoneExile {
-			s.faceDownExile(o, s.res.e.obj, s.res.e.ctrl) // zone_exilefacedown.go
+			exiler := s.res.e.ctrl
+			if fl&kop.DigExilerOther != 0 {
+				exiler = 1 - exiler // DefinedExiler$ Targeted: the opponent exiled it
+			}
+			s.faceDownExile(o, s.res.e.obj, exiler) // zone_exilefacedown.go
 		}
 	}
 }

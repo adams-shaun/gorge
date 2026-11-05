@@ -47,7 +47,11 @@ func (s *State) beginTurn(p uint8) {
 	s.ctl = ctlStepBegin
 	s.carry = carryNone
 	s.g.declM = slotMask{}
-	for m := s.occ; m.any(); m = m.rest() {
+	live := s.occ
+	if s.k().phasing {
+		live = live.or(s.phasedSlots()) // a phased-out permanent's turn limits end too (CR 602.5b, 702.26d)
+	}
+	for m := live; m.any(); m = m.rest() {
 		pm := &s.perms[m.first()]
 		if pm.actUsed != 0 || pm.flags&pfLoyaltyUsed != 0 {
 			s.touch(pm.obj)
@@ -494,6 +498,7 @@ func (s *State) sba(k *prep) bool {
 			s.removeNoncreatureCombatants(k) // CR 506.4 (cold)
 		}
 		var die, gy, pwz, aur, anni slotMask
+		askAfter := false // exileOrderAsk parked casualties now: the ask follows this pass's batch
 		// statics in force but none that can lower a toughness (kprio2)
 		ptQuiet := s.statM.any() && s.sbaPTQuiet(k)
 		m := s.occ
@@ -581,7 +586,7 @@ func (s *State) sba(k *prep) bool {
 				s.legDie = die
 				return true
 			}
-			if s.exileOrderAsk(k, &die, &gy, &pwz, &aur) {
+			if s.exileOrderAsk(k, &die, &gy, &pwz, &aur, &askAfter) {
 				return true
 			}
 		}
@@ -695,6 +700,10 @@ func (s *State) sba(k *prep) bool {
 		}
 		if anni.any() {
 			s.annihilateAll(anni.and(s.occ))
+		}
+		if askAfter && s.parkedWaiting() {
+			s.ctl = ctlExileOrder
+			return true
 		}
 	}
 }

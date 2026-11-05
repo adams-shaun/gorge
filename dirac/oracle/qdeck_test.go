@@ -27,47 +27,42 @@ var kqdeckDecks = [2][]cardset.Entry{
 	},
 }
 
-// qdeckPolicy casts and activates whenever it can, except that it never
-// activates a granted exile ability whose copy it cannot pay: these games
-// exercise the payable copy path (the unaffordable window-then-reversal path
-// is TestCopyCastUnaffordableLockstep's). Every land is a Mountain, so a copy
-// is payable exactly when the untapped lands and the pool hold its mana
-// value.
+// qdeckPolicy casts and activates whenever it can, including a granted exile
+// ability whose copy it cannot pay: gorge begins that cast, taps what its mana
+// window offers and reverses the cast (CR 733.1), the taps and their mana
+// standing. Every land is a Mountain, so a copy is payable exactly when the
+// untapped lands and the pool hold its mana value; the unpayable activations
+// are counted under qdeckUnpayable for the test's precondition.
+const qdeckUnpayable = "__unpayable__"
+
 func qdeckPolicy(seed uint64, acts map[string]int) Policy {
 	inner := poisonhighPolicy(seed, map[string]int{}, acts)
-	var buf []Canon
 	return PolicyFunc(func(c *PickCtx) Canon {
 		if c.G == nil {
 			return inner.Pick(c)
 		}
-		buf = buf[:0]
 		for _, a := range c.D.Options {
-			if a.Kind() == ActActivate {
-				if o, ok := c.G.GorgeOption(a); ok && o.Kind == "ability" && o.SVar != "" {
-					g := c.G.E.G
-					ob := g.Obj(o.Obj)
-					if ob == nil || ob.Zone != state.ZExile {
-						continue
-					}
-					if len(g.Stack) != 0 {
-						continue // an earlier activation's copy would leave this one's unpayable
-					}
-					mana := int(g.Players[o.Player].Pool.Total())
-					for _, id := range g.Zone(state.ZBattlefield, o.Player) {
-						if l := g.Obj(id); l != nil && l.Face() != nil && l.Face().IsLand() && !l.Tapped {
-							mana++
-						}
-					}
-					if mana < int(ob.Face().ManaValue()) {
-						continue
+			if a.Kind() != ActActivate {
+				continue
+			}
+			if o, ok := c.G.GorgeOption(a); ok && o.Kind == "ability" && o.SVar != "" {
+				g := c.G.E.G
+				ob := g.Obj(o.Obj)
+				if ob == nil || ob.Zone != state.ZExile || ob.Face() == nil {
+					continue
+				}
+				mana := int(g.Players[o.Player].Pool.Total())
+				for _, id := range g.Zone(state.ZBattlefield, o.Player) {
+					if l := g.Obj(id); l != nil && l.Face() != nil && l.Face().IsLand() && !l.Tapped {
+						mana++
 					}
 				}
+				if mana < int(ob.Face().ManaValue()) {
+					acts[qdeckUnpayable]++
+				}
 			}
-			buf = append(buf, a)
 		}
-		d := *c.D
-		d.Options = buf
-		return inner.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
+		return inner.Pick(c)
 	})
 }
 

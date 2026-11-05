@@ -1608,6 +1608,16 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		lc.emit(in)
 	case "SacrificeAll":
+		if ps.str("Defined") == "DelayTriggerRememberedLKI" {
+			// a remembered group's delayed body (lowerCtx.delayedGroupSac:
+			// Will Riker, First in the Field); the same ExtSacDelayed batch
+			// as Mobilize's group, emitted by Sacrifice below
+			if !lc.inGroup {
+				return refuse("SacrificeAll Defined$ DelayTriggerRememberedLKI outside a delayed group")
+			}
+			lc.emit(lInstr{Op: "SacrificeDelayed", Obj: lRef{Kind: rDelayedRemembered}})
+			return nil
+		}
 		if _, ok := ps.get("ValidCards"); !ok {
 			// gorge effSacrificeAll's Defined$ path sacrifices the named
 			// objects that are on the battlefield: Defined$ Self is the
@@ -2742,32 +2752,48 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	return nil
 }
 
-// pumpAllDuration lowers PumpAll Duration$ UntilYourNextTurn as a keyword
-// grant only: OpOverrideAll's AddKw with DurUntilYourNextTurn walks every
-// permanent matching ValidCards$, as gorge does. Kernel overrides carry no
-// +N/+N pump and the end-of-turn pump fields end this turn, so a P/T pump
-// refuses, as does any other Duration$.
+// pumpAllDuration lowers PumpAll Duration$ UntilYourNextTurn as an
+// OpOverrideAll over every permanent matching ValidCards$, as gorge does
+// (CR 611.2c): AddKw for a keyword grant, PTDelta for a NumAtt$/NumDef$
+// pump (a constant, read once; the kernel adds it after counters until the
+// effect owner's next turn). Any other Duration$ refuses.
 func (lc *lowerCtx) pumpAllDuration(ps *params, f *lFilter, dur string) error {
 	if dur != "UntilYourNextTurn" {
 		return refuse("PumpAll Duration$ %q", dur)
 	}
-	_, a := ps.get("NumAtt")
-	_, d := ps.get("NumDef")
-	if a || d {
-		return refuse("PumpAll Duration$ UntilYourNextTurn with a P/T pump")
-	}
 	if _, ok := ps.get("ValidTgts"); ok {
 		return refuse("PumpAll Duration$ UntilYourNextTurn with ValidTgts$")
 	}
-	kw, ok := ps.get("KW")
-	if !ok {
+	o := &lOverride{}
+	a, hasA := ps.get("NumAtt")
+	d, hasD := ps.get("NumDef")
+	if hasA || hasD {
+		att, def := cst(0), cst(0)
+		var err error
+		if hasA {
+			if att, err = lc.value(a); err != nil {
+				return err
+			}
+		}
+		if hasD {
+			if def, err = lc.value(d); err != nil {
+				return err
+			}
+		}
+		if !att.isConst() || !def.isConst() {
+			return refuse("PumpAll Duration$ UntilYourNextTurn with a computed P/T pump")
+		}
+		o.PTDelta, o.PVal, o.TVal = true, att, def
+	}
+	if kw, ok := ps.get("KW"); ok {
+		ks, err := pumpKeywords(kw)
+		if err != nil {
+			return err
+		}
+		o.AddKw = ks
+	} else if !o.PTDelta {
 		return refuse("PumpAll Duration$ UntilYourNextTurn without KW$")
 	}
-	ks, err := pumpKeywords(kw)
-	if err != nil {
-		return err
-	}
-	o := &lOverride{AddKw: ks}
 	in := lInstr{Op: "OverrideAll", F: f, CS: "UntilYourNextTurn", Note: overrideString(o)}
 	lc.out.overrides = append(lc.out.overrides, o)
 	in.C = len(lc.out.overrides) - 1
@@ -2857,6 +2883,9 @@ func (lc *lowerCtx) putCounter(ps *params) error {
 	}
 	if ct == "EachFromSource" {
 		return lc.putCounterEachFromSource(ps, obj)
+	}
+	if ct == "ExistingCounter" {
+		return lc.putCounterExisting(ps, obj, n)
 	}
 	in := lInstr{Op: "PutCounter", Obj: obj, A: n, CS: ct}
 	if err := putCounterRememberPut(ps, &in); err != nil { // lower_putcounterparams.go
@@ -4230,5 +4259,29 @@ func (lc *lowerCtx) counterLoseEffect(ps *params) error {
 	}
 	lc.out.overrides = append(lc.out.overrides, &lOverride{LoseAbilities: true, WhileHost: true})
 	lc.ab.Prog[at].C = len(lc.out.overrides) - 1
+	return nil
+}
+
+// putCounterExisting lowers CounterType$ ExistingCounter (gorge
+// putCounterExisting): the controller chooses a kind of counter already on
+// the recipient and puts CounterNum$ more of it (Dathon, His Heart Open).
+// Only a target or Self recipient and a constant amount of at least 1; the
+// each-kind, remember, placer and remembered-set forms refuse by name.
+func (lc *lowerCtx) putCounterExisting(ps *params, obj lRef, n lValue) error {
+	if ps.is("EachExistingCounter", "True") {
+		return refuse("PutCounter ExistingCounter with EachExistingCounter$")
+	}
+	for _, k := range []string{"RememberPut", "RememberAmount", "Placer"} {
+		if _, ok := ps.m[k]; ok {
+			return refuse("PutCounter ExistingCounter with %s$", k)
+		}
+	}
+	if obj.Kind == rRemembered {
+		return refuse("PutCounter ExistingCounter on the remembered set")
+	}
+	if !n.isConst() || n.N < 1 {
+		return refuse("PutCounter ExistingCounter CounterNum %v", n)
+	}
+	lc.emit(lInstr{Op: "PutCounterExisting", Obj: obj, B: n})
 	return nil
 }

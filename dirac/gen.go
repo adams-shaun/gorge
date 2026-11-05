@@ -61,6 +61,7 @@ type genPrep struct {
 	l6RecOnly       bool  // fxNeedL6 comes only from an effect's keyword removal (Debuff): a slot without an fx record keeps the fixed-order layer 6 (l6On; kperf2)
 	lossSlow        bool  // anyLoseStat: genLost always asks ovrLoses (kperf-blb, kperf2)
 	ctrlSBA         bool  // the state-based check settles control (a control static, a source-bound OpGainControl)
+	anyPTDelta      bool  // some Override is a +N/+M pump record (kop.Override.PTDelta): ptGen adds it (static_ptdelta.go)
 	anyNTOv         bool  // an OpOverride / OpOverrideAll lasts until its controller's next turn
 	legendGrant     bool  // some Override adds or sets the Legendary supertype (legendRule reads derived types)
 	anyMayPlay      bool
@@ -450,6 +451,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	for i := range t.Overrides {
 		if t.Overrides[i].LoseAbilities {
 			g.anyLoseRec = true
+		}
+		if t.Overrides[i].PTDelta {
+			g.anyPTDelta = true
 		}
 	}
 	for i := range t.Overrides {
@@ -1367,7 +1371,7 @@ type dprog struct {
 	objs [4]Obj // two with DpGroup; up to four with DpMany (trig_delayedmany.go)
 	vers [4]uint8
 	n    uint8
-	ext  uint8 // dpExtBeginCombat (trig_delaybegincombat.go): n's timing bits are full
+	ext  uint8 // dpExtBeginCombat/dpExtYourEndStep (trig_delaybegincombat.go, trig_delayedtiming.go): n's timing bits are full
 }
 
 // usedRec marks a once-per-turn use (a trigger, a MayPlay static).
@@ -1506,6 +1510,8 @@ type genState struct {
 	tgtSelf    uint8     // the graveyard card a feasibility check is for, plus one (0: none): it leaves the graveyard for the stack when cast, so it is no target of its own cast
 	inLoop     bool      // executing one object of a multi-object target slot
 	each       eachSusp  // an each-target loop parked on a copy token's as-enters ask (copy_eachtarget.go)
+	tokFrz     slotMask  // the permanents whose CreateToken replacements an each-target copy loop reads, fixed when it began (tokSrcM)
+	tokFrzOn   bool      // tokFrz is in force
 	sweep      sweepSusp // a copy-all sweep parked on a copy's as-enters ask (copy_allpark.go)
 	mt         multiTgt  // the multi-object target slot being chosen
 	lastCK     kop.CounterKind
@@ -1548,6 +1554,7 @@ type genState struct {
 	speed    uint8    // both seats' speed (3 bits each) and the once-per-turn speed trigger latch (bit 6; kw_speed.go; padding)
 	noPoison uint8    // bit p: player p can't get additional poison counters this turn (Melira's replacement; trig_leavereturn.go; padding)
 	plusCtr  [2]uint8 // per player, how many Brad Boimler counter-plus-one effects are active this turn (ctr_pluseot.go; padding)
+	plusSrc  [2]Obj   // per player, the Boimler that made them (NoObj: more than one; the order ask's source, repl_ctrorder.go; padding)
 	cast1    uint8    // bit p: seat p has cast a spell this game, recorded only for a table reading ExFirstCast (cast_firstcast.go; padding)
 	ctrAdder uint8    // transient: the player putting the counters being placed, +1 (0: the resolving / building controller; trig_leavereturn.go; padding)
 	// this turn's counter placements (ExCtrAdded; ctr_addedthisturn.go).
@@ -1664,7 +1671,8 @@ type genState struct {
 	// progress (build), a resolution's look / pileOrd / dmgSeqOrd (armRes).
 	// The discriminants stay outside it (scratch.go).
 	scr [scrWords]uint64
-	nc  ncDmg // a noncombat damage event parked on that ask (ro.on false; repl_gen.go)
+	nc  ncDmg  // a noncombat damage event parked on that ask (ro.on false; repl_gen.go)
+	tok tokOrd // a CreateToken op deciding a contested creation on gorge's CR 616.1 token order ask: ro carries the candidates (repl_tokorder.go)
 	// a multi-event damage op paused on one of those asks: its recipients are
 	// frozen at the op in gorge's sweep order (effDamageAll: seat 0's
 	// battlefield in entry order, then seat 1's; the players arm last, bit 0
@@ -1797,7 +1805,7 @@ const (
 	StallGrants    = 31 // more than maxGrants granted mana abilities on one permanent (mana_grantedoffers.go grantIdxs)
 	StallShield    = 32 // a SHIELD counter and another damage replacement match one event: gorge asks the CR 616.1 order, the kernel stalls (ctr_shield.go)
 	StallActs      = 33 // 127 non-mana activations of one object in a turn: object.acts keeps the count in seven bits beside the owner
-	StallReplCtr   = 34 // a filtered counter doubler and a filtered plus/minus replacement match one event, or a plus and a minus replacement do: they do not commute (repl_counters.go)
+	StallReplCtr   = 34 // a filtered counter doubler and a filtered plus/minus replacement match one event, or a plus and a minus replacement do: they do not commute; only a two-candidate doubler+plus on an OpPutCounter is asked (repl_ctrorder.go)
 	StallReplLeave = 35 // two or more replacements compete for one death (including two dies-to-exile sources or two turn-scoped exile marks on one creature): gorge asks the CR 616.1 order, the kernel stalls (repl_counters.go)
 	StallLinger    = 36 // more than maxLinger attachments lose their host in one state-based pass (genState.linger; static_lingerattach.go)
 	StallSac       = 37 // one effect sacrifices more than maxSacOrd permanents (genState.sacOrd)
@@ -2335,6 +2343,10 @@ type preAsk struct {
 	// counter body folded into the move, and asks the rest with it on the
 	// battlefield; the entrant's own line (the copy) is still to apply
 	ordMid bool
+	// ask2/val2: the copy template's own as-enters choice, asked after the
+	// clone election (copy_templatechoice.go); ask2 is its kind, val2 the answer
+	ask2 uint8
+	val2 uint8
 }
 
 // preEnterAsk poses e's as-enters choice before the permanent spell

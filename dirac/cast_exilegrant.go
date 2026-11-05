@@ -134,3 +134,41 @@ func (s *State) priorityExileGrant(k *prep, d *Decision, p uint8) {
 	}
 }
 func init() { stallNames[StallExileGrant] = "exilegrant" }
+
+// spellRequiresTarget reports whether card c's plain cast has a target slot it
+// must fill at announcement (requiredTarget for a cast not yet begun).
+func spellRequiresTarget(k *prep, c CardID) bool {
+	ab := spellAb(k, c)
+	for ti := 0; ti < kop.MaxTargets; ti++ {
+		t := tspec(k, c, ab, ti)
+		if t == nil || t.Kind == kop.TgtNone || t.UpTo || t.TFlags&kop.TgfAtResolution != 0 {
+			continue
+		}
+		if t.TFlags&kop.TgfBoundsV != 0 && t.MinV.K != kop.VConst {
+			continue // "X target creatures": X is announced first (CR 601.2b) and may be 0, so the ask is not yet required
+		}
+		if ab != 255 {
+			if tm := k.t.Cards[c].Abilities[ab].TgtModes[ti]; tm != 0 {
+				continue // a mode-gated slot: the copy cast announces no mode
+			}
+		}
+		return true
+	}
+	return false
+}
+
+// copyCastAbortsBeforeWindow reports whether the paid copy cast of c cannot be
+// paid and has a required target: gorge's target menu withholds every
+// candidate of an unpayable cast (affordableTargetCandidates), so the cast
+// aborts at the target ask and no mana window opens, tapping nothing. Without
+// a required target gorge reaches the window, taps what it offers and reverses
+// the cast with the taps and their mana standing (loweredWindowOK, CR 733.1).
+func (s *State) copyCastAbortsBeforeWindow(k *prep, c CardID, p uint8, o Obj) bool {
+	if !spellRequiresTarget(k, c) {
+		return false
+	}
+	var av avail
+	s.availFor(k, p, &av)
+	cost := s.adjustFit(k, &av, p, c, o, k.cards[c].cost, true)
+	return !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, &av)
+}

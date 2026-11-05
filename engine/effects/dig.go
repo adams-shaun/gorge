@@ -221,6 +221,15 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	revealWin := dp.RevealWin
 	noLooking := dp.NoLooking
 	forceReveal := dp.ForceReveal
+	// ForceRevealToController$ over a face-down exile (Vulcan Mind-Meld: "You
+	// look at the top two cards of their library, then exile them face
+	// down") is the chooser's private look, not a reveal: a card exiled face
+	// down is shown to nobody the instruction does not name (CR 406.3,
+	// 701.20a), so the opponent is not told their own cards.
+	faceDownLook := forceReveal && dest == state.ZExile && dp.ExileFaceDown
+	if faceDownLook {
+		forceReveal = false
+	}
 	skipReorder := dp.SkipReorder
 	tapped := dp.Tapped
 	// FromBottom$ True (task scrybottom): the Dig window is the BOTTOM DigNum
@@ -777,7 +786,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			// emits before ITS ask (a Reveal$ window is already public).
 			emitLook(h, []state.PlayerID{looker}, state.ZLibrary, top, lookText)
 			saw = true
-		} else if forced && !revealWin && !noLooking && len(top) > 0 {
+		} else if (forced || faceDownLook) && !revealWin && !noLooking && len(top) > 0 {
 			// ForceReveal$ names the player who sees the window (Gonti, Night
 			// Minister): their look is recorded even though no ask follows.
 			emitLook(h, []state.PlayerID{looker}, state.ZLibrary, top, lookText)

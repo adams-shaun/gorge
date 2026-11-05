@@ -13,6 +13,7 @@ experiments live in a private companion module.
 | `gorged` | The server's thin main over `server/gorged` (perpetual bot tables, vs-bot games, web client), linking gorge's `bots/all` and, with `-events`, the draft stack. A companion module's main over the same package can add trained-network bots. |
 | `mtgsim` | Headless self-play over the repo decks with replay verification (`make sim`). |
 | `draftsim` | Headless draft events with replay verification (`make draftsim`). |
+| `deckpool` | Drafts seeded pods and writes every seat's deck as a deck file, with an index and a manifest. |
 | `labdemo` | The `draftlab` example workflow; writes 17Lands-shaped artefacts with `-out`. |
 | `extagent` | The reference `gorge-agent/1` agent as a process. |
 | `repro` | Replays a player feedback snapshot; `-emit-test` writes a failing test. |

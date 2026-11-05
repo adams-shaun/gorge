@@ -295,6 +295,23 @@ func kremReads(l string) bool {
 	return strings.Contains(l2, "Remembered") || kremCastRead.MatchString(l)
 }
 
+// hasRememberWriter reports whether the ability's program so far holds a line
+// that writes the resolution's remembered set. A triggered ability's plain
+// Remembered group is its fire-time capture unless a link of this same
+// resolution wrote its own set (DigUntil RememberFound$ True in Will Riker,
+// First in the Field's beginning-of-combat chain).
+func (lc *lowerCtx) hasRememberWriter() bool {
+	if lc.ab == nil {
+		return false
+	}
+	for _, in := range lc.ab.Prog {
+		if kremWrites(in) {
+			return true
+		}
+	}
+	return false
+}
+
 // kremWrites: the line adds to the resolution's remembered set.
 func kremWrites(in lInstr) bool {
 	s := in.String()

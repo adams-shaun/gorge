@@ -32,14 +32,18 @@ import (
 // provably unused. A count, not a flag: several grants can cover one cast
 // (Leonardo, Sewer Samurai beside active Osteomancer Adept effects) and
 // gorge runs each body's PutCounter through the counter replacements
-// separately. A spell copy's count is cleared (copy_gen.go).
-const sidFinalMax = 255
+// separately. The count is split by the grant's controller, who puts the
+// counter (CR 122.6a): the low nibble counts player 0's grants and the high
+// nibble player 1's, so an opponent's Overflow Submatrix grant is not
+// doubled by the caster's Dr. Joseph M'Benga. A spell copy's count is
+// cleared (copy_gen.go).
+const sidFinalMax = 15
 
 // StallStaticAsk: a static trigger's off-stack build or resolution posed a
 // decision, which kgen's ask-free proof forbids (a lowering bug, loud).
 const StallStaticAsk = 125
 
-// StallFinality: a 256th FINALITY grant on one spell entry.
+// StallFinality: a 16th FINALITY grant by one player on one spell entry.
 const StallFinality = 126
 
 func init() {
@@ -146,11 +150,12 @@ func (s *State) finalityCtr(k *prep, in *kop.Instr) {
 		if e.kind != seSpell || e.obj != o {
 			continue
 		}
-		if e.sid >= sidFinalMax {
+		sh := 4 * uint(s.res.e.ctrl&1) // the grant's controller puts the counter
+		if e.sid>>sh&sidFinalMax >= sidFinalMax {
 			s.capFull(StallFinality)
 			return
 		}
-		e.sid++
+		e.sid += 1 << sh
 		return
 	}
 }
@@ -161,13 +166,15 @@ func (s *State) finalityCtr(k *prep, in *kop.Instr) {
 // counter replacements, as gorge composes the riders' bodies separately
 // (replacement_updated.go).
 func (s *State) finalityEnter(k *prep, sl Slot, p *perm) {
-	n := int(s.res.e.sid)
-	if n == 0 {
+	sid := s.res.e.sid
+	if sid == 0 {
 		return
 	}
-	for i := 0; i < n; i++ {
-		if s.placeCounters(k, sl, int(kop.CtrFinality), 1, p.ctrl, ctrPutBy) == 0 {
-			return
+	for adder := uint8(0); adder < 2; adder++ {
+		for n := sid >> (4 * adder) & sidFinalMax; n > 0; n-- {
+			if s.placeCounters(k, sl, int(kop.CtrFinality), 1, adder, ctrPutBy) == 0 {
+				return
+			}
 		}
 	}
 	MayPlayStats.FinalityEnter.Add(1)

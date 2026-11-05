@@ -29,14 +29,17 @@ func (h *Host) newPersona(name string, lookup pickbotCardLookup) (pickbotDrafter
 		return nil, nil, fmt.Errorf("unknown pickbot persona %q (known: %s)", name, strings.Join(pickbot.Names(), ", "))
 	}
 	switch d.(type) {
-	case *pickbot.RatingColour:
+	case *pickbot.RatingColour, *pickbot.Committed:
 	default:
 		return nil, nil, fmt.Errorf("persona %q drafts with unsupported type %T", name, d)
 	}
 	switch b.(type) {
-	case *pickbot.Best23:
+	case *pickbot.Best23, *pickbot.Balanced:
 	default:
 		return nil, nil, fmt.Errorf("persona %q builds with unsupported type %T", name, b)
+	}
+	if _, isCommitted := d.(*pickbot.Committed); isCommitted {
+		return &pickbot.Committed{Lookup: lookup}, &pickbot.Balanced{Lookup: lookup}, nil
 	}
 	return &pickbot.RatingColour{Lookup: lookup}, &pickbot.Best23{Lookup: lookup}, nil
 }
