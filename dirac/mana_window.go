@@ -265,7 +265,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 		s.pl[p].pool[col] += pc.manaN
 		s.addExtraCol(k, p, sl, pc, col)
 		s.artTag(k, p, sl, col)
-		if k.painMana && pc.painCol != 0 && (pc.painOnly || col != kop.C) {
+		if k.painMana && pc.painCol != 0 && (pc.painOnly || uint8(pc.manaCol)&(1<<col) == 0) {
 			s.painDamage(k, sl, p, int(pc.painN)) // the painful ability's rider (mana_pain.go)
 		}
 		if pc.manaSac || sacOnly {
@@ -489,6 +489,20 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 		}
 	}
 	if k.painMana && pc.painCol != 0 && !pc.painOnly && !anyColor {
+		if prim := uint8(pc.manaCol) & 0x1f; prim != 0 {
+			// A two-colour normal ability beside the painful one (Haunted
+			// Screen: {W} or {B}, then {G}, {U} or {R} for 1 life): the ask
+			// lists both abilities' colours, so an owed colour either
+			// ability makes has answered above (owedColoursFirst) and
+			// otherwise the answer is the lowest listed colour, mask's (W),
+			// not the painful ability's lowest for its own sake
+			// (payexec.WindowAnswer, TestPayWindowTapsLowestColour). A
+			// noOwed ask (a ward/unless window) owes nothing at all, so it
+			// takes the same lowest colour and pays no life. A {C} normal
+			// ability (a painland, Starting Town) keeps the measured answer
+			// below.
+			return bits.TrailingZeros8(mask)
+		}
 		// a painland: gorge's "Choose a mana ability" ask carries no
 		// payment, so the answer is its lowest colour option whatever
 		// the window owes (mana_pain.go)
