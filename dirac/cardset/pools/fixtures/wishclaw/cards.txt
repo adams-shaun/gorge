@@ -1,0 +1,9 @@
+# the Wishclaw Talisman pool: the wish counter (K:etbCounter:WISH:3), its
+# remove-a-counter tutor and the opponent's gain of control, for the lockstep
+# (dirac/oracle/wishclaw_test.go)
+Wishclaw Talisman
+Forest
+Grizzly Bears
+Hill Giant
+Mountain
+Swamp
