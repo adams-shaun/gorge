@@ -2,7 +2,6 @@ package rules
 
 import (
 	"slices"
-	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -133,12 +132,15 @@ func (tc *triggeredEffectCost) beholdSettle(e *Engine, announced Cost) bool {
 		return false
 	}
 	pay.ChargeEnergyCost(asPayer(e), tc.player, tc.amount, tc.xPaid)
-	names := make([]string, 0, len(tc.beholds))
-	for _, id := range tc.beholds {
-		names = append(names, e.targetName(id))
+	names := ""
+	for i, id := range tc.beholds {
+		if i > 0 {
+			names += ", "
+		}
+		names += e.targetName(id)
 	}
 	e.emit(events.Event{Kind: events.Note, Player: tc.player, Obj: tc.source,
 		IDs:  append([]state.ObjID(nil), tc.beholds...),
-		Text: "beheld " + strings.Join(names, ", ") + " as a cost"})
+		Text: "beheld " + names + " as a cost"})
 	return true
 }
