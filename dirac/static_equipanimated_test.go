@@ -51,3 +51,58 @@ func TestEquipAnimEarthbendedEquipmentLand(t *testing.T) {
 		}
 	}
 }
+
+// TestEquipAnimEquipmentWithoutEquipAbility: an Equipment can be attached
+// without ever having an Equip ability — Cryptic Coat's own enters trigger
+// cloaks itself and attaches it — so the Equipment card's kop.TEquipment type
+// alone arms the gate (CR 704.5p). The animator is Behind-the-Mask-shaped: an
+// override that adds the Creature type on another object (Target0).
+func TestEquipAnimEquipmentWithoutEquipAbility(t *testing.T) {
+	build := func(animate bool) *kop.Table {
+		tbl := &kop.Table{
+			Overrides: []kop.Override{{HasTypes: true, AddTypes: kop.TCreature}},
+		}
+		coat := kop.CardDef{
+			Name:  "Test Coat",
+			Types: kop.TArtifact | kop.TEquipment,
+		}
+		anim := kop.CardDef{
+			Name: "Test Animator",
+			Abilities: []kop.Ability{{
+				Kind: kop.AbSpell,
+				Prog: []kop.Instr{{Op: kop.OpOverride, Obj: kop.RefTarget0, C: 0}},
+			}},
+		}
+		if animate {
+			tbl.Cards = []kop.CardDef{coat, anim}
+		} else {
+			tbl.Cards = []kop.CardDef{coat}
+		}
+		return tbl
+	}
+	// Precondition: the Equipment carries no ability at all, hence no
+	// kop.AfEquip anywhere; the type bit alone is what the widened gate reads.
+	coat := build(true).Cards[0]
+	if coat.Name != "Test Coat" || coat.Types&kop.TEquipment == 0 {
+		t.Fatalf("precondition broken: Cards[0] is not an Equipment (types %d)", coat.Types)
+	}
+	for _, a := range coat.Abilities {
+		if a.AFlags&kop.AfEquip != 0 {
+			t.Fatal("precondition broken: the Equipment has an Equip ability")
+		}
+	}
+	for _, tc := range []struct {
+		name    string
+		animate bool
+		want    bool
+	}{
+		{"animated", true, true},
+		{"no animator", false, false},
+	} {
+		var g genPrep
+		prepEquipAnim(build(tc.animate), &g)
+		if g.equipAnim != tc.want {
+			t.Errorf("%s: equipAnim = %v, want %v", tc.name, g.equipAnim, tc.want)
+		}
+	}
+}
