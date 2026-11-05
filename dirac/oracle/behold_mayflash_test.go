@@ -9,9 +9,9 @@ import (
 )
 
 // The behold may-flash lockstep: Molten Exhale's "you may cast this spell as
-// though it had flash if you behold a Dragon as an additional cost"
-// (K:MayFlashCost:Behold<1/Dragon>, CR 702.8, 701.4a). gorge's hand walk
-// offers the "mayflash" cast at instant timing only while its caster has a
+// though it had flash if you behold a Dragon as an additional cost" (a
+// MayFlashCost extra that is a one-Dragon behold, CR 702.8, 701.4a). gorge's
+// hand walk offers the "mayflash" cast at instant timing only while its caster has a
 // Dragon on the battlefield or another one in hand, and its beholdCostAsk
 // poses the pick after the targets (a lone candidate taken unasked); at
 // sorcery timing only the plain cast is offered, Dragon or none. The kernel
