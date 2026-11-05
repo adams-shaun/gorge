@@ -101,6 +101,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"clone_template_choice_asked_on_stack", false, false},          // CR 614.12, 707.9: Dominion Saboteur entering as a copy of Nyota Uhura is asked her "choose a number" with the Saboteur still on the stack, after the copy election
 		{"returned_clone_order_ask_beside_counter_source", true, false}, // CR 616.1: Dominion Saboteur returned from exile as a copy of Troubling Tribbles beside Deanna Troi's extra counter is asked the replacement order with the card still in exile
 		{"until_next_turn_pump_misses_returned_creature", false, false}, // CR 400.7, 611.2c: V'Ger's "-1/-0 until your next turn" does not reach Hologram Janeway that Ghost of Illyria blinked back, a new object
+		{"clone_entry_replacement_sees_copy", false, false},             // CR 614.12, 707.9b: Dominion Saboteur entering as a copy of U.S.S. Enterprise-D is a Spacecraft as it enters, so Zefram Cochrane's two extra charge counters join the copied one
 	})
 }
 
