@@ -191,7 +191,7 @@ func inLabelFreeTree(p string) bool {
 	if inMovedTree(p) {
 		return true
 	}
-	for _, dir := range []string{"cmd/draftsim/", "cmd/labdemo/", "cmd/extagent/", "examples/extagent/"} {
+	for _, dir := range []string{"cmd/draftsim/", "cmd/labdemo/", "cmd/deckpool/", "cmd/extagent/", "examples/extagent/"} {
 		if strings.HasPrefix(p, dir) {
 			return true
 		}

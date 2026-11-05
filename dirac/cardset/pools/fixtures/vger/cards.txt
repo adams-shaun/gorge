@@ -1,0 +1,12 @@
+# the PumpAll Duration$ UntilYourNextTurn P/T pool: V'Ger, the Intruder
+# (-1/-0 to the creatures its controller's opponents control) beside mana
+# rocks to cast it and creatures that enter before and after the pump
+# (dirac/oracle/vger_test.go)
+Forest
+Grizzly Bears
+Hill Giant
+Island
+Mind Stone
+Mountain
+Sol Ring
+V'Ger, the Intruder

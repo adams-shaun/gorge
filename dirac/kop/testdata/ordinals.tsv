@@ -233,7 +233,9 @@ DelayDiesThisTurn	untyped int	5
 DelayEndCombat	untyped int	3
 DelaySpellCast	untyped int	4
 DelayUpkeep	untyped int	1
+DelayYourEndStep	untyped int	7
 DelayYourUpkeep	untyped int	2
+DigExilerOther	untyped int	4096
 DigFaceDown	untyped int	2048
 DigOptional	untyped int	8
 DigRandomOrder	untyped int	16
@@ -550,6 +552,7 @@ MayPlayKinds	untyped int	252
 MayPlayLimitMask	untyped int	224
 MayPlayLimitShift	untyped int	5
 MayPlayNonLand	untyped int	2
+MayPlayOpponent	untyped int	16384
 MayPlayOwner	untyped int	512
 MayPlayRaiseShift	untyped int	10
 MorphDisguise	uint8	3

@@ -61,6 +61,7 @@ type genPrep struct {
 	l6RecOnly       bool  // fxNeedL6 comes only from an effect's keyword removal (Debuff): a slot without an fx record keeps the fixed-order layer 6 (l6On; kperf2)
 	lossSlow        bool  // anyLoseStat: genLost always asks ovrLoses (kperf-blb, kperf2)
 	ctrlSBA         bool  // the state-based check settles control (a control static, a source-bound OpGainControl)
+	anyPTDelta      bool  // some Override is a +N/+M pump record (kop.Override.PTDelta): ptGen adds it (static_ptdelta.go)
 	anyNTOv         bool  // an OpOverride / OpOverrideAll lasts until its controller's next turn
 	legendGrant     bool  // some Override adds or sets the Legendary supertype (legendRule reads derived types)
 	anyMayPlay      bool
@@ -450,6 +451,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	for i := range t.Overrides {
 		if t.Overrides[i].LoseAbilities {
 			g.anyLoseRec = true
+		}
+		if t.Overrides[i].PTDelta {
+			g.anyPTDelta = true
 		}
 	}
 	for i := range t.Overrides {
@@ -1367,7 +1371,7 @@ type dprog struct {
 	objs [4]Obj // two with DpGroup; up to four with DpMany (trig_delayedmany.go)
 	vers [4]uint8
 	n    uint8
-	ext  uint8 // dpExtBeginCombat (trig_delaybegincombat.go): n's timing bits are full
+	ext  uint8 // dpExtBeginCombat/dpExtYourEndStep (trig_delaybegincombat.go, trig_delayedtiming.go): n's timing bits are full
 }
 
 // usedRec marks a once-per-turn use (a trigger, a MayPlay static).

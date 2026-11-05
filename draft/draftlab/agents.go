@@ -39,8 +39,10 @@ const unversioned = "unversioned"
 var builtinVersions = map[string]string{
 	"drafter:rating-colour":  "1",
 	"drafter:best23":         "1",
+	"drafter:balanced":       "1",
 	"builder:best23":         "1",
 	"builder:rating-colour":  "1",
+	"builder:balanced":       "1",
 	"player:bot":             "1",
 	"player:lethal-pressure": "1",
 }
