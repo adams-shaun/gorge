@@ -6,7 +6,7 @@
     "pool": "std-otj",
     "surface": "full",
     "seed": 1,
-    "pair": 121,
+    "pair": 7,
     "policy": "random",
     "mulligans": 0
   }
