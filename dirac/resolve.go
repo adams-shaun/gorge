@@ -51,6 +51,10 @@ func (s *State) resolveTop(k *prep) {
 	if k.gen != nil {
 		s.g.nrem, s.g.remCnt, s.g.tli = 0, 0, 0 // a resolution remembers afresh (gorge's per-resolution Ctx)
 		s.g.stkCt = 0                           // tgt_stackability.go
+		if k.anyStateCtr && e.kind == seTrigger && e.ab < abCascade &&
+			k.t.Cards[e.card].Abilities[e.ab].Trig.Flags4&kop.Tf4StateCtr != 0 {
+			s.remember(e.obj) // a state trigger's Remembered is its source alone (gorge stateTriggerRemembered, CR 603.8)
+		}
 		if k.gen.anyRemPersist && remPersistSeeds(k, &e) {
 			s.remPersistSeed(k) // its source's kept set (zone_rememberpersist.go)
 		}
@@ -294,6 +298,14 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 		}
 	}
 	s.res.active = false
+	if k.anyStateCtr {
+		// any resolution's finish may have emptied the stack of a state
+		// trigger's instance -- its own, or one a countering resolution
+		// removed before going on to remove the source (gorge re-checks at
+		// the next event, which is at or after the resolution's end;
+		// trig_statectr.go)
+		s.stateCtrRefire(k)
+	}
 	s.afterResolve()
 }
 

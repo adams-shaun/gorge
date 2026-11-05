@@ -253,7 +253,7 @@ func (e *Engine) typesQuietReuse(n int) bool {
 	if e.typesEpoch <= 0 || e.typesEpoch > n {
 		return false
 	}
-	step, pushes := false, 0
+	step, tapped, pushes := false, false, 0
 	for i := e.typesEpoch; i < n; i++ {
 		ev := &e.L.Events[i]
 		switch ev.Kind {
@@ -264,12 +264,20 @@ func (e *Engine) typesQuietReuse(n int) bool {
 			continue
 		case events.StepChange:
 			step = true
+		case events.Tap, events.Untap:
+			tapped = true
 		}
 		if !e.derivedQuietEvent(ev) && !offBattlefieldMove(ev) {
 			return false
 		}
 	}
 	if !e.facelessAppended(e.typesObjs, pushes) {
+		return false
+	}
+	if tapped && e.layer4UntilUntapLive() {
+		// a Duration$ UntilUntaps type grant (Hedge Whisperer) is live only
+		// while its host stays tapped (continuousLive): its host's untap
+		// changes the table before expireUntilUntaps drops it
 		return false
 	}
 	if e.typesSelfOnly {
@@ -288,6 +296,17 @@ func (e *Engine) typesQuietReuse(n int) bool {
 	}
 	e.active()
 	return e.derivedSeq == e.typesDSeq
+}
+
+// layer4UntilUntapLive reports a registered layer-4 effect whose lifetime is
+// its host staying tapped (ContinuousEffect.UntilUntapOf).
+func (e *Engine) layer4UntilUntapLive() bool {
+	for i := range e.continuous {
+		if ce := &e.continuous[i]; ce.Layer == LType && ce.UntilUntapOf != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // refreshDerivedTypesFull is the whole-board rebuild (the pre-incremental

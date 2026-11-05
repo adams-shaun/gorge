@@ -159,9 +159,10 @@ import (
 // +1 (Carnelian Orb of Dragonkind: the AddsKeywords$ Haste mana rider lowers; ALL build-level 21534 -> 21535).
 // +6 (the printed K:Prevent damage keywords: Fog Bank and kin; ALL build-level 21535 -> 21541).
 // +1 over land's 21541 (this branch's Vizier of the Menagerie: ALL build-level 21541 -> 21542).
-// +1 (Ramos, Dragon Engine: the all-at-once counter-removal mana ability, kop.CtrEachManaAb; merged with land's Carnelian/K:Prevent/Vizier lowerings; ALL build-level 21542 -> 21543).
+// +1 (Ramos, Dragon Engine: the all-at-once counter-removal mana ability, kop.CtrEachManaAb; merged with land's Animate Duration$/Mazemind lowerings; ALL build-level 21545 -> 21546).
+// +2 (Animate Duration$ UntilUntaps, kop.Override.WhileTapped: Hedge Whisperer and The Blackstaff of Waterdeep lower; ALL build-level 21542 -> 21544).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21543, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21546, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
