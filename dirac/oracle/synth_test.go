@@ -460,8 +460,12 @@ func TestSynthReachReportsEveryStage(t *testing.T) {
 
 // TestEachPlayerDiscardMovesTogether: each player chooses a discard with the
 // earlier player's cards still in hand, then everything moves at once (CR 101.4).
+// std-dsk pair 21 became a refused matchup (The Mindskinner's prevent-and-mill
+// beside The Rollercrusher Ride's damage doubler, StallReplPlus) when
+// 1b07ad252 lowered Mindskinner and the pool re-dealt; pair 22 reaches the
+// ask-pair with the earlier player's hand unchanged.
 func TestEachPlayerDiscardMovesTogether(t *testing.T) {
-	synthPairs(t, "std-dsk", []int{21, 36, 44}, nil)
+	synthPairs(t, "std-dsk", []int{22, 36, 44}, nil)
 	synthPairs(t, "std-fin", []int{1, 12}, nil)
 	synthPairs(t, "std-otj", []int{2}, nil)
 	synthPairs(t, "std-woe", []int{84}, nil)
