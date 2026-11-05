@@ -62,8 +62,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; this branch; merged FDN 516 -> 517, ALL 21556 -> 21557).
 	// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged MKM 237 -> 238, ALL 21557 -> 21558).
 	// +4 (Cosmic Cube, Doom Reigns Supreme, Aetherworks Marvel, Perception Bobblehead: Play from the remembered library top with its random-order bottom, and a literal Play Amount$ N; this branch; MSH 226 -> 228, ALL 21564 -> 21568).
+	// +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; land; merged ALL 21568 -> 21573).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21568, 34442},
+	"ALL": {21573, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},

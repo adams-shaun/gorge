@@ -65,7 +65,8 @@ Bot and policy work starts at [`docs/site/bots/`](docs/site/bots/index.md).
   counted. `scripts/dirac-gate.sh` holds this.
 - **`dirac.State` holds no references** beyond its views of one pointer-free buffer
   and its fork pool, and the transition loop allocates nothing
-  (`TestStateIsPointerFree`, `TestStateSize`, the gate's allocation and instruction steps).
+  (`TestColdArraysHoldNoPointers`, `TestStateSize`, the gate's allocation and
+instruction steps).
 - **All state mutation goes through `events.Apply`.** If you are writing to a
   `state.Game` field outside `events`, you are introducing a replay bug.
   `events.Kind` is append-only: every kind is appended after all earlier kinds,

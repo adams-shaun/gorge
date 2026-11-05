@@ -3389,6 +3389,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, err
 		}
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtTokenPT)), int16(i)
+	case "AttacksIfAble":
+		// OpExt ExtAttacksIfAble, Obj the target that attacks this turn if able
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtAttacksIfAble))
 	case "MustBeBlocked":
 		// OpExt ExtMustBeBlocked, Obj the subject (RefNone
 		// with F: every battlefield permanent matching F)
