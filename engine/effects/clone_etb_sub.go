@@ -1,6 +1,8 @@
 package effects
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -16,7 +18,7 @@ import (
 
 // cloneETBCounterSubKeys are the keys an admitted rider link may carry.
 var cloneETBCounterSubKeys = state.NewNameSet(
-	"Defined", "CounterType", "ETB", "CounterNum", "SubAbility",
+	"Defined", "CounterType", "ETB", "CounterNum", "EachFromSource", "SubAbility",
 )
 
 // cloneETBReflexiveKeys are the keys the admitted "When you do, exile that
@@ -64,10 +66,27 @@ func CloneETBSubChainOK(sa *cards.SA, svars map[string]string) bool {
 			}
 		}
 		pc := PutCounterOf(link)
-		if !pc.ETB || pc.EntryFoldBlocked || len(pc.Unread) > 0 || DefinedOf(link).Defined.Text != "Self" {
+		if !pc.ETB || len(pc.Unread) > 0 || DefinedOf(link).Defined.Text != "Self" {
 			return false
 		}
 		if _, has := link.Param(cards.PKSubAbility); has && link.Sub == nil {
+			return false
+		}
+		// Dominion Saboteur's rider: "it enters with additional counters on
+		// it equal to the same number and kinds of counters the copied
+		// permanent has on it". The origin is the RememberCloneOrigin$ copy
+		// choice, so the link reads EachFromSource$ Remembered; the chain is
+		// exactly that one link, optionally closed by ClearRemembered$.
+		if strings.EqualFold(pc.CounterType, "EachFromSource") {
+			if link != sa.Sub || pc.EachFromSource != "Remembered" || !CloneOf(sa).RememberCloneOrigin {
+				return false
+			}
+			if _, has := link.Param(cards.PKCounterNum); has {
+				return false
+			}
+			return link.Sub == nil || cloneETBCleanupOnly(link.Sub)
+		}
+		if pc.EntryFoldBlocked {
 			return false
 		}
 	}

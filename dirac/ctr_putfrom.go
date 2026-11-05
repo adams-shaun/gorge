@@ -63,6 +63,15 @@ func (s *State) putCountersFrom(k *prep, in *kop.Instr) {
 		p1, ck, cn = int(r.p1p1), r.ck, r.cn
 		nover = copy(over[:], s.ctrOverOf(src, e.li))
 	}
+	s.putCounterSnapshot(k, sl, p1, ck, cn, over[:nover], mult)
+}
+
+// putCounterSnapshot puts, on the permanent at sl, mult times each counter
+// kind of a snapshot (the +1/+1 count, the inline slots, then the overflow
+// entries; a Class level is not a counter), one bolsterPut per kind. Two or
+// more kinds that a counter-added trigger hears stall (StallCtrOrder).
+// putCountersFrom and copyEnteredCounters share it.
+func (s *State) putCounterSnapshot(k *prep, sl Slot, p1 int, ck [ctrSlots]uint8, cn [ctrSlots]uint16, over []ctrOverEntry, mult int) {
 	kinds, heard := 0, 0
 	if p1 > 0 {
 		kinds++
@@ -78,7 +87,7 @@ func (s *State) putCountersFrom(k *prep, in *kop.Instr) {
 			}
 		}
 	}
-	for _, x := range over[:nover] {
+	for _, x := range over {
 		if x.n > 0 && kop.CounterKind(x.kind) != kop.CtrLevel {
 			kinds++
 			if s.ctrAddedHeard(k, kop.CounterKind(x.kind)) {
@@ -101,7 +110,7 @@ func (s *State) putCountersFrom(k *prep, in *kop.Instr) {
 			s.bolsterPut(k, sl, int(ck[i]), int(cn[i])*mult)
 		}
 	}
-	for _, x := range over[:nover] {
+	for _, x := range over {
 		if x.n > 0 && kop.CounterKind(x.kind) != kop.CtrLevel {
 			s.bolsterPut(k, sl, int(x.kind), int(x.n)*mult)
 		}

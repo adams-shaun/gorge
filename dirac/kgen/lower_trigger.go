@@ -3490,6 +3490,14 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			if err := lc.cloneEnter(ps, node, sa); err != nil {
 				return err
 			}
+			if node == sa && sa.Sub != nil {
+				// cloneEnter consumed the exact counter-rider chain into the
+				// BecomeCopy flag; its links are not separate instructions.
+				if left := ps.unread(); len(left) > 0 {
+					return refuse("Clone unread params %v", left)
+				}
+				return nil
+			}
 		case "AlterAttribute":
 			// "enters prepared" (K:ETBReplacement:Other:<SVar> with
 			// AlterAttribute Prepared; Updated)
@@ -3530,6 +3538,49 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 	return nil
 }
 
+// cloneEnterCounterRider accepts exactly Dominion Saboteur's rider chain: a
+// Clone body with RememberCloneOrigin$ True, then one PutCounter with Defined$
+// Self, ETB$ True, CounterType$ EachFromSource and EachFromSource$ Remembered
+// (the copy origin is the remembered choice), then optionally the trailing
+// Cleanup ClearRemembered$ True. Everything else about the body stays
+// cloneEnter's. The chain is consumed here rather than lowered as separate
+// instructions: OpBecomeCopy's BecomeCopyCtr flag carries the counters during
+// the entry, where gorge's rider runs before the enters triggers match.
+func (lc *lowerCtx) cloneEnterCounterRider(ps *params, sa *cards.SA) error {
+	if !ps.is("RememberCloneOrigin", "True") {
+		return refuse("ETB copy chained rider without RememberCloneOrigin$")
+	}
+	link := sa.Sub
+	if link.API != "PutCounter" {
+		return refuse("ETB copy chained rider %s", link.API)
+	}
+	lp := newParams(link.Params)
+	if !lp.is("ETB", "True") || lp.str("Defined") != "Self" ||
+		!strings.EqualFold(lp.str("CounterType"), "EachFromSource") ||
+		lp.str("EachFromSource") != "Remembered" {
+		return refuse("ETB copy chained rider shape")
+	}
+	lp.consume("SubAbility")
+	if left := lp.unread(); len(left) > 0 {
+		return refuse("ETB copy chained rider unread params %v", left)
+	}
+	if link.Sub == nil {
+		return nil
+	}
+	cleanup := link.Sub
+	if cleanup.API != "Cleanup" || cleanup.Sub != nil {
+		return refuse("ETB copy chained rider tail %s", cleanup.API)
+	}
+	cp := newParams(cleanup.Params)
+	if !cp.is("ClearRemembered", "True") {
+		return refuse("ETB copy chained rider cleanup shape")
+	}
+	if left := cp.unread(); len(left) > 0 {
+		return refuse("ETB copy chained rider cleanup unread params %v", left)
+	}
+	return nil
+}
+
 // saReadsRemembered reports whether an ability chain (or any SVar of the
 // face, which its values may name) mentions a remembered object.
 func (lc *lowerCtx) saReadsRemembered(sa *cards.SA) bool {
@@ -3556,8 +3607,19 @@ func (lc *lowerCtx) saReadsRemembered(sa *cards.SA) bool {
 // (AddTypes$, AddKeywords$, SetPower$/SetToughness$, colours...); NewName$
 // and AddKeywords$ Changeling refuse by name.
 func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
-	if node != sa || node.Sub != nil || len(lc.ab.Prog) != 0 {
+	if node != sa || len(lc.ab.Prog) != 0 {
 		return refuse("ETB copy in a chain")
+	}
+	// Dominion Saboteur's exact counter rider (remembered copy origin, then
+	// PutCounter EachFromSource$ Remembered, then Cleanup): the whole chain is
+	// folded into the BecomeCopy op's BecomeCopyCtr flag, so the kernel carries
+	// the counters into the entering object before its enters triggers match.
+	rememberCounters := false
+	if node.Sub != nil {
+		if err := lc.cloneEnterCounterRider(ps, sa); err != nil {
+			return err
+		}
+		rememberCounters = true
 	}
 	if _, ok := ps.get("Defined"); ok {
 		return refuse("ETB copy Defined$")
@@ -3598,6 +3660,10 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 		return err
 	}
 	in := lInstr{Op: "BecomeCopy", Obj: lRef{Kind: rReplaced}, F: f}
+	if rememberCounters {
+		in.B = cst(int(kop.BecomeCopyCtr))
+		in.Note = "with the copy origin's counters"
+	}
 	if lc.replOptional {
 		in.C = 1
 	}
