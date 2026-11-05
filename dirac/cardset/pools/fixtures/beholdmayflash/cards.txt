@@ -1,0 +1,14 @@
+# Molten Exhale's K:MayFlashCost:Behold<1/Dragon>: Dragons to behold, a
+# Dragon-free shell, attack triggers that float the may-flash mana and basics
+# (dirac/oracle/behold_mayflash_test.go)
+Dragon Hatchling
+Dragon Moose
+Forest
+Furnace Whelp
+Grand Warlord Radha
+Grizzly Bears
+Llanowar Elves
+Molten Exhale
+Mountain
+Raging Goblin
+Savage Ventmaw

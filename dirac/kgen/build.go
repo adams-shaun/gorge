@@ -629,6 +629,17 @@ func (cb *cardBuilder) record() error {
 		if d.MayFlashCost, err = manaCostOf(*c.MayFlash); err != nil {
 			return err
 		}
+		if c.MayFlashBehold != nil {
+			// the extra is a behold (kernel kw_mayflash.go): the card's
+			// behold fields, which no other behold cost may share
+			if d.BeholdN != 0 || c.BeholdExile || c.SpellCost != nil || c.OptCost != nil {
+				return fmt.Errorf("may-flash behold beside another behold or additional cost")
+			}
+			d.MayFlashBehold, d.BeholdN = true, 1
+			if d.BeholdF, err = cb.filter(c.MayFlashBehold, kop.ZoneBattlefield); err != nil {
+				return err
+			}
+		}
 	}
 	if c.Evoke != nil {
 		// CR 702.74a: no KwMask bit is free, so the evoke marker is its own

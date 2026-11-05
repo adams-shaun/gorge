@@ -168,8 +168,9 @@ import (
 // +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; this branch; merged ALL build-level 21556 -> 21557).
 // +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged ALL build-level 21557 -> 21558).
 // +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; ALL build-level 21564 -> 21569).
+// +1 (Molten Exhale: a may-flash extra that is a behold, CardDef.MayFlashBehold; ALL build-level 21569 -> 21570).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21569, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21570, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
