@@ -267,32 +267,9 @@ func newDrafter(v string, lookup pickbot.CardLookup, set string) pickbot.Drafter
 	case "committed":
 		return &pickbot.Committed{Lookup: lookup, Ratings: ov}
 	case "knob":
-		k := &pickbot.Knobbed{Signals: pickbot.Signals{Committed: pickbot.Committed{Lookup: lookup, Ratings: ov}, Weight: -1}}
-		t := pickbot.CommittedTuning
-		for _, kv := range strings.Split(arg, ";") {
-			key, val, _ := strings.Cut(kv, "=")
-			f, _ := strconv.ParseFloat(val, 64)
-			switch key {
-			case "sig":
-				k.Weight = f
-			case "deny":
-				k.Deny = f
-			case "cfm":
-				t.ColourFitMax = f
-			case "need":
-				k.NeedWeight = f
-			case "bias":
-				for _, cb := range strings.Split(val, "/") {
-					x, _ := strconv.ParseFloat(cb[1:], 64)
-					k.Bias[strings.IndexByte("WUBRG", cb[0])] = x
-				}
-			case "":
-			default:
-				must(fmt.Errorf("drafter knob %q", key))
-			}
-		}
-		k.Tuning = t
-		return k
+		t, err := pickbot.ParseResearchKnobs(arg)
+		must(err)
+		return &pickbot.Knobbed{Lookup: lookup, Tuning: t, Ratings: ov}
 	case "signals":
 		return &pickbot.Signals{Committed: pickbot.Committed{Lookup: lookup, Ratings: ov}, Weight: w}
 	}
