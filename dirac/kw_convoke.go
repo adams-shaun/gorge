@@ -353,7 +353,8 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 	return true
 }
 
-// convokeTargetAbort reports whether the pending convoke cast can no longer
+// convokeTargetAbort reports whether the pending convoke cast (or a Play's paid
+// copy cast, copyCastPaid) can no longer
 // be completed: the cost less the announced picks is unpayable from the pool
 // and the CR 601.2g window (the announced creatures are withheld, as at
 // payment). Gorge's affordableTargetCandidates probes the same window and
@@ -364,10 +365,10 @@ func (s *State) convokeTargetAbort(k *prep) bool {
 		return false
 	}
 	e := &s.bld().e
-	if e.kind != seSpell || !s.tapPaysEntry(k, e) {
+	if e.kind != seSpell || !s.tapPaysEntry(k, e) && !s.copyCastPaid(k, e) {
 		return false
 	}
-	if e.flags&sfFree != 0 || s.bld().bfl&bflLowered != 0 {
+	if e.flags&sfFree != 0 || s.bld().bfl&bflLowered != 0 && !s.copyCastPaid(k, e) {
 		return false
 	}
 	cost := s.convokeApplyPicks(k, s.buildCost(k))
