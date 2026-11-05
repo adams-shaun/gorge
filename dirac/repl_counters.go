@@ -155,6 +155,9 @@ func (s *State) replCtrOnX(k *prep, sl Slot, kind, n int, noEO bool) int {
 		plusPos += eotPlus
 	}
 	if (dbl > 0 && plusN > 0) || (plusPos > 0 && plusNeg > 0) {
+		if m, ok := s.ctrOrderApply(k, sl, kind, n); ok {
+			return m // the order ask was answered (repl_ctrorder.go)
+		}
 		s.capFull(StallReplCtr)
 		return n
 	}

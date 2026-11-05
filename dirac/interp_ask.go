@@ -489,7 +489,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		s.askOptions(k, d, s.g.ask[0].kind)
 	case raGenEntryOrder:
 		s.entryOrderOptions(k, d)
-	case raGenReplOrder:
+	case raGenReplOrder, raGenCtrOrder:
 		s.replOrderOptions(d)
 	case raGenCopyTarget, raGenCopyTargets:
 		s.copyTargetOptions(k, d, int(r.left))
@@ -941,6 +941,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 	case raGenEntryOrder:
 		s.applyEntryResolve(k, a) // repl_entryorder.go
+	case raGenCtrOrder:
+		s.applyCtrOrder(k, a) // repl_ctrorder.go
 	case raGenReplOrder:
 		if s.replOrderPick(a) {
 			return // ask again
