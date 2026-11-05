@@ -722,20 +722,17 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 		}
 		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
 	}
-	for i := range cd.Abilities {
-		a := &cd.Abilities[i]
-		if tgtDepCost(a) {
-			s.g.noTgtRed = severalTargets(k, c)
-			cost := s.featCost(k, p, c, o, k.cards[c].cost)
-			s.g.noTgtRed = false
-			if s.g.mayPlayAny {
-				cost = anyType(cost)
-			}
-			// the planner's census (potentialTargetPricedPlan): no granted source
-			// (Imprisoned in the Moon's {C}), and a painful source makes its
-			// colours while one point of damage is not lethal (Starting Town's W)
-			return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
+	if s.spellTgtDep(k, p, c, o) {
+		s.g.noTgtRed = severalTargets(k, c)
+		cost := s.featCost(k, p, c, o, k.cards[c].cost)
+		s.g.noTgtRed = false
+		if s.g.mayPlayAny {
+			cost = anyType(cost)
 		}
+		// the planner's census (potentialTargetPricedPlan): no granted source
+		// (Imprisoned in the Moon's {C}), and a painful source makes its
+		// colours while one point of damage is not lethal (Starting Town's W)
+		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
 	}
 	if cd.BeholdExile || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
 		return s.plannerPaysCast(k, p, c, o) // a shape lowered only on the composed plan's witness
