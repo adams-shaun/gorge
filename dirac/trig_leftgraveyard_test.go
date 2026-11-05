@@ -127,8 +127,8 @@ func TestGraveLeavesYourTurn(t *testing.T) {
 // TestGraveSweepIsOneBatch: a graveyard sweep onto the battlefield through
 // execChangeZoneAll opens the batch (gorge's effChangeZoneAll opens its zone
 // batch for an entry), so a two-card move queues one trigger, and the
-// sweep leaves the batch closed. A sweep to another zone is per card:
-// TestGraveSweepToExileIsPerCard.
+// sweep leaves the batch closed. A sweep to another zone is one event too:
+// TestGraveSweepToExileIsOneEvent.
 func TestGraveSweepIsOneBatch(t *testing.T) {
 	sc, id := newLeftGraveyardScen(t, []cardset.Entry{
 		{Name: "Chalk Outline", Count: 1}, {Name: "Grizzly Bears", Count: 2},

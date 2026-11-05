@@ -1477,10 +1477,11 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done bool) {
 	e := &s.res.e
 	fl := k.t.Filters[in.F]
-	if (fl.Zone == kop.ZoneGraveyard || in.Op == kop.OpChangeZoneAllEx && in.C>>3&kop.MvGraveExile != 0) && k.gen.anyBatch &&
-		kop.Zone(in.C&7) == kop.ZoneBattlefield {
-		// one graveyard-leave batch: gorge opens a sweep's zone batch only for an entry
-		// (effChangeZoneAll's BeginZoneBatch), so a sweep to another zone triggers per card
+	if (fl.Zone == kop.ZoneGraveyard || in.Op == kop.OpChangeZoneAllEx && in.C>>3&kop.MvGraveExile != 0) && k.gen.anyBatch {
+		// one graveyard-leave batch: gorge's effChangeZoneAll brackets EVERY sweep
+		// in its zone batch (CR 603.2c: the sweep is one occurrence of the trigger
+		// event), so a graveyard sweep to exile queues once, not per card. (dirac
+		// copied gorge's narrower entry-only condition; both engines widen together.)
 		old := s.batchOpen()
 		if resume {
 			old &^= batchOpenMask
