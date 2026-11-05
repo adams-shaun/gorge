@@ -23,7 +23,8 @@ reach an action, and the same seed and answers give the same game, byte for byte
 ## How a simulation uses them
 
 The shape below is that of [`bots/azmcts`](https://github.com/adams-shaun/gorge/tree/main/bots/azmcts), gorge's PUCT
-tree search over information sets. The maintainers run a port of it on dirac, in their private companion module.
+tree search over information sets. [`dirac/search`](https://github.com/adams-shaun/gorge/tree/main/dirac/search) is its port
+onto dirac, and `dirac/neteval` its network evaluator.
 
 1. Copy the root with `CopyFrom`.
 2. Re-deal what the seat can't see (its own library order, the opponent's hand and library, from a card pool if one is given)
@@ -39,11 +40,14 @@ allocates at a warmed depth.
 
 | Package | Entry points | What it gives a bot |
 |---|---|---|
+| `dirac/search` | `DefaultOptions()`, `NewSearcher(opts, eval, bot)`, `(*Searcher).Search`, `(*Searcher).SeatSearch` | the PUCT search above, its candidates, re-deals and option families |
+| `dirac/neteval` | `LoadWeights(path)`, `New(w, pool)` | a network `search.Evaluator`: `dirac/feat` feeding `bots/netsimd` or `bots/gonet` |
 | `dirac/search/hbot` | `NewFacts(*kop.Table)`, `New(*Facts)`, `(*Bot).EnableHoldInstant()` | a native port of gorge's auto-pay heuristic bot, held to it decision by decision by `khbot` |
 | `dirac/search/mull` | `KeepLands`, `KeepConstructed`, `KeepNever`, `CoinMulls` | gorge's London-mulligan policies, as pure functions over a hand |
 | `dirac/feat` | `NewPool(tbl, specs)`, `NewEncoder(pool)`, `EncodeState`, `EncodeOptions` | the network input encoding, below |
 
-These import nothing from gorge. `oracle.HBotFacts` and `oracle.FeatPool` build their tables from a gorge registry, and dirac-only
+These import nothing from gorge, except `dirac/neteval`, which imports gorge's network packages (`bots/netsimd`, `bots/gonet`,
+`bots/policynet`) and never the engine. `oracle.HBotFacts` and `oracle.FeatPool` build their tables from a gorge registry, and dirac-only
 code passes a `kop.Table` and pre-derived specs instead.
 
 ## Network inputs

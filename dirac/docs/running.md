@@ -164,6 +164,8 @@ They allocate nothing.
 
 | package | entry points | what it gives a bot |
 |---|---|---|
+| `dirac/search` | `DefaultOptions()`, `NewSearcher(opts, eval, bot)`, `(*Searcher).Search`, `(*Searcher).SeatSearch` | gorge's `bots/azmcts` PUCT search on a `dirac.State` |
+| `dirac/neteval` | `LoadWeights(path)`, `New(w, pool)` | a network `search.Evaluator` over a `.dzgw` file |
 | `dirac/search/hbot` | `NewFacts(*kop.Table)`, `New(*Facts)`, `(*Bot).EnableHoldInstant()` | the native port of gorge's auto-pay heuristic bot |
 | `dirac/search/mull` | `KeepLands`, `KeepConstructed`, `KeepNever`, `CoinMulls` | gorge's London-mulligan policies, as pure functions over a hand |
 | `dirac/feat` | `NewPool(tbl, specs)`, `NewEncoder(pool)`, `EncodeState`, `EncodeOptions` | the policy-net input encoding: the same bytes `bots/policynet` produces from gorge's redacted view |
