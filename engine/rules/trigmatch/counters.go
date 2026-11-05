@@ -124,12 +124,24 @@ func counterAddedMatches(e Board, t cards.Trigger, source state.ObjID, ev events
 // sees exactly one matching event for the line's first batch and two or more
 // for every later batch. A counter of another kind is a different placement
 // event and never spends the latch.
+//
+// An entry notice (the counters a permanent enters with, folded into its move)
+// that precedes the object's own ClonePermanent was echoed while the object
+// still wore the stack card's face: the entering copy puts those counters as
+// the copy (CR 614.12), so the notice does not spend the copy's latch.
 func firstCounterAddedThisTurn(e Board, ev events.Event) bool {
 	seenCurrent := false
+	cloned := false
 	for i := len(e.Log().Events) - 1; i >= 0; i-- {
 		le := e.Log().Events[i]
 		if le.Kind == events.TurnChange {
 			return seenCurrent
+		}
+		if le.Kind == events.ClonePermanent && le.Obj == ev.Obj {
+			cloned = true
+		}
+		if cloned && le.Kind == events.CounterChange && le.Text == events.EntryCounterNotice {
+			continue
 		}
 		if le.Kind != events.CounterChange || le.Amount <= 0 || le.Obj != ev.Obj || le.Counter != ev.Counter {
 			continue

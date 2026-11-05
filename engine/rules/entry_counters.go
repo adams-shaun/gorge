@@ -286,6 +286,27 @@ func (e *Engine) cloneRiderTemplate(entrant state.ObjID) *state.Object {
 	return tpl
 }
 
+// foreignBodyMatches is replacementMatches for another permanent's lent entry
+// body, read against the permanent as it will enter (CR 614.12): an as-enters
+// clone's answered template stands in for the stack card, so Zefram Cochrane's
+// Spacecraft-scoped line reaches Dominion Saboteur entering as a Spacecraft.
+// The line is not a competitor of the clone's own replacement (it only applies
+// once the copy has), so only this fold reads the template, never the
+// candidate list that poses CR 616.1's order question.
+func (e *Engine) foreignBodyMatches(entrant state.ObjID, m replMatch, ev events.Event) bool {
+	o := e.G.Obj(entrant)
+	tpl := e.cloneRiderTemplate(entrant)
+	if tpl == nil || o == nil || ev.Kind != events.MoveZone || ev.From == state.ZBattlefield {
+		return e.replacementMatches(*m.repl, m.id, ev)
+	}
+	basis := *o
+	basis.SetCopyFace(tpl.CopiableFace())
+	saved := e.entryBasis
+	e.entryBasis = &basis
+	defer func() { e.entryBasis = saved }()
+	return e.replacementMatches(*m.repl, m.id, ev)
+}
+
 // entryCopyBasisFace is the face the entering object is about to have: the
 // answered as-enters clone template's copiable face while ClonePermanent has
 // not installed it (CR 707.2), else o's own face.
@@ -540,7 +561,7 @@ func (e *Engine) entryBodyCounterGrants(ev events.Event, entrant state.ObjID) ([
 		foreignEv.From = state.ZCeased
 	}
 	for _, m := range e.foreignEntryBodies(entrant, foreignEv) {
-		if !e.replacementMatches(*m.repl, m.id, foreignEv) {
+		if !e.foreignBodyMatches(entrant, m, foreignEv) {
 			continue
 		}
 		absorbForeign(m)
