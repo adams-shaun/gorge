@@ -296,8 +296,8 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
 
 1. **Work in a task worktree** with the main checkout's `.cards/` linked into
    it, so corpus tests really run (`ln -s <main>/.cards .cards`, then check
-   the link resolves). Leave `main`'s checkout clean. Merge into `main`, then
-   remove the worktree.
+   the link resolves). Leave `main`'s checkout clean. Open a pull request
+   against `develop`, then remove the worktree.
 2. **Prove the corpus ran.** A package that prints `ok` in about 2 ms with
    `.cards/` missing executed nothing. If `.cards/` is absent, say so. Do not
    report green.
@@ -317,9 +317,8 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
    a baseline". Tests load the corpus only via
    `testkit/testutil.CorpusRegistry`, never `cards.LoadRegistry` (~600 MB per
    fresh registry). A sweep too big for the budget is split into fixed index
-   chunks with a partition test (e.g. `TestTargetAuditChunk00..11`,
-   `TestCensusChunksCoverEverySubject`). Never set
-   `GORGE_ORACLEGEN_FULL_TARGET_AUDIT=1` yourself: post-merge runs it.
+   chunks with a partition test (e.g. `TestDecisionTextHasNoEngineSyntaxChunk00`
+   and `TestCensusChunksCoverEverySubject`).
 5. **Red on `main` is yours.** A failing test that is committed on `main` is
    bisected and fixed now, not labelled "pre-existing". A red run in a
    *shared* checkout may be a peer's half-written file: check `git status` and
@@ -343,7 +342,8 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
   file it came from. A premise that was never measured gets labelled a
   hypothesis.
 - Bench claims need a CI. At 200 games the CI is about ±7pp, which is not a
-  verdict. See the README's bot-training section for sample sizes.
+  verdict. See [`docs/site/bots/training-and-adoption.md`](../site/bots/training-and-adoption.md)
+  for sample sizes.
 
 ### Docs
 
