@@ -1,0 +1,10 @@
+# the investigate-shapes pool: No Witnesses ("each player who controls the
+# most creatures investigates") beside cheap vanilla creatures, burn and
+# basics, for the oracle's constructed lockstep
+# (dirac/oracle/investigate_shapes_test.go)
+No Witnesses
+Savannah Lions
+Raging Goblin
+Shock
+Plains
+Mountain

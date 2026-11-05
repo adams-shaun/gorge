@@ -1665,7 +1665,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	}
 	var av avail
 	s.availFor(k, p, &av)
-	if (any != 0 || anyColor) && cost.Hyb[0] == 0 {
+	if any != 0 || anyColor {
 		ok := av.affords(&cost, pipMaskOf(&cost), 0)
 		if anyColor {
 			ok = av.affordsAnyColor(&cost, 0)
@@ -1681,6 +1681,17 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			cost = s.buildCost(k)
 			if cost.Hyb[0] == 0 {
 				ok = av.affords(&cost, pipMaskOf(&cost), 0)
+				if anyColor {
+					ok = av.affordsAnyColor(&cost, 0)
+				}
+			} else if cost.Hyb[0] != kop.HybTwobrid {
+				// the printed hybrid symbols have no plan (an unannounced
+				// hybrid cost, the may-play cast this rider offered): price
+				// the rider's cost the way the offer gate did
+				// (planUnderRider: every face of a hybrid pip is payable by
+				// any mana, one generic each)
+				cost = planUnderRider(cost, any != 0, anyColor)
+				ok = av.affords(&cost, 0, 0)
 				if anyColor {
 					ok = av.affordsAnyColor(&cost, 0)
 				}
