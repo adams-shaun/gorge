@@ -26,11 +26,27 @@ import (
 // Destination$ Any or Graveyard (the dies form, Hoarding Dragon),
 // ValidCard$ Card.Self, whose body is ChangeZone Defined$
 // Remembered Origin$ Exile to the battlefield or hand, optionally followed
-// by Cleanup ClearRemembered$ True.
+// by Cleanup ClearRemembered$ True — or Unidentified Hovership's manifest
+// form: the body is ManifestDread DefinedPlayer$ RememberedOwner (Amount$
+// 1, one dread), optionally followed by the same Cleanup. Every other
+// ability on the face (Crew 1) must be remembered-clean: it neither reads
+// nor writes the set, so its resolutions neither spend nor rewrite what
+// the pair carries (its Keep re-keeps the seeded set unchanged).
 func (lc *lowerCtx) remPersistShape() bool {
 	f := lc.face
-	if len(f.Abilities) != 0 || len(f.Statics) != 0 || len(f.Repls) != 0 || len(f.Triggers) != 2 {
+	if len(f.Statics) != 0 || len(f.Repls) != 0 || len(f.Triggers) != 2 {
 		return false
+	}
+	for _, a := range f.Abilities {
+		// a raw-script scan, fail-closed: any Remember* key or value in
+		// the ability or its sub-abilities refuses
+		for s := a; s != nil; s = s.Sub {
+			for k, v := range s.Params {
+				if strings.Contains(k, "Remember") || strings.Contains(v, "Remember") {
+					return false
+				}
+			}
+		}
 	}
 	t0, t1 := &f.Triggers[0], &f.Triggers[1]
 	if t0.Mode != "ChangesZone" || t1.Mode != "ChangesZone" {
@@ -46,8 +62,27 @@ func (lc *lowerCtx) remPersistShape() bool {
 		return false
 	}
 	r := t1.Effect
-	if r == nil || r.API != "ChangeZone" || !is(r.Params, "Defined", "Remembered") || !is(r.Params, "Origin", "Exile") ||
-		!(is(r.Params, "Destination", "Battlefield") || is(r.Params, "Destination", "Hand")) {
+	switch {
+	case r != nil && r.API == "ChangeZone":
+		if !is(r.Params, "Defined", "Remembered") || !is(r.Params, "Origin", "Exile") ||
+			!(is(r.Params, "Destination", "Battlefield") || is(r.Params, "Destination", "Hand")) {
+			return false
+		}
+	case r != nil && r.API == "ManifestDread":
+		// the leave trigger manifests dread for the remembered card's
+		// owner (its ETB exiled it), then clears the set; SubAbility$
+		// stays in Params beside the resolved Sub
+		if !is(r.Params, "DefinedPlayer", "RememberedOwner") {
+			return false
+		}
+		for k := range r.Params {
+			switch k {
+			case "DefinedPlayer", "SubAbility":
+			default:
+				return false
+			}
+		}
+	default:
 		return false
 	}
 	if c := r.Sub; c != nil && (c.API != "Cleanup" || c.Sub != nil || !is(c.Params, "ClearRemembered", "True") || len(c.Params) != 1) {

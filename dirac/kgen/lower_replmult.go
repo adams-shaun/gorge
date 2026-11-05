@@ -167,3 +167,32 @@ func (lc *lowerCtx) tokenRewrite(rp *params, w *cards.SA, rl *lRepl) error {
 	rl.Kind, rl.S = "RewriteTokens", script
 	return nil
 }
+
+// preventMillRepl lowers The Mindskinner's prevent-and-mill replacement:
+// ValidSource$ Card.YouCtrl,Emblem.YouCtrl | ValidTarget$ Opponent |
+// ReplaceWith$ DB$ Mill | Defined$ Opponent | NumCards$ ReplaceCount$DamageAmount.
+// gorge (replacement.go applyNonMoveReplacements) runs the Mill body in the
+// replacement's frame and hands back a stopped damage event, one application
+// per damage event (combat damage is one event per source and recipient, so
+// ExecuteMode$ PerSource is what gorge does anyway); AlwaysReplace$ and
+// PreventionEffect$ are not read there. false: not this shape.
+func (lc *lowerCtx) preventMillRepl(rp *params, w *cards.SA, rl *lRepl) (bool, error) {
+	if w == nil || w.API != "Mill" || rp.peek("ValidTarget") != "Opponent" {
+		return false, nil
+	}
+	if rp.str("ValidSource") != "Card.YouCtrl,Emblem.YouCtrl" || !rp.is("AlwaysReplace", "True") ||
+		!rp.is("PreventionEffect", "True") || !rp.is("ExecuteMode", "PerSource") || rp.str("ValidTarget") != "Opponent" {
+		return true, refuse("repl-hard: DamageDone prevent-and-mill shape")
+	}
+	bp := newParams(w.Params)
+	bp.consume("Defined", "NumCards")
+	nc := strings.TrimSpace(w.Params["NumCards"])
+	if sv, ok := lc.face.SVars[nc]; ok {
+		nc = strings.TrimSpace(sv)
+	}
+	if w.Sub != nil || bp.str("Defined") != "Opponent" || nc != "ReplaceCount$DamageAmount" || len(bp.unread()) != 0 {
+		return true, refuse("repl-hard: DamageDone prevent-and-mill body")
+	}
+	rl.Kind = "PreventMillOpps"
+	return true, nil
+}

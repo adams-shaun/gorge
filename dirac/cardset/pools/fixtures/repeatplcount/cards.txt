@@ -1,0 +1,22 @@
+# the RepeatEach player-body count pool: Worlds Within Worlds
+# (ChangeNum$ Count$ValidHand Creature.RememberedPlayerCtrl) and Doomsday
+# Excruciator (DigNum$ Count$ValidLibrary Card.RememberedPlayerCtrl/Minus.6)
+# beside high-toughness creatures and card draw
+# (dirac/oracle/repeateach_playercount_test.go)
+Worlds Within Worlds
+Doomsday Excruciator
+Grizzly Bears
+Ornithopter
+Horned Turtle
+Giant Spider
+Rotting Mastodon
+Craw Wurm
+Wandering Tombshell
+Walking Corpse
+Catacomb Crocodile
+Undead Minotaur
+Night's Whisper
+Sign in Blood
+Island
+Forest
+Swamp

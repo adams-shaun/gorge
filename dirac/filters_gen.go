@@ -516,6 +516,10 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 			if owner == ctrl {
 				return false
 			}
+		case kop.CtrlEachPl:
+			if !s.ctrlEachPl(owner, ctrl) {
+				return false // a hand or library card of the repeated player (act_repeatplayer.go)
+			}
 		}
 	}
 	pc := &k.cards[c]
@@ -675,6 +679,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	default:
 		if fl.Pred == kop.PredExiledWith {
 			return s.exwCard(o) // zone_exiledwith.go
+		}
+		if fl.Pred == kop.PredTriggerObj {
+			return s.isTriggerObj(o) // filter_predicates.go: the ChooseFromDefined$ TriggeredCards pool
 		}
 		if fl.Pred == kop.PredWasCastEnter {
 			return s.wasCastPred(fl, o, ctrl) // cast_wascastenter.go

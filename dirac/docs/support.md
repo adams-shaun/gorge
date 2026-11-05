@@ -11,7 +11,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | BIG | 30 | 23 | 1 | 8 | 14 |
 | BLB | 278 | 256 | 3 | 33 | 220 |
 | DFT | 276 | 247 | 0 | 23 | 224 |
-| DSK | 276 | 236 | 3 | 45 | 188 |
+| DSK | 276 | 241 | 3 | 50 | 188 |
 | ECL | 273 | 233 | 2 | 41 | 190 |
 | EOE | 266 | 238 | 0 | 117 | 121 |
 | FDN | 517 | 517 | 0 | 24 | 493 |
@@ -20,17 +20,17 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | HOB | 172 | 152 | 0 | 9 | 143 |
 | LCI | 290 | 251 | 1 | 22 | 228 |
 | MKM | 279 | 240 | 1 | 53 | 186 |
-| MSH | 276 | 226 | 1 | 18 | 207 |
+| MSH | 276 | 228 | 1 | 20 | 207 |
 | OTJ | 276 | 241 | 2 | 27 | 212 |
 | SOS | 270 | 248 | 1 | 26 | 221 |
 | SPM | 192 | 160 | 1 | 23 | 136 |
-| TDM | 276 | 246 | 6 | 51 | 189 |
+| TDM | 276 | 248 | 4 | 55 | 189 |
 | TLA | 285 | 246 | 2 | 59 | 185 |
 | TMT | 194 | 171 | 1 | 10 | 160 |
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 13 | 239 |
-| ALL | 34442 | 21593 | 31 | 17068 | 4494 |
+| ALL | 34442 | 21630 | 29 | 17107 | 4494 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -70,12 +70,12 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-31 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+29 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 2 |
-| options | 8 |
+| options | 7 |
 | projection | 1 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Damage | 1 |
@@ -83,7 +83,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-Cards.Pos | 1 |
 | projection-Cards.Power | 2 |
 | projection-Cards.Zone | 1 |
-| projection-NStack | 3 |
+| projection-NStack | 2 |
 | projection-Pool | 2 |
 | unmodelled | 2 |
 | unmodelled-clonelayer | 1 |
