@@ -25,6 +25,20 @@ const (
 // synthColours is WUBRG, the order of the masks and of cardset.SynthBasics.
 const synthColours = "WUBRG"
 
+// PlaySet is the set dplay plays: a deck pool by name, else (a name with the prefix
+// "std-" or "tail-") the synthetic pool of that name with unverified cards playable
+// and refused cards still refused, as kfuzz -synth plays it.
+func PlaySet(name string) (cardset.Set, error) {
+	if strings.HasPrefix(name, "std-") || strings.HasPrefix(name, "tail-") {
+		set, err := cardset.SynthByName(name)
+		if err != nil {
+			return nil, err
+		}
+		return cardset.AllowUnverified(set), nil
+	}
+	return cardset.ByName(name)
+}
+
 // colourMask is the colours whose pips cost names. Hybrid and Phyrexian pips count
 // all their colours.
 func colourMask(cost string) uint8 {

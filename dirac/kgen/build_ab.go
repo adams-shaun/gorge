@@ -2652,6 +2652,18 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			}
 			sb |= kop.SrRandom // Tersa Lightshatter
 		}
+		if _, ok := fl["GameGrave"]; ok {
+			// A game-wide graveyard pick (gorge effHiddenPick gameWide: no
+			// ValidTgts$, no DefinedPlayer$): the pool is every player's
+			// graveyard in seat order; picked cards enter their owner's zone.
+			// Only a graveyard origin poses it; the pick's destination rides
+			// in C. Counters never co-occur (a counter rider is refused
+			// before the pick lowers).
+			if in.Op != "ChooseMove" || zone != kop.ZoneGraveyard {
+				return ki, fmt.Errorf("GameGrave on a %s from %s", in.Op, fl["from"])
+			}
+			sb |= kop.SrGameGrave
+		}
 		if _, ok := fl["ForgetChanged"]; ok {
 			if in.Op != "Search" {
 				return ki, fmt.Errorf("ForgetChanged on a %s", in.Op)

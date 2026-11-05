@@ -66,6 +66,7 @@
             onkeydown={(e) => detail.keydown(e)}
           >
             <span class="nm">{c.name}</span>
+            {#if c.promo}<span class="promo-tag" title="Prerelease promo">promo</span>{/if}
             {#if f.cost}<ManaSymbols cost={f.cost} />{/if}
           </button>
         {:else}
@@ -77,6 +78,7 @@
             onpointerleave={() => detail.leave()}
           >
             <span class="nm">{c.name}</span>
+            {#if c.promo}<span class="promo-tag" title="Prerelease promo">promo</span>{/if}
             {#if f.cost}<ManaSymbols cost={f.cost} />{/if}
           </div>
         {/if}

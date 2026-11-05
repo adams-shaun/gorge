@@ -79,21 +79,46 @@ export const humanCount = (seats: readonly SeatChoice[]): number => seats.filter
  */
 export const timerOffered = (seats: readonly SeatChoice[]): boolean => humanCount(seats) >= 2;
 
+/** EventFormat is the create body's supply format. */
+export type EventFormat = 'draft' | 'sealed' | 'prerelease';
+
+/** FORMATS lists the Mode segment's buttons, in order. */
+export const FORMATS: { format: EventFormat; label: string }[] = [
+  { format: 'draft', label: 'Draft' },
+  { format: 'sealed', label: 'Sealed' },
+  { format: 'prerelease', label: 'Prerelease' },
+];
+
+/** sealedFormat reports a format with no picks (sealed or prerelease). */
+export const sealedFormat = (f: string | undefined): boolean => f === 'sealed' || f === 'prerelease';
+
+/** defaultBestOf is the server's default series length per format: best of 3 for a prerelease (MTR 2.1), else 1. */
+export const defaultBestOf = (f: EventFormat): 1 | 3 => (f === 'prerelease' ? 3 : 1);
+
+/** defaultRebuild is the server's default for deck changes between rounds: on for sealed formats (MTR 7.3). */
+export const defaultRebuild = (f: EventFormat): boolean => sealedFormat(f);
+
 /** CreateOptions are the create screen's format choices. */
 export interface CreateOptions {
   bestOf?: 1 | 3;
   /** pickTimer is sent only when the player chose one and the pod has two or more humans. */
   pickTimer?: PickTimer;
+  format?: EventFormat;
+  rebuild?: boolean;
 }
 
 /**
  * createRequest builds the POST /api/events body: each seat's kind, and for
  * a bot its chosen game policy and pickbot persona ("" = the server's
- * default for either). best_of is sent only for best of 3 (omitted = 1),
- * pick_timer only when one was chosen for a pod the server times. It never
- * carries a seed: the server mints it, and an unknown body field is a 400.
+ * default for either). format is sent only when it is not a draft; best_of
+ * only when it differs from the format's server default, so a draft or a
+ * prerelease keeps its default unless the player changed it. rebuild is sent
+ * only when the player's choice differs from the format's default, and
+ * pick_timer only for a draft pod the server times. It never carries a seed:
+ * the server mints it, and an unknown body field is a 400.
  */
 export function createRequest(set: string, seats: readonly SeatChoice[], opts: CreateOptions = {}): CreateEventRequest {
+  const format = opts.format ?? 'draft';
   const req: CreateEventRequest = {
     set,
     seats: seats.map((s) => {
@@ -104,8 +129,10 @@ export function createRequest(set: string, seats: readonly SeatChoice[], opts: C
       return seat;
     }),
   };
-  if (opts.bestOf === 3) req.best_of = 3;
-  if (opts.pickTimer && timerOffered(seats)) req.pick_timer = opts.pickTimer;
+  if (opts.bestOf !== undefined && opts.bestOf !== defaultBestOf(format)) req.best_of = opts.bestOf;
+  if (format !== 'draft') req.format = format;
+  if (opts.rebuild !== undefined && opts.rebuild !== defaultRebuild(format)) req.rebuild = opts.rebuild;
+  if (!sealedFormat(format) && opts.pickTimer && timerOffered(seats)) req.pick_timer = opts.pickTimer;
   return req;
 }
 
