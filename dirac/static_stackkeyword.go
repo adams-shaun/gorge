@@ -5,7 +5,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // StatStackKw: AffectedZone$ Stack keyword grants to the
 // spells the static's controller casts: Cascade (Quandrix, the Proof), read
 // live when the cast trigger queues (rules cascade.go queueCascadeTriggers);
-// Improvise (Ironheart, Inspiring Statuary) and Casualty:<n> (Silverquill),
+// Improvise (Ironheart, Inspiring Statuary), Convoke (Dazzling Theater,
+// Eirdu) and Casualty:<n> (Silverquill),
 // read wherever the printed CardDef.Improvise / Convoke / Casualty are
 // (tapPays, isImprovise, casualtyN). gorge derives the spell under the
 // stack-zone override (keywordmay.go stackKeywordPossibleH), so the kernel
@@ -42,7 +43,7 @@ func prepStackKw(t *Table, g *genPrep, p *prep) {
 			switch a.Static.A {
 			case kop.StackKwCascade:
 				g.anyCascade = true
-			case kop.StackKwImprovise:
+			case kop.StackKwImprovise, kop.StackKwConvoke:
 				g.anyConvoke = true
 			case kop.StackKwCasualty:
 				p.casualty = true
@@ -98,11 +99,21 @@ func (s *State) grantImprovise(k *prep, p uint8, c CardID, o Obj, fromHand bool)
 	return n > 0
 }
 
+// grantConvoke: a live StatStackKw Convoke grant reaches p's spell card c
+// (object o). Behind genPrep.anyStackKw.
+func (s *State) grantConvoke(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
+	if k.gen == nil || !k.gen.anyStackKw {
+		return false
+	}
+	n, _ := s.stackKwN(k, kop.StackKwConvoke, c, o, p, fromHand)
+	return n > 0
+}
+
 // tapPays is CardDef.TapPays for p's spell card c (object o): printed
-// convoke or improvise, or a granted improvise (the cast announces tapped
+// convoke or improvise, or a granted one (the cast announces tapped
 // permanents toward its mana cost). fromHand: the spell is cast from hand.
 func (s *State) tapPays(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
-	return k.t.Cards[c].TapPays() || s.grantImprovise(k, p, c, o, fromHand)
+	return k.t.Cards[c].TapPays() || s.grantImprovise(k, p, c, o, fromHand) || s.grantConvoke(k, p, c, o, fromHand)
 }
 
 // isImprovise is CardDef.Improvise for p's spell card c (object o): printed
