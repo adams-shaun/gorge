@@ -477,6 +477,9 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 	if r == kop.RefRememberedController {
 		return s.remController() // zone_rememberparams.go
 	}
+	if r == kop.RefRememberedOwner {
+		return s.remOwner() // zone_rememberparams.go
+	}
 	return 255
 }
 

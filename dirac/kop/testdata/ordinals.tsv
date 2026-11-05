@@ -853,6 +853,7 @@ PredTotalPT	Pred	250
 PredToughnessGE	Pred	15
 PredToughnessLE	Pred	3
 PredToughnessLEV	Pred	34
+PredTriggerObj	Pred	240
 PredTypesAll	Pred	24
 PredTypesAllCMCLE	Pred	242
 PredWasCastEnter	Pred	248
@@ -892,6 +893,7 @@ RefOppNonRemCtrl	Ref	245
 RefOpponent	Ref	6
 RefRemembered	Ref	18
 RefRememberedController	Ref	28
+RefRememberedOwner	Ref	33
 RefReplaced	Ref	20
 RefSacrificed	Ref	22
 RefSelf	Ref	4
@@ -1230,9 +1232,9 @@ TrigDiscardedAll	TrigEvent	35
 TrigDiscover	TrigEvent	44
 TrigDrawn	TrigEvent	14
 TrigETB	TrigEvent	1
-TrigEventCount	TrigEvent	46
+TrigEventCount	TrigEvent	47
 TrigExplores	TrigEvent	39
-TrigFacesDilemma	TrigEvent	45
+TrigFacesDilemma	TrigEvent	46
 TrigForage	TrigEvent	43
 TrigFullyUnlock	TrigEvent	34
 TrigGiveGift	TrigEvent	23
@@ -1241,6 +1243,7 @@ TrigLeaves	TrigEvent	3
 TrigLifeGained	TrigEvent	9
 TrigLifeLost	TrigEvent	10
 TrigManaExpend	TrigEvent	21
+TrigManifestDread	TrigEvent	45
 TrigNAnyCounter	int16	-1
 TrigNTeamworkTap	int16	1
 TrigNTraining	int16	2

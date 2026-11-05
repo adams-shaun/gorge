@@ -172,6 +172,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			return refuse("LibraryPosition %q", lp)
 		}
 	}
+	if raw, ok := ps.m["ChooseFromDefined"]; ok && !lc.digRememberedLibrary && strings.TrimSpace(raw) == "TriggeredCards" {
+		return lc.dreadTriggeredPick(ps) // lower_dreadtriggerpick.go
+	}
 	if _, ok := ps.m["ChooseFromDefined"]; ok && lc.digRememberedLibrary {
 		return lc.digChosenLibraryPick(ps, ps.m["ChooseFromDefined"]) // lower_digimprint.go
 	}

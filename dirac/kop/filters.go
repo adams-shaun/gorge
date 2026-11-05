@@ -267,6 +267,15 @@ const OvEnterWith = 2
 // (PredN 1). Omenpath Journey, Ghost Vacuum, Northampton Farm.
 const PredExiledWith Pred = 249
 
+// PredTriggerObj: the object IS the resolving ability's triggering object
+// (kernel filter_predicates.go isTriggerObj, F2NotTriggerObj's positive).
+// It is not a Forge filter word: kgen builds it for a Hidden$ ChangeZone's
+// ChooseFromDefined$ TriggeredCards pool (gorge chooseFromDefinedPool over
+// the trigger's capture), whose eligible cards are the marker's objects
+// still in the origin zone. Explicit high ordinal, filters.go style; 240 is
+// free beside the 241-254 block. Paranormal Analyst.
+const PredTriggerObj Pred = 240
+
 // PredFaceDown: the filter word faceDown, a face-down
 // BATTLEFIELD permanent (gorge wordFaceDown: AsFaceDown || Object.FaceDown on
 // the battlefield). A face-down spell or exile card never matches. Explicit

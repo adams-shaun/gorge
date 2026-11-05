@@ -167,8 +167,9 @@ import (
 // +3 (a variable CollectEvidence cost and evidence beside the triggered-card exile: Incinerator of the Guilty, Urgent Necropsy, Lamplight Phoenix lower; merged ALL build-level 21549 -> 21552).
 // +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; this branch; merged ALL build-level 21556 -> 21557).
 // +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged ALL build-level 21557 -> 21558).
+// +3 (Paranormal Analyst and Unidentified Hovership: the DSK manifest-dread lowers — Mode$ ManifestDread with the ChooseFromDefined$ TriggeredCards hidden pick (kop.TrigManifestDread, PredTriggerObj) and the remembered-persist leave trigger's ManifestDread DefinedPlayer$ RememberedOwner (kop.RefRememberedOwner); Petradon: remPersistShape allows remembered-clean abilities beside the O-ring pair; land; merged ALL build-level 21564 -> 21567).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21564, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21567, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

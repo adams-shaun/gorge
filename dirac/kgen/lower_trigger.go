@@ -1303,7 +1303,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		tr.Outstanding = true
 		ab.Name = "CheckOnTriggerOnly"
-	case "LandPlayed", "SearchedLibrary", "Forage", "Discover":
+	case "LandPlayed", "SearchedLibrary", "Forage", "Discover", "ManifestDread":
 		if err := lc.trigModes2(tp, tr, t.Mode, zone, readF); err != nil {
 			return err
 		}

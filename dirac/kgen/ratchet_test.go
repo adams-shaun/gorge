@@ -61,14 +61,15 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (a variable CollectEvidence cost and evidence beside the triggered-card exile: Incinerator of the Guilty, Urgent Necropsy, Lamplight Phoenix lower; merged MKM 233 -> 236, ALL 21549 -> 21552).
 	// +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; this branch; merged FDN 516 -> 517, ALL 21556 -> 21557).
 	// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged MKM 237 -> 238, ALL 21557 -> 21558).
+	// +3 (Paranormal Analyst and Unidentified Hovership: the DSK manifest-dread lowers — Mode$ ManifestDread with the ChooseFromDefined$ TriggeredCards hidden pick (kop.TrigManifestDread, PredTriggerObj) and the remembered-persist leave trigger's ManifestDread DefinedPlayer$ RememberedOwner (kop.RefRememberedOwner); Petradon: remPersistShape allows remembered-clean abilities beside the O-ring pair; land; merged DSK 236 -> 238, ALL 21564 -> 21567).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21564, 34442},
+	"ALL": {21567, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
 	"DFT": {247, 276},
 	"DMU": {193, 270},
-	"DSK": {236, 276},
+	"DSK": {238, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
 	"FDN": {517, 517},
