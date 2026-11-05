@@ -64,10 +64,10 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (a variable CollectEvidence cost and evidence beside the triggered-card exile: Incinerator of the Guilty, Urgent Necropsy, Lamplight Phoenix lower; land; merged MKM 236 -> 239, ALL 21570 -> 21573).
 	// +6 (the ExtTurnFaceUp effect turn-up, Urgent Necropsy's collect-evidence X, the each-target Aura-copy enchant ask and the DamageAll planeswalker/battle clause lower, with land's re-measure after its rebase; land; merged ALL 21573 -> 21579).
 	// +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; land; merged ALL 21579 -> 21584).
-	// +1 (King T'Challa: Black Panther's printed prevent-all-to-self R: line lowers as CardDef.PreventDmgTo; this branch; merged MSH 226 -> 227, ALL 21584 -> 21585).
-	// +1 (The Mindskinner: the prevent-and-mill DamageDone replacement lowers as ReplPreventMillOpps; this branch; merged DSK 236 -> 237, ALL 21585 -> 21586).
+	// +1 over land's 21591 (this branch's King T'Challa: Black Panther's printed prevent-all-to-self R: line lowers as CardDef.PreventDmgTo; merged MSH 226 -> 227, ALL 21591 -> 21592).
+	// +1 over land's 21592 (this branch's The Mindskinner: the prevent-and-mill DamageDone replacement lowers as ReplPreventMillOpps; merged DSK 236 -> 237, ALL 21592 -> 21593).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21586, 34442},
+	"ALL": {21593, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -81,12 +81,12 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FRA": {245, 269},
 	"HOB": {152, 172},
 	"LCI": {251, 290},
-	"MKM": {239, 279},
+	"MKM": {240, 279},
 	"MOM": {198, 296},
 	"MSH": {227, 276},
 	"NEO": {198, 287},
 	"ONE": {195, 271},
-	"OTJ": {240, 276},
+	"OTJ": {241, 276},
 	"SNC": {185, 266},
 	"SOS": {248, 270},
 	"SPM": {160, 192},
