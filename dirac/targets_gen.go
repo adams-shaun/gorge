@@ -111,7 +111,16 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 			// gorge prices each candidate as the sole selection and drops the
 			// ones the cast cannot pay for, for a multi-target ask as for a
 			// single one (cast_pricing.go affordableTargetCandidates)
+			all := n
 			n = s.affordableTargets(k, &buf, n)
+			if n < all && n < int(mt.min) && mt.picked == 0 && k.gen.anyRaiseLife {
+				// the candidates the cast can pay for fall short of the slot's
+				// minimum: gorge's ask aborts the cast ("cast aborted: no legal
+				// target"; a life raise on a target, cost_raiselife.go)
+				mt.active = false
+				s.reverseCast(k)
+				return mtAbort
+			}
 		}
 		if k.gen.anyUniqLater {
 			n = s.uniqueChainViable(k, ti, &buf, n) // tgt_uniquechain.go

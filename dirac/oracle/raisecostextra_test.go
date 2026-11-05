@@ -20,12 +20,12 @@ import (
 
 var kraiseextraDecks = [2][]cardset.Entry{
 	{
-		{Name: "Terror of the Peaks", Count: 4}, {Name: "Hill Giant", Count: 11}, {Name: "Shock", Count: 4},
-		{Name: "Lightning Bolt", Count: 4}, {Name: "Mountain", Count: 17},
+		{Name: "Terror of the Peaks", Count: 4}, {Name: "Hill Giant", Count: 8}, {Name: "Shifting Grift", Count: 3}, {Name: "Shock", Count: 4},
+		{Name: "Lightning Bolt", Count: 4}, {Name: "Mountain", Count: 14}, {Name: "Island", Count: 3},
 	},
 	{
-		{Name: "Terror of the Peaks", Count: 2}, {Name: "Hill Giant", Count: 9}, {Name: "Shock", Count: 5},
-		{Name: "Lightning Bolt", Count: 6}, {Name: "Mountain", Count: 18},
+		{Name: "Terror of the Peaks", Count: 2}, {Name: "Hill Giant", Count: 6}, {Name: "Shifting Grift", Count: 3}, {Name: "Shock", Count: 5},
+		{Name: "Lightning Bolt", Count: 6}, {Name: "Mountain", Count: 15}, {Name: "Island", Count: 3},
 	},
 }
 
@@ -33,6 +33,7 @@ var kraiseextraDecks = [2][]cardset.Entry{
 // Terror of the Peaks.
 type kraiseextraStats struct {
 	opp  int // cast by a Terror's opponent: 3 life more
+	two  int // ...of those, a spell with two targets (Shifting Grift's second creature)
 	self int // cast by the Terror's own controller: no raise
 }
 
@@ -69,6 +70,9 @@ func (p *kraiseextraTally) scan(ref *GorgeSide, st *kraiseextraStats) {
 			}
 			if to := g.Obj(t.Obj); to != nil && to.Controller != o.Controller {
 				st.opp++
+				if len(o.Targets) > 1 {
+					st.two++
+				}
 			} else if to != nil {
 				st.self++
 			}
@@ -167,14 +171,14 @@ func TestRaisecostExtraCostLockstep(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	games, divs, stalls, st := runRaiseextra(t, 96, false)
+	games, divs, stalls, st := runRaiseextra(t, 400, false)
 	t.Logf("%d games, %d divergences, %d stalls", games, divs, stalls)
 	t.Logf("%+v", st)
 	if divs != 0 || stalls != 0 {
 		t.Fatalf("%d divergences, %d stalls", divs, stalls)
 	}
-	if st.opp < 3 {
-		t.Errorf("spells cast at a Terror by its opponent: %d (want >= 3)", st.opp)
+	if st.opp < 3 || st.two < 1 {
+		t.Errorf("spells cast at a Terror by its opponent: %d, with two targets: %d (want >= 3 and >= 1)", st.opp, st.two)
 	}
 }
 

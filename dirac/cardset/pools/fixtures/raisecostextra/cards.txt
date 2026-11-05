@@ -5,3 +5,5 @@ Hill Giant
 Shock
 Lightning Bolt
 Mountain
+Shifting Grift
+Island

@@ -78,6 +78,12 @@ func (s *State) raiseTargetAt(k *prep, f kop.FilterID, p uint8, c CardID, src Sl
 			return true
 		}
 	}
+	x := s.xtOf(e) // the targets past the entry's own slots (Shifting Grift's second creature)
+	for j := 0; j < int(x.n); j++ {
+		if s.costTargetMatchSrc(k, f, p, x.code[j], src) {
+			return true
+		}
+	}
 	return false
 }
 
