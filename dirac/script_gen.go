@@ -505,7 +505,10 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 			d.remove(a) // never searched: unpriced
 			continue
 		}
-		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), &g) {
+		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), &g) && !s.tapXScript(k, a, p, false) {
+			// Gorge's script search covers every census gap — granted units and
+			// tap-another-permanent gaps alike (CR 605.1a, 601.2g-h) — so the
+			// kernel drops the play only when neither route prices it.
 			d.remove(a) // no prefix within gorge's node budget (mana_grantedoffers.go)
 		}
 	}
