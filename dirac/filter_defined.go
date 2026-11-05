@@ -144,7 +144,8 @@ func (s *State) kdefHit(ctx evalCtx, o Obj, n int) {
 // playerPred is Player.<q> / Opponent.<q> for player p (gorge
 // MatchesPlayerSpecWithSVars): the candidate controls a creature matching
 // in.F (the object filter reads the resolving controller as "you"), has max
-// speed, or is corrupted; PlayerPredNeg inverts it.
+// speed, is corrupted, or controls the most creatures (a tie keeps both);
+// PlayerPredNeg inverts it.
 //
 //go:noinline
 func (s *State) playerPred(k *prep, in *kop.Instr, p uint8) bool {
@@ -172,8 +173,13 @@ func (s *State) playerPred(k *prep, in *kop.Instr, p uint8) bool {
 		r = s.speedOf(p) >= speedMaxV
 	case kop.PlayerPredCorrupted:
 		r = s.g.poison[p] >= 3
+	case kop.PlayerPredMostCreatures:
+		r = s.creaturesCtrl(k, p) >= s.creaturesCtrl(k, 1-p)
 	}
 	kept := r == (n&kop.PlayerPredNeg == 0)
+	if n&^kop.PlayerPredNeg > kop.PlayerPredArtOrEnch {
+		return kept // the hit table covers the first four kinds
+	}
 	i := KdPredBase + int(n&^kop.PlayerPredNeg-1)*4 // 4 kinds
 	if p != s.res.e.ctrl {
 		i += 2
@@ -185,6 +191,18 @@ func (s *State) playerPred(k *prep, in *kop.Instr, p uint8) bool {
 		kdHit(i)
 	}
 	return kept
+}
+
+// creaturesCtrl is the number of creatures p controls (gorge playerHasMost
+// TypeCreature's per-seat battlefield count).
+func (s *State) creaturesCtrl(k *prep, p uint8) int {
+	n := 0
+	for m := s.ctrlM[p]; m.any(); m = m.rest() {
+		if s.isCreature(k, m.first()) {
+			n++
+		}
+	}
+	return n
 }
 
 // playerSet filters an each-player op's (first, second) candidates by its

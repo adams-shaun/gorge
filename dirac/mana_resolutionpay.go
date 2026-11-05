@@ -21,7 +21,15 @@ func (s *State) lowerHybridActivation(k *prep, c *kop.ManaCost) {
 	if s.poolPays(p, c) {
 		return
 	}
+	// A lowered hybrid activation's witness is printed-only, like gorge's
+	// planHybridCost (dirac/mana.go's noGrant rule, CR 107.4e's mana
+	// objects: a granted ability is the grant search, phase 2): the
+	// announcement's trial here is the same resolution, so Insidious
+	// Roots' any-colour token is not the {G} face the {G/W} prices.
+	ng, ax := s.g.noGrant, s.g.availX
+	s.g.noGrant, s.g.availX = true, s.g.availX|availPlain
 	r := s.hybResolve(k, p, *c, 0)
+	s.g.noGrant, s.g.availX = ng, ax
 	s.tapFor(k, p, &r, 0, NoObj)
 }
 

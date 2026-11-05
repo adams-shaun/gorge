@@ -358,6 +358,9 @@ func (s *State) projRest(p *Projection, lib bool) {
 		if e.ab == abWard && wardIsGranted(e.trigAmt) {
 			p.Stack[i].Ability = 255 // a granted ward has no face trigger index
 		}
+		if e.ab == abWard && e.kind == seTrigger && s.objs[e.obj].zone == kop.ZoneBattlefield && s.faceDown(k, s.objs[e.obj].slot) {
+			p.Stack[i].Ability = 255 // a face-down permanent's ward is the cloak/disguise one, not its real face's trigger (gorge 255)
+		}
 		if k.anySaga && e.kind != seSpell && isChapterAbility(k, e.card, e.ab) {
 			// a chapter ability is a K:Chapter SVar, not a Face.Triggers
 			// entry: gorge's abilityIndex reports 255 for it

@@ -2,6 +2,8 @@ package kgen
 
 import (
 	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // scry lowers api:Scry (gorge effScry: ScryNum$, default 1, for Defined$
@@ -40,12 +42,22 @@ const clueToken = "c_a_clue_draw"
 // investigate lowers api:Investigate (gorge effInvestigate, CR 701.16a):
 // Num$ Clue tokens for the controller, each its own TokenCreate (gorge
 // investigateFor emits one per Clue, outside a zone batch), so a constant
-// Num$ lowers to that many one-token CreateToken ops. Defined$/ValidTgts$
-// other than You, Optional$, RememberInvestigatingPlayers$ and a
-// non-constant Num$ refuse.
+// Num$ lowers to that many one-token CreateToken ops and a computed Num$ to
+// one one-token CreateToken repeated by the value (read once, as gorge's
+// Num is). Defined$ Player.withMostTypeCreature (gorge playerHasMost over
+// AliveFrom(controller)) runs the mint once per player who controls the
+// most creatures, controller first, both on a tie. Other Defined$ and
+// ValidTgts$ than You, Optional$ and RememberInvestigatingPlayers$ refuse.
 func (lc *lowerCtx) investigate(ps *params) error {
-	if d, ok := ps.get("Defined"); ok && strings.TrimSpace(d) != "You" {
-		return refuse("Investigate Defined$ %q", d)
+	most := false
+	if d, ok := ps.get("Defined"); ok {
+		switch strings.TrimSpace(d) {
+		case "You":
+		case "Player.withMostTypeCreature":
+			most = true
+		default:
+			return refuse("Investigate Defined$ %q", d)
+		}
 	}
 	if _, ok := lc.p.reg.Token(clueToken); !ok {
 		return refuse("token script %q not in the corpus", clueToken)
@@ -54,24 +66,34 @@ func (lc *lowerCtx) investigate(ps *params) error {
 	if err != nil {
 		return err
 	}
-	who, err := lc.investigator(ps)
-	if err != nil {
-		return err
+	who := lRef{Kind: rEach}
+	if !most {
+		if who, err = lc.investigator(ps); err != nil {
+			return err
+		}
 	}
-	if zeroOne(n) {
+	var body []lInstr
+	switch {
+	case zeroOne(n):
 		// one CreateToken of 0 or 1 is the TokenCreate stream of 0 or 1
 		// one-token ops (a 0/1 Num$, e.g. a Compare or the opponents who
 		// lost life)
-		lc.out.Tokens = append(lc.out.Tokens, clueToken)
-		lc.emit(lInstr{Op: "CreateToken", Obj: who, A: n, CS: clueToken})
-		return nil
-	}
-	if !n.isConst() || n.N < 1 || n.N > 8 {
+		body = []lInstr{{Op: "CreateToken", Obj: who, A: n, CS: clueToken}}
+	case !n.isConst():
+		body = []lInstr{{Op: "Repeat", A: n, Skip: 1}, {Op: "CreateToken", Obj: who, A: cst(1), CS: clueToken}}
+	case n.N < 1 || n.N > 8:
 		return refuse("Investigate Num$ %q", ps.str("Num"))
+	default:
+		for i := 0; i < n.N; i++ {
+			body = append(body, lInstr{Op: "CreateToken", Obj: who, A: cst(1), CS: clueToken})
+		}
 	}
 	lc.out.Tokens = append(lc.out.Tokens, clueToken)
-	for i := 0; i < n.N; i++ {
-		lc.emit(lInstr{Op: "CreateToken", Obj: who, A: cst(1), CS: clueToken})
+	if most {
+		lc.emit(lInstr{Op: "RepeatEach", Obj: lRef{Kind: rEachPlayer}, C: 1, Skip: len(body), B: cst(kop.PlayerPredMostCreatures)})
+	}
+	for _, in := range body {
+		lc.emit(in)
 	}
 	return nil
 }
