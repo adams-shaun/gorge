@@ -91,7 +91,7 @@ func TestDeckpoolWritesLoadableDecks(t *testing.T) {
 	corpus := testutil.CorpusDirOrSkip(t)
 	out := filepath.Join(t.TempDir(), "pool")
 	var stdout bytes.Buffer
-	o := options{set: "FDN", pods: 1, seed: 7, drafter: "rating-colour", builder: "best23", corpus: corpus, out: out}
+	o := options{set: "FDN", pods: 1, seed: 7, drafter: "rating-colour", builder: "best23", corpus: corpus, out: out, quiet: true}
 	if err := run(o, &stdout); err != nil {
 		t.Fatal(err)
 	}
