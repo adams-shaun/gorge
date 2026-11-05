@@ -482,6 +482,16 @@ func (cb *cardBuilder) record() error {
 			d.OptEvidence = uint8(min(oc.EvidenceN, 255)) // a table byte (kernel cost_optionalevidence.go)
 			oc.EvidenceN = 0
 		}
+		if oc.Waterbend != 0 {
+			// the kicked cast's {N} rides Kicker (no KwKicker, as Offspring's);
+			// the taps are the spell waterbend pick (kernel act_waterbend.go)
+			if oc.Waterbend > 255 {
+				return fmt.Errorf("optional waterbend %d", oc.Waterbend)
+			}
+			d.OptWaterbend = uint8(oc.Waterbend)
+			d.Kicker = kop.ManaCost{Generic: uint8(oc.Waterbend)}
+			oc.Waterbend, oc.Mana = 0, manaCost{None: true}
+		}
 		if d.OptCost, err = cb.cost(oc); err != nil {
 			return err
 		}

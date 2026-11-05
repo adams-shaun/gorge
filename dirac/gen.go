@@ -731,7 +731,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.HasBestow {
 			g.anyBestow = true
 		}
-		if c.OptCost.Flags != 0 || c.OptBehold {
+		if c.OptCost.Flags != 0 || c.OptBehold || c.OptWaterbend != 0 {
 			g.anyOptCost = true
 		}
 		if c.KickerCost.Flags != 0 {
