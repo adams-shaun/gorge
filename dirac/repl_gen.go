@@ -241,9 +241,9 @@ type replOrd struct {
 	replHdr // live across the noncombat parks too: resets clear it alone
 }
 
-// replHdr is the ask's header (24 B, with the pass's scalars): the candidates,
-// the answers so far and the asked event. Every reset (parkNC, the untap ask,
-// the post-resolution ask, the answered ask) clears this alone.
+// replHdr is the ask's header: the candidates, the answers so far and the
+// asked event. Every reset (parkNC, the untap ask, the post-resolution ask,
+// the answered ask) clears this alone.
 type replHdr struct {
 	// the asked combat event as it stood when asked (gorge's assignment is
 	// fixed then: a source or recipient the state-based actions remove
@@ -257,6 +257,7 @@ type replHdr struct {
 	n             uint8  // its candidates (0 = no ask in progress)
 	used          uint8  // candidates applied so far (bit per cand)
 	prev          uint8  // candidates that prevent the damage (bit per cand)
+	plus          uint8  // candidates that are a plus-N addition already in the asked amount (bit per cand; the order walk)
 	p             uint8  // the affected player, who answers
 	cand          [4]Obj // the replacements' sources
 	nca           bool   // a parked noncombat event's ask is posed (ncDmg)
@@ -338,6 +339,25 @@ func (s *State) replOrderOrder(r *dmgRec, ord *[MaxPerm]uint8) int {
 	return n
 }
 
+// replPlusCand reports whether the permanent at b carries a commuting
+// ReplDamagePlus ability (not Ojer Axonil's raise) that matches a combat
+// damage event from fsl (or the spell's card srcCard when fsl is NoSlot)
+// controlled by sc to the recipient (player rcp when dst is NoSlot, else the
+// permanent at dst). It is the candidate collector's copy of replPlusHit.
+func (s *State) replPlusCand(k *prep, b Slot, fsl Slot, srcCard CardID, sc, rcp uint8, dst Slot, combat bool) (add int, ok bool) {
+	cd := &k.t.Cards[s.cardAt(b)]
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplDamagePlus {
+			continue
+		}
+		if add, raise, hit := s.replPlusHit(k, b, a, sc, fsl, srcCard, rcp, dst, combat, 0); hit && raise == 0 {
+			return add, true
+		}
+	}
+	return 0, false
+}
+
 // replOrderCandsFz fills s.g.ro's candidates for the frozen combat event fe
 // (its amount before the replacements is fe.n) and returns their number.
 func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
@@ -355,9 +375,13 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		rcp = s.perms[fe.dst].ctrl
 	}
 	n := 0
-	ro.prev, ro.shld = 0, 0
+	ro.prev, ro.shld, ro.plus = 0, 0, 0
 	if (rcp != sc || g.anyFiltRepl) && sc <= 1 {
-		// gorge's scan order: the controller's battlefield in entry order
+		// gorge's scan order: the controller's battlefield in entry order.
+		// A table whose only damage replacement is a plus-N addition competes
+		// on commuting sums (replPlusOnly): collect it here so the order walk
+		// poses gorge's no-op ask (trig_oneormore.go).
+		plusOnly := replPlusOnly(g)
 		var bf [MaxPerm]Slot
 		for _, b := range bf[:s.battlefieldOrder(sc, s.statM.and(s.ctrlM[sc]), bf[:], 0)] {
 			if g.replBits[s.cardAt(b)]&rbDblDmg != 0 && !s.genLost(k, b) && (!g.anyFiltRepl || s.dblDmgMatch(k, b, sc, fsl, fe.card, NoObj, rcp, fe.dst, true)) {
@@ -367,6 +391,16 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 				}
 				ro.cand[n] = s.perms[b].obj
 				n++
+			} else if plusOnly && g.replBits[s.cardAt(b)]&rbPlusDmg != 0 && !s.genLost(k, b) {
+				if _, ok := s.replPlusCand(k, b, fsl, fe.card, sc, rcp, fe.dst, true); ok {
+					if n == len(ro.cand) {
+						s.capFull(StallReplCands) // loud: never truncate the candidates
+						return 0
+					}
+					ro.cand[n] = s.perms[b].obj
+					ro.plus |= 1 << n
+					n++
+				}
 			}
 		}
 	}
@@ -486,6 +520,16 @@ func (s *State) replOrderCombat(k *prep, r *dmgRec) bool {
 		if c := s.replOrderCandsFz(k, fe); c >= 2 {
 			ro.askS, ro.askD, ro.n, ro.used = fe.src, fe.dst, uint8(c), 0
 			ro.an, ro.ac, ro.apl = fe.n, uint8(c), fe.apl
+			if ro.plus != 0 {
+				// the plus additions are commutative and were already applied by
+				// replCombatGen (replPlus defers to this walk only for the ask)
+				for i := 0; i < r.nev; i++ {
+					if ev := r.ev[i]; ev.src == fe.src && ev.dst == fe.dst {
+						ro.an = ev.n
+						break
+					}
+				}
+			}
 			skw := s.kw(k, fe.src)
 			ro.actl = s.perms[fe.src].ctrl
 			ro.all, ro.adt = skw&kop.KwLifelink != 0, skw&kop.KwDeathtouch != 0
@@ -546,6 +590,9 @@ func (s *State) replCandLive(k *prep, i int) bool {
 	if ro.shld&(1<<i) != 0 {
 		return s.occ.has(ro.askD) && s.shieldN(ro.askD) > 0
 	}
+	if ro.plus&(1<<i) != 0 {
+		return s.perms[sl].ctrl == ro.actl && k.gen.replBits[s.cardAt(sl)]&rbPlusDmg != 0 && !s.genLost(k, sl)
+	}
 	if ro.prev&(1<<i) != 0 {
 		return s.prevCombatTo(k, sl)
 	}
@@ -596,6 +643,9 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 	// after the last pick: a candidate the state-based actions at a pause
 	// removed applies only if it was picked
 	for i := 0; i < int(ro.ac) && n > 0; i++ {
+		if ro.plus&(1<<i) != 0 {
+			continue // already in ro.an (replCombatGen applied the additions)
+		}
 		if ro.used&(1<<i) == 0 && !s.replCandLive(k, i) {
 			continue
 		}
@@ -819,7 +869,8 @@ func (s *State) damageSeqNext(k *prep, n int) {
 func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uint8, n int, kw kop.KwMask) bool {
 	g := k.gen
 	ro := &s.g.ro
-	if g.anyRepl&(rbDblDmg|rbPrevNC|rbShield|rbPrevCol|rbPrevDmgTo) == 0 || n <= 0 || ctrl > 1 || ro.n > 0 || ro.on || s.g.nc.n > 0 {
+	plusOnly := replPlusOnly(g)
+	if !plusOnly && g.anyRepl&(rbDblDmg|rbPrevNC|rbShield|rbPrevCol|rbPrevDmgTo) == 0 || n <= 0 || ctrl > 1 || ro.n > 0 || ro.on || s.g.nc.n > 0 {
 		return false
 	}
 	rcp := uint8(255)
@@ -841,7 +892,8 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 	}
 	crt := sl != NoSlot && s.isCreature(k, sl)
 	c := 0
-	var prev, shld uint8
+	plusAdd := 0
+	var prev, shld, plus uint8
 	var cand [4]Obj
 	for p := uint8(0); p < 2; p++ {
 		var bf [MaxPerm]Slot
@@ -865,6 +917,19 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 				cand[c] = s.perms[b].obj
 				prev |= 1 << c
 				c++
+			} else if plusOnly && rb&rbPlusDmg != 0 && p == ctrl {
+				// a commuting addition (Fated Firepower): collected so two or
+				// more are asked as gorge's no-op CR 616.1 order (replPlus)
+				if add, ok := s.replPlusCand(k, b, srcSl, srcCard, ctrl, rcp, sl, false); ok {
+					if c == len(cand) {
+						s.capFull(StallReplCands) // loud: never truncate the candidates
+						return false
+					}
+					cand[c] = s.perms[b].obj
+					plus |= 1 << c
+					plusAdd += add
+					c++
+				}
 			}
 		}
 	}
@@ -907,12 +972,15 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 	}
 	// A shield candidate (or another prevention) stops the whole event, so
 	// skip replDamage: it would spend the counter while parking and stall on
-	// the very competition being asked.
+	// the very competition being asked. A pure-plus competition is a sum,
+	// so its amount is the same in every order and is known here.
 	m := 0
-	if shld == 0 {
+	if plusOnly {
+		m = n + plusAdd
+	} else if shld == 0 {
 		m = s.replDamage(k, ctrl, srcSl, srcCard, code, false, n)
 	}
-	ro.replHdr = replHdr{n: uint8(c), prev: prev, shld: shld, pcol: pcol, p: rcp, cand: cand}
+	ro.replHdr = replHdr{n: uint8(c), prev: prev, plus: plus, shld: shld, pcol: pcol, p: rcp, cand: cand}
 	nc := ncDmg{code: code, ctrl: ctrl, ll: kw&kop.KwLifelink != 0, dt: kw&kop.KwDeathtouch != 0, n: int16(m)}
 	if srcSl != NoSlot {
 		nc.src = s.perms[srcSl].obj
