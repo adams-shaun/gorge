@@ -14,10 +14,6 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // game (stallclass.go initStall), so here it is the only replacement on a
 // player's damage after protection.
 
-// DebugPreventMillOff turns the replacement off in the kernel (the oracle
-// mutation test); false in normal play.
-var DebugPreventMillOff bool
-
 // preventMill applies the replacement to n damage from a source srcCtrl
 // controls to player rcp, an opponent of srcCtrl: true when one of srcCtrl's
 // permanents carries it (the damage is then 0). The mill happens now, as
@@ -25,7 +21,7 @@ var DebugPreventMillOff bool
 // recomputed on its resume (replOrd), so a mill there would run twice: that
 // state stalls, as the order ask with this replacement is not modelled.
 func (s *State) preventMill(k *prep, srcCtrl, rcp uint8, n int) bool {
-	if DebugPreventMillOff || s.replN(k, srcCtrl, rbPrevMill) == 0 {
+	if s.replN(k, srcCtrl, rbPrevMill) == 0 {
 		return false
 	}
 	if s.g.ro.on || len(s.cold.parked) != 0 {
