@@ -498,7 +498,7 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 		return PaymentPlanOutcome{Reason: "unsupported"}
 	}
 	f := obj.Face()
-	if !e.planIgnoreCredit && (e.hasCastConvoke(id) || e.hasCastImprovise(id) || e.hasCastDelve(id)) {
+	if !e.planIgnoreCredit && (e.hasCastConvoke(id) || e.hasCastImprovise(id) || e.hasCastDelve(id, false)) {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:credit"}
 	}
 	base, ok := e.potentialModeBaseCost(p, id, f, o)

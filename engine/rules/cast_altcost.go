@@ -414,8 +414,16 @@ func (e *Engine) hasCastConvoke(id state.ObjID) bool {
 // override, so the offer gate, the delve ask and the payment all see the
 // grant. A permanent on the battlefield is never a spell being cast: its
 // activated abilities' costs must not pick up a stack-scoped grant whose
-// Affected$ (wasCast) also matches the permanent the spell became.
-func (e *Engine) hasCastDelve(id state.ObjID) bool {
+// Affected$ (wasCast) also matches the permanent the spell became. Nor is an
+// ACTIVATED ABILITY a spell being cast: CR 702.66a scopes delve to the spell
+// with delve on the stack, and an ability never reaches the stack as a spell,
+// so ability (the proposal's isAbility answer) answers false before any
+// keyword read -- a card in the graveyard whose ability is being activated
+// must not pick up the stack-scoped grant through its own zone.
+func (e *Engine) hasCastDelve(id state.ObjID, ability bool) bool {
+	if ability {
+		return false
+	}
 	if e.hasKeywordH(id, kwhDelve) {
 		return true
 	}
@@ -793,9 +801,10 @@ func (e *Engine) flashbackCostFor(id state.ObjID, opt decision.Option) Cost {
 
 // delveCredit is the most generic mana id's Delve can cover right now for a
 // cost whose generic requirement is generic: the smaller of that and p's
-// graveyard size. Zero for a card without Delve.
-func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32) int32 {
-	if generic <= 0 || !e.hasCastDelve(id) {
+// graveyard size. Zero for a card without Delve, and for an activated
+// ability (CR 702.66a: delve applies to spells on the stack only).
+func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32, ability bool) int32 {
+	if generic <= 0 || !e.hasCastDelve(id, ability) {
 		return 0
 	}
 	gy := int32(len(e.G.Zone(state.ZGraveyard, p)))
@@ -845,7 +854,7 @@ func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32) in
 // REAL state: floating mana never satisfies a sacrifice.
 func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability bool) bool {
 	mana := cost
-	mana.Generic -= e.delveCredit(p, id, mana.Generic)
+	mana.Generic -= e.delveCredit(p, id, mana.Generic, ability)
 	if !pay.CostPayable(asPayer(e), p, id, ability, mana) {
 		return false
 	}
@@ -868,7 +877,7 @@ func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability b
 // count the payment cannot settle.
 func (e *Engine) countCandPayable(pc *pendingCast, cand Cost) bool {
 	mana := e.countComposedCost(pc, cand)
-	mana.Generic -= e.delveCredit(pc.player, pc.card, mana.Generic)
+	mana.Generic -= e.delveCredit(pc.player, pc.card, mana.Generic, pc.isAbility())
 	if !pay.CostPayable(asPayer(e), pc.player, pc.card, false, mana) {
 		return false
 	}
@@ -902,7 +911,7 @@ func (e *Engine) countComposedCost(pc *pendingCast, cand Cost) Cost {
 // or hypothetical mana never satisfies a sacrifice.
 func (e *Engine) castablePriced(p state.PlayerID, id state.ObjID, cost Cost, ability bool, pool state.Mana) bool {
 	mana := cost
-	mana.Generic -= e.delveCredit(p, id, mana.Generic)
+	mana.Generic -= e.delveCredit(p, id, mana.Generic, ability)
 	pool = e.potentialPoolFor(p, pay.DescriptorFor(id, ability, mana), pool)
 	if !pay.CostPayablePool(asPayer(e), p, id, ability, mana, pool, e.G.Players[p].ManaUnits()) {
 		return false
