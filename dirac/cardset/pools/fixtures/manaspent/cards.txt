@@ -1,0 +1,17 @@
+# Carnelian Orb of Dragonkind (AddsKeywords$ Haste): Dragon creature
+# spells, a changeling (a match, CR 702.73a) and non-Dragons
+# (dirac/oracle/manaspent_test.go); Acid-Spewer Dragon cast face down (no
+# match, CR 708.4; dirac/mana_spentrider_test.go)
+Carnelian Orb of Dragonkind
+Dragon Hatchling
+Imperial Hellkite
+Acid-Spewer Dragon
+Barkform Harvester
+Hill Giant
+Grizzly Bears
+Flame Slash
+Lava Axe
+Shock
+Giant Growth
+Mountain
+Forest

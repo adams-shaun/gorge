@@ -50,6 +50,7 @@ type genPrep struct {
 	enteredNeed     bool  // some expression reads the ring
 	actRingOn       bool  // some expression reads the ring (ExThisTurnActGrave): the activation push records it
 	castTapOn       bool  // castRingOn, or some card carries a Tf2ManaFromSelf reader: the planner's tap sites record a Treasure or observed source (noteTapSrc)
+	anyManaHaste    bool  // some mana ability carries a ManaHasteValid rider (mana_spentrider.go)
 	castRingOn      bool  // some expression reads the ring (ExThisTurnCastSpec): the push records it
 	embSubGrant     bool  // an emblem has a Continuous subtype grant (walked on every walk slot)
 	anyTypeValid    bool  // some card's as-enters type ask is narrowed by ValidTypes$ (CardDef.TypeValid; act_choosetype.go)
