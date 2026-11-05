@@ -800,10 +800,11 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		ctrl := s.g.freeP & 1
 		if s.g.freeP&32 != 0 {
 			paid := s.g.freeP&64 != 0
-			// gorge casts the copy whatever became of the original
-			if paid && s.copyCastRefused(k, c, ctrl, o) {
-				continue // the cast began and was reversed: the copy ceased (cast_exilegrant.go)
-			}
+			// gorge casts the copy whatever became of the original. A paid
+			// copy cast runs the ordinary cast flow: an unaffordable cost
+			// opens gorge's manual mana window (bflLowered) and reverses
+			// there (CR 733.1), keeping the window's taps (cast.go
+			// unpushSpell).
 			if !s.spellTargetsFeasible(k, c, ctrl) || !s.spellCostsFeasible(k, c, ctrl, o) || !s.beginCopyCast(k, o, ctrl) {
 				if s.over {
 					return false

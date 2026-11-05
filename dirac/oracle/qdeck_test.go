@@ -28,10 +28,11 @@ var kqdeckDecks = [2][]cardset.Entry{
 }
 
 // qdeckPolicy casts and activates whenever it can, except that it never
-// activates a granted exile ability whose copy it cannot pay: gorge begins
-// that cast and reverses it after a mana window the kernel stalls on
-// (StallCopyCast). Every land is a Mountain, so a copy is payable exactly when
-// the untapped lands and the pool hold its mana value.
+// activates a granted exile ability whose copy it cannot pay: these games
+// exercise the payable copy path (the unaffordable window-then-reversal path
+// is TestCopyCastUnaffordableLockstep's). Every land is a Mountain, so a copy
+// is payable exactly when the untapped lands and the pool hold its mana
+// value.
 func qdeckPolicy(seed uint64, acts map[string]int) Policy {
 	inner := poisonhighPolicy(seed, map[string]int{}, acts)
 	var buf []Canon

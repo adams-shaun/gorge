@@ -281,7 +281,14 @@ func (s *State) unpushSpell(k *prep) {
 		s.noteReversed(o, e.ctrl)
 	}
 	if k.gen != nil && k.gen.anyCopyCast && ob.of&(ofCopy|ofToken) == ofCopy && s.bld().origin == kop.ZoneLibrary {
-		s.capFull(StallCopyCast) // CR 733.1: gorge leaves a reversed copy in its holding zone
+		// CR 733.1 reverses the copy cast; the copy was never a card, so it
+		// ceases (CR 704.5d). gorge's reversal parks it in the library
+		// holding zone and the next state-based sweep ceases it: the copy
+		// has no library membership, and the mana the window tapped stays
+		// (CR 733.1 lets the player leave legal mana abilities reversed).
+		if s.npend > s.bld().pushNP {
+			s.npend = s.bld().pushNP
+		}
 		ob.zone = kop.ZoneNone
 		return
 	}

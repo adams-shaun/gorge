@@ -134,26 +134,3 @@ func (s *State) priorityExileGrant(k *prep, d *Decision, p uint8) {
 	}
 }
 func init() { stallNames[StallExileGrant] = "exilegrant" }
-
-// copyCastRefused reports whether the paid cast of a copy of card c (o, the
-// original, stands in for the copy's cost adjustments) cannot be paid or
-// targeted, and then stalls the game (StallCopyCast): gorge beginPlay starts a
-// Play's cast whatever the pool holds and reverses it when the cost cannot be
-// met, after a mana window that taps whatever sources it is offered (a
-// reversed copy cast, CR 733.1, which the kernel does not model).
-//
-//go:noinline
-func (s *State) copyCastRefused(k *prep, c CardID, p uint8, o Obj) bool {
-	ok := s.spellTargetsFeasible(k, c, p) && s.spellCostsFeasible(k, c, p, o)
-	if ok {
-		var av avail
-		s.availFor(k, p, &av)
-		cost := s.adjustFit(k, &av, p, c, o, k.cards[c].cost, true)
-		ok = s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, &av)
-	}
-	if ok {
-		return false
-	}
-	s.capFull(StallCopyCast)
-	return true
-}
