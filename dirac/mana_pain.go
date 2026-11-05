@@ -73,9 +73,11 @@ func lifePainLandAb(c *kop.CardDef, a *kop.Ability) bool {
 	return n == 2 && first
 }
 
-// prepPainMana sets pc's pain alternative for a painland: the card's mana
-// abilities are a plain {T}: Add {C} and a painful {T} ability of one or two
-// colours (kgen refuseMultiMana's painland shape). It reports whether it did.
+// prepPainMana sets pc's pain alternative: the card's mana abilities are a
+// plain {T} normal alternative ({C}, one WUBRG colour, or a two-colour
+// choice; kgen primaryMana) and a painful {T} ability of one or more colours
+// (kgen refuseMultiMana's painland and life shapes). It reports whether it
+// did.
 //
 //go:noinline
 func prepPainMana(c *kop.CardDef, pc *pcard) bool {
@@ -100,7 +102,13 @@ func prepPainMana(c *kop.CardDef, pc *pcard) bool {
 			col, dmg = a.ManaColors, d
 		}
 	}
-	if n != 2 || pc.manaCol != kop.ColC || len(c.Abilities[pc.manaAb].Prog) != 0 {
+	// The normal alternative is the source's first ability: {C} (the
+	// painlands, Starting Town), or a plain two-colour {T} choice beside its
+	// life ability (Haunted Screen: {W} or {B}, then {G}, {U} or {R} for 1
+	// life). One mana of one colour, tap-only, no program.
+	prim := uint8(pc.manaCol)
+	if n != 2 || len(c.Abilities[pc.manaAb].Prog) != 0 || !pc.manaTap || pc.manaN != 1 ||
+		!(prim == uint8(kop.ColC) || prim != 0 && prim&^0x1f == 0 && bits.OnesCount8(prim) <= 2) {
 		return false
 	}
 	pc.painCol, pc.painN, pc.painLife = col, dmg, life
@@ -141,23 +149,24 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 func (s *State) painPlanLife(p uint8) int { return int(s.pl[p].life) }
 
 // painAvailMask is a pain source's production mask for the offer gate
-// (availFor): a painland makes {C} and, while one point of its damage would
-// not be lethal, its colours; a pain-only source only the latter. The
-// summed guard over several painful units is the planner's (the option walk
-// counts each unit alone).
+// (availFor): a painland makes its normal ability's mana and, while one
+// point of its damage would not be lethal, its colours; a pain-only source
+// only the latter. The summed guard over several painful units is the
+// planner's (the option walk counts each unit alone).
 func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
+	prim := uint8(pc.manaCol)
 	if s.g.availX&availWin != 0 {
 		// an unless / ward window's affordability: gorge's shared census
-		// (windowManaUnitsWith) lists a painland by its {C} ability alone and
-		// a pain-only source by its colour, with no lethal guard
+		// (windowManaUnitsWith) lists a painland by its normal ability alone
+		// and a pain-only source by its colour, with no lethal guard
 		if pc.painOnly {
 			return uint8(pc.painCol) & 0x1f
 		}
-		return 1 << kop.C
+		return prim
 	}
 	m := uint8(0)
 	if !pc.painOnly {
-		m = 1 << kop.C
+		m = prim
 	}
 	if s.g.availX&availWinCol != 0 || int(pc.painN) < int(s.pl[p].life) {
 		m |= uint8(pc.painCol) & 0x1f
@@ -166,10 +175,10 @@ func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 }
 
 // painUnit registers pain source sl (pcs index i) in a last-resort phase:
-// a painland as its {C} type and its painful colour type, paired (they
-// share the source); a pain-only source as its painful type alone. An
+// a painland as its normal-ability type and its painful colour type, paired
+// (they share the source); a pain-only source as its painful type alone. An
 // alternative whose damage alone reaches the payer's life is withheld
-// (pay.PlanLastResortChoices' one-step guard): a painland is then its {C}
+// (pay.PlanLastResortChoices' one-step guard): a painland is then its normal
 // unit (reported false: the caller adds it as an ordinary source) and a
 // pain-only source no unit. The units sit with the fixed-production ones
 // (pass 0: gorge's shared census lists the source by its fixed ability).
@@ -187,9 +196,11 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 		return true
 	}
 	cr := s.isCreature(k, sl)
+	prim := uint8(pc.manaCol) & 0x3f
 	pm := uint8(pc.painCol) & 0x1f
-	// the tap's extra: the {C} ability's carriers' on its type, the painful
-	// one's non-{C}-only carriers' on the painful type (srcExtraPain)
+	// the tap's extra: the normal ability's carriers' on its type, the
+	// painful one's non-restricted carriers' on the painful type
+	// (srcExtraPain)
 	xc, xp, ok := s.srcExtraPain(k, sl, pc)
 	if !ok {
 		return true
@@ -207,9 +218,9 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	}
 	all := pm | xmc | xmp
 	if !pc.painOnly {
-		all |= 1 << kop.C
+		all |= prim
 	}
-	fl := uint8(bits.OnesCount8(all)) // FlexAll: {C} and the colours, and the extra's
+	fl := uint8(bits.OnesCount8(all)) // FlexAll: the normal mana and the colours, and the extra's
 	add := func(mask, pain uint8, alt bool) int {
 		if pk.nt == len(pk.types) {
 			return -1
@@ -241,18 +252,18 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 		}
 		return add(pm, pc.painN, !pc.painOnly)
 	}
-	// the primary {C} type first: the search counts it before its pair
+	// the normal-ability type first: the search counts it before its pair
 	// (dfs's shared-avail cap reads the primary's count)
 	tc := -1
 	if !pc.painOnly {
 		for t := 0; t < pk.nt && tc < 0; t++ {
 			ty := &pk.types[t]
-			if ty.pair != 0 && !ty.alt && ty.creat == cr && pk.types[ty.pair-1].mask == pm && ty.xv == xc && pk.types[ty.pair-1].xv == xp {
+			if ty.pair != 0 && !ty.alt && ty.mask == prim && ty.creat == cr && pk.types[ty.pair-1].mask == pm && ty.xv == xc && pk.types[ty.pair-1].xv == xp {
 				tc = t
 			}
 		}
 		if tc < 0 {
-			if tc = add(1<<kop.C, 0, false); tc < 0 {
+			if tc = add(prim, 0, false); tc < 0 {
 				return true
 			}
 		}
@@ -294,11 +305,12 @@ var DebugNoPainDamage bool
 type painAvail struct {
 	on     bool
 	n      uint8
-	only   uint8    // bit g: group g is pain-only (no {C} alternative)
+	only   uint8    // bit g: group g is pain-only (no normal alternative)
 	budget uint8    // painful activations a plan may take: life - 1
 	mask   [6]uint8 // the group's painful colours
+	prim   [6]uint8 // the group's normal alternative's colours (a painland's {C}, Haunted Screen's {W}{B})
 	cnt    [6]uint8
-	ec     [6]uint8 // the extra {C} the group's {C} ability brings (a modal source)
+	ec     [6]uint8 // the extra {C} the group's normal ability brings (a modal source)
 }
 
 // painTight rebuilds a's painful units as a painAvail when every painful
@@ -332,9 +344,11 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 		}
 		sum++
 		pm := uint8(pc.painCol) & 0x1f
+		prim := uint8(pc.manaCol) & 0x3f
 		var ob uint8
 		if pc.painOnly {
 			ob = 1
+			prim = 0
 		}
 		var ec uint8
 		if modal && s.painAvailMask(pc, p)&^(1<<kop.C) != 0 {
@@ -342,7 +356,7 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 		}
 		g := uint8(0)
 		for ; g < pa.n; g++ {
-			if pa.mask[g] == pm && pa.only>>g&1 == ob && pa.ec[g] == ec {
+			if pa.mask[g] == pm && pa.prim[g] == prim && pa.only>>g&1 == ob && pa.ec[g] == ec {
 				break
 			}
 		}
@@ -352,6 +366,7 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 				return // an exotic board: keep the per-unit count
 			}
 			pa.mask[g] = pm
+			pa.prim[g] = prim
 			pa.only |= ob << g
 			pa.ec[g] = ec
 			pa.n++
@@ -362,19 +377,20 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 		return
 	}
 	pa.budget = uint8(min(life-1, 255))
-	// take the painful colours back out of a: each painland unit is a {C}
-	// unit, each pain-only unit none
+	// take the painful colours back out of a: each painland unit is its
+	// normal ability's, each pain-only unit none
 	for g := uint8(0); g < pa.n; g++ {
 		only := pa.only>>g&1 != 0
+		prim := pa.prim[g]
 		full := pa.mask[g]
 		if !only {
-			full |= 1 << kop.C
+			full |= prim
 		}
 		a.remove(full, pa.cnt[g])
 		if !only {
-			a.addUnits(1<<kop.C, pa.cnt[g])
+			a.addUnits(prim, pa.cnt[g])
 			if pa.ec[g] != 0 {
-				a.addUnits(1<<kop.C, pa.ec[g]*pa.cnt[g]) // the {C} ability's own extra
+				a.addUnits(1<<kop.C, pa.ec[g]*pa.cnt[g]) // the normal ability's own extra
 			}
 		}
 	}
@@ -415,8 +431,8 @@ func (a *avail) painAffords(cost *kop.ManaCost, pipMask uint8, extra int) bool {
 				if pa.only>>g&1 != 0 {
 					t.addUnits(pa.mask[g], x[g])
 				} else {
-					t.remove(1<<kop.C, x[g]*(1+pa.ec[g]))
-					t.addUnits(pa.mask[g]|1<<kop.C, x[g])
+					t.remove(pa.prim[g], x[g]*(1+pa.ec[g]))
+					t.addUnits(pa.mask[g]|pa.prim[g], x[g])
 				}
 			}
 			if t.hallPlain(cost, pipMask, extra) {

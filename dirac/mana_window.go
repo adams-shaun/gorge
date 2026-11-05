@@ -265,7 +265,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 		s.pl[p].pool[col] += pc.manaN
 		s.addExtraCol(k, p, sl, pc, col)
 		s.artTag(k, p, sl, col)
-		if k.painMana && pc.painCol != 0 && (pc.painOnly || col != kop.C) {
+		if k.painMana && pc.painCol != 0 && (pc.painOnly || uint8(pc.manaCol)&(1<<col) == 0) {
 			s.painDamage(k, sl, p, int(pc.painN)) // the painful ability's rider (mana_pain.go)
 		}
 		if pc.manaSac || sacOnly {
@@ -489,6 +489,33 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 		}
 	}
 	if k.painMana && pc.painCol != 0 && !pc.painOnly && !anyColor {
+		prim := uint8(pc.manaCol) & 0x1f
+		if prim != 0 && cost != nil {
+			// a two-colour normal ability beside the painful one (Haunted
+			// Screen: {W} or {B}, then {G}, {U} or {R} for 1 life): the
+			// normal ability is printed first, so an owed colour it makes
+			// answers it; else the painful ability's first owed colour;
+			// else the normal ability's lowest. A {C} normal ability (a
+			// painland, Starting Town) keeps the measured answer below.
+			own := s.windowSrcMask(k, sl)
+			col = -1
+			for c := 0; c < 5; c++ {
+				if prim&(1<<c) != 0 && own&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
+					col = c
+					break
+				}
+			}
+			for c := 0; col < 0 && c < 5; c++ {
+				if uint8(pc.painCol)&(1<<c) != 0 && own&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
+					col = c
+					break
+				}
+			}
+			if col < 0 {
+				col = bits.TrailingZeros8(prim)
+			}
+			return col
+		}
 		// a painland: gorge's "Choose a mana ability" ask carries no
 		// payment, so the answer is its lowest colour option whatever
 		// the window owes (mana_pain.go)
