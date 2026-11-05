@@ -41,7 +41,6 @@ var kOriginMultizoneDecks = [2][]cardset.Entry{
 type kOriginMultizoneTally struct {
 	fromBattlefield, fromGraveyard int // a push after a battlefield / graveyard exile
 	both                           int // one push after exiles from both zones (one batch)
-	spotBoth                       int // The Spot's enters trigger exiled a permanent and a graveyard card
 }
 
 // kOriginMultizonePolicy casts and activates whenever it can (three games in
