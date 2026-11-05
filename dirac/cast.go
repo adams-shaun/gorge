@@ -809,7 +809,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.bld().ti++ // chosen mid-resolution (OpChooseTargets), as gorge asks it
 				continue
 			}
-			if s.convokeTargetAbort(k) || s.altAddTargetAbort(k) {
+			if s.convokeTargetAbort(k) || s.altAddTargetAbort(k) || s.copyCastTargetAbort(k) {
 				// Gorge's target menu (affordableTargetCandidates) probes the
 				// CR 601.2g window and withholds every candidate of a convoke
 				// cast the announced picks plus the pool cannot complete: a
