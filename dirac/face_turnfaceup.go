@@ -131,7 +131,8 @@ func turnUpHybOK(cost *kop.ManaCost) bool {
 
 // turnUpHybResolve resolves cost's hybrid pips against the floating pool the
 // way the payment search does (hybWitness: the first resolution the pool
-// affords), so payFromPool spends plain pips. The caller proved poolPays.
+// affords), so the payment spends plain pips. The caller proved
+// specialAffords (mana_specialaction.go).
 func (s *State) turnUpHybResolve(p uint8, cost kop.ManaCost, extra int) kop.ManaCost {
 	pl := &s.pl[p&1]
 	var a avail
@@ -143,42 +144,43 @@ func (s *State) turnUpHybResolve(p uint8, cost kop.ManaCost, extra int) kop.Mana
 	return a.hybWitness(cost, extra)
 }
 
-// turnUpPoolPays is poolPays at an announced X = x.
-func (s *State) turnUpPoolPays(p uint8, cost *kop.ManaCost, x int) bool {
-	pl := &s.pl[p&1]
-	var a avail
-	for c := 0; c < kop.NumManaKinds; c++ {
-		if pl.pool[c] > 0 {
-			a.addUnits(1<<c, pl.pool[c])
-		}
-	}
-	return a.affords(cost, pipMaskOf(cost), cost.XGeneric(x))
-}
-
-// turnUpMaxX is the largest X the floating pool pays for a keyword turn-up
-// (gorge turnUpXAsk's bound, no reductions), -1 when none.
-func (s *State) turnUpMaxX(p uint8, cost *kop.ManaCost) int {
+// turnUpMaxX is the largest X the special action's mana — the floating pool
+// with the restricted batches its restriction admits — pays for a keyword
+// turn-up (gorge turnUpXAsk's bound, no reductions), -1 when none.
+func (s *State) turnUpMaxX(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot) int {
 	pl := &s.pl[p&1]
 	bound := int(cost.Generic) + int(cost.X) + 1
 	for c := 0; c < kop.NumManaKinds; c++ {
 		bound += int(pl.pool[c])
 	}
+	if m := s.restrPoolSpecial(k, p, sp, sl); m != 0 {
+		for i := range s.rb[p&1] {
+			b := &s.rb[p&1][i]
+			if b.kind == 0 {
+				break
+			}
+			if m&(1<<i) != 0 {
+				bound += int(b.units())
+			}
+		}
+	}
 	bound = min(bound, 255)
 	best := -1
 	for x := 0; x <= bound; x++ {
-		if s.turnUpPoolPays(p, cost, x) {
+		if s.specialAffords(k, p, cost, sp, sl, x) {
 			best = x
 		}
 	}
 	return best
 }
 
-// turnUpOffered: the pool pays the turn-up (a keyword cost with {X} at some X).
-func (s *State) turnUpOffered(p uint8, cost *kop.ManaCost, kw bool) bool {
+// turnUpOffered: the special action's mana pays the turn-up (a keyword cost
+// with {X} at some announced X).
+func (s *State) turnUpOffered(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot, kw bool) bool {
 	if kw && cost.X > 0 {
-		return s.turnUpMaxX(p, cost) >= 0
+		return s.turnUpMaxX(k, p, cost, sp, sl) >= 0
 	}
-	return s.poolPays(p, cost)
+	return s.specialAffords(k, p, cost, sp, sl, 0)
 }
 
 // applyTurnUpX takes the announced X of a parked keyword turn-up.

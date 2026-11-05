@@ -385,9 +385,12 @@ func (lc *lowerCtx) refuseEachMana(ms []*lAbility) bool {
 			lc.refuseNode("card", "granted mana ability adding several colours at once")
 		case len(ms) != 1:
 			lc.refuseNode("card", "mana ability adding several colours at once beside another mana ability")
-		case m.Restrict != nil || m.RestrictAb != nil || m.NonSpell:
+		case m.RestrictAb != nil || m.NonSpell || m.Restrict != nil && !filterHasSpecial(m.Restrict):
 			// a restricted planner unit floats one restricted colour per tap
-			// (kernel mana_restrictedsource.go)
+			// (kernel mana_restrictedsource.go). An all-at-once ability under a
+			// spell-only restriction (Troyan, Gutsy Explorer) stays refused;
+			// Tin Street Gossip's Static.isTurnFaceUp clause is modelled with
+			// the all-at-once extra.
 			lc.refuseNode("card", "mana ability adding several colours at once under a spend restriction")
 		case !plainTapMana(a, false):
 			// gorge's planner defers any cost beyond {T} (a filter's fee, a
@@ -400,6 +403,20 @@ func (lc *lowerCtx) refuseEachMana(ms []*lAbility) bool {
 			continue
 		}
 		return true
+	}
+	return false
+}
+
+// filterHasSpecial reports whether f carries a RestrictValid$ Static.*
+// alternative (a clause with Special set).
+func filterHasSpecial(f *lFilter) bool {
+	if f == nil {
+		return false
+	}
+	for i := range f.Clauses {
+		if f.Clauses[i].Special != 0 {
+			return true
+		}
 	}
 	return false
 }
