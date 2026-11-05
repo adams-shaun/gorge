@@ -724,6 +724,7 @@ type lMana struct {
 	NonSpell   bool     // ... or on any payment that is not a spell (CantCastNonArtifactSpells)
 	Special    string
 	SpecialF   *lFilter
+	HasteValid *lFilter // AddsKeywords$ Haste: a spell matching it, paid with this mana, gains haste until end of turn (kop.Ability.ManaHasteValid)
 }
 
 type lUnless struct {
@@ -911,6 +912,9 @@ type lCard struct {
 	Infect         bool     // printed K:Infect (CR 702.90)
 	Toxic          int      // printed K:Toxic:<N> instances, summed (CR 702.164c)
 	Cascade        int      // printed K:Cascade instances (CR 702.85a/c): CardDef.Cascade
+	PreventDmgTo   bool     // printed "Prevent all damage that would be dealt to CARDNAME." (CardDef.PreventDmgTo)
+	PrevCmbTo      bool     // printed combat-scoped "dealt to CARDNAME" (CardDef.PreventCombatTo)
+	PrevCmbBy      bool     // printed combat-scoped "dealt by CARDNAME" (CardDef.PreventCombatBy)
 	Evasion        uint8    // printed Horsemanship / Intimidate (kop.Ev* bits)
 	Wither         bool     // printed K:Wither (CR 702.80)
 	AloneAtk       bool     // the printed can't-attack-alone keyword (CR 506.5)

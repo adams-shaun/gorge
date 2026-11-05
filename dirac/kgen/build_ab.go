@@ -890,6 +890,25 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	if m.NonSpell {
 		ka.AFlags |= kop.AfManaNonSpell
 	}
+	if m.HasteValid != nil {
+		// the kernel reads the rider off the tapped card's mana ability
+		// (dirac/mana_spentrider.go): a second mana ability beside it would
+		// carry the rider onto its own taps
+		n := 0
+		for _, a := range cb.c.Abilities {
+			if a.Kind == akMana {
+				n++
+			}
+		}
+		if n != 1 {
+			return fmt.Errorf("AddsKeywords$ mana rider beside another mana ability")
+		}
+		id, err := cb.filter(m.HasteValid, kop.ZoneStack)
+		if err != nil {
+			return err
+		}
+		ka.ManaHasteValid = id
+	}
 	return nil
 }
 
@@ -1729,6 +1748,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "CantGainLife":
 		st.Kind = kop.StatCantGainLife
+	case "ManaConvert":
+		st.Kind = kop.StatAnyTypeCreatures // lower_manaconvert.go
 	case "CantDraw":
 		st.Kind = kop.StatCantDraw
 	case "MinMaxBlocker":

@@ -2037,6 +2037,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		if st.F, err = readF("ValidCard"); err != nil {
 			return nil, err
 		}
+	case "ManaConvert":
+		if err := manaConvertStatic(sp); err != nil {
+			return nil, err // lower_manaconvert.go
+		}
 	case "DisableTriggers":
 		if err := lc.disableTriggersStatic(sp, &st); err != nil {
 			return nil, err // lower_disabletriggers.go
@@ -2800,6 +2804,11 @@ func (lc *lowerCtx) finishOverrideStatic(sp *params, st *lStatic, o *lOverride) 
 
 // lowerRepl lowers an R: line to a replacement-lite record.
 func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
+	if printedPreventRepl(r) {
+		// the printed K:Prevent keyword already became a CardDef fact; this
+		// minted bodyless prevention line must not also lower (lower_preventkw.go)
+		return nil
+	}
 	rp := newParams(r.Params)
 	rp.consume("Event", "ReplaceWith", "ReplacementResult")
 	rl := lRepl{}

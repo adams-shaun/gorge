@@ -1,9 +1,5 @@
 package dirac
 
-import (
-	"github.com/adams-shaun/gorge/dirac/kop"
-)
-
 // preventFromGen prevents the combat damage a source with
 // KwPreventCombatDamageFrom would deal (gorge: an Effect's bodyless
 // Prevent$ True IsCombat$ True ValidSource$ Card.IsRemembered replacement,
@@ -14,7 +10,7 @@ import (
 func (s *State) preventFromGen(k *prep, r *dmgRec) {
 	for i := 0; i < r.nev; i++ {
 		ev := &r.ev[i]
-		if ev.n <= 0 || s.kwGen(k, ev.src)&kop.KwPreventCombatDamageFrom == 0 {
+		if ev.n <= 0 || !s.prevCombatFrom(k, ev.src) {
 			continue
 		}
 		if ev.dst == NoSlot {

@@ -112,6 +112,7 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc, landOK, anyMana, anyColor, unpriced bool, av *avail) {
 	c := s.objs[o].card
 	pc := &k.cards[c]
+	anyMana = anyMana || mode&castFree == 0 && s.convAnyType(k, p, o) // mana_convertcreature.go
 	if pc.land {
 		if landOK {
 			d.add(MakeAction(AkPlayLand, uint8(o), 0, 0))
@@ -230,6 +231,9 @@ func hybridGeneric(c kop.ManaCost) kop.ManaCost {
 // built and consumes the once-per-turn static that permitted it.
 func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
 	s.g.raiseB = 0 // a spent surcharge record sets it again (spendMayKind)
+	if s.bld().e.kind == seSpell && s.convAnyType(k, s.bld().e.ctrl, o) {
+		s.bld().e.flags |= sfAnyMana // mana_convertcreature.go
+	}
 	// it leaves the graveyard: a granted flashback ends. The grant is part
 	// of the card's view, so mark the card changed. The clear can still be
 	// undone (an unpayable either-or part restores the grant), so it is not
