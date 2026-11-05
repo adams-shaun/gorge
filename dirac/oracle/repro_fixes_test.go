@@ -367,10 +367,13 @@ func TestStdTmtReprosLockstep(t *testing.T) {
 func TestStdDskReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-dsk", []stdRepro{
-		{"room_shown_face_plain_cast", false, false},             // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
-		{"sacrificed_panharmonicon_host_departs", false, false},  // CR 603.2d: a sacrificed Panharmonicon host is gone when Popular Egotist's "whenever you sacrifice" trigger is checked, so it echoes nothing
-		{"returning_aura_during_paid_cost", false, false},        // CR 303.4f: a sacrificed "until this leaves" host returns its exiled Aura while the sacrifice cost's payment is still resolving: the Aura waits in exile and its owner chooses what it enchants
-		{"lingering_aura_sweeps_before_order_ask", false, false}, // CR 704.3, 616.1: a dying creature's order ask is posed in its check: the Aura whose host left in that check is swept, and the token it moved ceases, at the check after the answer
+		{"room_shown_face_plain_cast", false, false},                    // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
+		{"sacrificed_panharmonicon_host_departs", false, false},         // CR 603.2d: a sacrificed Panharmonicon host is gone when Popular Egotist's "whenever you sacrifice" trigger is checked, so it echoes nothing
+		{"returning_aura_during_paid_cost", false, false},               // CR 303.4f: a sacrificed "until this leaves" host returns its exiled Aura while the sacrifice cost's payment is still resolving: the Aura waits in exile and its owner chooses what it enchants
+		{"lingering_aura_sweeps_before_order_ask", false, false},        // CR 704.3, 616.1: a dying creature's order ask is posed in its check: the Aura whose host left in that check is swept, and the token it moved ceases, at the check after the answer
+		{"restricted_float_affords_unadmitted_payment", false, false},   // a floating restricted batch counts as affordable for a spell its restriction does not admit, so the kernel taps one source fewer and floats one pip less
+		{"restricted_float_paid_unadmitted_spell", false, false},        // the same admission check at the double-pip shape: a spell is paid straight out of the floating restricted pair both pips of which the payment may not touch
+		{"room_other_face_trigger_reads_cast_face_svars", false, false}, // an unlocked Room's other-face trigger resolves against the shown face's SVar table, so a Branch arm named only on its own face does nothing
 	})
 }
 

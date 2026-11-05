@@ -1854,6 +1854,15 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 					pt.Delayed = true
 					pt.DelayedID = ^uint32(0)
 					pt.Execute = t.ParamStr(cards.PKExecute)
+					// The Room's other-face body resolves against ITS face's
+					// script table (the queueUnlockTriggers precedent): the
+					// live face is the cast half, whose SVar table the body's
+					// Branch arms never meant, and a by-name mint has no
+					// pointer identity for findTriggerForAbilityFace to
+					// recover the face from. recordTriggerLine binds it for
+					// the resolution Ctx (abilityResolutionSVars).
+					pt.Trigger = t
+					pt.TriggerSVars = fc.face.SVars
 				}
 				if t.Mode == "Exploited" {
 					// CR 702.58c's "that creature" is the exploited one, not the

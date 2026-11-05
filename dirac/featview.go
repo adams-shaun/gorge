@@ -691,16 +691,26 @@ func (s *State) activationReduced(k *prep, a *kop.Ability, o Obj) kop.ManaCost {
 
 // affordsUngrantedFor: p's pool and untapped printed mana sources (not ex) afford
 // cost, for the payment d describes: the restricted sources it may spend count
-// too (pdNone: none).
+// too, as does the floating restricted mana that payment may spend (gorge's
+// planner pool for it is AvailableFor, which holds the batches RestrictValidMatches
+// admits; pdNone: none).
 func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc) bool {
 	var av avail
 	var ms modalSet
 	s.ungrAvail(k, p, ex, &av, &ms)
+	rm := s.restrFloatAdmits(k, p&1, &d)
 	// restrSrcNone precondition: restrSrcAffords runs only once av.affords failed (||).
 	for c := 0; c < 1<<ms.n; c++ {
 		b := ms.modes(av, c)
 		if b.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, p&1, d, cost, &b, ex, 0) {
 			return true
+		}
+		if rm != 0 {
+			t := b
+			s.restrAvailAdd(p&1, rm, &t)
+			if t.affords(cost, pipMaskOf(cost), 0) {
+				return true
+			}
 		}
 	}
 	return false
