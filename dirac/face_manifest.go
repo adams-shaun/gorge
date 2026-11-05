@@ -63,28 +63,91 @@ func (s *State) manifest(k *prep, in *kop.Instr) {
 	if p == 255 {
 		p = s.res.e.ctrl
 	}
-	s.faceDownFromTop(k, p, s.value(k, in.A), false, false, false, false)
+	s.faceDownFromTop(k, p, p, s.value(k, in.A), false, false, false, false)
 }
 
 // cloak is OpCloak (gorge effCloak): player Obj cloaks A cards from the top of
 // their library (CR 701.58a) -- face down, marked cloaked (ward {2}), with the
-// Tapped$/Shuffle$/RememberCloaked$ riders in B.N.
+// Tapped$/Shuffle$/RememberCloaked$ riders in B.N. CfChosen instead cloaks the
+// resolution's chosen card from where it sits (gorge effCloak's Choices$ hand
+// pick); CfCloakCtrl keeps Obj as the library's owner but the cards enter
+// under the resolving controller (gorge's cloak(t.Obj, c.Controller), CR
+// 110.2a).
 func (s *State) cloak(k *prep, in *kop.Instr) {
+	fl := int(in.B.N)
+	if fl&kop.CfChosen != 0 {
+		s.cloakChosen(k, fl)
+		return
+	}
 	p := s.playerRef(k, in.Obj)
 	if p == 255 {
 		p = s.res.e.ctrl
 	}
-	fl := in.B.N
-	s.faceDownFromTop(k, p, s.value(k, in.A), true,
+	ctrl := p
+	if fl&kop.CfCloakCtrl != 0 {
+		// The cloaking player puts the card onto the battlefield, so it
+		// enters under THAT player's control (CR 110.2a), even though the
+		// card leaves the library's owner's library.
+		ctrl = s.res.e.ctrl
+	}
+	s.faceDownFromTop(k, p, ctrl, s.value(k, in.A), true,
 		fl&kop.CfTapped != 0, fl&kop.CfShuffle != 0, fl&kop.CfRemember != 0)
 }
 
-// faceDownFromTop moves up to n cards from the top of player p's library onto
-// the battlefield face down, marked with mark. A full battlefield stalls and
-// stops the move (the capacity draw). Tapped fires the taps triggers as the
+// chooseFaceDownPick is OpChooseCard C: the cloak-from-hand pick (gorge
+// effCloak's chooseFromZoneForFaceDown, its option kind "face_down_choice",
+// CR 701.58a): the ask is the mandatory single pick OpChooseCard already
+// poses, and an empty pool is no ask (gorge's n <= 0 returns no ids).
+const chooseFaceDownPick = 7
+
+// cloakChosen is OpCloak with CfChosen: the resolution's chosen card (the
+// preceding OpChooseCard's pick, gorge chooseFromZoneForFaceDown) cloaks from
+// where it sits under the resolving controller (CR 110.2a: the cloaking
+// player puts the card onto the battlefield). Nothing moves when no card was
+// picked (an empty pool) or the object is already on the battlefield (gorge's
+// cloak closure skips a battlefield object, and every corpus shape sources
+// from hand/library/exile). A full battlefield stalls and stops the move.
+func (s *State) cloakChosen(k *prep, fl int) {
+	o := s.objRefObj(kop.RefChosen)
+	if o == NoObj {
+		return
+	}
+	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield {
+		return
+	}
+	if k.gen != nil && s.occ.full() {
+		s.stall(StallBoard)
+		return
+	}
+	from := s.detach(o)
+	sl := s.enterFaceDown(k, o, s.res.e.ctrl, kop.MorphMorph, from)
+	s.markFaceDown(sl, true)
+	s.faceDownRiders(k, o, sl, fl&kop.CfTapped != 0, fl&kop.CfRemember != 0)
+}
+
+// faceDownRiders applies the cloak/manifest entry riders to the face-down
+// permanent at sl: tapped enters tapped and fires the taps triggers as the
 // MoveZone-then-Tap pair gorge emits; remember joins the resolution's
-// remembered set; shuffle shuffles once after any card moved.
-func (s *State) faceDownFromTop(k *prep, p uint8, n int, cloaked, tapped, shuffle, remember bool) {
+// remembered set.
+func (s *State) faceDownRiders(k *prep, o Obj, sl Slot, tapped, remember bool) {
+	if tapped {
+		s.perms[sl].flags |= pfTapped
+		s.touchSl(sl)
+		if k.gen != nil && s.subs[kop.TrigTaps].any() {
+			s.fireTaps(k, sl)
+		}
+	}
+	if remember {
+		s.remember(o)
+	}
+}
+
+// faceDownFromTop moves up to n cards from the top of player p's library onto
+// the battlefield face down for ctrl, marked with mark. A full battlefield
+// stalls and stops the move (the capacity draw). Tapped fires the taps
+// triggers as the MoveZone-then-Tap pair gorge emits; remember joins the
+// resolution's remembered set; shuffle shuffles once after any card moved.
+func (s *State) faceDownFromTop(k *prep, p, ctrl uint8, n int, cloaked, tapped, shuffle, remember bool) {
 	p &= 1
 	if n <= 0 {
 		return
@@ -98,18 +161,9 @@ func (s *State) faceDownFromTop(k *prep, p uint8, n int, cloaked, tapped, shuffl
 		}
 		o := pl.lib[pl.libLo]
 		s.detach(o)
-		sl := s.enterFaceDown(k, o, p, kop.MorphMorph, kop.ZoneLibrary)
+		sl := s.enterFaceDown(k, o, ctrl, kop.MorphMorph, kop.ZoneLibrary)
 		s.markFaceDown(sl, cloaked)
-		if tapped {
-			s.perms[sl].flags |= pfTapped
-			s.touchSl(sl)
-			if k.gen != nil && s.subs[kop.TrigTaps].any() {
-				s.fireTaps(k, sl)
-			}
-		}
-		if remember {
-			s.remember(o)
-		}
+		s.faceDownRiders(k, o, sl, tapped, remember)
 		moved = true
 	}
 	if shuffle && moved {

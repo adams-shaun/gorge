@@ -3730,6 +3730,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.C = 5 // chooseAttachPickOpt: the same pick, up to one
 		case "PutCounterPick":
 			ki.C = 6 // choosePutCounterPick
+		case "FaceDownPick":
+			ki.C = 7 // chooseFaceDownPick: the cloak-from-hand pick (gorge's face_down_choice)
 		}
 	case "ChooseEachType":
 		ki.Op = kop.OpChooseEachType

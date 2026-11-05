@@ -61,6 +61,8 @@ CastSpecNotHand	untyped int	8
 CastSpecTreasure	untyped int	16
 CastSpecTypes	untyped int	256
 CastSpecYou	untyped int	1
+CfChosen	untyped int	8
+CfCloakCtrl	untyped int	16
 CfRemember	untyped int	4
 CfShuffle	untyped int	2
 CfTapped	untyped int	1
