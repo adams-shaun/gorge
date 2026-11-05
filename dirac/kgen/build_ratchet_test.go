@@ -166,7 +166,7 @@ import (
 // +1 (Mazemind Tome: the counter-threshold state trigger, Tf4StateCtr; land; merged ALL build-level 21548 -> 21549).
 // +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; this branch; merged ALL build-level 21549 -> 21550).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21550, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21553, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
