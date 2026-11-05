@@ -53,6 +53,7 @@ const (
 	ReplRewriteTokens            // a token the controller would create is the token of pool token index Repl.C instead, the same number (R:Event$ CreateToken | ReplaceWith$ DB$ ReplaceToken | Type$ ReplaceToken | TokenScript$; Holo-Engineer). The matchup remaps Repl.C to its CardID
 	ReplMayNotUntap              // this permanent's controller may choose not to untap it during their untap step: a tapped one asks "untap or keep tapped" (CR 502.3; gorge hasUntapStepChoice, the keyword line "You may choose not to untap CARDNAME during your untap step."); no other field
 	ReplDestroyHeal              // a creature matching Repl.Filter would be destroyed: remove all +1/+1 counters from it and heal all damage on it instead (Dr. McCoy, Surly Surgeon; gorge's Destroy ReplaceWith$ RemoveCounter body)
+	ReplDiscardOppToBattlefield  // this card in hand discarded by a spell or ability an opponent of its owner controls (not a cost, not cleanup) enters the battlefield under its owner's control instead of the graveyard (Wilt-Leaf Liege; gorge replacement_match.go ReplMoved Discard$ True, EffectOnly$ True, ValidCause$ SpellAbility.OppCtrl)
 	ReplCount
 )
 

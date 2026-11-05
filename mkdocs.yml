@@ -197,6 +197,7 @@ nav:
           - An LLM decision policy: research/llm-decision-policy.md
           - Cold-start card valuation: research/card-valuation.md
           - Draft RL: research/draft-rl.md
+          - Drafter and builder knobs: research/drafting.md
           - Instant timing: research/instant-timing.md
           - Net width and the encoding: research/net-width.md
           - A GNN against the MLP: research/gnn.md

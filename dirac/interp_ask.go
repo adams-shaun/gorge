@@ -563,7 +563,7 @@ func (s *State) autoPayPick(k *prep) bool {
 		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
 			s.exileFromGrave(o)
 		} else if s.g.pickZ == kop.PayDiscard {
-			s.discardObj(k, o)
+			s.discardCost(k, o)
 		} else if s.g.pickZ == kop.PayReturn {
 			s.leave(k, s.objs[o].slot, kop.ZoneHand, false)
 		} else {
@@ -734,7 +734,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
 			s.exileFromGrave(o) // a cost exile from either zone (cost_exilefromhand.go)
 		} else if s.g.pickZ == kop.PayDiscard {
-			s.discardObj(k, o)
+			s.discardCost(k, o)
 		} else if s.g.pickZ == kop.PayReturn {
 			s.leave(k, s.objs[o].slot, kop.ZoneHand, false) // gorge unlessflow: ReturnCost to the owner's hand
 		} else if s.g.pickZ == kop.PayTapX {
@@ -989,6 +989,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.res = saved
 		if s.g.nask != 0 && s.midResAsk(k) {
 			return // gorge defers the next election behind this one; a parked tail waits for them all
+		}
+		if s.eachReturnResume(k) {
+			return // zone_eachreturnask.go: the next target's own election
 		}
 		if s.unparkTail(k) {
 			return // a dig's raGenDigArrange
