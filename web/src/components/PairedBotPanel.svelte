@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy, untrack } from 'svelte';
   import type { Advice, Decision, PairedBotStatus } from '../protocol';
-  import { ApiError, fetchAdvice, fetchPairedBotStatus } from '../lib/api';
+  import { ApiError, fetchAdvice } from '../lib/api';
   import { botPick } from '../lib/botpick.svelte';
   import { adviceRows, botPickOf, differedNote, expectedLine, loadMarkPick, loadPairedBotOn, loadShowRules, pairedRowLabel, pickTag, saveMarkPick, savePairedBotOn, saveShowRules, shownRows, winChance, type PlayerAnswer } from '../lib/pairedbot';
   import type { ExplainNote, ExplainSearch } from '../lib/review';
@@ -16,12 +16,14 @@
    * it from what the seat can see; nothing here can answer the decision. It
    * renders nothing on a server without the option. The switch starts on for a
    * player alone with bots and off at a table with another human; the browser
-   * remembers the player's own answer for each.
+   * remembers the player's own answer for each. The table route fetches the
+   * offer (status), because where the panel goes depends on it.
    */
   let {
     table,
     match,
     ctx,
+    status,
     decision,
     answered = null,
     onDiffered = () => {},
@@ -29,6 +31,8 @@
     table: string;
     match: number;
     ctx: SeatCtx;
+    /** The table's paired-bot offer; null until it is known or when the fetch failed. */
+    status: PairedBotStatus | null;
     decision: Decision | null;
     /** The seat's last accepted answer. */
     answered?: PlayerAnswer | null;
@@ -45,7 +49,6 @@
   /** How long a search may run before the panel says the server may be busy: it runs a few at a time and queues the rest. */
   const SLOW_MS = 6000;
 
-  let status = $state<PairedBotStatus | null>(null);
   /** The player's flip of the switch on this page; null keeps the remembered or default setting. */
   let flipped = $state<boolean | null>(null);
   const shared = $derived(status?.shared === true);
@@ -59,21 +62,6 @@
   let attempt = $state(0);
   let differed = $state<string | null>(null);
   let advised: { seq: number; decision: Decision; search: ExplainSearch }[] = [];
-
-  $effect(() => {
-    const t = table;
-    let live = true;
-    fetchPairedBotStatus(t, ctx)
-      .then((s) => {
-        if (live) status = s;
-      })
-      .catch(() => {
-        if (live) status = null;
-      });
-    return () => {
-      live = false;
-    };
-  });
 
   // The seq this panel may show advice for: the player's own pending decision.
   const seq = $derived(decision !== null && decision.player === ctx.seat ? decision.seq : null);

@@ -267,7 +267,7 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-  NET0[".dzgw gN"] --> SP["self-play: kplay<br/>az:sims=200…:cpuct=0.5:explore<br/>train split, 2 mulligans"]
+  NET0[".dzgw gN"] --> SP["self-play: private runner<br/>az:sims=200…:cpuct=0.5:explore<br/>train split, 2 mulligans"]
   SP --> G["gN+1 games"]
   SP --> VR["gN+1 visit records<br/>every 4th searched decision"]
   VR --> PK["pack, format 1<br/>outcome, root value, sims,<br/>visits, prior, Q per candidate"]
@@ -288,7 +288,7 @@ flowchart LR
 
 === "Self-play"
 
-    `az:sims=200:autopay:oppnodes:oppfull:morekinds:closedlist:topk=6:cpuct=0.5:gonet=<prev>:explore` on both seats, the train split, two mulligans with the heuristic, seed 9800+n, entity features recorded at every 4th searched decision. `kplay` is dirac's game runner, kept in the private module. g26's generation: 3,776 games and 81,713 visit records in 480.7 s.
+    `az:sims=200:autopay:oppnodes:oppfull:morekinds:closedlist:topk=6:cpuct=0.5:gonet=<prev>:explore` on both seats, the train split, two mulligans with the heuristic, seed 9800+n, entity features recorded at every 4th searched decision. The private self-play runner is dirac's game runner, kept in the private module. g26's generation: 3,776 games and 81,713 visit records in 480.7 s.
 
 === "Pack and targets"
 

@@ -13,7 +13,7 @@ package kop
 // tables encode ops by ordinal. The iota list below is frozen at OpCount; a
 // new op is an explicit constant (see OpCount), with a
 // one-line semantic comment in the same form.
-// The interpreter (package kernel, interp.go) must handle every op below
+// The interpreter (package dirac, interp.go) must handle every op below
 // OpCount: an op it does not implement panics naming the op, never a silent
 // no-op.
 type Op uint8

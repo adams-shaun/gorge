@@ -25,6 +25,14 @@ const (
 	MaxSealedPacks     = 12 // the largest sealed supply an event may carry
 )
 
+// The prerelease recipe: a Prerelease Pack's six Play Boosters and its one
+// traditional-foil rare or mythic promo, which joins the sealed pool.
+const (
+	PrereleasePacks  = 6 // the Prerelease Pack's Play Boosters (MTR 7.2 recommends six for Sealed)
+	PrereleasePromos = 1 // the Prerelease Pack's one dated rare/mythic promo
+	MaxPromos        = 1 // every Play Booster era Prerelease Pack carries exactly one promo
+)
+
 // NumSeats reports the event's seat count (4 or 8), 0 before its
 // EventCreated.
 func (e *Event) NumSeats() int { return len(e.seats) }
@@ -49,9 +57,18 @@ func (e *Event) Rounds() int { return e.rounds }
 // the sealed supply (6 by default) in sealed mode.
 func (e *Event) PacksPerSeat() int { return e.packsPer }
 
+// Promos reports the promo cards per seat (0 unless a sealed event named some).
+func (e *Event) Promos() int { return e.promos }
+
 // Collation reports the booster collation the EventCreated entry named, ""
 // when absent. It is informational: the packs are logged in full.
 func (e *Event) Collation() string { return e.collation }
+
+// Rebuild reports the EventCreated Rebuild flag: continuous construction
+// (MTR 7.3). Under it, from round 2 on, each series opens with a rebuild
+// window in which both sides lock their game-1 deck with a Sideboarded
+// entry (Game 1) before any GameStarted is legal.
+func (e *Event) Rebuild() bool { return e.rebuild }
 
 // CurrentPairings returns a copy of the current round's pairs in pairing
 // order, or nil outside a round phase.

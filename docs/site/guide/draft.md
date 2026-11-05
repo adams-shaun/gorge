@@ -225,7 +225,7 @@ the picks and the game seeds, so the same flags give the same log byte for byte.
 | `-collation` | `play-arena` | `play-arena` or `play` |
 | `-seed`, `-events` | `1`, `1` | the first event's seed, and how many events; each later event adds one to the seed |
 | `-seats` | `4` | pod size, 4 or 8 |
-| `-mode` | `draft` | `draft`, or `sealed` (6 packs per seat, unpicked) |
+| `-mode` | `draft` | `draft`, `sealed` (6 packs per seat, unpicked), or `prerelease` (sealed plus one rare or mythic promo per seat) |
 | `-structure` | round robin at 4 seats, Swiss at 8 | `roundrobin`, `swiss`, or `none` to stop after building |
 | `-rounds` | the structure's own | how many rounds to play |
 | `-players` | `lethal-pressure,bot,forge-heuristic,lethal-pressure` | one policy for every seat, or exactly one per seat. A policy that reads decklists is refused |
@@ -239,6 +239,7 @@ the picks and the game seeds, so the same flags give the same log byte for byte.
 ```sh
 go run ./cmd/draftsim -seats 8 -players bot -seed 3 -verify
 go run ./cmd/draftsim -mode sealed -structure none -seed 3 -v
+go run ./cmd/draftsim -mode prerelease -seats 8 -seed 3 -v
 ```
 
 !!! note "Hosted and headless differ"

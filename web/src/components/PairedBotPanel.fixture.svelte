@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { fetchPairedBotStatus } from '../lib/api';
   import type { PlayerAnswer } from '../lib/pairedbot';
-  import type { Decision } from '../protocol';
+  import type { Decision, PairedBotStatus } from '../protocol';
   import PairedBotPanel from './PairedBotPanel.svelte';
 
   const decisionAt = (seq: number): Decision =>
@@ -17,6 +18,10 @@
   w.__setSeq = (s) => (seq = s);
   w.__answer = (a) => (answered = a);
   w.__differed = [];
+  const ctx = { seat: 0, token: 'tok' };
+  // The table route fetches the offer and hands it to the panel; so does this fixture.
+  let status = $state<PairedBotStatus | null>(null);
+  fetchPairedBotStatus('t1', ctx).then((s) => (status = s), () => (status = null));
 </script>
 
-<PairedBotPanel table="t1" match={1} ctx={{ seat: 0, token: 'tok' }} decision={decisionAt(seq)} {answered} onDiffered={(t) => w.__differed.push(t)} />
+<PairedBotPanel table="t1" match={1} {ctx} {status} decision={decisionAt(seq)} {answered} onDiffered={(t) => w.__differed.push(t)} />

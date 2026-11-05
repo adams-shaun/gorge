@@ -16,7 +16,8 @@ flowchart LR
 
 === "In the browser"
 
-    The **Paired bot** panel sits at the top of the rail, with an **On** / **Off** switch: *play with a bot beside you*.
+    The **Paired bot** panel sits in a rail of its own, on the side of the board away from the stack and log, with an **On** / **Off** switch: *play with a bot beside you*.
+    In the Layout drawer, **Paired bot** keeps it there (**Opposite side**, the default), puts it back in the main rail (**In the rail**), or hides it at the screen's edge until you point at it (**Hidden**). Drag its inner edge to resize it. On a narrow screen it joins the main rail.
     It starts on when you play alone against bots, and off at a table with another human. Your browser remembers what you choose for each.
 
     Two settings in the panel go with it: **Mark the bot's pick on your decision**, and **Mark what the bot's rules would do**.

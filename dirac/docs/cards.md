@@ -253,14 +253,14 @@ another.
 
 ## Which pools matter
 
-`dirac/cardset/pools` holds two full-set pools, and 441 small pools under `fixtures/`. They are all card
-lists:
+`dirac/cardset/pools` holds three set pools (`fdn`, `blb`, `pauper`) and many small pools under `fixtures/`.
+They are all card lists:
 
-- **Set pools.** `fdn` (286 cards) is the union of the cards of its deck pool, not all 517 names in
-  `dirac/cardset/setlists/FDN.txt`. That is why `fdn.coverage.md` can say `286 of 286` while `-census-std`
-  says `505 of 517` for the whole FDN list. `blb` (276 cards) is the other full-set pool.
+- **Set pools.** `fdn` is the union of the cards of its deck pool, not every name in
+  `dirac/cardset/setlists/FDN.txt`. That is why `fdn.coverage.md` can report every card of the pool while
+  `-census-std` reports fewer for the whole FDN list. `blb` and `pauper` are the other set pools.
 - **Fixture pools.** Small, purpose-built pools: a mechanic or parameter family being brought up, a
-  constructed lockstep scenario, or a batch acceptance slice. Examples: `bargain` (29 cards), `warp`,
+  constructed lockstep scenario, or a batch acceptance slice. Examples: `bargain`, `warp`,
   `mayplaykind`, `enterstapped`. A newcomer can ignore them unless working on that mechanic.
 
 `cardset.ByName` and `cardset.Names` serve every pool in this binary's manifest; nothing needs linking.

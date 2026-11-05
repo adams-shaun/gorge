@@ -16,8 +16,8 @@
 #   GOGC  passed through to both binaries if set
 #   PIN   optional CPU list for taskset: when set, every rep runs as
 #         `taskset -c $PIN env GOMAXPROCS=1 GORGE_BENCH_PIN=$PIN BIN ...`
-#         (the scripts/smoke-perf.sh pattern), and enginebench records the pin
-#         in its "pin" field. Unset (the default) runs unpinned, as before.
+#         and enginebench records the pin in its "pin" field. Unset (the
+#         default) runs unpinned, as before.
 set -euo pipefail
 . "$(dirname "$0")/enginebench-lib.sh"
 base_rev=${1:?usage: enginebench-pair.sh BASE CAND [OUT]}

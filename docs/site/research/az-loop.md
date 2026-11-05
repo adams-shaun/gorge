@@ -97,13 +97,13 @@ The design note observes that about 1,200 paired games would be needed to put th
     | Engine | Games | Visit records | Gate vs g7, kernel, 1,500 pairs | Gate vs g7, gorge, 150 pairs |
     |---|---|---|---|---|
     | gorge | ~4,920 | 94,083 | 0.501 ±0.018 | 0.490 ±0.057 |
-    | dirac kernel (`kplay`) | 132,298 | 2,494,899 | 0.536 ±0.018 | 0.527 ±0.056 |
+    | dirac kernel (the private self-play runner) | 132,298 | 2,494,899 | 0.536 ±0.018 | 0.527 ±0.056 |
 
     The g7-vs-g7 control scored 0.508 ±0.025. vs sb-tactical (300 games): g7 0.720 ±0.051, kernel-hour net 0.747 ±0.049, gorge-hour net 0.713 ±0.051.
 
 === "loop2"
 
-    Two lines from g7, three generations each. The kernel line (k) self-plays at sims=2000 in `kplay`; the mainline (g) at sims=25 in gorge. 45 minutes of self-play on 4 pinned cores per generation; training starts from the previous net at lr 3e-4 on az-c6's packs g1–g7 plus the line's own, 4 epochs; the net has 601,346 parameters. gorge gates are 300 games (±0.05), kernel gates 3,000 games (±0.018).
+    Two lines from g7, three generations each. The kernel line (k) self-plays at sims=2000 in the private self-play runner; the mainline (g) at sims=25 in gorge. 45 minutes of self-play on 4 pinned cores per generation; training starts from the previous net at lr 3e-4 on az-c6's packs g1–g7 plus the line's own, 4 epochs; the net has 601,346 parameters. gorge gates are 300 games (±0.05), kernel gates 3,000 games (±0.018).
 
     | Gen | Self-play | vs sb-tactical (gorge) | vs prev (gorge) | vs prev (kernel) |
     |---|---|---|---|---|
