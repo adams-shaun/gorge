@@ -79,8 +79,8 @@ func (s *State) beginCopyCast(k *prep, o Obj, ctrl uint8) bool {
 	return true
 }
 
-// copyCastTargetAbort reports whether the paid copy cast being built can no
-// longer be completed when its target menu would open: the cost is unpayable
+// copyCastTargetWindowShort reports whether the paid copy cast being built can
+// no longer be completed when its target menu would open: the cost is unpayable
 // from the pool and the CR 601.2g window. Gorge's affordableTargetCandidates
 // probes that window and withholds every candidate, so a required target
 // reverses the cast (cast_begin.go's "no legal target", CR 601.2c, 733.1)
@@ -88,7 +88,7 @@ func (s *State) beginCopyCast(k *prep, o Obj, ctrl uint8) bool {
 // resolution) is not priced, so the kernel reaches the menu with a cost it
 // cannot meet; a permission's cast is lowered (the window pays it), and the
 // census reads the same either way. Convoke's census is convokeTargetAbort's.
-func (s *State) copyCastTargetAbort(k *prep) bool {
+func (s *State) copyCastTargetWindowShort(k *prep) bool {
 	if k.gen == nil || !k.gen.anyCopyCast {
 		return false
 	}
@@ -98,4 +98,13 @@ func (s *State) copyCastTargetAbort(k *prep) bool {
 	}
 	cost := s.buildCost(k)
 	return s.targetWindowShort(k, e, &cost, false)
+}
+
+// copyCastPaid reports whether spell entry e is a Play's copy cast paying its
+// mana cost (not a free cast). Gorge's cast offer never judged it, so its
+// target menu is the first census of the cost: affordableTargetCandidates
+// withholds every candidate of a copy the window cannot pay and a required
+// target reverses the cast at once, tapping nothing (CR 601.2c, 733.1).
+func (s *State) copyCastPaid(k *prep, e *stackEntry) bool {
+	return k.gen != nil && k.gen.anyCopyCast && e.flags&sfFree == 0 && s.bld().origin == kop.ZoneLibrary && s.objs[e.obj].of&(ofCopy|ofToken) == ofCopy
 }
