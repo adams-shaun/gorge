@@ -69,7 +69,7 @@ const (
 //
 // The search is a pure read of e: it only submits intents to clones taken
 // at this intent boundary.
-func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps []state.ObjID, funding int) ([]ScriptStep, bool) {
+func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps []state.ObjID, funding int, fundFirst bool) ([]ScriptStep, bool) {
 	if len(gaps) == 0 {
 		return nil, false
 	}
@@ -78,7 +78,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	if sr == nil {
 		return nil, false
 	}
-	sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == "ability"
+	sr.gaps, sr.gapsOnly, sr.funding, sr.fundFirst, sr.printedOnly = gaps, true, funding, fundFirst, o.Kind == "ability"
 	sr.passes = true
 	script, found := sr.run(e)
 	return script, found && len(script) > 0
@@ -90,17 +90,14 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 // payer priority where the play is offered or (priced) the planner pays it
 // from the floating pool. Each distinct payer state is visited once.
 type scriptSearch struct {
-	p        state.PlayerID
-	play     decision.PotentialAction
-	altCost  int
-	gaps     []state.ObjID // sources the census misses, tried first
-	gapsOnly bool          // activate only gaps (plus funding others)
-	funding  int           // non-gap activations allowed when gapsOnly
-	// fundingRank ranks each non-gap source by how replaceable the mana it
-	// produces is (scriptFundingRanks), so the funding taps spend the
-	// sources the play can most afford to lose. Read only under gapsOnly.
-	fundingRank map[state.ObjID]int
-	passes      bool // also pass priority while the stack is non-empty
+	p         state.PlayerID
+	play      decision.PotentialAction
+	altCost   int
+	gaps      []state.ObjID // sources the census misses, tried first
+	gapsOnly  bool          // activate only gaps (plus funding others)
+	funding   int           // non-gap activations allowed when gapsOnly
+	fundFirst bool          // pay the gaps' fees before activating any gap
+	passes    bool          // also pass priority while the stack is non-empty
 	// printedOnly: the play is a printed ability, and a granted one sharing its
 	// Ability is another option (only a printed ability reaches the planner).
 	printedOnly bool
@@ -135,9 +132,6 @@ func (e *Engine) newScriptSearch(p state.PlayerID, a decision.PotentialAction, a
 func (sr *scriptSearch) run(e *Engine) ([]ScriptStep, bool) {
 	sr.pool = e
 	root := e.hypClone(e)
-	if sr.gapsOnly && sr.funding > 0 {
-		sr.fundingRank = scriptFundingRanks(root, sr.p, sr.gaps)
-	}
 	found := sr.visit(root, 0, false)
 	e.hypRelease(root)
 	if !found {
@@ -340,55 +334,33 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 	if (gapUsed || sr.nodePlans) && !sr.waitsForStack(c) && sr.priced(c) {
 		return true
 	}
-	// The uncovered sources, and the covered ones that pay a gap's own fee.
-	// A fee that is still unfunded is paid first: a gap source's ability
-	// wheel also lists its covered abilities (Starfleet Academy's
-	// "{T}: Add {C}" beside its "{5}, {T}: Add X mana of any one color"),
-	// and trying one of those from an empty pool before any funding tap
-	// spends the whole node budget on a line that cannot add the missing
-	// colour. Within the funding taps, spend the most replaceable mana
-	// first (scriptFundingRanks): a fee paid with the play's only black
-	// source leaves no line payable either.
+	// A fee that is still unfunded is paid before any gap is activated: a
+	// gap source's ability wheel also lists its covered abilities
+	// (Starfleet Academy's "{T}: Add {C}" beside its "{5}, {T}: Add X mana
+	// of any one color"), and trying one of those from an empty pool before
+	// any funding tap spends the whole node budget on a line that cannot add
+	// the missing colour.
 	gapOrder := []bool{true, false}
-	if sr.gapsOnly && sr.funding > 0 && funded < sr.funding {
+	if sr.gapsOnly && sr.fundFirst && funded < sr.funding {
 		gapOrder = []bool{false, true}
 	}
 	for _, gap := range gapOrder {
 		if !gap && sr.gapsOnly && funded >= sr.funding {
 			break
 		}
-		if !gap {
-			for _, redundant := range []bool{true, false} {
-				for i := range d.Options {
-					opt := &d.Options[i]
-					if opt.Kind != "activate" || scriptGap(gaps, opt.Obj) {
-						continue
-					}
-					if sr.fundingRank != nil {
-						rank, ranked := sr.fundingRank[opt.Obj]
-						if (ranked && rank >= 2) != redundant || (!ranked && redundant) {
-							continue
-						}
-					}
-					if sr.ownTapSource(c, opt.Obj) {
-						continue
-					}
-					if sr.try(c, d, decision.Intent{Seq: d.Seq, Player: p, Choices: []int{opt.Index}}, funded+1, gapUsed) {
-						return true
-					}
-				}
-			}
-			continue
-		}
 		for i := range d.Options {
 			opt := &d.Options[i]
-			if opt.Kind != "activate" || !scriptGap(gaps, opt.Obj) {
+			if opt.Kind != "activate" || scriptGap(gaps, opt.Obj) != gap {
 				continue
 			}
 			if sr.ownTapSource(c, opt.Obj) {
 				continue // its mana would tap the play's own {T} cost source (CR 602.2b)
 			}
-			if sr.try(c, d, decision.Intent{Seq: d.Seq, Player: p, Choices: []int{opt.Index}}, funded, true) {
+			next := funded
+			if !gap {
+				next++
+			}
+			if sr.try(c, d, decision.Intent{Seq: d.Seq, Player: p, Choices: []int{opt.Index}}, next, gapUsed || gap) {
 				return true
 			}
 		}
@@ -423,56 +395,6 @@ func scriptGap(gaps []state.ObjID, id state.ObjID) bool {
 		}
 	}
 	return false
-}
-
-// scriptFundingRanks ranks each non-gap source by how replaceable the mana
-// it produces is: the smallest number of untapped non-gap sources able to
-// produce any one type it can produce (2 or more means every colour it makes
-// has another producer). A gap's mana fee is funded by tapping covered
-// sources; spending the only source of a colour the play still needs (a lone
-// black source) leaves no line payable, and the search then tries every tap
-// order that spends it. The rank only orders the funding taps, so it cannot
-// change whether a line exists.
-func scriptFundingRanks(c *Engine, p state.PlayerID, gaps []state.ObjID) map[state.ObjID]int {
-	var produced = make(map[state.ObjID][6]bool)
-	var producers [6]int
-	for _, id := range c.G.Zone(state.ZBattlefield, p) {
-		o := c.G.Obj(id)
-		if o == nil || o.Face() == nil || o.Tapped || scriptGap(gaps, id) {
-			continue
-		}
-		var cols [6]bool
-		for _, ma := range c.availableManaAbilities(p, id) {
-			mf := c.manaStaticOf(ma)
-			if mf.Any {
-				for i := 0; i < 5; i++ {
-					cols[i] = true
-				}
-			}
-			for i, n := range mf.Counts {
-				if n > 0 {
-					cols[i] = true
-				}
-			}
-		}
-		for i, ok := range cols {
-			if ok {
-				producers[i]++
-			}
-		}
-		produced[id] = cols
-	}
-	ranks := make(map[state.ObjID]int, len(produced))
-	for id, cols := range produced {
-		best := 0
-		for i, ok := range cols {
-			if ok && (best == 0 || producers[i] < best) {
-				best = producers[i]
-			}
-		}
-		ranks[id] = best
-	}
-	return ranks
 }
 
 // scriptStepOf records answer in of d as a ScriptStep.
