@@ -24,6 +24,20 @@ type eachSusp struct {
 // Tests only.
 var DebugCopyEachNoPark bool
 
+// tokSrcM is the permanents p controls whose CreateToken replacements a token
+// being created reads. The copies of one "for each of them, create a token"
+// are created together (gorge effCopyPermanent sizes every destination's copy
+// through the replacements before the first one enters, CR 111.1, 614.1), so
+// a Holo-Engineer copy that entered earlier in the loop rewrites none of the
+// later ones: the loop fixes the permanents when it begins (tokFrz).
+func (s *State) tokSrcM(p uint8) slotMask {
+	m := s.statM.and(s.ctrlM[p])
+	if s.g.tokFrzOn {
+		m = m.and(s.g.tokFrz)
+	}
+	return m
+}
+
 // eachParks reports whether op in, run for one object of the loop, left an
 // ask the loop must wait for.
 func (s *State) eachParks(in *kop.Instr) bool {
@@ -49,6 +63,7 @@ func (s *State) eachRun(k *prep, in *kop.Instr, i uint8, j0 int, w eachSusp) boo
 	}
 	e.tgt[i], e.tver[i], s.res.bad = w.t, w.v, w.bad
 	s.g.inLoop = false
+	s.g.tokFrzOn = false
 	return false
 }
 

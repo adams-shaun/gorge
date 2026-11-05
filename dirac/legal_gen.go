@@ -335,10 +335,12 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 			c = spreeCost(cd, e.mode, c) // Spree's mode costs are additional costs (CR 702.172a)
 		}
 		// the cost statics apply to what is left (CR 601.2f, 118.9d): a
-		// RaiseCost charges its generic on the empty cost
-		if s.freeOwes(k) {
-			c = s.adjustCostGen(k, e.ctrl, e.card, e.obj, c)
-		}
+		// RaiseCost charges its generic, and a ReduceCost takes its generic
+		// off an additional cost too (The Wind Crystal reducing a free
+		// Restoration Magic's Tiered Cura {1} to {0}, pair 1268). The
+		// reduction cannot make the empty cost negative, so a free cast with
+		// no additional cost is charged the same nothing.
+		c = s.adjustCostGen(k, e.ctrl, e.card, e.obj, c)
 		return c, false, true
 	}
 	if e.trigPl == trigPlAirbend {

@@ -369,6 +369,17 @@ const (
 	PermMarkNot         = 16
 )
 
+// PredTypesAllCMCLE: an all-of card-type conjunction AND a constant
+// mana-value bound. PredN is exactly PredTypesAll's mask (the object has
+// EVERY type in it); PredV is a Const and the object's mana value is at most
+// PredV.N (Resistance Is Futile's "Artifact.Creature" with cmcLE3). The
+// battlefield arm reads the derived types and current mana value; the card
+// arm the printed types and printed mana value (a split card off the stack
+// sums its halves, CR 709.4b; a face-down card has none, CR 708.4).
+// Explicit high ordinal, filters.go style; 242 was free beside PredWord7
+// (241) and PredPowerGTBase (243).
+const PredTypesAllCMCLE Pred = 242
+
 // PredPowerGTBase: the filter word powerGTbasePower, a
 // BATTLEFIELD permanent whose current power is greater than its base power
 // (layer 7b, before 7c effects and 7d counters; CR 613.4; gorge

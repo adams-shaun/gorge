@@ -241,6 +241,12 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 			}
 		}
 	}
+	if d.N == n0 {
+		// gorge xAsk: no payable X leaves the old offer standing, X = 0, and
+		// the mana window reverses the cast (CR 601.2b, 733.1); a Play's copy
+		// is begun whatever the pool holds
+		d.add(MakeAction(AkChoose, 0, 0, 0))
+	}
 }
 
 // xAnswerable reports whether ability a's mandatory targets have candidates once X is

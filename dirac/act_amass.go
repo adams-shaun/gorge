@@ -43,13 +43,16 @@ func (s *State) amass(k *prep, in *kop.Instr) {
 			}
 		}
 	}
-	t := s.replTokens(k, p, CardID(in.C), 1)
+	tc, t, ok := s.replTokensCard(k, p, CardID(in.C), 1) // a rewriter's card (repl_tokrewrite.go)
+	if !ok {
+		return
+	}
 	for i := 0; i < t; i++ {
 		if s.nearCapacity(k) {
 			s.stall(StallBoard)
 			return
 		}
-		o := s.newToken(CardID(in.C), p)
+		o := s.newToken(tc, p)
 		sl := s.enter(k, o, p, false, kop.ZoneLibrary)
 		if k.gen.anyTokCr {
 			s.fireTokenCreated(k, sl)

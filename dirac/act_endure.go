@@ -87,7 +87,10 @@ func (s *State) applyAskEndure(k *prep, a Action) bool {
 // endureSpirit mints the N/N Spirit for p (gorge endureCreateSpirit: one
 // TokenCreate through the CreateToken replacements, the set on every mint).
 func (s *State) endureSpirit(k *prep, in *kop.Instr, p uint8, n int) {
-	m := s.replTokens(k, p, CardID(in.B.N), 1)
+	tc, m, ok := s.replTokensCard(k, p, CardID(in.B.N), 1) // a rewriter's card (repl_tokrewrite.go)
+	if !ok {
+		return
+	}
 	if m != 1 {
 		s.capFull(StallEndureN) // a token doubler: no pool card has one
 		return
@@ -96,7 +99,7 @@ func (s *State) endureSpirit(k *prep, in *kop.Instr, p uint8, n int) {
 		s.stall(StallBoard)
 		return
 	}
-	o := s.newToken(CardID(in.B.N), p)
+	o := s.newToken(tc, p)
 	sl := s.enter(k, o, p, false, kop.ZoneLibrary)
 	if k.gen.anyTokCr {
 		s.fireTokenCreated(k, sl)
