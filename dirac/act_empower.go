@@ -87,13 +87,16 @@ func (s *State) empower(k *prep, in *kop.Instr) bool {
 		if ov == 0 {
 			return true
 		}
-		t := s.replTokens(k, p, CardID(in.C), 1)
+		tc, t, ok := s.replTokensCard(k, p, CardID(in.C), 1) // a rewriter's card (repl_tokrewrite.go)
+		if !ok {
+			return true
+		}
 		for i := 0; i < t; i++ {
 			if s.nearCapacity(k) {
 				s.stall(StallBoard)
 				return true
 			}
-			o := s.newToken(CardID(in.C), p)
+			o := s.newToken(tc, p)
 			sl := s.enter(k, o, p, false, kop.ZoneLibrary)
 			if k.gen.anyTokCr {
 				s.fireTokenCreated(k, sl)

@@ -103,7 +103,10 @@ func recruitTokenCard(k *prep) kop.CardID {
 // h.EmitTokenCreate; a token enters untapped, from no zone, under p).
 func (s *State) recruitToken(k *prep, p uint8) {
 	card := recruitTokenCard(k)
-	n := s.replTokens(k, p, card, 1)
+	card, n, ok := s.replTokensCard(k, p, card, 1) // a rewriter's card (repl_tokrewrite.go)
+	if !ok {
+		return
+	}
 	for i := 0; i < n; i++ {
 		if s.nearCapacity(k) {
 			s.stall(StallBoard)

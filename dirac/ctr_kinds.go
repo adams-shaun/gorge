@@ -39,7 +39,7 @@ func projCtrX(po *ProjObj, c uint8, n uint16) {
 // tap (payPicks taps it with the cost, its Taps triggers included) and rides
 // the entry as its trigger object: the program reads the creature's power
 // at resolution (refPT: on the battlefield its current power, elsewhere
-// its printed one, as gorge's stationAmount), clamped at 0 by kgen.
+// its printed one, or its CDA's, CR 604.3, as gorge's stationAmount), clamped at 0 by kgen.
 
 // prepKC sets genPrep.anyStation: some ability is a Station ability.
 func prepKC(t *kop.Table, g *genPrep) {

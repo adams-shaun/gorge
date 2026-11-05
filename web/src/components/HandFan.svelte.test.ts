@@ -14,8 +14,8 @@ import HandFan from './HandFan.svelte';
 // (`open0`): the harness cannot click a badge to open a menu, so the test
 // drives the menu's own state by hand.
 
-const card = (id: number, name: string): CardView => ({
-  id, name, types: 'Instant', mana_cost: 'U',
+const card = (id: number, name: string, types = 'Instant'): CardView => ({
+  id, name, types, mana_cost: 'U',
   printing: { name }, token: '', tapped: false, power: 0, toughness: 0,
   damage: 0, attacking: false, controller: 0, owner: 0, summon_sick: false,
 });
@@ -179,6 +179,45 @@ describe('HandFan options affordance', () => {
     expect(html).toContain('data-play-land="7"');
     expect(html).toContain('>PLAY</button>');
     expect(html).not.toContain('data-single-action');
+  });
+
+  it('a hand land with the land drop spent says so instead of staying a bare face', () => {
+    const swamp = card(16, 'Swamp', 'Basic Land Swamp');
+    const spent = { ...player([swamp]), land_drop_spent: true };
+    const noOffer = bundle();
+    noOffer.byObj.delete(16);
+    expect(spent.land_drop_spent).toBe(true);
+    expect(noOffer.byObj.has(16)).toBe(false);
+    const { html } = render(HandFan, { props: { player: spent, width: BOARD_W, options: noOffer } });
+    expect(html).toContain('data-obj="16"');
+    expect(html).not.toContain('data-play-land');
+    expect(html).toContain('data-land-hint');
+    expect(html).toContain('No land drop left this turn');
+  });
+
+  it('does not explain a spent land drop when the view omits the flag', () => {
+    const swamp = card(16, 'Swamp', 'Basic Land Swamp');
+    const fresh = player([swamp]);
+    const noOffer = bundle();
+    noOffer.byObj.delete(16);
+    expect(fresh.land_drop_spent).toBeUndefined();
+    expect(noOffer.byObj.has(16)).toBe(false);
+    const { html } = render(HandFan, { props: { player: fresh, width: BOARD_W, options: noOffer } });
+    expect(html).toContain('data-obj="16"');
+    expect(html).not.toContain('data-land-hint');
+  });
+
+  it('the PLAY button wins over the spent-drop hint when the server offers the land', () => {
+    const swamp = card(16, 'Swamp', 'Basic Land Swamp');
+    const spent = { ...player([swamp]), land_drop_spent: true };
+    const one = bundle();
+    one.byObj.set(16, [{ index: 7, kind: 'play_land', label: 'Play Swamp', obj: 16, player: 0 }]);
+    expect(spent.land_drop_spent).toBe(true);
+    expect(one.byObj.get(16)?.[0]?.kind).toBe('play_land');
+    const { html } = render(HandFan, { props: { player: spent, width: BOARD_W, options: one } });
+    expect(html).toContain('data-obj="16"');
+    expect(html).toContain('data-play-land="7"');
+    expect(html).not.toContain('data-land-hint');
   });
 
   it('the mark wears the decision tone: initiative for a blocked decision, offered for an open window', () => {

@@ -266,7 +266,7 @@ func (s *State) parkedWaiting() bool {
 // exile-instead effects before any of the pass moves: a source dying beside
 // them still applies (CR 704.3), and they do not depart with it. It poses gorge's
 // CR 616.1 order ask for the first once nothing else is left to die.
-func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask) bool {
+func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask, askAfter *bool) bool {
 	var order [MaxPerm]Slot
 	n := 0
 	for p := uint8(0); p < 2; p++ {
@@ -289,7 +289,15 @@ func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask) bool {
 			*die, *gy, *pwz, *aur = die.without(sl), gy.without(sl), pwz.without(sl), aur.without(sl)
 		}
 	}
-	if die.or(*gy).any() || !s.parkedWaiting() {
+	if die.or(*gy).any() {
+		// The rest of the batch applies around the parked casualties, and
+		// gorge's pass ends at the ask (checkStateBased): no further pass runs
+		// before it, so an Aura whose host left in the batch is swept, and a
+		// token it moved ceases, only at the check after the answer.
+		*askAfter = fresh
+		return false
+	}
+	if !s.parkedWaiting() {
 		return false
 	}
 	// The batch's later asks follow the first with no state-based check between them

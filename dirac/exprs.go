@@ -143,7 +143,8 @@ func (s *State) slotIfSame(o Obj, ver uint8) Slot {
 }
 
 // objPT is an object's power/toughness: derived on the battlefield, else
-// its card's printed values (a phased-out permanent keeps its
+// its card's printed values, or its characteristic-defining ones (CR 604.3; Station
+// reads a graveyard creature's CDA power) (a phased-out permanent keeps its
 // characteristic-defining P/T: kw_phasing.go).
 func (s *State) objPT(k *prep, o Obj, sl Slot) (int, int) {
 	if sl != NoSlot {
@@ -157,6 +158,9 @@ func (s *State) objPT(k *prep, o Obj, sl Slot) (int, int) {
 		return s.phasedPT(k, ob.slot)
 	}
 	pc := &k.cards[ob.card]
+	if k.cda && k.gen.has(ob.card, gfCDAPT) {
+		return s.cardCDAPT(k, ob.card, ob.owner(), o) // CR 604.3: a CDA works in every zone
+	}
 	return int(pc.power), int(pc.tough)
 }
 

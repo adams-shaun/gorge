@@ -6,8 +6,32 @@ import (
 
 // Accessors and world operations for a search (no allocation).
 
-// ObjCard is object o's card (its copy-of card on the battlefield).
+// notObj is the identity accessors' answer for a byte past MaxObj, which a
+// search client reads an Action's Target() as when the target is not an
+// object: a stack-ability target (StackTarget0 + its stack index,
+// tgt_stackability.go) names its stack entry (ok, e non-nil); NoObj, a
+// player code or an index past the stack names nothing (e nil). Without
+// it a client's ObjCard(Obj(tg)) read s.objs past its end (index out of
+// range [224] with length 192, a TRK search game's panic).
+func (s *State) notObj(o Obj) (e *stackEntry, ok bool) {
+	if int(o) < MaxObj {
+		return nil, false
+	}
+	if i, is := StackTargetIndex(uint8(o)); is && i < int(s.sp) {
+		return &s.stack[i], true
+	}
+	return nil, true
+}
+
+// ObjCard is object o's card (its copy-of card on the battlefield); a
+// stack-ability target byte's is its source card.
 func (s *State) ObjCard(o Obj) CardID {
+	if e, no := s.notObj(o); no {
+		if e == nil {
+			return 0
+		}
+		return e.card
+	}
 	ob := &s.objs[o]
 	if ob.zone == kop.ZoneBattlefield {
 		return s.cardAt(ob.slot)
@@ -16,9 +40,33 @@ func (s *State) ObjCard(o Obj) CardID {
 }
 
 // ObjOwner, ObjZone and ObjToken describe object o.
-func (s *State) ObjOwner(o Obj) uint8    { return s.objs[o].owner() }
-func (s *State) ObjZone(o Obj) kop.Zone  { return s.objs[o].zone }
-func (s *State) ObjToken(o Obj) bool     { return s.objs[o].of&ofToken != 0 }
+func (s *State) ObjOwner(o Obj) uint8 {
+	if e, no := s.notObj(o); no {
+		if e == nil {
+			return 0
+		}
+		return e.ctrl // an ability has no owner: its controller
+	}
+	return s.objs[o].owner()
+}
+
+func (s *State) ObjZone(o Obj) kop.Zone {
+	if e, no := s.notObj(o); no {
+		if e == nil {
+			return kop.ZoneNone
+		}
+		return kop.ZoneStack
+	}
+	return s.objs[o].zone
+}
+
+func (s *State) ObjToken(o Obj) bool {
+	if _, no := s.notObj(o); no {
+		return false
+	}
+	return s.objs[o].of&ofToken != 0
+}
+
 func (s *State) NumObjs() int            { return int(s.nobj) }
 func (s *State) ActivePlayer() uint8     { return s.active }
 func (s *State) StepNow() kop.Step       { return s.step }
@@ -27,7 +75,15 @@ func (s *State) LibrarySize(p uint8) int { return s.pl[p].libLen() }
 
 // Controller is the controller of a battlefield object (its owner
 // elsewhere).
-func (s *State) Controller(o Obj) uint8 { return s.ctrlOfObj(o) }
+func (s *State) Controller(o Obj) uint8 {
+	if e, no := s.notObj(o); no {
+		if e == nil {
+			return 0
+		}
+		return e.ctrl
+	}
+	return s.ctrlOfObj(o)
+}
 
 // PowerToughness is a battlefield creature's derived P/T.
 func (s *State) PowerToughness(o Obj) (int, int) {

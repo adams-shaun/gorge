@@ -23,6 +23,7 @@ type options struct {
 	builder   string
 	corpus    string
 	out       string
+	quiet     bool
 }
 
 func main() {
@@ -49,6 +50,7 @@ func newRoot() *cli.Command {
 			fs.StringVar(&o.builder, "builder", "balanced", "builder: name or name@version")
 			fs.StringVar(&o.corpus, "corpus", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
 			fs.StringVar(&o.out, "out", "", "output directory (required); must not exist or be empty")
+			fs.BoolVar(&o.quiet, "quiet", false, "print only the wrote line, not the pool summary")
 		},
 		Run: func(c *cli.Context, _ []string) error {
 			if o.pods < 1 {

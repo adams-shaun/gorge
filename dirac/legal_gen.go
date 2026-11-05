@@ -619,10 +619,18 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 			if s.cfg&cfgGorgeUnpriced != 0 {
 				if fl&kop.StAnyManaType != 0 {
 					cost := s.adjustCostGen(k, p, s.objs[o].card, o, k.cards[s.objs[o].card].cost)
-					cost = anyTypePips(cost)
+					cost = planUnderRider(cost, true, false)                                           // a hybrid pip is generic to the plan too (pay.PlanManaUnderRider)
 					unpriced = !s.castAffordsR(k, p, s.objs[o].card, s.restrOriginOfObj(o), &cost, av) // (the restricted sources the planner counts price it too)
 				} else {
-					unpriced = s.mayPlayOffers(k, p, o) >= 2 // cast_mayplayoffers.go
+					// Two offers are ambiguous to gorge's potential planner,
+					// but its payment builder still plans the untyped
+					// (MayPlayPerm=="") offer from a graveyard or exile
+					// (payment_plan.go plannedMayPlayZone), so that cast is
+					// priced rather than ambiguous (Storied Veteran beside
+					// The Holodeck). A top-of-library cast has no such plan
+					// (Boltwave beside Madame Web and Johann).
+					unpriced = s.mayPlayOffers(k, p, o) >= 2 &&
+						!(s.mayPlayFolds(k, p, o) && mayPlayPlannedZone(s.objs[o].zone))
 				}
 			}
 			s.offerPlay(k, d, p, o, mode, sorc, landOK, fl&kop.StAnyManaType != 0, false, unpriced, av)

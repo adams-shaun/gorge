@@ -3,12 +3,14 @@ package oracle
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -18,10 +20,9 @@ import (
 // number; its own enters token included) beside creature and non-creature token
 // makers, with the opponent making tokens under Exalted Sunborn / Ojer Taq so
 // the rewriter must leave the opponent's tokens alone. Holo-Engineer is a
-// singleton in the decks of the plain lockstep: a second matching replacement
-// poses gorge's CR 616.1 order ask, which the kernel does not pose (it stalls,
-// StallTokRewrite); TestHoloEngineerOrderStall plays that matchup and holds
-// the stall, with no divergence before it.
+// singleton in the decks of the plain lockstep; a second matching replacement
+// poses gorge's CR 616.1 order ask, which the kernel poses too
+// (repl_tokorder.go); TestHoloEngineerOrderAsk plays those matchups.
 
 const holoIllusion = "c_3_3_a_illusion"
 
@@ -63,11 +64,15 @@ type holoTally struct {
 	oppOwn       int // tokens made for the Holo-Engineer's opponent that kept their own script
 	holoOther    int // a non-Illusion token made under a Holo-Engineer (must be 0)
 	rewrittenNon int // Illusions beyond the Holo-Engineer entries: tokens another source made
+	asks         int // CR 616.1 token order asks gorge posed (KReplacement decisions during a token creation)
 }
 
 func (p *holoTally) check(ref *GorgeSide, _ Side) *Divergence {
 	g := ref.E.G
 	evs := ref.E.L.Events
+	if d := ref.E.Pending(); d != nil && d.Kind == decision.KReplacement && strings.Contains(d.Prompt, "token creation") {
+		p.asks++
+	}
 	if p.ref != ref || len(evs) < p.evAt {
 		p.ref, p.evAt = ref, 0
 	}
@@ -214,22 +219,65 @@ func TestHoloEngineerMutation(t *testing.T) {
 	t.Logf("mutation diverged in %d of %d games", divs, games)
 }
 
-// TestHoloEngineerOrderStall: a Holo-Engineer beside a token multiplier (or a
-// second Holo-Engineer) is gorge's CR 616.1 order ask, which the kernel stalls
-// on rather than answering: the stall is the declared reason, and no game
-// diverges before it.
-func TestHoloEngineerOrderStall(t *testing.T) {
+// holoAskPairs are the order-ask matchups: Holo-Engineer beside a token
+// multiplier it contests (Doubling Season, Exalted Sunborn), beside a second
+// Holo-Engineer, and the plain order matchup (three kinds of competitor).
+var holoAskPairs = map[string][2][]cardset.Entry{
+	"order": holoOrderDecks,
+	"doubling": {
+		{
+			{Name: "Holo-Engineer", Count: 3}, {Name: "Doubling Season", Count: 4},
+			{Name: "Dragon Fodder", Count: 4}, {Name: "Raise the Alarm", Count: 4}, {Name: "Thraben Inspector", Count: 3},
+			{Name: "Strike It Rich", Count: 2}, {Name: "Forest", Count: 8}, {Name: "Mountain", Count: 6}, {Name: "Plains", Count: 6},
+		},
+		holoDecks[1],
+	},
+	"twoholo": {
+		{
+			{Name: "Holo-Engineer", Count: 8},
+			{Name: "Dragon Fodder", Count: 4}, {Name: "Raise the Alarm", Count: 4}, {Name: "Thraben Inspector", Count: 3},
+			{Name: "Strike It Rich", Count: 3}, {Name: "Goblin Instigator", Count: 2}, {Name: "Forest", Count: 6}, {Name: "Mountain", Count: 5}, {Name: "Plains", Count: 5},
+		},
+		holoDecks[1],
+	},
+	"sunborn": {
+		{
+			{Name: "Holo-Engineer", Count: 3}, {Name: "Exalted Sunborn", Count: 4},
+			{Name: "Dragon Fodder", Count: 4}, {Name: "Raise the Alarm", Count: 4}, {Name: "Thraben Inspector", Count: 3},
+			{Name: "Strike It Rich", Count: 2}, {Name: "Forest", Count: 8}, {Name: "Mountain", Count: 6}, {Name: "Plains", Count: 6},
+		},
+		holoDecks[1],
+	},
+}
+
+// TestHoloEngineerOrderAsk: a Holo-Engineer beside a token multiplier (or a
+// second Holo-Engineer) is gorge's CR 616.1 order ask, which the kernel poses
+// too and plays on from: no game diverges, none stalls on the order, and the
+// games reach the contested creation (the asks are answered in lockstep, the
+// ones counted here from gorge's replacement decisions).
+func TestHoloEngineerOrderAsk(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	games, divs, stalls, _ := runHolo(t, holoOrderDecks, 96, false)
-	t.Logf("%d games, %d divergences, stalls %v", games, divs, stalls)
-	for r := range stalls {
-		if r != "tokrewrite" && r != "board" {
-			t.Errorf("stalled on %q, want only tokrewrite", r)
-		}
+	names := make([]string, 0, len(holoAskPairs))
+	for n := range holoAskPairs {
+		names = append(names, n)
 	}
-	if stalls["tokrewrite"] < 10 {
-		t.Errorf("%d tokrewrite stalls in %d games, want at least 10", stalls["tokrewrite"], games)
+	sort.Strings(names)
+	for _, name := range names {
+		games, divs, stalls, tl := runHolo(t, holoAskPairs[name], 96, false)
+		t.Logf("%s: %d games, %d divergences, stalls %v, %d order asks answered", name, games, divs, stalls, tl.asks)
+		if divs != 0 {
+			t.Errorf("%s: %d divergences", name, divs)
+		}
+		for r, n := range stalls {
+			// five or more candidates are past the ask's four (the declared StallReplCands)
+			if r != "replcands" && r != "board" {
+				t.Errorf("%s: %d games stalled on %q", name, n, r)
+			}
+		}
+		if tl.asks < 10 {
+			t.Errorf("%s: %d token order asks reached in %d games, want at least 10", name, tl.asks, games)
+		}
 	}
 }
