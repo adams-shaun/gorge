@@ -27,10 +27,10 @@ import (
 // and mill that reach Bloodcurdler's threshold and Deathbonnet Sprout's
 // three creature cards, and the lands.
 //
-// The five Standard carriers the brief names (Deadly Cover-Up, Kaya,
+// The Standard cards that raised the class (Deadly Cover-Up, Kaya,
 // Spirits' Justice, Lazav, Familiar Stranger, Azula, Cunning Usurper, Hama,
 // the Bloodbender) lower their ChangeZone now but stay refused by kgen for
-// the classes their other nodes carry (another ticket's); no fully-lowered
+// the classes their other nodes carry (other tickets'); no fully-lowered
 // card carries the DefinedPlayer$ Targeted arm yet, so the targeted
 // player's-graveyard composition (pickP a player target, the plain
 // graveyard walk) is exercised only through the lowered Azula and Hama
@@ -106,8 +106,8 @@ func TestGraveyardPickUntargetedLockstep(t *testing.T) {
 	}
 	set, err := cardset.RawByName("gravepick")
 	if err != nil {
-		// A carrier kgen still refuses leaves the pool: the brief's class
-		// must be gone before this test can run at all.
+		// A carrier kgen still refuses leaves the pool: the untargeted
+		// graveyard-pick refusal must be gone before this test can run.
 		t.Fatalf("gravepick pool: %v", err)
 	}
 	var gd [2][]*cards.Card
