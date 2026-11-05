@@ -3,7 +3,7 @@
 Status: the design as written on 2026-09-28, with measured results added as
 they came in. No code is specified to the task level here. The tools named here
 (`botbench`, the `sbagent` and `sbv1agent` agents, the `sbv2engine` server, the
-`kshadow` staging, the rating and gauntlet scripts) live in the maintainers'
+shadow staging, the rating and gauntlet scripts) live in the maintainers'
 private companion module, so this document describes what they measured rather
 than how to rerun them.
 
@@ -669,13 +669,13 @@ rollout search) on the live v1 benchmark engine. At each mtg-kernel
 decision, build a gorge engine consistent with what our seat sees (the
 decision's `x_kernel_v5` ObservationV5), map the kernel's candidates onto
 that engine's options, let a gorge policy answer, and map the answer back.
-The code has four parts: the staging, fidelity, mapping and policies
-(`kshadow`), the agent's `shadow-*` policies, an offline checker (`kshadowcheck`)
+The code has four parts: the staging, fidelity, mapping and policies (a private
+shadow check), the agent's `shadow-*` policies, an offline checker (also a private shadow check)
 for fidelity and coverage over recorded games, and a recorder for both seats of
-kernel games that also runs parallel dev matches (`kshadow_corpus.py`).
+kernel games that also runs parallel dev matches (the private shadow-corpus script).
 
 **Design choice: rebuild from each observation, not incremental replay.**
-Evidence (corpus `kshadow/corpus1`: 16 tactical-vs-tactical kernel games,
+Evidence (corpus `corpus1`: 16 tactical-vs-tactical kernel games,
 all 8 decks, 3,795 decisions, both seats recorded):
 
 - *The opponent's actions are not observable as actions.* Between two
@@ -692,7 +692,7 @@ all 8 decks, 3,795 decisions, both seats recorded):
 - *Cost is negligible.* A rebuild (`rules.New` on both lists + staging
   events + `Advance`) costs 0.64 ms per decision with a 28 MB process
   (pool registry: the 121 catalog cards + 839 token scripts, 84 KB on disk,
-  written by `kshadowcheck -save-pool`; the full corpus registry is ~400 MB
+  written by the private shadow check; the full corpus registry is ~400 MB
   per process).
 - *What a replay would keep and a rebuild loses:* durations of continuous
   effects, delayed triggers, linked exile ("until ~ leaves"), "this turn"
@@ -751,7 +751,7 @@ redealt worlds and rolled out by both seats to a turn horizon, leaf
 combat: Tactical's plan, none, all, the gorge bot's and sb-tactical's
 declarations).
 
-**Fidelity (measured 2026-09-28, `kshadowcheck` over 64 recorded kernel
+**Fidelity (measured 2026-09-28, the private shadow check over 64 recorded kernel
 games, 12,891 decisions of both seats: corpus1 tactical vs tactical,
 corpus2 tactical vs heuristic, seeds 800-801 and 810-815).** Every field
 the observation carries is compared after staging and `Advance`, re-read
@@ -795,7 +795,7 @@ decisions (priority 94-97%, attacks and blocks ~100%); every other
 decision was v1agent.Tactical's, counted by reason, with 0 wire errors, 0
 agent fallbacks, 0 panics and 0 forfeits.
 
-**Dev matches against sbv1-tactical (tac9)** (`kshadow_corpus.py --match`,
+**Dev matches against sbv1-tactical (tac9)** (the private shadow-corpus script,
 seat-swapped mirrors on all 8 decks, dev seeds 800-871; win rate of the
 shadow agent, ±1.96 SE):
 

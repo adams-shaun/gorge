@@ -7,7 +7,7 @@ maintainers replicated its published results and then ran the same experiments o
 [dirac](../architecture/dirac/index.md), gorge's second engine. The goal was to
 decide whether MageZero's encoding or network should replace the maintainers' own.
 This page reports results. dirac is in this repository, but the game runner these
-runs used, `kplay`, and the training code aren't, so they can't be repeated from a clone of gorge.
+runs used, the private self-play runner, and the training code aren't, so they can't be repeated from a clone of gorge.
 
 !!! abstract "Verdict"
     - **The replication is faithful.** Their code on their data, their release
@@ -23,7 +23,7 @@ runs used, `kplay`, and the training code aren't, so they can't be repeated from
     - **Training from scratch, same schedule:** UWTempo on dirac goes
       from their gen0 (0.38 vs 0.35) to 0.78 by gen17, where theirs reaches
       0.65, against an opponent calibrated to their gen0.
-    - **Adopted:** the encoder ships in `kplay` as an opt-in, off-by-default recording
+    - **Adopted:** the encoder ships in the private self-play runner as an opt-in, off-by-default recording
       flag, measured free when off. NetGraph is not adopted.
 
 Their sources are `results/experiments.md`, `results/generations.md`,
@@ -46,7 +46,7 @@ trained net as the prior and value function.
 |---|---|
 | **ver4** | Their published gen0 Pauper training data (v0.3 encoding), 2,576 games |
 | **jar rerun** | Their v0.3.0-alpha release jar, run on the maintainers' hardware with their gen0 config (Java 21, no rebuild) |
-| **dirac** | dirac's game runner (`kplay`) with research card sets built from their lists |
+| **dirac** | dirac's private self-play runner with research card sets built from their lists |
 | **NetGraph** | Their network, trained by their unmodified `train.py` |
 | **d64 MLP** | The maintainers' own small net: 1 residual block, d=64, 166K parameters |
 
