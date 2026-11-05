@@ -322,6 +322,9 @@ type genPrep struct {
 	altFree      []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
 	// anyDeferred: some card has a deferred mana source (gfDeferred; mana_deferred.go)
 	anyDeferred bool
+	// anyTapsDefer / anyTapsPain: some card has a lowered Taps watcher of
+	// class kop.TapPlanDefer / TapPlanPain (gfTapsDefer / gfTapsPain; mana_tapsdefer.go)
+	anyTapsDefer, anyTapsPain bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
 	// a potential play's scripted prefix (script_gen.go)
@@ -1197,6 +1200,16 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			anyTaps = anyTaps || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps
 			g.anyTapAll = g.anyTapAll || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Flags2&kop.Tf2Batch != 0
 			g.tapsWhose = g.tapsWhose || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Whose != kop.WhoseAny
+			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps {
+				switch a.Trig.TapPlan {
+				case kop.TapPlanDefer:
+					g.setFlag(CardID(i), gfTapsDefer)
+					g.anyTapsDefer = true
+				case kop.TapPlanPain:
+					g.setFlag(CardID(i), gfTapsPain)
+					g.anyTapsPain = true
+				}
+			}
 			g.anySelfDisc = g.anySelfDisc || a.Kind == kop.AbTriggered && selfDiscLine(a)
 			g.anyTWTap = g.anyTWTap || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.N == kop.TrigNTeamworkTap
 			if a.Kind == kop.AbTriggered && a.Trig.Flags3&kop.Tf3GameOnce != 0 {

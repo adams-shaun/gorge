@@ -1394,6 +1394,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.GameOnce {
 		kt.Flags3 |= kop.Tf3GameOnce
 	}
+	kt.TapPlan, kt.TapPainN = kop.TapPlan(t.TapPlan), t.TapPainN
 	if t.SingleTarget {
 		if t.Event != "SpellCast" {
 			return kt, fmt.Errorf("single-target flag on a %s trigger", t.Event)

@@ -534,6 +534,9 @@ type planner struct {
 	// life: the payer's life, the lethal guard on summed pain
 	pairs bool
 	life  int
+	// tapsIn: the plan also taps the sources a Taps watcher defers (the
+	// second pass of plan, mana_tapsdefer.go)
+	tapsIn bool
 	// rdyn: the restricted evaluated-amount source (Helga) the plan taps and
 	// its restriction: its mana floats restricted (State.rb), spent first by
 	// the payment (mana_restrictedsource.go payRiderRestr)
@@ -898,7 +901,7 @@ func (s *State) payFromPoolAnyColor(p uint8, cost *kop.ManaCost, x int) {
 	}
 }
 
-func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
+func (s *State) planPass(k *prep, p uint8, pk *planner, exclude Obj) {
 	// units: fixed-production sources in battlefield (entry) order, then
 	// choice-shaped sources (any colour, a choice of colours) in battlefield
 	// order (gorge payment_plan.go paymentPlanManaUnitsOnlyCompute).
@@ -913,6 +916,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		sl := m.first()
 		m = m.rest()
 		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) || k.restrSrc && s.restrOnlyUsable(k, p, sl, &rd) {
+			if !pk.tapsIn && s.tapsDeferred(k, p, sl) {
+				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go)
+			}
 			order[no] = sl
 			no++
 		}
@@ -982,11 +988,23 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	var granted [MaxPerm]bool
 	var rv [MaxPerm]uint8
 	var rk, dm [MaxPerm]uint8 // a restricted source's record kind and unadmitted ranking colours (restrViewW)
+	var tapsPain [4]pcard     // pain-only views of the sources a Pain-class Taps watcher prices (mana_tapsdefer.go)
+	ntp := 0
 	for i := 0; i < no; i++ {
 		sl := order[i]
 		pcs[i] = &k.cards[s.cardAt(sl)]
 		if k.gen != nil {
 			pcs[i] = s.manaPCGen(k, sl)
+			if k.gen.anyTapsPain && ntp < len(tapsPain) {
+				if pn, _ := s.tapsWatchClass(k, p, sl); pn > 0 && pcs[i].painCol == 0 {
+					if col := kop.ColorMask(s.srcMaskAt(pcs[i], sl) & 0x1f); col != 0 {
+						tapsPain[ntp] = *pcs[i]
+						tapsPain[ntp].painCol, tapsPain[ntp].painN, tapsPain[ntp].painOnly = col, uint8(pn), true
+						pcs[i] = &tapsPain[ntp]
+						ntp++
+					}
+				}
+			}
 			granted[i] = s.manaGranted(k, sl)
 			if k.restrSrc && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
 				if v, kd, ab, dmask := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
