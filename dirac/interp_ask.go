@@ -990,6 +990,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.nask != 0 && s.midResAsk(k) {
 			return // gorge defers the next election behind this one; a parked tail waits for them all
 		}
+		if s.eachReturnResume(k) {
+			return // zone_eachreturnask.go: the next target's own election
+		}
 		if s.unparkTail(k) {
 			return // a dig's raGenDigArrange
 		}
