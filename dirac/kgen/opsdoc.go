@@ -524,6 +524,7 @@ var opsEntries = []opsDoc{
 	{"st:Zone", "Static.Zone", "ReduceCost: ZoneCommand = the static works on the card itself in hand/any zone ('this spell costs less'); MayPlayFrom: the zone played from."},
 	{"st:YouHexproof", "StYouHexproof", "Continuous: the static's controller has hexproof too (Affected$ You,...; read by playerHexproof under Cond2). Captain America, Super-Soldier; Shalai, Voice of Plenty."},
 	{"st:PanhETB", "StPanhETB + Static.Filter2", "Panharmonicon lowered from ValidMode$ ChangesZone,ChangesZoneAll | ValidCause$ | Destination$ Battlefield: besides the ValidCard$ match on the trigger's source, only a trigger caused by a permanent (or token) entering the battlefield echoes, and the entering object must match Filter2 (relative to the static's controller). The cause is the triggering object of a TrigETB placement (gorge panharmoniconModes maps a TokenCreate/CardToken mint to ChangesZone with the battlefield as destination); a TrigTokenCreated placement is a Mode$ TokenCreatedOnce trigger, which ValidMode$ ChangesZone does not name, and is not echoed. A graveyard-leave trigger caused by the same move is not echoed (deviation, GORGE-FINDINGS.md). Starfield Vocalist, Virtue of Knowledge, Traveling Chocobo."},
+	{"st:RaiseLife", "StRaiseLife (= StPanhETB, on a StatIncreaseCost)", "IncreaseCost whose Static.A is LIFE the matching spell's caster pays on top of its cost, not generic mana (RaiseCost Cost$ PayLife<N>; gorge composeRaiseCost RaiseLife, CR 601.2f/h, 119.4). With StTargetsFilter2 (ValidTarget$, read relative to the static's source) the life is owed once a chosen target matches: that target is dropped from the menu when the caster has less life than the total owed, the life is paid with the cast's other life. Terror of the Peaks."},
 	{"st:ReduceAny", "StReduceAny (= StRaiseOpp, on a StatReduceCost)", "ReduceCost with no Activator$: the reduction applies to either player's spells, not the controller's alone (gorge costStaticApplies reads Activator$ only when present; Forge StaticAbilityCostChange). Helm of Awakening."},
 	{"st:TargetsFilter2", "StTargetsFilter2", "ReduceCost applies only if the spell targets an object matching Filter2 (Luminous Rebuke)."},
 	{"st:Bargained", "StBargained", "A self ReduceCost that prices only the bargained cast (ValidSpell$ Spell.Bargain: Hamlet Glutton, Ice Out, Johann's Stopgap; gorge spellConstraintMatchesBargain reads the cast mode): the plain cast pays the full cost, the bargained cast (AkCastCasualty of a Bargain card) the discounted one, at the offer and at the charge."},
@@ -1041,7 +1042,11 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 					add("st:YouHexproof", name)
 				}
 				if st.StFlags&kop.StPanhETB != 0 {
-					add("st:PanhETB", name)
+					if st.Kind == kop.StatIncreaseCost {
+						add("st:RaiseLife", name) // StRaiseLife aliases StPanhETB
+					} else {
+						add("st:PanhETB", name)
+					}
 				}
 				if st.StFlags&(kop.StRaiseYou|kop.StRaiseOpp) != 0 {
 					add("st:RaiseYou", name)

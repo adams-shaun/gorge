@@ -413,10 +413,16 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 		if k.gen.anyRaise {
 			n = s.freeDropTargets(k, buf, n)
 		}
+		if k.gen.anyRaiseLife {
+			n = s.raiseLifeDropTargets(k, buf, n)
+		}
 		return n
 	}
 	if k.gen.anyRaise {
 		n = s.raiseDropTargets(k, buf, n) // a target-dependent raise (cost_reducespell.go)
+	}
+	if k.gen.anyRaiseLife {
+		n = s.raiseLifeDropTargets(k, buf, n) // a target-dependent life raise (cost_raiselife.go)
 	}
 	cd := &k.t.Cards[e.card]
 	var f kop.FilterID

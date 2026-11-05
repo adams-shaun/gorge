@@ -1683,6 +1683,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StRaiseYou
 			case "ActivatorOpp":
 				st.StFlags |= kop.StRaiseOpp
+			case "RaiseLife":
+				st.StFlags |= kop.StRaiseLife // Static.A is life (kernel cost_raiselife.go)
 			default:
 				return ka, nil, fmt.Errorf("raise cost flag %q", fl)
 			}

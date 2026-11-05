@@ -1210,6 +1210,9 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 	if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 {
 		s.payLifeCost(k, e.ctrl, pc, e.x)
 	}
+	if k.gen != nil && k.gen.anyRaiseLife {
+		s.payRaiseLife(k) // a RaiseCost PayLife<N> the chosen target owes (cost_raiselife.go)
+	}
 	if k.phyMana {
 		s.payPhyrexianLife(k) // the two-life faces (mana_phyrexian.go)
 	}

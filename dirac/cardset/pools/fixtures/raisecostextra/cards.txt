@@ -1,0 +1,7 @@
+# a RaiseCost static whose Cost$ is a non-mana cost: Terror of the Peaks'
+# PayLife<3> (dirac/oracle/raisecostextra_test.go)
+Terror of the Peaks
+Hill Giant
+Shock
+Lightning Bolt
+Mountain

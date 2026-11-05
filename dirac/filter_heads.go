@@ -50,6 +50,12 @@ func (s *State) ctrlRoleF2(f kop.FilterFlags2, ctrl uint8) bool {
 // (legal.go targetOK). Every Filter2 reader (costTargetOK's build and probe
 // branches, affordableTargets) goes through it.
 func (s *State) costTargetMatch(k *prep, f kop.FilterID, p uint8, t uint8) bool {
+	return s.costTargetMatchSrc(k, f, p, t, NoSlot)
+}
+
+// costTargetMatchSrc is costTargetMatch for a filter read against the cost
+// static's source permanent src (a Card.Self ValidTarget$: Terror of the Peaks).
+func (s *State) costTargetMatchSrc(k *prep, f kop.FilterID, p uint8, t uint8, src Slot) bool {
 	if t >= PlayerTarget0 {
 		return false
 	}
@@ -57,5 +63,5 @@ func (s *State) costTargetMatch(k *prep, f kop.FilterID, p uint8, t uint8) bool 
 	if k.t.Filters[f].Zone == kop.ZoneStack {
 		return ob.zone == kop.ZoneStack && s.matchCardAt(k, f, ob.card, s.stackCtrl(Obj(t)), p, Obj(t))
 	}
-	return ob.zone == kop.ZoneBattlefield && s.matchPermGen(k, f, ob.slot, p, NoSlot, layerFull)
+	return ob.zone == kop.ZoneBattlefield && s.matchPermGen(k, f, ob.slot, p, src, layerFull)
 }
