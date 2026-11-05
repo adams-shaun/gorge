@@ -27,31 +27,61 @@ func playSet(t *testing.T, name string) cardset.Set {
 }
 
 // TestDplayPlaysSyntheticPoolWithUnverifiedCards plays a pair of unverified cards
-// from std-trk, which ByName cannot see at all.
+// from a synthetic pool, which ByName cannot see at all.
 func TestDplayPlaysSyntheticPoolWithUnverifiedCards(t *testing.T) {
-	set := playSet(t, "std-trk")
-	for _, card := range []string{"The Holodeck", "Replicator"} {
+	name, cards := unverifiedSynthCards(t, 2)
+	set := playSet(t, name)
+	for _, card := range cards {
 		i, ok := set.Lookup(card)
 		if !ok {
-			t.Fatalf("std-trk does not hold %q", card)
-		}
-		if got := set.Status(i); got != cardset.StatusUnverified {
-			t.Fatalf("%q is %s in std-trk, want %s", card, got, cardset.StatusUnverified)
+			t.Fatalf("%s does not hold %q", name, card)
 		}
 		if sup := set.Supported(); !sup[i] {
-			t.Fatalf("%q is unverified but not playable in std-trk", card)
+			t.Fatalf("%q is unverified but not playable in %s", card, name)
 		}
 	}
 	dir := t.TempDir()
 	var stdout, stderr bytes.Buffer
-	code := run([]string{"-set", "std-trk", "-a", seatRandom, "-b", seatRandom, "-pairs", "1",
-		"-deck-a", writeDeck(t, dir, "a", "The Holodeck"), "-deck-b", writeDeck(t, dir, "b", "Replicator")}, &stdout, &stderr)
+	code := run([]string{"-set", name, "-a", seatRandom, "-b", seatRandom, "-pairs", "1",
+		"-deck-a", writeDeck(t, dir, "a", cards[0]), "-deck-b", writeDeck(t, dir, "b", cards[1])}, &stdout, &stderr)
 	if code != 0 {
 		t.Fatalf("exit %d, want 0; stderr: %s", code, stderr.String())
 	}
 	if rows := strings.Split(strings.TrimSpace(stdout.String()), "\n"); len(rows) != 1 || rows[0] == "" {
 		t.Fatalf("games rows: %q", stdout.String())
 	}
+}
+
+// unverifiedSynthCards is the first synthetic pool, by name, that holds at least n
+// unverified deck cards, with the first n of them; it skips when the checkout has no
+// corpus. Evidence rounds verify cards, so no test names a card it needs to stay
+// unverified.
+func unverifiedSynthCards(t *testing.T, n int) (string, []string) {
+	t.Helper()
+	names, err := cardset.SynthNames()
+	if errors.Is(err, cardset.ErrNoCorpus) {
+		t.Skipf("synthetic pools: %v", err)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range names {
+		if !strings.HasPrefix(name, "std-") {
+			continue
+		}
+		set := playSet(t, name)
+		var cards []string
+		for i, card := range set.Names()[:set.NumCards()] {
+			if set.Status(i) == cardset.StatusUnverified {
+				cards = append(cards, card)
+			}
+		}
+		if len(cards) >= n {
+			return name, cards[:n]
+		}
+	}
+	t.Fatalf("no synthetic pool holds %d unverified cards", n)
+	return "", nil
 }
 
 // TestDplaySkipRefusedSkipsOffSetDeck holds a deck outside the pool to the refusal

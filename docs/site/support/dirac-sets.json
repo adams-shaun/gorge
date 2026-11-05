@@ -1,8 +1,8 @@
 {
   "about": "dirac's per-set support, rendered by scripts/docs_sets.py. corpus and sets are the table in dirac/docs/support.md (corpus is its ALL row): scripts/docs_sets.py --refresh-dirac copies it and docs_sets_test.py holds this file to it. A card is supported when kgen lowers it, it is not refused by name, and clean lockstep games evidence it; lowered counts every card kgen can represent, refused and unverified included. commit is the gorge revision the counts were read at. lockstep is make dirac-slices on the full surface: seeded games played in both engines, compared at every decision.",
   "date": "2026-11-05",
-  "commit": "bc9e86725",
-  "corpus": {"cards": 34442, "lowered": 21502, "refused": 49, "unverified": 16959, "supported": 4494},
+  "commit": "201007a36",
+  "corpus": {"cards": 34442, "lowered": 21504, "refused": 47, "unverified": 16963, "supported": 4494},
   "lockstep": {
     "BLB": {"games": 1456, "agree": 1456, "stalls": 0, "disagree": 0},
     "FDN": {"games": 1399, "agree": 1395, "stalls": 4, "disagree": 0}
@@ -10,7 +10,7 @@
   "sets": {
     "BIG": {"cards": 30, "lowered": 23, "refused": 1, "unverified": 8, "supported": 14},
     "BLB": {"cards": 278, "lowered": 256, "refused": 3, "unverified": 33, "supported": 220},
-    "DFT": {"cards": 276, "lowered": 246, "refused": 0, "unverified": 22, "supported": 224},
+    "DFT": {"cards": 276, "lowered": 247, "refused": 0, "unverified": 23, "supported": 224},
     "DSK": {"cards": 276, "lowered": 233, "refused": 4, "unverified": 41, "supported": 188},
     "ECL": {"cards": 273, "lowered": 230, "refused": 8, "unverified": 32, "supported": 190},
     "EOE": {"cards": 266, "lowered": 238, "refused": 0, "unverified": 117, "supported": 121},
@@ -22,8 +22,8 @@
     "MKM": {"cards": 279, "lowered": 228, "refused": 2, "unverified": 40, "supported": 186},
     "MSH": {"cards": 276, "lowered": 225, "refused": 4, "unverified": 14, "supported": 207},
     "OTJ": {"cards": 276, "lowered": 239, "refused": 2, "unverified": 25, "supported": 212},
-    "SOS": {"cards": 270, "lowered": 247, "refused": 4, "unverified": 22, "supported": 221},
-    "SPM": {"cards": 192, "lowered": 159, "refused": 1, "unverified": 22, "supported": 136},
+    "SOS": {"cards": 270, "lowered": 247, "refused": 2, "unverified": 24, "supported": 221},
+    "SPM": {"cards": 192, "lowered": 160, "refused": 1, "unverified": 23, "supported": 136},
     "TDM": {"cards": 276, "lowered": 244, "refused": 6, "unverified": 49, "supported": 189},
     "TLA": {"cards": 285, "lowered": 245, "refused": 3, "unverified": 57, "supported": 185},
     "TMT": {"cards": 194, "lowered": 171, "refused": 1, "unverified": 10, "supported": 160},

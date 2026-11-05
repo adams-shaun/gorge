@@ -65,7 +65,14 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	hg := strings.TrimSpace(ps.str("Origin")) == "Hand,Graveyard" // lower_handgravepick.go
 	origin := zNone
 	var err error
-	if !dual && !hg {
+	bg := isOriginBattlefieldGrave(ps.str("Origin")) // lower_originmulti.go
+	if bg {
+		if err = lc.originBattlefieldGrave(ps); err != nil {
+			return err
+		}
+		origin = zAny
+	}
+	if !dual && !hg && !bg {
 		if origin, err = zoneOf(ps, "Origin", zNone); err != nil {
 			return err
 		}
@@ -648,6 +655,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			}
 		default:
 			return refuse("library position %d", pos)
+		}
+		if slices.Contains(flags, "Remember") && pos == -1 && origin == zGraveyard && obj.Kind == rTriggeredNew {
+			in.C = kop.LibBottomRememberGrave // zone_tolibraryremember.go
 		}
 		if ad, ok := ps.get("AlternativeDecider"); ok {
 			if ad != "TargetedOwner" || ps.str("DestinationAlternative") != "Library" || ps.str("LibraryPositionAlternative") != "-1" || pos != 0 && pos != 1 {

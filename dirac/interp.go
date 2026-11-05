@@ -61,6 +61,8 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.toLibraryShuffleSelf(k, in)
 		case kop.LibThird:
 			s.toLibraryThird(k, in) // act_lockpermanent.go
+		case kop.LibBottomRememberGrave:
+			s.toLibraryRemember(k, in) // zone_tolibraryremember.go
 		case 0:
 			s.moveRef(k, in.Obj, kop.ZoneLibrary, false)
 		case 1:

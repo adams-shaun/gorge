@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -12,20 +13,17 @@ import (
 // serves them.
 func TestPlaySetServesSyntheticPool(t *testing.T) {
 	corpusDirOrSkip(t)
-	set, err := PlaySet("std-trk")
+	name, cards := unverifiedSynthCards(t, 1)
+	set, err := PlaySet(name)
 	if err != nil {
 		t.Fatal(err)
 	}
-	const card = "The Holodeck"
-	i, ok := set.Lookup(card)
+	i, ok := set.Lookup(cards[0])
 	if !ok {
-		t.Fatalf("PlaySet(std-trk) does not hold %q", card)
-	}
-	if got := set.Status(i); got != cardset.StatusUnverified {
-		t.Fatalf("%q is %s in std-trk, want %s: the test needs an unverified card", card, got, cardset.StatusUnverified)
+		t.Fatalf("PlaySet(%s) does not hold %q", name, cards[0])
 	}
 	if sup := set.Supported(); !sup[i] {
-		t.Fatalf("%q is unverified but not supported by PlaySet(std-trk)", card)
+		t.Fatalf("%q is unverified but not supported by PlaySet(%s)", cards[0], name)
 	}
 
 	fdn, err := PlaySet("fdn")
@@ -42,4 +40,35 @@ func TestPlaySetServesSyntheticPool(t *testing.T) {
 	if got, want := fdn.Supported(), base.Supported(); !slices.Equal(got, want) {
 		t.Fatalf("PlaySet(fdn) supports %d entries, ByName(fdn) %d", len(got), len(want))
 	}
+}
+
+// unverifiedSynthCards is the first synthetic pool, by name, that holds at least n
+// unverified deck cards, with the first n of them. Evidence rounds verify cards, so
+// no test names a card it needs to stay unverified.
+func unverifiedSynthCards(t *testing.T, n int) (string, []string) {
+	t.Helper()
+	names, err := cardset.SynthNames()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range names {
+		if !strings.HasPrefix(name, "std-") {
+			continue
+		}
+		set, err := PlaySet(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var cards []string
+		for i, card := range set.Names()[:set.NumCards()] {
+			if set.Status(i) == cardset.StatusUnverified {
+				cards = append(cards, card)
+			}
+		}
+		if len(cards) >= n {
+			return name, cards[:n]
+		}
+	}
+	t.Fatalf("no synthetic pool holds %d unverified cards", n)
+	return "", nil
 }
