@@ -144,6 +144,9 @@ func spellRequiresTarget(k *prep, c CardID) bool {
 		if t == nil || t.Kind == kop.TgtNone || t.UpTo || t.TFlags&kop.TgfAtResolution != 0 {
 			continue
 		}
+		if t.TFlags&kop.TgfBoundsV != 0 && t.MinV.K != kop.VConst {
+			continue // "X target creatures": X is announced first (CR 601.2b) and may be 0, so the ask is not yet required
+		}
 		if ab != 255 {
 			if tm := k.t.Cards[c].Abilities[ab].TgtModes[ti]; tm != 0 {
 				continue // a mode-gated slot: the copy cast announces no mode
