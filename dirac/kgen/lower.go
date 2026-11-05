@@ -101,7 +101,7 @@ type lowerCtx struct {
 
 	firstCastSVar  string    // the SVar a static SpellCast StoreSVar of Count$YouCastThisGame writes (lower_firstcast.go)
 	firstCastTrig  int       // that trigger's index + 1: it lowers to nothing
-	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff)
+	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff; Yue's hand population, playOwnHand)
 	animAll        bool      // lowering an AnimateAll: animateRemoveKeywords accepts a bare RemoveKeywords$ (gorge effAnimateAll reads it)
 	speedRepl      bool      // lowering a max-speed static's granted replacement: damagePlus reads ValidTarget$ Player.Opponent (lower_maxspeedrepl.go)
 	replEnter      bool      // inside an ETB replacement's ReplaceWith chain

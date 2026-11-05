@@ -172,8 +172,9 @@ import (
 // +1 (Doomsday Excruciator: a RepeatEach player body's library count and blind face-down Dig; this branch; merged ALL build-level 21584 -> 21585).
 // +1 (Worlds Within Worlds: a RepeatEach player body's per-player hand move; this branch; merged ALL build-level 21585 -> 21586).
 // +1 (Painter's Studio // Defaced Gallery: the unlock trigger's DB$ Effect statics read the door's own SVar table; this branch; merged ALL build-level 21595 -> 21596).
+// +1 (Yue, the Moon Spirit: the free noncreature cast's ValidSA$ nonCreature+YouOwn over its own-hand population; this branch; merged ALL build-level 21596 -> 21597).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21596, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21597, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
