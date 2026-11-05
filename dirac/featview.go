@@ -582,14 +582,18 @@ func (s *State) FeatFaceDown(o Obj) bool {
 	return ob.zone == kop.ZoneBattlefield && s.faceDown(nil, ob.slot)
 }
 
-// FeatPlanNeverPrices reports a card gorge's cast planner declines whatever the
-// board: its own shape, not the seat's mana.
-func (s *State) FeatPlanNeverPrices(c CardID) bool { return planNeverPrices(s.k(), c) }
+// FeatPlanDeclinesShape reports a plain cast of p's object o that gorge's cast
+// planner declines for its cost's shape, not the seat's mana (rules
+// payment_plan.go announcedShape, decision.PotentialShapeCasts): every
+// plannedCastCost refusal, the card's own shape and the board's (a convoke,
+// improvise or delve contribution, an optional cost, a mana-spent reader out).
+func (s *State) FeatPlanDeclinesShape(p uint8, o Obj) bool {
+	_, ok := s.plannedCastCost(s.k(), p, o, 0)
+	return !ok
+}
 
-// planNeverPrices is plannedCastCost's refusals that read only the card.
-func planNeverPrices(k *prep, c CardID) bool { return planNeverPricesOf(k, c, false, false) }
-
-// planNeverPricesOf is planNeverPrices with a hybrid cost priced when hyb and
+// planNeverPricesOf is plannedCastCost's refusals that read only the card, with
+// a hybrid cost priced when hyb and
 // the card's own mana-spent read left out when composed (plannedCastCostOf).
 func planNeverPricesOf(k *prep, c CardID, hyb, composed bool) bool {
 	return planNeverPricesCore(k, c, hyb, composed, false)
