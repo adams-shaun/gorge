@@ -12,3 +12,4 @@ Mountain
 Forest
 Armored Armadillo
 Plains
+Monastery Swiftspear

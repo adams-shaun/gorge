@@ -325,7 +325,7 @@ type genPrep struct {
 	anyRestr   bool // some card has restr (kperf-blb: the ward / unless window's gate)
 	// anyRestrScript: some card has a restricted source gorge's census still
 	// misses (a reflected one: Plaza of Heroes), a scripted-prefix gap
-	// (gfRestrScript); anyRestrSrc: some card has a restricted source the
+	// (gfRestrScript), or a deferred source (gfDeferred; mana_deferred.go); anyRestrSrc: some card has a restricted source the
 	// payment planner counts per payment (gorge; restrSrcAb), and
 	// rs holds its records (mana_restrictedsource.go)
 	anyRestrScript bool
@@ -379,8 +379,8 @@ type genPrep struct {
 	// anyScriptGap: some card has eachCol, restr or anyR (a scripted play
 	// is possible)
 	anyScriptGap bool
-	// anyWindowGap: some card has eachCol or restr (gorge's ward / unless
-	// window activates them, mana.go windowTap)
+	// anyWindowGap: some card has eachCol, restr or a deferred source (gorge's
+	// ward / unless window activates them, mana.go windowTap)
 	anyWindowGap bool
 	// l6Stall: a global lose-all override static shares the table with a
 	// subtype lord the layer-4 walk reads (the loss check would re-enter

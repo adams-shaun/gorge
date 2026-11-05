@@ -61,3 +61,30 @@ func (s *State) scriptDeferred(k *prep, p uint8) slotMask {
 	}
 	return s.gapMask(k, p, gfDeferred)
 }
+
+// deferRider: a is the TriggersWhenSpent$ rider of the deferred source at sl,
+// which onCast's listener walk skips. gorge queues the rider apart from the
+// ordinary cast triggers (cast_commit.go fireManaSpentTriggers), after them and
+// casualty, before cascade, so its place in a same-controller trigger-order
+// ask is last.
+func (s *State) deferRider(k *prep, sl Slot, a *kop.Ability) bool {
+	return k.gen.anyDeferred && a.Trig.Flags2&kop.Tf2ManaFromSelf != 0 && k.gen.has(s.cardAt(sl), gfDeferred)
+}
+
+// fireDeferredRider queues the rider of the deferred source the cast's payment
+// spent (build.obsSl), when it is still on the battlefield; castTrigGen gates
+// the spell's colour and type and the payment (castProvOK).
+//
+//go:noinline
+func (s *State) fireDeferredRider(k *prep, e *stackEntry) {
+	if !s.buildLive() || s.bld().obsSl == 0 {
+		return
+	}
+	sl := Slot(s.bld().obsSl - 1)
+	if !s.occ.has(sl) || !k.gen.has(s.cardAt(sl), gfDeferred) {
+		return
+	}
+	s.slotTriggers(k, sl, func(a *kop.Ability) bool { return a.Trig.Event == kop.TrigSpellCast && s.deferRider(k, sl, a) }, func(l trigListener, a *kop.Ability) {
+		s.castTrigGen(k, l, a, e)
+	})
+}
