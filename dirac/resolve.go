@@ -51,6 +51,10 @@ func (s *State) resolveTop(k *prep) {
 	if k.gen != nil {
 		s.g.nrem, s.g.remCnt, s.g.tli = 0, 0, 0 // a resolution remembers afresh (gorge's per-resolution Ctx)
 		s.g.stkCt = 0                           // tgt_stackability.go
+		if k.anyStateCtr && e.kind == seTrigger && e.ab < abCascade &&
+			k.t.Cards[e.card].Abilities[e.ab].Trig.Flags4&kop.Tf4StateCtr != 0 {
+			s.remember(e.obj) // a state trigger's Remembered is its source alone (gorge stateTriggerRemembered, CR 603.8)
+		}
 		if k.gen.anyRemPersist && remPersistSeeds(k, &e) {
 			s.remPersistSeed(k) // its source's kept set (zone_rememberpersist.go)
 		}
@@ -141,6 +145,9 @@ func (s *State) resolveTop(k *prep) {
 						sl = s.enter(k, e.obj, e.ctrl, false, kop.ZoneStack)
 					}
 				}
+			}
+			if k.gen != nil && k.gen.anyManaHaste {
+				s.manaHasteEnter(k, sl, &e) // mana_spentrider.go
 			}
 			if k.gen != nil && k.gen.anyEvoke {
 				s.evokeEnter(k, &e) // the Adamant bind and the evoke sacrifice (kw_evoke.go)
@@ -291,6 +298,14 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 		}
 	}
 	s.res.active = false
+	if k.anyStateCtr {
+		// any resolution's finish may have emptied the stack of a state
+		// trigger's instance -- its own, or one a countering resolution
+		// removed before going on to remove the source (gorge re-checks at
+		// the next event, which is at or after the resolution's end;
+		// trig_statectr.go)
+		s.stateCtrRefire(k)
+	}
 	s.afterResolve()
 }
 
@@ -766,7 +781,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 		return 0
 	}
 	e := &s.res.e
-	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol) != 0 {
+	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol) != 0 {
 		if s.parkNC(k, e.ctrl, s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
 			return n // gorge's replacement-order ask, after the resolution
 		}

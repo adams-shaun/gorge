@@ -97,6 +97,11 @@ type Ability struct {
 	// script or the manual mana window does (kernel mana_deferred.go). A
 	// table byte: AbilityFlags has no free bit.
 	ManaDeferred bool
+	// ManaHasteValid: AddsKeywords$ Haste | AddsKeywordsValid$ ... |
+	// AddsKeywordsUntil$ UntilEOT (Carnelian Orb of Dragonkind; CR 106.6):
+	// a spell matching this filter, paid with this ability's mana, gains
+	// haste until end of turn as it enters (0 = no rider). A table field.
+	ManaHasteValid FilterID
 }
 
 // Timing is when a card may be cast.
@@ -166,11 +171,20 @@ const AfManaNonSpell AbilityFlags = AfManaReflect << 1
 // (dirac/kgen TestManaAbilityCostsAreHonoured).
 
 // CtrManaAb reports whether mana ability a costs only counters put on its
-// source, once each turn, with a fixed production (Wall of Roots; kernel
-// mana_countercost.go).
+// source, once each turn, with a fixed production of one colour (Wall of
+// Roots; kernel mana_countercost.go), or is the all-at-once removal shape
+// of CtrEachManaAb.
 func CtrManaAb(a *Ability) bool {
 	return a.Cost.Flags == CostAddCtr|CostOncePerTurn && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
-		a.AFlags == 0 && a.ManaRestrict == 0 && a.ManaColors != 0 && a.ManaColors&(a.ManaColors-1) == 0
+		a.AFlags == 0 && a.ManaRestrict == 0 && a.ManaColors != 0 && a.ManaColors&(a.ManaColors-1) == 0 || CtrEachManaAb(a)
+}
+
+// CtrEachManaAb reports whether mana ability a is the all-at-once shape of
+// CtrManaAb: "Remove N counters from this: Add {W}{W}{U}{U}...", once each
+// turn (Ramos, Dragon Engine): every colour of ManaColors, ManaN of each.
+func CtrEachManaAb(a *Ability) bool {
+	return a.ManaEach && a.Cost.Flags == CostRemoveCtr|CostOncePerTurn && a.Cost.N > 0 && a.ManaColors&^ColAny == 0 && a.ManaN > 0 &&
+		a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && a.AFlags == 0 && a.ManaRestrict == 0 && len(a.Prog) == 0
 }
 
 // TapXManaAb reports whether mana ability a is "{T}, tap an untapped <spec>
@@ -226,7 +240,7 @@ func FilterManaAb(a *Ability) bool {
 //
 //   - the first mana ability: a mana-free {T}, {T} + sacrifice this,
 //     sacrifice this alone (pcard.manaTap / manaSac / manaSacOnly), a counter
-//     placed on the source once a turn (CtrManaAb), the tap-another-
+//     placed on or removed from the source once a turn (CtrManaAb), the tap-another-
 //     permanent shape of TapXManaAb, or a filter (FilterManaAb);
 //   - a granted (latent) one: a mana-free {T} (genPrep.grantPC);
 //   - any later own mana ability: a {T} (a fixed-colour set, a restricted,

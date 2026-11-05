@@ -46,8 +46,19 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (Dream Harvest; Improvisation Capstone: RememberRevealed$+MinTotalCMC$ DigUntil, ECL/SOS +1; Black Widow, Super Spy: ImprintFound$ alone, MSH +1; ALL 21496 -> 21499).
 	// +1 (Sanar, Innovative First-Year: the DigUntil RememberRevealed$ library reveal and its five per-colour picks; ECL 232 -> 233, ALL 21523 -> 21524).
 	// +1 (Teval, Arbiter of Virtue: a granted Delve on the stack lowers and the cast announces its graveyard exiles; merged ALL 21523 -> 21524, TDM 244 -> 245).
+	// +3 (Cemetery Recruitment, Vengeful Rebirth, Tamiyo, Inquisitive Student: RememberTargets$ on a targeted Graveyard->Hand return; FDN 507 -> 508, ALL 21526 -> 21529).
+	// +3 (Wilt-Leaf Liege, Obstinate Baloth, Loxodon Smiter: the opponent-caused discard-to-battlefield replacement, lowered on land, absent here before the merge; FDN 508 -> 509, ALL 21529 -> 21532).
+	// +1 (Vizier of the Menagerie: the ManaConvert static lowering for creature spells; FDN 509 -> 510, ALL 21532 -> 21533).
+	// +2 (the WISH counter kind, kop.CtrWish: Wishclaw Talisman and Ring of Three Wishes lower; FDN 509 -> 510, ALL 21532 -> 21534).
+	// +1 (Carnelian Orb of Dragonkind: the AddsKeywords$ Haste mana rider lowers; FDN 510 -> 511, ALL 21534 -> 21535).
+	// +6 (the printed K:Prevent damage keywords: Fog Bank and kin; FDN 511 -> 512, ALL 21535 -> 21541).
+	// +1 over land's 21541 (this branch's Vizier of the Menagerie: FDN 512 -> 513, ALL 21541 -> 21542).
+	// +1 (Ramos, Dragon Engine: the all-at-once counter-removal mana ability, kop.CtrEachManaAb; merged with land's Animate Duration$/Mazemind lowerings; FDN 514 -> 515, ALL 21545 -> 21546).
+	// +2 (Animate Duration$ UntilUntaps, kop.Override.WhileTapped: Hedge Whisperer and The Blackstaff of Waterdeep lower; MKM 231 -> 232, ALL 21542 -> 21544).
+	// +1 over land's 21546 (this branch's Vannifar, Evolved Enigma: the cloak-from-hand shape lowers; merged with land's Ramos mana ability; MKM 232 -> 233, ALL 21546 -> 21547).
+	// +1 over land's 21547 (this branch's Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; merged with land's lowerings; FDN 515 -> 516, ALL 21547 -> 21548).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21530, 34442},
+	"ALL": {21548, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -56,12 +67,12 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"DSK": {236, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
-	"FDN": {509, 517},
+	"FDN": {516, 517},
 	"FIN": {266, 312},
 	"FRA": {245, 269},
 	"HOB": {152, 172},
 	"LCI": {250, 290},
-	"MKM": {231, 279},
+	"MKM": {233, 279},
 	"MOM": {198, 296},
 	"MSH": {226, 276},
 	"NEO": {198, 287},

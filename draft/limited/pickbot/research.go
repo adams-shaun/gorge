@@ -33,39 +33,57 @@ type Signals struct {
 	From   int
 }
 
-// Knobbed is Signals plus a per-colour bias (added per card colour, mean
-// over the card's colours) and a denial term: from pick 10 on, a card off
-// the seat's pair earns Deny*max(0, centred)/10 (hate-drafting).
+// Knobbed is the knob-file drafter: Committed under its Tuning's needs
+// weight, plus the Signals term when Tuning.SignalWeight is positive, a
+// per-colour bias (added per card colour, mean over the card's colours), a
+// per-pair bias for a card of exactly that pair, and a denial term: from
+// pick 10 on, a card off the seat's pair earns Deny*max(0, centred)/10
+// (hate-drafting). Zero knobs (Tuning.Filled) leave every extra term off,
+// so the zero Knobbed drafts exactly as Committed.
 type Knobbed struct {
-	Signals
-	Bias [5]float64
-	Deny float64
+	Lookup  CardLookup
+	Tuning  Tuning
+	Ratings *RatingsOverride
 }
 
 func (d *Knobbed) Scores(v PickView, dst []float64) []float64 {
-	dst = d.Signals.Scores(v, dst)
+	t := d.Tuning.Filled()
+	c := Committed{Lookup: d.Lookup, Tuning: t, Ratings: d.Ratings, NeedWeight: t.Need}
+	if t.SignalWeight > 0 {
+		s := Signals{Committed: c, Weight: t.SignalWeight, From: t.SignalStart}
+		dst = s.Scores(v, dst)
+	} else {
+		dst = c.Scores(v, dst)
+	}
 	if d.Lookup == nil {
 		return dst
 	}
-	rc := &RatingColour{Lookup: d.Lookup, Tuning: d.tuning(), Ratings: d.Ratings}
+	rc := &RatingColour{Lookup: d.Lookup, Tuning: t, Ratings: d.Ratings}
 	var pair uint8
 	if len(v.Picks) >= 9 {
-		pair = d.pair(v.Picks)
+		pair = c.pair(v.Picks)
 	}
 	for i, ref := range v.Pack {
 		m := factsOf(d.Lookup, ref.Name).mask
 		b, k := 0.0, 0
-		for c := 0; c < 5; c++ {
-			if m&(1<<c) != 0 {
-				b += d.Bias[c]
+		for col := 0; col < 5; col++ {
+			if m&(1<<col) != 0 {
+				b += t.Bias[col]
 				k++
 			}
 		}
 		if k > 0 {
 			dst[i] += b / float64(k)
 		}
-		if d.Deny != 0 && pair != 0 && m != 0 && m&^pair != 0 {
-			dst[i] += d.Deny * math.Max(0, rc.centred(v.Set, ref)) / 10
+		if k == 2 {
+			for p, cp := range colourPairs {
+				if m == uint8(1<<cp[0]|1<<cp[1]) {
+					dst[i] += t.PairBias[p]
+				}
+			}
+		}
+		if t.Deny != 0 && pair != 0 && m != 0 && m&^pair != 0 {
+			dst[i] += t.Deny * math.Max(0, rc.centred(v.Set, ref)) / 10
 		}
 	}
 	return dst

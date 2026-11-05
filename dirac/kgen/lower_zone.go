@@ -574,8 +574,10 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		// join the remembered set (ForgetOtherTargets$ first forgets the
 		// rest). Lowered only for a targeted battlefield exile, where the
 		// kernel's ExileEx MvRemember remembers exactly the moved targets
-		// (a legal battlefield target always moves); with no target it is
-		// a no-op in gorge.
+		// (a legal battlefield target always moves), and a targeted
+		// graveyard-to-hand return, where ReturnEx MvRemember remembers the
+		// returned card (an illegal target does not move: CR 608.2b;
+		// Cemetery Recruitment); with no target it is a no-op in gorge.
 		if rt != "True" {
 			return refuse("RememberTargets %q", rt)
 		}
@@ -587,7 +589,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if !lc.restReadsRemembered() && !lc.remPersistShape() { // lower_rempersist.go
 				return refuse("RememberTargets read outside its own resolution")
 			}
-			if dest != zExile || tz != zBattlefield {
+			if !(dest == zExile && tz == zBattlefield) && !(origin == zGraveyard && dest == zHand) {
 				return refuse("RememberTargets on a %s->%s move", zoneLabel[origin], zoneLabel[dest])
 			}
 			if ps.is("ForgetOtherTargets", "True") {
@@ -2417,6 +2419,11 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 		case "Permanent", "UntilYourNextTurn":
 		case "UntilHostLeavesPlay":
 			o.WhileHost, d = true, "WhileHost" // lower_tokenattacking.go
+		case "UntilUntaps":
+			// "for as long as CARDNAME remains tapped" (Hedge Whisperer):
+			// host-bound, and also ended by the host's untap (gorge
+			// registerAnimateEffects' UntilUntapOf; static_animatewhiletapped.go)
+			o.WhileHost, o.WhileTapped, d = true, true, "WhileHost"
 		default:
 			return nil, "", false, refuse("Animate Duration %q", d)
 		}
@@ -2523,7 +2530,9 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 				return nil, "", false, refuse("Animate Toughness$ %q: %v", tS, err)
 			}
 		}
-		if o.WhileHost {
+		if o.WhileHost && !(o.WhileTapped && pv.isConst() && tv.isConst()) {
+			// the applied record keeps the host in its P/T fields: only a
+			// constant P/T, read from the table, fits (UntilUntaps alone)
 			return nil, "", false, refuse("Animate Duration UntilHostLeavesPlay with a P/T set")
 		}
 		if o.LivePT {
@@ -3343,6 +3352,9 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 		// (painRider; gorge's last-resort Consequence{Damage: N},
 		// dirac/mana_pain.go).
 		return refuse("mana ability with a rider program")
+	}
+	if err := lc.manaSpentRiders(ps, ab, m); err != nil {
+		return err
 	}
 	if left := ps.unread(); len(left) > 0 {
 		return refuse("unread params %v", left)

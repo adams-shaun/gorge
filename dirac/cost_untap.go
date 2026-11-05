@@ -34,9 +34,7 @@ func (s *State) untapCost(k *prep, sl Slot) {
 		return // a replaced Untap event: no Untaps trigger
 	}
 	p.flags &^= pfTapped
-	if s.g.netAny() {
-		s.netDrop(p.obj) // the lock ends at the first untap (act_lockpermanent.go)
-	}
+	s.untapEnds(k, p.obj) // the lock and the host-tapped grants end at the first untap (static_animatewhiletapped.go)
 	if k.gen != nil && s.subs[kop.TrigUntaps].any() {
 		s.fireObjGen(k, kop.TrigUntaps, sl, p.obj, p.ctrl, 0)
 	}

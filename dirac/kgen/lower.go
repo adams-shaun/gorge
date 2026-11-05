@@ -808,6 +808,9 @@ func (lc *lowerCtx) lowerKeywords() {
 		}
 		node := "K:" + k
 		switch {
+		case param == "" && lc.lowerPreventKeyword(head):
+			// the printed K:Prevent sentence: CardDef.Prevent* (lower_preventkw.go),
+			// consumed with its minted R: lines
 		case head == "Hexproof" && hexColourLetters[strings.ToLower(param)] != "":
 			lc.out.HexColors = mergeColours(lc.out.HexColors, hexColourLetters[strings.ToLower(param)])
 		case head == "Hexproof" && param == "Instant":

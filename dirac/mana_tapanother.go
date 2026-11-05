@@ -256,7 +256,9 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	}
 	t := s.fork()
 	defer s.unfork()
-	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
+	// granted mana is the grant search's (grantPrefix / grantCap), for a cast as
+	// for an activation: no gap of this search activates a grant, so none prices it
+	t.g.noGrant = true
 	if !rs.settle(k, t, false) || rs.n == 0 {
 		return false
 	}

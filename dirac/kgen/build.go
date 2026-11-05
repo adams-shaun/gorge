@@ -354,6 +354,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"POSSESSION": kop.CtrPossession, // Unwilling Vessel's named counter (CR 122.1)
 	"PROMOTION":  kop.CtrPromotion,  // Beckett Mariner's named counter (CR 122.1)
 	"PEACE":      kop.CtrPeace,      // Peace in Our Time's named counter (CR 122.1)
+	"WISH":       kop.CtrWish,       // Wishclaw Talisman's named counter (CR 122.1)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -431,6 +432,7 @@ func (cb *cardBuilder) record() error {
 	if d.Keywords, err = kwMask(c.Kw); err != nil {
 		return err
 	}
+	d.PreventDmgTo, d.PreventCombatTo, d.PreventCombatBy = c.PreventDmgTo, c.PrevCmbTo, c.PrevCmbBy
 	d.Colors = colorMask(c.Colors)
 	d.Power, d.Toughness, d.Loyalty = int8(c.P), int8(c.T), int8(c.Loyalty)
 	d.NoPT = c.NoPT
@@ -1917,6 +1919,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.LoseAbilities = o.LoseAbilities
 	ko.KeepP, ko.KeepT = o.KeepP, o.KeepT
 	ko.WhileHost, ko.CantAttack = o.WhileHost, o.CantAttack
+	ko.WhileTapped = o.WhileTapped
 	ko.NoCost = o.NoCost
 	ko.RemoveLegendary = o.RemoveLegendary
 	ko.GrantStatics = o.GrantStatics

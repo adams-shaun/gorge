@@ -807,7 +807,12 @@ func (s *State) payFromPool(p uint8, cost *kop.ManaCost, x int) {
 // payFromPoolRider is payFromPool with the may-play any-colour rider.
 func (s *State) payFromPoolRider(k *prep, p uint8, cost *kop.ManaCost, x int, anyColor bool) {
 	if k.gen != nil && s.ctl == ctlBuild && s.bld().e.flags&sfAnyMana != 0 && s.bld().e.kind == seSpell {
-		c := s.payAnyTypePips(k, p, *cost)
+		var c kop.ManaCost
+		if o := s.bld().e.obj; s.convAnyType(k, p, o) && (s.bld().e.flags&sfMayPlay == 0 || !s.mayPlayAnyType(k, p, o)) {
+			c = s.payConvPips(k, p, *cost) // the conversion alone: exact colours first
+		} else {
+			c = s.payAnyTypePips(k, p, *cost)
+		}
 		cost = &c
 	}
 	if k.gen != nil && k.gen.anyColSpent && s.ctl == ctlBuild {
