@@ -1,0 +1,11 @@
+# the ddo-reads pool: Expedited Inheritance's DamageDoneOnce body reads the
+# damaged creature's controller (Dig Defined$ TriggeredTargetController) and
+# its Effect's may-play grant belongs to that player
+# (EffectOwner$ RememberedController), beside burn that deals exactly two and
+# creatures to damage (dirac/oracle/ddo_reads_test.go)
+Expedited Inheritance
+Shock
+Grizzly Bears
+Hill Giant
+Mountain
+Forest
