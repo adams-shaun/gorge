@@ -14,16 +14,19 @@ import (
 // one. limitPlan replays pay.Search (level order, bound, node count) and, when
 // that search reaches the limit, replaces the exact plan with its best.
 //
-// It runs only on a board where a land has a granted basic land type, in
-// phase 1 of the plan: Leyline's boards are the only ones measured to reach
-// the limit. Sacrificing, painful, gated and restricted sources stay with the
-// exact planner, as do the any-colour rider and a hybrid cast's source order.
+// It runs on a board where a land has a granted basic land type, and on one
+// with planLimitUnits sources or more (an {X} spell paid from a dozen Treasures
+// and a few lands reaches the limit in phase 2, where the sacrificed sources'
+// irreversible cost is rank key 1). Painful, sacrifice-only, gated and
+// restricted sources stay with the exact planner, as do the any-colour rider
+// and a hybrid cast's source order.
 
 const (
 	planLimitNodes = 65536 // decision.MaxPaymentPlanSearchNodes
 	planLimitActs  = 64    // decision.MaxPaymentActivations
 	planLimitAlts  = 10    // five own colours and five granted ones: Public Thoroughfare's any-colour ability and the intrinsic ones
 	planLimitAny   = 63    // the mask of all six mana kinds
+	planLimitUnits = 16    // sources from which a board can reach the node limit without a granted type
 )
 
 // lsAlt is one alternative of a unit: the colour it makes and the ability that
@@ -42,6 +45,7 @@ type lsClass struct {
 	n     int32
 	ty    uint8
 	amt   int32
+	irr   int32 // pay.ConsequenceCost of one unit: a sacrificed source's 10 (20 a creature)
 	alts  [planLimitAlts]lsAlt
 	na    int
 	pick  [planLimitAlts]uint8 // alternatives in witness-step order
@@ -53,22 +57,23 @@ type lsLevel struct{ class, alt uint8 }
 type lsStats struct {
 	most     [planLimitAny + 1]int32
 	least    int32
+	irr      int32
 	creature int32
 	flex     int32
 	any      bool
 }
 
-func (b *lsStats) add(col uint8, amt, creature, flex int32) {
+func (b *lsStats) add(col uint8, amt, irr, creature, flex int32) {
 	for m := 1; m <= planLimitAny; m++ {
 		if m>>col&1 != 0 {
 			b.most[m] = max(b.most[m], amt)
 		}
 	}
 	if !b.any {
-		b.least, b.creature, b.flex, b.any = amt, creature, flex, true
+		b.least, b.irr, b.creature, b.flex, b.any = amt, irr, creature, flex, true
 		return
 	}
-	b.least, b.creature, b.flex = min(b.least, amt), min(b.creature, creature), min(b.flex, flex)
+	b.least, b.irr, b.creature, b.flex = min(b.least, amt), min(b.irr, irr), min(b.creature, creature), min(b.flex, flex)
 }
 
 func (b lsStats) merge(o *lsStats) lsStats {
@@ -81,15 +86,17 @@ func (b lsStats) merge(o *lsStats) lsStats {
 	for m := range b.most {
 		b.most[m] = max(b.most[m], o.most[m])
 	}
-	b.least, b.creature, b.flex = min(b.least, o.least), min(b.creature, o.creature), min(b.flex, o.flex)
+	b.least, b.irr, b.creature, b.flex = min(b.least, o.least), min(b.irr, o.irr), min(b.creature, o.creature), min(b.flex, o.flex)
 	return b
 }
 
-// lsKeys is pay.Rank's keys 2-7.
-type lsKeys struct{ creatures, sources, surplus, flex, reserve, remainder int32 }
+// lsKeys is pay.Rank's keys 1-7.
+type lsKeys struct{ cost, creatures, sources, surplus, flex, reserve, remainder int32 }
 
 func (a *lsKeys) cmp(b *lsKeys) int {
 	switch {
+	case a.cost != b.cost:
+		return int(a.cost - b.cost)
 	case a.creatures != b.creatures:
 		return int(a.creatures - b.creatures)
 	case a.sources != b.sources:
@@ -121,6 +128,7 @@ type limitSearch struct {
 	sources  int32
 	creats   int32
 	flex     int32
+	irr      int32
 	nodes    int
 	limited  bool
 	found    bool
@@ -140,7 +148,7 @@ func (s *State) limitPlan(k *prep, pk *planner) {
 		return
 	}
 	for t := 0; t < pk.nt; t++ {
-		if ty := &pk.types[t]; ty.sac || ty.sacOnly || ty.first != 0 || ty.pain != 0 || ty.dmask != ty.mask {
+		if ty := &pk.types[t]; ty.sacOnly || ty.first != 0 || ty.pain != 0 || ty.dmask != ty.mask {
 			return
 		}
 	}
@@ -149,7 +157,7 @@ func (s *State) limitPlan(k *prep, pk *planner) {
 		sl := pk.units[u]
 		granted = granted || s.blgMask(k, sl)&^k.cards[s.cardAt(sl)].manaCol != 0
 	}
-	if !granted {
+	if !granted && pk.nu < planLimitUnits {
 		return
 	}
 	ls := &limitSearch{pk: *pk}
@@ -184,7 +192,7 @@ func (ls *limitSearch) census(k *prep, s *State) {
 			ci = ls.nc
 			ls.nc++
 			cl := &ls.classes[ci]
-			cl.ty, cl.alts, cl.na, cl.amt = pk.utyp[u], alts, na, int32(pk.types[pk.utyp[u]].n)
+			cl.ty, cl.alts, cl.na, cl.amt, cl.irr = pk.utyp[u], alts, na, int32(pk.types[pk.utyp[u]].n), int32(pk.types[pk.utyp[u]].irr)
 			for a := 0; a < na; a++ {
 				cl.pick[a] = uint8(a)
 				for j := a; j > 0 && alts[cl.pick[j]].step() < alts[cl.pick[j-1]].step(); j-- {
@@ -208,7 +216,8 @@ func (pk *planner) sameClassType(a, b uint8) bool {
 		return true
 	}
 	x, y := &pk.types[a], &pk.types[b]
-	return x.mask == y.mask && x.dmask == y.dmask && x.n == y.n && x.creat == y.creat && x.flex == y.flex && x.xv == y.xv
+	return x.mask == y.mask && x.dmask == y.dmask && x.n == y.n && x.creat == y.creat && x.flex == y.flex && x.xv == y.xv &&
+		x.sac == y.sac && x.irr == y.irr
 }
 
 // unitAlts lists unit u's alternatives in gorge's order: its own abilities,
@@ -255,9 +264,10 @@ func (s *State) unitAlts(k *prep, pk *planner, u int, out *[planLimitAlts]lsAlt)
 	return n
 }
 
-// order is pay.Search.order: non-creatures before creatures, then classes that
-// can pay a short colour, the least flexible, battlefield order; inside a
-// class, the alternatives making a short colour first.
+// order is pay.Search.order: the cheapest irreversible cost, non-creatures
+// before creatures, then classes that can pay a short colour, the least
+// flexible, battlefield order; inside a class, the alternatives making a short
+// colour first.
 func (ls *limitSearch) order() {
 	pk := &ls.pk
 	var shortMask uint8
@@ -266,7 +276,7 @@ func (ls *limitSearch) order() {
 			shortMask |= 1 << c
 		}
 	}
-	rank := func(cl *lsClass) (int, int, int, uint8) {
+	rank := func(cl *lsClass) (int, int, int, int, uint8) {
 		ty := &pk.types[cl.ty]
 		creature, pips := 0, 1
 		if ty.creat {
@@ -275,11 +285,14 @@ func (ls *limitSearch) order() {
 		if ty.mask&shortMask != 0 {
 			pips = 0
 		}
-		return creature, pips, int(ty.flex), cl.units[0]
+		return int(cl.irr), creature, pips, int(ty.flex), cl.units[0]
 	}
 	less := func(a, b *lsClass) bool {
-		a1, a2, a3, a4 := rank(a)
-		b1, b2, b3, b4 := rank(b)
+		a0, a1, a2, a3, a4 := rank(a)
+		b0, b1, b2, b3, b4 := rank(b)
+		if a0 != b0 {
+			return a0 < b0
+		}
 		if a1 != b1 {
 			return a1 < b1
 		}
@@ -321,7 +334,7 @@ func (ls *limitSearch) order() {
 		}
 		var inClass lsStats
 		for l := classStart[c+1] - 1; l >= classStart[c]; l-- {
-			inClass.add(cl.alts[ls.levels[l].alt].col, cl.amt, creature, int32(ty.flex))
+			inClass.add(cl.alts[ls.levels[l].alt].col, cl.amt, cl.irr, creature, int32(ty.flex))
 			ls.here[l] = inClass
 			ls.later[l] = later
 			ls.laterCap[l] = laterCap
@@ -394,6 +407,7 @@ func (ls *limitSearch) take(lv lsLevel, n int32) {
 		ls.creats += n
 	}
 	ls.flex += n * int32(ty.flex)
+	ls.irr += n * cl.irr
 }
 
 // promising is pay.Search.promising.
@@ -439,6 +453,7 @@ func (ls *limitSearch) promising(level int, short *[kop.NumManaKinds]int32, tota
 		return true
 	}
 	lb := lsKeys{
+		cost:      ls.irr + need*rest.irr,
 		creatures: ls.creats + need*rest.creature,
 		sources:   ls.sources + need,
 		surplus:   max(ls.madeTotal()+need*rest.least-int32(ls.pk.rawT), 0),
@@ -464,6 +479,9 @@ func (ls *limitSearch) reserve() (int32, int32) {
 		if ls.used[c] == 0 {
 			continue
 		}
+		if pk.types[ls.classes[c].ty].nocol {
+			continue // a last-resort unit has no colours in gorge's census
+		}
 		colours := pk.types[ls.classes[c].ty].dmask
 		for i := range remaining {
 			if colours&(1<<i) != 0 {
@@ -487,7 +505,7 @@ func (ls *limitSearch) reserve() (int32, int32) {
 // or ties them with a smaller witness (pay.CompareSteps). The deficit
 // arithmetic is exact for these one-colour alternatives, so no solver refuses it.
 func (ls *limitSearch) complete() {
-	keys := lsKeys{creatures: ls.creats, sources: ls.sources, surplus: ls.madeTotal() - int32(ls.pk.rawT), flex: ls.flex}
+	keys := lsKeys{cost: ls.irr, creatures: ls.creats, sources: ls.sources, surplus: ls.madeTotal() - int32(ls.pk.rawT), flex: ls.flex}
 	keys.reserve, keys.remainder = ls.reserve()
 	c := 0
 	if ls.found {

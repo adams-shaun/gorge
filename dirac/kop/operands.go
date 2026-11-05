@@ -422,6 +422,9 @@ const (
 	// DelayBeginCombat: the next beginning of combat step this turn (gorge
 	// Phase$ BeginCombat, ThisTurn$ True; one-shot, dropped at the turn change)
 	DelayBeginCombat = 6
+	// DelayYourEndStep: the controller's next end step (gorge Phase$ End of
+	// Turn, ValidPlayer$ You; another player's end step leaves it pending)
+	DelayYourEndStep = 7
 )
 
 // DpGroup is OpDelayedProgram B's group flag: the program remembers the

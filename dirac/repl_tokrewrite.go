@@ -20,7 +20,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // incubate, empower, endure, recruit, the other copy sites) stalls the same way
 // when a rewriter applies; the CreateToken ops read the rewritten card, and
 // execCopyToken (Replicator's copy) mints it as a plain untapped token
-// (copyTokenRewrite). A Role
+// (copyTokenRewrite), whatever riders the copy instruction carries. A Role
 // mint (TokAttach) stalls the same way: gorge's applyTokenReplacementToPlan
 // turns it into a plain script mint of the rewriter's card (the Illusion is no
 // Aura, so auraTokenWithheld withholds nothing), which the kernel's attach path
@@ -113,19 +113,17 @@ func (s *State) replTokensRewApplied(k *prep, p uint8, tok CardID, n int) (CardI
 // copyTokenRewrite is the copy sites' read of the rewriter (execCopyToken):
 // the number of copies and, when a CreateToken rewriter applies, the card
 // that replaces them (gorge continueCopyTokenProposal: each copy mint becomes
-// a plain script mint of the rewriter's card, untapped and no copy; the
-// effect's rider flags then have no copy to act on, so a copy instruction
-// carrying one stalls). ok is false when the game stalled.
-func (s *State) copyTokenRewrite(k *prep, in *kop.Instr, p uint8, tok CardID, n int) (card CardID, cnt int, rewritten, ok bool) {
+// a plain script mint of the rewriter's card, untapped and no copy). The
+// effect is then left with no copy, so its per-copy riders (TokenTapped$,
+// PumpKeywords$, RememberTokens$, AtEOTTrig$, AtEOT$ Exile) have nothing to
+// act on, and the one AtEOT$ Sacrifice group is registered over no object
+// (execCopyToken's delayEmpty; gorge effCopyPermanent, CR 603.7). ok is false
+// when the game stalled.
+func (s *State) copyTokenRewrite(k *prep, p uint8, tok CardID, n int) (card CardID, cnt int, rewritten, ok bool) {
 	if k.gen == nil || !k.gen.anyTokRew || k.gen.anyRepl&rbDblTok == 0 || n <= 0 || p > 1 {
 		return tok, s.replTokens(k, p, tok, n), false, true
 	}
-	card, cnt, rewritten, ok = s.replTokensRewApplied(k, p, tok, n)
-	if ok && rewritten && uint16(in.B.N)&^(kop.CpTapped|kop.CopyNonRemCtrl) != 0 {
-		s.capFull(StallTokRewrite)
-		return tok, 0, false, false
-	}
-	return card, cnt, rewritten, ok
+	return s.replTokensRewApplied(k, p, tok, n)
 }
 
 // mintRewritten creates n plain untapped non-copy tokens of the rewriter's

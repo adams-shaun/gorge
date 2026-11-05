@@ -526,6 +526,10 @@
       "tier": "cmd",
       "status": "TOOL"
     },
+    "cmd/deckpool": {
+      "tier": "cmd",
+      "status": "TOOL"
+    },
     "cmd/labdemo": {
       "tier": "cmd",
       "status": "TOOL"

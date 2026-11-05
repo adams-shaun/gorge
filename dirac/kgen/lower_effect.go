@@ -1608,6 +1608,16 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		lc.emit(in)
 	case "SacrificeAll":
+		if ps.str("Defined") == "DelayTriggerRememberedLKI" {
+			// a remembered group's delayed body (lowerCtx.delayedGroupSac:
+			// Will Riker, First in the Field); the same ExtSacDelayed batch
+			// as Mobilize's group, emitted by Sacrifice below
+			if !lc.inGroup {
+				return refuse("SacrificeAll Defined$ DelayTriggerRememberedLKI outside a delayed group")
+			}
+			lc.emit(lInstr{Op: "SacrificeDelayed", Obj: lRef{Kind: rDelayedRemembered}})
+			return nil
+		}
 		if _, ok := ps.get("ValidCards"); !ok {
 			// gorge effSacrificeAll's Defined$ path sacrifices the named
 			// objects that are on the battlefield: Defined$ Self is the

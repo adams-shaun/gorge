@@ -11,6 +11,16 @@ const (
 	dpWhenMask  = 3 << dpWhenShift
 )
 
+// dpExtYourEndStep marks a dprog record the controller's next end step
+// (kop.DelayYourEndStep; n's end-step timing bits are 0, so the player gate
+// rides dprog.ext with the existing ctrl filter).
+const dpExtYourEndStep uint8 = 2
+
+// DebugDelayYourEndStepOff is TestWillRikerMutation's switch: a due
+// controller's-next-end-step program is dropped without running. Never set in
+// production.
+var DebugDelayYourEndStepOff bool
+
 // dpWhen is an OpDelayedProgram's timing as dprog.n bits.
 func dpWhen(in *kop.Instr) uint8 {
 	if in.A.N == kop.DelaySpellCast {
@@ -21,6 +31,9 @@ func dpWhen(in *kop.Instr) uint8 {
 	}
 	if in.A.N == kop.DelayBeginCombat {
 		return 0 // dprog.ext carries it (trig_delaybegincombat.go)
+	}
+	if in.A.N == kop.DelayYourEndStep {
+		return 0 // dprog.ext carries the player gate (dpExtYourEndStep)
 	}
 	return uint8(in.A.N&3) << dpWhenShift
 }
@@ -53,7 +66,8 @@ func (s *State) fireDelayedUpkeep(k *prep) {
 }
 
 // fireDelayedWhen enqueues, in registration order, the delayed programs due
-// now -- at=0: the end step's (no timing bits); at=1: the upkeep's; at=2:
+// now -- at=0: the end step's (no timing bits; the controller's-next-end-step
+// records wait for their controller's own end step), at=1: the upkeep's; at=2:
 // the end of combat step's (kop.DelayEndCombat) -- and
 // keeps the rest in order with their LKI indexes. Each LKI index is copied
 // into its pending trigger before the pool shrinks (zone_lki.go).
@@ -68,11 +82,15 @@ func (s *State) fireDelayedWhen(k *prep, at int) {
 		due := d.ext == 0 && (d.n&(dpSpell|dpDies) == 0 && w == 0 && at == 0 ||
 			at == 1 && (w == kop.DelayUpkeep || w == kop.DelayYourUpkeep && s.active == d.ctrl) ||
 			at == 2 && w == kop.DelayEndCombat) ||
+			at == 0 && d.ext == dpExtYourEndStep && s.active == d.ctrl ||
 			at == 3 && d.ext == dpExtBeginCombat
 		if !due {
 			s.g.dp[keep], s.g.dpLKI[keep] = d, s.g.dpLKI[i]
 			keep++
 			continue
+		}
+		if DebugDelayYourEndStepOff && d.ext == dpExtYourEndStep {
+			continue // TestWillRikerMutation: the due program is dropped unrun
 		}
 		m := s.npend
 		ro, remVer, remSet := s.delayRem(k, &d)
@@ -84,7 +102,7 @@ func (s *State) fireDelayedWhen(k *prep, at int) {
 		if d.n&dpTrack != 0 {
 			sv, amt = d.vers[0], dpTrackAmt // a tracked promise: resolves doing nothing if the object left
 		}
-		if DebugDelayBeginCombatOff && d.ext != 0 {
+		if DebugDelayBeginCombatOff && d.ext == dpExtBeginCombat {
 			continue // TestTheWrathOfKhanMutation: the due program is dropped unrun
 		}
 		s.enqueue(d.src, sv, d.card, d.ab, d.ctrl, ro, d.ctrl, amt)

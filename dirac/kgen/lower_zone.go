@@ -2821,7 +2821,15 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	if ps.str("Mode") != "Phase" || ps.str("Phase") != "End of Turn" {
 		return refuse("delayed trigger %s/%s", ps.str("Mode"), ps.str("Phase"))
 	}
-	if vp, ok := ps.get("ValidPlayer"); ok && vp != "Player" {
+	when := "NextEndStep"
+	switch vp := ps.str("ValidPlayer"); vp {
+	case "", "Player":
+	case "You":
+		// the controller's next end step (gorge's ValidPlayer$ You: the
+		// phase gate leaves the registration pending through another
+		// player's end step; dirac/trig_delayedtiming.go dpExtYourEndStep)
+		when = "YourNextEndStep"
+	default:
 		return refuse("delayed trigger ValidPlayer %q", vp)
 	}
 	ro := ps.str("RememberObjects")
@@ -2831,6 +2839,7 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	}
 	var obj lRef
 	group := false
+	sacGroup := false
 	if ps.str("RememberChain") == "False" {
 		if ro != "" {
 			return refuse("RememberChain$ False delayed trigger shape")
@@ -2839,6 +2848,13 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 			return err
 		}
 		group = true
+	}
+	if !group && ro == "Remembered" && delayedGroupSac(exec) {
+		// a remembered set sacrificed as one group at the delayed step
+		// (Will Riker, First in the Field: DigUntil RememberFound$ True, then
+		// SacrificeAll Defined$ DelayTriggerRememberedLKI). DpGroup carries
+		// the two objects the body sacrifices (lower_delayed.go).
+		sacGroup = true
 	}
 	switch {
 	case group:
@@ -2863,7 +2879,7 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	lat := lc.newLatent("DelayedTrigger")
 	lat.DelayedObjOnly = delayedObjOnly(ro)
 	lat.DelayedSelf = delayedSelf(lc.ab.Trigger, ro)
-	if group {
+	if group || sacGroup {
 		lc.inGroup = true
 	}
 	err := lc.withAbility(lat, func() error { return lc.chain(exec, nil) })
@@ -2871,8 +2887,8 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	if err != nil {
 		return err
 	}
-	in := lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: "NextEndStep"}
-	if group {
+	in := lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: when}
+	if group || sacGroup {
 		in.B = cst(1)
 	}
 	if ro == "Remembered" && lc.czForgetSet {
@@ -2902,6 +2918,16 @@ func (lc *lowerCtx) groupDelayed(exec *cards.SA) error {
 		return refuse("Mobilize group of %d: a delayed program carries two objects", n)
 	}
 	return nil
+}
+
+// delayedGroupSac reports whether a remembered-set delayed trigger's body is
+// one SacrificeAll of the delayed-remembered set (Will Riker, First in the
+// Field: DigUntil RememberFound$ True, then SacrificeAll Defined$
+// DelayTriggerRememberedLKI). The registration uses the DpGroup carrier and
+// the body the same ExtSacDelayed op as Mobilize's group (lower_effect.go).
+func delayedGroupSac(exec *cards.SA) bool {
+	return exec != nil && exec.API == "SacrificeAll" && exec.Sub == nil &&
+		len(exec.Params) == 1 && exec.Params["Defined"] == "DelayTriggerRememberedLKI"
 }
 
 func (lc *lowerCtx) immediateTrigger(ps *params) error {
