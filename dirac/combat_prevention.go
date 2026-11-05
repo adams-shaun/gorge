@@ -2,6 +2,34 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
+// prevCombatTo reports whether the permanent at sl prevents every combat
+// damage event dealt to it: the granted/derived KwPreventCombatDamageTo bit
+// (Fleeting Flight), or a printed K:Prevent sentence's card-def fact
+// (PreventCombatTo, or PreventDmgTo which covers combat too).
+func (s *State) prevCombatTo(k *prep, sl Slot) bool {
+	if s.kwGen(k, sl)&kop.KwPreventCombatDamageTo != 0 {
+		return true
+	}
+	return k.gen != nil && k.gen.replBits[s.cardAt(sl)]&(rbPrevCombatTo|rbPrevDmgTo) != 0
+}
+
+// prevCombatFrom reports whether the permanent at sl prevents every combat
+// damage event it would deal: the granted/derived KwPreventCombatDamageFrom
+// bit (Maze of Ith) or the printed "dealt by" sentence (Fog Bank).
+func (s *State) prevCombatFrom(k *prep, sl Slot) bool {
+	if s.kwGen(k, sl)&kop.KwPreventCombatDamageFrom != 0 {
+		return true
+	}
+	return k.gen != nil && k.gen.replBits[s.cardAt(sl)]&rbPrevCombatBy != 0
+}
+
+// prevAnyTo reports whether the permanent at sl prevents every damage event
+// dealt to it, combat and noncombat ("Prevent all damage that would be dealt
+// to CARDNAME.").
+func (s *State) prevAnyTo(k *prep, sl Slot) bool {
+	return k.gen != nil && k.gen.replBits[s.cardAt(sl)]&rbPrevDmgTo != 0
+}
+
 // preventCombatEv takes combat damage event ev out of r's accounting: the
 // event is prevented whole (a shield counter, protection), so it is not
 // damage dealt — no DamageDone/DamageDealtOnce trigger, no lifelink, no

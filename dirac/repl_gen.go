@@ -69,6 +69,9 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbProtCol != 0 && sl != NoSlot && s.protFrom(k, sl, srcSl, srcCard, s.srcColors(k, srcSl, srcCard)) {
 		return 0 // protection from the source's colour, likewise
 	}
+	if sl != NoSlot && s.prevAnyTo(k, sl) {
+		return 0 // "Prevent all damage that would be dealt to CARDNAME." (combat_prevention.go)
+	}
 	if g.anyRepl&rbShield != 0 && !combat && sl != NoSlot && s.shieldN(sl) > 0 {
 		n = s.shieldNC(k, srcCtrl, srcSl, srcCard, sl, n) // CR 122.1c (combat: shieldCombat)
 		if k.anyRedNC && !combat && n > 0 {
@@ -364,7 +367,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 			}
 		}
 	}
-	if fe.dst != NoSlot && s.kwGen(k, fe.dst)&kop.KwPreventCombatDamageTo != 0 {
+	if fe.dst != NoSlot && s.prevCombatTo(k, fe.dst) {
 		if n == len(ro.cand) {
 			s.capFull(StallShield) // loud: never truncate the candidates
 			return n
@@ -541,7 +544,7 @@ func (s *State) replCandLive(k *prep, i int) bool {
 		return s.occ.has(ro.askD) && s.shieldN(ro.askD) > 0
 	}
 	if ro.prev&(1<<i) != 0 {
-		return s.kwGen(k, sl)&kop.KwPreventCombatDamageTo != 0
+		return s.prevCombatTo(k, sl)
 	}
 	return s.perms[sl].ctrl == ro.actl && k.gen.replBits[s.cardAt(sl)]&rbDblDmg != 0 && !s.genLost(k, sl) &&
 		(!k.gen.anyFiltRepl || s.dblDmgLive(k, sl))
@@ -599,7 +602,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 			n *= 2
 		}
 	}
-	if k.gen.anyPrevFrom && s.occ.has(ro.askS) && s.kwGen(k, ro.askS)&kop.KwPreventCombatDamageFrom != 0 {
+	if k.gen.anyPrevFrom && s.occ.has(ro.askS) && s.prevCombatFrom(k, ro.askS) {
 		n = 0 // the source's prevention (preventFromGen)
 	}
 	if n <= 0 {
