@@ -21,22 +21,25 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestFugitiveCodebreakerDisguiseTurnFaceUpOffersAndChargesFullCost: a disguised Fugitive Codebreaker on the
-// battlefield offers the turn_face_up special action once the full printed
-// {5}{R} is payable, and choosing it pays exactly {5}{R} and flips the card
-// face up. The ReduceCost$ rider ("{1} less per instant/sorcery in your
-// graveyard") is deliberately not honoured -- there is no mana discount here.
-func TestFugitiveCodebreakerDisguiseTurnFaceUpOffersAndChargesFullCost(t *testing.T) {
+// TestFugitiveCodebreakerDisguiseTurnFaceUpOffersAndChargesReducedCost: a
+// disguised Fugitive Codebreaker's printed rider ("This cost is reduced by {1}
+// for each instant and sorcery card in your graveyard") is part of its
+// Disguise cost, so with two such cards in its controller's graveyard the
+// turn-up costs {3}{R}: the offer appears at 4 mana and choosing it charges
+// exactly 4, then flips the card face up. The cost is the KeywordWithCost
+// line's first colon-field; the rider amount is the SECOND (the SVar "X").
+func TestFugitiveCodebreakerDisguiseTurnFaceUpOffersAndChargesReducedCost(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
-	e, cfg := manifestEngine(t, reg, "Fugitive Codebreaker")
+	e, cfg := manifestEngine(t, reg, "Fugitive Codebreaker", "Lightning Bolt", "Lightning Bolt")
 	// Fund {3} for the face-down cast and nothing more (RRR), so the pool is
-	// empty after it and no {5}{R} turn-up is payable yet.
+	// empty after it.
 	id := morphDownCast(t, e, "Fugitive Codebreaker", "disguised", "RRR", 0)
 
 	// Preconditions: the real must differ from the compared value -- the
-	// card is on the battlefield face down, and the printed Disguise cost
-	// parses to the {5}{R} charge (not the polluted 20-generic parse).
+	// card is on the battlefield face down, the printed Disguise cost parses
+	// to the {5}{R} charge (not the polluted 20-generic parse), and the
+	// reduction token is the line's second colon-field, not the reminder.
 	o := e.G.Obj(id)
 	if o.Zone != state.ZBattlefield || !o.FaceDown || o.Controller != 0 {
 		t.Fatalf("precondition: Fugitive Codebreaker zone=%s faceDown=%v controller=%d, want a face-down battlefield object seat 0",
@@ -54,17 +57,43 @@ func TestFugitiveCodebreakerDisguiseTurnFaceUpOffersAndChargesFullCost(t *testin
 	if !ok || mf.cost.Generic != 5 || mf.cost.Colored[state.MR] != 1 || len(mf.cost.Unknown) != 0 {
 		t.Fatalf("precondition: morphFaceUpCost = %+v ok=%v, want generic 5 + one red, no Unknown", mf.cost, ok)
 	}
+	if mf.reduceToken != "X" {
+		t.Fatalf("precondition: reduceToken = %q, want the second colon-field %q", mf.reduceToken, "X")
+	}
+
+	// Seed TWO instants/sorceries in seat 0's graveyard (real corpus cards,
+	// moved with a logged MoveZone): the rider counts them.
+	g1 := searchMoveByName(t, e, "Lightning Bolt", state.ZGraveyard)
+	g2 := searchMoveByName(t, e, "Lightning Bolt", state.ZGraveyard)
+	if g1 == g2 || e.G.Obj(g1).Zone != state.ZGraveyard || e.G.Obj(g2).Zone != state.ZGraveyard || e.G.Obj(g1).Owner != 0 {
+		t.Fatalf("precondition: graveyard cards = %d/%d zones %s/%s owner %d, want two distinct seat-0 Bolt Moves to ZGraveyard",
+			g1, g2, e.G.Obj(g1).Zone, e.G.Obj(g2).Zone, e.G.Obj(g1).Owner)
+	}
+	// The composed cost really is {3}{R}, not the printed {5}{R}: the two
+	// values differ, so the assertions below are about the rider.
+	mods, mok := e.morphTurnUpMods(0, id, mf)
+	if !mok {
+		t.Fatal("precondition: morphTurnUpMods withheld the turn-up")
+	}
+	if got := mods.Apply(mf.cost); got.Generic != 3 || got.Colored[state.MR] != 1 || got.CMC() != 4 {
+		t.Fatalf("precondition: composed turn-up cost = %+v, want {3}{R}", got)
+	}
 
 	// The pool is empty, so the turn-up must not be offered yet.
 	if turnFaceUpOptionPresent(t, e, id) {
 		t.Fatal("turn_face_up offered with an empty pool, want withheld")
 	}
+	// Three mana is one short of the reduced {3}{R}: still withheld.
+	addMana(t, e, 0, "RRR")
+	if turnFaceUpOptionPresent(t, e, id) {
+		t.Fatal("turn_face_up offered for 3 mana, want withheld (the reduced cost is 4)")
+	}
 
-	// Fund exactly {5}{R} (6 mana); now the offer must appear and the action
+	// Fund exactly {3}{R} (4 mana); now the offer must appear and the action
 	// pay it.
-	addMana(t, e, 0, "RRRRRR")
+	addMana(t, e, 0, "R")
 	if !turnFaceUpOptionPresent(t, e, id) {
-		t.Fatal("turn_face_up not offered after funding {5}{R}")
+		t.Fatal("turn_face_up not offered after funding the reduced {3}{R}")
 	}
 	mark := len(e.L.Events)
 	before := e.G.Players[0].Pool.Total()
@@ -74,8 +103,8 @@ func TestFugitiveCodebreakerDisguiseTurnFaceUpOffersAndChargesFullCost(t *testin
 	// stack (assertTurnUpEventOnce checks no PutOnStack for id). Fugitive's
 	// own TurnFaceUp trigger may sit on the stack afterwards.
 	assertTurnUpEventOnce(t, e, id, mark)
-	if got, want := e.G.Players[0].Pool.Total(), before-6; got != want {
-		t.Fatalf("pool after turn-up = %d, want %d (exactly the printed {5}{R})", got, want)
+	if got, want := e.G.Players[0].Pool.Total(), before-4; got != want {
+		t.Fatalf("pool after turn-up = %d, want %d (exactly the reduced {3}{R})", got, want)
 	}
 	if o := e.G.Obj(id); o.FaceDown {
 		t.Fatal("Fugitive Codebreaker FaceDown=true after the turn-up, want false")

@@ -890,6 +890,25 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	if m.NonSpell {
 		ka.AFlags |= kop.AfManaNonSpell
 	}
+	if m.HasteValid != nil {
+		// the kernel reads the rider off the tapped card's mana ability
+		// (dirac/mana_spentrider.go): a second mana ability beside it would
+		// carry the rider onto its own taps
+		n := 0
+		for _, a := range cb.c.Abilities {
+			if a.Kind == akMana {
+				n++
+			}
+		}
+		if n != 1 {
+			return fmt.Errorf("AddsKeywords$ mana rider beside another mana ability")
+		}
+		id, err := cb.filter(m.HasteValid, kop.ZoneStack)
+		if err != nil {
+			return err
+		}
+		ka.ManaHasteValid = id
+	}
 	return nil
 }
 
@@ -1388,6 +1407,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.Flags4 |= kop.Tf4NamedCast
 	}
+	if t.Outstanding {
+		if t.Event != "CounterAddedOnce" && t.Event != "CounterAdded" || kt.Flags&kop.TfSelf == 0 {
+			return kt, fmt.Errorf("outstanding latch on a %s trigger", t.Event)
+		}
+		kt.Flags4 |= kop.Tf4StateCtr
+	}
 	if t.CastSnap {
 		if t.Event != "SpellCast" {
 			return kt, fmt.Errorf("cast-count snapshot on a %s trigger", t.Event)
@@ -1729,6 +1754,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "CantGainLife":
 		st.Kind = kop.StatCantGainLife
+	case "ManaConvert":
+		st.Kind = kop.StatAnyTypeCreatures // lower_manaconvert.go
 	case "CantDraw":
 		st.Kind = kop.StatCantDraw
 	case "MinMaxBlocker":
@@ -3712,6 +3739,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.C = 5 // chooseAttachPickOpt: the same pick, up to one
 		case "PutCounterPick":
 			ki.C = 6 // choosePutCounterPick
+		case "FaceDownPick":
+			ki.C = 7 // chooseFaceDownPick: the cloak-from-hand pick (gorge's face_down_choice)
 		}
 	case "ChooseEachType":
 		ki.Op = kop.OpChooseEachType

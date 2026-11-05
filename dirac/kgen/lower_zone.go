@@ -2419,6 +2419,11 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 		case "Permanent", "UntilYourNextTurn":
 		case "UntilHostLeavesPlay":
 			o.WhileHost, d = true, "WhileHost" // lower_tokenattacking.go
+		case "UntilUntaps":
+			// "for as long as CARDNAME remains tapped" (Hedge Whisperer):
+			// host-bound, and also ended by the host's untap (gorge
+			// registerAnimateEffects' UntilUntapOf; static_animatewhiletapped.go)
+			o.WhileHost, o.WhileTapped, d = true, true, "WhileHost"
 		default:
 			return nil, "", false, refuse("Animate Duration %q", d)
 		}
@@ -2525,7 +2530,9 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 				return nil, "", false, refuse("Animate Toughness$ %q: %v", tS, err)
 			}
 		}
-		if o.WhileHost {
+		if o.WhileHost && !(o.WhileTapped && pv.isConst() && tv.isConst()) {
+			// the applied record keeps the host in its P/T fields: only a
+			// constant P/T, read from the table, fits (UntilUntaps alone)
 			return nil, "", false, refuse("Animate Duration UntilHostLeavesPlay with a P/T set")
 		}
 		if o.LivePT {
@@ -3339,6 +3346,9 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 		// (painRider; gorge's last-resort Consequence{Damage: N},
 		// dirac/mana_pain.go).
 		return refuse("mana ability with a rider program")
+	}
+	if err := lc.manaSpentRiders(ps, ab, m); err != nil {
+		return err
 	}
 	if left := ps.unread(); len(left) > 0 {
 		return refuse("unread params %v", left)

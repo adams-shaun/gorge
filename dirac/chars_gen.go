@@ -445,6 +445,8 @@ func (s *State) basePTGen(k *prep, sl Slot) (int, int) {
 					continue
 				}
 				rp, rt = s.livePT(k, sl, o, rp) // static_animategrants.go
+			} else if o.WhileHost {
+				rp, rt = int16(o.SetP), int16(o.SetT) // r.r.p/t hold the host
 			}
 			if !o.KeepP {
 				bp = int(rp)

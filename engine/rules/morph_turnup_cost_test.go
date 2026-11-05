@@ -560,9 +560,10 @@ func TestMorphTurnFaceUpBotAnswerValidates(t *testing.T) {
 // parameter) used to be the Part A fixture, but that was the defect: the whole
 // KeywordParam remainder was handed to ParseCost. cards.Face.KeywordCostParam
 // now reads the cost as the first colon-field (Forge's KeywordWithCost rule),
-// so the rider's SVar name and reminder text no longer reach ParseCost and the
-// Disguise turn-up is offered for the full printed cost -- see
-// TestFugitiveCodebreakerDisguiseTurnFaceUpOffersAndChargesFullCost.
+// so the rider's SVar name and reminder text no longer reach ParseCost; the
+// Disguise turn-up is then priced by its printed cost plus the rider that the
+// second colon-field names -- see
+// TestFugitiveCodebreakerDisguiseTurnFaceUpOffersAndChargesReducedCost.
 //
 // Both assertions go through morphFaceUpCost, so removing either guard from
 // that function turns this test red (a direct ParseCost or

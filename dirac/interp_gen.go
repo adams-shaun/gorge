@@ -110,6 +110,7 @@ const (
 	ChGenName                                 // mode = the CardID of the nonland card whose name a permanent chooses as it enters (gorge's ETB "name" option; repl_choosename.go)
 	ChGenConspire                             // source = a creature tapped for conspire (gorge conspireAsk's KChoose "conspire", Min=Max=2, CR 702.78a); two sequential picks; kw_conspire.go
 	ChGenDelve                                // source = a graveyard card exiled toward a granted-delve cast's generic cost, one pick per decision (gorge delveAsk's multi-pick KChoose; kw_delve.go)
+	ChGenFaceDownPick                         // source = the hand card picked to enter face down (gorge effCloak's "face_down_choice" pick, CR 701.58a; face_manifest.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -776,6 +777,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.execCreateToken(k, in)
 	case kop.OpEndTurn:
 		s.endTurnExile()
+		if k.anyStateCtr {
+			s.stateCtrRefire(k) // the sweep exiled the remaining trigger instances: re-check the threshold (trig_statectr.go)
+		}
 		e.flags |= sfFlashback // exiled, not put into the graveyard
 		s.g.endTurn = true
 	case kop.OpExileUntilLeaves:
@@ -2096,7 +2100,7 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int) {
 	var dn [maxXTgt + 1]int16 // each recipient's dealt amount, for the per-referent pass
 	for i, code := range codes {
 		n := amts[i]
-		if n > 0 && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol) != 0 {
+		if n > 0 && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol) != 0 {
 			n = s.replDamage(k, s.res.e.ctrl, s.objRef(k, kop.RefSelf), s.res.e.card, code, false, n)
 		}
 		if n <= 0 {
