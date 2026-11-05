@@ -93,6 +93,9 @@ func refuse(format string, a ...any) error { return errRefuse{fmt.Sprintf(format
 
 // lowerCtx lowers one card (or token).
 type lowerCtx struct {
+	// permOrGraveCard: lowering a ValidTgts$ ChangeZone over Origin$ Battlefield,Graveyard (lower_originmulti.go)
+	permOrGraveCard bool
+
 	firstCastSVar  string    // the SVar a static SpellCast StoreSVar of Count$YouCastThisGame writes (lower_firstcast.go)
 	firstCastTrig  int       // that trigger's index + 1: it lowers to nothing
 	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff)
@@ -548,6 +551,7 @@ func (lc *lowerCtx) guard(node string, fn func() error) {
 	lc.mode = -1
 	lc.chainT = nil
 	lc.remTgt = 0
+	lc.permOrGraveCard = false
 }
 
 // lowerRecord fills the static card record.
@@ -1023,9 +1027,9 @@ func (lc *lowerCtx) lowerKeywords() {
 		case head == "Morph" || head == "Megamorph" || head == "Disguise":
 			// CR 702.37/702.168/702.169: the keyword parameter is the
 			// turn-face-up cost. The kernel's turn-up action spends only
-			// mana, so X and non-mana parameters refuse.
+			// mana (an {X} is announced first), so non-mana parameters refuse.
 			mc, err := parseManaCost(param)
-			if err != nil || param == "" || strings.Contains(param, ":") || mc.X || mc.None {
+			if err != nil || param == "" || strings.Contains(param, ":") || mc.None {
 				lc.refuseNode(node, "%s cost %q", strings.ToLower(head), param)
 				continue
 			}

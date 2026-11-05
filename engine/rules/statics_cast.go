@@ -387,7 +387,7 @@ func (e *Engine) xAnnouncementEscapes(sv staticView, spec string, p state.Player
 	if pool != nil {
 		bound = *pool
 	}
-	ceiling := min(int64(bound.Total())+int64(e.delveCredit(p, id, math.MaxInt32)), math.MaxInt32)
+	ceiling := min(int64(bound.Total())+int64(e.delveCredit(p, id, math.MaxInt32, false)), math.MaxInt32)
 	minX := int64(cost.XMin)
 	if minX < 1 {
 		minX = 1

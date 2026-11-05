@@ -152,7 +152,7 @@ import (
 // +3 (Dream Harvest; Improvisation Capstone: RememberRevealed$+MinTotalCMC$ DigUntil, ECL/SOS +1; Black Widow, Super Spy: ImprintFound$ alone, MSH +1; ALL build-level 21496 -> 21499).
 // +1 (Sanar, Innovative First-Year: the DigUntil RememberRevealed$ library reveal and its five per-colour picks; ALL build-level 21515 -> 21516; ratchet ECL 232 -> 233).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21516, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21524, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

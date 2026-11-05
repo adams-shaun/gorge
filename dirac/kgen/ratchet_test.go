@@ -46,13 +46,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (Dream Harvest; Improvisation Capstone: RememberRevealed$+MinTotalCMC$ DigUntil, ECL/SOS +1; Black Widow, Super Spy: ImprintFound$ alone, MSH +1; ALL 21496 -> 21499).
 	// +1 (Sanar, Innovative First-Year: the DigUntil RememberRevealed$ library reveal and its five per-colour picks; ECL 232 -> 233, ALL 21515 -> 21516).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21516, 34442},
+	"ALL": {21524, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
 	"DFT": {247, 276},
 	"DMU": {193, 270},
-	"DSK": {233, 276},
+	"DSK": {236, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
 	"FDN": {507, 517},
@@ -60,7 +60,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FRA": {245, 269},
 	"HOB": {152, 172},
 	"LCI": {250, 290},
-	"MKM": {228, 279},
+	"MKM": {230, 279},
 	"MOM": {198, 296},
 	"MSH": {226, 276},
 	"NEO": {198, 287},

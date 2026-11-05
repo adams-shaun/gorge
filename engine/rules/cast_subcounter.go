@@ -395,7 +395,7 @@ func (e *Engine) xAsk() bool {
 		var potentialMods costMods
 		usedPotential := false
 		wx := e.paymentManaX(pc, x)
-		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
+		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic, pc.isAbility())
 		// The descriptor carries the announced-X marker: WithX folded this
 		// payment's X into Generic, and a CostContainsX batch must still see
 		// an X payment here or every X announcement would be unpayable.
@@ -427,7 +427,7 @@ func (e *Engine) xAsk() bool {
 			if m, ok := e.xTargetPotentialMods(pc, x, xStatics); ok {
 				potentialMods = m
 				wx = e.paymentManaXUsing(pc, x, m)
-				wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
+				wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic, pc.isAbility())
 				payable = true
 				usedPotential = true
 			}
@@ -566,7 +566,7 @@ func (e *Engine) xTargetPotentialMods(pc *pendingCast, x int32, statics costStat
 	}
 	return e.potentialCostModsUsing(statics, pc.player, pc.card, scope, targets, x, func(m costMods) bool {
 		w := e.paymentManaXUsing(pc, x, m)
-		w.Generic -= e.delveCredit(pc.player, pc.card, w.Generic)
+		w.Generic -= e.delveCredit(pc.player, pc.card, w.Generic, pc.isAbility())
 		return pay.CostPayableClass(asPayer(e), pc.player, paymentForCast(pc, w),
 			pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}, w)
 	})
@@ -584,7 +584,10 @@ func (e *Engine) delveAsk() bool {
 		return false
 	}
 	pc.delveDone = true
-	if !e.hasCastDelve(pc.card) {
+	// CR 702.66a: delve applies to the spell with delve on the stack. An
+	// activated ability is never a spell: no delve ask, not even one the
+	// card's printed keyword or a stack-scoped grant would otherwise reach.
+	if pc.isAbility() || !e.hasCastDelve(pc.card, pc.isAbility()) {
 		return false
 	}
 	gy := e.G.Zone(state.ZGraveyard, pc.player)
