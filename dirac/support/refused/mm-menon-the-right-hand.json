@@ -1,0 +1,13 @@
+{
+  "card": "Mm'menon, the Right Hand",
+  "class": "options",
+  "why": "its granted {U} (spend only on a spell not cast from your hand) is a census gap gorge's prefix search activates even for a hand cast that cannot spend it, Taps triggers included, in one search with a tap-another-permanent source (Gene Pollinator); the kernel's granted search skips it and its tap-another search has no grant steps, so the offers and the paid prefix differ",
+  "repro": {
+    "pool": "std-eoe",
+    "surface": "full",
+    "seed": 1,
+    "pair": 863,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

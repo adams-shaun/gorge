@@ -167,6 +167,8 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"return_defender_asked_before_move", true, false},                  // CR 508.4: Chorale of the Void's attacking return asks its defender while the card is still in the graveyard, as gorge does, not after it entered
 		{"station_reads_off_battlefield_cda_power", true, false},            // CR 604.3, 702.184a: Adagia's Station counts a sacrificed Harmonious Grovestrider by its lands-you-control power, which works in the graveyard, not by its printed 0
 		{"free_mayplay_joins_a_zone_grant", true, false},                    // Weftwalking's free-only static joins Mm'menon's top-of-library grant, so the first spell is cast for free (CR 118.9)
+		{"granted_search_target_ask_gorge_order", true, false},              // a grant search branches a stacked trigger's target ask over gorge's answer order (gorgeTargetOrder), not the kernel's slot order: Nanoform Sentinel's "untap another target permanent" untaps the first opponent permanent, not its controller's first land
+		{"tap_another_activation_beside_granted_mana", true, false},         // CR 605.1a, 601.2g: the grant cap prunes a Lander's {2},{T},Sac activation the granted spell-only mana cannot pay, but a tap-another-permanent source beside it can, so the activation stays on autopay's menu
 		{"tap_another_source_beside_restricted_grant", false, false},        // CR 601.2g-h: beside Mm'menon's hand-barred granted blue, Gene Pollinator's tap-another-permanent mana pays Mechanozoa's {U}{U} from hand, so the plain cast is offered
 		{"each_return_asks_election_per_target", false, false},              // CR 614.12, 608.2c: Pull Through the Weft returns its two shock lands one at a time, each one's pay-life election asked before the next moves
 	})

@@ -1,0 +1,12 @@
+# Cemetery Recruitment (RememberTargets$ on a targeted Graveyard->Hand
+# return; the draw reads the remembered card in hand, Card.Zombie)
+# (dirac/oracle/cemeteryrecruit_test.go)
+Cemetery Recruitment
+Walking Corpse
+Grizzly Bears
+Savannah Lions
+Shock
+Lightning Bolt
+Swamp
+Forest
+Mountain

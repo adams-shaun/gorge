@@ -183,6 +183,7 @@ func (s *State) reflScript(k *prep, a Action, p uint8, apply bool) (found, dead 
 	rs.a, rs.p, rs.gaps = a, p, s.scriptAnyR(k, p)
 	t := s.fork()
 	defer s.unfork()
+	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 	if !rs.visit(k, t, false) || rs.n == 0 {
 		return false, false
 	}

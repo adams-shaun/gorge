@@ -645,6 +645,9 @@ func (g *grantSrch) settle(t *State) bool {
 	if !g.node() {
 		return false
 	}
+	if d.Kind == DkTarget {
+		t.gorgeTargetOrder(&d)
+	}
 	if !gorgeAskOrder(&d) {
 		return false // (Jett Reno's surveil: the card to the graveyard first)
 	}
