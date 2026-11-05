@@ -137,7 +137,7 @@ func numberLess(a, b string) bool {
 
 func leadingNumber(s string) (int, bool) {
 	n, i := 0, 0
-	for ; i < len(s) && s[i] >= '0' && s[i] <= '9' && n < 1<<40; i++ {
+	for ; i < len(s) && s[i] >= '0' && s[i] <= '9' && n < 1<<24; i++ {
 		n = n*10 + int(s[i]-'0')
 	}
 	return n, i > 0
