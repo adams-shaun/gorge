@@ -159,6 +159,10 @@ type lowerCtx struct {
 	// Play of the Imprinted card and the random-order bottom of the
 	// Remembered exile read it
 	digImprinted bool
+	// playLibrary: this chain's Play casts from the remembered cards in the
+	// library (Cosmic Cube; lower_playlibrary.go): the random-order bottom of
+	// the rest reads it
+	playLibrary bool
 	// digImprintFoundMode: this chain's DigUntil imprinted its found cards
 	// (ImprintFound$ alone, Black Widow, Super Spy; lower_digimprint.go): the
 	// chain's optional PutCounter, the Effect's RememberObjects$ Imprinted

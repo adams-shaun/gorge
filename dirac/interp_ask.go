@@ -958,6 +958,11 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.castFreeClosed(k)
 			return
 		}
+		if in.C&512 != 0 && int(s.g.nfreeAll-s.g.nfree) >= s.value(k, in.A) {
+			// a literal Amount$ N: gorge's one ask has Max N, so the N-th
+			// pick ends the offer
+			s.g.nfree = 0
+		}
 		if s.g.nfree == 0 {
 			s.castFreeClosed(k)
 		}

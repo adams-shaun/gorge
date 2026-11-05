@@ -19,6 +19,10 @@ func (s *State) discover(k *prep, in *kop.Instr) {
 		s.dugBottom(k) // act_discoverbottom.go
 		return
 	}
+	if in.C == kop.DiscoverRemBottom {
+		s.remBottom() // act_discoverbottom.go
+		return
+	}
 	if in.C == 1 {
 		for i := 0; i < int(s.g.nrem); i++ {
 			if o := s.g.rem[i]; s.objs[o].zone == kop.ZoneExile && !s.freeQueued(o) {
