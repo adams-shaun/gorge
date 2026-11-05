@@ -14,9 +14,9 @@ import (
 const stateCtrProbeScript = `Name:Mazemind Probe
 ManaCost:2
 Types:Artifact
-T:Mode$ Always | TriggerZones$ Battlefield | IsPresent$ ISPCOND | Execute$ TrigChange | TriggerDescription$ probe
-SVar:TrigChange:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | Defined$ Self | RememberChanged$ True | SubAbility$ DBGainLife
-SVar:DBGainLife:DB$ GainLife | ConditionDefined$ Remembered | ConditionPresent$ Card.Self | ConditionCompare$ GE1 | LifeAmount$ 4
+T:Mode$ Always | IsPresent$ ISPCOND | TriggerZones$ Battlefield | Execute$ PrCtrChange | TriggerDescription$ probe
+SVar:PrCtrChange:DB$ ChangeZone | Defined$ Self | Origin$ Battlefield | Destination$ Exile | RememberChanged$ True | SubAbility$ PrCtrLife
+SVar:PrCtrLife:DB$ GainLife | LifeAmount$ 4 | ConditionDefined$ Remembered | ConditionPresent$ Card.Self | ConditionCompare$ GE1
 Oracle:probe
 `
 
@@ -101,7 +101,7 @@ func TestStateCounterArmRefusals(t *testing.T) {
 		t.Fatalf("Hand TriggerZones refusals = %v, want the arm's zones refusal", refusals)
 	}
 	edit := func(s string) string {
-		return strings.Replace(s, "Execute$ TrigChange", "Execute$ TrigChange | CheckSVar$ X | PresentCompare$ GE1", 1)
+		return strings.Replace(s, "Execute$ PrCtrChange", "Execute$ PrCtrChange | CheckSVar$ X | PresentCompare$ GE1", 1)
 	}
 	var first string
 	for i := 0; i < 64; i++ {
