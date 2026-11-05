@@ -1384,19 +1384,26 @@ type paymentPlanCensus struct {
 	// cost includes mana (a filter: Heap Gate's "{1}, {T}: Add one mana of
 	// any color"), each with its fee; relaxed holds the free ones.
 	paid []relaxedPaid
+	// funding is the mana every missed ability's own cost spends, relaxed or
+	// not: how many other sources a prefix may activate to pay a gap's fee
+	// (Starfleet Academy's "{5}, {T}: Add X mana of any one color", whose
+	// unbounded X leaves no relaxed alternative to carry its fee in paid).
+	funding int
 	// gaps lists, in zone order, the sources with an ability the census
 	// misses (potentialPrefixScript activates them).
 	gaps []state.ObjID
 }
 
-// fees is the mana the missed paid abilities' fees total (how many other
+// fees is the mana the missed abilities' own costs total (how many other
 // sources a prefix may activate to fund them).
 func (c paymentPlanCensus) fees() int {
-	n := 0
-	for _, pd := range c.paid {
-		n += int(pd.fee)
-	}
-	return n
+	return c.funding
+}
+
+// manaAbilityFee is the mana an ability's own activation cost spends, which
+// a prefix must fund before the ability can produce anything.
+func manaAbilityFee(c Cost) int32 {
+	return c.Generic + c.Colored.Total()
 }
 
 // paymentPlanCensusOf reports whether the planner's source census prices
@@ -1453,6 +1460,10 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 			if !slices.Contains(out.gaps, id) {
 				out.gaps = append(out.gaps, id)
 			}
+			// Count the fee before the relaxation can decline the ability: an
+			// unrelaxable gap still costs mana to activate, and the prefix
+			// search must be allowed to tap sources for it.
+			out.funding += int(manaAbilityFee(e.manaAbilityCC(p, id, ma).Cost))
 			if !out.relaxable {
 				continue
 			}
@@ -1504,7 +1515,7 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 	if cost.X != 0 || cost.XMin != 0 || len(cost.Hybrid)+len(cost.Phyrexian)+len(cost.Twobrid)+len(cost.HybridPhyrexian) != 0 || cost.Snow != 0 {
 		return nil, 0, false
 	}
-	fee := cost.Generic + cost.Colored.Total()
+	fee := manaAbilityFee(cost)
 	once := cost.Tap || cost.Untap || strings.TrimSpace(ma.ParamStr(cards.PKActivationLimit)) == "1" ||
 		strings.TrimSpace(ma.ParamStr(cards.PKGameActivationLimit)) == "1"
 	for _, part := range cost.Sac {
