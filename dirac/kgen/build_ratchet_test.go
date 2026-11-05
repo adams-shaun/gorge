@@ -156,8 +156,10 @@ import (
 // +3 (Wilt-Leaf Liege, Obstinate Baloth, Loxodon Smiter: the opponent-caused discard-to-battlefield replacement, lowered on land, absent here before the merge; ALL build-level 21529 -> 21532).
 // +1 (Vizier of the Menagerie: the ManaConvert static lowering for creature spells; ALL build-level 21532 -> 21533).
 // +2 (the WISH counter kind, kop.CtrWish: Wishclaw Talisman and Ring of Three Wishes lower; ALL build-level 21532 -> 21534).
+// +1 over either side's 21535 (the merge lowers both land's Carnelian Orb of Dragonkind and this branch's
+// Vizier of the Menagerie: ALL build-level 21535 -> 21536).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21535, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21536, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
