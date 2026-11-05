@@ -301,6 +301,7 @@ type genPrep struct {
 	anyRole        bool           // some card carries the Role subtype: the SBA runs the Role exclusivity check (static_roletokens.go)
 	roleSub        uint8          // the matchup subtype index of Role (static_roletokens.go)
 	anyWhileHost   bool           // some override or emblem ends when its host leaves (kop.Override/Emblem.WhileHost; filter_combatwords.go)
+	anyWhileTapped bool           // some override also ends at its host's untap (kop.Override.WhileTapped; static_animatewhiletapped.go)
 	anyOvCantAtk   bool           // some override says its permanent can't attack (kop.Override.CantAttack; filter_combatwords.go)
 	anySrcMark     bool           // some filter reads F2DamagedBy or F2CrewedSrc: the source-mark records are kept (filter_combatwords.go)
 	dmgBy          []bool         // per card: its damage is recorded (an ability's filter reads F2DamagedBy; nil when none)
