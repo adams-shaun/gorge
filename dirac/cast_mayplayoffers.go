@@ -37,16 +37,9 @@ func (s *State) mayPlayOffers(k *prep, p uint8, o Obj) int {
 			fold = true
 		}
 		n++
-		return true // (the unlimited offer may follow two keyed ones)
+		return n < 2
 	})
-	if fold {
-		// an unlimited grant's empty-key offer is the one gorge's payment
-		// builder plans and lists beside the keyed offers (it plans an
-		// untyped may-play cast only), so the cast is priced, not ambiguous
-		// (Storied Veteran in the graveyard under The Holodeck)
-		return 1
-	}
-	return min(n, 2)
+	return n
 }
 
 // mayPlayFolds reports whether some unlimited static lets p play o: gorge

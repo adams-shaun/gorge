@@ -304,8 +304,12 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					flags = append(flags, "ThenTop")
 				}
 			}
-			if counterKind != "" || override != nil {
-				return refuse("search with counters/override")
+			if override != nil {
+				return refuse("search with override")
+			}
+			arm, clear, err := lc.searchCounterArm(dest, counterKind, counters, n, f.Each)
+			if err != nil {
+				return err
 			}
 			// DefinedPlayer$: whose library is searched. Gorge reads it for
 			// this ChangeZone shape (params.DefinedPlayerRef); absent or
@@ -360,6 +364,8 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					return refuse("OriginAlternative$ with DifferentNames$")
 				case obj.Kind != rYou:
 					return refuse("OriginAlternative$ with DefinedPlayer$")
+				case arm != nil:
+					return refuse("OriginAlternative$ with WithCountersType$")
 				case !isConstN(n, 1):
 					return refuse("OriginAlternative$ with ChangeNum$ %v", n)
 				}
@@ -373,7 +379,16 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					}
 				}
 			}
+			if arm != nil {
+				// The found card enters with the rider's counters: arm the
+				// entry, search, then clear (a failed or declined search
+				// leaves nothing behind). dirac/ctr_search.go.
+				lc.emit(*arm)
+			}
 			lc.emit(lInstr{Op: "Search", Obj: obj, A: n, F: f, C: dest, CS: strings.Join(flags, "|")})
+			if clear != nil {
+				lc.emit(*clear)
+			}
 			return nil
 		}
 		// A WithCountersType$ rider lowers for the battlefield arm: the kind
@@ -383,8 +398,8 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		// other amount refuses (the kernel cannot arm it exactly), and
 		// an unknown kind refuses by name. gorge ignores the rider on a
 		// destination that cannot carry counters (counterDestination,
-		// zone_change.go:578-585), so the hand arm below drops it exactly
-		// as gorge does.
+		// engine/effects/zone_hand.go), so the hand arm below drops it
+		// exactly as gorge does.
 		if counterKind != "" {
 			if _, ok := counterKinds[counterKind]; !ok {
 				return refuse("WithCountersType$ %q", counterKind)

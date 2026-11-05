@@ -144,10 +144,12 @@ import (
 // +4 (Captain Benjamin Sisko: a Play's mana-value bound names any one-letter SVar and Valid$ carries YouOwn; land; merged 21465 -> 21469; ratchet TRK 295 -> 296).
 // +1 (Dominion Saboteur: the remembered-origin counter rider of an ETB copy; merged 21470 -> 21471; ratchet TRK 297 -> 298).
 // +1 (The Inner Light: an Effect's remembered target and the damage amount reach its DamageDone emblem trigger; merged 21470 -> 21471; ratchet TRK 297 -> 298).
+// +4 (a library search's WithCountersType$ entry rider: Captain Jean-Luc Picard, Magmatic Hellkite, Neoform and Wakanda Forever!; merged 21472 -> 21476; ratchet TDM 243 -> 244, TRK 299 -> 300).
+// +4 (H.M.S. Bounty: Count$YourExtraTurns beside Defined$ You on AddTurn; land; merged 21476 -> 21480, TRK 300 -> 301).
 // +2 (Those Old Scientists, Turn the Earth: a multi-target graveyard shuffle's per-owner move lowers to OpMayShuffleMove; merged 21472 -> 21474; ratchet TRK 299 -> 300).
 // +1 (Q, Stacking the Deck: the exile-granted copy-and-cast ability of a card exiled from the top of the library; merged 21472 -> 21473; ratchet TRK 299 -> 300).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21480, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21484, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

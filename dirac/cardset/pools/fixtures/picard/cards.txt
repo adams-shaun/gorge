@@ -1,0 +1,15 @@
+# the Captain Jean-Luc Picard pool (picard): a library search that puts a
+# Spacecraft onto the battlefield with seven CHARGE counters
+# (WithCountersType$ / WithCountersAmount$), for the oracle's constructed
+# lockstep (dirac/oracle/picard_test.go)
+Captain Jean-Luc Picard
+Sledge-Class Seedship
+Grizzly Bears
+Savannah Lions
+Elite Vanguard
+Soul Warden
+Ajani's Pridemate
+Ornithopter
+Memnite
+Plains
+Forest
