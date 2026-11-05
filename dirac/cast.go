@@ -281,8 +281,15 @@ func (s *State) unpushSpell(k *prep) {
 		s.noteReversed(o, e.ctrl)
 	}
 	if k.gen != nil && k.gen.anyCopyCast && ob.of&(ofCopy|ofToken) == ofCopy && s.bld().origin == kop.ZoneLibrary {
-		// CR 733.1: a Play's reversed copy cast ceases; the mana its window
-		// tapped stays tapped and in the pool (loweredWindowOK)
+		// CR 733.1 reverses the copy cast; the copy was never a card, so it
+		// ceases (CR 704.5d). gorge's reversal parks it in the library
+		// holding zone and the next state-based sweep ceases it: the copy
+		// has no library membership, and the mana the window tapped stays
+		// tapped and in the pool (loweredWindowOK; CR 733.1 lets the player
+		// leave legal mana abilities reversed).
+		if s.npend > s.bld().pushNP {
+			s.npend = s.bld().pushNP
+		}
 		ob.zone = kop.ZoneNone
 		return
 	}
@@ -809,7 +816,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.bld().ti++ // chosen mid-resolution (OpChooseTargets), as gorge asks it
 				continue
 			}
-			if s.convokeTargetAbort(k) || s.altAddTargetAbort(k) {
+			if s.convokeTargetAbort(k) || s.altAddTargetAbort(k) || s.copyCastTargetWindowShort(k) || s.copyCastXTargetAbort(k, t) {
 				// Gorge's target menu (affordableTargetCandidates) probes the
 				// CR 601.2g window and withholds every candidate of a convoke
 				// cast the announced picks plus the pool cannot complete: a
@@ -834,6 +841,12 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.bld().ti = kop.MaxTargets
 				s.nextStage(k)
 				continue
+			}
+			if k.gen != nil && k.gen.anyCopyCast && s.copyCastTargetAbort(k, t) {
+				// a mode-gated required target of a paid copy cast the pool
+				// cannot cover (cast_copycast.go)
+				s.reverseCast(k)
+				return false
 			}
 			if k.gen != nil && k.gen.anyWaterbend && s.waterbendTargetAbort(k) {
 				// the same census after a waterbend ability's picks
