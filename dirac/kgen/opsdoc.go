@@ -260,6 +260,7 @@ var opsEntries = []opsDoc{
 	{"pred:HasXCost", "PredHasXCost", "The printed mana cost has {X}. Gorge `hasXCost` (effects/filter.go). Helga's mana restriction."},
 	{"pred:PowerLTToughness", "PredPowerLTToughness", "Power < toughness. Gorge `powerLTtoughness`. Fecund Greenshell."},
 	{"pred:MultiColor", "PredMultiColor", "Two or more colours (current on the battlefield, printed off it). Gorge `wordMultiColor`."},
+	{"pred:TypesAllCMCLE", "PredTypesAllCMCLE (PredN = the conjunction, PredV = the constant mana-value bound)", "Has every card type in PredN and a mana value at most PredV.N: kgen's cmcLE/cmcLT beside an all-of type conjunction, LT lowering the bound by one. The battlefield arm reads the derived types and the current mana value; the card arm the printed types and mana value (a split card off the stack sums its halves, CR 709.4b; a face-down card has none, CR 708.4). Resistance Is Futile."},
 	{"pred:Historic", "PredHistoric (PredN = Saga subtype index+1)", "Artifact, legendary or Saga. Gorge `historicMatches`."},
 	{"pred:Equipped", "PredEquipped", "A battlefield permanent with an Equipment attached. Gorge `equipped` (hasAttachmentOfKind)."},
 	{"pred:Modified", "PredModified", "Modified (CR 700.9): a battlefield permanent with one or more counters (any kind the kernel stores as a counter: CtrLevel is a Class's level, not a counter; the regeneration shield and the deathtouch mark are flags), an Equipment attached, or an Aura its controller controls attached. Off the battlefield nothing is modified. Gorge `modifiedPermanent` (the internal Shield/Deathtouched markers excluded). Orochi Merge-Keeper, Kami's Flare, Ambitious Assault."},
@@ -678,6 +679,8 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 					add("pred:Equipped", name)
 				case kop.PredTypesAll:
 					add("pred:TypesAll", name)
+				case kop.PredTypesAllCMCLE:
+					add("pred:TypesAllCMCLE", name)
 				case kop.PredModified:
 					add("pred:Modified", name)
 				case kop.PredHasCounters:

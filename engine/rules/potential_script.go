@@ -159,6 +159,20 @@ func (sr *scriptSearch) ownTapSource(c *Engine, id state.ObjID) bool {
 	return ok && pa.SA != nil && c.abilityCompiledCost(pa.SA).Cost.Tap
 }
 
+// tappedOwnSource reports whether the path has tapped the source of the
+// searched ability whose cost taps it. An ask's answer that does so is skipped
+// before it is tried (tapsOwnSource); a tap cost with exactly as many
+// candidates as it needs asks nothing and taps them all, Guy in the Chair
+// among them when Supportive Parents' second activation has only him and one
+// other creature left, and the node pricing would still call the play payable.
+func (sr *scriptSearch) tappedOwnSource(c *Engine) bool {
+	if sr.play.Kind != "ability" {
+		return false
+	}
+	o := c.G.Obj(sr.play.Obj)
+	return o != nil && o.Tapped && sr.ownTapSource(c, sr.play.Obj)
+}
+
 // tapsOwnSource reports whether answer in to the activation's ask taps the
 // source of the searched ability as the cost of the mana ability just
 // activated (Gene Pollinator's "tap an untapped permanent you control" chosen
@@ -278,6 +292,9 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 	}
 	if d == nil || d.Player != p || c.G.Over || c.G.Turn != sr.turn || c.G.Step != sr.step {
 		return false
+	}
+	if sr.tappedOwnSource(c) {
+		return false // a forced tap (no ask) of the play's own {T} source: no continuation pays it (CR 602.2b)
 	}
 	if d.Kind != decision.KPriority {
 		// An ask the activation poses: branch over its answers.

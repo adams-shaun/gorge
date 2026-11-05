@@ -45,6 +45,12 @@ func (s *State) predPermCold(k *prep, fl *kop.Filter, sl Slot) bool {
 		m := kop.TypeMask(uint16(fl.PredN))
 		return s.typesGen(k, sl)&m == m
 	}
+	if fl.Pred == kop.PredTypesAllCMCLE {
+		// an all-of type conjunction and a constant mana-value bound: the
+		// derived types and the current mana value (s.cmcPerm)
+		m := kop.TypeMask(uint16(fl.PredN))
+		return s.typesGen(k, sl)&m == m && s.cmcPerm(k, sl) <= int(fl.PredV.N)
+	}
 	if fl.Pred == kop.PredMonstrous {
 		return s.monstrousAt(sl) // act_monstrosity.go
 	}
@@ -161,4 +167,34 @@ func predCardCold(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 		return false // off the battlefield power equals base power (gorge objectPower/objectBasePower)
 	}
 	panic("kernel: card predicate not implemented: " + predName(fl.Pred))
+}
+
+// cardMV is card c's mana value as an off-battlefield filter reads it: the
+// printed total, with a face-down card at 0 (CR 708.4), a split card off the
+// stack and battlefield summing its halves (CR 709.4b), and a spell's chosen
+// X added on the stack (CR 202.3e). The CMC arm and PredTypesAllCMCLE share
+// it.
+func (s *State) cardMV(k *prep, c CardID, o Obj, fd bool) int {
+	pc := &k.cards[c]
+	mv := int(pc.total)
+	if fd {
+		return 0 // CR 708.4: a face-down spell has no mana cost
+	}
+	if k.gen != nil && k.gen.anySplit {
+		mv = s.splitMV(k, c, o, mv) // face_castface.go
+	}
+	if pc.cost.X != 0 && o != NoObj {
+		mv += s.stackXMV(o, pc.cost.X)
+	}
+	return mv
+}
+
+// typesAllCMCCard is PredTypesAllCMCLE off the battlefield: the printed type
+// conjunction (exactly PredTypesAll's mask) and the printed mana value.
+func (s *State) typesAllCMCCard(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool) bool {
+	m := kop.TypeMask(uint16(fl.PredN))
+	if k.cards[c].types&m != m {
+		return false
+	}
+	return s.cardMV(k, c, o, fd) <= int(fl.PredV.N)
 }

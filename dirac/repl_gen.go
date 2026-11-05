@@ -20,9 +20,14 @@ import (
 // replN counts the permanents controlled by p whose card has replacement
 // bit b and still has its abilities.
 func (s *State) replN(k *prep, p uint8, b uint32) int {
+	return s.replNIn(k, s.statM.and(s.ctrlM[p]), b)
+}
+
+// replNIn is replN over the permanents of m.
+func (s *State) replNIn(k *prep, m slotMask, b uint32) int {
 	g := k.gen
 	n := 0
-	for m := s.statM.and(s.ctrlM[p]); m.any(); m = m.rest() {
+	for ; m.any(); m = m.rest() {
 		sl := m.first()
 		if g.replBits[s.cardAt(sl)]&b != 0 && !s.genLost(k, sl) {
 			n++
@@ -113,7 +118,7 @@ func (s *State) replTokens(k *prep, p uint8, tok CardID, n int) int {
 	if k.gen.anyFiltRepl {
 		return s.replTokensMult(k, p, tok, n)
 	}
-	for c := s.replN(k, p, rbDblTok); c > 0 && n < 1<<8; c-- {
+	for c := s.replNIn(k, s.tokSrcM(p), rbDblTok); c > 0 && n < 1<<8; c-- {
 		n *= 2
 	}
 	return n

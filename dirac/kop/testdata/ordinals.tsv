@@ -839,6 +839,7 @@ PredToughnessGE	Pred	15
 PredToughnessLE	Pred	3
 PredToughnessLEV	Pred	34
 PredTypesAll	Pred	24
+PredTypesAllCMCLE	Pred	242
 PredWasCastEnter	Pred	248
 PredWasCastSpell	Pred	247
 PredWithPowerLEX	Pred	10

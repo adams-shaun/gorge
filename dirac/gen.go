@@ -1510,6 +1510,8 @@ type genState struct {
 	tgtSelf    uint8     // the graveyard card a feasibility check is for, plus one (0: none): it leaves the graveyard for the stack when cast, so it is no target of its own cast
 	inLoop     bool      // executing one object of a multi-object target slot
 	each       eachSusp  // an each-target loop parked on a copy token's as-enters ask (copy_eachtarget.go)
+	tokFrz     slotMask  // the permanents whose CreateToken replacements an each-target copy loop reads, fixed when it began (tokSrcM)
+	tokFrzOn   bool      // tokFrz is in force
 	sweep      sweepSusp // a copy-all sweep parked on a copy's as-enters ask (copy_allpark.go)
 	mt         multiTgt  // the multi-object target slot being chosen
 	lastCK     kop.CounterKind
