@@ -1994,6 +1994,7 @@ export interface EventState {
   round: number;
   best_of: number;
   pick_timer?: string;
+  format?: string;
   seats: EventSeat[];
   you: number | null;
   series: EventSeries[];
@@ -2016,6 +2017,7 @@ export interface DraftCard {
   mana_value?: number;
   colors?: string;
   type_line?: string;
+  promo?: boolean;
 }
 
   /**
@@ -2070,10 +2072,13 @@ export interface CreateEventSeat {
    * CreateEventRequest is the POST /api/events body: the drafted set, the
    * series format and the four seats. BestOf is 1 or 3 (0 = 1). PickTimer is
    * "", "off", "standard" or "relaxed". The seed is always minted by the
-   * server; no client field may choose it.
+   * server; no client field may choose it. Format is the supply: a booster draft
+   * (default), sealed (six Play Boosters per seat) or prerelease (sealed plus one
+   * rare/mythic promo per seat, best of 3 by default).
    */
 export interface CreateEventRequest {
   set: string;
+  format?: string;
   best_of?: number;
   pick_timer?: string;
   seats: CreateEventSeat[];

@@ -126,6 +126,15 @@ func (r *run) poolFor(seat int) protocol.EventPool {
 		Rev:   r.ev.SavedRev(seat),
 		Ready: r.ev.ReadyRev(seat) != 0,
 	}
+	if promos := r.ev.PromoCards(seat); len(promos) > 0 {
+		isPromo := make(map[string]bool, len(promos))
+		for _, c := range promos {
+			isPromo[c.ID] = true
+		}
+		for i := range out.Pool {
+			out.Pool[i].Promo = isPromo[out.Pool[i].ID]
+		}
+	}
 	if d, ok := r.ev.SavedDeck(seat); ok {
 		out.Deck = &protocol.DeckRequest{Main: d.Main, Basics: d.Basics}
 	}

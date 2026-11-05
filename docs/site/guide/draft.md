@@ -73,6 +73,14 @@ seat sees counts only, and `GET /api/events/{id}/log` is redacted for it.
 
 ## What you can choose
 
+**Format.** A hosted event takes a `format`: `draft` (the default, three booster
+packs per seat drafted in turn), `sealed` (six Play Boosters per seat, opened at
+once) or `prerelease` (the same six Play Boosters plus one rare or mythic promo
+card per seat). A sealed or prerelease event has no picks and no pick timer: it
+goes from the lobby straight to deck building once every human has joined. Decks
+are 40 cards with any number of basic lands (MTR 7.1-7.2). A prerelease defaults
+to best of 3; an explicit `best_of` of 1 is honoured.
+
 **Sets.** Packs follow the MTGJSON booster configurations. A hosted event uses the
 Arena collation (`play-arena`); `draftsim` and `labdemo` can also cut paper Play
 Boosters (`play`).
@@ -242,8 +250,8 @@ go run ./cmd/draftsim -mode sealed -structure none -seed 3 -v
 ```
 
 !!! note "Hosted and headless differ"
-    Eight seats, sealed and Swiss are available in `draftsim` and `draftlab`. A
-    hosted event is always a 4-seat draft played as a round robin.
+    Eight seats and Swiss are available in `draftsim` and `draftlab`. A hosted
+    event is a 4-seat draft, sealed or prerelease pod played as a round robin.
 
 ## Compose a workflow with `labdemo`
 

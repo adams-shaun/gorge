@@ -24,6 +24,7 @@ type DraftCard struct {
 	ManaValue int    `json:"mana_value,omitempty"`
 	Colors    string `json:"colors,omitempty"`    // subset of "WUBRG", in WUBRG order
 	TypeLine  string `json:"type_line,omitempty"` // face types, space-joined
+	Promo     bool   `json:"promo,omitempty"`     // the seat's prerelease promo (sealed pools only)
 }
 
 // EventSeat is one entrant of a draft event. Kind is "human" or "bot";
@@ -92,6 +93,7 @@ type EventState struct {
 	Round     int             `json:"round"`
 	BestOf    int             `json:"best_of"` // the event's series format (1 or 3)
 	PickTimer string          `json:"pick_timer,omitempty"`
+	Format    string          `json:"format,omitempty"` // "sealed" | "prerelease"; omitted for a draft
 	Seats     []EventSeat     `json:"seats"`
 	You       *int            `json:"you"`    // the viewer's seat when a valid seat token was presented
 	Series    []EventSeries   `json:"series"` // every pairing of rounds 1..3, round then pairing order
@@ -142,9 +144,12 @@ type CreateEventSeat struct {
 // CreateEventRequest is the POST /api/events body: the drafted set, the
 // series format and the four seats. BestOf is 1 or 3 (0 = 1). PickTimer is
 // "", "off", "standard" or "relaxed". The seed is always minted by the
-// server; no client field may choose it.
+// server; no client field may choose it. Format is the supply: a booster draft
+// (default), sealed (six Play Boosters per seat) or prerelease (sealed plus one
+// rare/mythic promo per seat, best of 3 by default).
 type CreateEventRequest struct {
 	Set       string            `json:"set"`
+	Format    string            `json:"format,omitempty"`     // "" or "draft", "sealed", "prerelease"
 	BestOf    int               `json:"best_of,omitempty"`    // 0 = 1; 1 or 3
 	PickTimer string            `json:"pick_timer,omitempty"` // "", "off", "standard", "relaxed"
 	Seats     []CreateEventSeat `json:"seats"`                // exactly 4
