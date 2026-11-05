@@ -42,6 +42,7 @@ for it. `make deploy-demo` serves the demo (`deploy/demo.env.example`). The guid
 | `-dirac-sets` | `fdn` | with -engine dirac: comma-separated card sets, tried in order for each game (built by make dirac-tables) |
 | `-engine` | `gorge` | the engine this server's tables and vs-bot games run on; one this binary does not link fails at startup, naming those it does |
 | `-events` | `false` | host 4-seat draft events under /api/events (eventhost; persistence under <dir>/events) |
+| `-events-bot-policy` | none | default game policy of draft-event bot seats that name none; empty uses -bot-policy. Must be registered and offered to events (not a decklist reader), so it may be constructed-only |
 | `-feedback` | `feedback` | directory player bug reports are written to (kept OUT of -dir, which deploys wipe) |
 | `-format` | `constructed` | comma-separated table formats (constructed, commander); table i uses formats[i-1 mod n], e.g. -format commander,constructed runs one of each |
 | `-humans` | none | comma-separated slots of table t1 that are real people (e.g. 0,2); t2..tN stay bot tables |

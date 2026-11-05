@@ -409,14 +409,7 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 			continue
 		}
 		f := o.Face()
-		// The printed-keyword read is the cheap gate, so it runs first: every
-		// gate here is a pure read, so the order changes no answer. A face with
-		// no keyword line at all answers "absent" to every KeywordParam, so it
-		// is skipped before the reader builds its Cost.
-		if len(f.Keywords) == 0 {
-			continue
-		}
-		hc, ok := harmonizeCost(f)
+		hc, ok := e.harmonizeCostFor(id)
 		if !ok || w.castRestrictedCost(p, id, hc) || e.castSuppressed(p, id) {
 			continue
 		}

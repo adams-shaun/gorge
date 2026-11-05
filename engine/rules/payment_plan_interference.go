@@ -243,6 +243,19 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 					}
 					continue
 				}
+				// A foreign tap-damage trigger (Hawkeye's Bow) resolves after the
+				// payment that caused it (CR 603.2) and consumes no payment
+				// resource: the vetted source stays an ordinary unit. Only
+				// damage that can reach the payer itself (PaymentPlanTapDamageHits)
+				// is disclosed as the source's consequence, which the last-resort
+				// phase's life gate prices as caster-paid; anything the
+				// classifier cannot vet defers the source.
+				if d, ref, known := pay.PaymentPlanTapDamageTrigger(fc.face, t); known {
+					if pay.PaymentPlanTapDamageHits(ref, o.Controller, activator, e.G.Obj(id).Controller) {
+						damage += d
+					}
+					continue
+				}
 				return 0, state.Mana{}, oid, false
 			}
 		}
