@@ -11,15 +11,19 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // drawExcl and drawMore are that walk: the chain is the sources applied so
 // far, the draw plays plainly once none is left.
 //
-// Two replacements matching one draw are gorge's CR 616.1 order ask, which
-// the kernel does not model: it stalls (StallDrawRepl).
+// Two replacements matching one draw draw N1·N2 cards either way -- the
+// composition is commutative, so gorge settles the CR 616.1 order in scan
+// order, unasked, and the chain walks the body's draws through the rest.
+// More than drawChainMax sources in one lineage is the declared
+// StallDrawRepl capacity.
 
 // cfgxDrawMore: the table has a ReplDrawMore ability, so draw() consults
 // drawMore. Set once at Init (engine.go).
 const cfgxDrawMore uint8 = 1 << 5
 
-// StallDrawRepl: two draw replacements match one draw (gorge asks the CR
-// 616.1 order), or one lineage applies more than drawChainMax of them.
+// StallDrawRepl: one draw's lineage applies more than drawChainMax draw
+// replacements (four or more sources). Two or three settle in scan order,
+// gorge's commutative drawMoreCompetition, unasked.
 const StallDrawRepl = 103
 
 func init() { stallNames[StallDrawRepl] = "drawrepl" }
@@ -73,17 +77,27 @@ func (s *State) drawMore(p uint8, ch drawChain) bool {
 			if a.Repl.C&kop.ReplDrawNotFirst != 0 && s.g.drawFirst && p == s.active && s.step == kop.StepDraw {
 				continue
 			}
-			sel, ab = sl, a
+			if n == 0 {
+				sel, ab = sl, a // the scan-order first: gorge settles here too
+			}
 			n++
 		}
 	}
 	switch {
 	case n == 0:
 		return false
-	case n > 1 || ch.n >= drawChainMax:
+	case ch.n >= drawChainMax:
 		s.capFull(StallDrawRepl)
 		return true
 	}
+	// Two or more candidates used to stall (StallDrawRepl): gorge asked the
+	// CR 616.1 order. gorge no longer poses that ask -- every candidate a
+	// lockstep game can carry is a mandatory "draw N cards instead"
+	// (lower_drawrepl.go refuses every other Draw line), so the composition
+	// draws N1·N2 cards from the library in the same order either way and
+	// gorge applies the scan-order first (engine/rules/replacement.go,
+	// drawMoreCompetition). The chain keeps the rest eligible for the body's
+	// draws (CR 614.5, 616.1e), so the walk below reaches them.
 	ch.sl[ch.n] = sel
 	ch.n++
 	for i := int16(0); i < ab.Repl.A && !s.over; i++ {
