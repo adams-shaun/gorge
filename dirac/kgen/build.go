@@ -1904,6 +1904,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.NoCost = o.NoCost
 	ko.RemoveLegendary = o.RemoveLegendary
 	ko.GrantStatics = o.GrantStatics
+	ko.PTDelta = o.PTDelta
 	ko.AddColors = colorMask(o.AddColors)
 	if ko.AddKw, err = kwMask(o.AddKw); err != nil {
 		return 0, err

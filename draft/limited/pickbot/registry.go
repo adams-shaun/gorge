@@ -1,5 +1,6 @@
 // Package pickbot answers a draft's pick and build decisions the way a bot
-// seat does: the rating-colour Drafter and the best23 Builder. Ratings come from the embedded 17Lands FDN file where it covers the
+// seat does: the rating-colour Drafter and the best23 Builder, plus the
+// committed/Balanced pair named `balanced`. Ratings come from the embedded 17Lands FDN file where it covers the
 // set, and from a card-facts heuristic elsewhere. The same functions back
 // the human UI's Auto lands and Reset-to-bot-suggestion buttons.
 //
@@ -115,6 +116,9 @@ func init() {
 	Register("best23",
 		func(lookup CardLookup) Drafter { return &RatingColour{Lookup: lookup} },
 		func(lookup CardLookup) Builder { return &Best23{Lookup: lookup} })
+	Register("balanced",
+		func(lookup CardLookup) Drafter { return &Committed{Lookup: lookup} },
+		func(lookup CardLookup) Builder { return &Balanced{Lookup: lookup} })
 }
 
 // Register names one drafter/builder pair in the registry, mirroring

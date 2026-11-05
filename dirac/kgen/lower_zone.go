@@ -916,6 +916,9 @@ func overrideString(o *lOverride) string {
 			p = append(p, "keepT")
 		}
 	}
+	if o.PTDelta {
+		p = append(p, "ptdelta="+o.PVal.String()+"/"+o.TVal.String())
+	}
 	if o.HasSetTypes {
 		p = append(p, "types="+strconv.Itoa(int(o.SetTypes)))
 	}

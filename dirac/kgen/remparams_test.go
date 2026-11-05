@@ -21,6 +21,7 @@ var kremparamsAccepted = []string{
 	"Titania's Command", "Sunfall", "Zephyr Sentinel",
 	"Sunpearl Kirin", "Mirkwood Nurturer", "Wanderwine Farewell", "Bob, Reluctant HYDRA Agent",
 	"For the Common Good",              // PumpAll Duration$ UntilYourNextTurn
+	"Mouth of the Storm",               // PumpAll Duration$ UntilYourNextTurn with a constant P/T pump
 	"Grub's Command", "Sygg's Command", // four modes, four target slots
 	"Brigid's Command", // + four targeted modes plus the fight link, five target slots
 }
@@ -28,7 +29,6 @@ var kremparamsAccepted = []string{
 // kremparamsRefused are the cards that stay refused, with a substring of the
 // refusal each must carry.
 var kremparamsRefused = []struct{ card, why string }{
-	{"Mouth of the Storm", "with a P/T pump"},
 	{"Sonic Shrieker", "RememberDamaged$ with a remembered player observed"},
 	{"Screaming Nemesis", "RememberDamaged$ with a remembered player observed"},
 	{"Vanish into Memory", ""},

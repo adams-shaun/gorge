@@ -2752,32 +2752,48 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	return nil
 }
 
-// pumpAllDuration lowers PumpAll Duration$ UntilYourNextTurn as a keyword
-// grant only: OpOverrideAll's AddKw with DurUntilYourNextTurn walks every
-// permanent matching ValidCards$, as gorge does. Kernel overrides carry no
-// +N/+N pump and the end-of-turn pump fields end this turn, so a P/T pump
-// refuses, as does any other Duration$.
+// pumpAllDuration lowers PumpAll Duration$ UntilYourNextTurn as an
+// OpOverrideAll over every permanent matching ValidCards$, as gorge does
+// (CR 611.2c): AddKw for a keyword grant, PTDelta for a NumAtt$/NumDef$
+// pump (a constant, read once; the kernel adds it after counters until the
+// effect owner's next turn). Any other Duration$ refuses.
 func (lc *lowerCtx) pumpAllDuration(ps *params, f *lFilter, dur string) error {
 	if dur != "UntilYourNextTurn" {
 		return refuse("PumpAll Duration$ %q", dur)
 	}
-	_, a := ps.get("NumAtt")
-	_, d := ps.get("NumDef")
-	if a || d {
-		return refuse("PumpAll Duration$ UntilYourNextTurn with a P/T pump")
-	}
 	if _, ok := ps.get("ValidTgts"); ok {
 		return refuse("PumpAll Duration$ UntilYourNextTurn with ValidTgts$")
 	}
-	kw, ok := ps.get("KW")
-	if !ok {
+	o := &lOverride{}
+	a, hasA := ps.get("NumAtt")
+	d, hasD := ps.get("NumDef")
+	if hasA || hasD {
+		att, def := cst(0), cst(0)
+		var err error
+		if hasA {
+			if att, err = lc.value(a); err != nil {
+				return err
+			}
+		}
+		if hasD {
+			if def, err = lc.value(d); err != nil {
+				return err
+			}
+		}
+		if !att.isConst() || !def.isConst() {
+			return refuse("PumpAll Duration$ UntilYourNextTurn with a computed P/T pump")
+		}
+		o.PTDelta, o.PVal, o.TVal = true, att, def
+	}
+	if kw, ok := ps.get("KW"); ok {
+		ks, err := pumpKeywords(kw)
+		if err != nil {
+			return err
+		}
+		o.AddKw = ks
+	} else if !o.PTDelta {
 		return refuse("PumpAll Duration$ UntilYourNextTurn without KW$")
 	}
-	ks, err := pumpKeywords(kw)
-	if err != nil {
-		return err
-	}
-	o := &lOverride{AddKw: ks}
 	in := lInstr{Op: "OverrideAll", F: f, CS: "UntilYourNextTurn", Note: overrideString(o)}
 	lc.out.overrides = append(lc.out.overrides, o)
 	in.C = len(lc.out.overrides) - 1
