@@ -165,7 +165,7 @@ notes), [`DEVIATIONS.md`](docs/DEVIATIONS.md) and
 ## Registering an op, stall or ext sub-op (contributors)
 
 Add to a new file plus at most one line per table; never append to a shared tail.
-- Stall reason: `const StallX = N` (N unused, literal) and `func init() { stallNames[StallX] = "x" }` in your mechanic's file. `NumStall` is a fixed capacity (143); do not edit it.
+- Stall reason: `const StallX = N` (N unused, literal) and `func init() { stallNames[StallX] = "x" }` in your mechanic's file. `NumStall` is a fixed capacity; do not edit it.
 - Ext sub-op (`kop`): `const ExtX ExtOp = N` and `func init() { extOpNames[ExtX] = "X" }` in your own kop file; add the `execExt` case at its ordinal position (cases are sorted by ordinal).
 - `TestRegistryNamesComplete` (missing name) and `TestEnumValuesUnique` (shared value) in ./dirac and ./dirac/kop fail loudly on a mistake. Never renumber.
 - Op (the iota list is frozen at `OpCount`; the op space is nearly closed, prefer an Ext sub-op): `const OpX Op = N` with N in [OpCount, OpHighFirst) and `func init() { opNames[OpX] = "X" }` in your own kop file.

@@ -113,7 +113,7 @@ is a card's missing primitives. An empty result means the card is
 *playable*. `Registry.Coverage` aggregates that over the corpus.
 
 ```sh
-make report     # cards: 34074  playable: 32390 (95.1%) on 2026-10-31, then the top missing primitives
+make report     # prints cards, playable and token counts, then the top missing primitives
 make coverage   # the same as markdown tables in .coverage/ (gitignored), by type, colour, mana value
 ```
 
