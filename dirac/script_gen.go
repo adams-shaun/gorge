@@ -529,8 +529,17 @@ func (s *State) grantPrefix(k *prep, a Action, p uint8) {
 		return
 	}
 	var g grantSrch
-	if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), &g) || g.np == 0 {
+	if s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), &g) && g.np != 0 {
+		s.grantApply(k, &g) // the found prefix (mana_grantedoffers.go)
 		return
 	}
-	s.grantApply(k, &g) // the found prefix (mana_grantedoffers.go)
+	// The granted mana cannot pay the play (a spell-only grant and an
+	// ability, CR 605.1a) and the printed sources do not price it either:
+	// gorge's potential walk prices printed abilities only, so the play is
+	// off the walk and its script search taps the census gaps — the granted
+	// sources in battlefield order, their mana floating beside the pool, and
+	// the tap-another gap's step among them (grantTapXPrefix; pair 676).
+	if !s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(a)) {
+		s.grantTapXPrefix(k, a, p)
+	}
 }
