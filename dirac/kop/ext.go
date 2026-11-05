@@ -646,3 +646,15 @@ func init() { extOpNames[ExtChooseName] = "ChooseName" }
 const ExtTurnFaceUp ExtOp = 254
 
 func init() { extOpNames[ExtTurnFaceUp] = "TurnFaceUp" }
+
+// ExtAttacksIfAble: the battlefield object named by Obj (a target slot)
+// attacks this turn if able (CR 508.1d; gorge Effect StaticAbilities$
+// Mode$ MustAttack | ValidCreature$ Card.IsRemembered over RememberObjects$
+// Targeted, ExileOnMoved$ Battlefield): an attack requirement read beside
+// the MustAttack static. The mark is an arena slot bit (mechAttacksIfAble,
+// no State byte): cleared as the next turn begins and when the permanent
+// leaves the battlefield. Heckling Fiends, Incite, Courtly Provocateur.
+// dirac/combat_attacksifable.go.
+const ExtAttacksIfAble ExtOp = 255
+
+func init() { extOpNames[ExtAttacksIfAble] = "AttacksIfAble" }
