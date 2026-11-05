@@ -218,6 +218,9 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	if s.g.enteredOn {
 		s.noteEnter(o, z, from, wasCreature)
 	}
+	if from == kop.ZoneGraveyard && k != nil && k.gen != nil && k.gen.anyLeavesGrave {
+		s.fireLeavesGraveTo(k, o, z) // trig_leavesgrave.go
+	}
 }
 
 // draw draws one card for p. Drawing from an empty library loses at once

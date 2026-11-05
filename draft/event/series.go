@@ -41,6 +41,16 @@ func between(st *seriesState, a, b int) bool {
 		len(st.games) >= 1 && !decided(st, a, b) && !full(st)
 }
 
+// opening reports the rebuild window: a Rebuild event's series of round 2
+// or later, started, before its first game. In it each side saves a new
+// deck revision or keeps its last one, and locks its game-1 deck with a
+// Sideboarded entry (Game 1) before any GameStarted is legal (MTR 7.3,
+// continuous construction).
+func (e *Event) opening(st *seriesState) bool {
+	return e.rebuild && e.round >= 2 && st != nil && st.started &&
+		!st.ended && st.inFlight == nil && len(st.games) == 0
+}
+
 // expectedChooser reports the play/draw chooser the series' next game (2 or
 // later) must name (MTR 2.2): the loser of the last game, or — when that
 // game was drawn — the chooser that game had, who chooses again. -1 when no
@@ -75,6 +85,7 @@ type SeriesView struct {
 	Wins        [2]int // games won by A, B
 	NextGame    int    // len(Games)+1 while neither decided nor full, else 0
 	Between     bool   // in the Bo3 sideboarding window
+	Opening     bool   // in the rebuild window before game 1 (a Rebuild event, round 2 on)
 	Locked      [2]int // revisions A, B locked for NextGame; 0 = not yet
 	PlayRevs    [2]int // revisions A, B play in the in-flight (or last) game
 	NextChooser int    // MTR 2.2 chooser for NextGame >= 2, else -1
@@ -91,7 +102,7 @@ func (e *Event) SeriesState(a, b int) (SeriesView, bool) {
 	}
 	for _, p := range e.pairings {
 		if p[0] == a && p[1] == b {
-			return seriesView(e.round, a, b, e.series[p]), true
+			return seriesView(e.round, a, b, e.series[p], e.opening(e.series[p])), true
 		}
 	}
 	return SeriesView{}, false
@@ -112,8 +123,9 @@ func (e *Event) SeriesOf(seat int) (a, b int, ok bool) {
 
 // seriesView builds the snapshot of one series' state (nil for a pairing
 // no entry has touched yet).
-func seriesView(round, a, b int, st *seriesState) SeriesView {
+func seriesView(round, a, b int, st *seriesState, opening bool) SeriesView {
 	v := SeriesView{Round: round, A: a, B: b, NextChooser: -1}
+	v.Opening = opening
 	if st == nil {
 		v.NextGame = 1
 		return v

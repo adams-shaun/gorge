@@ -231,6 +231,7 @@ type genPrep struct {
 	anyScryTrig    bool           // some trigger is TrigScry or TrigSurveil (trig_scrysurveil.go)
 	anyLandPlayed  bool           // a trigger is TrigLandPlayed (trig_modes.go)
 	anyCzPair      bool           // a TrigLeaves line has a destination mask (N) (trig_zonepairs.go)
+	anyLeavesGrave bool           // a TrigLeaves line also fires for a graveyard leave (kop.Tf2LeavesGrave; trig_leavesgrave.go)
 	anyKwAct       bool           // a trigger is TrigSearchedLibrary, TrigForage or TrigDiscover
 	anyDilemma     bool           // some table reads ExDilemmasFaced or TrigFacesDilemma (trig_dilemma.go)
 	anyScryTally   bool           // some expr is ExScriedThisTurn (value_scrytally.go)
@@ -751,6 +752,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 				if czPairLine(a) {
 					g.anyCzPair = true
+					if a.Trig.Flags2&kop.Tf2LeavesGrave != 0 {
+						g.anyLeavesGrave = true
+					}
 				}
 				if a.Trig.Event == kop.TrigSearchedLibrary || a.Trig.Event == kop.TrigForage || a.Trig.Event == kop.TrigDiscover {
 					g.anyKwAct = true
@@ -1836,7 +1840,7 @@ const (
 	StallAegis         = 62  // an Assimilation Aegis copy that cannot be kept (a second exiled card, a bearer already a copy; zone_exilethenattach.go)
 	StallSacOther      = 63  // a Mobilize group sacrifice whose member another player controls (gorge checks no controller; kw_mobilize.go)
 	StallObsSrc        = 70  // a second observed mana source (Spell.ManaFromCard.StrictlySelf reader) tapped by one cast (mana_spendtrigger.go)
-	StallCopyCast      = 88  // a Play CopyCard$ cast of a multi-face card other than an Adventure card, or a copy cast reversed after its push (CR 733.1; cast_copycast.go)
+	StallCopyCast      = 88  // a Play CopyCard$ cast of a multi-face card other than an Adventure card (cast_copycast.go)
 	StallDynMana       = 89  // a dynamic mana ability's amount above maxDynMana, its autopay variants (gen.go manaPCGen; value_gravecounts.go)
 	StallExiledWith    = 96  // more than maxExw live exiled-with links (zone_exiledwith.go)
 	StallBreach        = 94  // more picks than the chosen set holds (Breach the Multiverse; act_millthenreturn.go) (reinstate maxDynMana 40 + loud StallDynMana on the rebased tree (The Core's dynamic amount reached 21 in the gravecounts lockstep: gorge produced 21, kernel truncated to 20); NumStall 128 untouched, the name registers cold-side)
@@ -2317,6 +2321,12 @@ const preReturn uint8 = 3
 // preReturnOp is preAsk.state for a card a resolution's return op parked with its
 // as-enters choice: the answer runs the op again.
 const preReturnOp uint8 = 4
+
+// preReturnPay is preReturn for a card a cost's sacrifice set aside (the
+// source of its exile left as the payment's pick): gorge asks the choice at
+// once, before the rest of the resolution, and the answer enters the card
+// and finishes the payment (payReturnPark, raGenRetChoice).
+const preReturnPay uint8 = 7
 
 // preDigEnchant is preAsk.state for an Aura a battlefield dig took, waiting
 // in the library for its controller's choice among two or more hosts;

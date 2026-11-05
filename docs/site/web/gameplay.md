@@ -169,9 +169,9 @@ Each prompt has a title, a one-line instruction and, where the board can answer,
 
 ## Paired bot
 
-A bot beside you: as each of your decisions arrives, gorge's search weighs it and marks the play it would make on the decision itself, with a dashed gold ring and *Bot's pick, 62%*. It is advice only: you still answer. The panel appears only when the server offers it, and its switch starts on when you play alone against bots and off at a table with another human (`web/src/lib/pairedbot.ts:26`, `web/src/components/PairedBotPanel.svelte:159`).
+A bot beside you: as each of your decisions arrives, gorge's search weighs it and marks the play it would make on the decision itself, with a dashed gold ring and *Bot's pick, 62%*. It is advice only: you still answer. The panel appears only when the server offers it, and its switch starts on when you play alone against bots and off at a table with another human (`web/src/lib/pairedbot.ts:26`, `web/src/components/PairedBotPanel.svelte:147`).
 
-The panel lists up to five options with how many search lines went through each, an estimated win chance, and a Recommended tag (`PairedBotPanel.svelte:188`). Settings mark the bot's pick on your decision and what its plain rules would pick, and a note tells you when you answered differently (`PairedBotPanel.svelte:223-224`, `web/src/lib/botpick.svelte.ts:11`). It guesses your opponents' hidden cards from a set of decks, so it never sees them. [Play with a bot beside you](paired-play.md) has the whole picture.
+The panel lists up to five options with how many search lines went through each, an estimated win chance, and a Recommended tag (`PairedBotPanel.svelte:176`). Settings mark the bot's pick on your decision and what its plain rules would pick, and a note tells you when you answered differently (`PairedBotPanel.svelte:211-212`, `web/src/lib/botpick.svelte.ts:11`). It guesses your opponents' hidden cards from a set of decks, so it never sees them. The panel has a rail of its own on the side of the board away from the stack and log; the Layout drawer's **Paired bot** setting keeps it in the main rail instead or tucks it into an edge drawer, and on a narrow screen it joins the main rail (`web/src/lib/partnerrail.ts`). [Play with a bot beside you](paired-play.md) has the whole picture.
 
 ## Replay controls
 

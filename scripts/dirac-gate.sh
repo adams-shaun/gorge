@@ -217,8 +217,11 @@ for set in fdn blb; do
 		rc=$(cat "$S/lockstep-$set-$surface.rc" 2>/dev/null || echo 2)
 		grep "^$set:" "$log"
 		if [ "$rc" -ne 0 ]; then
-			grep -E '^ *(pair |options:|implicates:)' "$log" | head -6
-			pair=$(sed -nE 's/^pair ([0-9]+) .*/\1/p' "$log" | head -1)
+			# kfuzz -v prints a `pair` line per skip too; only the lines of a game that fails -absolute
+			# (divergence, hang, unmodelled stall, error) name the pair to replay.
+			failing='^pair [0-9]+ .*(seed [0-9]+\): (hang: no result after |error: )| unmodelled stall after |\) after [0-9]+ decisions:$)'
+			grep -E "$failing|^ *(divergence at decision|options:|implicates:)" "$log" | head -6
+			pair=$(grep -E "$failing" "$log" | sed -nE 's/^pair ([0-9]+) .*/\1/p;q')
 			echo "  repro:   go run ./dirac/oracle/cmd/kfuzz -kernel $set -surface $surface -first-pair ${pair:-<pair>} -pairs 1 -seed 1 -mulligans 1 -absolute -v"
 			echo "  Your change altered behaviour on a supported card. In this change, do one of:"
 			echo "    1. fix dirac (dirac/*.go, dirac/kgen), or"

@@ -96,6 +96,25 @@ describe('layout profile model', () => {
     expect(validate(old)?.panels.railWidth).toBe(defaultProfile().panels.railWidth);
   });
 
+  it('puts the paired bot opposite the rail by default, round-trips its placement and width, and accepts profiles saved before it', () => {
+    const p = defaultProfile();
+    expect(p.panels.partner).toBe('opposite');
+    p.panels.partner = 'same';
+    p.panels.partnerWidth = 0.26;
+    expect(p.panels.partnerWidth).not.toBe(defaultProfile().panels.partnerWidth);
+    const roundTrip = validate(JSON.parse(JSON.stringify(p)));
+    expect(roundTrip?.panels.partner).toBe('same');
+    expect(roundTrip?.panels.partnerWidth).toBe(0.26);
+    expect(sameProfile(p, defaultProfile())).toBe(false);
+    const old = JSON.parse(JSON.stringify(defaultProfile()));
+    delete old.panels.partner;
+    delete old.panels.partnerWidth;
+    expect(validate(old)?.panels.partner).toBe('opposite');
+    expect(validate(old)?.panels.partnerWidth).toBe(defaultProfile().panels.partnerWidth);
+    expect(validate({ ...old, panels: { ...old.panels, partner: 'floating' } })).toBeNull();
+    expect(validate({ ...old, panels: { ...old.panels, partnerWidth: 0.5 } })).toBeNull();
+  });
+
   it('the splitter reset follows the seat count', () => {
     expect(defaultSplit(2)).toBe(0.4);
     expect(defaultSplit(4)).toBe(0.46);

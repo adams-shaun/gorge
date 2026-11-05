@@ -114,6 +114,7 @@ the SpellBench v2 engine may.
 | Package | May import gorge's packages? |
 |---|---|
 | `dirac`, `dirac/kop`, `dirac/cardset`, `dirac/vanilla`, `dirac/search/...`, `dirac/feat` | No. `dirac/cardset` imports only the module root's table key, which imports the standard library. |
+| `dirac/neteval` | Only `bots/netsimd`, `bots/gonet` and `bots/policynet`, the networks and their input types; never the engine. |
 | `dirac/oracle` | Yes: it runs gorge as the oracle. |
 | `dirac/kgen` | Yes: it lowers gorge's card IR into `kop` tables. |
 | `dirac/adapter` | Yes, gorge's view, decision and card types, and never `engine/rules` itself, `engine/replay` or `dirac/oracle`: it serves a game with no rules engine built. |
@@ -129,11 +130,14 @@ A new import in the no column is a review failure even if the tests pass.
 | `dirac` | The engine: state, `Step`/`Apply`, combat, stack, mulligans, projection, and the hand-written interpreter for the `kop` ops. Start at `doc.go`. |
 | `dirac/kop` | The card-effect vocabulary: `Table`, `CardDef`, `Ability`, `Instr` and the op enum that card tables and the interpreter share. |
 | `dirac/cardset` | The engine-neutral `Set` interface and the loader of binary card tables (`ByName`, `Names`). It imports `dirac/kop` and the root package's table key. |
-| `dirac/cardset/pools` | One directory per card pool, with its committed inputs, `cards.txt` and `ids.tsv`. `fdn` and `blb` are full-set pools; the pools under `fixtures/` exercise one mechanic at a time. |
+| `dirac/cardset/pools` | One directory per card pool, with its committed inputs, `cards.txt` and `ids.tsv`. `fdn`, `blb` and `pauper` are full-set pools; the pools under `fixtures/` exercise one mechanic at a time. |
 | `dirac/oracle` | The engine-neutral seam to gorge: `Side`, `GorgeSide`, `RealKernel`/`FDNSide`, `Lockstep`, `Fuzz`, `Replay`, `Repro` and the policies. "Lockstep" means both engines get the same decks and seed and every decision and projection is compared. Its commands are `cmd/kfuzz` (lockstep fuzzer), `cmd/khbot` (dirac heuristic-bot parity) and `cmd/ksbt` (dirac sb-tactical parity). |
 | `dirac/adapter` | A dirac game behind `engine/game`: what `gorged -engine dirac` serves, with a log and views derived from positions. See [serving](docs/serving.md). |
 | `dirac/canon` | The canonical vocabulary the oracle and the adapter share, and dirac's translation into it. |
 | `dirac/support` | Which cards are supported: the `evidence` and `refused` lists. |
+| `dirac/search` | gorge's `bots/azmcts` PUCT search ported onto `dirac.State`, with its self-play, instant-timing, land, belief and per-creature options, each off by default. Start at `doc.go`. |
+| `dirac/neteval` | The search's network `Evaluator`: `dirac/feat` feeding gorge's `bots/netsimd` (or `bots/gonet`), with an exact evaluation cache. |
+| `dirac/oracle/searchtest` | Tests only: the lockstep checks that need `dirac/search` or `dirac/neteval`, which `dirac/oracle` may not import. |
 | `dirac/search/hbot` | The native port of gorge's auto-pay heuristic bot. |
 | `dirac/search/mull` | gorge's London-mulligan policies, as pure functions over a hand. |
 | `dirac/feat` | The network feature encoder: dirac position to the same `policynet` inputs gorge produces. |
@@ -165,7 +169,7 @@ notes), [`DEVIATIONS.md`](docs/DEVIATIONS.md) and
 ## Registering an op, stall or ext sub-op (contributors)
 
 Add to a new file plus at most one line per table; never append to a shared tail.
-- Stall reason: `const StallX = N` (N unused, literal) and `func init() { stallNames[StallX] = "x" }` in your mechanic's file. `NumStall` is a fixed capacity (143); do not edit it.
+- Stall reason: `const StallX = N` (N unused, literal) and `func init() { stallNames[StallX] = "x" }` in your mechanic's file. `NumStall` is a fixed capacity; do not edit it.
 - Ext sub-op (`kop`): `const ExtX ExtOp = N` and `func init() { extOpNames[ExtX] = "X" }` in your own kop file; add the `execExt` case at its ordinal position (cases are sorted by ordinal).
 - `TestRegistryNamesComplete` (missing name) and `TestEnumValuesUnique` (shared value) in ./dirac and ./dirac/kop fail loudly on a mistake. Never renumber.
 - Op (the iota list is frozen at `OpCount`; the op space is nearly closed, prefer an Ext sub-op): `const OpX Op = N` with N in [OpCount, OpHighFirst) and `func init() { opNames[OpX] = "X" }` in your own kop file.

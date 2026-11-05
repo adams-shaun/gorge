@@ -38,6 +38,14 @@ type meta struct {
 	// or "relaxed". Stored so a restart re-arms the same deadlines; a
 	// meta written before the field existed reads back as "" (= off).
 	PickTimer string `json:"pick_timer,omitempty"`
+	// Format is the supply format: "" = draft (and every meta written
+	// before the field), "sealed" or "prerelease".
+	Format string `json:"format,omitempty"`
+	// Rebuild turns on MTR 7.3 continuous construction: a rebuild window
+	// before game 1 of every series from round 2. Stored so a restart
+	// rebuilds the same windows; the log's EventCreated carries the flag
+	// either way.
+	Rebuild bool `json:"rebuild,omitempty"`
 }
 
 // metaSeat is one stored seat. Kind is "human" or "bot"; Name is the human

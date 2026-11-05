@@ -73,6 +73,28 @@ seat sees counts only, and `GET /api/events/{id}/log` is redacted for it.
 
 ## What you can choose
 
+**Format.** A hosted event takes a `format`: `draft` (the default, three booster
+packs per seat drafted in turn), `sealed` (six Play Boosters per seat, opened at
+once) or `prerelease` (the same six Play Boosters plus one rare or mythic promo
+card per seat). A sealed or prerelease event has no picks and no pick timer: it
+goes from the lobby straight to deck building once every human has joined. Decks
+are 40 cards with any number of basic lands (MTR 7.1-7.2). A prerelease defaults
+to best of 3; an explicit `best_of` of 1 is honoured.
+
+**Deck changes between rounds.** A sealed or prerelease event rebuilds between
+rounds (MTR 7.3, continuous construction): before game 1 of every series from
+round 2 on, the event opens a rebuild window and no game starts until both
+sides have locked a deck for it. A human seat keeps or replaces its deck in the
+window with the usual sideboard panel (`POST /api/events/{id}/sideboard` with
+`game: 1`: `keep: true` locks the deck it played last, a `deck` saves and locks
+a new revision), and a seat idle past the idle window keeps its deck
+automatically; bots keep the deck they last played. A draft event plays
+straight through with no window. The create body's `rebuild` overrides the
+format's default — true for sealed and prerelease, false for draft — and the
+event state reports the resolved value as `rebuild`. The window reuses the
+between-games panel: a series in it shows `state: "between"` with `game: 1`
+and the seats still to lock.
+
 **Sets.** Packs follow the MTGJSON booster configurations. A hosted event uses the
 Arena collation (`play-arena`); `draftsim` and `labdemo` can also cut paper Play
 Boosters (`play`).
@@ -225,7 +247,7 @@ the picks and the game seeds, so the same flags give the same log byte for byte.
 | `-collation` | `play-arena` | `play-arena` or `play` |
 | `-seed`, `-events` | `1`, `1` | the first event's seed, and how many events; each later event adds one to the seed |
 | `-seats` | `4` | pod size, 4 or 8 |
-| `-mode` | `draft` | `draft`, or `sealed` (6 packs per seat, unpicked) |
+| `-mode` | `draft` | `draft`, `sealed` (6 packs per seat, unpicked), or `prerelease` (sealed plus one rare or mythic promo per seat) |
 | `-structure` | round robin at 4 seats, Swiss at 8 | `roundrobin`, `swiss`, or `none` to stop after building |
 | `-rounds` | the structure's own | how many rounds to play |
 | `-players` | `lethal-pressure,bot,forge-heuristic,lethal-pressure` | one policy for every seat, or exactly one per seat. A policy that reads decklists is refused |
@@ -239,11 +261,12 @@ the picks and the game seeds, so the same flags give the same log byte for byte.
 ```sh
 go run ./cmd/draftsim -seats 8 -players bot -seed 3 -verify
 go run ./cmd/draftsim -mode sealed -structure none -seed 3 -v
+go run ./cmd/draftsim -mode prerelease -seats 8 -seed 3 -v
 ```
 
 !!! note "Hosted and headless differ"
-    Eight seats, sealed and Swiss are available in `draftsim` and `draftlab`. A
-    hosted event is always a 4-seat draft played as a round robin.
+    Eight seats and Swiss are available in `draftsim` and `draftlab`. A hosted
+    event is a 4-seat draft, sealed or prerelease pod played as a round robin.
 
 ## Compose a workflow with `labdemo`
 

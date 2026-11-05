@@ -262,3 +262,38 @@ func czallBuild3(ki *kop.Instr, dest kop.Zone, forget, untilLeaves bool) error {
 	}
 	return nil
 }
+
+// originGraveHand admits ONLY Origin$ Graveyard,Hand, Destination$ Library,
+// ChangeType$ Card.YouOwn, Shuffle$ True, no other rules key (Weftwalking,
+// Midnight Clock). It sweeps your graveyard then your hand into your library
+// (kop.MvGraveExile with the second zone Hand in B) and shuffles you. Every
+// other Graveyard,Hand shape refuses by name.
+func (lc *lowerCtx) originGraveHand(ps *params) error {
+	for _, k := range sortedParamKeys(ps.m) {
+		switch k {
+		case "Origin", "Destination", "ChangeType", "Shuffle", "SubAbility":
+		default:
+			if !ignoredParams[k] {
+				return refuse("ChangeZoneAll Origin$ Graveyard,Hand with %s$", k)
+			}
+		}
+	}
+	if ps.str("Destination") != "Library" || ps.str("ChangeType") != "Card.YouOwn" || !ps.is("Shuffle", "True") {
+		return refuse("ChangeZoneAll Origin$ Graveyard,Hand outside Destination$ Library, ChangeType$ Card.YouOwn, Shuffle$ True")
+	}
+	f, err := lc.filter("Card.YouOwn")
+	if err != nil {
+		return err
+	}
+	if len(f.Clauses) == 0 || f.Players != 0 {
+		return refuse("ChangeZoneAll Origin$ Graveyard,Hand filter shape")
+	}
+	for _, c := range f.Clauses {
+		if c.Owner != whoYou && c.Ctrl != whoYou {
+			return refuse("ChangeZoneAll Origin$ Graveyard,Hand over several owners")
+		}
+	}
+	lc.emit(lInstr{Op: "ChangeZoneAll", F: f, C: zLibrary, CS: "from=Graveyard,Hand"})
+	lc.emit(lInstr{Op: "Shuffle", Obj: lRef{Kind: rYou}})
+	return nil
+}

@@ -20,7 +20,10 @@ import {
   cloneProfile,
   compactRows,
   defaultSplit,
+  defaultPartnerWidth,
   defaultRailWidth,
+  PARTNER_MAX,
+  PARTNER_MIN,
   RAIL_MAX,
   RAIL_MIN,
   SPLIT_MAX,
@@ -107,6 +110,16 @@ export class LayoutStore {
 
   resetRailWidth(seats: number): void {
     this.setRailWidth(defaultRailWidth(seats));
+  }
+
+  setPartnerWidth(width: number): void {
+    this.edit((p) => {
+      p.panels.partnerWidth = Math.round(clamp(width, PARTNER_MIN, PARTNER_MAX) * 100) / 100;
+    });
+  }
+
+  resetPartnerWidth(): void {
+    this.setPartnerWidth(defaultPartnerWidth());
   }
 
   toggleStacking(): void {

@@ -78,9 +78,9 @@ is a deliberate change, never a side effect of upstream moving.
 `make report` on 2026-11-02 printed:
 
 ```text
-corpus: 91402ac511046c0b7ed0bb691a8a446ca7dfc873 @ 91402ac511046c0b7ed0bb691a8a446ca7dfc873 (GPL-3.0, 34074 files)
-cards: 34074  playable: 32393 (95.1%)
-tokens: 854
+corpus: 91402ac511046c0b7ed0bb691a8a446ca7dfc873 @ 91402ac511046c0b7ed0bb691a8a446ca7dfc873 (GPL-3.0, <n> files)
+cards: <n>  playable: <n> (<pct>)
+tokens: <n>
 
 top missing primitives (cards unlocked):
   1. api:MakeCard                        186

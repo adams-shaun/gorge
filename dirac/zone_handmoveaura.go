@@ -19,7 +19,8 @@ var DebugHandAuraNoAttach bool
 // Aura has no legal host and remains in the hand. parked: two or more hosts,
 // the card waits in the hand and the resolution suspends at the raGenEnchant
 // ask; its answer re-enters moveFoundAns with host answered. Otherwise host
-// is what the Aura enters attached to (NoSlot for a non-Aura).
+// is what the Aura enters attached to (NoSlot for a non-Aura). The answer's
+// host applies to the parked card only; the cards still to move ask again.
 //
 //go:noinline
 func (s *State) handAuraEnter(k *prep, o Obj, ctrl uint8, answered Slot) (host Slot, parked, stay bool) {

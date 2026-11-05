@@ -363,6 +363,12 @@ func (h *Host) CreateEvent(req protocol.CreateEventRequest) (protocol.CreateEven
 		h.mu.Unlock()
 		return protocol.CreateEventResponse{}, errBadRequest("eventhost: best_of must be 1 or 3, got %d", req.BestOf)
 	}
+	switch req.Format {
+	case "", formatDraft, formatSealed, formatPrerelease:
+	default:
+		h.mu.Unlock()
+		return protocol.CreateEventResponse{}, errBadRequest("eventhost: format must be draft, sealed or prerelease, got %q", req.Format)
+	}
 	// The pick-timer mode is a bounded create option, decided here
 	// from the seat list, never echoed straight into the meta.
 	switch req.PickTimer {
@@ -377,6 +383,19 @@ func (h *Host) CreateEvent(req protocol.CreateEventRequest) (protocol.CreateEven
 		return protocol.CreateEventResponse{}, errUnavailable("eventhost: minting seed: %v", serr)
 	}
 	m := meta{Set: req.Set, Seed: seed, BestOf: req.BestOf, CreatedAt: h.clockNow()}
+	if req.Format != formatDraft {
+		m.Format = req.Format
+	}
+	if m.Format == formatPrerelease && req.BestOf == 0 {
+		m.BestOf = 3
+	}
+	// Rebuild (MTR 7.3 continuous construction) defaults to the format:
+	// sealed supply rebuilds between rounds, a draft does not. A create
+	// body that names it overrides.
+	m.Rebuild = m.sealed()
+	if req.Rebuild != nil {
+		m.Rebuild = *req.Rebuild
+	}
 	humans := 0
 	var invites []protocol.EventInvite
 	for s, cs := range req.Seats {
@@ -421,7 +440,7 @@ func (h *Host) CreateEvent(req protocol.CreateEventRequest) (protocol.CreateEven
 	// Two or more humans draft against the clock (standard unless
 	// the request named a mode); one human or none has no timer at all.
 	m.PickTimer = req.PickTimer
-	if humans <= 1 {
+	if humans <= 1 || m.sealed() {
 		m.PickTimer = "off"
 	} else if m.PickTimer == "" {
 		m.PickTimer = "standard"

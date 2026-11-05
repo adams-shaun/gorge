@@ -151,20 +151,69 @@ func (b Board) keepByLands(bottom int) bool {
 // colour); the lowest score goes, ties on the lower index. The answer is in
 // ascending index order, like chooseLowest's.
 func (b Board) landBottoming(d *decision.Decision) []int {
-	m := d.Max
-	n := len(d.Options)
+	m, lands, spells := b.bottomingHand(d)
 	if m <= 0 {
 		return nil
 	}
-	if m > n {
-		m = n
+	k := len(d.Options) - m
+	maxLands := max((k+1)/2, min(2, k))
+	landsOut := min(max(len(lands)-maxLands, 0), m)
+	out, _ := bottomSplit(m, landsOut, lands, spells, false)
+	return out
+}
+
+// BottomingAlternatives is the bottoming answers to d a search weighs
+// against MulliganLands' own (landBottoming): the same picks with one land
+// more, then one land fewer, put back, then its own split with the next
+// spell in its order put back in place of the last one it picked. Within
+// lands and within spells each split picks as landBottoming does (spells by
+// highest mana value, lands by the colours the kept spells need least), so
+// the answers differ in the land/spell split, which is what a kept hand's
+// quality turns on, or in one spell. A kept hand never drops below two lands
+// while the hand has them, nor below one spell while it has one. Nil when d
+// bottoms nothing.
+func BottomingAlternatives(b Board, d *decision.Decision) [][]int {
+	m, lands, spells := b.bottomingHand(d)
+	if m <= 0 {
+		return nil
 	}
-	type handCard struct {
-		idx  int
-		c    Card
-		land bool
+	k := len(d.Options) - m
+	maxLands := max((k+1)/2, min(2, k))
+	own := min(max(len(lands)-maxLands, 0), m)
+	var out [][]int
+	for _, landsOut := range []int{own + 1, own - 1} {
+		kept := len(lands) - landsOut
+		switch {
+		case landsOut < 0 || landsOut > m || landsOut > len(lands) || m-landsOut > len(spells):
+		case kept < min(2, len(lands)) || k-kept < min(1, len(spells)):
+		default:
+			alt, _ := bottomSplit(m, landsOut, lands, spells, false)
+			out = append(out, alt)
+		}
 	}
-	var lands, spells []handCard
+	// The policy's split with the next spell put back instead of the last
+	// one it picked, when the two are different cards.
+	if alt, ok := bottomSplit(m, own, lands, spells, true); ok {
+		out = append(out, alt)
+	}
+	return out
+}
+
+// handCard is one card of a bottoming ask: its option index, its card and
+// whether the policy reads it as a land.
+type handCard struct {
+	idx  int
+	c    Card
+	land bool
+}
+
+// bottomingHand splits a bottoming ask's cards into lands and spells, with m
+// the number of cards to bottom (d.Max, at most the hand).
+func (b Board) bottomingHand(d *decision.Decision) (m int, lands, spells []handCard) {
+	m = min(d.Max, len(d.Options))
+	if m <= 0 {
+		return 0, nil, nil
+	}
 	for _, o := range d.Options {
 		// A card the table does not hold (never, for a hand card) is a
 		// spell: the zero Card would otherwise read as a costless land.
@@ -176,9 +225,15 @@ func (b Board) landBottoming(d *decision.Decision) []int {
 			spells = append(spells, hc)
 		}
 	}
-	k := n - m
-	maxLands := max((k+1)/2, min(2, k))
-	landsOut := min(max(len(lands)-maxLands, 0), m)
+	return m, lands, spells
+}
+
+// bottomSplit bottoms m cards of which landsOut are lands: the spells by
+// highest mana value, the lands by least-needed colour (landBottoming's
+// order), in ascending index order. With next, the last spell picked is
+// swapped for the first kept one by another name; ok is false when there is
+// none to swap.
+func bottomSplit(m, landsOut int, lands, spells []handCard, next bool) (bottom []int, ok bool) {
 	spellsOut := m - landsOut
 	if spellsOut > len(spells) { // unreachable for maxLands <= k; kept for safety
 		spellsOut = len(spells)
@@ -191,6 +246,17 @@ func (b Board) landBottoming(d *decision.Decision) []int {
 	slices.SortStableFunc(ranked, func(a, c handCard) int {
 		return cmp.Or(cmp.Compare(c.c.CMC, a.c.CMC), cmp.Compare(a.idx, c.idx))
 	})
+	if next {
+		if spellsOut == 0 {
+			return nil, false
+		}
+		last := spellsOut - 1
+		j := slices.IndexFunc(ranked[spellsOut:], func(h handCard) bool { return h.c.PrintedName != ranked[last].c.PrintedName })
+		if j < 0 {
+			return nil, false
+		}
+		ranked[last], ranked[spellsOut+j] = ranked[spellsOut+j], ranked[last]
+	}
 	keptSpells := ranked[spellsOut:]
 	for _, s := range ranked[:spellsOut] {
 		out = append(out, s.idx)
@@ -244,5 +310,5 @@ func (b Board) landBottoming(d *decision.Decision) []int {
 		left = slices.Delete(left, best, best+1)
 	}
 	slices.Sort(out)
-	return out
+	return out, true
 }

@@ -40,6 +40,12 @@ describe('BetweenGames (SSR)', () => {
     expect(body).toMatch(/data-testid="sb-waiting"[^>]*>\s*Waiting for Seat 4 · Bot 4 \(bot\)…/);
     expect(body).not.toContain('data-testid="sb-keep"');
   });
+
+  it('game 1 shows the rebuild headline', () => {
+    const body = ssr(row({ round: 2, a: 0, b: 2, game: 1, games: [], chooser: null, waiting: [0, 2], score: [0, 0], table: undefined }));
+    expect(body).toContain('Round 2: before your match, keep your deck or rebuild it from your pool');
+    expect(body).not.toContain('Game 1 of 3');
+  });
 });
 
 describe('BetweenGames (browser)', () => {
@@ -49,9 +55,9 @@ describe('BetweenGames (browser)', () => {
   });
 
   type W = { sideboardBodies: unknown[]; sideboardStatus: number; staleCalls: number; adopted: unknown[] };
-  async function open(): Promise<Page> {
+  async function open(query = ''): Promise<Page> {
     const page = await browser.newPage();
-    await page.goto(`${browserURL}src/components/event/BetweenGames.fixture.html`);
+    await page.goto(`${browserURL}src/components/event/BetweenGames.fixture.html${query}`);
     await page.getByTestId('sb-keep').waitFor();
     await expect.poll(() => page.getByTestId('sb-check').textContent()).toContain('40 cards');
     return page;
@@ -70,6 +76,16 @@ describe('BetweenGames (browser)', () => {
     await page.close();
     expect(got.bodies).toEqual([{ game: 2, keep: true }]);
     expect(got.adopted).toBe(1);
+  });
+
+  it('the game-1 rebuild window keeps the deck with {game: 1}', async () => {
+    const page = await open('?game=1');
+    expect(await page.getByTestId('between-games').textContent()).toContain('Round 2: before your match, keep your deck or rebuild it from your pool');
+    await page.getByTestId('sb-keep').click();
+    await page.getByTestId('sb-waiting').waitFor();
+    const got = await read(page);
+    await page.close();
+    expect(got.bodies).toEqual([{ game: 1, keep: true }]);
   });
 
   it('a swap (tap a card each way, one more basic) submits {game, deck} with the moved ids', async () => {

@@ -24,6 +24,7 @@ type DraftCard struct {
 	ManaValue int    `json:"mana_value,omitempty"`
 	Colors    string `json:"colors,omitempty"`    // subset of "WUBRG", in WUBRG order
 	TypeLine  string `json:"type_line,omitempty"` // face types, space-joined
+	Promo     bool   `json:"promo,omitempty"`     // the seat's prerelease promo (sealed pools only)
 }
 
 // EventSeat is one entrant of a draft event. Kind is "human" or "bot";
@@ -42,7 +43,9 @@ type EventSeat struct {
 
 // EventSeries is one pairing of an event round. State is "pending", "live",
 // "between" or "ended" — "between" names the sideboarding step between two
-// games of a series. Table names the live (or last) game's host
+// games of a series, and a rebuild event's window before game 1 of a round 2
+// or 3 series (MTR 7.3), where Game is 1 and Table is empty (no game of the
+// series has a table yet). Table names the live (or last) game's host
 // table, so a spectator can watch at /t/{table}; Attempt is the game
 // attempt in flight. Game is the live game, or the next one while between.
 // Games is the winner seat per played game (-1 for a draw); Chooser names
@@ -92,6 +95,8 @@ type EventState struct {
 	Round     int             `json:"round"`
 	BestOf    int             `json:"best_of"` // the event's series format (1 or 3)
 	PickTimer string          `json:"pick_timer,omitempty"`
+	Format    string          `json:"format,omitempty"`  // "sealed" | "prerelease"; omitted for a draft
+	Rebuild   bool            `json:"rebuild,omitempty"` // MTR 7.3 continuous construction; true for sealed and prerelease by default
 	Seats     []EventSeat     `json:"seats"`
 	You       *int            `json:"you"`    // the viewer's seat when a valid seat token was presented
 	Series    []EventSeries   `json:"series"` // every pairing of rounds 1..3, round then pairing order
@@ -142,18 +147,26 @@ type CreateEventSeat struct {
 // CreateEventRequest is the POST /api/events body: the drafted set, the
 // series format and the four seats. BestOf is 1 or 3 (0 = 1). PickTimer is
 // "", "off", "standard" or "relaxed". The seed is always minted by the
-// server; no client field may choose it.
+// server; no client field may choose it. Format is the supply: a booster draft
+// (default), sealed (six Play Boosters per seat) or prerelease (sealed plus one
+// rare/mythic promo per seat, best of 3 by default). Rebuild turns on MTR 7.3
+// continuous construction: a rebuild window before game 1 of every series from
+// round 2. When nil, the format decides: true for sealed and prerelease, false
+// for draft.
 type CreateEventRequest struct {
 	Set       string            `json:"set"`
+	Format    string            `json:"format,omitempty"`     // "" or "draft", "sealed", "prerelease"
 	BestOf    int               `json:"best_of,omitempty"`    // 0 = 1; 1 or 3
 	PickTimer string            `json:"pick_timer,omitempty"` // "", "off", "standard", "relaxed"
+	Rebuild   *bool             `json:"rebuild,omitempty"`    // nil = the format's default: true for sealed and prerelease, false for draft
 	Seats     []CreateEventSeat `json:"seats"`                // exactly 4
 }
 
 // SideboardRequest is the POST /api/events/{id}/sideboard body: the seat's
 // deck for game Game of its current series. Keep re-submits the deck it
-// played last game; otherwise Deck is the new list (pool CardRef ids plus
-// basics), saved as a new revision. Exactly one of Keep and Deck is set.
+// played last game (in a rebuild event's round-2-or-later window, Game 1, the
+// deck the seat played last); otherwise Deck is the new list (pool CardRef ids
+// plus basics), saved as a new revision. Exactly one of Keep and Deck is set.
 // Game is compared with the server's next game; a stale one is a 409.
 type SideboardRequest struct {
 	Game int          `json:"game"`

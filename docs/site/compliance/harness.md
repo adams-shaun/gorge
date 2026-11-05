@@ -63,9 +63,8 @@ could not express it) or `xmage_lacks`. Only `agree` and `xmage_wrong` count
 toward a set's claim.
 
 Each set is declared at level A or B in `oracle/compliance/declared.json`, and
-`ratchet.json` holds each set's outstanding count so it can only fall. On
-2026-11-02, at gorge `5224a59f2`, the repository's README reported 20 declared
-sets, 17 at level B and 3 at level A. Re-measure with `make compliance-status`.
+`ratchet.json` holds each set's outstanding count so it can only fall. Run
+`make compliance-status` for the declared sets and their level counts.
 Current per-set numbers are on the [support page](../support/sets.md).
 
 Neither level says gorge is right about a whole game. Scenarios are short, and

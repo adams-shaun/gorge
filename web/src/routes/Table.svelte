@@ -19,6 +19,8 @@
   import PairedBotPanel from '../components/PairedBotPanel.svelte';
   import { pushTaggedNote, type AutoPassLog } from '../lib/autolog';
   import { loadDifferedNotes, saveDifferedNotes } from '../lib/pairedbot';
+  import { pairedStatus } from '../lib/pairedstatus.svelte';
+  import { NARROW_QUERY, partnerLayout } from '../lib/partnerrail';
   import { namedDecision } from '../lib/prompts/decision';
   import { decisionStops, timelineMarks } from '../lib/review';
   import type { ReviewDecision } from '../protocol';
@@ -34,6 +36,7 @@
   import ViewHotkeys from '../components/ViewHotkeys.svelte';
   import HotkeyHint from '../components/HotkeyHint.svelte';
   import { layoutStore } from '../lib/layouts.svelte';
+  import { PARTNER_MAX, PARTNER_MIN } from '../lib/layoutprofile';
   import PromptDock from '../components/prompts/PromptDock.svelte';
   import PromptRailSlot from '../components/prompts/PromptRailSlot.svelte';
   import { effectivePlacement, profilePlacement } from '../lib/prompts/dock';
@@ -132,7 +135,19 @@
   const railWidth = $derived(layoutStore.profile.panels.railWidth);
   let railPreview = $state<number | null>(null);
   const displayedRailWidth = $derived(railPreview ?? railWidth);
-  const tableStyle = $derived(`--rail-width:${displayedRailWidth * 100}%`);
+  const partnerWidth = $derived(layoutStore.profile.panels.partnerWidth);
+  let partnerPreview = $state<number | null>(null);
+  const displayedPartnerWidth = $derived(partnerPreview ?? partnerWidth);
+  const tableStyle = $derived(`--rail-width:${displayedRailWidth * 100}%;--partner-width:${displayedPartnerWidth * 100}%`);
+  // Narrow screens never give the paired bot a column of its own (lib/partnerrail).
+  const narrowQuery = typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia(NARROW_QUERY) : null;
+  let narrow = $state(narrowQuery?.matches ?? false);
+  $effect(() => {
+    if (narrowQuery === null) return;
+    const change = (e: MediaQueryListEvent) => (narrow = e.matches);
+    narrowQuery.addEventListener('change', change);
+    return () => narrowQuery.removeEventListener('change', change);
+  });
   // The game wire: a live seat whose protocol setting is ManaBrew or SpellBench
   // v2 plays through that wire's SnapshotMatch; everything else — and a probe
   // that fails — is the native MatchState. Both expose the surface this route
@@ -191,6 +206,15 @@
     }
     return panelCache.state;
   });
+
+  // The paired bot sits beside a live seat of its own. Its offer decides where
+  // its panel goes, so the route fetches it rather than the panel.
+  const pairedEligible = $derived(liveSeated && seatCtx !== null && !seatCtx.transport && m.match !== null);
+  $effect(() => {
+    if (pairedEligible && seatCtx !== null) void pairedStatus.load(table, seatCtx);
+  });
+  const pairedOffer = $derived(pairedEligible ? pairedStatus.of(table) : null);
+  const partner = $derived(partnerLayout(layoutStore.profile.panels.partner, railSide, pairedOffer?.offered === true, narrow));
 
   // The slot and shell use the same effective placement: a payment with an
   // older persisted near-table layout occupies the rail instead of the board.
@@ -619,7 +643,7 @@
     <MatchList {table} />
   </main>
 {:else}
-  <main class="table rail-{railSide}" style={tableStyle} class:log-hidden={!showLog} class:rail-peek={optionsOpen} class:with-transport={!seated && !!m.view}>
+  <main class="table rail-{railSide}{partner.where === 'main' ? '' : ` partner-${partner.where} partner-${partner.side}`}" style={tableStyle} class:log-hidden={!showLog} class:rail-peek={optionsOpen} class:with-transport={!seated && !!m.view}>
     <!-- Motion overlay: renders nothing here; it plays
          the client model's transitions in a fixed layer on <body>. Mounted
          outside the view guard so a match change does not remount it. -->
@@ -686,6 +710,24 @@
           <HandFan player={ownPlayer} {cardWidth} {visible} {raise} options={boardOptions} {offHand} paymentActions={handPayments} autoPay={panel?.autoPayMana ?? false} onCastPayment={(action, holdPriority) => panel?.castAction(action, holdPriority)} />
         {/if}
       {/snippet}
+      {#snippet pairedPanel()}
+        {#if pairedEligible && seatCtx && m.match !== null}
+          <PairedBotPanel {table} match={m.match} ctx={seatCtx} status={pairedOffer} decision={m.view?.decision ? namedDecision(m.view.decision, m.view) : null} answered={panel?.answered ?? null} onDiffered={noteDiffered} />
+        {/if}
+      {/snippet}
+      <!-- The paired bot's own rail, when the table offers one and the layout
+           profile does not keep it in the main rail (lib/partnerrail). It comes
+           before the main rail in the DOM, so tabbing reaches the panel after
+           the board and before the main rail, near where it sat at the rail's
+           top. Crossing the narrow width moves it, which remounts it. -->
+      {#if partner.where !== 'main'}
+        <aside class="partner" aria-label="Paired bot rail" data-partner-rail={partner.side} data-partner-mode={partner.where}>
+          {@render pairedPanel()}
+          {#if partner.where === 'column'}
+            <RailResizer side={partner.side} name="Paired bot" min={PARTNER_MIN} max={PARTNER_MAX} width={partnerWidth} onDrag={(width) => (partnerPreview = width)} onWidth={(width) => layoutStore.setPartnerWidth(width)} onReset={() => layoutStore.resetPartnerWidth()} />
+          {/if}
+        </aside>
+      {/if}
       <aside class="rail" data-rail-side={railSide}>
         <!-- The prompt dock's mount point: the
              decision prompt docks at the top of the rail, next to the stack
@@ -700,8 +742,8 @@
         {#if reviewMatch !== null}
           <DecisionPanel {table} match={reviewMatch} seats={m.seats} cursor={m.dvr.cursor} onScrub={reviewScrub} bind:entries={reviewEntries} />
         {/if}
-        {#if liveSeated && seatCtx && !seatCtx.transport && m.match !== null}
-          <PairedBotPanel {table} match={m.match} ctx={seatCtx} decision={m.view?.decision ? namedDecision(m.view.decision, m.view) : null} answered={panel?.answered ?? null} onDiffered={noteDiffered} />
+        {#if partner.where === 'main'}
+          {@render pairedPanel()}
         {/if}
         <div class="rail-main">
         <!-- The concede control (when a concede option is pending) is passed
@@ -906,6 +948,87 @@
   .table.rail-hidden .rail:hover,
   .table.rail-hidden .rail:focus-within,
   .table.rail-hidden.rail-peek .rail {
+    transform: none;
+  }
+  /* The paired bot's own rail (lib/partnerrail), on the side away from the
+     main rail. As a column it gets its own width variable and the board keeps
+     minmax(0, 1fr) between the two rails; both rails are fractions of the
+     table's width with ceilings that leave the board at least 30% of it, so
+     the page never scrolls sideways. Only a live seat has a paired bot, and a
+     live seat has no transport row, so these columns span the one row. */
+  .table.partner-column.partner-left {
+    grid-template-columns: minmax(min(15rem, var(--partner-width)), var(--partner-width)) minmax(0, 1fr) minmax(min(15rem, var(--rail-width)), var(--rail-width));
+  }
+  .table.partner-column.partner-left.rail-hidden {
+    grid-template-columns: minmax(min(15rem, var(--partner-width)), var(--partner-width)) minmax(0, 1fr);
+  }
+  .table.partner-column.partner-left .partner {
+    grid-column: 1;
+    grid-row: 1 / -1;
+  }
+  .table.partner-column.partner-left .board {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .table.partner-column.partner-left:not(.rail-hidden) .rail {
+    grid-column: 3;
+    grid-row: 1 / -1;
+  }
+  .table.partner-column.partner-right {
+    grid-template-columns: minmax(min(15rem, var(--rail-width)), var(--rail-width)) minmax(0, 1fr) minmax(min(15rem, var(--partner-width)), var(--partner-width));
+  }
+  .table.partner-column.partner-right .partner {
+    grid-column: 3;
+    grid-row: 1 / -1;
+  }
+  .partner {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--instrument);
+    color: var(--ink-inst);
+  }
+  .table.partner-left .partner {
+    border-right: 1px solid var(--edge-inst);
+  }
+  .table.partner-right .partner {
+    border-left: 1px solid var(--edge-inst);
+  }
+  /* In its own rail the panel has the whole height, not the 45% share it
+     takes inside the main rail. */
+  .partner :global(.paired) {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    border-bottom: 0;
+  }
+  /* Hidden: an edge drawer, like the hidden main rail, that slides in on
+     hover or focus and takes no column from the board. */
+  .table.partner-drawer {
+    overflow-x: clip;
+  }
+  .table.partner-drawer .partner {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 30;
+    width: min(22rem, 85vw);
+    transition: transform 0.15s ease-out;
+  }
+  .table.partner-drawer.partner-left .partner {
+    left: 0;
+    transform: translateX(calc(-100% + 8px));
+    box-shadow: 10px 0 28px rgb(0 0 0 / 0.4);
+  }
+  .table.partner-drawer.partner-right .partner {
+    right: 0;
+    transform: translateX(calc(100% - 8px));
+    box-shadow: -10px 0 28px rgb(0 0 0 / 0.4);
+  }
+  .table.partner-drawer .partner:hover,
+  .table.partner-drawer .partner:focus-within {
     transform: none;
   }
   .board {

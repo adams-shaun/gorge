@@ -180,8 +180,8 @@ func TestDeckpoolIsDeterministic(t *testing.T) {
 		}
 	}
 	a, b, c := readTree(t, filepath.Join(base, "a")), readTree(t, filepath.Join(base, "b")), readTree(t, filepath.Join(base, "c"))
-	if len(a) != 16+2 {
-		t.Fatalf("tree has %d files, want 18", len(a))
+	if len(a) != 16+4 {
+		t.Fatalf("tree has %d files, want 20", len(a))
 	}
 	if !reflect.DeepEqual(a, b) {
 		t.Errorf("same flags wrote different trees")

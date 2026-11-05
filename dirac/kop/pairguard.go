@@ -9,8 +9,8 @@ type PairRefusal struct {
 }
 
 // PairGuard reads a built matchup table and returns its refusal, or nil. Package
-// kernel sets it from its init, so a binary that can play a table refuses one it
+// dirac sets it from its init, so a binary that can play a table refuses one it
 // cannot play. It sits here because package cardset, which calls it, cannot import
-// package kernel: kernel's own tests import cardset. Nil in a binary without the
+// package dirac: dirac's own tests import cardset. Nil in a binary without the
 // kernel, which has nothing to stall.
 var PairGuard func(t *Table) *PairRefusal

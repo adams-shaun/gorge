@@ -100,9 +100,8 @@ holds every other set's problem count, and that count may only fall. All of
 these targets describe the pinned gorge commit. Bumping the pin is a pull
 request that re-measures them.
 
-At gorge-compliance `7d796ae`, the committed verdicts number
-13,187 over 5,279 cards: 13,134 `agree`, 37 `xmage_wrong`, 11 `harness`, 3 `diverge` and 2 `gorge_wrong`
-([the count's command](regenerating.md)). `xmage_wrong` is a ruled XMage error with a CR citation.
+The committed verdicts are counted by status (`agree`, `xmage_wrong`, `harness`, `diverge`, `gorge_wrong`)
+with [the count's command](regenerating.md); the totals change with every pin bump, so none are written here. `xmage_wrong` is a ruled XMage error with a CR citation.
 
 ### dirac: lowered and supported
 

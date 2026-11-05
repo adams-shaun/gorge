@@ -163,9 +163,9 @@ that each set's counts and each lockstep row add up. To ask about one pool's car
 prints one line per card.
 
 **The evidence behind those counts** is in `dirac/support/evidence/`. `scripts/dirac-evidence.sh <out>` plays the evidence
-corpus and `scripts/dirac-first-refusals.py evidence <out>` writes the lists. The corpus is the committed FDN and BLB slices
-and one synthetic pool per Standard list, so a clone can run all of it. The full deck pools aren't published and have no
-download, so a clone can't earn FDN and BLB evidence from real decks beyond the slices.
+corpus and `scripts/dirac-first-refusals.py evidence <out>` writes the lists. The corpus is the committed FDN and BLB slices,
+the pauper real decks and one synthetic pool per Standard list. The full FDN and BLB deck pools aren't published and have
+no download, so a clone can't earn FDN and BLB evidence from real decks beyond the slices.
 
 ## gorge: corpus coverage
 
@@ -187,7 +187,7 @@ workflow also publishes `make coverage`'s tables as a job summary and artifact
 on every push to `main`.
 
 **Parse diagnostics.** `forgec compile` prints one line per diagnostic and a
-total (`compiled 34074 cards, 854 tokens, 2 diagnostics`).
+total (`compiled <n> cards, <n> tokens, <n> diagnostics`).
 
 !!! warning "Compile into a copy if `.cards` is shared"
     `forgec compile` rewrites the IR cache and prunes all but the newest four
@@ -208,8 +208,8 @@ total (`compiled 34074 cards, 854 tokens, 2 diagnostics`).
 go test ./engine/rules/ -run 'TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead' -v
 ```
 
-The two log lines are the live counts (`ratchet: N of 1123 …` and
-`param census: N of 1123 …`). The named cards are the files in
+The two log lines are the live counts (`ratchet: N of <total> …` and
+`param census: N of <total> …`). The named cards are the files in
 [`engine/rules/testdata/known-unsupported/`](https://github.com/adams-shaun/gorge/tree/main/engine/rules/testdata/known-unsupported)
 and `engine/rules/testdata/paramcensus/`, one JSON file per card. Without `.cards`, both tests skip and the package
 still prints `ok`, so check that the log lines are there.

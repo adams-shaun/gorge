@@ -16,7 +16,8 @@ flowchart LR
 
 === "In the browser"
 
-    The **Paired bot** panel sits at the top of the rail, with an **On** / **Off** switch: *play with a bot beside you*.
+    The **Paired bot** panel sits in a rail of its own, on the side of the board away from the stack and log, with an **On** / **Off** switch: *play with a bot beside you*.
+    In the Layout drawer, **Paired bot** keeps it there (**Opposite side**, the default), puts it back in the main rail (**In the rail**), or hides it at the screen's edge until you point at it (**Hidden**). Drag its inner edge to resize it. On a narrow screen it joins the main rail.
     It starts on when you play alone against bots, and off at a table with another human. Your browser remembers what you choose for each.
 
     Two settings in the panel go with it: **Mark the bot's pick on your decision**, and **Mark what the bot's rules would do**.
@@ -38,6 +39,8 @@ flowchart LR
 **The mark.** What the bot would press wears a dashed gold ring: a card in your hand or on the board, a prompt row, a target, the pass button or **No attack**. The controls in the prompt also carry its estimate, *Bot's pick, 62%*. A decision search doesn't weigh shows the bot's rules pick, with no number.
 
 **The panel.** It lists the options the search weighed, with the share of its lines that went through each and an estimated chance of winning, then the line it expects to follow.
+
+**The mulligan.** Search weighs the London mulligan too: keep or mulligan, and which cards to put back. Each option is played out from the same guessed deals for a few turns of both seats' bots, and the bot moves off its own hand-reading rule only when those deals show a clear difference. With every option played on every deal, the panel's shares are even; the estimates carry the advice.
 
 **Where you differ.** If you answer differently, a quiet note in the panel and your game log gives both estimates, once. The note stays in your browser.
 

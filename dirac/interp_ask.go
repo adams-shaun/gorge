@@ -755,6 +755,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.batchLatch&batchSac != 0 {
 			s.batchClose(0) // the payment's sacrifice batch (payPickSacBatch)
 		}
+		if s.payReturnPark() {
+			return
+		}
 		s.payDone(k, true)
 	case raGenSac:
 		// every player's picks are sacrificed together once all have chosen
@@ -1032,12 +1035,18 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.rerunReturn(k)
 			return
 		}
+		paying := s.g.pre.state == preReturnPay
 		s.g.pre.state = 2
 		if s.objs[o].zone == kop.ZoneExile {
 			from := s.detach(o)
 			s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from) // the enters program reads the choice
 		}
 		s.g.pre = preAsk{}
+		if paying {
+			s.res.ask = raNone
+			s.payDone(k, true) // the payment's sacrifice finished: the cost resumes
+			return
+		}
 		s.continueRes(k, 0)
 	case raGenTokChoice:
 		in := &s.prog(k)[r.pc]
@@ -1086,11 +1095,21 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		case kop.OpChooseMove:
 			r.ask = raNone
 			s.moveFoundAns(k, s.objs[a.Source()].slot) // zone_handmoveaura.go: enter, attach, remember
+			if s.moveAsked() || s.res.left == tailSearchEnter {
+				return // a later card parked too; its answer resumes here
+			}
 			s.continueRes(k, 0)
 			return
 		case kop.OpSearchEx:
 			r.ask = raNone
 			s.moveFoundAns(k, s.objs[a.Source()].slot)
+			// The move may itself have parked a later card's as-enters ask by
+			// setting res.left = tailSearchEnter (moveFoundAns's parkTail): the
+			// arm's own parkTail must not overwrite it with tailSearch, or the
+			// cards after that card never move.
+			if s.moveAsked() || s.res.left == tailSearchEnter {
+				return // a later card parked too; its answer resumes here
+			}
 			if !s.parkTail(k, tailSearch) {
 				s.finishSearchTail(k)
 				s.continueRes(k, 0)
@@ -1322,7 +1341,7 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 	s.g.pickP = p
 	s.g.pickLeft = uint8(s.value(k, in.A))
 	s.g.pickZ = uint8(in.C & 7)
-	s.g.pickF = uint16(in.C>>3) | uint16(in.B.N)&(kop.SrAttacking|kop.SrDifferentNames|kop.SrNoShuffle|kop.SrRandom)
+	s.g.pickF = uint16(in.C>>3) | uint16(in.B.N)&(kop.SrAttacking|kop.SrDifferentNames|kop.SrNoShuffle|kop.SrRandom|kop.SrGameGrave)
 	s.g.nlook = 0
 	if altOp(in) {
 		s.altBegin() // OriginAlternative$ (zone_originalternative.go)
@@ -1420,8 +1439,8 @@ func (s *State) searchCands(k *prep, d *Decision) {
 	case kop.ZoneLibrary:
 		list = pl.lib[pl.libLo:pl.libHi]
 	case kop.ZoneGraveyard:
-		if in.Op == kop.OpChooseMove && s.g.pickF&kop.SrUnderYourControl != 0 {
-			s.gameGraveCands(k, in, d) // trig_sacqueueorder.go: an ownerless GainControl$ pick
+		if in.Op == kop.OpChooseMove && s.g.pickF&(kop.SrUnderYourControl|kop.SrGameGrave) != 0 {
+			s.gameGraveCands(k, in, d) // trig_sacqueueorder.go: an ownerless GainControl$ pick, or a game-wide graveyard pick (gorge effHiddenPick gameWide)
 			return
 		}
 		list = pl.grave[:pl.graveN]
@@ -1535,7 +1554,9 @@ func (s *State) finishSearchTail(k *prep) {
 func (s *State) moveFound(k *prep) { s.moveFoundAns(k, NoSlot) }
 
 // moveFoundAns is moveFound; host is the answered enchant ask of the
-// one-card hand move onto the battlefield parked at it (handAuraEnter).
+// one-card hand move onto the battlefield parked at it (handAuraEnter);
+// the re-run's first look card is that parked card, and only it consumes
+// host.
 func (s *State) moveFoundAns(k *prep, host Slot) {
 	p := s.g.pickP
 	z := kop.Zone(s.g.pickZ)
@@ -1556,9 +1577,17 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			continue
 		}
 		if z == kop.ZoneBattlefield && s.handAuraArmed(k) {
+			ans := host // the answered enchant ask is for the parked card, the look's first
+			if i != 0 {
+				ans = NoSlot // every card after it asks for itself again
+			}
 			var parked, stay bool
-			if host, parked, stay = s.handAuraEnter(k, o, p, host); parked {
-				return // the card waits in the hand for the enchant ask; nlook stays
+			if host, parked, stay = s.handAuraEnter(k, o, p, ans); parked {
+				// the card waits in its zone for the enchant ask; its answer moves the
+				// cards from this one on, not the earlier ones that entered
+				n := copy(s.resArm().look[:], s.resArm().look[i:s.g.nlook])
+				s.g.nlook = uint8(n)
+				return
 			} else if stay {
 				if fl&kop.SrRemember != 0 {
 					s.remember(o) // gorge settleHandMove remembers a card whose entry was swallowed too
@@ -1647,6 +1676,7 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			s.g.nlook = uint8(copy(s.resArm().look[:], s.resArm().look[i+1:s.g.nlook]))
 			return
 		}
+		host = NoSlot // an Aura's host is for its own entry; the next card finds its own
 	}
 	s.g.nlook = 0
 }

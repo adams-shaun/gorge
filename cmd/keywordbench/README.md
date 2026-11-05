@@ -1,4 +1,4 @@
-# Keyword use, not just deck presence (FL-110)
+# Keyword use, not just deck presence
 
 ```sh
 go run ./cmd/keywordbench -corpus -games 10 -seed 110000

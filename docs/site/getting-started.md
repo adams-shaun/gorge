@@ -27,9 +27,9 @@ those are expected.
 `make report` begins like this (2026-11-02, at `b78e4c8b1`):
 
 ```text
-corpus: <FORGE_REF> @ <FORGE_REF> (GPL-3.0, 34074 files)
-cards: 34074  playable: 32393 (95.1%)
-tokens: 854
+corpus: <FORGE_REF> @ <FORGE_REF> (GPL-3.0, <n> files)
+cards: <n>  playable: <n> (<pct>)
+tokens: <n>
 ```
 
 A card is *playable* when every primitive its script names is implemented, which doesn't

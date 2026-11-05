@@ -9,15 +9,17 @@ and tier, generated from the source.
 See also: [invariants.md](invariants.md) (the rules every change must keep)
 and [do-not.md](do-not.md) (the mistakes that have actually happened here).
 
-This is the index. The package and path rows live in the per-domain files
-below; this file changes only when a GROUP or DOMAIN appears, not when a
-package does.
+This is the index. The package and path rows for the other groups live in the
+per-domain files below; the `dirac/` rows are here because it is a domain of its
+own. This file changes only when a GROUP or DOMAIN appears, not when a package
+does.
 
 ## Groups
 
 | Group | What it holds | Detail |
 |---|---|---|
 | `engine/` | The rules core: `cards`, `deck`, `state`, `decision`, `events`, `effects`, `rules` (+ sub-packages), `replay`, `eventdiff`, `view`, `game` (+`gorgegame`), and `seat` (the `Seat` contract only). Imports nothing outside `engine/`. | [repo-map-engine.md](repo-map-engine.md#engine) |
+| `dirac/` | The second engine, in lockstep with `engine/` and built for machine learning: the two-player `kop`-table engine, its oracle seam to gorge, its table generator, its adapter and its commands. The core imports nothing outside `dirac/`; nothing in `engine/` imports it. | [below](#dirac) |
 | `bots/` | `botpolicy`, the default `heuristic` bot, the bots registry and the hosted bots with their inference runtime. Imports `engine/` only. | [repo-map-engine.md](repo-map-engine.md#bots) |
 | `server/` | `gorged` (the importable server: `Main`, `Extensions`, `RegisterNetBot`; `cmd/gorged` is its thin main), `host` (+`httpapi`, `manabrewhttp`), `protocol`, `manabrew`, `divergence`. | [repo-map-engine.md](repo-map-engine.md#server) |
 | `draft/` | The limited stack: `limited` (+`setdata`, `booster`, `draft`, `build`, `pickbot`), `event`, `eventhost`, `gorgedevents`, `draftlab` (+`extern`). `cmd/gorged` links it; only `cmd/gorged`, `cmd/draftsim`, `cmd/labdemo` and `cmd/extagent` may depend on it. | [repo-map-engine.md](repo-map-engine.md#draft) |
@@ -28,6 +30,40 @@ package does.
 | `scripts/` | Contributor and CI helpers only. | [repo-map-paths.md](repo-map-paths.md#everything-else) |
 | `web/` | The Svelte + Vite client. | [repo-map-paths.md](repo-map-paths.md#everything-else) |
 | `docs/` | This guide, living designs (`docs/design/`), decisions (`docs/decisions/`), the public site (`docs/site/`). | [repo-map-paths.md](repo-map-paths.md#everything-else) |
+
+## `dirac/`
+
+gorge's second engine: two-player, driven as a `Step`/`Apply` state machine over
+a `kop.Table`, and fast enough for self-play, search and policy training. gorge
+leads and dirac follows decision by decision; a card dirac supports must play
+identically, and anything outside the generated tables stays with gorge. The
+core imports nothing outside `dirac/`. [`dirac/README.md`](../../dirac/README.md)
+has the API, the rules for code that touches `State`, and the import boundary.
+
+| Package | What it is | Where a change goes |
+|---|---|---|
+| `dirac` | The engine: state, `Step`/`Apply`, combat, stack, mulligans, projection, and the interpreter for the `kop` ops. | Start at `doc.go`. One `<topic>_<mechanic>.go` per mechanic; never append to a shared tail. |
+| `dirac/kop` | The card-effect vocabulary: `Table`, `CardDef`, `Ability`, `Instr` and the op enum the tables and interpreter share. | A new op or ext sub-op goes in its own `kop` file with an `init` name and an unused literal; never renumber. |
+| `dirac/cardset` | The engine-neutral `Set` interface and the loader of binary card tables (`ByName`, `Names`); imports `dirac/kop` and the root table key. | Loader in `load.go`; committed pool inputs under `cardset/pools/`. |
+| `dirac/vanilla` | A hand-written table of basic lands, vanilla creatures and simple spells, with synthetic decks; the small-table test bed. | This table only; keep it hand-written so `example_test.go` needs no generated tables. |
+| `dirac/feat` | The network feature encoder: a dirac position to the same `policynet` inputs gorge produces. | Encoder and its policynet parity tests. |
+| `dirac/crcoverage` | Test-only CR coverage audit, one file per CR chapter; `TestCRCoverageIsCurrent` checks every row against the code. | The affected rule's row, in the same change as the mechanic. |
+| `dirac/search/hbot` | The native port of gorge's auto-pay heuristic bot. | Mirror a gorge auto-pay change here; lockstep is the check. |
+| `dirac/search/mull` | gorge's London-mulligan policies as pure functions over a hand. | The same policy change as gorge's, kept pure. |
+| `dirac/oracle` | The engine-neutral seam to gorge: `Side`, `GorgeSide`, `RealKernel`/`FDNSide`, `Lockstep`, `Fuzz`, `Replay`, `Repro` and the policies. | Lockstep and fuzz logic here; its commands live under `oracle/cmd`. |
+| `dirac/kgen` | Lowers gorge's card IR into `kop` tables. | A `names_<mechanic>.go` and/or `opsdoc_<mechanic>.go`; do not edit `names.go` or `opsdoc.go`. |
+| `dirac/adapter` | A dirac game behind `engine/game`: what `gorged -engine dirac` serves, with a log and views derived from positions. | The adapter; it reads gorge's types and never `engine/rules`, `engine/replay` or `dirac/oracle`. |
+| `dirac/canon` | The canonical vocabulary the oracle and the adapter share, and dirac's translation into it. | `translate.go`, `faces.go` and `names.go`; `chooseKinds` stays one shared list. |
+| `dirac/support` | Which cards are supported: the `evidence` and `refused` lists. | Generated from evidence runs by `scripts/dirac-first-refusals.py`; never by hand. |
+
+| Command | What it is | Where a change goes |
+|---|---|---|
+| `dirac/cmd/kgen` | Writes the binary card tables under the corpus (`make dirac-tables`). | Table generation in `dirac/kgen`; keep this main thin. |
+| `dirac/cmd/dplay` | Plays games on dirac alone; reads gorge deck files, and its bots read gorge's compiled cards through `dirac/oracle`. | Its flags are pinned by `TestDplayFlagsDocumented` (`dirac/docs/running.md`); bot play goes through `dirac/oracle`. |
+| `dirac/cmd/sbv2dirac` | Serves dirac as a SpellBench v2 engine, running gorge as the lockstep shadow. | The protocol and main here; parity in `dirac/oracle`. |
+| `dirac/oracle/cmd/kfuzz` | The lockstep fuzzer over gorge and dirac. | `dirac/oracle`; `scripts/dirac-gate.sh` holds what the change must keep true. |
+| `dirac/oracle/cmd/khbot` | dirac's heuristic-bot parity run. | `dirac/search/hbot` and the `dirac/oracle` policies. |
+| `dirac/oracle/cmd/ksbt` | dirac's sb-tactical parity run. | The `dirac/oracle` policies. |
 
 ## Where do I change…
 

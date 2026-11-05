@@ -13,7 +13,9 @@ import (
 // opponent's draw is untouched; NotFirstCardInDrawStep$ exempts the first
 // card of the draw step; a replacement is not met again by its own draws
 // (CR 614.5) but another is (the second one of two draws here); two matching
-// the same draw stall (gorge asks the CR 616.1 order).
+// the same draw apply both (the composition is commutative: gorge settles
+// the CR 616.1 order in scan order, unasked), and a lineage of more than
+// drawChainMax sources is the declared stall.
 func TestDrawMore(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Plains", Count: 20}}
 	set := cardsettest.Set(t, "fdn")
@@ -82,13 +84,29 @@ func TestDrawMore(t *testing.T) {
 		t.Fatalf("stalled %d, want none", s.g.stalled)
 	}
 
-	// two replacements match one draw: gorge asks their order
+	// two replacements match one draw: the composition is commutative, so
+	// gorge settles the CR 616.1 order in scan order, unasked, and both
+	// doublers apply (2 x 2 = 4 cards)
 	sc, ids = mk(two, two)
 	s = sc.s
 	sc.perm(ids[0], 0)
 	sc.perm(ids[1], 0)
+	if n := drew(s, 0, func() { s.draw(0) }); n != 4 {
+		t.Fatalf("two doublers drew %d, want 4", n)
+	}
+	if s.g.stalled != 0 {
+		t.Fatalf("two doubers: stalled %d, want none", s.g.stalled)
+	}
+
+	// four replacements in one lineage outrun the draw chain's three slots:
+	// the declared capacity stall
+	sc, ids = mk(two, two, two, two)
+	s = sc.s
+	for _, id := range ids {
+		sc.perm(id, 0)
+	}
 	s.draw(0)
 	if s.g.stalled != StallDrawRepl {
-		t.Fatalf("two doublers: stalled %d, want StallDrawRepl", s.g.stalled)
+		t.Fatalf("four doublers: stalled %d, want StallDrawRepl", s.g.stalled)
 	}
 }

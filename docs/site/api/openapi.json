@@ -698,14 +698,20 @@
         "x-go-type": "github.com/adams-shaun/gorge/engine/view.CardView"
       },
       "CreateEventRequest": {
-        "description": "CreateEventRequest is the POST /api/events body: the drafted set, the series format and the four seats. BestOf is 1 or 3 (0 = 1). PickTimer is \"\", \"off\", \"standard\" or \"relaxed\". The seed is always minted by the server; no client field may choose it.",
+        "description": "CreateEventRequest is the POST /api/events body: the drafted set, the series format and the four seats. BestOf is 1 or 3 (0 = 1). PickTimer is \"\", \"off\", \"standard\" or \"relaxed\". The seed is always minted by the server; no client field may choose it. Format is the supply: a booster draft (default), sealed (six Play Boosters per seat) or prerelease (sealed plus one rare/mythic promo per seat, best of 3 by default). Rebuild turns on MTR 7.3 continuous construction: a rebuild window before game 1 of every series from round 2. When nil, the format decides: true for sealed and prerelease, false for draft.",
         "properties": {
           "best_of": {
             "format": "int64",
             "type": "integer"
           },
+          "format": {
+            "type": "string"
+          },
           "pick_timer": {
             "type": "string"
+          },
+          "rebuild": {
+            "type": "boolean"
           },
           "seats": {
             "items": {
@@ -1274,6 +1280,9 @@
           "number": {
             "type": "string"
           },
+          "promo": {
+            "type": "boolean"
+          },
           "rarity": {
             "type": "string"
           },
@@ -1741,7 +1750,7 @@
         "x-go-type": "github.com/adams-shaun/gorge/server/protocol.EventSeat"
       },
       "EventSeries": {
-        "description": "EventSeries is one pairing of an event round. State is \"pending\", \"live\", \"between\" or \"ended\" — \"between\" names the sideboarding step between two games of a series. Table names the live (or last) game's host table, so a spectator can watch at /t/{table}; Attempt is the game attempt in flight. Game is the live game, or the next one while between. Games is the winner seat per played game (-1 for a draw); Chooser names the event seat choosing play/draw for Game; Waiting lists the seats still to submit their deck while between. Winner is nil while the series is not ended and for a drawn series. Join appears only in the viewer's own state: the seat-tokenised spectate URL for that seat's side of the live game.",
+        "description": "EventSeries is one pairing of an event round. State is \"pending\", \"live\", \"between\" or \"ended\" — \"between\" names the sideboarding step between two games of a series, and a rebuild event's window before game 1 of a round 2 or 3 series (MTR 7.3), where Game is 1 and Table is empty (no game of the series has a table yet). Table names the live (or last) game's host table, so a spectator can watch at /t/{table}; Attempt is the game attempt in flight. Game is the live game, or the next one while between. Games is the winner seat per played game (-1 for a draw); Chooser names the event seat choosing play/draw for Game; Waiting lists the seats still to submit their deck while between. Winner is nil while the series is not ended and for a drawn series. Join appears only in the viewer's own state: the seat-tokenised spectate URL for that seat's side of the live game.",
         "properties": {
           "a": {
             "format": "int64",
@@ -1897,11 +1906,17 @@
           "event": {
             "type": "string"
           },
+          "format": {
+            "type": "string"
+          },
           "phase": {
             "type": "string"
           },
           "pick_timer": {
             "type": "string"
+          },
+          "rebuild": {
+            "type": "boolean"
           },
           "round": {
             "format": "int64",
@@ -3644,7 +3659,7 @@
         "description": "Draft events: one series' score changed."
       },
       "SideboardRequest": {
-        "description": "SideboardRequest is the POST /api/events/{id}/sideboard body: the seat's deck for game Game of its current series. Keep re-submits the deck it played last game; otherwise Deck is the new list (pool CardRef ids plus basics), saved as a new revision. Exactly one of Keep and Deck is set. Game is compared with the server's next game; a stale one is a 409.",
+        "description": "SideboardRequest is the POST /api/events/{id}/sideboard body: the seat's deck for game Game of its current series. Keep re-submits the deck it played last game (in a rebuild event's round-2-or-later window, Game 1, the deck the seat played last); otherwise Deck is the new list (pool CardRef ids plus basics), saved as a new revision. Exactly one of Keep and Deck is set. Game is compared with the server's next game; a stale one is a 409.",
         "properties": {
           "deck": {
             "$ref": "#/components/schemas/DeckRequest"

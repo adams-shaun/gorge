@@ -64,6 +64,9 @@ func runOneEvent(r *runner, seed uint64, verify bool) (*event.Event, *eventResul
 	if sh.mode == event.ModeSealed {
 		persona = "sealed"
 	}
+	if sh.promos > 0 {
+		persona = "prerelease"
+	}
 	seats := make([]event.SeatSpec, n)
 	for i, p := range r.players {
 		seats[i] = event.SeatSpec{
@@ -81,6 +84,7 @@ func runOneEvent(r *runner, seed uint64, verify bool) (*event.Event, *eventResul
 	if sh.structure != event.StructureRoundRobin {
 		en.Structure = sh.structure
 	}
+	en.Promos = sh.promos
 	if sh.structure != event.StructureNone && sh.rounds != defaultRounds(sh.structure, n) {
 		en.Rounds = sh.rounds
 	}
@@ -93,7 +97,7 @@ func runOneEvent(r *runner, seed uint64, verify bool) (*event.Event, *eventResul
 		return nil, nil, err
 	}
 	for s := 0; s < n; s++ {
-		for p := 0; p < sh.packs; p++ {
+		for p := 0; p < sh.packs+sh.promos; p++ {
 			if err := e.Apply(event.Entry{Kind: event.KindPackOpened, Round: p + 1, Seat: s, Cards: packs[s][p]}); err != nil {
 				return nil, nil, fmt.Errorf("pack %d seat %d: %w", p+1, s, err)
 			}
@@ -213,6 +217,9 @@ func drafterLabel(r *runner) string {
 func openPacks(r *runner, seed uint64) ([][][]limited.CardRef, error) {
 	sh := r.podShapeOr()
 	ids := &booster.IDs{}
+	if sh.promos > 0 {
+		return booster.OpenPrereleasePod(r.spec, seed, sh.seats, sh.packs, sh.promos, ids, colourOfRegistry(r.reg))
+	}
 	return booster.OpenPod(r.spec, seed, sh.seats, sh.packs, ids, colourOfRegistry(r.reg))
 }
 
