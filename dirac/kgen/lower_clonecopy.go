@@ -31,7 +31,14 @@ var cloneCopyRefused = []string{
 }
 
 func (lc *lowerCtx) cloneCopy(ps *params) error {
+	batch := ps.str("Choices") == "Card.TriggeredCards+Creature"
+	if batch && !(lc.batchPoolOK && ps.is("ChoiceZone", "Exile")) {
+		return refuse("Clone Choices$ %s outside the exile batch trigger", ps.str("Choices"))
+	}
 	for _, k := range cloneCopyRefused {
+		if k == "ChoiceZone" && batch {
+			continue // the batch pool's zone, read below
+		}
 		if _, ok := ps.m[k]; ok {
 			return refuse("Clone %s$ on the battlefield", k)
 		}
@@ -60,6 +67,45 @@ func (lc *lowerCtx) cloneCopy(ps *params) error {
 	var becomer lRef
 	var valid *lFilter
 	selfCopy := false
+	if batch {
+		// the pick is a creature card among the exiled batch; the node's own
+		// target (the token) is the becomer (gorge ChoicesTargetBecome)
+		_, hasCT := ps.m["CloneTarget"]
+		_, hasD := ps.m["Defined"]
+		if !flagsEOT(flags) || optional || hasCT || hasD || ps.m["ValidTgts"] == "" {
+			return refuse("Clone Choices$ batch pool without the Kaya shape")
+		}
+		tr, err := lc.objOrTarget(ps, "", zBattlefield)
+		if err != nil {
+			return err
+		}
+		if tr.Kind != rTarget || tr.N != 0 || len(lc.ab.Targets) != 1 {
+			return refuse("Clone Choices$ batch pool: becomer is not the first target slot")
+		}
+		f, err := lc.filter("Card.Creature")
+		if err != nil {
+			return err
+		}
+		if err := cloneTemplateFilter(f); err != nil {
+			return err
+		}
+		exc, hasExc, err := lc.copyExceptions(ps)
+		if err != nil {
+			return err
+		}
+		if exc.AllCreatureTypes {
+			return refuse("Clone AddKeywords Changeling")
+		}
+		lc.emit(lInstr{Op: "CloneCopy", F: f, B: cst(kop.ClonePick | kop.CloneBatch), Note: "pick the batch's exiled creature card"})
+		in := lInstr{Op: "CloneCopy", Obj: tr, B: cst(flags | kop.CloneTmplPick | kop.CloneBatch)}
+		if hasExc {
+			lc.out.overrides = append(lc.out.overrides, exc)
+			in.C = len(lc.out.overrides)
+			in.Note = "except " + overrideString(exc)
+		}
+		lc.emit(in)
+		return nil
+	}
 	_, hasVT := ps.m["ValidTgts"]
 	_, hasCh := ps.m["Choices"]
 	d, hasD := ps.get("Defined")
@@ -239,3 +285,6 @@ func cutNotDefinedTargeted(spec string) (string, bool) {
 	}
 	return spec, false
 }
+
+// flagsEOT: the copy ends at cleanup.
+func flagsEOT(flags int) bool { return flags&kop.CloneEOT != 0 }

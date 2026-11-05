@@ -154,6 +154,9 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 		// queueTriggerLimited, CR 603.2d)
 		s.panharmEcho(k, l, a.Trig.Event, tobj, tpl, n) // trig_doubling.go
 	}
+	if k.gen.anyBatchPool && s.npend > n && a.Trig.Flags2&kop.Tf2Batch != 0 && readsBatchPool(a) {
+		s.batchMemberNew(n, tobj) // trig_batchmembers.go
+	}
 }
 
 // enqueueLKI is enqueue with the triggering object's last known information
@@ -261,7 +264,7 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		if !s.tapBatchOK(l, a) {
 			return
 		}
-	} else if a.Trig.Flags2&(kop.Tf2Batch|kop.Tf2CastFromHand) != 0 && !s.batchOrProvOK(l, a) {
+	} else if a.Trig.Flags2&(kop.Tf2Batch|kop.Tf2CastFromHand) != 0 && !s.batchOrProvOK(l, a, evObj) {
 		return
 	}
 	s.queueTrig(k, l, a, evObj, evCtrl, amt)
@@ -501,7 +504,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 					return
 				}
 			}
-			if t.Flags2&(kop.Tf2Batch|kop.Tf2PerReferent) == kop.Tf2Batch && !s.batchTrigOK(l, a) {
+			if t.Flags2&(kop.Tf2Batch|kop.Tf2PerReferent) == kop.Tf2Batch && !s.batchTrigOK(l, a, NoObj) {
 				return
 			}
 			if once {

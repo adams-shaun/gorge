@@ -107,6 +107,7 @@ type lowerCtx struct {
 	beholdOK       bool      // the cost being read is a spell's AlternateAdditionalCost first part: Behold<N/Type> may lower (kernel act_behold.go)
 	unblockedOK    bool      // the filter being read is K:Ninjutsu's Return cost: "unblocked" may lower (lower_ninjutsu.go)
 	exwSynth       bool      // the ExiledWithSource filter is synthesised for a Defined$ ExiledWith (the card's text does not name the word)
+	batchPoolOK    bool      // the trigger being lowered is a ChangesZoneAll exile line whose body picks among its batch members (lower_trigzonebatch.go kayaBatchBody)
 	wasCastOK      bool      // the filter being read is a battlefield-entering trigger's ValidCard(s)$: wasCast may lower
 	spellProvOK    bool      // the filter being read is a SpellCast ValidCard$, a spell's own ConditionPresent$ or a mana ability's Spell. RestrictValid$: the cast-provenance words may lower
 	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)

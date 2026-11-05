@@ -66,7 +66,7 @@ func prepCold(g *genPrep, l *coldLayout) {
 	if g.anyExW || g.anyFaceExile {
 		l.exw = maxExw
 	}
-	if g.anyTriggerAttackers {
+	if g.anyTriggerAttackers || g.anyBatchPool {
 		l.atkGrp = maxAtkGrp
 	}
 	if g.anyExHaste {

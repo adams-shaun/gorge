@@ -751,6 +751,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 	case dirac.ChCloneCopyPick:
 		// gorge's clone_choice KChoose over battlefield permanents
 		return Pack(kind("permanent"), src, RefNone, 0), true
+	case dirac.ChCloneBatchPick:
+		// gorge's clone_choice KChoose over the cards of an exile pool
+		return Pack(kind("card"), src, RefNone, 0), true
 	case dirac.ChHideaway:
 		// gorge's hideaway_pick KChoose over the top cards
 		return Pack(kind("hideaway"), src, RefNone, 0), true

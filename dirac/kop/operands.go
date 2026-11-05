@@ -33,6 +33,7 @@ const (
 	CloneTmplPick  = 1 << 2 // the template is the Choices$ pick (chosen[0]), else target slot (B.N>>CloneTmplShift)
 	ClonePick      = 1 << 3 // the Choices$ pick itself (F the candidates)
 	CloneTmplShift = 4      // bits 4-5: the template's target slot
+	CloneBatch     = 1 << 6 // the Choices$ pool is the trigger's batch members in exile (with ClonePick and CloneTmplPick; the copy is of the picked card, not a permanent)
 )
 
 // BecomeCopyCtr is OpBecomeCopy's B.N bit (a different op from ExtCloneCopy,

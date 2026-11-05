@@ -29,7 +29,7 @@ func (s *State) fireLeavesGraveyard(k *prep, o Obj, card CardID, owner uint8) {
 		if !s.trigOK(k, l, a) {
 			return
 		}
-		if t.Flags2&kop.Tf2Batch != 0 && !s.batchTrigOK(l, a) {
+		if t.Flags2&kop.Tf2Batch != 0 && !s.batchTrigOK(l, a, o) {
 			return
 		}
 		s.queueTrig(k, l, a, o, owner, 0)
@@ -79,7 +79,7 @@ func (s *State) fireLeavesGraveyardSelf(k *prep, sl Slot, o Obj) {
 		if !s.trigOK(k, l, a) {
 			return
 		}
-		if t.Flags2&kop.Tf2Batch != 0 && !s.batchTrigOK(l, a) {
+		if t.Flags2&kop.Tf2Batch != 0 && !s.batchTrigOK(l, a, o) {
 			return
 		}
 		s.queueTrig(k, l, a, o, owner, 0)

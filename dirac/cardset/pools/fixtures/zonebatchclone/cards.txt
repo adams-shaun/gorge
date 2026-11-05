@@ -1,0 +1,13 @@
+# A one-or-more exile trigger whose body picks a creature card among the
+# exiled batch (ChangesZoneAll Battlefield,Graveyard -> Exile, Choices$
+# Card.TriggeredCards+Creature, ChoiceZone$ Exile; Kaya, Spirits' Justice)
+# and the -2's per-other-player target, for the oracle's constructed lockstep
+# (dirac/oracle/zonebatchclone_test.go)
+Kaya, Spirits' Justice
+Swords to Plowshares
+Doom Blade
+Grizzly Bears
+Memnite
+Ornithopter
+Plains
+Swamp

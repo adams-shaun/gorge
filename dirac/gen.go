@@ -386,6 +386,9 @@ type genPrep struct {
 	// anyTriggerAttackers: some program reads RefTriggerAttackers
 	// (trig_attackers.go)
 	anyTriggerAttackers bool
+	// anyBatchPool: some trigger picks among its batch's members
+	// (trig_batchmembers.go); it shares the attacker-group pool
+	anyBatchPool bool
 	// anyFirstCast: some expression is ExFirstCast, so the cast path stamps the
 	// first spell each seat casts (cast_firstcast.go)
 	anyFirstCast bool
@@ -1264,6 +1267,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.tyPost = g.anyBestow || g.anyImpending
 	prepEquipAnim(t, g) // static_equipanimated.go
 	prepTrigAtk(t, g)   // trig_attackers.go
+	prepBatchPool(t, g) // trig_batchmembers.go
 	g.anyCopyElect = g.anyCopyElect || p.casualty
 	prepCold(g, &p.cold)
 	return g
