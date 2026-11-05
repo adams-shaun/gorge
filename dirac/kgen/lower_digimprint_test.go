@@ -16,15 +16,15 @@ const sanarScript = `Name:Sanar Probe
 ManaCost:2 UR UR
 Types:Legendary Creature Goblin Sorcerer
 PT:2/4
-T:Mode$ Phase | Phase$ Main1 | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigDigUntil | TriggerDescription$ probe
-SVar:TrigDigUntil:DB$ DigUntil | Amount$ X | Valid$ Card.nonLand | ValidDescription$ nonland card | RevealedDestination$ Library | RememberRevealed$ True DIGEXTRA | SubAbility$ DBExileW
-SVar:DBExileW:DB$ ChangeZone | ChooseFromDefined$ Remembered.White | Origin$ Library | Destination$ Exile | ConditionCheckSVar$ HaveW | Imprint$ True | LockInText$ True | ChangeNum$ 1 | SubAbility$ DBShuffle
-SVar:DBShuffle:DB$ Shuffle | SubAbility$ DBEffect
-SVar:DBEffect:DB$ Effect | RememberObjects$ Imprinted | StaticAbilities$ STPlay | SubAbility$ DBCleanup | ForgetOnMoved$ Exile
-SVar:STPlay:Mode$ Continuous | MayPlay$ True | Affected$ Card.nonLand+IsRemembered | AffectedZone$ Exile | Description$ You may cast the exiled cards this turn.
-SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True | ClearImprinted$ True
-SVar:X:XVALUE
-SVar:HaveW:Count$Valid Permanent.White+YouCtrl
+T:Mode$ Phase | Phase$ Main1 | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ PrDig | TriggerDescription$ probe
+SVar:PrDig:DB$ DigUntil | Valid$ Card.nonLand | Amount$ PrX | RememberRevealed$ True DIGEXTRA | RevealedDestination$ Library | SubAbility$ PrPickW
+SVar:PrPickW:DB$ ChangeZone | Origin$ Library | Destination$ Exile | ChooseFromDefined$ Remembered.White | ChangeNum$ 1 | Imprint$ True | ConditionCheckSVar$ PrHaveW | SubAbility$ PrShuf
+SVar:PrShuf:DB$ Shuffle | SubAbility$ PrEff
+SVar:PrEff:DB$ Effect | StaticAbilities$ PrPlay | RememberObjects$ Imprinted | ForgetOnMoved$ Exile | SubAbility$ PrClean
+SVar:PrPlay:Mode$ Continuous | MayPlay$ True | AffectedZone$ Exile | Affected$ Card.nonLand+IsRemembered | Description$ probe cast.
+SVar:PrClean:DB$ Cleanup | ClearImprinted$ True | ClearRemembered$ True
+SVar:PrX:XVALUE
+SVar:PrHaveW:Count$Valid Permanent.White+YouCtrl
 Oracle:probe
 `
 
@@ -117,7 +117,7 @@ func TestDigUntilRememberRevealedLibraryRefusals(t *testing.T) {
 		{"random order", "| RevealRandomOrder$ True", colors, nil, "DigUntil RememberRevealed$ shape"},
 		{"other amount", "", "Count$Valid Creature.YouCtrl", nil, "DigUntil RememberRevealed$ shape"},
 		{"ChooseFromDefined outside the dig", "", colors, func(s string) string {
-			return strings.Replace(s, "RevealedDestination$ Library | RememberRevealed$ True", "RevealedDestination$ Exile", 1)
+			return strings.Replace(s, "| RememberRevealed$ True", "", 1)
 		}, ""},
 	}
 	for _, c := range cases {
