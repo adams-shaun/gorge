@@ -1,0 +1,17 @@
+# the DigUntil ImprintFound$/RememberRevealed$ shapes: RememberRevealed$
+# alone with MinTotalCMC$ (Dream Harvest, Improvisation Capstone) and
+# ImprintFound$ alone with the optional put / seek-found MayPlay tail (Black
+# Widow, Super Spy), for dirac/oracle/digimprint_test.go
+Dream Harvest
+Improvisation Capstone
+Black Widow, Super Spy
+Llanowar Elves
+Grizzly Bears
+Isamaru, Hound of Konda
+Lightning Bolt
+Shock
+Plains
+Island
+Swamp
+Mountain
+Forest

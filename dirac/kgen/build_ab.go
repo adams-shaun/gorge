@@ -3634,6 +3634,15 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if _, ok := fl["DugMark"]; ok {
 			df |= kop.DuDugMark
 		}
+		if _, ok := fl["RememberRevealed"]; ok {
+			df |= kop.DuRememberRevealed
+		}
+		if _, ok := fl["ImprintFound"]; ok {
+			df |= kop.DuImprintFound
+		}
+		if _, ok := fl["MinTotalCMC"]; ok {
+			df |= kop.DuMinTotalCMC
+		}
 		ki.C = int16(int(zoneMap[in.C]) | df<<3)
 		if err := objFilter(kop.ZoneLibrary); err != nil {
 			return ki, err
