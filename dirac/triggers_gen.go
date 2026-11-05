@@ -239,7 +239,13 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		if !whoseOK(a.Trig.Whose, l.ctrl, putter) {
 			return
 		}
-		if a.Gate.Ctr != 0 && !s.crossingOK(l.sl, a, int(amt)) {
+		if a.Trig.Flags4&kop.Tf4StateCtr != 0 {
+			// a state trigger's threshold is its Cond: the put re-checks it
+			// only while no instance is outstanding (CR 603.8, trig_statectr.go)
+			if s.stateTrigOutstanding(l.obj, l.ab) {
+				return
+			}
+		} else if a.Gate.Ctr != 0 && !s.crossingOK(l.sl, a, int(amt)) {
 			return // a Saga chapter / "Nth counter" line triggers only when its number is reached
 		}
 	}

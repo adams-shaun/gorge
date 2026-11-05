@@ -223,6 +223,16 @@ type CardDef struct {
 	// casting the spell queues that many cascade triggers, each resolving
 	// separately (dirac/kw_cascade.go; grants are not lowered).
 	Cascade uint8
+	// The printed K:Prevent damage sentences (CR 615.1; engine/cards/
+	// kw_prevent.go). PreventDmgTo is "Prevent all damage that would be
+	// dealt to CARDNAME." (combat and noncombat); PreventCombatTo and
+	// PreventCombatBy are the combat-scoped to/dealt-by halves of the other
+	// two sentences. The kernel reads them as per-card replacement bits
+	// (genPrep.replBits rbPrev*; combat_prevention.go), the same way the
+	// granted KwPreventCombatDamageTo/From bits are read.
+	PreventDmgTo    bool
+	PreventCombatTo bool
+	PreventCombatBy bool
 	// AllCreatureTypes is printed changeling (CR 702.73a): every creature
 	// type, also one outside the matchup's subtypes (a chosen type).
 	AllCreatureTypes bool
@@ -548,6 +558,10 @@ type Table struct {
 	// of an as-enters ExtChooseName. Set only when a card of the matchup
 	// chooses a name; dirac/repl_choosename.go.
 	NameCards []CardID
+	// NameCardsAny are the CardIDs of every real card of the matchup, lands
+	// included, ascending: the options of an ExtChooseName with B >= 1 (a
+	// NameCard with no ValidCards$, Sorcerous Spyglass).
+	NameCardsAny []CardID
 }
 
 // Filter returns the filter with id f.

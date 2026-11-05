@@ -15,6 +15,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // until the plain walk lists it (ctrGap). Each activation puts a -0/-1
 // counter (kop.CtrM0M1, read by ptGen) and spends the once-each-turn use
 // (perm.actUsed). Everything is behind prep.ctrMana.
+//
+// The all-at-once removal shape (kop.CtrEachManaAb: Ramos, Dragon Engine's
+// "Remove five +1/+1 counters from Ramos: Add {W}{W}{U}{U}{B}{B}{R}{R}{G}{G}.
+// Activate only once each turn.") is the same gap: gorge relaxes it to one
+// free alternative holding the whole production. Its pcard keeps the whole
+// colour mask (no prepEachMana split: it is no tap source), the gaps walk
+// adds every colour (not one of them), the activation removes the counters
+// as the activation path's CostRemoveCtr does, and the gap is offered only
+// while the source holds them (gorge manaAbilityPayablePool).
 
 // ctrManaAb reports whether mana ability a costs only counters put on its
 // source, once each turn, with a fixed production.
@@ -35,6 +44,9 @@ func (s *State) scriptCtr(k *prep, p uint8) slotMask {
 		if !pc.ctrMana || s.perms[sl].actUsed&(1<<uint(pc.manaAb)) != 0 || s.genLost(k, sl) || k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 			continue
 		}
+		if c := &k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb].Cost; c.Flags&kop.CostRemoveCtr != 0 && s.perms[sl].ctrN(s, int(c.Ctr)) < int(c.N) {
+			continue // too few counters to remove (legal.go actCostOK's CostRemoveCtr)
+		}
 		m = m.with(sl)
 	}
 	return m
@@ -46,6 +58,14 @@ func (s *State) scriptCtr(k *prep, p uint8) slotMask {
 func (s *State) availCtr(k *prep, p uint8, av *avail) {
 	for b := s.scriptCtr(k, p); b.any(); b = b.rest() {
 		pc := &k.cards[s.cardAt(b.first())]
+		if k.t.Cards[s.cardAt(b.first())].Abilities[pc.manaAb].ManaEach {
+			for c := 0; c < kop.NumManaKinds; c++ {
+				if uint8(pc.manaCol)&(1<<c) != 0 {
+					av.addUnits(1<<c, pc.manaN) // every colour at once, not a choice of one
+				}
+			}
+			continue
+		}
 		av.addUnits(uint8(pc.manaCol), pc.manaN)
 	}
 }
@@ -71,9 +91,14 @@ func (s *State) ctrGap(k *prep, p uint8, sl Slot) {
 	pc := &k.cards[s.cardAt(sl)]
 	a := &k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb]
 	pm := &s.perms[sl]
-	n := s.placeCounters(k, sl, int(a.Cost.Ctr), int(a.Cost.N), p, ctrPutCost) // a cost: only the non-EffectOnly$ replacements
-	if n > 0 && k.anyCtrAdded {
-		s.ctrNoteBy(k, sl, int(a.Cost.Ctr), p) // a cost: gorge pay_engine publishes the payer
+	if a.Cost.Flags&kop.CostRemoveCtr != 0 {
+		pm.seeCtr(s) // the activation path's CostRemoveCtr (mana_window.go)
+		pm.subCtrN(s, int(a.Cost.Ctr), int(a.Cost.N))
+	} else {
+		n := s.placeCounters(k, sl, int(a.Cost.Ctr), int(a.Cost.N), p, ctrPutCost) // a cost: only the non-EffectOnly$ replacements
+		if n > 0 && k.anyCtrAdded {
+			s.ctrNoteBy(k, sl, int(a.Cost.Ctr), p) // a cost: gorge pay_engine publishes the payer
+		}
 	}
 	pm.actUsed |= 1 << uint(pc.manaAb)
 	s.touchSl(sl)

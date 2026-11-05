@@ -100,6 +100,29 @@ func PlanManaHalf(c Cost) Cost {
 	return c
 }
 
+// ConvRider is the pip rider a plan funds under a ManaConvert conversion set
+// (rules' Conv for the payment): AnyType when every mana type may be spent as
+// mana of any type (ManaConversion$ AnyType->AnyType: Vizier of the
+// Menagerie, CR 609.4b), so the planner prices the pips as generic exactly as
+// under a may-play MayPlayIgnoreType$ grant; the zero rider for nil or any
+// narrower conversion, which the planner leaves as it was.
+func ConvRider(c *Conv) PipRider {
+	if c == nil || !c.WildC {
+		return PipRider{}
+	}
+	for i := range c.Wild {
+		if !c.Wild[i] || c.OnlyC[i] {
+			return PipRider{}
+		}
+	}
+	return PipRider{AnyType: true}
+}
+
+// Or is the rider that relaxes every pip either r or o relaxes.
+func (r PipRider) Or(o PipRider) PipRider {
+	return PipRider{AnyColor: r.AnyColor || o.AnyColor, AnyType: r.AnyType || o.AnyType}
+}
+
 // PlanManaUnderRider is the mana half a plan funds when the cast's may-play
 // grant relaxes its pips (MayPlayIgnoreColor$, MayPlayIgnoreType$): a pip the
 // rider lets any mana pay (a coloured or hybrid one) is generic to the plan. The real cast still spends

@@ -1,0 +1,13 @@
+# the state-trigger pool: Mazemind Tome's Mode$ Always counter-threshold
+# state trigger ("when there are four or more page counters on CARDNAME,
+# exile it and you gain 4 life") beside the counters its own abilities put,
+# and Spider-Sense, whose counter targets a spell or a triggered ability on
+# the stack and leaves its source -- the re-fire after a countered instance
+# -- for the oracle's constructed lockstep
+# (dirac/oracle/mazemind_test.go)
+Forest
+Gray Ogre
+Island
+Mazemind Tome
+Spider-Sense
+Swamp

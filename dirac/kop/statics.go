@@ -109,6 +109,11 @@ type Override struct {
 	// applied record keeps the host's Obj and ver in its P/T fields, so a
 	// WhileHost override sets no P/T).
 	WhileHost bool
+	// WhileTapped: a WhileHost record that also ends at the host's first
+	// untap (Duration$ UntilUntaps, CR 611.2b: Hedge Whisperer), and starts
+	// only when the host is tapped as it resolves. Its P/T is SetP/SetT
+	// (the record's P/T fields hold the host).
+	WhileTapped bool
 	// CantAttack: the permanent can't attack (HiddenKeywords$ CARDNAME can't
 	// attack or block., beside AddKw KwCantBlock; KwMask has no free bit).
 	CantAttack bool
@@ -238,9 +243,15 @@ const (
 // the iota tail in ops.go): activated abilities of battlefield permanents
 // matching Filter can't be activated (StRaiseOpp: by the static
 // controller's opponents only; StRaiseYou: by its controller only; under
-// Cond2; A = 1 spares mana abilities; A = 2 reaches loyalty abilities only)
-// (CR 602.5; gorge abilityRestricted).
+// Cond2; A&3 = 1 spares mana abilities; A&3 = 2 reaches loyalty abilities only;
+// A&CantActNamed: only sources whose card is the static source's as-enters
+// chosen name) (CR 602.5; gorge abilityRestricted).
 const StatCantActivate StaticKind = 236
+
+// CantActNamed is the StatCantActivate A bit for ValidCard$ Card.NamedCard
+// (Sorcerous Spyglass): the filter holds only for a source with the static
+// source's chosen name (ExtChooseName).
+const CantActNamed = 4
 
 // StCasterActive: on a StatCantBeCast only, the
 // restriction binds a caster who is the active player (Caster$
@@ -420,3 +431,12 @@ const StatTapExtra StaticKind = 254
 
 // StTapOnC on a StatTapExtra static: it fires only for a tap that makes {C}.
 const StTapOnC StaticFlags = 1 << 1
+
+// StatAnyTypeCreatures: the static's controller may spend mana as though it
+// were mana of any type to cast creature spells (S:Mode$ ManaConvert |
+// ValidPlayer$ You | ValidCard$ Creature.YouCtrl | ValidSA$ Spell |
+// ManaConversion$ AnyType->AnyType; CR 609.4b; Vizier of the Menagerie;
+// gorge rules/mana_convert.go manaConversionParts). No operands: the fact is
+// read from the battlefield. Explicit ordinal: the StaticKind iota tail
+// stays untouched.
+const StatAnyTypeCreatures StaticKind = 239

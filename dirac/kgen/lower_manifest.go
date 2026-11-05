@@ -49,12 +49,18 @@ func (lc *lowerCtx) manifest(ps *params) error {
 // cloak lowers api:Cloak (gorge effCloak, CR 701.58a): the named player
 // cloaks Amount$ (default 1) cards from the top of their library face down
 // with ward {2}. Supported shapes: DefinedPlayer$ (searchPlayers) or a bare
-// Defined$ TopOfLibrary (the resolving controller); Tapped$/Shuffle$/
-// RememberCloaked$ True. Choices$, the Remembered object shape and the
-// ValidLibrary shape refuse.
+// Defined$ TopOfLibrary (the resolving controller); the Choices$ hand pick
+// (Vannifar, Evolved Enigma); the ValidLibrary Card.TopLibrary+OwnedBy shape
+// (Etrata, Deadly Fugitive); Tapped$/Shuffle$/RememberCloaked$ True. The
+// Remembered object shape refuses.
 func (lc *lowerCtx) cloak(ps *params) error {
-	if _, ok := ps.get("Choices"); ok {
-		return refuse("Cloak Choices$")
+	if v, ok := ps.get("Choices"); ok {
+		return lc.cloakChoices(ps, v)
+	}
+	if v, ok := ps.get("Defined"); ok {
+		if spec := strings.TrimSpace(v); strings.HasPrefix(spec, "ValidLibrary ") {
+			return lc.cloakValidLibrary(ps, spec)
+		}
 	}
 	if v, ok := ps.get("Amount"); ok {
 		// gorge's effCloak refuses X/Y loudly (effCloak's Amount$ scope).
@@ -78,6 +84,21 @@ func (lc *lowerCtx) cloak(ps *params) error {
 			return refuse("Cloak Defined$ %q", v)
 		}
 	}
+	fl, err := lc.cloakRiders(ps)
+	if err != nil {
+		return err
+	}
+	n, err := lc.amount(ps, "Amount", 1)
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "Cloak", Obj: ref, A: n, C: fl})
+	return nil
+}
+
+// cloakRiders reads the shared cloak riders: Tapped$/Shuffle$/
+// RememberCloaked$ True set their flag bits, any other value refuses.
+func (lc *lowerCtx) cloakRiders(ps *params) (int, error) {
 	var fl int
 	for _, r := range []struct {
 		key string
@@ -85,16 +106,86 @@ func (lc *lowerCtx) cloak(ps *params) error {
 	}{{"Tapped", kop.CfTapped}, {"Shuffle", kop.CfShuffle}, {"RememberCloaked", kop.CfRemember}} {
 		if v, ok := ps.get(r.key); ok {
 			if !strings.EqualFold(strings.TrimSpace(v), "True") {
-				return refuse("Cloak %s$ %q", r.key, v)
+				return 0, refuse("Cloak %s$ %q", r.key, v)
 			}
 			fl |= r.bit
 		}
 	}
-	n, err := lc.amount(ps, "Amount", 1)
+	return fl, nil
+}
+
+// cloakChoices lowers the Choices$ hand-pick shape (Vannifar, Evolved
+// Enigma's "DB$ Cloak | Choices$ Card.YouCtrl" inside its combat trigger's
+// Charm): the resolving controller picks one card of their hand that
+// Choices$ admits and cloaks it (gorge effCloak's chooseFromZoneForFaceDown +
+// cloak(id, c.Controller); CR 701.58a, 110.2a). The ask is the mandatory
+// single pick of a hand filter, gorge's option kind "face_down_choice"; an
+// empty pool is no ask and no cloak (OpChooseCard's zero-candidate break,
+// gorge's n <= 0). A Defined$ beside Choices$ has no corpus carrier
+// (gorge's shape check), a ChoiceZone$ other than Hand and an Amount$ other
+// than the default 1 refuse.
+func (lc *lowerCtx) cloakChoices(ps *params, choices string) error {
+	if v, ok := ps.get("Defined"); ok && strings.TrimSpace(v) != "" {
+		return refuse("Cloak Choices$ with Defined$ %q", v)
+	}
+	if v, ok := ps.get("ChoiceZone"); ok && strings.TrimSpace(v) != "Hand" {
+		return refuse("Cloak Choices$ with ChoiceZone$ %q", v)
+	}
+	if v, ok := ps.get("Amount"); ok {
+		switch strings.TrimSpace(v) {
+		case "X", "Y":
+			return refuse("Cloak Amount$ %s", strings.TrimSpace(v))
+		case "", "1":
+		default:
+			return refuse("Cloak Choices$ Amount$ %q", v)
+		}
+	}
+	fl, err := lc.cloakRiders(ps)
 	if err != nil {
 		return err
 	}
-	lc.emit(lInstr{Op: "Cloak", Obj: ref, A: n, C: fl})
+	f, err := lc.filter(choices)
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "ChooseCard", Obj: lRef{Kind: rYou}, F: f, C: zHand, CS: "FaceDownPick",
+		Note: "the cloak-from-hand pick (gorge's face_down_choice)"})
+	lc.emit(lInstr{Op: "Cloak", Obj: lRef{Kind: rYou}, A: cst(1), C: fl | kop.CfChosen,
+		Note: "cloak the pick from where it sits, under the resolving controller"})
+	return nil
+}
+
+// cloakValidLibrary lowers the ValidLibrary shape (Etrata, Deadly Fugitive's
+// Defined$ "ValidLibrary Card.TopLibrary+OwnedBy TriggeredTarget"): the top
+// card of the named player's library cloaks under the resolving controller,
+// not the library's owner (gorge effCloak's definedSpec +
+// cloak(t.Obj, c.Controller); CR 701.58a, 110.2a). An empty library cloaks
+// nothing. Only the TopLibrary+OwnedBy selector has a corpus carrier; any
+// other ValidLibrary selector refuses by name, as does any non-default
+// Amount$ (gorge resolves but then ignores Amount$ there; the kernel has no
+// shape for it).
+func (lc *lowerCtx) cloakValidLibrary(ps *params, spec string) error {
+	ownedBy, player, ok := strings.Cut(strings.TrimSpace(strings.TrimPrefix(spec, "ValidLibrary ")), "+OwnedBy ")
+	if !ok || ownedBy != "Card.TopLibrary" {
+		return refuse("Cloak Defined$ %q", spec)
+	}
+	ref, err := lc.definedPlayer(strings.TrimSpace(player))
+	if err != nil {
+		return refuse("Cloak Defined$ %q: %v", spec, err)
+	}
+	fl, err := lc.cloakRiders(ps)
+	if err != nil {
+		return err
+	}
+	if v, ok := ps.get("Amount"); ok {
+		switch strings.TrimSpace(v) {
+		case "", "1":
+		default:
+			return refuse("Cloak Defined$ ValidLibrary with Amount$ %q", strings.TrimSpace(v))
+		}
+	}
+	lc.emit(lInstr{Op: "Cloak", Obj: ref, A: cst(1), C: fl | kop.CfCloakCtrl,
+		Note: "cloak the library's top card under the resolving controller"})
 	return nil
 }
 
