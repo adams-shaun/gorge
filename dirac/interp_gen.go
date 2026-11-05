@@ -1477,10 +1477,9 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	e := &s.res.e
 	fl := k.t.Filters[in.F]
 	if (fl.Zone == kop.ZoneGraveyard || in.Op == kop.OpChangeZoneAllEx && in.C>>3&kop.MvGraveExile != 0) && k.gen.anyBatch &&
-		(!k.gen.anyLeavesGrave || kop.Zone(in.C&7) == kop.ZoneBattlefield) {
-		// one graveyard-leave batch; gorge opens the sweep's zone batch only for an entry
-		// (effChangeZoneAll), so a sweep to another zone triggers per card, which a
-		// Tf2LeavesGrave line reads (trig_leavesgrave.go)
+		kop.Zone(in.C&7) == kop.ZoneBattlefield {
+		// one graveyard-leave batch: gorge opens a sweep's zone batch only for an entry
+		// (effChangeZoneAll's BeginZoneBatch), so a sweep to another zone triggers per card
 		old := s.batchOpen()
 		if resume {
 			old &^= batchOpenMask
