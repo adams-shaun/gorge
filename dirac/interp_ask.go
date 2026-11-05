@@ -1086,7 +1086,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		case kop.OpChooseMove:
 			r.ask = raNone
 			s.moveFoundAns(k, s.objs[a.Source()].slot) // zone_handmoveaura.go: enter, attach, remember
-			if s.moveAsked() {
+			if s.moveAsked() || s.res.left == tailSearchEnter {
 				return // a later card parked too; its answer resumes here
 			}
 			s.continueRes(k, 0)
@@ -1094,7 +1094,11 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		case kop.OpSearchEx:
 			r.ask = raNone
 			s.moveFoundAns(k, s.objs[a.Source()].slot)
-			if s.moveAsked() {
+			// The move may itself have parked a later card's as-enters ask by
+			// setting res.left = tailSearchEnter (moveFoundAns's parkTail): the
+			// arm's own parkTail must not overwrite it with tailSearch, or the
+			// cards after that card never move.
+			if s.moveAsked() || s.res.left == tailSearchEnter {
 				return // a later card parked too; its answer resumes here
 			}
 			if !s.parkTail(k, tailSearch) {

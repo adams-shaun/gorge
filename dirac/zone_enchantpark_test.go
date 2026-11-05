@@ -14,7 +14,7 @@ import (
 // the answered re-run began at the card that had already entered and left it
 // from a slot already detached ("kernel: place into unsupported zone").
 func TestEnchantParkTrimsEnteredCards(t *testing.T) {
-	deck := []cardset.Entry{{Name: "Witness Protection", Count: 1}, {Name: "Eager Trufflesnout", Count: 2}, {Name: "Plains", Count: 17}}
+	deck := []cardset.Entry{{Name: "Witness Protection", Count: 1}, {Name: "Banner of Kinship", Count: 1}, {Name: "Eager Trufflesnout", Count: 2}, {Name: "Plains", Count: 16}}
 	set := cardsettest.Set(t, "fdn")
 	for _, e := range deck {
 		if i, ok := set.Lookup(e.Name); !ok || !set.Supported()[i] {
@@ -160,5 +160,79 @@ func TestEnchantParkTrimsEnteredCards(t *testing.T) {
 	}
 	if s.rng.Draws == draws {
 		t.Fatal("two Auras: the search tail did not run after the second answer")
+	}
+
+	// A queued as-enters ask inside the answered re-run: after the enchant
+	// answer, the re-run enters Banner of Kinship (a type election) with a
+	// trailing land still in the look. moveFoundAns parks that election by
+	// setting res.left = tailSearchEnter; the answer arm must leave the marker
+	// alone instead of overwriting it with tailSearch, or the trailing land
+	// never moves.
+	{
+		sc := newScenTable(t, tbl, Config{NoElide: true})
+		s := sc.s
+		a := sc.hand(id["Plains"], 0)
+		b := sc.hand(id["Witness Protection"], 0)
+		c := sc.hand(id["Banner of Kinship"], 0)
+		d := sc.hand(id["Plains"], 0)
+		h1 := sc.perm(id["Eager Trufflesnout"], 0)
+		h2 := sc.perm(id["Eager Trufflesnout"], 1)
+		sp := sc.obj(src, 0)
+		s.objs[sp].zone = kop.ZoneStack
+		s.sp = 1
+		s.res = resCtx{e: stackEntry{kind: seSpell, obj: sp, card: src, ctrl: 0, trigObj: NoObj},
+			active: true, lastTok: NoObj, eachObj: NoObj}
+		s.res.e.tgt = noTargets
+		s.ctl = ctlResolve
+		s.g.pickP, s.g.pickZ, s.g.pickF = 0, uint8(kop.ZoneBattlefield), 0
+		copy(s.resArm().look[:], []Obj{a, b, c, d})
+		s.g.nlook = 4
+		if !s.handAuraArmed(sc.k) || s.objs[b].zone != kop.ZoneHand {
+			t.Fatal("as-enters tail: want the OpSearchEx armed and the Aura in the hand")
+		}
+		for _, o := range []Obj{a, c, d} {
+			if s.objs[o].zone != kop.ZoneHand {
+				t.Fatalf("as-enters tail: card %d is in zone %d, want the hand", o, s.objs[o].zone)
+			}
+		}
+		if h1 == h2 || sc.slot(h1) == sc.slot(h2) || s.objs[c].card != id["Banner of Kinship"] {
+			t.Fatal("as-enters tail: the hosts or the queued-ask card are not distinct")
+		}
+
+		s.moveFoundAns(sc.k, NoSlot)
+		if s.res.ask != raGenEnchant || s.g.nlook != 3 || s.resArm().look[0] != b {
+			t.Fatalf("as-enters tail: after the park ask %d nlook %d look[0] %d, want the ask with look starting at the Aura %d",
+				s.res.ask, s.g.nlook, s.resArm().look[0], b)
+		}
+		aSlot := sc.slot(a)
+		s.applyResolveGen(sc.k, MakeAction(AkChoose, uint8(h2), 0, 0))
+		if s.res.ask != raGenEnterAsk || s.res.left != tailSearchEnter {
+			t.Fatalf("as-enters tail: ask %d left %d after the enchant answer, want the queued election with tailSearchEnter kept",
+				s.res.ask, s.res.left)
+		}
+		if s.g.nlook != 1 || s.resArm().look[0] != d || s.objs[d].zone != kop.ZoneHand {
+			t.Fatalf("as-enters tail: nlook %d look[0] %d trailing land zone %d, want 1 starting at %d in the hand",
+				s.g.nlook, s.resArm().look[0], s.objs[d].zone, d)
+		}
+		if !sc.onBF(b) || s.perms[sc.slot(b)].attached != sc.slot(h2) || !sc.onBF(c) {
+			t.Fatalf("as-enters tail: Aura on bf %v attached %d, Banner on bf %v; want attached to %d and the Banner entered",
+				sc.onBF(b), s.perms[sc.slot(b)].attached, sc.onBF(c), sc.slot(h2))
+		}
+		if !sc.onBF(a) || sc.slot(a) != aSlot {
+			t.Fatalf("as-enters tail: the leading Plains on bf %v slot %d, want still in slot %d", sc.onBF(a), sc.slot(a), aSlot)
+		}
+
+		s.applyResolveGen(sc.k, MakeAction(AkChoose, 0, 0, 0))
+		if !sc.onBF(d) || s.perms[sc.slot(d)].attached != NoSlot {
+			t.Fatalf("as-enters tail: trailing land on bf %v attached %d, want entered unattached",
+				sc.onBF(d), s.perms[sc.slot(d)].attached)
+		}
+		if s.g.nlook != 0 || s.res.left != 0 || s.res.ask != raNone {
+			t.Fatalf("as-enters tail: after the election nlook %d left %d ask %d, want the look empty and the tail run",
+				s.g.nlook, s.res.left, s.res.ask)
+		}
+		if !sc.onBF(b) || !sc.onBF(c) || !sc.onBF(a) {
+			t.Fatal("as-enters tail: an already-entered card left the battlefield")
+		}
 	}
 }
