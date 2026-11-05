@@ -567,7 +567,8 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		}
 		if st.alloc != ([kop.NumManaKinds]uint8{}) {
 			// a combination filter: its allocation, each colour registered
-			// as the tap's (Baxter Building)
+			// as the tap's (Baxter Building). It taps a land, so a live
+			// tap-extra must stall like every other filter activation's.
 			for c, n := range st.alloc {
 				if n == 0 {
 					continue
@@ -575,6 +576,7 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 				pl.pool[c] += n
 				s.artTag(k, p, st.sl, c)
 			}
+			s.tapExtraStall(k, st.sl)
 			break
 		}
 		pl.pool[st.ans-1] += uint8(s.filtUnits(k, st.sl))

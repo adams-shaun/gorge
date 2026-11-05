@@ -50,9 +50,23 @@ func manaLifePain(a *kop.Ability) (uint8, bool) {
 	return a.Cost.N, true
 }
 
+// primaryNormalAb reports whether b is the normal alternative the kernel
+// prices for a pain source: a bare {T} for one mana of {C}, one WUBRG
+// colour, or a two-colour choice (kgen primaryMana). prepPainMana and
+// lifePainLandAb share it, so a shape the planner prices is never a census
+// gap.
+func primaryNormalAb(b *kop.Ability) bool {
+	if len(b.Prog) != 0 || b.Cost.Flags != kop.CostTap || b.Cost.Mana.MV() != 0 || b.Cost.Mana.X != 0 || max(b.ManaN, 1) != 1 {
+		return false
+	}
+	c := uint8(b.ManaColors)
+	return c == uint8(kop.ColC) || c != 0 && c&^0x1f == 0 && bits.OnesCount8(c) <= 2
+}
+
 // lifePainLandAb: a is the paid-life ability of a life-pain land of c: its
-// two mana abilities are a plain {T}: Add {C} and a, {T} and N life for a
-// colour (Starting Town). gorge's planner prices that cost as a last-resort
+// two mana abilities are a normal alternative ({C}, one colour, or a
+// two-colour choice: Starting Town, Haunted Screen) and a, {T} and N life
+// for one or more colours. gorge's planner prices that cost as a last-resort
 // choice (pay.PlanLastResortCostOK), not a census gap.
 func lifePainLandAb(c *kop.CardDef, a *kop.Ability) bool {
 	if _, ok := manaLifePain(a); !ok {
@@ -67,7 +81,7 @@ func lifePainLandAb(c *kop.CardDef, a *kop.Ability) bool {
 		}
 		n++
 		if n == 1 {
-			first = b.ManaColors == kop.ColC && len(b.Prog) == 0 && b.Cost.Flags == kop.CostTap
+			first = primaryNormalAb(b)
 		}
 	}
 	return n == 2 && first
@@ -102,13 +116,10 @@ func prepPainMana(c *kop.CardDef, pc *pcard) bool {
 			col, dmg = a.ManaColors, d
 		}
 	}
-	// The normal alternative is the source's first ability: {C} (the
-	// painlands, Starting Town), or a plain two-colour {T} choice beside its
-	// life ability (Haunted Screen: {W} or {B}, then {G}, {U} or {R} for 1
-	// life). One mana of one colour, tap-only, no program.
-	prim := uint8(pc.manaCol)
-	if n != 2 || len(c.Abilities[pc.manaAb].Prog) != 0 || !pc.manaTap || pc.manaN != 1 ||
-		!(prim == uint8(kop.ColC) || prim != 0 && prim&^0x1f == 0 && bits.OnesCount8(prim) <= 2) {
+	// The normal alternative is the source's first ability (primaryNormalAb:
+	// {C}, one colour, or a plain two-colour {T} choice beside its life
+	// ability, Haunted Screen's {W} or {B}).
+	if n != 2 || pc.manaAb < 0 || !primaryNormalAb(&c.Abilities[pc.manaAb]) {
 		return false
 	}
 	pc.painCol, pc.painN, pc.painLife = col, dmg, life
@@ -431,7 +442,12 @@ func (a *avail) painAffords(cost *kop.ManaCost, pipMask uint8, extra int) bool {
 				if pa.only>>g&1 != 0 {
 					t.addUnits(pa.mask[g], x[g])
 				} else {
-					t.remove(pa.prim[g], x[g]*(1+pa.ec[g]))
+					// painTight holds the group's normal units under prim
+					// and its modal extra's under {C}, not both under prim.
+					t.remove(pa.prim[g], x[g])
+					if pa.ec[g] != 0 {
+						t.remove(1<<kop.C, x[g]*pa.ec[g])
+					}
 					t.addUnits(pa.mask[g]|pa.prim[g], x[g])
 				}
 			}

@@ -12,9 +12,15 @@
 # Each deck holds exactly as many colourless lands as one activation of the
 # mana source needs, so no payment ever chooses between two identical
 # sources: the comparison is the shapes, not the tie-break.
+#
+# Groundchuck & Dirtbag is a tap-extra carrier (a land tap adds {G}) for the
+# test that Baxter Building's combination activation stalls rather than
+# silently drop the extra (dirac/mana_second_ability_test.go, mana_filter.go
+# filtDo).
 Baxter Building
 Breya, Etherium Shaper
 Wastes
 Haunted Screen
 Moss Viper
 Valiant Guard
+Groundchuck & Dirtbag
