@@ -79,14 +79,30 @@ describe('/events/new in a browser', () => {
     browser = await sharedBrowser();
   });
 
-  async function openFixture(): Promise<{ page: Page; close: () => Promise<void> }> {
+  async function openFixture(query = ''): Promise<{ page: Page; close: () => Promise<void> }> {
     const ctx = await browser.newContext({ permissions: ['clipboard-read', 'clipboard-write'] });
     const page = await ctx.newPage();
-    await page.goto(`${browserURL}src/routes/NewEvent.fixture.html`);
+    await page.goto(`${browserURL}src/routes/NewEvent.fixture.html${query}`);
     await page.getByRole('radio', { name: /FDN/ }).waitFor();
     return { page, close: () => ctx.close() };
   }
   const bodies = (page: Page) => page.evaluate(() => (window as unknown as { createBodies: unknown[] }).createBodies);
+
+  it('prerelease resets best of and hides the pick timer', async () => {
+    const { page, close } = await openFixture('?format=prerelease');
+    expect(await page.getByTestId('format-prerelease').getAttribute('aria-pressed')).toBe('true');
+    expect(await page.getByTestId('best-of-3').getAttribute('aria-pressed')).toBe('true');
+    expect(await page.getByTestId('rebuild-on').getAttribute('aria-pressed')).toBe('true');
+    expect(await page.getByTestId('pick-timer').count()).toBe(0);
+    expect(await page.getByTestId('seat-2-drafter').getAttribute('aria-label')).toBe('Seat 2 builds as');
+    expect(await page.getByTestId('format-prerelease').textContent()).toBe('Prerelease');
+    expect(await page.getByTestId('new-event').textContent()).toContain('Six Play Boosters and one rare or mythic promo per player');
+    await page.getByTestId('open-pod').click();
+    await page.waitForFunction(() => location.pathname === '/e/ev7');
+    const sent = await bodies(page);
+    await close();
+    expect(sent).toEqual([{ set: 'FDN', format: 'prerelease', seats: [{ kind: 'human' }, { kind: 'bot' }, { kind: 'bot' }, { kind: 'bot' }] }]);
+  });
 
   it('one human: sends no pick_timer, no best_of for Bo1, and navigates to the invite as today', async () => {
     const { page, close } = await openFixture();
