@@ -150,7 +150,7 @@ import (
 // +1 (Q, Stacking the Deck: the exile-granted copy-and-cast ability of a card exiled from the top of the library; merged 21472 -> 21473; ratchet TRK 299 -> 300).
 // +2 (U.S.S. Enterprise-D, Galaxy-Class and Axgard Artisan: CounterAddedOnce FirstTime$ True's per-source once-a-turn latch; 21486 -> 21488; ratchet MOM 196 -> 197, TRK 305 -> 306).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21501, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21502, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
