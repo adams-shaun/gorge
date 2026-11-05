@@ -208,6 +208,11 @@ func (s *State) anyManaSource(k *prep, p uint8) bool {
 				return true
 			}
 		}
+		// an each-colour source (Bloom Tender) is a census gap with no manaAb,
+		// yet gorge's walk counts it, and reads its production as open
+		if c := s.cardAt(sl); k.gen.eachCol(c) >= 0 && s.potentialAdmits(k, p, sl, int(k.gen.eachCol(c)), &k.t.Cards[c].Abilities[k.gen.eachCol(c)], nil) {
+			return true
+		}
 		// gorge untappedManaSource: any available mana ability counts here,
 		// whatever its RestrictValid$ (availPotentialFor prices the
 		// restriction against this payment next), so a source whose only
