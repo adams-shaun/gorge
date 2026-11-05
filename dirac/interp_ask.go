@@ -1086,11 +1086,17 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		case kop.OpChooseMove:
 			r.ask = raNone
 			s.moveFoundAns(k, s.objs[a.Source()].slot) // zone_handmoveaura.go: enter, attach, remember
+			if s.moveAsked() {
+				return // a later card parked too; its answer resumes here
+			}
 			s.continueRes(k, 0)
 			return
 		case kop.OpSearchEx:
 			r.ask = raNone
 			s.moveFoundAns(k, s.objs[a.Source()].slot)
+			if s.moveAsked() {
+				return // a later card parked too; its answer resumes here
+			}
 			if !s.parkTail(k, tailSearch) {
 				s.finishSearchTail(k)
 				s.continueRes(k, 0)

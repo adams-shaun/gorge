@@ -96,4 +96,69 @@ func TestEnchantParkTrimsEnteredCards(t *testing.T) {
 			t.Fatalf("tail=%v: nlook %d after the answer, want 0", tail, s.g.nlook)
 		}
 	}
+
+	// A second parked Aura in the tail: the answered re-run moves the first
+	// Aura and then parks again on the next look card. The answered arm must
+	// leave that second ask posed (not resume past it) and run the search's
+	// tail only after the last answer.
+	sc := newScenTable(t, tbl, Config{NoElide: true})
+	s := sc.s
+	a := sc.hand(id["Plains"], 0)
+	b1 := sc.hand(id["Witness Protection"], 0)
+	b2 := sc.hand(id["Witness Protection"], 0)
+	h1, h2 := sc.perm(id["Eager Trufflesnout"], 0), sc.perm(id["Eager Trufflesnout"], 1)
+	sp := sc.obj(src, 0)
+	s.objs[sp].zone = kop.ZoneStack
+	s.sp = 1
+	s.res = resCtx{e: stackEntry{kind: seSpell, obj: sp, card: src, ctrl: 0, trigObj: NoObj},
+		active: true, lastTok: NoObj, eachObj: NoObj}
+	s.res.e.tgt = noTargets
+	s.ctl = ctlResolve
+	s.g.pickP, s.g.pickZ, s.g.pickF = 0, uint8(kop.ZoneBattlefield), 0
+	copy(s.resArm().look[:], []Obj{a, b1, b2})
+	s.g.nlook = 3
+	if !s.handAuraArmed(sc.k) || s.objs[b1].zone != kop.ZoneHand || s.objs[b2].zone != kop.ZoneHand {
+		t.Fatal("two Auras: want the OpSearchEx armed and both Auras in the hand")
+	}
+	if h1 == h2 || sc.slot(h1) == sc.slot(h2) {
+		t.Fatal("the two hosts are not distinct")
+	}
+
+	s.moveFoundAns(sc.k, NoSlot)
+	if s.res.ask != raGenEnchant || s.g.nlook != 2 || s.resArm().look[0] != b1 {
+		t.Fatalf("two Auras: after the park ask %d nlook %d look[0] %d, want the ask with look starting at the first Aura %d",
+			s.res.ask, s.g.nlook, s.resArm().look[0], b1)
+	}
+	draws := s.rng.Draws
+	s.applyResolveGen(sc.k, MakeAction(AkChoose, uint8(h2), 0, 0))
+	if s.res.ask != raGenEnchant {
+		t.Fatalf("two Auras: ask %d after the first answer, want the second Aura's ask (not dropped)", s.res.ask)
+	}
+	if !sc.onBF(b1) || s.perms[sc.slot(b1)].attached != sc.slot(h2) {
+		t.Fatalf("two Auras: first Aura on bf %v attached %d, want attached to %d",
+			sc.onBF(b1), s.perms[sc.slot(b1)].attached, sc.slot(h2))
+	}
+	if s.g.nlook != 1 || s.resArm().look[0] != b2 || s.objs[b2].zone != kop.ZoneHand {
+		t.Fatalf("two Auras: nlook %d look[0] %d second Aura zone %d, want 1 starting at the parked second Aura %d in the hand",
+			s.g.nlook, s.resArm().look[0], s.objs[b2].zone, b2)
+	}
+	if !sc.onBF(a) {
+		t.Fatal("two Auras: the already-entered Plains left the battlefield")
+	}
+	if s.rng.Draws != draws {
+		t.Fatalf("two Auras: the search tail ran before the second ask was answered (draws %d -> %d)", draws, s.rng.Draws)
+	}
+
+	s.applyResolveGen(sc.k, MakeAction(AkChoose, uint8(h1), 0, 0))
+	if !sc.onBF(b2) || s.perms[sc.slot(b2)].attached != sc.slot(h1) {
+		t.Fatalf("two Auras: second Aura on bf %v attached %d, want attached to %d",
+			sc.onBF(b2), s.perms[sc.slot(b2)].attached, sc.slot(h1))
+	}
+	if s.g.nlook != 0 || s.res.ask != raNone || s.res.left != 0 || s.res.pc == 0 {
+		t.Fatalf("two Auras: after the second answer nlook %d ask %d left %d pc %d, want the look empty and the search resumed",
+			s.g.nlook, s.res.ask, s.res.left, s.res.pc)
+	}
+	if s.rng.Draws == draws {
+		t.Fatal("two Auras: the search tail did not run after the second answer")
+	}
 }
