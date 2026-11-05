@@ -138,7 +138,15 @@ func (s *State) crimeModalPick(k *prep, e *stackEntry, i int, peekI uint8, c uin
 //
 //go:noinline
 func (s *State) crimePick(k *prep, t uint8) {
-	if s.bld().e.kind != seSpell || !s.noteCrime(k, s.bld().e.ctrl, t) {
+	if s.bld().e.kind != seSpell {
+		if s.bld().ti > 0 {
+			// a chain link's targets past the root's: gorge records them at
+			// their own answer, before the ability's payment (recordSubTargets)
+			s.noteCrime(k, s.bld().e.ctrl, t)
+		}
+		return
+	}
+	if !s.noteCrime(k, s.bld().e.ctrl, t) {
 		return
 	}
 	if st := DebugCrimeStats; st != nil && s.bld().bfl&bflCrime == 0 {
