@@ -446,8 +446,13 @@ type filtSearch struct {
 	nodes int
 	nseen int
 	seen  [potentialScriptNodes]filtKey
-	n     int
-	path  [maxFiltPath]filtStep
+	// fundRank mirrors gorge's scriptFundingRanks: how replaceable the mana
+	// each non-gap source makes is (its smallest producer count over the
+	// colours it produces), so the funding taps spend the most replaceable
+	// mana first.
+	fundRank [MaxPerm]uint8
+	n        int
+	path     [maxFiltPath]filtStep
 	// spill: a step of the path found floated restricted mana past what
 	// State.rb holds (a restriction past restrKinds), unrestricted: the
 	// script the search found is not one gorge's planner would price
@@ -465,10 +470,18 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	if a.Kind() == AkActivate {
 		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
 	}
-	if s.filtRelaxable(k, fs.gaps) && !(k.tapMana && s.tapXTwoLive(k, p)) { // (unrelaxable: no funding)
+	// A gap's fee is funded even when the census is unrelaxable (a dynamic
+	// amount above six): gorge's census counts every missed ability's fee
+	// before the relaxation can decline it (rules/potential_plan.go
+	// paymentPlanCensusOf), so an unrelaxable Starfleet Academy still gets
+	// the {5} its activation costs.
+	if !(k.tapMana && s.tapXTwoLive(k, p)) { // (mixed gaps: no funding)
 		for b := fs.gaps; b.any(); b = b.rest() {
 			fs.fees += s.filtFee(k, b.first())
 		}
+	}
+	if fs.fees > 0 {
+		fs.fundRank = s.fundingRanks(k, p, fs.gaps, fs.other)
 	}
 	t := s.fork()
 	defer s.unfork()
@@ -485,6 +498,51 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 		s.filtPlay(k, p, fs.path[:fs.n], true)
 	}
 	return true
+}
+
+// fundingRanks mirrors gorge's scriptFundingRanks (engine/rules/
+// potential_script.go): each non-gap source's smallest number of untapped
+// non-gap sources able to produce any one colour it can produce, so a fee
+// is funded from the mana the play can most afford to lose. It only orders
+// the funding taps, so it cannot change whether a line exists.
+func (s *State) fundingRanks(k *prep, p uint8, gaps, other slotMask) [MaxPerm]uint8 {
+	var ranks [MaxPerm]uint8
+	var cols [MaxPerm]uint8
+	var producers [6]uint8
+	var order [MaxPerm]Slot
+	n := s.battlefieldOrder(p, s.ctrlM[p&1].and(s.occ), order[:], 0)
+	for i := 0; i < n; i++ {
+		sl := order[i]
+		if gaps.has(sl) || other.has(sl) || s.perms[sl].flags&pfTapped != 0 {
+			continue
+		}
+		pc := s.manaPCGen(k, sl)
+		if pc.manaAb < 0 || !s.canTapForManaPC(k, sl, pc) {
+			continue
+		}
+		mask := s.srcMaskAt(pc, sl)
+		cols[sl] = mask
+		for c := 0; c < 6; c++ {
+			if mask&(1<<c) != 0 {
+				producers[c]++
+			}
+		}
+	}
+	for i := 0; i < n; i++ {
+		sl := order[i]
+		mask := cols[sl]
+		if mask == 0 {
+			continue
+		}
+		best := uint8(0)
+		for c := 0; c < 6; c++ {
+			if mask&(1<<c) != 0 && (best == 0 || producers[c] < best) {
+				best = producers[c]
+			}
+		}
+		ranks[sl] = best
+	}
+	return ranks
 }
 
 // filtPlay plays a found path on s: each activation as the search made it,
@@ -634,87 +692,105 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	}
 	var order [MaxPerm]Slot
 	n := t.battlefieldOrder(p, t.ctrlM[p&1].and(t.occ), order[:], 0)
-	for pass := 0; pass < 2; pass++ {
-		gap := pass == 0
+	// An unfunded fee is paid before any gap is activated: a filter beside a
+	// free {T} ability (Starfleet Academy's "{T}: Add {C}") is tried in its
+	// free form first, and from an empty pool that branch can only spend the
+	// budget on a line making no colour the play needs (gorge
+	// scriptSearch.visit's gapOrder). Within the funding taps, spend the
+	// most replaceable mana first (fundRank).
+	gapOrder := [2]bool{true, false}
+	if fs.fees > 0 && funded < fs.fees {
+		gapOrder = [2]bool{false, true}
+	}
+	for _, gap := range gapOrder {
 		if !gap && funded >= fs.fees {
 			break
 		}
-		for i := 0; i < n; i++ {
-			sl := order[i]
-			if (fs.gaps.has(sl) || fs.other.has(sl)) != gap || sl == fs.own {
-				continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
-			}
-			if gap && fs.other.has(sl) {
-				if fs.otherGap(k, t, sl, funded) {
-					return true
+		buckets := [2]bool{false}
+		if !gap {
+			buckets = [2]bool{true, false}
+		}
+		for _, redundant := range buckets {
+			for i := 0; i < n; i++ {
+				sl := order[i]
+				if (fs.gaps.has(sl) || fs.other.has(sl)) != gap || sl == fs.own {
+					continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
 				}
-				continue
-			}
-			if gap && k.gen.anyFiltFirst {
-				if !t.filtUsable(k, sl) {
-					continue // (a once-each-turn filter: its use, not its {T})
+				if !gap && (fs.fundRank[sl] >= 2) != redundant {
+					continue
 				}
-			} else if t.perms[sl].flags&pfTapped != 0 {
-				continue
-			}
-			if gap {
+				if gap && fs.other.has(sl) {
+					if fs.otherGap(k, t, sl, funded) {
+						return true
+					}
+					continue
+				}
+				if gap && k.gen.anyFiltFirst {
+					if !t.filtUsable(k, sl) {
+						continue // (a once-each-turn filter: its use, not its {T})
+					}
+				} else if t.perms[sl].flags&pfTapped != 0 {
+					continue
+				}
+				if gap {
+					free := t.canTapForMana(k, sl)
+					filt := poolTotal(&t.pl[p&1])+t.filtFeeRestrN(k, p, sl) >= t.filtFee(k, sl)
+					switch {
+					case free && filt:
+						// two abilities: the ask, its {C} answer first
+						if !fs.tick() {
+							return false
+						}
+						if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
+							return true
+						}
+						if fs.filtColours(k, t, sl, funded) {
+							return true
+						}
+					case free:
+						if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
+							return true
+						}
+					case filt:
+						if fs.filtColours(k, t, sl, funded) {
+							return true
+						}
+					}
+					continue
+				}
+				rm := uint8(0)
+				if k.restrSrc {
+					rm = t.filtRestrMask(k, sl)
+				}
 				free := t.canTapForMana(k, sl)
-				filt := poolTotal(&t.pl[p&1])+t.filtFeeRestrN(k, p, sl) >= t.filtFee(k, sl)
-				switch {
-				case free && filt:
-					// two abilities: the ask, its {C} answer first
-					if !fs.tick() {
-						return false
+				if !free && rm == 0 {
+					continue
+				}
+				if free && rm != 0 && !fs.tick() {
+					return false // the ask between its census and its restricted ability
+				}
+				if free {
+					pc := t.manaPCGen(k, sl)
+					if pc.manaSac {
+						continue // (a Treasure funds nothing here: see the handoff's open items)
 					}
-					if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
-						return true
+					mask := t.srcMaskAt(pc, sl)
+					if bits.OnesCount8(mask) > 1 && !fs.tick() {
+						return false // the colour ask
 					}
-					if fs.filtColours(k, t, sl, funded) {
-						return true
-					}
-				case free:
-					if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
-						return true
-					}
-				case filt:
-					if fs.filtColours(k, t, sl, funded) {
-						return true
+					for m := mask; m != 0; m &= m - 1 {
+						if fs.try(k, t, filtStep{sl: sl, ans: uint8(bits.TrailingZeros8(m))}, funded+1, gapUsed) {
+							return true
+						}
 					}
 				}
-				continue
-			}
-			rm := uint8(0)
-			if k.restrSrc {
-				rm = t.filtRestrMask(k, sl)
-			}
-			free := t.canTapForMana(k, sl)
-			if !free && rm == 0 {
-				continue
-			}
-			if free && rm != 0 && !fs.tick() {
-				return false // the ask between its census and its restricted ability
-			}
-			if free {
-				pc := t.manaPCGen(k, sl)
-				if pc.manaSac {
-					continue // (a Treasure funds nothing here: see the handoff's open items)
+				if bits.OnesCount8(rm) > 1 && !fs.tick() {
+					return false // the restricted ability's colour ask
 				}
-				mask := t.srcMaskAt(pc, sl)
-				if bits.OnesCount8(mask) > 1 && !fs.tick() {
-					return false // the colour ask
-				}
-				for m := mask; m != 0; m &= m - 1 {
-					if fs.try(k, t, filtStep{sl: sl, ans: uint8(bits.TrailingZeros8(m))}, funded+1, gapUsed) {
+				for m := rm; m != 0; m &= m - 1 { // the restricted ability's answers, after the census one's
+					if fs.try(k, t, filtStep{sl: sl, ans: uint8(bits.TrailingZeros8(m)), restr: true}, funded+1, gapUsed) {
 						return true
 					}
-				}
-			}
-			if bits.OnesCount8(rm) > 1 && !fs.tick() {
-				return false // the restricted ability's colour ask
-			}
-			for m := rm; m != 0; m &= m - 1 { // the restricted ability's answers, after the census one's
-				if fs.try(k, t, filtStep{sl: sl, ans: uint8(bits.TrailingZeros8(m)), restr: true}, funded+1, gapUsed) {
-					return true
 				}
 			}
 		}
