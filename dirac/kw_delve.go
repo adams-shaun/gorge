@@ -34,6 +34,14 @@ func (s *State) hasCastDelve(k *prep, p uint8, c CardID, o Obj, fromHand bool) b
 	return s.grantDelve(k, p, c, o, fromHand)
 }
 
+// contribPays is tapPays or a granted delve: the shapes gorge's payment
+// planner declines as "shape:contribution" (payment_plan.go), so the cast is
+// offered only against the floating pool. gorge declines a spell carrying
+// delve whatever its graveyard holds.
+func (s *State) contribPays(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
+	return s.tapPays(k, p, c, o, fromHand) || s.hasCastDelve(k, p, c, o, fromHand)
+}
+
 // delveOfferCredit is cost less the graveyard cards the cast could delve
 // away: min(generic, graveyard size) (gorge delveCredit).
 func (s *State) delveOfferCredit(k *prep, p uint8, c CardID, o Obj, fromHand bool, cost kop.ManaCost) kop.ManaCost {

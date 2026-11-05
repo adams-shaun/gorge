@@ -541,7 +541,7 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 	refused := planNeverPricesCore(k, c, hyb, composed, false)
 	optRefused := k.gen != nil && k.gen.anyOptCost && optCostCard(k, c)
 	spendRefused := !composed && k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k)
-	tapRefused := !refused && !optRefused && !spendRefused && s.tapPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand)
+	tapRefused := !refused && !optRefused && !spendRefused && s.contribPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand)
 	if refused || optRefused || spendRefused || tapRefused {
 		// gorge's planner declines the shape (modal_cost, additional_cost,
 		// optional_cost, mana_spent_reader, contribution, target_dependent_cost)

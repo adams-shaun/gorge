@@ -679,7 +679,7 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 	k := s.k()
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
-	if s.tapPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand) {
+	if s.contribPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand) {
 		return false // gorge's potential planner refuses a convoke cost
 	}
 	if cd.Cost.Hyb[0] == kop.HybTwobrid {

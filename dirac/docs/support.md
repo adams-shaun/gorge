@@ -24,13 +24,13 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | OTJ | 276 | 239 | 2 | 25 | 212 |
 | SOS | 270 | 247 | 2 | 24 | 221 |
 | SPM | 192 | 160 | 1 | 23 | 136 |
-| TDM | 276 | 244 | 6 | 49 | 189 |
+| TDM | 276 | 245 | 6 | 50 | 189 |
 | TLA | 285 | 245 | 3 | 57 | 185 |
 | TMT | 194 | 171 | 1 | 10 | 160 |
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 13 | 239 |
-| ALL | 34442 | 21507 | 47 | 16966 | 4494 |
+| ALL | 34442 | 21508 | 47 | 16967 | 4494 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 

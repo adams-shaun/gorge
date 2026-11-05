@@ -998,7 +998,7 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			// pool and the printed sources
 			return s.featCost(k, p&1, c, Obj(a.Source()), k.cards[c].cost), ex, true
 		}
-		if c := s.objs[a.Source()].card; a.Mode()&3 == 0 && a.Target() == 0 && k.t.Cards[c].HasAltAdd && k.t.Cards[c].Cost.X == 0 && !s.tapPays(k, p, c, Obj(a.Source()), s.objs[a.Source()].zone == kop.ZoneHand) {
+		if c := s.objs[a.Source()].card; a.Mode()&3 == 0 && a.Target() == 0 && k.t.Cards[c].HasAltAdd && k.t.Cards[c].Cost.X == 0 && !s.contribPays(k, p, c, Obj(a.Source()), s.objs[a.Source()].zone == kop.ZoneHand) {
 			// an either-or additional cost: the planner prices the spell with the part
 			// gorgeLowers prices, so the search funds that (Deadly Precision's {B})
 			return s.altAddPlanCost(k, p, c, Obj(a.Source())), ex, true
