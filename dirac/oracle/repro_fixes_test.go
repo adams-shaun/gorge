@@ -26,6 +26,8 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"trigger_limit_look_back", true, false},                   // CR 603.10a: Homicide Investigator's own death reads the limit it spent
 		{"optional_cost_no_prefix_search", false, false},           // an OptionalCost card's plain cast: no search over a Strider
 		{"optional_cost_granted_source", false, false},             // nor a witness from a granted source (Insidious Roots)
+		{"evidence_targets_cost_granted_source", false, false},     // CR 601.2b: Urgent Necropsy's collect evidence X is priced by printed sources only, not Insidious Roots' grant
+		{"damage_all_planeswalker_clause", false, false},           // CR 120.3c: Incinerator of the Guilty's X damage to each planeswalker that player controls removes Kaya's loyalty
 		{"fee_colour_hybrid_face", false, false},                   // a filter's fee takes the colour the hybrid face can spare
 		{"first_only_filter_in_window", false, false},              // a once-each-turn filter is listed once the pool pays its fee
 		{"ward_window_first_only_filter", false, false},            // ... and a failed ward payment still spends it
@@ -39,7 +41,7 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"adventure_card_copy_cast", true, false},                  // CR 707.12, 715.3: Reenact the Crime's copy of Kellan, Inquisitive Prodigy is cast as its front face (gorge never offers the Adventure)
 		{"facedown_ward_of_a_printed_ward_card", false, false},     // CR 701.58a/702.168b: a cloaked Axebane Ferox (prints Ward) targeted by an opponent: the face-down ward trigger has no face trigger index (gorge 255)
 		{"hybrid_activation_printed_witness", false, false},        // a lowered {G/W} activation resolves over printed mana only: Insidious Roots' granted any-colour token is not the {G} face gorge's planHybridCost prices
-		{"damage_all_planeswalker_clause", false, false},           // CR 120.3c: Incinerator of the Guilty's reflexive sweep damages each planeswalker that player controls too (Kaya, Spirits' Justice)
+		{"each_target_aura_copy_host_ask", false, false},           // CR 303.4f: Doppelgang's copy of a targeted Curious Inquiry asks its host before the copies of the targets after it
 		{"copy_each_target_aura_enchant", false, false},            // CR 303.4f: Doppelgang's copy of an Aura asks what it enchants as it enters, the later targets' copies after the answer
 		{"animated_equipment_without_equip_ability", false, false}, // CR 704.5p: Cryptic Coat (Equipment, attached by its ETB trigger, no Equip ability) detaches when Behind the Mask animates it, so its Equipped static stops on the Forest
 	})
