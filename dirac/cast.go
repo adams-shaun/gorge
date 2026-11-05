@@ -281,7 +281,8 @@ func (s *State) unpushSpell(k *prep) {
 		s.noteReversed(o, e.ctrl)
 	}
 	if k.gen != nil && k.gen.anyCopyCast && ob.of&(ofCopy|ofToken) == ofCopy && s.bld().origin == kop.ZoneLibrary {
-		s.capFull(StallCopyCast) // CR 733.1: gorge leaves a reversed copy in its holding zone
+		// CR 733.1: a Play's reversed copy cast ceases; the mana its window
+		// tapped stays tapped and in the pool (loweredWindowOK)
 		ob.zone = kop.ZoneNone
 		return
 	}
