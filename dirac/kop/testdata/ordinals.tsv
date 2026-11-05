@@ -955,6 +955,12 @@ SacSumMV	untyped int	8
 SacSumPower	untyped int	2
 SacSumToughness	untyped int	4
 SacrificedFood	untyped int	2
+SpmCloakUp	SpecialMask	8
+SpmDisguiseUp	SpecialMask	2
+SpmManifestUp	SpecialMask	4
+SpmMorphUp	SpecialMask	1
+SpmTurnFaceUp	SpecialMask	15
+SpmUnlock	SpecialMask	16
 SrAltOrigin	untyped int	16
 SrAltZoneShift	untyped int	5
 SrAttacking	untyped int	4096
