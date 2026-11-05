@@ -1154,14 +1154,14 @@ func (lc *lowerCtx) dig(ps *params) error {
 	// WithMayLook$ with an exile destination; every other combination is
 	// not read exactly (a blind face-down exile, a look on a non-exile move)
 	fd, look := ps.is("ExileFaceDown", "True"), ps.is("WithMayLook", "True")
-	blind := fd && !look && dest == zExile && lc.blindDigShape(ps) // lower_blinddig.go
+	blind := fd && !look && dest == zExile && (lc.repeatBlindDig(ps) || lc.blindDigShape(ps)) // lower_blinddig.go
 	if fd != look && !blind || fd && dest != zExile {
 		return refuse("Dig ExileFaceDown$ shape")
 	}
 	if fd {
 		flags = append(flags, "ExileFaceDown")
 	}
-	if blind && lc.blind.exilerOther {
+	if blind && lc.blind != nil && lc.blind.exilerOther {
 		flags = append(flags, "ExilerOther")
 	}
 	if err := lc.digImprint(ps); err != nil { // lower_handmove.go
