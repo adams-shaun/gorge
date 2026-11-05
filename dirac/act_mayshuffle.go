@@ -4,6 +4,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Cold, out of line.
 
+// DebugShuffleOwnOnly switches OpMayShuffleMove's shuffle to the effect
+// controller's library alone (the Those Old Scientists mutation test: the
+// lockstep must then diverge on a card shuffled from another player's
+// graveyard).
+var DebugShuffleOwnOnly bool
+
 // parentTargetOK reports whether code is in the graveyard of the player
 // named by t.ParentPlus1 (kgen's TargetsWithDefinedController$ ParentTarget:
 // "target card in target player's graveyard"). The parent slot is a player
@@ -79,7 +85,7 @@ func (s *State) applyAskOblige(k *prep, a Action) bool {
 			var refs [maxXTgt + 1]Obj
 			var legal [maxXTgt + 1]bool
 			n := s.shuffleRefs(k, &s.res.e, uint8(in.C), &refs, &legal)
-			s.doMayShuffleMove(&refs, &legal, n)
+			s.doMayShuffleMove(&refs, &legal, n, s.res.e.ctrl)
 		}
 		s.continueRes(k, 0)
 	case raGenManifestDread:
@@ -122,7 +128,7 @@ func (s *State) mayShuffleMove(k *prep, in *kop.Instr) bool {
 		s.res.ask, s.res.askP = raGenMayShuffleMove, asker
 		return false
 	}
-	s.doMayShuffleMove(&refs, &legal, n)
+	s.doMayShuffleMove(&refs, &legal, n, e.ctrl)
 	return true
 }
 
@@ -164,8 +170,9 @@ func (s *State) shuffleRefs(k *prep, e *stackEntry, slot uint8, refs *[maxXTgt +
 // chosen ends on top, gorge libraryOrderPlacementAt), then each distinct
 // owner's library is shuffled once in referent order (gorge
 // objectPathShuffleOwners). Cards chosen but illegal are not moved; the
-// shuffle still happens (CR 701.24c).
-func (s *State) doMayShuffleMove(refs *[maxXTgt + 1]Obj, legal *[maxXTgt + 1]bool, nr int) {
+// shuffle still happens (CR 701.24c). ctrl is the effect controller, read only
+// by DebugShuffleOwnOnly.
+func (s *State) doMayShuffleMove(refs *[maxXTgt + 1]Obj, legal *[maxXTgt + 1]bool, nr int, ctrl uint8) {
 	var moved [maxXTgt + 1]Obj
 	var movedFrom [maxXTgt + 1]kop.Zone
 	n := 0
@@ -199,6 +206,9 @@ func (s *State) doMayShuffleMove(refs *[maxXTgt + 1]Obj, legal *[maxXTgt + 1]boo
 		}
 	}
 	for i := 0; i < no; i++ {
+		if DebugShuffleOwnOnly && owners[i] != ctrl {
+			continue
+		}
 		s.shuffleLib(owners[i])
 	}
 }
