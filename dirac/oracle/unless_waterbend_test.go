@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -14,13 +15,13 @@ import (
 // candidates). The expected answer at every decision is gorge's.
 var kunlesswbDecks = [2][]cardset.Entry{
 	{
-		{Name: "Waterbending Lesson", Count: 6}, {Name: "Ornithopter", Count: 6}, {Name: "Grizzly Bears", Count: 3},
-		{Name: "Llanowar Elves", Count: 3}, {Name: "Island", Count: 10}, {Name: "Forest", Count: 4}, {Name: "Shock", Count: 2},
-		{Name: "Mountain", Count: 6},
+		{Name: "Waterbending Lesson", Count: 4}, {Name: "The Unagi of Kyoshi Island", Count: 3}, {Name: "Ornithopter", Count: 5},
+		{Name: "Grizzly Bears", Count: 3}, {Name: "Llanowar Elves", Count: 2}, {Name: "Island", Count: 11}, {Name: "Forest", Count: 4},
+		{Name: "Shock", Count: 2}, {Name: "Mountain", Count: 6},
 	},
 	{
-		{Name: "Ornithopter", Count: 4}, {Name: "Grizzly Bears", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Lightning Bolt", Count: 4},
-		{Name: "Mountain", Count: 12}, {Name: "Forest", Count: 8}, {Name: "Island", Count: 4},
+		{Name: "Ornithopter", Count: 6}, {Name: "Grizzly Bears", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Lightning Bolt", Count: 4},
+		{Name: "Mountain", Count: 12}, {Name: "Forest", Count: 4}, {Name: "Island", Count: 6},
 	},
 }
 
@@ -40,14 +41,22 @@ func kunlesswbPolicy(seed uint64, counts map[string]int, flip *int) Policy {
 		if d == nil {
 			return base.Pick(c)
 		}
-		if d.ResumeKind == "unless_cost" {
-			counts["pick"]++
+		if d.ResumeKind == "unless_cost" || d.ResumeKind == "ward_waterbend" {
+			counts["pick/"+d.ResumeKind]++
 			return base.Pick(c)
 		}
 		if d.ResumeKind != "unless_pay" {
 			return base.Pick(c)
 		}
-		if ob := c.G.E.G.Obj(d.Source); ob == nil || ob.Face() == nil || ob.Face().Name != "Waterbending Lesson" {
+		name := ""
+		if ob := c.G.E.G.Obj(d.Source); ob != nil && ob.Face() != nil {
+			name = ob.Face().Name
+		}
+		arm := map[string]string{"Waterbending Lesson": "lesson", "The Unagi of Kyoshi Island": "ward"}[name]
+		if strings.HasSuffix(d.Prompt, " for ward?") {
+			arm = "ward" // no other ward card is in these decks
+		}
+		if arm == "" {
 			return base.Pick(c)
 		}
 		pay := *flip%3 != 2
@@ -67,9 +76,9 @@ func kunlesswbPolicy(seed uint64, counts map[string]int, flip *int) Policy {
 				continue
 			}
 			if pay {
-				counts["paid"]++
+				counts[arm+"/paid"]++
 			} else {
-				counts["declined"]++
+				counts[arm+"/declined"]++
 			}
 			return a
 		}
@@ -131,7 +140,8 @@ func TestUnlessWaterbendLockstep(t *testing.T) {
 		}
 	}
 	t.Logf("counts %v", counts)
-	for arm, min := range map[string]int{"paid": 5, "declined": 3, "pick": 3} {
+	for arm, min := range map[string]int{"lesson/paid": 5, "lesson/declined": 3, "pick/unless_cost": 3,
+		"ward/paid": 3, "ward/declined": 3, "pick/ward_waterbend": 2} {
 		if counts[arm] < min {
 			t.Errorf("%s: %d, want at least %d", arm, counts[arm], min)
 		}

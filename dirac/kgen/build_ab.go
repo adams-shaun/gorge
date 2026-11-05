@@ -176,6 +176,11 @@ func (cb *cardBuilder) fold(a *lAbility) (bool, error) {
 				return false, bfail(cb.node, "ward cost Discard %d", n)
 			}
 			d.WardDiscard = 1 // kernel kw_wardcost.go
+		case "Waterbend":
+			if n < 1 || n > 31 {
+				return false, bfail(cb.node, "ward cost waterbend %d", n)
+			}
+			d.WardWaterbend = uint8(n) // kernel cost_unlesswaterbend.go
 		case "DiscardOrMana":
 			if n < 1 || n > 255 {
 				return false, bfail(cb.node, "ward cost discard or {%d}", n)

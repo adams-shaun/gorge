@@ -928,7 +928,7 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		// cost_unlesswaterbend.go): alone, with N the cost's whole generic
 		m, rest := c.Mana, c
 		rest.Waterbend, rest.Mana = 0, manaCost{None: true}
-		if !lc.unlessCost || m.Generic != c.Waterbend || c.Waterbend > 255 || m.Pips != [5]int{} || m.X || m.XX || m.XXX || m.C != 0 ||
+		if !lc.unlessCost && !lc.wardCost || m.Generic != c.Waterbend || c.Waterbend > 255 || m.Pips != [5]int{} || m.X || m.XX || m.XXX || m.C != 0 ||
 			len(m.Hybrid)+len(m.Twobrid)+len(m.Phyrexian) != 0 || !rest.pureMana() {
 			return in, refuse("waterbend cost shape")
 		}
@@ -1890,7 +1890,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			lc.emit(lInstr{Op: "Ward", CS: "PayLifePower", A: cst(0), Obj: lRef{Kind: rTriggered}})
 			break
 		}
+		lc.wbOK = true
 		cost, err := lc.cost(uc)
+		lc.wbOK = false
 		if err != nil {
 			return err
 		}

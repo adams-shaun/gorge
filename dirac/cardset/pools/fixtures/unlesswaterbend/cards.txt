@@ -1,4 +1,4 @@
-# Waterbend<N> as an UnlessCost$ (Waterbending Lesson)
+# Waterbend<N> as an UnlessCost$ (Waterbending Lesson) and Ward—Waterbend {N} (The Unagi of Kyoshi Island)
 # (dirac/oracle/unless_waterbend_test.go)
 Waterbending Lesson
 Ornithopter
@@ -9,3 +9,4 @@ Lightning Bolt
 Island
 Mountain
 Forest
+The Unagi of Kyoshi Island

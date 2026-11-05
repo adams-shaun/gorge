@@ -545,6 +545,7 @@ var opsEntries = []opsDoc{
 	{"card:Daybound", "CardDef.Daybound / Nightbound", "K:Daybound / K:Nightbound (CR 702.145, CR 731; gorge rules/daynight.go, cr-daybound-nightbound and -transform): with neither designation a daybound permanent makes it day, else a nightbound one night (an SBA); the untap step turns day to night when the last turn's active player cast no spells and night to day after two or more; each change transforms every face-up daybound front / nightbound back the designation contradicts (Transformed triggers fire); a daybound front entering at night enters back face up; nothing else transforms them. genState.dayNight. Brutal Cathar, Graveyard Trespasser."},
 	{"card:WardDiscard", "CardDef.WardDiscard", "Ward—Discard a card (gorge kw_ward.go's Discard arm): pay or not, then a ward_discard pick of one hand card (posed even with one card); an empty hand counters (Graveyard Trespasser)."},
 	{"card:WardSac", "CardDef.WardSac", "Ward—Sacrifice a <filter> (gorge kw_ward.go's Sac arm, N = 1): pay or not (both offered always), then a ward_sac pick of one permanent the payer controls matching WardSac, evaluated on the live layers (Ygra makes creatures Food); none matching counters at once. The pick leaves for the graveyard without fireSac: gorge's \"sacrificed for ward\" MoveZone is not events.IsSacrifice, so no Sacrificed trigger or tally (GORGE-FINDINGS.md; Vein Ripper, Ygra)."},
+	{"card:WardWaterbend", "CardDef.WardWaterbend", "Ward—Waterbend {N} (gorge ward.go's Waterbend arm): pay or not (both offered always), then the taps owed past the floating pool: none pays from the pool unasked, fewer candidates than owed counters, else one ward_waterbend pick of that many untapped artifacts and creatures, asked even when exactly that many exist (The Unagi of Kyoshi Island)."},
 	{"card:WardDiscOrN", "CardDef.WardDiscOrN", "Ward—Discard a card or pay {N} (gorge ward.go's \">:\" arm): pay or not (both offered always), then one ward_alt pick of a hand card to discard (hand order) or {N} (offered while the pool pays it or the payer controls an untapped mana source), the {N} charged as the plain {N} ward's through its mana window; no option counters at once (Titania, Rugged Rumbler)."},
 	{"card:WardLifePower", "CardDef.WardLifePower", "Ward—Pay life equal to its power (gorge kw_ward.go's PayLife<X/…> arm): the ward permanent's power read when the ward resolves, floored at 0, then the pay-N-life ask (a pump in response changes the life paid; Raubahn, Bull of Ala Mhigo)."},
 	{"card:Lure", "CardDef.Lure", "The all-must-block keyword: every able creature blocks it (CR 509.1c; gorge kw:AllMustBlock, cr-lure-all-must-block): while it attacks, a creature able to block a lure attacker is offered only its lure blocks, and the declaration completes only when every such creature blocks one. Not when it has lost its abilities. Prized Unicorn."},
@@ -1177,6 +1178,9 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		}
 		if d.WardSac != 0 {
 			add("card:WardSac", name)
+		}
+		if d.WardWaterbend != 0 {
+			add("card:WardWaterbend", name)
 		}
 		if d.WardDiscOrN != 0 {
 			add("card:WardDiscOrN", name)

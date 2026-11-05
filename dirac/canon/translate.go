@@ -798,6 +798,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 	case dirac.ChCostEvidence:
 		// gorge's evidence KChoose over the payer's graveyard
 		return Pack(kind("evidence"), src, RefNone, 0), true
+	case dirac.ChWardWaterbend:
+		// gorge's ward_waterbend KChoose over the payer's untapped artifacts and creatures
+		return Pack(kind("ward_waterbend"), src, RefNone, 0), true
 	case dirac.ChWardEvidence:
 		// gorge's ward_evidence KChoose over the payer's graveyard
 		return Pack(kind("ward_evidence"), src, RefNone, 0), true

@@ -16,6 +16,21 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // as the unless tapXType), each tapped as it is chosen; the pool is charged
 // when the last is in. Cold: reached only from that sentinel.
 
+// Ward—Waterbend {N} (The Unagi of Kyoshi Island; gorge rules/ward.go
+// beginWardPayment): the pay / don't-pay election (ChWardPay), then no taps
+// owed pays the pool unasked, fewer candidates than owed counters, else
+// ward_waterbend asks the owed count even when exactly that many exist
+// (askWardObjects has no auto-record). The ward trigger's amount carries
+// wardWBBit | N.
+
+// wardWBBit marks a ward trigger amount (stackEntry.trigAmt) as Waterbend N
+// in bits 0-4. 0x0200 is also the top bit of a mana-and-life ward's life, so
+// it only counts while wardMLBit is clear.
+const wardWBBit int16 = 0x0200
+
+// ChWardWaterbend is gorge's "ward_waterbend" pick: source = the permanent.
+const ChWardWaterbend ChoiceKind = 247
+
 // payKindWaterbend is the pay kind (execPay's kind, pickZ) of an unless
 // Waterbend<N>.
 const payKindWaterbend = 21
@@ -80,7 +95,8 @@ func (s *State) startUnlessWaterbend(k *prep) bool {
 		s.payDone(k, false)
 		return false
 	}
-	if owed == 0 || have == owed {
+	ward := s.g.pickF&pfWard != 0
+	if owed == 0 || have == owed && !ward {
 		s.unlessWaterbendCands(k, p, func(sl Slot) { s.tapCostPerm(k, sl, s.perms[sl].obj) })
 		s.payWaterbendPool(p, n, owed)
 		s.payDone(k, true)
@@ -99,9 +115,29 @@ func (s *State) payWaterbendPool(p uint8, n, taps int) {
 	}
 }
 
+// resolveWardWaterbend poses the ward's pay / don't-pay election.
+//
+//go:noinline
+func (s *State) resolveWardWaterbend(k *prep) {
+	e := &s.res.e
+	if s.wardedIndex(e) < 0 {
+		s.finishResolve(k, false)
+		return
+	}
+	s.g.pickF = pfWard
+	s.g.pickZ = payKindWaterbend
+	s.g.pickLeft = uint8(e.trigAmt &^ wardWBBit)
+	s.g.pickP = e.trigPl
+	s.res.ask, s.res.askP = raGenPay, e.trigPl
+	s.ctl = ctlResolve
+}
+
 // unlessWaterbendOptions poses the pick: every untapped candidate.
 func (s *State) unlessWaterbendOptions(k *prep, d *Decision) {
 	d.Sub = ChWaterbend
+	if s.g.pickF&pfWard != 0 {
+		d.Sub = ChWardWaterbend
+	}
 	s.unlessWaterbendCands(k, s.g.pickP, func(sl Slot) {
 		d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
 	})
@@ -116,7 +152,10 @@ func (s *State) applyUnlessWaterbendPick(k *prep, o Obj) {
 	if s.g.pickLeft > 0 {
 		return
 	}
-	n := int(s.value(k, s.prog(k)[s.res.pc].A))
+	n := int(s.res.e.trigAmt &^ wardWBBit) // a ward's N
+	if s.g.pickF&pfWard == 0 {
+		n = int(s.value(k, s.prog(k)[s.res.pc].A))
+	}
 	s.payWaterbendPool(s.g.pickP, n, s.unlessWaterbendOwed(s.g.pickP, n))
 	s.payDone(k, true)
 }
