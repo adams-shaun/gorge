@@ -87,7 +87,11 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		}
 	case kop.OpPutCounter:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
-			n := s.placeCounters(k, sl, int(in.C), s.value(k, in.A), s.perms[sl].ctrl, ctrPutEffect)
+			amt := s.value(k, in.A)
+			if k.gen != nil && s.ctrOrderPark(k, sl, int(in.C), amt) {
+				return false // the CR 616.1 order ask; the instruction runs again (repl_ctrorder.go)
+			}
+			n := s.placeCounters(k, sl, int(in.C), amt, s.perms[sl].ctrl, ctrPutEffect)
 			if n > 0 && k.anyCtrAdded {
 				s.ctrNote(k, sl, int(in.C))
 			}
