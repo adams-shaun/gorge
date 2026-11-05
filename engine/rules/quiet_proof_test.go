@@ -894,6 +894,7 @@ func optKinds(opts []decision.Option) []string {
 // instead of 8x, so the parent test itself stays inside the per-test budget
 // that the serial run exceeded on a loaded box (74 s).
 func TestQuietProofCorpusSweep(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	n := reg.Len()
 	if n == 0 {
