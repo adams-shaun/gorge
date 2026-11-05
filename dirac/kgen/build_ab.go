@@ -1242,6 +1242,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.Flags |= kop.TfNotToGrave
 	}
+	if t.AlsoGrave {
+		if t.Event != "Leaves" || !t.Batch || t.N == 0 {
+			return kt, fmt.Errorf("graveyard-too flag on a %s trigger", t.Event)
+		}
+		kt.Flags2 |= kop.Tf2LeavesGrave
+	}
 	if t.CastSpent {
 		switch {
 		case t.Event != "SpellCast":
@@ -1826,6 +1832,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StAnyManaType
 			case "WithoutManaCost":
 				st.StFlags |= kop.StWithoutManaCost
+			case "SeatActive":
+				st.StFlags |= kop.StSeatActive
 			case "FunctionsInGraveyard":
 				st.StFlags |= kop.StFunctionsInGraveyard
 			case "FunctionsInExile":
@@ -1886,13 +1894,16 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		head, param, _ := strings.Cut(s.Kw[0], ":")
 		switch head {
-		case "Cascade", "Improvise":
+		case "Cascade", "Improvise", "Convoke":
 			if param != "" {
 				return ka, nil, fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
 			}
 			st.A = kop.StackKwCascade
-			if head == "Improvise" {
+			switch head {
+			case "Improvise":
 				st.A = kop.StackKwImprovise
+			case "Convoke":
+				st.A = kop.StackKwConvoke
 			}
 		case "Lifelink", "Storm", "Split second", "Conspire":
 			if param != "" {
@@ -2758,6 +2769,17 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			}
 			ki.Op = kop.OpChangeZoneAllEx
 			ki.C = int16(int(zoneMap[in.C]) | (moveFlags()|kop.MvGraveExile)<<3)
+			break
+		}
+		if fl["from"] == "Graveyard,Hand" {
+			// graveyard then hand (Weftwalking): the second zone rides in B
+			// (czallSecondZone); ZoneHand leaves B.N&CzUntilLeaves clear.
+			if err := objFilter(kop.ZoneNone); err != nil {
+				return ki, err
+			}
+			ki.Op = kop.OpChangeZoneAllEx
+			ki.C = int16(int(zoneMap[in.C]) | (moveFlags()|kop.MvGraveExile)<<3)
+			ki.B = kop.Const(int(kop.ZoneHand))
 			break
 		}
 		if err := objFilter(zoneMap[from]); err != nil {

@@ -524,6 +524,7 @@ KwUnblockable	KwMask	262144
 KwVigilance	KwMask	128
 KwWard	KwMask	131072
 KwWither	KwMask	1048576
+LibBottomRememberGrave	untyped int	9
 LibBottomShuffle	untyped int	7
 LibChoiceSecond	untyped int	1
 LibThird	untyped int	6
@@ -994,13 +995,15 @@ StRaiseYou	StaticFlags	128
 StReduceAny	StaticFlags	256
 StReduceColor	StaticFlags	8192
 StRemove6Counters	StaticFlags	32
+StSeatActive	StaticFlags	16384
 StTapOnC	StaticFlags	2
 StTargetsFilter2	StaticFlags	64
 StWithoutManaCost	StaticFlags	8
 StYouHexproof	StaticFlags	512
 StackKwCascade	int16	3
 StackKwCasualty	int16	2
-StackKwConspire	int16	7
+StackKwConspire	int16	8
+StackKwConvoke	int16	7
 StackKwImprovise	int16	1
 StackKwLifelink	int16	4
 StackKwSplitSecond	int16	6
@@ -1089,6 +1092,7 @@ Tf2DefPlayer	TrigFlags2	1048576
 Tf2Evolve	TrigFlags2	1073741824
 Tf2FirstTime	TrigFlags2	1
 Tf2Increment	TrigFlags2	16777216
+Tf2LeavesGrave	TrigFlags2	131072
 Tf2ManaFromSelf	TrigFlags2	2147483648
 Tf2NonCombat	TrigFlags2	8
 Tf2NthSpell	TrigFlags2	256

@@ -104,6 +104,9 @@ func (lc *lowerCtx) thisTurnCastValue(spec string) (lValue, error) {
 	case ctrlTrig != 0:
 		return lValue{}, refuse("other:count ThisTurnCast %q: ControlledBy TriggeredActivator on some alternatives only", spec)
 	}
+	for i := range alts {
+		alts[i] = strings.ReplaceAll(alts[i], "ControlledBy Player.Active", "ActivePlayerCtrl")
+	}
 	if strings.ContainsAny(strings.Join(alts, ","), " <>") {
 		// ControlledBy <role>, named<X>, any other spaced qualifier
 		return lValue{}, refuse("other:count ThisTurnCast %q: a spaced or bracketed qualifier", spec)
