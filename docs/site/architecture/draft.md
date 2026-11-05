@@ -26,7 +26,7 @@ not ask for draft events links none of this code.
 | `draft/draftlab/extern/wire` | the [gorge-agent/1](../api/gorge-agent.md) messages and framing | `engine/decision`, `engine/view`, `server/protocol` |
 | `draft/draftlab/extern/refagent` | the reference agent | `wire` |
 
-The commands stay in the root `cmd/`: `draftsim`, `labdemo` and `extagent`. Sizes and
+The commands stay in the root `cmd/`: `draftsim`, `deckpool`, `labdemo` and `extagent`. Sizes and
 importers for every package are on [Packages](packages.md).
 
 ## Which way the imports run
@@ -63,7 +63,7 @@ Four rules hold this shape, and each is a test:
 
 | Rule | Enforced by |
 |---|---|
-| Nothing outside `draft/` imports it, except `cmd/gorged`, `cmd/draftsim`, `cmd/labdemo` and `cmd/extagent`. Test files are not counted | `TestDraftTreeStaysAbove` in `internal/archtest`. It also fails if `draft/` goes missing, so it cannot pass vacuously |
+| Nothing outside `draft/` imports it, except `cmd/gorged`, `cmd/draftsim`, `cmd/deckpool`, `cmd/labdemo` and `cmd/extagent`. Test files are not counted | `TestDraftTreeStaysAbove` in `internal/archtest`. It also fails if `draft/` goes missing, so it cannot pass vacuously |
 | `server/gorged` does not import `draft/`, because `gorgedevents` imports `server/gorged` and the reverse would be a cycle | The same test. `cmd/gorged` passes `gorgedevents.Plugin{}` in `gorged.Extensions.Events`, and a library caller with the zero `Extensions` gets a refusal on `-events` (`TestEventsNeedAPlugin`) |
 | `draft/limited/*` and `draft/event` are pure: no clock, files, network, engine state, host or bots | An `imports_test.go` in each package |
 | Of the event stack, only `eventhost` may read the clock, for lobby, idle and pick timers, through `Options.Now` and `Options.Clock` | `TestTimeIsImportedOnlyByTheHost` |

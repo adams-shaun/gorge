@@ -18,6 +18,7 @@ var draftImportersAllowed = map[string]bool{
 	module + "/cmd/gorged":   true,
 	module + "/cmd/draftsim": true,
 	module + "/cmd/labdemo":  true,
+	module + "/cmd/deckpool": true,
 	module + "/cmd/extagent": true,
 }
 
