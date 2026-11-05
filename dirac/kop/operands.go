@@ -428,6 +428,14 @@ const LibTopShuffleSelf = 5
 // battlefield does not move, but the library is still shuffled.
 const LibBottomShuffle = 7
 
+// LibBottomRememberGrave is OpToLibrary's C for a trigger object's
+// Origin$ Graveyard move to the bottom of its owner's library with
+// RememberChanged$ True (The Spot, Living Portal's "put him on the bottom of
+// his owner's library. If you do, ..."): a card no longer in the graveyard
+// does not move (gorge's Origin$ precondition), and a card that reached the
+// library joins the remembered set.
+const LibBottomRememberGrave = 9
+
 // Delayed program timings (OpDelayedProgram A; 0 = the next end step).
 const (
 	DelayUpkeep     = 1 // the next upkeep of any player (gorge Phase$ Upkeep, ValidPlayer$ Player)
