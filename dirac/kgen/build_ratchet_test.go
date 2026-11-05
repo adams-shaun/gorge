@@ -164,8 +164,9 @@ import (
 // +2 (Animate Duration$ UntilUntaps, kop.Override.WhileTapped: Hedge Whisperer and The Blackstaff of Waterdeep lower; land; merged ALL build-level 21545 -> 21547).
 // +1 (Vannifar, Evolved Enigma: the cloak-from-hand shape lowers; land; merged ALL build-level 21547 -> 21548).
 // +1 (Mazemind Tome: the counter-threshold state trigger, Tf4StateCtr; land; merged ALL build-level 21548 -> 21549).
+// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; ALL build-level 21553 -> 21554).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21553, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21554, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
