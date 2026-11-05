@@ -440,6 +440,19 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	if len(matches) == 1 {
 		return e.applyReplacement(ev, matches[0])
 	}
+	// Two or more "draw N cards instead" replacements compete for one draw
+	// (two Mr. Spock, Science Officers on one battlefield). Every candidate's
+	// complete replacement is "draw its N in the draw's place", so the
+	// composition draws N1·N2·… cards from the library in the same order
+	// either way: the CR 616.1 order cannot change the result, and the draw
+	// settles in scan order instead of parking for the order ask. The body's
+	// own draws are the modified events of CR 616.1e -- each gets one more
+	// replacement pass excluding every replacement the draw's lineage has
+	// already applied (CR 614.5) -- so the remaining candidates still meet
+	// them through applyReplacement's replDrawChain.
+	if ev.Kind == events.Draw && drawMoreCompetition(matches) {
+		return e.applyReplacement(ev, matches[0])
+	}
 	if ev.Kind == events.LifeChange && ev.Text == pay.PayLifeProposalText {
 		// A payment proposal has no object; CR 616.1's affected player is
 		// the payer. Unlike ordinary life-change replacements, this synthetic
@@ -495,6 +508,25 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 func shouldPoseDrawReplacementChoice(ev events.Event, matches []replMatch) bool {
 	return ev.Kind == events.Draw && ((len(matches) == 1 && matches[0].repl.OptionalValue()) ||
 		(len(matches) > 1 && hasOptionalBodylessDrawReplacement(matches)))
+}
+
+// drawMoreCompetition reports whether every candidate of a Draw competition
+// is a mandatory replacement whose body is a plain "draw N" for the drawing
+// player -- the only Draw replacement shape dirac/kgen's lower_drawrepl.go
+// lowers, so the only one a lockstep game can carry. An optional or bodyless
+// candidate composes with another differently by order (the may declines,
+// the draw is swallowed) and stays on the CR 616.1 order ask.
+func drawMoreCompetition(matches []replMatch) bool {
+	if len(matches) < 2 {
+		return false
+	}
+	for _, m := range matches {
+		if m.repl.With == nil || m.repl.OptionalValue() ||
+			m.repl.With.API != "Draw" || m.repl.With.ParamStr(cards.PKDefined) != "You" {
+			return false
+		}
+	}
+	return true
 }
 
 // applyNonMoveReplacements applies a lone damage replacement, or the
