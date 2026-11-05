@@ -340,6 +340,11 @@ func TestDefaultDeckShape(t *testing.T) {
 		CreatureMax: 18,
 		TypeMin:     [8]int{0, 0, 2, 2, 2, 2, 1, 1},
 		QuotaFloor:  -10,
+
+		SplashMax:     3,
+		SplashSources: 3,
+		DualMax:       4,
+		ThinMainSize:  22,
 	}
 	got := pb.DefaultDeckShape
 	if got != want {
@@ -355,5 +360,194 @@ func TestDefaultDeckShape(t *testing.T) {
 	}
 	if got.CreatureMin+2*4 > got.MainSize {
 		t.Fatalf("creature floor %d plus four type quotas exceeds MainSize %d", got.CreatureMin, got.MainSize)
+	}
+}
+
+// monoOf returns the first n FDN nonland cards whose colour identity is
+// exactly colour bit c, restricted by pips (the pip count of colour c).
+func monoOf(t *testing.T, reg *cards.Registry, c uint, n int, pips func(p int) bool) []string {
+	t.Helper()
+	return fdnPick(t, reg, func(card *cards.Card, gih float64) bool {
+		if card.ColourIdentity() != 1<<c {
+			return false
+		}
+		p := 0
+		for _, f := range card.Faces {
+			p += int(cards.ManaCostChroma(f.ManaCost, uint8(1<<c)))
+		}
+		return pips(p)
+	}, false, n)
+}
+
+func anyPips(int) bool   { return true }
+func onePip(p int) bool  { return p == 1 }
+func twoPlus(p int) bool { return p >= 2 }
+
+// wuPool is nW mono-white plus nU mono-blue nonland cards, then extra names.
+func wuPool(t *testing.T, reg *cards.Registry, nW, nU int) []string {
+	t.Helper()
+	w := monoOf(t, reg, 0, nW, anyPips)
+	u := monoOf(t, reg, 1, nU, anyPips)
+	if len(w) != nW || len(u) != nU {
+		t.Fatalf("FDN yields %d white and %d blue cards, want %d and %d", len(w), len(u), nW, nU)
+	}
+	return append(w, u...)
+}
+
+// withLands appends land refs (one per name, IDs prefix+index) to a pool.
+func withLands(pool []limited.CardRef, prefix string, names ...string) []limited.CardRef {
+	for i, n := range names {
+		pool = append(pool, limited.CardRef{ID: prefix + itoa(i), Name: n, Set: "FDN", Number: "1", Rarity: limited.Common})
+	}
+	return pool
+}
+
+// countNamed counts Main entries whose card is called name.
+func countNamed(t *testing.T, pool []limited.CardRef, deck build.Deck, name string) int {
+	t.Helper()
+	n := 0
+	for _, id := range deck.Main {
+		if poolName(t, pool, id) == name {
+			n++
+		}
+	}
+	return n
+}
+
+func basicsTotal(d build.Deck) int {
+	n := 0
+	for _, b := range d.Basics {
+		n += b
+	}
+	return n
+}
+
+// spellsOf counts the nonland Main entries and those of colour bit c.
+func spellsOf(t *testing.T, reg *cards.Registry, pool []limited.CardRef, deck build.Deck, c uint) (spells, ofColour int) {
+	t.Helper()
+	for _, id := range deck.Main {
+		card := lookupCard(t, reg, poolName(t, pool, id))
+		if card.Faces[0].IsLand() {
+			continue
+		}
+		spells++
+		if card.ColourIdentity()&(1<<c) != 0 {
+			ofColour++
+		}
+	}
+	return
+}
+
+// TestBalancedSplashesAThinPair pins the splash: a 20-card white-blue pair
+// takes the three one-red-pip cards and gives red three sources, and skips
+// the black cards whose two pips no splash covers.
+func TestBalancedSplashesAThinPair(t *testing.T) {
+	reg := corpus(t)
+	names := wuPool(t, reg, 10, 10)
+	red := monoOf(t, reg, 3, 3, onePip)
+	black := monoOf(t, reg, 2, 3, twoPlus)
+	if len(red) != 3 || len(black) != 3 {
+		t.Fatalf("FDN yields %d one-pip red and %d two-pip black cards, want 3 and 3", len(red), len(black))
+	}
+	pool := fdnPool(t, reg, append(append(names, red...), black...))
+
+	deck := (&pb.Balanced{Lookup: lookupOf(reg)}).Build("FDN", pool)
+	if err := build.Validate(pool, deck); err != nil {
+		t.Fatalf("built deck invalid: %v", err)
+	}
+	spells, redN := spellsOf(t, reg, pool, deck, 3)
+	_, blackN := spellsOf(t, reg, pool, deck, 2)
+	if spells != 23 || redN != 3 || blackN != 0 {
+		t.Fatalf("deck plays %d spells, %d red, %d black; want 23, 3, 0", spells, redN, blackN)
+	}
+	if deck.Basics[3] < 3 {
+		t.Fatalf("red basics = %d (basics %v), want at least 3 sources", deck.Basics[3], deck.Basics)
+	}
+	if total := deck.Total(); total != 40 {
+		t.Fatalf("built a %d-card deck, want 40", total)
+	}
+
+	// Without the splash (dpool-2's any-colour padding, which the zero
+	// SplashMax and ThinMainSize turn back on) the precondition above fails.
+	s := pb.DefaultDeckShape
+	s.SplashMax, s.ThinMainSize = 0, 0
+	off := (&pb.Balanced{Lookup: lookupOf(reg), Shape: s}).Build("FDN", pool)
+	_, offBlack := spellsOf(t, reg, pool, off, 2)
+	if off.Basics[3] >= 3 && offBlack == 0 {
+		t.Fatalf("splash-off build also meets the assertions (basics %v), so the test does not discriminate", off.Basics)
+	}
+}
+
+func twentySixPool(t *testing.T, reg *cards.Registry) []limited.CardRef {
+	return fdnPool(t, reg, wuPool(t, reg, 13, 13))
+}
+
+// TestBalancedPlaysOnColourDuals pins the nonbasic scan: the white-blue
+// dual is played, the blue-red and black-green ones are not.
+func TestBalancedPlaysOnColourDuals(t *testing.T) {
+	reg := corpus(t)
+	pool := withLands(twentySixPool(t, reg), "land", "Tranquil Cove", "Swiftwater Cliffs", "Jungle Hollow")
+	deck := (&pb.Balanced{Lookup: lookupOf(reg)}).Build("FDN", pool)
+	if err := build.Validate(pool, deck); err != nil {
+		t.Fatalf("built deck invalid: %v", err)
+	}
+	spells, _ := spellsOf(t, reg, pool, deck, 0)
+	if spells != 23 || countNamed(t, pool, deck, "Tranquil Cove") != 1 ||
+		countNamed(t, pool, deck, "Swiftwater Cliffs") != 0 || countNamed(t, pool, deck, "Jungle Hollow") != 0 {
+		t.Fatalf("deck plays %d spells, Cove %d, Cliffs %d, Hollow %d; want 23, 1, 0, 0", spells,
+			countNamed(t, pool, deck, "Tranquil Cove"), countNamed(t, pool, deck, "Swiftwater Cliffs"),
+			countNamed(t, pool, deck, "Jungle Hollow"))
+	}
+	if basicsTotal(deck) != 16 || deck.Total() != 40 {
+		t.Fatalf("basics %d, total %d; want 16, 40", basicsTotal(deck), deck.Total())
+	}
+	s := pb.DefaultDeckShape
+	s.DualMax = 0
+	off := (&pb.Balanced{Lookup: lookupOf(reg), Shape: s}).Build("FDN", pool)
+	if len(off.Main) != 23 {
+		t.Fatalf("dual-off build maindecks %d cards, want 23 so the test discriminates", len(off.Main))
+	}
+}
+
+// TestBalancedCapsDuals pins DualMax: six Coves in the pool, four played.
+func TestBalancedCapsDuals(t *testing.T) {
+	reg := corpus(t)
+	pool := withLands(twentySixPool(t, reg), "cove", "Tranquil Cove", "Tranquil Cove", "Tranquil Cove",
+		"Tranquil Cove", "Tranquil Cove", "Tranquil Cove")
+	deck := (&pb.Balanced{Lookup: lookupOf(reg)}).Build("FDN", pool)
+	if err := build.Validate(pool, deck); err != nil {
+		t.Fatalf("built deck invalid: %v", err)
+	}
+	if n := countNamed(t, pool, deck, "Tranquil Cove"); n != 4 {
+		t.Fatalf("deck plays %d Coves, want 4", n)
+	}
+	if basicsTotal(deck) != 13 || deck.Total() != 40 {
+		t.Fatalf("basics %d, total %d; want 13, 40", basicsTotal(deck), deck.Total())
+	}
+}
+
+// TestBalancedPrefersAnEighteenthLand pins the thin-pair main size: 22
+// in-pair spells and 18 basics beat a 23rd card that needs two black pips.
+func TestBalancedPrefersAnEighteenthLand(t *testing.T) {
+	reg := corpus(t)
+	black := monoOf(t, reg, 2, 3, twoPlus)
+	if len(black) != 3 {
+		t.Fatalf("FDN yields %d two-pip black cards, want 3", len(black))
+	}
+	pool := fdnPool(t, reg, append(wuPool(t, reg, 11, 11), black...))
+	deck := (&pb.Balanced{Lookup: lookupOf(reg)}).Build("FDN", pool)
+	if err := build.Validate(pool, deck); err != nil {
+		t.Fatalf("built deck invalid: %v", err)
+	}
+	spells, blackN := spellsOf(t, reg, pool, deck, 2)
+	if spells != 22 || blackN != 0 || basicsTotal(deck) != 18 {
+		t.Fatalf("deck plays %d spells, %d black, %d basics; want 22, 0, 18", spells, blackN, basicsTotal(deck))
+	}
+	s := pb.DefaultDeckShape
+	s.ThinMainSize = 0
+	off := (&pb.Balanced{Lookup: lookupOf(reg), Shape: s}).Build("FDN", pool)
+	offSpells, offBlack := spellsOf(t, reg, pool, off, 2)
+	if offSpells != 23 || offBlack != 1 {
+		t.Fatalf("rule-off build plays %d spells, %d black; want 23, 1", offSpells, offBlack)
 	}
 }

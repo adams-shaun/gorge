@@ -89,6 +89,22 @@ type DeckShape struct {
 	// card (or -3 heuristic points), so a quota never forces an
 	// unplayable card in.
 	QuotaFloor float64
+	// SplashMax caps a splash at three cards: the conventional ceiling,
+	// past which the mana is unreliable.
+	SplashMax int
+	// SplashSources is the fewest sources (duals that make it plus
+	// basics) the splash colour gets, the usual minimum for a one-pip
+	// splash card.
+	SplashSources int
+	// DualMax caps the nonbasic lands that make only the deck's colours:
+	// every common dual in FDN and TRK enters tapped, and more than four
+	// taplands slow the curve.
+	DualMax int
+	// ThinMainSize is the spell count of a deck whose in-pair plus splash
+	// cards fall short of MainSize: 22 spells and 18 lands, because an
+	// eighteenth land beats a card with no sources. Zero or at least
+	// MainSize turns the rule off.
+	ThinMainSize int
 }
 
 // DefaultDeckShape is the balanced builder's default target.
@@ -108,5 +124,9 @@ var DefaultDeckShape = DeckShape{
 		classPlaneswalker: 1,
 		classBattle:       1,
 	},
-	QuotaFloor: -10,
+	QuotaFloor:    -10,
+	SplashMax:     3,
+	SplashSources: 3,
+	DualMax:       4,
+	ThinMainSize:  22,
 }

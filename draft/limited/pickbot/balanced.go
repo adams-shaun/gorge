@@ -1,8 +1,12 @@
 package pickbot
 
 import (
+	"math/bits"
+	"sort"
+
 	"github.com/adams-shaun/gorge/draft/limited"
 	"github.com/adams-shaun/gorge/draft/limited/build"
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // Balanced is a limited builder that plays a mana curve, a creature band and
@@ -48,6 +52,20 @@ func (b *Balanced) Build(set string, pool []limited.CardRef) build.Deck {
 		}
 	}
 
+	// A pair short of MainSize splashes a third colour, or failing that
+	// plays ThinMainSize spells and an eighteenth land.
+	splash := -1
+	if len(eligible) < s.MainSize {
+		var extra []candidate
+		splash, extra = splashCards(all, allowed, s.MainSize-len(eligible), s.SplashMax)
+		if splash >= 0 {
+			eligible = withSplash(all, allowed, extra)
+		}
+	}
+	if len(eligible) < s.MainSize && s.ThinMainSize > 0 && s.ThinMainSize < s.MainSize {
+		s.MainSize = s.ThinMainSize
+	}
+
 	sel := &selection{shape: s, taken: make(map[string]bool, s.MainSize)}
 	sel.typeQuotas(eligible)
 	sel.creatureFloor(eligible)
@@ -61,8 +79,154 @@ func (b *Balanced) Build(set string, pool []limited.CardRef) build.Deck {
 		deck.Main = append(deck.Main, c.id)
 		pips[c.id] = c.pips
 	}
+	deckColours := allowed
+	if splash >= 0 {
+		deckColours |= 1 << splash
+	}
+	duals := b.duals(pool, deckColours, splash, s.DualMax)
+	for _, d := range duals {
+		deck.Main = append(deck.Main, d.id)
+	}
 	deck.Basics = build.AutoLands(deck.Main, func(id string) [5]int { return pips[id] })
+	if splash >= 0 {
+		sources := deck.Basics[splash]
+		for _, d := range duals {
+			if d.produces&(1<<splash) != 0 {
+				sources++
+			}
+		}
+		for sources < s.SplashSources && moveBasic(&deck.Basics, allowed, splash) {
+			sources++
+		}
+	}
 	return deck
+}
+
+// splashCards picks the splash colour for a pair short by shortfall cards:
+// the colour outside the pair with the most one-pip cards inside pair plus
+// that colour (capped at max and shortfall), then the larger rating sum,
+// then the lower index. It returns -1 and nil when no colour has a card.
+func splashCards(all []candidate, allowed uint8, shortfall, limit int) (int, []candidate) {
+	best, bestN, bestScore := -1, 0, 0.0
+	var bestCards []candidate
+	for c := 0; c < 5; c++ {
+		bit := uint8(1) << c
+		if allowed&bit != 0 {
+			continue
+		}
+		var options []candidate
+		for _, cd := range all {
+			if cd.mask&bit != 0 && cd.mask&^(allowed|bit) == 0 && cd.pips[c] <= 1 {
+				options = append(options, cd)
+			}
+		}
+		n := min(shortfall, limit, len(options))
+		score := 0.0
+		for _, cd := range options[:n] {
+			score += cd.rating
+		}
+		if n > bestN || n > 0 && n == bestN && score > bestScore {
+			best, bestN, bestScore, bestCards = c, n, score, options[:n]
+		}
+	}
+	return best, bestCards
+}
+
+// withSplash returns the in-pair candidates plus the splash cards, in
+// candidate order.
+func withSplash(all []candidate, allowed uint8, splash []candidate) []candidate {
+	chosen := make(map[string]bool, len(splash))
+	for _, c := range splash {
+		chosen[c.id] = true
+	}
+	out := make([]candidate, 0, len(all))
+	for _, c := range all {
+		if c.mask&^allowed == 0 || chosen[c.id] {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// dualLand is a pool nonbasic land that makes only deck colours.
+type dualLand struct {
+	id, name string
+	produces uint8
+}
+
+// producedColours is the OR of the colours a land's mana abilities can make.
+func producedColours(f *cards.Face) uint8 {
+	var mask uint8
+	for _, a := range f.ManaAbilities() {
+		counts, _ := cards.ProducedCounts(a.Params["Produced"])
+		for i := 0; i < 5; i++ {
+			if counts[i] > 0 {
+				mask |= 1 << i
+			}
+		}
+	}
+	return mask
+}
+
+// duals returns up to max of the pool's nonbasic lands whose produced
+// colours are non-empty and inside deckColours: those making the splash
+// colour (when splash >= 0) first, then those making more deck colours,
+// then by name and ID.
+func (b *Balanced) duals(pool []limited.CardRef, deckColours uint8, splash, max int) []dualLand {
+	if b.Lookup == nil || max <= 0 {
+		return nil
+	}
+	var out []dualLand
+	for _, ref := range pool {
+		c := b.Lookup(ref.Name)
+		if c == nil || len(c.Faces) == 0 {
+			continue
+		}
+		f := c.Faces[0]
+		if !f.IsLand() || f.IsBasic() {
+			continue
+		}
+		made := producedColours(f)
+		if made == 0 || made&^deckColours != 0 {
+			continue
+		}
+		out = append(out, dualLand{id: ref.ID, name: ref.Name, produces: made})
+	}
+	makesSplash := func(d dualLand) bool { return splash >= 0 && d.produces&(1<<splash) != 0 }
+	sort.SliceStable(out, func(i, j int) bool {
+		a, c := out[i], out[j]
+		if makesSplash(a) != makesSplash(c) {
+			return makesSplash(a)
+		}
+		if na, nc := bits.OnesCount8(a.produces), bits.OnesCount8(c.produces); na != nc {
+			return na > nc
+		}
+		if a.name != c.name {
+			return a.name < c.name
+		}
+		return a.id < c.id
+	})
+	if len(out) > max {
+		out = out[:max]
+	}
+	return out
+}
+
+// moveBasic moves one basic from the pair colour with the most basics (the
+// lower index on a tie) to the splash colour, reporting whether one moved.
+func moveBasic(basics *[5]int, pair uint8, splash int) bool {
+	from := -1
+	for c := 0; c < 5; c++ {
+		if pair&(1<<c) != 0 && basics[c] > 0 && (from < 0 || basics[c] > basics[from]) {
+			from = c
+		}
+	}
+	if from < 0 {
+		return false
+	}
+	basics[from]--
+	basics[splash]++
+	return true
 }
 
 // choosePair returns the colour mask of the pair whose first mainSize
