@@ -1491,7 +1491,10 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 					// a self cast trigger (TfSelf) reads the spell cast, never
 					// the permanent carrying it: skipped here, fired from the
 					// stack by fireSelfCast
-					s.slotTriggers(k, sl, func(a *kop.Ability) bool { return a.Trig.Event == kop.TrigSpellCast && a.Trig.Flags&kop.TfSelf == 0 }, func(l trigListener, a *kop.Ability) {
+					// a deferred source's TriggersWhenSpent$ rider queues after the walk (fireDeferredRider)
+					s.slotTriggers(k, sl, func(a *kop.Ability) bool {
+						return a.Trig.Event == kop.TrigSpellCast && a.Trig.Flags&kop.TfSelf == 0 && !s.deferRider(k, sl, a)
+					}, func(l trigListener, a *kop.Ability) {
 						s.castTrigGen(k, l, a, e)
 					})
 				} else {
@@ -1525,6 +1528,9 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 		// gorge checkEventDelayedTriggers: after the face triggers, before
 		// the cascade triggers (trig_delayedspell.go)
 		s.fireDelayedSpell(k, e)
+	}
+	if k.gen != nil && k.gen.anyDeferred {
+		s.fireDeferredRider(k, e) // gorge fireManaSpentTriggers: after the cast triggers, before cascade
 	}
 	if k.gen != nil && k.gen.anyCascade && !DebugIgnoreCascade {
 		s.queueCascade(k, e)

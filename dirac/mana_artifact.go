@@ -58,4 +58,7 @@ func (s *State) artSync(p uint8) {
 		}
 	}
 	s.g.poolArt[p&1] = a
+	if s.pl[p&1].pool[kop.R] == 0 {
+		s.g.defSrc[p&1] = 0 // the deferred source's {R} is spent (mana_deferred.go)
+	}
 }
