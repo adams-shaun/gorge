@@ -116,6 +116,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"stale_trigger_referent_reentered", false, false},              // CR 400.7: Support Mission's counter trigger fired for Dr. Leonard "Bones" McCoy's first entry puts nothing on the copy that left and was cast back in
 		{"phased_out_permanent_grants_no_land_plays", false, false},     // CR 702.26b: Nog, Ambitious Cadet phased out by The City on the Edge of Forever does not exist, so its granted "play lands from your graveyard" offers no graveyard Forest
 		{"unpayable_x_copy_cast_aborts_at_target", true, false},         // CR 601.2b, 601.2c: Q's Play of Khaaaaaaaaaaaannn! (a copy cast no source can pay) asks X, then aborts at its target ask, leaving no copy on the stack
+		{"play_copy_cast_unpayable_reversed_at_target", false, false},   // CR 601.2c, 733.1: Perils of the Past exiled, its Play-granted copy cast the window cannot pay is reversed at its required target ask, leaving the stack as gorge has it
 	})
 }
 
