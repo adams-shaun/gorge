@@ -36,6 +36,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtRemoveCounterAny:
 		return s.rcaStart(k, in), true // ctr_removeany.go
+	case kop.ExtPutCounterExisting:
+		return s.pceStart(k, in), true // ctr_putexisting.go
 	case kop.ExtTwoPilesSac:
 		return s.pilesStart(k, in), true // act_piles.go
 	case kop.ExtChooseColorRes:
