@@ -1582,6 +1582,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefTriggerSource, nil
 	case rTriggeredPlayer:
 		return kop.RefTriggerPlayer, nil
+	case rTriggeredTgtCtrl:
+		return kop.RefTriggerTgtCtrl, nil
 	case rEquipped:
 		return kop.RefAttached, nil
 	case rRemembered:

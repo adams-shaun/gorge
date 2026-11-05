@@ -153,13 +153,18 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		}
 		return lRef{}, refuse("Defined$ %q outside a damage trigger the kernel's trigger object or player names", v)
 	case "TriggeredTargetController":
-		// gorge definedSpecTriggeredTargetController: the controller of the
-		// damaged object. The kernel's per-referent DamageDone queue binds
-		// that same controller as the trigger player (trig_damagedonce.go
-		// ddoRecipient), so the role is exact only on an object referent
-		// (Expedited Inheritance's "its controller may exile that many").
+		// gorge definedSpecTriggeredTargetController (context.go): the
+		// controller of the trigger's target object, read live at
+		// resolution -- a referent that left the battlefield since it was
+		// dealt the damage reads its owner (CR 603.7a: the trigger fires
+		// for the event, the read is the object's as it exists when the
+		// ability resolves; Expedited Inheritance's "its controller may
+		// exile that many" after the creature died from that damage).
+		// The queue-time trigger player (trig_damagedonce.go ddoRecipient)
+		// is the referent's controller as it was, so this spelling gets
+		// its own ref; the role is exact only on an object referent.
 		if tr := lc.ab.Trigger; ddoObjectReferent(tr) {
-			return lRef{Kind: rTriggeredPlayer}, nil
+			return lRef{Kind: rTriggeredTgtCtrl}, nil
 		}
 		return lRef{}, refuse("Defined$ %q without a damage object referent", v)
 	case "TriggeredAttackingPlayer":

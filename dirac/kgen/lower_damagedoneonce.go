@@ -251,9 +251,10 @@ func ddoReadOK(spelling string, tr *lTrigger) bool {
 		return ddoObjectReferent(tr)
 	case "TriggeredTargetController":
 		// gorge definedSpecTriggeredTargetController: the controller of the
-		// damaged object. The kernel's per-referent queue binds that same
-		// controller as the trigger player (trig_damagedonce.go
-		// ddoRecipient), so the role is exact only on an object referent.
+		// damaged object, read live at resolution (the kernel lowers it to
+		// rTriggeredTgtCtrl, whose read covers a referent that left the
+		// battlefield since), so the role is exact only on an object
+		// referent.
 		return ddoObjectReferent(tr)
 	case "TriggeredAttackingPlayer":
 		return ddoAttackingPlayer(tr)
