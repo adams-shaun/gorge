@@ -140,7 +140,7 @@ func mrfaceCases() []mrfaceCase {
 			},
 			// seed 23 taps another land than gorge's planner for an Overlord cast with
 			// both Peepers untapped beside the grant; it is not the restricted-mana
-			// order this test pins (.ds4/new-tickets/peeper-vitality-seed23.md).
+			// order this test pins (filed as its own ticket).
 			skip:     map[uint64]string{23: "planner tie-break beside a granted mana ability"},
 			produced: []string{"Creeping Peeper"},
 		},
