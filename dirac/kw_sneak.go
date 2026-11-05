@@ -130,7 +130,15 @@ func (s *State) offerSneakHand(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 		return // castTargetsAvailable; offerCastable's Return census
 	}
 	cost := s.adjustCost(k, p, c, o, k.t.Cards[c].SneakCost) // spellScope("sneak")
-	if !av.affords(&cost, pipMaskOf(&cost), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, restrOrigin{from: kop.ZoneHand}, &cost, av)) {
+	if len(k.gen.grantPC) != 0 && s.g.availX&availWalk != 0 {
+		// gorge's potential walk counts a restricted mana ability only for a
+		// payment its restriction admits (potentialRestrictionAdmits): a
+		// hand-barred grant puts no cast on the walk grantCap reads
+		var ha avail
+		s.walkHandAvail(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}, &ha)
+		av = &ha
+	}
+	if !av.affords(&cost, pipMaskOf(&cost), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &cost, av)) {
 		// The restrAffords fallback matches the plot/warp hand offers (a
 		// restricted mana source can pay); it is dead in the sneak pool,
 		// which has no State.rb source. Keeping it makes the priced offer the
