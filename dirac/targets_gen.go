@@ -158,6 +158,9 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 // finishSlot ends the slot's picks (a divided slot's damage is announced
 // after the targets, before payment: bsDivide).
 func (s *State) finishSlot(k *prep, d *Decision, t *kop.TargetSpec) int {
+	if k.gen != nil && k.gen.crimeOn && s.bld().e.kind != seSpell {
+		s.crimeAskDone(k) // the committed window's TargetsChosen (act_commitcrime.go)
+	}
 	s.g.mt.active = false
 	s.bld().ti++
 	return mtNext
@@ -251,7 +254,9 @@ func (s *State) applyMultiTarget(k *prep, a Action) {
 			ver = s.stackTgtSid(c)
 		}
 		if k.gen != nil && k.gen.crimeOn {
-			s.crimePick(k, c)
+			// a multi-pick window's pick: a spell's is judged here (crimePick),
+			// an ability's with the slot's whole set at completion (finishSlot)
+			s.crimePick(k, c, false)
 		}
 		if mt.picked == 0 {
 			e.tgt[mt.slot] = c
