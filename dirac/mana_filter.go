@@ -661,6 +661,12 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			if gap {
 				free := t.canTapForMana(k, sl)
 				filt := poolTotal(&t.pl[p&1])+t.filtFeeRestrN(k, p, sl) >= t.filtFee(k, sl)
+				if rm := t.mixSrcMask(k, sl); free && rm != 0 {
+					if fs.mixSrcGap(k, t, sl, funded, rm, filt) { // (a restricted ability beside the filter: mana_mixsrc.go)
+						return true
+					}
+					continue
+				}
 				switch {
 				case free && filt:
 					// two abilities: the ask, its {C} answer first
