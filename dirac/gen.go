@@ -419,6 +419,7 @@ const (
 	rbDrawMore                        // ReplDrawMore (repl_draw.go)
 	rbPlusCtrEOT                      // Ext CounterPlusEOT: the table can put one more of each kind for a player until end of turn (anyRepl only; ctr_pluseot.go)
 	rbDestroyHeal                     // ReplDestroyHeal (repl_destroyheal.go)
+	rbDiscETB                         // ReplDiscardOppToBattlefield (repl_discardetb.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -892,6 +893,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 						g.destroyHeal = make([]kop.FilterID, len(t.Cards))
 					}
 					g.destroyHeal[i] = a.Repl.Filter
+				case kop.ReplDiscardOppToBattlefield:
+					g.replBits[i] |= rbDiscETB
 				case kop.ReplGraveToLibrary:
 					g.replBits[i] |= rbGraveLib
 				case kop.ReplMayNotUntap:

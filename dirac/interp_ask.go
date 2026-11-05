@@ -563,7 +563,7 @@ func (s *State) autoPayPick(k *prep) bool {
 		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
 			s.exileFromGrave(o)
 		} else if s.g.pickZ == kop.PayDiscard {
-			s.discardObj(k, o)
+			s.discardCost(k, o)
 		} else if s.g.pickZ == kop.PayReturn {
 			s.leave(k, s.objs[o].slot, kop.ZoneHand, false)
 		} else {
@@ -734,7 +734,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
 			s.exileFromGrave(o) // a cost exile from either zone (cost_exilefromhand.go)
 		} else if s.g.pickZ == kop.PayDiscard {
-			s.discardObj(k, o)
+			s.discardCost(k, o)
 		} else if s.g.pickZ == kop.PayReturn {
 			s.leave(k, s.objs[o].slot, kop.ZoneHand, false) // gorge unlessflow: ReturnCost to the owner's hand
 		} else if s.g.pickZ == kop.PayTapX {
