@@ -2318,6 +2318,12 @@ const preReturn uint8 = 3
 // as-enters choice: the answer runs the op again.
 const preReturnOp uint8 = 4
 
+// preReturnPay is preReturn for a card a cost's sacrifice set aside (the
+// source of its exile left as the payment's pick): gorge asks the choice at
+// once, before the rest of the resolution, and the answer enters the card
+// and finishes the payment (payReturnPark, raGenRetChoice).
+const preReturnPay uint8 = 7
+
 // preDigEnchant is preAsk.state for an Aura a battlefield dig took, waiting
 // in the library for its controller's choice among two or more hosts;
 // preDigEnchantDone once answered (val is the host's slot).

@@ -353,7 +353,8 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 	return true
 }
 
-// convokeTargetAbort reports whether the pending convoke cast can no longer
+// convokeTargetAbort reports whether the pending convoke cast (or a Play's paid
+// copy cast, copyCastPaid) can no longer
 // be completed: the cost less the announced picks is unpayable from the pool
 // and the CR 601.2g window (the announced creatures are withheld, as at
 // payment). Gorge's affordableTargetCandidates probes the same window and
@@ -364,17 +365,26 @@ func (s *State) convokeTargetAbort(k *prep) bool {
 		return false
 	}
 	e := &s.bld().e
-	if e.kind != seSpell || !s.tapPaysEntry(k, e) {
+	if e.kind != seSpell || !s.tapPaysEntry(k, e) && !s.copyCastPaid(k, e) {
 		return false
 	}
-	if e.flags&sfFree != 0 || s.bld().bfl&bflLowered != 0 {
+	if e.flags&sfFree != 0 || s.bld().bfl&bflLowered != 0 && !s.copyCastPaid(k, e) {
 		return false
 	}
 	cost := s.convokeApplyPicks(k, s.buildCost(k))
+	return s.targetWindowShort(k, e, &cost, true)
+}
+
+// targetWindowShort reports whether the cost of the cast being built cannot
+// be met by the pool and the CR 601.2g window, the census gorge's
+// affordableTargetCandidates runs before a target menu: when it is short
+// every candidate is withheld. hidePicks withholds the announced convoke
+// creatures from the window, as at payment.
+func (s *State) targetWindowShort(k *prep, e *stackEntry, cost *kop.ManaCost, hidePicks bool) bool {
 	saved := s.fork()
 	defer s.unfork()
 	hide := s.convokeHidden()
-	for i := 0; i < int(s.bld().pickN); i++ {
+	for i := 0; hidePicks && i < int(s.bld().pickN); i++ {
 		if s.bld().pickKs[i] == pkTapX && s.objs[s.bld().picks[i]].zone == kop.ZoneBattlefield {
 			hide = hide.with(s.objs[s.bld().picks[i]].slot)
 		}
@@ -399,7 +409,7 @@ func (s *State) convokeTargetAbort(k *prep) bool {
 			}
 		}
 	}
-	ok, _ := s.windowTapRider(k, e.ctrl, &cost, false, s.bld().bfl&bflAnyColor != 0)
+	ok, _ := s.windowTapRider(k, e.ctrl, cost, false, s.bld().bfl&bflAnyColor != 0)
 	s.CopyFrom(saved)
 	return !ok
 }

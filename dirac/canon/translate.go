@@ -822,7 +822,19 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return 0, false
 		}
 		v := NameValue(r.GName[mode])
-		return Pack(kind("name"), RefNone, Ref(v>>8), uint8(v)), true
+		var earlier []string
+		if r.Tbl != nil {
+			for _, c := range r.Tbl.NameCards {
+				if int(c) < int(mode) {
+					earlier = append(earlier, r.GName[c])
+				}
+			}
+		}
+		src := RefNone
+		if n := NameOrdinal(v, earlier); n > 0 {
+			src = Ref(n) // two names that hash alike stay two options
+		}
+		return Pack(kind("name"), src, Ref(v>>8), uint8(v)), true
 	case dirac.ChGenReplOrder:
 		// gorge's KReplacement order ask: one option per replacement, its source
 		// and occurrence among that source's options (the kernel mode is the
@@ -878,4 +890,21 @@ func NameValue(name string) uint16 {
 		h *= 16777619
 	}
 	return 0x8000 | uint16(h&0x7FFF)
+}
+
+// NameOrdinal is how many of the names listed before one with canonical value
+// v share that value: 0 for the first of a hash collision, k for the k-th
+// repeat. Two cards whose names hash alike (Jadzia Dax, Living Legacy and
+// Xenobotanist) would otherwise canonicalise to one option, which gorge's
+// disambiguate drops and the kernel does not; both sides carry the ordinal
+// in the option's otherwise unused source, counted over the same name list in
+// the same (sorted) order.
+func NameOrdinal(v uint16, earlier []string) uint8 {
+	n := 0
+	for _, e := range earlier {
+		if NameValue(e) == v {
+			n++
+		}
+	}
+	return uint8(min(n, 255))
 }
