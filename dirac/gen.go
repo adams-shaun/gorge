@@ -2343,6 +2343,10 @@ type preAsk struct {
 	// counter body folded into the move, and asks the rest with it on the
 	// battlefield; the entrant's own line (the copy) is still to apply
 	ordMid bool
+	// ask2/val2: the copy template's own as-enters choice, asked after the
+	// clone election (copy_templatechoice.go); ask2 is its kind, val2 the answer
+	ask2 uint8
+	val2 uint8
 }
 
 // preEnterAsk poses e's as-enters choice before the permanent spell

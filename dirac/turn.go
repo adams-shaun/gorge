@@ -47,7 +47,11 @@ func (s *State) beginTurn(p uint8) {
 	s.ctl = ctlStepBegin
 	s.carry = carryNone
 	s.g.declM = slotMask{}
-	for m := s.occ; m.any(); m = m.rest() {
+	live := s.occ
+	if s.k().phasing {
+		live = live.or(s.phasedSlots()) // a phased-out permanent's turn limits end too (CR 602.5b, 702.26d)
+	}
+	for m := live; m.any(); m = m.rest() {
 		pm := &s.perms[m.first()]
 		if pm.actUsed != 0 || pm.flags&pfLoyaltyUsed != 0 {
 			s.touch(pm.obj)
