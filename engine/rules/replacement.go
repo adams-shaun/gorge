@@ -511,18 +511,47 @@ func shouldPoseDrawReplacementChoice(ev events.Event, matches []replMatch) bool 
 }
 
 // drawMoreCompetition reports whether every candidate of a Draw competition
-// is a mandatory replacement whose body is a plain "draw N" for the drawing
-// player -- the only Draw replacement shape dirac/kgen's lower_drawrepl.go
-// lowers, so the only one a lockstep game can carry. An optional or bodyless
-// candidate composes with another differently by order (the may declines,
-// the draw is swallowed) and stays on the CR 616.1 order ask.
+// is the plain "if you would draw a card, draw N cards instead" replacement
+// dirac/kgen's lower_drawrepl.go lowers: a mandatory, ungated, battlefield
+// R: line for the drawing player whose body is a single DB$ Draw | Defined$
+// You | NumCards$ N (N in 2..8). Only that shape composes commutatively
+// (N1·N2 cards in the same order either way), so the CR 616.1 order cannot
+// change the result. Anything else -- a per-draw gate (Reed Richards'
+// FirstExtraCardDrawnThisTurn$), a body that draws for someone else (Notion
+// Thief), an optional or bodyless candidate -- composes differently by order
+// and stays on the order ask. The lowering refuses every other R: line
+// parameter as unread, so the parameter counts below admit only Event$,
+// ActiveZones$, ValidPlayer$, ReplaceWith$, NotFirstCardInDrawStep$ and the
+// description on the line, and Defined$, NumCards$ and the descriptions on
+// the body.
 func drawMoreCompetition(matches []replMatch) bool {
 	if len(matches) < 2 {
 		return false
 	}
+	has := func(b bool) int {
+		if b {
+			return 1
+		}
+		return 0
+	}
 	for _, m := range matches {
-		if m.repl.With == nil || m.repl.OptionalValue() ||
-			m.repl.With.API != "Draw" || m.repl.With.ParamStr(cards.PKDefined) != "You" {
+		r, sa := m.repl, m.repl.With
+		if sa == nil || sa.Sub != nil || sa.API != "Draw" || r.OptionalValue() ||
+			r.ParamStr(cards.PKActiveZones) != "Battlefield" || r.ParamStr(cards.PKValidPlayer) != "You" ||
+			sa.ParamStr(cards.PKDefined) != "You" {
+			return false
+		}
+		nc := effects.DrawOf(sa).NumCards
+		if n := nc.Text; !nc.Present || len(n) != 1 || n[0] < '2' || n[0] > '8' {
+			return false
+		}
+		line := 1 + // Event$
+			has(r.HasParam(cards.PKActiveZones)) + has(r.HasParam(cards.PKValidPlayer)) +
+			has(r.HasParam(cards.PKReplaceWith)) + has(r.HasParam(cards.PKNotFirstCardInDrawStep)) +
+			has(r.HasParam(cards.PKDescription))
+		body := has(sa.HasParam(cards.PKDefined)) + has(nc.Present) +
+			has(sa.HasParam(cards.PKSpellDescription)) + has(sa.HasParam(cards.PKStackDescription))
+		if len(r.Params) != line || len(sa.Params) != body {
 			return false
 		}
 	}
