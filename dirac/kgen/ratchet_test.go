@@ -57,8 +57,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (Animate Duration$ UntilUntaps, kop.Override.WhileTapped: Hedge Whisperer and The Blackstaff of Waterdeep lower; MKM 231 -> 232, ALL 21542 -> 21544).
 	// +1 over land's 21546 (this branch's Vannifar, Evolved Enigma: the cloak-from-hand shape lowers; merged with land's Ramos mana ability; MKM 232 -> 233, ALL 21546 -> 21547).
 	// +6 over land's 21547 (this branch's SetState Mode$ TurnFaceUp, kop.ExtTurnFaceUp: Break Open, Ixidor, Reality Sculptor, Showstopping Surprise, Skirk Alarmist, Ugin's Mastery and Zimone, Mystery Unraveler lower; merged with land's chain; ALL 21547 -> 21553).
+	// +2 over land's 21553 (land's Sorcerous Spyglass: the as-enters look and any-card name choice and CantBeActivated over the chosen name; Phyrexian Revoker, the same class over the nonland name; merged with this branch's chain; FDN 515 -> 516, LCI 250 -> 251, ALL 21553 -> 21555).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21553, 34442},
+	"ALL": {21555, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -67,11 +68,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"DSK": {236, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
-	"FDN": {515, 517},
+	"FDN": {516, 517},
 	"FIN": {266, 312},
 	"FRA": {245, 269},
 	"HOB": {152, 172},
-	"LCI": {250, 290},
+	"LCI": {251, 290},
 	"MKM": {233, 279},
 	"MOM": {198, 296},
 	"MSH": {226, 276},

@@ -32,27 +32,61 @@ func entersNamingCard(f *cards.Face) bool {
 	}
 	for i := range f.Repls {
 		r := &f.Repls[i]
-		if r.With != nil && r.With.API == "NameCard" && r.ParamStr(cards.PKKeyword) == "ETBReplacement" {
-			return true
+		if r.ParamStr(cards.PKKeyword) != "ETBReplacement" {
+			continue
+		}
+		for a := r.With; a != nil; a = a.Sub {
+			if a.API == "NameCard" {
+				return true
+			}
 		}
 	}
 	return false
 }
 
+// spyglassChain reports whether sa is exactly Sorcerous Spyglass's as-enters
+// chain: ChoosePlayer -> RevealHand (Look$ True over the chosen player) ->
+// NameCard -> Cleanup (ClearChosenPlayer$ True). The chosen player is the one
+// opponent (choosePlayer), the look is gorge's look_ack (a decision, no
+// state), and the name is any card's, lands included.
+func spyglassChain(sa *cards.SA) bool {
+	if sa == nil || sa.API != "ChoosePlayer" {
+		return false
+	}
+	rh := sa.Sub
+	if rh == nil || rh.API != "RevealHand" || rh.Params["Defined"] != "ChosenPlayer" || !strings.EqualFold(rh.Params["Look"], "True") {
+		return false
+	}
+	nc := rh.Sub
+	if nc == nil || nc.API != "NameCard" || nc.Sub == nil || nc.Sub.API != "Cleanup" || nc.Sub.Sub != nil {
+		return false
+	}
+	return true
+}
+
 // etbChooseName lowers an ETB replacement's NameCard node: the entering
 // permanent's own, unconditional, sole choice among the nonland cards.
 func (lc *lowerCtx) etbChooseName(ps *params, node, sa *cards.SA, other bool, cond *lCond) error {
-	if other || node != sa || sa.Sub != nil || cond.Kind != cNone || len(lc.ab.Prog) != 0 {
+	chain := spyglassChain(sa)
+	if other || cond.Kind != cNone || len(lc.ab.Prog) != 0 || !chain && (node != sa || sa.Sub != nil) {
 		return refuse("ETB NameCard beside another ETB replacement part")
 	}
 	if d, ok := ps.get("Defined"); !ok || strings.TrimSpace(d) != "You" {
 		return refuse("ETB NameCard Defined$ %q", d)
 	}
-	if v := ps.str("ValidCards"); v != "Card.nonLand" {
+	in := lInstr{Op: "ChooseName", Obj: lRef{Kind: rYou}, Note: "choice of a nonland card name as it enters"}
+	if chain {
+		// Spyglass: any card name (no ValidCards$), after the hand look (B = 2)
+		if v, ok := ps.get("ValidCards"); ok {
+			return refuse("ETB NameCard ValidCards$ %q beside the look chain", v)
+		}
+		ps.consume("AILogic")
+		in.B, in.Note = cst(2), "choice of any card name as it enters, after the look at the opponent's hand"
+	} else if v := ps.str("ValidCards"); v != "Card.nonLand" {
 		return refuse("ETB NameCard ValidCards$ %q", v)
 	}
 	ps.consume("ValidDescription", "SpellDescription")
-	lc.emit(lInstr{Op: "ChooseName", Obj: lRef{Kind: rYou}, Note: "choice of a nonland card name as it enters"})
+	lc.emit(in)
 	return nil
 }
 
@@ -83,6 +117,6 @@ func (lc *lowerCtx) namedCastTrigger(tp *params, tr *lTrigger, zone string) erro
 
 // buildChooseName is OpExt ExtChooseName (the first instruction of an enters
 // program).
-func buildChooseName(ki *kop.Instr) {
-	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChooseName))
+func buildChooseName(ki *kop.Instr, mode int) {
+	ki.Op, ki.A, ki.B = kop.OpExt, kop.Const(int(kop.ExtChooseName)), kop.Const(mode)
 }

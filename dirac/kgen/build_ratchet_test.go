@@ -163,8 +163,9 @@ import (
 // +2 (Animate Duration$ UntilUntaps, kop.Override.WhileTapped: Hedge Whisperer and The Blackstaff of Waterdeep lower; ALL build-level 21542 -> 21544).
 // +1 over land's 21546 (this branch's Vannifar, Evolved Enigma: the cloak-from-hand shape lowers; merged with land's Ramos mana ability; ALL build-level 21546 -> 21547).
 // +6 over land's 21547 (this branch's SetState Mode$ TurnFaceUp, kop.ExtTurnFaceUp: Break Open, Ixidor, Reality Sculptor, Showstopping Surprise, Skirk Alarmist, Ugin's Mastery and Zimone, Mystery Unraveler lower; merged with land's chain; ALL build-level 21547 -> 21553).
+// +2 over land's 21553 (land's Sorcerous Spyglass: the as-enters look and any-card name choice and CantBeActivated over the chosen name; Phyrexian Revoker, the same class over the nonland name; merged with this branch's chain; ALL build-level 21553 -> 21555).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21553, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21555, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

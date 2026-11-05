@@ -47,6 +47,7 @@ BncDelayedMany	untyped int	8192
 BncFromLibrary	untyped int	4096
 BncShuffleOwed	untyped int	16384
 C	untyped int	5
+CantActNamed	untyped int	4
 CantLoseLife	untyped int	1
 CantTgtActivated	untyped int	2
 CantTgtSpell	untyped int	1

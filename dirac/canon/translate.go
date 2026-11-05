@@ -845,7 +845,11 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		v := NameValue(r.GName[mode])
 		var earlier []string
 		if r.Tbl != nil {
-			for _, c := range r.Tbl.NameCards {
+			names := r.Tbl.NameCards
+			if r.D.N > 0 && len(r.Tbl.NameCardsAny) > 0 && len(r.D.Options[:r.D.N]) == len(r.Tbl.NameCardsAny) {
+				names = r.Tbl.NameCardsAny // the any-card ask's list (lands included)
+			}
+			for _, c := range names {
 				if int(c) < int(mode) {
 					earlier = append(earlier, r.GName[c])
 				}
