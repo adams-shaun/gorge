@@ -232,6 +232,18 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 			// a card name: the label's canonical value, which does not
 			// consult the creature-type vocabulary (canon.NameValue)
 			h := canon.NameValue(o.Label)
+			var earlier []string
+			for j := range d.Options {
+				if &d.Options[j] == o {
+					break
+				}
+				if d.Options[j].Kind == "name" {
+					earlier = append(earlier, d.Options[j].Label)
+				}
+			}
+			if n := canon.NameOrdinal(h, earlier); n > 0 {
+				src = Ref(n) // two names that hash alike stay two options
+			}
 			return Pack(k, src, Ref(h>>8), uint8(h)), true
 		case "type", "creature_type", "land_type":
 			// A label-valued choice: the option order is state-dependent

@@ -755,6 +755,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.batchLatch&batchSac != 0 {
 			s.batchClose(0) // the payment's sacrifice batch (payPickSacBatch)
 		}
+		if s.payReturnPark() {
+			return
+		}
 		s.payDone(k, true)
 	case raGenSac:
 		// every player's picks are sacrificed together once all have chosen
@@ -1032,12 +1035,18 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.rerunReturn(k)
 			return
 		}
+		paying := s.g.pre.state == preReturnPay
 		s.g.pre.state = 2
 		if s.objs[o].zone == kop.ZoneExile {
 			from := s.detach(o)
 			s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from) // the enters program reads the choice
 		}
 		s.g.pre = preAsk{}
+		if paying {
+			s.res.ask = raNone
+			s.payDone(k, true) // the payment's sacrifice finished: the cost resumes
+			return
+		}
 		s.continueRes(k, 0)
 	case raGenTokChoice:
 		in := &s.prog(k)[r.pc]

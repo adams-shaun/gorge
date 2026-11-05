@@ -176,7 +176,9 @@ func (s *State) phaseOut(k *prep, sl Slot, indirect bool) {
 	}
 	p.flags &^= pfAttacking | pfBlocking | pfBlocked | pfDealtFirst
 	p.blocking, p.nblock = NoSlot, 0
-	s.subscribe(sl, &k.cards[s.cardAt(sl)], false) // a copy's statics ride its copied card (zones.go leave)
+	// the card the permanent wears (a copy's statics and triggers too,
+	// tables): phase-out takes the worn card off the masks (CR 702.26b)
+	s.subscribe(sl, &k.cards[s.cardAt(sl)], false)
 	z := kop.ZonePhased
 	if indirect {
 		z = kop.ZonePhasedInd
@@ -200,6 +202,8 @@ func (s *State) phaseIn(k *prep, sl Slot) {
 	s.objs[p.obj].zone = kop.ZoneBattlefield
 	s.occ.set(sl)
 	s.ctrlM[p.ctrl&1].set(sl)
+	// whatever the permanent wears now: a copy that began or ended while
+	// phased out is subscribed as it phases in (CR 702.26c)
 	s.subscribe(sl, &k.cards[s.cardAt(sl)], true)
 	for q := 0; q < MaxPerm; q++ {
 		if qs := Slot(q); s.perms[qs].attached == sl && s.hiddenAt(qs) && s.objs[s.perms[qs].obj].zone == kop.ZonePhasedInd {

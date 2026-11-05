@@ -482,10 +482,12 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			continue // nothing it can enchant: it stays in exile (CR 303.4g; pair 74242)
 		}
 		if x.zone == kop.ZoneExile {
-			if kind := s.enterChoiceKind(k, x.card); kind != 0 && s.res.active && s.res.ask == raNone && s.g.pre.state == 0 {
+			if kind := s.enterChoiceKind(k, x.card); kind != 0 && s.res.active && (s.res.ask == raNone || s.res.ask == raGenPayPick) && s.g.pre.state == 0 {
 				// during a resolution gorge asks the as-enters choice with
 				// the card still in exile (Heraldic Banner, pair 544); it
-				// enters once answered (runProg, raGenRetChoice)
+				// enters once answered (runProg, raGenRetChoice); so does one whose
+				// source a cost's pick still being answered sacrificed (In the Pale
+				// Moonlight's Malfunctioning Holodeck), as the Aura's host ask above
 				s.g.pre = preAsk{obj: l.obj, kind: kind, state: preReturn}
 				if k.gen.anyLinkCtr {
 					s.linkRetStall(k, srcCtrl, o, l.obj)
