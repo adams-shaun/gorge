@@ -76,6 +76,7 @@ func (lc *lowerCtx) digImprintFound(ps *params, in lInstr, found, rev int) error
 	}
 	in.CS += "|ImprintFound"
 	lc.digImprintFoundMode = true
+	lc.digImprintChosen = true
 	lc.emit(in)
 	return nil
 }
@@ -91,6 +92,9 @@ func (lc *lowerCtx) digImprintFound(ps *params, in lInstr, found, rev int) error
 func (lc *lowerCtx) digRememberedRevealed(ps *params, in lInstr, found, rev int) error {
 	if _, ok := ps.get("RememberFound"); ok {
 		return refuse("DigUntil RememberFound$ beside RememberRevealed$")
+	}
+	if found == zNone && rev == zLibrary && in.CS == "revealed=Library|FoundWithRevealed" {
+		return lc.digRememberedLibraryReveal(in)
 	}
 	if in.A.Kind != vConst || in.A.N < 1 || in.A.N > 127 || found != zExile || rev != zExile || in.CS != "revealed=Exile" {
 		return refuse("DigUntil RememberRevealed$ shape")
@@ -110,6 +114,62 @@ func (lc *lowerCtx) digRememberedRevealed(ps *params, in lInstr, found, rev int)
 	}
 	in.CS += "|RememberRevealed"
 	lc.emit(in)
+	return nil
+}
+
+// digRememberedLibraryReveal is digRememberedRevealed's library form (Sanar,
+// Innovative First-Year): found and revealed cards all stay in the library in
+// place (the kernel's stay-in-place arm, gorge's absent
+// RevealedLibraryPosition$) and every scanned card is remembered. The amount
+// is a constant or the distinct colours among the controller's permanents
+// (Count$Valid Permanent.YouCtrl$Colors); nothing else is accepted, and
+// neither a position nor a random order (the CS check already refused them).
+func (lc *lowerCtx) digRememberedLibraryReveal(in lInstr) error {
+	constOK := in.A.Kind == vConst && in.A.N >= 1 && in.A.N <= 127
+	colorsOK := in.A.Kind == vValidAgg && in.A.N == kop.AggColors
+	if !constOK && !colorsOK {
+		return refuse("DigUntil RememberRevealed$ shape")
+	}
+	switch in.Obj.Kind {
+	case rYou, rEachOpp, rTriggeredPlayer:
+	default:
+		return refuse("DigUntil RememberRevealed$ of %v", in.Obj)
+	}
+	lc.digRememberedLibrary = true
+	in.CS += "|RememberRevealed"
+	lc.emit(in)
+	return nil
+}
+
+// digChosenLibraryPick is Sanar's per-colour "ChangeZone | ChooseFromDefined$
+// Remembered.<Colour> | Origin$ Library | Destination$ Exile | Imprint$
+// True | ChangeNum$ 1": a hidden pick (not a search) of up to one remembered
+// card of that colour out of the library into exile, imprinted into the
+// kernel's chosen set (SrImprint). Only this exact shape lowers.
+func (lc *lowerCtx) digChosenLibraryPick(ps *params, raw string) error {
+	colour := strings.TrimPrefix(strings.TrimSpace(raw), "Remembered.")
+	switch colour {
+	case "White", "Blue", "Black", "Red", "Green":
+	default:
+		return refuse("ChooseFromDefined$ %q", raw)
+	}
+	if strings.TrimSpace(ps.str("Origin")) != "Library" || strings.TrimSpace(ps.str("Destination")) != "Exile" ||
+		!ps.is("Imprint", "True") {
+		return refuse("ChooseFromDefined$ shape")
+	}
+	n := 1
+	if v, ok := ps.get("ChangeNum"); ok {
+		if n, _ = strconv.Atoi(strings.TrimSpace(v)); n != 1 {
+			return refuse("ChooseFromDefined$ ChangeNum$ %q", v)
+		}
+	}
+	ps.consume("ChooseFromDefined", "Origin", "Destination", "Imprint", "ChangeNum", "LockInText")
+	f, err := lc.filter("Card.IsRemembered+" + colour)
+	if err != nil {
+		return err
+	}
+	lc.digImprintChosen = true
+	lc.emit(lInstr{Op: "ChooseMove", Obj: lRef{Kind: rYou}, A: cst(n), F: f, C: zExile, CS: "from=Library|Imprint|NoShuffle"})
 	return nil
 }
 

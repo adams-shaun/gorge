@@ -1535,7 +1535,7 @@ func (s *State) finishSearchNow(k *prep) {
 // as-enters choice, after the choice is answered: gorge suspends the search
 // at the ask).
 func (s *State) finishSearchTail(k *prep) {
-	if k.gen != nil && k.gen.anyKwAct && s.searchZone(k) == kop.ZoneLibrary && s.g.pickF&kop.SrGraveExile == 0 {
+	if k.gen != nil && k.gen.anyKwAct && s.searchZone(k) == kop.ZoneLibrary && s.g.pickF&kop.SrGraveExile == 0 && s.isSearchOp(k) {
 		if q := s.chooserOf(s.g.pickP); q == s.g.pickP {
 			s.fireKwAct(k, kop.TrigSearchedLibrary, q, 0) // trig_modes.go
 		}
@@ -1658,6 +1658,7 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			}
 		}
 		s.forgetFound(k, o) // ForgetChanged$ (SrForgetChanged): the moved card leaves the remembered set
+		s.imprintFound(k, o) // Imprint$ (SrImprint): the moved card joins the chosen set
 		if z == kop.ZoneBattlefield && s.parkEnterDefender(tailSearchEnter) {
 			// the entry posed the CR 508.4 defender ask: the cards after it
 			// stay where they are until it is answered, as they do behind an

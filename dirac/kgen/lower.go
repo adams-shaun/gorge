@@ -156,6 +156,16 @@ type lowerCtx struct {
 	// chain's optional PutCounter, the Effect's RememberObjects$ Imprinted
 	// and the Cleanup's ClearImprinted$ read it
 	digImprintFoundMode bool
+	// digRememberedLibrary: this chain's DigUntil remembered every revealed
+	// card and left them in the library (RememberRevealed$ with
+	// RevealedDestination$ Library, Sanar; lower_digimprint.go): the chain's
+	// ChooseFromDefined$ Remembered.<colour> picks read it
+	digRememberedLibrary bool
+	// digImprintChosen: the chain's imprint is the kernel's chosen set (set by
+	// digImprintFound and digChosenLibraryPick): the Effect's
+	// RememberObjects$ Imprinted, its MayPlay and the Cleanup's
+	// ClearImprinted$ read it
+	digImprintChosen bool
 	known               func(string) bool
 	// granted > 0 while an ability or trigger another object is granted
 	// (an AddAbility$/AddTrigger$ SVar, an emblem's trigger) is lowered

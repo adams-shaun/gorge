@@ -2615,6 +2615,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				zone = kop.ZoneBattlefield
 			case "Exile":
 				zone = kop.ZoneExile // every seat's exile (zone_exiledwithpick.go)
+			case "Library":
+				zone = kop.ZoneLibrary // a hidden pick, not a search (Sanar's per-colour picks)
 			case "Graveyard,Exile":
 				// graveexile: a game-wide pool over both zones; the walk in
 				// dirac/value_tappower.go restricts the zones itself.
@@ -2654,10 +2656,16 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			sb |= kop.SrDifferentNames
 		}
 		if _, ok := fl["NoShuffle"]; ok {
-			if in.Op != "Search" {
+			if in.Op != "Search" && zone != kop.ZoneLibrary {
 				return ki, fmt.Errorf("NoShuffle on a %s", in.Op)
 			}
 			sb |= kop.SrNoShuffle
+		}
+		if _, ok := fl["Imprint"]; ok {
+			if in.Op != "ChooseMove" || zone != kop.ZoneLibrary || zoneMap[in.C] != kop.ZoneExile {
+				return ki, fmt.Errorf("Imprint on a %s from %s", in.Op, fl["from"])
+			}
+			sb |= kop.SrImprint
 		}
 		if _, ok := fl["Random"]; ok {
 			if in.Op != "ChooseMove" || zone != kop.ZoneGraveyard && zone != kop.ZoneExile {

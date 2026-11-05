@@ -183,7 +183,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// DigUntil's ImprintFound$ chain (lower_digimprint.go): gorge
 		// effectRemembered reads the source's seek-found Imprint, which the
 		// kernel holds in the chosen set (DuImprintFound).
-		if !lc.digImprintFoundMode {
+		if !lc.digImprintChosen {
 			return lRef{}, refuse("Defined$ Imprinted outside a DigUntil ImprintFound$")
 		}
 		return lRef{Kind: rChosen}, nil
@@ -1745,7 +1745,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 				return refuse("Cleanup ClearImprinted$ without ClearRemembered$")
 			}
 		}
-		if lc.digImprintFoundMode && ps.is("ClearImprinted", "True") {
+		if lc.digImprintChosen && ps.is("ClearImprinted", "True") {
 			// the imprint is the kernel's chosen set (lower_digimprint.go):
 			// gorge's seek-found Imprint "clear" clears it
 			ps.consume("ClearImprinted")
