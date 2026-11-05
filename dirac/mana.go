@@ -581,12 +581,16 @@ func (s *State) payRider(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Ob
 		r := s.hybResolveRider(k, p, *cost, x, anyColor)
 		cost = &r
 	}
+	r0, ds := s.deferredPool(k, p) // the {R} a script's deferred source floats (mana_deferred.go)
 	if k.restrSrc {
 		s.payRiderRestr(k, p, cost, x, exclude, anyColor)
-		return
+	} else {
+		s.tapForRider(k, p, cost, x, exclude, anyColor)
+		s.payFromPoolRider(k, p, cost, x, anyColor)
 	}
-	s.tapForRider(k, p, cost, x, exclude, anyColor)
-	s.payFromPoolRider(k, p, cost, x, anyColor)
+	if r0 != 0 {
+		s.deferredSpent(k, p, r0, ds)
+	}
 }
 
 // tapFor taps gorge's planned sources for what the floating pool lacks of

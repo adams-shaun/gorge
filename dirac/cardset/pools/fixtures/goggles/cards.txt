@@ -1,0 +1,15 @@
+# Pyromancer's Goggles (TriggersWhenSpent$ copy rider on a planner-deferred
+# {R} source) and the spells that tell its arms apart
+# (dirac/oracle/goggles_test.go)
+Pyromancer's Goggles
+Hill Giant
+Grizzly Bears
+Flame Slash
+Lava Axe
+Shock
+Giant Growth
+Mountain
+Forest
+Armored Armadillo
+Plains
+Monastery Swiftspear
