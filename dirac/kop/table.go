@@ -558,6 +558,10 @@ type Table struct {
 	// of an as-enters ExtChooseName. Set only when a card of the matchup
 	// chooses a name; dirac/repl_choosename.go.
 	NameCards []CardID
+	// NameCardsAny are the CardIDs of every real card of the matchup, lands
+	// included, ascending: the options of an ExtChooseName with B >= 1 (a
+	// NameCard with no ValidCards$, Sorcerous Spyglass).
+	NameCardsAny []CardID
 }
 
 // Filter returns the filter with id f.

@@ -29,6 +29,8 @@ const (
 	// the stack (s.g.pre only; repl_entryclone.go)
 	akEntryOrder uint8 = 10
 	akName       uint8 = 11 // an as-enters nonland card name (OpExt ExtChooseName; repl_choosename.go)
+	akNameAny    uint8 = 12 // an as-enters name of any card, lands included (ExtChooseName B = 1)
+	akNameLook   uint8 = 13 // akNameAny after a look_ack at the opponent's hand (ExtChooseName B = 2; Sorcerous Spyglass)
 )
 
 // enterGen runs after the core's enter placed o at sl, before its ETB triggers:
@@ -256,7 +258,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				case kop.ExtChooseNumber:
 					kind = akNumber
 				case kop.ExtChooseName:
-					kind = akName
+					kind = nameAskKind(in)
 				default:
 					s.execGen(k, in)
 					continue
@@ -943,6 +945,10 @@ func (s *State) applyGen(k *prep, a Action) {
 		return
 	}
 	if s.g.pre.state == 1 {
+		if s.g.pre.kind == akNameLook {
+			s.g.pre.kind = akNameAny // the look is acknowledged: the name is asked next (repl_choosename.go)
+			return
+		}
 		if s.g.pre.kind == akEntryOrder {
 			s.cloneEntryOrderAnswer(k, a) // the order answer (repl_entryclone.go)
 			return
@@ -990,6 +996,10 @@ func (s *State) applyGen(k *prep, a Action) {
 		}
 		return
 	}
+	if s.g.nask > 0 && s.g.ask[0].kind == akNameLook {
+		s.g.ask[0].kind = akNameAny // the look is acknowledged: the name is asked next
+		return
+	}
 	s.answerQueuedAsk(k, a)
 	if s.g.nask == 0 {
 		s.ctl = s.g.ctlRet
@@ -1034,7 +1044,7 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	}
 	if ask.kind == akMode {
 		s.siegeModeStore(ask.sl, a.Mode())
-	} else if ask.kind == akColor || ask.kind == akNumber || ask.kind == akName {
+	} else if ask.kind == akColor || ask.kind == akNumber || isNameAsk(ask.kind) {
 		p.chosen = a.Mode()
 	} else {
 		v := int(a.Target())<<8 | int(a.Mode())
@@ -1154,8 +1164,8 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 		s.numberOptions(k, d) // repl_choosenumber.go
 		return
 	}
-	if kind == akName {
-		s.nameOptions(k, d) // repl_choosename.go
+	if isNameAsk(kind) {
+		s.nameOptions(k, d, kind) // repl_choosename.go
 		return
 	}
 	if kind == akColor {

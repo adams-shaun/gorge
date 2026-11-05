@@ -29,7 +29,7 @@ func (s *State) cloneTemplateAsk(k *prep) bool {
 	}
 	kind := s.enterChoiceKind(k, s.cardAt(s.objs[t].slot))
 	switch kind {
-	case akColor, akType, akNumber, akName:
+	case akColor, akType, akNumber, akName, akNameAny, akNameLook:
 	default:
 		return false
 	}
