@@ -99,7 +99,7 @@ func (s *State) persistEmpty(ec bool) {
 		s.pl[p].pool = keep
 		s.rbClear(uint8(p))
 	}
-	s.g.poolArt = [2]uint8{}
+	s.g.poolArt, s.g.defSrc = [2]uint8{}, [2]uint8{}
 }
 
 // persistTurn is the turn change. Gorge's TurnChange zeroes the tally and the
@@ -113,7 +113,7 @@ func (s *State) persistTurn() {
 		s.pl[p].pool = [kop.NumManaKinds]uint8{}
 		s.rbClear(uint8(p))
 	}
-	s.g.poolArt = [2]uint8{}
+	s.g.poolArt, s.g.defSrc = [2]uint8{}, [2]uint8{}
 }
 
 // PersistMana is each player's persistent units per colour (State.pm) for the

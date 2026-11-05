@@ -14,7 +14,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | DSK | 276 | 236 | 3 | 45 | 188 |
 | ECL | 273 | 233 | 2 | 41 | 190 |
 | EOE | 266 | 238 | 0 | 117 | 121 |
-| FDN | 517 | 516 | 0 | 23 | 493 |
+| FDN | 517 | 517 | 0 | 24 | 493 |
 | FIN | 312 | 266 | 2 | 19 | 245 |
 | FRA | 269 | 245 | 1 | 24 | 220 |
 | HOB | 172 | 152 | 0 | 9 | 143 |
