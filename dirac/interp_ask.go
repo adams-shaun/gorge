@@ -1558,7 +1558,9 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 		if z == kop.ZoneBattlefield && s.handAuraArmed(k) {
 			var parked, stay bool
 			if host, parked, stay = s.handAuraEnter(k, o, p, host); parked {
-				return // the card waits in the hand for the enchant ask; nlook stays
+				n := copy(s.resArm().look[:], s.resArm().look[i:s.g.nlook])
+				s.g.nlook = uint8(n)
+				return // the card waits in the hand for the enchant ask; the look now starts at it
 			} else if stay {
 				if fl&kop.SrRemember != 0 {
 					s.remember(o) // gorge settleHandMove remembers a card whose entry was swallowed too
