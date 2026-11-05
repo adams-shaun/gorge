@@ -68,13 +68,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Worlds Within Worlds: a RepeatEach player body's hand move DefinedPlayer$ Remembered up to Count$ValidHand Creature.RememberedPlayerCtrl, and the remembered set's return from exile as the Return walk; this branch; merged MSH 226 -> 227, ALL 21585 -> 21586).
 	// +1 (Painter's Studio // Defaced Gallery: the unlock trigger's DB$ Effect statics read the door's own SVar table; this branch; merged DSK 238 -> 239, ALL 21595 -> 21596).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21596, 34442},
+	"ALL": {21599, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
 	"DFT": {247, 276},
 	"DMU": {193, 270},
-	"DSK": {239, 276},
+	"DSK": {241, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
 	"FDN": {517, 517},
