@@ -442,12 +442,16 @@ type filtSearch struct {
 	other slotMask // its gaps that are no filter (otherGap)
 	fees  int      // the funding the search may activate
 	own   Slot     // the source whose {T} is the play's own cost (NoSlot: none)
-	sp0   uint8    // the stack at the root: only a deeper one is the path's to resolve
-	nodes int
-	nseen int
-	seen  [potentialScriptNodes]filtKey
-	n     int
-	path  [maxFiltPath]filtStep
+	// fundFirst: every gap is a paid filter, so the fee is paid before any
+	// gap activation (gorge's paymentPlanCensus.fundFirst). A mixed board
+	// keeps the older gap-first order its otherGap search mirrors.
+	fundFirst bool
+	sp0       uint8 // the stack at the root: only a deeper one is the path's to resolve
+	nodes     int
+	nseen     int
+	seen      [potentialScriptNodes]filtKey
+	n         int
+	path      [maxFiltPath]filtStep
 	// spill: a step of the path found floated restricted mana past what
 	// State.rb holds (a restriction past restrKinds), unrestricted: the
 	// script the search found is not one gorge's planner would price
@@ -465,11 +469,17 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	if a.Kind() == AkActivate {
 		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
 	}
-	if s.filtRelaxable(k, fs.gaps) && !(k.tapMana && s.tapXTwoLive(k, p)) { // (unrelaxable: no funding)
+	// A gap's fee is funded even when the census is unrelaxable (a dynamic
+	// amount above six): gorge's census counts every missed ability's fee
+	// before the relaxation can decline it (rules/potential_plan.go
+	// paymentPlanCensusOf), so an unrelaxable Starfleet Academy still gets
+	// the {5} its activation costs.
+	if !(k.tapMana && s.tapXTwoLive(k, p)) { // (mixed gaps: no funding)
 		for b := fs.gaps; b.any(); b = b.rest() {
 			fs.fees += s.filtFee(k, b.first())
 		}
 	}
+	fs.fundFirst = fs.fees > 0 && !fs.other.any()
 	t := s.fork()
 	defer s.unfork()
 	if !fs.visit(k, t, 0, false) {
@@ -634,8 +644,16 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	}
 	var order [MaxPerm]Slot
 	n := t.battlefieldOrder(p, t.ctrlM[p&1].and(t.occ), order[:], 0)
-	for pass := 0; pass < 2; pass++ {
-		gap := pass == 0
+	// An unfunded fee is paid before any gap is activated: a filter beside a
+	// free {T} ability (Starfleet Academy's "{T}: Add {C}") is tried in its
+	// free form first, and from an empty pool that branch can only spend the
+	// budget on a line making no colour the play needs (gorge
+	// scriptSearch.visit's gapOrder).
+	gapOrder := [2]bool{true, false}
+	if fs.fundFirst && funded < fs.fees {
+		gapOrder = [2]bool{false, true}
+	}
+	for _, gap := range gapOrder {
 		if !gap && funded >= fs.fees {
 			break
 		}
