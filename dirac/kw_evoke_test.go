@@ -9,21 +9,21 @@ import (
 )
 
 // handWalkFixture seats Mm'menon (granting {T}: Add {U} to artifacts, barred
-// from a hand cast) and an artifact, with Cloudsculpt Technician in hand.
+// from a hand cast) and an artifact, with Coral Merfolk in hand.
 // mutate sets the alternative cost fields on the matched table's CardDef;
 // it returns the scenario, the hand object, the card and the alt cost.
 func handWalkFixture(t *testing.T, mutate func(cc *kop.CardDef, cost kop.ManaCost)) (*scen, Obj, CardID, map[string]CardID) {
 	t.Helper()
 	deck := []cardset.Entry{
 		{Name: "Mm'menon, the Right Hand", Count: 1},
-		{Name: "Specimen Freighter", Count: 1},
-		{Name: "Cloudsculpt Technician", Count: 1},
+		{Name: "Ornithopter", Count: 1},
+		{Name: "Coral Merfolk", Count: 1},
 		{Name: "Island", Count: 10},
 	}
-	set := cardsettest.Synth(t, "std-eoe")
+	set := cardsettest.Set(t, "wascastspell")
 	for _, e := range deck {
 		if i, ok := set.Lookup(e.Name); !ok || !set.Supported()[i] {
-			t.Fatalf("%s not supported in std-eoe", e.Name)
+			t.Fatalf("%s not supported in wascastspell", e.Name)
 		}
 	}
 	tbl, da, _, err := set.Matchup(deck, deck)
@@ -36,8 +36,8 @@ func handWalkFixture(t *testing.T, mutate func(cc *kop.CardDef, cost kop.ManaCos
 	}
 	sc := newScenTableLib(t, tbl, id["Island"], Config{NoElide: true})
 	sc.perm(id["Mm'menon, the Right Hand"], 0)
-	sc.perm(id["Specimen Freighter"], 0)
-	cardC := id["Cloudsculpt Technician"]
+	sc.perm(id["Ornithopter"], 0)
+	cardC := id["Coral Merfolk"]
 	cand := sc.hand(cardC, 0)
 	var u kop.ManaCost
 	u.Pips[kop.U] = 1
