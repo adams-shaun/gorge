@@ -545,6 +545,9 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 	}
 	if a.Kind == akSpell {
 		ka.Cost = cb.spellCost
+		if a.EvidenceTargets {
+			ka.Evidence = kop.EvidenceTargetsMV // the targets' total mana value (cost_collectevidencex.go)
+		}
 		if a.ActCond.Kind != cNone {
 			// a spell's cast restriction (IsPresent$; kernel castForbidden,
 			// cast_spellcondition.go)

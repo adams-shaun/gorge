@@ -405,3 +405,9 @@ const CostBlight CostFlags = CostWaterbend << 1
 // Alone among the counted parts (Cost.N / Cost.Filter), a battlefield
 // activated ability's own cost only; kgen refuses the rest.
 const CostDiscardFiltered CostFlags = CostBlight << 1
+
+// EvidenceTargetsMV: an AbSpell's Ability.Evidence of this value is a
+// mandatory CollectEvidence<X> additional cost, X the total mana value of
+// the spell's targets (gorge cast_targets.go evidenceAmount, SVar:X
+// AllTargeted$CardManaCost; Urgent Necropsy). Not a literal threshold.
+const EvidenceTargetsMV = 255

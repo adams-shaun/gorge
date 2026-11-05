@@ -294,6 +294,7 @@ EntryKindMask	untyped int	63
 EvHorsemanship	uint8	1
 EvIntimidate	uint8	2
 EvSkulk	uint8	4
+EvidenceTargetsMV	untyped int	255
 ExAdamant	ExprKind	244
 ExAttackedThisTurn	ExprKind	9
 ExAttackedTurn	ExprKind	235

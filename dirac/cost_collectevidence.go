@@ -65,6 +65,9 @@ func prepCostEvidence(t *kop.Table, g *genPrep) {
 			g.anyOptCost = true // a spell's evidence part is an OptionalCost part (cost_optionalevidence.go)
 		}
 		for j := range t.Cards[i].Abilities {
+			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbSpell && a.Evidence == kop.EvidenceTargetsMV {
+				g.anyEvTargets = true
+			}
 			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbActivated {
 				for ti := 0; ti < int(a.NTargets); ti++ {
 					g.anyXBoundAb = g.anyXBoundAb || xBoundTarget(t, &a.Targets[ti])
@@ -78,7 +81,10 @@ func prepCostEvidence(t *kop.Table, g *genPrep) {
 // 0 for none.
 func (s *State) buildEvidenceN(k *prep) uint8 {
 	if s.bld().e.kind == seSpell {
-		return s.optEvidenceN(k) // cost_optionalevidence.go
+		if n := s.optEvidenceN(k); n != 0 { // cost_optionalevidence.go
+			return n
+		}
+		return s.targetsEvidenceN(k) // cost_collectevidencex.go
 	}
 	if s.bld().e.kind != seAbility {
 		return 0

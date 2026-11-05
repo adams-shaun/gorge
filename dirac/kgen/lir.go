@@ -658,30 +658,31 @@ const (
 )
 
 type lAbility struct {
-	Kind           int
-	Latent         bool   // not active on the card itself: reached through an op or a grant
-	TrigRem        string // a reflexive trigger's TriggerRemembered$ rest (lower_trigremembered.go)
-	RemTgt         bool   // a Pump RememberObjects$ ThisTargetedCard (lower_remembered.go)
-	ReflexObj      bool   // a reflexive latent whose ImmediateTrigger captured a target (lower_remembered.go)
-	DelayedObjOnly bool   // a delayed latent whose RememberObjects$ set holds objects only (lower_delayedobjects.go)
-	DelayedSelf    bool   // the delayed program remembered the source's own card (Transformed$ return; lower_delayedobjects.go)
-	Origin         int    // gorge's Face.Abilities index, or 0x80|Face.Triggers index; 0 is ambiguous with A[0], so Origin is valid only when OriginOK
-	OriginOK       bool
-	Index          int // position in the card's ability list (latent abilities included)
-	Name           string
-	Cost           lCost
-	Optional       bool // the cost is optional ("you may pay ... if you do")
-	Sorcery        bool
-	Zone           int // activation zone (battlefield unless graveyard/hand)
-	Loyalty        bool
-	Exhaust        bool    // Exhaust$ True (CR 702.177a): the AbilityCast class test (kop.Ability.Exhaust)
-	Limit          int     // activations per game (0 = unlimited)
-	PowerUp        bool    // PowerUp$ True (CR 702.193): once per object stint, cost reduced on its entry turn
-	TurnOnce       bool    // ActivationLimit$ 1: once each turn
-	Reduce         *lValue // ReduceCost$: the generic reduction of an activated ability's own cost (lower_ownreduce.go)
-	ActCond        lCond   // CheckSVar$/SVarCompare$: activate only if (CR 602.5b)
-	Targets        []lTarget
-	Modes          int // charm: number of modes to choose from
+	Kind            int
+	Latent          bool   // not active on the card itself: reached through an op or a grant
+	TrigRem         string // a reflexive trigger's TriggerRemembered$ rest (lower_trigremembered.go)
+	RemTgt          bool   // a Pump RememberObjects$ ThisTargetedCard (lower_remembered.go)
+	ReflexObj       bool   // a reflexive latent whose ImmediateTrigger captured a target (lower_remembered.go)
+	DelayedObjOnly  bool   // a delayed latent whose RememberObjects$ set holds objects only (lower_delayedobjects.go)
+	DelayedSelf     bool   // the delayed program remembered the source's own card (Transformed$ return; lower_delayedobjects.go)
+	Origin          int    // gorge's Face.Abilities index, or 0x80|Face.Triggers index; 0 is ambiguous with A[0], so Origin is valid only when OriginOK
+	OriginOK        bool
+	Index           int // position in the card's ability list (latent abilities included)
+	Name            string
+	Cost            lCost
+	Optional        bool // the cost is optional ("you may pay ... if you do")
+	Sorcery         bool
+	Zone            int // activation zone (battlefield unless graveyard/hand)
+	Loyalty         bool
+	Exhaust         bool    // Exhaust$ True (CR 702.177a): the AbilityCast class test (kop.Ability.Exhaust)
+	Limit           int     // activations per game (0 = unlimited)
+	EvidenceTargets bool    // CollectEvidence<X> with SVar:X AllTargeted$CardManaCost (a spell's mandatory additional cost; kop.EvidenceTargetsMV)
+	PowerUp         bool    // PowerUp$ True (CR 702.193): once per object stint, cost reduced on its entry turn
+	TurnOnce        bool    // ActivationLimit$ 1: once each turn
+	Reduce          *lValue // ReduceCost$: the generic reduction of an activated ability's own cost (lower_ownreduce.go)
+	ActCond         lCond   // CheckSVar$/SVarCompare$: activate only if (CR 602.5b)
+	Targets         []lTarget
+	Modes           int // charm: number of modes to choose from
 	// charm: CharmNum$ (the most picks) and MinCharmNum$ (default: the most)
 	ModesPick, ModesMin int
 	ModeRestrict        uint8 // charm ChoiceRestriction$: 0 none, 1 ThisTurn, 2 ThisGame (lower_charmrestrict.go)

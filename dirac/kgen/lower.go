@@ -2215,6 +2215,17 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			if cost.Return != nil {
 				return refuse("return cost on a spell")
 			}
+			if cost.EvidenceX {
+				// CollectEvidence<X>, X the targets' total mana value (Urgent
+				// Necropsy; gorge cast_targets.go evidenceAmount): the
+				// kernel's bsEvidence stage reads the chosen targets
+				// (cost_collectevidencex.go)
+				if x := strings.TrimSpace(lc.face.SVars["X"]); x != "AllTargeted$CardManaCost" || lc.out.Types&(tInstant|tSorcery) == 0 {
+					return refuse("evidence cost %q: a named amount", "CollectEvidence<X>")
+				}
+				ab.EvidenceTargets = true
+				cost.EvidenceX = false
+			}
 			// The printed mana cost rides on the card record; the SP
 			// Cost$ adds the non-mana additional costs.
 			if !cost.Mana.None && cost.Mana.String() != lc.out.Cost.String() {

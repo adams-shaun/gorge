@@ -1,9 +1,11 @@
 # The variable CollectEvidence cost pool (CR 701.59a): Incinerator of the
 # Guilty announces X and collects evidence X as a trigger's own cost; Lamplight
 # Phoenix exiles itself and collects evidence 4 from the rest of the graveyard;
+# Urgent Necropsy collects evidence equal to its targets' total mana value;
 # burn and removal fill both graveyards (dirac/oracle/evidence_x_test.go)
 Incinerator of the Guilty
 Lamplight Phoenix
+Urgent Necropsy
 Shock
 Lightning Bolt
 Giant Growth
@@ -11,6 +13,8 @@ Grizzly Bears
 Hill Giant
 Murder
 Walking Corpse
+Juggernaut
+Pilgrim's Eye
 Forest
 Swamp
 Mountain

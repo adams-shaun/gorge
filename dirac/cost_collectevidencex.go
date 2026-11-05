@@ -146,3 +146,48 @@ func (s *State) evidenceXBind(k *prep) {
 		s.res.e.x = s.g.pickLeft
 	}
 }
+
+// targetsEvidenceN is the evidence a spell being built owes when its X is
+// the targets' total mana value (kop.EvidenceTargetsMV; gorge
+// cast_targets.go evidenceAmount over the AllTargeted$ union), 0 for none,
+// capped at a byte.
+func (s *State) targetsEvidenceN(k *prep) uint8 {
+	if k.gen == nil || !k.gen.anyEvTargets {
+		return 0
+	}
+	if a := s.buildAbility(k); a == nil || a.Kind != kop.AbSpell || a.Evidence != kop.EvidenceTargetsMV {
+		return 0
+	}
+	e := &s.bld().e
+	n := 0
+	for i := 0; i < int(e.nt); i++ {
+		if t := e.tgt[i]; t != NoTarget && isObjTarget(t) {
+			n += s.objTargetMV(k, Obj(t))
+		}
+	}
+	return uint8(min(n, 255))
+}
+
+// payTargetsEvidence exiles the spell's picked graveyard cards with its other
+// cost objects.
+//
+//go:noinline
+func (s *State) payTargetsEvidence(k *prep) {
+	if s.targetsEvidenceN(k) == 0 {
+		return
+	}
+	if s.exileEvidence() > 0 && k.gen.anyExplEvTrig {
+		s.fireEvidence(k, s.bld().e.ctrl) // trig_exploreevidence.go
+	}
+}
+
+// spellEvidenceTargets: card cd's spell ability owes the targets' total mana
+// value in evidence (kop.EvidenceTargetsMV).
+func spellEvidenceTargets(cd *kop.CardDef) bool {
+	for i := range cd.Abilities {
+		if a := &cd.Abilities[i]; a.Kind == kop.AbSpell && a.Evidence == kop.EvidenceTargetsMV {
+			return true
+		}
+	}
+	return false
+}
