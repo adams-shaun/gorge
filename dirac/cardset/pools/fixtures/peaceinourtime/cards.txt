@@ -1,0 +1,11 @@
+# Peace in Our Time (the beginning-of-combat trigger whose "may draw" belongs
+# to the player whose turn it is, a can't-attack effect over that player's
+# creatures, and a peace counter on the enchantment), creatures to attack with
+# and basics, for the oracle's constructed lockstep
+# (dirac/oracle/peaceinourtime_test.go)
+Peace in Our Time
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Plains
+Mountain

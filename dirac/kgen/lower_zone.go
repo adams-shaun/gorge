@@ -1903,6 +1903,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	if _, hasRO := ps.get("RememberObjects"); !hasTgt && !hasRO {
 		return lc.effectStaticEOT(ps, ss)
 	}
+	if ok, err := lc.cantAttackRemembered(ps, ss); ok || err != nil { // lower_effectcantattackplayer.go
+		return err
+	}
 	if len(ss) != 1 {
 		return refuse("Effect static %q", st)
 	}

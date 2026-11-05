@@ -36,3 +36,29 @@ func prepEmbComb(t *kop.Table, p *prep) bool {
 //
 //go:noinline
 func (s *State) anyEmb() bool { return s.g.nemb[0]+s.g.nemb[1] != 0 }
+
+// idemEmblemHeld reports whether player p already holds the end-of-turn
+// emblem emb (Table.Emblems index+1) and every ability of it is a CantAttack
+// static: a second copy restricts the same creatures for the same turn, so
+// one record stands for both (no projection reads the count) and the emblem
+// pool does not fill (Peace in Our Time, six of them each saying yes to the
+// same player's beginning of combat).
+//
+//go:noinline
+func (s *State) idemEmblemHeld(k *prep, p, emb uint8) bool {
+	e := &k.t.Emblems[emb-1]
+	if !e.UntilEOT || e.UntilNextTurn || e.WhileHost {
+		return false
+	}
+	for j := range e.Abilities {
+		if a := &e.Abilities[j]; a.Kind != kop.AbStatic || a.Static.Kind != kop.StatCantAttack {
+			return false
+		}
+	}
+	for i := 0; i < int(s.g.nemb[p]); i++ {
+		if s.g.emb[p][i] == emb {
+			return true
+		}
+	}
+	return false
+}
