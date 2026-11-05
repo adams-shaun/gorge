@@ -54,7 +54,7 @@ func TestPutCounterExistingRefusals(t *testing.T) {
 		{" | RememberPut$ True", "RememberPut"},
 		{" | RememberAmount$ True", "RememberAmount"},
 		{" | Placer$ Opponent", "Placer"},
-		{" | CounterNum$ X\nSVar:X:Count$Valid Creature.YouCtrl", "CounterNum"},
+		{" | CounterNum$ X\nSVar:X:Count$Valid Sphinx.OppCtrl+tapped", "CounterNum"},
 	} {
 		if got := putExistingRefusals(t, tc.extra); !strings.Contains(got, tc.want) {
 			t.Errorf("%s: refusals %q, want one naming %s", tc.extra, got, tc.want)
