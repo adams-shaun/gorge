@@ -5,8 +5,8 @@
   "repro": {
     "pool": "std-lci",
     "surface": "full",
-    "seed": 1,
-    "pair": 22,
+    "seed": 2,
+    "pair": 458,
     "policy": "random",
     "mulligans": 0
   }
