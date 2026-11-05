@@ -30,7 +30,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 13 | 239 |
-| ALL | 34442 | 21564 | 31 | 17039 | 4494 |
+| ALL | 34442 | 21569 | 31 | 17044 | 4494 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
