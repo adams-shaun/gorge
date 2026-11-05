@@ -140,11 +140,13 @@ func init() { stallNames[StallExileGrant] = "exilegrant" }
 // targeted, and then stalls the game (StallCopyCast): gorge beginPlay starts a
 // Play's cast whatever the pool holds and reverses it when the cost cannot be
 // met, after a mana window that taps whatever sources it is offered (a
-// reversed copy cast, CR 733.1, which the kernel does not model).
+// reversed copy cast, CR 733.1, which the kernel models only when no mana
+// source and no floating mana is there to tap: the copy then ceases at once).
 //
 //go:noinline
 func (s *State) copyCastRefused(k *prep, c CardID, p uint8, o Obj) bool {
-	ok := s.spellTargetsFeasible(k, c, p) && s.spellCostsFeasible(k, c, p, o)
+	feasible := s.spellTargetsFeasible(k, c, p) && s.spellCostsFeasible(k, c, p, o)
+	ok := feasible
 	if ok {
 		var av avail
 		s.availFor(k, p, &av)
@@ -154,6 +156,27 @@ func (s *State) copyCastRefused(k *prep, c CardID, p uint8, o Obj) bool {
 	if ok {
 		return false
 	}
+	if feasible && !s.anyManaSource(k, p) && s.poolEmpty(p) {
+		// gorge reverses the cast before its mana window opens (cast_targets.go
+		// and payCast abort with no untapped mana source): nothing was tapped or
+		// paid, and the copy ceases (CR 733.1, 707.10a), an object gorge minted
+		if s.nearCapacity(k) {
+			s.capFull(StallBoard)
+			return true
+		}
+		s.objs[s.newToken(c, p)].of = ofCopy
+		return true
+	}
 	s.capFull(StallCopyCast)
+	return true
+}
+
+// poolEmpty reports whether p has no mana floating.
+func (s *State) poolEmpty(p uint8) bool {
+	for _, n := range s.pl[p&1].pool {
+		if n != 0 {
+			return false
+		}
+	}
 	return true
 }
