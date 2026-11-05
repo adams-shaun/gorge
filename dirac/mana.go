@@ -581,12 +581,16 @@ func (s *State) payRider(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Ob
 		r := s.hybResolveRider(k, p, *cost, x, anyColor)
 		cost = &r
 	}
+	r0, ds := s.deferredPool(k, p) // the {R} a script's deferred source floats (mana_deferred.go)
 	if k.restrSrc {
 		s.payRiderRestr(k, p, cost, x, exclude, anyColor)
-		return
+	} else {
+		s.tapForRider(k, p, cost, x, exclude, anyColor)
+		s.payFromPoolRider(k, p, cost, x, anyColor)
 	}
-	s.tapForRider(k, p, cost, x, exclude, anyColor)
-	s.payFromPoolRider(k, p, cost, x, anyColor)
+	if r0 != 0 {
+		s.deferredSpent(k, p, r0, ds)
+	}
 }
 
 // tapFor taps gorge's planned sources for what the floating pool lacks of
@@ -803,7 +807,12 @@ func (s *State) payFromPool(p uint8, cost *kop.ManaCost, x int) {
 // payFromPoolRider is payFromPool with the may-play any-colour rider.
 func (s *State) payFromPoolRider(k *prep, p uint8, cost *kop.ManaCost, x int, anyColor bool) {
 	if k.gen != nil && s.ctl == ctlBuild && s.bld().e.flags&sfAnyMana != 0 && s.bld().e.kind == seSpell {
-		c := s.payAnyTypePips(k, p, *cost)
+		var c kop.ManaCost
+		if o := s.bld().e.obj; s.convAnyType(k, p, o) && (s.bld().e.flags&sfMayPlay == 0 || !s.mayPlayAnyType(k, p, o)) {
+			c = s.payConvPips(k, p, *cost) // the conversion alone: exact colours first
+		} else {
+			c = s.payAnyTypePips(k, p, *cost)
+		}
 		cost = &c
 	}
 	if k.gen != nil && k.gen.anyColSpent && s.ctl == ctlBuild {

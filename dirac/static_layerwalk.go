@@ -98,6 +98,9 @@ func (s *State) lfxCollect(k *prep, sl Slot, fx *[maxLfx]lfx) int {
 				c++
 				if n < maxLfx {
 					fx[n] = lfx{o: &k.t.Overrides[r.r.idx-1], ts: r.r.ts, src: NoSlot, reps: uint8(r.r.reps()), p: r.r.p, t: r.r.t}
+					if fx[n].o.WhileHost {
+						fx[n].p, fx[n].t = int16(fx[n].o.SetP), int16(fx[n].o.SetT) // r.r.p/t hold the host
+					}
 					n++
 				}
 			}

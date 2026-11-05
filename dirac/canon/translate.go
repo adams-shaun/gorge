@@ -640,6 +640,10 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("player"), RefNone, RefPlayer+Ref(src-dirac.PlayerTarget0), 0), true
 		}
 		return Pack(kind("card"), src, RefNone, 0), true
+	case dirac.ChGenFaceDownPick:
+		// gorge's face_down_choice pick: the hand card to put onto the
+		// battlefield face down (CR 701.58a)
+		return Pack(kind("face_down_choice"), src, RefNone, 0), true
 	case dirac.ChGenChooseCard, dirac.ChGenResTarget, dirac.ChGenChooseEach:
 		// (ChGenChooseEach: gorge's ChooseCard per permanent type, Liliana's -9)
 		return Pack(kind("card"), src, RefNone, 0), true
@@ -837,7 +841,11 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		v := NameValue(r.GName[mode])
 		var earlier []string
 		if r.Tbl != nil {
-			for _, c := range r.Tbl.NameCards {
+			names := r.Tbl.NameCards
+			if r.D.N > 0 && len(r.Tbl.NameCardsAny) > 0 && len(r.D.Options[:r.D.N]) == len(r.Tbl.NameCardsAny) {
+				names = r.Tbl.NameCardsAny // the any-card ask's list (lands included)
+			}
+			for _, c := range names {
 				if int(c) < int(mode) {
 					earlier = append(earlier, r.GName[c])
 				}

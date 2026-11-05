@@ -6,7 +6,7 @@
     "pool": "std-dsk",
     "surface": "full",
     "seed": 1,
-    "pair": 70,
+    "pair": 98,
     "policy": "random",
     "mulligans": 0
   }

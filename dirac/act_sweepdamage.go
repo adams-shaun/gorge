@@ -23,7 +23,7 @@ func (s *State) sweepFrom(k *prep, in *kop.Instr) {
 	}
 	var ord [MaxPerm]Slot
 	cnt := s.sweepHits(k, in.F, &ord)
-	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevCol) != 0 && s.sweepReplCompete(k, src) {
+	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 && s.sweepReplCompete(k, src) {
 		s.capFull(StallReplPlus) // two damage replacements may match one hit: gorge asks their order (CR 616.1); not modelled
 		return
 	}
@@ -50,17 +50,17 @@ func (s *State) sweepFrom(k *prep, in *kop.Instr) {
 }
 
 // sweepReplCompete reports whether two or more damage replacements (a
-// Twinflame-shaped doubler, a Crystal-Barricade-shaped prevention, an Ext
-// PreventColor record for the source's colours) are in play at once, so that
-// some hit of the sweep could pose gorge's CR 616.1 order ask. It is a
-// conservative superset of parkNC's per-hit matching: a stall never hides a
-// divergence.
+// Twinflame-shaped doubler, a Crystal-Barricade-shaped prevention, a
+// recipient's own printed K:Prevent "all damage" line, an Ext PreventColor
+// record for the source's colours) are in play at once, so that some hit of
+// the sweep could pose gorge's CR 616.1 order ask. It is a conservative
+// superset of parkNC's per-hit matching: a stall never hides a divergence.
 func (s *State) sweepReplCompete(k *prep, src Slot) bool {
 	g := k.gen
 	c := 0
 	for m := s.statM; m.any(); m = m.rest() {
 		b := m.first()
-		if g.replBits[s.cardAt(b)]&(rbDblDmg|rbPrevNC) != 0 && !s.genLost(k, b) {
+		if g.replBits[s.cardAt(b)]&(rbDblDmg|rbPrevNC|rbPrevDmgTo) != 0 && !s.genLost(k, b) {
 			c++
 		}
 	}

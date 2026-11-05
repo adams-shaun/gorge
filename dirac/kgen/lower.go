@@ -96,6 +96,9 @@ type lowerCtx struct {
 	// permOrGraveCard: lowering a ValidTgts$ ChangeZone over Origin$ Battlefield,Graveyard (lower_originmulti.go)
 	permOrGraveCard bool
 
+	// deferTrig: the TriggersWhenSpent$ rider the face's deferred mana ability queued (lower_deferredmana.go)
+	deferTrig *cards.Trigger
+
 	firstCastSVar  string    // the SVar a static SpellCast StoreSVar of Count$YouCastThisGame writes (lower_firstcast.go)
 	firstCastTrig  int       // that trigger's index + 1: it lowers to nothing
 	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff)
@@ -346,6 +349,10 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 		if len(out.Abilities) > n && origin {
 			out.Abilities[n].Origin, out.Abilities[n].OriginOK = 0x80|i, true
 		}
+	}
+	if t := lc.deferTrig; t != nil {
+		lc.deferTrig = nil
+		lc.guard("T:TriggersWhenSpent", func() error { return lc.lowerTriggered(*t, "") }) // lower_deferredmana.go
 	}
 	for i, s := range lc.face.Statics {
 		s := s
@@ -801,6 +808,9 @@ func (lc *lowerCtx) lowerKeywords() {
 		}
 		node := "K:" + k
 		switch {
+		case param == "" && lc.lowerPreventKeyword(head):
+			// the printed K:Prevent sentence: CardDef.Prevent* (lower_preventkw.go),
+			// consumed with its minted R: lines
 		case head == "Hexproof" && hexColourLetters[strings.ToLower(param)] != "":
 			lc.out.HexColors = mergeColours(lc.out.HexColors, hexColourLetters[strings.ToLower(param)])
 		case head == "Hexproof" && param == "Instant":

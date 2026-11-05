@@ -74,7 +74,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		}
 		code := PlayerTarget0 + p
 		m := n
-		if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol) != 0 {
+		if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol) != 0 {
 			if m = s.replDamage(k, ctrl, sl, card, code, false, m); m <= 0 {
 				continue
 			}

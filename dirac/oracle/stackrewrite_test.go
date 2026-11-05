@@ -348,7 +348,7 @@ func TestChangeTargetsKeepsStackAbilityTarget(t *testing.T) {
 // A required redirect leaves its current target out of the offer and asks nothing
 // when no other is legal; Speedball's optional one walks a spell's declarations.
 func TestRedirectMovesOrKeeps(t *testing.T) {
-	synthPairs(t, "std-fdn", []int{325, 386}, nil)
 	synthPairs(t, "std-tla", []int{115}, nil)
 	pinnedGames(t, "std-msh", Config{}, cardOut("Speedball, New Warrior"))
+	pinnedGames(t, "std-fdn", Config{GorgeAutopaySurface: true}, cardOut("Bolt Bend"))
 }

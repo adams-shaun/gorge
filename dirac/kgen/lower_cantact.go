@@ -18,6 +18,16 @@ func (lc *lowerCtx) cantActivate(sp *params, st *lStatic) error {
 	if !ok {
 		return refuse("CantBeActivated without ValidCard$")
 	}
+	named := vc == "Card.NamedCard"
+	if named {
+		// the source's as-enters chosen name (Sorcerous Spyglass): kop
+		// CantActNamed compares the source's card with the chosen byte
+		if !entersNamingCard(lc.face) {
+			return refuse("CantBeActivated Card.NamedCard beside no as-enters NameCard")
+		}
+		vc = "Card"
+		st.Flags = append(st.Flags, "NamedCard")
+	}
 	f, err := lc.filter(vc)
 	if err != nil {
 		return err
@@ -43,7 +53,7 @@ func (lc *lowerCtx) cantActivate(sp *params, st *lStatic) error {
 		if az != "Battlefield" {
 			return refuse("CantBeActivated off the battlefield (AffectedZone %q)", az)
 		}
-	} else if !attachedOnly(f) && !loyal {
+	} else if !attachedOnly(f) && !loyal && !named {
 		return refuse("CantBeActivated off the battlefield")
 	}
 	switch a := sp.str("Activator"); a {

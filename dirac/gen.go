@@ -50,6 +50,7 @@ type genPrep struct {
 	enteredNeed     bool  // some expression reads the ring
 	actRingOn       bool  // some expression reads the ring (ExThisTurnActGrave): the activation push records it
 	castTapOn       bool  // castRingOn, or some card carries a Tf2ManaFromSelf reader: the planner's tap sites record a Treasure or observed source (noteTapSrc)
+	anyManaHaste    bool  // some mana ability carries a ManaHasteValid rider (mana_spentrider.go)
 	castRingOn      bool  // some expression reads the ring (ExThisTurnCastSpec): the push records it
 	embSubGrant     bool  // an emblem has a Continuous subtype grant (walked on every walk slot)
 	anyTypeValid    bool  // some card's as-enters type ask is narrowed by ValidTypes$ (CardDef.TypeValid; act_choosetype.go)
@@ -100,6 +101,7 @@ type genPrep struct {
 	anyTapExtra              bool // a card has a StatTapExtra static (mana_tapextra.go)
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
 	anyCantGain, anyCantDraw bool // StatCantGainLife / StatCantDraw statics (static_cantdraw.go)
+	anyTypeCreat             bool // a StatAnyTypeCreatures static (mana_convertcreature.go)
 	anyCdmgTough             bool // a card has a StatCombatDmgToughness static (combat_toughnessassign.go)
 	anyDisETB                bool // a card has a DisableTriggers enters static (kop.StatDisableETB; trig_disable.go)
 	anyLatentDies            bool // a card has a latent dies trigger an override or static can grant (trig_diesleaves.go)
@@ -301,6 +303,7 @@ type genPrep struct {
 	anyRole        bool           // some card carries the Role subtype: the SBA runs the Role exclusivity check (static_roletokens.go)
 	roleSub        uint8          // the matchup subtype index of Role (static_roletokens.go)
 	anyWhileHost   bool           // some override or emblem ends when its host leaves (kop.Override/Emblem.WhileHost; filter_combatwords.go)
+	anyWhileTapped bool           // some override also ends at its host's untap (kop.Override.WhileTapped; static_animatewhiletapped.go)
 	anyOvCantAtk   bool           // some override says its permanent can't attack (kop.Override.CantAttack; filter_combatwords.go)
 	anySrcMark     bool           // some filter reads F2DamagedBy or F2CrewedSrc: the source-mark records are kept (filter_combatwords.go)
 	dmgBy          []bool         // per card: its damage is recorded (an ability's filter reads F2DamagedBy; nil when none)
@@ -316,6 +319,8 @@ type genPrep struct {
 	destroyHeal  []kop.FilterID // per card: ReplDestroyHeal's filter (nil when no card has one; repl_destroyheal.go)
 	anyExileAny  bool           // some ReplExileOnLeave has Repl.C 1: a move to a graveyard from any zone checks it (placeFrom)
 	altFree      []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
+	// anyDeferred: some card has a deferred mana source (gfDeferred; mana_deferred.go)
+	anyDeferred bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
 	// a potential play's scripted prefix (script_gen.go)
@@ -323,7 +328,7 @@ type genPrep struct {
 	anyRestr   bool // some card has restr (kperf-blb: the ward / unless window's gate)
 	// anyRestrScript: some card has a restricted source gorge's census still
 	// misses (a reflected one: Plaza of Heroes), a scripted-prefix gap
-	// (gfRestrScript); anyRestrSrc: some card has a restricted source the
+	// (gfRestrScript), or a deferred source (gfDeferred; mana_deferred.go); anyRestrSrc: some card has a restricted source the
 	// payment planner counts per payment (gorge; restrSrcAb), and
 	// rs holds its records (mana_restrictedsource.go)
 	anyRestrScript bool
@@ -377,8 +382,8 @@ type genPrep struct {
 	// anyScriptGap: some card has eachCol, restr or anyR (a scripted play
 	// is possible)
 	anyScriptGap bool
-	// anyWindowGap: some card has eachCol or restr (gorge's ward / unless
-	// window activates them, mana.go windowTap)
+	// anyWindowGap: some card has eachCol, restr or a deferred source (gorge's
+	// ward / unless window activates them, mana.go windowTap)
 	anyWindowGap bool
 	// l6Stall: a global lose-all override static shares the table with a
 	// subtype lord the layer-4 walk reads (the loss check would re-enter
@@ -419,6 +424,9 @@ const (
 	rbDrawMore                        // ReplDrawMore (repl_draw.go)
 	rbPlusCtrEOT                      // Ext CounterPlusEOT: the table can put one more of each kind for a player until end of turn (anyRepl only; ctr_pluseot.go)
 	rbDestroyHeal                     // ReplDestroyHeal (repl_destroyheal.go)
+	rbPrevDmgTo                       // CardDef.PreventDmgTo: every damage event to the permanent is prevented (combat_prevention.go)
+	rbPrevCombatTo                    // CardDef.PreventCombatTo: its combat damage events are prevented (combat_prevention.go)
+	rbPrevCombatBy                    // CardDef.PreventCombatBy: the combat damage it would deal is prevented (combat_preventfrom.go)
 	rbDiscETB                         // ReplDiscardOppToBattlefield (repl_discardetb.go)
 )
 
@@ -434,10 +442,23 @@ type grantRef struct {
 // override took away.
 var noManaPC = pcard{manaAb: -1}
 
+// tableHasPrevent reports whether any card carries a printed K:Prevent damage
+// fact (CardDef.Prevent*), which prepareGen must carry in replBits even on an
+// otherwise featureless table.
+func tableHasPrevent(t *kop.Table) bool {
+	for i := range t.Cards {
+		c := &t.Cards[i]
+		if c.PreventDmgTo || c.PreventCombatTo || c.PreventCombatBy {
+			return true
+		}
+	}
+	return false
+}
+
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) {
 		return nil
 	}
 	enteredNeed := false
@@ -450,6 +471,19 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		enteredNeed: enteredNeed,
 		flags:       make([]uint32, len(t.Cards)),
 		replBits:    make([]uint32, len(t.Cards)),
+	}
+	for i := range t.Cards {
+		// the printed K:Prevent facts (dirac/kgen/lower_preventkw.go)
+		c := &t.Cards[i]
+		if c.PreventDmgTo {
+			g.replBits[i] |= rbPrevDmgTo
+		}
+		if c.PreventCombatTo {
+			g.replBits[i] |= rbPrevCombatTo
+		}
+		if c.PreventCombatBy {
+			g.replBits[i] |= rbPrevCombatBy
+		}
 	}
 	for i, n := range t.Subtypes {
 		if creatureTypeWords[n] {
@@ -610,6 +644,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyDisETB = tableHasStatic(t, kop.StatDisableETB)
 	g.anyCantGain = tableHasStatic(t, kop.StatCantGainLife)
 	g.anyCantDraw = tableHasStatic(t, kop.StatCantDraw)
+	g.anyTypeCreat = tableHasStatic(t, kop.StatAnyTypeCreatures)
 	g.anyDiscard = tableHasOp(t, kop.OpDiscard)
 	g.anyRemDisc = tableRemembersDiscards(t)
 	g.anySpellMana = prepDbMana(t) // mana_dbresolve.go
@@ -1003,6 +1038,11 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.anyOwnReduce = true
 				}
 			case kop.AbMana:
+				if a.ManaDeferred && a.AFlags&kop.AfLatent == 0 {
+					// a scripted-prefix gap beside the restricted ones (mana_deferred.go)
+					g.setFlag(CardID(i), gfDeferred)
+					g.anyDeferred, g.anyRestrScript, g.anyWindowGap = true, true, true
+				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).eachCol = int8(j)
 					g.setFlag(CardID(i), gfEachCol)
@@ -1078,7 +1118,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 							g.varPC = append(g.varPC, vp)
 						}
 					}
-					if int(pc.manaAb) == j && (a.AFlags&(kop.AfManaChosen|kop.AfManaDynamic|kop.AfLatent) != 0 || a.ManaRestrict != 0 || a.ManaColors == 0) {
+					if int(pc.manaAb) == j && (a.AFlags&(kop.AfManaChosen|kop.AfManaDynamic|kop.AfLatent) != 0 || a.ManaRestrict != 0 || a.ManaColors == 0 || a.ManaDeferred) {
 						pc.manaAb = -1
 					}
 				}
@@ -1233,7 +1273,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	// a filter a reducer takes to nothing is the source's own mana (mana_filterfree.go)
 	prepFiltFree(t, g, p)
 	g.anyScriptGap = g.anyEachCol || g.anyRestrScript || g.anyAnyR || g.anyFilt || p.tapMana // (a tap-another-permanent mana gap: mana_tapanother.go)
-	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom)
+	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
 	prepInfect(t, g)
 	prepPoison(t, g)
@@ -1567,6 +1607,7 @@ type genState struct {
 	nlinger  uint8
 	poison   [2]uint8 // each player's poison counters (CR 122.1f; infect and toxic, kw_infect.go; padding before lingerM)
 	poolArt  [2]uint8 // per player, the pool slots holding mana an artifact produced (mana_artifact.go; padding)
+	defSrc   [2]uint8 // per player, the slot + 1 of the deferred source whose {R} floats in the pool (mana_deferred.go; padding)
 	speed    uint8    // both seats' speed (3 bits each) and the once-per-turn speed trigger latch (bit 6; kw_speed.go; padding)
 	noPoison uint8    // bit p: player p can't get additional poison counters this turn (Melira's replacement; trig_leavereturn.go; padding)
 	plusCtr  [2]uint8 // per player, how many Brad Boimler counter-plus-one effects are active this turn (ctr_pluseot.go; padding)
@@ -2434,7 +2475,7 @@ func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 			case kop.ExtChooseNumber:
 				return akNumber
 			case kop.ExtChooseName:
-				return akName
+				return nameAskKind(&a.Prog[0])
 			}
 		case kop.OpUnlessPaid:
 			// the shock lands' as-enters pay-life election

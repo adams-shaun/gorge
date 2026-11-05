@@ -467,6 +467,14 @@ func (s *State) buildCost0(k *prep) kop.ManaCost {
 // unresolved {2/W} would have dropped it). done reports that the faces are
 // folded, so the caller resolves nothing more.
 func (s *State) buildCostPre(k *prep, pre bool) (kop.ManaCost, bool) {
+	c, done := s.buildCostPreRaw(k, pre)
+	if s.bld().e.flags&sfAnyMana != 0 && s.bld().e.kind == seSpell {
+		c = anyTypePips(c) // a hand cast under Vizier's conversion too (mana_convertcreature.go); idempotent
+	}
+	return c, done
+}
+
+func (s *State) buildCostPreRaw(k *prep, pre bool) (kop.ManaCost, bool) {
 	if s.bld().e.faceDown() {
 		// CR 702.37b/702.168b: Morph and Disguise cast face down for {3};
 		// Megamorph's face-down cost is its Morph cost ({3} in this pool).
@@ -1352,6 +1360,9 @@ func (s *State) finishBuild(k *prep) {
 		if k.gen != nil && k.gen.anyFirstCast {
 			s.noteFirstCast() // cast_firstcast.go
 		}
+		if k.gen != nil && k.gen.anyManaHaste {
+			s.manaHasteRider(k) // mana_spentrider.go
+		}
 		s.onCast(k, &e)
 		s.conspireTrigger(k, &e)
 		s.casualtyTrigger(k, &e)
@@ -1471,7 +1482,10 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 					// a self cast trigger (TfSelf) reads the spell cast, never
 					// the permanent carrying it: skipped here, fired from the
 					// stack by fireSelfCast
-					s.slotTriggers(k, sl, func(a *kop.Ability) bool { return a.Trig.Event == kop.TrigSpellCast && a.Trig.Flags&kop.TfSelf == 0 }, func(l trigListener, a *kop.Ability) {
+					// a deferred source's TriggersWhenSpent$ rider queues after the walk (fireDeferredRider)
+					s.slotTriggers(k, sl, func(a *kop.Ability) bool {
+						return a.Trig.Event == kop.TrigSpellCast && a.Trig.Flags&kop.TfSelf == 0 && !s.deferRider(k, sl, a)
+					}, func(l trigListener, a *kop.Ability) {
 						s.castTrigGen(k, l, a, e)
 					})
 				} else {
@@ -1505,6 +1519,9 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 		// gorge checkEventDelayedTriggers: after the face triggers, before
 		// the cascade triggers (trig_delayedspell.go)
 		s.fireDelayedSpell(k, e)
+	}
+	if k.gen != nil && k.gen.anyDeferred {
+		s.fireDeferredRider(k, e) // gorge fireManaSpentTriggers: after the cast triggers, before cascade
 	}
 	if k.gen != nil && k.gen.anyCascade && !DebugIgnoreCascade {
 		s.queueCascade(k, e)

@@ -613,6 +613,7 @@ type lTrigger struct {
 	GameOnce      bool  // GameActivationLimit$ 1: once per source object (kop.Tf3GameOnce)
 	SingleTarget  bool  // SpellCast: the cast spell's root target list has exactly one target (kop.Tf4SingleTarget)
 	CounterCell   bool  // CounterAddedOnce from Mode$ CounterPlayerAddedAll: one fire per put action per recipient (kop.Tf4CounterCell)
+	Outstanding   bool  // Mode$ Always, the counter-threshold state trigger: one instance at a time, the leave re-checks (kop.Tf4StateCtr)
 	OptTrigPlayer bool  // Optional: the trigger's player (the Phase trigger's active player) answers, not the controller (kop.Tf4OptTrigPlayer)
 	NamedCast     bool  // SpellCast lowered from Mode$ SpellAbilityCast over the source's chosen card name: also fires on an activation of a source with that name (kop.Tf4NamedCast; lower_choosename.go)
 	CauseTarget   bool  // DamageDone: ValidCause$ Spell.numTargets EQ1 + TargetRelativeToCause$ Creature.targetedBy (kop.Tf4SingleCauseTarget)
@@ -724,6 +725,8 @@ type lMana struct {
 	NonSpell   bool     // ... or on any payment that is not a spell (CantCastNonArtifactSpells)
 	Special    string
 	SpecialF   *lFilter
+	Deferred   bool     // a TriggersWhenSpent$ source gorge's planner defers (kop.Ability.ManaDeferred; lower_deferredmana.go)
+	HasteValid *lFilter // AddsKeywords$ Haste: a spell matching it, paid with this mana, gains haste until end of turn (kop.Ability.ManaHasteValid)
 }
 
 type lUnless struct {
@@ -805,6 +808,7 @@ type lOverride struct {
 	RemoveKw          []string // RemoveKeyword$: keywords removed (layer 6)
 	Dedup             bool     // share a byte-identical pool record across cards (Earthbend)
 	WhileHost         bool     // Duration$ UntilHostLeavesPlay
+	WhileTapped       bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
 	CantAttack        bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
 	MustBeBlocked     bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
 	NoCost            bool     // a copy exception's "with no mana cost" (RemoveCost$)
@@ -911,6 +915,9 @@ type lCard struct {
 	Infect         bool     // printed K:Infect (CR 702.90)
 	Toxic          int      // printed K:Toxic:<N> instances, summed (CR 702.164c)
 	Cascade        int      // printed K:Cascade instances (CR 702.85a/c): CardDef.Cascade
+	PreventDmgTo   bool     // printed "Prevent all damage that would be dealt to CARDNAME." (CardDef.PreventDmgTo)
+	PrevCmbTo      bool     // printed combat-scoped "dealt to CARDNAME" (CardDef.PreventCombatTo)
+	PrevCmbBy      bool     // printed combat-scoped "dealt by CARDNAME" (CardDef.PreventCombatBy)
 	Evasion        uint8    // printed Horsemanship / Intimidate (kop.Ev* bits)
 	Wither         bool     // printed K:Wither (CR 702.80)
 	AloneAtk       bool     // the printed can't-attack-alone keyword (CR 506.5)

@@ -432,6 +432,7 @@ func (cb *cardBuilder) record() error {
 	if d.Keywords, err = kwMask(c.Kw); err != nil {
 		return err
 	}
+	d.PreventDmgTo, d.PreventCombatTo, d.PreventCombatBy = c.PreventDmgTo, c.PrevCmbTo, c.PrevCmbBy
 	d.Colors = colorMask(c.Colors)
 	d.Power, d.Toughness, d.Loyalty = int8(c.P), int8(c.T), int8(c.Loyalty)
 	d.NoPT = c.NoPT
@@ -1468,6 +1469,11 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		}
 		switch {
 		case c.CmpOp == opGE:
+			if c.CmpN > 127 {
+				// the threshold is the int16 high byte: above 127 it would
+				// wrap negative and the predicate would match everything
+				return kf, fmt.Errorf("counter compare %d on %s", c.CmpOp, c.CmpCounter)
+			}
 			kf.Pred = kop.PredCountersGE
 			kf.PredN = int16(c.CmpN<<8 | int(k))
 		case c.CmpOp == opLT && c.CmpN >= 1 || c.CmpOp == opLE || c.CmpOp == opEQ && c.CmpN == 0:
@@ -1918,6 +1924,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.LoseAbilities = o.LoseAbilities
 	ko.KeepP, ko.KeepT = o.KeepP, o.KeepT
 	ko.WhileHost, ko.CantAttack = o.WhileHost, o.CantAttack
+	ko.WhileTapped = o.WhileTapped
 	ko.NoCost = o.NoCost
 	ko.RemoveLegendary = o.RemoveLegendary
 	ko.GrantStatics = o.GrantStatics

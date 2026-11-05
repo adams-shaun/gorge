@@ -50,7 +50,7 @@ func (s *State) scriptRestr(k *prep, p uint8) slotMask {
 	if !k.gen.anyRestrScript {
 		return slotMask{}
 	}
-	return s.gapMask(k, p, gfRestrScript)
+	return s.gapMask(k, p, gfRestrScript|gfDeferred)
 }
 
 // windowRestr: p's activatable restricted-mana sources (Giada), the ward /
@@ -122,6 +122,10 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	// spell may then spend it (scriptDeadEnd decides)
 	for b := s.scriptRestr(k, p); b.any(); b = b.rest() {
 		c := s.cardAt(b.first())
+		if k.gen.has(c, gfDeferred) {
+			a.addUnits(1<<kop.R, 1) // Goggles' plain {R} (mana_deferred.go)
+			continue
+		}
 		ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]
 		a.addUnits(1<<bits.TrailingZeros8(uint8(ab.ManaColors)), max(ab.ManaN, 1))
 	}
@@ -337,6 +341,10 @@ func (s *State) tapGap(k *prep, p uint8, sl Slot, restr slotMask, held *[kop.Num
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
+	if k.gen.has(s.cardAt(sl), gfDeferred) {
+		s.floatDeferred(k, p, sl) // (the window's gap too: restr is empty there)
+		return
+	}
 	if restr.has(sl) {
 		c := s.cardAt(sl)
 		ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]
@@ -505,7 +513,10 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 			d.remove(a) // never searched: unpriced
 			continue
 		}
-		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), &g) {
+		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), &g) && !s.tapXScript(k, a, p, false) {
+			// Gorge's script search covers every census gap — granted units and
+			// tap-another-permanent gaps alike (CR 605.1a, 601.2g-h) — so the
+			// kernel drops the play only when neither route prices it.
 			d.remove(a) // no prefix within gorge's node budget (mana_grantedoffers.go)
 		}
 	}
@@ -526,8 +537,17 @@ func (s *State) grantPrefix(k *prep, a Action, p uint8) {
 		return
 	}
 	var g grantSrch
-	if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), &g) || g.np == 0 {
+	if s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), &g) && g.np != 0 {
+		s.grantApply(k, &g) // the found prefix (mana_grantedoffers.go)
 		return
 	}
-	s.grantApply(k, &g) // the found prefix (mana_grantedoffers.go)
+	// The granted mana cannot pay the play (a spell-only grant and an
+	// ability, CR 605.1a) and the printed sources do not price it either:
+	// gorge's potential walk prices printed abilities only, so the play is
+	// off the walk and its script search taps the census gaps — the granted
+	// sources in battlefield order, their mana floating beside the pool, and
+	// the tap-another gap's step among them (grantTapXPrefix; pair 676).
+	if !s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(a)) {
+		s.grantTapXPrefix(k, a, p)
+	}
 }

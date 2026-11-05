@@ -841,6 +841,7 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		ka.AFlags |= kop.AfManaChoice
 	}
 	ka.ManaEach = m.Each
+	ka.ManaDeferred = m.Deferred
 	// m.RestrictAb beside a spell restriction (Secluded Courtyard: "or
 	// activate an ability of a creature of the chosen type") is the
 	// activated half of the restriction (ManaRestrictAb); m.NonSpell adds
@@ -889,6 +890,25 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	}
 	if m.NonSpell {
 		ka.AFlags |= kop.AfManaNonSpell
+	}
+	if m.HasteValid != nil {
+		// the kernel reads the rider off the tapped card's mana ability
+		// (dirac/mana_spentrider.go): a second mana ability beside it would
+		// carry the rider onto its own taps
+		n := 0
+		for _, a := range cb.c.Abilities {
+			if a.Kind == akMana {
+				n++
+			}
+		}
+		if n != 1 {
+			return fmt.Errorf("AddsKeywords$ mana rider beside another mana ability")
+		}
+		id, err := cb.filter(m.HasteValid, kop.ZoneStack)
+		if err != nil {
+			return err
+		}
+		ka.ManaHasteValid = id
 	}
 	return nil
 }
@@ -1388,6 +1408,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.Flags4 |= kop.Tf4NamedCast
 	}
+	if t.Outstanding {
+		if t.Event != "CounterAddedOnce" && t.Event != "CounterAdded" || kt.Flags&kop.TfSelf == 0 {
+			return kt, fmt.Errorf("outstanding latch on a %s trigger", t.Event)
+		}
+		kt.Flags4 |= kop.Tf4StateCtr
+	}
 	if t.CastSnap {
 		if t.Event != "SpellCast" {
 			return kt, fmt.Errorf("cast-count snapshot on a %s trigger", t.Event)
@@ -1647,9 +1673,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			case "ActivatorOpp":
 				st.StFlags |= kop.StRaiseOpp
 			case "SpareMana":
-				st.A = 1
+				st.A |= 1
 			case "LoyaltyOnly":
-				st.A = 2
+				st.A |= 2
+			case "NamedCard":
+				st.A |= kop.CantActNamed
 			default:
 				return ka, nil, fmt.Errorf("cant be activated flag %q", fl)
 			}
@@ -1729,6 +1757,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "CantGainLife":
 		st.Kind = kop.StatCantGainLife
+	case "ManaConvert":
+		st.Kind = kop.StatAnyTypeCreatures // lower_manaconvert.go
 	case "CantDraw":
 		st.Kind = kop.StatCantDraw
 	case "MinMaxBlocker":
@@ -3703,6 +3733,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.C = 5 // chooseAttachPickOpt: the same pick, up to one
 		case "PutCounterPick":
 			ki.C = 6 // choosePutCounterPick
+		case "FaceDownPick":
+			ki.C = 7 // chooseFaceDownPick: the cloak-from-hand pick (gorge's face_down_choice)
 		}
 	case "ChooseEachType":
 		ki.Op = kop.OpChooseEachType
@@ -4027,7 +4059,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "ChooseType":
 		ki.Op, ki.C = kop.OpChooseType, int16(in.C) // C: a card-type category's offered types (lower_choosetype.go)
 	case "ChooseName":
-		buildChooseName(&ki) // an as-enters nonland card name (lower_choosename.go)
+		buildChooseName(&ki, in.B.N) // an as-enters card name (lower_choosename.go)
 	case "ChooseNumber":
 		// an as-enters number from B to C (lower_choosenumber.go)
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)

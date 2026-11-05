@@ -37,6 +37,8 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"ward_failed_payment_granted_type_first", false, false}, // Leyline of the Guildpact: a ward payment too small to pay floats the Mountain's own {R}, the first of its abilities, not a granted {W}
 		{"granted_types_any_land_hybrid_pool", true, false},      // Leyline of the Guildpact: Fuss after three {W} floated by hand pays its generic from the same lands in both engines
 		{"adventure_card_copy_cast", true, false},                // CR 707.12, 715.3: Reenact the Crime's copy of Kellan, Inquisitive Prodigy is cast as its front face (gorge never offers the Adventure)
+		{"facedown_ward_of_a_printed_ward_card", false, false},   // CR 701.58a/702.168b: a cloaked Axebane Ferox (prints Ward) targeted by an opponent: the face-down ward trigger has no face trigger index (gorge 255)
+		{"hybrid_activation_printed_witness", false, false},      // a lowered {G/W} activation resolves over printed mana only: Insidious Roots' granted any-colour token is not the {G} face gorge's planHybridCost prices
 	})
 }
 
@@ -172,6 +174,7 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"tap_another_activation_beside_granted_mana", true, false},         // CR 605.1a, 601.2g: the grant cap prunes a Lander's {2},{T},Sac activation the granted spell-only mana cannot pay, but a tap-another-permanent source beside it can, so the activation stays on autopay's menu
 		{"tap_another_source_beside_restricted_grant", false, false},        // CR 601.2g-h: beside Mm'menon's hand-barred granted blue, Gene Pollinator's tap-another-permanent mana pays Mechanozoa's {U}{U} from hand, so the plain cast is offered
 		{"each_return_asks_election_per_target", false, false},              // CR 614.12, 608.2c: Pull Through the Weft returns its two shock lands one at a time, each one's pay-life election asked before the next moves
+		{"unspendable_grant_is_a_prefix_gap", false, false},                 // CR 601.2g-h: Mm'menon's hand-barred granted blue prices no hand cast (Glacier Godmaw is not offered off it), yet gorge's prefix still taps Nanoform Sentinel for it as a gap step, the blue floating
 	})
 }
 
@@ -431,6 +434,7 @@ func TestStdPoolReprosLockstepFull(t *testing.T) {
 		{"maralen_blinked_regains_its_permission", "std-ecl"},            // CR 400.7: Personify cast free through Maralen blinks her, and the returned Maralen is a new object whose once-each-turn permission is unspent
 		{"alt_add_cost_reduced_as_a_total", "std-tla"},                   // CR 601.2f: Uncle Iroh's {1} off Redirect Lightning comes off {R} plus the {2} part, so the lowered cast floats two mana, not three
 		{"hybrid_trial_leaves_granted_sources_out", "std-tla"},           // Long Feng's {B/G}{B/G} over Great Divide Guide: gorge's resolution search has no witness for {B}{B} from a granted source, so it pays {G}{B}
+		{"mayplay_hybrid_witness_prices_the_rider", "std-mkm"},           // CR 601.2b: Outrageous Robbery's any-type cast of the exiled Trostani, Three Whispers ({G}{G/W}{W}, no pip ask): the witness prices the rider's cost, one generic per hybrid pip
 		{"waterbend_armed_witness_stands_after_picks", "std-tla"},        // Katara's waterbend {6}: the offer armed Island, Island for the credit's {2}, four picks bring the cost to {2}, and gorge runs that witness rather than ranking again without the Waterskin
 		{"window_combo_answers_its_own_colour", "std-tla"},               // Misty Palms Oasis, {W} or {B} printed and any colour granted, owing {R}: the window answers {W}, the granted option has no symbol
 		{"sweep_damage_is_one_batch_for_dealt_once", "std-fin"},          // Nibelheim Aflame with Cecil, Dark Knight: his damage to three creatures is one batch, so his trigger queues once with the total

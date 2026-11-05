@@ -1,0 +1,15 @@
+# The printed K:Prevent damage keyword family (engine/cards/kw_prevent.go;
+# dirac/oracle/preventkw_test.go): Fog Bank (combat to and by), Guard Gomazoa
+# (combat to), Dawn Elemental (all damage to), with a 3/3 attacker and burn,
+# and a shield-counter placer for the CR 616.1 order ask on the Elemental.
+Boon of Safety
+Dawn Elemental
+Fog Bank
+Grizzly Bears
+Guard Gomazoa
+Hill Giant
+Island
+Lightning Bolt
+Mountain
+Plains
+Shock
