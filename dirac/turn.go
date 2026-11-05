@@ -494,6 +494,7 @@ func (s *State) sba(k *prep) bool {
 			s.removeNoncreatureCombatants(k) // CR 506.4 (cold)
 		}
 		var die, gy, pwz, aur, anni slotMask
+		askAfter := false // exileOrderAsk parked casualties now: the ask follows this pass's batch
 		// statics in force but none that can lower a toughness (kprio2)
 		ptQuiet := s.statM.any() && s.sbaPTQuiet(k)
 		m := s.occ
@@ -581,7 +582,7 @@ func (s *State) sba(k *prep) bool {
 				s.legDie = die
 				return true
 			}
-			if s.exileOrderAsk(k, &die, &gy, &pwz, &aur) {
+			if s.exileOrderAsk(k, &die, &gy, &pwz, &aur, &askAfter) {
 				return true
 			}
 		}
@@ -695,6 +696,10 @@ func (s *State) sba(k *prep) bool {
 		}
 		if anni.any() {
 			s.annihilateAll(anni.and(s.occ))
+		}
+		if askAfter && s.parkedWaiting() {
+			s.ctl = ctlExileOrder
+			return true
 		}
 	}
 }

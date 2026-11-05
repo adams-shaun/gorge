@@ -302,9 +302,10 @@ func TestStdTmtReprosLockstep(t *testing.T) {
 func TestStdDskReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-dsk", []stdRepro{
-		{"room_shown_face_plain_cast", false, false},            // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
-		{"sacrificed_panharmonicon_host_departs", false, false}, // CR 603.2d: a sacrificed Panharmonicon host is gone when Popular Egotist's "whenever you sacrifice" trigger is checked, so it echoes nothing
-		{"returning_aura_during_paid_cost", false, false},       // CR 303.4f: a sacrificed "until this leaves" host returns its exiled Aura while the sacrifice cost's payment is still resolving: the Aura waits in exile and its owner chooses what it enchants
+		{"room_shown_face_plain_cast", false, false},             // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
+		{"sacrificed_panharmonicon_host_departs", false, false},  // CR 603.2d: a sacrificed Panharmonicon host is gone when Popular Egotist's "whenever you sacrifice" trigger is checked, so it echoes nothing
+		{"returning_aura_during_paid_cost", false, false},        // CR 303.4f: a sacrificed "until this leaves" host returns its exiled Aura while the sacrifice cost's payment is still resolving: the Aura waits in exile and its owner chooses what it enchants
+		{"lingering_aura_sweeps_before_order_ask", false, false}, // CR 704.3, 616.1: a dying creature's order ask is posed in its check: the Aura whose host left in that check is swept, and the token it moved ceases, at the check after the answer
 	})
 }
 
