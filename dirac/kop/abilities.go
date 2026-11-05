@@ -91,6 +91,11 @@ type Ability struct {
 	// at once (Produced$ "W U", Timeless Lotus's {W}{U}{B}{R}{G}; CR 106.1),
 	// not one of them. A table byte: AbilityFlags has no free bit.
 	ManaEach bool
+	// ManaHasteValid: AddsKeywords$ Haste | AddsKeywordsValid$ ... |
+	// AddsKeywordsUntil$ UntilEOT (Carnelian Orb of Dragonkind; CR 106.6):
+	// a spell matching this filter, paid with this ability's mana, gains
+	// haste until end of turn as it enters (0 = no rider). A table field.
+	ManaHasteValid FilterID
 }
 
 // Timing is when a card may be cast.
