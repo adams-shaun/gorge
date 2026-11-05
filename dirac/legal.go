@@ -336,11 +336,11 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if k.anyRoom && sorc {
 			s.offerUnlocks(k, d, p) // CR 709.5e: special action (face_rooms.go)
 		}
-		if s.scriptAny(k) && s.g.availX == 0 {
-			s.scriptOffers(k, d, p)
-		}
 		if len(k.gen.grantPC) != 0 && s.g.availX == 0 {
 			s.grantCap(k, d, p)
+		}
+		if s.scriptAny(k) && s.g.availX == 0 {
+			s.scriptOffers(k, d, p)
 		}
 	}
 	if faces {

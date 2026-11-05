@@ -191,7 +191,14 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 		}
 	}
 	m := s.ctrlM[p]
-	dual := k.gen != nil && k.gen.anyContGrant // a granted colour beside the own ability (mana_grantedoffers.go)
+	// A granted colour beside the own ability (mana_grantedoffers.go): the
+	// planner's census and the offer read it, and grantCap's potential walk
+	// (availWalk) counts the relaxed alternatives. An activated ability's
+	// prefix search (noGrant) does not: its granted mana is the grant
+	// search's (grantCap/grantPrefix), and counting it here would pay the
+	// activation with mana its spend restriction cannot spend.
+	grantOK := !(s.g.noGrant && s.g.availX&availPlain != 0)
+	dual := k.gen != nil && k.gen.anyContGrant && grantOK
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
@@ -202,6 +209,9 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 		}
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 {
 			continue
+		}
+		if !grantOK && k.gen != nil && s.manaGranted(k, sl) {
+			continue // a source whose only mana ability is granted: grantCap/grantPrefix's search, not another gap's
 		}
 		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) {
 			continue
