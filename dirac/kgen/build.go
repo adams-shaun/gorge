@@ -1469,6 +1469,11 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		}
 		switch {
 		case c.CmpOp == opGE:
+			if c.CmpN > 127 {
+				// the threshold is the int16 high byte: above 127 it would
+				// wrap negative and the predicate would match everything
+				return kf, fmt.Errorf("counter compare %d on %s", c.CmpOp, c.CmpCounter)
+			}
 			kf.Pred = kop.PredCountersGE
 			kf.PredN = int16(c.CmpN<<8 | int(k))
 		case c.CmpOp == opLT && c.CmpN >= 1 || c.CmpOp == opLE || c.CmpOp == opEQ && c.CmpN == 0:
