@@ -81,8 +81,16 @@ func TestEnchantParkTrimsEnteredCards(t *testing.T) {
 		if !sc.onBF(a) || sc.slot(a) != aSlot {
 			t.Fatalf("tail=%v: A on bf %v slot %d, want still in slot %d", tail, sc.onBF(a), sc.slot(a), aSlot)
 		}
+		if att := s.perms[sc.slot(a)].attached; att != NoSlot {
+			t.Fatalf("tail=%v: A attached to %d, want unattached", tail, att)
+		}
 		if tail && !sc.onBF(c) {
 			t.Fatalf("the card behind the Aura is in zone %d, want the battlefield", s.objs[c].zone)
+		}
+		if tail {
+			if att := s.perms[sc.slot(c)].attached; att != NoSlot {
+				t.Fatalf("tail=%v: the trailing land attached to %d, want unattached", tail, att)
+			}
 		}
 		if s.g.nlook != 0 {
 			t.Fatalf("tail=%v: nlook %d after the answer, want 0", tail, s.g.nlook)

@@ -1535,7 +1535,9 @@ func (s *State) finishSearchTail(k *prep) {
 func (s *State) moveFound(k *prep) { s.moveFoundAns(k, NoSlot) }
 
 // moveFoundAns is moveFound; host is the answered enchant ask of the
-// one-card hand move onto the battlefield parked at it (handAuraEnter).
+// one-card hand move onto the battlefield parked at it (handAuraEnter);
+// the re-run's first look card is that parked card, and only it consumes
+// host.
 func (s *State) moveFoundAns(k *prep, host Slot) {
 	p := s.g.pickP
 	z := kop.Zone(s.g.pickZ)
@@ -1556,8 +1558,12 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			continue
 		}
 		if z == kop.ZoneBattlefield && s.handAuraArmed(k) {
+			ans := host // the answered enchant ask is for the parked card, the look's first
+			if i != 0 {
+				ans = NoSlot // every card after it asks for itself again
+			}
 			var parked, stay bool
-			if host, parked, stay = s.handAuraEnter(k, o, p, host); parked {
+			if host, parked, stay = s.handAuraEnter(k, o, p, ans); parked {
 				n := copy(s.resArm().look[:], s.resArm().look[i:s.g.nlook])
 				s.g.nlook = uint8(n)
 				return // the card waits in the hand for the enchant ask; the look now starts at it
