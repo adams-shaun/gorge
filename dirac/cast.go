@@ -1,8 +1,10 @@
 package dirac
 
 import (
+	"fmt"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"math/bits"
+	"os"
 )
 
 // Putting a spell or ability on the stack (CR 601.2 / 602.2, gorge
@@ -365,6 +367,12 @@ var stageNext, stageFirst = func() (nx [3][nBuildStages]uint8, first [3]uint8) {
 // toStage enters build stage st, running its entry step: the targets start
 // at slot 0, the division computes its points (startCastDivide).
 func (s *State) toStage(k *prep, st uint8) {
+	if os.Getenv("DIRAC_RC_TRACE") != "" {
+		e := &s.bld().e
+		if s.objs[e.obj].of&ofCopy != 0 {
+			fmt.Fprintf(os.Stderr, "TS obj=%d stage=%d\n", e.obj, st)
+		}
+	}
 	s.bld().stage = st
 	switch st {
 	case bsTargets:

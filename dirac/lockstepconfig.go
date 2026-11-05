@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -45,9 +47,15 @@ func xFolded(cost kop.ManaCost, x int) kop.ManaCost {
 func (s *State) xWindowPay(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
 	c := xFolded(*cost, int(e.x))
 	anyColor := s.bld().bfl&bflAnyColor != 0
+	if os.Getenv("DIRAC_RC_TRACE") != "" {
+		fmt.Fprintf(os.Stderr, "XW entry pool=%v cost=%v x=%d\n", s.pl[e.ctrl].pool, c, e.x)
+	}
 	ok, held := s.windowTapRider(k, e.ctrl, &c, !anyColor, anyColor)
 	for col := range held {
 		s.pl[e.ctrl].pool[col] += held[col]
+	}
+	if os.Getenv("DIRAC_RC_TRACE") != "" {
+		fmt.Fprintf(os.Stderr, "XW exit ok=%v pool=%v held=%v\n", ok, s.pl[e.ctrl].pool, held)
 	}
 	return ok
 }
