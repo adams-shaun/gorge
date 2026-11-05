@@ -171,8 +171,9 @@ import (
 // +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; land; merged ALL build-level 21579 -> 21584).
 // +1 (Doomsday Excruciator: a RepeatEach player body's library count and blind face-down Dig; this branch; merged ALL build-level 21584 -> 21585).
 // +1 (Worlds Within Worlds: a RepeatEach player body's per-player hand move; this branch; merged ALL build-level 21585 -> 21586).
+// +2 (Waterbending Lesson, The Unagi of Kyoshi Island: an UnlessCost$ Waterbend<N> and Ward:Waterbend<N>; this branch; merged TLA 246 -> 248, ALL 21595 -> 21597).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21595, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21597, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
