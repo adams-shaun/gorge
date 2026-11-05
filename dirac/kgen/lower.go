@@ -29,6 +29,7 @@ var ignoredParams = map[string]bool{
 	"NoPutDesc":          true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
 	"PrimaryPrompt":      true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
 	"AINoRecursiveCheck": true, // Forge AI hint: only in gorge's accepted-key lists (params/mana.go, params/dealdamage.go, changezone_params.go), never read
+	"AIXMax":             true, // Forge AI hint for the X it announces: only in gorge's accepted-key lists (changezone_params.go, params/*.go), never read
 }
 
 // params tracks which parameters of one IR node the lowering read, so an
@@ -450,7 +451,9 @@ func (lc *lowerCtx) refuseHarmonizeCombos() {
 		lc.refuseNode("K:Harmonize", "Harmonize beside Convoke or Improvise")
 	}
 	if out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Sneak != nil || out.Impending != nil || out.Bestow != nil ||
-		out.SpellCost != nil || out.AltAddCost != nil || out.Offspring != nil || out.Gift || out.MorphCost != nil || out.Casualty != 0 || out.Cost.X {
+		out.SpellCost != nil || out.AltAddCost != nil || out.Offspring != nil || out.Gift || out.MorphCost != nil || out.Casualty != 0 || out.Cost.X != out.Harmonize.X {
+		// a printed {X} with an X-less harmonize cost (or the reverse) reads
+		// an X the graveyard cast never announces
 		lc.refuseNode("K:Harmonize", "Harmonize beside another cast route or additional cost")
 	}
 	if out.Flashback != nil {
@@ -1131,9 +1134,11 @@ func (lc *lowerCtx) lowerKeywords() {
 		case head == "Harmonize":
 			// CR 702.180a: a graveyard cast for the printed cost, one
 			// creature tapped for its power (dirac/kw_harmonize.go).
-			// An {X} cost, a rider or a non-mana part is not read exactly.
+			// An {X} cost announces X before the tap pick reads the total
+			// (gorge xAsk after convokeAsk); {X}{X}, a rider or a non-mana
+			// part is not read exactly.
 			mc, err := parseManaCost(param)
-			if err != nil || mc.X || mc.None || strings.ContainsAny(param, ":<") {
+			if err != nil || mc.XX || mc.XXX || mc.None || strings.ContainsAny(param, ":<") {
 				lc.refuseNode(node, "harmonize cost %q", param)
 				continue
 			}
