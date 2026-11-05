@@ -163,6 +163,45 @@ func (s *State) convokeApplyPicks(k *prep, cost kop.ManaCost) kop.ManaCost {
 	return cost
 }
 
+// convokeXCost folds x into cost and replays the announced picks in
+// announcement order, reporting false when a pick would reduce nothing
+// (gorge convokeAbsorbs at xAsk, xOpen=false).
+func (s *State) convokeXCost(k *prep, cost kop.ManaCost, x int) (kop.ManaCost, bool) {
+	cost = xFolded(cost, x)
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if !isConvokePick(s.bld().pickKs[i]) {
+			continue
+		}
+		col := int(s.bld().pickKs[i] & 7)
+		switch {
+		case col == 7:
+			cost.Generic -= s.harmonizeReduce(k, s.objs[s.bld().picks[i]].slot, cost.Generic)
+		case col < 5:
+			if cost.Pips[col] == 0 {
+				return cost, false
+			}
+			cost.Pips[col]--
+		default:
+			if cost.Generic == 0 {
+				return cost, false
+			}
+			cost.Generic--
+		}
+	}
+	return cost, true
+}
+
+// improvisePickCount counts the announced improvise (mode 6) picks.
+func (s *State) improvisePickCount() int {
+	n := 0
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if isConvokePick(s.bld().pickKs[i]) && s.bld().pickKs[i]&7 == 6 {
+			n++
+		}
+	}
+	return n
+}
+
 // convokePickN counts the announced convoke picks.
 func (s *State) convokePickN() int {
 	n := 0
@@ -239,20 +278,13 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	fromHand := s.castFromHandBy(e, e.ctrl)
 	convoke := s.hasConvoke(k, e.ctrl, e.card, e.obj, fromHand)
 	improvise := s.isImprovise(k, e.ctrl, e.card, e.obj, fromHand)
-	// A granted tap-paid keyword reopens two shapes kgen refuses for the
-	// printed forms: a spell with both convoke and improvise (gorge offers
-	// creature colour, creature generic and artifact generic picks in one
-	// announcement; the kernel poses one keyword's), and an {X} cost (gorge
-	// announces before X and offers every creature a possible generic
-	// payment). Stall unmodelled rather than pose the wrong menu.
-	if raw.MV() > 0 || raw.X > 0 {
-		cd := &k.t.Cards[e.card]
-		if convoke && improvise || raw.X > 0 && (!cd.Convoke && convoke || !cd.Improvise && improvise) {
-			s.capFull(StallStackKwGrant)
-			return false
-		}
-	}
-	imp := improvise
+	// A spell with both keywords (a grant beside a printed one) or an {X}
+	// cost poses gorge's one mixed announcement: per keyword, the creature's
+	// colour and generic picks, the artifact's improvise pick; with {X} the
+	// generic picks are offered tentatively (the X ask prices them,
+	// convokeXCost).
+	hasX := raw.X > 0
+	genOK := raw.Generic > 0 || hasX
 	// gorge's ask closes at Max = min(#options, slots), the uncredited
 	// Colored.Total()+Generic (pay.ConvokeAsk): an announcement whose picks
 	// reach the slot count commits without a Done.
@@ -269,25 +301,26 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	offered := 0
 	for _, sl := range ord0[:n0] {
 		pp := &s.perms[sl]
-		if !s.tapPayCand(k, sl, imp) {
-			continue
-		}
-		o := pp.obj
-		if s.pickedKind(o, pkTapX) {
+		cc := convoke && s.tapPayCand(k, sl, false)
+		ic := improvise && s.tapPayCand(k, sl, true)
+		if !cc && !ic || s.pickedKind(pp.obj, pkTapX) {
 			continue
 		}
 		col := s.colorsAt(k, sl)
-		for ci := 0; ci < 5 && !imp; ci++ {
+		for ci := 0; ci < 5 && cc; ci++ {
 			if raw.Pips[ci] != 0 && col&(1<<ci) != 0 {
 				offered++
 			}
 		}
-		if raw.Generic > 0 {
+		if cc && genOK {
+			offered++
+		}
+		if ic && genOK {
 			offered++
 		}
 	}
 	maxPicks := slots
-	if offered < maxPicks {
+	if hasX || offered < maxPicks {
 		maxPicks = offered
 	}
 	if s.convokePickCount() >= maxPicks {
@@ -306,7 +339,9 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	pose := false
 	for _, sl := range ord[:n] {
 		pp := &s.perms[sl]
-		if !s.tapPayCand(k, sl, imp) {
+		cc := convoke && s.tapPayCand(k, sl, false)
+		ic := improvise && s.tapPayCand(k, sl, true)
+		if !cc && !ic {
 			continue
 		}
 		o := pp.obj
@@ -314,7 +349,7 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 			continue
 		}
 		col := s.colorsAt(k, sl)
-		for ci := 0; ci < 5 && !imp; ci++ {
+		for ci := 0; ci < 5 && cc; ci++ {
 			if raw.Pips[ci] == 0 || col&(1<<ci) == 0 {
 				continue
 			}
@@ -327,14 +362,17 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 				}
 			}
 		}
-		if raw.Generic > 0 {
+		for g := 0; g < 2 && genOK; g++ {
+			if g == 0 && !cc || g == 1 && !ic {
+				continue
+			}
 			pose = true
-			if gen > 0 {
+			if gen > 0 || hasX {
 				if d.N >= MaxOptions-1 {
 					s.capFull(StallConvoke)
 					break
 				}
-				d.add(MakeAction(AkChoose, uint8(o), 0, convokeGenMode(imp)))
+				d.add(MakeAction(AkChoose, uint8(o), 0, convokeGenMode(g == 1)))
 			}
 		}
 		if d.N >= MaxOptions-1 {
@@ -375,11 +413,12 @@ func (s *State) convokeHidden() slotMask {
 // creatures are hidden from the window as mana sources. If the window cannot
 // pay, the cast is reversed (gorge abortCast) and false is returned.
 func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, anyColor bool) bool {
-	red := s.convokeApplyPicks(k, *cost)
+	folded := xFolded(*cost, int(e.x)) // the picks are announced before X, and pay a generic of its total
+	red := s.convokeApplyPicks(k, folded)
 	saved := s.fork()
 	defer s.unfork()
 	s.occ = s.occ.andNot(s.convokeHidden())
-	ok, held := s.windowTapUseful(k, e.ctrl, &red, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
+	ok, held := s.windowTapUseful(k, e.ctrl, &red, &folded, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
 	if !ok {
 		s.CopyFrom(saved)
 		s.reverseCast(k)
@@ -437,7 +476,7 @@ func (s *State) convokeTargetAbort(k *prep) bool {
 	if e.flags&sfFree != 0 || s.bld().bfl&bflLowered != 0 && !s.copyCastPaid(k, e) {
 		return false
 	}
-	cost := s.convokeApplyPicks(k, s.buildCost(k))
+	cost := s.convokeApplyPicks(k, xFolded(s.buildCost(k), int(e.x)))
 	return s.targetWindowShort(k, e, &cost, true)
 }
 
@@ -484,29 +523,45 @@ func (s *State) targetWindowShort(k *prep, e *stackEntry, cost *kop.ManaCost, hi
 const ConvokeHarmonizeMode uint8 = 7
 
 // FeatConvokeCands appends every permanent the announcement in progress offers
-// at its first ask, picked ones included, in battlefield order, and reports
-// whether it is an Improvise announcement.
+// at its first ask, picked ones included, in battlefield order (the union of
+// the Convoke creatures and the Improvise artifacts), and reports whether the
+// spell has Improvise. FeatConvokeKinds says which keywords are live.
 func (s *State) FeatConvokeCands(out []Obj) ([]Obj, bool) {
 	k := s.k()
 	e := &s.bld().e
 	raw := s.buildCost(k)
-	imp := s.isImprovise(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl))
+	convoke, improvise := s.FeatConvokeKinds()
+	genOK := raw.Generic > 0 || raw.X > 0
 	var ord [MaxPerm]Slot
 	n := s.battlefieldOrder(e.ctrl, s.ctrlM[e.ctrl].and(s.occ), ord[:], 0)
 	for _, sl := range ord[:n] {
-		if !s.tapPayCand(k, sl, imp) || s.pickedKind(s.perms[sl].obj, pkTapX) {
+		if s.pickedKind(s.perms[sl].obj, pkTapX) {
 			continue
 		}
-		off := raw.Generic > 0
+		cc := convoke && s.tapPayCand(k, sl, false)
+		ic := improvise && s.tapPayCand(k, sl, true)
+		off := genOK && (cc || ic)
 		col := s.colorsAt(k, sl)
-		for ci := 0; ci < 5 && !imp && !off; ci++ {
+		for ci := 0; ci < 5 && cc && !off; ci++ {
 			off = raw.Pips[ci] != 0 && col&(1<<ci) != 0
 		}
 		if off {
 			out = append(out, s.perms[sl].obj)
 		}
 	}
-	return out, imp
+	return out, improvise
+}
+
+// FeatConvokeKinds reports which tap-paid keywords the announcement in
+// progress has: Convoke, Improvise (a spell may have both).
+func (s *State) FeatConvokeKinds() (convoke, improvise bool) {
+	k := s.k()
+	e := &s.bld().e
+	fh := s.castFromHandBy(e, e.ctrl)
+	improvise = s.isImprovise(k, e.ctrl, e.card, e.obj, fh)
+	// a spell without Improvise is a creature-tap announcement (Convoke, or
+	// Harmonize's creature pick), as it always was here
+	return s.hasConvoke(k, e.ctrl, e.card, e.obj, fh) || !improvise, improvise
 }
 
 // FeatConvokePicked reports whether o was already announced.

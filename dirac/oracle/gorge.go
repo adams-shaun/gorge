@@ -194,6 +194,10 @@ func manaChoiceResolving(d *decision.Decision) bool {
 type convokeFrame struct {
 	gen  uint32
 	pips [6]uint32
+	// open: the {X} is not announced yet (the ask's Max exceeds the
+	// outstanding slots), so a generic pick against {0} is tentatively legal
+	// (gorge convokeAbsorbs, xOpen) and pays nothing until X is folded.
+	open bool
 }
 
 func (c *convokeFrame) admits(d *decision.Decision, chosen []int, i int) bool {
@@ -205,7 +209,7 @@ func (c *convokeFrame) admits(d *decision.Decision, chosen []int, i int) bool {
 		}
 		if o.Kind == "convoke_generic" || o.Kind == "improvise_generic" {
 			if gen == 0 {
-				return false
+				return c.open
 			}
 			gen--
 			return true
@@ -489,7 +493,11 @@ func (g *GorgeSide) build(d0 *decision.Decision) *frame {
 	fr := &frame{seq: d.Seq, d: d, dk: decisionKinds[d.Kind]}
 	if d.Kind == decision.KChoose && len(d.Options) > 0 && (strings.HasPrefix(d.Options[0].Kind, "convoke_") || d.Options[0].Kind == "improvise_generic") {
 		if pc, ok := g.castCost[d.Source]; ok {
-			fr.convoke = &convokeFrame{gen: pc.Generic, pips: pc.Mana}
+			slots := int(pc.Generic)
+			for _, p := range pc.Mana {
+				slots += int(p)
+			}
+			fr.convoke = &convokeFrame{gen: pc.Generic, pips: pc.Mana, open: d.Max > slots}
 		}
 	}
 	if d.Kind == decision.KPriority {

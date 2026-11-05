@@ -57,7 +57,10 @@ func (s *State) histCast(k *prep, e *stackEntry, cost *kop.ManaCost) {
 		if s.isImprovise(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl)) {
 			// gorge's improvise picks do not count as mana for the expend
 			// tally either (CountsMana is convoke-only); convoke picks do
-			spent = spentMana
+			spent -= s.improvisePickCount()
+			if spent < 0 {
+				spent = 0
+			}
 		}
 	}
 	if k.gen.anySpent {

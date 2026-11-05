@@ -439,7 +439,8 @@ func (bt *Bot) castHelperSet(s *dirac.State, out *[dirac.MaxPerm]dirac.Obj, pip 
 		return 0
 	}
 	var offers [dirac.MaxPerm]dirac.Obj
-	cands, improvise := s.FeatConvokeCands(offers[:0])
+	cands, _ := s.FeatConvokeCands(offers[:0])
+	convoke, _ := s.FeatConvokeKinds()
 	n := 0
 	reached := false
 	for _, o := range cands {
@@ -447,7 +448,7 @@ func (bt *Bot) castHelperSet(s *dirac.State, out *[dirac.MaxPerm]dirac.Obj, pip 
 			continue
 		}
 		slot := int8(-1)
-		if !improvise {
+		if convoke {
 			colours := s.FeatColorsOf(o)
 			for c, m := range pips {
 				if m > 0 && colours&(1<<c) != 0 {

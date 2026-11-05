@@ -226,17 +226,43 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 			bound = bound || xBoundTarget(k.t, &a.Targets[i]) || xCountTarget(&a.Targets[i])
 		}
 	}
+	picks := s.convokePickCount() > 0
+	base := s.buildCost(k)
+	anyColor := s.bld().bfl&bflAnyColor != 0
+	// pays: X = x is payable. An announced convoke pick pays one generic of
+	// the X total, so the pool owes the post-pick cost, and a pick the total
+	// cannot absorb is rejected (gorge xAsk, convokeAbsorbs with xOpen false).
+	pays := func(x int) bool {
+		if !picks {
+			return x <= mx || s.xReducedPays(k, av, x)
+		}
+		c := base
+		if k.gen != nil && s.statM.any() {
+			c = s.xHypoCost(k, x) // the stat-reduction alternative: the cost at this X
+		}
+		c, ok := s.convokeXCost(k, c, x)
+		if !ok {
+			return false
+		}
+		if x <= mx {
+			return true // picks only lower the cost mx already priced
+		}
+		if anyColor {
+			return av.affordsAnyColor(&c, 0)
+		}
+		return av.affords(&c, pipMaskOf(&c), 0)
+	}
 	n0 := d.N
 	if bound {
 		for x := 0; x <= hi; x++ {
-			if s.xAnswerable(k, a, e, x) && (x <= mx || s.xReducedPays(k, av, x)) {
+			if s.xAnswerable(k, a, e, x) && pays(x) {
 				d.add(MakeAction(AkChoose, 0, 0, uint8(x)))
 			}
 		}
 	}
 	if d.N == n0 {
 		for x := 0; x <= hi; x++ {
-			if x <= mx || s.xReducedPays(k, av, x) {
+			if pays(x) {
 				d.add(MakeAction(AkChoose, 0, 0, uint8(x)))
 			}
 		}
