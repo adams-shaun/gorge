@@ -183,8 +183,18 @@ func (s *State) doMayShuffleMove(refs *[maxXTgt + 1]Obj, legal *[maxXTgt + 1]boo
 		moved[n] = refs[i]
 		n++
 	}
+	// The whole election moves its chosen cards as one event: a "one or more"
+	// leave-your-graveyard trigger fires once for the batch, as gorge's
+	// ChangeZone opens a zone batch around several targets (CR 603.2c).
+	var old uint8
+	if n > 1 {
+		old = s.batchOpen()
+	}
 	for i := 0; i < n; i++ {
 		movedFrom[i] = s.detach(moved[i])
+	}
+	if n > 1 {
+		s.batchClose(old)
 	}
 	if n > 0 {
 		s.libTopInOrder(moved[:n], movedFrom[:n])
