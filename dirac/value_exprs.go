@@ -9,6 +9,10 @@ var DebugNoYourTurns bool
 // DebugNoRedNC (TestOjerLockstepMutation): ExRedNCDmg reads 0.
 var DebugNoRedNC bool
 
+// DebugNoExtraTurnBegun (TestBountyMutation): the extra-turn-begun bit is
+// never set, so ExYourExtraTurns stays 0.
+var DebugNoExtraTurnBegun bool
+
 // exprCold evaluates the rarely used Expr kinds, out of line of State.expr
 // the controller's life lost this turn, an SVar-named modifier's sum,
 // a player's hand size, exiled cards matching a filter, the opponents who
@@ -70,6 +74,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 			return 0
 		}
 		return int(s.g.yourTurns[ctx.ctrl&1])
+	case kop.ExYourExtraTurns:
+		return int(s.g.extraTurnBegun>>(ctx.ctrl&1)) & 1
 	case kop.ExRedNCDmg:
 		if DebugNoRedNC {
 			return 0
