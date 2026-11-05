@@ -419,6 +419,7 @@ ExtPhases	ExtOp	110
 ExtPlotGrant	ExtOp	31
 ExtPreventColor	ExtOp	1
 ExtPreventDamageScope	ExtOp	246
+ExtPutCounterExisting	ExtOp	253
 ExtRecruit	ExtOp	94
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
