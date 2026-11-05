@@ -97,6 +97,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"copy_cast_x_targets_ask_after_x", false, false},        // CR 601.2b, 601.2c: Q's Play of Dominion Infiltration announces X before its "X target creatures", so a copy cast no mana can pay still asks X and reaches its mana window
 		{"refused_paid_copy_cast_keeps_window_tap", true, false}, // CR 733.1: Encounter the Unknown's copy cast that gorge cannot pay is reversed after its mana window, so the tapped source and its mana stay
 		{"turn_once_resets_while_phased_out", false, false},      // CR 602.5b, 702.26d: DOT-7 Repair Squad activated, then phased out through its turn's end, has its once-each-turn limit lifted when it phases back in
+		{"clone_template_choice_asked_on_stack", false, false},   // CR 614.12, 707.9: Dominion Saboteur entering as a copy of Nyota Uhura is asked her "choose a number" with the Saboteur still on the stack, after the copy election
 	})
 }
 

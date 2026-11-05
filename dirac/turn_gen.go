@@ -945,12 +945,24 @@ func (s *State) applyGen(k *prep, a Action) {
 			s.cloneEntryOrderAnswer(k, a) // the order answer (repl_entryclone.go)
 			return
 		}
-		s.g.pre.val = a.Mode()
-		if s.g.pre.kind == akClone {
-			s.g.pre.val = cloneAnswer(a)
-		}
-		if s.g.pre.kind == akType {
-			s.g.pre.val = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+		if s.g.pre.ask2 != 0 && s.g.pre.kind == s.g.pre.ask2 {
+			// the copy template's own choice (copy_templatechoice.go)
+			s.g.pre.val2 = a.Mode()
+			if s.g.pre.kind == akType {
+				s.g.pre.val2 = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+			}
+			s.g.pre.kind = akClone
+		} else {
+			s.g.pre.val = a.Mode()
+			if s.g.pre.kind == akClone {
+				s.g.pre.val = cloneAnswer(a)
+				if !s.g.pre.land && s.cloneTemplateAsk(k) {
+					return // the template's choice is asked next
+				}
+			}
+			if s.g.pre.kind == akType {
+				s.g.pre.val = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+			}
 		}
 		s.g.pre.state = 2
 		s.ctl = ctlPriority
