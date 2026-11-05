@@ -75,8 +75,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | what differed | cards |
 |---|---:|
 | decision | 2 |
-| lockstep | 1 |
-| options | 8 |
+| options | 9 |
 | projection | 1 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Counters | 1 |
