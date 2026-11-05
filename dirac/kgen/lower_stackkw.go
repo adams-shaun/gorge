@@ -28,7 +28,9 @@ import (
 //     Invasion of Segovia): it reads wherever the printed Convoke does (kernel
 //     hasConvoke), the creatures the cast taps pay a pip of their colour or
 //     {1} (CR 702.51a). A granted tap-paid keyword beside an Improvise source,
-//     or on an {X} cost, stalls unmodelled (StallStackKwGrant, kw_convoke.go).
+//     or on an {X} cost, poses gorge's mixed or pre-X announcement (kernel
+//     convokeOptions); only a Harmonize or alternative-cost route stalls
+//     unmodelled (StallStackKwGrant, kw_convoke.go).
 //   - Lifelink lowers to Kind "StackKw" too: gorge reads the keyword off the
 //     spell object when its damage is dealt (effects/damage.go HasKeyword),
 //     so the kernel reads the grant at damage time (srcKw, stackLifelinkKw).

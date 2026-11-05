@@ -9,7 +9,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // We Ride at Dawn, Invasion of Segovia) and Casualty:<n> (Silverquill),
 // read wherever the printed CardDef.Improvise / Convoke / Casualty are
 // (tapPays, hasConvoke, isImprovise, casualtyN). A grant beside the other
-// tap-paid keyword, or on an {X} cost, stalls unmodelled (kw_convoke.go).
+// tap-paid keyword, or on an {X} cost, poses the mixed or pre-X announcement;
+// a Harmonize or alternative-cost route stalls unmodelled (kw_convoke.go).
 // gorge derives the spell under the
 // stack-zone override (keywordmay.go stackKeywordPossibleH), so the kernel
 // asks the live statics at the same moment. gorge offers a tap-paid or

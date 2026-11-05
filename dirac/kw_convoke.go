@@ -14,14 +14,10 @@ import (
 const convokePickMask pickKind = 0x4400
 
 // StallStackKwGrant: a spell carries a granted tap-paid keyword (Convoke or
-// Improvise) and the cast needs an announcement the kernel cannot mirror:
-// both keywords live at once (gorge's one ConvokeAsk offers creature colour,
-// creature generic and artifact generic picks; the kernel poses one
-// keyword's), or an {X} cost (gorge announces before X and offers every
-// creature a possible generic payment; the kernel's convoke paths never
-// model X). kgen refuses the printed forms; a grant reopens them, so the
-// cast stalls rather than diverging. Unmodelled (kw_convoke.go
-// convokeOptions).
+// Improvise) on a Harmonize or alternative-cost route, whose announcement the
+// kernel has not verified against gorge's, so the cast stalls rather than
+// diverging. Unmodelled (kw_convoke.go convokeOptions). The mixed
+// Convoke+Improvise and {X} shapes a grant reopens are modelled.
 const StallStackKwGrant = 140
 
 func init() { stallNames[StallStackKwGrant] = "stackkwgrant" }
@@ -79,9 +75,7 @@ func isConvokePick(f pickKind) bool { return f&convokePickMask == convokePickMas
 // generic; then improvise over the remaining generic, each untapped artifact
 // not already committed by convoke pays one generic (gorge castOfferBase:
 // convokeCost then improviseCost). Hybrid and {C} pips are never paid. A
-// spell with both keywords is unmodelled and stalls at the announcement
-// (convokeOptions), but its offer must still be priced like gorge's or the
-// kernel would not reach that announcement.
+// spell with both keywords is priced like gorge's offer too.
 func (s *State) convokeCredit(k *prep, p uint8, c CardID, o Obj, cost kop.ManaCost) kop.ManaCost {
 	if k.gen == nil || !k.gen.anyConvoke {
 		return cost
