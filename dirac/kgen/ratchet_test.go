@@ -60,7 +60,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Mazemind Tome: the counter-threshold state trigger, Tf4StateCtr; land; merged FDN 515 -> 516, ALL 21548 -> 21549).
 	// +3 (a variable CollectEvidence cost and evidence beside the triggered-card exile: Incinerator of the Guilty, Urgent Necropsy, Lamplight Phoenix lower; merged MKM 233 -> 236, ALL 21549 -> 21552).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21552, 34442},
+	"ALL": {21558, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
