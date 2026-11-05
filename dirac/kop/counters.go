@@ -92,6 +92,12 @@ const (
 // and neither kind reads the other's bit (as StTapOnC aliases StOncePerTurn).
 const StAlsoSideboard = StYouHexproof
 
+// StFreeOnly is a MayPlayFrom static that only waives the mana cost and does
+// not itself open a zone ("MayPlayDontGrantZonePermissions$ True",
+// Weftwalking; gorge rules/mayplay.go mayPlayStatic: grants = !DontGrant,
+// free = WithoutManaCost). It aliases StRaiseYou, an IncreaseCost-only flag.
+const StFreeOnly = StRaiseYou
+
 // StReduceAny is StRaiseOpp read on a StatReduceCost: the reduction applies to
 // the spells of either player (a ReduceCost with no Activator$, Helm of
 // Awakening), where a ReduceCost with Activator$ You reduces its controller's.

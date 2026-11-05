@@ -1822,7 +1822,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		st.Kind = kop.StatMayPlayFrom
 		st.Zone = zoneMap[s.Zone]
 		fz := st.Zone
-		if slices.Contains(s.Flags, "AlsoSideboard") {
+		if slices.Contains(s.Flags, "AlsoSideboard") || slices.Contains(s.Flags, "FreeOnly") {
 			fz = kop.ZoneNone // the filter also reads a sideboard card; the static's zones are tested apart (mayPlayFromZone)
 		}
 		if st.Filter, err = filter(s.F, fz); err != nil {
@@ -1848,6 +1848,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StFunctionsInExile
 			case "AlsoSideboard":
 				st.StFlags |= kop.StAlsoSideboard
+			case "FreeOnly":
+				st.StFlags |= kop.StFreeOnly
 			case "RaiseCostRemove6CountersFromCreatures":
 				st.StFlags |= kop.StRemove6Counters
 			case "MayRaise":

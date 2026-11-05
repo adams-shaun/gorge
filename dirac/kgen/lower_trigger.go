@@ -2532,6 +2532,7 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 			return refuse("MayPlay zone %q outside the first-spell free shape", zRaw)
 		}
 		z = "Hand"
+		st.Flags = append(st.Flags, "FreeOnly")
 	}
 	// "from outside the game" (The Holodeck's AffectedZone$ Sideboard,Graveyard,
 	// CR 400.11): the sideboard rides beside the one real zone as a flag, so a

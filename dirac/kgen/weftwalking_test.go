@@ -55,7 +55,7 @@ func TestWeftwalkingChangeZoneAllLowers(t *testing.T) {
 }
 
 // TestWeftwalkingStaticLowers: the first-spell free cast is a hand
-// StatMayPlayFrom, free, for the active player, under a ThisTurnCast cond.
+// free-only StatMayPlayFrom, free, for the active player, under a ThisTurnCast cond.
 func TestWeftwalkingStaticLowers(t *testing.T) {
 	def := builtWeftwalking(t)
 	n := 0
@@ -65,6 +65,9 @@ func TestWeftwalkingStaticLowers(t *testing.T) {
 		}
 		n++
 		st := a.Static
+		if st.StFlags&kop.StFreeOnly == 0 {
+			t.Errorf("flags = %#x, want StFreeOnly", st.StFlags)
+		}
 		if st.Zone != kop.ZoneHand {
 			t.Errorf("zone = %v, want Hand", st.Zone)
 		}
