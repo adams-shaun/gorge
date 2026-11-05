@@ -40,6 +40,10 @@ func colourOf(reg *cards.Registry) booster.ColourOf {
 // EventCreated and its last PackOpened resumes by reopening exactly the
 // packs it has not logged yet.
 func (r *run) openPod() ([][][]limited.CardRef, error) {
+	if r.meta.sealed() {
+		return booster.OpenPrereleasePod(r.spec, r.meta.Seed, draftSeats, r.meta.packsPerSeat(), r.meta.promos(),
+			&booster.IDs{}, colourOf(r.h.opts.Cards))
+	}
 	return booster.OpenPod(r.spec, r.meta.Seed, draftSeats, draftRounds, &booster.IDs{}, colourOf(r.h.opts.Cards))
 }
 

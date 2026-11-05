@@ -1,3 +1,9 @@
+// Command sbv2dirac serves the engine role of SpellBench v2 with the dirac
+// kernel as the authority for game flow, reading NDJSON requests on stdin and
+// writing responses on stdout. Package sbv2 documents the protocol and its
+// lockstep checks.
+//
+//	go run ./dirac/cmd/sbv2dirac -corpus .cards
 package main
 
 import (

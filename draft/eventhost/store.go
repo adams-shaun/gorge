@@ -38,6 +38,9 @@ type meta struct {
 	// or "relaxed". Stored so a restart re-arms the same deadlines; a
 	// meta written before the field existed reads back as "" (= off).
 	PickTimer string `json:"pick_timer,omitempty"`
+	// Format is the supply format: "" = draft (and every meta written
+	// before the field), "sealed" or "prerelease".
+	Format string `json:"format,omitempty"`
 }
 
 // metaSeat is one stored seat. Kind is "human" or "bot"; Name is the human
