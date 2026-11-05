@@ -1,2 +1,4 @@
 imported from the maintainers' private companion module@18ee8e64d24a239b24d806816c3b203ddf431e3b by manifest dirac sha256:9262b030870962adbf7e2e269d0f227cfd11a7b21613a7895f8eb87922a9607f; history stays there
 Daniel Brooks wrote State.ChooseStarter and the pre-game deal it plays with.
+dirac/search, dirac/neteval and dirac/oracle/searchtest were imported from the same module's kernel/search, kernel/neteval and kernel/search/oracletest at 5763194283, without its remote network backend; history stays there.
+Daniel Brooks designed and first wrote the search's instant-timing, land and learned-belief options (dirac/search's timing.go, holdupkeep.go, raidhold.go, cardsims.go, landsearch.go and beliefnet.go's weights contract) and described the instant and hidden-information keys that instkeys.go and hiddeninfo.go implement.

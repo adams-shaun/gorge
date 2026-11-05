@@ -1176,6 +1176,14 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         const playLand = cardLoc.locator(`[data-play-land="${pick.index}"]`);
         const single = cardLoc.locator('[data-single-action]');
         const badge = cardLoc.locator('button[aria-haspopup="menu"]');
+        // The REST pending poll that found the target runs ahead of the seated
+        // client: the client renders the same decision only once its stream
+        // frame lands, and the card itself is in the fan long before that. The
+        // count() calls below are instant snapshots, so without this wait they
+        // read the tile as it was in the previous (empty) window, see no
+        // affordance at all, and fall through to a badge that never comes.
+        // Wait for whichever affordance the tile renders first.
+        await playLand.or(single).or(badge).first().waitFor({ state: 'visible', timeout: STALL_MS });
         // Raise the card before reaching for its action affordance. Every
         // `.card` is absolutely positioned and carries `filter: brightness(...)`,
         // which makes each its own stacking context: a LATER sibling in the

@@ -141,6 +141,8 @@ func (o Options) Validate(net *policynet.Model) error {
 		return fmt.Errorf("azmcts: unknown discount unit %d", o.DiscountUnit)
 	case o.AbsoluteUnvisitedQ && (o.UnvisitedQ < 0 || o.UnvisitedQ > 1 || o.UnvisitedQ != o.UnvisitedQ):
 		return fmt.Errorf("azmcts: unvisited Q %g must be in [0,1]", o.UnvisitedQ)
+	case o.MulliganWorlds < 0 || o.MulliganTurns < 0:
+		return fmt.Errorf("azmcts: mulligan worlds %d and turns %d must be >= 0 (0 is off)", o.MulliganWorlds, o.MulliganTurns)
 	case !(o.ForcedK >= 0) || math.IsInf(o.ForcedK, 1):
 		return fmt.Errorf("azmcts: forced-playout k %g must be finite and >= 0 (0 is off)", o.ForcedK)
 	}
@@ -263,6 +265,12 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 		}
 	}
 	res.Prior = prior
+	// A mulligan root on its own budget is the flat paired search (runFlat).
+	flat := kind == "mulligan" && opts.MulliganWorlds > 0 && opts.MulliganTurns > 0
+	horizon := 0
+	if flat {
+		horizon = opts.MulliganTurns
+	}
 	if opts.Sims <= 0 {
 		return res, nil
 	}
@@ -287,6 +295,7 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 		nameKeys: opts.NameKeys, rootRefs: root.Observer.Introduced(),
 		root: rootPt, rootCands: cands, rootDec: root.Decision, stats: &res.Stats, line: opts.Line,
 		envBoard: &envBoard, enumBoard: &enumBoard, views: views,
+		horizon: int32(horizon), mulligan: opts.mulligan,
 	}
 	if opts.OpponentNodes {
 		cfg.oppNodes = true
@@ -305,9 +314,13 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 	cfg.lazyPrior = !eagerPrior && (opts.NodeCache <= 0 || !(cached || isFixed(src)))
 	var tr TreeResult
 	var err error
-	if cached {
+	flatMove := 0
+	switch {
+	case flat:
+		tr, flatMove = runFlat(ctx, rootPt, cands, src, cfg, opts.MulliganWorlds, opts.Seed, &res.Stats)
+	case cached:
 		tr, err = runCachedWorlds(ctx, rootPt, rs, cfg, opts, &res.Stats)
-	} else {
+	default:
 		var envs EnvSource = &worldEnvs{src: src, cfg: cfg}
 		if opts.NodeCache > 0 && isFixed(src) {
 			envs = &fixedEnvs{worldEnvs: envs.(*worldEnvs)}
@@ -317,11 +330,13 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 	if err != nil {
 		return res, err
 	}
-	if res.Stats.DeadlineHits > 0 && (opts.DeadlineMinSims <= 0 || res.Stats.Completed < opts.DeadlineMinSims) {
+	if !flat && res.Stats.DeadlineHits > 0 && (opts.DeadlineMinSims <= 0 || res.Stats.Completed < opts.DeadlineMinSims) {
 		// The armed bail-out fired (ctx done at the call or between
 		// simulations): the tree stopped where it was and the bot's answer
 		// is played -- the partial tree's choice is never taken, unless
-		// DeadlineMinSims simulations completed.
+		// DeadlineMinSims simulations completed. A flat search keeps the
+		// deals it finished: its move needs a gain beyond the paired
+		// deals' own noise (flatMargin), which a few deals cannot fake.
 		return res, nil
 	}
 	res.Visits, res.Q, res.Avail, res.RootValue = tr.Visits, tr.Q, tr.Avail, tr.RootValue
@@ -330,6 +345,13 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 		return res, nil
 	}
 	played := res.Visits
+	if flat {
+		res.Choice = flatMove
+		if res.Choice != 0 || !botFound {
+			res.Intent = cands[res.Choice].in
+		}
+		return res, nil
+	}
 	if opts.ForcedK > 0 {
 		// The argmax is unchanged by the pruning; a sampled move (Sample, or
 		// Temp/Second's randomised line) is drawn from the pruned target, as

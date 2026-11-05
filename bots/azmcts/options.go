@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/adams-shaun/gorge/bots/botpolicy"
 )
 
 // Kinds are the searched decision kinds (design §1). Every other decision --
@@ -28,6 +30,12 @@ type Kinds struct {
 	//     refuses -- up to N targets, an optional target (Min 0), a
 	//     budgeted pick -- every set d.Validate accepts.
 	Modes, Optional, Choose, MultiTarget bool
+	// Mulligan is decision.KMulligan, both London shapes: keep or mulligan
+	// (both options), and which cards to bottom (mulliganCandidates). Off in
+	// AllKinds and FullKinds: only a seat that sets it searches the
+	// mulligan, and its walks then use Options.MulliganSims and
+	// MulliganTurns.
+	Mulligan bool
 	// chooseMax is the largest KChoose option list Choose searches: Search
 	// sets it to Options.Limit; 0 (a Kinds built by hand and passed to an
 	// enumerator directly) reads DefaultOptions' Limit.
@@ -304,6 +312,22 @@ type Options struct {
 	// own visits, while pruning reads the merged root, so the target can
 	// keep somewhat more forced visits there. NodeCache is exact under it.
 	ForcedK float64
+
+	// MulliganWorlds and MulliganTurns are a mulligan root's own budget
+	// (Kinds.Mulligan). A hand's worth shows only once it has been played
+	// for a few turns: a walk that stopped at the next searched decision
+	// would be scored before turn 1, where the leaf reads a seven-card hand
+	// as worth more than a six-card one whatever it holds. So a mulligan
+	// search is flat and paired (runFlat): MulliganWorlds deals, each played
+	// once per candidate, every walk letting both seats' bots play with no
+	// further tree point until turn MulliganTurns has ended (or the game,
+	// or MaxSteps), and scoring the leaf there. Both must be > 0 for the
+	// flat search; otherwise a mulligan root is searched like any other.
+	MulliganWorlds, MulliganTurns int
+	// mulligan is the London-mulligan rule the walk's bots answer every
+	// later mulligan ask with, both seats': the seat's own rule
+	// (SeatConfig.Mulligan), set by the seat.
+	mulligan botpolicy.MulliganRule
 }
 
 // DiscountUnit is what one step of the backup discount counts.

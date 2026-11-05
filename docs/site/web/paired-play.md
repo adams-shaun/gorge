@@ -40,6 +40,8 @@ flowchart LR
 
 **The panel.** It lists the options the search weighed, with the share of its lines that went through each and an estimated chance of winning, then the line it expects to follow.
 
+**The mulligan.** Search weighs the London mulligan too: keep or mulligan, and which cards to put back. Each option is played out from the same guessed deals for a few turns of both seats' bots, and the bot moves off its own hand-reading rule only when those deals show a clear difference. With every option played on every deal, the panel's shares are even; the estimates carry the advice.
+
 **Where you differ.** If you answer differently, a quiet note in the panel and your game log gives both estimates, once. The note stays in your browser.
 
 A decision your auto-pass settings answer never asks. A newer decision cancels the search for the one before. When the server is busy with other searches, the panel says so and the advice arrives late; play on whenever you like.
