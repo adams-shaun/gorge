@@ -187,10 +187,10 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 			o.kind = okPass
 		case dirac.AkPlayLand:
 			o.kind, o.obj = okPlayLand, src
-		case dirac.AkCast, dirac.AkCastCasualty:
+		case dirac.AkCast, dirac.AkCastCasualty, dirac.AkCastConspire:
 			o.kind, o.obj = okCast, src
 			switch {
-			case a.Kind() == dirac.AkCastCasualty:
+			case a.Kind() == dirac.AkCastCasualty || a.Kind() == dirac.AkCastConspire:
 				o.mode = uint8(len(modeValues)) // gorge's "casualty" (the mode-other slot)
 			case mode&1 != 0 && e.st0.FeatOffspringCast(dirac.Obj(src)):
 				o.mode = uint8(len(modeValues)) // gorge's "offspring" (the mode-other slot)

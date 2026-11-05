@@ -267,8 +267,11 @@ DuDugMark	untyped int	256
 DuFoundAttacking	untyped int	512
 DuFoundTapped	untyped int	64
 DuFoundWithRevealed	untyped int	32
+DuImprintFound	untyped int	4096
+DuMinTotalCMC	untyped int	2048
 DuRandomOrder	untyped int	16
 DuRememberFound	untyped int	128
+DuRememberRevealed	untyped int	1024
 DuRestBottom	untyped int	8
 DurAirbend	untyped int	10
 DurDefeated	untyped int	9
@@ -541,6 +544,7 @@ MayGuardDraw	untyped int	5
 MayGuardLibraryTop	untyped int	4
 MayGuardMill	untyped int	0
 MayGuardMove	untyped int	2
+MayGuardPut	untyped int	10
 MayGuardStackSpell	untyped int	9
 MayGuardSuspect	untyped int	3
 MayPlayAdvKind	untyped int	1
@@ -990,6 +994,7 @@ StFunctionsInGraveyard	StaticFlags	16
 StMayRaise	StaticFlags	32768
 StOncePerTurn	StaticFlags	2
 StPanhETB	StaticFlags	2048
+StRaiseLife	StaticFlags	2048
 StRaiseOpp	StaticFlags	256
 StRaiseYou	StaticFlags	128
 StReduceAny	StaticFlags	256
@@ -1002,6 +1007,8 @@ StWithoutManaCost	StaticFlags	8
 StYouHexproof	StaticFlags	512
 StackKwCascade	int16	3
 StackKwCasualty	int16	2
+StackKwConspire	int16	8
+StackKwConvoke	int16	7
 StackKwImprovise	int16	1
 StackKwLifelink	int16	4
 StackKwSplitSecond	int16	6

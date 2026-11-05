@@ -265,10 +265,20 @@ func (s *State) applyCharmTarget(k *prep, a Action) {
 			e.nt = uint8(j + 1)
 		}
 		if k.gen != nil && k.gen.crimeOn {
-			s.crimePick(k, c)
+			// the combined ask is judged when its mask completes, below
+			s.crimePick(k, c, false)
 		}
 		mt.picked |= 1 << j
 		if mt.picked == mask {
+			if k.gen != nil && k.gen.crimeOn && e.kind != seSpell {
+				// the committed window's TargetsChosen (act_commitcrime.go):
+				// every mask slot's pick, the earlier ones included
+				for jj := 0; jj < int(ab.NTargets); jj++ {
+					if mask&(1<<jj) != 0 {
+						s.noteCrime(k, e.ctrl, e.tgt[jj])
+					}
+				}
+			}
 			*mt = multiTgt{}
 			s.bld().ti = uint8(charmChainNext(ab, e.mode, 0)) // the chain links follow the combined ask
 		}

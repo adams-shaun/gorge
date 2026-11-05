@@ -111,7 +111,16 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 			// gorge prices each candidate as the sole selection and drops the
 			// ones the cast cannot pay for, for a multi-target ask as for a
 			// single one (cast_pricing.go affordableTargetCandidates)
+			all := n
 			n = s.affordableTargets(k, &buf, n)
+			if n < all && n < int(mt.min) && mt.picked == 0 && k.gen.anyRaiseLife {
+				// the candidates the cast can pay for fall short of the slot's
+				// minimum: gorge's ask aborts the cast ("cast aborted: no legal
+				// target"; a life raise on a target, cost_raiselife.go)
+				mt.active = false
+				s.reverseCast(k)
+				return mtAbort
+			}
 		}
 		if k.gen.anyUniqLater {
 			n = s.uniqueChainViable(k, ti, &buf, n) // tgt_uniquechain.go
@@ -158,6 +167,9 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 // finishSlot ends the slot's picks (a divided slot's damage is announced
 // after the targets, before payment: bsDivide).
 func (s *State) finishSlot(k *prep, d *Decision, t *kop.TargetSpec) int {
+	if k.gen != nil && k.gen.crimeOn && s.bld().e.kind != seSpell {
+		s.crimeAskDone(k) // the committed window's TargetsChosen (act_commitcrime.go)
+	}
 	s.g.mt.active = false
 	s.bld().ti++
 	return mtNext
@@ -251,7 +263,9 @@ func (s *State) applyMultiTarget(k *prep, a Action) {
 			ver = s.stackTgtSid(c)
 		}
 		if k.gen != nil && k.gen.crimeOn {
-			s.crimePick(k, c)
+			// a multi-pick window's pick: a spell's is judged here (crimePick),
+			// an ability's with the slot's whole set at completion (finishSlot)
+			s.crimePick(k, c, false)
 		}
 		if mt.picked == 0 {
 			e.tgt[mt.slot] = c

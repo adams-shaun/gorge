@@ -1,5 +1,12 @@
 package kgen
 
+import (
+	"strconv"
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
 // lower_digimprint.go: DigUntil's ImprintFound$ + RememberRevealed$ (Jodah, the
 // Unifier): "exile cards from the top of your library until you
 // exile a legendary nonland card with lesser mana value. You may cast that
@@ -49,10 +56,106 @@ func (lc *lowerCtx) digUntilImprint(ps *params, in lInstr, found, rev int) error
 	return nil
 }
 
+// digImprintFound lowers DigUntil's ImprintFound$ alone (Black Widow, Super
+// Spy): the found cards join the imprint (the kernel's chosen set,
+// DuImprintFound), revealed and found piles both to exile. Only the exact
+// shape gorge's effDigUntil reads refuses: both piles to exile, a constant
+// amount, the resolving controller's side of the walk, no random order and
+// no RevealedLibraryPosition$ (the shape check on the assembled CS).
+func (lc *lowerCtx) digImprintFound(ps *params, in lInstr, found, rev int) error {
+	if _, ok := ps.get("RememberFound"); ok {
+		return refuse("DigUntil ImprintFound$ beside RememberFound$")
+	}
+	if in.A.Kind != vConst || in.A.N < 1 || in.A.N > 127 || found != zExile || rev != zExile || in.CS != "revealed=Exile" {
+		return refuse("DigUntil ImprintFound$ shape")
+	}
+	switch in.Obj.Kind {
+	case rYou, rEachOpp, rTriggeredPlayer:
+	default:
+		return refuse("DigUntil ImprintFound$ of %v", in.Obj)
+	}
+	in.CS += "|ImprintFound"
+	lc.digImprintFoundMode = true
+	lc.emit(in)
+	return nil
+}
+
+// digRememberedRevealed lowers DigUntil's RememberRevealed$ alone (Dream
+// Harvest, Improvisation Capstone): every scanned card — found and
+// revealed, in scan order — joins the resolution's remembered set (the
+// kernel appends the scan window, DuRememberRevealed), both piles to exile.
+// MinTotalCMC$ bounds the scan by the matches' cumulative mana value
+// (DuMinTotalCMC, in.B). Only the exact shape gorge's effDigUntil reads
+// refuses; gorge's RememberRevealed arm with RememberFound$ REPLACES the
+// remembered set at the end (digRemembered), so that pair stays refused.
+func (lc *lowerCtx) digRememberedRevealed(ps *params, in lInstr, found, rev int) error {
+	if _, ok := ps.get("RememberFound"); ok {
+		return refuse("DigUntil RememberFound$ beside RememberRevealed$")
+	}
+	if in.A.Kind != vConst || in.A.N < 1 || in.A.N > 127 || found != zExile || rev != zExile || in.CS != "revealed=Exile" {
+		return refuse("DigUntil RememberRevealed$ shape")
+	}
+	switch in.Obj.Kind {
+	case rYou, rEachOpp, rTriggeredPlayer:
+	default:
+		return refuse("DigUntil RememberRevealed$ of %v", in.Obj)
+	}
+	if v, ok := ps.get("MinTotalCMC"); ok {
+		n, err := strconv.Atoi(strings.TrimSpace(v))
+		if err != nil || n < 1 || n > 127 {
+			return refuse("DigUntil MinTotalCMC$ %q", v)
+		}
+		in.B = cst(n)
+		in.CS += "|MinTotalCMC"
+	}
+	in.CS += "|RememberRevealed"
+	lc.emit(in)
+	return nil
+}
+
 func (lc *lowerCtx) digImprintBottom(ps *params) error {
 	for _, k := range []string{"ChangeType", "Origin", "Destination", "RandomOrder", "LibraryPosition"} {
 		ps.consume(k)
 	}
 	lc.emit(lInstr{Op: "DigBottom"})
+	return nil
+}
+
+// digImprintFoundPut is PutCounter under a DigUntil ImprintFound$ (Black
+// Widow, Super Spy's "You may put a +1/+1 counter on NICKNAME. If you
+// don't, you may cast the exiled nonland card..."). The ask is gorge
+// putCounterOptionalDeclined; on a decline the whole put is skipped
+// (counters_put.go:73), so RememberPut$ remembers nothing and the Effect's
+// ConditionDefined$ Remembered EQ0 (node's condition) lets it run; on an
+// accept RememberPut$ remembers the recipient and the condition skips the
+// Effect.
+func (lc *lowerCtx) digImprintFoundPut(ps *params) error {
+	if v, ok := ps.get("Optional"); !ok || strings.TrimSpace(v) != "True" {
+		return refuse("PutCounter without Optional$ True under ImprintFound$")
+	}
+	obj, err := lc.objOrTarget(ps, "Self", zBattlefield)
+	if err != nil {
+		return err
+	}
+	if obj.Kind != rSelf {
+		return refuse("ImprintFound PutCounter of %v", obj)
+	}
+	n, err := lc.amount(ps, "CounterNum", 1)
+	if err != nil {
+		return err
+	}
+	if ps.str("CounterTypes") != "" {
+		return refuse("ImprintFound PutCounter CounterTypes$")
+	}
+	ct := ps.str("CounterType")
+	if ct == "" {
+		return refuse("ImprintFound PutCounter without CounterType")
+	}
+	in := lInstr{Op: "PutCounter", Obj: obj, A: n, CS: ct}
+	if err := putCounterRememberPut(ps, &in); err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "MayAsk", C: kop.MayGuardPut, Skip: 1, Note: "you may"})
+	lc.emit(in)
 	return nil
 }

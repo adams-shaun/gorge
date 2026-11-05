@@ -14,11 +14,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // guarded by genPrep.crimeOn, so a table without the mechanic pays nothing.
 //
 // Sites (dirac/cast.go checkWard's walk, same order as gorge's events):
-//   - spell picks (S1: crimePick) set the bit at the pick, before payment, as
-//     gorge records a spell's targets at the target answer; a reversed cast
-//     keeps the bit and queues nothing;
-//   - abilities and triggers (S2: crimeStep in checkWard) are judged after
-//     payment / at placement;
+//   - a spell's picks (S1: crimePick) set the bit at the pick, before
+//     payment, as gorge records a spell's targets at the target answer; a
+//     reversed cast keeps the bit and queues nothing;
+//   - an ability or trigger target ask sets the bit when its picks complete
+//     (a single-pick ask at the pick, a multi-pick window when it commits at
+//     Done or Max: crimePick with done, crimeAskDone, the charm mask), the
+//     moment gorge's TargetsChosen for that ask applies; TrigCommitCrime
+//     still waits for placement (S2: crimeStep in checkWard), once per
+//     recorded stack object;
 //   - a copy's new targets (S3: crimeCopy) are a crime for the copy's
 //     controller.
 //
@@ -134,17 +138,61 @@ func (s *State) crimeModalPick(k *prep, e *stackEntry, i int, peekI uint8, c uin
 	s.crimeFire(k, e, &cs)
 }
 
-// crimePick is S1: a spell's pick, judged before payment.
+// crimePick is S1: one target ask's pick. A spell's pick is judged at the
+// pick (gorge records a spell's targets at the target answer). An ability's
+// ask is recorded with its TargetsChosen when the ask's picks complete --
+// gorge commits a multi-pick window at Done or Max picks, so a pick that
+// leaves the window open (done false) sets nothing; crimeAskDone judges the
+// slot's whole recorded set at completion. Either way the bit only: gorge
+// fires TrigCommitCrime once per recorded stack object, at placement
+// (crimeStep/crimeEnd), and the TargetsChosen events say nothing yet. A
+// build reversed after the ask keeps the bit: the TargetsChosen is an
+// applied event there.
 //
 //go:noinline
-func (s *State) crimePick(k *prep, t uint8) {
-	if s.bld().e.kind != seSpell || !s.noteCrime(k, s.bld().e.ctrl, t) {
+func (s *State) crimePick(k *prep, t uint8, done bool) {
+	e := s.bld().e
+	if e.kind != seSpell {
+		if done {
+			// a chain link's targets past the root's are asks of their own
+			// (the plain step's one pick per ask, cast.go): gorge records
+			// them at their own answer, before payment (recordSubTargets)
+			s.noteCrime(k, e.ctrl, t)
+		}
+		return
+	}
+	if !s.noteCrime(k, e.ctrl, t) {
 		return
 	}
 	if st := DebugCrimeStats; st != nil && s.bld().bfl&bflCrime == 0 {
 		st.BySpell++
 	}
 	s.bld().bfl |= bflCrime
+}
+
+// crimeAskDone is an ability multi-pick ask's completion (finishSlot): the
+// slot's recorded picks are judged there, where gorge's TargetsChosen events
+// for the committed window apply. Bit only; TrigCommitCrime waits for
+// placement (crimeStep). A slot whose picks left nothing recorded sets
+// nothing, as an empty TargetsChosen emits nothing.
+//
+//go:noinline
+func (s *State) crimeAskDone(k *prep) {
+	e := s.bld().e
+	mt := &s.g.mt
+	if mt.picked == 0 {
+		return
+	}
+	s.noteCrime(k, e.ctrl, e.tgt[mt.slot])
+	if e.xi == 0 {
+		return
+	}
+	x := s.xtOf(&e)
+	for j := 0; j < int(x.n); j++ {
+		if x.slot[j] == mt.slot {
+			s.noteCrime(k, e.ctrl, x.code[j])
+		}
+	}
 }
 
 // crimeSt is checkWard's per-entry crime walk state.

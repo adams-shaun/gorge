@@ -304,11 +304,16 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		h.BatchDepartures(nil)
 		defer h.EndBatchDepartures()
 	}
-	// A sweep onto the battlefield is one entering event (CR 603.6a): the zone batch holds each entry's trigger check until the last card has entered, so the entrants see each other, and a "one or more" line triggers once (CR 603.2c).
-	if to == state.ZBattlefield {
-		h.BeginZoneBatch()
-		defer h.EndZoneBatch()
-	}
+	// A sweep is ONE zone-change event (CR 603.2c): the zone batch holds each
+	// member's trigger check until the last card has moved, so a "one or more"
+	// line over the swept set (Ketramose/Chalk Outline over a Tormod's Crypt
+	// mill-to-exile, Valley Questcaller over an entry) queues once for the
+	// whole sweep, whichever zones it bridges -- not once per card. A
+	// battlefield-origin sweep nests inside the BatchDepartures batch opened
+	// above; the mode latch resets only at depth 0->1, which that call already
+	// did, so the nesting changes nothing for it.
+	h.BeginZoneBatch()
+	defer h.EndZoneBatch()
 	emitMove := func(id state.ObjID, z state.Zone, p state.PlayerID) {
 		// CR 111.8: a token that has left the battlefield can't move to
 		// another zone or come back onto the battlefield. Skipping it here

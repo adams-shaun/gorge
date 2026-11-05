@@ -1689,6 +1689,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StRaiseYou
 			case "ActivatorOpp":
 				st.StFlags |= kop.StRaiseOpp
+			case "RaiseLife":
+				st.StFlags |= kop.StRaiseLife // Static.A is life (kernel cost_raiselife.go)
 			default:
 				return ka, nil, fmt.Errorf("raise cost flag %q", fl)
 			}
@@ -1894,20 +1896,25 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		head, param, _ := strings.Cut(s.Kw[0], ":")
 		switch head {
-		case "Cascade", "Improvise":
+		case "Cascade", "Improvise", "Convoke":
 			if param != "" {
 				return ka, nil, fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
 			}
 			st.A = kop.StackKwCascade
-			if head == "Improvise" {
+			switch head {
+			case "Improvise":
 				st.A = kop.StackKwImprovise
+			case "Convoke":
+				st.A = kop.StackKwConvoke
 			}
-		case "Lifelink", "Storm", "Split second":
+		case "Lifelink", "Storm", "Split second", "Conspire":
 			if param != "" {
 				return ka, nil, fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
 			}
 			st.A = kop.StackKwLifelink
 			switch head {
+			case "Conspire":
+				st.A = kop.StackKwConspire
 			case "Storm":
 				st.A = kop.StackKwStorm
 			case "Split second":
@@ -3628,6 +3635,15 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, ok := fl["DugMark"]; ok {
 			df |= kop.DuDugMark
+		}
+		if _, ok := fl["RememberRevealed"]; ok {
+			df |= kop.DuRememberRevealed
+		}
+		if _, ok := fl["ImprintFound"]; ok {
+			df |= kop.DuImprintFound
+		}
+		if _, ok := fl["MinTotalCMC"]; ok {
+			df |= kop.DuMinTotalCMC
 		}
 		ki.C = int16(int(zoneMap[in.C]) | df<<3)
 		if err := objFilter(kop.ZoneLibrary); err != nil {

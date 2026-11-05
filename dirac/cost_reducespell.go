@@ -45,7 +45,7 @@ func reduceColorTake(base *kop.ManaCost, b int16) int {
 // StBargained discount (CR 702.166). The election degrades to the plain cast
 // when no sacrifice candidate remains (bargainOptions clears cas).
 func (s *State) bargainCharge(k *prep, c CardID) bool {
-	return s.ctl == ctlBuild && s.bld().cas != 0 && s.bld().e.card == c && s.bld().e.kind == seSpell && k.t.Cards[c].Bargain
+	return s.ctl == ctlBuild && s.bld().cas != 0 && s.bld().cas < casConspire && s.bld().e.card == c && s.bld().e.kind == seSpell && k.t.Cards[c].Bargain
 }
 
 // raiseTargetOK: a RaiseCost static with a ValidTarget$ (Dragon's Prey)
@@ -173,7 +173,7 @@ func (s *State) offerBargainOnly(k *prep, d *Decision, p uint8, o Obj, c CardID,
 // witnessAtCheapest).
 func tgtDepCost(a *kop.Ability) bool {
 	return a.Kind == kop.AbStatic && (a.Static.Kind == kop.StatReduceCost || a.Static.Kind == kop.StatIncreaseCost) &&
-		a.Static.StFlags&kop.StTargetsFilter2 != 0
+		a.Static.StFlags&kop.StTargetsFilter2 != 0 && a.Static.StFlags&kop.StRaiseLife == 0 // (a life raise prices no mana: cost_raiselife.go)
 }
 
 // cardTgtDepCost: cd carries such a static.

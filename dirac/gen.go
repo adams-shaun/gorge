@@ -183,6 +183,7 @@ type genPrep struct {
 	anyDelayDies   bool           // some program registers a delayed dies program (kop.DelayDiesThisTurn; trig_delayeddies.go)
 	anyDelaySpell  bool           // some program registers a delayed SpellCast program (kop.DelaySpellCast; trig_delayedspell.go)
 	anyRaise       bool           // some card has a generated StatIncreaseCost (RaiseCost; trig_delayedtiming.go)
+	anyRaiseLife   bool           // some card has a StatIncreaseCost with StRaiseLife (RaiseCost Cost$ PayLife<N>; cost_raiselife.go)
 	anyCantCast    bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
 	anyCantAct     bool           // some card has a StatCantActivate (cast_cantactivate.go actForbidden), or a StatCantSacrifice
 	anyCantSac     bool           // some card has a StatCantSacrifice (static_cantsacrifice.go sacBlocked)
@@ -202,12 +203,13 @@ type genPrep struct {
 	anySneak       bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
 	anyWebSling    bool           // some card has web-slinging (CardDef.HasWebSling; kw_websling.go)
 	anyMayFlash    bool           // some card has K:MayFlashCost (CardDef.HasMayFlash; kw_mayflash.go)
-	anyConvoke     bool           // some card has printed or granted convoke/improvise or harmonize (CardDef.Convoke/Improvise/Harmonize, StatStackKw Improvise; kw_convoke.go)
+	anyConvoke     bool           // some card has printed or granted convoke/improvise or harmonize (CardDef.Convoke/Improvise/Harmonize, StatStackKw Improvise/Convoke; kw_convoke.go)
 	anyBeam        bool           // some card has printed beam me up (CardDef.BeamMeUp; kw_beammeup.go)
 	anyBeamBar     bool           // some card has a StatCantBeBeamedUp static
 	anyHarmonize   bool           // some card has printed harmonize (CardDef.Harmonize; kw_harmonize.go)
 	anyCascade     bool           // some card has printed cascade (CardDef.Cascade; kw_cascade.go)
 	anyStackKw     bool           // some card has a StatStackKw: AffectedZone$ Stack keyword grant (static_stackkeyword.go)
+	anyConspire    bool           // some card has a StatStackKw Conspire grant (kw_conspire.go)
 	anyStorm       bool           // some card has a StatStackKw Storm grant (kw_storm.go)
 	anySplitSecond bool           // some card has a StatStackKw Split second grant (kw_splitsecond.go)
 	anyStackLife   bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)
@@ -589,6 +591,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepStackKw(t, g, p) // static_stackkeyword.go
 	g.anyCdmgTough = tableHasStatic(t, kop.StatCombatDmgToughness)
 	g.anyRaise = tableRaises(t)
+	g.anyRaiseLife = tableRaiseLife(t)
 	g.anyTwobrid = tableTwobrid(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)

@@ -46,6 +46,9 @@ func TestGenBattleRefused(t *testing.T) {
 		// its back face's upkeep damage gated on the opponent's hand size
 		// and on its not being your turn (Prickle Faeries)
 		"Invasion of Eldraine": true,
+		// its back face's AffectedZone$ Stack Convoke grant (Invasion of
+		// Segovia lowers to a StackKw static)
+		"Invasion of Segovia": true,
 	}
 	var battles []string
 	for _, n := range names {

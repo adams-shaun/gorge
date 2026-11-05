@@ -6,7 +6,7 @@
     "pool": "std-ecl",
     "surface": "autopay",
     "seed": 1,
-    "pair": 684,
+    "pair": 5532,
     "policy": "random",
     "mulligans": 1
   }

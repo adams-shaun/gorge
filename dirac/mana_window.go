@@ -1640,7 +1640,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			} else {
 				ok = true
 			}
-			if !ok && (!cardTgtDepCost(&k.t.Cards[s.bld().e.card]) || severalTargets(k, s.bld().e.card)) {
+			if !ok && (!s.spellTgtDep(k, s.bld().e.ctrl, s.bld().e.card, s.bld().e.obj) || severalTargets(k, s.bld().e.card)) {
 				s.g.noTgtRed = false
 				return
 			}
@@ -1740,7 +1740,7 @@ func (s *State) witnessAtCheapest(k *prep, p uint8, cost *kop.ManaCost, av *avai
 		*cost = s.altAddReduced(k, *cost, s.altAddManaPart(k, e.card))
 		return
 	}
-	if cardTgtDepCost(cd) && !severalTargets(k, e.card) && cost.Hyb[0] == 0 {
+	if s.spellTgtDep(k, p, e.card, e.obj) && !severalTargets(k, e.card) && cost.Hyb[0] == 0 {
 		funded := av.affords(cost, pipMaskOf(cost), 0)
 		if k.gen != nil && len(k.gen.grantPC) != 0 {
 			// the planner's census has no granted source (Imprisoned in the Moon's {C})

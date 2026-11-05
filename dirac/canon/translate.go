@@ -125,6 +125,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		// cast-mode table is full, so it canonicalises to CastModeOther,
 		// like "web-slinging"
 		return Pack(ActCast, src, RefNone, CastModeOther)
+	case dirac.AkCastConspire:
+		// gorge's "conspired" cast option (CR 702.78a; kw_conspire.go): the
+		// cast-mode table is full, so it canonicalises to CastModeOther with
+		// the top alt-cost nibble set: a granted conspire pairs with a
+		// bargain/teamwork cast of one card, which owns the plain CastModeOther
+		return Pack(ActCast, src, RefNone, ConspiredCastCode)
 	case dirac.AkBestow:
 		cm, _ := CastModeCode("bestowed") // gorge's "bestowed" cast option (CR 702.103a; kw_bestow.go)
 		return Pack(ActCast, src, RefNone, cm)
@@ -361,6 +367,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return ch("casualty", src, 0) // gorge optionalSacrificeAsk: Option.Kind "casualty"
 		case dirac.ChGenBargain:
 			return ch("bargain", src, 0) // gorge optionalSacrificeAsk: Option.Kind "bargain" (CR 702.166)
+		case dirac.ChGenConspire:
+			return ch("conspire", src, 0) // gorge conspireAsk: Option.Kind "conspire" (CR 702.78a)
 		case dirac.ChGenTeamwork:
 			return ch("teamwork", src, 0) // gorge teamwork ask: Option.Kind "teamwork" (CR 702.194a)
 		case dirac.ChGenGift:
@@ -908,3 +916,9 @@ func NameOrdinal(v uint16, earlier []string) uint8 {
 	}
 	return uint8(min(n, 255))
 }
+
+// ConspiredCastCode is the cast-mode byte of the conspired cast: CastModeOther
+// with the alt-cost nibble at its top value, distinct from the bargained and
+// teamworked casts (CastModeOther, nibble 0) and the optional-cost casts
+// (nibble i+1 of a short list).
+const ConspiredCastCode = CastModeOther | 15<<4
