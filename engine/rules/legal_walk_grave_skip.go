@@ -41,10 +41,10 @@ var (
 
 // graveyardPrintedHeads are the heads whose printed keyword line opens a
 // graveyard route; graveyardDerivedHeads are those read through the derived
-// list (a subset: Harmonize and Warp are printed-only reads).
+// list (a subset: Warp is a printed-only read).
 var (
 	graveyardPrintedHeads = [...]kwHead{kwhHarmonize, kwhWarp, kwhFlashback, kwhEscape, kwhRetrace, kwhJumpStart, kwhMayhem, kwhBeamMeUp}
-	graveyardDerivedHeads = [...]kwHead{kwhFlashback, kwhEscape, kwhRetrace, kwhJumpStart, kwhMayhem, kwhBeamMeUp}
+	graveyardDerivedHeads = [...]kwHead{kwhHarmonize, kwhFlashback, kwhEscape, kwhRetrace, kwhJumpStart, kwhMayhem, kwhBeamMeUp}
 )
 
 // graveyardCandidates appends to buf the ids of zone that can pass some

@@ -327,12 +327,36 @@ func altAddCostParts(f *cards.Face) []string {
 	return costvocab.AltAddParts(param)
 }
 
+// harmonizeCost is the printed Harmonize parameter's cost; a bare (granted)
+// keyword has none.
 func harmonizeCost(f *cards.Face) (Cost, bool) {
 	s, ok := f.KeywordCostParam("Harmonize")
-	if !ok {
+	if !ok || s == "" {
 		return Cost{}, false
 	}
 	return ParseCost(s), true
+}
+
+// harmonizeCostFor is id's Harmonize cost through the derived keyword read:
+// the printed parameter when the face carries one, else (a grant with no cost
+// of its own, Songcrafter Mage) the card's mana cost (CR 702.180a). A face
+// with neither has no payable harmonize.
+func (e *Engine) harmonizeCostFor(id state.ObjID) (Cost, bool) {
+	if !e.hasKeywordH(id, kwhHarmonize) {
+		return Cost{}, false
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return Cost{}, false
+	}
+	f := o.Face()
+	if c, ok := harmonizeCost(f); ok {
+		return c, true
+	}
+	if f.ManaCost == "" {
+		return Cost{}, false
+	}
+	return ParseCost(f.ManaCost), true
 }
 
 // harmonizePayment prices the keyword's creature-power reduction for the
@@ -342,7 +366,7 @@ func harmonizeCost(f *cards.Face) (Cost, bool) {
 // announced harmonize option is the tap.
 func (e *Engine) harmonizePayment(p state.PlayerID, id state.ObjID, c Cost) (Cost, []state.ObjID) {
 	o := e.G.Obj(id)
-	if o == nil || o.Face() == nil || !o.Face().HasKeywordRef(kwRefHarmonize) {
+	if o == nil || o.Face() == nil || !e.hasKeywordH(id, kwhHarmonize) {
 		return c, nil
 	}
 	if c.Generic == 0 {
