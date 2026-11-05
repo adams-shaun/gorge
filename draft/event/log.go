@@ -141,6 +141,11 @@ type Entry struct {
 	// Collation is the booster collation the packs came from,
 	// informational only (the packs are logged in full).
 	Collation string `json:"collation,omitempty"`
+	// Rebuild turns on continuous construction (MTR 7.3): from round 2 on,
+	// each series opens with a rebuild window in which both sides lock their
+	// game-1 deck with a Sideboarded entry (Game 1). false = every log
+	// before the field: game 1 plays the readied BUILD decks.
+	Rebuild bool `json:"rebuild,omitempty"`
 
 	// Pairs is a RoundPaired's pairs: lower seat first, table order.
 	Pairs [][2]int `json:"pairs,omitempty"`

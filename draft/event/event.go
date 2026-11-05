@@ -73,6 +73,7 @@ type Event struct {
 	packsPer  int
 	rounds    int // 0 for StructureNone
 	collation string
+	rebuild   bool // the EventCreated Rebuild flag (MTR 7.3)
 
 	log []Entry
 
@@ -84,8 +85,9 @@ type Event struct {
 	podStarted bool
 	podErr     error // a draft.NewPod failure (impossible for a validated event)
 
-	decks [][]savedDeck
-	ready []int // the readied revision, 0 = not ready
+	decks   [][]savedDeck
+	ready   []int // the readied revision, 0 = not ready
+	lastRev []int // per seat: the revision played in its latest started game; 0 = none yet
 
 	round    int // the current event round, 0 outside the rounds
 	pairings [][2]int
@@ -410,6 +412,8 @@ func (e *Event) applyEventCreated(en *Entry) error {
 	}
 	e.decks = make([][]savedDeck, n)
 	e.ready = make([]int, n)
+	e.lastRev = make([]int, n)
+	e.rebuild = en.Rebuild
 	return nil
 }
 
@@ -548,8 +552,8 @@ func (e *Event) applyDeckSaved(en *Entry) error {
 			return fmt.Errorf("event: DeckSaved: seat %d has no series in round %d", en.Seat, e.round)
 		}
 		st := e.series[[2]int{a, b}]
-		if st == nil || !between(st, a, b) {
-			return fmt.Errorf("event: DeckSaved: seat %d's series is not between games", en.Seat)
+		if st == nil || (!between(st, a, b) && !e.opening(st)) {
+			return fmt.Errorf("event: DeckSaved: seat %d's series is not between games or in its rebuild window", en.Seat)
 		}
 		side := 0
 		if en.Seat == b {
@@ -764,11 +768,15 @@ func (e *Event) applyGameStarted(en *Entry) error {
 	if en.Chooser != nil {
 		chooser = *en.Chooser
 	}
-	if en.Game == 1 {
+	if en.Game == 1 && e.opening(st) && (st.locked[0] == 0 || st.locked[1] == 0) {
+		return fmt.Errorf("event: GameStarted: game 1 of a rebuild series needs both sides' decks locked first (MTR 7.3)")
+	}
+	if en.Game == 1 && !(e.rebuild && e.round >= 2) {
 		st.playRevs = [2]int{e.ready[en.A], e.ready[en.B]}
 	} else {
 		st.playRevs = st.locked
 	}
+	e.lastRev[en.A], e.lastRev[en.B] = st.playRevs[0], st.playRevs[1]
 	st.inFlight = &GameAttempt{
 		Round: en.Round, A: en.A, B: en.B, Game: en.Game, Attempt: en.Attempt,
 		Table: en.Table, Seed: en.GameSeed, Chooser: chooser,
@@ -808,8 +816,8 @@ func (e *Event) applySideboarded(en *Entry) error {
 		return err
 	}
 	st := e.seriesFor(en.A, en.B)
-	if !between(st, en.A, en.B) {
-		return fmt.Errorf("event: Sideboarded: series seats %d–%d is not between games", en.A, en.B)
+	if !between(st, en.A, en.B) && !e.opening(st) {
+		return fmt.Errorf("event: Sideboarded: series seats %d–%d is not between games or in its rebuild window", en.A, en.B)
 	}
 	if en.Game != len(st.games)+1 {
 		return fmt.Errorf("event: Sideboarded: game %d is not the series' next game (%d)", en.Game, len(st.games)+1)
@@ -1004,6 +1012,7 @@ func (e *Event) StateJSON() ([]byte, error) {
 		Structure string              `json:"structure,omitempty"`
 		Packs     int                 `json:"packs,omitempty"`
 		Rounds    int                 `json:"rounds,omitempty"`
+		Rebuild   bool                `json:"rebuild,omitempty"`
 		Seats     []SeatSpec          `json:"seats"`
 		Pools     [][]limited.CardRef `json:"pools"`
 		Decks     [][]deckJSON        `json:"decks"`
@@ -1021,6 +1030,7 @@ func (e *Event) StateJSON() ([]byte, error) {
 	if e.mode == ModeSealed {
 		s.Mode = e.mode
 	}
+	s.Rebuild = e.rebuild
 	if e.structure == StructureNone || e.structure == StructureSwiss {
 		s.Structure = e.structure
 	}
