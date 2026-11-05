@@ -54,7 +54,8 @@ func (s *State) eachRun(k *prep, in *kop.Instr, i uint8, j0 int, w eachSusp) boo
 		}
 		e.tgt[i], e.tver[i] = s.xtOf(e).code[j], s.xtOf(e).ver[j]
 		s.res.bad &^= 1 << i
-		if !s.exec(k, in) && s.eachParks(in) {
+		n0 := s.g.nask
+		if ok := s.exec(k, in); !ok && s.eachParks(in) || ok && s.eachReturnParks(k, in, n0) {
 			w.j = uint8(j + 2)
 			s.g.each = w
 			s.g.inLoop = false
@@ -78,7 +79,11 @@ func (s *State) eachResume(k *prep, in *kop.Instr) bool {
 	if k.gen.anyBatch {
 		defer s.batchClose(s.batchOpen())
 	}
-	defer s.holdClose(k, s.holdOpen(k))
+	if returnToBattlefield(in) {
+		defer s.holdClose(k, s.holdEntries()) // as execEachTarget: the targets enter together
+	} else {
+		defer s.holdClose(k, s.holdOpen(k))
+	}
 	s.g.inLoop = true
 	return s.eachRun(k, in, w.slot, int(w.j-1), w)
 }
