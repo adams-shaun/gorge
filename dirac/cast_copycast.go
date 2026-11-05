@@ -19,11 +19,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // The kernel mints the same ofCopy object (newToken, owner = the caster) at
 // the freeQ drain, in zone ZoneNone; pushBuild reads "ofCopy in ZoneNone" as
 // that holding zone (copyCastFrom). A permanent card's copy resolves into a token
-// (CR 707.10f: permCopyEnters, as OpCopySpell's). Not modelled, stalling loud
+// (CR 707.10f: permCopyEnters, as OpCopySpell's). A paid cast whose cost the
+// window cannot meet reverses (CR 733.1): its window taps stay and the copy
+// ceases (CR 704.5d), as gorge's does. Not modelled, stalling loud
 // (StallCopyCast): a multi-face card other than an Adventure card (whose
-// front face is cast: gorge's Play never offers the Adventure, CR 715.3) and
-// a copy cast reversed after the push (CR 733.1: gorge leaves the copy in the
-// holding zone).
+// front face is cast: gorge's Play never offers the Adventure, CR 715.3).
 
 // DebugCopyCastNoCopy casts the original itself instead of a copy (mutation
 // test only).

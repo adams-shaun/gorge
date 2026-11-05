@@ -170,37 +170,33 @@ func spellRequiresTarget(k *prep, c CardID) bool {
 // aborts at the target ask and no mana window opens, tapping nothing. Without
 // a required target gorge reaches the window, taps what it offers and reverses
 // the cast with the taps and their mana standing (loweredWindowOK, CR 733.1).
+// An {X} spell is not aborted here: X is announced first (CR 601.2b), with the
+// copy on the stack, and copyCastTargetAbort aborts at the target ask.
 func (s *State) copyCastAbortsBeforeWindow(k *prep, c CardID, p uint8, o Obj) bool {
-	if !spellRequiresTarget(k, c) {
+	if !spellRequiresTarget(k, c) || k.t.Cards[c].Cost.X != 0 {
 		return false
 	}
+	return s.copyCastUnpayable(k, c, p, o, 0)
+}
+
+// copyCastUnpayable: no source pays the copy cast of c at announced X x.
+func (s *State) copyCastUnpayable(k *prep, c CardID, p uint8, o Obj, x int) bool {
 	var av avail
 	s.availFor(k, p, &av)
 	cost := s.adjustFit(k, &av, p, c, o, k.cards[c].cost, true)
-	if cost.X != 0 {
-		return false // X is announced first (CR 601.2b): copyCastTargetAbort judges the cast at its target ask
-	}
+	cost.Generic = uint8(int(cost.Generic) + cost.XGeneric(x))
 	return !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, &av)
 }
 
-// copyCastTargetAbort is copyCastAbortsBeforeWindow for a paid copy cast whose
-// cost has an X: the copy is on the stack and X is announced first (CR 601.2b),
-// then gorge's target menu withholds every candidate of a cast the announced X
-// leaves unpayable, and the required target aborts it (CR 601.2c, 733.1).
-func (s *State) copyCastTargetAbort(k *prep) bool {
-	e := &s.bld().e
-	if e.kind != seSpell || e.flags&sfFree != 0 || s.bld().bfl&bflLowered == 0 || s.objs[e.obj].of&(ofCopy|ofToken) != ofCopy {
+// copyCastTargetAbort: the target ask of a paid Play's copy cast that X, now
+// announced, leaves unpayable: gorge's menu withholds every candidate
+// (affordableTargetCandidates), so a required target aborts the cast
+// (CR 601.2c, 733.1; copyCastAbortsBeforeWindow for the spells without X).
+func (s *State) copyCastTargetAbort(k *prep, t *kop.TargetSpec) bool {
+	b := s.bld()
+	if k.gen == nil || !k.gen.anyCopyCast || b.e.kind != seSpell || b.bfl&bflLowered == 0 || b.origin != kop.ZoneLibrary ||
+		t.UpTo || t.TFlags&kop.TgfBoundsV != 0 || k.t.Cards[b.e.card].Cost.X == 0 {
 		return false
 	}
-	if !spellRequiresTarget(k, e.card) {
-		return false
-	}
-	var av avail
-	s.availFor(k, e.ctrl, &av)
-	cost := s.adjustFit(k, &av, e.ctrl, e.card, e.obj, k.cards[e.card].cost, true)
-	if cost.X == 0 {
-		return false // priced at the begin (copyCastAbortsBeforeWindow)
-	}
-	cost = xFolded(cost, int(e.x))
-	return !s.castAffordsR(k, e.ctrl, e.card, s.restrOriginOfObj(e.obj), &cost, &av)
+	return s.copyCastUnpayable(k, b.e.card, b.e.ctrl, b.e.obj, int(b.e.x))
 }

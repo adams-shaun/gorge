@@ -858,6 +858,21 @@ func (e *Engine) active() []ContinuousEffect {
 	return e.activeBuild()
 }
 
+// grantedStaticController makes a controller-side static a permanent gained
+// (an Animate staticAbilities$ land grant: "you may play lands from your
+// graveyard") its source's current controller's, as a printed static's is
+// (CR 113.8, 611.3a): "you" follows the permanent when its control changes.
+// Only a may-play or extra-land-drop grant is rewritten; any other effect is
+// left as registered.
+func grantedStaticController(g *state.Game, ce *ContinuousEffect) {
+	if !ce.GrantedStatic || (!ce.MayPlay && ce.AdjustLandPlays == 0) {
+		return
+	}
+	if o := g.Obj(ce.Source); o != nil && o.Zone == state.ZBattlefield {
+		ce.Controller = o.Controller
+	}
+}
+
 // activeBuild is active() past its exact-hit test: the layer-inert re-stamp
 // or a full rebuild.
 func (e *Engine) activeBuild() []ContinuousEffect {
@@ -964,6 +979,7 @@ func (e *Engine) activeBuild() []ContinuousEffect {
 	removers := false
 	for _, p := range src {
 		buf = append(buf, *p)
+		grantedStaticController(e.G, &buf[len(buf)-1])
 		removers = removers || p.RemoveAbilities || state.SetsBasicLandSubtypes(p)
 	}
 	if e.activeDepth <= 1 {
