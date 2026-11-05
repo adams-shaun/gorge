@@ -1894,12 +1894,14 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			if head == "Improvise" {
 				st.A = kop.StackKwImprovise
 			}
-		case "Lifelink", "Storm", "Split second":
+		case "Lifelink", "Storm", "Split second", "Conspire":
 			if param != "" {
 				return ka, nil, fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
 			}
 			st.A = kop.StackKwLifelink
 			switch head {
+			case "Conspire":
+				st.A = kop.StackKwConspire
 			case "Storm":
 				st.A = kop.StackKwStorm
 			case "Split second":

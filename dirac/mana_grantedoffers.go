@@ -798,7 +798,7 @@ func (s *State) grantPayDesc(a Action) payDesc {
 func (s *State) grantPayDescOf(a Action) payDesc {
 	o := Obj(a.Source())
 	switch a.Kind() {
-	case AkCast, AkCastCasualty:
+	case AkCast, AkCastCasualty, AkCastConspire:
 		og := restrOrigin{from: s.objs[o].zone}
 		return payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: og}
 	case AkActivate:
@@ -952,7 +952,7 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			cost = s.waterbendPlanCost(k, p, Obj(a.Source()), a.Mode(), cost)
 		}
 		return cost, ex, ok
-	case AkCast, AkCastCasualty:
+	case AkCast, AkCastCasualty, AkCastConspire:
 		if alt, ok := s.altPlayCost(k, p, a); ok {
 			return alt, ex, true
 		}

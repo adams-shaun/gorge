@@ -108,6 +108,7 @@ const (
 	ChCostPutToLib                            // source = the card put from a graveyard on the bottom of its owner's library to pay a cost (gorge's puttolibcost; one pick per part, asked even with one candidate)
 	ChGenKeepTapped                           // source = a tapped permanent whose controller may keep it tapped; mode 0 = untap it, 1 = keep it tapped (gorge's untap-step KChoose "untap" / "keep_tapped", CR 502.3; repl_untapchoice.go)
 	ChGenName                                 // mode = the CardID of the nonland card whose name a permanent chooses as it enters (gorge's ETB "name" option; repl_choosename.go)
+	ChGenConspire                             // source = a creature tapped for conspire (gorge conspireAsk's KChoose "conspire", Min=Max=2, CR 702.78a); two sequential picks; kw_conspire.go
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);

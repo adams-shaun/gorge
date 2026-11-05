@@ -119,7 +119,7 @@ func (sr *Searcher) waitTie(res *Result, best int) int {
 		return best
 	}
 	a := res.CandAct[best]
-	if k := a.Kind(); k != dirac.AkCast && k != dirac.AkCastCasualty && k != dirac.AkActivate {
+	if k := a.Kind(); k != dirac.AkCast && k != dirac.AkCastCasualty && k != dirac.AkCastConspire && k != dirac.AkActivate {
 		return best
 	}
 	pass := -1

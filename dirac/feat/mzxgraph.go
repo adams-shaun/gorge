@@ -599,7 +599,7 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 		for j := 0; j < int(d.N); j++ {
 			a := d.Options[j]
 			switch a.Kind() {
-			case dirac.AkCast, dirac.AkPlayLand, dirac.AkCastCasualty, dirac.AkSneak, dirac.AkWebSling, dirac.AkMayFlash:
+			case dirac.AkCast, dirac.AkPlayLand, dirac.AkCastCasualty, dirac.AkCastConspire, dirac.AkSneak, dirac.AkWebSling, dirac.AkMayFlash:
 				g.canCast[a.Source()] = true
 			case dirac.AkActivate:
 				g.canAct[uint32(a.Source())<<8|uint32(a.Mode())] = true
@@ -760,7 +760,7 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 			switch a.Kind() {
 			case dirac.AkPass:
 				node = g.nodes[mzxKPass]
-			case dirac.AkCast, dirac.AkPlayLand, dirac.AkCastCasualty, dirac.AkSneak, dirac.AkWebSling, dirac.AkMayFlash:
+			case dirac.AkCast, dirac.AkPlayLand, dirac.AkCastCasualty, dirac.AkCastConspire, dirac.AkSneak, dirac.AkWebSling, dirac.AkMayFlash:
 				if n, ok := g.nodes[mzxKeyObj('c', int(a.Source()), 0)]; ok {
 					node = n
 				}

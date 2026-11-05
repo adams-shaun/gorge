@@ -672,7 +672,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
-			if o.Mode == "bargained" || o.Mode == "teamworked" {
+			if o.Mode == "bargained" || o.Mode == "teamworked" || o.Mode == "conspired" {
 				// CR 702.166: the 16-entry cast-mode table is full, so the
 				// "bargained" mode canonicalises to castModeOther, exactly as
 				// realkernel's AkCastCasualty mapping does
@@ -746,7 +746,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			a = Pack(ActCastCasualty, ref(pa.Cast.Object), RefNone, 0)
 		} else if pa.Cast.CastMode() == "impended" {
 			a = Pack(ActCastImpended, ref(pa.Cast.Object), RefNone, 0)
-		} else if pa.Cast.CastMode() == "bargained" || pa.Cast.CastMode() == "teamworked" || pa.Cast.CastMode() == "harmonize" || pa.Cast.CastMode() == "mayhem" || pa.Cast.CastMode() == "optionalcost" || pa.Cast.CastMode() == "web-slinging" {
+		} else if pa.Cast.CastMode() == "bargained" || pa.Cast.CastMode() == "teamworked" || pa.Cast.CastMode() == "conspired" || pa.Cast.CastMode() == "harmonize" || pa.Cast.CastMode() == "mayhem" || pa.Cast.CastMode() == "optionalcost" || pa.Cast.CastMode() == "web-slinging" {
 			// CR 702.166: the full cast-mode table's castModeOther code, the
 			// same canonical form the offered option uses
 			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther)
