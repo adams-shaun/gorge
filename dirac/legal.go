@@ -122,6 +122,12 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			adj = s.adjustFit(k, &av, p, c, o, *cost, false)
 			cost = &adj
 		}
+		preDelve := cost
+		var dc kop.ManaCost
+		if k.gen != nil && k.gen.anyDelve {
+			dc = s.delveOfferCreditHand(k, p, c, o, *cost)
+			cost = &dc // (the either-or check below takes the pre-delve cost: it credits its own total)
+		}
 		if !av.affords(cost, pipMaskOf(cost), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, &av)) {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
@@ -136,7 +142,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		} else {
 			tgtOK = s.spellTargetsFeasible(k, c, p)
 		}
-		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, cost, &base, false, &av) {
+		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, &base, false, &av) {
 			continue
 		}
 		if s.castHeldOut(o) {
@@ -211,6 +217,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				fc = s.adjustCost(k, p, c, o, k.t.Cards[c].Cost)
 			}
 		}
+		fc = s.delveOfferCredit(k, p, c, o, false, fc)
 		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, &av) || !s.spellTargetsFeasibleFrom(k, c, p, o) || k.gen != nil && !s.spellCostsFeasible(k, c, p, o) {
 			continue // (an additional cost too: Thrill of Possibility's discard with an empty hand)
 		}
@@ -829,6 +836,9 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 	t := addCost(*cost, cd.AltAddCost.Mana)
 	if base != nil && (s.statM.any() || k.gen != nil) {
 		t = s.adjustFit(k, av, p, c, o, addCost(*base, cd.AltAddCost.Mana), gen)
+	}
+	if k.gen != nil && k.gen.anyDelve && o != NoObj {
+		t = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, t) // the total's one credit
 	}
 	return av.affords(&t, pipMaskOf(&t), 0)
 }

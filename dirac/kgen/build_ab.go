@@ -1905,7 +1905,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			case "Convoke":
 				st.A = kop.StackKwConvoke
 			}
-		case "Lifelink", "Storm", "Split second":
+		case "Lifelink", "Storm", "Split second", "Delve":
 			if param != "" {
 				return ka, nil, fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
 			}
@@ -1915,6 +1915,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.A = kop.StackKwStorm
 			case "Split second":
 				st.A = kop.StackKwSplitSecond
+			case "Delve":
+				st.A = kop.StackKwDelve
 			}
 		case "Casualty":
 			n, err := strconv.Atoi(param)

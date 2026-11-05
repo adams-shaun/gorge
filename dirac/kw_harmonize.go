@@ -96,7 +96,7 @@ func (s *State) offerHarmonizeCasts(k *prep, d *Decision, p uint8, sorc bool, av
 			s.availFor(k, p, av)
 			have = true
 		}
-		fc := s.harmonizeCredit(k, p, s.adjustCost(k, p, c, o, cd.AltCost))
+		fc := s.delveOfferCredit(k, p, c, o, false, s.harmonizeCredit(k, p, s.adjustCost(k, p, c, o, cd.AltCost)))
 		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, av) || !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) {
 			continue
 		}

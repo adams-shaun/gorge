@@ -43,7 +43,11 @@ import (
 //     (rules split_second.go), so the kernel reads the grant off the stack
 //     entries (kernel kw_splitsecond.go). The printed keyword has no form in
 //     the kernel.
-//   - Every other keyword (Conspire, Delve) has no printed form in the
+//   - Delve lowers to Kind "StackKw" too: the cast announces graveyard cards
+//     to exile toward its generic cost (CR 702.66a; kernel kw_delve.go), read
+//     as the spell is cast. A cast-from-hand restriction is legal. The printed
+//     keyword stays refused.
+//   - Every other keyword (Conspire) has no printed form in the
 //     kernel and refuses by name.
 func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
 	kw := sp.str("AddKeyword")
@@ -58,7 +62,7 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
 	}
 	head, param, _ := strings.Cut(kw, ":")
 	switch head {
-	case "Affinity", "Cascade", "Improvise", "Convoke", "Casualty", "Lifelink", "Storm", "Split second":
+	case "Affinity", "Cascade", "Improvise", "Convoke", "Casualty", "Lifelink", "Storm", "Split second", "Delve":
 	default:
 		return refuse("AffectedZone Stack grant of %q", kw)
 	}
@@ -87,7 +91,7 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
 			return err
 		}
 		return nil
-	case "Cascade", "Improvise", "Convoke", "Lifelink", "Storm", "Split second":
+	case "Cascade", "Improvise", "Convoke", "Lifelink", "Storm", "Split second", "Delve":
 		if param != "" {
 			return refuse("AffectedZone Stack grant of %q", kw)
 		}
@@ -122,7 +126,7 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
 // resolving spell deals damage) inverts the provenance rule: the alternative
 // must name YouCtrl and carry no cast word.
 func stackAffected(aff, head string) (string, bool, error) {
-	atDamage, atCast := head == "Lifelink" || head == "Split second", head == "Storm"
+	atDamage, atCast := head == "Lifelink" || head == "Split second", head == "Storm" || head == "Delve"
 	var alts []string
 	hand, plain := false, false
 	for _, alt := range strings.Split(aff, ",") {

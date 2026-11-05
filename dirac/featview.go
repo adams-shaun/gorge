@@ -343,11 +343,12 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 		cost = s.harmonizeCredit(k, p&1, cost) // gorge harmonizePayment prices the offer after the reductions
 	}
 	if cd := &k.t.Cards[c]; cd.HasAltAdd && mode&2 == 0 {
+		pre := cost
 		// gorge's gate is existential over the either-or parts: one whose
 		// picks can be paid and whose mana the pool pays with the spell's
 		ac := spellAddCost(k, c)
 		if s.pickCostPayable(k, p&1, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(pl.handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p&1, c, o) {
-			if t := addCost(cost, ac.Mana); a.affords(&t, pipMaskOf(&t), 0) {
+			if t := s.delveOfferCredit(k, p&1, c, o, true, addCost(pre, ac.Mana)); a.affords(&t, pipMaskOf(&t), 0) {
 				return true
 			}
 		}
@@ -355,6 +356,9 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 			return false
 		}
 		cost = addCost(cost, cd.AltAddCost.Mana)
+	}
+	if mode&4 == 0 {
+		cost = s.delveOfferCredit(k, p&1, c, o, mode&2 == 0, cost)
 	}
 	return a.affords(&cost, pipMaskOf(&cost), 0)
 }

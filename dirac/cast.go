@@ -342,7 +342,7 @@ func (s *State) syncBuild() {
 // these rows. A triggered ability is pushed by takePending before its
 // program starts.
 var buildProgram = [3][]uint8{
-	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsConvoke, bsX, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
+	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seAbility: {bsPush, bsModes, bsTapCost, bsX, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seTrigger: {bsModes, bsPips, bsTargets, bsDivide, bsPay},
 }
@@ -416,6 +416,10 @@ func (s *State) buildCostCharge(k *prep) kop.ManaCost {
 }
 
 func (s *State) buildCostResolve(k *prep, charge bool) kop.ManaCost {
+	return s.delveApplyPicks(k, s.buildCostResolve0(k, charge)) // (the fixedGen cache holds the pre-credit generic)
+}
+
+func (s *State) buildCostResolve0(k *prep, charge bool) kop.ManaCost {
 	s.bld().bfl |= bflCostComp // gorge withCostCompositionEvent: a pushed spell's own push is hidden while its cost is composed
 	c, tbDone := s.buildCostPre(k, true)
 	if s.bld().bfl&bflCostFixed != 0 {
@@ -629,6 +633,12 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				return true
 			}
 			s.nextStage(k)
+			continue
+		case bsDelve:
+			if s.delveOptions(k, d) {
+				return true
+			}
+			s.endDelveStage(k)
 			continue
 		case bsX, bsX | 0x80: // posing the X ask again (a re-step) poses the same ask
 			if e.kind == seTrigger {
@@ -1101,6 +1111,10 @@ func (s *State) applyBuild(k *prep, a Action) {
 			s.answerCostObj(a)
 			return
 		}
+		if s.bld().stage == bsDelve {
+			s.answerDelvePick(a)
+			return
+		}
 		if s.bld().stage == bsConvoke {
 			s.bld().pickK = convokePickMask | pickKind(a.Mode()&7)
 			s.bld().pickLeft = 1
@@ -1137,6 +1151,10 @@ func (s *State) applyBuild(k *prep, a Action) {
 		if s.bld().stage == bsConvoke {
 			s.bld().pickK = 0
 			s.nextStage(k)
+			return
+		}
+		if s.bld().stage == bsDelve {
+			s.endDelveStage(k)
 			return
 		}
 		if s.bld().stage == bsEvidence {
@@ -1276,6 +1294,7 @@ func (s *State) finishBuild(k *prep) {
 		if s.winPaused() {
 			return // a free or Spree cast's window waits on a tap-another pick (mana_window.go)
 		}
+		s.payDelvePicks() // gorge payCast exiles the delved cards after the mana
 		s.paySacsGen(k)
 		s.bld().e.flags &^= sfFbGranted
 		s.syncBuild()
