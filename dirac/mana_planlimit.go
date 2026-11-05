@@ -111,17 +111,23 @@ func (a *lsKeys) cmp(b *lsKeys) int {
 	return int(b.remainder - a.remainder)
 }
 
-// limitSearch is too large for the stack, so it holds a copy of the planner:
-// a pointer stored here would move every caller's planner to the heap.
+// limitSearch lives on limitPlan's stack (var ls), so it must stay under the
+// compiler's 128 KiB limit for a declared variable: past it, the whole search
+// moves to the heap on every call (TestLimitPlanAllocatesNothing). The bound
+// tables that would be per level are not: later and laterCap are the same for
+// every level of a class, so they are per class; here is a suffix of one
+// class's alternatives, so it is a colour mask per level, rebuilt by hereStats.
+// It holds a copy of the planner: a pointer stored here would tie the search
+// to the caller's planner.
 type limitSearch struct {
 	pk       planner
 	classes  [maxUnits]lsClass
 	nc       int
 	levels   [maxUnits * planLimitAlts]lsLevel
 	nl       int
-	here     [maxUnits * planLimitAlts]lsStats
-	later    [maxUnits * planLimitAlts]lsStats
-	laterCap [maxUnits * planLimitAlts][planLimitAny + 1]int32
+	hereCols [maxUnits * planLimitAlts]uint8 // level l: the colours of its class's alternatives from l on
+	later    [maxUnits]lsStats               // class c: the stats of the classes after it
+	laterCap [maxUnits][planLimitAny + 1]int32
 	counts   [maxUnits][planLimitAlts]int32
 	used     [maxUnits]int32
 	produced [kop.NumManaKinds]int32
@@ -160,7 +166,8 @@ func (s *State) limitPlan(k *prep, pk *planner) {
 	if !granted && pk.nu < planLimitUnits {
 		return
 	}
-	ls := &limitSearch{pk: *pk}
+	var ls limitSearch
+	ls.pk = *pk
 	ls.census(k, s)
 	ls.order()
 	ls.walk(0)
@@ -333,17 +340,39 @@ func (ls *limitSearch) order() {
 			creature = 1
 		}
 		var inClass lsStats
+		var cols uint8
 		for l := classStart[c+1] - 1; l >= classStart[c]; l-- {
-			inClass.add(cl.alts[ls.levels[l].alt].col, cl.amt, cl.irr, creature, int32(ty.flex))
-			ls.here[l] = inClass
-			ls.later[l] = later
-			ls.laterCap[l] = laterCap
+			col := cl.alts[ls.levels[l].alt].col
+			inClass.add(col, cl.amt, cl.irr, creature, int32(ty.flex))
+			cols |= 1 << col
+			ls.hereCols[l] = cols
 		}
+		ls.later[c] = later
+		ls.laterCap[c] = laterCap
 		for m := range laterCap {
 			laterCap[m] += cl.n * inClass.most[m]
 		}
 		later = later.merge(&inClass)
 	}
+}
+
+// hereStats is what order's inClass held at level: every alternative of the
+// level's class from that level on, each an lsStats.add of the class's
+// constants, so most[m] is the class's amount when m holds one of their colours.
+func (ls *limitSearch) hereStats(level int) lsStats {
+	cl := &ls.classes[ls.levels[level].class]
+	ty := &ls.pk.types[cl.ty]
+	cols := uint(ls.hereCols[level])
+	h := lsStats{least: cl.amt, irr: cl.irr, flex: int32(ty.flex), any: true}
+	if ty.creat {
+		h.creature = 1
+	}
+	for m := 1; m <= planLimitAny; m++ {
+		if uint(m)&cols != 0 {
+			h.most[m] = cl.amt
+		}
+	}
+	return h
 }
 
 // deficit is pay.Search.deficit over the pips and the total the pool leaves.
@@ -413,17 +442,16 @@ func (ls *limitSearch) take(lv lsLevel, n int32) {
 // promising is pay.Search.promising.
 func (ls *limitSearch) promising(level int, short *[kop.NumManaKinds]int32, total int32) bool {
 	lv := ls.levels[level]
-	here := &ls.here[level]
+	var here lsStats
 	avail := ls.classes[lv.class].n - ls.used[lv.class]
-	var none lsStats
-	if avail == 0 {
-		here = &none
+	if avail != 0 {
+		here = ls.hereStats(level)
 	}
-	rest := here.merge(&ls.later[level])
+	rest := here.merge(&ls.later[lv.class])
 	if !rest.any {
 		return false
 	}
-	cap := &ls.laterCap[level]
+	cap := &ls.laterCap[lv.class]
 	if avail*here.most[planLimitAny]+cap[planLimitAny] < total || rest.most[planLimitAny] == 0 {
 		return false
 	}
