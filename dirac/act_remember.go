@@ -143,10 +143,15 @@ func (s *State) digRememberRevealed(revealed []Obj) {
 //go:noinline
 func (s *State) digImprintFound(found []Obj) {
 	for _, o := range found {
-		if !s.inSet(&s.g.chosen, s.g.nchosen, o) && s.g.nchosen < maxRem {
-			s.g.chosen[s.g.nchosen] = o
-			s.g.nchosen++
-		}
+		s.imprintChosen(o)
+	}
+}
+
+// imprintChosen appends o to the chosen set unless it is already there.
+func (s *State) imprintChosen(o Obj) {
+	if !s.inSet(&s.g.chosen, s.g.nchosen, o) && s.g.nchosen < maxRem {
+		s.g.chosen[s.g.nchosen] = o
+		s.g.nchosen++
 	}
 }
 

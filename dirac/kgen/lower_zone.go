@@ -172,6 +172,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			return refuse("LibraryPosition %q", lp)
 		}
 	}
+	if _, ok := ps.m["ChooseFromDefined"]; ok && lc.digRememberedLibrary {
+		return lc.digChosenLibraryPick(ps, ps.m["ChooseFromDefined"]) // lower_digimprint.go
+	}
 	if ps.str("Defined") == "TopOfLibrary" {
 		return lc.topLibraryMove(ps, origin, dest, pos, flags, counterKind, override) // lower_toplibrary.go
 	}
@@ -2074,7 +2077,7 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 		}
 		aff := sp.str("Affected")
 		nonLand := false
-		if (obj.Kind == rRemembered || lc.digImprintFoundMode && obj.Kind == rChosen) && (aff == "Card.IsRemembered+nonLand" || aff == "Card.nonLand+IsRemembered") {
+		if (obj.Kind == rRemembered || lc.digImprintChosen && obj.Kind == rChosen) && (aff == "Card.IsRemembered+nonLand" || aff == "Card.nonLand+IsRemembered") {
 			// "you may cast" the remembered nonland cards: the grant skips a
 			// remembered land (its type cannot change off the battlefield)
 			aff, nonLand = "Card.IsRemembered", true

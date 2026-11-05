@@ -28,3 +28,14 @@ func (s *State) forgetFound(k *prep, o Obj) {
 		s.forgetChanged(o)
 	}
 }
+
+// imprintFound is the chosen-set append of a library hidden pick that carries
+// SrImprint (ChangeZone Imprint$ True): the card that actually moved joins
+// the chosen set, deduped (gorge zone_change's imprint append).
+//
+//go:noinline
+func (s *State) imprintFound(k *prep, o Obj) {
+	if p := s.prog(k); int(s.res.pc) < len(p) && p[s.res.pc].Op == kop.OpChooseMove && p[s.res.pc].B.N&kop.SrImprint != 0 {
+		s.imprintChosen(o)
+	}
+}
