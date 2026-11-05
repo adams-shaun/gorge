@@ -1158,6 +1158,7 @@ TgtCopyAb	TargetKind	236
 TgtCopyTrig	TargetKind	237
 TgtNone	TargetKind	0
 TgtObject	TargetKind	1
+TgtPermOrGraveCard	TargetKind	240
 TgtPermOrSpell	TargetKind	235
 TgtPlayer	TargetKind	2
 TgtSpell	TargetKind	4

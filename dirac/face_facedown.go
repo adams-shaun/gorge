@@ -247,7 +247,7 @@ func (s *State) offerTurnUpSl(k *prep, d *Decision, p uint8, sl Slot) {
 		}
 		if fam := cd.MorphFamily; fam != 0 {
 			cost := cd.MorphCost
-			if turnUpHybOK(&cost) && s.poolPays(p, &cost) {
+			if turnUpHybOK(&cost) && s.turnUpOffered(p, &cost, true) {
 				d.add(MakeAction(AkTurnFaceUp, uint8(pm.obj), 0, fam+2))
 			}
 		}
@@ -257,7 +257,7 @@ func (s *State) offerTurnUpSl(k *prep, d *Decision, p uint8, sl Slot) {
 		return
 	}
 	cost := cd.MorphCost
-	if !turnUpHybOK(&cost) || !s.poolPays(p, &cost) {
+	if !turnUpHybOK(&cost) || !s.turnUpOffered(p, &cost, true) {
 		return
 	}
 	d.add(MakeAction(AkTurnFaceUp, uint8(pm.obj), 0, 0))
@@ -285,18 +285,37 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 	if len(proc) != 0 {
 		mode = proc[0]
 	}
-	c := s.cardAt(sl)
-	cd := &k.t.Cards[c]
+	cost, _, kw, ok := s.turnUpCost(k, sl, mode)
+	if !ok {
+		return
+	}
+	if !turnUpHybOK(&cost) || !s.turnUpOffered(p, &cost, kw) {
+		return
+	}
+	if kw && cost.X > 0 {
+		// CR 107.3m / 702.37: the keyword's {X} is announced first (gorge
+		// turnUpXAsk); the answer settles the turn-up (applyTurnUpX)
+		s.g.pickP, s.g.pickZ, s.g.pickF = p, mode, uint16(o)
+		s.g.pickLeft = uint8(s.turnUpMaxX(p, &cost))
+		s.ctl = ctlTurnUpX
+		return
+	}
+	s.settleTurnUp(k, o, p, mode, 0)
+}
+
+// turnUpCost prices the turn-up procedure mode at sl (the offer and the
+// payment price the same way). kw: the printed Morph-family keyword, whose
+// {X} is announced; a manifested/cloaked card's printed cost never is
+// (CR 701.40b).
+func (s *State) turnUpCost(k *prep, sl Slot, mode uint8) (cost kop.ManaCost, megamorph, kw, ok bool) {
+	cd := &k.t.Cards[s.cardAt(sl)]
 	prov := s.manifested(sl) || s.cloaked(sl)
-	var cost kop.ManaCost
-	megamorph := false
 	switch mode {
 	case 0: // the cast family's own keyword (CR 702.37e, 702.168c, 702.169b)
 		if prov || cd.MorphFamily == 0 {
 			return
 		}
-		cost = cd.MorphCost
-		megamorph = cd.MorphFamily == kop.MorphMegamorph
+		return cd.MorphCost, cd.MorphFamily == kop.MorphMegamorph, true, true
 	case 1, 2: // manifest/cloak: the printed mana cost (CR 701.40b, 701.58b)
 		if !prov || (mode == 1) != s.manifested(sl) {
 			return
@@ -304,31 +323,45 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 		if (cd.Types&kop.TCreature == 0 && !DebugTurnUpNoncreature) || cd.CostEmpty {
 			return
 		}
-		cost = cd.Cost
+		return cd.Cost, false, false, true
 	case 3, 4, 5: // the keyword alternative (CR 701.40c-d, 701.58c-d)
 		fam := mode - 2
 		if !prov || cd.MorphFamily != fam {
 			return
 		}
-		cost = cd.MorphCost
-		megamorph = fam == kop.MorphMegamorph
-	default:
+		return cd.MorphCost, fam == kop.MorphMegamorph, true, true
+	}
+	return
+}
+
+// settleTurnUp pays the priced turn-up at X = x and turns the permanent up;
+// a stale request (the permanent changed, the pool no longer pays) is a no-op.
+func (s *State) settleTurnUp(k *prep, o Obj, p uint8, mode uint8, x int) {
+	ob := &s.objs[o]
+	if ob.zone != kop.ZoneBattlefield {
 		return
 	}
-	if !turnUpHybOK(&cost) || !s.poolPays(p, &cost) {
+	sl := ob.slot
+	pm := &s.perms[sl]
+	if pm.ctrl != p || !s.faceDown(k, sl) {
 		return
 	}
+	cost, megamorph, _, ok := s.turnUpCost(k, sl, mode)
+	if !ok || !turnUpHybOK(&cost) || !s.turnUpPoolPays(p, &cost, x) {
+		return
+	}
+	c := s.cardAt(sl)
 	if cost.Hyb[0] != 0 {
-		cost = s.turnUpHybResolve(p, cost) // face_turnfaceup.go
+		cost = s.turnUpHybResolve(p, cost, cost.XGeneric(x)) // face_turnfaceup.go
 	}
-	s.payFromPool(p, &cost, 0)
+	s.payFromPool(p, &cost, x)
 	if k.gen.anyTurnUpRepl {
 		s.turnUpRepls(k, sl, o) // face_turnfaceup.go: the body runs while still face down
 	}
 	s.clearFaceDown(sl) // marks the slot changed (marks.go: every mutation marks)
 	s.subscribe(sl, &k.cards[c], true)
 	s.refreshTy(k)
-	s.fireTurnFaceUp(k, sl, o, p)
+	s.fireTurnFaceUp(k, sl, o, p, uint8(x))
 	if megamorph {
 		s.g.lastCK = kop.CtrP1P1
 		n := s.placeCounters(k, sl, int(kop.CtrP1P1), 1, pm.ctrl, ctrPutEffect)
@@ -348,7 +381,7 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 // flags and been subscribed, so its own printed trigger is seen.
 //
 //go:noinline
-func (s *State) fireTurnFaceUp(k *prep, sl Slot, o Obj, p uint8) {
+func (s *State) fireTurnFaceUp(k *prep, sl Slot, o Obj, p uint8, x uint8) {
 	if !k.gen.anyFaceDown {
 		return
 	}
@@ -356,7 +389,7 @@ func (s *State) fireTurnFaceUp(k *prep, sl Slot, o Obj, p uint8) {
 	n := s.listenerOrder(s.occ, &ord)
 	for _, ls := range ord[:n] {
 		s.slotTriggers(k, ls, func(a *kop.Ability) bool { return a.Trig.Event == kop.TrigTurnFaceUp }, func(l trigListener, a *kop.Ability) {
-			s.objTrigGen(k, kop.TrigTurnFaceUp, l, a, sl, o, p, 0)
+			s.objTrigGen(k, kop.TrigTurnFaceUp, l, a, sl, o, p, int16(x))
 		})
 	}
 }

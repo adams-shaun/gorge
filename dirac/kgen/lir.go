@@ -431,11 +431,16 @@ type lTarget struct {
 	// PermOrSpell: with Origin$ Battlefield,Stack, a permanent matching F or
 	// any spell (TgtPermOrSpell)
 	PermOrSpell bool
-	AtRes       bool   // asked mid-resolution (gorge's deferred chain-link targets), at its ChooseTargets
-	ChgSub      bool   // declared by a ChangeZone chain link (not the root): gorge announces its targets on cast (castSubChangeZoneAnnounceable)
-	Decl        bool   // a spell's copy target declaration (its root node or a charm mode's head)
-	SubDecl     bool   // a SubAbility$ link's copy target declaration (gorge copyChainDeclarations)
-	SubCond     string // with SubDecl: the link's lowercased Condition$ ("kicked", "optionalcost" excuse the announcement)
+
+	// PermOrGraveCard: with Origin$ Battlefield,Graveyard, a permanent or a
+	// graveyard card matching F (TgtPermOrGraveCard)
+	PermOrGraveCard bool
+
+	AtRes   bool   // asked mid-resolution (gorge's deferred chain-link targets), at its ChooseTargets
+	ChgSub  bool   // declared by a ChangeZone chain link (not the root): gorge announces its targets on cast (castSubChangeZoneAnnounceable)
+	Decl    bool   // a spell's copy target declaration (its root node or a charm mode's head)
+	SubDecl bool   // a SubAbility$ link's copy target declaration (gorge copyChainDeclarations)
+	SubCond string // with SubDecl: the link's lowercased Condition$ ("kicked", "optionalcost" excuse the announcement)
 	// ParentPlus1 is the 1-based slot of the player target whose graveyard
 	// this card slot is restricted to (TargetsWithDefinedController$
 	// ParentTarget); 0 = unrestricted.

@@ -43,7 +43,12 @@ func (s *State) resSpellOf(o Obj) *stackEntry {
 //
 //go:noinline
 func (s *State) bindTrigProv(a *kop.Ability, tobj Obj) {
-	if a.Trig.Flags2&(kop.Tf2XBound|kop.Tf2SpentBound) != 0 {
+	if a.Trig.Flags2&kop.Tf2XBound != 0 && a.Trig.Event == kop.TrigTurnFaceUp {
+		// CR 107.3m: the X announced for the turn-up rides the event's amount
+		if s.npend > 0 && s.pend[s.npend-1].trigObj == tobj && tobj != NoObj {
+			s.pend[s.npend-1].x = uint8(max(0, min(255, int(s.pend[s.npend-1].trigAmt))))
+		}
+	} else if a.Trig.Flags2&(kop.Tf2XBound|kop.Tf2SpentBound) != 0 {
 		s.bindTrigX(tobj, a.Trig.Flags2&kop.Tf2SpentBound != 0)
 	}
 	if a.Trig.Flags2&kop.Tf2Convoked != 0 && s.npend > 0 && s.pend[s.npend-1].trigObj == tobj && tobj != NoObj {

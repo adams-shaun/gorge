@@ -13,12 +13,22 @@ import "strings"
 // kernel's targeted exile moves the object from whichever zone it is in
 // (moveObj), so the set names no instruction operand: only a Defined$
 // Targeted exile reads it, and the origin is lowered as unrestricted.
-// Every other shape (a ValidTgts$ of its own, which gorge targets across both
-// zones, a destination but exile, a hidden pick) refuses by name.
+// Every other shape (a destination but exile, a hidden pick) refuses by name.
 func (lc *lowerCtx) originBattlefieldGrave(ps *params) error {
 	ps.get("Origin") // read
 	if _, ok := ps.get("ValidTgts"); ok {
-		return refuse("ChangeZone Origin$ Battlefield,Graveyard with ValidTgts$ (a target across both zones)")
+		// one slot across both zones (Aurelia's Vindicator): gorge's
+		// changeZoneTargetZones names the battlefield and the graveyard
+		if ps.str("Destination") != "Exile" || ps.str("Defined") != "" {
+			return refuse("ChangeZone Origin$ Battlefield,Graveyard with ValidTgts$ (a target across both zones)")
+		}
+		for _, k := range []string{"ChangeType", "Hidden", "Optional", "Mandatory", "DefinedPlayer", "Chooser", "GainControl", "LibraryPosition", "TgtZone", "TargetType"} {
+			if _, ok := ps.get(k); ok {
+				return refuse("ChangeZone Origin$ Battlefield,Graveyard with ValidTgts$ and %s$", k)
+			}
+		}
+		lc.permOrGraveCard = true
+		return nil
 	}
 	switch {
 	case ps.str("Destination") != "Exile":
