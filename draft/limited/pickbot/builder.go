@@ -169,22 +169,21 @@ func (b *Best23) Build(set string, pool []limited.CardRef) build.Deck {
 	// preferring creatures up to MinCreatures.
 	main := make([]candidate, 0, t.MainSize)
 	taken := make(map[string]bool, t.MainSize)
-	high := 0
+	var k caps
 	for _, c := range best {
 		if len(main) >= t.MainSize {
 			break
 		}
-		if c.mv >= t.HighValueMV && high >= t.MaxHighValue {
+		if !k.fits(t, c) {
 			continue
 		}
-		if c.mv >= t.HighValueMV {
-			high++
-		}
+		k.add(t, c, 1)
 		main = append(main, c)
 		taken[c.id] = true
 	}
-	main = b.preferCreatures(main, bestAll, taken, &high)
-	main = b.fillToMainSize(main, bestAll, all, taken, &high)
+	main = b.preferCreatures(main, bestAll, taken, &k)
+	main = b.fillToMainSize(main, bestAll, all, taken, &k)
+	main = b.curveFloors(main, bestAll, taken, &k)
 
 	deck := build.Deck{Basics: [5]int{}}
 	var pips [5]int
@@ -203,10 +202,10 @@ func (b *Best23) Build(set string, pool []limited.CardRef) build.Deck {
 // MinCreatures of them, respecting the high-mana-value cap. The
 // preference is unconditional: a creature comes in even when the
 // non-creature it replaces rates higher.
-func (b *Best23) preferCreatures(main, inPair []candidate, taken map[string]bool, high *int) []candidate {
+func (b *Best23) preferCreatures(main, inPair []candidate, taken map[string]bool, k *caps) []candidate {
 	t := b.tuning()
 	for countCreatures(main) < t.MinCreatures {
-		swapIn, found := bestUntakenCreature(inPair, taken, t, *high)
+		swapIn, found := bestUntaken(inPair, taken, t, k, isCreature)
 		if !found {
 			return main
 		}
@@ -221,12 +220,8 @@ func (b *Best23) preferCreatures(main, inPair []candidate, taken map[string]bool
 			return main
 		}
 		out := main[swapOut]
-		if out.mv >= t.HighValueMV {
-			*high--
-		}
-		if swapIn.mv >= t.HighValueMV {
-			*high++
-		}
+		k.add(t, out, -1)
+		k.add(t, swapIn, 1)
 		delete(taken, out.id)
 		taken[swapIn.id] = true
 		main[swapOut] = swapIn
@@ -237,47 +232,99 @@ func (b *Best23) preferCreatures(main, inPair []candidate, taken map[string]bool
 // fillToMainSize tops a short main up with the best remaining cards, the
 // in-pair ones first and then the off-colour rest, for a
 // thin pool.
-func (b *Best23) fillToMainSize(main, inPair, all []candidate, taken map[string]bool, high *int) []candidate {
+func (b *Best23) fillToMainSize(main, inPair, all []candidate, taken map[string]bool, k *caps) []candidate {
 	t := b.tuning()
 	for len(main) < t.MainSize {
-		next, found := bestUntaken(inPair, taken, t, *high)
+		next, found := bestUntaken(inPair, taken, t, k, nil)
 		if !found {
-			next, found = bestUntaken(all, taken, t, *high)
+			next, found = bestUntaken(all, taken, t, k, nil)
 		}
 		if !found {
 			return main
 		}
-		if next.mv >= t.HighValueMV {
-			*high++
-		}
+		k.add(t, next, 1)
 		taken[next.id] = true
 		main = append(main, next)
 	}
 	return main
 }
 
-// bestUntaken finds the highest-rated untaken candidate that keeps the
-// high-mana-value cap respected.
-func bestUntaken(all []candidate, taken map[string]bool, t Tuning, high int) (candidate, bool) {
-	for _, c := range all {
-		if taken[c.id] {
-			continue
+// curveFloors raises each curve bucket short of Tuning.CurveMin: it swaps
+// the lowest-rated main card from a bucket above its own floor for the
+// best untaken in-pair card of the short bucket, keeping the caps and
+// MinCreatures. A zero CurveMin (the default) changes nothing.
+func (b *Best23) curveFloors(main, inPair []candidate, taken map[string]bool, k *caps) []candidate {
+	t := b.tuning()
+	for bucket := range t.CurveMin {
+		for k.buckets[bucket] < t.CurveMin[bucket] {
+			out := -1
+			for i, m := range main {
+				mb := curveBucket(m.mv)
+				if mb == bucket || k.buckets[mb] <= t.CurveMin[mb] {
+					continue
+				}
+				if out < 0 || m.rating <= main[out].rating {
+					out = i
+				}
+			}
+			if out < 0 {
+				return main
+			}
+			o := main[out]
+			k.add(t, o, -1)
+			in, found := bestUntaken(inPair, taken, t, k, func(c candidate) bool {
+				return curveBucket(c.mv) == bucket && (c.creature || !o.creature || k.creatures >= t.MinCreatures)
+			})
+			if !found {
+				k.add(t, o, 1)
+				return main
+			}
+			k.add(t, in, 1)
+			delete(taken, o.id)
+			taken[in.id] = true
+			main[out] = in
 		}
-		if c.mv >= t.HighValueMV && high >= t.MaxHighValue {
-			continue
-		}
-		return c, true
 	}
-	return candidate{}, false
+	return main
 }
 
-// bestUntakenCreature is bestUntaken over creatures only.
-func bestUntakenCreature(all []candidate, taken map[string]bool, t Tuning, high int) (candidate, bool) {
+// caps counts what the main holds against the builder's caps: the
+// high-mana-value cap, Tuning.CreatureMax and Tuning.CurveMax.
+type caps struct {
+	high, creatures int
+	buckets         [6]int
+}
+
+// fits reports whether c can join the main without breaking a cap.
+func (k *caps) fits(t Tuning, c candidate) bool {
+	if c.mv >= t.HighValueMV && k.high >= t.MaxHighValue {
+		return false
+	}
+	if c.creature && t.CreatureMax > 0 && k.creatures >= t.CreatureMax {
+		return false
+	}
+	b := curveBucket(c.mv)
+	return t.CurveMax[b] == 0 || k.buckets[b] < t.CurveMax[b]
+}
+
+// add counts c into (sign 1) or out of (sign -1) the main.
+func (k *caps) add(t Tuning, c candidate, sign int) {
+	if c.mv >= t.HighValueMV {
+		k.high += sign
+	}
+	if c.creature {
+		k.creatures += sign
+	}
+	k.buckets[curveBucket(c.mv)] += sign
+}
+
+func isCreature(c candidate) bool { return c.creature }
+
+// bestUntaken finds the highest-rated untaken candidate keep accepts (nil
+// accepts any) that fits the caps.
+func bestUntaken(all []candidate, taken map[string]bool, t Tuning, k *caps, keep func(candidate) bool) (candidate, bool) {
 	for _, c := range all {
-		if taken[c.id] || !c.creature {
-			continue
-		}
-		if c.mv >= t.HighValueMV && high >= t.MaxHighValue {
+		if taken[c.id] || keep != nil && !keep(c) || !k.fits(t, c) {
 			continue
 		}
 		return c, true

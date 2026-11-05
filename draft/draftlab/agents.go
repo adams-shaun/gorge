@@ -154,8 +154,12 @@ func (l *Lab) lookup() pickbot.CardLookup {
 }
 
 // Drafter resolves a pickbot drafter by ref: a fresh instance per call with
-// the lab's card-facts lookup injected, carrying the effective version.
+// the lab's card-facts lookup injected, carrying the effective version. A
+// knobs:<path> ref resolves the knob file (KnobsPrefix).
 func (l *Lab) Drafter(ref AgentRef) (NamedDrafter, error) {
+	if d, _, r, ok, err := l.resolveKnobs(RoleDrafter, ref); ok {
+		return NamedDrafter{Ref: r, Drafter: d}, err
+	}
 	if !pickbotHas(ref.Name) {
 		return NamedDrafter{}, fmt.Errorf("%w: drafter %q (known: %s)", ErrUnknownAgent, ref.Name, pickbot.Names())
 	}
@@ -173,6 +177,9 @@ func (l *Lab) Drafter(ref AgentRef) (NamedDrafter, error) {
 // Builder resolves a pickbot builder by ref: a fresh instance per call with
 // the lab's card-facts lookup injected, carrying the effective version.
 func (l *Lab) Builder(ref AgentRef) (NamedBuilder, error) {
+	if _, b, r, ok, err := l.resolveKnobs(RoleBuilder, ref); ok {
+		return NamedBuilder{Ref: r, Builder: b}, err
+	}
 	if !pickbotHas(ref.Name) {
 		return NamedBuilder{}, fmt.Errorf("%w: builder %q (known: %s)", ErrUnknownAgent, ref.Name, pickbot.Names())
 	}
