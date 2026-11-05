@@ -26,9 +26,14 @@ var (
 	DebugWaterbendPaid func(card CardID, picks, manaPicks int)
 )
 
-// prepWaterbend sets anyWaterbend: some ability costs CostWaterbend.
+// prepWaterbend sets anyWaterbend: some ability costs CostWaterbend, or some
+// spell carries a RaiseCost Waterbend<N> (CardDef.SpellWaterbend).
 func prepWaterbend(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
+		if t.Cards[i].SpellWaterbend != 0 {
+			g.anyWaterbend = true
+			return
+		}
 		for j := range t.Cards[i].Abilities {
 			if t.Cards[i].Abilities[j].Cost.Flags&kop.CostWaterbend != 0 {
 				g.anyWaterbend = true
@@ -142,12 +147,38 @@ func (s *State) grantDynamicCost(k *prep, p uint8, a Action, full kop.ManaCost) 
 // source counts unless its own {T} is part of the cost (CR 701.67a, 118.3).
 // Gorge: withWaterbendOfferCredit.
 func (s *State) waterbendCredit(k *prep, p uint8, src Slot, a *kop.Ability, cost kop.ManaCost) kop.ManaCost {
-	n := int(a.Cost.N)
-	if k.gen == nil || !k.gen.anyWaterbend || DebugWaterbendNoCredit || n <= 0 || cost.Generic == 0 {
-		return cost
-	}
 	if a.Cost.Flags&kop.CostTap == 0 {
 		src = NoSlot
+	}
+	return s.waterbendCreditN(k, p, src, int(a.Cost.N), cost)
+}
+
+// waterbendOwnPart reports a spell's own waterbend amount: card c's
+// SpellWaterbend, owed only by the card's owner (the static's Activator$ You;
+// o is NoObj when the card is priced bare, which counts as the owner's).
+func (s *State) waterbendOwnPart(k *prep, p uint8, c CardID, o Obj) int {
+	n := int(k.t.Cards[c].SpellWaterbend)
+	if n == 0 || o != NoObj && s.objs[o].owner() != p {
+		return 0
+	}
+	return n
+}
+
+// waterbendSpellCredit is waterbendCredit for a spell's own Waterbend<N>:
+// cost less the greedy offer credit (gorge withWaterbendOfferCredit; a spell
+// is on no battlefield, so it never excludes a source).
+func (s *State) waterbendSpellCredit(k *prep, p uint8, c CardID, o Obj, cost kop.ManaCost) kop.ManaCost {
+	if k.gen == nil || !k.gen.anyWaterbend {
+		return cost
+	}
+	return s.waterbendCreditN(k, p, NoSlot, s.waterbendOwnPart(k, p, c, o), cost)
+}
+
+// waterbendCreditN is the greedy credit for an amount of n, src (when not
+// NoSlot) being the permanent whose own {T} is part of the cost.
+func (s *State) waterbendCreditN(k *prep, p uint8, src Slot, n int, cost kop.ManaCost) kop.ManaCost {
+	if k.gen == nil || !k.gen.anyWaterbend || DebugWaterbendNoCredit || n <= 0 || cost.Generic == 0 {
+		return cost
 	}
 	var ord [MaxPerm]Slot
 	cnt := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), ord[:], 0)
@@ -238,6 +269,65 @@ func (s *State) waterbendPickCount() int {
 	return n
 }
 
+// waterbendPart is the waterbend cost part of the cast or activation being
+// built: the amount n, whether the source's {T} is in the cost (it then is
+// no pick), the part count the ask is capped at (slots), and an X in the cost.
+type waterbendPart struct {
+	n      int
+	slots  int
+	tapSrc bool
+	hasX   bool
+}
+
+// waterbendPartFor is the one reader of a build's waterbend part, for an
+// activated ability's Waterbend<N> cost or a spell's own RaiseCost
+// (CardDef.SpellWaterbend). false when the build pays no waterbend, or its
+// cost holds no generic for the picks to pay (gorge ConvokeAsk).
+func (s *State) waterbendPartFor(k *prep, e *stackEntry) (waterbendPart, bool) {
+	switch e.kind {
+	case seAbility:
+		if e.ab == 255 || e.ab >= abDelayed {
+			return waterbendPart{}, false
+		}
+		a := &k.t.Cards[e.card].Abilities[e.ab]
+		if a.Cost.Flags&kop.CostWaterbend == 0 || a.Cost.N <= 0 || a.Cost.Mana.Generic == 0 {
+			return waterbendPart{}, false
+		}
+		return waterbendPart{n: int(a.Cost.N), slots: int(a.Cost.Mana.Generic), tapSrc: a.Cost.Flags&kop.CostTap != 0, hasX: a.Cost.Mana.X != 0}, true
+	case seSpell:
+		if e.obj == NoObj || k.t.Cards[e.card].SpellWaterbend == 0 {
+			return waterbendPart{}, false
+		}
+		n := s.waterbendOwnPart(k, e.ctrl, e.card, e.obj)
+		if n == 0 {
+			return waterbendPart{}, false
+		}
+		if s.bld().donePicks&pkWaterbend != 0 || s.bld().bfl&bflCostFixed != 0 {
+			return waterbendPart{n: n}, true // the ask is over: the build's fixed cost already holds the picks
+		}
+		cost := s.waterbendFullCost(k)
+		if cost.Generic == 0 {
+			return waterbendPart{}, false
+		}
+		return waterbendPart{n: n, slots: cost.MV()}, true
+	}
+	return waterbendPart{}, false
+}
+
+// waterbendFullCost is the build's cost before any waterbend pick.
+func (s *State) waterbendFullCost(k *prep) kop.ManaCost {
+	b := s.bld()
+	kinds := b.pickKs
+	for i := range b.pickKs[:b.pickN] {
+		if b.pickKs[i] == pkWaterbend {
+			b.pickKs[i] = 0
+		}
+	}
+	cost := s.buildCost(k)
+	b.pickKs = kinds
+	return cost
+}
+
 // waterbendOptions poses the next waterbend pick: one option per eligible
 // permanent in battlefield order, Done closing the announcement. The ask
 // commits once it reaches gorge's Max = min(#options, N); a first ask with
@@ -247,22 +337,19 @@ func (s *State) waterbendPickCount() int {
 //go:noinline
 func (s *State) waterbendOptions(k *prep, d *Decision) bool {
 	e := &s.bld().e
-	if k.gen == nil || !k.gen.anyWaterbend || e.kind != seAbility || e.ab == 255 || e.ab >= abDelayed || s.bld().donePicks&pkWaterbend != 0 {
+	if k.gen == nil || !k.gen.anyWaterbend || s.bld().donePicks&pkWaterbend != 0 {
 		return false
 	}
-	a := &k.t.Cards[e.card].Abilities[e.ab]
-	if a.Cost.Flags&kop.CostWaterbend == 0 {
+	part, ok := s.waterbendPartFor(k, e)
+	if !ok {
 		return false
 	}
-	n := int(a.Cost.N)
-	if n <= 0 || a.Cost.Mana.Generic == 0 {
-		return false
-	}
+	n := part.n
 	// gorge castasks.go:76-80 (SourceTaps, b986f411f): a {T} ability's
 	// source taps for {T}, so it is never one of its own waterbend picks
 	// (CR 118.3). Same rule as the tap-X pick (cast.go:1578).
 	self := NoSlot
-	if a.Cost.Flags&kop.CostTap != 0 && !DebugWaterbendSrcTap {
+	if part.tapSrc && !DebugWaterbendSrcTap {
 		self = s.srcSlot()
 	}
 	var ord [MaxPerm]Slot
@@ -281,8 +368,8 @@ func (s *State) waterbendOptions(k *prep, d *Decision) bool {
 	if n < maxPicks {
 		maxPicks = n
 	}
-	if g := int(a.Cost.Mana.Generic); g < maxPicks {
-		maxPicks = g
+	if part.slots < maxPicks {
+		maxPicks = part.slots
 	}
 	if s.waterbendPickCount() >= maxPicks {
 		return false
@@ -308,7 +395,7 @@ func (s *State) waterbendOptions(k *prep, d *Decision) bool {
 	if !pose && s.waterbendPickCount() == 0 {
 		return false
 	}
-	if s.waterbendPickCount() >= s.waterbendTapsNeeded(k, e, a) {
+	if s.waterbendPickCount() >= s.waterbendTapsNeeded(k, e, part) {
 		d.add(MakeAction(AkDone, 0, 0, 0))
 	}
 	s.bld().pickK = pkWaterbend
@@ -320,8 +407,8 @@ func (s *State) waterbendOptions(k *prep, d *Decision) bool {
 // once, before any pick, so a pick still counts here as the mana source it would
 // otherwise be. An unknown amount or a window the walk can't price needs none.
 // Gorge: waterbendTapsNeeded.
-func (s *State) waterbendTapsNeeded(k *prep, e *stackEntry, a *kop.Ability) int {
-	if a.Cost.Mana.X != 0 || !s.windowCensusComplete(k, e) {
+func (s *State) waterbendTapsNeeded(k *prep, e *stackEntry, part waterbendPart) int {
+	if part.hasX || !s.windowCensusComplete(k, e) {
 		return 0
 	}
 	b := s.bld()
@@ -333,7 +420,7 @@ func (s *State) waterbendTapsNeeded(k *prep, e *stackEntry, a *kop.Ability) int 
 	}
 	defer func() { b.pickKs = kinds }()
 	cost := s.buildCost(k)
-	for n := 0; n <= min(int(a.Cost.N), int(cost.Generic)); n++ {
+	for n := 0; n <= min(part.n, int(cost.Generic)); n++ {
 		c := cost
 		c.Generic -= uint8(n)
 		ok, known := s.windowDry(k, e.ctrl, &c, b.bfl&bflAnyColor != 0)
@@ -452,7 +539,7 @@ func (s *State) payWaterbend(k *prep) {
 		}
 	}
 	s.tapBatchClose(tb)
-	if DebugWaterbendPaid != nil && s.bld().e.ab != 255 && k.t.Cards[s.bld().e.card].Abilities[s.bld().e.ab].Cost.Flags&kop.CostWaterbend != 0 {
+	if e := &s.bld().e; DebugWaterbendPaid != nil && (e.kind == seSpell || e.ab != 255 && k.t.Cards[e.card].Abilities[e.ab].Cost.Flags&kop.CostWaterbend != 0) {
 		DebugWaterbendPaid(s.bld().e.card, picks, manaPicks)
 	}
 }
@@ -552,11 +639,7 @@ func (s *State) waterbendTargetAbort(k *prep) bool {
 		return false
 	}
 	e := &s.bld().e
-	if e.kind != seAbility || e.ab == 255 || e.ab >= abDelayed {
-		return false
-	}
-	a := &k.t.Cards[e.card].Abilities[e.ab]
-	if a.Cost.Flags&kop.CostWaterbend == 0 {
+	if _, ok := s.waterbendPartFor(k, e); !ok {
 		return false
 	}
 	// buildCost already subtracts the announced picks (gorge's

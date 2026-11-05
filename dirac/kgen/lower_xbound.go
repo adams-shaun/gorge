@@ -52,6 +52,10 @@ func (lc *lowerCtx) xBound() error {
 		// the card's own cycle trigger (Mode$ Cycled ValidCard$ Card.Self):
 		// the X announced for the cycling ability, carried by the kernel's
 		// fireCycled (gorge trigger_referents.go e.cast.x)
+	case tr.Event == "TurnFaceUp" && !tr.Batch && self:
+		// the card's own turn-up trigger: the X announced for the Morph-family
+		// keyword cost (CR 107.3m), carried by the kernel's fireTurnFaceUp
+		// (gorge morph_turnup.go TurnFaceUp Amount, TriggerPaidX)
 	default:
 		return fmt.Errorf("Count$xPaid in a trigger without an {X} cost (%s trigger)", tr.Event)
 	}

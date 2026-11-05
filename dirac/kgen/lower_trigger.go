@@ -1776,7 +1776,11 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			return nil, err // lower_reducespell.go
 		}
 	case "RaiseCost":
-		if done, err := lc.raiseSelfBehold(sp, &st); err != nil {
+		done, err := lc.raiseSelfWaterbend(sp, &st) // lower_raisewaterbend.go
+		if err == nil && !done {
+			done, err = lc.raiseSelfBehold(sp, &st)
+		}
+		if err != nil {
 			return nil, err
 		} else if !done {
 			if err := lc.raiseCost(sp, &st); err != nil {

@@ -698,6 +698,9 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.SpellWaterbend != 0 {
+		d.SpellWaterbend = uint8(c.SpellWaterbend)
+	}
 	if c.SpellCost != nil {
 		spc := *c.SpellCost
 		if spc.BeholdN != 0 {
@@ -1088,6 +1091,7 @@ var flag1 = map[uint64]kop.FilterFlags{
 func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	var kf kop.Filter
 	kf.Zone = zone
+	kf.Special = c.Special
 	if zone == kop.ZoneBattlefield {
 		kf.Zone = kop.ZoneNone
 	}

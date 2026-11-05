@@ -45,13 +45,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (U.S.S. Enterprise-D, Galaxy-Class and Axgard Artisan: CounterAddedOnce FirstTime$ True's per-source once-a-turn latch; MOM 196 -> 197, TRK 305 -> 306, ALL 21486 -> 21488).
 	// +3 (Dream Harvest; Improvisation Capstone: RememberRevealed$+MinTotalCMC$ DigUntil, ECL/SOS +1; Black Widow, Super Spy: ImprintFound$ alone, MSH +1; ALL 21496 -> 21499).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21513, 34442},
+	"ALL": {21523, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
 	"DFT": {247, 276},
 	"DMU": {193, 270},
-	"DSK": {233, 276},
+	"DSK": {236, 276},
 	"ECL": {232, 273},
 	"EOE": {238, 266},
 	"FDN": {507, 517},
@@ -59,7 +59,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FRA": {245, 269},
 	"HOB": {152, 172},
 	"LCI": {250, 290},
-	"MKM": {228, 279},
+	"MKM": {230, 279},
 	"MOM": {198, 296},
 	"MSH": {226, 276},
 	"NEO": {198, 287},
@@ -69,7 +69,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SOS": {248, 270},
 	"SPM": {160, 192},
 	"TDM": {244, 276},
-	"TLA": {245, 285},
+	"TLA": {246, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
 	"TRK": {311, 311},

@@ -93,6 +93,11 @@ const TgtSpellTgting TargetKind = 239 // a spell whose own object targets includ
 // Stack,Battlefield: Fatehold Charm, Jeskai Revelation).
 const TgtPermOrSpell TargetKind = 235
 
+// TgtPermOrGraveCard: a permanent matching Filter (the TgtObject arm), or a
+// card in a graveyard matching Filter (the TgtCard arm): gorge ValidTgts$
+// <type> over Origin$ Battlefield,Graveyard (Aurelia's Vindicator).
+const TgtPermOrGraveCard TargetKind = 240
+
 // TgfSingleTgt (TargetSpec.TFlags): a TgtStackObj slot admits only a spell or
 // an ability whose targets are exactly one distinct target (gorge
 // TargetType$ SpellAbility.singleTarget, the singleTarget property).

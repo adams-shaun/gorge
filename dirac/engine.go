@@ -314,6 +314,9 @@ func (s *State) stepRaw(d *Decision) {
 		case ctlExileOrder:
 			s.exileOrderOptions(k, d)
 			return
+		case ctlTurnUpX:
+			s.turnUpXOptions(d) // face_turnfaceup.go
+			return
 		case ctlDivide:
 			if s.divA != NoSlot {
 				s.divideOptions(k, d)
@@ -370,6 +373,8 @@ func (s *State) Apply(a Action) {
 		s.applyLegend(k, a)
 	case ctlExileOrder:
 		s.applyExileOrder(k, a)
+	case ctlTurnUpX:
+		s.applyTurnUpX(k, a) // face_turnfaceup.go
 	case ctlDivide:
 		s.applyDivide(k, a)
 	case ctlCleanupDiscard:

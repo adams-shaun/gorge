@@ -270,7 +270,7 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 	delve := int32(0)
 	// Delve reduces a SPELL's cost (CR 702.66a); an ability scope keeps the
 	// object's own current-zone keyword read.
-	if scope.Kind == "Spell" && e.hasCastDelve(id) || scope.Kind != "Spell" && e.hasKeywordH(id, kwhDelve) {
+	if scope.Kind == "Spell" && e.hasCastDelve(id, false) || scope.Kind != "Spell" && e.hasKeywordH(id, kwhDelve) {
 		delve = int32(len(e.G.Zone(state.ZGraveyard, p)))
 	}
 	if !e.manaFeasiblePricedP(p, offerPayment(id, ability, scope), base, &mods, tax, delve, hyp) {

@@ -269,6 +269,12 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 	f := t.F
 	var err error
 	switch {
+	case t.PermOrGraveCard:
+		ts.Kind = kop.TgtPermOrGraveCard
+		// parsed in the graveyard: matchCardOneAt reads the zone, matchPerm ignores it
+		if ts.Filter, err = cb.filter(f, kop.ZoneGraveyard); err != nil {
+			return ts, err
+		}
 	case t.PermOrSpell:
 		ts.Kind = kop.TgtPermOrSpell
 		if ts.Filter, err = cb.filter(f, kop.ZoneBattlefield); err != nil {
@@ -1188,7 +1194,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.XBound {
 		// kxpaid (lower_xbound.go): the body's X is the trigger object's
 		// spell's paid X, captured as it triggers
-		if t.Event != "ETB" && t.Event != "SpellCast" && !(t.Event == "Discarded" && t.Cycled) {
+		if t.Event != "ETB" && t.Event != "SpellCast" && t.Event != "TurnFaceUp" && !(t.Event == "Discarded" && t.Cycled) {
 			return kt, fmt.Errorf("bound X on a %s trigger", t.Event)
 		}
 		kt.Flags2 |= kop.Tf2XBound
