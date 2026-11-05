@@ -162,6 +162,10 @@ func (s *State) answerDelvePick(a Action) {
 // endDelveStage closes the announcement.
 func (s *State) endDelveStage(k *prep) {
 	s.bld().pickK = 0
+	if s.bld().e.faceDown() {
+		s.toStage(k, bsMana) // a face-down cast skips the pips and targets
+		return
+	}
 	s.nextStage(k)
 }
 

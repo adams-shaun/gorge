@@ -585,7 +585,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.pushBuild(k)
 			}
 			if e.faceDown() {
-				s.toStage(k, bsMana) // CR 601.2: no modes, alt cost, gift, tap, X, pips, targets or divide
+				s.toStage(k, bsDelve) // CR 601.2: no modes, alt cost, gift, tap, X, pips, targets or divide; a granted delve still applies, then bsMana
 			} else {
 				s.nextStage(k)
 			}
