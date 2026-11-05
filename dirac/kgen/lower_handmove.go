@@ -344,6 +344,13 @@ func (lc *lowerCtx) handMoveDefinedOwner(ps *params) (lRef, bool, error) {
 		ps.consume("DefinedPlayer")
 		return r, true, nil
 	}
+	if v := strings.TrimSpace(dp); lc.repeatPl > 0 && (v == "Remembered" || v == "Player.IsRemembered") {
+		// the repeated player's hand (Worlds Within Worlds; gorge
+		// effChangeZoneHandOwners over cc.Remembered, the iteration's
+		// player): repeatEachPlayers rewrites rRemembered to RefEach
+		ps.consume("DefinedPlayer")
+		return lRef{Kind: rRemembered}, true, nil
+	}
 	if strings.TrimSpace(dp) != "Targeted" {
 		return lRef{}, false, refuse("hand move DefinedPlayer$ %q", dp)
 	}

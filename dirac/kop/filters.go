@@ -267,6 +267,15 @@ const OvEnterWith = 2
 // (PredN 1). Omenpath Journey, Ghost Vacuum, Northampton Farm.
 const PredExiledWith Pred = 249
 
+// PredTriggerObj: the object IS the resolving ability's triggering object
+// (kernel filter_predicates.go isTriggerObj, F2NotTriggerObj's positive).
+// It is not a Forge filter word: kgen builds it for a Hidden$ ChangeZone's
+// ChooseFromDefined$ TriggeredCards pool (gorge chooseFromDefinedPool over
+// the trigger's capture), whose eligible cards are the marker's objects
+// still in the origin zone. Explicit high ordinal, filters.go style; 240 is
+// free beside the 241-254 block. Paranormal Analyst.
+const PredTriggerObj Pred = 240
+
 // PredFaceDown: the filter word faceDown, a face-down
 // BATTLEFIELD permanent (gorge wordFaceDown: AsFaceDown || Object.FaceDown on
 // the battlefield). A face-down spell or exile card never matches. Explicit
@@ -372,6 +381,18 @@ const W7NoNameTwinGrave int16 = 20
 // object that has a creature type (CR 702.73a). An unbound referent matches
 // nothing.
 const W7SharesCrTrigObj int16 = 21
+
+// W7WithDisguise (PredWord7 sub-kind 22): the card was printed with Disguise
+// (CardDef.MorphFamily == MorphDisguise; gorge's exact keyword word
+// withDisguise, objectHasKeyword). A battlefield permanent that is face down
+// or lost all abilities has none; off the battlefield the printed card
+// counts in any zone. Expose the Culprit.
+const W7WithDisguise int16 = 22
+
+// W7FaceUpDisguise (PredWord7 sub-kind 23): the pair faceUp and withDisguise
+// in one clause (a clause holds one comparison): not face down and printed
+// with Disguise, in any zone.
+const W7FaceUpDisguise int16 = 23
 
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and

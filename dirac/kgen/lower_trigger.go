@@ -1333,7 +1333,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		tr.Outstanding = true
 		ab.Name = "CheckOnTriggerOnly"
-	case "LandPlayed", "SearchedLibrary", "Forage", "Discover":
+	case "LandPlayed", "SearchedLibrary", "Forage", "Discover", "ManifestDread":
 		if err := lc.trigModes2(tp, tr, t.Mode, zone, readF); err != nil {
 			return err
 		}
@@ -2895,6 +2895,9 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		// minted bodyless prevention line must not also lower (lower_preventkw.go)
 		return nil
 	}
+	if lc.selfPreventRepl(r) { // lower_preventkw.go
+		return nil
+	}
 	rp := newParams(r.Params)
 	rp.consume("Event", "ReplaceWith", "ReplacementResult")
 	rl := lRepl{}
@@ -3226,6 +3229,9 @@ func (lc *lowerCtx) damageRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		lc.face.SVars[w.Params["VarValue"]] == "ReplaceCount$DamageAmount/Twice" {
 		rl.Kind = "DoubleDamageToOpps"
 		return nil
+	}
+	if ok, err := lc.preventMillRepl(rp, w, rl); ok || err != nil { // lower_replmult.go
+		return err
 	}
 	return lc.damageDoubler(rp, w, rl)
 }

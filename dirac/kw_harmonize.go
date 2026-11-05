@@ -115,7 +115,8 @@ func (s *State) offerHarmonizeCasts(k *prep, d *Decision, p uint8, sorc bool, av
 
 // harmonizeOptions poses the harmonize announcement (gorge ConvokeAsk with
 // Harmonize): one mode-7 option per untapped creature of power > 0 while
-// the cost still has generic to reduce, then Done (Min 0). The ask closes
+// the cost still has generic to reduce or an unannounced {X} (the X ask
+// then prices the pick, convokeXCost), then Done (Min 0). The ask closes
 // at Max 1, so a pick commits without a Done. Not posed with no option.
 func (s *State) harmonizeOptions(k *prep, d *Decision) bool {
 	e := &s.bld().e
@@ -123,7 +124,7 @@ func (s *State) harmonizeOptions(k *prep, d *Decision) bool {
 		s.capFull(StallConvoke)
 		return false
 	}
-	if s.convokePickCount() >= 1 || s.buildCost(k).Generic == 0 {
+	if c := s.buildCost(k); s.convokePickCount() >= 1 || c.Generic == 0 && c.X == 0 {
 		return false
 	}
 	var ord [MaxPerm]Slot

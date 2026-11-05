@@ -1,6 +1,8 @@
 package canon
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -347,6 +349,13 @@ func (r *Translator) Action(a dirac.Action) Canon {
 				return ch("yes", RefNone, 0)
 			}
 			return ch("no", RefNone, 0)
+		case dirac.ChGenDigOpt:
+			// gorge effDig's allOrNothing election (KChoose kinds "yes"/"no",
+			// no object): ChangeNum$ All beside Optional$.
+			if mode == 1 {
+				return ch("yes", RefNone, 0)
+			}
+			return ch("no", RefNone, 0)
 		case dirac.ChLegend:
 			return ch("keep", src, 0)
 		case dirac.ChDivide:
@@ -432,6 +441,17 @@ func (r *Translator) CardAbility(card dirac.CardID, idx uint8) uint8 {
 			return o
 		}
 	}
+	if idx == 250 {
+		// the kernel-native storm trigger (dirac abStorm, CR 702.40a): the
+		// printed K:Storm expansion's face trigger when the card prints the
+		// keyword (gorge kwStorm's addKeywordTrigger line, the same line
+		// kgen's CardDef.Storm lowers to the flag), 255 when it does not —
+		// a StatStackKw Storm grant's trigger is gorge's synthesized
+		// StormGrantedBody (rules/storm_granted.go), which is in no face
+		// list, and that walk skips a face that prints Storm, so the two
+		// cannot share a card
+		return r.stormAbility(card)
+	}
 	if idx >= 253 {
 		if idx == 253 || idx == 254 {
 			return r.nativeAbility(card, idx)
@@ -502,6 +522,52 @@ func (r *Translator) nativeAbility(card dirac.CardID, idx uint8) uint8 {
 		}
 	}
 	return 255
+}
+
+// stormAbility is the projected ability index of the kernel's native storm
+// trigger (abStorm): the printed K:Storm expansion's face trigger (0x80|i)
+// when the spell's card prints the keyword, 255 when it does not — the
+// StatStackKw Storm grant's trigger is gorge's synthesized StormGrantedBody
+// (rules/storm_granted.go), which is in no face list, and that walk skips a
+// face that prints Storm, so the two cannot share a card. The trigger shape
+// is gorge kwStorm's addKeywordTrigger line (the one kgen's lower_storm.go
+// validates), not any Keyword$ Storm trigger.
+func (r *Translator) stormAbility(card dirac.CardID) uint8 {
+	if r.Reg == nil || int(card) >= len(r.GName) {
+		return 255
+	}
+	c, ok := r.Reg.Lookup(r.GName[card])
+	if !ok || len(c.Faces) == 0 || c.Faces[0] == nil {
+		return 255
+	}
+	for _, f := range c.Faces {
+		if f == nil {
+			continue
+		}
+		for i, t := range f.Triggers {
+			if isGorgeStormTrigger(&t) {
+				if i < 0x7F {
+					return 0x80 | uint8(i)
+				}
+				return 255
+			}
+		}
+	}
+	return 255
+}
+
+// isGorgeStormTrigger reports whether t is the printed K:Storm expansion's
+// trigger: gorge kwStorm's addKeywordTrigger shape, whose body is the
+// __kwStorm SVar (kgen lower_storm.go validates the same shape).
+func isGorgeStormTrigger(t *cards.Trigger) bool {
+	return t.Mode == "SpellCast" && t.Effect != nil &&
+		strings.TrimSpace(t.Params["Keyword"]) == "Storm" &&
+		strings.TrimSpace(t.Params["ValidCard"]) == "Card.Self" &&
+		strings.TrimSpace(t.Params["TriggerZones"]) == "Stack" &&
+		t.Effect.Kind == "DB" && t.Effect.API == "CopySpellAbility" &&
+		t.Effect.Params["Defined"] == "TriggeredSpellAbility" &&
+		t.Effect.Params["Amount"] == "TriggerCount$CurrentStormCount/Minus1" &&
+		t.Effect.Params["MayChooseTarget"] == "True"
 }
 
 // sameRoomFace reports whether a and b are Room defs of the same printed

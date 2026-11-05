@@ -185,7 +185,12 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 					// than nil, so "the under-card has no such SVar" resolves to
 					// no grant instead of falling back to the top card's body.
 					var faceSVars map[string]string
-					if fi >= mergedFrom {
+					// An unlocked Room door (fi 1 below mergedFrom: staticRoomFaces
+					// appends it only for an unlocked Room) is its own card state
+					// (CR 709.5), so its AddAbility$ names resolve against ITS table.
+					// Forge: AbilityUtils.getSVar(stAb, name) reads the static's own
+					// state's SVars (CardTraitBase.getSVar), not the shown face's.
+					if fi >= mergedFrom || (fi == 1 && fi < mergedFrom) {
 						faceSVars = fc.SVars
 						if faceSVars == nil {
 							faceSVars = emptySVars
