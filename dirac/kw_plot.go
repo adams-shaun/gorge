@@ -129,6 +129,14 @@ func (s *State) plotLive(r mayPlay) bool {
 func (s *State) offerPlotHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
 	cd := &k.t.Cards[c]
 	pc := s.adjustCost(k, p, c, o, cd.PlotCost) // a Spell-scope modifier applies (CR 601.2f)
+	if len(k.gen.grantPC) != 0 && s.g.availX&availWalk != 0 {
+		// gorge's potential walk counts a restricted mana ability only for a
+		// payment its restriction admits (potentialRestrictionAdmits): a
+		// hand-barred grant puts no cast on the walk grantCap reads
+		var ha avail
+		s.walkHandAvail(k, p, payDesc{class: pdOther, src: NoSlot}, &ha)
+		av = &ha
+	}
 	if !av.affords(&pc, pipMaskOf(&pc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.plotRestrFallback(k, p, &pc, av)) {
 		return
 	}

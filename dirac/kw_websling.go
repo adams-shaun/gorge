@@ -83,6 +83,8 @@ func (s *State) offerWebSlingHand(k *prep, d *Decision, p uint8, o Obj, c CardID
 	if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
 		return // castRestrictedCost / offerCastable on the composed cost
 	}
+	// gorge's potential walk prices no web-slinging mode; the restricted-grant
+	// filter (walkHandAvail) is not this offer's shape.
 	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.g.availX&availWalk == 0 && !s.sneakPoolPays(k, p, c, &cost) {
 		// gorge's planner and lowering price no web-slinging mode: the
 		// cast is offered only when the floating pool pays (harmonize's

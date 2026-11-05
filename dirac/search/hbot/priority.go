@@ -990,7 +990,8 @@ func (bt *Bot) tapWould(s *dirac.State, d *dirac.Decision) bool {
 // Under auto-pay gorge's census is the planned casts and the plain casts in
 // hand its planner declines for their cost's shape
 // (decision.PotentialShapeCasts); the kernel offers a planned cast, and a
-// shape cast is one the planner never prices.
+// shape cast is one the planner declines for the card's or the board's
+// shape (FeatPlanDeclinesShape: a convoke cast too, The Wandering Rescuer).
 func (bt *Bot) tapTarget(d *dirac.Decision, c *cardF) bool {
 	b := &bt.b
 	for i := 0; i < int(d.N); i++ {
@@ -998,7 +999,7 @@ func (bt *Bot) tapTarget(d *dirac.Decision, c *cardF) bool {
 			return true
 		}
 	}
-	if b.s.ObjZone(c.obj) != kop.ZoneHand || !b.s.FeatPlanNeverPrices(b.s.ObjCard(c.obj)) || !(c.instant || b.myTur && b.isMain && b.nStack == 0) {
+	if b.s.ObjZone(c.obj) != kop.ZoneHand || !b.s.FeatPlanDeclinesShape(b.me, c.obj) || !(c.instant || b.myTur && b.isMain && b.nStack == 0) {
 		return false
 	}
 	return bt.potential(c)
