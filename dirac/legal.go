@@ -730,11 +730,12 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 			return false
 		}
 	}
-	if ac := spellAddCost(k, c); ac.Flags&costObjFlags != 0 {
-		// an exile / forage / return / blight part: the cast planner declines the
-		// shape, and the potential planner prices it only when the printed sources
-		// pay the mana (potentialPlayVerdictShared), with no prefix search for a
-		// granted source beside it (Abhorrent Oculus' exile)
+	if ac := spellAddCost(k, c); ac.Flags&costObjFlags != 0 || k.gen != nil && k.gen.anyEvTargets && spellEvidenceTargets(cd) {
+		// an exile / forage / return / blight / collect-evidence part: the cast
+		// planner declines the shape, and the potential planner prices it only
+		// when the printed sources pay the mana (potentialPlayVerdictShared), with
+		// no prefix search for a granted source beside it (Abhorrent Oculus'
+		// exile; Urgent Necropsy's evidence beside Insidious Roots' grant)
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
 		if s.g.mayPlayAny {
 			cost = anyType(cost)

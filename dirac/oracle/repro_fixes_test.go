@@ -26,6 +26,7 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"trigger_limit_look_back", true, false},                 // CR 603.10a: Homicide Investigator's own death reads the limit it spent
 		{"optional_cost_no_prefix_search", false, false},         // an OptionalCost card's plain cast: no search over a Strider
 		{"optional_cost_granted_source", false, false},           // nor a witness from a granted source (Insidious Roots)
+		{"evidence_targets_cost_granted_source", false, false},   // CR 601.2b: Urgent Necropsy's collect evidence X is priced by printed sources only, not Insidious Roots' grant
 		{"fee_colour_hybrid_face", false, false},                 // a filter's fee takes the colour the hybrid face can spare
 		{"first_only_filter_in_window", false, false},            // a once-each-turn filter is listed once the pool pays its fee
 		{"ward_window_first_only_filter", false, false},          // ... and a failed ward payment still spends it
