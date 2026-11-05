@@ -73,6 +73,12 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		{"explosive_derailment_needs_a_mode_cost", false, false},
 		{"aegis_on_temporary_copy_bearer", true, false},     // CR 613.7e, 707.2: Assimilation Aegis attached to a creature Fleeting Reflection made a copy until end of turn copies over it (the later copy wins), and gives it back to that copy when unattached
 		{"resolved_spell_copy_rests_in_exile", true, false}, // CR 707.10a: a copy of a spell is exiled as it leaves the stack (gorge's spellRestZone), not put in a graveyard and ceased later
+		// Omenport Vigilante's double strike turns on mid-way through a
+		// Boom Box activation: gorge records each target ask of an ability
+		// as a TargetsChosen as it is applied, so the per-turn crime ledger
+		// sets at every pick (CR 700.13), not only at placement, and the
+		// kernel follows (act_commitcrime.go crimePick).
+		{"crime_ledger_set_at_each_ability_target_pick", true, false},
 	})
 }
 

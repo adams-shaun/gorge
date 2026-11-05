@@ -1187,7 +1187,9 @@ func (s *State) applyBuild(k *prep, a Action) {
 				e.nt = ti + 1
 			}
 			if k.gen != nil && k.gen.crimeOn {
-				s.crimePick(k, a.Target())
+				// the plain target step takes one pick per ask: the ask
+				// completes here (act_commitcrime.go crimePick)
+				s.crimePick(k, a.Target(), true)
 			}
 		}
 		s.bld().ti++
