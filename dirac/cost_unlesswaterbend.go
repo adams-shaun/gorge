@@ -39,14 +39,13 @@ const payKindWaterbend = 21
 // floating pool (mutation).
 var DebugUnlessWaterbendNoPool bool
 
-// poolTotal is the mana floating in p's pool.
-func (s *State) poolTotal(p uint8) int {
-	n := 0
-	pl := &s.pl[p&1]
-	for c := 0; c < kop.NumManaKinds; c++ {
-		n += int(pl.pool[c])
+// unlessPayKind widens a pay instruction's kind nibble: a PayTapX whose B.N
+// is PayBSubWaterbend is an unless Waterbend<N> (execPay, branchPayable).
+func unlessPayKind(kind int, bn int16) int {
+	if kind == kop.PayTapX && bn == kop.PayBSubWaterbend {
+		return payKindWaterbend
 	}
-	return n
+	return kind
 }
 
 // unlessWaterbendOwed is how many permanents p must tap to waterbend n.
@@ -54,7 +53,7 @@ func (s *State) unlessWaterbendOwed(p uint8, n int) int {
 	if DebugUnlessWaterbendNoPool {
 		return n
 	}
-	return max(n-s.poolTotal(p), 0)
+	return max(n-poolTotal(&s.pl[p&1]), 0)
 }
 
 // unlessWaterbendCand reports whether sl can be tapped for the waterbend:
@@ -96,7 +95,12 @@ func (s *State) startUnlessWaterbend(k *prep) bool {
 		return false
 	}
 	ward := s.g.pickF&pfWard != 0
-	if owed == 0 || have == owed && !ward {
+	if owed == 0 {
+		s.payWaterbendPool(p, n, 0) // the pool covers it: nothing is tapped (gorge WaterbendTapsOwed 0, ward need 0)
+		s.payDone(k, true)
+		return false
+	}
+	if have == owed && !ward {
 		s.unlessWaterbendCands(k, p, func(sl Slot) { s.tapCostPerm(k, sl, s.perms[sl].obj) })
 		s.payWaterbendPool(p, n, owed)
 		s.payDone(k, true)

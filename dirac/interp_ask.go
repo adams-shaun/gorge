@@ -104,9 +104,7 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubTrigNew {
 		kind = payKindTrigNew // a trigger's own ExileAnyGrave<1/Card.TriggeredNewCard> cost rides PayExileGrave (trig_mayexile.go)
 	}
-	if kind == kop.PayTapX && in.B.N == kop.PayBSubWaterbend {
-		kind = payKindWaterbend // an UnlessCost$ Waterbend<N> rides PayTapX (cost_unlesswaterbend.go)
-	}
+	kind = unlessPayKind(kind, in.B.N) // an UnlessCost$ Waterbend<N> rides PayTapX (cost_unlesswaterbend.go)
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubExileHand {
 		kind = payKindExileHand // a trigger's own ExileFromHand<N/Card> cost rides PayExileGrave (cost_exilefromhand.go)
 	}
@@ -2218,7 +2216,7 @@ func (s *State) branchPayable(k *prep, b uint8, p uint8) bool {
 		if n.Op != kop.OpUnlessPaid && n.Op != kop.OpIfPaid && n.Op != kop.OpUnlessSwitched {
 			return true
 		}
-		return s.canPayGen(k, p, int(n.C&0xF), s.value(k, n.A), n.B.N, n.F)
+		return s.canPayGen(k, p, unlessPayKind(int(n.C&0xF), n.B.N), s.value(k, n.A), n.B.N, n.F)
 	}
 	return true
 }
