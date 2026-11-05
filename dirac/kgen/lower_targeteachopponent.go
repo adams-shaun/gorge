@@ -21,6 +21,23 @@ import "strings"
 // TargetMax$ 1, which the kernel already lowers. The which-opponent ask
 // (opponentPick) is posed only with two or more living opponents, so it never
 // arises here. Any other shape refuses.
+//
+// "Each other player" (SVar PlayerCountOther$Amount, Kaya, Spirits' Justice's
+// -2) and YouDontCtrl are the same two-player identities as "opponents" and
+// OppCtrl (filter.go maps YouDontCtrl to whoOpp). Lowered Max 1 over that
+// candidate set equals gorge's distinct-owner count (targets_ask.go:127-148):
+// one owner group, so the same single ask over the same candidates.
+// otherOneEach reports the PlayerCountOther$ spelling, whose bounds the
+// caller sets directly (value.go knows no PlayerCountOther head, and that
+// alias is deliberately not added).
+func (lc *lowerCtx) otherOneEach(ps *params) bool {
+	fe, _ := ps.get("TargetsForEachPlayer")
+	mn, _ := ps.get("TargetMin")
+	mx, _ := ps.get("TargetMax")
+	return strings.TrimSpace(fe) == "True" && strings.TrimSpace(mn) == "0" && strings.TrimSpace(mx) == "OneEach" &&
+		strings.TrimSpace(lc.face.SVars["OneEach"]) == "PlayerCountOther$Amount"
+}
+
 func (lc *lowerCtx) forEachOpp(ps *params, f *lFilter, t *lTarget) error {
 	v, ok := ps.get("TargetsForEachPlayer")
 	if !ok {
@@ -42,7 +59,7 @@ func (lc *lowerCtx) forEachOpp(ps *params, f *lFilter, t *lTarget) error {
 	}
 	mx, _ := ps.get("TargetMax")
 	mx = strings.TrimSpace(mx)
-	oneEach := mx == "OneEach" && strings.TrimSpace(lc.face.SVars["OneEach"]) == "PlayerCountOpponents$Amount"
+	oneEach := mx == "OneEach" && (strings.TrimSpace(lc.face.SVars["OneEach"]) == "PlayerCountOpponents$Amount" || lc.otherOneEach(ps))
 	if !oneEach && (!t.Max.isConst() || t.Max.N != 1) {
 		return refuse("TargetsForEachPlayer$ shape %q: TargetMax$ %q", v, mx)
 	}

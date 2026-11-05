@@ -337,14 +337,18 @@ func (lc *lowerCtx) objOrTargetOpt(ps *params, dflt string, zone int, allowParen
 		if f.Players != 0 && len(f.Clauses) == 0 {
 			t.Zone = zNone
 		}
-		if v, ok := ps.get("TargetMin"); ok {
-			if t.Min, err = lc.value(v); err != nil {
-				return lRef{}, err
+		if lc.otherOneEach(ps) { // the bounds are set here; forEachOpp checks the rest
+			t.Min, t.Max = cst(0), cst(1)
+		} else {
+			if v, ok := ps.get("TargetMin"); ok {
+				if t.Min, err = lc.value(v); err != nil {
+					return lRef{}, err
+				}
 			}
-		}
-		if v, ok := ps.get("TargetMax"); ok {
-			if t.Max, err = lc.value(v); err != nil {
-				return lRef{}, err
+			if v, ok := ps.get("TargetMax"); ok {
+				if t.Max, err = lc.value(v); err != nil {
+					return lRef{}, err
+				}
 			}
 		}
 		if allowParent {
