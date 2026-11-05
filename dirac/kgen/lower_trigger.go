@@ -1250,7 +1250,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	case "Always":
 		// CR 603.8 state trigger, the counter-threshold shape (Mazemind
 		// Tome: TriggerZones$ Battlefield, IsPresent$
-		// Card.Self+counters_GE<N>_<KIND>, N a literal 1..255). gorge
+		// Card.Self+counters_GE<N>_<KIND>, N a literal 1..127:
+		// kop.PredCountersGE packs the threshold in the high byte of an
+		// int16 (PredN), so 128 would wrap negative). gorge
 		// matches every event -- the Always matcher is vacuously true
 		// (trigmatch/registry.go) -- and gates on the condition, which only
 		// a counter put can newly satisfy: counters change only through
@@ -1282,13 +1284,13 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			return refuse("Always IsPresent$ %q", ip)
 		}
 		n, err := strconv.Atoi(thr)
-		if err != nil || n < 1 || n > 255 {
+		if err != nil || n < 1 || n > 127 {
 			return refuse("Always IsPresent$ %q (threshold %q)", ip, thr)
 		}
 		if _, err := counterKind(kind); err != nil {
 			return refuse("Always IsPresent$ %q (%v)", ip, err)
 		}
-		for k := range t.Params {
+		for _, k := range sortedParamKeys(t.Params) {
 			switch k {
 			case "Mode", "Execute", "TriggerZones", "IsPresent", "TriggerDescription":
 			default:

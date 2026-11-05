@@ -45,8 +45,8 @@ var kmazemindRespondDecks = [2][]cardset.Entry{
 
 // runMazemind plays the seeds with the random policy over the state-trigger
 // pool and returns the games, the divergences, the Tomes that ended exiled
-// (the trigger resolved) and the Tomes that ended in a graveyard (Green
-// Slime destroyed the source, or the instance was swept).
+// (the trigger resolved) and the Tomes that ended in a graveyard (a drawn
+// copy discarded to hand size: the pool has no removal).
 func runMazemind(t *testing.T, kdecks [2][]cardset.Entry, seeds int, mutate string) (games, divs, exiles, grave int) {
 	t.Helper()
 	cardsDir := corpusDirOrSkip(t)

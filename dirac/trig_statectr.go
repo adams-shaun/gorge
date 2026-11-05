@@ -10,11 +10,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // the stack), and the re-check runs again at every resolution's finish
 // (finishResolve) and after the end-of-turn sweep, so the source re-fires
 // while it still meets the threshold. gorge re-checks on every event; for
-// this shape only a counter put can newly satisfy the condition, and a
-// countering resolution that then removes the source (Green Slime) makes
-// its own leave moot by resolution's end -- re-checking inside the
-// resolution (at counterAt) would queue an instance gorge's next-event
-// check never does.
+// this shape only a counter put can newly satisfy the condition. The
+// finish-only cadence is sound only while no lowered counter shape removes
+// the source mid-resolution and no lowered ability-counter adds a trigger in
+// that same resolution: gorge would queue on the counter's move before the
+// removal, while the kernel waits for the finish, so a future lowering that
+// adds either must re-check earlier (at counterAt).
 
 // DebugStateCtrNoLatch is the mutation switch: the outstanding scan sees
 // nothing, so a put while an instance is queued or on the stack queues a
