@@ -226,7 +226,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	// down") is the chooser's private look, not a reveal: a card exiled face
 	// down is shown to nobody the instruction does not name (CR 406.3,
 	// 701.20a), so the opponent is not told their own cards.
-	faceDownLook := forceReveal && dest == state.ZExile && isTrue(sa.ParamStr(cards.PKExileFaceDown))
+	faceDownLook := forceReveal && dest == state.ZExile && dp.ExileFaceDown
 	if faceDownLook {
 		forceReveal = false
 	}

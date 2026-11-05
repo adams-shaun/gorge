@@ -60,6 +60,7 @@ type DigParams struct {
 	// GainControl$ and RememberChanged$ True.
 	NoLooking       bool
 	ForceReveal     bool
+	ExileFaceDown   bool
 	SkipReorder     bool
 	Tapped          bool
 	FromBottom      bool
@@ -381,6 +382,7 @@ func compileDig(sa *cards.SA) *DigParams {
 	p.RevealWin = isTrue(sa.ParamStr(cards.PKReveal)) && !isTrue(sa.ParamStr(cards.PKNoReveal))
 	p.NoLooking = isTrue(sa.ParamStr(cards.PKNoLooking))
 	p.ForceReveal = isTrue(rawParamText(sa, "ForceRevealToController").Text)
+	p.ExileFaceDown = isTrue(sa.ParamStr(cards.PKExileFaceDown))
 	p.SkipReorder = isTrue(rawParamText(sa, "SkipReorder").Text)
 	p.Tapped = isTrue(sa.ParamStr(cards.PKTapped))
 	p.FromBottom = isTrue(rawParamText(sa, "FromBottom").Text)
