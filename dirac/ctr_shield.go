@@ -155,10 +155,10 @@ func (s *State) shieldOther(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, 
 			}
 		}
 	}
-	if combat && s.kwGen(k, sl)&kop.KwPreventCombatDamageTo != 0 {
+	if combat && s.prevCombatTo(k, sl) {
 		return true
 	}
-	if combat && g.anyPrevFrom && srcSl != NoSlot && s.kwGen(k, srcSl)&kop.KwPreventCombatDamageFrom != 0 {
+	if combat && g.anyPrevFrom && srcSl != NoSlot && s.prevCombatFrom(k, srcSl) {
 		return true
 	}
 	return false
@@ -175,7 +175,7 @@ func (s *State) shieldOrderable(k *prep, src, dst Slot) bool {
 	if g.anyRepl&rbDblDmg != 0 && s.dblDmgN2(k, sc, src, s.cardAt(src), rcp, dst, true) > 0 {
 		return true
 	}
-	return s.kwGen(k, dst)&kop.KwPreventCombatDamageTo != 0
+	return s.prevCombatTo(k, dst)
 }
 
 // ncShieldSlot is the parked noncombat event's recipient slot, or NoSlot

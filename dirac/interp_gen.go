@@ -778,6 +778,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.execCreateToken(k, in)
 	case kop.OpEndTurn:
 		s.endTurnExile()
+		if k.anyStateCtr {
+			s.stateCtrRefire(k) // the sweep exiled the remaining trigger instances: re-check the threshold (trig_statectr.go)
+		}
 		e.flags |= sfFlashback // exiled, not put into the graveyard
 		s.g.endTurn = true
 	case kop.OpExileUntilLeaves:
@@ -2098,7 +2101,7 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int) {
 	var dn [maxXTgt + 1]int16 // each recipient's dealt amount, for the per-referent pass
 	for i, code := range codes {
 		n := amts[i]
-		if n > 0 && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol) != 0 {
+		if n > 0 && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol) != 0 {
 			n = s.replDamage(k, s.res.e.ctrl, s.objRef(k, kop.RefSelf), s.res.e.card, code, false, n)
 		}
 		if n <= 0 {
