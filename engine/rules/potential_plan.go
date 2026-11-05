@@ -212,7 +212,7 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 					// search the activations of those sources on clones
 					// for a prefix after which the planner pays the play.
 					scripts++
-					if script, ok := e.potentialPrefixScript(p, o, census.gaps, census.fees()); ok {
+					if script, ok := e.potentialPrefixScript(p, o, census.gaps, census.fees(), census.fundFirst); ok {
 						pp.Script = script
 						got = PaymentPlanOutcome{}
 					}
@@ -1384,19 +1384,36 @@ type paymentPlanCensus struct {
 	// cost includes mana (a filter: Heap Gate's "{1}, {T}: Add one mana of
 	// any color"), each with its fee; relaxed holds the free ones.
 	paid []relaxedPaid
+	// funding is the FIXED mana every missed ability's own cost spends,
+	// relaxed or not: how many other sources a prefix may activate to pay a
+	// gap's fee (Starfleet Academy's "{5}, {T}: Add X mana of any one
+	// color", whose unbounded X leaves no relaxed alternative to carry its
+	// fee in paid). A variable or hybrid cost part is not counted, so this
+	// can under-fund such a gap, never over-fund it.
+	funding int
+	// fundFirst: every missed ability costs mana, so the prefix search can
+	// pay those fees before activating any gap (potentialPrefixScript). A
+	// free gap keeps the older gap-first order, whose mixed search has its
+	// own mirror (dirac mana_filter.go's otherGap).
+	fundFirst bool
 	// gaps lists, in zone order, the sources with an ability the census
 	// misses (potentialPrefixScript activates them).
 	gaps []state.ObjID
 }
 
-// fees is the mana the missed paid abilities' fees total (how many other
+// fees is the mana the missed abilities' own costs total (how many other
 // sources a prefix may activate to fund them).
 func (c paymentPlanCensus) fees() int {
-	n := 0
-	for _, pd := range c.paid {
-		n += int(pd.fee)
-	}
-	return n
+	return c.funding
+}
+
+// manaAbilityFee is the fixed mana an ability's own activation cost spends,
+// which a prefix must fund before the ability can produce anything. X/XMin,
+// hybrid, phyrexian, twobrid, hybrid-phyrexian and snow parts are not
+// counted (a relaxation declines those shapes; an unrelaxable gap's funding
+// is then a lower bound).
+func manaAbilityFee(c Cost) int32 {
+	return c.Generic + c.Colored.Total()
 }
 
 // paymentPlanCensusOf reports whether the planner's source census prices
@@ -1417,7 +1434,7 @@ func (c paymentPlanCensus) fees() int {
 // alternatives (paymentPlanRelaxedAlternatives); relaxable is false when
 // one of them has none.
 func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentPlanCensus {
-	out := paymentPlanCensus{complete: true, relaxable: true}
+	out := paymentPlanCensus{complete: true, relaxable: true, fundFirst: true}
 	units := pay.PaymentPlanQueryUnits(asPayer(e), p)
 	at := make(map[state.ObjID]int, len(units)) // lookup only
 	for i, u := range units {
@@ -1453,6 +1470,15 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 			if !slices.Contains(out.gaps, id) {
 				out.gaps = append(out.gaps, id)
 			}
+			// Count the fee before the relaxation can decline the ability: an
+			// unrelaxable gap still costs mana to activate, and the prefix
+			// search must be allowed to tap sources for it. A free gap (a fee
+			// of zero) keeps the older gap-first order.
+			if fee := int(manaAbilityFee(e.manaAbilityCC(p, id, ma).Cost)); fee > 0 {
+				out.funding += fee
+			} else {
+				out.fundFirst = false
+			}
 			if !out.relaxable {
 				continue
 			}
@@ -1469,7 +1495,7 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 		}
 	}
 	if out.complete {
-		out.relaxable, out.relaxed, out.paid, out.gaps = false, nil, nil, nil
+		out.relaxable, out.relaxed, out.paid, out.gaps, out.fundFirst = false, nil, nil, nil, false
 	}
 	return out
 }
@@ -1504,7 +1530,7 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 	if cost.X != 0 || cost.XMin != 0 || len(cost.Hybrid)+len(cost.Phyrexian)+len(cost.Twobrid)+len(cost.HybridPhyrexian) != 0 || cost.Snow != 0 {
 		return nil, 0, false
 	}
-	fee := cost.Generic + cost.Colored.Total()
+	fee := manaAbilityFee(cost)
 	once := cost.Tap || cost.Untap || strings.TrimSpace(ma.ParamStr(cards.PKActivationLimit)) == "1" ||
 		strings.TrimSpace(ma.ParamStr(cards.PKGameActivationLimit)) == "1"
 	for _, part := range cost.Sac {

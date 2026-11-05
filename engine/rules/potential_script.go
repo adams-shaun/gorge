@@ -69,7 +69,7 @@ const (
 //
 // The search is a pure read of e: it only submits intents to clones taken
 // at this intent boundary.
-func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps []state.ObjID, funding int) ([]ScriptStep, bool) {
+func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps []state.ObjID, funding int, fundFirst bool) ([]ScriptStep, bool) {
 	if len(gaps) == 0 {
 		return nil, false
 	}
@@ -78,7 +78,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	if sr == nil {
 		return nil, false
 	}
-	sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == "ability"
+	sr.gaps, sr.gapsOnly, sr.funding, sr.fundFirst, sr.printedOnly = gaps, true, funding, fundFirst, o.Kind == "ability"
 	sr.passes = true
 	script, found := sr.run(e)
 	return script, found && len(script) > 0
@@ -90,13 +90,14 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 // payer priority where the play is offered or (priced) the planner pays it
 // from the floating pool. Each distinct payer state is visited once.
 type scriptSearch struct {
-	p        state.PlayerID
-	play     decision.PotentialAction
-	altCost  int
-	gaps     []state.ObjID // sources the census misses, tried first
-	gapsOnly bool          // activate only gaps (plus funding others)
-	funding  int           // non-gap activations allowed when gapsOnly
-	passes   bool          // also pass priority while the stack is non-empty
+	p         state.PlayerID
+	play      decision.PotentialAction
+	altCost   int
+	gaps      []state.ObjID // sources the census misses, tried first
+	gapsOnly  bool          // activate only gaps (plus funding others)
+	funding   int           // non-gap activations allowed when gapsOnly
+	fundFirst bool          // pay the gaps' fees before activating any gap
+	passes    bool          // also pass priority while the stack is non-empty
 	// printedOnly: the play is a printed ability, and a granted one sharing its
 	// Ability is another option (only a printed ability reaches the planner).
 	printedOnly bool
@@ -333,9 +334,17 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 	if (gapUsed || sr.nodePlans) && !sr.waitsForStack(c) && sr.priced(c) {
 		return true
 	}
-	// The uncovered sources first; then the others (under gapsOnly, while
-	// funding lasts: a covered source tapped to pay a filter's fee).
-	for _, gap := range []bool{true, false} {
+	// A fee that is still unfunded is paid before any gap is activated: a
+	// gap source's ability wheel also lists its covered abilities
+	// (Starfleet Academy's "{T}: Add {C}" beside its "{5}, {T}: Add X mana
+	// of any one color"), and trying one of those from an empty pool before
+	// any funding tap spends the whole node budget on a line that cannot add
+	// the missing colour.
+	gapOrder := []bool{true, false}
+	if sr.gapsOnly && sr.fundFirst && funded < sr.funding {
+		gapOrder = []bool{false, true}
+	}
+	for _, gap := range gapOrder {
 		if !gap && sr.gapsOnly && funded >= sr.funding {
 			break
 		}
