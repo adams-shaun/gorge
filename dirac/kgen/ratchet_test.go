@@ -43,7 +43,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (Those Old Scientists, Turn the Earth: a multi-target graveyard shuffle's per-owner move lowers to OpMayShuffleMove; merged TRK 299 -> 300, ALL 21472 -> 21474).
 	// +1 (Q, Stacking the Deck: the exile-granted copy-and-cast ability of a card exiled from the top of the library; merged TRK 299 -> 300, ALL 21472 -> 21473).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21491, 34442},
+	"ALL": {21492, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
@@ -70,7 +70,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TLA": {245, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
-	"TRK": {307, 311},
+	"TRK": {308, 311},
 	"WOE": {252, 281},
 }
 
