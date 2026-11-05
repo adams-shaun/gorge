@@ -1573,6 +1573,15 @@ func isCmcLEVar(p string) bool {
 // playNonCreatureYouOwn is the ValidSA$ property pair nonCreature+YouOwn.
 func playNonCreatureYouOwn(p string) bool { return p == "nonCreature+YouOwn" }
 
+// playOwnHand is a Play whose candidates are the resolving controller's hand:
+// Valid$ Card, ValidZone$ Hand, no target, no Defined$, no Controller$ other
+// than You (gorge effPlay's hand walk reads only that seat's slice).
+func playOwnHand(ps *params) bool {
+	_, vt := ps.m["ValidTgts"]
+	c, hasC := ps.m["Controller"]
+	return ps.m["Valid"] == "Card" && ps.m["ValidZone"] == "Hand" && !vt && ps.m["Defined"] == "" && (!hasC || c == "You")
+}
+
 // andClause joins two filter clauses with + (AND within one alternative).
 func andClause(a, b string) string {
 	if a == "" || a == "Card" {
@@ -1746,7 +1755,11 @@ func (lc *lowerCtx) play(ps *params) error {
 		ps.consume("Defined")
 		return lc.hidePlay(ps, amount)
 	}
-	lc.bluffPlay = playRememberedEmptyKey(ps, "ConditionDefined")
+	// nonCreature+YouOwn lowers behind Brazen Bluff's nothing-remembered
+	// gate and over an untargeted, undefined hand population (Yue, the Moon
+	// Spirit): gorge effPlay walks only the resolving controller's hand, whose
+	// cards that player owns, so YouOwn filters nothing there
+	lc.bluffPlay = playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)
 	saExpr, err := lc.playSAExpr(ps.str("ValidSA"))
 	lc.bluffPlay = false
 	if err != nil {
@@ -1883,7 +1896,7 @@ func (lc *lowerCtx) play(ps *params) error {
 	case "Hand", "Graveyard":
 		// P3/P4: untargeted filter population over the controller's hand or
 		// the graveyards, in seat order.
-		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !(valid == "Card" && playRememberedEmptyKey(ps, "ConditionDefined") && ps.str("ValidSA") == "Spell.nonCreature+YouOwn") {
+		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !(valid == "Card" && (playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)) && ps.str("ValidSA") == "Spell.nonCreature+YouOwn") {
 			return refuse("Play Valid$ %q without YouOwn/YouCtrl", valid)
 		}
 		if forget {
