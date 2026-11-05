@@ -114,6 +114,7 @@ the SpellBench v2 engine may.
 | Package | May import gorge's packages? |
 |---|---|
 | `dirac`, `dirac/kop`, `dirac/cardset`, `dirac/vanilla`, `dirac/search/...`, `dirac/feat` | No. `dirac/cardset` imports only the module root's table key, which imports the standard library. |
+| `dirac/neteval` | Only `bots/netsimd`, `bots/gonet` and `bots/policynet`, the networks and their input types; never the engine. |
 | `dirac/oracle` | Yes: it runs gorge as the oracle. |
 | `dirac/kgen` | Yes: it lowers gorge's card IR into `kop` tables. |
 | `dirac/adapter` | Yes, gorge's view, decision and card types, and never `engine/rules` itself, `engine/replay` or `dirac/oracle`: it serves a game with no rules engine built. |
@@ -134,6 +135,9 @@ A new import in the no column is a review failure even if the tests pass.
 | `dirac/adapter` | A dirac game behind `engine/game`: what `gorged -engine dirac` serves, with a log and views derived from positions. See [serving](docs/serving.md). |
 | `dirac/canon` | The canonical vocabulary the oracle and the adapter share, and dirac's translation into it. |
 | `dirac/support` | Which cards are supported: the `evidence` and `refused` lists. |
+| `dirac/search` | gorge's `bots/azmcts` PUCT search ported onto `dirac.State`, with its self-play, instant-timing, land, belief and per-creature options, each off by default. Start at `doc.go`. |
+| `dirac/neteval` | The search's network `Evaluator`: `dirac/feat` feeding gorge's `bots/netsimd` (or `bots/gonet`), with an exact evaluation cache. |
+| `dirac/oracle/searchtest` | Tests only: the lockstep checks that need `dirac/search` or `dirac/neteval`, which `dirac/oracle` may not import. |
 | `dirac/search/hbot` | The native port of gorge's auto-pay heuristic bot. |
 | `dirac/search/mull` | gorge's London-mulligan policies, as pure functions over a hand. |
 | `dirac/feat` | The network feature encoder: dirac position to the same `policynet` inputs gorge produces. |

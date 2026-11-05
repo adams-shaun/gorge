@@ -28,12 +28,14 @@ var DebugGyBfNoCounter bool
 // enteringControllerForAttack), so an opponent's card returns to them.
 var DebugGyBfOwnerEntry bool
 
-// gameGraveCands adds a plain Graveyard hidden pick's candidates when it
-// carries GainControl$ (SrUnderYourControl): gorge's gameWide pool (an
-// ownerless clause) is every player's graveyard in seat order, matched
-// against the card's real owner with the resolving controller as the
-// relative You. The ask stays with the chooser; the card enters under them
-// (moveFound). Picks without GainControl$ keep the chooser's own graveyard.
+// gameGraveCands adds a plain Graveyard hidden pick's candidates when it is
+// game-wide: with GainControl$ (SrUnderYourControl, an ownerless clause) or
+// with SrGameGrave (no fetch player at all), gorge's gameWide pool is every
+// player's graveyard in seat order, matched against the card's real owner
+// with the resolving controller as the relative You. The ask stays with the
+// chooser; the GainControl$ card enters under them (moveFound), a
+// SrGameGrave one under its owner (its Exile destination's zone owner).
+// Picks with neither flag keep the chooser's own graveyard.
 //
 //go:noinline
 func (s *State) gameGraveCands(k *prep, in *kop.Instr, d *Decision) {

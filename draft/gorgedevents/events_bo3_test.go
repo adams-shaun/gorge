@@ -21,7 +21,11 @@ import (
 // <dir>/events/e1/ closed with an EventEnded line.
 func TestEventsBotOnlyBo3PodCompletesOverHTTP(t *testing.T) {
 	t.Parallel()
-	dir := t.TempDir()
+	// The server dir is RAM-backed where the platform offers it: the
+	// server's per-entry fsyncs (eventsdir_test.go explains the ~16,000 one
+	// pod writes) sat at this test's own 50s wall on a loaded CI disk, and
+	// no assertion here reads media durability.
+	dir := eventsServerDir(t)
 	base := startEventsServer(t, []string{"-cards", testutil.CorpusDirOrSkip(t), "-decks", gorgeDecks(t), "-tables", "1", "-seats", "2", "-pace", "0s", "-cooldown", "0s", "-dir", dir, "-spectator", "omniscient", "-seed", "1", "-perpetual=false", "-prewarm=false", "-feedback", "", "-mulligans", "0", "-auto-mana=false", "-bot-auto-mana=false", "-events"})
 	req := protocol.CreateEventRequest{Set: "FDN", BestOf: 3, Seats: []protocol.CreateEventSeat{
 		{Kind: "bot", Policy: "bot"}, {Kind: "bot", Policy: "bot"},

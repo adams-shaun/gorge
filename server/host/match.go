@@ -199,7 +199,7 @@ func (r *Registry) newMatchWith(t *table, k int, plan *SeriesGame) (*match, erro
 	m.turnStarts = turnStartsIn(m.g.Log().Events, 0)
 	m.snapshotGenesis()
 	if r.opts.Dir != "" {
-		m.files, err = openMatchFiles(r.opts.Dir, t.cfg.ID, k, r.opts.Sync)
+		m.files, err = openMatchFiles(r.opts.Dir, t.cfg.ID, k, matchJournalSync(r.opts, c))
 		if err != nil {
 			return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
 		}

@@ -81,6 +81,20 @@ goes from the lobby straight to deck building once every human has joined. Decks
 are 40 cards with any number of basic lands (MTR 7.1-7.2). A prerelease defaults
 to best of 3; an explicit `best_of` of 1 is honoured.
 
+**Deck changes between rounds.** A sealed or prerelease event rebuilds between
+rounds (MTR 7.3, continuous construction): before game 1 of every series from
+round 2 on, the event opens a rebuild window and no game starts until both
+sides have locked a deck for it. A human seat keeps or replaces its deck in the
+window with the usual sideboard panel (`POST /api/events/{id}/sideboard` with
+`game: 1`: `keep: true` locks the deck it played last, a `deck` saves and locks
+a new revision), and a seat idle past the idle window keeps its deck
+automatically; bots keep the deck they last played. A draft event plays
+straight through with no window. The create body's `rebuild` overrides the
+format's default — true for sealed and prerelease, false for draft — and the
+event state reports the resolved value as `rebuild`. The window reuses the
+between-games panel: a series in it shows `state: "between"` with `game: 1`
+and the seats still to lock.
+
 **Sets.** Packs follow the MTGJSON booster configurations. A hosted event uses the
 Arena collation (`play-arena`); `draftsim` and `labdemo` can also cut paper Play
 Boosters (`play`).

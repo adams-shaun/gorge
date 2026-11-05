@@ -61,7 +61,7 @@ func TestDplayMatchesKfuzzFollower(t *testing.T) {
 	if len(ps) != o.pairs {
 		t.Fatalf("%d pairs, want %d", len(ps), o.pairs)
 	}
-	decks, err := readDecks(set, ps, decksDir)
+	decks, err := readDecks(set, ps, decksDir, false)
 	if err != nil {
 		t.Fatal(err)
 	}

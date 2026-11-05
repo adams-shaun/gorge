@@ -63,7 +63,7 @@ func (r *run) deckSaveOpen(seat int) bool {
 		return false
 	}
 	v, ok := r.ev.SeriesState(a, b)
-	if !ok || !v.Between {
+	if !ok || (!v.Between && !v.Opening) {
 		return false
 	}
 	side := 0
@@ -140,7 +140,9 @@ func (r *run) poolFor(seat int) protocol.EventPool {
 	}
 	// In a round, Playing is the deck the seat plays (or last
 	// played) in its series' current games, with PlayingRev naming the
-	// revision — the sideboard UI's starting point.
+	// revision — the sideboard UI's starting point. In a rebuild window
+	// no game of the series has started yet, so the seat plays (or
+	// keeps) the deck it played last: LastPlayedRev.
 	switch r.ev.Phase() {
 	case event.RoundPhase(1), event.RoundPhase(2), event.RoundPhase(3):
 		if a, b, ok := r.ev.SeriesOf(seat); ok {
@@ -148,10 +150,17 @@ func (r *run) poolFor(seat int) protocol.EventPool {
 			if seat == b {
 				side = 1
 			}
-			if v, ok := r.ev.SeriesState(a, b); ok && v.PlayRevs[side] != 0 {
-				if d, ok := r.ev.DeckRev(seat, v.PlayRevs[side]); ok {
+			prev := 0
+			if v, ok := r.ev.SeriesState(a, b); ok {
+				prev = v.PlayRevs[side]
+				if prev == 0 && v.Opening {
+					prev = r.ev.LastPlayedRev(seat)
+				}
+			}
+			if prev != 0 {
+				if d, ok := r.ev.DeckRev(seat, prev); ok {
 					out.Playing = &protocol.DeckRequest{Main: d.Main, Basics: d.Basics}
-					out.PlayingRev = v.PlayRevs[side]
+					out.PlayingRev = prev
 				}
 			}
 		}
