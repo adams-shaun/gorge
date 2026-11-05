@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/adams-shaun/gorge/draft/event"
+	"github.com/adams-shaun/gorge/draft/limited"
 	"github.com/adams-shaun/gorge/draft/limited/build"
 	"github.com/adams-shaun/gorge/draft/limited/setdata"
 )
@@ -24,6 +25,10 @@ type EventSpec struct {
 	// Packs is the packs-per-seat supply; 0 = the mode's default (3 draft,
 	// 6 sealed).
 	Packs int
+	// Promos is the promo cards per seat, sealed mode only: 0 or
+	// event.MaxPromos. A prerelease is Mode sealed, Packs 0 (six) and
+	// Promos event.PrereleasePromos.
+	Promos int
 	// Structure is "" (round robin at 4 seats, Swiss at 8), RoundRobin,
 	// Swiss or NoGames.
 	Structure Structure
@@ -94,6 +99,12 @@ func (l *Lab) RunEvent(s EventSpec) (EventResult, error) {
 	}
 	if mode != event.ModeDraft && mode != event.ModeSealed {
 		return EventResult{}, fmt.Errorf("draftlab: RunEvent: unknown mode %q, want %q or %q", s.Mode, event.ModeDraft, event.ModeSealed)
+	}
+	if s.Promos < 0 || s.Promos > event.MaxPromos {
+		return EventResult{}, fmt.Errorf("draftlab: RunEvent: %d promos, want 0..%d", s.Promos, event.MaxPromos)
+	}
+	if s.Promos > 0 && mode != event.ModeSealed {
+		return EventResult{}, fmt.Errorf("draftlab: RunEvent: promos need sealed mode, got %q", mode)
 	}
 	structure := s.Structure
 	if structure == "" {
@@ -168,7 +179,11 @@ func (l *Lab) RunEvent(s EventSpec) (EventResult, error) {
 
 	seats := make([]event.SeatSpec, n)
 	for i := range seats {
-		persona := fmt.Sprintf("%s/sealed/%s/%s", set, builderOf(i).Ref, playerOf(i).Ref)
+		supply := "sealed"
+		if s.Promos > 0 {
+			supply = "prerelease"
+		}
+		persona := fmt.Sprintf("%s/%s/%s/%s", set, supply, builderOf(i).Ref, playerOf(i).Ref)
 		if mode == event.ModeDraft {
 			persona = fmt.Sprintf("%s/%s/%s/%s", set, drafterOf(i).Ref, builderOf(i).Ref, playerOf(i).Ref)
 		}
@@ -184,6 +199,7 @@ func (l *Lab) RunEvent(s EventSpec) (EventResult, error) {
 	if s.Packs != 0 && packsPer != defPacks {
 		en.Packs = packsPer
 	}
+	en.Promos = s.Promos
 	if s.Rounds != 0 && s.Rounds != defRounds {
 		en.Rounds = s.Rounds
 	}
@@ -195,12 +211,17 @@ func (l *Lab) RunEvent(s EventSpec) (EventResult, error) {
 		return EventResult{}, fmt.Errorf("draftlab: RunEvent: EventCreated: %w", err)
 	}
 
-	packs, err := l.OpenPod(s.Set, s.Collation, s.Seed, n, packsPer)
+	var packs [][][]limited.CardRef
+	if s.Promos > 0 {
+		packs, err = l.OpenPrereleasePod(s.Set, s.Collation, s.Seed, n, packsPer, s.Promos)
+	} else {
+		packs, err = l.OpenPod(s.Set, s.Collation, s.Seed, n, packsPer)
+	}
 	if err != nil {
 		return EventResult{}, fmt.Errorf("draftlab: RunEvent: %w", err)
 	}
 	for st := 0; st < n; st++ {
-		for p := 0; p < packsPer; p++ {
+		for p := 0; p < packsPer+s.Promos; p++ {
 			if err := e.Apply(event.Entry{
 				Kind: event.KindPackOpened, Round: p + 1, Seat: st, Cards: packs[st][p],
 			}); err != nil {

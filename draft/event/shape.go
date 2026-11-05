@@ -64,6 +64,12 @@ func (e *Event) Promos() int { return e.promos }
 // when absent. It is informational: the packs are logged in full.
 func (e *Event) Collation() string { return e.collation }
 
+// Rebuild reports the EventCreated Rebuild flag: continuous construction
+// (MTR 7.3). Under it, from round 2 on, each series opens with a rebuild
+// window in which both sides lock their game-1 deck with a Sideboarded
+// entry (Game 1) before any GameStarted is legal.
+func (e *Event) Rebuild() bool { return e.rebuild }
+
 // CurrentPairings returns a copy of the current round's pairs in pairing
 // order, or nil outside a round phase.
 func (e *Event) CurrentPairings() [][2]int {

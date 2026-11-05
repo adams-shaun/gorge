@@ -116,6 +116,19 @@ func (e *Event) ReadyRev(seat int) int {
 	return e.ready[seat]
 }
 
+// LastPlayedRev reports the revision the seat played in its latest started
+// game, or its readied revision before any game started; 0 when the seat is
+// out of range. It is the revision a rebuild window's "keep" locks.
+func (e *Event) LastPlayedRev(seat int) int {
+	if seat < 0 || seat >= e.NumSeats() {
+		return 0
+	}
+	if e.lastRev[seat] == 0 {
+		return e.ready[seat]
+	}
+	return e.lastRev[seat]
+}
+
 // Queued reports how many packs are waiting in the seat's draft queue, or 0
 // when the event is not drafting (including a sealed event, which has no
 // draft) or the pod is not built yet.

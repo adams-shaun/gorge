@@ -31,7 +31,7 @@ func main() {
 	fs.StringVar(&o.set, "set", "FDN", "set code to draft (an embedded draft/limited/setdata spec)")
 	fs.StringVar(&o.collation, "collation", string(setdata.DefaultCollation), "collation the packs are cut from: "+string(setdata.Play)+", "+string(setdata.Arena))
 	fs.IntVar(&o.seats, "seats", 4, "pod size: 4 or 8")
-	fs.StringVar(&o.mode, "mode", string(event.ModeDraft), "supply mode: draft (3 packs per seat, picked) or sealed (6 packs per seat, unopened)")
+	fs.StringVar(&o.mode, "mode", string(event.ModeDraft), "supply mode: draft (3 packs per seat, picked), sealed (6 packs per seat, unopened) or prerelease (sealed plus one rare/mythic promo per seat)")
 	fs.StringVar(&o.structure, "structure", "", "series structure: roundrobin, swiss or none (build only); empty = roundrobin at 4 seats, swiss at 8")
 	fs.IntVar(&o.rounds, "rounds", 0, "event round count; 0 = the structure's default (n-1 round robin, ceil(log2 n) Swiss)")
 	fs.Uint64Var(&o.seed, "seed", 1, "event seed; the first event uses it and each later event adds one")
@@ -145,6 +145,7 @@ type podShape struct {
 	mode      string // event.ModeDraft or event.ModeSealed
 	structure string // event.StructureRoundRobin, Swiss or None
 	packs     int    // packs per seat
+	promos    int    // promo cards per seat (prerelease: 1)
 	rounds    int    // the event's round count (0 for structure none)
 	// collation is the EventCreated's Collation value, "" unless -collation
 	// was set explicitly (so a default-flag log omits them).
@@ -178,12 +179,16 @@ func (o options) shape() (podShape, error) {
 		return podShape{}, err
 	}
 	mode := event.ModeDraft
+	promos := 0
 	switch o.mode {
 	case "":
 	case event.ModeDraft, event.ModeSealed:
 		mode = o.mode
+	case "prerelease":
+		mode = event.ModeSealed
+		promos = event.PrereleasePromos
 	default:
-		return podShape{}, fmt.Errorf("unknown -mode %q (want draft or sealed)", o.mode)
+		return podShape{}, fmt.Errorf("unknown -mode %q (want draft, sealed or prerelease)", o.mode)
 	}
 	structure := event.StructureRoundRobin
 	if n == 8 {
@@ -219,5 +224,5 @@ func (o options) shape() (podShape, error) {
 	if o.collationSet {
 		collation = o.collation
 	}
-	return podShape{seats: n, mode: mode, structure: structure, packs: packs, rounds: rounds, collation: collation}, nil
+	return podShape{seats: n, mode: mode, structure: structure, packs: packs, promos: promos, rounds: rounds, collation: collation}, nil
 }

@@ -57,6 +57,22 @@ func (l *Lab) OpenPod(set string, c setdata.Collation, seed uint64, seats, round
 	return pod, nil
 }
 
+// OpenPrereleasePod opens a sealed pod with promos the way OpenPod opens a
+// pod: out[seat] is packs boosters then promos one-card promo packs
+// (booster.OpenPrereleasePod), IDs unique across the pod. An empty
+// collation means setdata's default.
+func (l *Lab) OpenPrereleasePod(set string, c setdata.Collation, seed uint64, seats, packs, promos int) ([][][]limited.CardRef, error) {
+	spec, err := l.loadSpec(set, c)
+	if err != nil {
+		return nil, err
+	}
+	pod, err := booster.OpenPrereleasePod(spec, seed, seats, packs, promos, &booster.IDs{}, colourOfRegistry(l.reg))
+	if err != nil {
+		return nil, fmt.Errorf("draftlab: OpenPrereleasePod %s: %w", set, err)
+	}
+	return pod, nil
+}
+
 // SealedPool opens packs packs of set as one sealed pool: the packs
 // flattened in pack order (pack i first), IDs unique across the pool.
 func (l *Lab) SealedPool(set string, c setdata.Collation, seed uint64, packs int) ([]limited.CardRef, error) {

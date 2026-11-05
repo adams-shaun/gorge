@@ -162,7 +162,9 @@ func run(o options, out io.Writer) (*result, error) {
 		// default flags keep it exactly as it has always been; the
 		// non-default shape values are appended as `, key value` pairs.
 		fmt.Fprintf(out, "event %d: seed %d, set %s (%s), drafter %s, builder %s", n+1, seed, spec.Code, spec.Collation, o.drafter, o.builder)
-		if sh.mode == event.ModeSealed {
+		if sh.promos > 0 {
+			fmt.Fprint(out, ", mode prerelease")
+		} else if sh.mode == event.ModeSealed {
 			fmt.Fprint(out, ", mode sealed")
 		}
 		if sh.seats != 4 {
