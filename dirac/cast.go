@@ -467,6 +467,14 @@ func (s *State) buildCost0(k *prep) kop.ManaCost {
 // unresolved {2/W} would have dropped it). done reports that the faces are
 // folded, so the caller resolves nothing more.
 func (s *State) buildCostPre(k *prep, pre bool) (kop.ManaCost, bool) {
+	c, done := s.buildCostPreRaw(k, pre)
+	if s.bld().e.flags&sfAnyMana != 0 && s.bld().e.kind == seSpell {
+		c = anyTypePips(c) // a hand cast under Vizier's conversion too (mana_convertcreature.go); idempotent
+	}
+	return c, done
+}
+
+func (s *State) buildCostPreRaw(k *prep, pre bool) (kop.ManaCost, bool) {
 	if s.bld().e.faceDown() {
 		// CR 702.37b/702.168b: Morph and Disguise cast face down for {3};
 		// Megamorph's face-down cost is its Morph cost ({3} in this pool).

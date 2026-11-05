@@ -48,12 +48,18 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Teval, Arbiter of Virtue: a granted Delve on the stack lowers and the cast announces its graveyard exiles; merged ALL 21523 -> 21524, TDM 244 -> 245).
 	// +3 (Cemetery Recruitment, Vengeful Rebirth, Tamiyo, Inquisitive Student: RememberTargets$ on a targeted Graveyard->Hand return; FDN 507 -> 508, ALL 21526 -> 21529).
 	// +3 (Wilt-Leaf Liege, Obstinate Baloth, Loxodon Smiter: the opponent-caused discard-to-battlefield replacement, lowered on land, absent here before the merge; FDN 508 -> 509, ALL 21529 -> 21532).
+	// +1 (Vizier of the Menagerie: the ManaConvert static lowering for creature spells; FDN 509 -> 510, ALL 21532 -> 21533).
 	// +2 (the WISH counter kind, kop.CtrWish: Wishclaw Talisman and Ring of Three Wishes lower; FDN 509 -> 510, ALL 21532 -> 21534).
 	// +1 (Carnelian Orb of Dragonkind: the AddsKeywords$ Haste mana rider lowers; FDN 510 -> 511, ALL 21534 -> 21535).
 	// +6 (the printed K:Prevent damage keywords: Fog Bank and kin; FDN 511 -> 512, ALL 21535 -> 21541).
 	// +2 (Sorcerous Spyglass: the as-enters look and any-card name choice and CantBeActivated over the chosen name; Phyrexian Revoker, the same class over the nonland name; FDN 512 -> 513, LCI 250 -> 251, ALL 21541 -> 21543).
+	// +1 (Vizier of the Menagerie: the ManaConvert static lowering for creature spells; land; merged FDN 513 -> 514, ALL 21543 -> 21544).
+	// +1 (Ramos, Dragon Engine: the all-at-once counter-removal mana ability, kop.CtrEachManaAb; land; merged FDN 514 -> 515, ALL 21544 -> 21545).
+	// +2 (Animate Duration$ UntilUntaps, kop.Override.WhileTapped: Hedge Whisperer and The Blackstaff of Waterdeep lower; land; merged MKM 231 -> 232, ALL 21545 -> 21547).
+	// +1 (Vannifar, Evolved Enigma: the cloak-from-hand shape lowers; land; merged MKM 232 -> 233, ALL 21547 -> 21548).
+	// +1 (Mazemind Tome: the counter-threshold state trigger, Tf4StateCtr; land; merged FDN 515 -> 516, ALL 21548 -> 21549).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21543, 34442},
+	"ALL": {21549, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -62,12 +68,12 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"DSK": {236, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
-	"FDN": {513, 517},
+	"FDN": {516, 517},
 	"FIN": {266, 312},
 	"FRA": {245, 269},
 	"HOB": {152, 172},
 	"LCI": {251, 290},
-	"MKM": {231, 279},
+	"MKM": {233, 279},
 	"MOM": {198, 296},
 	"MSH": {226, 276},
 	"NEO": {198, 287},

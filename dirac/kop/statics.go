@@ -109,6 +109,11 @@ type Override struct {
 	// applied record keeps the host's Obj and ver in its P/T fields, so a
 	// WhileHost override sets no P/T).
 	WhileHost bool
+	// WhileTapped: a WhileHost record that also ends at the host's first
+	// untap (Duration$ UntilUntaps, CR 611.2b: Hedge Whisperer), and starts
+	// only when the host is tapped as it resolves. Its P/T is SetP/SetT
+	// (the record's P/T fields hold the host).
+	WhileTapped bool
 	// CantAttack: the permanent can't attack (HiddenKeywords$ CARDNAME can't
 	// attack or block., beside AddKw KwCantBlock; KwMask has no free bit).
 	CantAttack bool
@@ -426,3 +431,12 @@ const StatTapExtra StaticKind = 254
 
 // StTapOnC on a StatTapExtra static: it fires only for a tap that makes {C}.
 const StTapOnC StaticFlags = 1 << 1
+
+// StatAnyTypeCreatures: the static's controller may spend mana as though it
+// were mana of any type to cast creature spells (S:Mode$ ManaConvert |
+// ValidPlayer$ You | ValidCard$ Creature.YouCtrl | ValidSA$ Spell |
+// ManaConversion$ AnyType->AnyType; CR 609.4b; Vizier of the Menagerie;
+// gorge rules/mana_convert.go manaConversionParts). No operands: the fact is
+// read from the battlefield. Explicit ordinal: the StaticKind iota tail
+// stays untouched.
+const StatAnyTypeCreatures StaticKind = 239

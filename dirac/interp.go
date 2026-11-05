@@ -319,9 +319,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				break
 			}
 			s.perms[sl].flags &^= pfTapped
-			if s.g.netAny() {
-				s.netDrop(s.perms[sl].obj) // the lock ends at the first untap (act_lockpermanent.go)
-			}
+			s.untapEnds(k, s.perms[sl].obj) // the lock and the host-tapped grants end at the first untap (static_animatewhiletapped.go)
 			s.touchSl(sl)
 		}
 	case kop.OpSacrifice:
@@ -604,9 +602,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				p.subCtrN(s, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d; gorge TryUntap)
 			} else if !blocked {
 				p.flags &^= pfTapped
-				if s.g.netAny() {
-					s.netDrop(p.obj) // the lock ends at the first untap (act_lockpermanent.go)
-				}
+				s.untapEnds(k, p.obj) // the lock and the host-tapped grants end at the first untap (static_animatewhiletapped.go)
 			}
 			s.grantEOT(sl, kop.KwHaste)
 			s.promoKw(k, sl, kop.KwHaste)

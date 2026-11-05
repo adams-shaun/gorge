@@ -101,6 +101,7 @@ type genPrep struct {
 	anyTapExtra              bool // a card has a StatTapExtra static (mana_tapextra.go)
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
 	anyCantGain, anyCantDraw bool // StatCantGainLife / StatCantDraw statics (static_cantdraw.go)
+	anyTypeCreat             bool // a StatAnyTypeCreatures static (mana_convertcreature.go)
 	anyCdmgTough             bool // a card has a StatCombatDmgToughness static (combat_toughnessassign.go)
 	anyDisETB                bool // a card has a DisableTriggers enters static (kop.StatDisableETB; trig_disable.go)
 	anyLatentDies            bool // a card has a latent dies trigger an override or static can grant (trig_diesleaves.go)
@@ -302,6 +303,7 @@ type genPrep struct {
 	anyRole        bool           // some card carries the Role subtype: the SBA runs the Role exclusivity check (static_roletokens.go)
 	roleSub        uint8          // the matchup subtype index of Role (static_roletokens.go)
 	anyWhileHost   bool           // some override or emblem ends when its host leaves (kop.Override/Emblem.WhileHost; filter_combatwords.go)
+	anyWhileTapped bool           // some override also ends at its host's untap (kop.Override.WhileTapped; static_animatewhiletapped.go)
 	anyOvCantAtk   bool           // some override says its permanent can't attack (kop.Override.CantAttack; filter_combatwords.go)
 	anySrcMark     bool           // some filter reads F2DamagedBy or F2CrewedSrc: the source-mark records are kept (filter_combatwords.go)
 	dmgBy          []bool         // per card: its damage is recorded (an ability's filter reads F2DamagedBy; nil when none)
@@ -640,6 +642,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyDisETB = tableHasStatic(t, kop.StatDisableETB)
 	g.anyCantGain = tableHasStatic(t, kop.StatCantGainLife)
 	g.anyCantDraw = tableHasStatic(t, kop.StatCantDraw)
+	g.anyTypeCreat = tableHasStatic(t, kop.StatAnyTypeCreatures)
 	g.anyDiscard = tableHasOp(t, kop.OpDiscard)
 	g.anyRemDisc = tableRemembersDiscards(t)
 	g.anySpellMana = prepDbMana(t) // mana_dbresolve.go

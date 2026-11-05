@@ -613,6 +613,7 @@ type lTrigger struct {
 	GameOnce      bool  // GameActivationLimit$ 1: once per source object (kop.Tf3GameOnce)
 	SingleTarget  bool  // SpellCast: the cast spell's root target list has exactly one target (kop.Tf4SingleTarget)
 	CounterCell   bool  // CounterAddedOnce from Mode$ CounterPlayerAddedAll: one fire per put action per recipient (kop.Tf4CounterCell)
+	Outstanding   bool  // Mode$ Always, the counter-threshold state trigger: one instance at a time, the leave re-checks (kop.Tf4StateCtr)
 	OptTrigPlayer bool  // Optional: the trigger's player (the Phase trigger's active player) answers, not the controller (kop.Tf4OptTrigPlayer)
 	NamedCast     bool  // SpellCast lowered from Mode$ SpellAbilityCast over the source's chosen card name: also fires on an activation of a source with that name (kop.Tf4NamedCast; lower_choosename.go)
 	CauseTarget   bool  // DamageDone: ValidCause$ Spell.numTargets EQ1 + TargetRelativeToCause$ Creature.targetedBy (kop.Tf4SingleCauseTarget)
@@ -806,6 +807,7 @@ type lOverride struct {
 	RemoveKw          []string // RemoveKeyword$: keywords removed (layer 6)
 	Dedup             bool     // share a byte-identical pool record across cards (Earthbend)
 	WhileHost         bool     // Duration$ UntilHostLeavesPlay
+	WhileTapped       bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
 	CantAttack        bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
 	MustBeBlocked     bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
 	NoCost            bool     // a copy exception's "with no mana cost" (RemoveCost$)

@@ -52,6 +52,7 @@ type srcMarks struct {
 func prepMcombat(t *kop.Table, g *genPrep) {
 	for i := range t.Overrides {
 		g.anyWhileHost = g.anyWhileHost || t.Overrides[i].WhileHost
+		g.anyWhileTapped = g.anyWhileTapped || t.Overrides[i].WhileTapped
 		g.anyOvCantAtk = g.anyOvCantAtk || t.Overrides[i].CantAttack
 	}
 	for i := range t.Emblems {
@@ -382,8 +383,8 @@ func (s *State) hostHere(e *stackEntry) bool {
 //
 //go:noinline
 func (s *State) applyWhileHost(k *prep, sl Slot, idx int, e *stackEntry) {
-	if !s.hostHere(e) {
-		return
+	if !s.hostHere(e) || k.t.Overrides[idx].WhileTapped && s.perms[s.objs[e.obj].slot].flags&pfTapped == 0 {
+		return // a WhileTapped host that is not tapped starts nothing (gorge registerAnimateEffects)
 	}
 	s.applyOverridePT(k, sl, idx, e.card, 0, int16(e.obj), int16(e.srcVer))
 }
