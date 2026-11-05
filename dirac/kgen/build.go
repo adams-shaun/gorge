@@ -698,6 +698,9 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.SpellWaterbend != 0 {
+		d.SpellWaterbend = uint8(c.SpellWaterbend)
+	}
 	if c.SpellCost != nil {
 		spc := *c.SpellCost
 		if spc.BeholdN != 0 {

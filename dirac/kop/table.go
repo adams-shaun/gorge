@@ -131,6 +131,11 @@ type CardDef struct {
 	// linked to the spell for the exiled-with reader (kernel
 	// act_beholdexile.go).
 	BeholdExile bool
+	// SpellWaterbend: the spell's own additional cost is waterbend {N}
+	// (RaiseCost Cost$ Waterbend<N>, CR 701.67a; 0 = none): N more generic,
+	// payable by tapping artifacts and creatures (kernel act_waterbend.go).
+	// Card.Cost stays the printed mana value.
+	SpellWaterbend uint8
 	// Casualty is K:Casualty:<N> (CR 702.153a, N >= 1; 0 = none): the caster
 	// may sacrifice a creature with power N or greater as the spell is cast
 	// (the casualty cast, AkCast mode bit 5; dirac/kw_casualty.go). The

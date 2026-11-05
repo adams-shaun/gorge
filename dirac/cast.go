@@ -474,6 +474,9 @@ func (s *State) buildCostPre(k *prep, pre bool) (kop.ManaCost, bool) {
 	}
 	if k.gen != nil {
 		if c, done, ok := s.buildCostGenPre(k, pre); ok {
+			if k.gen.anyWaterbend && k.t.Cards[s.bld().e.card].SpellWaterbend != 0 {
+				c = s.waterbendApplyPicks(c) // a spell's own waterbend (act_waterbend.go)
+			}
 			return c, done
 		}
 	}
@@ -529,6 +532,9 @@ func (s *State) buildCostPre(k *prep, pre bool) (kop.ManaCost, bool) {
 		}
 		if s.statM.any() || k.gen != nil {
 			c = s.adjustCost(k, e.ctrl, e.card, e.obj, c)
+		}
+		if k.gen != nil && k.gen.anyWaterbend && cd.SpellWaterbend != 0 {
+			c = s.waterbendApplyPicks(c) // a spell's own waterbend (act_waterbend.go)
 		}
 		return c, done
 	case seAbility:
@@ -1250,6 +1256,11 @@ func (s *State) finishBuild(k *prep) {
 		// a window that went on after its tap-another pick (bflPayDone) found the cost's
 		// other payments made
 		payDone := s.bld().bfl&bflPayDone != 0
+		_, wbSpell := s.waterbendPartFor(k, &e)
+		if wbSpell && s.waterbendTargetAbort(k) {
+			s.spreeCastWindowAbort(k) // the picks left the cost unpayable: the window taps as it walks, then aborts (CR 733.1)
+			return
+		}
 		if !payDone {
 			s.payCastParts(k, &e, anyColor)
 		}
@@ -1279,7 +1290,7 @@ func (s *State) finishBuild(k *prep) {
 			if !s.loweredWindowOK(k, e.ctrl, &xc, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0) || s.winPaused() {
 				return // stranded: the cast was reversed; or the window waits on a tap-another pick
 			}
-		} else if k.t.Cards[e.card].HasModeCost && cost.X == 0 {
+		} else if (k.t.Cards[e.card].HasModeCost || wbSpell) && cost.X == 0 {
 			// gorge's planner declines a Spree face ("shape:modal_cost"):
 			// it pays through the mana window (kw_spree.go)
 			s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0)
@@ -1293,6 +1304,9 @@ func (s *State) finishBuild(k *prep) {
 		}
 		s.paySacsGen(k)
 		s.bld().e.flags &^= sfFbGranted
+		if wbSpell && s.bld().bfl&bflPushed != 0 {
+			s.payWaterbend(k) // the announced taps, after the mana (act_waterbend.go)
+		}
 		s.syncBuild()
 		if e.mode&modeBestowed != 0 && e.bestowedEntry() {
 			s.bestowPaid(&e) // gorge's pay-time FlagBestowed (kw_bestow.go)
