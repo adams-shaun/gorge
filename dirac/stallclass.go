@@ -102,6 +102,8 @@ func (g *genPrep) initStall() uint8 {
 		return StallLifeRepl // gorge asks the order of a doubler and a plus-N
 	case g.l6Stall:
 		return StallL6Walk // static_layer6.go prepL6
+	case g.anyRepl&rbPrevMill != 0 && g.anyRepl&(rbDblDmg|rbPlusDmg|rbPrevCol) != 0:
+		return StallReplPlus // repl_preventmill.go: gorge asks the order of a prevent-and-mill and an amount change
 	}
 	return StallNone
 }
@@ -156,6 +158,14 @@ func pairRefusal(t *kop.Table) (r *kop.PairRefusal) {
 		text = "a life-gain doubler beside a life-gain plus-N: gorge asks the CR 616.1 order and they do not commute"
 		a = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbDblLife != 0 }
 		b = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbPlusLife != 0 }
+	case StallReplPlus:
+		text = "a prevent-and-mill damage replacement beside a damage doubler, plus-N or colour prevention: gorge asks the CR 616.1 order and the mill changes with it"
+		a = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbPrevMill != 0 }
+		b = func(c *kop.CardDef, i int) bool {
+			return g.replBits[i]&(rbDblDmg|rbPlusDmg) != 0 || abilityOn(func(x *kop.Ability) bool {
+				return progHas(x, func(in *kop.Instr) bool { return in.Ext() == kop.ExtPreventColor })
+			})(c, i)
+		}
 	case StallL6Walk:
 		text = "a global lose-all override beside a subtype lord the layer-4 walk reads: the loss check would re-enter the walk"
 		a = abilityOn(func(x *kop.Ability) bool {

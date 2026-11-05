@@ -83,3 +83,19 @@ func (lc *lowerCtx) blindEffectOwner(ps *params) error {
 	}
 	return refuse("Effect EffectOwner$ %q beside a face-down Dig by the %s", owner, map[bool]string{true: "opponent", false: "controller"}[lc.blind.exilerOther])
 }
+
+// repeatBlindDig reads Doomsday Excruciator's blind exile: inside a
+// RepeatEach player body, the repeated player's own cards exiled face down
+// with no look and no play to follow (no SubAbility$). gorge applyMoveFaceDown
+// stamps the blind exiled_with_face_down marker (nobody is the looker); the
+// kernel's face-down mark is the same state (FFaceDown), its looker bit
+// read by no decision.
+func (lc *lowerCtx) repeatBlindDig(ps *params) bool {
+	if lc.repeatPl == 0 || ps.str("SubAbility") != "" {
+		return false
+	}
+	_, ex := ps.get("DefinedExiler")
+	_, rv := ps.get("ForceReveal")
+	d := ps.str("Defined")
+	return !ex && !rv && (d == "Player.IsRemembered" || d == "Remembered")
+}

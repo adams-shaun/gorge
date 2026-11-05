@@ -64,6 +64,7 @@ CastSpecTypes	untyped int	256
 CastSpecYou	untyped int	1
 CfChosen	untyped int	8
 CfCloakCtrl	untyped int	16
+CfCloakRemembered	untyped int	32
 CfRemember	untyped int	4
 CfShuffle	untyped int	2
 CfTapped	untyped int	1
@@ -923,7 +924,7 @@ ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	34
+ReplCount	ReplKind	35
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamagePlus	ReplKind	16
@@ -960,6 +961,7 @@ ReplOnePoison	ReplKind	22
 ReplOppsCantWinGame	ReplKind	9
 ReplOthersDoesntUntap	ReplKind	15
 ReplOthersEnterProgram	ReplKind	7
+ReplPreventMillOpps	ReplKind	34
 ReplPreventNoncombatToOthers	ReplKind	11
 ReplRewriteTokens	ReplKind	30
 ReplSpellsCantBeCountered	ReplKind	27
@@ -1287,6 +1289,7 @@ W7CostBlue	int16	14
 W7CrewedBySrc	int16	13
 W7EnchantedByYours	int16	8
 W7FaceUp	int16	5
+W7FaceUpDisguise	int16	23
 W7GreatestPower	int16	2
 W7GreatestPowerTgt	int16	12
 W7InZone	int16	4
@@ -1299,6 +1302,7 @@ W7NotBottomLibrary	int16	18
 W7NotChosenType	int16	6
 W7SharesCrTrigObj	int16	21
 W7SharesNameLegend	int16	10
+W7WithDisguise	int16	22
 W7WithWarp	int16	11
 WhoseAny	Whose	0
 WhoseEnchCtrl	Whose	3

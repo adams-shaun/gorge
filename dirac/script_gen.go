@@ -509,6 +509,10 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 		if k.tapMana && hasOption(d, a) && s.scriptTapXModelled(k, p).any() && s.tapXScript(k, a, p, false) {
 			continue // a tap-another source (Gene Pollinator) pays it in scriptOffers' search, which the grant search does not run (mana_tapanother.go)
 		}
+		if m&availHyp == 0 && s.relaxRestrRefuses(k, p, &cost, s.grantPayDesc(a)) {
+			d.remove(a) // gorge's relaxed proof refuses the restricted grant: insufficient, never searched (mana_grantrelaxrestr.go)
+			continue
+		}
 		if n++; n > potentialScriptPlays {
 			d.remove(a) // never searched: unpriced
 			continue

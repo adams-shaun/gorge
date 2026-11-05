@@ -28,8 +28,24 @@ func (lc *lowerCtx) publicPick(ps *params, f *lFilter, n lValue, flags []string,
 	if counterKind != "" || override != nil {
 		return refuse("public pick with counters/override")
 	}
-	if !n.isConst() || n.N < 1 {
+	// a constant must be >= 1; the one dynamic bound admitted is the plain
+	// Count$Valid battlefield count (Expose the Culprit's any-number pick,
+	// the kernel evaluates it at resolution)
+	plainCount := n.Kind == vCount && n.Mul == 0 && n.Div == 0 && n.Add == 0 && !n.Neg
+	if n.isConst() {
+		if n.N < 1 {
+			return refuse("public pick ChangeNum$ %v", n)
+		}
+	} else if !plainCount {
 		return refuse("public pick ChangeNum$ %v", n)
+	}
+	if _, ok := ps.get("ExileFaceDown"); ok {
+		// the intermediate face-down exile is unobservable when the chained
+		// Cloak moves every remembered card to the battlefield face down
+		if origin != zBattlefield || dest != zExile || !ps.is("ExileFaceDown", "True") || !ps.is("RememberChanged", "True") || ps.is("WithMayLook", "True") {
+			return refuse("public pick ExileFaceDown$ shape")
+		}
+		ps.consume("ExileFaceDown")
 	}
 	if f.Players != 0 || len(f.Clauses) == 0 {
 		return refuse("public pick filter %s", f)
