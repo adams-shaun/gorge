@@ -391,12 +391,19 @@ type grantSrch struct {
 	filt [MaxPerm]bool
 	// tapx: the candidate's own ability is a tap-another-permanent one, a census
 	// gap of gorge's beside the grants (mana_granttapx.go)
-	tapx  [MaxPerm]bool
-	nodes int
-	nseen int
-	seen  [potentialScriptNodes]grantKey
-	np    int
-	path  [2 * MaxPerm]grantStep
+	tapx [MaxPerm]bool
+	// gap: the candidate is a census gap. Non-gap sources join the search only
+	// to fund a paid gap's fee, as many as funding allows (gorge
+	// scriptSearch.funding: census.fees()).
+	gap     [MaxPerm]bool
+	gapN    int
+	funding int
+	funded  int
+	nodes   int
+	nseen   int
+	seen    [potentialScriptNodes]grantKey
+	np      int
+	path    [2 * MaxPerm]grantStep
 	// sp0 is the stack at the root: a deeper one is a trigger a prefix step
 	// caused, which gorge's search lets resolve (a pass) once its activations are
 	// spent. tapsLive: a tap can fire such a trigger (Gran-Gran's "whenever this
@@ -469,10 +476,40 @@ func (g *grantSrch) candidates(s *State) {
 			holders++
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), !tm.has(sl) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
+		g.gap[g.n] = true
+		if fm.has(sl) {
+			g.funding += s.filtFee(g.k, sl)
+		}
 		g.n++
 	}
 	if holders == 0 {
-		g.n = 0
+		g.n, g.gapN = 0, 0
+		return
+	}
+	// A paid gap's fee is funded by other sources (gorge scriptSearch's
+	// funding loop: the gaps first, then non-gaps while funding lasts). The
+	// non-gaps sit after every gap in battlefield order, exactly the walk
+	// order that loop reads.
+	g.gapN = g.n
+	if g.funding == 0 {
+		return
+	}
+	seen := func(sl Slot) bool {
+		for i := 0; i < g.n; i++ {
+			if g.cand[i] == sl {
+				return true
+			}
+		}
+		return false
+	}
+	for i := 0; i < n; i++ {
+		sl := order[i]
+		if sl == g.ex || seen(sl) || !s.canTapForMana(g.k, sl) {
+			continue
+		}
+		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, 0, true, false, false
+		g.gap[g.n] = false
+		g.n++
 	}
 }
 
@@ -522,7 +559,7 @@ func (g *grantSrch) visit(t *State) bool {
 		g.seen[g.nseen] = key
 		g.nseen++
 	}
-	for i := 0; i < g.n; i++ {
+	for i := 0; i < g.gapN; i++ {
 		sl := g.cand[i]
 		if g.ng[i] == 0 && g.filt[i] && g.k.gen.anyFiltFirst && t.filtFirstOnly(g.k, sl) {
 			// a filter that is its source's only mana ability: no printed
@@ -593,6 +630,28 @@ func (g *grantSrch) visit(t *State) bool {
 			if g.branch(t, i, sl, gi, mask, pc.manaN, alts == 1 || mask&uint8(kop.ColAny) == uint8(kop.ColAny)) {
 				return true
 			}
+		}
+	}
+	// A paid gap's fee is funded by other sources (gorge scriptSearch's
+	// funding loop: the gaps first, then non-gaps while funding lasts).
+	for i := g.gapN; i < g.n && g.funded < g.funding; i++ {
+		sl := g.cand[i]
+		if t.perms[sl].flags&pfTapped != 0 {
+			continue
+		}
+		pc := t.manaPCGen(g.k, sl)
+		if pc.manaAb < 0 || !t.canTapForManaPC(g.k, sl, pc) {
+			continue
+		}
+		mask, n := t.srcMaskAt(pc, sl), pc.manaN
+		if mask == 0 {
+			continue
+		}
+		g.funded++
+		ok := g.branch(t, i, sl, -1, mask, n, mask&(mask-1) != 0)
+		g.funded--
+		if ok {
+			return true
 		}
 	}
 	if t.sp > g.sp0 && g.np < len(g.path) {
