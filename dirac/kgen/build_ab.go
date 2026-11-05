@@ -1242,6 +1242,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.Flags |= kop.TfNotToGrave
 	}
+	if t.AlsoGrave {
+		if t.Event != "Leaves" || !t.Batch || t.N == 0 {
+			return kt, fmt.Errorf("graveyard-too flag on a %s trigger", t.Event)
+		}
+		kt.Flags2 |= kop.Tf2LeavesGrave
+	}
 	if t.CastSpent {
 		switch {
 		case t.Event != "SpellCast":
