@@ -21,11 +21,11 @@ import (
 var spyglassDecks = [2][]cardset.Entry{
 	{
 		{Name: "Sorcerous Spyglass", Count: 4}, {Name: "Mind Stone", Count: 4},
-		{Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 4}, {Name: "Island", Count: 20},
+		{Name: "Grizzly Bears", Count: 8}, {Name: "Prodigal Sorcerer", Count: 4}, {Name: "Island", Count: 20},
 	},
 	{
 		{Name: "Sorcerous Spyglass", Count: 4}, {Name: "Mind Stone", Count: 4},
-		{Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 4}, {Name: "Swamp", Count: 20},
+		{Name: "Grizzly Bears", Count: 8}, {Name: "Prodigal Sorcerer", Count: 4}, {Name: "Swamp", Count: 20},
 	},
 }
 

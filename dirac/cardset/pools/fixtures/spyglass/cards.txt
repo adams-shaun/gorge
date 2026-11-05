@@ -1,10 +1,10 @@
 # the Sorcerous Spyglass pool: the as-enters look and any-card name choice and
-# the CantBeActivated static over the chosen name, beside Mind Stone (a mana
+# the CantBeActivated static over the chosen name, beside Prodigal Sorcerer (an unnamed activated ability) and Mind Stone (a mana
 # ability and an activated draw) for the lockstep
 # (dirac/oracle/spyglass_test.go)
 Sorcerous Spyglass
 Grizzly Bears
-Hill Giant
+Prodigal Sorcerer
 Island
 Mind Stone
 Swamp
