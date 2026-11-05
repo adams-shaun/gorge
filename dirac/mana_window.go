@@ -2149,8 +2149,8 @@ func (s *State) manaStep(k *prep) bool {
 			// first untapped source, repeat until the pool pays.
 			occ := s.occ
 			s.occ = s.occ.andNot(s.convokeHidden())
-			raw := cost
-			cost = s.convokeApplyPicks(k, cost)
+			raw := xFolded(cost, int(e.x))
+			cost = s.convokeApplyPicks(k, raw)
 			if s.bld().bfl&bflMsDone == 0 && s.paymentStranded(k, e, &cost) {
 				s.occ = occ
 				s.releaseCostTaps(k, &saved)

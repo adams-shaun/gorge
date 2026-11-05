@@ -47,3 +47,31 @@ func TestStackGrantKeywordMutation(t *testing.T) {
 		t.Fatal("no game diverged with the grants ignored: the pool never casts a creature spell with a granted convoke")
 	}
 }
+
+// kstackgrantMixedDecks: Chief Engineer grants Convoke to Kappa Cannoneer,
+// which has printed Improvise: gorge's one announcement offers creature
+// colour, creature generic and artifact generic picks (mirrored in both seats).
+var kstackgrantMixedDecks = mirroredDeck([]cardset.Entry{
+	{Name: "Chief Engineer", Count: 4}, {Name: "Kappa Cannoneer", Count: 4}, {Name: "Pilgrim's Eye", Count: 4},
+	{Name: "Mind Stone", Count: 4}, {Name: "Island", Count: 24},
+})
+
+// kstackgrantXDecks: the granted Convoke on an {X} artifact spell (Walking
+// Ballista): gorge announces before X and offers every creature a possible
+// generic payment, then prices the picks into the X menu.
+var kstackgrantXDecks = mirroredDeck([]cardset.Entry{
+	{Name: "Chief Engineer", Count: 4}, {Name: "Walking Ballista", Count: 4}, {Name: "Pilgrim's Eye", Count: 4},
+	{Name: "Mind Stone", Count: 4}, {Name: "Island", Count: 24},
+})
+
+func mirroredDeck(d []cardset.Entry) [2][]cardset.Entry { return [2][]cardset.Entry{d, d} }
+
+func TestStackGrantMixedKeywordsLockstep(t *testing.T) {
+	t.Parallel()
+	lockstepSet(t, "stackgrantkw", kstackgrantMixedDecks, 24, "KSTACKGRANTMIXED_SEEDS")
+}
+
+func TestStackGrantXCostLockstep(t *testing.T) {
+	t.Parallel()
+	lockstepSet(t, "stackgrantkw", kstackgrantXDecks, 16, "KSTACKGRANTX_SEEDS")
+}

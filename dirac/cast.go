@@ -712,6 +712,9 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			d.Kind, d.Sub, d.Player = DkChoose, ChX, e.ctrl
 			hi := s.xReducedCeiling(k, e, &cost, &av, mx)
+			if np := s.convokePickCount(); np > 0 {
+				hi = min(maxXAsk, max(hi, mx+np)) // each announced pick pays one generic of the X total
+			}
 			s.addXOptions(k, d, e, mx, hi, &av)
 			s.bld().stage = bsX | 0x80 // awaiting X
 			return true

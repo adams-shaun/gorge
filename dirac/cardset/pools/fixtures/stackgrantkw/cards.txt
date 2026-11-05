@@ -3,8 +3,8 @@
 # spells you cast have convoke") beside artifact, legendary and plain
 # creatures, noncreature spells and basics (dirac/oracle/stackgrantkw_test.go).
 # Kappa Cannoneer (printed Improvise) and Walking Ballista (an {X} artifact
-# spell) exercise the unmodelled stalls a grant reopens
-# (dirac/stackkw_grant_stall_test.go).
+# spell) exercise the mixed and pre-X announcements a grant reopens
+# (dirac/stackkw_grant_stall_test.go, dirac/oracle/stackgrantkw_test.go).
 Chief Engineer
 We Ride at Dawn
 Isamaru, Hound of Konda
