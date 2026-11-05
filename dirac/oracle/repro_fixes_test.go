@@ -166,6 +166,7 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"return_defender_asked_before_move", true, false},                  // CR 508.4: Chorale of the Void's attacking return asks its defender while the card is still in the graveyard, as gorge does, not after it entered
 		{"station_reads_off_battlefield_cda_power", true, false},            // CR 604.3, 702.184a: Adagia's Station counts a sacrificed Harmonious Grovestrider by its lands-you-control power, which works in the graveyard, not by its printed 0
 		{"free_mayplay_joins_a_zone_grant", true, false},                    // Weftwalking's free-only static joins Mm'menon's top-of-library grant, so the first spell is cast for free (CR 118.9)
+		{"tap_another_activation_beside_granted_mana", true, false},         // CR 605.1a, 601.2g: the grant cap prunes a Lander's {2},{T},Sac activation the granted spell-only mana cannot pay, but a tap-another-permanent source beside it can, so the activation stays on autopay's menu
 	})
 }
 

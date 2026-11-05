@@ -1303,6 +1303,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR 
 	for {
 		if depth > 0 {
 			t := s.fork()
+			t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 			var spill [kop.NumManaKinds]uint8
 			for j := 0; j < depth; j++ {
 				t.tapGapChoice(k, p, order[j], restr, anyR, int(path[j]), &spill)

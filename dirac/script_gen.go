@@ -304,6 +304,7 @@ func (s *State) walkKey(a Action, p uint8, i int) uint64 {
 func (s *State) scriptDeadEnd(k *prep, a Action, p uint8, restr slotMask) bool {
 	t := s.fork()
 	defer s.unfork()
+	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 	var order [MaxPerm]Slot
 	n := t.battlefieldOrder(p, t.scriptGaps(k, p).or(restr), order[:], 0)
 	var d Decision
