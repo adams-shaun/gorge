@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -201,6 +202,12 @@ type lValue struct {
 }
 
 func cst(n int) lValue { return lValue{Kind: vConst, N: n} }
+
+// sameValue reports whether a and b lower to the same amount. It is the
+// divided-total check: gorge's target ask clamps a divided slot's target count
+// to the announced total, so only a slot whose TargetMax$ is the divided
+// total's own value reads exactly (Ureni's TargetMax$ X / DividedAsYouChoose$ X).
+func sameValue(a, b lValue) bool { return reflect.DeepEqual(a, b) }
 
 func (v lValue) isConst() bool {
 	return v.Kind == vConst && v.Mul == 0 && v.Div == 0 && v.Add == 0 && !v.Neg
@@ -416,11 +423,16 @@ type lTarget struct {
 	DistinctName bool // TargetsWithDifferentNames$: no two chosen cards share a name
 	MaxMV        int  // MaxTotalTargetCMC$ N + 1 (0 = no cap): the chosen cards' total mana value is at most N
 	Divided      int  // damage divided as the controller chooses among the chosen
-	LKIDiv       bool // 0..X targets and X divided counters, X the triggering source's last-known +1/+1 counters (kop.DivLKIP1P1)
-	Spell        bool // a spell on the stack
-	StackAb      bool // with Spell: an activated or triggered ability on the stack too (TgtStackObj)
-	AbOnly       bool // with StackAb: abilities only, no spell (TgtStackAb)
-	TrigOnly     bool // with StackAb: triggered abilities only beside the spells (TgtStackObjTrig)
+
+	// DividedV: with Divided == kop.DivValue, the divided total, evaluated
+	// where the spell or ability is put on the stack (gorge divisionTotalFor).
+	DividedV lValue
+
+	LKIDiv   bool // 0..X targets and X divided counters, X the triggering source's last-known +1/+1 counters (kop.DivLKIP1P1)
+	Spell    bool // a spell on the stack
+	StackAb  bool // with Spell: an activated or triggered ability on the stack too (TgtStackObj)
+	AbOnly   bool // with StackAb: abilities only, no spell (TgtStackAb)
+	TrigOnly bool // with StackAb: triggered abilities only beside the spells (TgtStackObjTrig)
 	// VTgt: with Spell, TargetValidTargeting$: a spell whose own object targets
 	// include a battlefield object matching it (TgtSpellTgting)
 	VTgt *lFilter

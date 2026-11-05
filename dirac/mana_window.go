@@ -2033,8 +2033,20 @@ func (s *State) startCastDivide(k *prep) {
 			tot = s.divLKITotal(e) // ctr_divided.go
 		} else if t.Divide == kop.DivMaxV {
 			tot = s.divMaxVTotal(k, t, e) // ctr_divided.go
+		} else if t.Divide == kop.DivValue {
+			// a value total (Ureni's land count): gorge divisionTotalFor
+			// resolves DividedAsYouChoose$ as the ability is put on the stack
+			tot = s.evalV(k, t.DivideV, s.ctxEntry(e))
+			if tot < 0 {
+				tot = 0
+			}
+			if tot > 255 {
+				// the division arrays hold one uint8 per target (xTargets.div)
+				s.capFull(StallXTgt)
+				tot = 255
+			}
 		}
-		if n < 2 || tot < n {
+		if n == 0 || tot < n {
 			return
 		}
 		x := s.xtMut(e)
@@ -2044,7 +2056,14 @@ func (s *State) startCastDivide(k *prep) {
 		for i := 0; i < n; i++ {
 			x.div[i] = 1
 		}
-		s.bld().divSlot, s.bld().divLeft = uint8(ti), uint8(tot-n)
+		s.bld().divSlot = uint8(ti)
+		if n == 1 {
+			// gorge announces the one target's whole share (CR 601.2d): the
+			// total is fixed now, not re-read at resolution
+			x.div[0] = uint8(tot)
+			return
+		}
+		s.bld().divLeft = uint8(tot - n)
 		return
 	}
 }

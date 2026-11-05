@@ -215,7 +215,30 @@ func gorgeKw(s string) (kop.KwMask, bool) {
 // characteristics; err names the first keyword with no kernel bit.
 func gorgeChars(e *rules.Engine, v *charVocab, oid state.ObjID) (CharsProj, string) {
 	d := e.Derived(oid)
-	c, kw := charsOf(v, d.Types, d.AllCreatureTypes, d.Colors, d.Keywords)
+	// Printed protection from a quality is CardDef.ProtColors/ProtFrom, not
+	// a KwMask bit (the kernel sets only KwProtBlack/KwProtRed, and only for
+	// granted protection): drop the face's printed spellings so a card like
+	// Ureni, the Song Unending ("protection from white and from black") is
+	// compared through the target, block and damage options. Protection from
+	// everything stays a keyword bit.
+	var printed map[string]bool
+	if o := e.G.Obj(oid); o != nil && o.Face() != nil {
+		printed = make(map[string]bool, len(o.Face().Keywords))
+		for _, k := range o.Face().Keywords {
+			printed[k] = true
+		}
+	}
+	kws := d.Keywords
+	if len(printed) > 0 {
+		kws = make([]string, 0, len(d.Keywords))
+		for _, k := range d.Keywords {
+			if printed[k] && strings.HasPrefix(k, "Protection from ") && k != "Protection from everything" {
+				continue
+			}
+			kws = append(kws, k)
+		}
+	}
+	c, kw := charsOf(v, d.Types, d.AllCreatureTypes, d.Colors, kws)
 	if kw != "" {
 		return c, fmt.Sprintf("gorge keyword %q (on %s) has no kernel bit", kw, cardName(e.G.Obj(oid).Card))
 	}

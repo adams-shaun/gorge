@@ -402,7 +402,7 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		}
 		ts.TFlags |= kop.TgfKickedRange
 		ts.MinKicked, ts.MaxKicked = 0, 255
-	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && t.Divided == 0 && t.Mode < 0 && t.ParentPlus1 == 0 &&
+	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && (t.Divided == 0 || t.Divided == kop.DivValue) && t.Mode < 0 && t.ParentPlus1 == 0 &&
 		plainX(t.Min) && plainX(t.Max):
 		// "X target creatures": exactly the announced X (CR 601.2b, 601.2c).
 		// gorge offers only an X the target ask can answer
@@ -414,7 +414,7 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		}
 		ts.MaxV = ts.MinV
 		ts.TFlags |= kop.TgfBoundsV
-	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && (t.Divided == 0 || t.Divided == kop.DivMaxV) && t.Mode < 0 && t.ParentPlus1 == 0 &&
+	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && (t.Divided == 0 || t.Divided == kop.DivMaxV || t.Divided == kop.DivValue) && t.Mode < 0 && t.ParentPlus1 == 0 &&
 		tgtBoundV(t.Min, true) && tgtBoundV(t.Max, false):
 		// "up to" a value (TargetMax$ X over a count, X paid or
 		// the trigger amount): evaluated as the slot is announced (gorge
@@ -444,6 +444,17 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		return ts, err
 	}
 	if t.Divided > 0 && !t.LKIDiv {
+		if t.Divided == kop.DivValue {
+			if t.DividedV.Kind == vNone {
+				return ts, fmt.Errorf("divided slot without a value total")
+			}
+			if !tgtBoundReads(t.DividedV) {
+				return ts, fmt.Errorf("divided total %s is not evaluable at the announcement", t.DividedV)
+			}
+			if ts.DivideV, err = cb.value(t.DividedV); err != nil {
+				return ts, fmt.Errorf("divided total %s: %w", t.DividedV, err)
+			}
+		}
 		ts.Divide = uint8(t.Divided)
 	}
 	if t.AtRes && ts.TFlags == kop.TgfGiftRange && ts.Divide == 0 && ts.Min == ts.Max && ts.MinKicked == ts.MaxKicked && ts.Max <= 1 && ts.MaxKicked <= 1 {

@@ -1002,6 +1002,7 @@ func cloneFieldsEngineParked(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		p0.numTimes.unit = cloneCost(e.triggerCost.numTimes.unit)
 		p0.counterPicks = append([]string(nil), e.triggerCost.counterPicks...)
 		p0.counterObjs = append([]state.ObjID(nil), e.triggerCost.counterObjs...)
+		p0.beholds = append([]state.ObjID(nil), e.triggerCost.beholds...)
 		c.triggerCost = &p0
 	}
 	if e.echo != nil {
