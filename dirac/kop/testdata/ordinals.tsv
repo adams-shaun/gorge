@@ -988,6 +988,7 @@ StFunctionsInGraveyard	StaticFlags	16
 StMayRaise	StaticFlags	32768
 StOncePerTurn	StaticFlags	2
 StPanhETB	StaticFlags	2048
+StRaiseLife	StaticFlags	2048
 StRaiseOpp	StaticFlags	256
 StRaiseYou	StaticFlags	128
 StReduceAny	StaticFlags	256
