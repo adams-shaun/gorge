@@ -1003,7 +1003,7 @@ StYouHexproof	StaticFlags	512
 StackKwCascade	int16	3
 StackKwCasualty	int16	2
 StackKwConvoke	int16	7
-StackKwDelve	int16	8
+StackKwDelve	int16	9
 StackKwImprovise	int16	1
 StackKwLifelink	int16	4
 StackKwSplitSecond	int16	6

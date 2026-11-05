@@ -45,7 +45,7 @@ func TestStackkwDelveLowering(t *testing.T) {
 	if len(lc.Statics) != 1 || lc.Statics[0].Kind != "StackKw" || len(lc.Statics[0].Kw) != 1 || lc.Statics[0].Kw[0] != "Delve" {
 		t.Fatalf("statics %+v, want one StackKw Delve", lc.Statics)
 	}
-	if kop.StackKwDelve != 8 {
+	if kop.StackKwDelve != 9 {
 		t.Fatalf("StackKwDelve = %d", kop.StackKwDelve)
 	}
 	for _, c := range []struct{ name, aff, kw, extra, ez, want string }{
