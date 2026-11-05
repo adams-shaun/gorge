@@ -165,9 +165,10 @@ import (
 // +1 (Vannifar, Evolved Enigma: the cloak-from-hand shape lowers; land; merged ALL build-level 21547 -> 21548).
 // +1 (Mazemind Tome: the counter-threshold state trigger, Tf4StateCtr; land; merged ALL build-level 21548 -> 21549).
 // +3 (a variable CollectEvidence cost and evidence beside the triggered-card exile: Incinerator of the Guilty, Urgent Necropsy, Lamplight Phoenix lower; merged ALL build-level 21549 -> 21552).
+// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; ALL build-level 21553 -> 21554).
 // +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; this branch; merged ALL build-level 21553 -> 21554).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21563, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21564, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
