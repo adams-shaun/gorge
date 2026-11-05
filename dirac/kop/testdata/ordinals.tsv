@@ -370,6 +370,7 @@ ExUnlockedDoors	ExprKind	236
 ExValidAgg	ExprKind	42
 ExVoid	ExprKind	254
 ExX	ExprKind	2
+ExYourExtraTurns	ExprKind	227
 ExYourSpeed	ExprKind	44
 ExYourTurns	ExprKind	251
 ExtAddPhase	ExtOp	193
