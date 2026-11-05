@@ -59,7 +59,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Vannifar, Evolved Enigma: the cloak-from-hand shape lowers; land; merged MKM 232 -> 233, ALL 21547 -> 21548).
 	// +1 (Mazemind Tome: the counter-threshold state trigger, Tf4StateCtr; land; merged FDN 515 -> 516, ALL 21548 -> 21549).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21549, 34442},
+	"ALL": {21553, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -73,7 +73,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FRA": {245, 269},
 	"HOB": {152, 172},
 	"LCI": {251, 290},
-	"MKM": {233, 279},
+	"MKM": {234, 279},
 	"MOM": {198, 296},
 	"MSH": {226, 276},
 	"NEO": {198, 287},
