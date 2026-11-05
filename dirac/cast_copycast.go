@@ -100,6 +100,26 @@ func (s *State) copyCastTargetWindowShort(k *prep) bool {
 	return s.targetWindowShort(k, e, &cost, false)
 }
 
+// copyCastTargetAbort is copyCastAbortsBeforeWindow for a required target the
+// copy's chosen mode gates (Make It So's "untap target permanent you control"):
+// the copy cast announces its mode first, so the slot is known only now, at
+// its ask. Gorge's target menu withholds every candidate of the paid copy cast
+// the pool and window cannot cover, so the required target aborts the cast
+// and no mana window opens. An up-to target asks nothing there and the cast
+// reaches its window, as before.
+func (s *State) copyCastTargetAbort(k *prep, t *kop.TargetSpec) bool {
+	b := s.bld()
+	e := &b.e
+	if t.UpTo || e.kind != seSpell || b.bfl&bflLowered == 0 || e.flags&sfFree != 0 ||
+		s.objs[e.obj].of&(ofCopy|ofToken) != ofCopy {
+		return false
+	}
+	if t.TFlags&kop.TgfBoundsV != 0 && t.MinV.K != kop.VConst {
+		return false // "X target ...": X is announced first and may be 0
+	}
+	return s.copyCastUnpayable(k, e.card, e.ctrl, e.obj, restrOriginOfEntry(e), 0)
+}
+
 // copyCastPaid reports whether spell entry e is a Play's copy cast paying its
 // mana cost (not a free cast). Gorge's cast offer never judged it, so its
 // target menu is the first census of the cost: affordableTargetCandidates

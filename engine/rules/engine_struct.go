@@ -167,6 +167,12 @@ type Engine struct {
 	searchingBy state.PlayerID `clone:"reset"`
 	searchDepth int            `clone:"reset"`
 
+	// entryBasis is the entering object with its as-enters clone's template
+	// face installed, set around one foreignBodyMatches read so a ValidCard$
+	// type scope sees the permanent as it will enter (CR 614.12). Synchronous,
+	// never read across a suspension.
+	entryBasis *state.Object `clone:"reset"`
+
 	// stackLeave names why the spell move being emitted is leaving the stack,
 	// for repl:Moved's Fizzle$ ("... instead of putting it into your graveyard
 	// as it resolves"): the resolution rest move sets stackLeaveResolved, the
