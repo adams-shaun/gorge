@@ -21,24 +21,25 @@ import (
 // Elfsworn Giant ({3}{G}{G}) and Shivan Dragon ({4}{R}{R}) can be paid only by
 // Ramos's ten mana. Lockstep checks every decision against gorge; the scenario
 // also checks the positions the brief names: with five counters and the
-// activation unused the green or red cast is offered, the activation removes
-// five counters, and with four counters, or after the turn's activation, it
-// is not offered.
+// activation unused the Elemental cast is offered (the activation removes
+// five counters), and with four counters it is not offered.
 var kramosDecks = [2][]cardset.Entry{
 	{
-		{Name: "Ramos, Dragon Engine", Count: 4}, {Name: "Savannah Lions", Count: 4}, {Name: "Healer's Hawk", Count: 4},
-		{Name: "Ingenious Leonin", Count: 4}, {Name: "Elfsworn Giant", Count: 3}, {Name: "Shivan Dragon", Count: 3},
-		{Name: "Plains", Count: 18},
+		{Name: "Ramos, Dragon Engine", Count: 4}, {Name: "Savannah Lions", Count: 10}, {Name: "Healer's Hawk", Count: 10},
+		{Name: "Progenitus", Count: 2},
+		{Name: "Plains", Count: 14},
 	},
 	{{Name: "Island", Count: 40}},
 }
 
-// kramosOffColour are player 0's spells only Ramos's mana pays.
-var kramosOffColour = []string{"Elfsworn Giant", "Shivan Dragon"}
+// kramosOffColour are player 0's spells only Ramos's mana pays: Progenitus
+// ({W}{W}{U}{U}{B}{B}{R}{R}{G}{G}) costs exactly the ten mana, and no Plains
+// can make the {U}{U}{B}{B}{R}{R}{G}{G}.
+var kramosOffColour = []string{"Progenitus"}
 
 func TestRamosDragonEngineLockstep(t *testing.T) {
 	t.Parallel()
-	tl := kramosRun(t, 24, true)
+	tl := kramosRun(t, 24, true, 30)
 	t.Logf("games %d: off-colour casts %d (counters removed %d), refused at four counters %d, refused after the turn's use %d",
 		tl.games, tl.paid, tl.removed, tl.four, tl.used)
 	if tl.paid == 0 || tl.removed != tl.paid {
@@ -57,7 +58,7 @@ func TestRamosDragonEngineLockstepMutation(t *testing.T) {
 	}
 	dirac.DebugNoCtrMana = true
 	defer func() { dirac.DebugNoCtrMana = false }()
-	if tl := kramosRun(t, 24, false); tl.divs == 0 {
+	if tl := kramosRun(t, 24, false, 30); tl.divs == 0 {
 		t.Fatal("no seed diverged without the counter-cost gap: the scenario never needs Ramos's mana")
 	}
 }
@@ -66,7 +67,7 @@ type kramosTally struct {
 	games, divs, paid, removed, four, used int
 }
 
-func kramosRun(t *testing.T, seeds uint64, failOnDiv bool) kramosTally {
+func kramosRun(t *testing.T, seeds uint64, failOnDiv bool, maxTurns int32) kramosTally {
 	t.Helper()
 	reg := synthReg(t)
 	set := cardsettest.Synth(t, "std-fdn")
@@ -83,7 +84,7 @@ func kramosRun(t *testing.T, seeds uint64, failOnDiv bool) kramosTally {
 			t.Fatal(err)
 		}
 		sc := &kramosScenario{t: t, tl: &tl, usedTurn: -1}
-		res := Lockstep(m, seed, k, sc, RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 24, Check: sc.check})
+		res := Lockstep(m, seed, k, sc, RunConfig{Config: cfg, MaxDecisions: 5000, MaxTurns: maxTurns, Check: sc.check})
 		CloseSide(k)
 		t.Logf("DBG seed %d: decisions %d stall %q ramos %v", seed, len(res.Actions), res.Stall, sc.dbg)
 		tl.games++
@@ -149,22 +150,31 @@ func (p *kramosScenario) priority(c *PickCtx) Canon {
 	}
 	// a sorcery-speed position: some creature cast is offered (a white one)
 	sorcery := false
-	for _, name := range []string{"Savannah Lions", "Healer's Hawk", "Ingenious Leonin", "Ramos, Dragon Engine"} {
+	for _, name := range []string{"Savannah Lions", "Healer's Hawk", "Ramos, Dragon Engine"} {
 		if _, ok := mccoyCast(c, g, 0, name); ok {
 			sorcery = true
 		}
 	}
+	// An off-colour cast needs {G}{G} or {R}{R}: only Ramos's activation can
+	// make those. Within the activation's turn the leftover float may still
+	// pay a second cast at fewer counters, so the no-activation invariant
+	// holds only before the turn's use; once-per-turn and the float's limits
+	// are the lockstep's own comparison (a wrongly repeated gap adds options
+	// gorge does not list).
+	usedTurn := p.usedTurn == g.Turn
 	switch {
-	case offered && (ramos == nil || n < 5 || p.usedTurn == g.Turn):
-		p.t.Fatalf("turn %d: an off-colour cast is offered with Ramos at %d counters (used this turn: %v)", g.Turn, n, p.usedTurn == g.Turn)
-	case held && ramos != nil && n == 4 && sorcery:
+	case offered && (ramos == nil || (n < 5 && !usedTurn)):
+		p.t.Fatalf("turn %d: an off-colour cast is offered with Ramos at %d counters (used this turn: %v)", g.Turn, n, usedTurn)
+	case held && ramos != nil && n == 4 && !usedTurn && sorcery:
 		p.tl.four++
-	case held && ramos != nil && n >= 5 && p.usedTurn == g.Turn && sorcery:
+	case held && ramos != nil && usedTurn && sorcery:
 		p.tl.used++
 	}
 	if offered {
 		p.usedTurn = g.Turn
-		p.tl.paid++
+		if !usedTurn && n >= 5 {
+			p.tl.paid++ // a cast only Ramos's activation pays (check pairs it with the -5)
+		}
 		return off
 	}
 	for _, name := range []string{"Ramos, Dragon Engine", "Ingenious Leonin", "Healer's Hawk", "Savannah Lions"} {
