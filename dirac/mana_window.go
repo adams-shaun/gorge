@@ -2048,6 +2048,9 @@ func (s *State) startCastDivide(k *prep) {
 				s.capFull(StallXTgt)
 				tot = 255
 			}
+		} else if DebugDivNOneEach {
+			// the ctr_divided.go mutation: a literal total is one per target
+			tot = n
 		}
 		if n == 0 || tot < n {
 			return
