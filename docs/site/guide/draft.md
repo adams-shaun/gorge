@@ -91,10 +91,15 @@ yet is never offered as a bot pick and a bot's deck leaves it out, so a bot draf
 and builds a deck that plays; the list of such cards only shrinks as scripts land.
 
 **Bot seats** have a game policy, a drafter and a builder. `GET /api/events/personas`
-lists the drafter and builder names, `rating-colour` (the default) and `best23`. Both
-name the same pair: the `rating-colour` drafter, which scores a card by its rating plus
+lists the drafter and builder names: `rating-colour` (the default) and `best23`, which
+name the same pair — the `rating-colour` drafter, which scores a card by its rating plus
 how well it fits the colours picked so far, and the `best23` builder, which plays the
-colour pair with the best 23 cards and adds 17 basics.
+colour pair with the best 23 cards and adds 17 basics — and `balanced`, a drafter that
+commits to two colours by pick 10 and drafts toward the deck's missing card types and
+mana values, and a builder that plays a curve, 14 to 18 creatures and two of each spell
+type the pool offers, splashes up to three one-pip cards on three sources when its pair
+runs short, plays up to four on-colour duals and plays 18 lands rather than an
+uncastable card.
 
 The game policy is any hosted policy that does not read opponents' decklists:
 `bot`, `lethal-pressure`, `forge-heuristic` and `forge-heuristic-hold` in a plain

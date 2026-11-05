@@ -196,13 +196,13 @@ func TestBuilderCapsHighManaValue(t *testing.T) {
 	}
 }
 
-// TestBuilderRegistryEntries pins the registry: the two names are
-// registered with both halves, sorted, and the registered drafter answers a
+// TestBuilderRegistryEntries pins the registry: the three names are
+// registered with both halves, sorted, and the registered drafters answer a
 // pick through the same rated path the direct type does.
 func TestBuilderRegistryEntries(t *testing.T) {
 	names := pb.Names()
-	if len(names) != 2 || names[0] != "best23" || names[1] != "rating-colour" {
-		t.Fatalf("registry names = %v, want [best23 rating-colour]", names)
+	if len(names) != 3 || names[0] != "balanced" || names[1] != "best23" || names[2] != "rating-colour" {
+		t.Fatalf("registry names = %v, want [balanced best23 rating-colour]", names)
 	}
 	d, b, ok := pb.Lookup("rating-colour")
 	if !ok || d == nil || b == nil {
@@ -210,6 +210,16 @@ func TestBuilderRegistryEntries(t *testing.T) {
 	}
 	if _, _, ok := pb.Lookup("best23"); !ok {
 		t.Fatal("registry has no best23 entry")
+	}
+	bd, bb, ok := pb.Lookup("balanced")
+	if !ok || bd == nil || bb == nil {
+		t.Fatalf("registry entry balanced: drafter %v builder %v ok %v", bd, bb, ok)
+	}
+	if _, isC := bd.(*pb.Committed); !isC {
+		t.Fatalf("balanced drafter is %T, want *pb.Committed", bd)
+	}
+	if _, isB := bb.(*pb.Balanced); !isB {
+		t.Fatalf("balanced builder is %T, want *pb.Balanced", bb)
 	}
 	if _, _, ok := pb.Lookup("nope"); ok {
 		t.Fatal("an unknown name resolved in the registry")
