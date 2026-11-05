@@ -37,7 +37,7 @@ type cantPhaseEngine interface {
 // suppressPhaseEvent reports whether ev is a phase change a live CantPhaseIn
 // / CantPhaseOut forbids. Only a real change is consulted: a phase-out of a
 // phased-in battlefield permanent, a phase-in of a phased-out one.
-func suppressPhaseEvent(e cantPhaseEngine, ev events.Event) bool {
+func suppressPhaseEvent(e cantPhaseEngine, ev events.Event, decided bool) bool {
 	if ev.Kind != events.PhaseOut || ev.Amount == 0 {
 		return false
 	}
@@ -47,6 +47,9 @@ func suppressPhaseEvent(e cantPhaseEngine, ev events.Event) bool {
 	}
 	in := ev.Amount < 0
 	if in != o.PhasedOut {
+		return false
+	}
+	if in && decided {
 		return false
 	}
 	return phaseBlocked(e, ev.Obj, in)
