@@ -156,6 +156,7 @@ const (
 	cmpWasCast       // wasCast / !wasCast / wasCastFromGraveyard read as the permanent enters from its own spell (CmpN: wasCast* origin | wasCastNot, origin 3 = wasCastFromYourGraveyard; no operator)
 	cmpWasCastSpell  // wasCastFromYourHand[ByYou] / !wasCastFromYourHand / wasCastFromExile / CastSa Spell.MayPlaySource (or wasCast beside them) read on a spell on the stack (CmpN: spell* origin | spellNot; no operator)
 	cmpPermMark      // attackedThisTurn / dealtDamageThisTurn / dealtDamagetoAny / dealtCombatDamagetoAny, with or without ! (CmpN: kop.PermMark* | kop.PermMarkNot; no operator)
+	cmpTriggerObj    // the resolving trigger's object, wherever it is now (ChooseFromDefined$ TriggeredCards; kernel isTriggerObj; no operator)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -921,6 +922,9 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		}
 	}
 	if ok, err := c.noNameTwinGrave(p); ok {
+		return err // lower_filterwords.go
+	}
+	if ok, err := c.faceUpDisguise(p); ok {
 		return err // lower_filterwords.go
 	}
 	if n, ok := filterWordPred(p); ok {

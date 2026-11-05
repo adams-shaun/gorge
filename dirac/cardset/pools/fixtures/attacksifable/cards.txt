@@ -1,0 +1,7 @@
+# Heckling Fiends' and Incite's "target creature attacks this turn if able" (dirac/oracle/effect_attacksifable_test.go)
+Heckling Fiends
+Incite
+Grizzly Bears
+Hill Giant
+Raging Goblin
+Mountain

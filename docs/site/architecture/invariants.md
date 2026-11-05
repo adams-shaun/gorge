@@ -27,7 +27,7 @@ usually the replay and golden-head tests.
 | 10 | [Golden chain heads move only with a named cause](#golden-chain-heads-move-only-with-a-named-cause) | `TestHeads` |
 | 11 | [Every test fits the budget](#every-test-fits-the-budget) | `cmd/testbudget` in the post-merge suite |
 | 12 | [Corpus or it did not run](#corpus-or-it-did-not-run) | CI refuses to test without `.cards/`; locally, convention |
-| 13 | [A card dirac supports plays identically to gorge](#a-card-dirac-supports-plays-identically-to-gorge) | `scripts/dirac-gate.sh`, `make dirac-slices` in CI, `TestStateIsPointerFree`, `TestStateSize` |
+| 13 | [A card dirac supports plays identically to gorge](#a-card-dirac-supports-plays-identically-to-gorge) | `scripts/dirac-gate.sh`, `make dirac-slices` in CI, `TestColdArraysHoldNoPointers`, `TestStateSize` |
 
 Two companion documents record behaviour that is *not* an invariant
 violation even though it can look like one: the

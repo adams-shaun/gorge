@@ -58,7 +58,7 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 		var bad []string
 		for k, v := range n.Params {
 			v = strings.TrimSpace(v)
-			if (k == "Defined" || k == "TokenOwner" || k == "UnlessPayer") && (v == "Remembered" || v == "Player.IsRemembered") || k == "SubAbility" {
+			if (k == "Defined" || k == "TokenOwner" || k == "UnlessPayer" || k == "DefinedPlayer") && (v == "Remembered" || v == "Player.IsRemembered") || k == "SubAbility" {
 				continue
 			}
 			if k == "TokenAttacking" && v == tokenAttackingRemembered && who.Kind == rEachOpp {
@@ -104,6 +104,8 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 var repeatPlayerOps = map[string]bool{
 	"LoseLife": true, "GainLife": true, "Draw": true, "Discard": true, "Mill": true, "Sacrifice": true,
 	"CreateToken": true, "UnlessPaid": true,
+	"ChooseMove": true, // a hand move's owner (DefinedPlayer$ Remembered; startSearch's playerRef)
+	"Dig":        true, // the library dug (Doomsday Excruciator)
 }
 
 // repeatChooseGreatest lowers Gix's Command's fourth mode body: RepeatEach
@@ -209,8 +211,8 @@ func (lc *lowerCtx) checkEachPlCtrl(expr string, f *lFilter) error {
 
 // eachPlSVarOK reports whether the SVar body named by a RepeatEach body
 // param reads the Remembered player only through the two reads above:
-// <PlayerCountRemembered$... | Count$Valid ...RememberedPlayerCtrl...>
-// with at most one /HalfDown or /HalfUp tail, and that it lowers inside the
+// <PlayerCountRemembered$... | Count$Valid[Hand|Library] ...RememberedPlayerCtrl...>
+// with at most one /HalfDown, /HalfUp or /Minus.N tail, and that it lowers inside the
 // body. Anything else (Remembered$Amount, an operand SVar, ...) is not
 // admitted and keeps the caller's refusal.
 func (lc *lowerCtx) eachPlSVarOK(body string) bool {
@@ -218,10 +220,16 @@ func (lc *lowerCtx) eachPlSVarOK(body string) bool {
 	for _, t := range []string{"/HalfDown", "/HalfUp"} {
 		b = strings.TrimSuffix(b, t)
 	}
+	if head, n, ok := strings.Cut(b, "/Minus."); ok && n != "" && strings.Trim(n, "0123456789") == "" {
+		b = head // Doomsday Excruciator's all-but-six
+	}
 	switch {
 	case strings.HasPrefix(b, "PlayerCountRemembered$"):
 		b = strings.TrimPrefix(b, "PlayerCountRemembered$")
-	case strings.HasPrefix(b, "Count$Valid "):
+	case strings.HasPrefix(b, "Count$Valid "), strings.HasPrefix(b, "Count$ValidHand "), strings.HasPrefix(b, "Count$ValidLibrary "):
+		// the repeated player's battlefield, hand or library cards
+		// (Worlds Within Worlds, Doomsday Excruciator): a card off the
+		// battlefield is controlled by its owner, the kernel's walk owner
 	default:
 		return false
 	}

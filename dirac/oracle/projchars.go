@@ -111,6 +111,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Harmonize":                "CardDef.Harmonize (a graveyard cast for AltCost; kw_harmonize.go)",
 	"Mayhem":                   "CardDef.Mayhem (a graveyard cast for AltCost if discarded this turn; kw_mayhem.go)",
 	"Offspring":                "CardDef.Offspring (an optional additional cost and its enters trigger)",
+	"Storm":                    "CardDef.Storm (the printed keyword's native cast trigger, dirac/kw_storm.go; a StatStackKw grant, static_stackkeyword.go)",
 	"Mobilize":                 "gorge kwMobilize's Attacks trigger: a remembering Token plus a group DelayedTrigger (kgen lowers the expansion's nodes; OpDelayedProgram DpGroup, ExtSacDelayed)",
 	"Devoid":                   "a colourless face in every zone (kgen lower.go faceHasKeyword Devoid; CharsProj.Colors)",
 	"Equip":                    "CardDef.EquipCost (an activated ability)",

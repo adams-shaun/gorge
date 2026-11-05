@@ -141,7 +141,7 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 		return
 	}
 	code := PlayerTarget0 + p
-	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol) != 0 {
+	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
 		if n = s.replDamage(k, p, sl, s.cardAt(sl), code, false, n); n <= 0 {
 			return
 		}

@@ -6,15 +6,15 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// Mode$ LandPlayed, SearchedLibrary, Forage and Discover.
+// Mode$ LandPlayed, SearchedLibrary, Forage, Discover and ManifestDread.
 //
 // gorge trigmatch landPlayedMatches (actions.go): the land's move to the
 // battlefield while it is a land play; Origin$ whitelists the zone played
 // from (Ante and Command drop out), ValidCard$ is matched against the land on
-// the battlefield. searchedLibraryMatches / forageMatches / discoverMatches:
-// ValidPlayer$ against the acting player; SearchOwnLibrary$ True requires the
-// searcher to be the library's owner. Nothing else is read, so any other key
-// refuses.
+// the battlefield. searchedLibraryMatches / forageMatches / discoverMatches /
+// manifestDreadMatches: ValidPlayer$ against the acting player (the manifest
+// dread marker's player); SearchOwnLibrary$ True requires the searcher to be
+// the library's owner. Nothing else is read, so any other key refuses.
 
 // landOriginBits maps an Origin$ word of a LandPlayed line to its kop.Zone
 // bit; ok is false for a word the kernel does not model, drop for the words
@@ -35,7 +35,7 @@ func landOriginBits(w string) (bit int16, drop, ok bool) {
 	return 0, false, false
 }
 
-// trigModes2 lowers the four modes. LandPlayed: ValidCard$ is F, Origin$ the
+// trigModes2 lowers the five modes. LandPlayed: ValidCard$ is F, Origin$ the
 // zone mask N (0 = any). The others: ValidPlayer$ is Whose.
 func (lc *lowerCtx) trigModes2(tp *params, tr *lTrigger, mode, zone string, readF func(string) (*lFilter, error)) error {
 	if zone != "" {

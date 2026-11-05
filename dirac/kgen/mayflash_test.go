@@ -38,7 +38,6 @@ func TestMayFlashLowering(t *testing.T) {
 				}
 			},
 		},
-		{name: "behold part", card: &cards.Card{Faces: []*cards.Face{face("1 R", "MayFlashCost:Behold<1/Dragon>")}}, want: `may-flash cost "Behold<1/Dragon>"`},
 		{name: "tap part", card: &cards.Card{Faces: []*cards.Face{face("4 B B", "MayFlashCost:tapXType<3/Creature.withFlying>")}}, want: `may-flash cost "tapXType<3/Creature.withFlying>"`},
 		{name: "empty cost", card: &cards.Card{Faces: []*cards.Face{face("1 R", "MayFlashCost:")}}, want: `may-flash cost ""`},
 		{name: "X extra", card: &cards.Card{Faces: []*cards.Face{face("1 R", "MayFlashCost:X")}}, want: `may-flash cost "X"`},

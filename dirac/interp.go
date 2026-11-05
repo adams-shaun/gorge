@@ -421,8 +421,17 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.damageSeqNext(k, n)
 			break
 		}
-		for m := hit; m.any(); m = m.rest() {
-			s.damageTo(k, uint8(s.perms[m.first()].obj), n)
+		// gorge's effDamageAll sweeps the permanents seat 0's battlefield in
+		// entry order first, then seat 1's: damageTo fires per-referent
+		// damage triggers as it goes, so the sweep order is the queue order
+		// (the replacement path freezes the same order in damageSeqStart).
+		var ord [MaxPerm]Slot
+		hi := 0
+		for p := uint8(0); p < 2; p++ {
+			hi = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), ord[:], hi)
+		}
+		for _, sl := range ord[:hi] {
+			s.damageTo(k, uint8(s.perms[sl].obj), n)
 		}
 		if in.B.N&1 != 0 {
 			// then each player, the controller first (gorge validPlayers:

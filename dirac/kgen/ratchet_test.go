@@ -61,15 +61,17 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (a variable CollectEvidence cost and evidence beside the triggered-card exile: Incinerator of the Guilty, Urgent Necropsy, Lamplight Phoenix lower; merged MKM 233 -> 236, ALL 21549 -> 21552).
 	// +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; this branch; merged FDN 516 -> 517, ALL 21556 -> 21557).
 	// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged MKM 237 -> 238, ALL 21557 -> 21558).
-	// +2 (Baxter Building's four-mana combination filter and Haunted Screen's life-paid three-colour ability lower beside their first mana ability; DSK 236 -> 237, MSH 226 -> 227, ALL 21564 -> 21566).
+	// +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; ALL 21564 -> 21569).
+	// +1 (Molten Exhale: a may-flash extra that is a behold, CardDef.MayFlashBehold; merged TDM 245 -> 246, ALL 21569 -> 21570).
+	// +2 (Baxter Building's four-mana combination filter and Haunted Screen's life-paid three-colour ability lower beside their first mana ability; msh-second-mana-ability; merged DSK 241 -> 242, MSH 228 -> 229, ALL 21630 -> 21632).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21566, 34442},
+	"ALL": {21632, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
 	"DFT": {247, 276},
 	"DMU": {193, 270},
-	"DSK": {237, 276},
+	"DSK": {242, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
 	"FDN": {517, 517},
@@ -77,16 +79,16 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FRA": {245, 269},
 	"HOB": {152, 172},
 	"LCI": {251, 290},
-	"MKM": {238, 279},
+	"MKM": {240, 279},
 	"MOM": {198, 296},
-	"MSH": {227, 276},
+	"MSH": {229, 276},
 	"NEO": {198, 287},
 	"ONE": {195, 271},
-	"OTJ": {240, 276},
+	"OTJ": {241, 276},
 	"SNC": {185, 266},
 	"SOS": {248, 270},
 	"SPM": {160, 192},
-	"TDM": {245, 276},
+	"TDM": {248, 276},
 	"TLA": {246, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},

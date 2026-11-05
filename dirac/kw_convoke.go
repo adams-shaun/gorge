@@ -169,6 +169,9 @@ func (s *State) convokeXCost(k *prep, cost kop.ManaCost, x int) (kop.ManaCost, b
 		col := int(s.bld().pickKs[i] & 7)
 		switch {
 		case col == 7:
+			if cost.Generic == 0 {
+				return cost, false // nothing for the tapped creature to reduce
+			}
 			cost.Generic -= s.harmonizeReduce(k, s.objs[s.bld().picks[i]].slot, cost.Generic)
 		case col < 5:
 			if cost.Pips[col] == 0 {
@@ -183,6 +186,25 @@ func (s *State) convokeXCost(k *prep, cost kop.ManaCost, x int) (kop.ManaCost, b
 		}
 	}
 	return cost, true
+}
+
+// convokeXCredit is the generic the announced picks can pay toward X (gorge
+// xAsk's credit): a harmonize pick its creature's power, any other pick one.
+func (s *State) convokeXCredit(k *prep) int {
+	n := 0
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if !isConvokePick(s.bld().pickKs[i]) {
+			continue
+		}
+		if s.bld().pickKs[i]&7 == 7 {
+			if pw := s.power(k, s.objs[s.bld().picks[i]].slot); pw > 0 {
+				n += pw
+			}
+			continue
+		}
+		n++
+	}
+	return n
 }
 
 // improvisePickCount counts the announced improvise (mode 6) picks.
