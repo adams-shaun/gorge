@@ -91,6 +91,12 @@ type Ability struct {
 	// at once (Produced$ "W U", Timeless Lotus's {W}{U}{B}{R}{G}; CR 106.1),
 	// not one of them. A table byte: AbilityFlags has no free bit.
 	ManaEach bool
+	// ManaDeferred: Pyromancer's Goggles' "{T}: Add {R}. When that mana is
+	// spent ..." (TriggersWhenSpent$): gorge's payment planner defers the
+	// source, so autopay never taps it and only a potential play's prefix
+	// script or the manual mana window does (kernel mana_deferred.go). A
+	// table byte: AbilityFlags has no free bit.
+	ManaDeferred bool
 	// ManaHasteValid: AddsKeywords$ Haste | AddsKeywordsValid$ ... |
 	// AddsKeywordsUntil$ UntilEOT (Carnelian Orb of Dragonkind; CR 106.6):
 	// a spell matching this filter, paid with this ability's mana, gains

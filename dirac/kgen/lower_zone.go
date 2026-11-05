@@ -3065,6 +3065,12 @@ func (lc *lowerCtx) genericChoice(ps *params) error {
 func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 	m := &lMana{}
 	prod := ps.str("Produced")
+	if v := ps.peek("TriggersWhenSpent"); v != "" && prod == "R" {
+		if err := lc.deferredMana(ab, ps, v); err != nil {
+			return err
+		}
+		m.Deferred = true
+	}
 	switch {
 	case len(prod) == 1 && strings.Contains("WUBRGC", prod):
 		m.Colors = prod

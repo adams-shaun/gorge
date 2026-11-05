@@ -58,8 +58,10 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 over land's 21546 (this branch's Vannifar, Evolved Enigma: the cloak-from-hand shape lowers; merged with land's Ramos mana ability; MKM 232 -> 233, ALL 21546 -> 21547).
 	// +1 over land's 21547 (the merge with land: land's cloak-from-hand lowering, kop.CfChosen, lowers Vannifar, Evolved Enigma on top of this branch's DamageDoneOnce scan scoping; MKM 233 -> 234, ALL 21561 -> 21562).
 	// +2 (Sorcerous Spyglass: the as-enters look and any-card name choice and CantBeActivated over the chosen name; Phyrexian Revoker, the same class over the nonland name; land; merged FDN 516 -> 517, LCI 250 -> 251, ALL 21562 -> 21564).
+	// +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; land; merged FDN 516 -> 517, ALL 21564 -> 21565).
+	// +4 (No Witnesses' withMostTypeCreature investigate and the counted Num$ arm lower; land; merged MKM 234 -> 235, ALL 21565 -> 21569).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21564, 34442},
+	"ALL": {21569, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -68,12 +70,12 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"DSK": {236, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
-	"FDN": {516, 517},
+	"FDN": {517, 517},
 	"FIN": {266, 312},
 	"FRA": {245, 269},
 	"HOB": {152, 172},
 	"LCI": {251, 290},
-	"MKM": {234, 279},
+	"MKM": {235, 279},
 	"MOM": {198, 296},
 	"MSH": {226, 276},
 	"NEO": {198, 287},

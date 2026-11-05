@@ -841,6 +841,7 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		ka.AFlags |= kop.AfManaChoice
 	}
 	ka.ManaEach = m.Each
+	ka.ManaDeferred = m.Deferred
 	// m.RestrictAb beside a spell restriction (Secluded Courtyard: "or
 	// activate an ability of a creature of the chosen type") is the
 	// activated half of the restriction (ManaRestrictAb); m.NonSpell adds
