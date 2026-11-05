@@ -10,8 +10,8 @@ import (
 // acoSpell is a target-dependent-cost spell (Luminous Rebuke's shape): the
 // printed cost, less three for a tapped-creature target.
 const acoSpell = "Name:Arm Consumption Spell\nManaCost:4 W\nTypes:Instant\n" +
-	"S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ 3 | EffectZone$ All | ValidTarget$ Creature.tapped | Description$ This spell costs {3} less to cast if it targets a tapped creature.\n" +
-	"A:SP$ Destroy | ValidTgts$ Creature | SpellDescription$ Destroy target creature.\nOracle:x\n"
+	"S:Mode$ ReduceCost | Type$ Spell | ValidCard$ Card.Self | Amount$ 3 | EffectZone$ All | ValidTarget$ Creature.tapped | Description$ This spell costs {3} less to cast if it targets a tapped creature.\n" +
+	"A:SP$ Destroy | SpellDescription$ Destroy target creature. | ValidTgts$ Creature\nOracle:x\n"
 
 // acoElf is a mana source that sacrifices itself for one mana of any colour:
 // the cast's only legal target and, without another white source, the only
