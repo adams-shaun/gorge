@@ -485,7 +485,11 @@ func SpellAbilityCastMatches(e Board, t cards.Trigger, source state.ObjID, ev ev
 // a no-op, never a panic. A keyword line without a synthesizable ability
 // also fails closed.
 func abilityCastMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event) bool {
-	if !ev.IsActivationMint() {
+	// A mana ability's activation is an activated ability (CR 605.1a) that
+	// mints nothing, so its marker is admitted by name, not through
+	// IsActivationMint (whose other callers all assume a stack object).
+	manaAct := ev.Kind == events.ManaAbilityActivation
+	if !ev.IsActivationMint() && !manaAct {
 		return false
 	}
 	obj := e.Game().Obj(ev.Obj)
@@ -535,7 +539,11 @@ func abilityCastMatches(e Board, t cards.Trigger, source state.ObjID, ev events.
 	// targets; at that point read the minted ability stack object's event-backed
 	// Targets rather than the source permanent's (unrelated) target list.
 	tgts := ChainTargets(obj)
-	if act, ok := e.LiveActivation(ev.Obj); ok {
+	if manaAct {
+		// A mana ability has no targets, and the source's unrelated live
+		// activation (if any) is not this one's.
+		tgts = nil
+	} else if act, ok := e.LiveActivation(ev.Obj); ok {
 		// The open cast flow only exposes the root answers; the chain links'
 		// answers are not on the source permanent yet.
 		tgts = act.Targets
@@ -579,14 +587,32 @@ func activationBody(g *state.Game, ev events.Event, recipient *state.Object) *ca
 		if grantor := g.Obj(ev.IDs[0]); grantor != nil {
 			return events.ResolveSVarAcrossFaces(grantor, ev.Counter)
 		}
-	case events.GainedAbilityPush:
+	case events.ManaAbilityActivation:
+		// The two ManaActivate shapes: IDs[0] names the foreign card of a
+		// gained mana ability (the GainedAbilityPush read below), otherwise
+		// Amount is the flat pile index (the AbilityPush read above).
 		if len(ev.IDs) == 0 {
+			if pa, ok := recipient.PileAbilityAt(int(ev.Amount)); ok {
+				return pa.SA
+			}
 			return nil
 		}
-		if foreign := g.Obj(ev.IDs[0]); foreign != nil && foreign.Face() != nil {
-			if abilities := foreign.Face().Abilities; ev.Amount >= 0 && int(ev.Amount) < len(abilities) {
-				return abilities[ev.Amount]
-			}
+		return gainedAbilityBody(g, ev)
+	case events.GainedAbilityPush:
+		return gainedAbilityBody(g, ev)
+	}
+	return nil
+}
+
+// gainedAbilityBody is the GainedAbilityPush body read: IDs[0] names the
+// foreign card whose face Abilities Amount indexes. nil for stale data.
+func gainedAbilityBody(g *state.Game, ev events.Event) *cards.SA {
+	if len(ev.IDs) == 0 {
+		return nil
+	}
+	if foreign := g.Obj(ev.IDs[0]); foreign != nil && foreign.Face() != nil {
+		if abilities := foreign.Face().Abilities; ev.Amount >= 0 && int(ev.Amount) < len(abilities) {
+			return abilities[ev.Amount]
 		}
 	}
 	return nil

@@ -591,6 +591,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C&64 != 0 {
 			s.g.freeP |= 32 // Play CopyCard$ True: the cast is of a copy (cast_copycast.go)
 		}
+		if in.C&256 != 0 {
+			s.g.freeP |= 64 // the copy pays its mana cost (cast_exilegrant.go)
+		}
 		s.res.ask, s.res.askP = raGenCastFree, e.ctrl
 		return false, true
 	case kop.OpMayPlay:
@@ -630,11 +633,22 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if k.gen.anyWhileHost && k.t.Emblems[in.C].WhileHost && s.hostEmblemDone(e, p, uint8(in.C)+1) {
 			break // filter_combatwords.go
 		}
+		if k.embComb && s.idemEmblemHeld(k, p, uint8(in.C)+1) {
+			break // static_emblemcombat.go
+		}
 		if s.g.nemb[p] < maxEmb {
 			s.g.emb[p][s.g.nemb[p]] = uint8(in.C) + 1
 			s.g.embC[p][s.g.nemb[p]] = e.card
 			s.g.embO[p][s.g.nemb[p]] = e.obj
 			s.g.embN[p][s.g.nemb[p]] = s.freezeEmbNum(k, in.A, s.ctxEntry(e))
+			if cr := k.t.Emblems[in.C].Capture; cr != kop.RefNone {
+				// the Effect's RememberObjects$ Targeted: the chain's target object + 1
+				// (0 none; an emblem with a capture has no frozen number)
+				s.g.embN[p][s.g.nemb[p]] = 0
+				if o := s.objRefObj(cr); o != NoObj {
+					s.g.embN[p][s.g.nemb[p]] = uint8(o) + 1
+				}
+			}
 			s.g.nemb[p]++
 		} else {
 			s.capFull(StallEmblem)
@@ -700,10 +714,11 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.delayEmptyGen(e, uint8(in.C))
 			if in.A.N != 0 {
 				s.g.dp[s.g.ndp-1].n |= dpWhen(in)
+				s.g.dp[s.g.ndp-1].ext = dpExt(in)
 			}
 			break
 		}
-		d := dprog{card: e.card, ab: uint8(in.C), ctrl: e.ctrl, src: e.obj, n: 1 | dpWhen(in)}
+		d := dprog{card: e.card, ab: uint8(in.C), ctrl: e.ctrl, src: e.obj, n: 1 | dpWhen(in), ext: dpExt(in)}
 		d.objs[0], d.vers[0] = o, s.objs[o].ver
 		if in.Obj == kop.RefTriggerObj && o == e.obj && s.objs[o].ver != e.srcVer+1 && !delayCopies(k, e.card, uint8(in.C)) {
 			// the card that died has moved on again (exiled from the
@@ -1900,7 +1915,16 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 		// step and does nothing (gorge scheduleAtEOTNone)
 		s.delayEmpty(e)
 	}
-	return s.copyTokens(k, in, c, s.replTokens(k, e.ctrl, c, v))
+	tc, n, rewritten, ok := s.copyTokenRewrite(k, in, e.ctrl, c, v)
+	if !ok {
+		return false // StallTokRewrite
+	}
+	if rewritten {
+		// a CreateToken rewriter replaced the copy mints (repl_tokrewrite.go)
+		s.mintRewritten(k, e.ctrl, tc, n)
+		return false
+	}
+	return s.copyTokens(k, in, c, n)
 }
 
 // copyTokens creates n token copies of card c for the resolving entry's

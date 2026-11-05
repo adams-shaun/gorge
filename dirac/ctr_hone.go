@@ -31,6 +31,10 @@ func prepHone(t *kop.Table, g *genPrep) {
 				if kop.CounterKind(in.B.N) == hone {
 					return true
 				}
+			case kop.OpExt:
+				if in.Ext() == kop.ExtSearchCounters && kop.CounterKind(in.C) == hone {
+					return true
+				}
 			}
 		}
 		return false

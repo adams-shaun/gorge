@@ -99,13 +99,11 @@ func TestFleshDuplicateETBGrantedVanishing(t *testing.T) {
 // TestFleshDuplicateConditionalSilentOnVanishingTemplate pins the
 // conditional's negative arm: the copied template already carries vanishing,
 // so the rider is silent -- the copy basis face carries exactly ONE
-// Vanishing:3 line, the template's own. The engine's standing clone entry
-// gap keeps the copy from its own counters (the copy face swap lands after
-// the entry move folds, so the template's printed ETB counter repl is
-// never collected for THIS entry -- the same 0 a plain Clone copying the
-// Hermit enters with, see the report's follow-up); the condition comparison
-// still ran, which is what keeps the granted counters from ALSO being
-// placed -- six -- and the single upkeep queue shows one vanishing, not two.
+// Vanishing:3 line, the template's own. The entry plan reads the answered
+// template's printed enters-with counters (CR 707.9b), so the copy enters with
+// the Hermit's three time counters; the condition comparison still ran, which
+// is what keeps the granted counters from ALSO being placed -- six -- and the
+// single upkeep queue shows one vanishing, not two.
 func TestFleshDuplicateConditionalSilentOnVanishingTemplate(t *testing.T) {
 	t.Parallel()
 	e, id, tplID := fleshDuplicateEntry(t, "Deep Forest Hermit")
@@ -115,8 +113,8 @@ func TestFleshDuplicateConditionalSilentOnVanishingTemplate(t *testing.T) {
 	if o == nil || o.Zone != state.ZBattlefield || o.Face().Name != "Deep Forest Hermit" {
 		t.Fatalf("entry = %+v, want a Deep Forest Hermit copy", o)
 	}
-	if got := o.Counter("TIME"); got != 0 {
-		t.Fatalf("copy of a vanishing creature entered with %d TIME counters, want 0 (standing clone gap)", got)
+	if got := o.Counter("TIME"); got != 3 {
+		t.Fatalf("copy of a vanishing creature entered with %d TIME counters, want the template's 3 (not 0, not the rider's extra 3)", got)
 	}
 	vanishing := 0
 	for _, kw := range o.Face().Keywords {
@@ -127,18 +125,18 @@ func TestFleshDuplicateConditionalSilentOnVanishingTemplate(t *testing.T) {
 	if vanishing != 1 {
 		t.Fatalf("copy carries %d vanishing lines, want exactly the template's one", vanishing)
 	}
-	// One vanishing's machinery, no rider duplication: with the counters the
-	// standing gap withholds, the upkeep step queues nothing (the removal
-	// trigger's IsPresent$ counters_GE1_TIME gate reads zero). The copy
-	// entered with the template's own ETB trigger on the stack (CR 707.9);
-	// resolve it first so only the upkeep step is under test.
+	// One vanishing's machinery, no rider duplication: the upkeep step queues
+	// the single counter-removal trigger (its IsPresent$ counters_GE1_TIME
+	// gate reads three). The copy entered with the template's own ETB trigger
+	// on the stack (CR 707.9); resolve it first so only the upkeep step is
+	// under test.
 	e.resolveTop()
 	e.pendingTriggers = nil
 	e.G.Active, e.G.Priority = 0, 0
 	e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
 	e.putTriggersOnStack()
-	if len(e.G.Stack) != 0 {
-		t.Fatalf("upkeep put %d stack objects, want none: one vanishing with no counters", len(e.G.Stack))
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("upkeep put %d stack objects, want exactly one vanishing removal trigger", len(e.G.Stack))
 	}
 }
 

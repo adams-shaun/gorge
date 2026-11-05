@@ -38,6 +38,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -113,6 +114,11 @@ func knownKeysCensusWant(api string, d *derivedReads) []string {
 // deduped by the content they were asked to fix.
 var knownKeysRun censusRun
 
+// knownKeysRunMu serialises updateKnownKeyTables: the census family's checks
+// run under t.Parallel, and -update both mutates knownKeysRun.done and does a
+// read-modify-write of the effects sources (two tables can share a file).
+var knownKeysRunMu sync.Mutex
+
 type censusRun struct {
 	// done maps a table's current joined content to the want it was rewritten
 	// to; a second check of the same table (GenericChoice's second look at
@@ -125,6 +131,8 @@ type censusRun struct {
 // -update.
 func updateKnownKeyTables(t *testing.T, got, want []string) {
 	t.Helper()
+	knownKeysRunMu.Lock()
+	defer knownKeysRunMu.Unlock()
 	if knownKeysRun.done == nil {
 		knownKeysRun.done = map[string]string{}
 	}

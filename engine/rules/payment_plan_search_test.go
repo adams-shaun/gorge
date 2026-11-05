@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -483,34 +484,48 @@ func TestPaymentPlanSearchZoneSeqIndexAgreesInGames(t *testing.T) {
 	}
 	reg := testutil.CorpusRegistry(t)
 	all := testutil.LegacyDeckNames()
-	var tokens, reentered, checked, decisions int
+	var mu sync.Mutex
+	var tokens, reentered, checked, decisions, ran int
 	// Seeds 6 and 7 seat Empty the Warrens and flicker effects: the storm
 	// deck makes goblin tokens and several permanents leave and re-enter.
 	for _, seed := range []uint64{6, 7} {
-		names := make([]string, 4)
-		decks := make([][]*cards.Card, 4)
-		for i := range names {
-			names[i] = all[(int(seed)+i*3)%len(all)]
-			decks[i] = testutil.RepoDeck(t, reg, names[i])
-		}
-		e := New(Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Universe()})
-		b := newTestBot(seed)
-		e.Advance()
-		for n := 0; !e.G.Over && e.Pending() != nil && n < 20000; n++ {
-			if d := e.Pending(); d.Kind == decision.KPriority {
-				tk, re, ch := srchIndexAgrees(t, e, fmt.Sprintf("seed %d intent %d", seed, n))
-				tokens, reentered, checked = tokens+tk, reentered+re, checked+ch
-				decisions++
+		seed := seed
+		t.Run(fmt.Sprintf("seed%d", seed), func(t *testing.T) {
+			t.Parallel()
+			names := make([]string, 4)
+			decks := make([][]*cards.Card, 4)
+			for i := range names {
+				names[i] = all[(int(seed)+i*3)%len(all)]
+				decks[i] = testutil.RepoDeck(t, reg, names[i])
 			}
-			if err := e.Submit(b.answer(e, e.Pending())); err != nil {
-				t.Fatalf("seed %d intent %d: %v", seed, n, err)
+			e := New(Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Universe()})
+			b := newTestBot(seed)
+			e.Advance()
+			var tk, re, ch, dec int
+			for n := 0; !e.G.Over && e.Pending() != nil && n < 20000; n++ {
+				if d := e.Pending(); d.Kind == decision.KPriority {
+					tk1, re1, ch1 := srchIndexAgrees(t, e, fmt.Sprintf("seed %d intent %d", seed, n))
+					tk, re, ch = tk+tk1, re+re1, ch+ch1
+					dec++
+				}
+				if err := e.Submit(b.answer(e, e.Pending())); err != nil {
+					t.Fatalf("seed %d intent %d: %v", seed, n, err)
+				}
 			}
+			mu.Lock()
+			tokens, reentered, checked, decisions, ran = tokens+tk, reentered+re, checked+ch, decisions+dec, ran+1
+			mu.Unlock()
+		})
+	}
+	t.Cleanup(func() {
+		if ran < 2 { // one seed selected with -run, or a seed already failed: the aggregate needs both
+			return
 		}
-	}
-	if tokens == 0 || reentered == 0 {
-		t.Fatalf("checked %d tokens and %d re-entered objects: the property test must cover both", tokens, reentered)
-	}
-	t.Logf("%d priority decisions, %d battlefield objects checked (%d token checks, %d re-entered checks)", decisions, checked, tokens, reentered)
+		if tokens == 0 || reentered == 0 {
+			t.Fatalf("checked %d tokens and %d re-entered objects: the property test must cover both", tokens, reentered)
+		}
+		t.Logf("%d priority decisions, %d battlefield objects checked (%d token checks, %d re-entered checks)", decisions, checked, tokens, reentered)
+	})
 }
 
 // srchDistinctRock is a red source whose mana ability sits after k dummy

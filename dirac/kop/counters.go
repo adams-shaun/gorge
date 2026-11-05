@@ -258,6 +258,8 @@ const (
 	CtrPossession
 	// CtrPromotion is Beckett Mariner's named counter (CR 122.1).
 	CtrPromotion
+	// CtrPeace is Peace in Our Time's named counter (CR 122.1; its twelve-counter win).
+	CtrPeace
 	NumCounterKinds3
 )
 
@@ -275,7 +277,7 @@ var CtrXNames = [NumCounterKindsX]string{"CHARGE", "OIL", "SPORE", "QUEST", "VER
 	"First Strike", "Double Strike", "Deathtouch", "Haste", "Hexproof", "Indestructible", "Lifelink", "Menace",
 	"Reach", "Shadow", "Trample", "Vigilance", "SUPPLY", "LORE", "LANDMARK", "DREAD", "DEFENSE", "CHORUS", "M0M1", "FINALITY", "TIME", "VALOR", "NET", "PLAN",
 	"INVASION", "LOOT", "REV", "PAGE", "INGENUITY", "FILM", "FIRE", "HONE", "COIN",
-	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION"}
+	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE"}
 
 // IsCounterKind reports whether c is a real counter kind (a featurized one
 // or an unfeaturized one; CtrLevel and the gap at NumCounterKinds2 are not).

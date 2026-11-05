@@ -275,6 +275,7 @@ type genPrep struct {
 	anyLoyaltyX    bool           // some ability costs a planeswalker's [-X] (CostLoyaltyX; cost_loyaltyx.go)
 	anyLifeX       bool           // some spell or ability costs an announced PayLife<X> (Cost.N 0; cost_paylifex.go)
 	anyCopyCast    bool           // some OpCastFree casts a copy (C bit 6; cast_copycast.go)
+	anyExileGrant  bool           // some program holds an ExtGrantExile (cast_exilegrant.go)
 	anyNumTimes    bool           // some ability announces a pay-N-times count (Ext NumTimes; cast_announcetimes.go)
 	anyExHaste     bool           // some ability can't be blocked except by creatures with haste (Ext ExHaste; static_cantblockexcept.go)
 	anyColGrant    bool           // some ability grants by a chosen colour (Ext ColorGrant; static_colourgrant.go)
@@ -307,6 +308,7 @@ type genPrep struct {
 	anyRepl      uint32
 	exileOnLeave []kop.FilterID // per card: ReplExileOnLeave's filter (nil when no card has one)
 	exileAnyC    []bool         // per card: its ReplExileOnLeave is the any-zone reading (Repl.C 1; nil when none; repl_exileonleave.go)
+	destroyHeal  []kop.FilterID // per card: ReplDestroyHeal's filter (nil when no card has one; repl_destroyheal.go)
 	anyExileAny  bool           // some ReplExileOnLeave has Repl.C 1: a move to a graveyard from any zone checks it (placeFrom)
 	altFree      []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
@@ -408,6 +410,7 @@ const (
 	rbPlProt                          // StatPlayerHexproof with Static.A == 1: protection from each opponent, its damage is prevented (static_playerstats.go)
 	rbDrawMore                        // ReplDrawMore (repl_draw.go)
 	rbPlusCtrEOT                      // Ext CounterPlusEOT: the table can put one more of each kind for a player until end of turn (anyRepl only; ctr_pluseot.go)
+	rbDestroyHeal                     // ReplDestroyHeal (repl_destroyheal.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -547,6 +550,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepCharmPick(t, g)
 	prepPermCopy(t, g)
 	prepCopyCast(t, g)
+	prepExileGrant(t, g) // cast_exilegrant.go
 	prepWaterbend(t, g)
 	prepCostEvidence(t, g)
 	prepLure(t, g)
@@ -866,6 +870,13 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplLifeLossDouble:
 					g.replBits[i] |= rbDblLoss
 					pc.hasStat = true
+				case kop.ReplDestroyHeal:
+					g.replBits[i] |= rbDestroyHeal
+					pc.hasStat = true
+					if g.destroyHeal == nil {
+						g.destroyHeal = make([]kop.FilterID, len(t.Cards))
+					}
+					g.destroyHeal[i] = a.Repl.Filter
 				case kop.ReplGraveToLibrary:
 					g.replBits[i] |= rbGraveLib
 				case kop.ReplMayNotUntap:
@@ -1356,6 +1367,7 @@ type dprog struct {
 	objs [4]Obj // two with DpGroup; up to four with DpMany (trig_delayedmany.go)
 	vers [4]uint8
 	n    uint8
+	ext  uint8 // dpExtBeginCombat (trig_delaybegincombat.go): n's timing bits are full
 }
 
 // usedRec marks a once-per-turn use (a trigger, a MayPlay static).
@@ -1427,6 +1439,9 @@ type genState struct {
 	embO [2][maxEmb]Obj    // that card's object (the source of the emblem's triggers)
 	embN [2][maxEmb]uint8  // the Effect's frozen SetChosenNumber$
 	nemb [2]uint8
+	qgO  [qgN]uint8 // exile grants (Q, Stacking the Deck): the granted exiled object+1, 0 = free (cast_exilegrant.go)
+	qgV  [qgN]uint8 // each grant's object version: stale once the card left exile
+	qgH  [qgN]uint8 // each grant's host (the card whose ability was granted) object+1
 	pgT  [pgN]uint8 // Panharmonicon grants: the granted object+1, compacted (act_grantpanharm.go)
 	pgH  [pgN]uint8 // each grant's host (the tapped source) object+1
 	nlA  [2]uint8   // locked permanents, object+1, compacted (act_lockpermanent.go; fills the padding before lki)
@@ -1586,28 +1601,29 @@ type genState struct {
 	repPC   uint8
 	repEnd  uint8
 	// resolution decisions in progress
-	pickLeft  uint8                   // picks still owed
-	pickP     uint8                   // the player picking
-	pickZ     uint8                   // destination zone / flags of the pick op
-	pickF     uint16                  // the pick op's flags
-	winSrc    Slot                    // the tap-another source whose pick a payment window waits on (mana_windowtapx.go)
-	winMode   uint8                   // the payment that window serves (winNone: none)
-	winCol    uint8                   // the colour a cast window's paused tap-another source makes once the pick is answered (mana_window.go)
-	winFirst  uint8                   // a two-permanent tap-another source's first window pick, slot+1 (0: none yet; mana_windowtapx.go)
-	winHeld   [kop.NumManaKinds]uint8 // the restricted mana that walk kept out of the pool so far
-	nlook     uint8                   // cards looked at (dig / peek / reveal): the live prefix of armRes.look (scratch.go)
-	attLKI    [2]attLKIRec            // the last departed attachments' hosts (CR 608.2h; fills the pad before evSel)
-	evSel     uint64                  // ward evidence picks (bit per graveyard index; MaxDeck 60; kw_wardcost.go)
-	endTurn   bool                    // OpEndTurn: skip to cleanup after this resolution
-	fog       bool                    // OpFog: all combat damage this turn is prevented (padding)
-	beamPick  bool                    // offerBeamCasts prices a granted beam me up cast's return (kw_beammeup.go)
-	altCast   bool                    // the cast beginCast starts is for the card's own alternative mana cost (castAltTgt; cast_altfree.go; padding)
-	beamGrant bool                    // the beam me up cast beginCast starts is the granted instance of a card that prints the keyword (kw_beammeup.go; padding)
-	impCast   bool                    // the cast beginCast starts is for the card's impending cost (castImpTgt; kw_impending.go; padding)
-	noUntapL  uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step (padding)
-	yourTurns [2]uint8                // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)
-	dayNight  uint8                   // CR 731: bits 0-1 the designation (dnDay, dnNight), bits 2-3 the last turn's active player's spells, at most 2 (kw_daynight.go; padding)
-	links     [8]struct {
+	pickLeft       uint8                   // picks still owed
+	pickP          uint8                   // the player picking
+	pickZ          uint8                   // destination zone / flags of the pick op
+	pickF          uint16                  // the pick op's flags
+	winSrc         Slot                    // the tap-another source whose pick a payment window waits on (mana_windowtapx.go)
+	winMode        uint8                   // the payment that window serves (winNone: none)
+	winCol         uint8                   // the colour a cast window's paused tap-another source makes once the pick is answered (mana_window.go)
+	winFirst       uint8                   // a two-permanent tap-another source's first window pick, slot+1 (0: none yet; mana_windowtapx.go)
+	winHeld        [kop.NumManaKinds]uint8 // the restricted mana that walk kept out of the pool so far
+	nlook          uint8                   // cards looked at (dig / peek / reveal): the live prefix of armRes.look (scratch.go)
+	attLKI         [2]attLKIRec            // the last departed attachments' hosts (CR 608.2h; fills the pad before evSel)
+	evSel          uint64                  // ward evidence picks (bit per graveyard index; MaxDeck 60; kw_wardcost.go)
+	endTurn        bool                    // OpEndTurn: skip to cleanup after this resolution
+	fog            bool                    // OpFog: all combat damage this turn is prevented (padding)
+	beamPick       bool                    // offerBeamCasts prices a granted beam me up cast's return (kw_beammeup.go)
+	altCast        bool                    // the cast beginCast starts is for the card's own alternative mana cost (castAltTgt; cast_altfree.go; padding)
+	beamGrant      bool                    // the beam me up cast beginCast starts is the granted instance of a card that prints the keyword (kw_beammeup.go; padding)
+	impCast        bool                    // the cast beginCast starts is for the card's impending cost (castImpTgt; kw_impending.go; padding)
+	noUntapL       uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step (padding)
+	yourTurns      [2]uint8                // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)
+	extraTurnBegun uint8                   // ExYourExtraTurns: bit p, player p has begun an extra turn this game (CR 500.7; value_exprs.go)
+	dayNight       uint8                   // CR 731: bits 0-1 the designation (dnDay, dnNight), bits 2-3 the last turn's active player's spells, at most 2 (kw_daynight.go; padding)
+	links          [8]struct {
 		src  Obj
 		sver uint8
 		obj  Obj
@@ -1817,6 +1833,7 @@ const (
 	StallExiledWith    = 96  // more than maxExw live exiled-with links (zone_exiledwith.go)
 	StallBreach        = 94  // more picks than the chosen set holds (Breach the Multiverse; act_millthenreturn.go) (reinstate maxDynMana 40 + loud StallDynMana on the rebased tree (The Core's dynamic amount reached 21 in the gravecounts lockstep: gorge produced 21, kernel truncated to 20); NumStall 128 untouched, the name registers cold-side)
 	StallNetLock       = 85  // a ninth permanent locked by Braided Net at once (nlA, nlB, nlC; act_lockpermanent.go)
+	StallExileGrant    = 138 // a ninth live exile grant (Q, Stacking the Deck; genState.qgO; cast_exilegrant.go)
 	StallPanharmGrant  = 142 // a fifth Panharmonicon grant (Lwaxana Troi) live at once (genState.pgT; act_grantpanharm.go)
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)

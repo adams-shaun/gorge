@@ -448,3 +448,10 @@ const ExVoid ExprKind = 254
 // at resolution. A stack copy keeps the original's stamp, as gorge's copy
 // reads the original object's stored SVar.
 const ExFirstCast ExprKind = 255
+
+// ExYourExtraTurns: 1 if the controller has begun an extra turn this game,
+// else 0 (gorge Count$YourExtraTurns, Host.ExtraTurnsBegun: one per extra
+// turn actually begun with the player active, CR 500.7, not per grant).
+// genState.extraTurnBegun is the per-seat bit set when an extra turn's
+// TurnChange fires. H.M.S. Bounty, Unlikely Timeship.
+const ExYourExtraTurns ExprKind = 227

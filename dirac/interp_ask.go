@@ -67,6 +67,8 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		return s.countUntapped(k, p, f, s.resSrcSlot(k)) >= amt
 	case kop.PayExileGrave:
 		return s.countGraveExile(k, p, f) >= amt
+	case payKindExileHand:
+		return int(s.pl[p&1].handN) >= amt // cost_exilefromhand.go
 	case kop.PayManaX:
 		return true // X = 0 is always payable
 	case payKindEvidence:
@@ -97,6 +99,9 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	}
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubTrigNew {
 		kind = payKindTrigNew // a trigger's own ExileAnyGrave<1/Card.TriggeredNewCard> cost rides PayExileGrave (trig_mayexile.go)
+	}
+	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubExileHand {
+		kind = payKindExileHand // a trigger's own ExileFromHand<N/Card> cost rides PayExileGrave (cost_exilefromhand.go)
 	}
 	skip := uint16(in.C >> 4)
 	amt := s.value(k, in.A)
@@ -129,6 +134,11 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	}
 	if e := &s.res.e; e.kind != seTrigger || s.res.pc != 0 && !s.afterNumTimes(k) || in.Op != kop.OpIfPaid {
 		skip |= pfModes // only a trigger's own cost is gorge's trigger_cost pay/decline; an unless is its modes (Painful Quandary)
+	}
+	if kind == kop.PayMana {
+		if ch := s.exileChain(k); ch != nil {
+			return s.execPayChain(k, p, ch, skip, amt, pips) // cost_exilepool.go
+		}
 	}
 	if kind == kop.PayManaX {
 		return s.execTrigX(k, p, skip, amt) // trig_maypayx.go
@@ -309,6 +319,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		}
 		if s.g.pickZ == kop.PayExileGrave {
 			s.graveExileOptions(k, d, p)
+			break
+		}
+		if s.g.pickZ == payKindExileHand {
+			s.handExileOptions(d, p) // cost_exilefromhand.go
 			break
 		}
 		if s.g.pickZ == kop.PayDiscard {
@@ -531,12 +545,12 @@ func (s *State) autoPayPick(k *prep) bool {
 			objs[j-1], objs[j] = objs[j], objs[j-1]
 		}
 	}
-	if k.gen.anyBatch && s.g.pickZ != kop.PayDiscard && s.g.pickZ != kop.PayReturn && s.g.pickZ != kop.PayExileGrave {
+	if k.gen.anyBatch && s.g.pickZ != kop.PayDiscard && s.g.pickZ != kop.PayReturn && s.g.pickZ != kop.PayExileGrave && s.g.pickZ != payKindExileHand {
 		defer s.batchClose(s.sacBatchOpen()) // gorge emitSacrifices (unlessflow): one sacrifice batch
 	}
 	for _, a := range objs {
 		o := Obj(a.Source())
-		if s.g.pickZ == kop.PayExileGrave {
+		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
 			s.exileFromGrave(o)
 		} else if s.g.pickZ == kop.PayDiscard {
 			s.discardObj(k, o)
@@ -591,6 +605,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		switch s.g.pickZ {
 		case kop.PayMana:
+			if ch := s.exileChain(k); ch != nil {
+				s.startChainExile(k, ch) // a mana-and-exile cost (cost_exilepool.go)
+				return
+			}
 			c := manaOf(int(s.g.pickLeft), s.numTimesPips(k, s.prog(k)[r.pc].B.N))
 			if s.g.pickF&(pfWard|pfModes) != 0 {
 				paused, short := s.payWindowAsk(k, s.g.pickP, &c, winPay) // gorge's ward / unless mana window
@@ -703,8 +721,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.payDone(k, true)
 			break
 		}
-		if s.g.pickZ == kop.PayExileGrave {
-			s.exileFromGrave(o)
+		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
+			s.exileFromGrave(o) // a cost exile from either zone (cost_exilefromhand.go)
 		} else if s.g.pickZ == kop.PayDiscard {
 			s.discardObj(k, o)
 		} else if s.g.pickZ == kop.PayReturn {
@@ -1103,6 +1121,9 @@ func (s *State) payDone(k *prep, paid bool) {
 	if f&pfEachNext != 0 && !paid {
 		s.payEachNext(k) // cost_anyplayerpays.go: the next player is asked
 		return
+	}
+	if paid && s.g.pickZ == kop.PayExileGrave {
+		s.chainCharge(k) // the mana half of a mana-and-exile cost (cost_exilepool.go)
 	}
 	skip := uint8(0)
 	if (f&pfIfPaid != 0) != paid {

@@ -15,6 +15,7 @@ import (
 // AILogic$ Random, which now rides the ask as decision.Decision.AIRandom and
 // is drawn from each seat's seeded rng, so the match ends.
 func TestFaceToFaceMatchEnds(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	raw, err := os.ReadFile("testdata/face_to_face.jsonl")
 	if err != nil {

@@ -304,8 +304,12 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					flags = append(flags, "ThenTop")
 				}
 			}
-			if counterKind != "" || override != nil {
-				return refuse("search with counters/override")
+			if override != nil {
+				return refuse("search with override")
+			}
+			arm, clear, err := lc.searchCounterArm(dest, counterKind, counters, n, f.Each)
+			if err != nil {
+				return err
 			}
 			// DefinedPlayer$: whose library is searched. Gorge reads it for
 			// this ChangeZone shape (params.DefinedPlayerRef); absent or
@@ -360,6 +364,8 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					return refuse("OriginAlternative$ with DifferentNames$")
 				case obj.Kind != rYou:
 					return refuse("OriginAlternative$ with DefinedPlayer$")
+				case arm != nil:
+					return refuse("OriginAlternative$ with WithCountersType$")
 				case !isConstN(n, 1):
 					return refuse("OriginAlternative$ with ChangeNum$ %v", n)
 				}
@@ -373,7 +379,16 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					}
 				}
 			}
+			if arm != nil {
+				// The found card enters with the rider's counters: arm the
+				// entry, search, then clear (a failed or declined search
+				// leaves nothing behind). dirac/ctr_search.go.
+				lc.emit(*arm)
+			}
 			lc.emit(lInstr{Op: "Search", Obj: obj, A: n, F: f, C: dest, CS: strings.Join(flags, "|")})
+			if clear != nil {
+				lc.emit(*clear)
+			}
 			return nil
 		}
 		// A WithCountersType$ rider lowers for the battlefield arm: the kind
@@ -383,8 +398,8 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		// other amount refuses (the kernel cannot arm it exactly), and
 		// an unknown kind refuses by name. gorge ignores the rider on a
 		// destination that cannot carry counters (counterDestination,
-		// zone_change.go:578-585), so the hand arm below drops it exactly
-		// as gorge does.
+		// engine/effects/zone_hand.go), so the hand arm below drops it
+		// exactly as gorge does.
 		if counterKind != "" {
 			if _, ok := counterKinds[counterKind]; !ok {
 				return refuse("WithCountersType$ %q", counterKind)
@@ -1600,7 +1615,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		if v != "True" {
 			return refuse("Play CopyCard %q", v)
 		}
-		if ps.m["ValidSA"] != "Spell" || ps.m["ValidZone"] != "Exile" || !strings.Contains(ps.m["Valid"], "IsRemembered") ||
+		if ps.m["ValidSA"] != "Spell" || ps.m["ValidZone"] != "Exile" || !(strings.Contains(ps.m["Valid"], "IsRemembered") || lc.grantExile && ps.m["Valid"] == "Card.Self") ||
 			ps.m["Defined"] != "" || ps.m["ValidTgts"] != "" || ps.m["ForgetPlayed"] != "" || ps.m["ReplaceGraveyard"] != "" {
 			return refuse("Play CopyCard outside Valid$ IsRemembered, ValidZone$ Exile, ValidSA$ Spell")
 		}
@@ -1623,7 +1638,10 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 	}
 	ps.consume("DefinedDesc", "IfDesc")
-	if !ps.is("WithoutManaCost", "True") {
+	// the exile-granted ability's copy is cast paying its mana cost (gorge
+	// beginPlay: the printed cost, mana window and all; lower_exilegrant.go)
+	paid := lc.grantExile && copyCard && ps.m["Valid"] == "Card.Self" && ps.m["WithoutManaCost"] == ""
+	if !paid && !ps.is("WithoutManaCost", "True") {
 		return refuse("Play without WithoutManaCost")
 	}
 	if !ps.is("Optional", "True") {
@@ -1698,6 +1716,9 @@ func (lc *lowerCtx) play(ps *params) error {
 	if copyCard {
 		cs += "|Copy"
 	}
+	if paid {
+		cs += "|Paid"
+	}
 	var repeatN lValue
 	if repeat {
 		if repeatN, err = lc.value(amount); err != nil {
@@ -1766,6 +1787,14 @@ func (lc *lowerCtx) play(ps *params) error {
 	}
 	if !hasValid {
 		return refuse("Play shape")
+	}
+	if paid {
+		// the source card itself, in exile (lower_exilegrant.go): Valid$
+		// Card.Self + ValidZone$ Exile, Amount$ All, ValidSA$ Spell
+		if saExpr != "" || amount != "All" || vzone != "Exile" || valid != "Card.Self" || forget || replace || repeat {
+			return refuse("Play Card.Self outside Amount$ All, ValidZone$ Exile, ValidSA$ Spell")
+		}
+		return emit(lRef{Kind: rSelf}, zExile, "")
 	}
 	switch vzone {
 	case "Exile":
@@ -1873,6 +1902,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	_, hasTgt := ps.m["ValidTgts"]
 	if _, hasRO := ps.get("RememberObjects"); !hasTgt && !hasRO {
 		return lc.effectStaticEOT(ps, ss)
+	}
+	if ok, err := lc.cantAttackRemembered(ps, ss); ok || err != nil { // lower_effectcantattackplayer.go
+		return err
 	}
 	if len(ss) != 1 {
 		return refuse("Effect static %q", st)
@@ -2164,6 +2196,13 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if t.Effect == nil {
 		t.Effect = cards.ResolveSVar(lc.face.SVars, t.Params["Execute"])
 	}
+	// RememberObjects$ Targeted beside ValidTgts$ (The Inner Light: "choose
+	// target creature. Whenever it deals combat damage to a player this
+	// turn"): the chain's target slot is the emblem's capture
+	capture, hasCap, err := lc.emblemCapture(ps, t, eot)
+	if err != nil {
+		return err
+	}
 	saved := len(lc.out.Abilities)
 	if err := lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") }); err != nil {
 		return err
@@ -2172,6 +2211,11 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return refuse("emblem trigger lowering")
 	}
 	ab := lc.out.Abilities[saved]
+	if hasCap {
+		if err := emblemCaptureFilter(ab); err != nil {
+			return err
+		}
+	}
 	if eot || next {
 		if err := emblemFiltersRefuse("Effect trigger", ab.Trigger.F, ab.Trigger.F2); err != nil {
 			return err
@@ -2182,7 +2226,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	}
 	ab.Latent = true
 	ab.Name = "EmblemTrigger"
-	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next})
+	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap})
 	lc.emit(lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}, C: len(lc.out.Emblems) - 1})
 	return nil
 }
@@ -2217,6 +2261,9 @@ func (lc *lowerCtx) emblemUnimplementedMayPlay(list string) error {
 }
 
 func (lc *lowerCtx) animate(ps *params) error {
+	if _, ok := ps.get("Abilities"); ok {
+		return lc.animateGrantExile(ps) // lower_exilegrant.go
+	}
 	if d, ok := ps.get("Defined"); ok && strings.HasPrefix(d, "ValidGraveyard ") {
 		return lc.animateGraveMayPlay(ps, strings.TrimPrefix(d, "ValidGraveyard "))
 	}
@@ -2752,6 +2799,9 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	}
 	if ps.str("Mode") == "Phase" && ps.str("Phase") == "EndCombat" {
 		return lc.delayedEndCombat(ps)
+	}
+	if ps.str("Mode") == "Phase" && ps.str("Phase") == "BeginCombat" {
+		return lc.delayedBeginCombat(ps) // lower_delayed.go
 	}
 	if ps.str("Mode") == "ChangesZone" {
 		return lc.delayedLeaveReturn(ps) // lower_delayed.go

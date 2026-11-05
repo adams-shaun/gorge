@@ -18,6 +18,7 @@ import (
 // explore=true leaves the explore seat MANUAL in "all" mode, so the run holds
 // exactly one non-consumer seat whose offered plans the probe counts.
 func TestAutoPayRunBuildsManualSeatPlans(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	var d genDeck
 	d.Colour = "G"

@@ -353,6 +353,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"BLOODSTAIN": kop.CtrBloodstain, // Blood Spatter Analysis's named counter (CR 122.1)
 	"POSSESSION": kop.CtrPossession, // Unwilling Vessel's named counter (CR 122.1)
 	"PROMOTION":  kop.CtrPromotion,  // Beckett Mariner's named counter (CR 122.1)
+	"PEACE":      kop.CtrPeace,      // Peace in Our Time's named counter (CR 122.1)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -954,7 +955,11 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		if c.ExileGBf {
 			out.Flags |= kop.CostExileCtrlOrGrave
 		}
-		if out.Filter, err = cb.filter(c.ExileG, kop.ZoneGraveyard); err != nil {
+		zone := kop.ZoneGraveyard
+		if c.ExileHand {
+			out.ExileHand, zone = true, kop.ZoneHand
+		}
+		if out.Filter, err = cb.filter(c.ExileG, zone); err != nil {
 			return out, err
 		}
 	}
@@ -1704,6 +1709,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vPhaseCount:         kop.ExPhaseCount,
 	vAdamant:            kop.ExAdamant,
 	vChromaOf:           kop.ExChromaOf,
+	vYourExtraTurns:     kop.ExYourExtraTurns,
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
@@ -2025,6 +2031,10 @@ func putsTimeCounters(d *kop.CardDef) bool {
 				}
 			case kop.OpMoveCounter, kop.OpReturnEx:
 				if in.B.K == kop.VConst && kop.CounterKind(in.B.N) == kop.CtrTime {
+					return true
+				}
+			case kop.OpExt:
+				if in.Ext() == kop.ExtSearchCounters && kop.CounterKind(in.C) == kop.CtrTime {
 					return true
 				}
 			}

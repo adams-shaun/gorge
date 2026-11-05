@@ -182,6 +182,7 @@ func effectRowStillNotes(t *testing.T) (statics, triggers []string) {
 // silently gaining or losing its registration fails here and the row cannot
 // drift from the code.
 func TestEffectStaticCensus(t *testing.T) {
+	t.Parallel()
 	staticHandled := effectRegisteredStaticModes(t)
 	staticCorpus, triggerCorpus := effectCorpusModes(t)
 	rowStatic, rowTrigger := effectRowStillNotes(t)

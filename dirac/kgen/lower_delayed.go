@@ -112,6 +112,43 @@ func (lc *lowerCtx) delayedEndCombat(ps *params) error {
 	return nil
 }
 
+// delayedBeginCombat lowers a DelayedTrigger Mode$ Phase | Phase$ BeginCombat |
+// ThisTurn$ True | RememberObjects$ Targeted (The Wrath of Khan's "at the
+// beginning of the next combat this turn, gain control of that creature":
+// gorge effDelayedTrigger registers a one-shot at the next StepChange into a
+// beginning of combat step, bounded to this turn). The delayed program's
+// remembered object is the one battlefield target; the registration is
+// dropped at the turn change (kop.DelayBeginCombat). Only that shape lowers.
+func (lc *lowerCtx) delayedBeginCombat(ps *params) error {
+	if lc.ab.Kind == akMana {
+		return refuse("delayed beginning-of-combat trigger in a mana ability")
+	}
+	if !ps.is("ThisTurn", "True") {
+		return refuse("delayed beginning-of-combat trigger without ThisTurn$")
+	}
+	if vp := ps.str("ValidPlayer"); vp != "" {
+		return refuse("delayed beginning-of-combat trigger ValidPlayer %q", vp)
+	}
+	if ro := ps.str("RememberObjects"); ro != "Targeted" {
+		return refuse("delayed beginning-of-combat trigger RememberObjects %q", ro)
+	}
+	exec := cards.ResolveSVar(lc.face.SVars, ps.str("Execute"))
+	if exec == nil {
+		return refuse("delayed trigger Execute %q", ps.str("Execute"))
+	}
+	obj, err := lc.delayedRemember("Targeted", exec)
+	if err != nil {
+		return err
+	}
+	lat := lc.newLatent("DelayedTrigger")
+	lat.DelayedObjOnly = delayedObjOnly("Targeted")
+	if err := lc.withAbility(lat, func() error { return lc.chain(exec, nil) }); err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: "NextBeginCombat"})
+	return nil
+}
+
 // delayedRemember lowers an end-step DelayedTrigger's other
 // RememberObjects$ forms (gorge effDelayedTrigger: absent keeps the
 // resolving chain's capture; another value replaces it with what

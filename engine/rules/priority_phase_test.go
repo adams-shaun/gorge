@@ -1,8 +1,11 @@
 package rules
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
@@ -79,25 +82,56 @@ func TestTestBotOnlyActivatesInAMainPhase(t *testing.T) {
 // decisions matched".
 func TestBotMatchIsDeterministicAcrossRuns(t *testing.T) {
 	t.Parallel()
-	run := func() (head string, events int) {
-		names, decks := testutil.SampleDecks(t, 4)
-		e := New(Config{Seed: 3, Names: names, Decks: decks})
+	// The two runs are independent games, so they play at once. Each run gets
+	// its own freshly sampled decks (the determinism check covers rebuilt
+	// decks); SampleDecks runs here on the test goroutine, and the games only
+	// return errors.
+	type sample struct {
+		names []string
+		decks [][]*cards.Card
+	}
+	var samples [2]sample
+	for i := range samples {
+		samples[i].names, samples[i].decks = testutil.SampleDecks(t, 4)
+	}
+	type result struct {
+		head   string
+		events int
+		err    error
+	}
+	run := func(sm sample) result {
+		e := New(Config{Seed: 3, Names: sm.names, Decks: sm.decks})
 		b := newTestBot(3 * 31)
 		e.Advance()
 		n := 0
 		for !e.G.Over && e.Pending() != nil && n < 200000 {
 			if err := e.Submit(b.answer(e, e.Pending())); err != nil {
-				t.Fatalf("intent %d: %v", n, err)
+				return result{err: fmt.Errorf("intent %d: %w", n, err)}
 			}
 			n++
 		}
 		if !e.G.Over {
-			t.Fatalf("game did not terminate after %d intents", n)
+			return result{err: fmt.Errorf("game did not terminate after %d intents", n)}
 		}
-		return e.L.Head(), len(e.L.Events)
+		return result{head: e.L.Head(), events: len(e.L.Events)}
 	}
-	head1, n1 := run()
-	head2, n2 := run()
+	var wg sync.WaitGroup
+	results := make([]result, 2)
+	for i := range results {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			results[i] = run(samples[i])
+		}(i)
+	}
+	wg.Wait()
+	for _, r := range results {
+		if r.err != nil {
+			t.Fatal(r.err)
+		}
+	}
+	head1, n1 := results[0].head, results[0].events
+	head2, n2 := results[1].head, results[1].events
 	if head1 != head2 || n1 != n2 {
 		t.Fatalf("same (engine seed, bot seed) produced different runs: head=%s/%s events=%d/%d",
 			head1, head2, n1, n2)

@@ -1037,6 +1037,15 @@ func effectRememberedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 					add(t.Player)
 				}
 			}
+		case effectRememberedPlayersTriggeredPlayer:
+			// Peace in Our Time's DBEffect: "that player can't attack this
+			// turn" remembers the player the trigger names (the Phase
+			// trigger's active player), whose creatures its CantAttack's
+			// Creature.RememberedPlayerCtrl selects. Without the case the
+			// capture was empty and the restriction bound nobody.
+			if c.TriggerPlayer.IsPlayer {
+				add(c.TriggerPlayer.Player)
+			}
 		case effectRememberedPlayersDelayTriggerRemembered:
 			// The players the firing delayed trigger remembered (Gideon
 			// Jura's +2: the DelayedTrigger's RememberObjects$ Targeted names
@@ -1128,6 +1137,7 @@ const (
 	effectRememberedPlayersPlayerIsRemembered
 	effectRememberedPlayersRememberedPlayer
 	effectRememberedPlayersDelayTriggerRemembered
+	effectRememberedPlayersTriggeredPlayer
 )
 
 var effectRememberedPlayersCodes = state.NewStrCodes(
@@ -1142,6 +1152,7 @@ var effectRememberedPlayersCodes = state.NewStrCodes(
 	state.StrEntry[effectRememberedPlayersCode]{Key: "RememberedPlayers", Val: effectRememberedPlayersRememberedPlayer},
 	state.StrEntry[effectRememberedPlayersCode]{Key: "Remembered", Val: effectRememberedPlayersRememberedPlayer},
 	state.StrEntry[effectRememberedPlayersCode]{Key: "DelayTriggerRemembered", Val: effectRememberedPlayersDelayTriggerRemembered},
+	state.StrEntry[effectRememberedPlayersCode]{Key: "TriggeredPlayer", Val: effectRememberedPlayersTriggeredPlayer},
 )
 
 type loyaltyFlashParamCode uint16

@@ -287,20 +287,26 @@ func TestKernelHeadsCheckpointAll(t *testing.T) {
 	}
 	reg := testutil.CorpusRegistry(t)
 	tapeCheckpointAll = true
-	defer func() { tapeCheckpointAll = false }()
+	// t.Cleanup runs after the parallel subtests, so the flag spans them all
+	// (a defer would restore it before they start).
+	t.Cleanup(func() { tapeCheckpointAll = false })
 	before := resolve.ReadStats()
-	// One sequential subtest per seat count, so each game is its own
-	// measurable (and -run selectable) chunk; the flag above spans them all.
+	t.Cleanup(func() {
+		st := resolve.ReadStats().Sub(before)
+		if st.Checkpoints == 0 {
+			t.Fatalf("the head games never took a checkpoint: %+v", st)
+		}
+	})
+	// One parallel subtest per seat count: the games are independent and the
+	// flag above spans them all.
 	for _, seats := range AcceptanceSeatCounts() {
+		seats := seats
 		t.Run(fmt.Sprintf("%dseats", seats), func(t *testing.T) {
+			t.Parallel()
 			if got, want := acceptanceHead(t, reg, seats), pinnedHead(t, seats); got != want {
 				t.Errorf("%d seats: checkpoint-all head %s, golden %s", seats, got, want)
 			}
 		})
-	}
-	st := resolve.ReadStats().Sub(before)
-	if st.Checkpoints == 0 {
-		t.Fatalf("the head games never took a checkpoint: %+v", st)
 	}
 }
 
@@ -309,16 +315,18 @@ func TestKernelHeadsCheckpointAll(t *testing.T) {
 // hand and library) driven a few random intents. A prefix divergence panics.
 // GORGE_TAPE_WORLD_GAMES sets the game count (default 6).
 func TestKernelWorldsInFuzzGames(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("long")
 	}
 	reg := testutil.CorpusRegistry(t)
 	// The games run as parallel subtests (TestCloneFidelityShort's shape):
 	// the counters are atomic, each call's engine and rand are its own game's,
-	// and the "games" group returns only after every game, so the hook stays
-	// installed for all of them.
+	// and each game carries its own world hook, so no package state is shared.
 	var worlds, steps atomic.Int64
-	cloneFuzzTapeWorldHook = func(t *testing.T, e *Engine, r *rand.Rand) {
+	var st cloneFuzzStats
+	o := cloneFuzzOpts{every: 4, lockstep: 4, diverge: 4, randomPct: 10}
+	o.worldHook = func(t *testing.T, e *Engine, r *rand.Rand) {
 		if !TapePosed(e) {
 			return
 		}
@@ -340,9 +348,6 @@ func TestKernelWorldsInFuzzGames(t *testing.T) {
 			}
 		}
 	}
-	defer func() { cloneFuzzTapeWorldHook = nil }()
-	var st cloneFuzzStats
-	o := cloneFuzzOpts{every: 4, lockstep: 4, diverge: 4, randomPct: 10}
 	games := cloneFuzzEnvInt("GORGE_TAPE_WORLD_GAMES", 6)
 	t.Run("games", func(t *testing.T) {
 		for g := 0; g < games; g++ {

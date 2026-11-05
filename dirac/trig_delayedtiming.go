@@ -19,6 +19,9 @@ func dpWhen(in *kop.Instr) uint8 {
 	if in.A.N == kop.DelayDiesThisTurn {
 		return dpDies // trig_delayeddies.go: never due at a step
 	}
+	if in.A.N == kop.DelayBeginCombat {
+		return 0 // dprog.ext carries it (trig_delaybegincombat.go)
+	}
 	return uint8(in.A.N&3) << dpWhenShift
 }
 
@@ -62,9 +65,10 @@ func (s *State) fireDelayedWhen(k *prep, at int) {
 	for i := 0; i < n; i++ {
 		d := s.g.dp[i]
 		w := d.n & dpWhenMask >> dpWhenShift
-		due := d.n&(dpSpell|dpDies) == 0 && w == 0 && at == 0 ||
+		due := d.ext == 0 && (d.n&(dpSpell|dpDies) == 0 && w == 0 && at == 0 ||
 			at == 1 && (w == kop.DelayUpkeep || w == kop.DelayYourUpkeep && s.active == d.ctrl) ||
-			at == 2 && w == kop.DelayEndCombat
+			at == 2 && w == kop.DelayEndCombat) ||
+			at == 3 && d.ext == dpExtBeginCombat
 		if !due {
 			s.g.dp[keep], s.g.dpLKI[keep] = d, s.g.dpLKI[i]
 			keep++
@@ -79,6 +83,9 @@ func (s *State) fireDelayedWhen(k *prep, at int) {
 		sv := s.objs[d.src].ver
 		if d.n&dpTrack != 0 {
 			sv, amt = d.vers[0], dpTrackAmt // a tracked promise: resolves doing nothing if the object left
+		}
+		if DebugDelayBeginCombatOff && d.ext != 0 {
+			continue // TestTheWrathOfKhanMutation: the due program is dropped unrun
 		}
 		s.enqueue(d.src, sv, d.card, d.ab, d.ctrl, ro, d.ctrl, amt)
 		if s.npend > m {

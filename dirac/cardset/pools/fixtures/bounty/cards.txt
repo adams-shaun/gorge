@@ -1,0 +1,15 @@
+# H.M.S. Bounty, Unlikely Timeship: STATION 8 grants flying and a combat
+# damage trigger whose AddTurn$ rider is gated on Count$YourExtraTurns EQ0
+# and a controlled Whale, for the oracle's lockstep
+# (dirac/oracle/bounty_test.go)
+H.M.S. Bounty, Unlikely Timeship
+Long-Finned Skywhale
+Craw Wurm
+Grizzly Bears
+Llanowar Elves
+Hill Giant
+Gray Ogre
+Wall of Wood
+Forest
+Island
+Mountain

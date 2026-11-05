@@ -166,6 +166,7 @@ const (
 	vOppsAttacked        // opponents the controller attacked this turn (PlayerCountPropertyYou$OpponentsAttackedThisTurn)
 	vChosenNumber        // the number the source permanent chose as it entered, 0 when none (a filter bound "Chosen": cmcEQChosen)
 	vFirstCast           // Sub[0] if the resolving spell was its controller's first cast this game, else Sub[1] (the static SpellCast trigger's StoreSVar Count$YouCastThisGame read by ConditionSVarCompare$ EQ1)
+	vYourExtraTurns      // 1 if the controller has begun an extra turn this game, else 0 (Count$YourExtraTurns)
 	vCount_
 )
 
@@ -173,7 +174,7 @@ var valNames = [...]string{"None", "Const", "X", "Count", "CountGraveyard", "Sum
 	"Morbid", "AttackedThisTurn", "PowerOf", "ToughnessOf", "LifeOf", "LibrarySizeOf", "StartingLife",
 	"TriggerAmount", "LifeGainedThisTurn", "OppLifeLostThisTurn", "CountersOn", "CreaturesDied",
 	"RememberedCount", "ExcessDamage", "LastLifeLost", "TokensCreated", "CountCast", "LifeLostThisTurn", "Sum",
-	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast"}
+	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns"}
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
 // that order, then negated when Neg.
@@ -475,6 +476,8 @@ type lCost struct {
 	Forage       *lFilter // forage: exile three cards from your graveyard or sacrifice a Food matching (CR 701.61a)
 	ExileG       *lFilter // ExileFromGrave<N/Spec>: exile ExileGN cards matching from your graveyard (CARDNAME: Self)
 	ExileGN      int
+	ExileHandN   int      // ExileFromHand<N/Card>: exile N cards from your hand (a trigger's own cost only; cost_exilefromhand.go)
+	ExileHand    bool     // ExileFromHand<1/Card>: the ExileG cards come from the payer's hand (kop.Cost.ExileHand; a granted exile ability's cost only)
 	ExileGBf     bool     // ExileCtrlOrGrave<N/Spec>: the battlefield (the payer's permanents) as well (kop.CostExileCtrlOrGrave, Craft)
 	Energy       int      // PayEnergy<N>: pay N energy (an activated ability's cost only)
 	Waterbend    int      // Waterbend<N>: N generic payable by tapping artifacts/creatures (an activated ability's cost only)
@@ -498,7 +501,7 @@ func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardSelf && c.DiscardF == nil && c.Loyalty == 0 && !c.LoyaltyX &&
 		c.SubCtr == 0 && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.TapN == 0 && !c.TapHost && !c.SacHost && c.TapPowN == 0 &&
-		c.Forage == nil && c.ExileG == nil && c.Energy == 0 && !c.ReturnSelf &&
+		c.Forage == nil && c.ExileG == nil && c.ExileHandN == 0 && c.Energy == 0 && !c.ReturnSelf &&
 		!c.ExileSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.ExileTrigNew &&
 		!c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil
 }
@@ -604,6 +607,7 @@ type lTrigger struct {
 	GameOnce      bool  // GameActivationLimit$ 1: once per source object (kop.Tf3GameOnce)
 	SingleTarget  bool  // SpellCast: the cast spell's root target list has exactly one target (kop.Tf4SingleTarget)
 	CounterCell   bool  // CounterAddedOnce from Mode$ CounterPlayerAddedAll: one fire per put action per recipient (kop.Tf4CounterCell)
+	OptTrigPlayer bool  // Optional: the trigger's player (the Phase trigger's active player) answers, not the controller (kop.Tf4OptTrigPlayer)
 	NamedCast     bool  // SpellCast lowered from Mode$ SpellAbilityCast over the source's chosen card name: also fires on an activation of a source with that name (kop.Tf4NamedCast; lower_choosename.go)
 	CauseTarget   bool  // DamageDone: ValidCause$ Spell.numTargets EQ1 + TargetRelativeToCause$ Creature.targetedBy (kop.Tf4SingleCauseTarget)
 	// Watch: BecomesTarget watching ValidTarget$ objects (F) targeted by an
@@ -944,6 +948,11 @@ type lEmblem struct {
 	UntilEOT      bool // an Effect without a Duration$: it ends at cleanup
 	UntilNextTurn bool // Duration$ UntilYourNextTurn: it ends at the next turn's cleanup
 	WhileHost     bool // Duration$ UntilHostLeavesPlayOrEOT: it ends when its host leaves too
+	// Capture: RememberObjects$ Targeted over the chain's target slot
+	// (CaptureSet); the trigger's ValidSource$ ...IsRemembered is then the
+	// emblem's own capture, lowered without the Remembered flag
+	Capture    lRef
+	CaptureSet bool
 }
 
 type refusal struct {

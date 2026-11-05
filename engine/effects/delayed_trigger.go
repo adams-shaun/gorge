@@ -130,6 +130,16 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 	// before. The values are Forge tokens with no "|", so the decode's
 	// LastIndex strips are exact. Both are compiled into PhaseText.
 	text := dp.PhaseText
+	// ThisTurn$ True (Khan's "at the beginning of the next combat THIS
+	// TURN"): a registration whose step has already passed this turn never
+	// fires in a later one (CR 603.7; Forge removes a ThisTurn$ delayed
+	// trigger at the end of the turn). The expiry rides "|TT=<turn>" right
+	// after the phase name -- the decode strips it last -- and folds into
+	// state.DelayedTrigger.MaxTurn. A registration armed at a LATER turn
+	// (DelayedTriggerDefinedPlayer$, UpcomingTurn$) keeps its own bound.
+	if dp.ThisTurn && dp.DefinedPlayer == "" && !dp.UpcomingTurn {
+		text = dp.Phase + "|TT=" + strconv.Itoa(int(h.Game().Turn)) + strings.TrimPrefix(text, dp.Phase)
+	}
 	// RememberChain$ False (this repo's own generated-SA param, the
 	// Annihilator$-marker precedent: no raw corpus card carries it, only
 	// engine/cards/keywords.go's generated Mobilize delay SVar does): the

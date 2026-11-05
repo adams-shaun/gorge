@@ -35,6 +35,13 @@ const (
 	CloneTmplShift = 4      // bits 4-5: the template's target slot
 )
 
+// BecomeCopyCtr is OpBecomeCopy's B.N bit (a different op from ExtCloneCopy,
+// so its flag space is its own): the copied template's counters join the
+// entering copy's counters as it enters (gorge's RememberCloneOrigin$ True +
+// PutCounter EachFromSource$ Remembered rider, CR 707.9b/614.12). No other
+// B.N bit is used by OpBecomeCopy.
+const BecomeCopyCtr = 1 << 0
+
 // MayGuardCloneCopy: the OpMayAsk guard of an Optional$ Clone: the next op is
 // an ExtCloneCopy that has a live template and at least one becomer (gorge
 // effClone's pairs, computed before the may-copy election).
@@ -405,6 +412,9 @@ const (
 	// the battlefield this turn (gorge ChangesZone + IsTriggerRemembered +
 	// ThisTurn$; one-shot)
 	DelayDiesThisTurn = 5
+	// DelayBeginCombat: the next beginning of combat step this turn (gorge
+	// Phase$ BeginCombat, ThisTurn$ True; one-shot, dropped at the turn change)
+	DelayBeginCombat = 6
 )
 
 // DpGroup is OpDelayedProgram B's group flag: the program remembers the

@@ -592,6 +592,28 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 		if c, err = lc.nodeConditionZone(ps, c, cp); err != nil { // lower_condkeys.go
 			return lCond{}, err
 		}
+		// ConditionCheckSVar$ beside the present check (H.M.S. Bounty:
+		// ConditionPresent$ Whale.YouCtrl with Count$YourExtraTurns EQ0).
+		// Only that exact SVar and an equality-with-zero compare are read;
+		// any other pair refuses rather than dropping the SVar gate.
+		if cs, ok := ps.get("ConditionCheckSVar"); ok {
+			v, err := lc.value(cs)
+			if err != nil {
+				return lCond{}, err
+			}
+			cmp, ok := ps.get("ConditionSVarCompare")
+			if !ok {
+				return lCond{}, refuse("ConditionCheckSVar$ %q without ConditionSVarCompare$", cs)
+			}
+			op, b, err := lc.cmpSpec(cmp)
+			if err != nil {
+				return lCond{}, err
+			}
+			if v.Kind != vYourExtraTurns || op != opEQ || !b.isConst() || b.N != 0 {
+				return lCond{}, refuse("ConditionCheckSVar$ %q with ConditionSVarCompare$ %q beside ConditionPresent$ %q", cs, cmp, cp)
+			}
+			c = lCond{Kind: cAnd, Sub: []lCond{c, {Kind: cValue, A: v, Op: op, B: b}}}
+		}
 		// A self-referencing present check ("Card.Self+Scout") is a
 		// property of the source.
 		return c, nil
@@ -1047,6 +1069,18 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		c.ExileTrigNew = false
 		n++
 	}
+	if c.ExileHandN > 0 {
+		// ExileFromHand<N/Card> as a printed trigger's own cost (gorge's
+		// triggered-cost window: the pay/decline ask, then the "exile_cost"
+		// pick over the hand, unasked with exactly N cards): PayExileGrave
+		// with the hand sentinel. Alone, and only there.
+		if !lc.trigOwnCost || lc.unlessCost || n != 0 {
+			return in, refuse("resolution exile-from-hand cost shape")
+		}
+		in.CS, in.A = "ExileHand", cst(c.ExileHandN)
+		c.ExileHandN = 0
+		n++
+	}
 	if n != 1 || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.SubAmongN != 0 || c.TapN != 0 || c.TapHost || c.SacHost || c.BlightN != 0 || c.EvidenceN != 0 {
 		return in, refuse("resolution cost shape")
 	}
@@ -1091,6 +1125,13 @@ func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 					return err
 				}
 			}
+			var chain *lInstr
+			if lc.trigOwnCost && cost.ExileG != nil && !cost.Mana.None {
+				if chain, cost, err = lc.exileChainSplit(cost); err != nil { // lower_exilechain.go
+					lc.trigOwnCost = false
+					return err
+				}
+			}
 			in, err := lc.payInstr(cost, lRef{Kind: rYou}, lc.trigOwnCost)
 			lc.trigOwnCost = false
 			lc.trigXMax = nil
@@ -1103,6 +1144,9 @@ func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 			in.Op = "IfPaid"
 			at := len(lc.ab.Prog)
 			lc.emit(in)
+			if chain != nil {
+				lc.emit(*chain)
+			}
 			if err := lc.unless(ps, func() error { return lc.api(sa, ps) }); err != nil {
 				return err
 			}
@@ -1702,6 +1746,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		if !n.isConst() || n.N != 1 {
 			return refuse("AddTurn %v", n)
+		}
+		if d, ok := ps.get("Defined"); ok && strings.TrimSpace(d) != "You" {
+			return refuse("AddTurn Defined$ %q", d)
 		}
 		lc.emit(lInstr{Op: "AddTurn", Obj: lRef{Kind: rYou}})
 	case "EndTurn":

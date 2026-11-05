@@ -586,8 +586,9 @@ func (s *State) newTurnGen() {
 	}
 	s.g.crime = crimeKeep(s.g.crime)
 	if s.g.ndp != 0 {
-		s.dropDelayedSpell() // ThisTurn$ SpellCast registrations (trig_delayedspell.go)
-		s.dropDelayedDies()  // ThisTurn$ dies registrations (trig_delayeddies.go)
+		s.dropDelayedSpell()       // ThisTurn$ SpellCast registrations (trig_delayedspell.go)
+		s.dropDelayedDies()        // ThisTurn$ dies registrations (trig_delayeddies.go)
+		s.dropDelayedBeginCombat() // ThisTurn$ beginning-of-combat registrations (trig_delaybegincombat.go)
 	}
 }
 
@@ -795,17 +796,27 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		copy(s.g.freeQ[:], s.g.freeQ[1:s.g.nfq])
 		s.g.nfq--
 		c := s.objs[o].card
-		// freeP: bit 0 caster, bits 1-3 zone, bit 4 ReplaceGraveyard, bit 5 CopyCard
+		// freeP: bit 0 caster, bits 1-3 zone, bit 4 ReplaceGraveyard, bit 5 CopyCard, bit 6 paid
 		ctrl := s.g.freeP & 1
 		if s.g.freeP&32 != 0 {
+			paid := s.g.freeP&64 != 0
 			// gorge casts the copy whatever became of the original
+			if paid && s.copyCastRefused(k, c, ctrl, o) {
+				continue // the cast began and was reversed: the copy ceased (cast_exilegrant.go)
+			}
 			if !s.spellTargetsFeasible(k, c, ctrl) || !s.spellCostsFeasible(k, c, ctrl, o) || !s.beginCopyCast(k, o, ctrl) {
 				if s.over {
 					return false
 				}
 				continue
 			}
-			s.bld().e.flags |= sfFree
+			if paid {
+				// gorge pays a Play's cast through the manual mana window, no
+				// payment plan (cast_exilegrant.go)
+				s.bld().bfl |= bflLowered
+			} else {
+				s.bld().e.flags |= sfFree
+			}
 			return false
 		}
 		if s.objs[o].zone != kop.Zone((s.g.freeP>>1)&7) || !s.spellTargetsFeasibleFrom(k, c, ctrl, o) || !s.spellCostsFeasible(k, c, ctrl, o) {

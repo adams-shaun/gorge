@@ -15,6 +15,7 @@ import (
 )
 
 func TestSignatureCollapsesSeedNumbers(t *testing.T) {
+	t.Parallel()
 	a := signature("livelock", "livelock detected (repeating cycle): object 12, kind priority, cycle: [seq 40 priority player=1]")
 	b := signature("livelock", "livelock detected (repeating cycle): object 99, kind priority, cycle: [seq 7123 priority player=0]")
 	if a != b {
@@ -23,6 +24,7 @@ func TestSignatureCollapsesSeedNumbers(t *testing.T) {
 }
 
 func TestGenerateIsDeterministicMonoColourSixty(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := buildPool(reg)
 	if err != nil {
@@ -71,6 +73,7 @@ func TestGenerateIsDeterministicMonoColourSixty(t *testing.T) {
 // genesis, so a cap of 100 fires at the first decision and one of 100000
 // never does.
 func TestBoardGuardRecordsBigboard(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := buildPool(reg)
 	if err != nil {
@@ -102,6 +105,7 @@ func TestBoardGuardRecordsBigboard(t *testing.T) {
 // ETB trigger; a spell's own SP ability and statics are excluded, and a
 // keyword-expanded activation (Cycling) counts.
 func TestAbilityInventory(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	look := func(n string) []abilitySlot {
 		c, ok := reg.Lookup(n)
@@ -136,6 +140,7 @@ func TestAbilityInventory(t *testing.T) {
 // ability (the Tap+ManaAdd proxy) and a Solemn trigger (the minted
 // TriggerPush object), and credits only keys in each card's inventory.
 func TestAbilitiesUsedFromPlayedGame(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	var d genDeck
 	d.Colour = "C"
@@ -190,6 +195,7 @@ func TestAbilitiesUsedFromPlayedGame(t *testing.T) {
 // Darksteel Ingot-shaped source read as never used. The engine hook
 // (rules.Engine.ManaAbilityHook) credits the activation itself.
 func TestManaAbilityChoosingColourCredited(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	var d genDeck
 	d.Colour = "C"
@@ -219,6 +225,7 @@ func TestManaAbilityChoosingColourCredited(t *testing.T) {
 // DBForget riders (no TriggerDescription$) are Forge's internal
 // state-tracking, not abilities; its imprint ETB and mana ability stay.
 func TestBookkeepingTriggersExcluded(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	c, ok := reg.Lookup("Chrome Mox")
 	if !ok {
@@ -251,6 +258,7 @@ func TestBookkeepingTriggersExcluded(t *testing.T) {
 // exploration seat (by seed parity), replays byte-identically, and a
 // failure record carries the flag so -repro rebuilds the same seats.
 func TestExploreSeatIsDeterministicAndRecorded(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := buildPool(reg)
 	if err != nil {
@@ -279,6 +287,7 @@ func TestExploreSeatIsDeterministicAndRecorded(t *testing.T) {
 // TestCovUsedBackwardCompatible: a state file written before Used existed
 // loads with an empty Used map, and full coverage needs a cast plus every key.
 func TestCovUsedBackwardCompatible(t *testing.T) {
+	t.Parallel()
 	path := t.TempDir() + "/old.json"
 	if err := os.WriteFile(path, []byte(`{"games":3,"included":{"X":1},"cast":{"X":1},"ability":{},"fails":{}}`), 0o644); err != nil {
 		t.Fatal(err)
@@ -316,6 +325,7 @@ func TestCovUsedBackwardCompatible(t *testing.T) {
 // -explore-autopay), and mixed is a pure per-seat function of the game seed
 // that yields both answers across seeds.
 func TestAutoPaySeatsModes(t *testing.T) {
+	t.Parallel()
 	if _, err := parseAutoPay("bogus", false); err == nil {
 		t.Fatalf("an unknown -autopay mode must be rejected")
 	}
@@ -360,6 +370,7 @@ func TestAutoPaySeatsModes(t *testing.T) {
 // forced failure record carries the mode and seats, and -repro's rebuild of
 // them (autoPayOf) round-trips, while an off record stays free of the fields.
 func TestAutoPayGameSubmitsPlans(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	var d genDeck
 	d.Colour = "G"
@@ -432,6 +443,7 @@ func TestAutoPayGameSubmitsPlans(t *testing.T) {
 // planned cast (planrev) outranks a fallback window (planfb), each signature
 // names the reason and the card, and a probe with neither records nothing.
 func TestPlanContractFailureKinds(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	var d genDeck
 	d.Colour = "G"

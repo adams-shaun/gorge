@@ -10,6 +10,7 @@ import (
 // The accepted upper bound must execute real turns, not just relabel setup.
 // Ordinary draw history distinguishes that from a jump straight to turn 100.
 func TestOracleScenarioRequestedTurnUpperBound(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	for _, named := range []int{0, 40} {
 		t.Run(map[int]string{0: "empty", 40: "named-outside-library"}[named], func(t *testing.T) {
