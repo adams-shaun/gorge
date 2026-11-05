@@ -275,14 +275,7 @@ func TestLandAbNowCracksAtOnce(t *testing.T) {
 
 // TestLandKeysZeroAllocs: a search with every land key on allocates
 // nothing.
-//
-// It is skipped while dirac's own transition loop allocates on this walk:
-// dirac.(*State).limitPlan builds its node-limited plan replay as a fresh
-// limitSearch (about 390 kB, so on the heap) per call, which these games
-// reach through Apply and StepInto's mana planning. The search itself
-// allocates nothing here; the skip goes when limitPlan stops allocating.
 func TestLandKeysZeroAllocs(t *testing.T) {
-	t.Skip("dirac.(*State).limitPlan heap-allocates its limitSearch per call; the search's own allocations are zero")
 	tbl, _, _ := landMatchup(t)
 	sr := landSearcher(tbl, func(o *Options) {
 		o.LandSearch, o.LandPick, o.DedupSearch, o.LandAbNow, o.Noise, o.Sample = true, true, true, true, true, true
