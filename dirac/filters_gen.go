@@ -632,17 +632,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		}
 		return t <= n
 	case kop.PredCMCLE, kop.PredCMCGE, kop.PredCMCEQ, kop.PredCMCLEV:
-		mv := int(pc.total)
-		if fd {
-			mv = 0 // CR 708.4: a face-down spell has no mana cost
-		} else {
-			if k.gen.anySplit {
-				mv = s.splitMV(k, c, o, mv) // face_castface.go
-			}
-			if pc.cost.X != 0 && o != NoObj {
-				mv += s.stackXMV(o, pc.cost.X)
-			}
-		}
+		mv := s.cardMV(k, c, o, fd)
 		switch fl.Pred {
 		case kop.PredCMCLE:
 			return mv <= n
@@ -703,6 +693,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		}
 		if fl.Pred == kop.PredPowerGEV {
 			return s.cardPowerGEV(k, fl, c, owner, o, fd, ctx) // filter_ptvalue.go
+		}
+		if fl.Pred == kop.PredTypesAllCMCLE {
+			return s.typesAllCMCCard(k, fl, c, o, fd) // filter_typesall.go
 		}
 		return predCardCold(k, fl, c, fd) // filter_typesall.go: PredTypesAll and later kinds
 	}

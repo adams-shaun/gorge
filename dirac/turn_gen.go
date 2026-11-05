@@ -800,9 +800,19 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		ctrl := s.g.freeP & 1
 		if s.g.freeP&32 != 0 {
 			paid := s.g.freeP&64 != 0
-			// gorge casts the copy whatever became of the original
-			if paid && s.copyCastRefused(k, c, ctrl, o) {
-				continue // the cast began and was reversed: the copy ceased (cast_exilegrant.go)
+			// gorge casts the copy whatever became of the original: a paid
+			// cast the pool cannot cover is begun and reversed after its
+			// mana window (CR 733.1, cast_exilegrant.go); a required target
+			// aborts it at the target ask first, tapping nothing
+			if paid && s.copyCastAbortsBeforeWindow(k, c, ctrl, o) {
+				// the copy is minted and ceases in its holding zone, no
+				// source tapped: gorge's abort at the target ask
+				if s.beginCopyCast(k, o, ctrl) {
+					s.reverseCast(k)
+				} else if s.over {
+					return false
+				}
+				continue
 			}
 			if !s.spellTargetsFeasible(k, c, ctrl) || !s.spellCostsFeasible(k, c, ctrl, o) || !s.beginCopyCast(k, o, ctrl) {
 				if s.over {
@@ -935,12 +945,24 @@ func (s *State) applyGen(k *prep, a Action) {
 			s.cloneEntryOrderAnswer(k, a) // the order answer (repl_entryclone.go)
 			return
 		}
-		s.g.pre.val = a.Mode()
-		if s.g.pre.kind == akClone {
-			s.g.pre.val = cloneAnswer(a)
-		}
-		if s.g.pre.kind == akType {
-			s.g.pre.val = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+		if s.g.pre.ask2 != 0 && s.g.pre.kind == s.g.pre.ask2 {
+			// the copy template's own choice (copy_templatechoice.go)
+			s.g.pre.val2 = a.Mode()
+			if s.g.pre.kind == akType {
+				s.g.pre.val2 = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+			}
+			s.g.pre.kind = akClone
+		} else {
+			s.g.pre.val = a.Mode()
+			if s.g.pre.kind == akClone {
+				s.g.pre.val = cloneAnswer(a)
+				if !s.g.pre.land && s.cloneTemplateAsk(k) {
+					return // the template's choice is asked next
+				}
+			}
+			if s.g.pre.kind == akType {
+				s.g.pre.val = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+			}
 		}
 		s.g.pre.state = 2
 		s.ctl = ctlPriority

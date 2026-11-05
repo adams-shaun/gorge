@@ -279,8 +279,8 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				return true, held
 			}
 			s.leave(k, sl, kop.ZoneGraveyard, false)
-			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard {
-				s.ceaseManaToken(o) // a sacrificed Treasure ceases at once, as gorge pays
+			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && !(s.buildLive() && s.ctl == ctlBuild && s.bld().bfl&bflManaStep != 0) {
+				s.ceaseManaToken(o) // a sacrificed Treasure ceases at once, as gorge pays; the payment plan's tap (bflManaStep) leaves it for the next state-based check (CR 704.5d)
 			}
 		}
 	}

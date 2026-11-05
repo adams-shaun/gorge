@@ -220,6 +220,22 @@ func (s *State) addXv(p uint8, xv *[kop.NumManaKinds]uint8) {
 // for mana through pc, the extra its tap brings included: a cost that taps the
 // source leaves it neither.
 func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
+	if k.gen != nil && k.gen.anyContGrant {
+		var gi [maxGrants]int16
+		if s.grantIdxs(k, sl, &gi) > 0 {
+			// a source with a granted mana ability is one unit of its own
+			// and the granted colours together (availGrant): taking out its
+			// own mask alone would leave that unit standing, and the tap
+			// that pays the cost would fund the cost's mana too
+			var u avail
+			u.xd, u.xdOn = a.xd, a.xdOn
+			s.availGrant(k, sl, pc, &u)
+			for i := 0; i < u.n; i++ {
+				a.remove(u.mask[i], u.cnt[i])
+			}
+			return
+		}
+	}
 	a.remove(s.srcMaskAt(pc, sl), pc.manaN)
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return

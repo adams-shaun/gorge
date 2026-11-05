@@ -559,6 +559,13 @@ type pendingCast struct {
 	// again). Plain data, so Clone copies it.
 	provenanceRepriced bool `clone:"deep"`
 
+	// repriceOnPush asks continueCast to re-price pc.mods right after the
+	// push although no provenance static was seen: a Play CopyCard$ copy is
+	// priced in the temporary library holding zone, which no zone list names,
+	// so its own EffectZone$ All cost statics ("this spell costs {1} less")
+	// are not collected until the copy is on the stack (CR 601.2f, 707.12).
+	repriceOnPush bool `clone:"deep"`
+
 	// preSuppress is the suppressedCast set as it was just before pushCast's
 	// PutOnStack, captured so an aborted (reversed) cast can restore it:
 	// the push is a state-changing event that emit treats as progress and so

@@ -424,6 +424,7 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 		if g.ro.on || g.ro.n > 0 {
 			h = hbytes(h, unsafe.Pointer(&g.ro.replHdr), unsafe.Sizeof(g.ro.replHdr))
 			h = hbytes(h, unsafe.Pointer(&g.nc), unsafe.Sizeof(g.nc))
+			h = hbytes(h, unsafe.Pointer(&g.tok), unsafe.Sizeof(g.tok))
 		}
 		if g.ro.on {
 			// arm A of scr (scratch.go): the frozen body and the

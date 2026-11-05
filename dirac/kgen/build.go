@@ -1201,10 +1201,22 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	}
 	if c.TypesAll != 0 {
 		// the all-of type conjunction takes the clause's one Pred slot
-		if c.CmpStat != cmpNone {
+		switch {
+		case c.CmpStat == cmpNone:
+			kf.Pred, kf.PredN = kop.PredTypesAll, int16(typeMask(c.TypesAll))
+		case c.CmpStat == cmpCMC && c.CmpV == nil && (c.CmpOp == opLE || c.CmpOp == opLT):
+			// a constant mana-value bound beside the conjunction: one
+			// combined predicate (Resistance Is Futile's Artifact.Creature
+			// with cmcLE3); LT lowers the integer bound by one
+			bound := c.CmpN
+			if c.CmpOp == opLT {
+				bound--
+			}
+			kf.Pred, kf.PredN, kf.PredV = kop.PredTypesAllCMCLE, int16(typeMask(c.TypesAll)), kop.Const(bound)
+			c.CmpStat = cmpNone
+		default:
 			return kf, fmt.Errorf("type conjunction %#x beside a %s predicate (one Pred slot)", c.TypesAll, cmpStatName(c.CmpStat))
 		}
-		kf.Pred, kf.PredN = kop.PredTypesAll, int16(typeMask(c.TypesAll))
 	}
 	switch c.CmpStat {
 	case cmpNone:

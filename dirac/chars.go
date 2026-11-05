@@ -313,6 +313,9 @@ func predName(p kop.Pred) string {
 	if p == kop.PredWord7 {
 		return "Word7"
 	}
+	if p == kop.PredTypesAllCMCLE {
+		return "TypesAllCMCLE"
+	}
 	if int(p) < len(names) {
 		return names[p]
 	}
