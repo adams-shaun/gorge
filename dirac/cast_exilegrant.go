@@ -170,19 +170,35 @@ func spellRequiresTarget(k *prep, c CardID) bool {
 // aborts at the target ask and no mana window opens, tapping nothing. Without
 // a required target gorge reaches the window, taps what it offers and reverses
 // the cast with the taps and their mana standing (loweredWindowOK, CR 733.1).
+// An {X} spell is not aborted here: X is announced first (CR 601.2b), with the
+// copy on the stack, and copyCastXTargetAbort aborts at the target ask.
 func (s *State) copyCastAbortsBeforeWindow(k *prep, c CardID, p uint8, o Obj) bool {
-	if !spellRequiresTarget(k, c) {
+	if !spellRequiresTarget(k, c) || k.t.Cards[c].Cost.X != 0 {
 		return false
 	}
-	return s.copyCastUnpayable(k, c, p, o, s.restrOriginOfObj(o))
+	return s.copyCastUnpayable(k, c, p, o, s.restrOriginOfObj(o), 0)
 }
 
-// copyCastUnpayable reports whether the paid cast of c by p, as object o and
-// cast from og, cannot be covered by what p can produce (the cast offer's own
-// affordability read).
-func (s *State) copyCastUnpayable(k *prep, c CardID, p uint8, o Obj, og restrOrigin) bool {
+// copyCastUnpayable reports whether the paid copy cast of c by p, as object o
+// and cast from og, at announced X x, cannot be covered by what p can produce
+// (the cast offer's own affordability read).
+func (s *State) copyCastUnpayable(k *prep, c CardID, p uint8, o Obj, og restrOrigin, x int) bool {
 	var av avail
 	s.availFor(k, p, &av)
 	cost := s.adjustFit(k, &av, p, c, o, k.cards[c].cost, true)
+	cost.Generic = uint8(int(cost.Generic) + cost.XGeneric(x))
 	return !s.castAffordsR(k, p, c, og, &cost, &av)
+}
+
+// copyCastXTargetAbort: the target ask of a paid Play's copy cast that X, now
+// announced, leaves unpayable: gorge's menu withholds every candidate
+// (affordableTargetCandidates), so a required target aborts the cast
+// (CR 601.2c, 733.1; copyCastAbortsBeforeWindow for the spells without X).
+func (s *State) copyCastXTargetAbort(k *prep, t *kop.TargetSpec) bool {
+	b := s.bld()
+	if k.gen == nil || !k.gen.anyCopyCast || b.e.kind != seSpell || b.bfl&bflLowered == 0 || b.origin != kop.ZoneLibrary ||
+		t.UpTo || t.TFlags&kop.TgfBoundsV != 0 || k.t.Cards[b.e.card].Cost.X == 0 {
+		return false
+	}
+	return s.copyCastUnpayable(k, b.e.card, b.e.ctrl, b.e.obj, s.restrOriginOfObj(b.e.obj), int(b.e.x))
 }
