@@ -373,6 +373,18 @@ const W7NoNameTwinGrave int16 = 20
 // nothing.
 const W7SharesCrTrigObj int16 = 21
 
+// W7WithDisguise (PredWord7 sub-kind 22): the card was printed with Disguise
+// (CardDef.MorphFamily == MorphDisguise; gorge's exact keyword word
+// withDisguise, objectHasKeyword). A battlefield permanent that is face down
+// or lost all abilities has none; off the battlefield the printed card
+// counts in any zone. Expose the Culprit.
+const W7WithDisguise int16 = 22
+
+// W7FaceUpDisguise (PredWord7 sub-kind 23): the pair faceUp and withDisguise
+// in one clause (a clause holds one comparison): not face down and printed
+// with Disguise, in any zone.
+const W7FaceUpDisguise int16 = 23
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go
