@@ -909,6 +909,7 @@ RefTriggerAttackers	Ref	31
 RefTriggerObj	Ref	9
 RefTriggerPlayer	Ref	10
 RefTriggerSource	Ref	21
+RefTriggerTgtCtrl	Ref	33
 RepeatEachSeatOrder	untyped int	2
 ReplAddCountersOn	ReplKind	21
 ReplAfterEnter	untyped int	1
