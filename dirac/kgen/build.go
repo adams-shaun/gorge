@@ -459,6 +459,11 @@ func (cb *cardBuilder) record() error {
 		d.Bargain = true
 		cb.bargain = true
 	}
+	if c.Storm {
+		// the printed K:Storm trigger is the kernel's own native trigger
+		// (dirac/kw_storm.go); no ability, no cast-action bit
+		d.Storm = true
+	}
 	if c.OptCost != nil {
 		// an OptionalCost part rides sfKicked and the kicked cast action
 		// (dirac/cost_optional.go): no other optional cost may share it

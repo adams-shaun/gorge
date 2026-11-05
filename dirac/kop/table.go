@@ -147,6 +147,14 @@ type CardDef struct {
 	// card never has both, so this field picks the row). The paid flag rides
 	// the kicked provenance; dirac/kw_bargain.go.
 	Bargain bool
+	// Storm is K:Storm (CR 702.40a; false = none): the spell's cast trigger
+	// (gorge kwStorm's expansion, engine/cards/kw_storm.go) copies it once
+	// for each spell cast before it this turn, its controller choosing new
+	// targets for the copies. The kernel enqueues its own native trigger on
+	// the cast (abStorm; dirac/kw_storm.go) — no CardDef ability to index —
+	// and a copy of a permanent spell resolves into a token
+	// (genPrep.anyPermCopy; dirac/copy_permanentspell.go, CR 707.10f).
+	Storm bool
 	// OptCost, OptBehold: S:Mode$ OptionalCost ("as an additional cost to
 	// cast this spell, you may blight N / behold a <type>", CR 601.2b): the
 	// optional cast is the kicked cast (AkCast mode 1, gorge's

@@ -101,6 +101,7 @@ type lowerCtx struct {
 
 	firstCastSVar  string    // the SVar a static SpellCast StoreSVar of Count$YouCastThisGame writes (lower_firstcast.go)
 	firstCastTrig  int       // that trigger's index + 1: it lowers to nothing
+	stormTrig      int       // the K:Storm expansion trigger's index + 1: it lowers to nothing (lower_storm.go)
 	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff)
 	animAll        bool      // lowering an AnimateAll: animateRemoveKeywords accepts a bare RemoveKeywords$ (gorge effAnimateAll reads it)
 	speedRepl      bool      // lowering a max-speed static's granted replacement: damagePlus reads ValidTarget$ Player.Opponent (lower_maxspeedrepl.go)
@@ -300,6 +301,7 @@ func (lc *lowerCtx) lowerFace() {
 		}
 	}
 	lc.lowerRecord()
+	lc.scanStorm() // lower_storm.go: K:Storm's expanded trigger, before the lines lower
 	lc.lowerKeywords()
 	lc.lowerLines(true, false)
 	lc.lowerTail()
@@ -334,6 +336,9 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 		n := len(out.Abilities)
 		if lc.firstCastTrig == i+1 {
 			continue // the stamp: dirac marks the spell when it is cast (lower_firstcast.go)
+		}
+		if lc.stormTrig == i+1 {
+			continue // K:Storm's expansion: CardDef.Storm and the kernel's native trigger own it (lower_storm.go)
 		}
 		if t.Mode == "TapsForMana" {
 			lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error { return lc.tapExtraStatic(t) })
@@ -1094,6 +1099,26 @@ func (lc *lowerCtx) lowerKeywords() {
 			// kernel's bargained cast (kw_bargain.go); the card's
 			// CardDef.Bargain picks the row and the paid flag rides sfKicked
 			lc.out.Bargain = true
+		case head == "Storm" && param == "":
+			// CR 702.40a: gorge kwStorm (cards/kw_storm.go) expands it into
+			// one SpellCast Card.Self trigger whose body is the __kwStorm
+			// SVar, DB$ CopySpellAbility | Defined$ TriggeredSpellAbility |
+			// Amount$ TriggerCount$CurrentStormCount/Minus1 | MayChooseTarget$
+			// True (lower_storm.go). The line is never lowered: its amount is
+			// the fire-time storm count, which the kernel reads off its own
+			// turn history, so the trigger is the kernel-native abStorm
+			// (dirac/kw_storm.go) and CardDef.Storm picks it; a copy of a
+			// permanent spell resolves into a token (genPrep.anyPermCopy, CR
+			// 707.10f). One native trigger per cast: a second instance refuses.
+			if lc.stormTrig == 0 {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+				continue
+			}
+			if lc.out.Storm {
+				lc.refuseNode(node, "second Storm keyword")
+				continue
+			}
+			lc.out.Storm = true
 		case head == "Teamwork":
 			// CR 702.194a: the optional creature-tap cost is the kernel's
 			// teamworked cast (kw_teamwork.go); N is the power the

@@ -900,6 +900,7 @@ type lCard struct {
 	Offspring      *manaCost // K:Offspring:<cost> (CR 702.175): the kernel's kicked cast and Kicker cost, CardDef.Offspring
 	Casualty       int       // printed K:Casualty:<N> (CR 702.153a, fixed N >= 1), CardDef.Casualty
 	Bargain        bool      // printed K:Bargain (CR 702.166), CardDef.Bargain
+	Storm          bool      // printed K:Storm (CR 702.40a), CardDef.Storm: the kernel's own native cast trigger (dirac/kw_storm.go)
 	BeholdN        int       // RaiseCost Cost$ BeholdExile<1/Type> (the Lorwyn Champions): behold one permanent or hand card of BeholdF and exile it (lower_beholdexile.go)
 	BeholdF        *lFilter
 	BeholdExile    bool
