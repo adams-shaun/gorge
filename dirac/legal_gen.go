@@ -130,6 +130,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 			base = s.convokeCredit(k, p, c, o, base) // gorge castOfferBase: a permission cast convokes too
 		}
 		cost := s.adjustFit(k, av, p, c, o, base, true)
+		cost = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, cost)
 		if anyMana {
 			cost = anyType(cost)
 		}
@@ -155,10 +156,12 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		if anyMana {
 			cost = anyType(cost)
 		}
+		altCost := cost // (altAddCastableFrom credits its own total)
+		cost = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, cost)
 		s.g.mayPlayAny = anyMana
 		offers := s.gorgeOffersMay(p, o)
 		s.g.mayPlayAny = false
-		if !s.altAddCastableFrom(k, c, p, o, &cost, &pc.cost, true, av) || !offers || s.castHeldOut(o) {
+		if !s.altAddCastableFrom(k, c, p, o, &altCost, &pc.cost, true, av) || !offers || s.castHeldOut(o) {
 			return
 		}
 		if unpriced && !s.windowPoolPays(p, &cost, anyColor) && (s.g.availX&(availAny|availGaps) == 0 || (!anyMana && !anyColor)) {

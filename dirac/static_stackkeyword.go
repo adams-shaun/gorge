@@ -47,6 +47,8 @@ func prepStackKw(t *Table, g *genPrep, p *prep) {
 				g.anyCascade = true
 			case kop.StackKwImprovise, kop.StackKwConvoke:
 				g.anyConvoke = true
+			case kop.StackKwDelve:
+				g.anyDelve = true
 			case kop.StackKwCasualty:
 				p.casualty = true
 			case kop.StackKwLifelink:
@@ -100,6 +102,16 @@ func (s *State) grantImprovise(k *prep, p uint8, c CardID, o Obj, fromHand bool)
 		return false
 	}
 	n, _ := s.stackKwN(k, kop.StackKwImprovise, c, o, p, fromHand)
+	return n > 0
+}
+
+// grantDelve: a live StatStackKw Delve grant reaches p's spell card c
+// (object o). Behind genPrep.anyDelve.
+func (s *State) grantDelve(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
+	if k.gen == nil || !k.gen.anyDelve {
+		return false
+	}
+	n, _ := s.stackKwN(k, kop.StackKwDelve, c, o, p, fromHand)
 	return n > 0
 }
 

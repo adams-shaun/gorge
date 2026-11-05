@@ -109,6 +109,7 @@ const (
 	ChGenKeepTapped                           // source = a tapped permanent whose controller may keep it tapped; mode 0 = untap it, 1 = keep it tapped (gorge's untap-step KChoose "untap" / "keep_tapped", CR 502.3; repl_untapchoice.go)
 	ChGenName                                 // mode = the CardID of the nonland card whose name a permanent chooses as it enters (gorge's ETB "name" option; repl_choosename.go)
 	ChGenConspire                             // source = a creature tapped for conspire (gorge conspireAsk's KChoose "conspire", Min=Max=2, CR 702.78a); two sequential picks; kw_conspire.go
+	ChGenDelve                                // source = a graveyard card exiled toward a granted-delve cast's generic cost, one pick per decision (gorge delveAsk's multi-pick KChoose; kw_delve.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);

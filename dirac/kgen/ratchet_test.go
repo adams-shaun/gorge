@@ -45,8 +45,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (U.S.S. Enterprise-D, Galaxy-Class and Axgard Artisan: CounterAddedOnce FirstTime$ True's per-source once-a-turn latch; MOM 196 -> 197, TRK 305 -> 306, ALL 21486 -> 21488).
 	// +3 (Dream Harvest; Improvisation Capstone: RememberRevealed$+MinTotalCMC$ DigUntil, ECL/SOS +1; Black Widow, Super Spy: ImprintFound$ alone, MSH +1; ALL 21496 -> 21499).
 	// +1 (Sanar, Innovative First-Year: the DigUntil RememberRevealed$ library reveal and its five per-colour picks; ECL 232 -> 233, ALL 21523 -> 21524).
+	// +1 (Teval, Arbiter of Virtue: a granted Delve on the stack lowers and the cast announces its graveyard exiles; merged ALL 21523 -> 21524, TDM 244 -> 245).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21524, 34442},
+	"ALL": {21525, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
@@ -69,7 +70,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SNC": {185, 266},
 	"SOS": {248, 270},
 	"SPM": {160, 192},
-	"TDM": {244, 276},
+	"TDM": {245, 276},
 	"TLA": {246, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},

@@ -160,15 +160,16 @@ func TestWascastrestrictGrantSearch(t *testing.T) {
 		t.Errorf("a floatable restricted grant stalled %s", StallName(s.g.stalled))
 	}
 
-	// every batch the pool holds is taken (another chosen type's each): the
-	// grant cannot float, and never spills into the ordinary pool
+	// every batch the pool holds is taken (another colour's each, of the same
+	// restricted kind: the payment is admitted to them but they cannot pay
+	// it): the grant cannot float, and never spills into the ordinary pool
 	sc2, id2, f2 := kwrScen(t, "Mm'menon, the Right Hand", "Ornithopter")
 	s2, k2 := sc2.s, sc2.k
 	defer kwrSet(k2, f2, 3, 0)()
 	kind, _ := k2.gen.restrKind(f2)
 	for i := range s2.rb[0] {
 		s2.rb[0][i] = rbatch{kind: kind, chosen: uint8(i + 1)}
-		s2.rb[0][i].n[kop.U] = 1
+		s2.rb[0][i].n[kop.G] = 1
 	}
 	d := payDesc{class: pdSpell, card: id2["Shock"], src: NoSlot, og: restrOrigin{from: kop.ZoneExile}}
 	if !s2.grantSearch(k2, 0, &cost, NoSlot, d, &g) || g.np != 1 {

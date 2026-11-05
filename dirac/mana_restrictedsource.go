@@ -190,6 +190,24 @@ func (s *State) payDescNow(exclude Obj) payDesc {
 	return payDesc{class: pdOther, src: NoSlot}
 }
 
+// restrFloatAdmits is the mask of p's floating restricted batches (State.rb)
+// the payment d describes may spend (gorge's planner pool for it is
+// AvailableFor, which holds the batches RestrictValidMatches admits: a spell
+// its restriction matches, an activated ability or a non-spell payment, CR
+// 106.6). pdNone describes no payment: the batches count for nothing.
+func (s *State) restrFloatAdmits(k *prep, p uint8, d *payDesc) uint8 {
+	if d.class == pdNone || !s.rbAny(p) {
+		return 0
+	}
+	switch d.class {
+	case pdSpell:
+		return s.restrSpendable(k, p, d.card, d.og)
+	case pdAct:
+		return s.restrPoolAct(k, p, d)
+	}
+	return s.restrPoolNonSpell(k, p)
+}
+
 // restrSrcAdmits reports whether restricted ability a of the source at sl
 // may pay d (gorge pay.RestrictValidMatches; the chosen type is the mana
 // source's own).

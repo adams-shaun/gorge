@@ -299,6 +299,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return ch("tapcost", src, 0)
 		case dirac.ChStation:
 			return ch("station", src, 0)
+		case dirac.ChGenDelve:
+			return ch("exile", src, 0)
 		case dirac.ChGenConvoke:
 			return ch("convoke", src, mode)
 		case dirac.ChWaterbend:
