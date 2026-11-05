@@ -300,6 +300,12 @@ const PayBReveal = 5
 // moves. Theorist's Sanctum's as-enters election (dirac/repl_revealland.go).
 const PayBBehold = 6
 
+// PayBSubWaterbend: a PayTapX unless-cost whose B.N carries this sentinel is
+// an UnlessCost$ Waterbend<A> (CR 701.67a; Waterbending Lesson): the payer's
+// pay / decline, then the taps for what the floating pool cannot cover
+// (dirac/cost_unlesswaterbend.go).
+const PayBSubWaterbend = 12
+
 // PayKind is the cost an OpUnlessPaid / OpIfPaid offers (C & 0xF).
 const (
 	PayMana    = 1 // A generic + B.N packed pips (3 bits per colour, WUBRG)

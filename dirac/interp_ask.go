@@ -65,6 +65,8 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		return sl != NoSlot && permCtrN(s, &s.perms[sl], int(pips)) >= amt // pips carries the counter kind (CtrAll sums every kind)
 	case kop.PayTapX:
 		return s.countUntapped(k, p, f, s.resSrcSlot(k)) >= amt
+	case payKindWaterbend:
+		return s.unlessWaterbendPayable(k, p, amt) // cost_unlesswaterbend.go
 	case kop.PayExileGrave:
 		return s.countGraveExile(k, p, f) >= amt
 	case payKindExileHand:
@@ -102,6 +104,7 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubTrigNew {
 		kind = payKindTrigNew // a trigger's own ExileAnyGrave<1/Card.TriggeredNewCard> cost rides PayExileGrave (trig_mayexile.go)
 	}
+	kind = unlessPayKind(kind, in.B.N) // an UnlessCost$ Waterbend<N> rides PayTapX (cost_unlesswaterbend.go)
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubExileHand {
 		kind = payKindExileHand // a trigger's own ExileFromHand<N/Card> cost rides PayExileGrave (cost_exilefromhand.go)
 	}
@@ -328,6 +331,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 					}
 				}
 			}
+			break
+		}
+		if s.g.pickZ == payKindWaterbend {
+			s.unlessWaterbendOptions(k, d) // cost_unlesswaterbend.go
 			break
 		}
 		if s.g.pickZ == kop.PayExileGrave {
@@ -662,6 +669,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		case kop.PayEvidence:
 			s.startWardEvidence(k) // kw_wardcost.go
 			return
+		case payKindWaterbend:
+			s.startUnlessWaterbend(k) // cost_unlesswaterbend.go
+			return
 		case payKindEvidence:
 			s.startCostEvidence(k) // a trigger's own cost (cost_collectevidence.go)
 			return
@@ -743,6 +753,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		}
 		o := Obj(a.Source())
+		if s.g.pickZ == payKindWaterbend {
+			s.applyUnlessWaterbendPick(k, o) // cost_unlesswaterbend.go
+			return
+		}
 		if s.g.pickZ == payPickBlight {
 			if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield {
 				s.blightSlot(ob.slot, s.value(k, s.prog(k)[r.pc].A))
@@ -2207,7 +2221,7 @@ func (s *State) branchPayable(k *prep, b uint8, p uint8) bool {
 		if n.Op != kop.OpUnlessPaid && n.Op != kop.OpIfPaid && n.Op != kop.OpUnlessSwitched {
 			return true
 		}
-		return s.canPayGen(k, p, int(n.C&0xF), s.value(k, n.A), n.B.N, n.F)
+		return s.canPayGen(k, p, unlessPayKind(int(n.C&0xF), n.B.N), s.value(k, n.A), n.B.N, n.F)
 	}
 	return true
 }

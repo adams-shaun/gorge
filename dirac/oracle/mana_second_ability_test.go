@@ -23,20 +23,20 @@ import (
 //     is payable only through the life ability; Valiant Guard's {W}
 //     through the free one.
 //
-// Each deck holds exactly the colourless lands one activation of its source
-// needs (four for the filter's fee, three for Haunted Screen's {3}), so no
-// payment ever chooses between two identical sources: the comparison is the
-// shapes, not the source tie-break.
+// Each deck holds many identical copies of each mana source, so most
+// payments that tap one choose among identical copies: the comparison is
+// the source tie-break too — gorge's key-8 witness (pay.CompareSteps over
+// the census order) against the kernel's lexLeast — not only the shapes.
 //
 // The expected answer at every decision is gorge's.
 var kmanasecondDecks = [2][]cardset.Entry{
 	{
-		{Name: "Baxter Building", Count: 1}, {Name: "Breya, Etherium Shaper", Count: 35},
-		{Name: "Wastes", Count: 4},
+		{Name: "Baxter Building", Count: 14}, {Name: "Breya, Etherium Shaper", Count: 8},
+		{Name: "Wastes", Count: 18},
 	},
 	{
-		{Name: "Haunted Screen", Count: 1}, {Name: "Moss Viper", Count: 18},
-		{Name: "Valiant Guard", Count: 18}, {Name: "Wastes", Count: 3},
+		{Name: "Haunted Screen", Count: 14}, {Name: "Grizzly Bears", Count: 8},
+		{Name: "Suntail Hawk", Count: 8}, {Name: "Wastes", Count: 10},
 	},
 }
 
@@ -54,7 +54,7 @@ func TestSecondManaAbilityLockstep(t *testing.T) {
 			}
 		}
 	})
-	for _, name := range []string{"Breya, Etherium Shaper", "Moss Viper", "Valiant Guard"} {
+	for _, name := range []string{"Breya, Etherium Shaper", "Grizzly Bears", "Suntail Hawk"} {
 		if exercised[name] == 0 {
 			t.Fatalf("no %s cast in 24 seeds: the pool does not exercise the shape (%v)", name, exercised)
 		}

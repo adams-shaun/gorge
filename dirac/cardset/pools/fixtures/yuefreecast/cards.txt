@@ -1,0 +1,14 @@
+# Yue, the Moon Spirit (Waterbend {5}, {T}: you may cast a noncreature spell
+# from your hand without paying its mana cost), cheap instants and sorceries
+# for the free cast, creature spells the cast must not offer, and basics, for
+# the oracle's constructed lockstep (dirac/oracle/play_yuefreecast_test.go)
+Yue, the Moon Spirit
+Shock
+Opt
+Divination
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Island
+Mountain
+Forest

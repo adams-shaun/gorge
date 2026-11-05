@@ -191,16 +191,19 @@ func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 // alternative whose damage alone reaches the payer's life is withheld
 // (pay.PlanLastResortChoices' one-step guard): a painland is then its normal
 // unit (reported false: the caller adds it as an ordinary source) and a
-// pain-only source no unit. The units sit with the fixed-production ones
-// (pass 0: gorge's shared census lists the source by its fixed ability).
+// pain-only source no unit. The unit sits where gorge's census lists the
+// source: in the shared census (pass 0) when the production is
+// deterministic, appended after the fixed-production ones (pass 1) when it
+// is choice-shaped (paymentPlanManaUnitsOnlyCompute); want is that pass,
+// the caller's census-shape choice.
 // It reports whether the caller has nothing left to do for sl.
 //
 //go:noinline
-func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i int) bool {
+func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i int, want int) bool {
 	if int(pc.painN) >= pk.life {
 		return pc.painOnly
 	}
-	if pass != 0 {
+	if pass != want {
 		return true
 	}
 	if pk.nu >= maxUnits {

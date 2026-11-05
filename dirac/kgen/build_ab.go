@@ -176,6 +176,11 @@ func (cb *cardBuilder) fold(a *lAbility) (bool, error) {
 				return false, bfail(cb.node, "ward cost Discard %d", n)
 			}
 			d.WardDiscard = 1 // kernel kw_wardcost.go
+		case "Waterbend":
+			if n < 1 || n > 31 {
+				return false, bfail(cb.node, "ward cost waterbend %d", n)
+			}
+			d.WardWaterbend = uint8(n) // kernel cost_unlesswaterbend.go
 		case "DiscardOrMana":
 			if n < 1 || n > 255 {
 				return false, bfail(cb.node, "ward cost discard or {%d}", n)
@@ -2346,7 +2351,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		} else if in.Op == "UnlessSwitched" {
 			ki.Op = kop.OpUnlessSwitched
 		}
-		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
+		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "Waterbend": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
 		if pk == 0 {
 			return ki, fmt.Errorf("pay kind %q", in.CS)
 		}
@@ -2374,6 +2379,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if in.CS == "ExileGraveChain" {
 			ki.B = kop.Const(kop.PayBSubChain) // the exile half of a mana-and-exile cost (cost_exilepool.go)
+		}
+		if in.CS == "Waterbend" {
+			ki.B = kop.Const(kop.PayBSubWaterbend) // an unless Waterbend<N>, not a tapXType (cost_unlesswaterbend.go)
 		}
 		if in.CS == "ExileHand" {
 			ki.B = kop.Const(kop.PayBSubExileHand) // ExileFromHand<N/Card>, not a graveyard exile

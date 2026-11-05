@@ -1024,14 +1024,10 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					hasGrant = true
 					continue
 				}
-				if k.painMana && pc.painCol != 0 {
-					if phase == 0 {
-						hasPain = true
-						if pc.painOnly {
-							continue // no normal alternative
-						}
-					} else if s.painUnit(k, sl, pc, pass, pk, i) {
-						continue
+				if k.painMana && pc.painCol != 0 && phase == 0 {
+					hasPain = true
+					if pc.painOnly {
+						continue // no normal alternative
 					}
 				}
 				sacOnly := s.canSacOnlyForMana(k, sl, pc)
@@ -1072,6 +1068,25 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				if rk[i] != 0 {
 					choice = rk[i] == rkExt || DebugRestrictedSource == 3 && rk[i] == rkWiden // a widened unit keeps its census position
+				}
+				if k.painMana && pc.painCol != 0 && phase > 0 {
+					// gorge's census lists a source with a deterministic,
+					// free-cost production in the shared census, at its
+					// battlefield position, and appends the rest after: a
+					// choice-shaped ability, a tap-and-sacrifice one, an
+					// ability that pays life (payment_plan.go
+					// paymentPlanManaUnitsOnlyCompute). The paired pain unit
+					// sits on the pass the source's census group is; a
+					// pain-only source's shape is its own ability's (Elves
+					// of Deep Shadow's {B} is deterministic, in the shared
+					// census)
+					want := 0
+					if choice {
+						want = 1
+					}
+					if s.painUnit(k, sl, pc, pass, pk, i, want) {
+						continue
+					}
 				}
 				if pc.manaDyn {
 					if pass != 2 {

@@ -782,6 +782,7 @@ PayBSubExileHand	untyped int	9
 PayBSubSacHost	untyped int	7
 PayBSubTrigNew	untyped int	3
 PayBSubTrigNewEvidence	untyped int	10
+PayBSubWaterbend	untyped int	12
 PayDiscard	untyped int	2
 PayDiscardHand	untyped int	11
 PayDiscardRandom	untyped int	10

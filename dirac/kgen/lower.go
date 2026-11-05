@@ -103,7 +103,7 @@ type lowerCtx struct {
 	firstCastSVar  string    // the SVar a static SpellCast StoreSVar of Count$YouCastThisGame writes (lower_firstcast.go)
 	firstCastTrig  int       // that trigger's index + 1: it lowers to nothing
 	stormTrig      int       // the K:Storm expansion trigger's index + 1: it lowers to nothing (lower_storm.go)
-	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff)
+	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff; Yue's hand population, playOwnHand)
 	animAll        bool      // lowering an AnimateAll: animateRemoveKeywords accepts a bare RemoveKeywords$ (gorge effAnimateAll reads it)
 	speedRepl      bool      // lowering a max-speed static's granted replacement: damagePlus reads ValidTarget$ Player.Opponent (lower_maxspeedrepl.go)
 	replEnter      bool      // inside an ETB replacement's ReplaceWith chain
@@ -126,6 +126,7 @@ type lowerCtx struct {
 	trigXMax       *lValue   // payInstr: the XMax$ cap of a trigger's own announced {X} cost (Shanna); nil = none read
 	trigRemX       bool      // the ImmediateTrigger's RememberSVarAmount$ X is the announced X (lower_zone.go immediateTrigger)
 	trigXPaid      bool      // the body's Count$xPaid is that announced X (set once the PayManaX cost lowered)
+	wbOK           bool      // costParts: a Waterbend<N> part may lower (an UnlessCost$ read by unless(); payInstr gates the shape)
 	unlessCost     bool      // payInstr: the cost is an UnlessCost$ of a non-delayed body
 	wardCost       bool      // payInstr: the cost is a Ward keyword's UnlessCost$
 	unlessSubs     []usGate  // UnlessResolveSubs$ gates awaiting their chain level's end (lower_unlesssubs.go)
@@ -1553,7 +1554,7 @@ func (lc *lowerCtx) costParts(c lCost) error {
 	if c.TapPowN != 0 {
 		return refuse("tap-any-number cost outside an activated ability")
 	}
-	if c.Waterbend != 0 {
+	if c.Waterbend != 0 && !lc.wbOK {
 		return refuse("waterbend cost outside an activated ability's own cost")
 	}
 	if c.ExileHandN != 0 {

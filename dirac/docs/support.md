@@ -13,7 +13,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | DFT | 276 | 247 | 0 | 23 | 224 |
 | DSK | 276 | 242 | 3 | 51 | 188 |
 | ECL | 273 | 233 | 2 | 41 | 190 |
-| EOE | 266 | 238 | 0 | 117 | 121 |
+| EOE | 266 | 238 | 0 | 0 | 238 |
 | FDN | 517 | 517 | 0 | 24 | 493 |
 | FIN | 312 | 266 | 2 | 19 | 245 |
 | FRA | 269 | 245 | 0 | 25 | 220 |
@@ -25,12 +25,12 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | SOS | 270 | 248 | 1 | 26 | 221 |
 | SPM | 192 | 160 | 1 | 23 | 136 |
 | TDM | 276 | 249 | 4 | 56 | 189 |
-| TLA | 285 | 249 | 2 | 62 | 185 |
+| TLA | 285 | 252 | 1 | 66 | 185 |
 | TMT | 194 | 171 | 1 | 10 | 160 |
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 13 | 239 |
-| ALL | 34442 | 21644 | 29 | 17121 | 4494 |
+| ALL | 34442 | 21647 | 28 | 17008 | 4611 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -48,7 +48,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | std-dft | 194 |
 | std-dsk | 105 |
 | std-ecl | 45 |
-| std-eoe | 10 |
+| std-eoe | 1500 |
 | std-fdn | 568 |
 | std-fin | 199 |
 | std-fra | 214 |
@@ -70,7 +70,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-29 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+28 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
@@ -80,7 +80,6 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Damage | 1 |
 | projection-Cards.Flags | 4 |
-| projection-Cards.Pos | 1 |
 | projection-Cards.Power | 2 |
 | projection-Cards.Zone | 1 |
 | projection-NStack | 2 |

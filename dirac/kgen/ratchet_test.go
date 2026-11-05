@@ -71,9 +71,18 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (White Lotus Hideout: a {T} {C} ability beside a restricted any-colour one and a {1},{T} filter; this branch; TLA 246 -> 247, ALL 21599 -> 21600).
 	// +2 (Baxter Building's four-mana combination filter and Haunted Screen's life-paid three-colour ability lower beside their first mana ability; msh-second-mana-ability; merged DSK 241 -> 242, MSH 228 -> 229, ALL 21630 -> 21632).
 	// +3 (the Taps watchers over your own and the equipped creature lower: Hawkeye's Bow (EquippedBy), Judge of Currents and Magda, Brazen Outlaw (YouCtrl); the AttachedBy aura family still refuses; this branch; merged MSH 230 -> 231, ALL 21636 -> 21639).
-	// +1 (the merge with land: this branch's anyRFiltMana lowers White Lotus Hideout's three-ability source, which land's refuseMultiMana refuses; merged TLA 248 -> 249, ALL 21643 -> 21644).
+	// +4 (No Witnesses' withMostTypeCreature investigate and the counted Num$ arm lower; on land, its line lost in land's rebase re-pins; this branch; merged MKM 234 -> 235, ALL 21565 -> 21569).
+	// +6 (the ExtTurnFaceUp effect turn-up, Urgent Necropsy's collect-evidence X, the each-target Aura-copy enchant ask and the DamageAll planeswalker/battle clause lower, with land's re-measure after its rebase; land; merged ALL 21573 -> 21579).
+	// +1 (Doomsday Excruciator: a RepeatEach player body's DigNum$ Count$ValidLibrary Card.RememberedPlayerCtrl/Minus.6 and its blind face-down exile; on land, its line lost in land's rebase re-pins; this branch; merged DSK 236 -> 237, ALL 21584 -> 21585).
+	// +1 (Worlds Within Worlds: a RepeatEach player body's hand move DefinedPlayer$ Remembered up to Count$ValidHand Creature.RememberedPlayerCtrl, and the remembered set's return from exile as the Return walk; on land, its line lost in land's rebase re-pins; this branch; merged MSH 226 -> 227, ALL 21585 -> 21586).
+	// +2 (Waterbending Lesson, The Unagi of Kyoshi Island: an UnlessCost$ Waterbend<N> and Ward:Waterbend<N>; this branch; merged TLA 246 -> 248, ALL 21595 -> 21597).
+	// +2 (the merge with land: this branch's UnlessCost$/Ward Waterbend<N> beside land's OptionalCost Waterbend<N> spell, whose two TLA cards land had already lowered; merged TLA 248 -> 250, ALL 21638 -> 21640).
+	// +3 (the merge with land: land's Taps watchers over your own and the equipped creature beside this branch's UnlessCost$/Ward Waterbend<N>; merged MSH 231 -> 232, ALL 21640 -> 21643).
+	// +2 (the merge with land: land's re-measure after its rebase (a TDM card and one more) beside this branch's Waterbend unless/ward cards, each side's two disjoint; merged TDM 248 -> 249, ALL 21643 -> 21645).
+	// +1 (the merge with land: land's Yue, the Moon Spirit free noncreature cast beside this branch's UnlessCost$/Ward Waterbend<N> cards, both sides' unrefusal of Airbender Ascension taken once; merged TLA 250 -> 251, ALL 21645 -> 21646).
+	// +1 (the merge with land: this branch's anyRFiltMana lowers White Lotus Hideout's three-ability source, which land's refuseMultiMana refuses; merged TLA 251 -> 252, ALL 21646 -> 21647).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21644, 34442},
+	"ALL": {21647, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -97,7 +106,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SOS": {248, 270},
 	"SPM": {160, 192},
 	"TDM": {249, 276},
-	"TLA": {249, 285},
+	"TLA": {252, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
 	"TRK": {311, 311},
