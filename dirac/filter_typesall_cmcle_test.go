@@ -31,8 +31,11 @@ func TestTypesAllCMCLEPredicate(t *testing.T) {
 	)
 	sc := newScenTableLib(t, tbl, CardID(0), Config{NoElide: true})
 	m := kop.TArtifact | kop.TCreature
-	sc.k.t.Filters = append(sc.k.t.Filters, kop.Filter{Types: m, Pred: kop.PredTypesAllCMCLE, PredN: int16(m), PredV: kop.Const(3)})
-	f := kop.FilterID(len(sc.k.t.Filters) - 1)
+	fCard := kop.FilterID(len(sc.k.t.Filters))
+	sc.k.t.Filters = append(sc.k.t.Filters,
+		kop.Filter{Types: m, Zone: kop.ZoneGraveyard, Pred: kop.PredTypesAllCMCLE, PredN: int16(m), PredV: kop.Const(3)},
+		kop.Filter{Types: m, Pred: kop.PredTypesAllCMCLE, PredN: int16(m), PredV: kop.Const(3)})
+	fPerm := fCard + 1
 
 	cases := []struct {
 		name string
@@ -50,12 +53,18 @@ func TestTypesAllCMCLEPredicate(t *testing.T) {
 	// against, and the two matching cards differ from the non-matching one
 	for _, c := range cases {
 		if got := int(sc.k.cards[c.c].total); got != c.mv {
-			t.Errorf("%s: cardMV = %d, want %d", c.name, got, c.mv)
+			t.Errorf("%s: printed mana value = %d, want %d", c.name, got, c.mv)
 		}
 	}
-	// the card path reads the printed types and printed mana value
+	// the card path reads the printed types and printed mana value, with the
+	// card where the target filter looks (its owner's graveyard)
 	for _, c := range cases {
-		if got := sc.s.matchCard(sc.k, f, c.c, 0, 0); got != c.want {
+		o := sc.obj(c.c, 0)
+		sc.s.place(o, kop.ZoneGraveyard, false)
+		if z := sc.s.objs[o].zone; z != kop.ZoneGraveyard {
+			t.Fatalf("%s: object is in zone %d, want the graveyard", c.name, z)
+		}
+		if got := sc.s.matchCardGen(sc.k, fCard, c.c, 0, 0, o); got != c.want {
 			t.Errorf("card path %s: got %v want %v", c.name, got, c.want)
 		}
 	}
@@ -66,7 +75,7 @@ func TestTypesAllCMCLEPredicate(t *testing.T) {
 		if c.want && printed&m != m {
 			t.Errorf("%s: battlefield types %#x lack %#x", c.name, printed, m)
 		}
-		if got := sc.s.matchPerm(sc.k, f, sc.slot(o), 0, NoSlot); got != c.want {
+		if got := sc.s.matchPerm(sc.k, fPerm, sc.slot(o), 0, NoSlot); got != c.want {
 			t.Errorf("battlefield path %s: got %v want %v (mv %d)", c.name, got, c.want, sc.s.cmcPerm(sc.k, sc.slot(o)))
 		}
 	}
