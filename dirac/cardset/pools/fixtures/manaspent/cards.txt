@@ -1,0 +1,13 @@
+# Carnelian Orb of Dragonkind (AddsKeywords$ Haste) and
+# (Pyromancer's Goggles' TriggersWhenSpent$ stays refused)
+# (dirac/oracle/manaspent_test.go)
+Carnelian Orb of Dragonkind
+Dragon Hatchling
+Hill Giant
+Grizzly Bears
+Flame Slash
+Lava Axe
+Shock
+Giant Growth
+Mountain
+Forest

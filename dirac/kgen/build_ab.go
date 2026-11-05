@@ -890,6 +890,13 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	if m.NonSpell {
 		ka.AFlags |= kop.AfManaNonSpell
 	}
+	if m.HasteValid != nil {
+		id, err := cb.filter(m.HasteValid, kop.ZoneStack)
+		if err != nil {
+			return err
+		}
+		ka.ManaHasteValid = id
+	}
 	return nil
 }
 

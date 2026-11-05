@@ -1346,6 +1346,9 @@ func (s *State) finishBuild(k *prep) {
 		if k.gen != nil && k.gen.anyFirstCast {
 			s.noteFirstCast() // cast_firstcast.go
 		}
+		if k.gen != nil && k.gen.anyManaHaste {
+			s.manaHasteRider(k) // mana_spentrider.go
+		}
 		s.onCast(k, &e)
 		s.conspireTrigger(k, &e)
 		s.casualtyTrigger(k, &e)
