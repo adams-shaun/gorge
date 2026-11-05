@@ -156,6 +156,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 			}
 		}
 		return true, true
+	case kop.ExtSearchCounters:
+		s.searchCounters(k, in) // ctr_search.go
+		return true, true
 	case kop.ExtEnterAttacking:
 		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
 			s.enterAttackingRepl(k, s.objs[o].slot, s.perms[s.objs[o].slot].ctrl) // repl_enterattacking.go

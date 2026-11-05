@@ -3099,6 +3099,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.C = kop.OpSaddle, int16(in.C) // C = 1: Solved
 	case "DigCounters":
 		ki.Op, ki.C = kop.OpDigCounters, int16(in.C)
+	case "SearchCounters":
+		// (Captain Jean-Luc Picard) OpExt ExtSearchCounters: B the amount
+		// (0 clears), C the kind; kgen emits it around the Search.
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtSearchCounters)), int16(in.C)
 	case "TakeInitiative":
 		ki.Op = kop.OpTakeInitiative
 		idx, ok := cb.pt.tokenIdx[in.CS]
