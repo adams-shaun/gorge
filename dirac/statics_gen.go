@@ -138,6 +138,13 @@ func (s *State) adjustCostGenB(k *prep, p uint8, c CardID, o, priced Obj, base k
 	if k.gen.anyRaise {
 		g += s.raiseCostGen(k, p, c, o, priced) // CR 601.2f: the raises, before the floor at zero
 	}
+	if cd.SpellWaterbend != 0 {
+		own := o
+		if own == NoObj {
+			own = priced
+		}
+		g += s.waterbendOwnPart(k, p, c, own) // the spell's own waterbend {N} (RaiseCost Cost$ Waterbend<N>)
+	}
 	if g < 0 {
 		if base.X != 0 {
 			base.XRed = uint8(min(-g, 255)) // CR 601.2f: the excess pays into {X}
@@ -297,7 +304,8 @@ func (s *State) mayPlayStatics(k *prep, p uint8, o Obj, f func(st statSrc) bool)
 	stopped := false
 	check := func(st statSrc) bool {
 		a := st.a
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom || !mayPlayFromZone(&a.Static, ob.zone) {
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom ||
+			a.Static.StFlags&kop.StFreeOnly == 0 && !mayPlayFromZone(&a.Static, ob.zone) {
 			return true
 		}
 		if a.Static.StFlags&kop.StSeatActive != 0 {

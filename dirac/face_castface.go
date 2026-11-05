@@ -60,6 +60,9 @@ func (s *State) faceCastable(k *prep, p uint8, o Obj, c CardID, sorc bool) bool 
 		if ok && DebugFacePoolOnly && !s.FeatPoolPays(p, o, 0) {
 			ok = false
 		}
+		if ok && s.cfg&cfgGorgeUnpriced != 0 && s.contribPays(k, p, c, o, ob.zone == kop.ZoneHand) && !s.FeatPoolPays(p, o, 0) {
+			ok = false // a granted-delve face is a "shape:contribution" the planner declines: only the floating pool casts it
+		}
 		if ok && s.cfg&cfgGorgeUnpriced != 0 && facePlannerLimited(k.t.Cards[c].FaceMode) && !s.FeatPoolPays(p, o, 0) {
 			if s.anySacSource(k, p) && !s.faceWitnessReaches(k, p, c, &cost) {
 				// The witness may sacrifice a source (a Treasure) the

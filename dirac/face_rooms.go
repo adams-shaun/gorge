@@ -224,7 +224,7 @@ func (s *State) offerUnlocks(k *prep, d *Decision, p uint8) {
 			if k.anyRoom {
 				cost = s.unlockReduced(k, p, sl, cost) // face_unlockdoor.go
 			}
-			if !s.poolPays(p, &cost) {
+			if !s.specialAffords(k, p, &cost, kop.SpmUnlock, sl, 0) {
 				continue
 			}
 			d.add(MakeAction(AkUnlock, uint8(pm.obj), 0, fi))
@@ -259,10 +259,10 @@ func (s *State) unlock(k *prep, o Obj, p uint8, fi uint8) {
 	if k.anyRoom {
 		cost = s.unlockReduced(k, p, sl, cost) // face_unlockdoor.go
 	}
-	if !s.poolPays(p, &cost) {
+	if !s.specialAffords(k, p, &cost, kop.SpmUnlock, sl, 0) {
 		return
 	}
-	s.payFromPool(p, &cost, 0)
+	s.paySpecial(k, p, &cost, kop.SpmUnlock, sl, 0)
 	s.touchSl(sl)
 	s.subscribe(sl, &k.cards[pm.card], false)
 	c := cd.Faces[kop.RoomState(cd.Face, m|1<<fi)]

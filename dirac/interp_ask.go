@@ -1383,6 +1383,12 @@ func (s *State) searchPick(k *prep) bool {
 	}
 	var d Decision
 	s.searchCands(k, &d)
+	if d.N == 0 && s.prog(k)[s.res.pc].B.N&kop.SrImprint != 0 {
+		// gorge effSearchLibrary's fail-to-find drops the resolution's remembered
+		// objects (zone_search.go, c.Remembered = nil): Sanar's later colour
+		// picks then see an empty set.
+		s.g.nrem = 0
+	}
 	if d.N == 0 || s.g.pickLeft == 0 {
 		s.finishSearchNow(k)
 		return true
@@ -1657,7 +1663,8 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.handExileLink(o) // until the source leaves (act_mayask.go)
 			}
 		}
-		s.forgetFound(k, o) // ForgetChanged$ (SrForgetChanged): the moved card leaves the remembered set
+		s.forgetFound(k, o)  // ForgetChanged$ (SrForgetChanged): the moved card leaves the remembered set
+		s.imprintFound(k, o) // Imprint$ (SrImprint): the moved card joins the chosen set
 		if z == kop.ZoneBattlefield && s.parkEnterDefender(tailSearchEnter) {
 			// the entry posed the CR 508.4 defender ask: the cards after it
 			// stay where they are until it is answered, as they do behind an

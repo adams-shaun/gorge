@@ -118,7 +118,28 @@ type Filter struct {
 	// at most one card per group (gorge eachAlternatives / EachTypeGroups).
 	// The match itself is the ordinary Or chain.
 	Each bool
+	// Special marks a RestrictValid$ Static.<tail> alternative: the CR 116.2
+	// special actions the clause admits. A clause with Special set never
+	// matches a spell or an activated ability (those match the spell half);
+	// the restricted-mana pool matches it against a special action's paid
+	// object. 0 for every ordinary card filter.
+	Special SpecialMask
 }
+
+// SpecialMask is a set of CR 116.2 special actions a RestrictValid$ Static.*
+// clause admits (gorge pay.Special).
+type SpecialMask uint8
+
+const (
+	SpmMorphUp SpecialMask = 1 << iota // Morph and Megamorph (Forge isMorphUp)
+	SpmDisguiseUp
+	SpmManifestUp
+	SpmCloakUp
+	SpmUnlock
+)
+
+// SpmTurnFaceUp is Forge's isTurnFaceUp: every turn-up procedure.
+const SpmTurnFaceUp = SpmMorphUp | SpmDisguiseUp | SpmManifestUp | SpmCloakUp
 
 // HybTwobrid marks Hyb[0] when the cost carries twobrid pips (ManaCost.Tb).
 // It is no colour mask: ManaCost.Resolve never sees it.

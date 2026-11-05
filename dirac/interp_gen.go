@@ -109,6 +109,7 @@ const (
 	ChGenKeepTapped                           // source = a tapped permanent whose controller may keep it tapped; mode 0 = untap it, 1 = keep it tapped (gorge's untap-step KChoose "untap" / "keep_tapped", CR 502.3; repl_untapchoice.go)
 	ChGenName                                 // mode = the CardID of the nonland card whose name a permanent chooses as it enters (gorge's ETB "name" option; repl_choosename.go)
 	ChGenConspire                             // source = a creature tapped for conspire (gorge conspireAsk's KChoose "conspire", Min=Max=2, CR 702.78a); two sequential picks; kw_conspire.go
+	ChGenDelve                                // source = a graveyard card exiled toward a granted-delve cast's generic cost, one pick per decision (gorge delveAsk's multi-pick KChoose; kw_delve.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -1764,7 +1765,11 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 		fz := kop.Zone(in.C & 7)
 		rz := kop.Zone(fl & 7)
 		entering := fz == kop.ZoneBattlefield && fl&kop.DuFoundWithRevealed == 0
-		if !entering {
+		// a library reveal with no bottom position leaves the revealed cards
+		// where they are (gorge effDigUntil's stay-in-place arm: no reorder,
+		// no RNG draw)
+		stay := rz == kop.ZoneLibrary && fl&kop.DuRestBottom == 0 && !entering
+		if !entering && !stay {
 			s.digPop(pl, nr+nf, rev[:nr], fnd[:nf])
 		}
 		if !resumed {
@@ -1824,7 +1829,7 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 		if entering {
 			s.digPop(pl, nr, rev[:nr], nil)
 		}
-		if fl&kop.DuRandomOrder != 0 {
+		if fl&kop.DuRandomOrder != 0 && !stay {
 			// gorge's DigUntil: a forward Fisher-Yates drawing once per
 			// position (len(rest) draws, the last one Rand(1))
 			for i := 0; i < nr; i++ {
@@ -1832,7 +1837,7 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 				rev[i], rev[j] = rev[j], rev[i]
 			}
 		}
-		for i := 0; i < nr; i++ {
+		for i := 0; i < nr && !stay; i++ {
 			o := rev[i]
 			if rz == kop.ZoneLibrary {
 				if s.objs[o].zone == kop.ZoneLibrary {

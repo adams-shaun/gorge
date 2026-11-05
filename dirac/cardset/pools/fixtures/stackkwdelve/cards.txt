@@ -1,0 +1,25 @@
+# the granted-Delve pool: Teval, Arbiter of Virtue ("spells you cast have
+# delve") beside large generic costs, cheap graveyard fillers, mana artifacts
+# and basics (dirac/oracle/stackkwdelve_test.go, dirac/kw_delve_test.go)
+Teval, Arbiter of Virtue
+Shivan Dragon
+Air Elemental
+Mahamoti Djinn
+Giant Spider
+Hill Giant
+Gray Ogre
+Grizzly Bears
+Walking Corpse
+Opt
+Shock
+Brainstorm
+Impulse
+Divination
+Iridescent Tiger
+Mind Stone
+Sol Ring
+Island
+Swamp
+Forest
+Mountain
+Plains

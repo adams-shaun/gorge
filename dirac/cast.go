@@ -139,7 +139,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		if !s.poolRPays(k, p, c, o) {
 			s.lowerWitness(k, p)
 		}
-	} else if !(k.gen != nil && s.tapPays(k, p, c, o, ob.zone == kop.ZoneHand)) && mode&(castFace|castFaceDown|castWarpRecast) == 0 && (s.cfg&cfgGorgeLowering != 0 && mode&3 == 0 && mode != castFree && ob.zone == kop.ZoneHand ||
+	} else if !(k.gen != nil && s.contribPays(k, p, c, o, ob.zone == kop.ZoneHand)) && mode&(castFace|castFaceDown|castWarpRecast) == 0 && (s.cfg&cfgGorgeLowering != 0 && mode&3 == 0 && mode != castFree && ob.zone == kop.ZoneHand ||
 		s.cfg&(cfgGorgeLowering|cfgGorgeAutopay) != 0 && (mode&castMayPlay != 0 && mode&castFree == 0 || mode&3 == 2)) &&
 		(typed || fl&sfFbGranted != 0 || !s.plannedUnderRider(p, o, mode&3)) {
 		// the oracle lowers a cast from the hand gorge's cast planner never
@@ -342,7 +342,7 @@ func (s *State) syncBuild() {
 // these rows. A triggered ability is pushed by takePending before its
 // program starts.
 var buildProgram = [3][]uint8{
-	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsConspire, bsConvoke, bsX, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
+	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seAbility: {bsPush, bsModes, bsTapCost, bsX, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seTrigger: {bsModes, bsPips, bsTargets, bsDivide, bsPay},
 }
@@ -416,6 +416,10 @@ func (s *State) buildCostCharge(k *prep) kop.ManaCost {
 }
 
 func (s *State) buildCostResolve(k *prep, charge bool) kop.ManaCost {
+	return s.delveApplyPicks(k, s.buildCostResolve0(k, charge)) // (the fixedGen cache holds the pre-credit generic)
+}
+
+func (s *State) buildCostResolve0(k *prep, charge bool) kop.ManaCost {
 	s.bld().bfl |= bflCostComp // gorge withCostCompositionEvent: a pushed spell's own push is hidden while its cost is composed
 	c, tbDone := s.buildCostPre(k, true)
 	if s.bld().bfl&bflCostFixed != 0 {
@@ -474,6 +478,9 @@ func (s *State) buildCostPre(k *prep, pre bool) (kop.ManaCost, bool) {
 	}
 	if k.gen != nil {
 		if c, done, ok := s.buildCostGenPre(k, pre); ok {
+			if k.gen.anyWaterbend && k.t.Cards[s.bld().e.card].SpellWaterbend != 0 {
+				c = s.waterbendApplyPicks(c) // a spell's own waterbend (act_waterbend.go)
+			}
 			return c, done
 		}
 	}
@@ -530,6 +537,9 @@ func (s *State) buildCostPre(k *prep, pre bool) (kop.ManaCost, bool) {
 		if s.statM.any() || k.gen != nil {
 			c = s.adjustCost(k, e.ctrl, e.card, e.obj, c)
 		}
+		if k.gen != nil && k.gen.anyWaterbend && cd.SpellWaterbend != 0 {
+			c = s.waterbendApplyPicks(c) // a spell's own waterbend (act_waterbend.go)
+		}
 		return c, done
 	case seAbility:
 		c := k.t.Cards[e.card].Abilities[e.ab].Cost.Mana
@@ -581,7 +591,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.pushBuild(k)
 			}
 			if e.faceDown() {
-				s.toStage(k, bsMana) // CR 601.2: no modes, alt cost, gift, tap, X, pips, targets or divide
+				s.toStage(k, bsDelve) // CR 601.2: no modes, alt cost, gift, tap, X, pips, targets or divide; a granted delve still applies, then bsMana
 			} else {
 				s.nextStage(k)
 			}
@@ -635,6 +645,12 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				return true
 			}
 			s.nextStage(k)
+			continue
+		case bsDelve:
+			if s.delveOptions(k, d) {
+				return true
+			}
+			s.endDelveStage(k)
 			continue
 		case bsX, bsX | 0x80: // posing the X ask again (a re-step) poses the same ask
 			if e.kind == seTrigger {
@@ -1111,6 +1127,10 @@ func (s *State) applyBuild(k *prep, a Action) {
 			s.answerCostObj(a)
 			return
 		}
+		if s.bld().stage == bsDelve {
+			s.answerDelvePick(a)
+			return
+		}
 		if s.bld().stage == bsConvoke {
 			s.bld().pickK = convokePickMask | pickKind(a.Mode()&7)
 			s.bld().pickLeft = 1
@@ -1147,6 +1167,10 @@ func (s *State) applyBuild(k *prep, a Action) {
 		if s.bld().stage == bsConvoke {
 			s.bld().pickK = 0
 			s.nextStage(k)
+			return
+		}
+		if s.bld().stage == bsDelve {
+			s.endDelveStage(k)
 			return
 		}
 		if s.bld().stage == bsEvidence {
@@ -1250,6 +1274,11 @@ func (s *State) finishBuild(k *prep) {
 		// a window that went on after its tap-another pick (bflPayDone) found the cost's
 		// other payments made
 		payDone := s.bld().bfl&bflPayDone != 0
+		_, wbSpell := s.waterbendPartFor(k, &e)
+		if wbSpell && s.waterbendTargetAbort(k) {
+			s.spreeCastWindowAbort(k) // the picks left the cost unpayable: the window taps as it walks, then aborts (CR 733.1)
+			return
+		}
 		if !payDone {
 			s.payCastParts(k, &e, anyColor)
 		}
@@ -1279,7 +1308,7 @@ func (s *State) finishBuild(k *prep) {
 			if !s.loweredWindowOK(k, e.ctrl, &xc, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0) || s.winPaused() {
 				return // stranded: the cast was reversed; or the window waits on a tap-another pick
 			}
-		} else if k.t.Cards[e.card].HasModeCost && cost.X == 0 {
+		} else if (k.t.Cards[e.card].HasModeCost || wbSpell) && cost.X == 0 {
 			// gorge's planner declines a Spree face ("shape:modal_cost"):
 			// it pays through the mana window (kw_spree.go)
 			s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0)
@@ -1291,8 +1320,12 @@ func (s *State) finishBuild(k *prep) {
 		if s.winPaused() {
 			return // a free or Spree cast's window waits on a tap-another pick (mana_window.go)
 		}
+		s.payDelvePicks() // gorge payCast exiles the delved cards after the mana
 		s.paySacsGen(k)
 		s.bld().e.flags &^= sfFbGranted
+		if wbSpell && s.bld().bfl&bflPushed != 0 {
+			s.payWaterbend(k) // the announced taps, after the mana (act_waterbend.go)
+		}
 		s.syncBuild()
 		if e.mode&modeBestowed != 0 && e.bestowedEntry() {
 			s.bestowPaid(&e) // gorge's pay-time FlagBestowed (kw_bestow.go)

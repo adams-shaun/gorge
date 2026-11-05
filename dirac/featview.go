@@ -339,15 +339,19 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 		// flashback Inspiration from Beyond
 		cost = s.adjustFit(k, &a, p&1, c, o, cost, false) // a twobrid cost is priced on the face the pool pays
 	}
+	if k.gen != nil && k.t.Cards[c].SpellWaterbend != 0 {
+		cost = s.waterbendSpellCredit(k, p&1, c, o, cost) // act_waterbend.go
+	}
 	if mode&2 != 0 && k.t.Cards[c].Harmonize {
 		cost = s.harmonizeCredit(k, p&1, cost) // gorge harmonizePayment prices the offer after the reductions
 	}
 	if cd := &k.t.Cards[c]; cd.HasAltAdd && mode&2 == 0 {
+		pre := cost
 		// gorge's gate is existential over the either-or parts: one whose
 		// picks can be paid and whose mana the pool pays with the spell's
 		ac := spellAddCost(k, c)
 		if s.pickCostPayable(k, p&1, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(pl.handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p&1, c, o) {
-			if t := addCost(cost, ac.Mana); a.affords(&t, pipMaskOf(&t), 0) {
+			if t := s.delveOfferCredit(k, p&1, c, o, true, addCost(pre, ac.Mana)); a.affords(&t, pipMaskOf(&t), 0) {
 				return true
 			}
 		}
@@ -355,6 +359,9 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 			return false
 		}
 		cost = addCost(cost, cd.AltAddCost.Mana)
+	}
+	if mode&4 == 0 {
+		cost = s.delveOfferCredit(k, p&1, c, o, mode&2 == 0, cost)
 	}
 	return a.affords(&cost, pipMaskOf(&cost), 0)
 }
@@ -537,7 +544,7 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 	refused := planNeverPricesCore(k, c, hyb, composed, false) || s.boardLifeTgtDep(k, p, c, o)
 	optRefused := k.gen != nil && k.gen.anyOptCost && optCostCard(k, c)
 	spendRefused := !composed && k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k)
-	tapRefused := !refused && !optRefused && !spendRefused && s.tapPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand)
+	tapRefused := !refused && !optRefused && !spendRefused && s.contribPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand)
 	if refused || optRefused || spendRefused || tapRefused {
 		// gorge's planner declines the shape (modal_cost, additional_cost,
 		// optional_cost, mana_spent_reader, contribution, target_dependent_cost)
@@ -590,7 +597,7 @@ func planNeverPricesOf(k *prep, c CardID, hyb, composed bool) bool {
 // life/energy additional cost, a mana-spent read, a target-dependent price.
 func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 	cd := &k.t.Cards[c]
-	if cd.BeholdExile || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !hyb && !cd.Cost.Phyrexian() ||
+	if cd.BeholdExile || cd.SpellWaterbend != 0 || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !hyb && !cd.Cost.Phyrexian() ||
 		!modal && (cd.HasAltAdd || cd.AltAddOne || cd.HasModeCost || !composed && (cd.SpendRead || cd.SpentSelf)) {
 		return true // (a hybrid cost: the planner's "cost:hybrid"; a Phyrexian one is priced by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold")
 	}
@@ -684,16 +691,26 @@ func (s *State) activationReduced(k *prep, a *kop.Ability, o Obj) kop.ManaCost {
 
 // affordsUngrantedFor: p's pool and untapped printed mana sources (not ex) afford
 // cost, for the payment d describes: the restricted sources it may spend count
-// too (pdNone: none).
+// too, as does the floating restricted mana that payment may spend (gorge's
+// planner pool for it is AvailableFor, which holds the batches RestrictValidMatches
+// admits; pdNone: none).
 func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc) bool {
 	var av avail
 	var ms modalSet
 	s.ungrAvail(k, p, ex, &av, &ms)
+	rm := s.restrFloatAdmits(k, p&1, &d)
 	// restrSrcNone precondition: restrSrcAffords runs only once av.affords failed (||).
 	for c := 0; c < 1<<ms.n; c++ {
 		b := ms.modes(av, c)
 		if b.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, p&1, d, cost, &b, ex, 0) {
 			return true
+		}
+		if rm != 0 {
+			t := b
+			s.restrAvailAdd(p&1, rm, &t)
+			if t.affords(cost, pipMaskOf(cost), 0) {
+				return true
+			}
 		}
 	}
 	return false

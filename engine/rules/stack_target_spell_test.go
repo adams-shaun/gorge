@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -461,11 +462,11 @@ func TestTargetZonesChangeZoneOriginTable(t *testing.T) {
 		{"Any-targeted likewise", "A:AB$ ChangeZone | Origin$ Graveyard | Destination$ Hand | ValidTgts$ Any", []state.Zone{state.ZBattlefield}},
 		{"origin Any", "A:AB$ ChangeZone | Origin$ Any | Destination$ Hand | ValidTgts$ Card", []state.Zone{state.ZBattlefield}},
 		{"origin All", "A:AB$ ChangeZone | Origin$ All | Destination$ Hand | ValidTgts$ Card", []state.Zone{state.ZBattlefield}},
-		{"multi-zone origin without inZone alternatives", "A:AB$ ChangeZone | Origin$ Graveyard,Hand | Destination$ Hand | ValidTgts$ Card", []state.Zone{state.ZBattlefield}},
+		{"multi-zone origin without inZone alternatives names every origin zone", "A:AB$ ChangeZone | Origin$ Graveyard,Hand | Destination$ Hand | ValidTgts$ Card", []state.Zone{state.ZGraveyard, state.ZHand}},
 		{"battlefield-and-stack origin attributes the unmarked alternative", "A:SP$ ChangeZone | Origin$ Battlefield,Stack | Destination$ Library | ValidTgts$ Creature,Card.inZoneStack", []state.Zone{state.ZBattlefield, state.ZStack}},
 		{"sudden-setback-shaped origin attributes the unmarked alternative", "A:SP$ ChangeZone | Origin$ Battlefield,Stack | Destination$ Library | ValidTgts$ Permanent.nonLand,Card.inZoneStack", []state.Zone{state.ZBattlefield, state.ZStack}},
-		{"stack origin with two other zones leaves the alternative unattributed", "A:SP$ ChangeZone | Origin$ Battlefield,Stack,Graveyard | Destination$ Library | ValidTgts$ Creature,Card.inZoneStack", []state.Zone{state.ZBattlefield}},
-		{"multi-zone alternative lacks zone", "A:SP$ ChangeZone | Origin$ Graveyard,Exile | ValidTgts$ Instant.inZoneGraveyard,Card", []state.Zone{state.ZStack}},
+		{"stack origin with two other zones attributes the unmarked alternative to both", "A:SP$ ChangeZone | Origin$ Battlefield,Stack,Graveyard | Destination$ Library | ValidTgts$ Creature,Card.inZoneStack", []state.Zone{state.ZBattlefield, state.ZGraveyard, state.ZStack}},
+		{"multi-zone alternative lacks zone", "A:SP$ ChangeZone | Origin$ Graveyard,Exile | ValidTgts$ Instant.inZoneGraveyard,Card", []state.Zone{state.ZGraveyard, state.ZExile}},
 		{"multi-zone filter outside origin", "A:SP$ ChangeZone | Origin$ Graveyard,Exile | ValidTgts$ Instant.inZoneBattlefield", []state.Zone{state.ZStack}},
 		{"multi-zone unknown filter zone", "A:SP$ ChangeZone | Origin$ Graveyard,Exile | ValidTgts$ Instant.inZoneUnknown", []state.Zone{state.ZStack}},
 		{"unknown explicit TgtZone blocks inference", "A:SP$ ChangeZone | TgtZone$ Unknown | Origin$ Graveyard,Exile | ValidTgts$ Instant.inZoneGraveyard,Card.withFlashback+inZoneExile", []state.Zone{state.ZBattlefield}},
@@ -475,7 +476,7 @@ func TestTargetZonesChangeZoneOriginTable(t *testing.T) {
 	for _, tc := range cases {
 		c := card(t, "Name:T\nTypes:Creature\n"+tc.sa+"\nOracle:x\n")
 		got := targetZones(c.Faces[0].Abilities[0])
-		if len(got) != len(tc.want) || got[0] != tc.want[0] {
+		if !slices.Equal(got, tc.want) {
 			t.Errorf("%s: targetZones = %v, want %v", tc.name, got, tc.want)
 		}
 	}

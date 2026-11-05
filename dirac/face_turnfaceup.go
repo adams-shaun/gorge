@@ -131,8 +131,9 @@ func turnUpHybOK(cost *kop.ManaCost) bool {
 
 // turnUpHybResolve resolves cost's hybrid pips against the floating pool the
 // way the payment search does (hybWitness: the first resolution the pool
-// affords), so payFromPool spends plain pips. The caller proved poolPays.
-func (s *State) turnUpHybResolve(p uint8, cost kop.ManaCost) kop.ManaCost {
+// affords), so the payment spends plain pips. The caller proved
+// specialAffords (mana_specialaction.go).
+func (s *State) turnUpHybResolve(p uint8, cost kop.ManaCost, extra int) kop.ManaCost {
 	pl := &s.pl[p&1]
 	var a avail
 	for c := 0; c < kop.NumManaKinds; c++ {
@@ -140,5 +141,59 @@ func (s *State) turnUpHybResolve(p uint8, cost kop.ManaCost) kop.ManaCost {
 			a.addUnits(1<<c, pl.pool[c])
 		}
 	}
-	return a.hybWitness(cost, 0)
+	return a.hybWitness(cost, extra)
+}
+
+// turnUpMaxX is the largest X the special action's mana — the floating pool
+// with the restricted batches its restriction admits — pays for a keyword
+// turn-up (gorge turnUpXAsk's bound, no reductions), -1 when none.
+func (s *State) turnUpMaxX(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot) int {
+	pl := &s.pl[p&1]
+	bound := int(cost.Generic) + int(cost.X) + 1
+	for c := 0; c < kop.NumManaKinds; c++ {
+		bound += int(pl.pool[c])
+	}
+	if m := s.restrPoolSpecial(k, p, sp, sl); m != 0 {
+		for i := range s.rb[p&1] {
+			b := &s.rb[p&1][i]
+			if b.kind == 0 {
+				break
+			}
+			if m&(1<<i) != 0 {
+				bound += int(b.units())
+			}
+		}
+	}
+	bound = min(bound, 255)
+	best := -1
+	for x := 0; x <= bound; x++ {
+		if s.specialAffords(k, p, cost, sp, sl, x) {
+			best = x
+		}
+	}
+	return best
+}
+
+// turnUpOffered: the special action's mana pays the turn-up (a keyword cost
+// with {X} at some announced X).
+func (s *State) turnUpOffered(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot, kw bool) bool {
+	if kw && cost.X > 0 {
+		return s.turnUpMaxX(k, p, cost, sp, sl) >= 0
+	}
+	return s.specialAffords(k, p, cost, sp, sl, 0)
+}
+
+// applyTurnUpX takes the announced X of a parked keyword turn-up.
+func (s *State) applyTurnUpX(k *prep, a Action) {
+	p, mode, o := s.g.pickP, s.g.pickZ, Obj(s.g.pickF)
+	s.ctl = ctlPriority
+	s.settleTurnUp(k, o, p, mode, int(a.Mode()))
+}
+
+// turnUpXOptions poses the X ask of a parked keyword turn-up.
+func (s *State) turnUpXOptions(d *Decision) {
+	d.Kind, d.Sub, d.Player = DkChoose, ChX, s.g.pickP
+	for x := 0; x <= int(s.g.pickLeft); x++ {
+		d.add(MakeAction(AkChoose, 0, 0, uint8(x)))
+	}
 }
