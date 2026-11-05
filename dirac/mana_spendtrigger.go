@@ -20,6 +20,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 const (
 	csTreasure uint8 = 1 << iota
 	csObserved
+	csManaHaste // a ManaHasteValid rider's source (mana_spentrider.go)
 )
 
 // prepManaSrc sets the reader's per-card marks and genPrep.castTapOn.
@@ -31,6 +32,10 @@ func prepManaSrc(t *kop.Table, g *genPrep, p *prep) {
 			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigSpellCast && a.Trig.Flags2&kop.Tf2ManaFromSelf != 0 {
 				p.cards[c].castSrc |= csObserved
 				g.castTapOn = true
+			}
+			if a.Kind == kop.AbMana && a.ManaHasteValid != 0 {
+				p.cards[c].castSrc |= csManaHaste
+				g.castTapOn, g.anyManaHaste = true, true
 			}
 			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigSpellCast && a.Trig.Flags3&kop.Tf3ManaFromTreasure != 0 {
 				tre = true
@@ -59,6 +64,9 @@ func (s *State) noteTapSrc(k *prep, pc *pcard, sl Slot) {
 			return
 		}
 		s.bld().obsSl = sl + 1
+	}
+	if pc.castSrc&(csManaHaste|csObserved) == csManaHaste {
+		s.noteHasteSrc(k, sl) // mana_spentrider.go
 	}
 }
 
