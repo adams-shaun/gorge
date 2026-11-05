@@ -25,6 +25,9 @@ experiments live in a private companion module.
 | `pkgmap` | The package map for the docs site; `-check` (a pre-commit hook) fails on an unclassified package. |
 | `codeshape` | Prints `internal/codeshape`'s metrics. |
 | `deckimport` | Plain-text decklist → repo deck JSON. |
+| `kcensus` | Mechanic census over a deck pool: which primitives each distinct card reaches, and the smallest mechanic set that covers successively larger shares of the pool's decks. |
+| `spellbench-gorge-env` | The SpellBench Protocol v2 environment role over stdio, over `server/spellbench`'s catalog, mapping, session and validation. |
+| `spellbench-gorge-agent` | The SpellBench Protocol v2 agent role over stdio: serves gorge's registered bot policies. |
 | `keywordbench` / `paymirror` | Keyword presence stats / payment A/B CLI. |
 
 The compliance commands (`oraclediff`, `compliance`, `xmageport`, `oraclepacket`) live in gorge-compliance's `cmd/`.
@@ -41,8 +44,8 @@ The compliance commands (`oraclediff`, `compliance`, `xmageport`, `oraclepacket`
 | `docs/site/` | The public MkDocs site (`mkdocs.yml`); `docs/site/architecture/packages.tiers.json` classifies every package. |
 | `docs/agents/` | This guide. |
 | `.githooks/` | pre-commit and pre-merge-commit (run `pkgmap-check`), pre-push (the opt-in `RACE=1` race gate on a push of main) (`core.hooksPath=.githooks`). |
-| `scripts/` | Contributor/CI only: `ci_shard.sh`, `smoke.sh`, `enginebench-*.sh`, `hostbench-pair.sh`, `docs_sets.py`. |
-| `.github/workflows/` | `ci.yml`; `docs.yml` (builds the site, regenerates the package map); `coverage.yml` (on push to main: `make coverage`, publishes `.coverage/` as the `card-coverage` artifact; commits nothing). |
+| `scripts/` | Contributor/CI only: `ci_shard.sh`, `smoke.sh`, `enginebench-*.sh`, `hostbench-pair.sh`, `xengine-bench.sh`, `wire-matrix.sh`, `open-pr.sh` (`make pr`), `dirac-gate.sh`, `dirac-evidence.sh`, `dirac-first-refusals.py`, `docs_sets.py`. |
+| `.github/workflows/` | `ci.yml`; `docs.yml` (builds the site, regenerates the package map); `coverage.yml` (on push to main: `make coverage`, publishes `.coverage/` as the `card-coverage` artifact; commits nothing); `demo-image.yml` (builds the container demo image on a push to main, and pushes it only when the registry secrets are set). |
 | `testkit/testutil/testdata/wall_exceptions.txt`, `rss_exceptions.txt` | Shrink-only inventories of tests over the per-test wall / RSS budget. |
 
 ## Untracked but load-bearing

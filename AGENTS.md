@@ -13,10 +13,11 @@ into an IR; the engine implements the primitives that IR references. See
   engine through, and `seat`, the `Seat` contract only). Imports nothing outside.
 - `dirac/`: the second engine, in lockstep with `engine/` and built for machine
   learning: `kop cardset vanilla feat crcoverage search/{hbot,mull}`, `oracle` (which
-  plays it against `engine/rules`; `oracle/cmd/{kfuzz,khbot,ksbt}`), `kgen` and
-  `cmd/{kgen,dplay,sbv2dirac}`. The core imports nothing outside `dirac/`; nothing in
-  `engine/` imports it. See [`dirac/README.md`](dirac/README.md).
-- `server/`: `gorged` (the importable server; `cmd/gorged` is its thin main), `host` (+`httpapi`, `manabrewhttp`), `protocol`, `manabrew`, `divergence`.
+  plays it against `engine/rules`; `oracle/cmd/{kfuzz,khbot,ksbt}`), `kgen`,
+  `adapter`, `canon`, `support` and `cmd/{kgen,dplay,sbv2dirac}`. The core imports
+  nothing outside `dirac/`; nothing in `engine/` imports it. See
+  [`dirac/README.md`](dirac/README.md).
+- `server/`: `gorged` (the importable server; `cmd/gorged` is its thin main), `host` (+`httpapi`, `manabrewhttp`), `protocol`, `manabrew`, `divergence`, `matchrecord`, `spellbench`.
 - `bots/`: `botpolicy`, `heuristic` (the default bot), the registry, hosted bots and their inference runtime.
 - `cmd/`: product and developer tools. `internal/`: ratchets, test support, generators.
 - `draft/`: the limited stack (`limited`, `event`, `eventhost`, `gorgedevents`, `draftlab`); `cmd/gorged` links it.
