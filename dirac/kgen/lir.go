@@ -884,6 +884,7 @@ type lCard struct {
 	Sneak          *manaCost // K:Sneak:<cost> (CR 702.190a): the declare-blockers alternative cost (plus the return)
 	WebSling       *manaCost // K:Web-slinging:<cost> (CR 702.188a): the hand's alternative cost (plus returning a tapped creature)
 	MayFlash       *manaCost // K:MayFlashCost:<cost> (CR 702.8): the extra mana that buys an instant-timing cast from the hand
+	MayFlashBehold *lFilter  // K:MayFlashCost:Behold<1/Type>: the extra is beholding one of these, no mana (MayFlash is empty)
 	Evoke          *manaCost // K:Evoke:<cost> (CR 702.74a): the hand's alternative cost; the permanent is sacrificed as it enters
 	Bestow         *manaCost // K:Bestow:<cost> (CR 702.103a): the hand's alternative cost of the Aura cast
 	BestowT        *lTarget  // the bestowed Aura's enchant creature target (gorge bestowedAttachSA)

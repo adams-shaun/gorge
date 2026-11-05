@@ -380,6 +380,10 @@ type CardDef struct {
 	HasMayFlash bool
 	// MayFlashCost is the extra mana the may-flash cast adds (HasMayFlash).
 	MayFlashCost ManaCost
+	// MayFlashBehold: the may-flash extra is Behold<1/Type> (Molten
+	// Exhale), no mana: the cast is offered only with a candidate and owes
+	// the behold (BeholdN/BeholdF) in its cost-pick stage (kw_mayflash.go).
+	MayFlashBehold bool
 	// HasEvoke is printed evoke (CR 702.74a; no KwMask bit is free): the
 	// hand offers the evoked cast at EvokeCost (gorge's "evoked" option,
 	// FlagEvoked), and a permanent cast that way queues a mandatory
