@@ -421,6 +421,9 @@ const (
 	rbDrawMore                        // ReplDrawMore (repl_draw.go)
 	rbPlusCtrEOT                      // Ext CounterPlusEOT: the table can put one more of each kind for a player until end of turn (anyRepl only; ctr_pluseot.go)
 	rbDestroyHeal                     // ReplDestroyHeal (repl_destroyheal.go)
+	rbPrevDmgTo                       // CardDef.PreventDmgTo: every damage event to the permanent is prevented (combat_prevention.go)
+	rbPrevCombatTo                    // CardDef.PreventCombatTo: its combat damage events are prevented (combat_prevention.go)
+	rbPrevCombatBy                    // CardDef.PreventCombatBy: the combat damage it would deal is prevented (combat_preventfrom.go)
 	rbDiscETB                         // ReplDiscardOppToBattlefield (repl_discardetb.go)
 )
 
@@ -436,10 +439,23 @@ type grantRef struct {
 // override took away.
 var noManaPC = pcard{manaAb: -1}
 
+// tableHasPrevent reports whether any card carries a printed K:Prevent damage
+// fact (CardDef.Prevent*), which prepareGen must carry in replBits even on an
+// otherwise featureless table.
+func tableHasPrevent(t *kop.Table) bool {
+	for i := range t.Cards {
+		c := &t.Cards[i]
+		if c.PreventDmgTo || c.PreventCombatTo || c.PreventCombatBy {
+			return true
+		}
+	}
+	return false
+}
+
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) {
 		return nil
 	}
 	enteredNeed := false
@@ -452,6 +468,19 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		enteredNeed: enteredNeed,
 		flags:       make([]uint32, len(t.Cards)),
 		replBits:    make([]uint32, len(t.Cards)),
+	}
+	for i := range t.Cards {
+		// the printed K:Prevent facts (dirac/kgen/lower_preventkw.go)
+		c := &t.Cards[i]
+		if c.PreventDmgTo {
+			g.replBits[i] |= rbPrevDmgTo
+		}
+		if c.PreventCombatTo {
+			g.replBits[i] |= rbPrevCombatTo
+		}
+		if c.PreventCombatBy {
+			g.replBits[i] |= rbPrevCombatBy
+		}
 	}
 	for i, n := range t.Subtypes {
 		if creatureTypeWords[n] {
@@ -1236,7 +1265,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	// a filter a reducer takes to nothing is the source's own mana (mana_filterfree.go)
 	prepFiltFree(t, g, p)
 	g.anyScriptGap = g.anyEachCol || g.anyRestrScript || g.anyAnyR || g.anyFilt || p.tapMana // (a tap-another-permanent mana gap: mana_tapanother.go)
-	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom)
+	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
 	prepInfect(t, g)
 	prepPoison(t, g)
