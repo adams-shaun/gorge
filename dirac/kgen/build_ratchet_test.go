@@ -170,14 +170,16 @@ import (
 // +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; ALL build-level 21564 -> 21569).
 // +1 (Molten Exhale: a may-flash extra that is a behold, CardDef.MayFlashBehold; ALL build-level 21569 -> 21570).
 // +2 (Baxter Building's four-mana combination filter and Haunted Screen's life-paid three-colour ability lower beside their first mana ability; msh-second-mana-ability; merged ALL build-level 21630 -> 21632).
+// +3 (the Taps watchers over your own and the equipped creature lower: Hawkeye's Bow (EquippedBy), Judge of Currents and Magda, Brazen Outlaw (YouCtrl); the AttachedBy aura family still refuses; this branch; merged ALL build-level 21636 -> 21639).
 // +4 (No Witnesses: the withMostTypeCreature investigate and the counted Num$ arm lower; on land, its line lost in land's rebase re-pins; this branch; merged ALL build-level 21565 -> 21569).
 // +6 (the ExtTurnFaceUp effect turn-up, Urgent Necropsy's collect-evidence X, the each-target Aura-copy enchant ask and the DamageAll planeswalker/battle clause lower, with land's re-measure after its rebase; land; merged ALL build-level 21573 -> 21579).
 // +1 (Doomsday Excruciator: a RepeatEach player body's library count and blind face-down Dig; on land, its line lost in land's rebase re-pins; this branch; merged ALL build-level 21584 -> 21585).
 // +1 (Worlds Within Worlds: a RepeatEach player body's per-player hand move; on land, its line lost in land's rebase re-pins; this branch; merged ALL build-level 21585 -> 21586).
 // +2 (Waterbending Lesson, The Unagi of Kyoshi Island: an UnlessCost$ Waterbend<N> and Ward:Waterbend<N>; this branch; merged TLA 246 -> 248, ALL 21595 -> 21597).
 // +2 (the merge with land: this branch's UnlessCost$/Ward Waterbend<N> beside land's OptionalCost Waterbend<N> spell, whose two TLA cards land had already lowered; merged TLA 248 -> 250, ALL build-level 21638 -> 21640).
+// +3 (the merge with land: land's Taps watchers over your own and the equipped creature beside this branch's UnlessCost$/Ward Waterbend<N>; merged MSH 231 -> 232, ALL build-level 21640 -> 21643).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21640, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21643, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
