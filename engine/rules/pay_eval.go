@@ -110,3 +110,29 @@ func (pe *payer) SearchScratch() *pay.SearchScratch {
 	e := (*Engine)(pe)
 	return &e.hypPool().planSearch
 }
+
+// PlanScratch (pay.Engine) is the payment planner's table storage, recycled
+// through the engine family's spare pool next to planSearch. A take pops the
+// pool's top scratch (nil when empty: the caller allocates fresh and
+// PutPlanScratch primes the pool), so a nested take cannot hand out a live
+// one.
+func (pe *payer) PlanScratch() *pay.PlanScratch {
+	pl := (*Engine)(pe).hypPool()
+	n := len(pl.planTables)
+	if n == 0 {
+		return nil
+	}
+	ps := pl.planTables[n-1]
+	pl.planTables[n-1] = nil
+	pl.planTables = pl.planTables[:n-1]
+	return ps
+}
+
+// PutPlanScratch (pay.Engine) hands a taken plan scratch back to the pool.
+func (pe *payer) PutPlanScratch(ps *pay.PlanScratch) {
+	if ps == nil {
+		return
+	}
+	pl := (*Engine)(pe).hypPool()
+	pl.planTables = append(pl.planTables, ps)
+}

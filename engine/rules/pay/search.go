@@ -61,17 +61,44 @@ func sameClass(a, b []Alt) bool {
 // paymentPlanLastResortChoices. Unit positions are preserved, so a unit with
 // nothing left is simply absent from every class.
 func PhaseChoices(choices [][]Alt, minTier Tier) [][]Alt {
-	out := make([][]Alt, len(choices))
+	return PhaseChoicesInto(nil, choices, minTier)
+}
+
+// PhaseChoicesInto is PhaseChoices with the filtered rows built into ps's
+// scratch (nil allocates, the plain PhaseChoices behaviour). A row the filter
+// leaves whole still aliases choices[i]; the filtered rows point into
+// ps.arena, which the next plan call resets -- so a table built here serves
+// exactly one call, like everything else in the scratch.
+func PhaseChoicesInto(ps *PlanScratch, choices [][]Alt, minTier Tier) [][]Alt {
+	if ps == nil {
+		out := make([][]Alt, len(choices))
+		for i, alts := range choices {
+			if !slices.ContainsFunc(alts, func(a Alt) bool { return a.Tier < minTier }) {
+				out[i] = alts
+				continue
+			}
+			for _, a := range alts {
+				if a.Tier >= minTier {
+					out[i] = append(out[i], a)
+				}
+			}
+		}
+		return out
+	}
+	out := resizeCleared(ps.phaseOuter, len(choices))
+	ps.phaseOuter = out
 	for i, alts := range choices {
 		if !slices.ContainsFunc(alts, func(a Alt) bool { return a.Tier < minTier }) {
 			out[i] = alts
 			continue
 		}
+		at := len(ps.arena)
 		for _, a := range alts {
 			if a.Tier >= minTier {
-				out[i] = append(out[i], a)
+				ps.arena = append(ps.arena, a)
 			}
 		}
+		out[i] = ps.arena[at:len(ps.arena):len(ps.arena)]
 	}
 	return out
 }
@@ -80,36 +107,111 @@ func PhaseChoices(choices [][]Alt, minTier Tier) [][]Alt {
 // first member. Grouping is a linear scan with an explicit equality, so the
 // result never depends on map iteration.
 func Classes(choices [][]Alt) []Class {
-	var out []Class
-	for i, alts := range choices {
+	return ClassesInto(nil, choices)
+}
+
+// ClassesInto is Classes with the table built into ps's scratch (nil
+// allocates, the plain Classes behaviour): the class structs go into
+// ps.classes and their spans are cut from ps's flat columns, which the next
+// call rebuilds from scratch. The alternative rows are aliased, not copied,
+// so the table serves exactly one call -- the query cache's classes are the
+// plain Classes' own memory.
+func ClassesInto(ps *PlanScratch, choices [][]Alt) []Class {
+	if ps == nil {
+		var out []Class
+		for i, alts := range choices {
+			if len(alts) == 0 {
+				continue
+			}
+			k := slices.IndexFunc(out, func(c Class) bool { return sameClass(c.alts, alts) })
+			if k < 0 {
+				out = append(out, Class{alts: alts})
+				k = len(out) - 1
+			}
+			out[k].Members = append(out[k].Members, i)
+		}
+		return finishClasses(out)
+	}
+	// Group first (a class's members are discovered interleaved with the
+	// other classes', so their spans are cut once the grouping is known),
+	// then cut the spans and fill them in unit order.
+	out := ps.classes[:0]
+	counts := ps.classCounts[:0]
+	members, altN := 0, 0
+	for _, alts := range choices {
 		if len(alts) == 0 {
 			continue
 		}
 		k := slices.IndexFunc(out, func(c Class) bool { return sameClass(c.alts, alts) })
 		if k < 0 {
 			out = append(out, Class{alts: alts})
+			counts = append(counts, 0)
 			k = len(out) - 1
+			altN += len(alts)
 		}
-		out[k].Members = append(out[k].Members, i)
+		counts[k]++
+		members++
 	}
+	ps.classes, ps.classCounts = out, counts
+	membersFlat := resizeCleared(ps.membersFlat, members)
+	ps.membersFlat = membersFlat
+	at := 0
+	for k := range out {
+		n := counts[k]
+		out[k].Members = membersFlat[at : at+n : at+n]
+		at += n
+	}
+	pick := resizeCleared(ps.pickFlat, altN)
+	irr := resizeCleared(ps.irrFlat, altN)
+	pain := resizeCleared(ps.painFlat, altN)
+	ps.pickFlat, ps.irrFlat, ps.painFlat = pick, irr, pain
+	pat, irlat, pnat := 0, 0, 0
 	for k := range out {
 		c := &out[k]
-		c.pick = make([]int, len(c.alts))
-		c.irr = make([]int64, len(c.alts))
-		c.pain = make([]int64, len(c.alts))
-		for a := range c.alts {
-			c.pick[a] = a
-			c.irr[a] = ConsequenceCost(c.alts[a].Consequence, c.alts[a].Creature)
-			c.pain[a] = ConsequencePain(c.alts[a].Consequence)
+		na := len(c.alts)
+		fillClass(c, pick[pat:pat+na], irr[irlat:irlat+na], pain[pnat:pnat+na])
+		pat, irlat, pnat = pat+na, irlat+na, pnat+na
+	}
+	for k := range counts {
+		counts[k] = 0
+	}
+	for i, alts := range choices {
+		if len(alts) == 0 {
+			continue
 		}
-		slices.SortStableFunc(c.pick, func(x, y int) int {
-			sx := RankStep{Act: c.alts[x].Activation, Consequence: c.alts[x].Consequence}
-			sy := RankStep{Act: c.alts[y].Activation, Consequence: c.alts[y].Consequence}
-			sx.Act.Source, sy.Act.Source = 0, 0
-			return CompareSteps([]RankStep{sx}, []RankStep{sy})
-		})
+		k := slices.IndexFunc(out, func(c Class) bool { return sameClass(c.alts, alts) })
+		out[k].Members[counts[k]] = i
+		counts[k]++
 	}
 	return out
+}
+
+// finishClasses fills a plain-built class table's per-alternative columns.
+func finishClasses(out []Class) []Class {
+	for k := range out {
+		n := len(out[k].alts)
+		fillClass(&out[k], make([]int, n), make([]int64, n), make([]int64, n))
+	}
+	return out
+}
+
+// fillClass fills one class's per-alternative columns over the given column
+// backings: the witness-step pick order, the irreversible-cost and pain
+// columns.
+func fillClass(c *Class, pick []int, irr, pain []int64) {
+	na := len(c.alts)
+	c.pick, c.irr, c.pain = pick[:na:na], irr[:na:na], pain[:na:na]
+	for a := range c.alts {
+		c.pick[a] = a
+		c.irr[a] = ConsequenceCost(c.alts[a].Consequence, c.alts[a].Creature)
+		c.pain[a] = ConsequencePain(c.alts[a].Consequence)
+	}
+	slices.SortStableFunc(c.pick, func(x, y int) int {
+		sx := RankStep{Act: c.alts[x].Activation, Consequence: c.alts[x].Consequence}
+		sy := RankStep{Act: c.alts[y].Activation, Consequence: c.alts[y].Consequence}
+		sx.Act.Source, sy.Act.Source = 0, 0
+		return CompareSteps([]RankStep{sx}, []RankStep{sy})
+	})
 }
 
 // level is one search level: how many units of one class take one
@@ -291,6 +393,12 @@ type SearchScratch struct {
 	owedAltFlat []int32
 	owedAlt     [][]int32
 	next        []int
+	// witnessInto's and rankPlanInto's working storage: the candidate plan's
+	// activations and the candidate rank's steps. Both are overwritten by
+	// the next candidate, so only an adopted plan is copied to fresh
+	// storage (adopt).
+	acts  []decision.PaymentActivation
+	steps []RankStep
 }
 
 // SearchInto is Run with its working storage drawn
@@ -310,7 +418,15 @@ func SearchInto(sc *SearchScratch, cost Cost, pool state.Mana, life int32, ctx R
 // distinct residuals already found cannot place. It has its own working
 // storage, so the caller's search scratch and best plan are untouched.
 func SearchAlternatives(cost Cost, pool state.Mana, life int32, ctx RankContext, choices [][]Alt, classes []Class, env Env, keep int) *Search {
-	return searchInto(nil, cost, pool, life, ctx, choices, classes, env, max(keep, 1))
+	return SearchAlternativesInto(nil, cost, pool, life, ctx, choices, classes, env, keep)
+}
+
+// SearchAlternativesInto is SearchAlternatives with the walk's working
+// storage drawn from sc (nil allocates it). The caller's search scratch and
+// best plan are untouched, and every kept plan is copied to fresh storage on
+// adoption (adopt), like the one-search's best.
+func SearchAlternativesInto(sc *SearchScratch, cost Cost, pool state.Mana, life int32, ctx RankContext, choices [][]Alt, classes []Class, env Env, keep int) *Search {
+	return searchInto(sc, cost, pool, life, ctx, choices, classes, env, max(keep, 1))
 }
 
 func searchInto(sc *SearchScratch, cost Cost, pool state.Mana, life int32, ctx RankContext, choices [][]Alt, classes []Class, env Env, keep int) *Search {
@@ -675,15 +791,36 @@ func (s *Search) complete() bool {
 	if !ok {
 		return false
 	}
-	plan := Witness(s.cost, s.pool, s.produced, chosen, after)
-	r := RankPlan(s.ctx, plan, chosen, after)
+	plan := witnessInto(s.sc, s.cost, s.pool, s.produced, chosen, after)
+	r := rankPlanInto(s.sc, s.ctx, plan, chosen, after)
 	if s.env.Verify && compareRankKeys(quick, r) != 0 {
 		panic(fmt.Sprintf("payment plan search: count rank %+v differs from the witness rank %+v", quick, r))
 	}
 	if s.Best == nil || r.Less(s.BestRank) {
+		plan, r = adopt(plan, r)
 		s.Best, s.BestRank = &plan, r
 	}
 	return true
+}
+
+// adopt copies a candidate plan and rank into fresh storage before the
+// search stores them: the candidate's activation list and the rank's steps
+// point into the search scratch (witnessInto, rankPlanInto), which the next
+// candidate overwrites, and an adopted plan is cached long-term by the
+// caller (planCastPaymentMemo). The consequence pointers are shared, as they
+// already were between a completeKeep's best plan and its kept entry.
+func adopt(p decision.PaymentPlan, r Rank) (decision.PaymentPlan, Rank) {
+	if len(p.Activations) > 0 {
+		acts := make([]decision.PaymentActivation, len(p.Activations))
+		copy(acts, p.Activations)
+		p.Activations = acts
+	}
+	if len(r.Steps) > 0 {
+		steps := make([]RankStep, len(r.Steps))
+		copy(steps, r.Steps)
+		r.Steps = steps
+	}
+	return p, r
 }
 
 // completeKeep is complete for the alternatives walk: the count vector's
@@ -703,11 +840,11 @@ func (s *Search) completeKeep() bool {
 	if !ok {
 		return false
 	}
-	plan := Witness(s.cost, s.pool, s.produced, chosen, after)
-	r := RankPlan(s.ctx, plan, chosen, after)
+	plan := witnessInto(s.sc, s.cost, s.pool, s.produced, chosen, after)
+	r := rankPlanInto(s.sc, s.ctx, plan, chosen, after)
 	if s.Best == nil || r.Less(s.BestRank) {
-		best := plan
-		s.Best, s.BestRank = &best, r
+		best, bestRank := adopt(plan, r)
+		s.Best, s.BestRank = &best, bestRank
 	}
 	sig := ResidualSignature(s.classes, s.choices, plan.Activations)
 	if at := slices.IndexFunc(s.Kept, func(k KeptPlan) bool { return k.Sig == sig }); at >= 0 {
@@ -723,7 +860,8 @@ func (s *Search) completeKeep() bool {
 		return 1
 	})
 	if at < s.keep {
-		s.Kept = slices.Insert(s.Kept, at, KeptPlan{Plan: plan, Rank: r, Sig: sig})
+		kept, keptRank := adopt(plan, r)
+		s.Kept = slices.Insert(s.Kept, at, KeptPlan{Plan: kept, Rank: keptRank, Sig: sig})
 		if len(s.Kept) > s.keep {
 			s.Kept = s.Kept[:s.keep]
 		}

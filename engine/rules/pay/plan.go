@@ -289,7 +289,20 @@ func compareConsequence(a, b Consequence) int {
 // alternatives (one per source, in witness order), after the pool left once
 // the cost is paid, and ctx the query's source census.
 func RankPlan(ctx RankContext, p decision.PaymentPlan, as []Alt, after state.Mana) Rank {
-	r := Rank{Sources: len(as), Surplus: after.Total(), Steps: make([]RankStep, len(p.Activations))}
+	return rankPlanInto(nil, ctx, p, as, after)
+}
+
+// rankPlanInto is RankPlan with the rank's steps built into sc (nil
+// allocates them). The steps point into the search scratch, so only an
+// adopted rank is copied to fresh storage (adopt).
+func rankPlanInto(sc *SearchScratch, ctx RankContext, p decision.PaymentPlan, as []Alt, after state.Mana) Rank {
+	var steps []RankStep
+	if len(p.Activations) == 0 || sc == nil {
+		steps = make([]RankStep, len(p.Activations))
+	} else {
+		steps = resizeCleared(sc.steps, len(p.Activations))
+	}
+	r := Rank{Sources: len(as), Surplus: after.Total(), Steps: steps}
 	remaining := ctx.ColourSources
 	for _, a := range as {
 		r.Cost += ConsequenceCost(a.Consequence, a.Creature)
@@ -333,7 +346,19 @@ func RankPlan(ctx RankContext, p decision.PaymentPlan, as []Alt, after state.Man
 	return r
 }
 func Witness(c Cost, initial, produced state.Mana, as []Alt, after state.Mana) decision.PaymentPlan {
-	acts := make([]decision.PaymentActivation, len(as))
+	return witnessInto(nil, c, initial, produced, as, after)
+}
+
+// witnessInto is Witness with the witness's activation list built into sc
+// (nil allocates it). The list points into the search scratch, so only an
+// adopted plan is copied to fresh storage (adopt).
+func witnessInto(sc *SearchScratch, c Cost, initial, produced state.Mana, as []Alt, after state.Mana) decision.PaymentPlan {
+	var acts []decision.PaymentActivation
+	if len(as) == 0 || sc == nil {
+		acts = make([]decision.PaymentActivation, len(as))
+	} else {
+		acts = resizeCleared(sc.acts, len(as))
+	}
 	for i := range as {
 		acts[i] = as[i].Activation
 		acts[i].Consequence = as[i].Consequence.Wire()
