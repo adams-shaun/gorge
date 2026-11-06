@@ -870,6 +870,79 @@ func (e *Engine) planCoverInsufficient(p state.PlayerID, mana Cost) bool {
 	return bound.Total()-need < mana.Generic
 }
 
+// planBoardConsumesNothing reports, without the census walk, that no
+// alternative the payment census could list for p consumes its source
+// (planCoverConsumable), so the consumption-only arm's verdict is false
+// whatever the cast's cost: with no consumable alternative, no plan the
+// search can return passes paymentPlanConsumes. The census's alternatives
+// carry Sacrifice/ReturnToHand only from the ability's own shape
+// (paymentPlanAbilityShapeTier; the interference merge adds damage, life and
+// no-untap, never a consume), so the scan reads the same per-ability verdict
+// the census's alternative derivation reads, over a superset of the census's
+// enumeration: every printed mana or ManaReflected ability on every
+// permanent p controls, all faces of a mutated pile included, with none of
+// the walk's own gates (zone, loss, tap-sick, payability) applied. The
+// gates and the census's other arms only ever REMOVE abilities or
+// alternatives -- the CR 305.6 intrinsics (facedown type words and
+// layer-4-set basic land types) are plain taps whose production never
+// consumes -- so the superset scan can only over-report a consuming ability
+// and fail open. It fails open, too, whenever a granted ability could exist
+// (active summary hasGrants: AddAbilities and GainedFaces entries, which is
+// also every runtime grant the walk's grantedAbilities arm lists), whenever
+// a raise/reduce/set static may reach a mana ability (anyManaReaching: the
+// memoised shape facts are the unmodified costs', while the census then
+// classifies the repriced cost per call), and for any ability whose shape
+// the configured facts do not already know (shapeKnown false, or facts nil:
+// the census's rider arms can disclose a self-return), which is the census's
+// own unconfigured path. planCoverBoundOf computes the same verdict from the
+// census; this scan is the pre-gate that answers the common no-consumption
+// board without the census pass the census-only path pays once per
+// consumption-only query.
+func (e *Engine) planBoardConsumesNothing(p state.PlayerID) bool {
+	if e.collectCostStatics().anyManaReaching() {
+		return false
+	}
+	if e.activeSummaryOf(e.active()).hasGrants {
+		return false
+	}
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		// A lost-abilities or face-down permanent's printed abilities are
+		// not live (CR 613.1f, CR 708.5); scanning them can only
+		// over-report, so the ordinary face loop needs no loss read.
+		for i := 0; i < o.PileFaceCount(); i++ {
+			pf, ok := o.PileFaceAt(i)
+			if !ok {
+				continue
+			}
+			for _, ma := range pf.Face.Abilities {
+				if ma.API != "Mana" && ma.API != "ManaReflected" {
+					continue
+				}
+				if f := e.manaFactsOf(ma); f != nil && f.shapeKnown {
+					if f.shapeCons.Sacrifice || f.shapeCons.ReturnToHand {
+						return false
+					}
+					continue
+				}
+				// The census classifies this ability per call, including
+				// the rider arms a self-return rider takes; this scan
+				// cannot answer it without the census's reads, so it
+				// defers to the census.
+				tier, c, _, rider := pay.PaymentPlanShapeTierOf(ma, e.abilityCompiledCost(ma).Cost)
+				if rider || tier == pay.TierLastResort &&
+					(c.Sacrifice || c.ReturnToHand) {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
 // planCoverBoundOf is the bound planCoverInsufficient reads, with whether a
 // census alternative consumes its source (planCoverConsumable: sacrifices or
 // returns it). The plan the consumption-only query reads is the mana part
@@ -891,6 +964,12 @@ func (e *Engine) planCoverBoundOf(p state.PlayerID) (state.Mana, bool) {
 		e.planCoverBoundP == p && e.planCoverPool == pool {
 		return e.planCoverBound, e.planCoverConsumable
 	}
+	// The census read is a pure reader of p's posed decision
+	// (paymentPlanQueryResumeBegin): when the offer builder's own query
+	// scope for this state was kept (paymentPlanQueryKeep), its census and
+	// alternatives are served instead of recomputed, and a census the arm's
+	// bound fills first is shared with the builder's ordinary-cast plans.
+	defer pay.PaymentPlanQueryEnd(asPayer(e), e.paymentPlanQueryResumeBegin(p))
 	bound := pool
 	consumable := false
 	for _, u := range pay.PaymentPlanQueryUnits(asPayer(e), p) {

@@ -1220,6 +1220,14 @@ func (e *Engine) targetPaidNeedsPlannedPayment(p state.PlayerID, id state.ObjID)
 		// (planPoolCoversPrintedCost) -- without the census pass or the plan.
 		return false
 	}
+	if e.planBoardConsumesNothing(p) {
+		// No census alternative consumes its source (planCoverConsumable from
+		// the printed-face scan), so no plan this query can read consumes
+		// either (planCoverConsumable): the cast is not payable only by
+		// paying with a needed permanent, whatever its targets and modes
+		// price to -- without the census pass or the plan.
+		return false
+	}
 	e.planConsumptionOnly = true
 	e.planCoverBoundOn = true
 	if _, consumable := e.planCoverBoundOf(p); !consumable {
