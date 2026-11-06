@@ -239,7 +239,15 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 			return
 		}
 		s.pl[p&1].pool[o.ans] += o.n
-		s.tapExtraStall(k, st.sl)
+		// The tap brings its tap-extra too (gorge addTapExtra): a granted
+		// source's is the grant's own extra (Honest Work's Humble Merchant
+		// tapped under Badgermole Cub). The search priced the prefix without
+		// it, so adding it can only leave the payment payable.
+		if o.gi >= 0 {
+			s.addExtra(k, p&1, st.sl, s.grantView(k.gen, o.gi, st.sl))
+		} else {
+			s.addExtra(k, p&1, st.sl, s.manaPCGen(k, st.sl))
+		}
 		s.artTag(k, p, st.sl, int(o.ans))
 	}
 }
