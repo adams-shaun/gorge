@@ -1920,7 +1920,7 @@ const (
 	StallPT        = 41 // a power or toughness pump leaves the int16 end-of-turn range, or needs a fifth of the maxPtX slots (eotAdd, OpPumpAllEach; filter_defined.go)
 	StallActRing   = 42 // a player activates more than actRingN abilities in one turn (genState.actRing)
 	StallCharmOpts = 43 // a multi-pick charm's combined target ask has more than MaxOptions options
-	StallCopyFace  = 44 // a permanent-spell copy of a multi-face card (CR 707.10g; copy_permanentspell.go)
+	StallCopyFace  = 44 // a permanent-spell copy of a two-faced card (CR 707.10g; copy_permanentspell.go)
 	StallRefLatch  = 45 // a combat damage batch has more than maxRefLatch (listener, referent) per-referent damage triggers (trig_damagedonce.go refLatch)
 	// 46 was a twobrid cost beside a cost reduction or increase; the cost statics now compose on the announced faces (mana_twobrid.go foldTb)
 	StallZone          = 47  // a hand, graveyard, exile or library array is full: tokens that left the battlefield together wait there for the next state-based check (zones.go placeFrom)

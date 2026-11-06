@@ -211,6 +211,7 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-tdm", []stdRepro{
 		{"shuffle_target_already_returned", false, false}, // CR 608.2b: Rite of Renewal's shuffled cards are in the graveyard still; one already returned to hand stays there
+		{"omen_permanent_spell_copy", false, false},       // CR 720.2c, 720.4: an omen card is one card, so Flamehold Grappler's copy of an omen creature spell (Runescale Stormbrood) is an ordinary copy whose token is the front face, not a 707.10g double-faced token
 	})
 }
 
