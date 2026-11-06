@@ -53,8 +53,13 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 	return n >= 2 && !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptCtr(k, p)).any()
 }
 
-// otherGaps: the gaps a filter search on p's board activates beside its filters.
-func (s *State) otherGaps(k *prep, p uint8) slotMask {
+// otherGaps: the gaps a filter search on p's board activates beside its
+// filters. A play's own granted sources are the grant search's (grantCap /
+// grantPrefix) too, but gorge runs one prefix search over the filters and the
+// grants in battlefield order; an activation's filter search counts them (its
+// noGrant pricing still keeps them out of the availability check, so only the
+// search's own activation steps add their mana).
+func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 	var m slotMask
 	if s.mixBoard(k, p) {
 		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p))

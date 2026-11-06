@@ -339,11 +339,12 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if k.anyRoom && sorc {
 			s.offerUnlocks(k, d, p) // CR 709.5e: special action (face_rooms.go)
 		}
+		var capSpent Decision // the plays grantCap's grant search refused within gorge's budget
 		if len(k.gen.grantPC) != 0 && s.g.availX == 0 {
-			s.grantCap(k, d, p)
+			s.grantCap(k, d, p, &capSpent)
 		}
 		if s.scriptAny(k) && s.g.availX == 0 {
-			s.scriptOffers(k, d, p)
+			s.scriptOffers(k, d, &capSpent, p)
 		}
 	}
 	if faces {
@@ -1421,13 +1422,28 @@ func potentialCovers(others *[kop.NumManaKinds]int, cost *kop.ManaCost) bool {
 func (s *State) applyPriority(k *prep, a Action) {
 	p := s.prio
 	sp0 := s.sp
+	// A filter beside a grant is one search in gorge (scriptSearch.visit:
+	// every census gap in battlefield order), and the grant search is that
+	// search (mana_grantedoffers.go candidates). An activation's filter
+	// search funds a filter's fee from printed sources only
+	// (mana_mixgaps.go otherGaps), so running it first would tap those
+	// before the granted source gorge taps; run the grant search first and
+	// let the filter search see the play priced.
+	grants := k.gen != nil && len(k.gen.grantPC) != 0
+	grantFirst := grants && a.Kind() == AkActivate && k.gen.anyFilt && s.filtOnly(k, p)
+	if grantFirst {
+		s.grantPrefix(k, a, p)
+		if s.npend != 0 {
+			s.flushPrefixTriggers(k)
+		}
+	}
 	if s.scriptAny(k) && (isCastKind(a.Kind()) || a.Kind() == AkActivate || a.Kind() == AkPlot) {
 		s.scriptPrefix(k, a, p) // a play only a scripted activation pays (script_gen.go)
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k) // its trigger resolves before the play (seed 640)
 		}
 	}
-	if k.gen != nil && len(k.gen.grantPC) != 0 {
+	if grants && !grantFirst {
 		s.grantPrefix(k, a, p) // a play only a granted mana ability pays (script_gen.go)
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k)
