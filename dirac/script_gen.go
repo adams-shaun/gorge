@@ -160,6 +160,9 @@ func (s *State) plainOptions(k *prep, d *Decision, m uint8) {
 	s.g.availX = 0
 }
 
+// zzDropSlot records the slot grantCap last dropped, for triage prints only.
+var zzDropSlot uint8 = 0xff
+
 func hasOption(d *Decision, a Action) bool {
 	for i := 0; i < int(d.N); i++ {
 		if d.Options[i] == a {
@@ -275,6 +278,25 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 			}
 		} else if restr.any() && s.scriptDeadEnd(k, a, p, restr) {
 			continue
+		}
+		if a.Kind() == AkActivate {
+			println("ZZSOFF slot=", a.Source(), "mode=", a.Mode())
+			if a.Source() == zzDropSlot {
+				println("ZZBOARD begin sp=", s.sp, "p=", p)
+				for seat := 0; seat < 2; seat++ {
+					for b := s.ctrlM[seat].and(s.occ); b.any(); b = b.rest() {
+						sl := b.first()
+						println("ZZB seat=", seat, "sl=", sl, "obj=", s.perms[sl].obj, "card=", k.t.Cards[s.cardAt(sl)].Name, "tapped=", s.perms[sl].flags&pfTapped != 0)
+					}
+					pl := &s.pl[seat]
+					for i := uint8(0); i < pl.handN; i++ {
+						println("ZZH seat=", seat, "obj=", pl.hand[i], "card=", k.t.Cards[s.objs[pl.hand[i]].card].Name)
+					}
+					println("ZZP seat=", seat, "pool=", pl.pool[kop.W], pl.pool[kop.U], pl.pool[kop.B], pl.pool[kop.R], pl.pool[kop.G], pl.pool[kop.C], "handN=", pl.handN)
+				}
+				println("ZZBOARD end")
+				zzDropSlot = 0xff
+			}
 		}
 		d.add(a)
 	}
@@ -499,6 +521,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 			continue
 		}
 		if k.gen.anyTapExtra {
+			println("ZZEXC1 slot=", a.Source(), "mode=", a.Mode())
 			continue // a tap's extra is no part of the walk's units here, yet gorge's relaxed census counts it (mana_tapextra.go)
 		}
 		if k.multiMana && s.filterSource(k, p) {
@@ -535,11 +558,15 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 			d.remove(a) // never searched: unpriced
 			continue
 		}
-		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g) && !s.tapXScript(k, a, p, false) {
-			// Gorge's script search covers every census gap — granted units and
-			// tap-another-permanent gaps alike (CR 605.1a, 601.2g-h) — so the
-			// kernel drops the play only when neither route prices it.
-			d.remove(a) // no prefix within gorge's node budget (mana_grantedoffers.go)
+		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g) {
+			println("ZZGCDROP slot=", a.Source(), "mode=", a.Mode(), "nodes=", g.nodes)
+			zzDropSlot = a.Source()
+			if !s.tapXScript(k, a, p, false) {
+				// Gorge's script search covers every census gap — granted units and
+				// tap-another-permanent gaps alike (CR 605.1a, 601.2g-h) — so the
+				// kernel drops the play only when neither route prices it.
+				d.remove(a) // no prefix within gorge's node budget (mana_grantedoffers.go)
+			}
 		}
 	}
 }

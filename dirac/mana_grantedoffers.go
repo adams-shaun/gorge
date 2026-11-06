@@ -799,7 +799,9 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 	needFirst(order[:no], g.need)
 	for _, c := range order[:no] {
 		t.perms[sl].flags |= pfTapped
+		preBit := t.g.poolArt[g.p&1] // the typed-mana tag before the step: the untag restores exactly it (the slot may hold plain mana too)
 		t.pl[g.p&1].pool[c] += pn
+		t.artTag(g.k, g.p, sl, int(c))
 		xv := t.srcExtraPick(g.k, sl, pc, int(c))
 		if skip {
 			xv = [kop.NumManaKinds]uint8{} // the unspendable tap prices no extra either
@@ -813,6 +815,7 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 		g.np--
 		t.subXv(g.p&1, &xv)
 		t.pl[g.p&1].pool[c] -= pn
+		t.g.poolArt[g.p&1] = preBit
 		t.perms[sl].flags &^= pfTapped
 	}
 	return false

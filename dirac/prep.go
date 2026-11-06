@@ -171,9 +171,11 @@ type prep struct {
 	// per payment (genPrep.anyRestrSrc; mana_restrictedsource.go): the one
 	// guard of the offer gates and the payment
 	restrSrc bool
-	// artMana: some artifact has a mana ability (Ring of the Lucii, a
-	// Treasure): gorge tags the mana it adds, and a pool holding tagged mana
-	// is refused by its payment planners (mana_artifact.go)
+	// artMana: some typed producer (an artifact, a Desert or a Cave) is on
+	// the board: gorge tags the mana it adds by its source's face types,
+	// printed ability or granted one alike (Ring of the Lucii, a Treasure,
+	// a granted Waterskin under Great Divide Guide's grant; ManaProducerTag),
+	// and a pool holding tagged mana is spent plain-first (mana_artifact.go)
 	artMana bool
 	// selfCast: some card has a "when you cast this spell" trigger
 	// (TrigSpellCast + TfSelf; trig_selfcast.go): guards the stack
@@ -252,6 +254,11 @@ func prepare(t *kop.Table) *prep {
 		p.offspring = p.offspring || c.Offspring
 		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go)
 		pc.spellAb, pc.manaAb = -1, -1
+		// the card's mana is typed by its types (mana_artifact.go) whether
+		// the producing ability is printed or granted: the tag rides the
+		// source, not the ability (effects.ManaProducerTag)
+		pc.manaTyped = c.Types&kop.TArtifact != 0 || (c.Subtypes[0]&typedSub[0]|c.Subtypes[1]&typedSub[1]) != 0
+		p.artMana = p.artMana || pc.manaTyped
 		pc.land = c.Types&kop.TLand != 0
 		pc.creature = c.Types&kop.TCreature != 0
 		pc.instant = c.Types&kop.TInstant != 0 || c.Keywords&kop.KwFlash != 0
@@ -297,8 +304,6 @@ func prepare(t *kop.Table) *prep {
 					if kop.TapXMana(a) {
 						p.tapMana = true // (read per card by kop.TapXManaAb, not a pcard field: the hot record stays as it was)
 					}
-					pc.manaTyped = c.Types&kop.TArtifact != 0 || (c.Subtypes[0]&typedSub[0]|c.Subtypes[1]&typedSub[1]) != 0
-					p.artMana = p.artMana || pc.manaTyped
 					if d, ok := manaPain(a); ok {
 						pc.painCol, pc.painN, pc.painOnly = a.ManaColors, d, true
 						p.painMana = true

@@ -42,6 +42,7 @@ func filtSearchVisit(s *State, k *prep, a Action, need [kop.NumManaKinds]bool) (
 	var fs filtSearch
 	fs.a, fs.p, fs.gaps, fs.own, fs.sp0 = a, 0, s.scriptFilt(k, 0), NoSlot, s.sp
 	fs.need = need
+	// the cast's filter search (filtScript): a cast may count the grants (noGrant false)
 	fs.other = s.otherGaps(k, 0)
 	if s.filtRelaxable(k, fs.gaps) && !(k.tapMana && s.tapXTwoLive(k, 0)) {
 		for b := fs.gaps; b.any(); b = b.rest() {
