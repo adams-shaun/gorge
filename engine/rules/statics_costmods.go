@@ -362,7 +362,21 @@ func (e *Engine) costModifiersCompose(statics costStaticViews, p state.PlayerID,
 	return e.costModifiersCompose0(statics, p, id, scope, targets, potential, x, mayApply)
 }
 
+// costModifiersCompose0 is costModifiersComposeEval behind the cost-modifier
+// compose memo (cost_compose_memo.go): a pure-read pricing (costComposeUsable)
+// is served from the per-state table when one exists and computed, verified
+// and remembered otherwise. The state-bearing flows the memo family excludes
+// -- a real cast's pricing windows, the mana window, an engaged
+// cost-composition exclusion, a graveyard-priced composition, a face probe --
+// fall straight through to the body.
 func (e *Engine) costModifiersCompose0(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool, x int32, mayApply *bool) costMods {
+	if !e.costComposeUsable() {
+		return e.costModifiersComposeEval(statics, p, id, scope, targets, potential, x, mayApply)
+	}
+	return e.costModifiersComposeMemoized(statics, p, id, scope, targets, potential, x, mayApply)
+}
+
+func (e *Engine) costModifiersComposeEval(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool, x int32, mayApply *bool) costMods {
 	// Each pass owns the provenance capture: cleared here, set by
 	// costStaticApplies when a ValidCard$ carries a cast-provenance token.
 	e.CostProvenanceSeen = false

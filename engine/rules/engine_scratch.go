@@ -197,6 +197,25 @@ type engineScratch struct {
 	// (legal_walk_grave_skip.go), taken for the section. Not cloned.
 	graveCandBuf []state.ObjID `clone:"reset"`
 
+	// costComposeStamp and costCompose memoise costModifiersCompose0's answer
+	// per state (cost_compose_memo.go): a pure-read pricing of the payment-
+	// plan memo family's at-rest contexts is served from the table while the
+	// stamp (the engine's log with its trailing ask markers stripped, the
+	// continuous version, the arena length, the restore epoch and the build
+	// count less the cross-walk retires) is unchanged, and the table is
+	// cleared when it moves. Pure scratch: Clone copies none of it.
+	costComposeStamp costComposeStamp `clone:"reset"`
+	costCompose      costComposeMemo  `clone:"reset"`
+	// costComposeServed counts the compositions served from the memo (the
+	// walk-side counters' diagnostic role). Pure scratch.
+	costComposeServed uint64 `clone:"reset"`
+	// costComposeVerifying re-enters the real body under verify mode's
+	// recompute without re-verifying its nested composes. Pure scratch.
+	costComposeVerifying bool `clone:"reset"`
+	// costComposeSuspend stands the memo down for a caller whose statics view
+	// the stamp cannot see (offerNamedMods' per-n SVar binding). Pure scratch.
+	costComposeSuspend int `clone:"reset"`
+
 	// secretVoteBallots is emission-scoped scratch, visible only while the
 	// public, ballot-free completion Note is scanned for Vote triggers.
 	// It is never stored on Game or in the event log.
