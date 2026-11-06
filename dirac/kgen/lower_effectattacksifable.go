@@ -60,3 +60,27 @@ func (lc *lowerCtx) attacksIfAble(ps, sp *params, obj lRef) error {
 	lc.emit(lInstr{Op: "AttacksIfAble", Obj: obj, Note: "the target attacks this turn if able"})
 	return nil
 }
+
+// blocksIfAble lowers an Effect's Mode$ MustBlock static: "target creature
+// blocks this turn if able" (CR 509.1c; Culvert Ambusher, Courtly Provocateur,
+// Hustle // Bustle). gorge effEffect registers the static on the Effect over
+// its remembered target; the kernel marks that target (ExtBlocksIfAble,
+// dirac/combat_blocksifable.go) and combat reads the mark as a blocker
+// requirement beside the MustBlock static. Only the exact shape: the single
+// remembered target, the default this-turn lifetime, the target leaving
+// ending it.
+func (lc *lowerCtx) blocksIfAble(ps, sp *params, obj lRef) error {
+	vc := sp.str("ValidCreature")
+	if obj.Kind != rTarget || vc != "Card.IsRemembered" && vc != "Creature.IsRemembered" ||
+		ps.str("ExileOnMoved") != "Battlefield" {
+		return refuse("Effect MustBlock shape")
+	}
+	if _, ok := ps.m["Duration"]; ok {
+		// the mark lasts this turn; the kernel has no extra combat to end
+		// an UntilEndOfCombat one early
+		return refuse("Effect MustBlock Duration$ %q", ps.str("Duration"))
+	}
+	ps.consume("ExileOnMoved")
+	lc.emit(lInstr{Op: "BlocksIfAble", Obj: obj, Note: "the target blocks this turn if able"})
+	return nil
+}

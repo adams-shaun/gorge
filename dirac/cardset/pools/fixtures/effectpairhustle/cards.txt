@@ -1,0 +1,7 @@
+# Hustle // Bustle's "target creature attacks or blocks this turn if able": a two-static Effect (dirac/oracle/effectpairhustle_test.go)
+Hustle
+Grizzly Bears
+Hill Giant
+Raging Goblin
+Mountain
+Island

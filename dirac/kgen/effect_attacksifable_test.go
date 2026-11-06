@@ -20,11 +20,8 @@ var effectAttacksIfAbleCarriers = map[string]struct {
 	"Incite":          {"A[0] SP$ Animate", true, "AttacksIfAble obj=Target0"},
 	// A[1]'s MustBlock is the blocker duty (mkm-effect-must-block)
 	"Courtly Provocateur": {"A[0] AB$ Effect", false, ""},
-	// the two-static MustAttack,MustBlock list is no longer refused whole;
-	// its MustBlock half lowers with the blocker duty
-	// (at this base its A[0] node refuses that half: "Effect static mode
-	// MustBlock")
-	"Hustle // Bustle": {"", false, ""},
+	// the two-static MustAttack,MustBlock list lowers both duties, in order
+	"Hustle // Bustle": {"A[0] SP$ Effect", true, "AttacksIfAble obj=Target0\nBlocksIfAble obj=Target0"},
 }
 
 // effectAttacksIfAbleRefused: the shapes the per-object mark cannot hold,
@@ -60,8 +57,10 @@ func TestEffectAttacksIfAbleAccepted(t *testing.T) {
 		}
 		var sb strings.Builder
 		dumpLIR(&sb, c)
-		if !strings.Contains(sb.String(), want.lir) {
-			t.Errorf("%s: lowered IR lacks %q:\n%s", c.Name, want.lir, sb.String())
+		for _, line := range strings.Split(want.lir, "\n") {
+			if !strings.Contains(sb.String(), line) {
+				t.Errorf("%s: lowered IR lacks %q:\n%s", c.Name, line, sb.String())
+			}
 		}
 	}
 	if seen != len(effectAttacksIfAbleCarriers) {

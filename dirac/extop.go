@@ -122,6 +122,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtAttacksIfAble:
 		s.attacksIfAbleExt(k, in) // combat_attacksifable.go
 		return true, true
+	case kop.ExtBlocksIfAble:
+		s.blocksIfAbleExt(k, in) // combat_blocksifable.go
+		return true, true
 	case kop.ExtSuspect:
 		s.suspectExt(k, in) // act_suspect.go
 		return true, true
