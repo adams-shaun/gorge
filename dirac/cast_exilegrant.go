@@ -185,7 +185,12 @@ func (s *State) copyCastAbortsBeforeWindow(k *prep, c CardID, p uint8, o Obj) bo
 func (s *State) copyCastUnpayable(k *prep, c CardID, p uint8, o Obj, og restrOrigin, x int) bool {
 	var av avail
 	s.availFor(k, p, &av)
-	cost := s.adjustFit(k, &av, p, c, o, k.cards[c].cost, true)
+	base := k.cards[c].cost
+	av.delve = s.tbDelveCredit(k, p, c, o, false) // the faces' credit (CR 702.66a); the copy object is a stack spell, not a hand cast
+	cost := s.adjustFit(k, &av, p, c, o, base, true)
+	if !av.tbLeafCredited(&base) {
+		cost = s.delveOfferCredit(k, p, c, o, false, cost) // gorge's choke point credits the generic at this read too
+	}
 	cost.Generic = uint8(int(cost.Generic) + cost.XGeneric(x))
 	return !s.castAffordsR(k, p, c, og, &cost, &av)
 }

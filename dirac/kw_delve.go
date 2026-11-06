@@ -49,6 +49,17 @@ func (s *State) delvePaysEntry(k *prep, e *stackEntry) bool {
 	return k.gen != nil && k.gen.anyDelve && s.hasCastDelve(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl))
 }
 
+// gateDelveCredit is a pool-only tail gate's outer delve credit: the generic
+// credit unless the cost is a twobrid one, whose faces the gate's avail
+// leaf-credits instead (tbLeafCredited; applying both would price the plain
+// generic twice).
+func (s *State) gateDelveCredit(k *prep, p uint8, c CardID, o Obj, fromHand bool, cost kop.ManaCost) kop.ManaCost {
+	if cost.Hyb[0] == kop.HybTwobrid {
+		return cost
+	}
+	return s.delveOfferCredit(k, p, c, o, fromHand, cost)
+}
+
 // delveOfferCredit is cost less the graveyard cards the cast could delve
 // away: min(generic, graveyard size) (gorge delveCredit).
 func (s *State) delveOfferCredit(k *prep, p uint8, c CardID, o Obj, fromHand bool, cost kop.ManaCost) kop.ManaCost {

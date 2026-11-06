@@ -1,0 +1,21 @@
+# the granted-delve recast pool: Teval, Arbiter of Virtue ("spells you cast
+# have delve") beside the recast and hand-cast carriers the granted delve's
+# credit reaches (harmonize, mayhem, sneak, web-slinging, may-flash, beam me
+# up), the twobrid spell the copy path casts, delve fodder, a return creature
+# and basics (dirac/kw_delve_recast_test.go)
+Teval, Arbiter of Virtue
+Rocket-Powered Goblin Glider
+Unending Whisper
+Open Communications
+Spider-Man, Brooklyn Visionary
+Mystical Tether
+Shredder, Unrelenting
+Flame Javelin
+Tormenting Voice
+Cathartic Reunion
+Grizzly Bears
+Mountain
+Island
+Swamp
+Forest
+Plains

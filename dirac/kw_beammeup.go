@@ -67,14 +67,19 @@ func (s *State) hasBeamGrant(k *prep, sl Slot) bool {
 }
 
 // beamPoolPays: gorge's planner prices no beam me up mode, so only the floating
-// pool pays one.
+// pool pays one. The cast's own delve credit prices it like the offer
+// (FeatPoolPaysPlus's shape).
 func (s *State) beamPoolPays(k *prep, p uint8, o Obj, mana kop.ManaCost) bool {
 	a := s.poolAvailPlus(p, nil)
 	c := s.objs[o].card
 	if s.rbAny(p & 1) {
 		s.restrAvail(k, p&1, c, s.restrOriginOfObj(o), &a)
 	}
+	a.delve = s.tbDelveCredit(k, p&1, c, o, false) // the faces' credit (CR 702.66a)
 	cost := s.featCost(k, p&1, c, o, mana)
+	if !a.tbLeafCredited(&cost) {
+		cost = s.delveOfferCredit(k, p&1, c, o, false, cost) // the offer credits the generic too
+	}
 	return a.affords(&cost, pipMaskOf(&cost), 0)
 }
 
@@ -118,9 +123,17 @@ func (s *State) offerBeamCasts(k *prep, d *Decision, p uint8, sorc bool, av *ava
 // beamCastOffered reports whether p can cast o for one beam me up instance: mana,
 // and the return pick (a granted instance's return is barred differently).
 func (s *State) beamCastOffered(k *prep, p uint8, o Obj, mana kop.ManaCost, pick *kop.Cost, granted bool, av *avail) bool {
+	// the avail is the caller's walk picture: the cast's own delve credit
+	// prices its twobrid faces and is restored after (offerPlay's shape)
+	saved := av.delve
+	defer func() { av.delve = saved }()
 	c := s.objs[o].card
 	s.g.beamPick = granted
+	av.delve = s.tbDelveCredit(k, p, c, o, false) // the faces' credit (CR 702.66a)
 	fc := s.adjustCost(k, p, c, o, mana)
+	if !av.tbLeafCredited(&fc) {
+		fc = s.delveOfferCredit(k, p, c, o, false, fc) // gorge's choke point credits the generic at this walk too
+	}
 	ok := s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, av) && s.spellTargetsFeasible(k, c, p) &&
 		(!granted && k.t.Cards[c].BeamMeUp || s.spellCostsFeasible(k, c, p, o)) && s.pickCostPayable(k, p, pick, o) && s.beamReturnable(k, p, pick, o) && !s.castHeldOut(o)
 	s.g.beamPick = false
