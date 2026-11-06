@@ -32,6 +32,8 @@ var repoCommanderDecks = []struct {
 	{"science-pip", "Dr. Madison Li"},
 	{"tinker-time", "Gimbal, Gremlin Prodigy"},
 	{"divine-convocation", "Kasla, the Broken Halo"},
+	{"call-for-backup", "Bright-Palm, Soul Awakener"},
+	{"growing-threat", "Brimaz, Blight of Oreskos"},
 }
 
 // TestRepoCommanderDecksValidate is the acceptance gate: every interim
