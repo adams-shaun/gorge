@@ -240,7 +240,7 @@ func TestReplPlusSiteDamageMapSurvivesPark(t *testing.T) {
 // Today's cap deals the summed amount before the game ends at the next step;
 // the pin records that.
 func TestReplPlusSiteAnswerDivideStallsLoud(t *testing.T) {
-	tbl, plus, cfid := replPlusSiteTable(int16(kop.ReplDmgOppPlayer|kop.ReplDmgOppPerm))
+	tbl, plus, cfid := replPlusSiteTable(int16(kop.ReplDmgOppPlayer | kop.ReplDmgOppPerm))
 	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Divide", Types: kop.TInstant,
 		Abilities: []kop.Ability{{Kind: kop.AbSpell,
 			Targets:  [kop.MaxTargets]kop.TargetSpec{{Kind: kop.TgtObject, Filter: cfid}},
