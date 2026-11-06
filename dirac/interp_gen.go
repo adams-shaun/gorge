@@ -668,8 +668,11 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.B.N == kop.OvEnterWith {
 			break // applied as the return entered (execReturnObj)
 		}
-		o := s.objRefObj(in.Obj)
-		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {
+		// objRef is the one resolver of "the same object on the battlefield":
+		// a Self record whose object left and came back names a new object
+		// (CR 400.7; Fire Nation Warship destroyed in response to its crew).
+		sl := s.objRef(k, in.Obj)
+		if sl == NoSlot {
 			break
 		}
 		if pc := s.res.pc; pc > 0 && s.g.retMiss {
@@ -678,14 +681,14 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			}
 		}
 		if k.gen.anyWhileHost && k.t.Overrides[in.C].WhileHost {
-			s.applyWhileHost(k, s.objs[o].slot, int(in.C), e) // filter_combatwords.go
+			s.applyWhileHost(k, sl, int(in.C), e) // filter_combatwords.go
 			break
 		}
 		if in.B.N == kop.OvChosenColor {
-			s.ovChosenColor(k, s.objs[o].slot, int(in.C), e.card, s.ovDurFl(in.A.N)) // static_animatechosen.go
+			s.ovChosenColor(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N)) // static_animatechosen.go
 			break
 		}
-		s.applyOverrideFl(k, s.objs[o].slot, int(in.C), e.card, s.ovDurFl(in.A.N))
+		s.applyOverrideFl(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N))
 	case kop.OpReflexiveTrigger:
 		n := s.value(k, in.A)
 		tobj, amt := NoObj, s.reflexAmt(k, in.B) // trig_reflexiveremembered.go: TriggerRemembered$ (B is the zero Const otherwise)

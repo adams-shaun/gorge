@@ -278,6 +278,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"resolved_this_turn_survives_zone_change", false, false},          // gorge events.ResolvedAbilityKey is (source, ability body) with no zone stamp: South Pole Voyager's tally still reads 2 after it is exiled and returned, so its second resolution draws
 		{"grant_key_keeps_typed_mana", false, false},                       // CR 602.2b, 601.2g-h: Barrels of Blasting Jelly's {1} fee paid in W and its tagged W leave the pool counts equal but not gorge's typed unit (Player.ManaUnits), so the grant search's payer key must keep them apart and choose W
 		{"resolved_this_turn_across_zone_change", false, false},            // CR 707.10b: Airbender Ascension returns South Pole Voyager, whose resolution count keeps the turn's tally, so the second resolution overall does not draw Earth Kingdom Jailer
+		{"crew_override_source_returned_is_new_object", false, false},      // CR 400.7: Fire Nation Warship destroyed in response to its own crew ability comes back as a new object; the crew effect finds nothing to animate
 	})
 }
 
