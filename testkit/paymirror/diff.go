@@ -236,6 +236,17 @@ var excluded = map[excludedField]bool{
 	{"rules.Engine", "manaReachingLogLen"}:  true,
 	{"rules.Engine", "manaReachingVersion"}: true,
 	{"rules.Engine", "manaReachingObjs"}:    true,
+	// The cost-modifier compose memo and its stamp (cost_compose_memo.go), the
+	// potential walk's per-call compose plan (cost_compose_plan.go) and the
+	// compose memo's diagnostic/verify scratch: pure caches of a composition
+	// of G keyed by log lineage, continuous version, arena size, restore epoch
+	// and build count; Clone copies or resets all of them.
+	{"rules.Engine", "costComposeStamp"}:     true,
+	{"rules.Engine", "costCompose"}:          true,
+	{"rules.Engine", "costComposeServed"}:    true,
+	{"rules.Engine", "costComposeVerifying"}: true,
+	{"rules.Engine", "costComposeSuspend"}:   true,
+	{"rules.Engine", "costComposePlan"}:      true,
 	// The payment-plan interference carrier memo (payment_plan_interference.go),
 	// keyed by object-arena size and log length; Clone copies none.
 	{"rules.Engine", "PaymentPlanCarriers"}:       true,

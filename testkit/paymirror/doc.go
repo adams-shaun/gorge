@@ -160,6 +160,11 @@
 //	manaReachingCost/Valid/Log/        anyManaReachingCostStatic's per-state-change answer and
 //	Tape/LogLen/Version/Objs           its key (log identity, restore epoch, log length,
 //	                                   continuous version, object count); Clone copies none
+//	costCompose/Stamp, costCompose-    the cost-modifier compose memo keyed by log lineage,
+//	Served/Verifying/Suspend/Plan      continuous version, arena size, restore epoch and build
+//	                                   count, its diagnostic/verify scratch, and the potential
+//	                                   walk's per-call compose plan: pure caches of a composition
+//	                                   of G; Clone copies or resets all of them
 //	PaymentPlanCarriers/Objs/Events/   payment-plan interference carrier memo keyed by the
 //	Valid                              object-arena size and log length; Clone copies none
 //	PlanQueryKept/Free,                the payment planner's kept and recycled query scopes and
