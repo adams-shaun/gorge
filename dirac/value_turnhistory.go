@@ -140,12 +140,13 @@ func resolveTally(k *prep, e *stackEntry) uint8 {
 
 // resolvedThisTurn is ExResolvedThisTurn: the resolving ability's
 // resolutions this turn (Count$ResolvedThisTurn). Keyed by the source object
-// and the ability body only, never the object's ver: the source object's id
-// survives its zone changes, so a permanent that left and returned keeps the
-// turn's count, as Forge's ActivationTable does (its key is the host card's
-// printed SpellAbility, which a zone change does not replace). South Pole
-// Voyager returned by Airbender Ascension is the second resolution, not the
-// first again.
+// and the ability body only, never the object's ver: gorge
+// events.ResolvedAbilityKey is (source ObjID, ability body) and the source
+// object's id survives its zone changes, so a permanent that left and
+// returned keeps the turn's count, as Forge's ActivationTable does (its key
+// is the host card's printed SpellAbility, which a zone change does not
+// replace). South Pole Voyager's tally still reads 2 after it is exiled and
+// returned (Airbender Ascension), so its second resolution still draws.
 //
 //go:noinline
 func (s *State) resolvedThisTurn(k *prep) int {

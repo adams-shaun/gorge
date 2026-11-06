@@ -313,6 +313,17 @@ func (s *State) filtActivate(k *prep, t *avail, filt *[maxFaceFilters]Slot, set 
 				if manaOneColour(a, uint8(units)) {
 					s.addOneColour(t, uint8(units))
 				}
+				if !comboFiltAb(a) {
+					// the filter's tap brings the TapsForMana extra
+					// (mana_tapextra.go filtExtra); a combination filter's
+					// activation keeps the stall (filtDo)
+					xv := s.filtExtra(k, sl)
+					for c := range xv {
+						if xv[c] != 0 {
+							t.addUnits(1<<c, xv[c])
+						}
+					}
+				}
 				set &^= 1 << i
 				progress = true
 			}
@@ -580,7 +591,10 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 			break
 		}
 		pl.pool[st.ans-1] += uint8(s.filtUnits(k, st.sl))
-		s.tapExtraStall(k, st.sl)
+		// the filter taps the source for mana, so a TapsForMana static adds
+		// its extra beside the filter's unit (mana_tapextra.go filtExtra)
+		xv := s.filtExtra(k, st.sl)
+		s.addXv(p, &xv)
 		s.artTag(k, p, st.sl, int(st.ans-1)) // an artifact's mana is typed (Three Tree Mascot, Prophetic Prism; mana_artifact.go)
 	case st.gap:
 		pc := s.manaPCGen(k, st.sl)
