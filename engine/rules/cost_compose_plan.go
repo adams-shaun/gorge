@@ -66,10 +66,12 @@ type costComposePlan struct {
 // costComposePlanFor returns the active plan for a compose, or nil. Only a
 // potential pass for the plan's own question consults the plan: the recorded
 // verdicts are answers about that question's statics, and the accept gate's
-// own reads (a base compose, a pricing read) must not serve from them.
+// own reads (a base compose, a pricing read) must not serve from them. The
+// plan is returned in both of its phases -- the collecting compose itself
+// must see it to record the verdicts.
 func (e *Engine) costComposePlanFor(p state.PlayerID, id state.ObjID, scope costScope, x int32, potential bool) *costComposePlan {
 	plan := e.costComposePlan
-	if plan == nil || !plan.serve || !potential ||
+	if plan == nil || !potential ||
 		plan.p != p || plan.id != id || plan.scope != scope || plan.x != x {
 		return nil
 	}
@@ -98,17 +100,18 @@ func (e *Engine) costStaticGatePlanned(sv staticView, mode string, p state.Playe
 		plan.skip = append(plan.skip, false)
 		return e.costStaticGateTail(sv, mode, p, id, scope, targets, xBound)
 	}
+	ok, indepFail = false, true
 	if plan.i < len(plan.skip) {
-		denied := plan.skip[plan.i]
-		plan.i++
-		if denied {
-			return false, true
+		if !plan.skip[plan.i] {
+			ok, indepFail = e.costStaticGateTail(sv, mode, p, id, scope, targets, xBound)
 		}
-		ok, indepFail = e.costStaticGateTail(sv, mode, p, id, scope, targets, xBound)
+		plan.i++
 	} else {
 		ok, indepFail = e.costStaticGate(sv, mode, p, id, scope, targets, xBound)
 	}
 	if walkCacheVerify && !e.costComposeVerifying {
+		// The skipped-gate branch is the one the plan asserts most: verify it
+		// like every other.
 		e.costComposePlanVerifyGate(sv, mode, p, id, scope, targets, xBound, ok, indepFail)
 	}
 	return ok, indepFail
