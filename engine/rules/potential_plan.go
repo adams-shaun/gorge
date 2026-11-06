@@ -667,6 +667,65 @@ func (e *Engine) potentialTargetPricedPlan(statics costStaticViews, p state.Play
 	return got
 }
 
+// planPoolCoversPrintedCost reports whether the floating pool alone pays the
+// cast's composed printed cost, mirrored from potentialModeCastPlan's own
+// composition up to its first planComposedCost: the same base, the same
+// declines it answers unsupported, the same offerCostFor compose (the pip
+// rider is zero there) and the same plain-mana reading. Such a cost is
+// payable without activating a single source: the search is handed the pool
+// before any census choice, so its zero-source plan is the rank-minimal one
+// (no irreversible cost, no creatures, no sources -- keys 1-3 -- and the
+// lowest surplus, key 4), paymentPlanConsumes reads nothing on it, and the
+// consumption-only arm's verdict is false without the plan or the census.
+// Anything the mirror cannot cheaply decide returns false and the planner
+// plans (fail closed).
+func (e *Engine) planPoolCoversPrintedCost(p state.PlayerID, o decision.Option) bool {
+	id := o.Obj
+	obj := e.G.Obj(id)
+	if obj == nil || obj.Face() == nil {
+		return false
+	}
+	base, ok := e.potentialModeBaseCost(p, id, obj.Face(), o)
+	if !ok || base.X != 0 {
+		return false
+	}
+	if base, ok = pay.FixLifeXCost(asPayer(e), p, id, base); !ok || base.X != 0 {
+		return false
+	}
+	if pay.CostAnnouncesSacX(base) {
+		return false // the planner declines the shape; let it answer
+	}
+	castFace := potentialModeCastFace(obj, o.Mode)
+	var composed Cost
+	if castFace == nil {
+		composed = e.offerCostFor(p, id, base, spellScope(o.Mode))
+	} else if faceOK := e.offerAsFace(id, castFace, func() bool {
+		composed = e.offerCostFor(p, id, base, spellScope(o.Mode))
+		return true
+	}); !faceOK {
+		return false
+	}
+	if len(composed.Sac) != 0 || len(composed.Discard) != 0 || len(composed.TapPermanent) != 0 {
+		return false
+	}
+	if pay.PlanCostDetail(pay.PlanManaHalf(composed)) != "" {
+		return false
+	}
+	pl := &e.G.Players[p]
+	if len(pl.RestrictedMana) != 0 {
+		return false // a restricted unit's spendability is the payment's own ask
+	}
+	pool := pl.Pool
+	need := int32(0)
+	for c := range pool {
+		if composed.Colored[c] > pool[c] {
+			return false
+		}
+		need += composed.Colored[c]
+	}
+	return pool.Total()-need >= composed.Generic
+}
+
 // planTargetCostFloor is the cheapest mana cost one target assignment of id
 // can announce: base less every target-dependent ReduceCost static's literal
 // generic amount, the reduction one target's match applies once (the

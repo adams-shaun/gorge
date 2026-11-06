@@ -1213,6 +1213,13 @@ func (e *Engine) targetPaidNeedsPlannedPayment(p state.PlayerID, id state.ObjID)
 	e.planIgnoreCredit = true
 	defer func() { e.planIgnoreCredit = false }()
 	o := decision.Option{Kind: "cast", Obj: id}
+	if e.planPoolCoversPrintedCost(p, o) {
+		// The floating pool alone pays the composed printed cost, so a
+		// payment that consumes nothing exists and the cast is not payable
+		// only by paying with a permanent its own announcements need
+		// (planPoolCoversPrintedCost) -- without the census pass or the plan.
+		return false
+	}
 	e.planConsumptionOnly = true
 	e.planCoverBoundOn = true
 	if _, consumable := e.planCoverBoundOf(p); !consumable {
