@@ -376,10 +376,19 @@ func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCo
 		// its plain ability cannot make, and the answer takes its colour
 		// ask. Tap it for the owed colour, which floats restricted
 		// (CR 106.6), exactly as a fixed restricted one above.
-		anyColour := a.ManaColors == kop.ColAny && a.AFlags&kop.AfManaChoice != 0
+		anyColour := a.ManaColors == kop.ColAny
 		if !restrSrcAb(a) || a.AFlags&kop.AfManaDynamic != 0 ||
 			a.AFlags&kop.AfManaChoice != 0 && !anyColour || uint8(a.ManaColors)&want == 0 {
 			continue
+		}
+		if anyColour {
+			// The any-colour ability is a planner unit only for a payment
+			// its RestrictValid$ admits (CR 106.6); the fixed ones above
+			// keep the window's printed offer.
+			d := s.payDescNow(NoObj)
+			if !s.restrSrcAdmits(k, p, sl, a, &d) {
+				continue
+			}
 		}
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
