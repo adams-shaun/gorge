@@ -26,25 +26,14 @@ var ktapsDeferDecks = [2][]cardset.Entry{
 	},
 }
 
-// tapsDeferBlocked: measured 2026-11-05, 146 of 200 seeds diverge with or
-// without the classification (DebugNoTapsDefer): a deferred source is a census
-// GAP in gorge (the potential play's prefix script taps it before the cast, its
-// Taps trigger resolving apart from the spell), which the kernel's scripted-
-// prefix machinery (script_gen.go) does not model for a source made a gap by a
-// watcher. See the taps-defer-prefix-gap follow-up ticket (filed 2026-11-05).
-// Remove this skip with that ticket.
-const tapsDeferBlocked = "blocked on taps-defer-prefix-gap: a Taps-deferred source is a scripted-prefix census gap the kernel does not model"
-
 func TestTapsPlannerDefer(t *testing.T) {
 	t.Parallel()
-	t.Skip(tapsDeferBlocked)
 	lockstepSet(t, "tapsdefer", ktapsDeferDecks, 200, "KTAPSDEFER_SEEDS")
 }
 
 // TestTapsPlannerDeferMutation: with the classification dropped some seed of
 // the first 40 diverges from gorge, proof the pool exercises it.
 func TestTapsPlannerDeferMutation(t *testing.T) {
-	t.Skip(tapsDeferBlocked)
 	if isolate(t) {
 		return
 	}

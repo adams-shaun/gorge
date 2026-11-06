@@ -216,6 +216,9 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) {
 			continue
 		}
+		if k.gen != nil && s.g.availX&(availWalk|availHyp) == 0 && s.tapsDeferred(k, p, sl) {
+			continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go); the potential walks (availWalk, its hyp bound) still count it, its census gate is downstream
+		}
 		if dual {
 			s.availGrant(k, sl, pc, a)
 			continue

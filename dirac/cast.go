@@ -1,6 +1,9 @@
 package dirac
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"math/bits"
 )
@@ -1712,6 +1715,11 @@ func (s *State) placeTriggers(k *prep, d *Decision) bool {
 	}
 	if s.orderLeft > 0 {
 		d.Kind, d.Player = DkTriggerOrder, p
+		if os.Getenv("KTAPSDEF_TRACE") != "" {
+			for i := 0; i < int(s.npend); i++ {
+				fmt.Printf("KTAPSDEF order-ask pend[%d] obj=%d card=%d ctrl=%d npend=%d\n", i, s.pend[i].obj, s.pend[i].card, s.pend[i].ctrl, s.npend)
+			}
+		}
 		for i := 0; i < int(s.npend); i++ {
 			if pt := &s.pend[i]; pt.ctrl == p && !s.ordered(uint8(i)) {
 				d.add(MakeAction(AkOrder, uint8(pt.obj), uint8(i), s.occurrence(i)))
@@ -1750,6 +1758,9 @@ func (s *State) applyTriggerOrder(k *prep, a Action) {
 // takePending removes pending trigger i and starts building it.
 func (s *State) takePending(k *prep, i int) {
 	pt := s.pend[i]
+	if os.Getenv("KTAPSDEF_TRACE") != "" {
+		fmt.Printf("KTAPSDEF takePending i=%d obj=%d card=%d ordList=%v orderN=%d sp=%d\n", i, pt.obj, pt.card, s.ordList[:s.orderN], s.orderN, s.sp)
+	}
 	copy(s.pend[i:s.npend-1], s.pend[i+1:s.npend])
 	s.npend--
 	// A stale warp / unearth / destroy / exile promise, or an incarnation-tracked

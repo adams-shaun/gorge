@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"fmt"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // A sacrifice-only mana source (an Eldrazi Spawn token's "Sacrifice this
 // creature: Add {C}", CR 605.1a): the ability's cost has no {T}, so a tapped
@@ -402,6 +406,7 @@ func (s *State) putCounterProg(k *prep, in *kop.Instr) {
 // is answered with the script's first option; an order choice (two triggers at
 // once) is left pending for the ordinary priority path.
 func (s *State) flushPrefixTriggers(k *prep) {
+	ktapTrace(s, "flush enter")
 	for s.npend != 0 {
 		p := s.active
 		n := s.pendCount(p)
@@ -502,16 +507,85 @@ func (s *State) playNeedsEmptyStack(k *prep, a Action) bool {
 	return s.castNeedsEmptyStack(k, a) || s.activateNeedsEmptyStack(k, a)
 }
 
-// resolvePrefixStack resolves what a scripted prefix left on the stack above
-// depth sp0, the other player passing as the search assumed, before a
-// sorcery-speed play is submitted (flushPrefixTriggers stacked it). A trigger
-// the resolution queues is placed and resolved too.
-func (s *State) resolvePrefixStack(k *prep, sp0 uint8) {
-	for s.sp > sp0 && s.ctl == ctlPriority && !s.over {
-		s.passes = 1
-		s.pass(k)
-		if s.npend != 0 {
-			s.flushPrefixTriggers(k)
+// resolvePrefixStack drives what a scripted prefix left behind before the
+// play is applied: the triggers its activations queued (two or more wait for
+// gorge KTriggerOrder, which blocks the payer priority, so the search's
+// script answers it), the placements' dangling builds (takePending), and --
+// for a sorcery-speed play, which is offered only with the stack empty --
+// the resolutions, down to depth sp0, the other player passing as the search
+// assumed. An optional trigger (Judge of Currents) asks its may-election as
+// it resolves: the search answers the election's yes first (scriptAnswers
+// lists Min == Max == 1's answers with the yes first, askTriggerOptional),
+// so the kernel answers it here and lets the resolution finish. Any other
+// ask is not the search's to answer: the play waits above it, as before.
+func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
+	for !s.over {
+		switch s.ctl {
+		case ctlPriority:
+			if s.npend > 0 {
+				s.ctl = ctlPlaceTriggers // the queued triggers are placed first (CR 117.5)
+				continue
+			}
+			if !resolve || s.sp <= sp0 {
+				return
+			}
+			s.passes = 1
+			s.pass(k)
+		case ctlPlaceTriggers:
+			var d Decision
+			s.stepRaw(&d) // the script answers the raw pose order (scriptAnswers), not StepOne's canonical sort
+			ktapTrace(s, fmt.Sprintf("drv place kind=%d sub=%d n=%d", d.Kind, d.Sub, d.N))
+			if s.ctl == ctlPlaceTriggers {
+				// a posed ask here is the queued triggers' order (gorge
+				// KTriggerOrder, one Min=Max=n multi-select whose only
+				// scriptAnswers combination is the options in pose order,
+				// the queue order): answer it as the script does, pick by
+				// pick, so the triggers are placed before the play.
+				// Anything else is the ordinary path's.
+				if d.N == 0 || d.Kind != DkTriggerOrder {
+					return
+				}
+				s.Apply(d.Options[0])
+			}
+		case ctlBuild:
+			// the placement's takePending left the trigger's build
+			// dangling: run it out (its asks, answered with the script's
+			// first option, the raw pose order, are flushPrefixTriggers')
+			for s.ctl == ctlBuild && !s.over {
+				var d Decision
+				s.stepRaw(&d)
+				ktapTrace(s, fmt.Sprintf("drv build kind=%d sub=%d n=%d", d.Kind, d.Sub, d.N))
+				if d.N == 0 || s.ctl != ctlBuild {
+					break
+				}
+				s.Apply(d.Options[0])
+			}
+			if s.ctl == ctlBuild {
+				return // stalled mid-build
+			}
+		case ctlResolve:
+			if !resolve || s.res.ask != raOptional {
+				return
+			}
+			var d Decision
+			s.stepRaw(&d)
+			ktapTrace(s, fmt.Sprintf("drv resolve kind=%d sub=%d n=%d", d.Kind, d.Sub, d.N))
+			if d.N == 0 || d.Sub != ChOptional {
+				return
+			}
+			yes := -1
+			for i := 0; i < int(d.N); i++ {
+				if d.Options[i].Mode()&1 != 0 {
+					yes = i
+					break
+				}
+			}
+			if yes < 0 {
+				return
+			}
+			s.Apply(d.Options[yes])
+		default:
+			return
 		}
 	}
 }

@@ -1,8 +1,25 @@
 package dirac
 
 import (
+	"fmt"
+	"os"
+	"runtime"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
+
+func ktapTrace(s *State, tag string) {
+	if os.Getenv("KTAPSDEF_TRACE") == "" {
+		return
+	}
+	name := "?"
+	if pc, _, _, ok := runtime.Caller(2); ok {
+		if f := runtime.FuncForPC(pc); f != nil {
+			name = f.Name()
+		}
+	}
+	fmt.Fprintf(os.Stderr, "KTAPSDEF %s caller=%s npend=%d sp=%d ctl=%d resask=%d\n", tag, name, s.npend, s.sp, s.ctl, s.res.ask)
+}
 
 // fireTaps fires TrigTaps ("whenever this becomes tapped", gorge Mode$
 // Taps) for the permanent at sl that just became tapped (not as it
@@ -31,6 +48,7 @@ func (s *State) manaTapped(k *prep, sl Slot) {
 //go:noinline
 func (s *State) fireTapsBy(k *prep, sl Slot, tapper uint8) {
 	p := &s.perms[sl]
+	ktapTrace(s, fmt.Sprintf("fire sl=%d obj=%d ctrl=%d", sl, p.obj, p.ctrl))
 	s.fireObj(k, kop.TrigTaps, sl, p.obj, p.ctrl, int16(tapper))
 }
 

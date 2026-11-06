@@ -1296,12 +1296,13 @@ func (s *State) availAnyR(k *prep, p uint8, a *avail) {
 
 // tapGapChoice taps gap sl for p with gorge's search answer c: a Courtyard
 // (anyR) its first ability ({C}) for c 0, else colour c-1 of its
-// restricted one (State.rb); any other gap as tapGap does.
-// spill counts restricted mana the pool's batches could not hold (floating
-// unrestricted: addRestr).
-func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR slotMask, c int, spill *[kop.NumManaKinds]uint8) {
+// restricted one (State.rb); a Taps-deferred gap (tapsDef) its answer's
+// colour into the plain pool (mana_tapsdefer.go); any other gap as tapGap
+// does. spill counts restricted mana the pool's batches could not hold
+// (floating unrestricted: addRestr).
+func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slotMask, c int, spill *[kop.NumManaKinds]uint8) {
 	cd := &k.t.Cards[s.cardAt(sl)]
-	if !anyR.has(sl) {
+	if !anyR.has(sl) && !tapsDef.has(sl) {
 		var held [kop.NumManaKinds]uint8
 		rb := s.rb[p&1]
 		s.tapGap(k, p, sl, restr, &held)
@@ -1309,6 +1310,13 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR slotMask, c 
 			a := &cd.Abilities[k.gen.restr(s.cardAt(sl))]
 			spill[bits.TrailingZeros8(uint8(a.ManaColors))] += max(a.ManaN, 1)
 		}
+		return
+	}
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	if tapsDef.has(sl) {
+		s.tapDeferFloat(k, p, sl, c)
 		return
 	}
 	s.perms[sl].flags |= pfTapped
@@ -1346,7 +1354,7 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR slotMask, c 
 // The walk is iterative over one copy of s (a recursive walk's per-node
 // copy escapes to the heap): each node rebuilds the copy from s by
 // replaying path's taps, so the play loop allocates nothing.
-func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR slotMask, path []uint8, dead *bool) (int, bool) {
+func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR, tapsDef slotMask, path []uint8, dead *bool) (int, bool) {
 	var d Decision
 	depth := 0 // gaps tapped at this node: order[:depth], answers path[:depth]
 	for {
@@ -1355,10 +1363,19 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR 
 			t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 			var spill [kop.NumManaKinds]uint8
 			for j := 0; j < depth; j++ {
-				t.tapGapChoice(k, p, order[j], restr, anyR, int(path[j]), &spill)
+				t.tapGapChoice(k, p, order[j], restr, anyR, tapsDef, int(path[j]), &spill)
 			}
 			t.restrOptions(k, &d, p)
-			if hasOption(&d, a) {
+			// gorge's search completes at a node only when the play is among
+			// the decision's options (offered) or the priced check runs with
+			// the stack clear (waitsForStack): a Taps trigger a path's tap
+			// queued keeps a sorcery-speed play unoffered, so it branches on
+			// the remaining gaps before the pass that lets the triggers
+			// resolve. The walk mirrors that: a play the stack waits for
+			// completes only with nothing pending or the gaps exhausted
+			// (resolvePrefixStack then resolves them, the search's pass
+			// steps).
+			if hasOption(&d, a) && (t.npend == 0 || depth == len(order) || !t.playNeedsEmptyStack(k, a)) {
 				*dead = false
 				if t.rbAny(p&1) || spill != ([kop.NumManaKinds]uint8{}) {
 					for c := range spill {
@@ -1382,11 +1399,14 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR 
 			}
 			j := depth - 1
 			nch := uint8(1)
-			if anyR.has(order[j]) {
+			switch {
+			case anyR.has(order[j]):
 				nch = 6
 				if cd := &k.t.Cards[s.cardAt(order[j])]; restrWideAnyMana(&cd.Abilities[k.gen.anyR(s.cardAt(order[j]))]) {
 					nch = wideAnswers
 				}
+			case tapsDef.has(order[j]):
+				nch = s.deferGapAnswers(k, order[j])
 			}
 			if path[j]+1 < nch {
 				path[j]++
@@ -1397,37 +1417,38 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR 
 	}
 }
 
-// scriptDeadEndAny is scriptDeadEnd with a Courtyard among the gaps.
-func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR slotMask) bool {
+// scriptDeadEndAny is scriptDeadEnd with a Courtyard or a Taps-deferred
+// source among the gaps.
+func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDef slotMask) bool {
 	var order [MaxPerm]Slot
-	n := s.battlefieldOrder(p, s.scriptGaps(k, p).or(restr).or(anyR), order[:], 0)
+	n := s.battlefieldOrder(p, s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef), order[:], 0)
 	var path [MaxPerm]uint8
 	dead := true
-	if _, ok := s.scriptDFS(k, a, p, order[:n], restr, anyR, path[:], &dead); !ok {
+	if _, ok := s.scriptDFS(k, a, p, order[:n], restr, anyR, tapsDef, path[:], &dead); !ok {
 		return true
 	}
 	return dead
 }
 
-// scriptPrefixAny is scriptPrefix with a Courtyard among the gaps: the
-// search's script, played.
-func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR slotMask) {
+// scriptPrefixAny is scriptPrefix with a Courtyard or a Taps-deferred source
+// among the gaps: the search's script, played.
+func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef slotMask) {
 	var d Decision
 	s.plainOptions(k, &d, 0)
 	if hasOption(&d, a) {
 		return
 	}
 	var order [MaxPerm]Slot
-	n := s.battlefieldOrder(p, s.scriptGaps(k, p).or(restr).or(anyR), order[:], 0)
+	n := s.battlefieldOrder(p, s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef), order[:], 0)
 	var path [MaxPerm]uint8
 	var dead bool
-	m, ok := s.scriptDFS(k, a, p, order[:n], restr, anyR, path[:], &dead)
+	m, ok := s.scriptDFS(k, a, p, order[:n], restr, anyR, tapsDef, path[:], &dead)
 	if !ok {
 		return
 	}
 	var spill [kop.NumManaKinds]uint8
 	for i := 0; i < m; i++ {
-		s.tapGapChoice(k, p, order[i], restr, anyR, int(path[i]), &spill)
+		s.tapGapChoice(k, p, order[i], restr, anyR, tapsDef, int(path[i]), &spill)
 	}
 }
 
