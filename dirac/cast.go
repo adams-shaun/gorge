@@ -1343,6 +1343,15 @@ func (s *State) finishBuild(k *prep) {
 			s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0)
 		} else if s.rbAny(e.ctrl) {
 			s.payRestrRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor) // an Angel spell spends Giada's {W}
+		} else if k.gen != nil && s.delvePaysEntry(k, &e) && !s.loweredPoolPays(k, &e, xFolded(cost, int(e.x)), anyColor) {
+			// a granted-delve cast's payment ran through the manual CR 601.2g
+			// window in manaStep; when even that leaves the cost unpaid the
+			// cast is reversed (gorge abortCast, CR 733.1). Declining the
+			// delve picks is legal (CR 702.66a "If you do"), and the window's
+			// sources may run out afterwards. (A lowered or restricted payment
+			// has its own arm above and keeps it.)
+			s.reverseCast(k)
+			return
 		} else {
 			s.payRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 		}
