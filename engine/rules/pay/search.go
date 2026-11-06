@@ -401,6 +401,16 @@ type SearchScratch struct {
 	// storage (adopt).
 	acts  []decision.PaymentActivation
 	steps []RankStep
+	// best is the walk's best plan and rank while the walk runs (Search.Best
+	// points at it); recordBest copies a new best's activations and steps
+	// into bestActs/bestSteps, which are overwritten only by the next
+	// improvement, so a candidate that wins costs a value copy rather than
+	// an allocation. searchInto copies the best to fresh storage once the
+	// walk ends, so nothing that escapes points in here.
+	best      decision.PaymentPlan
+	bestRank  Rank
+	bestActs  []decision.PaymentActivation
+	bestSteps []RankStep
 }
 
 // SearchInto is Run with its working storage drawn
@@ -456,6 +466,14 @@ func searchInto(sc *SearchScratch, cost Cost, pool state.Mana, life int32, ctx R
 	sc.used = resizeCleared(sc.used, len(s.classes))
 	s.used = sc.used
 	s.walk(0)
+	// The walk's best points into the scratch (recordBest); the returned
+	// search's best plan must never do so, and the caller caches it
+	// long-term, so copy it out once, after the walk. Kept entries were
+	// already copied on insertion (completeKeep).
+	if s.Best != nil {
+		plan, r := adopt(*s.Best, s.BestRank)
+		s.Best, s.BestRank = &plan, r
+	}
 	return s
 }
 
@@ -799,18 +817,40 @@ func (s *Search) complete() bool {
 		panic(fmt.Sprintf("payment plan search: count rank %+v differs from the witness rank %+v", quick, r))
 	}
 	if s.Best == nil || r.Less(s.BestRank) {
-		plan, r = adopt(plan, r)
-		s.Best, s.BestRank = &plan, r
+		s.recordBest(plan, r)
 	}
 	return true
 }
 
-// adopt copies a candidate plan and rank into fresh storage before the
-// search stores them: the candidate's activation list and the rank's steps
-// point into the search scratch (witnessInto, rankPlanInto), which the next
-// candidate overwrites, and an adopted plan is cached long-term by the
-// caller (planCastPaymentMemo). The consequence pointers are shared, as they
-// already were between a completeKeep's best plan and its kept entry.
+// recordBest makes plan/r the walk's best. The candidate's activations and
+// steps point into the search scratch (witnessInto, rankPlanInto), which the
+// next candidate overwrites, so they are copied into the search's own best
+// buffers first: a candidate that improves the best costs a value copy, not
+// an allocation. searchInto copies the best to fresh storage once the walk
+// ends, so nothing that escapes the search points in here.
+func (s *Search) recordBest(plan decision.PaymentPlan, r Rank) {
+	sc := s.sc
+	if n := len(plan.Activations); n > 0 {
+		sc.bestActs = resizeCleared(sc.bestActs, n)
+		copy(sc.bestActs, plan.Activations)
+		plan.Activations = sc.bestActs
+	}
+	if n := len(r.Steps); n > 0 {
+		sc.bestSteps = resizeCleared(sc.bestSteps, n)
+		copy(sc.bestSteps, r.Steps)
+		r.Steps = sc.bestSteps
+	}
+	sc.best, sc.bestRank = plan, r
+	s.Best, s.BestRank = &sc.best, r
+}
+
+// adopt copies a plan and rank into fresh storage: a Kept entry on insertion,
+// and the walk's best once the walk ends (searchInto). The candidate's
+// activation list and the rank's steps point into the search scratch
+// (witnessInto, rankPlanInto), which the next candidate overwrites, and an
+// adopted plan is cached long-term by the caller (planCastPaymentMemo). The
+// consequence pointers are shared, as they already were between a
+// completeKeep's best plan and its kept entry.
 func adopt(p decision.PaymentPlan, r Rank) (decision.PaymentPlan, Rank) {
 	if len(p.Activations) > 0 {
 		acts := make([]decision.PaymentActivation, len(p.Activations))
@@ -845,8 +885,7 @@ func (s *Search) completeKeep() bool {
 	plan := witnessInto(s.sc, s.cost, s.pool, s.produced, chosen, after)
 	r := rankPlanInto(s.sc, s.ctx, plan, chosen, after)
 	if s.Best == nil || r.Less(s.BestRank) {
-		best, bestRank := adopt(plan, r)
-		s.Best, s.BestRank = &best, bestRank
+		s.recordBest(plan, r)
 	}
 	sig := ResidualSignature(s.classes, s.choices, plan.Activations)
 	if at := slices.IndexFunc(s.Kept, func(k KeptPlan) bool { return k.Sig == sig }); at >= 0 {
