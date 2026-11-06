@@ -400,11 +400,22 @@ func (s *State) tapGap(k *prep, p uint8, sl Slot, restr slotMask, held *[kop.Num
 // mana floats beside the pool (State.rb), priced by the search's walk
 // as gorge's prefix search does (restrOptions).
 func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
+	// An activation on a board with a live granted mana ability prices without
+	// the grant (otherGaps): its filter prefix would apply a funding-first
+	// path gorge's search only reaches after the grant's branches. The grant
+	// search (grantPrefix) owns the prefix on such a board; a cast keeps the
+	// filter route (otherGaps counts a cast's grants, noGrant off). The
+	// filter-only arm below yields to land's liveGrantGap for every play
+	// (CR 601.2g-h); this guard keeps the mix board's filter route off such
+	// an activation too.
+	act := a.Kind() == AkActivate && s.liveGrantGap(k, p)
 	if s.mixBoard(k, p) {
-		var d Decision
-		s.plainOptions(k, &d, 0)
-		if !hasOption(&d, a) {
-			s.filtScript(k, a, p, true)
+		if !act {
+			var d Decision
+			s.plainOptions(k, &d, 0)
+			if !hasOption(&d, a) {
+				s.filtScript(k, a, p, true)
+			}
 		}
 		return
 	}
