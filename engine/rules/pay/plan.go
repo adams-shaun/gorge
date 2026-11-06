@@ -301,6 +301,9 @@ func rankPlanInto(sc *SearchScratch, ctx RankContext, p decision.PaymentPlan, as
 		steps = make([]RankStep, len(p.Activations))
 	} else {
 		steps = resizeCleared(sc.steps, len(p.Activations))
+		// Hand the (possibly grown) backing back to the scratch, so the
+		// next candidate reuses it instead of re-buying it.
+		sc.steps = steps
 	}
 	r := Rank{Sources: len(as), Surplus: after.Total(), Steps: steps}
 	remaining := ctx.ColourSources
@@ -358,6 +361,10 @@ func witnessInto(sc *SearchScratch, c Cost, initial, produced state.Mana, as []A
 		acts = make([]decision.PaymentActivation, len(as))
 	} else {
 		acts = resizeCleared(sc.acts, len(as))
+		// Hand the (possibly grown) backing back to the scratch, so the
+		// next candidate reuses it instead of re-buying it. The list stays
+		// aliased into it until adopt copies an adopted plan out.
+		sc.acts = acts
 	}
 	for i := range as {
 		acts[i] = as[i].Activation

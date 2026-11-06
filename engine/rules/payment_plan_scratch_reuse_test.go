@@ -8,7 +8,9 @@ package rules
 // cost, whose search rewrites the scratch with different tables) and cast A
 // again on the SAME engine and requires the two A outcomes to be the same
 // plan, bit for bit. Fresh allocation is equally correct, so this is a guard
-// against aliasing and clobbering, not a defect repro: its companion
+// against aliasing and clobbering, not a defect repro: it also checks the
+// escape contract by backing identity (an adopted plan's activation list is
+// never the shared candidate-activation storage), and its companion
 // evidence is the before/after profile pair and the enginebench verify smoke
 // (see the brief).
 
@@ -45,9 +47,25 @@ func TestPaymentPlanScratchReuseStable(t *testing.T) {
 		// every plan here is a phase-2 plan over the reused scratch's
 		// last-resort tables; a disclosed consequence is its marker.
 		a1 := pay.PlanPaymentCost(asPayer(e), 0, paymentCast(spell), costA, nil)
+		// The escape contract says the returned plan's activation list is
+		// its own storage: snapshot it and require it to survive the
+		// intervening cast-B search, whose candidates overwrite the shared
+		// candidate-activation backing (witnessInto's sc.acts) in place
+		// whenever they fit it. A plan that still pointed into the scratch
+		// would read cast B's witness here (vacuous only in the shape where
+		// B's search grows the backing past A's, leaving A's copy
+		// abandoned-but-intact; the backing check below is what has no
+		// such escape).
+		a1Snap := make([]decision.PaymentActivation, len(a1.Plan.Activations))
+		copy(a1Snap, a1.Plan.Activations)
 		b := pay.PlanPaymentCost(asPayer(e), 0, paymentCast(spell), costB, nil)
+		if !reflect.DeepEqual(a1Snap, a1.Plan.Activations) {
+			t.Fatalf("the first A plan's activations changed while cast B planned over the same scratch; the plan still points into the reused search scratch\nwas:  %s\nnow:  %s",
+				lrPlanString(a1Snap), lrPlanString(a1.Plan.Activations))
+		}
 		a2 := pay.PlanPaymentCost(asPayer(e), 0, paymentCast(spell), costA, nil)
-		for _, got := range []pay.PlanOutcome{a1, b, a2} {
+		a3 := pay.PlanPaymentCost(asPayer(e), 0, paymentCast(spell), costA, nil)
+		for _, got := range []pay.PlanOutcome{a1, b, a2, a3} {
 			if got.Plan == nil || got.Reason != "" {
 				t.Fatalf("no plan (reason %q detail %q), want a phase-2 plan", got.Reason, got.Detail)
 			}
@@ -67,6 +85,27 @@ func TestPaymentPlanScratchReuseStable(t *testing.T) {
 		}
 		if !reflect.DeepEqual(*a1.Plan, *a2.Plan) {
 			t.Fatalf("the reused scratch served different plans for the same query\nfirst:  %s\nsecond: %s", lrPlanString(a1.Plan.Activations), lrPlanString(a2.Plan.Activations))
+		}
+		if !pay.PlanOutcomeEqual(a2, a3) || !reflect.DeepEqual(*a2.Plan, *a3.Plan) {
+			t.Fatalf("two back-to-back identical queries disagreed over the reused scratch\nfirst:  %s\nsecond: %s", lrPlanString(a2.Plan.Activations), lrPlanString(a3.Plan.Activations))
+		}
+		// The escape contract itself, by backing identity: an adopted
+		// plan's activation list is freshly allocated while the previous
+		// call's adopted plan is still alive, so the two backings cannot
+		// be one allocation. If the search stored its candidate list
+		// without the adopt copy, both plans would point into the same
+		// candidate-activation storage — witnessInto hands every (grown)
+		// backing back to the scratch, and this query pair's searches
+		// share it (a call's growth becomes the next call's starting
+		// capacity, and the second call's best fits the capacity the
+		// identical first call left, so no growth separates them).
+		back2 := reflect.ValueOf(a2.Plan.Activations).Pointer()
+		back3 := reflect.ValueOf(a3.Plan.Activations).Pointer()
+		if back2 == 0 || back3 == 0 {
+			t.Fatal("empty activation backing, though every plan here has steps")
+		}
+		if back2 == back3 {
+			t.Fatalf("two live plans share an activation backing; an adopted plan still points into the reused search scratch (the escape contract pay.SearchScratch's doc states)")
 		}
 		// Precondition for the guard's value: the middle search really
 		// rewrote the scratch with different tables (otherwise the two A
