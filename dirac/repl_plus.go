@@ -12,6 +12,8 @@ import (
 // op, which deals every event with the summed amount (trig_oneormore.go's
 // exemption). Two or more competing events would need one ask per event,
 // which the op-resume shape does not model: the loud stall stays, as does
+// a pass whose one competing event is not its first (gorge deals the earlier
+// events before its ask and the answer's re-execution would deal them again).
 // the answerDivide caller's (interp_gen.go), which passes park=false. The
 // source is the pass's already-read one (controller ctrl, permanent srcSl or
 // its card srcCard, keywords kw): parkNC is the collector the answer will
@@ -36,6 +38,13 @@ func (s *State) replPlusSrcPass(k *prep, ctrl uint8, srcSl Slot, srcCard CardID,
 	switch {
 	case n >= 2:
 		// gorge asks once per event; a multi-event pass is not modelled
+		s.capFull(StallReplPlus)
+		return true
+	case n == 1 && at > 0:
+		// gorge deals the events before the competing one before its ask (each
+		// event's replacements are collected as the event happens, CR 616.1e),
+		// and the answer's re-execution would deal them again: the op-resume
+		// shape cannot shrink the pass, so the loud stall stays
 		s.capFull(StallReplPlus)
 		return true
 	case n == 1:

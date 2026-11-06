@@ -309,3 +309,105 @@ func TestReplPlusSitePainStallsLoud(t *testing.T) {
 		t.Fatalf("pain life %d, want today's summed loss to %d (1 + 1 + 1)", got, life-3)
 	}
 }
+
+// The competing event is not always the pass's first: gorge deals the
+// earlier events before it collects the competing one's replacements and
+// asks (each event's replacements are collected as the event happens, CR
+// 616.1e), so a park there would show gorge's earlier damage at an ask whose
+// re-execution deals it again. The kernel stalls loudly instead, before any
+// dealing. Each test keeps its precondition assertions: the compared values
+// differ (the stall is non-zero, the recipients are untouched only because
+// nothing was dealt) and the plus cards sit where the candidate walk reads
+// them.
+
+// TestReplPlusSiteDamageMapCompetingSecondStalls: the map's own-bear event
+// comes first, the opponent-matched event second; the pass stalls loudly
+// with nothing dealt.
+func TestReplPlusSiteDamageMapCompetingSecondStalls(t *testing.T) {
+	tbl, plus, _ := replPlusSiteTable(int16(kop.ReplDmgOppPlayer|kop.ReplDmgOppPerm),
+		trigProg("Test Map Source", kop.Instr{}),
+		trigProg("Test Map", kop.Instr{Op: kop.OpResolveDamageMap}))
+	sc, src, mapCard := dmgMapScen(t, plus, tbl)
+	sc.perm(plus, 0)
+	sc.perm(plus, 0)
+	own := sc.perm(v.GrizzlyBears, 0)
+	life := sc.s.pl[1].life
+	if sc.s.perms[sc.slot(own)].damage != 0 || sc.s.pl[1].life != life {
+		t.Fatalf("precondition: own bear damage %d, opponent life %d, want untouched %d",
+			sc.s.perms[sc.slot(own)].damage, sc.s.pl[1].life, life)
+	}
+	runMap(t, sc, src, mapCard,
+		struct{ code, amt uint8 }{uint8(own), 2},
+		struct{ code, amt uint8 }{PlayerTarget1, 3})
+	if got := sc.s.StallReason(); got != StallReplPlus {
+		t.Fatalf("competing second map event: stall %s, want replplus", StallName(got))
+	}
+	if sc.s.g.plusBatchAsked || sc.s.g.nc.n != 0 {
+		t.Fatalf("competing second map event parked: flag %v nc.n %d, want no park",
+			sc.s.g.plusBatchAsked, sc.s.g.nc.n)
+	}
+	if sc.s.perms[sc.slot(own)].damage != 0 || sc.s.pl[1].life != life {
+		t.Fatalf("the stalled pass dealt: own bear damage %d, opponent life %d, want 0/%d",
+			sc.s.perms[sc.slot(own)].damage, sc.s.pl[1].life, life)
+	}
+}
+
+// TestReplPlusSiteDmgSrcPlCompetingSecondStalls: RefEachPlayer's opponent
+// event is the pass's second; the pass stalls loudly with both players'
+// life untouched.
+func TestReplPlusSiteDmgSrcPlCompetingSecondStalls(t *testing.T) {
+	tbl, plus, _ := replPlusSiteTable(int16(kop.ReplDmgOppPlayer),
+		trigProg("Test Trigger", kop.Instr{Op: kop.OpDealDamageFrom, Obj: kop.RefSelf,
+			A: kop.Const(3), C: int16(kop.RefEachPlayer), B: kop.Const(1)}))
+	sc := newScenTable(t, tbl, Config{NoElide: true})
+	trig := plus + 1
+	src := sc.perm(trig, 0)
+	sc.perm(plus, 0)
+	sc.perm(plus, 0)
+	l0, l1 := sc.s.pl[0].life, sc.s.pl[1].life
+	runTrig(t, sc, src, trig)
+	if got := sc.s.StallReason(); got != StallReplPlus {
+		t.Fatalf("competing second player event: stall %s, want replplus", StallName(got))
+	}
+	if sc.s.g.plusBatchAsked || sc.s.g.nc.n != 0 {
+		t.Fatalf("competing second player event parked: flag %v nc.n %d, want no park",
+			sc.s.g.plusBatchAsked, sc.s.g.nc.n)
+	}
+	if sc.s.pl[0].life != l0 || sc.s.pl[1].life != l1 {
+		t.Fatalf("the stalled pass dealt: life %d/%d, want %d/%d",
+			sc.s.pl[0].life, sc.s.pl[1].life, l0, l1)
+	}
+}
+
+// TestReplPlusBatchCompetingSecondStalls: a fight-shaped hit batch whose
+// second hit is the opponent-matched one stalls loudly (StallReplPlusBatch,
+// trig_batches.go) with both bears untouched; the source is a seat-0
+// creature so the candidate walk finds the seat-0 plus cards.
+func TestReplPlusBatchCompetingSecondStalls(t *testing.T) {
+	tbl, plus, _ := replPlusSiteTable(int16(kop.ReplDmgOppPlayer | kop.ReplDmgOppPerm))
+	sc := newScenTable(t, tbl, Config{NoElide: true})
+	fighter := sc.perm(v.GrizzlyBears, 0)
+	own := sc.perm(v.GrizzlyBears, 0)
+	opp := sc.perm(v.GrizzlyBears, 1)
+	sc.perm(plus, 0)
+	sc.perm(plus, 0)
+	var hb hitBatch
+	hb.add(sc.s, sc.slot(fighter), sc.slot(own), 2)
+	hb.add(sc.s, sc.slot(fighter), sc.slot(opp), 3)
+	if hb.n != 2 {
+		t.Fatalf("batch holds %d hits, want 2", hb.n)
+	}
+	if !sc.s.dealHits(sc.k, hb.h[:hb.n]) {
+		t.Fatal("dealHits returned false, want the batch consumed")
+	}
+	if got := sc.s.StallReason(); got != StallReplPlusBatch {
+		t.Fatalf("competing second batch hit: stall %s, want replplusbatch", StallName(got))
+	}
+	if sc.s.g.plusBatchAsked || sc.s.g.nc.n != 0 {
+		t.Fatalf("competing second batch hit parked: flag %v nc.n %d, want no park",
+			sc.s.g.plusBatchAsked, sc.s.g.nc.n)
+	}
+	if d1, d2 := sc.s.perms[sc.slot(own)].damage, sc.s.perms[sc.slot(opp)].damage; d1 != 0 || d2 != 0 {
+		t.Fatalf("the stalled batch dealt: bear damage %d/%d, want 0/0", d1, d2)
+	}
+}
