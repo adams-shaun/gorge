@@ -418,6 +418,10 @@ type grantSrch struct {
 type grantKey struct {
 	tapped slotMask
 	pool   [kop.NumManaKinds]uint8
+	// art: the pool slots holding an artifact's mana (genState.poolArt):
+	// gorge's key reads the typed units apart (Player.ManaUnits), so a
+	// filter's tagged {W} over a plain {W} is a new state
+	art uint8
 	// gorge's key counts the stack, hand and graveyard too (scriptStateKey)
 	sp, hand, gy uint8
 }
@@ -550,6 +554,10 @@ func (g *grantSrch) visit(t *State) bool {
 	}
 	pl := &t.pl[g.p&1]
 	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, sp: t.sp, hand: pl.handN, gy: pl.graveN}
+	if g.k.artMana {
+		t.artSync(g.p)
+		key.art = t.g.poolArt[g.p&1]
+	}
 	for i := 0; i < g.nseen; i++ {
 		if g.seen[i] == key {
 			return false
