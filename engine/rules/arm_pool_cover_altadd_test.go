@@ -11,7 +11,7 @@ import (
 // sacrifice an Elf, or pay {1}. It targets an artifact.
 const armAltAddSpell = "Name:Arm Alt Add Spell\nManaCost:B\nTypes:Sorcery\n" +
 	"K:AlternateAdditionalCost:Sac<1/Elf/an Elf>:1\n" +
-	"A:SP$ Destroy | ValidTgts$ Artifact | SpellDescription$ Destroy target artifact.\nOracle:x\n"
+	"A:SP$ Destroy | SpellDescription$ Destroy target artifact. | ValidTgts$ Artifact\nOracle:x\n"
 
 // The consumption-only arm's pool-cover pre-gate (planPoolCoversPrintedCost)
 // only composes the printed mana cost. An either-or additional cost
