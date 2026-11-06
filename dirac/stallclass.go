@@ -70,7 +70,7 @@ var stallCapacityReasons = [...]uint8{
 	StallDProg, StallEmblem, StallDmgMap, StallXTgt, StallUsed, StallKwRepX, StallLinks, StallFree, StallAsk,
 	StallCounters, StallLKI, StallTapPick, StallRegen, StallLook, StallGrants, StallActs, StallLinger, StallSac,
 	StallEntered, StallConvoke, StallDelve, StallCastRing, StallPT, StallActRing, StallCharmOpts, StallRefLatch, StallZone,
-	StallOptions, StallSrcMark, StallDmgLatch, StallReplCands, StallPrevCol, StallColGrant, StallRestrX,
+	StallOptions, StallSrcMark, StallDmgLatch, StallReplCands, StallReplPlusBatch, StallPrevCol, StallColGrant, StallRestrX,
 	StallObsSrc, StallDynMana, StallTapExtra, StallExiledWith, StallBreach, StallNetLock, StallPanharmGrant, StallExileGrant, StallCharmPick,
 	StallCombatHit, StallFinality, StallPersistMana, StallOptMoves, StallMustBlock, StallRestrSrc, StallFirebend,
 	StallExHaste, StallEffEtbCtr, StallAtkGrp, StallParadigm, StallFiltX,

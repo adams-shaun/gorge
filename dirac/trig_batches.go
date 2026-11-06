@@ -2,6 +2,15 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
+// StallReplPlusBatch: a dealHits batch whose plus-N competition the
+// one-parked-event op-resume shape cannot pose: two or more events match two
+// or more pure plus-N replacements, or the competing event follows an earlier
+// hit that would land first. Both are a declared capacity of the shape, not a
+// lost event: the game stops before any of the batch lands.
+const StallReplPlusBatch = 139
+
+func init() { stallNames[StallReplPlusBatch] = "replplusbatch" }
+
 // simultaneous-event batches on the stack frame —
 // collect, snapshot, apply, fire. Cold, out of line: every arm here is
 // reached from a site that already left the hot path (a paused combat
@@ -203,16 +212,19 @@ func (s *State) dealHitsToOne(k *prep, hs []dmgHit) bool {
 	return s.dealHitsLatched(k, hs, &refLatch{r: &r})
 }
 
-// replPlusBatch parks a batch whose exactly one hit's damage event is matched
-// by two or more pure plus-N replacements: gorge collects every matching
-// damage replacement and asks the affected player their CR 616.1 order even
-// though the additions commute, so the kernel poses the same no-op ask before
-// the batch lands. The parked event's amount is discarded: the answer resumes
-// the op (interp_ask.go), which re-executes the batch and deals every hit with
-// the summed amount (trig_oneormore.go's exemption). Two or more competing
-// hits would need one ask per event, which the op-resume shape does not model:
-// the loud stall stays. handled reports that the batch was consumed and must
-// not deal.
+// replPlusBatch parks a batch whose first hit's damage event is matched by two
+// or more pure plus-N replacements: gorge collects every matching damage
+// replacement and asks the affected player their CR 616.1 order even though the
+// additions commute, so the kernel poses the same no-op ask before the batch
+// lands. The parked event's amount is discarded: the answer resumes the op
+// (interp_ask.go), which re-executes the batch and deals every hit with the
+// summed amount (trig_oneormore.go's exemption). The op-resume shape holds one
+// parked event per op, so it parks only a batch whose first hit competes: two
+// or more competing hits would need one ask per event, and a later competing
+// hit would be parked before the earlier hits land. Both are a declared
+// capacity (StallReplPlusBatch): the game stops before any hit lands rather
+// than losing an earlier event. handled reports that the batch was consumed
+// and must not deal.
 func (s *State) replPlusBatch(k *prep, hs []dmgHit) (handled bool) {
 	if !replPlusOnly(k.gen) || s.g.ro.n != 0 || s.g.ro.on || s.g.nc.n != 0 || s.g.plusBatchAsked {
 		return false
@@ -234,10 +246,18 @@ func (s *State) replPlusBatch(k *prep, hs []dmgHit) (handled bool) {
 	}
 	switch {
 	case n >= 2:
-		// gorge asks once per event; a multi-event batch is not modelled
-		s.capFull(StallReplPlus)
+		// gorge asks once per event; the shape parks one event per op.
+		s.capFull(StallReplPlusBatch)
 		return true
 	case n == 1:
+		// A hit before the competing one lands before gorge's ask (the batch
+		// is dealt in hit order): parking the whole batch would hide it.
+		for j := 0; j < at; j++ {
+			if h := &hs[j]; h.n > 0 && s.occ.has(h.src) && s.occ.has(h.dst) {
+				s.capFull(StallReplPlusBatch)
+				return true
+			}
+		}
 		h := &hs[at]
 		s.parkNC(k, s.perms[h.src].ctrl, h.src, s.cardAt(h.src), uint8(s.perms[h.dst].obj), int(h.n), s.kw(k, h.src))
 		s.g.plusBatchAsked = true
