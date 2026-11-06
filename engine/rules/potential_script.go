@@ -133,24 +133,30 @@ func (e *Engine) newScriptSearch(p state.PlayerID, a decision.PotentialAction, a
 	}
 	sr := &scriptSearch{p: p, play: a, altCost: altCost, budget: budget, turn: e.G.Turn, step: e.G.Step, stack: len(e.G.Stack), seen: map[string]bool{}}
 	if altCost <= 0 {
-		sr.need = e.scriptNeedColours(p, a)
+		sr.need = scriptNeedColours(e, e.G.Obj(a.Obj), p, a)
 	}
 	return sr
 }
 
+// scriptNeedReader is the read-only side of *Engine scriptNeedColours needs;
+// a narrow interface keeps the helper off Engine's method set.
+type scriptNeedReader interface {
+	castOfferBase(state.PlayerID, state.ObjID) costvocab.Cost
+	abilityCompiledCost(*cards.SA) *compiledCost
+}
+
 // scriptNeedColours reports the coloured pips the searched play's base cost
 // announces (CR 601.2b: the caster announces each pip's colour before
-// targets): a cast's printed mana cost, an ability's compiled cost. A hybrid
-// pip needs each of its faces; a Phyrexian pip needs its colour (its life
-// face is not mana). The set is only the search's branch-order preference --
-// it changes which equal answers a colour ask's search tries first, never
-// which answers exist. A cast of a mode or an alternative cost (MayPlay*,
-// flashback) whose pips the printed base does not carry leaves the set empty,
-// and so the engine order.
-func (e *Engine) scriptNeedColours(p state.PlayerID, a decision.PotentialAction) [state.MC + 1]bool {
+// targets): a cast's printed mana cost, an ability's compiled cost. A hybrid,
+// twobrid or hybrid-Phyrexian pip needs each of its faces; a Phyrexian pip
+// needs its colour (its life face is not mana). The set is only the search's
+// branch-order preference -- it changes which equal answers a colour ask's
+// search tries first, never which answers exist. A cast of a mode or an
+// alternative cost (MayPlay*, flashback) whose pips the printed base does not
+// carry leaves the set empty, and so the engine order.
+func scriptNeedColours(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) [state.MC + 1]bool {
 	var need [state.MC + 1]bool
-	var add func(costvocab.Cost)
-	add = func(c costvocab.Cost) {
+	add := func(c costvocab.Cost) {
 		for i, n := range c.Colored {
 			if n > 0 && i <= state.MC {
 				need[i] = true
@@ -169,19 +175,31 @@ func (e *Engine) scriptNeedColours(p state.PlayerID, a decision.PotentialAction)
 				need[i] = true
 			}
 		}
+		for _, tw := range c.Twobrid {
+			if i := state.ManaIndex(tw.Col); i <= state.MC {
+				need[i] = true
+			}
+		}
+		for _, hp := range c.HybridPhyrexian {
+			if i := state.ManaIndex(hp.A); i <= state.MC {
+				need[i] = true
+			}
+			if i := state.ManaIndex(hp.B); i <= state.MC {
+				need[i] = true
+			}
+		}
 	}
-	o := e.G.Obj(a.Obj)
 	if o == nil || o.Face() == nil {
 		return need
 	}
 	switch a.Kind {
 	case "cast":
 		if a.Mode == "" {
-			add(e.castOfferBase(p, a.Obj))
+			add(r.castOfferBase(p, a.Obj))
 		}
 	case "ability":
 		if pa, ok := o.PileAbilityAt(a.Ability); ok && pa.SA != nil {
-			add(e.abilityCompiledCost(pa.SA).Cost)
+			add(r.abilityCompiledCost(pa.SA).Cost)
 		}
 	}
 	return need
@@ -511,10 +529,11 @@ func scriptAnswers(d *decision.Decision) []decision.Intent {
 
 // scriptOrderAnswers stably reorders an ask's valid answers so the ones that
 // name a colour the searched play's cost asks for come first, engine order
-// kept inside each half. The answer SET is unchanged -- the search stays
-// complete either way -- only which equal answers a budget-capped search
-// reaches first: a W U B R G colour ask otherwise spends its nodes proving
-// every colour the cost does not name dead before the first one it does.
+// kept inside each half. The answer SET is unchanged, but the search is
+// budget-capped (potentialScriptNodes), not complete: order decides which
+// plans it reaches, and so which plan it finds. A W U B R G colour ask
+// otherwise spends its nodes proving every colour the cost does not name dead
+// before the first one it does.
 func scriptOrderAnswers(d *decision.Decision, answers []decision.Intent, need [state.MC + 1]bool) []decision.Intent {
 	any := false
 	for _, b := range need {
