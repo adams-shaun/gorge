@@ -2,6 +2,15 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
+// StallReplPlusBatch: a dealHits batch whose plus-N competition the
+// one-parked-event op-resume shape cannot pose: two or more events match two
+// or more pure plus-N replacements, or the competing event follows an earlier
+// hit that would land first. Both are a declared capacity of the shape, not a
+// lost event: the game stops before any of the batch lands.
+const StallReplPlusBatch = 139
+
+func init() { stallNames[StallReplPlusBatch] = "replplusbatch" }
+
 // simultaneous-event batches on the stack frame —
 // collect, snapshot, apply, fire. Cold, out of line: every arm here is
 // reached from a site that already left the hot path (a paused combat
@@ -185,8 +194,8 @@ func (b *hitBatch) add(s *State, src, dst Slot, n int) {
 // closes).
 //
 //go:noinline
-func (s *State) dealHits(k *prep, hs []dmgHit) {
-	s.dealHitsLatched(k, hs, nil)
+func (s *State) dealHits(k *prep, hs []dmgHit) bool {
+	return s.dealHitsLatched(k, hs, nil)
 }
 
 // dealHitsToOne is dealHits for hits on one recipient (ExtEachDamage): the only
@@ -195,18 +204,76 @@ func (s *State) dealHits(k *prep, hs []dmgHit) {
 // batch's total to it (gorge trigger_match.go damageBatchKey).
 //
 //go:noinline
-func (s *State) dealHitsToOne(k *prep, hs []dmgHit) {
+func (s *State) dealHitsToOne(k *prep, hs []dmgHit) bool {
 	if k.gen == nil || !k.gen.anyDmgRef {
-		s.dealHits(k, hs)
-		return
+		return s.dealHits(k, hs)
 	}
 	var r dmgRec
-	s.dealHitsLatched(k, hs, &refLatch{r: &r})
+	return s.dealHitsLatched(k, hs, &refLatch{r: &r})
+}
+
+// replPlusBatch parks a batch whose first hit's damage event is matched by two
+// or more pure plus-N replacements: gorge collects every matching damage
+// replacement and asks the affected player their CR 616.1 order even though the
+// additions commute, so the kernel poses the same no-op ask before the batch
+// lands. The parked event's amount is discarded: the answer resumes the op
+// (interp_ask.go), which re-executes the batch and deals every hit with the
+// summed amount (trig_oneormore.go's exemption). The op-resume shape holds one
+// parked event per op, so it parks only a batch whose first hit competes: two
+// or more competing hits would need one ask per event, and a later competing
+// hit would be parked before the earlier hits land. Both are a declared
+// capacity (StallReplPlusBatch): the game stops before any hit lands rather
+// than losing an earlier event. handled reports that the batch was consumed
+// and must not deal.
+func (s *State) replPlusBatch(k *prep, hs []dmgHit) (handled bool) {
+	if !replPlusOnly(k.gen) || s.g.ro.n != 0 || s.g.ro.on || s.g.nc.n != 0 || s.g.plusBatchAsked {
+		return false
+	}
+	// Probe parkNC for each hit with the ask state saved and restored: it is
+	// the collector the answer will use, so the count and the parked event
+	// cannot disagree with it.
+	saveRO, saveNC := s.g.ro, s.g.nc
+	n, at := 0, -1
+	for i := range hs {
+		h := &hs[i]
+		if h.n <= 0 || !s.occ.has(h.src) || !s.occ.has(h.dst) {
+			continue
+		}
+		if s.parkNC(k, s.perms[h.src].ctrl, h.src, s.cardAt(h.src), uint8(s.perms[h.dst].obj), int(h.n), s.kw(k, h.src)) {
+			n, at = n+1, i
+		}
+		s.g.ro, s.g.nc = saveRO, saveNC
+	}
+	switch {
+	case n >= 2:
+		// gorge asks once per event; the shape parks one event per op.
+		s.capFull(StallReplPlusBatch)
+		return true
+	case n == 1:
+		// A hit before the competing one lands before gorge's ask (the batch
+		// is dealt in hit order): parking the whole batch would hide it.
+		for j := 0; j < at; j++ {
+			if h := &hs[j]; h.n > 0 && s.occ.has(h.src) && s.occ.has(h.dst) {
+				s.capFull(StallReplPlusBatch)
+				return true
+			}
+		}
+		h := &hs[at]
+		s.parkNC(k, s.perms[h.src].ctrl, h.src, s.cardAt(h.src), uint8(s.perms[h.dst].obj), int(h.n), s.kw(k, h.src))
+		s.g.plusBatchAsked = true
+		return true
+	}
+	return false
 }
 
 // dealHitsLatched is dealHits with rl, whose dmgRec it fills, as the batch's
-// per-referent latch (nil: each hit is its own batch).
-func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) {
+// per-referent latch (nil: each hit is its own batch). It reports whether the
+// batch was parked on the replacement-order ask (or stalled) instead of dealt,
+// so a caller's post-batch work is skipped.
+func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) bool {
+	if s.replPlusBatch(k, hs) {
+		return true
+	}
 	for i := range hs {
 		h := &hs[i]
 		h.n = int16(s.damageHit(k, h))
@@ -215,6 +282,9 @@ func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) {
 			rl.r.nev++
 		}
 	}
+	// a triggered or lifelink follow-up can deal nested damage: the batch's
+	// re-execution exemption ends with the hits themselves
+	s.g.plusBatchAsked = false
 	if k.gen != nil && k.gen.anyPermMark {
 		for i := range hs {
 			if h := &hs[i]; h.n > 0 {
@@ -271,6 +341,7 @@ func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) {
 		}
 		s.gainLife(k, h.ctrl, tot)
 	}
+	return false
 }
 
 // damageHit deals hit h (damage, loyalty for a planeswalker, -1/-1

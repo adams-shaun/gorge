@@ -487,7 +487,7 @@ func (s *State) blockerOptions(k *prep, d *Decision) bool {
 	def := 1 - s.active
 	d.Kind, d.Player = DkBlockers, def
 	if k.gen != nil && k.gen.anyMustBlock {
-		if mb := s.mustBlockAttackers(k); mb.any() {
+		if mb := s.mustBlockAttackers(k); mb.any() || s.blockDuty(k).any() {
 			return s.blockerOptionsReq(k, d, mb) // combat_mustbeblocked.go
 		}
 	}
@@ -924,7 +924,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		// so shieldCombat must leave all the shields to it (a shield on a
 		// later event is a candidate of the same ask, not an automatic
 		// spend before the ask is answered).
-		if k.gen.anyRepl&(rbDblDmg|rbShield|rbPrevCol) != 0 && !s.g.ro.on {
+		if (k.gen.anyRepl&(rbDblDmg|rbShield|rbPrevCol) != 0 || replPlusOnly(k.gen)) && !s.g.ro.on {
 			s.replOrderFreeze(k, &r, first) // gorge's replacement-order ask
 		}
 		if k.gen.anyRepl&rbShield != 0 {

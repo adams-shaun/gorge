@@ -119,6 +119,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		var adj kop.ManaCost
 		base := *cost
 		if s.statM.any() || k.gen != nil {
+			av.delve = s.tbDelveCredit(k, p, c, o, true) // the faces' credit (gorge FeasibleAny's delve, CR 702.66a)
 			adj = s.adjustFit(k, &av, p, c, o, *cost, false)
 			cost = &adj
 		}
@@ -128,7 +129,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		preDelve := cost
 		var dc kop.ManaCost
-		if k.gen != nil && k.gen.anyDelve {
+		if k.gen != nil && k.gen.anyDelve && !av.tbLeafCredited(&base) {
+			// an unresolved twobrid's credit priced the faces at the leaf
+			// (adjustFit); the outer credit would take it a second time
 			dc = s.delveOfferCreditHand(k, p, c, o, *cost)
 			cost = &dc // (the either-or check below takes the pre-delve cost: it credits its own total)
 		}
@@ -852,7 +855,7 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 	if base != nil && (s.statM.any() || k.gen != nil) {
 		t = s.adjustFit(k, av, p, c, o, addCost(*base, cd.AltAddCost.Mana), gen)
 	}
-	if k.gen != nil && k.gen.anyDelve && o != NoObj {
+	if k.gen != nil && k.gen.anyDelve && o != NoObj && (base == nil || !av.tbLeafCredited(base)) {
 		t = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, t) // the total's one credit
 	}
 	return av.affords(&t, pipMaskOf(&t), 0)
@@ -1430,8 +1433,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 			s.flushPrefixTriggers(k)
 		}
 	}
-	if s.sp > sp0 && s.playNeedsEmptyStack(k, a) {
-		s.resolvePrefixStack(k, sp0)
+	empty := s.playNeedsEmptyStack(k, a)
+	if s.sp > sp0 && empty || s.npend != 0 {
+		s.resolvePrefixStack(k, sp0, empty) // the prefix's triggers placed (and, sorcery-speed, resolved) before the play
 	}
 	switch a.Kind() {
 	case AkPass:

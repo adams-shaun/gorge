@@ -29,6 +29,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	e := &s.res.e
 	o := s.objRefObj(in.Obj)
 	if o == NoObj {
+		s.g.plusBatchAsked = false // a re-executed pass whose source is gone still ends its exemption
 		return
 	}
 	n := s.value(k, in.A)
@@ -36,6 +37,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		n++
 	}
 	if n <= 0 {
+		s.g.plusBatchAsked = false
 		return
 	}
 	ver := s.objs[o].ver
@@ -68,6 +70,25 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	}
 	card := s.objs[o].card
 	p0, p1 := s.eachPlayers(k, kop.Ref(in.C))
+	// A pure plus-N competition poses gorge's no-op CR 616.1 order ask before
+	// the pass deals (repl_plus.go): the op parks and the answer
+	// re-executes it, which deals the summed amount; two competing player
+	// events (RefEachPlayer) and any noncommuting candidate keep the loud
+	// stall. The flag clears with the pass's events, below and at the early
+	// returns, so a later op of the same resolution never inherits it.
+	var (
+		plCodes [2]uint8
+		plAmts  [2]int
+	)
+	plCodes[0], plAmts[0] = PlayerTarget0+p0, int(n)
+	ne := 1
+	if p1 <= 1 {
+		plCodes[1], plAmts[1] = PlayerTarget0+p1, int(n)
+		ne++
+	}
+	if s.replPlusSrcPass(k, ctrl, sl, card, kw, plCodes[:ne], plAmts[:ne]) {
+		return // parked: runProg pauses on nc.n; a multi-event pass stalls loud
+	}
 	for _, p := range [2]uint8{p0, p1} {
 		if p > 1 {
 			continue
@@ -99,6 +120,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 			}
 		}
 	}
+	s.g.plusBatchAsked = false // the pass's re-execution exemption ends with its events
 }
 
 // DebugDmgAmountPlusOne adds 1 to every DealDamageFrom / Bite amount

@@ -38,9 +38,11 @@ func (s *State) canTapForMana(k *prep, sl Slot) bool {
 	if p.flags&pfTapped != 0 {
 		return false
 	}
-	pc := &k.cards[s.cardAt(sl)]
+	var pc *pcard
 	if k.gen != nil {
-		pc = s.manaPCGen(k, sl)
+		pc = s.manaPCGen(k, sl) // the generated profile, not the printed card
+	} else {
+		pc = &k.cards[s.cardAt(sl)]
 	}
 	return s.canTapForManaPC(k, sl, pc)
 }
@@ -90,6 +92,15 @@ type avail struct {
 	// a pointer, so an avail on the stack keeps no reference to a local.
 	xd   payDesc
 	xdOn bool
+	// delve: the graveyard credit a granted-delve cast prices its twobrid
+	// faces against (gorge FeasibleAny's delve argument): the payer's
+	// graveyard size while the cast carries the granted keyword, else 0. Set
+	// by the offer gates that price a cast (legal.go, legal_gen.go offerPlay,
+	// featview.go); the twobrid leaf checks (mana_twobrid.go) take
+	// min(generic, delve) per face where gorge's composed check takes the
+	// credit once at the leaf (CR 702.66a). Zero everywhere else, so every
+	// other caller prices exactly as before.
+	delve int
 }
 
 // maxOneColour bounds a player's one-colour sources; one more stalls
@@ -199,13 +210,28 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 	// activation with mana its spend restriction cannot spend.
 	grantOK := !(s.g.noGrant && s.g.availX&availPlain != 0)
 	dual := k.gen != nil && k.gen.anyContGrant && grantOK
+	// A Taps-deferred source's classification (mana_tapsdefer.go) is a
+	// battlefield fact, so its gate lifts out of the loop: without a live
+	// TrigTaps listener every source is an ordinary unit, and the potential
+	// walks count a deferred source's tap regardless.
+	deferSkip := k.gen != nil && k.gen.anyTapsDefer && s.subs[kop.TrigTaps].any() && s.g.availX&(availWalk|availHyp) == 0
+	var deferGap slotMask
+	if deferSkip {
+		// Only the production the script route models is a census gap the
+		// prefix search pays: any other deferred source keeps its ordinary
+		// unit here, or no walk would count it and a play it funds would
+		// vanish from the offer (mana_tapsdefer.go).
+		deferGap = s.scriptTapsDefer(k, p)
+	}
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
 		pm := &s.perms[sl]
-		pc := &k.cards[s.cardAt(sl)]
+		var pc *pcard
 		if k.gen != nil {
 			pc = s.manaPCGen(k, sl)
+		} else {
+			pc = &k.cards[s.cardAt(sl)]
 		}
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 {
 			continue
@@ -215,6 +241,9 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 		}
 		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) {
 			continue
+		}
+		if deferSkip && deferGap.has(sl) {
+			continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go); the script route offers and prices the modelled gap, and the potential walks (availWalk, its hyp bound) still count it, its census gate downstream
 		}
 		if dual {
 			s.availGrant(k, sl, pc, a)
@@ -912,11 +941,15 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	if k.restrSrc {
 		rd = s.payDescNow(exclude) // the restricted sources this payment may spend
 	}
+	// A Taps-deferred source's classification (mana_tapsdefer.go) is a
+	// battlefield fact, so its gate lifts out of the loop: without a live
+	// TrigTaps listener every source is an ordinary census unit.
+	deferSkip := !pk.tapsIn && k.gen != nil && k.gen.anyTapsDefer && s.subs[kop.TrigTaps].any()
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
 		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) || k.restrSrc && s.restrOnlyUsable(k, p, sl, &rd) {
-			if !pk.tapsIn && s.tapsDeferred(k, p, sl) {
+			if deferSkip && s.tapsDeferred(k, p, sl) {
 				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go)
 			}
 			order[no] = sl
@@ -992,7 +1025,6 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	ntp := 0
 	for i := 0; i < no; i++ {
 		sl := order[i]
-		pcs[i] = &k.cards[s.cardAt(sl)]
 		if k.gen != nil {
 			pcs[i] = s.manaPCGen(k, sl)
 			if k.gen.anyTapsPain && ntp < len(tapsPain) {
@@ -1022,6 +1054,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					dm[i] = dmask
 				}
 			}
+		} else {
+			pcs[i] = &k.cards[s.cardAt(sl)]
 		}
 	}
 	for phase := 0; phase < 3; phase++ {

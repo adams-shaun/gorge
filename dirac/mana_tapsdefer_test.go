@@ -66,4 +66,17 @@ func TestTapsWatchDefersSource(t *testing.T) {
 			t.Fatalf("Core tapped %v, Birds tapped %v: want the Core (equal flexibility: battlefield order)", sc.tapped(co), sc.tapped(pl))
 		}
 	})
+	t.Run("the Core is the script gap, the Birds are not", func(t *testing.T) {
+		sc := newScenTableLib(t, tbl, plains, Config{NoElide: true})
+		co := sc.perm(core, 0)
+		sc.perm(judge, 0)
+		pl := sc.perm(birds, 0)
+		m := sc.s.scriptTapsDefer(sc.k, 0)
+		if !m.has(sc.slot(co)) {
+			t.Fatal("precondition: the Core is not in the script gap mask the prefix search branches on")
+		}
+		if m.has(sc.slot(pl)) {
+			t.Fatal("the Birds of Paradise are in the script gap mask: they are no deferred source")
+		}
+	})
 }

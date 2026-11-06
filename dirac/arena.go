@@ -37,6 +37,7 @@ const (
 	mechMustBlocked                 // slots whose permanent must be blocked this turn if able (CR 509.1c; combat_mustbeblocked.go)
 	mechMustBlockedPost             // slots marked must-be-blocked while their permanent had lost all abilities: the grant postdates the loss and survives it (CR 613.7)
 	mechAttacksIfAble               // slots whose permanent attacks this turn if able (CR 508.1d; combat_attacksifable.go)
+	mechBlocksIfAble                // slots whose permanent blocks this turn if able (CR 509.1c; combat_blocksifable.go)
 	numMech
 )
 
@@ -68,9 +69,10 @@ var mechWidth = [numMech]uint8{
 	mechMustBlocked:     wSlot,
 	mechMustBlockedPost: wSlot,
 	mechAttacksIfAble:   wSlot,
+	mechBlocksIfAble:    wSlot,
 }
 
-var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble"}
+var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble"}
 
 // arenaNone is the index of a mechanic the table does not use.
 const arenaNone = 0xFF
@@ -116,6 +118,9 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 					mustBlockUses(&in, &u) // combat_mustbeblocked.go
 					if in.Ext() == kop.ExtAttacksIfAble {
 						u[mechAttacksIfAble] = true // combat_attacksifable.go
+					}
+					if in.Ext() == kop.ExtBlocksIfAble {
+						u[mechBlocksIfAble] = true // combat_blocksifable.go
 					}
 					if in.Ext() == kop.ExtExileExMark {
 						u[mechExileEx] = true

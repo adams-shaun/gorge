@@ -2101,6 +2101,10 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		if err := lc.attacksIfAble(ps, sp, obj); err != nil { // lower_effectattacksifable.go
 			return err
 		}
+	case "MustBlock":
+		if err := lc.blocksIfAble(ps, sp, obj); err != nil { // lower_effectattacksifable.go
+			return err
+		}
 	case "CantBeActivated":
 		// (Braided Net) "its activated abilities can't be activated
 		// for as long as it remains tapped" on the tapped target. Only the

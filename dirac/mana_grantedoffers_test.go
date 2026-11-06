@@ -121,7 +121,7 @@ func TestGrantManaSearch(t *testing.T) {
 	var g grantSrch
 	cost := kop.ManaCost{}
 	cost.Pips[kop.U] = 2
-	if !s.grantSearch(k, 0, &cost, NoSlot, payDesc{}, &g) || g.np != 2 || g.path[0].col != kop.U || g.path[1].col != kop.U {
+	if !s.grantSearch(k, 0, &cost, NoSlot, payDesc{}, [6]bool{}, &g) || g.np != 2 || g.path[0].col != kop.U || g.path[1].col != kop.U {
 		t.Fatalf("UU: found %v steps %d cols %d %d", g.np == 2, g.np, g.path[0].col, g.path[1].col)
 	}
 	// gorge's node count: the root; token 1's colour ask, W; token 2's
@@ -134,11 +134,11 @@ func TestGrantManaSearch(t *testing.T) {
 	s, k = sc.s, sc.k
 	cost = kop.ManaCost{}
 	cost.Pips[kop.G] = 5
-	if s.grantSearch(k, 0, &cost, NoSlot, payDesc{}, &g) {
+	if s.grantSearch(k, 0, &cost, NoSlot, payDesc{}, [6]bool{}, &g) {
 		t.Errorf("GGGGG with five tokens: found within the budget (%d nodes), gorge's search runs out", g.nodes)
 	}
 	cost = kop.ManaCost{Generic: 3}
-	if !s.grantSearch(k, 0, &cost, NoSlot, payDesc{}, &g) || g.np != 3 {
+	if !s.grantSearch(k, 0, &cost, NoSlot, payDesc{}, [6]bool{}, &g) || g.np != 3 {
 		t.Errorf("{3}: found %v steps %d", g.np == 3, g.np)
 	}
 }
@@ -218,7 +218,7 @@ func TestGrantSearchActivatesAFilterBesideAGrant(t *testing.T) {
 	cost := kop.ManaCost{Generic: 1}
 	cost.Pips[kop.R] = 1
 	var g grantSrch
-	if !s.grantSearch(k, 0, &cost, sc.slot(palace), payDesc{}, &g) || g.np != 5 {
+	if !s.grantSearch(k, 0, &cost, sc.slot(palace), payDesc{}, [6]bool{}, &g) || g.np != 5 {
 		t.Fatalf("found steps %d, want 5 (four taps, then the filter)", g.np)
 	}
 	if last := g.path[4]; last.gi != stepFilt || last.col != kop.R {

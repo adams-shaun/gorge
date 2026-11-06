@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -96,7 +97,14 @@ type scriptSearch struct {
 	gaps     []state.ObjID // sources the census misses, tried first
 	gapsOnly bool          // activate only gaps (plus funding others)
 	funding  int           // non-gap activations allowed when gapsOnly
-	passes   bool          // also pass priority while the stack is non-empty
+	// need holds the coloured pips of the play's base cost (scriptNeedColours):
+	// the search tries an ask's answers naming one of them first. A colour ask
+	// whose options run W U B R G otherwise spends the node budget proving the
+	// colours a cost does not name dead before the first one it does -- a
+	// 4GG cast behind Great Divide Guide's granted any-colour abilities went
+	// budget-limited at 160 clones exploring B before G at the deepest asks.
+	need   [state.MC + 1]bool
+	passes bool // also pass priority while the stack is non-empty
 	// printedOnly: the play is a printed ability, and a granted one sharing its
 	// Ability is another option (only a printed ability reaches the planner).
 	printedOnly bool
@@ -123,7 +131,78 @@ func (e *Engine) newScriptSearch(p state.PlayerID, a decision.PotentialAction, a
 	if d == nil || d.Player != p || d.Kind != decision.KPriority {
 		return nil
 	}
-	return &scriptSearch{p: p, play: a, altCost: altCost, budget: budget, turn: e.G.Turn, step: e.G.Step, stack: len(e.G.Stack), seen: map[string]bool{}}
+	sr := &scriptSearch{p: p, play: a, altCost: altCost, budget: budget, turn: e.G.Turn, step: e.G.Step, stack: len(e.G.Stack), seen: map[string]bool{}}
+	if altCost <= 0 {
+		sr.need = scriptNeedColours(e, e.G.Obj(a.Obj), p, a)
+	}
+	return sr
+}
+
+// scriptNeedReader is the read-only side of *Engine scriptNeedColours needs;
+// a narrow interface keeps the helper off Engine's method set.
+type scriptNeedReader interface {
+	castOfferBase(state.PlayerID, state.ObjID) costvocab.Cost
+	abilityCompiledCost(*cards.SA) *compiledCost
+}
+
+// scriptNeedColours reports the coloured pips the searched play's base cost
+// announces (CR 601.2b: the caster announces each pip's colour before
+// targets): a cast's printed mana cost, an ability's compiled cost. A hybrid,
+// twobrid or hybrid-Phyrexian pip needs each of its faces; a Phyrexian pip
+// needs its colour (its life face is not mana). The set is only the search's
+// branch-order preference -- it changes which equal answers a colour ask's
+// search tries first, never which answers exist. A cast of a mode or an
+// alternative cost (MayPlay*, flashback) whose pips the printed base does not
+// carry leaves the set empty, and so the engine order.
+func scriptNeedColours(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) [state.MC + 1]bool {
+	var need [state.MC + 1]bool
+	add := func(c costvocab.Cost) {
+		for i, n := range c.Colored {
+			if n > 0 && i <= state.MC {
+				need[i] = true
+			}
+		}
+		for _, h := range c.Hybrid {
+			if i := state.ManaIndex(h.A); i <= state.MC {
+				need[i] = true
+			}
+			if i := state.ManaIndex(h.B); i <= state.MC {
+				need[i] = true
+			}
+		}
+		for _, ph := range c.Phyrexian {
+			if i := state.ManaIndex(ph); i <= state.MC {
+				need[i] = true
+			}
+		}
+		for _, tw := range c.Twobrid {
+			if i := state.ManaIndex(tw.Col); i <= state.MC {
+				need[i] = true
+			}
+		}
+		for _, hp := range c.HybridPhyrexian {
+			if i := state.ManaIndex(hp.A); i <= state.MC {
+				need[i] = true
+			}
+			if i := state.ManaIndex(hp.B); i <= state.MC {
+				need[i] = true
+			}
+		}
+	}
+	if o == nil || o.Face() == nil {
+		return need
+	}
+	switch a.Kind {
+	case "cast":
+		if a.Mode == "" {
+			add(r.castOfferBase(p, a.Obj))
+		}
+	case "ability":
+		if pa, ok := o.PileAbilityAt(a.Ability); ok && pa.SA != nil {
+			add(r.abilityCompiledCost(pa.SA).Cost)
+		}
+	}
+	return need
 }
 
 // run searches from a clone of e; found reports a path (possibly empty,
@@ -299,6 +378,7 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 	if d.Kind != decision.KPriority {
 		// An ask the activation poses: branch over its answers.
 		answers := scriptAnswers(d)
+		answers = scriptOrderAnswers(d, answers, sr.need)
 		if len(answers) == 0 {
 			sr.approx = true
 		}
@@ -445,6 +525,56 @@ func scriptAnswers(d *decision.Decision) []decision.Intent {
 		}
 	}
 	return valid
+}
+
+// scriptOrderAnswers stably reorders an ask's valid answers so the ones that
+// name a colour the searched play's cost asks for come first, engine order
+// kept inside each half. The answer SET is unchanged, but the search is
+// budget-capped (potentialScriptNodes), not complete: order decides which
+// plans it reaches, and so which plan it finds. A W U B R G colour ask
+// otherwise spends its nodes proving every colour the cost does not name dead
+// before the first one it does.
+func scriptOrderAnswers(d *decision.Decision, answers []decision.Intent, need [state.MC + 1]bool) []decision.Intent {
+	any := false
+	for _, b := range need {
+		if b {
+			any = true
+			break
+		}
+	}
+	if !any {
+		return answers
+	}
+	symNeeded := func(o *decision.Option) bool {
+		if len(o.ManaSymbol) != 1 {
+			return false
+		}
+		if i := state.ManaIndex(o.ManaSymbol[0]); i <= state.MC {
+			return need[i]
+		}
+		return false
+	}
+	var first, rest []decision.Intent
+	for _, in := range answers {
+		wanted := false
+		for _, ch := range in.Choices {
+			for i := range d.Options {
+				if o := &d.Options[i]; o.Index == ch && symNeeded(o) {
+					wanted = true
+					break
+				}
+			}
+			if wanted {
+				break
+			}
+		}
+		if wanted {
+			first = append(first, in)
+		} else {
+			rest = append(rest, in)
+		}
+	}
+	return append(first, rest...)
 }
 
 // scriptStateKey identifies a payer state for the search's dedup: every

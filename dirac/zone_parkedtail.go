@@ -96,7 +96,7 @@ func digArranges(n int, lookSel uint32, rz kop.Zone, fl int16) bool {
 }
 
 // finishDigTail is a dig's tail after its taken cards moved: the rest
-// (the looked-at cards not taken, in look order) in random order if asked,
+// (the looked-at cards not taken, in window order) in random order if asked,
 // then back on top or to the rest zone.
 func (s *State) finishDigTail(k *prep) {
 	in := &s.prog(k)[s.res.pc]
@@ -107,9 +107,18 @@ func (s *State) finishDigTail(k *prep) {
 	if k.gen != nil && k.gen.anyBatch {
 		defer s.batchClose(s.batchOpen()) // gorge effDig: one zone batch (trig_oneormore.go)
 	}
+	// The rest keeps the WINDOW order, not look's: digPick moves the picked
+	// cards to the front of look in pick order, so a picked Aura that stays
+	// behind (CR 303.4g) would jump ahead of the cards it was looked at
+	// behind. lookOrig says where each look slot came from.
 	var rest [24]Obj // len(genState.look)
-	nr := 0
+	var at [24]uint8 // window index -> look slot
 	for i := 0; i < n; i++ {
+		at[s.resArm().lookOrig[i]] = uint8(i)
+	}
+	nr := 0
+	for want := 0; want < n; want++ {
+		i := at[want]
 		if s.g.lookSel&(1<<i) == 0 {
 			rest[nr] = s.resArm().look[i]
 			nr++
@@ -147,11 +156,15 @@ func (s *State) finishDigTail(k *prep) {
 // rest keeping their window order behind them.
 func (s *State) digPick(o Obj) {
 	look := s.resArm().look[:s.g.nlook]
+	orig := s.resArm().lookOrig[:s.g.nlook]
 	at := bits.OnesCount32(s.g.lookSel)
 	for i := at; i < len(look); i++ {
 		if look[i] == o {
+			oi := orig[i]
 			copy(look[at+1:i+1], look[at:i])
+			copy(orig[at+1:i+1], orig[at:i])
 			look[at] = o
+			orig[at] = oi
 			s.g.lookSel |= 1 << at
 			return
 		}

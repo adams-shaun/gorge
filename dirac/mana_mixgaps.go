@@ -69,6 +69,33 @@ func (s *State) otherGaps(k *prep, p uint8) slotMask {
 	return m.andNot(s.scriptFilt(k, p))
 }
 
+// anyRSteps drives one single-colour anyR gap's six scriptDFS answers in
+// gorge's order: answer 0 (the first printed mana ability) before the colour
+// ask's node -- gorge's "choose a mana ability" ask has no ManaSymbol, so
+// scriptOrderAnswers leaves it alone -- then the colour ask with the colours
+// the play announces first and the rest in engine order. tick charges the
+// colour ask's node; try submits one answer and reports whether the search
+// below it found the play.
+func anyRSteps(need [kop.NumManaKinds]bool, try func(uint8) bool, tick func() bool) bool {
+	if try(0) {
+		return true
+	}
+	if !tick() {
+		return false
+	}
+	for c := uint8(1); c <= 5; c++ {
+		if need[c-1] && try(c) {
+			return true
+		}
+	}
+	for c := uint8(1); c <= 5; c++ {
+		if !need[c-1] && try(c) {
+			return true
+		}
+	}
+	return false
+}
+
 // otherGap branches on gap sl's answers at a priority node of the search.
 func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 	p := fs.p
@@ -83,7 +110,13 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 		c := t.cardAt(sl)
 		if restrWideAnyMana(&k.t.Cards[c].Abilities[k.gen.anyR(c)]) {
 			// the two-unit ask: per-unit answers, W W, W U ... G G, a mirrored
-			// pair charging its node and finding the state seen
+			// pair charging its node and finding the state seen. An answer
+			// naming a colour the play announces comes first (gorge's
+			// scriptOrderAnswers on the same ask): its W-subtree spent the
+			// search's budget before the first wanted pair.
+			type twoUnit struct{ a, b, ans uint8 }
+			var ps [15]twoUnit
+			np := 0
 			ans := uint8(0)
 			for a := 0; a < 5; a++ {
 				for b := 0; b < 5; b++ {
@@ -93,26 +126,43 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 						}
 						continue
 					}
-					if try(otherStep{kind: otherAnyR, ans: ans}) {
-						return true
-					}
+					ps[np] = twoUnit{uint8(a), uint8(b), ans}
+					np++
 					ans++
+				}
+			}
+			nf := 0
+			for i := 0; i < np; i++ {
+				if fs.need[ps[i].a] || fs.need[ps[i].b] {
+					ps[nf] = ps[i]
+					nf++
+				}
+			}
+			for i := 0; i < np; i++ {
+				if !fs.need[ps[i].a] && !fs.need[ps[i].b] {
+					ps[nf] = ps[i]
+					nf++
+				}
+			}
+			for i := 0; i < nf; i++ {
+				if try(otherStep{kind: otherAnyR, ans: ps[i].ans}) {
+					return true
 				}
 			}
 			return false
 		}
-		// its {C} first, then the colour ask (scriptDFS's six answers)
-		if try(otherStep{kind: otherAnyR}) {
+		// its printed first mana ability first: gorge's "choose a mana
+		// ability" ask has no ManaSymbol, so scriptOrderAnswers leaves it
+		// alone (on Cavern of Souls et al. answer 0 is the printed {C}).
+		// Then the colour ask (scriptDFS's six answers), gorge's
+		// scriptOrderAnswers on it: a colour the play announces first, the
+		// rest in engine order.
+		if anyRSteps(fs.need, func(ans uint8) bool {
+			return try(otherStep{kind: otherAnyR, ans: ans})
+		}, fs.tick) {
 			return true
 		}
-		if !fs.tick() {
-			return false
-		}
-		for c := uint8(1); c <= 5; c++ {
-			if try(otherStep{kind: otherAnyR, ans: c}) {
-				return true
-			}
-		}
+		return false
 	case t.scriptTapX(k, p).has(sl):
 		var cs [MaxPerm]Slot
 		nc := t.tapXCands(k, p, sl, &cs)
@@ -120,8 +170,24 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 			if !fs.tick() { // the colour ask
 				return false
 			}
+			// gorge's scriptOrderAnswers on the same ask: a colour the play
+			// announces first, the rest in engine order
+			var order [5]uint8
+			no := 0
 			for col := uint8(0); col < 5; col++ {
-				if try(otherStep{kind: otherTapX, ans: col, cand: a, cand2: b}) {
+				if fs.need[col] {
+					order[no] = col
+					no++
+				}
+			}
+			for col := uint8(0); col < 5; col++ {
+				if !fs.need[col] {
+					order[no] = col
+					no++
+				}
+			}
+			for i := 0; i < 5; i++ {
+				if try(otherStep{kind: otherTapX, ans: order[i], cand: a, cand2: b}) {
 					return true
 				}
 			}
@@ -188,6 +254,7 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 			}
 			var order [kop.NumManaKinds]uint8
 			no := t.stepColours(k, sl, g, mask, &order)
+			needFirst(order[:no], fs.need) // gorge's scriptOrderAnswers on the same ask
 			for _, c := range order[:no] {
 				if try(otherStep{kind: otherGrant, ans: c, n: n, gi: g}) {
 					return true
@@ -222,7 +289,7 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 	switch o.kind {
 	case otherAnyR:
 		var spill [kop.NumManaKinds]uint8
-		s.tapGapChoice(k, p, st.sl, slotMask{}, slotMask{}.with(st.sl), int(o.ans), &spill)
+		s.tapGapChoice(k, p, st.sl, slotMask{}, slotMask{}.with(st.sl), slotMask{}, int(o.ans), &spill)
 		if spill != ([kop.NumManaKinds]uint8{}) {
 			s.capFull(StallRestrSrc) // never a silent spill
 		}
@@ -239,7 +306,15 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 			return
 		}
 		s.pl[p&1].pool[o.ans] += o.n
-		s.tapExtraStall(k, st.sl)
+		// The tap brings its tap-extra too (gorge addTapExtra): a granted
+		// source's is the grant's own extra (Honest Work's Humble Merchant
+		// tapped under Badgermole Cub). The search priced the prefix without
+		// it, so adding it can only leave the payment payable.
+		if o.gi >= 0 {
+			s.addExtra(k, p&1, st.sl, s.grantView(k.gen, o.gi, st.sl))
+		} else {
+			s.addExtra(k, p&1, st.sl, s.manaPCGen(k, st.sl))
+		}
 		s.artTag(k, p, st.sl, int(o.ans))
 	}
 }

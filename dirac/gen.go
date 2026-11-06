@@ -438,6 +438,19 @@ const (
 // rbCtrOn is either filtered counter replacement.
 const rbCtrOn = rbDblCtrOn | rbPlusCtrOn
 
+// rbDmgCompete are the damage-replacement kinds that do not commute with a
+// plus-N addition: a doubling, a prevention or a shield. A table whose
+// anyRepl has none of them competes on additive amount changes only, whose
+// composition is the same in every order (trig_oneormore.go).
+const rbDmgCompete = rbDblDmg | rbPrevNC | rbPrevDmgTo | rbPrevCol | rbShield | rbPrevMill | rbPrevCombatTo | rbPrevCombatBy
+
+// replPlusOnly reports whether the table's only damage replacement kind is
+// ReplDamagePlus, so two or more of them competing for one event are a sum
+// no order changes (CR 616.1e; trig_oneormore.go).
+func replPlusOnly(g *genPrep) bool {
+	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbDmgCompete == 0
+}
+
 type grantRef struct {
 	card CardID
 	ab   uint8
@@ -1763,6 +1776,14 @@ type genState struct {
 	dmgSeqN  uint8
 	dmgSeqI  uint8
 	dmgSeqPl uint8
+	// plusBatchAsked: a damage pass parked on a pure plus-N order ask
+	// (trig_batches.go replPlusBatch, and the direct replDamage sites'
+	// replPlusSrcPass: OpDealDamageFrom's player mode, OpResolveDamageMap and
+	// the one-target divided batch) is being re-executed, so the additions
+	// are applied in any order and the ask is not posed again. The parked
+	// hit's landed amount rides h.n, which is what the emitting effect's
+	// EmitDamage returns (gorge returns the post-replacement Damage event).
+	plusBatchAsked bool
 	// colG: Ext ColorGrant's until-end-of-turn records (Skrelv;
 	// static_colourgrant.go): the object (obj, ver), the
 	// chosen colour (col, a ColorMask bit; 0 = free) and cgHex / cgNoBlock /
@@ -1879,7 +1900,7 @@ const (
 	StallLKI      = 19 // maxLKI distinct last-known-information snapshots (genState.lki)
 	// 20 was a Taps trigger in a table with a granted mana ability; a granted ability's tap now fires Taps triggers like any other
 	StallInfect    = 21 // infect or toxic in a table with a damage replacement-order ask or a counter-added trigger (gen infectStall; kw_infect.go)
-	StallReplPlus  = 22 // a damage plus-N replacement and another damage replacement match one event: gorge's CR 616.1 order ask, whose answer changes the amount (trig_oneormore.go)
+	StallReplPlus  = 22 // a damage plus-N replacement and a non-commuting damage replacement match one event: gorge's CR 616.1 order ask, whose answer changes the amount (trig_oneormore.go; two plus-N additions commute and are asked as a no-op)
 	StallLifeRepl  = 25 // a life-gain doubler and a life-gain plus-N in one table: gorge's CR 616.1 order ask (they do not commute; act_discover.go)
 	StallProlif    = 26 // a proliferate gorge orders differently: more than 16 picks, or a recipient with two counter kinds in a table with a counter-added trigger (act_proliferate.go)
 	StallTapPick   = 27 // a tap-any-number cost (CostTapPower, Crew / Saddle) picked past build.picks' 24 (12 before kcaps2x; kw_crewsaddle.go)
@@ -1899,7 +1920,7 @@ const (
 	StallPT        = 41 // a power or toughness pump leaves the int16 end-of-turn range, or needs a fifth of the maxPtX slots (eotAdd, OpPumpAllEach; filter_defined.go)
 	StallActRing   = 42 // a player activates more than actRingN abilities in one turn (genState.actRing)
 	StallCharmOpts = 43 // a multi-pick charm's combined target ask has more than MaxOptions options
-	StallCopyFace  = 44 // a permanent-spell copy of a multi-face card (CR 707.10g; copy_permanentspell.go)
+	StallCopyFace  = 44 // a permanent-spell copy of a two-faced card (CR 707.10g; copy_permanentspell.go)
 	StallRefLatch  = 45 // a combat damage batch has more than maxRefLatch (listener, referent) per-referent damage triggers (trig_damagedonce.go refLatch)
 	// 46 was a twobrid cost beside a cost reduction or increase; the cost statics now compose on the announced faces (mana_twobrid.go foldTb)
 	StallZone          = 47  // a hand, graveyard, exile or library array is full: tokens that left the battlefield together wait there for the next state-based check (zones.go placeFrom)

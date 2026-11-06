@@ -71,17 +71,27 @@ func validSpellTokenMayBeManaAbility(tok string) bool {
 	return true
 }
 
-// anyManaReaching reports whether some collected raise, reduce or set static
-// may reach a mana ability.
-func (s costStaticViews) anyManaReaching() bool {
-	for _, list := range [...][]staticView{s.raise, s.reduce, s.set} {
+// markCostManaReaching sets views.manaReaching from the raise/reduce/set
+// lists. Every finalisation site of those lists calls it once
+// (scanCostStatics and the fused board-statics build, walkcache.go), so the
+// per-ability gate pricedManaCC reads is a field read, not a rescan of the
+// collected statics.
+func markCostManaReaching(views *costStaticViews) {
+	for _, list := range [...][]staticView{views.raise, views.reduce, views.set} {
 		for _, sv := range list {
 			if costStaticMayReachManaAbility(sv) {
-				return true
+				views.manaReaching = true
+				return
 			}
 		}
 	}
-	return false
+}
+
+// anyManaReaching reports whether some collected raise, reduce or set static
+// may reach a mana ability: the mark the lists' finalisation left
+// (markCostManaReaching).
+func (s costStaticViews) anyManaReaching() bool {
+	return s.manaReaching
 }
 
 // anyManaReachingCostStatic is costStaticViews.anyManaReaching for the fused

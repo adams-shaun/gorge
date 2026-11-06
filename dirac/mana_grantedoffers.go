@@ -391,12 +391,19 @@ type grantSrch struct {
 	filt [MaxPerm]bool
 	// tapx: the candidate's own ability is a tap-another-permanent one, a census
 	// gap of gorge's beside the grants (mana_granttapx.go)
-	tapx  [MaxPerm]bool
-	nodes int
-	nseen int
-	seen  [potentialScriptNodes]grantKey
-	np    int
-	path  [2 * MaxPerm]grantStep
+	tapx [MaxPerm]bool
+	// gap: the candidate is a census gap. Non-gap sources join the search only
+	// to fund a paid gap's fee, as many as funding allows (gorge
+	// scriptSearch.funding: census.fees()).
+	gap     [MaxPerm]bool
+	gapN    int
+	funding int
+	funded  int
+	nodes   int
+	nseen   int
+	seen    [potentialScriptNodes]grantKey
+	np      int
+	path    [2 * MaxPerm]grantStep
 	// sp0 is the stack at the root: a deeper one is a trigger a prefix step
 	// caused, which gorge's search lets resolve (a pass) once its activations are
 	// spent. tapsLive: a tap can fire such a trigger (Gran-Gran's "whenever this
@@ -404,6 +411,13 @@ type grantSrch struct {
 	// transitions (settle).
 	sp0      uint8
 	tapsLive bool
+	// need is the colours the play's printed base announces (gorge's
+	// scriptNeedColours, potential_script.go): a colour ask's answers branch
+	// on those first (branch, filtBranch), the mirror of gorge's
+	// scriptOrderAnswers, so a budget-capped search reaches a colour the
+	// play needs before the colours it does not. It only reorders a colour
+	// ask's answers, never the answer set.
+	need [kop.NumManaKinds]bool
 }
 
 // grantKey identifies a payer state (gorge scriptStateKey: the pool and
@@ -411,6 +425,10 @@ type grantSrch struct {
 type grantKey struct {
 	tapped slotMask
 	pool   [kop.NumManaKinds]uint8
+	// art: the pool slots holding an artifact's mana (genState.poolArt):
+	// gorge's key reads the typed units apart (Player.ManaUnits), so a
+	// filter's tagged {W} over a plain {W} is a new state
+	art uint8
 	// gorge's key counts the stack, hand and graveyard too (scriptStateKey)
 	sp, hand, gy uint8
 }
@@ -469,10 +487,40 @@ func (g *grantSrch) candidates(s *State) {
 			holders++
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), !tm.has(sl) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
+		g.gap[g.n] = true
+		if fm.has(sl) {
+			g.funding += s.filtFee(g.k, sl)
+		}
 		g.n++
 	}
 	if holders == 0 {
-		g.n = 0
+		g.n, g.gapN = 0, 0
+		return
+	}
+	// A paid gap's fee is funded by other sources (gorge scriptSearch's
+	// funding loop: the gaps first, then non-gaps while funding lasts). The
+	// non-gaps sit after every gap in battlefield order, exactly the walk
+	// order that loop reads.
+	g.gapN = g.n
+	if g.funding == 0 {
+		return
+	}
+	seen := func(sl Slot) bool {
+		for i := 0; i < g.n; i++ {
+			if g.cand[i] == sl {
+				return true
+			}
+		}
+		return false
+	}
+	for i := 0; i < n; i++ {
+		sl := order[i]
+		if sl == g.ex || seen(sl) || !s.canTapForMana(g.k, sl) {
+			continue
+		}
+		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, 0, true, false, false
+		g.gap[g.n] = false
+		g.n++
 	}
 }
 
@@ -513,6 +561,10 @@ func (g *grantSrch) visit(t *State) bool {
 	}
 	pl := &t.pl[g.p&1]
 	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, sp: t.sp, hand: pl.handN, gy: pl.graveN}
+	if g.k.artMana {
+		t.artSync(g.p)
+		key.art = t.g.poolArt[g.p&1]
+	}
 	for i := 0; i < g.nseen; i++ {
 		if g.seen[i] == key {
 			return false
@@ -522,7 +574,7 @@ func (g *grantSrch) visit(t *State) bool {
 		g.seen[g.nseen] = key
 		g.nseen++
 	}
-	for i := 0; i < g.n; i++ {
+	for i := 0; i < g.gapN; i++ {
 		sl := g.cand[i]
 		if g.ng[i] == 0 && g.filt[i] && g.k.gen.anyFiltFirst && t.filtFirstOnly(g.k, sl) {
 			// a filter that is its source's only mana ability: no printed
@@ -593,6 +645,28 @@ func (g *grantSrch) visit(t *State) bool {
 			if g.branch(t, i, sl, gi, mask, pc.manaN, alts == 1 || mask&uint8(kop.ColAny) == uint8(kop.ColAny)) {
 				return true
 			}
+		}
+	}
+	// A paid gap's fee is funded by other sources (gorge scriptSearch's
+	// funding loop: the gaps first, then non-gaps while funding lasts).
+	for i := g.gapN; i < g.n && g.funded < g.funding; i++ {
+		sl := g.cand[i]
+		if t.perms[sl].flags&pfTapped != 0 {
+			continue
+		}
+		pc := t.manaPCGen(g.k, sl)
+		if pc.manaAb < 0 || !t.canTapForManaPC(g.k, sl, pc) {
+			continue
+		}
+		mask, n := t.srcMaskAt(pc, sl), pc.manaN
+		if mask == 0 {
+			continue
+		}
+		g.funded++
+		ok := g.branch(t, i, sl, -1, mask, n, mask&(mask-1) != 0)
+		g.funded--
+		if ok {
+			return true
 		}
 	}
 	if t.sp > g.sp0 && g.np < len(g.path) {
@@ -722,6 +796,7 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 	}
 	var order [kop.NumManaKinds]uint8
 	no := t.stepColours(g.k, sl, gi, mask, &order)
+	needFirst(order[:no], g.need)
 	for _, c := range order[:no] {
 		t.perms[sl].flags |= pfTapped
 		t.pl[g.p&1].pool[c] += pn
@@ -800,6 +875,7 @@ func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
 	}
 	var order [5]uint8
 	n := manaColourOrder(t.filtAb(g.k, sl), &order)
+	needFirst(order[:n], g.need)
 	for j := 0; j < n; j++ {
 		c := order[j]
 		u := t.fork()
@@ -872,8 +948,8 @@ func (s *State) grantPayDescOf(a Action) payDesc {
 // already do.
 //
 //go:noinline
-func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, g *grantSrch) bool {
-	*g = grantSrch{k: k, p: p, cost: *cost, ex: ex, d: d, sp0: s.sp, tapsLive: k.gen.manaTaps}
+func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, need [kop.NumManaKinds]bool, g *grantSrch) bool {
+	*g = grantSrch{k: k, p: p, cost: *cost, ex: ex, d: d, sp0: s.sp, tapsLive: k.gen.manaTaps, need: need}
 	if d.hasPlay {
 		if full, ok := s.grantWaterbendFull(k, d.play); ok {
 			g.full, g.dyn = full, true
@@ -983,7 +1059,7 @@ func (s *State) grantTapXPrefix(k *prep, a Action, p uint8) {
 	if !s.grantsLive(k) || !s.tapXScript(k, a, p, false) {
 		return // no tap-another script within gorge's node budget (mana_grantedoffers.go)
 	}
-	cost, ex, ok := s.grantPlayCost(k, p, a, true)
+	cost, ex, _, ok := s.grantPlayCost(k, p, a, true)
 	if !ok {
 		return
 	}
@@ -1067,7 +1143,11 @@ func restrOfStep(k *prep, st *grantStep) kop.FilterID {
 
 // grantPlayCost is the mana cost gorge's prefix search prices for p's
 // play a (grantPrefix / grantCap), ok false for a play it never searches.
-func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop.ManaCost, ex Slot, ok bool) {
+// need is the colours the play's printed base announces (gorge's
+// scriptNeedColours, potential_script.go): empty for an alternative, a
+// kicked, face-down or MayPlay cast, as gorge's scriptNeedColours leaves
+// it -- the search branches a colour ask on those first (grantSrch.branch).
+func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop.ManaCost, ex Slot, need [kop.NumManaKinds]bool, ok bool) {
 	if s.g.raiseO == 0 {
 		// the cast owes its permission's surcharge (Zero's {2}) once it is
 		// built; the search prices what the cast will pay (CR 601.2f, 118.8)
@@ -1080,21 +1160,22 @@ func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop
 }
 
 // grantPlayCostRaise is grantPlayCost with raiseO set as the caller left it.
-func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cost kop.ManaCost, ex Slot, ok bool) {
+func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cost kop.ManaCost, ex Slot, need [kop.NumManaKinds]bool, ok bool) {
 	ex = NoSlot
+	need = s.playNeed(k, a)
 	switch a.Kind() {
 	case AkActivate:
 		if a.Mode()&0x80 != 0 {
-			return cost, ex, false
+			return cost, ex, need, false
 		}
 		cost, ex, ok = s.activationMana(k, Obj(a.Source()), a.Mode())
 		if ok {
 			cost = s.waterbendPlanCost(k, p, Obj(a.Source()), a.Mode(), cost)
 		}
-		return cost, ex, ok
+		return cost, ex, need, ok
 	case AkCast, AkCastCasualty, AkCastConspire:
 		if alt, ok := s.altPlayCost(k, p, a); ok {
-			return alt, ex, true
+			return alt, ex, need, true
 		}
 		if a.Mode()&castFace != 0 && a.Mode()&3 == 0 {
 			// a face cast (an Adventure from the hand) pays the face's own
@@ -1106,44 +1187,44 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			} else if len(cd.Faces) == 2 && a.Target() == 1 {
 				c = cd.Faces[1]
 			}
-			return s.adjustCost(k, p, c, Obj(a.Source()), k.cards[c].cost), ex, true
+			return s.adjustCost(k, p, c, Obj(a.Source()), k.cards[c].cost), ex, need, true
 		}
 		if a.Mode() == 0 && a.Kind() == AkCast {
 			// an impended or evoked cast pays its alternative cost (CR 118.9)
 			c := s.objs[a.Source()].card
 			switch cd := &k.t.Cards[c]; {
 			case a.Target() == castImpTgt && cd.Impending > 0:
-				return s.adjustCost(k, p, c, Obj(a.Source()), cd.ImpendingCost), ex, true
+				return s.adjustCost(k, p, c, Obj(a.Source()), cd.ImpendingCost), ex, need, true
 			case a.Target() == castEvokeTgt && cd.HasEvoke:
-				return s.adjustCost(k, p, c, Obj(a.Source()), cd.EvokeCost), ex, true
+				return s.adjustCost(k, p, c, Obj(a.Source()), cd.EvokeCost), ex, need, true
 			}
 		}
 		if a.Mode()&1 != 0 {
 			if !kicked {
-				return cost, ex, false // kicked: lowered by its witness (beginCast)
+				return cost, ex, need, false // kicked: lowered by its witness (beginCast)
 			}
 			if cost, ok = s.plannedCastCostOf(k, p, Obj(a.Source()), a.Mode()&2, false, true); !ok {
-				return cost, ex, false
+				return cost, ex, need, false
 			}
 			// the composed cost (pair 8638)
 			c := s.objs[a.Source()].card
 			cost = s.featCost(k, p&1, c, Obj(a.Source()), addCost(k.cards[c].cost, k.t.Cards[c].Kicker))
-			return cost, ex, true
+			return cost, ex, need, true
 		}
-		if c := s.objs[a.Source()].card; a.Mode()&3 == 0 && k.t.Cards[c].Cost.X != 0 && !k.t.Cards[c].HasAltAdd && k.t.Cards[c].Cost.Hyb[0] == 0 {
+		if c := s.objs[a.Source()].card; a.Kind() == AkCast && a.Mode() == 0 && k.t.Cards[c].Cost.X != 0 && !k.t.Cards[c].HasAltAdd && k.t.Cards[c].Cost.Hyb[0] == 0 {
 			// an {X} cast: gorge's potentialModeCastPlan prices it at the
 			// largest X the sources pay, insufficient when they cannot
 			// pay X = 0, so the prefix search runs on the fixed part and
 			// the witness (lowerWitness) then pays the largest X from the
 			// pool and the printed sources
-			return s.featCost(k, p&1, c, Obj(a.Source()), k.cards[c].cost), ex, true
+			return s.featCost(k, p&1, c, Obj(a.Source()), k.cards[c].cost), ex, need, true
 		}
-		if c := s.objs[a.Source()].card; a.Mode()&3 == 0 && a.Target() == 0 && k.t.Cards[c].HasAltAdd && k.t.Cards[c].Cost.X == 0 && !s.contribPays(k, p, c, Obj(a.Source()), s.objs[a.Source()].zone == kop.ZoneHand) {
+		if c := s.objs[a.Source()].card; a.Kind() == AkCast && a.Mode() == 0 && a.Target() == 0 && k.t.Cards[c].HasAltAdd && k.t.Cards[c].Cost.X == 0 && !s.contribPays(k, p, c, Obj(a.Source()), s.objs[a.Source()].zone == kop.ZoneHand) {
 			// an either-or additional cost: the planner prices the spell with the part
 			// gorgeLowers prices, so the search funds that (Deadly Precision's {B})
-			return s.altAddPlanCost(k, p, c, Obj(a.Source())), ex, true
+			return s.altAddPlanCost(k, p, c, Obj(a.Source())), ex, need, true
 		}
-		if c := s.objs[a.Source()].card; a.Mode()&3 == 0 && a.Target() == 0 && modalFloorZero(k, c) {
+		if c := s.objs[a.Source()].card; a.Kind() == AkCast && a.Mode() == 0 && a.Target() == 0 && modalFloorZero(k, c) {
 			// a Spree or Tiered face: the cast planner declines the shape
 			// ("shape:modal_cost"), so gorge's potential planner prices the printed
 			// cost from its census and the prefix search taps a granted source the
@@ -1153,12 +1234,85 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			if s.g.mayPlayAny {
 				cost = anyType(cost)
 			}
-			return cost, ex, true
+			return cost, ex, need, true
 		}
 		cost, ok = s.plannedCastCostOf(k, p, Obj(a.Source()), a.Mode()&(3|castMayPlay), true, true)
-		return cost, ex, ok
+		return cost, ex, need, ok
 	}
-	return cost, ex, false
+	return cost, ex, need, false
+}
+
+// playNeed is the colours play a's printed base announces (gorge's
+// scriptNeedColours): a plain cast's printed mana cost, a printed ability's
+// compiled cost. An alternative, kicked, face-down or may-play cast, and the
+// impended/evoked alternative costs, leave it empty, as gorge's
+// scriptNeedColours does. The read is independent of grantPlayCost's ok: the
+// filter search also prices plays the grant search declines (a waterbend or
+// behold cast, a target-priced shape), and both searches must branch on the
+// same set. The card's printed cost is read unreduced (CR 601.2b announces
+// the printed pip colours).
+func (s *State) playNeed(k *prep, a Action) (need [kop.NumManaKinds]bool) {
+	switch a.Kind() {
+	case AkActivate:
+		if a.Mode()&0x80 == 0 {
+			need = s.abilityNeed(k, Obj(a.Source()), a.Mode())
+		}
+	case AkCast:
+		if a.Mode() == 0 && a.Target() != castImpTgt && a.Target() != castEvokeTgt {
+			need = grantNeedColours(k.cards[s.objs[a.Source()].card].cost)
+		}
+	}
+	return need
+}
+
+// grantNeedColours reports the colours m's symbols name, gorge's
+// scriptNeedColours for a printed mana cost: a coloured pip, a hybrid pip's
+// faces, a monocoloured hybrid or Phyrexian pip's colour (kop.HasColour) --
+// the printed base's pips, never a reduction's or an additional cost's
+// (CR 601.2b announces the printed pip colours before targets). A colourless
+// pip is {C}: a granted "{T}: Add {C}" asks its colour too.
+func grantNeedColours(m kop.ManaCost) (need [kop.NumManaKinds]bool) {
+	for c := 0; c < 5; c++ {
+		need[c] = m.HasColour(c)
+	}
+	need[kop.C] = m.Pips[kop.C] > 0
+	return need
+}
+
+// abilityNeed is the printed ability ab of object o's colours for
+// grantPlayCost's need set (gorge's scriptNeedColours prices a printed
+// ability's compiled cost), read from the card's printed cost, unreduced.
+func (s *State) abilityNeed(k *prep, o Obj, ab uint8) [kop.NumManaKinds]bool {
+	ob := &s.objs[o]
+	card := ob.card
+	if ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {
+		card = s.cardAt(ob.slot)
+	}
+	abs := k.t.Cards[card].Abilities
+	if int(ab) < len(abs) {
+		return grantNeedColours(abs[ab].Cost.Mana)
+	}
+	return [kop.NumManaKinds]bool{}
+}
+
+// needFirst stably reorders the colours of order so the ones need names
+// come first, engine order kept inside each half: the mirror of gorge's
+// scriptOrderAnswers (potential_script.go), which reorders an ask's valid
+// answers the same way so a budget-capped search reaches a colour the play
+// announces before the colours it does not. The answer set is unchanged.
+func needFirst(order []uint8, need [kop.NumManaKinds]bool) {
+	for i := 1; i < len(order); i++ {
+		c := order[i]
+		if !need[c] {
+			continue // a non-needed colour stays: the needed ones already sit before it
+		}
+		j := i
+		for j > 0 && !need[order[j-1]] {
+			order[j] = order[j-1]
+			j--
+		}
+		order[j] = c
+	}
 }
 
 // altPlayCost is what cast a pays when that isn't the card's printed cost: an

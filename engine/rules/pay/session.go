@@ -81,10 +81,11 @@ type Session struct {
 	// Taps/TapsForMana trigger or a ProduceMana replacement -- the only
 	// printed text the payment-plan source-interference check must run its
 	// matchers over (engine/rules/payment_plan_interference.go). The key is
-	// the object-arena size plus the log tail since PaymentPlanCarriersEvents
-	// holding one of the face-rewriting kinds (Mutate, MoveZone,
-	// HiddenIdentity); a grown arena extends the list instead of rescanning
-	// it. A pure derived memo, never copied by Clone.
+	// the object-arena size plus the scanned log tail: Objs only grows, and
+	// existing membership changes only through a Mutate/HiddenIdentity fold
+	// or the merged-pile departure clear of a MoveZone fold, so an inert tail
+	// extends the list over the new objects instead of rebuilding. A pure
+	// derived memo, never copied by Clone.
 	PaymentPlanCarriers       []state.ObjID `clone:"reset"`
 	PaymentPlanCarriersObjs   int           `clone:"reset"`
 	PaymentPlanCarriersEvents int           `clone:"reset"`

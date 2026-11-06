@@ -331,13 +331,16 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	if mode == 0 && k.gen != nil && k.gen.anyConvoke {
 		cost = s.convokeCredit(k, p&1, c, o, cost)
 	}
+	tb := false
 	if mode&4 != 0 {
 		cost = s.bargainedPrice(k, p&1, c, o, cost) // the bargained cast's price (cost_reducespell.go)
 	} else if s.statM.any() || k.gen != nil {
 		// a reduction applies to the total cost, a flashback or kicked one
 		// too (CR 601.2f; the kernel's buildCost): Archmage of Runes on a
 		// flashback Inspiration from Beyond
-		cost = s.adjustFit(k, &a, p&1, c, o, cost, false) // a twobrid cost is priced on the face the pool pays
+		tb = cost.Hyb[0] == kop.HybTwobrid
+		a.delve = s.tbDelveCredit(k, p&1, c, o, mode&2 == 0) // the faces' credit (CR 702.66a)
+		cost = s.adjustFit(k, &a, p&1, c, o, cost, false)    // a twobrid cost is priced on the face the pool pays
 	}
 	if k.gen != nil && k.t.Cards[c].SpellWaterbend != 0 {
 		cost = s.waterbendSpellCredit(k, p&1, c, o, cost) // act_waterbend.go
@@ -355,7 +358,11 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 		// picks can be paid and whose mana the pool pays with the spell's
 		ac := spellAddCost(k, c)
 		if s.pickCostPayable(k, p&1, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(pl.handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p&1, c, o) {
-			if t := s.delveOfferCredit(k, p&1, c, o, true, addCost(pre, ac.Mana)); a.affords(&t, pipMaskOf(&t), 0) {
+			t := addCost(pre, ac.Mana)
+			if a.delve == 0 || !tb { // the faces took the credit (tb: adjustFit priced them)
+				t = s.delveOfferCredit(k, p&1, c, o, true, t)
+			}
+			if a.affords(&t, pipMaskOf(&t), 0) {
 				return true
 			}
 		}
@@ -364,7 +371,7 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 		}
 		cost = addCost(cost, cd.AltAddCost.Mana)
 	}
-	if mode&4 == 0 {
+	if mode&4 == 0 && (a.delve == 0 || !tb) {
 		cost = s.delveOfferCredit(k, p&1, c, o, mode&2 == 0, cost)
 	}
 	return a.affords(&cost, pipMaskOf(&cost), 0)

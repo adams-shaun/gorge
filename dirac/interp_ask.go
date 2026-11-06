@@ -1015,6 +1015,15 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.replOrderPick(a) {
 			return // ask again
 		}
+		if s.g.plusBatchAsked {
+			// a pure plus-N batch order ask (trig_batches.go replPlusBatch):
+			// the order cannot change the sum, so drop the parked event and
+			// re-execute the same op, which now deals every hit
+			s.g.ro, s.g.nc = replOrd{}, ncDmg{}
+			s.res.ask = raNone
+			s.runProg(k)
+			return
+		}
 		s.g.ro.replHdr = replHdr{}
 		s.dealNC(k)
 		if s.g.dmgSeqOn {
@@ -1795,6 +1804,7 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 		s.g.pickP = p
 		for i := 0; i < n; i++ {
 			s.resArm().look[i] = pl.lib[int(pl.libLo)+i]
+			s.resArm().lookOrig[i] = uint8(i)
 		}
 		if take == -1 && second == 255 && (in.C>>3)&kop.DigOptional != 0 && s.g.nlook > 0 && s.digHasPick(k) {
 			// ChangeNum$ All beside Optional$ True (gorge effDig's

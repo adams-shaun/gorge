@@ -97,17 +97,17 @@ func (e *Engine) castWindowUnits(pc *pendingCast) []windowManaUnit {
 		out = append(out, u)
 	}
 	if len(pay.PaymentPlanInterferenceCarriers(asPayer(e))) > 0 {
-		out = e.castWindowTapExtras(out)
+		out = e.windowTapExtras(out)
 	}
 	return out
 }
 
-// castWindowTapExtras adds to each single-symbol alternative the mana a tap
+// windowTapExtras adds to each single-symbol alternative the mana a tap
 // trigger brings with it (Forsaken Monument's additional {C}): the tap that
 // makes the alternative floats both, so the window's reach is the sum. The
 // alternative keeps its symbol and the extra joins its count; each unit gets
 // a fresh Alts slice, as the census spans may share backing.
-func (e *Engine) castWindowTapExtras(units []windowManaUnit) []windowManaUnit {
+func (e *Engine) windowTapExtras(units []windowManaUnit) []windowManaUnit {
 	for ui := range units {
 		u := &units[ui]
 		var alts []windowManaAlt

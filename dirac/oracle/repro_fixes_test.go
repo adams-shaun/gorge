@@ -210,7 +210,16 @@ func TestStdBigReprosLockstep(t *testing.T) {
 func TestStdTdmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-tdm", []stdRepro{
-		{"shuffle_target_already_returned", false, false}, // CR 608.2b: Rite of Renewal's shuffled cards are in the graveyard still; one already returned to hand stays there
+		{"shuffle_target_already_returned", false, false},       // CR 608.2b: Rite of Renewal's shuffled cards are in the graveyard still; one already returned to hand stays there
+		{"declined_delve_picks_reverse_the_cast", false, false}, // CR 702.66a: declining the granted delve leaves the {2} unpayable; the mana window taps what it can and the cast is reversed (CR 733.1)
+		{"omen_permanent_spell_copy", false, false},             // CR 720.2c, 720.4: an omen card is one card, so Flamehold Grappler's copy of an omen creature spell (Runescale Stormbrood) is an ordinary copy whose token is the front face, not a 707.10g double-faced token
+		{"dig_aura_no_host_joins_the_rest", true, false},        // CR 303.4g: United Battlefront picks Fresh Start with nothing to enchant; it stays in the library and joins "the rest" on the bottom, so the six other window cards keep their relative order
+		// Teval, Arbiter of Virtue's delve grant on an unresolved twobrid
+		// (Gurmag Nightwatch): the cast is offered on the per-face credit
+		// (CR 702.66a), and a payment the window's activations still cannot
+		// finish reverses the cast keeping the floated mana (CR 733.1: a
+		// player may reverse mana abilities activated for an illegal play)
+		{"twobrid_delve_unpayable_window", true, false},
 	})
 }
 
@@ -261,6 +270,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"sorcery_play_waits_for_prefix_trigger", false, false},            // CR 307.1: Guru Pathik is cast after Master Pakku's tap trigger resolves, and every granted source is tapped before the pass
 		{"airbent_card_with_self_flash", true, false},                      // CR 601.3b: Serpent of the Pass airbent to exile is cast at instant speed with three Lessons in the graveyard
 		{"granted_mana_once_beside_another_grant", true, false},            // Great Divide Guide's granted mana is one ability of each grantee on a board with another global grant, so the prefix search finds Earthen Ally's {2}{W}{U}{B}{R}{G} within its budget
+		{"granted_filter_funding_spends_search_budget", false, false},      // CR 605.3a: a filter's fee is funded by a non-gap source before the prefix search reaches Earthen Ally's {2}{W}{U}{B}{R}{G}, so the search spends its node budget as gorge's does and neither engine offers the activation
 		{"waterbend_no_picks_falls_to_manual_window", false, false},        // CR 602.2b, 605.3a: a waterbend cost no printed source pays falls to the manual window, which taps Great Divide Guide's granted sources in battlefield order
 		{"waterbend_no_picks_falls_to_manual_window_autopay", true, false}, // CR 602.2b, 605.3a: ... on the autopay surface too, where the planner's granted unit would otherwise pick a different source
 		{"waterbend_credit_paid_source_live_pool", true, false},            // CR 701.67a: a paid mana ability earns the waterbend credit only while its fee is unpayable, so the prefix taps it once a grant floats the fee
@@ -268,6 +278,18 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"first_only_filter_funds_play", false, false},                     // CR 605.1a, 106.1: Barrels of Blasting Jelly's first-and-only {1} any-colour filter funds Waterbender Ascension's {1}{U} and Fire Nation Palace's {1}{R} activation, so both stay on the menu
 		{"first_only_filter_funds_play_autopay", true, false},              // CR 605.1a, 106.1: ... and on the autopay surface, where the same first-and-only filter funds Fire Nation Palace's activation from the floating pool
 		{"tap_cost_source_not_its_own_granted_mana", true, false},          // CR 602.2b, 605.3a: Agna Qel'a's {2}{U},{T} is not paid by the tap that is its cost, so Great Divide Guide's grant on it adds no third mana beside Guide and Badgermole Cub's extra {G}
+		{"replplus_commuting_order", true, false},                          // CR 616.1: two plus-N replacements are a sum no order changes
+		{"waterbend_census_granted_source_tap_extra", false, false},        // CR 605.1b, 701.67a: Honest Work's Humble Merchant grant survives its lose-all abilities, so Badgermole Cub's tap extra makes the waterbend census incomplete and Foggy Swamp Vinebender's announcement offers Done
+		{"waterbend_census_granted_tap_extra_capacity", false, false},      // CR 605.1b: the same merchant tapped later in the game floats its {G} tap extra, so the payment no longer stalls
+		{"restricted_any_colour_mana_ability_sorts_first", true, false},    // CR 601.2g: White Lotus Hideout's Lesson-restricted any-colour mana sorts ahead of its {C} ability, so an announced {U} hybrid face is paid instead of stranding the cast
+		{"restricted_any_colour_owed_tap", false, false},                   // CR 601.2g, 106.6: Jasmine Dragon Tea Shop has no unrestricted any-colour sibling, so the window must tap its restricted any-colour ability for the owed pip, not its useless {C} one, or the lowered hybrid cast strands
+		{"unless_tap_extra_offers_pay", true, false},                       // CR 106.12a, 605.4a: Badgermole Cub's static TapsForMana trigger adds {G} to an animated Forest's tap, so the {2} unless cost is payable and gorge must offer Pay
+		{"filter_tap_extra_funds_cast", false, false},                      // CR 605.1a, 106.12a: Badgermole Cub adds {G} when an earthbent Rumble Arena's {1},{T} filter taps it, so the filter's {B} plus the extra pays Merchant of Many Hats' {1}{B} and the cast stays on the menu
+		{"resolved_this_turn_survives_zone_change", false, false},          // gorge events.ResolvedAbilityKey is (source, ability body) with no zone stamp: South Pole Voyager's tally still reads 2 after it is exiled and returned, so its second resolution draws
+		{"grant_key_keeps_typed_mana", false, false},                       // CR 602.2b, 601.2g-h: Barrels of Blasting Jelly's {1} fee paid in W and its tagged W leave the pool counts equal but not gorge's typed unit (Player.ManaUnits), so the grant search's payer key must keep them apart and choose W
+		{"resolved_this_turn_across_zone_change", false, false},            // CR 707.10b: Airbender Ascension returns South Pole Voyager, whose resolution count keeps the turn's tally, so the second resolution overall does not draw Earth Kingdom Jailer
+		{"crew_override_source_returned_is_new_object", false, false},      // CR 400.7: Fire Nation Warship destroyed in response to its own crew ability comes back as a new object; the crew effect finds nothing to animate
+		{"hybrid_window_restricted_any_colour_admission", false, false},    // CR 106.6, 601.2g: the lowered hybrid window takes a restricted any-colour ability ahead of a useless fixed {C} only when the restriction admits the payment (an Ally-only source pays a hybrid face; a Lesson's generic takes the {C}), and the admitted mana floats restricted
 	})
 }
 

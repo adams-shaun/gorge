@@ -153,6 +153,12 @@ type costStaticViews struct {
 	// which a composition must be retried with the potential targets (see
 	// offerCastableUsing's potential-target retry).
 	validTarget bool
+	// manaReaching: some raise/reduce/set member may reach a mana ability
+	// (costStaticMayReachManaAbility). It is a pure function of the three
+	// lists, so markCostManaReaching computes it once where they are
+	// finalised (scanCostStatics and the fused board-statics build) and
+	// anyManaReaching is a field read instead of a per-ability rescan.
+	manaReaching bool
 }
 
 // costStaticSource lazily owns one call-scoped membership snapshot. It is

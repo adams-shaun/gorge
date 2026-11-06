@@ -1,7 +1,9 @@
 # the damage-source-to-opponents pool: Champion of the Path,
 # Pyrotechnic Performer and Ingris Stingerquill beside Elementals, disguise
-# creatures, lifelink and infect sources, Shock and basics
-# (dirac/oracle/dmgsrcpl_test.go)
+# creatures, lifelink and infect sources, Shock and basics, plus Fated
+# Firepower for the pure plus-N order ask at the player mode
+# (dirac/oracle/dmgsrcpl_test.go, dirac/oracle/replplus_sites_test.go)
+Fated Firepower
 Champion of the Path
 Pyrotechnic Performer
 Ingris Stingerquill

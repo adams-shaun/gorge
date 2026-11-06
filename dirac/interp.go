@@ -294,9 +294,13 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if track {
 			lethal = s.excessLethalGen(k, b) // captured before any hit lands
 		}
-		s.dealHits(k, hb.h[:hb.n])
-		if track {
-			s.fightExcessRec(lethal, int(hb.h[0].n)) // the damage dealt, after replacement and prevention (CR 120.4a, gorge effFight)
+		// The damage the fight effect sees, after replacement and prevention
+		// (CR 120.4a, gorge effFight): gorge's EmitDamage returns the event
+		// that actually landed, so a hit parked on the replacement-order ask
+		// still reports its post-replacement amount here — the answer
+		// re-executes the batch (interp_ask.go) and h.n is the landed damage.
+		if parked := s.dealHits(k, hb.h[:hb.n]); !parked && track {
+			s.fightExcessRec(lethal, int(hb.h[0].n))
 		}
 	case kop.OpTap:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
