@@ -2,6 +2,7 @@ package rules
 
 import (
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -642,6 +643,17 @@ func (e *Engine) potentialTargetPriced(p state.PlayerID, o decision.Option) bool
 // (potentialCostModsUsing), or "insufficient" when no target's price is payable.
 // The target ask then keeps the targets the mana floated can pay for.
 func (e *Engine) potentialTargetPricedPlan(statics costStaticViews, p state.PlayerID, o decision.Option, base Cost, scope costScope, rider pipRider) PaymentPlanOutcome {
+	// A consumption-only query reads the plans only for whether one pays
+	// and what it consumes, so when even the cheapest price a target
+	// assignment can announce is beyond the option set's cover, no target's
+	// plan pays and the enumeration is skipped (planTargetCostFloor,
+	// planCoverInsufficient).
+	if e.planConsumptionOnly {
+		if floor, ok := e.planTargetCostFloor(statics, p, o.Obj, scope, base); ok &&
+			e.planCoverInsufficient(p, pay.PlanManaUnderRider(floor, rider)) {
+			return PaymentPlanOutcome{Reason: "insufficient"}
+		}
+	}
 	got := PaymentPlanOutcome{Reason: "insufficient"}
 	e.potentialCostModsUsing(statics, p, o.Obj, scope, e.costPotentialTargets(p, o.Obj, scope), 0, func(m costMods) bool {
 		var c Cost
@@ -654,6 +666,46 @@ func (e *Engine) potentialTargetPricedPlan(statics costStaticViews, p state.Play
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
 	}
 	return got
+}
+
+// planTargetCostFloor is the cheapest mana cost one target assignment of id
+// can announce: base less every target-dependent ReduceCost static's literal
+// generic amount, the reduction one target's match applies once (the
+// potential-walk path only reaches here for a cast announcing at most one
+// target). ok is false, and the caller plans, whenever a target-dependent
+// part is not such a subtraction -- a count-reading amount, a SetCost -- or
+// when a floor would charge a reduction no target can apply; target
+// raises and optional parts only ever add, so the floor may ignore them.
+func (e *Engine) planTargetCostFloor(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, base Cost) (Cost, bool) {
+	floor := base
+	for _, sv := range statics.reduce {
+		if id != sv.Source && sv.ParamStr(cards.PKValidCard) == "Card.Self" {
+			continue // another cast's self static never prices this one
+		}
+		if strings.TrimSpace(sv.ParamStr(cards.PKValidTarget)) == "" {
+			if costStaticReadsTargets(sv) {
+				if ok, indepFail := e.costStaticGate(sv, "ReduceCost", p, id, scope, nil, false); ok || indepFail {
+					continue // priced into base already, or never applies
+				}
+				return Cost{}, false // a count amount's floor is no subtraction
+			}
+			continue // priced into base already (or another card's static)
+		}
+		if ok, indepFail := e.costStaticGate(sv, "ReduceCost", p, id, scope, nil, false); ok || indepFail {
+			continue // priced into base already, or never applies
+		}
+		amt, err := strconv.Atoi(strings.TrimSpace(sv.ParamStr(cards.PKAmount)))
+		if err != nil || amt < 0 {
+			return Cost{}, false
+		}
+		floor.Generic -= int32(amt)
+	}
+	for _, sv := range statics.set {
+		if strings.TrimSpace(sv.ParamStr(cards.PKValidTarget)) != "" || costStaticReadsTargets(sv) {
+			return Cost{}, false
+		}
+	}
+	return floor, true
 }
 
 // planWitnessOffersNeeded reports whether plan's offer gate
@@ -749,7 +801,30 @@ func (e *Engine) planCoverInsufficient(p state.PlayerID, mana Cost) bool {
 	if pay.PlanCostDetail(mana) != "" {
 		return false
 	}
-	bound := e.G.Players[p].Pool
+	bound := e.planCoverBoundOf(p)
+	need := int32(0)
+	for c := range bound {
+		if mana.Colored[c] > bound[c] {
+			return true
+		}
+		need += mana.Colored[c]
+	}
+	return bound.Total()-need < mana.Generic
+}
+
+// planCoverBoundOf is the bound planCoverInsufficient reads: p's floating
+// pool plus, per census source, its largest alternative per colour. Inside
+// the arm's consumption-only query (planCoverBoundOn) it is computed once
+// per event-log head and shared by the query's nested planComposedCost
+// calls: every state change is an appended event, so an unchanged log
+// length is the same unchanging board and pool.
+func (e *Engine) planCoverBoundOf(p state.PlayerID) state.Mana {
+	pool := e.G.Players[p].Pool
+	if e.planCoverBoundOn && e.planCoverLogLen == len(e.L.Events) &&
+		e.planCoverBoundP == p && e.planCoverPool == pool {
+		return e.planCoverBound
+	}
+	bound := pool
 	for _, u := range pay.PaymentPlanQueryUnits(asPayer(e), p) {
 		var best state.Mana
 		for _, a := range pay.PaymentPlanQueryAlternatives(asPayer(e), u) {
@@ -763,14 +838,13 @@ func (e *Engine) planCoverInsufficient(p state.PlayerID, mana Cost) bool {
 			bound[c] += best[c]
 		}
 	}
-	need := int32(0)
-	for c := range bound {
-		if mana.Colored[c] > bound[c] {
-			return true
-		}
-		need += mana.Colored[c]
+	if e.planCoverBoundOn {
+		e.planCoverLogLen = len(e.L.Events)
+		e.planCoverBoundP = p
+		e.planCoverPool = pool
+		e.planCoverBound = bound
 	}
-	return bound.Total()-need < mana.Generic
+	return bound
 }
 
 // potentialModalCastFreeMode reports whether a plain Spree/Tiered cast of id

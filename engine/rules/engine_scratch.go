@@ -71,8 +71,20 @@ type engineScratch struct {
 	// (targetPaidNeedsPlannedPayment): a plan that consumes nothing is
 	// declined by the reader itself, so its witness need not be confirmed by
 	// the offer walk (planWitnessOffersNeeded) and the walk is skipped.
-	planConsumptionOnly bool   `clone:"reset"`
-	derivedMemoGen      uint64 `clone:"reset"`
+	planConsumptionOnly bool `clone:"reset"`
+	// planCoverBoundOn marks the arm's one consumption-only query whose plan
+	// cover bound (planCoverInsufficient) is cached in planCoverBound for
+	// the player and pool in planCoverBoundP and planCoverPool, valid while
+	// the event log head is planCoverLogLen: every state change is an
+	// appended event, so an unchanged log length is the query's unchanging
+	// board and pool. Clone copies none of it, and the flag lives only for
+	// the query's own duration (targetPaidNeedsPlannedPayment).
+	planCoverBoundOn bool           `clone:"reset"`
+	planCoverLogLen  int            `clone:"reset"`
+	planCoverBoundP  state.PlayerID `clone:"reset"`
+	planCoverPool    state.Mana     `clone:"reset"`
+	planCoverBound   state.Mana     `clone:"reset"`
+	derivedMemoGen   uint64         `clone:"reset"`
 	// typesMemo is the derived-types memo (engine/rules/types_memo.go): each
 	// object's layer-4 answer under the Derived memo's cross-walk key, served
 	// to derivedTypesOf and every top-level Derived build. typesMemoLocal*
