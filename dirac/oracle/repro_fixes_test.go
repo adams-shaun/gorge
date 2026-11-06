@@ -210,7 +210,8 @@ func TestStdBigReprosLockstep(t *testing.T) {
 func TestStdTdmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-tdm", []stdRepro{
-		{"shuffle_target_already_returned", false, false}, // CR 608.2b: Rite of Renewal's shuffled cards are in the graveyard still; one already returned to hand stays there
+		{"shuffle_target_already_returned", false, false},       // CR 608.2b: Rite of Renewal's shuffled cards are in the graveyard still; one already returned to hand stays there
+		{"declined_delve_picks_reverse_the_cast", false, false}, // CR 702.66a: declining the granted delve leaves the {2} unpayable; the mana window taps what it can and the cast is reversed (CR 733.1)
 	})
 }
 
