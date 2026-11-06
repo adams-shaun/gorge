@@ -157,12 +157,19 @@
 //	manaCarry                          the own-battlefield mana-membership carry, keyed on
 //	                                   the board stamp plus a mana-relevant log cursor; Clone
 //	                                   copies none
+//	manaReachingCost/Valid/Log/        anyManaReachingCostStatic's per-state-change answer and
+//	Tape/LogLen/Version/Objs           its key (log identity, restore epoch, log length,
+//	                                   continuous version, object count); Clone copies none
 //	PaymentPlanCarriers/Objs/Events/   payment-plan interference carrier memo keyed by the
 //	Valid                              object-arena size and log length; Clone copies none
 //	PlanQueryKept/Free,                the payment planner's kept and recycled query scopes and
 //	paymentPlanQueryKeptStamp,         the incremental zone-entry index: caches of G and the
 //	zoneEntry
 //	                                   log, validated on every use; Clone copies none
+//	planCoverBoundOn/LogLen/BoundP/    the shape-cast arm's consumption-only cover bound and
+//	Pool/Bound/Consumable              its key, plus the consumable-alternative pre-gate
+//	                                   answer: a pure function of G and the log head; Clone
+//	                                   copies none
 //	walkRec, walkReuse, WalkRecDemand, the priority walk's pool-independent block record for the
 //	potentialManaRec, walkBlocks/      potential walk and PotentialMana (keyed like
 //	MembersServed                      priorityWalk) and its served diagnostic counters; Clone
