@@ -423,7 +423,14 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		if k.gen.anyFilt && s.filtOnly(k, p) && !s.liveGrantGap(k, p) {
 			var d Decision
 			s.plainOptions(k, &d, 0)
-			if !hasOption(&d, a) {
+			// A live granted mana gap (a Humble Merchant) beside the filter:
+			// gorge's one prefix search covers the board's filters with its
+			// grants (mana_grantedoffers.go) and taps the granted gap first
+			// (gaps before funding, scriptSearch.visit), its mana paying the
+			// filter's fee — the filter script's funding would tap a printed
+			// land the search leaves untapped, so grantPrefix applies it
+			// instead (CR 601.2g-h)
+			if !hasOption(&d, a) && !s.grantGapLive(k, p) {
 				s.filtScript(k, a, p, true)
 			}
 		}
@@ -478,16 +485,24 @@ func (s *State) FeatScripted(p uint8, a Action) bool {
 // source would pay it (Squad Rallier's {2}{W} after potentialScriptPlays such casts, pair
 // 5618). gorge's potential walk lists the plays p's potential mana pays,
 // granted sources included, before any offer surface (availWalk).
-func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
-	gap := false
-	for m := s.ctrlM[p&1].and(s.occ); m.any() && s.grantsLive(k); m = m.rest() {
+// grantGapLive: p still has a granted mana ability (Honest Work's Humble
+// Merchant) whose source can tap — the grant search's gap (grantCap), and
+// the arm that owns the play's prefix then (mana_grantedoffers.go).
+func (s *State) grantGapLive(k *prep, p uint8) bool {
+	if !s.grantsLive(k) {
+		return false
+	}
+	for m := s.ctrlM[p&1].and(s.occ); m.any(); m = m.rest() {
 		sl := m.first()
 		if s.grantIdx(k, sl) >= 0 && s.canTapForMana(k, sl) {
-			gap = true
-			break
+			return true
 		}
 	}
-	if !gap {
+	return false
+}
+
+func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
+	if !s.grantGapLive(k, p) {
 		return
 	}
 	var walk Decision

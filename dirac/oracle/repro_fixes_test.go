@@ -293,6 +293,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"granted_mana_funds_filter_fee", true, false},                     // CR 602.2b, 605.3a: Rumble Arena's {1},{T} filter fee is paid by the granted {C} the prefix search taps first in battlefield order, not by a land the filter-only script would fund it with
 		{"crew_override_source_returned_is_new_object", false, false},      // CR 400.7: Fire Nation Warship destroyed in response to its own crew ability comes back as a new object; the crew effect finds nothing to animate
 		{"hybrid_window_restricted_any_colour_admission", false, false},    // CR 106.6, 601.2g: the lowered hybrid window takes a restricted any-colour ability ahead of a useless fixed {C} only when the restriction admits the payment (an Ally-only source pays a hybrid face; a Lesson's generic takes the {C}), and the admitted mana floats restricted
+		{"granted_gap_taps_ahead_of_filter_funding", true, false},          // CR 601.2g-h: on a board with a live granted mana gap (Honest Work's Humble Merchant) beside a filter (Rumble Arena), gorge's one prefix search taps the granted gap first and pays the filter's {1} fee from its mana, so no printed land is tapped for the fee
 	})
 }
 
