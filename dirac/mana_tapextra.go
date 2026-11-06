@@ -86,6 +86,13 @@ func (s *State) srcExtraAlt(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.N
 	if pc.manaAb < 0 || pc.manaSacOnly {
 		return xv, false // no tap: the trigger does not fire
 	}
+	return s.srcExtraTapped(k, sl, pc, colour)
+}
+
+// srcExtraTapped is srcExtraAlt for a tap that is known to happen (a filter's
+// {T}): a granted or first-only ability leaves pcard.manaAb without the
+// source's own tap, yet the permanent is still tapped for mana.
+func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.NumManaKinds]uint8, hit bool) {
 	ctl := s.perms[sl].ctrl
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
@@ -111,6 +118,19 @@ func (s *State) srcExtraAlt(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.N
 		return true
 	})
 	return xv, hit
+}
+
+// filtExtra is the extra a filter activation of sl brings: the filter taps sl
+// for mana, so a StatTapExtra static adds its mana beside the filter's own
+// unit (Badgermole Cub on an earthbent Rumble Arena's {1},{T}). A filter that
+// costs no {T} (a once-each-turn one) taps nothing and brings none. The colour
+// is picked after the tap, so a carrier limited to a {C} tap does not reach it.
+func (s *State) filtExtra(k *prep, sl Slot) (xv [kop.NumManaKinds]uint8) {
+	if k.gen == nil || !k.gen.anyTapExtra || s.filtAb(k, sl).Cost.Flags&kop.CostTap == 0 {
+		return xv
+	}
+	xv, _ = s.srcExtraTapped(k, sl, s.manaPCAt(k, sl), true)
+	return xv
 }
 
 // srcExtraPick is the extra a tap of sl through the ability pc brings when it
