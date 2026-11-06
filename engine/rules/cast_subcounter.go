@@ -583,6 +583,20 @@ func (e *Engine) delveAsk() bool {
 	if pc.delveDone {
 		return false
 	}
+	// CR 601.2b: a twobrid pip (CR 107.4e) is announced as its colour half or
+	// its two-generic half during the pip announcements, which run after this
+	// ask in continueCast. Until they are announced the resolved generic total
+	// is not known -- manaToPay still reads the unannounced pip as zero
+	// generic -- so the shortfall below would read zero and burn delveDone on
+	// a cast the pip announcements then cannot price (announceFeasible finds
+	// no payable face and the cast strands). Defer instead: continueCast
+	// re-runs this ask right after manaAsk, when every pip is announced and
+	// the shortfall is real. delveDone stays unset, so the re-entry after the
+	// exile picks falls through here to the asks that follow.
+	if !pc.isAbility() && e.hasCastDelve(pc.card, false) &&
+		len(pc.cost.DropAnnouncePrefix(pc.PayIdx).Twobrid) > 0 {
+		return false
+	}
 	pc.delveDone = true
 	// CR 702.66a: delve applies to the spell with delve on the stack. An
 	// activated ability is never a spell: no delve ask, not even one the

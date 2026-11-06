@@ -296,7 +296,16 @@ func (m CostMods) FeasibleAny(c Cost, pool, snow state.Mana, typed [7]state.Mana
 		return ok
 	}
 	if !m.FaceSensitiveP(&c) || c.AnnPipCount() == 0 {
-		return composed(c)
+		// A delve credit composes differently per face while a twobrid pip is
+		// unresolved: its generic face is the {2} the credit eats, its colour
+		// face is not. The composed check prices the UNRESOLVED pip with the
+		// credit already taken off a generic total the pip has not added yet
+		// ({2/B}{2/G}{2/U} under Delve composes to generic 0 and then demands
+		// every pip from the pool alone), so it can only under-credit; walk
+		// the faces instead (CR 702.66a).
+		if delve == 0 || len(c.Twobrid) == 0 {
+			return composed(c)
+		}
 	}
 	var walk func(c Cost) bool
 	walk = func(c Cost) bool {
