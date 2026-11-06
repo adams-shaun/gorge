@@ -93,7 +93,9 @@ const resolveMark = 0x80
 // (gorge foldResolve: the per-ability ResolvedThisTurn tally, incremented
 // before the body runs, so the body's read includes it). A record per
 // resolution in the once-per-turn pool, keyed by the source object and the
-// ability body; the pool's cap stalls loud (StallUsed).
+// ability body; the ver is kept for the other uses of the pool but is not
+// part of the tally's key (resolvedThisTurn). The pool's cap stalls loud
+// (StallUsed).
 //
 //go:noinline
 func (s *State) countResolve(k *prep, e *stackEntry) {
@@ -137,10 +139,14 @@ func resolveTally(k *prep, e *stackEntry) uint8 {
 }
 
 // resolvedThisTurn is ExResolvedThisTurn: the resolving ability's
-// resolutions this turn (Count$ResolvedThisTurn). The record's ver is not
-// part of the identity: gorge events.ResolvedAbilityKey is (source ObjID,
-// ability body), so a permanent that leaves and returns keeps the tally
-// (South Pole Voyager's second resolution after Airbend still draws).
+// resolutions this turn (Count$ResolvedThisTurn). Keyed by the source object
+// and the ability body only, never the object's ver: gorge
+// events.ResolvedAbilityKey is (source ObjID, ability body) and the source
+// object's id survives its zone changes, so a permanent that left and
+// returned keeps the turn's count, as Forge's ActivationTable does (its key
+// is the host card's printed SpellAbility, which a zone change does not
+// replace). South Pole Voyager's tally still reads 2 after it is exiled and
+// returned (Airbender Ascension), so its second resolution still draws.
 //
 //go:noinline
 func (s *State) resolvedThisTurn(k *prep) int {
