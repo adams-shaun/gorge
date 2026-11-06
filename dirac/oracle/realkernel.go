@@ -2,7 +2,6 @@ package oracle
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/canon"
@@ -142,7 +141,6 @@ type realSide struct {
 	// nameless: tokens seen as dirac.ProjNameless. Gorge keeps a copied token's
 	// blank card after it leaves, and the kernel's object holds the printed one.
 	nameless [(MaxInst + 63) / 64]uint64
-	dn       int // decision counter (KTAPSDEF_TRACE only)
 	// origin, when set, maps a card's kop ability index to gorge's
 	// (SetSide: set.AbilityOrigin).
 	origin func(dirac.CardID, uint8) (uint8, bool)
@@ -188,7 +186,6 @@ func (r *realSide) stackAbility(srcCard, card dirac.CardID, ab uint8) uint8 {
 }
 
 func (r *realSide) Step() CDecision {
-	r.dn++
 	r.s.StepInto(&r.d)
 	if OccupancyHook != nil {
 		OccupancyHook(&r.s)
@@ -204,9 +201,6 @@ func (r *realSide) Step() CDecision {
 }
 
 func (r *realSide) Apply(c Canon) {
-	if os.Getenv("KTAPSDEF_TRACE") != "" {
-		fmt.Fprintf(os.Stderr, "KTAPSDEF decision %d apply\n", r.dn)
-	}
 	for i, x := range r.opts {
 		if x == c {
 			r.s.Apply(r.d.Options[i])

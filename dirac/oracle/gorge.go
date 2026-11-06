@@ -399,12 +399,6 @@ func (g *GorgeSide) Step() CDecision {
 			}
 			continue
 		}
-		if os.Getenv("KTAPSDEF_TRACE") != "" {
-			fmt.Fprintf(os.Stderr, "GT canonical d.Kind=%v p=%d opts=%d life0=%d life1=%d\n", d.Kind, d.Player, len(d.Options), g.E.G.Players[0].Life, g.E.G.Players[1].Life)
-		}
-		if os.Getenv("KTAPSDEF_TRACE") != "" {
-			fmt.Fprintf(os.Stderr, "GT canonical d.Kind=%v p=%d opts=%d life0=%d life1=%d\n", d.Kind, d.Player, len(d.Options), g.E.G.Players[0].Life, g.E.G.Players[1].Life)
-		}
 		g.Stats.Decisions++
 		return fr.cur
 	}
@@ -414,12 +408,6 @@ func (g *GorgeSide) Step() CDecision {
 // (the manual CR 601.2g window a planned cast fell back to) or a colour ask
 // of a mana ability activated while paying.
 func (g *GorgeSide) internal(d *decision.Decision) bool {
-	if os.Getenv("KTAPSDEF_TRACE") != "" {
-		fmt.Fprintf(os.Stderr, "GT internal? d.Kind=%v p=%d opts=%d\n", d.Kind, d.Player, len(d.Options))
-	}
-	if os.Getenv("KTAPSDEF_TRACE") != "" {
-		fmt.Fprintf(os.Stderr, "GT internal? d.Kind=%v p=%d opts=%d\n", d.Kind, d.Player, len(d.Options))
-	}
 	if d.Kind != decision.KChoose || len(d.Options) == 0 {
 		return false
 	}
@@ -461,20 +449,6 @@ func (g *GorgeSide) internal(d *decision.Decision) bool {
 		g.Stats.Fallbacks++
 	}
 	picks := payexec.WindowChoices(d, g.windowOwed(d))
-	if os.Getenv("KTAPSDEF_TRACE") != "" {
-		lab := make([]string, 0, len(d.Options))
-		for _, o := range d.Options {
-			lab = append(lab, fmt.Sprintf("%s/%s", o.Kind, o.Label))
-		}
-		fmt.Fprintf(os.Stderr, "GT internal-ANSWER p=%d opts=%v picks=%v\n", d.Player, lab, picks)
-	}
-	if os.Getenv("KTAPSDEF_TRACE") != "" {
-		lab := make([]string, 0, len(d.Options))
-		for _, o := range d.Options {
-			lab = append(lab, fmt.Sprintf("%s/%s", o.Kind, o.Label))
-		}
-		fmt.Fprintf(os.Stderr, "GT internal-ANSWER p=%d opts=%v picks=%v\n", d.Player, lab, picks)
-	}
 	if g.OnInternal != nil {
 		g.OnInternal(d, picks[0])
 	}
@@ -1524,20 +1498,11 @@ func (g *GorgeSide) runScript(pe prioEntry) {
 	for i, st := range pe.script {
 		// A trigger the script's activation stacked: the search assumed the
 		// other players pass while it resolves (scriptSearch.visit).
-		if os.Getenv("KTAPSDEF_TRACE") != "" {
-			fmt.Fprintf(os.Stderr, "GT script step %d kind=%v picks=%d %+v\n", i, st.Kind, len(st.Picks), st.Picks)
-		}
-		if os.Getenv("KTAPSDEF_TRACE") != "" {
-			fmt.Fprintf(os.Stderr, "GT script step %d kind=%v picks=%d\n", i, st.Kind, len(st.Picks))
-		}
 		d := g.passOthers(p, pe)
 		if g.err != nil {
 			return
 		}
 		if d == nil || e.G.Over || d.Player != p || d.Kind != st.Kind {
-			if os.Getenv("KTAPSDEF_TRACE") != "" {
-				fmt.Fprintf(os.Stderr, "GT script ABORT step %d d=%v\n", i, d)
-			}
 			g.Stats.Aborts++
 			return
 		}
@@ -1591,9 +1556,6 @@ func (g *GorgeSide) runScript(pe prioEntry) {
 			return
 		}
 		if !g.internal(d) {
-			if os.Getenv("KTAPSDEF_TRACE") != "" {
-				fmt.Fprintf(os.Stderr, "GT script ABORT tail d.Kind=%v p=%d opts=%d\n", d.Kind, d.Player, len(d.Options))
-			}
 			g.Stats.Aborts++
 			return
 		}

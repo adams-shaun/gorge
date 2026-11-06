@@ -392,12 +392,6 @@ func LockstepLed(m *Matchup, seed uint64, lead, follow Side, pol Policy, rc RunC
 				diff := DiffProjection(&pr, &pk)
 				if os.Getenv("KFEAT_DEBUG") != "" {
 					fmt.Printf("  at the projection divergence: ref %v p%d %v, kernel %v p%d %v\n", dr.Kind, dr.Player, actionStrings(dr.Options), dk.Kind, dk.Player, actionStrings(dk.Options))
-					if gs, ok := ref.(*GorgeSide); ok {
-						fmt.Printf("  PRJDELTA pr.Life=%v pk.Life=%v engine0=%d engine1=%d dec=%d\n", pr.Life, pk.Life, gs.E.G.Players[0].Life, gs.E.G.Players[1].Life, res.Decisions)
-					}
-					if gs, ok := ref.(*GorgeSide); ok {
-						fmt.Printf("  PRJDELTA pr.Life=%v pk.Life=%v engine0=%d engine1=%d dec=%d\n", pr.Life, pk.Life, gs.E.G.Players[0].Life, gs.E.G.Players[1].Life, res.Decisions)
-					}
 				}
 				res.Div = &Divergence{At: res.Decisions, What: "projection", Field: firstField(diff), Diff: diff}
 				return res

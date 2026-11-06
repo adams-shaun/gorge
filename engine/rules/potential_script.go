@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -269,24 +268,6 @@ func (sr *scriptSearch) try(c *Engine, d *decision.Decision, in decision.Intent,
 }
 
 func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
-	dbg := os.Getenv("GORGE_SCRIPT_DEBUG") != ""
-	if dbg {
-		var b strings.Builder
-		fmt.Fprintf(&b, "GSDBG visit nodes=%d funded=%d gapUsed=%v play=%v/%d/%d", sr.nodes, funded, gapUsed, sr.play.Kind, sr.play.Obj, sr.play.Ability)
-		if d := c.Pending(); d != nil {
-			fmt.Fprintf(&b, " d=%v/%d n=%d", d.Kind, d.Player, len(d.Options))
-			for _, o := range d.Options {
-				fmt.Fprintf(&b, " [%v %d ab=%d md=%v]", o.Kind, o.Obj, o.Ability, o.Mode)
-			}
-		} else {
-			b.WriteString(" d=nil")
-		}
-		fmt.Fprintf(&b, " over=%v stack=%d life=[%d %d] npend=%d", c.G.Over, len(c.G.Stack), c.G.Players[0].Life, c.G.Players[1].Life, len(c.pendingTriggers))
-		if len(c.G.Stack) > 0 {
-			fmt.Fprintf(&b, " top=%d", c.G.Stack[len(c.G.Stack)-1])
-		}
-		fmt.Println(b.String())
-	}
 	if sr.nodes >= sr.budget {
 		sr.limited = true
 		return false
