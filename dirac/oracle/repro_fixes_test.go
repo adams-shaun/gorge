@@ -211,6 +211,7 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-tdm", []stdRepro{
 		{"shuffle_target_already_returned", false, false}, // CR 608.2b: Rite of Renewal's shuffled cards are in the graveyard still; one already returned to hand stays there
+		{"dig_aura_no_host_joins_the_rest", true, false},  // CR 303.4g: United Battlefront picks Fresh Start with nothing to enchant; it stays in the library and joins "the rest" on the bottom, so the six other window cards keep their relative order
 	})
 }
 

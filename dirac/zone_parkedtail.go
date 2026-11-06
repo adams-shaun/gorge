@@ -102,16 +102,31 @@ func (s *State) finishDigTail(k *prep) {
 	in := &s.prog(k)[s.res.pc]
 	pl := &s.pl[s.g.pickP]
 	n := int(s.g.nlook)
+	z := kop.Zone(in.C & 7)
 	fl := in.C >> 3
 	rz := kop.Zone(fl & 7)
 	if k.gen != nil && k.gen.anyBatch {
 		defer s.batchClose(s.batchOpen()) // gorge effDig: one zone batch (trig_oneormore.go)
 	}
+	// The rest keeps the LIBRARY's order, not look's: digPick moves the picked
+	// cards to the front of look in pick order, so a picked Aura that stays
+	// behind (CR 303.4g) would jump ahead of the cards it was looked at
+	// behind. The window is already out of the library -- the battlefield
+	// path set its rest aside, the other advanced libLo past the whole window
+	// -- so read the rest back off the library array in that order.
+	rn := n - bits.OnesCount32(s.g.lookSel) // the rest's size
+	start := int(pl.libLo) - n
+	if z == kop.ZoneBattlefield {
+		start = int(pl.libLo) - rn
+	}
+	if start < 0 {
+		start = 0
+	}
 	var rest [24]Obj // len(genState.look)
 	nr := 0
-	for i := 0; i < n; i++ {
-		if s.g.lookSel&(1<<i) == 0 {
-			rest[nr] = s.resArm().look[i]
+	for i := start; i < int(pl.libLo); i++ {
+		if o := pl.lib[i]; s.objs[o].zone == kop.ZoneNone {
+			rest[nr] = o
 			nr++
 		}
 	}
