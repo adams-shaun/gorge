@@ -36,6 +36,7 @@ type armCombat struct {
 // armRes is arm C: a resolution's decision scratch.
 type armRes struct {
 	look      [24]Obj       // cards looked at (dig / peek / reveal); 24 since kcaps2x (was 12: Ulamog digs twenty)
+	lookOrig  [24]uint8     // each look slot's window index: digPick reorders look to pick order, rest keeps window order
 	pileOrd   [12]uint8     // OpTwoPiles: the face-down pile's rem indices in pick order
 	dmgSeqOrd [MaxPerm]Slot // a multi-event damage op's recipients, frozen (dmgSeqOn / N / I / Pl, outside scr)
 }

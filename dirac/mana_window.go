@@ -1840,15 +1840,17 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 
 // witnessAtCheapest reprices a witness the printed composition cannot fund (rules
 // potentialModeCastPlan): a target-conditional reduction at the cheapest legal
-// target, and a hand cast's either-or additional cost with its part that has mana
-// when no part without mana can be paid.
+// target, and a hand or may-play cast's either-or additional cost with its part
+// that has mana when no part without mana can be paid (rules potentialAltAddPlan
+// prices the may-play arm beside its parts like the plain cast's: the permission
+// replaces the mana cost only, CR 118.9d).
 func (s *State) witnessAtCheapest(k *prep, p uint8, cost *kop.ManaCost, av *avail) {
 	e := &s.bld().e
 	if e.kind != seSpell {
 		return
 	}
 	cd := &k.t.Cards[e.card]
-	if cd.HasAltAdd && e.flags&sfMayPlay == 0 && s.objs[e.obj].zone == kop.ZoneHand && !s.altAddFreePart(k, p, e.card, e.obj) {
+	if cd.HasAltAdd && (e.flags&sfMayPlay != 0 || s.objs[e.obj].zone == kop.ZoneHand) && !s.altAddFreePart(k, p, e.card, e.obj) {
 		*cost = s.altAddReduced(k, *cost, s.altAddManaPart(k, e.card))
 		return
 	}
@@ -2192,6 +2194,7 @@ func (s *State) dealAnnouncedDivision(k *prep, e *stackEntry, slot uint8) bool {
 //go:noinline
 func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, anyColor bool) bool {
 	c := *cost
+	tb := s.buildCost0(k).Hyb[0] == kop.HybTwobrid
 	if g := cost.XGeneric(x); g != 0 {
 		// the window reads Generic, not X: fold the announced X in
 		c.Generic += uint8(g)
@@ -2210,6 +2213,17 @@ func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude O
 		return true
 	}
 	if known && k.gen != nil && k.gen.blgOn {
+		return s.hybStrand(k, p, &c, anyColor)
+	}
+	if tb {
+		// gorge's cast planner refuses a twobrid cost (pay.PlanCostDetail
+		// "cost:twobrid"), so the announced cost is always paid through the
+		// manual window this walk models, never re-planned with a witness.
+		// A flexible source the walk tapped for an earlier owed colour can
+		// strand a later pip only it could make (Frontier Bivouac's {U}
+		// leaves a {R} pip no source makes); gorge reverses the cast and
+		// keeps the tap and its mana (CR 601.2g-h, 733.1), so the kernel
+		// does too.
 		return s.hybStrand(k, p, &c, anyColor)
 	}
 	var pk planner
