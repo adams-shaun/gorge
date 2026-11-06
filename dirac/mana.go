@@ -92,6 +92,15 @@ type avail struct {
 	// a pointer, so an avail on the stack keeps no reference to a local.
 	xd   payDesc
 	xdOn bool
+	// delve: the graveyard credit a granted-delve cast prices its twobrid
+	// faces against (gorge FeasibleAny's delve argument): the payer's
+	// graveyard size while the cast carries the granted keyword, else 0. Set
+	// by the offer gates that price a cast (legal.go, legal_gen.go offerPlay,
+	// featview.go); the twobrid leaf checks (mana_twobrid.go) take
+	// min(generic, delve) per face where gorge's composed check takes the
+	// credit once at the leaf (CR 702.66a). Zero everywhere else, so every
+	// other caller prices exactly as before.
+	delve int
 }
 
 // maxOneColour bounds a player's one-colour sources; one more stalls

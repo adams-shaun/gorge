@@ -658,6 +658,14 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			s.nextStage(k)
 			continue
 		case bsDelve:
+			if s.delveTbDeferred(k) {
+				// a twobrid cost's resolved generic -- the ask's shortfall --
+				// is not known until CR 601.2b announces the pips; the ask
+				// re-runs at bsPips' tail once they are done (gorge
+				// delveAsk's defer, cast_subcounter.go)
+				s.nextStage(k)
+				continue
+			}
 			if s.delveOptions(k, d) {
 				return true
 			}
@@ -818,6 +826,13 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.altAddWindowTap(k)
 				s.reverseCast(k)
 				return false
+			}
+			// a twobrid spell deferred its delve ask past the pip
+			// announcements (delveTbDeferred): every pip is announced now and
+			// the folded cost's generic is the ask's real shortfall
+			if e.kind == seSpell && k.gen != nil && k.gen.anyDelve && s.bld().pipN > 0 && s.buildIsTb(k) {
+				s.toStage(k, bsDelve)
+				continue
 			}
 			s.nextStage(k)
 			continue

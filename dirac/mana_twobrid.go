@@ -73,6 +73,14 @@ func (s *State) adjustFit(k *prep, av *avail, p uint8, c CardID, o Obj, base kop
 			r = r.ResolveTb(m>>i&1 != 0)
 		}
 		r = s.adjustPlain(gen, k, p, c, o, r)
+		// the face's delve credit (gorge FeasibleAny composes then takes it at
+		// the leaf, CR 702.66a): the resolved faces' generic, so a face the
+		// credit pays is found and returned with the credit in it -- the
+		// caller skips its outer min(generic, graveyard) credit then
+		// (avail.tbLeafCredited)
+		if cr := min(int(r.Generic), av.delve); cr > 0 {
+			r.Generic -= uint8(cr)
+		}
 		if av.affordsPlain(&r, pipMaskOf(&r), 0) {
 			return r
 		}
@@ -93,11 +101,21 @@ func (a *avail) affordsTb(cost *kop.ManaCost, extra int, anyColor bool) bool {
 		for i := 0; i < n; i++ {
 			r = r.ResolveTb(m>>i&1 != 0)
 		}
+		// the leaf's delve credit (gorge FeasibleAny composes then takes it at
+		// the leaf, CR 702.66a): the resolved faces' generic first, then the
+		// {X} part's remainder (gorge delveAsk's order)
+		ex := extra
+		if a.delve > 0 {
+			cr := min(int(r.Generic)+ex, a.delve)
+			g := min(int(r.Generic), cr)
+			r.Generic -= uint8(g)
+			ex -= cr - g
+		}
 		if anyColor {
-			if a.affordsAnyColorPlain(&r, extra) { // every pip resolved: no hybrid left
+			if a.affordsAnyColorPlain(&r, ex) { // every pip resolved: no hybrid left
 				return true
 			}
-		} else if a.affordsPlain(&r, pipMaskOf(&r), extra) {
+		} else if a.affordsPlain(&r, pipMaskOf(&r), ex) {
 			return true
 		}
 	}
@@ -112,6 +130,14 @@ func (a *avail) affordsTb(cost *kop.ManaCost, extra int, anyColor bool) bool {
 // FeasibleAny, which composes on the resolved faces).
 func (s *State) pipOptionsTb(k *prep, d *Decision, cost kop.ManaCost, av *avail) {
 	e := &s.bld().e
+	// gorge announceFeasible prices the pip menus with the cast's potential
+	// delve while the ask is deferred past them (cast_subcounter.go's CR
+	// 601.2b defer): the graveyard's size, taken off each resolved leaf's
+	// generic -- the picks do not exist yet, so nothing was announced.
+	grave := 0
+	if k.gen != nil && k.gen.anyDelve {
+		grave = s.tbDelveCredit(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl))
+	}
 	col := uint8(cost.TbCol(0))
 	second := uint8(twobridGeneric)
 	phy := cost.Phyrexian()
@@ -131,7 +157,14 @@ func (s *State) pipOptionsTb(k *prep, d *Decision, cost kop.ManaCost, av *avail)
 			r := s.buildCostFaces(k, face, m, rem)
 			// a face the mana window can reach through a filter or a converting source is
 			// offered as gorge's castWindowReachable offers it (Jeskai Devotee's {1} for {R})
-			if x := r.XGeneric(int(e.x)); !s.faceReachable(k, e.ctrl, av, &r, x) {
+			x := r.XGeneric(int(e.x))
+			if grave > 0 {
+				cr := min(int(r.Generic)+x, grave)
+				g := min(int(r.Generic), cr)
+				r.Generic -= uint8(g)
+				x -= cr - g
+			}
+			if !s.faceReachable(k, e.ctrl, av, &r, x) {
 				continue
 			}
 			if face == 1 {
