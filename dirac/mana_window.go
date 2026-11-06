@@ -2194,6 +2194,7 @@ func (s *State) dealAnnouncedDivision(k *prep, e *stackEntry, slot uint8) bool {
 //go:noinline
 func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, anyColor bool) bool {
 	c := *cost
+	tb := s.buildCost0(k).Hyb[0] == kop.HybTwobrid
 	if g := cost.XGeneric(x); g != 0 {
 		// the window reads Generic, not X: fold the announced X in
 		c.Generic += uint8(g)
@@ -2212,6 +2213,17 @@ func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude O
 		return true
 	}
 	if known && k.gen != nil && k.gen.blgOn {
+		return s.hybStrand(k, p, &c, anyColor)
+	}
+	if tb {
+		// gorge's cast planner refuses a twobrid cost (pay.PlanCostDetail
+		// "cost:twobrid"), so the announced cost is always paid through the
+		// manual window this walk models, never re-planned with a witness.
+		// A flexible source the walk tapped for an earlier owed colour can
+		// strand a later pip only it could make (Frontier Bivouac's {U}
+		// leaves a {R} pip no source makes); gorge reverses the cast and
+		// keeps the tap and its mana (CR 601.2g-h, 733.1), so the kernel
+		// does too.
 		return s.hybStrand(k, p, &c, anyColor)
 	}
 	var pk planner
