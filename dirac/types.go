@@ -1,6 +1,12 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"fmt"
+	"os"
+	"runtime/debug"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // CardID indexes the matchup's card table (kop.Table.Cards); 255 = none.
 type CardID = kop.CardID
@@ -154,6 +160,10 @@ type Decision struct {
 func (d *Decision) add(a Action) {
 	if int(d.N) >= MaxOptions {
 		panic("kernel: decision option overflow")
+	}
+	if os.Getenv("ZZDBG") != "" && a.Kind() == AkCast && a.Source() == 9 {
+		fmt.Printf("ZZDBG add AkCast obj=9 kind=%d mode=%d\n", a.Kind(), a.Mode())
+		fmt.Println(string(debug.Stack()))
 	}
 	d.Options[d.N] = a
 	d.N++

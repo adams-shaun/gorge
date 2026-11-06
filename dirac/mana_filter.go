@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"fmt"
+	"os"
 	"math/bits"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -531,6 +533,10 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	if !fs.visit(k, t, 0, false) {
 		return false
 	}
+	if os.Getenv("ZZDBG") != "" && a.Source() == 9 {
+		fmt.Printf("ZZDBG filtScript FOUND p=%d gaps=%v other=%v fees=%d path=%v sp0=%d sp=%d pool=%v\n",
+			p, fs.gaps, fs.other, fs.fees, fs.path[:fs.n], fs.sp0, t.sp, t.pl[p&1].pool)
+	}
 	if fs.spill != 0 {
 		s.capFull(fs.spill) // (the fork the step ran on latched it; the real state must)
 	}
@@ -702,6 +708,29 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		var d Decision
 		t.restrOptions(k, &d, p) // (restricted mana floating is priced as ordinary: the search reads no restriction)
 		if hasOption(&d, fs.a) {
+			if os.Getenv("ZZDBG") != "" && fs.a.Source() == 9 {
+				fmt.Printf("ZZDBG gapUsed SUCCESS p=%d pool=%v rb=%v path=%v funded=%d fees=%d\n", p, t.pl[p&1].pool, t.rb[p&1], fs.path[:fs.n], funded, fs.fees)
+				var av2 avail
+				t.availFor(k, p, &av2)
+				fmt.Printf("ZZDBG   fork av total=%d n=%d masks=%v cnts=%v\n", av2.total, av2.n, av2.mask[:av2.n], av2.cnt[:av2.n])
+				for gi := range k.gen.grantPC {
+					g := &k.gen.grantPC[gi]
+					fmt.Printf("ZZDBG   grantPC[%d]=%+v\n", gi, *g)
+				}
+				if t.grantsLive(k) {
+					for b := t.ctrlM[p&1].and(t.occ); b.any(); b = b.rest() {
+						if sl := b.first(); t.grantIdx(k, sl) >= 0 {
+							fmt.Printf("ZZDBG   live grant sl=%d card=%d name=%s idx=%d\n", sl, t.cardAt(sl), k.t.Cards[t.cardAt(sl)].Name, t.grantIdx(k, sl))
+						}
+					}
+				}
+				for b := t.ctrlM[p&1].and(t.occ); b.any(); b = b.rest() {
+					sl := b.first()
+					pc := t.manaPCGen(k, sl)
+					fmt.Printf("ZZDBG   src sl=%d card=%d tapped=%v sick=%v creature=%v manaTap=%v manaSac=%v manaN=%d manaCol=%d manaAb=%d grant=%d\n",
+						sl, t.cardAt(sl), t.perms[sl].flags&pfTapped != 0, t.perms[sl].flags&pfSick != 0, t.isCreature(k, sl), pc.manaTap, pc.manaSac, pc.manaN, pc.manaCol, pc.manaAb, t.grantIdx(k, sl))
+				}
+			}
 			return true
 		}
 	}

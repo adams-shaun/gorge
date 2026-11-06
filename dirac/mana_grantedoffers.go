@@ -1,6 +1,9 @@
 package dirac
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -549,7 +552,15 @@ func (g *grantSrch) visit(t *State) bool {
 	if g.dyn {
 		cost = t.grantDynamicCost(g.k, g.p, g.d.play, g.full)
 	}
-	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && !g.waitsForStack(t) {
+	aff := t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d)
+	ws := g.waitsForStack(t)
+	if os.Getenv("ZZGK") != "" && g.d.hasPlay && g.d.play.Source() == 9 && g.d.play.Kind() == AkCast {
+		fmt.Printf("ZZGK visit pool=%v np=%d aff=%v ws=%v\n", t.pl[g.p&1].pool, g.np, aff, ws)
+	}
+	if aff && !ws {
+		if os.Getenv("ZZGK") != "" {
+			fmt.Printf("ZZGK SUCCESS p=%d play=%v pool=%v np=%d path=%+v\n", g.p, g.d.play, t.pl[g.p&1].pool, g.np, g.path[:g.np])
+		}
 		return true
 	}
 	pl := &t.pl[g.p&1]
@@ -947,6 +958,12 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 		}
 	}
 	g.candidates(s)
+	if os.Getenv("ZZGK") != "" && d.hasPlay && d.play.Source() == 9 && d.play.Kind() == AkCast {
+		fmt.Printf("ZZGK grantSearch n=%d cost=%v ex=%d\n", g.n, *cost, ex)
+		for i := 0; i < g.n; i++ {
+			fmt.Printf("ZZGK   cand i=%d sl=%d card=%d ng=%v dual=%v filt=%v tapx=%v gi=%v\n", i, g.cand[i], s.cardAt(g.cand[i]), g.ng[i], g.dual[i], g.filt[i], g.tapx[i], g.gi[i])
+		}
+	}
 	if g.n == 0 {
 		return s.affordsUngrantedFor(k, p, cost, ex, d)
 	}
@@ -959,6 +976,9 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 // announcement: the mana floats from here, as the oracle's prScript
 // activations do).
 func (s *State) grantApply(k *prep, g *grantSrch) {
+	if os.Getenv("ZZGK") != "" {
+		fmt.Printf("ZZGK apply p=%d play=%v np=%d path=%+v\n", g.p, g.d.play, g.np, g.path[:g.np])
+	}
 	n, passed := s.Decisions, false
 	var d Decision
 	for i := 0; i < g.np; i++ {

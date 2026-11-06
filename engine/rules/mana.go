@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 
@@ -273,7 +274,10 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 	if scope.Kind == "Spell" && e.hasCastDelve(id, false) || scope.Kind != "Spell" && e.hasKeywordH(id, kwhDelve) {
 		delve = int32(len(e.G.Zone(state.ZGraveyard, p)))
 	}
-	if !e.manaFeasiblePricedP(p, offerPayment(id, ability, scope), base, &mods, tax, delve, hyp) {
+	if mfOK := e.manaFeasiblePricedP(p, offerPayment(id, ability, scope), base, &mods, tax, delve, hyp); !mfOK {
+		if os.Getenv("ZZGDBG") != "" {
+			fmt.Fprintf(os.Stderr, "ZZG offerCastableUsingExtra id=%d manaFeasible=FALSE hyp=%v\n", id, hyp != nil)
+		}
 		// A target-dependent reducer cannot be in the ordinary pre-target
 		// snapshot, but it may make one legal target choice payable. Retry with
 		// exactly those potential reductions; target-dependent raises/floors
@@ -337,7 +341,11 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 	// shared tail preserves every Sac/Discard/counter/tap legality check.
 	var composed Cost
 	e.composedOfferCostInto(&composed, p, id, base, &mods, scope)
-	return pay.NonManaCastableP(asPayer(e), p, id, &composed, ability, tapCostSAKind(scope.Ab))
+	final := pay.NonManaCastableP(asPayer(e), p, id, &composed, ability, tapCostSAKind(scope.Ab))
+	if os.Getenv("ZZGDBG") != "" {
+		fmt.Fprintf(os.Stderr, "ZZG offerCastableUsingExtra id=%d final=%v composed=%+v\n", id, final, composed)
+	}
+	return final
 }
 
 // offerSacXMods is the offer gate's announced-sacrifice-count affordability

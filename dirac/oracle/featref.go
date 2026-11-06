@@ -502,6 +502,9 @@ func optionsDebug(ref *GorgeSide) {
 	}
 	for _, pa := range ref.E.EnsurePaymentActions() {
 		fmt.Printf("  payment %s obj=%d base=%v plans=%d\n", pa.Label, pa.Cast.Object, pa.BaseOptionIndex != nil, len(pa.Plans))
+		for _, pl := range pa.Plans {
+			fmt.Printf("    plan %s cost=%+v acts=%+v spend=%+v\n", pl.ID, pl.Cost, pl.Activations, pl.PoolSpend)
+		}
 	}
 	if gd.Kind == decision.KPriority {
 		for _, pp := range ref.E.PotentialPaymentPlans(gd.Player) {

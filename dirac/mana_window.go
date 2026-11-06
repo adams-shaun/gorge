@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -193,6 +195,9 @@ func (s *State) windowTapRiderUseful(k *prep, p uint8, cost, useful *kop.ManaCos
 // noOwed is gorge's trigger-cost manual window, whose decision has no
 // ManaPayment, so a source answers its lowest colour (windowCol).
 func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential bool) (ok bool, held [kop.NumManaKinds]uint8) {
+	if os.Getenv("ZZGK") != "" {
+		fmt.Printf("ZZGK windowTap p=%d cost=%+v clamp=%v anyColor=%v noOwed=%v\n", p, *cost, clamp, anyColor, noOwed)
+	}
 	for !s.windowSpellSettled(k, p, cost, anyColor) {
 		if potential {
 			var pot avail
@@ -261,6 +266,9 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 			s.perms[sl].flags |= pfTapped
 			s.touchSl(sl)
 			s.manaTapped(k, sl)
+		}
+		if os.Getenv("ZZGK") != "" {
+			fmt.Printf("ZZGK   tap sl=%d card=%d col=%d n=%d pool=%v\n", sl, s.cardAt(sl), col, pc.manaN, s.pl[p].pool)
 		}
 		s.pl[p].pool[col] += pc.manaN
 		s.addExtraCol(k, p, sl, pc, col)

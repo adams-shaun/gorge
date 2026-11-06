@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -699,6 +701,14 @@ func (s *State) tapPlanNeed(k *prep, p uint8, cost *kop.ManaCost, x int, exclude
 	if pk.needT > 0 {
 		pk.first = first
 		s.planTiered(k, p, pk, exclude)
+	}
+	if os.Getenv("ZZGK") != "" {
+		fmt.Printf("ZZGK plan p=%d cost=%+v x=%d needT=%d need=%v n=%d bestN=%d seq=%+v cols=%+v types=%+v\n",
+			p, *cost, x, pk.needT, pk.need, pk.nu, pk.bestN, pk.bestSeq[:pk.bestN], pk.bestCol[:pk.bestN], pk.bestTy[:pk.bestN])
+		for i := 0; i < pk.bestN; i++ {
+			sl := pk.units[pk.bestSeq[i]]
+			fmt.Printf("ZZGK   pick %d sl=%d card=%d %s col=%d ty=%d\n", i, sl, s.cardAt(sl), k.t.Cards[s.cardAt(sl)].Name, pk.bestCol[i], pk.bestTy[i])
+		}
 	}
 }
 

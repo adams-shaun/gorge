@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/rules/chars"
@@ -73,16 +74,21 @@ func (e *Engine) manaFeasiblePoolP(p state.PlayerID, id state.ObjID, ability boo
 	// Without an announcement walk feasibleAny is exactly its composed leaf,
 	// whose first answer is the pool-unit floor (poolUnitsFloor): decide that
 	// here, before the payer's grant and conversion reads the search needs.
+	floorOK := true
 	if !mods.FaceSensitiveP(c) || c.AnnPipCountP() == 0 {
 		if int64(pool.Total()) < composedPoolFloor(mods, c, taxGeneric, delve) {
-			return false
+			floorOK = false
 		}
 	}
 	pl := &e.G.Players[p]
-	return mods.FeasibleAny(*c, pool, pl.Snow, typed, pl.Life, taxGeneric, delve,
+	ok := floorOK && mods.FeasibleAny(*c, pool, pl.Snow, typed, pl.Life, taxGeneric, delve,
 		asEval(e).PayLifeInsteadOfB(p),
 		asEval(e).MayPlayRider(p, id),
 		asEval(e).Conv(p, id, ability))
+	if os.Getenv("ZZGDBG") != "" {
+		fmt.Fprintf(os.Stderr, "ZZG manaFeasiblePoolP id=%d ability=%v floorOK=%v pool=%v typed=%v gen=%d delve=%d ok=%v\n", id, ability, floorOK, pool, typed, taxGeneric, delve, ok)
+	}
+	return ok
 }
 
 // manaFeasiblePriced is manaFeasible's priced-mode entry: hyp nil keeps the

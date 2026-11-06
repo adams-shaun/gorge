@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 	"unsafe"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -709,6 +711,34 @@ func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slo
 	var av avail
 	var ms modalSet
 	s.ungrAvail(k, p, ex, &av, &ms)
+	if os.Getenv("ZZGK") != "" && d.hasPlay && d.play.Source() == 9 && d.play.Kind() == AkCast {
+		fmt.Printf("ZZGK ungr pool-n=%d n=%d masks=%v cnts=%v ctrlM=%v occ=%v\n", av.n, av.total, av.mask[:av.n], av.cnt[:av.n], s.ctrlM[p&1], s.occ)
+		if os.Getenv("ZZGK2") != "" {
+			for sl := Slot(0); sl < 40; sl++ {
+				if s.occ.has(sl) {
+					fmt.Printf("ZZGK   occ sl=%d card=%d ctrl=%v flags=%d\n", sl, s.cardAt(sl), s.ctrlM[p&1].has(sl), s.perms[sl].flags)
+				}
+			}
+		}
+		for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
+			sl := m.first()
+			pm := &s.perms[sl]
+			if sl == ex || pm.flags&pfTapped != 0 || s.grantMay(k, sl) && s.manaGranted(k, sl) {
+				if os.Getenv("ZZGK2") != "" {
+					fmt.Printf("ZZGK   skip sl=%d card=%d ex=%v tapped=%v grantMay=%v manaGranted=%v\n", sl, s.cardAt(sl), sl == ex, pm.flags&pfTapped != 0, s.grantMay(k, sl), s.manaGranted(k, sl))
+				}
+				continue
+			}
+			pc := s.manaPCGen(k, sl)
+			if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || !s.canTapForManaPC(k, sl, pc) {
+				if os.Getenv("ZZGK2") != "" {
+					fmt.Printf("ZZGK   skip2 sl=%d card=%d manaAb=%d canTap=%v\n", sl, s.cardAt(sl), pc.manaAb, s.canTapForManaPC(k, sl, pc))
+				}
+				continue
+			}
+			fmt.Printf("ZZGK   ungr sl=%d card=%d mask=%d n=%d one=%v\n", sl, s.cardAt(sl), s.srcMaskAt(pc, sl), pc.manaN, pc.manaOne)
+		}
+	}
 	rm := s.restrFloatAdmits(k, p&1, &d)
 	// restrSrcNone precondition: restrSrcAffords runs only once av.affords failed (||).
 	for c := 0; c < 1<<ms.n; c++ {
