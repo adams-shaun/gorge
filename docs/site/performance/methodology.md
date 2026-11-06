@@ -120,7 +120,7 @@ The output is one row per engine, policy and pair:
 
 ```text
 | engine | policy | pair | reps | games/core-s | ms/game | µs/turn | µs/decision | turns/game | peak RSS MB | load1 | other busy | RSS reps MB |
-| gorge | random-autopay | A | 3 | 74.8 (71.7-77.1) | 13.4 (13.0-13.9) | 580 (574-614) | 24.2 (23.9-25.6) | 22.7 | 397 | 12-13 | max 0% | 350 397 397 |
+| gorge | random-autopay | A | 3 | 65.3 (64.7-66.9) | 15.3 (15.0-15.4) | 670 (659-672) | 28.0 (27.5-28.0) | 22.8 | 358 | 5-6 | max 0% | 353 358 358 |
 ```
 
 `$OUT/runs.jsonl` holds one line per run and `$OUT/summary.jsonl` the same table as JSON. `python3 scripts/xengine-bench-summarize.py $OUT/runs.jsonl`

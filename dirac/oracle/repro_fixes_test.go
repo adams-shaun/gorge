@@ -261,6 +261,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"sorcery_play_waits_for_prefix_trigger", false, false},            // CR 307.1: Guru Pathik is cast after Master Pakku's tap trigger resolves, and every granted source is tapped before the pass
 		{"airbent_card_with_self_flash", true, false},                      // CR 601.3b: Serpent of the Pass airbent to exile is cast at instant speed with three Lessons in the graveyard
 		{"granted_mana_once_beside_another_grant", true, false},            // Great Divide Guide's granted mana is one ability of each grantee on a board with another global grant, so the prefix search finds Earthen Ally's {2}{W}{U}{B}{R}{G} within its budget
+		{"granted_filter_funding_spends_search_budget", false, false},      // CR 605.3a: a filter's fee is funded by a non-gap source before the prefix search reaches Earthen Ally's {2}{W}{U}{B}{R}{G}, so the search spends its node budget as gorge's does and neither engine offers the activation
 		{"waterbend_no_picks_falls_to_manual_window", false, false},        // CR 602.2b, 605.3a: a waterbend cost no printed source pays falls to the manual window, which taps Great Divide Guide's granted sources in battlefield order
 		{"waterbend_no_picks_falls_to_manual_window_autopay", true, false}, // CR 602.2b, 605.3a: ... on the autopay surface too, where the planner's granted unit would otherwise pick a different source
 		{"waterbend_credit_paid_source_live_pool", true, false},            // CR 701.67a: a paid mana ability earns the waterbend credit only while its fee is unpayable, so the prefix taps it once a grant floats the fee
@@ -269,6 +270,11 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"first_only_filter_funds_play_autopay", true, false},              // CR 605.1a, 106.1: ... and on the autopay surface, where the same first-and-only filter funds Fire Nation Palace's activation from the floating pool
 		{"tap_cost_source_not_its_own_granted_mana", true, false},          // CR 602.2b, 605.3a: Agna Qel'a's {2}{U},{T} is not paid by the tap that is its cost, so Great Divide Guide's grant on it adds no third mana beside Guide and Badgermole Cub's extra {G}
 		{"replplus_commuting_order", true, false},                          // CR 616.1: two plus-N replacements are a sum no order changes
+		{"waterbend_census_granted_source_tap_extra", false, false},        // CR 605.1b, 701.67a: Honest Work's Humble Merchant grant survives its lose-all abilities, so Badgermole Cub's tap extra makes the waterbend census incomplete and Foggy Swamp Vinebender's announcement offers Done
+		{"waterbend_census_granted_tap_extra_capacity", false, false},      // CR 605.1b: the same merchant tapped later in the game floats its {G} tap extra, so the payment no longer stalls
+		{"restricted_any_colour_mana_ability_sorts_first", true, false},    // CR 601.2g: White Lotus Hideout's Lesson-restricted any-colour mana sorts ahead of its {C} ability, so an announced {U} hybrid face is paid instead of stranding the cast
+		{"unless_tap_extra_offers_pay", true, false},                       // CR 106.12a, 605.4a: Badgermole Cub's static TapsForMana trigger adds {G} to an animated Forest's tap, so the {2} unless cost is payable and gorge must offer Pay
+		{"resolved_this_turn_across_zone_change", false, false},            // CR 707.10b: Airbender Ascension returns South Pole Voyager, whose resolution count keeps the turn's tally, so the second resolution overall does not draw Earth Kingdom Jailer
 	})
 }
 
