@@ -1366,16 +1366,35 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR,
 				t.tapGapChoice(k, p, order[j], restr, anyR, tapsDef, int(path[j]), &spill)
 			}
 			t.restrOptions(k, &d, p)
-			// gorge's search completes at a node only when the play is among
-			// the decision's options (offered) or the priced check runs with
-			// the stack clear (waitsForStack): a Taps trigger a path's tap
-			// queued keeps a sorcery-speed play unoffered, so it branches on
-			// the remaining gaps before the pass that lets the triggers
-			// resolve. The walk mirrors that: a play the stack waits for
-			// completes only with nothing pending or the gaps exhausted
-			// (resolvePrefixStack then resolves them, the search's pass
-			// steps).
-			if hasOption(&d, a) && (t.npend == 0 || depth == len(order) || !t.playNeedsEmptyStack(k, a)) {
+			// gorge's search completes at a payer priority only when the play
+			// is among the decision's options (offered). A trigger the path's
+			// taps queued (a Taps-deferred source the search gap-activates,
+			// or an ordinary activation's own trigger) the search leaves
+			// pending while it works down the gaps -- the walk keeps offering
+			// the play there, gorge's engine menu does not -- and answers
+			// (its order ask, the search's scriptAnswers) only when the gaps
+			// are done (or the play is instant-speed and waits for nothing):
+			// the copy places it, and -- the play sorcery-speed, waiting for
+			// the stack (waitsForStack: the search branches on the pass that
+			// lets it resolve, CR 307.1, 602.5d) -- resolves it with the
+			// other players passing, and the play is offered again only if
+			// the resolution left the game running. A resolution that ends it
+			// (the Bow equipped to the source deals its damage to the last
+			// opponent) ends every branch of the search before the play: no
+			// script. The walk mirrors that, on the copy resolvePrefixStack
+			// runs (mana_sacsource.go).
+			resolve := t.playNeedsEmptyStack(k, a)
+			found := hasOption(&d, a) && (t.npend == 0 || depth == len(order) || !resolve)
+			if found && t.npend != 0 {
+				t.resolvePrefixStack(k, t.sp, resolve)
+				if t.over {
+					found = false
+				} else if resolve {
+					t.restrOptions(k, &d, p)
+					found = hasOption(&d, a)
+				}
+			}
+			if found {
 				*dead = false
 				if t.rbAny(p&1) || spill != ([kop.NumManaKinds]uint8{}) {
 					for c := range spill {

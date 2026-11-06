@@ -1,8 +1,6 @@
 package dirac
 
 import (
-	"fmt"
-
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -406,7 +404,6 @@ func (s *State) putCounterProg(k *prep, in *kop.Instr) {
 // is answered with the script's first option; an order choice (two triggers at
 // once) is left pending for the ordinary priority path.
 func (s *State) flushPrefixTriggers(k *prep) {
-	ktapTrace(s, "flush enter")
 	for s.npend != 0 {
 		p := s.active
 		n := s.pendCount(p)
@@ -527,6 +524,16 @@ func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
 				continue
 			}
 			if !resolve || s.sp <= sp0 {
+				if resolve {
+					// the resolutions are done: the priority they end at
+					// runs its state-based check before the search's pass
+					// is answered (CR 704.3). A line the script's
+					// resolutions killed -- the equipped source's damage
+					// trigger at the last opponent's 1 life -- ends the
+					// search there, as gorge's visit does at the resulting
+					// priority's c.G.Over, and the play is not offered.
+					s.sba(k)
+				}
 				return
 			}
 			s.passes = 1
@@ -534,7 +541,6 @@ func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
 		case ctlPlaceTriggers:
 			var d Decision
 			s.stepRaw(&d) // the script answers the raw pose order (scriptAnswers), not StepOne's canonical sort
-			ktapTrace(s, fmt.Sprintf("drv place kind=%d sub=%d n=%d", d.Kind, d.Sub, d.N))
 			if s.ctl == ctlPlaceTriggers {
 				// a posed ask here is the queued triggers' order (gorge
 				// KTriggerOrder, one Min=Max=n multi-select whose only
@@ -554,7 +560,6 @@ func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
 			for s.ctl == ctlBuild && !s.over {
 				var d Decision
 				s.stepRaw(&d)
-				ktapTrace(s, fmt.Sprintf("drv build kind=%d sub=%d n=%d", d.Kind, d.Sub, d.N))
 				if d.N == 0 || s.ctl != ctlBuild {
 					break
 				}
@@ -569,7 +574,6 @@ func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
 			}
 			var d Decision
 			s.stepRaw(&d)
-			ktapTrace(s, fmt.Sprintf("drv resolve kind=%d sub=%d n=%d", d.Kind, d.Sub, d.N))
 			if d.N == 0 || d.Sub != ChOptional {
 				return
 			}

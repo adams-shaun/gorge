@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -88,31 +86,6 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 	var m slotMask
 	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
 		sl := b.first()
-		if os.Getenv("KTAPSDEF_TRACE") != "" {
-			why := ""
-			if !s.tapsDeferred(k, p, sl) {
-				why = "notdefer"
-			} else {
-				pc := s.manaPCGen(k, sl)
-				if pc.manaAb < 0 || !pc.manaTap || pc.manaN != 1 || pc.manaCol != kop.ColAny ||
-					pc.manaChosen || pc.manaOne || pc.manaMulti || pc.manaDyn {
-					why = fmt.Sprintf("pc ab=%d tap=%v n=%d col=%d chosen=%v one=%v multi=%v dyn=%v", pc.manaAb, pc.manaTap, pc.manaN, pc.manaCol, pc.manaChosen, pc.manaOne, pc.manaMulti, pc.manaDyn)
-				} else {
-					pm := &s.perms[sl]
-					switch {
-					case pm.flags&pfTapped != 0:
-						why = "tapped"
-					case pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0:
-						why = "sick"
-					case s.genLost(k, sl):
-						why = "genlost"
-					case k.gen.anyCantAct && s.actForbidden(k, sl, true):
-						why = "cantact"
-					}
-				}
-			}
-			fmt.Fprintf(os.Stderr, "KTAPSDEF tapsDefer sl=%d card=%d -> %s\n", sl, s.cardAt(sl), why)
-		}
 		if !s.tapsDeferred(k, p, sl) {
 			continue
 		}
