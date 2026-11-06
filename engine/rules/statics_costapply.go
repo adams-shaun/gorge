@@ -34,13 +34,22 @@ func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID,
 // composition retried with potential targets is denied it too. A denial by
 // ValidSpell$, CheckSVar$, ValidTarget$ or Relative$ reports false.
 func (e *Engine) costStaticGate(sv staticView, mode string, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, xBound bool) (ok, indepFail bool) {
-	// ValidCard$ Card.Self -- the corpus's self-cost-reduction shape ("this
-	// spell costs {1} less ...") -- matches only the static's own source
-	// (the Self predicate is o.ID == Source on both the compiled and the
-	// text matcher path), and every gate before it is a pure,
-	// target-independent read, so for any other priced object the verdict
-	// is the ValidCard$ denial whatever those gates say. It is the one
-	// static every other card in the zone is otherwise priced against.
+	if !e.costStaticSelfCheck(sv, p, id, mode, scope, targets, xBound) {
+		return false, true
+	}
+	return e.costStaticGateFull(sv, mode, p, id, scope, targets, xBound)
+}
+
+// costStaticSelfCheck is the ValidCard$ Card.Self early-out (the corpus's
+// self-cost-reduction shape, "this spell costs {1} less ..."): the static
+// matches only its own source (the Self predicate is o.ID == Source on both
+// the compiled and the text matcher path), and every gate before it is a
+// pure, target-independent read, so for any other priced object the verdict
+// is the ValidCard$ denial whatever those gates say. It is the one static
+// every other card in the zone is otherwise priced against. False means the
+// static is denied for this object outright; the walkSkipVerify check
+// re-runs the full chain and panics if the early-out hid a pass.
+func (e *Engine) costStaticSelfCheck(sv staticView, p state.PlayerID, id state.ObjID, mode string, scope costScope, targets []state.Target, xBound bool) bool {
 	if id != sv.Source {
 		if spec, has := sv.Param(cards.PKValidCard); has && spec == "Card.Self" {
 			if walkSkipVerify {
@@ -48,10 +57,10 @@ func (e *Engine) costStaticGate(sv staticView, mode string, p state.PlayerID, id
 					panic(fmt.Sprintf("rules: Card.Self cost static of %d applied to obj %d", sv.Source, id))
 				}
 			}
-			return false, true
+			return false
 		}
 	}
-	return e.costStaticGateFull(sv, mode, p, id, scope, targets, xBound)
+	return true
 }
 
 // costStaticGateFull is costStaticGate's full gate chain: the
@@ -71,21 +80,14 @@ func (e *Engine) costStaticGateFull(sv staticView, mode string, p state.PlayerID
 }
 
 // costStaticGatePrefix is the plan's collect-side head (cost_compose_plan.go):
-// costStaticGate's Card.Self early-out -- kept verbatim, so the collecting
-// compose pays exactly what the plain chain pays for the one static every
-// other card in the zone is priced against -- followed by the head core.
-// Its denial is a target-independent one (indepFail true at
-// costStaticGateFull).
-func (e *Engine) costStaticGatePrefix(sv staticView, p state.PlayerID, id state.ObjID, scope costScope) bool {
-	if id != sv.Source {
-		if spec, has := sv.Param(cards.PKValidCard); has && spec == "Card.Self" {
-			if walkSkipVerify {
-				if full, _ := e.costStaticGateFull(sv, "ReduceCost", p, id, scope, nil, false); full {
-					panic(fmt.Sprintf("rules: Card.Self cost static of %d applied to obj %d", sv.Source, id))
-				}
-			}
-			return false
-		}
+// costStaticGate's Card.Self early-out -- kept verbatim via
+// costStaticSelfCheck, so the collecting compose pays exactly what the plain
+// chain pays for the one static every other card in the zone is priced
+// against -- followed by the head core. Its denial is a target-independent
+// one (indepFail true at costStaticGateFull).
+func (e *Engine) costStaticGatePrefix(sv staticView, mode string, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, xBound bool) bool {
+	if !e.costStaticSelfCheck(sv, p, id, mode, scope, targets, xBound) {
+		return false
 	}
 	return e.costStaticGatePrefixCore(sv, p, id, scope)
 }

@@ -1,15 +1,13 @@
 package rules
 
 import (
-	"fmt"
-
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // The potential walk's per-call compose plan. potentialCostModsUsing prices
 // one candidate target assignment at a time, and every assignment's compose
 // re-runs the whole gate chain of every static it prices. The chain's HEAD
-// (costStaticGatePrefix: class band, Type$, actor, OnlyFirstSpell$, the
+// (costStaticGatePrefixCore: class band, Type$, actor, OnlyFirstSpell$, the
 // ValidCard$ branch, FirstForetell$) reads neither the pass's targets nor
 // its potential/announced-X mode, so its verdict is the same for every
 // assignment of one call: the first compose that reaches the chain records
@@ -122,7 +120,7 @@ func (e *Engine) costStaticGatePlanned(sv staticView, mode string, p state.Playe
 	}
 	if plan.collect {
 		plan.touched = true
-		if !e.costStaticGatePrefix(sv, p, id, scope) {
+		if !e.costStaticGatePrefix(sv, mode, p, id, scope, targets, xBound) {
 			plan.skip = append(plan.skip, true)
 			return false, true
 		}
@@ -162,7 +160,10 @@ func (e *Engine) costComposePlanVerifyGate(sv staticView, mode string, p state.P
 	full, fullIndep := e.costStaticGate(sv, mode, p, id, scope, targets, xBound)
 	e.costComposePlan = prev
 	if full != ok || fullIndep != indepFail {
-		panic(fmt.Sprintf("rules: potential-walk compose plan is stale for obj %d (player %d, static %d, mode %s): want (%v, %v), got (%v, %v)",
-			id, p, sv.Source, mode, ok, indepFail, full, fullIndep))
+		// The plan's recorded verdicts are answers about every assignment of
+		// the call, so a stale entry is a wrong composition. (The ids and the
+		// verdicts are on the plan and the engine; the strings ratchet keeps
+		// this message constant.)
+		panic("rules: potential-walk compose plan is stale")
 	}
 }

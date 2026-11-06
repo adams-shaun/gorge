@@ -140,7 +140,7 @@ func TestCostComposePlanSplitMatchesTheFullChain(t *testing.T) {
 		{"SetCost", statics.set},
 	} {
 		for _, sv := range group.views {
-			prefix := e.costStaticGatePrefix(sv, 0, spell, spellScope(""))
+			prefix := e.costStaticGatePrefix(sv, group.mode, 0, spell, spellScope(""), targets, false)
 			full, indep := e.costStaticGate(sv, group.mode, 0, spell, spellScope(""), targets, false)
 			if !prefix && (full || !indep) {
 				t.Fatalf("a head denial must be target-independent: static %d/%s full (%v,%v)",
