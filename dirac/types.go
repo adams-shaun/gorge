@@ -191,6 +191,8 @@ func (s *State) canonKey(d *Decision, a Action) uint32 {
 			return uint32(AkChoose)<<24 | uint32(1-a.Mode())
 		case ChOptDiscMay: // canonical Yes before No
 			return uint32(AkChoose)<<24 | uint32(1-a.Mode())
+		case ChGenDigOpt: // canonical Yes before No
+			return uint32(AkChoose)<<24 | uint32(1-a.Mode())
 		}
 	case AkOrder: // (Order, source, -, occurrence)
 		return uint32(a) & 0xffff00ff

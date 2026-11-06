@@ -176,6 +176,11 @@ func (cb *cardBuilder) fold(a *lAbility) (bool, error) {
 				return false, bfail(cb.node, "ward cost Discard %d", n)
 			}
 			d.WardDiscard = 1 // kernel kw_wardcost.go
+		case "Waterbend":
+			if n < 1 || n > 31 {
+				return false, bfail(cb.node, "ward cost waterbend %d", n)
+			}
+			d.WardWaterbend = uint8(n) // kernel cost_unlesswaterbend.go
 		case "DiscardOrMana":
 			if n < 1 || n > 255 {
 				return false, bfail(cb.node, "ward cost discard or {%d}", n)
@@ -402,7 +407,7 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		}
 		ts.TFlags |= kop.TgfKickedRange
 		ts.MinKicked, ts.MaxKicked = 0, 255
-	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && t.Divided == 0 && t.Mode < 0 && t.ParentPlus1 == 0 &&
+	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && (t.Divided == 0 || t.Divided == kop.DivValue) && t.Mode < 0 && t.ParentPlus1 == 0 &&
 		plainX(t.Min) && plainX(t.Max):
 		// "X target creatures": exactly the announced X (CR 601.2b, 601.2c).
 		// gorge offers only an X the target ask can answer
@@ -414,7 +419,7 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		}
 		ts.MaxV = ts.MinV
 		ts.TFlags |= kop.TgfBoundsV
-	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && (t.Divided == 0 || t.Divided == kop.DivMaxV) && t.Mode < 0 && t.ParentPlus1 == 0 &&
+	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && (t.Divided == 0 || t.Divided == kop.DivMaxV || t.Divided == kop.DivValue) && t.Mode < 0 && t.ParentPlus1 == 0 &&
 		tgtBoundV(t.Min, true) && tgtBoundV(t.Max, false):
 		// "up to" a value (TargetMax$ X over a count, X paid or
 		// the trigger amount): evaluated as the slot is announced (gorge
@@ -444,6 +449,17 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		return ts, err
 	}
 	if t.Divided > 0 && !t.LKIDiv {
+		if t.Divided == kop.DivValue {
+			if t.DividedV.Kind == vNone {
+				return ts, fmt.Errorf("divided slot without a value total")
+			}
+			if !tgtBoundReads(t.DividedV) {
+				return ts, fmt.Errorf("divided total %s is not evaluable at the announcement", t.DividedV)
+			}
+			if ts.DivideV, err = cb.value(t.DividedV); err != nil {
+				return ts, fmt.Errorf("divided total %s: %w", t.DividedV, err)
+			}
+		}
 		ts.Divide = uint8(t.Divided)
 	}
 	if t.AtRes && ts.TFlags == kop.TgfGiftRange && ts.Divide == 0 && ts.Min == ts.Max && ts.MinKicked == ts.MaxKicked && ts.Max <= 1 && ts.MaxKicked <= 1 {
@@ -923,7 +939,7 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"AttackersDeclared": kop.TrigAttackersDeclared, "Phase": kop.TrigPhase, "SpellCast": kop.TrigSpellCast,
 	"LifeGained": kop.TrigLifeGained, "LifeLost": kop.TrigLifeLost, "DamageDone": kop.TrigDamageDone,
 	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence,
-	"LandPlayed": kop.TrigLandPlayed, "SearchedLibrary": kop.TrigSearchedLibrary, "Forage": kop.TrigForage, "Discover": kop.TrigDiscover,
+	"LandPlayed": kop.TrigLandPlayed, "SearchedLibrary": kop.TrigSearchedLibrary, "Forage": kop.TrigForage, "Discover": kop.TrigDiscover, "ManifestDread": kop.TrigManifestDread,
 	"CounterAddedOnce": kop.TrigCounterAddedOnce, "CounterAdded": kop.TrigCounterAddedOnce, "Untaps": kop.TrigUntaps,
 	"Sacrificed": kop.TrigSacrificed, "GiveGift": kop.TrigGiveGift, "Proliferate": kop.TrigProliferate, "FacesDilemma": kop.TrigFacesDilemma, "TokenCreated": kop.TrigTokenCreated, "BecomeMonstrous": kop.TrigBecomeMonstrous, "ManaExpend": kop.TrigManaExpend, "AttackerBlocked": kop.TrigBecomesBlocked, "TurnFaceUp": kop.TrigTurnFaceUp, "Transformed": kop.TrigTransformed, "CommitCrime": kop.TrigCommitCrime, "UnlockDoor": kop.TrigUnlockDoor, "FullyUnlock": kop.TrigFullyUnlock,
 	"BecomesTarget":    kop.TrigBecomesTarget,    // the Valiant, watcher and self shapes (lower_trigger.go)
@@ -1378,6 +1394,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.GameOnce {
 		kt.Flags3 |= kop.Tf3GameOnce
 	}
+	kt.TapPlan, kt.TapPainN = kop.TapPlan(t.TapPlan), t.TapPainN
 	if t.SingleTarget {
 		if t.Event != "SpellCast" {
 			return kt, fmt.Errorf("single-target flag on a %s trigger", t.Event)
@@ -2085,6 +2102,8 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		}
 	case "PreventNoncombatToOthers":
 		rp.Kind = kop.ReplPreventNoncombatToOthers
+	case "PreventMillOpps":
+		rp.Kind = kop.ReplPreventMillOpps
 	case "DoubleTokens":
 		rp.Kind = kop.ReplDoubleTokens
 		if r.N.isConst() && r.N.N > 2 {
@@ -2333,7 +2352,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		} else if in.Op == "UnlessSwitched" {
 			ki.Op = kop.OpUnlessSwitched
 		}
-		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
+		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "Waterbend": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
 		if pk == 0 {
 			return ki, fmt.Errorf("pay kind %q", in.CS)
 		}
@@ -2361,6 +2380,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if in.CS == "ExileGraveChain" {
 			ki.B = kop.Const(kop.PayBSubChain) // the exile half of a mana-and-exile cost (cost_exilepool.go)
+		}
+		if in.CS == "Waterbend" {
+			ki.B = kop.Const(kop.PayBSubWaterbend) // an unless Waterbend<N>, not a tapXType (cost_unlesswaterbend.go)
 		}
 		if in.CS == "ExileHand" {
 			ki.B = kop.Const(kop.PayBSubExileHand) // ExileFromHand<N/Card>, not a graveyard exile
@@ -3389,6 +3411,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, err
 		}
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtTokenPT)), int16(i)
+	case "AttacksIfAble":
+		// OpExt ExtAttacksIfAble, Obj the target that attacks this turn if able
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtAttacksIfAble))
+	case "BlocksIfAble":
+		// OpExt ExtBlocksIfAble, Obj the target that blocks this turn if able
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtBlocksIfAble))
 	case "MustBeBlocked":
 		// OpExt ExtMustBeBlocked, Obj the subject (RefNone
 		// with F: every battlefield permanent matching F)
@@ -3772,7 +3800,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, fmt.Errorf("ChooseEach %q", in.CS)
 		}
 	case "CastFree":
-		// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6 | Repeat<<7
+		// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6 | Repeat<<7 | Paid<<8 | UpTo<<9
 		// (Repeat: A is the copy count, AllowRepeats$ with Amount$ X)
 		// Obj: RefRemembered (P1), a target slot (P2), or
 		// RefNone with F (P3/P4 filter population).
@@ -3795,6 +3823,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, ok := fl["Paid"]; ok {
 			ki.C |= 1 << 8 // the copy pays its mana cost (an exile-granted ability's Play)
+		}
+		if _, ok := fl["UpTo"]; ok {
+			ki.C |= 1 << 9 // a literal Amount$ N: the ask closes after A picks
 		}
 		if err := objFilter(zoneMap[in.C]); err != nil {
 			return ki, err
@@ -4060,6 +4091,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// the DigUntil's cards still in exile to the library bottom in a
 		// random order (lower_digimprint.go; kernel act_discoverbottom.go)
 		ki.Op, ki.Obj, ki.C = kop.OpDiscover, kop.RefController, kop.DiscoverDugBottom
+	case "RemBottom":
+		// the remembered cards still in the library to its bottom in a
+		// random order (lower_playlibrary.go; kernel act_discoverbottom.go)
+		ki.Op, ki.Obj, ki.C = kop.OpDiscover, kop.RefController, kop.DiscoverRemBottom
 	case "ClearRemembered":
 		ki.Op = kop.OpClearRemembered
 	case "ClearChosen":

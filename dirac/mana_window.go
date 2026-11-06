@@ -265,7 +265,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 		s.pl[p].pool[col] += pc.manaN
 		s.addExtraCol(k, p, sl, pc, col)
 		s.artTag(k, p, sl, col)
-		if k.painMana && pc.painCol != 0 && (pc.painOnly || col != kop.C) {
+		if k.painMana && pc.painCol != 0 && (pc.painOnly || uint8(pc.manaCol)&(1<<col) == 0) {
 			s.painDamage(k, sl, p, int(pc.painN)) // the painful ability's rider (mana_pain.go)
 		}
 		if pc.manaSac || sacOnly {
@@ -326,6 +326,9 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			continue // a waterbend pick cannot also pay the mana (gorge convokeCommitted)
 		}
 		if s.windowCanTap(k, o) || k.sacOnlyMana && s.canSacOnlyNowAt(k, o) {
+			if s.tapsDeferred(k, p, o) {
+				continue // the window's answer follows the planner's tier: gorge's bot never picks a deferred source (mana_tapsdefer.go)
+			}
 			if decided && (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) && !s.windowRestrUseful(k, o, want) {
 				continue
 			}
@@ -489,6 +492,20 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 		}
 	}
 	if k.painMana && pc.painCol != 0 && !pc.painOnly && !anyColor {
+		if prim := uint8(pc.manaCol) & 0x1f; prim != 0 {
+			// A two-colour normal ability beside the painful one (Haunted
+			// Screen: {W} or {B}, then {G}, {U} or {R} for 1 life): the ask
+			// lists both abilities' colours, so an owed colour either
+			// ability makes has answered above (owedColoursFirst) and
+			// otherwise the answer is the lowest listed colour, mask's (W),
+			// not the painful ability's lowest for its own sake
+			// (payexec.WindowAnswer, TestPayWindowTapsLowestColour). A
+			// noOwed ask (a ward/unless window) owes nothing at all, so it
+			// takes the same lowest colour and pays no life. A {C} normal
+			// ability (a painland, Starting Town) keeps the measured answer
+			// below.
+			return bits.TrailingZeros8(mask)
+		}
 		// a painland: gorge's "Choose a mana ability" ask carries no
 		// payment, so the answer is its lowest colour option whatever
 		// the window owes (mana_pain.go)
@@ -1279,12 +1296,13 @@ func (s *State) availAnyR(k *prep, p uint8, a *avail) {
 
 // tapGapChoice taps gap sl for p with gorge's search answer c: a Courtyard
 // (anyR) its first ability ({C}) for c 0, else colour c-1 of its
-// restricted one (State.rb); any other gap as tapGap does.
-// spill counts restricted mana the pool's batches could not hold (floating
-// unrestricted: addRestr).
-func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR slotMask, c int, spill *[kop.NumManaKinds]uint8) {
+// restricted one (State.rb); a Taps-deferred gap (tapsDef) its answer's
+// colour into the plain pool (mana_tapsdefer.go); any other gap as tapGap
+// does. spill counts restricted mana the pool's batches could not hold
+// (floating unrestricted: addRestr).
+func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slotMask, c int, spill *[kop.NumManaKinds]uint8) {
 	cd := &k.t.Cards[s.cardAt(sl)]
-	if !anyR.has(sl) {
+	if !anyR.has(sl) && !tapsDef.has(sl) {
 		var held [kop.NumManaKinds]uint8
 		rb := s.rb[p&1]
 		s.tapGap(k, p, sl, restr, &held)
@@ -1297,6 +1315,10 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR slotMask, c 
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
+	if tapsDef.has(sl) {
+		s.tapDeferFloat(k, p, sl, c)
+		return
+	}
 	if ab := &cd.Abilities[k.gen.anyR(s.cardAt(sl))]; restrWideAnyMana(ab) {
 		c1, c2 := wideAnswer(c)
 		for _, col := range [2]int{c1, c2} {
@@ -1329,7 +1351,7 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR slotMask, c 
 // The walk is iterative over one copy of s (a recursive walk's per-node
 // copy escapes to the heap): each node rebuilds the copy from s by
 // replaying path's taps, so the play loop allocates nothing.
-func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR slotMask, path []uint8, dead *bool) (int, bool) {
+func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR, tapsDef slotMask, path []uint8, dead *bool) (int, bool) {
 	var d Decision
 	depth := 0 // gaps tapped at this node: order[:depth], answers path[:depth]
 	for {
@@ -1338,10 +1360,38 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR 
 			t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 			var spill [kop.NumManaKinds]uint8
 			for j := 0; j < depth; j++ {
-				t.tapGapChoice(k, p, order[j], restr, anyR, int(path[j]), &spill)
+				t.tapGapChoice(k, p, order[j], restr, anyR, tapsDef, int(path[j]), &spill)
 			}
 			t.restrOptions(k, &d, p)
-			if hasOption(&d, a) {
+			// gorge's search completes at a payer priority only when the play
+			// is among the decision's options (offered). A trigger the path's
+			// taps queued (a Taps-deferred source the search gap-activates,
+			// or an ordinary activation's own trigger) the search leaves
+			// pending while it works down the gaps -- the walk keeps offering
+			// the play there, gorge's engine menu does not -- and answers
+			// (its order ask, the search's scriptAnswers) only when the gaps
+			// are done (or the play is instant-speed and waits for nothing):
+			// the copy places it, and -- the play sorcery-speed, waiting for
+			// the stack (waitsForStack: the search branches on the pass that
+			// lets it resolve, CR 307.1, 602.5d) -- resolves it with the
+			// other players passing, and the play is offered again only if
+			// the resolution left the game running. A resolution that ends it
+			// (the Bow equipped to the source deals its damage to the last
+			// opponent) ends every branch of the search before the play: no
+			// script. The walk mirrors that, on the copy resolvePrefixStack
+			// runs (mana_sacsource.go).
+			resolve := t.playNeedsEmptyStack(k, a)
+			found := hasOption(&d, a) && (t.npend == 0 || depth == len(order) || !resolve)
+			if found && t.npend != 0 {
+				t.resolvePrefixStack(k, t.sp, resolve)
+				if t.over {
+					found = false
+				} else if resolve {
+					t.restrOptions(k, &d, p)
+					found = hasOption(&d, a)
+				}
+			}
+			if found {
 				*dead = false
 				if t.rbAny(p&1) || spill != ([kop.NumManaKinds]uint8{}) {
 					for c := range spill {
@@ -1365,11 +1415,14 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR 
 			}
 			j := depth - 1
 			nch := uint8(1)
-			if anyR.has(order[j]) {
+			switch {
+			case anyR.has(order[j]):
 				nch = 6
 				if cd := &k.t.Cards[s.cardAt(order[j])]; restrWideAnyMana(&cd.Abilities[k.gen.anyR(s.cardAt(order[j]))]) {
 					nch = wideAnswers
 				}
+			case tapsDef.has(order[j]):
+				nch = s.deferGapAnswers(k, order[j])
 			}
 			if path[j]+1 < nch {
 				path[j]++
@@ -1380,37 +1433,38 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR 
 	}
 }
 
-// scriptDeadEndAny is scriptDeadEnd with a Courtyard among the gaps.
-func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR slotMask) bool {
+// scriptDeadEndAny is scriptDeadEnd with a Courtyard or a Taps-deferred
+// source among the gaps.
+func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDef slotMask) bool {
 	var order [MaxPerm]Slot
-	n := s.battlefieldOrder(p, s.scriptGaps(k, p).or(restr).or(anyR), order[:], 0)
+	n := s.battlefieldOrder(p, s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef), order[:], 0)
 	var path [MaxPerm]uint8
 	dead := true
-	if _, ok := s.scriptDFS(k, a, p, order[:n], restr, anyR, path[:], &dead); !ok {
+	if _, ok := s.scriptDFS(k, a, p, order[:n], restr, anyR, tapsDef, path[:], &dead); !ok {
 		return true
 	}
 	return dead
 }
 
-// scriptPrefixAny is scriptPrefix with a Courtyard among the gaps: the
-// search's script, played.
-func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR slotMask) {
+// scriptPrefixAny is scriptPrefix with a Courtyard or a Taps-deferred source
+// among the gaps: the search's script, played.
+func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef slotMask) {
 	var d Decision
 	s.plainOptions(k, &d, 0)
 	if hasOption(&d, a) {
 		return
 	}
 	var order [MaxPerm]Slot
-	n := s.battlefieldOrder(p, s.scriptGaps(k, p).or(restr).or(anyR), order[:], 0)
+	n := s.battlefieldOrder(p, s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef), order[:], 0)
 	var path [MaxPerm]uint8
 	var dead bool
-	m, ok := s.scriptDFS(k, a, p, order[:n], restr, anyR, path[:], &dead)
+	m, ok := s.scriptDFS(k, a, p, order[:n], restr, anyR, tapsDef, path[:], &dead)
 	if !ok {
 		return
 	}
 	var spill [kop.NumManaKinds]uint8
 	for i := 0; i < m; i++ {
-		s.tapGapChoice(k, p, order[i], restr, anyR, int(path[i]), &spill)
+		s.tapGapChoice(k, p, order[i], restr, anyR, tapsDef, int(path[i]), &spill)
 	}
 }
 
@@ -2019,8 +2073,23 @@ func (s *State) startCastDivide(k *prep) {
 			tot = s.divLKITotal(e) // ctr_divided.go
 		} else if t.Divide == kop.DivMaxV {
 			tot = s.divMaxVTotal(k, t, e) // ctr_divided.go
+		} else if t.Divide == kop.DivValue {
+			// a value total (Ureni's land count): gorge divisionTotalFor
+			// resolves DividedAsYouChoose$ as the ability is put on the stack
+			tot = s.evalV(k, t.DivideV, s.ctxEntry(e))
+			if tot < 0 {
+				tot = 0
+			}
+			if tot > 255 {
+				// the division arrays hold one uint8 per target (xTargets.div)
+				s.capFull(StallXTgt)
+				tot = 255
+			}
+		} else if DebugDivNOneEach {
+			// the ctr_divided.go mutation: a literal total is one per target
+			tot = n
 		}
-		if n < 2 || tot < n {
+		if n == 0 || tot < n {
 			return
 		}
 		x := s.xtMut(e)
@@ -2030,7 +2099,14 @@ func (s *State) startCastDivide(k *prep) {
 		for i := 0; i < n; i++ {
 			x.div[i] = 1
 		}
-		s.bld().divSlot, s.bld().divLeft = uint8(ti), uint8(tot-n)
+		s.bld().divSlot = uint8(ti)
+		if n == 1 {
+			// gorge announces the one target's whole share (CR 601.2d): the
+			// total is fixed now, not re-read at resolution
+			x.div[0] = uint8(tot)
+			return
+		}
+		s.bld().divLeft = uint8(tot - n)
 		return
 	}
 }
@@ -2171,6 +2247,14 @@ func (s *State) manaStep(k *prep) bool {
 		}
 		var saved [len(build{}.picks)]uint8
 		s.holdCostTaps(k, &saved)
+		wbCast := false
+		if k.gen != nil && k.gen.anyWaterbend {
+			_, wbCast = s.waterbendPartFor(k, e) // a waterbend cast (act_waterbend.go): its cost before the picks, read before the cost is fixed
+		}
+		wbFull := cost
+		if wbCast && s.bld().bfl&bflCostFixed == 0 {
+			wbFull = xFolded(s.waterbendFullCost(k), int(e.x))
+		}
 		s.bld().bfl |= bflManaStep | bflCostFixed
 		anyColor := s.bld().bfl&bflAnyColor != 0
 		if (e.flags&sfAnyMana != 0 || anyColor) && s.bld().bfl&bflMsDone == 0 {
@@ -2200,6 +2284,8 @@ func (s *State) manaStep(k *prep) bool {
 			}
 			s.windowTapUseful(k, e.ctrl, &cost, &raw, true, anyColor, s.bld().pipN == 0, false)
 			s.occ = occ
+		} else if wbCast && cost.X == 0 {
+			s.waterbendCastWindow(k, e, &cost, &wbFull, anyColor) // act_waterbend.go
 		} else if planCut {
 			s.windowTapRider(k, e.ctrl, &cost, true, anyColor)
 		} else if k.t.Cards[e.card].HasModeCost {

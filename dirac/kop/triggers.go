@@ -102,6 +102,7 @@ const (
 	TrigSearchedLibrary             // a player (Whose) searches their own library (gorge Mode$ SearchedLibrary, SearchOwnLibrary$ True, trigmatch cards.go: one marker per hidden library search, also when nothing is found); no slot subscription (trig_modes.go)
 	TrigForage                      // a player (Whose) forages (gorge Mode$ Forage, trigmatch ForageAction: once per paid forage, after its moves); no slot subscription (trig_modes.go)
 	TrigDiscover                    // a player (Whose) discovers (gorge Mode$ Discover, trigmatch cards.go: once per discover, at completion); the trigger amount is the discover value; no slot subscription (trig_modes.go)
+	TrigManifestDread               // a player (Whose) manifests dread (gorge Mode$ ManifestDread, trigmatch keyword_action.go on the completed events.ManifestDreadAction marker, emitted after each window's moves; the trigger object is the card the window put into its owner's graveyard, or none on the one-card shortcut); no slot subscription (trig_modes.go)
 	TrigFacesDilemma                // a player (Whose) chooses one or more modes for a spell or ability (gorge Mode$ FacesDilemma, trigmatch facesDilemmaMatches on the ModeChosen marker)
 	TrigEventCount                  // number of trigger events; append above
 )
@@ -168,7 +169,24 @@ type Trigger struct {
 	N       int16      // AttackersDeclared: minimum attackers; CounterAddedOnce: the counter kind (TrigNAnyCounter = every kind); BecomesTarget: TrigNValiant; AbilityCast: TrigAbCast*; LandPlayed: origin mask 1<<kop.Zone, 0 = any; Leaves: destination mask 1<<kop.Zone, 0 = any
 	Flags3  TrigFlags3 // still more qualifiers (values.go; a padding byte)
 	Flags4  TrigFlags4 // single-target qualifiers (triggers.go)
+
+	// TapPlan classes a lowered non-Self TrigTaps watcher for the payment
+	// planner (TapPlan); TapPainN is the vetted literal damage amount of a
+	// TapPlanPain watcher. Both are read only on a TrigTaps trigger.
+	TapPlan  TapPlan
+	TapPainN uint8
 }
+
+// TapPlan is a lowered Taps watcher's payment-planner class (gorge
+// pay.PaymentPlanAbilityTier over the source a planned tap would tap).
+type TapPlan uint8
+
+const (
+	TapPlanNone     TapPlan = iota // not a lowered non-Self Taps watcher
+	TapPlanOrdinary                // vetted damage that cannot reach the payer: the tapped source stays an ordinary unit
+	TapPlanPain                    // vetted damage to the payer (Trigger.TapPainN): the tapped source is a last-resort unit
+	TapPlanDefer                   // any other body: the planner never taps the source (manual only)
+)
 
 // TrigNValiant in Trigger.N of a TrigBecomesTarget trigger (TfSelf, Whose
 // WhoseYou) is Valiant (CR 603.2 ability word): only the first targeting

@@ -30,7 +30,7 @@ var (
 // spell carries a RaiseCost Waterbend<N> (CardDef.SpellWaterbend).
 func prepWaterbend(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
-		if t.Cards[i].SpellWaterbend != 0 {
+		if t.Cards[i].SpellWaterbend != 0 || t.Cards[i].OptWaterbend != 0 {
 			g.anyWaterbend = true
 			return
 		}
@@ -164,6 +164,36 @@ func (s *State) waterbendOwnPart(k *prep, p uint8, c CardID, o Obj) int {
 	return n
 }
 
+// waterbendCastPart is the waterbend amount the cast being built owes: the
+// card's own RaiseCost part plus, on the kicked cast, its OptionalCost
+// Waterbend<N> (gorge foldRaiseExtra folds both into mods.Waterbend).
+func (s *State) waterbendCastPart(k *prep, e *stackEntry) int {
+	n := s.waterbendOwnPart(k, e.ctrl, e.card, e.obj)
+	if e.flags&sfKicked != 0 {
+		n += int(k.t.Cards[e.card].OptWaterbend)
+	}
+	return n
+}
+
+// spellWaterbends: card c's cast may owe a waterbend (act_waterbend.go).
+func spellWaterbends(k *prep, c CardID) bool {
+	cd := &k.t.Cards[c]
+	return cd.SpellWaterbend != 0 || cd.OptWaterbend != 0
+}
+
+// optWaterbendAffords prices the kicked cast of an OptionalCost Waterbend<N>
+// card: its cost with the {N} (CardDef.Kicker), reduced, less the greedy
+// offer credit for the whole waterbend amount (gorge mana.go's
+// withWaterbendOfferCredit over base.Waterbend), against p's sources.
+func (s *State) optWaterbendAffords(k *prep, p uint8, c CardID, o Obj) bool {
+	var av avail
+	s.availFor(k, p, &av)
+	cd := &k.t.Cards[c]
+	cost := s.adjustFit(k, &av, p, c, o, addCost(k.cards[c].cost, cd.Kicker), false)
+	cost = s.waterbendCreditN(k, p, NoSlot, s.waterbendOwnPart(k, p, c, o)+int(cd.OptWaterbend), cost)
+	return av.affords(&cost, pipMaskOf(&cost), 0)
+}
+
 // waterbendSpellCredit is waterbendCredit for a spell's own Waterbend<N>:
 // cost less the greedy offer credit (gorge withWaterbendOfferCredit; a spell
 // is on no battlefield, so it never excludes a source).
@@ -295,10 +325,10 @@ func (s *State) waterbendPartFor(k *prep, e *stackEntry) (waterbendPart, bool) {
 		}
 		return waterbendPart{n: int(a.Cost.N), slots: int(a.Cost.Mana.Generic), tapSrc: a.Cost.Flags&kop.CostTap != 0, hasX: a.Cost.Mana.X != 0}, true
 	case seSpell:
-		if e.obj == NoObj || k.t.Cards[e.card].SpellWaterbend == 0 {
+		if e.obj == NoObj || !spellWaterbends(k, e.card) {
 			return waterbendPart{}, false
 		}
-		n := s.waterbendOwnPart(k, e.ctrl, e.card, e.obj)
+		n := s.waterbendCastPart(k, e)
 		if n == 0 {
 			return waterbendPart{}, false
 		}
@@ -314,17 +344,18 @@ func (s *State) waterbendPartFor(k *prep, e *stackEntry) (waterbendPart, bool) {
 	return waterbendPart{}, false
 }
 
-// waterbendFullCost is the build's cost before any waterbend pick.
+// waterbendFullCost is the build's cost before any waterbend pick. A probe:
+// the fixedGen cache keeps the build's own price.
 func (s *State) waterbendFullCost(k *prep) kop.ManaCost {
 	b := s.bld()
-	kinds := b.pickKs
+	kinds, fg := b.pickKs, b.fixedGen
 	for i := range b.pickKs[:b.pickN] {
 		if b.pickKs[i] == pkWaterbend {
 			b.pickKs[i] = 0
 		}
 	}
 	cost := s.buildCost(k)
-	b.pickKs = kinds
+	b.pickKs, b.fixedGen = kinds, fg
 	return cost
 }
 
@@ -461,32 +492,43 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 	cnt := s.battlefieldOrder(e.ctrl, s.ctrlM[e.ctrl].and(s.occ), ord[:], 0)
 	for _, sl := range ord[:cnt] {
 		pm := &s.perms[sl]
-		if pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 || s.genLost(k, sl) {
+		lost := s.genLost(k, sl)
+		// A source that lost all abilities can still hold a mana ability an
+		// effect grants it in the same layer (Honest Work's Humble Merchant):
+		// gorge's census lists that source too, so a lost printed source is
+		// skipped only when no grant survives.
+		if pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 ||
+			lost && !s.manaGranted(k, sl) {
 			continue
 		}
-		cd := &k.t.Cards[s.cardAt(sl)]
-		for j := range cd.Abilities {
-			a := &cd.Abilities[j]
-			if a.Kind == kop.AbMana && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && s.restrSrcAdmits(k, e.ctrl, sl, a, &d) &&
-				!s.windowPricesRestr(k, sl, a) {
-				return false
-			}
-			// An unpriced each-colour source (Bloom Tender): the probe admits its
-			// ability and prices none of its production (gorge's census leaves no
-			// unit for a Produced$ Special EachColorAmong), so the census
-			// understates what the window can offer (gorge castWindowSourceExcluded,
-			// CR 601.2g). A slot the census does price carries no such gap (gorge
-			// skips priced sources); a CantBeActivated lock keeps the ability off
-			// gorge's probe (availableManaAbilitiesForWindow).
-			if k.gen.anyEachCol && k.gen.has(s.cardAt(sl), gfEachCol) && int(s.manaPCAt(k, sl).manaAb) < 0 &&
-				!(k.gen.anyCantAct && s.actForbidden(k, sl, true)) {
-				return false
+		if !lost {
+			cd := &k.t.Cards[s.cardAt(sl)]
+			for j := range cd.Abilities {
+				a := &cd.Abilities[j]
+				if a.Kind == kop.AbMana && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && s.restrSrcAdmits(k, e.ctrl, sl, a, &d) &&
+					!s.windowPricesRestr(k, sl, a) {
+					return false
+				}
+				// An unpriced each-colour source (Bloom Tender): the probe admits its
+				// ability and prices none of its production (gorge's census leaves no
+				// unit for a Produced$ Special EachColorAmong), so the census
+				// understates what the window can offer (gorge castWindowSourceExcluded,
+				// CR 601.2g). A slot the census does price carries no such gap (gorge
+				// skips priced sources); a CantBeActivated lock keeps the ability off
+				// gorge's probe (availableManaAbilitiesForWindow).
+				if k.gen.anyEachCol && k.gen.has(s.cardAt(sl), gfEachCol) && int(s.manaPCAt(k, sl).manaAb) < 0 &&
+					!(k.gen.anyCantAct && s.actForbidden(k, sl, true)) {
+					return false
+				}
 			}
 		}
 		// A tap trigger that adds mana to this source's production is one the
 		// window census doesn't price (gorge manaProductionAltered, CR 605.1b).
+		// Read the ability the window would activate: a granted mana ability is
+		// no printed one, and a tap extra can still ride it (Honest Work's
+		// Humble Merchant under Badgermole Cub).
 		if k.gen.anyTapExtra {
-			if _, hit := s.srcExtraHit(k, sl, s.manaPCAt(k, sl)); hit {
+			if _, hit := s.srcExtraHit(k, sl, s.windowGrantPC(k, sl)); hit {
 				return false
 			}
 		}
@@ -509,6 +551,25 @@ func (s *State) windowTapXLive(k *prep, p uint8) slotMask {
 func (s *State) waterbendDone() {
 	s.bld().donePicks |= pkWaterbend
 	s.bld().pickK, s.bld().pickLeft = 0, 0
+}
+
+// waterbendCastWindow pays a waterbend cast's mana (manaStep) as a convoke
+// cast's: gorge's planner declines the cast ("shape:contribution"), so its
+// manual CR 601.2g window offers the first source useful to the composed
+// cost before the picks (paymentUsefulColours reads manaToPay, which the
+// picks don't reduce), repeating until the post-pick cost is paid; a pick is
+// no source of it (convokeCommitted). payWaterbend taps the picks after.
+func (s *State) waterbendCastWindow(k *prep, e *stackEntry, cost, full *kop.ManaCost, anyColor bool) {
+	var hide slotMask
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if o := s.bld().picks[i]; s.bld().pickKs[i] == pkWaterbend && s.objs[o].zone == kop.ZoneBattlefield {
+			hide = hide.with(s.objs[o].slot)
+		}
+	}
+	occ := s.occ
+	s.occ = s.occ.andNot(hide)
+	s.windowTapUseful(k, e.ctrl, cost, full, true, anyColor, s.bld().pipN == 0, false)
+	s.occ = occ
 }
 
 // payWaterbend taps the announced permanents in pick order after the mana

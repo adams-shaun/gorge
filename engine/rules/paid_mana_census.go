@@ -170,7 +170,10 @@ func pinnedManaAlts(alt windowManaAlt, counts [6]int32) []windowManaAlt {
 // alt per colour: the shape the reach search prices, and a tap in the
 // component window that poses no colour ask. So do the bare-tap abilities whose
 // Amount$ only the evaluator can price (Doc Samson's X mana of one colour, X its
-// power), as the payment planner's evaluated-amount layer counts them.
+// power), as the payment planner's evaluated-amount layer counts them. Each
+// tap's static TapsForMana extra joins its alternative (windowTapExtras), the
+// same fold the cast window applies: the reach search must price the source at
+// the mana plus the extra its tap brings (CR 106.12a, 605.4a).
 func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 	units := e.windowManaUnitsPaid(p)
 	e.beginDerivedMemo()
@@ -218,6 +221,9 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 				units = pay.AppendUnitAlt(units, id, a)
 			}
 		}
+	}
+	if len(pay.PaymentPlanInterferenceCarriers(asPayer(e))) > 0 {
+		units = e.windowTapExtras(units)
 	}
 	return units
 }

@@ -55,6 +55,14 @@ func (e *stackEntry) impended() bool {
 func (s *State) offerImpendingHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
 	cd := &k.t.Cards[c]
 	ic := s.adjustCost(k, p, c, o, cd.ImpendingCost) // the reduction applies to an alternative cost too (CR 601.2f)
+	if len(k.gen.grantPC) != 0 && s.g.availX&availWalk != 0 {
+		// gorge's potential walk counts a restricted mana ability only for a
+		// payment its restriction admits (potentialRestrictionAdmits): a
+		// hand-barred grant puts no cast on the walk grantCap reads
+		var ha avail
+		s.walkHandAvail(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}, &ha)
+		av = &ha
+	}
 	if !av.affords(&ic, pipMaskOf(&ic), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &ic, av)) {
 		return
 	}

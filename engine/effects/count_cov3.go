@@ -372,6 +372,22 @@ func evalCov3PlayerHead(h Host, c *Ctx, head, arg string, depth int) (int32, boo
 				players = append(players, t.Player)
 			}
 		}
+		if kind, ok := strings.CutPrefix(prop, "Counters."); ok {
+			var total int32
+			for _, p := range players {
+				if int(p) >= len(g.Players) {
+					continue // mirror playerScalarProperty's bounds guard
+				}
+				if kind == "ALL" {
+					for _, counter := range g.Players[p].Counters {
+						total += counter.N
+					}
+				} else {
+					total += g.Players[p].Counter(strings.ToUpper(kind))
+				}
+			}
+			return total, true
+		}
 		switch cov3PlayerPropCodes.Code(string(prop)) {
 		case cov3PlayerPropAmount:
 			return int32(len(players)), true

@@ -98,6 +98,9 @@ func (s *State) predPermCold(k *prep, fl *kop.Filter, sl Slot) bool {
 	if fl.Pred == kop.PredExiledWith {
 		return s.exwCard(s.perms[sl].obj)
 	}
+	if fl.Pred == kop.PredTriggerObj {
+		return s.isTriggerObj(s.perms[sl].obj) // filter_predicates.go
+	}
 	if fl.Pred == kop.PredWasCastEnter {
 		return s.wasCastPred(fl, s.perms[sl].obj, s.perms[sl].ctrl)
 	}

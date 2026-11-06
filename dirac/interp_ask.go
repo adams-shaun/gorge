@@ -65,6 +65,8 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		return sl != NoSlot && permCtrN(s, &s.perms[sl], int(pips)) >= amt // pips carries the counter kind (CtrAll sums every kind)
 	case kop.PayTapX:
 		return s.countUntapped(k, p, f, s.resSrcSlot(k)) >= amt
+	case payKindWaterbend:
+		return s.unlessWaterbendPayable(k, p, amt) // cost_unlesswaterbend.go
 	case kop.PayExileGrave:
 		return s.countGraveExile(k, p, f) >= amt
 	case payKindExileHand:
@@ -102,6 +104,7 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubTrigNew {
 		kind = payKindTrigNew // a trigger's own ExileAnyGrave<1/Card.TriggeredNewCard> cost rides PayExileGrave (trig_mayexile.go)
 	}
+	kind = unlessPayKind(kind, in.B.N) // an UnlessCost$ Waterbend<N> rides PayTapX (cost_unlesswaterbend.go)
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubExileHand {
 		kind = payKindExileHand // a trigger's own ExileFromHand<N/Card> cost rides PayExileGrave (cost_exilefromhand.go)
 	}
@@ -330,6 +333,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			}
 			break
 		}
+		if s.g.pickZ == payKindWaterbend {
+			s.unlessWaterbendOptions(k, d) // cost_unlesswaterbend.go
+			break
+		}
 		if s.g.pickZ == kop.PayExileGrave {
 			s.graveExileOptions(k, d, p)
 			break
@@ -436,6 +443,12 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		if d.N == 0 || s.digMayStop(k) {
 			d.add(MakeAction(AkDone, 0, 0, 0))
 		}
+	case raGenDigAllOpt:
+		// the ChangeNum$ All election: yes first, then no (gorge effDig's
+		// allOrNothing options, "yes"/"no").
+		d.Sub = ChGenDigOpt
+		d.add(MakeAction(AkChoose, 0, 0, 1))
+		d.add(MakeAction(AkChoose, 0, 0, 0))
 	case raGenPileSplit:
 		d.Sub = ChGenPileSplit
 		for i := 0; i < int(s.g.nrem); i++ {
@@ -656,6 +669,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		case kop.PayEvidence:
 			s.startWardEvidence(k) // kw_wardcost.go
 			return
+		case payKindWaterbend:
+			s.startUnlessWaterbend(k) // cost_unlesswaterbend.go
+			return
 		case payKindEvidence:
 			s.startCostEvidence(k) // a trigger's own cost (cost_collectevidence.go)
 			return
@@ -737,6 +753,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		}
 		o := Obj(a.Source())
+		if s.g.pickZ == payKindWaterbend {
+			s.applyUnlessWaterbendPick(k, o) // cost_unlesswaterbend.go
+			return
+		}
 		if s.g.pickZ == payPickBlight {
 			if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield {
 				s.blightSlot(ob.slot, s.value(k, s.prog(k)[r.pc].A))
@@ -844,6 +864,23 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.finishDig(k) {
 			return // the rest are arranged on the bottom, or a taken card's as-enters ask
 		}
+		s.continueRes(k, 0)
+	case raGenDigAllOpt:
+		r.ask = raNone
+		if a.Mode() == 1 {
+			in := &s.prog(k)[r.pc]
+			for i := 0; i < int(s.g.nlook); i++ {
+				o := s.resArm().look[i]
+				if s.matchCardGen(k, in.F, s.objs[o].card, s.objs[o].owner(), r.e.ctrl, o) {
+					s.g.lookSel |= 1 << i
+				}
+			}
+			if s.finishDig(k) {
+				return
+			}
+		}
+		// no (or nothing to place): the looked-at window stays in place,
+		// with no rest placement, reveal or capture.
 		s.continueRes(k, 0)
 	case raGenDigArrange:
 		o := Obj(a.Source())
@@ -958,6 +995,11 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.castFreeClosed(k)
 			return
 		}
+		if in.C&512 != 0 && int(s.g.nfreeAll-s.g.nfree) >= s.value(k, in.A) {
+			// a literal Amount$ N: gorge's one ask has Max N, so the N-th
+			// pick ends the offer
+			s.g.nfree = 0
+		}
 		if s.g.nfree == 0 {
 			s.castFreeClosed(k)
 		}
@@ -972,6 +1014,15 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		if s.replOrderPick(a) {
 			return // ask again
+		}
+		if s.g.plusBatchAsked {
+			// a pure plus-N batch order ask (trig_batches.go replPlusBatch):
+			// the order cannot change the sum, so drop the parked event and
+			// re-execute the same op, which now deals every hit
+			s.g.ro, s.g.nc = replOrd{}, ncDmg{}
+			s.res.ask = raNone
+			s.runProg(k)
+			return
 		}
 		s.g.ro.replHdr = replHdr{}
 		s.dealNC(k)
@@ -1754,6 +1805,14 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 		for i := 0; i < n; i++ {
 			s.resArm().look[i] = pl.lib[int(pl.libLo)+i]
 		}
+		if take == -1 && second == 255 && (in.C>>3)&kop.DigOptional != 0 && s.g.nlook > 0 && s.digHasPick(k) {
+			// ChangeNum$ All beside Optional$ True (gorge effDig's
+			// allOrNothing election): one yes/no, never a subset. Yes takes
+			// every matching card; no leaves the looked-at window in place
+			// and moves nothing (no rest placement, reveal or capture).
+			s.res.ask, s.res.askP = raGenDigAllOpt, s.res.e.ctrl
+			return false
+		}
 		if take == -1 {
 			// ChangeNum$ All: every matching card, not every looked-at
 			// one (gorge effDig; Bloodline Shaman's chosen-type Dig)
@@ -2171,7 +2230,7 @@ func (s *State) branchPayable(k *prep, b uint8, p uint8) bool {
 		if n.Op != kop.OpUnlessPaid && n.Op != kop.OpIfPaid && n.Op != kop.OpUnlessSwitched {
 			return true
 		}
-		return s.canPayGen(k, p, int(n.C&0xF), s.value(k, n.A), n.B.N, n.F)
+		return s.canPayGen(k, p, unlessPayKind(int(n.C&0xF), n.B.N), s.value(k, n.A), n.B.N, n.F)
 	}
 	return true
 }

@@ -261,7 +261,8 @@ It is a closing register, one file per row in `docs/agents/known-approximations/
 - No row may grow past its `ALLOWED.txt` byte cap.
 
 A change that closes a row deletes its file and its `ALLOWED.txt` line. A
-deviation a change cannot close goes in the **commit message**.
+deviation a change cannot close goes in the **commit message**. A reviewer
+treats any added or grown row as a MAJOR finding.
 
 **Enforced by:** `testkit/testutil/agentsdoc_test.go`.
 

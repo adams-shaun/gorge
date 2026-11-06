@@ -40,7 +40,7 @@ const mbBudget = 1 << 20
 // prepMustBlock sets anyMustBlock: some card is printed must-be-blocked, or
 // the table gives mechMustBlocked an arena mask.
 func prepMustBlock(t *kop.Table, g *genPrep) {
-	g.anyMustBlock = g.ix[mechMustBlocked] != arenaNone
+	g.anyMustBlock = g.ix[mechMustBlocked] != arenaNone || g.ix[mechBlocksIfAble] != arenaNone
 	for i := 0; i < len(t.Cards) && !g.anyMustBlock; i++ {
 		g.anyMustBlock = t.Cards[i].MustBeBlocked
 	}
@@ -57,6 +57,8 @@ func mustBlockUses(in *kop.Instr, u *[numMech]bool) {
 func (s *State) mustBlockNewTurn(k *prep) {
 	s.mSlZero(k, mechMustBlocked)
 	s.mSlZero(k, mechMustBlockedPost)
+	s.mSlZero(k, mechAttacksIfAble) // combat_attacksifable.go
+	s.mSlZero(k, mechBlocksIfAble)  // combat_blocksifable.go
 }
 
 // mustBlockExt is ExtMustBeBlocked: Obj, or every battlefield permanent
@@ -122,7 +124,8 @@ type mbSearch struct {
 	am    slotMask          // attackers
 	lure  slotMask          // lure attackers
 	mb    slotMask          // must-be-blocked attackers
-	luSuf [MaxPerm + 1]int  // blockers bl[i:] that may block some lure attacker
+	duty  slotMask          // blockers that block this turn if able (combat_blocksifable.go)
+	luSuf [MaxPerm + 1]int  // blockers bl[i:] that may block some lure attacker, or have a block duty and may block any
 	last  [MaxPerm]int      // by attacker slot: highest blocker index able to block it, -1 none
 	want  int               // stop at the first valid completion scoring this much (-1: find the maximum)
 	best  int               // best valid score so far, -1 none
@@ -133,8 +136,8 @@ type mbSearch struct {
 // mbInit loads the search from the declaration so far with the extra block
 // (xb blocks xa; NoSlot for none): xb is not free, xa has one more blocker.
 // It returns the score and deficit of that declaration.
-func (m *mbSearch) mbInit(s *State, k *prep, lure, mb slotMask, xb, xa Slot) (score, deficit int) {
-	*m = mbSearch{s: s, k: k, lure: lure, mb: mb, best: -1, want: -1}
+func (m *mbSearch) mbInit(s *State, k *prep, lure, mb, duty slotMask, xb, xa Slot) (score, deficit int) {
+	*m = mbSearch{s: s, k: k, lure: lure, mb: mb, duty: duty, best: -1, want: -1}
 	def := 1 - s.active
 	for am := s.ctrlM[s.active]; am.any(); am = am.rest() {
 		a := am.first()
@@ -149,8 +152,8 @@ func (m *mbSearch) mbInit(s *State, k *prep, lure, mb slotMask, xb, xa Slot) (sc
 	}
 	for bm := s.ctrlM[def]; bm.any(); bm = bm.rest() {
 		b := bm.first()
-		if p := &s.perms[b]; p.flags&pfBlocking != 0 && m.lure.has(p.blocking) {
-			score++ // a lure duty blocker blocking a lure attacker
+		if p := &s.perms[b]; p.flags&pfBlocking != 0 && (m.lure.has(p.blocking) || m.duty.has(b)) {
+			score++ // a lure duty blocker blocking a lure attacker, or a duty blocker blocking
 		}
 		if b == xb || !s.blockerReady(k, b) {
 			continue
@@ -166,7 +169,7 @@ func (m *mbSearch) mbInit(s *State, k *prep, lure, mb slotMask, xb, xa Slot) (sc
 		m.nb++
 	}
 	if xa != NoSlot {
-		if m.lure.has(xa) {
+		if m.lure.has(xa) || m.duty.has(xb) {
 			score++
 		}
 		m.cnt[xa]++ // the first blocker of a must-be-blocked xa scores in the sweep below
@@ -180,18 +183,20 @@ func (m *mbSearch) mbInit(s *State, k *prep, lure, mb slotMask, xb, xa Slot) (sc
 	}
 	for i := m.nb - 1; i >= 0; i-- {
 		m.luSuf[i] = m.luSuf[i+1]
-		if m.able[i].and(m.lure).any() {
+		if m.able[i].and(m.lure).any() || m.duty.has(m.bl[i]) && m.able[i].any() {
 			m.luSuf[i]++
 		}
 	}
 	return
 }
 
-// gain is what one more blocker on attacker a scores: 1 for a lure duty
-// blocker, 1 more for the first blocker of a must-be-blocked attacker.
-func (m *mbSearch) gain(a Slot) int {
+// gain is what blocker bl[i] on attacker a scores: 1 for a lure duty
+// blocker or a blocker with a block duty (one unit per blocker, as gorge's
+// blockRequiredCore counts a required blocker), 1 more for the first blocker
+// of a must-be-blocked attacker.
+func (m *mbSearch) gain(i int, a Slot) int {
 	g := 0
-	if m.lure.has(a) {
+	if m.lure.has(a) || m.duty.has(m.bl[i]) {
 		g++
 	}
 	if m.mb.has(a) && m.cnt[a] == 0 {
@@ -252,7 +257,7 @@ func (m *mbSearch) dfs(i, score, deficit int) bool {
 	for pass := 0; pass < 2; pass++ {
 		for am := m.able[i].and(m.am); am.any(); am = am.rest() {
 			a := am.first()
-			g := m.gain(a)
+			g := m.gain(i, a)
 			if (g > 0) != (pass == 0) || m.one[a] && m.cnt[a] >= 1 {
 				continue
 			}
@@ -271,9 +276,9 @@ func (m *mbSearch) dfs(i, score, deficit int) bool {
 // mbReach is the most requirements a valid completion of the declaration
 // plus the extra block (xb blocks xa) meets, stopping early at want (-1: the
 // maximum); -1 when none completes it.
-func (s *State) mbReach(k *prep, lure, mb slotMask, xb, xa Slot, want int, over *bool) int {
+func (s *State) mbReach(k *prep, lure, mb, duty slotMask, xb, xa Slot, want int, over *bool) int {
 	var m mbSearch
-	score, deficit := m.mbInit(s, k, lure, mb, xb, xa)
+	score, deficit := m.mbInit(s, k, lure, mb, duty, xb, xa)
 	m.want = want
 	m.run(score, deficit)
 	*over = *over || m.over
@@ -291,8 +296,9 @@ func (s *State) blockerOptionsReq(k *prep, d *Decision, mb slotMask) bool {
 	if k.gen.anyLure {
 		lure = s.lureAttackers(k)
 	}
+	duty := s.blockDuty(k) // combat_blocksifable.go
 	over := false
-	q := s.mbReach(k, lure, mb, NoSlot, NoSlot, -1, &over)
+	q := s.mbReach(k, lure, mb, duty, NoSlot, NoSlot, -1, &over)
 	for bm := s.ctrlM[1-s.active]; bm.any() && !over; bm = bm.rest() {
 		b := bm.first()
 		if !s.blockerReady(k, b) {
@@ -301,7 +307,7 @@ func (s *State) blockerOptionsReq(k *prep, d *Decision, mb slotMask) bool {
 		for am := s.ctrlM[s.active]; am.any(); am = am.rest() {
 			a := am.first()
 			if s.perms[a].flags&pfAttacking == 0 || !s.canBlock(k, b, a) || s.menaceImpossible(k, a) ||
-				k.gen.anyMaxBlk && s.blockCapped(k, a) || s.mbReach(k, lure, mb, b, a, q, &over) < q {
+				k.gen.anyMaxBlk && s.blockCapped(k, a) || s.mbReach(k, lure, mb, duty, b, a, q, &over) < q {
 				continue
 			}
 			if int(d.N) >= MaxOptions-1 {
@@ -318,7 +324,7 @@ func (s *State) blockerOptionsReq(k *prep, d *Decision, mb slotMask) bool {
 	}
 	if s.menaceDeficit(k, NoSlot, NoSlot, nil) == 0 && s.blocksCompletable(k, NoSlot, NoSlot) {
 		var m mbSearch
-		cur, _ := m.mbInit(s, k, lure, mb, NoSlot, NoSlot)
+		cur, _ := m.mbInit(s, k, lure, mb, duty, NoSlot, NoSlot)
 		if cur >= q || DebugMustBlockGreedy && cur >= 1 {
 			d.add(MakeAction(AkDone, 0, 0, 0))
 		}

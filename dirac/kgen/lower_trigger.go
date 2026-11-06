@@ -342,25 +342,57 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 	case "Taps":
 		// gorge tapsMatches: every real Tap event (not an entry-tapped
-		// state) of a permanent matching ValidCard$. Only "whenever this
-		// becomes tapped" of a card with no mana ability is lowered: the
+		// state) of a permanent matching ValidCard$, mana taps included (a
+		// mana dork's {T}). Only "whenever this becomes tapped" of a card
+		// with no mana ability, and two non-Self shapes, are lowered: the
 		// kernel fires TrigTaps where a permanent is tapped (attack, {T} and
 		// tap-a-creature costs, Tap effects, regeneration, and a granted
-		// mana ability's {T}: gen manaTaps). A non-Self ValidCard$
-		// lowers only as "whenever you tap an untapped creature an
-		// opponent controls" (ValidPlayer$ You, every clause OppCtrl):
-		// ValidPlayer$ is the TAPPER (gorge TapActor), which the kernel
-		// carries in fireTapsBy, and a mana tap can never match it (you
-		// tap only your own permanents for mana)
+		// mana ability's {T}: gen manaTaps). A non-Self ValidCard$ lowers as
+		//   - "whenever you tap an untapped creature an opponent controls"
+		//     (ValidPlayer$ You, every clause OppCtrl): ValidPlayer$ is the
+		//     TAPPER (gorge TapActor), which the kernel carries in fireTapsBy,
+		//     and a mana tap can never match it (you tap only your own
+		//     permanents for mana), or
+		//   - a watcher over your own creatures (every clause YouCtrl) or
+		//     over the equipped creature (every clause EquippedBy), with no
+		//     ValidPlayer$ (any tapper): Captain America, Living Legend's
+		//     Creature.YouCtrl, Hawkeye's Bow's Creature.EquippedBy.
+		// FirstTime$ True ("the first time it has become tapped this turn",
+		// gorge Facts.TappedTurn) needs a per-object bit the kernel keeps
+		// nowhere (perm.flags holds no free bit): 16 State bytes, a
+		// tapped-this-turn slotMask in stateCore, so it refuses.
 		if vc := tp.str("ValidCard"); vc != "Card.Self" {
-			if vp := tp.str("ValidPlayer"); vp != "You" {
-				return refuse("Taps ValidPlayer %q", vp)
-			}
 			if tr.F, err = readF("ValidCard"); err != nil {
 				return err
 			}
 			if tr.F == nil || tr.F.Players != 0 || len(tr.F.Clauses) == 0 {
 				return refuse("Taps ValidCard %q", vc)
+			}
+			if vp := tp.str("ValidPlayer"); vp != "You" {
+				if tp.is("FirstTime", "True") {
+					return refuse("Taps FirstTime$: no per-object tapped-this-turn (16 State bytes)")
+				}
+				if vp != "" {
+					return refuse("Taps ValidPlayer %q", vp)
+				}
+				for _, c := range tr.F.Clauses {
+					ok := c.Owner == whoAny && c.CmpStat == cmpNone && c.Special == 0
+					// AttachedBy lowers to the same flag as EquippedBy
+					// (filter.go), but it is the enchanted-permanent watcher
+					// family (Psychic Venom's payer damage), whose payment
+					// tiering the kernel does not mirror yet: not this
+					// ticket's shape (YouCtrl, EquippedBy), so it refuses.
+					att := strings.Contains(vc, "AttachedBy")
+					switch {
+					case ok && c.Ctrl == whoYou && c.Flags == 0 && !att:
+					case ok && c.Ctrl == whoAny && c.Flags == fEquippedBy && !att:
+					default:
+						return refuse("Taps ValidCard %q", vc)
+					}
+				}
+				tp8, pn := tapsPlanClass(t.Effect)
+				tr.TapPlan, tr.TapPainN = uint8(tp8), pn
+				break
 			}
 			for _, c := range tr.F.Clauses {
 				if c.Ctrl != whoOpp {
@@ -1303,7 +1335,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		tr.Outstanding = true
 		ab.Name = "CheckOnTriggerOnly"
-	case "LandPlayed", "SearchedLibrary", "Forage", "Discover":
+	case "LandPlayed", "SearchedLibrary", "Forage", "Discover", "ManifestDread":
 		if err := lc.trigModes2(tp, tr, t.Mode, zone, readF); err != nil {
 			return err
 		}
@@ -2865,6 +2897,9 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		// minted bodyless prevention line must not also lower (lower_preventkw.go)
 		return nil
 	}
+	if lc.selfPreventRepl(r) { // lower_preventkw.go
+		return nil
+	}
 	rp := newParams(r.Params)
 	rp.consume("Event", "ReplaceWith", "ReplacementResult")
 	rl := lRepl{}
@@ -3196,6 +3231,9 @@ func (lc *lowerCtx) damageRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		lc.face.SVars[w.Params["VarValue"]] == "ReplaceCount$DamageAmount/Twice" {
 		rl.Kind = "DoubleDamageToOpps"
 		return nil
+	}
+	if ok, err := lc.preventMillRepl(rp, w, rl); ok || err != nil { // lower_replmult.go
+		return err
 	}
 	return lc.damageDoubler(rp, w, rl)
 }

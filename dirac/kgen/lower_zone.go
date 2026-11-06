@@ -172,6 +172,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			return refuse("LibraryPosition %q", lp)
 		}
 	}
+	if raw, ok := ps.m["ChooseFromDefined"]; ok && !lc.digRememberedLibrary && strings.TrimSpace(raw) == "TriggeredCards" {
+		return lc.dreadTriggeredPick(ps) // lower_dreadtriggerpick.go
+	}
 	if _, ok := ps.m["ChooseFromDefined"]; ok && lc.digRememberedLibrary {
 		return lc.digChosenLibraryPick(ps, ps.m["ChooseFromDefined"]) // lower_digimprint.go
 	}
@@ -632,7 +635,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		in.Op = "Exile"
 	case zHand:
 		in.Op = "Bounce"
-		if origin == zGraveyard {
+		// a remembered set from exile (Worlds Within Worlds' return) is
+		// the Return walk: Bounce moves the set's first object only
+		if origin == zGraveyard || origin == zExile && obj.Kind == rRemembered {
 			in.Op = "Return"
 			in.C = zHand
 		}
@@ -986,6 +991,9 @@ func (lc *lowerCtx) changeZoneAll(ps *params) error {
 	if lc.digImprinted && ps.is("RandomOrder", "True") {
 		return lc.digImprintBottom(ps) // lower_digimprint.go
 	}
+	if lc.playLibrary && ps.is("RandomOrder", "True") {
+		return lc.playLibraryBottom(ps) // lower_playlibrary.go
+	}
 	if _, ok := ps.get("Transformed"); ok {
 		return refuse("ChangeZoneAll Transformed$")
 	}
@@ -1146,6 +1154,16 @@ func (lc *lowerCtx) dig(ps *params) error {
 			flags = append(flags, k)
 		}
 	}
+	if ps.is("PromptToSkipOptionalAbility", "True") || ps.str("OptionalAbilityPrompt") != "" {
+		// gorge effDig's promptToSkipOptional: either spelling names the same
+		// optional take as Optional$ True (the take is a 0..N election, and
+		// with ChangeNum$ All a yes/no), which the kernel's Optional flag
+		// already carries. The corpus writes it only beside Optional$ True.
+		if !ps.is("Optional", "True") {
+			return refuse("Dig optional prompt without Optional$ True")
+		}
+		ps.consume("PromptToSkipOptionalAbility", "OptionalAbilityPrompt")
+	}
 	if dest == zBattlefield && ps.is("Tapped", "True") {
 		flags = append(flags, "Tapped")
 	}
@@ -1154,14 +1172,14 @@ func (lc *lowerCtx) dig(ps *params) error {
 	// WithMayLook$ with an exile destination; every other combination is
 	// not read exactly (a blind face-down exile, a look on a non-exile move)
 	fd, look := ps.is("ExileFaceDown", "True"), ps.is("WithMayLook", "True")
-	blind := fd && !look && dest == zExile && lc.blindDigShape(ps) // lower_blinddig.go
+	blind := fd && !look && dest == zExile && (lc.repeatBlindDig(ps) || lc.blindDigShape(ps)) // lower_blinddig.go
 	if fd != look && !blind || fd && dest != zExile {
 		return refuse("Dig ExileFaceDown$ shape")
 	}
 	if fd {
 		flags = append(flags, "ExileFaceDown")
 	}
-	if blind && lc.blind.exilerOther {
+	if blind && lc.blind != nil && lc.blind.exilerOther {
 		flags = append(flags, "ExilerOther")
 	}
 	if err := lc.digImprint(ps); err != nil { // lower_handmove.go
@@ -1555,6 +1573,15 @@ func isCmcLEVar(p string) bool {
 // playNonCreatureYouOwn is the ValidSA$ property pair nonCreature+YouOwn.
 func playNonCreatureYouOwn(p string) bool { return p == "nonCreature+YouOwn" }
 
+// playOwnHand is a Play whose candidates are the resolving controller's hand:
+// Valid$ Card, ValidZone$ Hand, no target, no Defined$, no Controller$ other
+// than You (gorge effPlay's hand walk reads only that seat's slice).
+func playOwnHand(ps *params) bool {
+	_, vt := ps.m["ValidTgts"]
+	c, hasC := ps.m["Controller"]
+	return ps.m["Valid"] == "Card" && ps.m["ValidZone"] == "Hand" && !vt && ps.m["Defined"] == "" && (!hasC || c == "You")
+}
+
 // andClause joins two filter clauses with + (AND within one alternative).
 func andClause(a, b string) string {
 	if a == "" || a == "Card" {
@@ -1686,14 +1713,20 @@ func (lc *lowerCtx) play(ps *params) error {
 	// may cast the copies", Infinite Diversity): the one remembered card is
 	// offered X times, each pick one copy cast. Read only for the copy-cast
 	// shape the kernel proves in lockstep (CopyCard$ above).
-	repeat := false
+	repeat, upTo := false, false
 	if v, ok := ps.get("AllowRepeats"); ok {
 		if v != "True" || !copyCard || amount == "" || amount == "1" || amount == "All" {
 			return refuse("Play AllowRepeats %q", v)
 		}
 		repeat = true
 	} else if amount != "" && amount != "1" && amount != "All" {
-		return refuse("Play Amount %q", amount)
+		// a literal Amount$ N (gorge effPlay: one ask, Max N, the picks
+		// begun in answer order) on P1's remembered-exile population only
+		// (Doom Reigns Supreme's "up to two spells")
+		if n, err := strconv.Atoi(amount); err != nil || n < 2 || ps.m["ValidZone"] != "Exile" || !strings.Contains(ps.m["Valid"], "IsRemembered") || ps.m["Defined"] != "" || copyCard {
+			return refuse("Play Amount %q", amount)
+		}
+		upTo = true
 	}
 	forget := false
 	if v, ok := ps.get("ForgetPlayed"); ok {
@@ -1722,7 +1755,11 @@ func (lc *lowerCtx) play(ps *params) error {
 		ps.consume("Defined")
 		return lc.hidePlay(ps, amount)
 	}
-	lc.bluffPlay = playRememberedEmptyKey(ps, "ConditionDefined")
+	// nonCreature+YouOwn lowers behind Brazen Bluff's nothing-remembered
+	// gate and over an untargeted, undefined hand population (Yue, the Moon
+	// Spirit): gorge effPlay walks only the resolving controller's hand, whose
+	// cards that player owns, so YouOwn filters nothing there
+	lc.bluffPlay = playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)
 	saExpr, err := lc.playSAExpr(ps.str("ValidSA"))
 	lc.bluffPlay = false
 	if err != nil {
@@ -1756,6 +1793,12 @@ func (lc *lowerCtx) play(ps *params) error {
 			return err
 		}
 		cs += "|Repeat"
+	}
+	if upTo {
+		if repeatN, err = lc.value(amount); err != nil {
+			return err
+		}
+		cs += "|UpTo"
 	}
 	if forget {
 		cs += "|Forget"
@@ -1842,10 +1885,18 @@ func (lc *lowerCtx) play(ps *params) error {
 			return err
 		}
 		return emit(lRef{Kind: rRemembered}, zExile, expr)
+	case "Library":
+		// P1l: the remembered cards still in the controller's library (Cosmic
+		// Cube's peeked six), gorge's Valid$ + ValidZone$ walk
+		if valid != "Card.IsRemembered" || replace {
+			return refuse("Play ValidZone$ Library with Valid$ %q", valid)
+		}
+		lc.playLibrary = true
+		return emit(lRef{Kind: rRemembered}, zLibrary, saExpr)
 	case "Hand", "Graveyard":
 		// P3/P4: untargeted filter population over the controller's hand or
 		// the graveyards, in seat order.
-		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !(valid == "Card" && playRememberedEmptyKey(ps, "ConditionDefined") && ps.str("ValidSA") == "Spell.nonCreature+YouOwn") {
+		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !(valid == "Card" && (playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)) && ps.str("ValidSA") == "Spell.nonCreature+YouOwn") {
 			return refuse("Play Valid$ %q without YouOwn/YouCtrl", valid)
 		}
 		if forget {
@@ -1942,7 +1993,7 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	if ok, err := lc.cantAttackRemembered(ps, ss); ok || err != nil { // lower_effectcantattackplayer.go
 		return err
 	}
-	if len(ss) != 1 {
+	if len(ss) != 1 && !attackBlockPair(ss) { // lower_effectattacksifable.go
 		return refuse("Effect static %q", st)
 	}
 	s := ss[0]
@@ -1974,6 +2025,15 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 			return err
 		}
 	}
+	if len(ss) == 2 {
+		return lc.attacksOrBlocksIfAble(ps, ss, obj) // lower_effectattacksifable.go
+	}
+	return lc.effectTargetStatic(ps, s, obj)
+}
+
+// effectTargetStatic lowers the one static s of a targeted (or remembered)
+// Effect over its resolved object obj.
+func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) error {
 	sp := newParams(s.Params)
 	sp.consume("Mode", "Description")
 	switch s.Mode {
@@ -2037,6 +2097,14 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 			break
 		}
 		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: "Unblockable"})
+	case "MustAttack":
+		if err := lc.attacksIfAble(ps, sp, obj); err != nil { // lower_effectattacksifable.go
+			return err
+		}
+	case "MustBlock":
+		if err := lc.blocksIfAble(ps, sp, obj); err != nil { // lower_effectattacksifable.go
+			return err
+		}
 	case "CantBeActivated":
 		// (Braided Net) "its activated abilities can't be activated
 		// for as long as it remains tapped" on the tapped target. Only the
@@ -2128,6 +2196,20 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 		ps.consume("ForgetOnMoved")
 		in := lInstr{Op: "MayPlay", Obj: obj, C: zone, CS: dur}
 		fl := 0
+		// EffectOwner$ RememberedController (CR 611.2): gorge's effect
+		// belongs to the remembered card's controller, and its may-play
+		// grant is that player's. A remembered card is in exile here, where
+		// gorge's controller read is the card's owner (a move resets
+		// Controller to Owner; a RememberLKI$ capture is the only other
+		// source and this shape has none), so MayPlayPlayer$ CardOwner --
+		// the kernel's MayPlayOwner record -- names the same seat.
+		// Expedited Inheritance's Dig from the damaged creature's
+		// controller's library.
+		if owner, ok := ps.m["EffectOwner"]; ok && strings.TrimSpace(owner) == "RememberedController" &&
+			obj.Kind == rRemembered && zone == zExile {
+			fl |= kop.MayPlayOwner
+			ps.consume("EffectOwner")
+		}
 		if _, ok := ps.get("ExileOnMoved"); ok && obj.Kind == rRemembered {
 			// gorge effectMoveSweep: a remembered card leaving the zone ENDS
 			// the whole effect; the kernel's per-card permissions match it

@@ -236,7 +236,7 @@ func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctr
 	return ans != DebugWord7Flip
 }
 
-// PredWord7 sub-kinds 11-13 (kop.W7WithWarp,
+// PredWord7 sub-kinds 11-13 and 22 (kop.W7WithWarp, kop.W7WithDisguise,
 // kop.W7GreatestPowerTgt, kop.W7CrewedBySrc), the Mayhem code of PredWasCastSpell and the
 // ManaSpent-EQ0 bit of PredWasCastEnter, cold. wordPerm2 and wordCard2
 // delegate every sub-kind >= 11 here. No State byte: the crew record reuses
@@ -264,6 +264,12 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		// lose-all-abilities effect (the kw gate, chars.go)
 		c := s.cardAt(sl)
 		ans = c != kop.NoCard && k.t.Cards[c].HasWarp && !s.faceDown(k, sl) &&
+			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+	case kop.W7WithDisguise, kop.W7FaceUpDisguise:
+		// gorge withDisguise on a battlefield object: the printed keyword,
+		// none while face down or after a lose-all-abilities effect
+		c := s.cardAt(sl)
+		ans = c != kop.NoCard && k.t.Cards[c].MorphFamily == kop.MorphDisguise && !s.faceDown(k, sl) &&
 			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
 	case kop.W7GreatestPowerTgt:
 		// gorge greatestPowerControlledByTargeted: a battlefield creature a
@@ -308,6 +314,10 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 	switch fl.PredN & 0xff {
 	case kop.W7WithWarp:
 		ans = c != kop.NoCard && k.t.Cards[c].HasWarp
+	case kop.W7WithDisguise:
+		ans = c != kop.NoCard && k.t.Cards[c].MorphFamily == kop.MorphDisguise
+	case kop.W7FaceUpDisguise:
+		ans = c != kop.NoCard && !fd && k.t.Cards[c].MorphFamily == kop.MorphDisguise
 	case kop.W7IsCommander:
 		// no seat has a commander in a kernel game (CR 903.3)
 	case kop.W7CostBlue:

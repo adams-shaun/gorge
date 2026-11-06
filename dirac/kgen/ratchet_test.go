@@ -61,14 +61,37 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (a variable CollectEvidence cost and evidence beside the triggered-card exile: Incinerator of the Guilty, Urgent Necropsy, Lamplight Phoenix lower; merged MKM 233 -> 236, ALL 21549 -> 21552).
 	// +1 (Pyromancer's Goggles: the TriggersWhenSpent$ deferred mana source's copy rider lowers; this branch; merged FDN 516 -> 517, ALL 21556 -> 21557).
 	// +1 (Officious Interrogation: the per-target RaiseCost Cost$ W U, kop.StRaisePerTarget; land; merged MKM 237 -> 238, ALL 21557 -> 21558).
+	// +5 (the Effect MustAttack attack duty, kop.ExtAttacksIfAble: Boiling Blood, Heckling Fiends, Incite, Rage Nimbus, Shipwreck Singer lower; ALL 21564 -> 21569).
+	// +4 (No Witnesses' withMostTypeCreature investigate and the counted Num$ arm lower; on land, its line lost in land's rebase re-pins; this branch; merged MKM 234 -> 235, ALL 21565 -> 21569).
+	// +1 (Molten Exhale: a may-flash extra that is a behold, CardDef.MayFlashBehold; merged TDM 245 -> 246, ALL 21569 -> 21570).
+	// +6 (the ExtTurnFaceUp effect turn-up, Urgent Necropsy's collect-evidence X, the each-target Aura-copy enchant ask and the DamageAll planeswalker/battle clause lower, with land's re-measure after its rebase; land; merged ALL 21573 -> 21579).
+	// +1 (Doomsday Excruciator: a RepeatEach player body's DigNum$ Count$ValidLibrary Card.RememberedPlayerCtrl/Minus.6 and its blind face-down exile; on land, its line lost in land's rebase re-pins; this branch; merged DSK 236 -> 237, ALL 21584 -> 21585).
+	// +1 (Worlds Within Worlds: a RepeatEach player body's hand move DefinedPlayer$ Remembered up to Count$ValidHand Creature.RememberedPlayerCtrl, and the remembered set's return from exile as the Return walk; on land, its line lost in land's rebase re-pins; this branch; merged MSH 226 -> 227, ALL 21585 -> 21586).
+	// +1 (Painter's Studio // Defaced Gallery: the unlock trigger's DB$ Effect statics read the door's own SVar table; on land, its line lost in land's rebase re-pins; this branch; merged DSK 238 -> 239, ALL 21595 -> 21596).
+	// +1 (White Lotus Hideout: a {T} {C} ability beside a restricted any-colour one and a {1},{T} filter; this branch; TLA 246 -> 247, ALL 21599 -> 21600).
+	// +2 (Baxter Building's four-mana combination filter and Haunted Screen's life-paid three-colour ability lower beside their first mana ability; msh-second-mana-ability; merged DSK 241 -> 242, MSH 228 -> 229, ALL 21630 -> 21632).
+	// +3 (the Taps watchers over your own and the equipped creature lower: Hawkeye's Bow (EquippedBy), Judge of Currents and Magda, Brazen Outlaw (YouCtrl); the AttachedBy aura family still refuses; this branch; merged MSH 230 -> 231, ALL 21636 -> 21639).
+	// +4 (No Witnesses' withMostTypeCreature investigate and the counted Num$ arm lower; on land, its line lost in land's rebase re-pins; this branch; merged MKM 234 -> 235, ALL 21565 -> 21569).
+	// +6 (the ExtTurnFaceUp effect turn-up, Urgent Necropsy's collect-evidence X, the each-target Aura-copy enchant ask and the DamageAll planeswalker/battle clause lower, with land's re-measure after its rebase; land; merged ALL 21573 -> 21579).
+	// +1 (Doomsday Excruciator: a RepeatEach player body's DigNum$ Count$ValidLibrary Card.RememberedPlayerCtrl/Minus.6 and its blind face-down exile; on land, its line lost in land's rebase re-pins; this branch; merged DSK 236 -> 237, ALL 21584 -> 21585).
+	// +1 (Worlds Within Worlds: a RepeatEach player body's hand move DefinedPlayer$ Remembered up to Count$ValidHand Creature.RememberedPlayerCtrl, and the remembered set's return from exile as the Return walk; on land, its line lost in land's rebase re-pins; this branch; merged MSH 226 -> 227, ALL 21585 -> 21586).
+	// +2 (Waterbending Lesson, The Unagi of Kyoshi Island: an UnlessCost$ Waterbend<N> and Ward:Waterbend<N>; this branch; merged TLA 246 -> 248, ALL 21595 -> 21597).
+	// +2 (the merge with land: this branch's UnlessCost$/Ward Waterbend<N> beside land's OptionalCost Waterbend<N> spell, whose two TLA cards land had already lowered; merged TLA 248 -> 250, ALL 21638 -> 21640).
+	// +3 (the merge with land: land's Taps watchers over your own and the equipped creature beside this branch's UnlessCost$/Ward Waterbend<N>; merged MSH 231 -> 232, ALL 21640 -> 21643).
+	// +2 (the merge with land: land's re-measure after its rebase (a TDM card and one more) beside this branch's Waterbend unless/ward cards, each side's two disjoint; merged TDM 248 -> 249, ALL 21643 -> 21645).
+	// +1 (the merge with land: land's Yue, the Moon Spirit free noncreature cast beside this branch's UnlessCost$/Ward Waterbend<N> cards, both sides' unrefusal of Airbender Ascension taken once; merged TLA 250 -> 251, ALL 21645 -> 21646).
+	// +1 (the merge with land: this branch's anyRFiltMana lowers White Lotus Hideout's three-ability source, which land's refuseMultiMana refuses; merged TLA 251 -> 252, ALL 21646 -> 21647).
+	// +8 (this branch lowers the Effect Mode$ MustBlock static beside the pair's MustAttack: Hustle // Bustle,
+	// Courtly Provocateur, Culvert Ambusher, Culling Mark, Peema Aether-Seer, Provoke, Shessra, Death's Whisper
+	// and Timely Interference; MKM +2, DMU +1, ALL +8).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21564, 34442},
+	"ALL": {21655, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
 	"DFT": {247, 276},
-	"DMU": {193, 270},
-	"DSK": {236, 276},
+	"DMU": {194, 270},
+	"DSK": {242, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
 	"FDN": {517, 517},
@@ -76,17 +99,17 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FRA": {245, 269},
 	"HOB": {152, 172},
 	"LCI": {251, 290},
-	"MKM": {238, 279},
+	"MKM": {242, 279},
 	"MOM": {198, 296},
-	"MSH": {226, 276},
+	"MSH": {232, 276},
 	"NEO": {198, 287},
 	"ONE": {195, 271},
-	"OTJ": {240, 276},
+	"OTJ": {241, 276},
 	"SNC": {185, 266},
 	"SOS": {248, 270},
 	"SPM": {160, 192},
-	"TDM": {245, 276},
-	"TLA": {246, 285},
+	"TDM": {249, 276},
+	"TLA": {252, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
 	"TRK": {311, 311},

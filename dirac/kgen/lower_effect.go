@@ -160,6 +160,21 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{Kind: rTriggeredPlayer}, nil
 		}
 		return lRef{}, refuse("Defined$ %q outside a damage trigger the kernel's trigger object or player names", v)
+	case "TriggeredTargetController":
+		// gorge definedSpecTriggeredTargetController (context.go): the
+		// controller of the trigger's target object, read live at
+		// resolution -- a referent that left the battlefield since it was
+		// dealt the damage reads its owner (CR 603.7a: the trigger fires
+		// for the event, the read is the object's as it exists when the
+		// ability resolves; Expedited Inheritance's "its controller may
+		// exile that many" after the creature died from that damage).
+		// The queue-time trigger player (trig_damagedonce.go ddoRecipient)
+		// is the referent's controller as it was, so this spelling gets
+		// its own ref; the role is exact only on an object referent.
+		if tr := lc.ab.Trigger; ddoObjectReferent(tr) {
+			return lRef{Kind: rTriggeredTgtCtrl}, nil
+		}
+		return lRef{}, refuse("Defined$ %q without a damage object referent", v)
 	case "TriggeredAttackingPlayer":
 		// gorge trigger_referents.go: the controller of the in-flight
 		// combat source when it is attacking. A per-referent DamageDone
@@ -802,7 +817,9 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 		}
 		in = lInstr{CS: "Mana", A: v, B: cst(0)}
 	} else {
+		lc.wbOK = lc.ab.Kind != akLatent
 		cost, err := lc.costUnless(uc)
+		lc.wbOK = false
 		if err != nil {
 			return err
 		}
@@ -904,6 +921,18 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 			return in, refuse("resolution forage cost")
 		}
 		in.CS, in.A, in.F = "Forage", cst(1), c.Forage
+		return in, nil
+	}
+	if c.Waterbend != 0 {
+		// an UnlessCost$ Waterbend<N> (gorge pay.chargeUnlessWaterbend; kernel
+		// cost_unlesswaterbend.go): alone, with N the cost's whole generic
+		m, rest := c.Mana, c
+		rest.Waterbend, rest.Mana = 0, manaCost{None: true}
+		if !lc.unlessCost && !lc.wardCost || m.Generic != c.Waterbend || c.Waterbend > 255 || m.Pips != [5]int{} || m.X || m.XX || m.XXX || m.C != 0 ||
+			len(m.Hybrid)+len(m.Twobrid)+len(m.Phyrexian) != 0 || !rest.pureMana() {
+			return in, refuse("waterbend cost shape")
+		}
+		in.CS, in.A = "Waterbend", cst(c.Waterbend)
 		return in, nil
 	}
 	n := 0
@@ -1861,7 +1890,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			lc.emit(lInstr{Op: "Ward", CS: "PayLifePower", A: cst(0), Obj: lRef{Kind: rTriggered}})
 			break
 		}
+		lc.wbOK = true
 		cost, err := lc.cost(uc)
+		lc.wbOK = false
 		if err != nil {
 			return err
 		}
@@ -2204,12 +2235,19 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 		if obj.Kind != rTarget {
 			return refuse("divided damage without targets")
 		}
-		if !dv.isConst() {
-			// Targets[].Divided and Divide are literal totals; a count
-			// (Ureni's lands) read as dv.N would divide 0
-			return refuse("divided over a value total")
+		if dv.isConst() {
+			lc.ab.Targets[obj.N].Divided = dv.N
+		} else if sameValue(dv, lc.ab.Targets[obj.N].Max) {
+			// A value total (Ureni's land count) is read where the ability is
+			// put on the stack, exactly where gorge's divisionTotalFor reads
+			// DividedAsYouChoose$ (CR 601.2d, 603.3d). The slot's TargetMax$
+			// must be that same value: gorge clamps a divided slot's target
+			// count to the announced total, and the kernel does not.
+			lc.ab.Targets[obj.N].Divided = kop.DivValue
+			lc.ab.Targets[obj.N].DividedV = dv
+		} else {
+			return refuse("divided over a value total that is not TargetMax$")
 		}
-		lc.ab.Targets[obj.N].Divided = dv.N
 		in.Op = "DealDamageDivided"
 	}
 	if ps.is("DamageMap", "True") {

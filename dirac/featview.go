@@ -342,6 +342,10 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	if k.gen != nil && k.t.Cards[c].SpellWaterbend != 0 {
 		cost = s.waterbendSpellCredit(k, p&1, c, o, cost) // act_waterbend.go
 	}
+	if mode&1 != 0 && k.gen != nil && k.t.Cards[c].OptWaterbend != 0 {
+		// the kicked cast's OptionalCost Waterbend<N> credits with the own part (act_waterbend.go)
+		cost = s.waterbendCreditN(k, p&1, NoSlot, s.waterbendOwnPart(k, p&1, c, o)+int(k.t.Cards[c].OptWaterbend), cost)
+	}
 	if mode&2 != 0 && k.t.Cards[c].Harmonize {
 		cost = s.harmonizeCredit(k, p&1, cost) // gorge harmonizePayment prices the offer after the reductions
 	}
@@ -578,14 +582,18 @@ func (s *State) FeatFaceDown(o Obj) bool {
 	return ob.zone == kop.ZoneBattlefield && s.faceDown(nil, ob.slot)
 }
 
-// FeatPlanNeverPrices reports a card gorge's cast planner declines whatever the
-// board: its own shape, not the seat's mana.
-func (s *State) FeatPlanNeverPrices(c CardID) bool { return planNeverPrices(s.k(), c) }
+// FeatPlanDeclinesShape reports a plain cast of p's object o that gorge's cast
+// planner declines for its cost's shape, not the seat's mana (rules
+// payment_plan.go announcedShape, decision.PotentialShapeCasts): every
+// plannedCastCost refusal, the card's own shape and the board's (a convoke,
+// improvise or delve contribution, an optional cost, a mana-spent reader out).
+func (s *State) FeatPlanDeclinesShape(p uint8, o Obj) bool {
+	_, ok := s.plannedCastCost(s.k(), p, o, 0)
+	return !ok
+}
 
-// planNeverPrices is plannedCastCost's refusals that read only the card.
-func planNeverPrices(k *prep, c CardID) bool { return planNeverPricesOf(k, c, false, false) }
-
-// planNeverPricesOf is planNeverPrices with a hybrid cost priced when hyb and
+// planNeverPricesOf is plannedCastCost's refusals that read only the card, with
+// a hybrid cost priced when hyb and
 // the card's own mana-spent read left out when composed (plannedCastCostOf).
 func planNeverPricesOf(k *prep, c CardID, hyb, composed bool) bool {
 	return planNeverPricesCore(k, c, hyb, composed, false)

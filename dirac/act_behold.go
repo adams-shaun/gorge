@@ -81,7 +81,7 @@ func (s *State) beholdOptions(k *prep, d *Decision) bool {
 		return false
 	}
 	cd := &k.t.Cards[e.card]
-	if cd.BeholdN == 0 || !(cd.BeholdExile || cd.HasAltAdd && s.bld().altAdd == 0 || optCostBehold(k, e)) {
+	if cd.BeholdN == 0 || !(cd.BeholdExile || cd.HasAltAdd && s.bld().altAdd == 0 || optCostBehold(k, e) || cd.MayFlashBehold && mayFlashEntry(e)) {
 		return false
 	}
 	d.N = 0

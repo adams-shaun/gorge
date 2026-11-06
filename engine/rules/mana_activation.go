@@ -1879,10 +1879,24 @@ func owedColoursFirst(colours, owed []string) []string {
 // the shape of a dual land with two basic land types.
 func (e *Engine) owedAbilitiesFirst(pc *pendingCast, p state.PlayerID, source state.ObjID, abilities []*cards.SA) []*cards.SA {
 	chosen := pay.ChosenProducedColour(e.G, source)
+	desc := paymentForCast(pc, e.manaToPay(pc))
 	owes := func(ma *cards.SA) bool {
 		cols := pay.AnnouncedAbilityColours(asPayer(e), p, source, ma, chosen)
 		if len(cols) == 0 {
 			cols = fixedProductionColours(ma)
+		}
+		if len(cols) == 0 {
+			// A RestrictValid$ any-colour ability (White Lotus Hideout's
+			// Lesson/Shrine mana) stays a single manual option above, so its
+			// colours are not enumerable there. When the restriction admits
+			// THIS payment it can make whatever colour is owed, and it must
+			// sort ahead of a fixed colour the payment cannot use: an answer
+			// taking the first option would otherwise strand the cast
+			// (CR 601.2g), exactly the shape owedColoursFirst exists for.
+			if valid := params.ManaOf(ma).RestrictValid; valid != "" &&
+				pay.RestrictValidMatches(asPayer(e), p, desc, valid, source) {
+				cols = []string{"W", "U", "B", "R", "G"}
+			}
 		}
 		owed, _ := e.paymentUsefulColours(pc, p, cols)
 		return len(owed) > 0

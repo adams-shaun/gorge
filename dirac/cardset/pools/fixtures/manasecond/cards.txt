@@ -1,0 +1,29 @@
+# Second mana abilities the kernel models beside a normal one
+# (dirac/oracle/mana_second_ability_test.go):
+# - Baxter Building: {T}: Add {C}, then {4}, {T}: Add four mana in any
+#   combination of colours (the kernel's combination filt, mana_filter.go
+#   filtCombo). Breya, Etherium Shaper costs {W}{U}{B}{R}, so the four
+#   colourless lands pay the filter's fee and the filter pays the spell.
+# - Haunted Screen: {T}: Add {W} or {B}, then {T}, Pay 1 life: Add {G}, {U}
+#   or {R} (the kernel's painLife beside a two-colour normal ability).
+#   Moss Viper's {G} is payable only through the life ability; Valiant
+#   Guard's {W} through the free one.
+#
+# Each deck holds many identical copies of each mana source, so most
+# payments that tap one choose among identical copies: the comparison is
+# the source tie-break (gorge's census-order witness) too, not only the
+# shapes.
+#
+# Groundchuck & Dirtbag is a tap-extra carrier (a land tap adds {G}) for the
+# test that Baxter Building's combination activation stalls rather than
+# silently drop the extra (dirac/mana_second_ability_test.go, mana_filter.go
+# filtDo).
+Baxter Building
+Breya, Etherium Shaper
+Wastes
+Haunted Screen
+Moss Viper
+Valiant Guard
+Groundchuck & Dirtbag
+Grizzly Bears
+Suntail Hawk

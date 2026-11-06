@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -121,9 +122,9 @@ func (c config) startEvents(w eventsWiring, r *host.Registry, reg *cards.Registr
 		return nil, fmt.Errorf("gorged: draft events need a seat gate to mint game tokens")
 	}
 	policies := c.eventPolicies()
-	def := c.botPolicy
-	if bots.ReadsDecklists(def) {
-		def = bots.Default
+	def, err := c.eventsDefaultPolicy()
+	if err != nil {
+		return nil, err
 	}
 	return w.w.Start(EventsEnv{
 		Registry:       r,
@@ -139,6 +140,26 @@ func (c config) startEvents(w eventsWiring, r *host.Registry, reg *cards.Registr
 			return gate.mint(t, state.PlayerID(seat))
 		},
 	})
+}
+
+// eventsDefaultPolicy is the game policy a draft-event bot seat gets when it
+// names none: -events-bot-policy when set (it must be registered and in
+// eventPolicies, else an error), else -bot-policy, falling back to
+// bots.Default when that reads decklists.
+func (c config) eventsDefaultPolicy() (string, error) {
+	if c.eventsBotPolicy != "" {
+		if _, ok := bots.Lookup(c.eventsBotPolicy); !ok {
+			return "", fmt.Errorf("-events-bot-policy: unknown bot policy %q (known: %s)", c.eventsBotPolicy, strings.Join(bots.Names(), ", "))
+		}
+		if !containsString(c.eventPolicies(), c.eventsBotPolicy) {
+			return "", fmt.Errorf("-events-bot-policy %q is not offered to draft events (offered: %s)", c.eventsBotPolicy, strings.Join(c.eventPolicies(), ", "))
+		}
+		return c.eventsBotPolicy, nil
+	}
+	if bots.ReadsDecklists(c.botPolicy) {
+		return bots.Default, nil
+	}
+	return c.botPolicy, nil
 }
 
 // eventPolicies is the policy set draft events offer: -bot-policies minus

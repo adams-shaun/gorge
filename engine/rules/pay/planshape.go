@@ -151,14 +151,25 @@ func PaymentPlanDamageRider(e Engine, id state.ObjID, mana *cards.SA) (uint32, b
 	return paymentPlanDamageBody(cards.ResolveSVar(o.Face().SVars, strings.TrimSpace(mana.ParamStr(cards.PKSubAbility))))
 }
 
+// paymentPlanSubFree reports whether rider carries no SubAbility$ chain.
+func paymentPlanSubFree(rider *cards.SA) bool {
+	return strings.TrimSpace(rider.ParamStr(cards.PKSubAbility)) == ""
+}
+
+// paymentPlanBodyNumDmg is rider's literal NumDmg$ amount, positive.
+func paymentPlanBodyNumDmg(rider *cards.SA) (uint32, bool) {
+	n, err := strconv.ParseUint(strings.TrimSpace(params.DealDamageOf(rider).NumDmg.Text), 10, 32)
+	return uint32(n), err == nil && n > 0
+}
+
 // paymentPlanDamageBody reports N when rider is exactly `DealDamage |
 // Defined$ You | NumDmg$ <literal N>` with no further parameter or sub.
 func paymentPlanDamageBody(rider *cards.SA) (uint32, bool) {
-	if rider == nil || rider.API != "DealDamage" || !params.DefinedRefOf(rider).Is(params.RefYou) || strings.TrimSpace(rider.ParamStr(cards.PKSubAbility)) != "" {
+	if rider == nil || rider.API != "DealDamage" || !params.DefinedRefOf(rider).Is(params.RefYou) || !paymentPlanSubFree(rider) {
 		return 0, false
 	}
-	n, err := strconv.ParseUint(strings.TrimSpace(params.DealDamageOf(rider).NumDmg.Text), 10, 32)
-	if err != nil || n == 0 {
+	n, ok := paymentPlanBodyNumDmg(rider)
+	if !ok {
 		return 0, false
 	}
 	for _, k := range slices.Sorted(maps.Keys(rider.Params)) {
@@ -166,7 +177,7 @@ func paymentPlanDamageBody(rider *cards.SA) (uint32, bool) {
 			return 0, false
 		}
 	}
-	return uint32(n), true
+	return n, true
 }
 
 func PaymentPlanParadiseRider(e Engine, id state.ObjID, mana *cards.SA) bool {
@@ -325,7 +336,7 @@ func PaymentPlanSelfDamageTrigger(f *cards.Face, t cards.Trigger) (uint32, bool)
 	if t.Mode != "Taps" || strings.TrimSpace(t.ParamStr(cards.PKValidCard)) != "Card.Self" {
 		return 0, false
 	}
-	if v, ok := t.Param(cards.PKTriggerZones); ok && strings.TrimSpace(v) != "Battlefield" {
+	if !paymentPlanTriggerZoneOK(t) {
 		return 0, false
 	}
 	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
@@ -335,11 +346,109 @@ func PaymentPlanSelfDamageTrigger(f *cards.Face, t cards.Trigger) (uint32, bool)
 			return 0, false
 		}
 	}
-	body := t.Effect
-	if body == nil && f != nil {
-		body = cards.ResolveSVar(f.SVars, strings.TrimSpace(t.ParamStr(cards.PKExecute)))
+	return paymentPlanDamageBody(paymentPlanTriggerBody(f, t))
+}
+
+// paymentPlanTriggerZoneOK is the TriggerZones$ gate the tap watchers share:
+// absent means Battlefield; any other zone is not this planner's shape.
+func paymentPlanTriggerZoneOK(t cards.Trigger) bool {
+	if v, ok := t.Param(cards.PKTriggerZones); ok && strings.TrimSpace(v) != "Battlefield" {
+		return false
 	}
-	return paymentPlanDamageBody(body)
+	return true
+}
+
+// paymentPlanTriggerBody is the trigger's Execute$ body, resolved against
+// f's SVar table when the parsed line carries only the SVar name.
+func paymentPlanTriggerBody(f *cards.Face, t cards.Trigger) *cards.SA {
+	if t.Effect != nil {
+		return t.Effect
+	}
+	if f != nil {
+		return cards.ResolveSVar(f.SVars, strings.TrimSpace(t.ParamStr(cards.PKExecute)))
+	}
+	return nil
+}
+
+// PaymentPlanTapDamageTrigger is spec §3.2's foreign damage trigger row: a
+// `Mode$ Taps` trigger on any ValidCard$ whose effect is exactly
+// `DB$ DealDamage | Defined$ <player> | NumDmg$ <literal>` plus at most the
+// DamageSource provenance key (Hawkeye's Bow's "whenever equipped creature
+// becomes tapped, it deals 1 damage to each opponent"). The trigger resolves
+// after the payment that caused it (CR 603.2) and changes no payment
+// resource, so a payment planning a tap that fires it need only disclose the
+// literal amount when the damage can reach the payer itself
+// (PaymentPlanTapDamageHits): otherwise the tap stays an ordinary unit and
+// the trigger fires on its own at the tap, on both engines. A trigger whose
+// shape the planner cannot vet (FirstTime$, a card referent, a sub-chain, a
+// non-literal amount) is not known and its source stays deferred. f owns the
+// trigger's Execute$ table.
+func PaymentPlanTapDamageTrigger(f *cards.Face, t cards.Trigger) (uint32, params.Ref, bool) {
+	if t.Mode != "Taps" || !paymentPlanTriggerZoneOK(t) {
+		return 0, params.Ref{}, false
+	}
+	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
+		switch paymentPlanTapDamageTriggerCodes.Code(string(k)) {
+		case paymentPlanTapDamageTriggerKnown:
+		default:
+			return 0, params.Ref{}, false
+		}
+	}
+	body := paymentPlanTriggerBody(f, t)
+	n, ok := paymentPlanPlayerDamageBody(body)
+	if !ok {
+		return 0, params.Ref{}, false
+	}
+	return n, params.DefinedRefOf(body), true
+}
+
+// PaymentPlanTapDamageHits reports whether a vetted tap-damage trigger's
+// referent can name the player paying for the tap: the payer's life is the
+// only payment resource the damage could consume. Defined$ You names the
+// trigger's controller; Opponent/EachOpponent name the controller's
+// opponent(s), so the payer is hit only when it is not the controller
+// (conservative in multiplayer, where "opponent" is every opponent);
+// TriggeredCardController names the tapped permanent's controller. Anything
+// else is conservatively assumed to reach the payer.
+func PaymentPlanTapDamageHits(ref params.Ref, carrierCtrl, activator, tappedCtrl state.PlayerID) bool {
+	switch {
+	case ref.Kind == params.RefYou:
+		return activator == carrierCtrl
+	case ref.Text == "Opponent" || ref.Text == "EachOpponent":
+		return activator != carrierCtrl
+	case ref.Text == "TriggeredCardController":
+		return activator == tappedCtrl
+	default:
+		return true
+	}
+}
+
+// paymentPlanPlayerDamageBody is paymentPlanDamageBody over a player
+// referent: the same literal-amount DealDamage body whose Defined$ names a
+// player the payment cannot move (the payer, an opponent, the tapped
+// permanent's controller) rather than a card a later plan step could remove.
+func paymentPlanPlayerDamageBody(rider *cards.SA) (uint32, bool) {
+	if rider == nil || rider.API != "DealDamage" || !paymentPlanSubFree(rider) {
+		return 0, false
+	}
+	switch ref := params.DefinedRefOf(rider); {
+	case ref.Kind == params.RefYou:
+	case ref.Text == "Opponent" || ref.Text == "EachOpponent" || ref.Text == "TriggeredCardController":
+	default:
+		return 0, false
+	}
+	n, ok := paymentPlanBodyNumDmg(rider)
+	if !ok {
+		return 0, false
+	}
+	for _, k := range slices.Sorted(maps.Keys(rider.Params)) {
+		switch k {
+		case "API", "Defined", "NumDmg", "DamageSource", "SpellDescription", "StackDescription":
+		default:
+			return 0, false
+		}
+	}
+	return n, true
 }
 
 // PlanTapMana is the deterministic extra mana one static TapsForMana trigger
@@ -560,6 +669,20 @@ var paymentPlanSelfDamageTriggerCodes = state.NewStrCodes(
 	state.StrEntry[paymentPlanSelfDamageTriggerCode]{Key: "Execute", Val: paymentPlanSelfDamageTriggerKnown},
 	state.StrEntry[paymentPlanSelfDamageTriggerCode]{Key: "TriggerZones", Val: paymentPlanSelfDamageTriggerKnown},
 	state.StrEntry[paymentPlanSelfDamageTriggerCode]{Key: "TriggerDescription", Val: paymentPlanSelfDamageTriggerKnown},
+)
+
+type paymentPlanTapDamageTriggerCode uint16
+
+const (
+	paymentPlanTapDamageTriggerKnown paymentPlanTapDamageTriggerCode = iota + 1
+)
+
+var paymentPlanTapDamageTriggerCodes = state.NewStrCodes(
+	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "Mode", Val: paymentPlanTapDamageTriggerKnown},
+	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "ValidCard", Val: paymentPlanTapDamageTriggerKnown},
+	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "Execute", Val: paymentPlanTapDamageTriggerKnown},
+	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "TriggerZones", Val: paymentPlanTapDamageTriggerKnown},
+	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "TriggerDescription", Val: paymentPlanTapDamageTriggerKnown},
 )
 
 // UnlessManaReachable reports whether pool plus one production alternative

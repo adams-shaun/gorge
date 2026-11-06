@@ -60,14 +60,14 @@ func (s *State) staticFlag(k *prep, sk kop.StaticKind, sl Slot) bool {
 // applies to before the attackers decision (the requirement is satisfied
 // by construction; gorge marks such options Required).
 func (s *State) declareMustAttack(k *prep) {
-	if !s.statM.any() && !(k.embComb && s.anyEmb()) && !goadOn(k) || s.cfg&cfgGorgeMustAttack != 0 {
+	if !s.statM.any() && !(k.embComb && s.anyEmb()) && !goadOn(k) && !attackDutyOn(k) || s.cfg&cfgGorgeMustAttack != 0 {
 		return
 	}
 	m := s.ctrlM[s.active]
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
-		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.mustAttackGoad(k, sl)) {
+		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.attackDuty(k, sl) || s.mustAttackGoad(k, sl)) {
 			if s.aloneAtk(k, sl) && !s.alonePartner(k, sl) {
 				continue // CR 508.1d: no declaration obeys it alone (combat_alone.go)
 			}
@@ -135,12 +135,12 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 // mustAttackLeft reports whether a creature that must attack and can is
 // not declared yet (Config.GorgeMustAttack withholds Done).
 func (s *State) mustAttackLeft(k *prep) bool {
-	if !s.statM.any() && !(k.embComb && s.anyEmb()) && !goadOn(k) {
+	if !s.statM.any() && !(k.embComb && s.anyEmb()) && !goadOn(k) && !attackDutyOn(k) {
 		return false
 	}
 	for m := s.ctrlM[s.active]; m.any(); m = m.rest() {
 		sl := m.first()
-		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.mustAttackGoad(k, sl)) &&
+		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.attackDuty(k, sl) || s.mustAttackGoad(k, sl)) &&
 			!(s.aloneAtk(k, sl) && !s.alonePartner(k, sl)) {
 			return true
 		}
@@ -152,7 +152,7 @@ func (s *State) mustAttackLeft(k *prep) bool {
 // able now (a MustAttack static applies to it).
 func (s *State) MustAttack(o Obj) bool {
 	ob := &s.objs[o]
-	return ob.zone == kop.ZoneBattlefield && ((s.statM.any() || s.k().embComb && s.anyEmb()) && s.staticFlag(s.k(), kop.StatMustAttack, ob.slot) || s.mustAttackGoad(s.k(), ob.slot))
+	return ob.zone == kop.ZoneBattlefield && ((s.statM.any() || s.k().embComb && s.anyEmb()) && s.staticFlag(s.k(), kop.StatMustAttack, ob.slot) || s.attackDuty(s.k(), ob.slot) || s.mustAttackGoad(s.k(), ob.slot))
 }
 
 // attackedPerm returns the slot of the planeswalker or battle attacker a
@@ -487,7 +487,7 @@ func (s *State) blockerOptions(k *prep, d *Decision) bool {
 	def := 1 - s.active
 	d.Kind, d.Player = DkBlockers, def
 	if k.gen != nil && k.gen.anyMustBlock {
-		if mb := s.mustBlockAttackers(k); mb.any() {
+		if mb := s.mustBlockAttackers(k); mb.any() || s.blockDuty(k).any() {
 			return s.blockerOptionsReq(k, d, mb) // combat_mustbeblocked.go
 		}
 	}
@@ -924,13 +924,13 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		// so shieldCombat must leave all the shields to it (a shield on a
 		// later event is a candidate of the same ask, not an automatic
 		// spend before the ask is answered).
-		if k.gen.anyRepl&(rbDblDmg|rbShield|rbPrevCol) != 0 && !s.g.ro.on {
+		if (k.gen.anyRepl&(rbDblDmg|rbShield|rbPrevCol) != 0 || replPlusOnly(k.gen)) && !s.g.ro.on {
 			s.replOrderFreeze(k, &r, first) // gorge's replacement-order ask
 		}
 		if k.gen.anyRepl&rbShield != 0 {
 			s.shieldCombat(k, &r) // CR 122.1c, event by event (ctr_shield.go)
 		}
-		if k.gen.anyRepl&(rbDblDmg|rbProtAll|rbProtCol|rbPlusDmg|rbPrevCol) != 0 {
+		if k.gen.anyRepl&(rbDblDmg|rbProtAll|rbProtCol|rbPlusDmg|rbPrevCol|rbPrevMill) != 0 {
 			s.replCombatGen(k, &r) // amounts first, then prevention
 		}
 		s.preventCombatGen(k, &r)

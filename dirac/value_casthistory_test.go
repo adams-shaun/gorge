@@ -96,7 +96,7 @@ func TestNthSpellTrigger(t *testing.T) {
 
 // TestResolvedThisTurn: Harvestrite Host's Count$ResolvedThisTurn counts its
 // trigger's resolutions this turn, the current one included, per source
-// object (a new object has resolved nothing), reset at the turn's start.
+// object (a zone change keeps the count), reset at the turn's start.
 func TestResolvedThisTurn(t *testing.T) {
 	sc, id := newBLBScen(t, []cardset.Entry{{Name: "Harvestrite Host", Count: 2}, {Name: "Plains", Count: 8}})
 	hh := id["Harvestrite Host"]

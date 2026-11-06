@@ -238,7 +238,7 @@ type genPrep struct {
 	anyLandPlayed  bool           // a trigger is TrigLandPlayed (trig_modes.go)
 	anyCzPair      bool           // a TrigLeaves line has a destination mask (N) (trig_zonepairs.go)
 	anyLeavesGrave bool           // a TrigLeaves line also fires for a graveyard leave (kop.Tf2LeavesGrave; trig_leavesgrave.go)
-	anyKwAct       bool           // a trigger is TrigSearchedLibrary, TrigForage or TrigDiscover
+	anyKwAct       bool           // a trigger is TrigSearchedLibrary, TrigForage, TrigDiscover or TrigManifestDread
 	anyDilemma     bool           // some table reads ExDilemmasFaced or TrigFacesDilemma (trig_dilemma.go)
 	anyScryTally   bool           // some expr is ExScriedThisTurn (value_scrytally.go)
 	anyTokCr       bool           // some trigger is TrigTokenCreated (act_proliferate.go)
@@ -322,6 +322,9 @@ type genPrep struct {
 	altFree      []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
 	// anyDeferred: some card has a deferred mana source (gfDeferred; mana_deferred.go)
 	anyDeferred bool
+	// anyTapsDefer / anyTapsPain: some card has a lowered Taps watcher of
+	// class kop.TapPlanDefer / TapPlanPain (gfTapsDefer / gfTapsPain; mana_tapsdefer.go)
+	anyTapsDefer, anyTapsPain bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
 	// a potential play's scripted prefix (script_gen.go)
@@ -429,10 +432,24 @@ const (
 	rbPrevCombatTo                    // CardDef.PreventCombatTo: its combat damage events are prevented (combat_prevention.go)
 	rbPrevCombatBy                    // CardDef.PreventCombatBy: the combat damage it would deal is prevented (combat_preventfrom.go)
 	rbDiscETB                         // ReplDiscardOppToBattlefield (repl_discardetb.go)
+	rbPrevMill                        // ReplPreventMillOpps (repl_preventmill.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
 const rbCtrOn = rbDblCtrOn | rbPlusCtrOn
+
+// rbDmgCompete are the damage-replacement kinds that do not commute with a
+// plus-N addition: a doubling, a prevention or a shield. A table whose
+// anyRepl has none of them competes on additive amount changes only, whose
+// composition is the same in every order (trig_oneormore.go).
+const rbDmgCompete = rbDblDmg | rbPrevNC | rbPrevDmgTo | rbPrevCol | rbShield | rbPrevMill | rbPrevCombatTo | rbPrevCombatBy
+
+// replPlusOnly reports whether the table's only damage replacement kind is
+// ReplDamagePlus, so two or more of them competing for one event are a sum
+// no order changes (CR 616.1e; trig_oneormore.go).
+func replPlusOnly(g *genPrep) bool {
+	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbDmgCompete == 0
+}
 
 type grantRef struct {
 	card CardID
@@ -730,7 +747,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.HasBestow {
 			g.anyBestow = true
 		}
-		if c.OptCost.Flags != 0 || c.OptBehold {
+		if c.OptCost.Flags != 0 || c.OptBehold || c.OptWaterbend != 0 {
 			g.anyOptCost = true
 		}
 		if c.KickerCost.Flags != 0 {
@@ -800,7 +817,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 						g.anyLeavesGrave = true
 					}
 				}
-				if a.Trig.Event == kop.TrigSearchedLibrary || a.Trig.Event == kop.TrigForage || a.Trig.Event == kop.TrigDiscover {
+				if a.Trig.Event == kop.TrigSearchedLibrary || a.Trig.Event == kop.TrigForage || a.Trig.Event == kop.TrigDiscover || a.Trig.Event == kop.TrigManifestDread {
 					g.anyKwAct = true
 				}
 				if a.Trig.Event == kop.TrigExplores || a.Trig.Event == kop.TrigCollectEvidence {
@@ -881,6 +898,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					pc.hasStat = true
 				case kop.ReplPreventNoncombatToOthers:
 					g.replBits[i] |= rbPrevNC
+					pc.hasStat = true
+				case kop.ReplPreventMillOpps:
+					g.replBits[i] |= rbPrevMill
 					pc.hasStat = true
 				case kop.ReplDoubleTokens, kop.ReplRewriteTokens:
 					g.replBits[i] |= rbDblTok
@@ -1186,13 +1206,23 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.exwRec[f] |= bits
 		}
 	}
-	anyTaps, manaGrant := false, false
+	anyTaps, manaGrant, manaTapsPrinted := false, false, false
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
 			anyTaps = anyTaps || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps
 			g.anyTapAll = g.anyTapAll || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Flags2&kop.Tf2Batch != 0
 			g.tapsWhose = g.tapsWhose || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Whose != kop.WhoseAny
+			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps {
+				switch a.Trig.TapPlan {
+				case kop.TapPlanDefer:
+					g.setFlag(CardID(i), gfTapsDefer)
+					g.anyTapsDefer = true
+				case kop.TapPlanPain:
+					g.setFlag(CardID(i), gfTapsPain)
+					g.anyTapsPain = true
+				}
+			}
 			g.anySelfDisc = g.anySelfDisc || a.Kind == kop.AbTriggered && selfDiscLine(a)
 			g.anyTWTap = g.anyTWTap || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.N == kop.TrigNTeamworkTap
 			if a.Kind == kop.AbTriggered && a.Trig.Flags3&kop.Tf3GameOnce != 0 {
@@ -1202,9 +1232,15 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				g.anyGameOnce = true
 			}
 			manaGrant = manaGrant || a.Kind == kop.AbMana && a.AFlags&kop.AfLatent != 0
+			// A printed mana ability whose activation cost taps ({T}: Add …,
+			// tap X creatures for mana) is a mana tap the TrigTaps lines must
+			// fire on; without this the gate prices only granted mana and
+			// ordinary sources, so Hawkeye's Bow never triggers on a planned
+			// tap for a cast.
+			manaTapsPrinted = manaTapsPrinted || a.Kind == kop.AbMana && a.Cost.Flags&(kop.CostTap|kop.CostTapX) != 0
 		}
 	}
-	g.manaTaps = anyTaps && (manaGrant || g.anyTapAll)
+	g.manaTaps = anyTaps && (manaGrant || manaTapsPrinted || g.anyTapAll)
 	for i := range t.Emblems {
 		for j := range t.Emblems[i].Abilities {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatNoMaxHandSize {
@@ -1740,6 +1776,13 @@ type genState struct {
 	dmgSeqN  uint8
 	dmgSeqI  uint8
 	dmgSeqPl uint8
+	// plusBatchAsked: a dealHits batch parked on a pure plus-N order ask
+	// (trig_batches.go replPlusBatch) is being re-executed, so the additions
+	// are applied in any order and the ask is not posed again. plusBatchHit
+	// is the parked hit's index + 1 (0: none): gorge's emit returned a Note
+	// for that event, so the effect sees 0 dealt for it.
+	plusBatchAsked bool
+	plusBatchHit   uint8
 	// colG: Ext ColorGrant's until-end-of-turn records (Skrelv;
 	// static_colourgrant.go): the object (obj, ver), the
 	// chosen colour (col, a ColorMask bit; 0 = free) and cgHex / cgNoBlock /
@@ -1799,6 +1842,9 @@ func wardAmt(c *kop.CardDef) int16 {
 	if c.WardDiscOrN != 0 {
 		return wardAltBits | int16(c.WardDiscOrN) // kw_wardcost.go
 	}
+	if c.WardWaterbend != 0 {
+		return wardWBBit | int16(c.WardWaterbend) // cost_unlesswaterbend.go
+	}
 	if c.WardEvidence != 0 {
 		return wardEvBit | int16(c.WardEvidence) // kw_wardcost.go
 	}
@@ -1853,7 +1899,7 @@ const (
 	StallLKI      = 19 // maxLKI distinct last-known-information snapshots (genState.lki)
 	// 20 was a Taps trigger in a table with a granted mana ability; a granted ability's tap now fires Taps triggers like any other
 	StallInfect    = 21 // infect or toxic in a table with a damage replacement-order ask or a counter-added trigger (gen infectStall; kw_infect.go)
-	StallReplPlus  = 22 // a damage plus-N replacement and another damage replacement match one event: gorge's CR 616.1 order ask, whose answer changes the amount (trig_oneormore.go)
+	StallReplPlus  = 22 // a damage plus-N replacement and a non-commuting damage replacement match one event: gorge's CR 616.1 order ask, whose answer changes the amount (trig_oneormore.go; two plus-N additions commute and are asked as a no-op)
 	StallLifeRepl  = 25 // a life-gain doubler and a life-gain plus-N in one table: gorge's CR 616.1 order ask (they do not commute; act_discover.go)
 	StallProlif    = 26 // a proliferate gorge orders differently: more than 16 picks, or a recipient with two counter kinds in a table with a counter-added trigger (act_proliferate.go)
 	StallTapPick   = 27 // a tap-any-number cost (CostTapPower, Crew / Saddle) picked past build.picks' 24 (12 before kcaps2x; kw_crewsaddle.go)

@@ -183,9 +183,9 @@ certifications.
 ### Method and error bars
 
 1. **Denominator.** XMage's manifests omit cards XMage has not implemented.
-   Across the audited sets, the manifest differs from the printed list by −16
-   to +5 cards (gorge-compliance `main`, 2026-10-21). Reality Fracture is 5.6%
-   short and The Hobbit 6.7% short. So the newest unaudited sets may be
+   Across the audited sets, the manifest differs from the printed list by −12
+   to +5 cards (gorge-compliance `6108eb1`, 2026-11-04). Reality Fracture is 2.5%
+   short and The Hobbit 6.2% short. So the newest unaudited sets may be
    overstated by a few points, and older sets by under one point.
 2. **Name folding** between XMage and Forge names: about ±1 card per set.
 3. **Playable is not correct.** An audit finds problems that playable can't
@@ -200,16 +200,16 @@ certifications.
 
 [Getting started](../getting-started.md#1-fetch-and-compile-the-card-corpus) shows `make report`'s first lines. Every
 script compiles. `forgec compile` reports 2 diagnostics, both an unsupported Specialize rider. Here is the breakdown
-by card type (`make coverage`, at gorge `fb7579ace`, 2026-10-31):
+by card type (`make coverage`, at gorge `0ec285f67`, 2026-11-05):
 
 | Card type | Cards | Playable | % |
 |---|---:|---:|---:|
-| Creature | 18,754 | 17,957 | 95.8 |
-| Instant | 3,810 | 3,686 | 96.7 |
-| Sorcery | 3,551 | 3,406 | 95.9 |
-| Enchantment | 3,470 | 3,369 | 97.1 |
-| Artifact | 2,492 | 2,344 | 94.1 |
-| Land | 1,170 | 1,166 | 99.7 |
+| Creature | 18,973 | 18,195 | 95.9 |
+| Instant | 3,830 | 3,715 | 97.0 |
+| Sorcery | 3,581 | 3,441 | 96.1 |
+| Enchantment | 3,497 | 3,399 | 97.2 |
+| Artifact | 2,543 | 2,398 | 94.3 |
+| Land | 1,193 | 1,189 | 99.7 |
 | Planeswalker | 336 | 324 | 96.4 |
 | Battle | 37 | 35 | 94.6 |
 | Other (planes, schemes, …) | 454 | 103 | 22.7 |
@@ -265,14 +265,14 @@ file per card:
 
 ```text
 $ go test ./engine/rules/ -run 'TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead' -v
-acceptance_test.go:72: ratchet: 1 of 1123 distinct cards across the repo decks are not fully supported
-paramcensus_test.go:3651: param census: 0 of 1123 distinct repo-deck cards carry at least one unread param or unmodelled cost token; 0 distinct param labels, 0 distinct cost labels
+acceptance_test.go:70: ratchet: 1 of 1123 distinct cards across the repo decks are not fully supported
+paramcensus_test.go:3663: param census: 0 of 1123 distinct repo-deck cards carry at least one unread param or unmodelled cost token; 0 distinct param labels, 0 distinct cost labels
 ```
 
-- **Not fully supported** (1 on 2026-10-31: Incinerate, missing `stat:CantRegenerate`). One file per
+- **Not fully supported** (1 on 2026-11-05: Incinerate, missing `stat:CantRegenerate`). One file per
   card is in
   [`engine/rules/testdata/known-unsupported/`](https://github.com/adams-shaun/gorge/tree/main/engine/rules/testdata/known-unsupported).
-- **Parameter census** (0 on 2026-10-31). A listed card would be playable with at least one `$` parameter
+- **Parameter census** (0 on 2026-11-05). A listed card would be playable with at least one `$` parameter
   or cost token that isn't read yet, one file per card in `engine/rules/testdata/paramcensus/`, a directory
   that doesn't exist while nothing is outstanding.
 

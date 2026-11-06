@@ -48,6 +48,7 @@ const (
 	raGenEmpower              // OpEmpower with two or more Jace tokens: which one gets the loyalty counters (ChGenBolster, gorge's "counter_pick"; act_empower.go)
 	raGenDemonstrate          // OpDemonstrate: copy the spell? (gorge demonstrate election, ChGenConfirm; kw_demonstrate.go)
 	raGenManifestDread        // OpManifestDread: the top-two window's card to manifest (ChGenManifestDread; face_manifest.go)
+	raGenDigAllOpt            // OpDigEx ChangeNum$ All beside Optional$: the yes/no take-all election (ChGenDigOpt)
 )
 
 // ChoiceKinds of the generated table's DkChoose decisions (above the core's).
@@ -110,6 +111,7 @@ const (
 	ChGenName                                 // mode = the CardID of the nonland card whose name a permanent chooses as it enters (gorge's ETB "name" option; repl_choosename.go)
 	ChGenConspire                             // source = a creature tapped for conspire (gorge conspireAsk's KChoose "conspire", Min=Max=2, CR 702.78a); two sequential picks; kw_conspire.go
 	ChGenDelve                                // source = a graveyard card exiled toward a granted-delve cast's generic cost, one pick per decision (gorge delveAsk's multi-pick KChoose; kw_delve.go)
+	ChGenDigOpt                               // mode 1 = yes / 0 = no: ChangeNum$ All beside Optional$ (gorge effDig's allOrNothing election, "yes"/"no")
 	ChGenFaceDownPick                         // source = the hand card picked to enter face down (gorge effCloak's "face_down_choice" pick, CR 701.58a; face_manifest.go)
 )
 
@@ -666,8 +668,11 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.B.N == kop.OvEnterWith {
 			break // applied as the return entered (execReturnObj)
 		}
-		o := s.objRefObj(in.Obj)
-		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {
+		// objRef is the one resolver of "the same object on the battlefield":
+		// a Self record whose object left and came back names a new object
+		// (CR 400.7; Fire Nation Warship destroyed in response to its crew).
+		sl := s.objRef(k, in.Obj)
+		if sl == NoSlot {
 			break
 		}
 		if pc := s.res.pc; pc > 0 && s.g.retMiss {
@@ -676,14 +681,14 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			}
 		}
 		if k.gen.anyWhileHost && k.t.Overrides[in.C].WhileHost {
-			s.applyWhileHost(k, s.objs[o].slot, int(in.C), e) // filter_combatwords.go
+			s.applyWhileHost(k, sl, int(in.C), e) // filter_combatwords.go
 			break
 		}
 		if in.B.N == kop.OvChosenColor {
-			s.ovChosenColor(k, s.objs[o].slot, int(in.C), e.card, s.ovDurFl(in.A.N)) // static_animatechosen.go
+			s.ovChosenColor(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N)) // static_animatechosen.go
 			break
 		}
-		s.applyOverrideFl(k, s.objs[o].slot, int(in.C), e.card, s.ovDurFl(in.A.N))
+		s.applyOverrideFl(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N))
 	case kop.OpReflexiveTrigger:
 		n := s.value(k, in.A)
 		tobj, amt := NoObj, s.reflexAmt(k, in.B) // trig_reflexiveremembered.go: TriggerRemembered$ (B is the zero Const otherwise)
@@ -2100,7 +2105,7 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int) {
 	var dn [maxXTgt + 1]int16 // each recipient's dealt amount, for the per-referent pass
 	for i, code := range codes {
 		n := amts[i]
-		if n > 0 && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol) != 0 {
+		if n > 0 && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
 			n = s.replDamage(k, s.res.e.ctrl, s.objRef(k, kop.RefSelf), s.res.e.card, code, false, n)
 		}
 		if n <= 0 {

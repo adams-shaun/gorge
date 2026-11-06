@@ -165,21 +165,24 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 func TestStdEoeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-eoe", []stdRepro{
-		{"restricted_grant_no_unit_for_hand_cast_x", false, false},          // Mm'menon grants an untapped Specimen Freighter blue for spells not cast from hand, so Zero Point Ballad from hand has no extra mana to announce X with
-		{"restricted_grant_no_unit_for_hand_cast_x_two", false, false},      // ... and Devastating Onslaught's X likewise stops one short
-		{"restricted_grant_no_unit_for_hand_cast_pip", true, false},         // ... and a hand warp's {U/R} pip asks one colour, not the blue the Freighter's grant cannot pay a hand cast with (CR 106.6)
-		{"restricted_grant_no_unit_for_trigger_cost", true, false},          // ... and Oreplate Pangolin's "you may pay {1}" is no spell, so an artifact holding Mm'menon's blue pays nothing: only decline is asked
-		{"restricted_grant_no_unit_for_unless_window", true, false},         // CR 106.6: ... and no source for an unless cost either, so Divert Disaster's {2} taps Godless Shrine, not the Freighter holding the granted blue
-		{"granted_batch_attack_trigger_once_per_declaration", false, false}, // CR 508.1, 603.2: a granted "whenever you attack" trigger fires once for a declaration split across two defenders, not once per defender
-		{"dies_trigger_power_threshold_lki", true, false},                   // CR 603.3b: Syr Vondam's own dies trigger queues before the dies trigger Perigee Beckoner granted it
-		{"return_defender_asked_before_move", true, false},                  // CR 508.4: Chorale of the Void's attacking return asks its defender while the card is still in the graveyard, as gorge does, not after it entered
-		{"station_reads_off_battlefield_cda_power", true, false},            // CR 604.3, 702.184a: Adagia's Station counts a sacrificed Harmonious Grovestrider by its lands-you-control power, which works in the graveyard, not by its printed 0
-		{"free_mayplay_joins_a_zone_grant", true, false},                    // Weftwalking's free-only static joins Mm'menon's top-of-library grant, so the first spell is cast for free (CR 118.9)
-		{"granted_search_target_ask_gorge_order", true, false},              // a grant search branches a stacked trigger's target ask over gorge's answer order (gorgeTargetOrder), not the kernel's slot order: Nanoform Sentinel's "untap another target permanent" untaps the first opponent permanent, not its controller's first land
-		{"tap_another_activation_beside_granted_mana", true, false},         // CR 605.1a, 601.2g: the grant cap prunes a Lander's {2},{T},Sac activation the granted spell-only mana cannot pay, but a tap-another-permanent source beside it can, so the activation stays on autopay's menu
-		{"tap_another_source_beside_restricted_grant", false, false},        // CR 601.2g-h: beside Mm'menon's hand-barred granted blue, Gene Pollinator's tap-another-permanent mana pays Mechanozoa's {U}{U} from hand, so the plain cast is offered
-		{"each_return_asks_election_per_target", false, false},              // CR 614.12, 608.2c: Pull Through the Weft returns its two shock lands one at a time, each one's pay-life election asked before the next moves
-		{"unspendable_grant_is_a_prefix_gap", false, false},                 // CR 601.2g-h: Mm'menon's hand-barred granted blue prices no hand cast (Glacier Godmaw is not offered off it), yet gorge's prefix still taps Nanoform Sentinel for it as a gap step, the blue floating
+		{"restricted_grant_no_unit_for_hand_cast_x", false, false},             // Mm'menon grants an untapped Specimen Freighter blue for spells not cast from hand, so Zero Point Ballad from hand has no extra mana to announce X with
+		{"restricted_grant_no_unit_for_hand_cast_x_two", false, false},         // ... and Devastating Onslaught's X likewise stops one short
+		{"restricted_grant_no_unit_for_hand_cast_pip", true, false},            // ... and a hand warp's {U/R} pip asks one colour, not the blue the Freighter's grant cannot pay a hand cast with (CR 106.6)
+		{"restricted_grant_no_unit_for_trigger_cost", true, false},             // ... and Oreplate Pangolin's "you may pay {1}" is no spell, so an artifact holding Mm'menon's blue pays nothing: only decline is asked
+		{"restricted_grant_no_unit_for_unless_window", true, false},            // CR 106.6: ... and no source for an unless cost either, so Divert Disaster's {2} taps Godless Shrine, not the Freighter holding the granted blue
+		{"granted_batch_attack_trigger_once_per_declaration", false, false},    // CR 508.1, 603.2: a granted "whenever you attack" trigger fires once for a declaration split across two defenders, not once per defender
+		{"dies_trigger_power_threshold_lki", true, false},                      // CR 603.3b: Syr Vondam's own dies trigger queues before the dies trigger Perigee Beckoner granted it
+		{"return_defender_asked_before_move", true, false},                     // CR 508.4: Chorale of the Void's attacking return asks its defender while the card is still in the graveyard, as gorge does, not after it entered
+		{"station_reads_off_battlefield_cda_power", true, false},               // CR 604.3, 702.184a: Adagia's Station counts a sacrificed Harmonious Grovestrider by its lands-you-control power, which works in the graveyard, not by its printed 0
+		{"free_mayplay_joins_a_zone_grant", true, false},                       // Weftwalking's free-only static joins Mm'menon's top-of-library grant, so the first spell is cast for free (CR 118.9)
+		{"granted_search_target_ask_gorge_order", true, false},                 // a grant search branches a stacked trigger's target ask over gorge's answer order (gorgeTargetOrder), not the kernel's slot order: Nanoform Sentinel's "untap another target permanent" untaps the first opponent permanent, not its controller's first land
+		{"tap_another_activation_beside_granted_mana", true, false},            // CR 605.1a, 601.2g: the grant cap prunes a Lander's {2},{T},Sac activation the granted spell-only mana cannot pay, but a tap-another-permanent source beside it can, so the activation stays on autopay's menu
+		{"tap_another_source_beside_restricted_grant", false, false},           // CR 601.2g-h: beside Mm'menon's hand-barred granted blue, Gene Pollinator's tap-another-permanent mana pays Mechanozoa's {U}{U} from hand, so the plain cast is offered
+		{"each_return_asks_election_per_target", false, false},                 // CR 614.12, 608.2c: Pull Through the Weft returns its two shock lands one at a time, each one's pay-life election asked before the next moves
+		{"unspendable_grant_is_a_prefix_gap", false, false},                    // CR 601.2g-h: Mm'menon's hand-barred granted blue prices no hand cast (Glacier Godmaw is not offered off it), yet gorge's prefix still taps Nanoform Sentinel for it as a gap step, the blue floating
+		{"warp_cast_from_hand_spends_no_hand_barred_grant", true, false},       // CR 106.6, 702.185a: a warp cast is from the hand, so Nanoform Sentinel's Mm'menon-granted blue cannot pay Codecracker Hound's warp {2}{U} beside two Plains; the warp cast is not offered
+		{"relaxed_proof_refuses_restricted_grant", true, false},                // CR 106.6, 602.2b: Mm'menon's spell-only granted blue is no relaxed unit for Atomic Microsizer's Equip {2}, so gorge proves it unpayable off Godless Shrine alone and never searches the Nanoform Sentinel untap line
+		{"station_monitor_hand_cast_needs_no_hand_barred_grant", false, false}, // CR 106.6: Mm'menon's hand-barred granted blue is no relaxed unit for Station Monitor's plain hand cast, so neither copy is offered
 	})
 }
 
@@ -258,6 +261,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"sorcery_play_waits_for_prefix_trigger", false, false},            // CR 307.1: Guru Pathik is cast after Master Pakku's tap trigger resolves, and every granted source is tapped before the pass
 		{"airbent_card_with_self_flash", true, false},                      // CR 601.3b: Serpent of the Pass airbent to exile is cast at instant speed with three Lessons in the graveyard
 		{"granted_mana_once_beside_another_grant", true, false},            // Great Divide Guide's granted mana is one ability of each grantee on a board with another global grant, so the prefix search finds Earthen Ally's {2}{W}{U}{B}{R}{G} within its budget
+		{"granted_filter_funding_spends_search_budget", false, false},      // CR 605.3a: a filter's fee is funded by a non-gap source before the prefix search reaches Earthen Ally's {2}{W}{U}{B}{R}{G}, so the search spends its node budget as gorge's does and neither engine offers the activation
 		{"waterbend_no_picks_falls_to_manual_window", false, false},        // CR 602.2b, 605.3a: a waterbend cost no printed source pays falls to the manual window, which taps Great Divide Guide's granted sources in battlefield order
 		{"waterbend_no_picks_falls_to_manual_window_autopay", true, false}, // CR 602.2b, 605.3a: ... on the autopay surface too, where the planner's granted unit would otherwise pick a different source
 		{"waterbend_credit_paid_source_live_pool", true, false},            // CR 701.67a: a paid mana ability earns the waterbend credit only while its fee is unpayable, so the prefix taps it once a grant floats the fee
@@ -265,6 +269,18 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"first_only_filter_funds_play", false, false},                     // CR 605.1a, 106.1: Barrels of Blasting Jelly's first-and-only {1} any-colour filter funds Waterbender Ascension's {1}{U} and Fire Nation Palace's {1}{R} activation, so both stay on the menu
 		{"first_only_filter_funds_play_autopay", true, false},              // CR 605.1a, 106.1: ... and on the autopay surface, where the same first-and-only filter funds Fire Nation Palace's activation from the floating pool
 		{"tap_cost_source_not_its_own_granted_mana", true, false},          // CR 602.2b, 605.3a: Agna Qel'a's {2}{U},{T} is not paid by the tap that is its cost, so Great Divide Guide's grant on it adds no third mana beside Guide and Badgermole Cub's extra {G}
+		{"replplus_commuting_order", true, false},                          // CR 616.1: two plus-N replacements are a sum no order changes
+		{"waterbend_census_granted_source_tap_extra", false, false},        // CR 605.1b, 701.67a: Honest Work's Humble Merchant grant survives its lose-all abilities, so Badgermole Cub's tap extra makes the waterbend census incomplete and Foggy Swamp Vinebender's announcement offers Done
+		{"waterbend_census_granted_tap_extra_capacity", false, false},      // CR 605.1b: the same merchant tapped later in the game floats its {G} tap extra, so the payment no longer stalls
+		{"restricted_any_colour_mana_ability_sorts_first", true, false},    // CR 601.2g: White Lotus Hideout's Lesson-restricted any-colour mana sorts ahead of its {C} ability, so an announced {U} hybrid face is paid instead of stranding the cast
+		{"restricted_any_colour_owed_tap", false, false},                   // CR 601.2g, 106.6: Jasmine Dragon Tea Shop has no unrestricted any-colour sibling, so the window must tap its restricted any-colour ability for the owed pip, not its useless {C} one, or the lowered hybrid cast strands
+		{"unless_tap_extra_offers_pay", true, false},                       // CR 106.12a, 605.4a: Badgermole Cub's static TapsForMana trigger adds {G} to an animated Forest's tap, so the {2} unless cost is payable and gorge must offer Pay
+		{"filter_tap_extra_funds_cast", false, false},                      // CR 605.1a, 106.12a: Badgermole Cub adds {G} when an earthbent Rumble Arena's {1},{T} filter taps it, so the filter's {B} plus the extra pays Merchant of Many Hats' {1}{B} and the cast stays on the menu
+		{"resolved_this_turn_survives_zone_change", false, false},          // gorge events.ResolvedAbilityKey is (source, ability body) with no zone stamp: South Pole Voyager's tally still reads 2 after it is exiled and returned, so its second resolution draws
+		{"grant_key_keeps_typed_mana", false, false},                       // CR 602.2b, 601.2g-h: Barrels of Blasting Jelly's {1} fee paid in W and its tagged W leave the pool counts equal but not gorge's typed unit (Player.ManaUnits), so the grant search's payer key must keep them apart and choose W
+		{"resolved_this_turn_across_zone_change", false, false},            // CR 707.10b: Airbender Ascension returns South Pole Voyager, whose resolution count keeps the turn's tally, so the second resolution overall does not draw Earth Kingdom Jailer
+		{"crew_override_source_returned_is_new_object", false, false},      // CR 400.7: Fire Nation Warship destroyed in response to its own crew ability comes back as a new object; the crew effect finds nothing to animate
+		{"hybrid_window_restricted_any_colour_admission", false, false},    // CR 106.6, 601.2g: the lowered hybrid window takes a restricted any-colour ability ahead of a useless fixed {C} only when the restriction admits the payment (an Ally-only source pays a hybrid face; a Lesson's generic takes the {C}), and the admitted mana floats restricted
 	})
 }
 

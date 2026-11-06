@@ -3737,6 +3737,12 @@ func TestParamCensusDetectsADeletedConsumer(t *testing.T) {
 				for _, r := range f.Repls {
 					w(r.With)
 				}
+				// The census walk also reads SVar bodies (cardCensusLabels's
+				// EachSVarAbility pass), so the carrier set must too: a
+				// SacValid$ behind a linked SVar (Dromoka's Command's
+				// `DBSacrifice: DB$ Sacrifice | SacValid$`) labels the card
+				// even though no printed ability carries it.
+				f.EachSVarAbility(w)
 			}
 		}
 	}

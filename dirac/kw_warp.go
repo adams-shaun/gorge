@@ -39,6 +39,14 @@ const (
 func (s *State) offerWarpHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
 	cd := &k.t.Cards[c]
 	wc := s.adjustCost(k, p, c, o, cd.WarpCost) // the reduction applies to an alternative cost too (CR 601.2f)
+	var ha avail
+	if len(k.gen.grantPC) != 0 && s.g.availX&availWalk != 0 {
+		// gorge's potential walk counts a restricted mana ability only for
+		// a payment its restriction admits (potentialManaFor): a hand-barred
+		// grant puts no warp cast on the walk grantCap reads
+		s.walkHandAvail(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}, &ha)
+		av = &ha
+	}
 	if !av.affords(&wc, pipMaskOf(&wc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &wc, av)) {
 		return
 	}

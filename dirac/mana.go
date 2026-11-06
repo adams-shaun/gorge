@@ -199,6 +199,19 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 	// activation with mana its spend restriction cannot spend.
 	grantOK := !(s.g.noGrant && s.g.availX&availPlain != 0)
 	dual := k.gen != nil && k.gen.anyContGrant && grantOK
+	// A Taps-deferred source's classification (mana_tapsdefer.go) is a
+	// battlefield fact, so its gate lifts out of the loop: without a live
+	// TrigTaps listener every source is an ordinary unit, and the potential
+	// walks count a deferred source's tap regardless.
+	deferSkip := k.gen != nil && k.gen.anyTapsDefer && s.subs[kop.TrigTaps].any() && s.g.availX&(availWalk|availHyp) == 0
+	var deferGap slotMask
+	if deferSkip {
+		// Only the production the script route models is a census gap the
+		// prefix search pays: any other deferred source keeps its ordinary
+		// unit here, or no walk would count it and a play it funds would
+		// vanish from the offer (mana_tapsdefer.go).
+		deferGap = s.scriptTapsDefer(k, p)
+	}
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
@@ -215,6 +228,9 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 		}
 		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) {
 			continue
+		}
+		if deferSkip && deferGap.has(sl) {
+			continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go); the script route offers and prices the modelled gap, and the potential walks (availWalk, its hyp bound) still count it, its census gate downstream
 		}
 		if dual {
 			s.availGrant(k, sl, pc, a)
@@ -534,6 +550,9 @@ type planner struct {
 	// life: the payer's life, the lethal guard on summed pain
 	pairs bool
 	life  int
+	// tapsIn: the plan also taps the sources a Taps watcher defers (the
+	// second pass of plan, mana_tapsdefer.go)
+	tapsIn bool
 	// rdyn: the restricted evaluated-amount source (Helga) the plan taps and
 	// its restriction: its mana floats restricted (State.rb), spent first by
 	// the payment (mana_restrictedsource.go payRiderRestr)
@@ -679,7 +698,7 @@ func (s *State) tapPlanNeed(k *prep, p uint8, cost *kop.ManaCost, x int, exclude
 	pk.lastSl = NoSlot
 	if pk.needT > 0 {
 		pk.first = first
-		s.plan(k, p, pk, exclude)
+		s.planTiered(k, p, pk, exclude)
 	}
 }
 
@@ -909,10 +928,17 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	if k.restrSrc {
 		rd = s.payDescNow(exclude) // the restricted sources this payment may spend
 	}
+	// A Taps-deferred source's classification (mana_tapsdefer.go) is a
+	// battlefield fact, so its gate lifts out of the loop: without a live
+	// TrigTaps listener every source is an ordinary census unit.
+	deferSkip := !pk.tapsIn && k.gen != nil && k.gen.anyTapsDefer && s.subs[kop.TrigTaps].any()
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
 		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) || k.restrSrc && s.restrOnlyUsable(k, p, sl, &rd) {
+			if deferSkip && s.tapsDeferred(k, p, sl) {
+				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go)
+			}
 			order[no] = sl
 			no++
 		}
@@ -982,11 +1008,23 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	var granted [MaxPerm]bool
 	var rv [MaxPerm]uint8
 	var rk, dm [MaxPerm]uint8 // a restricted source's record kind and unadmitted ranking colours (restrViewW)
+	var tapsPain [4]pcard     // pain-only views of the sources a Pain-class Taps watcher prices (mana_tapsdefer.go)
+	ntp := 0
 	for i := 0; i < no; i++ {
 		sl := order[i]
 		pcs[i] = &k.cards[s.cardAt(sl)]
 		if k.gen != nil {
 			pcs[i] = s.manaPCGen(k, sl)
+			if k.gen.anyTapsPain && ntp < len(tapsPain) {
+				if pn, _ := s.tapsWatchClass(k, p, sl); pn > 0 && pcs[i].painCol == 0 {
+					if col := kop.ColorMask(s.srcMaskAt(pcs[i], sl) & 0x1f); col != 0 {
+						tapsPain[ntp] = *pcs[i]
+						tapsPain[ntp].painCol, tapsPain[ntp].painN, tapsPain[ntp].painOnly = col, uint8(pn), true
+						pcs[i] = &tapsPain[ntp]
+						ntp++
+					}
+				}
+			}
 			granted[i] = s.manaGranted(k, sl)
 			if k.restrSrc && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
 				if v, kd, ab, dmask := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
@@ -1024,14 +1062,10 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					hasGrant = true
 					continue
 				}
-				if k.painMana && pc.painCol != 0 {
-					if phase == 0 {
-						hasPain = true
-						if pc.painOnly {
-							continue // no normal alternative
-						}
-					} else if s.painUnit(k, sl, pc, pass, pk, i) {
-						continue
+				if k.painMana && pc.painCol != 0 && phase == 0 {
+					hasPain = true
+					if pc.painOnly {
+						continue // no normal alternative
 					}
 				}
 				sacOnly := s.canSacOnlyForMana(k, sl, pc)
@@ -1072,6 +1106,25 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				if rk[i] != 0 {
 					choice = rk[i] == rkExt || DebugRestrictedSource == 3 && rk[i] == rkWiden // a widened unit keeps its census position
+				}
+				if k.painMana && pc.painCol != 0 && phase > 0 {
+					// gorge's census lists a source with a deterministic,
+					// free-cost production in the shared census, at its
+					// battlefield position, and appends the rest after: a
+					// choice-shaped ability, a tap-and-sacrifice one, an
+					// ability that pays life (payment_plan.go
+					// paymentPlanManaUnitsOnlyCompute). The paired pain unit
+					// sits on the pass the source's census group is; a
+					// pain-only source's shape is its own ability's (Elves
+					// of Deep Shadow's {B} is deterministic, in the shared
+					// census)
+					want := 0
+					if choice {
+						want = 1
+					}
+					if s.painUnit(k, sl, pc, pass, pk, i, want) {
+						continue
+					}
 				}
 				if pc.manaDyn {
 					if pass != 2 {

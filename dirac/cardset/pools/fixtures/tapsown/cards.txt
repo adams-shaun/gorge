@@ -1,0 +1,14 @@
+# The own-creature Taps watchers (Mode$ Taps over a non-Self ValidCard$ with
+# no ValidPlayer$, any tapper): Hawkeye's Bow's "whenever equipped creature
+# becomes tapped, it deals 1 damage to each opponent" -- the equipped
+# creature's attack tap and its mana tap both fire. Captain America, Living
+# Legend's FirstTime$ True line stays refused (the kernel keeps no
+# per-object tapped-this-turn; it is not in the pool). Decks play it in
+# dirac/oracle/taps_own_creature_test.go.
+Hawkeye's Bow
+Grizzly Bears
+Llanowar Elves
+Hill Giant
+Plains
+Mountain
+Forest

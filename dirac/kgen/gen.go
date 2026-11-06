@@ -289,6 +289,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	if c.MayFlash != nil {
 		fmt.Fprintf(w, " mayflash=%s", c.MayFlash)
+		if c.MayFlashBehold != nil {
+			fmt.Fprintf(w, "+behold1%s", c.MayFlashBehold)
+		}
 	}
 	if c.Evoke != nil {
 		fmt.Fprintf(w, " evoke=%s", c.Evoke)
@@ -325,6 +328,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	if c.OptCost != nil {
 		fmt.Fprintf(w, " optcost=blight%d/behold%d%s", c.OptCost.BlightN, c.OptCost.BeholdN, c.OptCost.BeholdF)
+		if c.OptCost.Waterbend != 0 {
+			fmt.Fprintf(w, " optwaterbend=%d", c.OptCost.Waterbend)
+		}
 	}
 	if c.Leyline {
 		fmt.Fprintf(w, " leyline")

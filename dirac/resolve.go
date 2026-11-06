@@ -326,6 +326,10 @@ func (s *State) resolveWard(k *prep) {
 		s.resolveWardAlt(k) // kw_wardcost.go
 		return
 	}
+	if e.trigAmt&(wardMLBit|wardWBBit) == wardWBBit {
+		s.resolveWardWaterbend(k) // cost_unlesswaterbend.go
+		return
+	}
 	if e.trigAmt&wardEvBit != 0 {
 		s.resolveWardEvidence(k) // kw_wardcost.go
 		return
@@ -596,6 +600,15 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return 255
 	case kop.RefTriggerPlayer:
 		return e.trigPl
+	case kop.RefTriggerTgtCtrl:
+		// gorge TriggeredTargetController: the controller of the trigger's
+		// target object, read live (a referent that left the battlefield
+		// since it was dealt the damage reads its owner). No referent (a
+		// trigger kind that binds no object) keeps the queue-time player.
+		if o := e.trigObj; o != NoObj {
+			return s.ctrlOfObj(o)
+		}
+		return e.trigPl
 	case kop.RefTargetController:
 		return s.tgtCtrlSlot(k, 0)
 	case kop.RefTgtCtrl1, kop.RefTgtCtrl2:
@@ -781,7 +794,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 		return 0
 	}
 	e := &s.res.e
-	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol) != 0 {
+	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
 		if s.parkNC(k, e.ctrl, s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
 			return n // gorge's replacement-order ask, after the resolution
 		}

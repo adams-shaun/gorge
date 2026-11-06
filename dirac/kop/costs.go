@@ -300,6 +300,12 @@ const PayBReveal = 5
 // moves. Theorist's Sanctum's as-enters election (dirac/repl_revealland.go).
 const PayBBehold = 6
 
+// PayBSubWaterbend: a PayTapX unless-cost whose B.N carries this sentinel is
+// an UnlessCost$ Waterbend<A> (CR 701.67a; Waterbending Lesson): the payer's
+// pay / decline, then the taps for what the floating pool cannot cover
+// (dirac/cost_unlesswaterbend.go).
+const PayBSubWaterbend = 12
+
 // PayKind is the cost an OpUnlessPaid / OpIfPaid offers (C & 0xF).
 const (
 	PayMana    = 1 // A generic + B.N packed pips (3 bits per colour, WUBRG)
@@ -325,11 +331,12 @@ const (
 
 // Cloak/ManifestDread flags (OpCloak/OpManifestDread B.N).
 const (
-	CfTapped    = 1 << iota // the cloaked cards enter tapped (gorge Tapped$)
-	CfShuffle               // shuffle the library afterwards (gorge Shuffle$)
-	CfRemember              // the moved cards join the remembered set (RememberCloaked$/RememberManifested$)
-	CfChosen                // cloak the resolution's chosen card from where it sits, under the resolving controller (gorge effCloak's Choices$ pick, Vannifar)
-	CfCloakCtrl             // Obj names only the library's owner: the cloaked cards enter under the resolving controller (gorge's cloak(t.Obj, c.Controller), Etrata)
+	CfTapped          = 1 << iota // the cloaked cards enter tapped (gorge Tapped$)
+	CfShuffle                     // pile shuffle; no library shuffle (gorge Shuffle$)
+	CfRemember                    // the moved cards join the remembered set (RememberCloaked$/RememberManifested$)
+	CfChosen                      // cloak the resolution's chosen card from where it sits, under the resolving controller (gorge effCloak's Choices$ pick, Vannifar)
+	CfCloakCtrl                   // Obj names only the library's owner: the cloaked cards enter under the resolving controller (gorge's cloak(t.Obj, c.Controller), Etrata)
+	CfCloakRemembered             // Defined$ Remembered: cloak each remembered card from where it sits, under the resolving controller (Expose the Culprit)
 )
 
 // CostTapHost: tap the granting host (an Equipment's granted ability).

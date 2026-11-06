@@ -214,7 +214,7 @@ const (
 	// Creature.withoutHaste; CR 509.1b, 702.10a). dirac/static_cantblockexcept.go.
 	ExtExHaste ExtOp = 171
 	// NumExtOps is the capacity of the sub-op tables (ordinals below it).
-	NumExtOps ExtOp = 256
+	NumExtOps ExtOp = 257
 )
 
 // extOpNames is filled by per-sub-op init registrations (extOpNames[ExtX] = "X").
@@ -646,3 +646,27 @@ func init() { extOpNames[ExtChooseName] = "ChooseName" }
 const ExtTurnFaceUp ExtOp = 254
 
 func init() { extOpNames[ExtTurnFaceUp] = "TurnFaceUp" }
+
+// ExtAttacksIfAble: the battlefield object named by Obj (a target slot)
+// attacks this turn if able (CR 508.1d; gorge Effect StaticAbilities$
+// Mode$ MustAttack | ValidCreature$ Card.IsRemembered over RememberObjects$
+// Targeted, ExileOnMoved$ Battlefield): an attack requirement read beside
+// the MustAttack static. The mark is an arena slot bit (mechAttacksIfAble,
+// no State byte): cleared as the next turn begins and when the permanent
+// leaves the battlefield. Heckling Fiends, Incite, Courtly Provocateur.
+// dirac/combat_attacksifable.go.
+const ExtAttacksIfAble ExtOp = 255
+
+func init() { extOpNames[ExtAttacksIfAble] = "AttacksIfAble" }
+
+// ExtBlocksIfAble: the battlefield object named by Obj (a target slot)
+// blocks this turn if able (CR 509.1c; gorge Effect StaticAbilities$
+// Mode$ MustBlock | ValidCreature$ Card.IsRemembered over RememberObjects$
+// Targeted, ExileOnMoved$ Battlefield, read by combat.MustBlockCandidates):
+// a blocker requirement. The mark is an arena slot bit (mechBlocksIfAble, no
+// State byte): cleared as the next turn begins and when the permanent leaves
+// the battlefield. Culvert Ambusher, Courtly Provocateur, Hustle // Bustle.
+// dirac/combat_blocksifable.go.
+const ExtBlocksIfAble ExtOp = 256
+
+func init() { extOpNames[ExtBlocksIfAble] = "BlocksIfAble" }
