@@ -734,6 +734,45 @@ func (e *Engine) paymentPlanCensusTotal(p state.PlayerID) int32 {
 	return total
 }
 
+// planCoverInsufficient reports whether the planner's option set provably
+// cannot fund mana: a plan spends the floating pool plus, per census source,
+// one of its query alternatives (a plan activates each census source once,
+// the bound paymentPlanCensusTotal reports a witness by), so a per-colour
+// bound over pool and alternatives that cannot cover the pips covers no
+// plan. What narrows the planner never widens it -- a RestrictValid$
+// alternative the payment refuses, a restricted pool batch, a ManaConvert
+// static the ordinary solver does not apply -- so the bound stays a
+// superset of what any plan may spend. Only a plain Colored/Generic cost is
+// read: any shape the planner declines (pay.PlanCostDetail) returns false
+// and the planner plans.
+func (e *Engine) planCoverInsufficient(p state.PlayerID, mana Cost) bool {
+	if pay.PlanCostDetail(mana) != "" {
+		return false
+	}
+	bound := e.G.Players[p].Pool
+	for _, u := range pay.PaymentPlanQueryUnits(asPayer(e), p) {
+		var best state.Mana
+		for _, a := range pay.PaymentPlanQueryAlternatives(asPayer(e), u) {
+			for c := range best {
+				if a.Mana[c] > best[c] {
+					best[c] = a.Mana[c]
+				}
+			}
+		}
+		for c := range bound {
+			bound[c] += best[c]
+		}
+	}
+	need := int32(0)
+	for c := range bound {
+		if mana.Colored[c] > bound[c] {
+			return true
+		}
+		need += mana.Colored[c]
+	}
+	return bound.Total()-need < mana.Generic
+}
+
 // potentialModalCastFreeMode reports whether a plain Spree/Tiered cast of id
 // has a legal mode whose ModeCost$ is zero. Only then is the printed-cost
 // plan an exact witness for a cast the shape gate declines: the cheapest
@@ -1104,6 +1143,13 @@ func (e *Engine) planComposedCost(p state.PlayerID, id state.ObjID, composed Cos
 	}
 	if global, detail := e.paymentPlanGlobalManaEffect(p, id); global {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: detail}
+	}
+	// A consumption-only query (the shape-cast planner arm) reads the plan
+	// only for whether it pays and what it consumes, so a cost the option
+	// set provably cannot fund is answered without the search
+	// (planCoverInsufficient).
+	if e.planConsumptionOnly && e.planCoverInsufficient(p, mana) {
+		return PaymentPlanOutcome{Reason: "insufficient"}
 	}
 	// tapped: sources the cost taps (their tapping abilities cannot pay);
 	// kept: sources the cost sacrifices (they may tap for mana first, but
