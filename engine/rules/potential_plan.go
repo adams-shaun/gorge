@@ -622,7 +622,13 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 		}
 	}
 	if !e.potentialWitnessOffers(p, o, *best.Plan) {
-		if parts := altAddCostParts(f); len(parts) != 0 && o.Mode == "" {
+		// An either-or additional cost (AlternateAdditionalCost) rides a
+		// may-play cast too (CR 118.9d: the permission replaces the mana
+		// cost only), so the may-play arm is re-priced beside its parts
+		// exactly as the plain cast's is below; the offer gate (mayPlayAffordable)
+		// proves at least one part payable, and beginCast's may-play ask
+		// folds the chosen one (CR 601.2b).
+		if parts := altAddCostParts(f); len(parts) != 0 && (o.Mode == "" || o.Mode == "mayplay") {
 			return e.potentialAltAddPlan(p, o, base, parts)
 		}
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
