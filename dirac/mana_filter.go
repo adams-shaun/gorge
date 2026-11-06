@@ -362,6 +362,12 @@ func (s *State) windowRestrUseful(k *prep, sl Slot, want uint8) bool {
 // its colour is owed and the plain one's isn't (gorge owedAbilitiesFirst, which reads
 // colours only, so the mana may be mana this spell can't spend). It taps sl for that
 // mana, floating beside the pool, and reports whether it did.
+//
+// A restricted any-colour ability is owed too: gorge's owedAbilitiesFirst adds every
+// colour to a RestrictValid$ any-colour ability the payment admits, so the ask takes
+// it ahead of a fixed {C} the payment cannot spend, and its colour ask then answers
+// the pip (a hybrid face: Professor Zei's {U/R}{U/R} paid by Jasmine Dragon Tea
+// Shop's Ally-only mana). Its owed colour is the lowest the payment still lacks.
 func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCost) bool {
 	want, decided := s.windowUseful(k, p, useful)
 	if !decided || s.windowSrcMask(k, sl)&want != 0 {
@@ -382,9 +388,13 @@ func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCo
 			continue
 		}
 		if anyColour {
-			// The any-colour ability is a planner unit only for a payment
-			// its RestrictValid$ admits (CR 106.6); the fixed ones above
-			// keep the window's printed offer.
+			// gorge reads a RestrictValid$ any-colour ability's colours only
+			// when the restriction admits THIS payment (owedAbilitiesFirst:
+			// pay.RestrictValidMatches); otherwise it stays one manual option
+			// with no enumerable colours, the fixed ability answers first, and
+			// its mana is spent as that ability makes it (Jasmine's {C} paying
+			// the generic of a Lesson the Ally-only mana cannot fund). The
+			// fixed ones keep the window's printed offer.
 			d := s.payDescNow(NoObj)
 			if !s.restrSrcAdmits(k, p, sl, a, &d) {
 				continue
