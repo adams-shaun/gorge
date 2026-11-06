@@ -81,13 +81,16 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (the merge with land: land's re-measure after its rebase (a TDM card and one more) beside this branch's Waterbend unless/ward cards, each side's two disjoint; merged TDM 248 -> 249, ALL 21643 -> 21645).
 	// +1 (the merge with land: land's Yue, the Moon Spirit free noncreature cast beside this branch's UnlessCost$/Ward Waterbend<N> cards, both sides' unrefusal of Airbender Ascension taken once; merged TLA 250 -> 251, ALL 21645 -> 21646).
 	// +1 (the merge with land: this branch's anyRFiltMana lowers White Lotus Hideout's three-ability source, which land's refuseMultiMana refuses; merged TLA 251 -> 252, ALL 21646 -> 21647).
+	// +8 (this branch lowers the Effect Mode$ MustBlock static beside the pair's MustAttack: Hustle // Bustle,
+	// Courtly Provocateur, Culvert Ambusher, Culling Mark, Peema Aether-Seer, Provoke, Shessra, Death's Whisper
+	// and Timely Interference; MKM +2, DMU +1, ALL +8).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21647, 34442},
+	"ALL": {21655, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
 	"DFT": {247, 276},
-	"DMU": {193, 270},
+	"DMU": {194, 270},
 	"DSK": {242, 276},
 	"ECL": {233, 273},
 	"EOE": {238, 266},
@@ -96,7 +99,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FRA": {245, 269},
 	"HOB": {152, 172},
 	"LCI": {251, 290},
-	"MKM": {240, 279},
+	"MKM": {242, 279},
 	"MOM": {198, 296},
 	"MSH": {232, 276},
 	"NEO": {198, 287},

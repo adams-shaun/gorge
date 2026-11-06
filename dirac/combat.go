@@ -487,7 +487,7 @@ func (s *State) blockerOptions(k *prep, d *Decision) bool {
 	def := 1 - s.active
 	d.Kind, d.Player = DkBlockers, def
 	if k.gen != nil && k.gen.anyMustBlock {
-		if mb := s.mustBlockAttackers(k); mb.any() {
+		if mb := s.mustBlockAttackers(k); mb.any() || s.blockDuty(k).any() {
 			return s.blockerOptionsReq(k, d, mb) // combat_mustbeblocked.go
 		}
 	}

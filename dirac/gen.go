@@ -1776,6 +1776,13 @@ type genState struct {
 	dmgSeqN  uint8
 	dmgSeqI  uint8
 	dmgSeqPl uint8
+	// plusBatchAsked: a dealHits batch parked on a pure plus-N order ask
+	// (trig_batches.go replPlusBatch) is being re-executed, so the additions
+	// are applied in any order and the ask is not posed again. plusBatchHit
+	// is the parked hit's index + 1 (0: none): gorge's emit returned a Note
+	// for that event, so the effect sees 0 dealt for it.
+	plusBatchAsked bool
+	plusBatchHit   uint8
 	// colG: Ext ColorGrant's until-end-of-turn records (Skrelv;
 	// static_colourgrant.go): the object (obj, ver), the
 	// chosen colour (col, a ColorMask bit; 0 = free) and cgHex / cgNoBlock /

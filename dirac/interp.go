@@ -294,9 +294,12 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if track {
 			lethal = s.excessLethalGen(k, b) // captured before any hit lands
 		}
-		s.dealHits(k, hb.h[:hb.n])
-		if track {
-			s.fightExcessRec(lethal, int(hb.h[0].n)) // the damage dealt, after replacement and prevention (CR 120.4a, gorge effFight)
+		// The damage the fight effect sees, after replacement and prevention
+		// (CR 120.4a, gorge effFight): a hit parked on the replacement-order
+		// ask reports 0 (gorge's emit returned the order-choice Note; the
+		// damage itself landed), so its excess stays 0 as in gorge.
+		if parked := s.dealHits(k, hb.h[:hb.n]); !parked && track {
+			s.fightExcessRec(lethal, int(hb.h[0].ret))
 		}
 	case kop.OpTap:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {

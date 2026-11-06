@@ -393,6 +393,7 @@ ExtAddPhase	ExtOp	193
 ExtAegisClone	ExtOp	80
 ExtAirbend	ExtOp	95
 ExtAttacksIfAble	ExtOp	255
+ExtBlocksIfAble	ExtOp	256
 ExtBreachChoose	ExtOp	160
 ExtBreachReturn	ExtOp	161
 ExtChangeTargets	ExtOp	225
@@ -596,7 +597,7 @@ NumCounterKinds	CounterKind	7
 NumCounterKinds2	CounterKind	13
 NumCounterKinds3	CounterKind	65
 NumCounterKindsX	int	50
-NumExtOps	ExtOp	256
+NumExtOps	ExtOp	257
 NumManaKinds	untyped int	6
 NumSteps	Step	13
 OpAddMana	Op	48

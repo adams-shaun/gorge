@@ -1015,6 +1015,15 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.replOrderPick(a) {
 			return // ask again
 		}
+		if s.g.plusBatchAsked {
+			// a pure plus-N batch order ask (trig_batches.go replPlusBatch):
+			// the order cannot change the sum, so drop the parked event and
+			// re-execute the same op, which now deals every hit
+			s.g.ro, s.g.nc = replOrd{}, ncDmg{}
+			s.res.ask = raNone
+			s.runProg(k)
+			return
+		}
 		s.g.ro.replHdr = replHdr{}
 		s.dealNC(k)
 		if s.g.dmgSeqOn {

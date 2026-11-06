@@ -164,7 +164,7 @@ func (s *State) replPlus(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp
 		// sum, so gorge's CR 616.1 ask is a no-op and the combat order walk
 		// (replOrderCombat) poses it and applies the additions. Keep the
 		// loud stall for any non-commuting competition.
-		if !(raise == 0 && s.g.ro.on && replPlusOnly(g)) {
+		if !(raise == 0 && replPlusOnly(g) && (s.g.ro.on || s.g.plusBatchAsked)) {
 			s.capFull(StallReplPlus)
 		}
 	}
