@@ -51,15 +51,23 @@ func (s *State) permCopyEnters(o Obj) {
 }
 
 // permCopyBlocked reports whether the copy of the stack entry ce cannot be
-// modelled: a permanent spell of a multi-face card (CR 707.10g's
-// double-faced copy). It stalls the game (StallCopyFace) and returns true.
+// modelled: a permanent spell of a two-faced card whose back face the copy
+// could carry (CR 707.10g's double-faced copy). It stalls the game
+// (StallCopyFace) and returns true. An omen card is not two-faced (CR
+// 720.2c): off the stack, and on the stack not as an Omen, it has only its
+// normal characteristics (CR 720.4), so the copy of its permanent spell is
+// an ordinary copy whose token is the front face (CR 707.10f).
 //
 //go:noinline
 func (s *State) permCopyBlocked(k *prep, ce *stackEntry) bool {
 	if DebugPermCopySkip && k.cards[ce.card].types&(kop.TInstant|kop.TSorcery) == 0 {
 		return true
 	}
-	if k.cards[ce.card].types&(kop.TInstant|kop.TSorcery) != 0 || k.t.Cards[ce.card].FaceMode == kop.FaceNone {
+	if k.cards[ce.card].types&(kop.TInstant|kop.TSorcery) != 0 {
+		return false
+	}
+	switch k.t.Cards[ce.card].FaceMode {
+	case kop.FaceNone, kop.FaceOmen:
 		return false
 	}
 	s.stall(StallCopyFace)
