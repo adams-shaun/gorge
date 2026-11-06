@@ -171,9 +171,13 @@ func TestCaretakerLockstepM0(t *testing.T) {
 
 // TestCaretakerLockstepM1: the mirror, both decks with Caretakers and Drums
 // (several gaps at once: the search's depth, the order of the activations).
+// The floor was 200 Caretakers when the payment search tried the colours in
+// engine order; the announced-colour ordering (gorge's scriptOrderAnswers,
+// mirrored by the kernel) finds the Drum line first on this matchup more
+// often, and 300 games now measure 145 Caretaker and 901 Drum activations.
 func TestCaretakerLockstepM1(t *testing.T) {
 	t.Parallel()
-	kcaretakerLockstep(t, 1, 200, 600)
+	kcaretakerLockstep(t, 1, 100, 600)
 }
 
 // TestCaretakerLockstepMutation: without the gap, with the colour always

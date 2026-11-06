@@ -1294,6 +1294,58 @@ func (s *State) availAnyR(k *prep, p uint8, a *avail) {
 	}
 }
 
+// scriptGapTap taps gap sl for the script search's answer c of play a: the
+// search enumerates a Taps-deferred or restricted any-colour gap's colour
+// answers in scriptOrderAnswers' order (the play's announced colours first,
+// gorge's scriptSearch ask node), while tapGapChoice decodes engine order,
+// so the answer index is translated first. A wide two-unit Courtyard ask's
+// answers are colour pairs (no single ManaSymbol: scriptOrderAnswers leaves
+// them alone), and a Courtyard's c 0 is the "choose a mana ability" ask's
+// printed ability (no ManaSymbol either): both keep engine order.
+func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, restr, anyR, tapsDef slotMask, c int, spill *[kop.NumManaKinds]uint8) {
+	s.tapGapChoice(k, p, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c), spill)
+}
+
+// scriptEngineAnswer maps the script search's answer index c of gap sl to
+// the engine-order answer tapGapChoice decodes (scriptGapTap).
+func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slotMask, c int) int {
+	if !anyR.has(sl) && !tapsDef.has(sl) {
+		return c
+	}
+	var mask uint8
+	off := 0
+	if anyR.has(sl) {
+		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]
+		if restrWideAnyMana(ab) {
+			return c
+		}
+		mask = uint8(ab.ManaColors)
+		if c == 0 {
+			return 0
+		}
+		off, c = 1, c-1
+	} else {
+		mask = uint8(s.manaPCGen(k, sl).manaCol)
+	}
+	var order [kop.NumManaKinds]uint8
+	no := 0
+	for col := uint8(0); col < kop.NumManaKinds; col++ {
+		if mask&(1<<col) != 0 {
+			order[no] = col
+			no++
+		}
+	}
+	if c >= no {
+		return off + c // beyond the mask's colours: engine order as before
+	}
+	needFirst(order[:no], s.playNeed(k, a)) // scriptOrderAnswers on the ask
+	col := order[c]
+	if tapsDef.has(sl) {
+		return bits.OnesCount8(mask & ((1 << col) - 1)) // tapDeferFloat's engine-order index
+	}
+	return off + int(col) // floatRestrAb takes the colour itself
+}
+
 // tapGapChoice taps gap sl for p with gorge's search answer c: a Courtyard
 // (anyR) its first ability ({C}) for c 0, else colour c-1 of its
 // restricted one (State.rb); a Taps-deferred gap (tapsDef) its answer's
@@ -1360,7 +1412,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR,
 			t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 			var spill [kop.NumManaKinds]uint8
 			for j := 0; j < depth; j++ {
-				t.tapGapChoice(k, p, order[j], restr, anyR, tapsDef, int(path[j]), &spill)
+				t.scriptGapTap(k, p, a, order[j], restr, anyR, tapsDef, int(path[j]), &spill)
 			}
 			t.restrOptions(k, &d, p)
 			// gorge's search completes at a payer priority only when the play
@@ -1464,7 +1516,7 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 	}
 	var spill [kop.NumManaKinds]uint8
 	for i := 0; i < m; i++ {
-		s.tapGapChoice(k, p, order[i], restr, anyR, tapsDef, int(path[i]), &spill)
+		s.scriptGapTap(k, p, a, order[i], restr, anyR, tapsDef, int(path[i]), &spill)
 	}
 }
 
