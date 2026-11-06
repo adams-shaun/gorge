@@ -300,24 +300,9 @@ func (e *Engine) potentialSpareGrew(p state.PlayerID, payment *paymentDescriptor
 
 // tapExtraTriggerOnBoard reports whether any object prints a static
 // TapsForMana trigger (CR 605.1b), the only carriers whose extra mana a
-// source's tap adds to the bound. The carrier list is memoised; the common
-// board has none. Inside a walk the answer is memoised on the fused board
-// build (the same ver-keyed entry the cost statics use), because the mana
-// fixpoint asks once per pass; a walk is a pure read, so no face or zone can
-// move inside it.
+// source's tap adds to the bound. The carrier list is memoised and the
+// common board's is empty, so the scan is the list walk itself.
 func (e *Engine) tapExtraTriggerOnBoard() bool {
-	if c, ok := e.boardStaticsRef(); ok {
-		if c.tapExtraVer == c.ver {
-			return c.tapExtra
-		}
-		c.tapExtra = e.tapExtraTriggerOnBoardScan()
-		c.tapExtraVer = c.ver
-		return c.tapExtra
-	}
-	return e.tapExtraTriggerOnBoardScan()
-}
-
-func (e *Engine) tapExtraTriggerOnBoardScan() bool {
 	for _, oid := range pay.PaymentPlanInterferenceCarriers(asPayer(e)) {
 		o := e.G.Obj(oid)
 		if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
