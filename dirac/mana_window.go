@@ -2319,6 +2319,20 @@ func (s *State) manaStep(k *prep) bool {
 			if !s.tapForHyb(k, e.ctrl, &cost, int(e.x), e.obj, anyColor) {
 				return true // stranded: the cast was reversed (static_landtype.go)
 			}
+		} else if cd := k.t.Cards[e.card]; cd.HasAltAdd && s.bld().altAdd == 1 && cd.AltAddCost.Mana != (kop.ManaCost{}) {
+			// An either-or additional cost's mana part (CR 601.2b): gorge's
+			// payment plan was armed at the offer, before the part was chosen,
+			// and the choice folds the part's mana into the cost before any
+			// other cost stage (altAddAsk), so the plan's mana no longer
+			// matches and the planner refuses the cast
+			// (paymentPlanCheckUnits paymentFallbackCostChanged). rearmAutoPay
+			// declines a plain spell, so the cast pays through the manual CR
+			// 601.2g window: the first useful source in battlefield order
+			// (pay.ManaSourceIDs), repeated until the pool pays. The part's
+			// non-mana shape (a life part) leaves the mana untouched and the
+			// plan intact, so only the mana part routes here.
+			c := xFolded(cost, int(e.x))
+			s.windowTapRider(k, e.ctrl, &c, true, anyColor)
 		} else {
 			if s.rbAny(e.ctrl) {
 				// a rider plan that tapped a wide restricted source floated its

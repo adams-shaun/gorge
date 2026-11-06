@@ -23,6 +23,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-eoe", "tap_another_source_pays_equip_beside_granted_mana"},           // Gene Pollinator and four lands pay Meltstrider's Gear's Equip {5} beside Mm'menon's spell-only grant: the grant cap keeps the play
 		{"std-tla", "waterbend_min_taps_filter"},                                   // Barrels of Blasting Jelly adds nothing to what the window can pay
 		{"std-tla", "granted_cap_restricted_source"},                               // Honest Work beside Jasmine Dragon Tea Shop: the printed sources price Sokka
+		{"std-tla", "altadd_mana_part_manual_window"},                              // Redirect Lightning's {2} part folds into the cost after the offer's plan was armed, so the cast pays through the manual window in battlefield order, not the planner's census (CR 601.2b)
 		{"std-blb", "script_cap_skips_sufficient_plain_casts"},                     // Mind Spring and Mockingbird pay from the Islands: no prefix search spent before Pawpatch Recruit's offspring cast
 		{"std-fdn", "kicked_cast_granted_mana_prefix"},                             // Into the Roil kicked, UU from New Horizons' Mountain: the prefix prices the composed cost
 		{"std-blb", "clone_returned_card_spent_zero_mockingbird"},                  // Splash Portal returns Mockingbird, which was not cast: no mana spent, so it cannot copy Brave-Kin Duo
