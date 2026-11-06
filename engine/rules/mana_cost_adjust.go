@@ -84,12 +84,28 @@ func (s costStaticViews) anyManaReaching() bool {
 	return false
 }
 
+// anyManaReachingCostStatic is costStaticViews.anyManaReaching for the fused
+// board-statics build, memoised there: pricedManaCC asks once per mana
+// ability per walk, and the scan walks every collected raise/reduce/set
+// static. Outside a walk (no fused build to key) it scans as before.
+func (e *Engine) anyManaReachingCostStatic() bool {
+	if c, ok := e.boardStaticsRef(); ok {
+		if c.manaReachingVer == c.ver {
+			return c.manaReaching
+		}
+		c.manaReaching = c.v.cost.anyManaReaching()
+		c.manaReachingVer = c.ver
+		return c.manaReaching
+	}
+	return e.scanCostStatics().anyManaReaching()
+}
+
 // pricedManaCC is cc, the printed cost of p's mana ability ma on source,
 // after the cost statics that reach it; cc itself (shared, read-only) when
 // none does. The result is read-only like cc.
 func (e *Engine) pricedManaCC(p state.PlayerID, source state.ObjID, ma *cards.SA, cc *compiledCost) *compiledCost {
 	statics := e.collectCostStatics()
-	if !statics.anyManaReaching() {
+	if !e.anyManaReachingCostStatic() {
 		return cc
 	}
 	mods := e.costModifiersWithTargetsUsing(statics, p, source, abilityScope(ma), nil, false)

@@ -105,6 +105,16 @@ type boardStaticsCache struct {
 	// once per object, so the filter runs once per scan instead).
 	ver, carriersVer uint64
 	carriers         []staticView
+	// manaReaching is v.cost.anyManaReaching() as of manaReachingVer, and
+	// tapExtra is whether a battlefield carrier prints a TapsForMana trigger
+	// as of tapExtraVer. Both take ver as their key: it moves on every write
+	// of v, so a cached answer never outlives the lists it was read from.
+	// Kept here because both questions are asked once per mana ability (and
+	// once per mana fixpoint pass) on the same walk.
+	manaReaching    bool
+	manaReachingVer uint64
+	tapExtra        bool
+	tapExtraVer     uint64
 }
 
 // walkCrossHit reports whether an entry an EARLIER scope built at key k and

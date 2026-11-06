@@ -907,7 +907,7 @@ func (e *Engine) planCoverInsufficient(p state.PlayerID, mana Cost) bool {
 // board without the census pass the census-only path pays once per
 // consumption-only query.
 func (e *Engine) planBoardConsumesNothing(p state.PlayerID) bool {
-	if e.collectCostStatics().anyManaReaching() {
+	if e.anyManaReachingCostStatic() {
 		return false
 	}
 	if e.activeSummaryOf(e.active()).hasGrants {

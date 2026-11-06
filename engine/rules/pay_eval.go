@@ -53,7 +53,7 @@ func (pe *payer) Session() *pay.Session { return &pe.paySession }
 func (v *payEval) ManaShape(ab *cards.SA) (pay.Tier, pay.Consequence, string, bool) {
 	e := (*Engine)(v)
 	f := e.manaFactsOf(ab)
-	if f == nil || !f.shapeKnown || e.collectCostStatics().anyManaReaching() {
+	if f == nil || !f.shapeKnown || e.anyManaReachingCostStatic() {
 		return 0, pay.Consequence{}, "", false
 	}
 	if manaSAFactsVerify {
