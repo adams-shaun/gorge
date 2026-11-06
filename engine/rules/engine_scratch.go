@@ -114,6 +114,19 @@ type engineScratch struct {
 	// (engine/rules/walkcache.go). Pure per-walk scratch: Clone copies none of it.
 	boardStaticsCache  boardStaticsCache    `clone:"reset"`
 	activeStaticsCache []activeStaticsEntry `clone:"reset"`
+	// manaReachingCost memoises anyManaReachingCostStatic's answer for a
+	// state change: valid while the log, the kernel's restore epoch, the
+	// event-log head, the continuous version and the object-arena size all
+	// match the ones it was built under (prio_memo's key), so it still helps
+	// the mana window's per-ability price, which runs outside a derived walk.
+	// Pure scratch: Clone copies none of it.
+	manaReachingCost    bool        `clone:"reset"`
+	manaReachingValid   bool        `clone:"reset"`
+	manaReachingLog     *events.Log `clone:"reset"`
+	manaReachingTape    uint32      `clone:"reset"`
+	manaReachingLogLen  int         `clone:"reset"`
+	manaReachingVersion int         `clone:"reset"`
+	manaReachingObjs    int         `clone:"reset"`
 	// activeStaticsScan records the lists the last fused activeStatics scan
 	// walked (static_scan_reuse.go). Pure scratch: Clone copies none.
 	activeStaticsScan staticScanRec `clone:"reset"`

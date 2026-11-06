@@ -97,17 +97,38 @@ func (e *Engine) anyManaReachingCostStatic() bool {
 		c.manaReachingVer = c.ver
 		return c.manaReaching
 	}
-	return e.scanCostStatics().anyManaReaching()
+	if e.manaReachingValid && e.manaReachingLog == e.L && e.manaReachingTape == e.tapeEpoch &&
+		e.manaReachingLogLen == len(e.L.Events) && e.manaReachingVersion == e.continuousVersion &&
+		e.manaReachingObjs == len(e.G.Objs) {
+		if derivedMemoVerify {
+			if fresh := e.scanCostStatics().anyManaReaching(); fresh != e.manaReachingCost {
+				panic("rules: mana-reaching cost-static memo is stale")
+			}
+		}
+		return e.manaReachingCost
+	}
+	e.manaReachingCost = e.scanCostStatics().anyManaReaching()
+	e.manaReachingValid = true
+	e.manaReachingLog = e.L
+	e.manaReachingTape = e.tapeEpoch
+	e.manaReachingLogLen = len(e.L.Events)
+	e.manaReachingVersion = e.continuousVersion
+	e.manaReachingObjs = len(e.G.Objs)
+	return e.manaReachingCost
 }
 
 // pricedManaCC is cc, the printed cost of p's mana ability ma on source,
 // after the cost statics that reach it; cc itself (shared, read-only) when
 // none does. The result is read-only like cc.
 func (e *Engine) pricedManaCC(p state.PlayerID, source state.ObjID, ma *cards.SA, cc *compiledCost) *compiledCost {
-	statics := e.collectCostStatics()
+	// The common board has no cost static that reaches a mana ability, and
+	// the answer is memoised per state change, so ask it before collecting
+	// the statics the composition would need: the scan is the whole price of
+	// the common path.
 	if !e.anyManaReachingCostStatic() {
 		return cc
 	}
+	statics := e.collectCostStatics()
 	mods := e.costModifiersWithTargetsUsing(statics, p, source, abilityScope(ma), nil, false)
 	if mods.Empty() {
 		return cc
