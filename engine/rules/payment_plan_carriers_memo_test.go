@@ -152,3 +152,75 @@ func TestPaymentPlanCarriersMemoTracksEvents(t *testing.T) {
 	lacks("after the pile's departure", bear)
 	check("after the pile's departure")
 }
+
+// TestPaymentPlanCarriersMemoRebuildsOnMyriadCleanup pins the second fold
+// that runs the merged-pile departure clear: foldMyriadCleanup exiles every
+// IsMyriad battlefield object through a DIRECT move() -- no MoveZone event
+// in the tail -- and that move drops a mutated pile's under-cards (CR
+// 702.140e). A myriad token mutated under during combat therefore loses its
+// carrier membership under a MyriadCleanup fold alone, so the tail scan
+// must treat that kind as rescanning; a memo that extends over it keeps the
+// departed pile live through the len>0 gates.
+func TestPaymentPlanCarriersMemoRebuildsOnMyriadCleanup(t *testing.T) {
+	t.Parallel()
+	dorkCard := card(t, carriersMutateDork)
+	e, _, _ := newFixtureDeck(t, 9953, interferenceOneInstant, interferenceIsland, carriersMutateDork)
+	s := asPayer(e).Session()
+	memo := func() []state.ObjID { return pay.PaymentPlanInterferenceCarriers(asPayer(e)) }
+	check := func(label string) {
+		t.Helper()
+		got := memo()
+		s.PaymentPlanCarriersValid = false
+		if forced := memo(); !slices.Equal(got, forced) {
+			t.Fatalf("%s: memoised carriers %v != forced rebuild %v", label, got, forced)
+		}
+	}
+	contains := func(label string, want state.ObjID) {
+		t.Helper()
+		if !slices.Contains(memo(), want) {
+			t.Fatalf("%s: precondition: carrier list %v does not name object %d", label, memo(), want)
+		}
+	}
+	lacks := func(label string, gone state.ObjID) {
+		t.Helper()
+		if slices.Contains(memo(), gone) {
+			t.Fatalf("%s: precondition: carrier list %v still names departed object %d", label, memo(), gone)
+		}
+	}
+
+	// A vanilla bearer on the battlefield, then a Myriad token minted from
+	// it through the real fold pair (MyriadCopy mints in the untracked
+	// ZLibrary state; the follow-up MoveZone brings it in, exactly as
+	// engine/effects/myriad.go emits them).
+	bear := putToken(t, e, 0, mutateBearSrc, state.ZBattlefield)
+	e.emit(events.Event{Kind: events.MyriadCopy, Player: 0, Obj: bear, IDs: []state.ObjID{1}})
+	tok := e.G.Objs[len(e.G.Objs)-1].ID
+	e.emit(events.Event{Kind: events.MoveZone, Obj: tok, From: state.ZLibrary, To: state.ZBattlefield})
+	if o := e.G.Obj(tok); o == nil || o.Zone != state.ZBattlefield || !o.IsMyriad {
+		t.Fatalf("precondition: the myriad token %+v is not a battlefield IsMyriad object", o)
+	}
+	lacks("after the myriad token", tok) // a copy of the vanilla bear carries nothing
+	check("after the myriad token")
+
+	// Mutate the TapsForMana dork under the myriad token mid-combat (mutate
+	// targets any non-Human creature you control, tokens included): the
+	// Mutate fold makes the pile a carrier through its under-card.
+	dork := moveSeededCard(t, e, 0, dorkCard, state.ZHand)
+	addMana(t, e, 0, "RRR") // the mutate cost {2}{R}
+	mutateCastOnto(t, e, mutatedCastOption(t, e, dork), tok, false)
+	contains("after the mutate under the token", tok)
+	check("after the mutate under the token")
+
+	// End of combat: the MyriadCleanup fold's direct move() runs the
+	// merged-pile departure clear under Kind MyriadCleanup -- no MoveZone
+	// event reaches the tail -- so this kind alone must rebuild the memo.
+	if o := e.G.Obj(tok); o.Zone != state.ZBattlefield || len(o.MergedCards) == 0 || !o.IsMyriad {
+		t.Fatalf("precondition: the pile %+v is not a mutated battlefield myriad token", o)
+	}
+	e.emit(events.Event{Kind: events.MyriadCleanup})
+	if o := e.G.Obj(tok); o.Zone != state.ZExile || len(o.MergedCards) != 0 {
+		t.Fatalf("precondition: the fold did not exile the mutated pile clear: zone %v, merged %v", o.Zone, o.MergedCards)
+	}
+	lacks("after the myriad cleanup", tok)
+	check("after the myriad cleanup")
+}

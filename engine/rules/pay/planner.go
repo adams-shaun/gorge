@@ -271,9 +271,11 @@ func PaymentPlanProductions(e Engine, id state.ObjID, ma *cards.SA) []string {
 // logged event runs. The memo is incremental: Objs only ever grows (an
 // object's Card is set at creation and never reassigned), and carrier
 // membership among existing objects changes only through a Mutate or
-// HiddenIdentity fold or the merged-pile departure clear inside a MoveZone
-// fold (CR 702.140e) -- so an inert event tail keeps the built list and
-// extends it over the new objects, anything else rebuilds.
+// HiddenIdentity fold or the merged-pile departure clear (CR 702.140e),
+// which runs inside both a MoveZone fold and a MyriadCleanup fold (whose
+// direct exile Move reaches the same clear) -- so an inert event tail keeps
+// the built list and extends it over the new objects, anything else
+// rebuilds.
 func PaymentPlanInterferenceCarriers(e Engine) []state.ObjID {
 	s := e.Session()
 	evs := e.Log().Events
@@ -348,15 +350,16 @@ func paymentPlanCarries(o *state.Object, carries func(*cards.Face) bool) bool {
 
 // carriersTailRescans reports whether any event in tail can change carrier
 // membership among existing objects: a Mutate or HiddenIdentity fold (which
-// assign MergedCards or re-identify the printed faces) or a MoveZone fold
-// (whose merged-pile departure clear drops a mutated permanent's under-cards,
-// CR 702.140e). Every other kind leaves the printed faces of every existing
-// object alone, so the memo extends over the new objects instead of
-// rebuilding.
+// assign MergedCards or re-identify the printed faces) or the merged-pile
+// departure clear (CR 702.140e), which drops a mutated permanent's
+// under-cards and runs inside BOTH a MoveZone fold and a MyriadCleanup fold
+// (foldMyriadCleanup's direct exile Move reaches the same clear in move()).
+// Every other kind leaves the printed faces of every existing object alone,
+// so the memo extends over the new objects instead of rebuilding.
 func carriersTailRescans(tail []events.Event) bool {
 	for i := range tail {
 		switch tail[i].Kind {
-		case events.Mutate, events.HiddenIdentity, events.MoveZone:
+		case events.Mutate, events.HiddenIdentity, events.MoveZone, events.MyriadCleanup:
 			return true
 		}
 	}
