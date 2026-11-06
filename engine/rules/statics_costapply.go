@@ -55,7 +55,7 @@ func (e *Engine) costStaticGate(sv staticView, mode string, p state.PlayerID, id
 }
 
 // costStaticGateFull is costStaticGate's full gate chain: the
-// target-independent head (costStaticGatePrefix) followed by the
+// target-independent head (costStaticGatePrefixCore) followed by the
 // target-dependent tail (costStaticGateTail). The split is load-bearing for
 // the potential walk's compose plan (cost_compose_plan.go), which records the
 // head's verdict per static during one candidate assignment and lets the
@@ -64,19 +64,39 @@ func (e *Engine) costStaticGate(sv staticView, mode string, p state.PlayerID, id
 // every denial it reaches must stay a target-independent one (indepFail
 // true).
 func (e *Engine) costStaticGateFull(sv staticView, mode string, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, xBound bool) (ok, indepFail bool) {
-	if !e.costStaticGatePrefix(sv, p, id, scope) {
+	if !e.costStaticGatePrefixCore(sv, p, id, scope) {
 		return false, true
 	}
 	return e.costStaticGateTail(sv, mode, p, id, scope, targets, xBound, nil, 0)
 }
 
-// costStaticGatePrefix is the head of costStaticGateFull's chain: the class
-// band, the Type$ and actor gates, OnlyFirstSpell$, the ValidCard$ branch
-// (including the cast-provenance capture, which no later gate reads) and
-// FirstForetell$. None of these gates reads the pass's targets, so the
+// costStaticGatePrefix is the plan's collect-side head (cost_compose_plan.go):
+// costStaticGate's Card.Self early-out -- kept verbatim, so the collecting
+// compose pays exactly what the plain chain pays for the one static every
+// other card in the zone is priced against -- followed by the head core.
+// Its denial is a target-independent one (indepFail true at
+// costStaticGateFull).
+func (e *Engine) costStaticGatePrefix(sv staticView, p state.PlayerID, id state.ObjID, scope costScope) bool {
+	if id != sv.Source {
+		if spec, has := sv.Param(cards.PKValidCard); has && spec == "Card.Self" {
+			if walkSkipVerify {
+				if full, _ := e.costStaticGateFull(sv, "ReduceCost", p, id, scope, nil, false); full {
+					panic(fmt.Sprintf("rules: Card.Self cost static of %d applied to obj %d", sv.Source, id))
+				}
+			}
+			return false
+		}
+	}
+	return e.costStaticGatePrefixCore(sv, p, id, scope)
+}
+
+// costStaticGatePrefixCore is the head of costStaticGateFull's chain: the
+// class band, the Type$ and actor gates, OnlyFirstSpell$, the ValidCard$
+// branch (including the cast-provenance capture, which no later gate reads)
+// and FirstForetell$. None of these gates reads the pass's targets, so the
 // verdict is the same for every candidate target assignment of one compose.
 // mode and xBound are absent because no head gate reads them.
-func (e *Engine) costStaticGatePrefix(sv staticView, p state.PlayerID, id state.ObjID, scope costScope) bool {
+func (e *Engine) costStaticGatePrefixCore(sv staticView, p state.PlayerID, id state.ObjID, scope costScope) bool {
 	sv = castersView(sv, p, id, scope.Kind == "Spell")
 	if !e.classBandGateHolds(sv.ParamStr(cards.PKClassBand), sv.Source) {
 		return false
