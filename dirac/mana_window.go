@@ -1840,15 +1840,17 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 
 // witnessAtCheapest reprices a witness the printed composition cannot fund (rules
 // potentialModeCastPlan): a target-conditional reduction at the cheapest legal
-// target, and a hand cast's either-or additional cost with its part that has mana
-// when no part without mana can be paid.
+// target, and a hand or may-play cast's either-or additional cost with its part
+// that has mana when no part without mana can be paid (rules potentialAltAddPlan
+// prices the may-play arm beside its parts like the plain cast's: the permission
+// replaces the mana cost only, CR 118.9d).
 func (s *State) witnessAtCheapest(k *prep, p uint8, cost *kop.ManaCost, av *avail) {
 	e := &s.bld().e
 	if e.kind != seSpell {
 		return
 	}
 	cd := &k.t.Cards[e.card]
-	if cd.HasAltAdd && e.flags&sfMayPlay == 0 && s.objs[e.obj].zone == kop.ZoneHand && !s.altAddFreePart(k, p, e.card, e.obj) {
+	if cd.HasAltAdd && (e.flags&sfMayPlay != 0 || s.objs[e.obj].zone == kop.ZoneHand) && !s.altAddFreePart(k, p, e.card, e.obj) {
 		*cost = s.altAddReduced(k, *cost, s.altAddManaPart(k, e.card))
 		return
 	}
