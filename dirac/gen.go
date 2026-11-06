@@ -1776,11 +1776,13 @@ type genState struct {
 	dmgSeqN  uint8
 	dmgSeqI  uint8
 	dmgSeqPl uint8
-	// plusBatchAsked: a dealHits batch parked on a pure plus-N order ask
-	// (trig_batches.go replPlusBatch) is being re-executed, so the additions
+	// plusBatchAsked: a damage pass parked on a pure plus-N order ask
+	// (trig_batches.go replPlusBatch, and the direct replDamage sites'
+	// replPlusSrcPass: OpDealDamageFrom's player mode, OpResolveDamageMap and
+	// the one-target divided batch) is being re-executed, so the additions
 	// are applied in any order and the ask is not posed again. plusBatchHit
-	// is the parked hit's index + 1 (0: none): gorge's emit returned a Note
-	// for that event, so the effect sees 0 dealt for it.
+	// (dealHits only) is the parked hit's index + 1 (0: none): gorge's emit
+	// returned a Note for that event, so the effect sees 0 dealt for it.
 	plusBatchAsked bool
 	plusBatchHit   uint8
 	// colG: Ext ColorGrant's until-end-of-turn records (Skrelv;

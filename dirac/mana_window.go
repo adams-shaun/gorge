@@ -2170,7 +2170,7 @@ func (s *State) dealAnnouncedDivision(k *prep, e *stackEntry, slot uint8) bool {
 		i++
 	}
 	if m > 0 {
-		s.damageBatch(k, codes[:m], amts[:m])
+		s.damageBatch(k, codes[:m], amts[:m], true) // parked: the op pauses, the answer re-executes it
 	}
 	return true
 }

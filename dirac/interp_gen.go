@@ -245,14 +245,19 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpDealDamageEx:
 		s.execDamageEx(k, in)
 	case kop.OpResolveDamageMap:
+		// The map is read, not consumed, until the batch deals: a pass parked
+		// on the pure plus-N order ask (repl_plus_sites.go) pauses here and
+		// the answer re-executes this op, which re-reads the same map.
 		n := s.g.ndmg
-		s.g.ndmg = 0
 		var codes [maxDmgMap]uint8
 		var amts [maxDmgMap]int
 		for i := 0; i < int(n); i++ {
 			codes[i], amts[i] = s.g.dmg[i].code, int(s.g.dmg[i].amt)
 		}
-		s.damageBatch(k, codes[:n], amts[:n])
+		if s.damageBatch(k, codes[:n], amts[:n], true) {
+			break // parked, or a multi-event map's loud stall latched: nothing is dealt
+		}
+		s.g.ndmg = 0
 	case kop.OpDealDamageDivided:
 		// an announced cast-time division is dealt as announced (CR 601.2d,
 		// 608.2b); otherwise gorge divides at resolution
@@ -269,7 +274,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		if m == 1 {
 			amts := [1]int{total}
-			s.damageBatch(k, codes[:1], amts[:])
+			s.damageBatch(k, codes[:1], amts[:], true) // parked: runProg pauses on the parked event
 			break
 		}
 		s.xtOf(e).div = [maxXTgt + 1]uint8{}
@@ -962,7 +967,11 @@ func (s *State) answerDivide(k *prep, c uint8) {
 			n++
 		}
 	}
-	s.damageBatch(k, codes[:n], amts[:n])
+	// park=false: this is the raGenDivide answer, not an op-instruction pause
+	// — re-executing OpDealDamageDivided here would re-pose the divide ask
+	// gorge does not repeat — so a pure plus-N competition keeps the loud
+	// stall (replPlus) instead of parking.
+	s.damageBatch(k, codes[:n], amts[:n], false)
 	s.continueRes(k, 0)
 }
 
@@ -2097,8 +2106,16 @@ const NoSubtypeIdx = 254
 // recipients as one simultaneous event (a Drakuseth damage map, damage
 // divided at targeting): lifelink gains the total once, a DamageDealtOnce line
 // fires once with the total, and every other damage trigger fires per recipient.
-func (s *State) damageBatch(k *prep, codes []uint8, amts []int) {
+// park probes the pure plus-N order ask before any dealing (repl_plus_sites.go;
+// the answerDivide caller passes false and keeps the loud stall). It reports
+// whether the batch was parked on that ask (or a multi-event batch's loud stall
+// latched) instead of dealt, so the caller's op pauses on the parked event for
+// the answer to re-execute it.
+func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool {
 	kw := s.srcKw(k)
+	if park && s.replPlusSrcPass(k, s.res.e.ctrl, s.objRef(k, kop.RefSelf), s.res.e.card, kw, codes, amts) {
+		return true
+	}
 	inf := k.gen.anyInfect && s.srcInfect(k)
 	wit := k.gen.anyInfect && s.srcWither(k, kw) // wither's creature half
 	total, toPl, plM := 0, false, uint8(0)
@@ -2143,8 +2160,11 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int) {
 		dn[i] = int16(n)
 		s.res.lastDmg = int16(n)
 	}
+	// a triggered or lifelink follow-up can deal nested damage: the batch's
+	// re-execution exemption ends with the events themselves (trig_batches.go)
+	s.g.plusBatchAsked = false
 	if total == 0 {
-		return
+		return false
 	}
 	if kw&kop.KwLifelink != 0 {
 		s.gainLife(k, s.res.e.ctrl, total)
@@ -2161,6 +2181,7 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int) {
 		}
 		s.fireDamageRefs(k, codes, dn[:len(codes)]) // one Damage event per recipient
 	}
+	return false
 }
 
 // discardMatch reports whether hand card o matches the discard's filter.

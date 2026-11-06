@@ -141,6 +141,18 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 		return
 	}
 	code := PlayerTarget0 + p
+	// No CR 616.1 order ask here, unlike the dealHits batch and the other
+	// direct replDamage sites (repl_plus_sites.go): the mana step is not a
+	// program step, so a parked event has no op whose re-execution would deal
+	// it — the only park in this flow is the sac mana-hold (mana.go), which
+	// re-runs the whole mana step after the production joined the pool, and
+	// the out-of-program park route would ask only before priority, later
+	// than gorge's ask point (inside the payment, engine/rules/
+	// replacement.go's context-free collection), with damageTo's tail instead
+	// of this rider's (infect, markDealt, fireDamage with the land). gorge
+	// does ask there, so two or more pure plus-N replacements matching the
+	// rider cap StallReplPlus loudly (replPlus): safe-side; the pool cannot
+	// reach two candidates for a land's self-damage today.
 	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
 		if n = s.replDamage(k, p, sl, s.cardAt(sl), code, false, n); n <= 0 {
 			return
