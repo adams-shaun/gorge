@@ -71,7 +71,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	card := s.objs[o].card
 	p0, p1 := s.eachPlayers(k, kop.Ref(in.C))
 	// A pure plus-N competition poses gorge's no-op CR 616.1 order ask before
-	// the pass deals (repl_plus_sites.go): the op parks and the answer
+	// the pass deals (repl_plus.go): the op parks and the answer
 	// re-executes it, which deals the summed amount; two competing player
 	// events (RefEachPlayer) and any noncommuting candidate keep the loud
 	// stall. The flag clears with the pass's events, below and at the early

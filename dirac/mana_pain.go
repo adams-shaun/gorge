@@ -142,7 +142,7 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 	}
 	code := PlayerTarget0 + p
 	// No CR 616.1 order ask here, unlike the dealHits batch and the other
-	// direct replDamage sites (repl_plus_sites.go): the mana step is not a
+	// direct replDamage sites (repl_plus.go): the mana step is not a
 	// program step, so a parked event has no op whose re-execution would deal
 	// it — the only park in this flow is the sac mana-hold (mana.go), which
 	// re-runs the whole mana step after the production joined the pool, and

@@ -17,7 +17,7 @@ import (
 // plus-N competition at OpDealDamageFrom's player mode: gorge collects both
 // matching damage replacements and asks the affected player their CR 616.1
 // order even though the additions commute, so the kernel poses the same
-// no-op ask before the pass deals (dirac/repl_plus_sites.go
+// no-op ask before the pass deals (dirac/repl_plus.go
 // replPlusSrcPass). Deck B is the dmgsrcpl deck 2, which has no Fated
 // Firepower, so only deck A's trigger damage competes. Deck A carries no
 // Shock: a resolving Shock's damage would pose the already-wired damageTo

@@ -246,7 +246,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		s.execDamageEx(k, in)
 	case kop.OpResolveDamageMap:
 		// The map is read, not consumed, until the batch deals: a pass parked
-		// on the pure plus-N order ask (repl_plus_sites.go) pauses here and
+		// on the pure plus-N order ask (repl_plus.go) pauses here and
 		// the answer re-executes this op, which re-reads the same map.
 		n := s.g.ndmg
 		var codes [maxDmgMap]uint8
@@ -2106,7 +2106,7 @@ const NoSubtypeIdx = 254
 // recipients as one simultaneous event (a Drakuseth damage map, damage
 // divided at targeting): lifelink gains the total once, a DamageDealtOnce line
 // fires once with the total, and every other damage trigger fires per recipient.
-// park probes the pure plus-N order ask before any dealing (repl_plus_sites.go;
+// park probes the pure plus-N order ask before any dealing (repl_plus.go;
 // the answerDivide caller passes false and keeps the loud stall). It reports
 // whether the batch was parked on that ask (or a multi-event batch's loud stall
 // latched) instead of dealt, so the caller's op pauses on the parked event for

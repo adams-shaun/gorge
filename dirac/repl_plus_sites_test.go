@@ -28,7 +28,7 @@ func replPlusSiteTable(c int16, cards ...kop.CardDef) (*kop.Table, CardID, kop.F
 	return &tbl, plus, cfid
 }
 
-// The direct replDamage sites (repl_plus_sites.go): a resolving op's damage
+// The direct replDamage sites (repl_plus.go): a resolving op's damage
 // pass whose exactly one event is matched by two or more pure plus-N
 // replacements poses gorge's no-op CR 616.1 order ask before any dealing,
 // the answer re-executing the op with the summed amount. Each test keeps its
