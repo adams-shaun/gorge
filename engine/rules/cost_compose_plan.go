@@ -61,6 +61,35 @@ type costComposePlan struct {
 	// branch and is assignment-independent, so the serve passes -- which skip
 	// the head -- restore it from here.
 	prov bool
+	// tmatch memoises the tail's per-(static, candidate) ValidTarget$
+	// object-match verdicts: one call's assignments share the same candidates
+	// and specs, so the matches the earlier assignments' tails computed serve
+	// the later ones.
+	tmatch []costTargetMatch
+}
+
+// costTargetMatch is one remembered ValidTarget$ verdict: the plan cursor of
+// the static whose tail asked, the candidate it was asked about and the
+// verdict.
+type costTargetMatch struct {
+	si int32
+	t  state.Target
+	m  bool
+}
+
+// targetMatch answers the memo, or reports a miss.
+func (plan *costComposePlan) targetMatch(si int32, t state.Target) (bool, bool) {
+	for i := range plan.tmatch {
+		if plan.tmatch[i].si == si && plan.tmatch[i].t == t {
+			return plan.tmatch[i].m, true
+		}
+	}
+	return false, false
+}
+
+// rememberTargetMatch stores one verdict (append-only within the call).
+func (plan *costComposePlan) rememberTargetMatch(si int32, t state.Target, m bool) {
+	plan.tmatch = append(plan.tmatch, costTargetMatch{si: si, t: t, m: m})
 }
 
 // costComposePlanFor returns the active plan for a compose, or nil. Only a
@@ -97,13 +126,14 @@ func (e *Engine) costStaticGatePlanned(sv staticView, mode string, p state.Playe
 			plan.skip = append(plan.skip, true)
 			return false, true
 		}
+		si := int32(len(plan.skip))
 		plan.skip = append(plan.skip, false)
-		return e.costStaticGateTail(sv, mode, p, id, scope, targets, xBound)
+		return e.costStaticGateTail(sv, mode, p, id, scope, targets, xBound, plan, si)
 	}
 	ok, indepFail = false, true
 	if plan.i < len(plan.skip) {
 		if !plan.skip[plan.i] {
-			ok, indepFail = e.costStaticGateTail(sv, mode, p, id, scope, targets, xBound)
+			ok, indepFail = e.costStaticGateTail(sv, mode, p, id, scope, targets, xBound, plan, int32(plan.i))
 		}
 		plan.i++
 	} else {

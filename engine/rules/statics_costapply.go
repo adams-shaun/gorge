@@ -67,7 +67,7 @@ func (e *Engine) costStaticGateFull(sv staticView, mode string, p state.PlayerID
 	if !e.costStaticGatePrefix(sv, p, id, scope) {
 		return false, true
 	}
-	return e.costStaticGateTail(sv, mode, p, id, scope, targets, xBound)
+	return e.costStaticGateTail(sv, mode, p, id, scope, targets, xBound, nil, 0)
 }
 
 // costStaticGatePrefix is the head of costStaticGateFull's chain: the class
@@ -167,9 +167,11 @@ func (e *Engine) costStaticGatePrefix(sv staticView, p state.PlayerID, id state.
 // head's verdict is assumed -- the potential walk's compose plan
 // (cost_compose_plan.go) calls this directly for a static whose recorded
 // head verdict passed -- so the caller must have run the head for the same
-// static, payer, object and scope. The head's castersView is re-applied: a
-// pure read, and the tail is reachable without it.
-func (e *Engine) costStaticGateTail(sv staticView, mode string, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, xBound bool) (ok, indepFail bool) {
+// static, payer, object and scope. plan and si thread the plan's
+// per-(static, candidate) ValidTarget$ match memo (a nil plan is the plain
+// chain). The head's castersView is re-applied: a pure read, and the tail is
+// reachable without it.
+func (e *Engine) costStaticGateTail(sv staticView, mode string, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, xBound bool, plan *costComposePlan, si int32) (ok, indepFail bool) {
 	sv = castersView(sv, p, id, scope.Kind == "Spell")
 	if vs, ok := sv.Param(cards.PKValidSpell); ok && !e.validSpellMatches(sv, scope, p, id, vs, targets) {
 		return false, false
@@ -207,10 +209,10 @@ func (e *Engine) costStaticGateTail(sv staticView, mode string, p state.PlayerID
 			// UnlessValidTarget$ True inverts the test (Mavinda's "if that
 			// spell doesn't target a creature you control, it costs {8}
 			// more"): see costTargetsUnless for the offer-phase direction.
-			if !e.costTargetsUnless(sv, spec, id, scope, targets) {
+			if !e.costTargetsUnlessPlan(sv, spec, id, scope, targets, plan, si) {
 				return false, false
 			}
-		} else if !e.costTargetsMatch(sv, spec, targets) {
+		} else if !e.costTargetsMatchPlan(sv, spec, targets, plan, si) {
 			return false, false
 		}
 	}
@@ -308,6 +310,14 @@ func (e *Engine) relativeAmountResolves(sv staticView, sub costSubject, targets 
 // player-spec matcher as the other static gates. A nil target slice is the
 // pre-announcement offer phase and deliberately cannot satisfy the condition.
 func (e *Engine) costTargetsMatch(sv staticView, spec string, targets []state.Target) bool {
+	return e.costTargetsMatchPlan(sv, spec, targets, nil, 0)
+}
+
+// costTargetsMatchPlan is costTargetsMatch under the potential walk's compose
+// plan: a per-(static, candidate) object-target verdict is a pure read of one
+// at-rest state, so the collecting assignment's matches serve the later
+// assignments' tails through the plan's memo.
+func (e *Engine) costTargetsMatchPlan(sv staticView, spec string, targets []state.Target, plan *costComposePlan, si int32) bool {
 	if len(targets) == 0 {
 		return false
 	}
@@ -319,7 +329,17 @@ func (e *Engine) costTargetsMatch(sv staticView, spec string, targets []state.Ta
 			}
 			continue
 		}
-		if e.matchesSpec(spec, target.Obj, ctx) {
+		var m, ok bool
+		if plan != nil {
+			m, ok = plan.targetMatch(si, target)
+		}
+		if !ok {
+			m = e.matchesSpec(spec, target.Obj, ctx)
+			if plan != nil {
+				plan.rememberTargetMatch(si, target, m)
+			}
+		}
+		if m {
 			return true
 		}
 	}
@@ -337,11 +357,17 @@ func (e *Engine) costTargetsMatch(sv staticView, spec string, targets []state.Ta
 // makes the cast unaffordable is withheld from the target menu
 // (affordableTargetCandidates).
 func (e *Engine) costTargetsUnless(sv staticView, spec string, id state.ObjID, scope costScope, targets []state.Target) bool {
+	return e.costTargetsUnlessPlan(sv, spec, id, scope, targets, nil, 0)
+}
+
+// costTargetsUnlessPlan is costTargetsUnless with the plan's per-(static,
+// candidate) match memo threaded (costTargetsMatchPlan).
+func (e *Engine) costTargetsUnlessPlan(sv staticView, spec string, id state.ObjID, scope costScope, targets []state.Target, plan *costComposePlan, si int32) bool {
 	if len(targets) == 0 {
 		sa := pay.CostTargetingSA(e.G, id, scope)
 		return sa == nil || !effects.TargetsOf(sa).Targeted()
 	}
-	return !e.costTargetsMatch(sv, spec, targets)
+	return !e.costTargetsMatchPlan(sv, spec, targets, plan, si)
 }
 
 // costAffectedZone is the zone an AffectedZone$ cost gate reads for the
