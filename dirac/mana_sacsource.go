@@ -516,6 +516,7 @@ func (s *State) playNeedsEmptyStack(k *prep, a Action) bool {
 // so the kernel answers it here and lets the resolution finish. Any other
 // ask is not the search's to answer: the play waits above it, as before.
 func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
+	resolved := false // the loop resolved a stack item: the SBA pass follows (CR 704.3)
 	for !s.over {
 		switch s.ctl {
 		case ctlPriority:
@@ -524,7 +525,7 @@ func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
 				continue
 			}
 			if !resolve || s.sp <= sp0 {
-				if resolve {
+				if resolve && resolved {
 					// the resolutions are done: the priority they end at
 					// runs its state-based check before the search's pass
 					// is answered (CR 704.3). A line the script's
@@ -532,12 +533,16 @@ func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
 					// trigger at the last opponent's 1 life -- ends the
 					// search there, as gorge's visit does at the resulting
 					// priority's c.G.Over, and the play is not offered.
+					// Nothing resolved, nothing to check: the ordinary
+					// path's call with the stack untouched skips it.
 					s.sba(k)
 				}
 				return
 			}
+			spBefore := s.sp
 			s.passes = 1
 			s.pass(k)
+			resolved = resolved || s.sp < spBefore
 		case ctlPlaceTriggers:
 			var d Decision
 			s.stepRaw(&d) // the script answers the raw pose order (scriptAnswers), not StepOne's canonical sort
@@ -588,6 +593,7 @@ func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
 				return
 			}
 			s.Apply(d.Options[yes])
+			resolved = true
 		default:
 			return
 		}

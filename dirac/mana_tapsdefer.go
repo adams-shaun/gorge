@@ -61,7 +61,7 @@ func (s *State) tapsWatchClass(k *prep, p uint8, sl Slot) (painN int, deferSrc b
 // tapsDeferred reports whether sl is a source gorge's planner never taps
 // (tapsWatchClass's Defer class).
 func (s *State) tapsDeferred(k *prep, p uint8, sl Slot) bool {
-	if k.gen == nil || !k.gen.anyTapsDefer {
+	if k.gen == nil || !k.gen.anyTapsDefer || !s.subs[kop.TrigTaps].any() {
 		return false
 	}
 	_, d := s.tapsWatchClass(k, p, sl)

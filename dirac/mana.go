@@ -199,6 +199,11 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 	// activation with mana its spend restriction cannot spend.
 	grantOK := !(s.g.noGrant && s.g.availX&availPlain != 0)
 	dual := k.gen != nil && k.gen.anyContGrant && grantOK
+	// A Taps-deferred source's classification (mana_tapsdefer.go) is a
+	// battlefield fact, so its gate lifts out of the loop: without a live
+	// TrigTaps listener every source is an ordinary unit, and the potential
+	// walks count a deferred source's tap regardless.
+	deferSkip := k.gen != nil && k.gen.anyTapsDefer && s.subs[kop.TrigTaps].any() && s.g.availX&(availWalk|availHyp) == 0
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
@@ -216,7 +221,7 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) {
 			continue
 		}
-		if k.gen != nil && s.g.availX&(availWalk|availHyp) == 0 && s.tapsDeferred(k, p, sl) {
+		if deferSkip && s.tapsDeferred(k, p, sl) {
 			continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go); the potential walks (availWalk, its hyp bound) still count it, its census gate is downstream
 		}
 		if dual {
@@ -915,11 +920,15 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	if k.restrSrc {
 		rd = s.payDescNow(exclude) // the restricted sources this payment may spend
 	}
+	// A Taps-deferred source's classification (mana_tapsdefer.go) is a
+	// battlefield fact, so its gate lifts out of the loop: without a live
+	// TrigTaps listener every source is an ordinary census unit.
+	deferSkip := !pk.tapsIn && k.gen != nil && k.gen.anyTapsDefer && s.subs[kop.TrigTaps].any()
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
 		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) || k.restrSrc && s.restrOnlyUsable(k, p, sl, &rd) {
-			if !pk.tapsIn && s.tapsDeferred(k, p, sl) {
+			if deferSkip && s.tapsDeferred(k, p, sl) {
 				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go)
 			}
 			order[no] = sl
