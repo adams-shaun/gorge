@@ -273,12 +273,14 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"waterbend_census_granted_source_tap_extra", false, false},        // CR 605.1b, 701.67a: Honest Work's Humble Merchant grant survives its lose-all abilities, so Badgermole Cub's tap extra makes the waterbend census incomplete and Foggy Swamp Vinebender's announcement offers Done
 		{"waterbend_census_granted_tap_extra_capacity", false, false},      // CR 605.1b: the same merchant tapped later in the game floats its {G} tap extra, so the payment no longer stalls
 		{"restricted_any_colour_mana_ability_sorts_first", true, false},    // CR 601.2g: White Lotus Hideout's Lesson-restricted any-colour mana sorts ahead of its {C} ability, so an announced {U} hybrid face is paid instead of stranding the cast
+		{"restricted_any_colour_owed_tap", false, false},                   // CR 601.2g, 106.6: Jasmine Dragon Tea Shop has no unrestricted any-colour sibling, so the window must tap its restricted any-colour ability for the owed pip, not its useless {C} one, or the lowered hybrid cast strands
 		{"unless_tap_extra_offers_pay", true, false},                       // CR 106.12a, 605.4a: Badgermole Cub's static TapsForMana trigger adds {G} to an animated Forest's tap, so the {2} unless cost is payable and gorge must offer Pay
 		{"filter_tap_extra_funds_cast", false, false},                      // CR 605.1a, 106.12a: Badgermole Cub adds {G} when an earthbent Rumble Arena's {1},{T} filter taps it, so the filter's {B} plus the extra pays Merchant of Many Hats' {1}{B} and the cast stays on the menu
 		{"resolved_this_turn_survives_zone_change", false, false},          // gorge events.ResolvedAbilityKey is (source, ability body) with no zone stamp: South Pole Voyager's tally still reads 2 after it is exiled and returned, so its second resolution draws
 		{"grant_key_keeps_typed_mana", false, false},                       // CR 602.2b, 601.2g-h: Barrels of Blasting Jelly's {1} fee paid in W and its tagged W leave the pool counts equal but not gorge's typed unit (Player.ManaUnits), so the grant search's payer key must keep them apart and choose W
 		{"resolved_this_turn_across_zone_change", false, false},            // CR 707.10b: Airbender Ascension returns South Pole Voyager, whose resolution count keeps the turn's tally, so the second resolution overall does not draw Earth Kingdom Jailer
 		{"crew_override_source_returned_is_new_object", false, false},      // CR 400.7: Fire Nation Warship destroyed in response to its own crew ability comes back as a new object; the crew effect finds nothing to animate
+		{"hybrid_window_restricted_any_colour_admission", false, false},    // CR 106.6, 601.2g: the lowered hybrid window takes a restricted any-colour ability ahead of a useless fixed {C} only when the restriction admits the payment (an Ally-only source pays a hybrid face; a Lesson's generic takes the {C}), and the admitted mana floats restricted
 	})
 }
 

@@ -64,9 +64,10 @@ func (s *State) windowRestr(k *prep, p uint8) slotMask {
 }
 
 // scriptAny reports whether a scripted prefix is possible: an each-colour,
-// restricted or any-colour gap, a filter-only gap, or a counter-cost source.
+// restricted or any-colour gap, a filter-only gap, a counter-cost source, or
+// a Taps-deferred one (mana_tapsdefer.go).
 func (s *State) scriptAny(k *prep) bool {
-	return k.gen != nil && (k.gen.anyScriptGap || k.sacOnlyMana || k.ctrMana)
+	return k.gen != nil && (k.gen.anyScriptGap || k.sacOnlyMana || k.ctrMana || k.gen.anyTapsDefer)
 }
 
 // gapMask: p's untapped permanents whose card carries the sparse mana
@@ -129,6 +130,13 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 		ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]
 		a.addUnits(1<<bits.TrailingZeros8(uint8(ab.ManaColors)), max(ab.ManaN, 1))
 	}
+	// a Taps-deferred source (Firdoch Core): its relaxed census unit, the
+	// one any-colour mana its tap adds (availFor's, which the plain walk
+	// leaves out: mana_tapsdefer.go)
+	for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
+		pc := s.manaPCGen(k, b.first())
+		a.addUnits(s.srcMaskAt(pc, b.first()), pc.manaN)
+	}
 	if k.ctrMana {
 		s.availCtr(k, p, a) // a counter-cost source (mana_countercost.go)
 	}
@@ -164,6 +172,7 @@ func hasOption(d *Decision, a Action) bool {
 // scriptOffers adds to d the plays a scripted prefix pays.
 func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 	restr, anyR := s.scriptRestr(k, p), s.scriptAnyR(k, p)
+	tapsDef := s.scriptTapsDefer(k, p)
 	var filt slotMask
 	mix := s.mixBoard(k, p)
 	if k.gen.anyFilt {
@@ -172,7 +181,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 		}
 	}
 	tx := s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p))
-	if !s.scriptGaps(k, p).or(restr).or(anyR).or(filt).or(s.scriptCtr(k, p)).or(tx).any() {
+	if !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).any() {
 		return
 	}
 	// With only restricted gaps (Giada, a Courtyard) gorge's census is
@@ -198,7 +207,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 	var cand [MaxOptions]Action
 	var key [MaxOptions]uint64
 	nc := 0
-	wide := !mix && s.wideGapsOnly(k, p, restr, anyR) // (gorge's relaxed proof reads a wide source against each play)
+	wide := !mix && !tapsDef.any() && s.wideGapsOnly(k, p, restr, anyR) // (gorge's relaxed proof reads a wide source against each play; a Taps-deferred gap is none of them)
 	// The drop of a play no wide source may fund is the relaxed proof's
 	// (potentialRestrictionAdmits): an unrelaxable census (a live
 	// two-permanent source, Supportive Parents) runs no proof, so gorge
@@ -260,7 +269,11 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 			if found, dead := s.reflScript(k, a, p, false); !found || dead {
 				continue // no script within gorge's budget, or one the pool cannot complete (mana_reflected.go)
 			}
-		} else if anyR.any() && s.scriptDeadEndAny(k, a, p, restr, anyR) || !anyR.any() && restr.any() && s.scriptDeadEnd(k, a, p, restr) {
+		} else if anyR.any() || tapsDef.any() {
+			if s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef) {
+				continue // no script within gorge's budget (mana_window.go scriptDeadEndAny)
+			}
+		} else if restr.any() && s.scriptDeadEnd(k, a, p, restr) {
 			continue
 		}
 		d.add(a)
@@ -381,8 +394,9 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		return // a tap-another-permanent board (mana_tapanother.go)
 	}
 	gaps, restr, anyR := s.scriptGaps(k, p), s.scriptRestr(k, p), s.scriptAnyR(k, p)
+	tapsDef := s.scriptTapsDefer(k, p)
 	ctr := s.scriptCtr(k, p)
-	if !gaps.or(restr).or(anyR).or(ctr).any() {
+	if !gaps.or(restr).or(anyR).or(tapsDef).or(ctr).any() {
 		if k.gen.anyFilt && s.filtOnly(k, p) {
 			var d Decision
 			s.plainOptions(k, &d, 0)
@@ -400,8 +414,8 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		}
 		return
 	}
-	if anyR.any() {
-		s.scriptPrefixAny(k, a, p, restr, anyR)
+	if anyR.any() || tapsDef.any() {
+		s.scriptPrefixAny(k, a, p, restr, anyR, tapsDef)
 		return
 	}
 	var d Decision
@@ -425,7 +439,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 // payment actions and the decision's own options) does not hold.
 func (s *State) FeatScripted(p uint8, a Action) bool {
 	k := s.k()
-	if !s.scriptAny(k) || !isCastKind(a.Kind()) && a.Kind() != AkActivate && a.Kind() != AkPlot || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) {
+	if !s.scriptAny(k) || !isCastKind(a.Kind()) && a.Kind() != AkActivate && a.Kind() != AkPlot || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) {
 		return false
 	}
 	var d Decision

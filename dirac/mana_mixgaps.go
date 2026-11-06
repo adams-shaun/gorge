@@ -222,7 +222,7 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 	switch o.kind {
 	case otherAnyR:
 		var spill [kop.NumManaKinds]uint8
-		s.tapGapChoice(k, p, st.sl, slotMask{}, slotMask{}.with(st.sl), int(o.ans), &spill)
+		s.tapGapChoice(k, p, st.sl, slotMask{}, slotMask{}.with(st.sl), slotMask{}, int(o.ans), &spill)
 		if spill != ([kop.NumManaKinds]uint8{}) {
 			s.capFull(StallRestrSrc) // never a silent spill
 		}
