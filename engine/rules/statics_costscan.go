@@ -21,7 +21,8 @@ func (e *Engine) collectCostStatics() costStaticViews {
 	if c, ok := e.boardStaticsRef(); ok {
 		v := &c.v.cost
 		return costStaticViews{raise: slices.Clip(v.raise), reduce: slices.Clip(v.reduce),
-			set: slices.Clip(v.set), optional: slices.Clip(v.optional), validTarget: v.validTarget}
+			set: slices.Clip(v.set), optional: slices.Clip(v.optional), validTarget: v.validTarget,
+			manaReaching: v.manaReaching}
 	}
 	return e.scanCostStatics()
 }
@@ -105,6 +106,7 @@ func (e *Engine) scanCostStatics() costStaticViews {
 	// own PileStaticCount discipline stays untouched.
 	e.appendEffectCostStatics(&out)
 	markCostValidTarget(&out)
+	markCostManaReaching(&out)
 	return out
 }
 

@@ -80,9 +80,12 @@ type Session struct {
 	// PaymentPlanCarriers memoises the objects whose faces carry a
 	// Taps/TapsForMana trigger or a ProduceMana replacement -- the only
 	// printed text the payment-plan source-interference check must run its
-	// matchers over (engine/rules/payment_plan_interference.go). The key is the
-	// object-arena size plus the log head: a face or zone only changes through
-	// an event or a new object. A pure derived memo, never copied by Clone.
+	// matchers over (engine/rules/payment_plan_interference.go). The key is
+	// the object-arena size plus the scanned log tail: Objs only grows, and
+	// existing membership changes only through a Mutate/HiddenIdentity fold
+	// or the merged-pile departure clear of a MoveZone fold, so an inert tail
+	// extends the list over the new objects instead of rebuilding. A pure
+	// derived memo, never copied by Clone.
 	PaymentPlanCarriers       []state.ObjID `clone:"reset"`
 	PaymentPlanCarriersObjs   int           `clone:"reset"`
 	PaymentPlanCarriersEvents int           `clone:"reset"`
