@@ -522,7 +522,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	var fs filtSearch
 	fs.a, fs.p, fs.gaps, fs.own, fs.sp0 = a, p, s.scriptFilt(k, p), NoSlot, s.sp
 	fs.need = s.playNeed(k, a) // the play's announced colours, whichever search prices it
-	fs.other = s.otherGaps(k, p)
+	fs.other = s.otherGaps(k, p, a)
 	if a.Kind() == AkActivate {
 		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
 	}

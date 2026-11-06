@@ -43,7 +43,7 @@ func filtSearchVisit(s *State, k *prep, a Action, need [kop.NumManaKinds]bool) (
 	fs.a, fs.p, fs.gaps, fs.own, fs.sp0 = a, 0, s.scriptFilt(k, 0), NoSlot, s.sp
 	fs.need = need
 	// the cast's filter search (filtScript): a cast may count the grants (noGrant false)
-	fs.other = s.otherGaps(k, 0)
+	fs.other = s.otherGaps(k, 0, a)
 	if s.filtRelaxable(k, fs.gaps) && !(k.tapMana && s.tapXTwoLive(k, 0)) {
 		for b := fs.gaps; b.any(); b = b.rest() {
 			fs.fees += s.filtFee(k, b.first())
@@ -76,7 +76,7 @@ func TestFiltNeedFirstColours(t *testing.T) {
 	if !gaps.has(sc.slot(d1)) || !gaps.has(sc.slot(d2)) {
 		t.Fatalf("a Devotee is no census filter gap: %v", gaps)
 	}
-	if s.otherGaps(k, 0).any() {
+	if s.otherGaps(k, 0, MakeAction(AkPass, 0, 0, 0)).any() {
 		t.Fatal("the Devotees are not pure filter gaps (otherGaps non-empty)")
 	}
 	var cast Action

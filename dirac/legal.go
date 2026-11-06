@@ -339,11 +339,12 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if k.anyRoom && sorc {
 			s.offerUnlocks(k, d, p) // CR 709.5e: special action (face_rooms.go)
 		}
+		var capSpent Decision // the plays grantCap's grant search refused within gorge's budget
 		if len(k.gen.grantPC) != 0 && s.g.availX == 0 {
-			s.grantCap(k, d, p)
+			s.grantCap(k, d, p, &capSpent)
 		}
 		if s.scriptAny(k) && s.g.availX == 0 {
-			s.scriptOffers(k, d, p)
+			s.scriptOffers(k, d, &capSpent, p)
 		}
 	}
 	if faces {

@@ -53,13 +53,18 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 	return n >= 2 && !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptCtr(k, p)).any()
 }
 
-// otherGaps: the gaps a filter search on p's board activates beside its filters.
-func (s *State) otherGaps(k *prep, p uint8) slotMask {
+// otherGaps: the gaps a filter search on p's board activates beside its
+// filters. A play's own granted sources are the grant search's (grantCap /
+// grantPrefix), and an activation's filter search prices without them
+// (noGrant, mana.go availFor): floating their mana into the pool here would
+// price the play from mana its spend restriction cannot spend. A cast's may
+// count them (its noGrant is false), as the Grotto's scenarios do.
+func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 	var m slotMask
 	if s.mixBoard(k, p) {
 		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p))
 	}
-	if len(k.gen.grantPC) != 0 && s.grantsLive(k) {
+	if a.Kind() != AkActivate && len(k.gen.grantPC) != 0 && s.grantsLive(k) {
 		for b := s.ctrlM[p&1].and(s.occ); b.any(); b = b.rest() {
 			if sl := b.first(); s.grantIdx(k, sl) >= 0 && s.canTapForMana(k, sl) {
 				m = m.with(sl)

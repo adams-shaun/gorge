@@ -10,22 +10,22 @@ import (
 
 // TestFilterSearchDoesNotRepriceAGrantRefusedActivation: beside Great Divide
 // Guide's grant, Rumble Arena's filter and the Cub's watcher, Earthen Ally's
-// "{2}{W}{U}{B}{R}{G}: Earthbend 5" costs more than the printed census holds:
-// the creatures but the Ally sit tapped (their taps are Taps-deferred gaps
-// beside the Cub), the Jasmine Dragon Tea Shop's any-colour unit answers only
-// an Ally play, and the pool holds a {C}. grantCap's grant search exhausts
-// gorge's 160-node budget on the play and refuses. Gorge searches the play
-// once, so the kernel must not price it again in scriptOffers' filter search
-// -- not from a fresh budget (script_gen.go capSpent carries the grant
-// search's spent) and not from the granted mana floated into the filter
-// search's pool (mana_mixgaps.go otherGaps: an activation's granted mana is
-// the grant search's). Pre-fix that second search priced the play and the
-// priority decision offered it beside gorge's surface.
+// "{2}{W}{U}{B}{R}{G}: Earthbend 5" costs more than the printed census holds
+// (Jasmine Dragon Tea Shop's any-colour unit answers only an Ally play, the
+// pool holds a {C}). grantCap's grant search exhausts gorge's 160-node budget
+// on the play and refuses. Gorge searched the play once, so the kernel's
+// filter search must not price it again on a fresh budget: legal.go caps the
+// refused play (grantCap's capSpent) and scriptOffers skips it there. Its
+// funding would be the granted mana — the printed census cannot pay it
+// (affordsUngrantedPlay), and a cast's otherGaps floats the granted sources
+// into the search's pool (mana_mixgaps.go's live-grant block) — so uncapped,
+// the second search prices the very play the cap drops.
 func TestFilterSearchDoesNotRepriceAGrantRefusedActivation(t *testing.T) {
 	deck := []cardset.Entry{
 		{Name: "Great Divide Guide", Count: 1}, {Name: "Rumble Arena", Count: 1}, {Name: "Earthen Ally", Count: 1},
 		{Name: "Bender's Waterskin", Count: 1}, {Name: "Meditation Pools", Count: 1}, {Name: "Jasmine Dragon Tea Shop", Count: 1},
-		{Name: "White Lotus Hideout", Count: 1}, {Name: "Badgermole Cub", Count: 1}, {Name: "Island", Count: 20},
+		{Name: "White Lotus Hideout", Count: 1}, {Name: "Badgermole Cub", Count: 4},
+		{Name: "Plains", Count: 1}, {Name: "Mountain", Count: 1}, {Name: "Island", Count: 20},
 	}
 	tbl, _, _, err := cardsettest.Synth(t, "std-tla").Matchup(deck, deck)
 	if err != nil {
@@ -38,31 +38,19 @@ func TestFilterSearchDoesNotRepriceAGrantRefusedActivation(t *testing.T) {
 		}
 	}
 	sc := newScenTableLib(t, tbl, id["Island"], Config{NoElide: true})
-	var ea Slot
+	sl := map[string]Slot{}
 	for _, n := range []string{"Great Divide Guide", "Rumble Arena", "Earthen Ally", "Jasmine Dragon Tea Shop",
-		"Badgermole Cub", "Meditation Pools", "Plains", "Mountain"} {
+		"Badgermole Cub", "Badgermole Cub", "Badgermole Cub", "Meditation Pools", "Plains", "Mountain", "White Lotus Hideout"} {
 		o := sc.perm(id[n], 0)
-		if n == "Earthen Ally" {
-			ea = sc.slot(o)
-		}
+		sl[n] = sc.slot(o)
 	}
 	s, k := sc.s, sc.k
-	// the creatures but the Ally sit tapped, as the fixture's mid-game states
-	// hold (the Cub's watcher keeps their taps Taps-deferred gaps)
-	for b := s.ctrlM[0].and(s.occ); b.any(); b = b.rest() {
-		sl := b.first()
-		if sl == ea || s.cardAt(sl) == id["Badgermole Cub"] {
-			continue
-		}
-		if k.t.Cards[s.cardAt(sl)].Types&kop.TCreature != 0 {
-			s.perms[sl].flags |= pfTapped
-		}
-	}
 	s.pl[0].pool[kop.C] = 1
 
 	// precondition: the play is an activation whose cost the grant search
-	// refuses within the budget -- and a granted, untapped source holds the
-	// mana a floated filter search would tap
+	// refuses within the budget, the printed census does not price it, and
+	// granted, untapped sources hold mana the filter search would otherwise
+	// float
 	var ai int = -1
 	for i := range k.t.Cards[id["Earthen Ally"]].Abilities {
 		if k.t.Cards[id["Earthen Ally"]].Abilities[i].Cost.Mana.Generic > 0 {
@@ -73,7 +61,7 @@ func TestFilterSearchDoesNotRepriceAGrantRefusedActivation(t *testing.T) {
 	if ai < 0 {
 		t.Fatal("Earthen Ally's Earthbend ability not found in the table")
 	}
-	a := MakeAction(AkActivate, uint8(s.perms[ea].obj), 0, uint8(ai))
+	a := MakeAction(AkActivate, uint8(s.perms[sl["Earthen Ally"]].obj), 0, uint8(ai))
 	cost, ex, need, ok := s.grantPlayCost(k, 0, a, true)
 	if !ok {
 		t.Fatal("grantPlayCost refused the Earthbend activation")
@@ -85,30 +73,47 @@ func TestFilterSearchDoesNotRepriceAGrantRefusedActivation(t *testing.T) {
 	if g.nodes != potentialScriptNodes {
 		t.Fatalf("the grant search spent %d nodes, want the %d-node budget exhausted", g.nodes, potentialScriptNodes)
 	}
-	floated := false
-	for b := s.ctrlM[0].and(s.occ); b.any(); b = b.rest() {
-		sl := b.first()
-		if s.grantIdx(k, sl) >= 0 && s.canTapForMana(k, sl) {
-			floated = true
-		}
+	if s.affordsUngrantedPlay(k, 0, a, &cost, ex, s.grantPayDesc(a)) {
+		t.Fatal("the printed sources price the play: the grant search's refusal is not the board's")
 	}
-	if !floated {
-		t.Fatal("no granted, untapped source holds the mana a floated filter search would tap")
+	granted := func() slotMask {
+		var m slotMask
+		for b := s.ctrlM[0].and(s.occ); b.any(); b = b.rest() {
+			if sl := b.first(); s.grantIdx(k, sl) >= 0 && s.canTapForMana(k, sl) {
+				m = m.with(sl)
+			}
+		}
+		return m
+	}
+	gr := granted()
+	if !gr.any() {
+		t.Fatal("no granted, untapped source holds mana the float would tap")
+	}
+	otherAct := s.otherGaps(k, 0, a)
+	if otherAct.and(gr).any() {
+		t.Fatal("the activation's otherGaps still lists a granted source")
+	}
+	if !s.otherGaps(k, 0, MakeAction(AkPass, 0, 0, 0)).and(gr).any() {
+		t.Fatal("the cast's otherGaps lists no granted source: the float is not exercised here")
 	}
 
-	// the play stays refused: the decision does not offer it
-	var d Decision
-	s.priorityOptions(k, &d)
-	pass := false
-	for i := 0; i < int(d.N); i++ {
-		if d.Options[i] == a {
-			t.Fatalf("the priority decision offers the Earthbend activation the grant search refused at %d nodes", g.nodes)
-		}
-		if d.Options[i].Kind() == AkPass {
-			pass = true
-		}
+	// the cap: grantCap records the refused play and scriptOffers skips it
+	var d, capSpent Decision
+	d.add(a)
+	s.grantCap(k, &d, 0, &capSpent)
+	s.scriptOffers(k, &d, &capSpent, 0)
+	if !hasOption(&capSpent, a) {
+		t.Fatal("grantCap did not record the play its grant search refused")
 	}
-	if !pass {
-		t.Fatal("the priority decision holds no pass: the surface is not the priority one")
+	if hasOption(&d, a) {
+		t.Fatal("scriptOffers re-offers the play the grant search refused within gorge's budget")
+	}
+
+	// uncapped, the second search prices the play again — the one-play-one-
+	// budget bug the cap prevents
+	var d2, freshCap Decision
+	s.scriptOffers(k, &d2, &freshCap, 0)
+	if !hasOption(&d2, a) {
+		t.Fatal("the filter search cannot price the play at all: the board does not exercise the re-pricing")
 	}
 }
