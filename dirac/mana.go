@@ -38,9 +38,11 @@ func (s *State) canTapForMana(k *prep, sl Slot) bool {
 	if p.flags&pfTapped != 0 {
 		return false
 	}
-	pc := &k.cards[s.cardAt(sl)]
+	var pc *pcard
 	if k.gen != nil {
-		pc = s.manaPCGen(k, sl)
+		pc = s.manaPCGen(k, sl) // the generated profile, not the printed card
+	} else {
+		pc = &k.cards[s.cardAt(sl)]
 	}
 	return s.canTapForManaPC(k, sl, pc)
 }
@@ -216,9 +218,11 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 		sl := m.first()
 		m = m.rest()
 		pm := &s.perms[sl]
-		pc := &k.cards[s.cardAt(sl)]
+		var pc *pcard
 		if k.gen != nil {
 			pc = s.manaPCGen(k, sl)
+		} else {
+			pc = &k.cards[s.cardAt(sl)]
 		}
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 {
 			continue
@@ -1012,7 +1016,6 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	ntp := 0
 	for i := 0; i < no; i++ {
 		sl := order[i]
-		pcs[i] = &k.cards[s.cardAt(sl)]
 		if k.gen != nil {
 			pcs[i] = s.manaPCGen(k, sl)
 			if k.gen.anyTapsPain && ntp < len(tapsPain) {
@@ -1042,6 +1045,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					dm[i] = dmask
 				}
 			}
+		} else {
+			pcs[i] = &k.cards[s.cardAt(sl)]
 		}
 	}
 	for phase := 0; phase < 3; phase++ {
