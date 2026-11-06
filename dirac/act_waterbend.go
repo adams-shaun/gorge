@@ -439,7 +439,30 @@ func (s *State) waterbendOptions(k *prep, d *Decision) bool {
 // otherwise be. An unknown amount or a window the walk can't price needs none.
 // Gorge: waterbendTapsNeeded.
 func (s *State) waterbendTapsNeeded(k *prep, e *stackEntry, part waterbendPart) int {
-	if part.hasX || !s.windowCensusComplete(k, e) {
+	if part.hasX {
+		return 0
+	}
+	// CR 602.2b: the ability's own {T} taps for its cost, so it is never a
+	// window source this probe may count (gorge castWindowUnits withholds
+	// pc.cost.Tap's source, cast_paymentplan.go). The tap-cost source's
+	// granted any-colour ability is not the unit the pool lacks, so the
+	// census and the window walk below still demand the waterbend pick the
+	// payment needs. The cost itself prices unmasked: a reduction read over
+	// the battlefield counts the source (gorge manaToPay).
+	occ, hideSrc := s.occ, NoSlot
+	if part.tapSrc {
+		if sl := s.srcSlot(); sl != NoSlot {
+			occ, hideSrc = s.occ, sl
+		}
+	}
+	if hideSrc != NoSlot {
+		s.occ = occ.without(hideSrc)
+	}
+	complete := s.windowCensusComplete(k, e)
+	if hideSrc != NoSlot {
+		s.occ = occ
+	}
+	if !complete {
 		return 0
 	}
 	b := s.bld()
@@ -451,6 +474,10 @@ func (s *State) waterbendTapsNeeded(k *prep, e *stackEntry, part waterbendPart) 
 	}
 	defer func() { b.pickKs = kinds }()
 	cost := s.buildCost(k)
+	if hideSrc != NoSlot {
+		s.occ = occ.without(hideSrc)
+		defer func() { s.occ = occ }()
+	}
 	for n := 0; n <= min(part.n, int(cost.Generic)); n++ {
 		c := cost
 		c.Generic -= uint8(n)
