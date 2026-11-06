@@ -42,6 +42,23 @@ func (s *State) scriptGaps(k *prep, p uint8) slotMask {
 	return s.gapMask(k, p, gfEachCol)
 }
 
+// liveGrantGap reports whether p controls an activatable granted mana
+// ability: the grant search then lists the board's filters among its
+// candidates (grantSrch.candidates), so one search activates both gaps in
+// battlefield order.
+func (s *State) liveGrantGap(k *prep, p uint8) bool {
+	if k.gen == nil || len(k.gen.grantPC) == 0 || !s.grantsLive(k) {
+		return false
+	}
+	for m := s.ctrlM[p&1].and(s.occ); m.any(); m = m.rest() {
+		sl := m.first()
+		if s.grantIdx(k, sl) >= 0 && s.canTapForMana(k, sl) {
+			return true
+		}
+	}
+	return false
+}
+
 // scriptRestr: p's activatable restricted-mana sources (Giada) that are
 // census gaps, a slot mask. None: gorge's census lists a fixed RestrictValid$
 // source since (85fddcb68), so a potential play's prefix search no
@@ -398,7 +415,12 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	tapsDef := s.scriptTapsDefer(k, p)
 	ctr := s.scriptCtr(k, p)
 	if !gaps.or(restr).or(anyR).or(tapsDef).or(ctr).any() {
-		if k.gen.anyFilt && s.filtOnly(k, p) {
+		// A live grant makes the grant search's candidates the board's
+		// filters too, activated with the grants in battlefield order
+		// (grantSrch.candidates): one search taps both gaps, so a filter
+		// whose fee a granted {C} pays is not pre-empted here by a
+		// filter-only script that would fund the fee from a land instead.
+		if k.gen.anyFilt && s.filtOnly(k, p) && !s.liveGrantGap(k, p) {
 			var d Decision
 			s.plainOptions(k, &d, 0)
 			// A live granted mana gap (a Humble Merchant) beside the filter:

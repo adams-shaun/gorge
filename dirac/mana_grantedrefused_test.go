@@ -17,9 +17,9 @@ import (
 // filter search must not price it again on a fresh budget: legal.go caps the
 // refused play (grantCap's capSpent) and scriptOffers skips it there. Its
 // funding would be the granted mana — the printed census cannot pay it
-// (affordsUngrantedPlay), and a cast's otherGaps floats the granted sources
-// into the search's pool (mana_mixgaps.go's live-grant block) — so uncapped,
-// the second search prices the very play the cap drops.
+// (affordsUngrantedPlay), and the filter search lists the granted sources as
+// other gaps (mana_mixgaps.go's live-grant block) — so a second search that
+// did not see the grant would price the very play the cap drops.
 func TestFilterSearchDoesNotRepriceAGrantRefusedActivation(t *testing.T) {
 	deck := []cardset.Entry{
 		{Name: "Great Divide Guide", Count: 1}, {Name: "Rumble Arena", Count: 1}, {Name: "Earthen Ally", Count: 1},
@@ -89,9 +89,12 @@ func TestFilterSearchDoesNotRepriceAGrantRefusedActivation(t *testing.T) {
 	if !gr.any() {
 		t.Fatal("no granted, untapped source holds mana the float would tap")
 	}
+	// gorge runs one prefix search over the grants and the filters, so an
+	// activation's filter search lists the granted sources beside the filter
+	// and spends the same one budget (the uncapped check below)
 	otherAct := s.otherGaps(k, 0, a)
-	if otherAct.and(gr).any() {
-		t.Fatal("the activation's otherGaps still lists a granted source")
+	if !otherAct.and(gr).any() {
+		t.Fatal("the activation's otherGaps lists no granted source: the re-pricing is not exercised here")
 	}
 	if !s.otherGaps(k, 0, MakeAction(AkPass, 0, 0, 0)).and(gr).any() {
 		t.Fatal("the cast's otherGaps lists no granted source: the float is not exercised here")
@@ -109,11 +112,12 @@ func TestFilterSearchDoesNotRepriceAGrantRefusedActivation(t *testing.T) {
 		t.Fatal("scriptOffers re-offers the play the grant search refused within gorge's budget")
 	}
 
-	// uncapped, the second search prices the play again — the one-play-one-
-	// budget bug the cap prevents
+	// uncapped, the filter search now lists the granted sources as other gaps,
+	// so it spends the same one budget and refuses too: pre-fix the split
+	// search priced the play on a fresh budget
 	var d2, freshCap Decision
 	s.scriptOffers(k, &d2, &freshCap, 0)
-	if !hasOption(&d2, a) {
-		t.Fatal("the filter search cannot price the play at all: the board does not exercise the re-pricing")
+	if hasOption(&d2, a) {
+		t.Fatal("the filter search prices a play its granted sources put past gorge's budget")
 	}
 }
