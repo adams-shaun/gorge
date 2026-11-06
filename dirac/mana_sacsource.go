@@ -394,6 +394,15 @@ func (s *State) putCounterProg(k *prep, in *kop.Instr) {
 	}
 }
 
+// scriptStep poses the next decision of a scripted line in the order gorge's
+// engine poses its options: scriptAnswers walks d.Options as built, and
+// askTriggerOrder builds them in pending queue order (engine/rules/
+// trigger_queue.go). stepRaw reproduces that pose order; StepOne's canonical
+// sort is the lockstep's comparison order (types.go canonKey), not the
+// engine's. Both the search's model (resolvePrefixStack) and the applied play
+// (flushPrefixTriggers) answer from this one helper so they cannot drift.
+func (s *State) scriptStep(d *Decision) { s.stepRaw(d) }
+
 // flushPrefixTriggers puts the triggers a scripted prefix just queued onto
 // the stack before the play itself is applied. gorge answers each prefix
 // activation as its own decision, so its next priority round drains the
@@ -432,7 +441,7 @@ func (s *State) flushPrefixTriggers(k *prep) {
 			// prefix pays), given before the play is submitted
 			for s.ctl == ctlBuild && !s.over {
 				var d Decision
-				s.StepOne(&d)
+				s.scriptStep(&d)
 				if d.N == 0 || s.ctl != ctlBuild {
 					break
 				}
@@ -545,7 +554,7 @@ func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
 			resolved = resolved || s.sp < spBefore
 		case ctlPlaceTriggers:
 			var d Decision
-			s.stepRaw(&d) // the script answers the raw pose order (scriptAnswers), not StepOne's canonical sort
+			s.scriptStep(&d) // the pose order scriptAnswers enumerates, shared with flushPrefixTriggers
 			if s.ctl == ctlPlaceTriggers {
 				// a posed ask here is the queued triggers' order (gorge
 				// KTriggerOrder, one Min=Max=n multi-select whose only
@@ -561,10 +570,10 @@ func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
 		case ctlBuild:
 			// the placement's takePending left the trigger's build
 			// dangling: run it out (its asks, answered with the script's
-			// first option, the raw pose order, are flushPrefixTriggers')
+			// first option, the pose order scriptAnswers enumerates)
 			for s.ctl == ctlBuild && !s.over {
 				var d Decision
-				s.stepRaw(&d)
+				s.scriptStep(&d)
 				if d.N == 0 || s.ctl != ctlBuild {
 					break
 				}
@@ -578,7 +587,7 @@ func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
 				return
 			}
 			var d Decision
-			s.stepRaw(&d)
+			s.scriptStep(&d)
 			if d.N == 0 || d.Sub != ChOptional {
 				return
 			}

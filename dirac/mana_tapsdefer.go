@@ -89,10 +89,24 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 		if !s.tapsDeferred(k, p, sl) {
 			continue
 		}
+		c := s.cardAt(sl)
+		if s.manaGranted(k, sl) || k.gen.has(c, gfRestr|gfAnyR|gfEachCol|gfFilt|gfDeferred) {
+			// Not the plain unrestricted any-colour shape the census gap is:
+			// a restricted source's mana must float restricted (tapDeferFloat
+			// adds plain pool mana), a granted one is grantCap/grantPrefix's,
+			// an each-colour or filter one has its own arm, and a deferred one
+			// is tapGap's gfDeferred arm. Each keeps the census unit the
+			// availFor skip would otherwise drop (the skip is keyed on this
+			// mask).
+			continue
+		}
 		pc := s.manaPCGen(k, sl)
 		if pc.manaAb < 0 || !pc.manaTap || pc.manaN != 1 || pc.manaCol != kop.ColAny ||
 			pc.manaChosen || pc.manaOne || pc.manaMulti || pc.manaDyn {
 			continue
+		}
+		if int(pc.manaAb) >= len(k.t.Cards[c].Abilities) || k.t.Cards[c].Abilities[pc.manaAb].ManaRestrict != 0 {
+			continue // the ability is restricted (Pillar of the Paruns): the gap floats plain mana
 		}
 		pm := &s.perms[sl]
 		if pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 || s.genLost(k, sl) ||

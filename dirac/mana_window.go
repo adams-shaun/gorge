@@ -1319,9 +1319,6 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slo
 		s.tapDeferFloat(k, p, sl, c)
 		return
 	}
-	s.perms[sl].flags |= pfTapped
-	s.touchSl(sl)
-	s.manaTapped(k, sl)
 	if ab := &cd.Abilities[k.gen.anyR(s.cardAt(sl))]; restrWideAnyMana(ab) {
 		c1, c2 := wideAnswer(c)
 		for _, col := range [2]int{c1, c2} {

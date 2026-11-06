@@ -204,6 +204,14 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 	// TrigTaps listener every source is an ordinary unit, and the potential
 	// walks count a deferred source's tap regardless.
 	deferSkip := k.gen != nil && k.gen.anyTapsDefer && s.subs[kop.TrigTaps].any() && s.g.availX&(availWalk|availHyp) == 0
+	var deferGap slotMask
+	if deferSkip {
+		// Only the production the script route models is a census gap the
+		// prefix search pays: any other deferred source keeps its ordinary
+		// unit here, or no walk would count it and a play it funds would
+		// vanish from the offer (mana_tapsdefer.go).
+		deferGap = s.scriptTapsDefer(k, p)
+	}
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
@@ -221,8 +229,8 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) {
 			continue
 		}
-		if deferSkip && s.tapsDeferred(k, p, sl) {
-			continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go); the potential walks (availWalk, its hyp bound) still count it, its census gate is downstream
+		if deferSkip && deferGap.has(sl) {
+			continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go); the script route offers and prices the modelled gap, and the potential walks (availWalk, its hyp bound) still count it, its census gate downstream
 		}
 		if dual {
 			s.availGrant(k, sl, pc, a)
