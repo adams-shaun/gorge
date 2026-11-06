@@ -109,7 +109,12 @@ func (s *State) offerBestowHand(k *prep, d *Decision, p uint8, o Obj, c CardID, 
 func (s *State) beginBestow(k *prep, o Obj) {
 	s.beginCast(k, o, castFace)
 	s.bld().e.mode |= modeBestowed
-	if cost := s.buildCost(k); s.sneakPoolPays(k, s.prio, s.bld().e.card, &cost) {
+	cost := s.buildCost(k)
+	// gorge's planner prices the granted delve's credit (offerPlay's choke
+	// point), so the pool gate prices the credited cost too; a twobrid cost
+	// is leaf-credited by the gate's avail (gateDelveCredit)
+	cost = s.gateDelveCredit(k, s.prio, s.bld().e.card, o, false, cost)
+	if s.sneakPoolPays(k, s.prio, s.bld().e.card, o, &cost) {
 		return
 	}
 	s.bld().bfl |= bflLowered

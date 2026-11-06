@@ -79,13 +79,21 @@ func (s *State) offerWebSlingHand(k *prep, d *Decision, p uint8, o Obj, c CardID
 	if s.castHeldOut(o) || !s.webSlingHasReturn(k, p) || !s.spellTargetsFeasible(k, c, p) {
 		return // castSuppressed; offerCastable's Return census; castTargetsAvailable
 	}
+	// the avail is the caller's walk picture: the cast's own delve credit
+	// prices its twobrid faces and is restored after (offerPlay's shape)
+	saved := av.delve
+	defer func() { av.delve = saved }()
+	av.delve = s.tbDelveCredit(k, p, c, o, true) // the faces' credit (CR 702.66a)
 	cost := s.adjustCost(k, p, c, o, k.t.Cards[c].WebSlingCost)
+	if !av.tbLeafCredited(&cost) {
+		cost = s.delveOfferCredit(k, p, c, o, true, cost) // gorge's choke point credits the generic at this walk too
+	}
 	if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
 		return // castRestrictedCost / offerCastable on the composed cost
 	}
 	// gorge's potential walk prices no web-slinging mode; the restricted-grant
 	// filter (walkHandAvail) is not this offer's shape.
-	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.g.availX&availWalk == 0 && !s.sneakPoolPays(k, p, c, &cost) {
+	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.g.availX&availWalk == 0 && !s.sneakPoolPays(k, p, c, o, &cost) {
 		// gorge's planner and lowering price no web-slinging mode: the
 		// cast is offered only when the floating pool pays (harmonize's
 		// rule)

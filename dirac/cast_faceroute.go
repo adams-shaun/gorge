@@ -50,7 +50,11 @@ func (s *State) lowerSneakCast(k *prep, p uint8, o Obj, c CardID) {
 		return
 	}
 	cost := s.buildCost(k)
-	if s.sneakPoolPays(k, p, c, &cost) {
+	// gorge's planner prices the granted delve's credit (offerPlay's choke
+	// point), so the pool gate prices the credited cost too; a twobrid cost
+	// is leaf-credited by the gate's avail (gateDelveCredit)
+	cost = s.gateDelveCredit(k, p, c, o, false, cost)
+	if s.sneakPoolPays(k, p, c, o, &cost) {
 		return
 	}
 	s.bld().bfl |= bflLowered

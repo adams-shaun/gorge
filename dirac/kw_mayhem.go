@@ -53,6 +53,11 @@ func mayhemCast(k *prep, c CardID, mode uint8) bool {
 // castSuppressed and castTargetsAvailable, priced with the potential
 // planner's ordinary cast price).
 func (s *State) offerMayhemCasts(k *prep, d *Decision, p uint8, sorc bool, av *avail) {
+	// the avail is the caller's walk picture: each cast's own delve credit
+	// prices its twobrid faces and is restored after, so the next option does
+	// not price with it (offerPlay's shape)
+	saved := av.delve
+	defer func() { av.delve = saved }()
 	pl := &s.pl[p]
 	have := false
 	for i := 0; i < int(pl.graveN); i++ {
@@ -73,6 +78,10 @@ func (s *State) offerMayhemCasts(k *prep, d *Decision, p uint8, sorc bool, av *a
 			have = true
 		}
 		fc := s.adjustCost(k, p, c, o, cd.AltCost)
+		av.delve = s.tbDelveCredit(k, p, c, o, false) // the faces' credit (CR 702.66a)
+		if !av.tbLeafCredited(&fc) {
+			fc = s.delveOfferCredit(k, p, c, o, false, fc) // gorge's choke point credits the generic at this walk too
+		}
 		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, av) || !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) {
 			continue
 		}
