@@ -28,6 +28,10 @@ type PlanScratch struct {
 	// classCounts is ClassesInto's scratch: each class's member count while
 	// the member spans are cut, then the fill cursor.
 	classCounts []int
+	// unitClass is ClassesInto's scratch: the class each unit grouped into
+	// (-1 for a unit with no alternatives), so the fill pass reads the
+	// grouping instead of re-running the sameClass scan.
+	unitClass []int
 	// membersFlat / pickFlat / irrFlat / painFlat back the class spans
 	// (resizeCleared + span split, like the search's countsFlat).
 	membersFlat []int

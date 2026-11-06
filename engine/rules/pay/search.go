@@ -138,8 +138,11 @@ func ClassesInto(ps *PlanScratch, choices [][]Alt) []Class {
 	out := ps.classes[:0]
 	counts := ps.classCounts[:0]
 	members, altN := 0, 0
-	for _, alts := range choices {
+	unitClass := resizeCleared(ps.unitClass, len(choices))
+	ps.unitClass = unitClass
+	for i, alts := range choices {
 		if len(alts) == 0 {
+			unitClass[i] = -1
 			continue
 		}
 		k := slices.IndexFunc(out, func(c Class) bool { return sameClass(c.alts, alts) })
@@ -151,6 +154,7 @@ func ClassesInto(ps *PlanScratch, choices [][]Alt) []Class {
 		}
 		counts[k]++
 		members++
+		unitClass[i] = k
 	}
 	ps.classes, ps.classCounts = out, counts
 	membersFlat := resizeCleared(ps.membersFlat, members)
@@ -175,13 +179,11 @@ func ClassesInto(ps *PlanScratch, choices [][]Alt) []Class {
 	for k := range counts {
 		counts[k] = 0
 	}
-	for i, alts := range choices {
-		if len(alts) == 0 {
-			continue
+	for i := range choices {
+		if k := unitClass[i]; k >= 0 {
+			out[k].Members[counts[k]] = i
+			counts[k]++
 		}
-		k := slices.IndexFunc(out, func(c Class) bool { return sameClass(c.alts, alts) })
-		out[k].Members[counts[k]] = i
-		counts[k]++
 	}
 	return out
 }
