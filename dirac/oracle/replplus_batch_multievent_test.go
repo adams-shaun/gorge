@@ -11,7 +11,7 @@ import (
 )
 
 // kreplPlusMultiDecks is the measured 60-card deck with n Fated Firepowers
-// (the brief's table). The 2/2 row puts two on BOTH battlefields, so a fight
+// (the measured table). The 2/2 row puts two on BOTH battlefields, so a fight
 // with The Last Agni Kai is a two-hit dealHits batch in which either hit (or
 // both) can be matched by two pure plus-N replacements.
 func kreplPlusMultiDecks(n int) [2][]cardset.Entry {
@@ -26,7 +26,7 @@ func kreplPlusMultiDecks(n int) [2][]cardset.Entry {
 }
 
 // kreplPlusMultiRun plays seeds 1..seeds with the same deck in both seat
-// orders and both autopay surfaces (the brief's castFirst/random mix) and
+// orders and both autopay surfaces (the measured castFirst/random mix) and
 // returns the tallies, the first divergence ("" if none) and the kernel
 // stalls by name.
 func kreplPlusMultiRun(t *testing.T, n int, seeds uint64) (tal kfightexTally, div string, stalls map[string]int) {
