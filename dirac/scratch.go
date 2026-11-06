@@ -97,7 +97,7 @@ func (s *State) scrResLive() bool {
 func (s *State) scrResEnter() {
 	s.g.nlook, s.g.lookSel = 0, 0
 	s.g.dmgSeqOn, s.g.dmgSeqN, s.g.dmgSeqI, s.g.dmgSeqPl = false, 0, 0, 0
-	s.g.plusBatchAsked, s.g.plusBatchHit = false, 0 // a new resolution cannot inherit a parked batch
+	s.g.plusBatchAsked = false // a new resolution cannot inherit a parked batch
 }
 
 // scrCombatEnter starts a combat damage step's scratch afresh (damageStep,

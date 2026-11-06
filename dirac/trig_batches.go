@@ -169,12 +169,6 @@ type dmgHit struct {
 	n        int16
 	ctrl     uint8 // the source's controller as the hit is dealt
 	ll       bool  // the source has lifelink as the hit is dealt
-	// ret is what the emitting effect's EmitDamage returns for this hit (the
-	// damage the effect sees, CR 120.1): n, except a hit parked on the
-	// replacement-order ask, whose emit returned gorge's "awaiting
-	// replacement-order choice" Note and so reports 0 to the effect even
-	// though the damage lands (fightExcessRec).
-	ret int16
 }
 
 func (b *hitBatch) add(s *State, src, dst Slot, n int) {
@@ -247,7 +241,6 @@ func (s *State) replPlusBatch(k *prep, hs []dmgHit) (handled bool) {
 		h := &hs[at]
 		s.parkNC(k, s.perms[h.src].ctrl, h.src, s.cardAt(h.src), uint8(s.perms[h.dst].obj), int(h.n), s.kw(k, h.src))
 		s.g.plusBatchAsked = true
-		s.g.plusBatchHit = uint8(at + 1) // 0: none, else the parked hit's index + 1
 		return true
 	}
 	return false
@@ -264,21 +257,14 @@ func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) bool {
 	for i := range hs {
 		h := &hs[i]
 		h.n = int16(s.damageHit(k, h))
-		h.ret = h.n
-		if s.g.plusBatchHit == uint8(i+1) {
-			// gorge's emit returned the parked event's order-choice Note, not
-			// the damage event, so the effect that emitted the hit sees 0
-			// (effects/damage.go emitObjectDamage; the damage itself lands)
-			h.ret = 0
-		}
 		if rl != nil && h.n > 0 {
 			rl.r.ev[rl.r.nev] = dmgEv{src: h.src, dst: h.dst, n: h.n}
 			rl.r.nev++
 		}
 	}
 	// a triggered or lifelink follow-up can deal nested damage: the batch's
-	// re-execution exemption and parked-hit marker end with the hits themselves
-	s.g.plusBatchAsked, s.g.plusBatchHit = false, 0
+	// re-execution exemption ends with the hits themselves
+	s.g.plusBatchAsked = false
 	if k.gen != nil && k.gen.anyPermMark {
 		for i := range hs {
 			if h := &hs[i]; h.n > 0 {
