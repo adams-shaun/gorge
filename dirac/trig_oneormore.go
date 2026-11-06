@@ -123,52 +123,18 @@ func (s *State) replPlus(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp
 		if g.replBits[s.cardAt(b)]&rbPlusDmg == 0 || s.genLost(k, b) {
 			continue
 		}
-		lc := s.perms[b].ctrl
 		cd := &k.t.Cards[s.cardAt(b)]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
 			if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplDamagePlus {
 				continue
 			}
-			r := &a.Repl
-			if r.Cond != 0 && !s.replHostLive(k, a, b) { // a granted max-speed gate (kw_maxspeed.go)
+			add2, raise2, ok := s.replPlusHit(k, b, a, srcCtrl, srcSl, srcCard, rcp, sl, combat, n)
+			if !ok {
 				continue
 			}
-			if r.C&kop.ReplDmgNonCombat != 0 && combat {
-				continue
-			}
-			var to int16
-			switch {
-			case sl == NoSlot && rcp != lc:
-				to = kop.ReplDmgPlayer | kop.ReplDmgOppPlayer
-			case sl == NoSlot:
-				to = kop.ReplDmgPlayer
-			case rcp != lc:
-				to = kop.ReplDmgPerm | kop.ReplDmgOppPerm
-			default:
-				to = kop.ReplDmgPerm
-			}
-			if r.C&to == 0 {
-				continue
-			}
-			if srcSl != NoSlot {
-				if !s.matchPermGen(k, r.Filter, srcSl, lc, b, layerFull) {
-					continue
-				}
-			} else if !s.matchCardGen(k, r.Filter, srcCard, srcCtrl, lc, NoObj) {
-				continue
-			}
-			if r.C&kop.ReplDmgRaise != 0 {
-				// "less than <host>'s power ... deals damage equal to its power
-				// instead" (Ojer Axonil): a candidate only while the amount is
-				// below the host's current power (gorge DamageAmount$ LTX)
-				if pw, _ := s.ptGen(k, b); n < pw {
-					raise = max(raise, pw)
-					c++
-				}
-				continue
-			}
-			add += s.dmgPlusAmt(r, b)
+			add += add2
+			raise = max(raise, raise2)
 			c++
 		}
 	}
@@ -193,10 +159,65 @@ func (s *State) replPlus(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp
 		}
 	}
 	if c >= 2 {
-		s.capFull(StallReplPlus)
+		// Two or more ReplDamagePlus additions in a table with no other
+		// damage replacement kind all commute: every order gives the same
+		// sum, so gorge's CR 616.1 ask is a no-op and the combat order walk
+		// (replOrderCombat) poses it and applies the additions. Keep the
+		// loud stall for any non-commuting competition.
+		if !(raise == 0 && s.g.ro.on && replPlusOnly(g)) {
+			s.capFull(StallReplPlus)
+		}
 	}
 	if raise > 0 {
 		return raise
 	}
 	return n + add
+}
+
+// replPlusHit reports whether the ReplDamagePlus ability a of the permanent
+// at b applies to n damage from (srcSl, or the spell's card srcCard when
+// srcSl is NoSlot) controlled by srcCtrl to the recipient (a permanent at sl
+// controlled by rcp, or player rcp when sl is NoSlot), and what it adds. A
+// raise body (Ojer Axonil) is a candidate only while n is below the host's
+// power; raise is then that power.
+func (s *State) replPlusHit(k *prep, b Slot, a *kop.Ability, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool, n int) (add, raise int, ok bool) {
+	lc := s.perms[b].ctrl
+	r := &a.Repl
+	if r.Cond != 0 && !s.replHostLive(k, a, b) { // a granted max-speed gate (kw_maxspeed.go)
+		return 0, 0, false
+	}
+	if r.C&kop.ReplDmgNonCombat != 0 && combat {
+		return 0, 0, false
+	}
+	var to int16
+	switch {
+	case sl == NoSlot && rcp != lc:
+		to = kop.ReplDmgPlayer | kop.ReplDmgOppPlayer
+	case sl == NoSlot:
+		to = kop.ReplDmgPlayer
+	case rcp != lc:
+		to = kop.ReplDmgPerm | kop.ReplDmgOppPerm
+	default:
+		to = kop.ReplDmgPerm
+	}
+	if r.C&to == 0 {
+		return 0, 0, false
+	}
+	if srcSl != NoSlot {
+		if !s.matchPermGen(k, r.Filter, srcSl, lc, b, layerFull) {
+			return 0, 0, false
+		}
+	} else if !s.matchCardGen(k, r.Filter, srcCard, srcCtrl, lc, NoObj) {
+		return 0, 0, false
+	}
+	if r.C&kop.ReplDmgRaise != 0 {
+		// "less than <host>'s power ... deals damage equal to its power
+		// instead" (Ojer Axonil): a candidate only while the amount is below
+		// the host's current power (gorge DamageAmount$ LTX)
+		if pw, _ := s.ptGen(k, b); n < pw {
+			return 0, pw, true
+		}
+		return 0, 0, false
+	}
+	return s.dmgPlusAmt(r, b), 0, true
 }
