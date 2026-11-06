@@ -2516,7 +2516,11 @@ func (s *State) paymentStranded(k *prep, e *stackEntry, cost *kop.ManaCost) bool
 }
 
 // committedPicks reports whether a pick commits a permanent to a tap cost or as a
-// convoke-family helper.
+// convoke-family helper. A delve pick does not: it names a graveyard card, not a
+// permanent, so it withholds no mana source and gorge's strand check (guarded on
+// pc.Announced || pc.WindowChecked || Convoke/Taps empty, cast_payment.go) skips
+// a plain delve cast -- its window opens, and a window the pool still cannot
+// finish aborts only after the activations (cast_commit.go abortCast).
 func (s *State) committedPicks() bool {
 	for i := 0; i < int(s.bld().pickN); i++ {
 		if pk := s.bld().pickKs[i]; pk == pkTapX || pk == pkWaterbend || isConvokePick(pk) {

@@ -1356,6 +1356,23 @@ func (s *State) finishBuild(k *prep) {
 			// gorge's planner declines a Spree face ("shape:modal_cost"):
 			// it pays through the mana window (kw_spree.go)
 			s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0)
+		} else if k.gen != nil && s.delvePaysEntry(k, &e) {
+			// gorge's planner declines a delve cast ("shape:contribution",
+			// payment_plan.go), so its CR 601.2g window ran at manaStep
+			// (mana_window.go branch 3) and what is left pays from the pool;
+			// a pool that cannot finishes the cast reversed (CR 733.1). The
+			// abort reverses the push, not the window's mana abilities: the
+			// tapped sources and the floated mana stay (cast_commit.go
+			// abortCast; reverseCast touches neither).
+			xc := xFolded(cost, int(e.x))
+			if !s.windowSpellSettled(k, e.ctrl, &xc, anyColor) {
+				s.reverseCast(k)
+				return
+			}
+			// payFromPool folds the announced X itself (XGeneric), like
+			// payRider's pool arm: the folded copy above is only the
+			// window's settled check
+			s.payFromPoolRider(k, e.ctrl, &cost, int(e.x), anyColor)
 		} else if s.rbAny(e.ctrl) {
 			s.payRestrRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor) // an Angel spell spends Giada's {W}
 		} else {

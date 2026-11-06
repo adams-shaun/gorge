@@ -211,6 +211,12 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-tdm", []stdRepro{
 		{"shuffle_target_already_returned", false, false}, // CR 608.2b: Rite of Renewal's shuffled cards are in the graveyard still; one already returned to hand stays there
+		// Teval, Arbiter of Virtue's delve grant on an unresolved twobrid
+		// (Gurmag Nightwatch): the cast is offered on the per-face credit
+		// (CR 702.66a), and a payment the window's activations still cannot
+		// finish reverses the cast keeping the floated mana (CR 733.1: a
+		// player may reverse mana abilities activated for an illegal play)
+		{"twobrid_delve_unpayable_window", true, false},
 	})
 }
 
