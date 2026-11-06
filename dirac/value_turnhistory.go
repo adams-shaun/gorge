@@ -92,8 +92,8 @@ const resolveMark = 0x80
 // countResolve records one resolution of the resolving triggered ability
 // (gorge foldResolve: the per-ability ResolvedThisTurn tally, incremented
 // before the body runs, so the body's read includes it). A record per
-// resolution in the once-per-turn pool, keyed by the source object and its
-// ver as the ability was created; the pool's cap stalls loud (StallUsed).
+// resolution in the once-per-turn pool, keyed by the source object and the
+// ability body; the pool's cap stalls loud (StallUsed).
 //
 //go:noinline
 func (s *State) countResolve(k *prep, e *stackEntry) {
@@ -137,7 +137,10 @@ func resolveTally(k *prep, e *stackEntry) uint8 {
 }
 
 // resolvedThisTurn is ExResolvedThisTurn: the resolving ability's
-// resolutions this turn (Count$ResolvedThisTurn).
+// resolutions this turn (Count$ResolvedThisTurn). The record's ver is not
+// part of the identity: gorge events.ResolvedAbilityKey is (source ObjID,
+// ability body), so a permanent that leaves and returns keeps the tally
+// (South Pole Voyager's second resolution after Airbend still draws).
 //
 //go:noinline
 func (s *State) resolvedThisTurn(k *prep) int {
@@ -148,7 +151,7 @@ func (s *State) resolvedThisTurn(k *prep) int {
 	ab := resolveMark | resolveTally(k, e)
 	n := 0
 	for i := 0; i < int(s.g.nused); i++ {
-		if r := s.g.used[i]; r.obj == e.obj && r.ab == ab && r.ver == e.srcVer {
+		if r := s.g.used[i]; r.obj == e.obj && r.ab == ab {
 			n++
 		}
 	}
