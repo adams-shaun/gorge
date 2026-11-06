@@ -1162,6 +1162,7 @@ func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop
 // grantPlayCostRaise is grantPlayCost with raiseO set as the caller left it.
 func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cost kop.ManaCost, ex Slot, need [kop.NumManaKinds]bool, ok bool) {
 	ex = NoSlot
+	need = s.playNeed(k, a)
 	switch a.Kind() {
 	case AkActivate:
 		if a.Mode()&0x80 != 0 {
@@ -1169,7 +1170,6 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 		}
 		cost, ex, ok = s.activationMana(k, Obj(a.Source()), a.Mode())
 		if ok {
-			need = s.abilityNeed(k, Obj(a.Source()), a.Mode())
 			cost = s.waterbendPlanCost(k, p, Obj(a.Source()), a.Mode(), cost)
 		}
 		return cost, ex, need, ok
@@ -1217,12 +1217,12 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			// pay X = 0, so the prefix search runs on the fixed part and
 			// the witness (lowerWitness) then pays the largest X from the
 			// pool and the printed sources
-			return s.featCost(k, p&1, c, Obj(a.Source()), k.cards[c].cost), ex, grantNeedColours(k.cards[c].cost), true
+			return s.featCost(k, p&1, c, Obj(a.Source()), k.cards[c].cost), ex, need, true
 		}
 		if c := s.objs[a.Source()].card; a.Kind() == AkCast && a.Mode() == 0 && a.Target() == 0 && k.t.Cards[c].HasAltAdd && k.t.Cards[c].Cost.X == 0 && !s.contribPays(k, p, c, Obj(a.Source()), s.objs[a.Source()].zone == kop.ZoneHand) {
 			// an either-or additional cost: the planner prices the spell with the part
 			// gorgeLowers prices, so the search funds that (Deadly Precision's {B})
-			return s.altAddPlanCost(k, p, c, Obj(a.Source())), ex, grantNeedColours(k.cards[c].cost), true
+			return s.altAddPlanCost(k, p, c, Obj(a.Source())), ex, need, true
 		}
 		if c := s.objs[a.Source()].card; a.Kind() == AkCast && a.Mode() == 0 && a.Target() == 0 && modalFloorZero(k, c) {
 			// a Spree or Tiered face: the cast planner declines the shape
@@ -1234,22 +1234,35 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			if s.g.mayPlayAny {
 				cost = anyType(cost)
 			}
-			return cost, ex, grantNeedColours(k.cards[c].cost), true
+			return cost, ex, need, true
 		}
 		cost, ok = s.plannedCastCostOf(k, p, Obj(a.Source()), a.Mode()&(3|castMayPlay), true, true)
-		if ok && a.Kind() == AkCast && a.Mode() == 0 {
-			// gorge's plain cast (Mode "": not kicked, not a flashback-family
-			// mode, not a face cast, not may-play, not casualty/conspire --
-			// mode bit 0 and AkCast). Every other cast mode is an alternative
-			// or additional cost in gorge's eyes and scriptNeedColours leaves
-			// its need set empty (pair 604: a flashback cast whose granted
-			// colour ask the kernel answered from the printed base, gorge
-			// from the engine order)
-			need = grantNeedColours(k.cards[s.objs[a.Source()].card].cost)
-		}
 		return cost, ex, need, ok
 	}
 	return cost, ex, need, false
+}
+
+// playNeed is the colours play a's printed base announces (gorge's
+// scriptNeedColours): a plain cast's printed mana cost, a printed ability's
+// compiled cost. An alternative, kicked, face-down or may-play cast, and the
+// impended/evoked alternative costs, leave it empty, as gorge's
+// scriptNeedColours does. The read is independent of grantPlayCost's ok: the
+// filter search also prices plays the grant search declines (a waterbend or
+// behold cast, a target-priced shape), and both searches must branch on the
+// same set. The card's printed cost is read unreduced (CR 601.2b announces
+// the printed pip colours).
+func (s *State) playNeed(k *prep, a Action) (need [kop.NumManaKinds]bool) {
+	switch a.Kind() {
+	case AkActivate:
+		if a.Mode()&0x80 == 0 {
+			need = s.abilityNeed(k, Obj(a.Source()), a.Mode())
+		}
+	case AkCast:
+		if a.Mode() == 0 && a.Target() != castImpTgt && a.Target() != castEvokeTgt {
+			need = grantNeedColours(k.cards[s.objs[a.Source()].card].cost)
+		}
+	}
+	return need
 }
 
 // grantNeedColours reports the colours m's symbols name, gorge's

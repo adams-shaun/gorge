@@ -69,6 +69,33 @@ func (s *State) otherGaps(k *prep, p uint8) slotMask {
 	return m.andNot(s.scriptFilt(k, p))
 }
 
+// anyRSteps drives one single-colour anyR gap's six scriptDFS answers in
+// gorge's order: answer 0 (the first printed mana ability) before the colour
+// ask's node -- gorge's "choose a mana ability" ask has no ManaSymbol, so
+// scriptOrderAnswers leaves it alone -- then the colour ask with the colours
+// the play announces first and the rest in engine order. tick charges the
+// colour ask's node; try submits one answer and reports whether the search
+// below it found the play.
+func anyRSteps(need [kop.NumManaKinds]bool, try func(uint8) bool, tick func() bool) bool {
+	if try(0) {
+		return true
+	}
+	if !tick() {
+		return false
+	}
+	for c := uint8(1); c <= 5; c++ {
+		if need[c-1] && try(c) {
+			return true
+		}
+	}
+	for c := uint8(1); c <= 5; c++ {
+		if !need[c-1] && try(c) {
+			return true
+		}
+	}
+	return false
+}
+
 // otherGap branches on gap sl's answers at a priority node of the search.
 func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 	p := fs.p
@@ -124,36 +151,18 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 			}
 			return false
 		}
-		// the colour ask (scriptDFS's six answers), gorge's scriptOrderAnswers
-		// on it: an answer naming a colour the play announces comes first,
-		// the rest keep their order, {C} among them
-		if !fs.tick() {
-			return false
+		// its printed first mana ability first: gorge's "choose a mana
+		// ability" ask has no ManaSymbol, so scriptOrderAnswers leaves it
+		// alone (on Cavern of Souls et al. answer 0 is the printed {C}).
+		// Then the colour ask (scriptDFS's six answers), gorge's
+		// scriptOrderAnswers on it: a colour the play announces first, the
+		// rest in engine order.
+		if anyRSteps(fs.need, func(ans uint8) bool {
+			return try(otherStep{kind: otherAnyR, ans: ans})
+		}, fs.tick) {
+			return true
 		}
-		for c := uint8(1); c <= 5; c++ {
-			if fs.need[c-1] {
-				if try(otherStep{kind: otherAnyR, ans: c}) {
-					return true
-				}
-			}
-		}
-		if fs.need[kop.C] {
-			if try(otherStep{kind: otherAnyR}) {
-				return true
-			}
-		}
-		for c := uint8(1); c <= 5; c++ {
-			if !fs.need[c-1] {
-				if try(otherStep{kind: otherAnyR, ans: c}) {
-					return true
-				}
-			}
-		}
-		if !fs.need[kop.C] {
-			if try(otherStep{kind: otherAnyR}) {
-				return true
-			}
-		}
+		return false
 	case t.scriptTapX(k, p).has(sl):
 		var cs [MaxPerm]Slot
 		nc := t.tapXCands(k, p, sl, &cs)
