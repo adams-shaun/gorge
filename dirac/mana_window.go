@@ -1251,6 +1251,38 @@ func wideAnswer(c int) (int, int) {
 
 const wideAnswers = 15 // the multisets of two colours of five
 
+// wideEngineAnswer maps the script search's answer index c of a wide
+// two-unit any-colour ask to the engine-order answer wideAnswer decodes
+// (scriptEngineAnswer). The ask's options each carry a single ManaSymbol
+// (mana_activation.go lays the two units out unit-major), so gorge's
+// scriptOrderAnswers reorders its answers: a pair naming a colour the play
+// announces comes first, engine order kept inside each half -- the same
+// reorder mana_mixgaps.go enumerates in its own walk, mirrored here on the
+// multisets the search keeps (a mirrored pair names the same colours, so
+// dropping it does not change the order).
+func wideEngineAnswer(need [kop.NumManaKinds]bool, c int) int {
+	if c >= wideAnswers {
+		return c // beyond the multisets: engine order as before
+	}
+	var order [wideAnswers]uint8
+	no := 0
+	for i := 0; i < wideAnswers; i++ {
+		a, b := wideAnswer(i)
+		if need[a] || need[b] {
+			order[no] = uint8(i)
+			no++
+		}
+	}
+	for i := 0; i < wideAnswers; i++ {
+		a, b := wideAnswer(i)
+		if !need[a] && !need[b] {
+			order[no] = uint8(i)
+			no++
+		}
+	}
+	return int(order[c])
+}
+
 // firstManaAb is cd's first own mana ability (-1 none).
 func firstManaAb(cd *kop.CardDef) int {
 	for j := range cd.Abilities {
@@ -1298,10 +1330,12 @@ func (s *State) availAnyR(k *prep, p uint8, a *avail) {
 // search enumerates a Taps-deferred or restricted any-colour gap's colour
 // answers in scriptOrderAnswers' order (the play's announced colours first,
 // gorge's scriptSearch ask node), while tapGapChoice decodes engine order,
-// so the answer index is translated first. A wide two-unit Courtyard ask's
-// answers are colour pairs (no single ManaSymbol: scriptOrderAnswers leaves
-// them alone), and a Courtyard's c 0 is the "choose a mana ability" ask's
-// printed ability (no ManaSymbol either): both keep engine order.
+// so the answer index is translated first. The wide two-unit Courtyard ask's
+// answers are colour pairs, but each of the ask's options carries a single
+// ManaSymbol, so scriptOrderAnswers reorders them the same way
+// (wideEngineAnswer, the mirror of mana_mixgaps.go's wide reorder). A
+// Courtyard's c 0 is the "choose a mana ability" ask's printed ability (no
+// ManaSymbol): engine order there.
 func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, restr, anyR, tapsDef slotMask, c int, spill *[kop.NumManaKinds]uint8) {
 	s.tapGapChoice(k, p, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c), spill)
 }
@@ -1317,7 +1351,7 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 	if anyR.has(sl) {
 		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]
 		if restrWideAnyMana(ab) {
-			return c
+			return wideEngineAnswer(s.playNeed(k, a), c)
 		}
 		mask = uint8(ab.ManaColors)
 		if c == 0 {
