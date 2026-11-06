@@ -370,7 +370,15 @@ func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCo
 	cd := &k.t.Cards[s.cardAt(sl)]
 	for j := range cd.Abilities {
 		a := &cd.Abilities[j]
-		if !restrSrcAb(a) || a.AFlags&(kop.AfManaDynamic|kop.AfManaChoice) != 0 || a.ManaColors == kop.ColAny || uint8(a.ManaColors)&want == 0 {
+		// An any-colour restricted ability (White Lotus Hideout's
+		// Lesson/Shrine mana) is a choice-shaped Produced$ Any: gorge's
+		// owedAbilitiesFirst lists it first when the payment owes a colour
+		// its plain ability cannot make, and the answer takes its colour
+		// ask. Tap it for the owed colour, which floats restricted
+		// (CR 106.6), exactly as a fixed restricted one above.
+		anyColour := a.ManaColors == kop.ColAny && a.AFlags&kop.AfManaChoice != 0
+		if !restrSrcAb(a) || a.AFlags&kop.AfManaDynamic != 0 ||
+			a.AFlags&kop.AfManaChoice != 0 && !anyColour || uint8(a.ManaColors)&want == 0 {
 			continue
 		}
 		s.perms[sl].flags |= pfTapped
