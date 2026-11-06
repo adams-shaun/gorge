@@ -361,16 +361,22 @@ func (s *State) windowRestrUseful(k *prep, sl Slot, want uint8) bool {
 // windowRestrOwedTap: a cast's ability ask lists sl's restricted ability first when
 // its colour is owed and the plain one's isn't (gorge owedAbilitiesFirst, which reads
 // colours only, so the mana may be mana this spell can't spend). It taps sl for that
-// mana, floating beside the pool, and reports whether it did.
+// mana, floating beside the pool, and reports whether it did. An any-colour ability
+// makes every colour, but gorge enumerates that only when its restriction admits the
+// payment (its colours are otherwise not enumerable), so it sorts first just then.
 func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCost) bool {
 	want, decided := s.windowUseful(k, p, useful)
 	if !decided || s.windowSrcMask(k, sl)&want != 0 {
 		return false
 	}
+	d := s.payDescNow(NoObj)
 	cd := &k.t.Cards[s.cardAt(sl)]
 	for j := range cd.Abilities {
 		a := &cd.Abilities[j]
-		if !restrSrcAb(a) || a.AFlags&(kop.AfManaDynamic|kop.AfManaChoice) != 0 || a.ManaColors == kop.ColAny || uint8(a.ManaColors)&want == 0 {
+		if !restrSrcAb(a) || a.AFlags&(kop.AfManaDynamic|kop.AfManaChoice) != 0 || uint8(a.ManaColors)&want == 0 {
+			continue
+		}
+		if a.ManaColors == kop.ColAny && !s.restrSrcAdmits(k, p, sl, a, &d) {
 			continue
 		}
 		s.perms[sl].flags |= pfTapped
