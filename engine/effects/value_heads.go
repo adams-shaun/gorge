@@ -97,6 +97,7 @@ var modelledValueHeads = []string{
 	"PlayerCountOpponents$ConditionLTZ",
 	"PlayerCountOpponents$HasPropertyHasCardsInHand",
 	"PlayerCountOpponents$HasPropertyIsCorrupted",
+	"PlayerCountOpponents$HasPropertyIsRememberedOrController",
 	"PlayerCountOpponents$HasPropertyLostLifeThisTurn",
 	"PlayerCountOpponents$HasPropertywasDealtCombatDamageThisTurn",
 	"PlayerCountOpponents$HasPropertywasDealtDamageThisTurn",

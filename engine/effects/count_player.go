@@ -466,6 +466,21 @@ func hasPropertyStateBacked(h Host, g *state.Game, c *Ctx, group []state.PlayerI
 			}
 			return false
 		}
+	case base == "HasPropertyIsRememberedOrController":
+		// Cut a Deal: "you draw a card for each opponent who drew a card
+		// this way" -- the resolution's RememberDrawn$ remembered the drawn
+		// cards, so a member counts when it is the resolving controller, a
+		// remembered PLAYER entry, or the live controller of a remembered
+		// OBJECT entry (the same read RememberedController's derivation
+		// makes; a replacement-stolen card sits in the stealer's hand, so
+		// its live controller is the stealer).
+		qs := controllersOf(g, hostRemembered(h, c))
+		in := make(map[state.PlayerID]bool, len(qs)+1)
+		for _, t := range qs {
+			in[t.Player] = true
+		}
+		in[c.Controller] = true
+		qualifies = func(p state.PlayerID) bool { return in[p] }
 	default:
 		zone := state.Zone(0)
 		prefix := ""
