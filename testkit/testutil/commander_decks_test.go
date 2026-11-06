@@ -30,6 +30,7 @@ var repoCommanderDecks = []struct {
 	{"cavalry-charge", "Sidar Jabari of Zhalfir"},
 	{"deadly-disguise", "Kaust, Eyes of the Glade"},
 	{"science-pip", "Dr. Madison Li"},
+	{"tinker-time", "Gimbal, Gremlin Prodigy"},
 }
 
 // TestRepoCommanderDecksValidate is the acceptance gate: every interim
