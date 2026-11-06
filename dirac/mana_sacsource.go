@@ -1,6 +1,8 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // A sacrifice-only mana source (an Eldrazi Spawn token's "Sacrifice this
 // creature: Add {C}", CR 605.1a): the ability's cost has no {T}, so a tapped
@@ -392,6 +394,15 @@ func (s *State) putCounterProg(k *prep, in *kop.Instr) {
 	}
 }
 
+// scriptStep poses the next decision of a scripted line in the order gorge's
+// engine poses its options: scriptAnswers walks d.Options as built, and
+// askTriggerOrder builds them in pending queue order (engine/rules/
+// trigger_queue.go). stepRaw reproduces that pose order; StepOne's canonical
+// sort is the lockstep's comparison order (types.go canonKey), not the
+// engine's. Both the search's model (resolvePrefixStack) and the applied play
+// (flushPrefixTriggers) answer from this one helper so they cannot drift.
+func (s *State) scriptStep(d *Decision) { s.stepRaw(d) }
+
 // flushPrefixTriggers puts the triggers a scripted prefix just queued onto
 // the stack before the play itself is applied. gorge answers each prefix
 // activation as its own decision, so its next priority round drains the
@@ -430,7 +441,7 @@ func (s *State) flushPrefixTriggers(k *prep) {
 			// prefix pays), given before the play is submitted
 			for s.ctl == ctlBuild && !s.over {
 				var d Decision
-				s.StepOne(&d)
+				s.scriptStep(&d)
 				if d.N == 0 || s.ctl != ctlBuild {
 					break
 				}
@@ -502,16 +513,98 @@ func (s *State) playNeedsEmptyStack(k *prep, a Action) bool {
 	return s.castNeedsEmptyStack(k, a) || s.activateNeedsEmptyStack(k, a)
 }
 
-// resolvePrefixStack resolves what a scripted prefix left on the stack above
-// depth sp0, the other player passing as the search assumed, before a
-// sorcery-speed play is submitted (flushPrefixTriggers stacked it). A trigger
-// the resolution queues is placed and resolved too.
-func (s *State) resolvePrefixStack(k *prep, sp0 uint8) {
-	for s.sp > sp0 && s.ctl == ctlPriority && !s.over {
-		s.passes = 1
-		s.pass(k)
-		if s.npend != 0 {
-			s.flushPrefixTriggers(k)
+// resolvePrefixStack drives what a scripted prefix left behind before the
+// play is applied: the triggers its activations queued (two or more wait for
+// gorge KTriggerOrder, which blocks the payer priority, so the search's
+// script answers it), the placements' dangling builds (takePending), and --
+// for a sorcery-speed play, which is offered only with the stack empty --
+// the resolutions, down to depth sp0, the other player passing as the search
+// assumed. An optional trigger (Judge of Currents) asks its may-election as
+// it resolves: the search answers the election's yes first (scriptAnswers
+// lists Min == Max == 1's answers with the yes first, askTriggerOptional),
+// so the kernel answers it here and lets the resolution finish. Any other
+// ask is not the search's to answer: the play waits above it, as before.
+func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
+	resolved := false // the loop resolved a stack item: the SBA pass follows (CR 704.3)
+	for !s.over {
+		switch s.ctl {
+		case ctlPriority:
+			if s.npend > 0 {
+				s.ctl = ctlPlaceTriggers // the queued triggers are placed first (CR 117.5)
+				continue
+			}
+			if !resolve || s.sp <= sp0 {
+				if resolve && resolved {
+					// the resolutions are done: the priority they end at
+					// runs its state-based check before the search's pass
+					// is answered (CR 704.3). A line the script's
+					// resolutions killed -- the equipped source's damage
+					// trigger at the last opponent's 1 life -- ends the
+					// search there, as gorge's visit does at the resulting
+					// priority's c.G.Over, and the play is not offered.
+					// Nothing resolved, nothing to check: the ordinary
+					// path's call with the stack untouched skips it.
+					s.sba(k)
+				}
+				return
+			}
+			spBefore := s.sp
+			s.passes = 1
+			s.pass(k)
+			resolved = resolved || s.sp < spBefore
+		case ctlPlaceTriggers:
+			var d Decision
+			s.scriptStep(&d) // the pose order scriptAnswers enumerates, shared with flushPrefixTriggers
+			if s.ctl == ctlPlaceTriggers {
+				// a posed ask here is the queued triggers' order (gorge
+				// KTriggerOrder, one Min=Max=n multi-select whose only
+				// scriptAnswers combination is the options in pose order,
+				// the queue order): answer it as the script does, pick by
+				// pick, so the triggers are placed before the play.
+				// Anything else is the ordinary path's.
+				if d.N == 0 || d.Kind != DkTriggerOrder {
+					return
+				}
+				s.Apply(d.Options[0])
+			}
+		case ctlBuild:
+			// the placement's takePending left the trigger's build
+			// dangling: run it out (its asks, answered with the script's
+			// first option, the pose order scriptAnswers enumerates)
+			for s.ctl == ctlBuild && !s.over {
+				var d Decision
+				s.scriptStep(&d)
+				if d.N == 0 || s.ctl != ctlBuild {
+					break
+				}
+				s.Apply(d.Options[0])
+			}
+			if s.ctl == ctlBuild {
+				return // stalled mid-build
+			}
+		case ctlResolve:
+			if !resolve || s.res.ask != raOptional {
+				return
+			}
+			var d Decision
+			s.scriptStep(&d)
+			if d.N == 0 || d.Sub != ChOptional {
+				return
+			}
+			yes := -1
+			for i := 0; i < int(d.N); i++ {
+				if d.Options[i].Mode()&1 != 0 {
+					yes = i
+					break
+				}
+			}
+			if yes < 0 {
+				return
+			}
+			s.Apply(d.Options[yes])
+			resolved = true
+		default:
+			return
 		}
 	}
 }
