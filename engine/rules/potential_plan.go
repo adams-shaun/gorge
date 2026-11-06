@@ -2,7 +2,6 @@ package rules
 
 import (
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -682,7 +681,7 @@ func (e *Engine) planTargetCostFloor(statics costStaticViews, p state.PlayerID, 
 		if id != sv.Source && sv.ParamStr(cards.PKValidCard) == "Card.Self" {
 			continue // another cast's self static never prices this one
 		}
-		if strings.TrimSpace(sv.ParamStr(cards.PKValidTarget)) == "" {
+		if sv.ParamStr(cards.PKValidTarget) == "" {
 			if costStaticReadsTargets(sv) {
 				if ok, indepFail := e.costStaticGate(sv, "ReduceCost", p, id, scope, nil, false); ok || indepFail {
 					continue // priced into base already, or never applies
@@ -694,14 +693,14 @@ func (e *Engine) planTargetCostFloor(statics costStaticViews, p state.PlayerID, 
 		if ok, indepFail := e.costStaticGate(sv, "ReduceCost", p, id, scope, nil, false); ok || indepFail {
 			continue // priced into base already, or never applies
 		}
-		amt, err := strconv.Atoi(strings.TrimSpace(sv.ParamStr(cards.PKAmount)))
-		if err != nil || amt < 0 {
+		amt := parseAmount(sv.ParamStr(cards.PKAmount), -1)
+		if amt < 0 {
 			return Cost{}, false
 		}
-		floor.Generic -= int32(amt)
+		floor.Generic -= amt
 	}
 	for _, sv := range statics.set {
-		if strings.TrimSpace(sv.ParamStr(cards.PKValidTarget)) != "" || costStaticReadsTargets(sv) {
+		if sv.ParamStr(cards.PKValidTarget) != "" || costStaticReadsTargets(sv) {
 			return Cost{}, false
 		}
 	}
