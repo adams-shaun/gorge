@@ -339,23 +339,25 @@ func (s *State) replOrderOrder(r *dmgRec, ord *[MaxPerm]uint8) int {
 	return n
 }
 
-// replPlusCand reports whether the permanent at b carries a commuting
-// ReplDamagePlus ability (not Ojer Axonil's raise) that matches a combat
-// damage event from fsl (or the spell's card srcCard when fsl is NoSlot)
-// controlled by sc to the recipient (player rcp when dst is NoSlot, else the
-// permanent at dst). It is the candidate collector's copy of replPlusHit.
-func (s *State) replPlusCand(k *prep, b Slot, fsl Slot, srcCard CardID, sc, rcp uint8, dst Slot, combat bool) (add int, ok bool) {
+// replPlusCand reports whether the permanent at b carries a ReplDamagePlus
+// ability that matches n damage from fsl (or the spell's card srcCard when
+// fsl is NoSlot) controlled by sc to the recipient (player rcp when dst is
+// NoSlot, else the permanent at dst). add is a commuting addition's amount;
+// raise is Ojer Axonil's power when its raise body matches, which the
+// collectors must not treat as a commuting addition (its order changes the
+// amount). It is the candidate collector's copy of replPlusHit.
+func (s *State) replPlusCand(k *prep, b Slot, fsl Slot, srcCard CardID, sc, rcp uint8, dst Slot, combat bool, n int) (add, raise int, ok bool) {
 	cd := &k.t.Cards[s.cardAt(b)]
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
 		if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplDamagePlus {
 			continue
 		}
-		if add, raise, hit := s.replPlusHit(k, b, a, sc, fsl, srcCard, rcp, dst, combat, 0); hit && raise == 0 {
-			return add, true
+		if add, raise, hit := s.replPlusHit(k, b, a, sc, fsl, srcCard, rcp, dst, combat, n); hit {
+			return add, raise, true
 		}
 	}
-	return 0, false
+	return 0, 0, false
 }
 
 // replOrderCandsFz fills s.g.ro's candidates for the frozen combat event fe
@@ -392,7 +394,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 				ro.cand[n] = s.perms[b].obj
 				n++
 			} else if plusOnly && g.replBits[s.cardAt(b)]&rbPlusDmg != 0 && !s.genLost(k, b) {
-				if _, ok := s.replPlusCand(k, b, fsl, fe.card, sc, rcp, fe.dst, true); ok {
+				if _, raise, ok := s.replPlusCand(k, b, fsl, fe.card, sc, rcp, fe.dst, true, int(fe.n)); ok && raise == 0 {
 					if n == len(ro.cand) {
 						s.capFull(StallReplCands) // loud: never truncate the candidates
 						return 0
@@ -920,7 +922,15 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 			} else if plusOnly && rb&rbPlusDmg != 0 && p == ctrl {
 				// a commuting addition (Fated Firepower): collected so two or
 				// more are asked as gorge's no-op CR 616.1 order (replPlus)
-				if add, ok := s.replPlusCand(k, b, srcSl, srcCard, ctrl, rcp, sl, false); ok {
+				add, raise, ok := s.replPlusCand(k, b, srcSl, srcCard, ctrl, rcp, sl, false, n)
+				if ok {
+					if raise != 0 {
+						// A raise (Ojer Axonil) competing with the additions
+						// does not commute with them, so this sum-only park
+						// would drop it. Leave the event to damageTo's
+						// replDamage/replPlus, which caps StallReplPlus loudly.
+						return false
+					}
 					if c == len(cand) {
 						s.capFull(StallReplCands) // loud: never truncate the candidates
 						return false
