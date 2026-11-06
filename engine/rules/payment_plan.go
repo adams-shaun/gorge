@@ -1215,6 +1215,15 @@ func (e *Engine) targetPaidNeedsPlannedPayment(p state.PlayerID, id state.ObjID)
 	o := decision.Option{Kind: "cast", Obj: id}
 	e.planConsumptionOnly = true
 	e.planCoverBoundOn = true
+	if _, consumable := e.planCoverBoundOf(p); !consumable {
+		// No census alternative consumes its source, so no plan this query
+		// can read consumes either (planCoverConsumable): the cast is not
+		// payable only by paying with a needed permanent, whatever its
+		// targets and modes price to.
+		e.planCoverBoundOn = false
+		e.planConsumptionOnly = false
+		return false
+	}
 	got := e.potentialModeCastPlan(p, o)
 	e.planCoverBoundOn = false
 	e.planConsumptionOnly = false

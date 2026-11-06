@@ -84,7 +84,13 @@ type engineScratch struct {
 	planCoverBoundP  state.PlayerID `clone:"reset"`
 	planCoverPool    state.Mana     `clone:"reset"`
 	planCoverBound   state.Mana     `clone:"reset"`
-	derivedMemoGen   uint64         `clone:"reset"`
+	// planCoverConsumable is the same pass's answer to whether some census
+	// alternative consumes its source (sacrifices or returns it): the plan's
+	// search draws its steps only from the census's alternatives, so with no
+	// consumable alternative the arm's verdict is false without the search
+	// (planCoverBoundOf).
+	planCoverConsumable bool   `clone:"reset"`
+	derivedMemoGen      uint64 `clone:"reset"`
 	// typesMemo is the derived-types memo (engine/rules/types_memo.go): each
 	// object's layer-4 answer under the Derived memo's cross-walk key, served
 	// to derivedTypesOf and every top-level Derived build. typesMemoLocal*

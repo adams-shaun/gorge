@@ -801,7 +801,7 @@ func (e *Engine) planCoverInsufficient(p state.PlayerID, mana Cost) bool {
 	if pay.PlanCostDetail(mana) != "" {
 		return false
 	}
-	bound := e.planCoverBoundOf(p)
+	bound, _ := e.planCoverBoundOf(p)
 	need := int32(0)
 	for c := range bound {
 		if mana.Colored[c] > bound[c] {
@@ -812,22 +812,33 @@ func (e *Engine) planCoverInsufficient(p state.PlayerID, mana Cost) bool {
 	return bound.Total()-need < mana.Generic
 }
 
-// planCoverBoundOf is the bound planCoverInsufficient reads: p's floating
-// pool plus, per census source, its largest alternative per colour. Inside
-// the arm's consumption-only query (planCoverBoundOn) it is computed once
-// per event-log head and shared by the query's nested planComposedCost
-// calls: every state change is an appended event, so an unchanged log
-// length is the same unchanging board and pool.
-func (e *Engine) planCoverBoundOf(p state.PlayerID) state.Mana {
+// planCoverBoundOf is the bound planCoverInsufficient reads, with whether a
+// census alternative consumes its source (planCoverConsumable: sacrifices or
+// returns it). The plan the consumption-only query reads is the mana part
+// alone -- the fixed-count sacrifice parts and the either-or modes are the
+// play's own asks, outside the plan -- and a relaxed proof's alternatives
+// are never returned as a plan, so the plan's search draws its steps only
+// from this census's alternatives (PlanPaymentCostWithout's choices). With
+// no consumable alternative no plan paymentPlanConsumes reads can consume,
+// whatever the cost, so the arm's verdict is false without the search.
+// The bound itself is p's floating pool plus,
+// per census source, its largest alternative per colour. Inside the arm's
+// consumption-only query (planCoverBoundOn) both are computed once per
+// event-log head and shared by the query's nested planComposedCost calls:
+// every state change is an appended event, so an unchanged log length is the
+// same unchanging board and pool.
+func (e *Engine) planCoverBoundOf(p state.PlayerID) (state.Mana, bool) {
 	pool := e.G.Players[p].Pool
 	if e.planCoverBoundOn && e.planCoverLogLen == len(e.L.Events) &&
 		e.planCoverBoundP == p && e.planCoverPool == pool {
-		return e.planCoverBound
+		return e.planCoverBound, e.planCoverConsumable
 	}
 	bound := pool
+	consumable := false
 	for _, u := range pay.PaymentPlanQueryUnits(asPayer(e), p) {
 		var best state.Mana
 		for _, a := range pay.PaymentPlanQueryAlternatives(asPayer(e), u) {
+			consumable = consumable || a.Consequence.Sacrifice || a.Consequence.ReturnToHand
 			for c := range best {
 				if a.Mana[c] > best[c] {
 					best[c] = a.Mana[c]
@@ -843,8 +854,9 @@ func (e *Engine) planCoverBoundOf(p state.PlayerID) state.Mana {
 		e.planCoverBoundP = p
 		e.planCoverPool = pool
 		e.planCoverBound = bound
+		e.planCoverConsumable = consumable
 	}
-	return bound
+	return bound, consumable
 }
 
 // potentialModalCastFreeMode reports whether a plain Spree/Tiered cast of id

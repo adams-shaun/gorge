@@ -60,6 +60,16 @@ func TestArmCensusCoverGate(t *testing.T) {
 	if e.planCoverInsufficient(0, fourW) {
 		t.Fatal("four forests and a plains fund {4}{W}")
 	}
+	// The same pass answers whether an alternative consumes its source: tap
+	// lands do not, a sacrificing mana source does -- the arm's verdict is
+	// false without the search only while nothing can consume.
+	if _, consumable := e.planCoverBoundOf(0); consumable {
+		t.Fatal("forests and a plains' tap-only alternatives consume nothing")
+	}
+	onBoard(t, e, 0, acoElf)
+	if _, consumable := e.planCoverBoundOf(0); !consumable {
+		t.Fatal("the sacrificing mana source's alternative consumes it")
+	}
 	// Every shape the planner itself declines is not read: the gate leaves
 	// it to the planner's own decline.
 	if e.planCoverInsufficient(0, cost.Cost{X: 1}) {
