@@ -54,24 +54,38 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 }
 
 // otherGaps: the gaps a filter search on p's board activates beside its
-// filters. A play's own granted sources are the grant search's (grantCap /
-// grantPrefix), and an activation's filter search prices without them
-// (noGrant, mana.go availFor): floating their mana into the pool here would
-// price the play from mana its spend restriction cannot spend. A cast's may
-// count them (its noGrant is false), as the Grotto's scenarios do.
+// filters. A cast counts a play's granted sources here (its noGrant is
+// false, as the Grotto's scenarios do). An activation's are the grant
+// search's (grantCap / grantPrefix), so they are left out here; filtScript
+// adds them back to an applied activation's prefix, where gorge's tap order
+// is what the state must match (mana_filter.go).
 func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 	var m slotMask
 	if s.mixBoard(k, p) {
 		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p))
 	}
-	if a.Kind() != AkActivate && len(k.gen.grantPC) != 0 && s.grantsLive(k) {
-		for b := s.ctrlM[p&1].and(s.occ); b.any(); b = b.rest() {
-			if sl := b.first(); s.grantIdx(k, sl) >= 0 && s.canTapForMana(k, sl) {
-				m = m.with(sl)
-			}
-		}
+	if a.Kind() != AkActivate {
+		m = m.or(s.grantGaps(k, p))
 	}
 	return m.andNot(s.scriptFilt(k, p))
+}
+
+// grantGaps: p's untapped permanents whose mana ability an effect grants, the
+// census gaps a filter search may activate beside its filters. Gorge's one
+// prefix search (scriptSearch.visit) activates every gap, grants included,
+// before it funds a paid filter's fee from the sources a play does not need
+// (mana_filter.go's filtSearch).
+func (s *State) grantGaps(k *prep, p uint8) slotMask {
+	var m slotMask
+	if len(k.gen.grantPC) == 0 || !s.grantsLive(k) {
+		return m
+	}
+	for b := s.ctrlM[p&1].and(s.occ); b.any(); b = b.rest() {
+		if sl := b.first(); s.grantIdx(k, sl) >= 0 && s.canTapForMana(k, sl) {
+			m = m.with(sl)
+		}
+	}
+	return m
 }
 
 // anyRSteps drives one single-colour anyR gap's six scriptDFS answers in

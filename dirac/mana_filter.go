@@ -524,6 +524,16 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	fs.need = s.playNeed(k, a) // the play's announced colours, whichever search prices it
 	fs.other = s.otherGaps(k, p, a)
 	if a.Kind() == AkActivate {
+		if apply {
+			// The applied prefix follows gorge's one prefix search, which
+			// activates a play's granted census gaps before it funds a
+			// filter's fee from a printed source (scriptSearch.visit): other
+			// gaps leaves them to the grant search, but the tap order here
+			// is what the state must match. The offer search keeps the old
+			// fee funding; a play the grant search budget-refused is not
+			// offered at all (scriptOffers skips grantCap's capSpent).
+			fs.other = fs.other.or(s.grantGaps(k, p)).andNot(fs.gaps)
+		}
 		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
 	}
 	if s.filtRelaxable(k, fs.gaps) && !(k.tapMana && s.tapXTwoLive(k, p)) { // (unrelaxable: no funding)
