@@ -742,10 +742,18 @@ func (e *Engine) planTargetCostFloor(statics costStaticViews, p state.PlayerID, 
 		}
 		if sv.ParamStr(cards.PKValidTarget) == "" {
 			if costStaticReadsTargets(sv) {
-				if ok, indepFail := e.costStaticGate(sv, "ReduceCost", p, id, scope, nil, false); ok || indepFail {
-					continue // priced into base already, or never applies
+				// A target-reading amount evaluated at nil targets reads
+				// zero, so base does NOT already carry its reduction when
+				// the gate passes: only a target-independent denial proves
+				// the static never applies. Refuse otherwise, exactly as
+				// paymentPlanTargetDependentFor declines the cast
+				// (ok || !indepFail); continuing on ok would floor the price
+				// above a real per-target price and could miss a consuming
+				// plan.
+				if _, indepFail := e.costStaticGate(sv, "ReduceCost", p, id, scope, nil, false); indepFail {
+					continue // never applies
 				}
-				return Cost{}, false // a count amount's floor is no subtraction
+				return Cost{}, false // a target-reading amount's floor is no subtraction
 			}
 			continue // priced into base already (or another card's static)
 		}
