@@ -154,12 +154,26 @@ func b2i(b bool) int {
 // the plan besides desc's restriction admission.
 func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost costvocab.Cost, desc *Descriptor, tapped, gone, kept []state.ObjID) PlanOutcome {
 	defer PaymentPlanQueryEnd(e, PaymentPlanQueryBegin(e))
+	ps := e.PlanScratch()
+	if ps == nil {
+		ps = &PlanScratch{}
+	}
+	defer e.PutPlanScratch(ps)
+	// The withheld census's rows live in ps.arena from position 0; the
+	// phase tables' filtered rows append after them (the withheld rows stay
+	// live while the phase tables build).
+	ps.arena = ps.arena[:0]
 	units := PaymentPlanQueryUnits(e, p)
 	queryClasses := func(p state.PlayerID, minTier Tier, choices [][]Alt) []Class {
 		return paymentPlanQueryClasses(e, p, minTier, choices)
 	}
+	// own tracks whether the call groups its own classes (a withheld or
+	// relaxed census): their tables and class spans live in ps's scratch,
+	// which the next call rebuilds, while the query cache's classes are the
+	// plain builds' own memory.
+	own := false
 	ownClasses := func(_ state.PlayerID, _ Tier, choices [][]Alt) []Class {
-		return Classes(choices)
+		return ClassesInto(ps, choices)
 	}
 	if len(gone) != 0 {
 		kept := make([]WindowUnit, 0, len(units))
@@ -169,13 +183,17 @@ func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost c
 			}
 		}
 		units = kept
-		queryClasses = ownClasses
+		queryClasses, own = ownClasses, true
 	}
 	// withhold drops a tapped source's tapping alternatives, a kept
 	// source's consuming ones and a RestrictValid$ alternative desc's
 	// payment may not spend. A census holding any RestrictValid$
 	// alternative groups its own classes: the query cache's are shared by
-	// every payment, whose admissions differ.
+	// every payment, whose admissions differ. The surviving rows append
+	// into ps.arena only from the first drop on (the TRAP: never into the
+	// query scope's own arena, whose spans withhold is still reading), so
+	// an unfiltered unit's row aliases the query arena's alternatives
+	// exactly as before.
 	restrictedSeen := false
 	withhold := func(alts []Alt) []Alt {
 		if len(alts) == 0 {
@@ -183,27 +201,34 @@ func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost c
 		}
 		src := alts[0].Activation.Source
 		tap, keep := slices.Contains(tapped, src), slices.Contains(kept, src)
-		var out []Alt
-		for _, alt := range alts {
+		at := -1
+		for i, alt := range alts {
 			restricted, refused := restrictedRefused(e, p, desc, alt)
 			restrictedSeen = restrictedSeen || restricted
 			if refused || (tap && AbilityCompiledCost(e, alt.Ma).Cost.Tap) ||
 				(keep && (alt.Consequence.Sacrifice || alt.Consequence.ReturnToHand)) {
+				if at < 0 {
+					at = len(ps.arena)
+					ps.arena = append(ps.arena, alts[:i]...)
+				}
 				continue
 			}
-			out = append(out, alt)
+			if at >= 0 {
+				ps.arena = append(ps.arena, alt)
+			}
 		}
-		if len(out) == len(alts) {
+		if at < 0 {
 			return alts
 		}
-		return out
+		return ps.arena[at:len(ps.arena):len(ps.arena)]
 	}
 	if len(tapped) != 0 || len(kept) != 0 {
-		queryClasses = ownClasses
+		queryClasses, own = ownClasses, true
 	}
 	// V1 accepts only fixed production.  A permissive window unit is useful to
 	// manual payment, but not proof an automatic choice will remain exact.
-	choices := make([][]Alt, len(units))
+	choices := resizeCleared(ps.outer, len(units))
+	ps.outer = choices
 	for i, u := range units {
 		choices[i] = withhold(PaymentPlanQueryAlternatives(e, u))
 	}
@@ -220,16 +245,25 @@ func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost c
 			}
 			choices = append(choices, withhold(alts))
 		}
-		queryClasses = ownClasses
+		ps.outer = choices
+		queryClasses, own = ownClasses, true
 	}
 	if restrictedSeen {
-		queryClasses = ownClasses
+		queryClasses, own = ownClasses, true
+	}
+	// A call that groups its own classes never shares them, so its phase
+	// tables may live in the scratch too; the cached path's tables are the
+	// plain builds' own memory, because the cache's classes alias their
+	// rows across calls within the scope.
+	phasePS := (*PlanScratch)(nil)
+	if own {
+		phasePS = ps
 	}
 	// Phase 1 (spec 5): normal sources only. If it finds a complete plan,
 	// that is the offer and last-resort sources are never considered.
 	life := e.Game().Players[p].Life
 	pool := PlanPool(e, p, desc)
-	phase1 := PhaseChoices(choices, TierNormal)
+	phase1 := PhaseChoicesInto(phasePS, choices, TierNormal)
 	rankCtx := NewRankContext(choices, demand)
 	phaseChoices, phaseClasses := phase1, queryClasses(p, TierNormal, phase1)
 	search := SearchInto(e.SearchScratch(), cost, pool, life, rankCtx,
@@ -241,7 +275,7 @@ func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost c
 	// reduce the caster to 0 or less. The rank context is phase 1's: keys 6
 	// and 7 read the untapped normal remainder in both phases.
 	if search.Best == nil && !search.Limited {
-		if phase2 := PlanLastResortChoices(choices, life); phase2 != nil {
+		if phase2 := PlanLastResortChoicesInto(phasePS, choices, life); phase2 != nil {
 			phaseChoices, phaseClasses = phase2, queryClasses(p, TierLastResort, phase2)
 			search = SearchInto(e.SearchScratch(), cost, pool, life, rankCtx,
 				phaseChoices, phaseClasses, PaymentSearchEnv(e.Verify()))
@@ -251,7 +285,7 @@ func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost c
 	if search.Best != nil {
 		SacrificesLast(search.Best)
 		if want := e.Session().PlanAltsWant; want > 1 && len(tapped)+len(kept)+len(gone) == 0 && len(e.Session().PaymentPlanRelaxed) == 0 {
-			e.Session().PlanAlts = planAlternatives(*search.Best, want, cost, pool, life, rankCtx, phaseChoices, phaseClasses, e.Verify())
+			e.Session().PlanAlts = planAlternatives(&ps.altsSearch, *search.Best, want, cost, pool, life, rankCtx, phaseChoices, phaseClasses, e.Verify())
 		}
 	}
 	switch {
@@ -289,9 +323,9 @@ func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost c
 // (ResidualSignature) differ from best's and from each other's, rank-best
 // first, searched over the phase that found best: a plan from normal sources
 // never gives way to a last-resort one (ValidateCastPayment's phase rule).
-func planAlternatives(best decision.PaymentPlan, want int, cost costvocab.Cost, pool state.Mana, life int32, ctx RankContext, choices [][]Alt, classes []Class, verify bool) []decision.PaymentPlan {
+func planAlternatives(sc *SearchScratch, best decision.PaymentPlan, want int, cost costvocab.Cost, pool state.Mana, life int32, ctx RankContext, choices [][]Alt, classes []Class, verify bool) []decision.PaymentPlan {
 	bestSig := ResidualSignature(classes, choices, best.Activations)
-	s := SearchAlternatives(cost, pool, life, ctx, choices, classes, PaymentSearchEnv(verify), want)
+	s := SearchAlternativesInto(sc, cost, pool, life, ctx, choices, classes, PaymentSearchEnv(verify), want)
 	var out []decision.PaymentPlan
 	for _, k := range s.Kept {
 		if k.Sig == bestSig || len(out) == want-1 {

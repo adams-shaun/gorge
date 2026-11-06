@@ -70,6 +70,14 @@ type Engine interface {
 	Session() *Session
 	// SearchScratch is the plan search's reusable working storage.
 	SearchScratch() *SearchScratch
+	// PlanScratch is the payment planner's reusable table storage (the
+	// withheld census rows, the phase tables and the class table a plan
+	// call builds and throws away). A take pops the pooled scratch and
+	// empties the pool's slot, so a nested take allocates its own; the
+	// caller hands it back with PutPlanScratch.
+	PlanScratch() *PlanScratch
+	// PutPlanScratch hands a taken plan scratch back to the engine's pool.
+	PutPlanScratch(*PlanScratch)
 	// EmitCounterBy emits a counter event with p published as the player
 	// putting the counters (a ward or unless cost is paid by its payer, not
 	// by the controller the actionCause fallback would credit). asCost also

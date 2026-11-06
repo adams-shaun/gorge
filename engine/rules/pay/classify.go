@@ -340,9 +340,42 @@ func PlanSelfCost(part cost.CostPart, id state.ObjID) bool {
 // nil when no unit has a last-resort alternative left, so phase 2 cannot
 // differ from phase 1 and is skipped.
 func PlanLastResortChoices(choices [][]Alt, life int32) [][]Alt {
-	out := make([][]Alt, len(choices))
+	return PlanLastResortChoicesInto(nil, choices, life)
+}
+
+// PlanLastResortChoicesInto is PlanLastResortChoices with the copied rows
+// built into ps's scratch (nil allocates, the plain behaviour). The copies
+// point into ps.arena, which the next plan call resets -- so a table built
+// here serves exactly one call, like everything else in the scratch.
+func PlanLastResortChoicesInto(ps *PlanScratch, choices [][]Alt, life int32) [][]Alt {
+	if ps == nil {
+		out := make([][]Alt, len(choices))
+		any := false
+		for i, alts := range choices {
+			for _, a := range alts {
+				if a.Tier < TierLastResort {
+					continue
+				}
+				if pain := ConsequencePain(a.Consequence); pain > 0 && pain >= int64(life) {
+					continue
+				}
+				if a.Tier == TierLastResort {
+					any = true
+				}
+				a.Flex = a.FlexAll
+				out[i] = append(out[i], a)
+			}
+		}
+		if !any {
+			return nil
+		}
+		return out
+	}
+	out := resizeCleared(ps.phaseOuter, len(choices))
+	ps.phaseOuter = out
 	any := false
 	for i, alts := range choices {
+		at := len(ps.arena)
 		for _, a := range alts {
 			if a.Tier < TierLastResort {
 				continue
@@ -354,8 +387,9 @@ func PlanLastResortChoices(choices [][]Alt, life int32) [][]Alt {
 				any = true
 			}
 			a.Flex = a.FlexAll
-			out[i] = append(out[i], a)
+			ps.arena = append(ps.arena, a)
 		}
+		out[i] = ps.arena[at:len(ps.arena):len(ps.arena)]
 	}
 	if !any {
 		return nil

@@ -31,6 +31,9 @@ type hypSparePool struct {
 	// planSearch is the payment-plan search's working storage
 	// (payment_plan_search.go).
 	planSearch pay.SearchScratch
+	// planTables is a stack of the payment planner's spent table scratch
+	// (pay.PlanScratch), taken per plan call the way opts is.
+	planTables []*pay.PlanScratch
 	// zoneEntry backs the engine's zone-entry index (payment_zone_entry.go).
 	zoneEntry []zoneEntryRec
 	// ids is a stack of id lists read-only walks borrow (idsBorrow).
