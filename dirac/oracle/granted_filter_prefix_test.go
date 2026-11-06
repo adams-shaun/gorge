@@ -12,9 +12,10 @@ import (
 // ticket priced (one play, one 160-node prefix search); 2 and 74 are the
 // priority-over-offer seeds this ticket's re-measured sweep added (the
 // budget's continuation into scriptOffers' filter search and the
-// granted-mana float). 35, 99, 177 and 193 hold different classes (a tap's
-// extra on an anyTapExtra board; the waterbend ask's missing done) and are
-// deliberately not in the table.
+// granted-mana float). The classes left out deliberately: 35 is the tap's
+// extra an anyTapExtra board makes grantCap stand down (2b9163de4); 99 and
+// 177 are the Katara watcher's class; 37, 46, 82, 119 and 193 are the Wan
+// Shi Tong choose:x and the Geyser Leaper waterbend asks.
 var budgetSeeds = []uint64{2, 7, 13, 38, 72, 74, 85, 89, 109, 123, 128, 153, 183}
 
 // TestGrantedFilterPrefixBudgetLockstep: on the fixture matchup under
