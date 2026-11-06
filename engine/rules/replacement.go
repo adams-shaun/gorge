@@ -413,7 +413,16 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		}
 		if len(matches) > 1 || hasOptionalReplacement(matches) {
 			if p, ok := e.damageAffectedPlayer(ev); ok && !e.G.Players[p].Lost {
-				e.poseDamageReplacementChoice(ev, matches, e.replacementAskPlayer(matches, p))
+				if applied, served := e.poseDamageReplacementChoice(ev, matches, e.replacementAskPlayer(matches, p)); served {
+					// Under the resolution kernel the ask was answered in place
+					// and the modified damage already landed: return the landed
+					// event so the emitting primitive (Host.EmitDamage's
+					// contract) reads the post-replacement amount for its
+					// ExcessSVar$/RememberDamaged$ riders. A fully prevented
+					// in-place hit arrives as the zero event and keeps the
+					// Note below, which the emitter reads as 0.
+					return applied, true
+				}
 				return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
 					Text: "damage awaiting replacement-order choice"}, true
 			}

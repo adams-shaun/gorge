@@ -375,7 +375,17 @@ func (e *Engine) shouldPoseLoneOptionalMove(ev events.Event, matches []replMatch
 	return int(p) < len(e.G.Players) && !e.G.Players[p].Lost
 }
 
-func (e *Engine) askReplacementChoice(p state.PlayerID) {
+// askReplacementChoice poses the FRONT parked competition's ask without the
+// emitting primitive on the stack (a legacy park, a cast window or a drained
+// queue): the answer, whenever it arrives, keeps finishChosenDamage's rider
+// ownership. askReplacementChoiceIn is the body; fromEmit marks the
+// synchronous pose from poseDamageReplacementChoice, whose served answer must
+// return the landed event to the caller waiting on it.
+func (e *Engine) askReplacementChoice(p state.PlayerID) events.Event {
+	return e.askReplacementChoiceIn(p, false)
+}
+
+func (e *Engine) askReplacementChoiceIn(p state.PlayerID, fromEmit bool) events.Event {
 	rc := e.replChoices[0]
 	d := &decision.Decision{Player: p, Kind: decision.KReplacement, Min: 1, Max: 1,
 		Source: rc.ev.Obj, ResumeKind: "replacement"}
@@ -411,7 +421,7 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 				Label: "Add " + color, ManaSymbol: color})
 		}
 		e.ask(d)
-		return
+		return events.Event{}
 	case replChoicePhaseOrder:
 		d.Prompt = "Several replacement effects would change this step: choose which applies first."
 		indices = rc.applicable
@@ -427,7 +437,7 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 			{Index: 1, Kind: "decline", Obj: m.id, Label: "No — do not apply this replacement"},
 		}
 		e.ask(d)
-		return
+		return events.Event{}
 	case replChoiceDraw:
 		m := rc.cands[rc.selected]
 		name := "this replacement effect"
@@ -448,11 +458,10 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 		d.Options = []decision.Option{{Index: 0, Kind: "apply", Obj: m.id, Label: applyLabel},
 			{Index: 1, Kind: "decline", Obj: m.id, Label: declineLabel}}
 		if in, ok := parkTapeAnswer(e, d); ok {
-			e.handle(d, in)
-			return
+			return e.handleReplacement(d, in, fromEmit)
 		}
 		e.ask(d)
-		return
+		return events.Event{}
 	case replChoiceFaceUp:
 		m := rc.cands[rc.selected]
 		name := "this replacement effect"
@@ -468,11 +477,10 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 		// (Vesuvan Shapeshifter's copy choice) are served from the same run
 		// instead of taking their no-run defaults after a legacy park.
 		if in, ok := parkTapeAnswer(e, d); ok {
-			e.handle(d, in)
-			return
+			return e.handleReplacement(d, in, fromEmit)
 		}
 		e.ask(d)
-		return
+		return events.Event{}
 	case replChoiceUntap:
 		name := "this object"
 		if o := e.G.Obj(rc.ev.Obj); o != nil && o.Face() != nil && o.Face().Name != "" {
@@ -535,12 +543,14 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 		// Under the resolution kernel the order is answered in place:
 		// the chosen replacement applies at the
 		// point of the competing event, not after the rest of the chain.
+		// fromEmit hands the landed event back to the emitting primitive
+		// waiting on it; every other served answer discards the value.
 		if in, ok := parkTapeAnswer(e, d); ok {
-			e.handle(d, in)
-			return
+			return e.handleReplacement(d, in, fromEmit)
 		}
 	}
 	e.ask(d)
+	return events.Event{}
 }
 
 // hasOptionalBodylessDrawReplacement reports whether a Draw competition has
@@ -682,10 +692,14 @@ func replacementAnswerInvalid(chosen []decision.Option, rc replChoice) bool {
 // branches. An answer with no parked competition is only reachable from a
 // hand-built decision and degrades to a Note, the same totality stance as
 // handleCmdZone.
-func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
+// inPlace marks the kernel-served synchronous answer of a pose made from an
+// emitting primitive: the damage block then returns the event that actually
+// landed so the waiting emitter reads its post-replacement amount. Every
+// async/resume answer passes false and the return value is discarded.
+func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inPlace bool) events.Event {
 	if len(e.replChoices) == 0 {
 		e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "replacement decision answered with no event parked"})
-		return
+		return events.Event{}
 	}
 	rc := e.replChoices[0]
 	savedAnswerInRes := e.answerInResolution
@@ -701,17 +715,17 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		}
 		if e.pending != nil {
 			// The body parked the transition's re-emit on its continuation.
-			return
+			return events.Event{}
 		}
 		prior := e.applyingReplacement
 		e.applyingReplacement = true
 		e.emit(rc.ev)
 		e.applyingReplacement = prior
-		return
+		return events.Event{}
 	}
 	if replacementAnswerInvalid(chosen, rc) {
 		e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "replacement answer had no choice"})
-		return
+		return events.Event{}
 	}
 	before := e.triggerBefore
 	e.triggerBefore = rc.before
@@ -719,22 +733,28 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	// apply/decline question; the handler keeps the declined candidate out of
 	// the ensuing CR 616.1 competition.
 	if handleParkedDrawAnswer(rc, chosen[0].Index, before, e.replacementAskPlayer,
-		&e.replChoices, e.askReplacementChoice, e.emit, &e.applyingReplacement,
+		&e.replChoices, func(p state.PlayerID) { e.askReplacementChoice(p) }, e.emit, &e.applyingReplacement,
 		&e.replExclude, func(snapshot *triggerSnapshot) {
 			e.triggerBefore, snapshot = snapshot, e.triggerBefore
 		},
 		func(ev events.Event, m replMatch) { e.applyReplacement(ev, m) }, func() {
 			e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "draw replacement answer out of range"})
 		}, e.askNextReplacementChoice) {
-		return
+		return events.Event{}
 	}
 	if rc.kind == replChoiceDamage || rc.kind == replChoiceCounter {
 		completed := true
+		// applied is the event THIS front competition's answer landed (the
+		// zero event when it was prevented or the answer was not served in
+		// place). Drained next choices never overwrite it: their landed
+		// events belong to other recipients, not to the emitter waiting on
+		// this answer.
+		var applied events.Event
 		switch rc.kind {
 		case replChoiceCounter:
 			e.applyChosenCounterReplacement(rc, chosen[0].Index)
 		case replChoiceDamage:
-			completed = e.handleDamageReplacementChoice(rc, chosen[0].Index)
+			completed, applied = e.handleDamageReplacementChoice(rc, chosen[0].Index, inPlace)
 		}
 		e.triggerBefore = before
 		if completed && len(e.replChoices) > 0 {
@@ -760,7 +780,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 					if e.pending == nil {
 						e.askReplacementChoice(e.replChoices[0].player)
 					}
-					return
+					return applied
 				}
 				// CR 800.4a: an affected player who has left the game or lost
 				// makes no choices. Its candidates apply in deterministic scan
@@ -770,12 +790,12 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 				case next.kind == replChoiceCounter:
 					e.applyChosenCounterReplacement(next, 0)
 				case next.kind == replChoiceDamage:
-					completed = e.handleDamageReplacementChoice(next, 0)
+					completed, _ = e.handleDamageReplacementChoice(next, 0, false)
 				default:
 					e.applyReplacement(next.ev, next.cands[0])
 				}
 				if !completed {
-					return
+					return applied
 				}
 			}
 		}
@@ -795,7 +815,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 				e.completeCombatPass(e.combatRound.pass)
 			}
 		}
-		return
+		return applied
 	}
 	if rc.life {
 		// Apply the chosen replacement, then re-evaluate what still applies
@@ -805,7 +825,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 			e.triggerBefore = before
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "life replacement answer out of range"})
-			return
+			return events.Event{}
 		}
 		damaging, combat, override := e.damaging, e.combatDamaging, e.dmgSrcOverride
 		e.damaging, e.combatDamaging, e.dmgSrcOverride = rc.damaging, rc.combatDamaging, rc.dmgSrcOverride
@@ -831,7 +851,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		e.damaging, e.combatDamaging, e.dmgSrcOverride = damaging, combat, override
 		e.triggerBefore = before
 		e.askNextReplacementChoice()
-		return
+		return events.Event{}
 	}
 	manaDecision := rc.kind == replChoiceMana || rc.kind == replChoiceManaColor
 	switch rc.kind {
@@ -840,7 +860,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 			e.triggerBefore = before
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "mana replacement answer out of range"})
-			return
+			return events.Event{}
 		}
 		i := rc.applicable[chosen[0].Index]
 		if manaReplacementNeedsColor(rc.cands[i]) {
@@ -862,7 +882,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 			e.triggerBefore = before
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "mana colour replacement answer out of range"})
-			return
+			return events.Event{}
 		}
 		rc.ev = e.applyOneManaReplacementWithProducer(rc.ev, rc.cands[rc.selected], color, rc.manaProducer)
 		rc.applied[rc.selected] = true
@@ -872,7 +892,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 			e.triggerBefore = before
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "phase replacement answer out of range"})
-			return
+			return events.Event{}
 		}
 		i := rc.applicable[chosen[0].Index]
 		if rc.cands[i].repl.ParamStr(cards.PKOptional) == "True" {
@@ -888,14 +908,14 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 			e.triggerBefore = before
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "optional phase replacement answer out of range"})
-			return
+			return events.Event{}
 		}
 	case replChoiceAddCounter:
 		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) {
 			e.triggerBefore = before
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "counter replacement-order answer out of range"})
-			return
+			return events.Event{}
 		}
 		damaging, combat, override := e.damaging, e.combatDamaging, e.dmgSrcOverride
 		e.damaging, e.combatDamaging, e.dmgSrcOverride = rc.damaging, rc.combatDamaging, rc.dmgSrcOverride
@@ -911,7 +931,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 			e.triggerBefore = before
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "entry counter replacement-order answer out of range"})
-			return
+			return events.Event{}
 		}
 		e.resumeEntryCounterOrder(rc, chosen[0].Index)
 	case replChoiceToken:
@@ -919,7 +939,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 			e.triggerBefore = before
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "token replacement-order answer out of range"})
-			return
+			return events.Event{}
 		}
 		m := rc.cands[rc.applicable[chosen[0].Index]]
 		rest := dropReplMatch(rc.cands, m)
@@ -929,7 +949,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 			e.triggerBefore = before
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "entry replacement-order answer out of range"})
-			return
+			return events.Event{}
 		}
 		e.resumeUpdatedComposition(rc, chosen[0].Index)
 	case replChoiceLoseMana:
@@ -940,7 +960,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 			e.triggerBefore = before
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "untap replacement-order answer out of range"})
-			return
+			return events.Event{}
 		}
 		e.applySimpleReplacement(rc.ev, rc.cands[chosen[0].Index])
 		if rc.untap != nil && e.pending == nil {
@@ -954,7 +974,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 			e.triggerBefore = before
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "replacement-order answer out of range"})
-			return
+			return events.Event{}
 		}
 		e.applyReplacement(rc.ev, rc.cands[chosen[0].Index])
 	}
@@ -967,6 +987,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		e.continueCast()
 	}
 	e.askNextReplacementChoice()
+	return events.Event{}
 }
 
 // continueLoseManaBoundary resumes only after all competing replacements of
