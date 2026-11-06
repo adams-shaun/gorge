@@ -1780,11 +1780,10 @@ type genState struct {
 	// (trig_batches.go replPlusBatch, and the direct replDamage sites'
 	// replPlusSrcPass: OpDealDamageFrom's player mode, OpResolveDamageMap and
 	// the one-target divided batch) is being re-executed, so the additions
-	// are applied in any order and the ask is not posed again. plusBatchHit
-	// (dealHits only) is the parked hit's index + 1 (0: none): gorge's emit
-	// returned a Note for that event, so the effect sees 0 dealt for it.
+	// are applied in any order and the ask is not posed again. The parked
+	// hit's landed amount rides h.n, which is what the emitting effect's
+	// EmitDamage returns (gorge returns the post-replacement Damage event).
 	plusBatchAsked bool
-	plusBatchHit   uint8
 	// colG: Ext ColorGrant's until-end-of-turn records (Skrelv;
 	// static_colourgrant.go): the object (obj, ver), the
 	// chosen colour (col, a ColorMask bit; 0 = free) and cgHex / cgNoBlock /
