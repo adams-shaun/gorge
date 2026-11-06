@@ -74,6 +74,26 @@ func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 	return m.andNot(s.scriptFilt(k, p))
 }
 
+// grantGapLive: p controls a live granted mana ability's holder (grantCap's
+// gap, mana_grantedoffers.go): a permanent with a granted ability it can tap
+// for mana now. An activation's filter search prices without granted mana
+// (otherGaps above), so on such a board the activation's filter prefix would
+// tap a funding source first where gorge's one search (rules scriptSearch.visit)
+// tries the grant's branches first; the activation routes to grantPrefix
+// instead, whose grantSearch holds the filters beside the grants, gaps first.
+// A cast keeps the filter route: otherGaps counts its grants (noGrant off).
+func (s *State) grantGapLive(k *prep, p uint8) bool {
+	if k.gen == nil || len(k.gen.grantPC) == 0 || !s.grantsLive(k) {
+		return false
+	}
+	for b := s.ctrlM[p&1].and(s.occ); b.any(); b = b.rest() {
+		if sl := b.first(); s.grantIdx(k, sl) >= 0 && s.canTapForMana(k, sl) {
+			return true
+		}
+	}
+	return false
+}
+
 // anyRSteps drives one single-colour anyR gap's six scriptDFS answers in
 // gorge's order: answer 0 (the first printed mana ability) before the colour
 // ask's node -- gorge's "choose a mana ability" ask has no ManaSymbol, so
