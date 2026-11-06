@@ -327,7 +327,14 @@ func (e *Engine) costModifiersComposeMemoized(statics costStaticViews, p state.P
 	if ent != nil && walkCacheVerify && !e.costComposeVerifying {
 		prev := e.costComposeVerifying
 		e.costComposeVerifying = true
+		// The recompute is plan-free: the potential walk's compose plan is
+		// per call (cost_compose_plan.go) and bound to one candidate
+		// assignment's question, so its recorded head verdicts are not
+		// answers about this recompute's own full-chain walk.
+		prevPlan := e.costComposePlan
+		e.costComposePlan = nil
 		fresh := e.costModifiersComposeEval(statics, p, id, scope, targets, potential, x, mp)
+		e.costComposePlan = prevPlan
 		e.costComposeVerifying = prev
 		if !costModsSameStored(ent.mods, ent.extra, fresh) || ent.mayApp != *mp || ent.prov != e.CostProvenanceSeen {
 			panic(fmt.Sprintf("rules: cost-modifier compose memo is stale for obj %d (player %d, x %d, potential %v, %d targets): want %+v, got %+v",

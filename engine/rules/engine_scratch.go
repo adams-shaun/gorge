@@ -215,6 +215,13 @@ type engineScratch struct {
 	// costComposeSuspend stands the memo down for a caller whose statics view
 	// the stamp cannot see (offerNamedMods' per-n SVar binding). Pure scratch.
 	costComposeSuspend int `clone:"reset"`
+	// costComposePlan is the potential walk's per-call compose plan
+	// (cost_compose_plan.go): potentialCostModsUsing records the
+	// target-independent head's per-static verdicts during its first compose
+	// that reaches the chain, and the later candidate assignments of the same
+	// call run the target-dependent tail alone. Bound to one call's question,
+	// set and restored within it; pure scratch, Clone copies none of it.
+	costComposePlan *costComposePlan `clone:"reset"`
 
 	// secretVoteBallots is emission-scoped scratch, visible only while the
 	// public, ballot-free completion Note is scanned for Vote triggers.

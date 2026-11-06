@@ -54,17 +54,38 @@ func (e *Engine) costStaticGate(sv staticView, mode string, p state.PlayerID, id
 	return e.costStaticGateFull(sv, mode, p, id, scope, targets, xBound)
 }
 
-// costStaticGateFull is costStaticGate's full gate chain.
+// costStaticGateFull is costStaticGate's full gate chain: the
+// target-independent head (costStaticGatePrefix) followed by the
+// target-dependent tail (costStaticGateTail). The split is load-bearing for
+// the potential walk's compose plan (cost_compose_plan.go), which records the
+// head's verdict per static during one candidate assignment and lets the
+// later assignments of the same call run the tail alone: the head must keep
+// reading neither the targets nor the pass's potential/announced-X mode, and
+// every denial it reaches must stay a target-independent one (indepFail
+// true).
 func (e *Engine) costStaticGateFull(sv staticView, mode string, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, xBound bool) (ok, indepFail bool) {
+	if !e.costStaticGatePrefix(sv, p, id, scope) {
+		return false, true
+	}
+	return e.costStaticGateTail(sv, mode, p, id, scope, targets, xBound)
+}
+
+// costStaticGatePrefix is the head of costStaticGateFull's chain: the class
+// band, the Type$ and actor gates, OnlyFirstSpell$, the ValidCard$ branch
+// (including the cast-provenance capture, which no later gate reads) and
+// FirstForetell$. None of these gates reads the pass's targets, so the
+// verdict is the same for every candidate target assignment of one compose.
+// mode and xBound are absent because no head gate reads them.
+func (e *Engine) costStaticGatePrefix(sv staticView, p state.PlayerID, id state.ObjID, scope costScope) bool {
 	sv = castersView(sv, p, id, scope.Kind == "Spell")
 	if !e.classBandGateHolds(sv.ParamStr(cards.PKClassBand), sv.Source) {
-		return false, true
+		return false
 	}
 	if ty, ok := sv.Param(cards.PKType); ok && ty != "" && ty != scope.Kind {
-		return false, true
+		return false
 	}
 	if !e.costActorMatches(sv, p) {
-		return false, true
+		return false
 	}
 	if strings.EqualFold(strings.TrimSpace(sv.ParamStr(cards.PKOnlyFirstSpell)), "True") &&
 		e.onlyFirstSpellUsed(sv, p) {
@@ -72,7 +93,7 @@ func (e *Engine) costStaticGateFull(sv staticView, mode string, p state.PlayerID
 		// each turn costs {2} less"): the reduction is spent once the
 		// turn's first covered spell has been announced. See
 		// onlyFirstSpellUsed for the tracking.
-		return false, true
+		return false
 	}
 	if spec, ok := sv.Param(cards.PKValidCard); ok {
 		// A provenance-keyed ValidCard$ (Bilbo's "!wasCastFromYourHand"
@@ -97,12 +118,12 @@ func (e *Engine) costStaticGateFull(sv staticView, mode string, p state.PlayerID
 			var alive bool
 			if spec, alive = admitProvenanceAlternatives(spec, castSaMayPlaySource,
 				e.castRidesMayPlayOf(p, id, sv.Source, scope)); !alive {
-				return false, true
+				return false
 			}
 		}
 		spec, ok2 := e.castProvenanceAdmitsPending(spec, id, sv.Controller)
 		if !ok2 {
-			return false, true
+			return false
 		}
 		if scope.Kind == "Spell" && strings.Contains(spec, "Permanent") {
 			// The priced object is a SPELL -- in hand/graveyard/exile at the
@@ -131,13 +152,25 @@ func (e *Engine) costStaticGateFull(sv staticView, mode string, p state.PlayerID
 			}
 		}
 		if !e.matchesSpec(spec, id, sc) {
-			return false, true
+			return false
 		}
 	}
 	if first, ok := sv.Param(cards.PKFirstForetell); ok && strings.EqualFold(strings.TrimSpace(first), "True") &&
 		scope.Kind == "Foretell" && e.firstForetellUsed(p) {
-		return false, true
+		return false
 	}
+	return true
+}
+
+// costStaticGateTail is the tail of costStaticGateFull's chain: ValidSpell$
+// (the first gate that reads the pass's targets) through Relative$. The
+// head's verdict is assumed -- the potential walk's compose plan
+// (cost_compose_plan.go) calls this directly for a static whose recorded
+// head verdict passed -- so the caller must have run the head for the same
+// static, payer, object and scope. The head's castersView is re-applied: a
+// pure read, and the tail is reachable without it.
+func (e *Engine) costStaticGateTail(sv staticView, mode string, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, xBound bool) (ok, indepFail bool) {
+	sv = castersView(sv, p, id, scope.Kind == "Spell")
 	if vs, ok := sv.Param(cards.PKValidSpell); ok && !e.validSpellMatches(sv, scope, p, id, vs, targets) {
 		return false, false
 	}
