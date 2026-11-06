@@ -861,9 +861,6 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			// d.Options) has neither.
 			continue
 		}
-		if os.Getenv("ZZSEAT") != "" && pa.Kind == "cast" && pa.Obj == 10 {
-			fmt.Fprintf(os.Stderr, "ZZS vocab dec=%d a=%v reason=%q script=%d plan=%v\n", g.Stats.Decisions, a, pp.Reason, len(pp.Script), pp.Plan != nil)
-		}
 		if len(pp.Script) > 0 {
 			// A source the planner's census cannot price (restricted mana,
 			// Giada's Angel-only {W}): the planner found the activations
@@ -1402,20 +1399,6 @@ func (g *GorgeSide) commit(fr *frame, choices []int) {
 // answer executes a priority entry.
 func (g *GorgeSide) answer(fr *frame, pe prioEntry) {
 	d := fr.d
-	if os.Getenv("ZZSEAT") != "" && pe.kind == prScript {
-		fmt.Fprintf(os.Stderr, "ZZS answer-script dec=%d a=%v kind=%d script=%d plan=%d\n", g.Stats.Decisions, pe.a, pe.kind, len(pe.script), len(pe.plan.Activations))
-	}
-	if os.Getenv("ZZSEAT") != "" && pe.a.Kind() == ActCast && pe.kind != prScript && pe.kind != prOption {
-		fmt.Fprintf(os.Stderr, "ZZS answer-cast dec=%d a=%v kind=%d plan=%d\n", g.Stats.Decisions, pe.a, pe.kind, len(pe.plan.Activations))
-		if len(pe.pay.Plans) > 0 {
-			for _, ac := range pe.pay.Plans[0].Activations {
-				fmt.Fprintf(os.Stderr, "ZZS   act src=%d produces=%+v\n", ac.Source, ac.Produces)
-			}
-		}
-	}
-	if os.Getenv("ZZSEAT") != "" && pe.a.Kind() == ActCast && pe.kind == prOption {
-		fmt.Fprintf(os.Stderr, "ZZS answer-cast-opt dec=%d a=%v opt=%d\n", g.Stats.Decisions, pe.a, pe.opt)
-	}
 	g.committed = true
 	g.Stats.Commits++
 	switch pe.kind {
@@ -1543,9 +1526,6 @@ func (g *GorgeSide) runScript(pe prioEntry) {
 			in.Choices = append(in.Choices, found)
 		}
 		g.Stats.Internal++
-		if os.Getenv("ZZSEAT") != "" {
-			fmt.Fprintf(os.Stderr, "ZZS dec=%d step %d kind=%s picks=%+v\n", g.Stats.Decisions, i, st.Kind, st.Picks)
-		}
 		if err := g.submit(in); err != nil {
 			g.fail(fmt.Errorf("oracle: script step %d of %v refused: %w", i, pe.a, err))
 			return

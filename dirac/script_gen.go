@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -249,10 +247,6 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 	searched := 0
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
-		if os.Getenv("ZZDBG") != "" && a.Source() == 9 {
-			fmt.Printf("ZZDBG scriptOffer p=%d a=%v filt=%v mix=%v tx=%v anyR=%v restr=%v gaps=%v hasGaps=%v twoLive=%v relax=%v realHas=%v wide=%v mixWide=%v\n",
-				p, a, filt.any(), mix, tx.any(), anyR.any(), restr.any(), s.scriptGaps(k, p), hasOption(&gaps, a), twoLive, relax, hasOption(&real, a), wide, mixWide)
-		}
 		if !hasOption(&gaps, a) && !twoLive {
 			if !relax {
 				searched++
@@ -281,9 +275,6 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 			}
 		} else if restr.any() && s.scriptDeadEnd(k, a, p, restr) {
 			continue
-		}
-		if os.Getenv("ZZDBG") != "" && a.Source() == 9 {
-			fmt.Printf("ZZDBG scriptOffer ADD p=%d a=%v\n", p, a)
 		}
 		d.add(a)
 	}
@@ -391,9 +382,6 @@ func (s *State) tapGap(k *prep, p uint8, sl Slot, restr slotMask, held *[kop.Num
 // mana floats beside the pool (State.rb), priced by the search's walk
 // as gorge's prefix search does (restrOptions).
 func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
-	if os.Getenv("ZZGK") != "" && a.Source() == 9 && a.Kind() == AkCast {
-		fmt.Printf("ZZGK scriptPrefix p=%d a=%v mix=%v tapMana=%v ctrMana=%v anyFilt=%v\n", p, a, s.mixBoard(k, p), k.tapMana, k.ctrMana, k.gen.anyFilt)
-	}
 	if s.mixBoard(k, p) {
 		var d Decision
 		s.plainOptions(k, &d, 0)
@@ -408,16 +396,10 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	gaps, restr, anyR := s.scriptGaps(k, p), s.scriptRestr(k, p), s.scriptAnyR(k, p)
 	tapsDef := s.scriptTapsDefer(k, p)
 	ctr := s.scriptCtr(k, p)
-	if os.Getenv("ZZGK") != "" && a.Source() == 9 && a.Kind() == AkCast {
-		fmt.Printf("ZZGK scriptPrefix gaps=%v restr=%v anyR=%v tapsDef=%v ctr=%v filtOnly=%v\n", gaps, restr, anyR, tapsDef, ctr, k.gen.anyFilt && s.filtOnly(k, p))
-	}
 	if !gaps.or(restr).or(anyR).or(tapsDef).or(ctr).any() {
 		if k.gen.anyFilt && s.filtOnly(k, p) {
 			var d Decision
 			s.plainOptions(k, &d, 0)
-			if os.Getenv("ZZGK") != "" && a.Source() == 9 && a.Kind() == AkCast {
-				fmt.Printf("ZZGK scriptPrefix filtBranch plainN=%d has=%v\n", d.N, hasOption(&d, a))
-			}
 			if !hasOption(&d, a) {
 				s.filtScript(k, a, p, true)
 			}
@@ -525,13 +507,13 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 		if k.gen.anyFiltFirst && s.scriptFilt(k, p).any() {
 			continue // nor is a first-and-only filter (Prophetic Prism's {1},{T}) funded by a granted {G}: scriptOffers' filter search listed the play (CR 605.1a, 106.1)
 		}
-		if cost, ex, ok := s.grantPlayCost(k, p, a, true); ok && !s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
+		if cost, ex, _, ok := s.grantPlayCost(k, p, a, true); ok && !s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
 			d.remove(a)
 		}
 	}
 	for i := 0; i < int(walk.N); i++ {
 		a := walk.Options[i]
-		cost, ex, ok := s.grantPlayCost(k, p, a, true)
+		cost, ex, need, ok := s.grantPlayCost(k, p, a, true)
 		if !ok {
 			continue
 		}
@@ -553,7 +535,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 			d.remove(a) // never searched: unpriced
 			continue
 		}
-		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), &g) && !s.tapXScript(k, a, p, false) {
+		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g) && !s.tapXScript(k, a, p, false) {
 			// Gorge's script search covers every census gap — granted units and
 			// tap-another-permanent gaps alike (CR 605.1a, 601.2g-h) — so the
 			// kernel drops the play only when neither route prices it.
@@ -572,23 +554,14 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 // prefix before the play itself (prScript). The kernel taps them the same
 // way at the play, so the mana floats from the announcement on.
 func (s *State) grantPrefix(k *prep, a Action, p uint8) {
-	cost, ex, ok := s.grantPlayCost(k, p, a, true)
-	if os.Getenv("ZZGK") != "" && a.Source() == 9 && a.Kind() == AkCast {
-		fmt.Printf("ZZGK grantPrefix p=%d a=%v ok=%v cost=%v ex=%d grantPC=%d\n", p, a, ok, cost, ex, len(k.gen.grantPC))
-	}
+	cost, ex, need, ok := s.grantPlayCost(k, p, a, true)
 	if !ok {
 		return
 	}
 	var g grantSrch
-	if s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), &g) && g.np != 0 {
-		if os.Getenv("ZZGK") != "" && a.Source() == 9 && a.Kind() == AkCast {
-			fmt.Printf("ZZGK grantPrefix FOUND np=%d path=%+v\n", g.np, g.path[:g.np])
-		}
+	if s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g) && g.np != 0 {
 		s.grantApply(k, &g) // the found prefix (mana_grantedoffers.go)
 		return
-	}
-	if os.Getenv("ZZGK") != "" && a.Source() == 9 && a.Kind() == AkCast {
-		fmt.Printf("ZZGK grantPrefix NOFOUND ungr=%v\n", s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(a)))
 	}
 	// The granted mana cannot pay the play (a spell-only grant and an
 	// ability, CR 605.1a) and the printed sources do not price it either:

@@ -1,9 +1,6 @@
 package rules
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -311,11 +308,7 @@ func (w *legalWalk) handWalk() {
 				}
 			}
 		}
-		timing := w.spellTimingOK(p, id, f, sorcery)
-		if os.Getenv("ZZGDBG") != "" && f.Name == "GGC Flopsie" {
-			fmt.Fprintf(os.Stderr, "ZZG handWalk id=%d timing=%v\n", id, timing)
-		}
-		if !timing {
+		if !w.spellTimingOK(p, id, f, sorcery) {
 			// Quantum Reduction's permission is offered only with Teamwork.
 			teamworkFlashOffer(w, id, f)
 			// MayFlashCost (Forge's K:MayFlashCost, CR 702.8): when the ordinary
@@ -349,9 +342,6 @@ func (w *legalWalk) handWalk() {
 		targetsAvailable := func() bool {
 			if !taDone {
 				taOK, taDone = e.castTargetsAvailable(p, id, f.SpellAbility()), true
-				if os.Getenv("ZZGDBG") != "" && f.Name == "GGC Flopsie" {
-					fmt.Fprintf(os.Stderr, "ZZG targetsAvailable=%v\n", taOK)
-				}
 			}
 			return taOK
 		}

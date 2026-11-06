@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -83,9 +82,6 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == "ability"
 	sr.passes = true
 	script, found := sr.run(e)
-	if os.Getenv("ZZGDBG") != "" {
-		fmt.Fprintf(os.Stderr, "ZZG script play=%q obj=%d found=%v nodes=%d limited=%v approx=%v unproven=%v gaps=%v\n", o.Label, o.Obj, found, sr.nodes, sr.limited, sr.approx, sr.unproven, gaps)
-	}
 	return script, found && len(script) > 0
 }
 
@@ -340,18 +336,6 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 	sr.nodes++
 	p := sr.p
 	d := c.Pending()
-	if os.Getenv("ZZGTRACE") != "" && sr.play.Obj == 10 && d != nil {
-		fmt.Fprintf(os.Stderr, "ZZGT n=%d fund=%d gapU=%v d.Kind=%s opts=%d stack=%d need=%v\n", sr.nodes, funded, gapUsed, d.Kind, len(d.Options), len(c.G.Stack), sr.need)
-		if d.Kind != decision.KPriority {
-			for _, o := range d.Options {
-				fmt.Fprintf(os.Stderr, "ZZGT   askopt kind=%s obj=%d label=%q sym=%q ab=%d\n", o.Kind, o.Obj, o.Label, o.ManaSymbol, o.Ability)
-			}
-		} else {
-			for _, o := range d.Options {
-				fmt.Fprintf(os.Stderr, "ZZGT   priopt kind=%s obj=%d label=%q idx=%d\n", o.Kind, o.Obj, o.Label, o.Index)
-			}
-		}
-	}
 	// Another player's decision (their priority while a trigger resolves):
 	// the searched line assumes they pass.
 	for guard := 0; d != nil && d.Player != p && guard < 8; guard++ {
@@ -756,9 +740,6 @@ func (e *Engine) PotentialPlayScript(p state.PlayerID, a decision.PotentialActio
 		plain, _ = e.potentialPlayVerdict(p, decision.Option{Kind: a.Kind, Obj: a.Obj, Ability: a.Ability, Mode: a.Mode})
 	}()
 	sr.gaps = census.gaps
-	if os.Getenv("ZZGC") != "" && a.Kind == "cast" && a.Obj == 9 {
-		fmt.Printf("ZZGC PotentialPlayScript p=%d play=%v plain=%q relaxable=%v gaps=%v complete=%v\n", p, a, plain.Reason, census.relaxable, census.gaps, census.complete)
-	}
 	if plain.Reason == "insufficient" && len(census.gaps) > 0 && census.relaxable {
 		sr.gapsOnly, sr.nodePlans, sr.funding = true, true, census.fees()
 		if script, found := sr.run(e); found {

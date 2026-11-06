@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -139,15 +137,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			conv = anyType(*cost) // any mana pays a creature's pips (mana_convertcreature.go)
 			cost = &conv
 		}
-		if os.Getenv("ZZDBG") != "" {
-			fmt.Printf("ZZDBG cand p=%d card=%d handobj=%d cost=%v (mv=%d) affords=%v rbAny=%v restrSrc=%v av.total=%d av.n=%d masks=%v cnts=%v one=%v nOne=%d\n",
-				p, c, o, *cost, cost.MV(), av.affords(cost, pipMaskOf(cost), 0), s.rbAny(p), k.restrSrc, av.total, av.n, av.mask[:av.n], av.cnt[:av.n], av.one[:av.nOne], av.nOne)
-		}
-		rf := s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, &av)
-		if os.Getenv("ZZDBG") != "" {
-			fmt.Printf("ZZDBG    p=%d card=%d restrFallback=%v\n", p, c, rf)
-		}
-		if !av.affords(cost, pipMaskOf(cost), 0) && (!s.rbAny(p) && !k.restrSrc || !rf) {
+		if !av.affords(cost, pipMaskOf(cost), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, &av)) {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 			}

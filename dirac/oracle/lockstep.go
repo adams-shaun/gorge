@@ -573,37 +573,7 @@ func diffValue(path string, a, b reflect.Value, out *[]string) {
 		}
 	default:
 		if a.Interface() != b.Interface() {
-			if strings.HasSuffix(path, ".Flags") && (a.Kind() == reflect.Uint8 || a.Kind() == reflect.Uint16) {
-				*out = append(*out, fmt.Sprintf("%s: ref=%s kernel=%s", path, projFlagNames(a.Uint()), projFlagNames(b.Uint())))
-				return
-			}
 			*out = append(*out, fmt.Sprintf("%s: ref=%v kernel=%v", path, a.Interface(), b.Interface()))
 		}
 	}
-}
-
-// projFlagNames names the CardProj flag bits set in f (lockstep debugging).
-func projFlagNames(f uint64) string {
-	var b strings.Builder
-	for _, n := range []struct {
-		bit uint64
-		nm  string
-	}{
-		{uint64(FTapped), "Tapped"}, {uint64(FSummonSick), "Sick"},
-		{uint64(FAttacking), "Attacking"}, {uint64(FBlocking), "Blocking"},
-		{uint64(FFaceDown), "FaceDown"}, {uint64(FToken), "Token"},
-		{uint64(FCopy), "Copy"}, {uint64(FPhasedOut), "PhasedOut"},
-		{uint64(FMonstrous), "Monstrous"}, {uint64(FSuspected), "Suspected"},
-	} {
-		if f&n.bit != 0 {
-			if b.Len() > 0 {
-				b.WriteByte('|')
-			}
-			b.WriteString(n.nm)
-		}
-	}
-	if b.Len() == 0 {
-		return "0"
-	}
-	return b.String()
 }

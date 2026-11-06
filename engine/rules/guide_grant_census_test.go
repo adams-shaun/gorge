@@ -2,15 +2,15 @@ package rules
 
 import (
 	"testing"
-
-	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // The Great Divide Guide shape: each land and Ally its controller controls
-// has "{T}: Add one mana of any color." The granted mana abilities are real
-// mana (CR 605.1a-d): a priority cast's affordability proof counts them like
-// any other free tap ability, so a cast whose cost they can fund is offered.
+// has "{T}: Add one mana of any color." The granted abilities are real mana
+// (CR 605.1a-d), but the planner census holds printed mana abilities only,
+// so the cast is priced through the potential-planner's script surface: a
+// printed census that covers the cost's colours but not its count leaves the
+// granted sources as census gaps, and potentialPrefixScript finds the prefix
+// that taps one for the missing unit.
 const (
 	ggcGuide = "Name:Great Divide Guide\nManaCost:1 G\nTypes:Creature Human Scout Ally\nPT:2/3\n" +
 		"S:Mode$ Continuous | Affected$ Land.YouCtrl,Ally.YouCtrl | AddAbility$ AnyMana | Description$ x\n" +
@@ -22,89 +22,49 @@ const (
 
 func ggcIsland() string { return "Name:GGC Island\nTypes:Land Island\nOracle:x\n" }
 
-// With the Guide on the battlefield, six untapped mana sources (four lands
-// and two Allies, every one of them able to make any colour) pay 4GG: the
-// cast is offered at priority.
+func ggcForest() string { return "Name:GGC Forest\nTypes:Land Forest\nOracle:x\n" }
+
+// With the Guide on the battlefield, the printed mana (a Forest's {G}, four
+// Islands' {U}) covers the cast's colours but falls one mana short of 4GG;
+// the granted abilities are the planner census's gaps, and the prefix search
+// taps the Guide for the missing green: PotentialPaymentPlans prices the
+// cast with that scripted prefix (pair 619's shape).
 func TestGuideGrantCensusOffersSixManaCast(t *testing.T) {
 	t.Parallel()
 	e, _, _ := newFixtureDeck(t, 9404, ggcFlopsie)
 	toMain1(t, e)
 	onBoardReady(t, e, 0, ggcGuide)
 	onBoardReady(t, e, 0, ggcGran)
+	onBoard(t, e, 0, ggcForest())
 	for i := 0; i < 4; i++ {
 		onBoard(t, e, 0, ggcIsland())
 	}
 	ids := setHandSrcs(t, e, 0, ggcFlopsie)
-	d := ppPriority(t, e)
-	found := false
-	for _, o := range d.Options {
-		if o.Kind == "cast" && o.Obj == ids[0] {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Fatalf("no cast option for the 4GG creature, options: %+v", d.Options)
+	ppPriority(t, e) // pose the live priority decision; the search branches on its activations
+	pp := ppFind(t, e.PotentialPaymentPlans(0), "cast", ids[0])
+	if pp.Reason != "" || len(pp.Script) == 0 {
+		t.Fatalf("cast plan reason %q detail %q script %+v, want payable with a scripted prefix", pp.Reason, pp.Detail, pp.Script)
 	}
 }
 
-// The control: without the grant only the four Islands' {U} exists -- five
-// mana short of 4GG with no green, so the cast is not offered.
+// The control: without the grant only the printed mana exists (the Forest's
+// {G} and the four Islands' {U}, five short of 4GG's six with the census
+// complete, no gaps to relax or search), so the planner proves the cast
+// unpayable.
 func TestGuideGrantCensusWithoutGrantDeclinesCast(t *testing.T) {
 	t.Parallel()
 	e, _, _ := newFixtureDeck(t, 9404, ggcFlopsie)
 	toMain1(t, e)
 	onBoardReady(t, e, 0, ggcGran)
+	onBoard(t, e, 0, ggcForest())
 	for i := 0; i < 4; i++ {
 		onBoard(t, e, 0, ggcIsland())
 	}
 	ids := setHandSrcs(t, e, 0, ggcFlopsie)
-	d := ppPriority(t, e)
-	for _, o := range d.Options {
-		if o.Kind == "cast" && o.Obj == ids[0] {
-			t.Fatalf("cast offered without a granter, options: %+v", d.Options)
-		}
-	}
-}
-
-// priority options are checked through the shared decision type; keep the
-// import used even if the option walk's shape changes.
-var _ = decision.KPriority
-var _ = state.ZHand
-
-func TestZZGuideCensusDebug(t *testing.T) {
-	e, _, _ := newFixtureDeck(t, 9404, ggcFlopsie)
-	toMain1(t, e)
-	onBoardReady(t, e, 0, ggcGuide)
-	onBoardReady(t, e, 0, ggcGran)
-	for i := 0; i < 4; i++ {
-		onBoard(t, e, 0, ggcIsland())
-	}
-	setHandSrcs(t, e, 0, ggcFlopsie)
-	d := ppPriority(t, e)
-	units := e.paymentPlanManaUnits(0)
-	for _, u := range units {
-		t.Logf("unit id=%d free=%d", u.ID, u.FreeCount)
-		for _, a := range u.Alts {
-			t.Logf("   alt counts=%v amt=%d any=%v", a.Counts, a.Amt, a.Any)
-		}
-	}
-	t.Logf("pool=%v", e.G.Players[0].Pool)
-	pm := e.PotentialMana(0)
-	t.Logf("PotentialMana=%v", pm)
-	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
-		o := e.G.Obj(id)
-		if o == nil || o.Face() == nil {
-			continue
-		}
-		mas := e.availableManaAbilities(0, id)
-		t.Logf("board id=%d name=%s abilities=%d", id, o.Face().Name, len(mas))
-	}
+	ppPriority(t, e)
 	for _, pp := range e.PotentialPaymentPlans(0) {
-		t.Logf("pp kind=%s obj=%d reason=%q detail=%q script=%d plan=%v", pp.Action.Kind, pp.Action.Obj, pp.Reason, pp.Detail, len(pp.Script), pp.Plan != nil)
+		if pp.Action.Kind == "cast" && pp.Action.Obj == ids[0] && pp.Reason == "" {
+			t.Fatalf("cast payable without a granter: reason %q detail %q script %+v", pp.Reason, pp.Detail, pp.Script)
+		}
 	}
-	census := e.paymentPlanCensusOf(0, nil)
-	t.Logf("census complete=%v relaxable=%v gaps=%v fees=%v", census.complete, census.relaxable, census.gaps, census.fees())
-	_ = d
 }
-

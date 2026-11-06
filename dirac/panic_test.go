@@ -78,7 +78,7 @@ func TestPanicReducedActivationWitness(t *testing.T) {
 	src := sc.perm(mech, 0)
 	land := sc.perm(id["Plains"], 0)
 	a := MakeAction(AkActivate, uint8(src), 0, 0)
-	c, _, ok := s.grantPlayCost(k, 0, a, false)
+	c, _, _, ok := s.grantPlayCost(k, 0, a, false)
 	if !ok {
 		t.Fatal("no cost for the activation")
 	}
