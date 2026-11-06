@@ -1213,7 +1213,48 @@ func (e *Engine) targetPaidNeedsPlannedPayment(p state.PlayerID, id state.ObjID)
 	e.planIgnoreCredit = true
 	defer func() { e.planIgnoreCredit = false }()
 	o := decision.Option{Kind: "cast", Obj: id}
+	// An either-or additional cost (AlternateAdditionalCost) is folded into
+	// the total only by the cast's own announcement (altAddAsk), after this
+	// query's plan: potentialModeCastPlan completes the retained mana plan
+	// with the parts (potentialAltAddSacrificePlan, potentialAltAddPlan), and
+	// a part can consume a permanent the mana plan leaves alone -- even the
+	// very target the cast announces. The pre-gates below read only the
+	// search's mana plan and the census's mana alternatives, neither of
+	// which carries a part, so they cannot prove such a cast needs nothing:
+	// it is planned, never pre-gated.
+	altAdd := false
+	if obj := e.G.Obj(id); obj != nil && obj.Face() != nil {
+		altAdd = len(altAddCostParts(obj.Face())) != 0
+	}
+	if !altAdd && e.planPoolCoversPrintedCost(p, o) {
+		// The floating pool alone pays the composed printed cost, so a
+		// payment that consumes nothing exists and the cast is not payable
+		// only by paying with a permanent its own announcements need
+		// (planPoolCoversPrintedCost) -- without the census pass or the plan.
+		return false
+	}
+	if !altAdd && e.planBoardConsumesNothing(p) {
+		// No census alternative consumes its source (planCoverConsumable from
+		// the printed-face scan), so no plan this query can read consumes
+		// either (planCoverConsumable): the cast is not payable only by
+		// paying with a needed permanent, whatever its targets and modes
+		// price to -- without the census pass or the plan.
+		return false
+	}
+	e.planConsumptionOnly = true
+	e.planCoverBoundOn = true
+	if _, consumable := e.planCoverBoundOf(p); !altAdd && !consumable {
+		// No census alternative consumes its source, so no plan this query
+		// can read consumes either (planCoverConsumable): the cast is not
+		// payable only by paying with a needed permanent, whatever its
+		// targets and modes price to.
+		e.planCoverBoundOn = false
+		e.planConsumptionOnly = false
+		return false
+	}
 	got := e.potentialModeCastPlan(p, o)
+	e.planCoverBoundOn = false
+	e.planConsumptionOnly = false
 	if got.Plan == nil || got.Reason != "" || !paymentPlanConsumes(*got.Plan) || e.witnessReachesMode(e, p, o, *got.Plan, true) {
 		return false
 	}

@@ -365,8 +365,10 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		// the card, then the Secret move -- the same reveal-then-secret-move
 		// shape effChangeZone's Reveal$ fetch emits; suppressed when Reveal$
 		// already made the whole window public) and tapping it right after a
-		// Tapped$ True battlefield entry.
-		take := func(id state.ObjID) {
+		// Tapped$ True battlefield entry. It reports whether the card left
+		// the library: a move the engine declined leaves it in the window,
+		// where it is part of "the rest" (CR 303.4g, 701.29a).
+		take := func(id state.ObjID) bool {
 			if forceReveal && !revealWin {
 				h.Emit(events.Event{Kind: events.Note, Player: p, IDs: []state.ObjID{id}})
 			}
@@ -401,6 +403,23 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				h.BeginZoneBatch()
 			}
 			emitEntryMove(h, c, digGainControl(dp.GainControl), dest, ev)
+			// A move the engine declined (CR 303.4g: an Aura with nothing it
+			// can legally enchant stays in its zone) did not put the card
+			// anywhere: no entry rider runs for it -- it never entered (no
+			// entered-tapped Tap, no RememberChanged$ Remember, no Attacking$
+			// rider, no StaticEffect$ registration) -- and Dig's "the rest" is
+			// every looked-at card that wasn't put onto the battlefield, so
+			// this card belongs to the remainder: report it untaken and leave
+			// it in the library window, which keeps that remainder the
+			// library's top cards.
+			if dest != state.ZLibrary {
+				if o := g.Obj(id); o != nil && o.Zone == state.ZLibrary {
+					if batchEntry {
+						h.EndZoneBatch()
+					}
+					return false
+				}
+			}
 			// ExileWithCounters$ (Karn, Scion of Urza; Evelyn, the Covetous):
 			// one counter of that kind on the card the move actually put in
 			// exile, after the move (CR 122.1). A replaced or redirected move
@@ -429,6 +448,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if dest == state.ZBattlefield {
 				applyStaticEffect(h, c, sa, dest, []state.ObjID{id})
 			}
+			return true
 		}
 		// rest moves the window cards the primary move did not take to the
 		// second destination (DestinationZone2$, placed by LibraryPosition2$).
@@ -560,8 +580,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				if !containsID(top, id) {
 					continue
 				}
-				picked[id] = true
-				take(id)
+				if take(id) {
+					picked[id] = true
+				}
 			}
 			restIDs := make([]state.ObjID, 0, len(top))
 			for _, id := range top {
@@ -754,8 +775,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				Text: "takes the first matching card(s) (no engine host to ask)", Secret: true})
 			taken := make(map[state.ObjID]bool, len(greedy))
 			for _, id := range greedy {
-				take(id)
-				taken[id] = true
+				if take(id) {
+					taken[id] = true
+				}
 			}
 			restIDs := make([]state.ObjID, 0, len(top))
 			for _, id := range top {
@@ -799,8 +821,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		}
 		taken := make(map[state.ObjID]bool, len(greedy))
 		for _, id := range greedy {
-			take(id)
-			taken[id] = true
+			if take(id) {
+				taken[id] = true
+			}
 		}
 		restIDs := make([]state.ObjID, 0, len(top))
 		for _, id := range top {

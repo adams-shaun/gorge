@@ -23,6 +23,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-eoe", "tap_another_source_pays_equip_beside_granted_mana"},           // Gene Pollinator and four lands pay Meltstrider's Gear's Equip {5} beside Mm'menon's spell-only grant: the grant cap keeps the play
 		{"std-tla", "waterbend_min_taps_filter"},                                   // Barrels of Blasting Jelly adds nothing to what the window can pay
 		{"std-tla", "granted_cap_restricted_source"},                               // Honest Work beside Jasmine Dragon Tea Shop: the printed sources price Sokka
+		{"std-tla", "altadd_mana_part_manual_window"},                              // Redirect Lightning's {2} part folds into the cost after the offer's plan was armed, so the cast pays through the manual window in battlefield order, not the planner's census (CR 601.2b)
+		{"std-tdm", "mayplay_altadd_mana_part_witness"},                            // Caustic Exhale may-played from exile prices its {1} part beside the printed {B} at the offer, so the plan taps for both before the part is chosen (CR 118.9d, 601.2b)
 		{"std-blb", "script_cap_skips_sufficient_plain_casts"},                     // Mind Spring and Mockingbird pay from the Islands: no prefix search spent before Pawpatch Recruit's offspring cast
 		{"std-fdn", "kicked_cast_granted_mana_prefix"},                             // Into the Roil kicked, UU from New Horizons' Mountain: the prefix prices the composed cost
 		{"std-blb", "clone_returned_card_spent_zero_mockingbird"},                  // Splash Portal returns Mockingbird, which was not cast: no mana spent, so it cannot copy Brave-Kin Duo
@@ -35,6 +37,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-blb", "calamitous_tide_leave_together"},                              // Calamitous Tide bounces Dour Port-Mage with Plumecreed Mentor: one departure, so the Port-Mage sees the Mentor leave
 		{"std-sos", "treasure_mana_token_ceases_quietly"},                          // a Treasure sacrificed for mana ceases to exist in the graveyard: Garrison Excavator's cards-leave-your-graveyard trigger stays quiet
 		{"std-tdm", "thunder_of_unity_saga_etb"},                                   // a chapter of Thunder of Unity with no other enters watcher out: the creature cast afterwards still drains
+		{"std-tdm", "twobrid_window_taps_flexible_source"},                         // a twobrid cast's manual window taps the flexible source for its first owed colour, stranding the pip only that source could make: both engines reverse the cast and keep the tap and its mana (CR 601.2g-h, 733.1)
 		{"std-trk", "beam_grant_lone_grantor"},                                     // Scotty the only creature, Open Communications in the graveyard: the grant has no creature to return
 		{"std-tdm", "neriv_departed_source_entered"},                               // Stadium Headliner sacrificed the turn it entered: Neriv still doubles
 		{"std-blb", "copied_flashback_spell_was_not_cast"},                         // Kitsa copies a flashed-back Otterball Antics: the copy's token takes no counter

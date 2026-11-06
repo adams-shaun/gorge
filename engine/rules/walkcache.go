@@ -105,6 +105,12 @@ type boardStaticsCache struct {
 	// once per object, so the filter runs once per scan instead).
 	ver, carriersVer uint64
 	carriers         []staticView
+	// manaReaching is v.cost.anyManaReaching() as of manaReachingVer: ver
+	// moves on every write of v, so the cached answer never outlives the
+	// lists it was read from. Kept here because the question is asked once
+	// per mana ability on the same walk.
+	manaReaching    bool
+	manaReachingVer uint64
 }
 
 // walkCrossHit reports whether an entry an EARLIER scope built at key k and
@@ -199,6 +205,7 @@ func (e *Engine) boardStaticsRef() (*boardStaticsCache, bool) {
 			e.recordBoardScan(&c.scan, lists)
 			e.appendEffectCostStatics(&c.v.cost)
 			markCostValidTarget(&c.v.cost)
+			markCostManaReaching(&c.v.cost)
 		}
 		e.putBoardScan(lists)
 		if e.activeBuildSeq != seq {
@@ -213,7 +220,8 @@ func (e *Engine) boardStaticsRef() (*boardStaticsCache, bool) {
 func clipBoardStatics(v boardStatics) boardStatics {
 	return boardStatics{
 		cost: costStaticViews{raise: slices.Clip(v.cost.raise), reduce: slices.Clip(v.cost.reduce),
-			set: slices.Clip(v.cost.set), optional: slices.Clip(v.cost.optional), validTarget: v.cost.validTarget},
+			set: slices.Clip(v.cost.set), optional: slices.Clip(v.cost.optional), validTarget: v.cost.validTarget,
+			manaReaching: v.cost.manaReaching},
 		action: actionStaticViews{cantCast: slices.Clip(v.action.cantCast),
 			cantActivate: slices.Clip(v.action.cantActivate), continuous: slices.Clip(v.action.continuous)},
 		manaConv: slices.Clip(v.manaConv),
@@ -244,6 +252,7 @@ func (e *Engine) reappendEffectCostStatics(cost costStaticViews, printed [4]int)
 		set: cut(cost.set, printed[2]), optional: cut(cost.optional, printed[3])}
 	e.appendEffectCostStatics(&out)
 	markCostValidTarget(&out)
+	markCostManaReaching(&out)
 	return out
 }
 
@@ -335,7 +344,8 @@ func (e *Engine) verifyBoardStatics(got boardStatics) {
 		defer func() { e.staticZoneVerifyScope = false }()
 	}
 	cost, action, mc := e.scanCostStatics(), e.scanActionStatics(), e.scanManaConvSources(nil)
-	same := got.cost.validTarget == cost.validTarget && staticViewsSame(got.cost.raise, cost.raise) && staticViewsSame(got.cost.reduce, cost.reduce) &&
+	same := got.cost.validTarget == cost.validTarget && got.cost.manaReaching == cost.manaReaching &&
+		staticViewsSame(got.cost.raise, cost.raise) && staticViewsSame(got.cost.reduce, cost.reduce) &&
 		staticViewsSame(got.cost.set, cost.set) && staticViewsSame(got.cost.optional, cost.optional) &&
 		staticViewsSame(got.action.cantCast, action.cantCast) &&
 		staticViewsSame(got.action.cantActivate, action.cantActivate) &&

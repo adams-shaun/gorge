@@ -288,11 +288,26 @@ func (e *Engine) withCostCompositionEvent(id state.ObjID, compose func() costMod
 // raises/floors remain excluded; chosen targets are repriced before payment.
 func (e *Engine) potentialCostModsUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, x int32, accept func(costMods) bool) (costMods, bool) {
 	max := len(e.costAmountTargets(p, id, scope, targets))
+	// A compose plan for the call (cost_compose_plan.go): the first compose
+	// that reaches the gate chain records the target-independent head's
+	// verdict per static, and the later candidate assignments run the tail
+	// alone. With one candidate there is no later assignment to serve, so no
+	// plan is taken. The saved previous plan is restored on return, so a
+	// compose this call's accept gate runs (which may itself price costs)
+	// cannot see or disturb it beyond the question it is bound to.
+	var plan *costComposePlan
+	if len(targets) >= 2 {
+		plan = &costComposePlan{p: p, id: id, scope: scope, x: x, collect: true}
+		prev := e.costComposePlan
+		e.costComposePlan = plan
+		defer func() { e.costComposePlan = prev }()
+	}
+	buf := make([]state.Target, 0, 8)
 	for i, target := range targets {
 		if max == 0 {
 			break
 		}
-		assignment := []state.Target{target}
+		assignment := append(buf[:0], target)
 		for j, other := range targets {
 			if len(assignment) == max {
 				break
@@ -311,6 +326,15 @@ func (e *Engine) potentialCostModsUsing(statics costStaticViews, p state.PlayerI
 			}
 			return e.costModifiersWithTargetsUsing(statics, p, id, scope, assignment, true)
 		})
+		if plan != nil && plan.collect && plan.touched {
+			// The compose that recorded the head's verdicts just returned:
+			// the remaining assignments serve from the plan. The provenance
+			// capture it ended with is the assignment-independent one the
+			// serving passes restore.
+			plan.collect = false
+			plan.serve = true
+			plan.prov = e.CostProvenanceSeen
+		}
 		if accept(mods) {
 			return mods, true
 		}
@@ -362,11 +386,31 @@ func (e *Engine) costModifiersCompose(statics costStaticViews, p state.PlayerID,
 	return e.costModifiersCompose0(statics, p, id, scope, targets, potential, x, mayApply)
 }
 
+// costModifiersCompose0 is costModifiersComposeEval behind the cost-modifier
+// compose memo (cost_compose_memo.go): a pure-read pricing (costComposeUsable)
+// is served from the per-state table when one exists and computed, verified
+// and remembered otherwise. The state-bearing flows the memo family excludes
+// -- a real cast's pricing windows, the mana window, an engaged
+// cost-composition exclusion, a graveyard-priced composition, a face probe --
+// fall straight through to the body.
 func (e *Engine) costModifiersCompose0(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool, x int32, mayApply *bool) costMods {
+	if !e.costComposeUsable() {
+		return e.costModifiersComposeEval(statics, p, id, scope, targets, potential, x, mayApply)
+	}
+	return e.costModifiersComposeMemoized(statics, p, id, scope, targets, potential, x, mayApply)
+}
+
+func (e *Engine) costModifiersComposeEval(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool, x int32, mayApply *bool) costMods {
 	// Each pass owns the provenance capture: cleared here, set by
 	// costStaticApplies when a ValidCard$ carries a cast-provenance token.
 	e.CostProvenanceSeen = false
 	scope.X = x
+	// The potential walk's compose plan (cost_compose_plan.go): a plan bound
+	// to this question serves its recorded head verdicts.
+	plan := e.costComposePlanFor(p, id, scope, x, potential)
+	if plan != nil {
+		plan.i = 0
+	}
 	// The potential pass hands the whole candidate census to the gate chain
 	// (so ValidTarget$/ValidSpell$ can match ANY candidate) but a
 	// target-relative Amount$ reads only a complete legal assignment
@@ -401,7 +445,7 @@ func (e *Engine) costModifiersCompose0(statics costStaticViews, p state.PlayerID
 					continue
 				}
 			}
-			if ok, indepFail := e.costStaticGate(sv, mode, p, id, scope, targets, xBound); !ok {
+			if ok, indepFail := e.costStaticGatePlanned(sv, mode, p, id, scope, targets, xBound, plan); !ok {
 				if !indepFail && mayApply != nil {
 					*mayApply = true
 				}
@@ -478,7 +522,7 @@ func (e *Engine) costModifiersCompose0(statics costStaticViews, p state.PlayerID
 				continue
 			}
 		}
-		if ok, indepFail := e.costStaticGate(sv, "SetCost", p, id, scope, targets, xBound); !ok {
+		if ok, indepFail := e.costStaticGatePlanned(sv, "SetCost", p, id, scope, targets, xBound, plan); !ok {
 			if !indepFail && mayApply != nil {
 				*mayApply = true
 			}
@@ -490,6 +534,12 @@ func (e *Engine) costModifiersCompose0(statics costStaticViews, p state.PlayerID
 		if n := e.modAmountX(sv, sub, x, amountTargets); n > mods.SetFloor {
 			mods.SetFloor = n
 		}
+	}
+	if plan != nil && plan.serve {
+		// The head's cast-provenance capture is assignment-independent and
+		// the serving passes skip the head, so the capture is restored from
+		// the plan: the collecting compose's OR over its ValidCard$ branches.
+		e.CostProvenanceSeen = plan.prov
 	}
 	return mods
 }

@@ -127,29 +127,29 @@ func TestWascastrestrictGrantSearch(t *testing.T) {
 
 	// Spell.!wasCastFromYourHand: the pending read takes the object's zone; a
 	// payment-style read admits a cast not from a hand
-	if !s.grantSearch(k, 0, &cost, NoSlot, spell(kop.ZoneGraveyard, false), &g) {
+	if !s.grantSearch(k, 0, &cost, NoSlot, spell(kop.ZoneGraveyard, false), [6]bool{}, &g) {
 		t.Errorf("!wasCastFromYourHand: a pending play from a graveyard did not find the restricted grant")
 	}
-	if s.grantSearch(k, 0, &cost, NoSlot, spell(kop.ZoneHand, false), &g) {
+	if s.grantSearch(k, 0, &cost, NoSlot, spell(kop.ZoneHand, false), [6]bool{}, &g) {
 		t.Errorf("!wasCastFromYourHand: a pending play from a hand found the restricted grant")
 	}
-	if !s.grantSearch(k, 0, &cost, NoSlot, spell(kop.ZoneGraveyard, true), &g) || g.np != 1 {
+	if !s.grantSearch(k, 0, &cost, NoSlot, spell(kop.ZoneGraveyard, true), [6]bool{}, &g) || g.np != 1 {
 		t.Errorf("!wasCastFromYourHand from a graveyard, honest read: found %v steps %d", g.np == 1, g.np)
 	}
-	if s.grantSearch(k, 0, &cost, NoSlot, spell(kop.ZoneHand, true), &g) {
+	if s.grantSearch(k, 0, &cost, NoSlot, spell(kop.ZoneHand, true), [6]bool{}, &g) {
 		t.Errorf("!wasCastFromYourHand: a hand cast found the restricted grant")
 	}
-	if s.grantSearch(k, 0, &cost, NoSlot, payDesc{class: pdAct, card: id["Shock"], src: NoSlot}, &g) {
+	if s.grantSearch(k, 0, &cost, NoSlot, payDesc{class: pdAct, card: id["Shock"], src: NoSlot}, [6]bool{}, &g) {
 		t.Errorf("a spell restriction: an activation found the grant")
 	}
 
 	// wasCastFromExile (the origin family is admitted pending): float it
 	restore := kwrSet(k, f, 3, 0)
 	defer restore()
-	if s.grantSearch(k, 0, &cost, NoSlot, spell(kop.ZoneHand, false), &g) {
+	if s.grantSearch(k, 0, &cost, NoSlot, spell(kop.ZoneHand, false), [6]bool{}, &g) {
 		t.Errorf("wasCastFromExile: a cast from a hand found the grant")
 	}
-	if !s.grantSearch(k, 0, &cost, NoSlot, spell(kop.ZoneExile, false), &g) || g.np != 1 || g.path[0].gi < 0 {
+	if !s.grantSearch(k, 0, &cost, NoSlot, spell(kop.ZoneExile, false), [6]bool{}, &g) || g.np != 1 || g.path[0].gi < 0 {
 		t.Fatalf("wasCastFromExile from exile: found %v steps %d", g.np == 1, g.np)
 	}
 	s.grantApply(k, &g)
@@ -172,7 +172,7 @@ func TestWascastrestrictGrantSearch(t *testing.T) {
 		s2.rb[0][i].n[kop.G] = 1
 	}
 	d := payDesc{class: pdSpell, card: id2["Shock"], src: NoSlot, og: restrOrigin{from: kop.ZoneExile}}
-	if !s2.grantSearch(k2, 0, &cost, NoSlot, d, &g) || g.np != 1 {
+	if !s2.grantSearch(k2, 0, &cost, NoSlot, d, [6]bool{}, &g) || g.np != 1 {
 		t.Fatalf("full colour: found %v steps %d", g.np == 1, g.np)
 	}
 	s2.grantApply(k2, &g)

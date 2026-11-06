@@ -268,43 +268,102 @@ func PaymentPlanProductions(e Engine, id state.ObjID, ma *cards.SA) []string {
 // any of whose card faces or mutated under-cards prints a Taps/TapsForMana
 // trigger or a ProduceMana replacement. It is zone-agnostic -- the matchers
 // own the zone gates -- so it changes only when an object is created or a
-// logged event runs, and is memoised on exactly that key.
+// logged event runs. The memo is incremental: Objs only ever grows (an
+// object's Card is set at creation and never reassigned), and carrier
+// membership among existing objects changes only through a Mutate or
+// HiddenIdentity fold or the merged-pile departure clear (CR 702.140e),
+// which runs inside both a MoveZone fold and a MyriadCleanup fold (whose
+// direct exile Move reaches the same clear) -- so an inert event tail keeps
+// the built list and extends it over the new objects, anything else
+// rebuilds.
 func PaymentPlanInterferenceCarriers(e Engine) []state.ObjID {
-	if e.Session().PaymentPlanCarriersValid && e.Session().PaymentPlanCarriersObjs == len(e.Game().Objs) && e.Session().PaymentPlanCarriersEvents == len(e.Log().Events) {
-		return e.Session().PaymentPlanCarriers
-	}
-	carries := func(f *cards.Face) bool {
-		if f == nil {
-			return false
+	s := e.Session()
+	evs := e.Log().Events
+	if s.PaymentPlanCarriersValid && s.PaymentPlanCarriersEvents <= len(evs) &&
+		!carriersTailRescans(evs[s.PaymentPlanCarriersEvents:]) {
+		if s.PaymentPlanCarriersObjs == len(e.Game().Objs) {
+			s.PaymentPlanCarriersEvents = len(evs)
+			return s.PaymentPlanCarriers
 		}
-		for _, t := range f.Triggers {
-			if t.Mode == "Taps" || t.Mode == "TapsForMana" {
-				return true
+		// Extend over the objects created since the build, appending to a
+		// FRESH backing (a Clone never shares this memo, and a caller may
+		// still be walking the previous slice).
+		out := slices.Clone(s.PaymentPlanCarriers)
+		for i := s.PaymentPlanCarriersObjs; i < len(e.Game().Objs); i++ {
+			if o := &e.Game().Objs[i]; paymentPlanCarries(o, carrierFaceCarries) {
+				out = append(out, o.ID)
 			}
 		}
-		for _, r := range f.Repls {
-			if r.Event == "ProduceMana" {
-				return true
-			}
-		}
-		return false
+		s.PaymentPlanCarriers = out
+		s.PaymentPlanCarriersObjs, s.PaymentPlanCarriersEvents = len(e.Game().Objs), len(evs)
+		return out
 	}
 	var out []state.ObjID
 	for i := range e.Game().Objs {
 		o := &e.Game().Objs[i]
-		found := o.Card != nil && slices.ContainsFunc(o.Card.Faces, carries)
-		for j := 0; !found && j < len(o.MergedCards); j++ {
-			found = carries(o.MergedFaceAt(j))
-		}
-		if found {
+		if paymentPlanCarries(o, carrierFaceCarries) {
 			out = append(out, o.ID)
 		}
 	}
 	// A fresh slice every rebuild: a Clone never shares this memo, and a
 	// caller may still be walking the previous one.
-	e.Session().PaymentPlanCarriers, e.Session().PaymentPlanCarriersValid = out, true
-	e.Session().PaymentPlanCarriersObjs, e.Session().PaymentPlanCarriersEvents = len(e.Game().Objs), len(e.Log().Events)
+	s.PaymentPlanCarriers, s.PaymentPlanCarriersValid = out, true
+	s.PaymentPlanCarriersObjs, s.PaymentPlanCarriersEvents = len(e.Game().Objs), len(evs)
 	return out
+}
+
+// carrierFaceCarries is the printed-face carrier test of
+// PaymentPlanInterferenceCarriers: a Taps/TapsForMana trigger or a
+// ProduceMana replacement.
+var carrierFaceCarries = func(f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	for _, t := range f.Triggers {
+		if t.Mode == "Taps" || t.Mode == "TapsForMana" {
+			return true
+		}
+	}
+	for _, r := range f.Repls {
+		if r.Event == "ProduceMana" {
+			return true
+		}
+	}
+	return false
+}
+
+// paymentPlanCarries is one object's half of the carrier test: a printed
+// face or a mutated under-card carries (never granted or derived state, so
+// only creation, a Mutate/HiddenIdentity fold or a merged-pile departure
+// clear can change the answer).
+func paymentPlanCarries(o *state.Object, carries func(*cards.Face) bool) bool {
+	if o.Card != nil && slices.ContainsFunc(o.Card.Faces, carries) {
+		return true
+	}
+	for j := 0; j < len(o.MergedCards); j++ {
+		if carries(o.MergedFaceAt(j)) {
+			return true
+		}
+	}
+	return false
+}
+
+// carriersTailRescans reports whether any event in tail can change carrier
+// membership among existing objects: a Mutate or HiddenIdentity fold (which
+// assign MergedCards or re-identify the printed faces) or the merged-pile
+// departure clear (CR 702.140e), which drops a mutated permanent's
+// under-cards and runs inside BOTH a MoveZone fold and a MyriadCleanup fold
+// (foldMyriadCleanup's direct exile Move reaches the same clear in move()).
+// Every other kind leaves the printed faces of every existing object alone,
+// so the memo extends over the new objects instead of rebuilding.
+func carriersTailRescans(tail []events.Event) bool {
+	for i := range tail {
+		switch tail[i].Kind {
+		case events.Mutate, events.HiddenIdentity, events.MoveZone, events.MyriadCleanup:
+			return true
+		}
+	}
+	return false
 }
 
 // PaymentPlanQueryBegin installs a query scope -- a still-valid enclosing

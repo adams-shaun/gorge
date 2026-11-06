@@ -36,6 +36,7 @@ type armCombat struct {
 // armRes is arm C: a resolution's decision scratch.
 type armRes struct {
 	look      [24]Obj       // cards looked at (dig / peek / reveal); 24 since kcaps2x (was 12: Ulamog digs twenty)
+	lookOrig  [24]uint8     // each look slot's window index: digPick reorders look to pick order, rest keeps window order
 	pileOrd   [12]uint8     // OpTwoPiles: the face-down pile's rem indices in pick order
 	dmgSeqOrd [MaxPerm]Slot // a multi-event damage op's recipients, frozen (dmgSeqOn / N / I / Pl, outside scr)
 }
@@ -97,7 +98,7 @@ func (s *State) scrResLive() bool {
 func (s *State) scrResEnter() {
 	s.g.nlook, s.g.lookSel = 0, 0
 	s.g.dmgSeqOn, s.g.dmgSeqN, s.g.dmgSeqI, s.g.dmgSeqPl = false, 0, 0, 0
-	s.g.plusBatchAsked, s.g.plusBatchHit = false, 0 // a new resolution cannot inherit a parked batch
+	s.g.plusBatchAsked = false // a new resolution cannot inherit a parked batch
 }
 
 // scrCombatEnter starts a combat damage step's scratch afresh (damageStep,

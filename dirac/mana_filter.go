@@ -507,6 +507,11 @@ type filtSearch struct {
 	// State.rb holds (a restriction past restrKinds), unrestricted: the
 	// script the search found is not one gorge's planner would price
 	spill uint8
+	// need is the colours the play's printed base announces (playNeed, the
+	// set the grant search reads too): the filter's colour ask tries one of
+	// those first, the mirror of gorge's scriptOrderAnswers on the same ask.
+	// It reorders the answers, never the answer set.
+	need [kop.NumManaKinds]bool
 }
 
 // filtScript reports whether gorge's prefix search finds a script for play
@@ -516,6 +521,7 @@ type filtSearch struct {
 func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	var fs filtSearch
 	fs.a, fs.p, fs.gaps, fs.own, fs.sp0 = a, p, s.scriptFilt(k, p), NoSlot, s.sp
+	fs.need = s.playNeed(k, a) // the play's announced colours, whichever search prices it
 	fs.other = s.otherGaps(k, p)
 	if a.Kind() == AkActivate {
 		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
@@ -870,6 +876,7 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 	}
 	var order [5]uint8
 	n := manaColourOrder(t.filtAb(k, sl), &order)
+	needFirst(order[:n], fs.need)
 	for i := 0; i < n; i++ {
 		c := order[i]
 		if fs.try(k, t, filtStep{sl: sl, ans: uint8(1 + c), gap: true}, funded, true) {

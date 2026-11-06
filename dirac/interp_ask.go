@@ -1804,6 +1804,7 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 		s.g.pickP = p
 		for i := 0; i < n; i++ {
 			s.resArm().look[i] = pl.lib[int(pl.libLo)+i]
+			s.resArm().lookOrig[i] = uint8(i)
 		}
 		if take == -1 && second == 255 && (in.C>>3)&kop.DigOptional != 0 && s.g.nlook > 0 && s.digHasPick(k) {
 			// ChangeNum$ All beside Optional$ True (gorge effDig's

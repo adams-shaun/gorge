@@ -223,6 +223,30 @@ var excluded = map[excludedField]bool{
 	// a walk cache keyed on the board stamp plus a mana-relevant log cursor;
 	// Clone copies none (ownManaCarry gives a copy its own on first use).
 	{"rules.Engine", "manaCarry"}: true,
+	// anyManaReachingCostStatic's per-state-change answer and the key it was
+	// built under (mana_cost_adjust.go): the log it was taken against, the
+	// restored kernel's epoch, the log length, the continuous version and the
+	// object-arena size. The log is compared semantically at Engine.L, and a
+	// clone starts the memo cold, so neither the cached bool nor any key part
+	// is game state.
+	{"rules.Engine", "manaReachingCost"}:    true,
+	{"rules.Engine", "manaReachingValid"}:   true,
+	{"rules.Engine", "manaReachingLog"}:     true,
+	{"rules.Engine", "manaReachingTape"}:    true,
+	{"rules.Engine", "manaReachingLogLen"}:  true,
+	{"rules.Engine", "manaReachingVersion"}: true,
+	{"rules.Engine", "manaReachingObjs"}:    true,
+	// The cost-modifier compose memo and its stamp (cost_compose_memo.go), the
+	// potential walk's per-call compose plan (cost_compose_plan.go) and the
+	// compose memo's diagnostic/verify scratch: pure caches of a composition
+	// of G keyed by log lineage, continuous version, arena size, restore epoch
+	// and build count; Clone copies or resets all of them.
+	{"rules.Engine", "costComposeStamp"}:     true,
+	{"rules.Engine", "costCompose"}:          true,
+	{"rules.Engine", "costComposeServed"}:    true,
+	{"rules.Engine", "costComposeVerifying"}: true,
+	{"rules.Engine", "costComposeSuspend"}:   true,
+	{"rules.Engine", "costComposePlan"}:      true,
 	// The payment-plan interference carrier memo (payment_plan_interference.go),
 	// keyed by object-arena size and log length; Clone copies none.
 	{"rules.Engine", "PaymentPlanCarriers"}:       true,
@@ -237,6 +261,17 @@ var excluded = map[excludedField]bool{
 	{"rules.Engine", "paymentPlanQueryKeptStamp"}: true,
 	{"rules.Engine", "PlanQueryFree"}:             true,
 	{"rules.Engine", "zoneEntry"}:                 true,
+	// The shape-cast arm's consumption-only cover bound (planCoverBoundOf):
+	// the player and pool it prices for, the answer and the log head that
+	// bounds its validity, plus the "some census alternative consumes its
+	// source" pre-gate answer. A pure function of G and the log prefix the
+	// head names, dropped by every appended event and cold in a clone.
+	{"rules.Engine", "planCoverBoundOn"}:    true,
+	{"rules.Engine", "planCoverLogLen"}:     true,
+	{"rules.Engine", "planCoverBoundP"}:     true,
+	{"rules.Engine", "planCoverPool"}:       true,
+	{"rules.Engine", "planCoverBound"}:      true,
+	{"rules.Engine", "planCoverConsumable"}: true,
 	// The priority walk's pool-independent block record for the potential
 	// walk (engine/rules/walk_block_reuse.go) and its served-block counter: a walk
 	// cache keyed like priorityWalk, and a diagnostic; Clone copies none.

@@ -621,8 +621,15 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 			return got
 		}
 	}
-	if !e.potentialWitnessOffers(p, o, *best.Plan) {
-		if parts := altAddCostParts(f); len(parts) != 0 && o.Mode == "" {
+	if e.planWitnessOffersNeeded(f, *best.Plan) && !e.potentialWitnessOffers(p, o, *best.Plan) {
+		// An either-or additional cost (AlternateAdditionalCost) rides a
+		// may-play cast too (CR 118.9d: the permission replaces the mana
+		// cost only), so the may-play arm is re-priced beside its parts
+		// exactly as the plain cast's is below; the offer gate (mayPlayAffordable)
+		// proves at least one part payable, and beginCast's may-play ask
+		// folds the chosen one (CR 601.2b). planWitnessOffersNeeded keeps the
+		// offer walk on every cast with parts, so this arm stays reachable.
+		if parts := altAddCostParts(f); len(parts) != 0 && (o.Mode == "" || o.Mode == "mayplay") {
 			return e.potentialAltAddPlan(p, o, base, parts)
 		}
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
@@ -642,6 +649,17 @@ func (e *Engine) potentialTargetPriced(p state.PlayerID, o decision.Option) bool
 // (potentialCostModsUsing), or "insufficient" when no target's price is payable.
 // The target ask then keeps the targets the mana floated can pay for.
 func (e *Engine) potentialTargetPricedPlan(statics costStaticViews, p state.PlayerID, o decision.Option, base Cost, scope costScope, rider pipRider) PaymentPlanOutcome {
+	// A consumption-only query reads the plans only for whether one pays
+	// and what it consumes, so when even the cheapest price a target
+	// assignment can announce is beyond the option set's cover, no target's
+	// plan pays and the enumeration is skipped (planTargetCostFloor,
+	// planCoverInsufficient).
+	if e.planConsumptionOnly {
+		if floor, ok := e.planTargetCostFloor(statics, p, o.Obj, scope, base); ok &&
+			e.planCoverInsufficient(p, pay.PlanManaUnderRider(floor, rider)) {
+			return PaymentPlanOutcome{Reason: "insufficient"}
+		}
+	}
 	got := PaymentPlanOutcome{Reason: "insufficient"}
 	e.potentialCostModsUsing(statics, p, o.Obj, scope, e.costPotentialTargets(p, o.Obj, scope), 0, func(m costMods) bool {
 		var c Cost
@@ -649,10 +667,137 @@ func (e *Engine) potentialTargetPricedPlan(statics costStaticViews, p state.Play
 		got = e.planComposedCost(p, o.Obj, pay.PlanManaUnderRider(c, rider), false, false)
 		return got.Plan != nil && got.Reason == ""
 	})
-	if got.Plan != nil && got.Reason == "" && len(e.PaymentPlanRelaxed) == 0 && !e.potentialWitnessOffers(p, o, *got.Plan) {
+	if got.Plan != nil && got.Reason == "" && len(e.PaymentPlanRelaxed) == 0 &&
+		e.planWitnessOffersNeeded(e.G.Obj(o.Obj).Face(), *got.Plan) && !e.potentialWitnessOffers(p, o, *got.Plan) {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
 	}
 	return got
+}
+
+// planPoolCoversPrintedCost reports whether the floating pool alone pays the
+// cast's composed printed cost, mirrored from potentialModeCastPlan's own
+// composition up to its first planComposedCost: the same base, the same
+// declines it answers unsupported, the same offerCostFor compose (the pip
+// rider is zero there) and the same plain-mana reading. Such a cost is
+// payable without activating a single source: the search is handed the pool
+// before any census choice, so its zero-source plan is the rank-minimal one
+// (no irreversible cost, no creatures, no sources -- keys 1-3 -- and the
+// lowest surplus, key 4), paymentPlanConsumes reads nothing on it, and the
+// consumption-only arm's verdict is false without the plan or the census.
+// Anything the mirror cannot cheaply decide returns false and the planner
+// plans (fail closed).
+func (e *Engine) planPoolCoversPrintedCost(p state.PlayerID, o decision.Option) bool {
+	id := o.Obj
+	obj := e.G.Obj(id)
+	if obj == nil || obj.Face() == nil {
+		return false
+	}
+	base, ok := e.potentialModeBaseCost(p, id, obj.Face(), o)
+	if !ok || base.X != 0 {
+		return false
+	}
+	if base, ok = pay.FixLifeXCost(asPayer(e), p, id, base); !ok || base.X != 0 {
+		return false
+	}
+	if pay.CostAnnouncesSacX(base) {
+		return false // the planner declines the shape; let it answer
+	}
+	castFace := potentialModeCastFace(obj, o.Mode)
+	var composed Cost
+	if castFace == nil {
+		composed = e.offerCostFor(p, id, base, spellScope(o.Mode))
+	} else if faceOK := e.offerAsFace(id, castFace, func() bool {
+		composed = e.offerCostFor(p, id, base, spellScope(o.Mode))
+		return true
+	}); !faceOK {
+		return false
+	}
+	if len(composed.Sac) != 0 || len(composed.Discard) != 0 || len(composed.TapPermanent) != 0 {
+		return false
+	}
+	if pay.PlanCostDetail(pay.PlanManaHalf(composed)) != "" {
+		return false
+	}
+	pl := &e.G.Players[p]
+	if len(pl.RestrictedMana) != 0 {
+		return false // a restricted unit's spendability is the payment's own ask
+	}
+	pool := pl.Pool
+	need := int32(0)
+	for c := range pool {
+		if composed.Colored[c] > pool[c] {
+			return false
+		}
+		need += composed.Colored[c]
+	}
+	return pool.Total()-need >= composed.Generic
+}
+
+// planTargetCostFloor is the cheapest mana cost one target assignment of id
+// can announce: base less every target-dependent ReduceCost static's literal
+// generic amount, the reduction one target's match applies once (the
+// potential-walk path only reaches here for a cast announcing at most one
+// target). ok is false, and the caller plans, whenever a target-dependent
+// part is not such a subtraction -- a count-reading amount, a SetCost -- or
+// when a floor would charge a reduction no target can apply; target
+// raises and optional parts only ever add, so the floor may ignore them.
+func (e *Engine) planTargetCostFloor(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, base Cost) (Cost, bool) {
+	floor := base
+	for _, sv := range statics.reduce {
+		if id != sv.Source && sv.ParamStr(cards.PKValidCard) == "Card.Self" {
+			continue // another cast's self static never prices this one
+		}
+		if sv.ParamStr(cards.PKValidTarget) == "" {
+			if costStaticReadsTargets(sv) {
+				// A target-reading amount evaluated at nil targets reads
+				// zero, so base does NOT already carry its reduction when
+				// the gate passes: only a target-independent denial proves
+				// the static never applies. Refuse otherwise, exactly as
+				// paymentPlanTargetDependentFor declines the cast
+				// (ok || !indepFail); continuing on ok would floor the price
+				// above a real per-target price and could miss a consuming
+				// plan.
+				if _, indepFail := e.costStaticGate(sv, "ReduceCost", p, id, scope, nil, false); indepFail {
+					continue // never applies
+				}
+				return Cost{}, false // a target-reading amount's floor is no subtraction
+			}
+			continue // priced into base already (or another card's static)
+		}
+		if ok, indepFail := e.costStaticGate(sv, "ReduceCost", p, id, scope, nil, false); ok || indepFail {
+			continue // priced into base already, or never applies
+		}
+		amt := parseAmount(sv.ParamStr(cards.PKAmount), -1)
+		if amt < 0 {
+			return Cost{}, false
+		}
+		floor.Generic -= amt
+	}
+	for _, sv := range statics.set {
+		if sv.ParamStr(cards.PKValidTarget) != "" || costStaticReadsTargets(sv) {
+			return Cost{}, false
+		}
+	}
+	return floor, true
+}
+
+// planWitnessOffersNeeded reports whether plan's offer gate
+// (potentialWitnessOffers) must run. A consumption-only query
+// (planConsumptionOnly, targetPaidNeedsPlannedPayment) reads its plan only
+// for whether it consumes something: a plan that consumes nothing is
+// declined by the reader itself, so the gate cannot change the answer --
+// except on a cast with either-or additional cost parts, whose witness
+// fallback (potentialAltAddPlan) the gate's failure arms, and never for the
+// keep-sources plan (potentialWitnessKeeping), whose own consumption filter
+// the gate's failure would flip.
+func (e *Engine) planWitnessOffersNeeded(f *cards.Face, plan decision.PaymentPlan) bool {
+	if !e.planConsumptionOnly || e.planKeepSources || paymentPlanConsumes(plan) {
+		return true
+	}
+	if f == nil {
+		return true // fail open: an unknown face keeps the gate
+	}
+	return len(altAddCostParts(f)) != 0
 }
 
 // potentialAltAddSacrificePlan prices an either-or additional cost none of
@@ -712,6 +857,158 @@ func (e *Engine) paymentPlanCensusTotal(p state.PlayerID) int32 {
 		total += best
 	}
 	return total
+}
+
+// planCoverInsufficient reports whether the planner's option set provably
+// cannot fund mana: a plan spends the floating pool plus, per census source,
+// one of its query alternatives (a plan activates each census source once,
+// the bound paymentPlanCensusTotal reports a witness by), so a per-colour
+// bound over pool and alternatives that cannot cover the pips covers no
+// plan. What narrows the planner never widens it -- a RestrictValid$
+// alternative the payment refuses, a restricted pool batch, a ManaConvert
+// static the ordinary solver does not apply -- so the bound stays a
+// superset of what any plan may spend. Only a plain Colored/Generic cost is
+// read: any shape the planner declines (pay.PlanCostDetail) returns false
+// and the planner plans.
+func (e *Engine) planCoverInsufficient(p state.PlayerID, mana Cost) bool {
+	if pay.PlanCostDetail(mana) != "" {
+		return false
+	}
+	bound, _ := e.planCoverBoundOf(p)
+	need := int32(0)
+	for c := range bound {
+		if mana.Colored[c] > bound[c] {
+			return true
+		}
+		need += mana.Colored[c]
+	}
+	return bound.Total()-need < mana.Generic
+}
+
+// planBoardConsumesNothing reports, without the census walk, that no
+// alternative the payment census could list for p consumes its source
+// (planCoverConsumable), so the consumption-only arm's verdict is false
+// whatever the cast's cost: with no consumable alternative, no plan the
+// search can return passes paymentPlanConsumes. The census's alternatives
+// carry Sacrifice/ReturnToHand only from the ability's own shape
+// (paymentPlanAbilityShapeTier; the interference merge adds damage, life and
+// no-untap, never a consume), so the scan reads the same per-ability verdict
+// the census's alternative derivation reads, over a superset of the census's
+// enumeration: every printed mana or ManaReflected ability on every
+// permanent p controls, all faces of a mutated pile included, with none of
+// the walk's own gates (zone, loss, tap-sick, payability) applied. The
+// gates and the census's other arms only ever REMOVE abilities or
+// alternatives -- the CR 305.6 intrinsics (facedown type words and
+// layer-4-set basic land types) are plain taps whose production never
+// consumes -- so the superset scan can only over-report a consuming ability
+// and fail open. It fails open, too, whenever a granted ability could exist
+// (active summary hasGrants: AddAbilities and GainedFaces entries, which is
+// also every runtime grant the walk's grantedAbilities arm lists), whenever
+// a raise/reduce/set static may reach a mana ability (anyManaReaching: the
+// memoised shape facts are the unmodified costs', while the census then
+// classifies the repriced cost per call), and for any ability whose shape
+// the configured facts do not already know (shapeKnown false, or facts nil:
+// the census's rider arms can disclose a self-return), which is the census's
+// own unconfigured path. planCoverBoundOf computes the same verdict from the
+// census; this scan is the pre-gate that answers the common no-consumption
+// board without the census pass the census-only path pays once per
+// consumption-only query.
+func (e *Engine) planBoardConsumesNothing(p state.PlayerID) bool {
+	if e.anyManaReachingCostStatic() {
+		return false
+	}
+	if e.activeSummaryOf(e.active()).hasGrants {
+		return false
+	}
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		// A lost-abilities or face-down permanent's printed abilities are
+		// not live (CR 613.1f, CR 708.5); scanning them can only
+		// over-report, so the ordinary face loop needs no loss read.
+		for i := 0; i < o.PileFaceCount(); i++ {
+			pf, ok := o.PileFaceAt(i)
+			if !ok {
+				continue
+			}
+			for _, ma := range pf.Face.Abilities {
+				if ma.API != "Mana" && ma.API != "ManaReflected" {
+					continue
+				}
+				if f := e.manaFactsOf(ma); f != nil && f.shapeKnown {
+					if f.shapeCons.Sacrifice || f.shapeCons.ReturnToHand {
+						return false
+					}
+					continue
+				}
+				// The census classifies this ability per call, including
+				// the rider arms a self-return rider takes; this scan
+				// cannot answer it without the census's reads, so it
+				// defers to the census.
+				tier, c, _, rider := pay.PaymentPlanShapeTierOf(ma, e.abilityCompiledCost(ma).Cost)
+				if rider || tier == pay.TierLastResort &&
+					(c.Sacrifice || c.ReturnToHand) {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
+// planCoverBoundOf is the bound planCoverInsufficient reads, with whether a
+// census alternative consumes its source (planCoverConsumable: sacrifices or
+// returns it). The plan the consumption-only query reads is the mana part
+// alone -- the fixed-count sacrifice parts and the either-or modes are the
+// play's own asks, outside the plan -- and a relaxed proof's alternatives
+// are never returned as a plan, so the plan's search draws its steps only
+// from this census's alternatives (PlanPaymentCostWithout's choices). With
+// no consumable alternative no plan paymentPlanConsumes reads can consume,
+// whatever the cost, so the arm's verdict is false without the search.
+// The bound itself is p's floating pool plus,
+// per census source, its largest alternative per colour. Inside the arm's
+// consumption-only query (planCoverBoundOn) both are computed once per
+// event-log head and shared by the query's nested planComposedCost calls:
+// every state change is an appended event, so an unchanged log length is the
+// same unchanging board and pool.
+func (e *Engine) planCoverBoundOf(p state.PlayerID) (state.Mana, bool) {
+	pool := e.G.Players[p].Pool
+	if e.planCoverBoundOn && e.planCoverLogLen == len(e.L.Events) &&
+		e.planCoverBoundP == p && e.planCoverPool == pool {
+		return e.planCoverBound, e.planCoverConsumable
+	}
+	// The census read is a pure reader of p's posed decision
+	// (paymentPlanQueryResumeBegin): when the offer builder's own query
+	// scope for this state was kept (paymentPlanQueryKeep), its census and
+	// alternatives are served instead of recomputed, and a census the arm's
+	// bound fills first is shared with the builder's ordinary-cast plans.
+	defer pay.PaymentPlanQueryEnd(asPayer(e), e.paymentPlanQueryResumeBegin(p))
+	bound := pool
+	consumable := false
+	for _, u := range pay.PaymentPlanQueryUnits(asPayer(e), p) {
+		var best state.Mana
+		for _, a := range pay.PaymentPlanQueryAlternatives(asPayer(e), u) {
+			consumable = consumable || a.Consequence.Sacrifice || a.Consequence.ReturnToHand
+			for c := range best {
+				if a.Mana[c] > best[c] {
+					best[c] = a.Mana[c]
+				}
+			}
+		}
+		for c := range bound {
+			bound[c] += best[c]
+		}
+	}
+	if e.planCoverBoundOn {
+		e.planCoverLogLen = len(e.L.Events)
+		e.planCoverBoundP = p
+		e.planCoverPool = pool
+		e.planCoverBound = bound
+		e.planCoverConsumable = consumable
+	}
+	return bound, consumable
 }
 
 // potentialModalCastFreeMode reports whether a plain Spree/Tiered cast of id
@@ -1084,6 +1381,13 @@ func (e *Engine) planComposedCost(p state.PlayerID, id state.ObjID, composed Cos
 	}
 	if global, detail := e.paymentPlanGlobalManaEffect(p, id); global {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: detail}
+	}
+	// A consumption-only query (the shape-cast planner arm) reads the plan
+	// only for whether it pays and what it consumes, so a cost the option
+	// set provably cannot fund is answered without the search
+	// (planCoverInsufficient).
+	if e.planConsumptionOnly && e.planCoverInsufficient(p, mana) {
+		return PaymentPlanOutcome{Reason: "insufficient"}
 	}
 	// tapped: sources the cost taps (their tapping abilities cannot pay);
 	// kept: sources the cost sacrifices (they may tap for mana first, but

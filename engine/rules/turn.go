@@ -1528,7 +1528,7 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 		// (engine/rules/replacement.go): the answered decision applies the chosen
 		// replacement for real and hands the queue to the next parked
 		// competition, if any.
-		e.handleReplacement(d, in)
+		e.handleReplacement(d, in, false)
 	case decision.KChoose:
 		e.handleChoose(d, in)
 	case decision.KMulligan:

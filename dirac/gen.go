@@ -1776,13 +1776,14 @@ type genState struct {
 	dmgSeqN  uint8
 	dmgSeqI  uint8
 	dmgSeqPl uint8
-	// plusBatchAsked: a dealHits batch parked on a pure plus-N order ask
-	// (trig_batches.go replPlusBatch) is being re-executed, so the additions
-	// are applied in any order and the ask is not posed again. plusBatchHit
-	// is the parked hit's index + 1 (0: none): gorge's emit returned a Note
-	// for that event, so the effect sees 0 dealt for it.
+	// plusBatchAsked: a damage pass parked on a pure plus-N order ask
+	// (trig_batches.go replPlusBatch, and the direct replDamage sites'
+	// replPlusSrcPass: OpDealDamageFrom's player mode, OpResolveDamageMap and
+	// the one-target divided batch) is being re-executed, so the additions
+	// are applied in any order and the ask is not posed again. The parked
+	// hit's landed amount rides h.n, which is what the emitting effect's
+	// EmitDamage returns (gorge returns the post-replacement Damage event).
 	plusBatchAsked bool
-	plusBatchHit   uint8
 	// colG: Ext ColorGrant's until-end-of-turn records (Skrelv;
 	// static_colourgrant.go): the object (obj, ver), the
 	// chosen colour (col, a ColorMask bit; 0 = free) and cgHex / cgNoBlock /
@@ -1919,7 +1920,7 @@ const (
 	StallPT        = 41 // a power or toughness pump leaves the int16 end-of-turn range, or needs a fifth of the maxPtX slots (eotAdd, OpPumpAllEach; filter_defined.go)
 	StallActRing   = 42 // a player activates more than actRingN abilities in one turn (genState.actRing)
 	StallCharmOpts = 43 // a multi-pick charm's combined target ask has more than MaxOptions options
-	StallCopyFace  = 44 // a permanent-spell copy of a multi-face card (CR 707.10g; copy_permanentspell.go)
+	StallCopyFace  = 44 // a permanent-spell copy of a two-faced card (CR 707.10g; copy_permanentspell.go)
 	StallRefLatch  = 45 // a combat damage batch has more than maxRefLatch (listener, referent) per-referent damage triggers (trig_damagedonce.go refLatch)
 	// 46 was a twobrid cost beside a cost reduction or increase; the cost statics now compose on the announced faces (mana_twobrid.go foldTb)
 	StallZone          = 47  // a hand, graveyard, exile or library array is full: tokens that left the battlefield together wait there for the next state-based check (zones.go placeFrom)

@@ -26,7 +26,7 @@ func SubCounterPhrase(part costvocab.CostPart, amt int32) string {
 	if amt != 1 && !part.Announced {
 		unit = "counters"
 	}
-	return fmt.Sprintf("%s %s", strings.ToUpper(part.Spec), unit)
+	return strings.ToUpper(part.Spec) + " " + unit
 }
 
 // manaSubCounterReservations keeps an earlier counter-cost part from spending

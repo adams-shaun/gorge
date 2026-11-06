@@ -507,13 +507,13 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 		if k.gen.anyFiltFirst && s.scriptFilt(k, p).any() {
 			continue // nor is a first-and-only filter (Prophetic Prism's {1},{T}) funded by a granted {G}: scriptOffers' filter search listed the play (CR 605.1a, 106.1)
 		}
-		if cost, ex, ok := s.grantPlayCost(k, p, a, true); ok && !s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
+		if cost, ex, _, ok := s.grantPlayCost(k, p, a, true); ok && !s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
 			d.remove(a)
 		}
 	}
 	for i := 0; i < int(walk.N); i++ {
 		a := walk.Options[i]
-		cost, ex, ok := s.grantPlayCost(k, p, a, true)
+		cost, ex, need, ok := s.grantPlayCost(k, p, a, true)
 		if !ok {
 			continue
 		}
@@ -535,7 +535,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 			d.remove(a) // never searched: unpriced
 			continue
 		}
-		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), &g) && !s.tapXScript(k, a, p, false) {
+		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g) && !s.tapXScript(k, a, p, false) {
 			// Gorge's script search covers every census gap — granted units and
 			// tap-another-permanent gaps alike (CR 605.1a, 601.2g-h) — so the
 			// kernel drops the play only when neither route prices it.
@@ -554,12 +554,12 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 // prefix before the play itself (prScript). The kernel taps them the same
 // way at the play, so the mana floats from the announcement on.
 func (s *State) grantPrefix(k *prep, a Action, p uint8) {
-	cost, ex, ok := s.grantPlayCost(k, p, a, true)
+	cost, ex, need, ok := s.grantPlayCost(k, p, a, true)
 	if !ok {
 		return
 	}
 	var g grantSrch
-	if s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), &g) && g.np != 0 {
+	if s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g) && g.np != 0 {
 		s.grantApply(k, &g) // the found prefix (mana_grantedoffers.go)
 		return
 	}

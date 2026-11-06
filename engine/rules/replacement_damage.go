@@ -420,23 +420,36 @@ func (e *Engine) damageSourceLeftThisTurn(src state.ObjID) (left, entered bool) 
 // iteration). Only the front of the queue is ever asked -- see
 // handleReplacement's resumption for how the queue hands from one choice to
 // the next.
-func (e *Engine) poseDamageReplacementChoice(ev events.Event, matches []replMatch, p state.PlayerID) {
+// poseDamageReplacementChoice parks the damage competition and, when nothing
+// else is pending, poses the ask at once. It reports the event that actually
+// landed with served=true only for a kernel-served IN-PLACE non-combat
+// answer (the emitter is still on the stack and will pay the riders from the
+// returned amount); combat and every legacy/async park return the zero event
+// and false, so the dispatcher keeps its "awaiting replacement-order choice"
+// Note and finishChosenDamage keeps paying those riders.
+func (e *Engine) poseDamageReplacementChoice(ev events.Event, matches []replMatch, p state.PlayerID) (events.Event, bool) {
 	source := e.protectionSource(e.inFlightDamageSource())
+	combat := e.combatDamaging
 	e.replChoices = append(e.replChoices, replChoice{
 		kind: replChoiceDamage, ev: ev, cands: matches, before: e.retainTriggerBefore(), player: p,
-		damaging: source, combat: e.combatDamaging,
+		damaging: source, combat: combat,
 		lifelink: e.hasKeywordH(source, kwhLifelink), deadly: e.hasKeywordH(source, kwhDeathtouch),
 		toxic: e.ToxicValue(source),
 	})
 	if e.pending == nil {
-		e.askReplacementChoice(p)
+		if applied := e.askReplacementChoiceIn(p, true); !combat && applied.Kind != 0 {
+			return applied, true
+		}
 	}
+	return events.Event{}, false
 }
 
 // handleDamageReplacementChoice returns false only when recomputation leaves
 // another genuine order choice pending; true means the parked damage event is
-// fully prevented/replaced or has landed with all riders.
-func (e *Engine) handleDamageReplacementChoice(rc replChoice, selected int) bool {
+// fully prevented/replaced or has landed with all riders. The second return
+// is the event that actually landed when the (possibly recursive) answer was
+// served in place, the zero event otherwise.
+func (e *Engine) handleDamageReplacementChoice(rc replChoice, selected int, inPlace bool) (bool, events.Event) {
 	savedDamaging, savedCombat, savedOverride := e.damaging, e.combatDamaging, e.dmgSrcOverride
 	e.damaging, e.combatDamaging, e.dmgSrcOverride = rc.damaging, rc.combat, 0
 	defer func() { e.damaging, e.combatDamaging, e.dmgSrcOverride = savedDamaging, savedCombat, savedOverride }()
@@ -455,20 +468,19 @@ func (e *Engine) handleDamageReplacementChoice(rc replChoice, selected int) bool
 		m := rc.cands[selected]
 		rc.used = append(rc.used, m)
 		if e.applyChosenDamageReplacement(&rc.ev, m) {
-			return true
+			return true, events.Event{}
 		}
 	}
 	for {
 		rc.cands = e.remainingDamageReplacements(rc.ev, rc.used)
 		switch len(rc.cands) {
 		case 0:
-			e.finishChosenDamage(rc)
-			return true
+			return true, e.finishChosenDamage(rc, inPlace)
 		case 1:
 			m = rc.cands[0]
 			rc.used = append(rc.used, m)
 			if e.applyChosenDamageReplacement(&rc.ev, m) {
-				return true
+				return true, events.Event{}
 			}
 		default:
 			// The first modification can leave several effects applicable. Ask
@@ -481,9 +493,12 @@ func (e *Engine) handleDamageReplacementChoice(rc replChoice, selected int) bool
 				rc.player = p
 				e.replChoices = append([]replChoice{rc}, e.replChoices...)
 				if e.pending == nil {
-					e.askReplacementChoice(p)
+					// The emitter (when inPlace) is still on the stack across
+					// this recomputation, so the served answer must keep the
+					// same rider ownership.
+					return false, e.askReplacementChoiceIn(p, inPlace)
 				}
-				return false
+				return false, events.Event{}
 			}
 			// CR 800.4a: the recomputed affected player is lost or gone and
 			// makes no choices, so the remaining candidates apply in
@@ -491,13 +506,12 @@ func (e *Engine) handleDamageReplacementChoice(rc replChoice, selected int) bool
 			// takes -- and the parked event settles here.
 			for {
 				if len(rc.cands) == 0 {
-					e.finishChosenDamage(rc)
-					return true
+					return true, e.finishChosenDamage(rc, inPlace)
 				}
 				m = rc.cands[0]
 				rc.used = append(rc.used, m)
 				if e.applyChosenDamageReplacement(&rc.ev, m) {
-					return true
+					return true, events.Event{}
 				}
 				rc.cands = e.remainingDamageReplacements(rc.ev, rc.used)
 			}
@@ -619,13 +633,25 @@ func (e *Engine) applyChosenDamageReplacement(ev *events.Event, m replMatch) boo
 	return m.repl.With.API != "ReplaceEffect"
 }
 
-func (e *Engine) finishChosenDamage(rc replChoice) {
+// finishChosenDamage lands the parked damage event and returns it (the zero
+// event when it was fully prevented/replaced). For a kernel-served in-place
+// non-combat answer the emitting primitive is still on the stack and pays the
+// lifelink/deathtouch riders itself from the returned amount, so the riders
+// are left to it; combat and every legacy/async answer pay here as before.
+func (e *Engine) finishChosenDamage(rc replChoice, inPlace bool) events.Event {
 	savedDamaging, savedCombat, savedApplying, savedOverride := e.damaging, e.combatDamaging, e.applyingReplacement, e.dmgSrcOverride
 	e.damaging, e.combatDamaging, e.applyingReplacement, e.dmgSrcOverride = rc.damaging, rc.combat, true, 0
 	applied := e.emit(rc.ev)
 	e.damaging, e.combatDamaging, e.applyingReplacement, e.dmgSrcOverride = savedDamaging, savedCombat, savedApplying, savedOverride
 	if applied.Kind != events.Damage || applied.Amount <= 0 {
-		return
+		return events.Event{}
+	}
+	if inPlace && !rc.combat {
+		// The emitter (Host.EmitDamage) owns the riders for this case: it is
+		// the caller waiting on this return, and it pays lifelink/deathtouch
+		// from the landed amount it reads here. Paying them twice would be
+		// wrong, and combat keeps its own ledger below regardless.
+		return applied
 	}
 	if rc.deadly && applied.Obj != 0 {
 		e.emit(events.Event{Kind: events.CounterChange, Obj: applied.Obj,
@@ -672,6 +698,7 @@ func (e *Engine) finishChosenDamage(rc replChoice) {
 				Player: applied.Player, Counter: "POISON", Amount: int32(rc.toxic)})
 		}
 	}
+	return applied
 }
 
 // replMatchEffectCreated re-matches an Effect-created replacement in the

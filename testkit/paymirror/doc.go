@@ -157,12 +157,24 @@
 //	manaCarry                          the own-battlefield mana-membership carry, keyed on
 //	                                   the board stamp plus a mana-relevant log cursor; Clone
 //	                                   copies none
+//	manaReachingCost/Valid/Log/        anyManaReachingCostStatic's per-state-change answer and
+//	Tape/LogLen/Version/Objs           its key (log identity, restore epoch, log length,
+//	                                   continuous version, object count); Clone copies none
+//	costCompose/Stamp, costCompose-    the cost-modifier compose memo keyed by log lineage,
+//	Served/Verifying/Suspend/Plan      continuous version, arena size, restore epoch and build
+//	                                   count, its diagnostic/verify scratch, and the potential
+//	                                   walk's per-call compose plan: pure caches of a composition
+//	                                   of G; Clone copies or resets all of them
 //	PaymentPlanCarriers/Objs/Events/   payment-plan interference carrier memo keyed by the
 //	Valid                              object-arena size and log length; Clone copies none
 //	PlanQueryKept/Free,                the payment planner's kept and recycled query scopes and
 //	paymentPlanQueryKeptStamp,         the incremental zone-entry index: caches of G and the
 //	zoneEntry
 //	                                   log, validated on every use; Clone copies none
+//	planCoverBoundOn/LogLen/BoundP/    the shape-cast arm's consumption-only cover bound and
+//	Pool/Bound/Consumable              its key, plus the consumable-alternative pre-gate
+//	                                   answer: a pure function of G and the log head; Clone
+//	                                   copies none
 //	walkRec, walkReuse, WalkRecDemand, the priority walk's pool-independent block record for the
 //	potentialManaRec, walkBlocks/      potential walk and PotentialMana (keyed like
 //	MembersServed                      priorityWalk) and its served diagnostic counters; Clone

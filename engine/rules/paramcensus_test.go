@@ -2259,8 +2259,19 @@ var handRoots = struct {
 		// mustAttackRequired has. Its may-play key reads live in
 		// quietStaticMayPlay and are family-attributed below.
 		"ReduceCost": {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX", "Engine.paymentPlanHasTargetDependentModifier",
-			"quietSelfReducePipFloor", "costStaticMayReachManaAbility"},
-		"SetCost":      {"Engine.paymentPlanHasTargetDependentModifier", "costStaticMayReachManaAbility"},
+			"quietSelfReducePipFloor", "costStaticMayReachManaAbility",
+			// planTargetCostFloor (potential_plan.go) prices the
+			// consumption-only arm's one-target cost floor: it scans the
+			// collected ReduceCost statics' ValidCard$/ValidTarget$/Amount$
+			// and their gate directly, the same reads the pricing side
+			// (costModifiersWithTargets) makes -- the same direct-scan shape
+			// quietSelfReducePipFloor has.
+			"Engine.planTargetCostFloor"},
+		"SetCost": {"Engine.paymentPlanHasTargetDependentModifier", "costStaticMayReachManaAbility",
+			// the floor's SetCost walk refuses any target-priced set (the
+			// same ValidTarget$/target-reading check
+			// paymentPlanHasTargetDependentModifier makes).
+			"Engine.planTargetCostFloor"},
 		"OptionalCost": {"Engine.optionalCostViews", "Engine.reduceColorOptionalViews"},
 		// paymentPlanManaConvertName (payment_plan_interference.go) names the
 		// restricting ManaConvert static behind a global auto-pay decline: it

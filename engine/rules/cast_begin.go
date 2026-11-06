@@ -1259,6 +1259,15 @@ func (e *Engine) continueCast() {
 	if e.manaAsk() {
 		return
 	}
+	// A twobrid cost deferred its delve ask past the pip announcements
+	// (delveAsk's CR 601.2b defer), so the exiles are picked here, once every
+	// pip is announced and the resolved generic total makes the shortfall
+	// real. delveDone makes the re-entry after the exile picks a no-op, so a
+	// cost without an unresolved twobrid (its ask ran above, before
+	// manaAsk) reaches this call only after delveDone and returns false.
+	if e.delveAsk() {
+		return
+	}
 	// An Optional$ ManaConvert permission is a real CR 601.2 choice. It is
 	// asked after pip announcements, before targets, and the selected arm is
 	// then used consistently by target affordability and final payment.

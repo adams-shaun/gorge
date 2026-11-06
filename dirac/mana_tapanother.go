@@ -217,6 +217,7 @@ type tapXSearch struct {
 	own   Slot  // the source whose {T} is the play's own cost (NoSlot: none)
 	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
 	gaps  slotMask
+	need  [kop.NumManaKinds]bool // the play's announced colours (scriptNeedColours)
 	nodes int
 	nseen int
 	seen  [potentialScriptNodes]tapXKey
@@ -250,6 +251,7 @@ func tapXOwnAnswer(own, a, b Slot) bool {
 func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	var rs tapXSearch
 	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p))
+	rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
 	rs.own = NoSlot
 	if a.Kind() == AkActivate {
 		_, rs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
@@ -438,6 +440,16 @@ func (rs *tapXSearch) settle(k *prep, t *State, gapUsed bool) bool {
 	return false
 }
 
+// cols lists a colour ask's answers in the order gorge's script search tries
+// them: the play's announced colours first (scriptOrderAnswers on the ask),
+// then the rest W U B R G.
+func (rs *tapXSearch) cols(out *[5]uint8) {
+	for col := uint8(0); col < 5; col++ {
+		out[col] = col
+	}
+	needFirst(out[:], rs.need)
+}
+
 func (rs *tapXSearch) tick() bool {
 	if rs.nodes >= potentialScriptNodes {
 		return false
@@ -544,6 +556,8 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	live := t.scriptTapX(k, p)
 	ctr := t.scriptCtr(k, p)
 	each := t.scriptGaps(k, p) // (rs.gaps keeps the root's: the Drum tapped, the Tender is still a gap)
+	var cols [5]uint8
+	rs.cols(&cols)
 	var order [MaxPerm]Slot
 	n := t.battlefieldOrder(p, t.ctrlM[p&1].and(t.occ), order[:], 0)
 	for i := 0; i < n; i++ {
@@ -600,12 +614,12 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 					if !rs.tick() { // the colour ask
 						return false
 					}
-					for col := 0; col < 5; col++ {
-						c := col
+					for i := 0; i < 5; i++ {
+						c := cols[i]
 						if debugTapXMutate == 1 {
 							c = 0
 						}
-						if rs.try(k, t, tapXStep{sl: sl, cand: a, cand2: b, col: uint8(c)}) {
+						if rs.try(k, t, tapXStep{sl: sl, cand: a, cand2: b, col: c}) {
 							return true
 						}
 					}
@@ -627,12 +641,12 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			if !rs.tick() { // the colour ask
 				return false
 			}
-			for col := 0; col < 5; col++ {
-				c := col
+			for i := 0; i < 5; i++ {
+				c := cols[i]
 				if debugTapXMutate == 1 {
 					c = 0
 				}
-				if rs.try(k, t, tapXStep{sl: sl, cand: cand, cand2: NoSlot, col: uint8(c)}) {
+				if rs.try(k, t, tapXStep{sl: sl, cand: cand, cand2: NoSlot, col: c}) {
 					return true
 				}
 			}

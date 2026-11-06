@@ -110,6 +110,11 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 
 // offerPlay offers playing card object o through a permission.
 func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc, landOK, anyMana, anyColor, unpriced bool, av *avail) {
+	// the avail is the caller's walk picture: the cast's own delve credit
+	// prices its twobrid faces and is restored after, so the next option does
+	// not price with it
+	saved := av.delve
+	defer func() { av.delve = saved }()
 	c := s.objs[o].card
 	pc := &k.cards[c]
 	anyMana = anyMana || mode&castFree == 0 && s.convAnyType(k, p, o) // mana_convertcreature.go
@@ -130,8 +135,11 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		if k.gen.anyConvoke && s.tapPays(k, p, c, o, false) {
 			base = s.convokeCredit(k, p, c, o, base) // gorge castOfferBase: a permission cast convokes too
 		}
+		av.delve = s.tbDelveCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand) // the faces' credit (CR 702.66a)
 		cost := s.adjustFit(k, av, p, c, o, base, true)
-		cost = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, cost)
+		if !av.tbLeafCredited(&base) {
+			cost = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, cost)
+		}
 		if anyMana {
 			cost = anyType(cost)
 		}
@@ -158,7 +166,9 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 			cost = anyType(cost)
 		}
 		altCost := cost // (altAddCastableFrom credits its own total)
-		cost = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, cost)
+		if !av.tbLeafCredited(&pc.cost) {
+			cost = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, cost)
+		}
 		s.g.mayPlayAny = anyMana
 		offers := s.gorgeOffersMay(p, o)
 		s.g.mayPlayAny = false

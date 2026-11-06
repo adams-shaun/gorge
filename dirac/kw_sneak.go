@@ -104,8 +104,9 @@ func (s *State) sneakHasReturn(k *prep, p uint8) bool {
 }
 
 // sneakPoolPays reports whether p's floating pool alone pays cost for
-// card c (FeatPoolPays's pool, the restriction rider included).
-func (s *State) sneakPoolPays(k *prep, p uint8, c CardID, cost *kop.ManaCost) bool {
+// card c, object o (FeatPoolPays's pool, the restriction rider included;
+// the cast's own delve credit prices the twobrid faces like the offer).
+func (s *State) sneakPoolPays(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost) bool {
 	pl := &s.pl[p&1]
 	var a avail
 	for i := 0; i < kop.NumManaKinds; i++ {
@@ -116,6 +117,7 @@ func (s *State) sneakPoolPays(k *prep, p uint8, c CardID, cost *kop.ManaCost) bo
 	if s.rbAny(p) {
 		s.restrAvail(k, p&1, c, restrOrigin{from: kop.ZoneHand}, &a)
 	}
+	a.delve = s.tbDelveCredit(k, p&1, c, o, s.objs[o].zone == kop.ZoneHand) // the faces' credit (CR 702.66a)
 	return a.affords(cost, pipMaskOf(cost), 0)
 }
 
@@ -138,6 +140,16 @@ func (s *State) offerSneakHand(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 		s.walkHandAvail(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}, &ha)
 		av = &ha
 	}
+	// the avail is the caller's walk picture, or the hand-barred grant's
+	// local one above: the cast's own delve credit prices its twobrid faces
+	// and is restored after (offerPlay's shape). Set after the swap, so the
+	// avail actually used for pricing carries it.
+	saved := av.delve
+	defer func() { av.delve = saved }()
+	av.delve = s.tbDelveCredit(k, p, c, o, true) // the faces' credit (CR 702.66a)
+	if !av.tbLeafCredited(&cost) {
+		cost = s.delveOfferCredit(k, p, c, o, true, cost) // gorge's choke point credits the generic at this walk too
+	}
 	if !av.affords(&cost, pipMaskOf(&cost), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &cost, av)) {
 		// The restrAffords fallback matches the plot/warp hand offers (a
 		// restricted mana source can pay); it is dead in the sneak pool,
@@ -148,7 +160,7 @@ func (s *State) offerSneakHand(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 	// gorge prices a sneak cast through the potential planner as well as
 	// the floating pool (potential_plan.go potentialModeCastPlan), so the
 	// offer is the mana census, not the pool alone.
-	if DebugFacePoolOnly && !s.sneakPoolPays(k, p, c, &cost) {
+	if DebugFacePoolOnly && !s.sneakPoolPays(k, p, c, o, &cost) {
 		return
 	}
 	d.add(MakeAction(AkSneak, uint8(o), 0, 0))

@@ -267,6 +267,17 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 	delve := int32(0)
 	if !pc.isAbility() {
 		delve = int32(len(pc.delve))
+		if delve == 0 && !pc.delveDone && e.hasCastDelve(pc.card, false) {
+			// A twobrid cost defers its delve ask until the pips are announced
+			// (delveAsk's CR 601.2b defer), so no exiles are picked while the
+			// announcements are priced -- but the offer gate already credited
+			// the graveyard against the full potential, and a price that
+			// refuses every face here strands the cast it offered. Price the
+			// announcements with the potential instead: the last pip's leaf
+			// check (below) covers the whole cost, so the deferred ask's
+			// shortfall can only be smaller than what the potential can pay.
+			delve = int32(len(e.G.Zone(state.ZGraveyard, pc.player)))
+		}
 	}
 	// The pips 0..payIdx have been announced (their faces are folded in
 	// above), so their slots leave the cost; the pips after payIdx stay live
@@ -293,7 +304,11 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 	av := pay.AvailableFor(asPayer(e), pc.player, payment)
 	var reach func(c Cost) bool
 	reach = func(c Cost) bool {
-		if c.AnnPipCount() != 0 && pc.mods.FaceSensitiveP(&c) {
+		// A delve credit is face-sensitive over an unresolved twobrid pip
+		// (costmods.go's feasibleAny): the generic face is the {2} the credit
+		// eats, the colour face is not, so the window probe must enumerate the
+		// faces even when no modifier is face-sensitive.
+		if c.AnnPipCount() != 0 && (pc.mods.FaceSensitiveP(&c) || delve > 0 && len(c.Twobrid) > 0) {
 			for _, alt := range pay.AnnouncePip(c, 0) {
 				r := c
 				switch {

@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -138,8 +139,12 @@ func (e *Engine) morphTurnUpMods(p state.PlayerID, id state.ObjID, mf morphFaceU
 		}
 		if n > 0 {
 			// LAST, after the external statics: the printed rider has no
-			// MinMana$ floor, so order cannot interact with one.
-			mods.Reduces = append(mods.Reduces, costMod{Generic: n})
+			// MinMana$ floor, so order cannot interact with one. The append
+			// goes through a clone: a composed result's slices are shared
+			// with the cost-modifier compose memo's entry (storeComposeMods),
+			// and an in-place append would write the rider into the stored
+			// answer.
+			mods.Reduces = append(slices.Clone(mods.Reduces), costMod{Generic: n})
 		}
 	}
 	return mods, true

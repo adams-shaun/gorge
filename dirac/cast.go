@@ -658,6 +658,14 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			s.nextStage(k)
 			continue
 		case bsDelve:
+			if s.delveTbDeferred(k) {
+				// a twobrid cost's resolved generic -- the ask's shortfall --
+				// is not known until CR 601.2b announces the pips; the ask
+				// re-runs at bsPips' tail once they are done (gorge
+				// delveAsk's defer, cast_subcounter.go)
+				s.nextStage(k)
+				continue
+			}
 			if s.delveOptions(k, d) {
 				return true
 			}
@@ -818,6 +826,13 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.altAddWindowTap(k)
 				s.reverseCast(k)
 				return false
+			}
+			// a twobrid spell deferred its delve ask past the pip
+			// announcements (delveTbDeferred): every pip is announced now and
+			// the folded cost's generic is the ask's real shortfall
+			if e.kind == seSpell && k.gen != nil && k.gen.anyDelve && s.bld().pipN > 0 && s.buildIsTb(k) {
+				s.toStage(k, bsDelve)
+				continue
 			}
 			s.nextStage(k)
 			continue
@@ -1341,8 +1356,34 @@ func (s *State) finishBuild(k *prep) {
 			// gorge's planner declines a Spree face ("shape:modal_cost"):
 			// it pays through the mana window (kw_spree.go)
 			s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0)
+		} else if k.gen != nil && s.delvePaysEntry(k, &e) {
+			// gorge's planner declines a delve cast ("shape:contribution",
+			// payment_plan.go), so its CR 601.2g window ran at manaStep
+			// (mana_window.go branch 3) and what is left pays from the pool;
+			// a pool that cannot finishes the cast reversed (CR 733.1). The
+			// abort reverses the push, not the window's mana abilities: the
+			// tapped sources and the floated mana stay (cast_commit.go
+			// abortCast; reverseCast touches neither).
+			xc := xFolded(cost, int(e.x))
+			if !s.windowSpellSettled(k, e.ctrl, &xc, anyColor) {
+				s.reverseCast(k)
+				return
+			}
+			// payFromPool folds the announced X itself (XGeneric), like
+			// payRider's pool arm: the folded copy above is only the
+			// window's settled check
+			s.payFromPoolRider(k, e.ctrl, &cost, int(e.x), anyColor)
 		} else if s.rbAny(e.ctrl) {
 			s.payRestrRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor) // an Angel spell spends Giada's {W}
+		} else if k.gen != nil && s.delvePaysEntry(k, &e) && !s.loweredPoolPays(k, &e, xFolded(cost, int(e.x)), anyColor) {
+			// a granted-delve cast's payment ran through the manual CR 601.2g
+			// window in manaStep; when even that leaves the cost unpaid the
+			// cast is reversed (gorge abortCast, CR 733.1). Declining the
+			// delve picks is legal (CR 702.66a "If you do"), and the window's
+			// sources may run out afterwards. (A lowered or restricted payment
+			// has its own arm above and keeps it.)
+			s.reverseCast(k)
+			return
 		} else {
 			s.payRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 		}

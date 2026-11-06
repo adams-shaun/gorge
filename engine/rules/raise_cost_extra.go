@@ -703,7 +703,13 @@ func (e *Engine) offerNamedMods(p state.PlayerID, id state.ObjID, ability bool, 
 			}
 			bound.reduce[i] = sv
 		}
+		// The bound view's per-n SVar override is an input the compose memo's
+		// stamp cannot see, so the memo stands down for the compose itself
+		// (cost_compose_memo.go): the same question at the same state would
+		// otherwise serve a neighbour iteration's answer.
+		e.costComposeSuspend++
 		m := e.costModifiersWithTargetsXUsing(bound, p, id, scope, nil, false, 0)
+		e.costComposeSuspend--
 		if e.manaFeasiblePriced(p, offerPayment(id, ability, scope), base, m, tax, delve, hyp) {
 			return m, true
 		}

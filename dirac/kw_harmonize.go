@@ -80,6 +80,11 @@ func (s *State) harmonizeCredit(k *prep, p uint8, cost kop.ManaCost) kop.ManaCos
 // (gorge graveyardCastsOver's harmonize loop; the flashback loop's gates
 // without the granted and non-mana-cost arms).
 func (s *State) offerHarmonizeCasts(k *prep, d *Decision, p uint8, sorc bool, av *avail) {
+	// the avail is the caller's walk picture: each cast's own delve credit
+	// prices its twobrid faces and is restored after, so the next option does
+	// not price with it (offerPlay's shape)
+	saved := av.delve
+	defer func() { av.delve = saved }()
 	pl := &s.pl[p]
 	have := false
 	for i := 0; i < int(pl.graveN); i++ {
@@ -96,7 +101,11 @@ func (s *State) offerHarmonizeCasts(k *prep, d *Decision, p uint8, sorc bool, av
 			s.availFor(k, p, av)
 			have = true
 		}
-		fc := s.delveOfferCredit(k, p, c, o, false, s.harmonizeCredit(k, p, s.adjustCost(k, p, c, o, cd.AltCost)))
+		fc := s.harmonizeCredit(k, p, s.adjustCost(k, p, c, o, cd.AltCost))
+		av.delve = s.tbDelveCredit(k, p, c, o, false) // the faces' credit (CR 702.66a)
+		if !av.tbLeafCredited(&fc) {
+			fc = s.delveOfferCredit(k, p, c, o, false, fc)
+		}
 		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, av) || !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) {
 			continue
 		}

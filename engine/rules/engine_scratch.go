@@ -65,8 +65,32 @@ type engineScratch struct {
 	planLastX  int32 `clone:"reset"`
 	// planIgnoreCredit makes a potential cast's plan price the printed cost
 	// where a convoke-like credit would decline it (targetPaidNeedsPlannedPayment).
-	planIgnoreCredit bool   `clone:"reset"`
-	derivedMemoGen   uint64 `clone:"reset"`
+	planIgnoreCredit bool `clone:"reset"`
+	// planConsumptionOnly marks the one planner query whose answer is read
+	// only for whether a payable plan consumes something
+	// (targetPaidNeedsPlannedPayment): a plan that consumes nothing is
+	// declined by the reader itself, so its witness need not be confirmed by
+	// the offer walk (planWitnessOffersNeeded) and the walk is skipped.
+	planConsumptionOnly bool `clone:"reset"`
+	// planCoverBoundOn marks the arm's one consumption-only query whose plan
+	// cover bound (planCoverInsufficient) is cached in planCoverBound for
+	// the player and pool in planCoverBoundP and planCoverPool, valid while
+	// the event log head is planCoverLogLen: every state change is an
+	// appended event, so an unchanged log length is the query's unchanging
+	// board and pool. Clone copies none of it, and the flag lives only for
+	// the query's own duration (targetPaidNeedsPlannedPayment).
+	planCoverBoundOn bool           `clone:"reset"`
+	planCoverLogLen  int            `clone:"reset"`
+	planCoverBoundP  state.PlayerID `clone:"reset"`
+	planCoverPool    state.Mana     `clone:"reset"`
+	planCoverBound   state.Mana     `clone:"reset"`
+	// planCoverConsumable is the same pass's answer to whether some census
+	// alternative consumes its source (sacrifices or returns it): the plan's
+	// search draws its steps only from the census's alternatives, so with no
+	// consumable alternative the arm's verdict is false without the search
+	// (planCoverBoundOf).
+	planCoverConsumable bool   `clone:"reset"`
+	derivedMemoGen      uint64 `clone:"reset"`
 	// typesMemo is the derived-types memo (engine/rules/types_memo.go): each
 	// object's layer-4 answer under the Derived memo's cross-walk key, served
 	// to derivedTypesOf and every top-level Derived build. typesMemoLocal*
@@ -90,6 +114,19 @@ type engineScratch struct {
 	// (engine/rules/walkcache.go). Pure per-walk scratch: Clone copies none of it.
 	boardStaticsCache  boardStaticsCache    `clone:"reset"`
 	activeStaticsCache []activeStaticsEntry `clone:"reset"`
+	// manaReachingCost memoises anyManaReachingCostStatic's answer for a
+	// state change: valid while the log, the kernel's restore epoch, the
+	// event-log head, the continuous version and the object-arena size all
+	// match the ones it was built under (prio_memo's key), so it still helps
+	// the mana window's per-ability price, which runs outside a derived walk.
+	// Pure scratch: Clone copies none of it.
+	manaReachingCost    bool        `clone:"reset"`
+	manaReachingValid   bool        `clone:"reset"`
+	manaReachingLog     *events.Log `clone:"reset"`
+	manaReachingTape    uint32      `clone:"reset"`
+	manaReachingLogLen  int         `clone:"reset"`
+	manaReachingVersion int         `clone:"reset"`
+	manaReachingObjs    int         `clone:"reset"`
 	// activeStaticsScan records the lists the last fused activeStatics scan
 	// walked (static_scan_reuse.go). Pure scratch: Clone copies none.
 	activeStaticsScan staticScanRec `clone:"reset"`
@@ -159,6 +196,32 @@ type engineScratch struct {
 	// graveCandBuf is the offer walk's graveyard-candidate scratch
 	// (legal_walk_grave_skip.go), taken for the section. Not cloned.
 	graveCandBuf []state.ObjID `clone:"reset"`
+
+	// costComposeStamp and costCompose memoise costModifiersCompose0's answer
+	// per state (cost_compose_memo.go): a pure-read pricing of the payment-
+	// plan memo family's at-rest contexts is served from the table while the
+	// stamp (the engine's log with its trailing ask markers stripped, the
+	// continuous version, the arena length, the restore epoch and the build
+	// count less the cross-walk retires) is unchanged, and the table is
+	// cleared when it moves. Pure scratch: Clone copies none of it.
+	costComposeStamp costComposeStamp `clone:"reset"`
+	costCompose      costComposeMemo  `clone:"reset"`
+	// costComposeServed counts the compositions served from the memo (the
+	// walk-side counters' diagnostic role). Pure scratch.
+	costComposeServed uint64 `clone:"reset"`
+	// costComposeVerifying re-enters the real body under verify mode's
+	// recompute without re-verifying its nested composes. Pure scratch.
+	costComposeVerifying bool `clone:"reset"`
+	// costComposeSuspend stands the memo down for a caller whose statics view
+	// the stamp cannot see (offerNamedMods' per-n SVar binding). Pure scratch.
+	costComposeSuspend int `clone:"reset"`
+	// costComposePlan is the potential walk's per-call compose plan
+	// (cost_compose_plan.go): potentialCostModsUsing records the
+	// target-independent head's per-static verdicts during its first compose
+	// that reaches the chain, and the later candidate assignments of the same
+	// call run the target-dependent tail alone. Bound to one call's question,
+	// set and restored within it; pure scratch, Clone copies none of it.
+	costComposePlan *costComposePlan `clone:"reset"`
 
 	// secretVoteBallots is emission-scoped scratch, visible only while the
 	// public, ballot-free completion Note is scanned for Vote triggers.

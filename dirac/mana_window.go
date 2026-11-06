@@ -1251,6 +1251,38 @@ func wideAnswer(c int) (int, int) {
 
 const wideAnswers = 15 // the multisets of two colours of five
 
+// wideEngineAnswer maps the script search's answer index c of a wide
+// two-unit any-colour ask to the engine-order answer wideAnswer decodes
+// (scriptEngineAnswer). The ask's options each carry a single ManaSymbol
+// (mana_activation.go lays the two units out unit-major), so gorge's
+// scriptOrderAnswers reorders its answers: a pair naming a colour the play
+// announces comes first, engine order kept inside each half -- the same
+// reorder mana_mixgaps.go enumerates in its own walk, mirrored here on the
+// multisets the search keeps (a mirrored pair names the same colours, so
+// dropping it does not change the order).
+func wideEngineAnswer(need [kop.NumManaKinds]bool, c int) int {
+	if c >= wideAnswers {
+		return c // beyond the multisets: engine order as before
+	}
+	var order [wideAnswers]uint8
+	no := 0
+	for i := 0; i < wideAnswers; i++ {
+		a, b := wideAnswer(i)
+		if need[a] || need[b] {
+			order[no] = uint8(i)
+			no++
+		}
+	}
+	for i := 0; i < wideAnswers; i++ {
+		a, b := wideAnswer(i)
+		if !need[a] && !need[b] {
+			order[no] = uint8(i)
+			no++
+		}
+	}
+	return int(order[c])
+}
+
 // firstManaAb is cd's first own mana ability (-1 none).
 func firstManaAb(cd *kop.CardDef) int {
 	for j := range cd.Abilities {
@@ -1292,6 +1324,60 @@ func (s *State) availAnyR(k *prep, p uint8, a *avail) {
 		a.remove(s.srcMaskAt(pc, sl), max(pc.manaN, 1))
 		a.addUnits(0x3f, 1)
 	}
+}
+
+// scriptGapTap taps gap sl for the script search's answer c of play a: the
+// search enumerates a Taps-deferred or restricted any-colour gap's colour
+// answers in scriptOrderAnswers' order (the play's announced colours first,
+// gorge's scriptSearch ask node), while tapGapChoice decodes engine order,
+// so the answer index is translated first. The wide two-unit Courtyard ask's
+// answers are colour pairs, but each of the ask's options carries a single
+// ManaSymbol, so scriptOrderAnswers reorders them the same way
+// (wideEngineAnswer, the mirror of mana_mixgaps.go's wide reorder). A
+// Courtyard's c 0 is the "choose a mana ability" ask's printed ability (no
+// ManaSymbol): engine order there.
+func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, restr, anyR, tapsDef slotMask, c int, spill *[kop.NumManaKinds]uint8) {
+	s.tapGapChoice(k, p, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c), spill)
+}
+
+// scriptEngineAnswer maps the script search's answer index c of gap sl to
+// the engine-order answer tapGapChoice decodes (scriptGapTap).
+func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slotMask, c int) int {
+	if !anyR.has(sl) && !tapsDef.has(sl) {
+		return c
+	}
+	var mask uint8
+	off := 0
+	if anyR.has(sl) {
+		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]
+		if restrWideAnyMana(ab) {
+			return wideEngineAnswer(s.playNeed(k, a), c)
+		}
+		mask = uint8(ab.ManaColors)
+		if c == 0 {
+			return 0
+		}
+		off, c = 1, c-1
+	} else {
+		mask = uint8(s.manaPCGen(k, sl).manaCol)
+	}
+	var order [kop.NumManaKinds]uint8
+	no := 0
+	for col := uint8(0); col < kop.NumManaKinds; col++ {
+		if mask&(1<<col) != 0 {
+			order[no] = col
+			no++
+		}
+	}
+	if c >= no {
+		return off + c // beyond the mask's colours: engine order as before
+	}
+	needFirst(order[:no], s.playNeed(k, a)) // scriptOrderAnswers on the ask
+	col := order[c]
+	if tapsDef.has(sl) {
+		return bits.OnesCount8(mask & ((1 << col) - 1)) // tapDeferFloat's engine-order index
+	}
+	return off + int(col) // floatRestrAb takes the colour itself
 }
 
 // tapGapChoice taps gap sl for p with gorge's search answer c: a Courtyard
@@ -1360,7 +1446,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR,
 			t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 			var spill [kop.NumManaKinds]uint8
 			for j := 0; j < depth; j++ {
-				t.tapGapChoice(k, p, order[j], restr, anyR, tapsDef, int(path[j]), &spill)
+				t.scriptGapTap(k, p, a, order[j], restr, anyR, tapsDef, int(path[j]), &spill)
 			}
 			t.restrOptions(k, &d, p)
 			// gorge's search completes at a payer priority only when the play
@@ -1464,7 +1550,7 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 	}
 	var spill [kop.NumManaKinds]uint8
 	for i := 0; i < m; i++ {
-		s.tapGapChoice(k, p, order[i], restr, anyR, tapsDef, int(path[i]), &spill)
+		s.scriptGapTap(k, p, a, order[i], restr, anyR, tapsDef, int(path[i]), &spill)
 	}
 }
 
@@ -1840,15 +1926,17 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 
 // witnessAtCheapest reprices a witness the printed composition cannot fund (rules
 // potentialModeCastPlan): a target-conditional reduction at the cheapest legal
-// target, and a hand cast's either-or additional cost with its part that has mana
-// when no part without mana can be paid.
+// target, and a hand or may-play cast's either-or additional cost with its part
+// that has mana when no part without mana can be paid (rules potentialAltAddPlan
+// prices the may-play arm beside its parts like the plain cast's: the permission
+// replaces the mana cost only, CR 118.9d).
 func (s *State) witnessAtCheapest(k *prep, p uint8, cost *kop.ManaCost, av *avail) {
 	e := &s.bld().e
 	if e.kind != seSpell {
 		return
 	}
 	cd := &k.t.Cards[e.card]
-	if cd.HasAltAdd && e.flags&sfMayPlay == 0 && s.objs[e.obj].zone == kop.ZoneHand && !s.altAddFreePart(k, p, e.card, e.obj) {
+	if cd.HasAltAdd && (e.flags&sfMayPlay != 0 || s.objs[e.obj].zone == kop.ZoneHand) && !s.altAddFreePart(k, p, e.card, e.obj) {
 		*cost = s.altAddReduced(k, *cost, s.altAddManaPart(k, e.card))
 		return
 	}
@@ -2170,7 +2258,7 @@ func (s *State) dealAnnouncedDivision(k *prep, e *stackEntry, slot uint8) bool {
 		i++
 	}
 	if m > 0 {
-		s.damageBatch(k, codes[:m], amts[:m])
+		s.damageBatch(k, codes[:m], amts[:m], true) // parked: the op pauses, the answer re-executes it
 	}
 	return true
 }
@@ -2192,6 +2280,7 @@ func (s *State) dealAnnouncedDivision(k *prep, e *stackEntry, slot uint8) bool {
 //go:noinline
 func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, anyColor bool) bool {
 	c := *cost
+	tb := s.buildCost0(k).Hyb[0] == kop.HybTwobrid
 	if g := cost.XGeneric(x); g != 0 {
 		// the window reads Generic, not X: fold the announced X in
 		c.Generic += uint8(g)
@@ -2210,6 +2299,17 @@ func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude O
 		return true
 	}
 	if known && k.gen != nil && k.gen.blgOn {
+		return s.hybStrand(k, p, &c, anyColor)
+	}
+	if tb {
+		// gorge's cast planner refuses a twobrid cost (pay.PlanCostDetail
+		// "cost:twobrid"), so the announced cost is always paid through the
+		// manual window this walk models, never re-planned with a witness.
+		// A flexible source the walk tapped for an earlier owed colour can
+		// strand a later pip only it could make (Frontier Bivouac's {U}
+		// leaves a {R} pip no source makes); gorge reverses the cast and
+		// keeps the tap and its mana (CR 601.2g-h, 733.1), so the kernel
+		// does too.
 		return s.hybStrand(k, p, &c, anyColor)
 	}
 	var pk planner
@@ -2319,6 +2419,20 @@ func (s *State) manaStep(k *prep) bool {
 			if !s.tapForHyb(k, e.ctrl, &cost, int(e.x), e.obj, anyColor) {
 				return true // stranded: the cast was reversed (static_landtype.go)
 			}
+		} else if cd := k.t.Cards[e.card]; cd.HasAltAdd && s.bld().altAdd == 1 && cd.AltAddCost.Mana != (kop.ManaCost{}) {
+			// An either-or additional cost's mana part (CR 601.2b): gorge's
+			// payment plan was armed at the offer, before the part was chosen,
+			// and the choice folds the part's mana into the cost before any
+			// other cost stage (altAddAsk), so the plan's mana no longer
+			// matches and the planner refuses the cast
+			// (paymentPlanCheckUnits paymentFallbackCostChanged). rearmAutoPay
+			// declines a plain spell, so the cast pays through the manual CR
+			// 601.2g window: the first useful source in battlefield order
+			// (pay.ManaSourceIDs), repeated until the pool pays. The part's
+			// non-mana shape (a life part) leaves the mana untouched and the
+			// plan intact, so only the mana part routes here.
+			c := xFolded(cost, int(e.x))
+			s.windowTapRider(k, e.ctrl, &c, true, anyColor)
 		} else {
 			if s.rbAny(e.ctrl) {
 				// a rider plan that tapped a wide restricted source floated its
@@ -2502,7 +2616,11 @@ func (s *State) paymentStranded(k *prep, e *stackEntry, cost *kop.ManaCost) bool
 }
 
 // committedPicks reports whether a pick commits a permanent to a tap cost or as a
-// convoke-family helper.
+// convoke-family helper. A delve pick does not: it names a graveyard card, not a
+// permanent, so it withholds no mana source and gorge's strand check (guarded on
+// pc.Announced || pc.WindowChecked || Convoke/Taps empty, cast_payment.go) skips
+// a plain delve cast -- its window opens, and a window the pool still cannot
+// finish aborts only after the activations (cast_commit.go abortCast).
 func (s *State) committedPicks() bool {
 	for i := 0; i < int(s.bld().pickN); i++ {
 		if pk := s.bld().pickKs[i]; pk == pkTapX || pk == pkWaterbend || isConvokePick(pk) {
