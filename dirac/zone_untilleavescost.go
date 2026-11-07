@@ -36,9 +36,7 @@ func (s *State) poseReturnCost(k *prep, d *Decision) bool {
 		return false
 	}
 	s.g.ctlRet, s.ctl = ctlPriority, ctlGenAsk
-	d.Kind, d.Player = DkChoose, s.objs[s.g.pre.obj].owner()
-	s.askOptions(k, d, s.g.pre.kind)
-	return true
+	return s.genAskOptions(k, d)
 }
 
 // answerReturnCost applies the answer to the parked choice: the card enters

@@ -885,6 +885,14 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 		s.replOrderOptions(d)
 		return true
 	}
+	if s.g.pre.state == preReturnCost {
+		// a cost's sacrifice outside a resolution returns a card with an
+		// as-enters choice: posed once the build is done and rebuilt
+		// identically while it waits (zone_untilleavescost.go)
+		d.Kind, d.Player = DkChoose, s.objs[s.g.pre.obj].owner()
+		s.askOptions(k, d, s.g.pre.kind)
+		return true
+	}
 	if s.g.pre.state == 1 {
 		d.Kind = DkChoose
 		if s.g.pre.kind == akEntryOrder {
