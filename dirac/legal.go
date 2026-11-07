@@ -524,8 +524,11 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// choice. So: offered iff the pool pays the reduced cost or the
 		// sources pay the printed one; the charge is always the reduced one
 		// (buildCostCharge), and the plan/charge mismatch falls back to the
-		// manual mana window (powerUpPlanRejected, mana_window.go).
-		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &a.Cost.Mana, av) {
+		// manual mana window (powerUpPlanRejected, mana_window.go). The
+		// planner's printed cost still composes the cost statics
+		// (abPlannedCost): Hulk, Gamma Goliath's {3} less.
+		printed := s.abPlannedCost(k, a, sl, p.ctrl)
+		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &printed, av) {
 			return false
 		}
 	}
