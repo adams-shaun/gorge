@@ -757,7 +757,7 @@ func (s *State) leaveAll(k *prep, mask slotMask, z kop.Zone) {
 			if s.park(k, o, parkMass, 0) {
 				continue
 			}
-			if !s.parkMassQuiet(o) {
+			if s.parkMassQuiet(o) == nil {
 				s.capFull(StallReplCands)
 				break
 			}
