@@ -26,11 +26,11 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | SPM | 192 | 161 | 1 | 24 | 136 |
 | TDM | 276 | 249 | 4 | 56 | 189 |
 | TLA | 285 | 252 | 1 | 1 | 250 |
-| TMT | 194 | 171 | 1 | 10 | 160 |
+| TMT | 194 | 171 | 1 | 0 | 170 |
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 6 | 246 |
-| ALL | 34442 | 21666 | 26 | 16938 | 4702 |
+| ALL | 34442 | 21666 | 26 | 16928 | 4712 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -61,7 +61,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | std-spm | 74 |
 | std-tdm | 43 |
 | std-tla | 1500 |
-| std-tmt | 295 |
+| std-tmt | 1500 |
 | std-trc | 1500 |
 | std-trk | 1500 |
 | std-woe | 1500 |
