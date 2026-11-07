@@ -66,19 +66,30 @@ func (s *State) enterOnto(host Slot) {
 	}
 }
 
-// attachEntering attaches the entering Aura at sl to the host enterOnto armed.
+// attachEntering attaches the entering Aura at sl to the host enterOnto armed
+// and returns that host (NoSlot: none). Its Attached triggers wait for the
+// caller (attachedEntered), after the enters check: gorge scans the move
+// before the attach, so the ETB triggers are queued first (CR 603.3b).
 //
 //go:noinline
-func (s *State) attachEntering(k *prep, sl Slot) {
+func (s *State) attachEntering(k *prep, sl Slot) Slot {
 	host := Slot(s.g.entHost - 1)
 	s.g.entHost = 0
 	if !s.occ.has(host) {
-		return
+		return NoSlot
 	}
-	s.attachTo(k, sl, host)
+	s.attachQuiet(k, sl, host) // a fresh permanent: no previous bearer to unlink
 	s.touchSl(sl)
 	if k.gen != nil {
 		s.refreshTy(k)
+	}
+	return host
+}
+
+// attachedEntered fires the Attached triggers attachEntering held back.
+func (s *State) attachedEntered(k *prep, sl, host Slot) {
+	if host != NoSlot && k.gen != nil && k.gen.anyAegis && s.occ.has(sl) && s.perms[sl].attached == host {
+		s.fireAttached(k, sl, host) // zone_exilethenattach.go
 	}
 }
 

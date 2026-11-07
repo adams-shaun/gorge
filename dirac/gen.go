@@ -1434,6 +1434,7 @@ const (
 	fxCopyHeld               // a token copy's own copy exception (r.idx), held aside while an until-end-of-turn copy overrides it (copy_clone.go cloneHold)
 	fxCopyMint               // a token copy's own copy (r.src the card it was minted as), held aside likewise (copy_clone.go cloneHold)
 	fxAegisBase              // the copy a bearer wore (r.src its card) when an Aegis stack took over with no copy marker of its own, which shows again when the last Aegis copy ends (copy_aegisunder.go)
+	fxAegisHeld              // a copy exception of the copy an Aegis stack covered (r.idx), held aside while the Aegis copy shows: no marker can rebuild it (copy_aegisunder.go aegisHold)
 )
 
 // maxFx bounds the effect records live at once (all permanents); a full
@@ -1960,7 +1961,7 @@ const (
 	StallPanharmGrant  = 142 // a fifth Panharmonicon grant (Lwaxana Troi) live at once (genState.pgT; act_grantpanharm.go)
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
-	NumStall           = 144 // capacity of the reason tables (StallName); a reason registers its name in its own file
+	NumStall           = 145 // capacity of the reason tables (StallName); a reason registers its name in its own file
 )
 
 // StallName is reason r's short name ("" for StallNone).
