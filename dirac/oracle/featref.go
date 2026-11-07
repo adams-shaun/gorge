@@ -5,6 +5,7 @@ import (
 	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/bots/policynet"
@@ -82,6 +83,7 @@ func FeatPool(reg *cards.Registry, tbl *kop.Table, names map[string]string) (*fe
 		sp := feat.CardSpec{Name: f.Name, Types: strings.Join(f.Types, " "), ManaCost: f.ManaCost}
 		if sa := f.SpellAbility(); sa != nil {
 			sp.SpellAPI = sa.API
+			sp.Effect = effectSpec(sa, f.ManaCost)
 		}
 		_, _, kws, p, t := e.ViewCharacteristics(e.G.Objs[at[i]].ID)
 		sp.Keywords = append([]string(nil), kws...)
@@ -705,4 +707,74 @@ func kernelTypeLine(tbl *kop.Table, cd *kop.CardDef) string {
 		}
 	}
 	return strings.Join(w, " ")
+}
+
+// effectSpec classifies a card's first spell ability (a SubAbility$ chain is
+// not read, so a kill-plus-draw card is its first half only).
+func effectSpec(sa *cards.SA, manaCost string) feat.EffectSpec {
+	e := feat.EffectSpec{Class: feat.EffOther, Amount: -2, CostX: strings.Contains(manaCost, "X")}
+	if sa == nil {
+		return e
+	}
+	p := sa.Params
+	tg := p["ValidTgts"]
+	e.TgtPlayer = strings.Contains(tg, "Player") || strings.Contains(tg, "Opponent") || strings.Contains(tg, "Any")
+	e.TgtCreat = strings.Contains(tg, "Creature") || strings.Contains(tg, "Any")
+	amount := func(s string) int16 {
+		if s == "X" {
+			return -1
+		}
+		if n, err := strconv.Atoi(s); err == nil && n >= -32768 && n <= 32767 {
+			return int16(n)
+		}
+		return -2
+	}
+	switch sa.API {
+	case "Destroy", "Sacrifice":
+		e.Class = feat.EffKill
+	case "ChangeZone":
+		switch p["Destination"] {
+		case "Exile":
+			if tg != "" {
+				e.Class, e.Exile = feat.EffKill, true
+			}
+		case "Hand", "Library":
+			e.Class = feat.EffBounce
+		}
+	case "DealDamage":
+		e.Class, e.Amount = feat.EffDamage, amount(p["NumDmg"])
+	case "Counter":
+		e.Class = feat.EffCounter
+	case "Protection":
+		e.Class = feat.EffPump
+	case "Tap":
+		e.Class = feat.EffDebuff
+	case "Draw":
+		e.Amount = amount(p["NumCards"])
+	case "Pump":
+		// signed value of a Pump number: an integer, else 0 (X and
+		// expressions) with a leading "-" counting as -1 (a debuff).
+		sv := func(s string) int {
+			if n, err := strconv.Atoi(s); err == nil {
+				return n
+			}
+			if strings.HasPrefix(s, "-") {
+				return -1
+			}
+			return 0
+		}
+		a, d := sv(p["NumAtt"]), sv(p["NumDef"])
+		e.NumAtt, e.NumDef = int8(max(-9, min(9, a))), int8(max(-9, min(9, d)))
+		switch {
+		case a < 0 || d < 0:
+			e.Class = feat.EffDebuff
+			e.Amount = amount(strings.TrimPrefix(p["NumDef"], "-"))
+			if d < 0 {
+				e.Amount = int16(max(-d, 0))
+			}
+		case a != 0 || d != 0:
+			e.Class = feat.EffPump
+		}
+	}
+	return e
 }
