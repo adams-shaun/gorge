@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/bots/botpolicy"
 	"github.com/adams-shaun/gorge/bots/explain"
 	"github.com/adams-shaun/gorge/bots/heuristic"
@@ -18,8 +19,10 @@ import (
 
 // kindsGame plays one game for a human seat driven by the heuristic bot, asks
 // the paired bot about every decision, and hands each decision and its advice to
-// see. It stops after maxAsks decisions.
-func kindsGame(t *testing.T, humanDeck, oppDeck string, seed uint64, maxAsks int, see func(*decision.Decision, protocol.Advice)) {
+// see. It stops after maxAsks decisions. With noClock the paired bot's
+// per-decision wall-clock budget is taken off, so a search is bounded by its
+// sims alone and finishes the same way on a loaded box as on an idle one.
+func kindsGame(t *testing.T, humanDeck, oppDeck string, seed uint64, maxAsks int, noClock bool, see func(*decision.Decision, protocol.Advice)) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
 	own, opp := testutil.RepoDeck(t, reg, humanDeck), testutil.RepoDeck(t, reg, oppDeck)
@@ -31,6 +34,13 @@ func kindsGame(t *testing.T, humanDeck, oppDeck string, seed uint64, maxAsks int
 		return Deck{Name: "opposing", Cards: opp}, nil
 	}
 	o.PairedBot = pairedTestEntry(t)
+	if noClock {
+		newBot := o.PairedBot.New
+		o.PairedBot.New = func(bo bots.Options) (seat.Seat, error) {
+			bo.DecisionDeadlineMS = 0
+			return newBot(bo)
+		}
+	}
 	o.Seats = func([]string, uint64) []seat.Seat { return []seat.Seat{passSeat{}, heuristic.NewBot(seed + 1)} }
 	r, err := New(o)
 	if err != nil {
@@ -85,7 +95,7 @@ func TestPairedBotAnswersEveryKindAHumanMeets(t *testing.T) {
 	seen := map[decision.Kind]int{}
 	rules := map[decision.Kind]int{}
 	for i, pair := range [][2]string{{"uw-control", "ur-delver"}, {"death-n-taxes", "dimir-tempo"}} {
-		kindsGame(t, pair[0], pair[1], uint64(20261103+i), 350, func(d *decision.Decision, a protocol.Advice) {
+		kindsGame(t, pair[0], pair[1], uint64(20261103+i), 350, false, func(d *decision.Decision, a protocol.Advice) {
 			seen[d.Kind]++
 			if a.State == protocol.AdviceNone {
 				t.Errorf("%s decision %d (%q): none (%s)", d.Kind, d.Seq, d.Prompt, a.Reason)
@@ -142,7 +152,10 @@ func TestPairedBotAnswersEveryKindAHumanMeets(t *testing.T) {
 func TestPairedBotRulesAdviceIgnoresHiddenOpponentCards(t *testing.T) {
 	first := func(opp string) (mull, toss []byte) {
 		// The human wins the toss at this seed and chooses who plays first.
-		kindsGame(t, "uw-control", opp, 20261104, 3, func(d *decision.Decision, a protocol.Advice) {
+		// The advice must not depend on whether a wall-clock-bounded search
+		// finished, which a loaded box decides, so the clock is off and the
+		// sims bound the search.
+		kindsGame(t, "uw-control", opp, 20261104, 3, true, func(d *decision.Decision, a protocol.Advice) {
 			b, _ := json.Marshal(a)
 			switch d.Kind {
 			case decision.KMulligan:

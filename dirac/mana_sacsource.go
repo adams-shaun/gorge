@@ -263,8 +263,10 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 		if instant {
 			// the lowering is done as soon as the play is offered, and an
 			// instant-speed cast is offered with the trigger still on the stack
-			// (payexec.priority): the trigger goes on below the spell
-			if pt.ab >= abCascade || a.NTargets != 0 && !(single && plTgt) {
+			// (payexec.priority): the trigger goes on below the spell, a
+			// player-targeted one aimed where gorge's default answer names (Al
+			// Bhed Salvagers' lose-and-gain run as well as a one-op program)
+			if pt.ab >= abCascade || a.NTargets != 0 && !(single && plTgt || plRun) {
 				i++
 				continue
 			}
