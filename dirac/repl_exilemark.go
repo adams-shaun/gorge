@@ -237,6 +237,34 @@ func (s *State) park(k *prep, o Obj, kind parkKind, x uint8) bool {
 	return false
 }
 
+// queueMass queues one victim of a mass move that comes after the first
+// competing one. Gorge suspends the whole destroy-all at that victim's CR 616.1
+// ask, so the later victims wait for the answer in move order even when their
+// own move has nothing to order; massMovesGoOn then moves each, and asks again
+// for any that still have two sources. False when the queue is full.
+func (s *State) queueMass(k *prep, o Obj) bool {
+	if s.parkedWaitingOn(o) {
+		return true
+	}
+	var src [MaxPerm]Obj
+	n := 0
+	if k.gen != nil && k.gen.anyRepl&rbExileOnLeave != 0 {
+		n = s.graveMoveSources(k, o, &src)
+	}
+	if n > maxParkSrc {
+		return false
+	}
+	for i := range s.cold.parked {
+		if r := &s.cold.parked[i]; r.kind == parkNone {
+			*r = parkedMove{obj: o, kind: parkMass}
+			r.setNsrc(n)
+			copy(r.src[:], src[:n])
+			return true
+		}
+	}
+	return false
+}
+
 // parkedWaitingOn reports whether o's move is in the queue with its ask to come.
 func (s *State) parkedWaitingOn(o Obj) bool {
 	for i := range s.cold.parked {

@@ -743,9 +743,23 @@ func (s *State) leaveAll(k *prep, mask slotMask, z kop.Zone) {
 	}
 	if len(s.cold.parked) != 0 && z == kop.ZoneGraveyard && s.res.active {
 		m := 0
+		waits := false
 		for _, sl := range order[:n] {
-			if !s.park(k, s.perms[sl].obj, parkMass, 0) {
+			o := s.perms[sl].obj
+			if !waits {
+				if s.park(k, o, parkMass, 0) {
+					// gorge suspends the whole destroy-all at the first
+					// victim whose move competes (CR 616.1): every later
+					// victim waits for that answer, competing or not.
+					waits = true
+					continue
+				}
 				order[m] = sl
+				m++
+				continue
+			}
+			if !s.queueMass(k, o) {
+				order[m] = sl // the queue is full: move it now (a declared capacity edge)
 				m++
 			}
 		}
