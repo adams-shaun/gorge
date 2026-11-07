@@ -11,9 +11,11 @@ import (
 
 // discHeldWhole, in cold.discHeld[0], holds the first player's whole hand;
 // any other value is how many of cold.discHeld[1:] are held, in answer order.
+// maxDiscHeld is one per hand card: a discard picks at most the whole hand, and
+// the held picks must keep the answer order (CR 404.3).
 const (
 	discHeldWhole = 255
-	maxDiscHeld   = len(resCtx{}.arr)
+	maxDiscHeld   = MaxHand
 )
 
 // startEachDiscard poses OpDiscard's "each player discards N" player by

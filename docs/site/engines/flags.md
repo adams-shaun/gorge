@@ -174,7 +174,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-first-pair` | int | `0` | index of the first pair |
 | `-game-timeout` | duration | `30*time.Second` | a game with no result after this long is recorded as a hang and the run moves on; a hang fails the run (0: no watchdog) |
 | `-games` | int | `100` | -v2 transcript: seeded games per answerer |
-| `-implicates-all` | bool | `false` | pool runs: name every implicated card instead of the top ten, and print one line per game that fails -absolute: bad-game, pair, seed, outcome, class, the implicated cards joined by \|, the sources of its latest actions joined by \|, the cards of both decks joined by \|, tab-separated |
+| `-implicates-all` | bool | `false` | pool runs: name every implicated card instead of the top ten, and print one line per game that fails -absolute: bad-game, pair, seed, outcome, class, the implicated cards joined by \|, the sources of its latest actions joined by \|, the cards of both decks joined by \|, tab-separated; a game that recorded an unknown option kind also prints unknown-game, pair, seed, the kinds joined by \| |
 | `-json` | bool | `false` | print the summary as JSON |
 | `-keep-going` | bool | `false` | count every divergence instead of stopping at the first |
 | `-kernel` | string | `gorge` | the kernel under test: gorge (gorge-vs-gorge self-check), gorge-api (the same through the contract's Kernel surface), vanilla (package kernel on dirac/vanilla's decks), fdn (package kernel on a registered card set's pool pairings) or any other registered pool such as blb (fdn's path on that set and its pool, oracle.Pools; see -list-pools) |
