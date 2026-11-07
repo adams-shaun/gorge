@@ -192,9 +192,9 @@ import (
 // Bulwark, Jon Irenicus, the Exile, Nicol Bolas, the Ravager, Search Warrant; the merge with land,
 // beside this branch's Hulk Power-up ReduceCost arm; ALL build-level 21655 -> 21659).
 // +1 (Hulk, Gamma Goliath's Power-up-only ReduceCost arm; ALL build-level 21659 -> 21660).
-// +5 (the merge with land: this branch's variable charm counts beside land's +4; ALL build-level 21664 -> 21669).
+// +1 (Ark of Hunger: the remembered-card MayPlay over Graveyard,Exile; ALL build-level 21664 -> 21665).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21669, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21665, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

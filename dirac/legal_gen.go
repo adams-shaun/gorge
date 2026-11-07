@@ -160,6 +160,9 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) {
 		return
 	}
+	if mode&castFree != 0 && !s.altAddCastableFrom(k, c, p, o, &kop.ManaCost{}, &kop.ManaCost{}, true, av) {
+		return // a free cast still owes its either-or additional cost (CR 118.9d): Mudbutton Cursetosser's behold or {2}
+	}
 	if mode&castFree == 0 {
 		cost := s.adjustFit(k, av, p, c, o, pc.cost, true)
 		if anyMana {

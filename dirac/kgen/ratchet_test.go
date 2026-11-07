@@ -89,18 +89,16 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// beside this branch's Hulk Power-up ReduceCost arm; ALL 21655 -> 21659).
 	// +1 (Hulk, Gamma Goliath: the Power-up-only ReduceCost arm,
 	// ValidSpell$ Activated.PowerUp; MSH 232 -> 233, ALL 21659 -> 21660).
-	// +5 (the merge with land: this branch lowers charm counts that read a variable (Pyrrhic Strike,
-	// Bumi, King of Three Trials, The Ruinous Wrecking Crew and two bare-name cards) beside land's +4;
-	// merged ECL 233 -> 234, MSH 233 -> 234, TLA 252 -> 253, ALL 21664 -> 21669).
+	// +1 (Ark of Hunger: the remembered-card MayPlay over Graveyard,Exile; SOS 248 -> 249, ALL 21664 -> 21665).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21669, 34442},
+	"ALL": {21665, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
 	"DFT": {248, 276},
 	"DMU": {194, 270},
 	"DSK": {242, 276},
-	"ECL": {234, 273},
+	"ECL": {233, 273},
 	"EOE": {239, 266},
 	"FDN": {517, 517},
 	"FIN": {266, 312},
@@ -109,15 +107,15 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"LCI": {251, 290},
 	"MKM": {242, 279},
 	"MOM": {198, 296},
-	"MSH": {234, 276},
+	"MSH": {233, 276},
 	"NEO": {198, 287},
 	"ONE": {195, 271},
 	"OTJ": {241, 276},
 	"SNC": {185, 266},
-	"SOS": {248, 270},
+	"SOS": {249, 270},
 	"SPM": {160, 192},
 	"TDM": {249, 276},
-	"TLA": {253, 285},
+	"TLA": {252, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
 	"TRK": {311, 311},

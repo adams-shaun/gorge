@@ -138,6 +138,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-trk", "static_cast_trigger_keeps_caster_priority"},                   // Test of Identity cast from Tasha Yar's exile on the opponent's turn with Overflow Submatrix out: its Static$ True cast trigger resolves off the stack and the caster keeps priority (CR 117.3c)
 		{"std-dft", "repeat_each_targeted_mills_the_graveyard_counts"},             // Riverchurn Monument's exhaust ability targets both players: each mills cards equal to their own graveyard count, the controller's mill first (gorge AliveFrom), and both engines agree on every one
 		{"std-eoe", "repeat_each_targeted_mills_half_the_library"},                 // Singularity Rupture destroys all creatures, then its two target players each mill half their library rounded down, the controller first (gorge AliveFrom), and both engines agree on every one
+		{"std-sos", "ark_of_hunger_mayplay_both_zones"},                            // Ark of Hunger's tap mills a card and registers the remembered card's play permission over the graveyard and exile: the recorded game reaches the tap, and both engines agree through the grant and the cleanup
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if div := replayStdRepro(t, reg, c.pool, c.name, fullSurface[c.name]); div != nil {
