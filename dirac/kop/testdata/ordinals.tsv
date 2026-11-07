@@ -946,6 +946,7 @@ ReplDmgOppPerm	untyped int	2
 ReplDmgOppPlayer	untyped int	1
 ReplDmgPerm	untyped int	8
 ReplDmgPlayer	untyped int	4
+ReplDmgPowHost	untyped int	256
 ReplDmgRaise	untyped int	32
 ReplDmgSrcInPlay	untyped int	64
 ReplDoesntUntap	ReplKind	4

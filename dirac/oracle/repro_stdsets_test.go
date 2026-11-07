@@ -143,6 +143,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-spm", "parker_luck_repeat_each_loses_the_others_reveal_mv"},          // Parker Luck's end-step trigger: two players each reveal their top card, and each loses life equal to the OTHER player's revealed card's mana value (Swamp 0, Prowler, Clawed Thief 3), then both cards go to hand; both engines agree on every one
 		{"std-dft", "exile_trigger_looks_back_from_battlefield_or_graveyard"},      // Ketramose warped and exiled at the end step sees itself leave: a ChangesZoneAll line with Origin$ Battlefield,Graveyard looks back like Origin$ Battlefield (CR 603.10a)
 		{"std-fin", "setpt_static_live_attached_controller"},                       // Aettir and Priwen gives the equipped creature base P/T equal to the Equipment controller's life total: the live layer-7b set is re-read as the life total changes, after the equip cost is paid
+		{"std-msh", "noncombat_damage_plus_host_power"},                            // Avengers Disassembled beside Hawkeye, Young Avenger (power 2): its 3 damage to each opposing creature becomes 5, to its controller's own creatures stays 3 (CR 614.1a)
 		{"std-tdm", "three_counter_kinds_among_creatures_pump_the_veteran"},        // +1/+1, stun and a lifelink counter spread over one player's creatures: both Hundred-Battle Veterans get +2/+4 while three different kinds are among them, and both engines agree on every one
 	} {
 		t.Run(c.name, func(t *testing.T) {
