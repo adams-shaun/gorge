@@ -212,7 +212,7 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 		enumBoard.payPlans = opts.PaymentPlans
 	}
 	if opts.HoldUpkeep {
-		enumBoard.hold = &upkeepHold{exempt: exemptNames(&opts.HoldUpkeepExempt)}
+		enumBoard.hold = &upkeepHold{exempt: exemptNames(&opts.HoldUpkeepExempt), seat: root.Decision.Player, opp: opts.OpponentNodes && opts.OpponentMirror}
 	}
 	// The upkeep hold plays pass in place of a held bot cast on every path
 	// that plays the bot's answer, and enumerates the root without it.

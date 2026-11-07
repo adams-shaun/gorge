@@ -135,11 +135,17 @@ type Options struct {
 	// active player in its own untap, upkeep or draw step with an empty
 	// stack, an instant-speed cast from the hand is dropped from the
 	// priority candidates before the cap, at the root and in the walk. A
-	// root left with fewer than two candidates is not searched and the
+	// decision left with fewer than two candidates is not searched and the
 	// bot's answer is played -- pass in its place when that answer is
-	// itself a held cast. Stats.HeldUpkeep counts the roots it changed. Off
-	// by default (draft-zero docs/038 measured it null); off, every
-	// candidate list is unchanged.
+	// itself a held cast -- at the root and at every in-walk decision. It
+	// reads the searching seat's decisions, and the other seats' own
+	// windows only under OpponentNodes with OpponentMirror. The seat's
+	// engine-less fallbacks (Seat.DecideBoard, Seat.DecideRootRefused: no
+	// engine to read the stack and zones off) play the bot's answer
+	// unchanged. Stats.HeldUpkeep counts the roots it changed,
+	// HeldUpkeepWalk and HeldUpkeepOpp the in-walk decisions. Off by
+	// default (draft-zero docs/038 measured it null); off, every candidate
+	// list is unchanged.
 	HoldUpkeep bool
 	// HoldUpkeepExempt names cards HoldUpkeep never holds, by exact printed
 	// name (a card whose effect reads "this turn" before the draw), the
@@ -432,6 +438,11 @@ type Stats struct {
 	// cast dropped from the candidates, or a held bot answer replaced by
 	// pass.
 	HeldUpkeep int
+	// HeldUpkeepWalk and HeldUpkeepOpp count in-walk decisions
+	// Options.HoldUpkeep changed (the same two ways), the searching seat's
+	// and, under OpponentNodes with OpponentMirror, the other seats'.
+	HeldUpkeepWalk int
+	HeldUpkeepOpp  int
 	// BotTapRerooted counts searched priority decisions whose bot answer
 	// under AutoPayment was a manual mana tap (outside the payment
 	// vocabulary): Seat.DecideSearch searched the full vocabulary with no bot
@@ -645,6 +656,8 @@ func (s *Stats) Add(o Stats) {
 	s.RedealRefused += o.RedealRefused
 	s.RootRefused += o.RootRefused
 	s.HeldUpkeep += o.HeldUpkeep
+	s.HeldUpkeepWalk += o.HeldUpkeepWalk
+	s.HeldUpkeepOpp += o.HeldUpkeepOpp
 	s.BotTapRerooted += o.BotTapRerooted
 	s.Livelocks += o.Livelocks
 	s.DeadlineHits += o.DeadlineHits

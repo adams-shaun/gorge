@@ -332,7 +332,7 @@ func (s *Seat) DecideSearch(ctx context.Context, env searchseat.Env, d decision.
 	if s.cfg.Search.Sims <= 0 || env.Engine == nil {
 		in := botIn
 		if s.cfg.Search.HoldUpkeep {
-			scratch := boardScratch{hold: &upkeepHold{exempt: exemptNames(&s.cfg.Search.HoldUpkeepExempt)}}
+			scratch := boardScratch{hold: &upkeepHold{exempt: exemptNames(&s.cfg.Search.HoldUpkeepExempt), seat: d.Player}}
 			in, _ = heldAnswer(env.Engine, &d, botIn, &scratch)
 		}
 		if s.note != nil {
@@ -486,7 +486,7 @@ func (s *Seat) decidePrior(ctx context.Context, env searchseat.Env, d decision.D
 	}
 	if len(res.Candidates) < 2 {
 		if s.note != nil {
-			s.noteBot(d.Player, explain.Forced, "", botIn)
+			s.noteBot(d.Player, explain.Forced, "", res.Intent)
 		}
 		// res.Intent is botIn unless the upkeep hold replaced a held bot
 		// cast with pass, in which case playing it is the rule.

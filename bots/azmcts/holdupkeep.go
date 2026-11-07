@@ -13,6 +13,12 @@ import (
 type upkeepHold struct {
 	// exempt is Options.HoldUpkeepExempt: card names never held.
 	exempt []string
+	// seat is the searching seat, whose decisions the hold always reads;
+	// opp extends it to the other seats' own windows, under OpponentNodes
+	// with OpponentMirror only (the kernel rule's oppHold): an unmirrored
+	// opponent, or one whose decisions are not in the tree, is never held.
+	seat state.PlayerID
+	opp  bool
 	// drops counts held casts dropped from a candidate list; Search reads
 	// it after the root's enumeration (Stats.HeldUpkeep).
 	drops int
@@ -20,10 +26,14 @@ type upkeepHold struct {
 
 // holdOn reports whether s arms the hold and decision d of e sits in its
 // window: a priority decision of the active player in its untap, upkeep or
-// draw step with an empty stack. It is the cheap pre-check over the engine's
-// own facts; the board predicate decides each option.
+// draw step with an empty stack, the searching seat's own or, with
+// upkeepHold.opp, another seat's. It is the cheap pre-check over the
+// engine's own facts; the board predicate decides each option.
 func (s *boardScratch) holdOn(e *rules.Engine, d *decision.Decision) bool {
 	if s == nil || s.hold == nil || e == nil || d == nil || d.Kind != decision.KPriority {
+		return false
+	}
+	if d.Player != s.hold.seat && !s.hold.opp {
 		return false
 	}
 	g := e.G
@@ -84,6 +94,47 @@ func heldAnswer(e *rules.Engine, d *decision.Decision, bot decision.Intent, s *b
 		}
 	}
 	return bot, false
+}
+
+// holdWalk is the hold at an in-walk decision pd (the kernel rule's
+// holdWalk), after its enumeration made no point of it: a held bot answer
+// in is played as pass (heldAnswer). drops is the hold's drop count before
+// pd's enumeration; a decision the hold changed -- a candidate dropped or
+// the answer replaced -- counts in Stats.HeldUpkeepWalk (the searching
+// seat's) or HeldUpkeepOpp. It returns the answer to play; unarmed, in.
+func (e *engineEnv) holdWalk(pd *decision.Decision, in decision.Intent, drops int) decision.Intent {
+	s := e.cfg.enumBoard
+	if s == nil || s.hold == nil {
+		return in
+	}
+	if p, ok := heldAnswer(e.e, pd, in, s); ok {
+		in = p
+		s.hold.drops++
+	}
+	e.countHold(pd, drops)
+	return in
+}
+
+// countHold counts decision pd in Stats.HeldUpkeepWalk or HeldUpkeepOpp
+// when the hold's drop count moved past drops while answering it.
+func (e *engineEnv) countHold(pd *decision.Decision, drops int) {
+	s := e.cfg.enumBoard
+	if s == nil || s.hold == nil || s.hold.drops == drops {
+		return
+	}
+	if pd.Player == e.cfg.actor {
+		e.cfg.stats.HeldUpkeepWalk++
+	} else {
+		e.cfg.stats.HeldUpkeepOpp++
+	}
+}
+
+// holdDrops is the hold's drop count so far (0 unarmed).
+func (s *boardScratch) holdDrops() int {
+	if s == nil || s.hold == nil {
+		return 0
+	}
+	return s.hold.drops
 }
 
 // exemptNames is the names of ex, up to its first empty entry.
