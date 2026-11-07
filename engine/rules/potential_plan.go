@@ -1334,8 +1334,31 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 		}
 		cost.Phyrexian = nil
 	}
-	composed := e.offerCostFor(p, id, cost, abilityScope(ab))
+	scope := abilityScope(ab)
+	composed := e.offerCostFor(p, id, cost, scope)
 	out := e.planComposedCost(p, id, composed, true, true)
+	if out.Reason == "insufficient" {
+		// CR 601.2f: a ValidTarget$ cost static prices the activation by its
+		// announced target (Cloud, Planet's Champion's "equip abilities that
+		// target Cloud cost {2} less"), so the untargeted composition can be
+		// unpayable while some single-target announcement is payable. The
+		// offer gate already retries with each potential target
+		// (offerCastableUsingExtra); witness the same announcement here, as
+		// potentialTargetPricedPlan does for a cast.
+		if statics := e.collectCostStatics(); statics.validTarget {
+			if _, max := targetBounds(ab); max == 1 {
+				e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
+					var c Cost
+					e.composedOfferCostInto(&c, p, id, &cost, &m, scope)
+					if got := e.planComposedCost(p, id, c, true, true); got.Plan != nil && got.Reason == "" {
+						out = got
+						return true
+					}
+					return false
+				})
+			}
+		}
+	}
 	if out.Reason != "insufficient" || cost.Waterbend <= 0 {
 		return out
 	}
