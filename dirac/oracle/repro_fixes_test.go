@@ -76,6 +76,7 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// the answer was made on
 		{"copy_all_sweep_batch_spans_parked_ask", false, false},
 		{"plot_cast_pays_additional_sacrifice", false, false}, // CR 118.9, 701.34d: a plotted Corrupted Conviction is cast free of its mana cost but still sacrifices a creature
+		{"plot_cast_needs_a_sacrifice_source", false, false},  // CR 118.9, 601.2h: the free plot cast is offered only while its additional sacrifice can be paid
 		// Explosive Derailment ({R}, Spree, every mode {2}) on a board whose
 		// only red source is Conduit Pylons' {1},{T} filter: the printed cost
 		// is payable, but no mode is, so neither engine offers the cast (CR
@@ -114,6 +115,11 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// colour ask carries no announced hybrid pip, so gorge answers its
 		// lowest colour, not the {U} the composed cost still owes.
 		{"spree_window_any_colour_lowest", false, false},
+		// Intimidation Campaign, cast this turn under the opponent's High
+		// Noon, returns to hand on its crime trigger: its finished cast is
+		// still the one spell that turn, so neither engine offers it again
+		// (CR 601.2e; gorge excluded every push of the same ObjID).
+		{"cast_limit_counts_a_bounced_spell", false, false},
 	})
 }
 
@@ -190,6 +196,9 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"dies_trigger_reads_attacking_lki", true, false},       // CR 603.10a: Garna, Bloodfist of Keld draws for a Perforating Artist that died attacking, its last known status
 		{"any_type_rider_hybrid_pips", true, false},             // CR 107.4e, 601.2b: Tinybones lets any mana pay Teach by Example's two hybrid pips, so W and B afford the cast
 		{"deferred_mana_pays_x_announcement", true, false},      // CR 601.2b, 601.2g: Pyromancer's Goggles' deferred {R} is a source the window taps, so Steel Hellkite's {X} is offered for 1 (mana_deferred.go)
+		{"name_look_ack_mid_resolution", true, false},           // CR 608.2n: a copy token's looked-hand name ask is acknowledged while the creating ability is still on the stack
+		{"emblem_grant_after_ability_loss", false, false},       // CR 613.7: Vivien Reid's emblem, created after Witness Protection took Llanowar Elves' abilities, is the newer layer-6 effect, so its vigilance, trample and indestructible survive the loss
+		{"unless_discard_is_effect_discard", true, false},       // CR 118.12: discarding Wilt-Leaf Liege to an opponent's Perforating Artist "unless" is that ability's discard, so the Liege enters the battlefield
 	})
 }
 
@@ -252,6 +261,11 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// finish reverses the cast keeping the floated mana (CR 733.1: a
 		// player may reverse mana abilities activated for an illegal play)
 		{"twobrid_delve_unpayable_window", true, false},
+		// CR 601.2g with CR 107.4e: the reversed twobrid cast's window taps
+		// Opulent Palace's "Combo B G U" while both G and U are owed; gorge's
+		// ask lists the Combo's printed order, so its answer is G, and the
+		// floated mana must match (dirac answered the lowest WUBRG colour, U).
+		{"window_combo_owed_colour_printed_order", false, false},
 		{"printed_combo_window_colour_order", true, false}, // CR 601.2g: a printed Combo's mana window answers the ability's printed order, so Thornwood Falls makes {G} (before its {U}) and Frontier Bivouac stays untapped
 		// CR 702.66a, 702.180a: a Harmonize creature whose power already
 		// covers the whole generic part leaves no shortfall for Teval's
@@ -368,6 +382,7 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"modal_cost_granted_mana_prefix", false, false},        // CR 601.2b, 601.2g-h: Tifa's Limit Break's cheapest Tiered mode costs only its printed {G}, which the granted any-colour source (A Realm Reborn) pays through the prefix
 		{"granted_mana_pays_tiered_cast", false, false},         // CR 601.2g: A Realm Reborn's granted any-colour mana from two untapped artifacts pays Ice Magic's {1}{U}, so the Tiered cast is offered
 		{"free_tiered_mode_cost_reduction", false, false},       // CR 601.2f, 118.9d: The Wind Crystal's ReduceCost applies to the Tiered mode cost of a free cast
+		{"window_any_colour_ability_owed_pip", false, false},    // CR 601.2g: an unpayable Tiered mode's window takes Starting Town's pay-life any-colour ability while a {W} pip is owed
 		{"graveyard_leave_sees_batch_entrant", true, false},     // CR 603.10a: Fang returned by Random Encounter beside the cards it returns did not see them leave
 	})
 }
@@ -381,6 +396,7 @@ func TestStdSosReprosLockstep(t *testing.T) {
 		{"graveyard_ability_source_new_object", true, false},         // CR 400.7: a second Postmortem Professor return ability resolves after the card came back and died again, and finds a new object
 		{"cascade_mana_value_evaluated_at_resolution", false, false}, // CR 202.3b: cascade reads the spell's mana value where the spell resolved, so the ward-counted Fractalize (X paid 4, now a card in the graveyard) prices 1 and does not hit Textbook Tabulator
 		{"charm_gate_ignores_restricted_float", false, false},        // CR 106.6, 601.2c: the pre-target gate keeps a cast alive whose floating restricted mana its restriction admits, as gorge's pool does
+		{"effetbctr_prepared_entry_order", false, false},             // CR 616.1c, 616.1f: the effect's enters-with counters and the entrant's own prepared body compete over the entry, the order is asked and the own body first ends the rider's effect with the move it upgrades
 	})
 }
 
@@ -396,7 +412,22 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"evoke_hybrid_paid_from_floating_pool", false, false},       // CR 601.2h: Deceit evoked with a floating {U} and {B} pays its {U/B}{U/B} from the pool and taps no untapped Island
 		{"planned_mana_sacrifice_token_waits_for_sba", true, false},  // CR 704.5d, 111.7: a Treasure sacrificed by the payment plan for Appeal to Eirdu stays in the graveyard until the next state-based check, as gorge leaves it
 		{"mayplay_selfflash_you_is_wouldbe_controller", true, false}, // CR 109.5: a may-play cast of a card exiled by Maralen, Fae Ascendant reads the card's own CastWithFlash static's "you" as the would-be controller
-		{"restricted_window_float_keeps_chosen_type", false, false},  // CR 106.6, 601.2h: the evoked pip window's owed tap of an any-colour ChosenType-restricted source floats the batch with the source's chosen creature type, so a spell of that type can spend it
+		// CR 702.51b: Sanar's "you may cast the exiled cards this turn"
+		// permission casts Lofty Dreams ({3}{U}{U} Convoke) from exile, and
+		// the convoke announcement filters by the cost beginCast charges
+		// (MayPlayCastPaymentCost, payment_plan.go): the oracle caches a
+		// priority-time cost for the may-play cast as it does for a plain
+		// hand cast, and the kernel's convoke menu filters the same way, so
+		// gorge's Submit never refuses a pick the menu no longer offers.
+		{"mayplay_convoke_cast_cost", false, false},
+		{"restricted_window_float_keeps_chosen_type", false, false},       // CR 106.6, 601.2h: the evoked pip window's owed tap of an any-colour ChosenType-restricted source floats the batch with the source's chosen creature type, so a spell of that type can spend it
+		{"convoke_window_restricted_any_colour_ahead_of_c", false, false}, // CR 106.6, 601.2g: a convoke window with an unsettled generic remainder lists Eclipsed Realms' admitted any-colour ability ahead of its {C}, and a window with no mana payment answers that ability's lowest colour
+		{"convoke_pays_with_floated_restricted_mana", false, false},       // CR 106.6, 601.2h: the convoke cast spends the restricted mana its window floated, as gorge's payment does
+		{"mayplay_convoke_over_selection", false, false},                  // CR 702.51a: Temporal Cleansing cast from Sanar's exile convokes four blue creatures for {3}{U}; only one may pay {U}, the rest pay {1}
+		{"subcounter_wildcard_flying_counter_kind", false, false},         // CR 122.1b: Reaping Willow's remove-any-two-counters cost names a Flying counter by its own kind, not as a +1/+1 counter
+
+		{"free_cast_owes_either_or_additional_cost", true, false},      // CR 601.2b, 118.9d: Kinsbaile Aspirant cast free from Maralen's exile still owes behold or {2}; with neither payable it is not offered
+		{"either_or_mana_part_spends_restricted_source", false, false}, // CR 106.6, 601.2f: Kinsbaile Aspirant's {2} part with its {W} is affordable through Eclipsed Realms' chosen-type mana
 	})
 }
 
@@ -429,9 +460,12 @@ func TestStdSpmReprosLockstep(t *testing.T) {
 func TestStdDftReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-dft", []stdRepro{
-		{"clone_entry_order_beside_counter", false, false},   // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
-		{"clone_entry_order_three_candidates", false, false}, // CR 616.1, 616.1f: ... beside two Velocipedes the ask has three options, and a counter source named first moves the card in and asks the two left with it on the battlefield
-		{"copy_entry_trigger_after_order_ask", false, false}, // CR 614.12/603.6a: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first; the copy's Hulldrifter enters trigger queues after the bodies
+		{"clone_entry_order_beside_counter", false, false},         // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
+		{"clone_entry_order_three_candidates", false, false},       // CR 616.1, 616.1f: ... beside two Velocipedes the ask has three options, and a counter source named first moves the card in and asks the two left with it on the battlefield
+		{"copy_entry_trigger_after_order_ask", false, false},       // CR 614.12/603.6a: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first; the copy's Hulldrifter enters trigger queues after the bodies
+		{"tap_power_value_lost_with_abilities", true, false},       // CR 613.1f: Interface Ace under Flood the Engine has lost its crew-with-toughness static, so its 0 power does not crew Rangers' Refueler
+		{"lookback_player_turn_uses_lki_controller", false, false}, // CR 603.10a: a stolen Ketramose exiled from the battlefield on its thief's turn triggers for the thief (PlayerTurn$ reads the last-known controller)
+		{"returned_aura_host_before_paid_draw", false, false},      // CR 303.4f, 610.3: sacrificing Perilous Snare pays Chandra's "if you do, draw": its exiled Aura's host answer comes before the draw, as gorge asks it mid-payment
 	})
 }
 
@@ -468,6 +502,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"multi_discard_pick_order_past_eight", false, false},           // CR 404.3: a ten-card discard keeps the owner's chosen arrangement past the old eight-pick buffer
 		{"returned_sorcery_stays_in_graveyard", false, false},           // CR 304.4: a manifested sorcery that died is a sorcery card, so Meathook Massacre II's paid return (with a finality counter) leaves it in the graveyard
 		{"granted_prefix_pays_painful_needed_colour", false, false},     // CR 119.4: the granted-mana prefix taps an animated Haunted Screen for its painful {R} the play needs (gorge's ask lists it before the grant) and pays 1 life
+		{"self_leaves_trigger_sees_remembered_clear", false, false},     // CR 400.7/603.2d: a leaves trigger whose source departed does not serve the fire-time remembered snapshot, so the first instance's Cleanup clear closes the second instance's window
 	})
 }
 

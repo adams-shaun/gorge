@@ -291,34 +291,16 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 // counterKindMode maps gorge's counter name to the kernel CounterKind index
 // (P1P1=0, M1M1=1, ...; kop.CtrXNames for the unfeaturized kinds).
 func counterKindMode(name string) int {
-	switch name {
-	case "P1P1":
-		return int(kop.CtrP1P1)
-	case "M1M1":
-		return int(kop.CtrM1M1)
-	case "LOYALTY", "Loyalty":
-		return int(kop.CtrLoyalty)
-	case "STUN", "Stun":
-		return int(kop.CtrStun)
-	case "SHIELD", "Shield":
-		return int(kop.CtrShield)
-	case "INCUBATION":
-		return int(kop.CtrIncubation)
-	case "BAIT":
-		return int(kop.CtrBait)
-	case "SOUL":
-		return int(kop.CtrSoul)
-	case "FELLOWSHIP":
-		return int(kop.CtrFellowship)
-	case "REVIVAL":
-		return int(kop.CtrRevival)
-	case "STASH":
-		return int(kop.CtrStash)
+	switch name { // gorge's title-case aliases of the featurized kinds
+	case "Loyalty":
+		name = "LOYALTY"
+	case "Stun":
+		name = "STUN"
+	case "Shield":
+		name = "SHIELD"
 	}
-	for i, n := range kop.CtrXNames {
-		if n == name {
-			return int(kop.CtrCharge) + i
-		}
+	if k, ok := kernelCounterKind(name); ok {
+		return int(k)
 	}
 	return 0
 }

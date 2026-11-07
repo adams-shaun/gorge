@@ -94,8 +94,8 @@ func (s *State) copyAbility(k *prep, in *kop.Instr) bool {
 	ce := s.stack[si]
 	s.stackSid(&ce)
 	ce.ctrl = e.ctrl
-	ce.flags &= sfKicked // a copy is not cast: no cast provenance (CR 707.10)
-	ce.prov, ce.spc = 0, 0
+	ce.flags &= sfKicked                 // a copy is not cast: no cast provenance (CR 707.10)
+	ce.prov, ce.spc, ce.etbSrc = 0, 0, 0 // a copy is not the remembered card: no rider count, no rider source
 	if ce.xi != 0 {
 		from := s.g.xtp[ce.xi-1]
 		ce.xi = 0

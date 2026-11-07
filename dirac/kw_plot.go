@@ -201,7 +201,10 @@ func (s *State) offerPlotCasts(k *prep, d *Decision, p uint8, sorc bool) {
 		if s.castHeldOut(o) || k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
 			continue
 		}
-		if !s.spellTargetsFeasible(k, c, p) {
+		// The free cast waives the mana cost, not the spell's additional
+		// costs (CR 118.9): a plotted Corrupted Conviction is offered only
+		// while a creature can be sacrificed for it (CR 601.2h).
+		if !s.spellCostsFeasible(k, c, p, o) || !s.spellTargetsFeasible(k, c, p) {
 			continue
 		}
 		d.add(MakeAction(AkCast, uint8(o), 0, castPlotted))
