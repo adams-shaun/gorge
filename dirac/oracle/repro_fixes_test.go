@@ -334,6 +334,7 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// trigger, which hears both kinds only once each turn: the two orders
 		// reach the same one trigger.
 		{"counter_copy_once_listener", false, false},
+		{"registered_effect_remembered_scope", true, false},
 	})
 }
 

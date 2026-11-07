@@ -47,19 +47,20 @@ func (f *fakeBoard) Active() []state.ContinuousEffect                           
 func (f *fakeBoard) RestrictionApplies(*state.ContinuousEffect, state.ObjID) bool { return false }
 func (f *fakeBoard) Statics(mode string) []Static                                 { return nil }
 func (f *fakeBoard) StaticGateHolds(Static) bool                                  { return false }
-func (f *fakeBoard) MatchesSpec(spec string, id, source state.ObjID, you state.PlayerID, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
+func (f *fakeBoard) MatchesSpec(spec string, id, source state.ObjID, you state.PlayerID, remembered []state.ObjID, rememberedPlayers []state.PlayerID, strictRemembered bool) bool {
 	sc := effects.NewSpecContext(you, source)
 	for _, r := range remembered {
 		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
 	}
 	sc.RememberedPlayers = rememberedPlayers
+	sc.SourceRememberedStrict = strictRemembered
 	return effects.MatchesSpecCtx(f.g, spec, id, sc)
 }
 func (f *fakeBoard) MatchesStaticSpec(spec string, id state.ObjID, sv Static) bool {
-	return f.MatchesSpec(spec, id, sv.Source, sv.Controller, nil, nil)
+	return f.MatchesSpec(spec, id, sv.Source, sv.Controller, nil, nil, false)
 }
 func (f *fakeBoard) GoadMatches(spec string, id, source state.ObjID, you state.PlayerID, remembered []state.ObjID) bool {
-	return f.MatchesSpec(spec, id, source, you, remembered, nil)
+	return f.MatchesSpec(spec, id, source, you, remembered, nil, false)
 }
 func (f *fakeBoard) PlayerSpecCtx(source state.ObjID) effects.PlayerSpecCtx {
 	return effects.PlayerSpecCtx{Source: source}

@@ -152,9 +152,15 @@ func blockHistoryRememberedNames(g *state.Game, history []state.ObjID, sc *SpecC
 // persistent half is effectiveSourceRemembered, the same pending-referent
 // rule the Defined$ read resolves under (a source that re-entered the
 // battlefield while its trigger waited answers the old object's snapshot).
+// A registered continuous effect sets SourceRememberedStrict, which drops the
+// persistent half so the Effect's own captured scope cannot widen when the
+// source card remembers something for a different ability.
 func anyRemembered(g *state.Game, sc *SpecContext, fn func(state.ObjID) bool) bool {
-	src := g.Obj(sc.Source)
-	persistent := effectiveSourceRemembered(g, sc.TriggerContext, src)
+	var persistent []state.Target
+	if !sc.SourceRememberedStrict {
+		src := g.Obj(sc.Source)
+		persistent = effectiveSourceRemembered(g, sc.TriggerContext, src)
+	}
 	resolution := sc.Remembered
 	if len(sc.Captured) > 0 {
 		resolution = selectRemembered(sc.Remembered, sc.Captured, sc.DelayedRemembered, persistent, sc.RememberWriterAbove)
