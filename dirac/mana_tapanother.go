@@ -48,6 +48,20 @@ const maxTapXPath = 24
 //
 //go:noinline
 func (s *State) scriptTapX(k *prep, p uint8) slotMask {
+	return s.tapXSources(k, p, true)
+}
+
+// tapXCensusGap: p's tap-another-permanent sources gorge's window census
+// leaves unpriced (castWindowSourceExcluded): its probe admits a mana ability
+// without reading whether the tap part is payable (ignorePayable), so an
+// untapped Springleaf Drum with no untapped creature to tap still makes the
+// census incomplete (CR 601.2g).
+func (s *State) tapXCensusGap(k *prep, p uint8) slotMask {
+	return s.tapXSources(k, p, false)
+}
+
+// tapXSources: scriptTapX, the candidate count read only when cands is set.
+func (s *State) tapXSources(k *prep, p uint8, cands bool) slotMask {
 	var m slotMask
 	if !k.tapMana || DebugNoTapMana {
 		return m
@@ -65,7 +79,7 @@ func (s *State) scriptTapX(k *prep, p uint8) slotMask {
 			continue // (a cost with no {T} needs neither an untapped nor an unsick source)
 		}
 		var cs [MaxPerm]Slot
-		if s.tapXCands(k, p, sl, &cs) >= int(a.Cost.N) {
+		if !cands || s.tapXCands(k, p, sl, &cs) >= int(a.Cost.N) {
 			m = m.with(sl)
 		}
 	}
