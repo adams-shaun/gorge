@@ -8,16 +8,14 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// hulkScen builds a std-msh scenario over the named cards plus 20 Plains, with
-// one hand-built creature after them whose two activated abilities let the
-// test read the same source's price both ways.
-func hulkScen(t *testing.T, names ...string) (*scen, map[string]CardID, CardID) {
+// powerUpReducerScen builds a scenario over the power-up pool with a
+// hand-built reducer shaped like Hulk, Gamma Goliath ("power-up abilities of
+// other creatures you control cost {3} less") and a hand-built creature with
+// both a Power-up ability and an ordinary activated ability.
+func powerUpReducerScen(t *testing.T) (*scen, Obj, Obj, Obj, CardID) {
 	t.Helper()
-	deck := []cardset.Entry{{Name: "Plains", Count: 20}}
-	for _, n := range names {
-		deck = append(deck, cardset.Entry{Name: n, Count: 1})
-	}
-	set := cardsettest.Synth(t, "std-msh")
+	deck := []cardset.Entry{{Name: "Plains", Count: 20}, {Name: "Brave Brawler", Count: 1}}
+	set := cardsettest.Set(t, "powerup")
 	tbl, da, _, err := set.Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
@@ -30,6 +28,14 @@ func hulkScen(t *testing.T, names ...string) (*scen, map[string]CardID, CardID) 
 	if !ok {
 		t.Fatal("scenario needs Plains")
 	}
+	// The reducer's ValidCard$ Creature.Other+YouCtrl, as Hulk's static reads.
+	tbl.Filters = append(tbl.Filters, kop.Filter{Types: kop.TCreature, Ctrl: kop.CtrlYou, Flags: kop.FOther})
+	reducer := CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, kop.CardDef{
+		Name: "Test Powerup Reducer", Types: kop.TCreature, Power: 6, Toughness: 5,
+		Abilities: []kop.Ability{{Kind: kop.AbStatic, Static: kop.Static{
+			Kind: kop.StatReduceAbility, Filter: kop.FilterID(len(tbl.Filters) - 1), A: 3, B: kop.ReduceAbPowerUp}}},
+	})
 	// The Power-up marker is a table flag, not State: an ability with
 	// CostPowerUp is the source class the reduction keys on.
 	two := CardID(len(tbl.Cards))
@@ -40,37 +46,34 @@ func hulkScen(t *testing.T, names ...string) (*scen, map[string]CardID, CardID) 
 			{Kind: kop.AbActivated, Cost: kop.Cost{Mana: kop.ManaCost{Generic: 2}}},
 		},
 	})
-	return newScenTableLib(t, tbl, pl, Config{NoElide: true}), id, two
+	sc := newScenTableLib(t, tbl, pl, Config{NoElide: true})
+	return sc, sc.perm(reducer, 0), sc.perm(two, 0), sc.perm(id["Brave Brawler"], 0), two
 }
 
-// TestReduceAbilityPowerUpOnly: Hulk, Gamma Goliath's "power-up abilities of
-// other creatures you control cost {3} less" reaches a Power-up activation
-// and no other activated ability of the same source. The power-up of another
-// creature costs {1}{W} rather than {4}{W}, while the ordinary activated
-// ability of the hand-built source keeps its printed {2}.
+// TestReduceAbilityPowerUpOnly: a Power-up-only StatReduceAbility reaches a
+// Power-up activation and no other activated ability of the same source. The
+// power-up of another creature costs {1}{W} rather than {4}{W}, while the
+// ordinary activated ability of the hand-built source keeps its printed {2}.
 func TestReduceAbilityPowerUpOnly(t *testing.T) {
-	sc, id, two := hulkScen(t, "Hulk, Gamma Goliath", "Brave Brawler")
-	hulk := sc.perm(id["Hulk, Gamma Goliath"], 0)
-	brawler := sc.perm(id["Brave Brawler"], 0)
-	src := sc.perm(two, 0)
-	if !sc.onBF(hulk) || !sc.onBF(brawler) || !sc.onBF(src) {
+	sc, reducer, src, brawler, two := powerUpReducerScen(t)
+	if !sc.onBF(reducer) || !sc.onBF(src) || !sc.onBF(brawler) {
 		t.Fatal("the scenario did not put every permanent onto the battlefield")
 	}
-	// Hulk's static is on the battlefield and matches every other creature.
+	// The reducer is on the battlefield and matches every other creature.
 	var static bool
-	for i := range sc.k.t.Cards[id["Hulk, Gamma Goliath"]].Abilities {
-		a := &sc.k.t.Cards[id["Hulk, Gamma Goliath"]].Abilities[i]
+	for i := range sc.k.t.Cards[sc.s.objs[reducer].card].Abilities {
+		a := &sc.k.t.Cards[sc.s.objs[reducer].card].Abilities[i]
 		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceAbility {
 			static = true
 			if a.Static.B&kop.ReduceAbPowerUp == 0 {
-				t.Fatalf("Hulk's reducer B %#x lacks ReduceAbPowerUp", a.Static.B)
+				t.Fatalf("the reducer's B %#x lacks ReduceAbPowerUp", a.Static.B)
 			}
 		}
 	}
 	if !static {
-		t.Fatal("Hulk, Gamma Goliath's table has no StatReduceAbility static")
+		t.Fatal("the reducer has no StatReduceAbility static")
 	}
-	// Neither creature entered this turn, so only Hulk's static can lower the
+	// Neither creature entered this turn, so only the reducer can lower the
 	// power-up: {4}{W} becomes {1}{W}.
 	sc.nextTurn()
 	sc.s.pl[0].pool[kop.W] = 2
