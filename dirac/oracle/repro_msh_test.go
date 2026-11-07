@@ -6,6 +6,7 @@ import "testing"
 func TestStdMshReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-msh", []stdRepro{
+		{"copy_attach_trigger_may_target_its_source", false, false},             // CR 707.10c, 701.3a: a copy of Swordsman's attach trigger (Object$ ParentTarget) may choose the Swordsman itself as the creature, as the original could; only an attach of the source itself excludes it
 		{"target_attacking_lki_after_lethal_damage", false, false},              // CR 608.2h: the enrage rider still sees the attacker's last battlefield status after lethal damage moved it to the graveyard, so the extra combat phase is granted
 		{"sneak_paid_through_filter_land", true, false},                         // CR 702.190a, 605.3a: Elektra sneaked for {1}{B}{B} with a Swamp and Surveillance Room's {1},{T} any-colour filter beside two Plains: the filter's prefix search funds the sneak cast
 		{"sneak_filter_fee_beside_restricted_any_colour", true, false},          // CR 702.190a, 605.3a: Elektra sneaked for {1}{B}{B} from a Swamp, an Island funding Surveillance Room's {1},{T} any-colour fee and Castle Doom's {C} (its any colour is for artifact spells only): the filter's prefix search funds the sneak cast
