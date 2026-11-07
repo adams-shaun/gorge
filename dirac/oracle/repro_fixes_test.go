@@ -44,6 +44,7 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"each_target_aura_copy_host_ask", false, false},             // CR 303.4f: Doppelgang's copy of a targeted Curious Inquiry asks its host before the copies of the targets after it
 		{"copy_each_target_aura_enchant", false, false},              // CR 303.4f: Doppelgang's copy of an Aura asks what it enchants as it enters, the later targets' copies after the answer
 		{"animated_equipment_without_equip_ability", false, false},   // CR 704.5p: Cryptic Coat (Equipment, attached by its ETB trigger, no Equip ability) detaches when Behind the Mask animates it, so its Equipped static stops on the Forest
+		{"mayplay_x_cast_census_rider", false, false},                // CR 609.4b, 601.2g-h: Worldsoul's Rage cast from Outrageous Robbery's exile: the prefix taps Insidious Roots' granted token for W, which the any-type rider spends on {R}, since gorge's census (no granted source) cannot pay the printed pips
 		{"ward_queues_at_target_choice_before_payment", true, false}, // CR 601.2c, 603.3b: a cost's sacrifice dies during the payment, so its triggers queue behind the ward trigger the target answer queued, not ahead of it -- the CR 603.3b ordering ask indexes the ward first
 		{"granted_before_printed_any", false, false},                 // CR 305.6: a granted basic type's intrinsic abilities precede a printed any-colour ability in the node-limited plan census
 	})
@@ -87,6 +88,7 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// retry pays the reduced price from the pool alone.
 		{"mayplay_target_dependent_several_targets", false, false},
 		{"aegis_on_temporary_copy_bearer", true, false},     // CR 613.7e, 707.2: Assimilation Aegis attached to a creature Fleeting Reflection made a copy until end of turn copies over it (the later copy wins), and gives it back to that copy when unattached
+		{"clone_on_aegis_bearer_until_eot", true, false},    // CR 613.7e, 514.2: Fleeting Reflection's until-end-of-turn copy over an Assimilation Aegis bearer ends at cleanup, and the Aegis copy it covered shows again
 		{"resolved_spell_copy_rests_in_exile", true, false}, // CR 707.10a: a copy of a spell is exiled as it leaves the stack (gorge's spellRestZone), not put in a graveyard and ceased later
 		// Omenport Vigilante's double strike turns on mid-way through a
 		// Boom Box activation: gorge records each target ask of an ability
@@ -122,6 +124,7 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"blinked_creature_is_a_target_of_its_own_leave_trigger", true, false}, // CR 603.3d: Three Tree Scribe blinked and back is a legal target of its own trigger
 		{"x_cast_leaves_a_target", false, false},                               // For the Common Good from one land and two Treasures: the largest-X plan consumes both copies targets, so the witness prices a smaller X whose payment keeps one Treasure as a target
 		{"activation_cost_removes_target_becomes_target", true, false},         // CR 601.2c, 601.2g-h: Nettle Guard's {1}, Sacrifice: Destroy ability aims at itself, so its Valiant BecomesTarget trigger fires before the sacrifice that is part of the same activation's cost
+		{"emblem_granted_storm_trigger", false, false},                         // CR 702.40a: Ral, Crackling Wit's emblem grants Splash Portal storm, so its cast trigger is ordered beside the prowess triggers
 		{"emblem_storm_grant", true, false},                                    // CR 702.40a: Ral, Crackling Wit's emblem grants storm to the instant cast after it, so the granted-storm cast trigger joins the ordering ask
 	})
 }
