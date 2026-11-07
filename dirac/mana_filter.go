@@ -197,11 +197,32 @@ func (s *State) faceReachable(k *prep, p uint8, av *avail, r *kop.ManaCost, extr
 			}
 			// the fee comes first, out of what is made so far (CR 605.3b)
 			fee := s.filtFee(k, sl)
+			var held [kop.NumManaKinds]uint8
+			if s.rbAny(p) {
+				s.rbUnits(p, s.restrPoolAdmits(k, p)&^s.filtFeeRestrM(k, p, sl), &held) // restricted mana the payment may spend but the filter's own activation may not (CR 106.6)
+			}
+			nh := 0
+			for c, n := range held {
+				if n != 0 {
+					t.remove(1<<c, n)
+					nh += int(n)
+				}
+			}
 			if t.total < fee {
 				t.total = -1 << 30
 				break
 			}
 			t.total -= fee
+			if nh != 0 && t.total == 0 {
+				// the fee took every unit that could pay it: none stays for the face
+				t.cnt = [16]uint8{}
+				t.nOne = 0
+			}
+			for c, n := range held {
+				if n != 0 {
+					t.addUnits(1<<c, n)
+				}
+			}
 			t.addUnits(uint8(s.filtAb(k, sl).ManaColors), uint8(s.filtUnits(k, sl)))
 		}
 		if t.affords(r, pipMaskOf(r), extra) {
