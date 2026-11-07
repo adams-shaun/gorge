@@ -1167,7 +1167,15 @@ func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop
 			defer func() { s.g.raiseO = 0 }()
 		}
 	}
-	return s.grantPlayCostRaise(k, p, a, kicked)
+	cost, ex, need, ok = s.grantPlayCostRaise(k, p, a, kicked)
+	if ok && a.Kind() == AkCast && a.Mode()&castMayPlay != 0 && a.Mode()&castFree == 0 && (s.g.mayPlayAny || s.mayPlayAnyType(k, p, Obj(a.Source()))) {
+		// an any-type may-play rider: gorge's planner funds the cast under
+		// the rider (pay.PlanManaUnderRider), so the printed lands pay
+		// Fuss's {R/W} from Outrageous Robbery's exile and no granted
+		// source is tapped first (CR 601.2g-h, 609.4b)
+		cost = planUnderRider(cost, true, false)
+	}
+	return cost, ex, need, ok
 }
 
 // grantPlayCostRaise is grantPlayCost with raiseO set as the caller left it.

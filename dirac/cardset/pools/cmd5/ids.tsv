@@ -1,0 +1,337 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Accumulated Knowledge
+1	card	Adaptive Automaton
+2	card	Aether Adept
+3	card	Aether Spellbomb
+4	card	Aetherize
+5	card	Ajani's Sunstriker
+6	card	Ambition's Cost
+7	card	Ancient Brontodon
+8	card	Ancient Craving
+9	card	Ancient Tomb
+10	card	Angel of Renewal
+11	card	Angel of the Dawn
+12	card	Angelic Accord
+13	card	Angelic Overseer
+14	card	Angelic Purge
+15	card	Angelic Skirmisher
+16	card	Archwing Dragon
+17	card	Army of the Damned
+18	card	Avacyn, Angel of Hope
+19	card	Avaricious Dragon
+20	card	Aven Gagglemaster
+21	card	Balefire Dragon
+22	card	Banisher Priest
+23	card	Banishing Light
+24	card	Basilica Shepherd
+25	card	Battlegrace Angel
+26	card	Beast Whisperer
+27	card	Beast Within
+28	card	Blaze
+29	card	Blessed Light
+30	card	Blighted Cataract
+31	card	Blighted Woodland
+32	card	Blood Artist
+33	card	Bloodthrone Vampire
+34	card	Blue Sun's Zenith
+35	card	Bojuka Bog
+36	card	Bone Splinters
+37	card	Boomerang
+38	card	Borderland Ranger
+39	card	Brainstorm
+40	card	Bronze Sable
+41	card	Brushstrider
+42	card	Buried Ruin
+43	card	Burst Lightning
+44	card	Butcher Ghoul
+45	card	Butcher of Malakir
+46	card	Carrion Feeder
+47	card	Cemetery Reaper
+48	card	Chain Lightning
+49	card	Chandra's Phoenix
+50	card	Chandra's Spitfire
+51	card	Charcoal Diamond
+52	card	Chief of the Foundry
+53	card	Colossal Dreadmaw
+54	card	Concentrate
+55	card	Condemn
+56	card	Council's Judgment
+57	card	Counterspell
+58	card	Craterhoof Behemoth
+59	card	Cultivate
+60	card	Dawnbringer Cleric
+61	card	Dawnfeather Eagle
+62	card	Day of Judgment
+63	card	Dazzling Angel
+64	card	Death Baron
+65	card	Demonic Tutor
+66	card	Diregraf Ghoul
+67	card	Disperse
+68	card	Divination
+69	card	Doom Blade
+70	card	Dragon Hatchling
+71	card	Dragon Mage
+72	card	Dragon Roost
+73	card	Dragonlord's Servant
+74	card	Dragonmaster Outcast
+75	card	Dusk Legion Zealot
+76	card	Electrostatic Bolt
+77	card	Elite Vanguard
+78	card	Elvish Archdruid
+79	card	Elvish Mystic
+80	card	Elvish Visionary
+81	card	Ember Hauler
+82	card	Emerald Medallion
+83	card	Endless Ranks of the Dead
+84	card	Etherium Sculptor
+85	card	Evolving Wilds
+86	card	Exclude
+87	card	Exile
+88	card	Explosive Vegetation
+89	card	Faithless Looting
+90	card	Falkenrath Noble
+91	card	Fallen Angel
+92	card	Festering Goblin
+93	card	Filigree Familiar
+94	card	Fire Diamond
+95	card	Firebolt
+96	card	Firebrand Archer
+97	card	Flame Slash
+98	card	Flametongue Kavu
+99	card	Fleshbag Marauder
+100	card	Forbidding Watchtower
+101	card	Forest
+102	card	Forked Bolt
+103	card	Frost Lynx
+104	card	Furnace Whelp
+105	card	Fyndhorn Elves
+106	card	Garruk's Companion
+107	card	Garruk's Uprising
+108	card	Ghalta, Primal Hunger
+109	card	Ghoulcaller Gisa
+110	card	Ghoulcaller's Chant
+111	card	Giada, Font of Hope
+112	card	Gift of Estates
+113	card	Glint-Nest Crane
+114	card	Go for the Throat
+115	card	Goblin Balloon Brigade
+116	card	Goblin Grenade
+117	card	Goblin War Strike
+118	card	Goreclaw, Terror of Qal Sisma
+119	card	Grand Abolisher
+120	card	Grave Titan
+121	card	Graveborn Muse
+122	card	Gravecrawler
+123	card	Gray Merchant of Asphodel
+124	card	Gurmag Angler
+125	card	Guttersnipe
+126	card	Hangarback Walker
+127	card	Harmonize
+128	card	Harrow
+129	card	Healer's Hawk
+130	card	Hedron Archive
+131	card	Herald of War
+132	card	Hero's Downfall
+133	card	Hoard-Smelter Dragon
+134	card	Hordeling Outburst
+135	card	Hunter's Insight
+136	card	Hypnotic Specter
+137	card	Impulse
+138	card	Incinerate
+139	card	Inspiring Overseer
+140	card	Into the Roil
+141	card	Island
+142	card	Jayemdae Tome
+143	card	Jet Medallion
+144	card	Jhoira's Familiar
+145	card	Journey to Nowhere
+146	card	Junk Diver
+147	card	Kabira Crossroads
+148	card	Kalonian Tusker
+149	card	Karakas
+150	card	Khalni Heart Expedition
+151	card	Kher Keep
+152	card	Knight of the White Orchid
+153	card	Kodama's Reach
+154	card	Kor Skyfisher
+155	card	Krenko's Command
+156	card	Land Tax
+157	card	Lathliss, Dragon Queen
+158	card	Lead the Stampede
+159	card	Leatherback Baloth
+160	card	Leonin Relic-Warder
+161	card	Life's Legacy
+162	card	Lightning Bolt
+163	card	Lightning Greaves
+164	card	Lightning Strike
+165	card	Linvala, Keeper of Silence
+166	card	Llanowar Elves
+167	card	Lone Missionary
+168	card	Lord of the Accursed
+169	card	Lotus Petal
+170	card	Magus of the Wheel
+171	card	Mana Leak
+172	card	Managorger Hydra
+173	card	Marble Diamond
+174	card	Master of Etherium
+175	card	Memnite
+176	card	Mentor of the Meek
+177	card	Mind Stone
+178	card	Mistveil Plains
+179	card	Mogg Fanatic
+180	card	Molten Rain
+181	card	Momentous Fall
+182	card	Moonveil Dragon
+183	card	Moss Diamond
+184	card	Mountain
+185	card	Murder
+186	card	Murderous Cut
+187	card	Myr Retriever
+188	card	Myriad Landscape
+189	card	Nantuko Husk
+190	card	Naturalize
+191	card	Nature's Lore
+192	card	Nekrataal
+193	card	Night's Whisper
+194	card	Nissa's Pilgrimage
+195	card	Oblivion Ring
+196	card	Ornithopter
+197	card	Overrun
+198	card	Overseer of the Damned
+199	card	Palladium Myr
+200	card	Path to Exile
+201	card	Pearl Medallion
+202	card	Pelakka Wurm
+203	card	Perilous Myr
+204	card	Phyrexian Arena
+205	card	Phyrexian Rager
+206	card	Phyrexian Revoker
+207	card	Plains
+208	card	Ponder
+209	card	Precinct Captain
+210	card	Pridemalkin
+211	card	Priest of Titania
+212	card	Prismatic Lens
+213	card	Prophetic Prism
+214	card	Raging Goblin
+215	card	Rampant Growth
+216	card	Rancor
+217	card	Ravenous Chupacabra
+218	card	Reckless Charge
+219	card	Reclamation Sage
+220	card	Reforge the Soul
+221	card	Regal Force
+222	card	Remand
+223	card	Repeal
+224	card	Resplendent Angel
+225	card	Return of the Wildspeaker
+226	card	Riddlesmith
+227	card	Righteous Valkyrie
+228	card	Ruby Medallion
+229	card	Ryusei, the Falling Star
+230	card	Sai, Master Thopterist
+231	card	Sakura-Tribe Elder
+232	card	Scavenging Ooze
+233	card	Scourge of Valkas
+234	card	Searing Spear
+235	card	Seething Song
+236	card	Selfless Spirit
+237	card	Serra Angel
+238	card	Serra Avenger
+239	card	Serra's Guardian
+240	card	Sharding Sphinx
+241	card	Shepherd of Rot
+242	card	Shivan Dragon
+243	card	Shock
+244	card	Siege-Gang Commander
+245	card	Sign in Blood
+246	card	Silkwrap
+247	card	Silver Myr
+248	card	Skinrender
+249	card	Skullclamp
+250	card	Sky Diamond
+251	card	Skyclave Apparition
+252	card	Skyshroud Claim
+253	card	Sol Ring
+254	card	Solemn Simulacrum
+255	card	Sorin's Thirst
+256	card	Soul Warden
+257	card	Spawn of Thraxes
+258	card	Springbloom Druid
+259	card	Squadron Hawk
+260	card	Stasis Snare
+261	card	Steel Leaf Champion
+262	card	Stone Rain
+263	card	Sublime Archangel
+264	card	Sun Titan
+265	card	Swamp
+266	card	Swords to Plowshares
+267	card	Tarfire
+268	card	Temple of the False God
+269	card	Temur Sabertooth
+270	card	Terramorphic Expanse
+271	card	Terror
+272	card	Thirst for Knowledge
+273	card	Thran Dynamo
+274	card	Thrashing Brontodon
+275	card	Three Visits
+276	card	Thrill of Possibility
+277	card	Thunderbolt
+278	card	Thunderbreak Regent
+279	card	Tidings
+280	card	Timberpack Wolf
+281	card	Tome of Legends
+282	card	Tormenting Voice
+283	card	Tormod's Crypt
+284	card	Tragic Slip
+285	card	Trinket Mage
+286	card	Trumpet Blast
+287	card	Undead Augur
+288	card	Undead Warchief
+289	card	Unstable Obelisk
+290	card	Unsummon
+291	card	Utvara Hellkite
+292	card	Valkyrie Harbinger
+293	card	Vampiric Rites
+294	card	Vampiric Tutor
+295	card	Vapor Snag
+296	card	Vastwood Hydra
+297	card	Vedalken Archmage
+298	card	Vengeful Dead
+299	card	Victim of Night
+300	card	Victimize
+301	card	Vile Rebirth
+302	card	Village Rites
+303	card	Volcanic Hammer
+304	card	Voracious Hydra
+305	card	Walk the Plank
+306	card	Wayfarer's Bauble
+307	card	Whirler Rogue
+308	card	Whisperer of the Wilds
+309	card	Winged Boots
+310	card	Wood Elves
+311	card	Workshop Assistant
+312	card	World Shaper
+313	card	Worn Powerstone
+314	card	Wrath of God
+315	card	Wurmcoil Engine
+316	card	Yavimaya Elder
+317	card	Young Pyromancer
+318	card	Youthful Valkyrie
+319	card	Zombie Apocalypse
+320	card	Zulaport Cutthroat
+321	token	b_2_2_zombie
+322	token	c_1_1_a_phyrexian_mite_toxic_noblock
+323	token	c_1_1_a_thopter_flying
+324	token	c_3_3_a_phyrexian_wurm_deathtouch
+325	token	c_3_3_a_phyrexian_wurm_lifelink
+326	token	g_3_3_beast
+327	token	kobolds_of_kher_keep
+328	token	r_1_1_elemental
+329	token	r_1_1_goblin
+330	token	r_5_5_dragon_flying
+331	token	r_6_6_dragon_flying
+332	token	u_1_1_a_thopter_flying
+333	token	w_1_1_soldier
+334	token	w_4_4_angel_flying
+335	token	w_4_4_angel_flying_vigilance

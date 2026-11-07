@@ -2347,9 +2347,11 @@ func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
 		e.castCounterPut[rp.obj] = append(e.castCounterPut[rp.obj], tc.blights...)
 	}
 	var sacrificedLKI []state.SacrificedInfo
+	var liveSacs []state.ObjID
 	for _, id := range tc.sacs {
 		if o := e.G.Obj(id); o != nil && o.Zone == state.ZBattlefield {
 			sacrificedLKI = append(sacrificedLKI, effects.SacrificedLKI(e, id))
+			liveSacs = append(liveSacs, id)
 		}
 	}
 	if len(sacrificedLKI) > 0 {
@@ -2358,13 +2360,9 @@ func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
 		}
 		e.sacrificedLKI[rp.obj] = append(e.sacrificedLKI[rp.obj], sacrificedLKI...)
 	}
-	e.beginSacrificeBatch()
-	for _, id := range tc.sacs {
-		if o := e.G.Obj(id); o != nil && o.Zone == state.ZBattlefield {
-			e.emit(events.Sacrifice(id))
-		}
-	}
-	e.endSacrificeBatch()
+	// One sacrifice action and, for several permanents, one simultaneous
+	// departure (CR 701.21a, 610.3d): see emitSacrifices.
+	e.emitSacrifices(liveSacs)
 	for _, id := range tc.exiles {
 		if o := e.G.Obj(id); o != nil {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})

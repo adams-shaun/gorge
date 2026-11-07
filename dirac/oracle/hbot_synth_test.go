@@ -21,6 +21,7 @@ func TestHBotParitySynth(t *testing.T) {
 	for _, tc := range []struct {
 		pool, kind string
 		full       bool // dirac.SurfaceFull, the surface the search plays
+		pairs      int  // pairings sampled; 0 means 40. A kind only a few cards reach needs more to clear the 20-decision minimum
 		floor      float64
 		why        string
 	}{
@@ -35,7 +36,7 @@ func TestHBotParitySynth(t *testing.T) {
 		{pool: "std-dsk", kind: "target", floor: 0.98, why: "attachRanking's polarity aims a boon Aura at the own board"},
 		{pool: "std-dsk", kind: "choose", floor: 0.97, why: "a yes/no confirmation takes its first offer, yes"},
 		{pool: "std-lci", kind: "modes", floor: 0.98, why: "an optional play from a zone takes its first Min, none"},
-		{pool: "std-msh", kind: "arrange", floor: 0.98, why: "a dig's rest tops up in offered order"},
+		{pool: "std-msh", kind: "arrange", pairs: 120, floor: 0.98, why: "a dig's rest tops up in offered order"},
 		{pool: "std-tmt", kind: "choose", full: true, floor: 0.90, why: "a hybrid pip takes the symbol's first colour"},
 	} {
 		set := cardsettest.Synth(t, tc.pool)
@@ -46,7 +47,11 @@ func TestHBotParitySynth(t *testing.T) {
 		c.AddDecks(files)
 		mk := func(tbl *kop.Table) KernelBot { return hbot.New(HBotFactsSet(c.Reg, tbl, nil, set)) }
 		n, agree := 0, 0
-		for _, p := range PairingsFrom(pool, 0, 40, 78) {
+		pairs := tc.pairs
+		if pairs == 0 {
+			pairs = 40
+		}
+		for _, p := range PairingsFrom(pool, 0, pairs, 78) {
 			res, err := HBotParityGameOpts(c, p.A, p.B, p.Seed, Config{GorgeAutopaySurface: !tc.full, PassElision: true}, 20000, mk, HBotParityOptions{Set: set})
 			if err != nil {
 				continue // a pairing the pool refuses by name
