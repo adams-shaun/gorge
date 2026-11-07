@@ -200,12 +200,18 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 
 // anyManaSource reports whether p has an untapped source to fund a payment with:
 // a tap source, the untapped sacrifice-only arm, a gap source with its cost payable,
-// or a restricted mana ability.
+// a deferred source, or a restricted mana ability.
 //
 //go:noinline
 func (s *State) anyManaSource(k *prep, p uint8) bool {
 	if k.gen == nil {
 		return false
+	}
+	// a deferred source (Pyromancer's Goggles, mana_deferred.go) has no census
+	// ability, yet its plain {R} is untapped mana gorge's untappedManaSourceFor
+	// counts (CR 106.6: the when-spent rider restricts nothing)
+	if s.scriptDeferred(k, p).any() {
+		return true
 	}
 	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
 		sl := m.first()
@@ -741,7 +747,12 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			if s.g.pickLeft > 0 {
 				r.ask = raGenPayPick
 				if s.autoPayPick(k) {
-					break // exactly the needed cards: gorge picks them (cumulative.go advanceTriggeredMandatory, pay/unlessflow.go AdvanceUnless)
+					// exactly the needed cards: gorge picks them (cumulative.go advanceTriggeredMandatory, pay/unlessflow.go AdvanceUnless);
+					// a card one of them held in exile until it left is asked now, as after the last answered pick (CR 610.3d)
+					if s.payReturnPark() {
+						return
+					}
+					break
 				}
 				return
 			}
@@ -964,6 +975,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			}
 		}
 		if k.gen.anyHideaway && k.cards[s.objs[o].card].land && !DebugHideNoLand {
+			if s.hideLandPark(k, o) {
+				return // its as-enters choice is asked first, in exile (kw_hideaway.go)
+			}
 			s.hideLand(k, o) // a hidden land is played now, not queued (kw_hideaway.go)
 			if s.g.nfree == 0 {
 				s.castFreeClosed(k)
@@ -1108,6 +1122,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.g.pre.val = a.Mode()
 		if s.g.pre.kind == akType {
 			s.g.pre.val = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+		}
+		if s.g.pre.state == preHideLand {
+			s.hideLandAnswer(k) // kw_hideaway.go
+			return
 		}
 		if s.g.pre.state == preReturnOp {
 			s.rerunReturn(k)
@@ -1270,7 +1288,10 @@ func (s *State) payDone(k *prep, paid bool) {
 func (s *State) payWardN(k *prep, n uint8, pay bool) {
 	r := &s.res
 	idx := s.wardedIndex(&r.e)
-	if c := (kop.ManaCost{Generic: n}); pay && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c) || s.nonSpellRestrAffords(k, r.e.trigPl, &c)) {
+	// A live tap-another-permanent source is a window source the census above
+	// leaves out (availFor counts no tap cost), so opening the window is what
+	// gorge does: it taps the plain sources and asks which permanent to tap.
+	if c := (kop.ManaCost{Generic: n}); pay && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c) || s.nonSpellRestrAffords(k, r.e.trigPl, &c) || s.windowTapXLive(k, r.e.trigPl).any()) {
 		paused, short := s.payWindowAsk(k, r.e.trigPl, &c, winWard)
 		if paused {
 			return // a tap-another source's pick (mana_windowtapx.go)
@@ -1326,6 +1347,12 @@ func (s *State) countSacLeft(k *prep, p uint8, f kop.FilterID) int {
 }
 
 func (s *State) startSac(k *prep, in *kop.Instr, p uint8) bool {
+	if k.gen != nil && k.gen.ctrlSBA {
+		// gorge settles control after every event (emit.go): an Aura an
+		// earlier instruction sacrificed no longer steals the creature this
+		// one counts (Vile Mutilator's enchantment, then creature; CR 613.1b)
+		s.ctrlSBA(k)
+	}
 	src := s.resSrcSlot(k)
 	for p != 255 {
 		n := s.value(k, in.A)

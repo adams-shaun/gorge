@@ -302,3 +302,42 @@ var (
 	// DebugHideNoLand queues a hidden land like a spell (no land play).
 	DebugHideNoLand bool
 )
+
+// preHideLand is preAsk.state for a hidden land a Play answer picked, waiting
+// in exile for its as-enters choice: gorge's land play asks it before the
+// move (CR 614.12, the hand play's preLandAsk), and the answer plays it.
+const preHideLand uint8 = 9
+
+// hideLandPark poses the picked land's as-enters choice (Crossroads Village's
+// colour) with the card still in exile; false when the land enters at once
+// (no such choice, or a play hideLand refuses).
+//
+//go:noinline
+func (s *State) hideLandPark(k *prep, o Obj) bool {
+	p := s.res.e.ctrl
+	if p != s.active || s.pl[p].landsPlayed >= s.landLimit(k, p) || s.objs[o].zone != kop.ZoneExile {
+		return false
+	}
+	switch kind := s.enterChoiceKind(k, s.objs[o].card); kind {
+	case akColor, akType, akNumber, akName, akNameAny:
+		s.g.pre = preAsk{obj: o, kind: kind, state: preHideLand}
+		s.res.ask, s.res.askP = raGenRetChoice, p
+		return true
+	}
+	return false
+}
+
+// hideLandAnswer plays the parked land with its answered choice (the
+// enters program reads pre.val), then the Play's pick goes on.
+//
+//go:noinline
+func (s *State) hideLandAnswer(k *prep) {
+	o := s.g.pre.obj
+	s.g.pre.state = 2
+	s.res.ask = raGenCastFree
+	s.hideLand(k, o)
+	s.g.pre = preAsk{}
+	if s.g.nfree == 0 {
+		s.castFreeClosed(k)
+	}
+}

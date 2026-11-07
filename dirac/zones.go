@@ -38,6 +38,31 @@ func (pl *player) libTop(o Obj) {
 	pl.lib[pl.libLo] = o
 }
 
+// libIndex is o's index from the top of the library (o must be in it).
+func (pl *player) libIndex(o Obj) uint8 {
+	for i := pl.libLo; i < pl.libHi; i++ {
+		if pl.lib[i] == o {
+			return i - pl.libLo
+		}
+	}
+	panic("kernel: object not in library")
+}
+
+// libInsert puts o at index at from the top (clamped to the bottom).
+func (pl *player) libInsert(o Obj, at uint8) {
+	if int(at) >= pl.libLen() {
+		pl.libBottom(o)
+		return
+	}
+	if int(pl.libHi) == len(pl.lib) {
+		pl.libCompact()
+	}
+	i := pl.libLo + at
+	copy(pl.lib[i+1:pl.libHi+1], pl.lib[i:pl.libHi])
+	pl.lib[i] = o
+	pl.libHi++
+}
+
 // zoneFull reports whether p's card zone z has no room for one more object.
 func (pl *player) zoneFull(z kop.Zone) bool {
 	switch z {
@@ -119,6 +144,8 @@ func (s *State) detach(o Obj) kop.Zone {
 		panic("kernel: detach of a permanent (use leave)")
 	case kop.ZoneSideboard:
 		// outside the game: no list to leave (zone_sideboard.go)
+	case kop.ZoneCommand:
+		// the command zone is a place: no list to leave
 	}
 	ob.zone = kop.ZoneNone
 	return from
@@ -340,12 +367,14 @@ func (s *State) enter(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone) Sl
 	if from == kop.ZoneGraveyard {
 		s.fireLeavesGraveyardSelf(k, sl, o) // trig_leftgraveyard.go
 	}
+	host := NoSlot
 	if s.g.entHost != 0 {
-		s.attachEntering(k, sl) // zone_handmoveaura.go
+		host = s.attachEntering(k, sl) // zone_handmoveaura.go
 	}
 	if s.anyETB(k) && !(s.g.pre.ordMid && s.g.pre.obj == o) { // a copy waiting on gorge's second order ask fires them once applied (repl_entryclone.go)
 		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
 	}
+	s.attachedEntered(k, sl, host)
 	if k.anyRoom && from == kop.ZoneStack {
 		s.roomEntryUnlock(k, sl, o) // the cast door's UnlockDoor (face_rooms.go)
 	}

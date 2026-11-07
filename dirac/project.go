@@ -86,6 +86,11 @@ type Projection struct {
 	ExileN [2]uint8
 	Over   bool
 	Winner int8
+	// CmdCast is each seat's commander casts from the command zone (CR
+	// 903.8); CmdDmg[p][q] the combat damage player p was dealt by seat q's
+	// commander (CR 903.10a)
+	CmdCast [2]uint8
+	CmdDmg  [2][2]uint8
 	// Chars is each battlefield object's derived characteristics, by Obj
 	// index; only ProjectChars (the oracle's) fills it.
 	Chars [MaxObj]ProjChars
@@ -336,6 +341,8 @@ func (s *State) projRest(p *Projection, lib bool) {
 		p.HandN[pi] = pl.handN
 		p.GraveN[pi] = pl.graveN
 		p.ExileN[pi] = pl.exileN
+		p.CmdCast[pi] = pl.cmdCast
+		p.CmdDmg[pi] = pl.cmdDmg
 	}
 	k := s.k()
 	p.NStack = s.sp

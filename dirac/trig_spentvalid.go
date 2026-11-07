@@ -11,7 +11,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // spend on the spell entry (castSpent, written by histCast before the cast
 // triggers fire). X (ValidSAonCard$ only) is the cast spell's PRINTED face
 // mana value (Face().ManaValue(), not CR 202.3e's on-stack value); copied.
-// There is no resolution-time recheck in gorge, so none here. The gate is
+// This ValidSA gate is a fire-time match filter, not an intervening-if:
+// gorge rechecks no such filter on resolution, so neither does the kernel. The gate is
 // encoded as kop.DmgGate in Trigger.N (read on SpellCast only under
 // Tf2NthSpell, which the lowering refuses beside the gate); 0xff as the
 // literal is the X sentinel.

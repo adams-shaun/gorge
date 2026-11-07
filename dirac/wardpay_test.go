@@ -278,3 +278,57 @@ func TestWardGrantedKeepsPrintedLifeWard(t *testing.T) {
 		t.Fatalf("pending %d: %+v, want the pay-2-life ward, then the granted ward {1}", s.npend, s.pend[:s.npend])
 	}
 }
+
+// TestWardPayTapAnotherPermanent: the EOE-s193 ward {2}. The payer's only
+// untapped mana after casting is one Mountain and Gene Pollinator ("{T}, tap an
+// untapped permanent you control: add one mana of any colour"), whose cost the
+// payment census leaves out. gorge's window taps the Mountain, then offers
+// Gene Pollinator and asks which permanent to tap; the ward is paid and the
+// spell resolves (gaining control). Before, the pay answer fell to the
+// unpayable arm, tapped only the Mountain and countered the spell.
+func TestWardPayTapAnotherPermanent(t *testing.T) {
+	sc, id := synthScen(t, "std-eoe", "Systems Override", "Mountain", "Gene Pollinator", "Frontline War-Rager", "Harmonious Grovestrider", "Forest")
+	var mt [4]Obj
+	for i := range mt {
+		mt[i] = sc.perm(id["Mountain"], 0)
+	}
+	gp := sc.perm(id["Gene Pollinator"], 0)
+	spare := sc.perm(id["Frontline War-Rager"], 0)
+	for i := 0; i < 2; i++ {
+		sc.perm(id["Forest"], 1) // Harmonious Grovestrider's lands-you-control P/T
+	}
+	warded := sc.perm(id["Harmonious Grovestrider"], 1)
+	spell := sc.hand(id["Systems Override"], 0)
+	cast := false
+	sc.stepTo(t, 60, func() bool { return sc.s.objs[spell].zone == kop.ZoneGraveyard && sc.s.sp == 0 }, func(d *Decision) (Action, bool) {
+		for i := 0; i < int(d.N); i++ {
+			a := d.Options[i]
+			switch {
+			case a.Kind() == AkCast && a.Source() == uint8(spell):
+				cast = true
+				return a, true
+			case d.Kind == DkTarget && a.Target() == uint8(warded):
+				return a, true
+			case d.Kind == DkChoose && d.Sub == ChWardPay && a.Mode() == 1:
+				return a, true
+			case d.Kind == DkChoose && d.Sub == ChWindowTap && a.Target() == uint8(spare):
+				return a, true
+			}
+		}
+		for i := 0; i < int(d.N); i++ {
+			if d.Options[i].Kind() == AkPass {
+				return d.Options[i], true
+			}
+		}
+		return 0, false
+	})
+	if !cast {
+		t.Fatal("Systems Override was never cast")
+	}
+	if !sc.tapped(gp) || !sc.tapped(spare) {
+		t.Fatalf("Gene Pollinator tapped %v, spare tapped %v: the ward {2} was not paid through Gene Pollinator", sc.tapped(gp), sc.tapped(spare))
+	}
+	if !sc.s.ctrlM[0].has(sc.slot(warded)) {
+		t.Fatal("Harmonious Grovestrider is not controlled by p0: the spell was countered by the ward")
+	}
+}

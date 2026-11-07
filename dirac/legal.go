@@ -195,10 +195,20 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if s.statM.any() || k.gen != nil {
 				kc = s.adjustCost(k, p, c, o, kc) // the reduction applies to the total (CR 601.2f)
 			}
+			if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
+				kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
+			}
 			if s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &kc, &av) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
 				d.add(MakeAction(AkCast, uint8(o), 0, 1))
 			}
 		}
+	}
+	if s.cfg&cfgCommander != 0 {
+		if !haveAv {
+			s.availFor(k, p, &av)
+			haveAv = true
+		}
+		s.offerCommanderCast(k, d, p, &av)
 	}
 	// flashback
 	var fbLo, fbHi *objBits // nil for a pool without a flashback grant: no State access below
@@ -1368,7 +1378,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 		}
 		dynamic := false
 		if k.gen != nil {
-			if c := s.cardAt(sl); k.gen.flags[c]&gfManaVar != 0 {
+			if c := s.cardAt(sl); k.gen.flags[c]&gfManaVar != 0 && !s.filtFeeOwed(k, sl, c) {
 				// a gated or reflected source's view already holds its abilities
 				done[sl] = ^uint16(0)
 				cd := &k.t.Cards[c]
@@ -1438,6 +1448,15 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 			a.addUnits(1<<c, uint8(min(n, 255)))
 		}
 	}
+}
+
+// filtFeeOwed reports whether the source at sl is a filter whose fee the
+// reducers leave owed (mana_filterfree.go): its gate-off view is the free {C}
+// alone, so the fixpoint below must still admit the paid filter once the other
+// sources cover its fee, as gorge potentialManaFor admits each ability (Surveillance
+// Room's {1},{T} any-colour beside its {T}: {C}, CR 605.3a).
+func (s *State) filtFeeOwed(k *prep, sl Slot, c CardID) bool {
+	return k.gen.flags[c]&gfFiltFee != 0 && s.filtFee(k, sl) != 0
 }
 
 // potentialAdmits reports whether a further mana ability of the source at sl can
@@ -1531,9 +1550,11 @@ func (s *State) applyPriority(k *prep, a Action) {
 			s.flushPrefixTriggers(k)
 		}
 	}
-	empty := s.playNeedsEmptyStack(k, a)
-	if s.sp > sp0 && empty || s.npend != 0 {
-		s.resolvePrefixStack(k, sp0, empty) // the prefix's triggers placed (and, sorcery-speed, resolved) before the play
+	if s.sp > sp0 || s.npend != 0 {
+		empty := s.playNeedsEmptyStack(k, a)
+		if s.sp > sp0 && empty || s.npend != 0 {
+			s.resolvePrefixStack(k, sp0, empty) // the prefix's triggers placed (and, sorcery-speed, resolved) before the play
+		}
 	}
 	switch a.Kind() {
 	case AkPass:

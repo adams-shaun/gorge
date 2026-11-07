@@ -609,7 +609,7 @@ type lTrigger struct {
 	CrossAt       int   // CounterAdded: CounterAmount$ EQn, the counter total the put must reach (a crossing, CR 122.6); 0 = none
 	CastSnap      bool  // SpellCast: the amount reads the instants and sorceries cast this turn, snapshotted (TriggerObjectsCurrentCastSpells)
 	CastSpent     bool  // SpellCast: the amount is the triggering spell's pool mana spent, snapshotted as the trigger fires (opus; gorge TriggeredCard$CastTotalManaSpent)
-	Increment     bool  // SpellCast: Increment$ True -- the cast's spend against the source's P/T, read as the trigger fires (gorge kwIncrement's marker, trigmatch.incrementAdmits; kernel Tf2Increment)
+	Increment     bool  // SpellCast: Increment$ True -- the source is a creature and the cast's spend exceeds its P/T, read as the trigger fires and rechecked on resolution (gorge kwIncrement's marker, trigmatch.IncrementHolds; kernel Tf2Increment)
 	SpentGate     int16 // SpellCast: ValidSA$/ValidSAonCard$ Spell.ManaSpent <op><n|X>, a kop.DmgGate over the cast's pool mana spent (X = 0xff, the printed mana value); gorge spellCastMatches, kernel spentGateOK
 	NthSpell      int   // SpellCast: the caster's spell count this turn against ActivatorThisTurnCast$ <op>N
 	NthCmp        uint8 // the NthSpell operator as a kop.DmgCmp (0 = EQ, the plain literal; kernel trigCmpOK)
@@ -811,7 +811,7 @@ type lOverride struct {
 	SetP, SetT       int
 	PVal, TVal       lValue // non-None: Power$/Toughness$ values (ValPT)
 	HasSetPT         bool
-	LivePT           bool // PVal/TVal are read live, every check (a granted static's SetPower$/SetToughness$)
+	LivePT           bool // PVal/TVal are read live, every check (a granted static's SetPower$/SetToughness$, for the affected permanent; an override static's, from its source)
 	SetTypes         uint16
 	HasSetTypes      bool
 	AddTypes         uint16
@@ -907,6 +907,7 @@ type lCard struct {
 	BestowT        *lTarget  // the bestowed Aura's enchant creature target (gorge bestowedAttachSA)
 	Convoke        bool      // K:Convoke (CR 702.51a): the cast may tap creatures for its mana cost
 	Improvise      bool      // K:Improvise (CR 702.126a): the cast may tap artifacts for the generic part of its mana cost
+	Delve          bool      // K:Delve (CR 702.66a): the cast exiles graveyard cards toward its generic cost (dirac/kw_delve.go)
 	Mayhem         *manaCost // K:Mayhem:<cost> (CR 702.187): a graveyard cast for this cost if the card was discarded this turn (dirac/kw_mayhem.go)
 	BeamMeUp       *manaCost // K:Beam me up:<cost>: a graveyard cast for this cost that also returns a creature you control (FbCost)
 	Harmonize      *manaCost // K:Harmonize:<cost> (CR 702.180a): a graveyard cast for this cost, one creature tapped for its power off the generic part
