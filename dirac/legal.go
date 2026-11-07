@@ -506,7 +506,6 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if k.gen != nil && k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
 		mana = s.ownReducedBF(k, a, sl, p.ctrl)
 	}
-	witness := mana // the planner's cost: the ability's own reduction and the cost statics, no Power-up
 	if k.gen != nil && k.gen.anyPowerUp && f&kop.CostPowerUp != 0 {
 		// CR 702.193b: the offer walk and the affordability check read the
 		// reduced cost (gorge legal_walk_battlefield.go:414/553), and the
@@ -529,10 +528,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// always the reduced one (buildCostCharge), and the plan/charge
 		// mismatch falls back to the manual mana window
 		// (powerUpPlanRejected, mana_window.go).
-		if k.gen.anyAbReduce {
-			witness = s.abReduced(k, a, sl, p.ctrl, witness)
-		}
-		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &witness, av) {
+		if !s.poolPays(p.ctrl, &mana) && !s.powerUpWitnessAffords(k, sl, a, p.ctrl, av) {
 			return false
 		}
 	}

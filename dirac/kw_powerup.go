@@ -57,6 +57,25 @@ func powerUpReduce(c, red kop.ManaCost) kop.ManaCost {
 	return c
 }
 
+// powerUpWitnessAffords reports whether av pays gorge's autopay planner cost
+// for Power-up ability a of slot sl: planAbilityPayment never calls
+// powerUpReduceCost, but its offerCostFor composes the ability's own
+// reduction and the cost statics on the printed cost (CR 601.2f; Hulk,
+// Gamma Goliath's {3} off another creature's Power-up). The caller guards on
+// anyPowerUp and CostPowerUp; this body is cold.
+//
+//go:noinline
+func (s *State) powerUpWitnessAffords(k *prep, sl Slot, a *kop.Ability, ctrl uint8, av *avail) bool {
+	c := a.Cost.Mana
+	if k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
+		c = s.ownReducedBF(k, a, sl, ctrl)
+	}
+	if k.gen.anyAbReduce {
+		c = s.abReduced(k, a, sl, ctrl, c)
+	}
+	return s.abilityAffords(k, sl, a, &c, av)
+}
+
 // powerUpPlanRejected reports whether gorge's payment planner witness for a
 // Power-up ability is rejected at payment. planAbilityPayment prices the
 // PRINTED cost (it never calls powerUpReduceCost) while the activation
