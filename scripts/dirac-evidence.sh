@@ -50,7 +50,7 @@ for pool in $pools; do
 			[ -n "${PLAY_REFUSED:-}" ] && extra+=(-play-refused)
 			"$out/kfuzz" "${what[@]}" -first-pair 0 -pairs 1500 -seed 1 -keep-going \
 				-surface "$surface" -mulligans "$m" -shrink 0 -workers "$workers" -absolute \
-				-implicates-all -coverage "$run.coverage" "${extra[@]}" >"$run.out" 2>&1
+				-implicates-all -coverage "$run.coverage" -out "$run.repros" "${extra[@]}" >"$run.out" 2>&1
 			rc=$?
 			echo "$rc" >"$run.rc"
 			if [ "$rc" != 0 ]; then

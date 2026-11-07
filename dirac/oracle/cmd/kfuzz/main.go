@@ -134,7 +134,7 @@ func run() int {
 		workers    = flag.Int("workers", 1, "games in parallel")
 		keepGoing  = flag.Bool("keep-going", false, "count every divergence instead of stopping at the first")
 		shrink     = flag.Int("shrink", 200, "shrink reruns for the first divergence (0: none)")
-		out        = flag.String("out", "", "directory for the first divergence's repro.json, and for each capacity stall's game as capacity-<table>-pair<N>.repro.json (default: none written)")
+		out        = flag.String("out", "", "directory for the first divergence's repro.json, and one file a bad game: capacity-<table>-pair<N>.repro.json for a capacity stall, unmodelled-<why>-pair<N>.repro.json for an unmodelled kernel stall, divergent-pair<N>.repro.json for a divergent game (default: none written)")
 		reproPath  = flag.String("repro", "", "re-run this repro in lockstep and report")
 		replayPath = flag.String("replay", "", "re-execute this kernel game (koracle-game-1) in gorge and report")
 		jsonOut    = flag.Bool("json", false, "print the summary as JSON")
@@ -1090,6 +1090,22 @@ func watchGame(i int, timeout time.Duration, play func(int) played) played {
 	}
 }
 
+// writePairRepro writes one bad game's repro as dir/name, so the game replays from
+// its own cards after a later land re-deals the pool. No dir (no -out) or no
+// matchup writes nothing; a failed write is reported and the sweep goes on.
+func writePairRepro(dir, name string, m *oracle.Matchup, seed uint64, rc oracle.RunConfig, res *oracle.Result) {
+	if dir == "" || m == nil {
+		return
+	}
+	err := os.MkdirAll(dir, 0o755)
+	if err == nil {
+		err = newRepro(m, seed, rc, res).Write(filepath.Join(dir, name))
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "kfuzz:", err)
+	}
+}
+
 // report tallies the outcomes in pair order, prints the verdict and returns the
 // exit code.
 func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig, o sweepOpts, feat *oracle.FeatStats) int {
@@ -1164,6 +1180,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 					fmt.Printf("pair %d (%s vs %s, seed %d): %s unmodelled stall after %d decisions\n", p.Index, p.A, p.B, p.Seed, res.Stall, res.Decisions)
 				}
 				printBadGame(o.corpus, p, "unmodelled", why, nil, res.RecentSources(m, recentSourcesShown))
+				writePairRepro(o.out, fmt.Sprintf("unmodelled-%s-pair%d.repro.json", why, p.Index), m, p.Seed, rc, &res)
 				continue
 			}
 			v.Capacity++
@@ -1171,16 +1188,9 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 			if verboseFDN {
 				fmt.Printf("pair %d (%s vs %s, seed %d): %s capacity stall after %d decisions; latest sources: %s\n", p.Index, p.A, p.B, p.Seed, res.Stall, res.Decisions, strings.Join(res.RecentSources(m, 40), "|"))
 			}
-			if o.out != "" && m != nil {
-				// the game up to the stall, one file a pair: a test that plays it on
-				// fails for as long as the table stalls there
-				if err := os.MkdirAll(o.out, 0o755); err == nil {
-					path := filepath.Join(o.out, fmt.Sprintf("capacity-%s-pair%d.repro.json", why, p.Index))
-					if err := newRepro(m, p.Seed, rc, &res).Write(path); err != nil {
-						fmt.Fprintln(os.Stderr, "kfuzz:", err)
-					}
-				}
-			}
+			// the game up to the stall, one file a pair: a test that plays it on
+			// fails for as long as the table stalls there
+			writePairRepro(o.out, fmt.Sprintf("capacity-%s-pair%d.repro.json", why, p.Index), m, p.Seed, rc, &res)
 			continue
 		}
 		if res.Div == nil {
@@ -1202,6 +1212,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 			implicated[n]++
 		}
 		printBadGame(o.corpus, p, "divergent", cls, implicates, res.RecentSources(m, recentSourcesShown))
+		writePairRepro(o.out, fmt.Sprintf("divergent-pair%d.repro.json", p.Index), m, p.Seed, rc, &res)
 		if res.Div.What == "features" {
 			fmt.Printf("pair %d (%s vs %s): %s\n", p.Index, p.A, p.B, res.Div.Detail)
 		}
