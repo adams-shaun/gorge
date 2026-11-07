@@ -557,10 +557,13 @@ func (s *State) sba(k *prep) bool {
 				gy = gy.with(sl)
 				aur = aur.with(sl)
 			}
-			if t&kop.TAura == 0 && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TCreature == 0 {
+			if t&kop.TAura == 0 && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TCreature == 0 && !s.legendOwed(k) {
 				// an Equipment whose creature is no longer one (Imprisoned
 				// in the Moon) becomes unattached and stays (CR 704.5n;
-				// gorge attachmentSBAs; pair 9856)
+				// gorge attachmentSBAs; pair 9856). Under a legend ask it
+				// stays attached: gorge parks the pass's batch with the ask
+				// (CR 704.3), and the pass after the answer detaches it
+				// (Crystallized Serah transformed beside another)
 				h := p.attached
 				s.touchSl(h)
 				p.attached = NoSlot
@@ -742,14 +745,27 @@ func (s *State) leaveAll(k *prep, mask slotMask, z kop.Zone) {
 		n = s.battlefieldOrder(p, mask.and(s.ctrlM[p]), order[:], n)
 	}
 	if len(s.cold.parked) != 0 && z == kop.ZoneGraveyard && s.res.active {
-		m := 0
-		for _, sl := range order[:n] {
-			if !s.park(k, s.perms[sl].obj, parkMass, 0) {
-				order[m] = sl
-				m++
+		first := n
+		for i, sl := range order[:n] {
+			if s.graveMoveCompetes(k, s.perms[sl].obj) {
+				first = i
+				break
 			}
 		}
-		n = m
+		for _, sl := range order[first:n] {
+			o := s.perms[sl].obj
+			if s.park(k, o, parkMass, 0) {
+				continue
+			}
+			if !s.parkMassQuiet(o) {
+				s.capFull(StallReplCands)
+				break
+			}
+		}
+		// Gorge suspends the whole destroy-all at the first victim whose move
+		// competes (CR 616.1): that victim and every later one wait for its
+		// answer, competing or not. Only the earlier ones move now.
+		n = first
 	}
 	hr := s.holdOpen(k)
 	defer s.holdClose(k, hr)

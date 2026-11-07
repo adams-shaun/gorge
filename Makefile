@@ -77,7 +77,9 @@ FORGE_REPO ?= https://github.com/adams-shaun/forge.git
 # is The Duras Sisters' printed 3/2 (it was 1/1).
 # 84ce1603d9 = the fork's gorge-trek6: 64afbdf3a6 + two Oracle fixes XMage's TRK pass found (2026-11-04): 70,000
 # Light-Years from Home puts the basic land into its controller's hand, and Captain Michael Burnham is a Human Officer.
-FORGE_REF  ?= 84ce1603d9d663992a06b7ea05ebdba7d4fe7e3f
+# 418ba5215f = the fork's gorge-trek7: 84ce1603d9 + reviewer fixes to Card-Forge/forge#12668/#12669 (2026-11-07): ABILITY trigger
+# text and ValidTgtsDesc$ (Tal Shiar Operative, Wesley Crusher, Sela), Tal Shiar Analyst's Defined$ Opponent, Sarek's PlayMain1.
+FORGE_REF  ?= 418ba5215f63ca660f830468d3c66dc6886a6e5e
 
 .PHONY: help
 help:
@@ -148,6 +150,8 @@ gorged: $(BIN_DIR)/gorged
 # deploy/demo.env (deploy/demo.env.example); scripts/deploy-demo.sh has every
 # variable and its rationale, and `scripts/deploy-demo.sh --dry-run` prints
 # the resolved configuration and the commands without running them.
+# SERVER_MAIN in the same file builds another module's main package instead
+# of cmd/gorged, against this checkout.
 #
 # stop-demo takes the demo down without starting it again, by the same socket
 # lookup (never pkill -f). prewarm-art fills the durable card-art cache the
