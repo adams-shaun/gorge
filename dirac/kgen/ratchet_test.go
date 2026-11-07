@@ -91,8 +91,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// ValidSpell$ Activated.PowerUp; MSH 232 -> 233, ALL 21659 -> 21660).
 	// +1 (Ark of Hunger: the remembered-card MayPlay over Graveyard,Exile; SOS 248 -> 249, ALL 21664 -> 21665).
 	// +1 (Parker Luck: the RepeatEach Targeted body reads the other player's revealed card's mana value; SPM 160 -> 161, ALL 21665 -> 21666).
+	// +10 (ValidSpell$ Activated.Equip ReduceCost, the target-gated equip price: Auriok Steelshaper, Bladehold War-Whip, Bureau Headmaster, Cloud, Planet's Champion, Dwarven Mauler, Fervent Champion, Ghostfire Blade, Helitrooper, Nahiri, Storm of Stone, Éowyn, Lady of Rohan; FIN 266 -> 267, HOB 152 -> 153, ONE 195 -> 196, ALL 21666 -> 21676).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21666, 34442},
+	"ALL": {21676, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -102,15 +103,15 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"ECL": {233, 273},
 	"EOE": {239, 266},
 	"FDN": {517, 517},
-	"FIN": {266, 312},
+	"FIN": {267, 312},
 	"FRA": {245, 269},
-	"HOB": {152, 172},
+	"HOB": {153, 172},
 	"LCI": {251, 290},
 	"MKM": {242, 279},
 	"MOM": {198, 296},
 	"MSH": {233, 276},
 	"NEO": {198, 287},
-	"ONE": {195, 271},
+	"ONE": {196, 271},
 	"OTJ": {241, 276},
 	"SNC": {185, 266},
 	"SOS": {249, 270},
