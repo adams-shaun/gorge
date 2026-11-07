@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	reattachMaulerSrc = "Name:Mauler\nManaCost:R\nTypes:Creature Dwarf Warrior\nPT:2/1\nS:Mode$ ReduceCost | ValidTarget$ Card.Self | ValidSpell$ Activated.Equip | Activator$ You | Amount$ 2 | Description$ Equip abilities you activate that target this creature cost {2} less to activate.\nOracle:x\n"
-	reattachSpearSrc  = "Name:Spear\nManaCost:1 R\nTypes:Artifact Equipment\nS:Mode$ Continuous | AffectedDefined$ Equipped | Affected$ Creature | AddPower$ 2 | Description$ Equipped creature gets +2/+0.\nK:Equip:3\nOracle:x\n"
+	reattachMaulerSrc = "Name:Mauler\nManaCost:R\nTypes:Creature Dwarf Warrior\nPT:2/1\nS:Mode$ ReduceCost | Amount$ 2 | Activator$ You | ValidSpell$ Activated.Equip | ValidTarget$ Card.Self | Description$ Equipping me is two cheaper.\nOracle:x\n"
+	reattachSpearSrc  = "Name:Spear\nManaCost:1 R\nTypes:Artifact Equipment\nS:Mode$ Continuous | Affected$ Creature | AddPower$ 2 | AffectedDefined$ Equipped | Description$ Bearer is stronger.\nK:Equip:3\nOracle:x\n"
 	reattachLandSrc   = "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n"
 )
 
