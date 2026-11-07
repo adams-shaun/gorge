@@ -200,12 +200,18 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 
 // anyManaSource reports whether p has an untapped source to fund a payment with:
 // a tap source, the untapped sacrifice-only arm, a gap source with its cost payable,
-// or a restricted mana ability.
+// a deferred source, or a restricted mana ability.
 //
 //go:noinline
 func (s *State) anyManaSource(k *prep, p uint8) bool {
 	if k.gen == nil {
 		return false
+	}
+	// a deferred source (Pyromancer's Goggles, mana_deferred.go) has no census
+	// ability, yet its plain {R} is untapped mana gorge's untappedManaSourceFor
+	// counts (CR 106.6: the when-spent rider restricts nothing)
+	if s.scriptDeferred(k, p).any() {
+		return true
 	}
 	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
 		sl := m.first()
@@ -621,6 +627,9 @@ func (s *State) continueRes(k *prep, n uint8) {
 	if n == 0 && s.g.retAt != 0 && s.returnRemembered(k, &s.prog(k)[s.res.pc]) {
 		return
 	}
+	if n == 0 && k.gen != nil && s.parkReturnAsk() {
+		return // the answer made a departure frame park a return: ask it before the program goes on (zone_untilleavesbatch.go)
+	}
 	s.res.pc += n + 1
 	s.loopBack(k)
 	s.runProg(k)
@@ -969,6 +978,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			}
 		}
 		if k.gen.anyHideaway && k.cards[s.objs[o].card].land && !DebugHideNoLand {
+			if s.hideLandPark(k, o) {
+				return // its as-enters choice is asked first, in exile (kw_hideaway.go)
+			}
 			s.hideLand(k, o) // a hidden land is played now, not queued (kw_hideaway.go)
 			if s.g.nfree == 0 {
 				s.castFreeClosed(k)
@@ -1099,8 +1111,11 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				host := s.objs[a.Source()].slot
 				from := s.detach(o)
 				s.enterOnto(host)
-				sl := s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from)
+				sl := s.enterLinkRet(k, o, s.objs[o].owner(), from)
 				s.attachedTo(k, sl, host)
+			}
+			if !paying && s.resumeReturns(k) {
+				return // the batch's next return asks its host
 			}
 			if paying {
 				s.res.ask = raNone
@@ -1114,6 +1129,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.pre.kind == akType {
 			s.g.pre.val = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
 		}
+		if s.g.pre.state == preHideLand {
+			s.hideLandAnswer(k) // kw_hideaway.go
+			return
+		}
 		if s.g.pre.state == preReturnOp {
 			s.rerunReturn(k)
 			return
@@ -1122,9 +1141,12 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.g.pre.state = 2
 		if s.objs[o].zone == kop.ZoneExile {
 			from := s.detach(o)
-			s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from) // the enters program reads the choice
+			s.enterLinkRet(k, o, s.objs[o].owner(), from) // the enters program reads the choice
 		}
 		s.g.pre = preAsk{}
+		if !paying && s.resumeReturns(k) {
+			return // the batch's next return asks its host
+		}
 		if paying {
 			s.res.ask = raNone
 			s.payDone(k, true) // the payment's sacrifice finished: the cost resumes

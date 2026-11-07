@@ -63,8 +63,8 @@ func (e *Engine) sourceCharSnapshotOf(src state.ObjID) sourceCharSnapshot {
 }
 
 // bindSourceLKI binds the departed source's snapshot for the stack object id
-// into tc: the chosen type/colour and the cast-time mana spend (CR 113.7a /
-// 608.2h). It does nothing for an ability whose source never left, so those
+// into tc: the chosen type/colour, the cast-time mana spend and the power,
+// toughness and counters (CR 113.7a / 608.2h). It does nothing for an ability whose source never left, so those
 // read live as before.
 func (e *Engine) bindSourceLKI(tc *effects.TriggerContext, id, source state.ObjID) {
 	snap, ok := e.sourceCharLKI[id]
@@ -74,6 +74,7 @@ func (e *Engine) bindSourceLKI(tc *effects.TriggerContext, id, source state.ObjI
 	tc.SourceLKIValid = true
 	tc.SourceChosenType, tc.SourceChosenColor = snap.chosenType, snap.chosenColor
 	tc.SourceManaColorSpent = snap.manaColorSpent
+	tc.SourcePower, tc.SourceToughness, tc.SourceCounters = snap.power, snap.toughness, snap.counters
 }
 
 // captureSourceCharLKI records src's snapshot, immediately before it leaves
