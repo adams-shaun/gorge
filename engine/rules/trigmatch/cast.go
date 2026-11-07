@@ -204,7 +204,7 @@ func SpellCastEval(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 	// filter over the cast spell). It lives here beside the other event-relative
 	// SpellCast gates, the Dethrone/Training precedent read by their own
 	// matchers.
-	if v, ok := t.Param(cards.PKIncrement); ok && strings.EqualFold(strings.TrimSpace(v), "True") {
+	if IsIncrementTrigger(t) {
 		if !incrementAdmits(e, source, ev) {
 			return false
 		}
@@ -803,7 +803,25 @@ func incrementAdmits(e Board, source state.ObjID, ev events.Event) bool {
 	if src == nil || src.Face() == nil {
 		return false
 	}
-	spent := ManaSpentForCast(e, ev.Player, ev.Obj)
+	return IncrementSpendExceeds(e, source, ManaSpentForCast(e, ev.Player, ev.Obj))
+}
+
+// IsIncrementTrigger reports whether t carries the Increment keyword
+// expansion's Increment$ True marker (engine/cards/kw_increment.go).
+func IsIncrementTrigger(t cards.Trigger) bool {
+	v, ok := t.Param(cards.PKIncrement)
+	return ok && strings.EqualFold(strings.TrimSpace(v), "True")
+}
+
+// IncrementSpendExceeds is Increment's comparison (CR 702.191a): spent is
+// greater than the source's current power or its current toughness. It is
+// the ONE home of the comparison: the fire-time gate (incrementAdmits) and the
+// CR 603.4 resolution recheck (rules.triggerResolvingCheckHolds, with the
+// spend captured in TriggerContext.TriggerIncrementSpent) both call it.
+func IncrementSpendExceeds(e interface {
+	Power(state.ObjID) int32
+	Toughness(state.ObjID) int32
+}, source state.ObjID, spent int32) bool {
 	return spent > e.Power(source) || spent > e.Toughness(source)
 }
 
