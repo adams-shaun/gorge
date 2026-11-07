@@ -265,10 +265,14 @@ func (e *Engine) pendingCastScope(pc *pendingCast) (costScope, bool) {
 }
 
 // affordableTargetCandidates filters legal CR 115 targets to the choices
-// whose final target-dependent cost can complete this transaction. A target
-// is tested as the sole selection: that is exact for the normal one-target
+// whose final target-dependent cost can complete this transaction. base is
+// the already-announced target set (CR 601.2c): nil for the root ask, where a
+// target is tested as the sole selection -- exact for the normal one-target
 // shape and conservatively safe for multi-target declarations (where the
-// decision API cannot express that one option requires another option).
+// decision API cannot express that one option requires another option) --
+// and pc.allTargets() for a SubAbility$ link's ask, whose candidate is priced
+// with the root's and earlier links' targets because the CR 601.2f total cost
+// reads the whole set.
 //
 // The probe also reprices the ability's own target-dependent ReduceCost$
 // per candidate (belt_of_giant_strength's Targeted$CardPower): the offer
@@ -287,7 +291,7 @@ func (e *Engine) pendingCastScope(pc *pendingCast) (costScope, bool) {
 // re-derive the same objects -- nonManaCastable's discard census matches
 // every hand card once PER CANDIDATE -- and a mass of candidates otherwise
 // makes the ask O(candidates x hand) layer walks.
-func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []targetCandidate) []targetCandidate {
+func (e *Engine) affordableTargetCandidates(pc *pendingCast, base []state.Target, candidates []targetCandidate) []targetCandidate {
 	e.beginDerivedMemo()
 	defer e.endDerivedMemo()
 	scope, ok := e.pendingCastScope(pc)
@@ -314,15 +318,22 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		if candidate.kind == "player" {
 			target = state.Target{Player: candidate.player, IsPlayer: true}
 		}
-		mods := pc.withDefiler(e.costModifiersForTargets(pc.player, pc.card, scope, []state.Target{target}))
+		// the probe mirrors repriceForTargets: the root-only Targeted$ slot
+		// and the whole announcement (root + links) as AllTargeted$
+		targets, rootTargets, allTargets := []state.Target{target}, []state.Target{target}, []state.Target(nil)
+		if len(base) > 0 {
+			targets = append(append([]state.Target(nil), base...), target)
+			rootTargets, allTargets = pc.targets, targets
+		}
+		mods := pc.withDefiler(e.costModifiersForTargets(pc.player, pc.card, scope, targets))
 		if e.costRepricesOnX(pc) {
 			// the announced X is known by now (CR 601.2b): a static reading
 			// the spell's mana value prices this target at it
-			mods = pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, []state.Target{target}, pc.x))
+			mods = pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, targets, pc.x))
 		}
 		cost := mods.Apply(pc.resolvedMana())
 		if pc.ownReduce > 0 {
-			if n := e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), []state.Target{target}, nil, pc.abilityMerged); n < pc.ownReduce {
+			if n := e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), rootTargets, allTargets, pc.abilityMerged); n < pc.ownReduce {
 				cost.Generic = addClampedGeneric(cost.Generic, int64(pc.ownReduce-n))
 			}
 		}
