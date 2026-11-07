@@ -2,7 +2,7 @@
 """Refuse by name what the evidence corpus still shows diverging, and write the lists.
 
   dirac-first-refusals.py settle <out> [--rounds N] [--resume]  settle the refused list against the corpus
-  dirac-first-refusals.py evidence <out>                        write dirac/support/evidence from <out>
+  dirac-first-refusals.py evidence <out> [--pools P ...]        write dirac/support/evidence from <out>
   dirac-first-refusals.py report <out>                          counts by run, surface and refused class
 
 The caller caps the process: settle runs scripts/dirac-evidence.sh.
@@ -45,6 +45,7 @@ DECK_CLEARED_PLAYS = 50
 REFUSED_DIR = "dirac/support/refused"
 EVIDENCE_DIR = "dirac/support/evidence"
 EVIDENCE_GAMES = "dirac/support/evidence-games.tsv"
+EVIDENCE_FORMS = ("autopay.m0", "autopay.m1", "full.m0", "full.m1")  # the four runs a pool owes
 VERDICT = re.compile(
     r"^(\S+): (\d+) games \((\d+) refused-card, (\d+) refused-pair, (\d+) error\), (\d+) clean, "
     r"(\d+) divergent, (\d+) unmodelled \[.*?\], (\d+) capacity \[.*?\], (\d+) hang"
@@ -233,9 +234,10 @@ def settle(top, out, rounds, resume):
     sys.exit(f"not settled after {rounds} rounds")
 
 
-def merged_coverage(out):
+def merged_coverage(out, only=None):
     """card -> [plays, unused keys in every run, pools it was played in]. A pool with a run
-    that did not pass counts for nothing, so an unfinished corpus leaves cards unverified."""
+    that did not pass counts for nothing, so an unfinished corpus leaves cards unverified.
+    With only, count the named pools' own runs alone."""
     dirty = set()
     for path in run_files(out, "rc"):
         with open(path) as f:
@@ -244,7 +246,7 @@ def merged_coverage(out):
     cards = {}
     for path in run_files(out, "coverage"):
         pool = run_parts(path)[0]
-        if pool in dirty:
+        if pool in dirty or (only is not None and pool not in only):
             continue
         with open(path) as f:
             next(f)
@@ -268,22 +270,98 @@ def refused_names(top):
     return names
 
 
-def write_evidence(top, out):
-    """A list per pool, of the cards it played that meet the floor over the whole corpus's clean games."""
+def require_pool_runs(out, pools):
+    """Refuse, writing nothing, unless every named pool has the four expected runs (autopay and
+    full, mulligans 0 and 1), each passed."""
+    for pool in pools:
+        rc = {}
+        for path in run_files(out, "rc"):
+            p, surface, m = run_parts(path)
+            if p == pool:
+                rc[f"{surface}.m{m}"] = path
+        missing = [form for form in EVIDENCE_FORMS if form not in rc]
+        if missing:
+            refuse(f"{pool} is missing runs {' '.join(missing)}")
+        failed = []
+        for form in EVIDENCE_FORMS:
+            with open(rc[form]) as f:
+                if f.read().strip() != "0":
+                    failed.append(form)
+        if failed:
+            refuse(f"{pool} runs {' '.join(failed)} did not pass")
+
+
+def refuse(why):
+    print(f"evidence: {why}; writing nothing", file=sys.stderr)
+    sys.exit(1)
+
+
+def existing_list(top, pool):
+    path = os.path.join(top, EVIDENCE_DIR, pool + ".txt")
+    if not os.path.exists(path):
+        return []
+    with open(path) as f:
+        return [n for n in f.read().splitlines() if n]
+
+
+def tsv_rows(top, rows):
+    """The evidence-games lines with rows rewritten: a named pool's old row replaced in place, a new
+    one inserted where the file stays sorted, every other line byte for byte as it was."""
+    lines = []
+    if os.path.exists(os.path.join(top, EVIDENCE_GAMES)):
+        with open(os.path.join(top, EVIDENCE_GAMES)) as f:
+            lines = f.read().splitlines()
+    written = set()
+    out = []
+    for line in lines:
+        pool = line.split("\t", 1)[0]
+        if pool in rows:
+            if pool not in written:
+                out.append(f"{pool}\t{rows[pool]}")
+                written.add(pool)
+        else:
+            out.append(line)
+    for pool in sorted(set(rows) - written):
+        i = next((i for i, l in enumerate(out) if l.split("\t", 1)[0] > pool), len(out))
+        out.insert(i, f"{pool}\t{rows[pool]}")
+    return out
+
+
+def write_evidence(top, out, pools=None):
+    """A list per pool, of the cards it played that meet the floor over the whole corpus's clean games.
+
+    With pools, only those pools' lists and evidence-games rows are written, each list the union of
+    the one in the tree and the cards meeting the floor over that pool's own clean games, and every
+    expected run of every named pool must have passed first. A card is never removed: only a
+    refusal does that. Everything else is left byte for byte as it was."""
     refused = refused_names(top)
     lists = collections.defaultdict(list)
-    for card, (plays, unused, pools) in sorted(merged_coverage(out).items()):
-        if plays >= EVIDENCE_MIN_PLAYS and not unused and card not in refused:
-            for pool in pools:
-                lists[pool].append(card)
-    for path in glob.glob(os.path.join(top, EVIDENCE_DIR, "*.txt")):
-        os.remove(path)
+    if pools is None:
+        for card, (plays, unused, ps) in sorted(merged_coverage(out).items()):
+            if plays >= EVIDENCE_MIN_PLAYS and not unused and card not in refused:
+                for pool in ps:
+                    lists[pool].append(card)
+        for path in glob.glob(os.path.join(top, EVIDENCE_DIR, "*.txt")):
+            os.remove(path)
+        rows = games_per_run(out)
+        lines = [f"{pool}\t{games}" for pool, games in sorted(rows.items())]
+    else:
+        pools = list(pools)
+        require_pool_runs(out, pools)
+        games = games_per_run(out)
+        for pool in pools:
+            if pool not in games:
+                refuse(f"{pool} has no verdict")
+            gained = [card for card, (plays, unused, _) in sorted(merged_coverage(out, {pool}).items())
+                      if plays >= EVIDENCE_MIN_PLAYS and not unused and card not in refused]
+            lists[pool] = sorted(set(existing_list(top, pool)) | set(gained))
+        lines = tsv_rows(top, {p: games[p] for p in pools})
     for pool, names in lists.items():
         with open(os.path.join(top, EVIDENCE_DIR, pool + ".txt"), "w") as f:
             f.writelines(n + "\n" for n in names)
     print(f"evidence: {len(set(n for v in lists.values() for n in v))} cards in {len(lists)} lists")
     with open(os.path.join(top, EVIDENCE_GAMES), "w") as f:
-        f.writelines(f"{pool}\t{games}\n" for pool, games in sorted(games_per_run(out).items()))
+        f.writelines(l + "\n" for l in lines)
 
 
 def games_per_run(out):
@@ -332,12 +410,13 @@ def main():
     p.add_argument("out")
     p.add_argument("--rounds", type=int, default=20)
     p.add_argument("--resume", action="store_true", help="settle: read the runs already in <out>/played-in")
+    p.add_argument("--pools", nargs="+", metavar="P", help="evidence: write only these pools' lists and rows")
     a = p.parse_args()
     top, out = root(), os.path.abspath(a.out)
     if a.command == "settle":
         settle(top, out, a.rounds, a.resume)
     elif a.command == "evidence":
-        write_evidence(top, out)
+        write_evidence(top, out, a.pools)
     else:
         report(top, out)
 

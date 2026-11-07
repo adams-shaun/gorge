@@ -376,7 +376,7 @@ func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCo
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
-	if !s.addRestrChV(k, p, a.ManaRestrict, k.gen.restrVarOf(a), 0, bits.TrailingZeros8(uint8(a.ManaColors)&want), max(a.ManaN, 1)) {
+	if !s.addRestrSrcV(k, p, sl, a.ManaRestrict, k.gen.restrVarOf(a), bits.TrailingZeros8(uint8(a.ManaColors)&want), max(a.ManaN, 1)) {
 		s.capFull(StallRestrSrc)
 	}
 	return true
@@ -403,7 +403,11 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 		// owedAbilitiesFirst lists it first when the payment owes a colour
 		// its plain ability cannot make, and the answer takes its colour
 		// ask. Tap it for the owed colour, which floats restricted
-		// (CR 106.6), exactly as a fixed restricted one above.
+		// (CR 106.6), exactly as a fixed restricted one above. The batch
+		// keeps the source's chosen creature type like every other tap:
+		// a spell of the chosen type (an evoked Elemental Incarnation paid
+		// with Eclipsed Realms' Elemental-restricted {B}) spends it only
+		// when the batch records the type its restriction reads.
 		anyColour := a.ManaColors == kop.ColAny
 		if !restrSrcAb(a) || a.AFlags&kop.AfManaDynamic != 0 ||
 			a.AFlags&kop.AfManaChoice != 0 && !anyColour || uint8(a.ManaColors)&w == 0 {
