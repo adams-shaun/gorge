@@ -328,6 +328,7 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// covers the whole generic part leaves no shortfall for Teval's
 		// granted delve, so no graveyard card is offered (Ureni's Rebuff).
 		{"delve_harmonize_covered_generic", true, false},
+		{"alt_add_treasure_lowering_reaches_with_part_mana", true, false}, // CR 601.2f, 601.2g: Caustic Exhale ({B}, behold a Dragon or pay {1}) with a Treasure as the only {B}: gorge's lowering floats {B}{1} together and reaches the cast, so it is not a planned one; the kernel priced the witness without the {1}
 	})
 }
 
