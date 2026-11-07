@@ -7,11 +7,14 @@ import (
 )
 
 // unitAltsChoice emits unit u's alternatives when the source has a
-// choice-shaped mana ability (Produced$ Any, a Combo): gorge's census appends
-// that ability to the unit after the shared walk, so it follows the intrinsic
-// ability of each granted basic land type, while a printed fixed production
-// precedes them (payment_plan.go paymentPlanManaUnitsOnlyCompute). It reports
-// false when every ability is fixed, leaving unitAlts' single-walk order.
+// choice-shaped mana ability (Produced$ Any, a Combo, a gated Chosen:
+// AfManaChoice) and the board grants a basic land type. gorge's census
+// (payment_plan.go paymentPlanManaUnitsOnlyCompute) keeps only deterministic
+// production in its shared walk, so a printed fixed single-colour production
+// and the intrinsic ability of the card's own basic land type precede the
+// granted types' intrinsic abilities, and the choice-shaped ability is
+// appended to the unit after them, once. It reports false when every ability
+// is fixed, leaving unitAlts' single-walk order.
 func (s *State) unitAltsChoice(k *prep, pk *planner, u int, out *[planLimitAlts]lsAlt, granted bool) (int, bool) {
 	if !granted {
 		return 0, false // no granted type on the board
@@ -48,11 +51,13 @@ func (s *State) unitAltsChoice(k *prep, pk *planner, u int, out *[planLimitAlts]
 		return 0, false // no choice shape, or no granted type for it to follow
 	}
 	n := 0
-	// fixed productions first, then the granted types' intrinsic abilities
+	// the printed fixed productions and the card's own basic land type's
+	// intrinsic ability first (the shared walk's face list), then the granted
+	// types' intrinsic abilities
 	for j := range cd.Abilities {
 		a := &cd.Abilities[j]
 		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 || a.ManaEach ||
-			a.AFlags&kop.AfManaChoice == 0 && bits.OnesCount8(uint8(a.ManaColors)) != 1 {
+			a.AFlags&kop.AfManaChoice != 0 || bits.OnesCount8(uint8(a.ManaColors)) != 1 {
 			continue
 		}
 		for m := uint8(a.ManaColors) & left; m != 0; m &= m - 1 {
@@ -71,7 +76,9 @@ func (s *State) unitAltsChoice(k *prep, pk *planner, u int, out *[planLimitAlts]
 		n++
 	}
 	// the choice-shaped abilities after them, each colour its own alternative
-	// even when an intrinsic ability already makes that colour
+	// even when an intrinsic ability already makes that colour: the appended
+	// alternative belongs to the printed ability (its step sorts by it,
+	// pay.CompareSteps), whatever the card's own basic land type makes
 	for j := range cd.Abilities {
 		a := &cd.Abilities[j]
 		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 || a.ManaEach ||
@@ -79,12 +86,7 @@ func (s *State) unitAltsChoice(k *prep, pk *planner, u int, out *[planLimitAlts]
 			continue
 		}
 		for m := uint8(a.ManaColors); m != 0; m &= m - 1 {
-			c := uint8(bits.TrailingZeros8(m))
-			ab := int8(j)
-			if c < 5 && k.gen.blgSub[c] != subOutside && cd.Subtypes.Has(int(k.gen.blgSub[c])) {
-				ab = -1
-			}
-			out[n] = lsAlt{c, ab}
+			out[n] = lsAlt{uint8(bits.TrailingZeros8(m)), int8(j)}
 			n++
 		}
 	}
