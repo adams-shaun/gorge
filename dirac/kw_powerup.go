@@ -57,6 +57,35 @@ func powerUpReduce(c, red kop.ManaCost) kop.ManaCost {
 	return c
 }
 
+// powerUpWitnessAffords reports whether av pays gorge's autopay planner
+// witness for Power-up ability a of slot sl (powerUpWitness). The caller
+// guards on anyPowerUp and CostPowerUp and on the pool not paying; this body
+// is cold.
+//
+//go:noinline
+func (s *State) powerUpWitnessAffords(k *prep, sl Slot, a *kop.Ability, ctrl uint8, av *avail) bool {
+	c := s.powerUpWitness(k, a, sl, ctrl)
+	return s.abilityAffords(k, sl, a, &c, av)
+}
+
+// powerUpWitness is the cost gorge's autopay planner prices for Power-up
+// ability a of slot sl: the printed cost with the ability's own reduction
+// and the cost statics composed (planAbilityPaymentLifePips:
+// ownReduceCostOffer, then offerCostFor; CR 601.2f), but never the CR
+// 702.193b entry-turn reduction. Hulk, Gamma Goliath's {3} lowers it.
+//
+//go:noinline
+func (s *State) powerUpWitness(k *prep, a *kop.Ability, sl Slot, ctrl uint8) kop.ManaCost {
+	m := a.Cost.Mana
+	if k.gen != nil && k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) && sl != NoSlot {
+		m = s.ownReducedBF(k, a, sl, ctrl)
+	}
+	if k.gen != nil && k.gen.anyAbReduce {
+		m = s.abReduced(k, a, sl, ctrl, m)
+	}
+	return m
+}
+
 // powerUpPlanRejected reports whether gorge's payment planner witness for a
 // Power-up ability is rejected at payment. planAbilityPayment prices the
 // PRINTED cost (it never calls powerUpReduceCost) while the activation

@@ -8,6 +8,7 @@ package rules
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -883,6 +884,9 @@ func (e *Engine) copyTargetAsk(o *state.Object, decls []*cards.SA, nRoot, stage 
 		e.subOfferParent, e.subOfferBound = copyChainParent(answers, stage, nRoot), true
 	}
 	candidates := e.legalTargetCandidates(controller, o.ID, o.ID, sa)
+	if src := attachSelfSource(o, sa); src != 0 {
+		candidates = slices.DeleteFunc(candidates, func(c targetCandidate) bool { return c.kind != "player" && c.obj == src })
+	}
 	// MaxTotalTargetPower$ (Reunion of the House): re-run the cast ask's
 	// per-candidate prune here, so a copy of a power-capped multi-target spell
 	// offers the same census the cast did. The running budget rides the
@@ -915,6 +919,7 @@ func (e *Engine) copyTargetAsk(o *state.Object, decls []*cards.SA, nRoot, stage 
 		}
 	}
 	ordered = append(ordered, candidates...)
+	ordered = e.copyUniqueLinkCandidates(o, decls, nRoot, stage, answers, ordered)
 	if len(ordered) == 0 {
 		e.subOfferParent, e.subOfferBound = savedParent, savedBound
 		return nil
@@ -984,6 +989,34 @@ func (e *Engine) copyTargetAsk(o *state.Object, decls []*cards.SA, nRoot, stage 
 		}
 	}
 	return d
+}
+
+// copyUniqueLinkCandidates drops from a TargetUnique$ chain link's election
+// ("up to one other target creature") every target an earlier declaration of
+// the copy holds -- its answer, or its inherited targets when it was not
+// asked -- inherited keep-current options included: the copy's new targets
+// must be legal (CR 707.10c), and "other" forbids the same object twice (CR
+// 115.3). The cast's subTargetAsk excludes the same set.
+func (e *Engine) copyUniqueLinkCandidates(o *state.Object, decls []*cards.SA, nRoot, stage int, answers [][]decision.Option, ordered []targetCandidate) []targetCandidate {
+	sa := decls[stage]
+	if stage < nRoot || !effects.TargetUniqueRequested(sa) {
+		return ordered
+	}
+	var chosen []state.Target
+	for i := 0; i < stage; i++ {
+		if i >= nRoot && !effects.TargetUniqueRequested(decls[i]) {
+			continue
+		}
+		if answers[i] != nil {
+			chosen = append(chosen, targetOptions(answers[i])...)
+		} else {
+			chosen = append(chosen, e.copyInheritedForDeclaration(o, decls, i)...)
+		}
+	}
+	return slices.DeleteFunc(ordered, func(c targetCandidate) bool {
+		t := state.Target{Obj: c.obj, Player: c.player, IsPlayer: c.kind == "player"}
+		return len(effects.TargetUniqueFilter(sa, []state.Target{t}, chosen)) == 0
+	})
 }
 
 // copyChainParent is the parent target list a chained declaration's census

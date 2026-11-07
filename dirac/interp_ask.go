@@ -741,7 +741,12 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			if s.g.pickLeft > 0 {
 				r.ask = raGenPayPick
 				if s.autoPayPick(k) {
-					break // exactly the needed cards: gorge picks them (cumulative.go advanceTriggeredMandatory, pay/unlessflow.go AdvanceUnless)
+					// exactly the needed cards: gorge picks them (cumulative.go advanceTriggeredMandatory, pay/unlessflow.go AdvanceUnless);
+					// a card one of them held in exile until it left is asked now, as after the last answered pick (CR 610.3d)
+					if s.payReturnPark() {
+						return
+					}
+					break
 				}
 				return
 			}
@@ -1048,6 +1053,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		s.continueRes(k, 0)
 	case raGenEnterAsk:
+		if s.g.ask[0].kind == akNameLook {
+			s.g.ask[0].kind = akNameAny // the look is acknowledged: the name is asked next (repl_choosename.go)
+			return
+		}
 		saved := s.res
 		s.res.active = false // the enters program runs with its own source as the context
 		s.answerQueuedAsk(k, a)
@@ -1266,7 +1275,10 @@ func (s *State) payDone(k *prep, paid bool) {
 func (s *State) payWardN(k *prep, n uint8, pay bool) {
 	r := &s.res
 	idx := s.wardedIndex(&r.e)
-	if c := (kop.ManaCost{Generic: n}); pay && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c) || s.nonSpellRestrAffords(k, r.e.trigPl, &c)) {
+	// A live tap-another-permanent source is a window source the census above
+	// leaves out (availFor counts no tap cost), so opening the window is what
+	// gorge does: it taps the plain sources and asks which permanent to tap.
+	if c := (kop.ManaCost{Generic: n}); pay && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c) || s.nonSpellRestrAffords(k, r.e.trigPl, &c) || s.windowTapXLive(k, r.e.trigPl).any()) {
 		paused, short := s.payWindowAsk(k, r.e.trigPl, &c, winWard)
 		if paused {
 			return // a tap-another source's pick (mana_windowtapx.go)
@@ -1292,15 +1304,12 @@ func (s *State) resolveWardLife(k *prep) {
 		return
 	}
 	n := int(-e.trigAmt)
-	if int(s.pl[e.trigPl].life) < n && k.gen == nil {
+	if int(s.pl[e.trigPl].life) < n {
 		s.counterAt(k, idx)
 		s.finishResolve(k, false)
 		return
 	}
-	// gorge's effWard asks pay/decline even when the life can't be paid
-	// (effects/misc.go effWard); paying then fails (pay/solve.go
-	// ResolveManaWith: life < cost) and the ward counters, as resolveWard's
-	// mana form already mirrors for the generated table.
+	// gorge's effWard counters an unpayable life ward without asking (CR 119.4).
 	s.g.pickF = pfWard
 	s.g.pickZ = kop.PayLife
 	s.g.pickLeft = uint8(n)
@@ -1325,6 +1334,12 @@ func (s *State) countSacLeft(k *prep, p uint8, f kop.FilterID) int {
 }
 
 func (s *State) startSac(k *prep, in *kop.Instr, p uint8) bool {
+	if k.gen != nil && k.gen.ctrlSBA {
+		// gorge settles control after every event (emit.go): an Aura an
+		// earlier instruction sacrificed no longer steals the creature this
+		// one counts (Vile Mutilator's enchantment, then creature; CR 613.1b)
+		s.ctrlSBA(k)
+	}
 	src := s.resSrcSlot(k)
 	for p != 255 {
 		n := s.value(k, in.A)
@@ -1370,24 +1385,41 @@ func (s *State) flushSac(k *prep) {
 	}
 	ord, n := s.g.sacOrd, int(s.g.nsac)
 	s.g.nsac = 0
-	if k.gen != nil && k.gen.anyBatch {
-		defer s.batchClose(s.batchOpen()) // one sacrifice batch (trig_oneormore.go)
+	batch := k.gen != nil && k.gen.anyBatch
+	var bOld uint8
+	if batch {
+		bOld = s.batchOpen() // one sacrifice batch (trig_oneormore.go)
 	}
-	defer s.holdClose(k, s.holdOpen(k))
-	for _, sl := range ord[:n] {
+	hr := s.holdOpen(k)
+	// The moves before the first parked one (repl_sacbatch.go) go now, as
+	// gorge's earlier emits did; the parked ones are sacrificed and move after
+	// the answer, in the same batch.
+	w, parked := s.sacParkFrom(k, ord[:n])
+	for _, sl := range ord[:w] {
 		s.fireSac(k, sl)
 	}
 	var zs [MaxPerm]kop.Zone
-	for i, sl := range ord[:n] {
+	for i, sl := range ord[:w] {
 		zs[i] = s.dieZone(k, sl)
 	}
-	for i, sl := range ord[:n] {
+	for i, sl := range ord[:w] {
 		s.fireLeave(k, sl, zs[i])
 	}
-	for i, sl := range ord[:n] {
+	for i, sl := range ord[:w] {
 		s.removePerm(k, sl, zs[i], false)
 	}
+	if parked && hr.on {
+		// gorge holds an until-leaves return to the end of the whole flush;
+		// the parked moves run after this frame closes, so it cannot be told
+		// apart from a return between the moves.
+		s.capFull(StallReplLeave)
+	}
+	carried := parked && s.sacParkTail(ord[w:n], batch, bOld)
 	s.g.sacM = slotMask{}
+	s.holdClose(k, hr)
+	if batch && !carried {
+		s.batchClose(bOld)
+	}
 }
 
 // addSac adds slot sl to the effect sacrifice being collected.

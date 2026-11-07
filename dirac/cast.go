@@ -85,17 +85,6 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		}
 	}
 	*s.bld() = build{e: e}
-	// The oracle's convoke frame (its per-colour absorption budget for the
-	// announcement) comes from the priority-time cost of a plain hand cast
-	// or of a may-play permission's plain cast of a card in exile or the
-	// graveyard (GorgeSide's castCost, which prices the permission's
-	// free-cast read and RaiseCost$ surcharge exactly as beginCast charges
-	// them); no other cast route is priced there, so the announcement poses
-	// gorge's whole static list unfiltered (kw_convoke.go convokeOptions).
-	// A may-play alternative (MayPlayAltManaCost$) is kgen-refused, so every
-	// may-play cast here is the plain one the oracle priced.
-	s.bld().convokeBudget = (mode == 0 && ob.zone == kop.ZoneHand) ||
-		mode&castMayPlay != 0 && (ob.zone == kop.ZoneExile || ob.zone == kop.ZoneGraveyard)
 	if k.gen != nil && s.g.altCast {
 		s.g.altCast = false
 		if mode&2 == 0 {
@@ -736,8 +725,8 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			mx := av.maxX(&cost, pipMaskOf(&cost))
 			gorgeSurface := s.cfg&cfgGorgeSurface != 0
-			if k.restrSrc {
-				mx = max(mx, s.restrSrcMaxX(k, e.ctrl, &cost, &av)) // the restricted sources the payment may spend
+			if k.restrSrc || k.gen != nil && k.gen.anyMultiR {
+				mx = max(mx, s.restrSrcMaxX(k, e.ctrl, &cost, &av)) // the restricted sources the payment may spend (a wide any-colour one included)
 			}
 			anyColor := s.bld().bfl&bflAnyColor != 0
 			if anyColor {
@@ -796,8 +785,20 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				}
 			}
 			if k.gen != nil && k.gen.anyCharmV {
-				if c := s.charmCap(k); c != 0 {
-					pick = c // CharmNum$ over Count$Compare (modal_charmcmp.go)
+				if c, dyn := s.charmCap(k); dyn {
+					pick = c // CharmNum$ over a dynamic count (modal_charmcmp.go)
+					if c == 0 {
+						// choose up to zero: a trigger with no mode is
+						// removed (CR 603.3c), a spell announces none
+						if e.kind == seTrigger {
+							s.sp--
+							s.ctl = ctlPlaceTriggers
+							return false
+						}
+						s.bld().modesN = 255
+						s.nextStage(k)
+						continue
+					}
 				}
 			}
 			if s.bld().modesN >= max8(pick, 1) || e.kind == seAbility && s.modalActAtResolution(a, pick) {
@@ -988,6 +989,10 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				}
 				if xBoundTarget(k.t, t) {
 					s.reverseCast(k) // the offer did not know its X
+					return false
+				}
+				if _, _, ok := s.equipTargetPriced(k); ok {
+					s.reverseCast(k) // no candidate's own equip price is payable (statics_gen.go)
 					return false
 				}
 				// an activation was checked feasible and moves nothing
@@ -1357,6 +1362,7 @@ func (s *State) finishBuild(k *prep) {
 		if (e.flags&sfAnyMana != 0 || anyColor) && s.bld().bfl&bflLowered == 0 && !payDone {
 			s.tapRiderPlan(k, e) // (a lowered cast has no plan: its window below)
 		}
+		obsPool, obsOK := s.obsWinPool(e.ctrl)
 		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || e.trigPl == trigPlMadness {
 			// a free cast mid-resolution (Etali) pays the rest of its
 			// cost (Eaten Alive's {3}{B} part) through gorge's mana
@@ -1417,6 +1423,7 @@ func (s *State) finishBuild(k *prep) {
 		if s.winPaused() {
 			return // a free or Spree cast's window waits on a tap-another pick (mana_window.go)
 		}
+		s.obsWinSettle(k, e.ctrl, obsPool, obsOK)
 		s.payDelvePicks() // gorge payCast exiles the delved cards after the mana
 		s.paySacsGen(k)
 		s.bld().e.flags &^= sfFbGranted
