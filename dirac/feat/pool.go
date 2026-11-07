@@ -23,6 +23,8 @@ type CardSpec struct {
 	// (every colour alternative of its single usable mana ability times its
 	// amount) while it can be tapped for mana; 0 for no mana ability.
 	Avail int32
+	// Effect is the spell ability's class and amount (see EffectSpec).
+	Effect EffectSpec
 }
 
 // KeywordNames are the gorge spellings of kop.KwMask bits, for keywords a
@@ -145,6 +147,8 @@ type card struct {
 	flash        bool
 	power, tough int32
 	avail        int32
+	eff          EffectSpec
+	pstr         int32 // printed strength (printedStrength)
 	// static rows
 	nameTag [numZoneTags]uint16
 	entName uint16
@@ -210,6 +214,12 @@ var hiddenAbility = func() *card {
 	}
 	return c
 }()
+
+// Effect returns the card's EffectSpec (the zero value for an unknown id).
+func (p *Pool) Effect(id kop.CardID) EffectSpec { return p.card(id).eff }
+
+// PrintedStrength returns the card's printed strength (0 for an unknown id).
+func (p *Pool) PrintedStrength(id kop.CardID) int32 { return p.card(id).pstr }
 
 func (p *Pool) card(id kop.CardID) *card {
 	if int(id) < len(p.cards) {
@@ -312,6 +322,8 @@ func buildCard(c *card, sp CardSpec, kwMask kop.KwMask) {
 	var mv int
 	c.colours, mv = manaCostBits(sp.ManaCost)
 	c.mv = int32(mv)
+	c.eff = sp.Effect
+	c.pstr = printedStrength(sp, kwMask, c.mv)
 	c.colourPips = v2ColourPips(sp.ManaCost)
 	c.removalAPI = containsAnyFold(sp.SpellAPI, removalAPIMarkers)
 	c.rampName = containsAnyFold(sp.Name, rampNameMarkers)

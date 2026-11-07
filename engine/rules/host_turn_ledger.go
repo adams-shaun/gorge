@@ -24,6 +24,7 @@ func (e *Engine) combatHit(player state.PlayerID, source state.ObjID, amount int
 		hit.Card = o.Card
 		hit.FaceIdx = o.FaceIdx
 		hit.Controller = o.Controller
+		hit.SourceTypes = damageSnapshotTypes(source, o, e.EffectiveTypes())
 	}
 	return hit
 }

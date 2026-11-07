@@ -81,7 +81,7 @@ func (lc *lowerCtx) hasCardsValue(group, rest string) (v lValue, ok bool, err er
 			if ferr != nil {
 				return lValue{}, ferr
 			}
-			size = lValue{Kind: vCountGraveyard, F: f}
+			size = lValue{Kind: vCountGraveyard, N: 1, F: f} // N 1: a token waiting in the graveyard counts, as gorge's zone walk counts it
 		}
 		return lValue{Kind: vCompare, N: 0, Op: op, Sub: []lValue{
 			{Kind: vSum, Sub: []lValue{size, bound}},

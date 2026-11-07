@@ -1334,10 +1334,31 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 		}
 		cost.Phyrexian = nil
 	}
-	composed := e.offerCostFor(p, id, cost, abilityScope(ab))
+	scope := abilityScope(ab)
+	statics := e.collectCostStatics()
+	composed := e.offerCostForUsing(statics, p, id, cost, scope)
 	out := e.planComposedCost(p, id, composed, true, true)
-	if out.Reason == "insufficient" {
-		out = e.planAbilityTargetPriced(p, id, cost, abilityScope(ab), out)
+	if (out.Plan == nil || out.Reason != "") && statics.validTarget {
+		// No plan at the untargeted price: a ValidTarget$ cost static
+		// (Cloud, Planet's Champion's "Equip abilities that target Cloud cost
+		// {2} less") is absent from the pre-target composition, but some legal
+		// target's price may be payable (CR 601.2c, 601.2f), and the offer
+		// gate's potential-target retry prices it (offerCastableUsing). The
+		// target is not chosen at offer time, so each potential target's price
+		// is tried and the first payable plan is the offer's witness. The
+		// chosen target's cost is repriced before payment (rearmAutoPay).
+		// Only a single-target announcement is priced this way: the retry
+		// tests each candidate as the sole selection, which does not price a
+		// multi-target ability.
+		if _, max := targetBounds(ab); max == 1 {
+			var potential PaymentPlanOutcome
+			if _, ok := e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
+				potential = e.planComposedCost(p, id, e.composedOfferCost(p, id, cost, m, scope), true, true)
+				return potential.Plan != nil && potential.Reason == ""
+			}); ok {
+				return potential
+			}
+		}
 	}
 	if out.Reason != "insufficient" || cost.Waterbend <= 0 {
 		return out
@@ -1348,31 +1369,6 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 		composed.Generic -= red.Generic
 	}
 	return e.planComposedCost(p, id, composed, true, true)
-}
-
-// planAbilityTargetPriced is planAbilityPaymentLifePips' target-dependent
-// retry. A ValidTarget$ cost static (Cloud, Planet's Champion's "Equip
-// abilities you activate that target Cloud cost {2} less") prices an
-// activation only once a legal target is named (CR 601.2f), so the ordinary
-// nil-target composition above prices the printed cost -- and an activation
-// the offer gate admitted through its own potential-target retry
-// (offerCastableUsing) would have no witness for autoPayOffer or
-// armAbilityAutoPay to arm, withholding the option. Try each legal target's
-// composition through the SAME potentialCostModsUsing the offer gate uses,
-// and accept the first the planner pays.
-func (e *Engine) planAbilityTargetPriced(p state.PlayerID, id state.ObjID, base Cost, scope costScope, fallback PaymentPlanOutcome) PaymentPlanOutcome {
-	statics := e.collectCostStatics()
-	if !statics.validTarget {
-		return fallback
-	}
-	got := fallback
-	e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
-		var c Cost
-		e.composedOfferCostInto(&c, p, id, &base, &m, scope)
-		got = e.planComposedCost(p, id, c, true, true)
-		return got.Plan != nil && got.Reason == ""
-	})
-	return got
 }
 
 // planComposedCost plans the mana part of composed, the offer-time cost

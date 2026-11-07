@@ -40,7 +40,7 @@ const (
 	ExConst                        // N
 	ExX                            // the X paid
 	ExCount                        // battlefield objects matching F
-	ExCountGraveyard               // graveyard cards matching F (all graveyards; F.Owner narrows)
+	ExCountGraveyard               // graveyard cards matching F (all graveyards; F.Owner narrows); N 1 also counts tokens
 	ExSumPower                     // total power of battlefield creatures matching F
 	ExDistinctCMC                  // distinct mana values among battlefield objects matching F
 	ExKicked                       // Sub[0] if the spell was kicked, else Sub[1]
@@ -455,6 +455,14 @@ const ExFirstCast ExprKind = 255
 // genState.extraTurnBegun is the per-seat bit set when an extra turn's
 // TurnChange fires. H.M.S. Bounty, Unlikely Timeship.
 const ExYourExtraTurns ExprKind = 227
+
+// ExCounterKinds: the number of distinct counter kinds with a positive
+// count among the battlefield objects matching F (gorge
+// Count$DifferentCounterKinds_<spec>); gorge's own status markers (the
+// regeneration shield, the deathtouch mark) are no counter kinds here, and
+// a Class level is no counter. Explicit ordinal, the iota tail stays
+// untouched.
+const ExCounterKinds ExprKind = 225
 
 // ExNotOwnLibMV: the summed mana value of the library cards in the
 // resolution's remembered set that the repeated player (an OpRepeatEachPlayer

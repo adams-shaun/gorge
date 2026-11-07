@@ -410,7 +410,17 @@ func playerCountDefinedRegistered(h Host, g *state.Game, c *Ctx, group []state.P
 				// matchesBase), and the captured source WAS a permanent on
 				// the battlefield when it dealt the damage.
 				o := &state.Object{ID: hit.Source, Card: hit.Card, FaceIdx: hit.FaceIdx, Controller: hit.Controller, Zone: state.ZBattlefield}
-				if MatchesObjectCtx(g, spec, o, sc) {
+				hsc := sc
+				if hit.SourceTypes != nil {
+					// The hit's damage-time type list is authoritative for
+					// this one object (CR 608.2h): ExtraTypes binds it for the
+					// source alone, ahead of any live layer-4 entry that no
+					// longer says "creature". A value slice, so the match does
+					// not copy the caller's derived table and cannot make the
+					// resolving Ctx escape (the count-scan allocation pins).
+					hsc.ExtraTypes, hsc.ExtraTypesOwner = hit.SourceTypes, hit.Source
+				}
+				if MatchesObjectCtx(g, spec, o, hsc) {
 					got++
 				}
 			}

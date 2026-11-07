@@ -525,13 +525,17 @@ func (c *Collector) observe(e *rules.Engine, burst []events.Event, withPotential
 	// fixed, so observed identities do not encode hidden arena allocation.
 	for i := range v.Players {
 		p := &v.Players[i]
-		if len(p.Commanders) > 0 {
-			return view.View{}, Frame{}, fail("unsupported", "commander observation is outside the constructed probe")
-		}
 		for _, zone := range [...][]view.CardView{p.Battlefield, p.Hand, p.Graveyard, p.Exile, p.Command} {
 			for j := range zone {
 				c.introduce(e, zone[j].ID)
 			}
+		}
+		// A commander's identity is public wherever it is (CR 903.3), so the
+		// roster is introduced even when the commander sits in a hidden zone:
+		// its CardView is part of the observed board and must carry an
+		// observation ref, not an engine object id.
+		for j := range p.Commanders {
+			c.introduce(e, p.Commanders[j].ID)
 		}
 		if p.LibraryTop != nil {
 			c.introduce(e, p.LibraryTop.ID)
@@ -648,6 +652,9 @@ func (c *Collector) remap(v *view.View) {
 		c.cards(p.Graveyard)
 		c.cards(p.Exile)
 		c.cards(p.Command)
+		// Commanders is the public roster, encoded as CardViews; it names the
+		// same objects as the zones above and must be remapped with them.
+		c.cards(p.Commanders)
 		if p.LibraryTop != nil {
 			c.card(p.LibraryTop)
 		}

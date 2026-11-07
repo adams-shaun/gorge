@@ -683,6 +683,11 @@ func (cb *cardBuilder) record() error {
 		// mana cost (dirac/kw_convoke.go)
 		d.Convoke = true
 	}
+	if c.Delve {
+		// CR 702.66a: printed delve; the cast exiles graveyard cards for
+		// its generic cost (dirac/kw_delve.go)
+		d.Delve = true
+	}
 	if c.Harmonize != nil {
 		// CR 702.180a: a graveyard cast for the harmonize cost; the one
 		// announced creature pays its power (dirac/kw_harmonize.go)
@@ -1782,6 +1787,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vAdamant:            kop.ExAdamant,
 	vChromaOf:           kop.ExChromaOf,
 	vYourExtraTurns:     kop.ExYourExtraTurns,
+	vCounterKinds:       kop.ExCounterKinds,
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {

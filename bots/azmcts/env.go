@@ -523,6 +523,7 @@ func (e *engineEnv) advance() (*Point, error) {
 				in = botpolicy.Decide(b, pd, e.rngs[pd.Player])
 			}
 		}
+		drops := e.cfg.enumBoard.holdDrops()
 		if e.cfg.horizon > 0 {
 			// A flat walk (a mulligan root) has no point past its root.
 		} else if pd.Player == e.cfg.actor {
@@ -543,6 +544,7 @@ func (e *engineEnv) advance() (*Point, error) {
 					pt := &Point{Keys: candKeys(cands), cut: cut, ranked: e.cfg.priorTopK > 0, extra: extraOf(kind), resolve: res}
 					pt.lines = e.lineInfos(e.obs, pd, cands, false)
 					countPoint(e.cfg.stats, pt)
+					e.countHold(pd, drops)
 					return pt, nil
 				}
 				// The point's prior and the walk's next leaf read the same
@@ -563,6 +565,7 @@ func (e *engineEnv) advance() (*Point, error) {
 					pt := &Point{Keys: candKeys(cands), Prior: prior, cut: cut, fell: fell, ranked: true, before: before, extra: extraOf(kind)}
 					pt.lines = e.lineInfos(e.obs, pd, cands, false)
 					countPoint(e.cfg.stats, pt)
+					e.countHold(pd, drops)
 					return pt, nil
 				}
 				keys := make([]Key, len(cands))
@@ -572,13 +575,17 @@ func (e *engineEnv) advance() (*Point, error) {
 				pt := &Point{Keys: keys, Prior: prior, cut: cut, fell: fell, extra: extraOf(kind)}
 				pt.lines = e.lineInfos(e.obs, pd, cands, false)
 				countPoint(e.cfg.stats, pt)
+				e.countHold(pd, drops)
 				return pt, nil
 			}
 		} else if e.cfg.oppNodes {
 			if pt := e.oppPoint(pd, in); pt != nil {
+				e.countHold(pd, drops)
 				return pt, nil
 			}
 		}
+		// No point: the upkeep hold plays pass for a held bot cast.
+		in = e.holdWalk(pd, in, drops)
 		if e.steps >= e.cfg.maxSteps {
 			if skippedPay {
 				e.e.EnsurePaymentActions()

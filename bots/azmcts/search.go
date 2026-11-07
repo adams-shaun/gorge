@@ -211,6 +211,15 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 	if opts.AutoPayment {
 		enumBoard.payPlans = opts.PaymentPlans
 	}
+	if opts.HoldUpkeep {
+		enumBoard.hold = &upkeepHold{exempt: exemptNames(&opts.HoldUpkeepExempt), seat: root.Decision.Player, opp: opts.OpponentNodes && opts.OpponentMirror}
+	}
+	// The upkeep hold plays pass in place of a held bot cast on every path
+	// that plays the bot's answer, and enumerates the root without it.
+	held := false
+	if p, ok := heldAnswer(root.Engine, root.Decision, root.Bot, &enumBoard); ok {
+		root.Bot, res.Intent, held = p, p, true
+	}
 	views := searchViews.Get().(*viewScratch)
 	defer searchViews.Put(views)
 	// Under PriorTopK the network, not the enumeration order, chooses the
@@ -227,6 +236,9 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 	}
 	cands, kind, why, ok, cut, botFound := rootCands(root.Observer, root, kinds, limit, opts.AutoPayment, &enumBoard)
 	res.Kind = kind
+	if held || enumBoard.hold != nil && enumBoard.hold.drops > 0 {
+		res.Stats.HeldUpkeep = 1
+	}
 	if cut {
 		res.Stats.Truncated, res.Stats.RootTruncated = 1, 1
 	}

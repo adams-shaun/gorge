@@ -72,6 +72,15 @@ func evalCountBodyObjHeads(h Host, c *Ctx, g *state.Game, head, arg string, dept
 			}
 			return scratch.Counter(kind), true, true
 		}
+		if c.departedSourceLKI(g) {
+			// The source left after this ability was created: the counters
+			// it last had on the battlefield (CR 608.2h).
+			if strings.EqualFold(kind, "ALL") {
+				return sumCounters(c.TriggerContext.SourceCounters), true, true
+			}
+			scratch := state.Object{Counters: c.TriggerContext.SourceCounters}
+			return scratch.Counter(kind), true, true
+		}
 		// A leaves-the-battlefield trigger whose effect counts its own
 		// source's counters (CR 603.10a: such a trigger looks back in time):
 		// Move's fold already cleared the counters on the departed card, so

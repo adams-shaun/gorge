@@ -1,0 +1,7 @@
+# Count$DifferentCounterKinds_Creature.YouCtrl: Hundred-Battle Veteran's
+# self-pump gate, beside a vanilla creature and a land to carry counters
+# (dirac/value_counterkinds_test.go)
+Hundred-Battle Veteran
+Grizzly Bears
+Plains
+Swamp
