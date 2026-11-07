@@ -57,6 +57,24 @@ func powerUpReduce(c, red kop.ManaCost) kop.ManaCost {
 	return c
 }
 
+// powerUpWitness is the cost gorge's autopay planner prices for Power-up
+// ability a of slot sl: the printed cost with the ability's own reduction
+// and the cost statics composed (planAbilityPaymentLifePips:
+// ownReduceCostOffer, then offerCostFor; CR 601.2f), but never the CR
+// 702.193b entry-turn reduction. Hulk, Gamma Goliath's {3} lowers it.
+//
+//go:noinline
+func (s *State) powerUpWitness(k *prep, a *kop.Ability, sl Slot, ctrl uint8) kop.ManaCost {
+	m := a.Cost.Mana
+	if k.gen != nil && k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) && sl != NoSlot {
+		m = s.ownReducedBF(k, a, sl, ctrl)
+	}
+	if k.gen != nil && k.gen.anyAbReduce {
+		m = s.abReduced(k, a, sl, ctrl, m)
+	}
+	return m
+}
+
 // powerUpPlanRejected reports whether gorge's payment planner witness for a
 // Power-up ability is rejected at payment. planAbilityPayment prices the
 // PRINTED cost (it never calls powerUpReduceCost) while the activation

@@ -525,7 +525,8 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// sources pay the printed one; the charge is always the reduced one
 		// (buildCostCharge), and the plan/charge mismatch falls back to the
 		// manual mana window (powerUpPlanRejected, mana_window.go).
-		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &a.Cost.Mana, av) {
+		printed := s.powerUpWitness(k, a, sl, p.ctrl)
+		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &printed, av) {
 			return false
 		}
 	}
