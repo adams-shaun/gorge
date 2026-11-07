@@ -2245,6 +2245,8 @@ func (s *State) newerLayer6Fx(sl Slot, i int) bool {
 // a timestamp of its own: Abigale's second loss of abilities, after Chronicle
 // of Victory entered, takes that grant away again. The static's filter is not
 // read (a spare record is only a spare record).
+//
+//go:noinline
 func (s *State) newerLayer6Static(ts uint16) bool {
 	k := s.k()
 	for m := s.statM; m.any(); m = m.rest() {
@@ -2254,7 +2256,7 @@ func (s *State) newerLayer6Static(ts uint16) bool {
 		}
 		cd := &k.t.Cards[s.cardAt(src)]
 		for i := range cd.Abilities {
-			if a := &cd.Abilities[i]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && (a.Static.Kw != 0 || a.Static.Override > 0) {
+			if a := &cd.Abilities[i]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && (a.Static.Kw != 0 || a.Static.Override > 0 || a.Static.Grant != 0) {
 				return true
 			}
 		}
