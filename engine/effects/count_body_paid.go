@@ -471,6 +471,9 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		if lki, ok := sacrificedSourceLKI(g, c); ok {
 			return lki.Power, true, true // sacrificed by this ability: LKI
 		}
+		if c.departedSourceLKI(g) {
+			return c.TriggerContext.SourcePower, true, true // left since: LKI (CR 608.2h)
+		}
 		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
 			return refPower(h, o, false), true, true
 		}
@@ -483,6 +486,9 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	case evalCountBodyPaidCardToughness:
 		if lki, ok := sacrificedSourceLKI(g, c); ok {
 			return lki.Toughness, true, true // sacrificed by this ability: LKI
+		}
+		if c.departedSourceLKI(g) {
+			return c.TriggerContext.SourceToughness, true, true // left since: LKI (CR 608.2h)
 		}
 		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
 			return refToughness(h, o, false), true, true

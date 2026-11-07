@@ -46,11 +46,13 @@ TestNativeViewMatchesGorgeFDNManualMana/pairs25-50
 TestNativeViewMatchesGorgeFDNManualMana/pairs50-75
 TestNativeViewMatchesGorgeFDNManualMana/pairs75-100
 TestPoolFrozen/blb
+TestPoolFrozen/cmd5
 TestPoolFrozen/fdn
 TestPoolFrozen/pauper
 TestRecordingStopsAtAConcession
 TestServedFieldsMatchGorge
 TestSliceMatchesPool/blb
+TestSliceMatchesPool/cmd5
 TestSliceMatchesPool/fdn
 TestSliceMatchesPool/pauper
 TestSpectatorSeesNoHand

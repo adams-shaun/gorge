@@ -98,6 +98,10 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 			s.applyOverridePT(k, sl, int(s.g.tokPT.idx), s.res.e.card, 0, s.g.tokPT.p, s.g.tokPT.t)
 		}
 	}
+	if s.g.ewPend {
+		s.g.ewPend = false
+		s.enterWithApply(k, sl) // zone_assimilate.go
+	}
 	cid := s.cardAt(sl)
 	g := k.gen
 	if !g.has(cid, gfEnterRepl) && !s.statM.any() {
