@@ -1613,8 +1613,17 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			// "enchanted/equipped creature" and must resolve to nothing,
 			// never to a stale LastBearer (CR 400.7: the returned permanent
 			// is a new object).
-			if o.Zone != state.ZBattlefield && o.LastBearer != 0 && g.Obj(o.LastBearer) != nil {
-				return []state.Target{{Obj: o.LastBearer}}, true
+			//
+			// The bearer must also be the same object the Aura left: a
+			// bearer that was flickered after the Aura attached re-entered
+			// with an entry Timestamp newer than the Aura's attach stamp
+			// (LayerStamp survives the Aura's departure), so the id now names
+			// a new object (CR 400.7) and the Aura's LKI bearer no longer
+			// exists (CR 608.2h).
+			if o.Zone != state.ZBattlefield && o.LastBearer != 0 {
+				if b := g.Obj(o.LastBearer); b != nil && !(b.Zone == state.ZBattlefield && b.Timestamp > o.LayerStamp) {
+					return []state.Target{{Obj: o.LastBearer}}, true
+				}
 			}
 		}
 		return nil, true
