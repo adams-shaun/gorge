@@ -99,6 +99,23 @@ func (s *State) powerUpPlanRejected(k *prep, a *kop.Ability) bool {
 	return s.powerUpManaObj(k, s.bld().e.obj, a) != a.Cost.Mana
 }
 
+// powerUpArmsNone reports whether gorge arms no autopay witness for the
+// Power-up activation being built: armAbilityAutoPay reads the charge before
+// the pip asks (castPaymentMana) and arms only a cost with generic or coloured
+// mana (abilityCostNeedsMana). A charge the CR 702.193b reduction and the cost
+// statics left hybrid-only (Abomination's {5}{R/G}{R/G} less its own {3}{R/G}
+// and Hulk, Gamma Goliath's {3}) pays through the manual window, source by
+// source in battlefield order. The caller guards on anyPowerUp and
+// CostPowerUp; this body is cold.
+//
+//go:noinline
+func (s *State) powerUpArmsNone(k *prep) bool {
+	s.bld().bfl |= bflCostComp
+	c, _ := s.buildCostPre(k, false, true)
+	s.bld().bfl &^= bflCostComp
+	return c.Generic == 0 && c.Pips == [kop.NumManaKinds]uint8{}
+}
+
 // PowerUpState reports a permanent's once bit and entry-turn bit. It is a
 // cold query for the oracle's tally; it has no mutable state.
 func PowerUpState(s *State, o Obj) (used, entered bool, zone kop.Zone) {

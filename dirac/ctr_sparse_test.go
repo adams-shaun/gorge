@@ -278,3 +278,52 @@ func TestPermSize(t *testing.T) {
 }
 
 func unsafeSizeofPerm(p *perm) uintptr { return unsafe.Sizeof(*p) }
+
+// TestCtrSlotsStayPacked pins the invariant ctrLow's early exit rests on: the
+// general counter slots never hold an empty slot before an occupied one, and
+// the occupied ones stay in strictly ascending kind order, through the same
+// operation stream as TestSparseCountersMatchDense.
+func TestCtrSlotsStayPacked(t *testing.T) {
+	x := uint32(1)
+	rnd := func(n int) int { x = x*1664525 + 1013904223; return int(x>>8) % n }
+	s := &State{}
+	shifts := 0
+	for run := 0; run < 2000; run++ {
+		var p perm
+		s.g.nctrOver = 0
+		for step := 0; step < 40; step++ {
+			c := rnd(int(kop.NumCounterKinds2))
+			if rnd(4) == 0 && c != 0 {
+				c = 1 + rnd(4) // concentrate on a few kinds
+			}
+			before := p.ck
+			switch rnd(4) {
+			case 0, 1:
+				p.addCtrN(s, c, 1+rnd(3))
+			case 2:
+				p.subCtrN(s, c, 1+rnd(3))
+			case 3:
+				p.seeCtr(s)
+			}
+			for i := 1; i < ctrSlots; i++ {
+				if p.ck[i] != 0 && p.ck[i-1] == 0 {
+					t.Fatalf("run %d step %d: hole at slot %d: ck=%v", run, step, i-1, p.ck)
+				}
+				if p.ck[i] != 0 && p.ck[i] <= p.ck[i-1] {
+					t.Fatalf("run %d step %d: slots out of order: ck=%v", run, step, p.ck)
+				}
+			}
+			// a slot freed while a later one was occupied: that later kind moved down
+			for i := 1; i < ctrSlots; i++ {
+				if before[i-1] != 0 && before[i] != 0 && p.ck[i-1] == before[i] && !slices.Contains(p.ck[:ctrSlots], before[i-1]) {
+					shifts++
+					break
+				}
+			}
+		}
+	}
+	if shifts == 0 {
+		t.Fatal("precondition: the stream never freed a slot ahead of an occupied one, so ctrFree's shift went unexercised")
+	}
+	t.Logf("%d shifting frees", shifts)
+}

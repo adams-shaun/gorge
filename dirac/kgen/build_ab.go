@@ -1184,7 +1184,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags2 |= kop.Tf2Evolve
 	}
 	if t.Increment {
-		if t.Event != "SpellCast" || t.OrCopy || t.CastSnap || t.NthSpell != 0 || t.TargetsAll {
+		if t.Event != "SpellCast" || t.OrCopy || t.CastSnap || t.CastSpent || t.NthSpell != 0 || t.TargetsAll {
 			return kt, fmt.Errorf("Increment on a %s trigger", t.Event)
 		}
 		kt.Flags2 |= kop.Tf2Increment

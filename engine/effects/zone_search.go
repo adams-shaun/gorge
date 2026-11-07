@@ -1440,6 +1440,8 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 			withAmt = withCounterAmount(h, c, cz)
 		}
 		entryCounters := withKind != "" && entryWithCounters(&ev, to, withKind, withAmt)
+		// StaticEffect$ registers before the entry event (CR 603.6a).
+		applyStaticEffect(h, c, sa, to, []state.ObjID{id})
 		emitEntryMove(h, c, cz.Riders.GainControl, to, ev)
 		if to == state.ZExile && c.Source != 0 {
 			if o := g.Obj(id); o != nil && !o.IsToken {
@@ -1490,11 +1492,6 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: owner, Text: "entered tapped"})
 		}
 		rider.apply(h, c, id, owner, to)
-		// StaticEffect$ on the library-origin branch: the same rider the
-		// shared settle path applied for the alternative-origin branch above.
-		if to == state.ZBattlefield {
-			applyStaticEffect(h, c, sa, to, []state.ObjID{id})
-		}
 	}
 	if to == state.ZBattlefield && len(valid) > 0 {
 		h.EndZoneBatch()

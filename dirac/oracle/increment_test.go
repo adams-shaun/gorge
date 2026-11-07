@@ -16,7 +16,9 @@ import (
 // counter on this creature". The comparison is event-relative -- the cast's
 // pool mana spent (kernel Tf2Increment, State.incrementAdmits over the
 // spell entry's recorded spend) against the source's layer-output P/T at
-// the moment the trigger fires, an OR of the two comparisons. The decks mix
+// the moment the trigger fires, an OR of the two comparisons, rechecked
+// with the captured spend as the trigger resolves (State.incrementResolves).
+// The decks mix
 // the carriers with cheap spells (Opt, Llanowar Elves), an expensive one
 // (Hill Giant) and Giant Growth, whose pump moves the P/T side of the
 // comparison exactly as gorge's layer output moves.
