@@ -226,6 +226,10 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// player may reverse mana abilities activated for an illegal play)
 		{"twobrid_delve_unpayable_window", true, false},
 		{"printed_combo_window_colour_order", true, false}, // CR 601.2g: a printed Combo's mana window answers the ability's printed order, so Thornwood Falls makes {G} (before its {U}) and Frontier Bivouac stays untapped
+		// CR 702.66a, 702.180a: a Harmonize creature whose power already
+		// covers the whole generic part leaves no shortfall for Teval's
+		// granted delve, so no graveyard card is offered (Ureni's Rebuff).
+		{"delve_harmonize_covered_generic", true, false},
 	})
 }
 
