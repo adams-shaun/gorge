@@ -155,9 +155,26 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 		// from your hand" ETB family) is split out and evaluated against the
 		// log here, where the Engine is in scope; the remainder matches as
 		// before.
-		if ev.Obj != 0 && lki != nil &&
-			(source == ev.Obj || LeftBattlefield(ev) ||
-				(ev.From == state.ZExile && ev.To != state.ZBattlefield)) {
+		// CR 603.10a's graveyard arm: a "leaves your graveyard" trigger also
+		// looks back in time. The same move can return the card as a
+		// non-creature permanent (Tom, Bert, and William's return animates it
+		// into an artifact), and a live read would then miss a watcher whose
+		// ValidCard$ is Creature.YouOwn. Only an explicit Origin$ naming
+		// Graveyard is such a trigger; an Origin$ Any/absent line here is an
+		// ordinary destination trigger and keeps the live read.
+		gyOrigin := false
+		if z, ok := t.ParamCode(cards.PKOrigin); ok {
+			zl := effects.ZoneList(z)
+			gyOrigin = !zl.All() && zl.Has(state.ZGraveyard)
+		}
+		lookBack := false
+		if ev.From == state.ZGraveyard && ev.To != state.ZGraveyard {
+			lookBack = gyOrigin
+		} else {
+			lookBack = source == ev.Obj || LeftBattlefield(ev) ||
+				(ev.From == state.ZExile && ev.To != state.ZBattlefield)
+		}
+		if ev.Obj != 0 && lki != nil && lookBack {
 			spec, ok := e.CastProvenanceAdmits(v, lki.ID, ctrl)
 			// The IsGoaded static route (staticgoad1), passed as an override
 			// the same shape matchesSpec keeps (this LKI reader runs per
