@@ -31,6 +31,15 @@ func (s *State) tapPowerValue(k *prep, sl Slot, flags kop.CostFlags) int {
 	case flags&kop.CostSaddle != 0:
 		v = int(k.t.Cards[s.cardAt(sl)].TapPowerSaddle)
 	}
+	if v == 0 {
+		return 0
+	}
+	// CR 613.1f: the bonus is the creature's own static, so a "loses all
+	// abilities" effect removes it (gorge reads the same static through
+	// activeStatics and stops matching once the source is blanked).
+	if s.genLost(k, sl) {
+		return 0
+	}
 	if v == int(kop.TapPowToughness) {
 		// Value$ Toughness: the callers add this to
 		// power, so the sum is the toughness.
