@@ -1336,6 +1336,11 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	}
 	composed := e.offerCostFor(p, id, cost, abilityScope(ab))
 	out := e.planComposedCost(p, id, composed, true, true)
+	if out.Reason == "insufficient" {
+		if got, ok := e.abilityTargetPricedPlan(p, id, ab, cost); ok {
+			out = got
+		}
+	}
 	if out.Reason != "insufficient" || cost.Waterbend <= 0 {
 		return out
 	}
