@@ -742,28 +742,27 @@ func (s *State) leaveAll(k *prep, mask slotMask, z kop.Zone) {
 		n = s.battlefieldOrder(p, mask.and(s.ctrlM[p]), order[:], n)
 	}
 	if len(s.cold.parked) != 0 && z == kop.ZoneGraveyard && s.res.active {
-		m := 0
-		waits := false
-		for _, sl := range order[:n] {
-			o := s.perms[sl].obj
-			if !waits {
-				if s.park(k, o, parkMass, 0) {
-					// gorge suspends the whole destroy-all at the first
-					// victim whose move competes (CR 616.1): every later
-					// victim waits for that answer, competing or not.
-					waits = true
-					continue
-				}
-				order[m] = sl
-				m++
-				continue
-			}
-			if !s.queueMass(k, o) {
-				order[m] = sl // the queue is full: move it now (a declared capacity edge)
-				m++
+		first := n
+		for i, sl := range order[:n] {
+			if s.graveMoveCompetes(k, s.perms[sl].obj) {
+				first = i
+				break
 			}
 		}
-		n = m
+		for _, sl := range order[first:n] {
+			o := s.perms[sl].obj
+			if s.park(k, o, parkMass, 0) {
+				continue
+			}
+			if !s.parkMassQuiet(o) {
+				s.capFull(StallReplCands)
+				break
+			}
+		}
+		// Gorge suspends the whole destroy-all at the first victim whose move
+		// competes (CR 616.1): that victim and every later one wait for its
+		// answer, competing or not. Only the earlier ones move now.
+		n = first
 	}
 	hr := s.holdOpen(k)
 	defer s.holdClose(k, hr)
