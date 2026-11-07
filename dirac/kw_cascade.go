@@ -17,8 +17,9 @@ var cascadeProg = [3]kop.Instr{
 
 // queueCascade queues one cascade trigger per printed Cascade instance of
 // the spell e just cast, after the ordinary cast triggers (gorge
-// queueCascadeTriggers). The spell's mana value is fixed here: printed
-// value plus the announced X (CR 202.3b).
+// queueCascadeTriggers). The trigger carries the spell's paid X, bound while
+// the spell is still on the stack: cascade reads the spell's mana value
+// where the spell resolved, not here (cascade; CR 202.3b).
 func (s *State) queueCascade(k *prep, e *stackEntry) {
 	n := int(k.t.Cards[e.card].Cascade)
 	if k.gen.anyStackKw {
@@ -29,8 +30,13 @@ func (s *State) queueCascade(k *prep, e *stackEntry) {
 		return
 	}
 	mv := int16(int(k.cards[e.card].total) + s.stackXMV(e.obj, k.cards[e.card].cost.X))
+	sx := uint8(s.stackXMV(e.obj, 1)) // the spell's paid X, for the battlefield arm
 	for i := 0; i < n; i++ {
+		base := s.npend
 		s.enqueue(e.obj, s.objs[e.obj].ver, e.card, abCascade, e.ctrl, e.obj, e.ctrl, mv)
+		if s.npend > base {
+			s.pend[base].x = sx
+		}
 	}
 }
 
@@ -50,8 +56,21 @@ func (s *State) cascade(k *prep, in *kop.Instr) {
 		}
 		return
 	}
-	mv := int(s.res.e.trigAmt)
-	pl := &s.pl[s.res.e.ctrl]
+	// CR 202.3b: the spell's mana value is read where the spell resolved, not
+	// where the trigger was queued: printed value plus the announced X while
+	// the spell is on the stack, plus the X the permanent it became kept
+	// (gorge's src.X; bound on the trigger entry by queueCascade); the card
+	// alone once the spell has left the stack for anywhere else (CR 107.3m
+	// zeroes X in the fold).
+	e := &s.res.e
+	mv := int(k.cards[e.card].total)
+	switch s.objs[e.obj].zone {
+	case kop.ZoneStack:
+		mv += s.stackXMV(e.obj, k.cards[e.card].cost.X)
+	case kop.ZoneBattlefield:
+		mv += int(e.x)
+	}
+	pl := &s.pl[e.ctrl]
 	var ex [MaxDeck]Obj
 	ne := 0
 	found := NoObj

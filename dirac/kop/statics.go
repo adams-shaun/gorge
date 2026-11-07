@@ -363,12 +363,13 @@ const StatCantSacrifice StaticKind = 237
 // StatReduceAbility: activated abilities of
 // battlefield permanents matching Filter (controlled by the static's
 // controller) cost A (or VA when StDynamic) generic less, floored at zero;
-// B = 1: Exhaust abilities only (CR 601.2f, 602.2b; gorge
-// costModifiersCompose, abilityScope). It follows its own ability's
-// ReduceCost$. It prices a filter land's fee (filtFee); any other mana
-// ability with a mana cost is not priced, and kgen's matchup guard keeps the
-// static out of a pool holding one it could lower. An explicit ordinal keeps
-// the iota tail of StaticKind untouched.
+// B = 1: Exhaust abilities only; B = kop.ReduceAbPowerUp: Power-up abilities
+// only (CR 601.2f, 602.2b, 702.193a; gorge costModifiersCompose,
+// abilityScope). It follows its own ability's ReduceCost$. It prices a filter
+// land's fee (filtFee); any other mana ability with a mana cost is not
+// priced, and kgen's matchup guard keeps the static out of a pool holding one
+// it could lower. An explicit ordinal keeps the iota tail of StaticKind
+// untouched.
 const StatReduceAbility StaticKind = 233
 
 // two StaticFlags bits (explicit, outside the

@@ -1141,9 +1141,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	kf.Colors, kf.NotColors = colorMask(c.Colors), colorMask(c.NotColors)
 	switch c.Ctrl {
 	case whoEachPl:
-		// a hand or library card is controlled by its owner, the
+		// a hand, library or graveyard card is controlled by its owner, the
 		// kernel card matcher's owner (matchCardOneAt)
-		if zone != kop.ZoneBattlefield && zone != kop.ZoneHand && zone != kop.ZoneLibrary {
+		if zone != kop.ZoneBattlefield && zone != kop.ZoneHand && zone != kop.ZoneLibrary && zone != kop.ZoneGraveyard {
 			return kf, refuse("RememberedPlayerCtrl off the battlefield")
 		}
 		kf.Ctrl = kop.CtrlEachPl
@@ -1172,7 +1172,18 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	default:
 		kf.Ctrl = kop.CtrlSel(c.Ctrl)
 	}
-	kf.Owner = kop.CtrlSel(c.Owner)
+	switch {
+	case c.Owner == whoEachPl:
+		// a graveyard, hand or library card is controlled by its owner, the
+		// kernel card matcher's owner read (matchCardOneAt's fl.Owner arm);
+		// the battlefield perm matcher has no owner arm for the role
+		if zone != kop.ZoneGraveyard && zone != kop.ZoneHand && zone != kop.ZoneLibrary {
+			return kf, refuse("RememberedPlayerOwn off the battlefield")
+		}
+		kf.Owner = kop.CtrlEachPl
+	default:
+		kf.Owner = kop.CtrlSel(c.Owner)
+	}
 	if c.Owner == whoTgtPlayer || c.Owner == whoDefending {
 		f2, err := ownerRoleF2(c, zone) // lower_filterreferents.go
 		if err != nil {

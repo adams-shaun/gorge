@@ -84,16 +84,24 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +8 (this branch lowers the Effect Mode$ MustBlock static beside the pair's MustAttack: Hustle // Bustle,
 	// Courtly Provocateur, Culvert Ambusher, Culling Mark, Peema Aether-Seer, Provoke, Shessra, Death's Whisper
 	// and Timely Interference; MKM +2, DMU +1, ALL +8).
+	// +4 (the filter word TargetedPlayerOwn (the one-token OwnedBy Targeted) lowers:
+	// Bulwark, Jon Irenicus, the Exile, Nicol Bolas, the Ravager, Search Warrant; the merge with land,
+	// beside this branch's Hulk Power-up ReduceCost arm; ALL 21655 -> 21659).
+	// +1 (Hulk, Gamma Goliath: the Power-up-only ReduceCost arm,
+	// ValidSpell$ Activated.PowerUp; MSH 232 -> 233, ALL 21659 -> 21660).
+	// +5 (the merge with land: this branch lowers charm counts that read a variable (Pyrrhic Strike,
+	// Bumi, King of Three Trials, The Ruinous Wrecking Crew and two bare-name cards) beside land's +4;
+	// merged ECL 233 -> 234, MSH 233 -> 234, TLA 252 -> 253, ALL 21664 -> 21669).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21660, 34442},
+	"ALL": {21669, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
-	"DFT": {247, 276},
+	"DFT": {248, 276},
 	"DMU": {194, 270},
 	"DSK": {242, 276},
 	"ECL": {234, 273},
-	"EOE": {238, 266},
+	"EOE": {239, 266},
 	"FDN": {517, 517},
 	"FIN": {266, 312},
 	"FRA": {245, 269},
@@ -101,7 +109,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"LCI": {251, 290},
 	"MKM": {242, 279},
 	"MOM": {198, 296},
-	"MSH": {233, 276},
+	"MSH": {234, 276},
 	"NEO": {198, 287},
 	"ONE": {195, 271},
 	"OTJ": {241, 276},

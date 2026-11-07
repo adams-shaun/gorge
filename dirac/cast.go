@@ -85,6 +85,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		}
 	}
 	*s.bld() = build{e: e}
+	// The oracle's convoke frame (its per-colour absorption budget for the
+	// announcement) comes from the priority-time cost of a plain hand cast;
+	// no other cast route is priced there, so the announcement poses gorge's
+	// whole static list unfiltered (kw_convoke.go convokeOptions).
+	s.bld().convokeBudget = mode == 0 && ob.zone == kop.ZoneHand
 	if k.gen != nil && s.g.altCast {
 		s.g.altCast = false
 		if mode&2 == 0 {
@@ -245,6 +250,9 @@ func (s *State) pushBuild(k *prep) {
 		e.srcVer = ob.ver
 	}
 	if e.kind == seAbility {
+		// CR 733.1: the pending mark for the reversal's drop (unpushActivation),
+		// as a spell's push records its own (unpushSpell)
+		s.bld().pushNP = uint8(s.npend)
 		// gorge's activation census (the view's ActivatedThisTurn) counts
 		// the activation as it is pushed (CR 602.2a: AbilityPush comes
 		// first), for a source on the battlefield, so a source the cost
@@ -291,13 +299,18 @@ func (s *State) unpushSpell(k *prep) {
 		// tapped and in the pool (loweredWindowOK; CR 733.1 lets the player
 		// leave legal mana abilities reversed).
 		if s.npend > s.bld().pushNP {
-			s.npend = s.bld().pushNP
+			s.dropPendingLimits(k, s.bld().pushNP)
 		}
 		ob.zone = kop.ZoneNone
 		return
 	}
 	if s.npend > s.bld().pushNP {
-		s.npend = s.bld().pushNP // CR 733.1: the move off the zone it was cast from never happened, so its triggers (a card leaving a graveyard) are dropped
+		// CR 733.1: the move off the zone it was cast from never happened, so
+		// its triggers (a card leaving a graveyard) are dropped, and the
+		// once-per-turn records they consumed come back (gorge abortCast's
+		// proposalLimits: an undone action triggered nothing, so a
+		// once-each-turn trigger it queued has not used its turn)
+		s.dropPendingLimits(k, s.bld().pushNP)
 	}
 	ob.zone = s.bld().origin
 	ob.slot = NoSlot // off slotFaceDownSpell
@@ -379,6 +392,16 @@ func (s *State) toStage(k *prep, st uint8) {
 
 // nextStage enters the stage after the current one in the entry's program.
 func (s *State) nextStage(k *prep) {
+	if s.bld().stage == bsTargets {
+		// gorge meets the targeting before the cast it is part of (gorge
+		// cast.go proposalTriggers): the ward and BecomesTarget triggers the
+		// CR 601.2c target choice queues are enqueued at the target answer,
+		// before any payment -- a cost's sacrifice that dies during the
+		// payment queues its own triggers behind them, and that order is
+		// what the CR 603.3b ordering ask indexes. A reversed cast drops
+		// them (CR 733.1: unpushSpell / unpushActivation).
+		s.checkWard(k, &s.bld().e)
+	}
 	s.toStage(k, stageNext[s.bld().e.kind][s.bld().stage&^0x80])
 }
 
@@ -424,17 +447,11 @@ func (s *State) buildCostResolve(k *prep, charge bool) kop.ManaCost {
 
 func (s *State) buildCostResolve0(k *prep, charge bool) kop.ManaCost {
 	s.bld().bfl |= bflCostComp // gorge withCostCompositionEvent: a pushed spell's own push is hidden while its cost is composed
-	c, tbDone := s.buildCostPre(k, true)
+	c, tbDone := s.buildCostPre(k, true, charge)
 	if s.bld().bfl&bflCostFixed != 0 {
 		c.Generic = s.bld().fixedGen
 	} else {
 		s.bld().fixedGen = c.Generic
-	}
-	if charge && k.gen != nil && k.gen.anyPowerUp && s.bld().e.kind == seAbility {
-		a := &k.t.Cards[s.bld().e.card].Abilities[s.bld().e.ab]
-		if a.Cost.Flags&kop.CostPowerUp != 0 {
-			c = s.powerUpManaObj(k, s.bld().e.obj, a)
-		}
 	}
 	s.bld().bfl &^= bflCostComp
 	if c.Hyb[0] == 0 && !tbDone {
@@ -459,7 +476,7 @@ func (s *State) buildCostResolve0(k *prep, charge bool) kop.ManaCost {
 }
 
 func (s *State) buildCost0(k *prep) kop.ManaCost {
-	c, _ := s.buildCostPre(k, false)
+	c, _ := s.buildCostPre(k, false, false)
 	return c
 }
 
@@ -469,15 +486,15 @@ func (s *State) buildCost0(k *prep) kop.ManaCost {
 // a reduction takes its generic off the {2} a generic face added, where the
 // unresolved {2/W} would have dropped it). done reports that the faces are
 // folded, so the caller resolves nothing more.
-func (s *State) buildCostPre(k *prep, pre bool) (kop.ManaCost, bool) {
-	c, done := s.buildCostPreRaw(k, pre)
+func (s *State) buildCostPre(k *prep, pre, charge bool) (kop.ManaCost, bool) {
+	c, done := s.buildCostPreRaw(k, pre, charge)
 	if s.bld().e.flags&sfAnyMana != 0 && s.bld().e.kind == seSpell {
 		c = anyTypePips(c) // a hand cast under Vizier's conversion too (mana_convertcreature.go); idempotent
 	}
 	return c, done
 }
 
-func (s *State) buildCostPreRaw(k *prep, pre bool) (kop.ManaCost, bool) {
+func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) {
 	if s.bld().e.faceDown() {
 		// CR 702.37b/702.168b: Morph and Disguise cast face down for {3};
 		// Megamorph's face-down cost is its Morph cost ({3} in this pool).
@@ -553,14 +570,18 @@ func (s *State) buildCostPreRaw(k *prep, pre bool) (kop.ManaCost, bool) {
 		}
 		return c, done
 	case seAbility:
-		c := k.t.Cards[e.card].Abilities[e.ab].Cost.Mana
+		a := &k.t.Cards[e.card].Abilities[e.ab]
+		c := a.Cost.Mana
 		if k.gen != nil && k.gen.anyOwnReduce {
-			if a := &k.t.Cards[e.card].Abilities[e.ab]; a.OwnReduce != (kop.ValueRef{}) {
+			if a.OwnReduce != (kop.ValueRef{}) {
 				c = s.ownReduced(k, a, e.obj, e.ctrl)
 			}
 		}
+		if charge && k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
+			c = s.powerUpReduced(k, e.obj, c) // CR 702.193b, before the cost statics
+		}
 		if k.gen != nil && k.gen.anyAbReduce {
-			c = s.abReducedCharge(k, &k.t.Cards[e.card].Abilities[e.ab], e.obj, e.ctrl, c)
+			c = s.abReducedCharge(k, a, e.obj, e.ctrl, c)
 		}
 		if k.gen != nil && k.gen.anyWaterbend {
 			c = s.waterbendApplyPicks(c)
@@ -1421,7 +1442,6 @@ func (s *State) finishBuild(k *prep) {
 		if k.gen != nil && k.gen.anyHist {
 			s.histCast(k, &e, &cost)
 		}
-		s.checkWard(k, &s.stack[s.sp-1]) // gorge meets the targeting before the cast it is part of
 		if k.gen != nil && k.gen.anyFirstCast {
 			s.noteFirstCast() // cast_firstcast.go
 		}
@@ -1484,9 +1504,6 @@ func (s *State) finishBuild(k *prep) {
 		// gorge's step() head runs startDefeatedCast after any cast or
 		// activation: ask a battle defeated earlier this step first.
 		s.wakeDefeat()
-	}
-	if e.kind != seSpell {
-		s.checkWard(k, &s.stack[s.sp-1])
 	}
 	if s.parkedWaiting() {
 		s.ctl = ctlExileOrder // a cost's parked move (repl_exilemark.go)

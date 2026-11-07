@@ -777,7 +777,8 @@ type lStatic struct {
 	Note         string
 	Ward         int // a Continuous grant's "Ward:N" (Kw then holds "Ward")
 	// AbilityRed: a ReduceCost static of activated abilities (Type$ Ability)
-	// rather than spells: 1 any, 2 Exhaust abilities only (kop.StatReduceAbility)
+	// rather than spells: 1 any, 2 Exhaust abilities only, 3 a Room unlock,
+	// 4 Power-up abilities only (kop.StatReduceAbility)
 	AbilityRed uint8
 	// MinMana: that static's MinMana$ floor, 1..15 (kop.ReduceAbMinShift)
 	MinMana uint8

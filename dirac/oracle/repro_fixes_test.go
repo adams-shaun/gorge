@@ -15,35 +15,37 @@ import (
 func TestStdMkmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-mkm", []stdRepro{
-		{"deathtouch_wither_hit", true, false},                     // CR 704.5h: a counter-form hit marks no damage, and the mark alone is lethal
-		{"dealt_once_each_damage", true, false},                    // EachDamage lands on one referent twice: one trigger with the batch's total
-		{"wither_from_departed_source", true, false},               // a dying Shady Informant's trigger keeps the wither Massacre Girl gave it
-		{"potential_once_each_turn_mana", true, false},             // Gravestone Strider's {1} mana ability counts toward a trigger's own cost
-		{"hold_out_ends_with_first_strike_step", true, false},      // the regular damage step is a new window with no StepChange
-		{"dealt_damage_new_object", true, false},                   // CR 400.7: a returned creature has dealt no damage this turn
-		{"entering_is_not_leaving", true, false},                   // Doorkeeper Thrull leaves "leave your graveyard" lines alone
-		{"spell_gained_deathtouch_lifelink", true, false},          // Judith's mode on the spell that triggered her
-		{"trigger_limit_look_back", true, false},                   // CR 603.10a: Homicide Investigator's own death reads the limit it spent
-		{"optional_cost_no_prefix_search", false, false},           // an OptionalCost card's plain cast: no search over a Strider
-		{"optional_cost_granted_source", false, false},             // nor a witness from a granted source (Insidious Roots)
-		{"evidence_targets_cost_granted_source", false, false},     // CR 601.2b: Urgent Necropsy's collect evidence X is priced by printed sources only, not Insidious Roots' grant
-		{"damage_all_planeswalker_clause", false, false},           // CR 120.3c: Incinerator of the Guilty's X damage to each planeswalker that player controls removes Kaya's loyalty
-		{"fee_colour_hybrid_face", false, false},                   // a filter's fee takes the colour the hybrid face can spare
-		{"first_only_filter_in_window", false, false},              // a once-each-turn filter is listed once the pool pays its fee
-		{"ward_window_first_only_filter", false, false},            // ... and a failed ward payment still spends it
-		{"granted_colours_before_printed", false, false},           // Leyline of the Guildpact: a {C} land makes a granted colour first
-		{"face_down_granted_trigger", false, false},                // Curious Inquiry on a face-down creature
-		{"granted_source_hybrid_cast", false, false},               // Leyline of the Guildpact's {G/W}{G/U}{B/G}{R/G}: a hybrid cast is a potential play, and a granted source's prefix is searched on its pips as printed
-		{"activation_plan_search_limit", false, false},             // Wispdrinker Vampire's {5}{W}{B} under Leyline of the Guildpact: the planner's node limit still arms its best plan
-		{"granted_colours_before_dual_types", false, false},        // Leyline of the Guildpact: a dual land's type-derived {R} and {G} are intrinsic like the granted {B}, so Fuss's generic mana comes from its {G}, not a granted {B}
-		{"ward_failed_payment_granted_type_first", false, false},   // Leyline of the Guildpact: a ward payment too small to pay floats the Mountain's own {R}, the first of its abilities, not a granted {W}
-		{"granted_types_any_land_hybrid_pool", true, false},        // Leyline of the Guildpact: Fuss after three {W} floated by hand pays its generic from the same lands in both engines
-		{"adventure_card_copy_cast", true, false},                  // CR 707.12, 715.3: Reenact the Crime's copy of Kellan, Inquisitive Prodigy is cast as its front face (gorge never offers the Adventure)
-		{"facedown_ward_of_a_printed_ward_card", false, false},     // CR 701.58a/702.168b: a cloaked Axebane Ferox (prints Ward) targeted by an opponent: the face-down ward trigger has no face trigger index (gorge 255)
-		{"hybrid_activation_printed_witness", false, false},        // a lowered {G/W} activation resolves over printed mana only: Insidious Roots' granted any-colour token is not the {G} face gorge's planHybridCost prices
-		{"each_target_aura_copy_host_ask", false, false},           // CR 303.4f: Doppelgang's copy of a targeted Curious Inquiry asks its host before the copies of the targets after it
-		{"copy_each_target_aura_enchant", false, false},            // CR 303.4f: Doppelgang's copy of an Aura asks what it enchants as it enters, the later targets' copies after the answer
-		{"animated_equipment_without_equip_ability", false, false}, // CR 704.5p: Cryptic Coat (Equipment, attached by its ETB trigger, no Equip ability) detaches when Behind the Mask animates it, so its Equipped static stops on the Forest
+		{"deathtouch_wither_hit", true, false},                       // CR 704.5h: a counter-form hit marks no damage, and the mark alone is lethal
+		{"dealt_once_each_damage", true, false},                      // EachDamage lands on one referent twice: one trigger with the batch's total
+		{"wither_from_departed_source", true, false},                 // a dying Shady Informant's trigger keeps the wither Massacre Girl gave it
+		{"potential_once_each_turn_mana", true, false},               // Gravestone Strider's {1} mana ability counts toward a trigger's own cost
+		{"hold_out_ends_with_first_strike_step", true, false},        // the regular damage step is a new window with no StepChange
+		{"dealt_damage_new_object", true, false},                     // CR 400.7: a returned creature has dealt no damage this turn
+		{"entering_is_not_leaving", true, false},                     // Doorkeeper Thrull leaves "leave your graveyard" lines alone
+		{"spell_gained_deathtouch_lifelink", true, false},            // Judith's mode on the spell that triggered her
+		{"trigger_limit_look_back", true, false},                     // CR 603.10a: Homicide Investigator's own death reads the limit it spent
+		{"optional_cost_no_prefix_search", false, false},             // an OptionalCost card's plain cast: no search over a Strider
+		{"optional_cost_granted_source", false, false},               // nor a witness from a granted source (Insidious Roots)
+		{"evidence_targets_cost_granted_source", false, false},       // CR 601.2b: Urgent Necropsy's collect evidence X is priced by printed sources only, not Insidious Roots' grant
+		{"damage_all_planeswalker_clause", false, false},             // CR 120.3c: Incinerator of the Guilty's X damage to each planeswalker that player controls removes Kaya's loyalty
+		{"fee_colour_hybrid_face", false, false},                     // a filter's fee takes the colour the hybrid face can spare
+		{"first_only_filter_in_window", false, false},                // a once-each-turn filter is listed once the pool pays its fee
+		{"ward_window_first_only_filter", false, false},              // ... and a failed ward payment still spends it
+		{"granted_colours_before_printed", false, false},             // Leyline of the Guildpact: a {C} land makes a granted colour first
+		{"face_down_granted_trigger", false, false},                  // Curious Inquiry on a face-down creature
+		{"granted_source_hybrid_cast", false, false},                 // Leyline of the Guildpact's {G/W}{G/U}{B/G}{R/G}: a hybrid cast is a potential play, and a granted source's prefix is searched on its pips as printed
+		{"activation_plan_search_limit", false, false},               // Wispdrinker Vampire's {5}{W}{B} under Leyline of the Guildpact: the planner's node limit still arms its best plan
+		{"granted_colours_before_dual_types", false, false},          // Leyline of the Guildpact: a dual land's type-derived {R} and {G} are intrinsic like the granted {B}, so Fuss's generic mana comes from its {G}, not a granted {B}
+		{"ward_failed_payment_granted_type_first", false, false},     // Leyline of the Guildpact: a ward payment too small to pay floats the Mountain's own {R}, the first of its abilities, not a granted {W}
+		{"granted_types_any_land_hybrid_pool", true, false},          // Leyline of the Guildpact: Fuss after three {W} floated by hand pays its generic from the same lands in both engines
+		{"adventure_card_copy_cast", true, false},                    // CR 707.12, 715.3: Reenact the Crime's copy of Kellan, Inquisitive Prodigy is cast as its front face (gorge never offers the Adventure)
+		{"facedown_ward_of_a_printed_ward_card", false, false},       // CR 701.58a/702.168b: a cloaked Axebane Ferox (prints Ward) targeted by an opponent: the face-down ward trigger has no face trigger index (gorge 255)
+		{"hybrid_activation_printed_witness", false, false},          // a lowered {G/W} activation resolves over printed mana only: Insidious Roots' granted any-colour token is not the {G} face gorge's planHybridCost prices
+		{"each_target_aura_copy_host_ask", false, false},             // CR 303.4f: Doppelgang's copy of a targeted Curious Inquiry asks its host before the copies of the targets after it
+		{"copy_each_target_aura_enchant", false, false},              // CR 303.4f: Doppelgang's copy of an Aura asks what it enchants as it enters, the later targets' copies after the answer
+		{"animated_equipment_without_equip_ability", false, false},   // CR 704.5p: Cryptic Coat (Equipment, attached by its ETB trigger, no Equip ability) detaches when Behind the Mask animates it, so its Equipped static stops on the Forest
+		{"ward_queues_at_target_choice_before_payment", true, false}, // CR 601.2c, 603.3b: a cost's sacrifice dies during the payment, so its triggers queue behind the ward trigger the target answer queued, not ahead of it -- the CR 603.3b ordering ask indexes the ward first
+		{"granted_before_printed_any", false, false},                 // CR 305.6: a granted basic type's intrinsic abilities precede a printed any-colour ability in the node-limited plan census
 	})
 }
 
@@ -86,6 +88,17 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// sets at every pick (CR 700.13), not only at placement, and the
 		// kernel follows (act_commitcrime.go crimePick).
 		{"crime_ledger_set_at_each_ability_target_pick", true, false},
+		// Vadmir, New Blood's once-each-turn crime trigger is enqueued at the
+		// CR 601.2c target answer (the ward walk's crime step); an unpayable
+		// Spree cast then reverses, and the reversal gives back the
+		// once-per-turn record the queued trigger consumed (gorge abortCast's
+		// proposalLimits, CR 733.1), so the retried cast triggers again
+		{"crime_limit_restored_on_reversed_cast", false, false},
+		// Three Steps Ahead's chosen modes cost more than the board can pay:
+		// the manual CR 601.2g window taps an any-colour source and the
+		// colour ask carries no announced hybrid pip, so gorge answers its
+		// lowest colour, not the {U} the composed cost still owes.
+		{"spree_window_any_colour_lowest", false, false},
 	})
 }
 
@@ -95,6 +108,7 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-blb", []stdRepro{
 		{"blinked_creature_is_a_target_of_its_own_leave_trigger", true, false}, // CR 603.3d: Three Tree Scribe blinked and back is a legal target of its own trigger
 		{"x_cast_leaves_a_target", false, false},                               // For the Common Good from one land and two Treasures: the largest-X plan consumes both copies targets, so the witness prices a smaller X whose payment keeps one Treasure as a target
+		{"activation_cost_removes_target_becomes_target", true, false},         // CR 601.2c, 601.2g-h: Nettle Guard's {1}, Sacrifice: Destroy ability aims at itself, so its Valiant BecomesTarget trigger fires before the sacrifice that is part of the same activation's cost
 	})
 }
 
@@ -220,6 +234,11 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// finish reverses the cast keeping the floated mana (CR 733.1: a
 		// player may reverse mana abilities activated for an illegal play)
 		{"twobrid_delve_unpayable_window", true, false},
+		{"printed_combo_window_colour_order", true, false}, // CR 601.2g: a printed Combo's mana window answers the ability's printed order, so Thornwood Falls makes {G} (before its {U}) and Frontier Bivouac stays untapped
+		// CR 702.66a, 702.180a: a Harmonize creature whose power already
+		// covers the whole generic part leaves no shortfall for Teval's
+		// granted delve, so no graveyard card is offered (Ureni's Rebuff).
+		{"delve_harmonize_covered_generic", true, false},
 	})
 }
 
@@ -339,9 +358,11 @@ func TestStdFinReprosLockstep(t *testing.T) {
 func TestStdSosReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-sos", []stdRepro{
-		{"printed_flashback_beside_granted", false, false},        // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
-		{"granted_and_printed_flashback_ambiguous", false, false}, // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
-		{"graveyard_ability_source_new_object", true, false},      // CR 400.7: a second Postmortem Professor return ability resolves after the card came back and died again, and finds a new object
+		{"printed_flashback_beside_granted", false, false},           // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
+		{"granted_and_printed_flashback_ambiguous", false, false},    // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
+		{"graveyard_ability_source_new_object", true, false},         // CR 400.7: a second Postmortem Professor return ability resolves after the card came back and died again, and finds a new object
+		{"cascade_mana_value_evaluated_at_resolution", false, false}, // CR 202.3b: cascade reads the spell's mana value where the spell resolved, so the ward-counted Fractalize (X paid 4, now a card in the graveyard) prices 1 and does not hit Textbook Tabulator
+		{"charm_gate_ignores_restricted_float", false, false},        // CR 106.6, 601.2c: the pre-target gate keeps a cast alive whose floating restricted mana its restriction admits, as gorge's pool does
 	})
 }
 
@@ -356,6 +377,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"evoke_hybrid_paid_from_floating_pool", false, false},       // CR 601.2h: Deceit evoked with a floating {U} and {B} pays its {U/B}{U/B} from the pool and taps no untapped Island
 		{"planned_mana_sacrifice_token_waits_for_sba", true, false},  // CR 704.5d, 111.7: a Treasure sacrificed by the payment plan for Appeal to Eirdu stays in the graveyard until the next state-based check, as gorge leaves it
 		{"mayplay_selfflash_you_is_wouldbe_controller", true, false}, // CR 109.5: a may-play cast of a card exiled by Maralen, Fae Ascendant reads the card's own CastWithFlash static's "you" as the would-be controller
+		{"restricted_window_float_keeps_chosen_type", false, false},  // CR 106.6, 601.2h: the evoked pip window's owed tap of an any-colour ChosenType-restricted source floats the batch with the source's chosen creature type, so a spell of that type can spend it
 	})
 }
 
@@ -421,6 +443,9 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"restricted_float_affords_unadmitted_payment", false, false},   // a floating restricted batch counts as affordable for a spell its restriction does not admit, so the kernel taps one source fewer and floats one pip less
 		{"restricted_float_paid_unadmitted_spell", false, false},        // the same admission check at the double-pip shape: a spell is paid straight out of the floating restricted pair both pips of which the payment may not touch
 		{"room_other_face_trigger_reads_cast_face_svars", false, false}, // an unlocked Room's other-face trigger resolves against the shown face's SVar table, so a Branch arm named only on its own face does nothing
+		{"mid_resolution_mana_sac_token_waits_sba", true, false},        // CR 704.3, 704.5d: a token sacrificed to pay a mid-resolution UnlessPaid fee waits in the graveyard for the state-based action, as a cast payment's does not
+		{"multi_discard_pick_order_past_eight", false, false},           // CR 404.3: a ten-card discard keeps the owner's chosen arrangement past the old eight-pick buffer
+		{"returned_sorcery_stays_in_graveyard", false, false},           // CR 304.4: a manifested sorcery that died is a sorcery card, so Meathook Massacre II's paid return (with a finality counter) leaves it in the graveyard
 	})
 }
 

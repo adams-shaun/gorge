@@ -105,8 +105,10 @@ const (
 	whoYou
 	whoOpp
 	whoEnchCtrl // Phase only: the controller of the permanent the source is attached to (kop.WhoseEnchCtrl)
-	// whoTgtPlayer: TargetedPlayerCtrl, the controller is a player target
-	// of the resolving entry (gorge matchTargetedPlayerCtrl; kop.F2TgtPlayerCtrl,
+	// whoTgtPlayer: TargetedPlayerCtrl (the controller is a player target
+	// of the resolving entry; gorge matchTargetedPlayerCtrl,
+	// kop.F2TgtPlayerCtrl, battlefield only) and, on the Owner side, OwnedBy
+	// Targeted / TargetedPlayerOwn (gorge matchTargetedPlayerOwn, off the
 	// battlefield only)
 	whoTgtPlayer
 	// whoDefending: ControlledBy TriggeredDefendingPlayer inside an Attacks
@@ -611,12 +613,23 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		return c.setWho(&c.Ctrl, whoHitBySrc)
 	case "RememberedPlayerCtrl":
 		return c.setWho(&c.Ctrl, whoEachPl) // lower_repeatplayers.go
+	case "RememberedPlayerOwn":
+		// a card off the battlefield is controlled by its owner: the same
+		// seat as RememberedPlayerCtrl there (Singularity Rupture's
+		// Count$ValidLibrary). The clause() emitter keeps it off the
+		// battlefield, where owner and controller part
+		return c.setWho(&c.Owner, whoEachPl)
 	case "OwnedBy TriggeredDefendingPlayer":
 		// gorge controlReferentPlayers op OwnedBy; off the battlefield only
 		// (build.go ownerRoleF2), in an Attacks trigger's body as the
 		// ControlledBy twin is
 		return c.setWho(&c.Owner, whoDefending)
-	case "OwnedBy Targeted":
+	case "OwnedBy Targeted", "TargetedPlayerOwn":
+		// TargetedPlayerOwn is gorge wordTargetedPlayerOwn
+		// (matchTargetedPlayerOwn): same referent as OwnedBy Targeted --
+		// gorge's controlReferentPlayers reads "Targeted" and "TargetedPlayer"
+		// as one code, so the resolution's player targets -- read as
+		// OwnedBy on the candidate's owner
 		return c.setWho(&c.Owner, whoTgtPlayer) // off the battlefield only (ownerRoleF2)
 	}
 	if p == "IsSolved" || p == "!IsSolved" {

@@ -276,8 +276,13 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				return true, held
 			}
 			s.leave(k, sl, kop.ZoneGraveyard, false)
-			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && !(s.buildLive() && s.ctl == ctlBuild && s.bld().bfl&bflManaStep != 0) {
-				s.ceaseManaToken(o) // a sacrificed Treasure ceases at once, as gorge pays; the payment plan's tap (bflManaStep) leaves it for the next state-based check (CR 704.5d)
+			// a token sacrificed to pay a cast ceases at once, as gorge pays (a
+			// Treasure: payCast's tail reaches gorge's priority-boundary check,
+			// engine.go checkStateBased); one sacrificed to pay mid-resolution or
+			// by a planned activation's mana step (bflManaStep) waits for the
+			// state-based action at the next priority (CR 704.3, 704.5d)
+			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) {
+				s.ceaseManaToken(o)
 			}
 		}
 	}
@@ -476,6 +481,19 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 			// symbol and is never taken beside them (Misty Palms Oasis under a
 			// Great Divide Guide owing {R} answers {W})
 			all = mask
+			if pc.manaAb >= 0 && pc == &k.cards[s.cardAt(sl)] {
+				// the options are the ability's own token order
+				// (effects.ComboColours, kop.Ability.ManaColOrd), not WUBRG:
+				// Thornwood Falls' Combo G U answers {G} before {U}
+				ab := &k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb]
+				var ord [5]uint8
+				for _, c := range ord[:manaColourOrder(ab, &ord)] {
+					if all&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
+						return int(c)
+					}
+				}
+				return col
+			}
 		}
 		for c := 0; c < 5; c++ {
 			if all&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
@@ -552,6 +570,16 @@ func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (
 			nt++
 			s.windowDryFilter(k, p, cost, sl)
 			continue
+		}
+		if !anyColor && !gap {
+			// the real walk may take a restricted ability here ahead of the
+			// census one (windowRestrOwedTap): its mana floats restricted in
+			// State.rb, which this plain-pool census cannot model. Leave the
+			// walk to the caller's full probe.
+			if _, _, owed := s.windowRestrOwed(k, p, sl, cost); owed {
+				ok, known = false, false
+				break
+			}
 		}
 		pc := s.windowGrantPC(k, sl)
 		if gap || k.sacOnlyMana && pc.manaSacOnly || s.perms[sl].flags&pfTapped != 0 ||
@@ -2391,8 +2419,12 @@ func (s *State) manaStep(k *prep) bool {
 		} else if k.t.Cards[e.card].HasModeCost {
 			// Spree: gorge's planner declines the face ("shape:modal_cost"),
 			// so the cast pays through the manual CR 601.2g window, the
-			// first useful source until the pool pays (kw_spree.go)
-			s.windowTapRider(k, e.ctrl, &cost, true, anyColor)
+			// first useful source until the pool pays (kw_spree.go). The
+			// window's colour ask has no ManaPayment: its owed colours are
+			// the announced hybrid/Phyrexian faces only, so with none the
+			// any-colour source answers its lowest colour (windowCol's
+			// noOwed), not the pip the composed Spree cost still owes.
+			s.windowTapUseful(k, e.ctrl, &cost, &cost, true, anyColor, s.bld().pipN == 0, false)
 		} else if cost.X != 0 && s.cfg&cfgGorgeSurface != 0 {
 			if !s.xWindowPay(k, e, &cost) {
 				s.releaseCostTaps(k, &saved)
