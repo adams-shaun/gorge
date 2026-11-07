@@ -283,6 +283,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 	runAttempt := func(res *SampleResult, plans *constraintPlanCache, spare *rules.Spare, store *exclusionStore, staging *exclusionStore, attempt int) (_ World, _ float64, kept bool, _ error) {
 		res.Attempts++
 		seed := taggedSeed(opts.Seed, digest, attempt, seedEngine)
+		// The rejection sampler stays constructed (no format or commanders), so a Commander world it builds never matches the observed board and is rejected; fail-closed by design.
 		cfg := rules.Config{Seed: seed[0], Names: setup.Names, Decks: setup.Decks, Tokens: setup.Tokens, StartingLife: setup.StartingLife}
 		observer := NewCollector(h.Actor)
 		proposal := &proposalState{epochs: epochs, logWeight: tossWeight, base: opts.Seed, history: digest, attempt: attempt, observer: observer, result: res, plans: plans, exclusions: store, staging: staging, noLandExclusion: opts.NoLandExclusion}
