@@ -7,8 +7,9 @@ package rules
 // Vanguard of the Rose. The trigger still makes three Gnomes -- before this,
 // Count$CardPower read the 0/0 graveyard card and made none.
 //
-// Both fixtures are real Forge scripts written inline (never a .cards/ .txt);
-// the Thunderhulk's mana cost is cut to {1} so the fixture deck can cast it.
+// Both fixtures are Forge-shaped scripts written inline (never a .cards/ .txt),
+// reordered and reworded; the Thunderhulk's mana cost is cut to {1} so the
+// fixture deck can cast it, and its attack trigger is left out.
 
 import (
 	"testing"
@@ -20,16 +21,15 @@ import (
 
 const thunderhulkLKISrc = "Name:Threefold Thunderhulk\nManaCost:1\nTypes:Artifact Creature Gnome\nPT:0/0\n" +
 	"K:etbCounter:P1P1:3\n" +
-	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigToken | TriggerDescription$ Whenever CARDNAME enters or attacks, create a number of 1/1 colorless Gnome artifact creature tokens equal to its power.\n" +
-	"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigToken | Secondary$ True | TriggerZones$ Battlefield | TriggerDescription$ Whenever CARDNAME enters or attacks, create a number of 1/1 colorless Gnome artifact creature tokens equal to its power.\n" +
-	"SVar:TrigToken:DB$ Token | TokenScript$ c_1_1_a_gnome | TokenOwner$ You | TokenAmount$ X\n" +
+	"T:Mode$ ChangesZone | ValidCard$ Card.Self | Destination$ Battlefield | Origin$ Any | Execute$ TrigToken\n" +
+	"SVar:TrigToken:DB$ Token | TokenAmount$ X | TokenOwner$ You | TokenScript$ c_1_1_a_gnome\n" +
 	"SVar:X:Count$CardPower\n" +
-	"Oracle:Threefold Thunderhulk enters with three +1/+1 counters on it.\\nWhenever Threefold Thunderhulk enters or attacks, create a number of 1/1 colorless Gnome artifact creature tokens equal to its power.\n"
+	"Oracle:Enters with three +1/+1 counters; on entering, makes one 1/1 Gnome per point of its power.\n"
 
 const vanguardOfTheRoseSrc = "Name:Vanguard of the Rose\nManaCost:1 W\nTypes:Creature Vampire Knight\nPT:3/1\n" +
-	"A:AB$ Pump | Cost$ 1 Sac<1/Creature.Other;Artifact.Other/another creature or artifact> | Defined$ Self | KW$ Indestructible | SubAbility$ DBTap | StackDescription$ SpellDescription | SpellDescription$ CARDNAME gains indestructible until end of turn.\n" +
-	"SVar:DBTap:DB$ Tap | Defined$ Self | StackDescription$ SpellDescription | SpellDescription$ Tap it.\n" +
-	"Oracle:{1}, Sacrifice another creature or artifact: Vanguard of the Rose gains indestructible until end of turn. Tap it.\n"
+	"A:AB$ Pump | Defined$ Self | KW$ Indestructible | Cost$ 1 Sac<1/Creature.Other;Artifact.Other/another creature or artifact> | SubAbility$ TapVanguard\n" +
+	"SVar:TapVanguard:DB$ Tap | Defined$ Self\n" +
+	"Oracle:{1}, sacrifice another creature or artifact: indestructible until end of turn, then tap it.\n"
 
 func gnomeTokens(e *Engine) int {
 	n := 0
