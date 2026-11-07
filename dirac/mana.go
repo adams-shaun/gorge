@@ -1679,7 +1679,7 @@ func (pk *planner) consider() {
 			}
 		}
 	}
-	if pain >= pk.life {
+	if pain > 0 && pain >= pk.life { // gorge pay/search.go walk: a zero-pain plan is never lethal (life <= 0 under Marina Vendrell's Grimoire)
 		return // the lethal guard (pay/search.go walk): never a plan
 	}
 	key[2] = size
