@@ -17,10 +17,12 @@ func (s *State) dropEOTEmblems(k *prep) {
 				continue
 			}
 			s.g.emb[p][n], s.g.embC[p][n], s.g.embO[p][n], s.g.embN[p][n] = s.g.emb[p][i], s.g.embC[p][i], s.g.embO[p][i], s.g.embN[p][i]
+			s.g.embT[p][n] = s.g.embT[p][i]
 			n++
 		}
 		for i := n; i < int(s.g.nemb[p]); i++ {
 			s.g.emb[p][i], s.g.embC[p][i], s.g.embO[p][i], s.g.embN[p][i] = 0, 0, 0, 0
+			s.g.embT[p][i] = 0
 		}
 		s.g.nemb[p] = uint8(n)
 	}

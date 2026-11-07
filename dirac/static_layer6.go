@@ -22,7 +22,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     characteristics (lfxLocked): AddKw, RemoveKw, LoseAbilities;
 //   - the Continuous statics' keyword grants and RemoveKeyword$ removals
 //     (Static.Override), stamped with their source's layerTs (an emblem's:
-//     0);
+//     the timestamp recorded when it was created, State.g.embT);
 //   - until-end-of-turn grants (perm.eotKw, an Animate's perm.ovr.kw):
 //     when the table promotes them (fxNeedPromo: a static removal can be
 //     older or newer than them) each grant left an fxKwGrant record with
@@ -184,7 +184,7 @@ func (s *State) l6Walk(k *prep, sl Slot, w *l6walk) (kw kop.KwMask, lts uint16, 
 			e := &k.t.Emblems[s.g.emb[pp][i]-1]
 			for j := range e.Abilities {
 				if a := &e.Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && (a.Static.Kw != 0 || a.Static.Override > 0) {
-					s.l6static(k, sl, w, statSrc{a: a, sl: NoSlot, ctrl: pp, obj: NoObj}, 0)
+					s.l6static(k, sl, w, statSrc{a: a, sl: NoSlot, ctrl: pp, obj: NoObj, emb: pp<<3 | uint8(i+1)}, s.g.embT[pp][i])
 				}
 			}
 		}

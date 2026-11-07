@@ -280,7 +280,7 @@ func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id
 			sc = e.prototypeSpellSpecCtx(sc, id)
 		}
 		if e.castRestrictionMatches(spec, id, sc, as) &&
-			castLimitBinds(e.L.Events, sv, p, id, func(oid state.ObjID) bool {
+			castLimitBinds(e.L.Events, sv, p, castInFlight(e.G, id), func(oid state.ObjID) bool {
 				if len(sv.Remembered) == 0 {
 					return e.matchesSpec(countSpec, oid, e.staticSpecCtx(sv))
 				}
@@ -584,13 +584,25 @@ func (sv staticView) numLimitEachTurn() (int, bool) {
 // shared by the offer (castRestrictedCost) and the CR 601.2e recheck
 // (recheckIllegal). A static without the parameter always binds; with it the
 // static binds only once p has already cast N matching spells this turn,
-// the candidate's own in-flight PutOnStack excluded.
-func castLimitBinds(log []events.Event, sv staticView, p state.PlayerID, candidate state.ObjID, match func(state.ObjID) bool) bool {
+// the in-flight cast's own latest PutOnStack excluded. inFlight is the
+// candidate only while its cast is under way (the recheck, or the offer with
+// the card already on the stack); 0 otherwise, so a card cast earlier this
+// turn and returned to hand still counts its finished cast.
+func castLimitBinds(log []events.Event, sv staticView, p state.PlayerID, inFlight state.ObjID, match func(state.ObjID) bool) bool {
 	n, ok := sv.numLimitEachTurn()
 	if !ok {
 		return true
 	}
-	return castsThisTurnMatchingBy(log, p, candidate, match) >= n
+	return castsThisTurnMatchingBy(log, p, inFlight, match) >= n
+}
+
+// castInFlight is id when its cast is under way (the card is on the stack),
+// else 0: the offer's castLimitBinds exclusion.
+func castInFlight(g *state.Game, id state.ObjID) state.ObjID {
+	if o := g.Obj(id); o != nil && o.Zone == state.ZStack {
+		return id
+	}
+	return 0
 }
 
 // castRestrictionSources merges the battlefield restriction statics with the

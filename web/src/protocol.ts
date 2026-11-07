@@ -2214,8 +2214,9 @@ export interface EventSubscribe {
 
   /**
    * EventSetInfo is one draftable set as GET /api/events/sets reports it.
-   * Ratings is the rating source the pickbot uses for it: "17lands" when a
-   * ratings manifest exists, "heuristic" otherwise.
+   * Ratings is the rating source the pickbot uses for it
+   * (pickbot.RatingSource): "17lands" for a 17Lands rating file, "simulated"
+   * for a simulated card-strength file, "heuristic" when none exists.
    */
 export interface EventSetInfo {
   code: string;
