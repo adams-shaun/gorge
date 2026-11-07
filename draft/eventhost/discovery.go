@@ -8,8 +8,9 @@ import (
 
 // Sets lists every draftable set for GET /api/events/sets: the set data
 // catalogue's code, name and pack size, plus the rating source the pickbot
-// uses for it — "17lands" when an embedded ratings manifest covers the
-// set, "heuristic" otherwise.
+// uses for it (pickbot.RatingSource) — "17lands" for a 17Lands rating
+// file, "simulated" for a simulated card-strength file, "heuristic" when
+// no rating file covers the set.
 func (h *Host) Sets() []protocol.EventSetInfo {
 	codes := setdata.Codes()
 	out := make([]protocol.EventSetInfo, 0, len(codes))
@@ -18,12 +19,8 @@ func (h *Host) Sets() []protocol.EventSetInfo {
 		if err != nil {
 			continue
 		}
-		ratings := "heuristic"
-		if pickbot.RatedSet(code) {
-			ratings = "17lands"
-		}
 		out = append(out, protocol.EventSetInfo{
-			Code: code, Name: spec.Name, PackSize: spec.PackSize, Ratings: ratings,
+			Code: code, Name: spec.Name, PackSize: spec.PackSize, Ratings: pickbot.RatingSource(code),
 		})
 	}
 	return out

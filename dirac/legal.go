@@ -525,11 +525,11 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// The floating pool paying the reduced cost is enough: the plan is
 		// then a pool choice. So: offered iff the pool pays the reduced cost
 		// or the sources pay the printed one AFTER the cost statics
-		// (powerup_cost_static_planner_prices_reduced_print: Hulk, Gamma
-		// Goliath's {3} Power-up reduction makes Pet Avengers' {6}{G}
-		// affordable from the sources at {3}{G}); the charge is always the
-		// reduced one (buildCostCharge), and the plan/charge mismatch falls
-		// back to the manual mana window (powerUpPlanRejected,
+		// (powerup_cost_static_planner_prices_reduced_print_torch: Hulk, Gamma
+		// Goliath's {3} Power-up reduction makes Human Torch, Johnny Storm's
+		// {6}{R} affordable from the sources at {3}{R}); the charge is always
+		// the reduced one (buildCostCharge), and the plan/charge mismatch
+		// falls back to the manual mana window (powerUpPlanRejected,
 		// mana_window.go).
 		printed := a.Cost.Mana
 		if k.gen != nil && k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {

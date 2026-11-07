@@ -6,7 +6,13 @@ import "testing"
 func TestStdMshReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-msh", []stdRepro{
-		{"target_attacking_lki_after_lethal_damage", false, false},        // CR 608.2h: the enrage rider still sees the attacker's last battlefield status after lethal damage moved it to the graveyard, so the extra combat phase is granted
-		{"powerup_cost_static_planner_prices_reduced_print", true, false}, // CR 601.2f, 702.193: Hulk, Gamma Goliath's {3} Power-up reduction composes into the autopay planner's printed cost, so Pet Avengers' {6}{G} is offered at {3}{G} from the sources
+		{"target_attacking_lki_after_lethal_damage", false, false},              // CR 608.2h: the enrage rider still sees the attacker's last battlefield status after lethal damage moved it to the graveyard, so the extra combat phase is granted
+		{"power_up_printed_witness_composes_cost_statics", false, false},        // CR 601.2f, 702.193b: Abomination's {5}{R/G}{R/G} Power-up beside Hulk is offered when five sources pay the printed cost less Hulk's {3}, the planner's witness
+		{"hybrid_ability_plan_composes_cost_statics", false, false},             // CR 601.2f, 602.2b: Abomination's hybrid Power-up beside Hulk taps the lands of the plan for its printed cost less Hulk's {3}, not the manual window's
+		{"baxter_filter_combo_need_first", false, false},                        // CR 605.3b: a combination filter's allocation asks try the combinations naming a colour the cost needs first, so the node budget reaches the funding that pays
+		{"sorcery_play_waits_for_filter_prefix_trigger", false, false},          // CR 603.2c, 605.1b: Hydraulic Helper tapped to fund Surveillance Room's {1} fee queues Rewrite History's trigger once, which resolves before the sorcery-speed Shuri is cast
+		{"powerup_cost_static_planner_prices_reduced_print_torch", true, false}, // CR 601.2f, 702.193b: Hulk, Gamma Goliath's {3} Power-up reduction composes into the printed cost the autopay planner prices, so Human Torch, Johnny Storm's {6}{R} is offered at {3}{R}
+		{"filter_search_branches_on_treasure_funding", true, false},             // CR 605.3a: gorge's prefix search over Surveillance Room's and Baxter Building's fees also funds them with the Treasure, G first, and runs out of its 160 nodes, so The Unbeatable Squirrel Girl's {1}{G}{G}{G} stays unoffered
+		{"powerup_cost_static_planner_prices_reduced_print", true, false},       // CR 601.2f, 702.193: Hulk, Gamma Goliath's {3} Power-up reduction composes into the autopay planner's printed cost, so Pet Avengers' {6}{G} is offered at {3}{G} from the sources
 	})
 }
