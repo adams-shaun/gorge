@@ -158,3 +158,17 @@ var DebugNoMinManaFloor bool
 // AbFloorRaised counts the pricings where a MinMana$ floor raised the
 // generic part back up (read by TestReduceminmanaLockstep).
 var AbFloorRaised atomic.Int64
+
+// abPlannedCost is the mana cost gorge's ability planner prices
+// (planAbilityPayment): the printed cost with the cost statics composed
+// (offerCostFor), but never Power-up's entry-turn reduction (CR 702.193b),
+// which the planner does not apply. sl is the source's battlefield slot and
+// ctrl its activator. The offer gate's printed-cost witness and the
+// activation's armed plan both read it, so Hulk, Gamma Goliath's {3} less
+// prices the plan as it prices the charge (CR 601.2f, 602.2b).
+func (s *State) abPlannedCost(k *prep, a *kop.Ability, sl Slot, ctrl uint8) kop.ManaCost {
+	if k.gen == nil || !k.gen.anyAbReduce {
+		return a.Cost.Mana
+	}
+	return s.abReduced(k, a, sl, ctrl, a.Cost.Mana)
+}

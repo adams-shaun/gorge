@@ -610,10 +610,13 @@ func (e *Engine) SpellsCastThisTurnBy(p state.PlayerID) int {
 }
 
 // castsThisTurnMatchingBy counts the spells p put on the stack since the last
-// TurnChange whose object satisfies match, skipping exclude (the in-flight
-// candidate, whose own PutOnStack is already logged at the CR 601.2e
-// recheck). A free function over the log so the per-caster limit rule
-// (castLimitBinds) needs no Engine receiver.
+// TurnChange whose object satisfies match, skipping exclude's LATEST
+// PutOnStack only (the in-flight candidate, whose own push is already logged
+// at the CR 601.2e recheck). An object keeps its ObjID across zone changes,
+// so an earlier, finished cast of the same card this turn (a permanent
+// bounced back to hand) is a spell already cast and still counts. A free
+// function over the log so the per-caster limit rule (castLimitBinds) needs
+// no Engine receiver.
 func castsThisTurnMatchingBy(log []events.Event, p state.PlayerID, exclude state.ObjID, match func(state.ObjID) bool) int {
 	n := 0
 	var rev events.CastReversals
@@ -625,7 +628,11 @@ func castsThisTurnMatchingBy(log []events.Event, p state.PlayerID, exclude state
 		if rev.Undone(&ev) {
 			continue
 		}
-		if ev.Kind != events.PutOnStack || ev.Player != p || (exclude != 0 && ev.Obj == exclude) {
+		if ev.Kind != events.PutOnStack || ev.Player != p {
+			continue
+		}
+		if exclude != 0 && ev.Obj == exclude {
+			exclude = 0
 			continue
 		}
 		if match(ev.Obj) {

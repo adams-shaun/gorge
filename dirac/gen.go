@@ -172,6 +172,7 @@ type genPrep struct {
 	anyBecomeCopy  bool           // some enters program is OpBecomeCopy (an as-enters clone): a permanent it made a copy is projected as its printed card, and a token copy of a clone is asked its election (ctr_entryperkind.go)
 	anyEntryMerge  bool           // the table has an AddCounter replacement and more than one source of entry counters: enterGen merges them into one put per kind (ctr_entryperkind.go)
 	anyEffEtbCtr   bool           // some instruction is ExtEffEtbCtr: enterGen puts a cast spell's pending extra counters on (ctr_effectentry.go)
+	anyEtbOwnOther bool           // some card's own enter body is one prepared grant: the effect's rider count and the body compete over the entry, the CR 616.1 order is asked (repl_etborder.go)
 	anyStaticTrig  bool           // some trigger carries Tf2Static: placeTriggers resolves it off the stack before the ordering ask (trig_mayplaystatic.go)
 	anyColSpent    bool           // some expression reads the colours of mana spent to cast a spell (ExConverge, Tf3CastConverge): payment tallies stackEntry.spc (mana_converge.go)
 	anyBatch       bool           // some trigger is a "one or more" line (Tf2Batch; trig_oneormore.go)
@@ -599,7 +600,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepOpus(t, g)
 	prepConverge(t, g)     // mana_converge.go
 	prepEvoke(t, g)        // kw_evoke.go
-	prepEffEtbCtr(t, g)    // ctr_effectentry.go
+	prepEffEtbCtr(t, p, g) // ctr_effectentry.go: the rider counts, and the prepared bodies the entry order is asked over
 	prepCtrPlusEOT(t, g)   // ctr_pluseot.go
 	prepGrantPanharm(t, g) // act_grantpanharm.go
 	prepStaticTrig(t, g)   // trig_mayplaystatic.go
@@ -1425,12 +1426,12 @@ const (
 	fxKwGrant                // a promoted until-end-of-turn keyword grant's timestamp (static_layer6.go kwGrantFx)
 	fxCopyExc                // a copy's exception override (layer 1, CR 707.9b; copy_exceptions.go)
 	fxControl                // a layer-2 control record (CR 613.1b; static_control.go)
-	fxCopyEOT                // a permanent holding until-end-of-turn copies, settled at cleanup (copy_clone.go)
-	fxCopyPerm               // a permanent's newest permanent copy marker: r.p the source object, r.idx the exception override (copy_clone.go)
+	fxCopyEOT                // a permanent's until-end-of-turn copies: r.src the newest clone's card, r.idx its exception override, r.p its template, r.ts its timestamp, settled at cleanup (copy_clone.go)
+	fxCopyPerm               // a permanent's newest permanent copy marker: r.p the source object, r.idx the exception override, r.ts its timestamp (copy_clone.go)
 	fxOnceStash              // the permanent's printed abilities were activated once-only before a copy layer began, which the layer's end returns (copy_clone.go onceBasisBegin)
 	fxCopyHeld               // a token copy's own copy exception (r.idx), held aside while an until-end-of-turn copy overrides it (copy_clone.go cloneHold)
 	fxCopyMint               // a token copy's own copy (r.src the card it was minted as), held aside likewise (copy_clone.go cloneHold)
-	fxAegisBase              // the copy a bearer wore (r.src its card) when an Assimilation Aegis copy took over, which shows again when the last Aegis copy ends (copy_aegisunder.go)
+	fxAegisBase              // the copy a bearer wore (r.src its card) when an Aegis stack took over with no copy marker of its own, which shows again when the last Aegis copy ends (copy_aegisunder.go)
 )
 
 // maxFx bounds the effect records live at once (all permanents); a full
@@ -1539,6 +1540,7 @@ type genState struct {
 	embC [2][maxEmb]CardID // the card that created it (its latent abilities run the emblem's triggers)
 	embO [2][maxEmb]Obj    // that card's object (the source of the emblem's triggers)
 	embN [2][maxEmb]uint8  // the Effect's frozen SetChosenNumber$
+	embT [2][maxEmb]uint16 // the emblem's CR 613.7 layer timestamp, set at creation (static_layer6.go)
 	nemb [2]uint8
 	qgO  [qgN]uint8 // exile grants (Q, Stacking the Deck): the granted exiled object+1, 0 = free (cast_exilegrant.go)
 	qgV  [qgN]uint8 // each grant's object version: stale once the card left exile
@@ -1732,6 +1734,7 @@ type genState struct {
 		src  Obj
 		sver uint8
 		obj  Obj
+		ts   uint16 // the tick the Aegis copy went live (aegisApply; zone_exilethenattach.go)
 	} // exiled until the source leaves (OpExileUntilLeaves)
 	nlinks   uint8
 	nexw     uint8
