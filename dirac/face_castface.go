@@ -56,7 +56,12 @@ func (s *State) faceCastable(k *prep, p uint8, o Obj, c CardID, sorc bool) bool 
 		var av avail
 		s.availFor(k, p, &av)
 		cost := s.adjustCost(k, p, c, o, pc.cost)
-		ok = s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, &av) && s.altAddCastable(k, c, p, o, &cost, &av)
+		// the census prices the face's granted delve credit as the hand
+		// walk does (legal.go delveOfferCreditHand; gorge delveCredit, CR
+		// 702.66a): Teval's grant on an Omen. The either-or check credits
+		// its own total, so it takes the pre-delve cost.
+		dc := s.delveOfferCredit(k, p, c, o, ob.zone == kop.ZoneHand, cost)
+		ok = s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &dc, &av) && s.altAddCastable(k, c, p, o, &cost, &av)
 		if ok && DebugFacePoolOnly && !s.FeatPoolPays(p, o, 0) {
 			ok = false
 		}
