@@ -1450,6 +1450,14 @@ func (s *State) finishBuild(k *prep) {
 		if s.bld().e.flags&sfFree != 0 && s.g.freeP&16 != 0 && s.bld().bfl&bflPushed != 0 {
 			s.stack[s.sp-1].flags |= sfFreeGY
 		}
+		// ForgetPlayed$ True: this free cast now sits on the stack
+		// (CR 601.2a), the point where gorge's PlayDone pass sees it and
+		// drops it from the remembered set. A cast refused before the push,
+		// or reversed while its cost was being paid (CR 733.1), never
+		// reaches this commit and keeps its card remembered.
+		if s.bld().e.flags&sfFree != 0 && s.g.freeP&128 != 0 && s.bld().bfl&bflPushed != 0 {
+			s.forgetRemGen(e.obj)
+		}
 		if k.gen != nil && k.gen.anyHist {
 			s.histCast(k, &e, &cost)
 		}

@@ -50,7 +50,8 @@ func init() { Register("Play", effPlay) }
 //   - ForgetPlayed$ True (task param:api:Play.ForgetPlayed, read on the
 //     PlayDone pass below) drops each actually-begun card from the
 //     remembered set so a chained "if you don't play it" arm only sees the
-//     unplayed remainder.
+//     unplayed remainder. A refused or reversed cast never began, so its
+//     card stays remembered (CR 733.1-2).
 func playValidReadsOtherHand(valid string) bool {
 	for _, token := range strings.FieldsFunc(valid, func(r rune) bool {
 		return r == '.' || r == '+' || r == ','
@@ -61,6 +62,15 @@ func playValidReadsOtherHand(valid string) bool {
 		}
 	}
 	return false
+}
+
+// playBegan reports whether the card a Play's answer chose was actually
+// begun: on the stack (a cast, CR 601.2a) or the battlefield (a land play).
+// A refused or reversed cast (CR 733.1) leaves it in the zone it was offered
+// from, and the PlayDone pass must not forget it.
+func playBegan(g *state.Game, id state.ObjID) bool {
+	o := g.Obj(id)
+	return o != nil && (o.Zone == state.ZStack || o.Zone == state.ZBattlefield)
 }
 
 func effPlay(h Host, c *Ctx, sa *cards.SA) {
@@ -79,15 +89,20 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		// "if you don't play it" arm (Vaan, Street Thief's ConditionDefined$
 		// Remembered Treasure gate) reads both remembered halves, and with
 		// the played card still remembered it fired even though the cast was
-		// taken. The decline leaves ctx.Play at 0 (the answer settle only sets
-		// it for a begun card), so the guard keeps the decline path untouched
-		// and the Treasure is created exactly when nothing was played. The
-		// forget shares ForgetChanged$'s body (context.go): a ctx filter AND
-		// the "forget-remembered" Choose event on the source, replay-safe
-		// with no new event kind. An Amount$ Play that begins SEVERAL cards
-		// still only forgets the first (ctx.Play holds one card) -- measured
-		// corpus-unreachable: every ForgetPlayed$ carrier plays one card.
-		if id := c.Play; id != 0 && strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKForgetPlayed)), "True") {
+		// taken. "Actually began" is the card's zone (playBegan below): while
+		// the Play still resolves a begun spell sits on the stack (CR 601.2a)
+		// and a played land is on the battlefield. A refused cast, and a cast
+		// reversed because its cost became unpayable, puts the card back in
+		// the zone it was offered from (CR 733.1-2); ctx.Play still names it,
+		// so forgetting on ctx.Play alone dropped a card that was never
+		// played and the chained arm saw it as gone. The decline leaves
+		// ctx.Play at 0 and stays untouched. The forget shares ForgetChanged$'s
+		// body (context.go): a ctx filter AND the "forget-remembered" Choose
+		// event on the source, replay-safe with no new event kind. An Amount$
+		// Play that begins SEVERAL cards still only forgets the first
+		// (ctx.Play holds one card) -- measured corpus-unreachable: every
+		// ForgetPlayed$ carrier plays one card.
+		if id := c.Play; id != 0 && strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKForgetPlayed)), "True") && playBegan(h.Game(), id) {
 			forgetRememberedOne(h, c, id)
 		}
 		// RememberPlayed$ True (Forge PlayEffect's host.addRemembered on each

@@ -53,6 +53,10 @@ func (s *State) freeCastParkable() bool {
 // OpCastFree.
 func (s *State) resumeFreeCast(k *prep) {
 	s.res.ask = raNone
+	// the drained queue's ForgetPlayed$ marker has served its casts (a
+	// committed card was dropped in cast.go finishBuild; a refused or
+	// reversed one kept its place)
+	s.g.freeP &^= 128
 	if i := s.holdIndex(); i >= 0 {
 		copy(s.stack[i:s.sp], s.stack[i+1:s.sp])
 		s.sp--

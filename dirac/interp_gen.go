@@ -596,8 +596,8 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if s.g.nfree == 0 {
 			break
 		}
-		// freeP: bit 0 caster, bits 1-3 zone, bit 4 ReplaceGraveyard (the
-		// freeQ drain reads them; turn_gen masks the player)
+		// freeP: bit 0 caster, bits 1-3 zone, bit 4 ReplaceGraveyard, bit 7
+		// ForgetPlayed (the freeQ drain reads them; turn_gen masks the player)
 		s.g.freeP = e.ctrl | uint8(in.C&7)<<1
 		if in.C&32 != 0 {
 			s.g.freeP |= 16
@@ -607,6 +607,12 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		if in.C&256 != 0 {
 			s.g.freeP |= 64 // the copy pays its mana cost (cast_exilegrant.go)
+		}
+		if in.C&16 != 0 {
+			// ForgetPlayed$ True: drop the card once its cast commits. The
+			// marker rides freeP to the drain; a refused or reversed cast
+			// never commits, so the card stays remembered (CR 733.1-2).
+			s.g.freeP |= 128
 		}
 		s.res.ask, s.res.askP = raGenCastFree, e.ctrl
 		return false, true

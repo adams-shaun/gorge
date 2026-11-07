@@ -821,7 +821,8 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		copy(s.g.freeQ[:], s.g.freeQ[1:s.g.nfq])
 		s.g.nfq--
 		c := s.objs[o].card
-		// freeP: bit 0 caster, bits 1-3 zone, bit 4 ReplaceGraveyard, bit 5 CopyCard, bit 6 paid
+		// freeP: bit 0 caster, bits 1-3 zone, bit 4 ReplaceGraveyard,
+		// bit 5 CopyCard, bit 6 paid, bit 7 ForgetPlayed
 		ctrl := s.g.freeP & 1
 		if s.g.freeP&32 != 0 {
 			paid := s.g.freeP&64 != 0
@@ -863,6 +864,10 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		s.prio = holder
 		return false
 	}
+	// the queue is drained: the ForgetPlayed$ marker has served its casts
+	// (cast.go finishBuild drops a committed card; a refused or reversed one
+	// stays remembered)
+	s.g.freeP &^= 128
 	if s.res.ask == raGenFreeParked {
 		s.resumeFreeCast(k) // the rest were refused: the parked tail runs
 		return false
