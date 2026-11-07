@@ -18,11 +18,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     are forced (nothing posed); more are a two-pick ChGenConspire over the
 //     eligible set; fewer degrade the cast to the plain one. The picks are
 //     pkTapX taps, settled at payment.
-//   - one trigger is queued with every cast of a granted
-//     spell (gorge pushes it on the PutOnStack event, unconditionally): paid,
-//     it is the abDelayed OpCopySpell entry casualty uses, whose controller
-//     may choose new targets (CR 707.10c); unpaid, an OpNop entry that only
-//     occupies the stack, as gorge's Amount$ Count$Conspired = 0 does.
+//   - one trigger is queued with a granted spell's PAID cast only (gorge's
+//     synthesized trigger carries the printed path's CheckSVar$ Count$Conspired
+//     intervening "if", CR 702.78a/603.4): paid, it is the abDelayed
+//     OpCopySpell entry casualty uses, whose controller may choose new targets
+//     (CR 707.10c); an unpaid cast queues no trigger at all, so nothing
+//     occupies the stack.
 const (
 	casConspire  uint8 = 4 // build.cas: the conspired cast, election not begun
 	casConspHalf uint8 = 5 // one creature of the two picked
@@ -113,21 +114,22 @@ func (s *State) answerConspire(k *prep, a Action) {
 	s.syncBuild()
 }
 
-// conspireTrigger queues the cast's granted-conspire trigger, one for all
-// granting statics (gorge checkGrantedConspireTriggers). The granted trigger
-// fires on EVERY cast of the granted spell, with no intervening-if, and its
-// Amount$ Count$Conspired makes it a no-op when the tap was declined: so an
-// unconspired cast still puts a (nothing-doing) trigger on the stack.
+// conspireTrigger queues the paid cast's granted-conspire trigger, one for all
+// granting statics (gorge checkGrantedConspireTriggers). The synthesized
+// trigger carries the printed expansion's CheckSVar$ Count$Conspired
+// intervening "if" (CR 702.78a, 603.4): an unpaid cast puts nothing on the
+// stack.
 func (s *State) conspireTrigger(k *prep, e *stackEntry) {
 	if k.gen == nil || !k.gen.anyConspire {
 		return
 	}
 	n, _ := s.stackKwN(k, kop.StackKwConspire, e.card, e.obj, e.ctrl, s.castFromHandBy(e, e.ctrl))
-	op := kop.OpNop
-	if s.bld().cas == casConspPaid && !DebugConspireNoCopy {
-		op = kop.OpCopySpell
+	if n == 0 || s.bld().cas != casConspPaid {
+		return
 	}
-	if n > 0 { // one trigger however many statics grant it: gorge keys the synthesis on the derived keyword, not its instances
-		s.enqueue(e.obj, s.objs[e.obj].ver, e.card, abDelayed, e.ctrl, e.obj, e.ctrl, int16(op))
+	op := kop.OpCopySpell
+	if DebugConspireNoCopy {
+		op = kop.OpNop
 	}
+	s.enqueue(e.obj, s.objs[e.obj].ver, e.card, abDelayed, e.ctrl, e.obj, e.ctrl, int16(op))
 }
