@@ -489,6 +489,13 @@ type stackEntry struct {
 	// bits 11-15 the extra +1/+1 counters the spell enters
 	// with (ctr_effectentry.go). A stack copy is never cast: 0.
 	spc uint16
+	// etbSrc is the source of a spell's pending enters-with rider count
+	// (ctr_effectentry.go): the resolving SpellCast trigger's source, whose
+	// Effect registers the live Event$ Moved replacement gorge composes over
+	// the entry. Stamped only when the entrant's own Updated body is exactly
+	// the shape the CR 616.1 entry-order ask orders (repl_etborder.go):
+	// without a stamped source the count is applied silently, as before.
+	etbSrc Obj
 }
 
 // pendingTrig is a triggered ability waiting to be put on the stack.

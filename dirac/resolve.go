@@ -118,6 +118,9 @@ func (s *State) resolveTop(k *prep) {
 			if k.gen != nil && !e.faceDown() && s.cloneEntryOrderPark(k, e.obj, e.ctrl) {
 				return // the CR 616.1 order between the copy and another entry replacement (repl_entryclone.go)
 			}
+			if k.gen != nil && !e.faceDown() && s.etbEntryOrderPark(k, e.obj, e.ctrl) {
+				return // the CR 616.1 order between the effect's counters and the entrant's own body (repl_etborder.go)
+			}
 			if k.gen != nil && s.occ.full() {
 				s.stall(StallBoard) // the battlefield is full: the capacity draw
 				return

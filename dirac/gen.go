@@ -172,6 +172,7 @@ type genPrep struct {
 	anyBecomeCopy  bool           // some enters program is OpBecomeCopy (an as-enters clone): a permanent it made a copy is projected as its printed card, and a token copy of a clone is asked its election (ctr_entryperkind.go)
 	anyEntryMerge  bool           // the table has an AddCounter replacement and more than one source of entry counters: enterGen merges them into one put per kind (ctr_entryperkind.go)
 	anyEffEtbCtr   bool           // some instruction is ExtEffEtbCtr: enterGen puts a cast spell's pending extra counters on (ctr_effectentry.go)
+	anyEtbOwnOther bool           // some card's own enter body is one prepared grant: the effect's rider count and the body compete over the entry, the CR 616.1 order is asked (repl_etborder.go)
 	anyStaticTrig  bool           // some trigger carries Tf2Static: placeTriggers resolves it off the stack before the ordering ask (trig_mayplaystatic.go)
 	anyColSpent    bool           // some expression reads the colours of mana spent to cast a spell (ExConverge, Tf3CastConverge): payment tallies stackEntry.spc (mana_converge.go)
 	anyBatch       bool           // some trigger is a "one or more" line (Tf2Batch; trig_oneormore.go)
@@ -599,7 +600,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepOpus(t, g)
 	prepConverge(t, g)     // mana_converge.go
 	prepEvoke(t, g)        // kw_evoke.go
-	prepEffEtbCtr(t, g)    // ctr_effectentry.go
+	prepEffEtbCtr(t, g)    // ctr_effectentry.go: the rider counts, and the prepared bodies the entry order is asked over
 	prepCtrPlusEOT(t, g)   // ctr_pluseot.go
 	prepGrantPanharm(t, g) // act_grantpanharm.go
 	prepStaticTrig(t, g)   // trig_mayplaystatic.go

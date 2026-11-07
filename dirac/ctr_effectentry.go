@@ -59,17 +59,57 @@ var DebugEffEtbCtr bool
 var EffEtbStats struct{ Applied, Big atomic.Int64 }
 
 // prepEffEtbCtr sets genPrep.anyEffEtbCtr when some instruction is
-// ExtEffEtbCtr.
+// ExtEffEtbCtr, and genPrep.anyEtbOwnOther when some card's own Updated enter
+// body is one the CR 616.1 entry-order ask orders (repl_etborder.go).
 func prepEffEtbCtr(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
-			for _, in := range t.Cards[i].Abilities[j].Prog {
+			a := &t.Cards[i].Abilities[j]
+			for _, in := range a.Prog {
 				if in.Op == kop.OpExt && in.A.K == kop.VConst && kop.ExtOp(in.A.N) == kop.ExtEffEtbCtr {
 					g.anyEffEtbCtr = true
 				}
 			}
+			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplEntersProgram && etbOwnPrepared(a) {
+				g.anyEtbOwnOther = true
+			}
 		}
 	}
+}
+
+// etbOwnPrepared reports whether an own enter body is exactly one prepared
+// grant of the replaced object (Strife Scholar's "enters prepared",
+// AlterAttribute Prepared on the ETBReplacement keyword's line; gorge's
+// expansion carries ReplacementResult$ Updated, so the composition
+// composes it over the entry whatever Repl.C the lowerer chose).
+func etbOwnPrepared(a *kop.Ability) bool {
+	return a.Repl.Cond == 0 &&
+		len(a.Prog) == 1 && a.Prog[0].Op == kop.OpPrepare && a.Prog[0].Obj == kop.RefReplaced
+}
+
+// etbOwnPrepares is the entering card c's own enter body when it is exactly
+// one prepared Updated line: gorge composes the entry's Updated replacements
+// (replacement_updated.go) into [the effect's PutCounter rider, this body],
+// two candidates that do not commute, and asks the order (CR 616.1c). nil
+// when c has none, another own enter line beside it (a longer candidate list
+// gorge would ask over), or a printed enters-tapped/enters-with rider that
+// joins the composition.
+func (s *State) etbOwnPrepares(k *prep, c CardID) bool {
+	if !k.gen.anyEtbOwnOther || k.cards[c].enterTap || k.cards[c].enterCtr != 0 {
+		return false
+	}
+	var found bool
+	for i := range k.t.Cards[c].Abilities {
+		a := &k.t.Cards[c].Abilities[i]
+		if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplEntersProgram {
+			continue
+		}
+		if !etbOwnPrepared(a) || found {
+			return false // a second own line: gorge asks over three or more candidates
+		}
+		found = true
+	}
+	return found
 }
 
 // effEtbCtr is ExtEffEtbCtr: the resolving SpellCast trigger's spell (still on
@@ -82,6 +122,26 @@ func (s *State) effEtbCtr(k *prep, in *kop.Instr) {
 	n := s.value(k, in.B)
 	if n <= 0 {
 		return
+	}
+	if k.gen != nil && k.gen.anyEtbOwnOther && s.etbOwnPrepares(k, s.objs[o].card) {
+		// the entrant's own body is one the CR 616.1 entry-order ask orders:
+		// record the rider's source (the resolving trigger's, the source of
+		// the Effect's registered replacement) so the ask can be posed
+		// before the move (repl_etborder.go). A second effect with another
+		// source is a third candidate gorge asks over: stall.
+		src := s.res.e.obj
+		for i := int(s.sp) - 1; i >= 0; i-- {
+			e := &s.stack[i]
+			if e.kind != seSpell || e.obj != o {
+				continue
+			}
+			if e.etbSrc != 0 && e.etbSrc != src {
+				s.capFull(StallEffEtbCtr)
+				return
+			}
+			e.etbSrc = src
+			break
+		}
 	}
 	for i := int(s.sp) - 1; i >= 0; i-- {
 		e := &s.stack[i]
