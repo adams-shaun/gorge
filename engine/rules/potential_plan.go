@@ -1334,8 +1334,40 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 		}
 		cost.Phyrexian = nil
 	}
-	composed := e.offerCostFor(p, id, cost, abilityScope(ab))
+	scope := abilityScope(ab)
+	composed := e.offerCostFor(p, id, cost, scope)
 	out := e.planComposedCost(p, id, composed, true, true)
+	if out.Reason == "insufficient" {
+		// CR 601.2f / 602.2b: a cost reduction gated on the ability's target
+		// ("equip abilities you activate that target this creature cost {2}
+		// less") is in no pre-target composition. The offer gate prices it by
+		// retrying with the potential targets (offerCastableUsing), so the
+		// witness must plan the same reduced price or the activation is
+		// withheld although it is payable (Dwarven Mauler's equip with the
+		// payment coming from untapped sources, not a floating pool). The
+		// charge re-prices for the target actually chosen (repriceForTargets)
+		// and rearmAutoPay replans a witness whose announcement moved it.
+		statics := e.collectCostStatics()
+		if statics.validTarget {
+			if targets := e.costPotentialTargets(p, id, scope); len(targets) != 0 {
+				var alt PaymentPlanOutcome
+				ok := false
+				e.potentialCostModsUsing(statics, p, id, scope, targets, 0, func(m costMods) bool {
+					var c Cost
+					e.composedOfferCostInto(&c, p, id, &cost, &m, scope)
+					o := e.planComposedCost(p, id, c, true, true)
+					if o.Plan != nil && o.Reason == "" {
+						alt, ok = o, true
+						return true
+					}
+					return false
+				})
+				if ok {
+					out = alt
+				}
+			}
+		}
+	}
 	if out.Reason != "insufficient" || cost.Waterbend <= 0 {
 		return out
 	}
