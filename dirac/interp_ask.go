@@ -1296,15 +1296,12 @@ func (s *State) resolveWardLife(k *prep) {
 		return
 	}
 	n := int(-e.trigAmt)
-	if int(s.pl[e.trigPl].life) < n && k.gen == nil {
+	if int(s.pl[e.trigPl].life) < n {
 		s.counterAt(k, idx)
 		s.finishResolve(k, false)
 		return
 	}
-	// gorge's effWard asks pay/decline even when the life can't be paid
-	// (effects/misc.go effWard); paying then fails (pay/solve.go
-	// ResolveManaWith: life < cost) and the ward counters, as resolveWard's
-	// mana form already mirrors for the generated table.
+	// gorge's effWard counters an unpayable life ward without asking (CR 119.4).
 	s.g.pickF = pfWard
 	s.g.pickZ = kop.PayLife
 	s.g.pickLeft = uint8(n)
@@ -1329,6 +1326,12 @@ func (s *State) countSacLeft(k *prep, p uint8, f kop.FilterID) int {
 }
 
 func (s *State) startSac(k *prep, in *kop.Instr, p uint8) bool {
+	if k.gen != nil && k.gen.ctrlSBA {
+		// gorge settles control after every event (emit.go): an Aura an
+		// earlier instruction sacrificed no longer steals the creature this
+		// one counts (Vile Mutilator's enchantment, then creature; CR 613.1b)
+		s.ctrlSBA(k)
+	}
 	src := s.resSrcSlot(k)
 	for p != 255 {
 		n := s.value(k, in.A)

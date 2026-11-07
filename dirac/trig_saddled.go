@@ -6,11 +6,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // time each turn]" (CR 702.171b; gorge Mode$ BecomesSaddled, trigmatch/
 // saddled.go). gorge matches the Saddled grant each Saddle resolution emits;
 // FirstTimeSaddled is the object's first grant since the turn changed, which
-// is the cseenSaddled bit's value before the saddle op sets it.
-//
-// Known approximation: gorge's latch scans by ObjID, which survives a zone
-// change, so a Mount saddled, blinked and saddled again in one turn
-// re-triggers here but not in gorge.
+// is the cseenSaddled bit's value before the saddle op sets it. A Mount
+// that changed zones is a new object (CR 400.7) with a fresh bit, and gorge's
+// latch stops at that zone change too.
 
 // fireBecomesSaddled queues the saddled Mount's own BecomesSaddled triggers;
 // was is the saddled bit before this saddle. OpSaddle is cold, so the
