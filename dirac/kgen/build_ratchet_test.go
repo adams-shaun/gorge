@@ -196,8 +196,9 @@ import (
 // +1 (Parker Luck: the RepeatEach Targeted body reads the other player's revealed card's mana value; ALL build-level 21665 -> 21666).
 // +10 (ValidSpell$ Activated.Equip ReduceCost, the target-gated equip price: Auriok Steelshaper, Bladehold War-Whip, Bureau Headmaster, Cloud, Planet's Champion, Dwarven Mauler, Fervent Champion, Ghostfire Blade, Helitrooper, Nahiri, Storm of Stone, Éowyn, Lady of Rohan; ALL build-level 21666 -> 21676).
 // +1 (Myriad Landscape: the library search's ShareLandType$ is read; ALL build-level 21682 -> 21683).
+// +1 (Hawkeye, Young Avenger: the plus-power noncombat damage replacement; land; merged ALL build-level 21683 -> 21684).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21683, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21684, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
