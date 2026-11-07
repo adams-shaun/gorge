@@ -80,7 +80,10 @@ func (lc *lowerCtx) damagePlus(rp *params, w *cards.SA, rl *lRepl) (bool, error)
 		}
 		bits |= kop.ReplDmgNonCombat
 	}
-	if ctrHost {
+	switch {
+	case ctrHost && kind == dmgPlusHostPower:
+		bits |= kop.ReplDmgPowHost
+	case ctrHost:
 		rl.Ctr = kind
 		bits |= kop.ReplDmgCtrHost
 	}
