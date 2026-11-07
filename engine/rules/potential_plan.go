@@ -1336,6 +1336,14 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	}
 	composed := e.offerCostFor(p, id, cost, abilityScope(ab))
 	out := e.planComposedCost(p, id, composed, true, true)
+	if out.Reason == "insufficient" {
+		// A ValidTarget$ cost static (Dwarven Mauler's equip discount) prices
+		// the activation lower for some legal target (CR 601.2f): the offer
+		// gate admits the cheapest, so the witness is planned at it too.
+		if alt, ok := e.planAbilityTargetPriced(p, id, cost, abilityScope(ab)); ok {
+			return alt
+		}
+	}
 	if out.Reason != "insufficient" || cost.Waterbend <= 0 {
 		return out
 	}
@@ -1345,6 +1353,21 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 		composed.Generic -= red.Generic
 	}
 	return e.planComposedCost(p, id, composed, true, true)
+}
+
+// planAbilityTargetPriced is a witness for an activation whose price a
+// ValidTarget$ cost static lowers for some legal target, tried one target at a
+// time (potentialTargetPricedPlan's loop for an ability). ok is false when no
+// target's price is payable.
+func (e *Engine) planAbilityTargetPriced(p state.PlayerID, id state.ObjID, cost Cost, scope costScope) (PaymentPlanOutcome, bool) {
+	var got PaymentPlanOutcome
+	_, found := e.potentialCostModsUsing(e.collectCostStatics(), p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
+		var c Cost
+		e.composedOfferCostInto(&c, p, id, &cost, &m, scope)
+		got = e.planComposedCost(p, id, c, true, true)
+		return got.Plan != nil && got.Reason == ""
+	})
+	return got, found
 }
 
 // planComposedCost plans the mana part of composed, the offer-time cost
