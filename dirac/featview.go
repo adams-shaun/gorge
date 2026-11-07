@@ -1234,7 +1234,7 @@ func (s *State) FeatObjLinks(o Obj) (card CardID, attached, blocks Obj) {
 	} else if s.g.lingerM.has(ob.slot) {
 		// its host left mid-resolution: gorge's view still shows it
 		// attached until the next state-based check (Project's rule)
-		attached = s.lingerObj(ob.slot)
+		attached = s.lingerHost(ob.slot)
 	}
 	if pm.flags&pfBlocking != 0 && pm.blocking != NoSlot {
 		blocks = s.perms[pm.blocking].obj
