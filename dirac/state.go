@@ -438,19 +438,26 @@ const (
 )
 
 type stackEntry struct {
-	kind    uint8
-	obj     Obj    // the spell's object, or the ability's source object
-	srcVer  uint8  // the source's ver when the ability was created
-	sid     uint8  // an ability's stack identity, for a stack-ability target (tgt_stackability.go; 0 = none; the padding byte); a spell's FINALITY rider count (trig_mayplaystatic.go)
-	card    CardID // the source card (last known information)
-	ab      uint8  // ability index in the card's CardDef
-	ctrl    uint8
-	mode    uint8 // chosen modes bitmask
-	x       uint8
-	flags   uint8
-	nt      uint8
-	tgt     [kop.MaxTargets]uint8
-	tver    [kop.MaxTargets]uint8
+	kind   uint8
+	obj    Obj    // the spell's object, or the ability's source object
+	srcVer uint8  // the source's ver when the ability was created
+	sid    uint8  // an ability's stack identity, for a stack-ability target (tgt_stackability.go; 0 = none; the padding byte); a spell's FINALITY rider count (trig_mayplaystatic.go)
+	card   CardID // the source card (last known information)
+	ab     uint8  // ability index in the card's CardDef
+	ctrl   uint8
+	mode   uint8 // chosen modes bitmask
+	x      uint8
+	flags  uint8
+	nt     uint8
+	tgt    [kop.MaxTargets]uint8
+	tver   [kop.MaxTargets]uint8
+	// crim is CR 700.13's pick-time verdicts for the root target slots
+	// (act_commitcrime.go): bit i says slot i's pick was a crime when it was
+	// made, bit 7 (crimRec) that the asks recorded verdicts, so checkWard's
+	// walk judges the target as it was targeted and not what a cost or a
+	// trigger made it since (a sacrificed self-target sits in its owner's
+	// graveyard at placement). A spell keeps the build's bflCrime instead.
+	crim    uint8
 	trigObj Obj
 	trigPl  uint8
 	trigAmt int16
