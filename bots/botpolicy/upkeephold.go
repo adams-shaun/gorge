@@ -7,12 +7,12 @@ import (
 
 // The upkeep hold: an opt-in candidate prune the search seats share
 // (bots/azmcts Options.HoldUpkeep, bots/searchseat Options.HoldUpkeep), the
-// gorge mirror of four-yay's kernel rule (kernel/search/zzholdupkeep.go,
-// holdOn). An instant-speed cast in the seat's own untap, upkeep or draw
-// step with an empty stack has the same lands and the same response windows
-// in main 1, and there it has seen the draw and the land drop. draft-zero
-// docs/038 measured the rule null on gorge (50.2%, 48.4-52.0 over 500
-// pairs), so it is an arm, off by default.
+// gorge mirror of the search kernel's upkeep-hold rule, so an A/B reads the
+// same rule on both engines. An instant-speed cast in the seat's own untap,
+// upkeep or draw step with an empty stack has the same lands and the same
+// response windows in main 1, and there it has seen the draw and the land
+// drop. draft-zero docs/038 measured the rule null on gorge (50.2%,
+// 48.4-52.0 over 500 pairs), so it is an arm, off by default.
 
 // PrematureInstantCast reports whether "cast" option o is held by the upkeep
 // rule: the seat is the active player (b.MyTurn), b.Step is untap, upkeep or
