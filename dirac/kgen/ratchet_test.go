@@ -84,8 +84,10 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +8 (this branch lowers the Effect Mode$ MustBlock static beside the pair's MustAttack: Hustle // Bustle,
 	// Courtly Provocateur, Culvert Ambusher, Culling Mark, Peema Aether-Seer, Provoke, Shessra, Death's Whisper
 	// and Timely Interference; MKM +2, DMU +1, ALL +8).
+	// +1 (Hulk, Gamma Goliath: the Power-up-only ReduceCost arm,
+	// ValidSpell$ Activated.PowerUp; MSH 232 -> 233, ALL 21655 -> 21656).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21655, 34442},
+	"ALL": {21656, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -101,7 +103,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"LCI": {251, 290},
 	"MKM": {242, 279},
 	"MOM": {198, 296},
-	"MSH": {232, 276},
+	"MSH": {233, 276},
 	"NEO": {198, 287},
 	"ONE": {195, 271},
 	"OTJ": {241, 276},

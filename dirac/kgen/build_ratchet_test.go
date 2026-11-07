@@ -188,8 +188,9 @@ import (
 // +1 (the merge with land: land's Yue, the Moon Spirit free noncreature cast beside this branch's UnlessCost$/Ward Waterbend<N> cards, both sides' unrefusal of Airbender Ascension taken once; merged TLA 250 -> 251, ALL build-level 21645 -> 21646).
 // +1 (the merge with land: this branch's anyRFiltMana lowers White Lotus Hideout's three-ability source, which land's refuseMultiMana refuses; merged TLA 251 -> 252, ALL build-level 21646 -> 21647).
 // +8 (the same eight cards' Effect Mode$ MustBlock programs build, one per card: ALL build-level 21647 -> 21655).
+// +1 (Hulk, Gamma Goliath's Power-up-only ReduceCost arm; ALL build-level 21655 -> 21656).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21655, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21656, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

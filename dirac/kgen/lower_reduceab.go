@@ -3,15 +3,16 @@ package kgen
 import "strconv"
 
 // reduceAbility lowers a ReduceCost static of activated abilities (Type$
-// Ability, or no Type$ with ValidSpell$ Activated.Exhaust) and of Room unlock
-// special actions (ValidSpell$ Static.Unlock): "activated
-// abilities of <permanents you control> cost {N} less" and "unlock costs you
-// pay cost {N} less" (Glimmer) (gorge
-// statics_costapply.go costStaticGateFull). It reads exactly the shape
+// Ability, or no Type$ with ValidSpell$ Activated.Exhaust or
+// Activated.PowerUp) and of Room unlock special actions (ValidSpell$
+// Static.Unlock): "activated abilities of <permanents you control> cost {N}
+// less", "unlock costs you pay cost {N} less" (Glimmer), and "power-up
+// abilities of <permanents you control> cost {N} less" (Hulk, Gamma Goliath)
+// (gorge statics_costapply.go costStaticGateFull). It reads exactly the shape
 // kop.StatReduceAbility prices: the battlefield, the controller's own
 // activations, ValidCard$ matched against the ability's source (or the
-// unlocked Room), an Exhaust-only restriction, and the unlock arm's B bit.
-// Anything else refuses with a named reason.
+// unlocked Room), an Exhaust- or Power-up-only restriction, and the unlock
+// arm's B bit. Anything else refuses with a named reason.
 func (lc *lowerCtx) reduceAbility(sp *params, st *lStatic, readF func(string) (*lFilter, error)) error {
 	arm := 1
 	if vs, ok := sp.get("ValidSpell"); ok {
@@ -20,6 +21,8 @@ func (lc *lowerCtx) reduceAbility(sp *params, st *lStatic, readF func(string) (*
 			arm = 2
 		case "Static.Unlock":
 			arm = 3
+		case "Activated.PowerUp":
+			arm = 4
 		default:
 			return refuse("ReduceCost ValidSpell %q", vs)
 		}

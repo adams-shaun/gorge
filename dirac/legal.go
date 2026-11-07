@@ -311,7 +311,10 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if a.Cost.Mana.X > 0 && s.cfg&cfgGorgeUnpriced != 0 {
 				m := a.Cost.Mana
 				if k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
-					m = s.powerUpManaObj(k, s.perms[sl].obj, a) // CR 702.193b: gorge prices the reduced cost (legal_walk_battlefield.go)
+					m = s.powerUpReduced(k, s.perms[sl].obj, m) // CR 702.193b: gorge prices the reduced cost (legal_walk_battlefield.go)
+				}
+				if k.gen != nil && k.gen.anyAbReduce {
+					m = s.abReduced(k, a, sl, p, m) // the cost statics compose after it
 				}
 				if !s.poolPays(p, &m) {
 					// gorge's planner declines an {X} activation (PlanCostDetail
@@ -503,22 +506,25 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if k.gen != nil && k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
 		mana = s.ownReducedBF(k, a, sl, p.ctrl)
 	}
-	if k.gen != nil && k.gen.anyAbReduce {
-		mana = s.abReduced(k, a, sl, p.ctrl, mana) // after the ability's own reduction
-	}
 	if k.gen != nil && k.gen.anyPowerUp && f&kop.CostPowerUp != 0 {
 		// CR 702.193b: the offer walk and the affordability check read the
-		// reduced cost (gorge legal_walk_battlefield.go:414/553). But the
-		// autopay planner prices the PRINTED cost (planAbilityPayment never
-		// calls powerUpReduceCost), and an ability whose printed cost it
-		// cannot witness is not offered (gorge seed-1 Hercules: {4}{G}
+		// reduced cost (gorge legal_walk_battlefield.go:414/553), and the
+		// cost statics compose after it.
+		mana = s.powerUpReduced(k, p.obj, mana)
+	}
+	if k.gen != nil && k.gen.anyAbReduce {
+		mana = s.abReduced(k, a, sl, p.ctrl, mana) // after the ability's own and Power-up reductions
+	}
+	if k.gen != nil && k.gen.anyPowerUp && f&kop.CostPowerUp != 0 {
+		// The autopay planner prices the PRINTED cost (planAbilityPayment
+		// never calls powerUpReduceCost), and an ability whose printed cost
+		// it cannot witness is not offered (gorge seed-1 Hercules: {4}{G}
 		// reduced to {2}, three untapped Forests, no offer). The floating
 		// pool paying the reduced cost is enough: the plan is then a pool
 		// choice. So: offered iff the pool pays the reduced cost or the
 		// sources pay the printed one; the charge is always the reduced one
 		// (buildCostCharge), and the plan/charge mismatch falls back to the
 		// manual mana window (powerUpPlanRejected, mana_window.go).
-		mana = s.powerUpManaObj(k, p.obj, a)
 		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &a.Cost.Mana, av) {
 			return false
 		}
