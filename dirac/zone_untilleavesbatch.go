@@ -55,19 +55,27 @@ func (s *State) holdEntries() holdRec {
 	return r
 }
 
-// holdClose ends the frame: the outermost one fires the held checks.
+// holdClose ends the frame: the outermost one fires the held checks. A
+// return that parks an ask keeps the frame open across it (resumeReturns):
+// gorge holds the whole entry batch until the batch's last entry (CR 603.6a,
+// 610.3d), the ask included.
 func (s *State) holdClose(k *prep, r holdRec) {
 	if !r.on {
 		return
 	}
 	flush := r.h == 0 && s.g.nretHeld != 0
 	old := s.g.batchLatch
+	parked := false
 	if flush {
 		s.g.batchLatch &^= batchOpenMask | batchSac
 		if k.gen.anyBatch {
 			s.batchOpen()
 		}
-		s.flushReturns(k)
+		parked = s.flushReturns(k)
+	}
+	if parked {
+		s.g.retHold, s.g.retOld, s.g.retStamp = true, old, r.ts
+		return
 	}
 	s.g.batchLatch = s.g.batchLatch&^batchHeld | r.h
 	if r.h == 0 && s.g.held != 0 {
@@ -93,36 +101,59 @@ func (s *State) holdReturns(sl Slot, o Obj) {
 	}
 }
 
-// flushReturns returns the cards of the sources holdReturns recorded.
+// flushReturns returns the cards of the sources holdReturns recorded. When a
+// return parks an ask it stops, leaving the rest in retHeld for resumeReturns;
+// the caller keeps the entry frame open. A queued ask (retAuraAsk, outside a
+// resolution) cannot park this way: the rest of the batch returns before it,
+// which is the bound of that path.
 //
 //go:noinline
-func (s *State) flushReturns(k *prep) {
+func (s *State) flushReturns(k *prep) bool {
 	n, ctrl := int(s.g.nretHeld), s.g.retCtrl
 	s.g.nretHeld, s.g.retCtrl = 0, 0
 	for i := 0; i < n; i++ {
 		was := s.g.pre.state
 		s.returnLinked(k, ctrl>>i&1, s.g.retHeld[i])
-		if was == 0 && s.g.pre.state == preReturn && i+1 < n {
-			// a returning Aura's host ask is parked: gorge asks it with the
-			// rest of the batch still in exile and returns them once it is
-			// answered (resumeReturns)
-			copy(s.g.retHeld[:], s.g.retHeld[i+1:n])
-			s.g.retCtrl = ctrl >> uint(i+1)
-			s.g.nretHeld = uint8(n - i - 1)
-			break
+		if was == 0 && s.g.pre.state == preReturn {
+			// a return's ask is parked: gorge asks it with the rest of the
+			// batch still in exile and returns them once it is answered
+			// (resumeReturns)
+			if i+1 < n {
+				copy(s.g.retHeld[:], s.g.retHeld[i+1:n])
+				s.g.retCtrl = ctrl >> uint(i+1)
+				s.g.nretHeld = uint8(n - i - 1)
+			}
+			s.refreshTy(k)
+			return true
 		}
 	}
 	s.refreshTy(k)
+	return false
 }
 
-// resumeReturns returns the sources a parked host ask held back (flushReturns),
-// once the ask is answered; it reports whether a later return parked again.
+// resumeReturns returns the sources a parked ask held back (flushReturns) once
+// it is answered, and closes the departure frame that kept them held. A later
+// return that parks again poses its own ask and reports true.
 func (s *State) resumeReturns(k *prep) bool {
-	if s.g.nretHeld == 0 {
-		return false
+	if s.g.nretHeld != 0 && s.flushReturns(k) {
+		s.res.ask, s.res.askP = raGenRetChoice, s.objs[s.g.pre.obj].owner()
+		return true
 	}
-	s.flushReturns(k)
-	return s.g.pre.state == preReturn
+	if s.g.retHold {
+		s.finishHeldFrame(k)
+	}
+	return false
+}
+
+// finishHeldFrame closes the departure frame a parked return kept open: the
+// held enters checks fire together, in entry order, then the batch closes.
+func (s *State) finishHeldFrame(k *prep) {
+	s.g.retHold = false
+	s.g.batchLatch &^= batchHeld
+	if s.g.held != 0 {
+		s.fireHeld(k, s.g.retStamp)
+	}
+	s.batchClose(s.g.retOld)
 }
 
 // enterLinkRet is enterFromGrantedZone for an until-leaves return.

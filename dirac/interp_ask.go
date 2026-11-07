@@ -1108,12 +1108,11 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				host := s.objs[a.Source()].slot
 				from := s.detach(o)
 				s.enterOnto(host)
-				sl := s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from)
+				sl := s.enterLinkRet(k, o, s.objs[o].owner(), from)
 				s.attachedTo(k, sl, host)
 			}
 			if !paying && s.resumeReturns(k) {
-				s.res.ask, s.res.askP = raGenRetChoice, s.objs[s.g.pre.obj].owner()
-				return // the batch's next Aura asks its host
+				return // the batch's next return asks its host
 			}
 			if paying {
 				s.res.ask = raNone
@@ -1139,9 +1138,12 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.g.pre.state = 2
 		if s.objs[o].zone == kop.ZoneExile {
 			from := s.detach(o)
-			s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from) // the enters program reads the choice
+			s.enterLinkRet(k, o, s.objs[o].owner(), from) // the enters program reads the choice
 		}
 		s.g.pre = preAsk{}
+		if !paying && s.resumeReturns(k) {
+			return // the batch's next return asks its host
+		}
 		if paying {
 			s.res.ask = raNone
 			s.payDone(k, true) // the payment's sacrifice finished: the cost resumes
