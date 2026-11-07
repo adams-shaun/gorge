@@ -485,6 +485,7 @@ func (s *State) sba(k *prep) bool {
 		if k.gen != nil && k.gen.anyInfect {
 			s.poisonSBA(k) // CR 704.5c
 		}
+		s.cmdDamageSBA(k) // CR 704.6c (combat_cmddamage.go)
 		s.checkOver()
 		if s.over {
 			if k.gen != nil {
