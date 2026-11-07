@@ -27,7 +27,7 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 	// picture (priorityOptions); reuse it instead of re-walking the mana
 	// sources for every generated option build.
 	av := *avp
-	if !haveAv {
+	if !haveAv && s.priorityGenReadsAv(k, p) {
 		s.availFor(k, p, &av)
 	}
 	pl := &s.pl[p]
@@ -868,4 +868,14 @@ func (s *State) sacHostCost(k *prep, e *stackEntry) {
 	if !s.parkCost(k, h, parkLeave, 0) {
 		s.leave(k, sl, kop.ZoneGraveyard, false)
 	}
+}
+
+// priorityGenReadsAv reports whether priorityGen can read its availability
+// picture on p's turn: a play permission, a graveyard or hand activation, or
+// a granted ability. availFor has no other effect except a dynamic or
+// granted-land-type source's stall, which a table without those cannot raise.
+func (s *State) priorityGenReadsAv(k *prep, p uint8) bool {
+	g := k.gen
+	return s.g.nmay != 0 || g.anyMayPlay || g.anyGraveAct || g.anyHandAct || g.blgOn || len(g.varPC) != 0 ||
+		g.anyGrant && s.ctrlM[p].any() && s.grantsLive(k)
 }
