@@ -421,12 +421,15 @@ func stackTriggerSlot(src *state.Object, sa *cards.SA) string {
 // alternate face and has only that face's characteristics, so XMage names the
 // stack object by the alternate face's own name ("Stomp", "Charring Bite"),
 // not the card's.
+//
+// A modal double-faced card cast as its back face is the same case (CR 712.8,
+// 712.11c): on the stack it has only the back face's characteristics.
 func stackSourceRef(ref string, o *state.Object) string {
 	if o == nil || o.CopyFace != nil || o.Face() == nil {
 		return ref
 	}
 	onStackRoom := o.Zone == state.ZStack && o.Ability == nil &&
-		(chars.IsRoomCard(o) || adventureSpellFace(o) == o.Face() || omenSpellFace(o) == o.Face())
+		(chars.IsRoomCard(o) || adventureSpellFace(o) == o.Face() || omenSpellFace(o) == o.Face() || modalBackSpell(o))
 	if !onStackRoom && (o.Zone != state.ZBattlefield || o.FaceIdx == 0) {
 		return ref
 	}
@@ -439,6 +442,12 @@ func stackSourceRef(ref string, o *state.Object) string {
 		nth = ref[j:]
 	}
 	return seat + o.Face().Name + nth
+}
+
+// modalBackSpell reports whether o is a modal double-faced card standing on
+// its back face (cast as it, CR 712.11c).
+func modalBackSpell(o *state.Object) bool {
+	return o.Card != nil && o.Card.AlternateMode == "Modal" && len(o.Card.Faces) == 2 && o.FaceIdx == 1
 }
 
 // abilitySourceRef is ref (a stack ability's source ref) for an ability whose
