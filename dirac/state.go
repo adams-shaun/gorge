@@ -461,7 +461,16 @@ type stackEntry struct {
 	trigObj Obj
 	trigPl  uint8
 	trigAmt int16
-	li      uint8 // the triggering object's last known information: LKI pool index (zone_lki.go)
+	// etbSrc is the source of a spell's pending enters-with rider count
+	// (ctr_effectentry.go): the resolving SpellCast trigger's source, whose
+	// Effect registers the live Event$ Moved replacement gorge composes over
+	// the entry. Stamped only when the entrant's own Updated body is exactly
+	// the shape the CR 616.1 entry-order ask orders (repl_etborder.go):
+	// without a stamped source the count is applied silently, as before.
+	// Placed before the odd-length byte run that follows so spc's
+	// two-byte alignment does not grow the struct.
+	etbSrc Obj
+	li     uint8 // the triggering object's last known information: LKI pool index (zone_lki.go)
 	// remVer is a delayed program's remembered object's ver at registration
 	// and remSet whether it was captured: RefDelayedRemembered reads nothing
 	// once the object has changed zones since (CR 603.7c, 400.7; refObjCtx).
