@@ -250,6 +250,9 @@ func (s *State) pushBuild(k *prep) {
 		e.srcVer = ob.ver
 	}
 	if e.kind == seAbility {
+		// CR 733.1: the pending mark for the reversal's drop (unpushActivation),
+		// as a spell's push records its own (unpushSpell)
+		s.bld().pushNP = uint8(s.npend)
 		// gorge's activation census (the view's ActivatedThisTurn) counts
 		// the activation as it is pushed (CR 602.2a: AbilityPush comes
 		// first), for a source on the battlefield, so a source the cost
@@ -384,6 +387,16 @@ func (s *State) toStage(k *prep, st uint8) {
 
 // nextStage enters the stage after the current one in the entry's program.
 func (s *State) nextStage(k *prep) {
+	if s.bld().stage == bsTargets {
+		// gorge meets the targeting before the cast it is part of (gorge
+		// cast.go proposalTriggers): the ward and BecomesTarget triggers the
+		// CR 601.2c target choice queues are enqueued at the target answer,
+		// before any payment -- a cost's sacrifice that dies during the
+		// payment queues its own triggers behind them, and that order is
+		// what the CR 603.3b ordering ask indexes. A reversed cast drops
+		// them (CR 733.1: unpushSpell / unpushActivation).
+		s.checkWard(k, &s.bld().e)
+	}
 	s.toStage(k, stageNext[s.bld().e.kind][s.bld().stage&^0x80])
 }
 
@@ -1414,7 +1427,6 @@ func (s *State) finishBuild(k *prep) {
 		if k.gen != nil && k.gen.anyHist {
 			s.histCast(k, &e, &cost)
 		}
-		s.checkWard(k, &s.stack[s.sp-1]) // gorge meets the targeting before the cast it is part of
 		if k.gen != nil && k.gen.anyFirstCast {
 			s.noteFirstCast() // cast_firstcast.go
 		}
@@ -1477,9 +1489,6 @@ func (s *State) finishBuild(k *prep) {
 		// gorge's step() head runs startDefeatedCast after any cast or
 		// activation: ask a battle defeated earlier this step first.
 		s.wakeDefeat()
-	}
-	if e.kind != seSpell {
-		s.checkWard(k, &s.stack[s.sp-1])
 	}
 	if s.parkedWaiting() {
 		s.ctl = ctlExileOrder // a cost's parked move (repl_exilemark.go)

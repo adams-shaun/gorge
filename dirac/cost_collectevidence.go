@@ -256,6 +256,13 @@ func (s *State) unpushActivation() {
 	e := &s.bld().e
 	s.sp--
 	s.bld().bfl &^= bflPushed
+	if s.npend > s.bld().pushNP {
+		// CR 733.1: the reversal drops the ward and BecomesTarget triggers
+		// the CR 601.2c target choice queued after the push (gorge abortCast's
+		// proposalTriggers); nothing else queues between the push and a
+		// reversal, and an activation's push moves no zone
+		s.npend = s.bld().pushNP
+	}
 	if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield && ob.activations() > 0 {
 		s.touch(e.obj)
 		ob.acts--
