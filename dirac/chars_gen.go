@@ -330,24 +330,58 @@ func (s *State) colorsGen(k *prep, sl Slot) kop.ColorMask {
 // (Soulstone Sanctuary animated, counted by Banner of Kinship).
 const subOutside uint8 = 254
 
+// A chosen outside creature type is perm.chosen = len(Subtypes) + its rank
+// among the vocabulary's outside entries, modulo the free codes below 254,
+// so two sources' outside choices compare: different codes are different
+// types; equal codes are the same type unless the code is aliased (the
+// vocabulary has more outside entries than codes), which stays loud
+// (act_choosetype.go outsideAliased).
+
+// outsideSub reports whether chosen/subtype code i is an outside type.
+func outsideSub(k *prep, i uint8) bool { return int(i) >= len(k.t.Subtypes) && i < 255 }
+
+// outsideCount is the number of outside entries in the type vocabulary.
+func outsideCount(k *prep) int {
+	n := 0
+	for _, si := range k.t.TypeVocab {
+		if si == 255 {
+			n++
+		}
+	}
+	return n
+}
+
+// outsideAliased reports whether outside code ch names more than one type.
+func outsideAliased(k *prep, ch uint8) bool {
+	base := len(k.t.Subtypes)
+	return ch == subOutside || int(ch)-base+int(subOutside)-base < outsideCount(k)
+}
+
 // typeVocabSub is the perm.chosen value of creature-type option v.
 func typeVocabSub(k *prep, v int) uint8 {
 	if si := k.t.TypeVocab[v]; si != 255 {
 		return si
 	}
-	return subOutside
+	rank := 0
+	for _, si := range k.t.TypeVocab[:v] {
+		if si == 255 {
+			rank++
+		}
+	}
+	base := len(k.t.Subtypes)
+	return uint8(base + rank%(int(subOutside)-base))
 }
 
 // hasSubGen reports whether sl has matchup subtype i (subOutside: a
 // creature type outside the matchup's subtypes).
 func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
-	if k.gen != nil && k.gen.anyImpending && (i == subOutside || k.gen.creatSub.Has(int(i))) && s.impendDormant(k, sl) {
+	if k.gen != nil && k.gen.anyImpending && (outsideSub(k, i) || k.gen.creatSub.Has(int(i))) && s.impendDormant(k, sl) {
 		return false // CR 205.1a: gone with the creature type
 	}
 	if k.gen != nil && k.gen.fxNeed != 0 && s.walkSlot(k, sl) {
 		return s.walkHasSub(k, sl, i)
 	}
-	if i == subOutside {
+	if outsideSub(k, i) {
 		// a printed changeling has every creature type (CR 702.73a; gorge
 		// sets AllCreatureTypes), until a subtype-setting effect
 		all := k.t.Cards[s.cardAt(sl)].AllCreatureTypes || s.fxM.has(sl) && k.gen.cpxSub && s.copyExcAll(k, sl)
@@ -393,7 +427,7 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 	found := false
 	s.eachStaticC(k, sclsSub, func(st statSrc) bool {
 		a := st.a
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || !a.Static.AddSub.Has(int(i)) && !(k.gen.anyAddChosen && s.chosenGrants(a, st.sl, i)) {
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || !a.Static.AddSub.Has(int(i)) && !(k.gen.anyAddChosen && s.chosenGrants(k, a, st.sl, i)) {
 			return true
 		}
 		if s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerSub) {

@@ -974,7 +974,7 @@ func (s *State) FeatViewTypes(o Obj) (types kop.TypeMask, subs kop.SubMask, all,
 				}
 				add := a.Static.AddSub
 				if k.gen.anyAddChosen {
-					add = s.chosenGrantMask(a, st.sl, add) // act_choosetype.go
+					add = s.chosenGrantMask(k, a, st.sl, add) // act_choosetype.go
 				}
 				if add == (kop.SubMask{}) || subs.Or(add) == subs {
 					return true

@@ -148,28 +148,28 @@ func (s *State) chosenGrant(a *kop.Ability, src Slot) (uint8, bool) {
 }
 
 // chosenGrants reports whether a (at src) grants matchup subtype i.
-func (s *State) chosenGrants(a *kop.Ability, src Slot, i uint8) bool {
+func (s *State) chosenGrants(k *prep, a *kop.Ability, src Slot, i uint8) bool {
 	ch, ok := s.chosenGrant(a, src)
-	return ok && ch == i && ch != subOutside
+	return ok && ch == i && !outsideSub(k, ch)
 }
 
 // chosenGrantMask is add plus a's granted chosen subtype (a matchup one).
-func (s *State) chosenGrantMask(a *kop.Ability, src Slot, add kop.SubMask) kop.SubMask {
-	if ch, ok := s.chosenGrant(a, src); ok && ch != subOutside && int(ch) < kop.MaxSubtypes {
+func (s *State) chosenGrantMask(k *prep, a *kop.Ability, src Slot, add kop.SubMask) kop.SubMask {
+	if ch, ok := s.chosenGrant(a, src); ok && !outsideSub(k, ch) && int(ch) < kop.MaxSubtypes {
 		add = add.With(int(ch))
 	}
 	return add
 }
 
 // lfxChosen applies a walked AddChosen static's grant to c: a matchup
-// subtype bit, or the outside-type mark (c.out) naming its source.
-func lfxChosen(e *lfx, c *dchars) {
+// subtype bit, or the outside-type mark (c.out) naming its type (outsideSub code, 255 for two).
+func lfxChosen(k *prep, e *lfx, c *dchars) {
 	switch ch := e.ch; {
 	case ch == 255 || e.src == NoSlot:
-	case ch == subOutside:
+	case outsideSub(k, ch):
 		if c.out == 0 {
-			c.out = uint8(e.src) + 1
-		} else if c.out != uint8(e.src)+1 {
+			c.out = ch
+		} else if c.out != ch {
 			c.out = 255
 		}
 	case int(ch) < kop.MaxSubtypes:
@@ -184,7 +184,11 @@ func (s *State) curOutsideHas(k *prep, cur *dchars, src Slot) bool {
 	if !k.gen.anyAddChosen || cur.out == 0 || src == NoSlot {
 		return false
 	}
-	if cur.out == uint8(src)+1 {
+	ch := s.perms[src].chosen
+	if cur.out != 255 && cur.out != ch {
+		return false // a different outside type
+	}
+	if cur.out == ch && !outsideAliased(k, ch) {
 		return true
 	}
 	s.capFull(StallOutsideType) // another source's outside type: equal or not is unknown
@@ -209,15 +213,17 @@ func (s *State) outsideChosenHas(k *prep, sl, src Slot) bool {
 		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous {
 			return true
 		}
-		if ch, ok := s.chosenGrant(a, st.sl); !ok || ch != subOutside {
+		if ch, ok := s.chosenGrant(a, st.sl); !ok || !outsideSub(k, ch) {
 			return true
 		}
 		if s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerSub) {
-			if st.sl == src {
-				found = true
-				return false
+			if sc := s.perms[src].chosen; s.perms[st.sl].chosen == sc {
+				if !outsideAliased(k, sc) {
+					found = true
+					return false
+				}
+				other = true
 			}
-			other = true
 		}
 		return true
 	})
@@ -290,7 +296,7 @@ func (s *State) matchCardSrc(k *prep, f kop.FilterID, c CardID, owner, ctrl uint
 		if fl.Flags2&kop.F2ChosenType != 0 {
 			cd := &k.t.Cards[c]
 			has := ch != 255 && int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
-			if ch == subOutside {
+			if outsideSub(k, ch) {
 				has = cd.AllCreatureTypes
 			}
 			cp := *fl

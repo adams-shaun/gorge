@@ -252,7 +252,7 @@ func lfxApply4(k *prep, e *lfx, c *dchars) {
 	if e.o == nil {
 		c.subs = c.subs.Or(e.a.Static.AddSub)
 		if k.gen.anyAddChosen && e.a.Static.AddChosen {
-			lfxChosen(e, c) // act_choosetype.go
+			lfxChosen(k, e, c) // act_choosetype.go
 		}
 		return
 	}
@@ -475,7 +475,7 @@ func (s *State) basePT7a(k *prep, sl Slot) (int, int) {
 // hasSubCur reports whether c has matchup subtype i (subOutside: a
 // creature type outside the matchup's subtypes).
 func hasSubCur(k *prep, c *dchars, i uint8) bool {
-	if i == subOutside {
+	if outsideSub(k, i) {
 		return c.all
 	}
 	if int(i) >= len(k.t.Subtypes) {
@@ -593,7 +593,7 @@ func (s *State) matchCurOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Sl
 				return false
 			}
 			ch := s.perms[src].chosen
-			if f2&kop.F2ChosenType != 0 && (ch == 255 || !hasSubCur(k, cur, ch) && !(ch == subOutside && s.curOutsideHas(k, cur, src))) {
+			if f2&kop.F2ChosenType != 0 && (ch == 255 || !hasSubCur(k, cur, ch) && !(outsideSub(k, ch) && s.curOutsideHas(k, cur, src))) {
 				return false
 			}
 			if f2&kop.F2ChosenColor != 0 && (ch > 4 || cur.cols&(1<<ch) == 0) {
