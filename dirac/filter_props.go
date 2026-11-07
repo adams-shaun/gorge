@@ -110,7 +110,7 @@ func (s *State) wordPerm2(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot
 	case kop.W7NotChosenType:
 		// gorge IsNotChosenType: fails closed when nothing was chosen
 		if ch, ok := s.chosenTypeSub(src); ok {
-			ans = !s.hasSubGen(k, sl, ch) && !(ch == subOutside && s.outsideChosenHas(k, sl, src))
+			ans = !s.hasSubGen(k, sl, ch) && !(outsideSub(k, ch) && s.outsideChosenHas(k, sl, src))
 		}
 	case kop.W7AttackingOpp:
 		// attacking a PLAYER who is an opponent of ctrl; a planeswalker defender matches nothing
@@ -202,7 +202,7 @@ func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctr
 		if ch, ok := s.chosenTypeSub(NoSlot); ok {
 			cd := &k.t.Cards[c]
 			has := int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
-			if ch == subOutside {
+			if outsideSub(k, ch) {
 				has = cd.AllCreatureTypes
 			}
 			if s.res.bad&resChosenCard != 0 {

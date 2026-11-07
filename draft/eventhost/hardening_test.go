@@ -258,7 +258,8 @@ func TestEventSetsAndPersonasContent(t *testing.T) {
 	if len(sets) == 0 {
 		t.Fatal("Sets() returned nothing")
 	}
-	found := false
+	wantRatings := map[string]string{"FDN": "17lands", "TRK": "simulated", "BLB": "heuristic"}
+	found := map[string]bool{}
 	for _, s := range sets {
 		if s.PackSize <= 0 {
 			t.Errorf("set %s: pack size %d", s.Code, s.PackSize)
@@ -266,15 +267,17 @@ func TestEventSetsAndPersonasContent(t *testing.T) {
 		if s.Ratings == "" {
 			t.Errorf("set %s: empty ratings", s.Code)
 		}
-		if s.Code == "FDN" {
-			found = true
-			if s.Ratings != "17lands" {
-				t.Errorf("FDN ratings %q, want 17lands", s.Ratings)
+		if want, ok := wantRatings[s.Code]; ok {
+			found[s.Code] = true
+			if s.Ratings != want {
+				t.Errorf("%s ratings %q, want %s", s.Code, s.Ratings, want)
 			}
 		}
 	}
-	if !found {
-		t.Error("FDN missing from Sets()")
+	for _, code := range []string{"BLB", "FDN", "TRK"} {
+		if !found[code] {
+			t.Errorf("%s missing from Sets()", code)
+		}
 	}
 	for i := 1; i < len(sets); i++ {
 		if sets[i-1].Code >= sets[i].Code {
