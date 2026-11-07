@@ -106,6 +106,15 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		if _, planned := s.plannedCastCostOf(k, p, o, mode, false, false); planned {
 			s.bld().bfl |= bflTargetPaid
 		}
+		// An untyped, paid may-play cast is priced at priority too (the
+		// oracle's castCost for a "mayplay" option without a MayPlayPerm), so
+		// its announcement filters by the post-pick cost like a hand cast
+		// (CR 601.2f). Read here, with the other convoke-only work, so a
+		// card without Convoke pays nothing for it.
+		if mode&(castMayPlay|castFree) == castMayPlay && ob.zone != kop.ZoneHand && s.FeatMayPlayUntyped(p, o) &&
+			!(k.gen.anyMayRaise && s.mayRaiseLifeOwed(k)) {
+			s.bld().convokeBudget = true
+		}
 	}
 	// a cast only a typed permission allows (Muldrotha's per-type statics,
 	// gorge's MayPlayPerm) has no planned payment: gorge always lowers it
@@ -118,12 +127,6 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		if k.gen.anyMayRaise && s.mayRaiseLifeOwed(k) {
 			typed = true // a life raise is no cost the planner prices ("cost:life"): lowered like a typed permission (cost_mayplayraise.go)
 		}
-	}
-	// An untyped, paid may-play cast is priced at priority too (the oracle's
-	// castCost for a "mayplay" option without a MayPlayPerm), so its
-	// announcement filters by the post-pick cost like a hand cast (CR 601.2f).
-	if mode&(3|castMayPlay|castFree) == castMayPlay && !typed && ob.zone != kop.ZoneHand {
-		s.bld().convokeBudget = true
 	}
 	n0 := s.npend
 	if fl&sfKicked != 0 && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
