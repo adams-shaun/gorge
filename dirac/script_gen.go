@@ -240,7 +240,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	}
 	for i := 0; i < int(src.N); i++ {
 		a := src.Options[i]
-		if !isCastKind(a.Kind()) && a.Kind() != AkActivate && a.Kind() != AkPlot || hasOption(d, a) || hasOption(capSpent, a) ||
+		if !isScriptPlayKind(a.Kind()) || hasOption(d, a) || hasOption(capSpent, a) ||
 			wide && !s.wideAdmits(k, a, p, anyR) ||
 			mixWide && !hasOption(&noWide, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) {
 			continue
@@ -303,11 +303,11 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 func (s *State) walkKey(a Action, p uint8, i int) uint64 {
 	ob := &s.objs[Obj(a.Source())]
 	switch {
-	case (isCastKind(a.Kind()) || a.Kind() == AkPlot) && ob.zone == kop.ZoneHand:
+	case (isCastKind(a.Kind()) || a.Kind() == AkPlot || a.Kind() == AkSneak) && ob.zone == kop.ZoneHand:
 		for h := 0; h < int(s.pl[p&1].handN); h++ {
 			if s.pl[p&1].hand[h] == Obj(a.Source()) {
 				k := uint64(h)<<16 | uint64(i)
-				if a.Mode() == 0 && a.Target() != 0 || a.Kind() == AkPlot || a.Kind() == AkCast && a.Mode()&castWarp != 0 {
+				if a.Mode() == 0 && a.Target() != 0 || a.Kind() == AkPlot || a.Kind() == AkSneak || a.Kind() == AkCast && a.Mode()&castWarp != 0 {
 					k |= 1 << 15 // an alternative cost's cast follows the card's plain one, though the kernel offers it first
 				}
 				return k
@@ -480,7 +480,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 // payment actions and the decision's own options) does not hold.
 func (s *State) FeatScripted(p uint8, a Action) bool {
 	k := s.k()
-	if !s.scriptAny(k) || !isCastKind(a.Kind()) && a.Kind() != AkActivate && a.Kind() != AkPlot || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) {
+	if !s.scriptAny(k) || !isScriptPlayKind(a.Kind()) || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) {
 		return false
 	}
 	var d Decision

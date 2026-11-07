@@ -979,6 +979,10 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 					s.reverseCast(k) // the offer did not know its X
 					return false
 				}
+				if _, _, ok := s.equipTargetPriced(k); ok {
+					s.reverseCast(k) // no candidate's own equip price is payable (statics_gen.go)
+					return false
+				}
 				// an activation was checked feasible and moves nothing
 				// before its targets
 				panic("kernel: spell/ability without a legal target")
@@ -1346,6 +1350,7 @@ func (s *State) finishBuild(k *prep) {
 		if (e.flags&sfAnyMana != 0 || anyColor) && s.bld().bfl&bflLowered == 0 && !payDone {
 			s.tapRiderPlan(k, e) // (a lowered cast has no plan: its window below)
 		}
+		obsPool, obsOK := s.obsWinPool(e.ctrl)
 		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || e.trigPl == trigPlMadness {
 			// a free cast mid-resolution (Etali) pays the rest of its
 			// cost (Eaten Alive's {3}{B} part) through gorge's mana
@@ -1406,6 +1411,7 @@ func (s *State) finishBuild(k *prep) {
 		if s.winPaused() {
 			return // a free or Spree cast's window waits on a tap-another pick (mana_window.go)
 		}
+		s.obsWinSettle(k, e.ctrl, obsPool, obsOK)
 		s.payDelvePicks() // gorge payCast exiles the delved cards after the mana
 		s.paySacsGen(k)
 		s.bld().e.flags &^= sfFbGranted
