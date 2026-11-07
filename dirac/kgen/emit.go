@@ -110,11 +110,11 @@ func guardLists(bs []built, filters []kop.Filter) (rooms, readers, abRed []int, 
 			readers = append(readers, i)
 		}
 		// A reducer of activated abilities reaches a mana ability's mana cost
-		// (CR 601.2f, 602.2b); one that lowers only an Exhaust, Power-up or
-		// Room unlock never does. Its MinMana$ floor (0 none) is what the
+		// (CR 601.2f, 602.2b); one that lowers only an Exhaust, Power-up,
+		// Equip or Room unlock never does. Its MinMana$ floor (0 none) is what the
 		// cost keeps.
 		for _, a := range bs[i].def.Abilities {
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceAbility && a.Static.B&(1|kop.ReduceAbUnlock|kop.ReduceAbPowerUp) == 0 {
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceAbility && a.Static.B&(1|kop.ReduceAbUnlock|kop.ReduceAbPowerUp|kop.ReduceAbEquip) == 0 {
 				abRed = append(abRed, i)
 				abRedFloor = append(abRedFloor, uint8(a.Static.B>>kop.ReduceAbMinShift)&15)
 				abRedTypes = append(abRedTypes, reducerTypes(filters, a.Static.Filter))
