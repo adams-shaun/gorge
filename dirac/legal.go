@@ -520,7 +520,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// statics (planAbilityPayment calls offerCostFor, which folds the
 		// RaiseCost/ReduceCost statics and the ability's own ReduceCost$; it
 		// never calls powerUpReduceCost), and an ability whose composed
-		// printed cost it cannot witness is not offered (gorge seed-1
+		// printed cost it cannot witness is not offered (powerUpWitness; gorge seed-1
 		// Hercules: {4}{G} reduced to {2}, three untapped Forests, no offer).
 		// The floating pool paying the reduced cost is enough: the plan is
 		// then a pool choice. So: offered iff the pool pays the reduced cost
@@ -531,14 +531,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// the reduced one (buildCostCharge), and the plan/charge mismatch
 		// falls back to the manual mana window (powerUpPlanRejected,
 		// mana_window.go).
-		printed := a.Cost.Mana
-		if k.gen != nil && k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
-			printed = s.ownReducedBF(k, a, sl, p.ctrl)
-		}
-		if k.gen != nil && k.gen.anyAbReduce {
-			printed = s.abReduced(k, a, sl, p.ctrl, printed) // the cost statics, not CR 702.193b
-		}
-		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &printed, av) {
+		if !s.poolPays(p.ctrl, &mana) && !s.powerUpWitnessAffords(k, sl, a, p.ctrl, av) {
 			return false
 		}
 	}
@@ -934,7 +927,12 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 	if k.gen != nil && k.gen.anyDelve && o != NoObj && (base == nil || !av.tbLeafCredited(base)) {
 		t = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, t) // the total's one credit
 	}
-	return av.affords(&t, pipMaskOf(&t), 0)
+	if o == NoObj {
+		return av.affords(&t, pipMaskOf(&t), 0)
+	}
+	// the part's mana may come from restricted sources the spell may spend
+	// (Eclipsed Realms' chosen-type mana; CR 106.6, gorge mayPlayAffordable)
+	return s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &t, av)
 }
 
 // inHandN is 1 when spell object o is itself in a hand (it cannot be discarded
