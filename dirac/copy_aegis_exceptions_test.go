@@ -7,12 +7,12 @@ import (
 	v "github.com/adams-shaun/gorge/dirac/vanilla"
 )
 
-// aegisExcScen builds a vanilla table copy with one appended copy-exception
+// aegisExcPTScen builds a vanilla table copy with one appended copy-exception
 // override ("except it's 1/1 and it has haste"), so the copy-exception
 // readers can be exercised without a corpus card that carries one. The
 // appended override is referenced by no table ability, so the prep flags are
 // turned on by hand.
-func aegisExcScen(t *testing.T) (*scen, uint8) {
+func aegisExcPTScen(t *testing.T) (*scen, uint8) {
 	t.Helper()
 	tbl := *v.Table
 	tbl.Exprs = make([]kop.Expr, 1) // generated prep: sized gen.flags for ptGen/refreshTy
@@ -30,7 +30,7 @@ func aegisExcScen(t *testing.T) (*scen, uint8) {
 // marker's exceptions come back with the marker when the Aegis ends (CR
 // 707.9b).
 func TestAegisCopyDropsCloneExceptions(t *testing.T) {
-	sc, idx := aegisExcScen(t)
+	sc, idx := aegisExcPTScen(t)
 	s, k := sc.s, sc.k
 	sl := sc.slot(sc.perm(v.HillGiant, 0))
 	addCopyPerm(sc, sl, sc.perm(v.GrizzlyBears, 1), idx, 10)
@@ -74,7 +74,7 @@ func TestAegisCopyDropsCloneExceptions(t *testing.T) {
 // so the copy write is a no-op and only the exception set distinguishes the
 // Aegis copy from the clone beneath it. It must not take the early return.
 func TestAegisCopySameCardDropsCloneExceptions(t *testing.T) {
-	sc, idx := aegisExcScen(t)
+	sc, idx := aegisExcPTScen(t)
 	s, k := sc.s, sc.k
 	sl := sc.slot(sc.perm(v.SerraAngel, 0))
 	addCopyPerm(sc, sl, sc.perm(v.SerraAngel, 1), idx, 10)
@@ -112,7 +112,7 @@ func TestAegisCopySameCardDropsCloneExceptions(t *testing.T) {
 // Aegis branch (not cloneCleanup) is the only path that can drop and restore
 // its exceptions.
 func TestAegisCopyDropsEOTCloneExceptions(t *testing.T) {
-	sc, idx := aegisExcScen(t)
+	sc, idx := aegisExcPTScen(t)
 	s, k := sc.s, sc.k
 	sl := sc.slot(sc.perm(v.HillGiant, 0))
 	addCopyEOT(sc, sl, v.GrizzlyBears, sc.perm(v.GrizzlyBears, 1), idx, 10)
@@ -154,7 +154,7 @@ func TestAegisCopyDropsEOTCloneExceptions(t *testing.T) {
 // (the known fxAegisBase gap). The Aegis copy itself still inherits them;
 // that gap is not asserted here.
 func TestAegisOverBaseKeepsBaseException(t *testing.T) {
-	sc, idx := aegisExcScen(t)
+	sc, idx := aegisExcPTScen(t)
 	s, k := sc.s, sc.k
 	sl := sc.slot(sc.perm(v.HillGiant, 0))
 	setCopy(sc, sl, v.GrizzlyBears)
@@ -187,7 +187,7 @@ func TestAegisOverBaseKeepsBaseException(t *testing.T) {
 // must not read it as the clone's template and hand it to the bearer when
 // the Aegis ends.
 func TestAegisCopyDropsBatchEOTCloneExceptions(t *testing.T) {
-	sc, idx := aegisExcScen(t)
+	sc, idx := aegisExcPTScen(t)
 	s, k := sc.s, sc.k
 	// Slot 0's live exception is what a zero Slot would name as the
 	// template for a marker with no template of its own.
