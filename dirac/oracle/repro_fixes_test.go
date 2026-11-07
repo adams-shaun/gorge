@@ -56,6 +56,10 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-otj", []stdRepro{
 		{"copied_vehicle_counts_its_crew", true, false}, // CR 707.2: Loan Shark copying Luxurious Locomotive makes a Treasure per creature that crewed it
 		{"counters_skip_a_ceased_token", true, false},   // CR 111.7: Railway Brawler's counters for a Beau the legend rule removed land on nothing
+		// CR 707.10c, 115.3: Jace Reawakened's copy of Fleeting Reflection may
+		// not move "up to one other target creature" onto the creature its
+		// first target already names
+		{"copy_retarget_unique_link", false, false},
 		// Ornery Tumblewagg is cast through Jasper Flint's mayplay and paid
 		// with a wide Stablemaster tap and a Mountain: the rider plan's
 		// restricted mana floats, the payment admits and spends it first
