@@ -103,7 +103,7 @@ Boosters (`play`).
 |---|---|---|---|
 | `FDN` | Foundations | 14 | 17Lands games-in-hand win rate |
 | `BLB` | Bloomburrow | 13 | a heuristic from card facts |
-| `TRK` | Star Trek | 14 | a heuristic from card facts |
+| `TRK` | Star Trek | 14 | simulated card strength ([Research: card strength](../research/card-strength/TRK.md)) |
 
 `TRK` packs follow a booster this repository authors itself: MTGJSON publishes no
 Star Trek configuration yet, so a pack is seven commons, three uncommons, a rare or

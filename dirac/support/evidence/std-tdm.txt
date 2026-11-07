@@ -1,9 +1,12 @@
+Abzan Devotee
 Abzan Monument
+Adorned Crocodile
 Aegis Sculptor
 Agent of Kotis
 Aggressive Negotiations
 Ainok Wayfarer
 Alchemist's Assistant
+Alesha's Legacy
 Anafenza, Unyielding Lineage
 Arashin Sunshield
 Armament Dragon
@@ -15,9 +18,12 @@ Bearer of Glory
 Betor, Kin to All
 Bewildering Blizzard
 Bloodfell Caves
+Bloomvine Regent
 Blossoming Sands
 Bone-Cairn Butcher
+Boulderborn Dragon
 Breaching Dragonstorm
+Caustic Exhale
 Champion of Dusan
 Channeled Dragonfire
 Clarion Conqueror
@@ -26,15 +32,24 @@ Coordinated Maneuver
 Cori Mountain Monastery
 Cori Mountain Stalwart
 Cori-Steel Cutter
+Corroding Dragonstorm
+Craterhoof Behemoth
+Cruel Truths
 Dalkovan Encampment
+Death Begets Life
+Defibrillating Current
+Delta Bloodflies
 Descendant of Storms
 Devoted Duelist
+Dirgur Island Dragon
 Dismal Backwater
 Dispelling Exhale
 Disruptive Stormbrood
 Dragon Sniper
+Dragon's Prey
 Dragonback Assault
 Dragonback Lancer
+Dragonclaw Strike
 Dragonologist
 Dragonstorm Forecaster
 Dragonstorm Globe
@@ -42,15 +57,20 @@ Dusyut Earthcarver
 Duty Beyond Death
 Effortless Master
 Embermouth Sentinel
+Encroaching Dragonstorm
 Equilibrium Adept
+Eshki Dragonclaw
 Essence Anchor
 Evolving Wilds
+Fangkeeper's Familiar
 Felothar, Dawn of the Abzan
+Feral Deathgorger
 Fire-Rim Form
 Flamehold Grappler
 Fleeting Effigy
 Focus the Mind
 Forest
+Formation Breaker
 Fortress Kin-Guard
 Fresh Start
 Frontier Bivouac
@@ -59,13 +79,18 @@ Furious Forebear
 Glacial Dragonhunt
 Glacierwood Siege
 Great Arashin City
+Gurmag Nightwatch
+Gurmag Rakshasa
 Hardened Tactician
 Herd Heirloom
+Heritage Reclamation
 Highspire Bell-Ringer
+Hollowmurk Siege
 Host of the Hereafter
 Humbling Elder
 Iceridge Serpent
 Inevitable Defeat
+Inspirited Vanguard
 Iridescent Tiger
 Island
 Jade-Cast Sentinel
@@ -76,6 +101,9 @@ Jeskai Revelation
 Jeskai Shrinekeeper
 Jungle Hollow
 Karakyk Guardian
+Kheru Goldkeeper
+Kin-Tree Nurturer
+Kin-Tree Severance
 Kishla Skimmer
 Kishla Trawlers
 Kishla Village
@@ -84,35 +112,50 @@ Kotis, the Fangkeeper
 Krotiq Nestguard
 Lasyd Prowler
 Lightfoot Technique
+Lotuslight Dancers
 Loxodon Battle Priest
 Maelstrom of the Spirit Dragon
+Magmatic Hellkite
+Mammoth Bellow
+Marang River Regent
 Mardu Devotee
 Mardu Monument
 Marshal of the Lost
 Meticulous Artisan
+Molten Exhale
+Monastery Messenger
 Mountain
+Mox Jasper
 Mystic Monastery
 Narset's Rebuke
 Narset, Jeskai Waymaster
+Nature's Rhythm
 Neriv, Heart of the Storm
+Nightblade Brigade
 Nomad Outpost
 Opulent Palace
 Osseous Exhale
 Overwhelming Surge
+Piercing Exhale
 Plains
 Poised Practitioner
+Purging Stormbrood
 Qarsi Revenant
 Rainveil Rejuvenator
+Rakshasa's Bargain
 Rally the Monastery
 Rebellious Strike
 Rediscover the Way
+Reigning Victor
 Rescue Leopard
 Revival of the Ancestors
 Riling Dawnbreaker
 Ringing Strike Mastery
 Rite of Renewal
 Riverwalk Technique
+Riverwheel Sweep
 Roamer's Routine
+Roar of Endless Song
 Roiling Dragonstorm
 Rugged Highlands
 Runescale Stormbrood
@@ -122,6 +165,7 @@ Sagu Pummeler
 Sagu Wildling
 Salt Road Packbeast
 Salt Road Skirmish
+Sandskitter Outrider
 Sandsteppe Citadel
 Sarkhan's Resolve
 Scavenger Regent
@@ -133,6 +177,7 @@ Shocking Sharpshooter
 Sibsig Appraiser
 Sinkhole Surveyor
 Skirmish Rhino
+Smile at Death
 Snakeskin Veil
 Snowmelt Stag
 Spectral Denial
@@ -141,6 +186,7 @@ Starry-Eyed Skyrider
 Static Snare
 Stormbeacon Blade
 Stormplain Detainment
+Stormscale Scion
 Stormshriek Feral
 Sultai Devotee
 Sultai Monument
@@ -153,12 +199,16 @@ Swiftwater Cliffs
 Synchronized Charge
 Teeming Dragonstorm
 Tempest Hawk
+Temur Battlecrier
 Temur Devotee
 Temur Monument
+Temur Tawnyback
 Tersa Lightshatter
+Teval, Arbiter of Virtue
 The Sibsig Ceremony
 Thornwood Falls
 Thunder of Unity
+Trade Route Envoy
 Tranquil Cove
 Traveling Botanist
 Twin Bolt
@@ -171,6 +221,8 @@ United Battlefront
 Unrooted Ancestor
 Unsparing Boltcaster
 Ureni's Rebuff
+Ureni, the Song Unending
+Venerated Stormsinger
 Veteran Ice Climber
 Voice of Victory
 Wail of War
@@ -186,4 +238,5 @@ Wingspan Stride
 Winternight Stories
 Worthy Cost
 Yathan Roadwatcher
+Yathan Tombguard
 Zurgo's Vanguard
