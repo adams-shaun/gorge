@@ -452,7 +452,11 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 		s.occ = saved.occ
 		return true // the pick is posed; the announced creatures tap when the window ends (mana_window.go)
 	}
-	s.payFromPoolRider(k, e.ctrl, &red, 0, anyColor)
+	if s.rbAny(e.ctrl) {
+		s.payRestrRider(k, e.ctrl, &red, 0, e.obj, anyColor) // the window's restricted mana pays the spell it admits (CR 106.6)
+	} else {
+		s.payFromPoolRider(k, e.ctrl, &red, 0, anyColor)
+	}
 	for c := range held {
 		s.pl[e.ctrl].pool[c] += held[c]
 	}

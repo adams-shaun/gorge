@@ -233,7 +233,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 			s.tapWindowGap(k, p, sl, &held)
 			continue
 		}
-		if clamp && !anyColor && k.gen != nil && k.gen.anyRestrSrc && s.windowRestrOwedTap(k, p, sl, useful) {
+		if clamp && !anyColor && k.gen != nil && k.gen.anyRestrSrc && s.windowRestrOwedTap(k, p, sl, useful, noOwed) {
 			continue
 		}
 		own := &k.cards[s.cardAt(sl)]

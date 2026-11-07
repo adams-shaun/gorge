@@ -370,14 +370,16 @@ func TestStdSosReprosLockstep(t *testing.T) {
 func TestStdEclReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-ecl", []stdRepro{
-		{"each_color_among_valid_printed_read", false, false},        // CR 613.1e: Bloom Tender's batch reads Puca's Eye's layer-5 chosen colour, not its printed colourless face
-		{"each_color_among_valid_printed_read_autopay", true, false}, // ... and the tap's mana is floated with the B in the pool itself
-		{"each_color_among_valid_pay_unaffordable", true, false},     // CR 118.3: Trystan's "may pay {B}" upkeep ask is offered, as gorge's potential over-bound does, when Bloom Tender is the only untapped source
-		{"convoke_tap_another_source_keeps_target", true, false},     // CR 601.2c, 601.2g: a Springleaf Drum left beside a convoke cast's picks keeps its target on gorge's menu, however short the window is
-		{"evoke_hybrid_paid_from_floating_pool", false, false},       // CR 601.2h: Deceit evoked with a floating {U} and {B} pays its {U/B}{U/B} from the pool and taps no untapped Island
-		{"planned_mana_sacrifice_token_waits_for_sba", true, false},  // CR 704.5d, 111.7: a Treasure sacrificed by the payment plan for Appeal to Eirdu stays in the graveyard until the next state-based check, as gorge leaves it
-		{"mayplay_selfflash_you_is_wouldbe_controller", true, false}, // CR 109.5: a may-play cast of a card exiled by Maralen, Fae Ascendant reads the card's own CastWithFlash static's "you" as the would-be controller
-		{"restricted_window_float_keeps_chosen_type", false, false},  // CR 106.6, 601.2h: the evoked pip window's owed tap of an any-colour ChosenType-restricted source floats the batch with the source's chosen creature type, so a spell of that type can spend it
+		{"each_color_among_valid_printed_read", false, false},             // CR 613.1e: Bloom Tender's batch reads Puca's Eye's layer-5 chosen colour, not its printed colourless face
+		{"each_color_among_valid_printed_read_autopay", true, false},      // ... and the tap's mana is floated with the B in the pool itself
+		{"each_color_among_valid_pay_unaffordable", true, false},          // CR 118.3: Trystan's "may pay {B}" upkeep ask is offered, as gorge's potential over-bound does, when Bloom Tender is the only untapped source
+		{"convoke_tap_another_source_keeps_target", true, false},          // CR 601.2c, 601.2g: a Springleaf Drum left beside a convoke cast's picks keeps its target on gorge's menu, however short the window is
+		{"evoke_hybrid_paid_from_floating_pool", false, false},            // CR 601.2h: Deceit evoked with a floating {U} and {B} pays its {U/B}{U/B} from the pool and taps no untapped Island
+		{"planned_mana_sacrifice_token_waits_for_sba", true, false},       // CR 704.5d, 111.7: a Treasure sacrificed by the payment plan for Appeal to Eirdu stays in the graveyard until the next state-based check, as gorge leaves it
+		{"mayplay_selfflash_you_is_wouldbe_controller", true, false},      // CR 109.5: a may-play cast of a card exiled by Maralen, Fae Ascendant reads the card's own CastWithFlash static's "you" as the would-be controller
+		{"restricted_window_float_keeps_chosen_type", false, false},       // CR 106.6, 601.2h: the evoked pip window's owed tap of an any-colour ChosenType-restricted source floats the batch with the source's chosen creature type, so a spell of that type can spend it
+		{"convoke_window_restricted_any_colour_ahead_of_c", false, false}, // CR 106.6, 601.2g: a convoke window with an unsettled generic remainder lists Eclipsed Realms' admitted any-colour ability ahead of its {C}, and a window with no mana payment answers that ability's lowest colour
+		{"convoke_pays_with_floated_restricted_mana", false, false},       // CR 106.6, 601.2h: the convoke cast spends the restricted mana its window floated, as gorge's payment does
 	})
 }
 
