@@ -768,9 +768,11 @@ func effectSpec(sa *cards.SA, manaCost string) feat.EffectSpec {
 		switch {
 		case a < 0 || d < 0:
 			e.Class = feat.EffDebuff
+			// Amount = |NumDef|: an integer NumDef gives its magnitude,
+			// "-X" gives -1, any other expression (or absent) -2.
 			e.Amount = amount(strings.TrimPrefix(p["NumDef"], "-"))
-			if d < 0 {
-				e.Amount = int16(max(-d, 0))
+			if n, err := strconv.Atoi(p["NumDef"]); err == nil {
+				e.Amount = int16(min(max(n, -n), 1<<15-1))
 			}
 		case a != 0 || d != 0:
 			e.Class = feat.EffPump

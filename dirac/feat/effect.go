@@ -23,8 +23,8 @@ const (
 type EffectSpec struct {
 	Class     uint8 // EffKill .. EffOther
 	Amount    int16 // the integer amount; -1 = X; -2 = unknown or absent
-	NumAtt    int8  // Pump NumAtt, clamped -9..9
-	NumDef    int8  // Pump NumDef, clamped -9..9
+	NumAtt    int8  // Pump NumAtt, clamped -9..9; a non-integer value (X, an expression) is 0, or -1 when it starts with "-": a sentinel, not a real -1
+	NumDef    int8  // Pump NumDef, clamped -9..9; same sentinel rule as NumAtt
 	Exile     bool  // a kill that exiles: ignores indestructible
 	TgtPlayer bool  // ValidTgts names Player, Opponent or Any
 	TgtCreat  bool  // ValidTgts names Creature or Any

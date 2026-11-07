@@ -27,7 +27,7 @@ func TestEffectSpecClasses(t *testing.T) {
 		for i := range tbl.Cards {
 			name := tbl.Cards[i].Name
 			card, ok := c.Reg.Lookup(name)
-			if !ok || seen[name] || card.Faces[0].SpellAbility() == nil && card.Faces[0].Name == "" {
+			if !ok || seen[name] {
 				continue
 			}
 			sa := card.Faces[0].SpellAbility()
@@ -95,5 +95,13 @@ func TestEffectSpecAmountX(t *testing.T) {
 	e = effectSpec(&cards.SA{API: "Pump", Params: map[string]string{"NumAtt": "-2", "NumDef": "-2", "ValidTgts": "Creature"}}, "{B}")
 	if e.Class != feat.EffDebuff || e.Amount != 2 || e.NumAtt != -2 {
 		t.Fatalf("debuff: %+v", e)
+	}
+	e = effectSpec(&cards.SA{API: "Pump", Params: map[string]string{"NumAtt": "-X", "NumDef": "-X", "ValidTgts": "Creature"}}, "{X}{B}")
+	if e.Class != feat.EffDebuff || e.Amount != -1 || !e.CostX {
+		t.Fatalf("-X debuff: %+v", e)
+	}
+	e = effectSpec(&cards.SA{API: "Pump", Params: map[string]string{"NumAtt": "-Count$Valid Creature", "NumDef": "-Count$Valid Creature", "ValidTgts": "Creature"}}, "{B}")
+	if e.Class != feat.EffDebuff || e.Amount != -2 {
+		t.Fatalf("-expr debuff: %+v", e)
 	}
 }
