@@ -2677,7 +2677,7 @@ func (s *State) manaStep(k *prep) bool {
 			// which taps nothing when the pool already pays it.
 			cc := s.buildCostCharge(k)
 			w := s.powerUpWitness(k, a, sl, e.ctrl)
-			if s.abilityPlanSettles(k, e, w, w, cc, &saved) {
+			if !s.powerUpArmsNone(k) && s.abilityPlanSettles(k, e, w, w, cc, &saved) {
 				s.tapFor(k, e.ctrl, &cc, int(e.x), NoObj)
 			} else if !s.windowTapHeldOK(k, e.ctrl, &cc) {
 				// the window ran out of sources: gorge aborts the activation
