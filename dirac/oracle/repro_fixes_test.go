@@ -228,6 +228,11 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"name_look_ack_mid_resolution_copy_spyglass", false, false}, // CR 614.12: Extravagant Replication's copy of Sorcerous Spyglass, entering mid-resolution, asks the name after the look at the hand, the trigger still on the stack
 		{"filter_beside_deferred_script", true, false},               // a filter (Three Tree Mascot) beside a deferred TriggersWhenSpent$ source (Pyromancer's Goggles): the filter-only prefix search cannot fund the offer, so the restricted/deferred script pays Quick-Draw Katana's Equip {2}
 		{"deferred_gap_beside_filter", true, false},                  // CR 605.3a, 602.2b: Pyromancer's Goggles is a census gap beside Three Tree Mascot's filter, so its {R} funds Tinybones' {3}{B}
+		{"vizier_conversion_kicked_cast", true, false},               // CR 609.4b, 702.33: under Vizier of the Menagerie three Forests pay Gatekeeper of Malakir's kicked {B}{B}{B}, so the kicked cast is offered beside the plain one
+		{"vizier_conversion_kicked_cast_two", true, false},           // ... the same in another game
+		{"vizier_conversion_kicked_cast_three", true, false},         // ... and another
+		{"vizier_conversion_kicked_cast_four", true, false},          // ... and another
+		{"vizier_kicked_cast_granted_prefix", true, false},           // ... and Gnarlid Colony's kicked {3}{G}{G} beside Imprisoned in the Moon's granted {C}: the grant search prices the kicked total under the conversion too
 	})
 }
 
