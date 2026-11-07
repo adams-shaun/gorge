@@ -1,0 +1,1091 @@
+{
+ "set": "FDN",
+ "persona": "champion",
+ "metric": "dv",
+ "license": "CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)",
+ "attribution": "Data from 17Lands (https://www.17lands.com), public datasets. The deck pools these values were fitted on were drafted by bots whose picks used 17Lands FDN games-in-hand win rates (draft/limited/pickbot/ratings/FDN.json), so the values are derived from 17Lands data. Changes: per-card values fitted from simulated games, rescaled at load.",
+ "source": "Generation 2 of an iterated refit: a ridge-logistic model of the game result (first deck wins) on the difference between the two decks' card counts, ridge strength 1e-4 times the game count, dv = 0.55 + 0.25 times the card's coefficient, fitted on 227,000 self-play games of bot-drafted FDN decks played by the dirac engine with the heuristic bot on both seats, 2026-11-05. n is the number of fitted games in which the two decks held different numbers of the card.",
+ "provenance": "Used by the champion persona with colour fit 8, signal weight 2 and colour bias G+3, B-2, R-2. Measured 2026-11-06 on the dirac engine with the heuristic bot piloting both seats: 500 eight-seat pods, each kept deck playing eight of 3,150 held-out 17Lands FDN decks in both seat orders. Champion 64.5% [63.7, 65.2] (n 18,055 games) against 43.9% [43.0, 44.9] (n 19,851) for the default rating-colour and best23 persona. Caveats: dirac engine and heuristic bot pilot, not the gorge engine; decks with a card dirac refuses to play were dropped, which biases the result in an unknown direction; pods had eight seats where hosted events have four; the values are conditional on that pilot and shift when it changes. Cards absent from this table are rated as the 17Lands mean.",
+ "cards": {
+  "Abrade": {
+   "dv": 0.556015825085342,
+   "n": 23419
+  },
+  "Abyssal Harvester": {
+   "dv": 0.6586729168891907,
+   "n": 12286
+  },
+  "Adventuring Gear": {
+   "dv": 0.5152260914444924,
+   "n": 17187
+  },
+  "Aegis Turtle": {
+   "dv": 0.42146478891372685,
+   "n": 27558
+  },
+  "Aetherize": {
+   "dv": 0.4815700381994248,
+   "n": 4430
+  },
+  "Affectionate Indrik": {
+   "dv": 0.6236728757619858,
+   "n": 23205
+  },
+  "Ajani's Pridemate": {
+   "dv": 0.5835647761821747,
+   "n": 25331
+  },
+  "Akroma's Memorial": {
+   "dv": 0.6289164900779725,
+   "n": 1126
+  },
+  "Alesha, Who Laughs at Fate": {
+   "dv": 0.5908336818218232,
+   "n": 8108
+  },
+  "Ambush Wolf": {
+   "dv": 0.6335130065679551,
+   "n": 54507
+  },
+  "An Offer You Can't Refuse": {
+   "dv": 0.46070792824029927,
+   "n": 2722
+  },
+  "Angel of Finality": {
+   "dv": 0.6629421219229699,
+   "n": 24623
+  },
+  "Anthem of Champions": {
+   "dv": 0.5471124010626227,
+   "n": 5267
+  },
+  "Apothecary Stomper": {
+   "dv": 0.5855694331228734,
+   "n": 20207
+  },
+  "Arahbo, the First Fang": {
+   "dv": 0.6351024389266968,
+   "n": 12359
+  },
+  "Arbiter of Woe": {
+   "dv": 0.7035126268863678,
+   "n": 24299
+  },
+  "Arcane Epiphany": {
+   "dv": 0.5247199192643166,
+   "n": 20797
+  },
+  "Archmage of Runes": {
+   "dv": 0.5966727875173092,
+   "n": 12129
+  },
+  "Armasaur Guide": {
+   "dv": 0.5619456704705954,
+   "n": 20625
+  },
+  "Ashroot Animist": {
+   "dv": 0.6347970098257065,
+   "n": 5647
+  },
+  "Authority of the Consuls": {
+   "dv": 0.6156687840819359,
+   "n": 7741
+  },
+  "Axgard Cavalry": {
+   "dv": 0.45954492986202244,
+   "n": 39026
+  },
+  "Bake into a Pie": {
+   "dv": 0.7237874001264573,
+   "n": 58677
+  },
+  "Balmor, Battlemage Captain": {
+   "dv": 0.46397146135568623,
+   "n": 9052
+  },
+  "Banishing Light": {
+   "dv": 0.574760190397501,
+   "n": 58217
+  },
+  "Banner of Kinship": {
+   "dv": 0.47910618335008626,
+   "n": 9397
+  },
+  "Battlesong Berserker": {
+   "dv": 0.5625919841229916,
+   "n": 25079
+  },
+  "Beast-Kin Ranger": {
+   "dv": 0.6545925468206406,
+   "n": 55494
+  },
+  "Bigfin Bouncer": {
+   "dv": 0.5626152634620667,
+   "n": 60821
+  },
+  "Billowing Shriekmass": {
+   "dv": 0.6682157993316651,
+   "n": 23704
+  },
+  "Bite Down": {
+   "dv": 0.6369934484362603,
+   "n": 57035
+  },
+  "Blanchwood Armor": {
+   "dv": 0.5744617350399495,
+   "n": 15095
+  },
+  "Blasphemous Edict": {
+   "dv": 0.41118032038211827,
+   "n": 12292
+  },
+  "Bloodfell Caves": {
+   "dv": 0.6077832311391831,
+   "n": 7578
+  },
+  "Bloodthirsty Conqueror": {
+   "dv": 0.8544812977313996,
+   "n": 6434
+  },
+  "Bloom Tender": {
+   "dv": 0.5814154289662838,
+   "n": 934
+  },
+  "Blossoming Sands": {
+   "dv": 0.5389086177572608,
+   "n": 8464
+  },
+  "Boltwave": {
+   "dv": 0.4838106438517571,
+   "n": 2921
+  },
+  "Brass's Bounty": {
+   "dv": 0.4469332650303841,
+   "n": 1439
+  },
+  "Brazen Scourge": {
+   "dv": 0.5738810293376446,
+   "n": 18639
+  },
+  "Brineborn Cutthroat": {
+   "dv": 0.5261520400643349,
+   "n": 25265
+  },
+  "Broken Wings": {
+   "dv": 0.5086337506771088,
+   "n": 13214
+  },
+  "Bulk Up": {
+   "dv": 0.4197316497564316,
+   "n": 3361
+  },
+  "Burglar Rat": {
+   "dv": 0.7102393388748169,
+   "n": 63744
+  },
+  "Burnished Hart": {
+   "dv": 0.48068798631429677,
+   "n": 10333
+  },
+  "Burst Lightning": {
+   "dv": 0.5259131241589785,
+   "n": 55112
+  },
+  "Bushwhack": {
+   "dv": 0.5392072975635529,
+   "n": 36015
+  },
+  "Cackling Prowler": {
+   "dv": 0.6618761450052262,
+   "n": 51572
+  },
+  "Campus Guide": {
+   "dv": 0.5210201770067215,
+   "n": 44350
+  },
+  "Cat Collector": {
+   "dv": 0.6399636894464493,
+   "n": 24628
+  },
+  "Cathar Commando": {
+   "dv": 0.5065021544694901,
+   "n": 59102
+  },
+  "Celestial Armor": {
+   "dv": 0.6241299763321877,
+   "n": 13048
+  },
+  "Cephalid Inkmage": {
+   "dv": 0.49353859871625905,
+   "n": 25462
+  },
+  "Chandra, Flameshaper": {
+   "dv": 0.5389740804210306,
+   "n": 6080
+  },
+  "Claws Out": {
+   "dv": 0.5334759589284659,
+   "n": 14871
+  },
+  "Clinquant Skymage": {
+   "dv": 0.5634296379983426,
+   "n": 10605
+  },
+  "Condemn": {
+   "dv": 0.5501308070932283,
+   "n": 843
+  },
+  "Consuming Aberration": {
+   "dv": 0.6220519721508027,
+   "n": 2406
+  },
+  "Courageous Goblin": {
+   "dv": 0.5738740332424641,
+   "n": 54914
+  },
+  "Crackling Cyclops": {
+   "dv": 0.5364004701375962,
+   "n": 18156
+  },
+  "Crypt Feaster": {
+   "dv": 0.6186014965176583,
+   "n": 27589
+  },
+  "Crystal Barricade": {
+   "dv": 0.5355763101950288,
+   "n": 3302
+  },
+  "Curator of Destinies": {
+   "dv": 0.6748178184032441,
+   "n": 11635
+  },
+  "Dauntless Veteran": {
+   "dv": 0.5559662060812116,
+   "n": 13796
+  },
+  "Day of Judgment": {
+   "dv": 0.40252815485000615,
+   "n": 11879
+  },
+  "Dazzling Angel": {
+   "dv": 0.6562538847327233,
+   "n": 59430
+  },
+  "Diregraf Ghoul": {
+   "dv": 0.5832871265709401,
+   "n": 20472
+  },
+  "Dismal Backwater": {
+   "dv": 0.5929105162620545,
+   "n": 7978
+  },
+  "Divine Resilience": {
+   "dv": 0.4738875433802605,
+   "n": 4407
+  },
+  "Doubling Season": {
+   "dv": 0.48488832563161854,
+   "n": 1021
+  },
+  "Dragon Trainer": {
+   "dv": 0.6323035463690758,
+   "n": 21878
+  },
+  "Drake Hatcher": {
+   "dv": 0.6108843043446541,
+   "n": 12571
+  },
+  "Drakuseth, Maw of Flames": {
+   "dv": 0.6711527660489083,
+   "n": 9811
+  },
+  "Dreadwing Scavenger": {
+   "dv": 0.6057341277599335,
+   "n": 13517
+  },
+  "Dwynen's Elite": {
+   "dv": 0.6260183855891228,
+   "n": 51103
+  },
+  "Dwynen, Gilt-Leaf Daen": {
+   "dv": 0.6273738771677018,
+   "n": 16906
+  },
+  "Eager Trufflesnout": {
+   "dv": 0.6309053480625153,
+   "n": 24446
+  },
+  "Eaten Alive": {
+   "dv": 0.5239348888397217,
+   "n": 52929
+  },
+  "Electroduplicate": {
+   "dv": 0.5194680534303189,
+   "n": 4219
+  },
+  "Elementalist Adept": {
+   "dv": 0.4506354212760926,
+   "n": 54760
+  },
+  "Elenda, Saint of Dusk": {
+   "dv": 0.6785979449748993,
+   "n": 7443
+  },
+  "Elfsworn Giant": {
+   "dv": 0.6332919925451279,
+   "n": 37849
+  },
+  "Elvish Archdruid": {
+   "dv": 0.5586436392739416,
+   "n": 9546
+  },
+  "Elvish Regrower": {
+   "dv": 0.6020388074219227,
+   "n": 23837
+  },
+  "Embercleave": {
+   "dv": 0.5867870889604092,
+   "n": 954
+  },
+  "Empyrean Eagle": {
+   "dv": 0.6325206935405732,
+   "n": 14204
+  },
+  "Erudite Wizard": {
+   "dv": 0.48267559260129933,
+   "n": 47308
+  },
+  "Essence Scatter": {
+   "dv": 0.5417702674865723,
+   "n": 24686
+  },
+  "Etali, Primal Storm": {
+   "dv": 0.5649613786488772,
+   "n": 9301
+  },
+  "Exemplar of Light": {
+   "dv": 0.643938022851944,
+   "n": 12125
+  },
+  "Exsanguinate": {
+   "dv": 0.5171189300715924,
+   "n": 4176
+  },
+  "Extravagant Replication": {
+   "dv": 0.5447996661067009,
+   "n": 7281
+  },
+  "Faebloom Trick": {
+   "dv": 0.5696578130126,
+   "n": 24823
+  },
+  "Fake Your Own Death": {
+   "dv": 0.5091847360134125,
+   "n": 50299
+  },
+  "Fanatical Firebrand": {
+   "dv": 0.48153113871812825,
+   "n": 41418
+  },
+  "Felidar Savior": {
+   "dv": 0.6397775515913964,
+   "n": 59831
+  },
+  "Felling Blow": {
+   "dv": 0.6196634575724602,
+   "n": 25034
+  },
+  "Fiendish Panda": {
+   "dv": 0.5461014427244664,
+   "n": 9370
+  },
+  "Fiery Annihilation": {
+   "dv": 0.568830118700862,
+   "n": 24392
+  },
+  "Firebrand Archer": {
+   "dv": 0.5567654941231013,
+   "n": 23370
+  },
+  "Firespitter Whelp": {
+   "dv": 0.6019295781850815,
+   "n": 15544
+  },
+  "Fishing Pole": {
+   "dv": 0.4503532528877259,
+   "n": 3965
+  },
+  "Flamewake Phoenix": {
+   "dv": 0.589361521601677,
+   "n": 8578
+  },
+  "Fleeting Distraction": {
+   "dv": 0.44843889325857167,
+   "n": 42121
+  },
+  "Fleeting Flight": {
+   "dv": 0.3996230244636536,
+   "n": 49856
+  },
+  "Frenzied Goblin": {
+   "dv": 0.5267046757042408,
+   "n": 11018
+  },
+  "Garruk's Uprising": {
+   "dv": 0.5615259233862162,
+   "n": 16829
+  },
+  "Ghalta, Primal Hunger": {
+   "dv": 0.6644388318061829,
+   "n": 10687
+  },
+  "Giada, Font of Hope": {
+   "dv": 0.7055894762277604,
+   "n": 12370
+  },
+  "Giant Growth": {
+   "dv": 0.4718007624149323,
+   "n": 34861
+  },
+  "Gleaming Barrier": {
+   "dv": 0.48858262151479726,
+   "n": 23924
+  },
+  "Gnarlid Colony": {
+   "dv": 0.6005196191370488,
+   "n": 44278
+  },
+  "Goblin Boarders": {
+   "dv": 0.5644999846816063,
+   "n": 53936
+  },
+  "Goblin Bushwhacker": {
+   "dv": 0.5177473492920399,
+   "n": 498
+  },
+  "Goblin Negotiation": {
+   "dv": 0.48090432137250905,
+   "n": 9134
+  },
+  "Goblin Surprise": {
+   "dv": 0.5079816944897175,
+   "n": 32995
+  },
+  "Goldvein Pick": {
+   "dv": 0.5599320020526648,
+   "n": 53587
+  },
+  "Good-Fortune Unicorn": {
+   "dv": 0.5370733125135303,
+   "n": 4272
+  },
+  "Gorehorn Raider": {
+   "dv": 0.5489892020821572,
+   "n": 55416
+  },
+  "Grappling Kraken": {
+   "dv": 0.58026482462883,
+   "n": 20730
+  },
+  "Grow from the Ashes": {
+   "dv": 0.5102288454771042,
+   "n": 15681
+  },
+  "Guarded Heir": {
+   "dv": 0.6147748187184334,
+   "n": 22741
+  },
+  "Gutless Plunderer": {
+   "dv": 0.6645943552255631,
+   "n": 60860
+  },
+  "Hare Apparent": {
+   "dv": 0.5572826407849789,
+   "n": 25529
+  },
+  "Healer's Hawk": {
+   "dv": 0.6151835203170777,
+   "n": 55365
+  },
+  "Heartfire Immolator": {
+   "dv": 0.5089888527989388,
+   "n": 24120
+  },
+  "Helpful Hunter": {
+   "dv": 0.58205144405365,
+   "n": 57095
+  },
+  "Herald of Eternal Dawn": {
+   "dv": 0.6493082895874978,
+   "n": 5476
+  },
+  "Heraldic Banner": {
+   "dv": 0.5350627053529025,
+   "n": 25308
+  },
+  "Hero's Downfall": {
+   "dv": 0.6366738259792328,
+   "n": 24307
+  },
+  "Heroic Reinforcements": {
+   "dv": 0.5708663400262595,
+   "n": 9654
+  },
+  "Hidetsugu's Second Rite": {
+   "dv": 0.4539847627282143,
+   "n": 19942
+  },
+  "High Fae Trickster": {
+   "dv": 0.6852248787879944,
+   "n": 12173
+  },
+  "High-Society Hunter": {
+   "dv": 0.7060128331184388,
+   "n": 11885
+  },
+  "Homunculus Horde": {
+   "dv": 0.524901931360364,
+   "n": 7794
+  },
+  "Hungry Ghoul": {
+   "dv": 0.2882333874702454,
+   "n": 59921
+  },
+  "Icewind Elemental": {
+   "dv": 0.4710746437311173,
+   "n": 58669
+  },
+  "Imprisoned in the Moon": {
+   "dv": 0.6021023161709309,
+   "n": 12926
+  },
+  "Incinerating Blast": {
+   "dv": 0.5658383548259736,
+   "n": 28179
+  },
+  "Infernal Vessel": {
+   "dv": 0.6657200708985329,
+   "n": 25513
+  },
+  "Infestation Sage": {
+   "dv": 0.6945993632078171,
+   "n": 58291
+  },
+  "Inspiration from Beyond": {
+   "dv": 0.4286876499652863,
+   "n": 20754
+  },
+  "Inspiring Call": {
+   "dv": 0.47307848483324055,
+   "n": 3460
+  },
+  "Inspiring Paladin": {
+   "dv": 0.5891325876116753,
+   "n": 47522
+  },
+  "Involuntary Employment": {
+   "dv": 0.5246281504631043,
+   "n": 46007
+  },
+  "Joust Through": {
+   "dv": 0.5767867036163807,
+   "n": 19391
+  },
+  "Juggernaut": {
+   "dv": 0.5810911796987057,
+   "n": 10824
+  },
+  "Jungle Hollow": {
+   "dv": 0.5393975108861924,
+   "n": 6253
+  },
+  "Kaito, Cunning Infiltrator": {
+   "dv": 0.5893300205469132,
+   "n": 5919
+  },
+  "Kellan, Planar Trailblazer": {
+   "dv": 0.5864828556776047,
+   "n": 12435
+  },
+  "Kiora, the Rising Tide": {
+   "dv": 0.518249898403883,
+   "n": 11867
+  },
+  "Koma, World-Eater": {
+   "dv": 0.5938159033656121,
+   "n": 5192
+  },
+  "Krenko, Mob Boss": {
+   "dv": 0.6337762355804444,
+   "n": 11226
+  },
+  "Kykar, Zephyr Awakener": {
+   "dv": 0.5827232517302037,
+   "n": 5848
+  },
+  "Lathril, Blade of the Elves": {
+   "dv": 0.5525595417246223,
+   "n": 1118
+  },
+  "Leyline Axe": {
+   "dv": 0.5896323949098587,
+   "n": 14102
+  },
+  "Lightshell Duo": {
+   "dv": 0.4244614273309708,
+   "n": 60182
+  },
+  "Liliana, Dreadhorde General": {
+   "dv": 0.7416895508766175,
+   "n": 6177
+  },
+  "Llanowar Elves": {
+   "dv": 0.6253451585769654,
+   "n": 55299
+  },
+  "Loot, Exuberant Explorer": {
+   "dv": 0.5901316210627556,
+   "n": 11204
+  },
+  "Luminous Rebuke": {
+   "dv": 0.45693224221467976,
+   "n": 57076
+  },
+  "Lunar Insight": {
+   "dv": 0.5459915392100811,
+   "n": 8868
+  },
+  "Macabre Waltz": {
+   "dv": 0.5210694700479508,
+   "n": 19946
+  },
+  "Make Your Move": {
+   "dv": 0.5199677526950837,
+   "n": 46694
+  },
+  "Marauding Blight-Priest": {
+   "dv": 0.6184420242905617,
+   "n": 47812
+  },
+  "Meteor Golem": {
+   "dv": 0.5743371538817883,
+   "n": 26793
+  },
+  "Micromancer": {
+   "dv": 0.4668012291193009,
+   "n": 25041
+  },
+  "Midnight Snack": {
+   "dv": 0.5296879850327969,
+   "n": 16316
+  },
+  "Mild-Mannered Librarian": {
+   "dv": 0.562584175914526,
+   "n": 21311
+  },
+  "Mischievous Mystic": {
+   "dv": 0.7072569012641907,
+   "n": 24671
+  },
+  "Mischievous Pup": {
+   "dv": 0.4738773807883263,
+   "n": 11489
+  },
+  "Mocking Sprite": {
+   "dv": 0.5273458242416382,
+   "n": 33635
+  },
+  "Mossborn Hydra": {
+   "dv": 0.5447019312530756,
+   "n": 10446
+  },
+  "Needletooth Pack": {
+   "dv": 0.5998312190175057,
+   "n": 21713
+  },
+  "Nessian Hornbeetle": {
+   "dv": 0.6635681569576264,
+   "n": 24632
+  },
+  "Nine-Lives Familiar": {
+   "dv": 0.5472436502575875,
+   "n": 11300
+  },
+  "Niv-Mizzet, Visionary": {
+   "dv": 0.5601220281794668,
+   "n": 252
+  },
+  "Omniscience": {
+   "dv": 0.5035168446600438,
+   "n": 708
+  },
+  "Overrun": {
+   "dv": 0.5255568113178015,
+   "n": 22030
+  },
+  "Painful Quandary": {
+   "dv": 0.6125324845314026,
+   "n": 1708
+  },
+  "Paradise Druid": {
+   "dv": 0.5979112081229687,
+   "n": 1067
+  },
+  "Perforating Artist": {
+   "dv": 0.7527279287576676,
+   "n": 12748
+  },
+  "Phyrexian Arena": {
+   "dv": 0.5348482888191939,
+   "n": 10805
+  },
+  "Pilfer": {
+   "dv": 0.6104720115661622,
+   "n": 51692
+  },
+  "Preposterous Proportions": {
+   "dv": 0.5885319590568543,
+   "n": 8995
+  },
+  "Prideful Parent": {
+   "dv": 0.5877205908298493,
+   "n": 56201
+  },
+  "Quakestrider Ceratops": {
+   "dv": 0.6254817947745324,
+   "n": 11348
+  },
+  "Quick-Draw Katana": {
+   "dv": 0.5602037303149701,
+   "n": 42417
+  },
+  "Quilled Greatwurm": {
+   "dv": 0.6861001580953598,
+   "n": 5631
+  },
+  "Raise the Past": {
+   "dv": 0.5456701789051295,
+   "n": 6761
+  },
+  "Ravenous Amulet": {
+   "dv": 0.4355081349611283,
+   "n": 19457
+  },
+  "Reassembling Skeleton": {
+   "dv": 0.5829594314098359,
+   "n": 14957
+  },
+  "Reclamation Sage": {
+   "dv": 0.5412135545164347,
+   "n": 6796
+  },
+  "Refute": {
+   "dv": 0.3862680226564408,
+   "n": 60799
+  },
+  "Resolute Reinforcements": {
+   "dv": 0.5724422216415406,
+   "n": 21464
+  },
+  "Revenge of the Rats": {
+   "dv": 0.547889168560505,
+   "n": 8526
+  },
+  "Rise of the Dark Realms": {
+   "dv": 0.5710325047373772,
+   "n": 4384
+  },
+  "Rite of the Dragoncaller": {
+   "dv": 0.5752847094088793,
+   "n": 3665
+  },
+  "Ruby, Daring Tracker": {
+   "dv": 0.5595558073371649,
+   "n": 9166
+  },
+  "Rugged Highlands": {
+   "dv": 0.579087757691741,
+   "n": 5406
+  },
+  "Run Away Together": {
+   "dv": 0.434412594139576,
+   "n": 20261
+  },
+  "Rune-Scarred Demon": {
+   "dv": 0.6423051834106446,
+   "n": 11683
+  },
+  "Rune-Sealed Wall": {
+   "dv": 0.3443365573883057,
+   "n": 19976
+  },
+  "Sanguine Syphoner": {
+   "dv": 0.6480644822120667,
+   "n": 51319
+  },
+  "Savannah Lions": {
+   "dv": 0.5553053526207805,
+   "n": 15818
+  },
+  "Scavenging Ooze": {
+   "dv": 0.5855984717607499,
+   "n": 12128
+  },
+  "Scoured Barrens": {
+   "dv": 0.5514701997861267,
+   "n": 8593
+  },
+  "Scrawling Crawler": {
+   "dv": 0.7113005101680756,
+   "n": 13503
+  },
+  "Searslicer Goblin": {
+   "dv": 0.6160060942173005,
+   "n": 12394
+  },
+  "Seeker's Folly": {
+   "dv": 0.5882359549403191,
+   "n": 25336
+  },
+  "Seismic Rupture": {
+   "dv": 0.4670496761798859,
+   "n": 6651
+  },
+  "Self-Reflection": {
+   "dv": 0.5832034975290299,
+   "n": 21871
+  },
+  "Serra Angel": {
+   "dv": 0.6491944149136544,
+   "n": 22035
+  },
+  "Shivan Dragon": {
+   "dv": 0.5925264164805413,
+   "n": 10223
+  },
+  "Sire of Seven Deaths": {
+   "dv": 0.7444728344678879,
+   "n": 7005
+  },
+  "Skyknight Squire": {
+   "dv": 0.6296584933996201,
+   "n": 11984
+  },
+  "Skyship Buccaneer": {
+   "dv": 0.6214085847139359,
+   "n": 24862
+  },
+  "Slagstorm": {
+   "dv": 0.4708946228027344,
+   "n": 10013
+  },
+  "Slumbering Cerberus": {
+   "dv": 0.6121160119771958,
+   "n": 23642
+  },
+  "Snakeskin Veil": {
+   "dv": 0.5493113391101361,
+   "n": 16812
+  },
+  "Solemn Simulacrum": {
+   "dv": 0.5841674648225308,
+   "n": 13550
+  },
+  "Soul-Shackled Zombie": {
+   "dv": 0.6770416229963303,
+   "n": 62460
+  },
+  "Sower of Chaos": {
+   "dv": 0.5484855633229018,
+   "n": 52877
+  },
+  "Spectral Sailor": {
+   "dv": 0.5444399595260621,
+   "n": 24081
+  },
+  "Sphinx of Forgotten Lore": {
+   "dv": 0.6662305176258088,
+   "n": 5596
+  },
+  "Spinner of Souls": {
+   "dv": 0.7325295686721802,
+   "n": 12950
+  },
+  "Spitfire Lagac": {
+   "dv": 0.5603923361748457,
+   "n": 18202
+  },
+  "Squad Rallier": {
+   "dv": 0.5899781316518784,
+   "n": 56743
+  },
+  "Stab": {
+   "dv": 0.598175647854805,
+   "n": 56501
+  },
+  "Strix Lookout": {
+   "dv": 0.35805000662803654,
+   "n": 62351
+  },
+  "Stroke of Midnight": {
+   "dv": 0.5430517948232592,
+   "n": 6512
+  },
+  "Stromkirk Bloodthief": {
+   "dv": 0.6050616905093193,
+   "n": 17150
+  },
+  "Strongbox Raider": {
+   "dv": 0.5340585738420487,
+   "n": 23062
+  },
+  "Sun-Blessed Healer": {
+   "dv": 0.629030878841877,
+   "n": 25024
+  },
+  "Sure Strike": {
+   "dv": 0.47744730412960057,
+   "n": 28937
+  },
+  "Swiftblade Vindicator": {
+   "dv": 0.5671309281140566,
+   "n": 3835
+  },
+  "Swiftfoot Boots": {
+   "dv": 0.5073940485715867,
+   "n": 4955
+  },
+  "Swiftwater Cliffs": {
+   "dv": 0.5200841382145882,
+   "n": 5537
+  },
+  "Sylvan Scavenging": {
+   "dv": 0.5500221524387598,
+   "n": 11817
+  },
+  "Tatyova, Benthic Druid": {
+   "dv": 0.5114960178732872,
+   "n": 6204
+  },
+  "Temporal Manipulation": {
+   "dv": 0.5615690482780338,
+   "n": 824
+  },
+  "Think Twice": {
+   "dv": 0.4021755933761597,
+   "n": 61581
+  },
+  "Thornwood Falls": {
+   "dv": 0.5556608114391566,
+   "n": 6140
+  },
+  "Thousand-Year Storm": {
+   "dv": 0.5260318882763386,
+   "n": 352
+  },
+  "Thrill of Possibility": {
+   "dv": 0.5009917795658112,
+   "n": 14403
+  },
+  "Time Stop": {
+   "dv": 0.46907774657011037,
+   "n": 1448
+  },
+  "Tinybones, Bauble Burglar": {
+   "dv": 0.5749936431646347,
+   "n": 12912
+  },
+  "Tolarian Terror": {
+   "dv": 0.47694457620382313,
+   "n": 41905
+  },
+  "Tragic Banshee": {
+   "dv": 0.5994790300726891,
+   "n": 25561
+  },
+  "Tranquil Cove": {
+   "dv": 0.5279777172952891,
+   "n": 9407
+  },
+  "Treetop Snarespinner": {
+   "dv": 0.7253028929233551,
+   "n": 56942
+  },
+  "Twinblade Blessing": {
+   "dv": 0.5455108440481127,
+   "n": 10567
+  },
+  "Twinflame Tyrant": {
+   "dv": 0.7556167870759964,
+   "n": 6142
+  },
+  "Uncharted Voyage": {
+   "dv": 0.44545722305774693,
+   "n": 54898
+  },
+  "Valkyrie's Call": {
+   "dv": 0.5849131897091866,
+   "n": 6451
+  },
+  "Vampire Gourmand": {
+   "dv": 0.48931944668293004,
+   "n": 26301
+  },
+  "Vampire Nighthawk": {
+   "dv": 0.8026694536209107,
+   "n": 24721
+  },
+  "Vampire Soulcaller": {
+   "dv": 0.704382809996605,
+   "n": 61039
+  },
+  "Vanguard Seraph": {
+   "dv": 0.5894306629896164,
+   "n": 49023
+  },
+  "Vengeful Bloodwitch": {
+   "dv": 0.6312441036105156,
+   "n": 22191
+  },
+  "Vivien Reid": {
+   "dv": 0.6371065706014634,
+   "n": 5681
+  },
+  "Wardens of the Cycle": {
+   "dv": 0.5897498980164528,
+   "n": 3460
+  },
+  "Wary Thespian": {
+   "dv": 0.6515832498669625,
+   "n": 56578
+  },
+  "Wildwood Scourge": {
+   "dv": 0.46150842607021336,
+   "n": 7299
+  },
+  "Wind-Scarred Crag": {
+   "dv": 0.5477707662619651,
+   "n": 7619
+  },
+  "Witness Protection": {
+   "dv": 0.5017193138599396,
+   "n": 46489
+  },
+  "Youthful Valkyrie": {
+   "dv": 0.5970721572637558,
+   "n": 24239
+  },
+  "Zimone, Paradox Sculptor": {
+   "dv": 0.5821234427392483,
+   "n": 3704
+  },
+  "Zombify": {
+   "dv": 0.5580972574651242,
+   "n": 16134
+  },
+  "Zul Ashur, Lich Lord": {
+   "dv": 0.5955700121819973,
+   "n": 11791
+  }
+ }
+}
