@@ -302,6 +302,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Improvise {
 		fmt.Fprintf(w, " improvise")
 	}
+	if c.Delve {
+		fmt.Fprintf(w, " delve")
+	}
 	if c.Harmonize != nil {
 		fmt.Fprintf(w, " harmonize=%s", c.Harmonize)
 	}

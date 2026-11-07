@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"math"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -711,6 +713,24 @@ func (s *State) finishBlocks(k *prep) {
 	s.openPriority()
 }
 
+// sat16 clamps a damage amount to the int16 range of the damage record. An
+// amount past it is a declared capacity stall (StallPT), never a silent wrap.
+func (s *State) sat16(n int) int16 {
+	if n > math.MaxInt16 {
+		s.capFull(StallPT)
+		return math.MaxInt16
+	}
+	if n < 0 {
+		return 0
+	}
+	return int16(n)
+}
+
+// addSat16 is a + n saturated at the int16 range (see sat16).
+func (s *State) addSat16(a int16, n int) int16 {
+	return s.sat16(int(a) + n)
+}
+
 // dmgRec accumulates simultaneous combat damage.
 type dmgRec struct {
 	toPerm  [MaxPerm]int16
@@ -841,12 +861,12 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 				b := bl[i]
 				amt := int(s.combatArm().divAmt[b])
 				sum += amt
-				r.toPerm[b] += int16(amt)
+				r.toPerm[b] = s.addSat16(r.toPerm[b], amt)
 				if dt && amt > 0 {
 					r.dtPerm.set(b)
 				}
-				r.dealt[a] += int16(amt)
-				r.note(a, b, int16(amt))
+				r.dealt[a] = s.addSat16(r.dealt[a], amt)
+				r.note(a, b, s.sat16(amt))
 			}
 			if kw&kop.KwTrample != 0 && pw > sum {
 				s.toDefender(k, &r, a, pw-sum) // an assignment frozen by replOrderFreeze
@@ -872,21 +892,21 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			if amt > rem {
 				amt = rem
 			}
-			r.toPerm[b] += int16(amt)
+			r.toPerm[b] = s.addSat16(r.toPerm[b], amt)
 			if dt && amt > 0 {
 				r.dtPerm.set(b)
 			}
-			r.dealt[a] += int16(amt)
-			r.note(a, b, int16(amt))
+			r.dealt[a] = s.addSat16(r.dealt[a], amt)
+			r.note(a, b, s.sat16(amt))
 			rem -= amt
 		}
 		if rem > 0 {
 			if trample {
 				s.toDefender(k, &r, a, rem)
 			} else {
-				r.toPerm[bl[nb-1]] += int16(rem)
-				r.dealt[a] += int16(rem)
-				r.note(a, bl[nb-1], int16(rem))
+				r.toPerm[bl[nb-1]] = s.addSat16(r.toPerm[bl[nb-1]], rem)
+				r.dealt[a] = s.addSat16(r.dealt[a], rem)
+				r.note(a, bl[nb-1], s.sat16(rem))
 			}
 		}
 	}
@@ -911,12 +931,12 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			continue
 		}
 		a := bp.blocking
-		r.toPerm[a] += int16(pw)
+		r.toPerm[a] = s.addSat16(r.toPerm[a], pw)
 		if s.kw(k, b)&kop.KwDeathtouch != 0 {
 			r.dtPerm.set(a)
 		}
-		r.dealt[b] += int16(pw)
-		r.note(b, a, int16(pw))
+		r.dealt[b] = s.addSat16(r.dealt[b], pw)
+		r.note(b, a, s.sat16(pw))
 	}
 	if k.gen != nil {
 		// Freeze first: when any event of this pass poses the replacement
@@ -957,7 +977,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			}
 		}
 		if n := r.dealt[sl]; n > 0 && s.kw(k, sl)&kop.KwLifelink != 0 {
-			r.gain[p.ctrl] += n
+			r.gain[p.ctrl] = s.addSat16(r.gain[p.ctrl], int(n))
 		}
 	}
 	if k.gen != nil {
@@ -1002,16 +1022,16 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 func (s *State) toDefender(k *prep, r *dmgRec, a Slot, n int) {
 	t := s.perms[a].atk
 	if t >= PlayerTarget0 {
-		r.toPl[t-PlayerTarget0] += int16(n)
-		r.dealtPl[a] += int16(n)
-		r.dealt[a] += int16(n)
-		r.note(a, NoSlot, int16(n))
+		r.toPl[t-PlayerTarget0] = s.addSat16(r.toPl[t-PlayerTarget0], n)
+		r.dealtPl[a] = s.addSat16(r.dealtPl[a], n)
+		r.dealt[a] = s.addSat16(r.dealt[a], n)
+		r.note(a, NoSlot, s.sat16(n))
 		return
 	}
 	if q := s.attackedPerm(k, a); q != NoSlot {
-		r.toPerm[q] += int16(n)
-		r.dealt[a] += int16(n)
-		r.note(a, q, int16(n))
+		r.toPerm[q] = s.addSat16(r.toPerm[q], n)
+		r.dealt[a] = s.addSat16(r.dealt[a], n)
+		r.note(a, q, s.sat16(n))
 	}
 }
 

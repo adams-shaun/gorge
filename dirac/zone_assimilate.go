@@ -24,6 +24,7 @@ func (s *State) enterAssimilated(k *prep, o Obj, ctrl uint8, from kop.Zone) Slot
 	}
 	next := &s.prog(k)[s.res.pc+1]
 	s.applyOverrideFl(k, sl, int(next.C), s.res.e.card, s.ovDurFl(next.A.N))
+	s.g.ewDone = true // the override op that follows is spent
 	s.fireEntries(k, &eb)
 	return sl
 }
