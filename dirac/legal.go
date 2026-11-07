@@ -516,16 +516,26 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		mana = s.abReduced(k, a, sl, p.ctrl, mana) // after the ability's own and Power-up reductions
 	}
 	if k.gen != nil && k.gen.anyPowerUp && f&kop.CostPowerUp != 0 {
-		// The autopay planner prices the PRINTED cost (planAbilityPayment
-		// never calls powerUpReduceCost), and an ability whose printed cost
-		// it cannot witness is not offered (gorge seed-1 Hercules: {4}{G}
-		// reduced to {2}, three untapped Forests, no offer). The floating
-		// pool paying the reduced cost is enough: the plan is then a pool
-		// choice. So: offered iff the pool pays the reduced cost or the
-		// sources pay the printed one; the charge is always the reduced one
-		// (buildCostCharge), and the plan/charge mismatch falls back to the
-		// manual mana window (powerUpPlanRejected, mana_window.go).
-		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &a.Cost.Mana, av) {
+		// The autopay planner prices the PRINTED cost after the ability's own
+		// ReduceCost$ and the cost statics (planAbilityPayment's ownReduce +
+		// offerCostFor), but it never calls powerUpReduceCost, so the CR
+		// 702.193b entry-turn reduction is not in its witness. An ability
+		// whose planner cost it cannot witness is not offered (gorge seed-1
+		// Hercules: {4}{G} reduced to {2}, three untapped Forests, no offer).
+		// The floating pool paying the reduced cost is enough: the plan is
+		// then a pool choice. So: offered iff the pool pays the reduced cost
+		// or the sources pay the planner's cost; the charge is always the
+		// reduced one (buildCostCharge), and the plan/charge mismatch falls
+		// back to the manual mana window (powerUpPlanRejected,
+		// mana_window.go).
+		planned := a.Cost.Mana
+		if k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
+			planned = s.ownReducedBF(k, a, sl, p.ctrl)
+		}
+		if k.gen.anyAbReduce {
+			planned = s.abReduced(k, a, sl, p.ctrl, planned)
+		}
+		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &planned, av) {
 			return false
 		}
 	}
