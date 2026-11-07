@@ -506,6 +506,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if k.gen != nil && k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
 		mana = s.ownReducedBF(k, a, sl, p.ctrl)
 	}
+	witness := mana // the planner's cost: the ability's own reduction and the cost statics, no Power-up
 	if k.gen != nil && k.gen.anyPowerUp && f&kop.CostPowerUp != 0 {
 		// CR 702.193b: the offer walk and the affordability check read the
 		// reduced cost (gorge legal_walk_battlefield.go:414/553), and the
@@ -516,16 +517,22 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		mana = s.abReduced(k, a, sl, p.ctrl, mana) // after the ability's own and Power-up reductions
 	}
 	if k.gen != nil && k.gen.anyPowerUp && f&kop.CostPowerUp != 0 {
-		// The autopay planner prices the PRINTED cost (planAbilityPayment
-		// never calls powerUpReduceCost), and an ability whose printed cost
-		// it cannot witness is not offered (gorge seed-1 Hercules: {4}{G}
-		// reduced to {2}, three untapped Forests, no offer). The floating
-		// pool paying the reduced cost is enough: the plan is then a pool
-		// choice. So: offered iff the pool pays the reduced cost or the
-		// sources pay the printed one; the charge is always the reduced one
-		// (buildCostCharge), and the plan/charge mismatch falls back to the
-		// manual mana window (powerUpPlanRejected, mana_window.go).
-		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &a.Cost.Mana, av) {
+		// The autopay planner never calls powerUpReduceCost: it prices the
+		// printed cost after the ability's own reduction and the cost
+		// statics (planAbilityPayment's offerCostFor: Hulk, Gamma Goliath's
+		// {3} off another creature's Power-up), and an ability whose
+		// planner cost it cannot witness is not offered (gorge seed-1
+		// Hercules: {4}{G} reduced to {2}, three untapped Forests, no
+		// offer). The floating pool paying the reduced cost is enough: the
+		// plan is then a pool choice. So: offered iff the pool pays the
+		// reduced cost or the sources pay the planner's; the charge is
+		// always the reduced one (buildCostCharge), and the plan/charge
+		// mismatch falls back to the manual mana window
+		// (powerUpPlanRejected, mana_window.go).
+		if k.gen.anyAbReduce {
+			witness = s.abReduced(k, a, sl, p.ctrl, witness)
+		}
+		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &witness, av) {
 			return false
 		}
 	}

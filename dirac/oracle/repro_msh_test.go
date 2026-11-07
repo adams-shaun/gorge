@@ -7,5 +7,6 @@ func TestStdMshReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-msh", []stdRepro{
 		{"target_attacking_lki_after_lethal_damage", false, false}, // CR 608.2h: the enrage rider still sees the attacker's last battlefield status after lethal damage moved it to the graveyard, so the extra combat phase is granted
+		{"power_up_witness_prices_cost_statics", true, false},      // CR 601.2f: a Power-up offer's planner witness is the printed cost after the cost statics (Hulk, Gamma Goliath's {3} off White Tiger, Ava Ayala's {5}{G}), not the bare printed cost
 	})
 }
