@@ -16,19 +16,19 @@ import (
 func TestStaticEffectGrantAppliesBeforeEntryTriggersMatch(t *testing.T) {
 	t.Parallel()
 	clown := "Name:Fixture Clown\nManaCost:2 R\nTypes:Creature Human Clown\nPT:2/3\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Creature.powerLE2+YouCtrl+Other | TriggerZones$ Battlefield | Execute$ TrigPump | TriggerDescription$ x\n" +
-		"SVar:TrigPump:DB$ Pump | Defined$ Self | NumAtt$ +2\nOracle:x\n"
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Creature.powerLE2+YouCtrl+Other | TriggerZones$ Battlefield | Execute$ FxGrow | TriggerDescription$ x\n" +
+		"SVar:FxGrow:DB$ Pump | Defined$ Self | NumAtt$ +2\nOracle:x\n"
 	sheep := "Name:Fixture Sheep\nManaCost:1 W W\nTypes:Enchantment Creature Sheep\nPT:2/1\n" +
-		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self+Creature | Execute$ DBReturn | TriggerDescription$ x\n" +
-		"SVar:DBReturn:DB$ ChangeZone | Defined$ TriggeredNewCardLKICopy | Origin$ Graveyard | Destination$ Battlefield | StaticEffect$ Animate\n" +
-		"SVar:Animate:Mode$ Continuous | Affected$ Card.IsRemembered | AddType$ Enchantment | RemoveCardTypes$ True\nOracle:x\n"
+		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self+Creature | Execute$ FxBack | TriggerDescription$ x\n" +
+		"SVar:FxBack:DB$ ChangeZone | Defined$ TriggeredNewCardLKICopy | Origin$ Graveyard | Destination$ Battlefield | StaticEffect$ FxShape\n" +
+		"SVar:FxShape:Mode$ Continuous | Affected$ Card.IsRemembered | AddType$ Enchantment | RemoveCardTypes$ True\nOracle:x\n"
 	angelClown := "Name:Fixture Watcher\nManaCost:2 R\nTypes:Creature Human\nPT:2/3\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Angel.YouCtrl+Other | TriggerZones$ Battlefield | Execute$ TrigPump | TriggerDescription$ x\n" +
-		"SVar:TrigPump:DB$ Pump | Defined$ Self | NumAtt$ +2\nOracle:x\n"
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Angel.YouCtrl+Other | TriggerZones$ Battlefield | Execute$ FxGrow | TriggerDescription$ x\n" +
+		"SVar:FxGrow:DB$ Pump | Defined$ Self | NumAtt$ +2\nOracle:x\n"
 	relic := "Name:Fixture Relic\nManaCost:2\nTypes:Creature Sheep\nPT:2/1\n" +
-		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ DBReturn | TriggerDescription$ x\n" +
-		"SVar:DBReturn:DB$ ChangeZone | Defined$ TriggeredNewCardLKICopy | Origin$ Graveyard | Destination$ Battlefield | StaticEffect$ Animate\n" +
-		"SVar:Animate:Mode$ Continuous | Affected$ Card.IsRemembered | AddType$ Angel\nOracle:x\n"
+		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ FxBack | TriggerDescription$ x\n" +
+		"SVar:FxBack:DB$ ChangeZone | Defined$ TriggeredNewCardLKICopy | Origin$ Graveyard | Destination$ Battlefield | StaticEffect$ FxShape\n" +
+		"SVar:FxShape:Mode$ Continuous | Affected$ Card.IsRemembered | AddType$ Angel\nOracle:x\n"
 
 	drain := func(t *testing.T, e *Engine) {
 		t.Helper()
