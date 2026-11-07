@@ -65,6 +65,10 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// not move "up to one other target creature" onto the creature its
 		// first target already names
 		{"copy_retarget_unique_link", false, false},
+		// CR 400.7: a Stubborn Burrowfiend saddled, bounced by Nurturing Pixie
+		// and recast is a new object, so its first saddle that turn triggers
+		// again (gorge's latch stops at the Mount's own zone change).
+		{"rebought_mount_saddles_first_again", true, false},
 		// Ornery Tumblewagg is cast through Jasper Flint's mayplay and paid
 		// with a wide Stablemaster tap and a Mountain: the rider plan's
 		// restricted mana floats, the payment admits and spends it first
