@@ -8,6 +8,7 @@ package rules
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -883,6 +884,9 @@ func (e *Engine) copyTargetAsk(o *state.Object, decls []*cards.SA, nRoot, stage 
 		e.subOfferParent, e.subOfferBound = copyChainParent(answers, stage, nRoot), true
 	}
 	candidates := e.legalTargetCandidates(controller, o.ID, o.ID, sa)
+	if src := attachSelfSource(o, sa); src != 0 {
+		candidates = slices.DeleteFunc(candidates, func(c targetCandidate) bool { return c.kind != "player" && c.obj == src })
+	}
 	// MaxTotalTargetPower$ (Reunion of the House): re-run the cast ask's
 	// per-candidate prune here, so a copy of a power-capped multi-target spell
 	// offers the same census the cast did. The running budget rides the

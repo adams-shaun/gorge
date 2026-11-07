@@ -607,9 +607,14 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 						if debugTapXMutate == 2 {
 							a, b = cs[per-1-i], cs[nc-1-j] // the last pair first (mutation)
 						}
-						if rs.tapXOwnAnswer(a, b) {
-							continue
-						}
+					}
+					if rs.tapXOwnAnswer(a, b) {
+						// A forced tap (no ask: exactly the cost's candidates)
+						// that takes the play's own {T} source is no continuation
+						// (CR 602.2b): gorge's tappedOwnSource rejects the node
+						// the tap reaches, before the colour ask branches, so the
+						// branch costs one node there and none here.
+						continue
 					}
 					if !rs.tick() { // the colour ask
 						return false
@@ -635,8 +640,8 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			if debugTapXMutate == 2 {
 				cand = cs[nc-1-ci]
 			}
-			if nc > 1 && rs.tapXOwnAnswer(cand, NoSlot) {
-				continue
+			if rs.tapXOwnAnswer(cand, NoSlot) {
+				continue // a forced tap of the play's own {T} source (CR 602.2b)
 			}
 			if !rs.tick() { // the colour ask
 				return false

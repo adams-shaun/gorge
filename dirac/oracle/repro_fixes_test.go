@@ -115,6 +115,13 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// colour ask carries no announced hybrid pip, so gorge answers its
 		// lowest colour, not the {U} the composed cost still owes.
 		{"spree_window_any_colour_lowest", false, false},
+		// CR 601.2c, 601.2f: Throw from the Saddle's second target (its
+		// SubAbility$ Bite) is announced on cast, and the caster is at 1
+		// life against Terror of the Peaks' "spells your opponents cast that
+		// target it cost an additional 3 life": the link's menu withholds
+		// the Dragon because the total cost can't be paid, as the root
+		// target's ask already did.
+		{"sub_target_life_raise", false, false},
 		// Intimidation Campaign, cast this turn under the opponent's High
 		// Noon, returns to hand on its crime trigger: its finished cast is
 		// still the one spell that turn, so neither engine offers it again
@@ -182,23 +189,26 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 func TestStdFdnReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-fdn", []stdRepro{
-		{"surveil_own_replacement", true, false},                // a surveil's graveyard pile meets Darksteel Colossus's "from anywhere"
-		{"color_gate_made_black", true, false},                  // Knight of Grace counts what Eaten by Piranhas made black
-		{"color_gate_recoloured", true, false},                  // ... and not what Witness Protection made green and white
-		{"exile_instead_planeswalker", true, false},             // CR 700.4: a planeswalker with no loyalty dies, so Obliterating Bolt exiles it
-		{"lifelink_plus_per_source", true, false},               // two lifelink sources are two gains, each with Angel of Vitality's plus one
-		{"lost_ability_no_shuffle", true, false},                // CR 613.1f: Witness Protection on Darksteel Colossus: it dies
-		{"damage_map_per_recipient", true, false},               // Niv-Mizzet draws for the 3 to the opponent, not Drakuseth's whole 10
-		{"copies_enter_together", true, false},                  // CR 603.6a: each of Rite of Replication's five sees the other four
-		{"flashback_restricted_source", true, false},            // Secluded Courtyard's any colour cannot pay Mystical Teachings' printed flashback
-		{"granted_any_mana_beside_own_trigger_x", false, false}, // New Horizons on a Forest adds an any-colour ability beside its own, so Wildborn Preserver's "you may pay {X}" counts it in the potential pool as gorge's walk does
-		{"trigger_paid_x_zero_binds", false, false},             // CR 107.3: Wildborn Preserver paid X = 0 puts no counters, whatever X the creature that triggered it was cast with
-		{"dies_trigger_reads_attacking_lki", true, false},       // CR 603.10a: Garna, Bloodfist of Keld draws for a Perforating Artist that died attacking, its last known status
-		{"any_type_rider_hybrid_pips", true, false},             // CR 107.4e, 601.2b: Tinybones lets any mana pay Teach by Example's two hybrid pips, so W and B afford the cast
-		{"name_look_ack_mid_resolution", true, false},           // CR 608.2n: a copy token's looked-hand name ask is acknowledged while the creating ability is still on the stack
-		{"emblem_grant_after_ability_loss", false, false},       // CR 613.7: Vivien Reid's emblem, created after Witness Protection took Llanowar Elves' abilities, is the newer layer-6 effect, so its vigilance, trample and indestructible survive the loss
-		{"unless_discard_is_effect_discard", true, false},       // CR 118.12: discarding Wilt-Leaf Liege to an opponent's Perforating Artist "unless" is that ability's discard, so the Liege enters the battlefield
-		{"combat_damage_past_int16_kills", true, true},          // CR 120.3, 704.5g: 32768 combat damage from Heroes' Bane kills the blocking Guttersnipe; the damage record saturates (StallPT past int16), never wraps
+		{"surveil_own_replacement", true, false},                     // a surveil's graveyard pile meets Darksteel Colossus's "from anywhere"
+		{"color_gate_made_black", true, false},                       // Knight of Grace counts what Eaten by Piranhas made black
+		{"color_gate_recoloured", true, false},                       // ... and not what Witness Protection made green and white
+		{"exile_instead_planeswalker", true, false},                  // CR 700.4: a planeswalker with no loyalty dies, so Obliterating Bolt exiles it
+		{"lifelink_plus_per_source", true, false},                    // two lifelink sources are two gains, each with Angel of Vitality's plus one
+		{"lost_ability_no_shuffle", true, false},                     // CR 613.1f: Witness Protection on Darksteel Colossus: it dies
+		{"damage_map_per_recipient", true, false},                    // Niv-Mizzet draws for the 3 to the opponent, not Drakuseth's whole 10
+		{"copies_enter_together", true, false},                       // CR 603.6a: each of Rite of Replication's five sees the other four
+		{"flashback_restricted_source", true, false},                 // Secluded Courtyard's any colour cannot pay Mystical Teachings' printed flashback
+		{"granted_any_mana_beside_own_trigger_x", false, false},      // New Horizons on a Forest adds an any-colour ability beside its own, so Wildborn Preserver's "you may pay {X}" counts it in the potential pool as gorge's walk does
+		{"trigger_paid_x_zero_binds", false, false},                  // CR 107.3: Wildborn Preserver paid X = 0 puts no counters, whatever X the creature that triggered it was cast with
+		{"dies_trigger_reads_attacking_lki", true, false},            // CR 603.10a: Garna, Bloodfist of Keld draws for a Perforating Artist that died attacking, its last known status
+		{"any_type_rider_hybrid_pips", true, false},                  // CR 107.4e, 601.2b: Tinybones lets any mana pay Teach by Example's two hybrid pips, so W and B afford the cast
+		{"name_look_ack_mid_resolution", true, false},                // CR 608.2n: a copy token's looked-hand name ask is acknowledged while the creating ability is still on the stack
+		{"emblem_grant_after_ability_loss", false, false},            // CR 613.7: Vivien Reid's emblem, created after Witness Protection took Llanowar Elves' abilities, is the newer layer-6 effect, so its vigilance, trample and indestructible survive the loss
+		{"unless_discard_is_effect_discard", true, false},            // CR 118.12: discarding Wilt-Leaf Liege to an opponent's Perforating Artist "unless" is that ability's discard, so the Liege enters the battlefield
+		{"name_look_ack_mid_resolution_copy_spyglass", false, false}, // CR 614.12: Extravagant Replication's copy of Sorcerous Spyglass, entering mid-resolution, asks the name after the look at the hand, the trigger still on the stack
+		{"filter_beside_deferred_script", true, false},               // a filter (Three Tree Mascot) beside a deferred TriggersWhenSpent$ source (Pyromancer's Goggles): the filter-only prefix search cannot fund the offer, so the restricted/deferred script pays Quick-Draw Katana's Equip {2}
+		{"deferred_gap_beside_filter", true, false},                  // CR 605.3a, 602.2b: Pyromancer's Goggles is a census gap beside Three Tree Mascot's filter, so its {R} funds Tinybones' {3}{B}
+		{"combat_damage_past_int16_kills", true, true},               // CR 120.3, 704.5g: 32768 combat damage from Heroes' Bane kills the blocking Guttersnipe; the damage record saturates (StallPT past int16), never wraps
 	})
 }
 
@@ -384,6 +394,9 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"free_tiered_mode_cost_reduction", false, false},       // CR 601.2f, 118.9d: The Wind Crystal's ReduceCost applies to the Tiered mode cost of a free cast
 		{"window_any_colour_ability_owed_pip", false, false},    // CR 601.2g: an unpayable Tiered mode's window takes Starting Town's pay-life any-colour ability while a {W} pip is owed
 		{"graveyard_leave_sees_batch_entrant", true, false},     // CR 603.10a: Fang returned by Random Encounter beside the cards it returns did not see them leave
+		{"equip_unattach_waits_for_legend_ask", true, false},    // CR 704.3, 704.5n: Magitek Scythe stays on Serah Farron, transformed beside another Crystallized Serah, until the legend answer
+		// CR 113.7a, 608.2h, 702.15b: Phoenix's chapter I, pending when the legend rule bins it, deals damage with the Phoenix's lifelink
+		{"delayed_trigger_departed_source_lifelink", false, false},
 	})
 }
 
@@ -420,11 +433,17 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		// hand cast, and the kernel's convoke menu filters the same way, so
 		// gorge's Submit never refuses a pick the menu no longer offers.
 		{"mayplay_convoke_cast_cost", false, false},
-		{"restricted_window_float_keeps_chosen_type", false, false}, // CR 106.6, 601.2h: the evoked pip window's owed tap of an any-colour ChosenType-restricted source floats the batch with the source's chosen creature type, so a spell of that type can spend it
-		{"subcounter_wildcard_flying_counter_kind", false, false},   // CR 122.1b: Reaping Willow's remove-any-two-counters cost names a Flying counter by its own kind, not as a +1/+1 counter
+		{"restricted_window_float_keeps_chosen_type", false, false},       // CR 106.6, 601.2h: the evoked pip window's owed tap of an any-colour ChosenType-restricted source floats the batch with the source's chosen creature type, so a spell of that type can spend it
+		{"convoke_window_restricted_any_colour_ahead_of_c", false, false}, // CR 106.6, 601.2g: a convoke window with an unsettled generic remainder lists Eclipsed Realms' admitted any-colour ability ahead of its {C}, and a window with no mana payment answers that ability's lowest colour
+		{"convoke_pays_with_floated_restricted_mana", false, false},       // CR 106.6, 601.2h: the convoke cast spends the restricted mana its window floated, as gorge's payment does
+		{"mayplay_convoke_over_selection", false, false},                  // CR 702.51a: Temporal Cleansing cast from Sanar's exile convokes four blue creatures for {3}{U}; only one may pay {U}, the rest pay {1}
+		{"mayplay_convoke_announcement_filtered_by_cost", false, false},   // CR 601.2f: Unexpected Assistance cast from Sanar's exile with Convoke offers no generic tap once the {3} is paid, as gorge refuses it
+		{"subcounter_wildcard_flying_counter_kind", false, false},         // CR 122.1b: Reaping Willow's remove-any-two-counters cost names a Flying counter by its own kind, not as a +1/+1 counter
 
 		{"free_cast_owes_either_or_additional_cost", true, false},      // CR 601.2b, 118.9d: Kinsbaile Aspirant cast free from Maralen's exile still owes behold or {2}; with neither payable it is not offered
 		{"either_or_mana_part_spends_restricted_source", false, false}, // CR 106.6, 601.2f: Kinsbaile Aspirant's {2} part with its {W} is affordable through Eclipsed Realms' chosen-type mana
+		{"aura_etb_lki_bearer_flickered", true, false},                 // CR 400.7, 608.2h: Aquitect's Defenses' ETB pump, its Aura gone after Personify flickered Rimekin Recluse, gives the returned Rimekin nothing
+		{"repeat_loss_after_static_grant", false, false},               // CR 613.7: Abigale's second loss of abilities, after Chronicle of Victory entered, is newer than its first-strike-and-trample grant and takes it away from Prideful Feastling
 	})
 }
 
@@ -449,7 +468,8 @@ func TestStdLciReprosLockstep(t *testing.T) {
 func TestStdSpmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-spm", []stdRepro{
-		{"tapcost_source_not_paid_with_itself", false, false}, // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
+		{"tapcost_source_not_paid_with_itself", false, false},             // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
+		{"tap_two_forced_answer_taps_the_plays_own_source", false, false}, // CR 602.2b: the Parents' second activation has exactly two candidates, so nothing is asked and the forced tap takes Guy; the search drops that line and reaches the pair that leaves Spider Manifestation untapped within its budget
 	})
 }
 
@@ -463,6 +483,7 @@ func TestStdDftReprosLockstep(t *testing.T) {
 		{"tap_power_value_lost_with_abilities", true, false},       // CR 613.1f: Interface Ace under Flood the Engine has lost its crew-with-toughness static, so its 0 power does not crew Rangers' Refueler
 		{"lookback_player_turn_uses_lki_controller", false, false}, // CR 603.10a: a stolen Ketramose exiled from the battlefield on its thief's turn triggers for the thief (PlayerTurn$ reads the last-known controller)
 		{"returned_aura_host_before_paid_draw", false, false},      // CR 303.4f, 610.3: sacrificing Perilous Snare pays Chandra's "if you do, draw": its exiled Aura's host answer comes before the draw, as gorge asks it mid-payment
+		{"lost_abilities_tappower_bonus", false, false},            // CR 613.1f: a Pilot token under Flood the Engine loses the TapPowerValue static, so it contributes its printed power to a Saddle cost
 	})
 }
 
@@ -494,10 +515,13 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"restricted_float_affords_unadmitted_payment", false, false},   // a floating restricted batch counts as affordable for a spell its restriction does not admit, so the kernel taps one source fewer and floats one pip less
 		{"restricted_float_paid_unadmitted_spell", false, false},        // the same admission check at the double-pip shape: a spell is paid straight out of the floating restricted pair both pips of which the payment may not touch
 		{"room_other_face_trigger_reads_cast_face_svars", false, false}, // an unlocked Room's other-face trigger resolves against the shown face's SVar table, so a Branch arm named only on its own face does nothing
+		{"return_ex_flags_hide_instant_stay", false, false},             // CR 304.4: OpReturnEx's C carries the move flags beside the zone, so the instant-stays guard read a non-battlefield zone and put a manifested instant back onto the battlefield
 		{"granted_prefix_pays_painful_printed_colour", false, false},    // CR 119.4, 601.2g: an animated Haunted Screen under Enduring Vitality's grant answers the prefix search's ability ask with the {G} its pay-1-life ability makes, the colour Omnivorous Flytrap needs, so the life is paid
 		{"mid_resolution_mana_sac_token_waits_sba", true, false},        // CR 704.3, 704.5d: a token sacrificed to pay a mid-resolution UnlessPaid fee waits in the graveyard for the state-based action, as a cast payment's does not
 		{"multi_discard_pick_order_past_eight", false, false},           // CR 404.3: a ten-card discard keeps the owner's chosen arrangement past the old eight-pick buffer
+		{"sacrifice_two_exile_sources_order_ask", false, false},         // CR 616.1: a sacrificed creature two Leylines of the Void would exile parks for its order ask, and the batch's later moves wait behind it
 		{"returned_sorcery_stays_in_graveyard", false, false},           // CR 304.4: a manifested sorcery that died is a sorcery card, so Meathook Massacre II's paid return (with a finality counter) leaves it in the graveyard
+		{"tapcost_spell_pays_life_mana_beside_part", false, false},      // CR 601.2g-h, 119.4: Fear of Exposure beside Haunted Screen is castable: the Screen's life-paid {G} pays the mana while two lands are tapped for the cost
 		{"granted_prefix_pays_painful_needed_colour", false, false},     // CR 119.4: the granted-mana prefix taps an animated Haunted Screen for its painful {R} the play needs (gorge's ask lists it before the grant) and pays 1 life
 		{"self_leaves_trigger_sees_remembered_clear", false, false},     // CR 400.7/603.2d: a leaves trigger whose source departed does not serve the fire-time remembered snapshot, so the first instance's Cleanup clear closes the second instance's window
 	})
@@ -529,6 +553,7 @@ func TestStdPoolReprosLockstep(t *testing.T) {
 		{"granted_types_any_land_census_position", "std-mkm"},           // Leyline of the Guildpact: Public Thoroughfare (Produced$ Any) is listed with the fixed sources, so the plan taps Plains, not the Thoroughfare
 		{"delayed_return_skips_object_blinked_since", "std-fin"},        // CR 400.7: Random Encounter's end-step return finds Y'shtola Rhul already exiled and returned by her own trigger, a new object
 		{"returned_creature_was_not_dealt_damage", "std-fin"},           // CR 400.7: Qutrub Forayer raised after combat damage killed it is dealt no damage this turn, so its destroy mode has no target
+		{"echo_copied_equip_offers_its_own_source", "std-msh"},          // CR 301.5c, 707.10c: Echo's copy of Vibranium Energy Daggers' Equip never offers the animated Daggers itself
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, true, false)

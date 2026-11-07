@@ -434,7 +434,7 @@ func (e *Engine) targetAsk() bool {
 	// withheld rather than exposing a selection subset that would abort. The
 	// engine's decision type cannot express cross-option dependencies, and
 	// withholding is safer than offering an illegal transaction.
-	candidates = e.affordableTargetCandidates(pc, candidates)
+	candidates = e.affordableTargetCandidates(pc, nil, candidates)
 	// A target whose bound X leaves a target-bound Sac/Discard part
 	// unpayable is withheld the same way (cost_target_bound.go).
 	candidates = e.targetBoundCandidates(pc.player, pc.card, &pc.cost, pc.isAbility(), candidates)
@@ -857,6 +857,13 @@ func (e *Engine) subTargetAsk(pc *pendingCast) bool {
 			e.subOfferParent = pc.subAns[pc.subStage-1]
 		}
 		candidates := e.castTargetCandidates(pc, excludeSelf, sub)
+		// The link's target is part of the CR 601.2c announcement the total
+		// cost (601.2f) is priced over: withhold a candidate whose added
+		// cost (Terror of the Peaks' "spells your opponents cast that target
+		// it cost an additional 3 life") the cast cannot pay, as the root
+		// ask does. Without this the payment reverses a choice the proposal
+		// already offered.
+		candidates = e.affordableTargetCandidates(pc, pc.allTargets(), candidates)
 		if effects.TargetUniqueRequested(sub) {
 			chosen := append([]state.Target(nil), pc.targets...)
 			for i := 0; i < pc.subStage; i++ {
