@@ -119,6 +119,12 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 			typed = true // a life raise is no cost the planner prices ("cost:life"): lowered like a typed permission (cost_mayplayraise.go)
 		}
 	}
+	// An untyped, paid may-play cast is priced at priority too (the oracle's
+	// castCost for a "mayplay" option without a MayPlayPerm), so its
+	// announcement filters by the post-pick cost like a hand cast (CR 601.2f).
+	if mode&(3|castMayPlay|castFree) == castMayPlay && !typed && ob.zone != kop.ZoneHand {
+		s.bld().convokeBudget = true
+	}
 	n0 := s.npend
 	if fl&sfKicked != 0 && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
 		// (an optional waterbend cast taps nothing here: its window pays after

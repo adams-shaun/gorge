@@ -603,7 +603,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 		case "play_land":
 			add(prioEntry{a: Pack(ActPlayLand, ref(o.Obj), RefNone, landFaceCode(o.Mode)), opt: o.Index})
 		case "cast":
-			if o.Mode == "" && o.AltCostIndex == 0 {
+			if (o.Mode == "" || o.Mode == "mayplay" && o.MayPlayPerm == "") && o.AltCostIndex == 0 {
 				if pc, ok := e.CastPaymentCost(d.Player, o.Obj); ok {
 					if g.castCost == nil {
 						g.castCost = map[state.ObjID]decision.PaymentCost{}

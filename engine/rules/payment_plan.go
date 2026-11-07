@@ -30,15 +30,39 @@ func (e *Engine) PlanCastPayment(p state.PlayerID, cast decision.PlannedCast) Pa
 	return e.planCastPaymentChecked(p, cast, &statics, &candidates)
 }
 
-// CastPaymentCost is the mana cost a plain cast of the hand card id by p
-// would lock in now (CR 601.2f): the printed cost with its spell-ability
-// extras, re-priced by every live cost static exactly as the planner prices
-// it (planCastPaymentChecked). ok is false for an object that is not a card
-// in p's hand. A pure read, for diagnostics (testkit/paymirror) that need
-// to show a cast's price moved since a plan was witnessed.
+// CastPaymentCost is the mana cost a plain cast of the card id by p would
+// lock in now (CR 601.2f): the printed cost with its spell-ability extras,
+// re-priced by every live cost static exactly as the planner prices it
+// (planCastPaymentChecked). A card in p's hand is a plain hand cast; a card in
+// exile or a graveyard is the untyped may-play cast, priced as the offer walk
+// and beginCast's "mayplay" case price it (a free grant empties the mana part,
+// the grant's RaiseCost$ is added before the statics). ok is false for any
+// other object, and for a may-play raise the planner cannot price. A pure
+// read, for diagnostics (testkit/paymirror) that need to show a cast's price
+// moved since a plan was witnessed, and for the lockstep oracle's convoke
+// announcement frame.
 func (e *Engine) CastPaymentCost(p state.PlayerID, id state.ObjID) (cost decision.PaymentCost, ok bool) {
 	o := e.G.Obj(id)
-	if o == nil || o.Zone != state.ZHand || o.Owner != p || o.Face() == nil {
+	if o == nil || o.Face() == nil {
+		return decision.PaymentCost{}, false
+	}
+	if plannedMayPlayZone(o.Zone) {
+		// An effect-delivered permission (a DB$ Effect "you may cast that
+		// card") is no mayPlayGrant, only the offer carrying it: the caller
+		// names a cast the walk already offered.
+		base := pay.RawBaseCost(asPayer(e), p, id)
+		if free, _ := e.mayPlayGrant(p, id); free {
+			base = Cost{}
+		}
+		if raise, hasRaise, priced := e.mayPlayRaiseCost(p, id); hasRaise {
+			if !priced {
+				return decision.PaymentCost{}, false
+			}
+			base = base.Plus(raise)
+		}
+		return pay.WireCost(e.offerCostFor(p, id, pay.WithSpellAbilityExtras(o.Face(), base), spellScope("mayplay"))), true
+	}
+	if o.Zone != state.ZHand || o.Owner != p {
 		return decision.PaymentCost{}, false
 	}
 	base := pay.WithSpellAbilityExtras(o.Face(), pay.RawBaseCost(asPayer(e), p, id))
