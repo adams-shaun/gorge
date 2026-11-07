@@ -208,6 +208,8 @@ func kindOf(d *decision.Decision, kinds Kinds) string {
 		return "optional"
 	case d.Kind == decision.KChoose && kinds.Choose && smallChoose(d, kinds.chooseLimit()):
 		return "choose"
+	case d.Kind == decision.KCommanderZone && kinds.CommanderZone:
+		return "commander_zone"
 	case d.Kind == decision.KMulligan && kinds.Mulligan:
 		return "mulligan"
 	}
@@ -289,7 +291,7 @@ func enumerateLimit(obs *searchprobe.Collector, e *rules.Engine, d *decision.Dec
 		ins = searchprobe.BlockCandidates(d, bot, limit, legal)
 	case "target":
 		ins = searchprobe.TargetCandidates(d, bot, limit)
-	case "multitarget", "modes", "optional", "choose":
+	case "multitarget", "modes", "optional", "choose", "commander_zone":
 		ins = subsetCandidates(d, bot, limit)
 	case "mulligan":
 		ins = mulliganCandidates(e, d, bot, limit, scratch)
