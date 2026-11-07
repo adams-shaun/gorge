@@ -44,8 +44,11 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"each_target_aura_copy_host_ask", false, false},             // CR 303.4f: Doppelgang's copy of a targeted Curious Inquiry asks its host before the copies of the targets after it
 		{"copy_each_target_aura_enchant", false, false},              // CR 303.4f: Doppelgang's copy of an Aura asks what it enchants as it enters, the later targets' copies after the answer
 		{"animated_equipment_without_equip_ability", false, false},   // CR 704.5p: Cryptic Coat (Equipment, attached by its ETB trigger, no Equip ability) detaches when Behind the Mask animates it, so its Equipped static stops on the Forest
+		{"mayplay_x_cast_census_rider", false, false},                // CR 609.4b, 601.2g-h: Worldsoul's Rage cast from Outrageous Robbery's exile: the prefix taps Insidious Roots' granted token for W, which the any-type rider spends on {R}, since gorge's census (no granted source) cannot pay the printed pips
 		{"ward_queues_at_target_choice_before_payment", true, false}, // CR 601.2c, 603.3b: a cost's sacrifice dies during the payment, so its triggers queue behind the ward trigger the target answer queued, not ahead of it -- the CR 603.3b ordering ask indexes the ward first
 		{"granted_before_printed_any", false, false},                 // CR 305.6: a granted basic type's intrinsic abilities precede a printed any-colour ability in the node-limited plan census
+		{"trigger_cost_one_tap_per_source", false, false},            // CR 118.3: Krovod Haunch's death-trigger {1}{W} is not offered over one untapped Swamp, whatever five abilities Leyline of the Guildpact gives it
+		{"trigger_cost_one_tap_dual_land", false, false},             // CR 118.3: nor over one untapped Lush Portico, whose {G} and {W} abilities are one tap
 	})
 }
 

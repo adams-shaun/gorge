@@ -194,7 +194,17 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	c := manaOf(amt, pips)
 	var av avail
 	other := payDesc{class: pdOther}
-	s.availPotentialFor(k, p, &av, &other)
+	// gorge's unit bound (respay.go): one tap per source must cover the
+	// cost's PoolUnitsFloor, its generic and non-{B} pips (CR 118.3)
+	floor := int(c.Generic)
+	for i, n := range c.Pips {
+		if i != 2 {
+			floor += int(n)
+		}
+	}
+	if s.availPotentialUnits(k, p, &av, &other) < floor {
+		return false
+	}
 	return av.affords(&c, pipMaskOf(&c), 0)
 }
 
