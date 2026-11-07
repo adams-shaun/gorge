@@ -151,8 +151,6 @@ func (s *State) windowFiltFirstUsable(k *prep, p uint8, sl Slot) bool {
 func (s *State) windowFiltFirst(k *prep, p uint8, sl Slot, useful *kop.ManaCost, noOwedUnclamped bool) {
 	ab := s.filtAb(k, sl)
 	mask := uint8(ab.ManaColors)
-	var order [kop.NumManaKinds]uint8
-	n, printed := colourAskOrder(ab, mask, &order)
 	c := uint8(bits.TrailingZeros8(mask))
 	if !noOwedUnclamped && useful != nil {
 		// gorge's ask lists what the cost still owes first (owedColoursFirst),
@@ -166,7 +164,7 @@ func (s *State) windowFiltFirst(k *prep, p uint8, sl Slot, useful *kop.ManaCost,
 		if useful.Hyb[0] != 0 {
 			want = s.windowDemand(k, p, useful)
 		}
-		if a := askOwedColour(mask, want, n, printed, &order); a >= 0 {
+		if a := askOwedColour(ab, mask, want); a >= 0 {
 			c = uint8(a)
 		}
 	}

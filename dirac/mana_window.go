@@ -467,9 +467,14 @@ func colourAskOrder(ab *kop.Ability, mask uint8, out *[kop.NumManaKinds]uint8) (
 	if ab == nil || ab.ManaColOrd == 0 || uint8(ab.ManaColors)&0x1f != mask&0x1f {
 		return 0, false // the common W U B R G C order: the caller's own loop
 	}
+	return printedAskOrder(ab, out), true
+}
+
+// printedAskOrder is colourAskOrder's printed list, kept out of line so the
+// common unprinted guard inlines at its callers.
+func printedAskOrder(ab *kop.Ability, out *[kop.NumManaKinds]uint8) int {
 	var ord [5]uint8
-	n := copy(out[:], ord[:manaColourOrder(ab, &ord)])
-	return n, true
+	return copy(out[:], ord[:manaColourOrder(ab, &ord)])
 }
 
 // windowDemand is windowUseful's fixed-pip shortfall on its own census, the
@@ -499,11 +504,16 @@ func (s *State) windowDemand(k *prep, p uint8, cost *kop.ManaCost) uint8 {
 // G): gorge's ask lists what a fixed pip still owes first (owedColoursFirst,
 // CR 601.2g). -1 when the demand names none of mask: the caller keeps its
 // lowest then.
-func askOwedColour(mask, want uint8, n int, printed bool, order *[kop.NumManaKinds]uint8) int {
+func askOwedColour(ab *kop.Ability, mask, want uint8) int {
 	m := mask & want
 	if m == 0 {
 		return -1
 	}
+	if m&(m-1) == 0 && m < 1<<5 {
+		return bits.TrailingZeros8(m) // one owed colour: every ask order lists it
+	}
+	var order [kop.NumManaKinds]uint8
+	n, printed := colourAskOrder(ab, mask, &order)
 	if !printed {
 		return int(bits.TrailingZeros8(m))
 	}
@@ -526,16 +536,6 @@ func askOwedColour(mask, want uint8, n int, printed bool, order *[kop.NumManaKin
 // printed order (colourAskOrder), not W U B R G.
 func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pcard, anyColor, noOwed bool) int {
 	mask := s.windowOwnMask(k, sl)
-	// Only the source's own plain profile carries a card-local ability index:
-	// a grant/var/gate view's manaAb indexes the granting card's abilities
-	// (genPrep.grantPC), so reading it here would panic or name another card.
-	c := s.cardAt(sl)
-	var askAb *kop.Ability
-	if pc == &k.cards[c] && pc.manaAb >= 0 {
-		askAb = &k.t.Cards[c].Abilities[pc.manaAb]
-	}
-	var order [kop.NumManaKinds]uint8
-	nOrder, printed := colourAskOrder(askAb, mask, &order)
 	col := bits.TrailingZeros8(mask)
 	if anyColor {
 		col = s.windowAnyColour(p, cost, mask, pc.manaMulti)
@@ -545,7 +545,10 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 				return c0 // a Verge's ability 0 comes before its lower colour
 			}
 		}
-		all := s.windowSrcMask(k, sl) // a granted ability's colour a pip owes counts too
+		all := mask // windowSrcMask on the own mask already read: a granted ability's colour a pip owes counts too
+		if k.gen != nil && len(k.gen.grantPC) > 0 && s.grantMay(k, sl) {
+			all |= s.windowGrantMask(k, sl)
+		}
 		if !pc.manaMulti && !pc.manaChosen && pc.manaCol != kop.ColAny && pc.painCol == 0 && bits.OnesCount8(mask&0x1f) > 1 {
 			// a printed Combo is flattened into one option per colour, each with
 			// its symbol, and the window answers the first such option an owed
@@ -570,15 +573,27 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 		// gorge's owedColoursFirst keeps the ask order, so the first owed
 		// colour is the first of the source's own ask order (a Combo's
 		// printed order), not the lowest WUBRG index.
+		// Only the source's own plain profile carries a card-local ability
+		// index: a grant/var/gate view's manaAb indexes the granting card's
+		// abilities (genPrep.grantPC), so reading it here would panic or name
+		// another card.
+		// A source of one own colour lists it in every order: only a wider
+		// one reads its printed order.
 		var seen uint8
-		if printed {
-			for i := 0; i < nOrder; i++ {
-				c := int(order[i])
-				if c < 5 && all&(1<<uint(c)) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
-					return c // gorge lists what a fixed pip still owes first (owedColoursFirst, owedAbilitiesFirst)
+		if own := mask & 0x1f; own&(own-1) != 0 && pc.manaAb >= 0 {
+			if cd := s.cardAt(sl); pc == &k.cards[cd] {
+				var order [kop.NumManaKinds]uint8
+				nOrder, printed := colourAskOrder(&k.t.Cards[cd].Abilities[pc.manaAb], mask, &order)
+				for i := 0; i < nOrder; i++ {
+					c := int(order[i])
+					if c < 5 && all&(1<<uint(c)) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
+						return c // gorge lists what a fixed pip still owes first (owedColoursFirst, owedAbilitiesFirst)
+					}
+				}
+				if printed {
+					seen = mask
 				}
 			}
-			seen = mask
 		}
 		for c := 0; c < 5; c++ {
 			if all&(1<<c) != 0 && seen&(1<<c) == 0 && cost.Pips[c] > s.pl[p].pool[c] {
@@ -713,8 +728,6 @@ func (s *State) windowDryFilter(k *prep, p uint8, cost *kop.ManaCost, sl Slot) {
 	}
 	ab := s.filtAb(k, sl)
 	mask := uint8(ab.ManaColors)
-	var order [kop.NumManaKinds]uint8
-	n, printed := colourAskOrder(ab, mask, &order)
 	col := bits.TrailingZeros8(mask)
 	// The demand is the pool the payment may spend (windowUseful, CR 106.6):
 	// a pip its restricted mana covers is not owed. A hybrid pip leaves the
@@ -724,7 +737,7 @@ func (s *State) windowDryFilter(k *prep, p uint8, cost *kop.ManaCost, sl Slot) {
 	if cost.Hyb[0] != 0 {
 		want = s.windowDemand(k, p, cost)
 	}
-	if a := askOwedColour(mask, want, n, printed, &order); a >= 0 {
+	if a := askOwedColour(ab, mask, want); a >= 0 {
 		col = a
 	}
 	pl.pool[col]++
