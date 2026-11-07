@@ -22,6 +22,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // index (len(ord) and false when none does). A competing move the queue
 // cannot hold stalls by name.
 func (s *State) sacParkFrom(k *prep, ord []Slot) (int, bool) {
+	if g := k.gen; g == nil || g.anyRepl&rbExileOnLeave == 0 && g.ix[mechExileEx] == arenaNone {
+		return len(ord), false // no exile-instead effect: nothing competes (graveMoveCompetes)
+	}
 	for w, sl := range ord {
 		o := s.perms[sl].obj
 		if s.park(k, o, parkMass, 0) {
