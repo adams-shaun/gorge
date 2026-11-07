@@ -167,6 +167,12 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 			zl := effects.ZoneList(z)
 			gyOrigin = !zl.All() && zl.Has(state.ZGraveyard)
 		}
+		// An explicit Destination$ makes it an entry/destination watcher
+		// (Flayer of the Hatebound's Destination$ Battlefield), which judges
+		// the permanent as it entered: live read. Mirrors leavesOtherZoneTrigger.
+		if d := t.ParamStr(cards.PKDestination); d != "" && d != "Any" {
+			gyOrigin = false
+		}
 		lookBack := false
 		if ev.From == state.ZGraveyard && ev.To != state.ZGraveyard {
 			lookBack = gyOrigin
