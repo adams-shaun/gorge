@@ -199,6 +199,7 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"emblem_grant_after_ability_loss", false, false},       // CR 613.7: Vivien Reid's emblem, created after Witness Protection took Llanowar Elves' abilities, is the newer layer-6 effect, so its vigilance, trample and indestructible survive the loss
 		{"unless_discard_is_effect_discard", true, false},       // CR 118.12: discarding Wilt-Leaf Liege to an opponent's Perforating Artist "unless" is that ability's discard, so the Liege enters the battlefield
 		{"deferred_gap_beside_filter", true, false},             // CR 605.3a, 602.2b: Pyromancer's Goggles is a census gap beside Three Tree Mascot's filter, so its {R} funds Tinybones' {3}{B}
+		{"deferred_mana_funds_trigger_cost", true, false},       // CR 106.6: Pyromancer's Goggles' {R} has no spending restriction, so an untapped Goggles alone funds Frenzied Goblin's "you may pay {R}": pay is offered beside decline
 	})
 }
 
