@@ -232,21 +232,6 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			return replaced
 		}
 		ev = replaced
-	} else if ev.Kind == events.MoveZone && (e.replacingEvent != nil || e.replRedirect != nil) {
-		// A replacement body's move of a DIFFERENT object is a new
-		// zone-change event, which CR 614.5 does not exempt (a body that
-		// mills cards still meets Leyline of the Void's Moved "exile
-		// instead"; The Mindskinner). The modified event of an in-flight
-		// redirect took the branch above already; this is the fresh-move
-		// case. The replacingEvent/redirect guard keeps the other
-		// applyingReplacement users -- fixture setup placement, entry
-		// counter staging and a declined optional move's own re-emit -- on
-		// their direct path.
-		replaced, handled := e.nestedMoveReplacement(ev)
-		if handled {
-			return replaced
-		}
-		ev = replaced
 	}
 	// Token replacement effects must settle before entry staging: they may
 	// remove the mint or rewrite its script. Final token plans re-enter here

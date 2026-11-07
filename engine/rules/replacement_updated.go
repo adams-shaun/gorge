@@ -27,50 +27,41 @@ func replIdentity(m replMatch) string {
 		"|" + m.repl.ParamStr(cards.PKDescription)
 }
 
-// redirectRecheck reports whether a move emitted inside a replacement body is
-// the MODIFIED event of the in-flight destination-changing replacement: the
-// replaced object going to a zone other than the one it originally would
-// have. CR 616.1f: once a replacement has applied, any other replacement
-// that now applies to the modified event gets its opportunity -- Magus of
-// the Will exiling the Mox Diamond its own replacement puts into the
-// graveyard. The one already applied never re-applies (CR 614.5).
+// redirectRecheck reports whether a move emitted inside a replacement body
+// needs its own replacement pass: the MODIFIED event of the in-flight
+// destination-changing replacement (the replaced object going to a zone other
+// than the one it originally would have; CR 616.1f, Magus of the Will
+// exiling the Mox Diamond its own replacement puts into the graveyard), or
+// any other move a replacement body makes (a fresh zone-change event that
+// CR 614.5 does not exempt: The Mindskinner's damage body mills cards and
+// each must still meet Leyline of the Void's "exile instead", CR 614.6,
+// 701.17). The replacingEvent/redirect guard keeps the other
+// applyingReplacement users (fixture placement, entry counter staging, a
+// declined optional move's re-emit) on their direct path.
 func (e *Engine) redirectRecheck(ev events.Event) bool {
+	if ev.Kind != events.MoveZone {
+		return false
+	}
 	r := e.replRedirect
-	return r != nil && ev.Kind == events.MoveZone && r.orig.Kind == events.MoveZone &&
-		ev.Obj == r.orig.Obj && ev.To != r.orig.To
+	if r != nil && r.orig.Kind == events.MoveZone && ev.Obj == r.orig.Obj && ev.To != r.orig.To {
+		return true
+	}
+	return e.replacingEvent != nil || r != nil
 }
 
-// applyRedirectReplacements is the CR 616.1f pass over a redirect's modified
-// move, skipping every replacement already applied to it.
+// applyRedirectReplacements is the replacement pass over a body's move,
+// skipping every replacement already applied to the in-flight event (CR
+// 614.5) when ev is that event: its modified destination, or the same
+// obj/from/to re-emitted. A different object is a fresh event with no
+// applied set, so any outer exclusion is cleared (a second card for Rest in
+// Peace). The redirect lineage is cleared for the pass and restored after.
 func (e *Engine) applyRedirectReplacements(ev events.Event) (events.Event, bool) {
 	savedExclude, savedRedirect := e.replExclude, e.replRedirect
-	e.replExclude = e.replRedirect.applied
-	e.replRedirect = nil
-	replaced, handled := e.applyReplacements(ev)
-	e.replExclude, e.replRedirect = savedExclude, savedRedirect
-	return replaced, handled
-}
-
-// nestedMoveReplacement gives a MoveZone a replacement body emits its own
-// replacement pass. The move is a NEW zone-change event, not the event the
-// body is replacing, so CR 614.5's "one application per event" does not
-// exempt it: The Mindskinner's DamageDone body mills cards, and each milled
-// card's move to the graveyard must still meet Leyline of the Void's Moved
-// "exile instead" (CR 614.6, 701.17). The same-object same-destination case
-// is the in-flight event re-emitted by the body; there the already-applied
-// set (CR 614.5) is excluded so it cannot apply twice forever. A different
-// object is a fresh event with no applied set of its own, so the exclusion
-// set of any outer event is cleared: a replacement already applied to the
-// outer move may apply to this one (a second card for Rest in Peace). The
-// redirect lineage is cleared for the nested pass and restored after it.
-func (e *Engine) nestedMoveReplacement(ev events.Event) (events.Event, bool) {
-	savedExclude, savedRedirect := e.replExclude, e.replRedirect
 	r := e.replRedirect
-	if r != nil && r.orig.Kind == events.MoveZone &&
-		ev.Obj == r.orig.Obj && ev.From == r.orig.From && ev.To == r.orig.To {
+	e.replExclude = nil
+	if r != nil && r.orig.Kind == events.MoveZone && ev.Obj == r.orig.Obj &&
+		(ev.To != r.orig.To || ev.From == r.orig.From) {
 		e.replExclude = r.applied
-	} else {
-		e.replExclude = nil
 	}
 	e.replRedirect = nil
 	replaced, handled := e.applyReplacements(ev)
