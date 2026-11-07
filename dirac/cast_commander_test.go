@@ -141,13 +141,27 @@ func TestCommanderCastTax(t *testing.T) {
 	if _, ok := commanderCastOffered(sc, 0); !ok {
 		t.Fatal("second cast not offered with five mana")
 	}
+	castCommanderFromCommandZone(t, sc, o)
+	if s.pl[0].cmdCast != 2 {
+		t.Fatalf("cmdCast %d after the second cast, want 2", s.pl[0].cmdCast)
+	}
+	untapped := 0
+	for m := s.ctrlM[0]; m.any(); m = m.rest() {
+		sl := m.first()
+		if s.cardAt(sl) == v.Forest && s.perms[sl].flags&pfTapped == 0 {
+			untapped++
+		}
+	}
+	if untapped != 0 {
+		t.Fatalf("second cast left %d of the five lands untapped: the tax was not charged", untapped)
+	}
 }
 
 // TestCommanderTaxAfterReduction: a commander whose own static covers its
 // whole generic still pays the tax in full on the second cast, because the
 // tax is added after the reduction.
 func TestCommanderTaxAfterReduction(t *testing.T) {
-	tbl, card := commanderTable(2)
+	tbl, card := commanderTable(3) // more than the whole {2} generic
 	sc := newCommanderScen(t, tbl, card, true)
 	s := sc.s
 	o := s.pl[0].cmd

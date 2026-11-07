@@ -488,7 +488,7 @@ func (s *State) buildCost0(k *prep) kop.ManaCost {
 // folded, so the caller resolves nothing more.
 func (s *State) buildCostPre(k *prep, pre, charge bool) (kop.ManaCost, bool) {
 	c, done := s.buildCostPreRaw(k, pre, charge)
-	if s.bld().e.kind == seSpell {
+	if s.cfg&cfgCommander != 0 && s.bld().e.kind == seSpell {
 		// CR 903.8: the command-zone tax, after the cost statics, so a
 		// reduction never takes it off
 		addCommanderTax(&c, s.commanderTax(s.bld().e.ctrl, s.bld().e.obj))
