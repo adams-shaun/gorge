@@ -712,7 +712,7 @@ type build struct {
 	raiseSl   Slot     // the may-play static whose non-mana RaiseCost$ this cast owes: its slot (NoSlot = the cast card's own static); raiseAb 0 = none (cost_mayplayraise.go)
 	raiseAb   uint8    // Static.B of that static: 1 + the latent ability holding the raise cost
 	fixedGen  uint8    // the generic part as last priced (bflCostFixed: the total cost, CR 601.2f)
-	obsWin    bool     // obsSl was set by a manual-window tap: it counts only if the payment then spends that source's colour (mana_spendtrigger.go obsWinSettle)
+	obsWin    uint8    // obsWinTapped: obsSl was set by a manual-window tap before the payment, so it counts only if the payment spends that source's colour; obsWinPaying: the payment began (mana_spendtrigger.go obsWinSettle)
 	pipShort  bool     // the lowered pip window ran dry (loweredPipWindow): the cost objects are still asked, and the payment reverses the cast
 }
 

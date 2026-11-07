@@ -240,8 +240,8 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 		pc := s.windowGrantPC(k, sl)
 		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && own.castSrc != 0 {
 			s.noteTapSrc(k, own, sl)
-			if own.castSrc&csObserved != 0 {
-				s.bld().obsWin = true
+			if own.castSrc&csObserved != 0 && s.bld().obsWin&obsWinPaying == 0 {
+				s.bld().obsWin |= obsWinTapped // a pre-payment tap; one by the payment's own window spends its mana
 			}
 		}
 		col := s.windowCol(k, p, cost, sl, pc, anyColor, noOwed)
@@ -1941,8 +1941,8 @@ func (s *State) windowUseful(k *prep, p uint8, cost *kop.ManaCost) (want uint8, 
 func (s *State) lowerWitness(k *prep, p uint8) {
 	n0 := s.npend
 	s.lowerWitnessEx(k, p, NoObj)
-	if s.buildLive() && s.bld().obsSl != 0 {
-		s.bld().obsWin = true // the witness floats its mana before the announced X prices the cast (mana_spendtrigger.go obsWinSettle)
+	if s.buildLive() && s.bld().obsSl != 0 && s.bld().obsWin&obsWinPaying == 0 {
+		s.bld().obsWin |= obsWinTapped // the witness floats its mana before the announced X prices the cast (mana_spendtrigger.go obsWinSettle)
 	}
 	if s.npend > n0 {
 		s.resolveLowerCounterTriggers(k, n0)
