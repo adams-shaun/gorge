@@ -2193,16 +2193,18 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 				pick = true
 			}
 		}
-		for col := 0; col < 5; col++ {
-			if pick && col != tcol {
-				continue
-			}
-			if uint8(ab.ManaColors)&(1<<col) != 0 && s.pl[p].pool[col] >= pool[col]+n {
-				s.pl[p].pool[col] -= n
-				if !s.floatRestrAb(k, p, sl, ab, col, n) {
-					s.capFull(StallRestrSrc)
-				}
-				break
+		if !pick {
+			// the plan tapped the source's plain unit, not its restricted
+			// one: what it added is ordinary mana, whatever colour another
+			// source's unit grew in beside it (CR 106.6, 601.2g). Taking a
+			// unit of that colour instead would float a Swamp's {B} as the
+			// Hideout's Villain-only mana.
+			continue
+		}
+		if uint8(ab.ManaColors)&(1<<tcol) != 0 && s.pl[p].pool[tcol] >= pool[tcol]+n {
+			s.pl[p].pool[tcol] -= n
+			if !s.floatRestrAb(k, p, sl, ab, int(tcol), n) {
+				s.capFull(StallRestrSrc)
 			}
 		}
 	}
