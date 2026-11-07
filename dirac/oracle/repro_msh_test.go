@@ -24,5 +24,7 @@ func TestStdMshReprosLockstep(t *testing.T) {
 		{"power_up_planner_prices_cost_statics", true, false},                   // CR 601.2f, 602.2b, 702.193a: Hulk, Gamma Goliath's {3} off She-Hulk, Jade Defender's {4}{G}{G} Power-up is in the planner's printed cost, so five lands with three Forests offer it
 		{"powerup_static_reduction_offer", true, false},                         // CR 601.2f, 602.2b, 702.193a: Hulk's {3} static lowers Viv Vision's power-up enough for six sources to pay it, though neither the pool nor the printed {7} is affordable
 		{"put_counter_optional_departed_source_no_ask", true, false},            // CR 400.7: "you may put a counter on it" is not asked once its source has left the battlefield, since the counter could not land
+		{"trigger_cost_bound_counts_filters_paid_ability", true, false},         // CR 118.3, 605.3a: Grim Reaper's {3}{B} with a Plains, a Swamp and Surveillance Room untapped is offered: gorge's potential bound counts the Room's {C} and its {1},{T} any-colour filter (the other sources fund the fee)
+		{"dark_fortress_mana_source_choice", false, false},                      // CR 601.2g, 702.193b: a hybrid Power-up's reduced cost is one the planner declines, so the manual window taps Dark Fortress's conditional {B} or {R} ability before the untapped Mountain
 	})
 }
