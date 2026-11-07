@@ -265,6 +265,9 @@ func (s *State) pushBuild(k *prep) {
 				s.capFull(StallActs)
 			}
 		}
+		// a reversed activation drops the triggers its own costs queued, as a
+		// reversed cast does (CR 733.1; state.go pushNP)
+		s.bld().pushNP = uint8(s.npend)
 	}
 	if e.kind != seSpell && k.gen != nil && k.gen.anyStackTgt {
 		s.stackSid(e) // a stack-ability target's identity (tgt_stackability.go)
@@ -1444,6 +1447,14 @@ func (s *State) finishBuild(k *prep) {
 		if early {
 			pre = s.buildCostCharge(k)
 		}
+		// gorge meets the targeting before the costs it is part of (CR 601.2c
+		// before 601.2g-h): the BecomesTarget walk (ward, watchers, Valiant)
+		// reads the targets while they are still where they were targeted, so
+		// a target the activation's own cost then sacrifices still triggers
+		// (Nettle Guard's {1}, Sacrifice: Destroy target artifact or
+		// enchantment, aimed at itself).
+		s.syncBuild()
+		s.checkWard(k, &s.stack[s.sp-1])
 		s.payAbilityCosts(k, &e)
 		if k.phyMana {
 			s.payPhyrexianLife(k) // an activation's two-life faces
@@ -1476,7 +1487,7 @@ func (s *State) finishBuild(k *prep) {
 		// activation: ask a battle defeated earlier this step first.
 		s.wakeDefeat()
 	}
-	if e.kind != seSpell {
+	if e.kind == seTrigger {
 		s.checkWard(k, &s.stack[s.sp-1])
 	}
 	if s.parkedWaiting() {
