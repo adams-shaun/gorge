@@ -1041,6 +1041,9 @@ func (s *State) applyResolve(k *prep, a Action) {
 		return
 	}
 	r.ask = raNone
+	if k.gen != nil && s.parkReturnAsk() {
+		return // the answer made a departure frame park a return: ask it before the program goes on (zone_untilleavesbatch.go)
+	}
 	r.pc++
 	s.loopBack(k)
 	s.runProg(k)
