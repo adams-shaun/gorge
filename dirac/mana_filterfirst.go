@@ -156,23 +156,18 @@ func (s *State) windowFiltFirst(k *prep, p uint8, sl Slot, useful *kop.ManaCost,
 	c := uint8(bits.TrailingZeros8(mask))
 	if !noOwedUnclamped && useful != nil {
 		// gorge's ask lists what the cost still owes first (owedColoursFirst),
-		// in the ability's own order; nothing owed falls back to the lowest
-		// WUBRG colour, which is what payexec.WindowAnswer answers then.
-		if printed {
-			for i := 0; i < n; i++ {
-				ci := int(order[i])
-				if ci < 5 && mask&(1<<uint(ci)) != 0 && useful.Pips[ci] > s.pl[p].pool[ci] {
-					c = uint8(ci)
-					break
-				}
-			}
-		} else {
-			for ci := 0; ci < 5; ci++ {
-				if mask&(1<<ci) != 0 && useful.Pips[ci] > s.pl[p].pool[ci] {
-					c = uint8(ci)
-					break
-				}
-			}
+		// in the ability's own order, from the pool the payment may spend
+		// (windowUseful, CR 106.6): a pip its restricted mana covers is not
+		// owed. Nothing owed falls back to the lowest W U B R G colour, which
+		// is what payexec.WindowAnswer answers then. A hybrid pip leaves the
+		// verdict undecided (windowUseful prices nothing): gorge keeps every
+		// colour there, so the census alone gives the demand.
+		want, _ := s.windowUseful(k, p, useful)
+		if useful.Hyb[0] != 0 {
+			want = s.windowDemand(k, p, useful)
+		}
+		if a := askOwedColour(mask, want, n, printed, &order); a >= 0 {
+			c = uint8(a)
 		}
 	}
 	s.filtDo(k, p, filtStep{sl: sl, ans: uint8(1 + c), gap: true})

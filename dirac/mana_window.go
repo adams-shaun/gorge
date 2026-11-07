@@ -467,6 +467,49 @@ func colourAskOrder(ab *kop.Ability, mask uint8, out *[kop.NumManaKinds]uint8) (
 	return n, true
 }
 
+// windowDemand is windowUseful's fixed-pip shortfall on its own census, the
+// restriction-adjusted pool (CR 106.6), without the verdict. A hybrid pip
+// leaves the verdict unpriced (windowUseful bails) while gorge's
+// owedColoursFirst still lists the shortfall first (CR 601.2g), so the window
+// answer reads the census directly there.
+func (s *State) windowDemand(k *prep, p uint8, cost *kop.ManaCost) uint8 {
+	pool := &s.pl[p].pool
+	if m := s.restrPoolAdmits(k, p); m != 0 {
+		var t [kop.NumManaKinds]uint8
+		t = *pool
+		s.rbUnits(p, m, &t)
+		pool = &t
+	}
+	var want uint8
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if cost.Pips[c] > pool[c] {
+			want |= 1 << c
+		}
+	}
+	return want
+}
+
+// askOwedColour is the first colour of mask the demand want still owes, in the
+// ask order the ability lists (a printed Combo's printed order, else W U B R
+// G): gorge's ask lists what a fixed pip still owes first (owedColoursFirst,
+// CR 601.2g). -1 when the demand names none of mask: the caller keeps its
+// lowest then.
+func askOwedColour(mask, want uint8, n int, printed bool, order *[kop.NumManaKinds]uint8) int {
+	m := mask & want
+	if m == 0 {
+		return -1
+	}
+	if !printed {
+		return int(bits.TrailingZeros8(m))
+	}
+	for i := 0; i < n; i++ {
+		if c := order[i]; c < 5 && m&(1<<uint(c)) != 0 {
+			return int(c)
+		}
+	}
+	return -1 // colourAskOrder listed mask's colours; none of them is owed
+}
+
 // windowCol is the colour the window's source sl (mana facts pc) makes: a
 // colour the cost still owes, else the lowest (the oracle's window answer,
 // payWindowAnswer). A multi-ability source owing nothing: its first ability, the
@@ -655,20 +698,16 @@ func (s *State) windowDryFilter(k *prep, p uint8, cost *kop.ManaCost, sl Slot) {
 	var order [kop.NumManaKinds]uint8
 	n, printed := colourAskOrder(ab, mask, &order)
 	col := bits.TrailingZeros8(mask)
-	if printed {
-		for i := 0; i < n; i++ {
-			if c := int(order[i]); c < 5 && cost.Pips[c] > pl.pool[c] {
-				col = c
-				break
-			}
-		}
-	} else {
-		for c := 0; c < 5; c++ {
-			if mask&(1<<c) != 0 && cost.Pips[c] > pl.pool[c] {
-				col = c
-				break
-			}
-		}
+	// The demand is the pool the payment may spend (windowUseful, CR 106.6):
+	// a pip its restricted mana covers is not owed. A hybrid pip leaves the
+	// verdict undecided (windowUseful prices nothing), so the census alone
+	// gives the demand there.
+	want, _ := s.windowUseful(k, p, cost)
+	if cost.Hyb[0] != 0 {
+		want = s.windowDemand(k, p, cost)
+	}
+	if a := askOwedColour(mask, want, n, printed, &order); a >= 0 {
+		col = a
 	}
 	pl.pool[col]++
 }
@@ -764,8 +803,10 @@ func (s *State) windowGapAnyColour(k *prep, p uint8, sl Slot, cost, useful *kop.
 	}
 	col := bits.TrailingZeros8(mask)
 	if !noOwed {
+		// The clamp's narrowed mask is the answer's menu, but the ask order is
+		// the ability's own: colourAskOrder needs the printed mask whole.
 		var order [kop.NumManaKinds]uint8
-		nOrder, printed := colourAskOrder(ab, mask, &order)
+		nOrder, printed := colourAskOrder(ab, uint8(ab.ManaColors), &order)
 		if printed {
 			for i := 0; i < nOrder; i++ {
 				ci := int(order[i])
