@@ -56,7 +56,8 @@ type SearchBot struct {
 	sampleMS, searchMS float64
 	// note, when set (SetExplain), receives one decision note per
 	// DecideSearch (explain.go). nil builds nothing.
-	note func(explain.Note)	// heldUpkeep counts the decisions Options.HoldUpkeep changed
+	note func(explain.Note)
+	// heldUpkeep counts the decisions Options.HoldUpkeep changed
 	// (HeldUpkeep).
 	heldUpkeep int
 }
