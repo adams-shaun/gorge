@@ -61,6 +61,10 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// and recast is a new object, so its first saddle that turn triggers
 		// again (gorge's latch stops at the Mount's own zone change).
 		{"rebought_mount_saddles_first_again", true, false},
+		// CR 707.10c, 115.3: Jace Reawakened's copy of Fleeting Reflection may
+		// not move "up to one other target creature" onto the creature its
+		// first target already names
+		{"copy_retarget_unique_link", false, false},
 		// Ornery Tumblewagg is cast through Jasper Flint's mayplay and paid
 		// with a wide Stablemaster tap and a Mountain: the rider plan's
 		// restricted mana floats, the payment admits and spends it first
@@ -406,6 +410,8 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"equip_unattach_waits_for_legend_ask", true, false},    // CR 704.3, 704.5n: Magitek Scythe stays on Serah Farron, transformed beside another Crystallized Serah, until the legend answer
 		// CR 113.7a, 608.2h, 702.15b: Phoenix's chapter I, pending when the legend rule bins it, deals damage with the Phoenix's lifelink
 		{"delayed_trigger_departed_source_lifelink", false, false},
+		// CR 601.2f-g: Valkyrie Aerial Unit's affinity counts both Treasures before one is sacrificed for mana, so {2}{U}{U} is payable
+		{"count_reduction_fixed_before_treasure_mana", true, false},
 	})
 }
 
@@ -413,12 +419,13 @@ func TestStdFinReprosLockstep(t *testing.T) {
 func TestStdSosReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-sos", []stdRepro{
-		{"printed_flashback_beside_granted", false, false},           // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
-		{"granted_and_printed_flashback_ambiguous", false, false},    // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
-		{"graveyard_ability_source_new_object", true, false},         // CR 400.7: a second Postmortem Professor return ability resolves after the card came back and died again, and finds a new object
-		{"cascade_mana_value_evaluated_at_resolution", false, false}, // CR 202.3b: cascade reads the spell's mana value where the spell resolved, so the ward-counted Fractalize (X paid 4, now a card in the graveyard) prices 1 and does not hit Textbook Tabulator
-		{"charm_gate_ignores_restricted_float", false, false},        // CR 106.6, 601.2c: the pre-target gate keeps a cast alive whose floating restricted mana its restriction admits, as gorge's pool does
-		{"effetbctr_prepared_entry_order", false, false},             // CR 616.1c, 616.1f: the effect's enters-with counters and the entrant's own prepared body compete over the entry, the order is asked and the own body first ends the rider's effect with the move it upgrades
+		{"printed_flashback_beside_granted", false, false},                // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
+		{"granted_and_printed_flashback_ambiguous", false, false},         // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
+		{"graveyard_ability_source_new_object", true, false},              // CR 400.7: a second Postmortem Professor return ability resolves after the card came back and died again, and finds a new object
+		{"cascade_mana_value_evaluated_at_resolution", false, false},      // CR 202.3b: cascade reads the spell's mana value where the spell resolved, so the ward-counted Fractalize (X paid 4, now a card in the graveyard) prices 1 and does not hit Textbook Tabulator
+		{"charm_gate_ignores_restricted_float", false, false},             // CR 106.6, 601.2c: the pre-target gate keeps a cast alive whose floating restricted mana its restriction admits, as gorge's pool does
+		{"effetbctr_prepared_entry_order", false, false},                  // CR 616.1c, 616.1f: the effect's enters-with counters and the entrant's own prepared body compete over the entry, the order is asked and the own body first ends the rider's effect with the move it upgrades
+		{"granted_flashback_when_printed_nonmana_unpayable", true, false}, // CR 702.34a: a printed flashback whose tap-three-creatures cost is unpayable leaves the granted mana-cost instance castable (Group Project)
 	})
 }
 
@@ -469,9 +476,10 @@ func TestStdFraReprosLockstep(t *testing.T) {
 func TestStdLciReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-lci", []stdRepro{
-		{"granted_sac_host_cost_poses_no_choice", false, false}, // CR 602.2b, 701.21a: Deconstruction Hammer's granted "Sacrifice Deconstruction Hammer" cost has one possible payment, so it is paid without a choice after the targets
-		{"payment_trigger_counts_its_resolution", false, false}, // CR 603.2, 605.3b: Vito's trigger from a Treasure sacrificed paying for Guardian of the Great Door resolves before the cast and counts toward "the second time this ability has resolved this turn"
-		{"mana_float_unspent_observed_source", false, false},    // CR 601.2h: Barracks of the Thousand's mana floated by the X witness and left unspent (Jadelight Spelunker at X=0) is not mana that paid the cast
+		{"granted_sac_host_cost_poses_no_choice", false, false},       // CR 602.2b, 701.21a: Deconstruction Hammer's granted "Sacrifice Deconstruction Hammer" cost has one possible payment, so it is paid without a choice after the targets
+		{"attack_trigger_pump_skips_returned_attacker", false, false}, // CR 400.7: Grasping Shadows' attack trigger does not grant deathtouch and lifelink to Aclazotz once it died and returned as Temple of the Dead
+		{"payment_trigger_counts_its_resolution", false, false},       // CR 603.2, 605.3b: Vito's trigger from a Treasure sacrificed paying for Guardian of the Great Door resolves before the cast and counts toward "the second time this ability has resolved this turn"
+		{"mana_float_unspent_observed_source", false, false},          // CR 601.2h: Barracks of the Thousand's mana floated by the X witness and left unspent (Jadelight Spelunker at X=0) is not mana that paid the cast
 	})
 }
 
@@ -481,6 +489,7 @@ func TestStdSpmReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-spm", []stdRepro{
 		{"tapcost_source_not_paid_with_itself", false, false},             // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
 		{"tap_two_forced_answer_taps_the_plays_own_source", false, false}, // CR 602.2b: the Parents' second activation has exactly two candidates, so nothing is asked and the forced tap takes Guy; the search drops that line and reaches the pair that leaves Spider Manifestation untapped within its budget
+		{"web_watch_exile_x_restricted_mana", true, false},                // CR 106.6, 601.2b: Morlun cast from exile under Interdimensional Web Watch's permission announces an X its two restricted mana pay for, as gorge's xAsk does
 	})
 }
 
@@ -538,6 +547,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"self_leaves_trigger_sees_remembered_clear", false, false},     // CR 400.7/603.2d: a leaves trigger whose source departed does not serve the fire-time remembered snapshot, so the first instance's Cleanup clear closes the second instance's window
 		{"unless_tax_hides_unadmitted_restricted_mana", false, false},   // CR 106.6: Smoky Lounge's Room-only {R}{R} cannot pay Don't Make a Sound's {2} unless tax, so its controller is offered only the decline
 		{"sac_after_aura_control_ends", false, false},                   // CR 613.1b, 701.21: Vile Mutilator's second sacrifice counts creatures after the first (an Aura) left, so the creature it stole is back with its owner and the lone manifest is forced
+		{"painless_plan_at_nonpositive_life", false, false},             // CR 119.4, 601.2g: a player at life <= 0 (a lose-the-game replacement) still pays a {1} spell from painless lands; the pain guard cuts only a plan that pays life
 	})
 }
 

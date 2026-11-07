@@ -312,7 +312,7 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 		}
 		c.Flags = f
 		if o.Zone == state.ZBattlefield {
-			c.Damage = int16(o.Damage)
+			c.Damage = int16(min(o.Damage, 255)) // the kernel saturates damage at 255 (dmgPerm); no toughness reaches it, so lethality agrees
 			if e.IsCreature(oid) {
 				c.Power, c.Toughness = int16(e.Power(oid)), int16(e.Toughness(oid))
 			}

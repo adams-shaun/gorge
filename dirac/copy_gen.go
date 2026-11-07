@@ -376,6 +376,7 @@ next:
 			n++
 		}
 	}
+	n = s.copyUniqueLink(k, e, slot, &all, n)
 	if s.res.ask != raGenCopyTargets {
 		for _, c := range all[:n] {
 			d.add(MakeAction(AkTarget, 0, c, 0))
