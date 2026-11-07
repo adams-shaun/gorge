@@ -506,7 +506,6 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if k.gen != nil && k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
 		mana = s.ownReducedBF(k, a, sl, p.ctrl)
 	}
-	planned := mana // the planner's cost: no Power-up reduction (below)
 	if k.gen != nil && k.gen.anyPowerUp && f&kop.CostPowerUp != 0 {
 		// CR 702.193b: the offer walk and the affordability check read the
 		// reduced cost (gorge legal_walk_battlefield.go:414/553), and the
@@ -529,6 +528,10 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// The planner's printed cost still composes the cost statics
 		// (offerCostFor): Hulk, Gamma Goliath's {3} off She-Hulk's {4}{G}{G}
 		// is planned as {1}{G}{G} (CR 601.2f, 602.2b).
+		planned := a.Cost.Mana
+		if k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
+			planned = s.ownReducedBF(k, a, sl, p.ctrl)
+		}
 		if k.gen.anyAbReduce {
 			planned = s.abReduced(k, a, sl, p.ctrl, planned)
 		}
