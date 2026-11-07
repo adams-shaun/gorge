@@ -1480,6 +1480,10 @@ type xTargets struct {
 	slot [maxXTgt]uint8
 	code [maxXTgt]uint8
 	ver  [maxXTgt]uint8
+	// crim is CR 700.13's pick-time verdicts for the pool's extra objects
+	// (act_commitcrime.go crimeAskDone): bit j says extra j's pick was a
+	// crime when it was made, bit 7 (crimRec) that verdicts were recorded.
+	crim uint8
 	div  [maxXTgt + 1]uint8 // damage assigned per object of the divided slot, in pick order
 }
 
