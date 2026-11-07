@@ -598,6 +598,22 @@ func (s *State) sba(k *prep) bool {
 			bat = s.defeatedBattles(k)
 			gy = gy.or(bat)
 		}
+		// CR 704.3, 704.5z: the Role losers leave in this pass's batch, after
+		// the unattached Auras (gorge's roleSBA follows attachmentSBAs)
+		var rolL [MaxPerm]Slot
+		nrol := 0
+		if k.gen != nil && s.g.roleOut != 0 {
+			if rl, n := s.roleLosers(k); n > 0 {
+				busy := die.or(pwz).or(bat).or(aur)
+				for _, q := range rl[:n] {
+					if !busy.has(q) {
+						rolL[nrol] = q
+						nrol++
+						gy = gy.with(q)
+					}
+				}
+			}
+		}
 		all := die.or(gy)
 		if k.gen != nil && k.gen.equipAnim && s.sbaAttachedCreatures(k, all) && !all.any() {
 			continue // CR 704.5p: an Equipment left its bearer; gorge's changed pass (static_unattachcreature.go)
@@ -618,10 +634,6 @@ func (s *State) sba(k *prep) bool {
 			// apply, a token outside the battlefield still there (pair 3630)
 			if s.legendRule(k) {
 				return true
-			}
-			// roleSBA runs only after the legend answer (rules/sba.go)
-			if k.gen != nil && s.g.roleOut != 0 && s.roleSBA(k) {
-				continue // CR 704.5z: a Role left; run the pass again (static_roletokens.go)
 			}
 			// gorge's pass order (rules/sba.go): ceaseDeadTokens, then
 			// checkSagas. A token Saga sacrificed below ceases on the next
@@ -664,6 +676,10 @@ func (s *State) sba(k *prep) bool {
 			for p := uint8(0); p < 2; p++ {
 				n = s.battlefieldOrder(p, gm.and(s.ctrlM[p]), order[:], n)
 			}
+		}
+		for _, q := range rolL[:nrol] {
+			order[n] = q
+			n++
 		}
 		var zs [MaxPerm]kop.Zone
 		for i := 0; i < n; i++ {

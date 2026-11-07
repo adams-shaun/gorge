@@ -230,6 +230,9 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"name_look_ack_mid_resolution_copy_spyglass", false, false}, // CR 614.12: Extravagant Replication's copy of Sorcerous Spyglass, entering mid-resolution, asks the name after the look at the hand, the trigger still on the stack
 		{"filter_beside_deferred_script", true, false},               // a filter (Three Tree Mascot) beside a deferred TriggersWhenSpent$ source (Pyromancer's Goggles): the filter-only prefix search cannot fund the offer, so the restricted/deferred script pays Quick-Draw Katana's Equip {2}
 		{"deferred_gap_beside_filter", true, false},                  // CR 605.3a, 602.2b: Pyromancer's Goggles is a census gap beside Three Tree Mascot's filter, so its {R} funds Tinybones' {3}{B}
+		{"control_untap_fires_equip_untaps", true, false},            // CR 701.21c, 603.2: Involuntary Employment untaps p0's Vanguard Seraph, so p0's Fishing Pole on it triggers
+		{"control_untap_fires_equip_untaps_two", true, false},        // ... and the same with Clinquant Skymage
+		{"effect_untap_fires_equip_untaps", true, false},             // ... and a resolved ability untapping Slumbering Cerberus triggers its Fishing Pole
 		{"combat_damage_past_int16_kills", true, true},               // CR 120.3, 704.5g: 32768 combat damage from Heroes' Bane kills the blocking Guttersnipe; the damage record saturates (StallPT past int16), never wraps
 		{"vizier_conversion_kicked_cast", true, false},               // CR 609.4b, 702.33: under Vizier of the Menagerie three Forests pay Gatekeeper of Malakir's kicked {B}{B}{B}, so the kicked cast is offered beside the plain one
 		{"vizier_conversion_kicked_cast_two", true, false},           // ... the same in another game
@@ -726,6 +729,7 @@ func TestKeywordRemovalAfterAGrantLockstep(t *testing.T) {
 func TestStdWoeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-woe", []stdRepro{
+		{"role_sba_leaves_with_same_pass_death", true, false},           // CR 704.3, 603.10a: Cut In's new Role sends the old Wicked Role away in the pass Wicked Visitor dies, so Visitor sees the Role leave
 		{"filter_fed_by_granted_mana", false, false},                    // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
 		{"act_paid_filter_second_colour", true, false},                  // CR 601.2g, 602.2b: Restless Fortress's {1}{W}{B} animation is offered when a free filter (Crystal Grotto) makes one pip and Rootrider Faun's paid filter the other
 		{"woe_activation_sac_exile_return_asks_in_exile", false, false}, // CR 614.12, 610.3: Werefox Bodyguard sacrificed for its own activation returns Talion, the Kindly Lord, whose number is asked in exile before it enters
