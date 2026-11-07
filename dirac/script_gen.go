@@ -240,7 +240,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	}
 	for i := 0; i < int(src.N); i++ {
 		a := src.Options[i]
-		if !isCastKind(a.Kind()) && a.Kind() != AkActivate && a.Kind() != AkPlot && a.Kind() != AkSneak || hasOption(d, a) || hasOption(capSpent, a) ||
+		if !isScriptPlayKind(a.Kind()) || hasOption(d, a) || hasOption(capSpent, a) ||
 			wide && !s.wideAdmits(k, a, p, anyR) ||
 			mixWide && !hasOption(&noWide, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) {
 			continue
@@ -480,7 +480,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 // payment actions and the decision's own options) does not hold.
 func (s *State) FeatScripted(p uint8, a Action) bool {
 	k := s.k()
-	if !s.scriptAny(k) || !isCastKind(a.Kind()) && a.Kind() != AkActivate && a.Kind() != AkPlot && a.Kind() != AkSneak || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) {
+	if !s.scriptAny(k) || !isScriptPlayKind(a.Kind()) || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) {
 		return false
 	}
 	var d Decision
