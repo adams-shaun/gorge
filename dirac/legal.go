@@ -690,6 +690,19 @@ func (s *State) gorgeOffersMay(p uint8, o Obj) bool {
 	return s.FeatPoolPays(p, o, 0) || s.gorgeLowers(p, o, true)
 }
 
+// offerSourcesAfford: p's sources pay cost through the offer gate -- the
+// script gaps the gate sees included, and the restricted sources the spell
+// may spend (restrFallback), as a cast from the hand reads them.
+func (s *State) offerSourcesAfford(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost) bool {
+	wasX := s.g.availX
+	s.g.availX |= availGaps
+	var av avail
+	s.availFor(k, p, &av)
+	rf := s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, &av)
+	s.g.availX = wasX
+	return av.affords(cost, pipMaskOf(cost), 0) || rf
+}
+
 // gorgeLowers: gorge's potential-play planner prices p's plain cast of o,
 // a spell its cast planner does not (FeatPlannedCast), from the spell's
 // composed cost (rules potentialModeCastPlan), and the cast is offered
@@ -760,31 +773,33 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 	}
 	if s.spellTgtDep(k, p, c, o) {
 		if mayPlay {
-			// mayPlayAffordable has two arms, and the offer is the cast of
-			// either. The first is the no-target price (the full cost) its
-			// sources pay; the second is offerCastable's retry, which prices
-			// the cheapest legal target assignment even for a spell choosing
-			// several (CR 601.2f) against the floating pool alone -- the
-			// sources that retry does not tap are tapped by hand first.
-			s.g.noTgtRed = true
-			full := s.featCost(k, p, c, o, k.cards[c].cost)
-			s.g.noTgtRed = false
-			if s.g.mayPlayAny {
-				full = anyType(full)
-			}
-			wasX := s.g.availX
-			s.g.availX |= availGaps
-			var av avail
-			s.availFor(k, p, &av)
-			rf := s.restrFallback(k, p, c, s.restrOriginOfObj(o), &full, &av)
-			s.g.availX = wasX
-			if av.affords(&full, pipMaskOf(&full), 0) || rf {
-				return true
+			// mayPlayAffordable prices the cast in one of two ways. A spell
+			// choosing several targets is priced by offerCastable's retry at
+			// the cheapest legal target assignment (CR 601.2f), and only the
+			// floating pool pays that retry; the first arm is the no-target
+			// full price its sources pay. A single-target spell's composed
+			// price already takes the reduction, so its sources pay it.
+			several := severalTargets(k, c)
+			if several {
+				s.g.noTgtRed = true
 			}
 			cost := s.featCost(k, p, c, o, k.cards[c].cost)
+			s.g.noTgtRed = false
 			if s.g.mayPlayAny {
 				cost = anyType(cost)
 			}
+			if s.offerSourcesAfford(k, p, c, o, &cost) {
+				return true
+			}
+			if !several {
+				return false
+			}
+			cost = s.featCost(k, p, c, o, k.cards[c].cost)
+			if s.g.mayPlayAny {
+				cost = anyType(cost)
+			}
+			// the retry taps no source: the pool (and the restricted mana it
+			// may spend) pays the reduced price on its own
 			a := s.poolAvailPlus(p, nil)
 			if s.rbAny(p) {
 				s.restrAvail(k, p&1, c, s.restrOriginOfObj(o), &a)
