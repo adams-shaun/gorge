@@ -2675,10 +2675,11 @@ func (s *State) manaStep(k *prep) bool {
 			// The planner's printed-cost witness is outdated. A reduced
 			// cost the planner can price (no hybrid symbol) re-arms and
 			// taps its plan's order; a hybrid (or twobrid) cost is the shape
-			// gorge's planner declines, so its rearmAutoPay refuses even a
-			// direct activation and the manual window pays source by source,
-			// first useful one in battlefield order, tapping nothing when the
-			// pool already pays it.
+			// gorge's planner declines, and a charge the reductions left
+			// hybrid-only arms no witness at all (powerUpArmsNone), so the
+			// manual window pays source by source, first useful one in
+			// battlefield order, tapping nothing when the pool already pays
+			// it.
 			cc := s.buildCostCharge(k)
 			w := s.powerUpWitness(k, a, sl, e.ctrl)
 			if a.Cost.Mana.Hyb[0] == 0 && !s.powerUpArmsNone(k) && s.abilityPlanSettles(k, e, w, w, cc, &saved) {

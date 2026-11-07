@@ -36,6 +36,12 @@ type Matchup struct {
 	// Mulligans is Config.Mulligans: London mulligans each player may take
 	// (0 skips the round), as in a gorge self-play game.
 	Mulligans int
+	// Commander plays a Commander game (CR 903): Config's FormatCommander
+	// and 40 starting life, and Commanders[s], an index into Decks[s] (-1
+	// none), is seat s's commander, put into the command zone at genesis.
+	// Corpus.Matchup sets both from a commander deck file's commander.
+	Commander  bool
+	Commanders [2]int
 	// NameUniverse, when set, replaces the registry's name universe in the
 	// gorge game's Config: a name ask (a card choosing a card name as it
 	// enters) offers only these cards' names. NewMatchup sets it to the
@@ -152,7 +158,24 @@ func (c *Corpus) Matchup(a, b string, mulligans int) (*Matchup, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewMatchup(c.Reg, [2]string{a, b}, [2][]*cards.Card{da, db}, mulligans)
+	m, err := NewMatchup(c.Reg, [2]string{a, b}, [2][]*cards.Card{da, db}, mulligans)
+	if err != nil {
+		return nil, err
+	}
+	for s, name := range [2]string{a, b} {
+		f, err := c.deckFile(name)
+		if err != nil {
+			return nil, fmt.Errorf("deck %s: %w", name, err)
+		}
+		if !strings.EqualFold(f.Format, "commander") || len(f.CommanderNames()) == 0 {
+			continue
+		}
+		m.Commander = true
+		if ix := f.CommanderIndices(); len(ix) > 0 {
+			m.Commanders[s] = ix[0]
+		}
+	}
+	return m, nil
 }
 
 // NewMatchup builds a matchup from resolved decks.
@@ -162,7 +185,7 @@ func NewMatchup(reg *cards.Registry, names [2]string, decks [2][]*cards.Card, mu
 
 // NewMatchupSide is NewMatchup with each seat's sideboard.
 func NewMatchupSide(reg *cards.Registry, names [2]string, decks, sideboards [2][]*cards.Card, mulligans int) (*Matchup, error) {
-	m := &Matchup{Names: names, Decks: decks, Sideboards: sideboards, Mulligans: mulligans, reg: reg}
+	m := &Matchup{Names: names, Decks: decks, Sideboards: sideboards, Mulligans: mulligans, Commanders: [2]int{-1, -1}, reg: reg}
 	if holdsNameChooser(decks) {
 		m.NameUniverse = NameUniverseFor(reg, decks)
 	}
@@ -249,10 +272,20 @@ func NameUniverseFor(reg *cards.Registry, decks [2][]*cards.Card) *cards.Univers
 // matchup and seed: the same Names, Decks, Tokens, NameUniverse and
 // Mulligans, and bench.PlayGame's default object cap. (-mull-heuristic is a
 // seat policy there, not setup; here the Policy answers the mulligan asks.)
+// A Commander matchup adds FormatCommander, 40 life and its commanders.
 func (m *Matchup) Config(seed uint64) rules.Config {
 	cfg := rules.Config{
 		Seed: seed, Names: []string{"p0", "p1"}, Decks: [][]*cards.Card{m.Decks[0], m.Decks[1]},
 		Mulligans: m.Mulligans,
+	}
+	if m.Commander {
+		cfg.Format, cfg.StartingLife = rules.FormatCommander, 40
+		cfg.Commanders = make([][]int, 2)
+		for s, ix := range m.Commanders {
+			if ix >= 0 {
+				cfg.Commanders[s] = []int{ix}
+			}
+		}
 	}
 	if len(m.Sideboards[0])+len(m.Sideboards[1]) > 0 {
 		cfg.Sideboards = [][]*cards.Card{m.Sideboards[0], m.Sideboards[1]}
@@ -269,6 +302,11 @@ func (m *Matchup) Config(seed uint64) rules.Config {
 	}
 	cfg.LoopGuard = rules.WithDefaultObjectCap(cfg.LoopGuard)
 	return cfg
+}
+
+// kernelCommanders is m's commander as dirac.Config carries it.
+func (m *Matchup) kernelCommanders() (bool, [2]int16) {
+	return m.Commander, [2]int16{int16(m.Commanders[0]), int16(m.Commanders[1])}
 }
 
 // cardName is a compiled card's front face name.

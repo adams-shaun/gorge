@@ -107,6 +107,7 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 		r.kcfg = dirac.LockstepConfig(cfg.surface())
 		r.kcfg.NoElide = !cfg.PassElision
 		r.kcfg.Mulligans = uint8(m.Mulligans)
+		r.kcfg.Commander, r.kcfg.Commanders = m.kernelCommanders()
 		r.kcfg.RecordChance = cfg.RecordChance
 		r.kcfg.ArrangeRestOrder = cfg.ArrangeRestOrder
 		for s := 0; s < 2; s++ {
@@ -413,6 +414,7 @@ func (r *realSide) Project(p *Projection) {
 		p.Active = 0 // gorge's Game.Active before the first turn (kernel Projection names the starter)
 	}
 	p.RNGDraws = kp.Draws
+	p.CmdCasts, p.CmdDamage = kp.CmdCast, kp.CmdDmg
 	p.Over, p.Winner = kp.Over, kp.Winner
 }
 
