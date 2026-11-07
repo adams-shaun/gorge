@@ -1204,11 +1204,14 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// trigger cannot name a singular attacker: the role-absent fallback
 		// keeps the old Remembered read for that multi-match case and for
 		// hand-built contexts (the plural TriggeredAttackers spelling is the
-		// batch read).
+		// batch read). An attacker that changed zones since the trigger fired
+		// is a new object the ability does not refer to (CR 400.7): Grasping
+		// Shadows' "it gains deathtouch and lifelink" finds nothing once the
+		// attacker died and returned transformed.
 		if c.TriggerCard != 0 {
-			return []state.Target{{Obj: c.TriggerCard}}, true
+			return dropTriggerRememberedMoved(c, []state.Target{{Obj: c.TriggerCard}}), true
 		}
-		return objectsOf(c.Remembered), true
+		return dropTriggerRememberedMoved(c, objectsOf(c.Remembered)), true
 	case definedSpecDelayTriggerRememberedLKI:
 		// The registration's own capture (objects only, the LKI spelling's
 		// read), with the pre-field fallback to Remembered for a context
