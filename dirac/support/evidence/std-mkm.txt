@@ -8,14 +8,17 @@ Archdruid's Charm
 Assassin's Trophy
 Assemble the Players
 Audience with Trostani
+Aurelia's Vindicator
 Aurelia, the Law Above
 Auspicious Arrival
 Axebane Ferox
 Barbed Servitor
 Basilica Stalker
+Behind the Mask
 Benthic Criminologists
 Blood Spatter Analysis
 Bolrac-Clan Basher
+Bubble Smuggler
 Burden of Proof
 Call a Surprise Witness
 Candlestick
@@ -27,6 +30,7 @@ Case of the Stashed Skeleton
 Case of the Trampled Garden
 Case of the Uneaten Feast
 Caught Red-Handed
+Cease
 Cerebral Confiscation
 Chalk Outline
 Clandestine Meddler
@@ -48,6 +52,7 @@ Delney, Streetwise Lookout
 Demand Answers
 Detective's Satchel
 Doorkeeper Thrull
+Doppelgang
 Drag the Canal
 Dramatic Accusation
 Due Diligence
@@ -55,7 +60,10 @@ Elegant Parlor
 Eliminate the Impossible
 Escape Tunnel
 Evidence Examiner
+Expedited Inheritance
+Expose the Culprit
 Extract a Confession
+Ezrim, Agency Chief
 Fae Flight
 Fanatical Strength
 Felonious Rage
@@ -63,7 +71,9 @@ Festerleech
 Forensic Gadgeteer
 Forensic Researcher
 Forest
+Forum Familiar
 Furtive Courier
+Fuss
 Galvanize
 Gearbane Orangutan
 Get a Leg Up
@@ -76,31 +86,39 @@ Haazda Vigilante
 Hard-Hitting Question
 Harried Dronesmith
 Hedge Maze
+Hedge Whisperer
 Homicide Investigator
 Hotshot Investigators
 Hunted Bonebrute
+Hustle
 Ill-Timed Explosion
 Illicit Masquerade
+Incinerator of the Guilty
 Innocent Bystander
 Inside Source
 Insidious Roots
 Island
+It Doesn't Add Up
 Izoni, Center of the Web
 Jaded Analyst
 Judith, Carnage Connoisseur
 Karlov Watchdog
+Kaya, Spirits' Justice
 Kellan, Inquisitive Prodigy
 Knife
 Kraul Whipcracker
 Krenko, Baron of Tin Street
 Krovod Haunch
+Lamplight Phoenix
 Lead Pipe
 Leering Onlooker
+Leyline of the Guildpact
 Lightning Helix
 Long Goodbye
 Loxodon Eavesdropper
 Lumbering Laundry
 Lush Portico
+Macabre Reconstruction
 Magnetic Snuffler
 Magnifying Glass
 Make Your Move
@@ -114,10 +132,14 @@ Mountain
 Murder
 Museum Nightwatch
 Neighborhood Guardian
+Nervous Gardener
 Nightdrinker Moroii
 No More Lies
+No Witnesses
 Not on My Watch
 Novice Inspector
+Offender at Large
+Officious Interrogation
 On the Job
 Out Cold
 Outrageous Robbery
@@ -166,9 +188,12 @@ Teysa, Opulent Oligarch
 The Chase Is On
 They Went This Way
 Thundering Falls
+Topiary Panther
 Torch the Witness
 Toxin Analysis
 Treacherous Greed
+Trostani, Three Whispers
+Tunnel Tipster
 Unauthorized Exit
 Undercity Eliminator
 Undercity Sewers
@@ -176,6 +201,8 @@ Undercover Crocodelf
 Underground Mortuary
 Undergrowth Recon
 Unscrupulous Agent
+Urgent Necropsy
+Vannifar, Evolved Enigma
 Vein Ripper
 Vengeful Tracker
 Voja, Jaws of the Conclave

@@ -1334,8 +1334,29 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 		}
 		cost.Phyrexian = nil
 	}
-	composed := e.offerCostFor(p, id, cost, abilityScope(ab))
+	scope := abilityScope(ab)
+	statics := e.collectCostStatics()
+	composed := e.offerCostForUsing(statics, p, id, cost, scope)
 	out := e.planComposedCost(p, id, composed, true, true)
+	if out.Reason == "insufficient" && statics.validTarget {
+		// A target-dependent reducer (an equip discount for one creature) is
+		// absent from the pre-target composition, but the offer gate's
+		// potential-target retry prices it (offerCastableUsing): plan the
+		// cheapest such announcement too, so the offer has its witness. The
+		// chosen target's cost is repriced before payment (rearmAutoPay).
+		// Only a single-target announcement is priced this way: the retry
+		// tests each candidate as the sole selection, which does not price a
+		// multi-target ability.
+		if _, max := targetBounds(ab); max == 1 {
+			var potential PaymentPlanOutcome
+			if _, ok := e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
+				potential = e.planComposedCost(p, id, e.composedOfferCost(p, id, cost, m, scope), true, true)
+				return potential.Reason == ""
+			}); ok {
+				return potential
+			}
+		}
+	}
 	if out.Reason != "insufficient" || cost.Waterbend <= 0 {
 		return out
 	}

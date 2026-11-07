@@ -154,6 +154,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			ctx.XAnnounced = true
 		}
 		reflexiveCaptured(ctx)
+		if rp.kind == "optional" {
+			// CR 400.7: the CR 603.5 yes resumes before any of the body ran, so
+			// this is the resolution-start list resolveTop computes.
+			ctx.TriggerRememberedMoved = e.rememberedMovedSinceFire(ctx.TriggerRememberedStamps)
+		}
 		if lki, ok := e.triggerLKI[rp.obj]; ok && lki.object != nil {
 			ctx.LKI = lki.object
 			ctx.Snap.Power, ctx.Snap.Toughness, ctx.Snap.PTValid =

@@ -197,7 +197,7 @@ import (
 // +10 (ValidSpell$ Activated.Equip ReduceCost, the target-gated equip price: Auriok Steelshaper, Bladehold War-Whip, Bureau Headmaster, Cloud, Planet's Champion, Dwarven Mauler, Fervent Champion, Ghostfire Blade, Helitrooper, Nahiri, Storm of Stone, Éowyn, Lady of Rohan; ALL build-level 21666 -> 21676).
 // +5 (the merge with land: this branch's lowers beside land's Activated.Equip ReduceCost ten, disjoint; merged ALL build-level 21676 -> 21681).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21682, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21704, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
