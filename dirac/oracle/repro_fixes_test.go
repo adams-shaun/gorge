@@ -421,6 +421,9 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"mayplay_convoke_cast_cost", false, false},
 		{"restricted_window_float_keeps_chosen_type", false, false}, // CR 106.6, 601.2h: the evoked pip window's owed tap of an any-colour ChosenType-restricted source floats the batch with the source's chosen creature type, so a spell of that type can spend it
 		{"subcounter_wildcard_flying_counter_kind", false, false},   // CR 122.1b: Reaping Willow's remove-any-two-counters cost names a Flying counter by its own kind, not as a +1/+1 counter
+
+		{"free_cast_owes_either_or_additional_cost", true, false},      // CR 601.2b, 118.9d: Kinsbaile Aspirant cast free from Maralen's exile still owes behold or {2}; with neither payable it is not offered
+		{"either_or_mana_part_spends_restricted_source", false, false}, // CR 106.6, 601.2f: Kinsbaile Aspirant's {2} part with its {W} is affordable through Eclipsed Realms' chosen-type mana
 	})
 }
 
