@@ -191,13 +191,14 @@ type CreateEventResponse struct {
 }
 
 // EventSetInfo is one draftable set as GET /api/events/sets reports it.
-// Ratings is the rating source the pickbot uses for it: "17lands" when a
-// ratings manifest exists, "heuristic" otherwise.
+// Ratings is the rating source the pickbot uses for it
+// (pickbot.RatingSource): "17lands" for a 17Lands rating file, "simulated"
+// for a simulated card-strength file, "heuristic" when none exists.
 type EventSetInfo struct {
 	Code     string `json:"code"`
 	Name     string `json:"name"`
 	PackSize int    `json:"pack_size"`
-	Ratings  string `json:"ratings"` // "17lands" | "heuristic"
+	Ratings  string `json:"ratings"` // "17lands" | "simulated" | "heuristic"
 }
 
 // EventPersonas is the GET /api/events/personas reply: the registered
