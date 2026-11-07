@@ -206,9 +206,17 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 			// hexproof" is overwritten while it shows (CR 707.2, 613.7e).
 			// A copy the stack covered that has no marker keeps its
 			// exceptions aside: only its own layer can give them back.
-			if s.copyRec(host, fxAegisBase) >= 0 {
+			// With a marker layer live beneath, or once the base's records
+			// were already dealt with (fl set), the live records are a
+			// marker layer's, which re-pushes its own.
+			bi := s.copyRec(host, fxAegisBase)
+			if bi >= 0 && s.g.fx[bi].r.fl == 0 && s.copyRec(host, fxCopyPerm) < 0 && s.copyRec(host, fxCopyEOT) < 0 {
+				s.g.fx[bi].r.fl = 1
 				s.aegisHold(host)
 			} else {
+				if bi >= 0 {
+					s.g.fx[bi].r.fl = 1
+				}
 				s.dropFx(func(i int) bool {
 					x := &s.g.fx[i]
 					return x.sl == host && x.kind == fxCopyExc
