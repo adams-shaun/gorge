@@ -189,6 +189,7 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"trigger_paid_x_zero_binds", false, false},             // CR 107.3: Wildborn Preserver paid X = 0 puts no counters, whatever X the creature that triggered it was cast with
 		{"dies_trigger_reads_attacking_lki", true, false},       // CR 603.10a: Garna, Bloodfist of Keld draws for a Perforating Artist that died attacking, its last known status
 		{"any_type_rider_hybrid_pips", true, false},             // CR 107.4e, 601.2b: Tinybones lets any mana pay Teach by Example's two hybrid pips, so W and B afford the cast
+		{"name_look_ack_mid_resolution", false, false},          // CR 614.12: Extravagant Replication's copy of Sorcerous Spyglass, entering mid-resolution, asks the name after the look at the hand, the trigger still on the stack
 	})
 }
 
