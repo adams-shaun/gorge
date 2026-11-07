@@ -725,8 +725,8 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			mx := av.maxX(&cost, pipMaskOf(&cost))
 			gorgeSurface := s.cfg&cfgGorgeSurface != 0
-			if k.restrSrc {
-				mx = max(mx, s.restrSrcMaxX(k, e.ctrl, &cost, &av)) // the restricted sources the payment may spend
+			if k.restrSrc || k.gen != nil && k.gen.anyMultiR {
+				mx = max(mx, s.restrSrcMaxX(k, e.ctrl, &cost, &av)) // the restricted sources the payment may spend (a wide any-colour one included)
 			}
 			anyColor := s.bld().bfl&bflAnyColor != 0
 			if anyColor {
