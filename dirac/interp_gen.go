@@ -2157,7 +2157,7 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool 
 	for i, code := range codes {
 		n := amts[i]
 		if n > 0 && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
-			n = s.replDamage(k, s.res.e.ctrl, s.objRef(k, kop.RefSelf), s.res.e.card, code, false, n)
+			n = s.replDamage(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), s.res.e.card, code, false, n)
 		}
 		if n <= 0 {
 			continue
