@@ -521,6 +521,7 @@ func TestStdTmtReprosLockstep(t *testing.T) {
 func TestStdDskReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-dsk", []stdRepro{
+		{"nonpositive_life_pays_painless_plan", false, false},           // CR 119.4: a payer at life 0 or less (a Grimoire holds the game) still pays a painless plan; the planner's lethal guard needs life lost > 0
 		{"destroy_all_parks_whole_batch", true, false},                  // CR 616.1: two Leylines of the Void compete for one victim of Split Up's destroy-all, so the whole batch waits for the order ask; the other victims do not move first
 		{"room_shown_face_plain_cast", false, false},                    // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
 		{"sacrificed_panharmonicon_host_departs", false, false},         // CR 603.2d: a sacrificed Panharmonicon host is gone when Popular Egotist's "whenever you sacrifice" trigger is checked, so it echoes nothing
@@ -538,6 +539,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"tapcost_spell_pays_life_mana_beside_part", false, false},      // CR 601.2g-h, 119.4: Fear of Exposure beside Haunted Screen is castable: the Screen's life-paid {G} pays the mana while two lands are tapped for the cost
 		{"granted_prefix_pays_painful_needed_colour", false, false},     // CR 119.4: the granted-mana prefix taps an animated Haunted Screen for its painful {R} the play needs (gorge's ask lists it before the grant) and pays 1 life
 		{"self_leaves_trigger_sees_remembered_clear", false, false},     // CR 400.7/603.2d: a leaves trigger whose source departed does not serve the fire-time remembered snapshot, so the first instance's Cleanup clear closes the second instance's window
+		{"unless_tax_hides_unadmitted_restricted_mana", false, false},   // CR 106.6: Smoky Lounge's Room-only {R}{R} cannot pay Don't Make a Sound's {2} unless tax, so its controller is offered only the decline
 		{"painless_plan_at_nonpositive_life", false, false},             // CR 119.4, 601.2g: a player at life <= 0 (a lose-the-game replacement) still pays a {1} spell from painless lands; the pain guard cuts only a plan that pays life
 	})
 }
