@@ -83,7 +83,7 @@ const (
 	StWithoutManaCost                              // MayPlayFrom: without paying the mana cost
 	StFunctionsInGraveyard                         // the static works while the source is in the graveyard
 	StRemove6Counters                              // MayPlayFrom: also remove Static.A counters from among creatures you control (the name predates Dawnhand Dissident's three)
-	StTargetsFilter2                               // ReduceCost: only if the spell targets an object matching Filter2
+	StTargetsFilter2                               // ReduceCost, spell or activated ability: only if it targets an object matching Filter2
 	StRaiseYou                                     // IncreaseCost (kgen): only spells the static's controller casts (Activator$ You)
 	StRaiseOpp                                     // IncreaseCost (kgen): only spells the controller's opponents cast (Activator$ Opponent); on a ReduceCost, StReduceAny: every caster's spells (no Activator$)
 	StYouHexproof                                  // Continuous (kgen, shield): the static's controller has hexproof too (Affected$ You,...; read by playerHexproof under Cond2)

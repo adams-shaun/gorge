@@ -248,7 +248,8 @@ const PayBSubChain = 8
 // ReduceAbUnlock (bit 1 of a StatReduceAbility static's B): the reduction
 // reaches Room unlock special actions rather than activated abilities
 // (Inquisitive Glimmer's ValidSpell$ Static.Unlock).
-// Bit 0 stays the Exhaust-only flag; bits 4..7 the MinMana floor.
+// Bit 0 stays the Exhaust-only flag; bit 2 Power-up, bit 3 Equip; bits 4..7
+// the MinMana floor.
 const ReduceAbUnlock = 1 << 1
 
 // ReduceAbPowerUp (bit 2 of a StatReduceAbility static's B): the reduction
@@ -257,6 +258,16 @@ const ReduceAbUnlock = 1 << 1
 // Bit 0 stays the Exhaust-only flag; bit 1 the unlock arm; bits 4..7 the
 // MinMana floor.
 const ReduceAbPowerUp = 1 << 2
+
+// ReduceAbEquip (bit 3 of a StatReduceAbility static's B): the reduction
+// reaches only an activated ability with AfEquip, an Equip ability (Auriok
+// Steelshaper's ValidSpell$ Activated.Equip). With StTargetsFilter2 it lowers
+// only an equip whose target matches Filter2, read with the static's source as
+// Self (Cloud, Planet's Champion's ValidTarget$ Card.Self): the offer prices the
+// cheapest legal target, the target menu each candidate, the charge the chosen
+// one. Bit 0 stays the Exhaust-only flag; bit 1 the unlock arm; bit 2 Power-up;
+// bits 4..7 the MinMana floor.
+const ReduceAbEquip = 1 << 3
 
 // ReduceAbMinShift is the bit position of the MinMana$ floor (0..15) inside a
 // StatReduceAbility static's B; bit 0 stays the Exhaust-only flag
