@@ -1,0 +1,205 @@
+{
+ "name": "xengine window RAND-c4-g15-0-BG vs RAND-c4-g15-1-RG turn 14",
+ "turn": 1,
+ "why": "One turn of a recorded gorge game between two explore bots, replayed from its first precombat main phase.",
+ "setup": {
+  "p0": {
+   "battlefield": [
+    "Forest",
+    "Mountain",
+    "Forest",
+    "Terrasymbiosis",
+    "Forest",
+    "Meltstrider Eulogist",
+    "Mountain",
+    "Skystinger",
+    "Kavaron Skywarden",
+    "Forest"
+   ],
+   "hand": [
+    "Dawnsire, Sunstar Dreadnought",
+    "Ouroboroid",
+    "Edge Rover"
+   ],
+   "graveyard": [
+    "Plasma Bolt"
+   ],
+   "library_top": [
+    "Zookeeper Mechan",
+    "Dauntless Scrapbot",
+    "Thaumaton Torpedo",
+    "Mountain",
+    "Weapons Manufacturing",
+    "Kavaron Turbodrone",
+    "Nebula Dragon",
+    "Forest",
+    "Harmonious Grovestrider",
+    "Remnant Elemental",
+    "Seedship Agrarian",
+    "Meltstrider's Gear",
+    "Atmospheric Greenhouse",
+    "Forest",
+    "Forest",
+    "Forest",
+    "Mountain",
+    "Mountain",
+    "Tannuk, Memorial Ensign",
+    "Forest",
+    "Mountain",
+    "Mountain",
+    "Biotech Specialist",
+    "Forest",
+    "Ruinous Rampage",
+    "Eumidian Terrabotanist"
+   ],
+   "life": 18
+  },
+  "p1": {
+   "battlefield": [
+    "Forest",
+    "Forest",
+    "Swamp",
+    "Swamp",
+    "Swarm Culler",
+    "Forest",
+    "Swamp",
+    "Icecave Crasher"
+   ],
+   "tapped_after_untap": [
+    "Forest",
+    "Forest#2",
+    "Swamp#2",
+    "Swamp#3"
+   ],
+   "hand": [
+    "Dark Endurance",
+    "Virulent Silencer",
+    "Terrasymbiosis"
+   ],
+   "graveyard": [
+    "Eumidian Terrabotanist",
+    "Embrace Oblivion",
+    "Harmonious Grovestrider"
+   ],
+   "library_top": [
+    "Extinguisher Battleship",
+    "Swamp",
+    "Swamp",
+    "Scrounge for Eternity",
+    "Forest",
+    "Forest",
+    "Swamp",
+    "Forest",
+    "Tragic Trajectory",
+    "Gravkill",
+    "Monoist Sentry",
+    "Icetill Explorer",
+    "Biosynthic Burst",
+    "Forest",
+    "Hemosymbic Mite",
+    "Lightless Evangel",
+    "Meltstrider Eulogist",
+    "Forest",
+    "Decode Transmissions",
+    "Swamp",
+    "Swamp",
+    "Insatiable Skittermaw",
+    "Zero Point Ballad",
+    "Swamp",
+    "Hullcarver",
+    "Gene Pollinator"
+   ],
+   "life": 14
+  }
+ },
+ "steps": [
+  {
+   "op": "activate",
+   "seat": 0,
+   "card": "p0:Forest",
+   "ability_index": 0
+  },
+  {
+   "op": "activate",
+   "seat": 0,
+   "card": "p0:Forest#3",
+   "ability_index": 0
+  },
+  {
+   "op": "activate",
+   "seat": 0,
+   "card": "p0:Mountain#2",
+   "ability_index": 0
+  },
+  {
+   "op": "activate",
+   "seat": 0,
+   "card": "p0:Forest#4",
+   "ability_index": 0
+  },
+  {
+   "op": "cast",
+   "seat": 0,
+   "card": "p0:Ouroboroid"
+  },
+  {
+   "op": "pass",
+   "seat": 0
+  },
+  {
+   "op": "pass",
+   "seat": 1
+  },
+  {
+   "op": "pass",
+   "seat": 0
+  },
+  {
+   "op": "pass",
+   "seat": 1
+  },
+  {
+   "op": "pass",
+   "seat": 0
+  },
+  {
+   "op": "pass",
+   "seat": 1
+  },
+  {
+   "op": "pass",
+   "seat": 0,
+   "answers": [
+    {
+     "kind": "trigger_order",
+     "pick": [
+      "p0:Terrasymbiosis",
+      "p0:Terrasymbiosis",
+      "p0:Terrasymbiosis",
+      "p0:Terrasymbiosis"
+     ]
+    }
+   ]
+  },
+  {
+   "op": "pass",
+   "seat": 1
+  },
+  {
+   "op": "pass",
+   "seat": 0,
+   "answers": [
+    {
+     "kind": "trigger_optional",
+     "pick": [
+      "yes"
+     ]
+    }
+   ]
+  },
+  {
+   "op": "pass",
+   "seat": 1
+  }
+ ]
+}

@@ -239,19 +239,19 @@ func (s *State) eachOverrideStatic(k *prep, sl Slot, f func(o *kop.Override)) {
 // eachOverrideStaticTs is eachOverrideStatic with each static's layer
 // timestamp (its source permanent's).
 func (s *State) eachOverrideStaticTs(k *prep, sl Slot, f func(o *kop.Override, ts uint16)) {
+	s.eachOverrideStaticBelow(k, sl, ^kop.TypeMask(0), f)
+}
+
+// eachOverrideStaticBelow is eachOverrideStaticTs with the filter's type
+// clause checked against below, sl's types before this layer's override
+// statics: a static applies only while the host still has a type its
+// filter names (a host that stopped being an artifact keeps its own
+// types). ^kop.TypeMask(0) accepts every static (eachOverrideStaticTs's
+// callers do not need the clause).
+func (s *State) eachOverrideStaticBelow(k *prep, sl Slot, below kop.TypeMask, f func(o *kop.Override, ts uint16)) {
 	if !k.gen.anyOvrStat {
 		return
 	}
-	s.eachOverrideStaticTy(k, sl, func() kop.TypeMask { return s.typesAt(k, sl) }, f)
-}
-
-// eachOverrideStaticTy is eachOverrideStaticTs with ty giving sl's types for
-// the static's filter type clause: an Aura's "enchanted artifact is a
-// creature" stops applying to a host that is no longer an artifact (CR
-// 613.1d; Zoetic Glyph on Matzalantli transformed to its land face), as
-// basePTGen already reads the clause for the set P/T. typesGen passes the
-// types its layer-4 fold has reached, so the check never recurses.
-func (s *State) eachOverrideStaticTy(k *prep, sl Slot, ty func() kop.TypeMask, f func(o *kop.Override, ts uint16)) {
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
 		if s.perms[src].attached != sl || src == sl || !k.gen.has(s.cardAt(src), gfOvrStat) {
@@ -266,8 +266,8 @@ func (s *State) eachOverrideStaticTy(k *prep, sl Slot, ty func() kop.TypeMask, f
 				if lost && !keptOnLoss(k.t, a) {
 					continue // CR 613.6: only an override with a part before layer 6 outlives the loss
 				}
-				if ft := k.t.Filters[a.Static.Filter].Types; ft != 0 && ty()&ft == 0 {
-					continue
+				if ft := k.t.Filters[a.Static.Filter].Types; ft != 0 && below&ft == 0 {
+					continue // the filter's type clause (basePTGen checks the same one)
 				}
 				f(&k.t.Overrides[a.Static.Override-1], s.layerTs(src))
 			}
@@ -305,17 +305,18 @@ func (s *State) typesGen(k *prep, sl Slot) kop.TypeMask {
 	if p.ovr.flags&(ovTypes|ovTypesEOT) != 0 {
 		t = p.ovr.types
 	}
-	fold := func(o *kop.Override, _ uint16) {
+	apply := func(o *kop.Override) {
 		const keep = kop.TLegendary | kop.TBasic | kop.TToken
 		if o.HasTypes {
 			t = t&(keep|o.KeepTypes) | o.SetTypes
 		}
 		t |= o.AddTypes
 	}
-	s.eachOvRec(sl, func(r ovRec) { fold(&k.t.Overrides[r.idx-1], 0) })
-	if k.gen.anyOvrStat {
-		s.eachOverrideStaticTy(k, sl, func() kop.TypeMask { return t }, fold)
-	}
+	s.eachOvRec(sl, func(r ovRec) { apply(&k.t.Overrides[r.idx-1]) })
+	// The override statics' filter clause is checked against the records'
+	// types (the layer below them), never against the result: checking it
+	// against t would let a static's own AddType re-admit it.
+	s.eachOverrideStaticBelow(k, sl, t, func(o *kop.Override, _ uint16) { apply(o) })
 	if k.gen.tyPost {
 		t = s.tyPostTy(k, sl, t) // bestow, impending (kw_impending.go)
 	}

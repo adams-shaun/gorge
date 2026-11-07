@@ -201,6 +201,11 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"phased_out_copy_grant_survives", true, false},                 // CR 702.26b: a phased-out copy's granting static is silent, but phase-out unsubscribed only the printed card, so the copy's grant still fired
 		{"copy_cast_zero_x_reaches_window", false, false},               // CR 601.2c, 601.2g, 733.1: Q's Play of Dominion Infiltration announces X = 0, so its "X target creatures" asks no menu and no affordability census reverses it; the cast reaches its mana window, and the taps and mana stand when it is then reversed
 		{"copy_cast_zero_x_reaches_window_autopay", true, false},        // CR 601.2c, 601.2g, 733.1: ... the same on the autopay surface, where two Mountains tap for the {R}{R}{R} the pool cannot cover
+		{"deanna_spacecraft_enterprise_a_s125", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
+		{"deanna_spacecraft_oberth_s162", false, false},                 // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
+		{"deanna_spacecraft_suurok_s193", false, false},                 // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
+		{"deanna_spacecraft_enterprise_a_s203", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
+		{"deanna_spacecraft_enterprise_d_s205", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 	})
 }
 
@@ -283,6 +288,7 @@ func TestStdHobReprosLockstep(t *testing.T) {
 		{"autopay_plan_prices_target_discount", true, false},        // CR 601.2f: Dwarven Mauler's {2}-less ValidTarget$ discount makes Ragged Short Spear's equip {3} payable from two lands, so the autopay witness prices it and the re-equip is offered
 		{"hascards_graveyard_static_zero_a", false, false},          // CR 604.1: Master's Councillors' +2/+0 per graveyard with seven or more cards counts the graveyard that has them
 		{"hascards_graveyard_static_zero_b", false, false},
+		{"threshold_skips_a_waiting_token", false, false}, // CR 111.7, 704.5d: three Treasures sacrificed for mana wait in the graveyard, so they are no cards and do not switch Most Decrepit Old Bird's Threshold on
 	})
 }
 
@@ -322,6 +328,11 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// covers the whole generic part leaves no shortfall for Teval's
 		// granted delve, so no graveyard card is offered (Ureni's Rebuff).
 		{"delve_harmonize_covered_generic", true, false},
+		// CR 603.3b: Host of the Hereafter copies a legend's +1/+1 and flying
+		// counters onto the survivor beside Hollowmurk Siege's Sultai
+		// trigger, which hears both kinds only once each turn: the two orders
+		// reach the same one trigger.
+		{"counter_copy_once_listener", false, false},
 	})
 }
 
@@ -405,6 +416,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"plan_alts_lotus_hideout_island_grant", true, false},
 		{"plan_alts_lotus_hideout_island_grant_late", true, false},
 		{"plan_alts_lotus_hideout_island_grant_lesson", true, false},
+		{"widened_restricted_source_granted_island_colour_first", true, false}, // CR 305.6, 601.2g: Jasmine Dragon Tea Shop made an Island taps for its intrinsic {U}, not its restricted any-colour {R}, toward Earthen Ally's {2}{W}{U}{B}{R}{G}: gorge's witness ranks an intrinsic ability before a printed one, so Avatar Kyoshi makes the six {R}
 	})
 }
 
@@ -514,6 +526,8 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"repeat_loss_after_static_grant", false, false},                           // CR 613.7: Abigale's second loss of abilities, after Chronicle of Victory entered, is newer than its first-strike-and-trample grant and takes it away from Prideful Feastling
 		{"dig_entry_chosen_type_sees_batch", true, false},                          // CR 603.6a: Rimefire Torque, dug onto the battlefield last with its as-enters type asked, sees changeling Flock Impostor entering in the same batch
 		{"either_or_unpayable_part_tap_another_source_keeps_target", false, false}, // CR 601.2g: Bogslither's Embrace's unaffordable {3} part goes on to its target menu while an untapped Springleaf Drum, with no creature to tap, leaves gorge's window census incomplete
+		{"wide_restricted_source_funds_hand_ability", true, false},                 // CR 106.6, 601.2g: Flamebraider's two any-colour mana for an Elemental pays Kulrath Zealot's basic landcycling, a hand activation the census has no unit for
+		{"behold_exile_cast_pays_restricted_wide_mana", false, false},              // CR 106.6, 601.2g: Champion of the Path cast from Sanar's exile is affordable through Flamebraider's restricted two mana, which gorge's prefix search taps ahead of the pricing
 	})
 }
 
@@ -536,6 +550,7 @@ func TestStdLciReprosLockstep(t *testing.T) {
 		{"payment_trigger_counts_its_resolution", false, false},       // CR 603.2, 605.3b: Vito's trigger from a Treasure sacrificed paying for Guardian of the Great Door resolves before the cast and counts toward "the second time this ability has resolved this turn"
 		{"counter_delayed_trigger_strips_creator", false, false},      // CR 603.7e: Tishana's Tidebinder counters the end-step sacrifice Saheeli, the Sun's Brilliance's copy registered; its source is Saheeli, who loses all abilities
 		{"mana_float_unspent_observed_source", false, false},          // CR 601.2h: Barracks of the Thousand's mana floated by the X witness and left unspent (Jadelight Spelunker at X=0) is not mana that paid the cast
+		{"aura_override_stops_when_host_leaves_filter", true, false},  // CR 704.5m, 613.1d: Zoetic Glyph's "enchanted artifact" override stops adding the Creature type once Treasure Map transforms into Treasure Cove, so the land is not a 0-toughness creature
 		{"aura_type_add_filter_drops_after_transform", true, false},   // CR 613.1d, 704.5m: Zoetic Glyph's "enchanted artifact is a 5/4 Golem creature" stops applying when Matzalantli transforms into a land, so the land stays and only the Glyph falls off
 	})
 }

@@ -217,6 +217,10 @@ func (s *State) resolveTop(k *prep) {
 			return
 		}
 		a := &k.t.Cards[e.card].Abilities[e.ab]
+		if a.Trig.Flags2&kop.Tf2ResolvedLimit != 0 && e.kind == seTrigger && s.rlSpent(e.obj) {
+			s.finishResolve(k, false) // a batched sibling already spent the limit: no ask, no effect, no count (gorge resolvedLimitSpent)
+			return
+		}
 		if a.Trig.Flags2&kop.Tf2ResolvedLimit != 0 && e.kind == seTrigger && a.Trig.Flags&kop.TfOptional == 0 {
 			s.countRL(&e) // a mandatory limited line counts as it resolves (act_support.go)
 		}
@@ -817,7 +821,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 		if s.parkNC(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
 			return n // gorge's replacement-order ask, after the resolution
 		}
-		if n = s.replDamage(k, e.ctrl, s.objRef(k, kop.RefSelf), e.card, code, false, n); n <= 0 {
+		if n = s.replDamage(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, false, n); n <= 0 {
 			return 0
 		}
 	}

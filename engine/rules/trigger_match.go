@@ -908,6 +908,21 @@ func (e *Engine) noteTriggerResolved(source state.ObjID) {
 	e.triggerTurnResolved[source] = f
 }
 
+// resolvedLimitSpent reports whether t's own ResolvedLimit$ is already used up
+// for source this turn and stint (the queue-time gate's test, run again when a
+// batched sibling resolves).
+func (e *Engine) resolvedLimitSpent(source state.ObjID, t cards.Trigger) bool {
+	limit, present := resolvedLimitValue(t)
+	if !present {
+		return false
+	}
+	f := e.triggerTurnResolved[source]
+	if f.Turn != e.G.Turn || f.Stint != e.triggerStint(source) {
+		return false
+	}
+	return int(f.N) >= limit
+}
+
 // maxTriggerFires bounds how many times a single (source, trigger index)
 // pair may queue a pending trigger over the life of a match. Ordinary play
 // stays far below this -- even a trigger that fires every turn for a hundred

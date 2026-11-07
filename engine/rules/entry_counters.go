@@ -855,12 +855,21 @@ func (e *Engine) entryPreview(ev events.Event) (*Engine, state.ObjID) {
 	// spell or ability moved the object, and the EffectOnly class (Doubling
 	// Season) reads that cause. Live engines never carry a pin.
 	preview.causePin = e.actionCause()
+	_, requested := events.SplitEntryCounterPairs(ev.Pairs)
 	stripEntryRequests(&ev)
 	events.Apply(preview.G, ev)
 	preview.replArenaNoteApplied(ev)
 	// Only a foreign entry rider reads the entrant's post-entry types; most
 	// entries have none and keep the copied caches.
 	if len(preview.foreignEntryBodies(entrant, previewForeignEv(ev, entrant))) > 0 {
+		// CR 614.12 / 122.6: the permanent "as it would exist" carries the
+		// counters the effect says it enters with, so a lent rider's filter
+		// (Deanna Troi on a Spacecraft with its charge counters, a creature
+		// by its own static) judges it with them. Preview-only: the live
+		// grants still settle as one event through the plan.
+		for _, g := range requested {
+			events.Apply(preview.G, events.Event{Kind: events.CounterChange, Obj: entrant, Counter: g.Kind, Amount: g.Amount})
+		}
 		preview.refreshEntryPreviewStatics()
 	}
 	return preview, entrant

@@ -33,5 +33,6 @@ func TestStdMshReprosLockstep(t *testing.T) {
 		{"dark_fortress_mana_source_choice", false, false},                      // CR 601.2g, 702.193b: a hybrid Power-up's charge the reductions left hybrid-only arms no plan, so the manual window taps Dark Fortress's conditional {B} or {R} ability before the untapped Mountain
 		{"departed_self_toughness_lki", true, false},                            // CR 608.2h: Captain America's attack trigger resolving after he died pumps the Heroes by his last known toughness, not his printed one
 		{"etb_charm_count_x_after_legend_rule", false, false},                   // CR 107.3m, 603.3c: The Ruinous Wrecking Crew cast for X=2 and binned by the legend rule before its enter trigger is placed still offers "choose up to X" modes with the cast's X, so the trigger is not removed
+		{"fight_hit_asks_plus_and_prevention_order", true, false},               // CR 616.1, 701.14a: Abomination's fight hit on Black Panther is matched by Hawkeye's noncombat plus-X and Black Panther's prevention, so the affected player is asked their order before the batch lands
 	})
 }
