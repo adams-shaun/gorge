@@ -26,6 +26,15 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 		who = lRef{Kind: rEachPlayer}
 	case "Player.Opponent", "Opponent":
 		who = lRef{Kind: rEachOpp}
+	case "Targeted":
+		// gorge repeatPlayers' Targeted arm (choose_control.go): add the
+		// resolution's targets' players, the loop then reading them in
+		// AliveFrom(controller) order. The kernel reads them off the
+		// ability's target slot (slotPlayers), controller first (C&1)
+		var err error
+		if who, err = lc.repeatEachTargetedSlot(); err != nil {
+			return err
+		}
 	case "":
 		return refuse("RepeatEach without RepeatPlayers$")
 	default:
@@ -97,6 +106,22 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 	}
 	lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
 	return nil
+}
+
+// repeatEachTargetedSlot resolves RepeatPlayers$ Targeted's object: the
+// ability's only target slot, and a player one (a TgtPlayer slot: no card
+// clauses, a Players selector). gorge would repeat over every target's
+// player (PlayerOf reads a card target's controller), so any other slot
+// shape -- none, more than one, a card slot -- refuses by name.
+func (lc *lowerCtx) repeatEachTargetedSlot() (lRef, error) {
+	if len(lc.ab.Targets) != 1 {
+		return lRef{}, refuse("RepeatEach Targeted: %d target slots", len(lc.ab.Targets))
+	}
+	t := &lc.ab.Targets[0]
+	if t.Zone != 0 || len(t.F.Clauses) != 0 || t.F.Players == 0 {
+		return lRef{}, refuse("RepeatEach Targeted: the target slot is not a player target")
+	}
+	return lRef{Kind: rTarget}, nil
 }
 
 // repeatPlayerOps are the ops whose Obj the kernel resolves as a player
@@ -211,10 +236,11 @@ func (lc *lowerCtx) checkEachPlCtrl(expr string, f *lFilter) error {
 
 // eachPlSVarOK reports whether the SVar body named by a RepeatEach body
 // param reads the Remembered player only through the two reads above:
-// <PlayerCountRemembered$... | Count$Valid[Hand|Library] ...RememberedPlayerCtrl...>
-// with at most one /HalfDown, /HalfUp or /Minus.N tail, and that it lowers inside the
-// body. Anything else (Remembered$Amount, an operand SVar, ...) is not
-// admitted and keeps the caller's refusal.
+// <PlayerCountRemembered$... | Count$Valid[Hand|Library|Graveyard]
+// ...RememberedPlayerCtrl|RememberedPlayerOwn...> with at most one
+// /HalfDown, /HalfUp or /Minus.N tail, and that it lowers inside the body.
+// Anything else (Remembered$Amount, an operand SVar, ...) is not admitted
+// and keeps the caller's refusal.
 func (lc *lowerCtx) eachPlSVarOK(body string) bool {
 	b := strings.TrimSpace(body)
 	for _, t := range []string{"/HalfDown", "/HalfUp"} {
@@ -226,14 +252,16 @@ func (lc *lowerCtx) eachPlSVarOK(body string) bool {
 	switch {
 	case strings.HasPrefix(b, "PlayerCountRemembered$"):
 		b = strings.TrimPrefix(b, "PlayerCountRemembered$")
-	case strings.HasPrefix(b, "Count$Valid "), strings.HasPrefix(b, "Count$ValidHand "), strings.HasPrefix(b, "Count$ValidLibrary "):
-		// the repeated player's battlefield, hand or library cards
-		// (Worlds Within Worlds, Doomsday Excruciator): a card off the
-		// battlefield is controlled by its owner, the kernel's walk owner
+	case strings.HasPrefix(b, "Count$Valid "), strings.HasPrefix(b, "Count$ValidHand "), strings.HasPrefix(b, "Count$ValidLibrary "), strings.HasPrefix(b, "Count$ValidGraveyard "):
+		// the repeated player's battlefield, hand, library or graveyard
+		// cards (Worlds Within Worlds, Doomsday Excruciator, Riverchurn
+		// Monument, Singularity Rupture): a card off the battlefield is
+		// controlled by its owner, the kernel's walk owner
 	default:
 		return false
 	}
-	if strings.Contains(strings.ReplaceAll(b, "RememberedPlayerCtrl", ""), "Remember") || strings.Contains(b, "/") {
+	rest := strings.NewReplacer("RememberedPlayerCtrl", "", "RememberedPlayerOwn", "").Replace(b)
+	if strings.Contains(rest, "Remember") || strings.Contains(b, "/") {
 		return false
 	}
 	lc.repeatPl++

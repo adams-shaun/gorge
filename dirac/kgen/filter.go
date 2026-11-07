@@ -613,6 +613,12 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		return c.setWho(&c.Ctrl, whoHitBySrc)
 	case "RememberedPlayerCtrl":
 		return c.setWho(&c.Ctrl, whoEachPl) // lower_repeatplayers.go
+	case "RememberedPlayerOwn":
+		// a card off the battlefield is controlled by its owner: the same
+		// seat as RememberedPlayerCtrl there (Singularity Rupture's
+		// Count$ValidLibrary). The clause() emitter keeps it off the
+		// battlefield, where owner and controller part
+		return c.setWho(&c.Owner, whoEachPl)
 	case "OwnedBy TriggeredDefendingPlayer":
 		// gorge controlReferentPlayers op OwnedBy; off the battlefield only
 		// (build.go ownerRoleF2), in an Attacks trigger's body as the

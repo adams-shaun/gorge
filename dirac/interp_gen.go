@@ -140,7 +140,11 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	}
 	// a multi-object target slot: run the op once per object
-	if sl, ok := tgtSlot(in.Obj); ok && !s.g.inLoop && s.xtOf(e).n > 0 && in.Op != kop.OpDealDamageDivided {
+	if sl, ok := tgtSlot(in.Obj); ok && !s.g.inLoop && s.xtOf(e).n > 0 &&
+		in.Op != kop.OpDealDamageDivided && in.Op != kop.OpRepeatEachPlayer {
+		// OpRepeatEachPlayer is its own per-player loop (eachPlayers: gorge
+		// effRepeatEach orders the targets' players AliveFrom(controller),
+		// not the slot's pick order), never execEachTarget
 		slot := uint8(sl)
 		if s.slotHasExtra(e, slot) {
 			if in.Op == kop.OpSacrifice && in.C&kop.OptAsk == 0 {
@@ -1126,6 +1130,26 @@ func (s *State) eachPlayers(k *prep, r kop.Ref) (uint8, uint8) {
 		return s.oppNonRemCtrl(), 255 // filter_defined.go
 	case kop.RefSrcOwner:
 		return s.srcOwner(), 255
+	}
+	if sl, ok := tgtSlot(r); ok {
+		// the slot's player targets (gorge repeatPlayers' Targeted arm:
+		// the resolution's targets' players, read in AliveFrom(controller)
+		// order, a player who has left dropped). Pick order, the controller
+		// moved first among them. over cannot fire: the slot's player
+		// targets are distinct seats and the kernel models two. A slot
+		// whose target is an object finds no player target here and falls
+		// through to playerRef.
+		var ps [2]uint8
+		np, _ := s.slotPlayers(k, uint8(sl), &ps)
+		if np == 2 {
+			if ps[0] != s.res.e.ctrl && ps[1] == s.res.e.ctrl {
+				ps[0], ps[1] = ps[1], ps[0]
+			}
+			return ps[0], ps[1]
+		}
+		if np == 1 {
+			return ps[0], 255
+		}
 	}
 	return s.playerRef(k, r), 255
 }
