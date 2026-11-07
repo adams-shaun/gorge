@@ -59,6 +59,7 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-otj", []stdRepro{
 		{"aegis_copy_hides_older_copy_exceptions", true, false}, // CR 613.7e, 707.2: Oko's Assimilation Aegis copy of Daring Thunder-Thief is newer than his until-end-of-turn copy, so "except he has hexproof" is overwritten and returns with that layer
 		{"copied_vehicle_counts_its_crew", true, false},         // CR 707.2: Loan Shark copying Luxurious Locomotive makes a Treasure per creature that crewed it
+		{"aegis_rebase_keeps_once_per_turn", true, false},       // CR 602.5c, 613.1a: an Aegis copy ending while another keeps the same copy does not make its once-each-turn ability new
 		{"enters_with_counts_entrant_controller", true, false},  // CR 109.5: Dust Animus returned by a foreign Mystical Tether counts its own controller's untapped lands
 		{"counters_skip_a_ceased_token", true, false},           // CR 111.7: Railway Brawler's counters for a Beau the legend rule removed land on nothing
 		// CR 707.10c, 115.3: Jace Reawakened's copy of Fleeting Reflection may
@@ -699,7 +700,8 @@ func TestKeywordRemovalAfterAGrantLockstep(t *testing.T) {
 func TestStdWoeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-woe", []stdRepro{
-		{"filter_fed_by_granted_mana", false, false},   // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
-		{"act_paid_filter_second_colour", true, false}, // CR 601.2g, 602.2b: Restless Fortress's {1}{W}{B} animation is offered when a free filter (Crystal Grotto) makes one pip and Rootrider Faun's paid filter the other
+		{"filter_fed_by_granted_mana", false, false},                    // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
+		{"act_paid_filter_second_colour", true, false},                  // CR 601.2g, 602.2b: Restless Fortress's {1}{W}{B} animation is offered when a free filter (Crystal Grotto) makes one pip and Rootrider Faun's paid filter the other
+		{"woe_activation_sac_exile_return_asks_in_exile", false, false}, // CR 614.12, 610.3: Werefox Bodyguard sacrificed for its own activation returns Talion, the Kindly Lord, whose number is asked in exile before it enters
 	})
 }

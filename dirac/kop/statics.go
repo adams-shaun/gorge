@@ -132,10 +132,11 @@ type Override struct {
 	// RemoveLegendary: a copy exception's NonLegendary$ (CR 707.9b): the
 	// copy's type line loses Legendary; gorge copypermanent.go removeLegendary.
 	RemoveLegendary bool
-	// LivePT: PA/TA are the effect's own static values, evaluated for the
-	// affected permanent at every read instead of once at resolution (an
-	// Animate staticAbilities$ SetPower$/SetToughness$ grant: Beorn's
-	// Hospitality). ValPT is then false.
+	// LivePT: PA/TA are re-evaluated at every read instead of once at
+	// resolution. An Animate staticAbilities$ SetPower$/SetToughness$ grant
+	// (Beorn's Hospitality) evaluates them for the affected permanent; a
+	// StatOverride static evaluates them from its source and the source's
+	// controller (an Equipment's "your life total"). ValPT is then false.
 	LivePT bool
 	// KeepSub and KeepTypes: what a HasSub or HasTypes replacement leaves of a
 	// card type the effect adds (CR 205.1a; Imprisoned in the Moon's land stays

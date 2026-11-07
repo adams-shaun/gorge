@@ -682,6 +682,14 @@ func (pl *combatPayPlan) tapExclude() map[state.ObjID]bool {
 	return m
 }
 
+// combatManaAvailable is the restriction-aware floating mana a combat charge
+// may spend: pay.AvailableFor with the same descriptor the payment core
+// (pay.PayManaConv) uses for a PurposeOther cost, since a combat tax pays
+// neither a spell nor an activated ability (CR 106.6).
+func combatManaAvailable(e pay.Engine, p state.PlayerID, cost Cost) pay.Available {
+	return pay.AvailableFor(e, p, pay.Descriptor{Class: pay.PurposeOther, Cost: &cost})
+}
+
 // manaSatisfied reports whether the payer's floating pool already satisfies
 // the plan's mana requirement (used to decide whether the mana window must
 // ask for another source, and whether it may complete).
@@ -692,7 +700,8 @@ func (e *Engine) manaSatisfied(pl *combatPayPlan) bool {
 	if cost.Generic == 0 && len(cost.Phyrexian) == 0 && cost.Colored.Total() == 0 {
 		return true
 	}
-	_, ok := resolveManaWith(cost, player.Pool, player.Snow, player.ManaUnits(),
+	av := combatManaAvailable(asPayer(e), pc, cost)
+	_, ok := resolveManaWith(cost, av.Pool, player.Snow, av.Typed,
 		player.Life-pl.lifeExtra(), false, pipRider{}, asEval(e).Conv(pc, 0, false))
 
 	return ok
@@ -735,12 +744,15 @@ func (e *Engine) combatPhyBothBranches(p state.PlayerID, c blockCharge, manaExcl
 	for _, col := range c.phyrexian {
 		colourCost.Colored[state.ManaIndex(col)]++
 	}
-	canColour = pay.UnlessManaReachable(asPayer(e), p, colourCost, player.Pool, player.Snow, player.ManaUnits(),
+	avColour := combatManaAvailable(asPayer(e), p, colourCost)
+	canColour = pay.UnlessManaReachable(asPayer(e), p, colourCost, avColour.Pool, player.Snow, avColour.Typed,
 		player.Life-c.life, conv, units)
 	// Life branch: the generic reachable with no life spent on pips, and the
 	// payer's life after the fixed life charge covers two per pip.
+	lifeCost := Cost{Generic: c.mana}
+	avLife := combatManaAvailable(asPayer(e), p, lifeCost)
 	canLife = player.Life-c.life >= int32(len(c.phyrexian))*combatPhyLife &&
-		pay.UnlessManaReachable(asPayer(e), p, Cost{Generic: c.mana}, player.Pool, player.Snow, player.ManaUnits(),
+		pay.UnlessManaReachable(asPayer(e), p, lifeCost, avLife.Pool, player.Snow, avLife.Typed,
 			player.Life-c.life, conv, units)
 	return canColour && canLife, canColour, canLife
 }
@@ -805,7 +817,8 @@ func (e *Engine) combatChargeAffordable(p state.PlayerID, c blockCharge, exclude
 	for _, id := range taps {
 		exclude[id] = true
 	}
-	reachable := pay.UnlessManaReachable(asPayer(e), p, mc, player.Pool, player.Snow, player.ManaUnits(),
+	av := combatManaAvailable(asPayer(e), p, mc)
+	reachable := pay.UnlessManaReachable(asPayer(e), p, mc, av.Pool, player.Snow, av.Typed,
 		life-c.life, asEval(e).Conv(p, 0, false), e.attackWindowUnits(p, exclude))
 	if !reachable || len(c.phyrexian) == 0 {
 		return reachable

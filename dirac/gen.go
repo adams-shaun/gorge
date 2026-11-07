@@ -590,7 +590,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyUnblocked = tableUnblocked(t)
 	g.anyOrCopy = tableTrigFlag2(t, kop.TrigSpellCast, kop.Tf2OrCopy)
 	if tableTrigFlag2(t, kop.TrigSpellCast, kop.Tf2Increment) {
-		g.anySpent, g.anyHist = true, true // the Increment comparison reads the spell's recorded spend (kw_increment.go); histCast itself is anyHist-gated. Never anyCastSpent: no planner decline
+		g.anySpent, g.anyHist = true, true // the Increment comparison (fire and resolution) reads the spell's recorded spend (kw_increment.go); histCast itself is anyHist-gated. Never anyCastSpent: no planner decline
 	}
 	prepCtrAdded(t, p, g) // ctr_addedthisturn.go
 	if tableSpentGate(t) {

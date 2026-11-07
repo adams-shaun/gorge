@@ -365,7 +365,7 @@ func (e *Engine) activationUsedCount(id state.ObjID, ability int, svar string, t
 			break
 		}
 	}
-	return activationUsedSince(e.L.Events[stint:], from-stint, id, ability, svar)
+	return activationUsedSince(e.L.Events[stint:], from-stint, id, ability, svar, true)
 }
 
 // additionalActivationLimit returns the largest finite MinLimit$ supplied by
