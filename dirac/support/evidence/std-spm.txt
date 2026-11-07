@@ -14,10 +14,12 @@ Cosmic Spider-Man
 Costume Closet
 Daily Bugle Building
 Daily Bugle Reporters
+Damage Control Crew
 Doc Ock's Henchmen
 Doc Ock's Tentacles
 Doc Ock, Sinister Scientist
 Doctor Octopus, Master Planner
+Eddie Brock
 Eerie Gravestone
 Electro's Bolt
 Ezekiel Sims, Spider-Totem
@@ -26,6 +28,10 @@ Flying Octobot
 Forest
 Friendly Neighborhood
 Gallant Citizen
+Green Goblin, Revenant
+Grow Extra Arms
+Guy in the Chair
+Gwen Stacy
 Heroes' Hangout
 Hobgoblin, Mantled Marauder
 Hot Dog Cart
@@ -35,7 +41,9 @@ Interdimensional Web Watch
 Iron Spider, Stark Upgrade
 Island
 J. Jonah Jameson
+Kapow!
 Kraven's Cats
+Kraven's Last Hunt
 Kraven, Proud Predator
 Lady Octopus, Inspired Inventor
 Living Brain, Mechanical Marvel
@@ -47,6 +55,7 @@ Masked Meower
 Maximum Carnage
 Mechanical Mobster
 Merciless Enforcers
+Miles Morales
 Mob Lookout
 Molten Man, Inferno Incarnate
 Morbius the Living Vampire
@@ -57,6 +66,7 @@ News Helicopter
 Ominous Asylum
 Origin of Spider-Man
 Oscorp Research Team
+Parker Luck
 Passenger Ferry
 Peter Parker's Camera
 Pictures of Spider-Man
@@ -66,6 +76,8 @@ Professional Wrestler
 Prowler, Clawed Thief
 Raging Goblinoids
 Rent Is Due
+Rhino's Rampage
+Rhino, Barreling Brute
 Risky Research
 Robotics Mastery
 Romantic Rendezvous
@@ -83,6 +95,7 @@ Selfless Police Captain
 Shock
 Shocker, Unshakable
 Shriek, Treblemaker
+Silk, Web Weaver
 Silver Sable, Mercenary Leader
 Sinister Hideout
 Skyward Spider
@@ -95,10 +108,13 @@ Spider-Girl, Legacy Hero
 Spider-Gwen, Free Spirit
 Spider-Ham, Peter Porker
 Spider-Islanders
+Spider-Man India
 Spider-Man No More
 Spider-Man Noir
+Spider-Man, Brooklyn Visionary
 Spider-Man, Web-Slinger
 Spider-Mobile
+Spider-Rex, Daring Dino
 Spider-Sense
 Spider-Suit
 Spider-UK
@@ -106,6 +122,7 @@ Spider-Woman, Stunning Savior
 Spinneret and Spiderling
 Starling, Aerial Ally
 Steel Wrecking Ball
+Stegron the Dinosaur Man
 Strength of Will
 Suburban Sanctuary
 Subway Train
@@ -118,8 +135,11 @@ Symbiote Spider-Man
 Taxi Driver
 Terrific Team-Up
 The Spot's Portal
+The Spot, Living Portal
 Thwip!
 Tombstone, Career Criminal
+Ultimate Green Goblin
+University Campus
 Unstable Experiment
 Venom's Hunger
 Venom, Evil Unleashed
@@ -129,7 +149,9 @@ Villainous Wrath
 Vulture, Scheming Scavenger
 Wall Crawl
 Web Up
+Web of Life and Destiny
 Web-Shooters
+Web-Warriors
 Whoosh!
 Wild Pack Squad
 Wisecrack
