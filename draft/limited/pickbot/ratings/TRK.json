@@ -1,0 +1,1177 @@
+{
+ "set": "TRK",
+ "metric": "sim_prior_gih_wr",
+ "source": "gorge simulated card-strength list trk-nonet-11k (docs/site/research/card-strength/TRK.md), prior_gih_wr column: ridge in-hand values mapped onto the 17Lands GIH WR scale by quantile",
+ "license": "Apache-2.0",
+ "attribution": "Scale: 17Lands FDN games-in-hand win rates (Data from 17Lands, https://www.17lands.com, CC BY 4.0)",
+ "cards": {
+  "70,000 Light-Years from Home": {
+   "gih_wr": 0.5646,
+   "gih_games": 550
+  },
+  "A Good Day to Die": {
+   "gih_wr": 0.4867,
+   "gih_games": 599
+  },
+  "Academy Instructor": {
+   "gih_wr": 0.5523,
+   "gih_games": 836
+  },
+  "Adversary by Algorithm": {
+   "gih_wr": 0.5378,
+   "gih_games": 649
+  },
+  "All Good Things...": {
+   "gih_wr": 0.5499,
+   "gih_games": 0
+  },
+  "Amok Time": {
+   "gih_wr": 0.5719,
+   "gih_games": 594
+  },
+  "Andromedan Automatons": {
+   "gih_wr": 0.5643,
+   "gih_games": 849
+  },
+  "Antagonist Incorporator": {
+   "gih_wr": 0.5847,
+   "gih_games": 896
+  },
+  "Anthropological Mission": {
+   "gih_wr": 0.457,
+   "gih_games": 576
+  },
+  "Arcum Dagsson": {
+   "gih_wr": 0.5326,
+   "gih_games": 883
+  },
+  "Armus, Skin of Evil": {
+   "gih_wr": 0.5786,
+   "gih_games": 796
+  },
+  "Assault Drone": {
+   "gih_wr": 0.5676,
+   "gih_games": 810
+  },
+  "Assembly Specialist": {
+   "gih_wr": 0.5636,
+   "gih_games": 883
+  },
+  "Astute Terraformer": {
+   "gih_wr": 0.538,
+   "gih_games": 809
+  },
+  "Automated Warfare System": {
+   "gih_wr": 0.5386,
+   "gih_games": 832
+  },
+  "Bat'leth": {
+   "gih_wr": 0.5322,
+   "gih_games": 605
+  },
+  "Battle-Scarred Survivalist": {
+   "gih_wr": 0.5396,
+   "gih_games": 843
+  },
+  "Beckett Mariner, Impetuous Ensign": {
+   "gih_wr": 0.5549,
+   "gih_games": 861
+  },
+  "Blastoneuron": {
+   "gih_wr": 0.5775,
+   "gih_games": 856
+  },
+  "Boarding Action": {
+   "gih_wr": 0.5374,
+   "gih_games": 517
+  },
+  "Borg Cube": {
+   "gih_wr": 0.5492,
+   "gih_games": 141
+  },
+  "Brad Boimler, Eager Ensign": {
+   "gih_wr": 0.582,
+   "gih_games": 886
+  },
+  "Branching Timeline": {
+   "gih_wr": 0.5263,
+   "gih_games": 582
+  },
+  "Brazen Bluff": {
+   "gih_wr": 0.5207,
+   "gih_games": 516
+  },
+  "Bristly Bill, Spine Sower": {
+   "gih_wr": 0.6122,
+   "gih_games": 834
+  },
+  "Bruvac the Grandiloquent": {
+   "gih_wr": 0.5106,
+   "gih_games": 884
+  },
+  "Cantankerous Captain": {
+   "gih_wr": 0.564,
+   "gih_games": 794
+  },
+  "Captain James T. Kirk": {
+   "gih_wr": 0.6154,
+   "gih_games": 891
+  },
+  "Captain Jean-Luc Picard": {
+   "gih_wr": 0.6265,
+   "gih_games": 833
+  },
+  "Captain Jonathan Archer": {
+   "gih_wr": 0.6012,
+   "gih_games": 792
+  },
+  "Captain Kathryn Janeway": {
+   "gih_wr": 0.6045,
+   "gih_games": 786
+  },
+  "Captain Michael Burnham": {
+   "gih_wr": 0.5954,
+   "gih_games": 836
+  },
+  "Captain Pike, Fullness of Time": {
+   "gih_wr": 0.5273,
+   "gih_games": 819
+  },
+  "Captain Sisay": {
+   "gih_wr": 0.5671,
+   "gih_games": 212
+  },
+  "Captain's Tutelage": {
+   "gih_wr": 0.5116,
+   "gih_games": 535
+  },
+  "Cetacean Ops": {
+   "gih_wr": 0.5662,
+   "gih_games": 896
+  },
+  "Cha'DIch Investigator": {
+   "gih_wr": 0.5892,
+   "gih_games": 802
+  },
+  "Class-F Shuttlecraft": {
+   "gih_wr": 0.515,
+   "gih_games": 1509
+  },
+  "Cleveland Booker, Empath": {
+   "gih_wr": 0.524,
+   "gih_games": 214
+  },
+  "Cloak and Phaser": {
+   "gih_wr": 0.5226,
+   "gih_games": 573
+  },
+  "Cloistered Telepath": {
+   "gih_wr": 0.5505,
+   "gih_games": 880
+  },
+  "Cold-Blooded Crew": {
+   "gih_wr": 0.5316,
+   "gih_games": 759
+  },
+  "Collation Trimatrix": {
+   "gih_wr": 0.5173,
+   "gih_games": 833
+  },
+  "Collective Drone": {
+   "gih_wr": 0.542,
+   "gih_games": 845
+  },
+  "Combadge": {
+   "gih_wr": 0.4648,
+   "gih_games": 1426
+  },
+  "Command Decision": {
+   "gih_wr": 0.5426,
+   "gih_games": 552
+  },
+  "Command Subadjunct": {
+   "gih_wr": 0.5668,
+   "gih_games": 871
+  },
+  "Commander Raffi Musiker": {
+   "gih_wr": 0.5705,
+   "gih_games": 814
+  },
+  "Common Goal": {
+   "gih_wr": 0.5669,
+   "gih_games": 559
+  },
+  "Conquest Mission": {
+   "gih_wr": 0.5158,
+   "gih_games": 573
+  },
+  "Consider the Prime Directive": {
+   "gih_wr": 0.5416,
+   "gih_games": 596
+  },
+  "Constable Odo": {
+   "gih_wr": 0.5368,
+   "gih_games": 243
+  },
+  "Crystalline Entity": {
+   "gih_wr": 0.5709,
+   "gih_games": 2028
+  },
+  "Culber and Stamets, Star-Crossed": {
+   "gih_wr": 0.5682,
+   "gih_games": 800
+  },
+  "Cybernetic Specialist": {
+   "gih_wr": 0.509,
+   "gih_games": 2102
+  },
+  "D'Ghor Bloodletter": {
+   "gih_wr": 0.5569,
+   "gih_games": 832
+  },
+  "D'Vana Tendi, Optimistic Ensign": {
+   "gih_wr": 0.4681,
+   "gih_games": 209
+  },
+  "D-7 Battle Cruiser": {
+   "gih_wr": 0.5195,
+   "gih_games": 574
+  },
+  "DOT-7 Repair Squad": {
+   "gih_wr": 0.5665,
+   "gih_games": 893
+  },
+  "Dahar Master": {
+   "gih_wr": 0.584,
+   "gih_games": 829
+  },
+  "Dal R'El, Augment Orphan": {
+   "gih_wr": 0.5376,
+   "gih_games": 210
+  },
+  "Daniels, Temporal Agent": {
+   "gih_wr": 0.5328,
+   "gih_games": 194
+  },
+  "Data, New Life": {
+   "gih_wr": 0.579,
+   "gih_games": 960
+  },
+  "Dathon and Picard at El-Adrel": {
+   "gih_wr": 0.4985,
+   "gih_games": 575
+  },
+  "David and Carol Marcus, Creators": {
+   "gih_wr": 0.5648,
+   "gih_games": 810
+  },
+  "De-evolve": {
+   "gih_wr": 0.5533,
+   "gih_games": 610
+  },
+  "Deanna Troi, Psychic Counsel": {
+   "gih_wr": 0.6035,
+   "gih_games": 836
+  },
+  "Death Is Irrelevant": {
+   "gih_wr": 0.545,
+   "gih_games": 560
+  },
+  "Decree of Pain": {
+   "gih_wr": 0.5203,
+   "gih_games": 617
+  },
+  "Deep Space 9": {
+   "gih_wr": 0.5458,
+   "gih_games": 1399
+  },
+  "Deep Space Scan": {
+   "gih_wr": 0.5023,
+   "gih_games": 550
+  },
+  "Dominion Assault Force": {
+   "gih_wr": 0.5854,
+   "gih_games": 741
+  },
+  "Dominion Infiltration": {
+   "gih_wr": 0.5126,
+   "gih_games": 547
+  },
+  "Dominion Saboteur": {
+   "gih_wr": 0.5479,
+   "gih_games": 892
+  },
+  "Dominion Supervisor": {
+   "gih_wr": 0.5814,
+   "gih_games": 827
+  },
+  "Dr. Beverly Crusher": {
+   "gih_wr": 0.5501,
+   "gih_games": 841
+  },
+  "Dr. Joseph M'Benga": {
+   "gih_wr": 0.5526,
+   "gih_games": 764
+  },
+  "Dr. Leonard \"Bones\" McCoy": {
+   "gih_wr": 0.5409,
+   "gih_games": 810
+  },
+  "Dr. McCoy, Surly Surgeon": {
+   "gih_wr": 0.5632,
+   "gih_games": 840
+  },
+  "Drivnod, Carnage Dominus": {
+   "gih_wr": 0.5817,
+   "gih_games": 763
+  },
+  "Eject the Warp Core": {
+   "gih_wr": 0.5342,
+   "gih_games": 568
+  },
+  "Elim Garak, Simple Tailor": {
+   "gih_wr": 0.5758,
+   "gih_games": 797
+  },
+  "Emergency Holographic Crew": {
+   "gih_wr": 0.555,
+   "gih_games": 878
+  },
+  "Emergency Medical Hologram": {
+   "gih_wr": 0.5358,
+   "gih_games": 835
+  },
+  "Empress Galina": {
+   "gih_wr": 0.576,
+   "gih_games": 880
+  },
+  "Encounter the Unknown": {
+   "gih_wr": 0.5523,
+   "gih_games": 571
+  },
+  "Energize": {
+   "gih_wr": 0.5527,
+   "gih_games": 615
+  },
+  "Engineered Explosives": {
+   "gih_wr": 0.4677,
+   "gih_games": 1460
+  },
+  "Ensign Pavel Chekov": {
+   "gih_wr": 0.4784,
+   "gih_games": 828
+  },
+  "Enterprise NX-01": {
+   "gih_wr": 0.492,
+   "gih_games": 583
+  },
+  "Erica Ortegas, Plucky Pilot": {
+   "gih_wr": 0.5546,
+   "gih_games": 880
+  },
+  "Ertai Resurrected": {
+   "gih_wr": 0.578,
+   "gih_games": 221
+  },
+  "Excalbian Gamemaster": {
+   "gih_wr": 0.6226,
+   "gih_games": 848
+  },
+  "Exploratory Mission": {
+   "gih_wr": 0.5197,
+   "gih_games": 575
+  },
+  "Federation Field Medic": {
+   "gih_wr": 0.5805,
+   "gih_games": 814
+  },
+  "Federation Probe": {
+   "gih_wr": 0.5561,
+   "gih_games": 915
+  },
+  "Federation Resupply": {
+   "gih_wr": 0.5072,
+   "gih_games": 557
+  },
+  "Final Frontier": {
+   "gih_wr": 0.4759,
+   "gih_games": 626
+  },
+  "First Contact": {
+   "gih_wr": 0.4917,
+   "gih_games": 613
+  },
+  "Flare of Fortitude": {
+   "gih_wr": 0.4851,
+   "gih_games": 533
+  },
+  "Free Borg Revolutionaries": {
+   "gih_wr": 0.5423,
+   "gih_games": 841
+  },
+  "Fugitive Listener": {
+   "gih_wr": 0.5857,
+   "gih_games": 800
+  },
+  "Gabriel Lorca, Mirror Menace": {
+   "gih_wr": 0.5584,
+   "gih_games": 784
+  },
+  "General Chang, Cold Warrior": {
+   "gih_wr": 0.5236,
+   "gih_games": 799
+  },
+  "Genesis Device": {
+   "gih_wr": 0.5144,
+   "gih_games": 602
+  },
+  "Genesis Effect": {
+   "gih_wr": 0.5485,
+   "gih_games": 538
+  },
+  "Georgiou, Terran Emperor": {
+   "gih_wr": 0.6289,
+   "gih_games": 804
+  },
+  "Ghost of Illyria": {
+   "gih_wr": 0.5862,
+   "gih_games": 813
+  },
+  "Gowron, Eager for Battle": {
+   "gih_wr": 0.5431,
+   "gih_games": 191
+  },
+  "Grand Nagus Zek": {
+   "gih_wr": 0.5402,
+   "gih_games": 781
+  },
+  "Gray and Adira, Forever Joined": {
+   "gih_wr": 0.5115,
+   "gih_games": 246
+  },
+  "Guidance Failure": {
+   "gih_wr": 0.4969,
+   "gih_games": 562
+  },
+  "Gul Dukat, Colonial Prefect": {
+   "gih_wr": 0.5935,
+   "gih_games": 790
+  },
+  "Gwyndala, the Progeny": {
+   "gih_wr": 0.6099,
+   "gih_games": 941
+  },
+  "H.M.S. Bounty, Unlikely Timeship": {
+   "gih_wr": 0.5063,
+   "gih_games": 620
+  },
+  "He's Dead, Jim": {
+   "gih_wr": 0.574,
+   "gih_games": 606
+  },
+  "Hemmer, Fixing What Is Broken": {
+   "gih_wr": 0.5298,
+   "gih_games": 237
+  },
+  "Highly Illogical": {
+   "gih_wr": 0.5094,
+   "gih_games": 619
+  },
+  "Hit It!": {
+   "gih_wr": 0.5823,
+   "gih_games": 131
+  },
+  "Hive Mind Coprocessor": {
+   "gih_wr": 0.5574,
+   "gih_games": 775
+  },
+  "Holo-Engineer": {
+   "gih_wr": 0.6141,
+   "gih_games": 778
+  },
+  "Hologram Janeway": {
+   "gih_wr": 0.58,
+   "gih_games": 853
+  },
+  "Hologram Stalker": {
+   "gih_wr": 0.5755,
+   "gih_games": 833
+  },
+  "Horta": {
+   "gih_wr": 0.5398,
+   "gih_games": 852
+  },
+  "Hoshi Sato, Exolinguist": {
+   "gih_wr": 0.5582,
+   "gih_games": 946
+  },
+  "Hull Breach": {
+   "gih_wr": 0.5452,
+   "gih_games": 141
+  },
+  "Humpback Whales": {
+   "gih_wr": 0.5559,
+   "gih_games": 874
+  },
+  "I'm a Doctor, Not a . . .": {
+   "gih_wr": 0.5329,
+   "gih_games": 606
+  },
+  "Impossible Choice": {
+   "gih_wr": 0.5215,
+   "gih_games": 581
+  },
+  "In the Pale Moonlight": {
+   "gih_wr": 0.5708,
+   "gih_games": 565
+  },
+  "Infinite Diversity": {
+   "gih_wr": 0.5003,
+   "gih_games": 539
+  },
+  "Interstellar Effigy": {
+   "gih_wr": 0.6193,
+   "gih_games": 857
+  },
+  "Isolinear Processor": {
+   "gih_wr": 0.4479,
+   "gih_games": 1492
+  },
+  "Jadzia Dax, Living Legacy": {
+   "gih_wr": 0.6206,
+   "gih_games": 834
+  },
+  "Jake Sisko, War Correspondent": {
+   "gih_wr": 0.5825,
+   "gih_games": 772
+  },
+  "Jett Reno, Problem Solver": {
+   "gih_wr": 0.5161,
+   "gih_games": 881
+  },
+  "Jhoira, Weatherlight Captain": {
+   "gih_wr": 0.5361,
+   "gih_games": 212
+  },
+  "Kai Winn, Faithless Leader": {
+   "gih_wr": 0.5394,
+   "gih_games": 805
+  },
+  "Khaaaaaaaaaaaannn!": {
+   "gih_wr": 0.5277,
+   "gih_games": 540
+  },
+  "Khan, Despot by Design": {
+   "gih_wr": 0.6202,
+   "gih_games": 835
+  },
+  "Khan, Vengeful Heart": {
+   "gih_wr": 0.5848,
+   "gih_games": 828
+  },
+  "Kira Nerys, Firebrand": {
+   "gih_wr": 0.5772,
+   "gih_games": 236
+  },
+  "Kirk, Commanding Officer": {
+   "gih_wr": 0.486,
+   "gih_games": 199
+  },
+  "Kobayashi Maru Scenario": {
+   "gih_wr": 0.4463,
+   "gih_games": 598
+  },
+  "L'Rell, Fierce Visionary": {
+   "gih_wr": 0.5437,
+   "gih_games": 196
+  },
+  "La'An Noonien-Singh, Security": {
+   "gih_wr": 0.5647,
+   "gih_games": 810
+  },
+  "Lieutenant Commander Data": {
+   "gih_wr": 0.5572,
+   "gih_games": 908
+  },
+  "Live Long and Prosper": {
+   "gih_wr": 0.5139,
+   "gih_games": 145
+  },
+  "Locutus, the One Who Speaks": {
+   "gih_wr": 0.5497,
+   "gih_games": 196
+  },
+  "Loot, Exuberant Explorer": {
+   "gih_wr": 0.5389,
+   "gih_games": 780
+  },
+  "Lore, Positronic Provocateur": {
+   "gih_wr": 0.5456,
+   "gih_games": 215
+  },
+  "Lt. Cmdr. Geordi La Forge": {
+   "gih_wr": 0.5477,
+   "gih_games": 905
+  },
+  "Lwaxana Troi, Charming Guest": {
+   "gih_wr": 0.4876,
+   "gih_games": 881
+  },
+  "MACO Strike Team": {
+   "gih_wr": 0.5536,
+   "gih_games": 779
+  },
+  "Make It So": {
+   "gih_wr": 0.5558,
+   "gih_games": 573
+  },
+  "Malfunctioning Holodeck": {
+   "gih_wr": 0.5627,
+   "gih_games": 577
+  },
+  "Marooned": {
+   "gih_wr": 0.53,
+   "gih_games": 574
+  },
+  "Melkotian Adjudicator": {
+   "gih_wr": 0.5562,
+   "gih_games": 915
+  },
+  "Mikaeus, the Lunarch": {
+   "gih_wr": 0.5253,
+   "gih_games": 829
+  },
+  "Miles O'Brien, Transporter Ops": {
+   "gih_wr": 0.5658,
+   "gih_games": 852
+  },
+  "Mirror Universe Intrusion": {
+   "gih_wr": 0.5674,
+   "gih_games": 156
+  },
+  "Mogis, God of Slaughter": {
+   "gih_wr": 0.5746,
+   "gih_games": 202
+  },
+  "Moopsy": {
+   "gih_wr": 0.5395,
+   "gih_games": 797
+  },
+  "Mr. Spock, Science Officer": {
+   "gih_wr": 0.571,
+   "gih_games": 857
+  },
+  "Mugato": {
+   "gih_wr": 0.621,
+   "gih_games": 751
+  },
+  "Munitions Enthusiast": {
+   "gih_wr": 0.6041,
+   "gih_games": 884
+  },
+  "Neelix, Moral Support": {
+   "gih_wr": 0.5548,
+   "gih_games": 791
+  },
+  "Nog, Ambitious Cadet": {
+   "gih_wr": 0.5204,
+   "gih_games": 195
+  },
+  "Nyota Uhura, Communications": {
+   "gih_wr": 0.5558,
+   "gih_games": 961
+  },
+  "Oberth-Class Starship": {
+   "gih_wr": 0.5054,
+   "gih_games": 625
+  },
+  "Obsidian Order Operative": {
+   "gih_wr": 0.5419,
+   "gih_games": 858
+  },
+  "Open Communications": {
+   "gih_wr": 0.4955,
+   "gih_games": 581
+  },
+  "Organic Avulsion Unit": {
+   "gih_wr": 0.5152,
+   "gih_games": 846
+  },
+  "Overflow Submatrix": {
+   "gih_wr": 0.5699,
+   "gih_games": 828
+  },
+  "Pah-Wraith": {
+   "gih_wr": 0.5615,
+   "gih_games": 873
+  },
+  "Pattern Buffer Preservation": {
+   "gih_wr": 0.5009,
+   "gih_games": 578
+  },
+  "Peace in Our Time": {
+   "gih_wr": 0.483,
+   "gih_games": 561
+  },
+  "Perils of the Past": {
+   "gih_wr": 0.481,
+   "gih_games": 507
+  },
+  "Pet Sehlat": {
+   "gih_wr": 0.5593,
+   "gih_games": 862
+  },
+  "Phlox, Unorthodox Doctor": {
+   "gih_wr": 0.5358,
+   "gih_games": 203
+  },
+  "Photosynthetic Physician": {
+   "gih_wr": 0.5868,
+   "gih_games": 824
+  },
+  "Picard, Leading by Example": {
+   "gih_wr": 0.5568,
+   "gih_games": 858
+  },
+  "Planetary Bombardment": {
+   "gih_wr": 0.5391,
+   "gih_games": 547
+  },
+  "Planetary Patrol": {
+   "gih_wr": 0.5766,
+   "gih_games": 843
+  },
+  "Plasma Cascade": {
+   "gih_wr": 0.5507,
+   "gih_games": 513
+  },
+  "Primary Unimatrix Adjunct": {
+   "gih_wr": 0.591,
+   "gih_games": 866
+  },
+  "Prosper, Tome-Bound": {
+   "gih_wr": 0.5789,
+   "gih_games": 226
+  },
+  "Pure Energy": {
+   "gih_wr": 0.534,
+   "gih_games": 610
+  },
+  "Q, Stacking the Deck": {
+   "gih_wr": 0.5558,
+   "gih_games": 800
+  },
+  "Quark, Humble Proprietor": {
+   "gih_wr": 0.5248,
+   "gih_games": 843
+  },
+  "Ravenous Cosmozoan": {
+   "gih_wr": 0.5577,
+   "gih_games": 782
+  },
+  "Reckless Impulse": {
+   "gih_wr": 0.514,
+   "gih_games": 587
+  },
+  "Red Alert!": {
+   "gih_wr": 0.5212,
+   "gih_games": 546
+  },
+  "Relentless Drednok": {
+   "gih_wr": 0.5542,
+   "gih_games": 850
+  },
+  "Replicator": {
+   "gih_wr": 0.4384,
+   "gih_games": 1453
+  },
+  "Resistance Is Futile": {
+   "gih_wr": 0.5675,
+   "gih_games": 593
+  },
+  "Rishkar, Peema Renegade": {
+   "gih_wr": 0.5557,
+   "gih_games": 782
+  },
+  "Rogue Artificial Intelligence": {
+   "gih_wr": 0.5503,
+   "gih_games": 836
+  },
+  "Rok-Tahk, Budding Scientist": {
+   "gih_wr": 0.5629,
+   "gih_games": 763
+  },
+  "Romulan Bird-of-Prey": {
+   "gih_wr": 0.4864,
+   "gih_games": 620
+  },
+  "Rules of Acquisition": {
+   "gih_wr": 0.5326,
+   "gih_games": 598
+  },
+  "Rutherford, Upgraded Ensign": {
+   "gih_wr": 0.5563,
+   "gih_games": 849
+  },
+  "Saavik, Stoic Student": {
+   "gih_wr": 0.4872,
+   "gih_games": 886
+  },
+  "Salt Vampire": {
+   "gih_wr": 0.5831,
+   "gih_games": 795
+  },
+  "Sarcophagus, Ship of the Dead": {
+   "gih_wr": 0.5556,
+   "gih_games": 558
+  },
+  "Saru, Unthreatened": {
+   "gih_wr": 0.546,
+   "gih_games": 771
+  },
+  "Saurian Explorer": {
+   "gih_wr": 0.59,
+   "gih_games": 836
+  },
+  "Savvy Profiteer": {
+   "gih_wr": 0.4841,
+   "gih_games": 889
+  },
+  "Scotty, Miracle Worker": {
+   "gih_wr": 0.5366,
+   "gih_games": 903
+  },
+  "Sela, Tal Shiar Paradox": {
+   "gih_wr": 0.5731,
+   "gih_games": 830
+  },
+  "Set Phasers to . . .": {
+   "gih_wr": 0.5258,
+   "gih_games": 559
+  },
+  "Seven of Nine": {
+   "gih_wr": 0.5384,
+   "gih_games": 232
+  },
+  "Seven of Nine, Unassimilated": {
+   "gih_wr": 0.5166,
+   "gih_games": 872
+  },
+  "Sheoldred, the Apocalypse": {
+   "gih_wr": 0.6412,
+   "gih_games": 849
+  },
+  "Shields Up!": {
+   "gih_wr": 0.4995,
+   "gih_games": 549
+  },
+  "Shuttle Ace": {
+   "gih_wr": 0.6043,
+   "gih_games": 854
+  },
+  "Sickbay": {
+   "gih_wr": 0.5448,
+   "gih_games": 1394
+  },
+  "Silicate Surveyor": {
+   "gih_wr": 0.5911,
+   "gih_games": 837
+  },
+  "Species 8472": {
+   "gih_wr": 0.5755,
+   "gih_games": 761
+  },
+  "Spock, Always Your Friend": {
+   "gih_wr": 0.6181,
+   "gih_games": 237
+  },
+  "Stable Wormhole": {
+   "gih_wr": 0.487,
+   "gih_games": 580
+  },
+  "Starfleet Security": {
+   "gih_wr": 0.5451,
+   "gih_games": 910
+  },
+  "Starfleet Spanner Jockey": {
+   "gih_wr": 0.5481,
+   "gih_games": 890
+  },
+  "Stella Lee, Wild Card": {
+   "gih_wr": 0.5365,
+   "gih_games": 219
+  },
+  "Storied Veteran": {
+   "gih_wr": 0.5694,
+   "gih_games": 833
+  },
+  "Stray from History": {
+   "gih_wr": 0.5304,
+   "gih_games": 589
+  },
+  "Subcommander T'Pol": {
+   "gih_wr": 0.5498,
+   "gih_games": 881
+  },
+  "Sulu, Space Swashbuckler": {
+   "gih_wr": 0.5693,
+   "gih_games": 858
+  },
+  "Support Mission": {
+   "gih_wr": 0.5186,
+   "gih_games": 645
+  },
+  "Suurok-Class Science Vessel": {
+   "gih_wr": 0.5185,
+   "gih_games": 598
+  },
+  "Suus Mahna Practitioner": {
+   "gih_wr": 0.5111,
+   "gih_games": 855
+  },
+  "Sylvia Tilly, Joy of Discovery": {
+   "gih_wr": 0.5119,
+   "gih_games": 794
+  },
+  "Syndicate Liquidators": {
+   "gih_wr": 0.5911,
+   "gih_games": 783
+  },
+  "Tactical Officer": {
+   "gih_wr": 0.5658,
+   "gih_games": 847
+  },
+  "Tal Shiar Analyst": {
+   "gih_wr": 0.5624,
+   "gih_games": 900
+  },
+  "Tal Shiar Operative": {
+   "gih_wr": 0.558,
+   "gih_games": 859
+  },
+  "Targ Wrangler": {
+   "gih_wr": 0.5909,
+   "gih_games": 874
+  },
+  "Tasha Yar, Out of Time": {
+   "gih_wr": 0.5751,
+   "gih_games": 819
+  },
+  "Tatyova, Benthic Druid": {
+   "gih_wr": 0.5748,
+   "gih_games": 197
+  },
+  "Tea, Earl Grey, Hot": {
+   "gih_wr": 0.543,
+   "gih_games": 1468
+  },
+  "Tell Me What You See": {
+   "gih_wr": 0.5255,
+   "gih_games": 587
+  },
+  "Temporal Conqueror": {
+   "gih_wr": 0.5745,
+   "gih_games": 789
+  },
+  "Tenacious Drone": {
+   "gih_wr": 0.5771,
+   "gih_games": 871
+  },
+  "Test of Conviction": {
+   "gih_wr": 0.5367,
+   "gih_games": 548
+  },
+  "Test of Courage": {
+   "gih_wr": 0.5193,
+   "gih_games": 599
+  },
+  "Test of Identity": {
+   "gih_wr": 0.5149,
+   "gih_games": 508
+  },
+  "Test of Loyalty": {
+   "gih_wr": 0.526,
+   "gih_games": 575
+  },
+  "Test of Priorities": {
+   "gih_wr": 0.544,
+   "gih_games": 623
+  },
+  "Thada Adel, Acquisitor": {
+   "gih_wr": 0.5525,
+   "gih_games": 881
+  },
+  "The Caretaker": {
+   "gih_wr": 0.6171,
+   "gih_games": 900
+  },
+  "The City on the Edge of Forever": {
+   "gih_wr": 0.5483,
+   "gih_games": 140
+  },
+  "The Destruction of Praxis": {
+   "gih_wr": 0.531,
+   "gih_games": 592
+  },
+  "The Doctor, EMH": {
+   "gih_wr": 0.5454,
+   "gih_games": 211
+  },
+  "The Duras Sisters": {
+   "gih_wr": 0.5221,
+   "gih_games": 184
+  },
+  "The Holodeck": {
+   "gih_wr": 0.4709,
+   "gih_games": 1418
+  },
+  "The Inner Light": {
+   "gih_wr": 0.5565,
+   "gih_games": 152
+  },
+  "The Measure of a Man": {
+   "gih_wr": 0.5879,
+   "gih_games": 580
+  },
+  "The Naked Time": {
+   "gih_wr": 0.528,
+   "gih_games": 525
+  },
+  "The Needs of the Many": {
+   "gih_wr": 0.5012,
+   "gih_games": 561
+  },
+  "The Traveler": {
+   "gih_wr": 0.5428,
+   "gih_games": 212
+  },
+  "The Wrath of Khan": {
+   "gih_wr": 0.6064,
+   "gih_games": 540
+  },
+  "There's Coffee in that Nebula": {
+   "gih_wr": 0.52,
+   "gih_games": 514
+  },
+  "Those Old Scientists": {
+   "gih_wr": 0.5196,
+   "gih_games": 634
+  },
+  "Torbran, Thane of Red Fell": {
+   "gih_wr": 0.5744,
+   "gih_games": 773
+  },
+  "Transporter Malfunction": {
+   "gih_wr": 0.5558,
+   "gih_games": 550
+  },
+  "Tricorder": {
+   "gih_wr": 0.5162,
+   "gih_games": 1485
+  },
+  "Troubling Tribbles": {
+   "gih_wr": 0.5079,
+   "gih_games": 889
+  },
+  "Type-2 Phaser": {
+   "gih_wr": 0.5576,
+   "gih_games": 1428
+  },
+  "U.S.S. Cerritos, Following Up": {
+   "gih_wr": 0.5102,
+   "gih_games": 1449
+  },
+  "U.S.S. Discovery, at Black Alert": {
+   "gih_wr": 0.5291,
+   "gih_games": 580
+  },
+  "U.S.S. Enterprise-A, Free Spirit": {
+   "gih_wr": 0.5531,
+   "gih_games": 630
+  },
+  "U.S.S. Enterprise-D, Galaxy-Class": {
+   "gih_wr": 0.4819,
+   "gih_games": 1478
+  },
+  "U.S.S. Excelsior, Cutting Edge": {
+   "gih_wr": 0.5238,
+   "gih_games": 603
+  },
+  "U.S.S. Reliant, From Hell's Heart": {
+   "gih_wr": 0.5238,
+   "gih_games": 562
+  },
+  "U.S.S. Voyager, Lone Wanderer": {
+   "gih_wr": 0.4889,
+   "gih_games": 592
+  },
+  "Una Chin-Riley, Number One": {
+   "gih_wr": 0.5861,
+   "gih_games": 805
+  },
+  "V'Ger, the Intruder": {
+   "gih_wr": 0.6183,
+   "gih_games": 889
+  },
+  "Vash, Freelance Archaeologist": {
+   "gih_wr": 0.5333,
+   "gih_games": 190
+  },
+  "Vengeance Mission": {
+   "gih_wr": 0.5411,
+   "gih_games": 594
+  },
+  "Vexing Drone": {
+   "gih_wr": 0.5647,
+   "gih_games": 875
+  },
+  "Vulcan Mind-Meld": {
+   "gih_wr": 0.6161,
+   "gih_games": 608
+  },
+  "Warp Core": {
+   "gih_wr": 0.5155,
+   "gih_games": 1409
+  },
+  "Warp Speed": {
+   "gih_wr": 0.5043,
+   "gih_games": 133
+  },
+  "Wesley Crusher, Starfleet Cadet": {
+   "gih_wr": 0.5392,
+   "gih_games": 890
+  },
+  "Will Riker, First in the Field": {
+   "gih_wr": 0.5904,
+   "gih_games": 813
+  },
+  "Worf, Honor-Bound Warrior": {
+   "gih_wr": 0.5179,
+   "gih_games": 215
+  },
+  "Worf, Intelligence Contractor": {
+   "gih_wr": 0.5651,
+   "gih_games": 820
+  },
+  "Xenobotanist": {
+   "gih_wr": 0.5352,
+   "gih_games": 796
+  },
+  "Xindi Surveyors": {
+   "gih_wr": 0.5753,
+   "gih_games": 846
+  },
+  "Year of Hell": {
+   "gih_wr": 0.5464,
+   "gih_games": 141
+  },
+  "Zefram Cochrane, Warp Pioneer": {
+   "gih_wr": 0.5282,
+   "gih_games": 865
+  },
+  "Zero, Incorporeal Sensate": {
+   "gih_wr": 0.5474,
+   "gih_games": 212
+  }
+ }
+}
