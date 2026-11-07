@@ -7,6 +7,7 @@ func TestStdMshReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-msh", []stdRepro{
 		{"target_attacking_lki_after_lethal_damage", false, false},              // CR 608.2h: the enrage rider still sees the attacker's last battlefield status after lethal damage moved it to the graveyard, so the extra combat phase is granted
+		{"sneak_paid_through_filter_land", true, false},                         // CR 702.190a, 605.3a: Elektra sneaked for {1}{B}{B} with a Swamp and Surveillance Room's {1},{T} any-colour filter beside two Plains: the filter's prefix search funds the sneak cast
 		{"combo_filter_allocation_needs_first", false, false},                   // CR 601.2g, 605.3a: Baxter Building's {4}, {T} makes four mana in any combination; the {G} cast orders the allocation answers that name its pip first, as gorge's scriptOrderAnswers does, so the search finds the script within its 160 nodes (dirac tried all four W first)
 		{"power_up_printed_witness_composes_cost_statics", false, false},        // CR 601.2f, 702.193b: Abomination's {5}{R/G}{R/G} Power-up beside Hulk is offered when five sources pay the printed cost less Hulk's {3}, the planner's witness
 		{"hybrid_ability_plan_composes_cost_statics", false, false},             // CR 601.2f, 602.2b: Abomination's hybrid Power-up beside Hulk taps the lands of the plan for its printed cost less Hulk's {3}, not the manual window's
