@@ -260,6 +260,9 @@ func (lc *lowerCtx) eachPlSVarOK(body string) bool {
 	default:
 		return false
 	}
+	if _, ok, _ := eachOtherRevealMV(strings.TrimPrefix(b, "Count$")); ok {
+		b = "" // Parker Luck's exact read; the trial below proves it lowers
+	}
 	rest := strings.NewReplacer("RememberedPlayerCtrl", "", "RememberedPlayerOwn", "").Replace(b)
 	if strings.Contains(rest, "Remember") || strings.Contains(b, "/") {
 		return false
@@ -268,4 +271,17 @@ func (lc *lowerCtx) eachPlSVarOK(body string) bool {
 	defer func() { lc.repeatPl-- }()
 	_, err := lc.svarValue(body, 0)
 	return err == nil
+}
+
+// eachOtherRevealMV matches exactly the two spellings of "the mana value of
+// the card revealed by the OTHER player" (Parker Luck's Own, Keen Duelist's
+// Ctrl; off the battlefield a card's controller is its owner) and returns the
+// parameterless vNotOwnLibMV read. Nothing else is admitted.
+func eachOtherRevealMV(rest string) (lValue, bool, error) {
+	switch rest {
+	case "ValidLibrary Card.IsRemembered+!RememberedPlayerOwn$CardManaCost",
+		"ValidLibrary Card.IsRemembered+!RememberedPlayerCtrl$CardManaCost":
+		return lValue{Kind: vNotOwnLibMV}, true, nil
+	}
+	return lValue{}, false, nil
 }

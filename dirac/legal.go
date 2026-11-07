@@ -516,18 +516,21 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		mana = s.abReduced(k, a, sl, p.ctrl, mana) // after the ability's own and Power-up reductions
 	}
 	if k.gen != nil && k.gen.anyPowerUp && f&kop.CostPowerUp != 0 {
-		// The autopay planner prices the PRINTED cost after the ability's own
-		// ReduceCost$ and the cost statics (planAbilityPayment's ownReduce +
-		// offerCostFor), but it never calls powerUpReduceCost, so the CR
-		// 702.193b entry-turn reduction is not in its witness. An ability
-		// whose planner cost it cannot witness is not offered (gorge seed-1
+		// The autopay planner prices the PRINTED cost composed with the cost
+		// statics (planAbilityPayment calls offerCostFor, which folds the
+		// RaiseCost/ReduceCost statics and the ability's own ReduceCost$; it
+		// never calls powerUpReduceCost), and an ability whose composed
+		// printed cost it cannot witness is not offered (gorge seed-1
 		// Hercules: {4}{G} reduced to {2}, three untapped Forests, no offer).
 		// The floating pool paying the reduced cost is enough: the plan is
 		// then a pool choice. So: offered iff the pool pays the reduced cost
-		// or the sources pay the planner's cost (powerUpPlanAffords); the
-		// charge is always the reduced one (buildCostCharge), and the
-		// plan/charge mismatch falls back to the manual mana window
-		// (powerUpPlanRejected, mana_window.go).
+		// or the sources pay the planner's cost (powerUpPlanAffords;
+		// powerup_cost_static_planner_prices_reduced_print_torch: Hulk, Gamma
+		// Goliath's {3} Power-up reduction makes Human Torch, Johnny Storm's
+		// {6}{R} affordable from the sources at {3}{R}); the charge is always
+		// the reduced one (buildCostCharge), and the plan/charge mismatch
+		// falls back to the manual mana window (powerUpPlanRejected,
+		// mana_window.go).
 		if !s.poolPays(p.ctrl, &mana) && !s.powerUpPlanAffords(k, sl, a, p.ctrl, av) {
 			return false
 		}
@@ -924,7 +927,12 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 	if k.gen != nil && k.gen.anyDelve && o != NoObj && (base == nil || !av.tbLeafCredited(base)) {
 		t = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, t) // the total's one credit
 	}
-	return av.affords(&t, pipMaskOf(&t), 0)
+	if o == NoObj {
+		return av.affords(&t, pipMaskOf(&t), 0)
+	}
+	// the part's mana may come from restricted sources the spell may spend
+	// (Eclipsed Realms' chosen-type mana; CR 106.6, gorge mayPlayAffordable)
+	return s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &t, av)
 }
 
 // inHandN is 1 when spell object o is itself in a hand (it cannot be discarded

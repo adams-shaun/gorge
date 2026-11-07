@@ -455,3 +455,10 @@ const ExFirstCast ExprKind = 255
 // genState.extraTurnBegun is the per-seat bit set when an extra turn's
 // TurnChange fires. H.M.S. Bounty, Unlikely Timeship.
 const ExYourExtraTurns ExprKind = 227
+
+// ExNotOwnLibMV: the summed mana value of the library cards in the
+// resolution's remembered set that the repeated player (an OpRepeatEachPlayer
+// in progress) does not own: Parker Luck's Count$ValidLibrary
+// Card.IsRemembered+!RememberedPlayerOwn$CardManaCost. No parameters.
+// Explicit ordinal, the iota tail stays untouched.
+const ExNotOwnLibMV ExprKind = 226
