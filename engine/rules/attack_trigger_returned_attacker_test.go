@@ -13,7 +13,7 @@ import (
 
 const attackPumpEnchantment = "Name:Attack Pump Test\nManaCost:1 B\nTypes:Enchantment\n" +
 	"T:Mode$ Attacks | ValidCard$ Creature.YouCtrl | TriggerZones$ Battlefield | Execute$ TrigPump | TriggerDescription$ x\n" +
-	"SVar:TrigPump:DB$ Pump | Defined$ TriggeredAttackerLKICopy | KW$ Deathtouch\n" +
+	"SVar:TrigPump:DB$ Pump | KW$ Deathtouch | Defined$ TriggeredAttackerLKICopy\n" +
 	"Oracle:x\n"
 
 // attackAndStackPump declares bear attacking and puts the enchantment's
