@@ -627,6 +627,9 @@ func (s *State) continueRes(k *prep, n uint8) {
 	if n == 0 && s.g.retAt != 0 && s.returnRemembered(k, &s.prog(k)[s.res.pc]) {
 		return
 	}
+	if n == 0 && k.gen != nil && s.parkReturnAsk() {
+		return // the answer made a departure frame park a return: ask it before the program goes on (zone_untilleavesbatch.go)
+	}
 	s.res.pc += n + 1
 	s.loopBack(k)
 	s.runProg(k)
@@ -1108,8 +1111,11 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				host := s.objs[a.Source()].slot
 				from := s.detach(o)
 				s.enterOnto(host)
-				sl := s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from)
+				sl := s.enterLinkRet(k, o, s.objs[o].owner(), from)
 				s.attachedTo(k, sl, host)
+			}
+			if !paying && s.resumeReturns(k) {
+				return // the batch's next return asks its host
 			}
 			if paying {
 				s.res.ask = raNone
@@ -1135,9 +1141,12 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.g.pre.state = 2
 		if s.objs[o].zone == kop.ZoneExile {
 			from := s.detach(o)
-			s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from) // the enters program reads the choice
+			s.enterLinkRet(k, o, s.objs[o].owner(), from) // the enters program reads the choice
 		}
 		s.g.pre = preAsk{}
+		if !paying && s.resumeReturns(k) {
+			return // the batch's next return asks its host
+		}
 		if paying {
 			s.res.ask = raNone
 			s.payDone(k, true) // the payment's sacrifice finished: the cost resumes

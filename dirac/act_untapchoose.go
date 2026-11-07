@@ -68,7 +68,6 @@ func (s *State) untapSlot(k *prep, sl Slot) {
 	if s.untapBlocked(k, sl) {
 		return
 	}
-	p.flags &^= pfTapped
-	s.untapEnds(k, p.obj) // the lock and the host-tapped grants end at the first untap (static_animatewhiletapped.go)
+	s.untapEffect(k, sl)
 	s.touchSl(sl)
 }

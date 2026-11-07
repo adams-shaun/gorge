@@ -1757,6 +1757,13 @@ type genState struct {
 	retHeld  [8]Obj
 	nretHeld uint8
 	retCtrl  uint8
+	// retHold: the returns batch is parked on a host ask, so its frame's
+	// close waits for the answer (zone_untilleavesbatch.go); retOld and
+	// retStamp are the latch batchClose restores and the frame's opening
+	// entry stamp, kept for that deferred close.
+	retHold  bool
+	retOld   uint8
+	retStamp uint16
 	// entExc: the copy exceptions of the token entering next (entExcOn | the
 	// template's slot<<8 | the op's exception). Its entry's replacements read
 	// the token with them (CR 707.9, 614.12).

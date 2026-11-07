@@ -195,8 +195,8 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 			pl := &s.pl[pp]
 			for j := 0; j < int(pl.graveN); j++ {
 				o := pl.grave[j]
-				if s.objs[o].of&ofToken != 0 {
-					continue // a token that died waits there until the next check ceases it; it is no card (CR 111.7, 704.5d)
+				if s.objs[o].of&ofToken != 0 && x.N != 1 {
+					continue // a token that died waits there until the next check ceases it; it is no card (CR 111.7, 704.5d); N 1 (HasCardsInGraveyard) counts it as gorge's zone walk does
 				}
 				if s.matchCardGenAt(k, x.F, s.objs[o].card, pp, ctx.ctrl, o, &ctx) {
 					v++

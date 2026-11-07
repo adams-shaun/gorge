@@ -329,19 +329,8 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			if o.Zone == state.ZBattlefield && o.Face() != nil {
 				lkiPower, lkiToughness = e.Power(o.ID), e.Toughness(o.ID)
 				lkiPTValid = true
-				if e.layer4InPool && ev.Kind == events.MoveZone && ev.To != state.ZBattlefield {
-					lkiTypes = lkiTypeList{id: o.ID, types: e.typeCharacteristics(o.ID, 0), set: true}
-				}
 			}
-			// CR 603.10a also makes "leaves your graveyard" triggers look
-			// back in time: the same move can return the card as a
-			// non-creature permanent (Tom, Bert, and William's return
-			// animates it into an artifact), so the pre-move type list is
-			// what a watcher's ValidCard$ must read.
-			if e.layer4InPool && ev.Kind == events.MoveZone && o.Zone == state.ZGraveyard &&
-				ev.To != state.ZGraveyard && o.Face() != nil {
-				lkiTypes = lkiTypeList{id: o.ID, types: e.typeCharacteristics(o.ID, 0), set: true}
-			}
+			lkiTypes = e.departureLKITypes(o, ev)
 		}
 	case events.DoorUnlock:
 		// CR 709.5: Mode$ FullyUnlock (engine/rules/trigmatch/room.go) must tell a
@@ -1014,4 +1003,22 @@ func inheritCopyRecord[T any](m map[state.ObjID][]T, from, to state.ObjID) {
 	if s, ok := m[from]; ok {
 		m[to] = append([]T(nil), s...)
 	}
+}
+
+// departureLKITypes captures the layer-4 type table of an object as it leaves
+// the battlefield (CR 603.10a) or a graveyard, before Apply resets it. A card
+// leaving a graveyard is matched as it was there: a creature card returned as
+// a noncreature artifact still left as a creature card. Graveyard-to-
+// battlefield is kept: the leaves-graveyard trigger must see the creature
+// card (the enters-side forward look is trigmatch's, CR 603.6a).
+func (e *Engine) departureLKITypes(o *state.Object, ev events.Event) lkiTypeList {
+	if !e.layer4InPool || ev.Kind != events.MoveZone || o.Face() == nil {
+		return lkiTypeList{}
+	}
+	leaving := (o.Zone == state.ZBattlefield && ev.To != state.ZBattlefield) ||
+		(o.Zone == state.ZGraveyard && ev.To != state.ZGraveyard)
+	if !leaving {
+		return lkiTypeList{}
+	}
+	return lkiTypeList{id: o.ID, types: e.typeCharacteristics(o.ID, 0), set: true}
 }

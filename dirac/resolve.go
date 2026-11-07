@@ -257,6 +257,10 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 			return
 		}
 	}
+	if s.finishParkedReturn(k) {
+		s.ctl = ctlResolve // another held return parks its own ask (zone_untilleavesbatch.go)
+		return
+	}
 	s.sp-- // the resolving entry leaves the stack
 	if k.gen != nil && k.gen.anyBattle && s.g.nmay > 0 {
 		// gorge's next step() head runs startDefeatedCast after a resolution:
@@ -291,16 +295,6 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 			} else {
 				s.placeFromK(k, e.obj, z, false, kop.ZoneStack, false)
 			}
-		}
-	}
-	if s.g.pre.state == preReturn {
-		// a return set aside outside the program loop (leaveGen): it
-		// enters now, its choice asked after
-		o := s.g.pre.obj
-		s.g.pre = preAsk{}
-		if s.objs[o].zone == kop.ZoneExile {
-			from := s.detach(o)
-			s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from)
 		}
 	}
 	s.res.active = false
@@ -469,9 +463,7 @@ func (s *State) runProg(k *prep) {
 		if s.over {
 			return
 		}
-		if k.gen != nil && s.g.pre.state == preReturn {
-			s.res.ask, s.res.askP = raGenRetChoice, s.objs[s.g.pre.obj].owner()
-			s.ctl = ctlResolve
+		if k.gen != nil && s.parkReturnAsk() {
 			return
 		}
 		if k.gen != nil && s.g.nc.n != 0 {
