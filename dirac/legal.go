@@ -662,7 +662,7 @@ func (s *State) flashbackPartsDisjoint(k *prep, p uint8, c CardID, cost kop.Mana
 		return true
 	}
 	var av avail
-	s.availWindowFor(k, p, &av)
+	s.availFor(k, p, &av)
 	return s.costPartDisjoint(k, p, NoSlot, ac, &cost, &av, pipMaskOf(&cost))
 }
 
@@ -752,9 +752,11 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		// a permanent tapped for the part is no mana source, and a source that
 		// sacrifices itself can use up what the part must sacrifice (CR 601.2g-h;
 		// gorge planReserving)
+		// the planner's census, not the unless / ward window's: a pain source's
+		// life-paid colour pays the mana beside the part (Haunted Screen; CR 601.2g-h)
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
 		var av avail
-		s.availWindowFor(k, p, &av)
+		s.availFor(k, p, &av)
 		if !s.costPartDisjoint(k, p, NoSlot, ac, &cost, &av, pipMaskOf(&cost)) {
 			return false
 		}
@@ -876,7 +878,7 @@ func (s *State) altAddPartDisjoint(k *prep, p uint8, c CardID, o Obj, part *kop.
 	}
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
 	var av avail
-	s.availWindowFor(k, p, &av)
+	s.availFor(k, p, &av)
 	return s.costPartDisjoint(k, p, NoSlot, part, &cost, &av, pipMaskOf(&cost))
 }
 

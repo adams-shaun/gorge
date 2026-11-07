@@ -466,6 +466,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"multi_discard_pick_order_past_eight", false, false},           // CR 404.3: a ten-card discard keeps the owner's chosen arrangement past the old eight-pick buffer
 		{"returned_sorcery_stays_in_graveyard", false, false},           // CR 304.4: a manifested sorcery that died is a sorcery card, so Meathook Massacre II's paid return (with a finality counter) leaves it in the graveyard
 		{"sorcery_card_return_stays_in_graveyard", false, false},        // CR 400.4a: Meathook Massacre II's "return that card" on a manifested sorcery that died leaves it in the graveyard
+		{"tapcost_spell_pays_life_mana_beside_part", false, false},      // CR 601.2g-h, 119.4: Fear of Exposure beside Haunted Screen is castable: the Screen's life-paid {G} pays the mana while two lands are tapped for the cost
 	})
 }
 
