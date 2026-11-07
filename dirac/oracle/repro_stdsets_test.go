@@ -142,6 +142,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-sos", "ark_of_hunger_mayplay_both_zones"},                            // Ark of Hunger's tap mills a card and registers the remembered card's play permission over the graveyard and exile: the recorded game reaches the tap, and both engines agree through the grant and the cleanup
 		{"std-spm", "parker_luck_repeat_each_loses_the_others_reveal_mv"},          // Parker Luck's end-step trigger: two players each reveal their top card, and each loses life equal to the OTHER player's revealed card's mana value (Swamp 0, Prowler, Clawed Thief 3), then both cards go to hand; both engines agree on every one
 		{"std-dft", "exile_trigger_looks_back_from_battlefield_or_graveyard"},      // Ketramose warped and exiled at the end step sees itself leave: a ChangesZoneAll line with Origin$ Battlefield,Graveyard looks back like Origin$ Battlefield (CR 603.10a)
+		{"std-fin", "setpt_static_live_attached_controller"},                       // Aettir and Priwen gives the equipped creature base P/T equal to the Equipment controller's life total: the live layer-7b set is re-read as the life total changes, after the equip cost is paid
 		{"tail-04", "search_second_pick_shares_a_land_type"},                       // Myriad Landscape finds an Island, then a second Island: gorge's Submit refuses two basics with no common land type, so the second pick offers only the Islands, as the kernel offers them
 	} {
 		t.Run(c.name, func(t *testing.T) {

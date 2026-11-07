@@ -288,6 +288,12 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		if t.ParamStr(cards.PKKeyword) == "Storm" {
 			c.TriggerStormCount = int32(e.CastThisTurn())
 		}
+		// CR 702.191a / 603.4: Increment's spend is rechecked at resolution
+		// against the source's power and toughness then, so the cast's spend
+		// is captured here (triggerResolvingCheckHolds reads it).
+		if trigmatch.IsIncrementTrigger(t) {
+			c.TriggerIncrementSpent = trigmatch.ManaSpentForCast(boardOf(e), ev.Player, ev.Obj)
+		}
 		// The activation arm: an AbilityPush event's Obj is the
 		// SOURCE PERMANENT -- the ability's stack wrapper is minted inside
 		// events.Apply and never travels on the event, so Remembered names the

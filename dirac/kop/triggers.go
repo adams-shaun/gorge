@@ -391,9 +391,12 @@ const Tf4StateCtr TrigFlags4 = 1 << 6
 // creature's power or toughness, put a +1/+1 counter on this creature"
 // (CR 702.xx, Secrets of Strixhaven). The event-relative comparison rides
 // gorge kwIncrement's Increment$ marker, read at fire time by trigmatch.
-// incrementAdmits against the SOURCE's layer-output P/T; the kernel copies
-// it in State.incrementAdmits (dirac/kw_increment.go), the spend
-// read from the spell entry's recorded spend (recordSpent).
+// incrementAdmits against the SOURCE's layer-output P/T and again as the
+// trigger resolves (rules.triggerResolvingCheckHolds, trigmatch.IncrementHolds)
+// against the captured spend. The kernel copies both halves in
+// State.incrementAdmits / State.incrementResolves (dirac/kw_increment.go),
+// the spend read from the spell entry's recorded spend (recordSpent) and
+// carried on the trigger entry's trigAmt.
 //
 // Bit 24, shared with Tf2ToYou: Tf2ToYou is set and read
 // only on DamageDone / DamageDealtOnce lines (dirac/kgen/build_ab.go's F2

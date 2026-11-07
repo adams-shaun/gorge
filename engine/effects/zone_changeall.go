@@ -348,6 +348,9 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		if cza.WithCountersType != "" {
 			entryWithCounters(&ev, to, cza.WithCountersType, numText(h, c, cza.WithCountersAmount, 1))
 		}
+		// StaticEffect$ registers before the entry event so its triggers match the
+		// permanent with the grant in force (CR 603.6a).
+		applyStaticEffect(h, c, sa, to, []state.ObjID{id})
 		emitEntryMove(h, c, cza.Riders.GainControl, to, ev)
 		moved = append(moved, id)
 		exiledWithAssociation(h, c, id, to)
@@ -369,12 +372,6 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		// change (CR 701.22a controls permanents), the same rule the
 		// ChangeZone path applies; the shared resolver is loud rather
 		// than silent on an unresolvable selector.
-		if to == state.ZBattlefield {
-			// StaticEffect$ (ChangeZoneAll's carriers -- Ghost Vacuum, Grimoire
-			// of the Dead, Storm of Souls, Shilgengar): the same per-card rider
-			// registration every other ChangeZone mover applies.
-			applyStaticEffect(h, c, sa, to, []state.ObjID{id})
-		}
 		if to == state.ZLibrary {
 			owner := p
 			if o := g.Obj(id); o != nil {
