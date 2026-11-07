@@ -228,6 +228,7 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"name_look_ack_mid_resolution_copy_spyglass", false, false}, // CR 614.12: Extravagant Replication's copy of Sorcerous Spyglass, entering mid-resolution, asks the name after the look at the hand, the trigger still on the stack
 		{"filter_beside_deferred_script", true, false},               // a filter (Three Tree Mascot) beside a deferred TriggersWhenSpent$ source (Pyromancer's Goggles): the filter-only prefix search cannot fund the offer, so the restricted/deferred script pays Quick-Draw Katana's Equip {2}
 		{"deferred_gap_beside_filter", true, false},                  // CR 605.3a, 602.2b: Pyromancer's Goggles is a census gap beside Three Tree Mascot's filter, so its {R} funds Tinybones' {3}{B}
+		{"combat_damage_past_int16_kills", true, true},               // CR 120.3, 704.5g: 32768 combat damage from Heroes' Bane kills the blocking Guttersnipe; the damage record saturates (StallPT past int16), never wraps
 		{"vizier_conversion_kicked_cast", true, false},               // CR 609.4b, 702.33: under Vizier of the Menagerie three Forests pay Gatekeeper of Malakir's kicked {B}{B}{B}, so the kicked cast is offered beside the plain one
 		{"vizier_conversion_kicked_cast_two", true, false},           // ... the same in another game
 		{"vizier_conversion_kicked_cast_three", true, false},         // ... and another
@@ -269,6 +270,7 @@ func TestStdHobReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-hob", []stdRepro{
 		{"sac_part_and_mana_share_a_treasure", false, false}, // CR 601.2g-h: the one Treasure that pays Stir Up Trouble's {B} is gone, so it is not also the artifact its either-or part sacrifices; the cast is not offered
+		{"autopay_plan_prices_target_discount", true, false}, // CR 601.2f: Dwarven Mauler's {2}-less ValidTarget$ discount makes Ragged Short Spear's equip {3} payable from two lands, so the autopay witness prices it and the re-equip is offered
 	})
 }
 
@@ -385,6 +387,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"filter_fee_from_granted_source", false, false},                   // CR 605.3a, 601.2g: a filter's {1} fee is funded by the play's granted {C} source, as gorge's one prefix search taps the census gaps in battlefield order
 		{"filter_fee_funded_by_grant_before_non_gap", false, false},        // CR 601.2g, 605.3a: White Lotus Hideout's {1} filter fee is paid with Honest Work's granted {C} (a census gap) before a non-gap Plains, as gorge's gap-first prefix search orders it
 		{"gated_mana_funds_activation", true, false},                       // CR 602.2b, 605.3a: White Lotus Hideout's {1},{T} any-colour ability funds Abandoned Air Temple's {3}{W},{T} fee beside the filter's own {1}, so dirac's scripted activation no longer outruns gorge's plan (c16ee5949)
+		{"tla_sacrificed_aura_enchanted_lki_reused_slot", true, false},     // CR 608.2h, 400.7: Path to Redemption, sacrificed to pay, names Raven Eagle as it last existed; Lost Days put the Eagle into the library and its Clue took the slot, so nothing is exiled
 		// CR 305.6, 605.1a: White Lotus Hideout under an Island grant lists gorge's seven node-limited alternatives ({C}, the granted {U}, the admitted any-colour ability's five), not its {1},{T} filter's or a WUBRG intrinsic run, so the alternative array no longer overflows
 		{"plan_alts_lotus_hideout_island_grant", true, false},
 		{"plan_alts_lotus_hideout_island_grant_late", true, false},
