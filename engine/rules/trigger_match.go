@@ -2941,8 +2941,9 @@ func (e *Engine) triggerMatchesWithSVars(t cards.Trigger, source state.ObjID, ev
 	// CounterAddedOnce, ...) firing on every player's turn, the over-fire
 	// direction. LifeLost/LifeGained keep their own per-mode reads, which
 	// agree with this one.
+	turnCtrl := triggerTurnController(e, source, lki)
 	if strings.EqualFold(t.ParamStr(cards.PKPlayerTurn), "True") &&
-		e.G.Active != e.controllerOf(source) {
+		e.G.Active != turnCtrl {
 		return false
 	}
 	// OpponentTurn$ True: only during an OPPONENT's turn -- the mirror of the
@@ -2960,7 +2961,7 @@ func (e *Engine) triggerMatchesWithSVars(t cards.Trigger, source state.ObjID, ev
 	// cannot read as True is unreadable and fails closed, the convention the
 	// PlayerTurn$ gate and the condition clauses share.
 	if v, ok := t.Param(cards.PKOpponentTurn); ok {
-		if !strings.EqualFold(strings.TrimSpace(v), "True") || e.G.Active == e.controllerOf(source) {
+		if !strings.EqualFold(strings.TrimSpace(v), "True") || e.G.Active == turnCtrl {
 			return false
 		}
 	}

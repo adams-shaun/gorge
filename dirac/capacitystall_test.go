@@ -229,8 +229,10 @@ func TestOverrideRecordsFitEight(t *testing.T) {
 	// Hash compatibility: three records, computed with the base [4]ovRec
 	// layout at 38babcfc (the first four records hash exactly as before).
 	// The ViewHash recipe gained genState.embN with (the
-	// generated state's emblems mix their frozen chosen number too), so the
-	// view pin is the recipe after that change; ObjHash is unchanged.
+	// generated state's emblems mix their frozen chosen number too), then
+	// genState.embT (an emblem's layer timestamp orders its static against a
+	// lose-all), so the view pin is the recipe after those changes; ObjHash
+	// is unchanged.
 	hsc := newScenTable(t, &tbl, Config{NoElide: true})
 	ht := hsc.perm(vanilla.GrizzlyBears, 0)
 	hsl := hsc.slot(ht)
@@ -240,7 +242,7 @@ func TestOverrideRecordsFitEight(t *testing.T) {
 	// Computed at 38babcfc with the base [4]ovRec layout.
 	const (
 		wantObjHash  uint64 = 0xdc072663b2b01bd1
-		wantViewHash uint64 = 0x5656c18984bb7996
+		wantViewHash uint64 = 0x68736735437a8890
 	)
 	if got := hsc.s.ObjHash(ht); got != wantObjHash {
 		t.Fatalf("ObjHash %#x, want %#x", got, wantObjHash)

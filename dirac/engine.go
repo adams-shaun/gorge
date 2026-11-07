@@ -68,6 +68,9 @@ func (s *State) Init(tbl *Table, deckA, deckB []CardID, seed uint64, cfg Config)
 	if cfg.GorgeLowering {
 		s.cfg |= cfgGorgeLowering
 	}
+	if cfg.Commander {
+		s.cfg |= cfgCommander
+	}
 	s.divA = NoSlot
 	s.mullMax = cfg.Mulligans
 	s.win = -1
@@ -78,7 +81,8 @@ func (s *State) Init(tbl *Table, deckA, deckB []CardID, seed uint64, cfg Config)
 		if len(decks[p]) > MaxDeck {
 			panic("kernel: deck larger than MaxDeck")
 		}
-		s.pl[p].life = 20
+		s.pl[p].life = int16(s.startingLife())
+		s.pl[p].cmd = NoObj
 	}
 	for p := 0; p < 2; p++ {
 		for _, c := range decks[p] {
@@ -97,6 +101,9 @@ func (s *State) Init(tbl *Table, deckA, deckB []CardID, seed uint64, cfg Config)
 	}
 	toss := uint8(s.rng.IntN(2))
 	for p := uint8(0); p < 2; p++ {
+		if s.cfg&cfgCommander != 0 {
+			s.cmdGenesis(p, cfg.Commanders[p])
+		}
 		s.shuffleLib(p)
 		for j := 0; j < openingHand; j++ {
 			s.draw(p)
