@@ -369,9 +369,31 @@ func (s *State) windowRestrUseful(k *prep, sl Slot, want uint8) bool {
 // the pip (a hybrid face: Professor Zei's {U/R}{U/R} paid by Jasmine Dragon Tea
 // Shop's Ally-only mana). Its owed colour is the lowest the payment still lacks.
 func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCost) bool {
-	want, decided := s.windowUseful(k, p, useful)
-	if !decided || s.windowSrcMask(k, sl)&want != 0 {
+	a, want, ok := s.windowRestrOwed(k, p, sl, useful)
+	if !ok {
 		return false
+	}
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	if !s.addRestrChV(k, p, a.ManaRestrict, k.gen.restrVarOf(a), 0, bits.TrailingZeros8(uint8(a.ManaColors)&want), max(a.ManaN, 1)) {
+		s.capFull(StallRestrSrc)
+	}
+	return true
+}
+
+// windowRestrOwed reports the restricted ability of sl the cast's window
+// takes ahead of sl's census one, and the colour want it floats. It is pure
+// (no tap, no mana), so windowDry can ask it before simulating sl as an
+// ordinary census source: the real walk taps the restricted ability instead,
+// and the dry run's plain pool cannot model the restricted mana it floats.
+func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost) (ab *kop.Ability, want uint8, ok bool) {
+	if k.gen == nil || !k.gen.anyRestrSrc {
+		return nil, 0, false
+	}
+	w, decided := s.windowUseful(k, p, useful)
+	if !decided || s.windowSrcMask(k, sl)&w != 0 {
+		return nil, 0, false
 	}
 	cd := &k.t.Cards[s.cardAt(sl)]
 	for j := range cd.Abilities {
@@ -384,7 +406,7 @@ func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCo
 		// (CR 106.6), exactly as a fixed restricted one above.
 		anyColour := a.ManaColors == kop.ColAny
 		if !restrSrcAb(a) || a.AFlags&kop.AfManaDynamic != 0 ||
-			a.AFlags&kop.AfManaChoice != 0 && !anyColour || uint8(a.ManaColors)&want == 0 {
+			a.AFlags&kop.AfManaChoice != 0 && !anyColour || uint8(a.ManaColors)&w == 0 {
 			continue
 		}
 		if anyColour {
@@ -400,15 +422,9 @@ func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCo
 				continue
 			}
 		}
-		s.perms[sl].flags |= pfTapped
-		s.touchSl(sl)
-		s.manaTapped(k, sl)
-		if !s.addRestrChV(k, p, a.ManaRestrict, k.gen.restrVarOf(a), 0, bits.TrailingZeros8(uint8(a.ManaColors)&want), max(a.ManaN, 1)) {
-			s.capFull(StallRestrSrc)
-		}
-		return true
+		return a, w, true
 	}
-	return false
+	return nil, 0, false
 }
 
 // censusGapMana: mana ability a is one gorge's planner census misses: a

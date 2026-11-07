@@ -553,6 +553,16 @@ func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (
 			s.windowDryFilter(k, p, cost, sl)
 			continue
 		}
+		if !anyColor && !gap {
+			// the real walk may take a restricted ability here ahead of the
+			// census one (windowRestrOwedTap): its mana floats restricted in
+			// State.rb, which this plain-pool census cannot model. Leave the
+			// walk to the caller's full probe.
+			if _, _, owed := s.windowRestrOwed(k, p, sl, cost); owed {
+				ok, known = false, false
+				break
+			}
+		}
 		pc := s.windowGrantPC(k, sl)
 		if gap || k.sacOnlyMana && pc.manaSacOnly || s.perms[sl].flags&pfTapped != 0 ||
 			k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDynMask(k, p, sl) != 0 {
