@@ -385,6 +385,9 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"window_any_colour_ability_owed_pip", false, false},    // CR 601.2g: an unpayable Tiered mode's window takes Starting Town's pay-life any-colour ability while a {W} pip is owed
 		{"graveyard_leave_sees_batch_entrant", true, false},     // CR 603.10a: Fang returned by Random Encounter beside the cards it returns did not see them leave
 		{"graveyard_entrant_watches_sibling", true, false},      // CR 603.10a: a card that entered in the sweep does not watch a sibling leave it
+		{"equip_unattach_waits_for_legend_ask", true, false},    // CR 704.3, 704.5n: Magitek Scythe stays on Serah Farron, transformed beside another Crystallized Serah, until the legend answer
+		// CR 113.7a, 608.2h, 702.15b: Phoenix's chapter I, pending when the legend rule bins it, deals damage with the Phoenix's lifelink
+		{"delayed_trigger_departed_source_lifelink", false, false},
 	})
 }
 
@@ -421,11 +424,15 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		// hand cast, and the kernel's convoke menu filters the same way, so
 		// gorge's Submit never refuses a pick the menu no longer offers.
 		{"mayplay_convoke_cast_cost", false, false},
-		{"restricted_window_float_keeps_chosen_type", false, false}, // CR 106.6, 601.2h: the evoked pip window's owed tap of an any-colour ChosenType-restricted source floats the batch with the source's chosen creature type, so a spell of that type can spend it
-		{"subcounter_wildcard_flying_counter_kind", false, false},   // CR 122.1b: Reaping Willow's remove-any-two-counters cost names a Flying counter by its own kind, not as a +1/+1 counter
+		{"restricted_window_float_keeps_chosen_type", false, false},       // CR 106.6, 601.2h: the evoked pip window's owed tap of an any-colour ChosenType-restricted source floats the batch with the source's chosen creature type, so a spell of that type can spend it
+		{"convoke_window_restricted_any_colour_ahead_of_c", false, false}, // CR 106.6, 601.2g: a convoke window with an unsettled generic remainder lists Eclipsed Realms' admitted any-colour ability ahead of its {C}, and a window with no mana payment answers that ability's lowest colour
+		{"convoke_pays_with_floated_restricted_mana", false, false},       // CR 106.6, 601.2h: the convoke cast spends the restricted mana its window floated, as gorge's payment does
+		{"mayplay_convoke_over_selection", false, false},                  // CR 702.51a: Temporal Cleansing cast from Sanar's exile convokes four blue creatures for {3}{U}; only one may pay {U}, the rest pay {1}
+		{"subcounter_wildcard_flying_counter_kind", false, false},         // CR 122.1b: Reaping Willow's remove-any-two-counters cost names a Flying counter by its own kind, not as a +1/+1 counter
 
 		{"free_cast_owes_either_or_additional_cost", true, false},      // CR 601.2b, 118.9d: Kinsbaile Aspirant cast free from Maralen's exile still owes behold or {2}; with neither payable it is not offered
 		{"either_or_mana_part_spends_restricted_source", false, false}, // CR 106.6, 601.2f: Kinsbaile Aspirant's {2} part with its {W} is affordable through Eclipsed Realms' chosen-type mana
+		{"repeat_loss_after_static_grant", false, false},               // CR 613.7: Abigale's second loss of abilities, after Chronicle of Victory entered, is newer than its first-strike-and-trample grant and takes it away from Prideful Feastling
 	})
 }
 
