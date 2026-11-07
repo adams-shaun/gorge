@@ -586,6 +586,10 @@
       "tier": "draft",
       "status": "EXT"
     },
+    "draft/limited/pickbot/internal/gentrk": {
+      "tier": "draft",
+      "status": "EXT"
+    },
     "draft/limited/setdata": {
       "tier": "draft",
       "status": "EXT"
