@@ -250,6 +250,9 @@ func (s *State) pushBuild(k *prep) {
 		e.srcVer = ob.ver
 	}
 	if e.kind == seAbility {
+		// CR 733.1: the pending mark for the reversal's drop (unpushActivation),
+		// as a spell's push records its own (unpushSpell)
+		s.bld().pushNP = uint8(s.npend)
 		// gorge's activation census (the view's ActivatedThisTurn) counts
 		// the activation as it is pushed (CR 602.2a: AbilityPush comes
 		// first), for a source on the battlefield, so a source the cost
@@ -265,9 +268,6 @@ func (s *State) pushBuild(k *prep) {
 				s.capFull(StallActs)
 			}
 		}
-		// a reversed activation drops the triggers its own costs queued, as a
-		// reversed cast does (CR 733.1; state.go pushNP)
-		s.bld().pushNP = uint8(s.npend)
 	}
 	if e.kind != seSpell && k.gen != nil && k.gen.anyStackTgt {
 		s.stackSid(e) // a stack-ability target's identity (tgt_stackability.go)
@@ -299,13 +299,18 @@ func (s *State) unpushSpell(k *prep) {
 		// tapped and in the pool (loweredWindowOK; CR 733.1 lets the player
 		// leave legal mana abilities reversed).
 		if s.npend > s.bld().pushNP {
-			s.npend = s.bld().pushNP
+			s.dropPendingLimits(k, s.bld().pushNP)
 		}
 		ob.zone = kop.ZoneNone
 		return
 	}
 	if s.npend > s.bld().pushNP {
-		s.npend = s.bld().pushNP // CR 733.1: the move off the zone it was cast from never happened, so its triggers (a card leaving a graveyard) are dropped
+		// CR 733.1: the move off the zone it was cast from never happened, so
+		// its triggers (a card leaving a graveyard) are dropped, and the
+		// once-per-turn records they consumed come back (gorge abortCast's
+		// proposalLimits: an undone action triggered nothing, so a
+		// once-each-turn trigger it queued has not used its turn)
+		s.dropPendingLimits(k, s.bld().pushNP)
 	}
 	ob.zone = s.bld().origin
 	ob.slot = NoSlot // off slotFaceDownSpell
@@ -387,6 +392,16 @@ func (s *State) toStage(k *prep, st uint8) {
 
 // nextStage enters the stage after the current one in the entry's program.
 func (s *State) nextStage(k *prep) {
+	if s.bld().stage == bsTargets {
+		// gorge meets the targeting before the cast it is part of (gorge
+		// cast.go proposalTriggers): the ward and BecomesTarget triggers the
+		// CR 601.2c target choice queues are enqueued at the target answer,
+		// before any payment -- a cost's sacrifice that dies during the
+		// payment queues its own triggers behind them, and that order is
+		// what the CR 603.3b ordering ask indexes. A reversed cast drops
+		// them (CR 733.1: unpushSpell / unpushActivation).
+		s.checkWard(k, &s.bld().e)
+	}
 	s.toStage(k, stageNext[s.bld().e.kind][s.bld().stage&^0x80])
 }
 
@@ -1415,7 +1430,6 @@ func (s *State) finishBuild(k *prep) {
 		if k.gen != nil && k.gen.anyHist {
 			s.histCast(k, &e, &cost)
 		}
-		s.checkWard(k, &s.stack[s.sp-1]) // gorge meets the targeting before the cast it is part of
 		if k.gen != nil && k.gen.anyFirstCast {
 			s.noteFirstCast() // cast_firstcast.go
 		}
@@ -1447,14 +1461,6 @@ func (s *State) finishBuild(k *prep) {
 		if early {
 			pre = s.buildCostCharge(k)
 		}
-		// gorge meets the targeting before the costs it is part of (CR 601.2c
-		// before 601.2g-h): the BecomesTarget walk (ward, watchers, Valiant)
-		// reads the targets while they are still where they were targeted, so
-		// a target the activation's own cost then sacrifices still triggers
-		// (Nettle Guard's {1}, Sacrifice: Destroy target artifact or
-		// enchantment, aimed at itself).
-		s.syncBuild()
-		s.checkWard(k, &s.stack[s.sp-1])
 		s.payAbilityCosts(k, &e)
 		if k.phyMana {
 			s.payPhyrexianLife(k) // an activation's two-life faces
@@ -1486,9 +1492,6 @@ func (s *State) finishBuild(k *prep) {
 		// gorge's step() head runs startDefeatedCast after any cast or
 		// activation: ask a battle defeated earlier this step first.
 		s.wakeDefeat()
-	}
-	if e.kind == seTrigger {
-		s.checkWard(k, &s.stack[s.sp-1])
 	}
 	if s.parkedWaiting() {
 		s.ctl = ctlExileOrder // a cost's parked move (repl_exilemark.go)

@@ -148,7 +148,7 @@ func run() int {
 		pairsFile  = flag.String("pairs-file", "", "pool runs: play these pairs instead of drawing from pool.tsv: deckA<TAB>deckB[<TAB>seed] per line (oracle.ExplicitPairs); -first-pair skips lines and -pairs, when given, caps them")
 		evidence   = flag.String("evidence", "", "pool runs: play the cards the table does not refuse, unverified ones too, and write the cards the run's clean games evidence (oracle.Coverage.Evidence), one name a line, here")
 		allowUnv   = flag.Bool("allow-unverified", false, "pool runs: play the cards the table does not refuse, unverified ones too, as -evidence does")
-		implAll    = flag.Bool("implicates-all", false, "pool runs: name every implicated card instead of the top ten, and print one line per game that fails -absolute: bad-game, pair, seed, outcome, class, the implicated cards joined by |, the sources of its latest actions joined by |, the cards of both decks joined by |, tab-separated")
+		implAll    = flag.Bool("implicates-all", false, "pool runs: name every implicated card instead of the top ten, and print one line per game that fails -absolute: bad-game, pair, seed, outcome, class, the implicated cards joined by |, the sources of its latest actions joined by |, the cards of both decks joined by |, tab-separated; a game that recorded an unknown option kind also prints unknown-game, pair, seed, the kinds joined by |")
 		listPools  = flag.Bool("list-pools", false, "print the registered lockstep pools (name, inputs, label, decks, tree digest) and exit")
 		listSynth  = flag.Bool("list-synth", false, "print the synthetic evidence pools, one a line, and exit")
 		covPath    = flag.String("coverage", "", "write the run's per-card/per-ability coverage TSV (oracle.Coverage) here and print a coverage summary line")
@@ -1139,6 +1139,14 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 		}
 		st.Add(res.Stats)
 		v.Games++
+		if implicatesAll && len(res.Stats.Unknown) > 0 {
+			kinds := make([]string, 0, len(res.Stats.Unknown))
+			for k := range res.Stats.Unknown {
+				kinds = append(kinds, k)
+			}
+			slices.Sort(kinds)
+			fmt.Printf("unknown-game\t%d\t%d\t%s\n", p.Index, p.Seed, strings.Join(kinds, "|"))
+		}
 		if res.Stall == oracle.GorgeTriggerCapStall {
 			v.Capacity++
 			v.CapacityWhy[res.Stall]++
