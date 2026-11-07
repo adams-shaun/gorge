@@ -1642,6 +1642,7 @@ type genState struct {
 	retMiss bool            // the last OpReturnEx returned nothing (its StaticEffect rider then applies to nothing)
 	retAt   uint8           // the remembered object a many-object return is moving, + 1 (0 = none; returnrem.go)
 	retTS   uint16          // the entry stamp a many-object return started at: its entrants are the ones after it
+	batchTS uint16          // the entry stamp the open batch began at: a watcher entered after it looks back to the board before the batch (trig_oneormore.go)
 	spent   [2]uint16       // the history bank (value_turnhistory.go): mana each player spent casting spells this turn (expend)
 	sacM    slotMask        // permanents picked for an effect's sacrifice, sacrificed together once all are picked
 	sacOrd  [maxSacOrd]Slot // sacM's slots in sacrifice order (gorge zone_bulk.go effSacrifice: player by player, each in answer order)
