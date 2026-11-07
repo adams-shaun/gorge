@@ -213,7 +213,8 @@ func (s *State) dealHitsToOne(k *prep, hs []dmgHit) bool {
 }
 
 // replPlusBatch parks a batch whose first hit's damage event is matched by two
-// or more pure plus-N replacements: gorge collects every matching damage
+// or more pure plus-N replacements (or, batchOrderAskable, an addition beside
+// a prevention): gorge collects every matching damage
 // replacement and asks the affected player their CR 616.1 order even though the
 // additions commute, so the kernel poses the same no-op ask before the batch
 // lands. The parked event's amount is discarded: the answer resumes the op
@@ -226,7 +227,7 @@ func (s *State) dealHitsToOne(k *prep, hs []dmgHit) bool {
 // than losing an earlier event. handled reports that the batch was consumed
 // and must not deal.
 func (s *State) replPlusBatch(k *prep, hs []dmgHit) (handled bool) {
-	if !replPlusOnly(k.gen) || s.g.ro.n != 0 || s.g.ro.on || s.g.nc.n != 0 || s.g.plusBatchAsked {
+	if !batchOrderAskable(k) || s.g.ro.n != 0 || s.g.ro.on || s.g.nc.n != 0 || s.g.plusBatchAsked {
 		return false
 	}
 	// Probe parkNC for each hit with the ask state saved and restored: it is
@@ -264,6 +265,22 @@ func (s *State) replPlusBatch(k *prep, hs []dmgHit) (handled bool) {
 		return true
 	}
 	return false
+}
+
+// batchOrderAskable reports whether replPlusBatch may park a batch: a table
+// whose only damage replacements are plus-N additions, or one carrying an
+// addition beside other kinds when parkNC's probe (which runs replDamage for
+// the parked amount) and the answer's re-execution read the same result
+// without a side effect: no shield to spend, no Mindskinner mill, no
+// noncombat damage tally. Every order then lands the same amount (a
+// prevention beside an addition is 0 in either order, CR 616.1), and a
+// non-commuting doubling still stalls loudly in replPlus.
+func batchOrderAskable(k *prep) bool {
+	g := k.gen
+	if replPlusOnly(g) {
+		return true
+	}
+	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&(rbShield|rbPrevMill) == 0 && !k.anyRedNC
 }
 
 // dealHitsLatched is dealHits with rl, whose dmgRec it fills, as the batch's
