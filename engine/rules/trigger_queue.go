@@ -1937,7 +1937,7 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 	eligible := effects.CharmEligibleModes(e, source, sa, choices)
 	eligible = triggerModesWithTargets(e, p, obj, svars, eligible)
 	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(eligible))
-	if max < 1 && charmCountReadsTriggeringSpell(svars, effects.CharmOf(sa).CharmNum.Text) {
+	if max < 1 && effects.CharmCountReadsTriggeringSpell(ctx, sa) {
 		// the placement ctx carries no triggering spell, so a count that
 		// reads it (Riku's NumTimesChoseMode) is 0 here and resolves later;
 		// keep the one-mode ask ceiling rather than dropping the trigger.
@@ -1955,16 +1955,6 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 	}
 	e.ask(modeDecisionForChoices(e, p, source, sa, svars, eligible, min, max, repeat))
 	return true
-}
-
-// charmCountReadsTriggeringSpell reports whether a Charm's CharmNum$ text (a
-// literal or an SVar name) reads TriggeredSpellAbility$, which the placement
-// ctx cannot yet answer.
-func charmCountReadsTriggeringSpell(svars map[string]string, text string) bool {
-	if body, ok := svars[text]; ok {
-		text = body
-	}
-	return strings.Contains(text, "TriggeredSpellAbility$")
 }
 
 // triggerModeCtx is the trigger object's source and the context, carrying the
