@@ -130,6 +130,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-trk", "late_entry_order_unicomplex_condition_fails"},                 // The Unicomplex played under two Warp Speeds with two other lands: its own enters-tapped body applied last at the re-ask taps nothing, so it stays untapped and its enters-untapped trigger is put on the stack (CR 616.1f)
 		{"std-trk", "filter_search_funds_with_restricted_colourless"},              // Starfleet Academy's {5} with Isolinear Processor untapped: gorge's prefix search tries the artifact-only {C} as funding and runs out of nodes, so Artificial Anomaly's sacrifice ability is not offered (CR 605.3a)
 		{"std-trk", "static_cast_trigger_keeps_caster_priority"},                   // Test of Identity cast from Tasha Yar's exile on the opponent's turn with Overflow Submatrix out: its Static$ True cast trigger resolves off the stack and the caster keeps priority (CR 117.3c)
+		{"std-dft", "repeat_each_targeted_mills_the_graveyard_counts"},             // Riverchurn Monument's exhaust ability targets both players: each mills cards equal to their own graveyard count, the controller's mill first (gorge AliveFrom), and both engines agree on every one
+		{"std-eoe", "repeat_each_targeted_mills_half_the_library"},                 // Singularity Rupture destroys all creatures, then its two target players each mill half their library rounded down, the controller first (gorge AliveFrom), and both engines agree on every one
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if div := replayStdRepro(t, reg, c.pool, c.name, fullSurface[c.name]); div != nil {
