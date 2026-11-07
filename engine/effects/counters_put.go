@@ -531,7 +531,10 @@ func putCounterTriggeredMap(h Host, c *Ctx, sa *cards.SA, pc *PutCounterParams) 
 			}
 			continue
 		}
-		if h.Game().Obj(t.Obj) == nil {
+		// the plain loop's skip (CR 400.7): Captain Marvel, Apex Avenger
+		// exiled before her "you may put the same counters on her" resolves
+		// takes nothing, so putCounterWouldPlace's unasked path places nothing
+		if o := h.Game().Obj(t.Obj); o == nil || putCounterReferentLeft(h, c, sa, o) {
 			continue
 		}
 		for _, e := range cm {
@@ -602,7 +605,8 @@ func putCounterDefined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 // 1; the corpus's one non-default is Blue Loyal Raptor's CounterNum$ 1),
 // emitted as one CounterChange per kind per target -- the same one-event-per-
 // kind discipline effMultiplyCounter uses, so the event stream records the
-// real folds. Non-nil object targets are eligible in any zone;
+// real folds. Non-nil object targets are eligible in any zone, less the
+// putCounterReferentLeft referents the plain loop skips;
 // RememberCards$ still remembers what was actually countered.
 func putCounterEachFromSource(h Host, c *Ctx, sa *cards.SA, etb bool, ref string) {
 	g := h.Game()
@@ -644,7 +648,7 @@ func putCounterEachFromSource(h Host, c *Ctx, sa *cards.SA, etb bool, ref string
 			continue // no corpus carrier targets a player here
 		}
 		o := g.Obj(t.Obj)
-		if o == nil {
+		if o == nil || putCounterReferentLeft(h, c, sa, o) {
 			continue
 		}
 		anyPlaced := false
