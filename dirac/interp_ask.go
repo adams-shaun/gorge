@@ -1546,6 +1546,10 @@ func (s *State) searchCands(k *prep, d *Decision) {
 		s.differentNameCands(k, in, d, list)
 		return
 	}
+	if shareLandTypeOp(in) && s.g.nlook > 0 {
+		s.shareLandTypeCands(k, in, d, list) // zone_sharelandtype.go
+		return
+	}
 	for _, o := range list {
 		if s.picksHas(o) {
 			continue

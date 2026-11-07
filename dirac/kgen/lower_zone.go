@@ -384,6 +384,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				}
 				flags = append(flags, "alt="+alt)
 			}
+			if flags, err = shareLandType(ps, f, flags); err != nil { // lower_sharelandtype.go
+				return err
+			}
 			if dest == zBattlefield && !isConstN(n, 1) {
 				// CR 303.4f: the kernel parks one found Aura for its enchant ask.
 				for _, c := range f.Clauses {
