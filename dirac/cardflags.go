@@ -39,6 +39,7 @@ const (
 	gfDeferred                       // a TriggersWhenSpent$ mana source gorge's planner defers (Pyromancer's Goggles; kop.Ability.ManaDeferred; mana_deferred.go)
 	gfTapsDefer                      // a TrigTaps watcher classed kop.TapPlanDefer: its tapped mana source is a payment tier gorge defers (mana_tapsdefer.go)
 	gfTapsPain                       // a TrigTaps watcher classed kop.TapPlanPain: its tapped mana source is a last-resort unit (mana_tapsdefer.go)
+	gfEtbOrder                       // the card's own enter body is exactly one prepared line the CR 616.1 entry-order ask orders (repl_etborder.go)
 )
 
 // cardSmall is a card's sparse generated-table values, all -1 when absent.

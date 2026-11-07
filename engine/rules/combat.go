@@ -2674,14 +2674,19 @@ const unlimitedHandSize = 1 << 20
 // intervening-if continuousGateHolds already evaluates for every other
 // static family, so a gated maximum exists exactly while its condition
 // holds.
-// The scan walks the printed statics first (in their deterministic
-// activeStatics order), then the registered continuous effects (in active()
-// order); the FIRST affecting static wins. Applying two at once has no rules
-// meaning for a set -- CR 613 orders them by timestamp, and "no maximum" can
-// only be overridden by another set, which the first-match reading
-// approximates; the printed-before-Effect tie-break is that same
-// approximation's deterministic choice.
+// Two affecting statics apply in timestamp order (CR 613.7; Reliquary
+// Tower's ruling: a maximum of two then Reliquary Tower is no maximum, the
+// reverse order is two), so the one with the LATEST timestamp sets the
+// maximum: a printed static's is its source's layer timestamp, an
+// Effect-delivered one's its registration timestamp. A tie keeps the first
+// found (printed statics in activeStatics order, then active() order).
 func (e *Engine) maxHandSizeFor(p state.PlayerID) int {
+	best, bestTs, found := maxHandSize, uint32(0), false
+	take := func(n int, ts uint32) {
+		if !found || ts > bestTs {
+			best, bestTs, found = n, ts, true
+		}
+	}
 	for _, sv := range e.activeStatics("Continuous") {
 		raw := strings.TrimSpace(sv.ParamStr(cards.PKSetMaxHandSize))
 		if raw == "" {
@@ -2693,11 +2698,14 @@ func (e *Engine) maxHandSizeFor(p state.PlayerID) int {
 		if !e.continuousGateHolds(sv) {
 			continue
 		}
-		if n, ok := effects.HandSizeValueOK(raw); ok {
-			return n
+		var ts uint32
+		if o := e.G.Obj(sv.Source); o != nil {
+			ts = o.LayerTimestamp()
 		}
-		if n, ok := setMaxHandSizeSVar(e, sv, raw); ok {
-			return n
+		if n, ok := effects.HandSizeValueOK(raw); ok {
+			take(n, ts)
+		} else if n, ok := setMaxHandSizeSVar(e, sv, raw); ok {
+			take(n, ts)
 		}
 	}
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
@@ -2709,10 +2717,10 @@ func (e *Engine) maxHandSizeFor(p state.PlayerID) int {
 			continue
 		}
 		if n, ok := effects.HandSizeValueOK(ce.SetMaxHandSize); ok {
-			return n
+			take(n, ce.Timestamp)
 		}
 	}
-	return maxHandSize
+	return best
 }
 
 // setMaxHandSizeSVar prices a printed SetMaxHandSize$ value that names an
