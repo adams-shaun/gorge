@@ -520,18 +520,18 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// statics (planAbilityPayment calls offerCostFor, which folds the
 		// RaiseCost/ReduceCost statics and the ability's own ReduceCost$; it
 		// never calls powerUpReduceCost), and an ability whose composed
-		// printed cost it cannot witness is not offered (gorge seed-1
+		// printed cost it cannot witness is not offered (powerUpWitness; gorge seed-1
 		// Hercules: {4}{G} reduced to {2}, three untapped Forests, no offer).
 		// The floating pool paying the reduced cost is enough: the plan is
 		// then a pool choice. So: offered iff the pool pays the reduced cost
-		// or the sources pay the planner's cost (powerUpPlanAffords;
-		// powerup_cost_static_planner_prices_reduced_print_torch: Hulk, Gamma
+		// or the sources pay the printed one AFTER the cost statics
+		// (powerup_cost_static_planner_prices_reduced_print_torch: Hulk, Gamma
 		// Goliath's {3} Power-up reduction makes Human Torch, Johnny Storm's
 		// {6}{R} affordable from the sources at {3}{R}); the charge is always
 		// the reduced one (buildCostCharge), and the plan/charge mismatch
 		// falls back to the manual mana window (powerUpPlanRejected,
 		// mana_window.go).
-		if !s.poolPays(p.ctrl, &mana) && !s.powerUpPlanAffords(k, sl, a, p.ctrl, av) {
+		if !s.poolPays(p.ctrl, &mana) && !s.powerUpWitnessAffords(k, sl, a, p.ctrl, av) {
 			return false
 		}
 	}
@@ -668,7 +668,7 @@ func (s *State) flashbackPartsDisjoint(k *prep, p uint8, c CardID, cost kop.Mana
 		return true
 	}
 	var av avail
-	s.availWindowFor(k, p, &av)
+	s.availFor(k, p, &av)
 	return s.costPartDisjoint(k, p, NoSlot, ac, &cost, &av, pipMaskOf(&cost))
 }
 
@@ -758,9 +758,11 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		// a permanent tapped for the part is no mana source, and a source that
 		// sacrifices itself can use up what the part must sacrifice (CR 601.2g-h;
 		// gorge planReserving)
+		// the planner's census, not the unless / ward window's: a pain source's
+		// life-paid colour pays the mana beside the part (Haunted Screen; CR 601.2g-h)
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
 		var av avail
-		s.availWindowFor(k, p, &av)
+		s.availFor(k, p, &av)
 		if !s.costPartDisjoint(k, p, NoSlot, ac, &cost, &av, pipMaskOf(&cost)) {
 			return false
 		}
@@ -882,7 +884,7 @@ func (s *State) altAddPartDisjoint(k *prep, p uint8, c CardID, o Obj, part *kop.
 	}
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
 	var av avail
-	s.availWindowFor(k, p, &av)
+	s.availFor(k, p, &av)
 	return s.costPartDisjoint(k, p, NoSlot, part, &cost, &av, pipMaskOf(&cost))
 }
 
@@ -1510,7 +1512,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 			s.flushPrefixTriggers(k)
 		}
 	}
-	if s.scriptAny(k) && (isCastKind(a.Kind()) || a.Kind() == AkActivate || a.Kind() == AkPlot) {
+	if s.scriptAny(k) && isScriptPlayKind(a.Kind()) {
 		s.scriptPrefix(k, a, p) // a play only a scripted activation pays (script_gen.go)
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k) // its trigger resolves before the play (seed 640)

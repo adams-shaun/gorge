@@ -1061,8 +1061,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 			case kop.AbMana:
 				if a.ManaDeferred && a.AFlags&kop.AfLatent == 0 {
-					// a scripted-prefix gap beside the restricted ones (mana_deferred.go)
-					g.setFlag(CardID(i), gfDeferred)
+					// a scripted-prefix gap beside the restricted ones (mana_deferred.go),
+					// and no filter: gapOthers must see it so filtOnly is false
+					g.smallFor(CardID(i)).gapOther = int8(j)
+					g.setFlag(CardID(i), gfDeferred|gfGapOther)
 					g.anyDeferred, g.anyRestrScript, g.anyWindowGap = true, true, true
 				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
@@ -2187,7 +2189,7 @@ func (s *State) addOvRec(sl Slot, r ovRec, merge, grants bool) bool {
 	if s.fxM.has(sl) {
 		for i := 0; i < int(s.g.nfx); i++ {
 			if p := &s.g.fx[i]; p.sl == sl && p.kind == fxOverride && p.r.idx == r.idx && p.r.src == r.src && p.r.p == r.p && p.r.t == r.t && p.r.fl&^ovReps == r.fl&^ovReps {
-				if p.r.fl&ovReps == ovReps || grants && s.newerLayer6Fx(sl, i) {
+				if p.r.fl&ovReps == ovReps || grants && (s.newerLayer6Fx(sl, i) || s.statM.any() && s.newerLayer6Static(p.r.ts)) {
 					continue // a further identical record carries the rest
 				}
 				if merge {
@@ -2237,6 +2239,29 @@ func (s *State) newerLayer6Fx(sl Slot, i int) bool {
 		}
 		if ov := &s.k().t.Overrides[p.r.idx-1]; ov.Grant[0] != 0 || ov.Grant[1] != 0 || ov.AddKw != 0 || ov.RemoveKw != 0 || ov.LoseAbilities || ov.CantAttack {
 			return true
+		}
+	}
+	return false
+}
+
+// newerLayer6Static reports a battlefield Continuous static that grants or
+// removes keywords and is newer than timestamp ts. Its layer-6 effect sits
+// between an older record and a repeat of it (CR 613.7), so the repeat takes
+// a timestamp of its own: Abigale's second loss of abilities, after Chronicle
+// of Victory entered, takes that grant away again. The static's filter is not
+// read (a spare record is only a spare record).
+func (s *State) newerLayer6Static(ts uint16) bool {
+	k := s.k()
+	for m := s.statM; m.any(); m = m.rest() {
+		src := m.first()
+		if s.layerTs(src) <= ts {
+			continue
+		}
+		cd := &k.t.Cards[s.cardAt(src)]
+		for i := range cd.Abilities {
+			if a := &cd.Abilities[i]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && (a.Static.Kw != 0 || a.Static.Override > 0 || a.Static.Grant != 0) {
+				return true
+			}
 		}
 	}
 	return false
