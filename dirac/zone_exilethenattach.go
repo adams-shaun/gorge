@@ -198,7 +198,7 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 				x := &s.g.fx[i]
 				return x.sl == host && x.kind == fxCopyExc
 			})
-			if l.kind != copyAegis {
+			if l.kind == copyPerm || l.kind == copyEOT && l.idx != 0 {
 				s.copyExcAdd(k, host, s.copySrcSlot(l.src), l.idx)
 			}
 			p.ovr.kw = p.ovr.kw&^oldKw | s.copyExcKw(k, host)
