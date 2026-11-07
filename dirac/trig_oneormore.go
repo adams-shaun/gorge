@@ -34,6 +34,7 @@ func (s *State) batchOpen() uint8 {
 	old := s.g.batchLatch
 	if old&batchOpenMask == 0 {
 		s.g.batchLatch = old&^batchOpenMask | (s.npend+1)&batchOpenMask
+		s.g.batchTS = s.ts // CR 603.10a: the board this batch looks back to
 	}
 	return old
 }
