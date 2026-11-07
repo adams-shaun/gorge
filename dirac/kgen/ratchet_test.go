@@ -94,7 +94,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +10 (ValidSpell$ Activated.Equip ReduceCost, the target-gated equip price: Auriok Steelshaper, Bladehold War-Whip, Bureau Headmaster, Cloud, Planet's Champion, Dwarven Mauler, Fervent Champion, Ghostfire Blade, Helitrooper, Nahiri, Storm of Stone, Éowyn, Lady of Rohan; FIN 266 -> 267, HOB 152 -> 153, ONE 195 -> 196, ALL 21666 -> 21676).
 	// +5 (the merge with land: this branch's lowers beside land's Activated.Equip ReduceCost ten, disjoint; merged ECL 233 -> 234, MSH 233 -> 234, TLA 252 -> 253, ALL 21676 -> 21681).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21681, 34442},
+	"ALL": {21682, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -104,7 +104,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"ECL": {234, 273},
 	"EOE": {239, 266},
 	"FDN": {517, 517},
-	"FIN": {267, 312},
+	"FIN": {268, 312},
 	"FRA": {245, 269},
 	"HOB": {153, 172},
 	"LCI": {251, 290},

@@ -15,6 +15,10 @@ import (
 // granted types' intrinsic abilities, and the choice-shaped ability is
 // appended to the unit after them, once. It reports false when every ability
 // is fixed, leaving unitAlts' single-walk order.
+//
+// A source whose alternatives outnumber the array (two any-colour abilities
+// the payment may spend beside five granted types) stalls the game through
+// capFull(StallPlanAlts) with the list cut at the array, never a write past it.
 func (s *State) unitAltsChoice(k *prep, pk *planner, u int, out *[planLimitAlts]lsAlt, granted bool) (int, bool) {
 	if !granted {
 		return 0, false // no granted type on the board
@@ -25,7 +29,7 @@ func (s *State) unitAltsChoice(k *prep, pk *planner, u int, out *[planLimitAlts]
 	}
 	cd := &k.t.Cards[s.cardAt(pk.units[u])]
 	choice := false
-	var printed kop.ColorMask
+	var printed, choiceCols kop.ColorMask
 	for j := range cd.Abilities {
 		a := &cd.Abilities[j]
 		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
@@ -37,6 +41,7 @@ func (s *State) unitAltsChoice(k *prep, pk *planner, u int, out *[planLimitAlts]
 		}
 		if !a.ManaEach {
 			choice = true
+			choiceCols |= a.ManaColors
 		}
 	}
 	for c, i := range k.gen.blgSub {
@@ -71,7 +76,10 @@ func (s *State) unitAltsChoice(k *prep, pk *planner, u int, out *[planLimitAlts]
 			left &^= 1 << c
 		}
 	}
-	for left |= more; left != 0; left &= left - 1 {
+	// a colour only a choice-shaped ability makes has no intrinsic ability:
+	// gorge lists the granted types' intrinsic abilities alone (White Lotus
+	// Hideout under an Island grant lists {U}, not WUBRG)
+	for left = left&^uint8(choiceCols) | more; left != 0; left &= left - 1 {
 		out[n] = lsAlt{uint8(bits.TrailingZeros8(left)), -1}
 		n++
 	}
@@ -82,13 +90,37 @@ func (s *State) unitAltsChoice(k *prep, pk *planner, u int, out *[planLimitAlts]
 	for j := range cd.Abilities {
 		a := &cd.Abilities[j]
 		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 || a.ManaEach ||
-			a.AFlags&kop.AfManaChoice == 0 && bits.OnesCount8(uint8(a.ManaColors)) == 1 {
+			a.AFlags&kop.AfManaChoice == 0 && bits.OnesCount8(uint8(a.ManaColors)) == 1 ||
+			!planChoiceAbListed(a, pk.rkind[u]) {
 			continue
 		}
 		for m := uint8(a.ManaColors); m != 0; m &= m - 1 {
+			if n == planLimitAlts {
+				s.capFull(StallPlanAlts) // past the array: never a silent cut
+				return n, true
+			}
 			out[n] = lsAlt{uint8(bits.TrailingZeros8(m)), int8(j)}
 			n++
 		}
 	}
 	return n, true
+}
+
+// StallPlanAlts: a source of the node-limited plan has more alternatives than
+// planLimitAlts holds (unitAltsChoice).
+const StallPlanAlts = 144
+
+func init() { stallNames[StallPlanAlts] = "planalts" }
+
+// planChoiceAbListed reports whether gorge's census expands choice-shaped
+// mana ability a into the unit's alternatives (pay.appendUnitAlternatives):
+// a normal-tier ability must have a tap-only cost, so a filter's mana fee
+// ({1},{T}: White Lotus Hideout's third ability) is no alternative, and a
+// RestrictValid$ one counts only when the payment admits it (restrictedRefused
+// withholds it), which the unit's restricted kind records (rk 0: refused).
+func planChoiceAbListed(a *kop.Ability, rk uint8) bool {
+	if a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0 {
+		return false
+	}
+	return !restrSrcAb(a) || rk != 0
 }

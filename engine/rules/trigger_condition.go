@@ -88,6 +88,20 @@ func (e *Engine) triggerResolvingCheckHolds(t cards.Trigger, source state.ObjID,
 	if noResolvingCheck(t) {
 		return true
 	}
+	// Increment (CR 702.191a) is an intervening "if" (CR 603.4): the source
+	// must still be a creature on the battlefield, and the cast's spend,
+	// captured when the trigger fired, must still exceed its power or
+	// toughness. A counter put on the creature by a trigger that resolved
+	// first can make it do nothing.
+	if trigmatch.IsIncrementTrigger(t) {
+		spent := int32(0)
+		if tc != nil {
+			spent = tc.TriggerIncrementSpent
+		}
+		if !trigmatch.IncrementHolds(e, source, spent) {
+			return false
+		}
+	}
 	// The ability's controller was fixed when it went on the stack. A delayed
 	// Effect can have another owner than its source card; an ordinary trigger's
 	// source can also change control while the ability waits to resolve.

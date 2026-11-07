@@ -707,6 +707,7 @@ type build struct {
 	divLeft   uint8    // bsDivide: points still to place beyond each target's 1
 	cas       uint8    // casElected / casPaid: the casualty cast (kw_casualty.go)
 	origin    kop.Zone // a pushed spell's zone before the push (the CR 733.1 reversal returns it there)
+	libPos    uint8    // origin library: the card's index from the top before the push (the reversal puts it back there, CR 733.2)
 	castN     uint8    // the ring entry noteCast recorded for this cast (index+1; 0 = none)
 	obsSl     Slot     // 1 + the slot of the observed mana source (a Tf2ManaFromSelf reader) this cast tapped; 0 none (mana_spendtrigger.go)
 	raiseSl   Slot     // the may-play static whose non-mana RaiseCost$ this cast owes: its slot (NoSlot = the cast card's own static); raiseAb 0 = none (cost_mayplayraise.go)
