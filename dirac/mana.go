@@ -1679,7 +1679,7 @@ func (pk *planner) consider() {
 			}
 		}
 	}
-	if pain >= pk.life {
+	if pain > 0 && pain >= pk.life {
 		return // the lethal guard (pay/search.go walk): never a plan
 	}
 	key[2] = size
