@@ -1965,7 +1965,12 @@ func (e *Engine) triggerModeCtx(p state.PlayerID, obj state.ObjID, sa *cards.SA)
 	if wr != nil {
 		source = wr.Source
 	}
-	ctx := effects.NewCtxPtr(source, p, effects.CtxInit{TriggerContext: e.triggerContexts[obj]})
+	// CR 107.3m: a CharmNum$ X ("choose up to X") reads the X bound when the
+	// trigger fired, the value resolution hands the ability (stack.go), not
+	// the source's live X -- a legend-rule SBA can bin the source before
+	// placement, and the move clears it.
+	ctx := effects.NewCtxPtr(source, p, effects.CtxInit{X: e.triggerPaidX(obj, wr),
+		TriggerContext: e.triggerContexts[obj]})
 	if so := e.G.Obj(source); so != nil {
 		// The modal SVar names resolve against the face that OWNS the trigger
 		// (the compiled SA pointer identifies it): a mutated pile's under-card

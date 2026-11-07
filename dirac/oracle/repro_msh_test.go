@@ -32,5 +32,6 @@ func TestStdMshReprosLockstep(t *testing.T) {
 		{"connive_triggered_referent_returned_no_counter", false, false},        // CR 400.7, 701.50b: Baron Strucker's connive for a Villain that died and returned before it resolved puts no +1/+1 counter on the new object
 		{"dark_fortress_mana_source_choice", false, false},                      // CR 601.2g, 702.193b: a hybrid Power-up's charge the reductions left hybrid-only arms no plan, so the manual window taps Dark Fortress's conditional {B} or {R} ability before the untapped Mountain
 		{"departed_self_toughness_lki", true, false},                            // CR 608.2h: Captain America's attack trigger resolving after he died pumps the Heroes by his last known toughness, not his printed one
+		{"etb_charm_count_x_after_legend_rule", false, false},                   // CR 107.3m, 603.3c: The Ruinous Wrecking Crew cast for X=2 and binned by the legend rule before its enter trigger is placed still offers "choose up to X" modes with the cast's X, so the trigger is not removed
 	})
 }
