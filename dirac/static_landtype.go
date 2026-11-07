@@ -206,3 +206,24 @@ func (s *State) hybStrand(k *prep, p uint8, c *kop.ManaCost, anyColor bool) bool
 	s.reverseCast(k)
 	return false
 }
+
+// potentialFirstMask is the colours a multi-colour source adds for its first
+// mana ability in the potential walk (availPotentialFor), which then admits the
+// card's other table abilities one by one. A granted basic land type's intrinsic
+// ability is in no table (Leyline of the Guildpact over a Swamp or Stomping
+// Ground: gorge counts the printed abilities and one per granted type, CR 305.6),
+// so the colours the view holds beyond the card's own mana abilities belong here.
+func (s *State) potentialFirstMask(k *prep, sl Slot, pc *pcard) uint8 {
+	cd := &k.t.Cards[s.cardAt(sl)]
+	mask := uint8(cd.Abilities[pc.manaAb].ManaColors)
+	if k.gen == nil || !k.gen.blgOn {
+		return mask
+	}
+	var own uint8
+	for j := range cd.Abilities {
+		if a := &cd.Abilities[j]; a.Kind == kop.AbMana {
+			own |= uint8(a.ManaColors & 0x3f)
+		}
+	}
+	return mask | uint8(pc.manaCol&0x3f)&^own
+}

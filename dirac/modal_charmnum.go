@@ -85,6 +85,11 @@ func (s *State) charmModesStep(k *prep, a *kop.Ability, d *Decision) int {
 		}
 	}
 	need := charmMin(a)
+	if k.t.Cards[e.card].ModesMinCount {
+		if c, dyn := s.charmCap(k); dyn {
+			need = int(c) // no MinCharmNum$: gorge's minimum is the count itself
+		}
+	}
 	if tw := s.twModes(k); tw != 0 {
 		need = int(tw) // a teamworked Teamwork charm (kw_teamwork.go)
 	}
