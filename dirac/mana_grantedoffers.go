@@ -446,6 +446,7 @@ type grantStep struct {
 	kind uint8
 	act  Action
 	cand Slot // stepTapX: the permanent its cost taps
+	pain bool // the source's painful printed ability (mana_grantpain.go)
 }
 
 const (
@@ -616,7 +617,11 @@ func (g *grantSrch) visit(t *State) bool {
 		if !grants {
 			continue
 		}
-		if g.dual[i] {
+		if ppc := t.manaPCGen(g.k, sl); g.dual[i] && !t.ownRestrPrinted(g.k, sl) && grantPainShape(g.k, ppc) {
+			if g.painBranch(t, i, sl, ppc, alts == 1) { // its painful ability's colours too (mana_grantpain.go)
+				return true
+			}
+		} else if g.dual[i] {
 			mask, n := uint8(0), uint8(0)
 			if ra := t.ownRestrAb(g.k, sl); ra != nil && !t.ownManaUsable(g.k, sl) {
 				mask, n = uint8(ra.ManaColors)&0x3f, max(ra.ManaN, 1) // the restricted printed ability
@@ -1020,6 +1025,9 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			}
 		} else {
 			s.pl[g.p&1].pool[st.col] += st.n
+		}
+		if st.pain {
+			s.painDamage(k, sl, g.p&1, int(s.manaPCGen(k, sl).painN)) // its life or damage (mana_grantpain.go)
 		}
 		if k.gen.anyTapExtra {
 			xv := s.srcExtraPick(k, sl, s.stepView(k, sl, st.gi), int(st.col))

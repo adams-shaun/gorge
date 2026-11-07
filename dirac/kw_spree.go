@@ -139,8 +139,27 @@ func (s *State) charmTargetAskDead(k *prep) bool {
 		// Convoke/Improvise/Harmonize picks in; the pool pays only the remainder
 		cost = s.convokeApplyPicks(k, xFolded(cost, int(e.x)))
 	}
-	if s.windowPoolPays(e.ctrl, &cost, s.bld().bfl&bflAnyColor != 0) {
+	anyColor := s.bld().bfl&bflAnyColor != 0
+	if s.windowPoolPays(e.ctrl, &cost, anyColor) {
 		return false
+	}
+	if s.rbAny(e.ctrl & 1) {
+		// the floating restricted mana this cast may spend is in gorge's
+		// payment pool (its AvailableFor holds the batches the spell's
+		// restriction admits, CR 106.6), which this gate's payable check
+		// reads like any other pool unit (legal.go castAffordsR)
+		var av avail
+		pl := &s.pl[e.ctrl&1]
+		for c := 0; c < kop.NumManaKinds; c++ {
+			if pl.pool[c] > 0 {
+				av.addUnits(1<<c, pl.pool[c])
+			}
+		}
+		if s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av) {
+			if anyColor && av.affordsAnyColor(&cost, 0) || !anyColor && av.affords(&cost, pipMaskOf(&cost), 0) {
+				return false
+			}
+		}
 	}
 	if tgtDepReduce(&k.t.Cards[e.card]) {
 		return false // a matching target can still reduce the cost
