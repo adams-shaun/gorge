@@ -152,7 +152,7 @@ func setupCounters(s oracleSeat, name string) []events.Event {
 		}
 		for kind, n := range kinds {
 			if n != 0 {
-				out = append(out, events.Event{Kind: events.CounterChange, Counter: normCounter(kind), Amount: n})
+				out = append(out, events.Event{Kind: events.CounterChange, Counter: setupCounterKind(kind), Amount: n})
 			}
 		}
 	}
@@ -2214,6 +2214,24 @@ func normCounter(k string) string {
 		return v
 	}
 	return strings.ToUpper(k)
+}
+
+// setupCounterKind is normCounter's setup-side twin: the kind a scenario's
+// setup counter is PLACED under, in the engine's own spelling. The snapshot
+// side (normCounter) is a comparison key, so it upper-cases; placement must
+// match the kind the engine stores and the filters read. `+1/+1`/`-1/-1` fold
+// through normCounterTab as before, a keyword counter (in any case) folds to
+// cards.CounterKeyword's canonical title-cased spelling, and any other kind
+// takes state.CanonicalCounterKind -- the same fold the PutCounter parameter
+// reader uses, so setup cannot place a counter no rule can read.
+func setupCounterKind(k string) string {
+	if v, ok := normCounterTab.Get(strings.ReplaceAll(strings.ToLower(k), " ", "")); ok {
+		return v
+	}
+	if kw, ok := cards.CounterKeyword(k); ok {
+		return kw
+	}
+	return state.CanonicalCounterKind(k)
 }
 
 func poolString(m state.Mana) string {

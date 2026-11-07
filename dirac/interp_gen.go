@@ -2147,7 +2147,7 @@ const NoSubtypeIdx = 254
 // the answer to re-execute it.
 func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool {
 	kw := s.srcKw(k)
-	if park && s.replPlusSrcPass(k, s.res.e.ctrl, s.objRef(k, kop.RefSelf), s.res.e.card, kw, codes, amts) {
+	if park && s.replPlusSrcPass(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), s.res.e.card, kw, codes, amts) {
 		return true
 	}
 	inf := k.gen.anyInfect && s.srcInfect(k)
@@ -2201,7 +2201,7 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool 
 		return false
 	}
 	if kw&kop.KwLifelink != 0 {
-		s.gainLife(k, s.res.e.ctrl, total)
+		s.gainLife(k, s.srcCtrl(k), total)
 	}
 	if k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go

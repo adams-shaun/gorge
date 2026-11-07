@@ -630,6 +630,17 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 	return 255
 }
 
+// srcCtrl is the controller of the resolving entry's source as it deals damage:
+// the permanent's current controller while it is still the same object on the
+// battlefield (Stiltzkin gave it away with its ability on the stack; CR 702.15b
+// gains the life for the source's controller), else the entry's.
+func (s *State) srcCtrl(k *prep) uint8 {
+	if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
+		return s.perms[sl].ctrl
+	}
+	return s.res.e.ctrl
+}
+
 func (s *State) ctrlOfObj(o Obj) uint8 {
 	ob := &s.objs[o]
 	if ob.zone == kop.ZoneBattlefield {
@@ -800,7 +811,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 	}
 	e := &s.res.e
 	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
-		if s.parkNC(k, e.ctrl, s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
+		if s.parkNC(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
 			return n // gorge's replacement-order ask, after the resolution
 		}
 		if n = s.replDamage(k, e.ctrl, s.objRef(k, kop.RefSelf), e.card, code, false, n); n <= 0 {
@@ -832,7 +843,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 	}
 	s.res.lastDmg = int16(n)
 	if kw&kop.KwLifelink != 0 {
-		s.gainLife(k, e.ctrl, n)
+		s.gainLife(k, s.srcCtrl(k), n)
 	}
 	if k.gen != nil && k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go
