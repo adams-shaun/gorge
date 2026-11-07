@@ -61,6 +61,9 @@ type KernelGame struct {
 	Seed        uint64      `json:"seed"`
 	Mulligans   int         `json:"mulligans"`
 	PassElision bool        `json:"pass_elision"`
+	// Commander and Commanders are the matchup's (Repro's same fields).
+	Commander  bool  `json:"commander,omitempty"`
+	Commanders []int `json:"commanders,omitempty"`
 	// AutopaySurface: the game was played on gorge's autopay surface
 	// (Config.GorgeAutopaySurface), so gorge replays its plain casts as
 	// planned casts, never by lowering a potential play
@@ -92,12 +95,22 @@ func compareHash(p *Projection) uint64 {
 	return ProjectionHash(&q)
 }
 
+// cmdProjBytes is the encoded size of Projection's trailing CmdCasts and
+// CmdDamage.
+const cmdProjBytes = 2 + 2*2
+
 // ProjectionHash is FNV-1a 64 over p's fixed-size little-endian encoding.
 func ProjectionHash(p *Projection) uint64 {
 	var buf bytes.Buffer
 	_ = binary.Write(&buf, binary.LittleEndian, p)
+	b := buf.Bytes()
+	if p.CmdCasts == [2]uint8{} && p.CmdDamage == [2][2]uint8{} {
+		// a game with no commander bookkeeping hashes as it did before the
+		// fields existed (they are the encoding's last bytes)
+		b = b[:len(b)-cmdProjBytes]
+	}
 	h := fnv.New64a()
-	h.Write(buf.Bytes())
+	h.Write(b)
 	return h.Sum64()
 }
 
@@ -105,6 +118,7 @@ func ProjectionHash(p *Projection) uint64 {
 // The policy's PickCtx has no GorgeSide (G is nil). maxDecisions caps it.
 func RecordKernelGame(m *Matchup, seed uint64, k Side, pol Policy, cfg Config, maxDecisions int) *KernelGame {
 	g := &KernelGame{Format: gameFormat, Decks: m.Names, Seed: seed, Mulligans: m.Mulligans, PassElision: cfg.PassElision, Winner: -1}
+	g.Commander, g.Commanders = m.commanderFields()
 	for s := 0; s < 2; s++ {
 		for _, c := range m.Decks[s] {
 			g.Cards[s] = append(g.Cards[s], cardName(c))
@@ -159,7 +173,7 @@ func ReadKernelGame(path string) (*KernelGame, error) {
 
 // Matchup rebuilds the game's matchup from its card names.
 func (g *KernelGame) Matchup(reg *cards.Registry) (*Matchup, error) {
-	r := Repro{Decks: g.Decks, Cards: g.Cards, Mulligans: g.Mulligans}
+	r := Repro{Decks: g.Decks, Cards: g.Cards, Mulligans: g.Mulligans, Commander: g.Commander, Commanders: g.Commanders}
 	return r.Matchup(reg)
 }
 
