@@ -157,7 +157,8 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 		// before.
 		if ev.Obj != 0 && lki != nil &&
 			(source == ev.Obj || LeftBattlefield(ev) ||
-				(ev.From == state.ZExile && ev.To != state.ZBattlefield)) {
+				(ev.From == state.ZExile && ev.To != state.ZBattlefield) ||
+				leftGraveyardLooksBack(t, ev)) {
 			spec, ok := e.CastProvenanceAdmits(v, lki.ID, ctrl)
 			// The IsGoaded static route (staticgoad1), passed as an override
 			// the same shape matchesSpec keeps (this LKI reader runs per
@@ -194,6 +195,24 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 			return false
 		}
 		if e.Power(ev.Obj) <= e.Power(source) && e.Toughness(ev.Obj) <= e.Toughness(source) {
+			return false
+		}
+	}
+	return true
+}
+
+// leftGraveyardLooksBack reports a "card leaves a graveyard" trigger, which
+// looks back in time (CR 603.10a): the card is matched as it was in the
+// graveyard, so Tom, Bert, and William returning as a noncreature artifact
+// is still a creature card leaving Along the Crooked Way's graveyard. A
+// trigger whose sole Destination$ is the battlefield is an enters trigger
+// that looks forward instead (CR 603.6a), so it keeps the live read.
+func leftGraveyardLooksBack(t cards.Trigger, ev events.Event) bool {
+	if ev.Kind != events.MoveZone || ev.From != state.ZGraveyard || ev.To == state.ZGraveyard {
+		return false
+	}
+	if d, ok := t.ParamCode(cards.PKDestination); ok {
+		if z, sole := effects.Destination(d).SoleZone(); sole && z == state.ZBattlefield {
 			return false
 		}
 	}

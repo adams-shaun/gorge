@@ -333,6 +333,14 @@ func (e *Engine) emit(ev events.Event) events.Event {
 					lkiTypes = lkiTypeList{id: o.ID, types: e.typeCharacteristics(o.ID, 0), set: true}
 				}
 			}
+			// A card leaving a graveyard is matched as it was there too (CR
+			// 603.10a): a creature card returned as a noncreature artifact
+			// still left the graveyard as a creature card, though the live
+			// type table already carries its new types.
+			if o.Zone == state.ZGraveyard && o.Face() != nil && e.layer4InPool &&
+				ev.Kind == events.MoveZone && ev.To != state.ZGraveyard {
+				lkiTypes = lkiTypeList{id: o.ID, types: e.typeCharacteristics(o.ID, 0), set: true}
+			}
 		}
 	case events.DoorUnlock:
 		// CR 709.5: Mode$ FullyUnlock (engine/rules/trigmatch/room.go) must tell a
