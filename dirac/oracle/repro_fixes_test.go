@@ -461,6 +461,7 @@ func TestStdLciReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-lci", []stdRepro{
 		{"granted_sac_host_cost_poses_no_choice", false, false},      // CR 602.2b, 701.21a: Deconstruction Hammer's granted "Sacrifice Deconstruction Hammer" cost has one possible payment, so it is paid without a choice after the targets
 		{"lose_all_setter_overwrites_self_chosen_type", true, false}, // CR 613.6, 613.7: Eaten by Piranhas on Roaming Throne makes it only a Skeleton; the Throne's older chosen-type grant outlives the ability loss but is overwritten in timestamp order
+		{"payment_trigger_counts_its_resolution", false, false},      // CR 603.2, 605.3b: Vito's trigger from a Treasure sacrificed paying for Guardian of the Great Door resolves before the cast and counts toward "the second time this ability has resolved this turn"
 		{"mana_float_unspent_observed_source", false, false},         // CR 601.2h: Barracks of the Thousand's mana floated by the X witness and left unspent (Jadelight Spelunker at X=0) is not mana that paid the cast
 	})
 }
