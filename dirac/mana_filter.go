@@ -445,14 +445,18 @@ func censusGapMana(a *kop.Ability) bool {
 
 // filtOnly: p's census gaps are filters alone (no other activatable source
 // with a mana ability the census misses: a Bloom Tender, Giada, a
-// Courtyard, Lupinflower Village's restricted {W}).
+// Courtyard, Lupinflower Village's restricted {W}, or a deferred
+// TriggersWhenSpent$ source such as Pyromancer's Goggles, which
+// otherGaps does not fund; mana_deferred.go).
 func (s *State) filtOnly(k *prep, p uint8) bool {
 	return s.scriptFilt(k, p).any() && !s.gapOthers(k, p).any()
 }
 
 // gapOthers: p's activatable sources with a census gap that is no filter. A tap-another
 // source short of what its cost taps (Baylen with one token) cannot be activated, so
-// gorge's census does not miss it.
+// gorge's census does not miss it. A deferred TriggersWhenSpent$ source
+// (Pyromancer's Goggles) carries gfGapOther too (gen.go): otherGaps does
+// not fund it (mana_deferred.go).
 func (s *State) gapOthers(k *prep, p uint8) slotMask {
 	m := s.gapMask(k, p, gfGapOther)
 	if !k.tapMana {

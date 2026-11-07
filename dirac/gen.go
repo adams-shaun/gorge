@@ -1060,8 +1060,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 			case kop.AbMana:
 				if a.ManaDeferred && a.AFlags&kop.AfLatent == 0 {
-					// a scripted-prefix gap beside the restricted ones (mana_deferred.go)
-					g.setFlag(CardID(i), gfDeferred)
+					// a scripted-prefix gap beside the restricted ones (mana_deferred.go),
+					// and no filter: gapOthers must see it so filtOnly is false
+					g.smallFor(CardID(i)).gapOther = int8(j)
+					g.setFlag(CardID(i), gfDeferred|gfGapOther)
 					g.anyDeferred, g.anyRestrScript, g.anyWindowGap = true, true, true
 				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
