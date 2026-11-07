@@ -49,7 +49,15 @@ type TriggerContext struct {
 	// Incarnation sacrificed before its enter trigger's intervening-if is
 	// rechecked). Meaningful only with SourceLKIValid and a departed source.
 	SourceManaColorSpent state.Mana
-	TriggerTarget        state.Target
+	// SourcePower, SourceToughness and SourceCounters are the departed
+	// source's layer-derived power and toughness and its counters as it last
+	// stood on the battlefield, read by Count$CardPower / CardToughness /
+	// CardCounters (Threefold Thunderhulk's "Gnomes equal to its power" with
+	// the creature sacrificed in response, CR 608.2h). Meaningful only with
+	// SourceLKIValid and a departed source; SourceCounters is never written.
+	SourcePower, SourceToughness int32
+	SourceCounters               []state.Counter
+	TriggerTarget                state.Target
 	// TriggerTargetLKIValid marks TriggerTargetAttacking as the attacking
 	// status TriggerTarget had on the battlefield when the trigger fired
 	// (CR 608.2h). A condition gate reading the target after a zone change

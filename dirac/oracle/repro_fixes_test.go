@@ -271,10 +271,12 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 func TestStdHobReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-hob", []stdRepro{
-		{"equip_target_reducer_offered_from_lands", false, false}, // CR 601.2f/602.2b: Dwarven Mauler's {2}-less reduction for an equip targeting it makes Equip {4} payable from two lands, so the equip is offered
-		{"sac_part_and_mana_share_a_treasure", false, false},      // CR 601.2g-h: the one Treasure that pays Stir Up Trouble's {B} is gone, so it is not also the artifact its either-or part sacrifices; the cast is not offered
-		{"autopay_plan_prices_target_discount", true, false},      // CR 601.2f: Dwarven Mauler's {2}-less ValidTarget$ discount makes Ragged Short Spear's equip {3} payable from two lands, so the autopay witness prices it and the re-equip is offered
-		{"hascards_graveyard_static_zero_a", false, false},        // CR 604.1: Master's Councillors' +2/+0 per graveyard with seven or more cards counts the graveyard that has them
+		{"equip_target_reducer_offered_from_lands", false, false},   // CR 601.2f/602.2b: Dwarven Mauler's {2}-less reduction for an equip targeting it makes Equip {4} payable from two lands, so the equip is offered
+		{"sac_part_and_mana_share_a_treasure", false, false},        // CR 601.2g-h: the one Treasure that pays Stir Up Trouble's {B} is gone, so it is not also the artifact its either-or part sacrifices; the cast is not offered
+		{"leaves_graveyard_looks_back_at_card_types", false, false}, // CR 603.10a: Tom, Bert, and William return as a noncreature artifact, yet a creature card left the graveyard, so Along the Crooked Way amasses
+		{"graveyard_leave_sees_pre_move_types", true, false},        // CR 603.10a: Tom, Bert, and William returns from the graveyard as an artifact, and Along the Crooked Way still sees a creature card leave
+		{"autopay_plan_prices_target_discount", true, false},        // CR 601.2f: Dwarven Mauler's {2}-less ValidTarget$ discount makes Ragged Short Spear's equip {3} payable from two lands, so the autopay witness prices it and the re-equip is offered
+		{"hascards_graveyard_static_zero_a", false, false},          // CR 604.1: Master's Councillors' +2/+0 per graveyard with seven or more cards counts the graveyard that has them
 		{"hascards_graveyard_static_zero_b", false, false},
 	})
 }
@@ -439,6 +441,8 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"delayed_trigger_departed_source_lifelink", false, false},
 		// CR 601.2f-g: Valkyrie Aerial Unit's affinity counts both Treasures before one is sacrificed for mana, so {2}{U}{U} is payable
 		{"count_reduction_fixed_before_treasure_mana", true, false},
+		// CR 601.2f: Cloud, Planet's Champion's {2} less makes White Mage's Staff's equip onto it {1}, payable by tapping Balamb Garden
+		{"equip_target_reduced_autopay_offer", true, false},
 		// CR 601.2f, 602.2b: Cloud's {2} equip reduction prices Dragoon's Lance's Equip {4} for the target Cloud, so the autopay offer plans {2}
 		{"equip_target_reduction_autopay_offer", true, false},
 		// CR 601.2f: Cloud, Planet's Champion's ValidTarget$ discount makes Paladin's Arms' Equip {4} payable from three untapped sources when it targets Cloud
@@ -497,6 +501,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"either_or_mana_part_spends_restricted_source", false, false}, // CR 106.6, 601.2f: Kinsbaile Aspirant's {2} part with its {W} is affordable through Eclipsed Realms' chosen-type mana
 		{"aura_etb_lki_bearer_flickered", true, false},                 // CR 400.7, 608.2h: Aquitect's Defenses' ETB pump, its Aura gone after Personify flickered Rimekin Recluse, gives the returned Rimekin nothing
 		{"repeat_loss_after_static_grant", false, false},               // CR 613.7: Abigale's second loss of abilities, after Chronicle of Victory entered, is newer than its first-strike-and-trample grant and takes it away from Prideful Feastling
+		{"dig_entry_chosen_type_sees_batch", true, false},              // CR 603.6a: Rimefire Torque, dug onto the battlefield last with its as-enters type asked, sees changeling Flock Impostor entering in the same batch
 	})
 }
 
@@ -515,6 +520,7 @@ func TestStdLciReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-lci", []stdRepro{
 		{"granted_sac_host_cost_poses_no_choice", false, false},       // CR 602.2b, 701.21a: Deconstruction Hammer's granted "Sacrifice Deconstruction Hammer" cost has one possible payment, so it is paid without a choice after the targets
 		{"attack_trigger_pump_skips_returned_attacker", false, false}, // CR 400.7: Grasping Shadows' attack trigger does not grant deathtouch and lifelink to Aclazotz once it died and returned as Temple of the Dead
+		{"lose_all_setter_overwrites_self_chosen_type", true, false},  // CR 613.6, 613.7: Eaten by Piranhas on Roaming Throne makes it only a Skeleton; the Throne's older chosen-type grant outlives the ability loss but is overwritten in timestamp order
 		{"payment_trigger_counts_its_resolution", false, false},       // CR 603.2, 605.3b: Vito's trigger from a Treasure sacrificed paying for Guardian of the Great Door resolves before the cast and counts toward "the second time this ability has resolved this turn"
 		{"counter_delayed_trigger_strips_creator", false, false},      // CR 603.7e: Tishana's Tidebinder counters the end-step sacrifice Saheeli, the Sun's Brilliance's copy registered; its source is Saheeli, who loses all abilities
 		{"mana_float_unspent_observed_source", false, false},          // CR 601.2h: Barracks of the Thousand's mana floated by the X witness and left unspent (Jadelight Spelunker at X=0) is not mana that paid the cast
