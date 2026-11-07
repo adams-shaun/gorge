@@ -12,8 +12,8 @@ import (
 func TestAdaptiveAutomatonEntryTriggersAnotherAngel(t *testing.T) {
 	t.Parallel()
 	auto := "Name:Adaptive Automaton\nManaCost:3\nTypes:Artifact Creature Construct\nPT:2/2\n" +
-		"K:ETBReplacement:Other:ChooseCT\nSVar:ChooseCT:DB$ ChooseType | Type$ Creature\n" +
-		"S:Mode$ Continuous | Affected$ Card.Self | AddType$ ChosenType\nOracle:x\n"
+		"K:ETBReplacement:Other:PickKind\nSVar:PickKind:DB$ ChooseType | Type$ Creature | AILogic$ MostProminentInComputerDeck\n" +
+		"S:Mode$ Continuous | AddType$ ChosenType | Affected$ Card.Self\nOracle:x\n"
 	val := "Name:Youthful Valkyrie\nManaCost:2 W\nTypes:Creature Angel\nPT:1/3\nK:Flying\n" +
 		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Angel.Other+YouCtrl | TriggerZones$ Battlefield | Execute$ TrigPut | TriggerDescription$ x\n" +
 		"SVar:TrigPut:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ 1\nOracle:x\n"
