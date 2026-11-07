@@ -783,7 +783,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		if in.Op != "Return" || in.C != zBattlefield {
 			return refuse("StaticEffect on a %s", in.Op)
 		}
-		lc.emitOverride(lRef{Kind: rRemembered}, override, "Permanent")
+		lc.emitOverride(lRef{Kind: rRemembered}, override, "Permanent|enterWith")
 		lc.ab.Prog[len(lc.ab.Prog)-1].Note = "applies to the returned object"
 		lc.ab.Prog[len(lc.ab.Prog)-1].Obj = obj
 	}
