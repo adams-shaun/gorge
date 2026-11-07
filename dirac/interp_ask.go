@@ -741,7 +741,12 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			if s.g.pickLeft > 0 {
 				r.ask = raGenPayPick
 				if s.autoPayPick(k) {
-					break // exactly the needed cards: gorge picks them (cumulative.go advanceTriggeredMandatory, pay/unlessflow.go AdvanceUnless)
+					// exactly the needed cards: gorge picks them (cumulative.go advanceTriggeredMandatory, pay/unlessflow.go AdvanceUnless);
+					// a card one of them held in exile until it left is asked now, as after the last answered pick (CR 610.3d)
+					if s.payReturnPark() {
+						return
+					}
+					break
 				}
 				return
 			}
