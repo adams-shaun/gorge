@@ -537,6 +537,7 @@ func TestStdPoolReprosLockstep(t *testing.T) {
 		{"granted_types_any_land_census_position", "std-mkm"},           // Leyline of the Guildpact: Public Thoroughfare (Produced$ Any) is listed with the fixed sources, so the plan taps Plains, not the Thoroughfare
 		{"delayed_return_skips_object_blinked_since", "std-fin"},        // CR 400.7: Random Encounter's end-step return finds Y'shtola Rhul already exiled and returned by her own trigger, a new object
 		{"returned_creature_was_not_dealt_damage", "std-fin"},           // CR 400.7: Qutrub Forayer raised after combat damage killed it is dealt no damage this turn, so its destroy mode has no target
+		{"echo_copied_equip_offers_its_own_source", "std-msh"},          // CR 301.5c, 707.10c: Echo's copy of Vibranium Energy Daggers' Equip never offers the animated Daggers itself
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, true, false)
