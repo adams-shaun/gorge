@@ -36,15 +36,21 @@ SCRIPT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 # keeps its value, so `PACE=1s make deploy-demo` overrides the file for one
 # deploy. TestDemoEnvExampleDocumentsEveryVariable keeps the example in step.
 DEMO_VARS=(
-	GORGE_ROOT BIN CARDS DECKS FEEDBACK
+	GORGE_ROOT BIN CARDS DECKS FEEDBACK SERVER_MAIN SERVER_NOTE
 	PUB_PORT OMNI_PORT RETIRED_PORTS DEMO_PORT_HISTORY SWEEP
 	PUB_DIR OMNI_DIR PUB_LOG OMNI_LOG
 	TABLES SEATS COMMANDER_SEATS FORMATS PACE SEED
 	SPECTATOR VSBOT_SPECTATOR BOT_POLICY COMMON_SENSE
-	PAIRED_BOT PAIRED_BOT_SIMS PAIRED_BOT_SEARCHES
+	PAIRED_BOT PAIRED_BOT_SIMS PAIRED_BOT_SEARCHES PAIRED_BOT_DECKS
 	DEMO_GOMEMLIMIT PPROF
 	ART_DIR ART_FILL_BUDGET ART_FILL_MAX_FAILURES ART_FILL_CEILING
 )
+# SERVER_EXTRA_ARGS and SERVER_EXTRA_DECKS are bash arrays that only DEMO_ENV
+# can fill (the environment cannot carry an array): anything inherited under
+# those names is dropped.
+unset SERVER_EXTRA_ARGS SERVER_EXTRA_DECKS
+SERVER_EXTRA_ARGS=()
+SERVER_EXTRA_DECKS=()
 DEMO_ENV=${DEMO_ENV:-$SCRIPT_ROOT/deploy/demo.env}
 if [ -f "$DEMO_ENV" ]; then
 	declare -A _env_wins=()
@@ -67,7 +73,15 @@ else
 	GORGE_MAIN=$GORGE_ROOT
 fi
 unset _common
-BIN=${BIN:-$GORGE_ROOT/bin/gorged}
+# SERVER_MAIN, when set, is the absolute path of a directory holding a main.go
+# (a package main in another Go module on this box) to build and serve in place
+# of cmd/gorged, against this checkout (build_bin). Its binary gets its own
+# directory, so switching between the two kinds of build never reuses a stale
+# one; the basename stays gorged because the stop sweep matches its comm.
+SERVER_MAIN=${SERVER_MAIN-}
+BIN=${BIN:-$GORGE_ROOT/bin${SERVER_MAIN:+/server-main}/gorged}
+# Text appended to the ready line, for example which extras were linked.
+SERVER_NOTE=${SERVER_NOTE-}
 DECKS=${DECKS:-$GORGE_ROOT/testkit/testutil/decks}
 # gorged's -cards and -feedback defaults are relative to the working
 # directory, so they are pinned to the checkout.
@@ -108,6 +122,9 @@ COMMON_SENSE=${COMMON_SENSE:-false}
 PAIRED_BOT=${PAIRED_BOT:-az-closed}
 PAIRED_BOT_SIMS=${PAIRED_BOT_SIMS:-100}
 PAIRED_BOT_SEARCHES=${PAIRED_BOT_SEARCHES:-2}
+# The deck directory the built-in paired bot guesses an opponent's list from;
+# empty keeps gorged's own default, -decks.
+PAIRED_BOT_DECKS=${PAIRED_BOT_DECKS-}
 # GOMEMLIMIT for the servers only, under its own name so a test-oriented
 # GOMEMLIMIT in the caller's environment never reaches a long-running server
 # (one sized for test binaries kept its GC running continuously).
@@ -244,6 +261,8 @@ stop_all() {
 start_one() {
 	local port=$1 spectator=$2 dir=$3 log=$4 vsbot_spectator=$5
 	shift 5
+	local paired_decks=()
+	[ -z "$PAIRED_BOT_DECKS" ] || paired_decks=(-paired-bot-decks "$PAIRED_BOT_DECKS")
 	local cmd=(env GOMEMLIMIT="$DEMO_GOMEMLIMIT" "$BIN"
 		-addr "127.0.0.1:$port"
 		-spectator "$spectator"
@@ -253,6 +272,7 @@ start_one() {
 		-paired-bot "$PAIRED_BOT"
 		-paired-bot-sims "$PAIRED_BOT_SIMS"
 		-paired-bot-searches "$PAIRED_BOT_SEARCHES"
+		${paired_decks[@]+"${paired_decks[@]}"}
 		-dir "$dir"
 		-cards "$CARDS"
 		-feedback "$FEEDBACK"
@@ -267,6 +287,7 @@ start_one() {
 		-pprof="$PPROF"
 		-vsbot
 		-events
+		${SERVER_EXTRA_ARGS[@]+"${SERVER_EXTRA_ARGS[@]}"}
 		"$@")
 	if [ "$MODE" = dry ]; then
 		show rm -rf "$dir"
@@ -312,11 +333,46 @@ fill_art() {
 	"${cmd[@]}"
 }
 
+# go_directive prints the `go` version a module directory's go.mod declares.
+go_directive() { awk '$1 == "go" { print $2; exit }' "$1/go.mod"; }
+
+# resolve_server_main validates SERVER_MAIN and sets SERVER_MODULE (the module
+# directory that holds the server's main package) and SERVER_PKG (the package
+# path inside it): this checkout's ./cmd/gorged when SERVER_MAIN is empty.
+resolve_server_main() {
+	if [ -z "$SERVER_MAIN" ]; then
+		SERVER_MODULE=$GORGE_ROOT
+		SERVER_PKG=./cmd/gorged
+		return 0
+	fi
+	case "$SERVER_MAIN" in
+	/*) ;;
+	*)
+		echo "deploy-demo: SERVER_MAIN must be an absolute path: $SERVER_MAIN" >&2
+		exit 1
+		;;
+	esac
+	[ -d "$SERVER_MAIN" ] || { echo "deploy-demo: SERVER_MAIN $SERVER_MAIN is not a directory" >&2; exit 1; }
+	[ -f "$SERVER_MAIN/main.go" ] || { echo "deploy-demo: SERVER_MAIN $SERVER_MAIN has no main.go" >&2; exit 1; }
+	local main_dir root_dir mod
+	main_dir=$(cd "$SERVER_MAIN" && pwd -P)
+	root_dir=$(cd "$GORGE_ROOT" && pwd -P)
+	mod=$main_dir
+	while [ ! -f "$mod/go.mod" ]; do
+		[ "$mod" != / ] || { echo "deploy-demo: SERVER_MAIN $SERVER_MAIN is not inside a Go module (no go.mod above it)" >&2; exit 1; }
+		mod=$(dirname "$mod")
+	done
+	[ "$mod" != "$root_dir" ] || { echo "deploy-demo: SERVER_MAIN $SERVER_MAIN is inside GORGE_ROOT; leave SERVER_MAIN empty to build cmd/gorged" >&2; exit 1; }
+	SERVER_MODULE=$mod
+	if [ "$main_dir" = "$mod" ]; then SERVER_PKG=.; else SERVER_PKG=./${main_dir#"$mod"/}; fi
+}
+
 # build_bin builds BIN from GORGE_ROOT. With --build it first refuses a
 # checkout without the draft tree (gorged links draft events, so the build
 # would fail later and less clearly) and builds the web client the binary
 # embeds: a web-only change touches no .go file, so the binary is rebuilt
-# every time.
+# every time. With SERVER_MAIN set it builds that main package instead,
+# against this checkout, through a scratch workspace file next to BIN.
 build_bin() {
 	local bin_dir bin_abs
 	bin_dir=$(dirname "$BIN")
@@ -326,9 +382,20 @@ build_bin() {
 			exit 1
 		}
 	fi
+	resolve_server_main
+	local work= ver=
+	if [ -n "$SERVER_MAIN" ]; then
+		work=$BIN.work
+		ver=$(printf '%s\n%s\n' "$(go_directive "$GORGE_ROOT")" "$(go_directive "$SERVER_MODULE")" | sort -V | tail -n 1)
+	fi
 	if [ "$MODE" = dry ]; then
 		show make -C "$GORGE_ROOT" web
-		show env CGO_ENABLED=0 go build -C "$GORGE_ROOT" -trimpath -o "$BIN" ./cmd/gorged
+		if [ -n "$SERVER_MAIN" ]; then
+			show workspace "$work" go "$ver" use "$SERVER_MODULE" "$GORGE_ROOT"
+			show env CGO_ENABLED=0 GOWORK="$work" go build -C "$SERVER_MODULE" -trimpath -o "$BIN" "$SERVER_PKG"
+		else
+			show env CGO_ENABLED=0 go build -C "$GORGE_ROOT" -trimpath -o "$BIN" ./cmd/gorged
+		fi
 		return 0
 	fi
 	if [ "$MODE" = build ]; then
@@ -336,8 +403,15 @@ build_bin() {
 	fi
 	mkdir -p "$bin_dir"
 	bin_abs=$(cd "$bin_dir" && pwd)/$(basename "$BIN")
-	say "building gorged from $GORGE_ROOT into $bin_abs"
-	CGO_ENABLED=0 go build -C "$GORGE_ROOT" -trimpath -o "$bin_abs" ./cmd/gorged
+	if [ -n "$SERVER_MAIN" ]; then
+		work=$bin_abs.work
+		printf 'go %s\n\nuse (\n\t%s\n\t%s\n)\n' "$ver" "$SERVER_MODULE" "$GORGE_ROOT" >"$work"
+		say "building $SERVER_PKG of $SERVER_MODULE against the gorge checkout $GORGE_ROOT into $bin_abs"
+		CGO_ENABLED=0 GOWORK="$work" go build -C "$SERVER_MODULE" -trimpath -o "$bin_abs" "$SERVER_PKG"
+	else
+		say "building gorged from $GORGE_ROOT into $bin_abs"
+		CGO_ENABLED=0 go build -C "$GORGE_ROOT" -trimpath -o "$bin_abs" ./cmd/gorged
+	fi
 }
 
 case "$MODE" in
@@ -354,6 +428,11 @@ prewarm)
 dry)
 	say "configuration (DEMO_ENV $DEMO_ENV$([ -f "$DEMO_ENV" ] || echo ', absent')):"
 	for _v in "${DEMO_VARS[@]}"; do printf '  %s=%q\n' "$_v" "${!_v}"; done
+	printf '  SERVER_EXTRA_ARGS:'
+	[ "${#SERVER_EXTRA_ARGS[@]}" -eq 0 ] || printf ' %q' "${SERVER_EXTRA_ARGS[@]}"
+	printf '\n  SERVER_EXTRA_DECKS:'
+	[ "${#SERVER_EXTRA_DECKS[@]}" -eq 0 ] || printf ' %q' "${SERVER_EXTRA_DECKS[@]}"
+	printf '\n'
 	build_bin
 	;;
 build)
@@ -383,12 +462,30 @@ fill_art "$DECKS" || art_rc=$?
 if [ "$art_rc" -ne 0 ]; then
 	say "!!! art fill INCOMPLETE (exit $art_rc; 124/137 = the $ART_FILL_CEILING hard ceiling under GNU timeout; 125 = uutils timeout gave up after TERM and cannot force-kill a wedged fill) — see the summary above; starting the servers anyway, their background prewarm finishes the cache"
 fi
+# The extra deck directories (SERVER_EXTRA_DECKS) get the same bounded fill,
+# once each, and a failed fill never fails the deploy either.
+filled=("$DECKS")
+for d in ${SERVER_EXTRA_DECKS[@]+"${SERVER_EXTRA_DECKS[@]}"}; do
+	[ -n "$d" ] || continue
+	seen=
+	for f in "${filled[@]}"; do [ "$f" != "$d" ] || seen=1; done
+	[ -z "$seen" ] || continue
+	filled+=("$d")
+	say "filling card-art cache for the extra decks in $d"
+	extra_rc=0
+	fill_art "$d" || extra_rc=$?
+	if [ "$extra_rc" -ne 0 ]; then
+		say "!!! art fill for $d INCOMPLETE (exit $extra_rc); starting the servers anyway"
+	fi
+done
 stop_all
 # No -manabrew-think: it sets the think timeout of every human seat on the
 # server, native ones included.
 start_one "$PUB_PORT" "$SPECTATOR" "$PUB_DIR" "$PUB_LOG" "$VSBOT_SPECTATOR" -manabrew
 if [ -n "$OMNI_PORT" ]; then start_one "$OMNI_PORT" omniscient "$OMNI_DIR" "$OMNI_LOG" public; fi
+ready_summary() { printf 'spectator (%s, bots %s, paired bot %s, seats %s/commander %s, pace %s%s)' "$SPECTATOR" "$BOT_POLICY" "$PAIRED_BOT" "$SEATS" "$COMMANDER_SEATS" "$PACE" "${SERVER_NOTE:+, $SERVER_NOTE}"; }
 if [ "$MODE" = dry ]; then
+	say "would report: ready — $(ready_summary)"
 	say "dry run: nothing was built, stopped or started"
 	exit 0
 fi
@@ -400,4 +497,4 @@ wait_ready "$PUB_PORT"
 say "$(curl -fsS "http://127.0.0.1:$PUB_PORT/api/tables" |
 	tr ',' '\n' | grep '"format"' | cut -d'"' -f4 | sort | uniq -c |
 	tr '\n' ' ')on :$PUB_PORT"
-say "ready — spectator ($SPECTATOR, bots $BOT_POLICY, paired bot $PAIRED_BOT, seats $SEATS/commander $COMMANDER_SEATS, pace $PACE) http://localhost:$PUB_PORT/${OMNI_PORT:+  ·  omniscient http://localhost:$OMNI_PORT/}"
+say "ready — $(ready_summary) http://localhost:$PUB_PORT/${OMNI_PORT:+  ·  omniscient http://localhost:$OMNI_PORT/}"
