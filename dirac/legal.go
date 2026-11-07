@@ -668,7 +668,7 @@ func (s *State) flashbackPartsDisjoint(k *prep, p uint8, c CardID, cost kop.Mana
 		return true
 	}
 	var av avail
-	s.availWindowFor(k, p, &av)
+	s.availFor(k, p, &av)
 	return s.costPartDisjoint(k, p, NoSlot, ac, &cost, &av, pipMaskOf(&cost))
 }
 
@@ -758,9 +758,11 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		// a permanent tapped for the part is no mana source, and a source that
 		// sacrifices itself can use up what the part must sacrifice (CR 601.2g-h;
 		// gorge planReserving)
+		// the planner's census, not the unless / ward window's: a pain source's
+		// life-paid colour pays the mana beside the part (Haunted Screen; CR 601.2g-h)
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
 		var av avail
-		s.availWindowFor(k, p, &av)
+		s.availFor(k, p, &av)
 		if !s.costPartDisjoint(k, p, NoSlot, ac, &cost, &av, pipMaskOf(&cost)) {
 			return false
 		}
@@ -882,7 +884,7 @@ func (s *State) altAddPartDisjoint(k *prep, p uint8, c CardID, o Obj, part *kop.
 	}
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
 	var av avail
-	s.availWindowFor(k, p, &av)
+	s.availFor(k, p, &av)
 	return s.costPartDisjoint(k, p, NoSlot, part, &cost, &av, pipMaskOf(&cost))
 }
 
@@ -1330,49 +1332,6 @@ const potentialOpenUnits = 2 * trigXCap
 //
 //go:noinline
 func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
-	s.availPotentialCore(k, p, a, d, nil)
-}
-
-// potUnits is gorge's potentialUnits (rules potential.go): the units p's
-// sources make at once. A {T} source counts its best single ability (one tap
-// is one activation), so a dual's two abilities are one unit, not two; an
-// ability that does not tap its source adds on. open: an unlimited production.
-type potUnits struct {
-	best  [MaxPerm]uint16
-	extra int
-	open  bool
-}
-
-func (u *potUnits) note(sl Slot, n int, taps bool) {
-	if taps {
-		u.best[sl] = max(u.best[sl], uint16(n))
-		return
-	}
-	u.extra += n
-}
-
-// availPotentialUnits is availPotentialFor's unit count: the pool's units
-// plus every source's (potUnits), or potentialOpenUnits when one is open.
-//
-//go:noinline
-func (s *State) availPotentialUnits(k *prep, p uint8, a *avail, d *payDesc) int {
-	var u potUnits
-	s.availPotentialCore(k, p, a, d, &u)
-	if u.open {
-		return potentialOpenUnits
-	}
-	n := u.extra
-	for c := range s.pl[p].pool {
-		n += int(s.pl[p].pool[c])
-	}
-	for _, b := range u.best {
-		n += int(b)
-	}
-	return n
-}
-
-// availPotentialCore is availPotentialFor's walk; a non-nil u counts units.
-func (s *State) availPotentialCore(k *prep, p uint8, a *avail, d *payDesc, u *potUnits) {
 	payment := d != nil
 	var pot [kop.NumManaKinds]int
 	for c := range pot {
@@ -1421,15 +1380,6 @@ func (s *State) availPotentialCore(k *prep, p uint8, a *avail, d *payDesc, u *po
 			mask = uint8(k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb].ManaColors) // the walk below admits its other abilities, each once
 		}
 		add(sl, mask, pc.manaN)
-		if u != nil {
-			n := int(pc.manaN)
-			if k.manaEach && xvMask(pc) != 0 {
-				n *= bits.OnesCount8(mask) // all at once: one of each colour
-			}
-			cd := &k.t.Cards[s.cardAt(sl)]
-			taps := pc.manaAb < 0 || int(pc.manaAb) >= len(cd.Abilities) || cd.Abilities[pc.manaAb].Cost.Flags&kop.CostTap != 0
-			u.note(sl, n, taps)
-		}
 		if k.gen != nil && len(k.gen.grantPC) != 0 && s.grantMay(k, sl) && s.ownManaUsable(k, sl) {
 			// a mana ability granted beside the source's own one (an aura's
 			// "{T}: Add two mana of any one color") counts on its own, as
@@ -1442,9 +1392,6 @@ func (s *State) availPotentialCore(k *prep, p uint8, a *avail, d *payDesc, u *po
 					continue
 				}
 				add(sl, s.srcMaskAt(gv, sl), gv.manaN)
-				if u != nil {
-					u.note(sl, int(gv.manaN), true)
-				}
 			}
 		}
 	}
@@ -1471,15 +1418,9 @@ func (s *State) availPotentialCore(k *prep, p uint8, a *avail, d *payDesc, u *po
 					open = true
 				} else {
 					add(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
-					if u != nil {
-						u.note(sl, int(max(ab.ManaN, 1)), ab.Cost.Flags&kop.CostTap != 0)
-					}
 				}
 			}
 		}
-	}
-	if u != nil {
-		u.open = open
 	}
 	a.total, a.n = 0, 0
 	for c, n := range pot {
@@ -1571,7 +1512,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 			s.flushPrefixTriggers(k)
 		}
 	}
-	if s.scriptAny(k) && (isCastKind(a.Kind()) || a.Kind() == AkActivate || a.Kind() == AkPlot) {
+	if s.scriptAny(k) && isScriptPlayKind(a.Kind()) {
 		s.scriptPrefix(k, a, p) // a play only a scripted activation pays (script_gen.go)
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k) // its trigger resolves before the play (seed 640)

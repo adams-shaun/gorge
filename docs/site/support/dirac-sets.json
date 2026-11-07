@@ -1,8 +1,8 @@
 {
   "about": "dirac's per-set support, rendered by scripts/docs_sets.py. corpus and sets are the table in dirac/docs/support.md (corpus is its ALL row): scripts/docs_sets.py --refresh-dirac copies it and docs_sets_test.py holds this file to it. A card is supported when kgen lowers it, it is not refused by name, and clean lockstep games evidence it; lowered counts every card kgen can represent, refused and unverified included. commit is the gorge revision the counts were read at. lockstep is make dirac-slices on the full surface: seeded games played in both engines, compared at every decision.",
   "date": "2026-11-07",
-  "commit": "c4b97e2e9",
-  "corpus": {"cards": 34442, "lowered": 21671, "refused": 27, "unverified": 16862, "supported": 4782},
+  "commit": "84e2a8a1b",
+  "corpus": {"cards": 34442, "lowered": 21676, "refused": 28, "unverified": 16866, "supported": 4782},
   "lockstep": {
     "BLB": {"games": 1456, "agree": 1456, "stalls": 0, "disagree": 0},
     "FDN": {"games": 1399, "agree": 1395, "stalls": 4, "disagree": 0}
@@ -15,9 +15,9 @@
     "ECL": {"cards": 273, "lowered": 234, "refused": 1, "unverified": 43, "supported": 190},
     "EOE": {"cards": 266, "lowered": 239, "refused": 0, "unverified": 0, "supported": 239},
     "FDN": {"cards": 517, "lowered": 517, "refused": 0, "unverified": 24, "supported": 493},
-    "FIN": {"cards": 312, "lowered": 266, "refused": 2, "unverified": 19, "supported": 245},
+    "FIN": {"cards": 312, "lowered": 267, "refused": 2, "unverified": 20, "supported": 245},
     "FRA": {"cards": 269, "lowered": 245, "refused": 0, "unverified": 6, "supported": 239},
-    "HOB": {"cards": 172, "lowered": 152, "refused": 0, "unverified": 0, "supported": 152},
+    "HOB": {"cards": 172, "lowered": 153, "refused": 0, "unverified": 1, "supported": 152},
     "LCI": {"cards": 290, "lowered": 251, "refused": 1, "unverified": 22, "supported": 228},
     "MKM": {"cards": 279, "lowered": 242, "refused": 1, "unverified": 55, "supported": 186},
     "MSH": {"cards": 276, "lowered": 234, "refused": 2, "unverified": 25, "supported": 207},

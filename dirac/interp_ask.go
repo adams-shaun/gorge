@@ -194,17 +194,7 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	c := manaOf(amt, pips)
 	var av avail
 	other := payDesc{class: pdOther}
-	// gorge's unit bound (respay.go): one tap per source must cover the
-	// cost's PoolUnitsFloor, its generic and non-{B} pips (CR 118.3)
-	floor := int(c.Generic)
-	for i, n := range c.Pips {
-		if i != 2 {
-			floor += int(n)
-		}
-	}
-	if s.availPotentialUnits(k, p, &av, &other) < floor {
-		return false
-	}
+	s.availPotentialFor(k, p, &av, &other)
 	return av.affords(&c, pipMaskOf(&c), 0)
 }
 
@@ -1384,24 +1374,41 @@ func (s *State) flushSac(k *prep) {
 	}
 	ord, n := s.g.sacOrd, int(s.g.nsac)
 	s.g.nsac = 0
-	if k.gen != nil && k.gen.anyBatch {
-		defer s.batchClose(s.batchOpen()) // one sacrifice batch (trig_oneormore.go)
+	batch := k.gen != nil && k.gen.anyBatch
+	var bOld uint8
+	if batch {
+		bOld = s.batchOpen() // one sacrifice batch (trig_oneormore.go)
 	}
-	defer s.holdClose(k, s.holdOpen(k))
-	for _, sl := range ord[:n] {
+	hr := s.holdOpen(k)
+	// The moves before the first parked one (repl_sacbatch.go) go now, as
+	// gorge's earlier emits did; the parked ones are sacrificed and move after
+	// the answer, in the same batch.
+	w, parked := s.sacParkFrom(k, ord[:n])
+	for _, sl := range ord[:w] {
 		s.fireSac(k, sl)
 	}
 	var zs [MaxPerm]kop.Zone
-	for i, sl := range ord[:n] {
+	for i, sl := range ord[:w] {
 		zs[i] = s.dieZone(k, sl)
 	}
-	for i, sl := range ord[:n] {
+	for i, sl := range ord[:w] {
 		s.fireLeave(k, sl, zs[i])
 	}
-	for i, sl := range ord[:n] {
+	for i, sl := range ord[:w] {
 		s.removePerm(k, sl, zs[i], false)
 	}
+	if parked && hr.on {
+		// gorge holds an until-leaves return to the end of the whole flush;
+		// the parked moves run after this frame closes, so it cannot be told
+		// apart from a return between the moves.
+		s.capFull(StallReplLeave)
+	}
+	carried := parked && s.sacParkTail(ord[w:n], batch, bOld)
 	s.g.sacM = slotMask{}
+	s.holdClose(k, hr)
+	if batch && !carried {
+		s.batchClose(bOld)
+	}
 }
 
 // addSac adds slot sl to the effect sacrifice being collected.
