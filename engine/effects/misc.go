@@ -272,7 +272,12 @@ func effWard(h Host, c *Ctx, sa *cards.SA) {
 	if o == nil || o.Zone != state.ZStack {
 		return
 	}
-	if c.UnlessPay == "" {
+	// An unpayable life ward poses no ask: it counters directly (CR 119.4, 702.21a).
+	if checker, ok := h.(interface {
+		WardCostPayableFromCtx(state.PlayerID, string, *Ctx) bool
+	}); c.UnlessPay == "" && ok && !checker.WardCostPayableFromCtx(o.Controller, ActivationOf(sa).UnlessCost, c) {
+		// fall through to the counter below
+	} else if c.UnlessPay == "" {
 		// The prompt is player-facing text: render the raw UnlessCost$
 		// (PayLife<2>, Sac<1/Creature>) through unlessPayPhrase, never
 		// verbatim. Display only; the charge is rules' unless-payment path.

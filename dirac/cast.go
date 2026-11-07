@@ -725,8 +725,8 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			mx := av.maxX(&cost, pipMaskOf(&cost))
 			gorgeSurface := s.cfg&cfgGorgeSurface != 0
-			if k.restrSrc {
-				mx = max(mx, s.restrSrcMaxX(k, e.ctrl, &cost, &av)) // the restricted sources the payment may spend
+			if k.restrSrc || k.gen != nil && k.gen.anyMultiR {
+				mx = max(mx, s.restrSrcMaxX(k, e.ctrl, &cost, &av)) // the restricted sources the payment may spend (a wide any-colour one included)
 			}
 			anyColor := s.bld().bfl&bflAnyColor != 0
 			if anyColor {
@@ -785,8 +785,20 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				}
 			}
 			if k.gen != nil && k.gen.anyCharmV {
-				if c := s.charmCap(k); c != 0 {
-					pick = c // CharmNum$ over Count$Compare (modal_charmcmp.go)
+				if c, dyn := s.charmCap(k); dyn {
+					pick = c // CharmNum$ over a dynamic count (modal_charmcmp.go)
+					if c == 0 {
+						// choose up to zero: a trigger with no mode is
+						// removed (CR 603.3c), a spell announces none
+						if e.kind == seTrigger {
+							s.sp--
+							s.ctl = ctlPlaceTriggers
+							return false
+						}
+						s.bld().modesN = 255
+						s.nextStage(k)
+						continue
+					}
 				}
 			}
 			if s.bld().modesN >= max8(pick, 1) || e.kind == seAbility && s.modalActAtResolution(a, pick) {
