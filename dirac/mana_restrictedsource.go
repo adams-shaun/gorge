@@ -677,7 +677,9 @@ func (s *State) wideFaceAffords(k *prep, p uint8, r *kop.ManaCost, av *avail, ex
 
 // restrSrcMaxX is the largest X the payment being built can announce with
 // p's restricted sources it may spend counted (-1: none) -- the X ask's
-// bound (cast.go bsX), av less the activation's own tapped source.
+// bound (cast.go bsX), av less the activation's own tapped source. A wide
+// any-colour restricted source (Web Watch) is a scripted census gap, not an
+// rk record, so it is counted here for the payment it admits (CR 106.6).
 //
 //go:noinline
 func (s *State) restrSrcMaxX(k *prep, p uint8, cost *kop.ManaCost, av *avail) int {
@@ -687,7 +689,28 @@ func (s *State) restrSrcMaxX(k *prep, p uint8, cost *kop.ManaCost, av *avail) in
 		skip = d.src
 	}
 	t, multi, nm := s.restrSrcAvail(k, p, d, av, skip)
+	s.wideSrcAvailAdd(k, p, &t, &d, skip)
 	return t.maxXMulti(cost, pipMaskOf(cost), multi[:nm])
+}
+
+// wideSrcAvailAdd adds p's wide any-colour restricted sources (Web Watch's
+// Combo Any x2, restrWideAnyMana) that may spend on payment d: each makes
+// two mana of any combination of colours (CR 106.6, 601.2b), so the X bound
+// reads it as two independent any-colour units.
+func (s *State) wideSrcAvailAdd(k *prep, p uint8, a *avail, d *payDesc, skip Slot) {
+	if k.gen == nil || !k.gen.anyMultiR {
+		return
+	}
+	for b := s.scriptWide(k, p); b.any(); b = b.rest() {
+		sl := b.first()
+		if sl == skip {
+			continue
+		}
+		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]
+		if s.restrSrcAdmits(k, p, sl, ab, d) {
+			a.addUnits(uint8(kop.ColAny), 2)
+		}
+	}
 }
 
 // maxXMulti is maxX with each of ns a unit of that many mana of one colour.
