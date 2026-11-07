@@ -56,7 +56,9 @@ type SearchBot struct {
 	sampleMS, searchMS float64
 	// note, when set (SetExplain), receives one decision note per
 	// DecideSearch (explain.go). nil builds nothing.
-	note func(explain.Note)
+	note func(explain.Note)	// heldUpkeep counts the decisions Options.HoldUpkeep changed
+	// (HeldUpkeep).
+	heldUpkeep int
 }
 
 // SearchSeat is the driver-side contract testkit/bench.PlayGame type-asserts
@@ -135,6 +137,11 @@ func NewSearchBot(seed uint64, opts Options) *SearchBot {
 	return &SearchBot{def: heuristic.NewBot(seed), opts: opts}
 }
 
+// HeldUpkeep is the seat's count of decisions Options.HoldUpkeep changed: a
+// held bot cast played as pass, or a held cast dropped from the cast arm's
+// candidates.
+func (s *SearchBot) HeldUpkeep() int { return s.heldUpkeep }
+
 // WantsPaymentActions is an explicit opt-out (seat.PaymentPlanConsumer):
 // the teacher searches the decision's manual option list over a manual-tap
 // default bot (heuristic.NewBot), so neither ever reads a payment plan; building
@@ -164,6 +171,10 @@ func (s *SearchBot) DecideSearch(ctx context.Context, env Env, d decision.Decisi
 	if err != nil {
 		return decision.Intent{}, err
 	}
+	// The upkeep hold plays pass in place of a held bot cast on every path
+	// below, the unsearched ones included (Choose sees the pass).
+	botIn, held := holdAnswer(env.Engine, &d, botIn, s.opts)
+	s.heldUpkeep += held
 	// A feed that stopped observing has no valid history to sample from; the
 	// driver normally routes around this (its own DecideBoard fallback), so
 	// this guard is defence in depth, never the expected path.
@@ -186,6 +197,11 @@ func (s *SearchBot) DecideSearch(ctx context.Context, env Env, d decision.Decisi
 		opts.AfterSearch = func() { s.searchMS = Millis() - t0 - s.sampleMS }
 	}
 	in, _, tr := Choose(env.Setup, env.Feed.History(), env.Feed.Collector(), env.Engine, &d, botIn, env.Feed.LastFrame(), opts)
+	if held > 0 {
+		tr.HeldUpkeep = held
+	} else {
+		s.heldUpkeep += tr.HeldUpkeep
+	}
 	if len(tr.Candidates) >= 2 && Watch != nil {
 		Watch(Diag{Turn: env.Engine.G.Turn, SampleMS: s.sampleMS, SearchMS: s.searchMS, Trace: tr})
 	}

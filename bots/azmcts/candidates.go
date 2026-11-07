@@ -127,6 +127,9 @@ type boardScratch struct {
 	// payPlans > 1 also searches each planned cast's alternative payment
 	// plans, up to payPlans plans per cast (Options.PaymentPlans).
 	payPlans int
+	// hold, when set, is Options.HoldUpkeep (holdupkeep.go): the priority
+	// enumerators drop a held cast before the cap. nil changes nothing.
+	hold *upkeepHold
 }
 
 // board is the scratch Board, allocated on first use.
@@ -621,6 +624,9 @@ func paymentVocabulary(obs *searchprobe.Collector, e *rules.Engine, d *decision.
 	if scratch != nil && scratch.payPlans > 1 {
 		plans = scratch.payPlans
 	}
+	var b botpolicy.Board
+	built := false
+	hold := scratch.holdOn(e, d)
 	var payments []decision.PaymentAction
 	if plans > 1 {
 		payments = e.EnsurePaymentPlanAlternatives()
@@ -636,6 +642,14 @@ func paymentVocabulary(obs *searchprobe.Collector, e *rules.Engine, d *decision.
 	for _, a := range payments {
 		if len(a.Plans) == 0 || covered[a.Cast.Object] {
 			continue
+		}
+		if hold {
+			if !built {
+				b, built = boardInto(e, d.Player, scratch), true
+			}
+			if scratch.holds(e, &b, decision.Option{Kind: "cast", Obj: a.Cast.Object}) {
+				continue
+			}
 		}
 		acts, err := paymentActs(obs, e, d, a)
 		if err != nil {
@@ -663,8 +677,6 @@ func paymentVocabulary(obs *searchprobe.Collector, e *rules.Engine, d *decision.
 				in: decision.Intent{Seq: d.Seq, Player: d.Player, Payment: &decision.PaymentSelection{ActionID: a.ID, Plan: decision.ClonePaymentPlan(a.Plans[i])}}})
 		}
 	}
-	var b botpolicy.Board
-	built := false
 	for i, o := range d.Options {
 		switch o.Kind {
 		case "pass", "cast", "ability":
@@ -677,6 +689,14 @@ func paymentVocabulary(obs *searchprobe.Collector, e *rules.Engine, d *decision.
 				built = true
 			}
 			if !b.AbilityWorthTaking(o, d.Player) {
+				continue
+			}
+		}
+		if hold && o.Kind == "cast" {
+			if !built {
+				b, built = boardInto(e, d.Player, scratch), true
+			}
+			if scratch.holds(e, &b, o) {
 				continue
 			}
 		}
@@ -934,16 +954,23 @@ func worthOptionsInto(od *searchprobe.ObservedDecision, e *rules.Engine, d *deci
 	}
 	var b botpolicy.Board
 	built := false
+	hold := scratch.holdOn(e, d)
 	var keep []searchprobe.ObservedOption
 	for i, o := range d.Options {
-		if o.Kind == "ability" {
+		if o.Kind == "ability" || hold && o.Kind == "cast" {
 			if !built {
 				if e != nil {
 					b = boardInto(e, d.Player, scratch)
 				}
 				built = true
 			}
-			if !b.AbilityWorthTaking(o, d.Player) {
+			var drop bool
+			if o.Kind == "ability" {
+				drop = !b.AbilityWorthTaking(o, d.Player)
+			} else {
+				drop = scratch.holds(e, &b, o)
+			}
+			if drop {
 				if keep == nil {
 					keep = append(make([]searchprobe.ObservedOption, 0, len(od.Options)), od.Options[:i]...)
 				}

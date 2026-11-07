@@ -93,6 +93,9 @@ func ParseKinds(s string) (Kinds, error) {
 	return k, nil
 }
 
+// MaxHoldUpkeepExempt bounds Options.HoldUpkeepExempt.
+const MaxHoldUpkeepExempt = 8
+
 // Options are one Search's knobs; DefaultOptions holds the spec's values.
 type Options struct {
 	// Line > 0 asks Search for the principal line: up to Line plies of the
@@ -127,6 +130,22 @@ type Options struct {
 	// priority candidates. It is off by default so ordinary seats retain the
 	// established manual-payment candidate vocabulary.
 	AutoPayment bool
+	// HoldUpkeep is the opt-in upkeep hold (botpolicy.Board.
+	// PrematureInstantCast, holdupkeep.go): at a priority decision of the
+	// active player in its own untap, upkeep or draw step with an empty
+	// stack, an instant-speed cast from the hand is dropped from the
+	// priority candidates before the cap, at the root and in the walk. A
+	// root left with fewer than two candidates is not searched and the
+	// bot's answer is played -- pass in its place when that answer is
+	// itself a held cast. Stats.HeldUpkeep counts the roots it changed. Off
+	// by default (draft-zero docs/038 measured it null); off, every
+	// candidate list is unchanged.
+	HoldUpkeep bool
+	// HoldUpkeepExempt names cards HoldUpkeep never holds, by exact printed
+	// name (a card whose effect reads "this turn" before the draw), the
+	// names first and the rest empty. Empty by default. It is an array, as
+	// the kernel's is, so Options stays comparable.
+	HoldUpkeepExempt [MaxHoldUpkeepExempt]string
 	// PaymentPlans, with AutoPayment, is how many payment plans per planned
 	// cast the priority vocabulary searches: above 1, a cast's alternative
 	// plans whose residuals differ (rules.EnsurePaymentPlanAlternatives, at
@@ -409,6 +428,10 @@ type Stats struct {
 	// additive -- FeedStopped keeps counting every routed-around decision --
 	// so a true feed stop is FeedStopped - RootRefused.
 	RootRefused int
+	// HeldUpkeep counts root decisions Options.HoldUpkeep changed: a held
+	// cast dropped from the candidates, or a held bot answer replaced by
+	// pass.
+	HeldUpkeep int
 	// BotTapRerooted counts searched priority decisions whose bot answer
 	// under AutoPayment was a manual mana tap (outside the payment
 	// vocabulary): Seat.DecideSearch searched the full vocabulary with no bot
@@ -621,6 +644,7 @@ func (s *Stats) Add(o Stats) {
 	s.FeedStopped += o.FeedStopped
 	s.RedealRefused += o.RedealRefused
 	s.RootRefused += o.RootRefused
+	s.HeldUpkeep += o.HeldUpkeep
 	s.BotTapRerooted += o.BotTapRerooted
 	s.Livelocks += o.Livelocks
 	s.DeadlineHits += o.DeadlineHits
