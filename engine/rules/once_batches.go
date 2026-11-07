@@ -11,7 +11,9 @@ import (
 // a payment that sacrifices several permanents queues the "one or more"
 // watcher once; every effect-side sacrifice already enters BatchDepartures,
 // whose bracket nests with this one. A single id is a batch of one, exactly
-// the unbracketed reading.
+// the unbracketed reading. Several ids are also one zone batch: the
+// permanents leave simultaneously (CR 601.2h, 701.21a), so an until-leaves
+// exiler among them returns its card after all of them (CR 610.3d).
 //
 // It captures each permanent's last-known information BEFORE the first
 // Sacrifice event, while every permanent is still on the battlefield, and
@@ -28,9 +30,16 @@ func (e *Engine) emitSacrifices(ids []state.ObjID) []state.SacrificedInfo {
 	for _, id := range ids {
 		lki = append(lki, effects.SacrificedLKI(e, id))
 	}
+	together := len(ids) > 1
 	e.beginSacrificeBatch()
+	if together {
+		e.openZoneBatch()
+	}
 	for _, id := range ids {
 		e.emit(events.Sacrifice(id))
+	}
+	if together {
+		e.closeZoneBatch()
 	}
 	e.endSacrificeBatch()
 	return lki
