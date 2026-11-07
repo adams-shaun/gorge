@@ -200,12 +200,18 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 
 // anyManaSource reports whether p has an untapped source to fund a payment with:
 // a tap source, the untapped sacrifice-only arm, a gap source with its cost payable,
-// or a restricted mana ability.
+// a deferred source, or a restricted mana ability.
 //
 //go:noinline
 func (s *State) anyManaSource(k *prep, p uint8) bool {
 	if k.gen == nil {
 		return false
+	}
+	// a deferred source (Pyromancer's Goggles, mana_deferred.go) has no census
+	// ability, yet its plain {R} is untapped mana gorge's untappedManaSourceFor
+	// counts (CR 106.6: the when-spent rider restricts nothing)
+	if s.scriptDeferred(k, p).any() {
+		return true
 	}
 	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
 		sl := m.first()
