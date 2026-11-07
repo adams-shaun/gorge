@@ -251,7 +251,7 @@ the picks and the game seeds, so the same flags give the same log byte for byte.
 | `-structure` | round robin at 4 seats, Swiss at 8 | `roundrobin`, `swiss`, or `none` to stop after building |
 | `-rounds` | the structure's own | how many rounds to play |
 | `-players` | `lethal-pressure,bot,forge-heuristic,lethal-pressure` | one policy for every seat, or exactly one per seat. A policy that reads decklists is refused |
-| `-drafter`, `-builder` | `rating-colour`, `best23` | the pick and build logic |
+| `-drafter`, `-builder` | `rating-colour`, `best23` | the pick and build logic: a persona name, or `knobs:path.json` for a `pickbot.Tuning` knob file (`knobs:path.json@<hash>` checks the file's hash), which drafts with `Knobbed` and builds with `Best23` |
 | `-verify` | off | replay events and games, and exit non-zero on the first mismatch |
 | `-draftlog` | none | append every pick to a CSV in 17Lands' `draft_data` shape |
 | `-v` | off | print each seat's policy and deck summary |

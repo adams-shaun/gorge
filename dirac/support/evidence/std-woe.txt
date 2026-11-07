@@ -40,8 +40,11 @@ Cut In
 Decadent Dragon
 Discerning Financier
 Disdainful Stroke
+Dream Spoilers
 Dutiful Griffin
+Edgewall Inn
 Edgewall Pack
+Eerie Interference
 Ego Drain
 Elusive Otter
 Elvish Archivist
@@ -92,6 +95,7 @@ Hylda's Crown of Winter
 Ice Out
 Icewrought Sentry
 Imodane's Recruiter
+Imodane, the Pyrohammer
 Ingenious Prodigy
 Into the Fae Court
 Intrepid Trufflesnout
@@ -134,6 +138,7 @@ Picnic Ruiner
 Plains
 Plunge into Winter
 Pollen-Shield Hare
+Prophetic Prism
 Protective Parents
 Provisions Merchant
 Questing Druid
@@ -185,6 +190,7 @@ Spiteful Hexmage
 Splashy Spellcaster
 Stingblade Assassin
 Stockpiling Celebrant
+Stonesplitter Bolt
 Stormkeld Prowler
 Stormkeld Vanguard
 Storyteller Pixie
@@ -196,6 +202,7 @@ Sweettooth Witch
 Syr Armont, the Redeemer
 Taken by Nightmares
 Talion's Messenger
+Talion, the Kindly Lord
 Tanglespan Lookout
 Tattered Ratter
 Tempest Hart

@@ -11,8 +11,8 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | BIG | 30 | 23 | 1 | 8 | 14 |
 | BLB | 278 | 256 | 3 | 33 | 220 |
 | DFT | 276 | 248 | 0 | 24 | 224 |
-| DSK | 276 | 242 | 3 | 51 | 188 |
-| ECL | 273 | 233 | 2 | 41 | 190 |
+| DSK | 276 | 242 | 4 | 50 | 188 |
+| ECL | 273 | 234 | 1 | 43 | 190 |
 | EOE | 266 | 239 | 0 | 1 | 238 |
 | FDN | 517 | 517 | 0 | 24 | 493 |
 | FIN | 312 | 266 | 2 | 19 | 245 |
@@ -20,17 +20,17 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | HOB | 172 | 152 | 0 | 9 | 143 |
 | LCI | 290 | 251 | 1 | 22 | 228 |
 | MKM | 279 | 242 | 1 | 55 | 186 |
-| MSH | 276 | 233 | 1 | 25 | 207 |
+| MSH | 276 | 234 | 1 | 26 | 207 |
 | OTJ | 276 | 241 | 1 | 28 | 212 |
-| SOS | 270 | 248 | 1 | 26 | 221 |
+| SOS | 270 | 249 | 0 | 28 | 221 |
 | SPM | 192 | 160 | 1 | 23 | 136 |
 | TDM | 276 | 249 | 4 | 56 | 189 |
-| TLA | 285 | 252 | 1 | 1 | 250 |
-| TMT | 194 | 171 | 1 | 10 | 160 |
+| TLA | 285 | 253 | 1 | 2 | 250 |
+| TMT | 194 | 171 | 1 | 0 | 170 |
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
-| WOE | 281 | 252 | 0 | 13 | 239 |
-| ALL | 34442 | 21664 | 27 | 16942 | 4695 |
+| WOE | 281 | 252 | 0 | 6 | 246 |
+| ALL | 34442 | 21670 | 26 | 16932 | 4712 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -61,21 +61,22 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | std-spm | 74 |
 | std-tdm | 43 |
 | std-tla | 1500 |
-| std-tmt | 295 |
+| std-tmt | 1500 |
 | std-trc | 1500 |
 | std-trk | 1500 |
-| std-woe | 146 |
+| std-woe | 1500 |
 
 Nothing else is covered. A card none of these runs reaches is unverified, whatever it does. A supported card has played clean in these games, not in every game: the standing sweep and census are separate runs, last measured at 164 and 244 divergent pairs, and are outside this claim.
 
 ## Refused by name
 
-27 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+26 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 2 |
-| options | 7 |
+| options | 5 |
+| options-options | 1 |
 | projection | 1 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Damage | 1 |
