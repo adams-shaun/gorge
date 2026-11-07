@@ -104,6 +104,10 @@ const (
 	// parkNext: a state-based pass parked this move while an earlier pass's asks
 	// were still to come, so gorge's check unattaches before it asks for this one
 	parkNext uint8 = 32
+	// parkRemember: a destroy-all with RememberDestroyed$ parked this victim on a
+	// CR 616.1 ask; it joins the remembered set when its move reaches the
+	// graveyard (act_remember.go, runParked)
+	parkRemember uint8 = 64
 )
 
 // manaSacParks reports whether a source sacrificed for mana now can wait for its
@@ -231,6 +235,20 @@ func (s *State) park(k *prep, o Obj, kind parkKind, x uint8) bool {
 			*r = parkedMove{obj: o, kind: kind, x: x}
 			r.setNsrc(n)
 			copy(r.src[:], src[:n])
+			return true
+		}
+	}
+	return false
+}
+
+// parkMassQuiet queues a later victim of a destroy-all with one exile-instead
+// effect or none, whose turn comes in the queue all the same (CR 616.1: gorge
+// suspends the whole batch at the first competing victim); false when the
+// queue is full.
+func (s *State) parkMassQuiet(o Obj) bool {
+	for i := range s.cold.parked {
+		if r := &s.cold.parked[i]; r.kind == parkNone {
+			*r = parkedMove{obj: o, kind: parkMass}
 			return true
 		}
 	}
@@ -580,6 +598,9 @@ func (s *State) runParked(k *prep, r parkedMove) {
 		s.cycleDiscard(k, r.obj, r.x)
 	case parkLeave, parkSBA, parkMass:
 		s.leave(k, s.objs[r.obj].slot, kop.ZoneGraveyard, false)
+		if r.kind == parkMass && r.fl&parkRemember != 0 && s.objs[r.obj].zone == kop.ZoneGraveyard {
+			s.remember(r.obj) // RememberDestroyed$: only a victim that reached the graveyard counts
+		}
 	case parkFinish:
 		s.finishResolve(k, r.x != 0)
 	case parkMill:
