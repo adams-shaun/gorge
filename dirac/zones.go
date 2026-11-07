@@ -340,12 +340,14 @@ func (s *State) enter(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone) Sl
 	if from == kop.ZoneGraveyard {
 		s.fireLeavesGraveyardSelf(k, sl, o) // trig_leftgraveyard.go
 	}
+	host := NoSlot
 	if s.g.entHost != 0 {
-		s.attachEntering(k, sl) // zone_handmoveaura.go
+		host = s.attachEntering(k, sl) // zone_handmoveaura.go
 	}
 	if s.anyETB(k) && !(s.g.pre.ordMid && s.g.pre.obj == o) { // a copy waiting on gorge's second order ask fires them once applied (repl_entryclone.go)
 		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
 	}
+	s.attachedEntered(k, sl, host)
 	if k.anyRoom && from == kop.ZoneStack {
 		s.roomEntryUnlock(k, sl, o) // the cast door's UnlockDoor (face_rooms.go)
 	}

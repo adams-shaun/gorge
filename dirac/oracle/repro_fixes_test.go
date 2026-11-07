@@ -56,9 +56,10 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 func TestStdOtjReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-otj", []stdRepro{
-		{"copied_vehicle_counts_its_crew", true, false},   // CR 707.2: Loan Shark copying Luxurious Locomotive makes a Treasure per creature that crewed it
-		{"aegis_rebase_keeps_once_per_turn", true, false}, // CR 602.5c, 613.1a: an Aegis copy ending while another keeps the same copy does not make its once-each-turn ability new
-		{"counters_skip_a_ceased_token", true, false},     // CR 111.7: Railway Brawler's counters for a Beau the legend rule removed land on nothing
+		{"aegis_copy_hides_older_copy_exceptions", true, false}, // CR 613.7e, 707.2: Oko's Assimilation Aegis copy of Daring Thunder-Thief is newer than his until-end-of-turn copy, so "except he has hexproof" is overwritten and returns with that layer
+		{"copied_vehicle_counts_its_crew", true, false},         // CR 707.2: Loan Shark copying Luxurious Locomotive makes a Treasure per creature that crewed it
+		{"aegis_rebase_keeps_once_per_turn", true, false},       // CR 602.5c, 613.1a: an Aegis copy ending while another keeps the same copy does not make its once-each-turn ability new
+		{"counters_skip_a_ceased_token", true, false},           // CR 111.7: Railway Brawler's counters for a Beau the legend rule removed land on nothing
 		// CR 707.10c, 115.3: Jace Reawakened's copy of Fleeting Reflection may
 		// not move "up to one other target creature" onto the creature its
 		// first target already names
@@ -95,6 +96,8 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// and its first arm pays the full price from the sources while the
 		// retry pays the reduced price from the pool alone.
 		{"mayplay_target_dependent_several_targets", false, false},
+		// CR 603.3b: One Last Job returns Assimilation Aegis attached; gorge scans the move (its ETB trigger) before the attach (its Attached trigger), so the ETB trigger is queued first
+		{"entered_attached_etb_before_attached_trigger", false, false},
 		{"aegis_on_temporary_copy_bearer", true, false},     // CR 613.7e, 707.2: Assimilation Aegis attached to a creature Fleeting Reflection made a copy until end of turn copies over it (the later copy wins), and gives it back to that copy when unattached
 		{"clone_on_aegis_bearer_until_eot", true, false},    // CR 613.7e, 514.2: Fleeting Reflection's until-end-of-turn copy over an Assimilation Aegis bearer ends at cleanup, and the Aegis copy it covered shows again
 		{"resolved_spell_copy_rests_in_exile", true, false}, // CR 707.10a: a copy of a spell is exiled as it leaves the stack (gorge's spellRestZone), not put in a graveyard and ceased later
@@ -542,6 +545,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"granted_prefix_pays_painful_needed_colour", false, false},     // CR 119.4: the granted-mana prefix taps an animated Haunted Screen for its painful {R} the play needs (gorge's ask lists it before the grant) and pays 1 life
 		{"self_leaves_trigger_sees_remembered_clear", false, false},     // CR 400.7/603.2d: a leaves trigger whose source departed does not serve the fire-time remembered snapshot, so the first instance's Cleanup clear closes the second instance's window
 		{"unless_tax_hides_unadmitted_restricted_mana", false, false},   // CR 106.6: Smoky Lounge's Room-only {R}{R} cannot pay Don't Make a Sound's {2} unless tax, so its controller is offered only the decline
+		{"sac_after_aura_control_ends", false, false},                   // CR 613.1b, 701.21: Vile Mutilator's second sacrifice counts creatures after the first (an Aura) left, so the creature it stole is back with its owner and the lone manifest is forced
 		{"painless_plan_at_nonpositive_life", false, false},             // CR 119.4, 601.2g: a player at life <= 0 (a lose-the-game replacement) still pays a {1} spell from painless lands; the pain guard cuts only a plan that pays life
 	})
 }
