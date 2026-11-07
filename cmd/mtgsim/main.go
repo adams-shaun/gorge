@@ -19,6 +19,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/heuristic"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
@@ -54,6 +55,7 @@ func main() {
 	dir := flag.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
 	policyA := flag.String("a", "", "bot policy name for seat 0 (default: heuristic)")
 	policyB := flag.String("b", "", "bot policy name for seat 1 (default: heuristic)")
+	format := flag.String("format", "constructed", "game format: constructed or commander (40 life, commanders in the command zone)")
 	var sbAgents []string
 	flag.Func("sb-agent", "register a SpellBench v2 stdio agent: name=/path/to/agent (repeatable)", func(arg string) error {
 		sbAgents = append(sbAgents, arg)
@@ -61,7 +63,12 @@ func main() {
 	})
 	flag.Parse()
 
-	if err := runAgents(*decksFlag, *seats, *seed, *games, *verify, *verbose, *dir, *policyA, *policyB, sbAgents, os.Stdout); err != nil {
+	o := simOptions{
+		Decks: *decksFlag, Seats: *seats, Seed: *seed, Games: *games,
+		Verify: *verify, Verbose: *verbose, Dir: *dir,
+		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format,
+	}
+	if err := runSim(o, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "mtgsim:", err)
 		os.Exit(1)
 	}
@@ -80,7 +87,45 @@ func run(decksFlag string, seats int, baseSeed uint64, games int, verify, verbos
 	return runAgents(decksFlag, seats, baseSeed, games, verify, verbose, dir, "", "", nil, out)
 }
 
+// simOptions is one mtgsim run's settings, the flags main parses.
+type simOptions struct {
+	Decks           string
+	Seats           int
+	Seed            uint64
+	Games           int
+	Verify, Verbose bool
+	Dir             string
+	PolicyA         string
+	PolicyB         string
+	SBAgents        []string
+	// Format is "constructed" or "commander".
+	Format string
+}
+
 func runAgents(decksFlag string, seats int, baseSeed uint64, games int, verify, verbose bool, dir, policyA, policyB string, sbAgents []string, out io.Writer) error {
+	return runSim(simOptions{Decks: decksFlag, Seats: seats, Seed: baseSeed, Games: games, Verify: verify, Verbose: verbose, Dir: dir, PolicyA: policyA, PolicyB: policyB, SBAgents: sbAgents, Format: "constructed"}, out)
+}
+
+// runSim plays o.Games games and, with o.Verify, replays each one. A
+// commander run seats Commander decks only, checks each against the
+// Commander deck rules before any game, and plays at 40 life with every
+// seat's commander starting in the command zone.
+func runSim(o simOptions, out io.Writer) error {
+	decksFlag, seats, baseSeed, games := o.Decks, o.Seats, o.Seed, o.Games
+	verify, verbose, dir, policyA, policyB, sbAgents := o.Verify, o.Verbose, o.Dir, o.PolicyA, o.PolicyB, o.SBAgents
+	var format rules.Format
+	commander := false
+	switch o.Format {
+	case "constructed":
+	case "commander":
+		commander = true
+		format = rules.FormatCommander
+		if seats < 2 {
+			return fmt.Errorf("-format commander needs at least 2 seats")
+		}
+	default:
+		return fmt.Errorf("-format %q: want constructed or commander", o.Format)
+	}
 	if seats < 1 {
 		return fmt.Errorf("-seats must be at least 1, got %d", seats)
 	}
@@ -94,9 +139,25 @@ func runAgents(decksFlag string, seats int, baseSeed uint64, games int, verify, 
 		return err
 	}
 
-	names, err := deckNames(decksFlag, seats)
+	names, err := deckNames(decksFlag, seats, commander)
 	if err != nil {
 		return err
+	}
+	var cmds [][]int
+	var files []deck.File
+	if commander {
+		cmds = make([][]int, len(names))
+		files = make([]deck.File, len(names))
+		for i, name := range names {
+			f, err := testutil.LoadRepoDeckFile(name)
+			if err != nil {
+				return err
+			}
+			if len(f.CommanderNames()) == 0 {
+				return fmt.Errorf("deck %q names no commander (-format commander)", name)
+			}
+			files[i], cmds[i] = f, f.CommanderIndices()
+		}
 	}
 
 	reg, err := testutil.OpenCorpusRegistry(dir)
@@ -113,6 +174,11 @@ func runAgents(decksFlag string, seats int, baseSeed uint64, games int, verify, 
 		}
 		decks[i] = d
 	}
+	for i, f := range files {
+		if err := f.ValidateCommander(reg); err != nil {
+			return fmt.Errorf("deck %q: %w", names[i], err)
+		}
+	}
 
 	if verbose {
 		for i, name := range names {
@@ -123,7 +189,7 @@ func runAgents(decksFlag string, seats int, baseSeed uint64, games int, verify, 
 	failures := 0
 	for g := 0; g < games; g++ {
 		gameSeed := baseSeed + uint64(g)
-		if !playOne(out, gameSeed, names, decks, reg, verify, policyA, policyB) {
+		if !playOne(out, gameSeed, names, decks, reg, verify, policyA, policyB, format, cmds) {
 			failures++
 		}
 	}
@@ -139,15 +205,22 @@ func runAgents(decksFlag string, seats int, baseSeed uint64, games int, verify, 
 // assignment is the same on every machine and every run, never whatever
 // order a directory listing happened to produce. The default is the 12
 // pinned Legacy constructed decks, not RepoDeckNames(): the directory also
-// holds the five interim foundations-* commander decks, which mtgsim plays
-// as 20-life constructed games and which must not silently change what the
-// default -verify pool is. Pass -decks to play any of them
-// explicitly.
-func deckNames(flagVal string, seats int) ([]string, error) {
+// holds the Commander decks, which -format commander plays and which must
+// not silently change what the default -verify pool is. With commander set
+// the default is the first `seats` Commander decks instead.
+func deckNames(flagVal string, seats int, commander bool) ([]string, error) {
 	if flagVal == "" {
 		all := testutil.LegacyDeckNames()
+		kind := "repo"
+		if commander {
+			var err error
+			if all, err = commanderDeckNames(); err != nil {
+				return nil, err
+			}
+			kind = "Commander repo"
+		}
 		if seats > len(all) {
-			return nil, fmt.Errorf("-seats %d exceeds the %d repo decks available; pass -decks explicitly to repeat one", seats, len(all))
+			return nil, fmt.Errorf("-seats %d exceeds the %d %s decks available; pass -decks explicitly to repeat one", seats, len(all), kind)
 		}
 		return append([]string(nil), all[:seats]...), nil
 	}
@@ -161,12 +234,41 @@ func deckNames(flagVal string, seats int) ([]string, error) {
 	return names, nil
 }
 
+// commanderDeckNames lists the repo decks whose deck file names a
+// commander, in RepoDeckNames' sorted order.
+func commanderDeckNames() ([]string, error) {
+	var out []string
+	for _, name := range testutil.RepoDeckNames() {
+		f, err := testutil.LoadRepoDeckFile(name)
+		if err != nil {
+			return nil, err
+		}
+		if len(f.CommanderNames()) > 0 {
+			out = append(out, name)
+		}
+	}
+	return out, nil
+}
+
+// gameConfig is one game's rules.Config. A commander game starts at 40
+// life with cmds[i] (deck indices) naming seat i's commanders, which
+// genesis puts in the command zone.
+func gameConfig(seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, format rules.Format, cmds [][]int) rules.Config {
+	cfg := rules.Config{Seed: seed, Names: append([]string(nil), names...), Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Universe()}
+	if format == rules.FormatCommander {
+		cfg.Format = rules.FormatCommander
+		cfg.StartingLife = 40
+		cfg.Commanders = cmds
+	}
+	return cfg
+}
+
 // playOne plays a single game to completion (or to maxIntents) and prints
 // its one-line summary, then -- if verify is set -- a second line reporting
 // the replay outcome. It returns false for anything counted as
 // failure: non-termination, a replay error or a chain divergence.
-func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policyA, policyB string) (ok bool) {
-	cfg := rules.Config{Seed: seed, Names: append([]string(nil), names...), Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Universe()}
+func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policyA, policyB string, format rules.Format, cmds [][]int) (ok bool) {
+	cfg := gameConfig(seed, names, decks, reg, format, cmds)
 	// The default object cap, the same volume bound the shared drive
 	// loop arms: a degenerate token storm here ends as a LIVELOCK failure
 	// line under a bounded arena instead of growing the process until the
@@ -188,7 +290,7 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	// runs the no-host default underneath it.
 	e.AskStartingPlayer()
 
-	seats, err := matchSeats(e, reg, seed, names, policyA, policyB, out)
+	seats, err := matchSeats(e, reg, seed, names, policyA, policyB, matchFormat(format), out)
 	if err != nil {
 		fmt.Fprintf(out, "seed %d: %d seats -- FAILED: %v\n", seed, len(names), err)
 		return false
@@ -363,7 +465,7 @@ func registerSBAgents(specs []string) error {
 	return nil
 }
 
-func matchSeats(e *rules.Engine, reg *cards.Registry, seed uint64, names []string, policyA, policyB string, logOut io.Writer) ([]engineseat.Seat, error) {
+func matchSeats(e *rules.Engine, reg *cards.Registry, seed uint64, names []string, policyA, policyB, format string, logOut io.Writer) ([]engineseat.Seat, error) {
 	seatsOut := make([]engineseat.Seat, len(names))
 	for i := range names {
 		policy := ""
@@ -394,7 +496,7 @@ func matchSeats(e *rules.Engine, reg *cards.Registry, seed uint64, names []strin
 			GameID:       fmt.Sprintf("g-%016x", seed),
 			Seat:         i,
 			Seats:        len(names),
-			Format:       "constructed",
+			Format:       format,
 			Seed:         []byte(fmt.Sprintf("%d", seed)),
 			OwnDeck:      e.OwnDeck(state.PlayerID(i)),
 			Mulligan:     "none",
@@ -412,4 +514,12 @@ func matchSeats(e *rules.Engine, reg *cards.Registry, seed uint64, names []strin
 		}
 	}
 	return seatsOut, nil
+}
+
+// matchFormat is the bots.MatchContext.Format word for a game's format.
+func matchFormat(f rules.Format) string {
+	if f == rules.FormatCommander {
+		return "commander"
+	}
+	return "constructed"
 }
