@@ -115,6 +115,11 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// colour ask carries no announced hybrid pip, so gorge answers its
 		// lowest colour, not the {U} the composed cost still owes.
 		{"spree_window_any_colour_lowest", false, false},
+		// Intimidation Campaign, cast this turn under the opponent's High
+		// Noon, returns to hand on its crime trigger: its finished cast is
+		// still the one spell that turn, so neither engine offers it again
+		// (CR 601.2e; gorge excluded every push of the same ObjID).
+		{"cast_limit_counts_a_bounced_spell", false, false},
 	})
 }
 
@@ -192,6 +197,7 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"any_type_rider_hybrid_pips", true, false},             // CR 107.4e, 601.2b: Tinybones lets any mana pay Teach by Example's two hybrid pips, so W and B afford the cast
 		{"name_look_ack_mid_resolution", true, false},           // CR 608.2n: a copy token's looked-hand name ask is acknowledged while the creating ability is still on the stack
 		{"emblem_grant_after_ability_loss", false, false},       // CR 613.7: Vivien Reid's emblem, created after Witness Protection took Llanowar Elves' abilities, is the newer layer-6 effect, so its vigilance, trample and indestructible survive the loss
+		{"unless_discard_is_effect_discard", true, false},       // CR 118.12: discarding Wilt-Leaf Liege to an opponent's Perforating Artist "unless" is that ability's discard, so the Liege enters the battlefield
 	})
 }
 
@@ -375,6 +381,7 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"modal_cost_granted_mana_prefix", false, false},        // CR 601.2b, 601.2g-h: Tifa's Limit Break's cheapest Tiered mode costs only its printed {G}, which the granted any-colour source (A Realm Reborn) pays through the prefix
 		{"granted_mana_pays_tiered_cast", false, false},         // CR 601.2g: A Realm Reborn's granted any-colour mana from two untapped artifacts pays Ice Magic's {1}{U}, so the Tiered cast is offered
 		{"free_tiered_mode_cost_reduction", false, false},       // CR 601.2f, 118.9d: The Wind Crystal's ReduceCost applies to the Tiered mode cost of a free cast
+		{"window_any_colour_ability_owed_pip", false, false},    // CR 601.2g: an unpayable Tiered mode's window takes Starting Town's pay-life any-colour ability while a {W} pip is owed
 		{"graveyard_leave_sees_batch_entrant", true, false},     // CR 603.10a: Fang returned by Random Encounter beside the cards it returns did not see them leave
 	})
 }
