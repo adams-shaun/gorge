@@ -81,6 +81,7 @@ type pcard struct {
 }
 
 type prep struct {
+	nsub     uint8 // len(t.Subtypes): the first outside-type code (chars_gen.go outsideSub)
 	t        *kop.Table
 	cards    []pcard
 	gen      *genPrep // generated-table extension (gen.go); nil for hand-written tables
@@ -217,7 +218,7 @@ func prepare(t *kop.Table) *prep {
 	if len(t.Filters) == 0 {
 		t.Filters = []kop.Filter{{}}
 	}
-	p := &prep{t: t, cards: make([]pcard, len(t.Cards)), selfCast: prepSelfCast(t), eachPay: prepEachPay(t)}
+	p := &prep{t: t, nsub: uint8(len(t.Subtypes)), cards: make([]pcard, len(t.Cards)), selfCast: prepSelfCast(t), eachPay: prepEachPay(t)}
 	p.w8 = tableWord8(t) // filter_props.go
 	typedSub := typedManaSubtypes(t)
 	p.speed, p.engines = prepSpeed(t)

@@ -293,7 +293,10 @@ func selfOnlySpec(spec string) bool {
 func looksBackOnDeparture(t *cards.Trigger) bool {
 	switch t.ModeKind() {
 	case cards.TriggerChangesZone, cards.TriggerChangesZoneAll:
-		return t.ParamStr(cards.PKOrigin) == "Battlefield"
+		// Forge's Trigger.looksBackInTime: any Origin$ naming Battlefield
+		// ("Battlefield,Graveyard" included), not only exactly Battlefield.
+		o := t.ParamStr(cards.PKOrigin)
+		return o != "" && zoneSpecContains(o, state.ZBattlefield)
 	case cards.TriggerSacrificed, cards.TriggerSacrificedOnce, cards.TriggerUnattached:
 		return true
 	}

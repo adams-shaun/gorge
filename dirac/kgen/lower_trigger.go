@@ -1813,7 +1813,7 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			extra = append(extra, lStatic{Kind: "Goad", F: st.F, Cond: st.Cond})
 		}
 	case "ReduceCost":
-		if sp.str("Type") == "Ability" || sp.str("Type") == "" && (sp.str("ValidSpell") == "Activated.Exhaust" || sp.str("ValidSpell") == "Static.Unlock" || sp.str("ValidSpell") == "Activated.PowerUp") {
+		if sp.str("Type") == "Ability" || sp.str("Type") == "" && (strings.HasPrefix(sp.str("ValidSpell"), "Activated.") || sp.str("ValidSpell") == "Static.Unlock") {
 			if err := lc.reduceAbility(sp, &st, readF); err != nil {
 				return nil, err
 			}

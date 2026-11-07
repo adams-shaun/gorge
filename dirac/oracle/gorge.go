@@ -203,9 +203,17 @@ type convokeFrame struct {
 	// an X), so a generic pick against {0} is tentatively legal
 	// (gorge convokeAbsorbs, xOpen) and pays nothing until X is folded.
 	open bool
+	// gate, when set, replaces the budget: a cast with no cached hand price
+	// (a may-play, alternative-cost or kicked route) is filtered by gorge's
+	// own Submit gate over its pending cast (rules.CastContributionsAdmitted),
+	// so the walk never builds an over-selection gorge refuses.
+	gate func(choices []int) bool
 }
 
 func (c *convokeFrame) admits(d *decision.Decision, chosen []int, i int) bool {
+	if c.gate != nil {
+		return c.gate(append(slices.Clip(chosen), d.Options[i].Index))
+	}
 	gen, pips := c.gen, c.pips
 	apply := func(idx int) bool {
 		o := optByIndex(d, idx)
@@ -498,14 +506,15 @@ func castHasX(o *state.Object) bool {
 }
 
 // convokeFrameFor is the absorption frame of a convoke announcement d, or
-// nil when d is not one or its cast cost was not cached.
+// nil when d is not one. An uncached cast cost is gated by gorge itself.
 func (g *GorgeSide) convokeFrameFor(d *decision.Decision) *convokeFrame {
 	if d.Kind != decision.KChoose || len(d.Options) == 0 || !(strings.HasPrefix(d.Options[0].Kind, "convoke_") || d.Options[0].Kind == "improvise_generic") {
 		return nil
 	}
 	pc, ok := g.castCost[d.Source]
 	if !ok {
-		return nil
+		e, gd := g.E, d.Clone()
+		return &convokeFrame{gate: func(choices []int) bool { return rules.CastContributionsAdmitted(e, gd, choices) }}
 	}
 	// open is the cast's unannounced {X} itself: Max == #options also
 	// holds for an X-less menu no larger than its slot count, where gorge
@@ -603,6 +612,24 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 		case "play_land":
 			add(prioEntry{a: Pack(ActPlayLand, ref(o.Obj), RefNone, landFaceCode(o.Mode)), opt: o.Index})
 		case "cast":
+			// A may-play cast (an untyped permission's plain cast of a card in
+			// exile or the graveyard) prices beside the plain hand offers: its
+			// convoke announcement must filter by the same cost beginCast
+			// charges, or the oracle picks contributions the announcement
+			// cannot absorb and gorge's Submit refuses (CR 702.51b: "up to two
+			// green creatures and up to three other creatures"). May-play
+			// casts at an alternative (AltCostIndex > 0) keep the older
+			// unfiltered behaviour.
+			if o.Mode == "mayplay" && o.AltCostIndex == 0 {
+				if pc, ok := e.MayPlayCastPaymentCost(d.Player, o.Obj, o.MayPlayPerm); ok {
+					if g.castCost == nil {
+						g.castCost = map[state.ObjID]decision.PaymentCost{}
+						g.castX = map[state.ObjID]bool{}
+					}
+					g.castCost[o.Obj] = pc
+					g.castX[o.Obj] = castHasX(e.G.Obj(o.Obj))
+				}
+			}
 			if o.Mode == "" && o.AltCostIndex == 0 {
 				if pc, ok := e.CastPaymentCost(d.Player, o.Obj); ok {
 					if g.castCost == nil {

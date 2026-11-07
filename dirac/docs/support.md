@@ -8,29 +8,29 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 
 | list | cards | lowered | refused | unverified | supported |
 |---|---:|---:|---:|---:|---:|
-| BIG | 30 | 23 | 1 | 8 | 14 |
+| BIG | 30 | 23 | 1 | 1 | 21 |
 | BLB | 278 | 256 | 3 | 33 | 220 |
 | DFT | 276 | 248 | 0 | 24 | 224 |
-| DSK | 276 | 242 | 3 | 51 | 188 |
+| DSK | 276 | 242 | 4 | 50 | 188 |
 | ECL | 273 | 233 | 2 | 41 | 190 |
-| EOE | 266 | 239 | 0 | 1 | 238 |
+| EOE | 266 | 239 | 0 | 0 | 239 |
 | FDN | 517 | 517 | 0 | 24 | 493 |
-| FIN | 312 | 266 | 2 | 19 | 245 |
+| FIN | 312 | 267 | 2 | 20 | 245 |
 | FRA | 269 | 245 | 0 | 6 | 239 |
-| HOB | 172 | 152 | 0 | 9 | 143 |
+| HOB | 172 | 153 | 0 | 1 | 152 |
 | LCI | 290 | 251 | 1 | 22 | 228 |
 | MKM | 279 | 242 | 1 | 55 | 186 |
-| MSH | 276 | 233 | 1 | 25 | 207 |
+| MSH | 276 | 233 | 2 | 24 | 207 |
 | OTJ | 276 | 241 | 1 | 28 | 212 |
 | SOS | 270 | 249 | 0 | 28 | 221 |
-| SPM | 192 | 160 | 1 | 23 | 136 |
-| TDM | 276 | 249 | 4 | 56 | 189 |
+| SPM | 192 | 161 | 1 | 24 | 136 |
+| TDM | 276 | 249 | 4 | 3 | 242 |
 | TLA | 285 | 252 | 1 | 1 | 250 |
-| TMT | 194 | 171 | 1 | 10 | 160 |
+| TMT | 194 | 171 | 1 | 0 | 170 |
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 6 | 246 |
-| ALL | 34442 | 21665 | 26 | 16937 | 4702 |
+| ALL | 34442 | 21676 | 28 | 16866 | 4782 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -43,7 +43,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | blb | 1500 |
 | fdn | 1500 |
 | pauper | 1500 |
-| std-big | 115 |
+| std-big | 1500 |
 | std-blb | 75 |
 | std-dft | 194 |
 | std-dsk | 105 |
@@ -52,16 +52,16 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | std-fdn | 568 |
 | std-fin | 199 |
 | std-fra | 1500 |
-| std-hob | 97 |
+| std-hob | 1500 |
 | std-lci | 250 |
 | std-mkm | 252 |
 | std-msh | 275 |
 | std-otj | 70 |
 | std-sos | 118 |
 | std-spm | 74 |
-| std-tdm | 43 |
+| std-tdm | 1500 |
 | std-tla | 1500 |
-| std-tmt | 295 |
+| std-tmt | 1500 |
 | std-trc | 1500 |
 | std-trk | 1500 |
 | std-woe | 1500 |
@@ -70,12 +70,13 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-26 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+28 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 2 |
 | options | 6 |
+| options-options | 2 |
 | projection | 1 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Damage | 1 |

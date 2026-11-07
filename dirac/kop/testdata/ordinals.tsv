@@ -349,6 +349,7 @@ ExMVOf	ExprKind	29
 ExMod	ExprKind	234
 ExMorbid	ExprKind	8
 ExNone	ExprKind	0
+ExNotOwnLibMV	ExprKind	226
 ExNumColorsOf	ExprKind	57
 ExOppLifeLostThisTurn	ExprKind	17
 ExOppsAttacked	ExprKind	229
@@ -879,6 +880,7 @@ PutCtrCellFirst	untyped int	3
 PutCtrCellNext	untyped int	4
 PutCtrRemAmount	untyped int	5
 R	untyped int	3
+ReduceAbEquip	untyped int	8
 ReduceAbMinShift	untyped int	4
 ReduceAbPowerUp	untyped int	4
 ReduceAbUnlock	untyped int	2

@@ -587,7 +587,7 @@ func (s *State) autoPayPick(k *prep) bool {
 		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
 			s.exileFromGrave(o)
 		} else if s.g.pickZ == kop.PayDiscard {
-			s.discardCost(k, o)
+			s.discardUnlessPay(k, o)
 		} else if s.g.pickZ == kop.PayReturn {
 			s.leave(k, s.objs[o].slot, kop.ZoneHand, false)
 		} else {
@@ -768,7 +768,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
 			s.exileFromGrave(o) // a cost exile from either zone (cost_exilefromhand.go)
 		} else if s.g.pickZ == kop.PayDiscard {
-			s.discardCost(k, o)
+			s.discardUnlessPay(k, o)
 		} else if s.g.pickZ == kop.PayReturn {
 			s.leave(k, s.objs[o].slot, kop.ZoneHand, false) // gorge unlessflow: ReturnCost to the owner's hand
 		} else if s.g.pickZ == kop.PayTapX {
@@ -1048,6 +1048,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		s.continueRes(k, 0)
 	case raGenEnterAsk:
+		if s.g.ask[0].kind == akNameLook {
+			s.g.ask[0].kind = akNameAny // the look is acknowledged: the name is asked next (repl_choosename.go)
+			return
+		}
 		saved := s.res
 		s.res.active = false // the enters program runs with its own source as the context
 		s.answerQueuedAsk(k, a)
@@ -1084,6 +1088,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		}
 		if s.g.pre.kind == akEnchant {
+			paying := s.g.pre.state == preReturnPay
 			s.g.pre = preAsk{}
 			if s.objs[o].zone == kop.ZoneExile {
 				host := s.objs[a.Source()].slot
@@ -1091,6 +1096,11 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				s.enterOnto(host)
 				sl := s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from)
 				s.attachedTo(k, sl, host)
+			}
+			if paying {
+				s.res.ask = raNone
+				s.payDone(k, true) // the payment's sacrifice finishes after the host answer
+				return
 			}
 			s.continueRes(k, 0)
 			return
@@ -1364,24 +1374,41 @@ func (s *State) flushSac(k *prep) {
 	}
 	ord, n := s.g.sacOrd, int(s.g.nsac)
 	s.g.nsac = 0
-	if k.gen != nil && k.gen.anyBatch {
-		defer s.batchClose(s.batchOpen()) // one sacrifice batch (trig_oneormore.go)
+	batch := k.gen != nil && k.gen.anyBatch
+	var bOld uint8
+	if batch {
+		bOld = s.batchOpen() // one sacrifice batch (trig_oneormore.go)
 	}
-	defer s.holdClose(k, s.holdOpen(k))
-	for _, sl := range ord[:n] {
+	hr := s.holdOpen(k)
+	// The moves before the first parked one (repl_sacbatch.go) go now, as
+	// gorge's earlier emits did; the parked ones are sacrificed and move after
+	// the answer, in the same batch.
+	w, parked := s.sacParkFrom(k, ord[:n])
+	for _, sl := range ord[:w] {
 		s.fireSac(k, sl)
 	}
 	var zs [MaxPerm]kop.Zone
-	for i, sl := range ord[:n] {
+	for i, sl := range ord[:w] {
 		zs[i] = s.dieZone(k, sl)
 	}
-	for i, sl := range ord[:n] {
+	for i, sl := range ord[:w] {
 		s.fireLeave(k, sl, zs[i])
 	}
-	for i, sl := range ord[:n] {
+	for i, sl := range ord[:w] {
 		s.removePerm(k, sl, zs[i], false)
 	}
+	if parked && hr.on {
+		// gorge holds an until-leaves return to the end of the whole flush;
+		// the parked moves run after this frame closes, so it cannot be told
+		// apart from a return between the moves.
+		s.capFull(StallReplLeave)
+	}
+	carried := parked && s.sacParkTail(ord[w:n], batch, bOld)
 	s.g.sacM = slotMask{}
+	s.holdClose(k, hr)
+	if batch && !carried {
+		s.batchClose(bOld)
+	}
 }
 
 // addSac adds slot sl to the effect sacrifice being collected.

@@ -182,7 +182,7 @@ func (s *State) matchSpellCard(k *prep, f kop.FilterID, c CardID, owner, ctrl ui
 			ch, ok := s.chosenTypeSub(src)
 			cd := &k.t.Cards[c]
 			has := ok && int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
-			if ok && ch == subOutside {
+			if ok && outsideSub(k, ch) {
 				has = cd.AllCreatureTypes
 			}
 			fl.Flags2 &^= kop.F2ChosenType
@@ -420,12 +420,70 @@ func (s *State) preventCombatGen(k *prep, r *dmgRec) {
 	}
 }
 
+// equipTargetPriced: the activation being built is an Equip ability whose
+// price depends on its target (abilityHasTargetReduction: Cloud, Planet's
+// Champion), so its target menu was pruned to the candidates the activator
+// can pay for (abilityAffordableTargets).
+func (s *State) equipTargetPriced(k *prep) (*kop.Ability, Slot, bool) {
+	e := &s.bld().e
+	if e.kind != seAbility || k.gen == nil || !k.gen.anyAbReduce {
+		return nil, NoSlot, false
+	}
+	a := s.buildAbility(k)
+	if a == nil || a.AFlags&kop.AfEquip == 0 {
+		return nil, NoSlot, false
+	}
+	sl := s.srcSlot()
+	if sl == NoSlot || !s.abilityHasTargetReduction(k, a, sl, e.ctrl) {
+		return nil, NoSlot, false
+	}
+	return a, sl, true
+}
+
+// abilityAffordableTargets keeps, for an Equip ability whose cost reduction
+// depends on its target (equipTargetPriced), only the candidates whose own
+// price (the chosen earlier targets plus the candidate, after the ability's
+// own ReduceCost$) the activator can pay; every candidate while a source the
+// window census cannot price is open (as the spell branch).
+func (s *State) abilityAffordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
+	a, sl, ok := s.equipTargetPriced(k)
+	if !ok || DebugNoAbReduce {
+		return n
+	}
+	e := &s.bld().e
+	if s.windowUnpricedOpen(k, e) {
+		return n
+	}
+	ti := min(int(s.bld().ti), kop.MaxTargets-1)
+	var tg [kop.MaxTargets]uint8
+	copy(tg[:ti], e.tgt[:ti])
+	base := a.Cost.Mana
+	if k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
+		base = s.ownReducedBF(k, a, sl, e.ctrl)
+	}
+	var av avail
+	s.availFor(k, e.ctrl, &av)
+	m := 0
+	for i := 0; i < n; i++ {
+		tg[ti] = buf[i]
+		c := s.abReducedFor(k, a, sl, e.ctrl, base, &tg, ti+1)
+		if av.affords(&c, pipMaskOf(&c), 0) {
+			buf[m] = buf[i]
+			m++
+		}
+	}
+	return m
+}
+
 // affordableTargets keeps, for a spell whose cost reduction depends on its
 // target (Luminous Rebuke), only the targets it can still pay for: all of
 // them when the full cost is affordable, else those the reduction needs.
 func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 	e := &s.bld().e
 	if e.kind != seSpell {
+		if k.gen.anyAbReduce {
+			n = s.abilityAffordableTargets(k, buf, n) // a target-gated equip reduction
+		}
 		return n
 	}
 	if e.flags&sfFree != 0 {
