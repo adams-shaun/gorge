@@ -54,6 +54,14 @@ func (e *Engine) finalityReplacementApplies(id state.ObjID) bool {
 }
 
 func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
+	// CR 733.1: a reversed cast's compensating move returns the spell to the
+	// zone it came from, and no effects apply as a result of the undone
+	// action. abortCast marks that move Text "reversed"; it is an undo, not a
+	// new zone change, so a "would be put into a graveyard -> exile"
+	// replacement (Rest in Peace, Hades) must not divert it.
+	if ev.Kind == events.MoveZone && ev.Text == "reversed" {
+		return ev, false
+	}
 	// A CantDraw static (CR 121.6: "If a player would draw a card and an
 	// effect says that player can't, the draw does not happen") is a "can't"
 	// replacement with no ReplaceWith$ body: the proposed Draw is swallowed

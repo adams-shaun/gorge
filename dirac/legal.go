@@ -195,10 +195,20 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if s.statM.any() || k.gen != nil {
 				kc = s.adjustCost(k, p, c, o, kc) // the reduction applies to the total (CR 601.2f)
 			}
+			if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
+				kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
+			}
 			if s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &kc, &av) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
 				d.add(MakeAction(AkCast, uint8(o), 0, 1))
 			}
 		}
+	}
+	if s.cfg&cfgCommander != 0 {
+		if !haveAv {
+			s.availFor(k, p, &av)
+			haveAv = true
+		}
+		s.offerCommanderCast(k, d, p, &av)
 	}
 	// flashback
 	var fbLo, fbHi *objBits // nil for a pool without a flashback grant: no State access below

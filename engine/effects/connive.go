@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strconv"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -128,8 +129,10 @@ func conniveOnce(h Host, c *Ctx, sa *cards.SA, conniver state.ObjID, targetIdx, 
 	// A conniver that is this ability's own source, returned to the battlefield
 	// since the ability went on the stack, is a new object (CR 400.7): the one
 	// that was instructed to connive is gone, so no counter can go on the new
-	// one (CR 701.50a, 701.50b).
-	gone := c.SourceReturned && conniver == c.Source
+	// one (CR 701.50a, 701.50b). The same holds for a Defined$ Triggered*
+	// conniver that changed zones since the trigger fired (Baron Strucker's
+	// Villain that died and was returned before the connive resolved).
+	gone := (c.SourceReturned && conniver == c.Source) || triggeredReferentMoved(c, sa, conniver)
 	if h.ActionReplaced(events.Event{Kind: events.Connive, Obj: conniver,
 		Player: ctrl, Amount: -1}) {
 		return false
@@ -250,4 +253,13 @@ func lastKnownController(g *state.Game, c *Ctx, id state.ObjID) state.PlayerID {
 		return c.Snap.SourceController
 	}
 	return c.Controller
+}
+
+// triggeredReferentMoved reports whether conniver is a Defined$ Triggered*
+// referent that has become a new object since the trigger fired (CR 400.7,
+// Ctx.TriggerRememberedMoved).
+func triggeredReferentMoved(c *Ctx, sa *cards.SA, conniver state.ObjID) bool {
+	return len(c.TriggerRememberedMoved) > 0 &&
+		definedSpecCodes.Code(DefinedRefOf(sa).Text) == definedSpecTriggeredCard &&
+		slices.Contains(c.TriggerRememberedMoved, conniver)
 }

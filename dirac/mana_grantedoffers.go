@@ -1228,6 +1228,9 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			// the composed cost (pair 8638)
 			c := s.objs[a.Source()].card
 			cost = s.featCost(k, p&1, c, Obj(a.Source()), addCost(k.cards[c].cost, k.t.Cards[c].Kicker))
+			if s.convAnyType(k, p&1, Obj(a.Source())) {
+				cost = anyTypePips(cost) // a creature's kicked total under Vizier's conversion, as plannedCastCostOf prices the plain one (featview.go)
+			}
 			return cost, ex, need, true
 		}
 		if c := s.objs[a.Source()].card; a.Kind() == AkCast && (a.Mode() == 0 || a.Mode() == castMayPlay) && k.t.Cards[c].Cost.X != 0 && !k.t.Cards[c].HasAltAdd && k.t.Cards[c].Cost.Hyb[0] == 0 {

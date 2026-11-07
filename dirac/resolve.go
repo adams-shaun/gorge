@@ -695,10 +695,17 @@ func (s *State) value(k *prep, v kop.ValueRef) int {
 		sl := s.objRef(k, kop.RefSelf)
 		if sl == NoSlot {
 			c := &k.cards[e.card]
-			if v.K == kop.VSelfPower {
-				return int(c.power)
+			pw, t := int(c.power), int(c.tough)
+			if e.kind != seSpell && e.obj != NoObj {
+				// an ability whose source has left: its last known P/T
+				// (CR 608.2h; Threefold Thunderhulk sacrificed with its
+				// "Gnomes equal to its power" trigger waiting)
+				pw, t = s.selfPTLKI(k, e, pw, t)
 			}
-			return int(c.tough)
+			if v.K == kop.VSelfPower {
+				return pw
+			}
+			return t
 		}
 		p, t := s.pt(k, sl)
 		if v.K == kop.VSelfPower {

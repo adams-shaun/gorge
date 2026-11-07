@@ -4,9 +4,9 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// Delve (CR 702.66a), granted: Teval, Arbiter of Virtue's "Spells you cast
-// have delve" (a StatStackKw Delve grant; the printed keyword stays refused
-// by kgen). The cast is offered on its potential credit, min(generic,
+// Delve (CR 702.66a), printed or granted: a printed K:Delve (CardDef.Delve)
+// or Teval, Arbiter of Virtue's "Spells you cast have delve" (a StatStackKw
+// Delve grant). The cast is offered on its potential credit, min(generic,
 // graveyard size) (gorge delveCredit, castable); the announcement (gorge
 // delveAsk) runs after convoke and X and before the pip asks, one graveyard
 // card per decision until the shortfall (generic less what the floating pool
@@ -25,16 +25,19 @@ const StallDelve = 73
 
 func init() { stallNames[StallDelve] = "delve" }
 
-// hasCastDelve is gorge hasCastDelve for the granted keyword: a permanent on
-// the battlefield is never a spell being cast.
+// hasCastDelve is gorge hasCastDelve for the printed or granted keyword: a
+// permanent on the battlefield is never a spell being cast.
 func (s *State) hasCastDelve(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
 	if k.gen == nil || !k.gen.anyDelve || s.objs[o].zone == kop.ZoneBattlefield {
 		return false
 	}
+	if k.t.Cards[c].Delve {
+		return true
+	}
 	return s.grantDelve(k, p, c, o, fromHand)
 }
 
-// contribPays is tapPays or a granted delve: the shapes gorge's payment
+// contribPays is tapPays or delve: the shapes gorge's payment
 // planner declines as "shape:contribution" (payment_plan.go), so the cast is
 // offered only against the floating pool. gorge declines a spell carrying
 // delve whatever its graveyard holds.
@@ -42,7 +45,7 @@ func (s *State) contribPays(k *prep, p uint8, c CardID, o Obj, fromHand bool) bo
 	return s.tapPays(k, p, c, o, fromHand) || s.hasCastDelve(k, p, c, o, fromHand)
 }
 
-// delvePaysEntry reports a spell on the stack cast with a granted delve:
+// delvePaysEntry reports a spell on the stack cast with delve:
 // gorge's planner declines it ("shape:contribution"), so it pays through the
 // manual CR 601.2g window like a convoke cast (manaStep).
 func (s *State) delvePaysEntry(k *prep, e *stackEntry) bool {
