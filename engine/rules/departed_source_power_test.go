@@ -44,7 +44,7 @@ func gnomeTokens(e *Engine) int {
 func TestDepartedSourcePowerIsLastKnown(t *testing.T) {
 	t.Parallel()
 	e, cfg, find := etbConfig(t, 114, []string{thunderhulkLKISrc, vanguardOfTheRoseSrc}, nil)
-	e.G.Tokens["c_1_1_a_gnome"] = card(t, "Name:Gnome Token\nTypes:Artifact Creature Gnome\nPT:1/1\nOracle:x\n")
+	setFixtureToken(e, "c_1_1_a_gnome", card(t, "Name:Gnome Token\nTypes:Artifact Creature Gnome\nPT:1/1\nOracle:x\n"))
 	hulk, vanguard := find("Threefold Thunderhulk", 0), find("Vanguard of the Rose", 0)
 	e.emit(events.Event{Kind: events.MoveZone, Obj: vanguard, From: state.ZHand, To: state.ZBattlefield})
 	addMana(t, e, 0, "RR")
