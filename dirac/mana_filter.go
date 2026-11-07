@@ -564,16 +564,16 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 		return false
 	}
 	if apply {
-		s.filtPlay(k, p, fs.path[:fs.n], true)
+		s.filtPlay(k, p, fs.path[:fs.n])
 	}
 	return true
 }
 
 // filtPlay plays a found path on s: each activation as the search made it,
 // each answer and pass as the decision then pending (the other player passes
-// while the trigger resolves, tapXPlay). With apply the taps also fire the
-// Taps triggers of a granted mana ability's source.
-func (s *State) filtPlay(k *prep, p uint8, path []filtStep, apply bool) {
+// while the trigger resolves, tapXPlay). Each tap fires its Taps triggers
+// once, in filtDo (filtUse, otherDo), as the search's own steps did.
+func (s *State) filtPlay(k *prep, p uint8, path []filtStep) {
 	n := s.Decisions
 	var d Decision
 	for _, st := range path {
@@ -584,9 +584,6 @@ func (s *State) filtPlay(k *prep, p uint8, path []filtStep, apply bool) {
 			continue
 		}
 		s.filtDo(k, p, st)
-		if apply && (st.other.kind == otherNone || st.other.kind == otherGrant) && !(st.gap && st.ans > 0 && s.filtNoTap(k, st.sl)) {
-			s.manaTapped(k, st.sl) // (a once-each-turn filter taps nothing)
-		}
 	}
 	s.Decisions = n
 }
