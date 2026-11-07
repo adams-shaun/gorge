@@ -20,9 +20,12 @@ const (
 // LockstepConfig is the configuration the lockstep verifies against gorge on
 // surface: the one on which the kernel and gorge offer and play the same game.
 // The caller adds what lockstep leaves to it: NoElide, Mulligans, RecordChance,
-// ArrangeRestOrder and AutoDivide.
+// ArrangeRestOrder and AutoDivide, and a Commander game's Commander and
+// Commanders; the seats carry no commander (-1, since 0 indexes a seat's first
+// deck card) until it sets them.
 func LockstepConfig(surface Surface) Config {
 	return Config{
+		Commanders:          [2]int16{-1, -1},
 		GorgeAltAdd:         true,
 		GorgeUnpriced:       true,
 		GorgeMustAttack:     true,
