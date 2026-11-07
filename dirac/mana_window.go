@@ -2391,8 +2391,12 @@ func (s *State) manaStep(k *prep) bool {
 		} else if k.t.Cards[e.card].HasModeCost {
 			// Spree: gorge's planner declines the face ("shape:modal_cost"),
 			// so the cast pays through the manual CR 601.2g window, the
-			// first useful source until the pool pays (kw_spree.go)
-			s.windowTapRider(k, e.ctrl, &cost, true, anyColor)
+			// first useful source until the pool pays (kw_spree.go). The
+			// window's colour ask has no ManaPayment: its owed colours are
+			// the announced hybrid/Phyrexian faces only, so with none the
+			// any-colour source answers its lowest colour (windowCol's
+			// noOwed), not the pip the composed Spree cost still owes.
+			s.windowTapUseful(k, e.ctrl, &cost, &cost, true, anyColor, s.bld().pipN == 0, false)
 		} else if cost.X != 0 && s.cfg&cfgGorgeSurface != 0 {
 			if !s.xWindowPay(k, e, &cost) {
 				s.releaseCostTaps(k, &saved)

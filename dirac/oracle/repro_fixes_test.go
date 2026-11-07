@@ -86,6 +86,11 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// sets at every pick (CR 700.13), not only at placement, and the
 		// kernel follows (act_commitcrime.go crimePick).
 		{"crime_ledger_set_at_each_ability_target_pick", true, false},
+		// Three Steps Ahead's chosen modes cost more than the board can pay:
+		// the manual CR 601.2g window taps an any-colour source and the
+		// colour ask carries no announced hybrid pip, so gorge answers its
+		// lowest colour, not the {U} the composed cost still owes.
+		{"spree_window_any_colour_lowest", false, false},
 	})
 }
 
