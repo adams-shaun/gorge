@@ -811,7 +811,7 @@ type lOverride struct {
 	SetP, SetT       int
 	PVal, TVal       lValue // non-None: Power$/Toughness$ values (ValPT)
 	HasSetPT         bool
-	LivePT           bool // PVal/TVal are read live, every check (a granted static's SetPower$/SetToughness$)
+	LivePT           bool // PVal/TVal are read live, every check (a granted static's SetPower$/SetToughness$, for the affected permanent; an override static's, from its source)
 	SetTypes         uint16
 	HasSetTypes      bool
 	AddTypes         uint16

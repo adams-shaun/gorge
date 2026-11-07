@@ -2727,10 +2727,10 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 			// a non-integer value is read live at every layer-7b check,
 			// anchored on the static's source (an Equipment's "your life
 			// total" is its controller's). AffectedX is the per-affected
-			// word, a different anchor, and stays refused by name. The
-			// attached-source reader is the one this lowers for, so a
-			// non-attached static keeps its refusal until the walk serves
-			// it (Porcelain Gallery's global count).
+			// word, a different anchor, and stays refused by name. Only an
+			// attached static is lowered here: the walk would apply a global
+			// one too, but that shape (Porcelain Gallery's creature count)
+			// has no lockstep repro yet, so it stays refused by policy.
 			if pS == "AffectedX" || tS == "AffectedX" {
 				return nil, refuse("set P/T %q/%q: the per-affected word", pS, tS)
 			}

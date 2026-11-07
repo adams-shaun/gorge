@@ -95,22 +95,51 @@ func TestStaticOverrideLivePT(t *testing.T) {
 		sc := newScenTable(t, tbl, Config{NoElide: true})
 		creature := sc.perm(v.SavannahLions, 0)
 		sl := sc.slot(creature)
-		sc.s.pl[0].life = 6
+		// The live Equipment is the opponent's, and the two life totals
+		// differ: the walk must read the source's controller (9), not the
+		// affected creature's (6).
+		sc.s.pl[0].life, sc.s.pl[1].life = 6, 9
 		lit := sc.perm(literalEq, 0)
 		sc.s.attachTo(sc.k, sc.slot(lit), sl)
 		sc.s.refreshTy(sc.k)
-		live := sc.perm(liveEq, 0)
+		live := sc.perm(liveEq, 1)
 		sc.s.attachTo(sc.k, sc.slot(live), sl)
 		sc.s.refreshTy(sc.k)
 		if sc.s.perms[sl].ovr.walk&walkOn == 0 {
 			t.Fatal("test setup: two override statics do not make the slot walk")
 		}
-		if p, tt := sc.s.basePTGen(sc.k, sl); p != 6 || tt != 6 {
-			t.Fatalf("walked base %d/%d, want 6/6 from the controller's life total", p, tt)
+		if c := sc.s.perms[sc.slot(live)].ctrl; c != 1 || sc.s.perms[sl].ctrl != 0 {
+			t.Fatalf("test setup: live Equipment controller %d, creature controller %d; want 1 and 0", c, sc.s.perms[sl].ctrl)
 		}
-		sc.s.pl[0].life = 2
+		if p, tt := sc.s.basePTGen(sc.k, sl); p != 9 || tt != 9 {
+			t.Fatalf("walked base %d/%d, want 9/9 from the Equipment controller's life total", p, tt)
+		}
+		sc.s.pl[1].life = 2
 		if p, tt := sc.s.basePTGen(sc.k, sl); p != 2 || tt != 2 {
 			t.Fatalf("walked base after the life total changed %d/%d, want 2/2", p, tt)
+		}
+	})
+
+	t.Run("a host that is not a creature keeps its printed P/T", func(t *testing.T) {
+		tbl, liveEq, _ := livePTTable(t)
+		sc := newScenTable(t, tbl, Config{NoElide: true})
+		creature := sc.perm(v.SavannahLions, 0)
+		sl := sc.slot(creature)
+		sc.s.pl[0].life = 7
+		eq := sc.perm(liveEq, 0)
+		sc.s.attachTo(sc.k, sc.slot(eq), sl)
+		sc.s.refreshTy(sc.k)
+		if p, tt := sc.s.basePTGen(sc.k, sl); p != 7 || tt != 7 {
+			t.Fatalf("test setup: equipped base %d/%d, want 7/7", p, tt)
+		}
+		// Narrow the static's filter to a type the host lacks (as a host that
+		// stopped being a creature would): the fixed reader must apply it.
+		tbl.Filters[len(tbl.Filters)-1].Types = kop.TLand
+		if sc.s.typesGen(sc.k, sl)&kop.TLand != 0 {
+			t.Fatal("test setup: the host is a land")
+		}
+		if p, tt := sc.s.basePTGen(sc.k, sl); p != 2 || tt != 1 {
+			t.Fatalf("base %d/%d on a host the filter does not match, want the printed 2/1", p, tt)
 		}
 	})
 }
