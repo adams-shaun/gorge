@@ -560,6 +560,7 @@ func TestMayPlayLimitPaths(t *testing.T) {
 			src  Obj
 			sver uint8
 			obj  Obj
+			ts   uint16
 		}{src: src, sver: s.objs[src].ver, obj: o}
 		s.g.nlinks = 1
 		sl := s.objs[src].slot

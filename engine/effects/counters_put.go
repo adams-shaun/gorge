@@ -560,9 +560,15 @@ func putCounterKindsFor(pc *PutCounterParams, kind string) []string {
 // cannot find (CR 400.7): Support Mission's "put a +1/+1 counter on that
 // creature" finds nothing when the creature left and came back while the
 // trigger waited on the stack. Moves the resolution itself makes never
-// list (CR 400.7j).
+// list (CR 400.7j). Likewise an own target (ValidTgts$) that changed zones
+// since it was chosen is dropped: Deadly Complication's two modes may target
+// one creature, and when the first destroys it the second's +1/+1 counter
+// does not land on the card in the graveyard (CR 400.7).
 func putCounterDefined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	ts := Defined(h, c, sa)
+	if PutCounterOf(sa).OwnTargets {
+		ts = targetsStillChosen(h.Game(), c, ts)
+	}
 	if len(c.TriggerRememberedMoved) > 0 && definedSpecCodes.Code(DefinedRefOf(sa).Text) == definedSpecTriggeredCard {
 		ts = dropTriggerRememberedMoved(c, ts)
 	}

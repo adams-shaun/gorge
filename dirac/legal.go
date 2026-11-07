@@ -646,7 +646,7 @@ func (s *State) gorgeOffers(p uint8, o Obj, mode uint8) bool {
 	if mode&1 != 0 || s.FeatPlannedCast(p, o, mode) || s.FeatPoolPays(p, o, mode) {
 		return true
 	}
-	return s.cfg&cfgGorgeAutopay == 0 && s.gorgeLowers(p, o)
+	return s.cfg&cfgGorgeAutopay == 0 && s.gorgeLowers(p, o, false)
 }
 
 // flashbackPartsDisjoint: the flashback cast of card c at cost, whose additional cost sacrifices
@@ -687,7 +687,20 @@ func (s *State) gorgeOffersMay(p uint8, o Obj) bool {
 	if s.FeatPlannedCast(p, o, 0) {
 		return true
 	}
-	return s.FeatPoolPays(p, o, 0) || s.gorgeLowers(p, o)
+	return s.FeatPoolPays(p, o, 0) || s.gorgeLowers(p, o, true)
+}
+
+// offerSourcesAfford: p's sources pay cost through the offer gate -- the
+// script gaps the gate sees included, and the restricted sources the spell
+// may spend (restrFallback), as a cast from the hand reads them.
+func (s *State) offerSourcesAfford(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost) bool {
+	wasX := s.g.availX
+	s.g.availX |= availGaps
+	var av avail
+	s.availFor(k, p, &av)
+	rf := s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, &av)
+	s.g.availX = wasX
+	return av.affords(cost, pipMaskOf(cost), 0) || rf
 }
 
 // gorgeLowers: gorge's potential-play planner prices p's plain cast of o,
@@ -695,11 +708,17 @@ func (s *State) gorgeOffersMay(p uint8, o Obj) bool {
 // composed cost (rules potentialModeCastPlan), and the cast is offered
 // once that witness is tapped (potentialWitnessOffers). For a
 // target-conditional reduction (Luminous Rebuke) the composition prices
-// the cheapest legal target, or for a spell choosing several the full cost.
+// the cheapest legal target; a spell choosing several stays at the full
+// cost in that composition (potentialModeCastPlan's TargetMax$ decline).
+// mayPlay is a cast through a play permission, whose offer gate is not the
+// potential planner: mayPlayAffordable retries offerCastable against the
+// legal targets (CR 601.2f), and that retry prices an assignment of up to
+// the spell's TargetMax$ targets, so one matching target takes the
+// reduction (This Town Ain't Big Enough, the one such card in the corpus).
 // For an either-or additional cost (Eaten Alive) it prices the spell's mana
 // cost alone when a part with no mana can be paid (a creature to sacrifice),
 // and otherwise with a part that has mana.
-func (s *State) gorgeLowers(p uint8, o Obj) bool {
+func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 	k := s.k()
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
@@ -753,6 +772,43 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
 	}
 	if s.spellTgtDep(k, p, c, o) {
+		if mayPlay {
+			// mayPlayAffordable prices the cast in one of two ways. A spell
+			// choosing several targets is priced by offerCastable's retry at
+			// the cheapest legal target assignment (CR 601.2f), and only the
+			// floating pool pays that retry; the first arm is the no-target
+			// full price its sources pay. A single-target spell's composed
+			// price already takes the reduction, so its sources pay it.
+			several := severalTargets(k, c)
+			if several {
+				s.g.noTgtRed = true
+			}
+			cost := s.featCost(k, p, c, o, k.cards[c].cost)
+			s.g.noTgtRed = false
+			if s.g.mayPlayAny {
+				cost = anyType(cost)
+			}
+			if s.offerSourcesAfford(k, p, c, o, &cost) {
+				return true
+			}
+			if !several {
+				return false
+			}
+			cost = s.featCost(k, p, c, o, k.cards[c].cost)
+			if s.g.mayPlayAny {
+				cost = anyType(cost)
+			}
+			// the retry taps no source: the pool (and the restricted mana it
+			// may spend) pays the reduced price on its own
+			a := s.poolAvailPlus(p, nil)
+			if s.rbAny(p) {
+				s.restrAvail(k, p&1, c, s.restrOriginOfObj(o), &a)
+			}
+			return a.affords(&cost, pipMaskOf(&cost), 0)
+		}
+		// the potential planner prices a single target only; a spell choosing
+		// several stays at the full cost in that composition
+		// (potentialModeCastPlan's TargetMax$ decline)
 		s.g.noTgtRed = severalTargets(k, c)
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
 		s.g.noTgtRed = false
