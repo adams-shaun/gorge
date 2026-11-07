@@ -75,8 +75,11 @@ add up per policy.
   searches, because `mtgsim` calls the plain `Decide` and the policy falls back to `bot`.
 - **Seats without `-a` or `-b`** play the plain heuristic with manual mana tapping and its coin mulligan, which is
   neither `bot` nor any other registered policy.
-- **Commander decks play as 20-life constructed games.** A Commander comparison needs a program that sets
-  `rules.Config`'s format and commander fields.
+- **`-format commander` plays real Commander.** Each seat starts at 40 life with its commander in the command
+  zone, and the engine applies the commander tax and the CR 903.9 command-zone choices. Without `-decks` it deals
+  the first `-seats` Commander repo decks; every deck must name a commander and pass the Commander deck checks.
+  It needs at least 2 seats. Neither format runs a mulligan round. For example:
+  `go run ./cmd/mtgsim -format commander -seats 4 -games 1 -verify`.
 
 For three to eight seats, `-seats N` deals the first N pinned decks, or `-decks` with one name per seat.
 To balance seats, rotate the deck list across runs:
