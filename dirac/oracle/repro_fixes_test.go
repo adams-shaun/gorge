@@ -449,6 +449,7 @@ func TestStdDftReprosLockstep(t *testing.T) {
 		{"copy_entry_trigger_after_order_ask", false, false},       // CR 614.12/603.6a: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first; the copy's Hulldrifter enters trigger queues after the bodies
 		{"tap_power_value_lost_with_abilities", true, false},       // CR 613.1f: Interface Ace under Flood the Engine has lost its crew-with-toughness static, so its 0 power does not crew Rangers' Refueler
 		{"lookback_player_turn_uses_lki_controller", false, false}, // CR 603.10a: a stolen Ketramose exiled from the battlefield on its thief's turn triggers for the thief (PlayerTurn$ reads the last-known controller)
+		{"returned_aura_host_before_paid_draw", false, false},      // CR 303.4f, 610.3: sacrificing Perilous Snare pays Chandra's "if you do, draw": its exiled Aura's host answer comes before the draw, as gorge asks it mid-payment
 	})
 }
 
