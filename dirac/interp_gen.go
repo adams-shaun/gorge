@@ -1406,8 +1406,9 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		return false
 	}
 	ob := &s.objs[o]
-	if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || in.C>>3&kop.MvTransformed == 0 && s.instantStays(k, o, kop.Zone(in.C&7)) {
-		return false // CR 400.4a (OpReturnEx packs its flags above the zone's three bits); a transformed entry is the back face (CR 712.14a)
+	// MvTransformed: a double-faced card enters as its back face, no instant or sorcery (CR 711.10a; gorge instantCannotEnter)
+	if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || (in.C>>3&kop.MvTransformed == 0 && s.instantStays(k, o, kop.Zone(in.C&7))) {
+		return false
 	}
 	if ob.zone == kop.ZoneLibrary || in.B.N&kop.RetFromLibrary != 0 {
 		if in.B.N&kop.RetFromLibrary == 0 || ob.zone != kop.ZoneLibrary {

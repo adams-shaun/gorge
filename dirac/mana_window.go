@@ -276,8 +276,13 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				return true, held
 			}
 			s.leave(k, sl, kop.ZoneGraveyard, false)
-			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && !(s.buildLive() && s.ctl == ctlBuild && s.bld().bfl&bflManaStep != 0) {
-				s.ceaseManaToken(o) // a sacrificed Treasure ceases at once, as gorge pays; the payment plan's tap (bflManaStep) leaves it for the next state-based check (CR 704.5d)
+			// a token sacrificed to pay a cast ceases at once, as gorge pays (a
+			// Treasure: payCast's tail reaches gorge's priority-boundary check,
+			// engine.go checkStateBased); one sacrificed to pay mid-resolution or
+			// by a planned activation's mana step (bflManaStep) waits for the
+			// state-based action at the next priority (CR 704.3, 704.5d)
+			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) {
+				s.ceaseManaToken(o)
 			}
 		}
 	}
@@ -1829,16 +1834,26 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	var av avail
 	s.availFor(k, p, &av)
 	if any != 0 || anyColor {
-		ok := av.affords(&cost, pipMaskOf(&cost), 0)
+		// gorge prices the printed symbols on its census, which has no
+		// granted source (rules potentialModeCastPlan: the rider only when
+		// that plan is insufficient; mana_grantedoffers.go), so a granted
+		// token's mana cannot keep the printed price (CR 609.4b)
+		pv := &av
+		var ug avail
+		if k.gen != nil && len(k.gen.grantPC) != 0 {
+			s.availUngranted(k, p, &ug)
+			pv = &ug
+		}
+		ok := pv.affords(&cost, pipMaskOf(&cost), 0)
 		if anyColor {
-			ok = av.affordsAnyColor(&cost, 0)
+			ok = pv.affordsAnyColor(&cost, 0)
 		}
 		if !ok && !anyColor && k.restrSrc && s.bld().e.kind == seSpell {
 			// the printed symbols are paid by a restricted source the spell
 			// may spend (Lilypad Village's {U} for a creature spell): it is a
 			// census source of gorge's witness, so the any-type price below
 			// does not apply (CR 106.6)
-			ok = s.restrSrcAffords(k, p, s.payDescNow(excl), &cost, &av, NoSlot, 0)
+			ok = s.restrSrcAffords(k, p, s.payDescNow(excl), &cost, pv, NoSlot, 0)
 		}
 		if !ok {
 			cost = s.buildCost(k)
