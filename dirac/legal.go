@@ -865,7 +865,12 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 	if k.gen != nil && k.gen.anyDelve && o != NoObj && (base == nil || !av.tbLeafCredited(base)) {
 		t = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, t) // the total's one credit
 	}
-	return av.affords(&t, pipMaskOf(&t), 0)
+	if o == NoObj {
+		return av.affords(&t, pipMaskOf(&t), 0)
+	}
+	// the part's mana may come from restricted sources the spell may spend
+	// (Eclipsed Realms' chosen-type mana; CR 106.6, gorge mayPlayAffordable)
+	return s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &t, av)
 }
 
 // inHandN is 1 when spell object o is itself in a hand (it cannot be discarded
