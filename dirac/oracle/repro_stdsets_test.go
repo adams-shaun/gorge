@@ -137,6 +137,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-sos", "ark_of_hunger_mayplay_both_zones"},                            // Ark of Hunger's tap mills a card and registers the remembered card's play permission over the graveyard and exile: the recorded game reaches the tap, and both engines agree through the grant and the cleanup
 		{"std-spm", "parker_luck_repeat_each_loses_the_others_reveal_mv"},          // Parker Luck's end-step trigger: two players each reveal their top card, and each loses life equal to the OTHER player's revealed card's mana value (Swamp 0, Prowler, Clawed Thief 3), then both cards go to hand; both engines agree on every one
 		{"std-dft", "exile_trigger_looks_back_from_battlefield_or_graveyard"},      // Ketramose warped and exiled at the end step sees itself leave: a ChangesZoneAll line with Origin$ Battlefield,Graveyard looks back like Origin$ Battlefield (CR 603.10a)
+		{"std-msh", "improvise_cast_spends_artifact_only_mana"},                    // Arc Reactor improvised with Captain America's Shield beside Hydraulic Helper's artifact-only blue: the cast spends the restricted blue before the plain pool
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if div := replayStdRepro(t, reg, c.pool, c.name, fullSurface[c.name]); div != nil {
