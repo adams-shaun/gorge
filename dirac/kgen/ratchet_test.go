@@ -84,8 +84,12 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +8 (this branch lowers the Effect Mode$ MustBlock static beside the pair's MustAttack: Hustle // Bustle,
 	// Courtly Provocateur, Culvert Ambusher, Culling Mark, Peema Aether-Seer, Provoke, Shessra, Death's Whisper
 	// and Timely Interference; MKM +2, DMU +1, ALL +8).
+	// +4 (the filter word TargetedPlayerOwn (the one-token OwnedBy Targeted) lowers:
+	// Bulwark, Jon Irenicus, the Exile, Nicol Bolas, the Ravager, Search Warrant; ALL 21655 -> 21659).
+	// +4 (the merge with land: this branch's RepeatEach Targeted lowering and
+	// land's TargetedPlayerOwn lowering are disjoint; merged ALL 21659 -> 21663).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21659, 34442},
+	"ALL": {21663, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
