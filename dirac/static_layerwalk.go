@@ -45,6 +45,7 @@ type dchars struct {
 	all    bool // every creature type (CR 702.73a / an all-creature-types effect)
 	subs   kop.SubMask
 	bp, bt int
+	outSrc uint8 // the sole source slot+1 of the outside grants in out, 255 for several (act_choosetype.go)
 	out    uint8 // an AddChosen grant of a type outside the matchup: 0 none, the source slot+1, 255 two sources (act_choosetype.go)
 }
 

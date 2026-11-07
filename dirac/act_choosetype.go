@@ -168,9 +168,14 @@ func lfxChosen(k *prep, e *lfx, c *dchars) {
 	case ch == 255 || e.src == NoSlot:
 	case outsideSub(k, ch):
 		if c.out == 0 {
-			c.out = ch
-		} else if c.out != ch {
-			c.out = 255
+			c.out, c.outSrc = ch, uint8(e.src)+1
+		} else {
+			if c.out != ch {
+				c.out = 255
+			}
+			if c.outSrc != uint8(e.src)+1 {
+				c.outSrc = 255
+			}
 		}
 	case int(ch) < kop.MaxSubtypes:
 		c.subs = c.subs.With(int(ch))
@@ -183,6 +188,9 @@ func lfxChosen(k *prep, e *lfx, c *dchars) {
 func (s *State) curOutsideHas(k *prep, cur *dchars, src Slot) bool {
 	if !k.gen.anyAddChosen || cur.out == 0 || src == NoSlot {
 		return false
+	}
+	if cur.outSrc == uint8(src)+1 {
+		return true // the only grant is src's own
 	}
 	ch := s.perms[src].chosen
 	if cur.out != 255 && cur.out != ch {
@@ -217,6 +225,10 @@ func (s *State) outsideChosenHas(k *prep, sl, src Slot) bool {
 			return true
 		}
 		if s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerSub) {
+			if st.sl == src {
+				found = true
+				return false
+			}
 			if sc := s.perms[src].chosen; s.perms[st.sl].chosen == sc {
 				if !outsideAliased(k, sc) {
 					found = true
