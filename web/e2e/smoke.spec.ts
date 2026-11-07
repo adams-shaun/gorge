@@ -1604,7 +1604,12 @@ async function playFromHand(page: Page, hand: Locator, card: Locator, action: ()
   }
   const wheel = page.locator('body > [data-radial-picker] button[data-wire-index]').first();
   if (await wheel.waitFor({ state: 'visible', timeout: 500 }).then(() => true, () => false)) await wheel.click();
-  return expect.poll(() => hand.count(), { timeout: 5_000 }).toBe(before - 1).then(() => true, () => false);
+  // A cast through the CAST shortcut opens a payment window, which holds the card in hand until paid.
+  const pay = page.locator(PAYMENT_ANSWERS);
+  return expect.poll(async () => {
+    if (await visible(pay)) await pay.first().click({ timeout: 2_000 }).catch(() => {});
+    return hand.count();
+  }, { timeout: 5_000 }).toBe(before - 1).then(() => true, () => false);
 }
 
 /**
@@ -1695,8 +1700,12 @@ async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
         did.push('spell');
         spellTries++;
         spell = await playFromHand(page, hand, spellCard, async () => {
-          const shortcut = spellCard.locator('[data-payment-card], [data-single-action]').first();
-          return (await shortcut.count()) > 0 ? shortcut : spellCard.locator('button[aria-haspopup="menu"]');
+          // The CAST shortcut is drawn over the card's cast icon and takes its clicks, so it comes first.
+          for (const control of ['[data-payment-card]', '[data-single-action]']) {
+            const shortcut = spellCard.locator(control);
+            if ((await shortcut.count()) > 0) return shortcut.first();
+          }
+          return spellCard.locator('button[aria-haspopup="menu"]');
         });
       }
       if (!spell && (await visible(landCard))) {

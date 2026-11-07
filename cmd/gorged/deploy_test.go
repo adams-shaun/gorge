@@ -668,3 +668,245 @@ func TestDemoSweepCoversRetiredPorts(t *testing.T) {
 // pollEvery is how often a wait loop re-checks; every wait has a multi-second
 // deadline, so the result never depends on this interval.
 const pollEvery = time.Second / 100
+
+// evalTemp is a fresh temp directory with its symlinks resolved, as the
+// deploy script's pwd -P sees it.
+func evalTemp(t *testing.T) string {
+	t.Helper()
+	d, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return d
+}
+
+// gorgeRoot is this checkout's root with its symlinks resolved.
+func gorgeRoot(t *testing.T) string {
+	t.Helper()
+	abs, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := filepath.EvalSymlinks(abs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
+// writeFile writes body to path, creating its directory.
+func writeFile(t *testing.T, path, body string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// serverMainFixture is a scratch Go module declaring goVersion, with a main
+// package at cmd/srv.
+func serverMainFixture(t *testing.T, goVersion string) (modDir, mainDir string) {
+	t.Helper()
+	modDir = evalTemp(t)
+	mainDir = filepath.Join(modDir, "cmd", "srv")
+	writeFile(t, filepath.Join(modDir, "go.mod"), "module example.test/srv\n\ngo "+goVersion+"\n")
+	writeFile(t, filepath.Join(mainDir, "main.go"), "package main\n\nfunc main() {}\n")
+	return modDir, mainDir
+}
+
+// gorgeGoVersion is the go directive of this checkout's go.mod.
+func gorgeGoVersion(t *testing.T) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join("..", "..", "go.mod"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`(?m)^go (\S+)$`).FindSubmatch(b)
+	if m == nil {
+		t.Fatal("go.mod has no go directive")
+	}
+	return string(m[1])
+}
+
+// TestDeployServerMainBuildsTheNamedPackage: SERVER_MAIN builds that main
+// package, from its own module, against this checkout through a workspace
+// file next to the binary; empty keeps cmd/gorged.
+func TestDeployServerMainBuildsTheNamedPackage(t *testing.T) {
+	root := gorgeRoot(t)
+	gov := gorgeGoVersion(t)
+	if gov == "1.21" {
+		t.Fatalf("the fixture's go 1.21 must differ from gorge's go %s", gov)
+	}
+	run := func(env ...string) string {
+		t.Helper()
+		out, err := dryRun(t, env...)
+		if err != nil {
+			t.Fatalf("dry run: %v\n%s", err, out)
+		}
+		return out
+	}
+	modDir, mainDir := serverMainFixture(t, "1.21")
+	bin := filepath.Join(evalTemp(t), "gorged")
+	out := run("SERVER_MAIN="+mainDir, "BIN="+bin)
+	for _, want := range []string{
+		"\n+ workspace " + bin + ".work go " + gov + " use " + modDir + " " + root + "\n",
+		"\n+ env CGO_ENABLED=0 GOWORK=" + bin + ".work go build -C " + modDir + " -trimpath -o " + bin + " ./cmd/srv\n",
+		"  SERVER_MAIN=" + mainDir + "\n",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("dry run lacks %q:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "./cmd/gorged") {
+		t.Errorf("SERVER_MAIN still builds ./cmd/gorged:\n%s", out)
+	}
+
+	modHi, mainHi := serverMainFixture(t, "99.0.0")
+	if out := run("SERVER_MAIN="+mainHi, "BIN="+bin); !strings.Contains(out, "\n+ workspace "+bin+".work go 99.0.0 use "+modHi+" "+root+"\n") {
+		t.Errorf("the module's higher go directive does not win:\n%s", out)
+	}
+
+	writeFile(t, filepath.Join(modDir, "main.go"), "package main\n\nfunc main() {}\n")
+	if out := run("SERVER_MAIN="+modDir, "BIN="+bin); !strings.Contains(out, " go build -C "+modDir+" -trimpath -o "+bin+" .\n") {
+		t.Errorf("SERVER_MAIN at the module directory does not build package .:\n%s", out)
+	}
+
+	out = run("BIN=" + bin)
+	if !strings.Contains(out, "\n+ env CGO_ENABLED=0 go build -C "+root+" -trimpath -o "+bin+" ./cmd/gorged\n") || strings.Contains(out, "workspace") {
+		t.Errorf("empty SERVER_MAIN does not build ./cmd/gorged as before:\n%s", out)
+	}
+
+	out = run("SERVER_MAIN=" + mainDir)
+	if !strings.Contains(out, " -trimpath -o "+root+"/bin/server-main/gorged ./cmd/srv\n") {
+		t.Errorf("SERVER_MAIN without BIN does not build into bin/server-main/gorged:\n%s", out)
+	}
+}
+
+// TestDeployServerMainRefusals: a SERVER_MAIN the build cannot use is refused
+// with one line, before anything is built.
+func TestDeployServerMainRefusals(t *testing.T) {
+	root := gorgeRoot(t)
+	noMain := evalTemp(t)
+	writeFile(t, filepath.Join(noMain, "go.mod"), "module example.test/x\n\ngo 1.21\n")
+	noMod := evalTemp(t)
+	writeFile(t, filepath.Join(noMod, "main.go"), "package main\n\nfunc main() {}\n")
+	cases := []struct{ name, dir, want string }{
+		{"relative", "relative/dir", "deploy-demo: SERVER_MAIN must be an absolute path: relative/dir"},
+		{"missing", filepath.Join(evalTemp(t), "missing"), "is not a directory"},
+		{"no main.go", noMain, "has no main.go"},
+		{"no go.mod", noMod, "is not inside a Go module"},
+		{"inside gorge", filepath.Join(root, "cmd", "gorged"), "is inside GORGE_ROOT"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if c.dir == noMod {
+				for d := filepath.Dir(noMod); ; d = filepath.Dir(d) {
+					if _, err := os.Stat(filepath.Join(d, "go.mod")); err == nil {
+						t.Skipf("%s has a go.mod above the temp dir", d)
+					}
+					if d == filepath.Dir(d) {
+						break
+					}
+				}
+			}
+			out, err := dryRun(t, "SERVER_MAIN="+c.dir)
+			if err == nil {
+				t.Errorf("SERVER_MAIN=%s was accepted:\n%s", c.dir, out)
+			}
+			if !strings.Contains(out, "deploy-demo: SERVER_MAIN ") || !strings.Contains(out, c.want) {
+				t.Errorf("SERVER_MAIN=%s: output lacks %q:\n%s", c.dir, c.want, out)
+			}
+			if strings.Contains(out, "go build") {
+				t.Errorf("SERVER_MAIN=%s: the refusal came after a build:\n%s", c.dir, out)
+			}
+		})
+	}
+}
+
+// TestDeployExtraArgsReachEveryServer: SERVER_EXTRA_ARGS, from DEMO_ENV only,
+// reaches every server after -events; each SERVER_EXTRA_DECKS directory gets
+// one art fill; SERVER_NOTE ends the ready summary.
+func TestDeployExtraArgsReachEveryServer(t *testing.T) {
+	root := gorgeRoot(t)
+	decksA, decksB := evalTemp(t), evalTemp(t)
+	envFile := filepath.Join(t.TempDir(), "demo.env")
+	writeFile(t, envFile, `SERVER_EXTRA_ARGS=(-extra-flag "a b" -other)
+SERVER_EXTRA_DECKS=(`+decksA+` `+decksB+` `+decksA+` `+filepath.Join(root, "testkit", "testutil", "decks")+` )
+SERVER_NOTE="note x"
+`)
+	out, err := dryRun(t, "DEMO_ENV="+envFile, "OMNI_PORT=3", "SERVER_EXTRA_ARGS=junk")
+	if err != nil {
+		t.Fatalf("dry run: %v\n%s", err, out)
+	}
+	servers := regexp.MustCompile(`(?m)^\+ env GOMEMLIMIT=.*$`).FindAllString(out, -1)
+	if len(servers) != 2 {
+		t.Fatalf("want two server lines, got %d:\n%s", len(servers), out)
+	}
+	for _, s := range servers {
+		if !strings.Contains(s, ` -events -extra-flag a\ b -other`) {
+			t.Errorf("server line lacks the extra args after -events: %s", s)
+		}
+	}
+	for _, d := range []string{decksA, decksB} {
+		if n := strings.Count(out, "-prewarm-art-only -prewarm-art-budget 200s -prewarm-art-max-consecutive-failures 10 -decks "+d+" "); n != 1 {
+			t.Errorf("%d art fills of %s, want 1:\n%s", n, d, out)
+		}
+	}
+	if n := strings.Count(out, "-prewarm-art-only"); n != 3 {
+		t.Errorf("%d art fills, want 3 (DECKS once, then each extra once):\n%s", n, out)
+	}
+	if !strings.Contains(out, "  SERVER_EXTRA_ARGS: -extra-flag a\\ b -other\n") {
+		t.Errorf("the configuration echo lacks the extra args:\n%s", out)
+	}
+	if strings.Contains(out, "junk") {
+		t.Errorf("an inherited SERVER_EXTRA_ARGS leaked into the deploy:\n%s", out)
+	}
+	if !regexp.MustCompile(`(?m)^deploy-demo: would report: ready — spectator \(.*, note x\)$`).MatchString(out) {
+		t.Errorf("the ready summary does not end with the note:\n%s", out)
+	}
+
+	out, err = dryRun(t)
+	if err != nil {
+		t.Fatalf("dry run: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "  SERVER_EXTRA_ARGS:\n") || strings.Contains(out, "note x") {
+		t.Errorf("an empty env file still carries extras:\n%s", out)
+	}
+}
+
+// TestDeployPairedBotDecks: PAIRED_BOT_DECKS passes -paired-bot-decks after
+// -paired-bot-searches, as a flag the real binary accepts; empty passes none.
+func TestDeployPairedBotDecks(t *testing.T) {
+	served := func(env ...string) (string, *flag.FlagSet) {
+		t.Helper()
+		out, err := dryRun(t, env...)
+		if err != nil {
+			t.Fatalf("dry run: %v\n%s", err, out)
+		}
+		m := regexp.MustCompile(`(?m)^\+ env GOMEMLIMIT=\S+ \S+ (.*)$`).FindStringSubmatch(out)
+		if m == nil {
+			t.Fatalf("the dry run starts no server:\n%s", out)
+		}
+		fs := gorged.ServeFlagSetFor(extensions())
+		if err := fs.Parse(strings.Fields(strings.ReplaceAll(m[1], `\,`, ","))); err != nil {
+			t.Fatalf("real gorged rejects the deploy's server arguments %q: %v", m[1], err)
+		}
+		return m[1], fs
+	}
+	if line, _ := served(); strings.Contains(line, "-paired-bot-decks") {
+		t.Errorf("the default deploy passes -paired-bot-decks: %s", line)
+	}
+	if line, _ := served("PAIRED_BOT_DECKS="); strings.Contains(line, "-paired-bot-decks") {
+		t.Errorf("an empty PAIRED_BOT_DECKS passes -paired-bot-decks: %s", line)
+	}
+	dir := evalTemp(t)
+	line, fs := served("PAIRED_BOT_DECKS=" + dir)
+	if !strings.Contains(line, " -paired-bot-searches 2 -paired-bot-decks "+dir+" ") {
+		t.Errorf("-paired-bot-decks %s does not follow -paired-bot-searches: %s", dir, line)
+	}
+	if got := flagValue(t, fs, "paired-bot-decks"); got != dir {
+		t.Errorf("-paired-bot-decks parses to %q, want %q", got, dir)
+	}
+}

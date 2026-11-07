@@ -31,13 +31,11 @@ func (s *State) tapPowerValue(k *prep, sl Slot, flags kop.CostFlags) int {
 	case flags&kop.CostSaddle != 0:
 		v = int(k.t.Cards[s.cardAt(sl)].TapPowerSaddle)
 	}
-	if v == 0 {
-		return 0
-	}
-	// CR 613.1f: the bonus is the creature's own static, so a "loses all
-	// abilities" effect removes it (gorge reads the same static through
-	// activeStatics and stops matching once the source is blanked).
-	if s.genLost(k, sl) {
+	if v != 0 && s.tapPowerLost(k, sl) {
+		// CR 613.1f: the bonus is the card's own static ability, so a
+		// permanent that has lost all abilities (Flood the Engine on
+		// Interface Ace) crews with its plain power (gorge tapPowerValueFor
+		// walks only active statics).
 		return 0
 	}
 	if v == int(kop.TapPowToughness) {
@@ -84,4 +82,20 @@ func (s *State) graveExileCands(k *prep, in *kop.Instr, d *Decision) {
 			}
 		}
 	}
+}
+
+// tapPowerLost reports whether the permanent at sl has lost all abilities,
+// for tapPowerValue: an override, a one-shot loss, an attached Aura's
+// lose-all static, or a face-down face.
+func (s *State) tapPowerLost(k *prep, sl Slot) bool {
+	if s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
+		return true
+	}
+	if k.gen == nil {
+		return false
+	}
+	if _, lost := s.lossAt(k, sl); lost {
+		return true
+	}
+	return s.genLost(k, sl)
 }
