@@ -111,9 +111,8 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		// its announcement filters by the post-pick cost like a hand cast
 		// (CR 601.2f). Read here, with the other convoke-only work, so a
 		// card without Convoke pays nothing for it.
-		if mode&(castMayPlay|castFree) == castMayPlay && s.FeatMayPlayUntyped(p, o) &&
-			!(k.gen.anyMayRaise && s.mayRaiseLifeOwed(k)) && mayPlayPlannedZone(ob.zone) {
-			s.bld().convokeBudget = true
+		if mode&(castMayPlay|castFree) == castMayPlay {
+			s.mayPlayConvokeBudget(k, p, o, ob.zone)
 		}
 	}
 	// a cast only a typed permission allows (Muldrotha's per-type statics,
@@ -2363,4 +2362,15 @@ func (s *State) poolRPays(k *prep, p uint8, c CardID, o Obj) bool {
 	}
 	cost := s.buildCost(k)
 	return cost.X == 0 && av.affords(&cost, pipMaskOf(&cost), 0)
+}
+
+// mayPlayConvokeBudget sets convokeBudget for an untyped, paid may-play cast
+// from a zone the oracle prices at priority (graveyard, exile), unless a life
+// raise makes the cast lowered (CR 601.2f).
+//
+//go:noinline
+func (s *State) mayPlayConvokeBudget(k *prep, p uint8, o Obj, z kop.Zone) {
+	if s.FeatMayPlayUntyped(p, o) && !(k.gen.anyMayRaise && s.mayRaiseLifeOwed(k)) && mayPlayPlannedZone(z) {
+		s.bld().convokeBudget = true
+	}
 }
