@@ -520,7 +520,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// statics (planAbilityPayment calls offerCostFor, which folds the
 		// RaiseCost/ReduceCost statics and the ability's own ReduceCost$; it
 		// never calls powerUpReduceCost), and an ability whose composed
-		// printed cost it cannot witness is not offered (gorge seed-1
+		// printed cost it cannot witness is not offered (powerUpWitness; gorge seed-1
 		// Hercules: {4}{G} reduced to {2}, three untapped Forests, no offer).
 		// The floating pool paying the reduced cost is enough: the plan is
 		// then a pool choice. So: offered iff the pool pays the reduced cost
@@ -531,13 +531,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// the reduced one (buildCostCharge), and the plan/charge mismatch
 		// falls back to the manual mana window (powerUpPlanRejected,
 		// mana_window.go).
-		printed := a.Cost.Mana
-		if k.gen != nil && k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
-			printed = s.ownReducedBF(k, a, sl, p.ctrl)
-		}
-		if k.gen != nil && k.gen.anyAbReduce {
-			printed = s.abReduced(k, a, sl, p.ctrl, printed) // the cost statics, not CR 702.193b
-		}
+		printed := s.powerUpWitness(k, a, sl, p.ctrl)
 		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &printed, av) {
 			return false
 		}
