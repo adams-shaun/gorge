@@ -3,9 +3,11 @@ An Unexpected Party
 Attercop
 Bard the Bowman
 Bard's Company
+Bard, King of Dale
 Bejeweled Warg
 Belladonna Took
 Beorn the Fierce
+Beorn's Hospitality
 Beorn, Reluctant Host
 Bilbo Baggins, Burglar
 Bilbo's Deadly Slice
@@ -45,6 +47,7 @@ Front Porch Sentries
 Gandalf, Spark Starter
 Gandalf, Wandering Wizard
 Gathering of Darkness
+Giant's Boulder
 Gigantic Big Bear
 Glamdring, Foe-hammer
 Gleaming Splendor
@@ -53,6 +56,7 @@ Goblin Plate Mail
 Goblin-town
 Goblin-town Flunkies
 Gollum the Abandoned
+Gollum, Silent Slinker
 Great Fierce Bee
 Great Gilded Boat
 Great Ugly-Looking Goblin
@@ -63,6 +67,7 @@ Iron Hills
 Iron Hills Blacksmith
 Iron Hills Stalwart
 Island
+Key to the Side-Door
 Lake-town
 Lake-town Lookout
 Lake-town Mariners
@@ -83,9 +88,11 @@ Misty Mountains Raider
 Moment of Glory
 Most Decrepit Old Bird
 Mountain
+My Precious
 Nasty Little Rabbit
 Nighthowl Pursuer
 Nori, Teller of Tales
+Old Fat Spider
 Old Thrush
 Orcrist, Goblin-cleaver
 Ordinary Bear
@@ -106,6 +113,7 @@ Settle the Wreckage
 Smaug the Magnificent
 Smaug's Fury
 Smaug, Wicked Worm
+Smaug, the Great Calamity
 Snowslope Hunter
 Sound the Trumpets
 Sting, Bilbo's Sword
@@ -119,6 +127,7 @@ The Black Arrow
 The Chief Warg
 The Great Goblin
 The Lonely Mountain
+The Lord of the Eagles
 The Master of Lake-town
 The Misty Mountains Cold
 The Mountain-king's Return

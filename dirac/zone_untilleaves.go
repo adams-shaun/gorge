@@ -158,15 +158,16 @@ func (s *State) diffCtrlCap(k *prep, t *kop.TargetSpec, ti uint8, mt *multiTgt) 
 
 // payReturnPark poses, once a cost's sacrifice has been paid, the as-enters
 // choice of a card the sacrificed permanent held in exile until it left (In
-// the Pale Moonlight's sacrificed Malfunctioning Holodeck returning Kai
-// Winn): gorge asks it with the card still in exile, mid-payment, so the rest
-// of the resolution waits for the answer (CR 614.12, 610.3). It reports
-// whether the payment is suspended on that ask.
+// the Pale Moonlight's sacrificed Malfunctioning Holodeck returning Kai Winn,
+// or a returning Aura choosing its host among several): gorge asks it with
+// the card still in exile, mid-payment, so the rest of the resolution waits
+// for the answer (CR 614.12, 610.3). It reports whether the payment is
+// suspended on that ask.
 //
 //go:noinline
 func (s *State) payReturnPark() bool {
 	p := &s.g.pre
-	if s.k().gen == nil || p.state != preReturn || p.kind == akEnchant {
+	if s.k().gen == nil || p.state != preReturn {
 		return false
 	}
 	p.state = preReturnPay
