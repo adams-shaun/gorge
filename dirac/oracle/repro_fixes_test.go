@@ -220,6 +220,7 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// finish reverses the cast keeping the floated mana (CR 733.1: a
 		// player may reverse mana abilities activated for an illegal play)
 		{"twobrid_delve_unpayable_window", true, false},
+		{"printed_combo_window_colour_order", true, false}, // CR 601.2g: a printed Combo's mana window answers the ability's printed order, so Thornwood Falls makes {G} (before its {U}) and Frontier Bivouac stays untapped
 	})
 }
 
@@ -339,9 +340,10 @@ func TestStdFinReprosLockstep(t *testing.T) {
 func TestStdSosReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-sos", []stdRepro{
-		{"printed_flashback_beside_granted", false, false},        // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
-		{"granted_and_printed_flashback_ambiguous", false, false}, // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
-		{"graveyard_ability_source_new_object", true, false},      // CR 400.7: a second Postmortem Professor return ability resolves after the card came back and died again, and finds a new object
+		{"printed_flashback_beside_granted", false, false},           // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
+		{"granted_and_printed_flashback_ambiguous", false, false},    // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
+		{"graveyard_ability_source_new_object", true, false},         // CR 400.7: a second Postmortem Professor return ability resolves after the card came back and died again, and finds a new object
+		{"cascade_mana_value_evaluated_at_resolution", false, false}, // CR 202.3b: cascade reads the spell's mana value where the spell resolved, so the ward-counted Fractalize (X paid 4, now a card in the graveyard) prices 1 and does not hit Textbook Tabulator
 	})
 }
 

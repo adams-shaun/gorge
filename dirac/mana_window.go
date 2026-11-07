@@ -476,6 +476,19 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 			// symbol and is never taken beside them (Misty Palms Oasis under a
 			// Great Divide Guide owing {R} answers {W})
 			all = mask
+			if pc.manaAb >= 0 && pc == &k.cards[s.cardAt(sl)] {
+				// the options are the ability's own token order
+				// (effects.ComboColours, kop.Ability.ManaColOrd), not WUBRG:
+				// Thornwood Falls' Combo G U answers {G} before {U}
+				ab := &k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb]
+				var ord [5]uint8
+				for _, c := range ord[:manaColourOrder(ab, &ord)] {
+					if all&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
+						return int(c)
+					}
+				}
+				return col
+			}
 		}
 		for c := 0; c < 5; c++ {
 			if all&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
