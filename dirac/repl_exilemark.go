@@ -104,6 +104,10 @@ const (
 	// parkNext: a state-based pass parked this move while an earlier pass's asks
 	// were still to come, so gorge's check unattaches before it asks for this one
 	parkNext uint8 = 32
+	// parkRemember: a destroy-all with RememberDestroyed$ parked this victim on a
+	// CR 616.1 ask; it joins the remembered set when its move reaches the
+	// graveyard (act_remember.go, runParked)
+	parkRemember uint8 = 64
 )
 
 // manaSacParks reports whether a source sacrificed for mana now can wait for its
@@ -594,6 +598,9 @@ func (s *State) runParked(k *prep, r parkedMove) {
 		s.cycleDiscard(k, r.obj, r.x)
 	case parkLeave, parkSBA, parkMass:
 		s.leave(k, s.objs[r.obj].slot, kop.ZoneGraveyard, false)
+		if r.kind == parkMass && r.fl&parkRemember != 0 && s.objs[r.obj].zone == kop.ZoneGraveyard {
+			s.remember(r.obj) // RememberDestroyed$: only a victim that reached the graveyard counts
+		}
 	case parkFinish:
 		s.finishResolve(k, r.x != 0)
 	case parkMill:
