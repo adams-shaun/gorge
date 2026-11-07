@@ -10,10 +10,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // printed Continuous statics, then the Effect-delivered ones, and the FIRST
 // that affects the player wins; the default is seven. Static.A is the
 // value: 0 unlimited (no maximum, the existing NoMaxHandSize), else A-1.
-// eachStatic walks the permanents in slot order and then the emblems, which
-// is gorge's order only when the statics agree: two hand-size statics of
-// one player with DIFFERENT values stall (StallHandSize) rather than guess
-// the winner.
+// Two statics of one player apply in timestamp order (CR 613.7), so the
+// permanent with the latest layer timestamp (layerTs) sets the
+// maximum, as gorge maxHandSizeFor takes the latest. An emblem (gorge's
+// Effect-delivered route) carries no timestamp here: an emblem whose value
+// differs from another hand-size static of the player stalls
+// (StallHandSize) rather than guess the winner.
 //
 // Protection: gorge playerProtectedFrom holds the player against a source
 // whose controller is an opponent (CR 702.16c), targeting (the kernel's
@@ -21,7 +23,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // all damage from such a source (CR 702.16e; gorge emit). replDamage reads
 // rbPlProt (a StatPlayerHexproof with Static.A == 1).
 
-// StallHandSize: two hand-size statics of one player with different values.
+// StallHandSize: an emblem's hand-size static and another of the same
+// player with a different value.
 const StallHandSize = 118
 
 func init() { stallNames[StallHandSize] = "handsize" }
@@ -39,7 +42,7 @@ func (s *State) maxHand(k *prep, p uint8) int {
 	if k.gen == nil || !k.gen.anyHandSize {
 		return 7
 	}
-	max, found := 7, false
+	max, found, emb, ts := 7, false, false, uint16(0)
 	s.eachStatic(k, func(st statSrc) bool {
 		if st.a.Kind != kop.AbStatic || st.a.Static.Kind != kop.StatNoMaxHandSize || st.ctrl != p {
 			return true
@@ -52,11 +55,17 @@ func (s *State) maxHand(k *prep, p uint8) int {
 		if a != 0 {
 			v = a - 1
 		}
-		if found && v != max {
-			s.capFull(StallHandSize)
-			return false
+		if st.emb != 0 || emb {
+			if found && v != max {
+				s.capFull(StallHandSize)
+				return false
+			}
+			max, found, emb = v, true, emb || st.emb != 0
+			return true
 		}
-		max, found = v, true
+		if pt := s.layerTs(st.sl); !found || pt > ts {
+			max, found, ts = v, true, pt
+		}
 		return true
 	})
 	return max
