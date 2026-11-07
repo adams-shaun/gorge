@@ -430,6 +430,9 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || !a.Static.AddSub.Has(int(i)) && !(k.gen.anyAddChosen && s.chosenGrants(k, a, st.sl, i)) {
 			return true
 		}
+		if keep, _ := s.selfGrantKept(k, sl, st.sl); !keep.Has(int(i)) {
+			return true // a newer setter on sl overwrote its own grant (static_selfgrant.go)
+		}
 		if s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerSub) {
 			found = true
 			return false
