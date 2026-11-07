@@ -1149,6 +1149,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			tc.SourceLeftBeforePush = true // it left while the trigger waited (captureSourceCharLKI)
 		}
 		e.triggerContexts[id] = tc
+		e.keepCopiedTriggerSVars(id, pt)
 		e.keepTriggerLKI(id, &pt)
 		if pt.Ctx.Snap.SourceLifelinkValid {
 			if e.sourceLifelinkLKI == nil {
@@ -1392,13 +1393,14 @@ func (e *Engine) findTriggerForAbilityFace(source state.ObjID, sa *cards.SA) (ca
 // Granted and Delayed arms -- the paths that mint an SVar body rather than a
 // compiled Face.Triggers entry.
 func (e *Engine) recordTriggerLine(id state.ObjID, pt pendingTrigger) {
-	if pt.Trigger.Mode == "" && !pt.Chapter {
+	if pt.Trigger.Mode != "" || pt.Chapter {
+		if e.triggerLines == nil {
+			e.triggerLines = make(map[state.ObjID]cards.Trigger)
+		}
+		e.triggerLines[id] = pt.Trigger
+	} else if pt.TriggerSVars == nil {
 		return
 	}
-	if e.triggerLines == nil {
-		e.triggerLines = make(map[state.ObjID]cards.Trigger)
-	}
-	e.triggerLines[id] = pt.Trigger
 	if pt.TriggerSVars != nil {
 		if e.triggerLineSVars == nil {
 			e.triggerLineSVars = make(map[state.ObjID]map[string]string)

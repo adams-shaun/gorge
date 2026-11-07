@@ -323,6 +323,7 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// covers the whole generic part leaves no shortfall for Teval's
 		// granted delve, so no graveyard card is offered (Ureni's Rebuff).
 		{"delve_harmonize_covered_generic", true, false},
+		{"copy_sacrificed_to_own_cost_reflexive_body", true, false}, // CR 707.2, 603.12: a copy that sacrifices itself to its ImmediateTrigger cost (Naga Fleshcrafter as Felothar) still queues the copied reflexive body
 	})
 }
 
