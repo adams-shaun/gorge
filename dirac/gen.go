@@ -207,7 +207,7 @@ type genPrep struct {
 	anySneak       bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
 	anyWebSling    bool           // some card has web-slinging (CardDef.HasWebSling; kw_websling.go)
 	anyMayFlash    bool           // some card has K:MayFlashCost (CardDef.HasMayFlash; kw_mayflash.go)
-	anyDelve       bool           // some card grants Delve to a spell as it is cast (StatStackKw Delve; kw_delve.go)
+	anyDelve       bool           // some card has printed or granted Delve (CardDef.Delve, StatStackKw Delve; kw_delve.go)
 	anyConvoke     bool           // some card has printed or granted convoke/improvise or harmonize (CardDef.Convoke/Improvise/Harmonize, StatStackKw Improvise/Convoke; kw_convoke.go)
 	anyBeam        bool           // some card has printed beam me up (CardDef.BeamMeUp; kw_beammeup.go)
 	anyBeamBar     bool           // some card has a StatCantBeBeamedUp static
@@ -758,6 +758,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.TapPays() || c.Harmonize {
 			g.anyConvoke = true
 			g.anyHarmonize = g.anyHarmonize || c.Harmonize
+		}
+		if c.Delve {
+			g.anyDelve = true
 		}
 		if c.Cascade != 0 {
 			g.anyCascade = true

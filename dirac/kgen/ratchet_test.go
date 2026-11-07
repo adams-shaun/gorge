@@ -92,7 +92,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Ark of Hunger: the remembered-card MayPlay over Graveyard,Exile; SOS 248 -> 249, ALL 21664 -> 21665).
 	// +1 (Parker Luck: the RepeatEach Targeted body reads the other player's revealed card's mana value; SPM 160 -> 161, ALL 21665 -> 21666).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21666, 34442},
+	"ALL": {21687, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
