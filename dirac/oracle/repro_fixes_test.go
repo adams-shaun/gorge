@@ -361,6 +361,7 @@ func TestStdSosReprosLockstep(t *testing.T) {
 		{"granted_and_printed_flashback_ambiguous", false, false},    // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
 		{"graveyard_ability_source_new_object", true, false},         // CR 400.7: a second Postmortem Professor return ability resolves after the card came back and died again, and finds a new object
 		{"cascade_mana_value_evaluated_at_resolution", false, false}, // CR 202.3b: cascade reads the spell's mana value where the spell resolved, so the ward-counted Fractalize (X paid 4, now a card in the graveyard) prices 1 and does not hit Textbook Tabulator
+		{"charm_gate_ignores_restricted_float", false, false},        // CR 106.6, 601.2c: the pre-target gate keeps a cast alive whose floating restricted mana its restriction admits, as gorge's pool does
 	})
 }
 
