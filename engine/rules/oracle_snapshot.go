@@ -306,7 +306,16 @@ func (r *oracleRun) snapshot(checkpoint string) OracleSnapshot {
 	}
 	var field []state.ObjID
 	for i := range g.Players {
-		field = append(field, g.Zone(state.ZBattlefield, state.PlayerID(i))...)
+		for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(i)) {
+			// A phased-out permanent is on the battlefield but treated as
+			// though it does not exist (CR 702.26b), so the snapshot must not
+			// name it. An attached permanent phased out with its host carries
+			// PhasedOut itself (CR 702.26g).
+			if g.Obj(id).PhasedOut {
+				continue
+			}
+			field = append(field, id)
+		}
 	}
 	sort.Slice(field, func(a, b int) bool { return field[a] < field[b] })
 	blocking := map[state.ObjID]bool{}

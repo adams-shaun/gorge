@@ -438,19 +438,26 @@ const (
 )
 
 type stackEntry struct {
-	kind    uint8
-	obj     Obj    // the spell's object, or the ability's source object
-	srcVer  uint8  // the source's ver when the ability was created
-	sid     uint8  // an ability's stack identity, for a stack-ability target (tgt_stackability.go; 0 = none; the padding byte); a spell's FINALITY rider count (trig_mayplaystatic.go)
-	card    CardID // the source card (last known information)
-	ab      uint8  // ability index in the card's CardDef
-	ctrl    uint8
-	mode    uint8 // chosen modes bitmask
-	x       uint8
-	flags   uint8
-	nt      uint8
-	tgt     [kop.MaxTargets]uint8
-	tver    [kop.MaxTargets]uint8
+	kind   uint8
+	obj    Obj    // the spell's object, or the ability's source object
+	srcVer uint8  // the source's ver when the ability was created
+	sid    uint8  // an ability's stack identity, for a stack-ability target (tgt_stackability.go; 0 = none; the padding byte); a spell's FINALITY rider count (trig_mayplaystatic.go)
+	card   CardID // the source card (last known information)
+	ab     uint8  // ability index in the card's CardDef
+	ctrl   uint8
+	mode   uint8 // chosen modes bitmask
+	x      uint8
+	flags  uint8
+	nt     uint8
+	tgt    [kop.MaxTargets]uint8
+	tver   [kop.MaxTargets]uint8
+	// crim is CR 700.13's pick-time verdicts for the root target slots
+	// (act_commitcrime.go): bit i says slot i's pick was a crime when it was
+	// made, bit 7 (crimRec) that the asks recorded verdicts, so checkWard's
+	// walk judges the target as it was targeted and not what a cost or a
+	// trigger made it since (a sacrificed self-target sits in its owner's
+	// graveyard at placement). A spell keeps the build's bflCrime instead.
+	crim    uint8
 	trigObj Obj
 	trigPl  uint8
 	trigAmt int16
@@ -775,12 +782,12 @@ type resCtx struct {
 	loopS   [2]uint8
 	loopD   uint8
 	eachObj Obj
-	peek    [8]Obj // scry/surveil/dig look-at cards
-	peekSel uint8  // answers so far (bit per peek index)
-	arr     [8]Obj // arrange: cards kept on top, in pick order (then, in the rest phase, the rest cards in pick order)
-	restSel uint8  // scry/surveil rest phase (Config.ArrangeRestOrder): rest picks so far (bit per peek index)
-	topN    uint8  // scry/surveil rest phase: the top picks (arr[:topN]); the rest picks follow
-	restPh  bool   // scry/surveil: the top phase closed; the rest cards are being ordered
+	peek    [8]Obj       // scry/surveil/dig look-at cards
+	peekSel uint8        // answers so far (bit per peek index)
+	arr     [MaxHand]Obj // arrange: cards kept on top, in pick order (then, in the rest phase, the rest cards in pick order); a discard's picks, one slot per hand card
+	restSel uint8        // scry/surveil rest phase (Config.ArrangeRestOrder): rest picks so far (bit per peek index)
+	topN    uint8        // scry/surveil rest phase: the top picks (arr[:topN]); the rest picks follow
+	restPh  bool         // scry/surveil: the top phase closed; the rest cards are being ordered
 	peekN   uint8
 	peekI   uint8
 	active  bool

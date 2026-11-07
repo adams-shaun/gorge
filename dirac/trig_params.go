@@ -63,6 +63,46 @@ func (s *State) keepGameOnce() {
 	s.g.nused = uint8(n)
 }
 
+// dropPendingLimits cuts the pending queue to from (a reversed cast's
+// CR 733.1 drop, unpushSpell / unpushActivation) and, for every dropped
+// entry, gives back the once-per-turn record its line consumed as it was
+// queued (gorge abortCast's proposalLimits: "an undone action triggered
+// nothing (CR 733.1), so a once-each-turn trigger it queued has not used
+// its turn").
+func (s *State) dropPendingLimits(k *prep, from uint8) {
+	for i := int(from); i < int(s.npend); i++ {
+		pt := s.pend[i]
+		if pt.ab >= abCascade {
+			continue // a kernel-native trigger line has no limit$
+		}
+		a := &k.t.Cards[pt.card].Abilities[pt.ab]
+		if a.Kind != kop.AbTriggered {
+			continue
+		}
+		if k.gen != nil && k.gen.anyGameOnce && a.Trig.Flags3&kop.Tf3GameOnce != 0 {
+			s.unmarkUsed(pt.obj, gameOnceMark|pt.ab)
+		}
+		if a.Trig.Flags&kop.TfOncePerTurn != 0 {
+			s.unmarkUsed(pt.obj, pt.ab)
+		}
+	}
+	s.npend = from
+}
+
+// unmarkUsed removes the newest once-per-turn record for (o, ab) — the one
+// queueTrig appended when the dropped entry was queued (usedThisTurn reads
+// the pool linearly, so record order is not observable).
+func (s *State) unmarkUsed(o Obj, ab uint8) {
+	for i := int(s.g.nused) - 1; i >= 0; i-- {
+		if s.g.used[i].obj == o && s.g.used[i].ab == ab {
+			copy(s.g.used[i:], s.g.used[i+1:s.g.nused])
+			s.g.used[s.g.nused-1] = usedRec{}
+			s.g.nused--
+			return
+		}
+	}
+}
+
 // selfDiscLine: a card's own "when you discard this card" trigger (gorge
 // trigger_zone_gate.go: a Mode$ Discarded line without TriggerZones$ fires
 // on its own card's discard wherever the discard put it). kgen lowers it as
