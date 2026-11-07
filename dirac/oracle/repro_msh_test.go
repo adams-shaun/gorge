@@ -21,5 +21,7 @@ func TestStdMshReprosLockstep(t *testing.T) {
 		{"powerup_window_plan_composes_cost_statics", true, false},              // CR 601.2f, 702.193b: the activation's plan is armed by that same statics-composed witness, so the reduced {1} taps the Forest the plan picks, not the first source in the window
 		{"filter_combo_allocates_needed_colours", false, false},                 // CR 601.2g-h, 605.3b: Baxter Building's {4},{T} combination filter pays Truck Toss's {2}{R}{R} once its allocation names the red the search needs
 		{"power_up_planner_prices_cost_statics", true, false},                   // CR 601.2f, 602.2b, 702.193a: Hulk, Gamma Goliath's {3} off She-Hulk, Jade Defender's {4}{G}{G} Power-up is in the planner's printed cost, so five lands with three Forests offer it
+		{"powerup_static_reduction_offer", true, false},                         // CR 601.2f, 602.2b, 702.193a: Hulk's {3} static lowers Viv Vision's power-up enough for six sources to pay it, though neither the pool nor the printed {7} is affordable
+		{"put_counter_optional_departed_source_no_ask", true, false},            // CR 400.7: "you may put a counter on it" is not asked once its source has left the battlefield, since the counter could not land
 	})
 }
