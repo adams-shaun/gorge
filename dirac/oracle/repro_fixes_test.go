@@ -56,6 +56,10 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-otj", []stdRepro{
 		{"copied_vehicle_counts_its_crew", true, false}, // CR 707.2: Loan Shark copying Luxurious Locomotive makes a Treasure per creature that crewed it
 		{"counters_skip_a_ceased_token", true, false},   // CR 111.7: Railway Brawler's counters for a Beau the legend rule removed land on nothing
+		// CR 707.10c, 115.3: Jace Reawakened's copy of Fleeting Reflection may
+		// not move "up to one other target creature" onto the creature its
+		// first target already names
+		{"copy_retarget_unique_link", false, false},
 		// Ornery Tumblewagg is cast through Jasper Flint's mayplay and paid
 		// with a wide Stablemaster tap and a Mountain: the rider plan's
 		// restricted mana floats, the payment admits and spends it first
@@ -394,6 +398,7 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"free_tiered_mode_cost_reduction", false, false},       // CR 601.2f, 118.9d: The Wind Crystal's ReduceCost applies to the Tiered mode cost of a free cast
 		{"window_any_colour_ability_owed_pip", false, false},    // CR 601.2g: an unpayable Tiered mode's window takes Starting Town's pay-life any-colour ability while a {W} pip is owed
 		{"graveyard_leave_sees_batch_entrant", true, false},     // CR 603.10a: Fang returned by Random Encounter beside the cards it returns did not see them leave
+		{"graveyard_entrant_watches_sibling", true, false},      // CR 603.10a: a card that entered in the sweep does not watch a sibling leave it
 		{"equip_unattach_waits_for_legend_ask", true, false},    // CR 704.3, 704.5n: Magitek Scythe stays on Serah Farron, transformed beside another Crystallized Serah, until the legend answer
 		// CR 113.7a, 608.2h, 702.15b: Phoenix's chapter I, pending when the legend rule bins it, deals damage with the Phoenix's lifelink
 		{"delayed_trigger_departed_source_lifelink", false, false},
@@ -463,9 +468,11 @@ func TestStdFraReprosLockstep(t *testing.T) {
 func TestStdLciReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-lci", []stdRepro{
-		{"granted_sac_host_cost_poses_no_choice", false, false}, // CR 602.2b, 701.21a: Deconstruction Hammer's granted "Sacrifice Deconstruction Hammer" cost has one possible payment, so it is paid without a choice after the targets
-		{"payment_trigger_counts_its_resolution", false, false}, // CR 603.2, 605.3b: Vito's trigger from a Treasure sacrificed paying for Guardian of the Great Door resolves before the cast and counts toward "the second time this ability has resolved this turn"
-		{"mana_float_unspent_observed_source", false, false},    // CR 601.2h: Barracks of the Thousand's mana floated by the X witness and left unspent (Jadelight Spelunker at X=0) is not mana that paid the cast
+		{"granted_sac_host_cost_poses_no_choice", false, false},       // CR 602.2b, 701.21a: Deconstruction Hammer's granted "Sacrifice Deconstruction Hammer" cost has one possible payment, so it is paid without a choice after the targets
+		{"attack_trigger_pump_skips_returned_attacker", false, false}, // CR 400.7: Grasping Shadows' attack trigger does not grant deathtouch and lifelink to Aclazotz once it died and returned as Temple of the Dead
+		{"payment_trigger_counts_its_resolution", false, false},       // CR 603.2, 605.3b: Vito's trigger from a Treasure sacrificed paying for Guardian of the Great Door resolves before the cast and counts toward "the second time this ability has resolved this turn"
+		{"counter_delayed_trigger_strips_creator", false, false},      // CR 603.7e: Tishana's Tidebinder counters the end-step sacrifice Saheeli, the Sun's Brilliance's copy registered; its source is Saheeli, who loses all abilities
+		{"mana_float_unspent_observed_source", false, false},          // CR 601.2h: Barracks of the Thousand's mana floated by the X witness and left unspent (Jadelight Spelunker at X=0) is not mana that paid the cast
 	})
 }
 
@@ -531,6 +538,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"tapcost_spell_pays_life_mana_beside_part", false, false},      // CR 601.2g-h, 119.4: Fear of Exposure beside Haunted Screen is castable: the Screen's life-paid {G} pays the mana while two lands are tapped for the cost
 		{"granted_prefix_pays_painful_needed_colour", false, false},     // CR 119.4: the granted-mana prefix taps an animated Haunted Screen for its painful {R} the play needs (gorge's ask lists it before the grant) and pays 1 life
 		{"self_leaves_trigger_sees_remembered_clear", false, false},     // CR 400.7/603.2d: a leaves trigger whose source departed does not serve the fire-time remembered snapshot, so the first instance's Cleanup clear closes the second instance's window
+		{"unless_tax_hides_unadmitted_restricted_mana", false, false},   // CR 106.6: Smoky Lounge's Room-only {R}{R} cannot pay Don't Make a Sound's {2} unless tax, so its controller is offered only the decline
 		{"painless_plan_at_nonpositive_life", false, false},             // CR 119.4, 601.2g: a player at life <= 0 (a lose-the-game replacement) still pays a {1} spell from painless lands; the pain guard cuts only a plan that pays life
 	})
 }

@@ -29,6 +29,12 @@ func (s *State) counterLose(k *prep, in *kop.Instr) {
 		return
 	}
 	src, ver := s.stack[i].obj, s.stack[i].srcVer
+	// a creator-sourced delayed trigger (an AtEOT$ rider, CR 603.7e) stamps
+	// the affected object's ver, not its creator's: gorge remembers the
+	// source by id, so its live incarnation is the one read
+	if st := &s.stack[i]; st.ab == abDelayed && dlyRef(src, st.trigObj) != src && src != NoObj && int(src) < MaxObj {
+		ver = s.objs[src].ver
+	}
 	s.g.stkCt = s.stack[i].ctrl + 1
 	s.counterAt(k, i)
 	if src == NoObj || int(src) >= MaxObj {

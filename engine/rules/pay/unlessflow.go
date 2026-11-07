@@ -319,9 +319,10 @@ func askUnlessMana(e Engine) {
 	}
 	g := e.Game()
 	units := e.Eval().WindowUnits(u.Payer)
-	pool := g.Players[u.Payer].Pool
+	av := unlessAvailable(e, u.Payer, u.StackObj, u.Cost)
+	pool := av.Pool
 	snow := g.Players[u.Payer].Snow
-	typed := g.Players[u.Payer].ManaUnits()
+	typed := av.Typed
 	life := g.Players[u.Payer].Life
 	d := &decision.Decision{Player: u.Payer, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Activate mana abilities to pay the unless cost", ResumeKind: "unless_mana"}
