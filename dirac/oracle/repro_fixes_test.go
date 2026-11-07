@@ -271,8 +271,9 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 func TestStdHobReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-hob", []stdRepro{
-		{"sac_part_and_mana_share_a_treasure", false, false}, // CR 601.2g-h: the one Treasure that pays Stir Up Trouble's {B} is gone, so it is not also the artifact its either-or part sacrifices; the cast is not offered
-		{"autopay_plan_prices_target_discount", true, false}, // CR 601.2f: Dwarven Mauler's {2}-less ValidTarget$ discount makes Ragged Short Spear's equip {3} payable from two lands, so the autopay witness prices it and the re-equip is offered
+		{"equip_target_reducer_offered_from_lands", false, false}, // CR 601.2f/602.2b: Dwarven Mauler's {2}-less reduction for an equip targeting it makes Equip {4} payable from two lands, so the equip is offered
+		{"sac_part_and_mana_share_a_treasure", false, false},      // CR 601.2g-h: the one Treasure that pays Stir Up Trouble's {B} is gone, so it is not also the artifact its either-or part sacrifices; the cast is not offered
+		{"autopay_plan_prices_target_discount", true, false},      // CR 601.2f: Dwarven Mauler's {2}-less ValidTarget$ discount makes Ragged Short Spear's equip {3} payable from two lands, so the autopay witness prices it and the re-equip is offered
 	})
 }
 
@@ -438,6 +439,8 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"count_reduction_fixed_before_treasure_mana", true, false},
 		// CR 601.2f: Cloud, Planet's Champion's {2} less makes White Mage's Staff's equip onto it {1}, payable by tapping Balamb Garden
 		{"equip_target_reduced_autopay_offer", true, false},
+		// CR 601.2f, 602.2b: Cloud's {2} equip reduction prices Dragoon's Lance's Equip {4} for the target Cloud, so the autopay offer plans {2}
+		{"equip_target_reduction_autopay_offer", true, false},
 		// CR 601.2f: Cloud, Planet's Champion's ValidTarget$ discount makes Paladin's Arms' Equip {4} payable from three untapped sources when it targets Cloud
 		{"target_priced_equip_from_untapped_lands", true, false},
 		{"reversal_past_graveyard_exile_replacement", true, false},
