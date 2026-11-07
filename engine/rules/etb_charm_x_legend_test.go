@@ -20,10 +20,10 @@ import (
 // Crew (X B R, choose up to X); no Forge script text is committed.
 
 const charmXFixtureSrc = "Name:Charm X Fixture\nManaCost:X B R\nTypes:Legendary Creature Human\nPT:2/2\n" +
-	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCharm\n" +
-	"SVar:TrigCharm:DB$ Charm | MinCharmNum$ 0 | CharmNum$ X | Choices$ DBGain,DBDraw\n" +
-	"SVar:DBGain:DB$ GainLife | Defined$ You | LifeAmount$ 3 | SpellDescription$ gain\n" +
-	"SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ 1 | SpellDescription$ draw\n" +
+	"T:Mode$ ChangesZone | Execute$ ModalEntry | Destination$ Battlefield | Origin$ Any | ValidCard$ Card.Self\n" +
+	"SVar:ModalEntry:DB$ Charm | Choices$ FxGain,FxDraw | CharmNum$ X | MinCharmNum$ 0\n" +
+	"SVar:FxGain:DB$ GainLife | LifeAmount$ 3 | Defined$ You | SpellDescription$ gain\n" +
+	"SVar:FxDraw:DB$ Draw | NumCards$ 1 | Defined$ You | SpellDescription$ draw\n" +
 	"SVar:X:Count$xPaid\n" +
 	"Oracle:x\n"
 
