@@ -57,6 +57,17 @@ func powerUpReduce(c, red kop.ManaCost) kop.ManaCost {
 	return c
 }
 
+// powerUpWitnessAffords reports whether av pays gorge's autopay planner
+// witness for Power-up ability a of slot sl (powerUpWitness). The caller
+// guards on anyPowerUp and CostPowerUp and on the pool not paying; this body
+// is cold.
+//
+//go:noinline
+func (s *State) powerUpWitnessAffords(k *prep, sl Slot, a *kop.Ability, ctrl uint8, av *avail) bool {
+	c := s.powerUpWitness(k, a, sl, ctrl)
+	return s.abilityAffords(k, sl, a, &c, av)
+}
+
 // powerUpWitness is the cost gorge's autopay planner prices for Power-up
 // ability a of slot sl: the printed cost with the ability's own reduction
 // and the cost statics composed (planAbilityPaymentLifePips:
