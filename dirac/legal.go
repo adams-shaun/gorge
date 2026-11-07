@@ -1512,7 +1512,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 			s.flushPrefixTriggers(k)
 		}
 	}
-	if s.scriptAny(k) && (isCastKind(a.Kind()) || a.Kind() == AkActivate || a.Kind() == AkPlot) {
+	if s.scriptAny(k) && isScriptPlayKind(a.Kind()) {
 		s.scriptPrefix(k, a, p) // a play only a scripted activation pays (script_gen.go)
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k) // its trigger resolves before the play (seed 640)
