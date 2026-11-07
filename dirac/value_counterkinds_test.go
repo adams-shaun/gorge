@@ -3,47 +3,27 @@ package dirac
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// newStdTDMScen is a main-phase scenario over the std-tdm synthetic pool's
-// matchup of deck vs deck, libraries of Plains; a deck card the pool does
-// not support fails the test rather than skipping it.
-func newStdTDMScen(t *testing.T, deck []cardset.Entry) (*scen, map[string]CardID) {
+// counterKindsScen is a main-phase scenario over the counterkinds fixture
+// pool, libraries of Plains.
+func counterKindsScen(t *testing.T) (*scen, func(string) CardID) {
 	t.Helper()
-	set := cardsettest.Synth(t, "std-tdm")
-	for _, e := range deck {
-		if i, ok := set.Lookup(e.Name); !ok || !set.Supported()[i] {
-			t.Fatalf("%s not supported in std-tdm", e.Name)
-		}
-	}
-	tbl, da, _, err := set.Matchup(deck, deck)
+	set := cardsettest.Set(t, "counterkinds")
+	tbl, err := set.Pool()
 	if err != nil {
 		t.Fatal(err)
 	}
-	id := map[string]CardID{}
-	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
-	}
-	var lib [20]CardID
-	for i := range lib {
-		lib[i] = id["Plains"]
-	}
-	s := new(State)
-	s.Init(tbl, lib[:], lib[:], 1, Config{NoElide: true})
-	for p := uint8(0); p < 2; p++ {
-		pls := &s.pl[p]
-		for pls.handN > 0 {
-			o := pls.hand[0]
-			s.detach(o)
-			s.objs[o].zone = kop.ZoneLibrary
-			pls.libBottom(o)
+	id := func(name string) CardID {
+		i, ok := set.Lookup(name)
+		if !ok {
+			t.Fatalf("%s not in the pool", name)
 		}
+		return CardID(set.PoolID(i))
 	}
-	s.turn, s.active, s.step, s.prio, s.passes, s.ctl = 2, 0, kop.StepMain1, 0, 0, ctlPriority
-	return &scen{s: s, k: s.k()}, id
+	return newScenTableLib(t, tbl, id("Plains"), Config{NoElide: true}), id
 }
 
 // TestDifferentCounterKinds: ExCounterKinds counts each counter kind with a
@@ -52,7 +32,7 @@ func newStdTDMScen(t *testing.T, deck []cardset.Entry) (*scen, map[string]CardID
 // or an opponent's counters, nor gorge's marker flags; Hundred-Battle
 // Veteran's self-pump switches on at three kinds.
 func TestDifferentCounterKinds(t *testing.T) {
-	sc, id := newStdTDMScen(t, []cardset.Entry{{Name: "Hundred-Battle Veteran", Count: 1}, {Name: "Agent of Kotis", Count: 2}, {Name: "Plains", Count: 8}})
+	sc, id := counterKindsScen(t)
 	s, k := sc.s, sc.k
 	k.t.Filters = append(k.t.Filters, kop.Filter{Types: kop.TCreature, Ctrl: kop.CtrlYou})
 	f := kop.FilterID(len(k.t.Filters) - 1)
@@ -60,10 +40,10 @@ func TestDifferentCounterKinds(t *testing.T) {
 		x := kop.Expr{Kind: kop.ExCounterKinds, F: f}
 		return s.exprCold(k, &x, evalCtx{ctrl: 0, src: NoObj, srcSl: NoSlot})
 	}
-	vet := sc.slot(sc.perm(id["Hundred-Battle Veteran"], 0))
-	ag := sc.slot(sc.perm(id["Agent of Kotis"], 0))
-	land := sc.slot(sc.perm(id["Plains"], 0))
-	opp := sc.slot(sc.perm(id["Agent of Kotis"], 1))
+	vet := sc.slot(sc.perm(id("Hundred-Battle Veteran"), 0))
+	ag := sc.slot(sc.perm(id("Grizzly Bears"), 0))
+	land := sc.slot(sc.perm(id("Plains"), 0))
+	opp := sc.slot(sc.perm(id("Grizzly Bears"), 1))
 	put := func(sl Slot, c kop.CounterKind, n int) {
 		t.Helper()
 		if !s.perms[sl].setCtrN(s, int(c), n) {
