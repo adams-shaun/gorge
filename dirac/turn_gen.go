@@ -1027,6 +1027,15 @@ func (s *State) applyGen(k *prep, a Action) {
 // and runs the rest of its enters program.
 func (s *State) answerQueuedAsk(k *prep, a Action) {
 	ask := s.g.ask[0]
+	if ask.kind == akNameLook {
+		// The look at the opponent's hand is acknowledged before the name is
+		// asked (gorge poses the two choices separately). It is answered
+		// while the creating ability is still resolving, so the queued ask
+		// stays: popping it here would read the acknowledgement as the name
+		// answer and finish the resolution early (CR 608.2n).
+		s.g.ask[0].kind = akNameAny
+		return
+	}
 	s.popAsk()
 	if ask.sl == NoSlot {
 		// the host answered (retAuraAsk); gorge drops the answer when
