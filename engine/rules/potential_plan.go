@@ -1336,6 +1336,13 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	}
 	composed := e.offerCostFor(p, id, cost, abilityScope(ab))
 	out := e.planComposedCost(p, id, composed, true, true)
+	if out.Plan == nil || out.Reason != "" {
+		// No plan at the untargeted price: a target-dependent reduction may
+		// make some legal target's price payable (CR 601.2c, 601.2f).
+		if alt, ok := e.abilityTargetPricedPlan(p, id, cost, abilityScope(ab)); ok {
+			return alt
+		}
+	}
 	if out.Reason != "insufficient" || cost.Waterbend <= 0 {
 		return out
 	}
