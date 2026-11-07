@@ -412,7 +412,13 @@ func playerCountDefinedRegistered(h Host, g *state.Game, c *Ctx, group []state.P
 				o := &state.Object{ID: hit.Source, Card: hit.Card, FaceIdx: hit.FaceIdx, Controller: hit.Controller, Zone: state.ZBattlefield}
 				hsc := sc
 				if hit.SourceTypes != nil {
-					hsc.Layers.DerivedTypes = withSourceTypes(sc.Layers.DerivedTypes, hit.Source, hit.SourceTypes)
+					// The hit's damage-time type list is authoritative for
+					// this one object (CR 608.2h): ExtraTypes binds it for the
+					// source alone, ahead of any live layer-4 entry that no
+					// longer says "creature". A value slice, so the match does
+					// not copy the caller's derived table and cannot make the
+					// resolving Ctx escape (the count-scan allocation pins).
+					hsc.ExtraTypes, hsc.ExtraTypesOwner = hit.SourceTypes, hit.Source
 				}
 				if MatchesObjectCtx(g, spec, o, hsc) {
 					got++
@@ -1006,16 +1012,4 @@ func splitCreatureBaseAlternatives(spec string) (creature, other string, ok bool
 		return "", "", false
 	}
 	return strings.Join(cr, ","), strings.Join(ot, ","), true
-}
-
-// withSourceTypes returns derived with id's entry replaced by the hit's
-// damage-time type list (CR 608.2h), leaving the shared slice untouched.
-func withSourceTypes(derived []ObjectTypes, id state.ObjID, types []string) []ObjectTypes {
-	out := make([]ObjectTypes, 0, len(derived)+1)
-	for _, d := range derived {
-		if d.ID != id {
-			out = append(out, d)
-		}
-	}
-	return append(out, ObjectTypes{ID: id, Types: types})
 }
