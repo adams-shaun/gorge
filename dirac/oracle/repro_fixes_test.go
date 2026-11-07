@@ -76,6 +76,7 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// the answer was made on
 		{"copy_all_sweep_batch_spans_parked_ask", false, false},
 		{"plot_cast_pays_additional_sacrifice", false, false}, // CR 118.9, 701.34d: a plotted Corrupted Conviction is cast free of its mana cost but still sacrifices a creature
+		{"plot_cast_needs_a_sacrifice_source", false, false},  // CR 118.9, 601.2h: the free plot cast is offered only while its additional sacrifice can be paid
 		// Explosive Derailment ({R}, Spree, every mode {2}) on a board whose
 		// only red source is Conduit Pylons' {1},{T} filter: the printed cost
 		// is payable, but no mode is, so neither engine offers the cast (CR
@@ -412,6 +413,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		// gorge's Submit never refuses a pick the menu no longer offers.
 		{"mayplay_convoke_cast_cost", false, false},
 		{"restricted_window_float_keeps_chosen_type", false, false}, // CR 106.6, 601.2h: the evoked pip window's owed tap of an any-colour ChosenType-restricted source floats the batch with the source's chosen creature type, so a spell of that type can spend it
+		{"subcounter_wildcard_flying_counter_kind", false, false},   // CR 122.1b: Reaping Willow's remove-any-two-counters cost names a Flying counter by its own kind, not as a +1/+1 counter
 	})
 }
 
