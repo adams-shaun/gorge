@@ -15,10 +15,17 @@ import (
 )
 
 // runSupported is kgen -supported: every entry of a pool's table, tokens included.
-func runSupported(pool string, w io.Writer) error {
+func runSupported(pool string, w io.Writer) error { return runSupportedView(pool, false, w) }
+
+// runSupportedView is runSupported; allowUnverified counts the cards with no lockstep
+// evidence yet as playable, as kfuzz -allow-unverified plays them. A refused card stays false.
+func runSupportedView(pool string, allowUnverified bool, w io.Writer) error {
 	s, err := cardset.ByName(pool)
 	if err != nil {
 		return err
+	}
+	if allowUnverified {
+		s = cardset.AllowUnverified(s)
 	}
 	sup := s.Supported()
 	for i, n := range s.Names() {

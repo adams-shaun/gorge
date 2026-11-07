@@ -67,7 +67,7 @@ type lfx struct {
 	obj  Obj
 	ok   uint8 // statics with a layer-4 part: 0 undecided, 1 applied, 2 did not
 	reps uint8 // a record: the identical applications it stands for (ovRec.reps)
-	p, t int16 // set P/T (a record's values were fixed at application)
+	p, t int16 // set P/T (a record's values were fixed at application; a LivePT static's are read from its source)
 	ch   uint8 // a static: its source's perm.chosen (AddChosen; act_choosetype.go)
 }
 
@@ -376,10 +376,14 @@ func (s *State) charsFx(k *prep, sl Slot, upTo uint8, fx *[maxLfx]lfx, np *int) 
 		if e := &fx[i]; e.o != nil && e.o.HasPT && s.lfxLocked(k, sl, e, &c) {
 			ep, et := e.p, e.t
 			if e.o.LivePT {
-				if s.livePTLost(k, sl, e.ts) {
-					continue
+				if e.a != nil {
+					ep, et = s.livePTSrc(k, e.src, e.o) // an override static anchors on its source
+				} else {
+					if s.livePTLost(k, sl, e.ts) {
+						continue
+					}
+					ep, et = s.livePT(k, sl, e.o, ep) // static_animategrants.go
 				}
-				ep, et = s.livePT(k, sl, e.o, ep) // static_animategrants.go
 			}
 			if !e.o.KeepP {
 				c.bp = int(ep)

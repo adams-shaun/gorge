@@ -34,11 +34,11 @@ import (
 // printed expansion's exact trigger/body shape (Mode$ SpellCast, ValidCard$
 // Card.Self, TriggerZones$ Stack; DB$ CopySpellAbility over
 // Defined$ TriggeredSpellAbility with Amount$ Count$Conspired), so its
-// behaviour is byte-identical to the printed path's: it fires on EVERY cast
-// of the granted spell (the deferred CR 601.2i walk, so the pay-time
-// FlagConspired CastInfo has already folded Object.Conspired) and resolves
-// to a no-op when the tap was declined (Amount 0, effCopySpellAbility's
-// loop emits nothing). A copy emits StackCopy, not PutOnStack, so the
+// behaviour is byte-identical to the printed path's, including the
+// CheckSVar$ Count$Conspired intervening "if" (CR 702.78a, 603.4): it
+// triggers only when the conspire cost was paid (the deferred CR 601.2i
+// walk, so the pay-time FlagConspired CastInfo has already folded
+// Object.Conspired); a declined tap puts no ability on the stack. A copy emits StackCopy, not PutOnStack, so the
 // synthesis cannot double-fire on its own output. The walk skips a face that
 // PRINTS Conspire (the printed expansion already owns the line -- the same
 // grant-identical-to-a-printed-line dedup Afflict keeps). Like Dethrone's
@@ -56,7 +56,8 @@ func (e *Engine) checkGrantedConspireTriggers(observer *Engine, id state.ObjID, 
 		return
 	}
 	t := cards.Trigger{Mode: "SpellCast", Params: map[string]string{
-		"Mode": "SpellCast", "ValidCard": "Card.Self", "TriggerZones": "Stack", "TriggerDescription": "Conspire",
+		"Mode": "SpellCast", "ValidCard": "Card.Self", "TriggerZones": "Stack",
+		"CheckSVar": "Count$Conspired", "TriggerDescription": "Conspire",
 	}, Effect: &cards.SA{Kind: "DB", API: "CopySpellAbility", Params: map[string]string{
 		"Defined": "TriggeredSpellAbility", "Amount": "Count$Conspired", "MayChooseTarget": "True",
 	}}}

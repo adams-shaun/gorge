@@ -43,7 +43,7 @@ type Result struct {
 	Actions   []Canon // the canonical actions applied, in order
 	Over      bool
 	Winner    int8
-	Stall     string // "decisions" or "turns" when a cap ended the game; KernelStallPrefix+reason when the kernel side stopped; GorgeTriggerCapStall when gorge's trigger bound cut the game
+	Stall     string // "decisions" or "turns" when a cap ended the game; KernelStallPrefix+reason when the kernel side stopped (ProjectionStall: the instances outgrew the projection); GorgeTriggerCapStall when gorge's trigger bound cut the game
 	// StallUnmodelled: the kernel stopped because gorge does something here it does
 	// not model (dirac.StallClassOf), not because a capacity ran out.
 	StallUnmodelled bool
@@ -71,6 +71,12 @@ const GorgeTriggerCapStall = "gorge trigger cap"
 // KernelStallPrefix starts Result.Stall when the kernel side ended the
 // game at its fixed capacity ("kernel stack", "kernel board", ...).
 const KernelStallPrefix = "kernel "
+
+// ProjectionStall is Result.Stall for a game whose card instances outgrew the
+// projection (MaxInst, the canonical Ref space): the instances past it would be
+// compared on neither side, so the game ends there. It is a declared capacity,
+// counted and reported like the kernel's, never a pass and never a divergence.
+const ProjectionStall = KernelStallPrefix + "projection"
 
 // capacityStaller is a kernel Side that can end a game at its capacity.
 type capacityStaller interface {
@@ -377,6 +383,10 @@ func LockstepLed(m *Matchup, seed uint64, lead, follow Side, pol Policy, rc RunC
 			inSide = ker
 			ker.Project(&pk)
 			inSide = nil
+			if gorge != nil && gorge.id.err != "" {
+				res.Stall, res.Turns = ProjectionStall, oracleTurn(lead, follow)
+				return res
+			}
 			if gorge != nil && gorge.CharErr != "" {
 				res.Div = &Divergence{At: res.Decisions, What: "projection", Field: "chars-map", Detail: gorge.CharErr}
 				return res
