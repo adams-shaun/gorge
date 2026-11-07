@@ -687,13 +687,6 @@ type build struct {
 	raiseAb   uint8    // Static.B of that static: 1 + the latent ability holding the raise cost
 	fixedGen  uint8    // the generic part as last priced (bflCostFixed: the total cost, CR 601.2f)
 	pipShort  bool     // the lowered pip window ran dry (loweredPipWindow): the cost objects are still asked, and the payment reverses the cast
-	// convokeBudget: a plain hand cast (beginCast mode 0, card in hand), the
-	// one shape the oracle caches a priority-time cost for. Its convoke
-	// announcement filters the remaining picks by the post-pick cost; on
-	// every other cast route (may-play, alternate cost, kicker) the oracle
-	// has no cached cost and poses gorge's whole static option list
-	// (kw_convoke.go convokeOptions).
-	convokeBudget bool
 }
 
 // build.bfl bits. bflLowered: a cast gorge's planner does not price,

@@ -398,6 +398,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"restricted_window_float_keeps_chosen_type", false, false},       // CR 106.6, 601.2h: the evoked pip window's owed tap of an any-colour ChosenType-restricted source floats the batch with the source's chosen creature type, so a spell of that type can spend it
 		{"convoke_window_restricted_any_colour_ahead_of_c", false, false}, // CR 106.6, 601.2g: a convoke window with an unsettled generic remainder lists Eclipsed Realms' admitted any-colour ability ahead of its {C}, and a window with no mana payment answers that ability's lowest colour
 		{"convoke_pays_with_floated_restricted_mana", false, false},       // CR 106.6, 601.2h: the convoke cast spends the restricted mana its window floated, as gorge's payment does
+		{"mayplay_convoke_over_selection", false, false},                  // CR 702.51a: Temporal Cleansing cast from Sanar's exile convokes four blue creatures for {3}{U}; only one may pay {U}, the rest pay {1}
 	})
 }
 
