@@ -38,9 +38,20 @@ func TestEquipOfferedWhenTargetCreatureReducesTheCost(t *testing.T) {
 	e.pending = nil
 	e.Advance()
 	driveToStep(t, e, 3, 0, state.StepMain1)
-	// Precondition: the equip really is {3} (not free), and Cloud is on board.
+	// Precondition: Cloud and the Rapier are on board, and the equip's
+	// untargeted price is {3} (more than Gohn's one mana).
 	if e.G.Obj(cloud).Zone != state.ZBattlefield || e.G.Obj(rapier).Zone != state.ZBattlefield {
 		t.Fatal("fixture permanents are not on the battlefield")
+	}
+	ro := e.G.Obj(rapier)
+	equipGeneric := int32(-1)
+	for i := 0; i < ro.PileAbilityCount(); i++ {
+		if pa, ok := ro.PileAbilityAt(i); ok && pa.SA != nil && pa.SA.Kind == "AB" {
+			equipGeneric = e.abilityCompiledCost(pa.SA).Cost.Generic
+		}
+	}
+	if equipGeneric != 3 {
+		t.Fatalf("Red Mage's Rapier's equip generic = %d, want 3", equipGeneric)
 	}
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KPriority {

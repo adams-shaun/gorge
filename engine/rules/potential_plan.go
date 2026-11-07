@@ -1337,10 +1337,22 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	composed := e.offerCostFor(p, id, cost, abilityScope(ab))
 	out := e.planComposedCost(p, id, composed, true, true)
 	if out.Plan == nil || out.Reason != "" {
-		// No plan at the untargeted price: a target-dependent reduction may
-		// make some legal target's price payable (CR 601.2c, 601.2f).
-		if alt, ok := e.abilityTargetPricedPlan(p, id, cost, abilityScope(ab)); ok {
-			return alt
+		// No plan at the untargeted price: a ValidTarget$ cost static
+		// (Cloud, Planet's Champion's "Equip abilities that target Cloud cost
+		// {2} less") may make some legal target's price payable (CR 601.2c,
+		// 601.2f). The target is not chosen at offer time, so each potential
+		// target's price is tried and the first payable plan wins.
+		if statics := e.collectCostStatics(); statics.validTarget {
+			scope := abilityScope(ab)
+			var alt PaymentPlanOutcome
+			if _, ok := e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
+				var c Cost
+				e.composedOfferCostInto(&c, p, id, &cost, &m, scope)
+				alt = e.planComposedCost(p, id, c, true, true)
+				return alt.Plan != nil && alt.Reason == ""
+			}); ok {
+				return alt
+			}
 		}
 	}
 	if out.Reason != "insufficient" || cost.Waterbend <= 0 {
