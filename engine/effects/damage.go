@@ -194,6 +194,9 @@ func resolveSourceObject(h Host, id state.ObjID) state.ObjID {
 // whose referent is absent -- the caller keeps the resolving source silently,
 // exactly as it does for every recognised-but-absent referent.
 func damageSourceSpecTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
+	if definedSpecCodes.Code(spec) == definedSpecTriggeredAttacker {
+		return triggeredAttackerLKI(c), true // LKI source, no CR 400.7 drop (CR 608.2h)
+	}
 	if ts, ok := definedSpec(h, c, spec); ok {
 		if spec != "Imprinted" || hasObjectTarget(ts) {
 			return ts, true
