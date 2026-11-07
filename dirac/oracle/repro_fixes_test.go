@@ -47,6 +47,9 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"mayplay_x_cast_census_rider", false, false},                // CR 609.4b, 601.2g-h: Worldsoul's Rage cast from Outrageous Robbery's exile: the prefix taps Insidious Roots' granted token for W, which the any-type rider spends on {R}, since gorge's census (no granted source) cannot pay the printed pips
 		{"ward_queues_at_target_choice_before_payment", true, false}, // CR 601.2c, 603.3b: a cost's sacrifice dies during the payment, so its triggers queue behind the ward trigger the target answer queued, not ahead of it -- the CR 603.3b ordering ask indexes the ward first
 		{"granted_before_printed_any", false, false},                 // CR 305.6: a granted basic type's intrinsic abilities precede a printed any-colour ability in the node-limited plan census
+		// CR 601.2b, 601.2g-h: Fuss's {R/W} cast from Outrageous Robbery's exile is priced under the any-type rider, so the printed lands pay it and Insidious Roots' granted token stays untapped
+		{"granted_any_prefix_respects_the_any_type_rider", false, false},
+		{"cost_sacrifices_latch_one_or_more_die", false, false},
 	})
 }
 
@@ -54,12 +57,19 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 func TestStdOtjReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-otj", []stdRepro{
-		{"copied_vehicle_counts_its_crew", true, false}, // CR 707.2: Loan Shark copying Luxurious Locomotive makes a Treasure per creature that crewed it
-		{"counters_skip_a_ceased_token", true, false},   // CR 111.7: Railway Brawler's counters for a Beau the legend rule removed land on nothing
+		{"aegis_copy_hides_older_copy_exceptions", true, false}, // CR 613.7e, 707.2: Oko's Assimilation Aegis copy of Daring Thunder-Thief is newer than his until-end-of-turn copy, so "except he has hexproof" is overwritten and returns with that layer
+		{"copied_vehicle_counts_its_crew", true, false},         // CR 707.2: Loan Shark copying Luxurious Locomotive makes a Treasure per creature that crewed it
+		{"aegis_rebase_keeps_once_per_turn", true, false},       // CR 602.5c, 613.1a: an Aegis copy ending while another keeps the same copy does not make its once-each-turn ability new
+		{"enters_with_counts_entrant_controller", true, false},  // CR 109.5: Dust Animus returned by a foreign Mystical Tether counts its own controller's untapped lands
+		{"counters_skip_a_ceased_token", true, false},           // CR 111.7: Railway Brawler's counters for a Beau the legend rule removed land on nothing
 		// CR 707.10c, 115.3: Jace Reawakened's copy of Fleeting Reflection may
 		// not move "up to one other target creature" onto the creature its
 		// first target already names
 		{"copy_retarget_unique_link", false, false},
+		// CR 400.7: a Stubborn Burrowfiend saddled, bounced by Nurturing Pixie
+		// and recast is a new object, so its first saddle that turn triggers
+		// again (gorge's latch stops at the Mount's own zone change).
+		{"rebought_mount_saddles_first_again", true, false},
 		// Ornery Tumblewagg is cast through Jasper Flint's mayplay and paid
 		// with a wide Stablemaster tap and a Mountain: the rider plan's
 		// restricted mana floats, the payment admits and spends it first
@@ -92,6 +102,8 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// and its first arm pays the full price from the sources while the
 		// retry pays the reduced price from the pool alone.
 		{"mayplay_target_dependent_several_targets", false, false},
+		// CR 603.3b: One Last Job returns Assimilation Aegis attached; gorge scans the move (its ETB trigger) before the attach (its Attached trigger), so the ETB trigger is queued first
+		{"entered_attached_etb_before_attached_trigger", false, false},
 		{"aegis_on_temporary_copy_bearer", true, false},     // CR 613.7e, 707.2: Assimilation Aegis attached to a creature Fleeting Reflection made a copy until end of turn copies over it (the later copy wins), and gives it back to that copy when unattached
 		{"clone_on_aegis_bearer_until_eot", true, false},    // CR 613.7e, 514.2: Fleeting Reflection's until-end-of-turn copy over an Assimilation Aegis bearer ends at cleanup, and the Aegis copy it covered shows again
 		{"resolved_spell_copy_rests_in_exile", true, false}, // CR 707.10a: a copy of a spell is exiled as it leaves the stack (gorge's spellRestZone), not put in a graveyard and ceased later
@@ -143,6 +155,9 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"activation_cost_removes_target_becomes_target", true, false},         // CR 601.2c, 601.2g-h: Nettle Guard's {1}, Sacrifice: Destroy ability aims at itself, so its Valiant BecomesTarget trigger fires before the sacrifice that is part of the same activation's cost
 		{"emblem_granted_storm_trigger", false, false},                         // CR 702.40a: Ral, Crackling Wit's emblem grants Splash Portal storm, so its cast trigger is ordered beside the prowess triggers
 		{"emblem_storm_grant", true, false},                                    // CR 702.40a: Ral, Crackling Wit's emblem grants storm to the instant cast after it, so the granted-storm cast trigger joins the ordering ask
+		// CR 701.21a, 610.3d: Scavenger's Talent's sacrifice-three cost includes Banishing Light, so its card returns after all three are gone
+		{"blb_sac_cost_exile_return_after_all_sacrificed", true, false},
+		{"blb_sac_cost_exile_return_after_all_sacrificed_sword", true, false},
 	})
 }
 
@@ -210,7 +225,6 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"name_look_ack_mid_resolution", true, false},                // CR 608.2n: a copy token's looked-hand name ask is acknowledged while the creating ability is still on the stack
 		{"emblem_grant_after_ability_loss", false, false},            // CR 613.7: Vivien Reid's emblem, created after Witness Protection took Llanowar Elves' abilities, is the newer layer-6 effect, so its vigilance, trample and indestructible survive the loss
 		{"unless_discard_is_effect_discard", true, false},            // CR 118.12: discarding Wilt-Leaf Liege to an opponent's Perforating Artist "unless" is that ability's discard, so the Liege enters the battlefield
-		{"deferred_gap_beside_filter", true, false},                  // CR 605.3a, 602.2b: Pyromancer's Goggles is a census gap beside Three Tree Mascot's filter, so its {R} funds Tinybones' {3}{B}
 		{"name_look_ack_mid_resolution_copy_spyglass", false, false}, // CR 614.12: Extravagant Replication's copy of Sorcerous Spyglass, entering mid-resolution, asks the name after the look at the hand, the trigger still on the stack
 		{"filter_beside_deferred_script", true, false},               // a filter (Three Tree Mascot) beside a deferred TriggersWhenSpent$ source (Pyromancer's Goggles): the filter-only prefix search cannot fund the offer, so the restricted/deferred script pays Quick-Draw Katana's Equip {2}
 		{"deferred_gap_beside_filter", true, false},                  // CR 605.3a, 602.2b: Pyromancer's Goggles is a census gap beside Three Tree Mascot's filter, so its {R} funds Tinybones' {3}{B}
@@ -239,6 +253,9 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"warp_cast_from_hand_spends_no_hand_barred_grant", true, false},       // CR 106.6, 702.185a: a warp cast is from the hand, so Nanoform Sentinel's Mm'menon-granted blue cannot pay Codecracker Hound's warp {2}{U} beside two Plains; the warp cast is not offered
 		{"relaxed_proof_refuses_restricted_grant", true, false},                // CR 106.6, 602.2b: Mm'menon's spell-only granted blue is no relaxed unit for Atomic Microsizer's Equip {2}, so gorge proves it unpayable off Godless Shrine alone and never searches the Nanoform Sentinel untap line
 		{"station_monitor_hand_cast_needs_no_hand_barred_grant", false, false}, // CR 106.6: Mm'menon's hand-barred granted blue is no relaxed unit for Station Monitor's plain hand cast, so neither copy is offered
+		{"ward_pays_through_tap_another_source", true, false},                  // CR 601.2g, 702.21a: the ward {2} pay answer opens the mana window, whose census leaves out Gene Pollinator's tap-another-permanent mana, so the spell is paid not countered
+		{"ward_pays_through_tap_another_source_two", true, false},              // ... and Sunset Saboteur's attack trigger is paid the same way
+		{"ward_failed_pay_skips_unspendable_grant", true, false},               // CR 106.6: the failed pay arm taps what the window lists, not Mm'menon's granted artifact blue a ward cannot spend
 	})
 }
 
@@ -363,6 +380,10 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"filter_fee_from_granted_source", false, false},                   // CR 605.3a, 601.2g: a filter's {1} fee is funded by the play's granted {C} source, as gorge's one prefix search taps the census gaps in battlefield order
 		{"filter_fee_funded_by_grant_before_non_gap", false, false},        // CR 601.2g, 605.3a: White Lotus Hideout's {1} filter fee is paid with Honest Work's granted {C} (a census gap) before a non-gap Plains, as gorge's gap-first prefix search orders it
 		{"gated_mana_funds_activation", true, false},                       // CR 602.2b, 605.3a: White Lotus Hideout's {1},{T} any-colour ability funds Abandoned Air Temple's {3}{W},{T} fee beside the filter's own {1}, so dirac's scripted activation no longer outruns gorge's plan (c16ee5949)
+		// CR 305.6, 605.1a: White Lotus Hideout under an Island grant lists gorge's seven node-limited alternatives ({C}, the granted {U}, the admitted any-colour ability's five), not its {1},{T} filter's or a WUBRG intrinsic run, so the alternative array no longer overflows
+		{"plan_alts_lotus_hideout_island_grant", true, false},
+		{"plan_alts_lotus_hideout_island_grant_late", true, false},
+		{"plan_alts_lotus_hideout_island_grant_lesson", true, false},
 	})
 }
 
@@ -481,9 +502,10 @@ func TestStdLciReprosLockstep(t *testing.T) {
 func TestStdSpmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-spm", []stdRepro{
-		{"tapcost_source_not_paid_with_itself", false, false},             // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
-		{"tap_two_forced_answer_taps_the_plays_own_source", false, false}, // CR 602.2b: the Parents' second activation has exactly two candidates, so nothing is asked and the forced tap takes Guy; the search drops that line and reaches the pair that leaves Spider Manifestation untapped within its budget
-		{"web_watch_exile_x_restricted_mana", true, false},                // CR 106.6, 601.2b: Morlun cast from exile under Interdimensional Web Watch's permission announces an X its two restricted mana pay for, as gorge's xAsk does
+		{"tapcost_source_not_paid_with_itself", false, false},              // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
+		{"tap_two_forced_answer_taps_the_plays_own_source", false, false},  // CR 602.2b: the Parents' second activation has exactly two candidates, so nothing is asked and the forced tap takes Guy; the search drops that line and reaches the pair that leaves Spider Manifestation untapped within its budget
+		{"web_watch_exile_x_restricted_mana", true, false},                 // CR 106.6, 601.2b: Morlun cast from exile under Interdimensional Web Watch's permission announces an X its two restricted mana pay for, as gorge's xAsk does
+		{"face_down_exile_played_face_up_not_creature_entry", true, false}, // CR 708.2: a land exiled face down by Black Cat and played face up enters as a land, not the 2/2 face-down creature, so Spider-UK's end-step count stays at 1
 	})
 }
 
@@ -521,6 +543,7 @@ func TestStdTmtReprosLockstep(t *testing.T) {
 func TestStdDskReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-dsk", []stdRepro{
+		{"nonpositive_life_pays_painless_plan", false, false},           // CR 119.4: a payer at life 0 or less (a Grimoire holds the game) still pays a painless plan; the planner's lethal guard needs life lost > 0
 		{"destroy_all_parks_whole_batch", true, false},                  // CR 616.1: two Leylines of the Void compete for one victim of Split Up's destroy-all, so the whole batch waits for the order ask; the other victims do not move first
 		{"room_shown_face_plain_cast", false, false},                    // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
 		{"sacrificed_panharmonicon_host_departs", false, false},         // CR 603.2d: a sacrificed Panharmonicon host is gone when Popular Egotist's "whenever you sacrifice" trigger is checked, so it echoes nothing
@@ -538,6 +561,8 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"tapcost_spell_pays_life_mana_beside_part", false, false},      // CR 601.2g-h, 119.4: Fear of Exposure beside Haunted Screen is castable: the Screen's life-paid {G} pays the mana while two lands are tapped for the cost
 		{"granted_prefix_pays_painful_needed_colour", false, false},     // CR 119.4: the granted-mana prefix taps an animated Haunted Screen for its painful {R} the play needs (gorge's ask lists it before the grant) and pays 1 life
 		{"self_leaves_trigger_sees_remembered_clear", false, false},     // CR 400.7/603.2d: a leaves trigger whose source departed does not serve the fire-time remembered snapshot, so the first instance's Cleanup clear closes the second instance's window
+		{"unless_tax_hides_unadmitted_restricted_mana", false, false},   // CR 106.6: Smoky Lounge's Room-only {R}{R} cannot pay Don't Make a Sound's {2} unless tax, so its controller is offered only the decline
+		{"sac_after_aura_control_ends", false, false},                   // CR 613.1b, 701.21: Vile Mutilator's second sacrifice counts creatures after the first (an Aura) left, so the creature it stole is back with its owner and the lone manifest is forced
 		{"painless_plan_at_nonpositive_life", false, false},             // CR 119.4, 601.2g: a player at life <= 0 (a lose-the-game replacement) still pays a {1} spell from painless lands; the pain guard cuts only a plan that pays life
 	})
 }
@@ -672,7 +697,8 @@ func TestKeywordRemovalAfterAGrantLockstep(t *testing.T) {
 func TestStdWoeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-woe", []stdRepro{
-		{"filter_fed_by_granted_mana", false, false},   // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
-		{"act_paid_filter_second_colour", true, false}, // CR 601.2g, 602.2b: Restless Fortress's {1}{W}{B} animation is offered when a free filter (Crystal Grotto) makes one pip and Rootrider Faun's paid filter the other
+		{"filter_fed_by_granted_mana", false, false},                    // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
+		{"act_paid_filter_second_colour", true, false},                  // CR 601.2g, 602.2b: Restless Fortress's {1}{W}{B} animation is offered when a free filter (Crystal Grotto) makes one pip and Rootrider Faun's paid filter the other
+		{"woe_activation_sac_exile_return_asks_in_exile", false, false}, // CR 614.12, 610.3: Werefox Bodyguard sacrificed for its own activation returns Talion, the Kindly Lord, whose number is asked in exile before it enters
 	})
 }

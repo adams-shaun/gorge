@@ -11,9 +11,9 @@ package dirac
 // payment's sacrifices (once_batches.go emitSacrifices: a cast's or an
 // activation's cost picks with a sacrificed source, an unless / triggered
 // cost's picks). kgen lowers the line as Sacrificed with Tf2Batch. A cost
-// payment's batch is a sacrifice batch only, not a zone batch (gorge opens
-// no zone batch there): batchSac makes the latch collapse only Sacrificed
-// lines inside it, so a ChangesZoneAll line still fires per move.
+// payment that sacrifices several permanents is also one zone batch (gorge
+// opens one around them, CR 701.21a), so a ChangesZoneAll line latches in it
+// too; a batch of one queues as a lone move would.
 
 // batchSac: the open batch is a cost-site sacrifice batch.
 const batchSac uint8 = 1 << 5

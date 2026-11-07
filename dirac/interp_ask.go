@@ -741,7 +741,12 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			if s.g.pickLeft > 0 {
 				r.ask = raGenPayPick
 				if s.autoPayPick(k) {
-					break // exactly the needed cards: gorge picks them (cumulative.go advanceTriggeredMandatory, pay/unlessflow.go AdvanceUnless)
+					// exactly the needed cards: gorge picks them (cumulative.go advanceTriggeredMandatory, pay/unlessflow.go AdvanceUnless);
+					// a card one of them held in exile until it left is asked now, as after the last answered pick (CR 610.3d)
+					if s.payReturnPark() {
+						return
+					}
+					break
 				}
 				return
 			}
@@ -1270,7 +1275,10 @@ func (s *State) payDone(k *prep, paid bool) {
 func (s *State) payWardN(k *prep, n uint8, pay bool) {
 	r := &s.res
 	idx := s.wardedIndex(&r.e)
-	if c := (kop.ManaCost{Generic: n}); pay && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c) || s.nonSpellRestrAffords(k, r.e.trigPl, &c)) {
+	// A live tap-another-permanent source is a window source the census above
+	// leaves out (availFor counts no tap cost), so opening the window is what
+	// gorge does: it taps the plain sources and asks which permanent to tap.
+	if c := (kop.ManaCost{Generic: n}); pay && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c) || s.nonSpellRestrAffords(k, r.e.trigPl, &c) || s.windowTapXLive(k, r.e.trigPl).any()) {
 		paused, short := s.payWindowAsk(k, r.e.trigPl, &c, winWard)
 		if paused {
 			return // a tap-another source's pick (mana_windowtapx.go)
@@ -1326,6 +1334,12 @@ func (s *State) countSacLeft(k *prep, p uint8, f kop.FilterID) int {
 }
 
 func (s *State) startSac(k *prep, in *kop.Instr, p uint8) bool {
+	if k.gen != nil && k.gen.ctrlSBA {
+		// gorge settles control after every event (emit.go): an Aura an
+		// earlier instruction sacrificed no longer steals the creature this
+		// one counts (Vile Mutilator's enchantment, then creature; CR 613.1b)
+		s.ctrlSBA(k)
+	}
 	src := s.resSrcSlot(k)
 	for p != 255 {
 		n := s.value(k, in.A)

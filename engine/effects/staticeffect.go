@@ -232,9 +232,13 @@ func effectStaticGrantReadable(params map[string]string, g staticGrant) bool {
 
 // applyStaticEffect registers the StaticEffect$ rider of a ChangeZone move
 // that landed on the battlefield. Called per moved card (or once with the
-// whole moved batch -- the registration is per card either way), after the
-// move's own riders (entry counters, control change, tapped entry, attach)
-// have been emitted, so the grant applies to the card exactly as it entered.
+// whole moved batch -- the registration is per card either way) BEFORE the
+// move's entry event is emitted, so the grant is part of the permanent the
+// entry's triggers are matched against (CR 603.6a, 614.12): an Enduring
+// creature returned as an enchantment is not a creature for "another creature
+// enters". The grant is anchored to the incarnation the card has once it is
+// on the battlefield (CR 400.7), so it is inert while the card is still in its
+// origin zone and never applies to a different later entry.
 func applyStaticEffect(h Host, c *Ctx, sa *cards.SA, to state.Zone, moved []state.ObjID) {
 	if to != state.ZBattlefield || len(moved) == 0 {
 		return
@@ -303,7 +307,11 @@ func applyStaticEffect(h Host, c *Ctx, sa *cards.SA, to state.Zone, moved []stat
 			Text: "StaticEffect$ " + name + " unread: " + strings.Join(g.unread, "/")})
 	}
 	for _, id := range moved {
-		registerStaticEffectGrant(h, c, id, affects, g, staticGrantLifetime{})
+		lt := staticGrantLifetime{}
+		if o := h.Game().Obj(id); o != nil && o.Zone != state.ZBattlefield {
+			lt.SourceIncarnation = o.Incarnation + 1
+		}
+		registerStaticEffectGrant(h, c, id, affects, g, lt)
 	}
 }
 
