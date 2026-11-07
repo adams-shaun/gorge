@@ -969,6 +969,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			}
 		}
 		if k.gen.anyHideaway && k.cards[s.objs[o].card].land && !DebugHideNoLand {
+			if s.hideLandPark(k, o) {
+				return // its as-enters choice is asked first, in exile (kw_hideaway.go)
+			}
 			s.hideLand(k, o) // a hidden land is played now, not queued (kw_hideaway.go)
 			if s.g.nfree == 0 {
 				s.castFreeClosed(k)
@@ -1113,6 +1116,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.g.pre.val = a.Mode()
 		if s.g.pre.kind == akType {
 			s.g.pre.val = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+		}
+		if s.g.pre.state == preHideLand {
+			s.hideLandAnswer(k) // kw_hideaway.go
+			return
 		}
 		if s.g.pre.state == preReturnOp {
 			s.rerunReturn(k)
