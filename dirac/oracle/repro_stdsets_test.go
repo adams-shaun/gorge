@@ -6,18 +6,19 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// Games from the Standard sets' synthetic pools that once diverged at the end of
-// their script, on the autopay surface (the full one where a case says so): both
-// engines now agree there, and for 200 decisions after.
+// Games from the Standard sets' synthetic pools (or, for a printed-delve card
+// no Standard set holds, the table built from the repro's own decks) that once
+// diverged at the end of their script, on the autopay surface (the full one
+// where a case says so): both engines now agree there, and for 200 decisions
+// after.
 func TestStdSetReprosLockstep(t *testing.T) {
 	t.Parallel()
 	reg := synthReg(t)
 	// the games recorded on the full surface (gorge's own payment asks): the others ran on autopay
-	fullSurface := map[string]bool{"hulk_power_up_reducer": true, "station_trigger_lists_with_static_grants": true, "restricted_mana_spell_only_batch_does_not_pay_equip": true, "power_up_copy_mana_cost_reduces": true, "calamitous_tide_leave_together": true, "treasure_mana_token_ceases_quietly": true, "cast_window_restricted_mana_short": true, "convoke_target_window_bloom_tender": true, "clone_returned_card_spent_zero_mockingbird": true, "clone_returned_card_spent_zero_two_birds": true, "hybrid_face_restricted_source": true, "target_dependent_cost_starting_town_white": true, "life_pain_land_beside_filter_pays_double_green": true, "run_over_second_target_after_vehicle": true, "restricted_any_colour_pick_beside_plain_colour": true, "maco_trigger_graveyard_target_is_no_creature_you_control": true, "clone_of_lord_dies_its_statics_end": true, "saddled_copy_fires_the_copied_triggers": true, "dying_copy_mana_value_is_the_copied_cards": true, "trigger_cost_filter_window_lowest_colour": true, "land_made_an_island_asks_its_own_colour_first": true, "graveyard_creature_count_skips_a_waiting_token": true, "x_spell_cast_from_hand_counts_x_for_cost_reduction": true, "lowered_discard_cast_window_restricted_mana": true, "granted_mana_one_tap_cannot_fund_two_pips": true, "exile_cost_cast_priced_on_printed_sources": true, "face_down_creature_loses_granted_mana": true, "dfc_back_face_trigger_asks_optional_after_dying": true, "ward_alt_pays_with_restricted_nonspell_mana": true, "exile_cast_discard_alt_cost_keeps_whole_hand": true, "prefix_surveil_trigger_mills_the_card": true, "doubled_colourless_tap_takes_the_plain_ability": true, "unrelaxable_census_searches_play_wide_source_cannot_fund": true, "target_menu_keeps_candidates_a_tap_two_source_may_fund": true, "cast_window_taps_two_creatures_for_supportive_parents": true, "station_counters_skip_a_phased_out_spacecraft": true, "granted_ability_counts_on_its_grantor": true, "tap_two_answer_skips_the_plays_own_tap_source": true, "tap_two_trigger_stacks_before_the_play_is_priced": true, "prefix_trigger_if_you_do_cost_answers_yes_first": true, "target_menu_keeps_candidates_an_exile_cast_source_may_fund": true}
+	fullSurface := map[string]bool{"printed_delve_gurmag_angler": true, "printed_delve_murderous_cut": true, "hulk_power_up_reducer": true, "station_trigger_lists_with_static_grants": true, "restricted_mana_spell_only_batch_does_not_pay_equip": true, "power_up_copy_mana_cost_reduces": true, "calamitous_tide_leave_together": true, "treasure_mana_token_ceases_quietly": true, "cast_window_restricted_mana_short": true, "convoke_target_window_bloom_tender": true, "clone_returned_card_spent_zero_mockingbird": true, "clone_returned_card_spent_zero_two_birds": true, "hybrid_face_restricted_source": true, "target_dependent_cost_starting_town_white": true, "life_pain_land_beside_filter_pays_double_green": true, "run_over_second_target_after_vehicle": true, "restricted_any_colour_pick_beside_plain_colour": true, "maco_trigger_graveyard_target_is_no_creature_you_control": true, "clone_of_lord_dies_its_statics_end": true, "saddled_copy_fires_the_copied_triggers": true, "dying_copy_mana_value_is_the_copied_cards": true, "trigger_cost_filter_window_lowest_colour": true, "land_made_an_island_asks_its_own_colour_first": true, "graveyard_creature_count_skips_a_waiting_token": true, "x_spell_cast_from_hand_counts_x_for_cost_reduction": true, "lowered_discard_cast_window_restricted_mana": true, "granted_mana_one_tap_cannot_fund_two_pips": true, "exile_cost_cast_priced_on_printed_sources": true, "face_down_creature_loses_granted_mana": true, "dfc_back_face_trigger_asks_optional_after_dying": true, "ward_alt_pays_with_restricted_nonspell_mana": true, "exile_cast_discard_alt_cost_keeps_whole_hand": true, "prefix_surveil_trigger_mills_the_card": true, "doubled_colourless_tap_takes_the_plain_ability": true, "unrelaxable_census_searches_play_wide_source_cannot_fund": true, "target_menu_keeps_candidates_a_tap_two_source_may_fund": true, "cast_window_taps_two_creatures_for_supportive_parents": true, "station_counters_skip_a_phased_out_spacecraft": true, "granted_ability_counts_on_its_grantor": true, "tap_two_answer_skips_the_plays_own_tap_source": true, "tap_two_trigger_stacks_before_the_play_is_priced": true, "prefix_trigger_if_you_do_cost_answers_yes_first": true, "target_menu_keeps_candidates_an_exile_cast_source_may_fund": true}
 	for _, c := range []struct{ pool, name string }{
 		{"std-eoe", "restricted_grant_untap_trigger_cannot_fund_equip"},            // Mm'menon's spell-only blue on Nanoform Sentinel, whose tap untaps a land, leaves Illvoi Light Jammer's Equip {3} unpayable: gorge's relaxed proof runs no prefix search
 		{"std-eoe", "tap_another_source_pays_equip_beside_granted_mana"},           // Gene Pollinator and four lands pay Meltstrider's Gear's Equip {5} beside Mm'menon's spell-only grant: the grant cap keeps the play
@@ -145,6 +146,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-fin", "setpt_static_live_attached_controller"},                       // Aettir and Priwen gives the equipped creature base P/T equal to the Equipment controller's life total: the live layer-7b set is re-read as the life total changes, after the equip cost is paid
 		{"tail-04", "search_second_pick_shares_a_land_type"},                       // Myriad Landscape finds an Island, then a second Island: gorge's Submit refuses two basics with no common land type, so the second pick offers only the Islands, as the kernel offers them
 		{"std-msh", "noncombat_damage_plus_host_power"},                            // Avengers Disassembled beside Hawkeye, Young Avenger (power 2): its 3 damage to each opposing creature becomes 5, to its controller's own creatures stays 3 (CR 614.1a)
+		{"custom", "printed_delve_gurmag_angler"},                                  // Gurmag Angler cast off Priest of Gix's floating black with two graveyard cards delved: the printed keyword pays through the kernel's existing delve ask (CR 702.66a)
+		{"custom", "printed_delve_murderous_cut"},                                  // Murderous Cut cast off Priest of Gix's floating black with graveyard cards delved: the same printed-keyword path
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if div := replayStdRepro(t, reg, c.pool, c.name, fullSurface[c.name]); div != nil {
@@ -173,7 +176,7 @@ func replayStdRepro(t *testing.T, reg *cards.Registry, pool, name string, full b
 		}
 		return es
 	}
-	set := cardsettest.Synth(t, pool)
+	set := reproSet(t, pool, r)
 	tbl, _, _, err := set.Matchup(entries(r.Cards[0]), entries(r.Cards[1]))
 	if err != nil {
 		t.Fatal(err)

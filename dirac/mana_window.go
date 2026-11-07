@@ -2211,6 +2211,11 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 			}
 		}
 		if !pick {
+			// the plan tapped the source's plain unit, not its restricted
+			// one: what it added is ordinary mana, whatever colour another
+			// source's unit grew in beside it (CR 106.6, 601.2g). Taking a
+			// unit of that colour instead would float a Swamp's {B} as the
+			// Hideout's Villain-only mana.
 			continue
 		}
 		col := tcol

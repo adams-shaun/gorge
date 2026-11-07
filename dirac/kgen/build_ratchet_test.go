@@ -198,7 +198,7 @@ import (
 // +1 (Myriad Landscape: the library search's ShareLandType$ is read; ALL build-level 21682 -> 21683).
 // +1 (Hawkeye, Young Avenger: the plus-power noncombat damage replacement; land; merged ALL build-level 21683 -> 21684).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21684, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21705, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
