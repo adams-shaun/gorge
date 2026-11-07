@@ -292,7 +292,11 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		c := s.cardAt(sl)
 		ans = c != kop.NoCard && !s.faceDown(k, sl) && k.t.Cards[c].Cost.HasColour(1)
 	case kop.W7IsCommander:
-		// gorge CommanderOf: no seat has a commander in a kernel game (CR 903.3)
+		// a permanent whose object is its owner's commander (CR 903.3); no
+		// object is a commander outside a Commander game
+		o := s.perms[sl].obj
+		p := s.objs[o].owner()
+		ans = s.cfg&cfgCommander != 0 && s.pl[p].cmd == o
 	case kop.W7NotBottomLibrary:
 		ans = true // a battlefield permanent is no library's bottom card
 	case kop.W7CrewedBySrc:
@@ -319,7 +323,8 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 	case kop.W7FaceUpDisguise:
 		ans = c != kop.NoCard && !fd && k.t.Cards[c].MorphFamily == kop.MorphDisguise
 	case kop.W7IsCommander:
-		// no seat has a commander in a kernel game (CR 903.3)
+		// off the battlefield the word sees only a CardID: no card is a
+		// commander there (CR 903.3)
 	case kop.W7CostBlue:
 		ans = c != kop.NoCard && !fd && k.t.Cards[c].Cost.HasColour(1)
 	case kop.W7NoAbilities:

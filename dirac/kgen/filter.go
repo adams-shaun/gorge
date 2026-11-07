@@ -912,8 +912,10 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 			return nil
 		}
 		if w == "IsCommander" {
-			// gorge's negated IsCommander: no object is a commander in the
-			// games the kernel plays (kop.W7IsCommander), so it always holds
+			// gorge's negated IsCommander: lowered to "always holds" on the
+			// assumption that no object is a commander (kop.W7IsCommander);
+			// the cmd5 pool guard reads the counter
+			noteCmdShortcut(cmdShortcutNegatedWord)
 			return nil
 		}
 		if w == "BottomLibrary" {
