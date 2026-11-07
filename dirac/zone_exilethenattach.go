@@ -129,8 +129,14 @@ func (s *State) aegisApply(k *prep, a Action) {
 			if l.src != e.obj || l.sver != e.srcVer || l.obj != Obj(a.Source()) {
 				continue
 			}
-			if s.aegisLive(host) == 0 && s.perms[host].ovr.flags&ovCopy != 0 && !s.aegisUnderPush(host) {
+			covered := s.aegisCovered(host)
+			if (covered || s.aegisLive(host) == 0) && s.perms[host].ovr.flags&ovCopy != 0 && !s.aegisUnderPush(host) {
 				break // the effect pool is full
+			}
+			if covered {
+				// the new attachment is newer than the clone that covered the
+				// older Aegis copy: it covers the clone now
+				s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.sl == host && r.kind == fxAegisCover })
 			}
 			s.g.linkAeg |= 1 << uint(i)
 			s.aegisRefresh(k, host, NoSlot)
@@ -171,6 +177,16 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 		if ts := s.lstamp[ob.slot]; best < 0 || ts >= bestTs {
 			best, bestTs = i, ts
 		}
+	}
+	// A newer clone layer covers the Aegis copy: the clone stays on top, and
+	// only the saved Aegis card changes (or goes when the Aegis ends first).
+	if ci := s.aegisCoverRec(host); ci >= 0 {
+		if best >= 0 {
+			s.g.fx[ci].r.src = s.objs[s.g.links[best].obj].card
+		} else {
+			s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.sl == host && r.kind == fxAegisCover })
+		}
+		return
 	}
 	p := &s.perms[host]
 	cur := s.cardAt(host)

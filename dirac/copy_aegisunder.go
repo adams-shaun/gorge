@@ -13,6 +13,44 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // aegisRefresh brings it back when the last Aegis copy on the bearer ends,
 // and the cleanup step (aegisSettle) ends an until-end-of-turn one beneath a
 // live Aegis copy without touching the Aegis copy.
+//
+// The other order is symmetric: a clone that lands on a live Aegis bearer is
+// the newer layer and wins while it lasts, and the cleanup step gives the
+// Aegis copy back (CR 514.2). Its card waits in an fxAegisCover record, kept
+// up to date by aegisRefresh while the Aegis stays live (a later Aegis
+// attachment is newer than the first but still older than the clone). When
+// the Aegis ends first, the record goes and the clone stays.
+
+// aegisCoverRec is the index of host's covered Aegis copy, -1 when none.
+func (s *State) aegisCoverRec(host Slot) int {
+	for i := 0; s.fxM.has(host) && i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == host && r.kind == fxAegisCover {
+			return i
+		}
+	}
+	return -1
+}
+
+// aegisCovered reports whether a clone layer covers host's Aegis copy.
+func (s *State) aegisCovered(host Slot) bool {
+	return s.aegisCoverRec(host) >= 0
+}
+
+// aegisCoverPush records the Aegis copy host wears before a newer clone
+// covers it. An existing record already holds it. False when the pool is full.
+func (s *State) aegisCoverPush(host Slot) bool {
+	if s.aegisCoverRec(host) >= 0 {
+		return true
+	}
+	if int(s.g.nfx) >= maxFx {
+		s.stall(StallTables)
+		return false
+	}
+	s.g.fx[s.g.nfx] = fxRec{sl: host, kind: fxAegisCover, r: ovRec{src: s.perms[host].ovr.copyOf}}
+	s.g.nfx++
+	s.fxM.set(host)
+	return true
+}
 
 // aegisUnderPush keeps the copy host wears aside. False when the pool is full.
 func (s *State) aegisUnderPush(host Slot) bool {

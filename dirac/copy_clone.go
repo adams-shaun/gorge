@@ -39,7 +39,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // copy exceptions aside (cloneHold), and the cleanup step puts them back, as
 // gorge restores state.Object.TokenBasis.
 //
-// An Aegis bearer or a permanent copying itself stalls StallCloneLayer.
+// A permanent copying itself stalls StallCloneLayer. A copy onto an Aegis
+// bearer is the Aegis layer covered by a newer one: copy_aegisunder.go keeps
+// the Aegis card and the cleanup step gives it back.
 
 // DebugCloneCopyNoRevert is the mutation switch of TestClonecopyMutation: the
 // cleanup step never ends an until-end-of-turn copy.
@@ -74,8 +76,7 @@ var DebugCloneCopyNoHold bool
 // DebugCloneCopyStats, when set, receives the counts.
 var DebugCloneCopyStats *CloneCopyStats
 
-// StallCloneLayer: a copy onto an Aegis bearer (its own layer-1 bookkeeping)
-// or a permanent copying itself.
+// StallCloneLayer: a permanent copying itself.
 const StallCloneLayer = 141
 
 func init() { stallNames[StallCloneLayer] = "clonelayer" }
@@ -146,7 +147,8 @@ func (s *State) cloneAsks(k *prep, next *kop.Instr) bool {
 	return true
 }
 
-// cloneLayered: slot sl holds a copy this op cannot stack another on.
+// cloneLayered reports whether sl's copy is an Aegis one, which the new clone
+// covers (its card waits in an fxAegisCover record until the clone ends).
 func (s *State) cloneLayered(k *prep, sl Slot) bool {
 	return k.gen.anyAegis && s.aegisLive(sl) > 0
 }
@@ -230,11 +232,14 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		if sl == tmpl && eot && in.C == 0 && in.Obj == kop.RefNone && in.B.N&kop.CloneExclTmpl == 0 {
 			continue // a Valid set holding its template: a copy of itself changes nothing (CR 707.2)
 		}
-		if sl == tmpl || s.cloneLayered(k, sl) {
+		if sl == tmpl {
 			s.capFull(StallCloneLayer)
 			continue
 		}
 		p := &s.perms[sl]
+		if s.cloneLayered(k, sl) && !s.aegisCoverPush(sl) {
+			return // the effect pool is full (stall set)
+		}
 		if DebugCloneCopyStats != nil && p.ovr.flags&ovCopy != 0 {
 			DebugCloneCopyStats.Stacked++
 		}
@@ -349,7 +354,7 @@ func (s *State) cloneCleanup(k *prep) {
 			break
 		}
 		sl := s.g.fx[i].sl
-		if s.aegisSettle(k, sl) {
+		if !s.aegisCovered(sl) && s.aegisSettle(k, sl) {
 			any = true
 			continue
 		}
@@ -365,6 +370,7 @@ func (s *State) cloneCleanup(k *prep) {
 		p.ovr.copyOf = 0
 		s.onceBasisEnd(sl)
 		s.cloneRestore(sl)
+		rebased := false
 		for j := 0; j < int(s.g.nfx); j++ {
 			x := &s.g.fx[j]
 			if x.sl != sl || x.kind != fxCopyPerm || DebugCloneCopyNoRebase {
@@ -387,7 +393,21 @@ func (s *State) cloneCleanup(k *prep) {
 			if DebugCloneCopyStats != nil {
 				DebugCloneCopyStats.Rebased++
 			}
+			rebased = true
 			break
+		}
+		if !rebased {
+			// the layer under the ended one: the Aegis copy this clone
+			// covered (and gave back), or, if the Aegis ended while the clone
+			// was live, the copy the Aegis itself covered.
+			if ci := s.aegisCoverRec(sl); ci >= 0 {
+				p.ovr.flags |= ovCopy
+				p.ovr.copyOf = s.g.fx[ci].r.src
+				s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.sl == sl && r.kind == fxAegisCover })
+			} else if c, ok := s.aegisUnderTake(sl); ok {
+				p.ovr.flags |= ovCopy
+				p.ovr.copyOf = c
+			}
 		}
 		s.subscribe(sl, &k.cards[s.cardAt(sl)], true)
 		p.ovr.kw = p.ovr.kw&^old | s.copyExcKw(k, sl)
@@ -581,7 +601,7 @@ func (s *State) onceBasisEnd(sl Slot) {
 	p := &s.perms[sl]
 	p.flags &^= pfOnceGame
 	for i := 0; s.fxM.has(sl) && i < int(s.g.nfx); i++ {
-		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyPerm {
+		if r := &s.g.fx[i]; r.sl == sl && (r.kind == fxCopyPerm || r.kind == fxAegisCover || r.kind == fxAegisBase) {
 			return
 		}
 	}

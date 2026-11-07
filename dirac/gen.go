@@ -1420,17 +1420,18 @@ type fxRec struct {
 }
 
 const (
-	fxOverride  uint8 = iota // a Table.Overrides record (applyOverride)
-	fxLoseAll                // OpLoseAbilities' one-shot "loses all abilities" (layer 6)
-	fxKwGrant                // a promoted until-end-of-turn keyword grant's timestamp (static_layer6.go kwGrantFx)
-	fxCopyExc                // a copy's exception override (layer 1, CR 707.9b; copy_exceptions.go)
-	fxControl                // a layer-2 control record (CR 613.1b; static_control.go)
-	fxCopyEOT                // a permanent holding until-end-of-turn copies, settled at cleanup (copy_clone.go)
-	fxCopyPerm               // a permanent's newest permanent copy marker: r.p the source object, r.idx the exception override (copy_clone.go)
-	fxOnceStash              // the permanent's printed abilities were activated once-only before a copy layer began, which the layer's end returns (copy_clone.go onceBasisBegin)
-	fxCopyHeld               // a token copy's own copy exception (r.idx), held aside while an until-end-of-turn copy overrides it (copy_clone.go cloneHold)
-	fxCopyMint               // a token copy's own copy (r.src the card it was minted as), held aside likewise (copy_clone.go cloneHold)
-	fxAegisBase              // the copy a bearer wore (r.src its card) when an Assimilation Aegis copy took over, which shows again when the last Aegis copy ends (copy_aegisunder.go)
+	fxOverride   uint8 = iota // a Table.Overrides record (applyOverride)
+	fxLoseAll                 // OpLoseAbilities' one-shot "loses all abilities" (layer 6)
+	fxKwGrant                 // a promoted until-end-of-turn keyword grant's timestamp (static_layer6.go kwGrantFx)
+	fxCopyExc                 // a copy's exception override (layer 1, CR 707.9b; copy_exceptions.go)
+	fxControl                 // a layer-2 control record (CR 613.1b; static_control.go)
+	fxCopyEOT                 // a permanent holding until-end-of-turn copies, settled at cleanup (copy_clone.go)
+	fxCopyPerm                // a permanent's newest permanent copy marker: r.p the source object, r.idx the exception override (copy_clone.go)
+	fxOnceStash               // the permanent's printed abilities were activated once-only before a copy layer began, which the layer's end returns (copy_clone.go onceBasisBegin)
+	fxCopyHeld                // a token copy's own copy exception (r.idx), held aside while an until-end-of-turn copy overrides it (copy_clone.go cloneHold)
+	fxCopyMint                // a token copy's own copy (r.src the card it was minted as), held aside likewise (copy_clone.go cloneHold)
+	fxAegisBase               // the copy a bearer wore (r.src its card) when an Assimilation Aegis copy took over, which shows again when the last Aegis copy ends (copy_aegisunder.go)
+	fxAegisCover              // the Aegis copy a bearer wears (r.src its card) while a newer clone layer covers it, which the clone's cleanup gives back (copy_aegisunder.go)
 )
 
 // maxFx bounds the effect records live at once (all permanents); a full
