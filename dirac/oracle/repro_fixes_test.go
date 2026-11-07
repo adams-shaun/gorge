@@ -220,6 +220,10 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// finish reverses the cast keeping the floated mana (CR 733.1: a
 		// player may reverse mana abilities activated for an illegal play)
 		{"twobrid_delve_unpayable_window", true, false},
+		// CR 702.66a, 702.180a: a Harmonize creature whose power already
+		// covers the whole generic part leaves no shortfall for Teval's
+		// granted delve, so no graveyard card is offered (Ureni's Rebuff).
+		{"delve_harmonize_covered_generic", true, false},
 	})
 }
 
