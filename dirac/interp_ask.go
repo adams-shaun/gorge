@@ -1364,32 +1364,22 @@ func (s *State) flushSac(k *prep) {
 	}
 	ord, n := s.g.sacOrd, int(s.g.nsac)
 	s.g.nsac = 0
-	if k.gen != nil && k.gen.anyBatch {
-		defer s.batchClose(s.batchOpen()) // one sacrifice batch (trig_oneormore.go)
+	batch := k.gen != nil && k.gen.anyBatch
+	var bOld uint8
+	if batch {
+		bOld = s.batchOpen() // one sacrifice batch (trig_oneormore.go)
 	}
-	defer s.holdClose(k, s.holdOpen(k))
-	for _, sl := range ord[:n] {
+	hr := s.holdOpen(k)
+	// The moves before the first parked one (sac_parkbatch.go) go now, as
+	// gorge's earlier emits did; the parked ones are sacrificed and move after
+	// the answer, in the same batch.
+	w, parked := s.sacParkFrom(k, ord[:n])
+	for _, sl := range ord[:w] {
 		s.fireSac(k, sl)
 	}
 	var zs [MaxPerm]kop.Zone
-	// The first move two or more exile-instead replacements compete for is
-	// parked (CR 616.1): gorge poses its order ask from the emitting primitive
-	// and emits a later move of the batch only after the answer, so those wait
-	// in the queue behind it and massMovesGoOn runs (and re-asks) them one at a
-	// time. The moves before it go now, as gorge's earlier emits did.
-	w, ask := 0, false
-	for w < n {
-		o := s.perms[ord[w]].obj
-		if s.park(k, o, parkMass, 0) {
-			ask = true
-			break
-		}
-		if s.graveMoveCompetes(k, o) {
-			s.capFull(StallReplCands) // the park queue is full: a declared limit
-			break
-		}
-		zs[w] = s.dieZone(k, ord[w])
-		w++
+	for i, sl := range ord[:w] {
+		zs[i] = s.dieZone(k, sl)
 	}
 	for i, sl := range ord[:w] {
 		s.fireLeave(k, sl, zs[i])
@@ -1397,14 +1387,12 @@ func (s *State) flushSac(k *prep) {
 	for i, sl := range ord[:w] {
 		s.removePerm(k, sl, zs[i], false)
 	}
-	for ask && w+1 < n {
-		if !s.parkMassQuiet(s.perms[ord[w+1]].obj) {
-			s.capFull(StallReplCands) // the park queue is full: a declared limit
-			break
-		}
-		w++
-	}
+	carried := parked && s.sacParkTail(ord[w:n], batch, bOld)
 	s.g.sacM = slotMask{}
+	s.holdClose(k, hr)
+	if batch && !carried {
+		s.batchClose(bOld)
+	}
 }
 
 // addSac adds slot sl to the effect sacrifice being collected.

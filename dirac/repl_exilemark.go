@@ -104,6 +104,11 @@ const (
 	// parkNext: a state-based pass parked this move while an earlier pass's asks
 	// were still to come, so gorge's check unattaches before it asks for this one
 	parkNext uint8 = 32
+	// parkSacd: a parkMass move is a sacrifice, emitted with its move (sac_parkbatch.go)
+	parkSacd uint8 = 64
+	// parkBatchEnd: the last parkMass move of a sacrifice batch, which closes
+	// the batch kept open across the asks to the latch held in x
+	parkBatchEnd uint8 = 128
 )
 
 // manaSacParks reports whether a source sacrificed for mana now can wait for its
@@ -440,16 +445,16 @@ func (s *State) parkMills(k *prep, p uint8, n int, remember bool) bool {
 
 // parkMassQuiet queues a batch move with one exile-instead effect or none,
 // whose turn comes in the queue all the same (gorge emits a sacrifice or
-// destroy batch's later moves only after an earlier one's answer); false when
+// destroy batch's later moves only after an earlier one's answer); nil when
 // the queue is full.
-func (s *State) parkMassQuiet(o Obj) bool {
+func (s *State) parkMassQuiet(o Obj) *parkedMove {
 	for i := range s.cold.parked {
 		if r := &s.cold.parked[i]; r.kind == parkNone {
 			*r = parkedMove{obj: o, kind: parkMass}
-			return true
+			return r
 		}
 	}
-	return false
+	return nil
 }
 
 // parkDiscardQuiet queues a discarded card with one exile-instead effect or
@@ -592,7 +597,9 @@ func (s *State) runParked(k *prep, r parkedMove) {
 		s.discardObj(k, r.obj)
 	case parkCycle:
 		s.cycleDiscard(k, r.obj, r.x)
-	case parkLeave, parkSBA, parkMass:
+	case parkMass:
+		s.runParkedMass(k, r)
+	case parkLeave, parkSBA:
 		s.leave(k, s.objs[r.obj].slot, kop.ZoneGraveyard, false)
 	case parkFinish:
 		s.finishResolve(k, r.x != 0)
