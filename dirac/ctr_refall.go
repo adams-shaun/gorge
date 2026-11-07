@@ -37,10 +37,17 @@ func (s *State) refCountersAll(x *kop.Expr, r kop.Ref, ctx evalCtx) int {
 	} else {
 		o = s.refObjCtx(r, ctx)
 	}
-	if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {
-		return 0
+	sl := NoSlot
+	if r == kop.RefSelf {
+		sl = s.selfCountersLKI(e, o) // a departed source's last counters (CR 608.2h)
 	}
-	p := &s.perms[s.objs[o].slot]
+	if sl == NoSlot {
+		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {
+			return 0
+		}
+		sl = s.objs[o].slot
+	}
+	p := &s.perms[sl]
 	n := int(p.p1)
 	for i := range p.ck {
 		if kop.CounterKind(p.ck[i]) != kop.CtrLevel {

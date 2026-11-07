@@ -257,6 +257,10 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 			return
 		}
 	}
+	if s.finishParkedReturn(k) {
+		s.ctl = ctlResolve // another held return parks its own ask (zone_untilleavesbatch.go)
+		return
+	}
 	s.sp-- // the resolving entry leaves the stack
 	if k.gen != nil && k.gen.anyBattle && s.g.nmay > 0 {
 		// gorge's next step() head runs startDefeatedCast after a resolution:
@@ -291,16 +295,6 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 			} else {
 				s.placeFromK(k, e.obj, z, false, kop.ZoneStack, false)
 			}
-		}
-	}
-	if s.g.pre.state == preReturn {
-		// a return set aside outside the program loop (leaveGen): it
-		// enters now, its choice asked after
-		o := s.g.pre.obj
-		s.g.pre = preAsk{}
-		if s.objs[o].zone == kop.ZoneExile {
-			from := s.detach(o)
-			s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from)
 		}
 	}
 	s.res.active = false
@@ -469,9 +463,7 @@ func (s *State) runProg(k *prep) {
 		if s.over {
 			return
 		}
-		if k.gen != nil && s.g.pre.state == preReturn {
-			s.res.ask, s.res.askP = raGenRetChoice, s.objs[s.g.pre.obj].owner()
-			s.ctl = ctlResolve
+		if k.gen != nil && s.parkReturnAsk() {
 			return
 		}
 		if k.gen != nil && s.g.nc.n != 0 {
@@ -638,6 +630,17 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 	return 255
 }
 
+// srcCtrl is the controller of the resolving entry's source as it deals damage:
+// the permanent's current controller while it is still the same object on the
+// battlefield (Stiltzkin gave it away with its ability on the stack; CR 702.15b
+// gains the life for the source's controller), else the entry's.
+func (s *State) srcCtrl(k *prep) uint8 {
+	if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
+		return s.perms[sl].ctrl
+	}
+	return s.res.e.ctrl
+}
+
 func (s *State) ctrlOfObj(o Obj) uint8 {
 	ob := &s.objs[o]
 	if ob.zone == kop.ZoneBattlefield {
@@ -695,10 +698,17 @@ func (s *State) value(k *prep, v kop.ValueRef) int {
 		sl := s.objRef(k, kop.RefSelf)
 		if sl == NoSlot {
 			c := &k.cards[e.card]
-			if v.K == kop.VSelfPower {
-				return int(c.power)
+			pw, t := int(c.power), int(c.tough)
+			if e.kind != seSpell && e.obj != NoObj {
+				// an ability whose source has left: its last known P/T
+				// (CR 608.2h; Threefold Thunderhulk sacrificed with its
+				// "Gnomes equal to its power" trigger waiting)
+				pw, t = s.selfPTLKI(k, e, pw, t)
 			}
-			return int(c.tough)
+			if v.K == kop.VSelfPower {
+				return pw
+			}
+			return t
 		}
 		p, t := s.pt(k, sl)
 		if v.K == kop.VSelfPower {
@@ -733,6 +743,9 @@ func (s *State) value(k *prep, v kop.ValueRef) int {
 	case kop.VCountersSelf:
 		sl := s.objRef(k, kop.RefSelf)
 		if sl == NoSlot {
+			if dsl := s.selfCountersLKI(&s.res.e, s.res.e.obj); dsl != NoSlot {
+				return s.perms[dsl].ctrN(s, int(v.N)) // a departed source's last counters (CR 608.2h)
+			}
 			if k.gen != nil && s.res.e.li != 0 && s.res.e.kind == seAbility {
 				return s.lkiCounter(s.res.e.li, kop.CounterKind(v.N)) // a sacrificed source's last counters (Ravenous Amulet)
 			}
@@ -801,7 +814,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 	}
 	e := &s.res.e
 	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
-		if s.parkNC(k, e.ctrl, s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
+		if s.parkNC(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
 			return n // gorge's replacement-order ask, after the resolution
 		}
 		if n = s.replDamage(k, e.ctrl, s.objRef(k, kop.RefSelf), e.card, code, false, n); n <= 0 {
@@ -833,7 +846,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 	}
 	s.res.lastDmg = int16(n)
 	if kw&kop.KwLifelink != 0 {
-		s.gainLife(k, e.ctrl, n)
+		s.gainLife(k, s.srcCtrl(k), n)
 	}
 	if k.gen != nil && k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go

@@ -322,6 +322,7 @@ ExCountExile	ExprKind	27
 ExCountGraveyard	ExprKind	4
 ExCountHand	ExprKind	250
 ExCount_	ExprKind	58
+ExCounterKinds	ExprKind	225
 ExCountersOn	ExprKind	18
 ExCreaturesDied	ExprKind	19
 ExCtrAdded	ExprKind	243
@@ -1010,6 +1011,7 @@ SrOwnZone	untyped int	256
 SrRandom	untyped int	32768
 SrRemember	untyped int	32
 SrReveal	untyped int	128
+SrShareLandType	untyped int	512
 SrShuffleOptional	untyped int	8
 SrTapped	untyped int	1
 SrThenTop	untyped int	2

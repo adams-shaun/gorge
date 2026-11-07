@@ -1787,6 +1787,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vAdamant:            kop.ExAdamant,
 	vChromaOf:           kop.ExChromaOf,
 	vYourExtraTurns:     kop.ExYourExtraTurns,
+	vCounterKinds:       kop.ExCounterKinds,
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {

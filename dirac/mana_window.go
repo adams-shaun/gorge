@@ -1823,23 +1823,37 @@ func (s *State) midResAsk(k *prep) bool {
 func (s *State) lkiAttached(o Obj) Obj {
 	for sl := Slot(0); sl < MaxPerm; sl++ {
 		if p := &s.perms[sl]; p.obj == o && p.ts != 0 && !s.occ.has(sl) && p.attached != NoSlot {
-			if s.occ.has(p.attached) {
-				return s.perms[p.attached].obj
+			if !s.occ.has(p.attached) {
+				return NoObj
 			}
-			return NoObj
+			if h, ok := s.attLKIHost(o); ok {
+				return h // the slot may hold a new object now (CR 400.7)
+			}
+			return s.perms[p.attached].obj
 		}
 	}
+	if h, ok := s.attLKIHost(o); ok {
+		return h
+	}
+	return NoObj
+}
+
+// attLKIHost is the versioned departure record's verdict for o: its host
+// while that same incarnation is still on the battlefield, NoObj once it
+// left (a token that took the host's slot is a new object, CR 400.7); ok
+// is false when no record for o survives.
+func (s *State) attLKIHost(o Obj) (Obj, bool) {
 	for i := range s.g.attLKI {
 		r := &s.g.attLKI[i]
 		if r.obj == o && r.ver != 0 {
 			h := &s.objs[r.host]
 			if h.zone == kop.ZoneBattlefield && h.ver == r.ver {
-				return r.host
+				return r.host, true
 			}
-			return NoObj
+			return NoObj, true
 		}
 	}
-	return NoObj
+	return NoObj, false
 }
 
 // payCastWindow pays the rest of a cast's cost through gorge's CR 601.2g
@@ -2246,9 +2260,22 @@ func (s *State) lkiCtrlSlot(k *prep, o Obj, i int) uint8 {
 // Alesha's power" after she was sacrificed: pairs 12267 52089); pw, t
 // (the card's printed values) otherwise.
 func (s *State) selfPTLKI(k *prep, e *stackEntry, pw, t int) (int, int) {
+	best := s.departedSrcSlot(e)
+	if best == NoSlot {
+		return pw, t
+	}
+	return s.ptGen(k, best)
+}
+
+// departedSrcSlot is the departed battlefield slot of ability e's source,
+// which has left the battlefield once since e was created (ver is srcVer +
+// 1): the record of the source as it last existed there (gorge
+// bindSourceLKI's departure snapshot, CR 608.2h). NoSlot while the source is
+// on the battlefield, after a second zone change, or once the slot is gone.
+func (s *State) departedSrcSlot(e *stackEntry) Slot {
 	ob := &s.objs[e.obj]
 	if ob.zone == kop.ZoneBattlefield || ob.ver != e.srcVer+1 {
-		return pw, t
+		return NoSlot
 	}
 	best, ts := NoSlot, uint16(0)
 	for sl := Slot(0); sl < MaxPerm; sl++ {
@@ -2256,10 +2283,18 @@ func (s *State) selfPTLKI(k *prep, e *stackEntry, pw, t int) (int, int) {
 			best, ts = sl, p.ts
 		}
 	}
-	if best == NoSlot {
-		return pw, t
+	return best
+}
+
+// selfCountersLKI is the departed slot of ability e's source for a
+// CardCounters read of its own source (gorge departedSourceLKI: Incendiary's
+// fuse counters after it went to the graveyard with its damage trigger
+// waiting, CR 608.2h); NoSlot when the read is live.
+func (s *State) selfCountersLKI(e *stackEntry, o Obj) Slot {
+	if e == nil || e.kind == seSpell || o == NoObj || o != e.obj {
+		return NoSlot
 	}
-	return s.ptGen(k, best)
+	return s.departedSrcSlot(e)
 }
 
 // digMove puts DigUntil's revealed card o into zone z. gorge moves the

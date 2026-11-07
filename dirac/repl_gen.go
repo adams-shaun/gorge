@@ -208,17 +208,17 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 			r.prevent(ev.dst) // protection from everything: all of its damage
 			continue
 		}
-		d := int16(n) - ev.n
+		d := n - int(ev.n)
 		if d == 0 {
 			continue
 		}
-		ev.n += d
-		r.dealt[ev.src] += d
+		ev.n = s.sat16(n)
+		r.dealt[ev.src] = s.addSat16(r.dealt[ev.src], d)
 		if ev.dst == NoSlot {
-			r.toPl[code-PlayerTarget0] += d
-			r.dealtPl[ev.src] += d
+			r.toPl[code-PlayerTarget0] = s.addSat16(r.toPl[code-PlayerTarget0], d)
+			r.dealtPl[ev.src] = s.addSat16(r.dealtPl[ev.src], d)
 		} else {
-			r.toPerm[ev.dst] += d
+			r.toPerm[ev.dst] = s.addSat16(r.toPerm[ev.dst], d)
 		}
 	}
 }
@@ -672,6 +672,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 		return 0
 	}
 	if ro.askD == NoSlot {
+		s.noteCmdDamage(ro.askS, ro.apl, n)
 		s.loseLife(k, ro.apl, n)
 	} else if sl := ro.askD; s.occ.has(sl) {
 		p := &s.perms[sl]
@@ -705,6 +706,7 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 		return 0
 	}
 	if ev.dst == NoSlot {
+		s.noteCmdDamage(ev.src, src.atk-PlayerTarget0, n)
 		s.loseLife(k, src.atk-PlayerTarget0, n)
 	} else {
 		sl := ev.dst

@@ -11,6 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/spellbench/payexec"
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -1031,7 +1032,24 @@ func (g *GorgeSide) validAnswer(fr *frame, chosen []int) bool {
 	d := fr.d
 	return (len(chosen) >= d.Min || d.AllowNone && len(chosen) == 0) && requiredCovered(fr, chosen) && evidenceTotalMet(d, chosen) &&
 		d.Validate(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: chosen}) == nil &&
-		blockQuotaMet(d, chosen)
+		blockQuotaMet(d, chosen) && g.searchSharesLandType(d, chosen)
+}
+
+// searchSharesLandType reports whether a ShareLandType$ search answer names
+// cards that share a land type: gorge's validateSearch (rules/cast_pricing.go)
+// refuses one that does not, which Decision.Validate does not check, through
+// the one classifier effects.SharedLandTypes (Myriad Landscape).
+func (g *GorgeSide) searchSharesLandType(d *decision.Decision, chosen []int) bool {
+	if d.Kind != decision.KChoose || d.ResumeKind != "search" || d.ResumeSA == nil || !effects.ChangeZoneOf(d.ResumeSA).ShareLandType {
+		return true
+	}
+	ids := make([]state.ObjID, 0, len(chosen))
+	for _, c := range chosen {
+		if o := optByIndex(d, c); o.Obj != 0 {
+			ids = append(ids, o.Obj)
+		}
+	}
+	return effects.SharedLandTypes(g.E.G, ids)
 }
 
 // blockDutyFull reports whether blocker b carries a CR 509.1c requirement

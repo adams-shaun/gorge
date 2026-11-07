@@ -200,12 +200,18 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 
 // anyManaSource reports whether p has an untapped source to fund a payment with:
 // a tap source, the untapped sacrifice-only arm, a gap source with its cost payable,
-// or a restricted mana ability.
+// a deferred source, or a restricted mana ability.
 //
 //go:noinline
 func (s *State) anyManaSource(k *prep, p uint8) bool {
 	if k.gen == nil {
 		return false
+	}
+	// a deferred source (Pyromancer's Goggles, mana_deferred.go) has no census
+	// ability, yet its plain {R} is untapped mana gorge's untappedManaSourceFor
+	// counts (CR 106.6: the when-spent rider restricts nothing)
+	if s.scriptDeferred(k, p).any() {
+		return true
 	}
 	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
 		sl := m.first()
@@ -621,6 +627,9 @@ func (s *State) continueRes(k *prep, n uint8) {
 	if n == 0 && s.g.retAt != 0 && s.returnRemembered(k, &s.prog(k)[s.res.pc]) {
 		return
 	}
+	if n == 0 && k.gen != nil && s.parkReturnAsk() {
+		return // the answer made a departure frame park a return: ask it before the program goes on (zone_untilleavesbatch.go)
+	}
 	s.res.pc += n + 1
 	s.loopBack(k)
 	s.runProg(k)
@@ -969,6 +978,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			}
 		}
 		if k.gen.anyHideaway && k.cards[s.objs[o].card].land && !DebugHideNoLand {
+			if s.hideLandPark(k, o) {
+				return // its as-enters choice is asked first, in exile (kw_hideaway.go)
+			}
 			s.hideLand(k, o) // a hidden land is played now, not queued (kw_hideaway.go)
 			if s.g.nfree == 0 {
 				s.castFreeClosed(k)
@@ -1099,8 +1111,11 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				host := s.objs[a.Source()].slot
 				from := s.detach(o)
 				s.enterOnto(host)
-				sl := s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from)
+				sl := s.enterLinkRet(k, o, s.objs[o].owner(), from)
 				s.attachedTo(k, sl, host)
+			}
+			if !paying && s.resumeReturns(k) {
+				return // the batch's next return asks its host
 			}
 			if paying {
 				s.res.ask = raNone
@@ -1114,6 +1129,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.pre.kind == akType {
 			s.g.pre.val = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
 		}
+		if s.g.pre.state == preHideLand {
+			s.hideLandAnswer(k) // kw_hideaway.go
+			return
+		}
 		if s.g.pre.state == preReturnOp {
 			s.rerunReturn(k)
 			return
@@ -1122,9 +1141,12 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.g.pre.state = 2
 		if s.objs[o].zone == kop.ZoneExile {
 			from := s.detach(o)
-			s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from) // the enters program reads the choice
+			s.enterLinkRet(k, o, s.objs[o].owner(), from) // the enters program reads the choice
 		}
 		s.g.pre = preAsk{}
+		if !paying && s.resumeReturns(k) {
+			return // the batch's next return asks its host
+		}
 		if paying {
 			s.res.ask = raNone
 			s.payDone(k, true) // the payment's sacrifice finished: the cost resumes
@@ -1578,6 +1600,10 @@ func (s *State) searchCands(k *prep, d *Decision) {
 		s.differentNameCands(k, in, d, list)
 		return
 	}
+	if shareLandTypeOp(in) && s.g.nlook > 0 {
+		s.shareLandTypeCands(k, in, d, list) // zone_sharelandtype.go
+		return
+	}
 	for _, o := range list {
 		if s.picksHas(o) {
 			continue
@@ -1885,6 +1911,19 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 	return true
 }
 
+// heldPark keeps the outermost frame hr open across a park before a take:
+// the entrants so far wait, enters checks held, for the cards entering after
+// the answer, and the pass run again from it (finishDigAt sees batchHeld
+// still set) fires them all at the dig's end (CR 603.6a). true: the frame is
+// left open.
+func (s *State) heldPark(hr holdRec) bool {
+	if !hr.on || hr.h != 0 {
+		return false
+	}
+	s.g.retTS = hr.ts
+	return true
+}
+
 func (s *State) digHasPick(k *prep) bool {
 	f := s.prog(k)[s.res.pc].F
 	for i := 0; i < int(s.g.nlook); i++ {
@@ -1924,7 +1963,9 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 	deferred := false // a parked tail keeps the entrants' checks held for the answer
 	if z == kop.ZoneBattlefield {
 		// gorge effDig's zone batch: the taken cards enter together (CR 603.6a)
-		if resume {
+		if resume || s.g.batchLatch&batchHeld != 0 {
+			// resume, or a pass run again from the answer to a park before
+			// a take (heldPark), which left the frame open
 			hr = holdRec{on: true, ts: s.g.retTS}
 		} else {
 			hr = s.holdEntries()
@@ -1946,12 +1987,15 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 				continue
 			}
 			if z == kop.ZoneBattlefield && park && s.cloneReturnPark(k, o, s.objs[o].owner()) {
+				deferred = s.heldPark(hr)
 				return true
 			}
 			if z == kop.ZoneBattlefield && park && s.entryParkDig(k, o, p) {
+				deferred = s.heldPark(hr)
 				return true // the CR 616.1 entry-order ask, the card still in the library (repl_entryorder.go)
 			}
 			if z == kop.ZoneBattlefield && park && s.digAuraPark(k, o, p) {
+				deferred = s.heldPark(hr)
 				return true // CR 303.4f: the Aura waits in the library for its controller's choice of what it enchants
 			}
 			if z == kop.ZoneBattlefield && s.digAuraStays(k, o, p) {

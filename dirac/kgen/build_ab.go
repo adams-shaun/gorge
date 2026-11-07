@@ -2779,6 +2779,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			}
 			sb |= kop.SrGameGrave
 		}
+		if _, ok := fl["ShareLandType"]; ok {
+			if in.Op != "Search" {
+				return ki, fmt.Errorf("ShareLandType on a %s", in.Op)
+			}
+			sb |= kop.SrShareLandType
+		}
 		if _, ok := fl["ForgetChanged"]; ok {
 			if in.Op != "Search" {
 				return ki, fmt.Errorf("ForgetChanged on a %s", in.Op)

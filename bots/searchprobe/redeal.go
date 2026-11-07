@@ -306,6 +306,32 @@ func NewRedealer(setup PublicGame, h History, known KnownCards, base RedealBase)
 				}
 			}
 		}
+		// A commander in a hidden zone is not an unknown card: its identity
+		// is public (CR 903.3) and the observation carries it, so re-dealing
+		// it would both move it out of the zone the board reports and change
+		// a legal action (a commander in hand is castable). The hand pins it;
+		// the library keeps it among the position-less known members. Its
+		// seen accounting goes through take, exactly as a revealed card's
+		// does, so the derivable pool still balances.
+		for _, id := range e.G.Players[pi].Commanders {
+			o := e.G.Obj(id)
+			if o == nil || o.Card == nil || len(o.Card.Faces) == 0 {
+				return nil, fmt.Sprintf("player %d commander %d has no card", p, id)
+			}
+			switch o.Zone {
+			case state.ZHand:
+				if !pinHand[id] {
+					pinHand[id] = true
+					take(p, primaryName(o.Card), base.Observer.ref(id))
+				}
+			case state.ZLibrary:
+				if !pinLib[id] {
+					pinLib[id] = true
+					plan.loose = append(plan.loose, id)
+					take(p, primaryName(o.Card), base.Observer.ref(id))
+				}
+			}
+		}
 		for _, id := range append(append([]state.ObjID(nil), plan.hand...), lib...) {
 			if !pinHand[id] && !pinLib[id] {
 				plan.unknown = append(plan.unknown, id)

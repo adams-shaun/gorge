@@ -225,9 +225,15 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"name_look_ack_mid_resolution", true, false},                // CR 608.2n: a copy token's looked-hand name ask is acknowledged while the creating ability is still on the stack
 		{"emblem_grant_after_ability_loss", false, false},            // CR 613.7: Vivien Reid's emblem, created after Witness Protection took Llanowar Elves' abilities, is the newer layer-6 effect, so its vigilance, trample and indestructible survive the loss
 		{"unless_discard_is_effect_discard", true, false},            // CR 118.12: discarding Wilt-Leaf Liege to an opponent's Perforating Artist "unless" is that ability's discard, so the Liege enters the battlefield
+		{"deferred_gap_beside_filter", true, false},                  // CR 605.3a, 602.2b: Pyromancer's Goggles is a census gap beside Three Tree Mascot's filter, so its {R} funds Tinybones' {3}{B}
+		{"deferred_mana_funds_trigger_cost", true, false},            // CR 106.6: Pyromancer's Goggles' {R} has no spending restriction, so an untapped Goggles alone funds Frenzied Goblin's "you may pay {R}": pay is offered beside decline
 		{"name_look_ack_mid_resolution_copy_spyglass", false, false}, // CR 614.12: Extravagant Replication's copy of Sorcerous Spyglass, entering mid-resolution, asks the name after the look at the hand, the trigger still on the stack
 		{"filter_beside_deferred_script", true, false},               // a filter (Three Tree Mascot) beside a deferred TriggersWhenSpent$ source (Pyromancer's Goggles): the filter-only prefix search cannot fund the offer, so the restricted/deferred script pays Quick-Draw Katana's Equip {2}
 		{"deferred_gap_beside_filter", true, false},                  // CR 605.3a, 602.2b: Pyromancer's Goggles is a census gap beside Three Tree Mascot's filter, so its {R} funds Tinybones' {3}{B}
+		{"control_untap_fires_equip_untaps", true, false},            // CR 701.21c, 603.2: Involuntary Employment untaps p0's Vanguard Seraph, so p0's Fishing Pole on it triggers
+		{"control_untap_fires_equip_untaps_two", true, false},        // ... and the same with Clinquant Skymage
+		{"effect_untap_fires_equip_untaps", true, false},             // ... and a resolved ability untapping Slumbering Cerberus triggers its Fishing Pole
+		{"combat_damage_past_int16_kills", true, true},               // CR 120.3, 704.5g: 32768 combat damage from Heroes' Bane kills the blocking Guttersnipe; the damage record saturates (StallPT past int16), never wraps
 		{"vizier_conversion_kicked_cast", true, false},               // CR 609.4b, 702.33: under Vizier of the Menagerie three Forests pay Gatekeeper of Malakir's kicked {B}{B}{B}, so the kicked cast is offered beside the plain one
 		{"vizier_conversion_kicked_cast_two", true, false},           // ... the same in another game
 		{"vizier_conversion_kicked_cast_three", true, false},         // ... and another
@@ -261,6 +267,8 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"ward_pays_through_tap_another_source", true, false},                  // CR 601.2g, 702.21a: the ward {2} pay answer opens the mana window, whose census leaves out Gene Pollinator's tap-another-permanent mana, so the spell is paid not countered
 		{"ward_pays_through_tap_another_source_two", true, false},              // ... and Sunset Saboteur's attack trigger is paid the same way
 		{"ward_failed_pay_skips_unspendable_grant", true, false},               // CR 106.6: the failed pay arm taps what the window lists, not Mm'menon's granted artifact blue a ward cannot spend
+		{"grant_cap_tapx_activation_torpedo", false, false},                    // CR 605.1a, 601.2g-h: Thaumaton Torpedo's {6},{T},Sac is paid by five lands and Gene Pollinator beside Mm'menon's grant: the granted-only artifact is no unit to take out of the prefix search's availability
+		{"grant_cap_tapx_activation_lander", false, false},                     // ... and a Lander token's {2},{T},Sac by one Island and Gene Pollinator
 	})
 }
 
@@ -268,7 +276,13 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 func TestStdHobReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-hob", []stdRepro{
-		{"sac_part_and_mana_share_a_treasure", false, false}, // CR 601.2g-h: the one Treasure that pays Stir Up Trouble's {B} is gone, so it is not also the artifact its either-or part sacrifices; the cast is not offered
+		{"equip_target_reducer_offered_from_lands", false, false},   // CR 601.2f/602.2b: Dwarven Mauler's {2}-less reduction for an equip targeting it makes Equip {4} payable from two lands, so the equip is offered
+		{"sac_part_and_mana_share_a_treasure", false, false},        // CR 601.2g-h: the one Treasure that pays Stir Up Trouble's {B} is gone, so it is not also the artifact its either-or part sacrifices; the cast is not offered
+		{"leaves_graveyard_looks_back_at_card_types", false, false}, // CR 603.10a: Tom, Bert, and William return as a noncreature artifact, yet a creature card left the graveyard, so Along the Crooked Way amasses
+		{"graveyard_leave_sees_pre_move_types", true, false},        // CR 603.10a: Tom, Bert, and William returns from the graveyard as an artifact, and Along the Crooked Way still sees a creature card leave
+		{"autopay_plan_prices_target_discount", true, false},        // CR 601.2f: Dwarven Mauler's {2}-less ValidTarget$ discount makes Ragged Short Spear's equip {3} payable from two lands, so the autopay witness prices it and the re-equip is offered
+		{"hascards_graveyard_static_zero_a", false, false},          // CR 604.1: Master's Councillors' +2/+0 per graveyard with seven or more cards counts the graveyard that has them
+		{"hascards_graveyard_static_zero_b", false, false},
 	})
 }
 
@@ -385,6 +399,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"filter_fee_from_granted_source", false, false},                   // CR 605.3a, 601.2g: a filter's {1} fee is funded by the play's granted {C} source, as gorge's one prefix search taps the census gaps in battlefield order
 		{"filter_fee_funded_by_grant_before_non_gap", false, false},        // CR 601.2g, 605.3a: White Lotus Hideout's {1} filter fee is paid with Honest Work's granted {C} (a census gap) before a non-gap Plains, as gorge's gap-first prefix search orders it
 		{"gated_mana_funds_activation", true, false},                       // CR 602.2b, 605.3a: White Lotus Hideout's {1},{T} any-colour ability funds Abandoned Air Temple's {3}{W},{T} fee beside the filter's own {1}, so dirac's scripted activation no longer outruns gorge's plan (c16ee5949)
+		{"tla_sacrificed_aura_enchanted_lki_reused_slot", true, false},     // CR 608.2h, 400.7: Path to Redemption, sacrificed to pay, names Raven Eagle as it last existed; Lost Days put the Eagle into the library and its Clue took the slot, so nothing is exiled
 		// CR 305.6, 605.1a: White Lotus Hideout under an Island grant lists gorge's seven node-limited alternatives ({C}, the granted {U}, the admitted any-colour ability's five), not its {1},{T} filter's or a WUBRG intrinsic run, so the alternative array no longer overflows
 		{"plan_alts_lotus_hideout_island_grant", true, false},
 		{"plan_alts_lotus_hideout_island_grant_late", true, false},
@@ -427,10 +442,22 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"graveyard_leave_sees_batch_entrant", true, false},     // CR 603.10a: Fang returned by Random Encounter beside the cards it returns did not see them leave
 		{"graveyard_entrant_watches_sibling", true, false},      // CR 603.10a: a card that entered in the sweep does not watch a sibling leave it
 		{"equip_unattach_waits_for_legend_ask", true, false},    // CR 704.3, 704.5n: Magitek Scythe stays on Serah Farron, transformed beside another Crystallized Serah, until the legend answer
+		// CR 510.2, 301.7b, 608.2h: Blitzball's "dealt combat damage by a legendary creature" reads the crewed Prima Vista as the creature it was
+		{"blitzball_counts_crewed_legendary_vehicle", false, false},
 		// CR 113.7a, 608.2h, 702.15b: Phoenix's chapter I, pending when the legend rule bins it, deals damage with the Phoenix's lifelink
 		{"delayed_trigger_departed_source_lifelink", false, false},
+		{"effect_lifelink_follows_source_controller", false, false}, // CR 702.15b: Phoenix's chapter damage, after Stiltzkin gave Phoenix away with the ability on the stack, gains life for Phoenix's controller
 		// CR 601.2f-g: Valkyrie Aerial Unit's affinity counts both Treasures before one is sacrificed for mana, so {2}{U}{U} is payable
 		{"count_reduction_fixed_before_treasure_mana", true, false},
+		// CR 601.2f: Cloud, Planet's Champion's {2} less makes White Mage's Staff's equip onto it {1}, payable by tapping Balamb Garden
+		{"equip_target_reduced_autopay_offer", true, false},
+		// CR 601.2f, 602.2b: Cloud's {2} equip reduction prices Dragoon's Lance's Equip {4} for the target Cloud, so the autopay offer plans {2}
+		{"equip_target_reduction_autopay_offer", true, false},
+		// CR 601.2f: Cloud, Planet's Champion's ValidTarget$ discount makes Paladin's Arms' Equip {4} payable from three untapped sources when it targets Cloud
+		{"target_priced_equip_from_untapped_lands", true, false},
+		{"reversal_past_graveyard_exile_replacement", true, false},
+		{"hidden_land_as_enters_choice_in_exile", true, false},
+		{"instant_cast_lowering_life_run_trigger_below", false, false},
 		// CR 601.2f, 602.2b: Cloud's {2} discount for an equip targeting it makes Ultima Weapon's Equip {7} payable from five lands
 		{"equip_target_reduction_payable_from_lands", true, false},
 		{"equip_target_reduction_payable_full_surface", false, false}, // CR 601.2f, 602.2b: the same equip offer on the full surface
@@ -482,6 +509,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"either_or_mana_part_spends_restricted_source", false, false}, // CR 106.6, 601.2f: Kinsbaile Aspirant's {2} part with its {W} is affordable through Eclipsed Realms' chosen-type mana
 		{"aura_etb_lki_bearer_flickered", true, false},                 // CR 400.7, 608.2h: Aquitect's Defenses' ETB pump, its Aura gone after Personify flickered Rimekin Recluse, gives the returned Rimekin nothing
 		{"repeat_loss_after_static_grant", false, false},               // CR 613.7: Abigale's second loss of abilities, after Chronicle of Victory entered, is newer than its first-strike-and-trample grant and takes it away from Prideful Feastling
+		{"dig_entry_chosen_type_sees_batch", true, false},              // CR 603.6a: Rimefire Torque, dug onto the battlefield last with its as-enters type asked, sees changeling Flock Impostor entering in the same batch
 	})
 }
 
@@ -500,6 +528,7 @@ func TestStdLciReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-lci", []stdRepro{
 		{"granted_sac_host_cost_poses_no_choice", false, false},       // CR 602.2b, 701.21a: Deconstruction Hammer's granted "Sacrifice Deconstruction Hammer" cost has one possible payment, so it is paid without a choice after the targets
 		{"attack_trigger_pump_skips_returned_attacker", false, false}, // CR 400.7: Grasping Shadows' attack trigger does not grant deathtouch and lifelink to Aclazotz once it died and returned as Temple of the Dead
+		{"lose_all_setter_overwrites_self_chosen_type", true, false},  // CR 613.6, 613.7: Eaten by Piranhas on Roaming Throne makes it only a Skeleton; the Throne's older chosen-type grant outlives the ability loss but is overwritten in timestamp order
 		{"payment_trigger_counts_its_resolution", false, false},       // CR 603.2, 605.3b: Vito's trigger from a Treasure sacrificed paying for Guardian of the Great Door resolves before the cast and counts toward "the second time this ability has resolved this turn"
 		{"counter_delayed_trigger_strips_creator", false, false},      // CR 603.7e: Tishana's Tidebinder counters the end-step sacrifice Saheeli, the Sun's Brilliance's copy registered; its source is Saheeli, who loses all abilities
 		{"mana_float_unspent_observed_source", false, false},          // CR 601.2h: Barracks of the Thousand's mana floated by the X witness and left unspent (Jadelight Spelunker at X=0) is not mana that paid the cast
@@ -705,6 +734,7 @@ func TestKeywordRemovalAfterAGrantLockstep(t *testing.T) {
 func TestStdWoeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-woe", []stdRepro{
+		{"role_sba_leaves_with_same_pass_death", true, false},           // CR 704.3, 603.10a: Cut In's new Role sends the old Wicked Role away in the pass Wicked Visitor dies, so Visitor sees the Role leave
 		{"filter_fed_by_granted_mana", false, false},                    // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
 		{"act_paid_filter_second_colour", true, false},                  // CR 601.2g, 602.2b: Restless Fortress's {1}{W}{B} animation is offered when a free filter (Crystal Grotto) makes one pip and Rootrider Faun's paid filter the other
 		{"woe_activation_sac_exile_return_asks_in_exile", false, false}, // CR 614.12, 610.3: Werefox Bodyguard sacrificed for its own activation returns Talion, the Kindly Lord, whose number is asked in exile before it enters

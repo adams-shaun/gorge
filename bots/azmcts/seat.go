@@ -330,10 +330,15 @@ func (s *Seat) DecideSearch(ctx context.Context, env searchseat.Env, d decision.
 		return s.decidePrior(ctx, env, d, botIn)
 	}
 	if s.cfg.Search.Sims <= 0 || env.Engine == nil {
-		if s.note != nil {
-			s.noteBot(d.Player, explain.Heuristic, "", botIn)
+		in := botIn
+		if s.cfg.Search.HoldUpkeep {
+			scratch := boardScratch{hold: &upkeepHold{exempt: exemptNames(&s.cfg.Search.HoldUpkeepExempt), seat: d.Player}}
+			in, _ = heldAnswer(env.Engine, &d, botIn, &scratch)
 		}
-		return botIn, nil
+		if s.note != nil {
+			s.noteBot(d.Player, explain.Heuristic, "", in)
+		}
+		return in, nil
 	}
 	var t0 float64
 	if Millis != nil {
@@ -481,9 +486,11 @@ func (s *Seat) decidePrior(ctx context.Context, env searchseat.Env, d decision.D
 	}
 	if len(res.Candidates) < 2 {
 		if s.note != nil {
-			s.noteBot(d.Player, explain.Forced, "", botIn)
+			s.noteBot(d.Player, explain.Forced, "", res.Intent)
 		}
-		return botIn, nil
+		// res.Intent is botIn unless the upkeep hold replaced a held bot
+		// cast with pass, in which case playing it is the rule.
+		return res.Intent, nil
 	}
 	best := 0
 	for i, p := range res.Prior {
@@ -498,7 +505,9 @@ func (s *Seat) decidePrior(ctx context.Context, env searchseat.Env, d decision.D
 		s.notePrior(d.Player, botIn, res, best)
 	}
 	if best == 0 {
-		return botIn, nil
+		// Candidate 0 is the bot's answer, or the pass the upkeep hold put
+		// in its place (res.Intent), never the held cast itself.
+		return res.Intent, nil
 	}
 	return res.Candidates[best], nil
 }
