@@ -446,6 +446,7 @@ type grantStep struct {
 	kind uint8
 	act  Action
 	cand Slot // stepTapX: the permanent its cost taps
+	pain bool // the source's painful alternative (mana_grantpain.go)
 }
 
 const (
@@ -794,10 +795,10 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 	if g.k.gen.anyTapExtra {
 		pc = t.stepView(g.k, sl, gi)
 	}
-	var order [kop.NumManaKinds]uint8
-	no := t.stepColours(g.k, sl, gi, mask, &order)
-	needFirst(order[:no], g.need)
-	for _, c := range order[:no] {
+	var own [kop.NumManaKinds]uint8
+	var order [2 * kop.NumManaKinds]uint8
+	no, pain := g.stepOrder(t, sl, gi, own[:t.stepColours(g.k, sl, gi, mask, &own)], &order)
+	for j, c := range order[:no] {
 		t.perms[sl].flags |= pfTapped
 		preBit := t.g.poolArt[g.p&1] // the typed-mana tag before the step: the untag restores exactly it (the slot may hold plain mana too)
 		t.pl[g.p&1].pool[c] += pn
@@ -807,7 +808,7 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 			xv = [kop.NumManaKinds]uint8{} // the unspendable tap prices no extra either
 		}
 		t.addXv(g.p&1, &xv)
-		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl}
+		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl, pain: pain&(1<<j) != 0}
 		g.np++
 		if g.next(t, sl) {
 			return true
@@ -1007,6 +1008,9 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
 		s.manaTapped(k, sl)
+		if st.pain {
+			s.grantPainPay(k, g.p&1, sl)
+		}
 		if ra := s.ownRestrAb(k, sl); st.gi < 0 && ra != nil && !s.ownManaUsable(k, sl) {
 			// the printed restricted ability (mana_grantrestrictedown.go)
 			if !s.floatRestrAb(k, g.p&1, sl, ra, int(st.col), st.n) {

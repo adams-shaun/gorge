@@ -435,6 +435,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"restricted_float_paid_unadmitted_spell", false, false},        // the same admission check at the double-pip shape: a spell is paid straight out of the floating restricted pair both pips of which the payment may not touch
 		{"room_other_face_trigger_reads_cast_face_svars", false, false}, // an unlocked Room's other-face trigger resolves against the shown face's SVar table, so a Branch arm named only on its own face does nothing
 		{"multi_discard_pick_order_past_eight", false, false},           // CR 404.3: a ten-card discard keeps the owner's chosen arrangement past the old eight-pick buffer
+		{"granted_prefix_pays_painful_needed_colour", false, false},     // CR 119.4: the granted-mana prefix taps an animated Haunted Screen for its painful {R} the play needs (gorge's ask lists it before the grant) and pays 1 life
 	})
 }
 
