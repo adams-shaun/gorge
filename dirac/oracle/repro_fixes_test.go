@@ -328,6 +328,11 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// covers the whole generic part leaves no shortfall for Teval's
 		// granted delve, so no graveyard card is offered (Ureni's Rebuff).
 		{"delve_harmonize_covered_generic", true, false},
+		// CR 603.3b: Host of the Hereafter copies a legend's +1/+1 and flying
+		// counters onto the survivor beside Hollowmurk Siege's Sultai
+		// trigger, which hears both kinds only once each turn: the two orders
+		// reach the same one trigger.
+		{"counter_copy_once_listener", false, false},
 	})
 }
 
