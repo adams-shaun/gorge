@@ -449,6 +449,8 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"effect_lifelink_follows_source_controller", false, false}, // CR 702.15b: Phoenix's chapter damage, after Stiltzkin gave Phoenix away with the ability on the stack, gains life for Phoenix's controller
 		// CR 601.2f-g: Valkyrie Aerial Unit's affinity counts both Treasures before one is sacrificed for mana, so {2}{U}{U} is payable
 		{"count_reduction_fixed_before_treasure_mana", true, false},
+		// CR 601.2f: Cloud, Planet's Champion's "Equip abilities you activate that target NICKNAME cost {2} less" prices Equip {3} at {1} for a target named only at CR 601.2c, so the offer and the payment plan agree
+		{"equip_cost_target_reduction", true, false},
 		// CR 601.2f: Cloud, Planet's Champion's {2} less makes White Mage's Staff's equip onto it {1}, payable by tapping Balamb Garden
 		{"equip_target_reduced_autopay_offer", true, false},
 		// CR 601.2f, 602.2b: Cloud's {2} equip reduction prices Dragoon's Lance's Equip {4} for the target Cloud, so the autopay offer plans {2}
