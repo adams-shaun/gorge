@@ -23,7 +23,11 @@ func (e *Engine) LegalSubTargets(chooser state.PlayerID, source state.ObjID, sa 
 // LegalRetargets implements effects.Host. The census runs as a target offer
 // of obj itself, so the resolving redirect's identity stands aside: obj is the
 // source protection judges and the object that cannot target itself (CR
-// 115.5).
+// 115.5). An attach SA (API$ Attach, the Equip/Reconfigure expansion) never
+// offers its own source permanent, the exclusion targetAsk applies at
+// activation: a copy has the original's source (CR 707.10b) and may choose
+// only what the original could (CR 707.10c), and an Equipment can't equip
+// itself (CR 301.5c).
 func (e *Engine) LegalRetargets(obj state.ObjID, sa *cards.SA, parent []state.Target) []state.Target {
 	o := e.G.Obj(obj)
 	if o == nil {
@@ -32,10 +36,29 @@ func (e *Engine) LegalRetargets(obj state.ObjID, sa *cards.SA, parent []state.Ta
 	savedResolving := e.resolvingObj
 	e.resolvingObj = 0
 	defer func() { e.resolvingObj = savedResolving }()
+	var out []state.Target
 	if parent != nil {
-		return e.LegalSubTargets(o.Controller, obj, sa, parent)
+		out = e.LegalSubTargets(o.Controller, obj, sa, parent)
+	} else {
+		out = e.LegalTargets(o.Controller, obj, sa)
 	}
-	return e.LegalTargets(o.Controller, obj, sa)
+	if src := attachSelfSource(o, sa); src != 0 {
+		out = slices.DeleteFunc(out, func(t state.Target) bool { return !t.IsPlayer && t.Obj == src })
+	}
+	return out
+}
+
+// attachSelfSource is the permanent an attach SA (API$ Attach) on stack
+// object o may never target: o's source, the exclusion targetAsk applies at
+// activation (CR 301.5c, 701.3a). A new-target census of o (a redirect, or a
+// copy's CR 707.10c election -- the copy keeps the original's source, CR
+// 707.10b) drops it so it offers only what the original could target. Zero
+// when sa is no attach SA or o has no source.
+func attachSelfSource(o *state.Object, sa *cards.SA) state.ObjID {
+	if sa == nil || sa.API != "Attach" {
+		return 0
+	}
+	return o.Source
 }
 
 // AnnouncedLinkTargets implements effects.Host.
