@@ -1370,7 +1370,7 @@ func (s *State) flushSac(k *prep) {
 		bOld = s.batchOpen() // one sacrifice batch (trig_oneormore.go)
 	}
 	hr := s.holdOpen(k)
-	// The moves before the first parked one (sac_parkbatch.go) go now, as
+	// The moves before the first parked one (repl_sacbatch.go) go now, as
 	// gorge's earlier emits did; the parked ones are sacrificed and move after
 	// the answer, in the same batch.
 	w, parked := s.sacParkFrom(k, ord[:n])

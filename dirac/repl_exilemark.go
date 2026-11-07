@@ -104,7 +104,7 @@ const (
 	// parkNext: a state-based pass parked this move while an earlier pass's asks
 	// were still to come, so gorge's check unattaches before it asks for this one
 	parkNext uint8 = 32
-	// parkSacd: a parkMass move is a sacrifice, emitted with its move (sac_parkbatch.go)
+	// parkSacd: a parkMass move is a sacrifice, emitted with its move (repl_sacbatch.go)
 	parkSacd uint8 = 64
 	// parkBatchEnd: the last parkMass move of a sacrifice batch, which closes
 	// the batch kept open across the asks to the latch held in x
