@@ -276,8 +276,13 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				return true, held
 			}
 			s.leave(k, sl, kop.ZoneGraveyard, false)
-			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && !(s.buildLive() && s.ctl == ctlBuild && s.bld().bfl&bflManaStep != 0) {
-				s.ceaseManaToken(o) // a sacrificed Treasure ceases at once, as gorge pays; the payment plan's tap (bflManaStep) leaves it for the next state-based check (CR 704.5d)
+			// a token sacrificed to pay a cast ceases at once, as gorge pays (a
+			// Treasure: payCast's tail reaches gorge's priority-boundary check,
+			// engine.go checkStateBased); one sacrificed to pay mid-resolution or
+			// by a planned activation's mana step (bflManaStep) waits for the
+			// state-based action at the next priority (CR 704.3, 704.5d)
+			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) {
+				s.ceaseManaToken(o)
 			}
 		}
 	}
