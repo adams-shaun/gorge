@@ -180,7 +180,7 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 	if l.kind != copyNone {
 		want = l.card
 	}
-	if cur == want && (l.kind != copyNone) == (p.ovr.flags&ovCopy != 0) {
+	if cur == want && (l.kind != copyNone) == (p.ovr.flags&ovCopy != 0) && s.excShows(host, l) {
 		return
 	}
 	s.touchSl(host)
@@ -189,13 +189,18 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 	if l.kind != copyNone {
 		p.ovr.flags |= ovCopy
 		p.ovr.copyOf = want
-		if l.kind == copyPerm {
-			// the marker's copy exceptions come back with its layer
+		if l.kind == copyPerm || l.kind == copyEOT || l.kind == copyAegis {
+			// The top layer's copy exceptions show, the layers beneath
+			// lose theirs (CR 707.2, 613.7e: an Aegis copy has none, so an
+			// older "except it has hexproof" is overwritten); they come
+			// back with their layer.
 			s.dropFx(func(i int) bool {
 				x := &s.g.fx[i]
 				return x.sl == host && x.kind == fxCopyExc
 			})
-			s.copyExcAdd(k, host, s.copySrcSlot(l.src), l.idx)
+			if l.kind != copyAegis {
+				s.copyExcAdd(k, host, s.copySrcSlot(l.src), l.idx)
+			}
 			p.ovr.kw = p.ovr.kw&^oldKw | s.copyExcKw(k, host)
 		}
 	} else {
@@ -295,4 +300,18 @@ func prepAegis(t *kop.Table, g *genPrep) {
 			}
 		}
 	}
+}
+
+// excShows reports whether host's copy-exception records are the ones the
+// copy layer l shows: an Aegis copy has none, a marker's layer has its own
+// override's (idx, index+1) when it has one.
+func (s *State) excShows(host Slot, l copyLayer) bool {
+	has := s.copyRec(host, fxCopyExc) >= 0
+	switch l.kind {
+	case copyAegis:
+		return !has
+	case copyPerm, copyEOT:
+		return has == (l.idx != 0)
+	}
+	return true
 }
