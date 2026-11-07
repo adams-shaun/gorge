@@ -1008,6 +1008,7 @@ SrOwnZone	untyped int	256
 SrRandom	untyped int	32768
 SrRemember	untyped int	32
 SrReveal	untyped int	128
+SrShareLandType	untyped int	512
 SrShuffleOptional	untyped int	8
 SrTapped	untyped int	1
 SrThenTop	untyped int	2
