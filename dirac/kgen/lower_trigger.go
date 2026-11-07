@@ -2724,9 +2724,36 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		pn, e1 := strconv.Atoi(pS)
 		tn, e2 := strconv.Atoi(tS)
 		if okP && e1 != nil || okT && e2 != nil {
-			return nil, refuse("set P/T %q/%q", pS, tS)
+			// a non-integer value is read live at every layer-7b check,
+			// anchored on the static's source (an Equipment's "your life
+			// total" is its controller's). AffectedX is the per-affected
+			// word, a different anchor, and stays refused by name. The
+			// attached-source reader is the one this lowers for, so a
+			// non-attached static keeps its refusal until the walk serves
+			// it (Porcelain Gallery's global count).
+			if pS == "AffectedX" || tS == "AffectedX" {
+				return nil, refuse("set P/T %q/%q: the per-affected word", pS, tS)
+			}
+			if !attachedOnly(st.F) {
+				return nil, refuse("set P/T %q/%q: a live value on a non-attached static", pS, tS)
+			}
+			pv, tv := cst(0), cst(0)
+			var err error
+			if okP {
+				if pv, err = lc.value(pS); err != nil {
+					return nil, refuse("set P/T %q/%q: %v", pS, tS, err)
+				}
+			}
+			if okT {
+				if tv, err = lc.value(tS); err != nil {
+					return nil, refuse("set P/T %q/%q: %v", pS, tS, err)
+				}
+			}
+			o.HasSetPT, o.LivePT, o.KeepP, o.KeepT = true, true, !okP, !okT
+			o.PVal, o.TVal = pv, tv
+		} else {
+			o.HasSetPT, o.SetP, o.SetT, o.KeepP, o.KeepT = true, pn, tn, !okP, !okT
 		}
-		o.HasSetPT, o.SetP, o.SetT, o.KeepP, o.KeepT = true, pn, tn, !okP, !okT
 	}
 	if c, ok := sp.get("SetColor"); ok {
 		o.HasSetColors = true

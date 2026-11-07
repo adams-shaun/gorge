@@ -515,11 +515,15 @@ func (s *State) basePTGen(k *prep, sl Slot) (int, int) {
 				if !o.HasPT {
 					continue
 				}
+				rp, rt := int16(o.SetP), int16(o.SetT)
+				if o.LivePT {
+					rp, rt = s.livePTSrc(k, src, o) // static_animategrants.go
+				}
 				if !o.KeepP {
-					bp = int(o.SetP)
+					bp = int(rp)
 				}
 				if !o.KeepT {
-					bt = int(o.SetT)
+					bt = int(rt)
 				}
 			}
 		}
