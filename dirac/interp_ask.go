@@ -597,7 +597,7 @@ func (s *State) autoPayPick(k *prep) bool {
 		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
 			s.exileFromGrave(o)
 		} else if s.g.pickZ == kop.PayDiscard {
-			s.discardCost(k, o)
+			s.discardUnlessPay(k, o)
 		} else if s.g.pickZ == kop.PayReturn {
 			s.leave(k, s.objs[o].slot, kop.ZoneHand, false)
 		} else {
@@ -778,7 +778,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
 			s.exileFromGrave(o) // a cost exile from either zone (cost_exilefromhand.go)
 		} else if s.g.pickZ == kop.PayDiscard {
-			s.discardCost(k, o)
+			s.discardUnlessPay(k, o)
 		} else if s.g.pickZ == kop.PayReturn {
 			s.leave(k, s.objs[o].slot, kop.ZoneHand, false) // gorge unlessflow: ReturnCost to the owner's hand
 		} else if s.g.pickZ == kop.PayTapX {
@@ -1094,6 +1094,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		}
 		if s.g.pre.kind == akEnchant {
+			paying := s.g.pre.state == preReturnPay
 			s.g.pre = preAsk{}
 			if s.objs[o].zone == kop.ZoneExile {
 				host := s.objs[a.Source()].slot
@@ -1101,6 +1102,11 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				s.enterOnto(host)
 				sl := s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from)
 				s.attachedTo(k, sl, host)
+			}
+			if paying {
+				s.res.ask = raNone
+				s.payDone(k, true) // the payment's sacrifice finishes after the host answer
+				return
 			}
 			s.continueRes(k, 0)
 			return

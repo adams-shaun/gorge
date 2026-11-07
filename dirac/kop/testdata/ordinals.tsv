@@ -349,6 +349,7 @@ ExMVOf	ExprKind	29
 ExMod	ExprKind	234
 ExMorbid	ExprKind	8
 ExNone	ExprKind	0
+ExNotOwnLibMV	ExprKind	226
 ExNumColorsOf	ExprKind	57
 ExOppLifeLostThisTurn	ExprKind	17
 ExOppsAttacked	ExprKind	229
