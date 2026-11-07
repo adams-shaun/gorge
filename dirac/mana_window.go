@@ -233,7 +233,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 			s.tapWindowGap(k, p, sl, &held)
 			continue
 		}
-		if clamp && !anyColor && k.gen != nil && k.gen.anyRestrSrc && s.windowRestrOwedTap(k, p, sl, useful) {
+		if clamp && !anyColor && k.gen != nil && k.gen.anyRestrSrc && s.windowRestrOwedTap(k, p, sl, useful, noOwed) {
 			continue
 		}
 		own := &k.cards[s.cardAt(sl)]
@@ -246,6 +246,8 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 			if pc.manaMulti {
 				// a cast's ability ask lists what the cost owes first (gorge owedAbilitiesFirst)
 				col = s.windowCol(k, p, useful, sl, pc, false, false)
+			} else if c, ok := s.painAnyOwed(p, useful, pc); ok {
+				col = c
 			} else if want, decided := s.windowUseful(k, p, useful); decided {
 				// the colour ask lists only what the clamp keeps (gorge paymentUsefulColours)
 				if m := s.windowSrcMask(k, sl) & want; m != 0 {
@@ -2668,7 +2670,8 @@ func (s *State) manaStep(k *prep) bool {
 			// reduced cost, or with none the manual window, source by source,
 			// which taps nothing when the pool already pays it.
 			cc := s.buildCostCharge(k)
-			if s.abilityPlanSettles(k, e, a.Cost.Mana, a.Cost.Mana, cc, &saved) {
+			w := s.powerUpWitness(k, a, sl, e.ctrl)
+			if s.abilityPlanSettles(k, e, w, w, cc, &saved) {
 				s.tapFor(k, e.ctrl, &cc, int(e.x), NoObj)
 			} else if !s.windowTapHeldOK(k, e.ctrl, &cc) {
 				// the window ran out of sources: gorge aborts the activation

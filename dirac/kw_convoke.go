@@ -342,11 +342,10 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	if s.convokePickCount() >= maxPicks {
 		return false
 	}
-	// The post-pick remainder filters the menu on every cast route, the same
-	// absorption budget gorge publishes on the announcement (Decision.
-	// ConvokeBudget, rules convokeAbsorbs): a pick whose colour pip or
-	// generic the earlier picks have paid reduces nothing, and gorge's
-	// announcement is re-posed without it (CR 702.51a).
+	// Every route filters by the post-pick remainder: gorge's Submit gate
+	// (validateCastContributions) refuses a pick the outstanding cost cannot
+	// absorb on a may-play or alternative-cost cast too (CR 702.51a), and the
+	// oracle offers only the picks that gate admits.
 	cost := s.convokeApplyPicks(k, raw)
 	var rem [5]uint8
 	for i := range rem {
@@ -452,7 +451,11 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 		s.occ = saved.occ
 		return true // the pick is posed; the announced creatures tap when the window ends (mana_window.go)
 	}
-	s.payFromPoolRider(k, e.ctrl, &red, 0, anyColor)
+	if s.rbAny(e.ctrl) {
+		s.payRestrRider(k, e.ctrl, &red, 0, e.obj, anyColor) // the window's restricted mana pays the spell it admits (CR 106.6)
+	} else {
+		s.payFromPoolRider(k, e.ctrl, &red, 0, anyColor)
+	}
 	for c := range held {
 		s.pl[e.ctrl].pool[c] += held[c]
 	}

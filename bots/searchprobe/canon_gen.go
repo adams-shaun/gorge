@@ -671,19 +671,6 @@ func (e *canonEncoder) encdecision_Decision(v *decision.Decision) error {
 			}
 		}
 	}
-	if v.ConvokeBudget == nil {
-		e.buf = append(e.buf, 0)
-	} else {
-		e.buf = append(e.buf, 1)
-		if v.ConvokeBudget == nil {
-			e.buf = append(e.buf, 0)
-		} else {
-			e.buf = append(e.buf, 1)
-			if err := e.encdecision_ConvokeBudget(v.ConvokeBudget); err != nil {
-				return err
-			}
-		}
-	}
 	if v.MaxSum == 0 {
 		e.buf = append(e.buf, 0)
 	} else {
@@ -1561,23 +1548,6 @@ func (e *canonEncoder) encdecision_ManaPaymentWindow(v *decision.ManaPaymentWind
 			for x66 := range v.AutoFill {
 				e.buf = binary.AppendUvarint(e.buf, uint64(v.AutoFill[x66]))
 			}
-		}
-	}
-	return nil
-}
-
-func (e *canonEncoder) encdecision_ConvokeBudget(v *decision.ConvokeBudget) error {
-	if err := e.encdecision_PaymentCost(&v.Cost); err != nil {
-		return err
-	}
-	if !v.Open {
-		e.buf = append(e.buf, 0)
-	} else {
-		e.buf = append(e.buf, 1)
-		if v.Open {
-			e.buf = append(e.buf, 1)
-		} else {
-			e.buf = append(e.buf, 0)
 		}
 	}
 	return nil

@@ -120,6 +120,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-msh", "dfc_back_face_trigger_asks_optional_after_dying"},             // The Sensational She-Hulk's damage trigger, put on the stack as she died: the line is printed on her back face, which the card in the graveyard no longer shows, and the may is still asked (CR 712.8a, 603.5)
 		{"std-msh", "ward_alt_pays_with_restricted_nonspell_mana"},                 // Titania's ward paid with Hydraulic Helper's mana, which may not cast a nonartifact spell but pays a ward (CR 106.6)
 		{"std-msh", "hulk_power_up_reducer"},                                       // Hulk, Gamma Goliath's "power-up abilities of other creatures you control cost {3} less" lowers Brave Brawler's {4}{W} Power-up to {1}{W} (CR 601.2f, 602.2b, 702.193a)
+		{"std-msh", "power_up_witness_composes_cost_statics"},                      // CR 601.2f: gorge's printed-cost power-up witness still composes cost statics, so Hercules is offered with two lands once Hulk takes {3} off his {4}{G}
 		{"std-msh", "exile_cast_discard_alt_cost_keeps_whole_hand"},                // Titania cast from exile through Moonstone's permission discards the one card in hand: the spell is not in the hand, so it does not count against it (CR 601.2b)
 		{"std-msh", "resolved_limit_new_object_after_returning"},                   // Baron Strucker, whose "once each turn" connive trigger resolved before he died, comes back under Thunderbolts Conspiracy as a new object (CR 400.7): the Swordsman returning after him triggers it again
 		{"std-msh", "modal_token_copy_exceptions_both_faces"},                      // Multiversal Incursion's token copy of Tony Stark, "except it isn't legendary", transforms: the token shows the other face with the same exception (CR 707.8a, 701.28)
@@ -136,6 +137,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-eoe", "repeat_each_targeted_mills_half_the_library"},                 // Singularity Rupture destroys all creatures, then its two target players each mill half their library rounded down, the controller first (gorge AliveFrom), and both engines agree on every one
 		{"std-sos", "ark_of_hunger_mayplay_both_zones"},                            // Ark of Hunger's tap mills a card and registers the remembered card's play permission over the graveyard and exile: the recorded game reaches the tap, and both engines agree through the grant and the cleanup
 		{"std-spm", "parker_luck_repeat_each_loses_the_others_reveal_mv"},          // Parker Luck's end-step trigger: two players each reveal their top card, and each loses life equal to the OTHER player's revealed card's mana value (Swamp 0, Prowler, Clawed Thief 3), then both cards go to hand; both engines agree on every one
+		{"std-dft", "exile_trigger_looks_back_from_battlefield_or_graveyard"},      // Ketramose warped and exiled at the end step sees itself leave: a ChangesZoneAll line with Origin$ Battlefield,Graveyard looks back like Origin$ Battlefield (CR 603.10a)
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if div := replayStdRepro(t, reg, c.pool, c.name, fullSurface[c.name]); div != nil {

@@ -193,14 +193,6 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 		d.Max = 1
 	}
 	d.Min = min(in.MinTaps, d.Max)
-	// The announcement publishes its absorption budget (the mana its
-	// contributions must reduce, and the unannounced {X}'s tentative
-	// legality), the same numbers the engine's submit gate prices the answer
-	// against (convokeAbsorbs): every reader of the menu -- the kernel's
-	// pick-by-pick re-pose, the lockstep mirror's filter -- drops the picks
-	// the budget no longer absorbs from this one published copy (CR
-	// 702.51a), instead of re-deriving them per cast route.
-	d.ConvokeBudget = &decision.ConvokeBudget{Cost: WireCost(mana), Open: hasX}
 	e.Ask(AskCast, d)
 	return true
 }

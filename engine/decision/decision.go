@@ -729,12 +729,6 @@ type Decision struct {
 	// still owed, the pool and the Auto-fill sources. Absent everywhere else,
 	// so every other decision serialises byte-identically.
 	ManaPayment *ManaPaymentWindow `json:"mana_payment,omitempty"`
-	// ConvokeBudget is present only on a Convoke/Harmonize/Improvise
-	// announcement (rules pay.ConvokeAsk): the outstanding mana its
-	// contributions must reduce, the same numbers the engine's submit gate
-	// prices the answer against (rules convokeAbsorbs, CR 702.51a). Absent
-	// everywhere else, so every other decision serialises byte-identically.
-	ConvokeBudget *ConvokeBudget `json:"convoke_budget,omitempty"`
 	// MaxSum, when > 0, is a cumulative budget over the chosen options' Value
 	// fields: the sum of the picked options' Value must not exceed MaxSum.
 	// The engine's first user is a Dig's WithTotalCMC$ ("put any number of

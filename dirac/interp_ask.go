@@ -587,7 +587,7 @@ func (s *State) autoPayPick(k *prep) bool {
 		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
 			s.exileFromGrave(o)
 		} else if s.g.pickZ == kop.PayDiscard {
-			s.discardCost(k, o)
+			s.discardUnlessPay(k, o)
 		} else if s.g.pickZ == kop.PayReturn {
 			s.leave(k, s.objs[o].slot, kop.ZoneHand, false)
 		} else {
@@ -768,7 +768,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
 			s.exileFromGrave(o) // a cost exile from either zone (cost_exilefromhand.go)
 		} else if s.g.pickZ == kop.PayDiscard {
-			s.discardCost(k, o)
+			s.discardUnlessPay(k, o)
 		} else if s.g.pickZ == kop.PayReturn {
 			s.leave(k, s.objs[o].slot, kop.ZoneHand, false) // gorge unlessflow: ReturnCost to the owner's hand
 		} else if s.g.pickZ == kop.PayTapX {
@@ -1048,6 +1048,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		s.continueRes(k, 0)
 	case raGenEnterAsk:
+		if s.g.ask[0].kind == akNameLook {
+			s.g.ask[0].kind = akNameAny // the look is acknowledged: the name is asked next (repl_choosename.go)
+			return
+		}
 		saved := s.res
 		s.res.active = false // the enters program runs with its own source as the context
 		s.answerQueuedAsk(k, a)
