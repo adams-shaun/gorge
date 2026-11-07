@@ -784,26 +784,14 @@ func ManaSpentForCast(e Board, p state.PlayerID, id state.ObjID) int32 {
 	return spent
 }
 
-// incrementAdmits implements the Increment keyword's event-relative condition:
-// the mana actually spent to cast the triggering spell is greater than the
-// trigger SOURCE's current power OR greater than its current toughness. The
-// oracle reminder's "power or toughness" is a disjunction (CR 702.XX), so one
-// of the two comparisons sufficing is the firing condition. Power and
-// toughness are the LAYER OUTPUT (Engine.Power/Engine.Toughness, the same
-// derived values Training reads for its power comparison), so a lord, a
-// counter or a pump moves the comparison exactly as it moves the creature.
-//
-// The spend comes from the SHARED ManaSpentForCast log scan ValidSAMatches and
-// spellValidSAonCardMatches read, so the three SpellCast spend readers can
-// never disagree. A source that is no longer a creature on the battlefield
-// when the trigger fires (it left, or became a noncreature) has no P/T to
-// compare and fails closed, as every unreadable gate in this file does.
+// incrementAdmits is the Increment keyword's fire-time condition: the mana
+// actually spent to cast the triggering spell is greater than the trigger
+// SOURCE's current power OR greater than its current toughness, and the
+// source is a creature on the battlefield. The spend comes from the SHARED
+// ManaSpentForCast log scan ValidSAMatches and spellValidSAonCardMatches
+// read, so the three SpellCast spend readers can never disagree.
 func incrementAdmits(e Board, source state.ObjID, ev events.Event) bool {
-	src := e.Game().Obj(source)
-	if src == nil || src.Face() == nil {
-		return false
-	}
-	return IncrementSpendExceeds(e, source, ManaSpentForCast(e, ev.Player, ev.Obj))
+	return IncrementHolds(e, source, ManaSpentForCast(e, ev.Player, ev.Obj))
 }
 
 // IsIncrementTrigger reports whether t carries the Increment keyword
@@ -813,11 +801,38 @@ func IsIncrementTrigger(t cards.Trigger) bool {
 	return ok && strings.EqualFold(strings.TrimSpace(v), "True")
 }
 
-// IncrementSpendExceeds is Increment's comparison (CR 702.191a): spent is
-// greater than the source's current power or its current toughness. It is
-// the ONE home of the comparison: the fire-time gate (incrementAdmits) and the
+// IncrementHolds is Increment's whole condition (CR 702.191a): "if this
+// permanent is a creature and the amount of mana spent to cast that spell is
+// greater than this creature's power or this creature's toughness". It is
+// the ONE home of the condition: the fire-time gate (incrementAdmits) and the
 // CR 603.4 resolution recheck (rules.triggerResolvingCheckHolds, with the
-// spend captured in TriggerContext.TriggerIncrementSpent) both call it.
+// spend captured in TriggerContext.TriggerIncrementSpent) both call it, so
+// the two halves cannot drift. A source that left the battlefield or stopped
+// being a creature fails closed, as every unreadable gate in this file does.
+func IncrementHolds(e interface {
+	Game() *state.Game
+	Chars(state.ObjID) *effects.Chars
+	Power(state.ObjID) int32
+	Toughness(state.ObjID) int32
+}, source state.ObjID, spent int32) bool {
+	src := e.Game().Obj(source)
+	if src == nil || src.Face() == nil || src.Zone != state.ZBattlefield {
+		return false
+	}
+	// The layer-derived types, not the printed face: an animated permanent
+	// and one that has stopped being a creature are judged as they are now,
+	// the same live view the P/T comparison reads.
+	if ch := e.Chars(source); ch == nil || !slices.Contains(ch.Types, "Creature") {
+		return false
+	}
+	return IncrementSpendExceeds(e, source, spent)
+}
+
+// IncrementSpendExceeds is Increment's comparison (CR 702.191a): spent is
+// greater than the source's current power or its current toughness. Power
+// and toughness are the LAYER OUTPUT (Engine.Power/Engine.Toughness, the
+// same derived values Training reads for its power comparison), so a lord, a
+// counter or a pump moves the comparison exactly as it moves the creature.
 func IncrementSpendExceeds(e interface {
 	Power(state.ObjID) int32
 	Toughness(state.ObjID) int32

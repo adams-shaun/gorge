@@ -654,9 +654,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		if v, ok := tp.get("Increment"); ok {
 			// gorge kwIncrement's Increment$ marker (trigmatch
-			// incrementAdmits): the cast's spend against the SOURCE's
-			// current power/toughness, read as the trigger fires (kernel
-			// Tf2Increment). Only the exact spelling, on a
+			// IncrementHolds): the source is a creature and the cast's spend
+			// exceeds its current power/toughness, read as the trigger fires
+			// and rechecked on resolution (kernel Tf2Increment). Only the exact spelling, on a
 			// plain SpellCast (gorge's SpellCastOrCopy carries it on the cast
 			// event only; the kernel's copy arm reads casts only).
 			if t.Mode != "SpellCast" || v != "True" {
