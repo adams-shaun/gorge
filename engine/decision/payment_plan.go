@@ -104,6 +104,19 @@ type PaymentCost struct {
 	Mana    ManaAmount `json:"mana"`
 }
 
+// ConvokeBudget is a Convoke/Harmonize/Improvise announcement's absorption
+// budget: the outstanding mana each announced contribution must reduce, and
+// whether an unannounced {X} keeps a generic pick against {0} tentatively
+// legal (CR 702.51a, 702.126a, 601.2b). The announcement's ask (rules
+// pay.ConvokeAsk) publishes the same numbers the engine's submit gate prices
+// the answer against (rules convokeAbsorbs), so every reader of the menu --
+// the kernel's pick-by-pick re-pose, the lockstep mirror's filter -- drops
+// the picks the budget no longer absorbs from one published copy.
+type ConvokeBudget struct {
+	Cost PaymentCost `json:"cost"`
+	Open bool        `json:"open,omitempty"`
+}
+
 // PaymentAbility is a stable source ability discriminator. Printed abilities
 // use the card face and its printed ability index. Intrinsic abilities use a
 // frozen name (for example "basic_land"); they never use a transient offered
@@ -374,6 +387,10 @@ func (d *Decision) CloneInto(dst *Decision) {
 			mp.AutoFill = append(fill, w.AutoFill...)
 		}
 		dst.ManaPayment = mp
+	}
+	if b := d.ConvokeBudget; b != nil {
+		cb := *b
+		dst.ConvokeBudget = &cb
 	}
 }
 

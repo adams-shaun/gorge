@@ -399,6 +399,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 
 		{"free_cast_owes_either_or_additional_cost", true, false},      // CR 601.2b, 118.9d: Kinsbaile Aspirant cast free from Maralen's exile still owes behold or {2}; with neither payable it is not offered
 		{"either_or_mana_part_spends_restricted_source", false, false}, // CR 106.6, 601.2f: Kinsbaile Aspirant's {2} part with its {W} is affordable through Eclipsed Realms' chosen-type mana
+		{"mayplay_convoke_absorb_repose", false, false},                // CR 702.51a: a may-play cast's convoke announcement re-poses only the picks the outstanding budget still absorbs, so a fifth generic tap for {3}{U}{U} is not offered once the generic is paid
 	})
 }
 

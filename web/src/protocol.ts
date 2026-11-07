@@ -1385,6 +1385,21 @@ export interface ManaPaymentWindow {
 }
 
   /**
+   * ConvokeBudget is a Convoke/Harmonize/Improvise announcement's absorption
+   * budget: the outstanding mana each announced contribution must reduce, and
+   * whether an unannounced {X} keeps a generic pick against {0} tentatively
+   * legal (CR 702.51a, 702.126a, 601.2b). The announcement's ask (rules
+   * pay.ConvokeAsk) publishes the same numbers the engine's submit gate prices
+   * the answer against (rules convokeAbsorbs), so every reader of the menu --
+   * the kernel's pick-by-pick re-pose, the lockstep mirror's filter -- drops
+   * the picks the budget no longer absorbs from one published copy.
+   */
+export interface ConvokeBudget {
+  cost: PaymentCost;
+  open?: boolean;
+}
+
+  /**
    * DamageEffect describes nominal scripted damage, NEVER guaranteed damage.
    * Prevention, replacement, conditions, division among targets and resolution
    * legality are not evaluated. Spell damage is not commander combat damage.
@@ -1492,6 +1507,14 @@ export interface Decision {
    * so every other decision serialises byte-identically.
    */
   mana_payment?: ManaPaymentWindow | null;
+  /**
+   * ConvokeBudget is present only on a Convoke/Harmonize/Improvise
+   * announcement (rules pay.ConvokeAsk): the outstanding mana its
+   * contributions must reduce, the same numbers the engine's submit gate
+   * prices the answer against (rules convokeAbsorbs, CR 702.51a). Absent
+   * everywhere else, so every other decision serialises byte-identically.
+   */
+  convoke_budget?: ConvokeBudget | null;
   /**
    * MaxSum, when > 0, is a cumulative budget over the chosen options' Value
    * fields: the sum of the picked options' Value must not exceed MaxSum.

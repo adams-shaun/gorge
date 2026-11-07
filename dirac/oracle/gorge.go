@@ -498,10 +498,16 @@ func castHasX(o *state.Object) bool {
 }
 
 // convokeFrameFor is the absorption frame of a convoke announcement d, or
-// nil when d is not one or its cast cost was not cached.
+// nil when d is not one or carries no cost to filter by.
 func (g *GorgeSide) convokeFrameFor(d *decision.Decision) *convokeFrame {
 	if d.Kind != decision.KChoose || len(d.Options) == 0 || !(strings.HasPrefix(d.Options[0].Kind, "convoke_") || d.Options[0].Kind == "improvise_generic") {
 		return nil
+	}
+	// The published budget (gorge pay.ConvokeAsk) is the ask's own
+	// absorption numbers, on every cast route -- a may-play or alternate-cost
+	// cast has no priority-time hand price to cache (below).
+	if b := d.ConvokeBudget; b != nil {
+		return &convokeFrame{gen: b.Cost.Generic, pips: b.Cost.Mana, open: b.Open}
 	}
 	pc, ok := g.castCost[d.Source]
 	if !ok {
