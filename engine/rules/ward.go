@@ -223,6 +223,13 @@ func (e *Engine) askWardObjects(rp *resumePoint, ctx *effects.Ctx, payer state.P
 	return e.settleWardPayment(kind, rp.sa, ctx, d.Chosen(tapeServe(e, d))), false
 }
 
+// WardCostPayableFromCtx is effWard's offer gate for a life ward (CR 119.4):
+// false when the payer cannot pay a PayLife<N> / PayLife<X/...> ward, so no
+// Pay is offered. Every other ward shape returns true.
+func (e *Engine) WardCostPayableFromCtx(payer state.PlayerID, raw string, ctx *effects.Ctx) bool {
+	return pay.WardLifeCostPayable(asPayer(e), payer, raw, int(e.Power(ctx.Source)), ctx, ctx.Source)
+}
+
 func (e *Engine) wardPayer(ctx *effects.Ctx) (state.PlayerID, bool) {
 	cause := e.G.Obj(ctx.TriggerStack)
 	if cause == nil || cause.Zone != state.ZStack || int(cause.Controller) >= len(e.G.Players) {

@@ -1,6 +1,7 @@
 package pay
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -600,4 +601,33 @@ func UnlessCountersAffordableFor(e Engine, cost costvocab.Cost, ctx effects.Ctx,
 		}
 	}
 	return true
+}
+
+// WardLifeCostPayable is effWard's offer gate for a life ward: false when raw
+// is a PayLife<N> or PayLife<X/...> cost (X priced at the ward permanent's
+// power) the payer cannot pay (CR 119.4). Every other shape returns true.
+func WardLifeCostPayable(e Engine, p state.PlayerID, raw string, power int, ctx *effects.Ctx, stackObj state.ObjID) bool {
+	switch {
+	case wardLifeXRe.MatchString(raw):
+		raw = "PayLife<" + itoa(max(power, 0)) + ">"
+	case !wardLifeRe.MatchString(raw):
+		return true
+	}
+	return UnlessCostPayable(e, p, raw, ctx, stackObj)
+}
+
+var (
+	wardLifeXRe = regexp.MustCompile(`^\s*PayLife<X/`)
+	wardLifeRe  = regexp.MustCompile(`^\s*PayLife<[^>]*>\s*$`)
+)
+
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	var b []byte
+	for ; n > 0; n /= 10 {
+		b = append([]byte{byte('0' + n%10)}, b...)
+	}
+	return string(b)
 }
