@@ -90,15 +90,15 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Hulk, Gamma Goliath: the Power-up-only ReduceCost arm,
 	// ValidSpell$ Activated.PowerUp; MSH 232 -> 233, ALL 21659 -> 21660).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21660, 34442},
+	"ALL": {21664, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
-	"DFT": {247, 276},
+	"DFT": {248, 276},
 	"DMU": {194, 270},
 	"DSK": {242, 276},
 	"ECL": {233, 273},
-	"EOE": {238, 266},
+	"EOE": {239, 266},
 	"FDN": {517, 517},
 	"FIN": {266, 312},
 	"FRA": {245, 269},

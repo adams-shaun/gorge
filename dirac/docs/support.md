@@ -10,10 +10,10 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 |---|---:|---:|---:|---:|---:|
 | BIG | 30 | 23 | 1 | 8 | 14 |
 | BLB | 278 | 256 | 3 | 33 | 220 |
-| DFT | 276 | 247 | 0 | 23 | 224 |
+| DFT | 276 | 248 | 0 | 24 | 224 |
 | DSK | 276 | 242 | 3 | 51 | 188 |
 | ECL | 273 | 233 | 2 | 41 | 190 |
-| EOE | 266 | 238 | 0 | 0 | 238 |
+| EOE | 266 | 239 | 0 | 1 | 238 |
 | FDN | 517 | 517 | 0 | 24 | 493 |
 | FIN | 312 | 266 | 2 | 19 | 245 |
 | FRA | 269 | 245 | 0 | 25 | 220 |
@@ -30,7 +30,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 13 | 239 |
-| ALL | 34442 | 21660 | 28 | 17021 | 4611 |
+| ALL | 34442 | 21664 | 28 | 17025 | 4611 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 

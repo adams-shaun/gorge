@@ -193,7 +193,7 @@ import (
 // beside this branch's Hulk Power-up ReduceCost arm; ALL build-level 21655 -> 21659).
 // +1 (Hulk, Gamma Goliath's Power-up-only ReduceCost arm; ALL build-level 21659 -> 21660).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21660, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21664, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
