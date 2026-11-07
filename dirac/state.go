@@ -11,9 +11,9 @@ import (
 
 // Capacity constants. State is a fixed-size value; these bound it.
 const (
-	MaxDeck    = 60  // cards per seat's deck
+	MaxDeck    = 100 // cards per seat's deck (a Commander deck's 100)
 	MaxSide    = 15  // cards per seat's sideboard (a Config's; each one is an object, so MaxObj bounds the decks and sideboards together)
-	MaxObj     = 192 // card instances: both decks + tokens
+	MaxObj     = 240 // card instances: both decks + tokens
 	MaxPerm    = 112 // battlefield slots (no gate-slice game exceeds 112)
 	MaxStack   = 48  // stack entries (24 before 2026-11-03, raised with MaxPending: the triggers a pending queue holds all go on the stack together, CR 603.3b)
 	MaxPending = 48  // triggered abilities waiting to be put on the stack (24 before 2026-11-03: Return to the Light Realms bringing back a graveyard of creatures beside three enters listeners queues more)
@@ -103,6 +103,13 @@ type Config struct {
 	// attacking the defending player before the declaration, which a
 	// search's declaration candidates rely on. The oracle sets it.
 	GorgeMustAttack bool
+	// Commander starts a Commander game (CR 903): each seat's commander,
+	// Commanders[p] (an index into that seat's deck, -1 none), is put into
+	// the command zone before the seat's shuffle and opening hand, as gorge's
+	// genesis does, and each player starts at 40 life (CR 903.7). A caller
+	// that sets it gives gorge StartingLife 40.
+	Commander  bool
+	Commanders [2]int16
 	// Side is each seat's sideboard, the cards "outside the game" (CR 400.11):
 	// Side[p][:SideN[p]], at most MaxSide per seat. They are objects of their
 	// own, numbered after both decks, in the zone ZoneSideboard; only a play
@@ -409,6 +416,10 @@ type player struct {
 	scry        uint8    // this turn: scry instructions in bits 0-3, surveil instructions in bits 4-7 (one byte: it fills padding)
 	sac         [3]uint8 // this turn: [sacAll] every sacrifice, [sacArtifact] artifact cards, [sacFood] Food cards
 	disc        uint8    // cards this player discarded this turn
+	cmd         Obj      // this seat's commander (CR 903.3), NoObj none; set at Init (zone_cmdinit.go)
+	cmdCast     uint8    // times the commander was cast from the command zone (CR 903.8)
+	cmdAsk      uint8    // commander bookkeeping byte for the command-zone replacement
+	cmdDmg      [2]uint8 // combat damage dealt to this player by each seat's commander (CR 903.10a)
 }
 
 // stack entry kinds.
@@ -948,6 +959,8 @@ const (
 	cfgGorgeLowering
 	cfgGorgeMustAttack
 	cfgGorgeUnpriced
+	// cfgCommander: a Commander game (Config.Commander; zone_cmdinit.go).
+	cfgCommander
 
 	// cfgGorgeSurface: this game keeps gorge's option surface, not the rules census.
 	cfgGorgeSurface = cfgGorgeAutopay | cfgGorgeLowering | cfgGorgeUnpriced
