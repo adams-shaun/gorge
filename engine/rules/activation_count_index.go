@@ -204,7 +204,7 @@ func zoneMovingKind(k events.Kind) bool {
 
 // activationUsedIn is activationUsedCount's per-event test over evs.
 func activationUsedIn(evs []events.Event, id state.ObjID, ability int, svar string) int {
-	return activationUsedSince(evs, 0, id, ability, svar)
+	return activationUsedSince(evs, 0, id, ability, svar, false)
 }
 
 // activationUsedSince is activationUsedIn counting only the events at or after
@@ -216,15 +216,17 @@ func activationUsedIn(evs []events.Event, id state.ObjID, ability int, svar stri
 // current basis's: the events since the latest ClonePermanent naming id while a
 // basis holds, and the printed events (those outside any basis) once it is
 // cleared. A basis is never revisited, so one running count per kind is enough.
-func activationUsedSince(evs []events.Event, from int, id state.ObjID, ability int, svar string) int {
+func activationUsedSince(evs []events.Event, from int, id state.ObjID, ability int, svar string, rebaseCarry bool) int {
 	printed, based, in := 0, 0, false
 	// A copy effect that ends while another survives is settled by a clear
 	// and an immediate re-base onto the survivor (settleExpiredClones). When
-	// the survivor copies the same source the basis never changed (CR 613.7e,
-	// 602.5b: the continuing copy keeps its abilities and their count), so
-	// the re-base resumes the count the clear set aside.
+	// the survivor copies the same source the basis never changed (CR 602.5c,
+	// 613.1a: the continuing copy keeps its abilities and their count), so
+	// the re-base, which is the very next event, resumes the count the clear
+	// set aside. Only the per-turn count carries (rebaseCarry): the whole-game
+	// count restarts on any new basis, as dirac's once-per-game mark does.
 	var tmpl, clearedTmpl state.ObjID
-	clearedBased, cleared := 0, false
+	clearedBased, clearIdx := 0, -2
 	for i := range evs {
 		ev := evs[i]
 		if ev.Obj != id {
@@ -237,20 +239,22 @@ func activationUsedSince(evs []events.Event, from int, id state.ObjID, ability i
 				src = ev.IDs[0]
 			}
 			switch {
-			case named && cleared && src != 0 && src == clearedTmpl:
+			case named && rebaseCarry && i == clearIdx+1 && src != 0 && src == clearedTmpl:
 				in, based = true, clearedBased
 			case named:
 				in, based = true, 0
 			default:
 				// a clear: keep the basis's count aside for a re-base
-				cleared, clearedTmpl, clearedBased = in && tmpl != 0, tmpl, based
+				clearIdx, clearedTmpl, clearedBased = -2, tmpl, based
+				if in && tmpl != 0 {
+					clearIdx = i
+				}
 				in, based, tmpl = false, 0, 0
 				continue
 			}
-			cleared, tmpl = false, src
+			tmpl = src
 			continue
 		}
-		cleared = false
 		if i < from {
 			continue
 		}

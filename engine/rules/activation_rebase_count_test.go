@@ -27,10 +27,11 @@ func TestActivationCountSurvivesSameSourceRebase(t *testing.T) {
 		{"same-source re-base keeps the count", []events.Event{clone(src), push, clear, clone(src)}, 1},
 		{"another source starts afresh", []events.Event{clone(src), push, clear, clone(other)}, 0},
 		{"a fresh copy of the same source starts afresh", []events.Event{clone(src), push, clone(src)}, 0},
+		{"an unrelated event between clear and copy starts afresh", []events.Event{clone(src), push, clear, {Kind: events.Note, Obj: other}, clone(src)}, 0},
 		{"a clear alone returns the printed count", []events.Event{clone(src), push, clear}, 0},
 	}
 	for _, c := range cases {
-		if got := activationUsedSince(c.evs, 0, id, 2, ""); got != c.want {
+		if got := activationUsedSince(c.evs, 0, id, 2, "", true); got != c.want {
 			t.Errorf("%s: count %d, want %d", c.name, got, c.want)
 		}
 	}
