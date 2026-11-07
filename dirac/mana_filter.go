@@ -444,27 +444,33 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 }
 
 // censusGapMana: mana ability a is one gorge's planner census misses: a
-// spend restriction, each-colour production, or a cost beyond {T} (and
-// {T} plus sacrificing itself, a Treasure's last-resort tier).
+// spend restriction, each-colour production, a cost beyond {T} (and
+// {T} plus sacrificing itself, a Treasure's last-resort tier), or a
+// deferred TriggersWhenSpent$ source (Pyromancer's Goggles; mana_deferred.go),
+// so a filter beside it is no filter-only board (filtOnly).
 func censusGapMana(a *kop.Ability) bool {
 	if a.AFlags&kop.AfLatent != 0 {
 		return false
 	}
 	f := a.Cost.Flags
-	return a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf ||
+	return a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf ||
 		a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
 }
 
 // filtOnly: p's census gaps are filters alone (no other activatable source
 // with a mana ability the census misses: a Bloom Tender, Giada, a
-// Courtyard, Lupinflower Village's restricted {W}).
+// Courtyard, Lupinflower Village's restricted {W}, or a deferred
+// TriggersWhenSpent$ source such as Pyromancer's Goggles, which
+// otherGaps does not fund; mana_deferred.go).
 func (s *State) filtOnly(k *prep, p uint8) bool {
 	return s.scriptFilt(k, p).any() && !s.gapOthers(k, p).any()
 }
 
 // gapOthers: p's activatable sources with a census gap that is no filter. A tap-another
 // source short of what its cost taps (Baylen with one token) cannot be activated, so
-// gorge's census does not miss it.
+// gorge's census does not miss it. A deferred TriggersWhenSpent$ source
+// (Pyromancer's Goggles) carries gfGapOther too (gen.go): otherGaps does
+// not fund it (mana_deferred.go).
 func (s *State) gapOthers(k *prep, p uint8) slotMask {
 	m := s.gapMask(k, p, gfGapOther)
 	if !k.tapMana {

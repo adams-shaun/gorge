@@ -80,7 +80,8 @@ func run(o options, out io.Writer) (*result, error) {
 			return nil, fmt.Errorf("seat %d policy %q reads every seat's real decklist (bots.Info.Env); by design, draftsim refuses Env policies", i, p)
 		}
 	}
-	if err := personaNamesOK(o.drafter, o.builder); err != nil {
+	dLabel, bLabel, err := personaLabels(o.drafter, o.builder)
+	if err != nil {
 		return nil, err
 	}
 	// The pod shape is validated next, still before anything expensive:
@@ -161,7 +162,7 @@ func run(o options, out io.Writer) (*result, error) {
 		// The header line is the stable contract the tests parse. The
 		// default flags keep it exactly as it has always been; the
 		// non-default shape values are appended as `, key value` pairs.
-		fmt.Fprintf(out, "event %d: seed %d, set %s (%s), drafter %s, builder %s", n+1, seed, spec.Code, spec.Collation, o.drafter, o.builder)
+		fmt.Fprintf(out, "event %d: seed %d, set %s (%s), %s", n+1, seed, spec.Code, spec.Collation, personaHeader(o.drafter, dLabel, o.builder, bLabel))
 		if sh.promos > 0 {
 			fmt.Fprint(out, ", mode prerelease")
 		} else if sh.mode == event.ModeSealed {
@@ -226,32 +227,37 @@ func run(o options, out io.Writer) (*result, error) {
 	return res, nil
 }
 
-// personaNamesOK validates the -drafter and -builder names against the
-// pickbot registry before anything expensive runs.
-func personaNamesOK(drafter, builder string) error {
-	if _, _, ok := pickbot.Lookup(drafter); !ok {
-		return fmt.Errorf("unknown -drafter %q (known: %s)", drafter, pickbot.Names())
+// personaLabels validates the -drafter and -builder values (a pickbot
+// registry name or a knobs:path.json file) before anything expensive runs,
+// and returns each one's header label: knobs@<hash> for a knob file, empty
+// for a name.
+func personaLabels(drafter, builder string) (string, string, error) {
+	dl, err := personaLabel(drafter, "drafter")
+	if err != nil {
+		return "", "", err
 	}
-	if _, _, ok := pickbot.Lookup(builder); !ok {
-		return fmt.Errorf("unknown -builder %q (known: %s)", builder, pickbot.Names())
+	bl, err := personaLabel(builder, "builder")
+	if err != nil {
+		return "", "", err
 	}
-	return nil
+	return dl, bl, nil
 }
 
 // personaPair builds the drafter and builder the -drafter and -builder
-// flags name: fresh instances from the pickbot registry with the corpus
-// lookup injected, so the flags choose the persona instead of the tool
-// hard-coding the types. personaNamesOK has already validated the names
+// flags name: fresh instances from the pickbot registry (or
+// pickbot.NewTuned under a knobs:path.json file) with the corpus lookup
+// injected, so the flags choose the persona instead of the tool
+// hard-coding the types. personaLabels has already validated the values
 // before the corpus opens; the errors here keep the function total for
 // direct callers.
 func personaPair(drafter, builder string, lookup pickbot.CardLookup) (pickbot.Drafter, pickbot.Builder, error) {
-	d, _, ok := pickbot.New(drafter, lookup)
-	if !ok {
-		return nil, nil, fmt.Errorf("unknown -drafter %q (known: %s)", drafter, pickbot.Names())
+	d, _, _, err := persona(drafter, "drafter", lookup)
+	if err != nil {
+		return nil, nil, err
 	}
-	_, b, ok := pickbot.New(builder, lookup)
-	if !ok {
-		return nil, nil, fmt.Errorf("unknown -builder %q (known: %s)", builder, pickbot.Names())
+	_, b, _, err := persona(builder, "builder", lookup)
+	if err != nil {
+		return nil, nil, err
 	}
 	return d, b, nil
 }
