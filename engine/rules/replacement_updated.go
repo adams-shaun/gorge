@@ -132,6 +132,7 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
 	}
 	// Matched after every Updated body, as in the single-match branch.
+	e.refreshEntryTriggerTables()
 	e.checkTriggers(&stored, nil, 0, 0, false)
 	if e.pending == nil && stored.Kind == events.MoveZone && stored.To == state.ZBattlefield {
 		e.finishLandPlay(stored.Obj)
@@ -305,6 +306,7 @@ func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
 		}
 		e.runReplaceWith(e.replCtx(m, rc.ev), rc.ev.Obj, m.repl.With, nil)
 	}
+	e.refreshEntryTriggerTables()
 	e.checkTriggers(&rc.stored, nil, 0, 0, false)
 	if e.pending == nil && rc.ev.Kind == events.MoveZone && rc.ev.To == state.ZBattlefield {
 		e.finishLandPlay(rc.ev.Obj)
