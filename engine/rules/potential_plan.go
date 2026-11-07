@@ -674,6 +674,43 @@ func (e *Engine) potentialTargetPricedPlan(statics costStaticViews, p state.Play
 	return got
 }
 
+// abilityTargetPricedPlan is planAbilityPaymentLifePips' twin of
+// potentialTargetPricedPlan: an activation whose ValidTarget$ cost statics
+// price it lower for some legal target (Cloud's "equip abilities that target
+// Cloud cost {2} less") is planned at each single target's price (CR 601.2f
+// via 602.2b reads the chosen target), so the offer gate's potential pass and
+// the plan agree. A multi-target ability is unknown, as for a cast; with no
+// such static or no target, pre is returned unchanged.
+func (e *Engine) abilityTargetPricedPlan(p state.PlayerID, id state.ObjID, cost Cost, scope costScope, pre PaymentPlanOutcome) PaymentPlanOutcome {
+	// The offer gate's own potential-pass guard (offerCastableUsingExtra):
+	// paymentPlanTargetDependentFor reads a face's spell targets, never an
+	// activated ability's.
+	statics := e.collectCostStatics()
+	if !statics.validTarget {
+		return pre
+	}
+	targets := e.costPotentialTargets(p, id, scope)
+	if len(targets) == 0 {
+		return pre
+	}
+	if sa := pay.CostTargetingSA(e.G, id, scope); sa == nil {
+		return pre
+	} else if _, max := targetBounds(sa); max > 1 {
+		return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape:target_dependent_cost"}
+	}
+	got := pre
+	e.potentialCostModsUsing(statics, p, id, scope, targets, 0, func(m costMods) bool {
+		var c Cost
+		e.composedOfferCostInto(&c, p, id, &cost, &m, scope)
+		got = e.planComposedCost(p, id, c, true, true)
+		return got.Plan != nil && got.Reason == ""
+	})
+	if got.Plan == nil || got.Reason != "" {
+		return pre
+	}
+	return got
+}
+
 // planPoolCoversPrintedCost reports whether the floating pool alone pays the
 // cast's composed printed cost, mirrored from potentialModeCastPlan's own
 // composition up to its first planComposedCost: the same base, the same
@@ -1336,6 +1373,9 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	}
 	composed := e.offerCostFor(p, id, cost, abilityScope(ab))
 	out := e.planComposedCost(p, id, composed, true, true)
+	if out.Reason == "insufficient" {
+		out = e.abilityTargetPricedPlan(p, id, cost, abilityScope(ab), out)
+	}
 	if out.Reason != "insufficient" || cost.Waterbend <= 0 {
 		return out
 	}

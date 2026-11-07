@@ -421,6 +421,8 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"delayed_trigger_departed_source_lifelink", false, false},
 		// CR 601.2f-g: Valkyrie Aerial Unit's affinity counts both Treasures before one is sacrificed for mana, so {2}{U}{U} is payable
 		{"count_reduction_fixed_before_treasure_mana", true, false},
+		// CR 601.2f, 602.2b: Cloud's {2} equip reduction prices Dragoon's Lance's Equip {4} for the target Cloud, so the autopay offer plans {2}
+		{"equip_target_reduction_autopay_offer", true, false},
 	})
 }
 
