@@ -8,6 +8,7 @@ func TestStdMshReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-msh", []stdRepro{
 		{"target_attacking_lki_after_lethal_damage", false, false},              // CR 608.2h: the enrage rider still sees the attacker's last battlefield status after lethal damage moved it to the graveyard, so the extra combat phase is granted
 		{"sneak_paid_through_filter_land", true, false},                         // CR 702.190a, 605.3a: Elektra sneaked for {1}{B}{B} with a Swamp and Surveillance Room's {1},{T} any-colour filter beside two Plains: the filter's prefix search funds the sneak cast
+		{"sneak_filter_fee_beside_restricted_any_colour", true, false},          // CR 702.190a, 605.3a: Elektra sneaked for {1}{B}{B} from a Swamp, an Island funding Surveillance Room's {1},{T} any-colour fee and Castle Doom's {C} (its any colour is for artifact spells only): the filter's prefix search funds the sneak cast
 		{"combo_filter_allocation_needs_first", false, false},                   // CR 601.2g, 605.3a: Baxter Building's {4}, {T} makes four mana in any combination; the {G} cast orders the allocation answers that name its pip first, as gorge's scriptOrderAnswers does, so the search finds the script within its 160 nodes (dirac tried all four W first)
 		{"power_up_printed_witness_composes_cost_statics", false, false},        // CR 601.2f, 702.193b: Abomination's {5}{R/G}{R/G} Power-up beside Hulk is offered when five sources pay the printed cost less Hulk's {3}, the planner's witness
 		{"hybrid_ability_plan_composes_cost_statics", false, false},             // CR 601.2f, 602.2b: Abomination's hybrid Power-up beside Hulk taps the lands of the plan for its printed cost less Hulk's {3}, not the manual window's
@@ -27,6 +28,6 @@ func TestStdMshReprosLockstep(t *testing.T) {
 		{"reversed_library_cast_keeps_its_place", true, false},                  // CR 733.1-2: Titania, cast from among Cosmic Cube's six looked-at cards and reversed when its cost can't be paid, goes back to its place in the library (not the top, not the bottom), so the rest's move to the bottom leaves it on top
 		{"power_up_hybrid_only_charge_pays_through_window", true, false},        // CR 601.2g, 702.193b: Abomination re-entered this turn beside Hulk owes only {R/G}{R/G}, a charge gorge arms no plan for (no generic or coloured mana), so the manual window taps the first Forests in battlefield order
 		{"connive_triggered_referent_returned_no_counter", false, false},        // CR 400.7, 701.50b: Baron Strucker's connive for a Villain that died and returned before it resolved puts no +1/+1 counter on the new object
-		{"dark_fortress_mana_source_choice", false, false},                      // CR 601.2g, 702.193b: a hybrid Power-up's reduced cost is one the planner declines, so the manual window taps Dark Fortress's conditional {B} or {R} ability before the untapped Mountain
+		{"dark_fortress_mana_source_choice", false, false},                      // CR 601.2g, 702.193b: a hybrid Power-up's charge the reductions left hybrid-only arms no plan, so the manual window taps Dark Fortress's conditional {B} or {R} ability before the untapped Mountain
 	})
 }
