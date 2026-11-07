@@ -749,7 +749,9 @@ func targetCountersLKI(c *Ctx, id state.ObjID, o *state.Object) ([]state.Counter
 //   - the plain target loop: a player target whose PlayerOf resolves, or
 //     any existing object target (in any zone -- CR 122.1, the same
 //     recipients the ordinary loop now places on; an ETB$ True mid-entry
-//     object included, since it is a live object either way).
+//     object included, since it is a live object either way), less the
+//     referents the loop skips (putCounterDefined's dropped targets and a
+//     putCounterReferentLeft source that left since its trigger was pushed).
 //
 // It is a pure read: no event, no state change, replay-safe.
 func putCounterWouldPlace(h Host, c *Ctx, sa *cards.SA) bool {
@@ -778,14 +780,18 @@ func putCounterWouldPlace(h Host, c *Ctx, sa *cards.SA) bool {
 		}
 		return numText(h, c, pc.ChoiceAmount, defMax) >= 1
 	}
-	for _, t := range Defined(h, c, sa) {
+	// The recipients and the skips are the put loop's own (putCounterDefined,
+	// putCounterReferentLeft): Black Widow, Super Spy's "you may put a +1/+1
+	// counter on Black Widow" is not asked once Black Widow has died, since
+	// the counter could not land on the card in the graveyard (CR 400.7).
+	for _, t := range putCounterDefined(h, c, sa) {
 		if t.IsPlayer {
 			if p := PlayerOf(h, c, t); int(p) >= 0 && int(p) < len(h.Game().Players) {
 				return true
 			}
 			continue
 		}
-		if o := g.Obj(t.Obj); o != nil {
+		if o := g.Obj(t.Obj); o != nil && !putCounterReferentLeft(h, c, sa, o) {
 			return true
 		}
 	}
