@@ -246,6 +246,13 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 		sp := &s.perms[src]
 		s.res = resCtx{e: stackEntry{kind: seAbility, obj: sp.obj, srcVer: s.objs[sp.obj].ver, card: s.cardAt(src), ab: ab, ctrl: sp.ctrl, trigObj: NoObj}}
 		s.res.e.tgt = noTargets
+	} else if c := s.perms[src].ctrl; c != s.res.e.ctrl {
+		// the program's "you" is its source's controller (CR 109.5), not
+		// the resolving effect's: Dust Animus returned by an opponent's
+		// Mystical Tether counts its own controller's untapped lands
+		was := s.res.e.ctrl
+		s.res.e.ctrl = c
+		defer func() { s.res.e.ctrl = was }()
 	}
 	for i := int(pc); i < len(prog); i++ {
 		in := &prog[i]
