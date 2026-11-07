@@ -2,57 +2,31 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// The copy under an Assimilation Aegis copy (CR 613.7e, 707.2).
+// Copy layers on an Assimilation Aegis bearer (CR 613.7e, 707.2).
 //
-// A bearer that already wears a copy (Fleeting Reflection's until-end-of-turn
-// copy, a Clone) when an Aegis becomes attached to it becomes a copy of the
-// exiled card: the Aegis effect is the newest, so it applies last and wins.
-// Gorge keeps every copy effect and re-bases the permanent on the newest one
-// that is left whenever one ends. The kernel keeps one copy slot, so the
-// copy the Aegis covers waits in an fxAegisBase record (r.src its card):
-// aegisRefresh brings it back when the last Aegis copy on the bearer ends,
-// and the cleanup step (aegisSettle) ends an until-end-of-turn one beneath a
-// live Aegis copy without touching the Aegis copy.
+// A permanent can hold several layer-1 copy effects at once: permanent copy
+// markers (a Clone), until-end-of-turn ones (Fleeting Reflection), and one
+// per Aegis copy attached to it. Gorge keeps every effect and re-bases the
+// permanent on the newest one left whenever one ends. The kernel keeps one
+// copy slot, so it also keeps each layer's timestamp:
 //
-// The other order is symmetric: a clone that lands on a live Aegis bearer is
-// the newer layer and wins while it lasts, and the cleanup step gives the
-// Aegis copy back (CR 514.2). Its card waits in an fxAegisCover record, kept
-// up to date by aegisRefresh while the Aegis stays live (a later Aegis
-// attachment is newer than the first but still older than the clone). When
-// the Aegis ends first, the record goes and the clone stays.
+//   - fxAegisBase: a copy the Aegis stack covered that has no record of its
+//     own (a token minted as a copy, or a copy a table without ExtCloneCopy
+//     made as it entered). It shows again when the last Aegis copy ends.
+//   - fxCopyPerm / fxCopyEOT: the newest permanent and until-end-of-turn
+//     copy markers, with the clone's card and layer timestamp (copy_clone.go).
+//
+// copyTop then picks the newest live layer by timestamp, so the layer the
+// Aegis copy covered comes back when it ends, and the Aegis copy comes back
+// when a newer clone ends, whichever order the layers were added in. A later
+// Aegis attach is a newer layer than both, and each Aegis copy ends on its
+// own; the newest surviving Aegis copy is chosen by its attachment's layer
+// stamp (CR 613.7e). An Aegis copy that covers a clone is not tracked in a
+// side record: its own layer is enough to find it again.
 
-// aegisCoverRec is the index of host's covered Aegis copy, -1 when none.
-func (s *State) aegisCoverRec(host Slot) int {
-	for i := 0; s.fxM.has(host) && i < int(s.g.nfx); i++ {
-		if r := &s.g.fx[i]; r.sl == host && r.kind == fxAegisCover {
-			return i
-		}
-	}
-	return -1
-}
-
-// aegisCovered reports whether a clone layer covers host's Aegis copy.
-func (s *State) aegisCovered(host Slot) bool {
-	return s.aegisCoverRec(host) >= 0
-}
-
-// aegisCoverPush records the Aegis copy host wears before a newer clone
-// covers it. An existing record already holds it. False when the pool is full.
-func (s *State) aegisCoverPush(host Slot) bool {
-	if s.aegisCoverRec(host) >= 0 {
-		return true
-	}
-	if int(s.g.nfx) >= maxFx {
-		s.stall(StallTables)
-		return false
-	}
-	s.g.fx[s.g.nfx] = fxRec{sl: host, kind: fxAegisCover, r: ovRec{src: s.perms[host].ovr.copyOf}}
-	s.g.nfx++
-	s.fxM.set(host)
-	return true
-}
-
-// aegisUnderPush keeps the copy host wears aside. False when the pool is full.
+// aegisUnderPush keeps the copy host wears aside, for the last Aegis copy's
+// end to give back. It is only needed for a copy no marker records (see the
+// file comment). False when the pool is full.
 func (s *State) aegisUnderPush(host Slot) bool {
 	if int(s.g.nfx) >= maxFx {
 		s.stall(StallTables)
@@ -80,40 +54,85 @@ func (s *State) aegisUnderTake(host Slot) (c CardID, ok bool) {
 	return c, ok
 }
 
-// aegisSettle is the cleanup step (CR 514.2) for sl's until-end-of-turn copies
-// when an Aegis copy is live on it: they end beneath it, the permanent copy
-// marker it holds (if any) becomes the copy that shows when the Aegis copy
-// ends, and the Aegis copy stays. False when no Aegis copy is live.
-//
-//go:noinline
-func (s *State) aegisSettle(k *prep, sl Slot) bool {
-	if !k.gen.anyAegis || s.aegisLive(sl) == 0 {
-		return false
+// copyLayer is one layer-1 copy effect for copyTop: its card, layer
+// timestamp, and (for a copy marker) the template its exceptions come from.
+type copyLayer struct {
+	kind uint8
+	card CardID
+	ts   uint16
+	idx  uint8 // the copy's own exception override (index+1, 0 none)
+	src  Obj   // the template object (copy markers only)
+}
+
+const (
+	copyNone  uint8 = iota // no copy layer: the printed card
+	copyPerm               // the permanent copy marker (fxCopyPerm)
+	copyEOT                // the until-end-of-turn copies (fxCopyEOT)
+	copyAegis              // a live Assimilation Aegis copy
+	copyBase               // the floor kept by fxAegisBase
+)
+
+// copyRec is the index of host's kind record, -1 when none. Copy markers are
+// one per permanent; Aegis layers live in the link table, not here.
+func (s *State) copyRec(host Slot, kind uint8) int {
+	if !s.fxM.has(host) {
+		return -1
 	}
-	s.dropFx(func(i int) bool {
-		x := &s.g.fx[i]
-		return x.sl == sl && (x.kind == fxCopyEOT || x.kind == fxCopyExc || x.kind == fxAegisBase)
-	})
 	for i := 0; i < int(s.g.nfx); i++ {
-		x := &s.g.fx[i]
-		if x.sl != sl || x.kind != fxCopyPerm {
-			continue
+		if r := &s.g.fx[i]; r.sl == host && r.kind == kind {
+			return i
 		}
-		// the marker's source as it is now (cloneCleanup's re-base)
-		src := Obj(x.r.p)
+	}
+	return -1
+}
+
+// copyTop is host's newest live copy layer by layer timestamp (CR 613.7e):
+// its live Aegis copies, its permanent copy marker and its until-end-of-turn
+// copies. The cleanup step drops the EOT record first, so it is not a
+// candidate while it settles (cloneCleanup); everywhere else all three are
+// live. skip is an attachment that is leaving. Aegis copies are ordered by
+// their attachment's layer stamp (static_attachtimestamp.go); a copy marker
+// by the clock tick it landed on. copyNone means no layer: the printed card
+// (or fxAegisBase).
+func (s *State) copyTop(host, skip Slot) copyLayer {
+	var l copyLayer
+	best, has := uint16(0), false
+	if s.g.linkAeg != 0 {
+		for i := 0; i < int(s.g.nlinks); i++ {
+			if s.g.linkAeg>>uint(i)&1 == 0 {
+				continue
+			}
+			lk := &s.g.links[i]
+			ob := &s.objs[lk.src]
+			if ob.zone != kop.ZoneBattlefield || ob.ver != lk.sver || ob.slot == skip || s.perms[ob.slot].attached != host {
+				continue
+			}
+			ts := s.lstamp[ob.slot]
+			if !has || ts > best {
+				l = copyLayer{kind: copyAegis, card: s.objs[lk.obj].card, ts: ts}
+				best, has = ts, true
+			}
+		}
+	}
+	if r := s.copyRec(host, fxCopyPerm); r >= 0 {
+		src := Obj(s.g.fx[r].r.p)
 		ob := &s.objs[src]
 		c := ob.card
 		if ob.zone == kop.ZoneBattlefield {
 			c = s.cardAt(ob.slot)
 		}
-		if int(s.g.nfx) >= maxFx {
-			s.stall(StallTables)
-			break
+		// a source off the battlefield is copied as its printed card, as
+		// gorge's CopiableFace is once Move cleared its CopyFace (a ceased
+		// token: its token card)
+		if ts := s.g.fx[r].r.ts; !has || ts >= best {
+			l = copyLayer{kind: copyPerm, card: c, ts: ts, idx: s.g.fx[r].r.idx, src: src}
+			best, has = ts, true
 		}
-		s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxAegisBase, r: ovRec{src: c}}
-		s.g.nfx++
-		s.fxM.set(sl)
-		break
 	}
-	return true
+	if r := s.copyRec(host, fxCopyEOT); r >= 0 {
+		if ts := s.g.fx[r].r.ts; !has || ts >= best {
+			l = copyLayer{kind: copyEOT, card: s.g.fx[r].r.src, ts: ts, idx: s.g.fx[r].r.idx, src: Obj(s.g.fx[r].r.p)}
+		}
+	}
+	return l
 }

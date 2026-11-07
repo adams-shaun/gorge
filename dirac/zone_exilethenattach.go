@@ -29,9 +29,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     lstamp), else it is its own card again.
 //
 // A bearer that is already a copy by other means (a Clone, Fleeting
-// Reflection) keeps that copy aside (fxAegisBase, copy_aegisunder.go): the
-// Aegis copy is the newest, so it wins (CR 613.7e), and the older copy shows
-// again once the last Aegis copy ends.
+// Reflection) keeps every layer: the Aegis copy is the newest, so it wins
+// (CR 613.7e), and the newest older copy shows again once the Aegis copy
+// ends (copy_aegisunder.go copyTop). A copy with no marker of its own (a
+// token minted as a copy) waits in fxAegisBase and shows again with the last
+// Aegis copy's end.
 
 // DebugAegisNoUnlink (test only) keeps a copy after its attachment is unattached.
 var DebugAegisNoUnlink bool
@@ -129,14 +131,12 @@ func (s *State) aegisApply(k *prep, a Action) {
 			if l.src != e.obj || l.sver != e.srcVer || l.obj != Obj(a.Source()) {
 				continue
 			}
-			covered := s.aegisCovered(host)
-			if (covered || s.aegisLive(host) == 0) && s.perms[host].ovr.flags&ovCopy != 0 && !s.aegisUnderPush(host) {
+			// The first Aegis copy over a copy no marker records (a token
+			// minted as a copy, or an untracked entering copy) keeps that
+			// copy aside for the last Aegis copy's end.
+			if s.aegisLive(host) == 0 && s.perms[host].ovr.flags&ovCopy != 0 &&
+				s.copyRec(host, fxCopyPerm) < 0 && s.copyRec(host, fxCopyEOT) < 0 && !s.aegisUnderPush(host) {
 				break // the effect pool is full
-			}
-			if covered {
-				// the new attachment is newer than the clone that covered the
-				// older Aegis copy: it covers the clone now
-				s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.sl == host && r.kind == fxAegisCover })
 			}
 			s.g.linkAeg |= 1 << uint(i)
 			s.aegisRefresh(k, host, NoSlot)
@@ -161,55 +161,38 @@ func (s *State) aegisLive(host Slot) int {
 	return n
 }
 
-// aegisRefresh sets host's copy to that of its live attachment with the
-// latest layer timestamp (skip: an attachment that is leaving), or ends it.
+// aegisRefresh leaves host on its newest live copy layer (copyTop): a live
+// Aegis copy, a newer clone, or the layer the Aegis stack covered. skip is
+// an attachment that is leaving.
 func (s *State) aegisRefresh(k *prep, host, skip Slot) {
-	best, bestTs := -1, uint16(0)
-	for i := 0; i < int(s.g.nlinks); i++ {
-		if s.g.linkAeg>>uint(i)&1 == 0 {
-			continue
+	l := s.copyTop(host, skip)
+	if l.kind == copyNone {
+		// the floor beneath every tracked layer: the copy the Aegis stack
+		// covered that has no marker of its own
+		if c, ok := s.aegisUnderTake(host); ok {
+			l = copyLayer{kind: copyBase, card: c}
 		}
-		l := &s.g.links[i]
-		ob := &s.objs[l.src]
-		if ob.zone != kop.ZoneBattlefield || ob.ver != l.sver || ob.slot == skip || s.perms[ob.slot].attached != host {
-			continue
-		}
-		if ts := s.lstamp[ob.slot]; best < 0 || ts >= bestTs {
-			best, bestTs = i, ts
-		}
-	}
-	// A newer clone layer covers the Aegis copy: the clone stays on top, and
-	// only the saved Aegis card changes (or goes when the Aegis ends first).
-	if ci := s.aegisCoverRec(host); ci >= 0 {
-		if best >= 0 {
-			s.g.fx[ci].r.src = s.objs[s.g.links[best].obj].card
-		} else {
-			s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.sl == host && r.kind == fxAegisCover })
-		}
-		return
 	}
 	p := &s.perms[host]
 	cur := s.cardAt(host)
-	var want CardID
-	under := false
-	if best >= 0 {
-		want = s.objs[s.g.links[best].obj].card
-	} else if want, under = s.aegisUnderTake(host); !under {
-		want = p.card
+	want := p.card
+	if l.kind != copyNone {
+		want = l.card
 	}
-	if cur == want && !under {
+	if cur == want && (l.kind != copyNone) == (p.ovr.flags&ovCopy != 0) {
 		return
 	}
 	s.touchSl(host)
 	s.subscribe(host, &k.cards[cur], false)
-	if best >= 0 || under {
+	if l.kind != copyNone {
 		p.ovr.flags |= ovCopy
 		p.ovr.copyOf = want
 	} else {
 		p.ovr.flags &^= ovCopy
 		p.ovr.copyOf = 0
+		s.cloneRestore(host) // a token copy's own basis
 	}
-	s.subscribe(host, &k.cards[want], true)
+	s.subscribe(host, &k.cards[s.cardAt(host)], true)
 	s.refreshTy(k)
 }
 

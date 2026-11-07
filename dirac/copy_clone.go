@@ -13,17 +13,21 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Layer 1 holds a permanent's copy markers (CR 613.2a), and gorge settles
 // them when an until-end-of-turn one expires (settleExpiredClones): the
 // permanent goes back to its printed card, then is re-based onto the newest
-// permanent marker it still holds, copying that marker's SOURCE as it is at
-// that moment (a source that is itself being settled in the same cleanup step
-// may or may not have been yet: the order is the first until-end-of-turn
-// marker's). Two record kinds model it:
+// copy layer it still holds (copyTop: a permanent marker or a live Aegis
+// copy), copying that marker's SOURCE as it is at that moment (a source that
+// is itself being settled in the same cleanup step may or may not have been
+// yet: the order is the first until-end-of-turn marker's). Two record kinds
+// model the clone layers:
 //
 //   - fxCopyEOT: the permanent holds until-end-of-turn copies. One record,
-//     pushed with the first; the pool order is gorge's settle order.
+//     pushed with the first (the pool order is gorge's settle order), its
+//     card and timestamp those of the NEWEST clone. A later clone updates
+//     the record in place.
 //   - fxCopyPerm: its newest permanent copy marker: r.p the source object,
-//     r.idx the op's exception override (index+1). Pushed only when a table
-//     has an ExtCloneCopy op (genPrep.anyCloneCopy), by it and by an enters
-//     copy (becomeCopyEnter); one per permanent.
+//     r.idx the op's exception override (index+1), r.ts when it landed.
+//     Pushed only when a table has an ExtCloneCopy op
+//     (genPrep.anyCloneCopy), by it and by an enters copy
+//     (becomeCopyEnter); one per permanent.
 //
 // The copy exceptions of the copy on top are fxCopyExc records, replaced with
 // every copy. cloneCleanup runs the settle. A permanent that leaves the
@@ -41,7 +45,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 // A permanent copying itself stalls StallCloneLayer. A copy onto an Aegis
 // bearer is the Aegis layer covered by a newer one: copy_aegisunder.go keeps
-// the Aegis card and the cleanup step gives it back.
+// every layer's timestamp, and the cleanup step gives the newest one left
+// back.
 
 // DebugCloneCopyNoRevert is the mutation switch of TestClonecopyMutation: the
 // cleanup step never ends an until-end-of-turn copy.
@@ -147,37 +152,37 @@ func (s *State) cloneAsks(k *prep, next *kop.Instr) bool {
 	return true
 }
 
-// cloneLayered reports whether sl's copy is an Aegis one, which the new clone
-// covers (its card waits in an fxAegisCover record until the clone ends).
-func (s *State) cloneLayered(k *prep, sl Slot) bool {
-	return k.gen.anyAegis && s.aegisLive(sl) > 0
-}
-
 // cloneLayerPrep clears slot sl for a new copy and returns the keywords its
-// current copy exceptions grant: the first until-end-of-turn copy pushes the
-// settle record, and the exceptions of the copy it replaces go. False when
-// the effect pool is full.
+// current copy exceptions grant: the until-end-of-turn copy marker records
+// the new layer's card and timestamp (the newest clone shows while it lasts,
+// copyTop), and the exceptions of the copy it replaces go. False when the
+// effect pool is full.
 //
 //go:noinline
-func (s *State) cloneLayerPrep(k *prep, sl Slot, eot bool) (old kop.KwMask, ok bool) {
+func (s *State) cloneLayerPrep(k *prep, sl Slot, eot bool, c CardID, src Obj, idx uint8, ts uint16) (old kop.KwMask, ok bool) {
 	has := s.fxM.has(sl)
 	if has {
 		old = s.copyExcKw(k, sl)
 	}
 	if eot {
-		anchored := false
-		for i := 0; has && i < int(s.g.nfx); i++ {
-			anchored = anchored || s.g.fx[i].sl == sl && s.g.fx[i].kind == fxCopyEOT
+		i := -1
+		for j := 0; has && j < int(s.g.nfx); j++ {
+			if s.g.fx[j].sl == sl && s.g.fx[j].kind == fxCopyEOT {
+				i = j
+				break
+			}
 		}
-		if !anchored {
+		if i < 0 {
 			if int(s.g.nfx) >= maxFx {
 				s.stall(StallTables)
 				return 0, false
 			}
-			s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxCopyEOT}
+			i = int(s.g.nfx)
+			s.g.fx[i] = fxRec{sl: sl, kind: fxCopyEOT}
 			s.g.nfx++
 			s.fxM.set(sl)
 		}
+		s.g.fx[i].r = ovRec{idx: idx, src: c, p: int16(src), ts: ts}
 	}
 	if has {
 		s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.sl == sl && r.kind == fxCopyExc })
@@ -186,10 +191,11 @@ func (s *State) cloneLayerPrep(k *prep, sl Slot, eot bool) (old kop.KwMask, ok b
 }
 
 // clonePermNote records that slot sl's newest permanent copy marker copies
-// object src, with the exception override idx (index+1, 0 none).
+// object src, with the exception override idx (index+1, 0 none), as the
+// layer timestamp ts.
 //
 //go:noinline
-func (s *State) clonePermNote(sl Slot, src Obj, idx uint8) {
+func (s *State) clonePermNote(sl Slot, src Obj, idx uint8, ts uint16) {
 	if s.fxM.has(sl) {
 		s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.sl == sl && r.kind == fxCopyPerm })
 	}
@@ -197,7 +203,7 @@ func (s *State) clonePermNote(sl Slot, src Obj, idx uint8) {
 		s.stall(StallTables)
 		return
 	}
-	s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxCopyPerm, r: ovRec{idx: idx, p: int16(src)}}
+	s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxCopyPerm, r: ovRec{idx: idx, p: int16(src), ts: ts}}
 	s.g.nfx++
 	s.fxM.set(sl)
 }
@@ -237,9 +243,7 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 			continue
 		}
 		p := &s.perms[sl]
-		if s.cloneLayered(k, sl) && !s.aegisCoverPush(sl) {
-			return // the effect pool is full (stall set)
-		}
+		ts := s.tick()
 		if DebugCloneCopyStats != nil && p.ovr.flags&ovCopy != 0 {
 			DebugCloneCopyStats.Stacked++
 		}
@@ -252,7 +256,11 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		if !ok {
 			return
 		}
-		old, ok := s.cloneLayerPrep(k, sl, eot)
+		src := NoObj
+		if tmpl != NoSlot {
+			src = s.perms[tmpl].obj
+		}
+		old, ok := s.cloneLayerPrep(k, sl, eot, c, src, uint8(in.C), ts)
 		if !ok {
 			return
 		}
@@ -264,7 +272,7 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		s.copyExcAdd(k, sl, tmpl, uint8(in.C))
 		p.ovr.kw = p.ovr.kw&^old | s.copyExcKw(k, sl)
 		if !eot {
-			s.clonePermNote(sl, s.perms[tmpl].obj, uint8(in.C))
+			s.clonePermNote(sl, s.perms[tmpl].obj, uint8(in.C), ts)
 		}
 		made++
 	}
@@ -334,10 +342,11 @@ func (s *State) cloneApply(k *prep, a Action) {
 }
 
 // cloneCleanup settles the permanents that hold until-end-of-turn copies at
-// the cleanup step (CR 514.2; gorge settleExpiredClones), in record order: each
-// goes back to its printed card with no copy exceptions, then, if it holds a
-// permanent copy marker, becomes a copy of that marker's source as the source
-// is now.
+// the cleanup step (CR 514.2; gorge settleExpiredClones), in record order:
+// the ended copies go, and the permanent is left on the newest copy layer it
+// still holds (copyTop): a live Aegis copy, or a permanent copy marker copied
+// as its source is now. With no layer left it goes back to its printed card,
+// or to a token copy's own basis.
 //
 //go:noinline
 func (s *State) cloneCleanup(k *prep) {
@@ -354,59 +363,41 @@ func (s *State) cloneCleanup(k *prep) {
 			break
 		}
 		sl := s.g.fx[i].sl
-		if !s.aegisCovered(sl) && s.aegisSettle(k, sl) {
-			any = true
-			continue
-		}
 		old := s.copyExcKw(k, sl)
 		s.dropFx(func(i int) bool {
 			x := &s.g.fx[i]
 			return x.sl == sl && (x.kind == fxCopyEOT || x.kind == fxCopyExc)
 		})
+		// The layer the ended copies leave: a live Aegis copy or the
+		// permanent marker, whichever is newer (the ended layer itself is
+		// already gone from the pool, so copyTop does not see it).
+		l := s.copyTop(sl, NoSlot)
+		if l.kind == copyPerm && DebugCloneCopyNoRebase {
+			l = copyLayer{}
+		}
+		if l.kind == copyNone {
+			// the floor: the copy the Aegis stack covered that has no
+			// marker of its own
+			if c, ok := s.aegisUnderTake(sl); ok {
+				l = copyLayer{kind: copyBase, card: c}
+			}
+		}
 		p := &s.perms[sl]
 		s.touchSl(sl)
 		s.subscribe(sl, &k.cards[s.cardAt(sl)], false)
 		p.ovr.flags &^= ovCopy
 		p.ovr.copyOf = 0
-		s.onceBasisEnd(sl)
-		s.cloneRestore(sl)
-		rebased := false
-		for j := 0; j < int(s.g.nfx); j++ {
-			x := &s.g.fx[j]
-			if x.sl != sl || x.kind != fxCopyPerm || DebugCloneCopyNoRebase {
-				continue
-			}
-			// an object id is never reused (newToken); a source off the
-			// battlefield is copied as its printed card, as gorge's
-			// CopiableFace is once Move cleared its CopyFace (a ceased
-			// token: its token card)
-			src, idx := Obj(x.r.p), x.r.idx
-			ob := &s.objs[src]
-			from, c := NoSlot, ob.card
-			if ob.zone == kop.ZoneBattlefield {
-				from = ob.slot
-				c = s.cardAt(from)
-			}
+		if l.kind != copyNone {
 			p.ovr.flags |= ovCopy
-			p.ovr.copyOf = c
-			s.copyExcAdd(k, sl, from, idx)
+			p.ovr.copyOf = l.card
+		}
+		s.onceBasisEnd(sl, l.kind != copyNone)
+		if l.kind == copyNone {
+			s.cloneRestore(sl)
+		} else if l.kind == copyPerm {
+			s.copyExcAdd(k, sl, s.copySrcSlot(l.src), l.idx)
 			if DebugCloneCopyStats != nil {
 				DebugCloneCopyStats.Rebased++
-			}
-			rebased = true
-			break
-		}
-		if !rebased {
-			// the layer under the ended one: the Aegis copy this clone
-			// covered (and gave back), or, if the Aegis ended while the clone
-			// was live, the copy the Aegis itself covered.
-			if ci := s.aegisCoverRec(sl); ci >= 0 {
-				p.ovr.flags |= ovCopy
-				p.ovr.copyOf = s.g.fx[ci].r.src
-				s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.sl == sl && r.kind == fxAegisCover })
-			} else if c, ok := s.aegisUnderTake(sl); ok {
-				p.ovr.flags |= ovCopy
-				p.ovr.copyOf = c
 			}
 		}
 		s.subscribe(sl, &k.cards[s.cardAt(sl)], true)
@@ -419,6 +410,15 @@ func (s *State) cloneCleanup(k *prep) {
 	if any {
 		s.refreshTy(k)
 	}
+}
+
+// copySrcSlot is the slot an object's copiable values are read from, NoSlot
+// when it is off the battlefield (its printed card).
+func (s *State) copySrcSlot(o Obj) Slot {
+	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield {
+		return ob.slot
+	}
+	return NoSlot
 }
 
 // prepCloneCopy sets anyCloneCopy.
@@ -593,17 +593,15 @@ func (s *State) onceBasisBegin(sl Slot) {
 	s.fxM.set(sl)
 }
 
-// onceBasisEnd is the settle of an ended until-end-of-turn copy: onto a
-// permanent copy marker it still holds the permanent is re-based (new
-// abilities again, the printed mark stays aside); with none the printed
-// abilities and their mark come back.
-func (s *State) onceBasisEnd(sl Slot) {
+// onceBasisEnd is the settle of an ended until-end-of-turn copy: with a
+// copy layer left (a live Aegis copy or a permanent marker) the printed
+// mark stays aside; with none the printed abilities and their mark come
+// back.
+func (s *State) onceBasisEnd(sl Slot, remains bool) {
 	p := &s.perms[sl]
 	p.flags &^= pfOnceGame
-	for i := 0; s.fxM.has(sl) && i < int(s.g.nfx); i++ {
-		if r := &s.g.fx[i]; r.sl == sl && (r.kind == fxCopyPerm || r.kind == fxAegisCover || r.kind == fxAegisBase) {
-			return
-		}
+	if remains {
+		return
 	}
 	stashed := false
 	for i := 0; s.fxM.has(sl) && i < int(s.g.nfx); i++ {

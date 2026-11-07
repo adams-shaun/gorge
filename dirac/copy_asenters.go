@@ -143,7 +143,7 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 	// the template's copy exceptions, then the op's own (CR 707.9b)
 	s.copyExcAdd(k, sl, src, uint8(in.C>>1))
 	if k.gen.anyCloneCopy {
-		s.clonePermNote(sl, t, uint8(in.C>>1)) // the marker a later cleanup settle re-bases from
+		s.clonePermNote(sl, t, uint8(in.C>>1), s.tick()) // the marker a later cleanup settle re-bases from
 	}
 	// the copied card's own enters replacements apply (CR 707.5; gorge's
 	// entry plan reads the clone template): enters tapped, with counters,
