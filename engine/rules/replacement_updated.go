@@ -51,6 +51,33 @@ func (e *Engine) applyRedirectReplacements(ev events.Event) (events.Event, bool)
 	return replaced, handled
 }
 
+// nestedMoveReplacement gives a MoveZone a replacement body emits its own
+// replacement pass. The move is a NEW zone-change event, not the event the
+// body is replacing, so CR 614.5's "one application per event" does not
+// exempt it: The Mindskinner's DamageDone body mills cards, and each milled
+// card's move to the graveyard must still meet Leyline of the Void's Moved
+// "exile instead" (CR 614.6, 701.17). The same-object same-destination case
+// is the in-flight event re-emitted by the body; there the already-applied
+// set (CR 614.5) is excluded so it cannot apply twice forever. A different
+// object is a fresh event with no applied set of its own, so the exclusion
+// set of any outer event is cleared: a replacement already applied to the
+// outer move may apply to this one (a second card for Rest in Peace). The
+// redirect lineage is cleared for the nested pass and restored after it.
+func (e *Engine) nestedMoveReplacement(ev events.Event) (events.Event, bool) {
+	savedExclude, savedRedirect := e.replExclude, e.replRedirect
+	r := e.replRedirect
+	if r != nil && r.orig.Kind == events.MoveZone &&
+		ev.Obj == r.orig.Obj && ev.From == r.orig.From && ev.To == r.orig.To {
+		e.replExclude = r.applied
+	} else {
+		e.replExclude = nil
+	}
+	e.replRedirect = nil
+	replaced, handled := e.applyReplacements(ev)
+	e.replExclude, e.replRedirect = savedExclude, savedRedirect
+	return replaced, handled
+}
+
 // dropAppliedReplacements removes the matches a CR 616.1f recheck excludes.
 func (e *Engine) dropAppliedReplacements(matches []replMatch) []replMatch {
 	if len(e.replExclude) == 0 {
