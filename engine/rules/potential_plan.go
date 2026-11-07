@@ -1336,6 +1336,25 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	}
 	composed := e.offerCostFor(p, id, cost, abilityScope(ab))
 	out := e.planComposedCost(p, id, composed, true, true)
+	// A ValidTarget$ reduction (Dwarven Mauler's "equip abilities that target
+	// this creature cost {2} less") is absent from the pre-target composition,
+	// but CR 601.2f totals the cost after CR 601.2c's target choice. The offer
+	// gate retries with each legal target's potential modifiers
+	// (offerCastableUsingExtra); the witness must price the same cost, or the
+	// autopay offer withholds an activation the discount makes payable.
+	if statics := e.collectCostStatics(); out.Reason == "insufficient" && statics.validTarget {
+		scope := abilityScope(ab)
+		if _, ok := e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
+			retry := e.planComposedCost(p, id, e.composedOfferCost(p, id, cost, m, scope), true, true)
+			if retry.Reason != "" {
+				return false
+			}
+			out = retry
+			return true
+		}); ok {
+			return out
+		}
+	}
 	if out.Reason != "insufficient" || cost.Waterbend <= 0 {
 		return out
 	}

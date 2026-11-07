@@ -288,7 +288,6 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 		// census (a pure read) is skipped, not changed.
 		var potential costMods
 		potentialOK := false
-		println("DBG retry", id, statics.validTarget, pay.OfferRetryFutile(scope, &mods, mayApply, provenance), len(e.costPotentialTargets(p, id, scope)))
 		if futile := pay.OfferRetryFutile(scope, &mods, mayApply, provenance); statics.validTarget && (!futile || walkSkipVerify) {
 			potential, potentialOK = e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
 				if len(extra) > 0 {
