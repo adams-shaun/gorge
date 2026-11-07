@@ -94,6 +94,7 @@ func TestProjectionComparesExileOrder(t *testing.T) {
 
 // Every choose kind either side poses is in chooseKinds: a kind outside it
 // shares the one choose:other code, which kfuzz -absolute fails as unknown.
+// The translator lives in dirac/canon, so the census covers it too.
 func TestChoosesHaveNoOther(t *testing.T) {
 	if isolate(t) {
 		return
@@ -102,6 +103,11 @@ func TestChoosesHaveNoOther(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	canonFiles, err := filepath.Glob("../canon/*.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	files = append(files, canonFiles...)
 	fset := token.NewFileSet()
 	for _, name := range files {
 		if strings.HasSuffix(name, "_test.go") {

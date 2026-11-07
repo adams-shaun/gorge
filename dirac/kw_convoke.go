@@ -342,6 +342,11 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	if s.convokePickCount() >= maxPicks {
 		return false
 	}
+	// The post-pick remainder the oracle's convoke frame filters by exists
+	// only for a plain hand cast; every other route poses gorge's static
+	// option list, whose colour picks do not shrink as earlier picks pay the
+	// pips (build.convokeBudget, beginCast).
+	filter := s.bld().convokeBudget
 	cost := s.convokeApplyPicks(k, raw)
 	var rem [5]uint8
 	for i := range rem {
@@ -370,7 +375,7 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 				continue
 			}
 			pose = true
-			if rem[ci] > 0 {
+			if rem[ci] > 0 || !filter {
 				d.add(MakeAction(AkChoose, uint8(o), 0, uint8(ci)))
 				if d.N >= MaxOptions-1 {
 					s.capFull(StallConvoke)
@@ -383,7 +388,7 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 				continue
 			}
 			pose = true
-			if gen > 0 || hasX {
+			if gen > 0 || hasX || !filter {
 				if d.N >= MaxOptions-1 {
 					s.capFull(StallConvoke)
 					break

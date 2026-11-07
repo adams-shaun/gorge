@@ -579,6 +579,11 @@ func (g *GorgeSide) build(d0 *decision.Decision) *frame {
 func (g *GorgeSide) priorityVocabulary(fr *frame) {
 	d := fr.d
 	e := g.E
+	// The cast cost a convoke frame filters by is the CURRENT decision's
+	// plain hand offers. Dropping last decision's entries keeps a card cast
+	// from hand earlier and later cast through a permission (or a
+	// flashback) from filtering its announcement by a stale hand price.
+	g.castCost, g.castX = nil, nil
 	ref := func(id state.ObjID) Ref { return g.id.ref(e.G, id) }
 	add := func(pe prioEntry) {
 		for _, x := range fr.prio {
