@@ -29,8 +29,8 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TMT | 194 | 171 | 1 | 10 | 160 |
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
-| WOE | 281 | 252 | 0 | 13 | 239 |
-| ALL | 34442 | 21664 | 27 | 16942 | 4695 |
+| WOE | 281 | 252 | 0 | 6 | 246 |
+| ALL | 34442 | 21664 | 27 | 16935 | 4702 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -64,7 +64,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | std-tmt | 295 |
 | std-trc | 1500 |
 | std-trk | 1500 |
-| std-woe | 146 |
+| std-woe | 1500 |
 
 Nothing else is covered. A card none of these runs reaches is unverified, whatever it does. A supported card has played clean in these games, not in every game: the standing sweep and census are separate runs, last measured at 164 and 244 divergent pairs, and are outside this claim.
 
