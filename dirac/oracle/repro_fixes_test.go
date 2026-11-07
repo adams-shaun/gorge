@@ -514,6 +514,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"repeat_loss_after_static_grant", false, false},                           // CR 613.7: Abigale's second loss of abilities, after Chronicle of Victory entered, is newer than its first-strike-and-trample grant and takes it away from Prideful Feastling
 		{"dig_entry_chosen_type_sees_batch", true, false},                          // CR 603.6a: Rimefire Torque, dug onto the battlefield last with its as-enters type asked, sees changeling Flock Impostor entering in the same batch
 		{"either_or_unpayable_part_tap_another_source_keeps_target", false, false}, // CR 601.2g: Bogslither's Embrace's unaffordable {3} part goes on to its target menu while an untapped Springleaf Drum, with no creature to tap, leaves gorge's window census incomplete
+		{"behold_exile_cast_pays_restricted_wide_mana", false, false},              // CR 106.6, 601.2g: Champion of the Path cast from Sanar's exile is affordable through Flamebraider's restricted two mana, which gorge's prefix search taps ahead of the pricing
 	})
 }
 
