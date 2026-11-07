@@ -147,7 +147,7 @@ func (s *State) infectDamageTo(k *prep, code uint8, n int, kw kop.KwMask) {
 	}
 	s.res.lastDmg = int16(n)
 	if kw&kop.KwLifelink != 0 {
-		s.gainLife(k, e.ctrl, n)
+		s.gainLife(k, s.srcCtrl(k), n)
 	}
 	if k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go

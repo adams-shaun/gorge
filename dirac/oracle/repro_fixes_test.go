@@ -396,6 +396,7 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"equip_unattach_waits_for_legend_ask", true, false},    // CR 704.3, 704.5n: Magitek Scythe stays on Serah Farron, transformed beside another Crystallized Serah, until the legend answer
 		// CR 113.7a, 608.2h, 702.15b: Phoenix's chapter I, pending when the legend rule bins it, deals damage with the Phoenix's lifelink
 		{"delayed_trigger_departed_source_lifelink", false, false},
+		{"effect_lifelink_follows_source_controller", false, false}, // CR 702.15b: Phoenix's chapter damage, after Stiltzkin gave Phoenix away with the ability on the stack, gains life for Phoenix's controller
 	})
 }
 
