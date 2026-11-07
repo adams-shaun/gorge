@@ -772,7 +772,13 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 			if s.g.mayPlayAny {
 				full = anyType(full)
 			}
-			if s.affordsFor(k, p, &full) {
+			wasX := s.g.availX
+			s.g.availX |= availGaps
+			var av avail
+			s.availFor(k, p, &av)
+			rf := s.restrFallback(k, p, c, s.restrOriginOfObj(o), &full, &av)
+			s.g.availX = wasX
+			if av.affords(&full, pipMaskOf(&full), 0) || rf {
 				return true
 			}
 			cost := s.featCost(k, p, c, o, k.cards[c].cost)
