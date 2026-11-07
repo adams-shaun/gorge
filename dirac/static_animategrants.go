@@ -41,6 +41,25 @@ func (s *State) livePT(k *prep, sl Slot, o *kop.Override, ctrl int16) (p, t int1
 	return
 }
 
+// livePTSrc evaluates the live P/T of static override record o carried by
+// the permanent at src, from that permanent and its controller: gorge
+// anchors a static's value on its source (an Equipment's "your life total"
+// is its controller's), unlike a resolution-time Animate record, whose
+// context is the affected permanent.
+//
+//go:noinline
+func (s *State) livePTSrc(k *prep, src Slot, o *kop.Override) (p, t int16) {
+	pm := &s.perms[src]
+	ctx := evalCtx{src: pm.obj, srcSl: src, ctrl: pm.ctrl}
+	if !o.KeepP {
+		p = int16(s.evalV(k, o.PA, ctx))
+	}
+	if !o.KeepT {
+		t = int16(s.evalV(k, o.TA, ctx))
+	}
+	return
+}
+
 // livePTLost reports that an effect making sl lose all abilities is newer than
 // the Animate record applied at ts: the granted static is an ability, so the
 // later layer-6 loss removes it and its set P/T no longer applies (CR 613.1f,
