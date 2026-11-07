@@ -10,8 +10,8 @@ import (
 )
 
 const resolvedLimitBatchedHead = "Name:Test Limited\nManaCost:1\nTypes:Artifact\n" +
-	"T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Creature | TriggerZones$ Battlefield | Execute$ TrigGain | ResolvedLimit$ 1"
-const resolvedLimitBatchedTail = "\nSVar:TrigGain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+	"T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Creature | Execute$ TrigGain | TriggerZones$ Battlefield | ResolvedLimit$ 1"
+const resolvedLimitBatchedTail = "\nSVar:TrigGain:DB$ GainLife | LifeAmount$ 1 | Defined$ You\nOracle:x\n"
 
 // batchedLimitRun queues two triggers of one ResolvedLimit$ 1 line from one
 // event batch, resolves both, and returns the life gained plus the number of
