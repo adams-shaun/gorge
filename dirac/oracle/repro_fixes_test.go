@@ -80,6 +80,12 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// is payable, but no mode is, so neither engine offers the cast (CR
 		// 702.172a/702.183a: the mode cost is part of the cheapest legal total).
 		{"explosive_derailment_needs_a_mode_cost", false, false},
+		// CR 601.2f: This Town Ain't Big Enough cast from Jasper Flint's
+		// mayplay, whose TargetMax$ 2 keeps the potential planner at the full
+		// price: the offer gate's target retry prices one matching target,
+		// and its first arm pays the full price from the sources while the
+		// retry pays the reduced price from the pool alone.
+		{"mayplay_target_dependent_several_targets", false, false},
 		{"aegis_on_temporary_copy_bearer", true, false},     // CR 613.7e, 707.2: Assimilation Aegis attached to a creature Fleeting Reflection made a copy until end of turn copies over it (the later copy wins), and gives it back to that copy when unattached
 		{"resolved_spell_copy_rests_in_exile", true, false}, // CR 707.10a: a copy of a spell is exiled as it leaves the stack (gorge's spellRestZone), not put in a graveyard and ceased later
 		// Omenport Vigilante's double strike turns on mid-way through a
@@ -88,6 +94,13 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// sets at every pick (CR 700.13), not only at placement, and the
 		// kernel follows (act_commitcrime.go crimePick).
 		{"crime_ledger_set_at_each_ability_target_pick", true, false},
+		// A Boom Box its opponent stole with Shifting Grift is activated by
+		// the thief against itself, its own creature and its own land: no
+		// crime at the picks (CR 700.13 judges the targeting, CR 601.2c,
+		// before the 601.2h cost), and the self-sacrificing cost does not
+		// re-judge the target in the owner's graveyard at placement
+		// (act_commitcrime.go crimeStep reads the entry's recorded verdict).
+		{"crime_pick_verdict_not_rejudged", false, false},
 		// Vadmir, New Blood's once-each-turn crime trigger is enqueued at the
 		// CR 601.2c target answer (the ward walk's crime step); an unpayable
 		// Spree cast then reverses, and the reversal gives back the
@@ -109,6 +122,7 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"blinked_creature_is_a_target_of_its_own_leave_trigger", true, false}, // CR 603.3d: Three Tree Scribe blinked and back is a legal target of its own trigger
 		{"x_cast_leaves_a_target", false, false},                               // For the Common Good from one land and two Treasures: the largest-X plan consumes both copies targets, so the witness prices a smaller X whose payment keeps one Treasure as a target
 		{"activation_cost_removes_target_becomes_target", true, false},         // CR 601.2c, 601.2g-h: Nettle Guard's {1}, Sacrifice: Destroy ability aims at itself, so its Valiant BecomesTarget trigger fires before the sacrifice that is part of the same activation's cost
+		{"emblem_storm_grant", true, false},                                    // CR 702.40a: Ral, Crackling Wit's emblem grants storm to the instant cast after it, so the granted-storm cast trigger joins the ordering ask
 	})
 }
 
@@ -444,6 +458,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"restricted_float_paid_unadmitted_spell", false, false},        // the same admission check at the double-pip shape: a spell is paid straight out of the floating restricted pair both pips of which the payment may not touch
 		{"room_other_face_trigger_reads_cast_face_svars", false, false}, // an unlocked Room's other-face trigger resolves against the shown face's SVar table, so a Branch arm named only on its own face does nothing
 		{"return_ex_flags_hide_instant_stay", false, false},             // CR 304.4: OpReturnEx's C carries the move flags beside the zone, so the instant-stays guard read a non-battlefield zone and put a manifested instant back onto the battlefield
+		{"granted_prefix_pays_painful_printed_colour", false, false},    // CR 119.4, 601.2g: an animated Haunted Screen under Enduring Vitality's grant answers the prefix search's ability ask with the {G} its pay-1-life ability makes, the colour Omnivorous Flytrap needs, so the life is paid
 		{"mid_resolution_mana_sac_token_waits_sba", true, false},        // CR 704.3, 704.5d: a token sacrificed to pay a mid-resolution UnlessPaid fee waits in the graveyard for the state-based action, as a cast payment's does not
 		{"multi_discard_pick_order_past_eight", false, false},           // CR 404.3: a ten-card discard keeps the owner's chosen arrangement past the old eight-pick buffer
 		{"returned_sorcery_stays_in_graveyard", false, false},           // CR 304.4: a manifested sorcery that died is a sorcery card, so Meathook Massacre II's paid return (with a finality counter) leaves it in the graveyard
