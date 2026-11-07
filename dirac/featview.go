@@ -577,10 +577,10 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 		// Phyrexian pips (each face is announced afterwards)
 		cost.Tb, cost.Hyb = 0, [len(kop.ManaCost{}.Hyb)]kop.ColorMask{}
 	}
-	if cd := &k.t.Cards[c]; cd.HasAltAdd {
-		// The mandatory either-or additional cost is chosen at announcement
-		// (CR 601.2b/h); gorge's offer/planner price the spell with the part
-		// it will charge: the printed cost when a mana-free part is payable,
+	if cd := &k.t.Cards[c]; cd.HasAltAdd && cd.BeholdN != 0 {
+		// A behold-or-mana additional cost is chosen at announcement (CR
+		// 601.2b/h); gorge's offer/planner price the spell with the part it
+		// will charge: the printed cost when the behold part is payable,
 		// otherwise the part's mana on top (potentialAltAddPlan,
 		// planCastAltAdd). The part joins the total before the reductions.
 		if !s.altAddFreePart(k, p, c, o) {
@@ -626,7 +626,7 @@ func planNeverPricesOf(k *prep, c CardID, hyb, composed bool) bool {
 func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 	cd := &k.t.Cards[c]
 	if cd.BeholdExile || cd.SpellWaterbend != 0 || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !hyb && !cd.Cost.Phyrexian() ||
-		!modal && (cd.AltAddOne || cd.HasModeCost || !composed && (cd.SpendRead || cd.SpentSelf)) {
+		!modal && (cd.HasAltAdd && cd.BeholdN == 0 || cd.AltAddOne || cd.HasModeCost || !composed && (cd.SpendRead || cd.SpentSelf)) {
 		return true // (a hybrid cost: the planner's "cost:hybrid"; a Phyrexian one is priced by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold")
 	}
 	if k.gen != nil && k.gen.anyEvTargets && spellEvidenceTargets(cd) {
@@ -636,13 +636,12 @@ func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 		// gorge's PlanTargetPaidManaHalf funds the mana without life and energy
 		return spellAddCost(k, c).Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered|kop.CostPayLife|kop.CostPayEnergy) != 0
 	}
-	if !cd.HasAltAdd && planDeclinesAddCost(k, c) {
-		// An either-or additional cost's part 0 (Blight, Behold) is not a
-		// V1 witness shape on its own, but the cast flow's altAddAsk pays
-		// it after the witness (like a printed sacrifice), and
-		// plannedCastCostOf prices the chosen part. Bogslither's Embrace's
-		// Blight<1> would otherwise be refused while gorge's
-		// planCastAltAdd plans it.
+	if !(cd.HasAltAdd && cd.BeholdN != 0) && planDeclinesAddCost(k, c) {
+		// A behold-or-mana either-or additional cost (Mudbutton Cursetosser's
+		// Behold<1/Goblin>:2) is paid by the cast flow's altAddAsk after the
+		// witness, and plannedCastCostOf prices the chosen part; the
+		// either-or shape is not the standalone Cost$ shape this gate
+		// declines.
 		return true
 	}
 	for i := range cd.Abilities {

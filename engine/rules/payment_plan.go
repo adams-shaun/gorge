@@ -125,6 +125,19 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	}
 	scope := plannedCastScope(o.Zone, flashback)
 	altAdd := len(altAddCostParts(o.Face())) != 0
+	beholdAltAdd := false
+	if altAdd {
+		// The beholder-or-mana shape (Mudbutton Cursetosser's
+		// Behold<1/Goblin>:2) is the one the planned witness prices: the
+		// Behold part is paid by the in-flow ask, and the mana part by the
+		// witness. Other either-or shapes stay with the offer gate.
+		for _, part := range altAddCostParts(o.Face()) {
+			if len(ParseCost(part).Behold) != 0 {
+				beholdAltAdd = true
+				break
+			}
+		}
+	}
 	planAltAdd := false
 	detail := e.paymentPlanCastShapeDetailScoped(statics.get(), p, cast.Object, scope)
 	if detail != "" {
@@ -133,7 +146,7 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 			// A witness whose target pays for it is the target-paid path's
 			// (see targetPaidNeedsPlannedPayment); keep it first.
 			targetPaid = true
-		case altAdd && detail == "shape:optional_cost" && !flashback &&
+		case beholdAltAdd && detail == "shape:optional_cost" && !flashback &&
 			e.paymentPlanCastShapeDetailAltAdd(statics.get(), p, cast.Object, scope, true) == "":
 			// A mandatory either-or additional cost (CR 601.2b/h) is a
 			// choice made at announcement, so the printed-cost witness
