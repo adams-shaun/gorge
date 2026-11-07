@@ -288,6 +288,21 @@ func (e *Engine) pendingCastScope(pc *pendingCast) (costScope, bool) {
 // every hand card once PER CANDIDATE -- and a mass of candidates otherwise
 // makes the ask O(candidates x hand) layer walks.
 func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []targetCandidate) []targetCandidate {
+	return e.affordableTargetCandidatesWith(pc, nil, candidates)
+}
+
+// affordableSubTargetCandidates is affordableTargetCandidates for a
+// SubAbility$ link's announcement ask (CR 601.2c): the link's candidate is
+// priced with the targets already announced -- the root's and every earlier
+// link's -- because the CR 601.2f total cost reads the whole set. A root
+// target's ask passes no base: its candidate is the whole announcement.
+func (e *Engine) affordableSubTargetCandidates(pc *pendingCast, candidates []targetCandidate) []targetCandidate {
+	return e.affordableTargetCandidatesWith(pc, pc.allTargets(), candidates)
+}
+
+// affordableTargetCandidatesWith is affordableTargetCandidates over base
+// (the already-announced targets) plus each candidate.
+func (e *Engine) affordableTargetCandidatesWith(pc *pendingCast, base []state.Target, candidates []targetCandidate) []targetCandidate {
 	e.beginDerivedMemo()
 	defer e.endDerivedMemo()
 	scope, ok := e.pendingCastScope(pc)
@@ -314,15 +329,19 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		if candidate.kind == "player" {
 			target = state.Target{Player: candidate.player, IsPlayer: true}
 		}
-		mods := pc.withDefiler(e.costModifiersForTargets(pc.player, pc.card, scope, []state.Target{target}))
+		targets := []state.Target{target}
+		if len(base) > 0 {
+			targets = append(append([]state.Target(nil), base...), target)
+		}
+		mods := pc.withDefiler(e.costModifiersForTargets(pc.player, pc.card, scope, targets))
 		if e.costRepricesOnX(pc) {
 			// the announced X is known by now (CR 601.2b): a static reading
 			// the spell's mana value prices this target at it
-			mods = pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, []state.Target{target}, pc.x))
+			mods = pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, targets, pc.x))
 		}
 		cost := mods.Apply(pc.resolvedMana())
 		if pc.ownReduce > 0 {
-			if n := e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), []state.Target{target}, nil, pc.abilityMerged); n < pc.ownReduce {
+			if n := e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), targets, nil, pc.abilityMerged); n < pc.ownReduce {
 				cost.Generic = addClampedGeneric(cost.Generic, int64(pc.ownReduce-n))
 			}
 		}

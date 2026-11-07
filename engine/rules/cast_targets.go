@@ -857,6 +857,13 @@ func (e *Engine) subTargetAsk(pc *pendingCast) bool {
 			e.subOfferParent = pc.subAns[pc.subStage-1]
 		}
 		candidates := e.castTargetCandidates(pc, excludeSelf, sub)
+		// The link's target is part of the CR 601.2c announcement the total
+		// cost (601.2f) is priced over: withhold a candidate whose added
+		// cost (Terror of the Peaks' "spells your opponents cast that target
+		// it cost an additional 3 life") the cast cannot pay, as the root
+		// ask does. Without this the payment reverses a choice the proposal
+		// already offered.
+		candidates = e.affordableSubTargetCandidates(pc, candidates)
 		if effects.TargetUniqueRequested(sub) {
 			chosen := append([]state.Target(nil), pc.targets...)
 			for i := 0; i < pc.subStage; i++ {
