@@ -38,9 +38,13 @@ func main() {
 	chunk := flag.Int("chunk", 0, "pods per chunk (0: one chunk); a rerun with the same -out skips finished chunks")
 	dplay := flag.String("dplay", defaultDplay, "command that plays a chunk's pairs (dirac dplay); \"none\" only drafts")
 	workers := flag.Int("workers", 1, "dplay -workers")
+	seats := flag.Int("seats", 8, "pod seats: 4 (a draft event's pod size) or 8")
 	flag.Parse()
 	if *out == "" {
 		must(fmt.Errorf("-out is required"))
+	}
+	if *seats != 4 && *seats != 8 {
+		must(fmt.Errorf("-seats %d: want 4 or 8", *seats))
 	}
 
 	lab, err := draftlab.Open(*corpus, draftlab.Options{})
@@ -49,10 +53,12 @@ func main() {
 	bnames := strings.Split(*builders, ",")
 	h := &harness{
 		lab: lab, set: *set, seed: *seed, games: *games, builderAB: *sameVariantOnly,
-		variants: strings.Split(*variants, ","), bnames: bnames, lookup: lookup,
+		variants: strings.Split(*variants, ","), bnames: bnames, lookup: lookup, seats: *seats,
 	}
 	for _, b := range bnames {
-		h.builders = append(h.builders, parseBuilder(lab, b, *set))
+		nb, err := parseBuilder(lab, b, *set)
+		must(err)
+		h.builders = append(h.builders, nb)
 	}
 	var play func(dir string) error
 	if *dplay != "none" {
@@ -89,21 +95,43 @@ type harness struct {
 	variants  []string
 	bnames    []string
 	builders  []draftlab.NamedBuilder
+	seats     int
 }
 
 // seatVariant is the variant seat s of pod i drafts with: (s+i) mod K, so every
 // variant sits in every seat once per K pods.
 func seatVariant(vs []string, pod, seat int) string { return vs[(seat+pod)%len(vs)] }
 
-func parseBuilder(lab *draftlab.Lab, b, set string) draftlab.NamedBuilder {
+func parseBuilder(lab *draftlab.Lab, b, set string) (draftlab.NamedBuilder, error) {
 	name, rpath, _ := strings.Cut(b, "+r=")
+	var ov *pickbot.RatingsOverride
+	if rpath != "" {
+		ov = loadOverride(rpath, set)
+	}
+	if strings.HasPrefix(name, draftlab.KnobsPrefix) {
+		ref, err := draftlab.ParseAgent(name)
+		if err != nil {
+			return draftlab.NamedBuilder{}, err
+		}
+		nb, err := lab.Builder(ref)
+		if err != nil {
+			return draftlab.NamedBuilder{}, err
+		}
+		if x, ok := nb.Builder.(*pickbot.Best23); ok && ov != nil {
+			x.Ratings = ov
+		}
+		return nb, nil
+	}
 	name, knobs, _ := strings.Cut(name, ":")
 	ref, err := draftlab.ParseAgent(name)
-	must(err)
+	if err != nil {
+		return draftlab.NamedBuilder{}, err
+	}
 	nb, err := lab.Builder(ref)
-	must(err)
+	if err != nil {
+		return draftlab.NamedBuilder{}, err
+	}
 	if rpath != "" {
-		ov := loadOverride(rpath, set)
 		switch x := nb.Builder.(type) {
 		case *pickbot.Balanced:
 			x.Ratings = ov
@@ -126,7 +154,7 @@ func parseBuilder(lab *draftlab.Lab, b, set string) draftlab.NamedBuilder {
 			case "top":
 				s.CurveMax[5] = n
 			default:
-				must(fmt.Errorf("builder knob %q", k))
+				return draftlab.NamedBuilder{}, fmt.Errorf("builder knob %q", k)
 			}
 		}
 		x.Shape = s
@@ -134,7 +162,7 @@ func parseBuilder(lab *draftlab.Lab, b, set string) draftlab.NamedBuilder {
 		t.MainSize = s.MainSize
 		x.Tuning = t
 	}
-	return nb
+	return nb, nil
 }
 
 // draftChunk drafts pods [c.First, c.Last) and writes their decks, pool.tsv,
@@ -151,16 +179,20 @@ func (h *harness) draftChunk(c chunkPlan, dir string) error {
 	rng := rand.New(rand.NewPCG(h.seed+uint64(c.First), 0xd4af7))
 	for i := c.First; i < c.Last; i++ {
 		podSeed := h.seed + uint64(i)
-		packs, err := lab.OpenPod(h.set, setdata.DefaultCollation, podSeed, 8, 3)
+		packs, err := lab.OpenPod(h.set, setdata.DefaultCollation, podSeed, h.seats, 3)
 		if err != nil {
 			return err
 		}
 		var nds []draftlab.NamedDrafter
-		labels := make([]string, 8)
-		for s := 0; s < 8; s++ {
+		labels := make([]string, h.seats)
+		for s := 0; s < h.seats; s++ {
 			v := seatVariant(h.variants, i, s)
 			labels[s] = v
-			nds = append(nds, draftlab.NamedDrafter{Ref: draftlab.AgentRef{Name: "x"}, Drafter: newDrafter(v, h.lookup, h.set)})
+			d, err := newDrafter(v, h.lookup, h.set)
+			if err != nil {
+				return fmt.Errorf("variant %q: %w", v, err)
+			}
+			nds = append(nds, draftlab.NamedDrafter{Ref: draftlab.AgentRef{Name: "x"}, Drafter: d})
 		}
 		res, err := lab.Draft(packs, nds, podSeed)
 		if err != nil {
@@ -168,7 +200,7 @@ func (h *harness) draftChunk(c chunkPlan, dir string) error {
 		}
 		type dk struct{ id, label, seat string }
 		var ds []dk
-		for s := 0; s < 8; s++ {
+		for s := 0; s < h.seats; s++ {
 			for bi, nb := range h.builders {
 				d, err := lab.Build(res.Pools[s], nb)
 				if err != nil {
@@ -243,7 +275,7 @@ func loadOverride(spec, set string) *pickbot.RatingsOverride {
 	return ov
 }
 
-func newDrafter(v string, lookup pickbot.CardLookup, set string) pickbot.Drafter {
+func newDrafter(v string, lookup pickbot.CardLookup, set string) (pickbot.Drafter, error) {
 	v, rpath, _ := strings.Cut(v, "+r=")
 	var ov *pickbot.RatingsOverride
 	if rpath != "" {
@@ -252,29 +284,40 @@ func newDrafter(v string, lookup pickbot.CardLookup, set string) pickbot.Drafter
 	name, arg, _ := strings.Cut(v, ":")
 	w, _ := strconv.ParseFloat(arg, 64)
 	switch name {
+	case "knobs":
+		b, err := os.ReadFile(arg)
+		if err != nil {
+			return nil, err
+		}
+		t, err := pickbot.ParseTuning(b)
+		if err != nil {
+			return nil, err
+		}
+		return &pickbot.Knobbed{Lookup: lookup, Tuning: t, Ratings: ov}, nil
 	case "random":
-		return pickbot.RandomPick{}
+		return pickbot.RandomPick{}, nil
 	case "rating":
 		t := pickbot.DefaultTuning
 		t.ColourFitMax = 1e-9
-		return &pickbot.RatingColour{Lookup: lookup, Tuning: t, Ratings: ov}
+		return &pickbot.RatingColour{Lookup: lookup, Tuning: t, Ratings: ov}, nil
 	case "rc":
 		t := pickbot.DefaultTuning
 		if w > 0 {
 			t.ColourFitMax = w
 		}
-		return &pickbot.RatingColour{Lookup: lookup, Tuning: t, Ratings: ov}
+		return &pickbot.RatingColour{Lookup: lookup, Tuning: t, Ratings: ov}, nil
 	case "committed":
-		return &pickbot.Committed{Lookup: lookup, Ratings: ov}
+		return &pickbot.Committed{Lookup: lookup, Ratings: ov}, nil
 	case "knob":
 		t, err := pickbot.ParseResearchKnobs(arg)
-		must(err)
-		return &pickbot.Knobbed{Lookup: lookup, Tuning: t, Ratings: ov}
+		if err != nil {
+			return nil, err
+		}
+		return &pickbot.Knobbed{Lookup: lookup, Tuning: t, Ratings: ov}, nil
 	case "signals":
-		return &pickbot.Signals{Committed: pickbot.Committed{Lookup: lookup, Ratings: ov}, Weight: w}
+		return &pickbot.Signals{Committed: pickbot.Committed{Lookup: lookup, Ratings: ov}, Weight: w}, nil
 	}
-	must(fmt.Errorf("unknown variant %q", v))
-	return nil
+	return nil, fmt.Errorf("unknown variant %q", v)
 }
 
 func writeJSON(p string, v any) {
