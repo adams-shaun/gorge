@@ -2692,17 +2692,17 @@ func (s *State) manaStep(k *prep) bool {
 				s.pl[e.ctrl].pool[c] += held[c]
 			}
 		case k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 && s.powerUpPlanRejected(k, a):
-			// The planner's printed-cost witness is outdated. A reduced
-			// cost the planner can price (no hybrid symbol) re-arms and
-			// taps its plan's order; a hybrid (or twobrid) cost is the shape
-			// gorge's planner declines, and a charge the reductions left
+			// The planner's printed-cost witness is outdated. gorge arms it
+			// whenever the charge still owes generic or coloured mana, hybrid
+			// symbols or not (armAbilityAutoPay), and re-arms for the reduced
+			// cost, tapping its plan's order. A charge the reductions left
 			// hybrid-only arms no witness at all (powerUpArmsNone), so the
 			// manual window pays source by source, first useful one in
 			// battlefield order, tapping nothing when the pool already pays
 			// it.
 			cc := s.buildCostCharge(k)
 			w := s.powerUpWitness(k, a, sl, e.ctrl)
-			if a.Cost.Mana.Hyb[0] == 0 && !s.powerUpArmsNone(k) && s.abilityPlanSettles(k, e, w, w, cc, &saved) {
+			if !s.powerUpArmsNone(k) && s.abilityPlanSettles(k, e, w, w, cc, &saved) {
 				s.tapFor(k, e.ctrl, &cc, int(e.x), NoObj)
 			} else if !s.windowTapHeldOK(k, e.ctrl, &cc) {
 				// the window ran out of sources: gorge aborts the activation
