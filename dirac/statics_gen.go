@@ -182,7 +182,7 @@ func (s *State) matchSpellCard(k *prep, f kop.FilterID, c CardID, owner, ctrl ui
 			ch, ok := s.chosenTypeSub(src)
 			cd := &k.t.Cards[c]
 			has := ok && int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
-			if ok && ch == subOutside {
+			if ok && outsideSub(k, ch) {
 				has = cd.AllCreatureTypes
 			}
 			fl.Flags2 &^= kop.F2ChosenType

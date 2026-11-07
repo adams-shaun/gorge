@@ -567,3 +567,21 @@ func (s *State) availExt(k *prep, p uint8, a *avail) {
 		s.painTight(k, p, a)
 	}
 }
+
+// painAnyOwed is a cast window's answer for a {C} source whose other ability makes
+// any colour for a life or damage rider (Starting Town): gorge's ability ask lists
+// an ability that makes a colour a fixed pip still owes first (owedAbilitiesFirst),
+// so while the pool is short of a {W}..{G} pip the any-colour ability is activated
+// and its colour ask answers the lowest owed colour (owedColoursFirst), even when
+// the {C} could pay the generic part.
+func (s *State) painAnyOwed(p uint8, useful *kop.ManaCost, pc *pcard) (int, bool) {
+	if pc.painCol != kop.ColAny {
+		return 0, false
+	}
+	for c := 0; c < 5; c++ {
+		if useful.Pips[c] > s.pl[p].pool[c] {
+			return c, true
+		}
+	}
+	return 0, false
+}
