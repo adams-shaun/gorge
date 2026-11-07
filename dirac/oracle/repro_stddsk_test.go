@@ -14,6 +14,7 @@ func TestStdDskReprosLockstepStall(t *testing.T) {
 	t.Parallel()
 	for _, name := range []string{
 		"optional_discard_two_exile_sources", // CR 616.1: an optional discard of a card two Leylines of the Void would exile is ordered, not moved at once
+		"zero_pain_plan_at_nonpositive_life", // gorge pay/search.go walk: a plan with no pain is never lethal, so Enduring Tenacity casts at life <= 0 under Marina Vendrell's Grimoire
 	} {
 		t.Run(name, func(t *testing.T) {
 			res := stdReproPlay(t, filepath.Join("testdata", "repro", name+".repro.json"), "std-dsk")
