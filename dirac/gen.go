@@ -1425,12 +1425,12 @@ const (
 	fxKwGrant                // a promoted until-end-of-turn keyword grant's timestamp (static_layer6.go kwGrantFx)
 	fxCopyExc                // a copy's exception override (layer 1, CR 707.9b; copy_exceptions.go)
 	fxControl                // a layer-2 control record (CR 613.1b; static_control.go)
-	fxCopyEOT                // a permanent holding until-end-of-turn copies, settled at cleanup (copy_clone.go)
-	fxCopyPerm               // a permanent's newest permanent copy marker: r.p the source object, r.idx the exception override (copy_clone.go)
+	fxCopyEOT                // a permanent's until-end-of-turn copies: r.src the newest clone's card, r.idx its exception override, r.p its template, r.ts its timestamp, settled at cleanup (copy_clone.go)
+	fxCopyPerm               // a permanent's newest permanent copy marker: r.p the source object, r.idx the exception override, r.ts its timestamp (copy_clone.go)
 	fxOnceStash              // the permanent's printed abilities were activated once-only before a copy layer began, which the layer's end returns (copy_clone.go onceBasisBegin)
 	fxCopyHeld               // a token copy's own copy exception (r.idx), held aside while an until-end-of-turn copy overrides it (copy_clone.go cloneHold)
 	fxCopyMint               // a token copy's own copy (r.src the card it was minted as), held aside likewise (copy_clone.go cloneHold)
-	fxAegisBase              // the copy a bearer wore (r.src its card) when an Assimilation Aegis copy took over, which shows again when the last Aegis copy ends (copy_aegisunder.go)
+	fxAegisBase              // the copy a bearer wore (r.src its card) when an Aegis stack took over with no copy marker of its own, which shows again when the last Aegis copy ends (copy_aegisunder.go)
 )
 
 // maxFx bounds the effect records live at once (all permanents); a full
@@ -1480,6 +1480,10 @@ type xTargets struct {
 	slot [maxXTgt]uint8
 	code [maxXTgt]uint8
 	ver  [maxXTgt]uint8
+	// crim is CR 700.13's pick-time verdicts for the pool's extra objects
+	// (act_commitcrime.go crimeAskDone): bit j says extra j's pick was a
+	// crime when it was made, bit 7 (crimRec) that verdicts were recorded.
+	crim uint8
 	div  [maxXTgt + 1]uint8 // damage assigned per object of the divided slot, in pick order
 }
 
@@ -1728,6 +1732,7 @@ type genState struct {
 		src  Obj
 		sver uint8
 		obj  Obj
+		ts   uint16 // the tick the Aegis copy went live (aegisApply; zone_exilethenattach.go)
 	} // exiled until the source leaves (OpExileUntilLeaves)
 	nlinks   uint8
 	nexw     uint8

@@ -446,6 +446,7 @@ type grantStep struct {
 	kind uint8
 	act  Action
 	cand Slot // stepTapX: the permanent its cost taps
+	pain bool // the source's painful printed ability (mana_grantpain.go)
 }
 
 const (
@@ -616,7 +617,11 @@ func (g *grantSrch) visit(t *State) bool {
 		if !grants {
 			continue
 		}
-		if g.dual[i] {
+		if ppc := t.manaPCGen(g.k, sl); g.dual[i] && !t.ownRestrPrinted(g.k, sl) && grantPainShape(g.k, ppc) {
+			if g.painBranch(t, i, sl, ppc, alts == 1) { // its painful ability's colours too (mana_grantpain.go)
+				return true
+			}
+		} else if g.dual[i] {
 			mask, n := uint8(0), uint8(0)
 			if ra := t.ownRestrAb(g.k, sl); ra != nil && !t.ownManaUsable(g.k, sl) {
 				mask, n = uint8(ra.ManaColors)&0x3f, max(ra.ManaN, 1) // the restricted printed ability
@@ -1021,6 +1026,9 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		} else {
 			s.pl[g.p&1].pool[st.col] += st.n
 		}
+		if st.pain {
+			s.painDamage(k, sl, g.p&1, int(s.manaPCGen(k, sl).painN)) // its life or damage (mana_grantpain.go)
+		}
 		if k.gen.anyTapExtra {
 			xv := s.srcExtraPick(k, sl, s.stepView(k, sl, st.gi), int(st.col))
 			s.addXv(g.p&1, &xv)
@@ -1214,13 +1222,20 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			cost = s.featCost(k, p&1, c, Obj(a.Source()), addCost(k.cards[c].cost, k.t.Cards[c].Kicker))
 			return cost, ex, need, true
 		}
-		if c := s.objs[a.Source()].card; a.Kind() == AkCast && a.Mode() == 0 && k.t.Cards[c].Cost.X != 0 && !k.t.Cards[c].HasAltAdd && k.t.Cards[c].Cost.Hyb[0] == 0 {
+		if c := s.objs[a.Source()].card; a.Kind() == AkCast && (a.Mode() == 0 || a.Mode() == castMayPlay) && k.t.Cards[c].Cost.X != 0 && !k.t.Cards[c].HasAltAdd && k.t.Cards[c].Cost.Hyb[0] == 0 {
 			// an {X} cast: gorge's potentialModeCastPlan prices it at the
 			// largest X the sources pay, insufficient when they cannot
 			// pay X = 0, so the prefix search runs on the fixed part and
 			// the witness (lowerWitness) then pays the largest X from the
-			// pool and the printed sources
-			return s.featCost(k, p&1, c, Obj(a.Source()), k.cards[c].cost), ex, need, true
+			// pool and the printed sources. A may-play one too (Worldsoul's
+			// Rage from Outrageous Robbery's exile), its pips generic under
+			// an any-type rider (pay.PlanManaUnderRider, CR 609.4b): the
+			// search's first colour then pays it (CR 601.2g-h)
+			cost := s.featCost(k, p&1, c, Obj(a.Source()), k.cards[c].cost)
+			if a.Mode() == castMayPlay && (s.g.mayPlayAny || s.mayPlayAnyType(k, p, Obj(a.Source()))) {
+				cost = anyTypePips(cost)
+			}
+			return cost, ex, need, true
 		}
 		if c := s.objs[a.Source()].card; a.Kind() == AkCast && a.Mode() == 0 && a.Target() == 0 && k.t.Cards[c].HasAltAdd && k.t.Cards[c].Cost.X == 0 && !s.contribPays(k, p, c, Obj(a.Source()), s.objs[a.Source()].zone == kop.ZoneHand) {
 			// an either-or additional cost: the planner prices the spell with the part

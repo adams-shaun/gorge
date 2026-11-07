@@ -1,8 +1,10 @@
 Academic Ascent
 Aerid Konstrari
 Afterthought Sentry
+Ajani Resolute
 Ajani Unrelenting
 Ajani's Anguish
+Apex Witchstalker
 Arcane Amphisbaena
 Archive Arbiter
 Arni, Humble Scribe
@@ -12,6 +14,7 @@ Avatar of Burgeoning Echoes
 Awaken the Inferno
 Bestial Incursion
 Blazing Crescendo
+Blessed Ghoul
 Bloodline Recollector
 Bloombrute
 Blossom-Blessed Angel
@@ -21,6 +24,7 @@ Campus Crier
 Carnivorous Cultivator
 Cast Away Doubt
 Chandra's Emberling
+Chandra, Chill of Compliance
 Charge the Sanctum
 Compel Brutality
 Craftwork Crusher
@@ -38,6 +42,7 @@ Divining Duelist
 Eardrum Rattler
 Edgar, Ancient Bloodlord
 Edgar, Moonlit Sovereign
+Emergency Phytomedic
 Enlightened Confidant
 Entrust the Spark
 Essence Burn
@@ -47,14 +52,18 @@ Fatehold Annex
 Fatehold Charm
 Fatehold Chronologist
 Fateshaper Aspirant
+Fblthp, Impossibly Lost
 Fblthp, Knows the Way
 Ferocity of the Hunt
+Flickering Hound
 Forest
 Formidable Commons
 Frostbite Pyromental
+Fulminous Forte
 Gallia, Tragic Host
 Gallia, the Merrymaker
 Gardenize
+Garruk, Curse Breaker
 Geist of Saint Thalia
 Generous Revival
 Germinate Recruits
@@ -67,6 +76,8 @@ Guiding Hydra
 Hallway Heckler
 Haunted Ridge
 Heartstring Puller
+Heartwood Crafter
+Hexhaven Battalion
 Hexhaven Dueling Arena
 Hexhaven Invigorator
 Hungering Puppetbeast
@@ -78,6 +89,7 @@ Ingris Stingerquill
 Innovative Commons
 Inspired Tethermage
 Island
+Jace, Reality Sculptor
 Jiang Yanggu, Alone
 Jiang Yanggu, Never Alone
 Karn, Argent Defender
@@ -89,6 +101,7 @@ Konstrari Charm
 Konstrari Improviser
 Koth of the Homestead
 Koth, the Geomancer
+Kwia Vigorbloom
 Last Gasp
 Lich's Relic
 Liliana the Faultless
@@ -141,10 +154,12 @@ Return to the Light Realms
 Rewrite Regrets
 Rockfall Vale
 Roiling Canopy
+Room of Refuge
 Ruric Thar, Biomagus
 Ruric Thar, Magecrusher
 Saheeli, Jewel of Avishkar
 Samut, Hazoret's Champion
+Samut, Tyrant of Naktamun
 Screeching Soulbreaker
 Semester Foreseer
 Shatterwing Pegasus
@@ -177,7 +192,9 @@ Teyo, Diamondblade Mage
 Teyo, Lightshield Expert
 Thalia, the Survivor
 The Echoverse Fulcrum
+The Theorist, Jace Beleren
 Theoretical Necromancer
+Theorist's Sanctum
 Theorix Annex
 Theorix Charm
 Theorix Metamage
@@ -187,6 +204,7 @@ Tomik, Izzet Sparkmage
 Transformative Commons
 Traxos, Academy Guardian
 Traxos, Scourge Eternal
+Twisted Fates
 Undulating Witness
 Unflinching Hortimancer
 Unsummon
@@ -194,6 +212,7 @@ Verdant Kraken
 Vigorbloom Annex
 Vigorbloom Charm
 Vigorbloom Vanguard
+Vinelasher Adept
 Violent Echoes
 Void Extrapolator
 Vraska's Final Mercy

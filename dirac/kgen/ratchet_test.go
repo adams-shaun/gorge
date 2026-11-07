@@ -89,8 +89,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// beside this branch's Hulk Power-up ReduceCost arm; ALL 21655 -> 21659).
 	// +1 (Hulk, Gamma Goliath: the Power-up-only ReduceCost arm,
 	// ValidSpell$ Activated.PowerUp; MSH 232 -> 233, ALL 21659 -> 21660).
+	// +1 (Ark of Hunger: the remembered-card MayPlay over Graveyard,Exile; SOS 248 -> 249, ALL 21664 -> 21665).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21664, 34442},
+	"ALL": {21665, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -111,7 +112,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"ONE": {195, 271},
 	"OTJ": {241, 276},
 	"SNC": {185, 266},
-	"SOS": {248, 270},
+	"SOS": {249, 270},
 	"SPM": {160, 192},
 	"TDM": {249, 276},
 	"TLA": {252, 285},
