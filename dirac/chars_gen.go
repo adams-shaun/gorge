@@ -338,7 +338,7 @@ const subOutside uint8 = 254
 // (act_choosetype.go outsideAliased).
 
 // outsideSub reports whether chosen/subtype code i is an outside type.
-func outsideSub(k *prep, i uint8) bool { return int(i) >= len(k.t.Subtypes) && i < 255 }
+func outsideSub(k *prep, i uint8) bool { return i >= k.nsub && i < 255 }
 
 // outsideCount is the number of outside entries in the type vocabulary.
 func outsideCount(k *prep) int {
