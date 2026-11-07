@@ -115,6 +115,11 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// colour ask carries no announced hybrid pip, so gorge answers its
 		// lowest colour, not the {U} the composed cost still owes.
 		{"spree_window_any_colour_lowest", false, false},
+		// Intimidation Campaign, cast this turn under the opponent's High
+		// Noon, returns to hand on its crime trigger: its finished cast is
+		// still the one spell that turn, so neither engine offers it again
+		// (CR 601.2e; gorge excluded every push of the same ObjID).
+		{"cast_limit_counts_a_bounced_spell", false, false},
 	})
 }
 
