@@ -536,6 +536,7 @@ func TestStdLciReprosLockstep(t *testing.T) {
 		{"payment_trigger_counts_its_resolution", false, false},       // CR 603.2, 605.3b: Vito's trigger from a Treasure sacrificed paying for Guardian of the Great Door resolves before the cast and counts toward "the second time this ability has resolved this turn"
 		{"counter_delayed_trigger_strips_creator", false, false},      // CR 603.7e: Tishana's Tidebinder counters the end-step sacrifice Saheeli, the Sun's Brilliance's copy registered; its source is Saheeli, who loses all abilities
 		{"mana_float_unspent_observed_source", false, false},          // CR 601.2h: Barracks of the Thousand's mana floated by the X witness and left unspent (Jadelight Spelunker at X=0) is not mana that paid the cast
+		{"aura_type_add_filter_drops_after_transform", true, false},   // CR 613.1d, 704.5m: Zoetic Glyph's "enchanted artifact is a 5/4 Golem creature" stops applying when Matzalantli transforms into a land, so the land stays and only the Glyph falls off
 	})
 }
 

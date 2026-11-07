@@ -242,6 +242,16 @@ func (s *State) eachOverrideStaticTs(k *prep, sl Slot, f func(o *kop.Override, t
 	if !k.gen.anyOvrStat {
 		return
 	}
+	s.eachOverrideStaticTy(k, sl, func() kop.TypeMask { return s.typesAt(k, sl) }, f)
+}
+
+// eachOverrideStaticTy is eachOverrideStaticTs with ty giving sl's types for
+// the static's filter type clause: an Aura's "enchanted artifact is a
+// creature" stops applying to a host that is no longer an artifact (CR
+// 613.1d; Zoetic Glyph on Matzalantli transformed to its land face), as
+// basePTGen already reads the clause for the set P/T. typesGen passes the
+// types its layer-4 fold has reached, so the check never recurses.
+func (s *State) eachOverrideStaticTy(k *prep, sl Slot, ty func() kop.TypeMask, f func(o *kop.Override, ts uint16)) {
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
 		if s.perms[src].attached != sl || src == sl || !k.gen.has(s.cardAt(src), gfOvrStat) {
@@ -255,6 +265,9 @@ func (s *State) eachOverrideStaticTs(k *prep, sl Slot, f func(o *kop.Override, t
 			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 {
 				if lost && !keptOnLoss(k.t, a) {
 					continue // CR 613.6: only an override with a part before layer 6 outlives the loss
+				}
+				if ft := k.t.Filters[a.Static.Filter].Types; ft != 0 && ty()&ft == 0 {
+					continue
 				}
 				f(&k.t.Overrides[a.Static.Override-1], s.layerTs(src))
 			}
@@ -292,13 +305,17 @@ func (s *State) typesGen(k *prep, sl Slot) kop.TypeMask {
 	if p.ovr.flags&(ovTypes|ovTypesEOT) != 0 {
 		t = p.ovr.types
 	}
-	s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
+	fold := func(o *kop.Override, _ uint16) {
 		const keep = kop.TLegendary | kop.TBasic | kop.TToken
 		if o.HasTypes {
 			t = t&(keep|o.KeepTypes) | o.SetTypes
 		}
 		t |= o.AddTypes
-	})
+	}
+	s.eachOvRec(sl, func(r ovRec) { fold(&k.t.Overrides[r.idx-1], 0) })
+	if k.gen.anyOvrStat {
+		s.eachOverrideStaticTy(k, sl, func() kop.TypeMask { return t }, fold)
+	}
 	if k.gen.tyPost {
 		t = s.tyPostTy(k, sl, t) // bestow, impending (kw_impending.go)
 	}
