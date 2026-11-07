@@ -251,6 +251,11 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// finish reverses the cast keeping the floated mana (CR 733.1: a
 		// player may reverse mana abilities activated for an illegal play)
 		{"twobrid_delve_unpayable_window", true, false},
+		// CR 601.2g with CR 107.4e: the reversed twobrid cast's window taps
+		// Opulent Palace's "Combo B G U" while both G and U are owed; gorge's
+		// ask lists the Combo's printed order, so its answer is G, and the
+		// floated mana must match (dirac answered the lowest WUBRG colour, U).
+		{"window_combo_owed_colour_printed_order", false, false},
 		{"printed_combo_window_colour_order", true, false}, // CR 601.2g: a printed Combo's mana window answers the ability's printed order, so Thornwood Falls makes {G} (before its {U}) and Frontier Bivouac stays untapped
 		// CR 702.66a, 702.180a: a Harmonize creature whose power already
 		// covers the whole generic part leaves no shortfall for Teval's
@@ -400,6 +405,14 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"free_cast_owes_either_or_additional_cost", true, false},      // CR 601.2b, 118.9d: Kinsbaile Aspirant cast free from Maralen's exile still owes behold or {2}; with neither payable it is not offered
 		{"either_or_mana_part_spends_restricted_source", false, false}, // CR 106.6, 601.2f: Kinsbaile Aspirant's {2} part with its {W} is affordable through Eclipsed Realms' chosen-type mana
 		{"mayplay_convoke_absorb_repose", false, false},                // CR 702.51a: a may-play cast's convoke announcement re-poses only the picks the outstanding budget still absorbs, so a fifth generic tap for {3}{U}{U} is not offered once the generic is paid
+		// CR 702.51b: Sanar's "you may cast the exiled cards this turn"
+		// permission casts Lofty Dreams ({3}{U}{U} Convoke) from exile, and
+		// the convoke announcement filters by the cost beginCast charges
+		// (MayPlayCastPaymentCost, payment_plan.go): the oracle caches a
+		// priority-time cost for the may-play cast as it does for a plain
+		// hand cast, and the kernel's convoke menu filters the same way, so
+		// gorge's Submit never refuses a pick the menu no longer offers.
+		{"mayplay_convoke_cast_cost", false, false},
 	})
 }
 
@@ -471,6 +484,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"multi_discard_pick_order_past_eight", false, false},           // CR 404.3: a ten-card discard keeps the owner's chosen arrangement past the old eight-pick buffer
 		{"returned_sorcery_stays_in_graveyard", false, false},           // CR 304.4: a manifested sorcery that died is a sorcery card, so Meathook Massacre II's paid return (with a finality counter) leaves it in the graveyard
 		{"granted_prefix_pays_painful_needed_colour", false, false},     // CR 119.4: the granted-mana prefix taps an animated Haunted Screen for its painful {R} the play needs (gorge's ask lists it before the grant) and pays 1 life
+		{"self_leaves_trigger_sees_remembered_clear", false, false},     // CR 400.7/603.2d: a leaves trigger whose source departed does not serve the fire-time remembered snapshot, so the first instance's Cleanup clear closes the second instance's window
 	})
 }
 

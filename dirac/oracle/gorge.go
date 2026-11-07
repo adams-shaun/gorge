@@ -609,6 +609,24 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 		case "play_land":
 			add(prioEntry{a: Pack(ActPlayLand, ref(o.Obj), RefNone, landFaceCode(o.Mode)), opt: o.Index})
 		case "cast":
+			// A may-play cast (an untyped permission's plain cast of a card in
+			// exile or the graveyard) prices beside the plain hand offers: its
+			// convoke announcement must filter by the same cost beginCast
+			// charges, or the oracle picks contributions the announcement
+			// cannot absorb and gorge's Submit refuses (CR 702.51b: "up to two
+			// green creatures and up to three other creatures"). May-play
+			// casts at an alternative (AltCostIndex > 0) keep the older
+			// unfiltered behaviour.
+			if o.Mode == "mayplay" && o.AltCostIndex == 0 {
+				if pc, ok := e.MayPlayCastPaymentCost(d.Player, o.Obj, o.MayPlayPerm); ok {
+					if g.castCost == nil {
+						g.castCost = map[state.ObjID]decision.PaymentCost{}
+						g.castX = map[state.ObjID]bool{}
+					}
+					g.castCost[o.Obj] = pc
+					g.castX[o.Obj] = castHasX(e.G.Obj(o.Obj))
+				}
+			}
 			if o.Mode == "" && o.AltCostIndex == 0 {
 				if pc, ok := e.CastPaymentCost(d.Player, o.Obj); ok {
 					if g.castCost == nil {
