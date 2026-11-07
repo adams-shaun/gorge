@@ -314,7 +314,18 @@ func TestKernelHeadsCheckpointAll(t *testing.T) {
 // hypothetical world (CloneHypothetical plus a redeal of every other seat's
 // hand and library) driven a few random intents. A prefix divergence panics.
 // GORGE_TAPE_WORLD_GAMES sets the game count (default 6).
-func TestKernelWorldsInFuzzGames(t *testing.T) {
+//
+// The wall budget is per top-level test, so the checks are sharded into
+// separate top-level tests. The main line (~32 s on game 5) is replayed by
+// every shard and the partitionable checks are ~19 s, so 3 shards give about
+// 32 + 19/3 = 38 s for game 5; each shard past 3 saves under 2 s.
+const kernelWorldShards = 3
+
+func TestKernelWorldsInFuzzGamesShard0(t *testing.T) { kernelWorldsInFuzzGames(t, 0) }
+func TestKernelWorldsInFuzzGamesShard1(t *testing.T) { kernelWorldsInFuzzGames(t, 1) }
+func TestKernelWorldsInFuzzGamesShard2(t *testing.T) { kernelWorldsInFuzzGames(t, 2) }
+
+func kernelWorldsInFuzzGames(t *testing.T, k int) {
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("long")
@@ -326,6 +337,7 @@ func TestKernelWorldsInFuzzGames(t *testing.T) {
 	var worlds, steps atomic.Int64
 	var st cloneFuzzStats
 	o := cloneFuzzOpts{every: 4, lockstep: 4, diverge: 4, randomPct: 10}
+	o.shards, o.shard = kernelWorldShards, k
 	o.worldHook = func(t *testing.T, e *Engine, r *rand.Rand) {
 		if !TapePosed(e) {
 			return
@@ -362,4 +374,52 @@ func TestKernelWorldsInFuzzGames(t *testing.T) {
 		t.Fatal("no posed tape decision was reached: the world probe measured nothing")
 	}
 	t.Logf("%d games, %d intents; %d tape worlds, %d world intents", st.games.Load(), st.intents.Load(), worlds.Load(), steps.Load())
+}
+
+// The shards partition the per-decision checks: every decision is probed by
+// exactly one shard, and the main line is the same in each.
+func TestKernelWorldsShardsCoverEveryDecision(t *testing.T) {
+	if testing.Short() {
+		t.Skip("long")
+	}
+	reg := testutil.CorpusRegistry(t)
+	run := func(shards, shard int) (map[uint64]bool, *cloneFuzzStats) {
+		cfg, label := cloneFuzzConfig(t, reg, 0)
+		seqs := map[uint64]bool{}
+		var st cloneFuzzStats
+		o := cloneFuzzOpts{maxIntents: 300, every: 4, lockstep: 4, diverge: 4, randomPct: 10, shards: shards, shard: shard}
+		o.worldHook = func(t *testing.T, e *Engine, r *rand.Rand) { seqs[uint64(e.Pending().Seq)] = true }
+		playCloneFuzzGame(t, cfg, label, o, &st)
+		return seqs, &st
+	}
+	ref, refSt := run(1, 0)
+	if len(ref) <= 3 {
+		t.Fatalf("reference run probed only %d decisions", len(ref))
+	}
+	union := map[uint64]bool{}
+	var clones int64
+	for k := 0; k < 3; k++ {
+		s, st := run(3, k)
+		for q := range s {
+			if union[q] {
+				t.Errorf("decision seq %d probed by more than one shard", q)
+			}
+			union[q] = true
+		}
+		if st.intents.Load() != refSt.intents.Load() {
+			t.Errorf("shard %d played %d intents, reference %d: the main line depends on the shard", k, st.intents.Load(), refSt.intents.Load())
+		}
+		clones += st.clones.Load()
+	}
+	if len(union) != len(ref) {
+		t.Errorf("shards probed %d decisions, reference %d", len(union), len(ref))
+	}
+	for q := range ref {
+		if !union[q] {
+			t.Errorf("decision seq %d missed by every shard", q)
+		}
+	}
+	if clones != refSt.clones.Load() {
+		t.Errorf("shard clones sum to %d, reference %d", clones, refSt.clones.Load())
+	}
 }
