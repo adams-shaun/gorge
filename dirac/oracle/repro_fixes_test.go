@@ -467,7 +467,8 @@ func TestStdLciReprosLockstep(t *testing.T) {
 func TestStdSpmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-spm", []stdRepro{
-		{"tapcost_source_not_paid_with_itself", false, false}, // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
+		{"tapcost_source_not_paid_with_itself", false, false},             // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
+		{"tap_two_forced_answer_taps_the_plays_own_source", false, false}, // CR 602.2b: the Parents' second activation has exactly two candidates, so nothing is asked and the forced tap takes Guy; the search drops that line and reaches the pair that leaves Spider Manifestation untapped within its budget
 	})
 }
 
