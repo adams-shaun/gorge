@@ -194,7 +194,7 @@ import (
 // +1 (Hulk, Gamma Goliath's Power-up-only ReduceCost arm; ALL build-level 21659 -> 21660).
 // +1 (Ark of Hunger: the remembered-card MayPlay over Graveyard,Exile; ALL build-level 21664 -> 21665).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21665, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21670, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
