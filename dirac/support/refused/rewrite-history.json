@@ -5,8 +5,8 @@
   "repro": {
     "pool": "std-msh",
     "surface": "full",
-    "seed": 1,
-    "pair": 390,
+    "seed": 2,
+    "pair": 265,
     "policy": "random",
     "mulligans": 1
   }
