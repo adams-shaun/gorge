@@ -115,6 +115,13 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// colour ask carries no announced hybrid pip, so gorge answers its
 		// lowest colour, not the {U} the composed cost still owes.
 		{"spree_window_any_colour_lowest", false, false},
+		// CR 601.2c, 601.2f: Throw from the Saddle's second target (its
+		// SubAbility$ Bite) is announced on cast, and the caster is at 1
+		// life against Terror of the Peaks' "spells your opponents cast that
+		// target it cost an additional 3 life": the link's menu withholds
+		// the Dragon because the total cost can't be paid, as the root
+		// target's ask already did.
+		{"sub_target_life_raise", false, false},
 		// Intimidation Campaign, cast this turn under the opponent's High
 		// Noon, returns to hand on its crime trigger: its finished cast is
 		// still the one spell that turn, so neither engine offers it again
