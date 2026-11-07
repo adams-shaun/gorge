@@ -57,6 +57,10 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		{"copied_vehicle_counts_its_crew", true, false},        // CR 707.2: Loan Shark copying Luxurious Locomotive makes a Treasure per creature that crewed it
 		{"enters_with_counts_entrant_controller", true, false}, // CR 109.5: Dust Animus returned by a foreign Mystical Tether counts its own controller's untapped lands
 		{"counters_skip_a_ceased_token", true, false},          // CR 111.7: Railway Brawler's counters for a Beau the legend rule removed land on nothing
+		// CR 707.10c, 115.3: Jace Reawakened's copy of Fleeting Reflection may
+		// not move "up to one other target creature" onto the creature its
+		// first target already names
+		{"copy_retarget_unique_link", false, false},
 		// CR 400.7: a Stubborn Burrowfiend saddled, bounced by Nurturing Pixie
 		// and recast is a new object, so its first saddle that turn triggers
 		// again (gorge's latch stops at the Mount's own zone change).
@@ -470,9 +474,10 @@ func TestStdFraReprosLockstep(t *testing.T) {
 func TestStdLciReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-lci", []stdRepro{
-		{"granted_sac_host_cost_poses_no_choice", false, false}, // CR 602.2b, 701.21a: Deconstruction Hammer's granted "Sacrifice Deconstruction Hammer" cost has one possible payment, so it is paid without a choice after the targets
-		{"payment_trigger_counts_its_resolution", false, false}, // CR 603.2, 605.3b: Vito's trigger from a Treasure sacrificed paying for Guardian of the Great Door resolves before the cast and counts toward "the second time this ability has resolved this turn"
-		{"mana_float_unspent_observed_source", false, false},    // CR 601.2h: Barracks of the Thousand's mana floated by the X witness and left unspent (Jadelight Spelunker at X=0) is not mana that paid the cast
+		{"granted_sac_host_cost_poses_no_choice", false, false},       // CR 602.2b, 701.21a: Deconstruction Hammer's granted "Sacrifice Deconstruction Hammer" cost has one possible payment, so it is paid without a choice after the targets
+		{"attack_trigger_pump_skips_returned_attacker", false, false}, // CR 400.7: Grasping Shadows' attack trigger does not grant deathtouch and lifelink to Aclazotz once it died and returned as Temple of the Dead
+		{"payment_trigger_counts_its_resolution", false, false},       // CR 603.2, 605.3b: Vito's trigger from a Treasure sacrificed paying for Guardian of the Great Door resolves before the cast and counts toward "the second time this ability has resolved this turn"
+		{"mana_float_unspent_observed_source", false, false},          // CR 601.2h: Barracks of the Thousand's mana floated by the X witness and left unspent (Jadelight Spelunker at X=0) is not mana that paid the cast
 	})
 }
 
