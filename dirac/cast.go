@@ -229,6 +229,9 @@ func (s *State) pushBuild(k *prep) {
 			s.unprepareCast(e.obj) // CR 722.3c (face_prepare.go)
 		}
 		s.bld().pushNP = uint8(s.npend)
+		if ob.zone == kop.ZoneLibrary {
+			s.bld().libPos = s.pl[ob.owner()].libIndex(e.obj)
+		}
 		s.detach(e.obj)
 		s.touch(e.obj)
 		if s.g.on {
@@ -327,7 +330,7 @@ func (s *State) unpushSpell(k *prep) {
 		pl.exile[pl.exileN] = o
 		pl.exileN++
 	case kop.ZoneLibrary:
-		pl.libTop(o)
+		pl.libInsert(o, s.bld().libPos) // CR 733.2: back where it was, not on top
 	case kop.ZoneSideboard:
 		// outside the game: no list, the object's zone is its place
 	default:

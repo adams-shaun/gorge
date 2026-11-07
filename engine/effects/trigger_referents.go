@@ -275,6 +275,13 @@ type TriggerContext struct {
 	// cast in response to the trigger do not add copies. Zero outside a
 	// storm trigger.
 	TriggerStormCount int32
+	// TriggerIncrementSpent is the mana spent to cast the triggering spell,
+	// captured when an Increment trigger fires (CR 702.191a). Increment's
+	// condition is an intervening "if" (CR 603.4) rechecked as the ability
+	// resolves, and the spend is event-relative: no state at resolution can
+	// re-derive it, so it travels with the ability like TriggerStormCount.
+	// Zero outside an Increment trigger.
+	TriggerIncrementSpent int32
 	// TriggerPaidX snapshots the paid X of TriggerCard when this trigger
 	// matched. CR 107.3m binds that value at trigger time: it must survive if
 	// the card later leaves the stack or battlefield before the ability

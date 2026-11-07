@@ -38,7 +38,7 @@ func (s *State) FeatEnterSource() Obj {
 		return s.cold.parked[0].obj
 	case resolving && s.res.ask == raGenEnchant:
 		return s.enchantingObj(s.k())
-	case s.g.pre.state == 1 || resolving && (s.res.ask == raGenTokChoice || s.res.ask == raGenRetChoice):
+	case s.preAskPosed() || resolving && (s.res.ask == raGenTokChoice || s.res.ask == raGenRetChoice):
 		return s.g.pre.obj
 	case resolving && s.res.ask == raGenEntryOrder || s.ctl == ctlGenAsk && s.entryAsked(s.k()):
 		return s.g.ro.entObj()

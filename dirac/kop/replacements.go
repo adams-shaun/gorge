@@ -11,6 +11,7 @@ const (
 	ReplDmgRaise                 // raise instead of add: damage less than the host's power becomes the host's power (Ojer Axonil; Repl.A unused)
 	ReplDmgSrcInPlay             // ReplDoubleDamageToOpps: the source must be a permanent (ValidSource$ inZoneBattlefield)
 	ReplDmgCtrHost               // ReplDamagePlus: Repl.A is a counter kind; the amount added is the host's count of that kind at application time (Fated Firepower)
+	ReplDmgPowHost               // ReplDamagePlus: the amount added is the host's power at application time (Repl.A unused; Hawkeye, Young Avenger)
 )
 
 // ReplKind is a replacement-lite effect's kind (the kernel's narrow form of
