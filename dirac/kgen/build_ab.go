@@ -1595,6 +1595,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			if s.AbilityRed == 3 {
 				st.B |= kop.ReduceAbUnlock
 			}
+			if s.AbilityRed == 4 {
+				st.B |= kop.ReduceAbPowerUp
+			}
 			st.B |= int16(s.MinMana) << kop.ReduceAbMinShift
 			break
 		}

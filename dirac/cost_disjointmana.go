@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // The cost objects of an activation are disjoint from the mana that pays
 // it (sacmana). gorge prices an activated ability's mana with the
@@ -13,6 +17,51 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // "tapped"). A permanent tapped for its own (non-sacrificing) mana can
 // still be sacrificed (CR 602.2b; Makeshift Munitions' artifact land).
 //
+// scriptGapAvail adds sl's contribution to the gaps walk (availScript), the
+// units a scripted prefix search would tap it for. costPartDisjoint reads it
+// to withhold a tapX part's candidates from that mana: a permanent tapped for
+// its mana is not also the untapped creature the part taps
+// (CR 601.2g-h; gorge planEachReservation's tap reservation).
+func (s *State) scriptGapAvail(k *prep, p uint8, sl Slot, a *avail) {
+	c := s.cardAt(sl)
+	if s.scriptGaps(k, p).has(sl) {
+		out := s.eachColorOut(k, p, sl)
+		for col := 0; col < 5; col++ {
+			if out&(1<<col) != 0 {
+				a.addUnits(1<<col, 1)
+			}
+		}
+	}
+	if s.scriptRestr(k, p).has(sl) {
+		if k.gen.has(c, gfDeferred) {
+			a.addUnits(1<<kop.R, 1)
+		} else {
+			ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]
+			a.addUnits(1<<bits.TrailingZeros8(uint8(ab.ManaColors)), max(ab.ManaN, 1))
+		}
+	}
+	if s.scriptTapsDefer(k, p).has(sl) {
+		pc := s.manaPCGen(k, sl)
+		a.addUnits(s.srcMaskAt(pc, sl), pc.manaN)
+	}
+	if k.ctrMana && s.scriptCtr(k, p).has(sl) {
+		pc := &k.cards[c]
+		if k.t.Cards[c].Abilities[pc.manaAb].ManaEach {
+			for col := 0; col < kop.NumManaKinds; col++ {
+				if uint8(pc.manaCol)&(1<<col) != 0 {
+					a.addUnits(1<<col, pc.manaN)
+				}
+			}
+		} else {
+			a.addUnits(uint8(pc.manaCol), pc.manaN)
+		}
+	}
+	if s.scriptTapXModelled(k, p).has(sl) {
+		pc := &k.cards[c]
+		a.addUnits(uint8(pc.manaCol), pc.manaN)
+	}
+}
+
 // costManaDisjoint reports whether some N candidates of a's Sac or TapX
 // part leave av (the mana walk's availability, the source's own {T}
 // already taken out) able to pay a's mana. A candidate whose use takes
@@ -46,6 +95,24 @@ func (s *State) costPartDisjoint(k *prep, p uint8, sl Slot, c *kop.Cost, mana *k
 		pc := s.manaPCAt(k, x)
 		sacOnly := s.canSacOnlyNow(k, x, pc)
 		if !s.canTapForManaPC(k, x, pc) && !sacOnly || !tapX && !(pc.manaSac || sacOnly) {
+			if tapX && k.gen != nil && s.g.availX&availGaps != 0 {
+				// A scripted gap source's mana is in the gaps walk without a
+				// plain tap profile (Bloom Tender's each-colour ability): the
+				// unit it adds is the same permanent the tapX part taps
+				// (CR 601.2g-h, gorge planEachReservation), so it is not a
+				// free candidate.
+				var gap avail
+				s.scriptGapAvail(k, p, x, &gap)
+				if gap.total > 0 {
+					if nc == len(cons) {
+						free++ // beyond the bound: counted free (never reached in the corpus pools)
+						continue
+					}
+					cons[nc] = x
+					nc++
+					continue
+				}
+			}
 			free++
 			continue
 		}
@@ -74,6 +141,13 @@ func (s *State) costPartDisjoint(k *prep, p uint8, sl Slot, c *kop.Cost, mana *k
 			x := cons[idx[i]]
 			pc := s.manaPCAt(k, x)
 			s.removeSrc(k, &r, x, pc)
+			if tapX && k.gen != nil && s.g.availX&availGaps != 0 {
+				var gap avail
+				s.scriptGapAvail(k, p, x, &gap)
+				for j := 0; j < gap.n; j++ {
+					r.remove(gap.mask[j], gap.cnt[j])
+				}
+			}
 		}
 		if r.affords(mana, pm, 0) {
 			return true
