@@ -954,7 +954,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			s.replCombatGen(k, &r) // amounts first, then prevention
 		}
 		s.preventCombatGen(k, &r)
-		s.noteCmdDamage(&r)
+		s.noteCmdDamagePass(&r)
 		if s.g.ro.on {
 			return s.replOrderCombat(k, &r)
 		}
@@ -963,7 +963,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		}
 	}
 	if k.gen == nil {
-		s.noteCmdDamage(&r)
+		s.noteCmdDamagePass(&r)
 	}
 	// apply simultaneously
 	m := s.occ
