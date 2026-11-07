@@ -870,12 +870,19 @@ func (s *State) sacHostCost(k *prep, e *stackEntry) {
 	}
 }
 
-// priorityGenReadsAv reports whether priorityGen can read its availability
-// picture on p's turn: a play permission, a graveyard or hand activation, or
-// a granted ability. availFor has no other effect except a dynamic or
-// granted-land-type source's stall, which a table without those cannot raise.
+// priorityGenReadsAv reports whether priorityGen must build its own
+// availability picture for p: priorityGen reads it (a play permission, a
+// graveyard or hand activation, a granted ability), or availFor itself can
+// stall (capFull/stall) on this table: a one-colour source census
+// (addOneColour), a tap-extra rider (srcExtra), a continuous or granted mana
+// ability (availGrant, manaPCGen's grantIdx), a Taps-deferred source, the
+// pain/Phyrexian extension (availExt), the script census (availScript), a
+// dynamic or granted-land-type source (varPC, blgOn). Without any of these,
+// availFor is a pure read whose result priorityGen never uses.
 func (s *State) priorityGenReadsAv(k *prep, p uint8) bool {
 	g := k.gen
 	return s.g.nmay != 0 || g.anyMayPlay || g.anyGraveAct || g.anyHandAct || g.blgOn || len(g.varPC) != 0 ||
+		k.manaOne || g.anyTapExtra || g.anyContGrant || len(g.grantPC) != 0 || g.anyTapsDefer ||
+		k.availExt || k.painMana || s.g.availX&3 != 0 ||
 		g.anyGrant && s.ctrlM[p].any() && s.grantsLive(k)
 }

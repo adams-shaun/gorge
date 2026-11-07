@@ -157,6 +157,9 @@ type prep struct {
 	// manaEach: some card's mana ability adds several colours at once
 	// (pcard.manaXv): its extra rides the tap-extra paths (genPrep.anyTapExtra)
 	manaEach bool
+	// manaOne: some card's printed mana ability makes several mana of one
+	// chosen colour (pcard.manaOne): availFor's one-colour census can stall
+	manaOne bool
 	// anyUncounter: some card carries ReplSpellsCantBeCountered; OpCounter
 	// scans the battlefield for it (repl_uncounterable.go)
 	anyUncounter bool
@@ -289,6 +292,7 @@ func prepare(t *kop.Table) *prep {
 						pc.manaN = 1
 					}
 					pc.manaOne = manaOneColour(a, pc.manaN)
+					p.manaOne = p.manaOne || pc.manaOne
 					if a.ManaEach && !kop.CtrEachManaAb(a) { // (a counter-cost one keeps its whole mask: mana_countercost.go)
 						prepEachMana(a, pc)
 						p.manaEach = true
