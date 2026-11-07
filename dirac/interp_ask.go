@@ -1871,6 +1871,19 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 	return true
 }
 
+// heldPark keeps the outermost frame hr open across a park before a take:
+// the entrants so far wait, enters checks held, for the cards entering after
+// the answer, and the pass run again from it (finishDigAt sees batchHeld
+// still set) fires them all at the dig's end (CR 603.6a). true: the frame is
+// left open.
+func (s *State) heldPark(hr holdRec) bool {
+	if !hr.on || hr.h != 0 {
+		return false
+	}
+	s.g.retTS = hr.ts
+	return true
+}
+
 func (s *State) digHasPick(k *prep) bool {
 	f := s.prog(k)[s.res.pc].F
 	for i := 0; i < int(s.g.nlook); i++ {
@@ -1910,7 +1923,9 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 	deferred := false // a parked tail keeps the entrants' checks held for the answer
 	if z == kop.ZoneBattlefield {
 		// gorge effDig's zone batch: the taken cards enter together (CR 603.6a)
-		if resume {
+		if resume || s.g.batchLatch&batchHeld != 0 {
+			// resume, or a pass run again from the answer to a park before
+			// a take (heldPark), which left the frame open
 			hr = holdRec{on: true, ts: s.g.retTS}
 		} else {
 			hr = s.holdEntries()
@@ -1932,12 +1947,15 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 				continue
 			}
 			if z == kop.ZoneBattlefield && park && s.cloneReturnPark(k, o, s.objs[o].owner()) {
+				deferred = s.heldPark(hr)
 				return true
 			}
 			if z == kop.ZoneBattlefield && park && s.entryParkDig(k, o, p) {
+				deferred = s.heldPark(hr)
 				return true // the CR 616.1 entry-order ask, the card still in the library (repl_entryorder.go)
 			}
 			if z == kop.ZoneBattlefield && park && s.digAuraPark(k, o, p) {
+				deferred = s.heldPark(hr)
 				return true // CR 303.4f: the Aura waits in the library for its controller's choice of what it enchants
 			}
 			if z == kop.ZoneBattlefield && s.digAuraStays(k, o, p) {
