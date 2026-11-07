@@ -24,6 +24,21 @@ func (s *State) graveTypes(k *prep, p uint8, uncounted Obj) int {
 	return bits.OnesCount32(uint32(m))
 }
 
+// graveCards counts the cards in player p's graveyard. A token or copy that
+// has reached the graveyard waits there for the next state-based check
+// (CR 704.5d) and is no card (CR 111.7), so it does not count; gorge's
+// state.Game.CardCount makes the same exclusion.
+func (s *State) graveCards(p uint8) int {
+	n := 0
+	pl := &s.pl[p]
+	for i := 0; i < int(pl.graveN); i++ {
+		if s.objs[pl.grave[i]].of&(ofToken|ofCopy) == 0 {
+			n++
+		}
+	}
+	return n
+}
+
 // Count$ValidGraveyard <spec>$CardTypes and
 // $CardTypesPermanent (Tarmogoyf, Broodspinner, Matzalantli). Cold code,
 // out of line.
