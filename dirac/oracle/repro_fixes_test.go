@@ -182,22 +182,23 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 func TestStdFdnReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-fdn", []stdRepro{
-		{"surveil_own_replacement", true, false},                // a surveil's graveyard pile meets Darksteel Colossus's "from anywhere"
-		{"color_gate_made_black", true, false},                  // Knight of Grace counts what Eaten by Piranhas made black
-		{"color_gate_recoloured", true, false},                  // ... and not what Witness Protection made green and white
-		{"exile_instead_planeswalker", true, false},             // CR 700.4: a planeswalker with no loyalty dies, so Obliterating Bolt exiles it
-		{"lifelink_plus_per_source", true, false},               // two lifelink sources are two gains, each with Angel of Vitality's plus one
-		{"lost_ability_no_shuffle", true, false},                // CR 613.1f: Witness Protection on Darksteel Colossus: it dies
-		{"damage_map_per_recipient", true, false},               // Niv-Mizzet draws for the 3 to the opponent, not Drakuseth's whole 10
-		{"copies_enter_together", true, false},                  // CR 603.6a: each of Rite of Replication's five sees the other four
-		{"flashback_restricted_source", true, false},            // Secluded Courtyard's any colour cannot pay Mystical Teachings' printed flashback
-		{"granted_any_mana_beside_own_trigger_x", false, false}, // New Horizons on a Forest adds an any-colour ability beside its own, so Wildborn Preserver's "you may pay {X}" counts it in the potential pool as gorge's walk does
-		{"trigger_paid_x_zero_binds", false, false},             // CR 107.3: Wildborn Preserver paid X = 0 puts no counters, whatever X the creature that triggered it was cast with
-		{"dies_trigger_reads_attacking_lki", true, false},       // CR 603.10a: Garna, Bloodfist of Keld draws for a Perforating Artist that died attacking, its last known status
-		{"any_type_rider_hybrid_pips", true, false},             // CR 107.4e, 601.2b: Tinybones lets any mana pay Teach by Example's two hybrid pips, so W and B afford the cast
-		{"name_look_ack_mid_resolution", true, false},           // CR 608.2n: a copy token's looked-hand name ask is acknowledged while the creating ability is still on the stack
-		{"emblem_grant_after_ability_loss", false, false},       // CR 613.7: Vivien Reid's emblem, created after Witness Protection took Llanowar Elves' abilities, is the newer layer-6 effect, so its vigilance, trample and indestructible survive the loss
-		{"unless_discard_is_effect_discard", true, false},       // CR 118.12: discarding Wilt-Leaf Liege to an opponent's Perforating Artist "unless" is that ability's discard, so the Liege enters the battlefield
+		{"surveil_own_replacement", true, false},                     // a surveil's graveyard pile meets Darksteel Colossus's "from anywhere"
+		{"color_gate_made_black", true, false},                       // Knight of Grace counts what Eaten by Piranhas made black
+		{"color_gate_recoloured", true, false},                       // ... and not what Witness Protection made green and white
+		{"exile_instead_planeswalker", true, false},                  // CR 700.4: a planeswalker with no loyalty dies, so Obliterating Bolt exiles it
+		{"lifelink_plus_per_source", true, false},                    // two lifelink sources are two gains, each with Angel of Vitality's plus one
+		{"lost_ability_no_shuffle", true, false},                     // CR 613.1f: Witness Protection on Darksteel Colossus: it dies
+		{"damage_map_per_recipient", true, false},                    // Niv-Mizzet draws for the 3 to the opponent, not Drakuseth's whole 10
+		{"copies_enter_together", true, false},                       // CR 603.6a: each of Rite of Replication's five sees the other four
+		{"flashback_restricted_source", true, false},                 // Secluded Courtyard's any colour cannot pay Mystical Teachings' printed flashback
+		{"granted_any_mana_beside_own_trigger_x", false, false},      // New Horizons on a Forest adds an any-colour ability beside its own, so Wildborn Preserver's "you may pay {X}" counts it in the potential pool as gorge's walk does
+		{"trigger_paid_x_zero_binds", false, false},                  // CR 107.3: Wildborn Preserver paid X = 0 puts no counters, whatever X the creature that triggered it was cast with
+		{"dies_trigger_reads_attacking_lki", true, false},            // CR 603.10a: Garna, Bloodfist of Keld draws for a Perforating Artist that died attacking, its last known status
+		{"any_type_rider_hybrid_pips", true, false},                  // CR 107.4e, 601.2b: Tinybones lets any mana pay Teach by Example's two hybrid pips, so W and B afford the cast
+		{"name_look_ack_mid_resolution", true, false},                // CR 608.2n: a copy token's looked-hand name ask is acknowledged while the creating ability is still on the stack
+		{"emblem_grant_after_ability_loss", false, false},            // CR 613.7: Vivien Reid's emblem, created after Witness Protection took Llanowar Elves' abilities, is the newer layer-6 effect, so its vigilance, trample and indestructible survive the loss
+		{"unless_discard_is_effect_discard", true, false},            // CR 118.12: discarding Wilt-Leaf Liege to an opponent's Perforating Artist "unless" is that ability's discard, so the Liege enters the battlefield
+		{"name_look_ack_mid_resolution_copy_spyglass", false, false}, // CR 614.12: Extravagant Replication's copy of Sorcerous Spyglass, entering mid-resolution, asks the name after the look at the hand, the trigger still on the stack
 	})
 }
 
@@ -469,6 +470,7 @@ func TestStdDftReprosLockstep(t *testing.T) {
 		{"tap_power_value_lost_with_abilities", true, false},       // CR 613.1f: Interface Ace under Flood the Engine has lost its crew-with-toughness static, so its 0 power does not crew Rangers' Refueler
 		{"lookback_player_turn_uses_lki_controller", false, false}, // CR 603.10a: a stolen Ketramose exiled from the battlefield on its thief's turn triggers for the thief (PlayerTurn$ reads the last-known controller)
 		{"returned_aura_host_before_paid_draw", false, false},      // CR 303.4f, 610.3: sacrificing Perilous Snare pays Chandra's "if you do, draw": its exiled Aura's host answer comes before the draw, as gorge asks it mid-payment
+		{"lost_abilities_tappower_bonus", false, false},            // CR 613.1f: a Pilot token under Flood the Engine loses the TapPowerValue static, so it contributes its printed power to a Saddle cost
 	})
 }
 
@@ -535,6 +537,7 @@ func TestStdPoolReprosLockstep(t *testing.T) {
 		{"granted_types_any_land_census_position", "std-mkm"},           // Leyline of the Guildpact: Public Thoroughfare (Produced$ Any) is listed with the fixed sources, so the plan taps Plains, not the Thoroughfare
 		{"delayed_return_skips_object_blinked_since", "std-fin"},        // CR 400.7: Random Encounter's end-step return finds Y'shtola Rhul already exiled and returned by her own trigger, a new object
 		{"returned_creature_was_not_dealt_damage", "std-fin"},           // CR 400.7: Qutrub Forayer raised after combat damage killed it is dealt no damage this turn, so its destroy mode has no target
+		{"echo_copied_equip_offers_its_own_source", "std-msh"},          // CR 301.5c, 707.10c: Echo's copy of Vibranium Energy Daggers' Equip never offers the animated Daggers itself
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, true, false)
