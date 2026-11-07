@@ -333,6 +333,15 @@ func (e *Engine) emit(ev events.Event) events.Event {
 					lkiTypes = lkiTypeList{id: o.ID, types: e.typeCharacteristics(o.ID, 0), set: true}
 				}
 			}
+			// CR 603.10a also makes "leaves your graveyard" triggers look
+			// back in time: the same move can return the card as a
+			// non-creature permanent (Tom, Bert, and William's return
+			// animates it into an artifact), so the pre-move type list is
+			// what a watcher's ValidCard$ must read.
+			if e.layer4InPool && ev.Kind == events.MoveZone && o.Zone == state.ZGraveyard &&
+				ev.To != state.ZGraveyard && o.Face() != nil {
+				lkiTypes = lkiTypeList{id: o.ID, types: e.typeCharacteristics(o.ID, 0), set: true}
+			}
 		}
 	case events.DoorUnlock:
 		// CR 709.5: Mode$ FullyUnlock (engine/rules/trigmatch/room.go) must tell a

@@ -1335,27 +1335,28 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 		cost.Phyrexian = nil
 	}
 	scope := abilityScope(ab)
-	composed := e.offerCostFor(p, id, cost, scope)
+	statics := e.collectCostStatics()
+	composed := e.offerCostForUsing(statics, p, id, cost, scope)
 	out := e.planComposedCost(p, id, composed, true, true)
-	if out.Reason == "insufficient" {
-		// CR 601.2f: a ValidTarget$ cost static prices the activation by its
-		// announced target (Cloud, Planet's Champion's "equip abilities that
-		// target Cloud cost {2} less"), so the untargeted composition can be
-		// unpayable while some single-target announcement is payable. The
-		// offer gate already retries with each potential target
-		// (offerCastableUsingExtra); witness the same announcement here, as
-		// potentialTargetPricedPlan does for a cast.
-		if statics := e.collectCostStatics(); statics.validTarget {
-			if _, max := targetBounds(ab); max == 1 {
-				e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
-					var c Cost
-					e.composedOfferCostInto(&c, p, id, &cost, &m, scope)
-					if got := e.planComposedCost(p, id, c, true, true); got.Plan != nil && got.Reason == "" {
-						out = got
-						return true
-					}
-					return false
-				})
+	if (out.Plan == nil || out.Reason != "") && statics.validTarget {
+		// No plan at the untargeted price: a ValidTarget$ cost static
+		// (Cloud, Planet's Champion's "Equip abilities that target Cloud cost
+		// {2} less") is absent from the pre-target composition, but some legal
+		// target's price may be payable (CR 601.2c, 601.2f), and the offer
+		// gate's potential-target retry prices it (offerCastableUsing). The
+		// target is not chosen at offer time, so each potential target's price
+		// is tried and the first payable plan is the offer's witness. The
+		// chosen target's cost is repriced before payment (rearmAutoPay).
+		// Only a single-target announcement is priced this way: the retry
+		// tests each candidate as the sole selection, which does not price a
+		// multi-target ability.
+		if _, max := targetBounds(ab); max == 1 {
+			var potential PaymentPlanOutcome
+			if _, ok := e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
+				potential = e.planComposedCost(p, id, e.composedOfferCost(p, id, cost, m, scope), true, true)
+				return potential.Plan != nil && potential.Reason == ""
+			}); ok {
+				return potential
 			}
 		}
 	}

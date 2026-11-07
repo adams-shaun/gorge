@@ -671,12 +671,13 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpGainControl:
 		s.opGainControl(k, in)
 	case kop.OpOverride:
+		if in.B.N == kop.OvEnterWith && s.g.ewDone {
+			s.g.ewDone = false
+			break // applied as the return entered (enterAssimilated)
+		}
 		if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
 			s.overrideRemembered(k, in) // zone_changezoneall.go: every remembered object
 			break
-		}
-		if in.B.N == kop.OvEnterWith {
-			break // applied as the return entered (execReturnObj)
 		}
 		// objRef is the one resolver of "the same object on the battlefield":
 		// a Self record whose object left and came back names a new object
@@ -1498,7 +1499,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	}
 	var sl Slot
 	switch {
-	case s.enterWithOverride(k, in):
+	case s.g.retAt == 0 && s.g.batchLatch&batchHeld == 0 && s.enterWithOverride(k, in):
 		sl = s.enterAssimilated(k, o, ctrl, from)
 	case s.g.retAt != 0:
 		sl = s.enterNF(k, o, ctrl, fl&kop.MvTapped != 0, from, 0)
