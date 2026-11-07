@@ -432,6 +432,11 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"delayed_trigger_departed_source_lifelink", false, false},
 		// CR 601.2f-g: Valkyrie Aerial Unit's affinity counts both Treasures before one is sacrificed for mana, so {2}{U}{U} is payable
 		{"count_reduction_fixed_before_treasure_mana", true, false},
+		// CR 601.2f: Cloud, Planet's Champion's ValidTarget$ discount makes Paladin's Arms' Equip {4} payable from three untapped sources when it targets Cloud
+		{"target_priced_equip_from_untapped_lands", true, false},
+		{"reversal_past_graveyard_exile_replacement", true, false},
+		{"hidden_land_as_enters_choice_in_exile", true, false},
+		{"instant_cast_lowering_life_run_trigger_below", false, false},
 		// CR 601.2f, 602.2b: Cloud's {2} discount for an equip targeting it makes Ultima Weapon's Equip {7} payable from five lands
 		{"equip_target_reduction_payable_from_lands", true, false},
 		{"equip_target_reduction_payable_full_surface", false, false}, // CR 601.2f, 602.2b: the same equip offer on the full surface

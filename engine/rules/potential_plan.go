@@ -1339,22 +1339,23 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	composed := e.offerCostForUsing(statics, p, id, cost, scope)
 	out := e.planComposedCost(p, id, composed, true, true)
 	if out.Reason == "insufficient" && statics.validTarget {
-		// A ValidTarget$ reducer (Dwarven Mauler's "equip abilities that
-		// target this creature cost {2} less") is absent from the pre-target
-		// composition, but CR 601.2f prices the activation after its target
-		// is chosen (CR 602.2b), so one legal target may make it payable:
-		// plan one target at a time, as potentialTargetPricedPlan does for a
-		// spell and offerCastableUsing's retry does for the offer gate. The
-		// target ask then reprices the chosen target (rearmAutoPay).
-		e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
-			var c Cost
-			e.composedOfferCostInto(&c, p, id, &cost, &m, scope)
-			if got := e.planComposedCost(p, id, c, true, true); got.Plan != nil && got.Reason == "" {
-				out = got
-				return true
+		// A target-dependent reducer (an equip discount for one creature) is
+		// absent from the pre-target composition, but the offer gate's
+		// potential-target retry prices it (offerCastableUsing): plan the
+		// cheapest such announcement too, so the offer has its witness. The
+		// chosen target's cost is repriced before payment (rearmAutoPay).
+		// Only a single-target announcement is priced this way: the retry
+		// tests each candidate as the sole selection, which does not price a
+		// multi-target ability.
+		if _, max := targetBounds(ab); max == 1 {
+			var potential PaymentPlanOutcome
+			if _, ok := e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
+				potential = e.planComposedCost(p, id, e.composedOfferCost(p, id, cost, m, scope), true, true)
+				return potential.Reason == ""
+			}); ok {
+				return potential
 			}
-			return false
-		})
+		}
 	}
 	if out.Reason != "insufficient" || cost.Waterbend <= 0 {
 		return out
