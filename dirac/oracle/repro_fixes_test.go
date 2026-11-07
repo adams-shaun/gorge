@@ -427,6 +427,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 
 		{"free_cast_owes_either_or_additional_cost", true, false},      // CR 601.2b, 118.9d: Kinsbaile Aspirant cast free from Maralen's exile still owes behold or {2}; with neither payable it is not offered
 		{"either_or_mana_part_spends_restricted_source", false, false}, // CR 106.6, 601.2f: Kinsbaile Aspirant's {2} part with its {W} is affordable through Eclipsed Realms' chosen-type mana
+		{"repeat_loss_after_static_grant", false, false},               // CR 613.7: Abigale's second loss of abilities, after Chronicle of Victory entered, is newer than its first-strike-and-trample grant and takes it away from Prideful Feastling
 	})
 }
 
