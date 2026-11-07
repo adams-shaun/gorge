@@ -145,13 +145,21 @@ func (s *State) lossAt(k *prep, sl Slot) (ts uint16, lost bool) {
 }
 
 // grantTs is the layer timestamp of a static ability's grant: its source
-// permanent's, and 0 for an emblem's (gorge stamps a static effect with its
-// source object's battlefield entry, which an emblem never has).
+// permanent's, or when the emblem statSrc names, the effect's CR 613.7
+// timestamp recorded when it was created (State.g.embT). An emblem is a
+// continuous effect created at resolution (gorge's AddContinuous ClockTick),
+// so it is newer than every effect that was already on the battlefield when
+// it entered -- and older than one that comes later.
 func (s *State) grantTs(st statSrc) uint16 {
-	if st.sl == NoSlot {
-		return 0
+	if st.sl != NoSlot {
+		return s.layerTs(st.sl)
 	}
-	return s.layerTs(st.sl)
+	if st.emb != 0 {
+		if p, i := st.emb>>3, st.emb&7; p < 2 && i > 0 && i <= maxEmb {
+			return s.g.embT[p][i-1]
+		}
+	}
+	return 0
 }
 
 // genLost reports whether the permanent at sl has lost all abilities, or is

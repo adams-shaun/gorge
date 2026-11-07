@@ -1014,6 +1014,7 @@ func (s *State) FeatStaticKey() uint64 {
 		for i := 0; i < int(s.g.nemb[p]); i++ {
 			h = hmix(h, uint64(s.g.emb[p][i]))
 			h = hmix(h, uint64(s.g.embN[p][i])) // the frozen chosen number
+			h = hmix(h, uint64(s.g.embT[p][i])) // the layer timestamp
 		}
 	}
 	if s.statM.any() || s.g.nemb[0]+s.g.nemb[1] != 0 {

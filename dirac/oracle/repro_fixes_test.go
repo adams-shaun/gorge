@@ -190,6 +190,7 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"dies_trigger_reads_attacking_lki", true, false},       // CR 603.10a: Garna, Bloodfist of Keld draws for a Perforating Artist that died attacking, its last known status
 		{"any_type_rider_hybrid_pips", true, false},             // CR 107.4e, 601.2b: Tinybones lets any mana pay Teach by Example's two hybrid pips, so W and B afford the cast
 		{"name_look_ack_mid_resolution", true, false},           // CR 608.2n: a copy token's looked-hand name ask is acknowledged while the creating ability is still on the stack
+		{"emblem_grant_after_ability_loss", false, false},       // CR 613.7: Vivien Reid's emblem, created after Witness Protection took Llanowar Elves' abilities, is the newer layer-6 effect, so its vigilance, trample and indestructible survive the loss
 	})
 }
 

@@ -1540,6 +1540,7 @@ type genState struct {
 	embC [2][maxEmb]CardID // the card that created it (its latent abilities run the emblem's triggers)
 	embO [2][maxEmb]Obj    // that card's object (the source of the emblem's triggers)
 	embN [2][maxEmb]uint8  // the Effect's frozen SetChosenNumber$
+	embT [2][maxEmb]uint16 // the emblem's CR 613.7 layer timestamp, set at creation (static_layer6.go)
 	nemb [2]uint8
 	qgO  [qgN]uint8 // exile grants (Q, Stacking the Deck): the granted exiled object+1, 0 = free (cast_exilegrant.go)
 	qgV  [qgN]uint8 // each grant's object version: stale once the card left exile
