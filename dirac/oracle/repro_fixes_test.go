@@ -426,6 +426,9 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"delayed_trigger_departed_source_lifelink", false, false},
 		// CR 601.2f-g: Valkyrie Aerial Unit's affinity counts both Treasures before one is sacrificed for mana, so {2}{U}{U} is payable
 		{"count_reduction_fixed_before_treasure_mana", true, false},
+		// CR 601.2f, 602.2b: Cloud's {2} discount for an equip targeting it makes Ultima Weapon's Equip {7} payable from five lands
+		{"equip_target_reduction_payable_from_lands", true, false},
+		{"equip_target_reduction_payable_full_surface", false, false}, // CR 601.2f, 602.2b: the same equip offer on the full surface
 	})
 }
 
@@ -502,9 +505,10 @@ func TestStdLciReprosLockstep(t *testing.T) {
 func TestStdSpmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-spm", []stdRepro{
-		{"tapcost_source_not_paid_with_itself", false, false},             // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
-		{"tap_two_forced_answer_taps_the_plays_own_source", false, false}, // CR 602.2b: the Parents' second activation has exactly two candidates, so nothing is asked and the forced tap takes Guy; the search drops that line and reaches the pair that leaves Spider Manifestation untapped within its budget
-		{"web_watch_exile_x_restricted_mana", true, false},                // CR 106.6, 601.2b: Morlun cast from exile under Interdimensional Web Watch's permission announces an X its two restricted mana pay for, as gorge's xAsk does
+		{"tapcost_source_not_paid_with_itself", false, false},              // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
+		{"tap_two_forced_answer_taps_the_plays_own_source", false, false},  // CR 602.2b: the Parents' second activation has exactly two candidates, so nothing is asked and the forced tap takes Guy; the search drops that line and reaches the pair that leaves Spider Manifestation untapped within its budget
+		{"web_watch_exile_x_restricted_mana", true, false},                 // CR 106.6, 601.2b: Morlun cast from exile under Interdimensional Web Watch's permission announces an X its two restricted mana pay for, as gorge's xAsk does
+		{"face_down_exile_played_face_up_not_creature_entry", true, false}, // CR 708.2: a land exiled face down by Black Cat and played face up enters as a land, not the 2/2 face-down creature, so Spider-UK's end-step count stays at 1
 	})
 }
 
