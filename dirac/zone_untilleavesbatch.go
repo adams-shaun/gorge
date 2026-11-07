@@ -153,7 +153,10 @@ func (s *State) finishHeldFrame(k *prep) {
 	if s.g.held != 0 {
 		s.fireHeld(k, s.g.retStamp)
 	}
-	s.batchClose(s.g.retOld)
+	// the caller that opened the batch has closed it already (holdClose
+	// returned before its own close): restoring retOld would re-open it, so
+	// only the batch holdClose itself opened is closed.
+	s.g.batchLatch &^= batchOpenMask | batchSac
 }
 
 // parkReturnAsk poses the ask of a return a departure frame parked

@@ -66,7 +66,7 @@ func assertFrameClosed(t *testing.T, sc *scen, q Obj, aura, tailSrc, late Obj) {
 	if z := s.objs[aura].zone; z != kop.ZoneBattlefield {
 		t.Fatalf("the Aura is in zone %d after the answer, want the battlefield", z)
 	}
-	if s.g.retHold || s.g.nretHeld != 0 || s.g.held != 0 || s.g.batchLatch&batchHeld != 0 {
+	if s.g.retHold || s.g.nretHeld != 0 || s.g.held != 0 || s.g.batchLatch&(batchHeld|batchOpenMask) != 0 {
 		t.Fatalf("after the answer retHold %v nretHeld %d held %#x latch %#x, want the frame closed",
 			s.g.retHold, s.g.nretHeld, s.g.held, s.g.batchLatch)
 	}

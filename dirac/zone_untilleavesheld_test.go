@@ -81,7 +81,7 @@ func TestLinkReturnsParkedHostAskKeepsBatch(t *testing.T) {
 	if n := batchPend(sc, q, ab); n != 1 {
 		t.Fatalf("%d Questcaller triggers after the answer, want 1: the Aura and both Rabbits are one entry batch", n)
 	}
-	if s.g.retHold || s.g.nretHeld != 0 || s.g.held != 0 || s.g.batchLatch&batchHeld != 0 {
+	if s.g.retHold || s.g.nretHeld != 0 || s.g.held != 0 || s.g.batchLatch&(batchHeld|batchOpenMask) != 0 {
 		t.Fatalf("after the answer retHold %v nretHeld %d held %#x latch %#x, want the frame closed",
 			s.g.retHold, s.g.nretHeld, s.g.held, s.g.batchLatch)
 	}
