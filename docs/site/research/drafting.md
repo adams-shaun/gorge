@@ -37,6 +37,8 @@ go run ./cmd/draftres -set FDN -pods 200 -seed 1 \
 | `signals[:w]` | committed plus a table-signal term of weight `w` |
 | `knob:k=v;...` | committed plus knobs: `cfm` colour-fit cap, `need` need weight, `sig` signal weight, `deny` hate-draft weight, `bias=G3/B-2` per-colour bias, `pbias=BG+1` per-pair bias (a card of exactly that pair); the same knobs are `pickbot.Tuning` keys a `knobs:<path>` JSON file sets |
 
+The human-deck gauntlet, `cmd/draftsim -gauntlet fdn-limited`, takes the same knob files as `-drafter knobs:<path>` and `-builder knobs:<path>`, and its `-ratings-file` applies to a knob-file drafter.
+
 Builders take the draftlab names (`balanced`, `best23`, ...). `balanced:main=;cmin=;cmax=;top=` sets the main-deck size, the creature floor and cap, and the cap on 6+ drops. Any variant or builder takes `+r=file#field` to read its ratings from a ratings file's `field` (default `gih`).
 
 ### Output and resume
