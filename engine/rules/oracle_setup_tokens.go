@@ -34,7 +34,7 @@ func (r *oracleRun) placeSetupTokens(tokens []oracleSetupToken, p int) error {
 		}
 		// Sorted raw kinds: two spellings of one kind emit two additive changes.
 		for _, kind := range sortedSetupKeys(tk.Counters) {
-			r.e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: normCounter(kind), Amount: tk.Counters[kind]})
+			r.e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: setupCounterKind(kind), Amount: tk.Counters[kind]})
 		}
 		r.e.emit(events.Event{Kind: events.SetupSettled, Obj: id})
 	}
