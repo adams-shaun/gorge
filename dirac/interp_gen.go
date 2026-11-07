@@ -1406,7 +1406,10 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		return false
 	}
 	ob := &s.objs[o]
-	if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || s.instantStays(k, o, kop.Zone(in.C)) {
+	// CR 304.4, 307.4: the instant/sorcery guard reads the zone alone; an
+	// OpReturnEx's C carries the move flags beside it (MvUnderYourControl,
+	// counters), and unmasked it is no longer ZoneBattlefield
+	if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || s.instantStays(k, o, kop.Zone(in.C&7)) {
 		return false
 	}
 	if ob.zone == kop.ZoneLibrary || in.B.N&kop.RetFromLibrary != 0 {

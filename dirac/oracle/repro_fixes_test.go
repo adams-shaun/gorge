@@ -434,6 +434,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"restricted_float_affords_unadmitted_payment", false, false},   // a floating restricted batch counts as affordable for a spell its restriction does not admit, so the kernel taps one source fewer and floats one pip less
 		{"restricted_float_paid_unadmitted_spell", false, false},        // the same admission check at the double-pip shape: a spell is paid straight out of the floating restricted pair both pips of which the payment may not touch
 		{"room_other_face_trigger_reads_cast_face_svars", false, false}, // an unlocked Room's other-face trigger resolves against the shown face's SVar table, so a Branch arm named only on its own face does nothing
+		{"return_ex_flags_hide_instant_stay", false, false},             // CR 304.4: OpReturnEx's C carries the move flags beside the zone, so the instant-stays guard read a non-battlefield zone and put a manifested instant back onto the battlefield
 	})
 }
 
