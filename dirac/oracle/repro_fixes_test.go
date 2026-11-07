@@ -430,6 +430,7 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"target_priced_equip_from_untapped_lands", true, false},
 		{"reversal_past_graveyard_exile_replacement", true, false},
 		{"hidden_land_as_enters_choice_in_exile", true, false},
+		{"instant_cast_lowering_life_run_trigger_below", false, false},
 	})
 }
 
