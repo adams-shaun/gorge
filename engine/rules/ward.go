@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/rules/resolve"
 
@@ -221,6 +222,25 @@ func (e *Engine) askWardObjects(rp *resumePoint, ctx *effects.Ctx, payer state.P
 	}
 	// A tape-served Ward election settles in line: the pick is the payment.
 	return e.settleWardPayment(kind, rp.sa, ctx, d.Chosen(tapeServe(e, d))), false
+}
+
+// WardCostPayableFromCtx is effWard's offer gate for a life ward (CR 119.4):
+// false when the payer cannot pay a PayLife<N> / PayLife<X/...> ward, so no
+// Pay is offered. Every other ward shape returns true.
+func (e *Engine) WardCostPayableFromCtx(payer state.PlayerID, raw string, ctx *effects.Ctx) bool {
+	var cost costvocab.Cost
+	if wardPayLifeX.MatchString(raw) {
+		cost = costvocab.Cost{Life: max(e.Power(ctx.Source), 0)}
+	} else {
+		var ok bool
+		if cost, ok = costvocab.ParseUnlessCost(raw); !ok {
+			return true
+		}
+	}
+	if cost.Life <= 0 || cost.HasManaPayment() || len(cost.Sac) > 0 || len(cost.Discard) > 0 || cost.X != 0 {
+		return true
+	}
+	return pay.UnlessCostValuePayable(asPayer(e), payer, cost, ctx, ctx.Source)
 }
 
 func (e *Engine) wardPayer(ctx *effects.Ctx) (state.PlayerID, bool) {

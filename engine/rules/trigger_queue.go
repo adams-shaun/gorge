@@ -1937,7 +1937,19 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 	eligible := effects.CharmEligibleModes(e, source, sa, choices)
 	eligible = triggerModesWithTargets(e, p, obj, svars, eligible)
 	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(eligible))
-	if len(eligible) == 0 || max < 1 || (min > len(eligible) && !repeat) {
+	if max < 1 && effects.CharmCountReadsTriggeringSpell(ctx, sa) {
+		// the placement ctx carries no triggering spell, so a count that
+		// reads it (Riku's NumTimesChoseMode) is 0 here and resolves later;
+		// keep the one-mode ask ceiling rather than dropping the trigger.
+		// Any other count is real at placement: "choose up to zero" picks no
+		// mode (CR 700.2a) and the trigger is removed (CR 603.3c) below.
+		max = 1
+	}
+	if max < 1 {
+		removeModelessTrigger(e, obj)
+		return true
+	}
+	if len(eligible) == 0 || (min > len(eligible) && !repeat) {
 		removeModelessTrigger(e, obj)
 		return true
 	}

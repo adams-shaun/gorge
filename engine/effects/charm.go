@@ -56,6 +56,17 @@ func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int, r
 	return min, max, repeat
 }
 
+// CharmCountReadsTriggeringSpell reports whether the Charm's CharmNum$ (a
+// literal or an SVar name in c's table) reads TriggeredSpellAbility$, which a
+// trigger-placement ctx cannot yet answer.
+func CharmCountReadsTriggeringSpell(c *Ctx, sa *cards.SA) bool {
+	text := CharmOf(sa).CharmNum.Text
+	if body, ok := c.SVars[text]; ok {
+		text = body
+	}
+	return strings.Contains(text, "TriggeredSpellAbility$")
+}
+
 // CharmPawprints prices a modal ability's pawprint budget (CR 700.2i, CR
 // 107.18) over the named mode bodies: budget is the root ability's Pawprint$
 // value, and values[i] is names[i]'s body's own Pawprint$ cost (0 when the
