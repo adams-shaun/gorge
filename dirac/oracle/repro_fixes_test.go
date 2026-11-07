@@ -231,6 +231,7 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"control_untap_fires_equip_untaps", true, false},            // CR 701.21c, 603.2: Involuntary Employment untaps p0's Vanguard Seraph, so p0's Fishing Pole on it triggers
 		{"control_untap_fires_equip_untaps_two", true, false},        // ... and the same with Clinquant Skymage
 		{"effect_untap_fires_equip_untaps", true, false},             // ... and a resolved ability untapping Slumbering Cerberus triggers its Fishing Pole
+		{"combat_damage_past_int16_kills", true, true},               // CR 120.3, 704.5g: 32768 combat damage from Heroes' Bane kills the blocking Guttersnipe; the damage record saturates (StallPT past int16), never wraps
 		{"vizier_conversion_kicked_cast", true, false},               // CR 609.4b, 702.33: under Vizier of the Menagerie three Forests pay Gatekeeper of Malakir's kicked {B}{B}{B}, so the kicked cast is offered beside the plain one
 		{"vizier_conversion_kicked_cast_two", true, false},           // ... the same in another game
 		{"vizier_conversion_kicked_cast_three", true, false},         // ... and another
@@ -388,6 +389,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"filter_fee_from_granted_source", false, false},                   // CR 605.3a, 601.2g: a filter's {1} fee is funded by the play's granted {C} source, as gorge's one prefix search taps the census gaps in battlefield order
 		{"filter_fee_funded_by_grant_before_non_gap", false, false},        // CR 601.2g, 605.3a: White Lotus Hideout's {1} filter fee is paid with Honest Work's granted {C} (a census gap) before a non-gap Plains, as gorge's gap-first prefix search orders it
 		{"gated_mana_funds_activation", true, false},                       // CR 602.2b, 605.3a: White Lotus Hideout's {1},{T} any-colour ability funds Abandoned Air Temple's {3}{W},{T} fee beside the filter's own {1}, so dirac's scripted activation no longer outruns gorge's plan (c16ee5949)
+		{"tla_sacrificed_aura_enchanted_lki_reused_slot", true, false},     // CR 608.2h, 400.7: Path to Redemption, sacrificed to pay, names Raven Eagle as it last existed; Lost Days put the Eagle into the library and its Clue took the slot, so nothing is exiled
 		// CR 305.6, 605.1a: White Lotus Hideout under an Island grant lists gorge's seven node-limited alternatives ({C}, the granted {U}, the admitted any-colour ability's five), not its {1},{T} filter's or a WUBRG intrinsic run, so the alternative array no longer overflows
 		{"plan_alts_lotus_hideout_island_grant", true, false},
 		{"plan_alts_lotus_hideout_island_grant_late", true, false},
@@ -434,6 +436,11 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"delayed_trigger_departed_source_lifelink", false, false},
 		// CR 601.2f-g: Valkyrie Aerial Unit's affinity counts both Treasures before one is sacrificed for mana, so {2}{U}{U} is payable
 		{"count_reduction_fixed_before_treasure_mana", true, false},
+		// CR 601.2f: Cloud, Planet's Champion's ValidTarget$ discount makes Paladin's Arms' Equip {4} payable from three untapped sources when it targets Cloud
+		{"target_priced_equip_from_untapped_lands", true, false},
+		{"reversal_past_graveyard_exile_replacement", true, false},
+		{"hidden_land_as_enters_choice_in_exile", true, false},
+		{"instant_cast_lowering_life_run_trigger_below", false, false},
 		// CR 601.2f, 602.2b: Cloud's {2} discount for an equip targeting it makes Ultima Weapon's Equip {7} payable from five lands
 		{"equip_target_reduction_payable_from_lands", true, false},
 		{"equip_target_reduction_payable_full_surface", false, false}, // CR 601.2f, 602.2b: the same equip offer on the full surface
