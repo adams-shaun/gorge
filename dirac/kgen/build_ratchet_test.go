@@ -199,7 +199,7 @@ import (
 // +1 (Hundred-Battle Veteran: the self-pump gate counts the different counter kinds among your creatures; ALL build-level 21682 -> 21683).
 // +1 (Hawkeye, Young Avenger: the damage-plus operand reads the replacement host's power; ALL build-level 21683 -> 21684).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21684, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21705, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

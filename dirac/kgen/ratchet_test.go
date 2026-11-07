@@ -96,7 +96,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Hundred-Battle Veteran: the self-pump gate counts the different counter kinds among your creatures; TDM 249 -> 250, ALL 21682 -> 21683).
 	// +1 (Hawkeye, Young Avenger: the damage-plus operand reads the replacement host's power; MSH 234 -> 235, ALL 21683 -> 21684).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21684, 34442},
+	"ALL": {21705, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
