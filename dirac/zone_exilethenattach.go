@@ -165,6 +165,11 @@ func (s *State) aegisLive(host Slot) int {
 // aegisRefresh leaves host on its newest live copy layer (copyTop): a live
 // Aegis copy, a newer clone, or the layer the Aegis stack covered. skip is
 // an attachment that is leaving.
+//
+// The copy exceptions belong to the winning layer: a marker's own (CR
+// 707.9b) come back with it, while an Aegis copy has only the exiled card's
+// copiable values (CR 707.2), so a covered marker's exceptions are dropped
+// while it is on top and re-applied when the marker wins again.
 func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 	l := s.copyTop(host, skip)
 	if l.kind == copyNone {
@@ -180,7 +185,22 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 	if l.kind != copyNone {
 		want = l.card
 	}
-	if cur == want && (l.kind != copyNone) == (p.ovr.flags&ovCopy != 0) {
+	// The copy exceptions the winning layer has: a marker's own (CR 707.9b)
+	// come back with it; an Aegis copy has the exiled card's copiable values
+	// and so none of the layer it covered's.
+	marker := l.kind == copyPerm || l.kind == copyEOT
+	var excSrc Slot
+	var excIdx uint8
+	if marker {
+		excIdx = l.idx
+		if l.src != NoObj {
+			excSrc = s.copySrcSlot(l.src)
+		}
+	}
+	covered := s.copyRec(host, fxCopyPerm) >= 0 || s.copyRec(host, fxCopyEOT) >= 0
+	fixExc := (marker && !s.copyExcSame(k, host, excSrc, excIdx)) ||
+		(l.kind == copyAegis && covered && s.copyRec(host, fxCopyExc) >= 0)
+	if cur == want && (l.kind != copyNone) == (p.ovr.flags&ovCopy != 0) && !fixExc {
 		return
 	}
 	s.touchSl(host)
@@ -189,22 +209,60 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 	if l.kind != copyNone {
 		p.ovr.flags |= ovCopy
 		p.ovr.copyOf = want
-		if l.kind == copyPerm {
-			// the marker's copy exceptions come back with its layer
-			s.dropFx(func(i int) bool {
-				x := &s.g.fx[i]
-				return x.sl == host && x.kind == fxCopyExc
-			})
-			s.copyExcAdd(k, host, s.copySrcSlot(l.src), l.idx)
-			p.ovr.kw = p.ovr.kw&^oldKw | s.copyExcKw(k, host)
-		}
 	} else {
 		p.ovr.flags &^= ovCopy
 		p.ovr.copyOf = 0
+	}
+	if fixExc {
+		s.dropFx(func(i int) bool {
+			x := &s.g.fx[i]
+			return x.sl == host && x.kind == fxCopyExc
+		})
+		if marker {
+			s.copyExcAdd(k, host, excSrc, excIdx)
+		}
+		p.ovr.kw = p.ovr.kw&^oldKw | s.copyExcKw(k, host)
+	}
+	if l.kind == copyNone {
 		s.cloneRestore(host) // a token copy's own basis
 	}
 	s.subscribe(host, &k.cards[s.cardAt(host)], true)
 	s.refreshTy(k)
+}
+
+// copyExcSame reports whether slot sl's live copy exceptions are those
+// copyExcAdd would add for the template at src with override idx: the
+// template's records in pool order, then idx. src NoSlot and idx 0 is the
+// Aegis copy's set: none.
+func (s *State) copyExcSame(k *prep, sl, src Slot, idx uint8) bool {
+	i := 0
+	next := func(want uint8) bool {
+		for ; i < int(s.g.nfx); i++ {
+			r := &s.g.fx[i]
+			if r.sl != sl || r.kind != fxCopyExc {
+				continue
+			}
+			i++
+			return r.r.idx == want
+		}
+		return false
+	}
+	if src != NoSlot && s.fxM.has(src) {
+		for j := 0; j < int(s.g.nfx); j++ {
+			if r := &s.g.fx[j]; r.sl == src && r.kind == fxCopyExc && !next(r.r.idx) {
+				return false
+			}
+		}
+	}
+	if idx != 0 && !next(idx) {
+		return false
+	}
+	for ; i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyExc {
+			return false
+		}
+	}
+	return true
 }
 
 // aegisUnlink ends the live copy of the attachment at sl, if it has one,
