@@ -45,6 +45,33 @@ func (e *Engine) CastPaymentCost(p state.PlayerID, id state.ObjID) (cost decisio
 	return pay.WireCost(e.offerCostFor(p, id, base, spellScope(""))), true
 }
 
+// MayPlayCastPaymentCost is CastPaymentCost for the plain cast an untyped
+// may-play permission grants a card in exile or the graveyard (the "mayplay"
+// cast mode): the printed cost with its spell-ability extras, the
+// permission's free-cast read and RaiseCost$ surcharge composed exactly as
+// beginCast's "mayplay" case charges them (CR 118.9, 118.3a), re-priced by
+// every live cost static over the mayplay scope. The card may be another
+// player's (a may-play permission can grant it), so there is no owner check,
+// and perm names a MayPlayText$-typed permission's option, whose riders
+// beginCast charges alone. ok is false for anything else. A pure read, for
+// the oracle's convoke frame, which must filter a may-play cast's
+// announcement by the same cost the payment will charge.
+func (e *Engine) MayPlayCastPaymentCost(p state.PlayerID, id state.ObjID, perm string) (cost decision.PaymentCost, ok bool) {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil || !plannedMayPlayZone(o.Zone) {
+		return decision.PaymentCost{}, false
+	}
+	base := pay.RawBaseCost(asPayer(e), p, id)
+	free, raise, hasRaise, priced := e.mayPlayPermFreeRaise(p, id, perm)
+	if free {
+		base = Cost{}
+	}
+	if hasRaise && priced {
+		base = base.Plus(raise)
+	}
+	return pay.WireCost(e.offerCostFor(p, id, pay.WithSpellAbilityExtras(o.Face(), base), spellScope("mayplay"))), true
+}
+
 // planCastPaymentChecked is PlanCastPayment over caller-owned per-build
 // inputs: statics is the build's one lazy cost-static collection and
 // candidates its one lazy hypothetical candidate walk. Both are pure reads of

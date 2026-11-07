@@ -655,6 +655,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.g.embC[p][s.g.nemb[p]] = e.card
 			s.g.embO[p][s.g.nemb[p]] = e.obj
 			s.g.embN[p][s.g.nemb[p]] = s.freezeEmbNum(k, in.A, s.ctxEntry(e))
+			s.g.embT[p][s.g.nemb[p]] = s.tick() // gorge's AddContinuous ClockTick: a new continuous effect is newer than everything before it (CR 613.7)
 			if cr := k.t.Emblems[in.C].Capture; cr != kop.RefNone {
 				// the Effect's RememberObjects$ Targeted: the chain's target object + 1
 				// (0 none; an emblem with a capture has no frozen number)

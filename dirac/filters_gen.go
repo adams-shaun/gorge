@@ -227,7 +227,7 @@ func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer
 	}
 	if f&(kop.F2ChosenType|kop.F2ChosenColor|kop.F2SameNameAsSource) != 0 {
 		ch, ok := s.chosenTypeSub(src)
-		if f&kop.F2ChosenType != 0 && (!ok || !s.hasSubGen(k, sl, ch) && !(ch == subOutside && s.outsideChosenHas(k, sl, src))) {
+		if f&kop.F2ChosenType != 0 && (!ok || !s.hasSubGen(k, sl, ch) && !(outsideSub(k, ch) && s.outsideChosenHas(k, sl, src))) {
 			return false
 		}
 		if f&kop.F2ChosenColor != 0 {
@@ -575,7 +575,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 				return false
 			}
 			has := int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
-			if ch == subOutside {
+			if outsideSub(k, ch) {
 				has = cd.AllCreatureTypes // a printed changeling has every type
 			}
 			if s.res.bad&resChosenCard != 0 {

@@ -69,14 +69,28 @@ func sheetRarities(t *testing.T, spec setdata.Spec) map[string]limited.Rarity {
 // uncommons — so the count that means anything is the distinct-name count.
 func fdnMainSetNames(t *testing.T) []string {
 	t.Helper()
-	spec, err := setdata.Load("FDN")
+	return sheetNames(t, "FDN")
+}
+
+// trkMainSetNames is fdnMainSetNames for TRK: every distinct name on the
+// embedded TRK booster spec's sheets, sorted, lands included.
+func trkMainSetNames(t *testing.T) []string {
+	t.Helper()
+	return sheetNames(t, "TRK")
+}
+
+// sheetNames lists the distinct sheet-card names of one set's embedded
+// booster spec, sorted.
+func sheetNames(t *testing.T, code string) []string {
+	t.Helper()
+	spec, err := setdata.Load(code)
 	if err != nil {
-		t.Fatalf("setdata FDN: %v", err)
+		t.Fatalf("setdata %s: %v", code, err)
 	}
 	seen := map[string]bool{}
 	for sheetName, sheet := range spec.Config.Sheets {
 		if len(sheet.Cards) == 0 {
-			t.Fatalf("FDN sheet %q is empty", sheetName)
+			t.Fatalf("%s sheet %q is empty", code, sheetName)
 		}
 		for _, c := range sheet.Cards {
 			seen[c.Name] = true
