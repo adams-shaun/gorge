@@ -62,6 +62,10 @@ type PutCounterParams struct {
 	CounterMapValues    ParamText
 	// Optional$ True.
 	OptionalTrue bool
+	// OwnTargets is a non-empty ValidTgts$ with no Defined$: the recipients
+	// are this ability's own targets, so one that changed zones since it was
+	// chosen is a new object the counters cannot reach (CR 400.7).
+	OwnTargets bool
 	// Tribute$ True (CR 702.104's tribute, kw_tribute.go's expansion): the
 	// put is the tribute offer -- the entering creature's controller picks
 	// the opponent, the chosen opponent elects pay/decline, and an
@@ -307,6 +311,8 @@ func compilePutCounter(sa *cards.SA) *PutCounterParams {
 	p.CounterMapValues = rawParamText(sa, "CounterMapValues")
 	optional, optionalOK := sa.Param(cards.PKOptional)
 	p.OptionalTrue = isTrue(optional)
+	_, definedOK := sa.Param(cards.PKDefined)
+	p.OwnTargets = !definedOK && strings.TrimSpace(sa.ParamStr(cards.PKValidTgts)) != ""
 	bolster, bolsterOK := sa.Param(cards.PKBolster)
 	p.Bolster = ParamText{Text: bolster, Present: bolsterOK}
 	support, supportOK := sa.Param(cards.PKSupport)
