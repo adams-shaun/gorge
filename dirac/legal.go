@@ -203,6 +203,13 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			}
 		}
 	}
+	if s.cfg&cfgCommander != 0 {
+		if !haveAv {
+			s.availFor(k, p, &av)
+			haveAv = true
+		}
+		s.offerCommanderCast(k, d, p, &av)
+	}
 	// flashback
 	var fbLo, fbHi *objBits // nil for a pool without a flashback grant: no State access below
 	if fbi := k.fbIx(); int(fbi) < len(s.cold.mo) {
