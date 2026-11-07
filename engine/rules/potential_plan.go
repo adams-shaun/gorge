@@ -1334,25 +1334,27 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 		}
 		cost.Phyrexian = nil
 	}
-	composed := e.offerCostFor(p, id, cost, abilityScope(ab))
+	scope := abilityScope(ab)
+	statics := e.collectCostStatics()
+	composed := e.offerCostForUsing(statics, p, id, cost, scope)
 	out := e.planComposedCost(p, id, composed, true, true)
-	// A ValidTarget$ reduction (Dwarven Mauler's "equip abilities that target
-	// this creature cost {2} less") is absent from the pre-target composition,
-	// but CR 601.2f totals the cost after CR 601.2c's target choice. The offer
-	// gate retries with each legal target's potential modifiers
-	// (offerCastableUsingExtra); the witness must price the same cost, or the
-	// autopay offer withholds an activation the discount makes payable.
-	if statics := e.collectCostStatics(); out.Reason == "insufficient" && statics.validTarget {
-		scope := abilityScope(ab)
-		if _, ok := e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
-			retry := e.planComposedCost(p, id, e.composedOfferCost(p, id, cost, m, scope), true, true)
-			if retry.Reason != "" {
-				return false
+	if out.Reason == "insufficient" && statics.validTarget {
+		// A target-dependent reducer (an equip discount for one creature) is
+		// absent from the pre-target composition, but the offer gate's
+		// potential-target retry prices it (offerCastableUsing): plan the
+		// cheapest such announcement too, so the offer has its witness. The
+		// chosen target's cost is repriced before payment (rearmAutoPay).
+		// Only a single-target announcement is priced this way: the retry
+		// tests each candidate as the sole selection, which does not price a
+		// multi-target ability.
+		if _, max := targetBounds(ab); max == 1 {
+			var potential PaymentPlanOutcome
+			if _, ok := e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
+				potential = e.planComposedCost(p, id, e.composedOfferCost(p, id, cost, m, scope), true, true)
+				return potential.Reason == ""
+			}); ok {
+				return potential
 			}
-			out = retry
-			return true
-		}); ok {
-			return out
 		}
 	}
 	if out.Reason != "insufficient" || cost.Waterbend <= 0 {
