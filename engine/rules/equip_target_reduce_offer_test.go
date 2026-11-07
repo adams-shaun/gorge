@@ -19,7 +19,7 @@ const equipDiscountTargetSrc = "Name:Probe Champion\nManaCost:3 R W\nTypes:Legen
 const probeBearSrc = "Name:Probe Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:\n"
 
 const probeLandSrc = "Name:Probe Land\nManaCost:no cost\nTypes:Land\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ Combo G U | SpellDescription$ Add {G} or {U}.\nOracle:\n"
+	"A:AB$ Mana | Cost$ T | Produced$ Combo G U | SpellDescription$ Probe land mana.\nOracle:\n"
 
 // TestEquipOfferedAtTargetReducedCostFromUntappedLand pins the autopay
 // offer: with an empty pool and one untapped land, the equip is payable only
