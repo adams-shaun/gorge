@@ -20,6 +20,12 @@ func (s *State) fireLeavesGraveyard(k *prep, o Obj, card CardID, owner uint8) {
 		if t.Flags&kop.TfSelf != 0 {
 			return
 		}
+		if s.g.batchLatch&batchOpenMask != 0 && s.perms[l.sl].ts > s.g.batchTS {
+			// CR 603.10a: a watcher that entered in this sweep looks back to
+			// the board before it, where it was a card in the graveyard (Fang
+			// milled and returned beside the card still leaving).
+			return
+		}
 		if t.Filter != 0 && !s.matchCardGen(k, t.Filter, card, owner, l.ctrl, o) {
 			return
 		}

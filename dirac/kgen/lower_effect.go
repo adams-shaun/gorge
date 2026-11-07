@@ -3519,6 +3519,9 @@ func (lc *lowerCtx) charm(ps *params) error {
 	if max(pick, twPick) > 1 && lc.ab.Kind != akSpell && lc.ab.Kind != akTriggered && !(lc.ab.Kind == akLatent && lc.reflexMulti) {
 		return refuse("multi-pick charm on a %s ability", abilityKindNames[lc.ab.Kind])
 	}
+	if lo := lc.out.ModesMinCount; lo != 0 {
+		minPick = min(lo, pick) // the offer gate's minimum (CardDef.ModesMinCount)
+	}
 	lc.ab.Modes = len(choices)
 	lc.ab.ModesPick, lc.ab.ModesMin = pick, minPick
 	rootTargeted := make([]bool, len(choices)) // gorge Targeted(): the mode root's ValidTgts$ is non-empty
