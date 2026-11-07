@@ -499,6 +499,7 @@ func (s *State) sba(k *prep) bool {
 		askAfter := false // exileOrderAsk parked casualties now: the ask follows this pass's batch
 		// statics in force but none that can lower a toughness (kprio2)
 		ptQuiet := s.statM.any() && s.sbaPTQuiet(k)
+		var legOwed lazyLegendOwed
 		m := s.occ
 		for m.any() {
 			sl := m.first()
@@ -557,10 +558,13 @@ func (s *State) sba(k *prep) bool {
 				gy = gy.with(sl)
 				aur = aur.with(sl)
 			}
-			if t&kop.TAura == 0 && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TCreature == 0 {
+			if t&kop.TAura == 0 && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TCreature == 0 && !legOwed.get(s, k) {
 				// an Equipment whose creature is no longer one (Imprisoned
 				// in the Moon) becomes unattached and stays (CR 704.5n;
-				// gorge attachmentSBAs; pair 9856)
+				// gorge attachmentSBAs; pair 9856). Under a legend ask it
+				// stays attached: gorge parks the pass's batch with the ask
+				// (CR 704.3), and the pass after the answer detaches it
+				// (Crystallized Serah transformed beside another)
 				h := p.attached
 				s.touchSl(h)
 				p.attached = NoSlot
@@ -994,6 +998,20 @@ func (s *State) legendGroup(k *prep, peek bool) bool {
 
 // legendOwed reports whether this pass has a legend ask to pose.
 func (s *State) legendOwed(k *prep) bool { return s.legendGroup(k, true) }
+
+// lazyLegendOwed is legendOwed read at most once per sba pass, and only
+// when an action that waits on the legend ask needs it.
+type lazyLegendOwed uint8
+
+func (l *lazyLegendOwed) get(s *State, k *prep) bool {
+	if *l == 0 {
+		*l = 1
+		if s.legendOwed(k) {
+			*l = 2
+		}
+	}
+	return *l == 2
+}
 
 func (s *State) legendOptions(k *prep, d *Decision) {
 	d.Kind, d.Sub, d.Player = DkChoose, ChLegend, s.legP
