@@ -395,7 +395,7 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 		})
 		return all
 	}
-	if int(i) >= len(k.t.Subtypes) {
+	if i == 255 { // none chosen; an outside code was handled above
 		return false
 	}
 	// a copy's added subtype is a copiable value (layer 1): a later

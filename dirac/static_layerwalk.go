@@ -479,7 +479,7 @@ func hasSubCur(k *prep, c *dchars, i uint8) bool {
 	if outsideSub(k, i) {
 		return c.all
 	}
-	if int(i) >= len(k.t.Subtypes) {
+	if i == 255 { // none chosen; an outside code was handled above
 		return false
 	}
 	return c.subs.Has(int(i)) || c.all && k.gen.creatSub.Has(int(i))
