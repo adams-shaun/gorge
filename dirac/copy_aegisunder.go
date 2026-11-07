@@ -91,7 +91,8 @@ func (s *State) copyRec(host Slot, kind uint8) int {
 // copies. The cleanup step drops the EOT record first, so it is not a
 // candidate while it settles (cloneCleanup); everywhere else all three are
 // live. skip is an attachment that is leaving. Aegis copies are ordered by
-// their attachment's layer stamp (static_attachtimestamp.go); a copy marker
+// the tick their trigger resolved on (genState.links ts, as gorge stamps the
+// continuous effect at resolution); a copy marker
 // by the clock tick it landed on. copyNone means no layer: the printed card
 // (or fxAegisBase).
 func (s *State) copyTop(host, skip Slot) copyLayer {
@@ -107,7 +108,7 @@ func (s *State) copyTop(host, skip Slot) copyLayer {
 			if ob.zone != kop.ZoneBattlefield || ob.ver != lk.sver || ob.slot == skip || s.perms[ob.slot].attached != host {
 				continue
 			}
-			ts := s.lstamp[ob.slot]
+			ts := lk.ts
 			if !has || ts > best {
 				l = copyLayer{kind: copyAegis, card: s.objs[lk.obj].card, ts: ts}
 				best, has = ts, true

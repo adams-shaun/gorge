@@ -395,6 +395,7 @@ func (s *State) cloneCleanup(k *prep) {
 		if l.kind == copyNone {
 			s.cloneRestore(sl)
 		} else if l.kind == copyPerm {
+			s.cloneRestore(sl) // the marker wins: drops the token basis records
 			s.copyExcAdd(k, sl, s.copySrcSlot(l.src), l.idx)
 			if DebugCloneCopyStats != nil {
 				DebugCloneCopyStats.Rebased++

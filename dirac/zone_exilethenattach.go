@@ -138,6 +138,7 @@ func (s *State) aegisApply(k *prep, a Action) {
 				s.copyRec(host, fxCopyPerm) < 0 && s.copyRec(host, fxCopyEOT) < 0 && !s.aegisUnderPush(host) {
 				break // the effect pool is full
 			}
+			l.ts = s.tick()
 			s.g.linkAeg |= 1 << uint(i)
 			s.aegisRefresh(k, host, NoSlot)
 			break
@@ -184,9 +185,19 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 	}
 	s.touchSl(host)
 	s.subscribe(host, &k.cards[cur], false)
+	oldKw := s.copyExcKw(k, host)
 	if l.kind != copyNone {
 		p.ovr.flags |= ovCopy
 		p.ovr.copyOf = want
+		if l.kind == copyPerm {
+			// the marker's copy exceptions come back with its layer
+			s.dropFx(func(i int) bool {
+				x := &s.g.fx[i]
+				return x.sl == host && x.kind == fxCopyExc
+			})
+			s.copyExcAdd(k, host, s.copySrcSlot(l.src), l.idx)
+			p.ovr.kw = p.ovr.kw&^oldKw | s.copyExcKw(k, host)
+		}
 	} else {
 		p.ovr.flags &^= ovCopy
 		p.ovr.copyOf = 0

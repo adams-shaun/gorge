@@ -29,6 +29,7 @@ func addAegisLayer(t *testing.T, sc *scen, host Slot, attachment, exiled CardID,
 	sc.s.g.links[i].src = a
 	sc.s.g.links[i].sver = sc.s.objs[a].ver
 	sc.s.g.links[i].obj = ex
+	sc.s.g.links[i].ts = ts
 	sc.s.g.nlinks++
 	sc.s.g.linkAeg |= 1 << uint(i)
 	sc.s.perms[sl].attached = host

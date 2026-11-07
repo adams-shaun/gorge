@@ -1732,6 +1732,7 @@ type genState struct {
 		src  Obj
 		sver uint8
 		obj  Obj
+		ts   uint16 // the tick the Aegis copy went live (aegisApply; zone_exilethenattach.go)
 	} // exiled until the source leaves (OpExileUntilLeaves)
 	nlinks   uint8
 	nexw     uint8
