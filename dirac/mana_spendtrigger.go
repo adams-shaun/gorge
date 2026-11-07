@@ -98,3 +98,52 @@ var debugSonManaMutate uint8
 
 // SetDebugSonManaMutate sets the mutation switch; tests only.
 func SetDebugSonManaMutate(m uint8) { debugSonManaMutate = m }
+
+// build.obsWin bits.
+const (
+	obsWinTapped uint8 = 1 << iota // the observed source was tapped in the manual window before the payment
+	obsWinPaying                   // the payment began: later taps are the payment's own (obsWinPool)
+)
+
+// obsWinPool is p's pool as the cast's payment begins, and whether it is a
+// valid baseline: the observed source was tapped before it (obsWinTapped) and
+// this is the payment's first pass (a window resumed after a tap-another pick
+// re-enters finishBuild with the first pass's taps already made). Later taps
+// are the payment's own (windowTapUseful): their mana is spent.
+func (s *State) obsWinPool(p uint8) (pool [kop.NumManaKinds]uint8, ok bool) {
+	if !s.buildLive() {
+		return pool, false
+	}
+	b := s.bld()
+	ok = b.obsWin == obsWinTapped
+	if ok {
+		pool = s.pl[p&1].pool
+	}
+	b.obsWin |= obsWinPaying
+	return pool, ok
+}
+
+// obsWinSettle: gorge records the observed source only when the payment
+// consumed a unit it produced, and it consumes those units first. A source
+// tapped in the manual window before the payment floats its mana: the cast
+// paid with other mana (Barracks' {W} left floating beside an X=0 {G} cost)
+// did not use it. The source counts only when the payment spent some colour
+// it makes. Without a valid baseline (ok false: no pre-payment tap, or a
+// resumed window) obsSl stands as recorded.
+func (s *State) obsWinSettle(k *prep, p uint8, before [kop.NumManaKinds]uint8, ok bool) {
+	if !s.buildLive() {
+		return
+	}
+	b := s.bld()
+	b.obsWin = 0
+	if !ok || b.obsSl == 0 {
+		return
+	}
+	mask := s.windowOwnMask(k, b.obsSl-1)
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if mask&(1<<c) != 0 && s.pl[p&1].pool[c] < before[c] {
+			return
+		}
+	}
+	b.obsSl = 0
+}
