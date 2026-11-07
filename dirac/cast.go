@@ -265,6 +265,9 @@ func (s *State) pushBuild(k *prep) {
 				s.capFull(StallActs)
 			}
 		}
+		// a reversed activation drops the triggers its own costs queued, as a
+		// reversed cast does (CR 733.1; state.go pushNP)
+		s.bld().pushNP = uint8(s.npend)
 	}
 	if e.kind != seSpell && k.gen != nil && k.gen.anyStackTgt {
 		s.stackSid(e) // a stack-ability target's identity (tgt_stackability.go)
@@ -429,17 +432,11 @@ func (s *State) buildCostResolve(k *prep, charge bool) kop.ManaCost {
 
 func (s *State) buildCostResolve0(k *prep, charge bool) kop.ManaCost {
 	s.bld().bfl |= bflCostComp // gorge withCostCompositionEvent: a pushed spell's own push is hidden while its cost is composed
-	c, tbDone := s.buildCostPre(k, true)
+	c, tbDone := s.buildCostPre(k, true, charge)
 	if s.bld().bfl&bflCostFixed != 0 {
 		c.Generic = s.bld().fixedGen
 	} else {
 		s.bld().fixedGen = c.Generic
-	}
-	if charge && k.gen != nil && k.gen.anyPowerUp && s.bld().e.kind == seAbility {
-		a := &k.t.Cards[s.bld().e.card].Abilities[s.bld().e.ab]
-		if a.Cost.Flags&kop.CostPowerUp != 0 {
-			c = s.powerUpManaObj(k, s.bld().e.obj, a)
-		}
 	}
 	s.bld().bfl &^= bflCostComp
 	if c.Hyb[0] == 0 && !tbDone {
@@ -464,7 +461,7 @@ func (s *State) buildCostResolve0(k *prep, charge bool) kop.ManaCost {
 }
 
 func (s *State) buildCost0(k *prep) kop.ManaCost {
-	c, _ := s.buildCostPre(k, false)
+	c, _ := s.buildCostPre(k, false, false)
 	return c
 }
 
@@ -474,15 +471,15 @@ func (s *State) buildCost0(k *prep) kop.ManaCost {
 // a reduction takes its generic off the {2} a generic face added, where the
 // unresolved {2/W} would have dropped it). done reports that the faces are
 // folded, so the caller resolves nothing more.
-func (s *State) buildCostPre(k *prep, pre bool) (kop.ManaCost, bool) {
-	c, done := s.buildCostPreRaw(k, pre)
+func (s *State) buildCostPre(k *prep, pre, charge bool) (kop.ManaCost, bool) {
+	c, done := s.buildCostPreRaw(k, pre, charge)
 	if s.bld().e.flags&sfAnyMana != 0 && s.bld().e.kind == seSpell {
 		c = anyTypePips(c) // a hand cast under Vizier's conversion too (mana_convertcreature.go); idempotent
 	}
 	return c, done
 }
 
-func (s *State) buildCostPreRaw(k *prep, pre bool) (kop.ManaCost, bool) {
+func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) {
 	if s.bld().e.faceDown() {
 		// CR 702.37b/702.168b: Morph and Disguise cast face down for {3};
 		// Megamorph's face-down cost is its Morph cost ({3} in this pool).
@@ -558,14 +555,18 @@ func (s *State) buildCostPreRaw(k *prep, pre bool) (kop.ManaCost, bool) {
 		}
 		return c, done
 	case seAbility:
-		c := k.t.Cards[e.card].Abilities[e.ab].Cost.Mana
+		a := &k.t.Cards[e.card].Abilities[e.ab]
+		c := a.Cost.Mana
 		if k.gen != nil && k.gen.anyOwnReduce {
-			if a := &k.t.Cards[e.card].Abilities[e.ab]; a.OwnReduce != (kop.ValueRef{}) {
+			if a.OwnReduce != (kop.ValueRef{}) {
 				c = s.ownReduced(k, a, e.obj, e.ctrl)
 			}
 		}
+		if charge && k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
+			c = s.powerUpReduced(k, e.obj, c) // CR 702.193b, before the cost statics
+		}
 		if k.gen != nil && k.gen.anyAbReduce {
-			c = s.abReducedCharge(k, &k.t.Cards[e.card].Abilities[e.ab], e.obj, e.ctrl, c)
+			c = s.abReducedCharge(k, a, e.obj, e.ctrl, c)
 		}
 		if k.gen != nil && k.gen.anyWaterbend {
 			c = s.waterbendApplyPicks(c)
@@ -1446,6 +1447,14 @@ func (s *State) finishBuild(k *prep) {
 		if early {
 			pre = s.buildCostCharge(k)
 		}
+		// gorge meets the targeting before the costs it is part of (CR 601.2c
+		// before 601.2g-h): the BecomesTarget walk (ward, watchers, Valiant)
+		// reads the targets while they are still where they were targeted, so
+		// a target the activation's own cost then sacrifices still triggers
+		// (Nettle Guard's {1}, Sacrifice: Destroy target artifact or
+		// enchantment, aimed at itself).
+		s.syncBuild()
+		s.checkWard(k, &s.stack[s.sp-1])
 		s.payAbilityCosts(k, &e)
 		if k.phyMana {
 			s.payPhyrexianLife(k) // an activation's two-life faces
@@ -1478,7 +1487,7 @@ func (s *State) finishBuild(k *prep) {
 		// activation: ask a battle defeated earlier this step first.
 		s.wakeDefeat()
 	}
-	if e.kind != seSpell {
+	if e.kind == seTrigger {
 		s.checkWard(k, &s.stack[s.sp-1])
 	}
 	if s.parkedWaiting() {

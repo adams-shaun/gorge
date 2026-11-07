@@ -605,7 +605,11 @@ func (e *Engine) delveAsk() bool {
 		return false
 	}
 	gy := e.G.Zone(state.ZGraveyard, pc.player)
-	cost := e.manaToPay(pc)
+	// The announced Convoke/Harmonize/Improvise/Waterbend contributions are
+	// already part of the total cost (CR 601.2b/f), so the shortfall delve
+	// may pay is priced after them: a harmonize creature that covers the
+	// whole generic leaves no card to exile (CR 702.66a, 702.180a).
+	cost := e.paymentMana(pc)
 	generic := cost.Generic
 	if len(gy) == 0 || generic <= 0 {
 		return false

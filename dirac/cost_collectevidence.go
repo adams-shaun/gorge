@@ -256,6 +256,12 @@ func (s *State) unpushActivation() {
 	e := &s.bld().e
 	s.sp--
 	s.bld().bfl &^= bflPushed
+	if s.npend > s.bld().pushNP {
+		// CR 733.1: the activation never happened, so the triggers its own
+		// costs queued (its BecomesTarget walk, its taps and sacrifices) are
+		// dropped, as a reversed cast's are (unpushSpell)
+		s.npend = s.bld().pushNP
+	}
 	if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield && ob.activations() > 0 {
 		s.touch(e.obj)
 		ob.acts--

@@ -8,12 +8,22 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 //go:noinline
 func (s *State) powerUpManaObj(k *prep, o Obj, a *kop.Ability) kop.ManaCost {
+	return s.powerUpReduced(k, o, a.Cost.Mana)
+}
+
+// powerUpReduced applies CR 702.193b to c: on the turn the permanent entered
+// its current zone, its own mana cost reduces the ability cost. gorge applies
+// this before the cost statics (legal_walk_battlefield.go powerUpReduceCost,
+// then offerCastable), so abReduced composes on the result.
+//
+//go:noinline
+func (s *State) powerUpReduced(k *prep, o Obj, c kop.ManaCost) kop.ManaCost {
 	ob := &s.objs[o]
 	if ob.zone != kop.ZoneBattlefield || !s.g.zoneTurn.has(o) {
-		return a.Cost.Mana
+		return c
 	}
 	// the mana cost is the characteristic now in force: a copy's is the copied card's (CR 707.2)
-	return powerUpReduce(a.Cost.Mana, k.t.Cards[s.cardAt(ob.slot)].Cost)
+	return powerUpReduce(c, k.t.Cards[s.cardAt(ob.slot)].Cost)
 }
 
 // powerUpReduce is gorge's powerUpReduceCost: generic reduces generic

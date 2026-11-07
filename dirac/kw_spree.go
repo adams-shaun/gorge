@@ -108,7 +108,10 @@ func (s *State) spreeCastWindowAbort(k *prep) {
 	anyType := e.flags&sfAnyMana != 0
 	anyColor := s.bld().bfl&bflAnyColor != 0
 	cost := s.buildCost(k)
-	_, held := s.windowTapRider(k, e.ctrl, &cost, !anyType && !anyColor, anyColor)
+	// The window's colour ask carries no ManaPayment (see manaStep's Spree
+	// arm): its owed colours are the announced hybrid/Phyrexian faces only,
+	// so with none an any-colour source answers its lowest colour.
+	_, held := s.windowTapUseful(k, e.ctrl, &cost, &cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
 	for c := range held {
 		s.pl[e.ctrl].pool[c] += held[c]
 	}
