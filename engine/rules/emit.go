@@ -239,8 +239,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// instead"; The Mindskinner). The modified event of an in-flight
 		// redirect took the branch above already; this is the fresh-move
 		// case. The replacingEvent/redirect guard keeps the other
-		// applyingReplacement users -- fixture setup placement and a
-		// declined optional move's own re-emit -- on their direct path.
+		// applyingReplacement users -- fixture setup placement, entry
+		// counter staging and a declined optional move's own re-emit -- on
+		// their direct path.
 		replaced, handled := e.nestedMoveReplacement(ev)
 		if handled {
 			return replaced
