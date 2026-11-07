@@ -317,7 +317,12 @@ func (p *perm) ctrLow(c int) int {
 	if c == int(kop.CtrP1P1) {
 		return int(p.p1)
 	}
+	// the occupied slots are packed (ctrInsert, ctrFree): the first empty
+	// one ends the search, and most permanents have none
 	for i := range p.ck {
+		if p.ck[i] == 0 {
+			return 0
+		}
 		if int(p.ck[i]) == c {
 			return int(p.cn[i])
 		}
