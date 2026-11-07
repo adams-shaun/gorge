@@ -98,3 +98,35 @@ var debugSonManaMutate uint8
 
 // SetDebugSonManaMutate sets the mutation switch; tests only.
 func SetDebugSonManaMutate(m uint8) { debugSonManaMutate = m }
+
+// obsWinPool is p's pool before a cast's payment when the observed source
+// was tapped through the manual window (build.obsWin), else the zero array.
+func (s *State) obsWinPool(p uint8) (pool [kop.NumManaKinds]uint8) {
+	if s.buildLive() && s.bld().obsWin {
+		pool = s.pl[p&1].pool
+	}
+	return pool
+}
+
+// obsWinSettle: gorge records the observed source only when the payment
+// consumed a unit it produced, and it consumes those units first. A source
+// tapped in the manual window floats its mana: the cast paid with other
+// mana (Barracks' {W} left floating beside an X=0 {G} cost) did not use it.
+// The source counts only when the payment spent some colour it makes.
+func (s *State) obsWinSettle(k *prep, p uint8, before [kop.NumManaKinds]uint8) {
+	if !s.buildLive() || !s.bld().obsWin {
+		return
+	}
+	b := s.bld()
+	b.obsWin = false
+	if b.obsSl == 0 {
+		return
+	}
+	mask := s.windowOwnMask(k, b.obsSl-1)
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if mask&(1<<c) != 0 && s.pl[p&1].pool[c] < before[c] {
+			return
+		}
+	}
+	b.obsSl = 0
+}

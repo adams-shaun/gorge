@@ -1347,6 +1347,7 @@ func (s *State) finishBuild(k *prep) {
 			s.payCastParts(k, &e, anyColor)
 		}
 		cost := s.buildCost(k)
+		obsPool := s.obsWinPool(e.ctrl)
 		if (e.flags&sfAnyMana != 0 || anyColor) && s.bld().bfl&bflLowered == 0 && !payDone {
 			s.tapRiderPlan(k, e) // (a lowered cast has no plan: its window below)
 		}
@@ -1410,6 +1411,7 @@ func (s *State) finishBuild(k *prep) {
 		if s.winPaused() {
 			return // a free or Spree cast's window waits on a tap-another pick (mana_window.go)
 		}
+		s.obsWinSettle(k, e.ctrl, obsPool)
 		s.payDelvePicks() // gorge payCast exiles the delved cards after the mana
 		s.paySacsGen(k)
 		s.bld().e.flags &^= sfFbGranted
