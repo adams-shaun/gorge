@@ -264,6 +264,8 @@ func TestStdHobReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-hob", []stdRepro{
 		{"sac_part_and_mana_share_a_treasure", false, false}, // CR 601.2g-h: the one Treasure that pays Stir Up Trouble's {B} is gone, so it is not also the artifact its either-or part sacrifices; the cast is not offered
+		{"hascards_graveyard_static_zero_a", false, false},   // CR 604.1: Master's Councillors' +2/+0 per graveyard with seven or more cards counts the graveyard that has them
+		{"hascards_graveyard_static_zero_b", false, false},
 	})
 }
 

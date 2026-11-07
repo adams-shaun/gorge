@@ -40,7 +40,7 @@ const (
 	ExConst                        // N
 	ExX                            // the X paid
 	ExCount                        // battlefield objects matching F
-	ExCountGraveyard               // graveyard cards matching F (all graveyards; F.Owner narrows)
+	ExCountGraveyard               // graveyard cards matching F (all graveyards; F.Owner narrows); N 1 also counts tokens
 	ExSumPower                     // total power of battlefield creatures matching F
 	ExDistinctCMC                  // distinct mana values among battlefield objects matching F
 	ExKicked                       // Sub[0] if the spell was kicked, else Sub[1]

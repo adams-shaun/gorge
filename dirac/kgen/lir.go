@@ -238,7 +238,7 @@ func (v lValue) String() string {
 			args = append(args, fmt.Sprintf("op=%d,n=%d", v.Op, v.N))
 		case vSacrificedThisTurn, vScriedThisTurn, vDilemmasFaced, vRemLKIPT, vPhaseCount, vAdamant:
 			args = append(args, fmt.Sprintf("n=%d", v.N))
-		case vOppsLostLife:
+		case vCountGraveyard, vOppsLostLife:
 			if v.N != 0 {
 				args = append(args, fmt.Sprintf("n=%d", v.N)) // N 1: the opponents dealt combat damage by a legendary creature
 			}
