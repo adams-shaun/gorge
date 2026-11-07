@@ -428,6 +428,7 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"count_reduction_fixed_before_treasure_mana", true, false},
 		// CR 601.2f: Cloud, Planet's Champion's ValidTarget$ discount makes Paladin's Arms' Equip {4} payable from three untapped sources when it targets Cloud
 		{"target_priced_equip_from_untapped_lands", true, false},
+		{"reversal_past_graveyard_exile_replacement", true, false},
 	})
 }
 
