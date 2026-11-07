@@ -32,8 +32,14 @@ func commanderRootConfig(t *testing.T, a, b string) rules.Config {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fa := testutil.RepoDeckFile(t, a)
-	fb := testutil.RepoDeckFile(t, b)
+	fa, err := testutil.LoadRepoDeckFile(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fb, err := testutil.LoadRepoDeckFile(b)
+	if err != nil {
+		t.Fatal(err)
+	}
 	return rules.Config{
 		Seed:         9001,
 		Names:        []string{a, b},
