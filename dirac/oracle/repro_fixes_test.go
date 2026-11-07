@@ -428,6 +428,9 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"count_reduction_fixed_before_treasure_mana", true, false},
 		// CR 601.2f: Cloud, Planet's Champion's {2} less makes White Mage's Staff's equip onto it {1}, payable by tapping Balamb Garden
 		{"equip_target_reduced_autopay_offer", true, false},
+		// CR 601.2f, 602.2b: Cloud's {2} discount for an equip targeting it makes Ultima Weapon's Equip {7} payable from five lands
+		{"equip_target_reduction_payable_from_lands", true, false},
+		{"equip_target_reduction_payable_full_surface", false, false}, // CR 601.2f, 602.2b: the same equip offer on the full surface
 	})
 }
 
