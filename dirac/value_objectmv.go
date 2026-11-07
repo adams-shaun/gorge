@@ -121,3 +121,23 @@ func (s *State) mvPerm(k *prep, sl Slot) int {
 	}
 	return int(k.cards[s.cardAt(sl)].total)
 }
+
+// notOwnLibMV is ExNotOwnLibMV: the mana values summed of the library cards
+// in the resolution's remembered set that the repeated player does not own
+// (gorge Count$ValidLibrary Card.IsRemembered+!RememberedPlayerOwn
+// $CardManaCost). Zero outside an OpRepeatEachPlayer (repEnd == 0), as
+// ctrlEachPl.
+func (s *State) notOwnLibMV(k *prep) int {
+	if s.g.repEnd == 0 {
+		return 0
+	}
+	n := 0
+	for _, o := range s.g.rem[:s.g.nrem] {
+		ob := &s.objs[o]
+		if ob.zone != kop.ZoneLibrary || ob.owner() == s.g.eachPl || s.faceDownAt(k, o) {
+			continue
+		}
+		n += s.objMV(k, ob.card, o)
+	}
+	return n
+}
