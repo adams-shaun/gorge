@@ -12,5 +12,6 @@ func TestStdMshReprosLockstep(t *testing.T) {
 		{"baxter_filter_combo_need_first", false, false},                        // CR 605.3b: a combination filter's allocation asks try the combinations naming a colour the cost needs first, so the node budget reaches the funding that pays
 		{"sorcery_play_waits_for_filter_prefix_trigger", false, false},          // CR 603.2c, 605.1b: Hydraulic Helper tapped to fund Surveillance Room's {1} fee queues Rewrite History's trigger once, which resolves before the sorcery-speed Shuri is cast
 		{"powerup_cost_static_planner_prices_reduced_print_torch", true, false}, // CR 601.2f, 702.193b: Hulk, Gamma Goliath's {3} Power-up reduction composes into the printed cost the autopay planner prices, so Human Torch, Johnny Storm's {6}{R} is offered at {3}{R}
+		{"filter_search_branches_on_treasure_funding", true, false},             // CR 605.3a: gorge's prefix search over Surveillance Room's and Baxter Building's fees also funds them with the Treasure, G first, and runs out of its 160 nodes, so The Unbeatable Squirrel Girl's {1}{G}{G}{G} stays unoffered
 	})
 }
