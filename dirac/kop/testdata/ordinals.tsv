@@ -880,6 +880,7 @@ PutCtrCellFirst	untyped int	3
 PutCtrCellNext	untyped int	4
 PutCtrRemAmount	untyped int	5
 R	untyped int	3
+ReduceAbEquip	untyped int	8
 ReduceAbMinShift	untyped int	4
 ReduceAbPowerUp	untyped int	4
 ReduceAbUnlock	untyped int	2

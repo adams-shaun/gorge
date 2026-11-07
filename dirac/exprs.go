@@ -279,7 +279,7 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 			v = s.pl[p].libLen()
 		}
 	case kop.ExStartingLife:
-		v = 20
+		v = s.startingLife()
 	case kop.ExTriggerAmount:
 		if e != nil {
 			v = int(e.trigAmt)

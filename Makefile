@@ -150,6 +150,8 @@ gorged: $(BIN_DIR)/gorged
 # deploy/demo.env (deploy/demo.env.example); scripts/deploy-demo.sh has every
 # variable and its rationale, and `scripts/deploy-demo.sh --dry-run` prints
 # the resolved configuration and the commands without running them.
+# SERVER_MAIN in the same file builds another module's main package instead
+# of cmd/gorged, against this checkout.
 #
 # stop-demo takes the demo down without starting it again, by the same socket
 # lookup (never pkill -f). prewarm-art fills the durable card-art cache the

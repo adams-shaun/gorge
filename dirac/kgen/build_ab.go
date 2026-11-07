@@ -1598,6 +1598,12 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			if s.AbilityRed == 4 {
 				st.B |= kop.ReduceAbPowerUp
 			}
+			if s.AbilityRed == 5 {
+				st.B |= kop.ReduceAbEquip
+				if err := targets2(); err != nil { // the equip's target (Cloud's Card.Self)
+					return ka, nil, err
+				}
+			}
 			st.B |= int16(s.MinMana) << kop.ReduceAbMinShift
 			break
 		}
