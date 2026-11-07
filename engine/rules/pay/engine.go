@@ -149,6 +149,11 @@ const (
 	// Sac parts of one payment are one action, so the "one or more" watcher
 	// queues once for the payment (CR 603.2c).
 	BatchSacrifice
+	// BatchZone brackets one simultaneous zone-change event: the objects a
+	// multi-object cost moves leave together (CR 601.2h, 701.21a), so an
+	// until-leaves exiler among them returns its card only after all of them
+	// are gone (CR 610.3, 610.3d).
+	BatchZone
 )
 
 // CostBlock names the cost action Engine.CostBlocked asks about.

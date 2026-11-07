@@ -806,7 +806,10 @@ func (s *State) tapOneForMana(k *prep, p uint8, sl Slot) bool {
 	}
 	pc := s.manaPCGen(k, sl)
 	sacOnly := k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)
-	if !s.canTapForManaPC(k, sl, pc) && !sacOnly {
+	// The window lists a source here only when the payment may spend it
+	// (windowCanTap): a restricted grant the ward cannot spend (Mm'menon's
+	// artifact blue) is no tap of gorge's failed payment.
+	if !s.windowCanTap(k, sl) && !sacOnly {
 		return false
 	}
 	mask := s.srcMaskAt(pc, sl)
