@@ -1335,37 +1335,25 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 		cost.Phyrexian = nil
 	}
 	scope := abilityScope(ab)
-	composed := e.offerCostFor(p, id, cost, scope)
+	statics := e.collectCostStatics()
+	composed := e.offerCostForUsing(statics, p, id, cost, scope)
 	out := e.planComposedCost(p, id, composed, true, true)
-	if out.Reason == "insufficient" {
-		// An activation whose ValidTarget$ cost statics price it lower for
-		// some legal target (Cloud's "equip abilities that target Cloud cost
-		// {2} less") is planned at each single target's price: CR 601.2f via
-		// 602.2b reads the chosen target, so the offer gate's potential pass
-		// and the plan agree. A multi-target ability is unknown, as for a
-		// cast; with no such static or no target, out is left unchanged.
-		//
-		// The offer gate's own potential-pass guard (offerCastableUsingExtra):
-		// paymentPlanTargetDependentFor reads a face's spell targets, never an
-		// activated ability's.
-		if statics := e.collectCostStatics(); statics.validTarget {
-			if targets := e.costPotentialTargets(p, id, scope); len(targets) > 0 {
-				if sa := pay.CostTargetingSA(e.G, id, scope); sa != nil {
-					if _, max := targetBounds(sa); max > 1 {
-						out = PaymentPlanOutcome{Reason: "unsupported", Detail: "shape:target_dependent_cost"}
-					} else {
-						got := out
-						e.potentialCostModsUsing(statics, p, id, scope, targets, 0, func(m costMods) bool {
-							var c Cost
-							e.composedOfferCostInto(&c, p, id, &cost, &m, scope)
-							got = e.planComposedCost(p, id, c, true, true)
-							return got.Plan != nil && got.Reason == ""
-						})
-						if got.Plan != nil && got.Reason == "" {
-							out = got
-						}
-					}
-				}
+	if out.Reason == "insufficient" && statics.validTarget {
+		// A target-dependent reducer (an equip discount for one creature) is
+		// absent from the pre-target composition, but the offer gate's
+		// potential-target retry prices it (offerCastableUsing): plan the
+		// cheapest such announcement too, so the offer has its witness. The
+		// chosen target's cost is repriced before payment (rearmAutoPay).
+		// Only a single-target announcement is priced this way: the retry
+		// tests each candidate as the sole selection, which does not price a
+		// multi-target ability.
+		if _, max := targetBounds(ab); max == 1 {
+			var potential PaymentPlanOutcome
+			if _, ok := e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
+				potential = e.planComposedCost(p, id, e.composedOfferCost(p, id, cost, m, scope), true, true)
+				return potential.Reason == ""
+			}); ok {
+				return potential
 			}
 		}
 	}

@@ -1823,23 +1823,37 @@ func (s *State) midResAsk(k *prep) bool {
 func (s *State) lkiAttached(o Obj) Obj {
 	for sl := Slot(0); sl < MaxPerm; sl++ {
 		if p := &s.perms[sl]; p.obj == o && p.ts != 0 && !s.occ.has(sl) && p.attached != NoSlot {
-			if s.occ.has(p.attached) {
-				return s.perms[p.attached].obj
+			if !s.occ.has(p.attached) {
+				return NoObj
 			}
-			return NoObj
+			if h, ok := s.attLKIHost(o); ok {
+				return h // the slot may hold a new object now (CR 400.7)
+			}
+			return s.perms[p.attached].obj
 		}
 	}
+	if h, ok := s.attLKIHost(o); ok {
+		return h
+	}
+	return NoObj
+}
+
+// attLKIHost is the versioned departure record's verdict for o: its host
+// while that same incarnation is still on the battlefield, NoObj once it
+// left (a token that took the host's slot is a new object, CR 400.7); ok
+// is false when no record for o survives.
+func (s *State) attLKIHost(o Obj) (Obj, bool) {
 	for i := range s.g.attLKI {
 		r := &s.g.attLKI[i]
 		if r.obj == o && r.ver != 0 {
 			h := &s.objs[r.host]
 			if h.zone == kop.ZoneBattlefield && h.ver == r.ver {
-				return r.host
+				return r.host, true
 			}
-			return NoObj
+			return NoObj, true
 		}
 	}
-	return NoObj
+	return NoObj, false
 }
 
 // payCastWindow pays the rest of a cast's cost through gorge's CR 601.2g
@@ -2185,24 +2199,30 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 		n := max(ab.ManaN, 1)
 		// a widened unit's tap made the colour the plan chose: when that
 		// colour is none the card's own census ability makes (Turtle Lair's
-		// {C}), the mana is the restricted ability's, whichever colour the pool
-		// grew in beside another source's (a Plains' {W} before a green pick)
+		// {C}), the mana is the restricted ability's, in that colour. When the
+		// census ability makes the colour, that ability paid and no restricted
+		// mana floats: another tapped source's mana in the pool is not this
+		// source's (a Villainous Hideout tapped for its {C} beside a Hell's
+		// Kitchen's {B}).
 		pick := ext
 		if !ext {
 			if ma := k.cards[c].manaAb; ma >= 0 && uint8(k.t.Cards[c].Abilities[ma].ManaColors)&(1<<tcol) == 0 {
 				pick = true
 			}
 		}
-		for col := 0; col < 5; col++ {
-			if pick && col != tcol {
-				continue
-			}
-			if uint8(ab.ManaColors)&(1<<col) != 0 && s.pl[p].pool[col] >= pool[col]+n {
-				s.pl[p].pool[col] -= n
-				if !s.floatRestrAb(k, p, sl, ab, col, n) {
-					s.capFull(StallRestrSrc)
-				}
-				break
+		if !pick {
+			// the plan tapped the source's plain unit, not its restricted
+			// one: what it added is ordinary mana, whatever colour another
+			// source's unit grew in beside it (CR 106.6, 601.2g). Taking a
+			// unit of that colour instead would float a Swamp's {B} as the
+			// Hideout's Villain-only mana.
+			continue
+		}
+		col := tcol
+		if uint8(ab.ManaColors)&(1<<col) != 0 && s.pl[p].pool[col] >= pool[col]+n {
+			s.pl[p].pool[col] -= n
+			if !s.floatRestrAb(k, p, sl, ab, col, n) {
+				s.capFull(StallRestrSrc)
 			}
 		}
 	}
@@ -2672,16 +2692,17 @@ func (s *State) manaStep(k *prep) bool {
 				s.pl[e.ctrl].pool[c] += held[c]
 			}
 		case k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 && s.powerUpPlanRejected(k, a):
-			// The planner's printed-cost witness is outdated. A reduced
-			// cost the planner can price (no hybrid symbol) re-arms and
-			// taps its plan's order; a hybrid (or twobrid) cost is the shape
-			// gorge's planner declines, so its rearmAutoPay refuses even a
-			// direct activation and the manual window pays source by source,
-			// first useful one in battlefield order, tapping nothing when the
-			// pool already pays it.
+			// The planner's printed-cost witness is outdated. gorge arms it
+			// whenever the charge still owes generic or coloured mana, hybrid
+			// symbols or not (armAbilityAutoPay), and re-arms for the reduced
+			// cost, tapping its plan's order. A charge the reductions left
+			// hybrid-only arms no witness at all (powerUpArmsNone), so the
+			// manual window pays source by source, first useful one in
+			// battlefield order, tapping nothing when the pool already pays
+			// it.
 			cc := s.buildCostCharge(k)
 			w := s.powerUpWitness(k, a, sl, e.ctrl)
-			if a.Cost.Mana.Hyb[0] == 0 && s.abilityPlanSettles(k, e, w, w, cc, &saved) {
+			if !s.powerUpArmsNone(k) && s.abilityPlanSettles(k, e, w, w, cc, &saved) {
 				s.tapFor(k, e.ctrl, &cc, int(e.x), NoObj)
 			} else if !s.windowTapHeldOK(k, e.ctrl, &cc) {
 				// the window ran out of sources: gorge aborts the activation

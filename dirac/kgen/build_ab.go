@@ -1184,7 +1184,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags2 |= kop.Tf2Evolve
 	}
 	if t.Increment {
-		if t.Event != "SpellCast" || t.OrCopy || t.CastSnap || t.NthSpell != 0 || t.TargetsAll {
+		if t.Event != "SpellCast" || t.OrCopy || t.CastSnap || t.CastSpent || t.NthSpell != 0 || t.TargetsAll {
 			return kt, fmt.Errorf("Increment on a %s trigger", t.Event)
 		}
 		kt.Flags2 |= kop.Tf2Increment
@@ -2095,7 +2095,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 	case "DamagePlus":
 		rp.Kind = kop.ReplDamagePlus
 		if !r.N.isConst() || r.N.N < 0 ||
-			r.N.N == 0 && r.Bits&(kop.ReplDmgRaise|kop.ReplDmgCtrHost) == 0 || r.Bits == 0 {
+			r.N.N == 0 && r.Bits&(kop.ReplDmgRaise|kop.ReplDmgCtrHost|kop.ReplDmgPowHost) == 0 || r.Bits == 0 {
 			return ka, fmt.Errorf("damage plus %d to %#x", r.N.N, r.Bits)
 		}
 		rp.A, rp.C = int16(r.N.N), int16(r.Bits)

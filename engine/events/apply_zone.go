@@ -38,6 +38,10 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.PreStackEnteredLen = len(g.Entered)
 			o.PreStackZoneGen = o.ZoneGen
 			o.HasPreStackEntry = true
+			o.PreStackLibSlot = 0
+			if o.Zone == state.ZLibrary {
+				o.PreStackLibSlot = libSlot(g, o)
+			}
 		}
 	}
 	// A manifest's or cloak's face-down entry (CR 708.5) must be visible
@@ -290,6 +294,21 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.ExiledWith = 0
 			o.FaceDown = false
 		}
+		// The WasCreature bit of a battlefield ENTRY is what entered, not a
+		// FaceDown flag left over from a previous zone: a land exiled face down
+		// (Black Cat, Cunning Thief) and then played face up enters as a land,
+		// because CR 708.2 makes a 2/2 only a face-down permanent ON the
+		// battlefield. Move recorded the bit above before this fold cleared the
+		// stale flag, so re-read it now the destination's face-down state is
+		// settled.
+		if e.Kind == MoveZone && e.To == state.ZBattlefield && !wasBattlefield {
+			for i := len(g.Entered) - 1; i >= 0; i-- {
+				if g.Entered[i].Obj == e.Obj {
+					g.Entered[i].WasCreature = DepartureDefaultCreature(o)
+					break
+				}
+			}
+		}
 		// CR 400.7: remember which incarnation of the source exiled this card.
 		o.ExiledWithInc = 0
 		if o.ExiledWith != 0 {
@@ -301,6 +320,9 @@ func foldMoveZone(g *state.Game, e *Event) {
 			// The reversal undoes the cast proposal (CR 733.1): the card
 			// keeps the identity it had before the push.
 			o.ZoneGen = o.PreStackZoneGen
+			if o.Zone == state.ZLibrary && o.PreStackLibSlot > 0 {
+				restoreLibSlot(g, o, o.PreStackLibSlot-1)
+			}
 			o.EnteredThisTurn = o.PreStackEntryThisTurn
 			o.EnteredFrom = o.PreStackEntryFrom
 			if o.PreStackEnteredLen <= len(g.Entered) {
@@ -310,12 +332,14 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.PreStackEntryFrom = state.ZLibrary
 			o.PreStackEnteredLen = 0
 			o.PreStackZoneGen = 0
+			o.PreStackLibSlot = 0
 			o.HasPreStackEntry = false
 		} else if wasStack && e.To != state.ZStack {
 			o.PreStackEntryThisTurn = false
 			o.PreStackEntryFrom = state.ZLibrary
 			o.PreStackEnteredLen = 0
 			o.PreStackZoneGen = 0
+			o.PreStackLibSlot = 0
 			o.HasPreStackEntry = false
 		}
 	}
