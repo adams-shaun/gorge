@@ -356,6 +356,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"evoke_hybrid_paid_from_floating_pool", false, false},       // CR 601.2h: Deceit evoked with a floating {U} and {B} pays its {U/B}{U/B} from the pool and taps no untapped Island
 		{"planned_mana_sacrifice_token_waits_for_sba", true, false},  // CR 704.5d, 111.7: a Treasure sacrificed by the payment plan for Appeal to Eirdu stays in the graveyard until the next state-based check, as gorge leaves it
 		{"mayplay_selfflash_you_is_wouldbe_controller", true, false}, // CR 109.5: a may-play cast of a card exiled by Maralen, Fae Ascendant reads the card's own CastWithFlash static's "you" as the would-be controller
+		{"restricted_window_float_keeps_chosen_type", false, false},  // CR 106.6, 601.2h: the evoked pip window's owed tap of an any-colour ChosenType-restricted source floats the batch with the source's chosen creature type, so a spell of that type can spend it
 	})
 }
 
