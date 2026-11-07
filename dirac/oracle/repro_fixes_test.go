@@ -87,6 +87,12 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// sets at every pick (CR 700.13), not only at placement, and the
 		// kernel follows (act_commitcrime.go crimePick).
 		{"crime_ledger_set_at_each_ability_target_pick", true, false},
+		// Vadmir, New Blood's once-each-turn crime trigger is enqueued at the
+		// CR 601.2c target answer (the ward walk's crime step); an unpayable
+		// Spree cast then reverses, and the reversal gives back the
+		// once-per-turn record the queued trigger consumed (gorge abortCast's
+		// proposalLimits, CR 733.1), so the retried cast triggers again
+		{"crime_limit_restored_on_reversed_cast", false, false},
 	})
 }
 

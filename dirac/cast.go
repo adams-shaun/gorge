@@ -299,13 +299,18 @@ func (s *State) unpushSpell(k *prep) {
 		// tapped and in the pool (loweredWindowOK; CR 733.1 lets the player
 		// leave legal mana abilities reversed).
 		if s.npend > s.bld().pushNP {
-			s.npend = s.bld().pushNP
+			s.dropPendingLimits(k, s.bld().pushNP)
 		}
 		ob.zone = kop.ZoneNone
 		return
 	}
 	if s.npend > s.bld().pushNP {
-		s.npend = s.bld().pushNP // CR 733.1: the move off the zone it was cast from never happened, so its triggers (a card leaving a graveyard) are dropped
+		// CR 733.1: the move off the zone it was cast from never happened, so
+		// its triggers (a card leaving a graveyard) are dropped, and the
+		// once-per-turn records they consumed come back (gorge abortCast's
+		// proposalLimits: an undone action triggered nothing, so a
+		// once-each-turn trigger it queued has not used its turn)
+		s.dropPendingLimits(k, s.bld().pushNP)
 	}
 	ob.zone = s.bld().origin
 	ob.slot = NoSlot // off slotFaceDownSpell

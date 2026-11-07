@@ -202,7 +202,7 @@ func (s *State) reverseCast(k *prep) {
 	if e.kind == seSpell && s.bld().bfl&bflPushed != 0 {
 		s.unpushSpell(k)
 	} else if e.kind == seAbility && s.bld().bfl&bflPushed != 0 && (k.gen != nil || s.bld().stage == bsEvidence) {
-		s.unpushActivation() // cost_collectevidence.go
+		s.unpushActivation(k) // cost_collectevidence.go
 	} else if e.kind == seSpell {
 		// the end of its graveyard too (a flashback cast, pair 2359)
 		pl := &s.pl[s.objs[e.obj].owner()]
