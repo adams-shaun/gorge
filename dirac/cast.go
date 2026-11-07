@@ -111,8 +111,8 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		// its announcement filters by the post-pick cost like a hand cast
 		// (CR 601.2f). Read here, with the other convoke-only work, so a
 		// card without Convoke pays nothing for it.
-		if mode&(castMayPlay|castFree) == castMayPlay && mayPlayPlannedZone(ob.zone) && s.FeatMayPlayUntyped(p, o) &&
-			!(k.gen.anyMayRaise && s.mayRaiseLifeOwed(k)) {
+		if mode&(castMayPlay|castFree) == castMayPlay && s.FeatMayPlayUntyped(p, o) &&
+			!(k.gen.anyMayRaise && s.mayRaiseLifeOwed(k)) && mayPlayPlannedZone(ob.zone) {
 			s.bld().convokeBudget = true
 		}
 	}
