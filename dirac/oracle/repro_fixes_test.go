@@ -460,6 +460,8 @@ func TestStdLciReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-lci", []stdRepro{
 		{"granted_sac_host_cost_poses_no_choice", false, false}, // CR 602.2b, 701.21a: Deconstruction Hammer's granted "Sacrifice Deconstruction Hammer" cost has one possible payment, so it is paid without a choice after the targets
+		{"payment_trigger_counts_its_resolution", false, false}, // CR 603.2, 605.3b: Vito's trigger from a Treasure sacrificed paying for Guardian of the Great Door resolves before the cast and counts toward "the second time this ability has resolved this turn"
+		{"mana_float_unspent_observed_source", false, false},    // CR 601.2h: Barracks of the Thousand's mana floated by the X witness and left unspent (Jadelight Spelunker at X=0) is not mana that paid the cast
 	})
 }
 
@@ -467,7 +469,8 @@ func TestStdLciReprosLockstep(t *testing.T) {
 func TestStdSpmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-spm", []stdRepro{
-		{"tapcost_source_not_paid_with_itself", false, false}, // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
+		{"tapcost_source_not_paid_with_itself", false, false},             // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
+		{"tap_two_forced_answer_taps_the_plays_own_source", false, false}, // CR 602.2b: the Parents' second activation has exactly two candidates, so nothing is asked and the forced tap takes Guy; the search drops that line and reaches the pair that leaves Spider Manifestation untapped within its budget
 	})
 }
 
