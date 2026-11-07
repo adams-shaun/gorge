@@ -456,6 +456,14 @@ const ExFirstCast ExprKind = 255
 // TurnChange fires. H.M.S. Bounty, Unlikely Timeship.
 const ExYourExtraTurns ExprKind = 227
 
+// ExCounterKinds: the number of distinct counter kinds with a positive
+// count among the battlefield objects matching F (gorge
+// Count$DifferentCounterKinds_<spec>); gorge's own status markers (the
+// regeneration shield, the deathtouch mark) are no counter kinds here, and
+// a Class level is no counter. Explicit ordinal, the iota tail stays
+// untouched.
+const ExCounterKinds ExprKind = 225
+
 // ExNotOwnLibMV: the summed mana value of the library cards in the
 // resolution's remembered set that the repeated player (an OpRepeatEachPlayer
 // in progress) does not own: Parker Luck's Count$ValidLibrary
