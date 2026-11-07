@@ -557,10 +557,13 @@ func (s *State) sba(k *prep) bool {
 				gy = gy.with(sl)
 				aur = aur.with(sl)
 			}
-			if t&kop.TAura == 0 && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TCreature == 0 {
+			if t&kop.TAura == 0 && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TCreature == 0 && !s.legendOwed(k) {
 				// an Equipment whose creature is no longer one (Imprisoned
 				// in the Moon) becomes unattached and stays (CR 704.5n;
-				// gorge attachmentSBAs; pair 9856)
+				// gorge attachmentSBAs; pair 9856). Under a legend ask it
+				// stays attached: gorge parks the pass's batch with the ask
+				// (CR 704.3), and the pass after the answer detaches it
+				// (Crystallized Serah transformed beside another)
 				h := p.attached
 				s.touchSl(h)
 				p.attached = NoSlot

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/draft/draftlab"
@@ -47,27 +46,52 @@ func TestDeckpoolWritesCorpusNames(t *testing.T) {
 		t.Fatalf("precondition: the TRK draft data does not name %q", draftName)
 	}
 
+	// Which pod plays the card depends on the pick ratings and the builder, so
+	// the test walks a fixed run of seeds and every deck each one writes: no deck
+	// may carry the draft spelling, and some deck must carry the corpus spelling,
+	// or the run proved nothing.
+	for seed := uint64(1015); seed < 1015+12; seed++ {
+		if deckpoolHolds(t, corpus, seed, draftName, corpusName) {
+			return
+		}
+	}
+	t.Fatalf("no deck from seeds 1015..1026 holds %q", corpusName)
+}
+
+// deckpoolHolds runs one TRK pod at seed, fails the test on any deck holding the
+// draft spelling, and reports whether some deck holds the corpus spelling.
+func deckpoolHolds(t *testing.T, corpus string, seed uint64, draftName, corpusName string) bool {
+	t.Helper()
 	out := filepath.Join(t.TempDir(), "pool")
-	o := options{set: "TRK", pods: 1, seed: 1015, drafter: "balanced", builder: "balanced", corpus: corpus, out: out, quiet: true}
+	o := options{set: "TRK", pods: 1, seed: seed, drafter: "balanced", builder: "balanced", corpus: corpus, out: out, quiet: true}
 	if err := run(o, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
-	raw, err := os.ReadFile(filepath.Join(out, "decks", "TRK-1015-s1.json"))
+	paths, err := filepath.Glob(filepath.Join(out, "decks", "*.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	var f deck.File
-	if err := json.Unmarshal(raw, &f); err != nil {
-		t.Fatal(err)
+	if len(paths) == 0 {
+		t.Fatalf("seed %d wrote no deck files", seed)
 	}
-	names := make([]string, len(f.Cards))
-	for i, e := range f.Cards {
-		names[i] = e.Name
+	held := false
+	for _, p := range paths {
+		raw, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var f deck.File
+		if err := json.Unmarshal(raw, &f); err != nil {
+			t.Fatalf("%s: %v", p, err)
+		}
+		for _, e := range f.Cards {
+			switch e.Name {
+			case draftName:
+				t.Errorf("%s still holds the draft spelling %q", filepath.Base(p), draftName)
+			case corpusName:
+				held = true
+			}
+		}
 	}
-	if !slices.Contains(names, corpusName) {
-		t.Fatalf("deck holds %v, want %q", names, corpusName)
-	}
-	if slices.Contains(names, draftName) {
-		t.Fatalf("deck still holds the draft spelling %q: %v", draftName, names)
-	}
+	return held
 }
