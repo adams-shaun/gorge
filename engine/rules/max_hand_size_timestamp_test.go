@@ -9,9 +9,9 @@ import "testing"
 
 const (
 	noMaxHandSrc = "Name:Test Tower\nManaCost:2\nTypes:Artifact\n" +
-		"S:Mode$ Continuous | Affected$ You | SetMaxHandSize$ Unlimited | Description$ You have no maximum hand size.\nOracle:x\n"
+		"S:Mode$ Continuous | SetMaxHandSize$ Unlimited | Affected$ You | Description$ test: unlimited hand.\nOracle:x\n"
 	tenMaxHandSrc = "Name:Test Rings\nManaCost:8\nTypes:Artifact\n" +
-		"S:Mode$ Continuous | Affected$ You | SetMaxHandSize$ 10 | Description$ Your maximum hand size is ten.\nOracle:x\n"
+		"S:Mode$ Continuous | SetMaxHandSize$ 10 | Affected$ You | Description$ test: hand of ten.\nOracle:x\n"
 )
 
 // TestMaxHandSizeLatestTimestampWins puts the two statics on the battlefield
