@@ -89,6 +89,60 @@ func (e *Engine) PotentialMana(p state.PlayerID) state.Mana {
 // {R}", so the resolution-time pay ask (resPayNeedsMana) must not count it
 // (CR 106.6: the restriction limits what that mana is spent on).
 func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) state.Mana {
+	return e.potentialManaBound(p, payment, nil)
+}
+
+// potentialUnits is the unit-count companion of the colour over-bound: the
+// most mana units p's sources can actually make at once. The vector bound
+// adds every admitted ability of a source (a Swamp under Leyline of the
+// Guildpact has five intrinsic abilities, so it adds one of each colour),
+// which is sound for colour coverage but counts one tap five times. Here a
+// {T}-costed source contributes only its BEST single ability (one tap
+// activates one ability), while abilities that do not tap their source add
+// up as before. tapBest is indexed by zone position.
+type potentialUnits struct {
+	tapBest []int64
+	untap   int64
+}
+
+// note records one admitted ability's production: the change it made to
+// the hypothetical pool (pre -> post). A saturated pool counts unbounded.
+func (u *potentialUnits) note(zi int, taps bool, pre, post state.Mana, mp *effects.ManaParams) {
+	d := int64(post.Total()) - int64(pre.Total())
+	if post.Total() == potentialUnbounded {
+		d = int64(potentialUnbounded)
+	} else if mp.CountsAny && (mp.AmountIsLit || mp.AmountTrim == "") {
+		// a choice-shaped production ("Combo R G") folds every face into the
+		// colour bound, but one activation makes Amount$ (default 1) units
+		d = min(d, int64(max(mp.AmountLit, 1)))
+	}
+	if taps {
+		u.tapBest[zi] = max(u.tapBest[zi], d)
+		return
+	}
+	u.untap += d
+}
+
+// potentialManaUnits is potentialManaFor plus the unit bound: the pool's
+// spendable units plus every source's contribution (potentialUnits). A cost
+// whose PoolUnitsFloor exceeds it cannot be funded, whatever its colours.
+func (e *Engine) potentialManaUnits(p state.PlayerID, payment *paymentDescriptor) (state.Mana, int64) {
+	start := e.G.Players[p].Pool
+	if payment != nil {
+		start = pay.AvailableFor(asPayer(e), p, *payment).Pool
+	}
+	u := potentialUnits{tapBest: make([]int64, len(e.G.Zone(state.ZBattlefield, p)))}
+	out := e.potentialManaBound(p, payment, &u)
+	n := int64(start.Total()) + u.untap
+	for _, b := range u.tapBest {
+		n += b
+	}
+	return out, n
+}
+
+// potentialManaBound is potentialManaFor's fixpoint; a non-nil units records
+// each admitted ability's production (potentialUnits.note).
+func (e *Engine) potentialManaBound(p state.PlayerID, payment *paymentDescriptor, units *potentialUnits) state.Mana {
 	e.beginDerivedMemo()
 	defer e.endDerivedMemo()
 	// The decision's recorded priority walk, when its caller armed it
@@ -208,6 +262,7 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 						payment != nil && e.potentialFeeSpareCovers(p, payment, id, ma, zone, spans, flat, &others)) {
 					admitted[k] = true
 					admittedAny = true
+					pre := out
 					if effects.ManaOf(ma).RestrictValid != "" {
 						restricted = true
 					}
@@ -219,6 +274,9 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 					}
 					if tapExtra {
 						e.addPotentialTapExtra(&out, id, ma)
+					}
+					if units != nil {
+						units.note(zi, e.manaAbilityCC(p, id, ma).Tap, pre, out, effects.ManaOf(ma))
 					}
 				}
 			}

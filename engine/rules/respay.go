@@ -80,8 +80,19 @@ func (e *Engine) resPayNeedsMana(player state.PlayerID, source state.ObjID, amou
 			break
 		}
 	}
-	return sources && pay.CostPayablePool(asPayer(e), player, source, false, amount,
-		e.potentialManaFor(player, &desc), pay.AvailableFor(asPayer(e), player, desc).Typed)
+	if !sources {
+		return false
+	}
+	// The colour over-bound counts every ability of a multi-ability source;
+	// the unit bound counts one tap once, so a lone Swamp under Leyline of
+	// the Guildpact cannot look like {1}{W} (CR 118.3: no paying a cost
+	// without the resources). A Waterbend part's taps may cover its generic.
+	hyp, units := e.potentialManaUnits(player, &desc)
+	if units < amount.PoolUnitsFloor()-int64(amount.Waterbend) {
+		return false
+	}
+	return pay.CostPayablePool(asPayer(e), player, source, false, amount,
+		hyp, pay.AvailableFor(asPayer(e), player, desc).Typed)
 }
 
 // resPayPlan is the planner's witness for amount's mana from the current

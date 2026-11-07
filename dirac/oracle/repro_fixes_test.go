@@ -47,6 +47,8 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"mayplay_x_cast_census_rider", false, false},                // CR 609.4b, 601.2g-h: Worldsoul's Rage cast from Outrageous Robbery's exile: the prefix taps Insidious Roots' granted token for W, which the any-type rider spends on {R}, since gorge's census (no granted source) cannot pay the printed pips
 		{"ward_queues_at_target_choice_before_payment", true, false}, // CR 601.2c, 603.3b: a cost's sacrifice dies during the payment, so its triggers queue behind the ward trigger the target answer queued, not ahead of it -- the CR 603.3b ordering ask indexes the ward first
 		{"granted_before_printed_any", false, false},                 // CR 305.6: a granted basic type's intrinsic abilities precede a printed any-colour ability in the node-limited plan census
+		{"trigger_cost_one_tap_per_source", false, false},            // CR 118.3: Krovod Haunch's death-trigger {1}{W} is not offered over one untapped Swamp, whatever five abilities Leyline of the Guildpact gives it
+		{"trigger_cost_one_tap_dual_land", false, false},             // CR 118.3: nor over one untapped Lush Portico, whose {G} and {W} abilities are one tap
 	})
 }
 
@@ -458,6 +460,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"restricted_float_affords_unadmitted_payment", false, false},   // a floating restricted batch counts as affordable for a spell its restriction does not admit, so the kernel taps one source fewer and floats one pip less
 		{"restricted_float_paid_unadmitted_spell", false, false},        // the same admission check at the double-pip shape: a spell is paid straight out of the floating restricted pair both pips of which the payment may not touch
 		{"room_other_face_trigger_reads_cast_face_svars", false, false}, // an unlocked Room's other-face trigger resolves against the shown face's SVar table, so a Branch arm named only on its own face does nothing
+		{"return_ex_flags_hide_instant_stay", false, false},             // CR 304.4: OpReturnEx's C carries the move flags beside the zone, so the instant-stays guard read a non-battlefield zone and put a manifested instant back onto the battlefield
 		{"granted_prefix_pays_painful_printed_colour", false, false},    // CR 119.4, 601.2g: an animated Haunted Screen under Enduring Vitality's grant answers the prefix search's ability ask with the {G} its pay-1-life ability makes, the colour Omnivorous Flytrap needs, so the life is paid
 		{"mid_resolution_mana_sac_token_waits_sba", true, false},        // CR 704.3, 704.5d: a token sacrificed to pay a mid-resolution UnlessPaid fee waits in the graveyard for the state-based action, as a cast payment's does not
 		{"multi_discard_pick_order_past_eight", false, false},           // CR 404.3: a ten-card discard keeps the owner's chosen arrangement past the old eight-pick buffer
