@@ -580,6 +580,17 @@ func triggeredCardGroup(c *Ctx) []state.Target {
 	return objectsOf(c.Remembered)
 }
 
+// triggeredAttackerLKI is the singular attacker referent before the CR 400.7
+// drop: the fire-time TriggerCard role, else the Remembered fallback. The
+// DamageSource$ read takes it as-is, because an attacker that left still
+// deals the damage through its last known information (CR 608.2h).
+func triggeredAttackerLKI(c *Ctx) []state.Target {
+	if c.TriggerCard != 0 {
+		return []state.Target{{Obj: c.TriggerCard}}
+	}
+	return objectsOf(c.Remembered)
+}
+
 func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	g := h.Game()
 	// The DOTTED `AttachedTo <referent>[.<quals>]` selector (a Defined-/
@@ -1208,10 +1219,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// is a new object the ability does not refer to (CR 400.7): Grasping
 		// Shadows' "it gains deathtouch and lifelink" finds nothing once the
 		// attacker died and returned transformed.
-		if c.TriggerCard != 0 {
-			return dropTriggerRememberedMoved(c, []state.Target{{Obj: c.TriggerCard}}), true
-		}
-		return dropTriggerRememberedMoved(c, objectsOf(c.Remembered)), true
+		return dropTriggerRememberedMoved(c, triggeredAttackerLKI(c)), true
 	case definedSpecDelayTriggerRememberedLKI:
 		// The registration's own capture (objects only, the LKI spelling's
 		// read), with the pre-field fallback to Remembered for a context
@@ -1565,9 +1573,12 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return out, true
 	case definedSpecTriggeredAttackerOwner:
 		// The owner (CR 108.3) of the singular triggering attacker, so a
-		// stolen attacker's owner is named, not the thief (Nihiloor).
-		attackers, _ := definedSpec(h, c, "TriggeredAttacker")
-		for _, t := range attackers {
+		// stolen attacker's owner is named, not the thief (Nihiloor). Read
+		// the undropped LKI group: the attacker may have left the
+		// battlefield before this trigger resolves, and CR 608.2h still
+		// names its owner (the CR 400.7 drop belongs to the affected-object
+		// reads, never to the owner).
+		for _, t := range triggeredAttackerLKI(c) {
 			if o := g.Obj(t.Obj); o != nil && int(o.Owner) < len(g.Players) {
 				return []state.Target{{Player: o.Owner, IsPlayer: true}}, true
 			}
