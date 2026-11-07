@@ -42,10 +42,29 @@ func (fs *filtSearch) fundOrder(k *prep, t *State, sl Slot, pc *pcard, mask uint
 	return n
 }
 
+// fundColours tries funding source sl's colour answers (mask holds two or
+// more) in fundOrder's order.
+//
+//go:noinline
+func (fs *filtSearch) fundColours(k *prep, t *State, sl Slot, pc *pcard, mask uint8, funded int, gapUsed bool) bool {
+	var order [kop.NumManaKinds]uint8
+	for _, c := range order[:fs.fundOrder(k, t, sl, pc, mask, &order)] {
+		if fs.try(k, t, filtStep{sl: sl, ans: c}, funded+1, gapUsed) {
+			return true
+		}
+	}
+	return false
+}
+
 // fundSac sacrifices funding source sl after its mana is added, when its mana
 // ability sacrifices it (a Treasure): gorge pays that cost at the search's
 // priority node, and the token ceases at the next priority's state-based
 // check, before the next activation (the grant search's sacrifice, mana_grantedoffers.go).
+// The visited-state key needs nothing more: the sacrificed Treasure's mana
+// floats, so the pool tells that state from one where it is still untapped
+// (gorge's scriptStateKey lists the battlefield by id).
+//
+//go:noinline
 func (s *State) fundSac(k *prep, sl Slot) {
 	if !s.manaPCGen(k, sl).manaSac {
 		return

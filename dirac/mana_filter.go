@@ -499,12 +499,9 @@ type filtKey struct {
 	// Three Tree Mascot's {W} over a Plains' {W} is a new state
 	art    uint8
 	tapped slotMask
-	// occ: p's permanents still on the battlefield; gorge's key lists
-	// them by id, so a sacrificed Treasure is a new state (fundSac)
-	occ  slotMask
-	sp   uint8 // gorge's key counts the stack, hand and graveyard too (a Taps trigger's loot)
-	hand uint8
-	gy   uint8
+	sp     uint8 // gorge's key counts the stack, hand and graveyard too (a Taps trigger's loot)
+	hand   uint8
+	gy     uint8
 }
 
 const maxFiltPath = 16
@@ -661,7 +658,9 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		pl.pool[st.ans] += max(s.manaPCGen(k, st.sl).manaN, 1)
 		s.addExtra(k, p, st.sl, s.manaPCGen(k, st.sl))
 		s.artTag(k, p, st.sl, int(st.ans))
-		s.fundSac(k, st.sl)
+		if k.sacMana {
+			s.fundSac(k, st.sl)
+		}
 	}
 }
 
@@ -711,8 +710,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		t.artSync(p)
 		key.art = t.g.poolArt[p&1]
 	}
-	key.occ = t.ctrlM[p&1].and(t.occ)
-	for b := key.occ; b.any(); b = b.rest() {
+	for b := t.ctrlM[p&1].and(t.occ); b.any(); b = b.rest() {
 		if sl := b.first(); t.perms[sl].flags&pfTapped != 0 {
 			key.tapped = key.tapped.with(sl)
 		}
@@ -807,11 +805,13 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				if bits.OnesCount8(mask) > 1 && !fs.tick() {
 					return false // the colour ask
 				}
-				var order [kop.NumManaKinds]uint8 // a Treasure funds too, sacrificed (mana_filtfund.go)
-				for _, c := range order[:fs.fundOrder(k, t, sl, pc, mask, &order)] {
-					if fs.try(k, t, filtStep{sl: sl, ans: c}, funded+1, gapUsed) {
+				if bits.OnesCount8(mask) > 1 {
+					// a Treasure funds too, sacrificed; the ask in gorge's order (mana_filtfund.go)
+					if fs.fundColours(k, t, sl, pc, mask, funded, gapUsed) {
 						return true
 					}
+				} else if fs.try(k, t, filtStep{sl: sl, ans: uint8(bits.TrailingZeros8(mask))}, funded+1, gapUsed) {
+					return true
 				}
 			}
 			if bits.OnesCount8(rm) > 1 && !fs.tick() {
