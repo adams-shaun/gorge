@@ -670,6 +670,9 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		pl.pool[st.ans] += max(s.manaPCGen(k, st.sl).manaN, 1)
 		s.addExtra(k, p, st.sl, s.manaPCGen(k, st.sl))
 		s.artTag(k, p, st.sl, int(st.ans))
+		if k.sacMana {
+			s.fundSac(k, st.sl)
+		}
 	}
 }
 
@@ -810,17 +813,17 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 			if free {
 				pc := t.manaPCGen(k, sl)
-				if pc.manaSac {
-					continue // (a Treasure funds nothing here: see the handoff's open items)
-				}
 				mask := t.srcMaskAt(pc, sl)
 				if bits.OnesCount8(mask) > 1 && !fs.tick() {
 					return false // the colour ask
 				}
-				for m := mask; m != 0; m &= m - 1 {
-					if fs.try(k, t, filtStep{sl: sl, ans: uint8(bits.TrailingZeros8(m))}, funded+1, gapUsed) {
+				if bits.OnesCount8(mask) > 1 {
+					// a Treasure funds too, sacrificed; the ask in gorge's order (mana_filtfund.go)
+					if fs.fundColours(k, t, sl, pc, mask, funded, gapUsed) {
 						return true
 					}
+				} else if fs.try(k, t, filtStep{sl: sl, ans: uint8(bits.TrailingZeros8(mask))}, funded+1, gapUsed) {
+					return true
 				}
 			}
 			if bits.OnesCount8(rm) > 1 && !fs.tick() {

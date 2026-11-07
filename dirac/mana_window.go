@@ -246,6 +246,8 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 			if pc.manaMulti {
 				// a cast's ability ask lists what the cost owes first (gorge owedAbilitiesFirst)
 				col = s.windowCol(k, p, useful, sl, pc, false, false)
+			} else if c, ok := s.painAnyOwed(p, useful, pc); ok {
+				col = c
 			} else if want, decided := s.windowUseful(k, p, useful); decided {
 				// the colour ask lists only what the clamp keeps (gorge paymentUsefulColours)
 				if m := s.windowSrcMask(k, sl) & want; m != 0 {
