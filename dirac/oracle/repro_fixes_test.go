@@ -49,6 +49,7 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"granted_before_printed_any", false, false},                 // CR 305.6: a granted basic type's intrinsic abilities precede a printed any-colour ability in the node-limited plan census
 		// CR 601.2b, 601.2g-h: Fuss's {R/W} cast from Outrageous Robbery's exile is priced under the any-type rider, so the printed lands pay it and Insidious Roots' granted token stays untapped
 		{"granted_any_prefix_respects_the_any_type_rider", false, false},
+		{"cost_sacrifices_latch_one_or_more_die", false, false},
 	})
 }
 
