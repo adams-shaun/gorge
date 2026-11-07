@@ -86,6 +86,13 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// sets at every pick (CR 700.13), not only at placement, and the
 		// kernel follows (act_commitcrime.go crimePick).
 		{"crime_ledger_set_at_each_ability_target_pick", true, false},
+		// A Boom Box its opponent stole with Shifting Grift is activated by
+		// the thief against itself, its own creature and its own land: no
+		// crime at the picks (CR 700.13 judges the targeting, CR 601.2c,
+		// before the 601.2h cost), and the self-sacrificing cost does not
+		// re-judge the target in the owner's graveyard at placement
+		// (act_commitcrime.go crimeStep reads the entry's recorded verdict).
+		{"crime_pick_verdict_not_rejudged", false, false},
 	})
 }
 
