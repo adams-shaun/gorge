@@ -46,12 +46,12 @@ func TestGraveyardLeaveTriggerPositiveControlIsCreatureToExile(t *testing.T) {
 // card to the battlefield and animate it into an artifact (no longer a
 // creature).
 const tomReturnFixture = "Name:Returning Troll\nManaCost:3 B G\nTypes:Legendary Creature Troll\nPT:5/5\n" +
-	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self+Creature | Execute$ DBReturn\n" +
-	"SVar:DBReturn:DB$ ChangeZone | Defined$ TriggeredNewCardLKICopy | Origin$ Graveyard | Destination$ Battlefield | StaticEffect$ Animate | GainControl$ True\n" +
-	"SVar:Animate:Mode$ Continuous | Affected$ Card.IsRemembered | AddType$ Artifact | RemoveCardTypes$ True\nOracle:x\n"
+	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self+Creature | Execute$ ReturnAnimated\n" +
+	"SVar:ReturnAnimated:DB$ ChangeZone | Defined$ TriggeredNewCardLKICopy | Origin$ Graveyard | Destination$ Battlefield | StaticEffect$ AnimateArtifact | GainControl$ True\n" +
+	"SVar:AnimateArtifact:Mode$ Continuous | Affected$ Card.IsRemembered | AddType$ Artifact | RemoveCardTypes$ True\nOracle:x\n"
 
 // TestGraveyardLeaveTriggerFiresOnAnimatedReturn drives the real ChangeZone
-// return path (the StaticEffect$ Animate rider) rather than a bare MoveZone:
+// return path (the StaticEffect$ AnimateArtifact rider) rather than a bare MoveZone:
 // the returning permanent is no longer a creature, but the watcher must see
 // the card as it last existed in the graveyard (CR 603.10a).
 func TestGraveyardLeaveTriggerFiresOnAnimatedReturn(t *testing.T) {
