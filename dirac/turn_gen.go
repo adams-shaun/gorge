@@ -507,6 +507,9 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 				}
 				continue
 			}
+			if kind := s.enterChoiceKind(k, x.card); kind != 0 && s.parkReturnCost(k, srcCtrl, o, l.obj, kind) {
+				continue // a cost's sacrifice outside a resolution: asked before priority (zone_untilleavescost.go)
+			}
 			ctrN := 0
 			if k.gen.anyLinkCtr {
 				ctrN = s.linkRetCtrs(k, srcCtrl, o, l.obj) // before the card takes the source's slot
@@ -753,6 +756,9 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 	if s.ctl != ctlPriority || s.res.active {
 		return false
 	}
+	if s.poseReturnCost(k, d) {
+		return true // zone_untilleavescost.go
+	}
 	if s.g.endTurn {
 		s.clearCombat() // CR 723.1b: every creature is removed from combat
 		// a state-based action still due is performed before the step: inside
@@ -960,6 +966,9 @@ func (s *State) applyGen(k *prep, a Action) {
 	if s.g.ro.n > 0 && (s.g.ro.on || s.g.ro.nca) {
 		s.applyReplOrder(a)
 		return
+	}
+	if s.answerReturnCost(k, a) {
+		return // zone_untilleavescost.go
 	}
 	if s.g.pre.state == 1 {
 		if s.g.pre.kind == akNameLook {
