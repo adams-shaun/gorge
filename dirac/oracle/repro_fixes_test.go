@@ -47,6 +47,8 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"mayplay_x_cast_census_rider", false, false},                // CR 609.4b, 601.2g-h: Worldsoul's Rage cast from Outrageous Robbery's exile: the prefix taps Insidious Roots' granted token for W, which the any-type rider spends on {R}, since gorge's census (no granted source) cannot pay the printed pips
 		{"ward_queues_at_target_choice_before_payment", true, false}, // CR 601.2c, 603.3b: a cost's sacrifice dies during the payment, so its triggers queue behind the ward trigger the target answer queued, not ahead of it -- the CR 603.3b ordering ask indexes the ward first
 		{"granted_before_printed_any", false, false},                 // CR 305.6: a granted basic type's intrinsic abilities precede a printed any-colour ability in the node-limited plan census
+		// CR 601.2b, 601.2g-h: Fuss's {R/W} cast from Outrageous Robbery's exile is priced under the any-type rider, so the printed lands pay it and Insidious Roots' granted token stays untapped
+		{"granted_any_prefix_respects_the_any_type_rider", false, false},
 	})
 }
 
@@ -540,6 +542,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"granted_prefix_pays_painful_needed_colour", false, false},     // CR 119.4: the granted-mana prefix taps an animated Haunted Screen for its painful {R} the play needs (gorge's ask lists it before the grant) and pays 1 life
 		{"self_leaves_trigger_sees_remembered_clear", false, false},     // CR 400.7/603.2d: a leaves trigger whose source departed does not serve the fire-time remembered snapshot, so the first instance's Cleanup clear closes the second instance's window
 		{"unless_tax_hides_unadmitted_restricted_mana", false, false},   // CR 106.6: Smoky Lounge's Room-only {R}{R} cannot pay Don't Make a Sound's {2} unless tax, so its controller is offered only the decline
+		{"sac_after_aura_control_ends", false, false},                   // CR 613.1b, 701.21: Vile Mutilator's second sacrifice counts creatures after the first (an Aura) left, so the creature it stole is back with its owner and the lone manifest is forced
 		{"painless_plan_at_nonpositive_life", false, false},             // CR 119.4, 601.2g: a player at life <= 0 (a lose-the-game replacement) still pays a {1} spell from painless lands; the pain guard cuts only a plan that pays life
 	})
 }
