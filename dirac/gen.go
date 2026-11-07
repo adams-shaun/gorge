@@ -2184,7 +2184,7 @@ func (s *State) addOvRec(sl Slot, r ovRec, merge, grants bool) bool {
 	if s.fxM.has(sl) {
 		for i := 0; i < int(s.g.nfx); i++ {
 			if p := &s.g.fx[i]; p.sl == sl && p.kind == fxOverride && p.r.idx == r.idx && p.r.src == r.src && p.r.p == r.p && p.r.t == r.t && p.r.fl&^ovReps == r.fl&^ovReps {
-				if p.r.fl&ovReps == ovReps || grants && (s.newerLayer6Fx(sl, i) || s.newerLayer6Static(p.r.ts)) {
+				if p.r.fl&ovReps == ovReps || grants && (s.newerLayer6Fx(sl, i) || s.statM.any() && s.newerLayer6Static(p.r.ts)) {
 					continue // a further identical record carries the rest
 				}
 				if merge {
@@ -2245,8 +2245,6 @@ func (s *State) newerLayer6Fx(sl Slot, i int) bool {
 // a timestamp of its own: Abigale's second loss of abilities, after Chronicle
 // of Victory entered, takes that grant away again. The static's filter is not
 // read (a spare record is only a spare record).
-//
-//go:noinline
 func (s *State) newerLayer6Static(ts uint16) bool {
 	k := s.k()
 	for m := s.statM; m.any(); m = m.rest() {
