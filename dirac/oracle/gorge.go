@@ -135,8 +135,8 @@ type GorgeSide struct {
 	committed bool // the last Apply submitted to gorge
 	dirty     bool // gorge was answered since the last Project
 	err       error
-	// castCost caches the resolved hand-only PaymentCost of plain cast
-	// options seen at priority, so a convoke announcement (which carries
+	// castCost caches the resolved PaymentCost of plain hand casts and
+	// untyped may-play casts from exile or a graveyard seen at priority, so a convoke announcement (which carries
 	// no cost) can be projected against the same cost the offer used.
 	castCost map[state.ObjID]decision.PaymentCost
 	// castX marks the cached plain casts whose face mana cost has an {X}
@@ -604,7 +604,11 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			add(prioEntry{a: Pack(ActPlayLand, ref(o.Obj), RefNone, landFaceCode(o.Mode)), opt: o.Index})
 		case "cast":
 			if (o.Mode == "" || o.Mode == "mayplay" && o.MayPlayPerm == "") && o.AltCostIndex == 0 {
-				if pc, ok := e.CastPaymentCost(d.Player, o.Obj); ok {
+				price := e.CastPaymentCost
+				if o.Mode == "mayplay" {
+					price = e.MayPlayCastPaymentCost
+				}
+				if pc, ok := price(d.Player, o.Obj); ok {
 					if g.castCost == nil {
 						g.castCost = map[state.ObjID]decision.PaymentCost{}
 						g.castX = map[state.ObjID]bool{}

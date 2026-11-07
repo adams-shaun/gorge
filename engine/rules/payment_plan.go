@@ -30,43 +30,58 @@ func (e *Engine) PlanCastPayment(p state.PlayerID, cast decision.PlannedCast) Pa
 	return e.planCastPaymentChecked(p, cast, &statics, &candidates)
 }
 
-// CastPaymentCost is the mana cost a plain cast of the card id by p would
-// lock in now (CR 601.2f): the printed cost with its spell-ability extras,
-// re-priced by every live cost static exactly as the planner prices it
-// (planCastPaymentChecked). A card in p's hand is a plain hand cast; a card in
-// exile or a graveyard is the untyped may-play cast, priced as the offer walk
-// and beginCast's "mayplay" case price it (a free grant empties the mana part,
-// the grant's RaiseCost$ is added before the statics). ok is false for any
-// other object, and for a may-play raise the planner cannot price. A pure
-// read, for diagnostics (testkit/paymirror) that need to show a cast's price
-// moved since a plan was witnessed, and for the lockstep oracle's convoke
-// announcement frame.
+// CastPaymentCost is the mana cost a plain hand cast of the card id by p
+// would lock in now (CR 601.2f): the printed cost with its spell-ability
+// extras, re-priced by every live cost static exactly as the planner prices it
+// (planCastPaymentChecked). ok is false for any other object. A pure read, for
+// diagnostics (testkit/paymirror) that need to show a cast's price moved since
+// a plan was witnessed.
 func (e *Engine) CastPaymentCost(p state.PlayerID, id state.ObjID) (cost decision.PaymentCost, ok bool) {
 	o := e.G.Obj(id)
-	if o == nil || o.Face() == nil {
-		return decision.PaymentCost{}, false
-	}
-	if plannedMayPlayZone(o.Zone) {
-		// An effect-delivered permission (a DB$ Effect "you may cast that
-		// card") is no mayPlayGrant, only the offer carrying it: the caller
-		// names a cast the walk already offered.
-		base := pay.RawBaseCost(asPayer(e), p, id)
-		if free, _ := e.mayPlayGrant(p, id); free {
-			base = Cost{}
-		}
-		if raise, hasRaise, priced := e.mayPlayRaiseCost(p, id); hasRaise {
-			if !priced {
-				return decision.PaymentCost{}, false
-			}
-			base = base.Plus(raise)
-		}
-		return pay.WireCost(e.offerCostFor(p, id, pay.WithSpellAbilityExtras(o.Face(), base), spellScope("mayplay"))), true
-	}
-	if o.Zone != state.ZHand || o.Owner != p {
+	if o == nil || o.Face() == nil || o.Zone != state.ZHand || o.Owner != p {
 		return decision.PaymentCost{}, false
 	}
 	base := pay.WithSpellAbilityExtras(o.Face(), pay.RawBaseCost(asPayer(e), p, id))
 	return pay.WireCost(e.offerCostFor(p, id, base, spellScope(""))), true
+}
+
+// MayPlayCastPaymentCost is the mana cost the untyped may-play cast of the
+// card id (in exile or a graveyard) by p would lock in now (CR 601.2f), priced
+// as the offer walk and beginCast's "mayplay" case price it. ok is false for
+// any other object, and for a may-play raise the planner cannot price. A pure
+// read, for the lockstep oracle's convoke announcement frame.
+func (e *Engine) MayPlayCastPaymentCost(p state.PlayerID, id state.ObjID) (cost decision.PaymentCost, ok bool) {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil || !plannedMayPlayZone(o.Zone) {
+		return decision.PaymentCost{}, false
+	}
+	// An effect-delivered permission (a DB$ Effect "you may cast that card")
+	// is no mayPlayGrant, only the offer carrying it: the caller names a cast
+	// the walk already offered.
+	base, ok := e.plannedMayPlayBase(p, id)
+	if !ok {
+		return decision.PaymentCost{}, false
+	}
+	return pay.WireCost(e.offerCostFor(p, id, pay.WithSpellAbilityExtras(o.Face(), base), spellScope("mayplay"))), true
+}
+
+// plannedMayPlayBase is the untyped may-play cast's base cost before the
+// spell ability's extras and the cost statics: the printed cost, emptied by a
+// free grant, plus the granting static's RaiseCost$. ok is false when a raise
+// exists that the planner cannot price. The one home of the offer, charge and
+// diagnostic price.
+func (e *Engine) plannedMayPlayBase(p state.PlayerID, id state.ObjID) (Cost, bool) {
+	base := pay.RawBaseCost(asPayer(e), p, id)
+	if free, granted := e.mayPlayGrant(p, id); granted && free {
+		base = Cost{}
+	}
+	if raise, hasRaise, priced := e.mayPlayRaiseCost(p, id); hasRaise {
+		if !priced {
+			return Cost{}, false
+		}
+		base = base.Plus(raise)
+	}
+	return base, true
 }
 
 // planCastPaymentChecked is PlanCastPayment over caller-owned per-build
@@ -152,15 +167,9 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		// charges it: the free grant empties the mana part, the granting
 		// static's RaiseCost$ is added before the cost statics apply, and
 		// the spell ability's extras follow in "mayplay" scope.
-		base := pay.RawBaseCost(asPayer(e), p, cast.Object)
-		if free, ok := e.mayPlayGrant(p, cast.Object); ok && free {
-			base = Cost{}
-		}
-		if raise, hasRaise, priced := e.mayPlayRaiseCost(p, cast.Object); hasRaise {
-			if !priced {
-				return PaymentPlanOutcome{Reason: "unsupported", Detail: "mayplay_raise"}
-			}
-			base = base.Plus(raise)
+		base, priced := e.plannedMayPlayBase(p, cast.Object)
+		if !priced {
+			return PaymentPlanOutcome{Reason: "unsupported", Detail: "mayplay_raise"}
 		}
 		cost = pay.WithSpellAbilityExtras(o.Face(), e.offerCostForUsing(statics.get(), p, cast.Object, base, spellScope("mayplay")))
 	} else {
@@ -812,14 +821,9 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 		settleBase, settleScope = e.flashbackCost(cast.Object), spellScope("flashback")
 	} else if o := e.G.Obj(cast.Object); o != nil && plannedMayPlayZone(o.Zone) {
 		settleScope = spellScope("mayplay")
-		if free, granted := e.mayPlayGrant(p, cast.Object); granted && free {
-			settleBase = Cost{}
-		}
-		if raise, hasRaise, priced := e.mayPlayRaiseCost(p, cast.Object); hasRaise {
-			if !priced {
-				return fmt.Errorf("payment plan may-play raise cost no longer priceable")
-			}
-			settleBase = settleBase.Plus(raise)
+		var priced bool
+		if settleBase, priced = e.plannedMayPlayBase(p, cast.Object); !priced {
+			return fmt.Errorf("payment plan may-play raise cost no longer priceable")
 		}
 	}
 	cost := pay.PlanManaHalf(e.offerCostFor(p, cast.Object, pay.WithSpellAbilityExtras(e.G.Obj(cast.Object).Face(), settleBase), settleScope))

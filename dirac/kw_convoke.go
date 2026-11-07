@@ -343,7 +343,8 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 		return false
 	}
 	// The post-pick remainder the oracle's convoke frame filters by exists
-	// only for a plain hand cast; every other route poses gorge's static
+	// only for a plain hand cast or an untyped paid graveyard/exile may-play
+	// cast; every other route poses gorge's static
 	// option list, whose colour picks do not shrink as earlier picks pay the
 	// pips (build.convokeBudget, beginCast).
 	filter := s.bld().convokeBudget
