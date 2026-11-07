@@ -506,6 +506,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if k.gen != nil && k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
 		mana = s.ownReducedBF(k, a, sl, p.ctrl)
 	}
+	planned := mana // the planner's cost: no Power-up reduction (below)
 	if k.gen != nil && k.gen.anyPowerUp && f&kop.CostPowerUp != 0 {
 		// CR 702.193b: the offer walk and the affordability check read the
 		// reduced cost (gorge legal_walk_battlefield.go:414/553), and the
@@ -522,10 +523,16 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// reduced to {2}, three untapped Forests, no offer). The floating
 		// pool paying the reduced cost is enough: the plan is then a pool
 		// choice. So: offered iff the pool pays the reduced cost or the
-		// sources pay the printed one; the charge is always the reduced one
+		// sources pay the printed one after the cost statics; the charge is always the reduced one
 		// (buildCostCharge), and the plan/charge mismatch falls back to the
 		// manual mana window (powerUpPlanRejected, mana_window.go).
-		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &a.Cost.Mana, av) {
+		// The planner's printed cost still composes the cost statics
+		// (offerCostFor): Hulk, Gamma Goliath's {3} off She-Hulk's {4}{G}{G}
+		// is planned as {1}{G}{G} (CR 601.2f, 602.2b).
+		if k.gen.anyAbReduce {
+			planned = s.abReduced(k, a, sl, p.ctrl, planned)
+		}
+		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &planned, av) {
 			return false
 		}
 	}
