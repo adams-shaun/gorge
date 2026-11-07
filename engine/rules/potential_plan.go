@@ -1338,11 +1338,14 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	statics := e.collectCostStatics()
 	composed := e.offerCostForUsing(statics, p, id, cost, scope)
 	out := e.planComposedCost(p, id, composed, true, true)
-	if out.Reason == "insufficient" && statics.validTarget {
-		// A target-dependent reducer (an equip discount for one creature) is
-		// absent from the pre-target composition, but the offer gate's
-		// potential-target retry prices it (offerCastableUsing): plan the
-		// cheapest such announcement too, so the offer has its witness. The
+	if (out.Plan == nil || out.Reason != "") && statics.validTarget {
+		// No plan at the untargeted price: a ValidTarget$ cost static
+		// (Cloud, Planet's Champion's "Equip abilities that target Cloud cost
+		// {2} less") is absent from the pre-target composition, but some legal
+		// target's price may be payable (CR 601.2c, 601.2f), and the offer
+		// gate's potential-target retry prices it (offerCastableUsing). The
+		// target is not chosen at offer time, so each potential target's price
+		// is tried and the first payable plan is the offer's witness. The
 		// chosen target's cost is repriced before payment (rearmAutoPay).
 		// Only a single-target announcement is priced this way: the retry
 		// tests each candidate as the sole selection, which does not price a
@@ -1351,7 +1354,7 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 			var potential PaymentPlanOutcome
 			if _, ok := e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
 				potential = e.planComposedCost(p, id, e.composedOfferCost(p, id, cost, m, scope), true, true)
-				return potential.Reason == ""
+				return potential.Plan != nil && potential.Reason == ""
 			}); ok {
 				return potential
 			}
