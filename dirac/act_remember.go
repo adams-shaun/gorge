@@ -32,11 +32,31 @@ func (s *State) destroyAllRemember(k *prep, in *kop.Instr) {
 		objs[i] = s.perms[ord[i]].obj
 	}
 	s.leaveAll(k, hit, kop.ZoneGraveyard)
+	if in.C&1 == 0 {
+		return
+	}
 	for _, o := range objs[:n] {
-		if in.C&1 != 0 && s.objs[o].zone == kop.ZoneGraveyard {
+		if s.objs[o].zone == kop.ZoneGraveyard {
 			s.remember(o)
+		} else {
+			// The victims a CR 616.1 order ask still holds move later; remember
+			// one only when its parked move reaches the graveyard (runParked).
+			s.parkMassRemember(o)
 		}
 	}
+}
+
+// parkMassRemember marks o's parked mass move as a RememberDestroyed$ victim
+// that is still on the battlefield because an order ask holds it. False when o
+// is not in the queue.
+func (s *State) parkMassRemember(o Obj) bool {
+	for i := range s.cold.parked {
+		if r := &s.cold.parked[i]; r.kind == parkMass && r.obj == o {
+			r.fl |= parkRemember
+			return true
+		}
+	}
+	return false
 }
 
 // discardRemember is RememberDiscarded$ (gorge discardAndRememberEvent):

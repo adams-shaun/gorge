@@ -22,15 +22,15 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | MKM | 279 | 242 | 1 | 55 | 186 |
 | MSH | 276 | 233 | 1 | 25 | 207 |
 | OTJ | 276 | 241 | 1 | 28 | 212 |
-| SOS | 270 | 248 | 1 | 26 | 221 |
+| SOS | 270 | 249 | 0 | 28 | 221 |
 | SPM | 192 | 160 | 1 | 23 | 136 |
 | TDM | 276 | 249 | 4 | 56 | 189 |
 | TLA | 285 | 252 | 1 | 1 | 250 |
 | TMT | 194 | 171 | 1 | 10 | 160 |
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
-| WOE | 281 | 252 | 0 | 13 | 239 |
-| ALL | 34442 | 21664 | 28 | 16941 | 4695 |
+| WOE | 281 | 252 | 0 | 6 | 246 |
+| ALL | 34442 | 21665 | 27 | 16936 | 4702 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -64,18 +64,18 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | std-tmt | 295 |
 | std-trc | 1500 |
 | std-trk | 1500 |
-| std-woe | 146 |
+| std-woe | 1500 |
 
 Nothing else is covered. A card none of these runs reaches is unverified, whatever it does. A supported card has played clean in these games, not in every game: the standing sweep and census are separate runs, last measured at 164 and 244 divergent pairs, and are outside this claim.
 
 ## Refused by name
 
-28 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+27 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 2 |
-| options | 7 |
+| options | 6 |
 | options-options | 1 |
 | projection | 1 |
 | projection-Cards.Chars.Colors | 1 |
