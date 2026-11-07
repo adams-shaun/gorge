@@ -195,9 +195,10 @@ import (
 // +1 (Ark of Hunger: the remembered-card MayPlay over Graveyard,Exile; ALL build-level 21664 -> 21665).
 // +1 (Parker Luck: the RepeatEach Targeted body reads the other player's revealed card's mana value; ALL build-level 21665 -> 21666).
 // +10 (ValidSpell$ Activated.Equip ReduceCost, the target-gated equip price: Auriok Steelshaper, Bladehold War-Whip, Bureau Headmaster, Cloud, Planet's Champion, Dwarven Mauler, Fervent Champion, Ghostfire Blade, Helitrooper, Nahiri, Storm of Stone, Éowyn, Lady of Rohan; ALL build-level 21666 -> 21676).
-// +1 (Hundred-Battle Veteran: the self-pump gate counts the different counter kinds among your creatures; ALL build-level 21681 -> 21682).
+// +1 (Aettir and Priwen: an attached static's live set P/T is read from its controller; ALL build-level 21681 -> 21682).
+// +1 (Hundred-Battle Veteran: the self-pump gate counts the different counter kinds among your creatures; ALL build-level 21682 -> 21683).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21682, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21683, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
