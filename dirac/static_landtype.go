@@ -132,8 +132,8 @@ func blgPlain(c *kop.CardDef, pc *pcard) bool {
 		if j != int(pc.manaAb) && (censusGapMana(a) || restrSrcAb(a)) {
 			continue // a costed or restricted ability beside the first: the census gap / restricted-source machinery's, not a view colour
 		}
-		if a.AFlags != 0 || a.ManaRestrict != 0 || a.ManaN > 1 || a.Cost.Flags != kop.CostTap || a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0 ||
-			bits.OnesCount8(uint8(a.ManaColors&0x3f)) != 1 || len(a.Prog) != 0 || a.Trig.Cond != 0 {
+		if a.AFlags&^kop.AfManaChoice != 0 || a.ManaRestrict != 0 || a.ManaN > 1 || a.Cost.Flags != kop.CostTap || a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0 ||
+			a.ManaColors&0x3f == 0 || a.AFlags&kop.AfManaChoice == 0 && bits.OnesCount8(uint8(a.ManaColors&0x3f)) != 1 || len(a.Prog) != 0 || a.Trig.Cond != 0 {
 			return false
 		}
 	}
@@ -145,8 +145,8 @@ func blgPlain(c *kop.CardDef, pc *pcard) bool {
 //
 //go:noinline
 func (s *State) blgMask(k *prep, sl Slot) kop.ColorMask {
-	if s.typesAt(k, sl)&kop.TLand == 0 {
-		return 0
+	if s.typesAt(k, sl)&kop.TLand == 0 || s.genLost(k, sl) {
+		return 0 // a layer-6 loss takes the intrinsic abilities too, whatever its timestamp (gorge: lossStamp != 0, mana_activation.go)
 	}
 	var m kop.ColorMask
 	for c, i := range k.gen.blgSub {
