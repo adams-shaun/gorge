@@ -908,9 +908,14 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 
 // filtCombo is the allocation ask of a combination filter at sl: gorge's
 // scriptAnswers enumerates a Min == Max == n colour allocation unit by unit,
-// the last unit varying fastest, and stops at 64 combinations. Each is one
-// activation producing its counts (filtStep.alloc); the first whose
-// production pays later is the script's.
+// the last unit varying fastest, and stops at 64 combinations; each is one
+// activation producing its counts (filtStep.alloc). scriptOrderAnswers then
+// tries the answers that name one of the play's announced colours first (a
+// stable partition), as filtColours's needFirst does for a one-colour ask.
+// Without it the first allocation spends the node budget on colours the
+// play does not name: Baxter Building's {4} makes its four mana W first, so
+// a {G} cast was left unpriced while gorge's search found W3 G1 within the
+// 160 nodes.
 func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
 	n := int(t.filtAb(k, sl).ManaN)
 	if n <= 0 || n > 6 {
@@ -918,15 +923,24 @@ func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
 	}
 	const per = 5 // Any's W U B R G, the order askManaColor offers
 	var idx [6]uint8
+	var steps [64]filtStep
+	var wanted [64]bool
+	ns := 0
 	for tries := 0; tries < 64; tries++ {
 		var st filtStep
 		st.sl, st.ans, st.gap = sl, 1, true
 		for u := 0; u < n; u++ {
 			st.alloc[idx[u]]++
 		}
-		if fs.try(k, t, st, funded, true) {
-			return true
+		w := false
+		for c, m := range st.alloc {
+			if m != 0 && fs.need[c] {
+				w = true
+				break
+			}
 		}
+		steps[ns], wanted[ns] = st, w
+		ns++
 		u := n - 1
 		for ; u >= 0; u-- {
 			if idx[u]++; idx[u] < per {
@@ -936,6 +950,16 @@ func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
 		}
 		if u < 0 {
 			break
+		}
+	}
+	for pass := 0; pass < 2; pass++ {
+		for i := 0; i < ns; i++ {
+			if wanted[i] != (pass == 0) {
+				continue
+			}
+			if fs.try(k, t, steps[i], funded, true) {
+				return true
+			}
 		}
 	}
 	return false
