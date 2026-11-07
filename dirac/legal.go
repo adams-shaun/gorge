@@ -227,18 +227,20 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if s.statM.any() || k.gen != nil {
 			fc = s.adjustCost(k, p, c, o, fc)
 		}
+		fbGrant := granted // the cast pays a granted instance (no printed non-mana part)
 		if !granted {
 			if two, amb, g := s.fbInstances(k, p, o); amb {
 				continue
 			} else if two && g {
 				fc = s.adjustCost(k, p, c, o, k.t.Cards[c].Cost)
+				fbGrant = true
 			}
 		}
 		fc = s.delveOfferCredit(k, p, c, o, false, fc)
 		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, &av) || !s.spellTargetsFeasibleFrom(k, c, p, o) || k.gen != nil && !s.spellCostsFeasible(k, c, p, o) {
 			continue // (an additional cost too: Thrill of Possibility's discard with an empty hand)
 		}
-		if fb := &k.t.Cards[c].FbCost; fb.Flags != 0 && !granted && !s.pickCostPayable(k, p, fb, o) {
+		if fb := &k.t.Cards[c].FbCost; fb.Flags != 0 && !fbGrant && !s.pickCostPayable(k, p, fb, o) {
 			continue // a non-mana flashback cost (gorge castable's Sac / tapXType census)
 		}
 		if s.castHeldOut(o) {
@@ -1297,9 +1299,14 @@ func (s *State) fbInstances(k *prep, p uint8, o Obj) (two, ambiguous, granted bo
 	pf := s.adjustCost(k, p, c, o, cd.AltCost)
 	gf := s.adjustCost(k, p, c, o, cd.Cost)
 	pPot, gPot := pa.affords(&pf, pipMaskOf(&pf), 0), pa.affords(&gf, pipMaskOf(&gf), 0)
+	// a printed non-mana part (Group Project's tap three creatures) the
+	// census cannot pay leaves the printed instance uncastable whatever its
+	// mana: gorge offers the granted one (CR 702.34a)
+	printedOK := cd.FbCost.Flags == 0 || s.pickCostPayable(k, p, &cd.FbCost, o)
+	pPot = pPot && printedOK
 	var av avail
 	s.availFor(k, p, &av)
-	if av.affords(&pf, pipMaskOf(&pf), 0) {
+	if printedOK && av.affords(&pf, pipMaskOf(&pf), 0) {
 		// the printed instance is the planner's planned flashback cast,
 		// offered whatever the potential walk says (Think Twice, pair 90106)
 		return true, false, false
