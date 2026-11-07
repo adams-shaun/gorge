@@ -251,7 +251,12 @@ func UnlessCostPayable(e Engine, p state.PlayerID, raw string, ctx *effects.Ctx,
 	if !ok {
 		return false
 	}
-	cost, ok = UnlessFoldDynamic(e, p, cost, ctx)
+	return UnlessCostValuePayable(e, p, cost, ctx, stackObj)
+}
+
+// UnlessCostValuePayable is UnlessCostPayable over an already-parsed cost.
+func UnlessCostValuePayable(e Engine, p state.PlayerID, cost costvocab.Cost, ctx *effects.Ctx, stackObj state.ObjID) bool {
+	cost, ok := UnlessFoldDynamic(e, p, cost, ctx)
 	if !ok {
 		return false
 	}

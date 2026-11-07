@@ -32,7 +32,7 @@ const (
 type Static struct {
 	Kind    StaticKind
 	Filter  FilterID
-	Filter2 FilterID // CantBlockBy: the blockers that can't block
+	Filter2 FilterID // CantBlockBy: the blockers that can't block; ReduceCost (spell or activated ability): the target it needs
 	A, B    int16    // P/T deltas, cost reduction
 	Kw      KwMask
 	Cond    uint8 // reserved condition opcode (0 = always)
@@ -364,7 +364,9 @@ const StatCantSacrifice StaticKind = 237
 // battlefield permanents matching Filter (controlled by the static's
 // controller) cost A (or VA when StDynamic) generic less, floored at zero;
 // B = 1: Exhaust abilities only; B = kop.ReduceAbPowerUp: Power-up abilities
-// only (CR 601.2f, 602.2b, 702.193a; gorge costModifiersCompose,
+// only; B = kop.ReduceAbEquip: Equip abilities only, and with StTargetsFilter2
+// only an equip whose target matches Filter2, the chosen target priced
+// (CR 601.2f, 602.2b, 702.193a; gorge costModifiersCompose,
 // abilityScope). It follows its own ability's ReduceCost$. It prices a filter
 // land's fee (filtFee); any other mana ability with a mana cost is not
 // priced, and kgen's matchup guard keeps the static out of a pool holding one

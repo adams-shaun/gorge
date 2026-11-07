@@ -580,6 +580,17 @@ func triggeredCardGroup(c *Ctx) []state.Target {
 	return objectsOf(c.Remembered)
 }
 
+// triggeredAttackerLKI is the singular attacker referent before the CR 400.7
+// drop: the fire-time TriggerCard role, else the Remembered fallback. The
+// DamageSource$ read takes it as-is, because an attacker that left still
+// deals the damage through its last known information (CR 608.2h).
+func triggeredAttackerLKI(c *Ctx) []state.Target {
+	if c.TriggerCard != 0 {
+		return []state.Target{{Obj: c.TriggerCard}}
+	}
+	return objectsOf(c.Remembered)
+}
+
 func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	g := h.Game()
 	// The DOTTED `AttachedTo <referent>[.<quals>]` selector (a Defined-/
@@ -1204,11 +1215,11 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// trigger cannot name a singular attacker: the role-absent fallback
 		// keeps the old Remembered read for that multi-match case and for
 		// hand-built contexts (the plural TriggeredAttackers spelling is the
-		// batch read).
-		if c.TriggerCard != 0 {
-			return []state.Target{{Obj: c.TriggerCard}}, true
-		}
-		return objectsOf(c.Remembered), true
+		// batch read). An attacker that changed zones since the trigger fired
+		// is a new object the ability does not refer to (CR 400.7): Grasping
+		// Shadows' "it gains deathtouch and lifelink" finds nothing once the
+		// attacker died and returned transformed.
+		return dropTriggerRememberedMoved(c, triggeredAttackerLKI(c)), true
 	case definedSpecDelayTriggerRememberedLKI:
 		// The registration's own capture (objects only, the LKI spelling's
 		// read), with the pre-field fallback to Remembered for a context
@@ -1562,9 +1573,12 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return out, true
 	case definedSpecTriggeredAttackerOwner:
 		// The owner (CR 108.3) of the singular triggering attacker, so a
-		// stolen attacker's owner is named, not the thief (Nihiloor).
-		attackers, _ := definedSpec(h, c, "TriggeredAttacker")
-		for _, t := range attackers {
+		// stolen attacker's owner is named, not the thief (Nihiloor). Read
+		// the undropped LKI group: the attacker may have left the
+		// battlefield before this trigger resolves, and CR 608.2h still
+		// names its owner (the CR 400.7 drop belongs to the affected-object
+		// reads, never to the owner).
+		for _, t := range triggeredAttackerLKI(c) {
 			if o := g.Obj(t.Obj); o != nil && int(o.Owner) < len(g.Players) {
 				return []state.Target{{Player: o.Owner, IsPlayer: true}}, true
 			}
@@ -1613,8 +1627,17 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			// "enchanted/equipped creature" and must resolve to nothing,
 			// never to a stale LastBearer (CR 400.7: the returned permanent
 			// is a new object).
-			if o.Zone != state.ZBattlefield && o.LastBearer != 0 && g.Obj(o.LastBearer) != nil {
-				return []state.Target{{Obj: o.LastBearer}}, true
+			//
+			// The bearer must also be the same object the Aura left: a
+			// bearer that was flickered after the Aura attached re-entered
+			// with an entry Timestamp newer than the Aura's attach stamp
+			// (LayerStamp survives the Aura's departure), so the id now names
+			// a new object (CR 400.7) and the Aura's LKI bearer no longer
+			// exists (CR 608.2h).
+			if o.Zone != state.ZBattlefield && o.LastBearer != 0 {
+				if b := g.Obj(o.LastBearer); b != nil && !(b.Zone == state.ZBattlefield && b.Timestamp > o.LayerStamp) {
+					return []state.Target{{Obj: o.LastBearer}}, true
+				}
 			}
 		}
 		return nil, true

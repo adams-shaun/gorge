@@ -10,7 +10,9 @@ import (
 
 // applyRatingsOverride swaps the drafter's and builder's rating source for
 // the -ratings-file values (a sim/training-only path; no server or client
-// route reaches it). Only the concrete persona types carry the override.
+// route reaches it). Only the concrete persona types carry the override:
+// a RatingColour or a knob-file Knobbed drafter, and a Best23 builder from
+// either a registry name or a knob file.
 func applyRatingsOverride(o options, r *runner, out io.Writer) error {
 	if o.ratingsFile == "" {
 		return nil
@@ -23,15 +25,21 @@ func applyRatingsOverride(o options, r *runner, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	d, ok := r.drafter.(*pickbot.RatingColour)
-	if !ok {
-		return fmt.Errorf("-ratings-file needs a rating-colour drafter, got %T", r.drafter)
+	var setDrafter func()
+	switch d := r.drafter.(type) {
+	case *pickbot.RatingColour:
+		setDrafter = func() { d.Ratings = ov }
+	case *pickbot.Knobbed:
+		setDrafter = func() { d.Ratings = ov }
+	default:
+		return fmt.Errorf("-ratings-file needs a rating-colour or knobs: drafter, got %T", r.drafter)
 	}
 	b, ok := r.builder.(*pickbot.Best23)
 	if !ok {
 		return fmt.Errorf("-ratings-file needs a best23 builder, got %T", r.builder)
 	}
-	d.Ratings, b.Ratings = ov, ov
+	setDrafter()
+	b.Ratings = ov
 	fmt.Fprintf(out, "ratings override: %s field %s; %d 17Lands-rated cards missing (neutral): %v\n", o.ratingsFile, o.ratingsField, len(ov.Missing), ov.Missing)
 	return nil
 }
