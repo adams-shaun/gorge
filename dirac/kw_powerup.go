@@ -57,6 +57,35 @@ func powerUpReduce(c, red kop.ManaCost) kop.ManaCost {
 	return c
 }
 
+// powerUpWitnessAffords reports whether av pays gorge's autopay planner
+// witness for Power-up ability a of slot sl (powerUpWitness). The caller
+// guards on anyPowerUp and CostPowerUp and on the pool not paying; this body
+// is cold.
+//
+//go:noinline
+func (s *State) powerUpWitnessAffords(k *prep, sl Slot, a *kop.Ability, ctrl uint8, av *avail) bool {
+	c := s.powerUpWitness(k, a, sl, ctrl)
+	return s.abilityAffords(k, sl, a, &c, av)
+}
+
+// powerUpWitness is the cost gorge's autopay planner prices for Power-up
+// ability a of slot sl: the printed cost with the ability's own reduction
+// and the cost statics composed (planAbilityPaymentLifePips:
+// ownReduceCostOffer, then offerCostFor; CR 601.2f), but never the CR
+// 702.193b entry-turn reduction. Hulk, Gamma Goliath's {3} lowers it.
+//
+//go:noinline
+func (s *State) powerUpWitness(k *prep, a *kop.Ability, sl Slot, ctrl uint8) kop.ManaCost {
+	m := a.Cost.Mana
+	if k.gen != nil && k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) && sl != NoSlot {
+		m = s.ownReducedBF(k, a, sl, ctrl)
+	}
+	if k.gen != nil && k.gen.anyAbReduce {
+		m = s.abReduced(k, a, sl, ctrl, m)
+	}
+	return m
+}
+
 // powerUpPlanRejected reports whether gorge's payment planner witness for a
 // Power-up ability is rejected at payment. planAbilityPayment prices the
 // PRINTED cost (it never calls powerUpReduceCost) while the activation
@@ -68,6 +97,23 @@ func powerUpReduce(c, red kop.ManaCost) kop.ManaCost {
 //go:noinline
 func (s *State) powerUpPlanRejected(k *prep, a *kop.Ability) bool {
 	return s.powerUpManaObj(k, s.bld().e.obj, a) != a.Cost.Mana
+}
+
+// powerUpArmsNone reports whether gorge arms no autopay witness for the
+// Power-up activation being built: armAbilityAutoPay reads the charge before
+// the pip asks (castPaymentMana) and arms only a cost with generic or coloured
+// mana (abilityCostNeedsMana). A charge the CR 702.193b reduction and the cost
+// statics left hybrid-only (Abomination's {5}{R/G}{R/G} less its own {3}{R/G}
+// and Hulk, Gamma Goliath's {3}) pays through the manual window, source by
+// source in battlefield order. The caller guards on anyPowerUp and
+// CostPowerUp; this body is cold.
+//
+//go:noinline
+func (s *State) powerUpArmsNone(k *prep) bool {
+	s.bld().bfl |= bflCostComp
+	c, _ := s.buildCostPre(k, false, true)
+	s.bld().bfl &^= bflCostComp
+	return c.Generic == 0 && c.Pips == [kop.NumManaKinds]uint8{}
 }
 
 // PowerUpState reports a permanent's once bit and entry-turn bit. It is a

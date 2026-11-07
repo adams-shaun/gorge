@@ -1184,7 +1184,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags2 |= kop.Tf2Evolve
 	}
 	if t.Increment {
-		if t.Event != "SpellCast" || t.OrCopy || t.CastSnap || t.NthSpell != 0 || t.TargetsAll {
+		if t.Event != "SpellCast" || t.OrCopy || t.CastSnap || t.CastSpent || t.NthSpell != 0 || t.TargetsAll {
 			return kt, fmt.Errorf("Increment on a %s trigger", t.Event)
 		}
 		kt.Flags2 |= kop.Tf2Increment
@@ -1597,6 +1597,12 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			}
 			if s.AbilityRed == 4 {
 				st.B |= kop.ReduceAbPowerUp
+			}
+			if s.AbilityRed == 5 {
+				st.B |= kop.ReduceAbEquip
+				if err := targets2(); err != nil { // the equip's target (Cloud's Card.Self)
+					return ka, nil, err
+				}
 			}
 			st.B |= int16(s.MinMana) << kop.ReduceAbMinShift
 			break
@@ -2089,7 +2095,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 	case "DamagePlus":
 		rp.Kind = kop.ReplDamagePlus
 		if !r.N.isConst() || r.N.N < 0 ||
-			r.N.N == 0 && r.Bits&(kop.ReplDmgRaise|kop.ReplDmgCtrHost) == 0 || r.Bits == 0 {
+			r.N.N == 0 && r.Bits&(kop.ReplDmgRaise|kop.ReplDmgCtrHost|kop.ReplDmgPowHost) == 0 || r.Bits == 0 {
 			return ka, fmt.Errorf("damage plus %d to %#x", r.N.N, r.Bits)
 		}
 		rp.A, rp.C = int16(r.N.N), int16(r.Bits)

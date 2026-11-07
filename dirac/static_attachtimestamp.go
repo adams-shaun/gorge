@@ -14,7 +14,15 @@ package dirac
 // timestamp when that is a move (gorge: AttachedTo changes), then applies
 // any lose-all onset its static brings.
 func (s *State) attachTo(k *prep, sl, host Slot) {
-	old := s.perms[sl].attached
+	if old := s.attachQuiet(k, sl, host); old != host && k.gen != nil && k.gen.anyAegis {
+		s.aegisMoved(k, sl, old, host) // zone_exilethenattach.go
+	}
+}
+
+// attachQuiet is attachTo without the attachment's Attached triggers (the
+// caller fires them); it returns the previous bearer.
+func (s *State) attachQuiet(k *prep, sl, host Slot) (old Slot) {
+	old = s.perms[sl].attached
 	if old != host {
 		s.ts++
 		s.lstamp[sl] = s.ts
@@ -22,9 +30,7 @@ func (s *State) attachTo(k *prep, sl, host Slot) {
 	s.perms[sl].attached = host
 	s.perms[sl].flags &^= pfLastBear
 	s.loseAllOnset(k, sl, host)
-	if old != host && k.gen != nil && k.gen.anyAegis {
-		s.aegisMoved(k, sl, old, host) // zone_exilethenattach.go
-	}
+	return old
 }
 
 // layerTs is the CR 613.7 timestamp the static abilities of the permanent

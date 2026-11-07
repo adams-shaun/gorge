@@ -402,6 +402,11 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if batchEntry {
 				h.BeginZoneBatch()
 			}
+			// StaticEffect$ on a battlefield take (Arbiter of the Ideal's "put it
+			// onto the battlefield ... it's an enchantment") registers before the
+			// entry event, so its triggers match the permanent with the grant in
+			// force (CR 603.6a).
+			applyStaticEffect(h, c, sa, dest, []state.ObjID{id})
 			emitEntryMove(h, c, digGainControl(dp.GainControl), dest, ev)
 			// A move the engine declined (CR 303.4g: an Aura with nothing it
 			// can legally enchant stays in its zone) did not put the card
@@ -442,12 +447,6 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				h.EndZoneBatch()
 			}
 			rider.apply(h, c, id, p, dest)
-			// StaticEffect$ on a battlefield take (Arbiter of the Ideal's
-			// "put it onto the battlefield ... it's an enchantment"): the same
-			// rider registration every ChangeZone mover applies.
-			if dest == state.ZBattlefield {
-				applyStaticEffect(h, c, sa, dest, []state.ObjID{id})
-			}
 			return true
 		}
 		// rest moves the window cards the primary move did not take to the

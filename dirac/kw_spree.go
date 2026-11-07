@@ -213,8 +213,13 @@ func (s *State) targetPaidPlanned(k *prep, p uint8, o Obj) bool {
 		ab := spellAb(k, c)
 		if ab == 255 || !cd.HasModeCost {
 			// no target to lose, or an unmoded spell: reached when its targets
-			// all remain after the payment
-			reaches = ab == 255 || t.abilityTargetsFeasible(k, &cd.Abilities[ab], p, NoSlot, 0xff)
+			// all remain after the payment and the floated pool pays the cost
+			// as it is then priced: a count reduction over the sacrificed
+			// permanents (Valkyrie Aerial Unit's affinity for a Treasure) has
+			// dropped, so the lowering cannot reach the cast whose total
+			// CR 601.2f fixed before that sacrifice (gorge witnessReachesMode
+			// lists the cast only when the pool pays it)
+			reaches = (ab == 255 || t.abilityTargetsFeasible(k, &cd.Abilities[ab], p, NoSlot, 0xff)) && t.FeatPoolPays(p, o, 0)
 		}
 		for m := 0; ab != 255 && cd.HasModeCost && m < int(cd.Abilities[ab].NModes); m++ {
 			if t.abilityTargetsFeasible(k, &cd.Abilities[ab], p, NoSlot, 1<<m) {

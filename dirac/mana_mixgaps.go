@@ -215,9 +215,12 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 					a, b := cs[i], cs[1]
 					if nc > 2 {
 						b = cs[per+j]
-						if tapXOwnAnswer(fs.own, a, b) {
-							continue
-						}
+					}
+					if tapXOwnAnswer(fs.own, a, b) {
+						// A forced tap (no ask: exactly the cost's candidates)
+						// that takes the play's own {T} source is no continuation
+						// (CR 602.2b), as the tap-another search's is skipped.
+						continue
 					}
 					if colours(a, b) {
 						return true
@@ -230,8 +233,8 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 			return false
 		}
 		for i := 0; i < nc; i++ {
-			if nc > 1 && tapXOwnAnswer(fs.own, cs[i], NoSlot) {
-				continue
+			if tapXOwnAnswer(fs.own, cs[i], NoSlot) {
+				continue // a forced tap of the play's own {T} source (CR 602.2b)
 			}
 			if colours(cs[i], NoSlot) {
 				return true

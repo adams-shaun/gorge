@@ -68,17 +68,26 @@ func PayMillCost(e Engine, p state.PlayerID, parts []costvocab.CostPart) {
 // one sacrifice action, so Mode$ SacrificedOnce ("whenever you sacrifice one
 // or more ...") queues once for the payment (CR 603.2c). Absent objects are
 // skipped, exactly as the direct emitters did. The bracket cannot suspend:
-// all choices were collected before settlement.
+// all choices were collected before settlement. More than one object is also
+// one zone batch: they leave simultaneously (CR 701.21a), so a Banishing
+// Light among them returns its card after the last of them (CR 610.3d).
 func PaySacrificeCost(e Engine, ids []state.ObjID) {
 	if len(ids) == 0 {
 		return
 	}
+	together := len(ids) > 1
 	e.Batch(BatchSacrifice, true)
+	if together {
+		e.Batch(BatchZone, true)
+	}
 	for _, id := range ids {
 		if e.Game().Obj(id) == nil {
 			continue
 		}
 		e.Emit(events.Sacrifice(id))
+	}
+	if together {
+		e.Batch(BatchZone, false)
 	}
 	e.Batch(BatchSacrifice, false)
 }

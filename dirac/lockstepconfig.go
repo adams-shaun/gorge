@@ -20,9 +20,12 @@ const (
 // LockstepConfig is the configuration the lockstep verifies against gorge on
 // surface: the one on which the kernel and gorge offer and play the same game.
 // The caller adds what lockstep leaves to it: NoElide, Mulligans, RecordChance,
-// ArrangeRestOrder and AutoDivide.
+// ArrangeRestOrder and AutoDivide, and a Commander game's Commander and
+// Commanders; the seats carry no commander (-1, since 0 indexes a seat's first
+// deck card) until it sets them.
 func LockstepConfig(surface Surface) Config {
 	return Config{
+		Commanders:          [2]int16{-1, -1},
 		GorgeAltAdd:         true,
 		GorgeUnpriced:       true,
 		GorgeMustAttack:     true,
@@ -188,6 +191,15 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	a.xd, a.xdOn = s.payDescNow(NoObj), true
 	s.availFor(k, p, a)
 	a.xdOn = false
+	// A deferred mana source (Pyromancer's Goggles' TriggersWhenSpent$ {R}) is
+	// absent from the planner census but CR 601.2g's window can tap it, and
+	// gorge's xAsk reads the window (mana_deferred.go; availScript adds it when
+	// the caller asked for the gap mana).
+	if k.gen != nil && k.gen.anyDeferred && s.g.availX&3 == 0 {
+		for b := s.gapMask(k, p, gfDeferred); b.any(); b = b.rest() {
+			a.addUnits(1<<kop.R, 1)
+		}
+	}
 	if k.gen == nil || k.gen.anyContGrant || len(k.gen.grantPC) == 0 {
 		return
 	}

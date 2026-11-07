@@ -50,8 +50,8 @@ import (
 //     colour with the spell and copies it. The printed K:Conspire stays refused.
 //   - Delve lowers to Kind "StackKw" too: the cast announces graveyard cards
 //     to exile toward its generic cost (CR 702.66a; kernel kw_delve.go), read
-//     as the spell is cast. A cast-from-hand restriction is legal. The printed
-//     keyword stays refused.
+//     as the spell is cast. A cast-from-hand restriction is legal; a printed
+//     K:Delve is CardDef.Delve and reads the same kernel path.
 //   - Every other keyword has no printed form in the
 //     kernel and refuses by name.
 func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {

@@ -671,12 +671,13 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpGainControl:
 		s.opGainControl(k, in)
 	case kop.OpOverride:
+		if in.B.N == kop.OvEnterWith && s.g.ewDone {
+			s.g.ewDone = false
+			break // applied as the return entered (enterAssimilated)
+		}
 		if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
 			s.overrideRemembered(k, in) // zone_changezoneall.go: every remembered object
 			break
-		}
-		if in.B.N == kop.OvEnterWith {
-			break // applied as the return entered (execReturnObj)
 		}
 		// objRef is the one resolver of "the same object on the battlefield":
 		// a Self record whose object left and came back names a new object
@@ -1407,8 +1408,16 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		return false
 	}
 	ob := &s.objs[o]
-	// MvTransformed: a double-faced card enters as its back face, no instant or sorcery (CR 711.10a; gorge instantCannotEnter)
-	if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || (in.C>>3&kop.MvTransformed == 0 && s.instantStays(k, o, kop.Zone(in.C&7))) {
+	fl := in.C >> 3
+	// CR 304.4, 307.4: the instant/sorcery guard reads the zone alone; an
+	// OpReturnEx's C carries the move flags beside it (MvUnderYourControl,
+	// counters), and unmasked it is no longer ZoneBattlefield. A
+	// MvTransformed entry of a multi-face card enters with its back face up
+	// (CR 712.14a), so its printed front never enters the battlefield —
+	// gorge's instantCannotEnter exempts it too.
+	transformedDfc := fl&kop.MvTransformed != 0 && len(k.t.Cards[ob.card].Faces) >= 2
+	if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) ||
+		(!transformedDfc && s.instantStays(k, o, kop.Zone(in.C&7))) {
 		return false
 	}
 	if ob.zone == kop.ZoneLibrary || in.B.N&kop.RetFromLibrary != 0 {
@@ -1440,7 +1449,6 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		return false
 	}
 	z := kop.Zone(in.C & 7)
-	fl := in.C >> 3
 	ctrl := ob.owner()
 	if fl&kop.MvUnderYourControl != 0 {
 		ctrl = e.ctrl
@@ -1491,7 +1499,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	}
 	var sl Slot
 	switch {
-	case s.enterWithOverride(k, in):
+	case s.g.retAt == 0 && s.g.batchLatch&batchHeld == 0 && s.enterWithOverride(k, in):
 		sl = s.enterAssimilated(k, o, ctrl, from)
 	case s.g.retAt != 0:
 		sl = s.enterNF(k, o, ctrl, fl&kop.MvTapped != 0, from, 0)

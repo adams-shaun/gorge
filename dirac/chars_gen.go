@@ -430,6 +430,9 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || !a.Static.AddSub.Has(int(i)) && !(k.gen.anyAddChosen && s.chosenGrants(k, a, st.sl, i)) {
 			return true
 		}
+		if keep, _ := s.selfGrantKept(k, sl, st.sl); !keep.Has(int(i)) {
+			return true // a newer setter on sl overwrote its own grant (static_selfgrant.go)
+		}
 		if s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerSub) {
 			found = true
 			return false
@@ -515,11 +518,18 @@ func (s *State) basePTGen(k *prep, sl Slot) (int, int) {
 				if !o.HasPT {
 					continue
 				}
+				if ft := k.t.Filters[a.Static.Filter].Types; ft != 0 && s.typesGen(k, sl)&ft == 0 {
+					continue // the filter's type clause: a host that stopped being a creature keeps its own P/T
+				}
+				rp, rt := int16(o.SetP), int16(o.SetT)
+				if o.LivePT {
+					rp, rt = s.livePTSrc(k, src, o) // static_animategrants.go
+				}
 				if !o.KeepP {
-					bp = int(o.SetP)
+					bp = int(rp)
 				}
 				if !o.KeepT {
-					bt = int(o.SetT)
+					bt = int(rt)
 				}
 			}
 		}

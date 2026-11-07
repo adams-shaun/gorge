@@ -195,10 +195,20 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if s.statM.any() || k.gen != nil {
 				kc = s.adjustCost(k, p, c, o, kc) // the reduction applies to the total (CR 601.2f)
 			}
+			if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
+				kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
+			}
 			if s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &kc, &av) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
 				d.add(MakeAction(AkCast, uint8(o), 0, 1))
 			}
 		}
+	}
+	if s.cfg&cfgCommander != 0 {
+		if !haveAv {
+			s.availFor(k, p, &av)
+			haveAv = true
+		}
+		s.offerCommanderCast(k, d, p, &av)
 	}
 	// flashback
 	var fbLo, fbHi *objBits // nil for a pool without a flashback grant: no State access below
@@ -227,18 +237,20 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if s.statM.any() || k.gen != nil {
 			fc = s.adjustCost(k, p, c, o, fc)
 		}
+		fbGrant := granted // the cast pays a granted instance (no printed non-mana part)
 		if !granted {
 			if two, amb, g := s.fbInstances(k, p, o); amb {
 				continue
 			} else if two && g {
 				fc = s.adjustCost(k, p, c, o, k.t.Cards[c].Cost)
+				fbGrant = true
 			}
 		}
 		fc = s.delveOfferCredit(k, p, c, o, false, fc)
 		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, &av) || !s.spellTargetsFeasibleFrom(k, c, p, o) || k.gen != nil && !s.spellCostsFeasible(k, c, p, o) {
 			continue // (an additional cost too: Thrill of Possibility's discard with an empty hand)
 		}
-		if fb := &k.t.Cards[c].FbCost; fb.Flags != 0 && !granted && !s.pickCostPayable(k, p, fb, o) {
+		if fb := &k.t.Cards[c].FbCost; fb.Flags != 0 && !fbGrant && !s.pickCostPayable(k, p, fb, o) {
 			continue // a non-mana flashback cost (gorge castable's Sac / tapXType census)
 		}
 		if s.castHeldOut(o) {
@@ -516,19 +528,22 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		mana = s.abReduced(k, a, sl, p.ctrl, mana) // after the ability's own and Power-up reductions
 	}
 	if k.gen != nil && k.gen.anyPowerUp && f&kop.CostPowerUp != 0 {
-		// The autopay planner prices the PRINTED cost (planAbilityPayment
-		// never calls powerUpReduceCost), and an ability whose printed cost
-		// it cannot witness is not offered (gorge seed-1 Hercules: {4}{G}
-		// reduced to {2}, three untapped Forests, no offer). The floating
-		// pool paying the reduced cost is enough: the plan is then a pool
-		// choice. So: offered iff the pool pays the reduced cost or the
-		// sources pay the printed one; the charge is always the reduced one
-		// (buildCostCharge), and the plan/charge mismatch falls back to the
-		// manual mana window (powerUpPlanRejected, mana_window.go). The
-		// planner's printed cost still composes the cost statics
-		// (abPlannedCost): Hulk, Gamma Goliath's {3} less.
-		printed := s.abPlannedCost(k, a, sl, p.ctrl)
-		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &printed, av) {
+		// The autopay planner prices the PRINTED cost composed with the cost
+		// statics (planAbilityPayment calls offerCostFor, which folds the
+		// RaiseCost/ReduceCost statics and the ability's own ReduceCost$; it
+		// never calls powerUpReduceCost), and an ability whose composed
+		// printed cost it cannot witness is not offered (powerUpWitness; gorge seed-1
+		// Hercules: {4}{G} reduced to {2}, three untapped Forests, no offer).
+		// The floating pool paying the reduced cost is enough: the plan is
+		// then a pool choice. So: offered iff the pool pays the reduced cost
+		// or the sources pay the printed one AFTER the cost statics
+		// (powerup_cost_static_planner_prices_reduced_print_torch: Hulk, Gamma
+		// Goliath's {3} Power-up reduction makes Human Torch, Johnny Storm's
+		// {6}{R} affordable from the sources at {3}{R}); the charge is always
+		// the reduced one (buildCostCharge), and the plan/charge mismatch
+		// falls back to the manual mana window (powerUpPlanRejected,
+		// mana_window.go).
+		if !s.poolPays(p.ctrl, &mana) && !s.powerUpWitnessAffords(k, sl, a, p.ctrl, av) {
 			return false
 		}
 	}
@@ -665,7 +680,7 @@ func (s *State) flashbackPartsDisjoint(k *prep, p uint8, c CardID, cost kop.Mana
 		return true
 	}
 	var av avail
-	s.availWindowFor(k, p, &av)
+	s.availFor(k, p, &av)
 	return s.costPartDisjoint(k, p, NoSlot, ac, &cost, &av, pipMaskOf(&cost))
 }
 
@@ -755,9 +770,11 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		// a permanent tapped for the part is no mana source, and a source that
 		// sacrifices itself can use up what the part must sacrifice (CR 601.2g-h;
 		// gorge planReserving)
+		// the planner's census, not the unless / ward window's: a pain source's
+		// life-paid colour pays the mana beside the part (Haunted Screen; CR 601.2g-h)
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
 		var av avail
-		s.availWindowFor(k, p, &av)
+		s.availFor(k, p, &av)
 		if !s.costPartDisjoint(k, p, NoSlot, ac, &cost, &av, pipMaskOf(&cost)) {
 			return false
 		}
@@ -879,7 +896,7 @@ func (s *State) altAddPartDisjoint(k *prep, p uint8, c CardID, o Obj, part *kop.
 	}
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
 	var av avail
-	s.availWindowFor(k, p, &av)
+	s.availFor(k, p, &av)
 	return s.costPartDisjoint(k, p, NoSlot, part, &cost, &av, pipMaskOf(&cost))
 }
 
@@ -924,7 +941,12 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 	if k.gen != nil && k.gen.anyDelve && o != NoObj && (base == nil || !av.tbLeafCredited(base)) {
 		t = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, t) // the total's one credit
 	}
-	return av.affords(&t, pipMaskOf(&t), 0)
+	if o == NoObj {
+		return av.affords(&t, pipMaskOf(&t), 0)
+	}
+	// the part's mana may come from restricted sources the spell may spend
+	// (Eclipsed Realms' chosen-type mana; CR 106.6, gorge mayPlayAffordable)
+	return s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &t, av)
 }
 
 // inHandN is 1 when spell object o is itself in a hand (it cannot be discarded
@@ -1287,9 +1309,14 @@ func (s *State) fbInstances(k *prep, p uint8, o Obj) (two, ambiguous, granted bo
 	pf := s.adjustCost(k, p, c, o, cd.AltCost)
 	gf := s.adjustCost(k, p, c, o, cd.Cost)
 	pPot, gPot := pa.affords(&pf, pipMaskOf(&pf), 0), pa.affords(&gf, pipMaskOf(&gf), 0)
+	// a printed non-mana part (Group Project's tap three creatures) the
+	// census cannot pay leaves the printed instance uncastable whatever its
+	// mana: gorge offers the granted one (CR 702.34a)
+	printedOK := cd.FbCost.Flags == 0 || s.pickCostPayable(k, p, &cd.FbCost, o)
+	pPot = pPot && printedOK
 	var av avail
 	s.availFor(k, p, &av)
-	if av.affords(&pf, pipMaskOf(&pf), 0) {
+	if printedOK && av.affords(&pf, pipMaskOf(&pf), 0) {
 		// the printed instance is the planner's planned flashback cast,
 		// offered whatever the potential walk says (Think Twice, pair 90106)
 		return true, false, false
@@ -1351,7 +1378,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 		}
 		dynamic := false
 		if k.gen != nil {
-			if c := s.cardAt(sl); k.gen.flags[c]&gfManaVar != 0 {
+			if c := s.cardAt(sl); k.gen.flags[c]&gfManaVar != 0 && !s.filtFeeOwed(k, sl, c) {
 				// a gated or reflected source's view already holds its abilities
 				done[sl] = ^uint16(0)
 				cd := &k.t.Cards[c]
@@ -1367,7 +1394,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 			mask |= xvMask(pc) // an all-at-once source adds each of its colours (gorge addPotentialMana: every rune)
 		}
 		if pc.manaMulti && k.gen != nil && done[sl] != ^uint16(0) && pc.manaAb >= 0 {
-			mask = uint8(k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb].ManaColors) // the walk below admits its other abilities, each once
+			mask = s.potentialFirstMask(k, sl, pc) // the walk below admits its other abilities, each once
 		}
 		add(sl, mask, pc.manaN)
 		if k.gen != nil && len(k.gen.grantPC) != 0 && s.grantMay(k, sl) && s.ownManaUsable(k, sl) {
@@ -1421,6 +1448,15 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 			a.addUnits(1<<c, uint8(min(n, 255)))
 		}
 	}
+}
+
+// filtFeeOwed reports whether the source at sl is a filter whose fee the
+// reducers leave owed (mana_filterfree.go): its gate-off view is the free {C}
+// alone, so the fixpoint below must still admit the paid filter once the other
+// sources cover its fee, as gorge potentialManaFor admits each ability (Surveillance
+// Room's {1},{T} any-colour beside its {T}: {C}, CR 605.3a).
+func (s *State) filtFeeOwed(k *prep, sl Slot, c CardID) bool {
+	return k.gen.flags[c]&gfFiltFee != 0 && s.filtFee(k, sl) != 0
 }
 
 // potentialAdmits reports whether a further mana ability of the source at sl can
@@ -1502,7 +1538,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 			s.flushPrefixTriggers(k)
 		}
 	}
-	if s.scriptAny(k) && (isCastKind(a.Kind()) || a.Kind() == AkActivate || a.Kind() == AkPlot) {
+	if s.scriptAny(k) && isScriptPlayKind(a.Kind()) {
 		s.scriptPrefix(k, a, p) // a play only a scripted activation pays (script_gen.go)
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k) // its trigger resolves before the play (seed 640)
@@ -1514,9 +1550,11 @@ func (s *State) applyPriority(k *prep, a Action) {
 			s.flushPrefixTriggers(k)
 		}
 	}
-	empty := s.playNeedsEmptyStack(k, a)
-	if s.sp > sp0 && empty || s.npend != 0 {
-		s.resolvePrefixStack(k, sp0, empty) // the prefix's triggers placed (and, sorcery-speed, resolved) before the play
+	if s.sp > sp0 || s.npend != 0 {
+		empty := s.playNeedsEmptyStack(k, a)
+		if s.sp > sp0 && empty || s.npend != 0 {
+			s.resolvePrefixStack(k, sp0, empty) // the prefix's triggers placed (and, sorcery-speed, resolved) before the play
+		}
 	}
 	switch a.Kind() {
 	case AkPass:

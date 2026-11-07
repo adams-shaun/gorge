@@ -27,7 +27,7 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 	// picture (priorityOptions); reuse it instead of re-walking the mana
 	// sources for every generated option build.
 	av := *avp
-	if !haveAv {
+	if !haveAv && s.priorityGenReadsAv(k, p) {
 		s.availFor(k, p, &av)
 	}
 	pl := &s.pl[p]
@@ -161,7 +161,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		return
 	}
 	if mode&castFree != 0 && !s.altAddCastableFrom(k, c, p, o, &kop.ManaCost{}, &kop.ManaCost{}, true, av) {
-		return // a free cast still owes its either-or additional cost (CR 118.9d): Mudbutton Cursetosser's behold or {2}
+		return // a free cast still owes its either-or additional cost (CR 601.2b, 118.9d): Mudbutton Cursetosser's behold or {2}
 	}
 	if mode&castFree == 0 {
 		cost := s.adjustFit(k, av, p, c, o, pc.cost, true)
@@ -806,7 +806,10 @@ func (s *State) tapOneForMana(k *prep, p uint8, sl Slot) bool {
 	}
 	pc := s.manaPCGen(k, sl)
 	sacOnly := k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)
-	if !s.canTapForManaPC(k, sl, pc) && !sacOnly {
+	// The window lists a source here only when the payment may spend it
+	// (windowCanTap): a restricted grant the ward cannot spend (Mm'menon's
+	// artifact blue) is no tap of gorge's failed payment.
+	if !s.windowCanTap(k, sl) && !sacOnly {
 		return false
 	}
 	mask := s.srcMaskAt(pc, sl)
@@ -868,4 +871,21 @@ func (s *State) sacHostCost(k *prep, e *stackEntry) {
 	if !s.parkCost(k, h, parkLeave, 0) {
 		s.leave(k, sl, kop.ZoneGraveyard, false)
 	}
+}
+
+// priorityGenReadsAv reports whether priorityGen must build its own
+// availability picture for p: priorityGen reads it (a play permission, a
+// graveyard or hand activation, a granted ability), or availFor itself can
+// stall (capFull/stall) on this table: a one-colour source census
+// (addOneColour), a tap-extra rider (srcExtra), a continuous or granted mana
+// ability (availGrant, manaPCGen's grantIdx), a Taps-deferred source, the
+// pain/Phyrexian extension (availExt), the script census (availScript), a
+// dynamic or granted-land-type source (varPC, blgOn). Without any of these,
+// availFor is a pure read whose result priorityGen never uses.
+func (s *State) priorityGenReadsAv(k *prep, p uint8) bool {
+	g := k.gen
+	return s.g.nmay != 0 || g.anyMayPlay || g.anyGraveAct || g.anyHandAct || g.blgOn || len(g.varPC) != 0 ||
+		k.manaOne || g.anyTapExtra || g.anyContGrant || len(g.grantPC) != 0 || g.anyTapsDefer ||
+		k.availExt || k.painMana || s.g.availX&3 != 0 ||
+		g.anyGrant && s.ctrlM[p].any() && s.grantsLive(k)
 }

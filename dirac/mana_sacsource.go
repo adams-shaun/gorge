@@ -263,8 +263,10 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 		if instant {
 			// the lowering is done as soon as the play is offered, and an
 			// instant-speed cast is offered with the trigger still on the stack
-			// (payexec.priority): the trigger goes on below the spell
-			if pt.ab >= abCascade || a.NTargets != 0 && !(single && plTgt) {
+			// (payexec.priority): the trigger goes on below the spell, a
+			// player-targeted one aimed where gorge's default answer names (Al
+			// Bhed Salvagers' lose-and-gain run as well as a one-op program)
+			if pt.ab >= abCascade || a.NTargets != 0 && !(single && plTgt || plRun) {
 				i++
 				continue
 			}
@@ -291,6 +293,7 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 		}
 		save := s.res
 		s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
+		s.countPreCastResolve(k, &e)
 		switch {
 		case single && op == kop.OpPutCounter:
 			s.putCounterProg(k, &a.Prog[0])
@@ -351,7 +354,19 @@ func (s *State) runsPreCast(k *prep, e stackEntry, prog []kop.Instr) bool {
 	t := s.fork()
 	defer s.unfork()
 	t.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
+	t.countPreCastResolve(k, &e)
 	return t.runPreCast(k, prog)
+}
+
+// countPreCastResolve tallies a trigger resolved ahead of the cast as the
+// stack path's trigResolveOK does (countResolve): gorge resolves it off the
+// stack like any other, so it counts toward Count$ResolvedThisTurn (Vito,
+// Fanatic of Aclazotz's Treasure sacrificed paying for a spell is the
+// second resolution after an earlier one, CR 603.2).
+func (s *State) countPreCastResolve(k *prep, e *stackEntry) {
+	if k.t.Cards[e.card].Abilities[e.ab].AFlags&kop.AfResolveCount != 0 {
+		s.countResolve(k, e)
+	}
 }
 
 // runPreCast executes prog from the top outside a resolution (runProg
