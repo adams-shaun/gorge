@@ -13,6 +13,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // keeps its batch latch open too and the last parked move closes it
 // (parkBatchEnd): a "one or more ... leave/die/are sacrificed" line queues
 // once for the whole flush.
+//
+// A parked flush whose departures hold an until-leaves return (holdOpen) stalls
+// by name: gorge returns after the whole flush, which the parked moves cannot
+// reproduce once the frame has closed (flushSac).
 
 // sacParkFrom parks the first move of ord that competes and returns its
 // index (len(ord) and false when none does). A competing move the queue
@@ -37,6 +41,7 @@ func (s *State) sacParkFrom(k *prep, ord []Slot) (int, bool) {
 func (s *State) sacParkTail(ord []Slot, batch bool, bOld uint8) bool {
 	last := s.parkedMassOf(s.perms[ord[0]].obj)
 	if last == nil {
+		s.capFull(StallReplLeave) // the head was parked as a waiting ask: the rest cannot queue behind it
 		return false
 	}
 	last.fl |= parkSacd

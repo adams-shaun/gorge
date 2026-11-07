@@ -1387,6 +1387,12 @@ func (s *State) flushSac(k *prep) {
 	for i, sl := range ord[:w] {
 		s.removePerm(k, sl, zs[i], false)
 	}
+	if parked && hr.on {
+		// gorge holds an until-leaves return to the end of the whole flush;
+		// the parked moves run after this frame closes, so it cannot be told
+		// apart from a return between the moves.
+		s.capFull(StallReplLeave)
+	}
 	carried := parked && s.sacParkTail(ord[w:n], batch, bOld)
 	s.g.sacM = slotMask{}
 	s.holdClose(k, hr)
