@@ -143,14 +143,37 @@ func (s *State) windowFiltFirstUsable(k *prep, p uint8, sl Slot) bool {
 }
 
 // windowFiltFirst activates that filter in the window, for the first colour it
-// makes that useful still owes (gorge paymentUsefulColours), else its lowest.
-// A window whose ask carries no cost (a trigger's own cost, noOwed, with no
-// clamp) lists every colour and answers the lowest, W for an any-colour one.
+// makes that useful still owes (gorge paymentUsefulColours), in the ability's
+// ask order (a Combo's printed order, colourAskOrder). Nothing owed answers the
+// lowest W U B R G colour, as payexec.WindowAnswer does; a window whose ask
+// carries no cost (a trigger's own cost, noOwed, with no clamp) has nothing to
+// owe, so it takes the same lowest.
 func (s *State) windowFiltFirst(k *prep, p uint8, sl Slot, useful *kop.ManaCost, noOwedUnclamped bool) {
-	mask := uint8(s.filtAb(k, sl).ManaColors)
-	c := bits.TrailingZeros8(mask)
-	if want, decided := s.windowUseful(k, p, useful); decided && mask&want != 0 && !noOwedUnclamped {
-		c = bits.TrailingZeros8(mask & want)
+	ab := s.filtAb(k, sl)
+	mask := uint8(ab.ManaColors)
+	var order [kop.NumManaKinds]uint8
+	n, printed := colourAskOrder(ab, mask, &order)
+	c := uint8(bits.TrailingZeros8(mask))
+	if !noOwedUnclamped && useful != nil {
+		// gorge's ask lists what the cost still owes first (owedColoursFirst),
+		// in the ability's own order; nothing owed falls back to the lowest
+		// WUBRG colour, which is what payexec.WindowAnswer answers then.
+		if printed {
+			for i := 0; i < n; i++ {
+				ci := int(order[i])
+				if ci < 5 && mask&(1<<uint(ci)) != 0 && useful.Pips[ci] > s.pl[p].pool[ci] {
+					c = uint8(ci)
+					break
+				}
+			}
+		} else {
+			for ci := 0; ci < 5; ci++ {
+				if mask&(1<<ci) != 0 && useful.Pips[ci] > s.pl[p].pool[ci] {
+					c = uint8(ci)
+					break
+				}
+			}
+		}
 	}
 	s.filtDo(k, p, filtStep{sl: sl, ans: uint8(1 + c), gap: true})
 }

@@ -220,6 +220,11 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// finish reverses the cast keeping the floated mana (CR 733.1: a
 		// player may reverse mana abilities activated for an illegal play)
 		{"twobrid_delve_unpayable_window", true, false},
+		// CR 601.2g with CR 107.4e: the reversed twobrid cast's window taps
+		// Opulent Palace's "Combo B G U" while both G and U are owed; gorge's
+		// ask lists the Combo's printed order, so its answer is G, and the
+		// floated mana must match (dirac answered the lowest WUBRG colour, U).
+		{"window_combo_owed_colour_printed_order", false, false},
 	})
 }
 

@@ -451,14 +451,43 @@ func (s *State) windowWideTap(k *prep, p uint8, sl Slot, cost, useful *kop.ManaC
 	}
 }
 
+// colourAskOrder writes mask's colours in the order gorge's askManaColor
+// offers a mana ability's colour choice: a printed Combo's printed order
+// (kop.Ability.ManaColOrd through manaColourOrder: the TDM Devotees,
+// Opulent Palace's "Combo B G U"), then any other bit in W U B R G C order.
+// ab is the ability being activated (nil when its shape was not read); its
+// printed order counts only when it names the whole mask, because a granted
+// ability's colours follow the source's own in gorge's list.
+func colourAskOrder(ab *kop.Ability, mask uint8, out *[kop.NumManaKinds]uint8) (int, bool) {
+	if ab == nil || ab.ManaColOrd == 0 || uint8(ab.ManaColors)&0x1f != mask&0x1f {
+		return 0, false // the common W U B R G C order: the caller's own loop
+	}
+	var ord [5]uint8
+	n := copy(out[:], ord[:manaColourOrder(ab, &ord)])
+	return n, true
+}
+
 // windowCol is the colour the window's source sl (mana facts pc) makes: a
 // colour the cost still owes, else the lowest (the oracle's window answer,
 // payWindowAnswer). A multi-ability source owing nothing: its first ability, the
 // lowest colour (mana_multicolour.go). noOwed is a window whose ask carries no cost:
 // there is nothing to owe, so the source takes its lowest colour, which for
-// a plain any-colour source is W (gorge's trigger-cost manual window).
+// a plain any-colour source is W (gorge's trigger-cost manual window, the
+// payexec.WindowAnswer fallback). When a pip is still owed, the answer is the
+// first owed colour of the source's ask order: for a printed Combo that is its
+// printed order (colourAskOrder), not W U B R G.
 func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pcard, anyColor, noOwed bool) int {
 	mask := s.windowOwnMask(k, sl)
+	// Only the source's own plain profile carries a card-local ability index:
+	// a grant/var/gate view's manaAb indexes the granting card's abilities
+	// (genPrep.grantPC), so reading it here would panic or name another card.
+	c := s.cardAt(sl)
+	var askAb *kop.Ability
+	if pc == &k.cards[c] && pc.manaAb >= 0 {
+		askAb = &k.t.Cards[c].Abilities[pc.manaAb]
+	}
+	var order [kop.NumManaKinds]uint8
+	nOrder, printed := colourAskOrder(askAb, mask, &order)
 	col := bits.TrailingZeros8(mask)
 	if anyColor {
 		col = s.windowAnyColour(p, cost, mask, pc.manaMulti)
@@ -477,9 +506,22 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 			// Great Divide Guide owing {R} answers {W})
 			all = mask
 		}
+		// gorge's owedColoursFirst keeps the ask order, so the first owed
+		// colour is the first of the source's own ask order (a Combo's
+		// printed order), not the lowest WUBRG index.
+		var seen uint8
+		if printed {
+			for i := 0; i < nOrder; i++ {
+				c := int(order[i])
+				if c < 5 && all&(1<<uint(c)) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
+					return c // gorge lists what a fixed pip still owes first (owedColoursFirst, owedAbilitiesFirst)
+				}
+			}
+			seen = mask
+		}
 		for c := 0; c < 5; c++ {
-			if all&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
-				return c // gorge lists what a fixed pip still owes first (owedColoursFirst, owedAbilitiesFirst)
+			if all&(1<<c) != 0 && seen&(1<<c) == 0 && cost.Pips[c] > s.pl[p].pool[c] {
+				return c // a granted ability's colour follows the source's own
 			}
 		}
 	}
@@ -608,10 +650,25 @@ func (s *State) windowDryFilter(k *prep, p uint8, cost *kop.ManaCost, sl Slot) {
 			fee--
 		}
 	}
-	mask := uint8(s.filtAb(k, sl).ManaColors)
+	ab := s.filtAb(k, sl)
+	mask := uint8(ab.ManaColors)
+	var order [kop.NumManaKinds]uint8
+	n, printed := colourAskOrder(ab, mask, &order)
 	col := bits.TrailingZeros8(mask)
-	if want, decided := s.windowUseful(k, p, cost); decided && mask&want != 0 {
-		col = bits.TrailingZeros8(mask & want)
+	if printed {
+		for i := 0; i < n; i++ {
+			if c := int(order[i]); c < 5 && cost.Pips[c] > pl.pool[c] {
+				col = c
+				break
+			}
+		}
+	} else {
+		for c := 0; c < 5; c++ {
+			if mask&(1<<c) != 0 && cost.Pips[c] > pl.pool[c] {
+				col = c
+				break
+			}
+		}
 	}
 	pl.pool[col]++
 }
@@ -707,10 +764,22 @@ func (s *State) windowGapAnyColour(k *prep, p uint8, sl Slot, cost, useful *kop.
 	}
 	col := bits.TrailingZeros8(mask)
 	if !noOwed {
-		for i := 0; i < 5; i++ {
-			if mask&(1<<i) != 0 && cost.Pips[i] > s.pl[p].pool[i] {
-				col = i
-				break
+		var order [kop.NumManaKinds]uint8
+		nOrder, printed := colourAskOrder(ab, mask, &order)
+		if printed {
+			for i := 0; i < nOrder; i++ {
+				ci := int(order[i])
+				if ci < 5 && mask&(1<<uint(ci)) != 0 && cost.Pips[ci] > s.pl[p].pool[ci] {
+					col = ci
+					break
+				}
+			}
+		} else {
+			for ci := 0; ci < 5; ci++ {
+				if mask&(1<<ci) != 0 && cost.Pips[ci] > s.pl[p].pool[ci] {
+					col = ci
+					break
+				}
 			}
 		}
 	}
