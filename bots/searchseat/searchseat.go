@@ -319,7 +319,7 @@ func Choose(
 
 	bot, tr.HeldUpkeep = holdAnswer(e, d, bot, opts)
 	cands, kind, ok := candidates(collector, e, d, bot, f, opts)
-	if tr.HeldUpkeep == 0 && kind == "cast" && holdOptions(e, d, f.Decision, opts) != f.Decision {
+	if ok && tr.HeldUpkeep == 0 && kind == "cast" && holdOptions(e, d, f.Decision, opts) != f.Decision {
 		tr.HeldUpkeep = 1
 	}
 	if ok {

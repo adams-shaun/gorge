@@ -1,11 +1,13 @@
 package azmcts
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
 	"github.com/adams-shaun/gorge/bots/searchprobe"
+	"github.com/adams-shaun/gorge/bots/searchseat"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules"
@@ -205,5 +207,88 @@ func TestAzmctsHoldUpkeepDropsCast(t *testing.T) {
 	payOn, _, _, _, _ := enumerateCutInto(searchprobe.NewCollector(d.Player), e, d, bot, AllKinds(), 6, true, &boardScratch{hold: &upkeepHold{}})
 	if paysFor(payOn) || castsOption(payOn, castAt) {
 		t.Fatalf("on: the auto-pay candidates (%d) still cast the instant", len(payOn))
+	}
+}
+
+// TestAzmctsHoldUpkeepPriorOnlyPlaysPass: the PriorOnly student seat answers
+// through decidePrior, not Search, so it must read the hold's replaced bot
+// answer (res.Intent) rather than its local botIn in both of its returns: the
+// prior keeping candidate 0 (the pass) and the root left with fewer than two
+// candidates. Off, the same seat plays the bot's cast.
+func TestAzmctsHoldUpkeepPriorOnlyPlaysPass(t *testing.T) {
+	e, castAt := upkeepWindow(t)
+	d := e.Pending()
+	pass := passIndex(d)
+	if pass < 0 || pass == castAt {
+		t.Fatalf("precondition: pass %d, cast %d", pass, castAt)
+	}
+	castBot := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{castAt}}
+	env := searchseat.Env{Engine: e}
+	prior := func(hold bool) decision.Intent {
+		sc := DefaultSeatConfig()
+		sc.PriorOnly = true
+		sc.Source = testSeatSource
+		sc.Search.HoldUpkeep = hold
+		s, err := NewSeat(1, nil, sc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		in, err := s.decidePrior(context.Background(), env, *d, castBot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return in
+	}
+	if in := prior(false); !reflect.DeepEqual(in.Choices, []int{castAt}) {
+		t.Fatalf("off: prior played %v, want the bot's cast %d", in.Choices, castAt)
+	}
+	if in := prior(true); !reflect.DeepEqual(in.Choices, []int{pass}) {
+		t.Fatalf("on: prior played %v, want pass %d", in.Choices, pass)
+	}
+}
+
+// TestAzmctsHoldUpkeepSearchOffPlaysPass: the Sims <= 0 seat path (search off)
+// never reaches Search, so it applies the hold itself: a held bot cast is
+// played as pass.
+func TestAzmctsHoldUpkeepSearchOffPlaysPass(t *testing.T) {
+	e, castAt := upkeepWindow(t)
+	d := e.Pending()
+	pass := passIndex(d)
+	if pass < 0 || pass == castAt {
+		t.Fatalf("precondition: pass %d, cast %d", pass, castAt)
+	}
+	env := searchseat.Env{Engine: e, Board: botpolicy.BoardFromGame(e.G, e, d.Player)}
+	seat := func(seed uint64, hold bool) *Seat {
+		sc := DefaultSeatConfig()
+		sc.Source = testSeatSource
+		sc.Search.Sims = 0
+		sc.Search.HoldUpkeep = hold
+		s, err := NewSeat(seed, nil, sc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	var seed uint64
+	var offIn decision.Intent
+	for seed = 1; seed < 40; seed++ {
+		var err error
+		offIn, err = seat(seed, false).DecideSearch(context.Background(), env, *d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if reflect.DeepEqual(offIn.Choices, []int{castAt}) {
+			break
+		}
+	}
+	if !reflect.DeepEqual(offIn.Choices, []int{castAt}) {
+		t.Fatalf("precondition: no seat's bot answered the cast %d (off %v)", castAt, offIn.Choices)
+	}
+	onIn, err := seat(seed, true).DecideSearch(context.Background(), env, *d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(onIn.Choices, []int{pass}) {
+		t.Fatalf("search off: on played %v, want pass %d", onIn.Choices, pass)
 	}
 }
