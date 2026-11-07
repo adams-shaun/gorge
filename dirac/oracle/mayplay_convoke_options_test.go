@@ -3,10 +3,11 @@ package oracle
 import "testing"
 
 // A Convoke announcement on a cast gorge's offer made through a play
-// permission (CR 702.51a, 601.2h) keeps the colour picks its cost names even
-// after an earlier pick of that colour paid the pip: the oracle has no
-// priority-time cost for a may-play cast, so it does not filter the
-// announcement's static option list, and the kernel must pose the same menu.
+// permission (CR 702.51a, 601.2h) poses the menu both engines agree on: the
+// oracle prices the may-play cast beside the plain hand offers
+// (MayPlayCastPaymentCost) and filters the announcement's static option list
+// by it, and the kernel's convoke menu filters the same way. The recorded
+// picks never exceed the pips, so the filtered menu still admits them.
 func TestMayplayConvokeOptionsLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-ecl", []stdRepro{
