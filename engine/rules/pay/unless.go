@@ -285,8 +285,18 @@ func UnlessCostValuePayable(e Engine, p state.PlayerID, cost costvocab.Cost, ctx
 		}
 		return true
 	}
-	return UnlessManaReachable(e, p, cost, player.Pool, player.Snow, player.ManaUnits(), player.Life,
+	av := unlessAvailable(e, p, stackObj, cost)
+	return UnlessManaReachable(e, p, cost, av.Pool, player.Snow, av.Typed, player.Life,
 		e.Eval().Conv(p, stackObj, false), e.Eval().WindowUnits(p))
+}
+
+// unlessAvailable is the floating mana an unless cost may spend: the pool
+// with every restricted batch the payment does not admit hidden (CR 106.6:
+// mana spendable only for, say, Room spells cannot pay a "counter unless its
+// controller pays {2}" tax). The offer gate and the tap window both price
+// from it, the same view CostPayableClass and the charge (AvailableFor) read.
+func unlessAvailable(e Engine, p state.PlayerID, stackObj state.ObjID, cost costvocab.Cost) Available {
+	return AvailableFor(e, p, Descriptor{ID: stackObj, Class: PurposeOther, Cost: &cost})
 }
 
 // UnlessFoldDynamic folds the unless cost's DYNAMIC life tokens to concrete

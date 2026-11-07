@@ -251,3 +251,48 @@ func (s *State) copySlotTargets(e *stackEntry, d int, out *[MaxOptions]uint8) in
 	}
 	return n
 }
+
+// copyUniqueLink drops from a TgfDistinct chain link's election ("up to one
+// other target creature") every target an earlier declaration slot of the
+// working entry e holds -- the root's or a mode's, and an earlier distinct
+// link's -- inherited keep-current ones included (CR 707.10c, 115.3; gorge
+// rules/target_modes.go copyUniqueLinkCandidates). It returns the new count.
+func (s *State) copyUniqueLink(k *prep, e *stackEntry, slot int, all *[MaxOptions]uint8, n int) int {
+	if e.ab == 255 || e.ab >= abCascade {
+		return n
+	}
+	a := &k.t.Cards[e.card].Abilities[e.ab]
+	if a.Targets[slot].TFlags&kop.TgfDistinct == 0 || !copyLinkSlot(a, slot, e.kind == seSpell) {
+		return n
+	}
+	var held [MaxOptions]uint8
+	nh := 0
+	for j := 0; j < slot; j++ {
+		t := &a.Targets[j]
+		if t.TFlags&kop.TgfAtResolution != 0 || !copySlotChosen(a, j, e) {
+			continue
+		}
+		if copyLinkSlot(a, j, e.kind == seSpell) && t.TFlags&kop.TgfDistinct == 0 {
+			continue
+		}
+		var own [MaxOptions]uint8
+		for _, c := range own[:s.copySlotTargets(e, j, &own)] {
+			if nh < len(held) {
+				held[nh] = c
+				nh++
+			}
+		}
+	}
+	m := 0
+next:
+	for _, c := range all[:n] {
+		for _, h := range held[:nh] {
+			if c == h {
+				continue next
+			}
+		}
+		all[m] = c
+		m++
+	}
+	return m
+}
