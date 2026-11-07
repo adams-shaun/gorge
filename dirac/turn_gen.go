@@ -31,6 +31,10 @@ const (
 	akName       uint8 = 11 // an as-enters nonland card name (OpExt ExtChooseName; repl_choosename.go)
 	akNameAny    uint8 = 12 // an as-enters name of any card, lands included (ExtChooseName B = 1)
 	akNameLook   uint8 = 13 // akNameAny after a look_ack at the opponent's hand (ExtChooseName B = 2; Sorcerous Spyglass)
+	// akEtbOrder is the CR 616.1 order between a cast spell's effect-carried
+	// enters-with counters and the entrant's own prepared enter body, asked
+	// with the spell still on the stack (s.g.pre only; repl_etborder.go)
+	akEtbOrder uint8 = 14
 )
 
 // enterGen runs after the core's enter placed o at sl, before its ETB triggers:
@@ -876,6 +880,12 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 			s.cloneEntryOrderOptions(k, d)
 			return true
 		}
+		if s.g.pre.kind == akEtbOrder {
+			d.Player = s.stack[s.sp-1].ctrl
+			d.Sub = ChGenReplOrder // gorge's KReplacement order ask (repl_etborder.go)
+			s.etbOrderOptions(k, d)
+			return true
+		}
 		if s.g.pre.land {
 			d.Player = s.prio // the land's player still holds priority
 		} else {
@@ -953,6 +963,10 @@ func (s *State) applyGen(k *prep, a Action) {
 			s.cloneEntryOrderAnswer(k, a) // the order answer (repl_entryclone.go)
 			return
 		}
+		if s.g.pre.kind == akEtbOrder {
+			s.etbOrderAnswer(k, a) // the order answer (repl_etborder.go)
+			return
+		}
 		if s.g.pre.ask2 != 0 && s.g.pre.kind == s.g.pre.ask2 {
 			// the copy template's own choice (copy_templatechoice.go)
 			s.g.pre.val2 = a.Mode()
@@ -1013,6 +1027,15 @@ func (s *State) applyGen(k *prep, a Action) {
 // and runs the rest of its enters program.
 func (s *State) answerQueuedAsk(k *prep, a Action) {
 	ask := s.g.ask[0]
+	if ask.kind == akNameLook {
+		// The look at the opponent's hand is acknowledged before the name is
+		// asked (gorge poses the two choices separately). It is answered
+		// while the creating ability is still resolving, so the queued ask
+		// stays: popping it here would read the acknowledgement as the name
+		// answer and finish the resolution early (CR 608.2n).
+		s.g.ask[0].kind = akNameAny
+		return
+	}
 	s.popAsk()
 	if ask.sl == NoSlot {
 		// the host answered (retAuraAsk); gorge drops the answer when
