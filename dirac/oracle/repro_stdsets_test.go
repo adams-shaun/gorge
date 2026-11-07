@@ -96,6 +96,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-otj", "saddled_copy_fires_the_copied_triggers"},                      // a Peerless Ropemaster made a copy of Stubborn Burrowfiend by Assimilation Aegis, saddled: it has the copied card's become-saddled trigger (CR 707.2)
 		{"std-msh", "negative_power_dig_looks_at_nothing"},                         // Jessica Jones with a negative power activates: the top X cards are none, not 254 (gorge effDig clamps DigNum to 0)
 		{"std-mkm", "presumed_dead_returned_creature_is_suspected"},                // Presumed Dead on Exit Specialist, which dies and is returned by the trigger: the suspect step still finds the creature its own resolution returned (menace and cannot block), unlike a trigger whose object came back before it resolved
+		{"std-mkm", "destroyed_target_takes_no_counter_from_sibling_mode"},         // CR 400.7: Deadly Complication destroys Rune-Brand Juggler, then its counter mode finds no creature: the card returned later by It Doesn't Add Up enters without a +1/+1 counter
 		{"std-msh", "graveyard_creature_count_skips_a_waiting_token"},              // a Villain token that died waits in the graveyard for the next check: it is no card, so Killmonger, Scourge of Wakanda's two-creature-cards bonus stays off (CR 111.7, 704.5d)
 		{"std-msh", "copy_ability_sacrificed_clue_is_still_an_artifact"},           // Scientist Supreme of A.I.M. copies the ability of a Clue sacrificed to pay for it: the token has ceased to exist but was an artifact when it left (CR 113.7a), so the ability is a target
 		{"std-msh", "x_spell_mana_value_counts_x_for_cost_reduction"},              // Photon Blast Barrage cast for X = 3 beside The Scarlet Witch: the spell on the stack has mana value 5 (CR 202.3e), so its {2} reduction applies and the X ask offers the values only the reduced cost can pay
@@ -133,6 +134,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-trk", "static_cast_trigger_keeps_caster_priority"},                   // Test of Identity cast from Tasha Yar's exile on the opponent's turn with Overflow Submatrix out: its Static$ True cast trigger resolves off the stack and the caster keeps priority (CR 117.3c)
 		{"std-dft", "repeat_each_targeted_mills_the_graveyard_counts"},             // Riverchurn Monument's exhaust ability targets both players: each mills cards equal to their own graveyard count, the controller's mill first (gorge AliveFrom), and both engines agree on every one
 		{"std-eoe", "repeat_each_targeted_mills_half_the_library"},                 // Singularity Rupture destroys all creatures, then its two target players each mill half their library rounded down, the controller first (gorge AliveFrom), and both engines agree on every one
+		{"std-sos", "ark_of_hunger_mayplay_both_zones"},                            // Ark of Hunger's tap mills a card and registers the remembered card's play permission over the graveyard and exile: the recorded game reaches the tap, and both engines agree through the grant and the cleanup
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if div := replayStdRepro(t, reg, c.pool, c.name, fullSurface[c.name]); div != nil {
