@@ -13,6 +13,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //   - fxAegisBase: a copy the Aegis stack covered that has no record of its
 //     own (a token minted as a copy, or a copy a table without ExtCloneCopy
 //     made as it entered). It shows again when the last Aegis copy ends.
+//   - fxAegisHeld: that copy's exception records, put aside while the Aegis
+//     copy shows and given back with the floor (aegisHold/aegisRestore).
 //   - fxCopyPerm / fxCopyEOT: the newest permanent and until-end-of-turn
 //     copy markers, with the clone's card and layer timestamp (copy_clone.go).
 //
@@ -36,6 +38,32 @@ func (s *State) aegisUnderPush(host Slot) bool {
 	s.g.nfx++
 	s.fxM.set(host)
 	return true
+}
+
+// aegisHold puts host's copy-exception records aside while an Aegis copy
+// shows (fxAegisHeld). They are the covered copy's, and it has no marker to
+// rebuild them from; aegisRestore gives them back with the copyBase floor.
+func (s *State) aegisHold(host Slot) {
+	if !s.fxM.has(host) {
+		return
+	}
+	for i := 0; i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == host && r.kind == fxCopyExc {
+			r.kind = fxAegisHeld
+		}
+	}
+}
+
+// aegisRestore puts the covered copy's exceptions back (copyBase).
+func (s *State) aegisRestore(host Slot) {
+	if !s.fxM.has(host) {
+		return
+	}
+	for i := 0; i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == host && r.kind == fxAegisHeld {
+			r.kind = fxCopyExc
+		}
+	}
 }
 
 // aegisUnderTake removes host's kept copy and returns its card.

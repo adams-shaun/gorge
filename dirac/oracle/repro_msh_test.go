@@ -7,6 +7,7 @@ func TestStdMshReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-msh", []stdRepro{
 		{"target_attacking_lki_after_lethal_damage", false, false},              // CR 608.2h: the enrage rider still sees the attacker's last battlefield status after lethal damage moved it to the graveyard, so the extra combat phase is granted
+		{"sneak_paid_through_filter_land", true, false},                         // CR 702.190a, 605.3a: Elektra sneaked for {1}{B}{B} with a Swamp and Surveillance Room's {1},{T} any-colour filter beside two Plains: the filter's prefix search funds the sneak cast
 		{"combo_filter_allocation_needs_first", false, false},                   // CR 601.2g, 605.3a: Baxter Building's {4}, {T} makes four mana in any combination; the {G} cast orders the allocation answers that name its pip first, as gorge's scriptOrderAnswers does, so the search finds the script within its 160 nodes (dirac tried all four W first)
 		{"power_up_printed_witness_composes_cost_statics", false, false},        // CR 601.2f, 702.193b: Abomination's {5}{R/G}{R/G} Power-up beside Hulk is offered when five sources pay the printed cost less Hulk's {3}, the planner's witness
 		{"hybrid_ability_plan_composes_cost_statics", false, false},             // CR 601.2f, 602.2b: Abomination's hybrid Power-up beside Hulk taps the lands of the plan for its printed cost less Hulk's {3}, not the manual window's
@@ -19,5 +20,11 @@ func TestStdMshReprosLockstep(t *testing.T) {
 		{"powerup_witness_composes_cost_statics", true, false},                  // CR 601.2f, 702.193b: gorge's autopay witness for a power-up prices the printed cost after the cost statics (Hulk, Gamma Goliath's {3}), so Quicksilver's {4}{R} is offered from four sources
 		{"powerup_window_plan_composes_cost_statics", true, false},              // CR 601.2f, 702.193b: the activation's plan is armed by that same statics-composed witness, so the reduced {1} taps the Forest the plan picks, not the first source in the window
 		{"filter_combo_allocates_needed_colours", false, false},                 // CR 601.2g-h, 605.3b: Baxter Building's {4},{T} combination filter pays Truck Toss's {2}{R}{R} once its allocation names the red the search needs
+		{"power_up_planner_prices_cost_statics", true, false},                   // CR 601.2f, 602.2b, 702.193a: Hulk, Gamma Goliath's {3} off She-Hulk, Jade Defender's {4}{G}{G} Power-up is in the planner's printed cost, so five lands with three Forests offer it
+		{"powerup_static_reduction_offer", true, false},                         // CR 601.2f, 602.2b, 702.193a: Hulk's {3} static lowers Viv Vision's power-up enough for six sources to pay it, though neither the pool nor the printed {7} is affordable
+		{"put_counter_optional_departed_source_no_ask", true, false},            // CR 400.7: "you may put a counter on it" is not asked once its source has left the battlefield, since the counter could not land
+		{"trigger_cost_bound_counts_filters_paid_ability", true, false},         // CR 118.3, 605.3a: Grim Reaper's {3}{B} with a Plains, a Swamp and Surveillance Room untapped is offered: gorge's potential bound counts the Room's {C} and its {1},{T} any-colour filter (the other sources fund the fee)
+		{"reversed_library_cast_keeps_its_place", true, false},                  // CR 733.1-2: Titania, cast from among Cosmic Cube's six looked-at cards and reversed when its cost can't be paid, goes back to its place in the library (not the top, not the bottom), so the rest's move to the bottom leaves it on top
+		{"dark_fortress_mana_source_choice", false, false},                      // CR 601.2g, 702.193b: a hybrid Power-up's reduced cost is one the planner declines, so the manual window taps Dark Fortress's conditional {B} or {R} ability before the untapped Mountain
 	})
 }

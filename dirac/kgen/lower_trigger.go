@@ -654,9 +654,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		if v, ok := tp.get("Increment"); ok {
 			// gorge kwIncrement's Increment$ marker (trigmatch
-			// incrementAdmits): the cast's spend against the SOURCE's
-			// current power/toughness, read as the trigger fires (kernel
-			// Tf2Increment). Only the exact spelling, on a
+			// IncrementHolds): the source is a creature and the cast's spend
+			// exceeds its current power/toughness, read as the trigger fires
+			// and rechecked on resolution (kernel Tf2Increment). Only the exact spelling, on a
 			// plain SpellCast (gorge's SpellCastOrCopy carries it on the cast
 			// event only; the kernel's copy arm reads casts only).
 			if t.Mode != "SpellCast" || v != "True" {
@@ -1813,7 +1813,7 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			extra = append(extra, lStatic{Kind: "Goad", F: st.F, Cond: st.Cond})
 		}
 	case "ReduceCost":
-		if sp.str("Type") == "Ability" || sp.str("Type") == "" && (sp.str("ValidSpell") == "Activated.Exhaust" || sp.str("ValidSpell") == "Static.Unlock" || sp.str("ValidSpell") == "Activated.PowerUp") {
+		if sp.str("Type") == "Ability" || sp.str("Type") == "" && (strings.HasPrefix(sp.str("ValidSpell"), "Activated.") || sp.str("ValidSpell") == "Static.Unlock") {
 			if err := lc.reduceAbility(sp, &st, readF); err != nil {
 				return nil, err
 			}
@@ -2724,9 +2724,36 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		pn, e1 := strconv.Atoi(pS)
 		tn, e2 := strconv.Atoi(tS)
 		if okP && e1 != nil || okT && e2 != nil {
-			return nil, refuse("set P/T %q/%q", pS, tS)
+			// a non-integer value is read live at every layer-7b check,
+			// anchored on the static's source (an Equipment's "your life
+			// total" is its controller's). AffectedX is the per-affected
+			// word, a different anchor, and stays refused by name. Only an
+			// attached static is lowered here: the walk would apply a global
+			// one too, but that shape (Porcelain Gallery's creature count)
+			// has no lockstep repro yet, so it stays refused by policy.
+			if pS == "AffectedX" || tS == "AffectedX" {
+				return nil, refuse("set P/T %q/%q: the per-affected word", pS, tS)
+			}
+			if !attachedOnly(st.F) {
+				return nil, refuse("set P/T %q/%q: a live value on a non-attached static", pS, tS)
+			}
+			pv, tv := cst(0), cst(0)
+			var err error
+			if okP {
+				if pv, err = lc.value(pS); err != nil {
+					return nil, refuse("set P/T %q/%q: %v", pS, tS, err)
+				}
+			}
+			if okT {
+				if tv, err = lc.value(tS); err != nil {
+					return nil, refuse("set P/T %q/%q: %v", pS, tS, err)
+				}
+			}
+			o.HasSetPT, o.LivePT, o.KeepP, o.KeepT = true, true, !okP, !okT
+			o.PVal, o.TVal = pv, tv
+		} else {
+			o.HasSetPT, o.SetP, o.SetT, o.KeepP, o.KeepT = true, pn, tn, !okP, !okT
 		}
-		o.HasSetPT, o.SetP, o.SetT, o.KeepP, o.KeepT = true, pn, tn, !okP, !okT
 	}
 	if c, ok := sp.get("SetColor"); ok {
 		o.HasSetColors = true

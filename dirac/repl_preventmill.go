@@ -24,7 +24,7 @@ func (s *State) preventMill(k *prep, srcCtrl, rcp uint8, n int) bool {
 	if s.replN(k, srcCtrl, rbPrevMill) == 0 {
 		return false
 	}
-	if s.g.ro.on || len(s.cold.parked) != 0 {
+	if s.g.ro.on || s.parkedAny() {
 		s.capFull(StallReplPlus)
 		return true
 	}
@@ -41,4 +41,11 @@ func (s *State) preventMill(k *prep, srcCtrl, rcp uint8, n int) bool {
 		s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
 	}
 	return true
+}
+
+// parkedAny reports a live parked-move record. cold.parked is allocated at a
+// fixed length once the table carries a graveyard-move competition, so its
+// length says nothing; unpark compacts, so a live record sits at index 0.
+func (s *State) parkedAny() bool {
+	return len(s.cold.parked) != 0 && s.cold.parked[0].kind != parkNone
 }

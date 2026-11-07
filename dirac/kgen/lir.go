@@ -609,7 +609,7 @@ type lTrigger struct {
 	CrossAt       int   // CounterAdded: CounterAmount$ EQn, the counter total the put must reach (a crossing, CR 122.6); 0 = none
 	CastSnap      bool  // SpellCast: the amount reads the instants and sorceries cast this turn, snapshotted (TriggerObjectsCurrentCastSpells)
 	CastSpent     bool  // SpellCast: the amount is the triggering spell's pool mana spent, snapshotted as the trigger fires (opus; gorge TriggeredCard$CastTotalManaSpent)
-	Increment     bool  // SpellCast: Increment$ True -- the cast's spend against the source's P/T, read as the trigger fires (gorge kwIncrement's marker, trigmatch.incrementAdmits; kernel Tf2Increment)
+	Increment     bool  // SpellCast: Increment$ True -- the source is a creature and the cast's spend exceeds its P/T, read as the trigger fires and rechecked on resolution (gorge kwIncrement's marker, trigmatch.IncrementHolds; kernel Tf2Increment)
 	SpentGate     int16 // SpellCast: ValidSA$/ValidSAonCard$ Spell.ManaSpent <op><n|X>, a kop.DmgGate over the cast's pool mana spent (X = 0xff, the printed mana value); gorge spellCastMatches, kernel spentGateOK
 	NthSpell      int   // SpellCast: the caster's spell count this turn against ActivatorThisTurnCast$ <op>N
 	NthCmp        uint8 // the NthSpell operator as a kop.DmgCmp (0 = EQ, the plain literal; kernel trigCmpOK)
@@ -779,7 +779,8 @@ type lStatic struct {
 	Ward         int // a Continuous grant's "Ward:N" (Kw then holds "Ward")
 	// AbilityRed: a ReduceCost static of activated abilities (Type$ Ability)
 	// rather than spells: 1 any, 2 Exhaust abilities only, 3 a Room unlock,
-	// 4 Power-up abilities only (kop.StatReduceAbility)
+	// 4 Power-up abilities only, 5 Equip abilities only (F2: their target;
+	// kop.StatReduceAbility)
 	AbilityRed uint8
 	// MinMana: that static's MinMana$ floor, 1..15 (kop.ReduceAbMinShift)
 	MinMana uint8
@@ -810,7 +811,7 @@ type lOverride struct {
 	SetP, SetT       int
 	PVal, TVal       lValue // non-None: Power$/Toughness$ values (ValPT)
 	HasSetPT         bool
-	LivePT           bool // PVal/TVal are read live, every check (a granted static's SetPower$/SetToughness$)
+	LivePT           bool // PVal/TVal are read live, every check (a granted static's SetPower$/SetToughness$, for the affected permanent; an override static's, from its source)
 	SetTypes         uint16
 	HasSetTypes      bool
 	AddTypes         uint16
@@ -926,7 +927,8 @@ type lCard struct {
 	OptCost        *lCost   // S:Mode$ OptionalCost's Blight<N> or Behold<1/Type> part (CR 601.2b), CardDef.OptCost/OptBehold (lower_optcost.go)
 	Teamwork       int      // printed K:Teamwork:<N> (CR 702.194, N 1..15), CardDef.Teamwork
 	ModesPickTW    int      // a Teamwork charm's CharmNum$ X over Count$Teamwork.<a>.<b>: <a> picks teamworked, <b> otherwise (CardDef.ModesPickTW)
-	ModesPickV     lValue   // a spell or triggered charm's CharmNum$ over Count$Compare or a branch head (constant arms): the pick count, evaluated as the modes are chosen (CardDef.ModesPickV; lower_charmcmp.go)
+	ModesPickV     lValue   // a spell or triggered charm's CharmNum$ over Count$Compare or a branch head (constant arms): the pick count, evaluated as the modes are chosen, or a general count beside MinCharmNum$ 0 (CardDef.ModesPickV; lower_charmcmp.go)
+	ModesMinCount  int      // a charm with no MinCharmNum$ over a two-arm count: its smaller arm, the offer gate's minimum (CardDef.ModesMinCount; lower_charmcmp.go)
 	TrigCharmFixed bool     // a triggered charm with a fixed pick count, which a ModesPickV would also reach in the kernel
 	DungeonNext    []uint8  // a dungeon entry's room arrows (CardDef.DungeonNext; lower_initiative.go)
 	TypeValid      []uint16 // an as-enters ChooseType's ValidTypes$ vocabulary indexes (CardDef.TypeValid; lower_choosetype.go)

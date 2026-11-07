@@ -20,6 +20,10 @@ type Repro struct {
 	Mulligans   int         `json:"mulligans"`
 	PassElision bool        `json:"pass_elision"`
 	MaxTurns    int32       `json:"max_turns,omitempty"`
+	// Commander and Commanders are Matchup.Commander and Commanders: a repro
+	// written without them is a Constructed game.
+	Commander  bool  `json:"commander,omitempty"`
+	Commanders []int `json:"commanders,omitempty"`
 	// Surface is the option surface both sides offered ("autopay" or "full"):
 	// the same actions on the other surface are another game. Kernel is the side
 	// the game was played against, as kfuzz names it ("synth std-trk", "set
@@ -52,6 +56,7 @@ const reproFormat = "koracle-repro-1"
 func NewRepro(m *Matchup, seed uint64, rc RunConfig, res *Result) *Repro {
 	r := &Repro{Format: reproFormat, Decks: m.Names, Seed: seed, Mulligans: m.Mulligans,
 		PassElision: rc.PassElision, MaxTurns: rc.MaxTurns, Surface: SurfaceName(rc.Config), Divergence: res.Div}
+	r.Commander, r.Commanders = m.commanderFields()
 	for s := 0; s < 2; s++ {
 		for _, c := range m.Decks[s] {
 			r.Cards[s] = append(r.Cards[s], cardName(c))
@@ -92,7 +97,29 @@ func (r *Repro) Matchup(reg *cards.Registry) (*Matchup, error) {
 			decks[s] = append(decks[s], c)
 		}
 	}
-	return NewMatchup(reg, r.Decks, decks, r.Mulligans)
+	m, err := NewMatchup(reg, r.Decks, decks, r.Mulligans)
+	if err != nil {
+		return nil, err
+	}
+	m.setCommander(r.Commander, r.Commanders)
+	return m, nil
+}
+
+// commanderFields is m's commander as a repro or game record writes it
+// (nil Commanders for a Constructed matchup).
+func (m *Matchup) commanderFields() (bool, []int) {
+	if !m.Commander {
+		return false, nil
+	}
+	return true, []int{m.Commanders[0], m.Commanders[1]}
+}
+
+// setCommander restores what commanderFields recorded.
+func (m *Matchup) setCommander(on bool, ix []int) {
+	m.Commander, m.Commanders = on, [2]int{-1, -1}
+	for s := 0; s < 2 && s < len(ix); s++ {
+		m.Commanders[s] = ix[s]
+	}
 }
 
 // Write saves the repro as indented JSON.
