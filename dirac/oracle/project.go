@@ -126,6 +126,12 @@ type Projection struct {
 	RNGDraws    uint64
 	Over        bool
 	Winner      int8 // -1 none/draw
+	// CmdCasts is the times each seat's commander was cast from the command
+	// zone (CR 903.8); CmdDamage[p][q] the combat damage player p was dealt
+	// by seat q's commander (CR 903.10a). Zero outside a Commander game.
+	// They stay last: ProjectionHash drops them while they are zero.
+	CmdCasts  [2]uint8
+	CmdDamage [2][2]uint8
 }
 
 // identity is a game's stable map between gorge objects and canonical card
@@ -312,7 +318,7 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 		}
 		c.Flags = f
 		if o.Zone == state.ZBattlefield {
-			c.Damage = int16(o.Damage)
+			c.Damage = int16(min(o.Damage, 255)) // the kernel saturates damage at 255 (dmgPerm); no toughness reaches it, so lethality agrees
 			if e.IsCreature(oid) {
 				c.Power, c.Toughness = int16(e.Power(oid)), int16(e.Toughness(oid))
 			}
@@ -452,11 +458,38 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 	p.Step = uint8(g.Step)
 	p.Active, p.Priority = uint8(g.Active), uint8(g.Priority)
 	p.RNGDraws = e.RNGDraws()
+	projectCommander(g, p)
 	p.Over, p.Winner = g.Over, -1
 	if g.Over && !g.Draw {
 		p.Winner = int8(g.Winner)
 	}
 	return charErr
+}
+
+// projectCommander fills p's commander bookkeeping from g. A seat's
+// CmdDamage is indexed by the match-wide dense commander index, every
+// seat's Commanders in seat order: the slot is mapped to its owner's seat.
+func projectCommander(g *state.Game, p *Projection) {
+	var owner []int
+	for s := range g.Players {
+		for range g.Players[s].Commanders {
+			owner = append(owner, s)
+		}
+	}
+	for s := 0; s < 2 && s < len(g.Players); s++ {
+		pl := &g.Players[s]
+		var n int32
+		for _, c := range pl.CmdCasts {
+			n += c
+		}
+		p.CmdCasts[s] = uint8(min(max(n, 0), 255))
+		for k, d := range pl.CmdDamage {
+			if k < len(owner) && owner[k] < 2 {
+				q := owner[k]
+				p.CmdDamage[s][q] = uint8(min(max(int32(p.CmdDamage[s][q])+d, 0), 255))
+			}
+		}
+	}
 }
 
 // chosenModeMask is stack object o's ChosenModes as a bit per mode's index in

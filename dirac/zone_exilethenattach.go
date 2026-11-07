@@ -180,7 +180,7 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 	if l.kind != copyNone {
 		want = l.card
 	}
-	if cur == want && (l.kind != copyNone) == (p.ovr.flags&ovCopy != 0) {
+	if cur == want && (l.kind != copyNone) == (p.ovr.flags&ovCopy != 0) && s.excShows(host, l) {
 		return
 	}
 	s.touchSl(host)
@@ -189,13 +189,42 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 	if l.kind != copyNone {
 		p.ovr.flags |= ovCopy
 		p.ovr.copyOf = want
-		if l.kind == copyPerm {
-			// the marker's copy exceptions come back with its layer
+		switch l.kind {
+		case copyPerm, copyEOT:
+			// The layer's copy exceptions come back with it: its template's
+			// (inherited, CR 707.3) and then its own override (CR 707.9b).
+			// The layers beneath lose theirs; they come back with their own
+			// layer.
 			s.dropFx(func(i int) bool {
 				x := &s.g.fx[i]
 				return x.sl == host && x.kind == fxCopyExc
 			})
 			s.copyExcAdd(k, host, s.copySrcSlot(l.src), l.idx)
+			p.ovr.kw = p.ovr.kw&^oldKw | s.copyExcKw(k, host)
+		case copyAegis:
+			// An Aegis copy has no exceptions, so an older "except it has
+			// hexproof" is overwritten while it shows (CR 707.2, 613.7e).
+			// A copy the stack covered that has no marker keeps its
+			// exceptions aside: only its own layer can give them back.
+			// With a marker layer live beneath, or once the base's records
+			// were already dealt with (fl set), the live records are a
+			// marker layer's, which re-pushes its own.
+			bi := s.copyRec(host, fxAegisBase)
+			if bi >= 0 && s.g.fx[bi].r.fl == 0 && s.copyRec(host, fxCopyPerm) < 0 && s.copyRec(host, fxCopyEOT) < 0 {
+				s.g.fx[bi].r.fl = 1
+				s.aegisHold(host)
+			} else {
+				if bi >= 0 {
+					s.g.fx[bi].r.fl = 1
+				}
+				s.dropFx(func(i int) bool {
+					x := &s.g.fx[i]
+					return x.sl == host && x.kind == fxCopyExc
+				})
+			}
+			p.ovr.kw = p.ovr.kw&^oldKw | s.copyExcKw(k, host)
+		case copyBase:
+			s.aegisRestore(host)
 			p.ovr.kw = p.ovr.kw&^oldKw | s.copyExcKw(k, host)
 		}
 	} else {
@@ -295,4 +324,63 @@ func prepAegis(t *kop.Table, g *genPrep) {
 			}
 		}
 	}
+}
+
+// excShows reports whether host's copy-exception records already are the ones
+// layer l shows: an Aegis copy has none, and a copy marker shows its
+// template's exceptions (CR 707.3) and then its own override (CR 707.9b).
+func (s *State) excShows(host Slot, l copyLayer) bool {
+	switch l.kind {
+	case copyAegis:
+		return s.copyRec(host, fxCopyExc) < 0
+	case copyPerm, copyEOT:
+		return s.excMatch(host, s.copySrcSlot(l.src), l.idx)
+	case copyBase:
+		// a kept floor is always restored by the refresh that takes it
+		return false
+	}
+	return true
+}
+
+// excMatch reports whether slot sl's copy-exception records are exactly what
+// copyExcAdd(sl, src, idx) would push: src's records in pool order, then the
+// override idx.
+func (s *State) excMatch(sl, src Slot, idx uint8) bool {
+	at := 0
+	if src != NoSlot && s.fxM.has(src) {
+		for i := 0; i < int(s.g.nfx); i++ {
+			r := &s.g.fx[i]
+			if r.sl != src || r.kind != fxCopyExc {
+				continue
+			}
+			if got, ok := s.excIth(sl, at); !ok || got != r.r.idx {
+				return false
+			}
+			at++
+		}
+	}
+	if idx != 0 {
+		if got, ok := s.excIth(sl, at); !ok || got != idx {
+			return false
+		}
+		at++
+	}
+	_, more := s.excIth(sl, at)
+	return !more
+}
+
+// excIth is the k-th (0-based) copy-exception override on slot sl.
+func (s *State) excIth(sl Slot, k int) (idx uint8, ok bool) {
+	if !s.fxM.has(sl) {
+		return 0, false
+	}
+	for i := 0; i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyExc {
+			if k == 0 {
+				return r.r.idx, true
+			}
+			k--
+		}
+	}
+	return 0, false
 }

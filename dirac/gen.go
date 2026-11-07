@@ -590,7 +590,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyUnblocked = tableUnblocked(t)
 	g.anyOrCopy = tableTrigFlag2(t, kop.TrigSpellCast, kop.Tf2OrCopy)
 	if tableTrigFlag2(t, kop.TrigSpellCast, kop.Tf2Increment) {
-		g.anySpent, g.anyHist = true, true // the Increment comparison reads the spell's recorded spend (kw_increment.go); histCast itself is anyHist-gated. Never anyCastSpent: no planner decline
+		g.anySpent, g.anyHist = true, true // the Increment comparison (fire and resolution) reads the spell's recorded spend (kw_increment.go); histCast itself is anyHist-gated. Never anyCastSpent: no planner decline
 	}
 	prepCtrAdded(t, p, g) // ctr_addedthisturn.go
 	if tableSpentGate(t) {
@@ -1064,8 +1064,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 			case kop.AbMana:
 				if a.ManaDeferred && a.AFlags&kop.AfLatent == 0 {
-					// a scripted-prefix gap beside the restricted ones (mana_deferred.go)
-					g.setFlag(CardID(i), gfDeferred)
+					// a scripted-prefix gap beside the restricted ones (mana_deferred.go),
+					// and no filter: gapOthers must see it so filtOnly is false
+					g.smallFor(CardID(i)).gapOther = int8(j)
+					g.setFlag(CardID(i), gfDeferred|gfGapOther)
 					g.anyDeferred, g.anyRestrScript, g.anyWindowGap = true, true, true
 				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
@@ -1435,6 +1437,7 @@ const (
 	fxCopyHeld               // a token copy's own copy exception (r.idx), held aside while an until-end-of-turn copy overrides it (copy_clone.go cloneHold)
 	fxCopyMint               // a token copy's own copy (r.src the card it was minted as), held aside likewise (copy_clone.go cloneHold)
 	fxAegisBase              // the copy a bearer wore (r.src its card) when an Aegis stack took over with no copy marker of its own, which shows again when the last Aegis copy ends (copy_aegisunder.go)
+	fxAegisHeld              // a copy exception of the copy an Aegis stack covered (r.idx), held aside while the Aegis copy shows: no marker can rebuild it (copy_aegisunder.go aegisHold)
 )
 
 // maxFx bounds the effect records live at once (all permanents); a full
@@ -1643,6 +1646,7 @@ type genState struct {
 	retMiss bool            // the last OpReturnEx returned nothing (its StaticEffect rider then applies to nothing)
 	retAt   uint8           // the remembered object a many-object return is moving, + 1 (0 = none; returnrem.go)
 	retTS   uint16          // the entry stamp a many-object return started at: its entrants are the ones after it
+	batchTS uint16          // the entry stamp the open batch began at: a watcher entered after it looks back to the board before the batch (trig_oneormore.go)
 	spent   [2]uint16       // the history bank (value_turnhistory.go): mana each player spent casting spells this turn (expend)
 	sacM    slotMask        // permanents picked for an effect's sacrifice, sacrificed together once all are picked
 	sacOrd  [maxSacOrd]Slot // sacM's slots in sacrifice order (gorge zone_bulk.go effSacrifice: player by player, each in answer order)
@@ -1960,7 +1964,7 @@ const (
 	StallPanharmGrant  = 142 // a fifth Panharmonicon grant (Lwaxana Troi) live at once (genState.pgT; act_grantpanharm.go)
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
-	NumStall           = 144 // capacity of the reason tables (StallName); a reason registers its name in its own file
+	NumStall           = 145 // capacity of the reason tables (StallName); a reason registers its name in its own file
 )
 
 // StallName is reason r's short name ("" for StallNone).
@@ -2190,7 +2194,7 @@ func (s *State) addOvRec(sl Slot, r ovRec, merge, grants bool) bool {
 	if s.fxM.has(sl) {
 		for i := 0; i < int(s.g.nfx); i++ {
 			if p := &s.g.fx[i]; p.sl == sl && p.kind == fxOverride && p.r.idx == r.idx && p.r.src == r.src && p.r.p == r.p && p.r.t == r.t && p.r.fl&^ovReps == r.fl&^ovReps {
-				if p.r.fl&ovReps == ovReps || grants && s.newerLayer6Fx(sl, i) {
+				if p.r.fl&ovReps == ovReps || grants && (s.newerLayer6Fx(sl, i) || s.statM.any() && s.newerLayer6Static(p.r.ts)) {
 					continue // a further identical record carries the rest
 				}
 				if merge {
@@ -2240,6 +2244,29 @@ func (s *State) newerLayer6Fx(sl Slot, i int) bool {
 		}
 		if ov := &s.k().t.Overrides[p.r.idx-1]; ov.Grant[0] != 0 || ov.Grant[1] != 0 || ov.AddKw != 0 || ov.RemoveKw != 0 || ov.LoseAbilities || ov.CantAttack {
 			return true
+		}
+	}
+	return false
+}
+
+// newerLayer6Static reports a battlefield Continuous static that grants or
+// removes keywords and is newer than timestamp ts. Its layer-6 effect sits
+// between an older record and a repeat of it (CR 613.7), so the repeat takes
+// a timestamp of its own: Abigale's second loss of abilities, after Chronicle
+// of Victory entered, takes that grant away again. The static's filter is not
+// read (a spare record is only a spare record).
+func (s *State) newerLayer6Static(ts uint16) bool {
+	k := s.k()
+	for m := s.statM; m.any(); m = m.rest() {
+		src := m.first()
+		if s.layerTs(src) <= ts {
+			continue
+		}
+		cd := &k.t.Cards[s.cardAt(src)]
+		for i := range cd.Abilities {
+			if a := &cd.Abilities[i]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && (a.Static.Kw != 0 || a.Static.Override > 0 || a.Static.Grant != 0) {
+				return true
+			}
 		}
 	}
 	return false

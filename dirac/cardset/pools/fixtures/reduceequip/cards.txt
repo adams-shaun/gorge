@@ -1,0 +1,18 @@
+# the target-dependent equip cost-reduction pool:
+# Cloud, Planet's Champion and Dwarven Mauler (equips that target them cost
+# less), Auriok Steelshaper, Fervent Champion and Helitrooper beside
+# Bonesplitter, vanilla creatures and burn
+# (dirac/oracle/reduceequip_test.go)
+Cloud, Planet's Champion
+Dwarven Mauler
+Auriok Steelshaper
+Fervent Champion
+Helitrooper
+Bonesplitter
+Grizzly Bears
+Savannah Lions
+Elite Vanguard
+Shock
+Lightning Bolt
+Plains
+Mountain

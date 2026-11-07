@@ -21,7 +21,7 @@ var (
 	capacityStalls = []string{"ctradded", "addphase", "board", "pending", "stack", "tables", "loop", "delayed", "remember",
 		"mayplay", "dprog", "emblem", "dmgmap", "xtgt", "used", "kwrepx", "links", "free", "ask", "counters", "lki", "tappick",
 		"regen", "look", "grants", "acts", "linger", "sac", "entered", "convoke", "castring", "pt", "actring", "charmopts",
-		"reflatch", "zone", "options", "srcmark", "dmglatch", "replcands", "replplusbatch", "prevcol", "colgrant", "restrx", "obssrc", "dynmana", "tapextra",
+		"reflatch", "zone", "options", "srcmark", "dmglatch", "replcands", "replplusbatch", "prevcol", "colgrant", "restrx", "obssrc", "dynmana", "tapextra", "planalts",
 		"exiledwith", "breach", "netlock", "panharmgrant", "exilegrant", "charmpick", "combathit", "finality", "persistmana", "optmoves", "mustblock",
 		"restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm", "filtx", "delve"}
 	unmodelledStalls = []string{"infect", "replplus", "liferepl", "drawrepl", "prolif", "ctrorder",

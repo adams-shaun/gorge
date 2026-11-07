@@ -233,13 +233,16 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 			s.tapWindowGap(k, p, sl, &held)
 			continue
 		}
-		if clamp && !anyColor && k.gen != nil && k.gen.anyRestrSrc && s.windowRestrOwedTap(k, p, sl, useful) {
+		if clamp && !anyColor && k.gen != nil && k.gen.anyRestrSrc && s.windowRestrOwedTap(k, p, sl, useful, noOwed) {
 			continue
 		}
 		own := &k.cards[s.cardAt(sl)]
 		pc := s.windowGrantPC(k, sl)
 		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && own.castSrc != 0 {
 			s.noteTapSrc(k, own, sl)
+			if own.castSrc&csObserved != 0 && s.bld().obsWin&obsWinPaying == 0 {
+				s.bld().obsWin |= obsWinTapped // a pre-payment tap; one by the payment's own window spends its mana
+			}
 		}
 		col := s.windowCol(k, p, cost, sl, pc, anyColor, noOwed)
 		if noOwed && clamp && !anyColor {
@@ -1938,6 +1941,9 @@ func (s *State) windowUseful(k *prep, p uint8, cost *kop.ManaCost) (want uint8, 
 func (s *State) lowerWitness(k *prep, p uint8) {
 	n0 := s.npend
 	s.lowerWitnessEx(k, p, NoObj)
+	if s.buildLive() && s.bld().obsSl != 0 && s.bld().obsWin&obsWinPaying == 0 {
+		s.bld().obsWin |= obsWinTapped // the witness floats its mana before the announced X prices the cast (mana_spendtrigger.go obsWinSettle)
+	}
 	if s.npend > n0 {
 		s.resolveLowerCounterTriggers(k, n0)
 	}
@@ -2179,24 +2185,25 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 		n := max(ab.ManaN, 1)
 		// a widened unit's tap made the colour the plan chose: when that
 		// colour is none the card's own census ability makes (Turtle Lair's
-		// {C}), the mana is the restricted ability's, whichever colour the pool
-		// grew in beside another source's (a Plains' {W} before a green pick)
+		// {C}), the mana is the restricted ability's, in that colour. When the
+		// census ability makes the colour, that ability paid and no restricted
+		// mana floats: another tapped source's mana in the pool is not this
+		// source's (a Villainous Hideout tapped for its {C} beside a Hell's
+		// Kitchen's {B}).
 		pick := ext
 		if !ext {
 			if ma := k.cards[c].manaAb; ma >= 0 && uint8(k.t.Cards[c].Abilities[ma].ManaColors)&(1<<tcol) == 0 {
 				pick = true
 			}
 		}
-		for col := 0; col < 5; col++ {
-			if pick && col != tcol {
-				continue
-			}
-			if uint8(ab.ManaColors)&(1<<col) != 0 && s.pl[p].pool[col] >= pool[col]+n {
-				s.pl[p].pool[col] -= n
-				if !s.floatRestrAb(k, p, sl, ab, col, n) {
-					s.capFull(StallRestrSrc)
-				}
-				break
+		if !pick {
+			continue
+		}
+		col := tcol
+		if uint8(ab.ManaColors)&(1<<col) != 0 && s.pl[p].pool[col] >= pool[col]+n {
+			s.pl[p].pool[col] -= n
+			if !s.floatRestrAb(k, p, sl, ab, col, n) {
+				s.capFull(StallRestrSrc)
 			}
 		}
 	}
@@ -2666,11 +2673,17 @@ func (s *State) manaStep(k *prep) bool {
 				s.pl[e.ctrl].pool[c] += held[c]
 			}
 		case k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 && s.powerUpPlanRejected(k, a):
-			// The planner's printed-cost witness is outdated: the plan for the
-			// reduced cost, or with none the manual window, source by source,
-			// which taps nothing when the pool already pays it.
+			// The planner's printed-cost witness is outdated. A reduced
+			// cost the planner can price (no hybrid symbol) re-arms and
+			// taps its plan's order; a hybrid (or twobrid) cost is the shape
+			// gorge's planner declines, and a charge the reductions left
+			// hybrid-only arms no witness at all (powerUpArmsNone), so the
+			// manual window pays source by source, first useful one in
+			// battlefield order, tapping nothing when the pool already pays
+			// it.
 			cc := s.buildCostCharge(k)
-			if s.abilityPlanSettles(k, e, a.Cost.Mana, a.Cost.Mana, cc, &saved) {
+			w := s.powerUpWitness(k, a, sl, e.ctrl)
+			if a.Cost.Mana.Hyb[0] == 0 && !s.powerUpArmsNone(k) && s.abilityPlanSettles(k, e, w, w, cc, &saved) {
 				s.tapFor(k, e.ctrl, &cc, int(e.x), NoObj)
 			} else if !s.windowTapHeldOK(k, e.ctrl, &cc) {
 				// the window ran out of sources: gorge aborts the activation

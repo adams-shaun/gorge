@@ -972,6 +972,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		}
 		markChangeZoneAttach(h, c, sa, cz, &ev)
 		entryCounters := withKind != "" && counterDestination(to) && entryWithCounters(&ev, to, withKind, withAmt)
+		applyStaticEffect(h, c, sa, to, []state.ObjID{o.ID})
 		emitEntryMove(h, c, cz.Riders.GainControl, to, ev)
 		moved = append(moved, o.ID)
 		exiledWithAssociation(h, c, o.ID, to)
@@ -1020,7 +1021,6 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// settle path applies for every other mover (the main loop deliberately
 		// predates settleChangeZoneMoveAs and is not routed through it).
 		if to == state.ZBattlefield {
-			applyStaticEffect(h, c, sa, to, []state.ObjID{o.ID})
 			// LeaveBattlefield$ Exile on the inlined object path (Isareth the
 			// Awakener, From the Catacombs): the same promise the shared settle
 			// path registers, on the object this move just landed, after its
@@ -2000,6 +2000,7 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, 
 	}
 	markChangeZoneAttach(h, c, sa, cz, &ev)
 	entryCounters := withKind != "" && counterDestination(to) && entryWithCounters(&ev, to, withKind, withAmt)
+	applyStaticEffect(h, c, sa, to, []state.ObjID{id})
 	emitEntryMove(h, c, cz.Riders.GainControl, to, ev)
 	if to == state.ZExile {
 		recordExileReturnFor(h, c, sa, cz.Riders.Duration, id, from, to)
@@ -2058,11 +2059,6 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, 
 			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: player, Text: "entered tapped"})
 		}
 		rider.apply(h, c, id, player, to)
-		// StaticEffect$ <name> (the "return it ... It's a Spirit Detective"
-		// rider): the named Continuous static registers onto the moved card
-		// once its move and entry riders are settled. A no-op on every SA
-		// without the parameter.
-		applyStaticEffect(h, c, sa, to, []state.ObjID{id})
 		// LeaveBattlefield$ Exile (Isareth the Awakener, From the Catacombs):
 		// the promise rides the entered object for as long as it stays on the
 		// battlefield (engine/effects/leavebattlefield.go) -- no Duration$ on either

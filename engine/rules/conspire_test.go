@@ -352,11 +352,11 @@ func TestConspireGrantedPrintedFaceNotDoubled(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestConspireGrantedPlainCastCopiesNothing: the synthesized trigger fires
-// on EVERY cast of a granted spell (the printed path's own contract), and a
-// PLAIN cast resolves it with Amount$ Count$Conspired 0 -- the copy loop
-// emits nothing. Two eligible creatures sit untapped; nothing is tapped and
-// no copy resolves.
+// TestConspireGrantedPlainCastCopiesNothing: the synthesized trigger carries
+// the printed path's CheckSVar$ Count$Conspired intervening "if" (CR 702.78a,
+// 603.4), so a PLAIN cast of a granted spell triggers nothing at all -- no
+// ability on the stack and no copy. Two eligible creatures sit untapped;
+// nothing is tapped and no copy resolves.
 func TestConspireGrantedPlainCastCopiesNothing(t *testing.T) {
 	t.Parallel()
 	e, cfg, reg := conspireEngine(t, "Lightning Bolt")

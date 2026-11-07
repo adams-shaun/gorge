@@ -54,6 +54,11 @@ type cloneFuzzOpts struct {
 	// when set. It is per-game state, not a package global, so games can run
 	// in parallel.
 	worldHook func(t *testing.T, e *Engine, r *rand.Rand)
+	// shards > 0 partitions the per-decision checks (world probe, lockstep and
+	// isolation clones) across independent runs: decision n's checks run only
+	// where n%shards == shard, from a side stream seeded by (seed, n), so every
+	// shard plays the same main line. 0 keeps the single-stream game exactly.
+	shards, shard int
 }
 
 // cloneFuzzStats aggregates across parallel games.
@@ -210,10 +215,17 @@ func playCloneFuzzGame(t *testing.T, cfg Config, label string, o cloneFuzzOpts, 
 	n := 0
 	for ; !e.G.Over && e.Pending() != nil && (o.maxIntents == 0 || n < o.maxIntents); n++ {
 		d := e.Pending()
-		if o.worldHook != nil {
-			o.worldHook(t, e, r)
+		cr, checked := r, true
+		if o.shards > 0 {
+			checked = n%o.shards == o.shard
+			if checked {
+				cr = rand.New(rand.NewPCG(cfg.Seed^0x5ade, uint64(n)))
+			}
 		}
-		if o.every <= 1 || r.IntN(o.every) == 0 {
+		if checked && o.worldHook != nil {
+			o.worldHook(t, e, cr)
+		}
+		if checked && (o.every <= 1 || cr.IntN(o.every) == 0) {
 			st.clones.Add(1)
 			var c *Engine
 			if k := len(spares); k > 0 && n%2 == 1 {
@@ -223,7 +235,7 @@ func playCloneFuzzGame(t *testing.T, cfg Config, label string, o cloneFuzzOpts, 
 				c = e.Clone()
 			}
 			lives = append(lives, cloneFuzzLive{c: c, at: n, from: len(e.L.Events), left: o.lockstep, kind: d.Kind})
-			if msg := cloneFuzzDiverge(e, r, o.diverge, &div); msg != "" {
+			if msg := cloneFuzzDiverge(e, cr, o.diverge, &div); msg != "" {
 				t.Fatalf("%s: intent %d (%s): ISOLATION: %s", label, n, d.Kind, msg)
 			}
 			st.divergent.Add(1)

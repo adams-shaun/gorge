@@ -426,7 +426,7 @@ func (s *State) resolveWardPower(k *prep) {
 		s.capFull(StallPT) // pickLeft is a byte: the power leaves the life ask's range
 		n = 255
 	}
-	if int(s.pl[e.trigPl].life) < n && k.gen == nil {
+	if int(s.pl[e.trigPl].life) < n {
 		s.counterAt(k, idx)
 		s.finishResolve(k, false)
 		return
