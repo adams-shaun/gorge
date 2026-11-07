@@ -1344,12 +1344,17 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 		// potential-target retry prices it (offerCastableUsing): plan the
 		// cheapest such announcement too, so the offer has its witness. The
 		// chosen target's cost is repriced before payment (rearmAutoPay).
-		var potential PaymentPlanOutcome
-		if _, ok := e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
-			potential = e.planComposedCost(p, id, e.composedOfferCost(p, id, cost, m, scope), true, true)
-			return potential.Reason == ""
-		}); ok {
-			return potential
+		// Only a single-target announcement is priced this way: the retry
+		// tests each candidate as the sole selection, which does not price a
+		// multi-target ability.
+		if _, max := targetBounds(ab); max == 1 {
+			var potential PaymentPlanOutcome
+			if _, ok := e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
+				potential = e.planComposedCost(p, id, e.composedOfferCost(p, id, cost, m, scope), true, true)
+				return potential.Reason == ""
+			}); ok {
+				return potential
+			}
 		}
 	}
 	if out.Reason != "insufficient" || cost.Waterbend <= 0 {
