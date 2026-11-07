@@ -189,6 +189,7 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"trigger_paid_x_zero_binds", false, false},             // CR 107.3: Wildborn Preserver paid X = 0 puts no counters, whatever X the creature that triggered it was cast with
 		{"dies_trigger_reads_attacking_lki", true, false},       // CR 603.10a: Garna, Bloodfist of Keld draws for a Perforating Artist that died attacking, its last known status
 		{"any_type_rider_hybrid_pips", true, false},             // CR 107.4e, 601.2b: Tinybones lets any mana pay Teach by Example's two hybrid pips, so W and B afford the cast
+		{"deferred_mana_pays_x_announcement", true, false},      // CR 601.2b, 601.2g: Pyromancer's Goggles' deferred {R} is a source the window taps, so Steel Hellkite's {X} is offered for 1 (mana_deferred.go)
 	})
 }
 

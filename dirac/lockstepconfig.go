@@ -188,6 +188,15 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	a.xd, a.xdOn = s.payDescNow(NoObj), true
 	s.availFor(k, p, a)
 	a.xdOn = false
+	// A deferred mana source (Pyromancer's Goggles' TriggersWhenSpent$ {R}) is
+	// absent from the planner census but CR 601.2g's window can tap it, and
+	// gorge's xAsk reads the window (mana_deferred.go; availScript adds it when
+	// the caller asked for the gap mana).
+	if s.g.availX&3 == 0 {
+		for b := s.scriptDeferred(k, p); b.any(); b = b.rest() {
+			a.addUnits(1<<kop.R, 1)
+		}
+	}
 	if k.gen == nil || k.gen.anyContGrant || len(k.gen.grantPC) == 0 {
 		return
 	}
