@@ -1823,23 +1823,37 @@ func (s *State) midResAsk(k *prep) bool {
 func (s *State) lkiAttached(o Obj) Obj {
 	for sl := Slot(0); sl < MaxPerm; sl++ {
 		if p := &s.perms[sl]; p.obj == o && p.ts != 0 && !s.occ.has(sl) && p.attached != NoSlot {
-			if s.occ.has(p.attached) {
-				return s.perms[p.attached].obj
+			if !s.occ.has(p.attached) {
+				return NoObj
 			}
-			return NoObj
+			if h, ok := s.attLKIHost(o); ok {
+				return h // the slot may hold a new object now (CR 400.7)
+			}
+			return s.perms[p.attached].obj
 		}
 	}
+	if h, ok := s.attLKIHost(o); ok {
+		return h
+	}
+	return NoObj
+}
+
+// attLKIHost is the versioned departure record's verdict for o: its host
+// while that same incarnation is still on the battlefield, NoObj once it
+// left (a token that took the host's slot is a new object, CR 400.7); ok
+// is false when no record for o survives.
+func (s *State) attLKIHost(o Obj) (Obj, bool) {
 	for i := range s.g.attLKI {
 		r := &s.g.attLKI[i]
 		if r.obj == o && r.ver != 0 {
 			h := &s.objs[r.host]
 			if h.zone == kop.ZoneBattlefield && h.ver == r.ver {
-				return r.host
+				return r.host, true
 			}
-			return NoObj
+			return NoObj, true
 		}
 	}
-	return NoObj
+	return NoObj, false
 }
 
 // payCastWindow pays the rest of a cast's cost through gorge's CR 601.2g
