@@ -1236,6 +1236,11 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Improvise = true
+		case head == "Delve" && param == "":
+			// CR 702.66a: the cast exiles graveyard cards toward its
+			// generic cost (dirac/kw_delve.go); a granted Delve reads the
+			// same kernel path.
+			lc.out.Delve = true
 		case head == "Madness":
 			// CR 702.35a-b: a discard replacement into exile plus a
 			// keyword trigger whose resolution offers the cast for this

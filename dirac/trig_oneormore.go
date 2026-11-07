@@ -217,5 +217,5 @@ func (s *State) replPlusHit(k *prep, b Slot, a *kop.Ability, srcCtrl uint8, srcS
 		}
 		return 0, 0, false
 	}
-	return s.dmgPlusAmt(r, b), 0, true
+	return s.dmgPlusAmt(k, r, b), 0, true
 }

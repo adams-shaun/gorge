@@ -349,6 +349,10 @@ type CardDef struct {
 	// Convoke is printed convoke (CR 702.51a; no KwMask bit is free):
 	// the cast may tap creatures for its mana cost (dirac/kw_convoke.go).
 	Convoke bool
+	// Delve is printed delve (CR 702.66a; no KwMask bit is free): the cast
+	// exiles graveyard cards toward its generic cost (dirac/kw_delve.go).
+	// A granted delve reads the same path.
+	Delve bool
 	// Improvise is printed improvise (CR 702.126a): the cast may tap
 	// untapped artifacts, each paying {1} of the generic part. Never set
 	// with Convoke (kgen refuses both). Shares the convoke payment path.
