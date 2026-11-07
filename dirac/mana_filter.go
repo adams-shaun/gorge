@@ -368,7 +368,7 @@ func (s *State) windowRestrUseful(k *prep, sl Slot, want uint8) bool {
 // it ahead of a fixed {C} the payment cannot spend, and its colour ask then answers
 // the pip (a hybrid face: Professor Zei's {U/R}{U/R} paid by Jasmine Dragon Tea
 // Shop's Ally-only mana). Its owed colour is the lowest the payment still lacks.
-func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCost) bool {
+func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCost, noOwed bool) bool {
 	a, want, ok := s.windowRestrOwed(k, p, sl, useful)
 	if !ok {
 		return false
@@ -376,7 +376,13 @@ func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCo
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
-	if !s.addRestrSrcV(k, p, sl, a.ManaRestrict, k.gen.restrVarOf(a), bits.TrailingZeros8(uint8(a.ManaColors)&want), max(a.ManaN, 1)) {
+	cols := uint8(a.ManaColors) & want
+	if _, decided := s.windowUseful(k, p, useful); noOwed && !decided {
+		// an unsettled generic remainder leaves the colour ask unclamped, and a
+		// window with no ManaPayment answers its lowest colour (windowCol)
+		cols = uint8(a.ManaColors)
+	}
+	if !s.addRestrSrcV(k, p, sl, a.ManaRestrict, k.gen.restrVarOf(a), bits.TrailingZeros8(cols), max(a.ManaN, 1)) {
 		s.capFull(StallRestrSrc)
 	}
 	return true
@@ -392,7 +398,13 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 		return nil, 0, false
 	}
 	w, decided := s.windowUseful(k, p, useful)
-	if !decided || s.windowSrcMask(k, sl)&w != 0 {
+	if !decided {
+		// gorge's owedAbilitiesFirst sorts an ability ahead when the colours a
+		// fixed pip still owes are non-empty, whether or not the generic
+		// remainder is settled (paymentUsefulColours' second result is not read)
+		w = s.windowOwedPips(k, p, useful)
+	}
+	if w == 0 || s.windowSrcMask(k, sl)&w != 0 {
 		return nil, 0, false
 	}
 	cd := &k.t.Cards[s.cardAt(sl)]
@@ -432,14 +444,16 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 }
 
 // censusGapMana: mana ability a is one gorge's planner census misses: a
-// spend restriction, each-colour production, or a cost beyond {T} (and
-// {T} plus sacrificing itself, a Treasure's last-resort tier).
+// spend restriction, each-colour production, a cost beyond {T} (and
+// {T} plus sacrificing itself, a Treasure's last-resort tier), or a
+// deferred TriggersWhenSpent$ source (Pyromancer's Goggles; mana_deferred.go),
+// so a filter beside it is no filter-only board (filtOnly).
 func censusGapMana(a *kop.Ability) bool {
 	if a.AFlags&kop.AfLatent != 0 {
 		return false
 	}
 	f := a.Cost.Flags
-	return a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf ||
+	return a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf ||
 		a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
 }
 
@@ -564,16 +578,16 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 		return false
 	}
 	if apply {
-		s.filtPlay(k, p, fs.path[:fs.n], true)
+		s.filtPlay(k, p, fs.path[:fs.n])
 	}
 	return true
 }
 
 // filtPlay plays a found path on s: each activation as the search made it,
 // each answer and pass as the decision then pending (the other player passes
-// while the trigger resolves, tapXPlay). With apply the taps also fire the
-// Taps triggers of a granted mana ability's source.
-func (s *State) filtPlay(k *prep, p uint8, path []filtStep, apply bool) {
+// while the trigger resolves, tapXPlay). Each tap fires its Taps triggers
+// once, in filtDo (filtUse, otherDo), as the search's own steps did.
+func (s *State) filtPlay(k *prep, p uint8, path []filtStep) {
 	n := s.Decisions
 	var d Decision
 	for _, st := range path {
@@ -584,9 +598,6 @@ func (s *State) filtPlay(k *prep, p uint8, path []filtStep, apply bool) {
 			continue
 		}
 		s.filtDo(k, p, st)
-		if apply && (st.other.kind == otherNone || st.other.kind == otherGrant) && !(st.gap && st.ans > 0 && s.filtNoTap(k, st.sl)) {
-			s.manaTapped(k, st.sl) // (a once-each-turn filter taps nothing)
-		}
 	}
 	s.Decisions = n
 }
@@ -661,6 +672,9 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		pl.pool[st.ans] += max(s.manaPCGen(k, st.sl).manaN, 1)
 		s.addExtra(k, p, st.sl, s.manaPCGen(k, st.sl))
 		s.artTag(k, p, st.sl, int(st.ans))
+		if k.sacMana {
+			s.fundSac(k, st.sl)
+		}
 	}
 }
 
@@ -801,17 +815,17 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 			if free {
 				pc := t.manaPCGen(k, sl)
-				if pc.manaSac {
-					continue // (a Treasure funds nothing here: see the handoff's open items)
-				}
 				mask := t.srcMaskAt(pc, sl)
 				if bits.OnesCount8(mask) > 1 && !fs.tick() {
 					return false // the colour ask
 				}
-				for m := mask; m != 0; m &= m - 1 {
-					if fs.try(k, t, filtStep{sl: sl, ans: uint8(bits.TrailingZeros8(m))}, funded+1, gapUsed) {
+				if bits.OnesCount8(mask) > 1 {
+					// a Treasure funds too, sacrificed; the ask in gorge's order (mana_filtfund.go)
+					if fs.fundColours(k, t, sl, pc, mask, funded, gapUsed) {
 						return true
 					}
+				} else if fs.try(k, t, filtStep{sl: sl, ans: uint8(bits.TrailingZeros8(mask))}, funded+1, gapUsed) {
+					return true
 				}
 			}
 			if bits.OnesCount8(rm) > 1 && !fs.tick() {
@@ -908,7 +922,8 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 
 // filtCombo is the allocation ask of a combination filter at sl: gorge's
 // scriptAnswers enumerates a Min == Max == n colour allocation unit by unit,
-// the last unit varying fastest, and stops at 64 combinations. Each is one
+// the last unit varying fastest, and stops at 64 combinations, those naming a
+// needed colour first (scriptOrderAnswers). Each is one
 // activation producing its counts (filtStep.alloc); the first whose
 // production pays later is the script's.
 func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
@@ -917,16 +932,16 @@ func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
 		return false
 	}
 	const per = 5 // Any's W U B R G, the order askManaColor offers
+	// gorge's scriptAnswers lists the first 64 per-unit combinations, last
+	// unit fastest; scriptOrderAnswers then tries first the ones where some
+	// unit names a colour the play's cost needs (the order decides which
+	// plans the node budget reaches), engine order kept inside each half.
+	var combos [64][6]uint8
+	nc := 0
 	var idx [6]uint8
-	for tries := 0; tries < 64; tries++ {
-		var st filtStep
-		st.sl, st.ans, st.gap = sl, 1, true
-		for u := 0; u < n; u++ {
-			st.alloc[idx[u]]++
-		}
-		if fs.try(k, t, st, funded, true) {
-			return true
-		}
+	for nc < len(combos) {
+		combos[nc] = idx
+		nc++
 		u := n - 1
 		for ; u >= 0; u-- {
 			if idx[u]++; idx[u] < per {
@@ -938,5 +953,47 @@ func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
 			break
 		}
 	}
+	wanted := func(c *[6]uint8) bool {
+		for u := 0; u < n; u++ {
+			if fs.need[c[u]] {
+				return true
+			}
+		}
+		return false
+	}
+	for pass := 0; pass < 2; pass++ {
+		for i := 0; i < nc; i++ {
+			if wanted(&combos[i]) != (pass == 0) {
+				continue
+			}
+			var st filtStep
+			st.sl, st.ans, st.gap = sl, 1, true
+			for u := 0; u < n; u++ {
+				st.alloc[combos[i][u]]++
+			}
+			if fs.try(k, t, st, funded, true) {
+				return true
+			}
+		}
+	}
 	return false
+}
+
+// windowOwedPips is the colours a fixed pip of cost still owes after the pool
+// (windowUseful's want without its generic-remainder verdict); none for a
+// flexible pip, whose faces gorge keeps whole.
+func (s *State) windowOwedPips(k *prep, p uint8, cost *kop.ManaCost) (want uint8) {
+	if cost.Hyb[0] != 0 {
+		return 0
+	}
+	pool := s.pl[p].pool
+	if m := s.restrPoolAdmits(k, p); m != 0 {
+		s.rbUnits(p, m, &pool)
+	}
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if cost.Pips[c] > pool[c] {
+			want |= 1 << c
+		}
+	}
+	return want
 }

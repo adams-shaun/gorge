@@ -38,8 +38,8 @@ func main() {
 	fs.IntVar(&o.events, "events", 1, "number of independent events to run")
 	fs.StringVar(&o.players, "players", "lethal-pressure,bot,forge-heuristic,lethal-pressure",
 		"comma-separated bot policy per seat: one name seats it everywhere, otherwise exactly -seats names (a policy that reads decklists, bots.Info.Env, is refused)")
-	fs.StringVar(&o.drafter, "drafter", "rating-colour", "pickbot drafter name")
-	fs.StringVar(&o.builder, "builder", "best23", "pickbot builder name")
+	fs.StringVar(&o.drafter, "drafter", "rating-colour", "pickbot drafter: a registry name or knobs:path.json (a pickbot.Tuning knob file, optionally @<hash>)")
+	fs.StringVar(&o.builder, "builder", "best23", "pickbot builder: a registry name or knobs:path.json (a pickbot.Tuning knob file, optionally @<hash>)")
 	fs.StringVar(&o.ratingsFile, "ratings-file", "", "training only: JSON {card: {field: value}} replacing the embedded 17Lands ratings for drafter and builder, rescaled to the 17Lands gih_wr mean/std")
 	fs.StringVar(&o.ratingsField, "ratings-field", "gih", "which field of -ratings-file to rate by")
 	fs.BoolVar(&o.verify, "verify", false, "replay each event from its own log and every game from its chain, exiting non-zero on the first mismatch")

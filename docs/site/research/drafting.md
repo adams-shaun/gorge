@@ -6,7 +6,7 @@ Does a change to how a bot drafts, or to how it builds its 40 cards, win more ga
 
 ## Method
 
-- **Pods.** Every pod is 8 seats opening 3 packs of the set (default collation). Pod `i` opens and drafts with seed `seed+i`.
+- **Pods.** Every pod is `-seats` seats (8 by default, the sweep's pod; `-seats 4` for a draft event's pod size) opening 3 packs of the set (default collation). Pod `i` opens and drafts with seed `seed+i`.
 - **Seat rotation.** With `K` variants, seat `s` of pod `i` drafts with variant `(s+i) mod K`, so every variant sits in every seat once every `K` pods. When `K` divides 8, every pod also holds `8/K` drafters of each variant.
 - **Building.** Each pool is built by each builder in `-builders`. With more than one builder, a deck's label is `variant/builder`.
 - **Pairs.** Each pair of decks from the same pod with different labels plays `-games` games (default 2), with seats swapped between games. With `-builder-ab`, the only pairs are decks built from the same seat's pool, so the builders are compared on identical pools.
@@ -36,8 +36,11 @@ go run ./cmd/draftres -set FDN -pods 200 -seed 1 \
 | `committed` | the committed-pair drafter |
 | `signals[:w]` | committed plus a table-signal term of weight `w` |
 | `knob:k=v;...` | committed plus knobs: `cfm` colour-fit cap, `need` need weight, `sig` signal weight, `deny` hate-draft weight, `bias=G3/B-2` per-colour bias, `pbias=BG+1` per-pair bias (a card of exactly that pair); the same knobs are `pickbot.Tuning` keys a `knobs:<path>` JSON file sets |
+| `knobs:<path>` | the same drafter with the knobs a `pickbot` knob file sets (the keys are `pickbot.Tuning`'s JSON names); an unknown key is refused, and a file and the inline `knob:` string that mean the same knobs draft identically |
 
-Builders take the draftlab names (`balanced`, `best23`, ...). `balanced:main=;cmin=;cmax=;top=` sets the main-deck size, the creature floor and cap, and the cap on 6+ drops. Any variant or builder takes `+r=file#field` to read its ratings from a ratings file's `field` (default `gih`).
+The human-deck gauntlet, `cmd/draftsim -gauntlet fdn-limited`, takes the same knob files as `-drafter knobs:<path>` and `-builder knobs:<path>`, and its `-ratings-file` applies to a knob-file drafter.
+
+Builders take the draftlab names (`balanced`, `best23`, ...). `balanced:main=;cmin=;cmax=;top=` sets the main-deck size, the creature floor and cap, and the cap on 6+ drops. `knobs:<path>` builds every pool with Best23 under the knob file's knobs (`pickbot.NewTuned`; the Best23 shape knobs — `min_creatures`, `max_high_value`, `high_value_mv`, `short_pair_penalty`, `curve_min`, `curve_max`, `creature_max`, `main_size`/`lands` — so they can be swept like a `balanced:` shape); `knobs:<path>@<hash>` is accepted when the hash matches the file. Any variant or builder takes `+r=file#field` to read its ratings from a ratings file's `field` (default `gih`).
 
 ### Output and resume
 

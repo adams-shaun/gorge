@@ -516,26 +516,22 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		mana = s.abReduced(k, a, sl, p.ctrl, mana) // after the ability's own and Power-up reductions
 	}
 	if k.gen != nil && k.gen.anyPowerUp && f&kop.CostPowerUp != 0 {
-		// The autopay planner prices the PRINTED cost (planAbilityPayment
-		// never calls powerUpReduceCost), and an ability whose printed cost
-		// it cannot witness is not offered (gorge seed-1 Hercules: {4}{G}
-		// reduced to {2}, three untapped Forests, no offer). The floating
-		// pool paying the reduced cost is enough: the plan is then a pool
-		// choice. So: offered iff the pool pays the reduced cost or the
-		// sources pay the printed one after the cost statics; the charge is always the reduced one
-		// (buildCostCharge), and the plan/charge mismatch falls back to the
-		// manual mana window (powerUpPlanRejected, mana_window.go).
-		// The planner's printed cost still composes the cost statics
-		// (offerCostFor): Hulk, Gamma Goliath's {3} off She-Hulk's {4}{G}{G}
-		// is planned as {1}{G}{G} (CR 601.2f, 602.2b).
-		planned := a.Cost.Mana
-		if k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
-			planned = s.ownReducedBF(k, a, sl, p.ctrl)
-		}
-		if k.gen.anyAbReduce {
-			planned = s.abReduced(k, a, sl, p.ctrl, planned)
-		}
-		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &planned, av) {
+		// The autopay planner prices the PRINTED cost composed with the cost
+		// statics (planAbilityPayment calls offerCostFor, which folds the
+		// RaiseCost/ReduceCost statics and the ability's own ReduceCost$; it
+		// never calls powerUpReduceCost), and an ability whose composed
+		// printed cost it cannot witness is not offered (powerUpWitness; gorge seed-1
+		// Hercules: {4}{G} reduced to {2}, three untapped Forests, no offer).
+		// The floating pool paying the reduced cost is enough: the plan is
+		// then a pool choice. So: offered iff the pool pays the reduced cost
+		// or the sources pay the printed one AFTER the cost statics
+		// (powerup_cost_static_planner_prices_reduced_print_torch: Hulk, Gamma
+		// Goliath's {3} Power-up reduction makes Human Torch, Johnny Storm's
+		// {6}{R} affordable from the sources at {3}{R}); the charge is always
+		// the reduced one (buildCostCharge), and the plan/charge mismatch
+		// falls back to the manual mana window (powerUpPlanRejected,
+		// mana_window.go).
+		if !s.poolPays(p.ctrl, &mana) && !s.powerUpWitnessAffords(k, sl, a, p.ctrl, av) {
 			return false
 		}
 	}
@@ -931,7 +927,12 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 	if k.gen != nil && k.gen.anyDelve && o != NoObj && (base == nil || !av.tbLeafCredited(base)) {
 		t = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, t) // the total's one credit
 	}
-	return av.affords(&t, pipMaskOf(&t), 0)
+	if o == NoObj {
+		return av.affords(&t, pipMaskOf(&t), 0)
+	}
+	// the part's mana may come from restricted sources the spell may spend
+	// (Eclipsed Realms' chosen-type mana; CR 106.6, gorge mayPlayAffordable)
+	return s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &t, av)
 }
 
 // inHandN is 1 when spell object o is itself in a hand (it cannot be discarded

@@ -974,7 +974,7 @@ func (s *State) FeatViewTypes(o Obj) (types kop.TypeMask, subs kop.SubMask, all,
 				}
 				add := a.Static.AddSub
 				if k.gen.anyAddChosen {
-					add = s.chosenGrantMask(a, st.sl, add) // act_choosetype.go
+					add = s.chosenGrantMask(k, a, st.sl, add) // act_choosetype.go
 				}
 				if add == (kop.SubMask{}) || subs.Or(add) == subs {
 					return true
@@ -1014,6 +1014,7 @@ func (s *State) FeatStaticKey() uint64 {
 		for i := 0; i < int(s.g.nemb[p]); i++ {
 			h = hmix(h, uint64(s.g.emb[p][i]))
 			h = hmix(h, uint64(s.g.embN[p][i])) // the frozen chosen number
+			h = hmix(h, uint64(s.g.embT[p][i])) // the layer timestamp
 		}
 	}
 	if s.statM.any() || s.g.nemb[0]+s.g.nemb[1] != 0 {
