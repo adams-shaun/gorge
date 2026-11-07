@@ -189,7 +189,7 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 	// come back with it; an Aegis copy has the exiled card's copiable values
 	// and so none of the layer it covered's.
 	marker := l.kind == copyPerm || l.kind == copyEOT
-	var excSrc Slot
+	excSrc := NoSlot
 	var excIdx uint8
 	if marker {
 		excIdx = l.idx
@@ -198,7 +198,7 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 		}
 	}
 	covered := s.copyRec(host, fxCopyPerm) >= 0 || s.copyRec(host, fxCopyEOT) >= 0
-	fixExc := (marker && !s.copyExcSame(k, host, excSrc, excIdx)) ||
+	fixExc := (marker && !s.copyExcSame(host, excSrc, excIdx)) ||
 		(l.kind == copyAegis && covered && s.copyRec(host, fxCopyExc) >= 0)
 	if cur == want && (l.kind != copyNone) == (p.ovr.flags&ovCopy != 0) && !fixExc {
 		return
@@ -234,7 +234,7 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 // copyExcAdd would add for the template at src with override idx: the
 // template's records in pool order, then idx. src NoSlot and idx 0 is the
 // Aegis copy's set: none.
-func (s *State) copyExcSame(k *prep, sl, src Slot, idx uint8) bool {
+func (s *State) copyExcSame(sl, src Slot, idx uint8) bool {
 	i := 0
 	next := func(want uint8) bool {
 		for ; i < int(s.g.nfx); i++ {

@@ -180,3 +180,46 @@ func TestAegisOverBaseKeepsBaseException(t *testing.T) {
 		t.Fatalf("base is %d/%d after the Aegis ends, want its 1/1 back", p, tt)
 	}
 }
+
+// TestAegisCopyDropsBatchEOTCloneExceptions: a batch-made until-end-of-turn
+// clone has no template object (src NoObj), so its exception set is its own
+// override only. Slot 0 carries an unrelated exception; the Aegis refresh
+// must not read it as the clone's template and hand it to the bearer when
+// the Aegis ends.
+func TestAegisCopyDropsBatchEOTCloneExceptions(t *testing.T) {
+	sc, idx := aegisExcScen(t)
+	s, k := sc.s, sc.k
+	// Slot 0's live exception is what a zero Slot would name as the
+	// template for a marker with no template of its own.
+	s0 := sc.slot(sc.perm(v.HillGiant, 0))
+	s.copyExcPush(s0, idx)
+	if s.copyRec(s0, fxCopyExc) < 0 {
+		t.Fatal("precondition: slot 0 has no copy exception record")
+	}
+	sl := sc.slot(sc.perm(v.HillGiant, 1))
+	addCopyEOT(sc, sl, v.GrizzlyBears, NoObj, 0, 10)
+	setCopy(sc, sl, v.GrizzlyBears)
+	if p, tt := s.ptGen(k, sl); p != 2 || tt != 2 {
+		t.Fatalf("precondition: the batch EOT clone is %d/%d, want Grizzly Bears 2/2", p, tt)
+	}
+	if p, tt := s.ptGen(k, s0); p != 1 || tt != 1 {
+		t.Fatalf("precondition: slot 0 is %d/%d, want its 1/1 exception", p, tt)
+	}
+
+	a := addAegisLayer(t, sc, sl, v.SerraAngel, v.SerraAngel, 20)
+	s.aegisRefresh(k, sl, NoSlot)
+	if p, tt := s.ptGen(k, sl); p != 4 || tt != 4 {
+		t.Fatalf("Aegis copy over the batch EOT clone is %d/%d, want 4/4", p, tt)
+	}
+
+	s.aegisUnlink(k, a, sl, false)
+	if got := s.cardAt(sl); got != v.GrizzlyBears {
+		t.Fatalf("after the Aegis ends the bearer shows card %d, want the live EOT clone %d", got, v.GrizzlyBears)
+	}
+	if p, tt := s.ptGen(k, sl); p != 2 || tt != 2 {
+		t.Fatalf("batch EOT clone (src NoObj) is %d/%d after the Aegis ends, want Grizzly 2/2", p, tt)
+	}
+	if s.perms[sl].ovr.kw&kop.KwHaste != 0 {
+		t.Fatal("the batch EOT clone kept slot 0's haste after the Aegis ends")
+	}
+}
