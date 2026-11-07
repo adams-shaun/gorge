@@ -192,6 +192,7 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"any_type_rider_hybrid_pips", true, false},             // CR 107.4e, 601.2b: Tinybones lets any mana pay Teach by Example's two hybrid pips, so W and B afford the cast
 		{"name_look_ack_mid_resolution", true, false},           // CR 608.2n: a copy token's looked-hand name ask is acknowledged while the creating ability is still on the stack
 		{"emblem_grant_after_ability_loss", false, false},       // CR 613.7: Vivien Reid's emblem, created after Witness Protection took Llanowar Elves' abilities, is the newer layer-6 effect, so its vigilance, trample and indestructible survive the loss
+		{"unless_discard_is_effect_discard", true, false},       // CR 118.12: discarding Wilt-Leaf Liege to an opponent's Perforating Artist "unless" is that ability's discard, so the Liege enters the battlefield
 	})
 }
 
