@@ -31,5 +31,6 @@ func TestStdMshReprosLockstep(t *testing.T) {
 		{"power_up_hybrid_only_charge_pays_through_window", true, false},        // CR 601.2g, 702.193b: Abomination re-entered this turn beside Hulk owes only {R/G}{R/G}, a charge gorge arms no plan for (no generic or coloured mana), so the manual window taps the first Forests in battlefield order
 		{"connive_triggered_referent_returned_no_counter", false, false},        // CR 400.7, 701.50b: Baron Strucker's connive for a Villain that died and returned before it resolved puts no +1/+1 counter on the new object
 		{"dark_fortress_mana_source_choice", false, false},                      // CR 601.2g, 702.193b: a hybrid Power-up's charge the reductions left hybrid-only arms no plan, so the manual window taps Dark Fortress's conditional {B} or {R} ability before the untapped Mountain
+		{"departed_self_toughness_lki", true, false},                            // CR 608.2h: Captain America's attack trigger resolving after he died pumps the Heroes by his last known toughness, not his printed one
 	})
 }

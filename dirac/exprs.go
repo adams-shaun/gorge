@@ -325,7 +325,11 @@ func (s *State) refPT(k *prep, r kop.Ref, ctx evalCtx) (int, int) {
 	e := ctx.e
 	switch r {
 	case kop.RefSelf:
-		return s.objPT(k, ctx.src, ctx.srcSl)
+		pw, t := s.objPT(k, ctx.src, ctx.srcSl)
+		if ctx.srcSl == NoSlot && e != nil && e.kind != seSpell && ctx.src == e.obj && ctx.src != NoObj {
+			pw, t = s.selfPTLKI(k, e, pw, t) // CR 608.2h: the source left since the trigger fired
+		}
+		return pw, t
 	case kop.RefTriggerObj, kop.RefTriggerSource, kop.RefSacrificed, kop.RefDelayedRemembered:
 		if r == kop.RefTriggerObj && e != nil && e.trigObj != NoObj {
 			o := e.trigObj
