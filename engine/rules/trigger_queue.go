@@ -1098,6 +1098,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 				}
 				e.triggerEffectFrames[id] = pt.Ctx.EffectFrame
 			}
+			e.bindDelayedSourceDamageLKI(id, &pt)
 			e.bindReflexiveContext(id, &pt)
 			e.recordTriggerLine(id, pt)
 			announce(id, false)

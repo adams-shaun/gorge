@@ -85,17 +85,6 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		}
 	}
 	*s.bld() = build{e: e}
-	// The oracle's convoke frame (its per-colour absorption budget for the
-	// announcement) comes from the priority-time cost of a plain hand cast
-	// or of a may-play permission's plain cast of a card in exile or the
-	// graveyard (GorgeSide's castCost, which prices the permission's
-	// free-cast read and RaiseCost$ surcharge exactly as beginCast charges
-	// them); no other cast route is priced there, so the announcement poses
-	// gorge's whole static list unfiltered (kw_convoke.go convokeOptions).
-	// A may-play alternative (MayPlayAltManaCost$) is kgen-refused, so every
-	// may-play cast here is the plain one the oracle priced.
-	s.bld().convokeBudget = (mode == 0 && ob.zone == kop.ZoneHand) ||
-		mode&castMayPlay != 0 && (ob.zone == kop.ZoneExile || ob.zone == kop.ZoneGraveyard)
 	if k.gen != nil && s.g.altCast {
 		s.g.altCast = false
 		if mode&2 == 0 {
@@ -990,6 +979,10 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 					s.reverseCast(k) // the offer did not know its X
 					return false
 				}
+				if _, _, ok := s.equipTargetPriced(k); ok {
+					s.reverseCast(k) // no candidate's own equip price is payable (statics_gen.go)
+					return false
+				}
 				// an activation was checked feasible and moves nothing
 				// before its targets
 				panic("kernel: spell/ability without a legal target")
@@ -1357,6 +1350,7 @@ func (s *State) finishBuild(k *prep) {
 		if (e.flags&sfAnyMana != 0 || anyColor) && s.bld().bfl&bflLowered == 0 && !payDone {
 			s.tapRiderPlan(k, e) // (a lowered cast has no plan: its window below)
 		}
+		obsPool, obsOK := s.obsWinPool(e.ctrl)
 		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || e.trigPl == trigPlMadness {
 			// a free cast mid-resolution (Etali) pays the rest of its
 			// cost (Eaten Alive's {3}{B} part) through gorge's mana
@@ -1417,6 +1411,7 @@ func (s *State) finishBuild(k *prep) {
 		if s.winPaused() {
 			return // a free or Spree cast's window waits on a tap-another pick (mana_window.go)
 		}
+		s.obsWinSettle(k, e.ctrl, obsPool, obsOK)
 		s.payDelvePicks() // gorge payCast exiles the delved cards after the mana
 		s.paySacsGen(k)
 		s.bld().e.flags &^= sfFbGranted
