@@ -107,10 +107,14 @@ type potentialUnits struct {
 
 // note records one admitted ability's production: the change it made to
 // the hypothetical pool (pre -> post). A saturated pool counts unbounded.
-func (u *potentialUnits) note(zi int, taps bool, pre, post state.Mana) {
+func (u *potentialUnits) note(zi int, taps bool, pre, post state.Mana, mp *effects.ManaParams) {
 	d := int64(post.Total()) - int64(pre.Total())
 	if post.Total() == potentialUnbounded {
 		d = int64(potentialUnbounded)
+	} else if mp.CountsAny && (mp.AmountIsLit || mp.AmountTrim == "") {
+		// a choice-shaped production ("Combo R G") folds every face into the
+		// colour bound, but one activation makes Amount$ (default 1) units
+		d = min(d, int64(max(mp.AmountLit, 1)))
 	}
 	if taps {
 		u.tapBest[zi] = max(u.tapBest[zi], d)
@@ -272,7 +276,7 @@ func (e *Engine) potentialManaBound(p state.PlayerID, payment *paymentDescriptor
 						e.addPotentialTapExtra(&out, id, ma)
 					}
 					if units != nil {
-						units.note(zi, e.manaAbilityCC(p, id, ma).Tap, pre, out)
+						units.note(zi, e.manaAbilityCC(p, id, ma).Tap, pre, out, effects.ManaOf(ma))
 					}
 				}
 			}
