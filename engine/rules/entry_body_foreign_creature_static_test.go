@@ -24,7 +24,7 @@ func entryBodyForeignCreatureRun(t *testing.T, withCounters string) int {
 		"S:Mode$ Continuous | Affected$ Card.Self+counters_GE6_CHARGE | AddType$ Creature | Description$ x\nOracle:x\n")
 	lord := card(t, "Name:Test Counsel\nManaCost:2 U\nTypes:Legendary Creature Human\nPT:1/1\n"+
 		"R:Event$ Moved | ValidCard$ Creature.Other+YouCtrl | Destination$ Battlefield | ReplacementResult$ Updated | ReplaceWith$ AddExtraCounter | Description$ x\n"+
-		"SVar:AddExtraCounter:DB$ PutCounter | ETB$ True | Defined$ ReplacedCard | CounterType$ P1P1 | CounterNum$ 1\nOracle:x\n")
+		"SVar:AddExtraCounter:DB$ PutCounter | Defined$ ReplacedCard | CounterNum$ 1 | CounterType$ P1P1 | ETB$ True\nOracle:x\n")
 	reg := searchTestRegistry(t)
 	e, _ := corpusEngineCfg(t, reg, []*cards.Card{search, ship, lord}, nil)
 	moveByName(t, e, 0, "Charge Search", state.ZHand)
