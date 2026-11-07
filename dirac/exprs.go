@@ -518,7 +518,7 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 	case kop.CondKicked:
 		r = ctx.e != nil && ctx.e.flags&sfKicked != 0 && !optCostUnpaid(k, ctx.e)
 	case kop.CondThreshold:
-		r = s.pl[ctx.ctrl].graveN >= 7
+		r = s.graveCards(ctx.ctrl) >= 7 // a token waiting to cease is no card (CR 111.7)
 	case kop.CondYourTurn:
 		r = s.active == ctx.ctrl
 	case kop.CondRefMatches:

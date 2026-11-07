@@ -21,7 +21,7 @@ const rlMark = 0x7F
 //go:noinline
 func (s *State) countRL(e *stackEntry) {
 	if int(s.g.nused) < maxUsed {
-		s.g.used[s.g.nused] = usedRec{obj: e.obj, ab: rlMark, ver: e.srcVer}
+		s.g.used[s.g.nused] = usedRec{obj: e.obj, ab: rlMark, ver: s.objs[e.obj].ver} // the source's stint now, as gorge's noteTriggerResolved reads triggerStint: a source that died with the trigger on the stack still shares the count with its batched siblings
 		s.g.nused++
 	} else {
 		s.capFull(StallUsed)
