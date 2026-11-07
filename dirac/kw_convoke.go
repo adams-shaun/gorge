@@ -342,11 +342,10 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	if s.convokePickCount() >= maxPicks {
 		return false
 	}
-	// The post-pick remainder the oracle's convoke frame filters by exists
-	// only for a plain hand cast; every other route poses gorge's static
-	// option list, whose colour picks do not shrink as earlier picks pay the
-	// pips (build.convokeBudget, beginCast).
-	filter := s.bld().convokeBudget
+	// Every route filters by the post-pick remainder: gorge's Submit gate
+	// (validateCastContributions) refuses a pick the outstanding cost cannot
+	// absorb on a may-play or alternative-cost cast too (CR 702.51a), and the
+	// oracle offers only the picks that gate admits.
 	cost := s.convokeApplyPicks(k, raw)
 	var rem [5]uint8
 	for i := range rem {
@@ -375,7 +374,7 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 				continue
 			}
 			pose = true
-			if rem[ci] > 0 || !filter {
+			if rem[ci] > 0 {
 				d.add(MakeAction(AkChoose, uint8(o), 0, uint8(ci)))
 				if d.N >= MaxOptions-1 {
 					s.capFull(StallConvoke)
@@ -388,7 +387,7 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 				continue
 			}
 			pose = true
-			if gen > 0 || hasX || !filter {
+			if gen > 0 || hasX {
 				if d.N >= MaxOptions-1 {
 					s.capFull(StallConvoke)
 					break
@@ -452,7 +451,11 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 		s.occ = saved.occ
 		return true // the pick is posed; the announced creatures tap when the window ends (mana_window.go)
 	}
-	s.payConvokeFromPool(k, e, &red, anyColor)
+	if s.rbAny(e.ctrl) {
+		s.payRestrRider(k, e.ctrl, &red, 0, e.obj, anyColor) // the window's restricted mana pays the spell it admits (CR 106.6)
+	} else {
+		s.payFromPoolRider(k, e.ctrl, &red, 0, anyColor)
+	}
 	for c := range held {
 		s.pl[e.ctrl].pool[c] += held[c]
 	}
@@ -593,31 +596,3 @@ func (s *State) FeatConvokePickCount() int { return s.convokePickCount() }
 
 // FeatColorsOf is the battlefield permanent o's colours (bit i: W U B R G).
 func (s *State) FeatColorsOf(o Obj) uint8 { return uint8(s.colorsAt(s.k(), s.objs[o].slot)) }
-
-// payConvokeFromPool pays what the picks left of the cost from p's floating
-// mana: the restricted batches the spell may spend first, then the plain pool,
-// as payRestrSpend carves them, but with no planner taps, since the cast's
-// window has already tapped the sources (gorge pays restricted mana the
-// descriptor admits before ordinary mana, CR 106.6).
-func (s *State) payConvokeFromPool(k *prep, e *stackEntry, red *kop.ManaCost, anyColor bool) {
-	p := e.ctrl
-	var m uint8
-	if s.rbAny(p) {
-		m = s.restrSpendable(k, p, e.card, restrOriginOfEntry(e))
-	}
-	if m == 0 {
-		s.payFromPoolRider(k, p, red, 0, anyColor)
-		return
-	}
-	var tk [maxRB][kop.NumManaKinds]uint8
-	var rn [kop.NumManaKinds]uint8
-	s.rbUnits(p, m, &rn)
-	s.rbTake(p, m, &tk)
-	var ord [kop.NumManaKinds]uint8
-	for c := range ord {
-		ord[c] = s.pl[p].pool[c] - rn[c] // the plain units beside the restricted ones taken into the pool
-	}
-	pre := s.pl[p].pool
-	s.payFromPoolRider(k, p, red, 0, anyColor)
-	s.rbSettle(p, &tk, &ord, &pre, s.rbTyped(p))
-}
