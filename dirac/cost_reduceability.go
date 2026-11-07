@@ -9,8 +9,9 @@ import (
 // abReduced returns activated ability a's mana cost c after the
 // StatReduceAbility statics of its battlefield source sl
 // (ability): every static of the activator ctrl whose condition holds, whose
-// filter matches the source and, for B bit 0, only for an Exhaust ability,
-// subtracts its amount from the generic part, floored at zero after each
+// filter matches the source and, for B bit 0 only for an Exhaust ability and
+// for B bit 2 only for a Power-up ability, subtracts its amount from the
+// generic part, floored at zero after each
 // (CR 601.2f, 602.2b; gorge costModifiersCompose after the ability's own
 // reduction, pay.ApplyTo), in battlefield entry order (eachStaticTS). The offer, the planner witness and the charge all
 // price this cost. The callers guard on anyAbReduce; this body is cold.
@@ -34,6 +35,9 @@ func (s *State) abReduced(k *prep, a *kop.Ability, sl Slot, ctrl uint8, c kop.Ma
 		}
 		if sa.B&1 != 0 && !a.Exhaust {
 			return true
+		}
+		if sa.B&kop.ReduceAbPowerUp != 0 && a.Cost.Flags&kop.CostPowerUp == 0 {
+			return true // a Power-up reduction never lowers another ability
 		}
 		if !s.statCond(k, st) || !s.matchPermGen(k, sa.Filter, sl, st.ctrl, st.sl, layerFull) {
 			return true

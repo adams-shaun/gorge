@@ -365,7 +365,7 @@ func (s *State) applyAskStackRewrite(k *prep, a Action) bool {
 	d := int(r.chosen)
 	must := s.prog(k)[r.pc].C&1 == 0
 	if a.Kind() == AkChoose {
-		if int(r.peekN) >= len(r.arr) {
+		if int(r.peekN) >= len(r.peek) {
 			s.capFull(StallMultiRetarget)
 			return true
 		}

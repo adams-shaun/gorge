@@ -108,7 +108,10 @@ func (s *State) spreeCastWindowAbort(k *prep) {
 	anyType := e.flags&sfAnyMana != 0
 	anyColor := s.bld().bfl&bflAnyColor != 0
 	cost := s.buildCost(k)
-	_, held := s.windowTapRider(k, e.ctrl, &cost, !anyType && !anyColor, anyColor)
+	// The window's colour ask carries no ManaPayment (see manaStep's Spree
+	// arm): its owed colours are the announced hybrid/Phyrexian faces only,
+	// so with none an any-colour source answers its lowest colour.
+	_, held := s.windowTapUseful(k, e.ctrl, &cost, &cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
 	for c := range held {
 		s.pl[e.ctrl].pool[c] += held[c]
 	}
@@ -136,8 +139,27 @@ func (s *State) charmTargetAskDead(k *prep) bool {
 		// Convoke/Improvise/Harmonize picks in; the pool pays only the remainder
 		cost = s.convokeApplyPicks(k, xFolded(cost, int(e.x)))
 	}
-	if s.windowPoolPays(e.ctrl, &cost, s.bld().bfl&bflAnyColor != 0) {
+	anyColor := s.bld().bfl&bflAnyColor != 0
+	if s.windowPoolPays(e.ctrl, &cost, anyColor) {
 		return false
+	}
+	if s.rbAny(e.ctrl & 1) {
+		// the floating restricted mana this cast may spend is in gorge's
+		// payment pool (its AvailableFor holds the batches the spell's
+		// restriction admits, CR 106.6), which this gate's payable check
+		// reads like any other pool unit (legal.go castAffordsR)
+		var av avail
+		pl := &s.pl[e.ctrl&1]
+		for c := 0; c < kop.NumManaKinds; c++ {
+			if pl.pool[c] > 0 {
+				av.addUnits(1<<c, pl.pool[c])
+			}
+		}
+		if s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av) {
+			if anyColor && av.affordsAnyColor(&cost, 0) || !anyColor && av.affords(&cost, pipMaskOf(&cost), 0) {
+				return false
+			}
+		}
 	}
 	if tgtDepReduce(&k.t.Cards[e.card]) {
 		return false // a matching target can still reduce the cost
