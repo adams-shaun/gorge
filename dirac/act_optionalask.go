@@ -273,12 +273,12 @@ func (s *State) optaskFireSac(k *prep) {
 	s.flushSac(k)
 }
 
-// optaskPick records a pick, or applies it at once beyond the 8-pick array
-// (raDiscard's rule: more picks than the corpus can ask for). Reports
-// whether another pick is still wanted: gorge's KModes multi-pick re-poses
-// after each pick while the count is under the Max, offering Done once the
-// count reaches the Min (resolveOptions reads the running peekI), and
-// closes on Done or when the unpicked eligible set runs dry.
+// optaskPick records a pick; the arrays hold one slot per hand card (arr) plus
+// peek, so the flush branch is a guard. Reports whether another pick is still
+// wanted: gorge's KModes multi-pick re-poses after each pick while the count is
+// under the Max, offering Done once the count reaches the Min (resolveOptions
+// reads the running peekI), and closes on Done or when the unpicked eligible
+// set runs dry.
 func (s *State) optaskPick(k *prep, a Action, fire func(*prep, Obj)) bool {
 	r := &s.res
 	o := Obj(a.Source())
@@ -289,9 +289,9 @@ func (s *State) optaskPick(k *prep, a Action, fire func(*prep, Obj)) bool {
 		r.peek[r.peekN] = o
 		r.peekN++
 	} else {
-		// 16 picks buffered: flush in pick order, then keep the new one.
-		// Firing the new pick immediately (the old rule) rotated the
-		// graveyard order past the eighth pick.
+		// Arrays full (more picks than the hand holds): flush in pick order,
+		// then keep the new one. Firing the new pick immediately rotated the
+		// graveyard order (CR 404.3).
 		for i := 0; i < int(r.peekI); i++ {
 			fire(k, r.arr[i])
 		}
