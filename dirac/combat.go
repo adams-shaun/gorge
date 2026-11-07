@@ -954,12 +954,16 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			s.replCombatGen(k, &r) // amounts first, then prevention
 		}
 		s.preventCombatGen(k, &r)
+		s.noteCmdDamagePass(&r)
 		if s.g.ro.on {
 			return s.replOrderCombat(k, &r)
 		}
 		if k.gen.anyInfect {
 			s.infectCombat(k, &r)
 		}
+	}
+	if k.gen == nil {
+		s.noteCmdDamagePass(&r)
 	}
 	// apply simultaneously
 	m := s.occ

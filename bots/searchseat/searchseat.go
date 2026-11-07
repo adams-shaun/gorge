@@ -165,6 +165,17 @@ type Options struct {
 	// PriorWiden is the enumeration cap (bot answer included) used when a
 	// Prior is set; 0 means max(Limit, 16).
 	PriorWiden int
+	// HoldUpkeep is the opt-in upkeep hold (botpolicy.Board.
+	// PrematureInstantCast, holdupkeep.go): at a priority decision of the
+	// active player in its own untap, upkeep or draw step with an empty
+	// stack, the cast arm drops every instant-speed cast from the hand from
+	// its candidates, and a bot answer that is such a cast is replaced by
+	// pass (Trace.HeldUpkeep). Off by default; off, every candidate list is
+	// unchanged.
+	HoldUpkeep bool
+	// HoldUpkeepExempt names cards HoldUpkeep never holds, by exact printed
+	// name. Empty by default.
+	HoldUpkeepExempt []string
 }
 
 // Defaults are the search teacher's flag defaults, which are also the knobs the
@@ -232,6 +243,11 @@ type Trace struct {
 	// list (the first PriorKept candidates in enumeration order).
 	PriorEnumerated, PriorKept int
 	PriorRanked, PriorChanged  bool
+
+	// HeldUpkeep is 1 when Options.HoldUpkeep changed the decision: the
+	// bot's answer was a held cast and pass was played in its place, or a
+	// held cast was dropped from the cast arm's candidates.
+	HeldUpkeep int
 }
 
 // Eligible reports whether Choose would attempt this decision at all, without
@@ -301,7 +317,11 @@ func Choose(
 ) (decision.Intent, bool, Trace) {
 	var tr Trace
 
+	bot, tr.HeldUpkeep = holdAnswer(e, d, bot, opts)
 	cands, kind, ok := candidates(collector, e, d, bot, f, opts)
+	if ok && tr.HeldUpkeep == 0 && kind == "cast" && holdOptions(e, d, f.Decision, opts) != f.Decision {
+		tr.HeldUpkeep = 1
+	}
 	if ok {
 		cands = applyPrior(collector, e, d, bot, kind, cands, opts, &tr)
 	}
@@ -481,7 +501,7 @@ func candidates(collector *searchprobe.Collector, e *rules.Engine, d *decision.D
 			return nil, "cast", false
 		}
 		var out [][]searchprobe.Action
-		for _, c := range searchprobe.Candidates(f.Decision, a[0], opts.enumLimit()) {
+		for _, c := range searchprobe.Candidates(holdOptions(e, d, f.Decision, opts), a[0], opts.enumLimit()) {
 			out = append(out, []searchprobe.Action{c})
 		}
 		return out, "cast", true
