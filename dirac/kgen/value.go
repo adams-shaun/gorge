@@ -874,6 +874,11 @@ func (lc *lowerCtx) selfLeavesBody() bool {
 }
 
 func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
+	if lc.repeatPl > 0 {
+		if v, ok, err := eachOtherRevealMV(rest); ok {
+			return v, err // lower_repeatplayers.go
+		}
+	}
 	if spec, ok := strings.CutPrefix(rest, "ValidSelf "); ok {
 		return lc.validSelfValue(spec) // lower_prepare.go
 	}
