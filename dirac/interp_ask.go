@@ -627,6 +627,9 @@ func (s *State) continueRes(k *prep, n uint8) {
 	if n == 0 && s.g.retAt != 0 && s.returnRemembered(k, &s.prog(k)[s.res.pc]) {
 		return
 	}
+	if n == 0 && k.gen != nil && s.parkReturnAsk() {
+		return // the answer made a departure frame park a return: ask it before the program goes on (zone_untilleavesbatch.go)
+	}
 	s.res.pc += n + 1
 	s.loopBack(k)
 	s.runProg(k)

@@ -156,6 +156,42 @@ func (s *State) finishHeldFrame(k *prep) {
 	s.batchClose(s.g.retOld)
 }
 
+// parkReturnAsk poses the ask of a return a departure frame parked
+// (holdClose), once the answer that made the frame has stopped advancing the
+// program; true when the ask is live. It must be posed before the next
+// instruction, so the held entry batch does not outlive the op that made it
+// and the resolution cannot reach its end with the frame still open.
+//
+//go:noinline
+func (s *State) parkReturnAsk() bool {
+	if s.g.pre.state != preReturn {
+		return false
+	}
+	s.res.ask, s.res.askP = raGenRetChoice, s.objs[s.g.pre.obj].owner()
+	s.ctl = ctlResolve
+	return true
+}
+
+// finishParkedReturn consumes a return parked outside the program loop
+// (leaveGen) as the resolution ends, and completes the departure frame that
+// held it (holdClose's parked early return). It reports whether another held
+// return parks its own ask: the resolution then stays active until that
+// answer finishes the frame.
+//
+//go:noinline
+func (s *State) finishParkedReturn(k *prep) bool {
+	if s.g.pre.state != preReturn {
+		return false
+	}
+	o := s.g.pre.obj
+	s.g.pre = preAsk{}
+	if s.objs[o].zone == kop.ZoneExile {
+		from := s.detach(o)
+		s.enterLinkRet(k, o, s.objs[o].owner(), from)
+	}
+	return s.resumeReturns(k)
+}
+
 // enterLinkRet is enterFromGrantedZone for an until-leaves return.
 func (s *State) enterLinkRet(k *prep, o Obj, ctrl uint8, from kop.Zone) Slot {
 	if s.g.batchLatch&batchHeld == 0 {
