@@ -59,20 +59,21 @@ var DebugEffEtbCtr bool
 var EffEtbStats struct{ Applied, Big atomic.Int64 }
 
 // prepEffEtbCtr sets genPrep.anyEffEtbCtr when some instruction is
-// ExtEffEtbCtr, and genPrep.anyEtbOwnOther when some card's own Updated enter
-// body is one the CR 616.1 entry-order ask orders (repl_etborder.go).
-func prepEffEtbCtr(t *kop.Table, g *genPrep) {
+// ExtEffEtbCtr, and genPrep.anyEtbOwnOther with the per-card gfEtbOrder flag
+// for the cards whose own enter body is one the CR 616.1 entry-order ask
+// orders (repl_etborder.go).
+func prepEffEtbCtr(t *kop.Table, p *prep, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
-			a := &t.Cards[i].Abilities[j]
-			for _, in := range a.Prog {
+			for _, in := range t.Cards[i].Abilities[j].Prog {
 				if in.Op == kop.OpExt && in.A.K == kop.VConst && kop.ExtOp(in.A.N) == kop.ExtEffEtbCtr {
 					g.anyEffEtbCtr = true
 				}
 			}
-			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplEntersProgram && etbOwnPrepared(a) {
-				g.anyEtbOwnOther = true
-			}
+		}
+		if etbOwnPrepares(t, &p.cards[i], CardID(i)) {
+			g.setFlag(CardID(i), gfEtbOrder)
+			g.anyEtbOwnOther = true
 		}
 	}
 }
@@ -87,20 +88,20 @@ func etbOwnPrepared(a *kop.Ability) bool {
 		len(a.Prog) == 1 && a.Prog[0].Op == kop.OpPrepare && a.Prog[0].Obj == kop.RefReplaced
 }
 
-// etbOwnPrepares is the entering card c's own enter body when it is exactly
-// one prepared Updated line: gorge composes the entry's Updated replacements
+// etbOwnPrepares reports whether card pc's own enter body is exactly one
+// prepared Updated line: gorge composes the entry's Updated replacements
 // (replacement_updated.go) into [the effect's PutCounter rider, this body],
-// two candidates that do not commute, and asks the order (CR 616.1c). nil
-// when c has none, another own enter line beside it (a longer candidate list
-// gorge would ask over), or a printed enters-tapped/enters-with rider that
-// joins the composition.
-func (s *State) etbOwnPrepares(k *prep, c CardID) bool {
-	if !k.gen.anyEtbOwnOther || k.cards[c].enterTap || k.cards[c].enterCtr != 0 {
+// two candidates that do not commute, and asks the order (CR 616.1c). False
+// when the card has none, another own enter line beside it (a longer
+// candidate list gorge would ask over), or a printed enters-tapped or
+// enters-with rider that joins the composition.
+func etbOwnPrepares(t *kop.Table, pc *pcard, c CardID) bool {
+	if pc.enterTap || pc.enterCtr != 0 {
 		return false
 	}
 	var found bool
-	for i := range k.t.Cards[c].Abilities {
-		a := &k.t.Cards[c].Abilities[i]
+	for i := range t.Cards[c].Abilities {
+		a := &t.Cards[c].Abilities[i]
 		if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplEntersProgram {
 			continue
 		}
@@ -123,7 +124,7 @@ func (s *State) effEtbCtr(k *prep, in *kop.Instr) {
 	if n <= 0 {
 		return
 	}
-	if k.gen != nil && k.gen.anyEtbOwnOther && s.etbOwnPrepares(k, s.objs[o].card) {
+	if k.gen != nil && k.gen.has(s.objs[o].card, gfEtbOrder) {
 		// the entrant's own body is one the CR 616.1 entry-order ask orders:
 		// record the rider's source (the resolving trigger's, the source of
 		// the Effect's registered replacement) so the ask can be posed

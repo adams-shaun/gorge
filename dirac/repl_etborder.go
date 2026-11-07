@@ -36,7 +36,10 @@ package dirac
 
 // etbEntryOrderPark poses the ask for the permanent spell o, which ctrl is
 // about to put onto the battlefield, when its pending rider count names a
-// source. It reports whether the resolution suspended on the ask.
+// source. It reports whether the resolution suspended on the ask. The
+// resolve site (resolve.go) reads the stamped source off the copied entry
+// first, so an entry with no rider pending pays one load there and never
+// reaches this function.
 func (s *State) etbEntryOrderPark(k *prep, o Obj, ctrl uint8) bool {
 	if !k.gen.anyEtbOwnOther || s.g.pre.kind != 0 || s.g.pre.state != 0 {
 		return false // the table has no such body, or an ask is already parked

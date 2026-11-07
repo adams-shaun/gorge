@@ -600,7 +600,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepOpus(t, g)
 	prepConverge(t, g)     // mana_converge.go
 	prepEvoke(t, g)        // kw_evoke.go
-	prepEffEtbCtr(t, g)    // ctr_effectentry.go: the rider counts, and the prepared bodies the entry order is asked over
+	prepEffEtbCtr(t, p, g) // ctr_effectentry.go: the rider counts, and the prepared bodies the entry order is asked over
 	prepCtrPlusEOT(t, g)   // ctr_pluseot.go
 	prepGrantPanharm(t, g) // act_grantpanharm.go
 	prepStaticTrig(t, g)   // trig_mayplaystatic.go
