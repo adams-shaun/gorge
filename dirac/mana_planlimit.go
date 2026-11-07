@@ -143,6 +143,7 @@ type limitSearch struct {
 	bestA    [maxUnits]lsAlt
 	wU       [maxUnits]uint8
 	wA       [maxUnits]lsAlt
+	granted  bool // some source has a granted basic land type (unitAltsChoice's gate)
 }
 
 // limitPlan replays the search over pk's phase-1 census and, when it reaches
@@ -168,6 +169,7 @@ func (s *State) limitPlan(k *prep, pk *planner) {
 	}
 	var ls limitSearch
 	ls.pk = *pk
+	ls.granted = granted
 	ls.census(k, s)
 	ls.order()
 	ls.walk(0)
@@ -187,7 +189,7 @@ func (ls *limitSearch) census(k *prep, s *State) {
 	pk := &ls.pk
 	for u := 0; u < pk.nu; u++ {
 		var alts [planLimitAlts]lsAlt
-		na := s.unitAlts(k, pk, u, &alts)
+		na := s.unitAlts(k, pk, u, &alts, ls.granted)
 		ci := -1
 		for c := 0; c < ls.nc; c++ {
 			if cl := &ls.classes[c]; cl.alts == alts && pk.sameClassType(cl.ty, pk.utyp[u]) {
@@ -227,9 +229,16 @@ func (pk *planner) sameClassType(a, b uint8) bool {
 		x.sac == y.sac && x.irr == y.irr
 }
 
-// unitAlts lists unit u's alternatives in gorge's order: its own abilities,
-// then the intrinsic ability of each granted type (WUBRG).
-func (s *State) unitAlts(k *prep, pk *planner, u int, out *[planLimitAlts]lsAlt) int {
+// unitAlts lists unit u's alternatives. Without a choice-shaped ability, or
+// with no granted type on the board, that is its own abilities in card order
+// and then the intrinsic ability of each granted type (WUBRG); with both,
+// unitAltsChoice emits the census order instead.
+func (s *State) unitAlts(k *prep, pk *planner, u int, out *[planLimitAlts]lsAlt, granted bool) int {
+	if granted {
+		if n, ok := s.unitAltsChoice(k, pk, u, out, true); ok {
+			return n
+		}
+	}
 	left := pk.types[pk.utyp[u]].mask
 	cd := &k.t.Cards[s.cardAt(pk.units[u])]
 	n := 0
