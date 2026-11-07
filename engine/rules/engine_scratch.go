@@ -231,9 +231,10 @@ type engineScratch struct {
 	// batch. Scoped to its emission/resumption, never carried as live state.
 	triggerBefore *triggerSnapshot `clone:"reset"`
 	// lkiTypes is the layer-4 type list a permanent had the moment before it
-	// left the battlefield, held for the one emission whose triggers look back
-	// at it (CR 603.10a). The live type table no longer carries a departed
-	// object's animation, so a leaves-the-battlefield match on the live board
+	// left the battlefield, or a card before it left a graveyard, held for the
+	// one emission whose triggers look back at it (CR 603.10a). The live type
+	// table no longer carries a departed object's animation, so a
+	// leaves-the-battlefield or leaves-the-graveyard match on the live board
 	// reads this instead.
 	lkiTypes lkiTypeList `clone:"reset"`
 	// lookBackWalk is set while checkTriggers walks a departure's triggers on

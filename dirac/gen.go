@@ -1645,6 +1645,7 @@ type genState struct {
 	dObj    [2]Obj
 	retMiss bool            // the last OpReturnEx returned nothing (its StaticEffect rider then applies to nothing)
 	ewDone  bool            // the last return applied its OvEnterWith override as the object entered (zone_assimilate.go)
+	ewPend  bool            // a return's OvEnterWith override waits for its entrant: enterGen applies it before the as-enters replacements (zone_assimilate.go)
 	retAt   uint8           // the remembered object a many-object return is moving, + 1 (0 = none; returnrem.go)
 	retTS   uint16          // the entry stamp a many-object return started at: its entrants are the ones after it
 	batchTS uint16          // the entry stamp the open batch began at: a watcher entered after it looks back to the board before the batch (trig_oneormore.go)
