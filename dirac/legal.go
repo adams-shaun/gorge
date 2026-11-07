@@ -520,7 +520,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// statics (planAbilityPayment calls offerCostFor, which folds the
 		// RaiseCost/ReduceCost statics and the ability's own ReduceCost$; it
 		// never calls powerUpReduceCost), and an ability whose composed
-		// printed cost it cannot witness is not offered (gorge seed-1
+		// printed cost it cannot witness is not offered (powerUpWitness; gorge seed-1
 		// Hercules: {4}{G} reduced to {2}, three untapped Forests, no offer).
 		// The floating pool paying the reduced cost is enough: the plan is
 		// then a pool choice. So: offered iff the pool pays the reduced cost
