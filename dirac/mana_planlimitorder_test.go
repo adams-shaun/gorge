@@ -20,8 +20,7 @@ import (
 // by the intrinsic that makes the same colour.
 //
 // No pool carries the shape beside Leyline of the Guildpact, and the kernel
-// refuses it whole (StallLandGrant: blgPlain rejects the flagged ability, so
-// static_landtype.go blgView has no union view), so the census is probed on
+// cannot reach it in a real game (no pool admits the card beside Leyline), so the census is probed on
 // the planner unit directly, the way the kernel would replay it once a
 // mixed-set pool admits the card.
 func TestPlanLimitChoiceCensusOrder(t *testing.T) {

@@ -81,6 +81,12 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 			first := bits.TrailingZeros8(uint8(m))
 			if base.manaAb >= 0 {
 				first = bits.TrailingZeros8(uint8(base.manaCol & 0x3f))
+				if ab := &t.Cards[i].Abilities[base.manaAb]; ab.AFlags&kop.AfManaChoice != 0 {
+					var ord [5]uint8
+					if manaColourOrder(ab, &ord) > 0 {
+						first = int(ord[0]) // a Combo answers its printed token order (Combo G W: {G})
+					}
+				}
 				v.manaCol |= kop.ColorMask(m)
 			} else {
 				v.manaAb = 0 // no own ability: the intrinsic one (no ability index reads a view)
