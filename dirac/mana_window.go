@@ -2689,7 +2689,7 @@ func (s *State) manaStep(k *prep) bool {
 				s.phyPay(k, e.ctrl, &cost, int(e.x), NoObj)
 			}
 		case s.bld().pipN != 0 && s.hybAbilityOffPlan(k, e.ctrl, &cost) &&
-			!s.abilityPlanSettles(k, e, s.hybResolve(k, e.ctrl, a.Cost.Mana, 0), s.hybResolve(k, e.ctrl, a.Cost.Mana, 0), cost, &saved):
+			!s.abilityPlanSettles(k, e, s.hybResolve(k, e.ctrl, s.abPlannedCost(k, a, sl, e.ctrl), 0), s.hybResolve(k, e.ctrl, s.abPlannedCost(k, a, sl, e.ctrl), 0), cost, &saved):
 			// gorge has no plan for the cost the pips settled: its manual window, which can run dry
 			// when a source's first ability is not the colour owed (a
 			// granted basic land type: static_landtype.go; a filter's
