@@ -20,9 +20,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //   - an ability or trigger target ask sets the bit when its picks complete
 //     (a single-pick ask at the pick, a multi-pick window when it commits at
 //     Done or Max: crimePick with done, crimeAskDone, the charm mask), the
-//     moment gorge's TargetsChosen for that ask applies; TrigCommitCrime
-//     still waits for placement (S2: crimeStep in checkWard), once per
-//     recorded stack object;
+//     moment gorge's TargetsChosen for that ask applies; the pick-time
+//     verdict rides the entry (crim) and TrigCommitCrime still waits for
+//     placement (S2: crimeStep in checkWard), once per recorded stack
+//     object, judged as the pick left the target (CR 700.13 judges the
+//     targeting, CR 601.2c, not what a cost made it since);
 //   - a copy's new targets (S3: crimeCopy) are a crime for the copy's
 //     controller.
 //
@@ -138,6 +140,11 @@ func (s *State) crimeModalPick(k *prep, e *stackEntry, i int, peekI uint8, c uin
 	s.crimeFire(k, e, &cs)
 }
 
+// crimRec marks a stack entry's crim bits (or a pool's extras') as recorded:
+// checkWard's walk (crimeStep) then judges the pick, not the target it may
+// since have become.
+const crimRec uint8 = 1 << 7
+
 // crimePick is S1: one target ask's pick. A spell's pick is judged at the
 // pick (gorge records a spell's targets at the target answer). An ability's
 // ask is recorded with its TargetsChosen when the ask's picks complete --
@@ -149,6 +156,12 @@ func (s *State) crimeModalPick(k *prep, e *stackEntry, i int, peekI uint8, c uin
 // build reversed after the ask keeps the bit: the TargetsChosen is an
 // applied event there.
 //
+// An ability or trigger also records the pick-time verdict on its entry
+// (crim, keyed like the tgt the same ask filled): CR 700.13 judges the
+// target as it was targeted, so the placement walk (crimeStep) reads the
+// verdict a cost or a trigger must not re-judge -- a target sacrificed by
+// its own ability's cost sits in its owner's graveyard by then.
+//
 //go:noinline
 func (s *State) crimePick(k *prep, t uint8, done bool) {
 	e := s.bld().e
@@ -157,8 +170,11 @@ func (s *State) crimePick(k *prep, t uint8, done bool) {
 			// a chain link's targets past the root's are asks of their own
 			// (the plain step's one pick per ask, cast.go): gorge records
 			// them at their own answer, before payment (recordSubTargets)
-			s.noteCrime(k, e.ctrl, t)
+			if s.noteCrime(k, e.ctrl, t) {
+				s.bld().e.crim |= 1 << uint(s.bld().ti) // the slot the ask filled
+			}
 		}
+		s.bld().e.crim |= crimRec
 		return
 	}
 	if !s.noteCrime(k, e.ctrl, t) {
@@ -173,8 +189,10 @@ func (s *State) crimePick(k *prep, t uint8, done bool) {
 // crimeAskDone is an ability multi-pick ask's completion (finishSlot): the
 // slot's recorded picks are judged there, where gorge's TargetsChosen events
 // for the committed window apply. Bit only; TrigCommitCrime waits for
-// placement (crimeStep). A slot whose picks left nothing recorded sets
-// nothing, as an empty TargetsChosen emits nothing.
+// placement (crimeStep). The verdicts ride the entry (root slot) and the
+// pool entry (extras) as CR 700.13 judged them at the pick; a slot whose
+// picks left nothing recorded sets nothing, as an empty TargetsChosen emits
+// nothing.
 //
 //go:noinline
 func (s *State) crimeAskDone(k *prep) {
@@ -183,16 +201,23 @@ func (s *State) crimeAskDone(k *prep) {
 	if mt.picked == 0 {
 		return
 	}
-	s.noteCrime(k, e.ctrl, e.tgt[mt.slot])
+	b := &s.bld().e
+	if s.noteCrime(k, e.ctrl, e.tgt[mt.slot]) {
+		b.crim |= 1 << uint(mt.slot)
+	}
+	b.crim |= crimRec
 	if e.xi == 0 {
 		return
 	}
 	x := s.xtOf(&e)
 	for j := 0; j < int(x.n); j++ {
 		if x.slot[j] == mt.slot {
-			s.noteCrime(k, e.ctrl, x.code[j])
+			if s.noteCrime(k, e.ctrl, x.code[j]) {
+				x.crim |= 1 << uint(j)
+			}
 		}
 	}
+	x.crim |= crimRec
 }
 
 // crimeSt is checkWard's per-entry crime walk state.
@@ -205,12 +230,40 @@ type crimeSt struct {
 	graveN, stkN int
 }
 
+// pickCriminal reads the pick-time verdict CR 700.13 recorded for the walk
+// position: slot is the root slot (its bit on the entry's crim), xj the pool
+// extra (its bit on the pool's crim); -1 where the walk gives no index (a
+// copy's new targets, an entry assembled outside the ask machinery). ok is
+// false when nothing was recorded, so the walk judges the target now, as it
+// did before the verdicts rode the entry.
+func (s *State) pickCriminal(e *stackEntry, slot, xj int8) (crime, ok bool) {
+	if slot >= 0 {
+		if e.crim&crimRec == 0 || slot >= kop.MaxTargets {
+			return false, false
+		}
+		return e.crim&(1<<uint(slot)) != 0, true
+	}
+	if xj < 0 || xj >= maxXTgt {
+		return false, false
+	}
+	x := s.xtOf(e)
+	if x.crim&crimRec == 0 {
+		return false, false
+	}
+	return x.crim&(1<<uint(xj)) != 0, true
+}
+
 // crimeStep is S2: one target of the entry in checkWard's walk order, after
 // that target's BecomesTarget / ward triggers (gorge emits one
 // TargetsChosen per target; the trigger fires on the first criminal one).
+// CR 700.13 judges the target as it was targeted: an ability or trigger
+// whose pick verdict the ask recorded (crimePick, crimeAskDone) is judged by
+// that verdict even though a cost or a trigger moved the target between the
+// ask and this walk. slot/xj name the position for pickCriminal; a copy's
+// new targets (cs.copy) and anything unrecorded are judged here, as before.
 //
 //go:noinline
-func (s *State) crimeStep(k *prep, e *stackEntry, cs *crimeSt, t uint8) {
+func (s *State) crimeStep(k *prep, e *stackEntry, cs *crimeSt, t uint8, slot, xj int8) {
 	if t == NoTarget {
 		return
 	}
@@ -218,7 +271,16 @@ func (s *State) crimeStep(k *prep, e *stackEntry, cs *crimeSt, t uint8) {
 	if e.kind == seSpell && !cs.copy && s.bld().bfl&bflCrime == 0 {
 		return // judged at the pick
 	}
-	if !s.noteCrime(k, e.ctrl, t) {
+	picked := false // the pick-time verdict already set the ledger bit
+	if !cs.copy && e.kind != seSpell {
+		if crime, ok := s.pickCriminal(e, slot, xj); ok {
+			if !crime {
+				return // judged at the pick, not a crime there
+			}
+			picked = true
+		}
+	}
+	if !picked && !s.noteCrime(k, e.ctrl, t) {
 		return
 	}
 	cs.nC++
@@ -341,12 +403,12 @@ func (s *State) fireCrime(k *prep, actor uint8) {
 func (s *State) crimeCopy(k *prep, e *stackEntry) {
 	cs := crimeSt{n0: int(s.npend), copy: true}
 	for i := 0; i < int(e.nt); i++ {
-		s.crimeStep(k, e, &cs, e.tgt[i])
+		s.crimeStep(k, e, &cs, e.tgt[i], -1, -1)
 		if e.xi != 0 {
 			x := s.xtOf(e)
 			for j := 0; j < int(x.n); j++ {
 				if x.slot[j] == uint8(i) {
-					s.crimeStep(k, e, &cs, x.code[j])
+					s.crimeStep(k, e, &cs, x.code[j], -1, -1)
 				}
 			}
 		}

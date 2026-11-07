@@ -29,6 +29,11 @@ var DebugStackKwOff bool
 // trigger queue, an Improvise grant opens the convoke paths (anyConvoke), a
 // Casualty grant the casualty offer (p.casualty); one restricted to spells
 // cast from hand reads the cast provenance (stackEntry.prov, castemit).
+// The grant may live on an EMBLEM (Ral, Crackling Wit's "Instant and sorcery
+// spells you cast have storm"), so the walk reads the emblem statics too --
+// stackKwN's eachStatic already consults them, and skipping them here kept
+// genPrep.anyStorm false and the granted-storm cast trigger unqueued
+// (std-blb pair 1309, Valley Rally under the Ral emblem).
 func prepStackKw(t *Table, g *genPrep, p *prep) {
 	for i := range t.Cards {
 		if t.Cards[i].Storm {
@@ -45,33 +50,42 @@ func prepStackKw(t *Table, g *genPrep, p *prep) {
 	g.anyStackKw = true
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
-			a := &t.Cards[i].Abilities[j]
-			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatStackKw {
-				continue
-			}
-			if a.Static.Zone == kop.ZoneHand {
-				g.anyCastProv = true
-			}
-			switch a.Static.A {
-			case kop.StackKwCascade:
-				g.anyCascade = true
-			case kop.StackKwImprovise, kop.StackKwConvoke:
-				g.anyConvoke = true
-			case kop.StackKwDelve:
-				g.anyDelve = true
-			case kop.StackKwCasualty:
-				p.casualty = true
-			case kop.StackKwLifelink:
-				g.anyStackLife = true
-			case kop.StackKwSplitSecond:
-				g.anySplitSecond = true
-			case kop.StackKwConspire:
-				g.anyConspire, g.anyCopyElect, g.anyPermCopy = true, true, true // its copy chooses new targets; a granted spell may be a permanent
-			case kop.StackKwStorm:
-				g.anyStorm, g.anyHist = true, true         // the count reads the history bank
-				g.anyCopyElect, g.anyPermCopy = true, true // its copies choose new targets, and a granted spell may be a permanent
-			}
+			stackKwGates(&t.Cards[i].Abilities[j], g, p)
 		}
+	}
+	for i := range t.Emblems {
+		for j := range t.Emblems[i].Abilities {
+			stackKwGates(&t.Emblems[i].Abilities[j], g, p)
+		}
+	}
+}
+
+// stackKwGates opens the genPrep/prep gates one live StatStackKw static needs.
+func stackKwGates(a *kop.Ability, g *genPrep, p *prep) {
+	if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatStackKw {
+		return
+	}
+	if a.Static.Zone == kop.ZoneHand {
+		g.anyCastProv = true
+	}
+	switch a.Static.A {
+	case kop.StackKwCascade:
+		g.anyCascade = true
+	case kop.StackKwImprovise, kop.StackKwConvoke:
+		g.anyConvoke = true
+	case kop.StackKwDelve:
+		g.anyDelve = true
+	case kop.StackKwCasualty:
+		p.casualty = true
+	case kop.StackKwLifelink:
+		g.anyStackLife = true
+	case kop.StackKwSplitSecond:
+		g.anySplitSecond = true
+	case kop.StackKwConspire:
+		g.anyConspire, g.anyCopyElect, g.anyPermCopy = true, true, true // its copy chooses new targets; a granted spell may be a permanent
+	case kop.StackKwStorm:
+		g.anyStorm, g.anyHist = true, true         // the count reads the history bank
+		g.anyCopyElect, g.anyPermCopy = true, true // its copies choose new targets, and a granted spell may be a permanent
 	}
 }
 
