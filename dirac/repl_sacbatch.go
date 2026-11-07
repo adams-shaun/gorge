@@ -73,13 +73,19 @@ func (s *State) parkedMassOf(o Obj) *parkedMove {
 }
 
 // runParkedMass runs a parked mass move: a sacrifice is emitted first, and
-// the batch's last move closes the batch its flush left open.
+// the batch's last move closes the batch its flush left open; a destroyed
+// RememberDestroyed$ victim is remembered once it reaches the graveyard.
 func (s *State) runParkedMass(k *prep, r parkedMove) {
 	if ob := &s.objs[r.obj]; r.fl&parkSacd != 0 && ob.zone == kop.ZoneBattlefield {
 		s.fireSac(k, ob.slot)
 	}
 	s.leave(k, s.objs[r.obj].slot, kop.ZoneGraveyard, false)
-	if r.fl&parkBatchEnd != 0 {
-		s.batchClose(r.x)
+	switch {
+	case r.fl&parkSacd != 0:
+		if r.fl&parkBatchEnd != 0 {
+			s.batchClose(r.x)
+		}
+	case r.fl&parkRemember != 0 && s.objs[r.obj].zone == kop.ZoneGraveyard:
+		s.remember(r.obj) // RememberDestroyed$: only a victim that reached the graveyard counts
 	}
 }

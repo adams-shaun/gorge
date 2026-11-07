@@ -85,11 +85,6 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		}
 	}
 	*s.bld() = build{e: e}
-	// The oracle's convoke frame (its per-colour absorption budget for the
-	// announcement) comes from the priority-time cost of a plain hand cast;
-	// no other cast route is priced there, so the announcement poses gorge's
-	// whole static list unfiltered (kw_convoke.go convokeOptions).
-	s.bld().convokeBudget = mode == 0 && ob.zone == kop.ZoneHand
 	if k.gen != nil && s.g.altCast {
 		s.g.altCast = false
 		if mode&2 == 0 {
@@ -1688,7 +1683,7 @@ func (s *State) checkWard(k *prep, e *stackEntry) {
 	for i := 0; i < int(e.nt); i++ {
 		s.targetedOne(k, e, e.tgt[i])
 		if crimeOn {
-			s.crimeStep(k, e, &cs, e.tgt[i])
+			s.crimeStep(k, e, &cs, e.tgt[i], int8(i), -1)
 		}
 		if k.gen != nil && e.xi != 0 {
 			// a multi-object slot's other objects (Run Away Together)
@@ -1697,7 +1692,7 @@ func (s *State) checkWard(k *prep, e *stackEntry) {
 				if x.slot[j] == uint8(i) {
 					s.targetedOne(k, e, x.code[j])
 					if crimeOn {
-						s.crimeStep(k, e, &cs, x.code[j])
+						s.crimeStep(k, e, &cs, x.code[j], -1, int8(j))
 					}
 				}
 			}

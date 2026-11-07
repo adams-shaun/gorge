@@ -84,6 +84,15 @@ func (e *Engine) validateCastContributions(d *decision.Decision, in decision.Int
 	return nil
 }
 
+// CastContributionsAdmitted reports whether choices (option indexes of the
+// pending cast's Convoke/Improvise/Waterbend announcement d) is an answer
+// e's Submit-time gate accepts: the one legal-answer rule
+// (validateCastContributions), read by a lockstep host that must offer only
+// the picks gorge would take, on every cast route.
+func CastContributionsAdmitted(e *Engine, d *decision.Decision, choices []int) bool {
+	return e.validateCastContributions(d, decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}) == nil
+}
+
 // convokeAsk announces every creature used for Convoke or Harmonize. It is
 // deliberately before manaWindowAsk: tapping is part of paying, so a chosen
 // creature cannot first be used as a mana source.

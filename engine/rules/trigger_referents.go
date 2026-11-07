@@ -501,15 +501,30 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 	// stack) keeps the live read: its first entry deliberately carries its
 	// cast-time memory forward, and no pending referent of a stack object can
 	// be stranded by a battlefield re-entry that has not happened yet.
-	if src := e.G.Obj(source); src != nil && src.Incarnation != 0 && len(src.Remembered) > 0 {
-		c.SourceRemembered = append([]state.Target(nil), src.Remembered...)
-		c.SourceIncarnation = src.Incarnation
-	}
-	// The fire-time Incarnation alone (no list) lets Defined$ ExiledWith and
-	// Card.ExiledWithSource keep finding what the OLD object exiled after a
-	// re-entry (CR 400.7); effectiveSourceRemembered ignores it without a list.
+	//
+	// The stamp is the post-departure one when the firing event is the
+	// source's own battlefield departure (CR 603.10a's self-leaves shape): the
+	// leaving move is not a forgetting -- the entry fold clears a list only on
+	// a battlefield ENTRY -- so the departed object the resolution actually
+	// reads (c.Source is it: the trigger's own SubAbility cleanup writes its
+	// list, and a second queued instance of the same trigger reads it) keeps
+	// its live field authoritative. Stamping the pre-departure Incarnation
+	// instead would arm the pending-referent snapshot for the mere departure
+	// and every later write to that object's list -- including the cleanup's
+	// own clear -- would be invisible to it (Unidentified Hovership's doubled
+	// leave trigger manifested dread twice from one exile). A battlefield
+	// RE-entry after the stamp still moves the live Incarnation past it and
+	// serves the snapshot exactly as before.
+	stamp := uint32(0)
 	if src := e.G.Obj(source); src != nil && src.Incarnation != 0 {
-		c.SourceIncarnation = src.Incarnation
+		stamp = src.Incarnation
+		if ev.Obj == source && leftBattlefield(ev) {
+			stamp++
+		}
+		if len(src.Remembered) > 0 {
+			c.SourceRemembered = append([]state.Target(nil), src.Remembered...)
+		}
+		c.SourceIncarnation = stamp
 	}
 	c.SelfLeaves = t.Mode == "ChangesZone" && t.ParamStr(cards.PKOrigin) == "Battlefield" &&
 		t.ParamStr(cards.PKValidCard) == "Card.Self"

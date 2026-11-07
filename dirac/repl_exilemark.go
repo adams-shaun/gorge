@@ -106,9 +106,14 @@ const (
 	parkNext uint8 = 32
 	// parkSacd: a parkMass move is a sacrifice, emitted with its move (repl_sacbatch.go)
 	parkSacd uint8 = 64
-	// parkBatchEnd: the last parkMass move of a sacrifice batch, which closes
-	// the batch kept open across the asks to the latch held in x
+	// parkBatchEnd: the last parkMass move of a sacrifice batch (with parkSacd),
+	// which closes the batch kept open across the asks to the latch held in x
 	parkBatchEnd uint8 = 128
+	// parkRemember: a destroy-all with RememberDestroyed$ parked this victim on a
+	// CR 616.1 ask; it joins the remembered set when its move reaches the
+	// graveyard (act_remember.go, runParkedMass). A destroyed victim is never
+	// parkSacd, so it shares parkBatchEnd's bit: fl's byte is full.
+	parkRemember uint8 = 128
 )
 
 // manaSacParks reports whether a source sacrificed for mana now can wait for its

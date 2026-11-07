@@ -36,10 +36,12 @@ Foot Elite
 Foot Headquarters
 Foot Mystic
 Forest
+Frog Butler
 Fugitive Droid
 General Traag, Heart of Stone
 Genghis Frog
 Go Ninja Go
+Groundchuck & Dirtbag
 Grounded for Life
 Guac & Marshmallow Pizza
 Hamato Guardian Stance
@@ -56,10 +58,12 @@ Jennika, Bad Apple Big Sister
 Karai's Technique
 Karai, Future of the Foot
 Kitsune's Technique
+Kitsune, Dragon's Daughter
 Krang, Master Mind
 Krang, Utrom Warlord
 Leader's Talent
 Leatherhead, Swamp Stalker
+Leonardo's Technique
 Leonardo, Big Brother
 Leonardo, Cutting Edge
 Leonardo, Leader in Blue
@@ -71,15 +75,18 @@ Make Your Move
 Mechanized Ninja Cavalry
 Metalhead
 Michelangelo, Game Master
+Michelangelo, Improviser
 Michelangelo, Mutant BFF
 Michelangelo, Weirdness to 11
 Mighty Mutanimals
+Mikey & Don, Party Planners
 Mikey & Leo, Chaos & Order
 Mind Transfer Protocol
 Mona Lisa, Science Geek
 Mondo Gecko
 Mountain
 Mouser Attack!
+Mouser Foundry
 Mouser Mark III
 Mutagen Man, Living Ooze
 Mutant Chain Reaction
@@ -140,8 +147,10 @@ Stomped by the Foot
 Super Shredder
 Swamp
 TCRI Building
+Tainted Treats
 Technodrome
 Tenderize
+The Last Ronin
 The Ooze
 Tokka & Rahzar, Terrible Twos
 Transdimensional Bovine
@@ -157,4 +166,5 @@ Utrom Scientists
 Venus, Torn Between Worlds
 West Wind Avatar
 Wingnut, Bat on the Belfry
+Zog, Triceraton Castaway
 Zoo Escapees

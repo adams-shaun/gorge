@@ -2161,11 +2161,29 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 			aff, azs, instSorc = "Card.IsRemembered", "Exile", true
 		}
 		zone := zoneNames[azs]
+		zones := []int{zone}
+		if azs == "Graveyard,Exile" {
+			// (Ark of Hunger) gorge's grant is live over the zone list and
+			// ends when the remembered card leaves either; the kernel's
+			// per-card record is version-tied, so each zone's instruction
+			// grants the same set a list-valued grant would.
+			if obj.Kind != rRemembered {
+				return refuse("Effect MayPlay AffectedZone %q over %s", azs, obj)
+			}
+			ex, ok := ps.get("ExileOnMoved")
+			if !ok || strings.TrimSpace(ex) != azs {
+				return refuse("Effect MayPlay AffectedZone %q with ExileOnMoved %q", azs, ex)
+			}
+			zone = zGraveyard
+			zones = []int{zGraveyard, zExile}
+		} else if strings.Contains(azs, ",") {
+			return refuse("Effect MayPlay AffectedZone %q", azs)
+		}
 		// Mosswood Dreadknight's "cast it from your graveyard as an
 		// Adventure": the grant permits only the Adventure face's cast
 		// (gorge MayPlayAdventureSpec, cr-mayplay-adventure-from-graveyard)
 		advOnly := false
-		if aff == "Card.IsRemembered+Adventure" && zone == zGraveyard && obj.Kind == rSelf {
+		if aff == "Card.IsRemembered+Adventure" && zone == zGraveyard && len(zones) == 1 && obj.Kind == rSelf {
 			aff, advOnly = "Card.IsRemembered", true
 		}
 		if (aff != "Card.IsRemembered" && aff != "Card.ChosenCard") || (zone != zExile && zone != zGraveyard) {
@@ -2194,7 +2212,7 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 			}
 		}
 		ps.consume("ForgetOnMoved")
-		in := lInstr{Op: "MayPlay", Obj: obj, C: zone, CS: dur}
+		in := lInstr{Op: "MayPlay", Obj: obj, CS: dur}
 		fl := 0
 		// EffectOwner$ RememberedController (CR 611.2): gorge's effect
 		// belongs to the remembered card's controller, and its may-play
@@ -2206,7 +2224,7 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		// Expedited Inheritance's Dig from the damaged creature's
 		// controller's library.
 		if owner, ok := ps.m["EffectOwner"]; ok && strings.TrimSpace(owner) == "RememberedController" &&
-			obj.Kind == rRemembered && zone == zExile {
+			obj.Kind == rRemembered && (zone == zExile || len(zones) == 2) {
 			fl |= kop.MayPlayOwner
 			ps.consume("EffectOwner")
 		}
@@ -2250,7 +2268,10 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		if fl != 0 {
 			in.B = cst(fl)
 		}
-		lc.emit(in)
+		for _, z := range zones {
+			in.C = z
+			lc.emit(in)
+		}
 	default:
 		return refuse("Effect static mode %s", s.Mode)
 	}
