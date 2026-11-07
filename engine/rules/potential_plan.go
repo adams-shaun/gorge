@@ -1334,7 +1334,9 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 		}
 		cost.Phyrexian = nil
 	}
-	composed := e.offerCostFor(p, id, cost, abilityScope(ab))
+	scope := abilityScope(ab)
+	statics := e.collectCostStatics()
+	composed := e.offerCostForUsing(statics, p, id, cost, scope)
 	out := e.planComposedCost(p, id, composed, true, true)
 	if out.Reason == "insufficient" {
 		if got, ok := targetPricedAbilityPlan(e, p, id, cost, abilityScope(ab)); ok && got.Reason != "insufficient" {
