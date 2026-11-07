@@ -1326,6 +1326,12 @@ func (s *State) countSacLeft(k *prep, p uint8, f kop.FilterID) int {
 }
 
 func (s *State) startSac(k *prep, in *kop.Instr, p uint8) bool {
+	if k.gen != nil && k.gen.ctrlSBA {
+		// gorge settles control after every event (emit.go): an Aura an
+		// earlier instruction sacrificed no longer steals the creature this
+		// one counts (Vile Mutilator's enchantment, then creature; CR 613.1b)
+		s.ctrlSBA(k)
+	}
 	src := s.resSrcSlot(k)
 	for p != 255 {
 		n := s.value(k, in.A)
