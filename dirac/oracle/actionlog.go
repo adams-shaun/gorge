@@ -41,12 +41,14 @@ func RecordKernelActions(m *Matchup, tbl *kop.Table, names map[string]string, de
 	r.kcfg = dirac.LockstepConfig(cfg.surface())
 	r.kcfg.NoElide = true
 	r.kcfg.Mulligans = uint8(m.Mulligans)
+	r.kcfg.Commander, r.kcfg.Commanders = m.kernelCommanders()
 	r.kcfg.RecordChance = true
 	r.kcfg.AutoDivide = play.AutoDivide
 	r.s.Init(tbl, decks[0], decks[1], seed, r.kcfg)
 	elide := cfg.PassElision
 	g := &KernelGame{Format: gameFormat, Decks: m.Names, Seed: seed, Mulligans: m.Mulligans, PassElision: cfg.PassElision,
 		AutopaySurface: cfg.GorgeAutopaySurface, Winner: -1}
+	g.Commander, g.Commanders = m.commanderFields()
 	for s := 0; s < 2; s++ {
 		for _, c := range m.Decks[s] {
 			g.Cards[s] = append(g.Cards[s], cardName(c))

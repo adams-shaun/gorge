@@ -351,6 +351,9 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 					if batchEntry {
 						h.BeginZoneBatch()
 					}
+					// StaticEffect$ on a DigUntil battlefield take registers before the
+					// entry event (CR 603.6a), like every ChangeZone mover.
+					applyStaticEffect(h, c, sa, dest, []state.ObjID{id})
 					emitEntryMove(h, c, digGainControl(gainControl), dest, ev)
 					if tapped {
 						h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
@@ -365,11 +368,6 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 						// (a host whose entry did not settle it).
 						emitAttach(h, id, bearer)
 					}
-					// StaticEffect$ on a DigUntil battlefield take: the same
-					// rider registration every ChangeZone mover applies (no
-					// corpus carrier rides a DigUntil today; hooked so the
-					// class cannot miss one).
-					applyStaticEffect(h, c, sa, dest, []state.ObjID{id})
 					continue
 				}
 				if dest == state.ZLibrary {

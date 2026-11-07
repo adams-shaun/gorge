@@ -654,6 +654,9 @@ func (s *State) castTrigGen(k *prep, l trigListener, a *kop.Ability, e *stackEnt
 	if t.Flags2&kop.Tf2CastSpent != 0 {
 		amt = s.castSpentAmt(k, e) // gorge TriggerManaSpent: the spend as the trigger fires (opus)
 	}
+	if t.Flags2&kop.Tf2Increment != 0 {
+		amt = int16(s.castSpent(e.obj)) // kw_increment.go: the spend the resolution recheck compares
+	}
 	if t.Flags4&kop.Tf4NamedCast != 0 {
 		noteNamedCast(true)
 	}
@@ -684,6 +687,13 @@ func (s *State) trigResolveOK(k *prep) bool {
 		return true
 	}
 	a := &k.t.Cards[e.card].Abilities[e.ab]
+	if a.Trig.Event == kop.TrigSpellCast && a.Trig.Flags2&kop.Tf2Increment != 0 && !s.incrementResolves(k, e) {
+		// kw_increment.go: CR 603.4's second check of the spend against the
+		// source's P/T. The event test is REQUIRED: bit 24 is shared with
+		// Tf2ToYou on DamageDone lines (kop/triggers.go), and this walk sees
+		// every trigger, not only castTrigGen's SpellCast path.
+		return false
+	}
 	if k.anyGate && a.AFlags&kop.AfCheckOnTrigger == 0 && !s.gateResolveOK(e, a) {
 		return false
 	}

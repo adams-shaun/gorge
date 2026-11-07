@@ -8,7 +8,7 @@ game_data_public.<SET>.PremierDraft.csv.gz (17lands public data, CC BY 4.0).
 
 A set's kernel table rarely supports every card (BLB: 104 of 276; every one of the 37,839 decks
 holds at least two refused cards), so a strict pool is empty. The pool this writes keeps a deck
-only when at most --max-refused of its 40 maindeck copies are refused cards, and replaces each of
+only when at most --max-refused of its --deck-size (default 40) maindeck copies are refused cards, and replaces each of
 those copies with a basic land in proportion to the deck's own basics (largest remainder, WUBRG
 on ties). Basic lands are free in limited, so the result is a deck the drafter could have
 registered from the same draft. A deck's notes record what was replaced. --max-refused 0 is the
@@ -86,10 +86,10 @@ def file_sha256(path):
     return h.hexdigest()
 
 
-def supported(pool):
+def supported(pool, unverified=False):
     """card name -> supported, from the pool's binary table (make dirac-tables)."""
     env = dict(os.environ, GOWORK="off")
-    out = subprocess.run(["go", "run", "-trimpath", "./dirac/kgen", "-supported", pool], cwd=REPO, env=env, capture_output=True, text=True)
+    out = subprocess.run(["go", "run", "-trimpath", "./dirac/cmd/kgen", "-supported", pool] + (["-unverified"] if unverified else []), cwd=REPO, env=env, capture_output=True, text=True)
     if out.returncode != 0:
         sys.exit(f"kgen -supported {pool}: {out.stderr.strip()}")
     return {n: s == "true" for n, s in (line.split("\t") for line in out.stdout.splitlines())}
@@ -122,7 +122,7 @@ def from_decks(dirpath):
         for c in j["cards"]:
             cards[c["name"]] = cards.get(c["name"], 0) + c["count"]
         out.append({"name": j["name"], "notes": j.get("notes", ""), "main_colors": j.get("main_colors", "C"),
-                    "splash_colors": "", "maindeck_size": sum(cards.values()), "cards": dict(sorted(cards.items()))})
+                    "splash_colors": "", "format": j.get("format", "limited"), "commander": j.get("commander", ""), "maindeck_size": sum(cards.values()), "cards": dict(sorted(cards.items()))})
     return out
 
 
@@ -179,6 +179,8 @@ def main():
     ap.add_argument("--set", required=True, help="upper-case set code, e.g. BLB")
     ap.add_argument("--min-winrate", type=float, default=0.60)
     ap.add_argument("--max-refused", type=int, default=6, help="refused maindeck copies a deck may replace with basics")
+    ap.add_argument("--deck-size", type=int, default=40, help="maindeck cards a deck must hold (100 for Commander)")
+    ap.add_argument("--allow-unverified", action="store_true", help="count cards without lockstep evidence as playable (kfuzz -allow-unverified); a refused card stays refused")
     ap.add_argument("--emit-cards", metavar="PATH", help="write the CSV's card names (kgen -card-list input) and exit")
     ap.add_argument("--from-decks", metavar="DIR", help="gorge deck JSONs instead of a CSV")
     ap.add_argument("--label", choices=["17lands", "sim"], default="17lands")
@@ -200,7 +202,7 @@ def main():
             ap.error("want <csv> <out>")
         source, outdir = args.paths
 
-    sup = supported(SET.lower())
+    sup = supported(SET.lower(), args.allow_unverified)
     decks = from_decks(args.from_decks) if args.from_decks else extract(source, args.min_winrate)
     os.makedirs(os.path.join(outdir, "decks"), exist_ok=True)
     in_decks = collections.Counter()
@@ -220,11 +222,14 @@ def main():
         by_refused[k] += 1
         if k == 0:
             strict += 1
-        if d["maindeck_size"] != 40:
-            skipped["maindeck not 40 cards"] += 1
+        if d["maindeck_size"] != args.deck_size:
+            skipped[f"maindeck not {args.deck_size} cards"] += 1
             continue
         if k > args.max_refused:
             skipped[f"more than {args.max_refused} refused copies"] += 1
+            continue
+        if d.get("commander") and not sup.get(d["commander"], False):
+            skipped["commander refused"] += 1
             continue
         cards = {c: n for c, n in d["cards"].items() if sup[c]}
         add = fill_basics(cards, k)
@@ -244,8 +249,10 @@ def main():
         if bad:
             note += ("; " if note else "") + "kernel-refused copies replaced by basics: " + ", ".join(f"{n} {c}" for c, n in sorted(bad.items())) \
                 + " -> " + ", ".join(f"{n} {b}" for b, n in add.items() if n)
-        deck = {"name": s, "format": "limited", "notes": note,
-                "cards": [{"name": c, "count": n} for c, n in sorted(cards.items())]}
+        deck = {"name": s, "format": d.get("format", "limited"), "notes": note}
+        if d.get("commander"):
+            deck["commander"] = d["commander"]
+        deck.update({"cards": [{"name": c, "count": n} for c, n in sorted(cards.items())]})
         with open(os.path.join(outdir, "decks", s + ".json"), "w") as g:
             json.dump(deck, g, indent=0)
         rows.append((s, d["main_colors"] + d["splash_colors"], d["main_colors"], sum(cards.values())))
@@ -271,7 +278,8 @@ def main():
         ("set", SET), ("label", args.label),
         ("source", source), ("source_sha256", src_sha),
         ("recipe", f"min_winrate={args.min_winrate:.2f} max_refused={args.max_refused}"),
-        ("pool_go_sha256", file_sha256(pool_go)), ("pool_go_supported", f"{sum(sup.values())} of {len(sup)}"),
+        ("pool_cards_sha256", file_sha256(os.path.join(REPO, "dirac", "cardset", "pools", SET.lower(), "cards.txt"))),
+        ("pool_supported", f"{sum(sup.values())} of {len(sup)}"),
         ("decks", str(len(rows))), ("tree_sha256", tree_digest(outdir)),
     ]
     with open(os.path.join(outdir, "pool.manifest"), "w") as f:

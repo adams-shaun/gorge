@@ -39,13 +39,21 @@ func BecomesSaddledMatches(e Board, t cards.Trigger, source state.ObjID, ev even
 // only when the Saddled grant being matched is this object's first in the
 // current turn. It walks the log backwards to the TurnChange boundary,
 // counting Saddled grants to obj -- exactly one (the current event) means
-// first. Replay-stable: the log is the same on a rebuilt stream, so no
-// mutable counter survives a Clone and no reset hook is needed.
+// first. The walk also stops at obj's own last zone change, where the
+// object it is now began (CR 400.7). Replay-stable: the log is the same on
+// a rebuilt stream, so no mutable counter survives a Clone and no reset
+// hook is needed.
 func firstSaddledThisTurn(e Board, obj state.ObjID) bool {
 	seen := false
 	for i := len(e.Log().Events) - 1; i >= 0; i-- {
 		ev := e.Log().Events[i]
 		if ev.Kind == events.TurnChange {
+			return seen
+		}
+		// An earlier zone change of obj made it a new object (CR 400.7):
+		// a Mount saddled, bounced and recast this turn has not yet been
+		// saddled as the object it is now.
+		if ev.Kind == events.MoveZone && ev.Obj == obj {
 			return seen
 		}
 		if !events.IsAlterAttribute(ev, "Saddled") || ev.Amount < 1 || ev.Obj != obj {
