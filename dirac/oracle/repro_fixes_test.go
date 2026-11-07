@@ -220,6 +220,7 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// finish reverses the cast keeping the floated mana (CR 733.1: a
 		// player may reverse mana abilities activated for an illegal play)
 		{"twobrid_delve_unpayable_window", true, false},
+		{"printed_combo_window_colour_order", true, false}, // CR 601.2g: a printed Combo's mana window answers the ability's printed order, so Thornwood Falls makes {G} (before its {U}) and Frontier Bivouac stays untapped
 	})
 }
 
