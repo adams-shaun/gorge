@@ -785,8 +785,20 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				}
 			}
 			if k.gen != nil && k.gen.anyCharmV {
-				if c := s.charmCap(k); c != 0 {
-					pick = c // CharmNum$ over Count$Compare (modal_charmcmp.go)
+				if c, dyn := s.charmCap(k); dyn {
+					pick = c // CharmNum$ over a dynamic count (modal_charmcmp.go)
+					if c == 0 {
+						// choose up to zero: a trigger with no mode is
+						// removed (CR 603.3c), a spell announces none
+						if e.kind == seTrigger {
+							s.sp--
+							s.ctl = ctlPlaceTriggers
+							return false
+						}
+						s.bld().modesN = 255
+						s.nextStage(k)
+						continue
+					}
 				}
 			}
 			if s.bld().modesN >= max8(pick, 1) || e.kind == seAbility && s.modalActAtResolution(a, pick) {
@@ -977,6 +989,10 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				}
 				if xBoundTarget(k.t, t) {
 					s.reverseCast(k) // the offer did not know its X
+					return false
+				}
+				if _, _, ok := s.equipTargetPriced(k); ok {
+					s.reverseCast(k) // no candidate's own equip price is payable (statics_gen.go)
 					return false
 				}
 				// an activation was checked feasible and moves nothing

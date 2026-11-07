@@ -33,7 +33,7 @@ import (
 //     Equivalent. The game no longer reaches its earlier finding, Treasonous
 //     Ogre's life payment read past an opponent's speed gain (CR 702.179d,
 //     lifePaymentConsequences), which TestWitnessReadsLifePaymentPastSpeedGain pins.
-//   - 10877 seq 2842 (Infernal Plunge), commander4: the plan's Ogre paid life for R
+//   - 10877 seq 2830 (Infernal Plunge), commander4: the plan's Ogre paid life for R
 //     and was then the creature sacrificed for the spell's additional cost
 //     (CR 601.2h), which the witness must not read as its activation
 //     (activationProduction). Equivalent.
@@ -43,7 +43,7 @@ var recordedWant = map[uint64]map[uint64]string{ // seed -> seq -> verdict key (
 	12468: {},
 	11828: {},
 	12603: {4733: ""},
-	10877: {2842: ""},
+	10877: {2830: ""},
 }
 
 const (

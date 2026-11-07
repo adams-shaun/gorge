@@ -779,7 +779,8 @@ type lStatic struct {
 	Ward         int // a Continuous grant's "Ward:N" (Kw then holds "Ward")
 	// AbilityRed: a ReduceCost static of activated abilities (Type$ Ability)
 	// rather than spells: 1 any, 2 Exhaust abilities only, 3 a Room unlock,
-	// 4 Power-up abilities only (kop.StatReduceAbility)
+	// 4 Power-up abilities only, 5 Equip abilities only (F2: their target;
+	// kop.StatReduceAbility)
 	AbilityRed uint8
 	// MinMana: that static's MinMana$ floor, 1..15 (kop.ReduceAbMinShift)
 	MinMana uint8
@@ -926,7 +927,8 @@ type lCard struct {
 	OptCost        *lCost   // S:Mode$ OptionalCost's Blight<N> or Behold<1/Type> part (CR 601.2b), CardDef.OptCost/OptBehold (lower_optcost.go)
 	Teamwork       int      // printed K:Teamwork:<N> (CR 702.194, N 1..15), CardDef.Teamwork
 	ModesPickTW    int      // a Teamwork charm's CharmNum$ X over Count$Teamwork.<a>.<b>: <a> picks teamworked, <b> otherwise (CardDef.ModesPickTW)
-	ModesPickV     lValue   // a spell or triggered charm's CharmNum$ over Count$Compare or a branch head (constant arms): the pick count, evaluated as the modes are chosen (CardDef.ModesPickV; lower_charmcmp.go)
+	ModesPickV     lValue   // a spell or triggered charm's CharmNum$ over Count$Compare or a branch head (constant arms): the pick count, evaluated as the modes are chosen, or a general count beside MinCharmNum$ 0 (CardDef.ModesPickV; lower_charmcmp.go)
+	ModesMinCount  int      // a charm with no MinCharmNum$ over a two-arm count: its smaller arm, the offer gate's minimum (CardDef.ModesMinCount; lower_charmcmp.go)
 	TrigCharmFixed bool     // a triggered charm with a fixed pick count, which a ModesPickV would also reach in the kernel
 	DungeonNext    []uint8  // a dungeon entry's room arrows (CardDef.DungeonNext; lower_initiative.go)
 	TypeValid      []uint16 // an as-enters ChooseType's ValidTypes$ vocabulary indexes (CardDef.TypeValid; lower_choosetype.go)
