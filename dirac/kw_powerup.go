@@ -26,6 +26,28 @@ func (s *State) powerUpReduced(k *prep, o Obj, c kop.ManaCost) kop.ManaCost {
 	return powerUpReduce(c, k.t.Cards[s.cardAt(ob.slot)].Cost)
 }
 
+// powerUpPlanAffords reports whether the sources afford the cost gorge's
+// autopay planner prices for Power-up ability a of slot sl: the printed cost
+// after the ability's own ReduceCost$ and the cost statics
+// (planAbilityPayment's ownReduceCostOffer + offerCostFor), without the CR
+// 702.193b entry-turn reduction, which only the charge applies. A Power-up
+// the floating pool cannot pay is offered when this planner cost is
+// affordable; the plan/charge mismatch falls back to the manual mana window
+// (powerUpPlanRejected, mana_window.go). Cold: the offer walk calls it only
+// for a Power-up ability its pool cannot pay.
+//
+//go:noinline
+func (s *State) powerUpPlanAffords(k *prep, sl Slot, a *kop.Ability, ctrl uint8, av *avail) bool {
+	planned := a.Cost.Mana
+	if k.gen != nil && k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
+		planned = s.ownReducedBF(k, a, sl, ctrl)
+	}
+	if k.gen != nil && k.gen.anyAbReduce {
+		planned = s.abReduced(k, a, sl, ctrl, planned)
+	}
+	return s.abilityAffords(k, sl, a, &planned, av)
+}
+
 // powerUpReduce is gorge's powerUpReduceCost: generic reduces generic
 // (clamped); each coloured or colourless symbol reduces its matching symbol
 // first, and any excess of that symbol reduces generic (CR 118.7). Hybrid and

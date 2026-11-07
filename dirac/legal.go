@@ -524,18 +524,11 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// Hercules: {4}{G} reduced to {2}, three untapped Forests, no offer).
 		// The floating pool paying the reduced cost is enough: the plan is
 		// then a pool choice. So: offered iff the pool pays the reduced cost
-		// or the sources pay the planner's cost; the charge is always the
-		// reduced one (buildCostCharge), and the plan/charge mismatch falls
-		// back to the manual mana window (powerUpPlanRejected,
-		// mana_window.go).
-		planned := a.Cost.Mana
-		if k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
-			planned = s.ownReducedBF(k, a, sl, p.ctrl)
-		}
-		if k.gen.anyAbReduce {
-			planned = s.abReduced(k, a, sl, p.ctrl, planned)
-		}
-		if !s.poolPays(p.ctrl, &mana) && !s.abilityAffords(k, sl, a, &planned, av) {
+		// or the sources pay the planner's cost (powerUpPlanAffords); the
+		// charge is always the reduced one (buildCostCharge), and the
+		// plan/charge mismatch falls back to the manual mana window
+		// (powerUpPlanRejected, mana_window.go).
+		if !s.poolPays(p.ctrl, &mana) && !s.powerUpPlanAffords(k, sl, a, p.ctrl, av) {
 			return false
 		}
 	}
