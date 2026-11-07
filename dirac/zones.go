@@ -38,6 +38,31 @@ func (pl *player) libTop(o Obj) {
 	pl.lib[pl.libLo] = o
 }
 
+// libIndex is o's index from the top of the library (o must be in it).
+func (pl *player) libIndex(o Obj) uint8 {
+	for i := pl.libLo; i < pl.libHi; i++ {
+		if pl.lib[i] == o {
+			return i - pl.libLo
+		}
+	}
+	panic("kernel: object not in library")
+}
+
+// libInsert puts o at index at from the top (clamped to the bottom).
+func (pl *player) libInsert(o Obj, at uint8) {
+	if int(at) >= pl.libLen() {
+		pl.libBottom(o)
+		return
+	}
+	if int(pl.libHi) == len(pl.lib) {
+		pl.libCompact()
+	}
+	i := pl.libLo + at
+	copy(pl.lib[i+1:pl.libHi+1], pl.lib[i:pl.libHi])
+	pl.lib[i] = o
+	pl.libHi++
+}
+
 // zoneFull reports whether p's card zone z has no room for one more object.
 func (pl *player) zoneFull(z kop.Zone) bool {
 	switch z {

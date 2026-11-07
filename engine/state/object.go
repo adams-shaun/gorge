@@ -1065,6 +1065,11 @@ type Object struct {
 	// every reversible cost move it made without touching earlier casts.
 	PreStackEnteredLen int
 	HasPreStackEntry   bool
+	// PreStackLibSlot is 1 + the card's index in its owner's library just
+	// before a cast moved it onto the stack (0: it was not cast from a
+	// library). CR 733.1-2 returns a reversed spell to the zone it came from
+	// as if the cast never began, so a library card goes back to its place.
+	PreStackLibSlot int
 
 	// Incarnation advances whenever an object crosses the battlefield
 	// boundary. ObjID is stable for the match, but a permanent that leaves and

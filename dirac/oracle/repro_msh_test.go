@@ -24,5 +24,6 @@ func TestStdMshReprosLockstep(t *testing.T) {
 		{"powerup_static_reduction_offer", true, false},                         // CR 601.2f, 602.2b, 702.193a: Hulk's {3} static lowers Viv Vision's power-up enough for six sources to pay it, though neither the pool nor the printed {7} is affordable
 		{"put_counter_optional_departed_source_no_ask", true, false},            // CR 400.7: "you may put a counter on it" is not asked once its source has left the battlefield, since the counter could not land
 		{"trigger_cost_bound_counts_filters_paid_ability", true, false},         // CR 118.3, 605.3a: Grim Reaper's {3}{B} with a Plains, a Swamp and Surveillance Room untapped is offered: gorge's potential bound counts the Room's {C} and its {1},{T} any-colour filter (the other sources fund the fee)
+		{"reversed_library_cast_keeps_its_place", true, false},                  // CR 733.1-2: Titania, cast from among Cosmic Cube's six looked-at cards and reversed when its cost can't be paid, goes back to its place in the library (not the top, not the bottom), so the rest's move to the bottom leaves it on top
 	})
 }
