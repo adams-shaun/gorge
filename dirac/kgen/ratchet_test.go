@@ -94,9 +94,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +10 (ValidSpell$ Activated.Equip ReduceCost, the target-gated equip price: Auriok Steelshaper, Bladehold War-Whip, Bureau Headmaster, Cloud, Planet's Champion, Dwarven Mauler, Fervent Champion, Ghostfire Blade, Helitrooper, Nahiri, Storm of Stone, Éowyn, Lady of Rohan; FIN 266 -> 267, HOB 152 -> 153, ONE 195 -> 196, ALL 21666 -> 21676).
 	// +5 (the merge with land: this branch's lowers beside land's Activated.Equip ReduceCost ten, disjoint; merged ECL 233 -> 234, MSH 233 -> 234, TLA 252 -> 253, ALL 21676 -> 21681).
 	// +1 (Myriad Landscape: the library search's ShareLandType$ is read; ALL 21682 -> 21683).
-	// +1 (Hawkeye, Young Avenger: the plus-power noncombat damage replacement; land; merged ALL 21683 -> 21684).
+	// +1 (Aettir and Priwen: an attached static's live set P/T is read from its controller; FIN 267 -> 268, ALL 21681 -> 21682).
+	// +1 (Hundred-Battle Veteran: the self-pump gate counts the different counter kinds among your creatures; TDM 249 -> 250, ALL 21682 -> 21683).
+	// +1 (Hawkeye, Young Avenger: the damage-plus operand reads the replacement host's power; MSH 234 -> 235, ALL 21683 -> 21684).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21705, 34442},
+	"ALL": {21706, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -119,7 +121,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SNC": {185, 266},
 	"SOS": {249, 270},
 	"SPM": {161, 192},
-	"TDM": {249, 276},
+	"TDM": {250, 276},
 	"TLA": {253, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},

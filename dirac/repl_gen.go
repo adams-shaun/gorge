@@ -672,6 +672,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 		return 0
 	}
 	if ro.askD == NoSlot {
+		s.noteCmdDamage(ro.askS, ro.apl, n)
 		s.loseLife(k, ro.apl, n)
 	} else if sl := ro.askD; s.occ.has(sl) {
 		p := &s.perms[sl]
@@ -705,6 +706,7 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 		return 0
 	}
 	if ev.dst == NoSlot {
+		s.noteCmdDamage(ev.src, src.atk-PlayerTarget0, n)
 		s.loseLife(k, src.atk-PlayerTarget0, n)
 	} else {
 		sl := ev.dst

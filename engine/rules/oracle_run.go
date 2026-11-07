@@ -2647,7 +2647,19 @@ func (r *oracleRun) pendingTriggerAsk() bool {
 		return false
 	}
 	st := r.e.G.Stack
-	return len(st) > 0 && isTriggered(r.e.G, r.e.G.Obj(st[len(st)-1]))
+	if len(st) == 0 {
+		return false
+	}
+	// The triggered/activated split must be the shared StackKindOf verdict,
+	// not TriggerOf's printed-line membership: an Animate-granted or delayed
+	// trigger mints an SA from the GRANTOR's SVar table (or a registration),
+	// so no T: line on the stack source carries that Effect pointer and the
+	// narrow lookup would read the ability as untriggered. That left this
+	// ask unsettled, so the opponent's trigger from the same damage event was
+	// still queued behind it at the checkpoint (Contested Game Ball beside
+	// Dreadmaw's Ire's DamageTrig: gorge showed one trigger, Forge/XMage the
+	// batch's two).
+	return state.StackKindOf(r.e.G, r.e.G.Obj(st[len(st)-1])) == state.StackKindTriggered
 }
 
 // settleTriggerAsks answers a trigger-order or triggered-cost ask still

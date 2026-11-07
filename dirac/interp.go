@@ -322,8 +322,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				s.touchSl(sl)
 				break
 			}
-			s.perms[sl].flags &^= pfTapped
-			s.untapEnds(k, s.perms[sl].obj) // the lock and the host-tapped grants end at the first untap (static_animatewhiletapped.go)
+			s.untapEffect(k, sl)
 			s.touchSl(sl)
 		}
 	case kop.OpSacrifice:
@@ -614,8 +613,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				p.seeCtr(s)
 				p.subCtrN(s, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d; gorge TryUntap)
 			} else if !blocked {
-				p.flags &^= pfTapped
-				s.untapEnds(k, p.obj) // the lock and the host-tapped grants end at the first untap (static_animatewhiletapped.go)
+				s.untapEffect(k, sl)
 			}
 			s.grantEOT(sl, kop.KwHaste)
 			s.promoKw(k, sl, kop.KwHaste)
@@ -1041,6 +1039,9 @@ func (s *State) applyResolve(k *prep, a Action) {
 		return
 	}
 	r.ask = raNone
+	if k.gen != nil && s.parkReturnAsk() {
+		return // the answer made a departure frame park a return: ask it before the program goes on (zone_untilleavesbatch.go)
+	}
 	r.pc++
 	s.loopBack(k)
 	s.runProg(k)

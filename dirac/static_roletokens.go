@@ -83,6 +83,17 @@ func (s *State) createAttachedToken(k *prep, in *kop.Instr, p uint8, n int) (ok,
 // leave triggers fire; Roles of different controllers coexist. It reports
 // whether anything left, so the SBA loop runs again.
 func (s *State) roleSBA(k *prep) bool {
+	ord, n := s.roleLosers(k)
+	for _, q := range ord[:n] {
+		s.leave(k, q, kop.ZoneGraveyard, false)
+	}
+	return n > 0
+}
+
+// roleLosers lists the Roles roleSBA removes, in gorge's order, without
+// moving them: the SBA pass folds them into its own batch (CR 704.3) so a
+// creature dying in the same check shares their departure.
+func (s *State) roleLosers(k *prep) (out [MaxPerm]Slot, cnt int) {
 	var roles slotMask
 	for m := s.occ; m.any(); m = m.rest() {
 		q := m.first()
@@ -92,7 +103,7 @@ func (s *State) roleSBA(k *prep) bool {
 	}
 	if !roles.any() {
 		s.g.roleOut = 0
-		return false
+		return
 	}
 	// gorge's battlefield walk (seat 0, then seat 1, zone order); pos is each
 	// Role's place in it
@@ -132,9 +143,10 @@ func (s *State) roleSBA(k *prep) bool {
 		done = done.with(b)
 		for _, q := range ord[:n] {
 			if lose.has(q) && s.perms[q].attached == b {
-				s.leave(k, q, kop.ZoneGraveyard, false)
+				out[cnt] = q
+				cnt++
 			}
 		}
 	}
-	return lose.any()
+	return
 }
