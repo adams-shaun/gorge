@@ -911,21 +911,23 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 // the last unit varying fastest, and stops at 64 combinations. Each is one
 // activation producing its counts (filtStep.alloc); the first whose
 // production pays later is the script's.
+//
+// The 64 are then reordered like gorge's scriptOrderAnswers: an allocation
+// naming a colour the play owes comes first, engine order kept inside each
+// half. The set is the same either way; the search is node-capped, so the
+// order decides whether a filtering board reaches the allocation a play needs.
 func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
 	n := int(t.filtAb(k, sl).ManaN)
 	if n <= 0 || n > 6 {
 		return false
 	}
 	const per = 5 // Any's W U B R G, the order askManaColor offers
+	var alloc [64][kop.NumManaKinds]uint8
 	var idx [6]uint8
-	for tries := 0; tries < 64; tries++ {
-		var st filtStep
-		st.sl, st.ans, st.gap = sl, 1, true
+	na := 0
+	for ; na < len(alloc); na++ {
 		for u := 0; u < n; u++ {
-			st.alloc[idx[u]]++
-		}
-		if fs.try(k, t, st, funded, true) {
-			return true
+			alloc[na][idx[u]]++
 		}
 		u := n - 1
 		for ; u >= 0; u-- {
@@ -935,7 +937,35 @@ func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
 			idx[u] = 0
 		}
 		if u < 0 {
+			na++
 			break
+		}
+	}
+	var order [64]uint8
+	wanted := func(a *[kop.NumManaKinds]uint8) bool {
+		for c := 0; c < per; c++ {
+			if fs.need[c] && a[c] != 0 {
+				return true
+			}
+		}
+		return false
+	}
+	nw := 0
+	for i := 0; i < na; i++ {
+		if wanted(&alloc[i]) {
+			order[nw] = uint8(i)
+			nw++
+		}
+	}
+	for i := 0; i < na; i++ {
+		if !wanted(&alloc[i]) {
+			order[nw] = uint8(i)
+			nw++
+		}
+	}
+	for _, i := range order[:nw] {
+		if fs.try(k, t, filtStep{sl: sl, ans: 1, gap: true, alloc: alloc[i]}, funded, true) {
+			return true
 		}
 	}
 	return false
