@@ -908,7 +908,8 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 
 // filtCombo is the allocation ask of a combination filter at sl: gorge's
 // scriptAnswers enumerates a Min == Max == n colour allocation unit by unit,
-// the last unit varying fastest, and stops at 64 combinations. Each is one
+// the last unit varying fastest, and stops at 64 combinations, those naming a
+// needed colour first (scriptOrderAnswers). Each is one
 // activation producing its counts (filtStep.alloc); the first whose
 // production pays later is the script's.
 func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
@@ -917,16 +918,16 @@ func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
 		return false
 	}
 	const per = 5 // Any's W U B R G, the order askManaColor offers
+	// gorge's scriptAnswers lists the first 64 per-unit combinations, last
+	// unit fastest; scriptOrderAnswers then tries first the ones where some
+	// unit names a colour the play's cost needs (the order decides which
+	// plans the node budget reaches), engine order kept inside each half.
+	var combos [64][6]uint8
+	nc := 0
 	var idx [6]uint8
-	for tries := 0; tries < 64; tries++ {
-		var st filtStep
-		st.sl, st.ans, st.gap = sl, 1, true
-		for u := 0; u < n; u++ {
-			st.alloc[idx[u]]++
-		}
-		if fs.try(k, t, st, funded, true) {
-			return true
-		}
+	for nc < len(combos) {
+		combos[nc] = idx
+		nc++
 		u := n - 1
 		for ; u >= 0; u-- {
 			if idx[u]++; idx[u] < per {
@@ -936,6 +937,29 @@ func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
 		}
 		if u < 0 {
 			break
+		}
+	}
+	wanted := func(c *[6]uint8) bool {
+		for u := 0; u < n; u++ {
+			if fs.need[c[u]] {
+				return true
+			}
+		}
+		return false
+	}
+	for pass := 0; pass < 2; pass++ {
+		for i := 0; i < nc; i++ {
+			if wanted(&combos[i]) != (pass == 0) {
+				continue
+			}
+			var st filtStep
+			st.sl, st.ans, st.gap = sl, 1, true
+			for u := 0; u < n; u++ {
+				st.alloc[combos[i][u]]++
+			}
+			if fs.try(k, t, st, funded, true) {
+				return true
+			}
 		}
 	}
 	return false
