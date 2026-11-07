@@ -775,12 +775,12 @@ type resCtx struct {
 	loopS   [2]uint8
 	loopD   uint8
 	eachObj Obj
-	peek    [8]Obj // scry/surveil/dig look-at cards
-	peekSel uint8  // answers so far (bit per peek index)
-	arr     [8]Obj // arrange: cards kept on top, in pick order (then, in the rest phase, the rest cards in pick order)
-	restSel uint8  // scry/surveil rest phase (Config.ArrangeRestOrder): rest picks so far (bit per peek index)
-	topN    uint8  // scry/surveil rest phase: the top picks (arr[:topN]); the rest picks follow
-	restPh  bool   // scry/surveil: the top phase closed; the rest cards are being ordered
+	peek    [8]Obj       // scry/surveil/dig look-at cards
+	peekSel uint8        // answers so far (bit per peek index)
+	arr     [MaxHand]Obj // arrange: cards kept on top, in pick order (then, in the rest phase, the rest cards in pick order); a discard's picks, one slot per hand card
+	restSel uint8        // scry/surveil rest phase (Config.ArrangeRestOrder): rest picks so far (bit per peek index)
+	topN    uint8        // scry/surveil rest phase: the top picks (arr[:topN]); the rest picks follow
+	restPh  bool         // scry/surveil: the top phase closed; the rest cards are being ordered
 	peekN   uint8
 	peekI   uint8
 	active  bool
