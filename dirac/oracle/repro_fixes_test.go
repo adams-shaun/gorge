@@ -88,6 +88,7 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// retry pays the reduced price from the pool alone.
 		{"mayplay_target_dependent_several_targets", false, false},
 		{"aegis_on_temporary_copy_bearer", true, false},     // CR 613.7e, 707.2: Assimilation Aegis attached to a creature Fleeting Reflection made a copy until end of turn copies over it (the later copy wins), and gives it back to that copy when unattached
+		{"clone_on_aegis_bearer_until_eot", true, false},    // CR 613.7e, 514.2: Fleeting Reflection's until-end-of-turn copy over an Assimilation Aegis bearer ends at cleanup, and the Aegis copy it covered shows again
 		{"resolved_spell_copy_rests_in_exile", true, false}, // CR 707.10a: a copy of a spell is exiled as it leaves the stack (gorge's spellRestZone), not put in a graveyard and ceased later
 		// Omenport Vigilante's double strike turns on mid-way through a
 		// Boom Box activation: gorge records each target ask of an ability
@@ -123,6 +124,7 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"blinked_creature_is_a_target_of_its_own_leave_trigger", true, false}, // CR 603.3d: Three Tree Scribe blinked and back is a legal target of its own trigger
 		{"x_cast_leaves_a_target", false, false},                               // For the Common Good from one land and two Treasures: the largest-X plan consumes both copies targets, so the witness prices a smaller X whose payment keeps one Treasure as a target
 		{"activation_cost_removes_target_becomes_target", true, false},         // CR 601.2c, 601.2g-h: Nettle Guard's {1}, Sacrifice: Destroy ability aims at itself, so its Valiant BecomesTarget trigger fires before the sacrifice that is part of the same activation's cost
+		{"emblem_granted_storm_trigger", false, false},                         // CR 702.40a: Ral, Crackling Wit's emblem grants Splash Portal storm, so its cast trigger is ordered beside the prowess triggers
 		{"emblem_storm_grant", true, false},                                    // CR 702.40a: Ral, Crackling Wit's emblem grants storm to the instant cast after it, so the granted-storm cast trigger joins the ordering ask
 	})
 }
@@ -394,6 +396,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"each_color_among_valid_printed_read_autopay", true, false}, // ... and the tap's mana is floated with the B in the pool itself
 		{"each_color_among_valid_pay_unaffordable", true, false},     // CR 118.3: Trystan's "may pay {B}" upkeep ask is offered, as gorge's potential over-bound does, when Bloom Tender is the only untapped source
 		{"convoke_tap_another_source_keeps_target", true, false},     // CR 601.2c, 601.2g: a Springleaf Drum left beside a convoke cast's picks keeps its target on gorge's menu, however short the window is
+		{"free_cast_either_or_cost_unaffordable", false, false},      // CR 118.9d: a cast without paying its mana cost from Maralen's exile still owes Mudbutton Cursetosser's behold-or-{2}; unpayable, it is not offered
 		{"evoke_hybrid_paid_from_floating_pool", false, false},       // CR 601.2h: Deceit evoked with a floating {U} and {B} pays its {U/B}{U/B} from the pool and taps no untapped Island
 		{"planned_mana_sacrifice_token_waits_for_sba", true, false},  // CR 704.5d, 111.7: a Treasure sacrificed by the payment plan for Appeal to Eirdu stays in the graveyard until the next state-based check, as gorge leaves it
 		{"mayplay_selfflash_you_is_wouldbe_controller", true, false}, // CR 109.5: a may-play cast of a card exiled by Maralen, Fae Ascendant reads the card's own CastWithFlash static's "you" as the would-be controller
@@ -456,6 +459,7 @@ func TestStdTmtReprosLockstep(t *testing.T) {
 func TestStdDskReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-dsk", []stdRepro{
+		{"destroy_all_parks_whole_batch", true, false},                  // CR 616.1: two Leylines of the Void compete for one victim of Split Up's destroy-all, so the whole batch waits for the order ask; the other victims do not move first
 		{"room_shown_face_plain_cast", false, false},                    // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
 		{"sacrificed_panharmonicon_host_departs", false, false},         // CR 603.2d: a sacrificed Panharmonicon host is gone when Popular Egotist's "whenever you sacrifice" trigger is checked, so it echoes nothing
 		{"returning_aura_during_paid_cost", false, false},               // CR 303.4f: a sacrificed "until this leaves" host returns its exiled Aura while the sacrifice cost's payment is still resolving: the Aura waits in exile and its owner chooses what it enchants
@@ -467,6 +471,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"mid_resolution_mana_sac_token_waits_sba", true, false},        // CR 704.3, 704.5d: a token sacrificed to pay a mid-resolution UnlessPaid fee waits in the graveyard for the state-based action, as a cast payment's does not
 		{"multi_discard_pick_order_past_eight", false, false},           // CR 404.3: a ten-card discard keeps the owner's chosen arrangement past the old eight-pick buffer
 		{"returned_sorcery_stays_in_graveyard", false, false},           // CR 304.4: a manifested sorcery that died is a sorcery card, so Meathook Massacre II's paid return (with a finality counter) leaves it in the graveyard
+		{"granted_prefix_pays_painful_needed_colour", false, false},     // CR 119.4: the granted-mana prefix taps an animated Haunted Screen for its painful {R} the play needs (gorge's ask lists it before the grant) and pays 1 life
 	})
 }
 
