@@ -743,6 +743,9 @@ func (s *State) value(k *prep, v kop.ValueRef) int {
 	case kop.VCountersSelf:
 		sl := s.objRef(k, kop.RefSelf)
 		if sl == NoSlot {
+			if dsl := s.selfCountersLKI(&s.res.e, s.res.e.obj); dsl != NoSlot {
+				return s.perms[dsl].ctrN(s, int(v.N)) // a departed source's last counters (CR 608.2h)
+			}
 			if k.gen != nil && s.res.e.li != 0 && s.res.e.kind == seAbility {
 				return s.lkiCounter(s.res.e.li, kop.CounterKind(v.N)) // a sacrificed source's last counters (Ravenous Amulet)
 			}

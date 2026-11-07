@@ -113,6 +113,9 @@ func (s *State) evalV(k *prep, v kop.ValueRef, ctx evalCtx) int {
 		return s.countPerm(k, kop.FilterID(v.N), ctx)
 	case kop.VCountersSelf:
 		if ctx.srcSl == NoSlot {
+			if sl := s.selfCountersLKI(e, ctx.src); sl != NoSlot {
+				return s.perms[sl].ctrN(s, int(v.N)) // a departed source's last counters (CR 608.2h)
+			}
 			if e != nil && e.li != 0 && e.kind == seAbility {
 				return s.lkiCounter(e.li, kop.CounterKind(v.N))
 			}
@@ -373,6 +376,11 @@ func (s *State) refCounters(k *prep, x *kop.Expr, r kop.Ref, c kop.CounterKind, 
 		o = ctx.src
 	} else {
 		o = s.refObjCtx(r, ctx)
+	}
+	if r == kop.RefSelf {
+		if sl := s.selfCountersLKI(e, o); sl != NoSlot {
+			return s.perms[sl].ctrN(s, int(c))
+		}
 	}
 	if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {
 		return 0
