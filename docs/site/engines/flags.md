@@ -17,6 +17,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-b` | string | none | bot policy name for seat 1 (default: heuristic) |
 | `-decks` | string | none | comma-separated deck names (default: the first -seats of the repo decks) |
 | `-dir` | string | `.cards` | corpus directory (holds ir.gob.gz / cardsfolder) |
+| `-format` | string | `constructed` | game format: constructed or commander (40 life, commanders in the command zone) |
 | `-games` | int | `1` | number of games to play |
 | `-sb-agent` | string | repeatable | register a SpellBench v2 stdio agent: name=/path/to/agent (repeatable) |
 | `-seats` | int | `4` | number of seats |
@@ -137,7 +138,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-pool` | string | none | pool.tsv (default: <decks>/../pool.tsv) |
 | `-sample-replay` | float64 | `0` | fraction of games also written as koracle-game-1 records under <out>.replays, which kfuzz -replay re-executes in gorge; needs -out |
 | `-seed` | uint64 | `1` | base seed: pairs and game seeds derive from it, as in kfuzz |
-| `-set` | string | `fdn` | the card set to play, a name in dirac/cardset |
+| `-set` | string | `fdn` | the card set to play: a deck pool by name, or a synthetic pool (std-trk, tail-NN) |
 | `-skip-refused` | bool | `false` | skip a pair the set refuses and count it, instead of failing |
 | `-split` | string | `all` | pool split the decks come from: train, eval or all |
 | `-summary` | string | none | summary file, one JSON object (default: stderr) |

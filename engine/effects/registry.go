@@ -25,6 +25,10 @@ type CombatDamageHit struct {
 	FaceIdx    uint8
 	Controller state.PlayerID
 	Amount     int32
+	// SourceTypes is the dealing object's complete effective type list when
+	// it dealt the damage (CR 608.2h), nil when none was captured. A crewed
+	// Vehicle or animated land was a creature then; the printed face is not.
+	SourceTypes []string
 }
 
 // Host is everything an effect may do to a game: read it, and propose events.
