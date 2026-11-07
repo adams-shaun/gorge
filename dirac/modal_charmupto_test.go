@@ -29,9 +29,7 @@ func charmUpToTable(upto int) *kop.Table {
 
 // TestCharmUpToDynamic pins a dynamic "choose up to V" charm's offers: V = 2
 // takes 0..2 picks (Done after every pose, the cap ends the ask), V = 1 one
-// pick, and V = 0 the floored one -- gorge CharmModeBounds floors the
-// evaluated maximum at 1 even when the count reads 0, so "up to 0" is asked
-// as "up to one", and the kernel's charmCap mirrors that floor.
+// pick, and V = 0 none.
 func TestCharmUpToDynamic(t *testing.T) {
 	// V = 2: Done at the first pose, Done after one pick, the cap after two.
 	sc := newScenTable(t, charmUpToTable(2), Config{NoElide: true})
@@ -101,25 +99,21 @@ func TestCharmUpToDynamic(t *testing.T) {
 		t.Fatalf("opponent life %d, want 18 after the one pick", sc.s.pl[1].life)
 	}
 
-	// V = 0: gorge's floor makes it "up to one" -- the ask still offers the
-	// modes, and one pick ends it.
+	// V = 0 ("up to zero"): no mode is chosen -- the cast announces none and
+	// resolves as nothing (CR 700.2a).
 	sc = newScenTable(t, charmUpToTable(0), Config{NoElide: true})
 	sc.lands(0, v.Mountain, 1)
 	bear = sc.perm(v.GrizzlyBears, 1)
 	fc = sc.hand(v.TestCharm, 0)
 	sc.do(t, AkCast, uint8(fc), 0xff)
-	if d := sc.s.Step(); d.Kind != DkModes {
-		t.Fatalf("V=0: want the floored mode ask, got kind %d", d.Kind)
-	} else if m, done := modeOpts(&d); m != 3 || !done {
-		t.Fatalf("V=0 first pose %+v: want both modes and Done", d.Options[:d.N])
+	if d := sc.s.Step(); d.Kind == DkModes {
+		t.Fatalf("V=0: a mode ask was posed: %+v", d.Options[:d.N])
 	}
-	charmnumPickMode(t, sc, 0)
-	if d := sc.s.Step(); d.Kind != DkTarget {
-		t.Fatalf("V=0 after one pick: decision kind %d, want no further mode ask", d.Kind)
-	}
-	sc.do(t, AkTarget, 0xff, uint8(bear))
 	sc.resolveAll(t)
-	if sc.s.objs[bear].zone != kop.ZoneGraveyard || sc.s.pl[1].life != 20 {
-		t.Fatalf("V=0 one pick did not resolve as chosen: bear zone %d, opponent life %d", sc.s.objs[bear].zone, sc.s.pl[1].life)
+	if sc.s.objs[fc].zone != kop.ZoneGraveyard {
+		t.Fatalf("V=0: the spell is in zone %d, want the graveyard", sc.s.objs[fc].zone)
+	}
+	if sc.s.objs[bear].zone != kop.ZoneBattlefield || sc.s.pl[1].life != 20 {
+		t.Fatalf("V=0 touched the game: bear zone %d, opponent life %d", sc.s.objs[bear].zone, sc.s.pl[1].life)
 	}
 }

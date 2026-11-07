@@ -3,7 +3,8 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // A spell or triggered charm whose CharmNum$ is a Count$Compare or a branch
-// head with constant arms (Molten Collapse "if you descended this turn,
+// head with constant arms, or a general count beside MinCharmNum$ 0 ("choose
+// up to V"; V = 0 chooses no mode and removes a trigger, CR 603.3c) (Molten Collapse "if you descended this turn,
 // choose both instead"; Wail of the Forgotten at eight permanent cards in
 // your graveyard; Captain James T. Kirk with no cards in hand). gorge
 // effects.CharmModeBounds evaluates CharmNum$ at each ask with the caster's
@@ -28,28 +29,31 @@ func prepCharmCmp(t *kop.Table, g *genPrep) {
 }
 
 // charmCap is the pick count of the spell or trigger being built, clamped
-// to 1..NModes (0: the card has no dynamic count). A trigger's modes are
+// to 0..NModes; ok is false when the card has no dynamic count. Only a
+// "choose up to V" charm (MinCharmNum$ 0) reaches 0 -- gorge floors every
+// other count at 1 (effects.CharmModeBounds); the constant arms of a
+// two-arm count are all 1 or more. A trigger's modes are
 // chosen as it is put on the stack (CR 603.3c), with its controller's ctx;
 // kgen sets ModesPickV on a card only when every triggered charm of it
 // shares that count (Captain James T. Kirk's Count$Hellbent.3.1).
 //
 //go:noinline
-func (s *State) charmCap(k *prep) uint8 {
+func (s *State) charmCap(k *prep) (uint8, bool) {
 	e := &s.bld().e
 	if e.kind != seSpell && e.kind != seTrigger {
-		return 0
+		return 0, false
 	}
 	cd := &k.t.Cards[e.card]
 	if cd.ModesPickV.K == 0 {
-		return 0
+		return 0, false
 	}
 	if DebugCharmCmpCap {
-		return 1
+		return 1, true
 	}
 	a := s.buildAbility(k)
 	if a == nil {
-		return 0
+		return 0, false
 	}
 	v := s.evalV(k, cd.ModesPickV, s.ctxEntry(e))
-	return uint8(max(1, min(v, int(a.NModes))))
+	return uint8(max(0, min(v, int(a.NModes)))), true
 }

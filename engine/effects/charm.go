@@ -31,7 +31,14 @@ func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int, r
 	repeat = p.CanRepeatModes
 	max = int(numText(h, c, p.CharmNum, 1))
 	if max < 1 {
-		max = 1
+		// an absent MinCharmNum$ keeps the Forge floor of one mode; with
+		// it present a count of zero is "choose up to zero" (CR 700.2a:
+		// no mode is chosen)
+		if p.MinCharmNum.Present {
+			max = 0
+		} else {
+			max = 1
+		}
 	}
 	min = max
 	if p.MinCharmNum.Present {
@@ -825,6 +832,9 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		choices, subs, offered = picked, filteredSubs, true
 	}
 	min, max, repeat := CharmModeBounds(h, c, sa, len(choices))
+	if max < 1 {
+		return // choose up to zero: no mode, nothing resolves
+	}
 	if min > len(choices) && !repeat {
 		// Forge declines a Charm whose required minimum exceeds its available
 		// modes. A repeatable Charm can always fill its slots by repeating a

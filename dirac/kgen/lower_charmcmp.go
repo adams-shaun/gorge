@@ -15,12 +15,12 @@ import (
 // Count$OptionalGenericCostPaid.<paid>.<unpaid> (Pyrrhic Strike: an
 // OptionalCost blight part chooses both instead, and with MinCharmNum$
 // absent gorge defaults the minimum to the evaluated count itself -- the
-// kernel's static need is the larger arm and the runtime cap stops the ask
-// at the evaluated count). It also reads a general count beside
+// offer gate needs the unpaid (smaller) arm, and the mode step needs the
+// evaluated count: CardDef.ModesMinCount). It also reads a general count beside
 // MinCharmNum$ 0 ("choose up to V": Bumi's Lessons in the graveyard, the
 // Ruinous-crew-shaped X paid, read by the permanent's own enters trigger):
-// the minimum is static 0 and the runtime cap floors the count at 1 and
-// clamps it to the modes (modal_charmcmp.go).
+// the minimum is static 0 and the runtime cap clamps the count to the
+// modes; a count of 0 chooses no mode: modal_charmcmp.go).
 // gorge CharmModeBounds (effects/charm.go) evaluates CharmNum$ at each ask
 // with the caster's ctx and clamps the maximum to the number of modes; the
 // offer gate reads only the minimum. An explicit MinCharmNum$ on a
@@ -87,6 +87,15 @@ func (lc *lowerCtx) charmDynNum(ps *params, nModes int) (pick int, ok bool, err 
 			lo, hi := min(n[0], n[1]), max(n[0], n[1])
 			if hasMin && (len(mv) != 1 || int(mv[0]-'0') != lo) {
 				return 0, false, refuse("charm count CharmNum$ %q with MinCharmNum$ %q", v, mv)
+			}
+			if !hasMin {
+				// gorge's minimum is the evaluated count; the plain cast of
+				// the optional-cost two-arm asks for the unpaid arm; a trigger
+				// has no offer gate, only its mode step's evaluated count
+				if val.Kind != vKicked && lc.ab.Kind != akTriggered {
+					return 0, false, refuse("charm count CharmNum$ %q without MinCharmNum$", v)
+				}
+				lc.out.ModesMinCount = lo
 			}
 			lc.out.ModesPickV = val
 			return min(hi, nModes), true, nil
