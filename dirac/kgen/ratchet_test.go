@@ -92,6 +92,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Ark of Hunger: the remembered-card MayPlay over Graveyard,Exile; SOS 248 -> 249, ALL 21664 -> 21665).
 	// +1 (Parker Luck: the RepeatEach Targeted body reads the other player's revealed card's mana value; SPM 160 -> 161, ALL 21665 -> 21666).
 	// +10 (ValidSpell$ Activated.Equip ReduceCost, the target-gated equip price: Auriok Steelshaper, Bladehold War-Whip, Bureau Headmaster, Cloud, Planet's Champion, Dwarven Mauler, Fervent Champion, Ghostfire Blade, Helitrooper, Nahiri, Storm of Stone, Éowyn, Lady of Rohan; FIN 266 -> 267, HOB 152 -> 153, ONE 195 -> 196, ALL 21666 -> 21676).
+	// +5 (the merge with land: this branch's lowers beside land's Activated.Equip ReduceCost ten, disjoint; merged ECL 233 -> 234, MSH 233 -> 234, TLA 252 -> 253, ALL 21676 -> 21681).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
 	"ALL": {21704, 34442},
 	"BIG": {23, 30},
