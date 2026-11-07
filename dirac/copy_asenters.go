@@ -89,7 +89,7 @@ func (s *State) cloneOptions(k *prep, d *Decision) {
 	}
 	s.res.active = true
 	if s.res.ask == raGenTokChoice || s.res.ask == raGenRetChoice {
-		s.res.e.trigAmt, s.res.e.x, s.res.e.spc = 0, 0, 0 // a minted token or a returned card was never cast: no mana spent, no colours (gorge reads 0)
+		s.res.e.trigAmt, s.res.e.x, s.res.e.spc, s.res.e.etbSrc = 0, 0, 0, 0 // a minted token or a returned card was never cast: no mana spent, no colours (gorge reads 0)
 	}
 	ctrl := s.res.e.ctrl
 	if s.res.ask == raGenRetChoice || s.res.ask == raGenTokChoice {
@@ -143,7 +143,7 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 	// the template's copy exceptions, then the op's own (CR 707.9b)
 	s.copyExcAdd(k, sl, src, uint8(in.C>>1))
 	if k.gen.anyCloneCopy {
-		s.clonePermNote(sl, t, uint8(in.C>>1)) // the marker a later cleanup settle re-bases from
+		s.clonePermNote(sl, t, uint8(in.C>>1), s.tick()) // the marker a later cleanup settle re-bases from
 	}
 	// the copied card's own enters replacements apply (CR 707.5; gorge's
 	// entry plan reads the clone template): enters tapped, with counters,

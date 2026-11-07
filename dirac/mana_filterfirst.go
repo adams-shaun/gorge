@@ -143,14 +143,30 @@ func (s *State) windowFiltFirstUsable(k *prep, p uint8, sl Slot) bool {
 }
 
 // windowFiltFirst activates that filter in the window, for the first colour it
-// makes that useful still owes (gorge paymentUsefulColours), else its lowest.
-// A window whose ask carries no cost (a trigger's own cost, noOwed, with no
-// clamp) lists every colour and answers the lowest, W for an any-colour one.
+// makes that useful still owes (gorge paymentUsefulColours), in the ability's
+// ask order (a Combo's printed order, colourAskOrder). Nothing owed answers the
+// lowest W U B R G colour, as payexec.WindowAnswer does; a window whose ask
+// carries no cost (a trigger's own cost, noOwed, with no clamp) has nothing to
+// owe, so it takes the same lowest.
 func (s *State) windowFiltFirst(k *prep, p uint8, sl Slot, useful *kop.ManaCost, noOwedUnclamped bool) {
-	mask := uint8(s.filtAb(k, sl).ManaColors)
-	c := bits.TrailingZeros8(mask)
-	if want, decided := s.windowUseful(k, p, useful); decided && mask&want != 0 && !noOwedUnclamped {
-		c = bits.TrailingZeros8(mask & want)
+	ab := s.filtAb(k, sl)
+	mask := uint8(ab.ManaColors)
+	c := uint8(bits.TrailingZeros8(mask))
+	if !noOwedUnclamped && useful != nil {
+		// gorge's ask lists what the cost still owes first (owedColoursFirst),
+		// in the ability's own order, from the pool the payment may spend
+		// (windowUseful, CR 106.6): a pip its restricted mana covers is not
+		// owed. Nothing owed falls back to the lowest W U B R G colour, which
+		// is what payexec.WindowAnswer answers then. A hybrid pip leaves the
+		// verdict undecided (windowUseful prices nothing): gorge keeps every
+		// colour there, so the census alone gives the demand.
+		want, _ := s.windowUseful(k, p, useful)
+		if useful.Hyb[0] != 0 {
+			want = s.windowDemand(k, p, useful)
+		}
+		if a := askOwedColour(ab, mask, want); a >= 0 {
+			c = uint8(a)
+		}
 	}
 	s.filtDo(k, p, filtStep{sl: sl, ans: uint8(1 + c), gap: true})
 }
