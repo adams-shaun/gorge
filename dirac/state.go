@@ -461,7 +461,16 @@ type stackEntry struct {
 	trigObj Obj
 	trigPl  uint8
 	trigAmt int16
-	li      uint8 // the triggering object's last known information: LKI pool index (zone_lki.go)
+	// etbSrc is the source of a spell's pending enters-with rider count
+	// (ctr_effectentry.go): the resolving SpellCast trigger's source, whose
+	// Effect registers the live Event$ Moved replacement gorge composes over
+	// the entry. Stamped only when the entrant's own Updated body is exactly
+	// the shape the CR 616.1 entry-order ask orders (repl_etborder.go):
+	// without a stamped source the count is applied silently, as before.
+	// Placed before the odd-length byte run that follows so spc's
+	// two-byte alignment does not grow the struct.
+	etbSrc Obj
+	li     uint8 // the triggering object's last known information: LKI pool index (zone_lki.go)
 	// remVer is a delayed program's remembered object's ver at registration
 	// and remSet whether it was captured: RefDelayedRemembered reads nothing
 	// once the object has changed zones since (CR 603.7c, 400.7; refObjCtx).
@@ -687,14 +696,6 @@ type build struct {
 	raiseAb   uint8    // Static.B of that static: 1 + the latent ability holding the raise cost
 	fixedGen  uint8    // the generic part as last priced (bflCostFixed: the total cost, CR 601.2f)
 	pipShort  bool     // the lowered pip window ran dry (loweredPipWindow): the cost objects are still asked, and the payment reverses the cast
-	// convokeBudget: a plain hand cast (beginCast mode 0, card in hand) or an
-	// untyped paid may-play cast from the graveyard or exile, the shapes the
-	// oracle caches a priority-time cost for. Its convoke
-	// announcement filters the remaining picks by the post-pick cost; on
-	// every other cast route (typed or free may-play, alternate cost, kicker) the oracle
-	// has no cached cost and poses gorge's whole static option list
-	// (kw_convoke.go convokeOptions).
-	convokeBudget bool
 }
 
 // build.bfl bits. bflLowered: a cast gorge's planner does not price,
