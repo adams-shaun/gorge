@@ -1058,6 +1058,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		s.continueRes(k, 0)
 	case raGenEnterAsk:
+		if s.g.ask[0].kind == akNameLook {
+			s.g.ask[0].kind = akNameAny // the look is acknowledged: the name is asked next (repl_choosename.go)
+			return
+		}
 		saved := s.res
 		s.res.active = false // the enters program runs with its own source as the context
 		s.answerQueuedAsk(k, a)
