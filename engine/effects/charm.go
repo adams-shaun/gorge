@@ -31,7 +31,14 @@ func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int, r
 	repeat = p.CanRepeatModes
 	max = int(numText(h, c, p.CharmNum, 1))
 	if max < 1 {
-		max = 1
+		// an absent MinCharmNum$ keeps the Forge floor of one mode; with
+		// it present a count of zero is "choose up to zero" (CR 700.2a:
+		// no mode is chosen)
+		if p.MinCharmNum.Present {
+			max = 0
+		} else {
+			max = 1
+		}
 	}
 	min = max
 	if p.MinCharmNum.Present {
@@ -47,6 +54,17 @@ func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int, r
 		min = 0
 	}
 	return min, max, repeat
+}
+
+// CharmCountReadsTriggeringSpell reports whether the Charm's CharmNum$ (a
+// literal or an SVar name in c's table) reads TriggeredSpellAbility$, which a
+// trigger-placement ctx cannot yet answer.
+func CharmCountReadsTriggeringSpell(c *Ctx, sa *cards.SA) bool {
+	text := CharmOf(sa).CharmNum.Text
+	if body, ok := c.SVars[text]; ok {
+		text = body
+	}
+	return strings.Contains(text, "TriggeredSpellAbility$")
 }
 
 // CharmPawprints prices a modal ability's pawprint budget (CR 700.2i, CR
@@ -825,6 +843,9 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		choices, subs, offered = picked, filteredSubs, true
 	}
 	min, max, repeat := CharmModeBounds(h, c, sa, len(choices))
+	if max < 1 {
+		return // choose up to zero: no mode, nothing resolves
+	}
 	if min > len(choices) && !repeat {
 		// Forge declines a Charm whose required minimum exceeds its available
 		// modes. A repeatable Charm can always fill its slots by repeating a
