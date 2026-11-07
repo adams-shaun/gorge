@@ -44,8 +44,13 @@ INSTR_PB_MAX=${INSTR_PB_MAX:-1.02}
 INSTR_CORE=${INSTR_CORE:-20}
 PERF_MAX=${PERF_MAX:-1.06}
 # The accepted program base: instructions per op before the instruction budget was set.
+# BLB was re-accepted at 55771 (523e81d72): the entry-order ask over an effect's
+# enters-with rider and the entrant's own prepared body (CR 616.1c) costs one
+# branch on the spell-resolve and ask-routing paths, and land's cumulative drift
+# had already spent the old base's 1.02x (55770 = 1.01999x of 54677). FDN is
+# still below its base.
 INSTR_PB_FDN=52373
-INSTR_PB_BLB=54677
+INSTR_PB_BLB=55771
 
 top=$(git rev-parse --show-toplevel) || exit 2
 cd "$top" || exit 2
