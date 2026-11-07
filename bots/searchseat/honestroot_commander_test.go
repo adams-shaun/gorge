@@ -13,6 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/searchprobe"
 	ss "github.com/adams-shaun/gorge/bots/searchseat"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
@@ -138,6 +139,59 @@ func frameShowsCommanderOutsideCommand(f searchprobe.Frame, refs map[uint32]bool
 	return false
 }
 
+// hasCommanderCast reports whether any commander has been cast from the
+// command zone (CR 903.8), the fact that makes a CmdCasts equality check
+// non-vacuous.
+func hasCommanderCast(e *rules.Engine) bool {
+	for i := range e.G.Players {
+		for _, n := range e.G.Players[i].CmdCasts {
+			if n > 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// commanderCastPosition advances p from the seat-0 decision newRootPosition
+// returned until a commander has been cast, so the CmdCasts equality in the
+// root tests cannot pass on two zeroes. p's current decision has already been
+// observed; every later decision of every player is observed in turn.
+func commanderCastPosition(t *testing.T, p rootPosition) rootPosition {
+	t.Helper()
+	if hasCommanderCast(p.e) {
+		return p
+	}
+	board := botpolicy.NewBoard(2)
+	rngs := searchprobe.BotRandoms(9001, 2)
+	for steps := 0; steps < 20000 && !p.e.G.Over; steps++ {
+		d := p.e.Pending()
+		if d == nil {
+			t.Fatalf("no pending decision at step %d", steps)
+		}
+		if d.Player == 0 && hasCommanderCast(p.e) {
+			return p
+		}
+		in := botpolicy.Decide(botpolicy.BoardFromGameInto(p.e.G, p.e, d.Player, &board), d, rngs[d.Player])
+		if d.Player == 0 {
+			if err := p.feed.RecordAnswer(d, in); err != nil {
+				t.Fatalf("record answer at step %d: %v", steps, err)
+			}
+		}
+		if err := p.e.Submit(in); err != nil {
+			t.Fatalf("submit at step %d: %v", steps, err)
+		}
+		if p.e.G.Over {
+			break
+		}
+		if _, ok := p.feed.Observe(p.e); !ok {
+			t.Fatalf("feed stopped at step %d: %s", steps, p.feed.StopReason())
+		}
+	}
+	t.Fatalf("no commander was cast in 20000 steps (turn %d, over %v)", p.e.G.Turn, p.e.G.Over)
+	return p
+}
+
 // TestFeedObservesAWholeCommanderGame drives bot-vs-bot Commander from the
 // first decision to the game's end (or the 20000-step cap): seat 0's feed
 // captures every decision of both players without stopping, and the stream
@@ -194,10 +248,13 @@ func TestFeedObservesAWholeCommanderGame(t *testing.T) {
 // every world keeps each player's commanders in the live zones and the live
 // CmdCasts.
 func TestHonestRootKeepsACommanderObservation(t *testing.T) {
-	p := newRootPosition(t, commanderRootConfig(t, "foundations-tramplesaurus-rex", "foundations-wretched-ranks"))
+	p := commanderCastPosition(t, newRootPosition(t, commanderRootConfig(t, "foundations-tramplesaurus-rex", "foundations-wretched-ranks")))
 	last := p.feed.LastFrame()
 	if last.Decision == nil {
 		t.Fatal("fixture: the feed's last frame carries no decision")
+	}
+	if !hasCommanderCast(p.e) {
+		t.Fatal("fixture: no commander has been cast; the CmdCasts equality is vacuous")
 	}
 	root, reason := ss.HonestRoot(p.setup, p.feed, p.e, [2]uint64{7, 11})
 	if reason != "" {
@@ -245,6 +302,103 @@ func TestHonestRootKeepsACommanderObservation(t *testing.T) {
 	}
 }
 
+// TestHonestRootKeepsACommanderInAHiddenZone pins the state a declined CR
+// 903.9b commander-zone move leaves -- the commander in its owner's hand (or
+// library) instead of the command zone. The arrival event is Secret to the
+// feed (a hidden destination's move payload is), so the feed's known-card
+// projection does not pin it; its identity is still public and the live zone
+// is on the board, so a root must keep it there and never re-deal it as an
+// unknown hidden card.
+func TestHonestRootKeepsACommanderInAHiddenZone(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		to   state.Zone
+	}{
+		{"hand", state.ZHand},
+		{"library", state.ZLibrary},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			p := newRootPosition(t, commanderRootConfig(t, "foundations-tramplesaurus-rex", "foundations-wretched-ranks"))
+			var cmd state.ObjID
+			for _, id := range p.e.G.Players[1].Commanders {
+				if o := p.e.G.Obj(id); o != nil && o.Zone == state.ZCommand {
+					cmd = id
+					break
+				}
+			}
+			if cmd == 0 {
+				t.Fatal("fixture: the opponent has no commander in the command zone")
+			}
+			events.Emit(p.e.G, p.e.L, events.Event{Kind: events.MoveZone, Player: 1, Obj: cmd, From: state.ZCommand, To: tc.to, Secret: true})
+			if got := p.e.G.Obj(cmd).Zone; got != tc.to {
+				t.Fatalf("fixture: commander zone = %v, want %v", got, tc.to)
+			}
+			if _, ok := p.feed.Observe(p.e); !ok {
+				t.Fatalf("feed stopped: %s", p.feed.StopReason())
+			}
+			root, reason := ss.HonestRoot(p.setup, p.feed, p.e, [2]uint64{7, 11})
+			if reason != "" {
+				t.Fatalf("HonestRoot refused: %s", reason)
+			}
+			if root == nil {
+				t.Fatal("HonestRoot returned a nil engine with no reason")
+			}
+			if got := root.G.Obj(cmd).Zone; got != tc.to {
+				t.Fatalf("root commander zone = %v, want %v", got, tc.to)
+			}
+			if !reflect.DeepEqual(root.G.Players[1].Commanders, p.e.G.Players[1].Commanders) {
+				t.Fatalf("opponent commanders %v, want %v", root.G.Players[1].Commanders, p.e.G.Players[1].Commanders)
+			}
+			if sameHiddenWorld(t, root, p.e) {
+				t.Fatal("the root kept every real hidden card; the hidden-zone check is vacuous")
+			}
+		})
+	}
+}
+
+// TestHonestRootClosedKeepsACommanderInHand is the closed-belief half of the
+// hidden-zone check: the commander is public even though its arrival in the
+// opponent's hand is Secret to the feed, so the closed re-identification must
+// leave its identity and zone alone.
+func TestHonestRootClosedKeepsACommanderInHand(t *testing.T) {
+	cfg := commanderRootConfig(t, "foundations-tramplesaurus-rex", "foundations-wretched-ranks")
+	p := newRootPosition(t, cfg)
+	reg := testutil.CorpusRegistry(t)
+	belief := commanderBelief(t, reg, cfg.Names[0])
+	setup := p.setup.Closed(0, belief)
+	var cmd state.ObjID
+	for _, id := range p.e.G.Players[1].Commanders {
+		if o := p.e.G.Obj(id); o != nil && o.Zone == state.ZCommand {
+			cmd = id
+			break
+		}
+	}
+	if cmd == 0 {
+		t.Fatal("fixture: the opponent has no commander in the command zone")
+	}
+	events.Emit(p.e.G, p.e.L, events.Event{Kind: events.MoveZone, Player: 1, Obj: cmd, From: state.ZCommand, To: state.ZHand, Secret: true})
+	if _, ok := p.feed.Observe(p.e); !ok {
+		t.Fatalf("feed stopped: %s", p.feed.StopReason())
+	}
+	root, reason := ss.HonestRoot(setup, p.feed, p.e, [2]uint64{13, 17})
+	if reason != "" {
+		t.Fatalf("HonestRoot refused a closed Commander position: %s", reason)
+	}
+	if root == nil {
+		t.Fatal("HonestRoot returned a nil engine with no reason")
+	}
+	lo, ro := p.e.G.Obj(cmd), root.G.Obj(cmd)
+	if ro == nil || lo == nil {
+		t.Fatalf("opponent commander %d is missing from an engine", cmd)
+	}
+	if ro.Zone != state.ZHand {
+		t.Fatalf("closed root put the commander in %v, want hand", ro.Zone)
+	}
+	if ro.Card == nil || lo.Card == nil || ro.Card.Faces[0].Name != lo.Card.Faces[0].Name {
+		t.Fatalf("closed root changed the commander's identity: %v, want %v", ro.Card, lo.Card)
+	}
+}
+
 // TestHonestRootClosedInACommanderGame takes the same Commander position
 // through setup.Closed: the root keeps the opponent's live commander in its
 // live zone while every opponent hand and library card it deals comes from
@@ -264,6 +418,9 @@ func TestHonestRootClosedInACommanderGame(t *testing.T) {
 	}
 	if root == nil {
 		t.Fatal("HonestRoot returned a nil engine with no reason")
+	}
+	if sameHiddenWorld(t, root, p.e) {
+		t.Fatal("the root kept every real hidden card; the closed redeal check is vacuous")
 	}
 	liveCmd := p.e.G.Players[1].Commanders
 	if len(liveCmd) == 0 {
