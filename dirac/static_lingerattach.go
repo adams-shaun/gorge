@@ -100,6 +100,22 @@ func (s *State) lingerObj(q Slot) Obj {
 	return NoObj
 }
 
+// lingerHost is slot q's lingering host for a projection: lingerObj, unless
+// that host has since re-entered the battlefield (a flicker's return leg
+// under the same object). The returned permanent is a new object that
+// nothing is attached to (CR 400.7), and gorge breaks the live link at its
+// entry (breakQueuedAttachmentsOnEntry) while the unattach waits for the
+// check. The caller checks lingerM.has(q) first.
+//
+//go:noinline
+func (s *State) lingerHost(q Slot) Obj {
+	o := s.lingerObj(q)
+	if o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+		return NoObj
+	}
+	return o
+}
+
 // attLKIRec is one departed attachment: the object that left (obj), the
 // host it was attached to (host) and the host's ver at departure. Two
 // records fill genState's pad before evSel; a third departure overwrites
