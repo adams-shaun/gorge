@@ -229,6 +229,9 @@ func (s *State) pushBuild(k *prep) {
 			s.unprepareCast(e.obj) // CR 722.3c (face_prepare.go)
 		}
 		s.bld().pushNP = uint8(s.npend)
+		if ob.zone == kop.ZoneLibrary {
+			s.bld().libPos = s.pl[ob.owner()].libIndex(e.obj)
+		}
 		s.detach(e.obj)
 		s.touch(e.obj)
 		if s.g.on {
@@ -327,9 +330,11 @@ func (s *State) unpushSpell(k *prep) {
 		pl.exile[pl.exileN] = o
 		pl.exileN++
 	case kop.ZoneLibrary:
-		pl.libTop(o)
+		pl.libInsert(o, s.bld().libPos) // CR 733.2: back where it was, not on top
 	case kop.ZoneSideboard:
 		// outside the game: no list, the object's zone is its place
+	case kop.ZoneCommand:
+		// the command zone is a place: no list to return the card to
 	default:
 		panic("kernel: unpushSpell from an unexpected zone")
 	}
@@ -483,6 +488,11 @@ func (s *State) buildCost0(k *prep) kop.ManaCost {
 // folded, so the caller resolves nothing more.
 func (s *State) buildCostPre(k *prep, pre, charge bool) (kop.ManaCost, bool) {
 	c, done := s.buildCostPreRaw(k, pre, charge)
+	if s.cfg&cfgCommander != 0 && s.bld().e.kind == seSpell {
+		// CR 903.8: the command-zone tax, after the cost statics, so a
+		// reduction never takes it off
+		addCommanderTax(&c, s.commanderTax(s.bld().e.ctrl, s.bld().e.obj))
+	}
 	if s.bld().e.flags&sfAnyMana != 0 && s.bld().e.kind == seSpell {
 		c = anyTypePips(c) // a hand cast under Vizier's conversion too (mana_convertcreature.go); idempotent
 	}
@@ -725,8 +735,8 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			mx := av.maxX(&cost, pipMaskOf(&cost))
 			gorgeSurface := s.cfg&cfgGorgeSurface != 0
-			if k.restrSrc {
-				mx = max(mx, s.restrSrcMaxX(k, e.ctrl, &cost, &av)) // the restricted sources the payment may spend
+			if k.restrSrc || k.gen != nil && k.gen.anyMultiR {
+				mx = max(mx, s.restrSrcMaxX(k, e.ctrl, &cost, &av)) // the restricted sources the payment may spend (a wide any-colour one included)
 			}
 			anyColor := s.bld().bfl&bflAnyColor != 0
 			if anyColor {
@@ -785,8 +795,20 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				}
 			}
 			if k.gen != nil && k.gen.anyCharmV {
-				if c := s.charmCap(k); c != 0 {
-					pick = c // CharmNum$ over Count$Compare (modal_charmcmp.go)
+				if c, dyn := s.charmCap(k); dyn {
+					pick = c // CharmNum$ over a dynamic count (modal_charmcmp.go)
+					if c == 0 {
+						// choose up to zero: a trigger with no mode is
+						// removed (CR 603.3c), a spell announces none
+						if e.kind == seTrigger {
+							s.sp--
+							s.ctl = ctlPlaceTriggers
+							return false
+						}
+						s.bld().modesN = 255
+						s.nextStage(k)
+						continue
+					}
 				}
 			}
 			if s.bld().modesN >= max8(pick, 1) || e.kind == seAbility && s.modalActAtResolution(a, pick) {
@@ -1516,6 +1538,13 @@ const abProwess uint8 = 254
 // kernel-native prowess per granting static (gorge checks the printed
 // face's triggers, then one granted keyword trigger per granting static).
 func (s *State) onCast(k *prep, e *stackEntry) {
+	if s.cfg&cfgCommander != 0 && s.bld().origin == kop.ZoneCommand {
+		// CR 903.8 counts a cast as it is committed to the stack; a
+		// reversed cast never reaches here
+		if pl := &s.pl[e.ctrl]; pl.cmd == e.obj && pl.cmdCast < 255 {
+			pl.cmdCast++
+		}
+	}
 	pc := &k.cards[e.card]
 	if k.gen != nil && pc.types&(kop.TInstant|kop.TSorcery) != 0 && s.g.isCast[e.ctrl] < 255 {
 		s.g.isCast[e.ctrl]++

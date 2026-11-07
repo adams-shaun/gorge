@@ -185,13 +185,22 @@ type CardDef struct {
 	// declared intent (Atlantis Attacks' "choose both"); dirac/kw_teamwork.go.
 	Teamwork    uint8
 	ModesPickTW uint8
-	// ModesPickV (zero K = none) is a spell charm's CharmNum$ over a
-	// Count$Compare with constant arms (Molten Collapse's "choose both
-	// instead" once you descended): the pick count, evaluated with the
-	// caster's ctx at the cast's mode step and clamped to 1..NModes (gorge
-	// effects.CharmModeBounds). Ability.ModesPick is its upper bound and
+	// ModesPickV (zero K = none) is a spell or triggered charm's
+	// CharmNum$ over a Count$Compare with constant arms (Molten Collapse's
+	// "choose both instead" once you descended), the paid-additional-cost
+	// two-arm, or a general count beside MinCharmNum$ 0 ("choose up to V":
+	// the graveyard count of Bumi, the paid X of the Ruinous crew): the pick
+	// count, evaluated with the caster's ctx at the mode step and clamped to
+	// 0..NModes (gorge effects.CharmModeBounds floors it at 1 only with
+	// MinCharmNum$ absent, and no card's constant arms go below 1). Ability.ModesPick is its upper bound and
 	// ModesFew the spread to MinCharmNum$; dirac/modal_charmcmp.go.
 	ModesPickV ValueRef
+	// ModesMinCount: the charm has no MinCharmNum$, so gorge's minimum is
+	// the count evaluated at each ask (Pyrrhic Strike's paid additional cost
+	// chooses both, the plain cast one). Ability.ModesFew then holds the
+	// offer gate's minimum, the unpaid arm (the gate reads an unseeded
+	// hand card), and the mode step's minimum is the evaluated cap.
+	ModesMinCount bool
 	// DungeonNext: a dungeon card (CR 309; the Undercity
 	// token script), one entry per room in printed order, the room's
 	// ability Abilities[i] (latent); the entry packs its NextRoom$ arrows
@@ -340,6 +349,10 @@ type CardDef struct {
 	// Convoke is printed convoke (CR 702.51a; no KwMask bit is free):
 	// the cast may tap creatures for its mana cost (dirac/kw_convoke.go).
 	Convoke bool
+	// Delve is printed delve (CR 702.66a; no KwMask bit is free): the cast
+	// exiles graveyard cards toward its generic cost (dirac/kw_delve.go).
+	// A granted delve reads the same path.
+	Delve bool
 	// Improvise is printed improvise (CR 702.126a): the cast may tap
 	// untapped artifacts, each paying {1} of the generic part. Never set
 	// with Convoke (kgen refuses both). Shares the convoke payment path.

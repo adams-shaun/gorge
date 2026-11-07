@@ -1154,6 +1154,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if arg, ok := strings.CutPrefix(rest, "CountersAddedThisTurn "); ok {
 		return lc.ctrAddedValue(arg) // value_countersadded.go
 	}
+	if spec, ok := strings.CutPrefix(rest, "DifferentCounterKinds_"); ok {
+		return lc.counterKindsValue(spec) // value_counterkinds.go
+	}
 	if spec, ok := strings.CutPrefix(rest, "ThisTurnCast_"); ok {
 		return lc.thisTurnCastValue(spec) // value_thisturncast.go
 	}

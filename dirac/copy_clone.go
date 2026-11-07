@@ -400,6 +400,8 @@ func (s *State) cloneCleanup(k *prep) {
 			if DebugCloneCopyStats != nil {
 				DebugCloneCopyStats.Rebased++
 			}
+		} else if l.kind == copyBase {
+			s.aegisRestore(sl) // the covered copy's exceptions, held aside
 		}
 		s.subscribe(sl, &k.cards[s.cardAt(sl)], true)
 		p.ovr.kw = p.ovr.kw&^old | s.copyExcKw(k, sl)
@@ -416,6 +418,9 @@ func (s *State) cloneCleanup(k *prep) {
 // copySrcSlot is the slot an object's copiable values are read from, NoSlot
 // when it is off the battlefield (its printed card).
 func (s *State) copySrcSlot(o Obj) Slot {
+	if int(o) >= MaxObj {
+		return NoSlot
+	}
 	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield {
 		return ob.slot
 	}

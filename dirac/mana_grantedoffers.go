@@ -1167,7 +1167,15 @@ func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop
 			defer func() { s.g.raiseO = 0 }()
 		}
 	}
-	return s.grantPlayCostRaise(k, p, a, kicked)
+	cost, ex, need, ok = s.grantPlayCostRaise(k, p, a, kicked)
+	if ok && a.Kind() == AkCast && a.Mode()&castMayPlay != 0 && a.Mode()&castFree == 0 && (s.g.mayPlayAny || s.mayPlayAnyType(k, p, Obj(a.Source()))) {
+		// an any-type may-play rider: gorge's planner funds the cast under
+		// the rider (pay.PlanManaUnderRider), so the printed lands pay
+		// Fuss's {R/W} from Outrageous Robbery's exile and no granted
+		// source is tapped first (CR 601.2g-h, 609.4b)
+		cost = planUnderRider(cost, true, false)
+	}
+	return cost, ex, need, ok
 }
 
 // grantPlayCostRaise is grantPlayCost with raiseO set as the caller left it.
@@ -1220,6 +1228,9 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			// the composed cost (pair 8638)
 			c := s.objs[a.Source()].card
 			cost = s.featCost(k, p&1, c, Obj(a.Source()), addCost(k.cards[c].cost, k.t.Cards[c].Kicker))
+			if s.convAnyType(k, p&1, Obj(a.Source())) {
+				cost = anyTypePips(cost) // a creature's kicked total under Vizier's conversion, as plannedCastCostOf prices the plain one (featview.go)
+			}
 			return cost, ex, need, true
 		}
 		if c := s.objs[a.Source()].card; a.Kind() == AkCast && (a.Mode() == 0 || a.Mode() == castMayPlay) && k.t.Cards[c].Cost.X != 0 && !k.t.Cards[c].HasAltAdd && k.t.Cards[c].Cost.Hyb[0] == 0 {

@@ -157,7 +157,9 @@ func redundantMana(first, a *lAbility) bool {
 }
 
 // commanderFilter reports whether every clause of f requires a commander
-// (IsCommander, kop.W7IsCommander): nothing matches it in the kernel's games.
+// (IsCommander, kop.W7IsCommander): the second ability is then dropped on the
+// assumption that nothing matches the filter. The cmd5 pool guard reads the
+// counter.
 func commanderFilter(f *lFilter) bool {
 	if f == nil || len(f.Clauses) == 0 {
 		return false
@@ -167,6 +169,7 @@ func commanderFilter(f *lFilter) bool {
 			return false
 		}
 	}
+	noteCmdShortcut(cmdShortcutCommanderMana)
 	return true
 }
 

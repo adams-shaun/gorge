@@ -384,6 +384,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				}
 				flags = append(flags, "alt="+alt)
 			}
+			if flags, err = shareLandType(ps, f, flags); err != nil { // lower_sharelandtype.go
+				return err
+			}
 			if dest == zBattlefield && !isConstN(n, 1) {
 				// CR 303.4f: the kernel parks one found Aura for its enchant ask.
 				for _, c := range f.Clauses {
@@ -488,10 +491,12 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			return lc.publicPick(ps, f, n, flags, counterKind, override, origin, dest)
 		}
 		if origin == zCommand && dest == zHand && ps.is("Hidden", "True") && strings.Contains(ct, "IsCommander") {
-			// Command Beacon's "put your commander into your hand": no seat
-			// has a commander in a kernel game (kop.W7IsCommander), the
-			// command zone holds no other card, and gorge's pick over the
-			// empty pool moves nothing and poses no decision
+			// Command Beacon's "put your commander into your hand": lowered
+			// to nothing on the assumption that no seat has a commander
+			// (kop.W7IsCommander), so the command zone holds no other card
+			// and gorge's pick over the empty pool moves nothing and poses no
+			// decision; the cmd5 pool guard reads the counter
+			noteCmdShortcut(cmdShortcutCommandBeacon)
 			ps.consume("SelectPrompt")
 			return nil
 		}
@@ -783,7 +788,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		if in.Op != "Return" || in.C != zBattlefield {
 			return refuse("StaticEffect on a %s", in.Op)
 		}
-		lc.emitOverride(lRef{Kind: rRemembered}, override, "Permanent")
+		lc.emitOverride(lRef{Kind: rRemembered}, override, "Permanent|enterWith")
 		lc.ab.Prog[len(lc.ab.Prog)-1].Note = "applies to the returned object"
 		lc.ab.Prog[len(lc.ab.Prog)-1].Obj = obj
 	}

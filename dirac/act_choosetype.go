@@ -61,7 +61,7 @@ var DebugChooseTypeAllVocab bool
 // lookup).
 func (s *State) typeAskCard() CardID {
 	switch {
-	case s.g.pre.state == 1 || s.res.ask == raGenTokChoice || s.res.ask == raGenRetChoice:
+	case s.preAskPosed() || s.res.ask == raGenTokChoice || s.res.ask == raGenRetChoice:
 		return s.preAskCard()
 	case s.g.nask > 0:
 		return s.cardAt(s.g.ask[0].sl)
@@ -223,6 +223,9 @@ func (s *State) outsideChosenHas(k *prep, sl, src Slot) bool {
 		}
 		if ch, ok := s.chosenGrant(a, st.sl); !ok || !outsideSub(k, ch) {
 			return true
+		}
+		if _, outside := s.selfGrantKept(k, sl, st.sl); !outside {
+			return true // a newer setter on sl overwrote its own grant (static_selfgrant.go)
 		}
 		if s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerSub) {
 			if st.sl == src {

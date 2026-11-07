@@ -160,6 +160,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return 0
 	case kop.ExNotOwnLibMV:
 		return s.notOwnLibMV(k) // value_objectmv.go
+	case kop.ExCounterKinds:
+		return s.counterKinds(k, x, ctx) // value_counterkinds.go
 	case kop.ExMVOf:
 		if DebugMVOfReplacedZero && x.Ref == kop.RefReplaced {
 			return 0 // mutation hook

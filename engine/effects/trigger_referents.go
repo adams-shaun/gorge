@@ -49,7 +49,15 @@ type TriggerContext struct {
 	// Incarnation sacrificed before its enter trigger's intervening-if is
 	// rechecked). Meaningful only with SourceLKIValid and a departed source.
 	SourceManaColorSpent state.Mana
-	TriggerTarget        state.Target
+	// SourcePower, SourceToughness and SourceCounters are the departed
+	// source's layer-derived power and toughness and its counters as it last
+	// stood on the battlefield, read by Count$CardPower / CardToughness /
+	// CardCounters (Threefold Thunderhulk's "Gnomes equal to its power" with
+	// the creature sacrificed in response, CR 608.2h). Meaningful only with
+	// SourceLKIValid and a departed source; SourceCounters is never written.
+	SourcePower, SourceToughness int32
+	SourceCounters               []state.Counter
+	TriggerTarget                state.Target
 	// TriggerTargetLKIValid marks TriggerTargetAttacking as the attacking
 	// status TriggerTarget had on the battlefield when the trigger fired
 	// (CR 608.2h). A condition gate reading the target after a zone change
@@ -275,6 +283,13 @@ type TriggerContext struct {
 	// cast in response to the trigger do not add copies. Zero outside a
 	// storm trigger.
 	TriggerStormCount int32
+	// TriggerIncrementSpent is the mana spent to cast the triggering spell,
+	// captured when an Increment trigger fires (CR 702.191a). Increment's
+	// condition is an intervening "if" (CR 603.4) rechecked as the ability
+	// resolves, and the spend is event-relative: no state at resolution can
+	// re-derive it, so it travels with the ability like TriggerStormCount.
+	// Zero outside an Increment trigger.
+	TriggerIncrementSpent int32
 	// TriggerPaidX snapshots the paid X of TriggerCard when this trigger
 	// matched. CR 107.3m binds that value at trigger time: it must survive if
 	// the card later leaves the stack or battlefield before the ability

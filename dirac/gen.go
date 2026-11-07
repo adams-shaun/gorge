@@ -207,7 +207,7 @@ type genPrep struct {
 	anySneak       bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
 	anyWebSling    bool           // some card has web-slinging (CardDef.HasWebSling; kw_websling.go)
 	anyMayFlash    bool           // some card has K:MayFlashCost (CardDef.HasMayFlash; kw_mayflash.go)
-	anyDelve       bool           // some card grants Delve to a spell as it is cast (StatStackKw Delve; kw_delve.go)
+	anyDelve       bool           // some card has printed or granted Delve (CardDef.Delve, StatStackKw Delve; kw_delve.go)
 	anyConvoke     bool           // some card has printed or granted convoke/improvise or harmonize (CardDef.Convoke/Improvise/Harmonize, StatStackKw Improvise/Convoke; kw_convoke.go)
 	anyBeam        bool           // some card has printed beam me up (CardDef.BeamMeUp; kw_beammeup.go)
 	anyBeamBar     bool           // some card has a StatCantBeBeamedUp static
@@ -590,7 +590,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyUnblocked = tableUnblocked(t)
 	g.anyOrCopy = tableTrigFlag2(t, kop.TrigSpellCast, kop.Tf2OrCopy)
 	if tableTrigFlag2(t, kop.TrigSpellCast, kop.Tf2Increment) {
-		g.anySpent, g.anyHist = true, true // the Increment comparison reads the spell's recorded spend (kw_increment.go); histCast itself is anyHist-gated. Never anyCastSpent: no planner decline
+		g.anySpent, g.anyHist = true, true // the Increment comparison (fire and resolution) reads the spell's recorded spend (kw_increment.go); histCast itself is anyHist-gated. Never anyCastSpent: no planner decline
 	}
 	prepCtrAdded(t, p, g) // ctr_addedthisturn.go
 	if tableSpentGate(t) {
@@ -758,6 +758,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.TapPays() || c.Harmonize {
 			g.anyConvoke = true
 			g.anyHarmonize = g.anyHarmonize || c.Harmonize
+		}
+		if c.Delve {
+			g.anyDelve = true
 		}
 		if c.Cascade != 0 {
 			g.anyCascade = true
@@ -1366,7 +1369,7 @@ const (
 	maxEmb    = 4  // emblems per player
 	maxDmgMap = 8  // damage-map entries
 	maxXTgt   = 7  // objects of multi-object target slots beyond the first
-	maxUsed   = 8  // once-per-turn records
+	maxUsed   = 16 // once-per-turn records
 	// maxSacOrd bounds one effect's sacrifice batch. The FDN and BLB
 	// 1500-pair lockstep slices reach 12 (measured
 	// 2026-10-22); 16 leaves headroom without paying for a whole board.
@@ -1434,6 +1437,7 @@ const (
 	fxCopyHeld               // a token copy's own copy exception (r.idx), held aside while an until-end-of-turn copy overrides it (copy_clone.go cloneHold)
 	fxCopyMint               // a token copy's own copy (r.src the card it was minted as), held aside likewise (copy_clone.go cloneHold)
 	fxAegisBase              // the copy a bearer wore (r.src its card) when an Aegis stack took over with no copy marker of its own, which shows again when the last Aegis copy ends (copy_aegisunder.go)
+	fxAegisHeld              // a copy exception of the copy an Aegis stack covered (r.idx), held aside while the Aegis copy shows: no marker can rebuild it (copy_aegisunder.go aegisHold)
 )
 
 // maxFx bounds the effect records live at once (all permanents); a full
@@ -1640,8 +1644,11 @@ type genState struct {
 	room    [2]uint8
 	dObj    [2]Obj
 	retMiss bool            // the last OpReturnEx returned nothing (its StaticEffect rider then applies to nothing)
+	ewDone  bool            // the last return applied its OvEnterWith override as the object entered (zone_assimilate.go)
+	ewPend  bool            // a return's OvEnterWith override waits for its entrant: enterGen applies it before the as-enters replacements (zone_assimilate.go)
 	retAt   uint8           // the remembered object a many-object return is moving, + 1 (0 = none; returnrem.go)
 	retTS   uint16          // the entry stamp a many-object return started at: its entrants are the ones after it
+	batchTS uint16          // the entry stamp the open batch began at: a watcher entered after it looks back to the board before the batch (trig_oneormore.go)
 	spent   [2]uint16       // the history bank (value_turnhistory.go): mana each player spent casting spells this turn (expend)
 	sacM    slotMask        // permanents picked for an effect's sacrifice, sacrificed together once all are picked
 	sacOrd  [maxSacOrd]Slot // sacM's slots in sacrifice order (gorge zone_bulk.go effSacrifice: player by player, each in answer order)
@@ -1750,6 +1757,13 @@ type genState struct {
 	retHeld  [8]Obj
 	nretHeld uint8
 	retCtrl  uint8
+	// retHold: the returns batch is parked on a host ask, so its frame's
+	// close waits for the answer (zone_untilleavesbatch.go); retOld and
+	// retStamp are the latch batchClose restores and the frame's opening
+	// entry stamp, kept for that deferred close.
+	retHold  bool
+	retOld   uint8
+	retStamp uint16
 	// entExc: the copy exceptions of the token entering next (entExcOn | the
 	// template's slot<<8 | the op's exception). Its entry's replacements read
 	// the token with them (CR 707.9, 614.12).
@@ -1959,7 +1973,7 @@ const (
 	StallPanharmGrant  = 142 // a fifth Panharmonicon grant (Lwaxana Troi) live at once (genState.pgT; act_grantpanharm.go)
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
-	NumStall           = 144 // capacity of the reason tables (StallName); a reason registers its name in its own file
+	NumStall           = 145 // capacity of the reason tables (StallName); a reason registers its name in its own file
 )
 
 // StallName is reason r's short name ("" for StallNone).

@@ -98,6 +98,10 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 			s.applyOverridePT(k, sl, int(s.g.tokPT.idx), s.res.e.card, 0, s.g.tokPT.p, s.g.tokPT.t)
 		}
 	}
+	if s.g.ewPend {
+		s.g.ewPend = false
+		s.enterWithApply(k, sl) // zone_assimilate.go
+	}
 	cid := s.cardAt(sl)
 	g := k.gen
 	if !g.has(cid, gfEnterRepl) && !s.statM.any() {
@@ -246,6 +250,13 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 		sp := &s.perms[src]
 		s.res = resCtx{e: stackEntry{kind: seAbility, obj: sp.obj, srcVer: s.objs[sp.obj].ver, card: s.cardAt(src), ab: ab, ctrl: sp.ctrl, trigObj: NoObj}}
 		s.res.e.tgt = noTargets
+	} else if c := s.perms[src].ctrl; c != s.res.e.ctrl {
+		// the program's "you" is its source's controller (CR 109.5), not
+		// the resolving effect's: Dust Animus returned by an opponent's
+		// Mystical Tether counts its own controller's untapped lands
+		was := s.res.e.ctrl
+		s.res.e.ctrl = c
+		defer func() { s.res.e.ctrl = was }()
 	}
 	for i := int(pc); i < len(prog); i++ {
 		in := &prog[i]
@@ -500,6 +511,9 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 				}
 				continue
 			}
+			if kind := s.enterChoiceKind(k, x.card); kind != 0 && s.parkReturnCost(k, srcCtrl, o, l.obj, kind) {
+				continue // a cost's sacrifice outside a resolution: asked before priority (zone_untilleavescost.go)
+			}
 			ctrN := 0
 			if k.gen.anyLinkCtr {
 				ctrN = s.linkRetCtrs(k, srcCtrl, o, l.obj) // before the card takes the source's slot
@@ -746,6 +760,9 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 	if s.ctl != ctlPriority || s.res.active {
 		return false
 	}
+	if s.poseReturnCost(k, d) {
+		return true // zone_untilleavescost.go
+	}
 	if s.g.endTurn {
 		s.clearCombat() // CR 723.1b: every creature is removed from combat
 		// a state-based action still due is performed before the step: inside
@@ -872,6 +889,14 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 		s.replOrderOptions(d)
 		return true
 	}
+	if s.g.pre.state == preReturnCost {
+		// a cost's sacrifice outside a resolution returns a card with an
+		// as-enters choice: posed once the build is done and rebuilt
+		// identically while it waits (zone_untilleavescost.go)
+		d.Kind, d.Player = DkChoose, s.objs[s.g.pre.obj].owner()
+		s.askOptions(k, d, s.g.pre.kind)
+		return true
+	}
 	if s.g.pre.state == 1 {
 		d.Kind = DkChoose
 		if s.g.pre.kind == akEntryOrder {
@@ -953,6 +978,9 @@ func (s *State) applyGen(k *prep, a Action) {
 	if s.g.ro.n > 0 && (s.g.ro.on || s.g.ro.nca) {
 		s.applyReplOrder(a)
 		return
+	}
+	if s.answerReturnCost(k, a) {
+		return // zone_untilleavescost.go
 	}
 	if s.g.pre.state == 1 {
 		if s.g.pre.kind == akNameLook {

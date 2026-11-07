@@ -34,6 +34,7 @@ func (s *State) batchOpen() uint8 {
 	old := s.g.batchLatch
 	if old&batchOpenMask == 0 {
 		s.g.batchLatch = old&^batchOpenMask | (s.npend+1)&batchOpenMask
+		s.g.batchTS = s.ts // CR 603.10a: the board this batch looks back to
 	}
 	return old
 }
@@ -58,9 +59,6 @@ func (s *State) batchTrigOK(l trigListener, a *kop.Ability, o Obj) bool {
 	}
 	if a.Trig.Flags2&kop.Tf2Batch == 0 || s.g.batchLatch&batchOpenMask == 0 {
 		return true
-	}
-	if s.g.batchLatch&batchSac != 0 && a.Trig.Event != kop.TrigSacrificed {
-		return true // a cost-site batch is a sacrifice batch only
 	}
 	for i := int(s.g.batchLatch&batchOpenMask) - 1; i < int(s.npend); i++ {
 		if p := &s.pend[i]; p.obj == l.obj && p.card == l.card && p.ab == l.ab {
@@ -219,5 +217,5 @@ func (s *State) replPlusHit(k *prep, b Slot, a *kop.Ability, srcCtrl uint8, srcS
 		}
 		return 0, 0, false
 	}
-	return s.dmgPlusAmt(r, b), 0, true
+	return s.dmgPlusAmt(k, r, b), 0, true
 }

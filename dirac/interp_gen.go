@@ -671,12 +671,13 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpGainControl:
 		s.opGainControl(k, in)
 	case kop.OpOverride:
+		if in.B.N == kop.OvEnterWith && s.g.ewDone {
+			s.g.ewDone = false
+			break // applied as the return entered (enterAssimilated)
+		}
 		if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
 			s.overrideRemembered(k, in) // zone_changezoneall.go: every remembered object
 			break
-		}
-		if in.B.N == kop.OvEnterWith {
-			break // applied as the return entered (execReturnObj)
 		}
 		// objRef is the one resolver of "the same object on the battlefield":
 		// a Self record whose object left and came back names a new object
@@ -1498,7 +1499,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	}
 	var sl Slot
 	switch {
-	case s.enterWithOverride(k, in):
+	case s.g.retAt == 0 && s.g.batchLatch&batchHeld == 0 && s.enterWithOverride(k, in):
 		sl = s.enterAssimilated(k, o, ctrl, from)
 	case s.g.retAt != 0:
 		sl = s.enterNF(k, o, ctrl, fl&kop.MvTapped != 0, from, 0)
@@ -2146,7 +2147,7 @@ const NoSubtypeIdx = 254
 // the answer to re-execute it.
 func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool {
 	kw := s.srcKw(k)
-	if park && s.replPlusSrcPass(k, s.res.e.ctrl, s.objRef(k, kop.RefSelf), s.res.e.card, kw, codes, amts) {
+	if park && s.replPlusSrcPass(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), s.res.e.card, kw, codes, amts) {
 		return true
 	}
 	inf := k.gen.anyInfect && s.srcInfect(k)
@@ -2200,7 +2201,7 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool 
 		return false
 	}
 	if kw&kop.KwLifelink != 0 {
-		s.gainLife(k, s.res.e.ctrl, total)
+		s.gainLife(k, s.srcCtrl(k), total)
 	}
 	if k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go

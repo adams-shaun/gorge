@@ -511,6 +511,7 @@ func (cb *cardBuilder) record() error {
 		d.ModesPickTW = uint8(c.ModesPickTW)
 		cb.bargain = true // the kicked-range target slots (Tear Asunder's), read by the same provenance
 	}
+	d.ModesMinCount = c.ModesMinCount != 0
 	if c.ModesPickV.Kind != vNone {
 		if d.ModesPickV, err = cb.value(c.ModesPickV); err != nil {
 			return err
@@ -681,6 +682,11 @@ func (cb *cardBuilder) record() error {
 		// CR 702.51a: printed convoke; the cast taps creatures for its
 		// mana cost (dirac/kw_convoke.go)
 		d.Convoke = true
+	}
+	if c.Delve {
+		// CR 702.66a: printed delve; the cast exiles graveyard cards for
+		// its generic cost (dirac/kw_delve.go)
+		d.Delve = true
 	}
 	if c.Harmonize != nil {
 		// CR 702.180a: a graveyard cast for the harmonize cost; the one
@@ -1781,6 +1787,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vAdamant:            kop.ExAdamant,
 	vChromaOf:           kop.ExChromaOf,
 	vYourExtraTurns:     kop.ExYourExtraTurns,
+	vCounterKinds:       kop.ExCounterKinds,
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
