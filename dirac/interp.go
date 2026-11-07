@@ -890,7 +890,10 @@ func (s *State) applyResolve(k *prep, a Action) {
 			r.arr[r.peekI] = Obj(a.Source())
 			r.peekI++
 		} else {
-			s.discardObj(k, Obj(a.Source())) // more than 8 picks: immediate
+			// len(r.arr) is MaxHand, so this is unreachable while the hand
+			// itself is bounded by MaxHand: a discard pick is always held and
+			// moved in answer order (CR 404.3).
+			s.discardObj(k, Obj(a.Source()))
 		}
 		r.left--
 		if r.left > 0 && int(s.pl[r.chosen].handN) > int(r.peekI) {
