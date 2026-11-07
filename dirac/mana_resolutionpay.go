@@ -45,7 +45,8 @@ func (s *State) lowerHybridActivation(k *prep, c *kop.ManaCost) {
 //
 //go:noinline
 func (s *State) hybAbilityOffPlan(k *prep, p uint8, resolved *kop.ManaCost) bool {
-	c0 := k.t.Cards[s.bld().e.card].Abilities[s.bld().e.ab].Cost.Mana
+	a := &k.t.Cards[s.bld().e.card].Abilities[s.bld().e.ab]
+	c0 := s.abPlannedCost(k, a, s.srcSlot(), p) // the planner's priced cost
 	if c0.Hyb[0] == 0 || c0.X != 0 || s.poolPays(p, resolved) {
 		return false
 	}

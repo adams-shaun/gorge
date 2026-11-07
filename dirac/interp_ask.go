@@ -1084,6 +1084,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		}
 		if s.g.pre.kind == akEnchant {
+			paying := s.g.pre.state == preReturnPay
 			s.g.pre = preAsk{}
 			if s.objs[o].zone == kop.ZoneExile {
 				host := s.objs[a.Source()].slot
@@ -1091,6 +1092,11 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				s.enterOnto(host)
 				sl := s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from)
 				s.attachedTo(k, sl, host)
+			}
+			if paying {
+				s.res.ask = raNone
+				s.payDone(k, true) // the payment's sacrifice finishes after the host answer
+				return
 			}
 			s.continueRes(k, 0)
 			return
