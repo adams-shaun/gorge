@@ -85,15 +85,15 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// Courtly Provocateur, Culvert Ambusher, Culling Mark, Peema Aether-Seer, Provoke, Shessra, Death's Whisper
 	// and Timely Interference; MKM +2, DMU +1, ALL +8).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21655, 34442},
+	"ALL": {21659, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
-	"DFT": {247, 276},
+	"DFT": {248, 276},
 	"DMU": {194, 270},
 	"DSK": {242, 276},
 	"ECL": {233, 273},
-	"EOE": {238, 266},
+	"EOE": {239, 266},
 	"FDN": {517, 517},
 	"FIN": {266, 312},
 	"FRA": {245, 269},

@@ -189,7 +189,7 @@ import (
 // +1 (the merge with land: this branch's anyRFiltMana lowers White Lotus Hideout's three-ability source, which land's refuseMultiMana refuses; merged TLA 251 -> 252, ALL build-level 21646 -> 21647).
 // +8 (the same eight cards' Effect Mode$ MustBlock programs build, one per card: ALL build-level 21647 -> 21655).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21655, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21659, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
