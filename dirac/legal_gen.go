@@ -160,6 +160,11 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) {
 		return
 	}
+	if mode&castFree != 0 && !s.altAddCastable(k, c, p, o, &kop.ManaCost{}, av) {
+		// a free cast still owes its either-or additional cost: one part
+		// must be payable (CR 601.2b, 118.9d; gorge mayPlayAffordable)
+		return
+	}
 	if mode&castFree == 0 {
 		cost := s.adjustFit(k, av, p, c, o, pc.cost, true)
 		if anyMana {
