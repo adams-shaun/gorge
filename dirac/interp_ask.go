@@ -1111,6 +1111,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				sl := s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from)
 				s.attachedTo(k, sl, host)
 			}
+			if !paying && s.resumeReturns(k) {
+				s.res.ask, s.res.askP = raGenRetChoice, s.objs[s.g.pre.obj].owner()
+				return // the batch's next Aura asks its host
+			}
 			if paying {
 				s.res.ask = raNone
 				s.payDone(k, true) // the payment's sacrifice finishes after the host answer

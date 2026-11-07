@@ -100,9 +100,29 @@ func (s *State) flushReturns(k *prep) {
 	n, ctrl := int(s.g.nretHeld), s.g.retCtrl
 	s.g.nretHeld, s.g.retCtrl = 0, 0
 	for i := 0; i < n; i++ {
+		was := s.g.pre.state
 		s.returnLinked(k, ctrl>>i&1, s.g.retHeld[i])
+		if was == 0 && s.g.pre.state == preReturn && i+1 < n {
+			// a returning Aura's host ask is parked: gorge asks it with the
+			// rest of the batch still in exile and returns them once it is
+			// answered (resumeReturns)
+			copy(s.g.retHeld[:], s.g.retHeld[i+1:n])
+			s.g.retCtrl = ctrl >> uint(i+1)
+			s.g.nretHeld = uint8(n - i - 1)
+			break
+		}
 	}
 	s.refreshTy(k)
+}
+
+// resumeReturns returns the sources a parked host ask held back (flushReturns),
+// once the ask is answered; it reports whether a later return parked again.
+func (s *State) resumeReturns(k *prep) bool {
+	if s.g.nretHeld == 0 {
+		return false
+	}
+	s.flushReturns(k)
+	return s.g.pre.state == preReturn
 }
 
 // enterLinkRet is enterFromGrantedZone for an until-leaves return.
