@@ -251,6 +251,13 @@ const PayBSubChain = 8
 // Bit 0 stays the Exhaust-only flag; bits 4..7 the MinMana floor.
 const ReduceAbUnlock = 1 << 1
 
+// ReduceAbPowerUp (bit 2 of a StatReduceAbility static's B): the reduction
+// reaches only an activated ability with CostPowerUp, a Power-up ability
+// (CR 702.193a; Hulk, Gamma Goliath's ValidSpell$ Activated.PowerUp).
+// Bit 0 stays the Exhaust-only flag; bit 1 the unlock arm; bits 4..7 the
+// MinMana floor.
+const ReduceAbPowerUp = 1 << 2
+
 // ReduceAbMinShift is the bit position of the MinMana$ floor (0..15) inside a
 // StatReduceAbility static's B; bit 0 stays the Exhaust-only flag
 // (gorge pay.ApplyTo's per-reduction Floor).
