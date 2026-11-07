@@ -1406,8 +1406,8 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		return false
 	}
 	ob := &s.objs[o]
-	if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || s.instantStays(k, o, kop.Zone(in.C&7)) {
-		return false // CR 400.4a: OpReturnEx packs its flags above the zone's three bits
+	if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || in.C>>3&kop.MvTransformed == 0 && s.instantStays(k, o, kop.Zone(in.C&7)) {
+		return false // CR 400.4a (OpReturnEx packs its flags above the zone's three bits); a transformed entry is the back face (CR 712.14a)
 	}
 	if ob.zone == kop.ZoneLibrary || in.B.N&kop.RetFromLibrary != 0 {
 		if in.B.N&kop.RetFromLibrary == 0 || ob.zone != kop.ZoneLibrary {
