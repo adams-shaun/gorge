@@ -334,9 +334,9 @@ const W7NoAbilities int16 = 15
 
 // W7IsCommander (PredWord7 sub-kind 16): the object is one of a seat's
 // commanders (gorge's IsCommander word, state.Game.CommanderOf, CR 903.3).
-// The kernel plays two-player games with no commander registered, so the
-// answer is false for every object, on the battlefield and off it; the
-// negated word is true for every object and lowers to no predicate.
+// On the battlefield it holds for a seat's commander permanent in a Commander
+// game and is false in every other game; off the battlefield it is false for
+// every card (the word sees only a CardID there).
 const W7IsCommander int16 = 16
 
 // W7BottomLibrary and W7NotBottomLibrary (PredWord7 sub-kinds 17 and 18): the
