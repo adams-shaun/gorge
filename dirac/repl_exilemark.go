@@ -438,6 +438,20 @@ func (s *State) parkMills(k *prep, p uint8, n int, remember bool) bool {
 	return true
 }
 
+// parkMassQuiet queues a batch move with one exile-instead effect or none,
+// whose turn comes in the queue all the same (gorge emits a sacrifice or
+// destroy batch's later moves only after an earlier one's answer); false when
+// the queue is full.
+func (s *State) parkMassQuiet(o Obj) bool {
+	for i := range s.cold.parked {
+		if r := &s.cold.parked[i]; r.kind == parkNone {
+			*r = parkedMove{obj: o, kind: parkMass}
+			return true
+		}
+	}
+	return false
+}
+
 // parkDiscardQuiet queues a discarded card with one exile-instead effect or
 // none, whose turn comes in the queue all the same; false when the queue is full.
 func (s *State) parkDiscardQuiet(o Obj, x uint8) bool {

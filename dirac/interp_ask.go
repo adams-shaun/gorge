@@ -1372,14 +1372,37 @@ func (s *State) flushSac(k *prep) {
 		s.fireSac(k, sl)
 	}
 	var zs [MaxPerm]kop.Zone
-	for i, sl := range ord[:n] {
-		zs[i] = s.dieZone(k, sl)
+	// The first move two or more exile-instead replacements compete for is
+	// parked (CR 616.1): gorge poses its order ask from the emitting primitive
+	// and emits a later move of the batch only after the answer, so those wait
+	// in the queue behind it and massMovesGoOn runs (and re-asks) them one at a
+	// time. The moves before it go now, as gorge's earlier emits did.
+	w, ask := 0, false
+	for w < n {
+		o := s.perms[ord[w]].obj
+		if s.park(k, o, parkMass, 0) {
+			ask = true
+			break
+		}
+		if s.graveMoveCompetes(k, o) {
+			s.capFull(StallReplCands) // the park queue is full: a declared limit
+			break
+		}
+		zs[w] = s.dieZone(k, ord[w])
+		w++
 	}
-	for i, sl := range ord[:n] {
+	for i, sl := range ord[:w] {
 		s.fireLeave(k, sl, zs[i])
 	}
-	for i, sl := range ord[:n] {
+	for i, sl := range ord[:w] {
 		s.removePerm(k, sl, zs[i], false)
+	}
+	for ask && w+1 < n {
+		if !s.parkMassQuiet(s.perms[ord[w+1]].obj) {
+			s.capFull(StallReplCands) // the park queue is full: a declared limit
+			break
+		}
+		w++
 	}
 	s.g.sacM = slotMask{}
 }
