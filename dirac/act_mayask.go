@@ -38,9 +38,14 @@ func (s *State) mayAsk(k *prep, in *kop.Instr) bool {
 		}
 	case kop.MayGuardAttach:
 		// gorge destCandidatesFor: the Defined$ destination is a battlefield
-		// object other than the attaching source (Attachable admits any)
+		// object other than the attaching source (Attachable admits any), and
+		// an attaching object that left the battlefield (or returned as a new
+		// one) is not attached at all (effAttach's attachObjectGone: Celestial
+		// Armor, Goldvein Pick), so no ask is posed -- Cori-Steel Cutter's
+		// Flurry destroys the Equipment in response to its own trigger.
+		src := s.objRef(k, kop.RefSelf)
 		dst := s.objRef(k, next.Obj)
-		if dst == NoSlot || dst == s.objRef(k, kop.RefSelf) {
+		if src == NoSlot || dst == NoSlot || dst == src {
 			return true
 		}
 	case kop.MayGuardMove:
