@@ -199,7 +199,7 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 				x := &s.g.fx[i]
 				return x.sl == host && x.kind == fxCopyExc
 			})
-			s.copyExcAdd(k, host, s.copySrcSlot(l.src), l.idx)
+			s.copyExcRebase(k, host, l)
 			p.ovr.kw = p.ovr.kw&^oldKw | s.copyExcKw(k, host)
 		case copyAegis:
 			// An Aegis copy has no exceptions, so an older "except it has
@@ -328,18 +328,48 @@ func prepAegis(t *kop.Table, g *genPrep) {
 
 // excShows reports whether host's copy-exception records already are the ones
 // layer l shows: an Aegis copy has none, and a copy marker shows its
-// template's exceptions (CR 707.3) and then its own override (CR 707.9b).
+// template's exceptions (CR 707.3) and then its own override (CR 707.9b). A
+// self-copy's template is host itself, so its inherited records are the held
+// ones (excSelfMatch).
 func (s *State) excShows(host Slot, l copyLayer) bool {
 	switch l.kind {
 	case copyAegis:
 		return s.copyRec(host, fxCopyExc) < 0
 	case copyPerm, copyEOT:
+		if l.src != NoObj && l.src == s.perms[host].obj {
+			return s.excSelfMatch(host, l)
+		}
 		return s.excMatch(host, s.copySrcSlot(l.src), l.idx)
 	case copyBase:
 		// a kept floor is always restored by the refresh that takes it
 		return false
 	}
 	return true
+}
+
+// excSelfMatch reports whether slot sl's copy-exception records are exactly
+// what copyExcRebase pushes for self layer l: the held inherited overrides in
+// pool order, then the override idx.
+func (s *State) excSelfMatch(sl Slot, l copyLayer) bool {
+	at := 0
+	for i := 0; i < int(s.g.nfx); i++ {
+		r := &s.g.fx[i]
+		if r.sl != sl || r.kind != fxCopySelf || r.r.ts != l.ts {
+			continue
+		}
+		if got, ok := s.excIth(sl, at); !ok || got != r.r.idx {
+			return false
+		}
+		at++
+	}
+	if l.idx != 0 {
+		if got, ok := s.excIth(sl, at); !ok || got != l.idx {
+			return false
+		}
+		at++
+	}
+	_, more := s.excIth(sl, at)
+	return !more
 }
 
 // excMatch reports whether slot sl's copy-exception records are exactly what

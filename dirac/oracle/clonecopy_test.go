@@ -69,10 +69,10 @@ func kclonecopySwap(d []cardset.Entry, name string, n int) []cardset.Entry {
 }
 
 // kclonecopyStallOK: the stalls a game may end in, none of them a divergence.
-// clonelayer, board and tables are kernel limits the decks reach with a creature
-// the copiers can copy in play more often.
+// board and tables are kernel limits the decks reach with a creature the
+// copiers can copy in play more often.
 func kclonecopyStallOK(stall string) bool {
-	for _, r := range []string{"clonelayer", "board", "tables"} {
+	for _, r := range []string{"board", "tables"} {
 		if strings.HasSuffix(stall, r) {
 			return true
 		}

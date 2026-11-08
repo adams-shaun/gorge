@@ -43,10 +43,17 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // copy exceptions aside (cloneHold), and the cleanup step puts them back, as
 // gorge restores state.Object.TokenBasis.
 //
-// A permanent copying itself stalls StallCloneLayer. A copy onto an Aegis
-// bearer is the Aegis layer covered by a newer one: copy_aegisunder.go keeps
-// every layer's timestamp, and the cleanup step gives the newest one left
-// back.
+// A permanent copying itself (CR 707.2) is an ordinary layer: its copiable
+// values are its own, its current copy exceptions among them (CR 707.9b), so
+// the new layer locks its current card and keeps those exceptions beside the
+// op's own, as gorge appends the op's to the copied face. Its inherited
+// exceptions are also kept beside the layer as fxCopySelf records, stamped
+// with its timestamp: the template is the becomer itself, so when a newer
+// layer covers the self layer and its live fxCopyExc records go, copyExcAdd
+// cannot read them back from the slot, and a re-base reads the held ones
+// (cloneSelfHeldPush, copyExcRebase). A copy onto an Aegis bearer is the
+// Aegis layer covered by a newer one: copy_aegisunder.go keeps every layer's
+// timestamp, and the cleanup step gives the newest one left back.
 
 // DebugCloneCopyNoRevert is the mutation switch of TestClonecopyMutation: the
 // cleanup step never ends an until-end-of-turn copy.
@@ -81,7 +88,8 @@ var DebugCloneCopyNoHold bool
 // DebugCloneCopyStats, when set, receives the counts.
 var DebugCloneCopyStats *CloneCopyStats
 
-// StallCloneLayer: a permanent copying itself.
+// StallCloneLayer was a permanent copying itself, which the kernel could not
+// model. It is no longer raised: cloneCopy applies the layer.
 const StallCloneLayer = 141
 
 func init() { stallNames[StallCloneLayer] = "clonelayer" }
@@ -187,6 +195,7 @@ func (s *State) cloneLayerPrep(k *prep, sl Slot, eot bool, c CardID, src Obj, id
 	if has {
 		s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.sl == sl && r.kind == fxCopyExc })
 	}
+	s.cloneSelfHeldGC(sl)
 	return old, true
 }
 
@@ -208,6 +217,60 @@ func (s *State) clonePermNote(sl Slot, src Obj, c CardID, idx uint8, ts uint16) 
 	s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxCopyPerm, r: ovRec{idx: idx, src: c, p: int16(src), ts: ts}}
 	s.g.nfx++
 	s.fxM.set(sl)
+	s.cloneSelfHeldGC(sl)
+}
+
+// cloneSelfHeldPush keeps a self-copy layer's inherited exception indices
+// beside the layer, stamped with its timestamp (fxCopySelf). While the layer
+// is on top its live fxCopyExc records hold the same indices; when a newer
+// layer covers it they go, and a re-base restores the layer's exceptions from
+// here (copyExcRebase), since its template is the becomer itself. The game
+// stalls when the pool is full, as for any other record.
+//
+//go:noinline
+func (s *State) cloneSelfHeldPush(sl Slot, kept []uint8, n int, ts uint16) {
+	for i := 0; i < n; i++ {
+		if int(s.g.nfx) >= maxFx {
+			s.stall(StallTables)
+			return
+		}
+		s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxCopySelf, r: ovRec{idx: kept[i], ts: ts}}
+		s.g.nfx++
+		s.fxM.set(sl)
+	}
+}
+
+// cloneSelfHeldGC drops slot sl's held self-copy exceptions whose layer is no
+// longer a live copy marker: the layer ended, or a newer layer of its kind
+// replaced it. A marker still beneath a newer layer keeps its held records for
+// the re-base that gives it back.
+//
+//go:noinline
+func (s *State) cloneSelfHeldGC(sl Slot) {
+	if !s.fxM.has(sl) {
+		return
+	}
+	var live [4]uint16
+	n := 0
+	for i := 0; i < int(s.g.nfx); i++ {
+		r := &s.g.fx[i]
+		if r.sl == sl && (r.kind == fxCopyEOT || r.kind == fxCopyPerm) && n < len(live) {
+			live[n] = r.r.ts
+			n++
+		}
+	}
+	s.dropFx(func(i int) bool {
+		r := &s.g.fx[i]
+		if r.sl != sl || r.kind != fxCopySelf {
+			return false
+		}
+		for j := 0; j < n; j++ {
+			if live[j] == r.r.ts {
+				return false
+			}
+		}
+		return true
+	})
 }
 
 // cloneCopy is ExtCloneCopy's copy phase.
@@ -235,14 +298,15 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 	}
 	eot := in.B.N&kop.CloneEOT != 0
 	made := 0
+	// keptExc/keptN hold a self-copy's current exception override indices
+	// across cloneLayerPrep, which clears the slot's for the new layer.
+	var keptExc [maxFx]uint8
+	var keptN int
 	for i := 0; i < n; i++ {
 		sl := ord[i]
-		if sl == tmpl && eot && in.C == 0 && in.Obj == kop.RefNone && in.B.N&kop.CloneExclTmpl == 0 {
+		self := tmpl != NoSlot && sl == tmpl
+		if self && eot && in.C == 0 && in.Obj == kop.RefNone && in.B.N&kop.CloneExclTmpl == 0 {
 			continue // a Valid set holding its template: a copy of itself changes nothing (CR 707.2)
-		}
-		if sl == tmpl {
-			s.capFull(StallCloneLayer)
-			continue
 		}
 		p := &s.perms[sl]
 		ts := s.tick()
@@ -251,6 +315,19 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		}
 		s.touchSl(sl)
 		s.onceBasisBegin(sl)
+		keptN = 0
+		if self {
+			// CR 707.2, 707.9b: the become object copies its own copiable
+			// values, its current copy exceptions among them. Capture them
+			// before cloneHold sets a token copy's aside and cloneLayerPrep
+			// clears the rest; they are re-pushed as the new layer's below.
+			for j := 0; j < int(s.g.nfx); j++ {
+				if r := &s.g.fx[j]; r.sl == sl && r.kind == fxCopyExc {
+					keptExc[keptN] = r.r.idx
+					keptN++
+				}
+			}
+		}
 		held, ok := kop.KwMask(0), true
 		if eot {
 			held, ok = s.cloneHold(k, sl)
@@ -271,10 +348,28 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		p.ovr.flags |= ovCopy
 		p.ovr.copyOf = c
 		s.subscribe(sl, &k.cards[c], true)
-		s.copyExcAdd(k, sl, tmpl, uint8(in.C))
+		if self {
+			// the layer's exceptions are the ones it copied plus the op's;
+			// copyExcAdd would read the slot as its own template and re-push
+			// each record as it appends it.
+			for j := 0; j < keptN; j++ {
+				s.copyExcPush(sl, keptExc[j])
+			}
+			if in.C != 0 {
+				s.copyExcPush(sl, uint8(in.C))
+			}
+		} else {
+			s.copyExcAdd(k, sl, tmpl, uint8(in.C))
+		}
 		p.ovr.kw = p.ovr.kw&^old | s.copyExcKw(k, sl)
 		if !eot {
 			s.clonePermNote(sl, s.perms[tmpl].obj, c, uint8(in.C), ts)
+		}
+		if self {
+			// The layer's inherited exceptions stay beside it (fxCopySelf):
+			// its template is the becomer, so a re-base cannot read them back
+			// from the slot once a newer layer has covered it.
+			s.cloneSelfHeldPush(sl, keptExc[:], keptN, ts)
 		}
 		made++
 	}
@@ -384,6 +479,7 @@ func (s *State) cloneCleanup(k *prep) {
 				l = copyLayer{kind: copyBase, card: c}
 			}
 		}
+		s.cloneSelfHeldGC(sl) // the ended layer's held exceptions go with it
 		p := &s.perms[sl]
 		s.touchSl(sl)
 		s.subscribe(sl, &k.cards[s.cardAt(sl)], false)
@@ -398,7 +494,7 @@ func (s *State) cloneCleanup(k *prep) {
 			s.cloneRestore(sl)
 		} else if l.kind == copyPerm {
 			s.cloneRestore(sl) // the marker wins: drops the token basis records
-			s.copyExcAdd(k, sl, s.copySrcSlot(l.src), l.idx)
+			s.copyExcRebase(k, sl, l)
 			if DebugCloneCopyStats != nil {
 				DebugCloneCopyStats.Rebased++
 			}
@@ -415,6 +511,33 @@ func (s *State) cloneCleanup(k *prep) {
 	if any {
 		s.refreshTy(k)
 	}
+}
+
+// copyExcRebase pushes copy layer l's exceptions onto host: the layer's
+// template exceptions (inherited, CR 707.3) and then its own override (CR
+// 707.9b). A self-copy's template is host itself, so its inherited records
+// come from the ones cloneSelfHeldPush kept beside the layer; reading the
+// slot as a template after the layer was covered would find only the
+// override.
+//
+//go:noinline
+func (s *State) copyExcRebase(k *prep, host Slot, l copyLayer) {
+	if l.src != NoObj && l.src == s.perms[host].obj {
+		for i := 0; i < int(s.g.nfx); i++ {
+			r := &s.g.fx[i]
+			if r.sl == host && r.kind == fxCopySelf && r.r.ts == l.ts {
+				s.copyExcPush(host, r.r.idx)
+			}
+		}
+		if l.idx != 0 {
+			s.copyExcPush(host, l.idx)
+		}
+		if s.fxM.has(host) {
+			s.perms[host].ovr.kw |= s.copyExcKw(k, host)
+		}
+		return
+	}
+	s.copyExcAdd(k, host, s.copySrcSlot(l.src), l.idx)
 }
 
 // copySrcSlot is the slot an object's copiable values are read from, NoSlot

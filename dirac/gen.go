@@ -1449,6 +1449,7 @@ const (
 	fxCopyMint               // a token copy's own copy (r.src the card it was minted as), held aside likewise (copy_clone.go cloneHold)
 	fxAegisBase              // the copy a bearer wore (r.src its card) when an Aegis stack took over with no copy marker of its own, which shows again when the last Aegis copy ends (copy_aegisunder.go)
 	fxAegisHeld              // a copy exception of the copy an Aegis stack covered (r.idx), held aside while the Aegis copy shows: no marker can rebuild it (copy_aegisunder.go aegisHold)
+	fxCopySelf               // a self-copy layer's inherited copy exception (r.idx, r.ts the layer's timestamp), held beside the layer because its template is the becomer itself (copy_clone.go cloneSelfHeldPush)
 )
 
 // maxFx bounds the effect records live at once (all permanents); a full
