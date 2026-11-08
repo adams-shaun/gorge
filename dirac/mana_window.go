@@ -2774,26 +2774,7 @@ func (s *State) manaStep(k *prep) bool {
 					cost = s.restrShortAdm(e.ctrl, m, cost)
 				}
 			}
-			if s.spellTgtDep(k, e.ctrl, e.card, e.obj) {
-				// A target-dependent price is fixed after the targets (CR
-				// 601.2c before 601.2f), so the offer's plan may no longer
-				// fund it: an "up to" answered with none loses a "if it
-				// targets ..." reduction and the cast is then unpayable. The
-				// planned-offer invariant (a plan exists) no longer holds;
-				// reverse through the manual window's own answer instead of
-				// the planner panic (gorge casts the zero-target proposal and
-				// reverses it, cast_payment.go abortCast).
-				var pk planner
-				pk.try = true
-				s.tapForPK(k, e.ctrl, &cost, int(e.x), e.obj, false, anyColor, &pk)
-				if !pk.found {
-					s.releaseCostTaps(k, &saved)
-					s.reverseCast(k)
-					return true
-				}
-			} else {
-				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
-			}
+			s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 		}
 		s.bld().bfl &^= bflManaStep
 		s.releaseCostTaps(k, &saved)
