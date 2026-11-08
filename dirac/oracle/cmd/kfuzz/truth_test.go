@@ -110,7 +110,7 @@ func TestFuzzHangRetryRecovers(t *testing.T) {
 	release := make(chan struct{})
 	t.Cleanup(func() { close(release) })
 	var calls atomic.Int32
-	out := playAll(3, 1, 500*time.Millisecond, func(i int) played {
+	out := playAll(3, 1, time.Second, func(i int) played {
 		if i == 1 && calls.Add(1) == 1 {
 			return lockstepStub(release)
 		}

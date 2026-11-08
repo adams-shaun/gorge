@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+// The tests use a 1 s watchdog: a stalled attempt costs the full window, and a
+// non-stalled attempt (a bare return) finishes far inside it even on a loaded
+// box, so no PASS/FAIL hangs on a short wall-clock window.
+
 // stallingPlay counts its calls and blocks (until the test ends) on the calls
 // stall names; the others return 7.
 func stallingPlay(t *testing.T, calls *atomic.Int32, stall func(n int32) bool) func() int {
@@ -25,7 +29,7 @@ func stallingPlay(t *testing.T, calls *atomic.Int32, stall func(n int32) bool) f
 func TestWithinTimeoutRetryRecoversFromStall(t *testing.T) {
 	var calls atomic.Int32
 	play := stallingPlay(t, &calls, func(n int32) bool { return n == 1 })
-	got := WithinTimeoutRetry(100*time.Millisecond, play, -1)
+	got := WithinTimeoutRetry(time.Second, play, -1)
 	if n := calls.Load(); n != 2 {
 		t.Fatalf("play ran %d times, want 2 (the first attempt timed out)", n)
 	}
@@ -38,7 +42,7 @@ func TestWithinTimeoutRetryRecoversFromStall(t *testing.T) {
 func TestWithinTimeoutRetryReportsDoubleStall(t *testing.T) {
 	var calls atomic.Int32
 	play := stallingPlay(t, &calls, func(int32) bool { return true })
-	got := WithinTimeoutRetry(100*time.Millisecond, play, -1)
+	got := WithinTimeoutRetry(time.Second, play, -1)
 	if got != -1 {
 		t.Errorf("result %d, want hung (-1)", got)
 	}
