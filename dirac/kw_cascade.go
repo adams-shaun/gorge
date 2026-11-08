@@ -42,9 +42,9 @@ func (s *State) queueCascade(k *prep, e *stackEntry) {
 
 // cascade is OpDiscover C=2/3. C=2: the controller's library cards are
 // exiled from the top until a nonland card with mana value strictly below
-// the trigger's; the others go to the library bottom in exile order (gorge's
-// stand-in for CR's random order, GORGE-FINDINGS.md) and the found card becomes the
-// remembered set. C=3: the remembered card still in exile (not cast) goes
+// the trigger's; the others go to the library bottom in a random order
+// (CR 702.85a; a Fisher-Yates over s.rng, as gorge's effCascadeResidue) and
+// the found card becomes the remembered set. C=3: the remembered card still in exile (not cast) goes
 // to the bottom.
 func (s *State) cascade(k *prep, in *kop.Instr) {
 	if in.C == 3 {
@@ -87,6 +87,12 @@ func (s *State) cascade(k *prep, in *kop.Instr) {
 		}
 		ex[ne] = o
 		ne++
+	}
+	// CR 702.85a: a random order -- gorge's seeded Fisher-Yates, the same
+	// IntN(i+1) draws from the last index down to 1.
+	for i := ne - 1; i > 0; i-- {
+		j := s.rng.IntN(i + 1)
+		ex[i], ex[j] = ex[j], ex[i]
 	}
 	for _, o := range ex[:ne] {
 		from := s.detach(o)

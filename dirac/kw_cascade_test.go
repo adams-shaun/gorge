@@ -11,8 +11,8 @@ import (
 // Cascade (CR 702.85a, dirac/kw_cascade.go): a printed-Cascade spell queues
 // one native trigger per instance when cast; each exiles from the library
 // top to the first nonland card of strictly lower mana value (spell MV +
-// X), offers its free cast, and bottoms the exiled cards (non-found in
-// library order, then the found card if it was not cast).
+// X), offers its free cast, and bottoms the exiled cards (non-found in a
+// seeded Fisher-Yates order, then the found card if it was not cast).
 
 type cascScen struct {
 	sc     *scen
@@ -128,13 +128,22 @@ func TestCascadeHitCast(t *testing.T) {
 	cs.sc.lands(0, cs.plains, 4)
 	spell := cs.sc.hand(cs.cas, 0)
 	os := cs.emptyLib(cs.plains, cs.c4, cs.c2, cs.plains)
+	wantR, d0 := cs.sc.s.rng, cs.sc.s.rng.Draws
+	rest := []Obj{os[0], os[1]}
 	if asks := cs.run(t, spell, 0, true); asks != 1 {
 		t.Fatalf("%d free-cast asks, want 1", asks)
+	}
+	if got := cs.sc.s.rng.Draws - d0; got != 1 {
+		t.Fatalf("%d rng draws, want 1 (one Fisher-Yates pass over two cards)", got)
+	}
+	for i := len(rest) - 1; i > 0; i-- {
+		j := wantR.IntN(i + 1)
+		rest[i], rest[j] = rest[j], rest[i]
 	}
 	if cs.onBattlefield(cs.c2) != 1 {
 		t.Fatalf("the found MV-2 card was not cast")
 	}
-	want := []Obj{os[3], os[0], os[1]} // unexiled tail, then the skipped cards in library order
+	want := []Obj{os[3], rest[0], rest[1]} // unexiled tail, then the skipped cards in the seeded order
 	if got := cs.lib(); len(got) != 3 || got[0] != want[0] || got[1] != want[1] || got[2] != want[2] {
 		t.Fatalf("library %v, want %v", got, want)
 	}
@@ -159,17 +168,30 @@ func TestCascadeHitDeclined(t *testing.T) {
 }
 
 // TestCascadeNoHit: nothing cheaper in the library: everything is exiled
-// and bottomed in order, with no prompt.
+// and bottomed in a seeded random order, with no prompt.
 func TestCascadeNoHit(t *testing.T) {
 	cs := cascTable(t)
 	cs.sc.lands(0, cs.plains, 4)
 	spell := cs.sc.hand(cs.cas, 0)
 	os := cs.emptyLib(cs.plains, cs.c4, cs.plains)
+	wantR, d0 := cs.sc.s.rng, cs.sc.s.rng.Draws
+	rest := append([]Obj(nil), os...)
 	if asks := cs.run(t, spell, 0, true); asks != 0 {
 		t.Fatalf("%d free-cast asks, want none", asks)
 	}
-	if got := cs.lib(); len(got) != 3 || got[0] != os[0] || got[1] != os[1] || got[2] != os[2] {
-		t.Fatalf("library %v, want %v", got, os)
+	if got := cs.sc.s.rng.Draws - d0; got != 2 {
+		t.Fatalf("%d rng draws, want 2 (one Fisher-Yates pass over three cards)", got)
+	}
+	for i := len(rest) - 1; i > 0; i-- {
+		j := wantR.IntN(i + 1)
+		rest[i], rest[j] = rest[j], rest[i]
+	}
+	got := cs.lib()
+	if len(got) != 3 || got[0] != rest[0] || got[1] != rest[1] || got[2] != rest[2] {
+		t.Fatalf("library %v, want %v", got, rest)
+	}
+	if got[0] == os[0] && got[1] == os[1] && got[2] == os[2] {
+		t.Fatalf("library %v kept the scan order %v", got, os)
 	}
 }
 

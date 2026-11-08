@@ -13,10 +13,6 @@ package rules
 //       (TARDIS's "the next spell you cast this turn has cascade") is the
 //       Effect's cast-driven lifetime, not an inert delayed promise, so the
 //       grant ends on the next qualifying cast instead of every one.
-//
-// The exiled bottom pile's existing-order stand-in for the CR's "random
-// order" is the standing no-randomness contract and is deliberately left as
-// it was; these tests do not touch it.
 
 import (
 	"strings"
