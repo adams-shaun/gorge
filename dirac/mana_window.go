@@ -2633,7 +2633,7 @@ func (s *State) manaStep(k *prep) bool {
 		if s.bld().bfl&bflLowered != 0 && s.bld().pipN != 0 {
 			s.loweredPipWindow(k, e, &cost)
 		}
-		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || s.rbAny(e.ctrl) && s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)) != 0 || e.trigPl == trigPlMadness && debugMadnessMutate == 0 {
+		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || e.trigPl == trigPlMadness && debugMadnessMutate == 0 {
 			return false
 		}
 		var saved [len(build{}.picks)]uint8
@@ -2737,8 +2737,7 @@ func (s *State) manaStep(k *prep) bool {
 				// mana (State.rb): the payment spends the batches this cast admits
 				// first (payRestrSpend), so the plan taps only for what the
 				// restricted mana leaves (gorge pay.PlanPool, pay/plancost.go)
-				og := restrOrigin{from: kop.Zone(s.objs[e.obj].zone), cast: true, byYou: true}
-				if m := s.restrSpendable(k, e.ctrl, e.card, og); m != 0 {
+				if m := s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)); m != 0 {
 					cost = s.restrShortAdm(e.ctrl, m, cost)
 				}
 			}
