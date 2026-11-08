@@ -564,6 +564,7 @@ func TestStdLciReprosLockstep(t *testing.T) {
 		{"mana_float_unspent_observed_source", false, false},          // CR 601.2h: Barracks of the Thousand's mana floated by the X witness and left unspent (Jadelight Spelunker at X=0) is not mana that paid the cast
 		{"aura_override_stops_when_host_leaves_filter", true, false},  // CR 704.5m, 613.1d: Zoetic Glyph's "enchanted artifact" override stops adding the Creature type once Treasure Map transforms into Treasure Cove, so the land is not a 0-toughness creature
 		{"aura_type_add_filter_drops_after_transform", true, false},   // CR 613.1d, 704.5m: Zoetic Glyph's "enchanted artifact is a 5/4 Golem creature" stops applying when Matzalantli transforms into a land, so the land stays and only the Glyph falls off
+		{"aura_type_add_drops_after_device_transform", true, false},   // CR 613.1d, 704.5m: Zoetic Glyph's "enchanted artifact" override stops applying when Dowsing Device transforms into Geode Grotto, so the land stays on the battlefield
 	})
 }
 
