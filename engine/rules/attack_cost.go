@@ -696,7 +696,7 @@ func (e *Engine) manaSatisfied(pl *combatPayPlan) bool {
 	}
 	av := combatManaAvailable(asPayer(e), pc, cost)
 	_, ok := resolveManaWith(cost, av.Pool, player.Snow, av.Typed,
-		player.Life-pl.lifeExtra(), false, pipRider{}, asEval(e).Conv(pc, 0, false))
+		player.Life-pl.lifeExtra(), false, pipRider{}, asEval(e).Conv(pc, 0, pay.SAOther))
 
 	return ok
 }
@@ -722,7 +722,7 @@ func (e *Engine) combatPhyBothBranches(p state.PlayerID, c blockCharge, manaExcl
 		return false, false, false
 	}
 	player := e.G.Players[p]
-	conv := asEval(e).Conv(p, 0, false)
+	conv := asEval(e).Conv(p, 0, pay.SAOther)
 	exclude := make(map[state.ObjID]bool)
 	for _, set := range manaExcluded {
 		for id := range set {
@@ -813,7 +813,7 @@ func (e *Engine) combatChargeAffordable(p state.PlayerID, c blockCharge, exclude
 	}
 	av := combatManaAvailable(asPayer(e), p, mc)
 	reachable := pay.UnlessManaReachable(asPayer(e), p, mc, av.Pool, player.Snow, av.Typed,
-		life-c.life, asEval(e).Conv(p, 0, false), e.attackWindowUnits(p, exclude))
+		life-c.life, asEval(e).Conv(p, 0, pay.SAOther), e.attackWindowUnits(p, exclude))
 	if !reachable || len(c.phyrexian) == 0 {
 		return reachable
 	}
@@ -874,7 +874,7 @@ func (e *Engine) combatPlanSettlesInline(plan *combatPayPlan) bool {
 func (e *Engine) payCombatChargeInline(plan *combatPayPlan) {
 	cost := plan.manaCost()
 	if cost.Generic > 0 || len(cost.Phyrexian) > 0 {
-		pay.PayManaConv(asPayer(e), plan.player, cost, asEval(e).Conv(plan.player, 0, false))
+		pay.PayManaConv(asPayer(e), plan.player, cost, asEval(e).Conv(plan.player, 0, pay.SAOther))
 	}
 	e.payCombatExtras(plan.player, plan.charge, plan.taps, plan.sacs, plan.returns, plan.lifeExtra())
 }
@@ -943,7 +943,7 @@ func (e *Engine) declineBlockDeclaration(player state.PlayerID) {
 func (e *Engine) completeBlockPay(chosen []decision.Option, plan *combatPayPlan) {
 	cost := plan.manaCost()
 	if cost.Generic > 0 || len(cost.Phyrexian) > 0 {
-		pay.PayManaConv(asPayer(e), plan.player, cost, asEval(e).Conv(plan.player, 0, false))
+		pay.PayManaConv(asPayer(e), plan.player, cost, asEval(e).Conv(plan.player, 0, pay.SAOther))
 	}
 	e.payCombatExtras(plan.player, plan.charge, plan.taps, plan.sacs, plan.returns, plan.lifeExtra())
 	chosenPairs := make([][2]state.ObjID, 0, len(chosen))
@@ -1802,7 +1802,7 @@ func chosenAttackers(chosen []decision.Option) map[state.ObjID]bool {
 func (e *Engine) completeAttackPay(chosen []decision.Option, plan *combatPayPlan) {
 	cost := plan.manaCost()
 	if cost.Generic > 0 || len(cost.Phyrexian) > 0 {
-		pay.PayManaConv(asPayer(e), plan.player, cost, asEval(e).Conv(plan.player, 0, false))
+		pay.PayManaConv(asPayer(e), plan.player, cost, asEval(e).Conv(plan.player, 0, pay.SAOther))
 	}
 	e.payCombatExtras(plan.player, plan.charge, plan.taps, plan.sacs, plan.returns, plan.lifeExtra())
 	if !e.startEnlistAsks(chosen, plan.player) {

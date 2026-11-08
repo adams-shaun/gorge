@@ -450,7 +450,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, base []state.Target
 		av := pay.AvailableFor(asPayer(e), pc.player, desc)
 		if targetDiscount || censusComplete {
 			if e.castWindowReachable(pc.player, convoked, av.Pool, pl.Snow, av.Typed, pl.Life,
-				asEval(e).Conv(pc.player, desc.ID, desc.Class == paymentActivated),
+				asEval(e).Conv(pc.player, desc.ID, desc.SAKind()),
 				pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}, windowUnits) {
 				out = append(out, candidate)
 			}

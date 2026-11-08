@@ -184,7 +184,7 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	mana := pay.PlanManaHalf(cost)
 	// A creature spell under Vizier of the Menagerie's AnyType->AnyType
 	// conversion funds its pips as generic, as the may-play rider does (CR 609.4b).
-	rider := pay.ConvRider(asEval(e).Conv(p, cast.Object, false))
+	rider := pay.ConvRider(asEval(e).Conv(p, cast.Object, pay.SASpell))
 	if mayPlay {
 		rider = rider.Or(asPayer(e).Eval().MayPlayRider(p, cast.Object))
 	}
@@ -826,7 +826,7 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 		}
 	}
 	cost := pay.PlanManaHalf(e.offerCostFor(p, cast.Object, pay.WithSpellAbilityExtras(e.G.Obj(cast.Object).Face(), settleBase), settleScope))
-	rider := pay.ConvRider(asEval(e).Conv(p, cast.Object, false))
+	rider := pay.ConvRider(asEval(e).Conv(p, cast.Object, pay.SASpell))
 	if o := e.G.Obj(cast.Object); o != nil && plannedMayPlayZone(o.Zone) && cast.Origin != decision.OriginFlashback {
 		rider = rider.Or(asPayer(e).Eval().MayPlayRider(p, cast.Object))
 	}

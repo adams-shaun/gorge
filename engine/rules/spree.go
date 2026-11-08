@@ -119,7 +119,7 @@ func (e *Engine) modeCostFeasible(pc *pendingCast, extra Cost, pot state.Mana) b
 	rider := pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}
 	feasible := func(m costMods) bool {
 		return m.FeasibleAny(base, pot, pl.Snow, typed, pl.Life, tax, delve,
-			asEval(e).PayLifeInsteadOfB(pc.player), rider, asEval(e).Conv(pc.player, pc.card, pc.isAbility()))
+			asEval(e).PayLifeInsteadOfB(pc.player), rider, asEval(e).Conv(pc.player, pc.card, pay.SAKindFor(pc.isAbility())))
 	}
 	mods := pc.mods
 	if !feasible(mods) {
