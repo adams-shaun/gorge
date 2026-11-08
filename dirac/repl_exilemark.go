@@ -74,6 +74,7 @@ const (
 	parkMass              // a mass move in a resolution, one at a time: what an earlier move took away no longer competes for it
 	parkMill              // a milled card, off the library's top when asked; x is 1 for RememberMilled$
 	parkRest              // a surveil or look rest card already off the library, moved one at a time; x is 1 for RememberMoved$
+	parkDread             // a manifest dread window's other card, still on the library list; its marker fired before the ask
 )
 
 // parkedMove is one parked move, oldest first in s.cold.parked; x is a cycled
@@ -367,6 +368,15 @@ func (s *State) applyExileOrder(k *prep, a Action) {
 	}
 	s.runParked(k, r)
 	s.takeAnswered(r.obj)
+	if r.kind == parkDread {
+		// the manifest dread window goes on after the answer: the next window
+		// (when Amount$ is >1) is asked with the other card now moved
+		s.res.left--
+		if !s.dreadAsk(k) {
+			s.ctl = ctlResolve // face_manifest.go's ask
+			return
+		}
+	}
 	if r.kind == parkSBA {
 		for i := range s.cold.parked {
 			s.cold.parked[i].fl |= parkLater
@@ -612,5 +622,19 @@ func (s *State) runParked(k *prep, r parkedMove) {
 		s.runParkedMill(k, r.obj, r.x != 0)
 	case parkRest:
 		s.runParkedRest(k, r.obj, r.x != 0)
+	case parkDread:
+		s.runParkedDread(k, r.obj)
 	}
+}
+
+// runParkedDread takes an answered manifest-dread window's other card out of
+// its owner's library and sends it to the graveyard zone, whose exile-instead
+// effects its answer has settled. The window's marker already fired before the
+// ask; the caller goes on with the window (face_manifest.go).
+func (s *State) runParkedDread(k *prep, o Obj) {
+	if s.objs[o].zone != kop.ZoneLibrary {
+		return // the card left the library while it waited
+	}
+	from := s.detach(o)
+	s.placeFromK(k, o, kop.ZoneGraveyard, false, from, false)
 }

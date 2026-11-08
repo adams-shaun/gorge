@@ -95,7 +95,10 @@ func (s *State) applyAskOblige(k *prep, a Action) bool {
 		if chosen == other {
 			other = s.res.peek[0]
 		}
-		s.dreadMove(k, chosen, other)
+		if s.dreadMove(k, chosen, other) {
+			s.ctl = ctlExileOrder // the other card's CR 616.1 order ask (repl_exilemark.go)
+			return true
+		}
 		s.res.left--
 		if s.dreadAsk(k) {
 			s.continueRes(k, 0)

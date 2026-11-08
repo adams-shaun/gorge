@@ -258,8 +258,10 @@ func (s *State) dreadAsk(k *prep) bool {
 
 // dreadMove applies one answered manifest-dread window: chosen manifests, the
 // other card goes to its owner's graveyard (CR 701.62a). Both cards are still
-// in the library; a stale answer falls back to the first card.
-func (s *State) dreadMove(k *prep, chosen, other Obj) {
+// in the library; a stale answer falls back to the first card. True: the other
+// card's move is parked for its CR 616.1 exile-order ask (repl_exilemark.go),
+// its marker already emitted; the answer moves it and goes on with the window.
+func (s *State) dreadMove(k *prep, chosen, other Obj) bool {
 	p := s.res.askP
 	if chosen != s.res.peek[0] && chosen != s.res.peek[1] {
 		chosen, other = s.res.peek[0], s.res.peek[1]
@@ -274,7 +276,7 @@ func (s *State) dreadMove(k *prep, chosen, other Obj) {
 	if ob := &s.objs[chosen]; ob.zone == kop.ZoneLibrary {
 		if k.gen != nil && s.occ.full() {
 			s.stall(StallBoard)
-			return
+			return false
 		}
 		s.detach(chosen)
 		sl := s.enterFaceDown(k, chosen, p, kop.MorphMorph, kop.ZoneLibrary)
@@ -285,6 +287,14 @@ func (s *State) dreadMove(k *prep, chosen, other Obj) {
 	}
 	mill := NoObj
 	if ob := &s.objs[other]; ob.zone == kop.ZoneLibrary {
+		if s.park(k, other, parkDread, 0) {
+			// The window's marker still fires now: gorge emits it after the
+			// MoveZone that parked, before the answer (face_manifest.go's
+			// mirror of manifestDreadMove). The card stays on the library
+			// list until the answer moves it.
+			s.fireKwActObj(k, kop.TrigManifestDread, p, 0, other)
+			return true
+		}
 		from := s.detach(other)
 		s.placeFrom(other, kop.ZoneGraveyard, false, from, false)
 		mill = other
@@ -293,6 +303,7 @@ func (s *State) dreadMove(k *prep, chosen, other Obj) {
 	// its ID list the card the window put into its owner's graveyard, empty
 	// when neither card moved): the Mode$ ManifestDread trigger's firing event
 	s.fireKwActObj(k, kop.TrigManifestDread, p, 0, mill)
+	return false
 }
 
 // cardMintsFaceDown reports whether a card's programs contain an op that puts

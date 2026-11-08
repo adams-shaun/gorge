@@ -737,7 +737,12 @@ func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bo
 	var used [MaxPerm]uint8
 	nt := 0
 	ok, known = true, true
-	for !s.windowPoolPays(p, cost, anyColor) {
+	// The walk settles on the pool the payment may spend: floating restricted
+	// mana the spell admits counts, as windowSpellSettled reads it (CR 106.6).
+	// A plain-pool census here would tap a source for a pip the restricted
+	// mana already covers, after windowPick's usefulness clamp (which does
+	// count it) offered none.
+	for !s.windowSpellSettled(k, p, cost, anyColor) {
 		var order [MaxPerm]Slot
 		n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
 		sl, gap := s.windowPick(k, p, order[:n], cost, true, anyColor)
@@ -2806,6 +2811,11 @@ func (s *State) manaStep(k *prep) bool {
 		}
 	case seAbility:
 		cost := s.buildCost(k)
+		// paymentStranded's dry walk discounts the admitted floating batches
+		// itself (windowSpellSettled), so it takes the cost before
+		// restrShortAdm: handed the shortened cost it would count that mana
+		// twice and clear a payment the planner's plain pool cannot fund.
+		strandCost := cost
 		if m := s.restrActNow(k, e.ctrl); m != 0 {
 			cost = s.restrShortAdm(e.ctrl, m, cost) // the sources tap for what the restricted mana leaves (pay.PlanPool)
 		}
@@ -2828,7 +2838,7 @@ func (s *State) manaStep(k *prep) bool {
 		switch {
 		case planCut:
 			s.windowTapRider(k, e.ctrl, &cost, true, false)
-		case s.paymentStranded(k, e, &cost):
+		case s.paymentStranded(k, e, &strandCost):
 			s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
 			return true
 		case cost.X != 0 && s.cfg&cfgGorgeSurface != 0:

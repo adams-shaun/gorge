@@ -11,6 +11,7 @@ Baseball Bat
 Bashful Beastie
 Bear Trap
 Beastie Beatdown
+Bedhead Beastie
 Betrayer's Bargain
 Blazemire Verge
 Bleeding Woods
@@ -23,16 +24,25 @@ Cautious Survivor
 Chainsaw
 Clammy Prowler
 Clockwork Percussionist
+Come Back Wrong
 Commune with Evil
 Conductive Machete
 Cracked Skull
+Creeping Peeper
+Cryptid Inspector
+Cult Healer
+Cursed Recording
 Cursed Windbreaker
 Cynical Loner
+Daggermaw Megalodon
+Dashing Bloodsucker
 Defiant Survivor
 Demonic Counsel
 Dissection Tools
+Disturbing Mirth
 Diversion Specialist
 Don't Make a Sound
+Doomsday Excruciator
 Drag to the Roots
 Duskmourn's Domination
 Emerge from the Cocoon
@@ -42,6 +52,8 @@ Enduring Innocence
 Enduring Tenacity
 Enduring Vitality
 Enter the Enigma
+Entity Tracker
+Erratic Apparition
 Etched Cornfield
 Ethereal Armor
 Exorcise
@@ -67,6 +79,7 @@ Friendly Ghost
 Friendly Teddy
 Get Out
 Ghost Vacuum
+Ghostly Keybearer
 Give In to Violence
 Glimmer Seeker
 Glimmerburst
@@ -76,10 +89,12 @@ Grab the Prize
 Grasping Longneck
 Hand That Feeds
 Hardened Escort
+Haunted Screen
 Horrid Vigor
 House Cartographer
 Hushwood Verge
 Impossible Inferno
+Infernal Phantom
 Innocuous Rat
 Inquisitive Glimmer
 Insidious Fungus
@@ -101,9 +116,12 @@ Live or Die
 Living Phone
 Malevolent Chandelier
 Manifest Dread
+Marina Vendrell
+Marina Vendrell's Grimoire
 Meathook Massacre II
 Miasma Demon
 Midnight Mayhem
+Most Valuable Slayer
 Mountain
 Murder
 Murky Sewer
@@ -115,6 +133,7 @@ Overlord of the Boilerbilges
 Overlord of the Floodpits
 Overlord of the Hauntwoods
 Overlord of the Mistmoors
+Paranormal Analyst
 Patched Plaything
 Patchwork Beastie
 Peculiar Lighthouse
@@ -131,27 +150,34 @@ Raucous Carnival
 Razorkin Hordecaller
 Razorkin Needlehead
 Razortrap Gorge
+Resurrected Cultist
 Ripchain Razorkin
 Rite of the Moth
 Rootwise Survivor
 Savior of the Small
 Saw
 Scorching Dragonfire
+Scrabbling Skullcrab
 Seized from Slumber
 Shardmage's Rescue
 Sheltered by Ghosts
 Shepherding Spirits
 Shrewd Storyteller
 Shroudstomper
+Skullsnap Nuisance
 Slavering Branchsnapper
+Spectral Snatcher
 Spineseeker Centipede
 Split Up
 Splitskin Doll
 Sporogenic Infection
+Stalked Researcher
 Stay Hidden, Stay Silent
 Strangled Cemetery
 Swamp
 Terramorphic Expanse
+The Jolly Balloon Man
+The Mindskinner
 The Rollercrusher Ride
 The Swarmweaver
 The Wandering Rescuer
@@ -165,11 +191,13 @@ Tyvar, the Pummeler
 Unable to Scream
 Undead Sprinter
 Under the Skin
+Unidentified Hovership
 Unnerving Grasp
 Unsettling Twins
 Unstoppable Slasher
 Untimely Malfunction
 Unwanted Remake
+Unwilling Vessel
 Valgavoth's Faithful
 Valgavoth's Lair
 Valgavoth's Onslaught
@@ -177,6 +205,7 @@ Vanish from Sight
 Vengeful Possession
 Veteran Survivor
 Vicious Clown
+Victor, Valgavoth's Seneschal
 Vile Mutilator
 Violent Urge
 Waltz of Rage
