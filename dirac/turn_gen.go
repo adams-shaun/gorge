@@ -509,12 +509,17 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			if kind == 0 {
 				kind = s.enterChoiceKind(k, x.card)
 			}
-			if kind != 0 && s.res.active && (s.res.ask == raNone || s.res.ask == raGenPayPick) && s.g.pre.state == 0 {
+			if kind != 0 && s.res.active && (s.res.ask == raNone || s.res.ask == raGenPayPick || s.res.ask == raGenTopBottom) && s.g.pre.state == 0 {
 				// during a resolution gorge asks the as-enters choice with
 				// the card still in exile (Heraldic Banner, pair 544); it
 				// enters once answered (runProg, raGenRetChoice); so does one whose
 				// source a cost's pick still being answered sacrificed (In the Pale
-				// Moonlight's Malfunctioning Holodeck), as the Aura's host ask above
+				// Moonlight's Malfunctioning Holodeck), as the Aura's host ask above.
+				// A "second from top or bottom" answer (raGenTopBottom) moves
+				// the source inside its own answer and gorge asks the return's
+				// choice right after that move (CR 616.1, 610.3d; ecl 2517's
+				// Liminal Hold returning a Rimefire Torque): the answer resumes
+				// through continueRes, which poses the parked ask.
 				s.g.pre = preAsk{obj: l.obj, kind: kind, state: preReturn, link: kind == akClone}
 				if k.gen.anyLinkCtr {
 					s.linkRetStall(k, srcCtrl, o, l.obj)

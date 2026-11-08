@@ -768,6 +768,17 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.nextStage(k) // CR 702.37b: no additional costs on a face-down cast
 				continue
 			}
+			if e.kind == seSpell {
+				// a free cast begun without the offer's cost census (Wishing Well's
+				// Play) can owe a fixed PayLife<N> no cast option priced. A cast
+				// with no target asks nothing before this stage, so the life part
+				// would otherwise be paid into negative life instead of reversing
+				// (CR 601.2h, 733.1). A PayLife<X> is bounded by the X ask.
+				if ac := spellAddCost(k, e.card); ac.Flags&kop.CostPayLife != 0 && int(s.pl[e.ctrl&1].life) < int(ac.N) {
+					s.reverseCast(k)
+					return false
+				}
+			}
 			// gorge's order: sacrifice, the counter removals, discard
 			// (the forage either-or first: gorge forageAsk; an exile
 			// part is the only counted one of its cost: act_forage.go)

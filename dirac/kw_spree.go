@@ -67,9 +67,6 @@ func (s *State) spreeModeAffordable(k *prep, m int) bool {
 	e.mode = saved
 	var av avail
 	s.availPotential(k, e.ctrl, &av)
-	if s.rbAny(e.ctrl) {
-		s.restrAvail(k, e.ctrl, e.card, s.payDescNow(NoObj).og, &av)
-	}
 	return av.affords(&c, pipMaskOf(&c), 0)
 }
 

@@ -75,6 +75,18 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 			return true
 		}
 	}
+	if plannerConsumesSac(&pk) {
+		// gorge's potentialWitnessReaches runs the witness's activations and
+		// requires the play still offered: a sacrifice whose trigger resolves
+		// to end the game before the cast (Al Bhed Salvagers draining the last
+		// life) is no witness while one that keeps the source exists
+		// (potentialWitnessKeeping). The kernel's pre-cast resolution is the
+		// same walk.
+		t.resolveLowerCounterTriggers(k, n0)
+		if t.over {
+			return true
+		}
+	}
 	return stacked && int(t.npend)-int(n0) > witnessWaits
 }
 
