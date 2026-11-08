@@ -335,27 +335,7 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 			// exact total only when a legal mode is free; a costlier
 			// cheapest mode would be over-offered (potentialModalCastFreeMode).
 			modalFree := got.Detail == "shape:modal_cost" && e.potentialModalCastFreeMode(p, o.Obj)
-			// A RaiseCost additional cost with a fixed count (the Champion
-			// cycle's BeholdExile, Soul Immolation's Blight<X>) keeps the cast
-			// planner's shape decline, but the composed plan still prices its
-			// mana exactly: when that plan is insufficient, take it as the
-			// verdict so the census and prefix search can reach a printed
-			// source the planner cannot execute (Springleaf Drum's
-			// tap-a-creature ability, a restricted any-colour land). Without
-			// this the play was written off before the search and the oracle
-			// could not offer a legal cast.
-			//
-			// A named-announcement part (Explosive Singularity's
-			// tapXType<@Tapped>, an ExileFromHand<@Exiled>) keeps the shape
-			// decline: potentialModeCastPlan composes it at announcement 0,
-			// while the offer gate's offerNamedMods sweep re-prices each legal
-			// count, so the composed price can be higher than the payable one
-			// and its "insufficient" is not a proof. A RaiseCost static scoped
-			// to every spell (Drought's Type$ Spell) also raises casts whose
-			// decline came from their own Cost$; the composition is still
-			// mana-exact for the fixed extra, so the verdict stands.
-			additionalCostUnfunded := got.Detail == "shape:additional_cost" && alt.Reason == "insufficient" && castFixedRaiseCostExtra(e, p, o.Obj)
-			if alt.Reason == "" || additionalCostUnfunded || got.Detail == "cost:x" || got.Detail == "cost:hybrid" || e.manaSpentReaderComposed(o.Obj, got.Detail) ||
+			if alt.Reason == "" || got.Detail == "cost:x" || got.Detail == "cost:hybrid" || e.manaSpentReaderComposed(o.Obj, got.Detail) ||
 				got.Detail == "shape:target_dependent_cost" || modalFree || e.G.Obj(o.Obj) != nil && (len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 || spellExtrasAreFixedTaps(e.G.Obj(o.Obj).Face())) {
 				// A witness always; a proof only for the shapes the
 				// composition models exactly (the planner declined the
@@ -379,27 +359,6 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 		return e.potentialModeCastPlan(p, o), true
 	}
 	return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}, false
-}
-
-// castCostReader is the read-only side of *Engine castFixedRaiseCostExtra
-// needs; a narrow interface keeps the helper off Engine's method set.
-type castCostReader interface {
-	costModifiers(state.PlayerID, state.ObjID, costScope) costMods
-}
-
-// castFixedRaiseCostExtra reports whether a cast's additional cost comes from
-// a RaiseCost static with a fixed count (the Champion cycle's BeholdExile, Soul
-// Immolation's Blight<X>), rather than a named-announcement part (Explosive
-// Singularity's tapXType<@Tapped>, an ExileFromHand<@Exiled>) or no static
-// extra at all. The potential planner may take the composed mana verdict only
-// for the fixed form: potentialModeCastPlan composes a named part at
-// announcement 0, while the offer gate's offerNamedMods sweep re-prices it at
-// each legal count, so an "insufficient" composed at 0 is not a proof. A
-// static scoped to every spell (Drought's Type$ Spell) reaches casts whose own
-// Cost$ declined too; the composition remains mana-exact for the fixed extra.
-func castFixedRaiseCostExtra(r castCostReader, p state.PlayerID, id state.ObjID) bool {
-	extra := r.costModifiers(p, id, spellScope("")).Extra
-	return pay.PlanCostDetail(extra) != "" && !costHasNamedCount(extra)
 }
 
 // spellExtrasAreFixedTaps reports a face whose spell ability adds nothing to the
