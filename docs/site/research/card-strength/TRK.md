@@ -11,14 +11,14 @@ A cold-start card list for TRK, made from simulated games alone, before any huma
 
 ## How the list was made
 
-- **Tool:** `cmd/cardval`, from a private-module build with uncommitted changes (its Go build stamp says `vcs.modified=true`), linked to a gorge worktree that has since been removed; that gorge commit was not recorded.
-- **Command:** `cardval -corpus <gorge>/.cards -set TRK -az -az-sims 25 -n 11000 -seed 21 -workers 6 -max-objs 1000`.
+- **Tool:** a valuation tool that is not in this repository, from a local build with uncommitted changes; the gorge commit was not recorded.
+- **Setup:** az search at 25 simulations, 11,000 games, seed 21.
 - **Decks:** random two-colour decks of 23 distinct nonland cards (15 creatures) drawn uniformly from each colour pair's eligible cards, plus basics. 292 TRK cards were eligible.
-- **Pilot:** the az search with no network (recorded as `cardval-az@sims=25,net=nonet`), 25 simulations per searched decision, on both seats. It knows no card, so the list carries no knowledge from another set.
+- **Pilot:** the az search with no network, 25 simulations per searched decision, on both seats. It knows no card, so the list carries no knowledge from another set.
 - **Games:** 11,000 played, 0 errors. 10,970 were decided; 22 ended without a winner and 8 stalled, and those 30 are left out of the estimate.
 - **Estimator:** in-hand membership. Each seat's in-hand set is its opening hand after mulligans plus every card it later drew (the set 17Lands counts for GIH WR). A ridge linear-probability model (lambda 50) of the seat's win on in-hand membership, fitted over the 21,940 decided seat-games; the value is the coefficient plus 0.5. The shrunk in-hand win rate, (wins + 10) / (n + 20), is also stored, as `gih` in the CSV.
 - **Published prior:** the ridge ranks are mapped onto the distribution of FDN's 17Lands `gih_wr` (cards with at least 2,000 games) by quantile matching, giving the "Prior (gih_wr scale)" column below. The ranks are the ridge ranks: Spearman between the prior and the ridge value is 0.999998 (rounded to 6 decimals; the stored prior is rounded to 4 decimals, which makes ties). This prior is TRK's draft-bot rating file, `draft/limited/pickbot/ratings/TRK.json` (generated from this CSV by `draft/limited/pickbot/internal/gentrk`).
-- **Date:** 2026-11-03, 18:53 to 20:38 -0700.
+- **Date:** 2026-11-03.
 
 A second 11,000-game batch (seed 22) was planned to follow. No output or log of it exists, so this list is the first batch alone.
 

@@ -50,8 +50,8 @@ The starting measurement: "Bots cast ~21% of instants on the opponent's turn; 17
 | `instwin=noupdraw`, from g4 | g7 0.613 → 0.586; sb-tactical 0.78–0.795; opponent-turn share 26.6% → 21.5% |
 | rule at play, head to head (g7, 2,000 games, sims 100) | full-combat+resp 0.5035 ±0.0219; inst8-combat+resp 0.4980 ±0.0219 |
 
-Source: the f84 run notes' table of what was tried; the forced-kill figures from the run's output; the head-to-head from its ledger. All kept privately.
+Source: the run notes' table of what was tried, the forced-kill figures from the run's output and the head-to-head from its results. All kept privately.
 
 ## Data
 
-The f84 line's generations, census tables and archives, the per-class census runs and three unpushed branches of the private module (the instant census, `:settle`, `:killfirst`, the `instwin` modes and a spell-class census; the forced-kill counterfactuals; the stack probe) are kept privately.
+The line's generations, census tables and archives, the per-class census runs and the forced-kill counterfactuals are kept privately.

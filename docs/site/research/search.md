@@ -35,8 +35,8 @@ DraftZero experiment #3 (upstream `b1e0ba68`, MIT) asked how much search helps, 
 
     - 1,000 test decisions from 558 games and 300 dev decisions from 172 games, with quotas spell 375/110, hold 125/40, attack 300/90, block 200/60.
     - Scores: A_set (macro agreement) and the balanced score (mean balanced accuracy of cast/hold, attack/not, block/not), which the report calls "the score to trust". CIs are a 95% game-cluster bootstrap, 1,000 resamples.
-    - The search: the tree holds only the searching seat's searched decisions, botpolicy plays the opponent, PUCT c = 0.5 on [0,1], uniform priors, the heuristic leaf (`searchprobe.LeafValue`), no network arm, final choice by most visits. Machine: 9950X, 8 workers.
-    - Commands: `searchbench run -arm pimc-1 -sims 1000 -workers 8 -discount 0.99 -discount-unit ply`, `searchbench baselines`, `searchbench leak -sims 3000 -seeds 16`, and a grid script over arms and sims.
+    - The search: the tree holds only the searching seat's searched decisions, botpolicy plays the opponent, PUCT c = 0.5 on [0,1], uniform priors, the heuristic leaf (`searchprobe.LeafValue`), no network arm, final choice by most visits.
+    - Arms: no search, PIMC-1 and PIMC-4, IS-MCTS and a clairvoyant ceiling, each over a grid of simulation counts, with discount 0.99 per ply and a leak check at 3,000 sims over 16 seeds.
 
 === "Caveat"
 
@@ -75,7 +75,7 @@ All rows below are self-paired play gates with seats swapped. They differ in net
 --8<-- "research/figs/search-scaling.svg"
 </figure>
 
-**g7 vs sb-tactical on the dirac kernel** (the az-c6 g7 net, the private self-play runner, the kernel's stand-in fallback bot of 2026-10-18; ±0.017 at 3,000 games):
+**g7 vs sb-tactical on the dirac kernel** (the az-c6 g7 net, the kernel's stand-in fallback bot of 2026-10-18; ±0.017 at 3,000 games):
 
 | Sims | Score | Games | µs/sim |
 |---|---|---|---|
@@ -88,7 +88,7 @@ With gorge's heuristic bot ported to the kernel, the same curve on the xp scale:
 
 === "g7 against itself"
 
-    the private self-play runner, 1,500 pairs = 3,000 games:
+    on the dirac kernel, 1,500 pairs = 3,000 games:
 
     | A vs B | Score | Wall |
     |---|---|---|

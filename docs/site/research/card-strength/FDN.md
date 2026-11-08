@@ -4,15 +4,15 @@ Three card lists for FDN, each made from simulated games alone. FDN is the calib
 
 | List id | Pilot | Games played (decided) | Estimator ranked by | Spearman vs 17Lands GIH WR | Date | Built from |
 |---|---|---:|---|---:|---|---|
-| `fdn-bot-80k` | scripted bot | 80,000 (79,994) | shrunk in-hand win rate | 0.518 | 2026-10-16 | gorge 10f10c858, unmerged branch (inferred) |
-| `fdn-azc6g3-20k` | az search with the az-c6 generation 3 network | 20,000 (19,993) | shrunk in-hand win rate | 0.609 | 2026-10-16 | gorge 10f10c858, unmerged branch (inferred) |
-| `fdn-nonet-3k` | az search, no network | 3,000 (3,000) | ridge on in-hand membership | 0.403 | 2026-11-03 | a private-module build with uncommitted changes |
+| `fdn-bot-80k` | scripted bot | 80,000 (79,994) | shrunk in-hand win rate | 0.518 | 2026-10-16 | gorge 10f10c858 (inferred) |
+| `fdn-azc6g3-20k` | az search with the az-c6 generation 3 network | 20,000 (19,993) | shrunk in-hand win rate | 0.609 | 2026-10-16 | gorge 10f10c858 (inferred) |
+| `fdn-nonet-3k` | az search, no network | 3,000 (3,000) | ridge on in-hand membership | 0.403 | 2026-11-03 | a local build with uncommitted changes |
 
 Rarity alone (C < U < R < M) scores 0.217 on the same 262 cards. Spearman is rounded to 3 decimals.
 
 ## How the lists were made
 
-All three come from `cmd/cardval`: in gorge until the repository split, in the private module since. It builds random two-colour decks of 23 distinct nonland cards (15 creatures) drawn uniformly from each colour pair's eligible cards, plus basics, plays them with one pilot on both seats, and writes one line per game with each seat's in-hand cards (opening hand after mulligans plus every card drawn later, the set 17Lands counts for GIH WR). 265 FDN cards were eligible. An offline script then fits every card at once:
+All three come from one valuation tool, which is not in this repository. It builds random two-colour decks of 23 distinct nonland cards (15 creatures) drawn uniformly from each colour pair's eligible cards, plus basics, plays them with one pilot on both seats, and writes one line per game with each seat's in-hand cards (opening hand after mulligans plus every card drawn later, the set 17Lands counts for GIH WR). 265 FDN cards were eligible. An offline script then fits every card at once:
 
 - `gih`: the shrunk in-hand win rate, (wins + 10) / (n + 20), where n is the number of decided seat-games with the card in hand.
 - `ridge`: a ridge linear-probability model (lambda 50) of the seat's win on in-hand membership, coefficient plus 0.5.
@@ -23,33 +23,33 @@ Games without a winner and stalled games are left out. Both estimates for every 
 
     **Scripted bot pilot.**
 
-    - Command: `cardval -corpus .cards -set FDN -mode random -pilot bot -n 80000 -seed 7 -workers 12`. The pilot is gorge's scripted bot policy (recorded as `bot@1`).
+    - Setup: random mode, 80,000 games, seed 7. The pilot is gorge's scripted bot policy (recorded as `bot@1`).
     - Games: 80,000 played, 0 errors; 159,988 decided seat-games, so 79,994 decided games.
     - Ranked by `gih`. This `gih` column was the teacher for the stage-0 drafter ([draft RL](../draft-rl.md)).
-    - Date: 2026-10-16, 06:14 to 06:16 -0600.
-    - Commit: the binary has since been deleted, so no build stamp survives. Its worktree's branch was at gorge 10f10c858 from 05:57:58 -0600 until the next commit at 12:22:50 -0600, which spans this run. `cmd/cardval` on that branch is unchanged from gorge main 5799819d6. Uncommitted changes cannot be ruled out.
+    - Date: 2026-10-16.
+    - Commit: no build stamp survives; the run is attributed to gorge 10f10c858, and the tool was unchanged from gorge main 5799819d6. Uncommitted changes cannot be ruled out.
 
 === "`fdn-azc6g3-20k`"
 
     **az search with a trained network.**
 
-    - Command: two chunks of `cardval -corpus .cards -az -az-net <az-c6 g3> -az-sims 25 -n 10000 -seed S -workers 12`, with seeds 11 and 12; the set defaulted to FDN. The two game files were concatenated.
+    - Setup: two chunks of 10,000 games with seeds 11 and 12, az search at 25 simulations with the az-c6 generation 3 network; the two game files were concatenated.
     - Pilot: az search, 25 simulations per searched decision, on both seats, guided by the az-c6 generation 3 network. That network was trained by self-play on 17Lands FDN decks ([AZ loop](../az-loop.md#4-az-c6-from-scratch-g1g7)), so it has seen these cards. This list is therefore not a cold-start measurement.
     - Games: 2 × 10,000 played, 0 errors; 39,986 decided seat-games, so 19,993 decided games. In the first chunk, 125 of 17,296,675 simulations found no world and 5 decisions were refused; the second had none.
     - Ranked by `gih`. It was the teacher for a second stage-0 drafter.
-    - Date: 2026-10-16, 08:49 to 10:35 -0600.
-    - Commit: as for `fdn-bot-80k`: gorge 10f10c858 by the branch's reflog, binary deleted.
+    - Date: 2026-10-16.
+    - Commit: as for `fdn-bot-80k`: gorge 10f10c858.
 
 === "`fdn-nonet-3k`"
 
     **az search with no network.**
 
-    - Command: `cardval -corpus <gorge>/.cards -set FDN -az -az-sims 25 -n 3000 -seed 11 -workers 6 -max-objs 1000`, the same wrapper as the TRK run.
-    - Pilot: az search with no network (`cardval-az@sims=25,net=nonet`), both seats. It knows no card, which makes this the calibration of the recipe used for [TRK](TRK.md).
+    - Setup: az search at 25 simulations, 3,000 games, seed 11, the same setup as the TRK run.
+    - Pilot: az search with no network, both seats. It knows no card, which makes this the calibration of the recipe used for [TRK](TRK.md).
     - Games: 3,000 played, 0 errors, all decided (6,000 seat-games).
     - Ranked by `ridge`, as the TRK list is. A refit of the ridge from the game file matches the run's own values to 1.2e-16.
-    - Date: 2026-11-03, 18:39 to 18:53 -0700.
-    - Commit: the binary is stamped with a private-module revision and `vcs.modified=true`; gorge came from a since-removed worktree through a Go workspace, commit not recorded.
+    - Date: 2026-11-03.
+    - Commit: a local build with uncommitted changes; the gorge commit was not recorded.
 
 ## Validity
 

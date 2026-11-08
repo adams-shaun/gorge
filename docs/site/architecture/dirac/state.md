@@ -3,7 +3,7 @@
 A dirac game is one Go value, `dirac.State`, plus one small buffer it owns. This page shows what is inside
 it and why, for readers who want to know what a cheap clone costs and what it rules out.
 
-Sizes were read on 2026-11-03, with Go 1.26.3 on linux/amd64, by a scratch test printing
+Sizes were read on 2026-11-08, with Go 1.26.3 on linux/amd64, by a scratch test printing
 `unsafe.Sizeof` of each part. dirac's own `TestStateSize` logs the total.
 
 ## Three parts
@@ -19,10 +19,10 @@ type State struct {
 
 | Part | Bytes | What it holds |
 |---|--:|---|
-| `stateCore` | 10,776 | the rules state, below |
+| `stateCore` | 12,952 | the rules state, below |
 | `perms` | 6,272 | 112 battlefield slots at 56 bytes each |
-| `cold` headers and `pool` | 304 | slice headers and a pointer; the arrays themselves are in one buffer |
-| **`State`, total** | **17,352** | |
+| `cold` headers and `pool` | 296 | slice headers and a pointer; the arrays themselves are in one buffer |
+| **`State`, total** | **19,528** | |
 
 The core and `perms` hold no pointers, maps, slices, strings or interfaces. Every collection is a fixed array
 and a count, so three things follow:
@@ -47,15 +47,15 @@ What's variable-length about the cards (definitions, filters, op programs) is in
 |---|--:|---|
 | header | about 16 | turn, step, active player, priority holder, passes, control state, config bits, result |
 | RNG | 168 | the PCG state, draw count, chance record ([RNG](step-apply.md#rng)) |
-| players | 552 | two records: life, zones, mana pools |
-| objects | 1,536 | 192 card instances at 8 bytes: card, zone, slot, version, flags |
+| players | 884 | two records: life, zones, mana pools |
+| objects | 1,792 | 224 card instances at 8 bytes: card, zone, slot, version, flags |
 | layer stamps | 224 | a layer timestamp per battlefield slot |
 | slot masks | about 480 | occupied, by controller, per event kind, static sources |
-| stack | 1,728 | 48 entries at 36 bytes (`MaxStack`) |
-| pending triggers | 768 | 48 records (`MaxPending`), then the trigger-order round's picks |
+| stack | 1,920 | 48 entries at 40 bytes (`MaxStack`) |
+| pending triggers | 864 | 48 records at 18 bytes (`MaxPending`); the trigger-order round's 48 picks follow |
 | delayed triggers | 192 | 32 records (`MaxDelayed`) |
-| resolution in progress | 80 | the suspended program and its position |
-| change marks | 24 + 192 | one bit per object, one stamp per object ([below](#change-marks)) |
+| resolution in progress | 178 | the suspended program and its position |
+| change marks | 32 + 224 | one bit per object, one stamp per object ([below](#change-marks)) |
 | generated-table extension | the rest | continuous effects, last known information, per-turn history and other pools |
 
 ## Hot and cold
@@ -100,7 +100,7 @@ pool when the trigger is queued or the cost is paid.
 A search copies a position many times, and most objects in a copy match the base. Two readers use that: the
 network input encoder and the search's evaluation cache.
 
-- `chg` is a 192-bit set. A write to an object or its slot marks its bit, bumps a touch counter and stamps the
+- `chg` is a bitset of 224 objects (four 64-bit words). A write to an object or its slot marks its bit, bumps a touch counter and stamps the
   object.
 - `SetEpoch` clears the marks and names the current position as a base. A copy carries the epoch and the marks,
   so an unmarked object in any copy is field for field the base's.
@@ -115,14 +115,14 @@ Every byte of the core is copied on every clone, so its size is a decision rathe
 - **`State` must stay under 24 KiB.** `TestStateSize` fails above `maxStateBytes` (`dirac/kernel_test.go`), and
   moving the bar is a deliberate decision, measured against the bench cost of the larger copy.
 - **The table holds what's printed and `State` holds what changes.** No field in `State` belongs to one card.
-- **Per-slot bytes are expensive.** One byte on `perm` costs 112 bytes of `State`, one on `object` 192. Rare
+- **Per-slot bytes are expensive.** One byte on `perm` costs 112 bytes of `State`, one on `object` 224. Rare
   state goes in a pool sized for the worst case seen in play, or in a cold array.
 - **A mechanic that's off costs one branch.** Each block is gated by a flag computed once per table, and the code
   behind the gate stays out of line.
 
 ## The Projection
 
-`Project` writes a `dirac.Projection` of 34,800 bytes: a comparable view of a whole position, for tools and tests.
+`Project` writes a `dirac.Projection` of 41,272 bytes: a comparable view of a whole position, for tools and tests.
 
 | Part | Contents |
 |---|---|

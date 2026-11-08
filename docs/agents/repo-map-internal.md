@@ -17,5 +17,7 @@ them.
 | `internal/corpusheap` | Heap-footprint ratchet for the opened corpus (tests only). |
 | `testkit/paymirror` | A/B check of planned vs manual cast payment; `cmd/paymirror` drives it. |
 | `cli` | Cobra-style commands on the standard library: GNU flags, environment variables and JSON `--config` files ([`docs/cli.md`](../cli.md)). |
+| `internal/schemacheck` | Validates JSON documents against a directory of JSON Schema files that refer to each other by relative name. |
+| `testkit/hiddeninfo` | Test oracle for what a seat may read: follows a game and says whether a piece of text names a card that seat cannot see. |
 | `internal/testbudget` | Per-test-binary peak-RSS records for `cmd/testbudget`. |
 | `internal/tsgen` | Go→TypeScript for `web/src/protocol.ts` (`cmd/gentypes`). |

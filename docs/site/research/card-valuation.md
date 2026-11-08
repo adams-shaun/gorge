@@ -19,7 +19,7 @@ flowchart LR
 
 ## Setup
 
-`cmd/cardval` was written in gorge, built on the draftlab composition API, and now lives in the private module. It deals random two-colour decks: 23 nonland cards (15 creatures, 8 others) and 17 basics from the 265 eligible FDN cards, 10 colour pairs, and plays them through `draftlab.PlayGame` at about 600 games/s on 8 workers.
+The valuation tool is not in this repository. It deals random two-colour decks: 23 nonland cards (15 creatures, 8 others) and 17 basics from the 265 eligible FDN cards, 10 colour pairs, and plays them through `draftlab.PlayGame`.
 
 - **Estimators:** deck logistic regression (±1 per card plus a went-first term), paired swaps, in-hand (GIH) win rate, drawn minus undrawn, and hand + deck regression.
 - **Pilots:** the heuristic bot, a lethal-pressure bot, az-c4 search (25 sims) and the az search with no net.

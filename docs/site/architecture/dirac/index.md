@@ -73,15 +73,15 @@ can still find a difference on a supported card.
 ### How far lockstep agrees
 
 gorge is the engine dirac is checked against ([Verification](oracle.md)). The state of that check on
-2026-11-02 at `e0cfe5407`, with random answers. The rows are `make dirac-slices`, which any clone
+2026-11-08 at `fc2be1aabe`, with random answers. The rows are `make dirac-slices`, which any clone
 with a corpus can run, and CI runs on every change. A slice is the first 1,500 pairs of a pool at seed 1.
 
 | Run | Games | Clean | Divergent | Unmodelled stalls | Capacity stalls | Refused pairs |
 |---|--:|--:|--:|--:|--:|--:|
-| FDN slice, `-surface autopay` | 1,399 | 1,397 | 0 | 0 | 2 | 101 |
-| FDN slice, `-surface full` | 1,399 | 1,395 | 0 | 0 | 4 | 101 |
-| BLB slice, `-surface autopay` | 1,456 | 1,456 | 0 | 0 | 0 | 44 |
-| BLB slice, `-surface full` | 1,456 | 1,456 | 0 | 0 | 0 | 44 |
+| FDN slice, `-surface autopay` | 1,494 | 1,492 | 0 | 0 | 2 | 6 |
+| FDN slice, `-surface full` | 1,494 | 1,491 | 0 | 0 | 3 | 6 |
+| BLB slice, `-surface autopay` | 1,500 | 1,500 | 0 | 0 | 0 | 0 |
+| BLB slice, `-surface full` | 1,500 | 1,500 | 0 | 0 | 0 | 0 |
 
 A refused pair holds a card dirac doesn't support, so it never starts a game. A capacity stall is a declared limit,
 reached with no disagreement up to that point; it counts against the run and isn't clean. Games beyond these slices,
@@ -95,8 +95,8 @@ dirac does less than gorge on purpose.
 | Limit | Value | Past it |
 |---|---|---|
 | Players | exactly 2 | not representable |
-| Deck size | 60 cards a seat | rejected at setup |
-| Card instances, both decks plus tokens and copies | 192 | the game stalls (`board`) |
+| Deck size | 100 cards a seat (`MaxDeck`, a Commander deck's size), and a sideboard of 15 (`MaxSide`) | rejected at setup |
+| Card instances, both decks plus tokens and copies | 224 | the game stalls (`board`) |
 | Battlefield | 112 permanents | stalls (`board`) |
 | Stack | 48 entries | stalls (`stack`) |
 | Triggered abilities waiting | 48 | stalls (`pending`) |

@@ -53,7 +53,7 @@ the gorge rules dirac follows.
 | `State` | The whole game. `dst.CopyFrom(src)` clones a position; `New` and `NewConfig` return a pointer, and `Init` starts a game in an existing State. `go vet` rejects an assignment. |
 | `Decision` | One ask from the engine. `Step()` returns a `Decision`; `StepInto(&d)` fills a caller's value without the copy. `DkNone` means the game is over. `Options[:d.N]` are the legal answers; `d.Player` is who answers and `d.Sub` says what a `DkChoose` chooses. |
 | `Action` | One packed `uint32` answer: `kind<<24 | source<<16 | target<<8 | mode`. See `types.go` for `ActionKind` and each kind's fields; `MakeAction`, `Kind()`, `Source()`, `Target()` and `Mode()` encode and decode it. |
-| `Obj` | A card instance index. Objects `0..len(deckA)-1` are seat 0's deck in deck order, the next `len(deckB)` seat 1's, then tokens in creation order (`MaxObj` = 192). An object keeps its index across zones. |
+| `Obj` | A card instance index. Objects `0..len(deckA)-1` are seat 0's deck in deck order, the next `len(deckB)` seat 1's, then tokens in creation order (`MaxObj` = 224). An object keeps its index across zones. |
 | `Projection` | `Project(&p)` writes a comparable, fixed-array view: objects by `Obj` index, stack, life, turn, step, active player, mana pools, zone sizes, game over and winner. It is the oracle's comparison surface and a convenient read-only view for tools. |
 | `Config` | `NewConfig(tbl, deckA, deckB, seed, Config{...})`. `Mulligans` is the London mulligan limit (0 skips it); `NoElide` poses single-option decisions instead of answering them in place. The other fields are oracle/search knobs documented in `state.go`. |
 | `Terminal` | `Terminal() (over bool, winner int8)`. `winner` is 0 or 1, or -1 for a draw. |

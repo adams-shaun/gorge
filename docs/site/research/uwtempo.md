@@ -13,17 +13,16 @@
 
 ## Setup
 
-The loop is a variant of the kernel's xp loop script, adapted to MageZero's schedule.
+The loop is the same self-play loop as the other pages, adapted to MageZero's schedule.
 
-- **Per generation:** 1,000 games, 200 against each of five MTGA mono decks (B, G, R, U, W). UWTempo's seat is `az:sims=N:cpuct=1:autopay:oppnodes:oppfull:morekinds:clairvoyant` with no exploration noise (their `noise.enabled=false`). **This search is clairvoyant**: it sees hidden cards.
+- **Per generation:** 1,000 games, 200 against each of five MTGA mono decks (B, G, R, U, W). UWTempo's seat is the search bot with the full-information options and no exploration noise (their `noise.enabled=false`). **This search is clairvoyant**: it sees hidden cards.
 - **Schedule:** sims 150 for g0–g6 and 300 from g7. The policy prior is off (uniform, `:ptemp=1e9`, value-only search) through g11 and on from g12 (`:ptemp=1.5`), as in their coordinator schedule.
 - **Records:** UWTempo's seat only. Value label TD 0.92 (their ParallelDataGenerator label). Window: the last 10 generations (their `replay_buffer_gens`). Net g+1 trains from scratch at g1 and from net g after.
-- **Net:** the production d64 MLP config, visit-count policy target, value blend 0.
+- **Net:** the production d64 MLP config with a visit-count policy target and no value blending.
 - **Decks:** their lists, with no substitutes.
-- **Binaries:** The private self-play runner from an unmerged branch of the private module, and the private trainer.
-- **Arms**, all started 2026-10-28 between 01:27 and 01:37Z and run to g17:
+- **Arms**, all started on 2026-10-28 and run to g17:
     - **K**: the mono decks are piloted by the heuristic bot (`hbot`).
-    - **L**: the mono decks are piloted by `az:sims=300:cpuct=1:autopay:oppnodes:oppfull:morekinds:clairvoyant`.
+    - **L**: the mono decks are piloted by the same clairvoyant search at 300 sims.
     - **L2**: L with a second seed.
 
 **Opponent calibration.** MageZero's opponents are minimax pilots. Which of ours is their equal? UWTempo win rate against the five monos, by pilot:

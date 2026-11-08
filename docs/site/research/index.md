@@ -34,7 +34,7 @@ What gorge's maintainers tried in order to make the bots play better, what each 
 
 </div>
 
-The code these pages describe is split. gorge holds the engines, the encoder (`bots/policynet`), the net runtime (`bots/gonet`, `bots/netsimd`), the reference search (`bots/azmcts`) and the hosted bots. The trainer, the networks and their weights, the self-play drivers and the experiment scripts stay in a private companion module, so the runs here can't be repeated from a clone of gorge. The run data behind every table is kept privately.
+The code these pages describe is split. gorge holds the engines, the encoder (`bots/policynet`), the net runtime (`bots/gonet`, `bots/netsimd`), the reference search (`bots/azmcts`) and the hosted bots. The trainer, the networks and their weights, the self-play drivers and the experiment scripts are not in this repository, so the runs here can't be repeated from a clone of gorge. The run data behind every table is kept privately.
 
 !!! note "How to read the numbers"
     - A score is the first-named side's share of games, seats swapped, unless the row says Elo or points.
@@ -212,9 +212,9 @@ Where two figures on these pages seem to contradict each other, this is why.
 
 ## Open questions
 
-The queue as of 2026-11-04:
+Open as of 2026-11-04:
 
-- **Value-only MCTS, MLP vs GNN.** A uniform-prior search with each net as the leaf only, G_M vs MLP at equal sims, 2,000 pairs; head swaps under both value-only and PUCT. The queue cites a MageZero "+8" with value-only MCTS; no file records that figure.
+- **Value-only MCTS, MLP vs GNN.** A uniform-prior search with each net as the leaf only, G_M vs MLP at equal sims, 2,000 pairs; head swaps under both value-only and PUCT. A note cites a MageZero "+8" with value-only MCTS; no file records that figure.
 - **GPU equal time.** The GNN served from the GPU against the MLP on CPU, at equal wall time.
 - **GNN speed.** If the grid confirms the edge: bring the GNN under 4× the MLP's cost per eval (18× today for G_M on CPU) through leaf-parallel batched search with virtual loss, incremental entity encoding, fp16/bf16 on GPU and int8 on CPU, distilling G_M into a G_S-size GNN, and a value cache across worlds.
 - **Separate policy and value windows.** The policy head trains on the latest generation or two, the value head on the full window (the trainer has one window today). Gate at g6 and g9, 4,000 games, adopt at ≥ 0.52; health check KL(visits‖prior) from 0.07 to ≥ 0.2.
@@ -229,19 +229,19 @@ Other open lines:
 
 ## Records missing
 
-Programs or numbers whose primary records could not be found, after a search of the training data store and its archive logs, the repositories' docs and history, and the working notes.
+Programs or numbers whose primary records could not be found.
 
 | Program | What is missing | What survives |
 |---|---|---|
 | Imitation policy from 17lands (2026-10-01 → 10-02) | The run directory (results, run log, play results); the dev-set accuracy (about 0.65 balanced) and the cast-veto play gates exist only in a maintainer's note | Spec, plan and code on unmerged gorge branches; the blocker counts in an unmerged commit |
 | 17lands value spike (2026-09-27) | The run directory; the AUC figures exist only in a maintainer's note | Two unmerged gorge branches; the 17lands replay data |
 | Search kill tests (2026-10-01) | The two results files: per-arm game counts and intervals of the cpuct sweep and of the fitted leaf's dev/held-out split | The summary row on gorge's [Bot speed](../performance/bots.md) page before 55ce18b20 |
-| aztrain c-series (2026-10-08 → 10-14) | The loop's plan and its eval summaries | The design notes and the retrain write-up, kept privately |
+| AZ c-series (2026-10-08 → 10-14) | The loop's plan and its eval summaries | The design notes and the retrain write-up, kept privately |
 | az-c5 (2026-10-15) | The run directory | Its design note, kept privately |
 | KL(visits‖prior) diagnosis, 2026-10-21 | The output of the pack diagnosis on three packs (the 0.07-nats reading); its log was cut before the KL lines | The script, the packs, and nearby readings in two later reports |
 | Perf ledger for the search benchmark | The results file | A summary in the replication report |
 | Stage-0 clairvoyant AZ (2026-09-28) | The result file | One line in a gorge report removed from the tree in 01caa6d37 |
-| PlayLines (2026-10-16) | No sweep was run; results sections are empty except one (payment choice: 157,459 casts, all single-plan, stage 0 aborted) | Reports on unmerged branches and their design notes |
+| Play-line analysis (2026-10-16) | No sweep was run; results sections are empty except one (payment choice: 157,459 casts, all single-plan, stage 0 aborted) | Reports on unmerged branches and their design notes |
 | Cold-start card values, 2026-10-14 runs | The run directory | The experiment write-up, kept privately |
 | Draft RL S2 run | The run directory and its checkpoint | The design note's results sections |
 | LLM QLoRA working data | The training and bridge directories | The write-up, kept privately; the gate output in a working log |

@@ -219,8 +219,8 @@ importing them: `bots.Register`, `server/gorged.RegisterNetBot`,
 **Wire.** A client protocol a game can be played through: gorge's native HTTP API,
 ManaBrew or SpellBench v2. See [Wires](../architecture/wires.md).
 
-**Repo decks.** The 30 deck files in `testkit/testutil/decks/`: 15 60-card constructed
-and 15 Commander. Twelve of the constructed ones are the *pinned* list
+**Repo decks.** The 34 deck files in `testkit/testutil/decks/`: 15 60-card constructed
+and 19 Commander. Twelve of the constructed ones are the *pinned* list
 (`testutil.LegacyDeckNames`, after the Legacy format) that the golden games and `mtgsim`
 seat from.
 
