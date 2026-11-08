@@ -2134,7 +2134,8 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			} else {
 				ok = true
 			}
-			if !ok && (!s.spellTgtDep(k, s.bld().e.ctrl, s.bld().e.card, s.bld().e.obj) || severalTargets(k, s.bld().e.card)) {
+			if !ok && (!s.spellTgtDep(k, s.bld().e.ctrl, s.bld().e.card, s.bld().e.obj) ||
+				severalTargets(k, s.bld().e.card) && s.bld().e.flags&(sfMayPlay|sfFlashback) != 0) {
 				s.g.noTgtRed = false
 				return
 			}
@@ -2247,7 +2248,8 @@ func (s *State) witnessAtCheapest(k *prep, p uint8, cost *kop.ManaCost, av *avai
 		*cost = s.altAddReduced(k, *cost, s.altAddManaPart(k, e.card))
 		return
 	}
-	if s.spellTgtDep(k, p, e.card, e.obj) && !severalTargets(k, e.card) && cost.Hyb[0] == 0 {
+	if s.spellTgtDep(k, p, e.card, e.obj) && cost.Hyb[0] == 0 &&
+		(!severalTargets(k, e.card) || e.flags&(sfMayPlay|sfFlashback) == 0) {
 		funded := av.affords(cost, pipMaskOf(cost), 0)
 		if k.gen != nil && len(k.gen.grantPC) != 0 {
 			// the planner's census has no granted source (Imprisoned in the Moon's {C})
@@ -2384,6 +2386,11 @@ func (s *State) lkiCtrlSlot(k *prep, o Obj, i int) uint8 {
 // Alesha's power" after she was sacrificed: pairs 12267 52089); pw, t
 // (the card's printed values) otherwise.
 func (s *State) selfPTLKI(k *prep, e *stackEntry, pw, t int) (int, int) {
+	if ob := &s.objs[e.obj]; ob.zone != kop.ZoneBattlefield && ob.ver == e.srcVer+1 {
+		if r := s.srcDepartRec(e); r != nil {
+			return int(r.power), int(r.tough) // the departure snapshot (zone_lkisource.go)
+		}
+	}
 	best := s.departedSrcSlot(e)
 	if best == NoSlot {
 		return pw, t

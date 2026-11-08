@@ -257,6 +257,16 @@ func tapXOwnAnswer(own, a, b Slot) bool {
 	return !DebugNoTapXOwnSkip && own != NoSlot && (a == own || b == own)
 }
 
+// tapXPairLimit returns how many pairs of positions below n the two prefix
+// searches try: C(n,2), gorge's 64-answer cap at most.
+func tapXPairLimit(n int) int {
+	np := n * (n - 1) / 2
+	if np > 64 {
+		np = 64
+	}
+	return np
+}
+
 // tapXPairAt returns the qi-th pair of positions i < j below n in
 // lexicographic order: the order gorge's scriptAnswers enumerates the
 // n-combinations of a multi-object election in.
@@ -622,10 +632,7 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			if nc > 2 && !rs.tick() {
 				return false
 			}
-			npair := nc * (nc - 1) / 2
-			if npair > 64 {
-				npair = 64
-			}
+			npair := tapXPairLimit(nc)
 			for pi := 0; pi < npair; pi++ {
 				qi := pi
 				if debugTapXMutate == 2 {

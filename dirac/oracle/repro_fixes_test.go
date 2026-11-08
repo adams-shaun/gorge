@@ -109,11 +109,16 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// leaves the caster unable to pay, as the root target ask does
 		{"charm_mode_targets_skip_unaffordable_terror", false, false},
 		// CR 601.2f: This Town Ain't Big Enough cast from Jasper Flint's
-		// mayplay, whose TargetMax$ 2 keeps the potential planner at the full
-		// price: the offer gate's target retry prices one matching target,
-		// and its first arm pays the full price from the sources while the
-		// retry pays the reduced price from the pool alone.
+		// mayplay: the mayPlay arm prices the full price from the sources
+		// first, and its target retry prices one matching target from the
+		// pool alone.
 		{"mayplay_target_dependent_several_targets", false, false},
+		// CR 601.2f, 118.7: This Town Ain't Big Enough's two-target
+		// declaration earns its {3} reduction when ONE target is a permanent
+		// the caster controls. The potential planner prices the cheapest
+		// legal target set, and a cast payable only by spending that target
+		// pays it at CR 601.2g, after the targets are chosen.
+		{"multi_target_reducecost_priced_at_cheapest_set", false, false},
 		// CR 603.3b: One Last Job returns Assimilation Aegis attached; gorge scans the move (its ETB trigger) before the attach (its Attached trigger), so the ETB trigger is queued first
 		{"entered_attached_etb_before_attached_trigger", false, false},
 		{"aegis_on_temporary_copy_bearer", true, false},     // CR 613.7e, 707.2: Assimilation Aegis attached to a creature Fleeting Reflection made a copy until end of turn copies over it (the later copy wins), and gives it back to that copy when unattached
@@ -482,6 +487,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"attached_and_global_mana_grants_follow_the_static_walk", true, false}, // CR 613.7, 605.1a: Honest Work's {T}: Add {C} on a land of the other seat is listed after Great Divide Guide's any-colour grant, as gorge walks the statics by seat
 		{"waterbend_self_taps_watcher_census", false, true},                     // CR 605.1b, 701.67a: Great Divide Guide's granted {T} ability on Compassionate Healer fires the Healer's own Taps watcher, which gorge's census cannot price, so the waterbend announcement offers Done
 		{"free_waterbend_cast_stranded_reverses_untapped", true, false},         // CR 733.1: Benevolent River Spirit cast free off Solstice Revelations with Ty Lee waterbent leaves {4} no source pays; the cast reverses before the Mountain taps
+		{"source_lki_power_keeps_unattached_equipment", true, false},            // CR 608.2h: Firebending Student killed by Razor Rings with its firebending trigger waiting adds its power as it last existed, Glider Staff's +1 included, though the Staff became unattached since
 	})
 }
 

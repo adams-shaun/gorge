@@ -618,9 +618,11 @@ func TestPotentialPlanPricesTheCheapestTarget(t *testing.T) {
 	}
 }
 
-// TestPotentialPlanLeavesASeveralTargetPriceUnknown: the target ask tests each
-// candidate alone, so a spell choosing several gets no cheapest-target witness.
-func TestPotentialPlanLeavesASeveralTargetPriceUnknown(t *testing.T) {
+// TestPotentialPlanPricesASeveralTargetPrice: the target ask prices a spell's
+// legal target sets, and a flat "if it targets ..." reduction is earned by one
+// own permanent even when the declaration may choose two (CR 601.2f). The
+// potential planner witnesses the cheapest set's {1}{U}.
+func TestPotentialPlanPricesASeveralTargetPrice(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9418, corpusCardText(t, "t/this_town_aint_big_enough.txt"))
 	for range 2 {
@@ -629,8 +631,12 @@ func TestPotentialPlanLeavesASeveralTargetPriceUnknown(t *testing.T) {
 	onBoard(t, e, 0, "Name:Potential Relic\nManaCost:1\nTypes:Artifact\nOracle:x\n")
 	e.G.Step = state.StepMain1
 	ppPriority(t, e)
-	if pp := ppFind(t, e.PotentialPaymentPlans(0), "cast", spell); pp.Reason != "unsupported" {
-		t.Fatalf("verdict %q %q, want unsupported", pp.Reason, pp.Detail)
+	pp := ppFind(t, e.PotentialPaymentPlans(0), "cast", spell)
+	if pp.Reason != "" || pp.Plan == nil {
+		t.Fatalf("verdict %q %q plan %+v, want the {1}{U} witness", pp.Reason, pp.Detail, pp.Plan)
+	}
+	if len(pp.Plan.Activations) != 2 {
+		t.Fatalf("witness activations = %d, want the two Islands (%+v)", len(pp.Plan.Activations), pp.Plan)
 	}
 }
 
