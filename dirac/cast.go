@@ -208,12 +208,13 @@ func (s *State) pushBuild(k *prep) {
 	if e.kind == seSpell {
 		ob := &s.objs[e.obj]
 		z := ob.zone
-		if k.gen != nil && k.gen.anyCopyCast && s.copyCastFrom(e.obj) {
+		copyCast := k.gen != nil && k.gen.anyCopyCast && s.copyCastFrom(e.obj)
+		if copyCast {
 			z = kop.ZoneLibrary // a Play CopyCard$ copy is cast from gorge's holding zone (cast_copycast.go)
 		}
 		s.bld().origin = z
-		if k.gen != nil && k.gen.anyCastProv {
-			e.prov = uint8(z) // trig_gravedrawn.go
+		if k.gen != nil && k.gen.anyCastProv || copyCast {
+			e.prov = uint8(z) // trig_gravedrawn.go, trig_castprovenance.go
 		}
 		if k.gen != nil && k.gen.castRingOn {
 			s.noteCast(e.obj, e.ctrl, z) // CR 601.2a: the push is the cast's ledger entry
