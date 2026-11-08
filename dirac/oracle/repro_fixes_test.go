@@ -98,6 +98,11 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// enters" see the Duelist and the later copies enter before the copy
 		// the answer was made on
 		{"copy_all_sweep_batch_spans_parked_ask", false, false},
+		// CR 707.2: Three Steps Ahead's token copy of an Assimilation Aegis
+		// bearer is minted on the bearer's printed card (Shackle Slinger)
+		// with the copied face (Geralf) as its copy basis, so the token is
+		// projected by its printed name exactly as gorge mints it
+		{"token_copy_of_aegis_bearer_name", false, false},
 		{"plot_cast_pays_additional_sacrifice", false, false}, // CR 118.9, 701.34d: a plotted Corrupted Conviction is cast free of its mana cost but still sacrifices a creature
 		{"plot_cast_needs_a_sacrifice_source", false, false},  // CR 118.9, 601.2h: the free plot cast is offered only while its additional sacrifice can be paid
 		// Explosive Derailment ({R}, Spree, every mode {2}) on a board whose
