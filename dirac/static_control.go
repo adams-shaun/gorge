@@ -214,13 +214,44 @@ func (s *State) ctrlEnded(k *prep, r *fxRec, cleanup bool) bool {
 // ctrlStaticLive: the static that registered r still applies to its
 // object with the same controller (gorge staticGrantLive): the same source
 // on the battlefield with its abilities, attached to the object, which its
-// filter matches, and controlled by the record's controller.
+// filter matches, and controlled by the record's controller. It also must
+// still be the layer-2 outcome for the object: a control static with a
+// later layer timestamp that gives the object to a different controller
+// overrides it even though its own static is still live (CR 613.1b/613.7).
 func (s *State) ctrlStaticLive(k *prep, r *fxRec) bool {
 	src := s.ctrlSrcSlot(r)
 	if src == NoSlot || s.perms[src].attached != r.sl || s.perms[src].ctrl != r.cTo() {
 		return false
 	}
-	return s.ctrlStaticWants(k, src, r.sl)
+	if !s.ctrlStaticWants(k, src, r.sl) {
+		return false
+	}
+	_, winCtrl, ok := s.ctrlStaticWinner(k, r.sl)
+	return ok && winCtrl == r.cTo()
+}
+
+// ctrlStaticWinner returns the control static whose effect wins layer 2 for
+// the permanent at host: the live static source with the latest layer
+// timestamp (gorge staticControlLayer, CR 613.1b/613.7). Ties keep the
+// wanted-set scan order, so the last source in it wins.
+func (s *State) ctrlStaticWinner(k *prep, host Slot) (Slot, uint8, bool) {
+	var ord [MaxPerm]Slot
+	n := s.listenerOrder(s.statM.and(s.occ), &ord)
+	win, winCtrl := NoSlot, uint8(0)
+	var winTs uint16
+	for _, src := range ord[:n] {
+		sp := &s.perms[src]
+		if sp.attached != host || !k.gen.has(s.cardAt(src), gfCtrlStat) {
+			continue
+		}
+		if !s.ctrlStaticWants(k, src, host) {
+			continue
+		}
+		if ts := s.layerTs(src); win == NoSlot || ts >= winTs {
+			win, winTs, winCtrl = src, ts, sp.ctrl
+		}
+	}
+	return win, winCtrl, win != NoSlot
 }
 
 // ctrlStaticWants: the source at src has a live StatControl static whose
@@ -349,22 +380,18 @@ func (s *State) ctrlCleanup(k *prep) {
 
 // ctrlSBA is the control part of the state-based check (gorge runs
 // expireControl and reconcileControlStatics after every event): records
-// whose source condition ended go, then each live control static that wants
-// a permanent registers a record.
-//
-// One pass per event, as gorge's reconcile is one derivation per event. A
-// static whose want is already tracked is skipped (ctrlStaticTracked), so a
-// standing static does not register again; every other live want registers,
-// including one naming the controller the host already has, because that
-// record is the Previous the next statically controlled change stacks on and
-// the record that keeps an earlier static's end from handing the host back
-// (gorge reconcileControlStatics).
+// whose source condition ended go, then the layer-2 winner among the live
+// control statics registers a record when the permanent's controller
+// differs. Control-changing effects in layer 2 are not additive (CR
+// 613.1b/613.7): only the latest-timestamp static has any effect, so an
+// older static must not re-register after a newer one took the permanent.
 //
 // The statics are walked in gorge's wanted-set order -- player 0's
 // battlefield list, then player 1's (control_static.go staticControlWants
 // preserves the static_layerwalk.go staticEffects walk) -- not slot order:
 // enterNF reuses the lowest free slot, so a later-entered Aura can hold a
-// lower slot than an older one.
+// lower slot than an older one. Ties keep that order, as
+// staticControlLayer's stable sort does.
 //
 //go:noinline
 func (s *State) ctrlSBA(k *prep) {
@@ -373,14 +400,36 @@ func (s *State) ctrlSBA(k *prep) {
 	}
 	var ord [MaxPerm]Slot
 	n := s.listenerOrder(s.statM.and(s.occ), &ord)
+	if n == 0 {
+		return
+	}
+	var winSrc [MaxPerm]Slot
+	var winTs [MaxPerm]uint16
+	var have slotMask
 	for _, src := range ord[:n] {
 		sp := &s.perms[src]
 		host := sp.attached
 		if host == NoSlot || !k.gen.has(s.cardAt(src), gfCtrlStat) {
 			continue
 		}
+		if !s.ctrlStaticWants(k, src, host) {
+			continue
+		}
+		if ts := s.layerTs(src); !have.has(host) || ts >= winTs[host] {
+			have.set(host)
+			winTs[host] = ts
+			winSrc[host] = src
+		}
+	}
+	for _, src := range ord[:n] {
+		sp := &s.perms[src]
+		host := sp.attached
+		if host == NoSlot || !have.has(host) || winSrc[host] != src ||
+			s.perms[host].ctrl == sp.ctrl {
+			continue
+		}
 		o := sp.obj
-		if s.ctrlStaticTracked(host, sp.ctrl, o, s.objs[o].ver) || !s.ctrlStaticWants(k, src, host) {
+		if s.ctrlStaticTracked(host, sp.ctrl, o, s.objs[o].ver) {
 			continue
 		}
 		if !s.gainControl(host, sp.ctrl, sp.ctrl, kop.DurPermanent, o, s.objs[o].ver, true) {

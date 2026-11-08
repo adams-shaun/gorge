@@ -194,5 +194,74 @@ func TestFarmSkyshipBuccaneerReversedAttachOrder(t *testing.T) {
 	if got := e.G.Obj(bear).Controller; got != 1 {
 		t.Fatalf("bearer controller after both Confiscates left = %d, want 1 (its owner)", got)
 	}
+	// The owner is seat 1, so the controller above cannot tell a finished
+	// static grant from an unended one: assert the grant itself is gone.
+	for i := range e.controlGrants {
+		if e.controlGrants[i].Obj == bear {
+			t.Fatalf("control grant %+v survives both Confiscates, want none (the last static grant must end)", e.controlGrants[i])
+		}
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestFarmSkyshipBuccaneerEarlierAuraChangesController pins CR 613.7 for the
+// case the FDN-s491 board can reach after setup: the EARLIER control static's
+// controller changes after the LATER one is already tracked (here seat 1
+// takes seat 0's earlier Confiscate, as a third control effect would). Layer
+// 2 applies the statics in timestamp order and they are not additive, so the
+// later Aura still wins and the bearer must stay with seat 0. Re-deriving the
+// wanted set and appending the re-registered earlier grant would hand the
+// bearer to seat 1 instead.
+func TestFarmSkyshipBuccaneerEarlierAuraChangesController(t *testing.T) {
+	t.Parallel()
+	conf, ok := testutil.CorpusRegistry(t).Lookup("Confiscate")
+	if !ok {
+		t.Fatal("corpus missing Confiscate")
+	}
+	e, cfg, bear := staticGainControlGame(t, 49120, []*cards.Card{conf, conf}, 1)
+	// Confiscate costs {4}{U}{U}; castControlAura's Mind Control budget is
+	// one short, so this test pays the sixth pip itself.
+	castConfiscate := func() state.ObjID {
+		t.Helper()
+		id := findAndMoveToHand(t, e, 0, "Confiscate")
+		addMana(t, e, 0, "UUUUUU")
+		castFromPriority(t, e, id)
+		answerKTarget(t, e, bear)
+		passUntilStackEmpty(t, e, 60)
+		if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield || o.AttachedTo != bear {
+			t.Fatalf("precondition: Confiscate %d = %+v, want it attached to bear %d", id, o, bear)
+		}
+		return id
+	}
+	earlier := castConfiscate()
+	later := castConfiscate()
+	if earlier == later {
+		t.Fatalf("both casts used obj %d, want two Auras", earlier)
+	}
+	// Preconditions: the Auras are from the same seat, both attached to the
+	// seat-1-owned bear, with the first strictly earlier.
+	if e.G.Obj(earlier).Timestamp >= e.G.Obj(later).Timestamp {
+		t.Fatalf("precondition: Aura timestamps %d and %d, want the first Aura earlier",
+			e.G.Obj(earlier).Timestamp, e.G.Obj(later).Timestamp)
+	}
+	if got := e.G.Obj(bear).Controller; got != 0 {
+		t.Fatalf("precondition: bearer controller = %d, want 0 (seat 0's two Confiscates)", got)
+	}
+	// Seat 1 takes the EARLIER Aura. Its static now names seat 1, but its
+	// effect timestamp is still older than the later Aura's, so it does not
+	// win layer 2 (CR 613.7a).
+	e.emit(events.Event{Kind: events.ControlChange, Obj: earlier, Player: 1})
+	if got := e.G.Obj(earlier).Controller; got != 1 {
+		t.Fatalf("precondition: earlier Aura controller = %d, want 1", got)
+	}
+	if got := e.G.Obj(bear).Controller; got != 0 {
+		t.Fatalf("bearer controller after seat 1 took the earlier Aura = %d, want 0 (the later Aura still wins, CR 613.7)", got)
+	}
+	// Ending the later (winning) effect hands the bear to the surviving
+	// earlier Aura's CURRENT controller, seat 1.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: later, From: state.ZBattlefield, To: state.ZGraveyard})
+	if got := e.G.Obj(bear).Controller; got != 1 {
+		t.Fatalf("bearer controller after the later Aura left = %d, want 1 (the earlier Aura's controller)", got)
+	}
 	replayCheck(t, e, cfg)
 }
