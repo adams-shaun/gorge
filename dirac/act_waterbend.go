@@ -511,7 +511,8 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 	if k.tapMana && s.tapXCensusGap(k, e.ctrl).any() {
 		return false // its tapXType cost is no shape the census prices (gorge castWindowSourceExcluded)
 	}
-	if !k.gen.anyRestr && !k.gen.anyRestrSrc && !k.gen.anyAnyR && !k.gen.anyTapExtra && !k.gen.anyEachCol {
+	if !k.gen.anyRestr && !k.gen.anyRestrSrc && !k.gen.anyAnyR && !k.gen.anyTapExtra && !k.gen.anyEachCol &&
+		!k.gen.anyTapsDefer && !k.gen.anySelfTaps {
 		return true
 	}
 	d := s.payDescNow(NoObj)
@@ -527,6 +528,15 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 		if pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 ||
 			lost && !s.manaGranted(k, sl) {
 			continue
+		}
+		// gorge's manaProductionAltered (paymentPlanSourceInterference): a mana
+		// source whose {T} fires a Defer-class Taps watcher is not a unit the
+		// census prices, so the window's reach is unprovable (CR 605.1b). The
+		// watcher may be another object's or the source's own (Compassionate
+		// Healer's self watcher beside Great Divide Guide's granted {T} ability).
+		if s.windowCanTap(k, sl) &&
+			(k.gen.anyTapsDefer && s.tapsDeferred(k, e.ctrl, sl) || k.gen.anySelfTaps && s.selfTapsDefer(k, sl)) {
+			return false
 		}
 		if !lost {
 			cd := &k.t.Cards[s.cardAt(sl)]
@@ -561,6 +571,23 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 		}
 	}
 	return true
+}
+
+// selfTapsDefer reports whether a Taps watcher on sl itself would fire when
+// the window taps it for mana. kgen lowers a self Taps trigger only on a card
+// with no printed mana ability, so this can only matter to a granted mana
+// ability; gorge's paymentPlanTapObservers defers such a source for any body
+// the census doesn't price.
+func (s *State) selfTapsDefer(k *prep, sl Slot) bool {
+	cd := &k.t.Cards[s.cardAt(sl)]
+	for j := range cd.Abilities {
+		a := &cd.Abilities[j]
+		if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Flags&kop.TfSelf != 0 &&
+			(a.Trig.Zone == kop.ZoneNone || a.Trig.Zone == kop.ZoneBattlefield) {
+			return true
+		}
+	}
+	return false
 }
 
 // windowTapXLive: p's tap-another-permanent mana sources that can be activated

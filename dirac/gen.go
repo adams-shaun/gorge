@@ -327,6 +327,10 @@ type genPrep struct {
 	// anyTapsDefer / anyTapsPain: some card has a lowered Taps watcher of
 	// class kop.TapPlanDefer / TapPlanPain (gfTapsDefer / gfTapsPain; mana_tapsdefer.go)
 	anyTapsDefer, anyTapsPain bool
+	// anySelfTaps: some card has a lowered self Taps watcher (TfSelf). kgen
+	// lowers one only on a card with no printed mana ability, so it can only
+	// defer a granted mana ability's tap (act_waterbend.go windowCensusComplete).
+	anySelfTaps bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
 	// a potential play's scripted prefix (script_gen.go)
@@ -1221,6 +1225,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.anyTapAll = g.anyTapAll || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Flags2&kop.Tf2Batch != 0
 			g.tapsWhose = g.tapsWhose || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Whose != kop.WhoseAny
 			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps {
+				g.anySelfTaps = g.anySelfTaps || a.Trig.Flags&kop.TfSelf != 0
 				switch a.Trig.TapPlan {
 				case kop.TapPlanDefer:
 					g.setFlag(CardID(i), gfTapsDefer)
