@@ -50,6 +50,7 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		// CR 601.2b, 601.2g-h: Fuss's {R/W} cast from Outrageous Robbery's exile is priced under the any-type rider, so the printed lands pay it and Insidious Roots' granted token stays untapped
 		{"granted_any_prefix_respects_the_any_type_rider", false, false},
 		{"cost_sacrifices_latch_one_or_more_die", false, false},
+		{"mayplay_any_type_either_or_cost_offered", false, false}, // CR 601.2f-h: Demand Answers cast from Outrageous Robbery's exile with GGG floating and a card to discard: the any-type rider pays the recomposed {1}{R}
 		// CR 118.9d, 601.2f: Reenact the Crime's free copy of Officious
 		// Interrogation still owes its per-target RaiseCost; the pool cannot
 		// pay it, so the cast window reverses the cast (std-mkm pair 2359)
@@ -219,6 +220,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"deanna_spacecraft_enterprise_a_s203", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_enterprise_d_s205", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"copy_each_target_copies_enter_together", true, false},         // CR 603.6a: Dominion Infiltration's copies of V'Ger and Captain Janeway enter together, so the Janeway copy also triggers for the V'Ger copy
+		{"first_charge_counter_each_turn_after_bounce", false, false},   // CR 400.7, 603.2: U.S.S. Enterprise-D bounced and recast this turn is a new object, so its first charge counters after the recast queue "for the first time each turn" again
 	})
 }
 
@@ -576,6 +578,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"wide_restricted_source_funds_hand_ability", true, false},                 // CR 106.6, 601.2g: Flamebraider's two any-colour mana for an Elemental pays Kulrath Zealot's basic landcycling, a hand activation the census has no unit for
 		{"behold_exile_cast_pays_restricted_wide_mana", false, false},              // CR 106.6, 601.2g: Champion of the Path cast from Sanar's exile is affordable through Flamebraider's restricted two mana, which gorge's prefix search taps ahead of the pricing
 		{"behold_exile_cast_tap_another_source_not_census_gap", false, false},      // CR 601.2g: a plain hand Champions of the Shoal is not one of gorge's potential plays (shape:additional_cost is refused before the mana is priced), so no prefix search taps Springleaf Drum for it and dirac must not offer the cast
+		{"mayplay_optional_cost_cast_offered_alike", false, false},                 // CR 601.2g, 605.3a: Requiting Hex (optional blight) cast from Burning Curiosity's exile is a composed may-play cast, so gorge's prefix search taps Springleaf Drum for its {B} and dirac offers it too
 		{"reversed_cast_keeps_same_taps", true, false},                             // CR 733.1: Sun-Dappled Celebrant's convoke picks strand its cost over Eclipsed Realms' Treefolk mana; the cast reverses before any land taps
 		{"reversed_cast_keeps_mana_ability_trigger", false, false},                 // CR 733.1: Springleaf Drum tapped Wanderwine Distracter for Appeal to Eirdu; the cast is reversed, the mana ability is not, so the "becomes tapped" trigger stays queued
 		{"reversed_cast_trigger_push_is_progress", true, false},                    // CR 733.2: Silvergill Peddler's kept tap trigger is pushed after Disruptor of Currents' reversal, so a second no-progress reversal still leaves the cast offered
@@ -595,6 +598,8 @@ func TestStdFraReprosLockstep(t *testing.T) {
 func TestStdLciReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-lci", []stdRepro{
+		{"tapxtype_plain_plan_leaves_candidates", false, false},       // CR 601.2g-h: nine lands cast Guardian of the Great Door: the plan paying {W}{W} from the Plains and Restless Anchorage leaves seven to tap, whatever the reservation order
+		{"witness_waiting_trigger_other_answer", false, false},        // CR 601.2g, 603.3b: the Treasure sacrificed for Guardian of the Great Door's {W} sets off p0's Zoetic Glyph, whose discover waits for the cast, so its answer does not make the witness unreachable
 		{"granted_sac_host_cost_poses_no_choice", false, false},       // CR 602.2b, 701.21a: Deconstruction Hammer's granted "Sacrifice Deconstruction Hammer" cost has one possible payment, so it is paid without a choice after the targets
 		{"attack_trigger_pump_skips_returned_attacker", false, false}, // CR 400.7: Grasping Shadows' attack trigger does not grant deathtouch and lifelink to Aclazotz once it died and returned as Temple of the Dead
 		{"lose_all_setter_overwrites_self_chosen_type", true, false},  // CR 613.6, 613.7: Eaten by Piranhas on Roaming Throne makes it only a Skeleton; the Throne's older chosen-type grant outlives the ability loss but is overwritten in timestamp order
@@ -675,6 +680,9 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"sac_after_aura_control_ends", false, false},                   // CR 613.1b, 701.21: Vile Mutilator's second sacrifice counts creatures after the first (an Aura) left, so the creature it stole is back with its owner and the lone manifest is forced
 		{"painless_plan_at_nonpositive_life", false, false},             // CR 119.4, 601.2g: a player at life <= 0 (a lose-the-game replacement) still pays a {1} spell from painless lands; the pain guard cuts only a plan that pays life
 		{"animate_rider_before_entry_triggers", true, false},            // CR 603.6a: an Enduring creature returned as an enchantment has its type-changing rider applied before an "another creature enters" watcher matches it, so no extra pump trigger
+		{"tapxtype_cost_reserves_tap_candidates", false, false},         // CR 601.2g-h: Fear of Exposure's tap-two is priced from its composed cost, so the granted-mana prefix taps Enduring Vitality's creatures in battlefield order and leaves the rest for the pick
+		{"tapxtype_restricted_source_not_free", false, false},           // CR 601.2g-h: Creeping Peeper's enchantment-only {U} paying Fear of Exposure is not also one of the two permanents it taps, so three mana sources and Patchwork Beastie do not cast it
+		{"grant_prefix_paid_life_trigger", false, false},                // CR 119.4, 603.3, 307.1: Haunted Screen's 1 life in Overlord of the Hauntwoods' granted-mana prefix stacks Marina Vendrell's Grimoire's trigger, so the prefix taps on and passes for it to resolve before the cast
 	})
 }
 
@@ -818,5 +826,6 @@ func TestStdWoeReprosLockstep(t *testing.T) {
 		{"act_paid_filter_second_colour", true, false},                  // CR 601.2g, 602.2b: Restless Fortress's {1}{W}{B} animation is offered when a free filter (Crystal Grotto) makes one pip and Rootrider Faun's paid filter the other
 		{"woe_activation_sac_exile_return_asks_in_exile", false, false}, // CR 614.12, 610.3: Werefox Bodyguard sacrificed for its own activation returns Talion, the Kindly Lord, whose number is asked in exile before it enters
 		{"legend_rule_and_saga_sacrifice_one_batch", true, false},       // CR 704.3, 603.10a: the Neva the legend rule removes still sees The Princess Takes Flight sacrificed in the same state-based check
+		{"hidden_pick_aura_entry_attach_choice", false, false},          // CR 303.4f/g: Fetch Quest's hidden pick takes Bestial Bloodline, which waits in the graveyard for its enchant choice while the spell is still on the stack
 	})
 }
