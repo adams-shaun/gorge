@@ -847,7 +847,7 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		// the planner's census leaves a gap (Flamebraider's restricted two mana), which
 		// gorge's prefix search taps before it prices the cast again, as for an
 		// either-or additional cost above (CR 601.2g before 601.2h)
-		if cd.BeholdExile && k.gen != nil && s.scriptSourceLive(k, p) {
+		if cd.BeholdExile && k.gen != nil && s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).any() {
 			cost := s.featCost(k, p, c, o, k.cards[c].cost)
 			if s.g.mayPlayAny {
 				cost = anyType(cost)
