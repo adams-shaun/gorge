@@ -1,6 +1,14 @@
 package oracle
 
-import "testing"
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
+)
 
 // TestPinnedFarmGallantCitizen replays the std-spm farm game that diverged with
 // Gallant Citizen implicated (SPM-s152, xe:RAND:4:17, turn 17, decision 402,
@@ -16,9 +24,27 @@ import "testing"
 // that deals its opening at the seed (seat 0 is the tape's p1, which the lower row
 // marks swapped); the actions are the explore game up to its turn cap. It is
 // written by hand from the farm's tape rather than dealt by the synthetic pool, so
-// PINS_RECORD would replace it with a different game.
+// it is read from its fixed path and replayed directly, never through
+// pinnedGamesRun: PINS_RECORD would replace it with a different game.
 func TestPinnedFarmGallantCitizen(t *testing.T) {
 	t.Parallel()
+	const path = "testdata/pins/TestPinnedFarmGallantCitizen.0.json"
+	b, err := os.ReadFile(filepath.FromSlash(path))
+	if err != nil {
+		t.Fatalf("read the hand-recorded farm pin: %v", err)
+	}
+	var games []*Repro
+	if err := json.Unmarshal(b, &games); err != nil || len(games) == 0 {
+		t.Fatalf("%s: %v", path, err)
+	}
+	reg := synthReg(t)
+	set := cardsettest.Synth(t, "std-spm")
 	rc := RunConfig{Config: Config{GorgeAutopaySurface: true}}
-	pinnedGamesRun(t, "std-spm", rc, 0, onBattlefield("Gallant Citizen"))
+	for i, r := range games {
+		res, hit, err := playPinned(set, reg, r, rc, []func(*GorgeSide) bool{onBattlefield("Gallant Citizen")})
+		if err != nil {
+			t.Fatalf("%s game %d: %v", path, i, err)
+		}
+		reportPinned(t, fmt.Sprintf("%s game %d", path, i), res, hit)
+	}
 }

@@ -261,8 +261,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				s.bld().obsWin |= obsWinTapped // a pre-payment tap; one by the payment's own window spends its mana
 			}
 		}
-		var owed kop.ManaCost
-		col := s.windowCol(k, p, s.windowOwedCost(k, p, cost, &owed), sl, pc, anyColor, noOwed)
+		col := s.windowCol(k, p, cost, sl, pc, anyColor, noOwed)
 		if noOwed && clamp && !anyColor {
 			if pc.manaMulti {
 				// a cast's ability ask lists what the cost owes first (gorge owedAbilitiesFirst)
@@ -313,7 +312,8 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 }
 
 // windowOwedCost is the cost a window source's colour ask measures against the pool
-// (windowCol's owed colours): cost less the floating restricted mana the payment may
+// (windowCol's owed colours, for every window walk: the paying one, windowDry's and
+// a tap-another source's): cost less the floating restricted mana the payment may
 // spend. That mana sits beside the pool, not in it, but gorge's colour ask prices the
 // pool AvailableFor holds, restricted batches included, so Interdimensional Web Watch's
 // floating {W}{W} already covers a {G/W}{G/W} cast's {W} pip and a Treasure answers {G},
@@ -570,8 +570,13 @@ func askOwedColour(ab *kop.Ability, mask, want uint8) int {
 // a plain any-colour source is W (gorge's trigger-cost manual window, the
 // payexec.WindowAnswer fallback). When a pip is still owed, the answer is the
 // first owed colour of the source's ask order: for a printed Combo that is its
-// printed order (colourAskOrder), not W U B R G.
-func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pcard, anyColor, noOwed bool) int {
+// printed order (colourAskOrder), not W U B R G. The owed colours are measured
+// against cost less the floating restricted mana the payment may spend
+// (windowOwedCost); Starting Town's clamp reads the raw cost, as windowUseful
+// adds that mana itself.
+func (s *State) windowCol(k *prep, p uint8, raw *kop.ManaCost, sl Slot, pc *pcard, anyColor, noOwed bool) int {
+	var owed kop.ManaCost
+	cost := s.windowOwedCost(k, p, raw, &owed)
 	mask := s.windowOwnMask(k, sl)
 	col := bits.TrailingZeros8(mask)
 	if anyColor {
@@ -681,7 +686,7 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 			// Starting Town: the any-colour ability lists no symbol, so the
 			// answer is the {C} ability while the payment can use it, and the
 			// colour the window owes when it can't
-			want, decided := s.windowUseful(k, p, cost)
+			want, decided := s.windowUseful(k, p, raw)
 			col = kop.C
 			if decided && want&(1<<kop.C) == 0 {
 				col = bits.TrailingZeros8(want)
