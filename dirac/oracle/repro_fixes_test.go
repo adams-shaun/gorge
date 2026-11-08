@@ -677,13 +677,14 @@ func TestStdSpmReprosLockstep(t *testing.T) {
 func TestStdDftReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-dft", []stdRepro{
-		{"clone_entry_order_beside_counter", false, false},         // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
-		{"clone_entry_order_three_candidates", false, false},       // CR 616.1, 616.1f: ... beside two Velocipedes the ask has three options, and a counter source named first moves the card in and asks the two left with it on the battlefield
-		{"copy_entry_trigger_after_order_ask", false, false},       // CR 614.12/603.6a: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first; the copy's Hulldrifter enters trigger queues after the bodies
-		{"tap_power_value_lost_with_abilities", true, false},       // CR 613.1f: Interface Ace under Flood the Engine has lost its crew-with-toughness static, so its 0 power does not crew Rangers' Refueler
-		{"lookback_player_turn_uses_lki_controller", false, false}, // CR 603.10a: a stolen Ketramose exiled from the battlefield on its thief's turn triggers for the thief (PlayerTurn$ reads the last-known controller)
-		{"returned_aura_host_before_paid_draw", false, false},      // CR 303.4f, 610.3: sacrificing Perilous Snare pays Chandra's "if you do, draw": its exiled Aura's host answer comes before the draw, as gorge asks it mid-payment
-		{"lost_abilities_tappower_bonus", false, false},            // CR 613.1f: a Pilot token under Flood the Engine loses the TapPowerValue static, so it contributes its printed power to a Saddle cost
+		{"clone_entry_order_beside_counter", false, false},                    // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
+		{"clone_entry_order_three_candidates", false, false},                  // CR 616.1, 616.1f: ... beside two Velocipedes the ask has three options, and a counter source named first moves the card in and asks the two left with it on the battlefield
+		{"copy_entry_trigger_after_order_ask", false, false},                  // CR 614.12/603.6a: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first; the copy's Hulldrifter enters trigger queues after the bodies
+		{"tap_power_value_lost_with_abilities", true, false},                  // CR 613.1f: Interface Ace under Flood the Engine has lost its crew-with-toughness static, so its 0 power does not crew Rangers' Refueler
+		{"lookback_player_turn_uses_lki_controller", false, false},            // CR 603.10a: a stolen Ketramose exiled from the battlefield on its thief's turn triggers for the thief (PlayerTurn$ reads the last-known controller)
+		{"own_counter_replacement_does_not_apply_to_own_entry", false, false}, // CR 614.12: Caradora's "a creature or Vehicle you control" plus-one does not apply to the +1/+1 counter Thunderous Velocipede grants it as it enters; a general subset excludes the entrant itself
+		{"returned_aura_host_before_paid_draw", false, false},                 // CR 303.4f, 610.3: sacrificing Perilous Snare pays Chandra's "if you do, draw": its exiled Aura's host answer comes before the draw, as gorge asks it mid-payment
+		{"lost_abilities_tappower_bonus", false, false},                       // CR 613.1f: a Pilot token under Flood the Engine loses the TapPowerValue static, so it contributes its printed power to a Saddle cost
 	})
 }
 
