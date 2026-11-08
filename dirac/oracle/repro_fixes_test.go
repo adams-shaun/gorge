@@ -169,6 +169,8 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		// CR 701.21a, 610.3d: Scavenger's Talent's sacrifice-three cost includes Banishing Light, so its card returns after all three are gone
 		{"blb_sac_cost_exile_return_after_all_sacrificed", true, false},
 		{"blb_sac_cost_exile_return_after_all_sacrificed_sword", true, false},
+		{"copy_keyword_exception_returns_when_loss_ends", false, false}, // CR 707.9b, 613.1f: Mockingbird copying Shoreline Looter, made to lose all abilities until its controller's next turn, has its copy exception's flying again when the loss ends
+		{"any_one_colour_restricted_x_colour_choice", false, false},     // CR 106.6, 601.2b: Helga's two restricted mana count in the {X} ceiling of Mockingbird's cast, so its witness taps every source for X = 4
 	})
 }
 

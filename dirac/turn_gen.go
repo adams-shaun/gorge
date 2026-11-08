@@ -645,10 +645,17 @@ func (s *State) cleanupGen(k *prep) {
 	// before dropping the bitsets.
 	s.fbClearAll(k)
 	if s.g.nfx > 0 {
+		var ended slotMask
+		for i := 0; i < int(s.g.nfx); i++ {
+			if r := &s.g.fx[i]; r.kind == fxOverride && r.r.eot() {
+				ended = ended.with(r.sl)
+			}
+		}
 		s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.kind == fxOverride && r.r.eot() })
 		if k.gen.anyNTOv {
-			s.dropNextTurnOv() // Duration$ UntilYourNextTurn (static_control.go)
+			ended = ended.or(s.dropNextTurnOv()) // Duration$ UntilYourNextTurn (static_control.go)
 		}
+		s.copyExcKwRestore(k, ended)
 	}
 	if k.gen.anyEOTEmb {
 		s.dropEOTEmblems(k)
