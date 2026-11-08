@@ -29,8 +29,20 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 			if a.Cost.Flags&kop.CostSorcery != 0 && !sorc {
 				continue
 			}
-			if !av.affords(mana, pipMaskOf(mana), 0) &&
-				!(k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}, mana, av, NoSlot, 0)) {
+			pd := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
+			aff := av.affords(mana, pipMaskOf(mana), 0)
+			if !aff && s.rbAny(p) {
+				// floating restricted mana the hand ability may spend (CR 106.6):
+				// a scripted prefix (Flamebraider's Elemental mana) taps the
+				// source into the pool before the activation, and the search's
+				// restrOptions walk must list it or no script completes.
+				if m := s.restrPoolAct(k, p, &pd); m != 0 {
+					t := *av
+					s.restrAvailAdd(p, m, &t)
+					aff = t.affords(mana, pipMaskOf(mana), 0)
+				}
+			}
+			if !aff && !(k.restrSrc && s.restrSrcAffords(k, p, pd, mana, av, NoSlot, 0)) {
 				continue
 			}
 			if mana.X > 0 && s.cfg&cfgGorgeUnpriced != 0 && !s.poolPays(p, mana) {

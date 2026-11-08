@@ -325,7 +325,11 @@ func (s *State) refPT(k *prep, r kop.Ref, ctx evalCtx) (int, int) {
 	e := ctx.e
 	switch r {
 	case kop.RefSelf:
-		return s.objPT(k, ctx.src, ctx.srcSl)
+		pw, t := s.objPT(k, ctx.src, ctx.srcSl)
+		if ctx.srcSl == NoSlot && e != nil && e.kind != seSpell && ctx.src == e.obj && ctx.src != NoObj {
+			pw, t = s.selfPTLKI(k, e, pw, t) // CR 608.2h: the source left since the trigger fired
+		}
+		return pw, t
 	case kop.RefTriggerObj, kop.RefTriggerSource, kop.RefSacrificed, kop.RefDelayedRemembered:
 		if r == kop.RefTriggerObj && e != nil && e.trigObj != NoObj {
 			o := e.trigObj
@@ -514,7 +518,7 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 	case kop.CondKicked:
 		r = ctx.e != nil && ctx.e.flags&sfKicked != 0 && !optCostUnpaid(k, ctx.e)
 	case kop.CondThreshold:
-		r = s.pl[ctx.ctrl].graveN >= 7
+		r = s.graveCards(ctx.ctrl) >= 7 // a token waiting to cease is no card (CR 111.7)
 	case kop.CondYourTurn:
 		r = s.active == ctx.ctrl
 	case kop.CondRefMatches:

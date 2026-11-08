@@ -197,6 +197,16 @@ func (e *Engine) resolveTop() {
 		// false for the former, or an OptionalDecider-less trigger for the
 		// latter) fall straight through to their effect below.
 		rt, triggered := e.triggerForAbilityObject(id, o)
+		// ResolvedLimit$ re-read at resolution: triggers of one line queued by
+		// the same event batch all passed the queue-time gate, so the ones that
+		// resolve after the limit is spent do nothing -- no ask, no effect, no
+		// count. Same source, stint and the line's own param (noteTriggerResolved).
+		if triggered && e.resolvedLimitSpent(o.Source, rt) {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+				From: state.ZStack, To: state.ZExile, Text: "ResolvedLimit$ already spent this turn: does nothing"})
+			e.ensureLeftTheStack(id, state.ZExile, "the trigger's ResolvedLimit$ was spent by an earlier resolution this turn")
+			return
+		}
 		// resSpec is the OptionalDecider$ spec this ability must ask about.
 		// A printed trigger's comes off its face T: line (findTriggerForAbility
 		// recovered it). An Effect-created delayed trigger has no face T: line:

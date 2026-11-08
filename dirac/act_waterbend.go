@@ -508,7 +508,7 @@ func (s *State) windowPricesRestr(k *prep, sl Slot, a *kop.Ability) bool {
 // spend, and the window probe does not price, understates what the window can produce
 // (CR 106.6). Gorge: castWindowCensusComplete.
 func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
-	if s.windowTapXLive(k, e.ctrl).any() {
+	if k.tapMana && s.tapXCensusGap(k, e.ctrl).any() {
 		return false // its tapXType cost is no shape the census prices (gorge castWindowSourceExcluded)
 	}
 	if !k.gen.anyRestr && !k.gen.anyRestrSrc && !k.gen.anyAnyR && !k.gen.anyTapExtra && !k.gen.anyEachCol {

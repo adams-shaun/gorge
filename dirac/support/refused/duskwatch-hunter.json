@@ -1,0 +1,16 @@
+{
+  "card": "Duskwatch Hunter",
+  "class": "projection-Cards.Zone",
+  "why": "a hybrid cast funded by a Treasure beside a lethal Sacrificed trigger: the oracle pre-floats the mana at priority and the drain ends the game before the cast, while the kernel pays inside the cast and asks a pip the recorded action stream never answers; the card lowers correctly",
+  "repro": {
+    "pool": "std-hob",
+    "surface": "full",
+    "seed": 1,
+    "pair": 1227,
+    "policy": "random",
+    "mulligans": 1
+  },
+  "evidence": [
+    "std-hob"
+  ]
+}

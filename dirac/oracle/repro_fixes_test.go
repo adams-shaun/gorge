@@ -283,6 +283,7 @@ func TestStdHobReprosLockstep(t *testing.T) {
 		{"autopay_plan_prices_target_discount", true, false},        // CR 601.2f: Dwarven Mauler's {2}-less ValidTarget$ discount makes Ragged Short Spear's equip {3} payable from two lands, so the autopay witness prices it and the re-equip is offered
 		{"hascards_graveyard_static_zero_a", false, false},          // CR 604.1: Master's Councillors' +2/+0 per graveyard with seven or more cards counts the graveyard that has them
 		{"hascards_graveyard_static_zero_b", false, false},
+		{"threshold_skips_a_waiting_token", false, false}, // CR 111.7, 704.5d: three Treasures sacrificed for mana wait in the graveyard, so they are no cards and do not switch Most Decrepit Old Bird's Threshold on
 	})
 }
 
@@ -392,6 +393,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"grant_key_keeps_typed_mana", false, false},                       // CR 602.2b, 601.2g-h: Barrels of Blasting Jelly's {1} fee paid in W and its tagged W leave the pool counts equal but not gorge's typed unit (Player.ManaUnits), so the grant search's payer key must keep them apart and choose W
 		{"filter_fee_paid_with_granted_mana", true, false},                 // CR 605.3a, 601.2g: Honest Work's Humble Merchant on Fire Sages pays Rumble Arena's {1} filter fee, so the one prefix search taps it before any printed land to pay Realm of Koh's token activation
 		{"resolved_this_turn_across_zone_change", false, false},            // CR 707.10b: Airbender Ascension returns South Pole Voyager, whose resolution count keeps the turn's tally, so the second resolution overall does not draw Earth Kingdom Jailer
+		{"filter_fee_barred_from_unusable_restricted_mana", false, false},  // CR 106.6, 605.3a: Professor Zei over Barrels of Blasting Jelly: the Tea Shop's Ally-only {U} cannot pay Barrels' {1}, so the second {U/R} pip cannot be paid {R} through it
 		{"granted_mana_funds_filter_fee", true, false},                     // CR 602.2b, 605.3a: Rumble Arena's {1},{T} filter fee is paid by the granted {C} the prefix search taps first in battlefield order, not by a land the filter-only script would fund it with
 		{"crew_override_source_returned_is_new_object", false, false},      // CR 400.7: Fire Nation Warship destroyed in response to its own crew ability comes back as a new object; the crew effect finds nothing to animate
 		{"hybrid_window_restricted_any_colour_admission", false, false},    // CR 106.6, 601.2g: the lowered hybrid window takes a restricted any-colour ability ahead of a useless fixed {C} only when the restriction admits the payment (an Ally-only source pays a hybrid face; a Lesson's generic takes the {C}), and the admitted mana floats restricted
@@ -404,6 +406,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"plan_alts_lotus_hideout_island_grant", true, false},
 		{"plan_alts_lotus_hideout_island_grant_late", true, false},
 		{"plan_alts_lotus_hideout_island_grant_lesson", true, false},
+		{"widened_restricted_source_granted_island_colour_first", true, false}, // CR 305.6, 601.2g: Jasmine Dragon Tea Shop made an Island taps for its intrinsic {U}, not its restricted any-colour {R}, toward Earthen Ally's {2}{W}{U}{B}{R}{G}: gorge's witness ranks an intrinsic ability before a printed one, so Avatar Kyoshi makes the six {R}
 	})
 }
 
@@ -507,11 +510,13 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"mayplay_convoke_announcement_filtered_by_cost", false, false},   // CR 601.2f: Unexpected Assistance cast from Sanar's exile with Convoke offers no generic tap once the {3} is paid, as gorge refuses it
 		{"subcounter_wildcard_flying_counter_kind", false, false},         // CR 122.1b: Reaping Willow's remove-any-two-counters cost names a Flying counter by its own kind, not as a +1/+1 counter
 
-		{"free_cast_owes_either_or_additional_cost", true, false},      // CR 601.2b, 118.9d: Kinsbaile Aspirant cast free from Maralen's exile still owes behold or {2}; with neither payable it is not offered
-		{"either_or_mana_part_spends_restricted_source", false, false}, // CR 106.6, 601.2f: Kinsbaile Aspirant's {2} part with its {W} is affordable through Eclipsed Realms' chosen-type mana
-		{"aura_etb_lki_bearer_flickered", true, false},                 // CR 400.7, 608.2h: Aquitect's Defenses' ETB pump, its Aura gone after Personify flickered Rimekin Recluse, gives the returned Rimekin nothing
-		{"repeat_loss_after_static_grant", false, false},               // CR 613.7: Abigale's second loss of abilities, after Chronicle of Victory entered, is newer than its first-strike-and-trample grant and takes it away from Prideful Feastling
-		{"dig_entry_chosen_type_sees_batch", true, false},              // CR 603.6a: Rimefire Torque, dug onto the battlefield last with its as-enters type asked, sees changeling Flock Impostor entering in the same batch
+		{"free_cast_owes_either_or_additional_cost", true, false},                  // CR 601.2b, 118.9d: Kinsbaile Aspirant cast free from Maralen's exile still owes behold or {2}; with neither payable it is not offered
+		{"either_or_mana_part_spends_restricted_source", false, false},             // CR 106.6, 601.2f: Kinsbaile Aspirant's {2} part with its {W} is affordable through Eclipsed Realms' chosen-type mana
+		{"aura_etb_lki_bearer_flickered", true, false},                             // CR 400.7, 608.2h: Aquitect's Defenses' ETB pump, its Aura gone after Personify flickered Rimekin Recluse, gives the returned Rimekin nothing
+		{"repeat_loss_after_static_grant", false, false},                           // CR 613.7: Abigale's second loss of abilities, after Chronicle of Victory entered, is newer than its first-strike-and-trample grant and takes it away from Prideful Feastling
+		{"dig_entry_chosen_type_sees_batch", true, false},                          // CR 603.6a: Rimefire Torque, dug onto the battlefield last with its as-enters type asked, sees changeling Flock Impostor entering in the same batch
+		{"either_or_unpayable_part_tap_another_source_keeps_target", false, false}, // CR 601.2g: Bogslither's Embrace's unaffordable {3} part goes on to its target menu while an untapped Springleaf Drum, with no creature to tap, leaves gorge's window census incomplete
+		{"wide_restricted_source_funds_hand_ability", true, false},                 // CR 106.6, 601.2g: Flamebraider's two any-colour mana for an Elemental pays Kulrath Zealot's basic landcycling, a hand activation the census has no unit for
 	})
 }
 
@@ -534,6 +539,7 @@ func TestStdLciReprosLockstep(t *testing.T) {
 		{"payment_trigger_counts_its_resolution", false, false},       // CR 603.2, 605.3b: Vito's trigger from a Treasure sacrificed paying for Guardian of the Great Door resolves before the cast and counts toward "the second time this ability has resolved this turn"
 		{"counter_delayed_trigger_strips_creator", false, false},      // CR 603.7e: Tishana's Tidebinder counters the end-step sacrifice Saheeli, the Sun's Brilliance's copy registered; its source is Saheeli, who loses all abilities
 		{"mana_float_unspent_observed_source", false, false},          // CR 601.2h: Barracks of the Thousand's mana floated by the X witness and left unspent (Jadelight Spelunker at X=0) is not mana that paid the cast
+		{"aura_override_stops_when_host_leaves_filter", true, false},  // CR 704.5m, 613.1d: Zoetic Glyph's "enchanted artifact" override stops adding the Creature type once Treasure Map transforms into Treasure Cove, so the land is not a 0-toughness creature
 	})
 }
 
@@ -603,6 +609,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"unless_tax_hides_unadmitted_restricted_mana", false, false},   // CR 106.6: Smoky Lounge's Room-only {R}{R} cannot pay Don't Make a Sound's {2} unless tax, so its controller is offered only the decline
 		{"sac_after_aura_control_ends", false, false},                   // CR 613.1b, 701.21: Vile Mutilator's second sacrifice counts creatures after the first (an Aura) left, so the creature it stole is back with its owner and the lone manifest is forced
 		{"painless_plan_at_nonpositive_life", false, false},             // CR 119.4, 601.2g: a player at life <= 0 (a lose-the-game replacement) still pays a {1} spell from painless lands; the pain guard cuts only a plan that pays life
+		{"animate_rider_before_entry_triggers", true, false},            // CR 603.6a: an Enduring creature returned as an enchantment has its type-changing rider applied before an "another creature enters" watcher matches it, so no extra pump trigger
 	})
 }
 

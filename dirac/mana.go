@@ -1021,6 +1021,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	var granted [MaxPerm]bool
 	var rv [MaxPerm]uint8
 	var rk, dm [MaxPerm]uint8 // a restricted source's record kind and unadmitted ranking colours (restrViewW)
+	var intr [MaxPerm]uint8   // a widened source's intrinsic colours: its granted basic land types' (static_landtype.go)
 	var tapsPain [4]pcard     // pain-only views of the sources a Pain-class Taps watcher prices (mana_tapsdefer.go)
 	ntp := 0
 	for i := 0; i < no; i++ {
@@ -1040,6 +1041,13 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			granted[i] = s.manaGranted(k, sl)
 			if k.restrSrc && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
 				if v, kd, ab, dmask := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
+					if kd == rkWiden && pcs[i].blgFirst != 0 {
+						// the restricted view is the card's: the intrinsic
+						// abilities a granted basic land type gives (Jasmine
+						// Dragon Tea Shop as an Island) rank first, gorge's
+						// key 8 comparing an ability's kind before its mana
+						intr[i] = uint8(pcs[i].manaCol&0x1f) &^ s.blgPrintedMask(k, sl)
+					}
 					pcs[i], rk[i], rv[i] = v, kd, kd
 					if kd == rkDyn {
 						pk.rdyn, pk.rdynOn, pk.rF, pk.rV = sl, true, ab.ManaRestrict, k.gen.restrVarOf(ab)
@@ -1163,6 +1171,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					if pc.blgFirst != 0 {
 						printed = s.blgPrintedMask(k, sl)
 					}
+				}
+				if intr[i] != 0 && rv[i] == rkWiden {
+					printed = mask &^ intr[i] // the restricted ability's colours and the own printed ones follow
 				}
 				var xv [kop.NumManaKinds]uint8
 				var xm, xt uint8

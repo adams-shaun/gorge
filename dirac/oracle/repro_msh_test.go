@@ -6,6 +6,7 @@ import "testing"
 func TestStdMshReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-msh", []stdRepro{
+		{"copy_attach_trigger_may_target_its_source", false, false},             // CR 707.10c, 701.3a: a copy of Swordsman's attach trigger (Object$ ParentTarget) may choose the Swordsman itself as the creature, as the original could; only an attach of the source itself excludes it
 		{"target_attacking_lki_after_lethal_damage", false, false},              // CR 608.2h: the enrage rider still sees the attacker's last battlefield status after lethal damage moved it to the graveyard, so the extra combat phase is granted
 		{"sneak_paid_through_filter_land", true, false},                         // CR 702.190a, 605.3a: Elektra sneaked for {1}{B}{B} with a Swamp and Surveillance Room's {1},{T} any-colour filter beside two Plains: the filter's prefix search funds the sneak cast
 		{"sneak_filter_fee_beside_restricted_any_colour", true, false},          // CR 702.190a, 605.3a: Elektra sneaked for {1}{B}{B} from a Swamp, an Island funding Surveillance Room's {1},{T} any-colour fee and Castle Doom's {C} (its any colour is for artifact spells only): the filter's prefix search funds the sneak cast
@@ -30,5 +31,7 @@ func TestStdMshReprosLockstep(t *testing.T) {
 		{"power_up_hybrid_only_charge_pays_through_window", true, false},        // CR 601.2g, 702.193b: Abomination re-entered this turn beside Hulk owes only {R/G}{R/G}, a charge gorge arms no plan for (no generic or coloured mana), so the manual window taps the first Forests in battlefield order
 		{"connive_triggered_referent_returned_no_counter", false, false},        // CR 400.7, 701.50b: Baron Strucker's connive for a Villain that died and returned before it resolved puts no +1/+1 counter on the new object
 		{"dark_fortress_mana_source_choice", false, false},                      // CR 601.2g, 702.193b: a hybrid Power-up's charge the reductions left hybrid-only arms no plan, so the manual window taps Dark Fortress's conditional {B} or {R} ability before the untapped Mountain
+		{"departed_self_toughness_lki", true, false},                            // CR 608.2h: Captain America's attack trigger resolving after he died pumps the Heroes by his last known toughness, not his printed one
+		{"etb_charm_count_x_after_legend_rule", false, false},                   // CR 107.3m, 603.3c: The Ruinous Wrecking Crew cast for X=2 and binned by the legend rule before its enter trigger is placed still offers "choose up to X" modes with the cast's X, so the trigger is not removed
 	})
 }

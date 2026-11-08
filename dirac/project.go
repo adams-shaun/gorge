@@ -289,7 +289,7 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 		if pm.attached != NoSlot {
 			po.Attached = s.perms[pm.attached].obj
 		} else if s.g.lingerM.has(sl) {
-			po.Attached = s.lingerObj(sl) // its host left; gorge unattaches at the next state-based check
+			po.Attached = s.lingerHost(sl) // its host left; gorge unattaches at the next state-based check
 		}
 	}
 

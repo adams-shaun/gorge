@@ -17,20 +17,20 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | FDN | 517 | 517 | 0 | 24 | 493 |
 | FIN | 312 | 268 | 1 | 22 | 245 |
 | FRA | 269 | 245 | 0 | 6 | 239 |
-| HOB | 172 | 153 | 0 | 1 | 152 |
+| HOB | 172 | 153 | 1 | 0 | 152 |
 | LCI | 290 | 251 | 1 | 22 | 228 |
 | MKM | 279 | 242 | 1 | 31 | 210 |
 | MSH | 276 | 235 | 1 | 27 | 207 |
 | OTJ | 276 | 241 | 1 | 28 | 212 |
 | SOS | 270 | 249 | 0 | 28 | 221 |
-| SPM | 192 | 161 | 1 | 24 | 136 |
+| SPM | 192 | 161 | 1 | 2 | 158 |
 | TDM | 276 | 250 | 3 | 5 | 242 |
 | TLA | 285 | 253 | 1 | 2 | 250 |
 | TMT | 194 | 171 | 1 | 0 | 170 |
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 6 | 246 |
-| ALL | 34442 | 21706 | 24 | 16851 | 4831 |
+| ALL | 34442 | 21706 | 25 | 16828 | 4853 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -58,7 +58,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | std-msh | 275 |
 | std-otj | 70 |
 | std-sos | 118 |
-| std-spm | 74 |
+| std-spm | 1500 |
 | std-tdm | 1500 |
 | std-tla | 1500 |
 | std-tmt | 1500 |
@@ -70,7 +70,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-24 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+25 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
@@ -82,7 +82,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-Cards.Damage | 1 |
 | projection-Cards.Flags | 3 |
 | projection-Cards.Power | 1 |
-| projection-Cards.Zone | 1 |
+| projection-Cards.Zone | 2 |
 | projection-NStack | 2 |
 | projection-Pool | 1 |
 | unmodelled | 2 |

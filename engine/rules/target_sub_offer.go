@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -56,6 +57,13 @@ func (e *Engine) LegalRetargets(obj state.ObjID, sa *cards.SA, parent []state.Ta
 // when sa is no attach SA or o has no source.
 func attachSelfSource(o *state.Object, sa *cards.SA) state.ObjID {
 	if sa == nil || sa.API != "Attach" {
+		return 0
+	}
+	// Only an attach that fastens the source itself (Object$ absent or Self)
+	// has the source as an impossible destination; an Object$ naming another
+	// permanent (Swordsman, Sharp Scoundrel's ParentTarget) may well attach it
+	// to the source, as the original announcement allowed.
+	if ap := effects.AttachOf(sa); ap.ObjectPresent && ap.Object != "Self" {
 		return 0
 	}
 	return o.Source
