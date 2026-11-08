@@ -228,7 +228,11 @@ func (s *State) availTappedSac(k *prep, p uint8, a *avail) {
 func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 	b := s.bld()
 	instant := b.e.kind == seSpell && (k.cards[b.e.card].instant || s.castFlash(k, b.e.ctrl, b.e.card))
+	resolved := false
 	for i := int(n0); i < int(s.npend); {
+		if s.over {
+			return
+		}
 		pt := &s.pend[i]
 		if int(pt.card) >= len(k.t.Cards) {
 			i++
@@ -311,6 +315,18 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 		s.res = save
 		copy(s.pend[i:], s.pend[i+1:s.npend])
 		s.npend--
+		resolved = true
+	}
+	if resolved {
+		// The pre-cast trigger resolved; the priority it returns to runs its
+		// state-based check before the cast's build continues (CR 704.3). A
+		// drain that took the last opponent -- a Treasure spent for a
+		// lowered hybrid cast beside The Sackville-Bagginses -- ends the
+		// game here (CR 704.5a), before the cast, exactly as gorge's
+		// lowering visits the resulting priority, so the card stays in
+		// hand. resolvePrefixStack takes the same pass after its
+		// resolutions.
+		s.sba(k)
 	}
 }
 

@@ -292,6 +292,12 @@ func TestStdHobReprosLockstep(t *testing.T) {
 		{"hascards_graveyard_static_zero_a", false, false},          // CR 604.1: Master's Councillors' +2/+0 per graveyard with seven or more cards counts the graveyard that has them
 		{"hascards_graveyard_static_zero_b", false, false},
 		{"threshold_skips_a_waiting_token", false, false}, // CR 111.7, 704.5d: three Treasures sacrificed for mana wait in the graveyard, so they are no cards and do not switch Most Decrepit Old Bird's Threshold on
+		// CR 603.3b, 704.5a: a Treasure spent for Duskwatch Hunter's hybrid
+		// mana sets off The Sackville-Bagginses' drain before the cast; the
+		// lowering's resolutions run their state-based check, which takes
+		// the opponent's last life, so the spell stays in hand and the game
+		// ends there rather than at a hybrid pip ask.
+		{"lowered_hybrid_cast_lethal_sacrifice_trigger", false, false},
 	})
 }
 
