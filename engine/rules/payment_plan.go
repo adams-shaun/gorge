@@ -854,7 +854,7 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 		// proves the price the target ask will charge.
 		base := pay.WithSpellAbilityExtras(e.G.Obj(cast.Object).Face(), settleBase)
 		if priced, alt := e.targetPricedPlan(e.collectCostStatics(), p, cast.Object, base, settleScope, rider); alt.Plan != nil && alt.Reason == "" {
-			if altCost := pay.PlanManaHalf(priced); pay.WireCost(altCost) == got.Plan.Cost {
+			if altCost := pay.PlanManaUnderRider(pay.PlanManaHalf(priced), rider); pay.WireCost(altCost) == got.Plan.Cost {
 				cost = altCost
 			}
 		}
