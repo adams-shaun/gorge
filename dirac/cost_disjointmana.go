@@ -75,6 +75,14 @@ func (s *State) costManaDisjoint(k *prep, sl Slot, a *kop.Ability, av *avail, pm
 // costPartDisjoint is costManaDisjoint for p paying c's Sac or TapX part beside
 // mana, from source sl (NoSlot: a spell).
 func (s *State) costPartDisjoint(k *prep, p uint8, sl Slot, c *kop.Cost, mana *kop.ManaCost, av *avail, pm uint8) bool {
+	return s.costPartDisjointD(k, p, sl, c, mana, av, pm, nil)
+}
+
+// costPartDisjointD is costPartDisjoint with rd naming the payment whose
+// restricted sources av holds (restrSrcAvail's rkExt units, cost_fixedtaps.go):
+// such a source is a tap candidate whose use takes its restricted mana away,
+// never a free one (CR 601.2g-h; gorge planReserving).
+func (s *State) costPartDisjointD(k *prep, p uint8, sl Slot, c *kop.Cost, mana *kop.ManaCost, av *avail, pm uint8, rd *payDesc) bool {
 	f := c.Flags
 	tapX := f&kop.CostTapX != 0
 	selfTap := f&kop.CostTap != 0
@@ -95,6 +103,13 @@ func (s *State) costPartDisjoint(k *prep, p uint8, sl Slot, c *kop.Cost, mana *k
 		pc := s.manaPCAt(k, x)
 		sacOnly := s.canSacOnlyNow(k, x, pc)
 		if !s.canTapForManaPC(k, x, pc) && !sacOnly || !tapX && !(pc.manaSac || sacOnly) {
+			if tapX && rd != nil && nc < len(cons) {
+				if _, ok := s.restrTapUnit(k, p, x, rd); ok {
+					cons[nc] = x
+					nc++
+					continue
+				}
+			}
 			if tapX && k.gen != nil && s.g.availX&availGaps != 0 {
 				// A scripted gap source's mana is in the gaps walk without a
 				// plain tap profile (Bloom Tender's each-colour ability): the
@@ -140,6 +155,15 @@ func (s *State) costPartDisjoint(k *prep, p uint8, sl Slot, c *kop.Cost, mana *k
 		for i := 0; i < need; i++ {
 			x := cons[idx[i]]
 			pc := s.manaPCAt(k, x)
+			if v, ok := s.restrTapUnit(k, p, x, rd); ok && !s.canTapForManaPC(k, x, pc) {
+				r.remove(srcMask(v), v.manaN)
+				for col, n := range v.manaXv {
+					if n > 0 {
+						r.remove(1<<col, n)
+					}
+				}
+				continue
+			}
 			s.removeSrc(k, &r, x, pc)
 			if tapX && k.gen != nil && s.g.availX&availGaps != 0 {
 				var gap avail

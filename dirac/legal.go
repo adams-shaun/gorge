@@ -783,9 +783,7 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		// the planner's census, not the unless / ward window's: a pain source's
 		// life-paid colour pays the mana beside the part (Haunted Screen; CR 601.2g-h)
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
-		var av avail
-		s.availFor(k, p, &av)
-		if !s.costPartDisjoint(k, p, NoSlot, ac, &cost, &av, pipMaskOf(&cost)) {
+		if !s.spellPartDisjoint(k, p, c, o, ac, &cost) {
 			return false
 		}
 	}
