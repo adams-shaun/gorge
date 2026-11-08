@@ -538,6 +538,8 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"equip_target_reduction_payable_full_surface", false, false}, // CR 601.2f, 602.2b: the same equip offer on the full surface
 		// CR 106.6, 601.2g: a Tiered cast's window asks Cargo Ship's abilities with its printed artifact-only {C} ahead of A Realm Reborn's grant, so the {C} floats unspent
 		{"window_printed_restricted_before_grant", false, false},
+		// CR 601.2g, 603.3b: Choco-Comet's largest-X witness would sacrifice the Treasure into Al Bhed Salvagers' lethal drain before the cast, so gorge plans X=5 from the lands and keeps the Treasure
+		{"x_witness_lethal_sacrifice_trigger_keeps_treasure", false, false},
 	})
 }
 
