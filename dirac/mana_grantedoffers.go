@@ -99,7 +99,10 @@ func (s *State) contGrants(k *prep, sl Slot, lost bool, lts uint16, f func(c Car
 			if !s.statCond(k, st) || !s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, src, layerKw) {
 				continue
 			}
+			prev := s.g.grantSrc
+			s.g.grantSrc = uint8(st.obj) + 1 // grantIdxs orders by this source's place in the walk
 			f(cid, a.Static.Grant-1, 1)
+			s.g.grantSrc = prev
 		}
 	}
 }
@@ -117,7 +120,28 @@ const maxGrants = 16
 //go:noinline
 func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 	g := k.gen
+	// gorge lists every Continuous AddAbility$ grant in its static walk's
+	// order (seat, then entry), an attached source's among the unattached
+	// ones (an Honest Work's "{T}: Add {C}" on a land of the other seat
+	// follows a Great Divide Guide's grant of the first); grantedAbilities
+	// reports the attached statics first, so the list is stably reordered
+	// by the granting source's place in that walk. A grant without a
+	// source in it (an Animate record) keeps its place after them.
+	var order [MaxPerm]Slot
+	no := 0
+	if g.anyContGrant {
+		no = s.battlefieldOrder(0, s.statM.and(s.ctrlM[0]), order[:], 0)
+		no = s.battlefieldOrder(1, s.statM.and(s.ctrlM[1]), order[:], no)
+	}
+	var key [maxGrants]uint8
 	s.grantedAbilities(k, sl, func(c CardID, ab uint8) {
+		pos := uint8(255)
+		for oi := 0; oi < no; oi++ {
+			if s.g.grantSrc != 0 && uint8(s.perms[order[oi]].obj)+1 == s.g.grantSrc {
+				pos = uint8(oi)
+				break
+			}
+		}
 		for i, r := range g.grantOf {
 			if r.card != c || r.ab != ab {
 				continue
@@ -129,7 +153,12 @@ func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 			if g.grantSelf[i] && s.selfColMask(sl) == 0 {
 				continue // a colourless grantee reflects nothing: gorge lists no such ability
 			}
-			out[n] = int16(i)
+			j := n
+			for j > 0 && key[j-1] > pos {
+				out[j], key[j] = out[j-1], key[j-1]
+				j--
+			}
+			out[j], key[j] = int16(i), pos
 			n++
 		}
 	})

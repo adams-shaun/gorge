@@ -201,6 +201,11 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"phased_out_copy_grant_survives", true, false},                 // CR 702.26b: a phased-out copy's granting static is silent, but phase-out unsubscribed only the printed card, so the copy's grant still fired
 		{"copy_cast_zero_x_reaches_window", false, false},               // CR 601.2c, 601.2g, 733.1: Q's Play of Dominion Infiltration announces X = 0, so its "X target creatures" asks no menu and no affordability census reverses it; the cast reaches its mana window, and the taps and mana stand when it is then reversed
 		{"copy_cast_zero_x_reaches_window_autopay", true, false},        // CR 601.2c, 601.2g, 733.1: ... the same on the autopay surface, where two Mountains tap for the {R}{R}{R} the pool cannot cover
+		{"deanna_spacecraft_enterprise_a_s125", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
+		{"deanna_spacecraft_oberth_s162", false, false},                 // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
+		{"deanna_spacecraft_suurok_s193", false, false},                 // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
+		{"deanna_spacecraft_enterprise_a_s203", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
+		{"deanna_spacecraft_enterprise_d_s205", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 	})
 }
 
@@ -324,6 +329,11 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// granted delve, so no graveyard card is offered (Ureni's Rebuff).
 		{"delve_harmonize_covered_generic", true, false},
 		{"copy_sacrificed_to_own_cost_reflexive_body", true, false}, // CR 707.2, 603.12: a copy that sacrifices itself to its ImmediateTrigger cost (Naga Fleshcrafter as Felothar) still queues the copied reflexive body
+		// CR 603.3b: Host of the Hereafter copies a legend's +1/+1 and flying
+		// counters onto the survivor beside Hollowmurk Siege's Sultai
+		// trigger, which hears both kinds only once each turn: the two orders
+		// reach the same one trigger.
+		{"counter_copy_once_listener", false, false},
 	})
 }
 
@@ -407,7 +417,8 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"plan_alts_lotus_hideout_island_grant", true, false},
 		{"plan_alts_lotus_hideout_island_grant_late", true, false},
 		{"plan_alts_lotus_hideout_island_grant_lesson", true, false},
-		{"widened_restricted_source_granted_island_colour_first", true, false}, // CR 305.6, 601.2g: Jasmine Dragon Tea Shop made an Island taps for its intrinsic {U}, not its restricted any-colour {R}, toward Earthen Ally's {2}{W}{U}{B}{R}{G}: gorge's witness ranks an intrinsic ability before a printed one, so Avatar Kyoshi makes the six {R}
+		{"widened_restricted_source_granted_island_colour_first", true, false},  // CR 305.6, 601.2g: Jasmine Dragon Tea Shop made an Island taps for its intrinsic {U}, not its restricted any-colour {R}, toward Earthen Ally's {2}{W}{U}{B}{R}{G}: gorge's witness ranks an intrinsic ability before a printed one, so Avatar Kyoshi makes the six {R}
+		{"attached_and_global_mana_grants_follow_the_static_walk", true, false}, // CR 613.7, 605.1a: Honest Work's {T}: Add {C} on a land of the other seat is listed after Great Divide Guide's any-colour grant, as gorge walks the statics by seat
 	})
 }
 
@@ -518,6 +529,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"dig_entry_chosen_type_sees_batch", true, false},                          // CR 603.6a: Rimefire Torque, dug onto the battlefield last with its as-enters type asked, sees changeling Flock Impostor entering in the same batch
 		{"either_or_unpayable_part_tap_another_source_keeps_target", false, false}, // CR 601.2g: Bogslither's Embrace's unaffordable {3} part goes on to its target menu while an untapped Springleaf Drum, with no creature to tap, leaves gorge's window census incomplete
 		{"wide_restricted_source_funds_hand_ability", true, false},                 // CR 106.6, 601.2g: Flamebraider's two any-colour mana for an Elemental pays Kulrath Zealot's basic landcycling, a hand activation the census has no unit for
+		{"behold_exile_cast_pays_restricted_wide_mana", false, false},              // CR 106.6, 601.2g: Champion of the Path cast from Sanar's exile is affordable through Flamebraider's restricted two mana, which gorge's prefix search taps ahead of the pricing
 	})
 }
 

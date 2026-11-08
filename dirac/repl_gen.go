@@ -921,9 +921,11 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 				cand[c] = s.perms[b].obj
 				prev |= 1 << c
 				c++
-			} else if plusOnly && rb&rbPlusDmg != 0 && p == ctrl {
-				// a commuting addition (Fated Firepower): collected so two or
-				// more are asked as gorge's no-op CR 616.1 order (replPlus)
+			} else if rb&rbPlusDmg != 0 && p == ctrl {
+				// an addition (Fated Firepower, Hawkeye): gorge collects it
+				// beside every other match, so two or more are asked as its
+				// CR 616.1 order (replPlus); beside a prevention every order
+				// gives 0, beside a doubling replDamage stalls loudly
 				add, raise, ok := s.replPlusCand(k, b, srcSl, srcCard, ctrl, rcp, sl, false, n)
 				if ok {
 					if raise != 0 {

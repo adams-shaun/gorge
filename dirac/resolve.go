@@ -821,7 +821,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 		if s.parkNC(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
 			return n // gorge's replacement-order ask, after the resolution
 		}
-		if n = s.replDamage(k, e.ctrl, s.objRef(k, kop.RefSelf), e.card, code, false, n); n <= 0 {
+		if n = s.replDamage(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, false, n); n <= 0 {
 			return 0
 		}
 	}
