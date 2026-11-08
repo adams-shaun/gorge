@@ -6,9 +6,9 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// commanderToZone seats p's commander on the battlefield and moves it to z as
-// a destruction would, leaving the ask due (the card moved, so ver is above
-// the watermark).
+// commanderToZoneSeat seats p's commander on the battlefield and moves it to z
+// as a destruction would, leaving the ask due (the card moved, so ver is
+// above the watermark).
 func commanderToZoneSeat(t *testing.T, p uint8, z kop.Zone) (*scen, Obj) {
 	t.Helper()
 	tbl, card := commanderTable(0)
@@ -62,49 +62,58 @@ func assertCommanderAsk(t *testing.T, sc *scen, o Obj) Decision {
 	return d
 }
 
-func TestCommanderDiesAskOwner(t *testing.T) {
-	sc, o := commanderToZone(t, kop.ZoneGraveyard)
-	assertCommanderAsk(t, sc, o)
-	sc.s.Apply(MakeAction(AkChoose, uint8(o), 0, 0))
-	if z := sc.s.objs[o].zone; z != kop.ZoneCommand {
-		t.Fatalf("mode 0 left the commander in zone %v, want the command zone", z)
+// assertCommanderMode answers the ask and checks the branch it takes; after
+// either answer the commander sits still, so no second ask may follow.
+func assertCommanderMode(t *testing.T, sc *scen, o Obj, mode uint8) {
+	t.Helper()
+	s := sc.s
+	from := s.objs[o].zone
+	ver := s.objs[o].ver
+	s.Apply(MakeAction(AkChoose, uint8(o), 0, mode))
+	switch mode {
+	case 0:
+		if z := s.objs[o].zone; z != kop.ZoneCommand {
+			t.Fatalf("mode 0 left the commander in zone %v, want the command zone", z)
+		}
+		if from == kop.ZoneGraveyard && s.pl[0].graveN != 0 {
+			t.Fatalf("graveyard still holds %d cards after mode 0", s.pl[0].graveN)
+		}
+		if from == kop.ZoneExile && s.pl[0].exileN != 0 {
+			t.Fatalf("exile still holds %d cards after mode 0", s.pl[0].exileN)
+		}
+		if s.objs[o].ver == ver {
+			t.Fatalf("mode 0 did not bump ver %d for the command-zone arrival", ver)
+		}
+	case 1:
+		if z := s.objs[o].zone; z != from {
+			t.Fatalf("mode 1 moved the commander to zone %v, want %v", z, from)
+		}
+		if s.objs[o].ver != ver {
+			t.Fatalf("mode 1 changed ver %d -> %d, want it unmoved", ver, s.objs[o].ver)
+		}
 	}
-	if sc.s.pl[0].graveN != 0 {
-		t.Fatalf("graveyard still holds %d cards after mode 0", sc.s.pl[0].graveN)
-	}
-	if d := sc.s.Step(); d.Kind == DkChoose && d.Sub == ChCommanderZone {
-		t.Fatal("the commander was asked about again after moving to the command zone")
+	if d := s.Step(); d.Kind == DkChoose && d.Sub == ChCommanderZone {
+		t.Fatal("the commander was asked about again without moving")
 	}
 }
 
-func TestCommanderDiesAskOwnerDecline(t *testing.T) {
-	sc, o := commanderToZone(t, kop.ZoneGraveyard)
-	assertCommanderAsk(t, sc, o)
-	ver := sc.s.objs[o].ver
-	sc.s.Apply(MakeAction(AkChoose, uint8(o), 0, 1))
-	if z := sc.s.objs[o].zone; z != kop.ZoneGraveyard {
-		t.Fatalf("mode 1 moved the commander to zone %v, want the graveyard", z)
-	}
-	if sc.s.pl[0].graveN != 1 {
-		t.Fatalf("graveyard holds %d cards, want the declined commander", sc.s.pl[0].graveN)
-	}
-	if sc.s.objs[o].ver != ver {
-		t.Fatalf("mode 1 changed ver %d -> %d, want it unmoved", ver, sc.s.objs[o].ver)
-	}
-	if d := sc.s.Step(); d.Kind == DkChoose && d.Sub == ChCommanderZone {
-		t.Fatal("a declined commander was asked about again without moving")
+func TestCommanderDiesAskOwner(t *testing.T) {
+	for _, mode := range [2]uint8{0, 1} {
+		t.Run([2]string{"command zone", "leave"}[mode], func(t *testing.T) {
+			sc, o := commanderToZone(t, kop.ZoneGraveyard)
+			assertCommanderAsk(t, sc, o)
+			assertCommanderMode(t, sc, o, mode)
+		})
 	}
 }
 
 func TestCommanderExiledAsk(t *testing.T) {
-	sc, o := commanderToZone(t, kop.ZoneExile)
-	assertCommanderAsk(t, sc, o)
-	sc.s.Apply(MakeAction(AkChoose, uint8(o), 0, 0))
-	if z := sc.s.objs[o].zone; z != kop.ZoneCommand {
-		t.Fatalf("mode 0 left the commander in zone %v, want the command zone", z)
-	}
-	if sc.s.pl[0].exileN != 0 {
-		t.Fatalf("exile still holds %d cards after mode 0", sc.s.pl[0].exileN)
+	for _, mode := range [2]uint8{0, 1} {
+		t.Run([2]string{"command zone", "leave"}[mode], func(t *testing.T) {
+			sc, o := commanderToZone(t, kop.ZoneExile)
+			assertCommanderAsk(t, sc, o)
+			assertCommanderMode(t, sc, o, mode)
+		})
 	}
 }
 
