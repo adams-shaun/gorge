@@ -1,6 +1,7 @@
 package netsimd_test
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"math"
@@ -172,7 +173,6 @@ func TestExtNetMatchesReference(t *testing.T) {
 	dir := t.TempDir()
 	sts, opts := synthInputs(6, 21)
 	r := rand.New(rand.NewPCG(8, 8))
-	gonet.CacheSize = 0
 	for _, fx := range extShapes {
 		name, sh := fx.name, fx.sh
 		w := randWeights(r, sh.D*extSlots, 0.2)
@@ -252,12 +252,25 @@ func TestExtNetMatchesReference(t *testing.T) {
 }
 
 func TestExtWidthRefused(t *testing.T) {
-	p, err := gonettest.WriteExt(t.TempDir(), "bad.dzgw", gonettest.Wide, 100, make([]float32, 64*100))
+	// A well-formed 512-wide tensor under an EXT_W of 100: the tensor shape
+	// check passes, so only the const guard can refuse the file.
+	p, err := gonettest.WriteExt(t.TempDir(), "bad.dzgw", gonettest.Wide, extSlots, make([]float32, 64*extSlots))
 	if err != nil {
 		t.Fatal(err)
 	}
+	raw, err := os.ReadFile(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := []byte(`"EXT_W":512`)
+	if bytes.Count(raw, old) != 1 {
+		t.Fatalf("header does not hold %s exactly once", old)
+	}
+	if err := os.WriteFile(p, bytes.Replace(raw, old, []byte(`"EXT_W":100`), 1), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	_, err = netsimd.Load(p, 0)
-	if err == nil || !strings.Contains(err.Error(), "100") || !strings.Contains(err.Error(), "512") {
-		t.Fatalf("Load = %v, want an error naming 100 and 512", err)
+	if err == nil || !strings.Contains(err.Error(), "EXT_W = 100") || !strings.Contains(err.Error(), "512") {
+		t.Fatalf("Load = %v, want the EXT_W guard naming 100 and 512", err)
 	}
 }
