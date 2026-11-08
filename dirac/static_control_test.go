@@ -228,7 +228,8 @@ func TestL5ControlStatic(t *testing.T) {
 // them in timestamp order and they are not additive (CR 613.1b/613.7), so
 // the Aura attached second (the later layer timestamp) wins and the older
 // one registers no record. Removing the losing Aura changes nothing;
-// removing the winning one hands the host to the older Aura's controller.
+// removing the winning one leaves no static, so the host returns to its
+// owner (the losing Aura was already gone).
 func TestL5TwoControlStatics(t *testing.T) {
 	l := newL5(t)
 	s, k := l.sc.s, l.sc.k
