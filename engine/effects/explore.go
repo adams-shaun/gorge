@@ -101,6 +101,9 @@ func exploreOnce(h Host, c *Ctx, sa *cards.SA, explorer state.ObjID) {
 	// destination move are applied together after the answer (see the doc:
 	// the CR counter-before-destination order is preserved in the event
 	// stream; the recorded election precedes it).
+	// CR 400.7, 701.44c: an explorer that left and came back is a new object;
+	// the old one still explores but no counter can go on anything.
+	gone := (c.SourceReturned && explorer == c.Source) || triggeredReferentMoved(c, sa, explorer)
 	d := &decision.Decision{Player: ctrl, Kind: decision.KChoose, Min: 1, Max: 1,
 		Source: c.Source, ResumeKind: "explore", ResumeSA: sa,
 		ResumeTarget: int(explorer),
@@ -112,22 +115,22 @@ func exploreOnce(h Host, c *Ctx, sa *cards.SA, explorer state.ObjID) {
 	if ans, ok := AskTape(h, d); ok {
 		// The "explore" answer in hand (any answer but "top" sends the
 		// card to the graveyard).
-		applyNonlandExplore(h, explorer, ctrl, top, len(ans) == 0 || ans[0].Kind != "top")
+		applyNonlandExplore(h, explorer, gone, ctrl, top, len(ans) == 0 || ans[0].Kind != "top")
 		return
 	}
 
 	// No host (an effects-package test double, a fuzz run): option 0, the
 	// state-changing choice — the exact mirror of botpolicy's clamp answer.
-	applyNonlandExplore(h, explorer, ctrl, top, true)
+	applyNonlandExplore(h, explorer, gone, ctrl, top, true)
 }
 
 // applyNonlandExplore applies a nonland explore's outcome: the +1/+1 counter
-// on the explorer if it is still there (the counter comes before the card's
+// on the explorer if it is still there and was not replaced (the counter comes before the card's
 // destination), then the destination move (into the graveyard, or back on top
 // — a stay, no event), then the one events.Explore record both shapes share.
-func applyNonlandExplore(h Host, explorer state.ObjID, ctrl state.PlayerID, card state.ObjID, toGraveyard bool) {
+func applyNonlandExplore(h Host, explorer state.ObjID, gone bool, ctrl state.PlayerID, card state.ObjID, toGraveyard bool) {
 	g := h.Game()
-	if o := g.Obj(explorer); o != nil && o.Zone == state.ZBattlefield {
+	if o := g.Obj(explorer); !gone && o != nil && o.Zone == state.ZBattlefield {
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: explorer, Counter: "P1P1", Amount: 1})
 	}
 	if toGraveyard {
