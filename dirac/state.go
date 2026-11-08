@@ -657,6 +657,8 @@ const (
 	ctlOver
 	ctlExileOrder // a parked move to a graveyard with several exile-instead effects: which applies (CR 616.1)
 	ctlTurnUpX    // a keyword turn-up awaiting its announced X (face_turnfaceup.go; parked in genState.pick*)
+	ctlCmdZone0   // the CR 903.9a commander-zone ask to seat 0 (zone_cmdzone.go)
+	ctlCmdZone1   // the CR 903.9a commander-zone ask to seat 1
 )
 
 // build stages.

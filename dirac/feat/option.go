@@ -125,6 +125,7 @@ const (
 	dkModes           = 5
 	dkTriggerOrder    = 6
 	dkTriggerOptional = 7
+	dkCommanderZone   = 8
 	dkChoose          = 9
 	dkReplacement     = 10
 	dkArrange         = 11
@@ -316,6 +317,12 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 			}
 		case dirac.ChLegend:
 			o.kind = okKeep
+		case dirac.ChCommanderZone:
+			// CR 903.9a: mode 0 accepts (command zone), mode 1 leaves it
+			o.dk, o.kind = dkCommanderZone, okYes
+			if mode == 1 {
+				o.kind = okNo
+			}
 		case dirac.ChDivide:
 			o.kind = okDivision
 			o.amount = e.firstShare(src, int(mode))

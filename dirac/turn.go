@@ -465,6 +465,9 @@ func (s *State) sba(k *prep) bool {
 		if k.gen != nil && k.gen.ctrlSBA {
 			s.ctrlSBA(k) // layer-2 control records and statics (static_control.go)
 		}
+		if s.cmdZoneAsk(k) { // CR 903.9a, before the lose checks (zone_cmdzone.go)
+			return true
+		}
 		if s.g.lingerM.any() && !s.parkedWaiting() && !s.legendOwed(k) {
 			// state-based checks unattach (each pass: a host that died in
 			// the last one too), and a casualty's parked ask or a legend ask
