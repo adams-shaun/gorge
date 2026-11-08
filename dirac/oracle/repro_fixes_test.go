@@ -512,6 +512,12 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"window_printed_restricted_before_grant", false, false},
 		// CR 601.2f, 106.6: a Spree mode is priced beside the floating restricted mana the payment may spend, so the mode stays offered
 		{"spree_mode_counts_floating_restricted_mana", true, false},
+		// CR 601.2b, 601.2g, 733.1: Choco-Comet's largest-X lowered witness
+		// would sacrifice a Treasure, and Al Bhed Salvagers' trigger would end
+		// the game before the push, so gorge's potentialWitnessKeeping prices
+		// the smaller X that keeps it and both engines ask X with the spell on
+		// the stack
+		{"choco_comet_x_witness_sacrifice_before_push", false, false},
 	})
 }
 
@@ -565,6 +571,11 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"wide_restricted_source_funds_hand_ability", true, false},                 // CR 106.6, 601.2g: Flamebraider's two any-colour mana for an Elemental pays Kulrath Zealot's basic landcycling, a hand activation the census has no unit for
 		{"behold_exile_cast_pays_restricted_wide_mana", false, false},              // CR 106.6, 601.2g: Champion of the Path cast from Sanar's exile is affordable through Flamebraider's restricted two mana, which gorge's prefix search taps ahead of the pricing
 		{"behold_exile_cast_tap_another_source_not_census_gap", false, false},      // CR 601.2g: a plain hand Champions of the Shoal is not one of gorge's potential plays (shape:additional_cost is refused before the mana is priced), so no prefix search taps Springleaf Drum for it and dirac must not offer the cast
+		// CR 610.3, 616.1: Temporal Cleansing's "second from top or bottom"
+		// answer moves the owner's Liminal Hold into the library inside that
+		// answer, so its until-leaves exile ends there and Rimefire Torque's
+		// as-enters creature-type choice is asked with the card still in exile
+		{"rimefire_torque_until_leaves_return_choose_type", true, false},
 	})
 }
 
