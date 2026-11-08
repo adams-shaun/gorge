@@ -76,11 +76,14 @@ type Encoder struct {
 	parts [2]*partsSeat
 
 	// ext is the extension groups (SetExt); extAcc/extHit accumulate a
-	// block, extOut is its emission
-	ext    ExtGroups
-	extAcc [ExtWidth]float32
-	extHit [ExtWidth / 64]uint64
-	extOut []Feature
+	// block, extOut is its emission. killMine/killTheirs are the current
+	// build's mz aggregates (group K), stashed by mzGlobal.
+	ext        ExtGroups
+	extAcc     [ExtWidth]float32
+	extHit     [ExtWidth / 64]uint64
+	extOut     []Feature
+	killMine   agg
+	killTheirs agg
 	// belief is SetOppBelief's list; bseen/bkind its per-card scratch and
 	// class bits (1 threat, 2 answer), bThreat/bAnswer the class totals
 	belief           []uint8
@@ -445,6 +448,7 @@ func (e *Encoder) mzStack(seat uint8) {
 
 // mzGlobal is the mz seat aggregates.
 func (e *Encoder) mzGlobal(seat uint8, me, opp *vplayer, mine, theirs *agg) {
+	e.killMine, e.killTheirs = *mine, *theirs
 	myAvail := me.avail
 	num := func(k *numKey, val int32) {
 		e.push(k.row, float32(val))

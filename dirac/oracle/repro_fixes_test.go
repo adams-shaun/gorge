@@ -57,6 +57,7 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"free_copy_raise_cost_per_target_reversed", false, false},
 		{"collect_evidence_selection_stale", true, false},            // CR 701.59a: Forensic Researcher's evidence pick lists the whole graveyard after a declined Lamplight Phoenix cost left its reservation behind
 		{"copy_each_target_copies_enter_together_two", false, false}, // ... and Doppelgang's copies of several targets likewise enter in one batch
+		{"sacrifice_menu_keeps_stolen_creature", true, false},
 	})
 }
 
@@ -307,6 +308,9 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"grant_cap_tapx_activation_torpedo", false, false},                    // CR 605.1a, 601.2g-h: Thaumaton Torpedo's {6},{T},Sac is paid by five lands and Gene Pollinator beside Mm'menon's grant: the granted-only artifact is no unit to take out of the prefix search's availability
 		{"grant_cap_tapx_activation_lander", false, false},                     // ... and a Lander token's {2},{T},Sac by one Island and Gene Pollinator
 		{"trigger_order_menu_lists_same_pending_triggers", false, false},       // CR 603.10a: Devastating Onslaught's Encore sacrifices its two Lightless Evangel tokens together, so each token's sacrifice trigger sees the other go
+		{"mmmenon_hand_barred_blue_not_spent_on_hand_cast", true, false},       // CR 106.6, 602.2b: Mm'menon's hand-barred granted blue is no relaxed unit for Atomic Microsizer's Equip {2} nor Sinister Cryologist's hand warp, and the tap-another search alone (Gene Pollinator tapping Nanoform Sentinel) may not keep the play gorge's one prefix search gave up on
+		{"mmmenon_hand_barred_blue_not_spent_on_hand_cast_full", false, false}, // ... and Biosynthic Burst from the hand, on the full surface
+		{"mmmenon_library_top_cast_binned_by_prefix_draw", true, false},        // CR 400.7: Mechan Navigator's tap draws the library-top Cryogen Relic and discards it, so the cast the granted blue would pay no longer exists
 	})
 }
 
