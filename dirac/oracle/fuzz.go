@@ -63,9 +63,10 @@ type FuzzConfig struct {
 	// Coverage collects each clean game's coverage (WithCoverage) into
 	// FuzzSummary.Coverage, merged in pair order.
 	Coverage bool
-	// GameTimeout is the per-game watchdog: a game with no result after this long
-	// is a hang and the worker moves on. Its goroutine cannot be stopped, so it
-	// leaks until the process exits. 0: no watchdog.
+	// GameTimeout is the per-game watchdog: a game with no result after this long,
+	// twice (one retry absorbs a host stall), is a hang and the worker moves on.
+	// Its goroutine cannot be stopped, so it leaks until the process exits. 0: no
+	// watchdog.
 	GameTimeout time.Duration
 }
 
@@ -150,7 +151,7 @@ func Fuzz(c *Corpus, pairs []Pairing, mk SideFactory, fc FuzzConfig, progress fu
 					}
 					return d
 				}
-				d := withinTimeout(fc.GameTimeout, play, done{i: i, hung: true})
+				d := WithinTimeoutRetry(fc.GameTimeout, play, done{i: i, hung: true})
 				if d.cov != nil {
 					covs[i] = d.cov
 				}
@@ -219,20 +220,28 @@ func Fuzz(c *Corpus, pairs []Pairing, mk SideFactory, fc FuzzConfig, progress fu
 	return s
 }
 
-// withinTimeout runs play on its own goroutine and returns its result, or hung when
-// it has none after timeout. A zero timeout waits for it.
-func withinTimeout[T any](timeout time.Duration, play func() T, hung T) T {
+// WithinTimeoutRetry runs play on its own goroutine and returns its result, or
+// hung when it has none after timeout. A first attempt that times out is played
+// once more under a fresh watchdog of the same timeout: a host stall (swap, load)
+// past a wall-clock watchdog is not a property of the game, so hung is returned
+// only when both attempts time out. A timed-out goroutine cannot be stopped, so
+// each stalled attempt leaks until it returns; play must touch only its own game
+// so a stalled attempt cannot disturb its retry. A zero timeout waits for the
+// first attempt and never retries.
+func WithinTimeoutRetry[T any](timeout time.Duration, play func() T, hung T) T {
 	if timeout <= 0 {
 		return play()
 	}
-	ch := make(chan T, 1)
-	go func() { ch <- play() }()
-	t := time.NewTimer(timeout)
-	defer t.Stop()
-	select {
-	case r := <-ch:
-		return r
-	case <-t.C:
-		return hung
+	for attempt := 0; attempt < 2; attempt++ {
+		ch := make(chan T, 1)
+		go func() { ch <- play() }()
+		t := time.NewTimer(timeout)
+		select {
+		case r := <-ch:
+			t.Stop()
+			return r
+		case <-t.C:
+		}
 	}
+	return hung
 }
