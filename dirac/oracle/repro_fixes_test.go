@@ -599,6 +599,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"reversed_cast_keeps_same_taps", true, false},                             // CR 733.1: Sun-Dappled Celebrant's convoke picks strand its cost over Eclipsed Realms' Treefolk mana; the cast reverses before any land taps
 		{"reversed_cast_keeps_mana_ability_trigger", false, false},                 // CR 733.1: Springleaf Drum tapped Wanderwine Distracter for Appeal to Eirdu; the cast is reversed, the mana ability is not, so the "becomes tapped" trigger stays queued
 		{"reversed_cast_trigger_push_is_progress", true, false},                    // CR 733.2: Silvergill Peddler's kept tap trigger is pushed after Disruptor of Currents' reversal, so a second no-progress reversal still leaves the cast offered
+		{"until_leaves_return_asks_choice_after_top_bottom_answer", true, false},   // CR 614.12, 610.3: an as-enters choice of a card returning when its exiler is put second-from-top is asked with the card in exile
 	})
 }
 
