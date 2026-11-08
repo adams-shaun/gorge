@@ -185,6 +185,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"entry_counter_put_by_opposing_grant", false, false},           // CR 122.6a: Overflow Submatrix's finality counter on the opponent's Storied Veteran is put by the Submatrix's controller, so Dr. Joseph M'Benga doubles only the Veteran's own grant
 		{"stack_spell_controller_not_owner", true, false},               // CR 108.4, 110.2: Brazen Bluff asks the controller of the spell it targets, the player casting Transporter Malfunction from the opponent's exile, not its owner
 		{"copy_cast_x_targets_ask_after_x", false, false},               // CR 601.2b, 601.2c: Q's Play of Dominion Infiltration announces X before its "X target creatures", so a copy cast no mana can pay still asks X and reaches its mana window
+		{"copy_cast_enters_as_cast", false, false},                      // CR 707.12: Q's Play of Crystalline Entity casts the copy, so its "if you cast it" enter trigger fires beside Sickbay's
 		{"refused_paid_copy_cast_keeps_window_tap", true, false},        // CR 733.1: Encounter the Unknown's copy cast that gorge cannot pay is reversed after its mana window, so the tapped source and its mana stay
 		{"exile_grant_host_is_a_copy", false, false},                    // CR 707.2, 603.6a: Dominion Saboteur enters as Q, Stacking the Deck, so its enter trigger's exiled Assembly Specialist gains Q's exile-from-hand cast ability, which the copy's host offers
 		{"turn_once_resets_while_phased_out", false, false},             // CR 602.5b, 702.26d: DOT-7 Repair Squad activated, then phased out through its turn's end, has its once-each-turn limit lifted when it phases back in
@@ -221,6 +222,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"deanna_spacecraft_enterprise_a_s203", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_enterprise_d_s205", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"first_charge_counter_each_turn_after_bounce", false, false},   // CR 400.7, 603.2: U.S.S. Enterprise-D bounced and recast this turn is a new object, so its first charge counters after the recast queue "for the first time each turn" again
+		{"unrelaxable_filter_no_grant_funding", false, false},           // CR 601.2g-h: Starfleet Academy's X=7 filter makes gorge's census unrelaxable, so the grant search funds no fee and Rok-Tahk's granted {G}{G} from three creatures pays the {5}
 	})
 }
 
