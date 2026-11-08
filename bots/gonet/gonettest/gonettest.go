@@ -66,6 +66,20 @@ func WriteRaw(dir, name string, rawW int, extra map[string]any) (string, error) 
 // WriteShape is WriteRaw at shape sh. Its weights follow the same
 // pseudo-random sequence, so the same arguments always write the same bytes.
 func WriteShape(dir, name string, sh Shape, rawW int, extra map[string]any) (string, error) {
+	return writeShape(dir, name, sh, rawW, extra, nil)
+}
+
+// WriteExt writes a Small-or-sh network with the extension block: the const
+// EXT_W = extW and the tensor ext_in.weight (d × extW, row-major, no bias)
+// from extIn (len d·extW). The other tensors are WriteShape's, bit for bit.
+func WriteExt(dir, name string, sh Shape, extW int, extIn []float32) (string, error) {
+	if len(extIn) != sh.D*extW {
+		return "", fmt.Errorf("gonettest: ext_in has %d values, want %d·%d", len(extIn), sh.D, extW)
+	}
+	return writeShape(dir, name, sh, policynet.EntityRawWidth, map[string]any{"EXT_W": extW}, extIn)
+}
+
+func writeShape(dir, name string, sh Shape, rawW int, extra map[string]any, extIn []float32) (string, error) {
 	d, ff, e, cd, hh := sh.D, sh.FF, sh.E, sh.CD, sh.HH
 	if rawW < policynet.EntityRawWidthV1 {
 		return "", fmt.Errorf("gonettest: rawW %d is below the format-1 width %d", rawW, policynet.EntityRawWidthV1)
@@ -144,6 +158,9 @@ func WriteShape(dir, name string, sh Shape, rawW int, extra map[string]any) (str
 	lin("policy.2", hh, 1, true)
 	lin("value.0", d, hh, true)
 	lin("value.2", hh, 1, true)
+	if extIn != nil {
+		ts = append(ts, tensor{"ext_in.weight", []int{sh.D, len(extIn) / sh.D}, extIn})
+	}
 
 	var table []Entry
 	var body []byte
@@ -203,6 +220,10 @@ func headerShape(tensors []Entry, sh Shape, rawW int, extra map[string]any) ([]b
 		"tensors":       tensors,
 	}
 	for k, v := range extra {
+		if k == "EXT_W" { // a const of the net, not a top-level header key
+			h["consts"].(map[string]int)["EXT_W"] = v.(int)
+			continue
+		}
 		h[k] = v
 	}
 	return json.Marshal(h)

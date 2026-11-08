@@ -12,7 +12,7 @@ import (
 // nothing for the general shapes: no block or head-layer loops (those cost
 // ~94 user instructions per eval, +0.5%). trunkBagN computes the same bits
 // on this layout (TestOneLayoutMatchesGeneral).
-func (g *Net) trunkBag1(sc *Scratch, nc int, dense []float32, sparse []policynet.Feature, bagIn []float32, opts []policynet.Option, scores []float32) float32 {
+func (g *Net) trunkBag1(sc *Scratch, nc int, dense []float32, sparse []policynet.Feature, bagIn []float32, ext []policynet.Feature, opts []policynet.Option, scores []float32) float32 {
 	d, cd, e := g.d, g.cd, g.e
 	sc.bag32 = growF(sc.bag32, e)
 
@@ -35,6 +35,7 @@ func (g *Net) trunkBag1(sc *Scratch, nc int, dense []float32, sparse []policynet
 	clear(sc.dense[n:])
 	gemvT(&g.denseIn.wt[0], &sc.dense[0], s, s, denseW, d, false)
 	g.addv(s, &g.denseIn.b[0])
+	g.addExt(s, ext)
 	if bagIn != nil {
 		copy(sc.bag32, bagIn[:e])
 	} else {

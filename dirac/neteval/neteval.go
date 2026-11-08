@@ -168,9 +168,10 @@ type Net struct {
 	// version) -- the same inputs, summed in another order.
 	Materialize bool
 	parts       *feat.Parts
-	vecW        int          // w.vecW
-	bagSum      []float32    // vecW wide
-	ptab        [2][]float32 // per seat: a row sum of vecW per parts slot (feat PartSlots)
+	vecW        int                 // w.vecW
+	bagSum      []float32           // vecW wide
+	ext         []policynet.Feature // the encoded state's extension block (empty when off)
+	ptab        [2][]float32        // per seat: a row sum of vecW per parts slot (feat PartSlots)
 	pver        [2][feat.PartSlots]uint32
 	sumRows     []policynet.Feature
 	pvec        [2][feat.PartSlots][2]uint32 // the version of each slot's card vectors, not castable and castable
@@ -222,6 +223,9 @@ func New(w *Weights, pool *feat.Pool) *Net {
 		score: make([]float32, dirac.MaxOptions),
 	}
 	// grow every buffer to its most once, so no evaluation allocates
+	if w.g != nil && w.g.ExtWidth() > 0 {
+		n.enc.SetExt(feat.ExtAll)
+	}
 	n.enc.Reserve()
 	if w.g != nil {
 		n.bagSum = make([]float32, w.vecW)
@@ -236,7 +240,7 @@ func New(w *Weights, pool *feat.Pool) *Net {
 		for i := range n.cards {
 			n.cin[i] = netsimd.CardIn{Raw: n.cards[i].Raw}
 		}
-		w.g.EvalBag(&n.sc, n.cin, n.pst.Dense, n.bagSum[:], n.popts, n.score)
+		w.g.EvalBagExt(&n.sc, n.cin, n.pst.Dense, n.bagSum[:], nil, n.popts, n.score)
 	} else {
 		n.Materialize = true
 	}
@@ -292,6 +296,9 @@ func hf(h uint64, f float32) uint64 { return mixw(h, uint64(math.Float32bits(f))
 func (n *Net) stateHash() uint64 {
 	h := hfloats(0x243f6a8885a308d3, n.pst.Dense)
 	h = hfeat(h, n.pst.Sparse)
+	if len(n.ext) > 0 {
+		h = hfeat(h, n.ext)
+	}
 	h = hu(h, uint64(len(n.pst.Cards)))
 	for i := range n.pst.Cards {
 		c := &n.pst.Cards[i]
@@ -333,6 +340,7 @@ func (n *Net) state(s *dirac.State, d *dirac.Decision, seat uint8) {
 	fs := n.enc.EncodeStateFor(s, d, seat)
 	n.pst.Dense = fs.Dense[:]
 	n.pst.Sparse = featSlice(fs.Sparse)
+	n.ext = featSlice(fs.Ext)
 	n.cards = n.cards[:0]
 	for i := range fs.Cards {
 		c := &fs.Cards[i]
@@ -351,6 +359,7 @@ func (n *Net) prepParts(s *dirac.State, d *dirac.Decision, seat uint8) {
 	p := n.enc.EncodeParts(s, d, seat)
 	se := seat & 1
 	n.parts, n.partSeat = p, se
+	n.ext = featSlice(p.Ext)
 	tab := n.ptab[se]
 	n.sumRows = n.sumRows[:0]
 	for i := range p.Objs {
@@ -401,7 +410,7 @@ func (n *Net) prepParts(s *dirac.State, d *dirac.Decision, seat uint8) {
 // evalParts runs the network on prepParts' inputs and stores the card
 // vectors it computed, each in its parts slot.
 func (n *Net) evalParts(opts []policynet.Option, scores []float32) float32 {
-	v := n.w.g.EvalBag(&n.sc, n.cin, n.parts.Dense[:], n.bagSum[:], opts, scores)
+	v := n.w.g.EvalBagExt(&n.sc, n.cin, n.parts.Dense[:], n.bagSum[:], n.ext, opts, scores)
 	pv := &n.pvec[n.partSeat]
 	for _, k := range n.miss {
 		pe := &n.parts.Ents[k]
@@ -710,7 +719,7 @@ func (n *Net) priors(s *dirac.State, d *dirac.Decision, bot []bool, out []float3
 // writing the option logits into out; it returns the value probability.
 func (n *Net) evalFull(opts []policynet.Option, out []float32) float32 {
 	if n.w.g != nil {
-		return sigmoid(n.w.g.Eval(&n.sc, &n.pst, opts, out))
+		return sigmoid(n.w.g.EvalExt(&n.sc, &n.pst, n.ext, opts, out))
 	}
 	return sigmoid(n.w.gn.Eval(&n.pst, opts, out))
 }
