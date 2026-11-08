@@ -2895,6 +2895,18 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.B = kop.Const(int(kop.ZoneHand))
 			break
 		}
+		if fl["from"] == "Battlefield,Graveyard" {
+			// battlefield then graveyard (Strategic Betrayal): B carries
+			// kop.CzBattleGrave, and ZoneNone lets the owner role build (the
+			// filter's inZoneGraveyard pin keeps the battlefield scan honest).
+			if err := objFilter(kop.ZoneNone); err != nil {
+				return ki, err
+			}
+			ki.Op = kop.OpChangeZoneAllEx
+			ki.C = int16(int(zoneMap[in.C]) | (moveFlags()|kop.MvGraveExile)<<3)
+			ki.B = kop.Const(kop.CzBattleGrave)
+			break
+		}
 		if err := objFilter(zoneMap[from]); err != nil {
 			return ki, err
 		}

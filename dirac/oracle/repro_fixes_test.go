@@ -98,6 +98,11 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// enters" see the Duelist and the later copies enter before the copy
 		// the answer was made on
 		{"copy_all_sweep_batch_spans_parked_ask", false, false},
+		// CR 707.2: Three Steps Ahead's token copy of an Assimilation Aegis
+		// bearer is minted on the bearer's printed card (Shackle Slinger)
+		// with the copied face (Geralf) as its copy basis, so the token is
+		// projected by its printed name exactly as gorge mints it
+		{"token_copy_of_aegis_bearer_name", false, false},
 		{"plot_cast_pays_additional_sacrifice", false, false}, // CR 118.9, 701.34d: a plotted Corrupted Conviction is cast free of its mana cost but still sacrifices a creature
 		{"plot_cast_needs_a_sacrifice_source", false, false},  // CR 118.9, 601.2h: the free plot cast is offered only while its additional sacrifice can be paid
 		// Explosive Derailment ({R}, Spree, every mode {2}) on a board whose
@@ -162,6 +167,11 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// (CR 601.2e; gorge excluded every push of the same ObjID).
 		{"cast_limit_counts_a_bounced_spell", false, false},
 		{"clone_rebase_locked_face", false, false}, // CR 707.2b: a clone re-base keeps the values locked when its layer was applied
+		// CR 733.1, 733.2: a granted-flashback cast's own grant clear during
+		// the proposal is undone by its reversal, so it is no progress for the
+		// hold-out window: the hand copy's second no-progress abort stays held
+		// out instead of being re-offered (pair 478, Phantom Interference).
+		{"flashback_grant_clear_keeps_holdout", false, false},
 	})
 }
 

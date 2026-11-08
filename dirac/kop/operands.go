@@ -569,6 +569,14 @@ const DiscoverRemBottom = 241
 // so the bit is free there.
 const CzUntilLeaves = 1
 
+// CzBattleGrave is OpChangeZoneAllEx's B for a MvGraveExile sweep whose
+// origin is Battlefield,Graveyard (Strategic Betrayal): the kernel scans the
+// battlefield first, one simultaneous departure, then the graveyard alone.
+// Gorge's effChangeZoneAll walks the origins zone-major, so the battlefield
+// half precedes the graveyard half. Clear of CzUntilLeaves (bit 0) and of
+// ZoneHand, which czallSecondZone reads as Graveyard,Hand.
+const CzBattleGrave = 8
+
 // RepeatEachSeatOrder is OpRepeatEachPlayer's C bit 1: the players run in
 // seat order (seat 0 first) instead of the controller first (gorge
 // tokenOwnersControllingAny walks AliveFrom(0)).

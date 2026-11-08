@@ -29,29 +29,37 @@ func TestTargetedPlayerOwnLowers(t *testing.T) {
 		t.Fatalf("TargetedPlayerOwn filters %+v, want one graveyard filter reading the owner through F2TgtPlayerCtrl", fs)
 	}
 
-	// the word's corpus carriers parse it. Each card still refuses on a
-	// later shape of its own instruction, never on the word; the refusals
-	// below are those later blockers, pinned so a fix to either is made
-	// against this test:
-	//   - Binding Negotiation's DB$ ChangeZone Exile->Graveyard pick
-	//   - Strategic Betrayal's ChangeZoneAll Origin$ Battlefield,Graveyard
-	for _, tc := range []struct {
-		name, blocker string
-	}{
-		{"Binding Negotiation", "DB$ ChangeZone: ChangeType$ move Exile->Graveyard"},
-		{"Strategic Betrayal", `DB$ ChangeZoneAll: Origin "Battlefield,Graveyard"`},
-	} {
-		kp := kfhBuild(t, []string{tc.name}, nil)
-		c := kp.cards[tc.name]
-		var got []string
-		for _, r := range c.Refusals {
-			got = append(got, r.Reason)
-			if strings.Contains(r.Reason, `unknown property "TargetedPlayerOwn"`) {
-				t.Fatalf("%s: the word still refuses: %s", tc.name, r.Reason)
-			}
-		}
-		if all := strings.Join(got, " | "); !strings.Contains(all, tc.blocker) {
-			t.Fatalf("%s refusals %q, want the later blocker %q", tc.name, all, tc.blocker)
+	// Binding Negotiation's DB$ ChangeZone Exile->Graveyard pick lowers: the
+	// hidden pick keeps the owner role's F2TgtPlayerCtrl filter over the
+	// exile zone, and the move is one confirmed ChooseMove into the
+	// graveyard.
+	kp = kfhBuild(t, []string{"Binding Negotiation"}, nil)
+	kp.accepted(t, "Binding Negotiation")
+	fs = kp.filtersWith(kop.F2TgtPlayerCtrl)
+	found := false
+	for _, f := range fs {
+		if f.Zone == kop.ZoneExile {
+			found = true
 		}
 	}
+	if !found {
+		t.Fatalf("Binding Negotiation filters %+v, want one exile filter reading the owner through F2TgtPlayerCtrl", fs)
+	}
+	moves := 0
+	for _, a := range kp.cards["Binding Negotiation"].Abilities {
+		for _, in := range a.Prog {
+			if in.Op != "ChooseMove" || in.C != zGraveyard || !strings.Contains(in.CS, "from=Exile") || !strings.Contains(in.CS, "Confirm") {
+				continue
+			}
+			moves++
+		}
+	}
+	if moves != 1 {
+		t.Fatalf("Binding Negotiation has %d confirmed Exile->Graveyard ChooseMoves, want 1", moves)
+	}
+
+	// Strategic Betrayal's sweep used to be the later blocker; the
+	// Battlefield,Graveyard arm lowers it now (battlegrave_test.go).
+	kp = kfhBuild(t, []string{"Strategic Betrayal"}, nil)
+	kp.accepted(t, "Strategic Betrayal")
 }

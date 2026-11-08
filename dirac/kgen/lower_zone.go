@@ -230,7 +230,8 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	}
 	if ct, ok := ps.get("ChangeType"); ok {
 		if _, has := ps.m["ValidTgts"]; has && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
-			(origin == zBattlefield || origin == zGraveyard) && (dest == zExile || dest == zHand) && ps.is("Hidden", "True")) {
+			(origin == zBattlefield || origin == zGraveyard) && (dest == zExile || dest == zHand) && ps.is("Hidden", "True") ||
+			origin == zExile && dest == zGraveyard && ps.is("Hidden", "True")) {
 			return refuse("ChangeType$ with ValidTgts$")
 		}
 		exwPick := origin == zExile && dest == zBattlefield && ps.is("Hidden", "True")
@@ -487,7 +488,8 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			return lc.handMove(ps, f, n, flags, counterKind, override, dest)
 		}
 		if origin == zBattlefield && (dest == zHand || dest == zExile) ||
-			origin == zGraveyard && (dest == zHand || dest == zExile) && ps.is("Hidden", "True") {
+			origin == zGraveyard && (dest == zHand || dest == zExile) && ps.is("Hidden", "True") ||
+			origin == zExile && dest == zGraveyard && ps.is("Hidden", "True") {
 			return lc.publicPick(ps, f, n, flags, counterKind, override, origin, dest)
 		}
 		if origin == zCommand && dest == zHand && ps.is("Hidden", "True") && strings.Contains(ct, "IsCommander") {
@@ -1004,6 +1006,9 @@ func (lc *lowerCtx) changeZoneAll(ps *params) error {
 	}
 	if strings.TrimSpace(ps.str("Origin")) == "Graveyard,Exile" && !everyRemembered(ps.str("ChangeType")) {
 		return refuse("ChangeZoneAll Origin$ Graveyard,Exile ChangeType$ %q without IsRemembered", ps.str("ChangeType"))
+	}
+	if strings.TrimSpace(ps.str("Origin")) == "Battlefield,Graveyard" {
+		return lc.originBattleGrave(ps) // lower_changezoneall.go
 	}
 	lc.exwOK = true // a ChangeZoneAll sweep is a resolution-time mover: ExiledWithSource reads the resolving source
 	f, err := lc.filter(ps.str("ChangeType"))

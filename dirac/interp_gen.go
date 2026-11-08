@@ -1577,21 +1577,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	}
 	src := s.objRef(k, kop.RefSelf)
 	if (fl.Zone == kop.ZoneNone || fl.Zone == kop.ZoneBattlefield) && mv&kop.MvGraveExile == 0 {
-		var hit slotMask
-		for m := s.occ; m.any(); m = m.rest() {
-			sl := m.first()
-			if (only == 255 || s.perms[sl].ctrl == only) && s.matchPermGen(k, in.F, sl, e.ctrl, src, layerFull) {
-				hit = hit.with(sl)
-			}
-		}
-		// one simultaneous departure (CR 603.10a), seat 0's battlefield
-		// list then seat 1's (gorge effChangeZoneAll: AliveFrom(0) inside
-		// one departure batch)
-		if mv&kop.MvRemember != 0 {
-			s.rememberLeaveAll(k, hit, z) // zone_rememberparams.go
-			return true
-		}
-		s.leaveAll(k, hit, z)
+		s.czallBattleHalf(k, in, only, src, z, mv) // zone_changezoneall.go
 		return true
 	}
 	// cards in a zone of each player, seat 0 first (gorge
@@ -1611,6 +1597,13 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	nz, zbase := 1, fl.Zone
 	if mv&kop.MvGraveExile != 0 {
 		nz, zbase = 2, kop.ZoneGraveyard // graveexile: Graveyard then Exile
+		if in.B.N == kop.CzBattleGrave {
+			// Battlefield,Graveyard (Strategic Betrayal): the battlefield
+			// half first, one simultaneous departure, then the graveyard
+			// alone (gorge effChangeZoneAll's zone-major origin loop).
+			s.czallBattleHalf(k, in, only, src, z, mv)
+			nz = 1
+		}
 		if DebugIgnoreGraveExile {
 			nz = 1
 		}
@@ -2095,7 +2088,13 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	// a token that elected a copy as it entered (ctr_entryperkind.go): the
 	// elected template is its basis and replaces the copy's own exceptions
 	elected := k.gen.anyBecomeCopy && s.perms[sl].ovr.flags&ovCopy != 0
-	if (k.gen.anyCloneCopy || k.gen.anyBecomeCopy) && tmpl != NoSlot && s.perms[tmpl].ovr.flags&ovCopy != 0 {
+	// Any copy-effect permanent has ovCopy and keeps its PRINTED card in
+	// perms[tmpl].card: a Clone, an as-enters copy, or an Aegis bearer
+	// (zone_exilethenattach.go). Re-base on that card however the copy arose,
+	// as gorge copyTokenBasis mints every token copy on the source's printed
+	// card (CR 707.2); gating on anyCloneCopy/anyBecomeCopy alone missed the
+	// Aegis bearer and left the mint on the copied card.
+	if tmpl != NoSlot && s.perms[tmpl].ovr.flags&ovCopy != 0 {
 		if elected {
 			s.cloneTokenElected(sl, t, tmpl) // ctr_entryperkind.go: the printed card is the copy's, the election stays the basis
 		} else {
