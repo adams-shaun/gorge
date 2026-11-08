@@ -1190,10 +1190,15 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 						}
 					}
 				}
+				fl := uint8(bits.OnesCount8(dmk | xm))
+				if phase > 0 && k.painMana && pc.painCol != 0 {
+					xc, xp, _ := s.srcExtraPain(k, sl, pc)
+					fl = painFlexAll(pc, xc, xp) // the withheld painful alternative's colours still count
+				}
 				ti := -1
 				for t := 0; t < pk.nt; t++ {
 					ty := &pk.types[t]
-					if ty.mask == mask && ty.dmask == dmk && ty.n == pc.manaN && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed && ty.xv == xv {
+					if ty.mask == mask && ty.dmask == dmk && ty.n == pc.manaN && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv {
 						ti = t
 						break
 					}
@@ -1204,7 +1209,6 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					}
 					ti = pk.nt
 					pk.nt++
-					fl := uint8(bits.OnesCount8(dmk | xm))
 					pk.types[ti] = utype{mask: mask, dmask: dmk, n: pc.manaN, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: sac, first: first, printed: printed, xv: xv, xmask: xm, xt: xt}
 					if sac {
 						pk.types[ti].irr = 10
