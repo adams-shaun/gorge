@@ -509,6 +509,9 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 	if !ok {
 		return false
 	}
+	if mode&2 != 0 && !s.plannedAfterLeaving(k, p, o, &cost) {
+		return false
+	}
 	if ac := spellAddCost(k, s.objs[o].card); ac.Flags&kop.CostSac != 0 && k.sacMana {
 		// a source that sacrifices itself can use up what the part must
 		// sacrifice (CR 601.2g-h; gorge planReserving)
