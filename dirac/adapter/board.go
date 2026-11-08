@@ -351,6 +351,11 @@ func (g *Game) boardGame() {
 			b.landOpen[p] = g.landsPlayed[p] < g.s.FeatLandLimit(uint8(p))
 		}
 		pl.Lost = gm.Over && !gm.Draw && gm.Winner != state.PlayerID(p)
+		pl.Commanders, pl.CmdCasts = pl.Commanders[:0], pl.CmdCasts[:0]
+		if c := g.s.FeatCommander(uint8(p)); c != dirac.NoObj {
+			pl.Commanders = append(pl.Commanders, g.ids.obj(uint8(c)))
+			pl.CmdCasts = append(pl.CmdCasts, int32(kp.CmdCast[p]))
+		}
 		pl.LandsPlayed = 0
 		if uint8(p) == kp.Active {
 			pl.LandsPlayed = int32(kp.Lands[p])
@@ -443,6 +448,8 @@ func zoneOf(z kop.Zone) state.Zone {
 		return state.ZExile
 	case kop.ZoneStack:
 		return state.ZStack
+	case kop.ZoneCommand:
+		return state.ZCommand
 	}
 	return state.ZCeased
 }
@@ -457,7 +464,7 @@ func (b *board) place(z state.Zone, seat, i uint8, id state.ObjID) {
 func (g *Game) boardZones() {
 	b := &g.board
 	for seat := range b.zone {
-		for _, z := range []state.Zone{state.ZLibrary, state.ZHand, state.ZBattlefield, state.ZGraveyard, state.ZExile} {
+		for _, z := range []state.Zone{state.ZLibrary, state.ZHand, state.ZBattlefield, state.ZGraveyard, state.ZExile, state.ZCommand} {
 			ids := b.zone[seat][z]
 			for i := 1; i < len(ids); i++ {
 				for j := i; j > 0 && g.zoneIdx(ids[j]) < g.zoneIdx(ids[j-1]); j-- {

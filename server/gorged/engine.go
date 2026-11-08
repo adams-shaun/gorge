@@ -32,8 +32,6 @@ func (c config) checkDiracFlags() error {
 	switch {
 	case c.seats != 2:
 		return errors.New("dirac plays two seats: pass -seats 2")
-	case slices.Contains(strings.Split(c.formatsRaw, ","), "commander"):
-		return errors.New("-format commander: dirac plays constructed only")
 	case !c.autoMana:
 		return errors.New("-auto-mana=false: dirac pays for every cast and has no manual mana")
 	case !c.botAutoPayMana:
