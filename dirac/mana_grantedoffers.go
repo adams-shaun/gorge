@@ -537,6 +537,9 @@ func (g *grantSrch) candidates(s *State) {
 	// non-gaps sit after every gap in battlefield order, exactly the walk
 	// order that loop reads.
 	g.gapN = g.n
+	if !s.filtFunded(g.k, g.p, fm) {
+		g.funding = 0 // (gorge's unrelaxable census funds no fee)
+	}
 	if g.funding == 0 {
 		return
 	}
