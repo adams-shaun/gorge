@@ -115,7 +115,9 @@ func TestGrantRestrOwnFirstKeepsFixedPipBesideHybrid(t *testing.T) {
 // TestGrantRestrOwnFirstLeavesAnyColourToAdmission: a printed restricted
 // any-colour ability beside a grant keeps windowRestrOwed's admission walk,
 // not the fixed single-colour ordering: the ask offers it only when the
-// payment's restriction admits it.
+// payment's restriction admits it. The fixed {U} sits beside a hybrid pip, so
+// the admission walk also needs windowDemand's fixed demand (windowUseful
+// leaves the clamp undecided), or it bails on w == 0 first.
 func TestGrantRestrOwnFirstLeavesAnyColourToAdmission(t *testing.T) {
 	unadmitted := kop.Ability{
 		Kind:       kop.AbMana,
@@ -137,6 +139,13 @@ func TestGrantRestrOwnFirstLeavesAnyColourToAdmission(t *testing.T) {
 			sc, sl := grantRestrScen(t, tc.ab, kop.ColW)
 			s := sc.s
 			costU := cost(0, kop.U)
+			costU.Hyb[0] = kop.ColU | kop.ColR
+			if _, decided := s.windowUseful(sc.k, 0, &costU); decided {
+				t.Fatal("precondition: the hybrid pip did not leave the clamp undecided")
+			}
+			if w := s.windowDemand(sc.k, 0, &costU); w != 1<<kop.U {
+				t.Fatalf("precondition: fixed demand %#x, want the owed {U}", w)
+			}
 			if _, ok := s.grantRestrOwnFirst(sc.k, sl, 1<<kop.U); ok {
 				t.Fatal("the fixed-colour ordering took a printed any-colour ability")
 			}
