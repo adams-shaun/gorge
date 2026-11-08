@@ -87,6 +87,35 @@ func (s *State) exileOnLeaveN(k *prep, sl Slot) int {
 	return n
 }
 
+// entryCounterSource reports whether the AddCounter replacement sourced at
+// src with recipient filter f applies to the entry counters being settled for
+// the entrant in s.g.ctrSettle. CR 614.12 (gorge's ownEntryCounterExcluded):
+// a line the entrant itself carries applies only when it selects the entrant
+// alone, FSelf with no alternative. A general subset (Yoshimaru's "a creature
+// you control", a filter-less doubler) does not, so it never modifies its own
+// entry.
+func (s *State) entryCounterSource(k *prep, src Slot, f kop.FilterID) bool {
+	if s.g.ctrSettle == 0 || src != Slot(s.g.ctrSettle-1) {
+		return true
+	}
+	if f == 0 {
+		return false
+	}
+	fl := &k.t.Filters[f]
+	return fl.Or == 0 && fl.Flags&kop.FSelf != 0
+}
+
+// replNEntry is replN for a counter replacement with no recipient filter
+// (ReplDoubleCounters): during an entry settle the entrant's own line is not a
+// source for its entry counters (CR 614.12).
+func (s *State) replNEntry(k *prep, p uint8, b uint32) int {
+	m := s.statM.and(s.ctrlM[p])
+	if s.g.ctrSettle != 0 {
+		m = m.without(Slot(s.g.ctrSettle - 1))
+	}
+	return s.replNIn(k, m, b)
+}
+
 // replCtrOn applies the filtered counter replacements to n counters
 // of kind being put on sl: each matching plus/minus one adds its amount,
 // each matching doubler doubles. A plus/minus and a doubler do not commute
@@ -103,7 +132,7 @@ func (s *State) replCtrOnX(k *prep, sl Slot, kind, n int, noEO bool) int {
 	ctrl := s.perms[sl].ctrl
 	dbl := 0
 	if g.anyRepl&rbDblCtr != 0 && !noEO {
-		dbl = s.replN(k, ctrl, rbDblCtr)
+		dbl = s.replNEntry(k, ctrl, rbDblCtr)
 	}
 	if g.anyRepl&rbDblCtrYou != 0 {
 		dbl += s.dblCtrYou(k, s.counterAdder()) // trig_leavereturn.go
@@ -119,7 +148,7 @@ func (s *State) replCtrOnX(k *prep, sl Slot, kind, n int, noEO bool) int {
 			cd := &k.t.Cards[s.cardAt(b)]
 			for i := range cd.Abilities {
 				a := &cd.Abilities[i]
-				if a.Kind != kop.AbReplacement {
+				if a.Kind != kop.AbReplacement || !s.entryCounterSource(k, b, a.Repl.Filter) {
 					continue
 				}
 				switch a.Repl.Kind {
@@ -232,6 +261,7 @@ func (s *State) dblCtrYou(k *prep, adder uint8) int {
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
 			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplDoubleCountersYou &&
+				s.entryCounterSource(k, sl, a.Repl.Filter) &&
 				s.statCond(k, statSrc{a: a, sl: sl, ctrl: adder, obj: s.perms[sl].obj}) {
 				n++
 			}

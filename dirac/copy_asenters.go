@@ -154,7 +154,7 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 		p.flags |= pfTapped
 	}
 	if pc.enterCtr != 0 && !(k.gen.anyEntryMerge && s.entryAcc(int(pc.enterCK), int(pc.enterCtr))) {
-		s.placeCounters(k, sl, int(pc.enterCK), int(pc.enterCtr), p.ctrl, ctrPutBy)
+		s.placeEntryCounters(k, sl, int(pc.enterCK), int(pc.enterCtr), p.ctrl)
 	}
 	if in.B.K == kop.VConst && in.B.N&kop.BecomeCopyCtr != 0 {
 		// RememberCloneOrigin$ True + EachFromSource$ Remembered (Dominion

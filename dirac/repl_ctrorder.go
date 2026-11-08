@@ -80,7 +80,7 @@ func (s *State) ctrGather(k *prep, sl Slot, kind int) (c ctrCands) {
 	g := k.gen
 	ctrl := s.perms[sl].ctrl
 	c.ok = true
-	if g.anyRepl&rbDblCtr != 0 && s.replN(k, ctrl, rbDblCtr) > 0 ||
+	if g.anyRepl&rbDblCtr != 0 && s.replNEntry(k, ctrl, rbDblCtr) > 0 ||
 		g.anyRepl&rbDblCtrYou != 0 && s.dblCtrYou(k, s.counterAdder()) > 0 {
 		c.ok = false // an EffectOnly$ or putter doubler keeps the stall
 	}
@@ -106,6 +106,7 @@ func (s *State) ctrGather(k *prep, sl Slot, kind int) (c ctrCands) {
 			for i := range cd.Abilities {
 				a := &cd.Abilities[i]
 				if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplDoubleCountersOn && a.Repl.Kind != kop.ReplAddCountersOn ||
+					!s.entryCounterSource(k, b, a.Repl.Filter) ||
 					!s.ctrKindMatch(a, kind, lc) || !s.matchPerm(k, a.Repl.Filter, sl, lc, b) {
 					continue
 				}

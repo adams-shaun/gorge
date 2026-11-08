@@ -442,7 +442,7 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 			p.flags |= pfTapped
 		}
 		if pc.enterCtr != 0 && !(k.gen != nil && k.gen.anyEntryMerge) { // anyEntryMerge: enterGen's window places it (ctr_entryperkind.go)
-			s.placeCounters(k, sl, int(pc.enterCK), int(pc.enterCtr), p.ctrl, ctrPutBy)
+			s.placeEntryCounters(k, sl, int(pc.enterCK), int(pc.enterCtr), p.ctrl)
 		}
 		if pc.sagaN != 0 {
 			// CR 702.151a: a Saga enters with a lore counter (gorge
