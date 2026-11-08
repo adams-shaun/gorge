@@ -45,7 +45,7 @@ const (
 // s2Q maps an effect class to S2's q (kill, damage, bounce, pump, debuff), -1 for none.
 var s2Q = [...]int8{EffKill: 0, EffDamage: 1, EffCounter: -1, EffBounce: 2, EffPump: 3, EffDebuff: 4, EffOther: -1}
 
-// liveStrength is a battlefield creature's str (spec §2.2):
+// liveStrength is a battlefield creature's live strength:
 // max(P,0) + max(T-damage,0) + 2*min(kw,3) + mv/2, keywords as hasKw reads them.
 func liveStrength(c *vcard) int32 {
 	var n int32

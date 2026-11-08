@@ -142,7 +142,7 @@ func TestExtKillCrossedWithStrength(t *testing.T) {
 	}
 }
 
-// specKills is spec §2.2's resolves-kills over the projection (printed
+// specKills is resolves-kills (feat's resolvesKills) restated over the projection (printed
 // indestructible: the scenarios grant no keywords).
 func specKills(ef feat.EffectSpec, x int32, t dirac.ProjObj, indestr bool) int {
 	rem := int32(t.Tough) - int32(t.Damage)
