@@ -95,7 +95,7 @@ func TestDiracServeCommanderTable(t *testing.T) {
 		if time.Now().After(deadline) {
 			t.Fatalf("no live commander table served: %v %+v", err, tables)
 		}
-		time.Sleep(25 * time.Millisecond)
+		time.Sleep(time.Second / 40)
 	}
 	if got := tables[0]; got.Format != "commander" || got.Engine != adapter.Name || got.Seats != 2 {
 		t.Fatalf("table %+v, want a two-seat commander table on dirac", got)
@@ -114,7 +114,7 @@ func TestDiracServeCommanderTable(t *testing.T) {
 		if time.Now().After(deadline) {
 			t.Fatalf("no opening view for the commander match: %v", err)
 		}
-		time.Sleep(25 * time.Millisecond)
+		time.Sleep(time.Second / 40)
 	}
 	for _, p := range v.Players {
 		if p.Life != 40 {
