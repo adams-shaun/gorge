@@ -237,8 +237,10 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   (gorge reads OptionalDecider$ off the source's current face; a copy of
   something else has no such trigger). (3) The projection shows every copy
   effect's permanent as its printed card in such a table (as an Aegis
-  bearer). (4) A permanent copying itself, or an Aegis bearer, stalls
-  `StallCloneLayer`. Only the
+  bearer). (4) A permanent copying itself is an ordinary copy layer (its
+  inherited exceptions are held beside the layer as `fxCopySelf` records), and
+  an Aegis bearer's copy layers are ordered by their layer timestamps
+  (`copy_aegisunder.go`). Only the
   cleanup-step priority after a legend-rule ask is NOT followed (finishCleanupStep
   returns early on the pending ask and the step then ends); no pool reaches it.
 
