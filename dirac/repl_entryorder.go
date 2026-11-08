@@ -156,9 +156,10 @@ type entComp struct {
 	early      bool  // the entrant's own line was scanned before its owner's battlefield
 	anyTap     bool  // some body taps / untaps, kept when the candidate list is full
 	anyUntap   bool
-	over       bool // more than eight candidates
-	other      bool // a body this ask cannot class (a self enters program, counters, a choice)
-	hard       bool // some live body enters the entrant attacking (entBodyHard): it fails to commute with any other body
+	over       bool  // more than eight candidates
+	other      bool  // a body this ask cannot class (a self enters program, counters, a choice)
+	hard       bool  // some live body enters the entrant attacking (entBodyHard): it fails to commute with any other body
+	selfLive   uint8 // the entrant's own classless bodies entryComp leaves out of cand (counters, another enter program): they still compete for the stall decision
 }
 
 func (c *entComp) add(src Obj, cls uint8) {
@@ -197,17 +198,22 @@ func (s *State) entryComp(k *prep, o Obj, ctrl uint8, skip Slot, fixEarly bool) 
 	own := ob.owner()
 	cid := ob.card
 	self := func() {
+		if s.faceDownAt(k, o) {
+			return // CR 708.2: a face-down permanent has no abilities, so its own enter bodies do not apply
+		}
 		if k.cards[cid].enterTap {
 			c.add(o, entClsTap)
 		}
 		if k.cards[cid].enterCtr != 0 {
 			c.other = true
+			c.selfLive++ // gorge composes it as its own With body: it competes, but entryComp cannot list it in cand
 		}
 		if g.has(cid, gfEnterRepl) {
 			if s.condEnterTapped(k, cid) != nil || s.shockCardAmount(k, cid) > 0 {
 				c.add(o, entClsTap) // a shock land's body is a Tap behind its pay-life gate: gorge classes it a tap
 			} else {
 				c.other = true
+				c.selfLive++ // a self enters program this ask cannot class, as gorge's "other" candidate
 			}
 		}
 	}
@@ -216,6 +222,14 @@ func (s *State) entryComp(k *prep, o Obj, ctrl uint8, skip Slot, fixEarly bool) 
 		early = fixEarly // already entered (a re-ask, or enterGen): the scan order of the first ask
 	}
 	c.early = early
+	// The entrant is already on the battlefield on the enterGen routes (a re-ask,
+	// a late ask), where the filter reads it as it is: a face-down entrant is a
+	// 2/2 colourless creature even over a noncreature card (CR 708.2). Before the
+	// move it is not there yet, so NoObj keeps the battlefield-zone read off it.
+	fo := NoObj
+	if ob.zone == kop.ZoneBattlefield {
+		fo = o
+	}
 	for pp := uint8(0); pp < 2; pp++ {
 		if own == pp && early {
 			self()
@@ -235,7 +249,13 @@ func (s *State) entryComp(k *prep, o Obj, ctrl uint8, skip Slot, fixEarly bool) 
 				if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplOthersEnterProgram {
 					continue
 				}
-				if !s.matchCardGen(k, a.Repl.Filter, cid, ctrl, s.perms[b].ctrl, NoObj) { // NoObj: the filter's zone is the battlefield, the entrant is not there yet
+				if !s.matchCardGen(k, a.Repl.Filter, cid, ctrl, s.perms[b].ctrl, fo) {
+					continue
+				}
+				// A body gated on IsPresent$ is a candidate only while its gate
+				// holds (gorge's replacementMatches); the entrant is off the
+				// battlefield on the ask-before-the-move routes.
+				if a.Repl.Cond != 0 && !s.condEval(k, a.Repl.Cond, evalCtx{src: s.perms[b].obj, srcSl: b, ctrl: s.perms[b].ctrl}) {
 					continue
 				}
 				n0 := c.n
@@ -243,9 +263,7 @@ func (s *State) entryComp(k *prep, o Obj, ctrl uint8, skip Slot, fixEarly bool) 
 				if c.n > n0 && entBodyInert(a.Prog) {
 					c.inert |= 1 << n0
 				}
-				// A body gated on IsPresent$ is a candidate only while its gate holds
-				// (gorge's replacementMatches); the entrant is off the battlefield.
-				if c.n > n0 && entBodyHard(a.Prog) && (a.Repl.Cond == 0 || s.condEval(k, a.Repl.Cond, evalCtx{src: s.perms[b].obj, srcSl: b, ctrl: s.perms[b].ctrl})) {
+				if c.n > n0 && entBodyHard(a.Prog) {
 					c.hard = true
 				}
 			}
@@ -608,7 +626,10 @@ func (s *State) entryOrderEnter(k *prep, sl Slot, o Obj) uint8 {
 		}
 		return v
 	}
-	if c, pair := s.entryComp(k, o, s.perms[sl].ctrl, sl, false); pair || c.hard && c.n > 1 {
+	if c, pair := s.entryComp(k, o, s.perms[sl].ctrl, sl, false); pair || c.hard && c.n+c.selfLive > 1 {
+		// A hard (enters-attacking) body does not commute with any second body,
+		// the entrant's own counters included: gorge composes the entry's
+		// candidates and asks, which this route cannot pose.
 		if DebugEntryOrderTapLast {
 			return entOvrTap
 		}
