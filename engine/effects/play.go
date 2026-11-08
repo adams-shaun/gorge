@@ -112,10 +112,15 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		// only once each turn" is exactly this record: its trigger's
 		// PresentDefined$ Remembered gate and the Play's ConditionDefined$
 		// Remembered gate read it until the TurnBegin cleanup clears it. A
-		// decline leaves ctx.Play at 0, so nothing is remembered. An
-		// Amount$ Play that begins several cards remembers the first only
+		// decline leaves ctx.Play at 0, so nothing is remembered. A refused
+		// cast, and a cast reversed because its cost became unpayable, was
+		// never played (CR 733.1-2): the card stays in the zone it was
+		// offered from, so it must not be remembered either -- Chandra,
+		// Torch of Defiance's "if you don't" damage reads that record. The
+		// begun test is the same playBegan call the ForgetPlayed$ arm makes.
+		// An Amount$ Play that begins several cards remembers the first only
 		// (ctx.Play holds one card), the boundary ForgetPlayed$ keeps.
-		if id := c.Play; id != 0 && strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberPlayed)), "True") {
+		if id := c.Play; id != 0 && strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberPlayed)), "True") && playBegan(h.Game(), id) {
 			rememberTarget(h, c, state.Target{Obj: id})
 		}
 		c.PlayDone = false
