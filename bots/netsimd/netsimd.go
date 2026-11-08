@@ -59,6 +59,8 @@ type Net struct {
 	d, ff, e, cd, hh int
 	rawW             int  // entity raw width the card_raw layer reads
 	fast             bool // d == hh == 64: the 64-lane assembly applies
+	extW             int  // EXT_W: 0, or extSlots with extIn loaded
+	extIn            lin  // extSlots→d, no bias
 
 	table               []float32 // rows×e
 	cardRaw, cardRows   lin       // rawW→cd, e→cd
@@ -148,6 +150,27 @@ func growB(s []bool, n int) []bool {
 	return s
 }
 
+// extSlots is the extension block's width (feat.ExtWidth; netsimd does not
+// import dirac, neteval refuses a net whose EXT_W differs).
+const extSlots = 512
+
+// addExt adds Σ v·ext_in[slot] to s (d floats); a no-op for a net without ext_in.
+func (g *Net) addExt(s *float32, ext []policynet.Feature) {
+	if g.extW == 0 || len(ext) == 0 {
+		return
+	}
+	y := unsafe.Slice(s, g.d)
+	for _, f := range ext {
+		if int(f.Row) >= extSlots {
+			continue
+		}
+		w := g.extIn.wt[int(f.Row)*g.extIn.outPad:][:g.d]
+		for o := range y {
+			y[o] += f.Value * w[o]
+		}
+	}
+}
+
 func roundUp(n, m int) int { return (n + m - 1) / m * m }
 
 type header struct {
@@ -195,6 +218,10 @@ func Load(path string, cardCache int) (*Net, error) {
 		if h.Consts[k] != v {
 			return nil, fmt.Errorf("netsimd %s: %s = %d, this build has %d", path, k, h.Consts[k], v)
 		}
+	}
+	extW := h.Consts["EXT_W"]
+	if extW != 0 && extW != extSlots {
+		return nil, fmt.Errorf("netsimd %s: EXT_W = %d, this build reads 0 or %d", path, extW, extSlots)
 	}
 	start := (16 + hl + align - 1) / align * align
 	tensors := map[string][]float32{}
@@ -282,6 +309,10 @@ func Load(path string, cardCache int) (*Net, error) {
 	g.cardRows = linear("card_rows", e, cd, false)
 	g.cardPhi = linear("card_phi", cd, cd, true)
 	g.denseIn = linear("dense_in", denseW, d, true)
+	if extW > 0 {
+		g.extIn = linear("ext_in", extSlots, d, false)
+		g.extW = extW
+	}
 	g.sparseProj = linear("sparse_proj", e, d, false)
 	g.poolProj = linear("pool_proj", poolW*cd, d, true)
 	layers := cfg("layers")
@@ -367,6 +398,11 @@ func (g *Net) RawWidth() int { return g.rawW }
 // Eval runs the network on st, writes each option's logit into scores
 // (len(opts)) and returns the value logit — gonet.Net.Eval's contract.
 func (g *Net) Eval(sc *Scratch, st *policynet.State, opts []policynet.Option, scores []float32) float32 {
+	return g.EvalExt(sc, st, nil, opts, scores)
+}
+
+// EvalExt is Eval with the state's extension block (see EvalBagExt).
+func (g *Net) EvalExt(sc *Scratch, st *policynet.State, ext []policynet.Feature, opts []policynet.Option, scores []float32) float32 {
 	cd := g.cd
 	nc := len(st.Cards)
 
@@ -395,9 +431,9 @@ func (g *Net) Eval(sc *Scratch, st *policynet.State, opts []policynet.Option, sc
 		}
 	}
 	if g.one { // the production layout, straight-line (trunkBag1)
-		return g.trunkBag1(sc, nc, st.Dense, st.Sparse, nil, opts, scores)
+		return g.trunkBag1(sc, nc, st.Dense, st.Sparse, nil, ext, opts, scores)
 	}
-	return g.trunkBagN(sc, nc, st.Dense, st.Sparse, nil, opts, scores)
+	return g.trunkBagN(sc, nc, st.Dense, st.Sparse, nil, ext, opts, scores)
 }
 
 // cardFull writes the card vector of (raw, rows) to ent:
@@ -426,14 +462,14 @@ func (g *Net) cardFull(sc *Scratch, raw []float32, rows []policynet.Feature, ent
 // dispatcher does not inline, and its call would cost every eval.
 func (g *Net) trunkBag(sc *Scratch, nc int, dense []float32, sparse []policynet.Feature, bagIn []float32, opts []policynet.Option, scores []float32) float32 {
 	if g.one {
-		return g.trunkBag1(sc, nc, dense, sparse, bagIn, opts, scores)
+		return g.trunkBag1(sc, nc, dense, sparse, bagIn, nil, opts, scores)
 	}
-	return g.trunkBagN(sc, nc, dense, sparse, bagIn, opts, scores)
+	return g.trunkBagN(sc, nc, dense, sparse, bagIn, nil, opts, scores)
 }
 
 // trunkBagN is trunkBag for any layout: the blocks and the heads' hidden
 // layers in loops.
-func (g *Net) trunkBagN(sc *Scratch, nc int, dense []float32, sparse []policynet.Feature, bagIn []float32, opts []policynet.Option, scores []float32) float32 {
+func (g *Net) trunkBagN(sc *Scratch, nc int, dense []float32, sparse []policynet.Feature, bagIn []float32, ext []policynet.Feature, opts []policynet.Option, scores []float32) float32 {
 	d, cd, e := g.d, g.cd, g.e
 	sc.bag32 = growF(sc.bag32, e)
 
@@ -456,6 +492,7 @@ func (g *Net) trunkBagN(sc *Scratch, nc int, dense []float32, sparse []policynet
 	clear(sc.dense[n:])
 	gemvT(&g.denseIn.wt[0], &sc.dense[0], s, s, denseW, d, false)
 	g.addv(s, &g.denseIn.b[0])
+	g.addExt(s, ext)
 	if bagIn != nil {
 		copy(sc.bag32, bagIn[:e])
 	} else {
