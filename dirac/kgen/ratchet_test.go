@@ -98,8 +98,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Hundred-Battle Veteran: the self-pump gate counts the different counter kinds among your creatures; TDM 249 -> 250, ALL 21682 -> 21683).
 	// +1 (Hawkeye, Young Avenger: the damage-plus operand reads the replacement host's power; MSH 234 -> 235, ALL 21683 -> 21684).
 	// +1 (Hermitic Herbalist: a restricted Combo of any colours, amount 2, beside {T}: any colour is a wide census gap; TLA 253 -> 254, ALL 21706 -> 21707).
+	// +1 (Strategic Betrayal: the Origin$ Battlefield,Graveyard ChangeZoneAll sweep lowers; TDM 250 -> 251, ALL 21707 -> 21708).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21707, 34442},
+	"ALL": {21708, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -122,7 +123,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SNC": {185, 266},
 	"SOS": {249, 270},
 	"SPM": {161, 192},
-	"TDM": {250, 276},
+	"TDM": {251, 276},
 	"TLA": {254, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},

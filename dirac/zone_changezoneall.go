@@ -7,6 +7,29 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // links (its exiled cards never return).
 var DebugCzall3Off bool
 
+// czallBattleHalf is the battlefield scan of an OpChangeZoneAllEx sweep:
+// one simultaneous departure (CR 603.10a), seat 0's battlefield list then
+// seat 1's (gorge effChangeZoneAll: AliveFrom(0) inside one departure batch).
+// The plain battlefield sweep runs it alone; the Battlefield,Graveyard form
+// (kop.CzBattleGrave) runs it before its graveyard half. Cold and out of
+// line: the hot path reaches it once per sweep, not per permanent.
+//
+//go:noinline
+func (s *State) czallBattleHalf(k *prep, in *kop.Instr, only uint8, src Slot, z kop.Zone, mv int16) {
+	var hit slotMask
+	for m := s.occ; m.any(); m = m.rest() {
+		sl := m.first()
+		if (only == 255 || s.perms[sl].ctrl == only) && s.matchPermGen(k, in.F, sl, s.res.e.ctrl, src, layerFull) {
+			hit = hit.with(sl)
+		}
+	}
+	if mv&kop.MvRemember != 0 {
+		s.rememberLeaveAll(k, hit, z) // zone_rememberparams.go
+		return
+	}
+	s.leaveAll(k, hit, z)
+}
+
 // czall3 runs the two OpChangeZoneAllEx forms execChangeZoneAll hands off
 // behind its one guard (cold):
 //   - MvForgetOther (ForgetOtherRemembered$, gorge effChangeZoneAll): the

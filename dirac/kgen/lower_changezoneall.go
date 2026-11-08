@@ -297,3 +297,61 @@ func (lc *lowerCtx) originGraveHand(ps *params) error {
 	lc.emit(lInstr{Op: "Shuffle", Obj: lRef{Kind: rYou}})
 	return nil
 }
+
+// originBattleGrave admits ONLY Origin$ Battlefield,Graveyard, Destination$
+// Exile, DefinedPlayer$ Targeted, and a ChangeType$ the kernel can scan both
+// zones with (Strategic Betrayal). Every owner/controller role clause must
+// carry the graveyard zone pin: the build lowers the filter with
+// kop.ZoneNone, so ownerRoleF2 no longer refuses the battlefield role there,
+// and the pin is what keeps F2TgtPlayerCtrl from reading a permanent's
+// controller during the battlefield scan. No other rules key (RememberChanged$,
+// ForgetOtherRemembered$, Duration$, Shuffle$, AtEOT$, entry riders, ValidTgts$
+// or a Permanent base) has a carrier here.
+func (lc *lowerCtx) originBattleGrave(ps *params) error {
+	for _, k := range sortedParamKeys(ps.m) {
+		switch k {
+		case "Origin", "Destination", "ChangeType", "DefinedPlayer", "SubAbility":
+		default:
+			if !ignoredParams[k] {
+				return refuse("ChangeZoneAll Origin$ Battlefield,Graveyard with %s$", k)
+			}
+		}
+	}
+	dest, err := zoneOf(ps, "Destination", zNone)
+	if err != nil {
+		return err
+	}
+	if dest != zExile {
+		return refuse("ChangeZoneAll Origin$ Battlefield,Graveyard to %s", zoneLabel[dest])
+	}
+	if dp := ps.str("DefinedPlayer"); dp != "Targeted" {
+		return refuse("ChangeZoneAll Origin$ Battlefield,Graveyard DefinedPlayer$ %s", dp)
+	}
+	// gorge's ChangeZoneAll has no DefinedPlayer$ reader (not in
+	// changeZoneAllKnownKeys): it sweeps every player and the filter confines
+	// the sweep. The kernel instruction keeps Obj = none, meaning every seat.
+	ps.consume("DefinedPlayer")
+	lc.exwOK = true // a ChangeZoneAll sweep is a resolution-time mover
+	f, err := lc.filter(ps.str("ChangeType"))
+	lc.exwOK = false
+	if err != nil {
+		return err
+	}
+	if len(f.Clauses) == 0 || f.Players != 0 {
+		return refuse("ChangeZoneAll Origin$ Battlefield,Graveyard filter shape")
+	}
+	for _, c := range f.Clauses {
+		if c.BasePermanent {
+			return refuse("ChangeZoneAll Origin$ Battlefield,Graveyard over Permanent")
+		}
+		if c.Owner != whoTgtPlayer && c.Owner != whoDefending && c.Owner != whoEachPl && c.Owner != whoHitBySrc &&
+			c.Ctrl != whoTgtPlayer && c.Ctrl != whoDefending && c.Ctrl != whoEachPl && c.Ctrl != whoHitBySrc {
+			continue
+		}
+		if c.CmpStat != cmpWord7 || c.CmpN != int(kop.W7InZone)|int(kop.ZoneGraveyard)<<8 {
+			return refuse("ChangeZoneAll Origin$ Battlefield,Graveyard role clause without inZoneGraveyard")
+		}
+	}
+	lc.emit(lInstr{Op: "ChangeZoneAll", F: f, C: zExile, CS: "from=Battlefield,Graveyard"})
+	return nil
+}

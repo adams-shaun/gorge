@@ -29,17 +29,14 @@ func TestTargetedPlayerOwnLowers(t *testing.T) {
 		t.Fatalf("TargetedPlayerOwn filters %+v, want one graveyard filter reading the owner through F2TgtPlayerCtrl", fs)
 	}
 
-	// the word's corpus carriers parse it. Each card still refuses on a
-	// later shape of its own instruction, never on the word; the refusals
-	// below are those later blockers, pinned so a fix to either is made
-	// against this test:
+	// the word's corpus carriers parse it. Binding Negotiation still refuses
+	// on a later shape of its own instruction, never on the word; the refusal
+	// below is that later blocker, pinned so a fix is made against this test:
 	//   - Binding Negotiation's DB$ ChangeZone Exile->Graveyard pick
-	//   - Strategic Betrayal's ChangeZoneAll Origin$ Battlefield,Graveyard
 	for _, tc := range []struct {
 		name, blocker string
 	}{
 		{"Binding Negotiation", "DB$ ChangeZone: ChangeType$ move Exile->Graveyard"},
-		{"Strategic Betrayal", `DB$ ChangeZoneAll: Origin "Battlefield,Graveyard"`},
 	} {
 		kp := kfhBuild(t, []string{tc.name}, nil)
 		c := kp.cards[tc.name]
@@ -54,4 +51,9 @@ func TestTargetedPlayerOwnLowers(t *testing.T) {
 			t.Fatalf("%s refusals %q, want the later blocker %q", tc.name, all, tc.blocker)
 		}
 	}
+
+	// Strategic Betrayal's sweep used to be the later blocker; the
+	// Battlefield,Graveyard arm lowers it now (battlegrave_test.go).
+	kp = kfhBuild(t, []string{"Strategic Betrayal"}, nil)
+	kp.accepted(t, "Strategic Betrayal")
 }

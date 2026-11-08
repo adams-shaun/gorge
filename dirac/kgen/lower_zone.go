@@ -1005,6 +1005,9 @@ func (lc *lowerCtx) changeZoneAll(ps *params) error {
 	if strings.TrimSpace(ps.str("Origin")) == "Graveyard,Exile" && !everyRemembered(ps.str("ChangeType")) {
 		return refuse("ChangeZoneAll Origin$ Graveyard,Exile ChangeType$ %q without IsRemembered", ps.str("ChangeType"))
 	}
+	if strings.TrimSpace(ps.str("Origin")) == "Battlefield,Graveyard" {
+		return lc.originBattleGrave(ps) // lower_changezoneall.go
+	}
 	lc.exwOK = true // a ChangeZoneAll sweep is a resolution-time mover: ExiledWithSource reads the resolving source
 	f, err := lc.filter(ps.str("ChangeType"))
 	lc.exwOK = false

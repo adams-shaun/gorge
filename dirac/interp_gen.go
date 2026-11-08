@@ -1577,21 +1577,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	}
 	src := s.objRef(k, kop.RefSelf)
 	if (fl.Zone == kop.ZoneNone || fl.Zone == kop.ZoneBattlefield) && mv&kop.MvGraveExile == 0 {
-		var hit slotMask
-		for m := s.occ; m.any(); m = m.rest() {
-			sl := m.first()
-			if (only == 255 || s.perms[sl].ctrl == only) && s.matchPermGen(k, in.F, sl, e.ctrl, src, layerFull) {
-				hit = hit.with(sl)
-			}
-		}
-		// one simultaneous departure (CR 603.10a), seat 0's battlefield
-		// list then seat 1's (gorge effChangeZoneAll: AliveFrom(0) inside
-		// one departure batch)
-		if mv&kop.MvRemember != 0 {
-			s.rememberLeaveAll(k, hit, z) // zone_rememberparams.go
-			return true
-		}
-		s.leaveAll(k, hit, z)
+		s.czallBattleHalf(k, in, only, src, z, mv) // zone_changezoneall.go
 		return true
 	}
 	// cards in a zone of each player, seat 0 first (gorge
@@ -1611,6 +1597,13 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	nz, zbase := 1, fl.Zone
 	if mv&kop.MvGraveExile != 0 {
 		nz, zbase = 2, kop.ZoneGraveyard // graveexile: Graveyard then Exile
+		if in.B.N == kop.CzBattleGrave {
+			// Battlefield,Graveyard (Strategic Betrayal): the battlefield
+			// half first, one simultaneous departure, then the graveyard
+			// alone (gorge effChangeZoneAll's zone-major origin loop).
+			s.czallBattleHalf(k, in, only, src, z, mv)
+			nz = 1
+		}
 		if DebugIgnoreGraveExile {
 			nz = 1
 		}
