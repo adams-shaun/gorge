@@ -8,18 +8,25 @@ import (
 
 // The farm's std-tdm lockstep (TDM-s116 game xe:RAND:2:7) diverged on the stack depth
 // at turn 10 with Undergrowth Leopard implicated: {1}, Sacrifice it: destroy target
-// artifact or enchantment. The pinned games activate the Leopard (its ability on the
-// stack) and must replay clean.
+// artifact or enchantment. The pinned game reaches that activation in response to a
+// Cori-Steel Cutter Flurry trigger and must replay clean: the Leopard destroys the
+// Equipment before the Flurry's optional attach resolves, so neither engine may ask
+// the attach.
 func TestPinnedFarmUndergrowthLeopard(t *testing.T) {
 	t.Parallel()
-	pinnedGames(t, "std-tdm", Config{}, leopardAbilityOnStack)
+	pinnedGames(t, "std-tdm", Config{GorgeAutopaySurface: true}, leopardAbilityOnStack)
 }
 
 // leopardAbilityOnStack: an activated ability of Undergrowth Leopard is on the stack.
+// An ability object has no face of its own; its Source is the permanent.
 func leopardAbilityOnStack(ref *GorgeSide) bool {
 	g := ref.E.G
-	for _, id := range g.Zone(state.ZStack, 0) {
-		if o := g.Obj(id); o != nil && o.StackKind == state.StackKindActivated && o.Face() != nil && o.Face().Name == "Undergrowth Leopard" {
+	for _, id := range g.Stack {
+		o := g.Obj(id)
+		if o == nil || o.Ability == nil || state.StackKindOf(g, o) != state.StackKindActivated {
+			continue
+		}
+		if src := g.Obj(o.Source); src != nil && src.Face() != nil && src.Face().Name == "Undergrowth Leopard" {
 			return true
 		}
 	}
