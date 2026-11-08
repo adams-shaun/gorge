@@ -37,6 +37,9 @@ type otherStep struct {
 // mixBoard: p's census gaps mix filters, restricted any-colour sources and
 // tap-another-permanent sources, and hold nothing else.
 func (s *State) mixBoard(k *prep, p uint8) bool {
+	if k.gen != nil && k.gen.anyMultiR && s.wide2Board(k, p) {
+		return true // any-colour restricted gaps, a second-ability wide one among them (mana_restrictedcombo.go)
+	}
 	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.tapMana {
 		return false
 	}

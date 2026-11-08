@@ -87,3 +87,26 @@ func (s *State) wide2RelaxExtra(k *prep, sl Slot, a *avail) {
 		}
 	}
 }
+
+// wide2Board: p's census gaps are any-colour restricted sources alone, one of
+// them a second-ability wide gap. gorge's search over them is budgeted
+// (potentialScriptNodes), and two such sources' first-ability colour branches
+// spend the budget before a second combination is reached, so the board takes
+// the filter search (mixBoard), which charges each ask's node, with no filter
+// and no funding: the gaps are its otherGap steps.
+func (s *State) wide2Board(k *prep, p uint8) bool {
+	anyR := s.scriptAnyR(k, p)
+	if !anyR.any() || s.gapOthers(k, p).andNot(anyR).any() ||
+		s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapsDefer(k, p)).any() {
+		return false
+	}
+	if k.gen.anyFilt && s.scriptFilt(k, p).any() {
+		return false
+	}
+	for b := anyR; b.any(); b = b.rest() {
+		if s.wideSecond(k, b.first()) {
+			return true
+		}
+	}
+	return false
+}
