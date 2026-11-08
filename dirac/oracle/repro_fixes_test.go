@@ -221,6 +221,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"deanna_spacecraft_enterprise_a_s203", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_enterprise_d_s205", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"first_charge_counter_each_turn_after_bounce", false, false},   // CR 400.7, 603.2: U.S.S. Enterprise-D bounced and recast this turn is a new object, so its first charge counters after the recast queue "for the first time each turn" again
+		{"unrelaxable_filter_no_grant_funding", false, false},           // CR 601.2g-h: Starfleet Academy's X=7 filter makes gorge's census unrelaxable, so the grant search funds no fee and Rok-Tahk's granted {G}{G} from three creatures pays the {5}
 	})
 }
 
@@ -337,10 +338,11 @@ func TestStdBigReprosLockstep(t *testing.T) {
 func TestStdTdmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-tdm", []stdRepro{
-		{"shuffle_target_already_returned", false, false},       // CR 608.2b: Rite of Renewal's shuffled cards are in the graveyard still; one already returned to hand stays there
-		{"declined_delve_picks_reverse_the_cast", false, false}, // CR 702.66a: declining the granted delve leaves the {2} unpayable; the mana window taps what it can and the cast is reversed (CR 733.1)
-		{"omen_permanent_spell_copy", false, false},             // CR 720.2c, 720.4: an omen card is one card, so Flamehold Grappler's copy of an omen creature spell (Runescale Stormbrood) is an ordinary copy whose token is the front face, not a 707.10g double-faced token
-		{"dig_aura_no_host_joins_the_rest", true, false},        // CR 303.4g: United Battlefront picks Fresh Start with nothing to enchant; it stays in the library and joins "the rest" on the bottom, so the six other window cards keep their relative order
+		{"shuffle_target_already_returned", false, false},          // CR 608.2b: Rite of Renewal's shuffled cards are in the graveyard still; one already returned to hand stays there
+		{"renew_target_with_protection_not_offered", false, false}, // CR 115.2, 702.16b: Renew's source is the black card in the graveyard, so Ureni (protection from white and black) is no target and Alchemist's Assistant's ability is not offered
+		{"declined_delve_picks_reverse_the_cast", false, false},    // CR 702.66a: declining the granted delve leaves the {2} unpayable; the mana window taps what it can and the cast is reversed (CR 733.1)
+		{"omen_permanent_spell_copy", false, false},                // CR 720.2c, 720.4: an omen card is one card, so Flamehold Grappler's copy of an omen creature spell (Runescale Stormbrood) is an ordinary copy whose token is the front face, not a 707.10g double-faced token
+		{"dig_aura_no_host_joins_the_rest", true, false},           // CR 303.4g: United Battlefront picks Fresh Start with nothing to enchant; it stays in the library and joins "the rest" on the bottom, so the six other window cards keep their relative order
 		// Teval, Arbiter of Virtue's delve grant on an unresolved twobrid
 		// (Gurmag Nightwatch): the cast is offered on the per-face credit
 		// (CR 702.66a), and a payment the window's activations still cannot
