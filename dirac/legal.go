@@ -844,16 +844,15 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		if s.plannerPaysCast(k, p, c, o) { // a shape lowered only on the composed plan's witness
 			return true
 		}
-		// the planner's census leaves a gap (Flamebraider's restricted two mana), which
-		// gorge's prefix search taps before it prices the cast again, as for an
-		// either-or additional cost above (CR 601.2g before 601.2h). Only a cast through
-		// a play permission reaches that search: the potential planner's verdict on it is
-		// the composition's own "insufficient". A plain cast from the hand is
-		// "shape:additional_cost" there (the composition is no proof for a behold-exile
-		// cost), which no prefix search follows, so a source only the search could tap
-		// leaves it unoffered (Bloom Tender beside Champions of the Perfect, the lone Elf
-		// the cost also exiles)
-		if mayPlay && cd.BeholdExile && k.gen != nil && s.scriptSourceLive(k, p) {
+		// a cast through a play permission is priced by mayPlayAffordable's
+		// retry, which taps a census gap (Flamebraider's restricted two mana)
+		// before it prices the cast again, as for an either-or additional
+		// cost above (CR 601.2b, 601.2f, 601.2g). A plain hand cast is not:
+		// gorge's potential planner refuses it at "shape:additional_cost"
+		// before any mana is priced, so its prefix search never runs for one
+		// (Bloom Tender beside Champions of the Perfect, the lone Elf the cost
+		// also exiles).
+		if cd.BeholdExile && k.gen != nil && mayPlay && s.scriptSourceLive(k, p) {
 			cost := s.featCost(k, p, c, o, k.cards[c].cost)
 			if s.g.mayPlayAny {
 				cost = anyType(cost)
