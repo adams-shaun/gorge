@@ -602,6 +602,7 @@ func TestStdLciReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-lci", []stdRepro{
 		{"tapxtype_plain_plan_leaves_candidates", false, false},       // CR 601.2g-h: nine lands cast Guardian of the Great Door: the plan paying {W}{W} from the Plains and Restless Anchorage leaves seven to tap, whatever the reservation order
+		{"witness_waiting_trigger_other_answer", false, false},        // CR 601.2g, 603.3b: the Treasure sacrificed for Guardian of the Great Door's {W} sets off p0's Zoetic Glyph, whose discover waits for the cast, so its answer does not make the witness unreachable
 		{"granted_sac_host_cost_poses_no_choice", false, false},       // CR 602.2b, 701.21a: Deconstruction Hammer's granted "Sacrifice Deconstruction Hammer" cost has one possible payment, so it is paid without a choice after the targets
 		{"attack_trigger_pump_skips_returned_attacker", false, false}, // CR 400.7: Grasping Shadows' attack trigger does not grant deathtouch and lifelink to Aclazotz once it died and returned as Temple of the Dead
 		{"lose_all_setter_overwrites_self_chosen_type", true, false},  // CR 613.6, 613.7: Eaten by Piranhas on Roaming Throne makes it only a Skeleton; the Throne's older chosen-type grant outlives the ability loss but is overwritten in timestamp order
@@ -684,6 +685,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"animate_rider_before_entry_triggers", true, false},            // CR 603.6a: an Enduring creature returned as an enchantment has its type-changing rider applied before an "another creature enters" watcher matches it, so no extra pump trigger
 		{"tapxtype_cost_reserves_tap_candidates", false, false},         // CR 601.2g-h: Fear of Exposure's tap-two is priced from its composed cost, so the granted-mana prefix taps Enduring Vitality's creatures in battlefield order and leaves the rest for the pick
 		{"tapxtype_restricted_source_not_free", false, false},           // CR 601.2g-h: Creeping Peeper's enchantment-only {U} paying Fear of Exposure is not also one of the two permanents it taps, so three mana sources and Patchwork Beastie do not cast it
+		{"grant_prefix_paid_life_trigger", false, false},                // CR 119.4, 603.3, 307.1: Haunted Screen's 1 life in Overlord of the Hauntwoods' granted-mana prefix stacks Marina Vendrell's Grimoire's trigger, so the prefix taps on and passes for it to resolve before the cast
 	})
 }
 
