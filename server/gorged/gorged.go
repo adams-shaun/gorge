@@ -597,17 +597,10 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		return fmt.Errorf("no deck files in %s", c.decks)
 	}
 	if c.diracOn() {
-		if conPool, c.refusedDecks, err = checkDecks(diracEngine, reg, c.decks, conPool); err != nil {
+		if cmdPool, conPool, c.refusedDecks, err = checkDiracPools(diracEngine, reg, c.decks, cmdPool, conPool); err != nil {
 			return err
 		}
-		for _, id := range cmdPool {
-			c.refusedDecks[id] = "dirac plays constructed only"
-		}
-		cmdPool = nil
 		markRefused(deckCatalogue, c.refusedDecks)
-		if conPool, err = rotationDecks(conPool, pairAccepts(diracEngine, reg, c.decks)); err != nil {
-			return err
-		}
 	}
 	// A deck shared with an earlier policy's pool is reserved for both and
 	// catalogued once.

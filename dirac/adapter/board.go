@@ -351,10 +351,17 @@ func (g *Game) boardGame() {
 			b.landOpen[p] = g.landsPlayed[p] < g.s.FeatLandLimit(uint8(p))
 		}
 		pl.Lost = gm.Over && !gm.Draw && gm.Winner != state.PlayerID(p)
-		pl.Commanders, pl.CmdCasts = pl.Commanders[:0], pl.CmdCasts[:0]
+		pl.Commanders, pl.CmdCasts, pl.CmdDamage = pl.Commanders[:0], pl.CmdCasts[:0], pl.CmdDamage[:0]
 		if c := g.s.FeatCommander(uint8(p)); c != dirac.NoObj {
 			pl.Commanders = append(pl.Commanders, g.ids.obj(uint8(c)))
 			pl.CmdCasts = append(pl.CmdCasts, int32(kp.CmdCast[p]))
+		}
+		// CmdDamage is dense over the match's commanders, seat order: the
+		// damage this seat took from each one (CR 903.10a)
+		for q := range gm.Players {
+			if g.s.FeatCommander(uint8(q)) != dirac.NoObj {
+				pl.CmdDamage = append(pl.CmdDamage, int32(kp.CmdDmg[p][q]))
+			}
 		}
 		pl.LandsPlayed = 0
 		if uint8(p) == kp.Active {

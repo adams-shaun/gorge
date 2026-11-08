@@ -73,7 +73,8 @@ func (c config) openDirac(reg *cards.Registry) (*adapter.Engine, error) {
 }
 
 // checkDecks splits the deck pool into what the engine plays and why it refuses the
-// rest. A pool with nothing to play is a startup error, naming the first refusals.
+// rest. An empty pool plays nothing and is no error here: serve fails a server none of
+// whose pools plays anything (noneCanPlay).
 func checkDecks(e *adapter.Engine, reg *cards.Registry, dir string, pool []string) ([]string, map[string]string, error) {
 	var playable []string
 	refused := map[string]string{}
@@ -89,15 +90,46 @@ func checkDecks(e *adapter.Engine, reg *cards.Registry, dir string, pool []strin
 		}
 		playable = append(playable, id)
 	}
-	if len(playable) > 0 {
-		return playable, refused, nil
+	return playable, refused, nil
+}
+
+// checkDiracPools is the commander and constructed pools reduced to the decks dirac plays,
+// each pool in an order its rotation can follow, and why it refuses the rest. A pool may
+// come out empty; a server none of whose pools plays a deck is a startup error.
+func checkDiracPools(e *adapter.Engine, reg *cards.Registry, dir string, cmdPool, conPool []string) (cmd, con []string, refused map[string]string, err error) {
+	con, refused, err = checkDecks(e, reg, dir, conPool)
+	if err != nil {
+		return nil, nil, nil, err
 	}
+	cmd, cmdRefused, err := checkDecks(e, reg, dir, cmdPool)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	maps.Copy(refused, cmdRefused)
+	if len(con)+len(cmd) == 0 {
+		return nil, nil, nil, noneCanPlay(dir, refused)
+	}
+	accepts := pairAccepts(e, reg, dir)
+	for _, pool := range []*[]string{&con, &cmd} {
+		if len(*pool) == 0 {
+			continue
+		}
+		if *pool, err = rotationDecks(*pool, accepts); err != nil {
+			return nil, nil, nil, err
+		}
+	}
+	return cmd, con, refused, nil
+}
+
+// noneCanPlay is the startup error of a deck directory in which dirac plays no deck,
+// naming the first refusals.
+func noneCanPlay(dir string, refused map[string]string) error {
 	ids := slices.Sorted(maps.Keys(refused))
 	var first []string
 	for _, id := range ids[:min(3, len(ids))] {
 		first = append(first, id+": "+refused[id])
 	}
-	return nil, nil, fmt.Errorf("-engine dirac: no deck in %s is playable; for example %s", dir, strings.Join(first, "; "))
+	return fmt.Errorf("-engine dirac: no deck in %s is playable; for example %s", dir, strings.Join(first, "; "))
 }
 
 // rotationDecks is the pool a bot table's rotation can play: match k seats decks k and
