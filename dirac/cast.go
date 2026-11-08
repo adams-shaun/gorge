@@ -440,6 +440,15 @@ func (s *State) buildAbility(k *prep) *kop.Ability {
 	return &k.t.Cards[s.bld().e.card].Abilities[s.bld().e.ab]
 }
 
+// buildingPowerUp reports whether the build in progress activates a
+// Power-up ability, whose asks (X, hybrid pip faces) read the CR 702.193b
+// reduced charge (gorge composes powerUpReduceCost into the activation's cost
+// before any ask).
+func (s *State) buildingPowerUp(k *prep) bool {
+	e := &s.bld().e
+	return e.kind == seAbility && k.gen != nil && k.gen.anyPowerUp && k.t.Cards[e.card].Abilities[e.ab].Cost.Flags&kop.CostPowerUp != 0
+}
+
 func (s *State) buildCost(k *prep) kop.ManaCost {
 	return s.buildCostResolve(k, false)
 }
@@ -717,7 +726,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				continue
 			}
 			cost := s.buildCost(k)
-			if e.kind == seAbility && k.gen != nil && k.gen.anyPowerUp && k.t.Cards[e.card].Abilities[e.ab].Cost.Flags&kop.CostPowerUp != 0 {
+			if s.buildingPowerUp(k) {
 				cost = s.buildCostCharge(k) // a power-up's X is announced against the reduced cost (CR 702.193b, gorge xAsk)
 			}
 			if cost.X == 0 {
@@ -1084,6 +1093,9 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 func (s *State) pipOptions(k *prep, d *Decision) bool {
 	e := &s.bld().e
 	cost := s.buildCost(k)
+	if s.buildingPowerUp(k) {
+		cost = s.buildCostCharge(k) // the faces are priced against the CR 702.193b charge, as gorge's pip ask reads the reduced cost
+	}
 	if cost.Hyb[0] == 0 {
 		return false
 	}

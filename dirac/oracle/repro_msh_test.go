@@ -36,5 +36,6 @@ func TestStdMshReprosLockstep(t *testing.T) {
 		{"fight_hit_asks_plus_and_prevention_order", true, false},               // CR 616.1, 701.14a: Abomination's fight hit on Black Panther is matched by Hawkeye's noncombat plus-X and Black Panther's prevention, so the affected player is asked their order before the batch lands
 		{"ward_discard_or_mana_counts_restricted_source", false, false},         // CR 702.21a, 106.6: Titania's ward—discard a card or pay {2} offers the {2} while Hydraulic Helper's restricted {U} is the only untapped source (gorge's untapped-source gate reads the restriction unread)
 		{"sneak_entry_tap_fires_no_tap_all", true, false},                       // CR 603.2e: Elektra sneaked in tapped and attacking was not tapped, so Rewrite History's "become tapped" does not trigger
+		{"power_up_pay_window_offers_both_amounts", true, false},                // CR 601.2b, 702.193b: Abomination entered this turn owes {R/G}{R/G}; its pip ask prices each face against that reduced charge, so G is offered when an Island funds Surveillance Room's {1},{T} any-colour filter beside a Mountain
 	})
 }
