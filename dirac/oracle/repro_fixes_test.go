@@ -249,6 +249,9 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"vizier_conversion_kicked_cast_four", true, false},          // ... and another
 		{"vizier_kicked_cast_granted_prefix", true, false},           // ... and Gnarlid Colony's kicked {3}{G}{G} beside Imprisoned in the Moon's granted {C}: the grant search prices the kicked total under the conversion too
 		{"deferred_gap_beside_granted_land", true, false},            // CR 601.2g-h, 605.1a: Pyromancer's Goggles' deferred {R} beside Giant Cindermaw's Imprisoned-in-the-Moon {C} pays Pirate's Cutlass's Equip {2}: the restricted/deferred script search must count the unrestricted grant
+		{"goggles_deferred_red_play_offered", false, false},          // CR 601.2g-h, 605.3a: Blossoming Sands and Pyromancer's Goggles' deferred {R}, one funding Three Tree Mascot's {1} for {U}, pay Negate: the filter search runs the Goggles as a gap step
+		{"deferred_red_funds_first_filter_fee", false, false},        // ... and the Goggles' {R} alone funds the Mascot's {1}, so An Offer You Can't Refuse's {U} is offered
+		{"counter_gap_beside_deferred_script", false, false},         // CR 601.2g: Ramos, Dragon Engine's counter-cost mana beside the Goggles pays Zetalpa, Primal Dawn: the deferred script's dead-end check plays the counter gap as the prefix does
 		{"deferred_gap_beside_granted_mana", false, false},           // CR 601.2g-h, 605.1a: gorge's prefix search taps New Horizons' Mountain for {R}{R} and Pyromancer's Goggles' deferred {R}, both census gaps, so Lathliss, Dragon Queen's {4}{R}{R} is offered
 	})
 }
