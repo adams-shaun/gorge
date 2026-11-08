@@ -37,9 +37,11 @@ func addAegisLayer(t *testing.T, sc *scen, host Slot, attachment, exiled CardID,
 	return sl
 }
 
-// addCopyPerm records host's permanent copy marker (fxCopyPerm).
+// addCopyPerm records host's permanent copy marker (fxCopyPerm), locking the
+// card its source shows now (CR 707.2b).
 func addCopyPerm(sc *scen, host Slot, src Obj, idx uint8, ts uint16) {
-	sc.s.g.fx[sc.s.g.nfx] = fxRec{sl: host, kind: fxCopyPerm, r: ovRec{p: int16(src), idx: idx, ts: ts}}
+	c := sc.s.cardAt(sc.s.objs[src].slot)
+	sc.s.g.fx[sc.s.g.nfx] = fxRec{sl: host, kind: fxCopyPerm, r: ovRec{src: c, p: int16(src), idx: idx, ts: ts}}
 	sc.s.g.nfx++
 	sc.s.fxM.set(host)
 }
@@ -191,5 +193,27 @@ func TestCloneCleanupKeepsPermanentBetweenAegisAndClone(t *testing.T) {
 	s.aegisUnlink(k, a1, sl, false)
 	if got := s.cardAt(sl); got != v.GrizzlyBears {
 		t.Fatalf("after the Aegis ends the bearer shows card %d, want the permanent clone %d", got, v.GrizzlyBears)
+	}
+}
+
+// TestCloneCleanupRebaseKeepsLockedCard: the permanent copy marker locked the
+// card its source showed when it landed (CR 707.2b), so the cleanup re-base
+// onto it restores that card even when the source has since become a copy of
+// another card.
+func TestCloneCleanupRebaseKeepsLockedCard(t *testing.T) {
+	sc := newScen(t, Config{})
+	s := sc.s
+	bearer := sc.perm(v.SavannahLions, 0)
+	sl := sc.slot(bearer)
+	y := sc.perm(v.GrizzlyBears, 1)
+	addCopyPerm(sc, sl, y, 0, 20)
+	addCopyEOT(sc, sl, v.HillGiant, NoObj, 0, 30)
+	setCopy(sc, sl, v.HillGiant)
+	setCopy(sc, sc.slot(y), v.SerraAngel) // the source changes after the marker landed
+	k := genPrepOf(sc)
+
+	s.cloneCleanup(k)
+	if got := s.cardAt(sl); got != v.GrizzlyBears {
+		t.Fatalf("after cleanup the bearer shows card %d, want the card locked with the marker, %d", got, v.GrizzlyBears)
 	}
 }
