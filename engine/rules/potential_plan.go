@@ -335,7 +335,18 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 			// exact total only when a legal mode is free; a costlier
 			// cheapest mode would be over-offered (potentialModalCastFreeMode).
 			modalFree := got.Detail == "shape:modal_cost" && e.potentialModalCastFreeMode(p, o.Obj)
-			if alt.Reason == "" || got.Detail == "cost:x" || got.Detail == "cost:hybrid" || e.manaSpentReaderComposed(o.Obj, got.Detail) ||
+			// A RaiseCost additional cost (the Champion cycle's BeholdExile)
+			// keeps the cast planner's shape decline, but the composed plan
+			// still prices its mana exactly: when that plan is insufficient,
+			// take it as the verdict so the census and prefix search can
+			// reach a printed source the planner cannot execute (Springleaf
+			// Drum's tap-a-creature ability, a restricted any-colour land).
+			// Without this the play was written off before the search and the
+			// oracle could not offer a legal cast. The spell ability's own
+			// Cost$ shapes keep the decline: dirac prices those on printed
+			// sources only, and a granted mana ability must not reopen them.
+			additionalCostUnfunded := got.Detail == "shape:additional_cost" && alt.Reason == "insufficient" && e.castHasRaiseCostExtra(p, o.Obj)
+			if alt.Reason == "" || additionalCostUnfunded || got.Detail == "cost:x" || got.Detail == "cost:hybrid" || e.manaSpentReaderComposed(o.Obj, got.Detail) ||
 				got.Detail == "shape:target_dependent_cost" || modalFree || e.G.Obj(o.Obj) != nil && (len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 || spellExtrasAreFixedTaps(e.G.Obj(o.Obj).Face())) {
 				// A witness always; a proof only for the shapes the
 				// composition models exactly (the planner declined the
@@ -359,6 +370,16 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 		return e.potentialModeCastPlan(p, o), true
 	}
 	return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}, false
+}
+
+// castHasRaiseCostExtra reports whether a cast's additional cost comes from a
+// RaiseCost static (the Champion cycle's BeholdExile, Soul Immolation's
+// Blight<X>) rather than from the spell ability's own Cost$. The potential
+// planner may take the composed mana verdict for the former: dirac models
+// those statics, while the spell ability's own Cost$ shapes are priced on
+// printed sources only on both sides.
+func (e *Engine) castHasRaiseCostExtra(p state.PlayerID, id state.ObjID) bool {
+	return pay.PlanCostDetail(e.costModifiers(p, id, spellScope("")).Extra) != ""
 }
 
 // spellExtrasAreFixedTaps reports a face whose spell ability adds nothing to the
