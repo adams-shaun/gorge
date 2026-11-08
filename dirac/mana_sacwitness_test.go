@@ -24,11 +24,11 @@ func plainWitnessScen(t *testing.T, extraPlains bool, glyphOwner uint8) (*scen, 
 	return sc, id, objs
 }
 
-// witnessSacrificePends reports whether paying Guardian's cost on a copy of the
-// state sacrifices a source and leaves a trigger pending: the trigger the cast
-// is offered over (the Glyph's leaves-the-battlefield trigger, which waits for
-// the cast, CR 601.2g, 603.3b).
-func witnessSacrificePends(t *testing.T, sc *scen, c CardID, o Obj) bool {
+// witnessSacrificePends plans Guardian's cost on a copy of the state, sacrifices
+// the source, and asserts the pending trigger is the Glyph's
+// leaves-the-battlefield ability controlled by glyphOwner: the trigger the cast
+// is offered over (it waits for the cast, CR 601.2g, 603.3b).
+func witnessSacrificePends(t *testing.T, sc *scen, c CardID, o Obj, glyphOwner uint8) {
 	t.Helper()
 	cost := sc.s.featCost(sc.k, 0, c, o, sc.k.cards[c].cost)
 	tmp := sc.s.fork()
@@ -44,7 +44,41 @@ func witnessSacrificePends(t *testing.T, sc *scen, c CardID, o Obj) bool {
 		t.Fatal("the witness does not sacrifice a source; the test premise fails")
 	}
 	tmp.sba(sc.k)
-	return tmp.npend > n0
+	if tmp.npend <= n0 {
+		t.Fatal("the witness's sacrifice pends no trigger; the test premise fails")
+	}
+	pt := tmp.pend[n0]
+	cd := &sc.k.t.Cards[pt.card]
+	if cd.Name != "Zoetic Glyph" {
+		t.Fatalf("the sacrifice pends %q's trigger, want Zoetic Glyph's", cd.Name)
+	}
+	if int(pt.ab) >= len(cd.Abilities) {
+		t.Fatalf("pending ability %d is out of range for Zoetic Glyph", pt.ab)
+	}
+	if a := &cd.Abilities[pt.ab]; a.Kind != kop.AbTriggered || a.Trig.Event != kop.TrigDies && a.Trig.Event != kop.TrigLeaves {
+		t.Fatalf("pending ability is not a leaves-the-battlefield trigger: kind %d event %d", a.Kind, a.Trig.Event)
+	}
+	if pt.ctrl != glyphOwner {
+		t.Fatalf("the pending Glyph trigger is controlled by p%d, want p%d", pt.ctrl, glyphOwner)
+	}
+}
+
+// witnessKeepsSources plans Guardian's cost on a copy of the state and reports
+// whether the witness keeps the sacrifice sources (gorge's
+// potentialWitnessKeeping): the price of the board whose second Plains pays
+// {W}{W}, so no sacrifice trigger waits.
+func witnessKeepsSources(t *testing.T, sc *scen, c CardID, o Obj) bool {
+	t.Helper()
+	cost := sc.s.featCost(sc.k, 0, c, o, sc.k.cards[c].cost)
+	tmp := sc.s.fork()
+	defer sc.s.unfork()
+	var pk planner
+	pk.try = true
+	tmp.tapForPK(sc.k, 0, &cost, 0, o, false, false, &pk)
+	if !pk.found {
+		t.Fatal("the potential planner found no witness for Guardian's cost")
+	}
+	return !plannerConsumesSac(&pk)
 }
 
 // guardianOffered steps to p0's priority decision and reports whether it offers
@@ -90,24 +124,28 @@ func TestPlainWitnessOfferedWhenSacrificeTriggerWaitsForTheCast(t *testing.T) {
 	if sc.s.FeatPlannedCast(0, o, 0) {
 		t.Fatal("gorge's cast planner prices Guardian; the potential witness is never reached")
 	}
-	if !witnessSacrificePends(t, sc, c, o) {
-		t.Fatal("the witness's sacrifice pends no trigger; the test premise fails")
-	}
+	witnessSacrificePends(t, sc, c, o, 1)
 	if !guardianOffered(t, sc, o) {
 		t.Fatal("Guardian is not offered although the sacrifice's opponent trigger waits for the cast")
 	}
 
 	// A second Plains: the potential planner keeps the Treasure, so no
 	// sacrifice trigger waits at all; the cast is offered either way.
-	sc, _, objs = plainWitnessScen(t, true, 1)
-	if !guardianOffered(t, sc, objs["Guardian of the Great Door"]) {
+	sc, id, objs = plainWitnessScen(t, true, 1)
+	c, o = id["Guardian of the Great Door"], objs["Guardian of the Great Door"]
+	if !witnessKeepsSources(t, sc, c, o) {
+		t.Fatal("with a second Plains the planner still sacrifices the Treasure; the control witness is not kept")
+	}
+	if !guardianOffered(t, sc, o) {
 		t.Fatal("Guardian is not offered with a second Plains paying its {W}{W}")
 	}
 
 	// The Glyph under p0: its discover trigger is p's own, which the witness
 	// walk answers.
-	sc, _, objs = plainWitnessScen(t, false, 0)
-	if !guardianOffered(t, sc, objs["Guardian of the Great Door"]) {
+	sc, id, objs = plainWitnessScen(t, false, 0)
+	c, o = id["Guardian of the Great Door"], objs["Guardian of the Great Door"]
+	witnessSacrificePends(t, sc, c, o, 0)
+	if !guardianOffered(t, sc, o) {
 		t.Fatal("Guardian is not offered when the sacrifice trigger is p0's own")
 	}
 }
