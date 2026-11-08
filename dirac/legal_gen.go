@@ -160,7 +160,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) {
 		return
 	}
-	if mode&castFree != 0 && !s.altAddCastableFrom(k, c, p, o, &kop.ManaCost{}, &kop.ManaCost{}, true, av) {
+	if mode&castFree != 0 && !s.altAddCastableFrom(k, c, p, o, &kop.ManaCost{}, &kop.ManaCost{}, true, anyMana, av) {
 		return // a free cast still owes its either-or additional cost (CR 601.2b, 118.9d): Mudbutton Cursetosser's behold or {2}
 	}
 	if mode&castFree == 0 {
@@ -175,7 +175,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		s.g.mayPlayAny = anyMana
 		offers := s.gorgeOffersMay(p, o)
 		s.g.mayPlayAny = false
-		if !s.altAddCastableFrom(k, c, p, o, &altCost, &pc.cost, true, av) || !offers || s.castHeldOut(o) {
+		if !s.altAddCastableFrom(k, c, p, o, &altCost, &pc.cost, true, anyMana, av) || !offers || s.castHeldOut(o) {
 			return
 		}
 		if unpriced && !s.windowPoolPays(p, &cost, anyColor) && (s.g.availX&(availAny|availGaps) == 0 || (!anyMana && !anyColor)) {
