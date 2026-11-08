@@ -69,6 +69,18 @@ func (s *State) noteLastBear(q Slot, host Obj) {
 //
 //go:noinline
 func (s *State) recordLastBearLKI(o, host Obj) {
+	// A departure whose bearer had already left (the live link was broken
+	// first) supersedes any earlier departure of the same attachment: drop
+	// the older versioned AttachedTo record, or attLKIHost would resurrect a
+	// bearer the attachment left long before (gorge Object.LastBearer names
+	// only the MOST RECENT departure, CR 608.2h).
+	if s.objs[host].zone != kop.ZoneBattlefield {
+		for i := range s.g.attLKI {
+			if r := &s.g.attLKI[i]; r.obj == o && r.ver != 0 {
+				*r = attLKIRec{}
+			}
+		}
+	}
 	for i := range s.g.attLKI {
 		r := &s.g.attLKI[i]
 		if r.obj == o && r.ver == 0 {
