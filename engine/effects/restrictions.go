@@ -983,6 +983,47 @@ func IsUntilTargetedUntapsDuration(dur string) bool {
 	return false
 }
 
+type untilHostLeavesPlayOrEOTCode uint16
+
+const (
+	untilHostLeavesPlayOrEOTNone untilHostLeavesPlayOrEOTCode = iota
+	untilHostLeavesPlayOrEOTYes
+)
+
+var untilHostLeavesPlayOrEOTCodes = state.NewStrCodes(
+	state.StrEntry[untilHostLeavesPlayOrEOTCode]{Key: "untilhostleavesplayoreot", Val: untilHostLeavesPlayOrEOTYes},
+)
+
+// IsUntilHostLeavesPlayOrEOTDuration reports whether a Duration$ value names
+// "for as long as the host stays on the battlefield, until end of turn"
+// (Resilient Roadrunner's CantBlockBy grant).
+func IsUntilHostLeavesPlayOrEOTDuration(dur string) bool {
+	return untilHostLeavesPlayOrEOTCodes.Code(strings.ToLower(strings.TrimSpace(dur))) == untilHostLeavesPlayOrEOTYes
+}
+
+// anchorEffectHostIncarnation anchors an UntilHostLeavesPlayOrEOT
+// registration to the host incarnation the ability belongs to: a host that
+// leaves and returns is a new object (CR 400.7) the effect no longer governs,
+// which continuousLive reads through SourceIncarnation. The anchor is the
+// incarnation the resolving ability was put on the stack with (activate, then
+// flicker the host in response: the returned object is not "this creature"),
+// falling back to the host's current incarnation when no battlefield push
+// stamp exists.
+func anchorEffectHostIncarnation(h Host, c *Ctx, rawDur string, ce *state.ContinuousEffect) {
+	if !IsUntilHostLeavesPlayOrEOTDuration(rawDur) {
+		return
+	}
+	if c.ResolvingObj != 0 {
+		if ro := h.Game().Obj(c.ResolvingObj); ro != nil && ro.Source == c.Source && ro.PushSourceStamped && ro.PushSourceOnBattlefield {
+			ce.SourceIncarnation = ro.PushSourceIncarnation
+			return
+		}
+	}
+	if host := h.Game().Obj(c.Source); host != nil && host.Zone == state.ZBattlefield {
+		ce.SourceIncarnation = host.Incarnation
+	}
+}
+
 // replacementLineWith reads ReplaceWith$ off a parseReplacementLine-built
 // static line -- the SVar name of the R: body's own ReplaceWith$ body, not a
 // card Params map. Factored into its own function so the paramcensus rot
