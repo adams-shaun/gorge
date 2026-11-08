@@ -250,14 +250,16 @@ func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
 	// it leaves the graveyard: a granted flashback ends. The grant is part
 	// of the card's view, so mark the card changed. The clear can still be
 	// undone (an unpayable either-or part restores the grant), so it is not
-	// progress for gorge's hold-out rule: keep heldTouch in step when this
-	// is the held card, or the next undo would look like progress and the
-	// card would not be held out (castHeldOut).
+	// progress for gorge's hold-out rule: keep heldTouch in step, or the
+	// next undo would look like progress and the card would not be held out
+	// (castHeldOut). This holds whichever card is held: the touch happens
+	// before the push's own (uncompensated) touches and is undone by a
+	// reversal (CR 733.1), so it must not clear an earlier aborted hand
+	// copy's count when this flashback cast is the one that reverses
+	// (pair 478, Phantom Interference).
 	if s.fbGranted(k, o) {
 		s.touch(o)
-		if s.heldObj == o || s.objs[o].of&(ofAbort1|ofHeld) != 0 {
-			s.heldTouch++
-		}
+		s.heldTouch++
 	}
 	s.clearFB(k, o)
 	if mode&castFree != 0 {

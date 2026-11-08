@@ -167,6 +167,11 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// (CR 601.2e; gorge excluded every push of the same ObjID).
 		{"cast_limit_counts_a_bounced_spell", false, false},
 		{"clone_rebase_locked_face", false, false}, // CR 707.2b: a clone re-base keeps the values locked when its layer was applied
+		// CR 733.1, 733.2: a granted-flashback cast's own grant clear during
+		// the proposal is undone by its reversal, so it is no progress for the
+		// hold-out window: the hand copy's second no-progress abort stays held
+		// out instead of being re-offered (pair 478, Phantom Interference).
+		{"flashback_grant_clear_keeps_holdout", false, false},
 	})
 }
 
