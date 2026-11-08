@@ -46,3 +46,20 @@ func TestPersonaBalanced(t *testing.T) {
 		}
 	}
 }
+
+func TestPersonaChampion(t *testing.T) {
+	h := &Host{}
+	d, b, err := h.newPersona("champion", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := d.(*pickbot.Knobbed); !ok {
+		t.Errorf("drafter is %T", d)
+	}
+	if _, ok := b.(*pickbot.Best23); !ok {
+		t.Errorf("builder is %T", b)
+	}
+	if _, _, err := h.newPersona("nope", nil); err == nil || !strings.Contains(err.Error(), "champion") {
+		t.Errorf("unknown-persona error = %v, want it to list champion", err)
+	}
+}

@@ -196,13 +196,13 @@ func TestBuilderCapsHighManaValue(t *testing.T) {
 	}
 }
 
-// TestBuilderRegistryEntries pins the registry: the three names are
+// TestBuilderRegistryEntries pins the registry: the four names are
 // registered with both halves, sorted, and the registered drafters answer a
 // pick through the same rated path the direct type does.
 func TestBuilderRegistryEntries(t *testing.T) {
 	names := pb.Names()
-	if len(names) != 3 || names[0] != "balanced" || names[1] != "best23" || names[2] != "rating-colour" {
-		t.Fatalf("registry names = %v, want [balanced best23 rating-colour]", names)
+	if len(names) != 4 || names[0] != "balanced" || names[1] != "best23" || names[2] != "champion" || names[3] != "rating-colour" {
+		t.Fatalf("registry names = %v, want [balanced best23 champion rating-colour]", names)
 	}
 	d, b, ok := pb.Lookup("rating-colour")
 	if !ok || d == nil || b == nil {

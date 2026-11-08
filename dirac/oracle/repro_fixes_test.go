@@ -247,6 +247,7 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"vizier_conversion_kicked_cast_four", true, false},          // ... and another
 		{"vizier_kicked_cast_granted_prefix", true, false},           // ... and Gnarlid Colony's kicked {3}{G}{G} beside Imprisoned in the Moon's granted {C}: the grant search prices the kicked total under the conversion too
 		{"deferred_gap_beside_granted_land", true, false},            // CR 601.2g-h, 605.1a: Pyromancer's Goggles' deferred {R} beside Giant Cindermaw's Imprisoned-in-the-Moon {C} pays Pirate's Cutlass's Equip {2}: the restricted/deferred script search must count the unrestricted grant
+		{"deferred_gap_beside_granted_mana", false, false},           // CR 601.2g-h, 605.1a: gorge's prefix search taps New Horizons' Mountain for {R}{R} and Pyromancer's Goggles' deferred {R}, both census gaps, so Lathliss, Dragon Queen's {4}{R}{R} is offered
 	})
 }
 
@@ -292,6 +293,12 @@ func TestStdHobReprosLockstep(t *testing.T) {
 		{"hascards_graveyard_static_zero_a", false, false},          // CR 604.1: Master's Councillors' +2/+0 per graveyard with seven or more cards counts the graveyard that has them
 		{"hascards_graveyard_static_zero_b", false, false},
 		{"threshold_skips_a_waiting_token", false, false}, // CR 111.7, 704.5d: three Treasures sacrificed for mana wait in the graveyard, so they are no cards and do not switch Most Decrepit Old Bird's Threshold on
+		// CR 603.3b, 704.5a: a Treasure spent for Duskwatch Hunter's hybrid
+		// mana sets off The Sackville-Bagginses' drain before the cast; the
+		// lowering's resolutions run their state-based check, which takes
+		// the opponent's last life, so the spell stays in hand and the game
+		// ends there rather than at a hybrid pip ask.
+		{"lowered_hybrid_cast_lethal_sacrifice_trigger", false, false},
 	})
 }
 

@@ -421,6 +421,9 @@ type grantSrch struct {
 	// tapx: the candidate's own ability is a tap-another-permanent one, a census
 	// gap of gorge's beside the grants (mana_granttapx.go)
 	tapx [MaxPerm]bool
+	// def: the candidate is a deferred source (Pyromancer's Goggles), a census
+	// gap of gorge's beside the grants (mana_grantdeferred.go)
+	def [MaxPerm]bool
 	// gap: the candidate is a census gap. Non-gap sources join the search only
 	// to fund a paid gap's fee, as many as funding allows (gorge
 	// scriptSearch.funding: census.fees()).
@@ -502,6 +505,7 @@ func (g *grantSrch) candidates(s *State) {
 		fm = s.scriptFilt(k, g.p)
 	}
 	tm := s.grantTapXGaps(g.k, g.p)
+	dm := s.scriptDeferred(g.k, g.p)
 	g.n = 0
 	holders := 0
 	for i := 0; i < n; i++ {
@@ -510,13 +514,14 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		ng := s.grantIdxs(g.k, sl, &g.gi[g.n])
-		if ng == 0 && !fm.has(sl) && !tm.has(sl) {
+		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) {
 			continue
 		}
 		if ng > 0 {
 			holders++
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), !tm.has(sl) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
+		g.def[g.n] = ng == 0 && dm.has(sl)
 		g.gap[g.n] = true
 		if fm.has(sl) {
 			g.funding += s.filtFee(g.k, sl)
@@ -548,7 +553,7 @@ func (g *grantSrch) candidates(s *State) {
 		if sl == g.ex || seen(sl) || !s.canTapForMana(g.k, sl) {
 			continue
 		}
-		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, 0, true, false, false
+		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n], g.def[g.n] = sl, 0, true, false, false, false
 		g.gap[g.n] = false
 		g.n++
 	}
@@ -610,6 +615,12 @@ func (g *grantSrch) visit(t *State) bool {
 			// a filter that is its source's only mana ability: no printed
 			// ability to ask beside, one colour ask once its fee is in the pool
 			if t.filtUsable(g.k, sl) && poolTotal(&t.pl[g.p&1])+t.filtFeeRestrN(g.k, g.p, sl) >= t.filtFee(g.k, sl) && g.filtBranch(t, i, sl) {
+				return true
+			}
+			continue
+		}
+		if g.def[i] {
+			if g.deferBranch(t, i, sl) { // its plain {R} (mana_grantdeferred.go)
 				return true
 			}
 			continue
@@ -1043,6 +1054,13 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		switch st.gi {
 		case stepTapX:
 			s.tapXDo(k, g.p, tapXStep{sl: sl, cand: st.cand, cand2: NoSlot, col: st.col, kind: tapXAct})
+			continue
+		case stepDeferred:
+			s.deferApply(k, g.p, sl) // (mana_grantdeferred.go)
+			if g.tapTriggers(s, sl) {
+				passed = true
+				s.tapXNext(g.p, &d)
+			}
 			continue
 		case stepFilt:
 			s.filtDo(k, g.p, filtStep{sl: sl, gap: true, ans: 1 + st.col})

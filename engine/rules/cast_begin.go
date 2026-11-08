@@ -941,6 +941,17 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 		if o == nil || !o.IsCopy {
 			return
 		}
+		// The Play answer recorded ctx.Play as the offered original before
+		// the cast began (play_tape.go's playAnswerApply). The object this
+		// copy path actually begins is the mint, not the original, so the
+		// PlayDone record (RememberPlayed$/ForgetPlayed$) must name the
+		// copy -- Forge's PlayEffect remembers tgtSA.getHostCard(). The
+		// original deliberately stays in its offered zone, so a begun test
+		// on it would read "never played" and drop the chained "if you do"
+		// rider (Kaervek, the Punisher; Spellweaver Volute).
+		if c := e.resolutionCtx; c != nil && c.Play == id {
+			c.Play = copyID
+		}
 		id = copyID
 	}
 	cost := pay.RawBaseCost(asPayer(e), p, id)

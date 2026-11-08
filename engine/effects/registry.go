@@ -438,8 +438,9 @@ type Ctx struct {
 	// zone (CR 701.23): the object the controller selected among the offered
 	// candidates. rules' resumeResolution sets it from the recorded answer
 	// before re-running the suspended effPlay, which then casts/plays it from
-	// its own zone. PlayDone distinguishes "answered (possibly with no card)"
-	// from the first pass.
+	// its own zone. A CopyCard$ True play re-points it at the minted copy the
+	// cast actually begins, the object Forge's PlayEffect remembers. PlayDone
+	// distinguishes "answered (possibly with no card)" from the first pass.
 	Play     state.ObjID
 	PlayDone bool
 
