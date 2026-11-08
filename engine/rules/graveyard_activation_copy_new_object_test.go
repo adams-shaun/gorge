@@ -1,11 +1,14 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // TestGraveyardActivationCopyFindsOnlyTheSameObject pins CR 707.10 + 400.7:
@@ -68,5 +71,39 @@ func TestGraveyardActivationCopyFindsOnlyTheSameObject(t *testing.T) {
 			}
 			replayCheck(t, e, cfg)
 		})
+	}
+}
+
+// TestSourceDiscardedByItsOwnCostIsStillFound pins the other half of the
+// return stamp: Kogla and Yidaro's ability is activated from hand and discards
+// the card as its cost, so the source is in the graveyard -- a zone it was not
+// in at the push -- when "shuffle CARDNAME into your library" resolves. Only a
+// return to the push zone is a new object (CR 400.7); a cost that moved the
+// source elsewhere is not, and the ability still finds the card.
+func TestSourceDiscardedByItsOwnCostIsStillFound(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	kogla := mustCorpusCard(t, reg, "Kogla and Yidaro")
+	e := handEngine(t, kogla)
+	id := e.G.Zone(state.ZHand, 0)[0]
+	if e.G.Obj(id).Zone != state.ZHand {
+		t.Fatalf("precondition: the source is in %v, want the hand at the push", e.G.Obj(id).Zone)
+	}
+	addMana(t, e, 0, "CCRG")
+	var opt decision.Option
+	found := false
+	for _, o := range e.legalActions(0) {
+		if o.Kind == "ability" && o.Obj == id && strings.Contains(o.Cost, "Discard<1/CARDNAME>") {
+			opt, found = o, true
+		}
+	}
+	if !found {
+		t.Fatal("precondition: the discard activation is not offered")
+	}
+	e.beginActivation(0, opt)
+	drainStackPassing(t, e, 40)
+	switch z := e.G.Obj(id).Zone; z {
+	case state.ZGraveyard, state.ZCeased:
+		t.Fatalf("Kogla and Yidaro in %v: the cost's zone change was read as a return", z)
 	}
 }

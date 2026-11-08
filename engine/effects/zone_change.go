@@ -270,7 +270,11 @@ func sourceReturnedSincePush(h Host, c *Ctx, o *state.Object) bool {
 	if ro == nil || ro.Source != o.ID || !ro.PushSourceStamped || ro.PushSourceOnBattlefield {
 		return false
 	}
-	return o.ZoneGen != ro.PushSourceZoneGen
+	// Same zone as at the push, different generation: the card left and came
+	// back, so this is a new object. A source now in another zone was moved
+	// by the activation's own cost (Kogla and Yidaro discards itself from
+	// hand), not replaced by a new object in the zone the effect names.
+	return o.Zone == ro.PushSourceZone && o.ZoneGen != ro.PushSourceZoneGen
 }
 
 // SourceIsNewObject reports that ro, an ability on the stack, has a source on the

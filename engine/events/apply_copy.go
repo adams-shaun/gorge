@@ -129,7 +129,7 @@ func foldStackCopy(g *state.Game, e *Event) {
 	// to the copy too (CR 400.7), so the push stamp is inherited, not
 	// re-taken from the source as it is now.
 	pushStamped, pushOnBF := src.PushSourceStamped, src.PushSourceOnBattlefield
-	pushInc, pushZoneGen := src.PushSourceIncarnation, src.PushSourceZoneGen
+	pushInc, pushZoneGen, pushZone := src.PushSourceIncarnation, src.PushSourceZoneGen, src.PushSourceZone
 	// A copy resolves the same compiled SA, so it reads the same owning face.
 	abilityFace, gainedFrom := src.AbilityFace, src.GainedFrom
 	copyNonLegendary := src.CopyNonLegendary
@@ -222,6 +222,7 @@ func foldStackCopy(g *state.Game, e *Event) {
 	if pushStamped {
 		o.PushSourceStamped, o.PushSourceOnBattlefield = true, pushOnBF
 		o.PushSourceIncarnation, o.PushSourceZoneGen = pushInc, pushZoneGen
+		o.PushSourceZone = pushZone
 	}
 	o.AbilityFace, o.GainedFrom = abilityFace, gainedFrom
 	o.Targets = targets

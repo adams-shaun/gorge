@@ -1119,11 +1119,15 @@ type Object struct {
 	PushSourceStamped       bool
 	PushSourceOnBattlefield bool
 	PushSourceIncarnation   uint32
-	// PushSourceZoneGen is the source's ZoneGen at the push (the CR 400.7
-	// identity of a source that is not on the battlefield: a card that went
-	// graveyard -> hand -> graveyard is a new object though it never crossed
-	// the battlefield). A stack copy inherits it with the other three.
+	// PushSourceZoneGen and PushSourceZone are the source's ZoneGen and zone
+	// at the push (the CR 400.7 identity of a source that is not on the
+	// battlefield: a card that went graveyard -> hand -> graveyard is a new
+	// object though it never crossed the battlefield). The zone lets the
+	// reader tell a return to the push zone from a cost that moved the
+	// source elsewhere (Kogla and Yidaro discards itself from hand). A stack
+	// copy inherits both with the other three.
 	PushSourceZoneGen uint32
+	PushSourceZone    Zone
 	// GrantedBy is the GRANTOR of a cross-object granted activated ability
 	// (events.GrantAbilityPush's IDs[0], CR 613.1f): the Equipment or Aura
 	// whose static gives the recipient (Source) the ability. Forge's
