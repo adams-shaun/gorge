@@ -710,6 +710,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-dsk", []stdRepro{
 		{"nonpositive_life_pays_painless_plan", false, false},           // CR 119.4: a payer at life 0 or less (a Grimoire holds the game) still pays a painless plan; the planner's lethal guard needs life lost > 0
+		{"manifest_dread_other_card_parks_exile_order", false, false},   // CR 701.62a, 616.1: a manifest dread window's other card under two Leylines of the Void parks for its order ask with the card still in the library, and the window's marker has already fired
 		{"destroy_all_parks_whole_batch", true, false},                  // CR 616.1: two Leylines of the Void compete for one victim of Split Up's destroy-all, so the whole batch waits for the order ask; the other victims do not move first
 		{"room_shown_face_plain_cast", false, false},                    // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
 		{"sacrificed_panharmonicon_host_departs", false, false},         // CR 603.2d: a sacrificed Panharmonicon host is gone when Popular Egotist's "whenever you sacrifice" trigger is checked, so it echoes nothing
