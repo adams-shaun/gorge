@@ -49,10 +49,6 @@ type TargetStamp struct {
 	ZoneGen uint32
 }
 
-// GoadEffect is one independently-lived CR 701.38 goad relationship.
-// Source and Duration preserve the condition Forge attached to the effect;
-// Controller is the target creature's controller when an AsLongAsControl
-// relationship began. All fields are reconstructed by events.Apply.
 // CloneLayer is one layer-1 copy effect on a permanent: Seq is its
 // application ordinal (state.Object.CloneSeq at the time), Face the copiable
 // values locked when it was applied, before the effect's CopyExcept/CloneStatic
@@ -63,6 +59,10 @@ type CloneLayer struct {
 	GainThisAbility bool
 }
 
+// GoadEffect is one independently-lived CR 701.38 goad relationship.
+// Source and Duration preserve the condition Forge attached to the effect;
+// Controller is the target creature's controller when an AsLongAsControl
+// relationship began. All fields are reconstructed by events.Apply.
 type GoadEffect struct {
 	Player     PlayerID
 	Source     ObjID

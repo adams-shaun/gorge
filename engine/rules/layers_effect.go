@@ -666,9 +666,11 @@ func (e *Engine) expireUntilTargetedUntaps(ev events.Event, wasTapped bool) {
 // exactly the event stream this cleanup emitted before overlapping units were
 // modelled (heads unmoved for every game with at most one copy per object).
 //
-// The re-base is one ClonePermanent naming the survivor's own source, name
-// and GainThisAbility$ rider, so it goes through events.Apply like every
-// other state change and a replay derives the identical face.
+// The re-base is the clear itself: its Text lists the live layers' Seqs and
+// the fold restores the newest one's LOCKED face (CR 707.2b/c), never a fresh
+// read of a source; IDs[1] names the survivor's source for the activation
+// count (activationUsedSince). IDs[0] stays zero, so every reader that does
+// not know the form still sees a clear.
 func (e *Engine) settleExpiredClones(expired []cloneExpiry) {
 	if len(expired) == 0 {
 		return
@@ -711,7 +713,11 @@ func (e *Engine) settleExpiredClones(expired []cloneExpiry) {
 		if survivor != nil && survivor.CloneSeq == 0 {
 			live = nil
 		}
-		e.emit(events.Event{Kind: events.ClonePermanent, Obj: k.Target, Text: events.CloneLiveText(live)})
+		clear := events.Event{Kind: events.ClonePermanent, Obj: k.Target, Text: events.CloneLiveText(live)}
+		if len(live) > 0 {
+			clear.IDs = []state.ObjID{0, survivor.CloneSource}
+		}
+		e.emit(clear)
 		if survivor == nil {
 			continue
 		}
