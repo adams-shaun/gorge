@@ -106,6 +106,7 @@ func (s *State) ctrGather(k *prep, sl Slot, kind int) (c ctrCands) {
 			for i := range cd.Abilities {
 				a := &cd.Abilities[i]
 				if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplDoubleCountersOn && a.Repl.Kind != kop.ReplAddCountersOn ||
+					s.entryCtrSelfExcluded(k, b, sl, a.Repl.Filter) ||
 					!s.ctrKindMatch(a, kind, lc) || !s.matchPerm(k, a.Repl.Filter, sl, lc, b) {
 					continue
 				}

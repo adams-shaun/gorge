@@ -296,6 +296,11 @@ func effWard(h Host, c *Ctx, sa *cards.SA) {
 	if paid {
 		return
 	}
+	// "Can't be countered" stops ward's counter too (Out Cold: "This
+	// includes by the ward ability"; CR 101.2, 702.21a).
+	if counterStopped(h, c, o) {
+		return
+	}
 	to := state.ZGraveyard
 	if o.Face() == nil {
 		to = state.ZExile

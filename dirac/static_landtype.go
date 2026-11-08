@@ -201,13 +201,21 @@ func (s *State) blgStall(k *prep, sl Slot, c CardID) {
 // the first), so the window spends a Forest on {G} though the cost owes {B},
 // and runs out of sources. gorge then cancels the cast and keeps the taps and
 // the floated mana (CR 733.1), as for a painland (loweredWindowOK). It reports
-// false after reversing.
+// false after reversing that way; the real walk can also complete the cost the
+// dry census could not price (a filter's fee paid from the pool it already
+// floated, Temur Devotee), and it reports true then, keeping the floated mana.
 //
 //go:noinline
 func (s *State) hybStrand(k *prep, p uint8, c *kop.ManaCost, anyColor bool) bool {
-	_, held := s.windowTapRider(k, p, c, true, anyColor)
+	ok, held := s.windowTapRider(k, p, c, true, anyColor)
 	for col := range held {
 		s.pl[p].pool[col] += held[col]
+	}
+	if ok {
+		// the real walk completed the cost the dry census could not price: a
+		// filter's fee paid from the pool it already floated (Temur Devotee
+		// beside a {2/G}{2/U}{2/R} cast)
+		return true
 	}
 	s.reverseCast(k)
 	return false

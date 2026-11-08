@@ -740,6 +740,9 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		if spec == "" {
 			spec = strings.TrimSpace(r.ParamStr(cards.PKValidObject))
 		}
+		if ownEntryCounterExcluded(e.entrySettling, source, spec) {
+			return false
+		}
 		if spec != "" {
 			if ev.Kind == events.PlayerCounterChange {
 				// A player alternative in the recipient list (Innkeeper's

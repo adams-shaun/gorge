@@ -486,6 +486,23 @@ func (s *State) abilityAffordableTargets(k *prep, buf *[MaxOptions]uint8, n int)
 	return m
 }
 
+// markCostComposition marks a per-target cost reprice of the in-flight cast, so
+// the turn's cast counts hide its own ring push as gorge's costCompositionEvent
+// does. Without it a "second spell you cast" reduction (Highspire Bell-Ringer)
+// vanishes from the target menu while the build's own buildCost saw it.
+func (s *State) markCostComposition() (restore func()) {
+	if !s.buildLive() || s.bld().e.kind != seSpell {
+		return func() {}
+	}
+	prev := s.bld().bfl & bflCostComp
+	s.bld().bfl |= bflCostComp
+	return func() {
+		if prev == 0 {
+			s.bld().bfl &^= bflCostComp
+		}
+	}
+}
+
 // affordableTargets keeps, for a spell whose cost reduction depends on its
 // target (Luminous Rebuke), only the targets it can still pay for: all of
 // them when the full cost is affordable, else those the reduction needs.
@@ -534,7 +551,9 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 		}
 	}
 	s.g.noTgtRed = true
+	restore := s.markCostComposition()
 	full := s.adjustCostGen(k, e.ctrl, e.card, e.obj, cd.Cost)
+	restore()
 	s.g.noTgtRed = false
 	if e.flags&sfAnyMana != 0 {
 		full = anyType(full)
@@ -547,7 +566,7 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 	// the reduction pays for looks affordable.
 	full.Generic = uint8(int(full.Generic) + full.XGeneric(int(e.x)))
 	var av avail
-	s.availFor(k, e.ctrl, &av)
+	s.availForBuilt(k, e, &av)
 	if av.affords(&full, pipMaskOf(&full), 0) {
 		return n
 	}
