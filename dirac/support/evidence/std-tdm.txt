@@ -88,6 +88,7 @@ Highspire Bell-Ringer
 Hollowmurk Siege
 Host of the Hereafter
 Humbling Elder
+Hundred-Battle Veteran
 Iceridge Serpent
 Inevitable Defeat
 Inspirited Vanguard
@@ -103,13 +104,13 @@ Jungle Hollow
 Karakyk Guardian
 Kheru Goldkeeper
 Kin-Tree Nurturer
-Kin-Tree Severance
 Kishla Skimmer
 Kishla Trawlers
 Kishla Village
 Knockout Maneuver
 Kotis, the Fangkeeper
 Krotiq Nestguard
+Krumar Initiate
 Lasyd Prowler
 Lightfoot Technique
 Lotuslight Dancers
@@ -127,6 +128,7 @@ Monastery Messenger
 Mountain
 Mox Jasper
 Mystic Monastery
+Naga Fleshcrafter
 Narset's Rebuke
 Narset, Jeskai Waymaster
 Nature's Rhythm
