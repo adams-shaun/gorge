@@ -53,7 +53,8 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 	targeted := bestowed || tspec(k, c, spellAb(k, c), 0) != nil
 	stacked := s.subs[kop.TrigSacrificed].any()
 	anySac := s.anySacSource(k, p)
-	if !anySac || !targeted && !stacked {
+	diesTrig := s.subs[kop.TrigDies].or(s.subs[kop.TrigLeaves]).any()
+	if !anySac || !targeted && !stacked && !diesTrig {
 		return false
 	}
 	t := s.fork()
@@ -75,7 +76,38 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 			return true
 		}
 	}
-	return stacked && int(t.npend)-int(n0) > witnessWaits
+	if stacked && int(t.npend)-int(n0) > witnessWaits {
+		return true
+	}
+	return s.xWitnessEndsGame(k, p, t, n0, cost)
+}
+
+// xWitnessEndsGame: the witness fork t (taken from s before the cast's pre-cast triggers
+// resolve) queued sacrifice triggers from n0 that, resolved as gorge's lowering lets them
+// resolve, end the game, while a witness that keeps the sacrificing sources pays cost at
+// X=0. gorge's potentialWitnessReaches (winOK=false) replays the witness on a clone, and
+// witnessReachesMode leaves at once on c.G.Over, so the witness "does not reach" the play
+// and potentialWitnessKeeping plans the largest X that keeps the sources (Choco-Comet's X
+// beside the Treasure and Al Bhed Salvagers, p0 at 1 life). Only a live sorcery-speed
+// build: an instant-speed cast is offered with the trigger still on the stack, below the
+// spell, so the witness reaches it; with no keeping plan gorge takes the lethal one
+// (potential_plan.go's winOK fallback; resolveLowerCounterTriggers ends the game).
+func (s *State) xWitnessEndsGame(k *prep, p uint8, t *State, n0 uint8, cost *kop.ManaCost) bool {
+	if t.npend <= n0 || !s.buildLive() {
+		return false
+	}
+	if b := s.bld(); b.e.kind != seSpell || k.cards[b.e.card].instant || s.castFlash(k, b.e.ctrl, b.e.card) {
+		return false
+	}
+	t.resolveLowerCounterTriggers(k, n0)
+	if !t.over {
+		return false
+	}
+	var av avail
+	held := s.sacSourcesHeld(k, p)
+	s.availFor(k, p, &av)
+	s.ctrlM[p] = s.ctrlM[p].or(held)
+	return av.affords(cost, pipMaskOf(cost), 0)
 }
 
 // sacSourcesHeld takes p's sacrificing mana sources out of its control mask for a witness

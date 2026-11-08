@@ -541,10 +541,12 @@ KwUnblockable	KwMask	262144
 KwVigilance	KwMask	128
 KwWard	KwMask	131072
 KwWither	KwMask	1048576
+LibBottomGrave	untyped int	11
 LibBottomRememberGrave	untyped int	9
 LibBottomShuffle	untyped int	7
 LibChoiceSecond	untyped int	1
 LibThird	untyped int	6
+LibTopGrave	untyped int	10
 LibTopShuffle	untyped int	4
 LibTopShuffleGrave	untyped int	8
 LibTopShuffleSelf	untyped int	5

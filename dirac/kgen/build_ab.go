@@ -2610,6 +2610,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 	case "ToLibrary":
 		ki.Op, ki.C = kop.OpToLibrary, int16(in.C)
+		if (in.C == 0 || in.C == 1) && (in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredNew) && fl["from"] == "Graveyard" {
+			ki.C = kop.LibTopGrave + int16(in.C) // dirac/zone_tolibrarygrave.go
+		}
 		if _, ok := fl["TopShuffle"]; ok {
 			ki.C = kop.LibTopShuffle
 			if (in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredNew) && fl["from"] == "Graveyard" {

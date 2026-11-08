@@ -538,6 +538,8 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"equip_target_reduction_payable_full_surface", false, false}, // CR 601.2f, 602.2b: the same equip offer on the full surface
 		// CR 106.6, 601.2g: a Tiered cast's window asks Cargo Ship's abilities with its printed artifact-only {C} ahead of A Realm Reborn's grant, so the {C} floats unspent
 		{"window_printed_restricted_before_grant", false, false},
+		// CR 601.2g, 603.3b: Choco-Comet's largest-X witness would sacrifice the Treasure into Al Bhed Salvagers' lethal drain before the cast, so gorge plans X=5 from the lands and keeps the Treasure
+		{"x_witness_lethal_sacrifice_trigger_keeps_treasure", false, false},
 	})
 }
 
@@ -597,6 +599,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"reversed_cast_keeps_same_taps", true, false},                             // CR 733.1: Sun-Dappled Celebrant's convoke picks strand its cost over Eclipsed Realms' Treefolk mana; the cast reverses before any land taps
 		{"reversed_cast_keeps_mana_ability_trigger", false, false},                 // CR 733.1: Springleaf Drum tapped Wanderwine Distracter for Appeal to Eirdu; the cast is reversed, the mana ability is not, so the "becomes tapped" trigger stays queued
 		{"reversed_cast_trigger_push_is_progress", true, false},                    // CR 733.2: Silvergill Peddler's kept tap trigger is pushed after Disruptor of Currents' reversal, so a second no-progress reversal still leaves the cast offered
+		{"until_leaves_return_asks_choice_after_top_bottom_answer", true, false},   // CR 614.12, 610.3: an as-enters choice of a card returning when its exiler is put second-from-top is asked with the card in exile
 	})
 }
 
@@ -843,6 +846,7 @@ func TestStdWoeReprosLockstep(t *testing.T) {
 		{"act_paid_filter_second_colour", true, false},                  // CR 601.2g, 602.2b: Restless Fortress's {1}{W}{B} animation is offered when a free filter (Crystal Grotto) makes one pip and Rootrider Faun's paid filter the other
 		{"woe_activation_sac_exile_return_asks_in_exile", false, false}, // CR 614.12, 610.3: Werefox Bodyguard sacrificed for its own activation returns Talion, the Kindly Lord, whose number is asked in exile before it enters
 		{"legend_rule_and_saga_sacrifice_one_batch", true, false},       // CR 704.3, 603.10a: the Neva the legend rule removes still sees The Princess Takes Flight sacrificed in the same state-based check
+		{"fell_horseman_returned_card_not_bottomed", false, false},      // CR 400.7: Edgewall Inn returns Fell Horseman to hand before its dies trigger resolves, so the trigger cannot put the new object on the bottom of the library
 		{"hidden_pick_aura_entry_attach_choice", false, false},          // CR 303.4f/g: Fetch Quest's hidden pick takes Bestial Bloodline, which waits in the graveyard for its enchant choice while the spell is still on the stack
 	})
 }
