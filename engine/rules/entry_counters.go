@@ -1190,6 +1190,11 @@ func (e *Engine) resumeEntryCounterOrder(rc replChoice, idx int) {
 		st.counter.Amount = n
 	}
 	st.applied = append(st.applied, m)
+	// The drive's deferred re-dispatch re-matches every line outside
+	// settleEntryGrants; keep the entrant's own-source exclusion active.
+	savedSettling := preview.entrySettling
+	preview.entrySettling = entrant
+	defer func() { preview.entrySettling = savedSettling }()
 	preview.driveAddCounterCompetition(
 		replChoice{ev: st.counter, cands: st.cands, appliedRepls: st.applied},
 		func(ev events.Event, applied []replMatch) {

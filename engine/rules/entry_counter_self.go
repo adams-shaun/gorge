@@ -11,8 +11,8 @@ import "github.com/adams-shaun/gorge/engine/state"
 // the +1/+1 counter it enters with (Deanna Troi's rider); a self-scoped line
 // (Mowu's "on CARDNAME", recipient spec Card.Self) still applies. recipient
 // is the line's ValidCard$/ValidObject$ spec.
-func (e *Engine) ownEntryCounterExcluded(source state.ObjID, recipient string) bool {
-	if e.entrySettling == 0 || source != e.entrySettling {
+func ownEntryCounterExcluded(settling, source state.ObjID, recipient string) bool {
+	if settling == 0 || source != settling {
 		return false
 	}
 	// Card.Self is the corpus's only self-scoped AddCounter recipient (Mowu).
