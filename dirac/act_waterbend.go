@@ -492,6 +492,44 @@ func (s *State) waterbendTapsNeeded(k *prep, e *stackEntry, part waterbendPart) 
 	return 0
 }
 
+// sacAnyManaGap: p controls a source with a self-sacrifice any-colour mana
+// ability (Produced$ Any, the Treasure token's shape) that a Can'tSacrifice
+// static blocks (Quark, Humble Proprietor's "You can't sacrifice Treasure
+// tokens"). The shared window census prices a usable self-sacrifice source but
+// skips a blocked one, while the probe still walks the ability and cannot
+// price its CountsAny production (gorge castWindowSourceExcluded, CR 605.1b):
+// the census is incomplete and a pool-short target menu keeps its candidates.
+// A usable Treasure is priced, a tapped {T} source is not offered, and a Combo
+// WUBRG production has priced counts, so none of those is a gap.
+//
+//go:noinline
+func (s *State) sacAnyManaGap(k *prep, p uint8) bool {
+	for m := s.ctrlM[p]; m.any(); m = m.rest() {
+		sl := m.first()
+		if s.genLost(k, sl) || !s.sacBlocked(k, sl) {
+			continue
+		}
+		cd := &k.t.Cards[s.cardAt(sl)]
+		for j := range cd.Abilities {
+			a := &cd.Abilities[j]
+			if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 || a.Cost.Flags&kop.CostSacSelf == 0 {
+				continue
+			}
+			if a.ManaColors != kop.ColAny || a.AFlags&(kop.AfManaChosen|kop.AfManaChoice|kop.AfManaEachColor|kop.AfManaReflect) != 0 {
+				continue
+			}
+			if a.Cost.Flags&kop.CostTap != 0 {
+				if pm := &s.perms[sl]; pm.flags&pfTapped != 0 ||
+					pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 {
+					continue
+				}
+			}
+			return true
+		}
+	}
+	return false
+}
+
 // windowPricesRestr: gorge's window probe prices restricted mana ability a of the source
 // at sl for a payment its restriction admits (castWindowRestrictedSpendable), so the
 // census holds its units (The Emperor of Palamecia's {U} or {R} for a noncreature

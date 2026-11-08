@@ -85,7 +85,24 @@ func (s *State) altAddOpenTargets(k *prep) bool {
 // tap, so gorge keeps the pool-short candidates of a target menu or an either-or
 // part on offer (affordableTargetCandidates' census fallback, CR 601.2g).
 func (s *State) windowUnpricedOpen(k *prep, e *stackEntry) bool {
-	if s.windowCensusComplete(k, e) {
+	return s.windowUnpricedOpenIf(k, e, !s.windowCensusComplete(k, e))
+}
+
+// copyCensusOpen is windowUnpricedOpen for a paid copy cast's target menu: a
+// blocked self-sacrifice any-colour mana source (a Treasure under Quark,
+// sacAnyManaGap) is a census gap too (gorge castWindowSourceExcluded's
+// CountsAny arm), so the menu keeps its candidates however short the pool is.
+// Only this gap is read on the copy path; the copy abort's other census
+// classes keep their existing affordability arm.
+func (s *State) copyCensusOpen(k *prep, e *stackEntry) bool {
+	return s.windowUnpricedOpenIf(k, e, k.sacMana && s.sacAnyManaGap(k, e.ctrl))
+}
+
+// windowUnpricedOpenIf is windowUnpricedOpen with the census gap decided by
+// the caller: open reports the unpriced census, and a source must be left to
+// tap (gorge's hasUntappedManaSource).
+func (s *State) windowUnpricedOpenIf(k *prep, e *stackEntry, open bool) bool {
+	if !open {
 		return false
 	}
 	tapX := s.windowTapXLive(k, e.ctrl)

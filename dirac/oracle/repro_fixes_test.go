@@ -203,6 +203,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"phased_out_copy_grant_survives", true, false},                 // CR 702.26b: a phased-out copy's granting static is silent, but phase-out unsubscribed only the printed card, so the copy's grant still fired
 		{"copy_cast_zero_x_reaches_window", false, false},               // CR 601.2c, 601.2g, 733.1: Q's Play of Dominion Infiltration announces X = 0, so its "X target creatures" asks no menu and no affordability census reverses it; the cast reaches its mana window, and the taps and mana stand when it is then reversed
 		{"copy_cast_zero_x_reaches_window_autopay", true, false},        // CR 601.2c, 601.2g, 733.1: ... the same on the autopay surface, where two Mountains tap for the {R}{R}{R} the pool cannot cover
+		{"copy_card_play_on_stack_before_mode_asks", false, false},      // CR 601.2a, 707.12: Q's Play of an exiled Infinite Diversity puts the copy on the stack before its target ask, and the Treasure the census cannot price keeps that ask on the menu
 		{"deanna_spacecraft_enterprise_a_s125", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_oberth_s162", false, false},                 // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_suurok_s193", false, false},                 // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
