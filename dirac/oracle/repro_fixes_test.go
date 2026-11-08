@@ -171,6 +171,10 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		// CR 701.21a, 610.3d: Scavenger's Talent's sacrifice-three cost includes Banishing Light, so its card returns after all three are gone
 		{"blb_sac_cost_exile_return_after_all_sacrificed", true, false},
 		{"blb_sac_cost_exile_return_after_all_sacrificed_sword", true, false},
+		{"common_good_double_x_no_autopay_panic", false, false},         // CR 601.2b: For the Common Good paid with two Treasures whose largest X eats both targets: the witness is the smaller X that consumes one, not the unpayable X = 0 that keeps both
+		{"x_cast_unreachable_witness_no_prefix", false, false},          // CR 601.2b: a Treasure pays For the Common Good's {G} at X = 0 and is the only token it copies, so gorge's verdict is witness_unreachable and no prefix search runs
+		{"x_cast_rider_keeping_plan", false, false},                     // CR 609.4b, 601.2b: Cruelclaw's Heist's any-type rider pays For the Common Good's {G} from a Swamp, so the keeping plan leaves the Treasure as its target
+		{"x_cast_rider_keeping_plan_lowered", false, false},             // CR 609.4b, 601.2b: the same cast played: its payment taps the rider's keeping plan, not the smaller-X witness
 		{"copy_keyword_exception_returns_when_loss_ends", false, false}, // CR 707.9b, 613.1f: Mockingbird copying Shoreline Looter, made to lose all abilities until its controller's next turn, has its copy exception's flying again when the loss ends
 		{"any_one_colour_restricted_x_colour_choice", false, false},     // CR 106.6, 601.2b: Helga's two restricted mana count in the {X} ceiling of Mockingbird's cast, so its witness taps every source for X = 4
 	})
@@ -224,8 +228,10 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"deanna_spacecraft_enterprise_a_s203", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_enterprise_d_s205", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"copy_each_target_copies_enter_together", true, false},         // CR 603.6a: Dominion Infiltration's copies of V'Ger and Captain Janeway enter together, so the Janeway copy also triggers for the V'Ger copy
-		{"first_charge_counter_each_turn_after_bounce", false, false},   // CR 400.7, 603.2: U.S.S. Enterprise-D bounced and recast this turn is a new object, so its first charge counters after the recast queue "for the first time each turn" again
-		{"unrelaxable_filter_no_grant_funding", false, false},           // CR 601.2g-h: Starfleet Academy's X=7 filter makes gorge's census unrelaxable, so the grant search funds no fee and Rok-Tahk's granted {G}{G} from three creatures pays the {5}
+		// CR 605.3a, 601.2g-h: Starfleet Academy's filter makes seven, past the relaxed census's six, so gorge's prefix search funds no fee and taps Rok-Tahk's granted {G}{G} on three creatures before the filter's {B} pays Artificial Anomaly
+		{"granted_creatures_fund_unrelaxable_dynamic_filter", false, false},
+		{"first_charge_counter_each_turn_after_bounce", false, false}, // CR 400.7, 603.2: U.S.S. Enterprise-D bounced and recast this turn is a new object, so its first charge counters after the recast queue "for the first time each turn" again
+		{"unrelaxable_filter_no_grant_funding", false, false},         // CR 601.2g-h: Starfleet Academy's X=7 filter makes gorge's census unrelaxable, so the grant search funds no fee and Rok-Tahk's granted {G}{G} from three creatures pays the {5}
 	})
 }
 
@@ -600,6 +606,7 @@ func TestStdFraReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-fra", []stdRepro{
 		{"sweep_returns_aura_after_earlier_entrants", true, false}, // CR 303.4f: Return to the Light Realms asks for Infinite Coursework's host with the cards before it entered and the ones after still in the graveyard
 		{"sacrificed_mana_source_moves_its_aura", false, false},    // CR 704.3, 704.5m: the check after a mana source's sacrifice while paying a cast takes its Aura before the cast's next choice
+		{"flashback_dynamic_source_graveyard_amount", true, false}, // CR 117.1d, 605.3a: Bestial Incursion's flashback is paid by Loot, the Nexus tapped at its graveyard-time amount (Tarmogoyf one point larger), a lowered potential play and not a planned cast
 	})
 }
 
