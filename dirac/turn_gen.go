@@ -59,8 +59,8 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	p.chosen = 255
 	s.g.cast.clr(sl)
 	if s.res.active && s.res.e.kind == seSpell && s.res.e.obj == o {
-		if s.objs[o].of&(ofCopy|ofToken) == 0 {
-			s.g.cast.set(sl) // a spell's copy is never cast (CR 707.10), and is a token by now (permCopyEnters)
+		if s.objs[o].of&(ofCopy|ofToken) == 0 || s.copyCastEntry(k, &s.res.e) {
+			s.g.cast.set(sl) // a stack copy is never cast (CR 707.10), but a Play copy is (CR 707.12; cast_copycast.go)
 		}
 		if s.res.e.flags&sfKicked != 0 && !(k.gen.anyOptCost && castCollectedNever(k, &s.res.e)) {
 			s.mSlSet(k, mechKicked, sl)
@@ -645,10 +645,17 @@ func (s *State) cleanupGen(k *prep) {
 	// before dropping the bitsets.
 	s.fbClearAll(k)
 	if s.g.nfx > 0 {
+		var ended slotMask
+		for i := 0; i < int(s.g.nfx); i++ {
+			if r := &s.g.fx[i]; r.kind == fxOverride && r.r.eot() {
+				ended = ended.with(r.sl)
+			}
+		}
 		s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.kind == fxOverride && r.r.eot() })
 		if k.gen.anyNTOv {
-			s.dropNextTurnOv() // Duration$ UntilYourNextTurn (static_control.go)
+			ended = ended.or(s.dropNextTurnOv()) // Duration$ UntilYourNextTurn (static_control.go)
 		}
+		s.copyExcKwRestore(k, ended)
 	}
 	if k.gen.anyEOTEmb {
 		s.dropEOTEmblems(k)
