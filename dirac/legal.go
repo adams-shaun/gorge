@@ -713,6 +713,16 @@ func (s *State) gorgeOffersMay(p uint8, o Obj) bool {
 // may spend (restrFallback), as a cast from the hand reads them.
 func (s *State) offerSourcesAfford(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost) bool {
 	wasX := s.g.availX
+	// The printed sources alone: a cost they pay is priced by gorge's planner
+	// whatever a census gap would cost beside them. The gaps' view below charges
+	// each paid filter's fee, so it can read short a cost the printed sources
+	// pay (Starfleet Academy's {5},{T} makes nothing with no creature, yet its
+	// fee came off the five lands that pay Guidance Failure's {3}{U}).
+	var pl avail
+	s.availFor(k, p, &pl)
+	if pl.affords(cost, pipMaskOf(cost), 0) {
+		return true
+	}
 	s.g.availX |= availGaps
 	var av avail
 	s.availFor(k, p, &av)
@@ -1549,7 +1559,12 @@ func (s *State) applyPriority(k *prep, a Action) {
 	// before the granted source gorge taps; run the grant search first and
 	// let the filter search see the play priced.
 	grants := k.gen != nil && len(k.gen.grantPC) != 0
-	grantFirst := grants && a.Kind() == AkActivate && k.gen.anyFilt && s.filtOnly(k, p)
+	// A deferred source (Pyromancer's Goggles) is a gap candidate of the same
+	// search (mana_grantdeferred.go): scriptPrefix would tap it alone, ahead of a
+	// granted source that precedes it in battlefield order, which gorge's search
+	// taps first (Imprisoned in the Moon's land beside Goggles).
+	grantFirst := grants && (a.Kind() == AkActivate && k.gen.anyFilt && s.filtOnly(k, p) || k.gen.anyDeferred && s.scriptDeferred(k, p).any())
+	grantFirst = grantFirst || grants && s.deferBesideGrant(k, p) // the same one search (mana_grantdeferred.go)
 	if grantFirst {
 		s.grantPrefix(k, a, p)
 		if s.npend != 0 {

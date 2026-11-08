@@ -21,8 +21,9 @@ const (
 	otherAnyR
 	otherTapX
 	otherGrant
-	otherAnswer // filtStep.act answers the ask a step's Taps trigger posed
-	otherPass   // p passes with a trigger of the path on the stack
+	otherAnswer   // filtStep.act answers the ask a step's Taps trigger posed
+	otherPass     // p passes with a trigger of the path on the stack
+	otherDeferred // a deferred source tapped for its {R} (mixDeferred)
 )
 
 // otherStep is one activation of a gap that is no filter.
@@ -35,13 +36,19 @@ type otherStep struct {
 }
 
 // mixBoard: p's census gaps mix filters, restricted any-colour sources and
-// tap-another-permanent sources, and hold nothing else.
+// tap-another-permanent sources, or a filter beside a deferred source
+// (mixDeferred), and hold nothing else.
 func (s *State) mixBoard(k *prep, p uint8) bool {
-	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.tapMana {
+	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.tapMana && !k.gen.anyDeferred {
 		return false
 	}
 	n := 0
-	if s.scriptFilt(k, p).any() {
+	filt := s.scriptFilt(k, p).any()
+	if filt {
+		n++
+	}
+	def := s.mixDeferred(k, p, filt)
+	if def.any() {
 		n++
 	}
 	if s.scriptAnyR(k, p).any() {
@@ -50,7 +57,22 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 	if s.scriptTapX(k, p).any() {
 		n++
 	}
-	return n >= 2 && !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptCtr(k, p)).any()
+	return n >= 2 && !s.scriptGaps(k, p).or(s.scriptRestr(k, p).andNot(def)).or(s.scriptCtr(k, p)).any()
+}
+
+// mixDeferred: p's activatable deferred sources (Pyromancer's Goggles,
+// mana_deferred.go) when a filter is a gap beside them (filt). gorge's census
+// misses both (a paid filter, a relaxed deferred {R}), and its one prefix
+// search (scriptSearch.visit) activates every census gap in battlefield
+// order, so the filter search takes the deferred source as an otherGap step:
+// Pyromancer's Goggles' {R} pays Three Tree Mascot's {1}, whose {U} and a
+// Plains' {W} cast Negate (CR 601.2g-h, 605.3a). Without a filter the deferred
+// source keeps the restricted-gap scripts (scriptRestr).
+func (s *State) mixDeferred(k *prep, p uint8, filt bool) slotMask {
+	if !filt || !k.gen.anyDeferred {
+		return slotMask{}
+	}
+	return s.scriptDeferred(k, p)
 }
 
 // otherGaps: the gaps a filter search on p's board activates beside its
@@ -62,7 +84,7 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 	var m slotMask
 	if s.mixBoard(k, p) {
-		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p))
+		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p)).or(s.mixDeferred(k, p, true))
 	}
 	if len(k.gen.grantPC) != 0 && s.grantsLive(k) {
 		for b := s.ctrlM[p&1].and(s.occ); b.any(); b = b.rest() {
@@ -108,50 +130,39 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 		return fs.try(k, t, filtStep{sl: sl, gap: true, other: o}, funded, true)
 	}
 	switch {
+	case k.gen.anyDeferred && k.gen.has(t.cardAt(sl), gfDeferred):
+		// a single fixed {R} ability: no ask node (deferBranch)
+		return t.perms[sl].flags&pfTapped == 0 && try(otherStep{kind: otherDeferred})
 	case t.scriptAnyR(k, p).has(sl):
 		if !fs.tick() {
 			return false
 		}
 		c := t.cardAt(sl)
 		if restrWideAnyMana(&k.t.Cards[c].Abilities[k.gen.anyR(c)]) {
-			// the two-unit ask: per-unit answers, W W, W U ... G G, a mirrored
-			// pair charging its node and finding the state seen. An answer
-			// naming a colour the play announces comes first (gorge's
-			// scriptOrderAnswers on the same ask): its W-subtree spent the
-			// search's budget before the first wanted pair.
-			type twoUnit struct{ a, b, ans uint8 }
-			var ps [15]twoUnit
-			np := 0
-			ans := uint8(0)
-			for a := 0; a < 5; a++ {
-				for b := 0; b < 5; b++ {
-					if b < a {
-						if !fs.tick() {
-							return false
+			// the two-unit ask: gorge's 25 per-unit answers (scriptAnswers,
+			// unit-major W W, W U ... G G), those naming a colour the play
+			// announces first and engine order kept in each half (gorge's
+			// scriptOrderAnswers on the same ask: its W-subtree spent the
+			// search's budget before the first wanted pair). A mirrored pair (its
+			// second unit below its first) makes the pool its twin, earlier in
+			// the same half, made: it charges its node where gorge visits it and
+			// finds the state seen.
+			for half := 0; half < 2; half++ {
+				for a := 0; a < 5; a++ {
+					for b := 0; b < 5; b++ {
+						if (fs.need[a] || fs.need[b]) != (half == 0) {
+							continue
 						}
-						continue
+						if b < a {
+							if !fs.tick() {
+								return false
+							}
+							continue
+						}
+						if try(otherStep{kind: otherAnyR, ans: wideAnswerIndex(a, b)}) {
+							return true
+						}
 					}
-					ps[np] = twoUnit{uint8(a), uint8(b), ans}
-					np++
-					ans++
-				}
-			}
-			nf := 0
-			for i := 0; i < np; i++ {
-				if fs.need[ps[i].a] || fs.need[ps[i].b] {
-					ps[nf] = ps[i]
-					nf++
-				}
-			}
-			for i := 0; i < np; i++ {
-				if !fs.need[ps[i].a] && !fs.need[ps[i].b] {
-					ps[nf] = ps[i]
-					nf++
-				}
-			}
-			for i := 0; i < nf; i++ {
-				if try(otherStep{kind: otherAnyR, ans: ps[i].ans}) {
-					return true
 				}
 			}
 			return false
@@ -295,6 +306,8 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 	o := &st.other
 	switch o.kind {
+	case otherDeferred:
+		s.deferApply(k, p, st.sl) // its {R} floats as the deferred source's (mana_grantdeferred.go)
 	case otherAnyR:
 		var spill [kop.NumManaKinds]uint8
 		s.tapGapChoice(k, p, st.sl, slotMask{}, slotMask{}.with(st.sl), slotMask{}, int(o.ans), &spill)
@@ -348,4 +361,10 @@ func (s *State) filtFeeRestrM(k *prep, p uint8, sl Slot) uint8 {
 func (s *State) filtFeeRestr(k *prep, p uint8, sl Slot, fee int) int {
 	m := s.filtFeeRestrM(k, p, sl)
 	return s.rbSpendN(p, m, min(fee, s.rbTotal(p, m)))
+}
+
+// wideAnswerIndex is the scriptDFS answer of the two-colour multiset a <= b,
+// wideAnswer's inverse: the multisets in order W W, W U ... W G, U U ... G G.
+func wideAnswerIndex(a, b int) uint8 {
+	return uint8(a*5 - a*(a-1)/2 + b - a)
 }

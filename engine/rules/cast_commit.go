@@ -248,6 +248,23 @@ func (e *Engine) payCast() {
 		for _, id := range pc.delve {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 		}
+		// The {T} cost's payer taps the permanent (Forge CostTap) at the head
+		// of the non-mana cost parts, before the discard and the sacrifice.
+		// A replacement ask raised by a later part (Rest in Peace replacing a
+		// discard) therefore sees the source already tapped, the order
+		// dirac's payAbilityCosts pays its {T} in (before payPicks). This
+		// MUST still come before settlePutToLibCost: a self-placement cost
+		// that also carries {T} (Timestream Navigator's
+		// "{2}{U}{U}, {T}, Put Timestream Navigator on the bottom of its
+		// owner's library") moves the source off the battlefield, and tapping
+		// a library card is not a state that exists (CR 110.5) -- a library
+		// tap would also survive a direct library→battlefield re-entry, whose
+		// Move entry arm does not clear Tapped. Emitted in this order the tap
+		// lands on the still-battlefield permanent and the move's
+		// leave-battlefield arm resets it.
+		if pc.cost.Tap {
+			e.emitTap(pc.card, pc.player, false)
+		}
 		pay.PayDiscardCost(asPayer(e), pc.Discards, e.cyclingKeyword(pc))
 		// Exile cost parts (ExileFromHand/ExileFromGrave): each chosen card
 		// leaves its zone (hand, or the graveyard for a self-reference) for
@@ -330,19 +347,6 @@ func (e *Engine) payCast() {
 		e.emitBlightCostCounters(pc.Blights, &pc.cost, pc.x)
 		if pc.cost.Untap {
 			e.emit(events.Event{Kind: events.Untap, Obj: pc.card, Player: pc.player, Text: "untapped as a cost"})
-		}
-		if pc.cost.Tap {
-			// The {T} cost's payer taps the permanent (Forge CostTap). This
-			// MUST come before settlePutToLibCost: a self-placement cost that
-			// also carries {T} (Timestream Navigator's
-			// "{2}{U}{U}, {T}, Put Timestream Navigator on the bottom of its
-			// owner's library") moves the source off the battlefield, and
-			// tapping a library card is not a state that exists (CR 110.5) --
-			// a library tap would also survive a direct library→battlefield
-			// re-entry, whose Move entry arm does not clear Tapped. Emitted
-			// in this order the tap lands on the still-battlefield permanent
-			// and the move's leave-battlefield arm resets it.
-			e.emitTap(pc.card, pc.player, false)
 		}
 		// Settled after the {T} tap for the same reason (see above).
 		e.settlePutToLibCost(pc)

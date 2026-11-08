@@ -49,6 +49,7 @@ const (
 	raGenDemonstrate          // OpDemonstrate: copy the spell? (gorge demonstrate election, ChGenConfirm; kw_demonstrate.go)
 	raGenManifestDread        // OpManifestDread: the top-two window's card to manifest (ChGenManifestDread; face_manifest.go)
 	raGenDigAllOpt            // OpDigEx ChangeNum$ All beside Optional$: the yes/no take-all election (ChGenDigOpt)
+	raGenCmdZone              // a commander's CR 903.9b move parked at a hand/library destination (zone_cmdzone.go)
 )
 
 // ChoiceKinds of the generated table's DkChoose decisions (above the core's).
@@ -1455,6 +1456,10 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		return false
 	}
 	z := kop.Zone(in.C & 7)
+	bottom := false
+	if s.cmdZoneReplace(k, o, &z, &bottom) {
+		return true // a CR 903.9b commander move parked before it happens
+	}
 	ctrl := ob.owner()
 	if fl&kop.MvUnderYourControl != 0 {
 		ctrl = e.ctrl
@@ -1557,6 +1562,8 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	if in.Op == kop.OpChangeZoneAllEx {
 		mv = in.C >> 3
 	}
+	var carry czallCarry // the prefix placed before a CR 903.9b park
+	carry.load(&s.g.pre)
 	if mv&kop.MvForgetOther != 0 || z == kop.ZoneExile && in.B.N&kop.CzUntilLeaves != 0 {
 		s.czall3(k, in, mv, z) // zone_changezoneall.go
 		return true
@@ -1692,14 +1699,35 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					s.holdBatch(&eb)
 					return false
 				}
+				zz, bb := z, false
+				if s.cmdZoneReplace(k, o, &zz, &bb) {
+					if !resume {
+						s.g.held, s.g.retTS = 0, stamp
+					}
+					s.holdBatch(&eb)
+					// The detached library-bound cards before the commander
+					// stay in their destination library across the answer; the
+					// re-run cannot recover them from the source zone. Place
+					// them now (gorge moved them before the ask) and carry the
+					// per-owner prefix so the re-run keeps move order.
+					if nz == 2 {
+						pend.place(s, &carry)
+						pend = czallPend{}
+					}
+					if nl > 0 {
+						s.czallPlace(list[:nl], listFrom[:nl], &carry)
+					}
+					carry.store(&s.g.pre)
+					return false // a CR 903.9b commander move parked before it happens
+				}
 				from := s.detach(o)
 				if mv&kop.MvRemember != 0 {
 					s.remember(o) // RememberChanged$, in move order (gorge emitMove)
 				}
-				if z == kop.ZoneBattlefield && k.gen != nil && k.gen.anyMayLimit {
+				if zz == kop.ZoneBattlefield && k.gen != nil && k.gen.anyMayLimit {
 					s.countMayPlayLand(k, o, from)
 				}
-				if z == kop.ZoneBattlefield {
+				if zz == kop.ZoneBattlefield {
 					if mv&kop.MvEntryRiders != 0 {
 						s.armEntryCounters(&rid)
 					}
@@ -1735,24 +1763,34 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 						s.holdBatch(&eb)
 						return false
 					}
-				} else if z == kop.ZoneLibrary {
+				} else if zz == kop.ZoneLibrary {
+					if p := &s.g.pre; p.kind == akCmdZone && p.obj == o && p.state == preCmdZoneOK {
+						// the answered move happens now: placeFromK consumes
+						// the answer, and the cards after it rotate under this
+						// one at the end of the sweep (czallPlace)
+						var one [1]Obj
+						var oneFrom [1]kop.Zone
+						one[0], oneFrom[0] = o, from
+						s.czallPlace(one[:], oneFrom[:], &carry)
+						continue
+					}
 					list[nl] = o // placed below, in gorge's order
 					listFrom[nl] = from
 					nl++
 				} else {
-					s.placeFromK(k, o, z, false, from, false)
+					s.placeFromK(k, o, zz, bb, from, false)
 				}
 			}
 			if nl > 0 {
 				if nz == 2 {
 					pend.add(p, list[:nl], listFrom[:nl])
 				} else {
-					s.libTopInOrder(list[:nl], listFrom[:nl])
+					s.czallPlace(list[:nl], listFrom[:nl], &carry)
 				}
 			}
 		}
 	}
-	pend.place(s)
+	pend.place(s, &carry)
 	if resume {
 		s.holdBatch(&eb)
 		s.fireHeld(k, s.g.retTS)

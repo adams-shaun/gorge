@@ -71,7 +71,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			o := s.objRefObj(in.Obj)
 			if o != NoObj {
 				s.moveRef(k, in.Obj, kop.ZoneLibrary, true)
-				s.shuffleLib(s.objs[o].owner())
+				if s.res.ask != raGenCmdZone {
+					s.shuffleLib(s.objs[o].owner())
+				}
 			}
 		}
 	case kop.OpPumpUntilEOT:
@@ -709,8 +711,11 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 		if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell {
 			return
 		}
-		s.leave(k, ob.slot, z, bottom)
+		s.leave(k, ob.slot, z, bottom) // leave applies the CR 903.9b gate itself
 	case kop.ZoneStack:
+		if s.cmdZoneReplace(k, o, &z, &bottom) {
+			return // a CR 903.9b commander move parked before it happens
+		}
 		if i := s.stackIndexOf(o); i >= 0 {
 			copy(s.stack[i:s.sp-1], s.stack[i+1:s.sp])
 			s.sp--
@@ -728,6 +733,9 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 		}
 		if s.tokenLeftBattlefield(o) {
 			return // CR 111.8 (zone_tokenleft.go)
+		}
+		if s.cmdZoneReplace(k, o, &z, &bottom) {
+			return // a CR 903.9b commander move parked before it happens
 		}
 		from := s.detach(o)
 		s.placeFromK(k, o, z, bottom, from, false)

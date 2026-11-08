@@ -787,11 +787,39 @@ func (s *State) leaveAll(k *prep, mask slotMask, z kop.Zone) {
 		// answer, competing or not. Only the earlier ones move now.
 		n = first
 	}
+	// A commander heading to a hand or library under CR 903.9b stops the sweep
+	// at its own move: the parked MoveZone stays on the battlefield, its leave
+	// triggers fire after the answer, and the instruction runs again from there.
+	hasCmd := false
+	if s.cfg&cfgCommander != 0 && (z == kop.ZoneHand || z == kop.ZoneLibrary) {
+		for _, sl := range order[:n] {
+			if s.cmdZoneCommander(s.perms[sl].obj) {
+				hasCmd = true
+				break
+			}
+		}
+	}
+	parkAt := -1
+	if hasCmd {
+		for i := 0; i < n; i++ {
+			o := s.perms[order[i]].obj
+			if s.cmdZoneCommander(o) && !s.cmdZoneAnswered(o) {
+				parkAt = i
+				break
+			}
+		}
+	}
+	end := n
+	if parkAt >= 0 {
+		end = parkAt
+	}
 	hr := s.holdOpen(k)
-	defer s.holdClose(k, hr)
-	if k.gen != nil && k.gen.anyBatch {
-		s.leaveAllBatched(k, order[:n], z)
-		return
+	if !hasCmd {
+		defer s.holdClose(k, hr)
+		if k.gen != nil && k.gen.anyBatch {
+			s.leaveAllBatched(k, order[:n], z)
+			return
+		}
 	}
 	var zs [MaxPerm]kop.Zone
 	for i := 0; i < n; i++ {
@@ -800,11 +828,38 @@ func (s *State) leaveAll(k *prep, mask slotMask, z kop.Zone) {
 			zs[i] = s.dieZone(k, order[i])
 		}
 	}
-	for i := 0; i < n; i++ {
+	if hasCmd {
+		// the answered commander(s) in the prefix take their destination now:
+		// mode 0 rewrites it to the command zone
+		for i := 0; i < end; i++ {
+			if o := s.perms[order[i]].obj; s.cmdZoneAnswered(o) {
+				bb := false
+				s.cmdZoneReplace(k, o, &zs[i], &bb)
+			}
+		}
+	}
+	for i := 0; i < end; i++ {
 		s.fireLeave(k, order[i], zs[i])
 	}
-	for i := 0; i < n; i++ {
+	for i := 0; i < end; i++ {
 		s.removePerm(k, order[i], zs[i], false)
+	}
+	if parkAt < 0 {
+		if hasCmd {
+			s.holdClose(k, hr)
+		}
+		return
+	}
+	// close the departure frame before the park: a held return would take the
+	// one park slot, and a commander move beside one stalls by name
+	s.holdClose(k, hr)
+	if s.res.ask != raNone || s.g.pre.state != 0 {
+		s.stall(StallLowering)
+		return
+	}
+	zz, bb := z, false
+	if !s.cmdZoneReplace(k, s.perms[order[parkAt]].obj, &zz, &bb) {
+		s.stall(StallLowering) // the scanned slot was a parkable commander
 	}
 }
 

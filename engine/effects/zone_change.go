@@ -321,6 +321,31 @@ func dropDelayedRememberedMoved(h Host, c *Ctx, targets []state.Target) []state.
 	return out
 }
 
+// triggeredCardFamilyDefined reports whether a Defined$ reference is (or,
+// for a " & "-joined compound, has a member that is) one of the Triggered-card
+// family spellings, including a dotted qualifier. The move strip below applies
+// to the reference's whole resolved set: a compound "Self & TriggeredCardLKICopy"
+// names the moved object through both members, so only dropping the family
+// member would still let the other spelling reach the new object (CR 400.7).
+func triggeredCardFamilyDefined(r Ref) bool {
+	if r.Has(RefCompound) {
+		for part := range strings.SplitSeq(r.Raw, " & ") {
+			if triggeredCardFamilySelector(strings.TrimSpace(part)) {
+				return true
+			}
+		}
+		return false
+	}
+	return triggeredCardFamilySelector(r.Text)
+}
+
+// triggeredCardFamilySelector is one selector's base code in the Triggered-card
+// family (a dotted qualifier rides after the base).
+func triggeredCardFamilySelector(spec string) bool {
+	base, _, _ := strings.Cut(spec, ".")
+	return definedSpecCodes.Code(base) == definedSpecTriggeredCard
+}
+
 // dropTriggerRememberedMoved removes from a Defined$ TriggeredCard mover's
 // list every non-player target listed in c.TriggerRememberedMoved: the
 // object changed zones between the trigger firing and the start of its
@@ -362,10 +387,22 @@ func definedDelayRememberedTargets(h Host, c *Ctx, sa *cards.SA) []state.Target 
 // (ceaseDeadTokens). A token on the stack legitimately lives there (a spell
 // copy, CR 111.7's stack exemption), and a prepared exile copy (CR 722.3c)
 // was minted directly in exile and is castable there, so neither has left
-// the battlefield. The movers that resolve a Defined/Remembered/Targeted set
-// share this one test.
-func tokenCannotChangeZone(o *state.Object) bool {
-	return o.IsToken && !o.PreparedExileCopy() && o.Zone != state.ZBattlefield && o.Zone != state.ZStack
+// the battlefield. Nor has a copy minted for a CopyPermanent or Myriad entry
+// that a replacement is still moving onto the battlefield (CR 614.1c: Kira
+// Nerys, Firebrand's "enters tapped and attacking" body moves the mint itself):
+// the mint waits unlisted in its owner's library slot, where a token that has
+// left the battlefield for the library is listed. The movers that resolve a
+// Defined/Remembered/Targeted set share this one test.
+func tokenCannotChangeZone(g *state.Game, o *state.Object) bool {
+	return o.IsToken && !o.PreparedExileCopy() && o.Zone != state.ZBattlefield && o.Zone != state.ZStack &&
+		!mintAwaitingEntry(g, o)
+}
+
+// mintAwaitingEntry reports whether the token o is a minted copy whose entry
+// has not happened yet: it sits in the library state the mint leaves it in
+// without being one of its owner's library cards.
+func mintAwaitingEntry(g *state.Game, o *state.Object) bool {
+	return o.Zone == state.ZLibrary && !slices.Contains(g.Zone(state.ZLibrary, o.Owner), o.ID)
 }
 
 // instantCannotEnter is CR 304.4 and 307.4: an instant or sorcery card that
@@ -404,7 +441,7 @@ func changeZoneMoveSkip(h Host, cz *ChangeZoneParams, o *state.Object, to state.
 	// CR 111.8 first: an off-battlefield token would otherwise be moved again
 	// inside one resolution, before any state-based action could cease it
 	// (Splash Portal's exile then its DBReturn sub-ability).
-	if tokenCannotChangeZone(o) {
+	if tokenCannotChangeZone(h.Game(), o) {
 		return true
 	}
 	// CR 702.26b: a phased-out permanent can't be affected by anything, so a

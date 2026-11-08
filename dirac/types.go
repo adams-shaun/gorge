@@ -146,7 +146,7 @@ const (
 	ChCostSubCtr                // source = a creature to remove one counter from to pay a cost, mode = its counter kind (Quilled Greatwurm)
 	ChCostBlight                // source = a creature to blight to pay a cost (CR 701.68)
 	ChOptDiscMay                // mode 1 = yes / 0 = no: a discard election ("you may discard") (act_optionalask.go)
-	ChCommanderZone             // source = the commander, mode 0 = command zone / 1 = leave it (CR 903.9a; zone_cmdzone.go)
+	ChCommanderZone             // source = the commander, mode 0 = command zone / 1 = leave it (CR 903.9a/b; zone_cmdzone.go)
 )
 
 // Decision is the next question the game asks a player.

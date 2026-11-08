@@ -81,6 +81,11 @@ type Encoder struct {
 	extAcc [ExtWidth]float32
 	extHit [ExtWidth / 64]uint64
 	extOut []Feature
+	// belief is SetOppBelief's list; bseen/bkind its per-card scratch and
+	// class bits (1 threat, 2 answer), bThreat/bAnswer the class totals
+	belief           []uint8
+	bseen, bkind     []uint8
+	bThreat, bAnswer int32
 
 	PartsStats PartsStats
 	slot       [dirac.MaxObj]*partCache // this encode's slot per listed object

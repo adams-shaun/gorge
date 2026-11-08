@@ -314,8 +314,15 @@ func (s *State) toLibraryShuffleSelf(k *prep, in *kop.Instr) {
 	o1, o2 := s.objRefObj(in.Obj), s.objRefObj(kop.RefSelf)
 	old := s.batchOpen()
 	s.moveRef(k, in.Obj, kop.ZoneLibrary, false)
+	if s.res.ask == raGenCmdZone {
+		s.batchClose(old)
+		return // a CR 903.9b commander move parked: the source and the shuffle wait
+	}
 	s.moveRef(k, kop.RefSelf, kop.ZoneLibrary, false)
 	s.batchClose(old)
+	if s.res.ask == raGenCmdZone {
+		return
+	}
 	p1 := uint8(255)
 	if o1 != NoObj {
 		p1 = s.objs[o1].owner()

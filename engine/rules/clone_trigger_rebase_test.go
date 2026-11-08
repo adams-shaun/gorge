@@ -38,40 +38,24 @@ func TestSettleExpiredCloneRebasesOntoTriggerFormSurvivor(t *testing.T) {
 	if f := obj.Face(); f == nil || len(f.Triggers) != 1 || f.Triggers[0].Effect == nil {
 		t.Fatalf("precondition: the fixture must carry one compiled trigger, got %+v", obj.Face())
 	}
-	// A survivor clone unit whose root is the trigger, plus an older unit that
-	// is the one expiring. Both target the same permanent; the survivor has
-	// the higher timestamp (CR 613.1a). CloneSource is the separate Ox face,
-	// as a real copy's source is, so the fold appends exactly one trigger.
-	older := ContinuousEffect{Layer: LCopy, CloneTarget: id, CloneSource: ox,
-		CloneGainThisAbility: true, CloneAbilityIndex: 1, Timestamp: 1, Controller: 0}
+	// A survivor layer whose root is the trigger (applied first, the older
+	// timestamp), then a newer plain copy of the Ox that is the one expiring.
+	// The survivor's locked face carries the trigger (CR 707.2b/c), so the
+	// re-base needs no source read.
+	e.emit(events.Event{Kind: events.ClonePermanent, Obj: id, IDs: []state.ObjID{ox},
+		Counter: "gain-this-trigger", Amount: 1})
 	survivor := ContinuousEffect{Layer: LCopy, CloneTarget: id, CloneSource: ox,
-		CloneGainThisAbility: true, CloneTriggerIndex: 1, Timestamp: 2, Controller: 0}
-	e.continuous = append(e.continuous, older, survivor)
+		CloneGainThisAbility: true, CloneTriggerIndex: 1, Timestamp: 1, Controller: 0,
+		CloneSeq: e.G.Obj(id).CloneSeq}
+	e.emit(events.Event{Kind: events.ClonePermanent, Obj: id, IDs: []state.ObjID{ox}})
+	if f := e.G.Obj(id).Face(); f == nil || len(f.Triggers) != 0 {
+		t.Fatalf("precondition: the expiring plain copy must hide the trigger, got %+v", e.G.Obj(id).Face())
+	}
+	e.continuous = append(e.continuous, survivor)
 
 	e.settleExpiredClones([]cloneExpiry{{Target: id}})
 
-	var sawTrigger, sawAbility bool
-	for _, ev := range e.L.Events {
-		if ev.Kind != events.ClonePermanent {
-			continue
-		}
-		if ev.Counter == "gain-this-trigger" {
-			sawTrigger = true
-			if ev.Amount != 1 {
-				t.Fatalf("re-base gain-this-trigger Amount = %d, want 1", ev.Amount)
-			}
-		}
-		if ev.Counter == "gain-this-ability" {
-			sawAbility = true
-		}
-	}
-	if !sawTrigger {
-		t.Fatalf("re-base did not re-emit the trigger form; events: %+v", e.L.Events)
-	}
-	if sawAbility {
-		t.Fatal("re-base emitted the ability form for a trigger-root survivor")
-	}
-	// The fold applied the survivor's copy and the trigger rode it.
+	// The fold restored the survivor's locked face and the trigger rode it.
 	if f := e.G.Obj(id).Face(); f == nil || len(f.Triggers) != 1 {
 		t.Fatalf("re-based copy must carry the survivor's one trigger, got %+v", e.G.Obj(id).Face())
 	}

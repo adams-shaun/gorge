@@ -50,6 +50,11 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		// CR 601.2b, 601.2g-h: Fuss's {R/W} cast from Outrageous Robbery's exile is priced under the any-type rider, so the printed lands pay it and Insidious Roots' granted token stays untapped
 		{"granted_any_prefix_respects_the_any_type_rider", false, false},
 		{"cost_sacrifices_latch_one_or_more_die", false, false},
+		// CR 118.9d, 601.2f: Reenact the Crime's free copy of Officious
+		// Interrogation still owes its per-target RaiseCost; the pool cannot
+		// pay it, so the cast window reverses the cast (std-mkm pair 2359)
+		{"free_copy_raise_cost_per_target_reversed", false, false},
+		{"collect_evidence_selection_stale", true, false}, // CR 701.59a: Forensic Researcher's evidence pick lists the whole graveyard after a declined Lamplight Phoenix cost left its reservation behind
 	})
 }
 
@@ -96,6 +101,10 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// is payable, but no mode is, so neither engine offers the cast (CR
 		// 702.172a/702.183a: the mode cost is part of the cheapest legal total).
 		{"explosive_derailment_needs_a_mode_cost", false, false},
+		// CR 601.2c/f, 118.8: a Spree/Charm per-mode target ask withholds
+		// Terror of the Peaks when its controller's "an additional 3 life"
+		// leaves the caster unable to pay, as the root target ask does
+		{"charm_mode_targets_skip_unaffordable_terror", false, false},
 		// CR 601.2f: This Town Ain't Big Enough cast from Jasper Flint's
 		// mayplay, whose TargetMax$ 2 keeps the potential planner at the full
 		// price: the offer gate's target retry prices one matching target,
@@ -143,6 +152,7 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// still the one spell that turn, so neither engine offers it again
 		// (CR 601.2e; gorge excluded every push of the same ObjID).
 		{"cast_limit_counts_a_bounced_spell", false, false},
+		{"clone_rebase_locked_face", false, false}, // CR 707.2b: a clone re-base keeps the values locked when its layer was applied
 	})
 }
 
@@ -201,6 +211,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"phased_out_copy_grant_survives", true, false},                 // CR 702.26b: a phased-out copy's granting static is silent, but phase-out unsubscribed only the printed card, so the copy's grant still fired
 		{"copy_cast_zero_x_reaches_window", false, false},               // CR 601.2c, 601.2g, 733.1: Q's Play of Dominion Infiltration announces X = 0, so its "X target creatures" asks no menu and no affordability census reverses it; the cast reaches its mana window, and the taps and mana stand when it is then reversed
 		{"copy_cast_zero_x_reaches_window_autopay", true, false},        // CR 601.2c, 601.2g, 733.1: ... the same on the autopay surface, where two Mountains tap for the {R}{R}{R} the pool cannot cover
+		{"copy_card_play_on_stack_before_mode_asks", false, false},      // CR 601.2a, 707.12: Q's Play of an exiled Infinite Diversity puts the copy on the stack before its target ask, and the Treasure the census cannot price keeps that ask on the menu
 		{"deanna_spacecraft_enterprise_a_s125", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_oberth_s162", false, false},                 // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_suurok_s193", false, false},                 // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
@@ -247,6 +258,9 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"vizier_conversion_kicked_cast_four", true, false},          // ... and another
 		{"vizier_kicked_cast_granted_prefix", true, false},           // ... and Gnarlid Colony's kicked {3}{G}{G} beside Imprisoned in the Moon's granted {C}: the grant search prices the kicked total under the conversion too
 		{"deferred_gap_beside_granted_land", true, false},            // CR 601.2g-h, 605.1a: Pyromancer's Goggles' deferred {R} beside Giant Cindermaw's Imprisoned-in-the-Moon {C} pays Pirate's Cutlass's Equip {2}: the restricted/deferred script search must count the unrestricted grant
+		{"goggles_deferred_red_play_offered", false, false},          // CR 601.2g-h, 605.3a: Blossoming Sands and Pyromancer's Goggles' deferred {R}, one funding Three Tree Mascot's {1} for {U}, pay Negate: the filter search runs the Goggles as a gap step
+		{"deferred_red_funds_first_filter_fee", false, false},        // ... and the Goggles' {R} alone funds the Mascot's {1}, so An Offer You Can't Refuse's {U} is offered
+		{"counter_gap_beside_deferred_script", false, false},         // CR 601.2g: Ramos, Dragon Engine's counter-cost mana beside the Goggles pays Zetalpa, Primal Dawn: the deferred script's dead-end check plays the counter gap as the prefix does
 		{"deferred_gap_beside_granted_mana", false, false},           // CR 601.2g-h, 605.1a: gorge's prefix search taps New Horizons' Mountain for {R}{R} and Pyromancer's Goggles' deferred {R}, both census gaps, so Lathliss, Dragon Queen's {4}{R}{R} is offered
 	})
 }
@@ -311,6 +325,7 @@ func TestStdBigReprosLockstep(t *testing.T) {
 		{"replacement_answer_mid_payment_pays_through_window", true, false}, // gorge's payment plan stops at a step that poses a decision, so Legion Extruder's second Treasure, behind Rest in Peace's order ask, is activated by the manual window, which asks its colour
 		{"sba_batch_asks_before_tokens_cease", true, false},                 // CR 704.3: three Golems destroyed at once under Rest in Peace are each asked which replacement applies, and the two already in exile cease at the next check, not between the asks
 		{"ability_target_before_cost_replacement", true, false},             // CR 601.2c: Harvester of Misery's target is a target of the ability before Rest in Peace asks where its discarded source goes
+		{"rest_in_peace_ask_between_cost_parts", true, false},               // CR 602.2b: the {T} part is paid before the discard, so the replacement ask the discard raises with two Rest in Peace sees Fomori Vault already tapped
 	})
 }
 
@@ -437,6 +452,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"widened_restricted_source_granted_island_colour_first", true, false},  // CR 305.6, 601.2g: Jasmine Dragon Tea Shop made an Island taps for its intrinsic {U}, not its restricted any-colour {R}, toward Earthen Ally's {2}{W}{U}{B}{R}{G}: gorge's witness ranks an intrinsic ability before a printed one, so Avatar Kyoshi makes the six {R}
 		{"attached_and_global_mana_grants_follow_the_static_walk", true, false}, // CR 613.7, 605.1a: Honest Work's {T}: Add {C} on a land of the other seat is listed after Great Divide Guide's any-colour grant, as gorge walks the statics by seat
 		{"waterbend_self_taps_watcher_census", false, true},                     // CR 605.1b, 701.67a: Great Divide Guide's granted {T} ability on Compassionate Healer fires the Healer's own Taps watcher, which gorge's census cannot price, so the waterbend announcement offers Done
+		{"free_waterbend_cast_stranded_reverses_untapped", true, false},         // CR 733.1: Benevolent River Spirit cast free off Solstice Revelations with Ty Lee waterbent leaves {4} no source pays; the cast reverses before the Mountain taps
 	})
 }
 
@@ -554,6 +570,9 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"wide_restricted_source_funds_hand_ability", true, false},                 // CR 106.6, 601.2g: Flamebraider's two any-colour mana for an Elemental pays Kulrath Zealot's basic landcycling, a hand activation the census has no unit for
 		{"behold_exile_cast_pays_restricted_wide_mana", false, false},              // CR 106.6, 601.2g: Champion of the Path cast from Sanar's exile is affordable through Flamebraider's restricted two mana, which gorge's prefix search taps ahead of the pricing
 		{"behold_exile_cast_tap_another_source_not_census_gap", false, false},      // CR 601.2g: a plain hand Champions of the Shoal is not one of gorge's potential plays (shape:additional_cost is refused before the mana is priced), so no prefix search taps Springleaf Drum for it and dirac must not offer the cast
+		{"reversed_cast_keeps_same_taps", true, false},                             // CR 733.1: Sun-Dappled Celebrant's convoke picks strand its cost over Eclipsed Realms' Treefolk mana; the cast reverses before any land taps
+		{"reversed_cast_keeps_mana_ability_trigger", false, false},                 // CR 733.1: Springleaf Drum tapped Wanderwine Distracter for Appeal to Eirdu; the cast is reversed, the mana ability is not, so the "becomes tapped" trigger stays queued
+		{"reversed_cast_trigger_push_is_progress", true, false},                    // CR 733.2: Silvergill Peddler's kept tap trigger is pushed after Disruptor of Currents' reversal, so a second no-progress reversal still leaves the cast offered
 	})
 }
 
@@ -586,10 +605,11 @@ func TestStdLciReprosLockstep(t *testing.T) {
 func TestStdSpmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-spm", []stdRepro{
-		{"tapcost_source_not_paid_with_itself", false, false},              // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
-		{"tap_two_forced_answer_taps_the_plays_own_source", false, false},  // CR 602.2b: the Parents' second activation has exactly two candidates, so nothing is asked and the forced tap takes Guy; the search drops that line and reaches the pair that leaves Spider Manifestation untapped within its budget
-		{"web_watch_exile_x_restricted_mana", true, false},                 // CR 106.6, 601.2b: Morlun cast from exile under Interdimensional Web Watch's permission announces an X its two restricted mana pay for, as gorge's xAsk does
-		{"face_down_exile_played_face_up_not_creature_entry", true, false}, // CR 708.2: a land exiled face down by Black Cat and played face up enters as a land, not the 2/2 face-down creature, so Spider-UK's end-step count stays at 1
+		{"tapcost_source_not_paid_with_itself", false, false},               // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
+		{"tap_two_forced_answer_taps_the_plays_own_source", false, false},   // CR 602.2b: the Parents' second activation has exactly two candidates, so nothing is asked and the forced tap takes Guy; the search drops that line and reaches the pair that leaves Spider Manifestation untapped within its budget
+		{"web_watch_exile_x_restricted_mana", true, false},                  // CR 106.6, 601.2b: Morlun cast from exile under Interdimensional Web Watch's permission announces an X its two restricted mana pay for, as gorge's xAsk does
+		{"face_down_exile_played_face_up_not_creature_entry", true, false},  // CR 708.2: a land exiled face down by Black Cat and played face up enters as a land, not the 2/2 face-down creature, so Spider-UK's end-step count stays at 1
+		{"convoked_tap_another_source_keeps_census_complete", false, false}, // CR 601.2g, 733.1: Supportive Parents convoked for Web of Life and Destiny is no window source, so the stranded cast reverses before Guy in the Chair or a Forest taps
 	})
 }
 

@@ -189,10 +189,69 @@ func (c *czallPend) add(p uint8, os []Obj, from []kop.Zone) {
 	}
 }
 
-func (c *czallPend) place(s *State) {
+func (c *czallPend) place(s *State, carry *czallCarry) {
 	for p := 0; p < 2; p++ {
 		if c.n[p] > 0 {
-			s.libTopInOrder(c.list[p][:c.n[p]], c.from[p][:c.n[p]])
+			s.czallPlace(c.list[p][:c.n[p]], c.from[p][:c.n[p]], carry)
 		}
 	}
+}
+
+// czallCarry is the per-owner prefix a library-bound ChangeZoneAll has
+// already placed when a CR 903.9b commander move parks the sweep. The
+// answer's re-run places the cards after the park on top of that prefix;
+// rotating each new group under it restores gorge's move order (the first
+// moved on top) without touching the earlier cards again (a second MoveZone
+// would make them new objects, CR 400.7). k is carried in the parked ask's
+// spare bytes across the answer, so the sweep needs no State field.
+type czallCarry struct{ k [2]int }
+
+// load reads the carried prefix of an answered commander park at the
+// instruction's re-run.
+func (c *czallCarry) load(pre *preAsk) {
+	if pre.kind == akCmdZone && (pre.state == preCmdZoneMove || pre.state == preCmdZoneCmd) {
+		c.k[0], c.k[1] = int(pre.val), int(pre.val2)
+	}
+}
+
+// store writes the carried prefix for the next park.
+func (c *czallCarry) store(pre *preAsk) {
+	pre.val, pre.val2 = uint8(c.k[0]), uint8(c.k[1])
+}
+
+// czallPlace puts os on top of their owners' libraries in move order. When
+// the sweep was parked earlier, the owner's new group is rotated under the
+// prefix placed before the park, so the moved cards end up in gorge's order
+// (libraryOrderPlacement: the first moved on top).
+func (s *State) czallPlace(os []Obj, from []kop.Zone, c *czallCarry) {
+	if len(os) == 0 {
+		return
+	}
+	s.libTopInOrder(os, from)
+	var m [2]int
+	for _, o := range os {
+		if s.objs[o].zone == kop.ZoneLibrary {
+			m[s.objs[o].owner()&1]++
+		}
+	}
+	for p := 0; p < 2; p++ {
+		if m[p] == 0 {
+			continue
+		}
+		if c.k[p] > 0 {
+			s.libRotateTop(uint8(p), c.k[p]+m[p], m[p])
+		}
+		c.k[p] += m[p]
+	}
+}
+
+// libRotateTop rotates the top total cards of p's library left by m: the
+// group just placed moves under the prefix placed before it.
+func (s *State) libRotateTop(p uint8, total, m int) {
+	pl := &s.pl[p]
+	lo := int(pl.libLo)
+	var tmp [MaxDeck]Obj
+	copy(tmp[:], pl.lib[lo+m:lo+total])
+	copy(tmp[total-m:], pl.lib[lo:lo+m])
+	copy(pl.lib[lo:lo+total], tmp[:total])
 }
