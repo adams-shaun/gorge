@@ -537,7 +537,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"either_or_unpayable_part_tap_another_source_keeps_target", false, false}, // CR 601.2g: Bogslither's Embrace's unaffordable {3} part goes on to its target menu while an untapped Springleaf Drum, with no creature to tap, leaves gorge's window census incomplete
 		{"wide_restricted_source_funds_hand_ability", true, false},                 // CR 106.6, 601.2g: Flamebraider's two any-colour mana for an Elemental pays Kulrath Zealot's basic landcycling, a hand activation the census has no unit for
 		{"behold_exile_cast_pays_restricted_wide_mana", false, false},              // CR 106.6, 601.2g: Champion of the Path cast from Sanar's exile is affordable through Flamebraider's restricted two mana, which gorge's prefix search taps ahead of the pricing
-		{"behold_exile_cast_tap_another_source_not_census_gap", false, false},      // CR 601.2g: Champions of the Shoal is not offered on four mana only through Springleaf Drum's tap-another ability, which gorge's behold-exile offer does not count
+		{"behold_exile_cast_tap_another_source_not_census_gap", false, false},      // CR 601.2g: a plain hand Champions of the Shoal is not one of gorge's potential plays (shape:additional_cost is refused before the mana is priced), so no prefix search taps Springleaf Drum for it and dirac must not offer the cast
 	})
 }
 
