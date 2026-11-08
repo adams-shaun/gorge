@@ -215,8 +215,8 @@ func TestBindingNegotiationExileReturnLockstep(t *testing.T) {
 		CloseSide(k)
 		games++
 		if res.Stall != "" && res.Stall != "turns" && res.Stall != "decisions" {
-			// a turn or decision cap is the bound the brief sets; a kernel
-			// stall or a gorge trigger cap is what the test must not see
+			// a turn or decision cap is the run's bound; a kernel stall or
+			// a gorge trigger cap is what the lockstep must not see
 			stalls++
 			t.Errorf("seed %d: stalled: %s", seed, res.Stall)
 		}
