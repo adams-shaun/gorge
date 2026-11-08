@@ -62,7 +62,7 @@ const (
 // (the slice is kept, not copied, and must stay unchanged until cleared); nil
 // clears it. Group B reads it only while ExtBelief is on.
 //
-// Pass the search's closed-list belief (four-yay kplay `:closedlist`), not the
+// Pass the search's closed-list belief (the hosted player's), not the
 // true list: a net trained on the true list learns a fact hosted play never has.
 func (e *Encoder) SetOppBelief(counts []uint8) {
 	e.belief, e.bThreat, e.bAnswer = counts, 0, 0
