@@ -114,6 +114,19 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 		}
 		c := t.cardAt(sl)
 		if restrWideAnyMana(&k.t.Cards[c].Abilities[k.gen.anyR(c)]) {
+			off := uint8(0)
+			if t.wideSecond(k, sl) {
+				// the first tick was the "choose a mana ability" ask; the
+				// first ability's colours, then the allocation ask's node
+				// (mana_restrictedcombo.go)
+				if fs.wide2FirstColours(func(col uint8) bool { return try(otherStep{kind: otherAnyR, ans: col}) }) {
+					return true
+				}
+				if !fs.tick() {
+					return false
+				}
+				off = kop.NumManaKinds - 1
+			}
 			// the two-unit ask: per-unit answers, W W, W U ... G G, a mirrored
 			// pair charging its node and finding the state seen. An answer
 			// naming a colour the play announces comes first (gorge's
@@ -150,7 +163,7 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 				}
 			}
 			for i := 0; i < nf; i++ {
-				if try(otherStep{kind: otherAnyR, ans: ps[i].ans}) {
+				if try(otherStep{kind: otherAnyR, ans: off + ps[i].ans}) {
 					return true
 				}
 			}
