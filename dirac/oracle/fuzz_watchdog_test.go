@@ -12,7 +12,7 @@ func TestWithinTimeoutRetryRecovers(t *testing.T) {
 	var calls atomic.Int32
 	release := make(chan struct{})
 	t.Cleanup(func() { close(release) })
-	got := WithinTimeoutRetry(20*time.Millisecond, func() int {
+	got := WithinTimeoutRetry(time.Second, true, func() int {
 		if calls.Add(1) == 1 {
 			<-release
 		}
@@ -32,7 +32,7 @@ func TestWithinTimeoutRetryGivesUpAfterTwo(t *testing.T) {
 	var calls atomic.Int32
 	release := make(chan struct{})
 	t.Cleanup(func() { close(release) })
-	got := WithinTimeoutRetry(20*time.Millisecond, func() int {
+	got := WithinTimeoutRetry(time.Second, true, func() int {
 		calls.Add(1)
 		<-release
 		return 7
@@ -49,7 +49,7 @@ func TestWithinTimeoutRetryGivesUpAfterTwo(t *testing.T) {
 // retried.
 func TestWithinTimeoutRetryNoWatchdogDoesNotRetry(t *testing.T) {
 	var calls atomic.Int32
-	got := WithinTimeoutRetry(0, func() int {
+	got := WithinTimeoutRetry(0, true, func() int {
 		calls.Add(1)
 		return 7
 	}, -1)

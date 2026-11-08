@@ -72,7 +72,7 @@ func reportOf(t *testing.T, out []played, absolute bool) (int, string) {
 func TestFuzzHangIsAFailure(t *testing.T) {
 	release := make(chan struct{})
 	t.Cleanup(func() { close(release) })
-	out := playAll(3, 1, time.Second, func(i int) played {
+	out := playAll(3, 1, time.Second, true, func(i int) played {
 		if i == 1 {
 			return lockstepStub(release)
 		}
@@ -100,7 +100,7 @@ func TestFuzzHangIsAFailure(t *testing.T) {
 
 // A watchdog off (-game-timeout 0) still returns the game.
 func TestFuzzNoWatchdogWaits(t *testing.T) {
-	out := playAll(2, 2, 0, func(int) played { return lockstepStub(nil) })
+	out := playAll(2, 2, 0, true, func(int) played { return lockstepStub(nil) })
 	if out[0].hang || out[1].hang || !out[0].res.Over || !out[1].res.Over {
 		t.Fatalf("outcomes %+v", out)
 	}
@@ -108,7 +108,7 @@ func TestFuzzNoWatchdogWaits(t *testing.T) {
 
 // A panic while building a game fails that pair and leaves the sweep running.
 func TestFuzzSetupPanicIsCounted(t *testing.T) {
-	out := playAll(3, 1, time.Second, func(i int) played {
+	out := playAll(3, 1, time.Second, true, func(i int) played {
 		if i == 0 {
 			panic("table build exploded")
 		}
@@ -308,7 +308,7 @@ func TestFuzzVanillaHangIsAFailure(t *testing.T) {
 	if code != 1 {
 		t.Errorf("exit %d, want 1\n%s", code, stdout)
 	}
-	for _, want := range []string{"game 1 (vanilla 1 vs", "hang: no result after 1s", "vanilla: 3 games, 2 without divergence (lead gorge); first divergences: hang=1"} {
+	for _, want := range []string{"game 1 (vanilla 1 vs", "hang: no result after two watchdogs of 1s", "vanilla: 3 games, 2 without divergence (lead gorge); first divergences: hang=1"} {
 		if !strings.Contains(stdout, want) {
 			t.Errorf("no %q in\n%s", want, stdout)
 		}
