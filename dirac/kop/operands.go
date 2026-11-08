@@ -439,6 +439,16 @@ const LibBottomShuffle = 7
 // library joins the remembered set.
 const LibBottomRememberGrave = 9
 
+// LibTopGrave and LibBottomGrave are OpToLibrary's C for a trigger object's
+// Origin$ Graveyard move to the top (LibraryPosition$ absent or 0) or the
+// bottom (-1) of its owner's library: a card no longer in the graveyard (put
+// into a hand in response, so a new object, CR 400.7) does not move (gorge's
+// Origin$ precondition on the object path). Fell Horseman.
+const (
+	LibTopGrave    = 10
+	LibBottomGrave = 11
+)
+
 // Delayed program timings (OpDelayedProgram A; 0 = the next end step).
 const (
 	DelayUpkeep     = 1 // the next upkeep of any player (gorge Phase$ Upkeep, ValidPlayer$ Player)
