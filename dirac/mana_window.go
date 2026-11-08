@@ -668,6 +668,15 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 // A Treasure prices like any tapped source: gorge's census counts it as a unit
 // (castWindowPays).
 func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (ok, known bool) {
+	ok, known, _ = s.windowDryRestr(k, p, cost, anyColor)
+	return ok, known
+}
+
+// windowDryRestr is windowDry, and also reports whether the walk stopped
+// unknown only because a source's restricted ability is owed ahead of its
+// census one (windowRestrOwed): mana gorge's census prices as a typed unit
+// (castWindowReachable), which the real walk on a fork can count.
+func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (ok, known, restr bool) {
 	pool := s.pl[p].pool
 	var tapped [MaxPerm]Slot
 	var flags [MaxPerm]uint16
@@ -694,7 +703,7 @@ func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (
 			// State.rb, which this plain-pool census cannot model. Leave the
 			// walk to the caller's full probe.
 			if _, _, owed := s.windowRestrOwed(k, p, sl, cost); owed {
-				ok, known = false, false
+				ok, known, restr = false, false, true
 				break
 			}
 		}
@@ -715,7 +724,7 @@ func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (
 		s.perms[tapped[i]].flags, s.perms[tapped[i]].actUsed = flags[i], used[i]
 	}
 	s.pl[p].pool = pool
-	return ok, known
+	return ok, known, restr
 }
 
 // windowDryFilter is windowDry's step over a first-only filter the floating mana
@@ -2846,12 +2855,26 @@ func (s *State) reverseActivation(k *prep, saved *[len(build{}.picks)]uint8, hos
 // committed can't also tap for mana, so that answer is an illegal action, undone
 // before any mana is activated (CR 601.2g-h, 602.2b, 733.1; gorge
 // reverseStrandedPayment). The picks are already out of the sources; a census that
-// can't price every source leaves the window open.
+// can't price every source leaves the window open. A restricted source the
+// payment may spend (Eclipsed Realms' chosen-type mana for a Treefolk) is a unit
+// gorge's census prices (castWindowReachable's typed pool), so the dry walk's
+// restricted stop is settled by the real walk on a fork, as targetWindowShort
+// does: the window must not tap and float mana for a cast the census already
+// reverses before any mana ability (CR 733.1).
 func (s *State) paymentStranded(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
 	if k.gen == nil || s.bld().pickN == 0 || !s.committedPicks() || !s.windowCensusComplete(k, e) {
 		return false
 	}
-	ok, known := s.windowDry(k, e.ctrl, cost, s.bld().bfl&bflAnyColor != 0)
+	anyColor := s.bld().bfl&bflAnyColor != 0
+	ok, known, restr := s.windowDryRestr(k, e.ctrl, cost, anyColor)
+	if !known && restr {
+		saved := s.fork()
+		defer s.unfork()
+		c := *cost
+		ok, _ = s.windowTapRider(k, e.ctrl, &c, false, anyColor)
+		s.CopyFrom(saved)
+		return !ok
+	}
 	return known && !ok
 }
 
