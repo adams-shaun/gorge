@@ -1554,6 +1554,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 	// granted source that precedes it in battlefield order, which gorge's search
 	// taps first (Imprisoned in the Moon's land beside Goggles).
 	grantFirst := grants && (a.Kind() == AkActivate && k.gen.anyFilt && s.filtOnly(k, p) || k.gen.anyDeferred && s.scriptDeferred(k, p).any())
+	grantFirst = grantFirst || grants && s.deferBesideGrant(k, p) // the same one search (mana_grantdeferred.go)
 	if grantFirst {
 		s.grantPrefix(k, a, p)
 		if s.npend != 0 {

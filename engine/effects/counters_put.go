@@ -572,7 +572,7 @@ func putCounterDefined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	if PutCounterOf(sa).OwnTargets {
 		ts = targetsStillChosen(h.Game(), c, ts)
 	}
-	if len(c.TriggerRememberedMoved) > 0 && definedSpecCodes.Code(DefinedRefOf(sa).Text) == definedSpecTriggeredCard {
+	if len(c.TriggerRememberedMoved) > 0 && triggeredCardFamilyDefined(DefinedRefOf(sa)) {
 		ts = dropTriggerRememberedMoved(c, ts)
 	}
 	return ts

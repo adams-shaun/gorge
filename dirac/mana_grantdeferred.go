@@ -34,3 +34,25 @@ func (s *State) deferApply(k *prep, p uint8, sl Slot) {
 	s.manaTapped(k, sl)
 	s.floatDeferred(k, p, sl)
 }
+
+// deferBesideGrant reports whether p has an untapped deferred source while a
+// permanent of p's holds a granted mana ability. gorge's one prefix search
+// activates both census gaps in battlefield order (potential_script.go
+// scriptSearch.visit), and the grant search is that search (its candidates
+// list the deferred source), so applyPriority runs it before the scripted-gap
+// prefix, which would tap the deferred source alone: Storm Fleet Spy under
+// Imprisoned in the Moon ({T}: Add {C}) entered before Pyromancer's Goggles,
+// and gorge taps it first for Shivan Dragon's {R} pump, then the Goggles
+// (CR 601.2g, 602.2b).
+func (s *State) deferBesideGrant(k *prep, p uint8) bool {
+	if !s.scriptDeferred(k, p).any() {
+		return false
+	}
+	for m := s.ctrlM[p&1].and(s.occ); m.any(); m = m.rest() {
+		var gi [maxGrants]int16
+		if s.grantIdxs(k, m.first(), &gi) > 0 {
+			return true
+		}
+	}
+	return false
+}
