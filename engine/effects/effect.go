@@ -1364,6 +1364,15 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ExileOnMoved:  exileOn,
 				ForgetCounter: forgetCounter,
 			}
+			if strings.EqualFold(strings.TrimSpace(rawDur), "UntilHostLeavesPlayOrEOT") {
+				// "For as long as the host stays on the battlefield, until end of
+				// turn" (Resilient Roadrunner): the host that leaves and returns is
+				// a new object (CR 400.7), so the registration is anchored to the
+				// incarnation that made it, as continuousLive reads for UntilEOT.
+				if host := h.Game().Obj(c.Source); host != nil && host.Zone == state.ZBattlefield {
+					ce.SourceIncarnation = host.Incarnation
+				}
+			}
 			if IsUntilTargetedUntapsDuration(rawDur) {
 				// CR 611.2b: the lock lasts while the remembered object stays
 				// tapped, past the end of the turn and whatever becomes of the
