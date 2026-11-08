@@ -599,7 +599,8 @@ func foldClonePermanent(g *state.Game, e *Event) {
 	o.CloneSeq++
 	locked := sf
 	o.CloneLayers = append(append([]state.CloneLayer(nil), o.CloneLayers...),
-		state.CloneLayer{Seq: o.CloneSeq, Face: &locked, GainThisAbility: o.CopyGainThisAbility})
+		state.CloneLayer{Seq: o.CloneSeq, Face: &locked, GainThisAbility: o.CopyGainThisAbility,
+			Prototype: src != nil && src.CastFlags&state.FlagPrototype != 0})
 	o.SetCopyFace(&sf)
 	// CR 718.3c/d: a permanent that becomes a copy of a prototyped permanent
 	// is prototyped; a chosen-name copy has no prototyped source.
@@ -685,7 +686,11 @@ func rebaseCloneLayers(o *state.Object, live string) bool {
 	top := kept[len(kept)-1]
 	o.CloneLayers = kept
 	o.CopyGainThisAbility = top.GainThisAbility
+	// CR 718.3c: the locked copy is prototyped iff its source was then
 	o.CastFlags &^= state.FlagPrototype
+	if top.Prototype {
+		o.CastFlags |= state.FlagPrototype
+	}
 	o.SetCopyFace(top.Face)
 	return true
 }

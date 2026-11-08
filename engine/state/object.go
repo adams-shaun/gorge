@@ -52,11 +52,14 @@ type TargetStamp struct {
 // CloneLayer is one layer-1 copy effect on a permanent: Seq is its
 // application ordinal (state.Object.CloneSeq at the time), Face the copiable
 // values locked when it was applied, before the effect's CopyExcept/CloneStatic
-// edits (those are re-emitted on a re-base), and GainThisAbility its rider.
+// edits (those are re-emitted on a re-base), GainThisAbility its rider, and
+// Prototype whether the copied source was prototyped (CR 718.3c: part of what
+// the copy locks).
 type CloneLayer struct {
 	Seq             int32
 	Face            *cards.Face
 	GainThisAbility bool
+	Prototype       bool
 }
 
 // GoadEffect is one independently-lived CR 701.38 goad relationship.
