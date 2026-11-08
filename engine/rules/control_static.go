@@ -188,8 +188,17 @@ func (e *Engine) reconcileControlStatics() {
 	}
 	e.reconcilingControlStatics = true
 	defer func() { e.reconcilingControlStatics = false }()
-	for _, w := range e.staticControlWants() {
+	wants := e.staticControlWants()
+	for i, w := range wants {
 		if e.staticGrantTracked(w) {
+			continue
+		}
+		// CR 613.7: two live statics that both name the bearer's controller
+		// apply in timestamp order, and the later one wins. An older static
+		// whose controller already holds the bearer registers no grant, so
+		// without this it would register on a later emit, after the newer
+		// static's grant, and win by registration order instead.
+		if staticWantShadowed(wants, i) {
 			continue
 		}
 		o, src := e.G.Obj(w.obj), e.G.Obj(w.source)
@@ -225,4 +234,18 @@ func (e *Engine) reconcileControlStatics() {
 			e.controlGrants[len(e.controlGrants)-1].static = true
 		}
 	}
+}
+
+// staticWantShadowed reports whether another wanted transfer of the same
+// bearer comes from a static with a later timestamp than wants[i]'s source
+// (CR 613.7). The shadowed static still lives (grantEnded reads the full
+// wanted set); it only waits to register until the newer one stops.
+func staticWantShadowed(wants []staticWant, i int) bool {
+	w := wants[i]
+	for j := range wants {
+		if j != i && wants[j].obj == w.obj && wants[j].objStamp == w.objStamp && wants[j].sourceStamp > w.sourceStamp {
+			return true
+		}
+	}
+	return false
 }
