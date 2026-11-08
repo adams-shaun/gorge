@@ -20,9 +20,9 @@ func TestHermiticHerbalistComboLockstep(t *testing.T) {
 		return
 	}
 	opp := []cardset.Entry{{Name: "Platypus-Bear", Count: 10}, {Name: "Ostrich-Horse", Count: 10}, {Name: "Forest", Count: 10}, {Name: "Island", Count: 10}}
-	lessons := []cardset.Entry{{Name: "Hermitic Herbalist", Count: 4}, {Name: "Badgermole Cub", Count: 2}, {Name: "Sokka's Haiku", Count: 3},
-		{Name: "Waterbending Lesson", Count: 3}, {Name: "It'll Quench Ya!", Count: 3}, {Name: "Rockalanche", Count: 3}, {Name: "True Ancestry", Count: 2},
-		{Name: "Mountain", Count: 10}, {Name: "Forest", Count: 10}}
+	lessons := []cardset.Entry{{Name: "Hermitic Herbalist", Count: 5}, {Name: "Badgermole Cub", Count: 4}, {Name: "Sokka's Haiku", Count: 3},
+		{Name: "Waterbending Lesson", Count: 4}, {Name: "It'll Quench Ya!", Count: 2}, {Name: "Rockalanche", Count: 3},
+		{Name: "Mountain", Count: 10}, {Name: "Forest", Count: 9}}
 	noLesson := []cardset.Entry{{Name: "Hermitic Herbalist", Count: 6}, {Name: "Badgermole Cub", Count: 4}, {Name: "Platypus-Bear", Count: 6},
 		{Name: "Ostrich-Horse", Count: 6}, {Name: "Island", Count: 9}, {Name: "Forest", Count: 9}}
 	hideout := []cardset.Entry{{Name: "Hermitic Herbalist", Count: 4}, {Name: "White Lotus Hideout", Count: 4}, {Name: "Waterbending Lesson", Count: 4},
