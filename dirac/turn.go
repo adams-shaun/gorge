@@ -465,7 +465,7 @@ func (s *State) sba(k *prep) bool {
 		if k.gen != nil && k.gen.ctrlSBA {
 			s.ctrlSBA(k) // layer-2 control records and statics (static_control.go)
 		}
-		if s.cmdZoneAsk(k) { // CR 903.9a, before the lose checks (zone_cmdzone.go)
+		if s.cmdZoneAsk() { // CR 903.9a, before the lose checks (zone_cmdzone.go)
 			return true
 		}
 		if s.g.lingerM.any() && !s.parkedWaiting() && !s.legendOwed(k) {

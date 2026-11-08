@@ -137,3 +137,39 @@ func TestCommanderZoneArrivalOrder(t *testing.T) {
 		t.Fatalf("decision kind=%d sub=%d player=%d, want seat 1's commander-zone ask", d.Kind, d.Sub, d.Player)
 	}
 }
+
+// TestCommanderZoneAskBeforeLegend: one resolution can leave a commander in
+// the graveyard and a legend duplicate on the battlefield, so both asks are
+// owed at the same pass start. Gorge's commanderZoneSBA runs before the pass
+// parks its legend batch, so the commander ask comes first; declining it then
+// leaves the legend ask for the re-run.
+func TestCommanderZoneAskBeforeLegend(t *testing.T) {
+	tbl, card := commanderTable(0)
+	tbl.Cards[card].Types |= kop.TLegendary
+	sc := newCommanderScen(t, tbl, card, true)
+	s := sc.s
+	o := s.pl[0].cmd
+	s.detach(o)
+	sl := s.enter(sc.k, o, 0, false, kop.ZoneCommand)
+	s.perms[sl].flags &^= pfSick
+	s.leave(sc.k, sl, kop.ZoneGraveyard, false)
+	if z := s.objs[o].zone; z != kop.ZoneGraveyard {
+		t.Fatalf("setup: commander in zone %v, want the graveyard", z)
+	}
+	if s.objs[o].ver == s.pl[0].cmdAsk {
+		t.Fatalf("setup: commander ver %d still at the ask watermark", s.objs[o].ver)
+	}
+	sc.perm(card, 0)
+	sc.perm(card, 0)
+	if !s.legendOwed(sc.k) {
+		t.Fatal("setup: the legend duplicate does not owe a keep ask")
+	}
+	d := s.Step()
+	if d.Kind != DkChoose || d.Sub != ChCommanderZone || d.Player != 0 {
+		t.Fatalf("first decision kind=%d sub=%d player=%d, want the commander-zone ask before the legend ask", d.Kind, d.Sub, d.Player)
+	}
+	s.Apply(MakeAction(AkChoose, uint8(o), 0, 1)) // leave it: the legend ask is still owed
+	if d := s.Step(); d.Kind != DkChoose || d.Sub != ChLegend {
+		t.Fatalf("after declining the commander, decision kind=%d sub=%d, want the legend keep ask", d.Kind, d.Sub)
+	}
+}

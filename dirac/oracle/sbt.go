@@ -576,6 +576,13 @@ func (a *SBT) gorgeDecision(s *dirac.State, d *dirac.Decision) (*decision.Decisi
 			o.Kind = "bottom"
 		case k == ActKeep:
 			o.Kind = "keep"
+		case k == ActCommanderZone:
+			// CR 903.9a: gorge's command_zone (mode 0) / leave (mode 1)
+			o.Kind = "command_zone"
+			key = uint32(c.Mode())
+			if c.Mode() == 1 {
+				o.Kind = "leave"
+			}
 		case k == ActMulligan:
 			o.Kind = "mulligan"
 		case k >= ActChoose:
@@ -641,6 +648,8 @@ func (a *SBT) gorgeDecision(s *dirac.State, d *dirac.Decision) (*decision.Decisi
 		gd.Kind = decision.KArrange
 	case DReplacement:
 		gd.Kind = decision.KReplacement
+	case DCommanderZone:
+		gd.Kind, gd.Prompt = decision.KCommanderZone, "Put this commander into the command zone?"
 	case DMulligan:
 		gd.Kind = decision.KMulligan
 	default:

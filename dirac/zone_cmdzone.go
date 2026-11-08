@@ -49,10 +49,13 @@ func (s *State) cmdZoneFirstDue() (uint8, bool) {
 }
 
 // cmdZoneAsk poses the pass-start CR 903.9a ask when it is owed and no other
-// ask of the pass (a legend choice or a parked move) is outstanding. It
-// reports whether it posed one; the sba loop then returns and Step builds the
-// decision from the ctlCmdZone* state.
-func (s *State) cmdZoneAsk(k *prep) bool {
+// ask of the pass (a parked move or a queued as-enters ask) is outstanding.
+// A legend ask already posed is ctlLegend, which the control-state switch
+// below rejects; a legend duplicate merely owed this pass does not defer the
+// commander ask (gorge's guard is legendBatch, parked only later in the
+// pass). It reports whether it posed one; the sba loop then returns and Step
+// builds the decision from the ctlCmdZone* state.
+func (s *State) cmdZoneAsk() bool {
 	if s.cfg&cfgCommander == 0 || s.over {
 		return false
 	}
@@ -63,7 +66,7 @@ func (s *State) cmdZoneAsk(k *prep) bool {
 	default:
 		return false
 	}
-	if s.parkedWaiting() || s.legendOwed(k) || s.g.nask != 0 {
+	if s.parkedWaiting() || s.g.nask != 0 {
 		return false
 	}
 	p, ok := s.cmdZoneFirstDue()

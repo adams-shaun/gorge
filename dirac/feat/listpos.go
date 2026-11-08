@@ -221,6 +221,8 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 			return uint32(src) // gorge's modes over the castable cards, in object order
 		case dirac.ChGenReplOrder:
 			return uint32(mode) // the candidate's index in gorge's replacement scan
+		case dirac.ChCommanderZone:
+			return uint32(mode) // command_zone (0) then leave (1), as gorge lists them
 		}
 		return e.zoneOf(src).key()
 	}

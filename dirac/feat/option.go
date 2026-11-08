@@ -105,6 +105,8 @@ const (
 	okCounterPick // gorge's bolster "counter_pick" (kernel ChGenBolster)
 	okProliferate // gorge's "proliferate" pick (kernel ChGenProlif)
 	okPayGeneric  // gorge's twobrid generic face pay_generic (kernel ChGenPip mode 6)
+	okCommandZone // gorge's KCommanderZone "command_zone" (kernel ChCommanderZone mode 0)
+	okLeave       // gorge's KCommanderZone "leave" (kernel ChCommanderZone mode 1)
 	numOK
 )
 
@@ -113,7 +115,8 @@ var kindNames = [numOK]string{"pass", "play_land", "cast", "ability", "attacker"
 	"discard", "tapcost", "division", "graveyard",
 	"search", "hidden_pick", "hand_move", "dig", "twopiles", "pile-a", "pile-b", "primary",
 	"trigger_cost_pay", "trigger_cost_decline", "color", "type", "opening_yes", "opening_no", "number", "dig_bottom", "altaddcost", "replacement",
-	"pay_W", "pay_U", "pay_B", "pay_R", "pay_G", "enchant", "subcounter", "divide", "reveal", "tap", "untap", "top", "counter_pick", "proliferate", "pay_generic"}
+	"pay_W", "pay_U", "pay_B", "pay_R", "pay_G", "enchant", "subcounter", "divide", "reveal", "tap", "untap", "top", "counter_pick", "proliferate", "pay_generic",
+	"command_zone", "leave"}
 
 // decision kinds (indices into decisionKinds), -1 = other.
 const (
@@ -318,10 +321,10 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 		case dirac.ChLegend:
 			o.kind = okKeep
 		case dirac.ChCommanderZone:
-			// CR 903.9a: mode 0 accepts (command zone), mode 1 leaves it
-			o.dk, o.kind = dkCommanderZone, okYes
+			// CR 903.9a: gorge's KCommanderZone options command_zone / leave
+			o.dk, o.kind = dkCommanderZone, okCommandZone
 			if mode == 1 {
-				o.kind = okNo
+				o.kind = okLeave
 			}
 		case dirac.ChDivide:
 			o.kind = okDivision
