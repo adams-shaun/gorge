@@ -483,9 +483,10 @@ func scriptStepOf(d *decision.Decision, in decision.Intent) ScriptStep {
 }
 
 // scriptAnswers enumerates the answers to an activation's ask that
-// validate: every single option (and the empty answer when Min is 0), or
-// for a Min == Max == n unit-major colour allocation every per-unit
-// combination (at most 64).
+// validate: every single option (and the empty answer when Min is 0), for a
+// Min == Max == n object election every n-combination of its options, or for
+// a Min == Max == n unit-major colour allocation every per-unit combination
+// (each at most 64).
 func scriptAnswers(d *decision.Decision) []decision.Intent {
 	var out []decision.Intent
 	mk := func(ch []int) decision.Intent { return decision.Intent{Seq: d.Seq, Player: d.Player, Choices: ch} }
@@ -497,6 +498,8 @@ func scriptAnswers(d *decision.Decision) []decision.Intent {
 		for _, o := range d.Options {
 			out = append(out, mk([]int{o.Index}))
 		}
+	case d.Min == d.Max && !scriptManaUnits(d):
+		out = scriptSubsets(d, mk)
 	case d.Min == d.Max && len(d.Options)%d.Min == 0:
 		n, per := d.Min, len(d.Options)/d.Min
 		idx := make([]int, n)
@@ -525,6 +528,60 @@ func scriptAnswers(d *decision.Decision) []decision.Intent {
 		}
 	}
 	return valid
+}
+
+// scriptManaUnits reports whether d is a unit-major colour allocation: every
+// option names a mana symbol, one unit's colours laid out per unit. An object
+// election (a tapXType cost, say) has tapcost options with no symbol, so the
+// two shapes are told apart without counting options: a multi-object cost's
+// candidate count need not be a multiple of the number to choose.
+func scriptManaUnits(d *decision.Decision) bool {
+	if len(d.Options) == 0 {
+		return false
+	}
+	for i := range d.Options {
+		if d.Options[i].ManaSymbol == "" {
+			return false
+		}
+	}
+	return true
+}
+
+// scriptSubsets enumerates the n-combinations of d's option positions in
+// lexicographic order, mapping each position to that option's Index, capped
+// at 64 answers (the colour allocation's cap). It returns nil when n > the
+// option count.
+func scriptSubsets(d *decision.Decision, mk func([]int) decision.Intent) []decision.Intent {
+	n, k := d.Min, len(d.Options)
+	if n > k {
+		return nil
+	}
+	var out []decision.Intent
+	idx := make([]int, n)
+	for i := range idx {
+		idx[i] = i
+	}
+	for len(out) < 64 {
+		ch := make([]int, n)
+		for i, j := range idx {
+			ch[i] = d.Options[j].Index
+		}
+		out = append(out, mk(ch))
+		i := n - 1
+		for ; i >= 0; i-- {
+			if idx[i] < k-n+i {
+				idx[i]++
+				break
+			}
+		}
+		if i < 0 {
+			break
+		}
+		for j := i + 1; j < n; j++ {
+			idx[j] = idx[j-1] + 1
+		}
+	}
+	return out
 }
 
 // scriptOrderAnswers stably reorders an ask's valid answers so the ones that

@@ -292,6 +292,7 @@ type genPrep struct {
 	anyDiscRef     bool           // some expression reads RefDiscarded (value_discardedref.go)
 	anySpellCond   bool           // some spell ability carries a cast restriction in Trig.Cond (cast_spellcondition.go)
 	anyEntUntap    bool           // some ReplOthersEnterProgram untaps the entrant (ExtEnterUntapped): a tap/untap pair asks the CR 616.1 order (repl_entryorder.go)
+	anyEntAttack   bool           // some ReplOthersEnterProgram enters the entrant attacking (ExtEnterAttacking): beside another enter body it competes (repl_entryorder.go)
 	anyEachTgt     bool           // some ExtEachDamage reads damager target slots (extop.go)
 	anyXBadMV      bool           // a TgfMaxTotalMV slot: later ops on its objects see them as the resolution began (tgt_setconstraints.go)
 	anyTgtSetBf    bool           // a TgfSharedCrType slot on the battlefield (tgt_setconstraints.go)
@@ -1676,6 +1677,12 @@ type genState struct {
 	plusSrc  [2]Obj   // per player, the Boimler that made them (NoObj: more than one; the order ask's source, repl_ctrorder.go; padding)
 	cast1    uint8    // bit p: seat p has cast a spell this game, recorded only for a table reading ExFirstCast (cast_firstcast.go; padding)
 	ctrAdder uint8    // transient: the player putting the counters being placed, +1 (0: the resolving / building controller; trig_leavereturn.go; padding)
+	// ctrSettle is the entrant whose entry counters are being placed, +1
+	// (0: none). While set, the AddCounter matcher skips that permanent as a
+	// source unless its recipient filter is FSelf (CR 614.12, gorge's
+	// ownEntryCounterExcluded); the entrant's other statics stay live. Set
+	// only across one placeEntryCounters call (turn_gen.go).
+	ctrSettle uint8
 	// this turn's counter placements (ExCtrAdded; ctr_addedthisturn.go).
 	// pl: bit p set when player p put a counter on a creature; e: per object whose card
 	// reads a Self form (gfCtrAdd), fl bit p any kind by p, bit 2+p +1/+1
@@ -1784,6 +1791,12 @@ type genState struct {
 		tap  bool
 		ctrl bool
 	} // counters/tapped for the next enter (OpReturnEx)
+	// entrySelf is the slot+1 of the permanent whose entry counters are being
+	// placed (0: none). Its own general AddCounter replacement does not apply
+	// to them (CR 614.12; gorge ownEntryCounterExcluded). Set for the whole
+	// enterNF fold, which places the printed, requested, own/foreign-body and
+	// effect-borne entry counters.
+	entrySelf uint8
 	// tokPT: the P/T set the token entering next takes with its entry
 	// (act_tokenpt.go): on, the override index, the evaluated P/T
 	tokPT struct {

@@ -200,12 +200,23 @@ func (s *State) matchSpellCard(k *prep, f kop.FilterID, c CardID, owner, ctrl ui
 	return false
 }
 
+// targetsAnswered reports whether the build's target stages have passed: the
+// chosen set (none included) is what a target-dependent price reads then
+// (CR 601.2c before 601.2f), not the candidate census that priced the ask.
+func (s *State) targetsAnswered() bool {
+	switch s.bld().stage {
+	case bsDivide, bsEvidence, bsMana, bsCosts, bsPay:
+		return true
+	}
+	return false
+}
+
 // costTargetOK: the spell being built targets an object matching f, or (no
 // target chosen yet) some object could be such a target: a battlefield
 // object, or for a stack-zone f (a Spell head: Out of Air's Spell.Creature)
 // a spell on the stack (costTargetMatch, filter_heads.go).
 func (s *State) costTargetOK(k *prep, f kop.FilterID, p uint8, c CardID) bool {
-	if s.ctl == ctlBuild && (s.bld().e.nt > 0 || s.bld().stage == bsPay) { // at bsPay none means an "up to" answered with none
+	if s.ctl == ctlBuild && (s.bld().e.nt > 0 || s.targetsAnswered()) { // once the ask is answered, none means an "up to" answered with none
 		e := &s.bld().e
 		for i := 0; i < int(e.nt); i++ {
 			if s.costTargetMatch(k, f, p, e.tgt[i]) {
@@ -475,6 +486,23 @@ func (s *State) abilityAffordableTargets(k *prep, buf *[MaxOptions]uint8, n int)
 	return m
 }
 
+// markCostComposition marks a per-target cost reprice of the in-flight cast, so
+// the turn's cast counts hide its own ring push as gorge's costCompositionEvent
+// does. Without it a "second spell you cast" reduction (Highspire Bell-Ringer)
+// vanishes from the target menu while the build's own buildCost saw it.
+func (s *State) markCostComposition() (restore func()) {
+	if !s.buildLive() || s.bld().e.kind != seSpell {
+		return func() {}
+	}
+	prev := s.bld().bfl & bflCostComp
+	s.bld().bfl |= bflCostComp
+	return func() {
+		if prev == 0 {
+			s.bld().bfl &^= bflCostComp
+		}
+	}
+}
+
 // affordableTargets keeps, for a spell whose cost reduction depends on its
 // target (Luminous Rebuke), only the targets it can still pay for: all of
 // them when the full cost is affordable, else those the reduction needs.
@@ -523,7 +551,9 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 		}
 	}
 	s.g.noTgtRed = true
+	restore := s.markCostComposition()
 	full := s.adjustCostGen(k, e.ctrl, e.card, e.obj, cd.Cost)
+	restore()
 	s.g.noTgtRed = false
 	if e.flags&sfAnyMana != 0 {
 		full = anyType(full)
@@ -536,7 +566,7 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 	// the reduction pays for looks affordable.
 	full.Generic = uint8(int(full.Generic) + full.XGeneric(int(e.x)))
 	var av avail
-	s.availFor(k, e.ctrl, &av)
+	s.availForBuilt(k, e, &av)
 	if av.affords(&full, pipMaskOf(&full), 0) {
 		return n
 	}

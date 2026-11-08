@@ -792,8 +792,10 @@ func (s *State) affordsUngrantedPlay(k *prep, p uint8, a Action, cost *kop.ManaC
 	}
 	o := Obj(a.Source())
 	card := s.objs[o].card
+	src := NoSlot // the ability's source, for a sacrifice filter that reads it (Aura.Attached)
 	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {
 		card = s.cardAt(ob.slot)
+		src = ob.slot
 	}
 	ab := int(a.Mode())
 	if ab < 0 || ab >= len(k.t.Cards[card].Abilities) {
@@ -804,7 +806,7 @@ func (s *State) affordsUngrantedPlay(k *prep, p uint8, a Action, cost *kop.ManaC
 	if f&(kop.CostTapX|kop.CostSac) == 0 || f&kop.CostSac != 0 && !k.sacMana {
 		return s.affordsUngrantedFor(k, p, cost, ex, d)
 	}
-	return s.affordsUngrantedReserving(k, p, cost, ex, d, &ca.Cost, ex)
+	return s.affordsUngrantedReserving(k, p, cost, ex, d, &ca.Cost, src)
 }
 
 // manaGranted reports whether slot sl's mana ability is one an effect

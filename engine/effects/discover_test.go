@@ -35,12 +35,15 @@ func TestDiscoverExilesUntilCastableCardAndOffersItFree(t *testing.T) {
 			moves = append(moves, fmt.Sprintf("%d:%v>%v", ev.Obj, ev.From, ev.To))
 		}
 	}
+	// The rest pile (land, tooBig) is bottomed in CR 701.57a's random order:
+	// the fake host's Rand(2) is 0, so Fisher-Yates swaps the two and emits
+	// tooBig before land.
 	want := []string{
 		fmt.Sprintf("%d:%v>%v", land.ID, state.ZLibrary, state.ZExile),
 		fmt.Sprintf("%d:%v>%v", tooBig.ID, state.ZLibrary, state.ZExile),
 		fmt.Sprintf("%d:%v>%v", found.ID, state.ZLibrary, state.ZExile),
-		fmt.Sprintf("%d:%v>%v", land.ID, state.ZExile, state.ZLibrary),
 		fmt.Sprintf("%d:%v>%v", tooBig.ID, state.ZExile, state.ZLibrary),
+		fmt.Sprintf("%d:%v>%v", land.ID, state.ZExile, state.ZLibrary),
 	}
 	if !reflect.DeepEqual(moves, want) {
 		t.Fatalf("moves = %v, want %v", moves, want)

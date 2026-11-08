@@ -53,7 +53,8 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 	targeted := bestowed || tspec(k, c, spellAb(k, c), 0) != nil
 	stacked := s.subs[kop.TrigSacrificed].any()
 	anySac := s.anySacSource(k, p)
-	if !anySac || !targeted && !stacked {
+	diesTrig := s.subs[kop.TrigDies].or(s.subs[kop.TrigLeaves]).any()
+	if !anySac || !targeted && !stacked && !diesTrig {
 		return false
 	}
 	t := s.fork()
@@ -75,7 +76,54 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 			return true
 		}
 	}
-	return stacked && int(t.npend)-int(n0) > witnessWaits
+	// the wait budget counts the triggers the witness stacks, before any resolve
+	if stacked && int(t.npend)-int(n0) > witnessWaits {
+		return true
+	}
+	if plannerConsumesSac(&pk) {
+		// gorge's potentialWitnessReaches runs the witness's activations and
+		// requires the play still offered: a sacrifice whose trigger resolves
+		// to end the game before the cast (Al Bhed Salvagers draining the last
+		// life) is no witness while one that keeps the source exists
+		// (potentialWitnessKeeping). The kernel's pre-cast resolution is the
+		// same walk.
+		t.resolveLowerCounterTriggers(k, n0, k.cards[c].instant || t.castFlash(k, p, c))
+		if t.over {
+			return true
+		}
+	}
+	return s.xWitnessEndsGame(k, p, t, n0, cost)
+}
+
+// xWitnessEndsGame: the witness fork t (taken from s before the cast's pre-cast triggers
+// resolve) queued sacrifice triggers from n0 that, resolved as gorge's lowering lets them
+// resolve, end the game, while a witness that keeps the sacrificing sources pays cost at
+// X=0. gorge's potentialWitnessReaches (winOK=false) replays the witness on a clone, and
+// witnessReachesMode leaves at once on c.G.Over, so the witness "does not reach" the play
+// and potentialWitnessKeeping plans the largest X that keeps the sources (Choco-Comet's X
+// beside the Treasure and Al Bhed Salvagers, p0 at 1 life). Only a live sorcery-speed
+// build: an instant-speed cast is offered with the trigger still on the stack, below the
+// spell, so the witness reaches it; with no keeping plan gorge takes the lethal one
+// (potential_plan.go's winOK fallback; resolveLowerCounterTriggers ends the game).
+func (s *State) xWitnessEndsGame(k *prep, p uint8, t *State, n0 uint8, cost *kop.ManaCost) bool {
+	if t.npend <= n0 || !s.buildLive() {
+		return false
+	}
+	b := s.bld()
+	if b.e.kind != seSpell || k.cards[b.e.card].instant || s.castFlash(k, b.e.ctrl, b.e.card) {
+		return false
+	}
+	// the guard above leaves only the sorcery-speed build, whose triggers the
+	// lowering resolves before the cast (instant is false).
+	t.resolveLowerCounterTriggers(k, n0, false)
+	if !t.over {
+		return false
+	}
+	var av avail
+	held := s.sacSourcesHeld(k, p)
+	s.availFor(k, p, &av)
+	s.ctrlM[p] = s.ctrlM[p].or(held)
+	return av.affords(cost, pipMaskOf(cost), 0)
 }
 
 // sacSourcesHeld takes p's sacrificing mana sources out of its control mask for a witness
@@ -295,9 +343,12 @@ func (s *State) availTappedSac(k *prep, p uint8, a *avail) {
 // check would end the witness) and an optional trigger. A trigger that
 // mills, loses life, gains life or draws for a target player is answered
 // with the first player gorge's default answer names.
-func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
-	b := s.bld()
-	instant := b.e.kind == seSpell && (k.cards[b.e.card].instant || s.castFlash(k, b.e.ctrl, b.e.card))
+//
+// The caller states whether the cast being lowered is instant-speed: the offer
+// path walks this on a fork with no build live (bld holds the build only in
+// ctlBuild), so reading its entry there would take the speed of whichever card
+// was built or resolved last.
+func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 	resolved := false
 	for i := int(n0); i < int(s.npend); {
 		if s.over {

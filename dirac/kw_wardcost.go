@@ -427,7 +427,7 @@ func (s *State) resolveWardPower(k *prep) {
 		n = 255
 	}
 	if int(s.pl[e.trigPl].life) < n {
-		s.counterAt(k, idx)
+		s.wardCounterAt(k, idx)
 		s.finishResolve(k, false)
 		return
 	}

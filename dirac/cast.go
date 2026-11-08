@@ -170,7 +170,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		s.bld().bfl |= bflLowered
 	}
 	if s.npend > n0 {
-		s.resolveLowerCounterTriggers(k, n0)
+		s.resolveLowerCounterTriggers(k, n0, k.cards[c].instant || s.castFlash(k, p, c))
 	}
 }
 
@@ -439,6 +439,15 @@ func (s *State) buildAbility(k *prep) *kop.Ability {
 		return nil
 	}
 	return &k.t.Cards[s.bld().e.card].Abilities[s.bld().e.ab]
+}
+
+// buildingPowerUp reports whether the build in progress activates a
+// Power-up ability, whose asks (X, hybrid pip faces) read the CR 702.193b
+// reduced charge (gorge composes powerUpReduceCost into the activation's cost
+// before any ask).
+func (s *State) buildingPowerUp(k *prep) bool {
+	e := &s.bld().e
+	return e.kind == seAbility && k.gen != nil && k.gen.anyPowerUp && k.t.Cards[e.card].Abilities[e.ab].Cost.Flags&kop.CostPowerUp != 0
 }
 
 func (s *State) buildCost(k *prep) kop.ManaCost {
@@ -718,7 +727,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				continue
 			}
 			cost := s.buildCost(k)
-			if e.kind == seAbility && k.gen != nil && k.gen.anyPowerUp && k.t.Cards[e.card].Abilities[e.ab].Cost.Flags&kop.CostPowerUp != 0 {
+			if s.buildingPowerUp(k) {
 				cost = s.buildCostCharge(k) // a power-up's X is announced against the reduced cost (CR 702.193b, gorge xAsk)
 			}
 			if cost.X == 0 {
@@ -782,6 +791,20 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if e.faceDown() {
 				s.nextStage(k) // CR 702.37b: no additional costs on a face-down cast
 				continue
+			}
+			if e.kind == seSpell {
+				// any spell build can owe a fixed PayLife<N> the offer's cost
+				// census did not price (Wishing Well's Play). A cast with no
+				// target asks nothing before this stage, so the life part would
+				// otherwise be paid into negative life instead of reversing
+				// (CR 119.4, 601.2h, 733.1); this applies to any spell, not
+				// only a free cast. A PayLife<X> is bounded by the X ask.
+				// buildPickCost is the chosen either-or part: an alt-add cast
+				// paying its mana part owes no life (Redirect Lightning).
+				if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 && int(s.pl[e.ctrl&1].life) < int(pc.N) {
+					s.reverseCast(k)
+					return false
+				}
 			}
 			// gorge's order: sacrifice, the counter removals, discard
 			// (the forage either-or first: gorge forageAsk; an exile
@@ -920,7 +943,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.bld().ti++ // chosen mid-resolution (OpChooseTargets), as gorge asks it
 				continue
 			}
-			if !s.tgtAsksNothing(k, t, e) && (s.convokeTargetAbort(k) || s.altAddTargetAbort(k) || s.copyCastTargetWindowShort(k) || s.copyCastXTargetAbort(k, t)) {
+			if !s.tgtAsksNothing(k, t, e) && (s.convokeTargetAbort(k) || s.altAddTargetAbort(k) || s.addCostTargetAbort(k) || s.copyCastTargetWindowShort(k) || s.copyCastXTargetAbort(k, t)) {
 				// Gorge's target menu (affordableTargetCandidates) probes the
 				// CR 601.2g window and withholds every candidate of a convoke
 				// cast the announced picks plus the pool cannot complete: a
@@ -1085,6 +1108,9 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 func (s *State) pipOptions(k *prep, d *Decision) bool {
 	e := &s.bld().e
 	cost := s.buildCost(k)
+	if s.buildingPowerUp(k) {
+		cost = s.buildCostCharge(k) // the faces are priced against the CR 702.193b charge, as gorge's pip ask reads the reduced cost
+	}
 	if cost.Hyb[0] == 0 {
 		return false
 	}
@@ -1965,7 +1991,9 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 		}
 		d.N = 0
 		s.costCands(k, pc, src, d)
-		if s.bld().pickK == pkSac && int(d.N) < int(s.bld().pickLeft) {
+		if s.bld().pickK == pkSac && int(d.N) < int(s.bld().pickLeft) || s.bld().pickK == pkDiscard && d.N == 0 {
+			// no card left to discard: a free cast begun without the offer's cost census
+			// (Wishing Well's Play) reverses here, as gorge's discardAsk aborts (CR 733.1)
 			s.sacShort(k, d)
 			return true
 		}

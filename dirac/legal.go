@@ -261,7 +261,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && tgtDepReduce(&k.t.Cards[c]) && severalTargets(k, c) && !s.FeatPoolPays(p, o, 2) {
 			// gorge's potential planner prices a target-conditional reduction on
-			// a spell choosing several targets with no target: the full cost
+			// a mode spell choosing several targets with no target: the full cost
 			s.g.noTgtRed = true
 			full := s.adjustCost(k, p, c, o, k.t.Cards[c].Cost)
 			if !granted {
@@ -835,12 +835,13 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 			}
 			return a.affords(&cost, pipMaskOf(&cost), 0)
 		}
-		// the potential planner prices a single target only; a spell choosing
-		// several stays at the full cost in that composition
-		// (potentialModeCastPlan's TargetMax$ decline)
-		s.g.noTgtRed = severalTargets(k, c)
+		// gorge's potential planner prices the cheapest legal target set for
+		// a target-dependent price, including a spell choosing several
+		// targets (potentialTargetPricedPlan): one matching target in the
+		// announced set applies a flat "if it targets ..." reduction, so the
+		// composed cost already carries it (costTargetOK finds the matching
+		// candidate).
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
-		s.g.noTgtRed = false
 		if s.g.mayPlayAny {
 			cost = anyType(cost)
 		}

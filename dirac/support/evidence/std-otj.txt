@@ -32,6 +32,7 @@ Bucolic Ranch
 Cactarantula
 Cactusfolk Sureshot
 Canyon Crab
+Caught in the Crossfire
 Caustic Bronco
 Claim Jumper
 Concealed Courtyard
@@ -41,6 +42,8 @@ Consuming Ashes
 Corrupted Conviction
 Creosote Heath
 Cunning Coyote
+Dance of the Tumbleweeds
+Daring Thunder-Thief
 Deadeye Duelist
 Deepmuck Desperado
 Demonic Ruckus
@@ -50,7 +53,9 @@ Discerning Peddler
 Djinn of Fool's Fall
 Double Down
 Drover Grizzly
+Duelist of the Mind
 Dust Animus
+Emergent Haunting
 Eriette's Lullaby
 Eroded Canyon
 Explosive Derailment
@@ -58,6 +63,7 @@ Failed Fording
 Fake Your Own Death
 Ferocification
 Festering Gulch
+Final Showdown
 Fleeting Reflection
 Forest
 Forlorn Flats
@@ -72,6 +78,7 @@ Geyser Drake
 Ghired, Mirror of the Wilds
 Giant Beaver
 Gila Courser
+Gisa, the Hellraiser
 Gold Pan
 Gold Rush
 Goldvein Hydra
@@ -87,10 +94,12 @@ Honest Rutstein
 Insatiable Avarice
 Inspiring Vantage
 Intimidation Campaign
+Intrepid Stablemaster
 Inventive Wingsmith
 Irascible Wolverine
 Iron-Fist Pulverizer
 Island
+Jace Reawakened
 Jagged Barrens
 Jem Lightfoote, Sky Explorer
 Jolene, Plundering Pugilist
@@ -99,6 +108,7 @@ Kraum, Violent Cacophony
 Lassoed by the Law
 Laughing Jasper Flint
 Lavaspur Boots
+Loan Shark
 Lonely Arroyo
 Longhorn Sharpshooter
 Lush Oasis
@@ -110,16 +120,21 @@ Malcolm, the Eyes
 Map the Frontier
 Marauding Sphinx
 Marchesa, Dealer of Death
+Metamorphic Blast
 Mine Raider
+Mirage Mesa
 Miriam, Herd Whisperer
+Mobile Homestead
 Mountain
 Mourner's Surprise
+Mystical Tether
 Neutralize the Guards
 Nezumi Linkbreaker
 Nimble Brigand
 Nurturing Pixie
 Oasis Gardener
 Obeka, Splitter of Seconds
+Oko, the Ringleader
 Omenport Vigilante
 One Last Job
 Ornery Tumblewagg
@@ -130,8 +145,11 @@ Outlaw Stitcher
 Outlaws' Fury
 Overzealous Muscle
 Peerless Ropemaster
+Phantom Interference
 Pillage the Bog
+Pitiless Carnage
 Plains
+Plan the Heist
 Prickly Pair
 Prosperity Tycoon
 Quick Draw
@@ -140,6 +158,7 @@ Railway Brawler
 Rakdos Joins Up
 Rakdos, the Muscle
 Rakish Crew
+Rambling Possum
 Rattleback Apothecary
 Raucous Entertainer
 Raven of Fell Omens
@@ -153,18 +172,21 @@ Rictus Robber
 Rise of the Varmints
 Rodeo Pyromancers
 Rooftop Assassin
+Rush of Dread
 Rustler Rampage
 Ruthless Lawbringer
 Sandstorm Verge
 Satoru, the Infiltrator
 Scalestorm Summoner
 Scorching Shot
+Seize the Secrets
 Selvala, Eager Trailblazer
 Seraphic Steed
 Servant of the Stinger
 Shackle Slinger
 Shepherd of the Clouds
 Sheriff of Safe Passage
+Shifting Grift
 Shoot the Sheriff
 Silver Deputy
 Skulduggery
@@ -172,8 +194,10 @@ Slick Sequence
 Slickshot Lockpicker
 Slickshot Show-Off
 Slickshot Vault-Buster
+Smuggler's Surprise
 Snakeskin Veil
 Soured Springs
+Spinewoods Armadillo
 Spinewoods Paladin
 Spirebluff Canal
 Spring Splasher
@@ -183,11 +207,13 @@ Sterling Hound
 Sterling Keykeeper
 Sterling Supplier
 Stingerback Terror
+Stoic Sphinx
 Stop Cold
 Stubborn Burrowfiend
 Swamp
 Take Up the Shield
 Take the Fall
+Terror of the Peaks
 The Key to the Vault
 This Town Ain't Big Enough
 Three Steps Ahead
@@ -196,9 +222,11 @@ Thunder Lasso
 Thunder Salvo
 Tinybones Joins Up
 Tomb Trawler
+Trained Arynx
 Trash the Town
 Treasure Dredger
 Trick Shot
+Tumbleweed Rising
 Unfortunate Accident
 Unscrupulous Contractor
 Vadmir, New Blood

@@ -37,6 +37,26 @@ const (
 	akEtbOrder uint8 = 14
 )
 
+// placeEntryCounters places an entry-characteristic counter grant on the
+// entrant at sl, with the AddCounter matcher skipping the entrant's own
+// general-subset replacements (CR 614.12, gorge's ownEntryCounterExcluded).
+// Gorge settles a permanent's entry counters against the would-enter board
+// (engine/rules/entry_counters.go), so a line the entrant itself carries
+// applies to its own entry only when it selects the entrant alone (Mowu's
+// "on CARDNAME"); a general subset such as Yoshimaru's "a creature you
+// control" does not. The entrant stays in statM: its other statics, notably a
+// CantPutCounter prohibition, are live on gorge's post-entry preview.
+func (s *State) placeEntryCounters(k *prep, sl Slot, kind, n int, ctrl uint8) int {
+	if n <= 0 {
+		return 0
+	}
+	saved := s.g.ctrSettle
+	s.g.ctrSettle = uint8(sl) + 1
+	m := s.placeCounters(k, sl, kind, n, ctrl, ctrPutBy)
+	s.g.ctrSettle = saved
+	return m
+}
+
 // enterGen runs after the core's enter placed o at sl, before its ETB triggers:
 // it resets the slot's generated state, records how the permanent arrived,
 // and applies the as-enters replacements (its own and other permanents').
@@ -80,7 +100,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		s.entryWinOpen(k, sl, p) // ctr_entryperkind.go: the printed and requested counters start the entry's one put per kind
 	} else if n := s.g.enterCtr.n; n > 0 {
 		if face == 0 {
-			s.placeCounters(k, sl, int(s.g.enterCtr.kind), int(n), p.ctrl, ctrPutBy)
+			s.placeEntryCounters(k, sl, int(s.g.enterCtr.kind), int(n), p.ctrl)
 		}
 		s.g.enterCtr.n = 0
 	}
@@ -117,7 +137,9 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	saveRep := s.g.replaced
 	s.g.replaced = o
 	var ovr uint8
-	if g.anyEntUntap && face == 0 {
+	if g.anyEntUntap || g.anyEntAttack {
+		// A face-down entrant runs no own enter program, but the other
+		// permanents' bodies still apply to it (entryComp skips its own).
 		ovr = s.entryOrderEnter(k, sl, o) // the CR 616.1 order ask's result, or a stall (repl_entryorder.go)
 	}
 	// The entrant's own enters programs and the other permanents' enter
@@ -509,12 +531,19 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			if kind == 0 {
 				kind = s.enterChoiceKind(k, x.card)
 			}
-			if kind != 0 && s.res.active && (s.res.ask == raNone || s.res.ask == raGenPayPick) && s.g.pre.state == 0 {
+			if kind != 0 && s.res.active && (s.res.ask == raNone || s.res.ask == raGenPayPick || s.res.ask == raGenTopBottom) && s.g.pre.state == 0 {
 				// during a resolution gorge asks the as-enters choice with
 				// the card still in exile (Heraldic Banner, pair 544); it
 				// enters once answered (runProg, raGenRetChoice); so does one whose
 				// source a cost's pick still being answered sacrificed (In the Pale
-				// Moonlight's Malfunctioning Holodeck), as the Aura's host ask above
+				// Moonlight's Malfunctioning Holodeck), as the Aura's host ask above;
+				// so does one whose exiler leaves inside a top/bottom answer (Temporal
+				// Cleansing), before continueRes clears the ask: parkReturnAsk poses it.
+				// A "second from top or bottom" answer (raGenTopBottom) moves
+				// the source inside its own answer and gorge asks the return's
+				// choice right after that move (CR 616.1, 610.3d; ecl 2517's
+				// Liminal Hold returning a Rimefire Torque): the answer resumes
+				// through continueRes, which poses the parked ask.
 				s.g.pre = preAsk{obj: l.obj, kind: kind, state: preReturn, link: kind == akClone}
 				if k.gen.anyLinkCtr {
 					s.linkRetStall(k, srcCtrl, o, l.obj)
@@ -873,10 +902,6 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		}
 		if s.objs[o].zone != kop.Zone((s.g.freeP>>1)&7) || !s.spellTargetsFeasibleFrom(k, c, ctrl, o) {
 			continue // no legal target any more: the card stays in its zone
-		}
-		if !s.spellCostsFeasible(k, c, ctrl, o) {
-			s.freeCostAbort(o) // cast_freecostabort.go: gorge pushes it and aborts at the cost
-			continue
 		}
 		holder := s.prio
 		s.prio = ctrl // the caster (beginCast reads it)

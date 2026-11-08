@@ -304,6 +304,35 @@ def existing_list(top, pool):
         return [n for n in f.read().splitlines() if n]
 
 
+def ran_pools(out):
+    """The pools out has a run of; only these may the writer judge."""
+    return {run_parts(p)[0] for suffix in ("rc", "coverage", "out") for p in run_files(out, suffix)}
+
+
+def passed_pools(out):
+    """The pools whose every run in out exited 0."""
+    ok = {}
+    for path in run_files(out, "rc"):
+        pool = run_parts(path)[0]
+        with open(path) as f:
+            ok[pool] = ok.get(pool, True) and f.read().strip() == "0"
+    return {pool for pool, good in ok.items() if good}
+
+
+def no_unrefused_drops(top, lists, pools, refused):
+    """Refuse, writing nothing, when a pool's list would lose a card no refusal names.
+
+    The dirac gate refuses a landing in which a card leaves dirac/support/evidence without an entry in
+    dirac/support/refused. A pool that played clean but did not reach a card already evidenced (the
+    card fell under the floor) must fail the round loudly, naming it, rather than commit the drop."""
+    drops = {pool: sorted(set(existing_list(top, pool)) - set(lists.get(pool, [])) - refused)
+             for pool in pools}
+    drops = {pool: cards for pool, cards in drops.items() if cards}
+    if drops:
+        refuse("; ".join(f"{pool} would drop {', '.join(cards)} with no refusal"
+                         for pool, cards in sorted(drops.items())))
+
+
 def tsv_rows(top, rows):
     """The evidence-games lines with rows rewritten: a named pool's old row replaced in place, a new
     one inserted where the file stays sorted, every other line byte for byte as it was."""
@@ -333,7 +362,10 @@ def write_evidence(top, out, pools=None):
     With pools, only those pools' lists and evidence-games rows are written, each list the union of
     the one in the tree and the cards meeting the floor over that pool's own clean games, and every
     expected run of every named pool must have passed first. A card is never removed: only a
-    refusal does that. Everything else is left byte for byte as it was."""
+    refusal does that. Everything else is left byte for byte as it was.
+
+    Either way the write refuses, changing nothing, when a pool that passed would lose a card no
+    refusal names: the dirac gate refuses that landing, so the round must fail here, loudly."""
     refused = refused_names(top)
     lists = collections.defaultdict(list)
     if pools is None:
@@ -341,6 +373,7 @@ def write_evidence(top, out, pools=None):
             if plays >= EVIDENCE_MIN_PLAYS and not unused and card not in refused:
                 for pool in ps:
                     lists[pool].append(card)
+        no_unrefused_drops(top, lists, ran_pools(out) & passed_pools(out), refused)
         for path in glob.glob(os.path.join(top, EVIDENCE_DIR, "*.txt")):
             os.remove(path)
         rows = games_per_run(out)
@@ -354,7 +387,8 @@ def write_evidence(top, out, pools=None):
                 refuse(f"{pool} has no verdict")
             gained = [card for card, (plays, unused, _) in sorted(merged_coverage(out, {pool}).items())
                       if plays >= EVIDENCE_MIN_PLAYS and not unused and card not in refused]
-            lists[pool] = sorted(set(existing_list(top, pool)) | set(gained))
+            lists[pool] = sorted((set(existing_list(top, pool)) | set(gained)) - refused)
+        no_unrefused_drops(top, lists, pools, refused)
         lines = tsv_rows(top, {p: games[p] for p in pools})
     for pool, names in lists.items():
         with open(os.path.join(top, EVIDENCE_DIR, pool + ".txt"), "w") as f:
