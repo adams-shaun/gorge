@@ -1333,6 +1333,12 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 		if e.flags&sfAnyMana != 0 || anyColor {
 			s.tapRiderPlan(k, e)
 		}
+		if s.rbAny(e.ctrl) {
+			// restricted mana this spell may spend pays first (payRestrSpend):
+			// the sources tap for what it leaves (manaStep tapped them already
+			// when the plan ran there; this keeps the retap a no-op)
+			cost = s.restrShort(k, e.ctrl, e.card, restrOriginOfEntry(ep), cost)
+		}
 		s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 	}
 	s.payPicks(k)

@@ -1364,6 +1364,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ExileOnMoved:  exileOn,
 				ForgetCounter: forgetCounter,
 			}
+			anchorEffectHostIncarnation(h, c, rawDur, &ce)
 			if IsUntilTargetedUntapsDuration(rawDur) {
 				// CR 611.2b: the lock lasts while the remembered object stays
 				// tapped, past the end of the turn and whatever becomes of the

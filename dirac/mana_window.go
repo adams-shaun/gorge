@@ -2155,8 +2155,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		if k.restrSrc {
 			d := s.payDescNow(excl)
 			t, multi, nm := s.restrSrcAvail(k, p, d, &av, NoSlot)
-			xr := t.maxXMulti(&cost, pipMaskOf(&cost), multi[:nm])
-			x = min(max(x, xr), t.total/int(cost.X))
+			x = restrWitnessX(x, t, multi[:nm], &cost)
 		}
 	}
 	if cost.X != 0 && s.bld().e.kind == seSpell && s.xWitnessEats(k, p, s.bld().e.card, &cost, x, excl) {
@@ -2180,6 +2179,21 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	var pk planner
 	s.tapForPK(k, p, &cost, x, excl, false, anyColor, &pk)
 	s.witnessManaRestricted(k, p, &pool, untapped, &pk)
+}
+
+// restrWitnessX is the largest-X witness's X once the restricted sources the
+// payment may spend are counted: t holds the plain units and the restricted
+// ones that make fixed mana, multi each restricted evaluated amount (Helga's
+// power: that many mana of one colour). The census total X divides into
+// counts the amounts too, as gorge's witness does (rules
+// potentialModeCastPlan: paymentPlanCensusTotal / base.X), so Helga's two
+// beside three lands lift {X}{U} to X = 4, not the lands' 3.
+func restrWitnessX(x int, t avail, multi []uint8, cost *kop.ManaCost) int {
+	tot := t.total
+	for _, n := range multi {
+		tot += int(n)
+	}
+	return min(max(x, t.maxXMulti(cost, pipMaskOf(cost), multi)), tot/int(cost.X))
 }
 
 // witnessAtCheapest reprices a witness the printed composition cannot fund (rules
@@ -2633,7 +2647,7 @@ func (s *State) manaStep(k *prep) bool {
 		if s.bld().bfl&bflLowered != 0 && s.bld().pipN != 0 {
 			s.loweredPipWindow(k, e, &cost)
 		}
-		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || s.rbAny(e.ctrl) && s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)) != 0 || e.trigPl == trigPlMadness && debugMadnessMutate == 0 {
+		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || e.trigPl == trigPlMadness && debugMadnessMutate == 0 {
 			return false
 		}
 		var saved [len(build{}.picks)]uint8
@@ -2737,8 +2751,7 @@ func (s *State) manaStep(k *prep) bool {
 				// mana (State.rb): the payment spends the batches this cast admits
 				// first (payRestrSpend), so the plan taps only for what the
 				// restricted mana leaves (gorge pay.PlanPool, pay/plancost.go)
-				og := restrOrigin{from: kop.Zone(s.objs[e.obj].zone), cast: true, byYou: true}
-				if m := s.restrSpendable(k, e.ctrl, e.card, og); m != 0 {
+				if m := s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)); m != 0 {
 					cost = s.restrShortAdm(e.ctrl, m, cost)
 				}
 			}
