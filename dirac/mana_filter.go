@@ -578,6 +578,12 @@ type filtSearch struct {
 	need [kop.NumManaKinds]bool
 }
 
+// filtFunded reports whether gorge's census funds the fees of the filter gaps f:
+// an unrelaxable census (or a live tap-X pair) pays none, so no search funds one.
+func (s *State) filtFunded(k *prep, p uint8, f slotMask) bool {
+	return s.filtRelaxable(k, f) && !(k.tapMana && s.tapXTwoLive(k, p))
+}
+
 // filtScript reports whether gorge's prefix search finds a script for play
 // a of p; with apply it plays the script on s (the play's prefix).
 //
@@ -590,7 +596,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	if a.Kind() == AkActivate {
 		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
 	}
-	if s.filtRelaxable(k, fs.gaps) && !(k.tapMana && s.tapXTwoLive(k, p)) { // (unrelaxable: no funding)
+	if s.filtFunded(k, p, fs.gaps) {
 		for b := fs.gaps; b.any(); b = b.rest() {
 			fs.fees += s.filtFee(k, b.first())
 		}
