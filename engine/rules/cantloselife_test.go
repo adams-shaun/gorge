@@ -139,10 +139,10 @@ func TestCantLoseLifeBlocksLifeCost(t *testing.T) {
 	id := e.G.Zone(state.ZLibrary, 0)[0]
 	two, zero := pay.Cost{Life: 2}, pay.Cost{}
 	for p := state.PlayerID(0); p < 2; p++ {
-		if pay.CostPayablePool(asPayer(e), p, id, true, two, e.G.Players[p].Pool, e.G.Players[p].ManaUnits()) {
+		if pay.CostPayablePool(asPayer(e), p, id, pay.SAActivated, two, e.G.Players[p].Pool, e.G.Players[p].ManaUnits()) {
 			t.Fatalf("seat %d: PayLife<2> still payable", p)
 		}
-		if !pay.CostPayablePool(asPayer(e), p, id, true, zero, e.G.Players[p].Pool, e.G.Players[p].ManaUnits()) {
+		if !pay.CostPayablePool(asPayer(e), p, id, pay.SAActivated, zero, e.G.Players[p].Pool, e.G.Players[p].ManaUnits()) {
 			t.Fatalf("seat %d: a 0-life cost must stay payable", p)
 		}
 	}

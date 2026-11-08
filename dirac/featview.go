@@ -781,6 +781,10 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
 // 601.2g-h), and the printed plan then pays with the candidates still there.
 func (s *State) affordsUngrantedPlay(k *prep, p uint8, a Action, cost *kop.ManaCost, ex Slot, d payDesc) bool {
 	if a.Kind() != AkActivate || k.t == nil {
+		if k.t != nil && s.fixedTapsCast(k, a) {
+			// the composed cost's tap part keeps its candidates apart (cost_fixedtaps.go)
+			return s.affordsUngrantedReserving(k, p, cost, ex, d, spellAddCost(k, s.objs[a.Source()].card), NoSlot)
+		}
 		return s.affordsUngrantedFor(k, p, cost, ex, d)
 	}
 	o := Obj(a.Source())
@@ -799,21 +803,7 @@ func (s *State) affordsUngrantedPlay(k *prep, p uint8, a Action, cost *kop.ManaC
 	if f&(kop.CostTapX|kop.CostSac) == 0 || f&kop.CostSac != 0 && !k.sacMana {
 		return s.affordsUngrantedFor(k, p, cost, ex, d)
 	}
-	var av avail
-	var ms modalSet
-	s.ungrAvail(k, p, ex, &av, &ms)
-	pm := pipMaskOf(cost)
-	for c := 0; c < 1<<ms.n; c++ {
-		b := ms.modes(av, c)
-		if b.affords(cost, pm, 0) && s.costPartDisjoint(k, p, src, &ca.Cost, cost, &b, pm) {
-			return true
-		}
-		if k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, p&1, d, cost, &b, ex, 0) {
-			// restricted mana the plain avail cannot show: keep the old answer
-			return true
-		}
-	}
-	return false
+	return s.affordsUngrantedReserving(k, p, cost, ex, d, &ca.Cost, src)
 }
 
 // manaGranted reports whether slot sl's mana ability is one an effect

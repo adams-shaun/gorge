@@ -50,6 +50,10 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		// CR 601.2b, 601.2g-h: Fuss's {R/W} cast from Outrageous Robbery's exile is priced under the any-type rider, so the printed lands pay it and Insidious Roots' granted token stays untapped
 		{"granted_any_prefix_respects_the_any_type_rider", false, false},
 		{"cost_sacrifices_latch_one_or_more_die", false, false},
+		// CR 118.9d, 601.2f: Reenact the Crime's free copy of Officious
+		// Interrogation still owes its per-target RaiseCost; the pool cannot
+		// pay it, so the cast window reverses the cast (std-mkm pair 2359)
+		{"free_copy_raise_cost_per_target_reversed", false, false},
 		{"collect_evidence_selection_stale", true, false}, // CR 701.59a: Forensic Researcher's evidence pick lists the whole graveyard after a declined Lamplight Phoenix cost left its reservation behind
 	})
 }
@@ -97,6 +101,10 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// is payable, but no mode is, so neither engine offers the cast (CR
 		// 702.172a/702.183a: the mode cost is part of the cheapest legal total).
 		{"explosive_derailment_needs_a_mode_cost", false, false},
+		// CR 601.2c/f, 118.8: a Spree/Charm per-mode target ask withholds
+		// Terror of the Peaks when its controller's "an additional 3 life"
+		// leaves the caster unable to pay, as the root target ask does
+		{"charm_mode_targets_skip_unaffordable_terror", false, false},
 		// CR 601.2f: This Town Ain't Big Enough cast from Jasper Flint's
 		// mayplay, whose TargetMax$ 2 keeps the potential planner at the full
 		// price: the offer gate's target retry prices one matching target,
@@ -429,6 +437,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"filter_fee_paid_with_granted_mana", true, false},                 // CR 605.3a, 601.2g: Honest Work's Humble Merchant on Fire Sages pays Rumble Arena's {1} filter fee, so the one prefix search taps it before any printed land to pay Realm of Koh's token activation
 		{"resolved_this_turn_across_zone_change", false, false},            // CR 707.10b: Airbender Ascension returns South Pole Voyager, whose resolution count keeps the turn's tally, so the second resolution overall does not draw Earth Kingdom Jailer
 		{"filter_fee_barred_from_unusable_restricted_mana", false, false},  // CR 106.6, 605.3a: Professor Zei over Barrels of Blasting Jelly: the Tea Shop's Ally-only {U} cannot pay Barrels' {1}, so the second {U/R} pip cannot be paid {R} through it
+		{"restricted_combination_tap_extra", false, false},                 // CR 106.6, 605.4a: Hermitic Herbalist's Lesson-only two-mana combination brings Badgermole Cub's {G} when the creature taps, so with an Island it pays Waterbending Lesson's {3}{U}
 		{"granted_mana_funds_filter_fee", true, false},                     // CR 602.2b, 605.3a: Rumble Arena's {1},{T} filter fee is paid by the granted {C} the prefix search taps first in battlefield order, not by a land the filter-only script would fund it with
 		{"crew_override_source_returned_is_new_object", false, false},      // CR 400.7: Fire Nation Warship destroyed in response to its own crew ability comes back as a new object; the crew effect finds nothing to animate
 		{"hybrid_window_restricted_any_colour_admission", false, false},    // CR 106.6, 601.2g: the lowered hybrid window takes a restricted any-colour ability ahead of a useless fixed {C} only when the restriction admits the payment (an Ally-only source pays a hybrid face; a Lesson's generic takes the {C}), and the admitted mana floats restricted
@@ -516,13 +525,15 @@ func TestStdFinReprosLockstep(t *testing.T) {
 func TestStdSosReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-sos", []stdRepro{
-		{"printed_flashback_beside_granted", false, false},                // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
-		{"granted_and_printed_flashback_ambiguous", false, false},         // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
-		{"graveyard_ability_source_new_object", true, false},              // CR 400.7: a second Postmortem Professor return ability resolves after the card came back and died again, and finds a new object
-		{"cascade_mana_value_evaluated_at_resolution", false, false},      // CR 202.3b: cascade reads the spell's mana value where the spell resolved, so the ward-counted Fractalize (X paid 4, now a card in the graveyard) prices 1 and does not hit Textbook Tabulator
-		{"charm_gate_ignores_restricted_float", false, false},             // CR 106.6, 601.2c: the pre-target gate keeps a cast alive whose floating restricted mana its restriction admits, as gorge's pool does
-		{"effetbctr_prepared_entry_order", false, false},                  // CR 616.1c, 616.1f: the effect's enters-with counters and the entrant's own prepared body compete over the entry, the order is asked and the own body first ends the rider's effect with the move it upgrades
-		{"granted_flashback_when_printed_nonmana_unpayable", true, false}, // CR 702.34a: a printed flashback whose tap-three-creatures cost is unpayable leaves the granted mana-cost instance castable (Group Project)
+		{"printed_flashback_beside_granted", false, false},                  // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
+		{"granted_and_printed_flashback_ambiguous", false, false},           // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
+		{"graveyard_ability_source_new_object", true, false},                // CR 400.7: a second Postmortem Professor return ability resolves after the card came back and died again, and finds a new object
+		{"cascade_mana_value_evaluated_at_resolution", false, false},        // CR 202.3b: cascade reads the spell's mana value where the spell resolved, so the ward-counted Fractalize (X paid 4, now a card in the graveyard) prices 1 and does not hit Textbook Tabulator
+		{"charm_gate_ignores_restricted_float", false, false},               // CR 106.6, 601.2c: the pre-target gate keeps a cast alive whose floating restricted mana its restriction admits, as gorge's pool does
+		{"effetbctr_prepared_entry_order", false, false},                    // CR 616.1c, 616.1f: the effect's enters-with counters and the entrant's own prepared body compete over the entry, the order is asked and the own body first ends the rider's effect with the move it upgrades
+		{"granted_flashback_when_printed_nonmana_unpayable", true, false},   // CR 702.34a: a printed flashback whose tap-three-creatures cost is unpayable leaves the granted mana-cost instance castable (Group Project)
+		{"restricted_pool_cast_plans_sources_before_discard", false, false}, // CR 601.2b, 601.2g-h, 106.6: Seize the Spoils cast with Abstract Paintmage's restricted {U}{R} floating taps the planned Mountain at announcement, before the discard is chosen
+		{"free_cast_unpayable_discard_returns_to_zone_end", true, false},    // CR 601.2b, 733.1: Improvisation Capstone's free Seize the Spoils with no card to discard is pushed and reversed, and returns behind the other exiled cards
 	})
 }
 
@@ -581,6 +592,8 @@ func TestStdFraReprosLockstep(t *testing.T) {
 func TestStdLciReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-lci", []stdRepro{
+		{"tapxtype_plain_plan_leaves_candidates", false, false},       // CR 601.2g-h: nine lands cast Guardian of the Great Door: the plan paying {W}{W} from the Plains and Restless Anchorage leaves seven to tap, whatever the reservation order
+		{"witness_waiting_trigger_other_answer", false, false},        // CR 601.2g, 603.3b: the Treasure sacrificed for Guardian of the Great Door's {W} sets off p0's Zoetic Glyph, whose discover waits for the cast, so its answer does not make the witness unreachable
 		{"granted_sac_host_cost_poses_no_choice", false, false},       // CR 602.2b, 701.21a: Deconstruction Hammer's granted "Sacrifice Deconstruction Hammer" cost has one possible payment, so it is paid without a choice after the targets
 		{"attack_trigger_pump_skips_returned_attacker", false, false}, // CR 400.7: Grasping Shadows' attack trigger does not grant deathtouch and lifelink to Aclazotz once it died and returned as Temple of the Dead
 		{"lose_all_setter_overwrites_self_chosen_type", true, false},  // CR 613.6, 613.7: Eaten by Piranhas on Roaming Throne makes it only a Skeleton; the Throne's older chosen-type grant outlives the ability loss but is overwritten in timestamp order
@@ -661,6 +674,9 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"sac_after_aura_control_ends", false, false},                   // CR 613.1b, 701.21: Vile Mutilator's second sacrifice counts creatures after the first (an Aura) left, so the creature it stole is back with its owner and the lone manifest is forced
 		{"painless_plan_at_nonpositive_life", false, false},             // CR 119.4, 601.2g: a player at life <= 0 (a lose-the-game replacement) still pays a {1} spell from painless lands; the pain guard cuts only a plan that pays life
 		{"animate_rider_before_entry_triggers", true, false},            // CR 603.6a: an Enduring creature returned as an enchantment has its type-changing rider applied before an "another creature enters" watcher matches it, so no extra pump trigger
+		{"tapxtype_cost_reserves_tap_candidates", false, false},         // CR 601.2g-h: Fear of Exposure's tap-two is priced from its composed cost, so the granted-mana prefix taps Enduring Vitality's creatures in battlefield order and leaves the rest for the pick
+		{"tapxtype_restricted_source_not_free", false, false},           // CR 601.2g-h: Creeping Peeper's enchantment-only {U} paying Fear of Exposure is not also one of the two permanents it taps, so three mana sources and Patchwork Beastie do not cast it
+		{"grant_prefix_paid_life_trigger", false, false},                // CR 119.4, 603.3, 307.1: Haunted Screen's 1 life in Overlord of the Hauntwoods' granted-mana prefix stacks Marina Vendrell's Grimoire's trigger, so the prefix taps on and passes for it to resolve before the cast
 	})
 }
 

@@ -562,7 +562,7 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 		rider = asEval(e).MayPlayRider(p, id)
 		best = plan(lo)
 	}
-	if conv := pay.ConvRider(asEval(e).Conv(p, id, false)); best.Reason == "insufficient" && conv != (pipRider{}) {
+	if conv := pay.ConvRider(asEval(e).Conv(p, id, pay.SASpell)); best.Reason == "insufficient" && conv != (pipRider{}) {
 		// So may an AnyType->AnyType conversion (Vizier of the Menagerie, CR 609.4b).
 		rider = rider.Or(conv)
 		best = plan(lo)

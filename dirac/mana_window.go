@@ -1511,6 +1511,9 @@ func (s *State) availAnyR(k *prep, p uint8, a *avail) {
 		if cd := &k.t.Cards[s.cardAt(sl)]; restrWideAnyMana(&cd.Abilities[k.gen.anyR(s.cardAt(sl))]) {
 			if s.g.availX&availNoWide == 0 {
 				a.addUnits(0x3f, 2) // (no census unit of its own to replace: its only ability is the gap)
+				if s.wideSecond(k, sl) {
+					s.wide2RelaxExtra(k, sl, a) // (beside its census unit, mana_restrictedcombo.go)
+				}
 			}
 			continue
 		}
@@ -1545,6 +1548,9 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 	if anyR.has(sl) {
 		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]
 		if restrWideAnyMana(ab) {
+			if s.wideSecond(k, sl) {
+				return wide2EngineAnswer(s.playNeed(k, a), c)
+			}
 			return wideEngineAnswer(s.playNeed(k, a), c)
 		}
 		mask = uint8(ab.ManaColors)
@@ -1600,6 +1606,14 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slo
 		return
 	}
 	if ab := &cd.Abilities[k.gen.anyR(s.cardAt(sl))]; restrWideAnyMana(ab) {
+		if s.wideSecond(k, sl) { // its first ability's colours, then the multisets (mana_restrictedcombo.go)
+			s.addExtra(k, p&1, sl, s.manaPCGen(k, sl)) // either tap brings its TapsForMana extra (gorge addTapExtra)
+			if c < kop.NumManaKinds-1 {
+				s.pl[p].pool[c]++
+				return
+			}
+			c -= kop.NumManaKinds - 1
+		}
 		c1, c2 := wideAnswer(c)
 		for _, col := range [2]int{c1, c2} {
 			if !s.floatRestrAb(k, p, sl, ab, col, 1) {
@@ -1700,6 +1714,9 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR,
 				nch = 6
 				if cd := &k.t.Cards[s.cardAt(order[j])]; restrWideAnyMana(&cd.Abilities[k.gen.anyR(s.cardAt(order[j]))]) {
 					nch = wideAnswers
+					if s.wideSecond(k, order[j]) {
+						nch = wide2Answers
+					}
 				}
 			case tapsDef.has(order[j]):
 				nch = s.deferGapAnswers(k, order[j])
@@ -1896,14 +1913,25 @@ func (s *State) attLKIHost(o Obj) (Obj, bool) {
 
 // payCastWindow pays the rest of a cast's cost through gorge's CR 601.2g
 // cast window (a lowered or a free cast). That window's colour ask carries no
-// owed cost, only the pips the caster announced.
-func (s *State) payCastWindow(k *prep, p uint8, cost *kop.ManaCost, anyType, anyColor bool) {
-	_, held := s.windowTapUseful(k, p, cost, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
+// owed cost, only the pips the caster announced. It reports false after
+// reversing the cast when the window runs out of sources: the rest of the
+// cost, a free cast's RaiseCost per target included, is unpayable (gorge
+// payCast abortCast "cost no longer payable", CR 733.1; the taps and floating
+// mana stay, as loweredWindowOK leaves them).
+func (s *State) payCastWindow(k *prep, p uint8, cost *kop.ManaCost, anyType, anyColor bool) bool {
+	ok, held := s.windowTapUseful(k, p, cost, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
 	if s.winPaused() {
 		for c := range held {
 			s.pl[p].pool[c] += held[c]
 		}
-		return // the pick is posed; the cast pays when the window ends
+		return true // the pick is posed; the cast pays when the window ends
+	}
+	if !ok {
+		for c := range held {
+			s.pl[p].pool[c] += held[c]
+		}
+		s.reverseCast(k)
+		return false
 	}
 	if s.rbAny(p) {
 		// the window can float a restricted source's mana beside the pool (an
@@ -1917,6 +1945,7 @@ func (s *State) payCastWindow(k *prep, p uint8, cost *kop.ManaCost, anyType, any
 	for c := range held {
 		s.pl[p].pool[c] += held[c]
 	}
+	return true
 }
 
 // loweredPoolPays: the floating pool settles a lowered cast with no window,
@@ -2604,7 +2633,7 @@ func (s *State) manaStep(k *prep) bool {
 		if s.bld().bfl&bflLowered != 0 && s.bld().pipN != 0 {
 			s.loweredPipWindow(k, e, &cost)
 		}
-		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || s.rbAny(e.ctrl) && s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)) != 0 || e.trigPl == trigPlMadness && debugMadnessMutate == 0 {
+		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || e.trigPl == trigPlMadness && debugMadnessMutate == 0 {
 			return false
 		}
 		var saved [len(build{}.picks)]uint8
@@ -2708,8 +2737,7 @@ func (s *State) manaStep(k *prep) bool {
 				// mana (State.rb): the payment spends the batches this cast admits
 				// first (payRestrSpend), so the plan taps only for what the
 				// restricted mana leaves (gorge pay.PlanPool, pay/plancost.go)
-				og := restrOrigin{from: kop.Zone(s.objs[e.obj].zone), cast: true, byYou: true}
-				if m := s.restrSpendable(k, e.ctrl, e.card, og); m != 0 {
+				if m := s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)); m != 0 {
 					cost = s.restrShortAdm(e.ctrl, m, cost)
 				}
 			}

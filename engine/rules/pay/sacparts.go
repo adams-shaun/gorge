@@ -200,7 +200,7 @@ func ManaCostPayableFull(e Engine, p state.PlayerID, o *state.Object, source sta
 		typed = e.Game().Players[p].ManaUnits()
 	}
 	if cost.X != 0 || len(cost.Reveal) > 0 || len(cost.RevealOrChoose) > 0 || len(cost.RevealChosen) > 0 || len(cost.Behold) > 0 ||
-		len(cost.Blight) > 0 || ActivationTapCostUnavailable(o, &cost) || !CostPayablePool(e, p, source, true, cost, pool, typed) {
+		len(cost.Blight) > 0 || ActivationTapCostUnavailable(o, &cost) || !CostPayablePool(e, p, source, SAActivated, cost, pool, typed) {
 		return false
 	}
 	// A Forage cost is payable when the payer's graveyard holds three cards OR

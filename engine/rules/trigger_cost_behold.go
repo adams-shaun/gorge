@@ -128,7 +128,7 @@ func (tc *triggeredEffectCost) beholdSettle(e *Engine, announced Cost) bool {
 	}
 	lower := announced.WithoutEnergy()
 	lower.Behold = nil
-	if !lower.PureManaLife() || !pay.PayManaConv(asPayer(e), tc.player, lower, asEval(e).Conv(tc.player, tc.source, false)) {
+	if !lower.PureManaLife() || !pay.PayManaConv(asPayer(e), tc.player, lower, asEval(e).Conv(tc.player, tc.source, pay.SAOther)) {
 		return false
 	}
 	pay.ChargeEnergyCost(asPayer(e), tc.player, tc.amount, tc.xPaid)

@@ -208,10 +208,10 @@ func TestCantChangeLifePayLifeNotOffered(t *testing.T) {
 	// priced by pay.CostPayablePool, so the offered-option assertion below
 	// is this gate's user-visible face).
 	lifeCost := pay.Cost{Life: 1}
-	if pay.CostPayablePool(asPayer(e), 0, control, true, lifeCost, e.G.Players[0].Pool, e.G.Players[0].ManaUnits()) {
+	if pay.CostPayablePool(asPayer(e), 0, control, pay.SAActivated, lifeCost, e.G.Players[0].Pool, e.G.Players[0].ManaUnits()) {
 		t.Fatal("CantChangeLife: pay.CostPayablePool priced a PayLife<1> for the protected seat")
 	}
-	if !pay.CostPayablePool(asPayer(e), 1, control, true, lifeCost, e.G.Players[1].Pool, e.G.Players[1].ManaUnits()) {
+	if !pay.CostPayablePool(asPayer(e), 1, control, pay.SAActivated, lifeCost, e.G.Players[1].Pool, e.G.Players[1].ManaUnits()) {
 		t.Fatal("control: pay.CostPayablePool refused a PayLife<1> for the unprotected seat")
 	}
 	if pay.CostPayableClass(asPayer(e), 0, pay.DescriptorFor(control, true, lifeCost), pay.PipRider{}, lifeCost) {

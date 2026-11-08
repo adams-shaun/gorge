@@ -937,7 +937,7 @@ func (e *Engine) castablePriced(p state.PlayerID, id state.ObjID, cost Cost, abi
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic, ability)
 	pool = e.potentialPoolFor(p, pay.DescriptorFor(id, ability, mana), pool)
-	if !pay.CostPayablePool(asPayer(e), p, id, ability, mana, pool, e.G.Players[p].ManaUnits()) {
+	if !pay.CostPayablePool(asPayer(e), p, id, pay.SAKindFor(ability), mana, pool, e.G.Players[p].ManaUnits()) {
 		return false
 	}
 	return pay.NonManaCastable(asPayer(e), p, id, cost, ability, "")

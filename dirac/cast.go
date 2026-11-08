@@ -1333,6 +1333,12 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 		if e.flags&sfAnyMana != 0 || anyColor {
 			s.tapRiderPlan(k, e)
 		}
+		if s.rbAny(e.ctrl) {
+			// restricted mana this spell may spend pays first (payRestrSpend):
+			// the sources tap for what it leaves (manaStep tapped them already
+			// when the plan ran there; this keeps the retap a no-op)
+			cost = s.restrShort(k, e.ctrl, e.card, restrOriginOfEntry(ep), cost)
+		}
 		s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 	}
 	s.payPicks(k)
@@ -1397,8 +1403,13 @@ func (s *State) finishBuild(k *prep) {
 		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || e.trigPl == trigPlMadness {
 			// a free cast mid-resolution (Etali) pays the rest of its
 			// cost (Eaten Alive's {3}{B} part) through gorge's mana
-			// window, not the priority planner (pair 9954)
-			s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0)
+			// window, not the priority planner (pair 9954); a cost the
+			// window cannot finish (Reenact the Crime's copy of Officious
+			// Interrogation, whose per-target RaiseCost the pool lacks)
+			// reverses the cast (CR 733.1)
+			if !s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0) {
+				return
+			}
 		} else if k.gen != nil && k.gen.anyConvoke && s.tapPaysEntry(k, &e) {
 			if !s.payConvoke(k, &e, &cost, e.flags&sfAnyMana != 0, anyColor) || s.winPaused() {
 				return
@@ -1419,7 +1430,9 @@ func (s *State) finishBuild(k *prep) {
 		} else if (k.t.Cards[e.card].HasModeCost || wbSpell) && cost.X == 0 {
 			// gorge's planner declines a Spree face ("shape:modal_cost"):
 			// it pays through the mana window (kw_spree.go)
-			s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0)
+			if !s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0) {
+				return
+			}
 		} else if k.gen != nil && s.delvePaysEntry(k, &e) {
 			// gorge's planner declines a delve cast ("shape:contribution",
 			// payment_plan.go), so its CR 601.2g window ran at manaStep
