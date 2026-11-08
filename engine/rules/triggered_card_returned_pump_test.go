@@ -15,7 +15,7 @@ import (
 
 const entersPumpTestEnchantment = "Name:Enters Pump Test\nManaCost:1 R\nTypes:Enchantment\n" +
 	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Creature.Other+YouCtrl | TriggerZones$ Battlefield | Execute$ TrigPump | TriggerDescription$ x\n" +
-	"SVar:TrigPump:DB$ Pump | Defined$ TriggeredCardLKICopy | NumAtt$ +2 | KW$ Haste\n" +
+	"SVar:TrigPump:DB$ Pump | NumAtt$ +2 | KW$ Haste | Defined$ TriggeredCardLKICopy\n" +
 	"Oracle:x\n"
 
 // entersAndStackPump puts the test enchantment on the battlefield and enters a
