@@ -1,10 +1,6 @@
 package dirac
 
-import (
-	"sort"
-
-	"github.com/adams-shaun/gorge/dirac/kop"
-)
+import "github.com/adams-shaun/gorge/dirac/kop"
 
 // CR 613 layer 2 (control-changing effects, CR 613.1b).
 //
@@ -367,13 +363,21 @@ func (s *State) ctrlSBA(k *prep) {
 	}
 	var ord [MaxPerm]Slot
 	n := s.listenerOrder(s.statM.and(s.occ), &ord)
-	sort.Slice(ord[:n], func(i, j int) bool {
-		a, b := ord[i], ord[j]
-		if ta, tb := s.layerTs(a), s.layerTs(b); ta != tb {
-			return ta < tb
+	// Insertion sort: a handful of statics at most, and sort.Slice would
+	// move ord to the heap (the gate's escape step).
+	for i := 1; i < n; i++ {
+		v := ord[i]
+		vt := s.layerTs(v)
+		j := i - 1
+		for ; j >= 0; j-- {
+			t := s.layerTs(ord[j])
+			if t < vt || (t == vt && ord[j] < v) {
+				break
+			}
+			ord[j+1] = ord[j]
 		}
-		return a < b
-	})
+		ord[j+1] = v
+	}
 	for _, src := range ord[:n] {
 		sp := &s.perms[src]
 		host := sp.attached
