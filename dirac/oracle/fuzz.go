@@ -63,9 +63,10 @@ type FuzzConfig struct {
 	// Coverage collects each clean game's coverage (WithCoverage) into
 	// FuzzSummary.Coverage, merged in pair order.
 	Coverage bool
-	// GameTimeout is the per-game watchdog: a game with no result after this long
-	// is a hang and the worker moves on. Its goroutine cannot be stopped, so it
-	// leaks until the process exits. 0: no watchdog.
+	// GameTimeout is the per-game watchdog: a game with no result after this long,
+	// twice (one retry, WithinTimeoutRetry), is a hang and the worker moves on. A
+	// timed-out attempt's goroutine cannot be stopped, so it leaks until the
+	// process exits. 0: no watchdog.
 	GameTimeout time.Duration
 }
 
@@ -150,7 +151,7 @@ func Fuzz(c *Corpus, pairs []Pairing, mk SideFactory, fc FuzzConfig, progress fu
 					}
 					return d
 				}
-				d := withinTimeout(fc.GameTimeout, play, done{i: i, hung: true})
+				d := WithinTimeoutRetry(fc.GameTimeout, play, done{i: i, hung: true})
 				if d.cov != nil {
 					covs[i] = d.cov
 				}
@@ -219,11 +220,28 @@ func Fuzz(c *Corpus, pairs []Pairing, mk SideFactory, fc FuzzConfig, progress fu
 	return s
 }
 
-// withinTimeout runs play on its own goroutine and returns its result, or hung when
-// it has none after timeout. A zero timeout waits for it.
-func withinTimeout[T any](timeout time.Duration, play func() T, hung T) T {
+// WithinTimeoutRetry runs play under a watchdog of timeout and returns its result.
+// When the first attempt has no result after timeout it plays the game once more
+// under a fresh watchdog of the same timeout, and returns hung only when that
+// attempt times out too: a host stall (swap, load) is not a hang. A game is a
+// pure function of its inputs, so a retried game has the result the first
+// attempt would have had. Each timed-out attempt's goroutine cannot be stopped
+// and leaks until the process exits. A zero timeout waits for one attempt.
+func WithinTimeoutRetry[T any](timeout time.Duration, play func() T, hung T) T {
+	if r, ok := withinTimeout(timeout, play); ok {
+		return r
+	}
+	if r, ok := withinTimeout(timeout, play); ok {
+		return r
+	}
+	return hung
+}
+
+// withinTimeout runs play on its own goroutine and returns its result and true, or
+// false when it has none after timeout. A zero timeout waits for it.
+func withinTimeout[T any](timeout time.Duration, play func() T) (T, bool) {
 	if timeout <= 0 {
-		return play()
+		return play(), true
 	}
 	ch := make(chan T, 1)
 	go func() { ch <- play() }()
@@ -231,8 +249,9 @@ func withinTimeout[T any](timeout time.Duration, play func() T, hung T) T {
 	defer t.Stop()
 	select {
 	case r := <-ch:
-		return r
+		return r, true
 	case <-t.C:
-		return hung
+		var zero T
+		return zero, false
 	}
 }
