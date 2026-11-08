@@ -188,7 +188,6 @@ one. Its memory isn't comparable, since it compiles its few hundred cards into t
 
 | | |
 |---|---|
-| Machine | AMD Ryzen 9 9950X (16 cores, 32 threads), 120 GB, Ubuntu 26.04 |
 | gorge | `b1630d6b89bb` (2026-11-05), go1.26.3, `cmd/enginebench` |
 | dirac | `0ec285f67` (2026-11-05) for the game rows, 2026-11-02 for the transition rows, `dirac/cmd/dplay` and `go test -bench`, with `-trimpath` |
 | XMage | `magefree/mage` `6b602a1c85` (1.4.61), Temurin JDK 17.0.20.1, driver `XEngineBench` (gorge-compliance), 2026-10-20 |

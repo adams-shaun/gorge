@@ -126,8 +126,8 @@ dirac's per-set card list is the distinct card names in XMage's manifest
 for the set that exist in the Forge corpus. That list can differ by a few cards
 from gorge-compliance's count, which uses the printed card list where one
 exists. Each engine's column uses its own denominator. dirac's
-corpus-wide count is distinct card names, 34,072, and `make report`'s
-34,074 counts script files.
+corpus-wide count is distinct card names, 34,442, and `make report`'s
+34,444 counts script files.
 
 ### XMage and Forge, as reference points
 
@@ -137,10 +137,10 @@ claims or a plain count, not certifications.
 | Engine | Claim | Source |
 |---|---|---|
 | XMage | "over 32 000 unique cards and more than 91 000 reprints across official sets" | the [XMage README](https://github.com/magefree/mage), read 2026-10-20 |
-| Forge | no card-count claim in its README; its card corpus at gorge's pin holds 34,074 card scripts and 854 token scripts | `.cards/cards.lock` and `make report` |
+| Forge | no card-count claim in its README; its card corpus at gorge's pin holds 34,444 card scripts and 864 token scripts | `.cards/cards.lock` and `make report` |
 
 Forge is where gorge's card scripts come from, so Forge's corpus is gorge's
-denominator. XMage supplies the set manifests (589 sets, built from its set
+denominator. XMage supplies the set manifests (591 sets, built from its set
 classes) and the second opinion behind every verdict.
 
 ## Charts by engine
@@ -174,7 +174,7 @@ newest first.
 
 ## Every set
 
-gorge-compliance measures all 589 XMage set manifests, not only the audited
+gorge-compliance measures all 591 XMage set manifests, not only the audited
 ones. For every set without a printed list, the figures are estimates, not
 certifications.
 
@@ -258,21 +258,20 @@ one primitive unlocks only the cards that miss nothing else.
 
 ## The repo-deck ratchet
 
-Two [ratchets](../contributing/glossary.md) hold the 30 decks in
+Two [ratchets](../contributing/glossary.md) hold the 34 decks in
 [`testkit/testutil/decks/`](https://github.com/adams-shaun/gorge/tree/main/testkit/testutil/decks)
-(15 60-card constructed, 15 Commander) to full support. Each ratchet keeps one
+(15 60-card constructed, 19 Commander) to full support. Each ratchet keeps one
 file per card:
 
 ```text
 $ go test ./engine/rules/ -run 'TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead' -v
-acceptance_test.go:70: ratchet: 1 of 1123 distinct cards across the repo decks are not fully supported
-paramcensus_test.go:3663: param census: 0 of 1123 distinct repo-deck cards carry at least one unread param or unmodelled cost token; 0 distinct param labels, 0 distinct cost labels
+acceptance_test.go:70: ratchet: 0 of 1338 distinct cards across the repo decks are not fully supported
+paramcensus_test.go:3674: param census: 0 of 1338 distinct repo-deck cards carry at least one unread param or unmodelled cost token; 0 distinct param labels, 0 distinct cost labels
 ```
 
-- **Not fully supported** (1 on 2026-11-05: Incinerate, missing `stat:CantRegenerate`). One file per
-  card is in
-  [`engine/rules/testdata/known-unsupported/`](https://github.com/adams-shaun/gorge/tree/main/engine/rules/testdata/known-unsupported).
-- **Parameter census** (0 on 2026-11-05). A listed card would be playable with at least one `$` parameter
+- **Not fully supported** (0 on 2026-11-08). One file per card goes in
+  `engine/rules/testdata/known-unsupported/`, a directory that doesn't exist while nothing is outstanding.
+- **Parameter census** (0 on 2026-11-08). A listed card would be playable with at least one `$` parameter
   or cost token that isn't read yet, one file per card in `engine/rules/testdata/paramcensus/`, a directory
   that doesn't exist while nothing is outstanding.
 

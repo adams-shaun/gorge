@@ -24,7 +24,7 @@ committed ([why](repos/index.md#licensing-and-the-forge-card-scripts)).
 `make compile-cards` prints a couple of diagnostics for rider text it doesn't support;
 those are expected.
 
-`make report` begins like this (2026-11-02, at `b78e4c8b1`):
+`make report` begins like this (2026-11-08, at `fc2be1aabe`):
 
 ```text
 corpus: <FORGE_REF> @ <FORGE_REF> (GPL-3.0, <n> files)
@@ -52,14 +52,14 @@ bin/mtgsim -seats 2 -games 2 -seed 42 -verify
 ```
 
 ```text
-seed 42: 2 seats,    611 intents,   3157 events,  18 turns, winner=dimir-tempo, chain=3baaa1a31c521ffd
-  replay OK (chain 3baaa1a31c521ffd)
-seed 43: 2 seats,    585 intents,   3144 events,  20 turns, winner=death-n-taxes, chain=ff2b8e4a6b5cc72c
-  replay OK (chain ff2b8e4a6b5cc72c)
+seed 42: 2 seats,    611 intents,   3157 events,  18 turns, winner=dimir-tempo, chain=347aee8d651c2a2b
+  replay OK (chain 347aee8d651c2a2b)
+seed 43: 2 seats,    590 intents,   3154 events,  20 turns, winner=death-n-taxes, chain=cf8d3caf6565f0da
+  replay OK (chain cf8d3caf6565f0da)
 ```
 
 An *intent* is one answer to a decision, and `chain` is the hash of the game's whole event
-log. The numbers move when a change alters what the games do; these are from 2026-11-01 at `5917ab1ae`.
+log. The numbers move when a change alters what the games do; these are from 2026-11-08 at `fc2be1aabe`.
 
 ## 3. Run a local server
 

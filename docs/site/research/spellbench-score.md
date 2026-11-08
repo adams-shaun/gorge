@@ -9,7 +9,7 @@ Where does the FDN-trained M_CTLX search bot stand on SpellBench's Pauper board 
 
 ## Setup
 
-Run `sb-score`, 2026-11-02 02:53–07:12: 1,792 games, all rated, `validate: OK`; SpellBench 404c4c0, mtg-kernel 92ec2393, stats seed 20261102; caps 400% CPU, 8G, GOMAXPROCS=2, 4 workers. Elo is anchored at uniform = 1000; intervals are the arena's CI95, a paired bootstrap over seat-swapped pairs. [SpellBench v2 agents](../bots/spellbench.md) describes how gorge's bots sit a SpellBench seat.
+SpellBench arena run, 2026-11-02: 1,792 games, all rated, `validate: OK`; SpellBench 404c4c0, mtg-kernel 92ec2393, stats seed 20261102. Elo is anchored at uniform = 1000; intervals are the arena's CI95, a paired bootstrap over seat-swapped pairs. [SpellBench v2 agents](../bots/spellbench.md) describes how gorge's bots sit a SpellBench seat.
 
 ## Results
 

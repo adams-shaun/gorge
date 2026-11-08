@@ -16,9 +16,9 @@ Per-set card values estimated from simulated games alone. Each page says how its
 
 | Set | List id | Pilot | Estimator | Games played | Spearman vs 17Lands GIH WR | Date | Built from |
 |---|---|---|---|---:|---:|---|---|
-| TRK | `trk-nonet-11k` | az search, no network, 25 sims | ridge on in-hand membership | 11,000 | none (no 17Lands data) | 2026-11-03 | a private-module build with uncommitted changes |
-| FDN | `fdn-bot-80k` | scripted bot | shrunk in-hand win rate | 80,000 | 0.518 | 2026-10-16 | gorge 10f10c858 on an unmerged branch (inferred) |
-| FDN | `fdn-azc6g3-20k` | az search, az-c6 g3 network, 25 sims | shrunk in-hand win rate | 20,000 | 0.609 | 2026-10-16 | gorge 10f10c858 on an unmerged branch (inferred) |
+| TRK | `trk-nonet-11k` | az search, no network, 25 sims | ridge on in-hand membership | 11,000 | none (no 17Lands data) | 2026-11-03 | a local build with uncommitted changes |
+| FDN | `fdn-bot-80k` | scripted bot | shrunk in-hand win rate | 80,000 | 0.518 | 2026-10-16 | gorge 10f10c858 (inferred) |
+| FDN | `fdn-azc6g3-20k` | az search, az-c6 g3 network, 25 sims | shrunk in-hand win rate | 20,000 | 0.609 | 2026-10-16 | gorge 10f10c858 (inferred) |
 | FDN | `fdn-nonet-3k` | az search, no network, 25 sims | ridge on in-hand membership | 3,000 | 0.403 | 2026-11-03 | the same build as TRK |
 
 Agreement with human play, Spearman ρ against 17Lands GIH WR on FDN:
@@ -35,7 +35,7 @@ Spearman figures are over the 262 FDN cards with at least 500 17Lands games-in-h
 
 ## How the lists were made
 
-`cmd/cardval` (written in gorge on the draftlab composition API; in the private module since the repository split) builds random two-colour decks, plays them with one pilot on both seats, and writes one line per game with each seat's in-hand cards. An offline script then fits a value for every card at once, and a second script turned the run directories into the CSVs and every derived figure on these pages: the Spearman figures, the split-half reliabilities, the 95% intervals and the bias tables. That script reads the private run directories, so it is not published; each page states its method in words.
+A valuation tool built on the draftlab composition API (not in this repository) builds random two-colour decks, plays them with one pilot on both seats, and writes one line per game with each seat's in-hand cards. The values for every card are then fitted at once, and the CSVs and every derived figure on these pages (the Spearman figures, the split-half reliabilities, the 95% intervals and the bias tables) come from the game files. Each page states its method in words.
 
 Runs described in the experiment's write-up whose data no longer exists (the 2026-10-14 FDN runs) have no list here; the FDN page quotes their figures and [Cold-start card valuation](../card-valuation.md) has the full results.
 

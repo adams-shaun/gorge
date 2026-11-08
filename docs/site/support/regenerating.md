@@ -46,10 +46,13 @@ deploys from `main` on a push, on the daily 17:17 UTC rebuild (after gorge-compl
 run. Before the build, it:
 
 1. generates the package map (`go run ./cmd/pkgmap`);
-2. runs `scripts/docs_sets_test.py`, then `scripts/docs_sets.py`. The renderer
+2. checks the web-client pages against the client source (`scripts/docs_web_test.py`);
+3. runs `scripts/docs_sets_test.py`, then `scripts/docs_sets.py`. The renderer
    reads the committed dirac snapshot and, when the fetch succeeds,
    **gorge-compliance's orphan `docs-data` branch** (`status-A.jsonl`,
    `status-B.jsonl`, `meta.json`).
+
+After `mkdocs build --strict`, `scripts/docs_mermaid_check.py` parses every Mermaid diagram.
 
 gorge-compliance's nightly `compliance` job (09:41 UTC) writes `docs-data`.
 After `make compliance-status`, it runs two status commands. The first covers
@@ -65,14 +68,15 @@ the data was not available.
 ## The renderer: `scripts/docs_sets.py`
 
 gorge keeps the renderer. It writes `docs/site/support/_generated_sets.md`,
-which is gitignored and never committed. The file has three sections marked
+which is gitignored and never committed. The file has four sections marked
 for `pymdownx.snippets`, and `sets.md` includes each one by name:
 
 | Section | Contents |
 |---|---|
 | `headline` | one row per engine and measure, with the commits and corpus measured |
 | `sets` | the per-set table: every set gorge-compliance audits against a printed list, plus every set in dirac's snapshot, joined by set code |
-| `rollup` | the roll-up by set type, then every one of the 589 sets |
+| `rollup` | the roll-up by set type, then every one of the 591 sets |
+| `charts` | one chart per engine over the Standard sets |
 
 To render and build locally:
 
@@ -108,7 +112,7 @@ git clone https://github.com/adams-shaun/gorge-compliance.git
 cd gorge-compliance
 make cards GORGE_ROOT=../gorge      # links ../gorge/.cards here
 
-# Level A over all 589 XMage set manifests: one JSON line per set
+# Level A over all 591 XMage set manifests: one JSON line per set
 go run ./cmd/oraclediff status -all -json -level A -procs 4 > status-A.jsonl
 
 # Level B over the sets with a printed card list
@@ -210,6 +214,6 @@ go test ./engine/rules/ -run 'TestEveryRepoDeckIsFullySupported|TestEveryRepoDec
 
 The two log lines are the live counts (`ratchet: N of <total> …` and
 `param census: N of <total> …`). The named cards are the files in
-[`engine/rules/testdata/known-unsupported/`](https://github.com/adams-shaun/gorge/tree/main/engine/rules/testdata/known-unsupported)
-and `engine/rules/testdata/paramcensus/`, one JSON file per card. Without `.cards`, both tests skip and the package
+`engine/rules/testdata/known-unsupported/` and `engine/rules/testdata/paramcensus/`, one JSON file per card
+(a directory is absent while it has no entries). Without `.cards`, both tests skip and the package
 still prints `ok`, so check that the log lines are there.

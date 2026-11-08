@@ -174,5 +174,5 @@ See [Testing](../contributing/testing.md).
 ### `.cards` holds several `ir-*` files
 
 Each build that changes `engine/cards` writes its own `.cards/ir-<fingerprint>.gob.gz` and `.seg`
-(about 26 MB together). A compile keeps the newest four and removes the rest. Any of them is safe
+(about 27 MB together). A compile keeps the newest four and removes the rest. Any of them is safe
 to delete; the next run recompiles.

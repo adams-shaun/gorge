@@ -2,7 +2,7 @@
 
 The search bot reads the deciding seat's redacted view, encodes it into a fixed set of tensors, scores every option and the state with a small network, and runs PUCT over redealt worlds using those scores as priors and leaf values. Self-play with that search produces the training data for the next network. This page draws each stage, with sizes read from the code.
 
-Code links are to gorge at [b14b8a543][at]. The trainer and the dirac kernel's search are in the private companion module; this page describes them in words. Net shapes were read from the `.dzgw` headers of the nets themselves. The kernel encoder that once lived in the private module is now gorge's [`dirac/feat`][feat-doc], and the private net evaluator imports it.
+Code links are to gorge at [b14b8a543][at]. The trainer is not in this repository; this page describes it in words. Net shapes were read from the `.dzgw` headers of the nets themselves. The kernel's encoder is gorge's [`dirac/feat`][feat-doc].
 
 ```mermaid
 flowchart LR
@@ -138,7 +138,7 @@ The forward pass is the trainer's model, mirrored in [`bots/gonet/gonet.go`][gon
 
 **Production shape.** Every production net read has
 `{"d":64,"ff":128,"layers":1,"d_emb":32,"card_d":32,"head_hidden":64,"policy_layers":2,"value_layers":1}`.
-The trainer's own defaults are much larger (d 384); every loop passes this config explicitly.
+The trainer's own defaults are much larger; every loop passes this config explicitly.
 
 **Parameter count.** With R = RAW_W, the production shape has 524,288 table parameters (16,384 × 32) and 74,850 + 32R others. The embedding table is 87% of the net.
 
@@ -204,7 +204,7 @@ Results are on [GNN](gnn.md): G_M beats the 602,370-parameter MLP at equal sims 
 
 ## 4. The search
 
-The production spec is `az:sims=100:autopay:oppnodes:oppfull:morekinds:closedlist:topk=6`. gorge's [`bots/azmcts`][azmcts] is the reference; the private module ports it to the dirac kernel.
+The production spec is `az:sims=100:autopay:oppnodes:oppfull:morekinds:closedlist:topk=6`. gorge's [`bots/azmcts`][azmcts] is the reference; a port of it runs on the dirac kernel.
 
 ```mermaid
 flowchart TB
@@ -267,13 +267,13 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-  NET0[".dzgw gN"] --> SP["self-play: private runner<br/>az:sims=200…:cpuct=0.5:explore<br/>train split, 2 mulligans"]
+  NET0[".dzgw gN"] --> SP["self-play on the dirac kernel<br/>search at 200 sims, exploration on<br/>train split, 2 mulligans"]
   SP --> G["gN+1 games"]
   SP --> VR["gN+1 visit records<br/>every 4th searched decision"]
   VR --> PK["pack, format 1<br/>outcome, root value, sims,<br/>visits, prior, Q per candidate"]
-  PK --> TG["targets<br/>policy: cq, c-scale 0.03<br/>value: 0.5·outcome + 0.5·root value"]
+  PK --> TG["targets<br/>policy: completed-Q improved policy<br/>value: outcome blended with root value"]
   TG --> WIN["replay window<br/>last 3–4 packs"]
-  WIN --> TR["trainer<br/>AdamW, lr 3e-4, init from prev best,<br/>3000–6000 steps"]
+  WIN --> TR["trainer<br/>init from the previous best net"]
   TR --> EX["export → gN+1.dzgw"]
   EX --> GT{"gate, 1000 pairs, sims 100:<br/>vs sb-tactical, vs anchor, vs prev"}
   GT --> NET0
@@ -288,18 +288,18 @@ flowchart LR
 
 === "Self-play"
 
-    `az:sims=200:autopay:oppnodes:oppfull:morekinds:closedlist:topk=6:cpuct=0.5:gonet=<prev>:explore` on both seats, the train split, two mulligans with the heuristic, seed 9800+n, entity features recorded at every 4th searched decision. The private self-play runner is dirac's game runner, kept in the private module. g26's generation: 3,776 games and 81,713 visit records in 480.7 s.
+    Both seats play the search bot at 200 simulations with the previous generation's net and exploration on, on the train split, with two mulligans from the heuristic; entity features are recorded at every 4th searched decision. Self-play runs on the dirac kernel. g26's generation: 3,776 games and 81,713 visit records in 480.7 s.
 
 === "Pack and targets"
 
     - **Pack.** Columnar shards of 200,000 records, with outcome, root value, sims and choice per state, and visits, prior and Q per candidate. Holdout is games with crc32(id) % 20 == 0.
-    - **Policy target `cq`.** The completed-Q improved policy, softmax(log(P + 1e-8) + (c_visit + max N)·c_scale·qnorm), qnorm the per-state min-max of completed Q. The trainer's defaults are c_visit 50, c_scale 0.1; the loops pass c-scale 0.03.
-    - **Value target.** (1 − blend)·outcome + blend·root value, blend 0.5 in the loops. The trainer has no TD(λ) target.
+    - **Policy target `cq`.** The completed-Q improved policy, softmax(log(P + 1e-8) + (c_visit + max N)·c_scale·qnorm), qnorm the per-state min-max of completed Q. The loops use a small scale on the normalised Q, so the improved policy stays close to the prior.
+    - **Value target.** A blend of the game outcome and the search's root value, weighted equally in the loops. The trainer has no TD(λ) target.
     - **Loss.** Policy cross-entropy over the candidate log-softmax plus BCE on value.
 
 === "Trainer"
 
-    Batch 512, AdamW, weight decay 0.01, warmup 500, cosine to 0.1×lr, clip 1.0, bf16 autocast. The loops use lr 3e-4, starting from the previous `best.pt`, which is chosen by holdout policy CE + value log loss. g26's run: 6,000 steps, best step 1036, holdout policy CE 0.6206 against 0.9735 for uniform.
+    Each generation starts from the previous best net, chosen by holdout policy CE + value log loss. g26's run reached its best holdout early, with holdout policy CE 0.6206 against 0.9735 for uniform.
 
     **Window.** f84 uses the last 4 own packs, f84x sploop and Pauper the last 3, az-c6 every pack so far.
 
@@ -313,7 +313,7 @@ flowchart LR
 ## Related
 
 - [What dirac offers a search](../architecture/dirac/search.md): a simulation as copy, redeal and reseed, walk with hbot, expand one node, value the leaf once.
-- The kernel's own package diagram and plan, kept privately, record the same facts: `dirac/feat` reproduces policynet's bytes without importing it, the oracle asserts that equality at every decision, and g7's net (d 64, ff 128, one block, a 16,384×32 table) costs about 130k multiply-adds per eval.
+- The kernel's own design records the same facts: `dirac/feat` reproduces policynet's bytes without importing it, the oracle asserts that equality at every decision, and g7's net (d 64, ff 128, one block, a 16,384×32 table) costs about 130k multiply-adds per eval.
 
 [at]: https://github.com/adams-shaun/gorge/tree/b14b8a543b1ae0d401af3bf6c3e2d5ebde2c52af
 [feat-doc]: https://github.com/adams-shaun/gorge/blob/b14b8a543b1ae0d401af3bf6c3e2d5ebde2c52af/dirac/feat/doc.go

@@ -4,7 +4,7 @@ This page takes you from nothing to a checkout that can run games: the prerequis
 card corpus, the binaries, the browser client and dirac's card tables. Only the corpus step is
 required for bot games. A contributor needs the same steps, then [Testing](../contributing/testing.md).
 
-The output below is from 2026-11-02 at `b78e4c8b1`, on Linux x86-64 with Go 1.26.3. The maintainers test
+The output below is from 2026-11-08 at `fc2be1aabe`, on Linux x86-64 with Go 1.26.3. The maintainers test
 on Linux only.
 
 ## Prerequisites
@@ -34,14 +34,14 @@ the commit pinned by `FORGE_REF` in the
 is a function of that pin. The fetch leaves about 140 MB on disk.
 
 ```text
-fetched 34074 card scripts and 854 token scripts from https://github.com/adams-shaun/forge.git at <commit> (<FORGE_REF>)
+fetched 34444 card scripts and 864 token scripts from https://github.com/adams-shaun/forge.git at <commit> (<FORGE_REF>)
 These scripts are licensed GPL-3.0. They are a build input only:
 never commit them, never include them in a published image.
 ```
 
 Every tool opens the corpus through one loader, which parses the scripts into gorge's
 intermediate representation on first use and caches it as `.cards/ir-<fingerprint>.gob.gz`
-with a `.seg` file beside it (about 26 MB together). `make compile-cards` does that step
+with a `.seg` file beside it (about 27 MB together). `make compile-cards` does that step
 ahead of time, and `make report` prints the corpus coverage
 ([Getting started](../getting-started.md#1-fetch-and-compile-the-card-corpus) explains its
 output). The fingerprint is a hash of the card compiler's source, so a build that changes
@@ -93,10 +93,10 @@ compares the rebuilt event chain with the live one. Each game prints a result li
 `replay OK`:
 
 ```text
-seed 0: 4 seats,   1308 intents,   6460 events,  28 turns, winner=death-n-taxes, chain=6b2a9fd1ca81c2d5
-  replay OK (chain 6b2a9fd1ca81c2d5)
-seed 1: 4 seats,   1717 intents,   8409 events,  36 turns, winner=death-n-taxes, chain=cdf023640deb1b71
-  replay OK (chain cdf023640deb1b71)
+seed 0: 4 seats,   1308 intents,   6460 events,  28 turns, winner=death-n-taxes, chain=698a8db33e5b00de
+  replay OK (chain 698a8db33e5b00de)
+seed 1: 4 seats,   1727 intents,   8429 events,  36 turns, winner=death-n-taxes, chain=8d2ca1c1c1e7d333
+  replay OK (chain 8d2ca1c1c1e7d333)
 ```
 
 The 20 games took about 5 seconds. A `replay diverged` or `FAILED` line is an engine bug

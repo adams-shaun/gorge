@@ -22,19 +22,19 @@ Every gate is 4,000 games (2,000 pairs, seats swapped), `az:sims=100` on both si
 
 ### Question
 
-Every sploop generation trained with the `cq` policy target, c-scale 0.03 and value blend 0.5. On the g8 pack (40k states) the trained prior already agreed with the visit counts: KL(visits‖prior) 0.076, and the top-1 visit matched the prior's top-1 87% of the time. The cq target rescales completed Q min-max per state, which makes it about 0.93 one-hot. 39% of states have a root Q span below 0.02; there the target's KL is 0.62 and its top-1 flips 39% of the time, so the net is trained hard on noise. Two fixes were tried:
+Every sploop generation trained with the `cq` policy target and a value target blended from outcome and root value. On the g8 pack (40k states) the trained prior already agreed with the visit counts: KL(visits‖prior) 0.076, and the top-1 visit matched the prior's top-1 87% of the time. The cq target rescales completed Q min-max per state, which makes it about 0.93 one-hot. 39% of states have a root Q span below 0.02; there the target's KL is 0.62 and its top-1 flips 39% of the time, so the net is trained hard on noise. Two fixes were tried:
 
-- **Q, cqraw:** completed Q without the per-state rescale (c-scale 0.3).
+- **Q, cqraw:** completed Q without the per-state rescale.
 - **P, PCR:** playout-cap randomisation, which existed in the kernel's search (FullProb/CheapSims) and had never run in a loop: `sims=600:pcr=0.25:cheap=100`.
 
 ### Setup
 
-- Every arm used the same pinned play and pack binaries; arm Q ran on a later trainer build. The binaries' Go build stamps are wrong in worktrees, so the exact commit inside them is not recoverable from the binary.
-- Parent: sploop g8, warm start, 6 generations, 24,000 self-play games per generation (equal games across arms), 3,000 steps, window 3, 1,000-pair gates, seeds 9800+n.
+- Every arm used the same pinned play and pack binaries; arm Q ran on a later trainer build.
+- Parent: sploop g8, warm start, 6 generations with equal self-play games per generation across arms, and 1,000-pair gates.
 - Arms:
     - C: 200 sims.
     - P: 600 sims with `:pcr=0.25:cheap=100`, recording every decision. The plan expected ~3% more wall time; measured, P's self-play ran at 4.2 games/s against C's 6.1, about 1.45× the compute.
-    - Q: 200 sims, cqraw with c-scale 0.3.
+    - Q: 200 sims, cqraw.
 - **Rule, fixed before launch:** adopt X only if X6 vs C6 ≥ 0.5155, X6 vs g8 ≥ C6 vs g8, and X's vs-bot at g5 and g6 is no more than 0.02 below C's. Reject at X6 vs C6 ≤ 0.4845. Otherwise extend X and C to 9 generations and gate X9 vs C9 once, adopting at ≥ 0.5155. Loss and KL are logged and never decide.
 
 ### Results
@@ -53,7 +53,7 @@ Both g6 gates fell in the inconclusive band, so both arms ran to g9. vs bot stay
 
 ### Verdict
 
-**Neither adopted.** The loop keeps cq with c-scale 0.03 and no PCR. The calibration fact stands, since the 39% of near-tie states do get the largest cq updates, but fixing it does not move play. The plan names auxiliary heads and a TD(λ) value target as the next levers.
+**Neither adopted.** The loop keeps cq and no PCR. The calibration fact stands, since the 39% of near-tie states do get the largest cq updates, but fixing it does not move play. The plan names auxiliary heads and a TD(λ) value target as the next levers.
 
 ## The react rule and held-cast recording
 
@@ -63,11 +63,11 @@ DraftZero's experiment 48 ("learning when to cast instants") found that the rule
 
 ### Setup
 
-- Code: the react rule and held recording in the kernel's play driver, a `+held` pack format (a held-candidate column), and a trainer change: held candidates get 0 in the visits, cq and cqraw targets, and sims-0 records skip the value blend.
+- Code: the react rule and held recording in the self-play driver, a `+held` pack format (a held-candidate column), and a trainer change: held candidates get 0 in the visits, cq and cqraw targets, and sims-0 records skip the value blend.
 - Warm start from the policy-target test's winner. Neither P nor Q won, so the winner is arm C, starting from its g6.
-- Arms: C2 is the winner's recipe exactly; R2 is the same recipe with `:instwin=react` in the self-play seats only. No rule is active in any gate. 6 generations, 24,000 games per generation, 3,000 steps, window 3, 1,000-pair gates, seeds 9800+n.
-- The first launch failed because the react binaries lacked the v2 entity width; it was relaunched as C2/R2 at 2026-10-25T07:57Z.
-- Litmus: each net against itself with no rule at play, `az:sims=100`, 1,000 pairs, 6 workers, seed 78, eval split, with the instant census on.
+- Arms: C2 is the winner's recipe exactly; R2 is the same recipe with `:instwin=react` in the self-play seats only. No rule is active in any gate. 6 generations, equal games per generation, 1,000-pair gates.
+- The first launch failed because the react binaries lacked the v2 entity width; it was relaunched.
+- Litmus: each net against itself with no rule at play, `az:sims=100`, 1,000 pairs, seed 78, eval split, with the instant census on.
     - L1: the opponent-turn share of instant-speed casts.
     - L2: own upkeep and draw-step instant-speed casts per 100 seat-games.
     - Human reference: 49.6% overall.

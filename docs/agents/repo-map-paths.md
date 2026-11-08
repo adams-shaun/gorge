@@ -14,6 +14,7 @@ experiments live in a private companion module.
 | `mtgsim` | Headless self-play over the repo decks with replay verification (`make sim`). |
 | `draftsim` | Headless draft events with replay verification (`make draftsim`). |
 | `deckpool` | Drafts seeded pods and writes every seat's deck as a deck file, with an index and a manifest. |
+| `draftres` | Draft-research harness: drafts 8-seat pods with a mix of drafter variants and builds every pool. |
 | `labdemo` | The `draftlab` example workflow; writes 17Lands-shaped artefacts with `-out`. |
 | `extagent` | The reference `gorge-agent/1` agent as a process. |
 | `repro` | Replays a player feedback snapshot; `-emit-test` writes a failing test. |

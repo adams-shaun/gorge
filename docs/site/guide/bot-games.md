@@ -6,7 +6,7 @@ for that, the registered policies, how to run a fair matchup, how many games a d
 replay verification. For a bot in another language, see [Bots](../bots/index.md); for limited events,
 [Draft events](draft.md).
 
-The commands and output are from 2026-11-02, on 4 CPUs of a shared Linux box. Output depends on the
+The commands and output are from 2026-11-08, on 4 CPUs of a shared Linux box. Output depends on the
 gorge commit and the corpus pin, so yours may differ.
 
 ## Which tool?
@@ -58,9 +58,9 @@ go run ./cmd/mtgsim -seats 2 -games 3 -seed 1 -a forge-heuristic -b bot -decks u
 ```
 
 ```text
-seed 1: 2 seats,    323 intents,   1801 events,  13 turns, winner=mono-red-goblins, chain=49b4f7351421168c
-seed 2: 2 seats,    215 intents,   1225 events,  10 turns, winner=mono-red-goblins, chain=084fd9760febc4c7
-seed 3: 2 seats,    284 intents,   1608 events,  12 turns, winner=mono-red-goblins, chain=b98877a35b958904
+seed 1: 2 seats,    305 intents,   1722 events,  13 turns, winner=mono-red-goblins, chain=249f2c5e4ae01653
+seed 2: 2 seats,    215 intents,   1225 events,  10 turns, winner=mono-red-goblins, chain=bab4d9ee2d190562
+seed 3: 2 seats,    282 intents,   1623 events,  12 turns, winner=mono-red-goblins, chain=2479a7a2c1ca2f5d
 ```
 
 Each line names the **winning deck**, not the winning policy. Seat 0 always holds the first deck, so a deck
@@ -123,10 +123,10 @@ go run ./cmd/mtgsim -seats 8 -games 2 -verify -a forge-heuristic
 ```
 
 ```text
-seed 0: 8 seats,   3543 intents,  16452 events,  48 turns, winner=mono-green-stompy, chain=c3c6d7050cf802bb
-  replay OK (chain c3c6d7050cf802bb)
-seed 1: 8 seats,   3939 intents,  18066 events,  53 turns, winner=mono-red-goblins, chain=83576dc402ef2696
-  replay OK (chain 83576dc402ef2696)
+seed 0: 8 seats,   3543 intents,  16452 events,  48 turns, winner=mono-green-stompy, chain=24756478799b2de4
+  replay OK (chain 24756478799b2de4)
+seed 1: 8 seats,   3942 intents,  18072 events,  53 turns, winner=mono-red-goblins, chain=6e098c6e6fa6e546
+  replay OK (chain 6e098c6e6fa6e546)
 ```
 
 ## A fair matchup with `testkit/bench`
@@ -252,10 +252,10 @@ cd ../gorge
 ```
 
 ```text
-bot vs bot: A won 634 of 1320 decided games = 48.0% (95% CI +/- 2.7 pp)
+bot vs bot: A won 632 of 1320 decided games = 47.9% (95% CI +/- 2.7 pp)
 ```
 
-Those 1,320 games took about 11 seconds on 4 cores. `bot` against itself is 50% by symmetry, so 48.0% is what noise and the
+Those 1,320 games took about 9 seconds on 4 cores. `bot` against itself is 50% by symmetry, so 47.9% is what noise and the
 seat order look like at this size. To compare policies, run `-a yours -b bot` with the same pairs, games and seed: its
 result means something only when it sits outside the control's interval. `-verify` replays every game and checks its chain
 head.

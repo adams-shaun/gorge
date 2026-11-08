@@ -3,7 +3,7 @@
 This page is for people who have, or want, an agent for the SpellBench benchmark, and for anyone who wants to run a gorge bot inside
 it. It explains what SpellBench is, the messages its v2 protocol exchanges, and the ways gorge speaks it: seating an external v2 agent
 at a gorge table, serving a gorge bot as a v2 agent, serving gorge as a v2 environment, and offering v2 seats over HTTP. Message and field
-reference: [SpellBench v2 reference](../api/spellbench-v2.md). Commands were run on 2026-10-31.
+reference: [SpellBench v2 reference](../api/spellbench-v2.md). Commands were run on 2026-10-31, and the `mtgsim` example again on 2026-11-08.
 
 ## What SpellBench is
 
@@ -128,8 +128,8 @@ into v2 candidates and the answer back into an intent.
 ```console
 $ go run ./cmd/mtgsim -seats 2 -games 1 -verify -a sb-min \
     -sb-agent sb-min=server/spellbench/seat/testdata/minimal_bot.py
-seed 0: 2 seats,    691 intents,   3577 events,  30 turns, winner=dimir-tempo, chain=f802d0caafd07c93
-  replay OK (chain f802d0caafd07c93)
+seed 0: 2 seats,    691 intents,   3577 events,  30 turns, winner=dimir-tempo, chain=5ecd9040415c3eba
+  replay OK (chain 5ecd9040415c3eba)
 ```
 
 In `gorged` the agent becomes one more offered policy, so a play-vs-bot

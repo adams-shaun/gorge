@@ -6,7 +6,7 @@ bot, and bots take part in every phase. This page shows how to host events with
 `gorged`, how to run them headless with `draftsim`, and how to compose your own
 workflows with `labdemo` and the `draftlab` library.
 
-The commands and output below are from 2026-11-02.
+The commands and output below are from 2026-11-08.
 
 ## Host events with `gorged -events`
 
@@ -223,11 +223,11 @@ go build -trimpath -o bin/draftsim ./cmd/draftsim
 bin/draftsim -set FDN -seed 1 -events 2 -verify
 event 1: seed 1, set FDN (play-arena), drafter rating-colour, builder best23
   round 1 seat 0 (lethal-pressure) vs seat 3 (lethal-pressure): winner seat 3 turns 11 head 14b4ac72c8b56212 replay OK
-  round 1 seat 1 (bot) vs seat 2 (forge-heuristic): winner seat 1 turns 19 head 8fa59c64fc1474ef replay OK
-  round 2 seat 0 (lethal-pressure) vs seat 2 (forge-heuristic): winner seat 2 turns 22 head 07dff03942ae1a82 replay OK
-  round 2 seat 1 (bot) vs seat 3 (lethal-pressure): winner seat 3 turns 27 head 90c17aff84f08cb5 replay OK
+  round 1 seat 1 (bot) vs seat 2 (forge-heuristic): winner seat 1 turns 19 head e0746408c549bda1 replay OK
+  round 2 seat 0 (lethal-pressure) vs seat 2 (forge-heuristic): winner seat 2 turns 22 head 8bafa8445208abc6 replay OK
+  round 2 seat 1 (bot) vs seat 3 (lethal-pressure): winner seat 3 turns 27 head 839ba06d6272dbe2 replay OK
   round 3 seat 0 (lethal-pressure) vs seat 1 (bot): winner seat 0 turns 41 head 022b40d05194e9bd replay OK
-  round 3 seat 2 (forge-heuristic) vs seat 3 (lethal-pressure): winner seat 3 turns 49 head c93b435f467e5677 replay OK
+  round 3 seat 2 (forge-heuristic) vs seat 3 (lethal-pressure): winner seat 3 turns 49 head 731186ee78a39216 replay OK
 event 1: replay OK (208 log entries, 6 games)
   standings: seat persona                pts    MW    OMW    GW    OGW
     3 FDN/rating-colour/lethal-pressure   9  1.000  0.333  1.000  0.333

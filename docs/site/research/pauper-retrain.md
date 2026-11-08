@@ -23,22 +23,18 @@ Does a net trained from scratch on the eight SpellBench pauper-bo1 decks beat M_
 
 === "Recipe"
 
-    M_CTLX's recipe, changed only where the pool required it:
+    The loop is M_CTLX's, changed only where the pool required it:
 
-    - Self-play: the private self-play runner, 200 sims, `:explore`, one hour per generation, seed 9800+n, 16 workers (12 in run 2). Two mulligans with the constructed mulligan policy.
-    - g1 has no net: uniform prior and the heuristic leaf.
-    - Pack in format 1. Train the MLP, 602,370 parameters, config `{"d":64,"ff":128,"layers":1,"d_emb":32,"card_d":32,"head_hidden":64,"policy_layers":2,"value_layers":1}`, lr 3e-4, 3,000 steps, the last 3 packs, cq target with c-scale 0.03, value blend 0.5. g1 trains from scratch; later generations start from the previous best.
+    - Each generation plays self-play games with search and exploration, using two mulligans with the constructed mulligan policy. g1 has no net: uniform prior and the heuristic leaf.
+    - The net is a small MLP (602,370 parameters), trained on the recent self-play data; g1 trains from scratch and later generations start from the previous best.
     - Gate: gN against the champion, 1,000 pairs (2,000 games) at 100 sims, seed 78. The title moves when the 95% lower bound clears 0.5. References: sb-tactical and the no-net search, 250 pairs (500 games) each.
-    - Stop on request, at 60 generations, after 72 hours, or after 8 generations without a title. Then a final pooled retrain from scratch, 60,000 steps on the last packs.
-    - Play spec: `az:sims=N:autopay:oppnodes:oppfull:morekinds:closedlist:topk=6:topk=6:cpuct=0.5:gonet=<path>.dzgw`.
+    - The run stops at 60 generations, or after 8 generations without a title. Then a final pooled retrain from scratch on the last packs.
 
 === "Builds"
 
-    The loop ran as a capped systemd user unit (MemoryMax 48G, CPUQuota 1600%, Nice 10), with each build's revisions recorded beside its binaries.
-
     - g1 on gorge c92b6f401.
     - g2–g6 and gF on gorge e177d8565, which fixed a kernel autopay panic seen in ~0.16% of g1 games, always with Spy.
-    - Run 2 (g7 on) on gorge cf0487049, with one private-module build throughout.
+    - Run 2 (g7 on) on gorge cf0487049.
 
 ## Results
 
@@ -52,7 +48,7 @@ Champion 0 is M_CTLX. Its references: vs sb-tactical 0.5807 [0.5590, 0.6022] ove
 | g4 | e177d8565 | vs g3 0.5517 [0.5299, 0.5734] | <span class="gg-dot gg-dot--full" title="moves"></span><span class="gg-sr">moves</span> moves | 0.7340 | 0.7740 |
 | g5 | e177d8565 | vs g4 0.5467 [0.5249, 0.5685] | <span class="gg-dot gg-dot--full" title="moves"></span><span class="gg-sr">moves</span> moves | 0.7620 | 0.7880 |
 | g6 | e177d8565 | vs g5 0.5363 [0.5143, 0.5580] | <span class="gg-dot gg-dot--full" title="moves"></span><span class="gg-sr">moves</span> moves | 0.8020 [0.7648, 0.8346] | 0.8200 [0.7839, 0.8512] |
-| gF (pooled, 60k steps) | e177d8565 | vs g6 0.4840 [0.4621, 0.5059] | <span class="gg-dot gg-dot--none" title="stays"></span><span class="gg-sr">stays</span> stays with g6 | 0.7800 | 0.8000 |
+| gF (pooled) | e177d8565 | vs g6 0.4840 [0.4621, 0.5059] | <span class="gg-dot gg-dot--none" title="stays"></span><span class="gg-sr">stays</span> stays with g6 | 0.7800 | 0.8000 |
 | g7 | cf0487049 | vs g6 0.5208 [0.4988, 0.5426] | <span class="gg-dot gg-dot--none" title="stays"></span><span class="gg-sr">stays</span> stays with g6 | 0.8080 | 0.8020 |
 | g8 | cf0487049 | vs g6 0.5292 [0.5073, 0.5510] | <span class="gg-dot gg-dot--full" title="moves"></span><span class="gg-sr">moves</span> moves | 0.8060 [0.7691, 0.8383] | 0.8180 [0.7818, 0.8494] |
 

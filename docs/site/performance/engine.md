@@ -46,7 +46,7 @@ Knobs for the `make` targets are `BUDGET` (wall seconds for the whole measured p
 
 ## Current numbers
 
-A 2026-11-05 paired comparison (`make enginebench-pair BASE=b78e4c8b1 CAND=HEAD`, pinned to core 24, `GOMAXPROCS=1`, three ABBA reps per row) measured gorge
+A 2026-11-05 paired comparison (`make enginebench-pair BASE=b78e4c8b1 CAND=HEAD`, pinned to one core, `GOMAXPROCS=1`, three ABBA reps per row) measured gorge
 HEAD (`0ec285f67`) at 1.06-1.25× the `b78e4c8b1` baseline's CPU per turn on every row: ×1.24-1.25 on `random -autopay`, ×1.11-1.13 on `random`, ×1.12-1.13 on
 `bot -autopay`, ×1.06-1.08 on `bot`, and ×1.05-1.10 on the Burn mirror. That regression is engine work, not a published number: until it is fixed, the rows
 below are the `b78e4c8b1` baseline re-measured on 2026-11-05 as the base arm of that paired run — Go 1.26.3, `GOMAXPROCS=1`, 15 CPU-seconds a run, three reps
@@ -96,7 +96,7 @@ That line came from two reps of the same code, with `BUDGET=30 PIN=26 REPS=2 ROW
 
 ## Where the time goes
 
-CPU profiles of one 20-second pair-A run each, 2026-11-05 at `0ec285f67` (HEAD; the profiles describe the current code, regression included), pinned to core 26,
+CPU profiles of one 20-second pair-A run each, 2026-11-05 at `0ec285f67` (HEAD; the profiles describe the current code, regression included), pinned to one core,
 `GOMAXPROCS=1`. Flat time is grouped by package, and `engine/rules` includes its sub-packages.
 
 | Package | `random -autopay` | `bot -autopay` |

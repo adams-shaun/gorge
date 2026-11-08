@@ -10,7 +10,7 @@ The AlphaZero-style loop trains the d64 MLP on its own search's visit counts, ge
     - Adopted from the diagnosis: cpuct 0.5 with root LCB and `:defer=0.1` at play, and more sims at play time. The training recipe moved to the f84x from-scratch loop and the policy-target and react A/Bs.
 
 !!! warning "Records lost"
-    The c-series training tree (its plan, the loop data and eval summaries), the az-c5 run and the stage-0 run no longer exist. The tree was "rebuilt from scratch (2026-10-16)" after the training store was lost, and they are not in the 2026-10-25 archive. The c-series numbers below come from the design notes and the retrain write-up that recorded them, both kept privately.
+    The c-series training tree (its plan, the loop data and eval summaries), the az-c5 run and the stage-0 run no longer exist. The tree was "rebuilt from scratch (2026-10-16)", and they are not in the 2026-10-25 archive. The c-series numbers below come from the design notes and the retrain write-up that recorded them, both kept privately.
 
 ## 1. Question
 
@@ -20,16 +20,16 @@ Can search-labelled self-play make the hosted search bot stronger, generation af
 
 ```mermaid
 flowchart LR
-  SP["self-play<br/>az:sims=25, :explore,<br/>closed list, 24 workers"] -->|every 4th position| REC["visit records"]
+  SP["self-play<br/>az:sims=25, :explore,<br/>closed list"] -->|every 4th position| REC["visit records"]
   REC --> PACK["pack"]
-  PACK --> TR["train mlp64<br/>cq c-scale 0.03,<br/>value blend 0.5"]
+  PACK --> TR["train mlp64<br/>cq policy target,<br/>blended value target"]
   TR --> NET[".dzgw"]
   NET --> GATE{"gate: 600 games<br/>vs prev and vs sb-tactical"}
   GATE -->|pass| SP
   GATE -->|two fails| STOP["stop"]
 ```
 
-The census-on c-series recipe: 40 minutes of `az:sims=25` self-play per generation with the closed list, opponent nodes, autopay and top-k 6; train-split decks, seed 9400+n, 24 workers, every 4th position recorded. mlp64 (d 64, ff 128, 1 layer, card_d 32, head 64), at most 8 epochs, patience 6. Gates are 300 pairs (600 games) at 100 sims, seed 78: vs full search with no net, vs sb-tactical, vs the previous generation. A generation passes at ≥ 50% vs the previous and an sb-tactical score no lower than the previous one's; two consecutive fails stop the series. Decks: DraftZero FDN Limited, 28,366 train and 3,150 eval, London mulligan up to 2.
+The census-on c-series loop: self-play at 25 sims per move with the closed list, opponent nodes, autopay and top-k 6 on the train-split decks, with every 4th position recorded; the net is mlp64 (d 64, ff 128, 1 layer, card_d 32, head 64). Gates are 300 pairs (600 games) at 100 sims, seed 78: vs full search with no net, vs sb-tactical, vs the previous generation. A generation passes at ≥ 50% vs the previous and an sb-tactical score no lower than the previous one's; two consecutive fails stop the series. Decks: DraftZero FDN Limited, 28,366 train and 3,150 eval, London mulligan up to 2.
 
 ## 3. The hosted lineage: c3, c4, c5
 
@@ -56,7 +56,7 @@ Earlier generations vs sb-tactical: c1 58.5% [54.5, 62.4], c2 61.7% [57.7, 65.5]
 
 C4 landed as the hosted bot az-c4 (gorge 9ba4de165, 2026-10-14). Its gates with Wilson intervals: vs sb-tactical 407-193, 67.8% [64.0, 71.4]; vs the same closed search without a net 365-235, 60.8% [56.9, 64.7]; vs C3 322-278, 53.7% [49.7, 57.6].
 
-**c5 (2026-10-15).** Warm start from az-c4 after the payment fixes, four generations, lr 3e-4, 4 epochs, 40 minutes of self-play per generation on 24 workers (32,000 / 28,000 / 32,000 / 32,000 games). 600-game gates:
+**c5 (2026-10-15).** Warm start from az-c4 after the payment fixes, four generations of self-play (32,000 / 28,000 / 32,000 / 32,000 games). 600-game gates:
 
 | Net | vs az-c4 | vs sb-tactical |
 |---|---|---|
@@ -70,7 +70,7 @@ The design note observes that about 1,200 paired games would be needed to put th
 
 ## 4. az-c6 from scratch, g1–g7
 
-*2026-10-16 → 10-17.* g1 is `az:sims=100…:explore` with no net; later generations play `az:sims=25…:topk=6:gonet=prev:explore`, 45 minutes, seed 9600+n, every 4th decision recorded, 24 workers. Training uses the `cq` policy target with c-scale 0.03 and value blend 0.5, starting from the previous best, with every pack so far in the replay buffer. Gates: 150 pairs (300 games), seed 78, eval split. No CI was printed; at 300 games it is about ±0.05.
+*2026-10-16 → 10-17.* g1 plays 100 sims with exploration and no net; later generations play 25 sims with the previous net, every 4th decision recorded. Training uses the `cq` policy target and a blended value target, starting from the previous best, with every pack so far in the replay buffer. Gates: 150 pairs (300 games), seed 78, eval split. No CI was printed; at 300 games it is about ±0.05.
 
 <figure markdown="span">
 --8<-- "research/figs/c6-loop.svg"
@@ -92,18 +92,18 @@ The design note observes that about 1,200 paired games would be needed to put th
 
 === "One-hour test"
 
-    One hour of the c6 recipe on each engine from g7, 2 cores each; both corpora trained from g7 and gated against g7.
+    One hour of the c6 recipe on each engine from g7, same budget each; both corpora trained from g7 and gated against g7.
 
     | Engine | Games | Visit records | Gate vs g7, kernel, 1,500 pairs | Gate vs g7, gorge, 150 pairs |
     |---|---|---|---|---|
     | gorge | ~4,920 | 94,083 | 0.501 ±0.018 | 0.490 ±0.057 |
-    | dirac kernel (the private self-play runner) | 132,298 | 2,494,899 | 0.536 ±0.018 | 0.527 ±0.056 |
+    | dirac kernel | 132,298 | 2,494,899 | 0.536 ±0.018 | 0.527 ±0.056 |
 
     The g7-vs-g7 control scored 0.508 ±0.025. vs sb-tactical (300 games): g7 0.720 ±0.051, kernel-hour net 0.747 ±0.049, gorge-hour net 0.713 ±0.051.
 
 === "loop2"
 
-    Two lines from g7, three generations each. The kernel line (k) self-plays at sims=2000 in the private self-play runner; the mainline (g) at sims=25 in gorge. 45 minutes of self-play on 4 pinned cores per generation; training starts from the previous net at lr 3e-4 on az-c6's packs g1–g7 plus the line's own, 4 epochs; the net has 601,346 parameters. gorge gates are 300 games (±0.05), kernel gates 3,000 games (±0.018).
+    Two lines from g7, three generations each. The kernel line (k) self-plays at 2000 sims per move on the dirac kernel; the mainline (g) at 25 sims in gorge. Training starts from the previous net on az-c6's packs g1–g7 plus the line's own; the net has 601,346 parameters. gorge gates are 300 games (±0.05), kernel gates 3,000 games (±0.018).
 
     | Gen | Self-play | vs sb-tactical (gorge) | vs prev (gorge) | vs prev (kernel) |
     |---|---|---|---|---|
@@ -159,7 +159,7 @@ These are not comparable with the gorge sb-tactical numbers above: the same g7 s
 - sims 400 → 1600: +3.8 ±1.3; 1600 → 6400: +1.5 ±2.0.
 - `:defer=0.1`: +0.1 ±1.2 at sims 400, and own-upkeep instant casts fell from 50% to 0.3%. Adopted.
 - Knowing the opponent's deck list at sims 1600: +0.6 ±1.2; knowing the hand: +2.8 ±1.2. Belief work parked.
-- The P2 recipe (cpuct 0.5, every decision recorded, visit targets, root-value blend, a window of the last three own packs): 0.556 vs g7 at iteration 4 with sims 200, against 0.524 at iteration 4 for the old c6 recipe (3,000 games per point, ±0.018).
+- The P2 arm (cpuct 0.5, every decision recorded, visit targets with a root-value blend, a short replay window): 0.556 vs g7 at iteration 4 with sims 200, against 0.524 at iteration 4 for the old c6 recipe (3,000 games per point, ±0.018).
 - Best play: g7 at sims 400 with cpuct 0.5 and root LCB, 0.784 ±0.015 vs sb-tactical.
 
 **KL(visits‖prior).** The trained prior already agreed with the search that trained it, so the policy target carried almost no new information:

@@ -22,6 +22,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-sb-agent` | string | repeatable | register a SpellBench v2 stdio agent: name=/path/to/agent (repeatable) |
 | `-seats` | int | `4` | number of seats |
 | `-seed` | uint64 | `0` | base seed; game i uses seed+i for both the engine and its bot |
+| `-shape` | string | none | write a JSON game-shape census to this file (game rows, then one aggregate) |
 | `-v` | bool | `false` | print the deck assigned to each seat before every game |
 | `-verify` | bool | `false` | replay each game and compare its event chain against the live run |
 
@@ -111,6 +112,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-tables` | bool | `false` | write every pool's binary table under the corpus (make dirac-tables): exit 3 means an ids.tsv changed, rebuild kgen and rerun |
 | `-tsv` | string | none | with -census-std: write a per-refusal TSV dump here |
 | `-unrefuse` | string | none | delete this card's dirac/support/refused entry instead of generating |
+| `-unverified` | bool | `false` | with -supported: cards without lockstep evidence count as playable (a refused card stays false) |
 | `-whatif` | string | none | with -lir: also refuse these cards (comma list) and report coverage |
 | `-why` | string | none | with -refuse: one line saying what differs |
 
@@ -185,7 +187,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-max-decisions` | int | `20000` | canonical decision cap; a capped game is a stall |
 | `-max-turns` | int | `100` | turn cap; a capped game is a stall |
 | `-mulligans` | int | `0` | London mulligans each player may take (0 skips the round) |
-| `-out` | string | none | directory for the first divergence's repro.json, and for each capacity stall's game as capacity-<table>-pair<N>.repro.json (default: none written) |
+| `-out` | string | none | directory for the first divergence's repro.json, and one file a bad game: capacity-<table>-pair<N>.repro.json for a capacity stall, unmodelled-<why>-pair<N>.repro.json for an unmodelled kernel stall, divergent-pair<N>.repro.json for a divergent game (default: none written) |
 | `-pairs` | int | `100` | deck pairs (one game each) |
 | `-pairs-file` | string | none | pool runs: play these pairs instead of drawing from pool.tsv: deckA<TAB>deckB[<TAB>seed] per line (oracle.ExplicitPairs); -first-pair skips lines and -pairs, when given, caps them |
 | `-pass-elision` | bool | `false` | elide priority decisions whose only option is pass (must match the kernel's) |

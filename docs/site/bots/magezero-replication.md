@@ -7,11 +7,11 @@ maintainers replicated its published results and then ran the same experiments o
 [dirac](../architecture/dirac/index.md), gorge's second engine. The goal was to
 decide whether MageZero's encoding or network should replace the maintainers' own.
 This page reports results. dirac is in this repository, but the game runner these
-runs used, the private self-play runner, and the training code aren't, so they can't be repeated from a clone of gorge.
+runs used, the self-play runner, and the training code aren't, so they can't be repeated from a clone of gorge.
 
 !!! abstract "Verdict"
     - **The replication is faithful.** Their code on their data, their release
-      jar on the maintainers' hardware, and their gen1 model rerun here all land within noise
+      jar and their gen1 model, all rerun here, land within noise
       of their published numbers.
     - **Their encoding is not a gain for dirac.** On MageZero's data the maintainers'
       166K-parameter MLP ties their 8.8M-parameter NetGraph on value and targets and is
@@ -23,7 +23,7 @@ runs used, the private self-play runner, and the training code aren't, so they c
     - **Training from scratch, same schedule:** UWTempo on dirac goes
       from their gen0 (0.38 vs 0.35) to 0.78 by gen17, where theirs reaches
       0.65, against an opponent calibrated to their gen0.
-    - **Adopted:** the encoder ships in the private self-play runner as an opt-in, off-by-default recording
+    - **Adopted:** the encoder ships in the self-play runner as an opt-in, off-by-default recording
       flag, measured free when off. NetGraph is not adopted.
 
 Their sources are `results/experiments.md`, `results/generations.md`,
@@ -45,8 +45,8 @@ trained net as the prior and value function.
 | Term | Meaning |
 |---|---|
 | **ver4** | Their published gen0 Pauper training data (v0.3 encoding), 2,576 games |
-| **jar rerun** | Their v0.3.0-alpha release jar, run on the maintainers' hardware with their gen0 config (Java 21, no rebuild) |
-| **dirac** | dirac's private self-play runner with research card sets built from their lists |
+| **jar rerun** | Their v0.3.0-alpha release jar, rerun here with their gen0 config (Java 21, no rebuild) |
+| **dirac** | dirac's self-play runner with research card sets built from their lists |
 | **NetGraph** | Their network, trained by their unmodified `train.py` |
 | **d64 MLP** | The maintainers' own small net: 1 residual block, d=64, 166K parameters |
 
@@ -57,7 +57,7 @@ far its two sides were actually matched.
 
 | Comparison | Matched | Not matched | Status |
 |---|---|---|---|
-| Their `train.py` on their data, this rerun vs theirs | code, data, settings | seed, GPU instead of CPU | **like-for-like** |
+| Their `train.py` on their data, this rerun vs theirs | code, data, settings | seed, compute device | **like-for-like** |
 | Their jar's gen0 Faeries win rate, rerun vs published | jar, config, decks | sample size (399 vs 2,576 games) | **like-for-like** |
 | Their gen1 model on their jar, rerun vs published | model, jar, recipe, opponents | 100 vs about 200 games per opponent | **like-for-like** |
 | Their `test.py` "classic test" table | model, data, code | nothing material | **like-for-like** |
@@ -96,7 +96,7 @@ objects ≪ bag of nodes (degenerate, as in theirs).
     | s1 bag | no edges | degenerate | not run | 4.824 (degenerate) |
     | rerun only: perfect info off | opponent hand hidden | – | – | 0.485 |
 
-**Gen0 win rate.** Their jar on the maintainers' hardware, 399 games, gives Faeries
+**Gen0 win rate.** Their jar rerun here, 399 games, gives Faeries
 **0.449**, the same as ver4's 0.449 over 2,576 games. Decisions per
 seat-game match too (86.7 vs 81.7).
 

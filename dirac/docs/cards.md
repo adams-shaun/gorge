@@ -88,7 +88,7 @@ $ go run ./dirac/cmd/kgen -census-std -sets FDN
 |---|---|---:|---:|---:|---:|
 | BIG | non-std | 23 | 30 | 76.7 | 4 |
 ...
-| FDN | std | 505 | 517 | 97.7 | 0 |
+| FDN | std | 517 | 517 | 100.0 | 0 |
 ...
 ## Class ranking (Standard sets only, tokens unpacked)
 
@@ -101,7 +101,7 @@ $ go run ./dirac/cmd/kgen -census-std -sets FDN
 ```
 
 `-sets` picks the codes treated as “Standard” for the ranking (default: `dirac/cardset/standard.txt`);
-`-tsv FILE` writes one row per refusal. Counts here are from 2026-10-30 and a local `.cards`; they move
+`-tsv FILE` writes one row per refusal. Counts here are from 2026-11-08 and a local `.cards`; they move
 with the corpus, so rerun the command rather than quoting this paragraph.
 
 ## The pipeline
@@ -160,7 +160,7 @@ tables. Publishing keeps the 64 newest key directories.
 ## kgen modes and flags
 
 The header of `dirac/kgen/main.go` names the main modes; `go run ./dirac/cmd/kgen -h` prints every flag. Verified
-on 2026-10-30:
+on 2026-11-08:
 
 | flag | default | meaning |
 |---|---|---|
@@ -189,7 +189,7 @@ directory. `-dump` is the raw-IR study aid; `-census` is the data source for
 set-wide acceptance view above. A build preserves `ids.tsv`: a CardID never moves, a new card takes
 the next free ID, and a card that leaves the pool keeps an inert placeholder.
 
-An ad-hoc pool and a dump, run on 2026-10-30:
+An ad-hoc pool and a dump, run on 2026-11-08:
 
 ```sh
 $ go run ./dirac/cmd/kgen -pool kdocsample -card-list /tmp/cards.txt -out /tmp/kdocgen

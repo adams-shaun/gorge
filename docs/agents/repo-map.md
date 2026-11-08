@@ -50,6 +50,7 @@ has the API, the rules for code that touches `State`, and the import boundary.
 | `dirac/crcoverage` | Test-only CR coverage audit, one file per CR chapter; `TestCRCoverageIsCurrent` checks every row against the code. | The affected rule's row, in the same change as the mechanic. |
 | `dirac/search/hbot` | The native port of gorge's auto-pay heuristic bot. | Mirror a gorge auto-pay change here; lockstep is the check. |
 | `dirac/search/mull` | gorge's London-mulligan policies as pure functions over a hand. | The same policy change as gorge's, kept pure. |
+| `dirac/neteval` | `dirac/search`'s network `Evaluator`: the `dirac/feat` encoder feeding an in-process backend. | The evaluator and its parity tests. |
 | `dirac/oracle` | The engine-neutral seam to gorge: `Side`, `GorgeSide`, `RealKernel`/`FDNSide`, `Lockstep`, `Fuzz`, `Replay`, `Repro` and the policies. | Lockstep and fuzz logic here; its commands live under `oracle/cmd`. |
 | `dirac/kgen` | Lowers gorge's card IR into `kop` tables. | A `names_<mechanic>.go` and/or `opsdoc_<mechanic>.go`; do not edit `names.go` or `opsdoc.go`. |
 | `dirac/adapter` | A dirac game behind `engine/game`: what `gorged -engine dirac` serves, with a log and views derived from positions. | The adapter; it reads gorge's types and never `engine/rules`, `engine/replay` or `dirac/oracle`. |

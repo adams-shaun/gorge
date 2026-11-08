@@ -15,9 +15,9 @@ Can a fine-tuned language model, trained on search-teacher labels, pick better t
 
 ## Setup
 
-- Base model Qwen/Qwen3.5-9B, LoRA rank 16 on all linear layers, answer-only loss, on two RTX PRO 6000 (96 GB).
+- Base model Qwen/Qwen3.5-9B, a LoRA fine-tune with answer-only loss.
 - Labels from gorge's search teacher (label-v1 records). An unmerged Go branch added world rescoring, a deck catalog and holdout flags to it.
-- Data: 11,192 decisions from 3,000 games over 10 mono pairs. Training: two GPUs, batch 8, no 4-bit quantisation, 31 minutes per epoch.
+- Data: 11,192 decisions from 3,000 games over 10 mono pairs.
 - Preference pairs for DPO: value = (8×Q8 + 64×Q64)/72; candidates ≥ 0.06 below the best are rejected (at most 2 per decision); 8,634 pairs.
 - Fresh-seed test set t1: seed 60,000,000, 2,370 decisions. SpellBench split: a catalog over 261 pairings; held-out decks fdn07-ur, fdn12-ugw, faeries, wildfire, uw-control, the-epic-storm.
 

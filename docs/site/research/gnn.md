@@ -21,7 +21,7 @@ Every number is a self-paired play gate on the pool17k eval decks, seed 78 unles
 | Question | Result |
 |---|---|
 | Full evaluator, equal sims | G_S (0.93M) **0.5139**; G_M (2.1M) **0.5302**, seed 79 **0.5282**; G_BIG (8.26M) **0.5205** |
-| …with 2.4× data (g2–g8, 60k steps, both sides) | G_BIGX **0.5341**; G_MX **0.5210** |
+| …with 2.4× data (g2–g8, both sides) | G_BIGX **0.5341**; G_MX **0.5210** |
 | …vs production g26 | G_MX **0.5266** |
 | Cost per searched move (vs the MLP) | G_S 7.5×, G_M 18×, G_BIG 96× (AVX-512 Go forward) |
 | Equal time | G_M@100 vs MLP@400 **0.4855** (251 vs 69 ms); G_S@100 vs MLP@800 **0.464** (128 vs 188 ms) |
@@ -65,8 +65,7 @@ The earlier note "flattens past ~400" (g26@400 vs @100 = 0.535) does not hold fo
 ## 4. Engineering done that night
 
 - In gorge, on an unmerged branch: the GraphNet Go forward, with PyTorch parity to 1e-6; an AVX-512 GEMM, 35 → 1.66 ms per G_BIG eval; and a bit-exact multi-state `EvalBatch`. A GraphNet Go forward has since landed in gorge as [`bots/gonet/gnn.go`](https://github.com/adams-shaun/gorge/blob/b14b8a543b1ae0d401af3bf6c3e2d5ebde2c52af/bots/gonet/gnn.go).
-- In the private module: the net evaluator loads gnn `.dzgw` files, with research prototypes of a root-only net and a split evaluator; batched leaf evaluation with virtual loss merged; the root-only net went to review (off by default, harmless, but these gates give it no payoff); lazy priors merged (the exact −10.5% µs/sim).
-- A relabelling tool that relabels training packs with any teacher checkpoint.
+- Also done: the net evaluator loads gnn `.dzgw` files; batched leaf evaluation with virtual loss; lazy priors (the exact −10.5% µs/sim).
 
 **Recommended next:** profile stepping (41% of search CPU), since search scaling says every exact µs is strength; spend the extra speed as sims in self-play and gates (the loop runs at 200 sims, and 400+ is worth +0.03 or more); park the GNN line with this page as the record, and reopen it only for a GPU-batched evaluator; keep the v2 entity block. It landed in gorge on 2026-10-25 as a26426691 and a2df098cc, and the kernel encoder went to width 100.
 
@@ -82,8 +81,8 @@ The earlier note "flattens past ~400" (g26@400 vs @100 = 0.535) does not hold fo
 | d=128 GraphNet | 6.4 ms | same |
 | MLP d=64, one uncached Eval | ~0.37 ms; in search far less (parts cache, 51% eval-cache hits) | same; a generation's summary |
 | G_BIG time split | global layers 58% (FFN 47%), local pass 34%, option heads 5%; 81% in scalar `dot4` | pprof |
-| G_BIG in play | ~2 min/game on 6 cores vs ~19 games/s on 8 for the MLP: **~1000× per game** | smoke gates |
-| Holdout, same packs (sploop g5–g7), same 20k steps and targets | G_BIG polCE **0.5849** / vLL 0.4262; M_CTL MLP 0.6453 / 0.4346 | training logs |
+| G_BIG in play | ~2 min/game vs ~19 games/s for the MLP: **~1000× per game** | smoke gates |
+| Holdout, same packs (sploop g5–g7), same training budget and targets | G_BIG polCE **0.5849** / vLL 0.4262; M_CTL MLP 0.6453 / 0.4346 | training logs |
 | Prior GNN (10-19), parameter-matched | −0.66% polCE, play gate 0.507 | the 10-19 study ([net width](net-width.md#the-gnn-question-was-already-answered)) |
 | Search time (CPU profile, sims=200, g26) | stepping 41%, network priors 27%, heuristic bot 16%, new world 4%, leaf value 3%. (The 0.82 replay share counts replayed tree edges, not time) | the lazy-priors specification |
 
