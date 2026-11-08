@@ -339,7 +339,13 @@ func (s *State) walkKey(a Action, p uint8, i int) uint64 {
 func (s *State) scriptDeadEnd(k *prep, a Action, p uint8, restr slotMask) bool {
 	t := s.fork()
 	defer s.unfork()
-	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
+	// An activation's granted mana is the grant search's (grantCap's walk),
+	// but availFor does not read a grant's spend rule: count the unit here
+	// only when every live grant is unrestricted. A deferred source
+	// (Pyromancer's Goggles) is no census unit, so a play the deferred gap
+	// and an unrestricted grant together pay is absent from that walk and
+	// must be priced here (restrictedGrantLive).
+	t.g.noGrant = a.Kind() == AkActivate && s.restrictedGrantLive(k, p)
 	var order [MaxPerm]Slot
 	n := t.battlefieldOrder(p, t.scriptGaps(k, p).or(restr), order[:], 0)
 	var d Decision
@@ -355,6 +361,25 @@ func (s *State) scriptDeadEnd(k *prep, a Action, p uint8, restr slotMask) bool {
 		}
 	}
 	return true
+}
+
+// restrictedGrantLive: p controls a source whose granted mana ability carries
+// a spend restriction (Mm'menon's spell-only blue). availFor counts granted
+// units without reading that rule, so a prefix search must keep them out
+// (noGrant) unless every live grant is unrestricted.
+func (s *State) restrictedGrantLive(k *prep, p uint8) bool {
+	if k.gen == nil || len(k.gen.grantRestr) == 0 {
+		return false
+	}
+	for m := s.ctrlM[p&1].and(s.occ); m.any(); m = m.rest() {
+		var gi [maxGrants]int16
+		for i, n := 0, s.grantIdxs(k, m.first(), &gi); i < n; i++ {
+			if k.gen.grantRestr[gi[i]] != 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // scriptCompletes reports whether play a is on p's plain walk with a script's
