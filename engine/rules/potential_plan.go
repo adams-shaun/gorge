@@ -335,13 +335,16 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 			// exact total only when a legal mode is free; a costlier
 			// cheapest mode would be over-offered (potentialModalCastFreeMode).
 			modalFree := got.Detail == "shape:modal_cost" && e.potentialModalCastFreeMode(p, o.Obj)
-			// shape:additional_cost is the same composed-cost case even when
+			// A RaiseCost BeholdExile part (the Lorwyn Champions' "behold
+			// an Elf and exile it") is the same composed-cost case even when
 			// the composition proves the mana half insufficient: the census
 			// may miss a source (Springleaf Drum's tap-another ability) the
 			// prefix search can tap, exactly as it does for an either-or
-			// part below. Returning the planner's unsupported verdict here
-			// would hide the play from that search.
-			if alt.Reason == "" || alt.Reason == pay.ReasonInsufficient && got.Detail == "shape:additional_cost" ||
+			// part below, and the kernel's lowering prices that shape the
+			// same way (gorgeLowers' BeholdExile arm). Other additional
+			// costs (an exile, a collect evidence) keep the planner's shape
+			// verdict: the kernel has no census fallback for them.
+			if alt.Reason == "" || alt.Reason == pay.ReasonInsufficient && got.Detail == "shape:additional_cost" && e.castBeholdExtra(p, o.Obj, spellScope(o.Mode)) ||
 				got.Detail == "cost:x" || got.Detail == "cost:hybrid" || e.manaSpentReaderComposed(o.Obj, got.Detail) ||
 				got.Detail == "shape:target_dependent_cost" || modalFree || e.G.Obj(o.Obj) != nil && (len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 || spellExtrasAreFixedTaps(e.G.Obj(o.Obj).Face())) {
 				// A witness always; a proof only for the shapes the
@@ -495,6 +498,18 @@ func (e *Engine) paymentPlanRelaxProof(c paymentPlanCensus, verdict func() Payme
 // must be offered by the potential walk priced with exactly the floating
 // pool plus the witness's production. A composition that disagreed with the
 // engine's gate is therefore "unsupported", never a wrong witness.
+// castBeholdExtra reports whether id's composed spell cost carries a Behold
+// part from a RaiseCost static (Champions of the Perfect's BeholdExile<1/Elf>
+// "behold an Elf and exile it"). The mana-only witness does not describe that
+// part, but it is a fixed choose-and-exile cost, so the census/prefix search
+// still prices the mana half and the offer gate checks the candidates.
+func (e *Engine) castBeholdExtra(p state.PlayerID, id state.ObjID, scope costScope) bool {
+	if e.G.Obj(id) == nil {
+		return false
+	}
+	return len(e.costModifiersWithTargets(p, id, scope, nil, false).Extra.Behold) != 0
+}
+
 func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) PaymentPlanOutcome {
 	xCap, xCapOn := e.planXCap, e.planXCapOn
 	e.planXCapOn = false
