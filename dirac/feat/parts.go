@@ -55,6 +55,8 @@ type Parts struct {
 	Objs  []PartObj
 	Fresh []Feature
 	Ents  []PartEnt
+	// Ext is the extension block (SetExt), empty when off
+	Ext []Feature
 }
 
 // partCache is one content's cached parts for one seat.
@@ -408,5 +410,6 @@ func (e *Encoder) EncodeParts(s *dirac.State, d *dirac.Decision, seat uint8) *Pa
 		e.entityCard(sc, c, entZoneStack, seat, me.avail)
 		p.Ents = append(p.Ents, PartEnt{Group: 3, Obj: c.obj, Card: sc})
 	}
+	p.Ext = e.extFor(seat, me, opp)
 	return p
 }
