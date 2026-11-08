@@ -20,6 +20,11 @@ import (
 // one. See gorge-compliance docs/upstream-bugs.md, "March of the World Ooze
 // over a Vehicle animated after it entered".
 //
+// Camera Launcher is only the 2/2 Construct that pays part of the crew cost in
+// these windows; its exhaust ability is not involved. The farm attributes the
+// step to Camera Launcher, but the first differing permanent is the Vehicle,
+// and the rule is March of the World Ooze's grant.
+//
 // The scenario lists March before the Vehicle, so its layer-4 effect is the
 // older one and timestamp order alone would miss the Ooze; that is exactly
 // the farm ordering and the value the two other engines print.
