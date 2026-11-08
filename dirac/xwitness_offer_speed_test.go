@@ -3,7 +3,6 @@ package dirac
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -17,20 +16,8 @@ import (
 // walk resolves; with the opponent at 1 life that ends the game, so a sorcery
 // at the only source is not offered while an instant is.
 func TestXWitnessOfferSpeedReadsTheOfferedSpell(t *testing.T) {
-	set := cardsettest.Synth(t, "std-fin")
-	deck := []cardset.Entry{
-		{Name: "Choco-Comet", Count: 1},
-		{Name: "Syncopate", Count: 1},
-		{Name: "Al Bhed Salvagers", Count: 1},
-		{Name: "Namazu Trader", Count: 1}, // its token list holds the Treasure
-		{Name: "Mountain", Count: 1},
-	}
-	for _, e := range deck {
-		if _, ok := set.Lookup(e.Name); !ok {
-			t.Skipf("%s not in the std-fin table", e.Name)
-		}
-	}
-	tbl, _, _, err := set.Matchup(deck, deck)
+	set := cardsettest.Set(t, "xwitnessoffer")
+	tbl, err := set.Pool()
 	if err != nil {
 		t.Fatal(err)
 	}
