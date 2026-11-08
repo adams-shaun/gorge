@@ -248,11 +248,14 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0 && hasOption(&real, a) {
 			continue // priced by the printed sources: gorge's planner finds it sufficient and runs no prefix search for it
 		}
+		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && s.xWitnessUnreachable(k, p, Obj(a.Source())) {
+			continue // the printed sources pay it but the witness eats a target: gorge's verdict is witness_unreachable, no prefix search (mana_sacsource.go)
+		}
 		if cd := &k.t.Cards[s.objs[Obj(a.Source())].card]; isCastKind(a.Kind()) && (s.spellTgtDep(k, p, s.objs[Obj(a.Source())].card, Obj(a.Source())) || cd.HasModeCost && !modalFloorZero(k, s.objs[Obj(a.Source())].card)) {
 			continue // gorge searches no prefix for a target-priced cost, nor for a modal one whose cheapest mode still costs mana
 		}
-		if isCastKind(a.Kind()) && k.gen.anyOptCost && optCostCard(k, s.objs[Obj(a.Source())].card) {
-			continue // nor for an OptionalCost card: the planner declines it (shape:optional_cost, cost_optional.go)
+		if isCastKind(a.Kind()) && a.Mode()&castMayPlay == 0 && k.gen.anyOptCost && optCostCard(k, s.objs[Obj(a.Source())].card) {
+			continue // nor for an OptionalCost card: the planner declines it (shape:optional_cost, cost_optional.go); a may-play cast it composes (potentialModeCastPlan)
 		}
 		kk := s.walkKey(a, p, i)
 		j := nc
@@ -347,11 +350,17 @@ func (s *State) scriptDeadEnd(k *prep, a Action, p uint8, restr slotMask) bool {
 	// must be priced here (restrictedGrantLive).
 	t.g.noGrant = a.Kind() == AkActivate && s.restrictedGrantLive(k, p)
 	var order [MaxPerm]Slot
-	n := t.battlefieldOrder(p, t.scriptGaps(k, p).or(restr), order[:], 0)
+	ctr := t.scriptCtr(k, p) // a counter-cost gap (Ramos) among them, as scriptPrefix plays it
+	n := t.battlefieldOrder(p, t.scriptGaps(k, p).or(restr).or(ctr), order[:], 0)
 	var d Decision
 	var held [kop.NumManaKinds]uint8 // the restricted mana in the copy's pool
 	for i := 0; i < n; i++ {
-		t.tapGap(k, p, order[i], restr, &held)
+		if ctr.has(order[i]) {
+			t.ctrGap(k, p, order[i])
+			t.sba(k)
+		} else {
+			t.tapGap(k, p, order[i], restr, &held)
+		}
 		t.restrOptions(k, &d, p)
 		if hasOption(&d, a) {
 			if held == ([kop.NumManaKinds]uint8{}) {
@@ -581,8 +590,15 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 		if k.gen.anyFiltFirst && s.scriptFilt(k, p).any() {
 			continue // nor is a first-and-only filter (Prophetic Prism's {1},{T}) funded by a granted {G}: scriptOffers' filter search listed the play (CR 605.1a, 106.1)
 		}
-		if cost, ex, _, ok := s.grantPlayCost(k, p, a, true); ok && !s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
+		if cost, ex, need, ok := s.grantPlayCost(k, p, a, true); ok && !s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
 			d.remove(a)
+			if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g) {
+				// gorge's one prefix search gave the play up (its granted gaps
+				// spent the node budget before the tap-another line): the
+				// tap-another search alone, which skips the grants, must not
+				// offer it again (scriptOffers)
+				capSpent.add(a)
+			}
 		}
 	}
 	for i := 0; i < int(walk.N); i++ {
@@ -596,13 +612,15 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 		}
 		if !s.grantRelaxedAffords(k, p, a, &cost, ex, s.grantPayDesc(a), m) {
 			d.remove(a) // gorge's relaxed proof: insufficient, no prefix search (mana_grantrelaxed.go)
+			capSpent.add(a)
 			continue
 		}
-		if k.tapMana && hasOption(d, a) && s.scriptTapXModelled(k, p).any() && s.tapXScript(k, a, p, false) {
+		if k.tapMana && hasOption(d, a) && s.tapXOffGrant(k, p) && s.tapXScript(k, a, p, false) {
 			continue // a tap-another source (Gene Pollinator) pays it in scriptOffers' search, which the grant search does not run (mana_tapanother.go)
 		}
 		if m&availHyp == 0 && s.relaxRestrRefuses(k, p, &cost, s.grantPayDesc(a)) {
 			d.remove(a) // gorge's relaxed proof refuses the restricted grant: insufficient, never searched (mana_grantrelaxrestr.go)
+			capSpent.add(a)
 			continue
 		}
 		if n++; n > potentialScriptPlays {
@@ -610,7 +628,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			continue
 		}
 		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g) {
-			if !s.tapXScript(k, a, p, false) {
+			if !s.tapXOffGrant(k, p) || !s.tapXScript(k, a, p, false) {
 				// Gorge's script search covers every census gap — granted units and
 				// tap-another-permanent gaps alike (CR 605.1a, 601.2g-h) — so the
 				// kernel drops the play only when neither route prices it.

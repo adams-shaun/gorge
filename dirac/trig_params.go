@@ -70,7 +70,13 @@ func (s *State) keepGameOnce() {
 // nothing (CR 733.1), so a once-each-turn trigger it queued has not used
 // its turn").
 func (s *State) dropPendingLimits(k *prep, from uint8) {
-	for i := int(from); i < int(s.npend); i++ {
+	s.dropPendingRange(k, from, s.npend)
+}
+
+// dropPendingRange is dropPendingLimits over the entries [from, hi) only: the
+// ones after hi move down, in order, to from.
+func (s *State) dropPendingRange(k *prep, from, hi uint8) {
+	for i := int(from); i < int(hi); i++ {
 		pt := s.pend[i]
 		if pt.ab >= abCascade {
 			continue // a kernel-native trigger line has no limit$
@@ -86,7 +92,8 @@ func (s *State) dropPendingLimits(k *prep, from uint8) {
 			s.unmarkUsed(pt.obj, pt.ab)
 		}
 	}
-	s.npend = from
+	n := copy(s.pend[from:], s.pend[hi:s.npend])
+	s.npend = from + uint8(n)
 }
 
 // unmarkUsed removes the newest once-per-turn record for (o, ab) — the one

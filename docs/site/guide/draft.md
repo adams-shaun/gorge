@@ -121,7 +121,8 @@ commits to two colours by pick 10 and drafts toward the deck's missing card type
 mana values, and a builder that plays a curve, 14 to 18 creatures and two of each spell
 type the pool offers, splashes up to three one-pip cards on three sources when its pair
 runs short, plays up to four on-colour duals and plays 18 lands rather than an
-uncastable card.
+uncastable card. A fourth persona, `champion`, is tuned for FDN only and is not the
+default; see [the champion draft persona](../research/draft-champion.md).
 
 The game policy is any hosted policy that does not read opponents' decklists:
 `bot`, `lethal-pressure`, `forge-heuristic` and `forge-heuristic-hold` in a plain
@@ -251,7 +252,7 @@ the picks and the game seeds, so the same flags give the same log byte for byte.
 | `-structure` | round robin at 4 seats, Swiss at 8 | `roundrobin`, `swiss`, or `none` to stop after building |
 | `-rounds` | the structure's own | how many rounds to play |
 | `-players` | `lethal-pressure,bot,forge-heuristic,lethal-pressure` | one policy for every seat, or exactly one per seat. A policy that reads decklists is refused |
-| `-drafter`, `-builder` | `rating-colour`, `best23` | the pick and build logic: a persona name, or `knobs:path.json` for a `pickbot.Tuning` knob file (`knobs:path.json@<hash>` checks the file's hash), which drafts with `Knobbed` and builds with `Best23` |
+| `-drafter`, `-builder` | `rating-colour`, `best23` | the pick and build logic: a persona name (`rating-colour`, `best23`, `balanced`, or `champion` for FDN), or `knobs:path.json` for a `pickbot.Tuning` knob file (`knobs:path.json@<hash>` checks the file's hash), which drafts with `Knobbed` and builds with `Best23` |
 | `-verify` | off | replay events and games, and exit non-zero on the first mismatch |
 | `-draftlog` | none | append every pick to a CSV in 17Lands' `draft_data` shape |
 | `-v` | off | print each seat's policy and deck summary |
@@ -316,6 +317,10 @@ per-card games-in-hand win rates from FDN Premier Draft games, and the file
 and booster data is trimmed from [MTGJSON](https://mtgjson.com) (MIT). Both are
 credited in
 [`NOTICE`](https://github.com/adams-shaun/gorge/blob/main/NOTICE).
+
+The champion persona's value table is derived from simulated games on decks drafted
+with 17Lands ratings, so it carries the same CC BY 4.0 credit; see
+[the champion draft persona](../research/draft-champion.md#the-value-table).
 
 ## Where next
 

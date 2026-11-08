@@ -14,9 +14,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // them when an until-end-of-turn one expires (settleExpiredClones): the
 // permanent goes back to its printed card, then is re-based onto the newest
 // copy layer it still holds (copyTop: a permanent marker or a live Aegis
-// copy), copying that marker's SOURCE as it is at that moment (a source that
-// is itself being settled in the same cleanup step may or may not have been
-// yet: the order is the first until-end-of-turn marker's). Two record kinds
+// copy), restoring the card that marker locked when it landed (CR 707.2b;
+// gorge's state.CloneLayer), never re-reading its source. Two record kinds
 // model the clone layers:
 //
 //   - fxCopyEOT: the permanent holds until-end-of-turn copies. One record,
@@ -24,7 +23,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     card and timestamp those of the NEWEST clone. A later clone updates
 //     the record in place.
 //   - fxCopyPerm: its newest permanent copy marker: r.p the source object,
-//     r.idx the op's exception override (index+1), r.ts when it landed.
+//     r.src the card it showed when the copy landed, r.idx the op's
+//     exception override (index+1), r.ts when it landed.
 //     Pushed only when a table has an ExtCloneCopy op
 //     (genPrep.anyCloneCopy), by it and by an enters copy
 //     (becomeCopyEnter); one per permanent.
@@ -192,10 +192,12 @@ func (s *State) cloneLayerPrep(k *prep, sl Slot, eot bool, c CardID, src Obj, id
 
 // clonePermNote records that slot sl's newest permanent copy marker copies
 // object src, with the exception override idx (index+1, 0 none), as the
-// layer timestamp ts.
+// layer timestamp ts. c is the card the copy showed when it was applied: the
+// layer's copiable values are locked then (CR 707.2b), so a later re-base
+// restores c and never reads src again.
 //
 //go:noinline
-func (s *State) clonePermNote(sl Slot, src Obj, idx uint8, ts uint16) {
+func (s *State) clonePermNote(sl Slot, src Obj, c CardID, idx uint8, ts uint16) {
 	if s.fxM.has(sl) {
 		s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.sl == sl && r.kind == fxCopyPerm })
 	}
@@ -203,7 +205,7 @@ func (s *State) clonePermNote(sl Slot, src Obj, idx uint8, ts uint16) {
 		s.stall(StallTables)
 		return
 	}
-	s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxCopyPerm, r: ovRec{idx: idx, p: int16(src), ts: ts}}
+	s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxCopyPerm, r: ovRec{idx: idx, src: c, p: int16(src), ts: ts}}
 	s.g.nfx++
 	s.fxM.set(sl)
 }
@@ -272,7 +274,7 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		s.copyExcAdd(k, sl, tmpl, uint8(in.C))
 		p.ovr.kw = p.ovr.kw&^old | s.copyExcKw(k, sl)
 		if !eot {
-			s.clonePermNote(sl, s.perms[tmpl].obj, uint8(in.C), ts)
+			s.clonePermNote(sl, s.perms[tmpl].obj, c, uint8(in.C), ts)
 		}
 		made++
 	}

@@ -257,6 +257,20 @@ func tapXOwnAnswer(own, a, b Slot) bool {
 	return !DebugNoTapXOwnSkip && own != NoSlot && (a == own || b == own)
 }
 
+// tapXPairAt returns the qi-th pair of positions i < j below n in
+// lexicographic order: the order gorge's scriptAnswers enumerates the
+// n-combinations of a multi-object election in.
+func tapXPairAt(n, qi int) (int, int) {
+	for i := 0; i < n; i++ {
+		row := n - 1 - i
+		if qi < row {
+			return i, i + 1 + qi
+		}
+		qi -= row
+	}
+	return 0, 0
+}
+
 // tapXScript runs gorge's prefix search (rules scriptSearch.visit under
 // potentialPrefixScript: gapsOnly, funding 0, potentialScriptNodes) for play
 // a of p: found. With apply it plays the found script on s.
@@ -602,45 +616,41 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		if sc := k.cards[t.cardAt(sl)].manaAb; k.t.Cards[t.cardAt(sl)].Abilities[sc].Cost.N == 2 {
 			// a two-permanent cost (Baylen): two candidates are tapped with no
 			// ask; more are asked as one "choose 2" whose answers gorge's
-			// scriptAnswers enumerates as per-unit allocations (a first-half
-			// option and a second-half one, 64 at most); an odd count has none
+			// scriptAnswers enumerates as every pair of its candidates in
+			// lexicographic order, 64 at most (a multi-object election, not a
+			// per-unit colour allocation: an odd count is no early stop)
 			if nc > 2 && !rs.tick() {
 				return false
 			}
-			per := nc / 2
-			if nc == 2 {
-				per = 1
+			npair := nc * (nc - 1) / 2
+			if npair > 64 {
+				npair = 64
 			}
-			n := 0
-			for i := 0; i < per && nc%2 == 0; i++ {
-				for j := 0; j < per && n < 64; j++ {
-					n++
-					a, b := cs[i], cs[1]
-					if nc > 2 {
-						b = cs[per+j]
-						if debugTapXMutate == 2 {
-							a, b = cs[per-1-i], cs[nc-1-j] // the last pair first (mutation)
-						}
+			for pi := 0; pi < npair; pi++ {
+				qi := pi
+				if debugTapXMutate == 2 {
+					qi = npair - 1 - pi // the last pair first (mutation)
+				}
+				i, j := tapXPairAt(nc, qi)
+				a, b := cs[i], cs[j]
+				if rs.tapXOwnAnswer(a, b) {
+					// A forced tap (no ask: exactly the cost's candidates)
+					// that takes the play's own {T} source is no continuation
+					// (CR 602.2b): gorge's tappedOwnSource rejects the node
+					// the tap reaches, before the colour ask branches, so the
+					// branch costs one node there and none here.
+					continue
+				}
+				if !rs.tick() { // the colour ask
+					return false
+				}
+				for i := 0; i < 5; i++ {
+					c := cols[i]
+					if debugTapXMutate == 1 {
+						c = 0
 					}
-					if rs.tapXOwnAnswer(a, b) {
-						// A forced tap (no ask: exactly the cost's candidates)
-						// that takes the play's own {T} source is no continuation
-						// (CR 602.2b): gorge's tappedOwnSource rejects the node
-						// the tap reaches, before the colour ask branches, so the
-						// branch costs one node there and none here.
-						continue
-					}
-					if !rs.tick() { // the colour ask
-						return false
-					}
-					for i := 0; i < 5; i++ {
-						c := cols[i]
-						if debugTapXMutate == 1 {
-							c = 0
-						}
-						if rs.try(k, t, tapXStep{sl: sl, cand: a, cand2: b, col: c}) {
-							return true
-						}
+					if rs.try(k, t, tapXStep{sl: sl, cand: a, cand2: b, col: c}) {
+						return true
 					}
 				}
 			}

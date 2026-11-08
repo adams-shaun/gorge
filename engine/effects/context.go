@@ -520,6 +520,22 @@ func paidCostTargets(c *Ctx, ref string) []state.Target {
 	return out
 }
 
+// lkiBearer is the departed attachment o's last-known bearer: o.LastBearer
+// while that id still names the object o was attached to, else 0. A bearer
+// back on the battlefield with an entry Timestamp newer than o's attach stamp
+// (LayerStamp survives o's departure) re-entered since: a new object
+// (CR 400.7) whose LKI no longer exists (CR 608.2h).
+func lkiBearer(g *state.Game, o *state.Object) state.ObjID {
+	if o.LastBearer == 0 {
+		return 0
+	}
+	b := g.Obj(o.LastBearer)
+	if b == nil || (b.Zone == state.ZBattlefield && b.Timestamp > o.LayerStamp) {
+		return 0
+	}
+	return o.LastBearer
+}
+
 // attachedByDefinedSelector resolves the prefix `AttachedBy <referent>`
 // selector (Krasis Incubation's `Defined$ AttachedBy Returned`, Parallax
 // Dementia's `AttachedBy TriggeredCardLKICopy`): for each object the referent
@@ -555,7 +571,7 @@ func attachedByDefinedSelector(h Host, c *Ctx, spec string) ([]state.Target, boo
 		}
 		bearer := o.AttachedTo
 		if bearer == 0 {
-			bearer = o.LastBearer
+			bearer = lkiBearer(g, o)
 		}
 		if bearer != 0 {
 			out = append(out, state.Target{Obj: bearer})
@@ -1634,10 +1650,8 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			// (LayerStamp survives the Aura's departure), so the id now names
 			// a new object (CR 400.7) and the Aura's LKI bearer no longer
 			// exists (CR 608.2h).
-			if o.Zone != state.ZBattlefield && o.LastBearer != 0 {
-				if b := g.Obj(o.LastBearer); b != nil && !(b.Zone == state.ZBattlefield && b.Timestamp > o.LayerStamp) {
-					return []state.Target{{Obj: o.LastBearer}}, true
-				}
+			if o.Zone != state.ZBattlefield && lkiBearer(g, o) != 0 {
+				return []state.Target{{Obj: o.LastBearer}}, true
 			}
 		}
 		return nil, true

@@ -208,12 +208,13 @@ func (s *State) pushBuild(k *prep) {
 	if e.kind == seSpell {
 		ob := &s.objs[e.obj]
 		z := ob.zone
-		if k.gen != nil && k.gen.anyCopyCast && s.copyCastFrom(e.obj) {
+		copyCast := k.gen != nil && k.gen.anyCopyCast && s.copyCastFrom(e.obj)
+		if copyCast {
 			z = kop.ZoneLibrary // a Play CopyCard$ copy is cast from gorge's holding zone (cast_copycast.go)
 		}
 		s.bld().origin = z
-		if k.gen != nil && k.gen.anyCastProv {
-			e.prov = uint8(z) // trig_gravedrawn.go
+		if k.gen != nil && k.gen.anyCastProv || copyCast {
+			e.prov = uint8(z) // trig_gravedrawn.go, trig_castprovenance.go
 		}
 		if k.gen != nil && k.gen.castRingOn {
 			s.noteCast(e.obj, e.ctrl, z) // CR 601.2a: the push is the cast's ledger entry
@@ -274,6 +275,16 @@ func (s *State) pushBuild(k *prep) {
 	s.bld().bfl |= bflPushed
 }
 
+// proposalPendHi is the end of the pending triggers a reversed spell's own
+// proposal queued (its push, its targets, its dilemma): every one before its
+// mana step began, the rest being its mana abilities'.
+func (s *State) proposalPendHi() uint8 {
+	if m := s.bld().manaNP; m != 0 && m-1 < s.npend {
+		return m - 1
+	}
+	return s.npend
+}
+
 // unpushSpell reverses a spell pushed first (CR 601.2a) whose cast is
 // undone (CR 733.1): its stack entry is popped and the card returns from the
 // stack to the end of the zone it was cast from, as gorge's reversal moves it
@@ -302,13 +313,17 @@ func (s *State) unpushSpell(k *prep) {
 		ob.zone = kop.ZoneNone
 		return
 	}
-	if s.npend > s.bld().pushNP {
+	if hi := s.proposalPendHi(); hi > s.bld().pushNP {
 		// CR 733.1: the move off the zone it was cast from never happened, so
 		// its triggers (a card leaving a graveyard) are dropped, and the
 		// once-per-turn records they consumed come back (gorge abortCast's
 		// proposalLimits: an undone action triggered nothing, so a
-		// once-each-turn trigger it queued has not used its turn)
-		s.dropPendingLimits(k, s.bld().pushNP)
+		// once-each-turn trigger it queued has not used its turn). A mana
+		// ability the payment activated is not undone (CR 733.1 lets it
+		// stand), so what it queued stays: a creature Springleaf Drum
+		// tapped still "becomes tapped" (gorge drops only
+		// pendingCast.proposalTriggers).
+		s.dropPendingRange(k, s.bld().pushNP, hi)
 	}
 	ob.zone = s.bld().origin
 	ob.slot = NoSlot // off slotFaceDownSpell
@@ -424,6 +439,15 @@ func (s *State) buildAbility(k *prep) *kop.Ability {
 		return nil
 	}
 	return &k.t.Cards[s.bld().e.card].Abilities[s.bld().e.ab]
+}
+
+// buildingPowerUp reports whether the build in progress activates a
+// Power-up ability, whose asks (X, hybrid pip faces) read the CR 702.193b
+// reduced charge (gorge composes powerUpReduceCost into the activation's cost
+// before any ask).
+func (s *State) buildingPowerUp(k *prep) bool {
+	e := &s.bld().e
+	return e.kind == seAbility && k.gen != nil && k.gen.anyPowerUp && k.t.Cards[e.card].Abilities[e.ab].Cost.Flags&kop.CostPowerUp != 0
 }
 
 func (s *State) buildCost(k *prep) kop.ManaCost {
@@ -703,7 +727,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				continue
 			}
 			cost := s.buildCost(k)
-			if e.kind == seAbility && k.gen != nil && k.gen.anyPowerUp && k.t.Cards[e.card].Abilities[e.ab].Cost.Flags&kop.CostPowerUp != 0 {
+			if s.buildingPowerUp(k) {
 				cost = s.buildCostCharge(k) // a power-up's X is announced against the reduced cost (CR 702.193b, gorge xAsk)
 			}
 			if cost.X == 0 {
@@ -1084,6 +1108,9 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 func (s *State) pipOptions(k *prep, d *Decision) bool {
 	e := &s.bld().e
 	cost := s.buildCost(k)
+	if s.buildingPowerUp(k) {
+		cost = s.buildCostCharge(k) // the faces are priced against the CR 702.193b charge, as gorge's pip ask reads the reduced cost
+	}
 	if cost.Hyb[0] == 0 {
 		return false
 	}
@@ -1333,6 +1360,12 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 		if e.flags&sfAnyMana != 0 || anyColor {
 			s.tapRiderPlan(k, e)
 		}
+		if s.rbAny(e.ctrl) {
+			// restricted mana this spell may spend pays first (payRestrSpend):
+			// the sources tap for what it leaves (manaStep tapped them already
+			// when the plan ran there; this keeps the retap a no-op)
+			cost = s.restrShort(k, e.ctrl, e.card, restrOriginOfEntry(ep), cost)
+		}
 		s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 	}
 	s.payPicks(k)
@@ -1376,7 +1409,14 @@ func (s *State) finishBuild(k *prep) {
 		payDone := s.bld().bfl&bflPayDone != 0
 		_, wbSpell := s.waterbendPartFor(k, &e)
 		if wbSpell && s.waterbendTargetAbort(k) {
-			s.spreeCastWindowAbort(k) // the picks left the cost unpayable: the window taps as it walks, then aborts (CR 733.1)
+			if s.waterbendPickCount() > 0 {
+				// the picks stranded a cost a complete census prices
+				// (waterbendTargetAbort's probe): gorge reverses the cast
+				// before any mana ability (reverseStrandedPayment, CR 733.1)
+				s.reverseCast(k)
+				return
+			}
+			s.spreeCastWindowAbort(k) // no pick committed: the window taps as it walks, then aborts (CR 733.1)
 			return
 		}
 		if !payDone {
@@ -1390,8 +1430,13 @@ func (s *State) finishBuild(k *prep) {
 		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || e.trigPl == trigPlMadness {
 			// a free cast mid-resolution (Etali) pays the rest of its
 			// cost (Eaten Alive's {3}{B} part) through gorge's mana
-			// window, not the priority planner (pair 9954)
-			s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0)
+			// window, not the priority planner (pair 9954); a cost the
+			// window cannot finish (Reenact the Crime's copy of Officious
+			// Interrogation, whose per-target RaiseCost the pool lacks)
+			// reverses the cast (CR 733.1)
+			if !s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0) {
+				return
+			}
 		} else if k.gen != nil && k.gen.anyConvoke && s.tapPaysEntry(k, &e) {
 			if !s.payConvoke(k, &e, &cost, e.flags&sfAnyMana != 0, anyColor) || s.winPaused() {
 				return
@@ -1412,7 +1457,9 @@ func (s *State) finishBuild(k *prep) {
 		} else if (k.t.Cards[e.card].HasModeCost || wbSpell) && cost.X == 0 {
 			// gorge's planner declines a Spree face ("shape:modal_cost"):
 			// it pays through the mana window (kw_spree.go)
-			s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0)
+			if !s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0) {
+				return
+			}
 		} else if k.gen != nil && s.delvePaysEntry(k, &e) {
 			// gorge's planner declines a delve cast ("shape:contribution",
 			// payment_plan.go), so its CR 601.2g window ran at manaStep
@@ -1876,6 +1923,10 @@ func (s *State) takePending(k *prep, i int) {
 	pt := s.pend[i]
 	copy(s.pend[i:s.npend-1], s.pend[i+1:s.npend])
 	s.npend--
+	// the trigger's push is progress: gorge's TriggerPush event clears the
+	// no-progress abort counts (emit's suppression rule), so a cast reversed
+	// before it may be redone after it (CR 733.2; noProgress)
+	s.touchN++
 	// A stale warp / unearth / destroy / exile promise, or an incarnation-tracked
 	// one (Decayed), still triggers and is put on the stack (CR 603.7); it
 	// resolves doing nothing to the new object (CR 400.7: resolveDelayed and

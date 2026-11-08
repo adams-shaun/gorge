@@ -53,7 +53,8 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 	targeted := bestowed || tspec(k, c, spellAb(k, c), 0) != nil
 	stacked := s.subs[kop.TrigSacrificed].any()
 	anySac := s.anySacSource(k, p)
-	if !anySac || !targeted && !stacked {
+	diesTrig := s.subs[kop.TrigDies].or(s.subs[kop.TrigLeaves]).any()
+	if !anySac || !targeted && !stacked && !diesTrig {
 		return false
 	}
 	t := s.fork()
@@ -87,7 +88,41 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 			return true
 		}
 	}
-	return stacked && int(t.npend)-int(n0) > witnessWaits
+	if stacked && int(t.npend)-int(n0) > witnessWaits {
+		return true
+	}
+	return s.xWitnessEndsGame(k, p, t, n0, cost)
+}
+
+// xWitnessEndsGame: the witness fork t (taken from s before the cast's pre-cast triggers
+// resolve) queued sacrifice triggers from n0 that, resolved as gorge's lowering lets them
+// resolve, end the game, while a witness that keeps the sacrificing sources pays cost at
+// X=0. gorge's potentialWitnessReaches (winOK=false) replays the witness on a clone, and
+// witnessReachesMode leaves at once on c.G.Over, so the witness "does not reach" the play
+// and potentialWitnessKeeping plans the largest X that keeps the sources (Choco-Comet's X
+// beside the Treasure and Al Bhed Salvagers, p0 at 1 life). Only a live sorcery-speed
+// build: an instant-speed cast is offered with the trigger still on the stack, below the
+// spell, so the witness reaches it; with no keeping plan gorge takes the lethal one
+// (potential_plan.go's winOK fallback; resolveLowerCounterTriggers ends the game).
+func (s *State) xWitnessEndsGame(k *prep, p uint8, t *State, n0 uint8, cost *kop.ManaCost) bool {
+	if t.npend <= n0 || !s.buildLive() {
+		return false
+	}
+	b := s.bld()
+	if b.e.kind != seSpell || k.cards[b.e.card].instant || s.castFlash(k, b.e.ctrl, b.e.card) {
+		return false
+	}
+	// the guard above leaves only the sorcery-speed build, whose triggers the
+	// lowering resolves before the cast (instant is false).
+	t.resolveLowerCounterTriggers(k, n0, false)
+	if !t.over {
+		return false
+	}
+	var av avail
+	held := s.sacSourcesHeld(k, p)
+	s.availFor(k, p, &av)
+	s.ctrlM[p] = s.ctrlM[p].or(held)
+	return av.affords(cost, pipMaskOf(cost), 0)
 }
 
 // sacSourcesHeld takes p's sacrificing mana sources out of its control mask for a witness
@@ -101,6 +136,36 @@ func (s *State) sacSourcesHeld(k *prep, p uint8) slotMask {
 	}
 	s.ctrlM[p] = s.ctrlM[p].andNot(held)
 	return held
+}
+
+// smallerXWitness is gorge's potentialWitnessSmallerX: the largest X below hi
+// whose payment the offer walk still admits (its sacrifices leave a target and
+// stack no more triggers than the wait budget lets resolve). ok is false when
+// no smaller X pays.
+func (s *State) smallerXWitness(k *prep, p uint8, c CardID, cost *kop.ManaCost, hi int, excl Obj) (int, bool) {
+	stacked := s.subs[kop.TrigSacrificed].any()
+	bestowed := s.buildLive() && s.bld().e.bestowedEntry()
+	targeted := bestowed || tspec(k, c, spellAb(k, c), 0) != nil
+	for x := hi - 1; x >= 0; x-- {
+		t := s.fork()
+		n0 := t.npend
+		var pk planner
+		pk.try = true
+		t.tapForPK(k, p, cost, x, excl, false, false, &pk)
+		found := pk.found
+		ok := found && (!stacked || int(t.npend)-int(n0) <= witnessWaits)
+		if ok && bestowed {
+			var buf [MaxOptions]uint8
+			ok = t.targetCands(k, &k.t.Cards[c].BestowTgt, p, NoSlot, t.bld().e.obj, &buf) != 0
+		} else if ok && targeted {
+			ok = t.spellTargetsFeasible(k, c, p)
+		}
+		s.unfork()
+		if ok {
+			return x, true
+		}
+	}
+	return 0, false
 }
 
 // xWitnessOffered: gorge has a witness for p's {X} cast of hand card o, at the largest X or
@@ -117,32 +182,72 @@ func (s *State) xWitnessOffered(k *prep, p uint8, c CardID, o Obj) bool {
 	// permanent the spell could target (or stacks past the wait budget), so
 	// gorge prices a smaller X whose payment keeps one (For the Common Good
 	// paid with one of two Treasures; the other stays a target).
-	stacked := s.subs[kop.TrigSacrificed].any()
-	bestowed := s.buildLive() && s.bld().e.bestowedEntry()
-	targeted := bestowed || tspec(k, c, spellAb(k, c), 0) != nil
-	for x := mx - 1; x >= 0; x-- {
-		t := s.fork()
-		n0 := t.npend
-		var pk planner
-		pk.try = true
-		t.tapForPK(k, p, &cost, x, o, false, false, &pk)
-		found := pk.found
-		ok := found && (!stacked || int(t.npend)-int(n0) <= witnessWaits)
-		if ok && bestowed {
-			var buf [MaxOptions]uint8
-			ok = t.targetCands(k, &k.t.Cards[c].BestowTgt, p, NoSlot, t.bld().e.obj, &buf) != 0
-		} else if ok && targeted {
-			ok = t.spellTargetsFeasible(k, c, p)
-		}
-		s.unfork()
-		if ok {
-			return true
-		}
+	if _, ok := s.smallerXWitness(k, p, c, &cost, mx, o); ok {
+		return true
 	}
 	held := s.sacSourcesHeld(k, p)
 	s.availFor(k, p, &av)
 	s.ctrlM[p] = s.ctrlM[p].or(held)
+	if s.g.mayPlayAny {
+		// the keeping plan prices the printed pips first and the permission's
+		// any-type rider when they have none (potentialModeCastPlan)
+		rc := anyType(cost)
+		return av.affords(&cost, pipMaskOf(&cost), 0) || av.affords(&rc, pipMaskOf(&rc), 0)
+	}
 	return av.affords(&cost, pipMaskOf(&cost), 0)
+}
+
+// lowerXEats taps the witness of an {X} cast whose largest-X payment xWitnessEats
+// (lowerWitnessEx): gorge's potentialWitnessKeeping, the largest X that keeps
+// every sacrificing source (priced under the cast's any-type rider when the
+// printed pips have no such plan), else potentialWitnessSmallerX, the largest
+// smaller X whose payment consumes them yet leaves a target. x is the largest X
+// the sources pay.
+func (s *State) lowerXEats(k *prep, p uint8, cost *kop.ManaCost, x int, excl Obj, anyColor bool) {
+	held := s.sacSourcesHeld(k, p)
+	var av avail
+	s.availFor(k, p, &av)
+	kc, kx := *cost, 0
+	for pass := 0; pass < 2; pass++ {
+		if pass == 1 {
+			if s.bld().e.flags&sfAnyMana == 0 && !anyColor {
+				break
+			}
+			kc = s.buildCost(k) // the rider's price (the witness priced the printed pips)
+		}
+		if anyColor {
+			kx = av.maxXAnyColor(&kc)
+		} else {
+			kx = av.maxX(&kc, pipMaskOf(&kc))
+		}
+		if kx >= 0 {
+			s.tapForRider(k, p, &kc, kx, excl, anyColor)
+			s.ctrlM[p] = s.ctrlM[p].or(held)
+			return
+		}
+	}
+	s.ctrlM[p] = s.ctrlM[p].or(held)
+	if sx, ok := s.smallerXWitness(k, p, s.bld().e.card, cost, x, excl); ok {
+		x = sx
+	}
+	s.tapForRider(k, p, cost, x, excl, anyColor)
+}
+
+// xWitnessUnreachable: p's plain {X} cast of hand card o is paid by the printed
+// sources (some X >= 0) yet xWitnessOffered refuses it, so gorge's verdict is
+// "unsupported witness_unreachable", not "insufficient": the census is
+// complete for it and no scripted prefix search runs (potentialPlans). For the
+// Common Good with one Treasure beside a Plains and a {1} filter: the Treasure
+// pays {G} at X = 0 and is the only token it could copy.
+func (s *State) xWitnessUnreachable(k *prep, p uint8, o Obj) bool {
+	c := s.objs[o].card
+	if k.t.Cards[c].Cost.X == 0 || s.objs[o].zone != kop.ZoneHand {
+		return false
+	}
+	cost := s.featCost(k, p, c, o, k.cards[c].cost)
+	var av avail
+	s.availFor(k, p, &av)
+	return av.maxX(&cost, pipMaskOf(&cost)) >= 0 && !s.xWitnessOffered(k, p, c, o)
 }
 
 // kickWitness mirrors gorge's potentialWitnessReaches for a kicked cast

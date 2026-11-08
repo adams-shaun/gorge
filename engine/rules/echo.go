@@ -243,7 +243,7 @@ func (e *Engine) echoAnswer(chosen []decision.Option) {
 			return
 		}
 		if announced.Priceable() &&
-			pay.PayManaConv(asPayer(e), ef.player, announced, asEval(e).Conv(ef.player, ef.source, false)) {
+			pay.PayManaConv(asPayer(e), ef.player, announced, asEval(e).Conv(ef.player, ef.source, pay.SAOther)) {
 			e.finishEcho()
 			return
 		}

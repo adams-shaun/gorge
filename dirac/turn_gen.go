@@ -59,8 +59,8 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	p.chosen = 255
 	s.g.cast.clr(sl)
 	if s.res.active && s.res.e.kind == seSpell && s.res.e.obj == o {
-		if s.objs[o].of&(ofCopy|ofToken) == 0 {
-			s.g.cast.set(sl) // a spell's copy is never cast (CR 707.10), and is a token by now (permCopyEnters)
+		if s.objs[o].of&(ofCopy|ofToken) == 0 || s.copyCastEntry(k, &s.res.e) {
+			s.g.cast.set(sl) // a stack copy is never cast (CR 707.10), but a Play copy is (CR 707.12; cast_copycast.go)
 		}
 		if s.res.e.flags&sfKicked != 0 && !(k.gen.anyOptCost && castCollectedNever(k, &s.res.e)) {
 			s.mSlSet(k, mechKicked, sl)
@@ -514,7 +514,9 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 				// the card still in exile (Heraldic Banner, pair 544); it
 				// enters once answered (runProg, raGenRetChoice); so does one whose
 				// source a cost's pick still being answered sacrificed (In the Pale
-				// Moonlight's Malfunctioning Holodeck), as the Aura's host ask above.
+				// Moonlight's Malfunctioning Holodeck), as the Aura's host ask above;
+				// so does one whose exiler leaves inside a top/bottom answer (Temporal
+				// Cleansing), before continueRes clears the ask: parkReturnAsk poses it.
 				// A "second from top or bottom" answer (raGenTopBottom) moves
 				// the source inside its own answer and gorge asks the return's
 				// choice right after that move (CR 616.1, 610.3d; ecl 2517's
@@ -650,10 +652,17 @@ func (s *State) cleanupGen(k *prep) {
 	// before dropping the bitsets.
 	s.fbClearAll(k)
 	if s.g.nfx > 0 {
+		var ended slotMask
+		for i := 0; i < int(s.g.nfx); i++ {
+			if r := &s.g.fx[i]; r.kind == fxOverride && r.r.eot() {
+				ended = ended.with(r.sl)
+			}
+		}
 		s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.kind == fxOverride && r.r.eot() })
 		if k.gen.anyNTOv {
-			s.dropNextTurnOv() // Duration$ UntilYourNextTurn (static_control.go)
+			ended = ended.or(s.dropNextTurnOv()) // Duration$ UntilYourNextTurn (static_control.go)
 		}
+		s.copyExcKwRestore(k, ended)
 	}
 	if k.gen.anyEOTEmb {
 		s.dropEOTEmblems(k)
@@ -841,24 +850,23 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		ctrl := s.g.freeP & 1
 		if s.g.freeP&32 != 0 {
 			paid := s.g.freeP&64 != 0
-			// gorge casts the copy whatever became of the original: a paid
-			// cast the pool cannot cover is begun and reversed after its
-			// mana window (CR 733.1, cast_exilegrant.go); a required target
-			// aborts it at the target ask first, tapping nothing
-			if paid && s.copyCastAbortsBeforeWindow(k, c, ctrl, o) {
-				// the copy is minted and ceases in its holding zone, no
-				// source tapped: gorge's abort at the target ask
-				if s.beginCopyCast(k, o, ctrl) {
-					s.reverseCast(k)
-				} else if s.over {
+			// gorge casts the copy whatever became of the original and mints
+			// it at the cast's start, so begin first: a paid cast the pool
+			// cannot cover is begun and reversed after its mana window
+			// (CR 733.1, cast_exilegrant.go), and a required target aborts it
+			// at the target ask first, tapping nothing. The build also has to
+			// be live for the census the abort reads (windowUnpricedOpen).
+			if !s.beginCopyCast(k, o, ctrl) {
+				if s.over {
 					return false
 				}
 				continue
 			}
-			if !s.spellTargetsFeasible(k, c, ctrl) || !s.spellCostsFeasible(k, c, ctrl, o) || !s.beginCopyCast(k, o, ctrl) {
-				if s.over {
-					return false
-				}
+			if paid && s.copyCastAbortsBeforeWindow(k, c, ctrl, o) ||
+				!s.spellTargetsFeasible(k, c, ctrl) || !s.spellCostsFeasible(k, c, ctrl, o) {
+				// the copy is minted and ceases in its holding zone, no
+				// source tapped: gorge's abort at the target ask
+				s.reverseCast(k)
 				continue
 			}
 			if paid {

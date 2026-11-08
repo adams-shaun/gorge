@@ -166,7 +166,7 @@ func (e *Engine) castWindowPays(pc *pendingCast, cost Cost, units []windowManaUn
 	pl := &e.G.Players[pc.player]
 	desc := paymentForCast(pc, cost)
 	av := pay.AvailableFor(asPayer(e), pc.player, desc)
-	conv := asEval(e).Conv(pc.player, desc.ID, desc.Class == paymentActivated)
+	conv := asEval(e).Conv(pc.player, desc.ID, desc.SAKind())
 	rider := pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}
 	return e.castWindowReachable(pc.player, cost, av.Pool, pl.Snow, av.Typed, pl.Life, conv, rider, units)
 }
@@ -345,7 +345,7 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 		}
 		return e.castWindowReachable(pc.player, charged, av.Pool, e.G.Players[pc.player].Snow,
 			av.Typed, e.G.Players[pc.player].Life,
-			asEval(e).Conv(pc.player, payment.ID, payment.Class == paymentActivated), rider, e.castWindowUnits(pc))
+			asEval(e).Conv(pc.player, payment.ID, payment.SAKind()), rider, e.castWindowUnits(pc))
 	}
 	return reach(c)
 }
@@ -410,7 +410,7 @@ func (e *Engine) manaConvertAsk() bool {
 	if pc == nil || castModeCodes.Code(pc.mode) == castModeLand || pc.ManaConvertDone {
 		return false
 	}
-	_, optional := e.manaConversionParts(pc.player, pc.card, pc.isAbility())
+	_, optional := e.manaConversionParts(pc.player, pc.card, pay.SAKindFor(pc.isAbility()))
 	return pay.ManaConvertAsk(asPayer(e), &pc.CastPayment, pc.player, pc.card, !optional.Empty())
 }
 

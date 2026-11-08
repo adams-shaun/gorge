@@ -285,6 +285,9 @@ func Load(path string) (*Net, error) {
 			return nil, fmt.Errorf("gonet %s: %s = %d, this build has %d", path, k, h.Consts[k], v)
 		}
 	}
+	if h.Consts["EXT_W"] > 0 {
+		return nil, fmt.Errorf("gonet: ext nets (EXT_W=%d) need netsimd", h.Consts["EXT_W"])
+	}
 	start := (16 + hl + gnAlign - 1) / gnAlign * gnAlign
 	tensors := map[string][]float32{}
 	shapes := map[string][]int{}

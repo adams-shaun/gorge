@@ -1031,7 +1031,7 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 		defer s.tapBatchClose(s.tapBatchOpen(k)) // one Tap resolution is one tapping action (trig_tapall.go)
 	}
 	var hr holdRec
-	if returnToBattlefield(in) {
+	if returnToBattlefield(in) || in.Op == kop.OpCopyAsTokenEx {
 		hr = s.holdEntries() // gorge's zone batch: the targets enter together (CR 603.6a)
 	} else {
 		hr = s.holdOpen(k)
@@ -2029,7 +2029,7 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 	// one resolution's copies enter together (gorge effCopyPermanent's zone
 	// batch, CR 603.6a): each one's "another enters" sees the others
 	var eb entBatch
-	defer s.fireEntries(k, &eb)
+	defer s.fireOrHoldEntries(k, &eb)
 	for i := 0; i < n; i++ {
 		if s.nearCapacity(k) {
 			s.stall(StallBoard)

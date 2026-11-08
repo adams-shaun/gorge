@@ -144,7 +144,7 @@ func TestAegisRefreshSkipsMatchingPermExceptions(t *testing.T) {
 		t.Fatal("the effect pool refused the perm layer")
 	}
 	s.copyExcAdd(k, sl, tsl, 0)
-	s.clonePermNote(sl, s.perms[tsl].obj, 0, 20)
+	s.clonePermNote(sl, s.perms[tsl].obj, tmplCard, 0, 20)
 	setCopy(sc, sl, tmplCard)
 
 	if l := s.copyTop(sl, NoSlot); l.kind != copyPerm || l.idx != 0 {

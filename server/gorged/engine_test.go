@@ -30,13 +30,12 @@ func TestDiracRequiresTwoSeats(t *testing.T) {
 	}
 }
 
-func TestDiracFlagsRefuseCommander(t *testing.T) {
+func TestDiracFlagsRefuse(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		set  func(*config)
 		want string
 	}{
-		{"commander", func(c *config) { c.formatsRaw = "constructed,commander" }, "-format commander"},
 		{"manual mana", func(c *config) { c.autoMana = false }, "-auto-mana=false"},
 		{"a bot's manual mana", func(c *config) { c.botAutoPayMana = false }, "-bot-auto-mana=false"},
 		{"events", func(c *config) { c.events = true }, "-events"},

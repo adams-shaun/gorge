@@ -450,6 +450,9 @@ type grantSrch struct {
 	// play needs before the colours it does not. It only reorders a colour
 	// ask's answers, never the answer set.
 	need [kop.NumManaKinds]bool
+	// pver is the play's own object's version at the root (Obj.ver): the play
+	// stands only while its card has not changed zones (waitsForStack)
+	pver uint8
 }
 
 // grantKey identifies a payer state (gorge scriptStateKey: the pool and
@@ -537,6 +540,9 @@ func (g *grantSrch) candidates(s *State) {
 	// non-gaps sit after every gap in battlefield order, exactly the walk
 	// order that loop reads.
 	g.gapN = g.n
+	if !s.filtFunded(g.k, g.p, fm) {
+		g.funding = 0 // (gorge's unrelaxable census funds no fee)
+	}
 	if g.funding == 0 {
 		return
 	}
@@ -750,6 +756,12 @@ func (g *grantSrch) waitsForStack(t *State) bool {
 	if !g.d.hasPlay {
 		return false
 	}
+	if o := Obj(g.d.play.Source()); o != NoObj && int(o) < len(t.objs) && t.objs[o].ver != g.pver {
+		// the play's own card left the zone it is played from (a Mechan
+		// Navigator tap's draw-then-discard binning the library-top spell): a
+		// new object (CR 400.7), so gorge's search finds no such play
+		return true
+	}
 	// a stack the prefix grew, or a trigger's answer that may have moved the
 	// play's own card (Gran-Gran's loot discarding the spell: gorge prices a
 	// cast from a card no longer in its origin zone as unsupported)
@@ -808,13 +820,17 @@ func (g *grantSrch) settle(t *State) bool {
 }
 
 // next continues the search after sl's tap: a tap that fires a trigger runs on a
-// copy whose trigger is stacked.
+// copy whose trigger is stacked, as does a step whose own cost queued one (Haunted
+// Screen's 1 life heard by Marina Vendrell's Grimoire, CR 119.4, 603.3).
 func (g *grantSrch) next(t *State, sl Slot) bool {
-	if !g.tapTriggers(t, sl) {
+	taps := g.tapTriggers(t, sl)
+	if !taps && t.npend == 0 {
 		return g.visit(t)
 	}
 	u := t.fork()
-	u.manaTapped(g.k, sl)
+	if taps {
+		u.manaTapped(g.k, sl)
+	}
 	ok := g.settle(u)
 	t.unfork()
 	return ok
@@ -1024,6 +1040,11 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 			g.full, g.dyn = full, true
 		}
 	}
+	if d.hasPlay {
+		if o := Obj(d.play.Source()); o != NoObj && int(o) < len(s.objs) {
+			g.pver = s.objs[o].ver
+		}
+	}
 	g.candidates(s)
 	if g.n == 0 {
 		return s.affordsUngrantedFor(k, p, cost, ex, d)
@@ -1109,8 +1130,8 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 				s.ceaseManaToken(o)
 			}
 		}
-		if g.tapTriggers(s, sl) {
-			// the tap's trigger is stacked before the next activation, as the
+		if g.tapTriggers(s, sl) || s.npend != 0 {
+			// the tap's trigger (or the one its paid life queued) is stacked before the next activation, as the
 			// search's settle stacked it: gorge answers each activation as its own
 			// decision, so two Taps triggers of one prefix (Beckett Mariner and
 			// Erica Ortegas tapped for Rok-Tahk's {G}{G}) go on the stack one at a
@@ -1327,6 +1348,16 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			// cost from its census and the prefix search taps a granted source the
 			// census misses (CR 601.2g); the mode costs are added at the cast
 			// (CR 702.172a)
+			cost := s.featCost(k, p&1, c, Obj(a.Source()), k.cards[c].cost)
+			if s.g.mayPlayAny {
+				cost = anyType(cost)
+			}
+			return cost, ex, need, true
+		}
+		if c := s.objs[a.Source()].card; s.fixedTapsCast(k, a) {
+			// a fixed tap of other permanents beside the printed cost: gorge's
+			// potential planner prices the composed cost (cost_fixedtaps.go), so
+			// the prefix search taps a granted source the census misses (CR 601.2g-h)
 			cost := s.featCost(k, p&1, c, Obj(a.Source()), k.cards[c].cost)
 			if s.g.mayPlayAny {
 				cost = anyType(cost)

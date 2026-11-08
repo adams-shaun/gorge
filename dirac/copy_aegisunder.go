@@ -144,15 +144,11 @@ func (s *State) copyTop(host, skip Slot) copyLayer {
 		}
 	}
 	if r := s.copyRec(host, fxCopyPerm); r >= 0 {
+		// the card the marker locked when it was applied (CR 707.2b): the
+		// source is not read again, as gorge's re-base restores the layer's
+		// locked face (state.CloneLayer)
 		src := Obj(s.g.fx[r].r.p)
-		ob := &s.objs[src]
-		c := ob.card
-		if ob.zone == kop.ZoneBattlefield {
-			c = s.cardAt(ob.slot)
-		}
-		// a source off the battlefield is copied as its printed card, as
-		// gorge's CopiableFace is once Move cleared its CopyFace (a ceased
-		// token: its token card)
+		c := s.g.fx[r].r.src
 		if ts := s.g.fx[r].r.ts; !has || ts >= best {
 			l = copyLayer{kind: copyPerm, card: c, ts: ts, idx: s.g.fx[r].r.idx, src: src}
 			best, has = ts, true

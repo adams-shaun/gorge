@@ -9,6 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
+	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -211,10 +212,30 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 					// Payable, if at all, only through an uncovered source:
 					// search the activations of those sources on clones
 					// for a prefix after which the planner pays the play.
+					// The search slot is counted first, whether or not the
+					// search runs below: dirac mirrors this search and its
+					// slot accounting node for node, so skipping a search
+					// must not move a later play into or out of the bound.
 					scripts++
-					if script, ok := e.potentialPrefixScript(p, o, census.gaps, census.fees()); ok {
-						pp.Script = script
-						got = PaymentPlanOutcome{}
+					// The bounded relaxation is a NECESSARY condition: it
+					// over-produces every real activation sequence of the
+					// census's uncovered sources (each unit is free, and a
+					// repeatable tap source contributes as many as its
+					// untapped candidates can pay for), so a play no bounded
+					// plan pays cannot be paid by any prefix and the search
+					// could only run to a dead end. It is used ONLY here, to
+					// skip such a search: it is never reported as
+					// "insufficient", nor does it feed the relaxed proof
+					// above, because over-producing is not a proof of
+					// unpayability. got stays unsupported/census_incomplete
+					// exactly as before.
+					skip := !census.relaxable && census.bounded &&
+						e.paymentPlanRelaxProof(census.boundedProof(), verdict).Reason == "insufficient"
+					if !skip {
+						if script, ok := e.potentialPrefixScript(p, o, census.gaps, census.fees()); ok {
+							pp.Script = script
+							got = PaymentPlanOutcome{}
+						}
 					}
 				}
 			}
@@ -562,7 +583,7 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 		rider = asEval(e).MayPlayRider(p, id)
 		best = plan(lo)
 	}
-	if conv := pay.ConvRider(asEval(e).Conv(p, id, false)); best.Reason == "insufficient" && conv != (pipRider{}) {
+	if conv := pay.ConvRider(asEval(e).Conv(p, id, pay.SASpell)); best.Reason == "insufficient" && conv != (pipRider{}) {
 		// So may an AnyType->AnyType conversion (Vizier of the Menagerie, CR 609.4b).
 		rider = rider.Or(conv)
 		best = plan(lo)
@@ -1717,9 +1738,30 @@ type paymentPlanCensus struct {
 	// cost includes mana (a filter: Heap Gate's "{1}, {T}: Add one mana of
 	// any color"), each with its fee; relaxed holds the free ones.
 	paid []relaxedPaid
+	// bound and boundPaid hold the same relaxed units as relaxed and paid
+	// would, plus the extra copies a repeatable tap source can make in one
+	// payment (paymentPlanRelaxedAlternatives' repeats). They are set only
+	// when the census is incomplete and NOT relaxable, and they feed one
+	// necessary-condition proof that may skip a prefix search that could
+	// not succeed. The proof is never reported (never "insufficient") and
+	// never substituted for the relaxed proof above: dirac mirrors the
+	// search and its slot accounting node for node, so only an outcome the
+	// search itself could not have changed may be skipped.
+	bound     [][]pay.Alt
+	boundPaid []relaxedPaid
+	bounded   bool
 	// gaps lists, in zone order, the sources with an ability the census
 	// misses (potentialPrefixScript activates them).
 	gaps []state.ObjID
+}
+
+// boundedProof returns the census a bounded necessary-condition proof runs
+// with: the bounded relaxation units in the relaxed and paid slots
+// paymentPlanRelaxProof reads. The rest of the census is carried unchanged,
+// and a run's outcome is read only as "could a plan exist", never reported.
+func (c paymentPlanCensus) boundedProof() paymentPlanCensus {
+	c.relaxed, c.paid = c.bound, c.boundPaid
+	return c
 }
 
 // fees is the mana the missed paid abilities' fees total (how many other
@@ -1748,7 +1790,10 @@ func (c paymentPlanCensus) fees() int {
 //
 // For each ability the census misses it also builds the relaxed
 // alternatives (paymentPlanRelaxedAlternatives); relaxable is false when
-// one of them has none.
+// one of them has none. It builds the bounded relaxation in the same walk
+// (bound/boundPaid), which is sound even once relaxable is false: the once
+// path stops there, the bounded one continues, and both are dropped when the
+// census is complete or still relaxable.
 func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentPlanCensus {
 	out := paymentPlanCensus{complete: true, relaxable: true}
 	units := pay.PaymentPlanQueryUnits(asPayer(e), p)
@@ -1757,6 +1802,7 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 		at[u.ID] = i
 	}
 	var probe *Engine
+	bounded := true // every gap ability so far has a once-only or bounded relaxation
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		var abs []*cards.SA
 		for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
@@ -1786,25 +1832,68 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 			if !slices.Contains(out.gaps, id) {
 				out.gaps = append(out.gaps, id)
 			}
-			if !out.relaxable {
+			if !out.relaxable && !bounded {
 				continue
 			}
-			relaxed, fee, ok := e.paymentPlanRelaxedAlternatives(p, id, ma, &probe)
-			if !ok || (fee > 0 && len(out.paid) >= relaxedPaidLimit) {
-				out.relaxable, out.relaxed, out.paid = false, nil, nil
-				continue
+			relaxed, fee, repeats, once, ok := e.paymentPlanRelaxedAlternatives(p, id, ma, &probe)
+			if out.relaxable {
+				if !ok || !once || (fee > 0 && len(out.paid) >= relaxedPaidLimit) {
+					// A repeatable tap source is deliberately not relaxable:
+					// the relaxed proof below trusts only a once-only unit,
+					// and promoting one would move relaxed_census verdicts
+					// and dirac's mirrored slot accounting.
+					out.relaxable, out.relaxed, out.paid = false, nil, nil
+				} else if fee > 0 {
+					out.paid = append(out.paid, relaxedPaid{alts: relaxed, fee: fee})
+				} else {
+					out.relaxed = append(out.relaxed, relaxed)
+				}
 			}
-			if fee > 0 {
-				out.paid = append(out.paid, relaxedPaid{alts: relaxed, fee: fee})
-				continue
+			if bounded {
+				if !ok || (fee > 0 && len(out.boundPaid)+int(repeats) > relaxedPaidLimit) {
+					bounded = false
+					continue
+				}
+				for i := int32(0); i < repeats; i++ {
+					if fee > 0 {
+						out.boundPaid = append(out.boundPaid, relaxedPaid{alts: relaxed, fee: fee})
+					} else {
+						out.bound = append(out.bound, relaxed)
+					}
+				}
 			}
-			out.relaxed = append(out.relaxed, relaxed)
 		}
 	}
 	if out.complete {
 		out.relaxable, out.relaxed, out.paid, out.gaps = false, nil, nil, nil
 	}
+	out.bounded = bounded && !out.complete && !out.relaxable
+	if !out.bounded {
+		out.bound, out.boundPaid = nil, nil
+	}
 	return out
+}
+
+// tapOnlyManaCost reports whether a mana ability's cost is exactly literal
+// tapXType parts: no {T}/{Q}, no mana fee, and no other payment at all. That
+// is the repeatable shape paymentPlanRelaxedAlternatives bounds by its
+// untapped candidates (Supportive Parents' "Tap two untapped creatures you
+// control: Add one mana of any color"); a dynamic tapXType<X/...> part is
+// excluded, as its count is announced rather than bounded by the board.
+func tapOnlyManaCost(c costvocab.Cost) bool {
+	if len(c.TapPermanent) == 0 {
+		return false
+	}
+	want := costvocab.Cost{TapPermanent: c.TapPermanent}
+	if !c.Equal(&want) {
+		return false
+	}
+	for _, part := range c.TapPermanent {
+		if part.Dyn != "" || part.N <= 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // paymentPlanRelaxedAlternatives is the RELAXATION of mana ability ma of
@@ -1816,29 +1905,43 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 // as much, so a play no relaxed plan pays is unpayable.
 //
 // That holds only while the relaxed ability is usable at most once in the
-// payment, which is why ok is false unless its cost taps, untaps,
+// payment, which is why once is false unless its cost taps, untaps,
 // sacrifices or returns the source or it carries a once-only activation
-// limit; ok is false too when the amount cannot be bounded (the engine's
-// own evaluator, taken at its larger value on the live board and on the
-// all-tapped probe, since a payment only taps) or the production names no
-// colour. A relaxed alternative is never a witness: its Source is carried
-// for ranking only and the caller discards every relaxed Plan.
+// limit. ok is false when neither shape applies, and false too when the
+// amount cannot be bounded (the engine's own evaluator, taken at its larger
+// value on the live board and on the all-tapped probe, since a payment only
+// taps) or the production names no colour. A relaxed alternative is never a
+// witness: its Source is carried for ranking only and the caller discards
+// every relaxed Plan.
+//
+// repeats is how many times one relaxed unit may be used in a single
+// payment: 1 for the once-only shapes, and, for the repeatable tap-another
+// cost it refuses today (Supportive Parents' "Tap two untapped creatures you
+// control: Add one mana of any color"), K = min over its literal tap parts
+// of floor(candidates/N): each activation taps N distinct untapped
+// permanents, and nothing in a mana-payment prefix untaps them, so K bounds
+// the activations a real sequence can make. Only the bounded
+// necessary-condition proof (paymentPlanCensus.boundedProof) uses K copies;
+// the relaxed proof above never runs on such a source (once is false), so
+// its verdicts and dirac's mirrored slot accounting do not move. K == 0
+// contributes no unit, but is still a sound bound: that cost cannot be paid
+// even once.
 //
 // fee is the mana the ability's own cost spends (Heap Gate's {1}); the
 // proof charges it as generic on top of the play's cost whenever the
 // ability may be used (paymentPlanRelaxProof), so a filter is never counted
 // as fresh mana.
-func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID, ma *cards.SA, probe **Engine) ([]pay.Alt, int32, bool) {
+func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID, ma *cards.SA, probe **Engine) (alts []pay.Alt, fee, repeats int32, once, ok bool) {
 	o := e.G.Obj(id)
 	if o == nil || ma == nil || ma.API != "Mana" {
-		return nil, 0, false
+		return nil, 0, 0, false, false
 	}
 	cost := e.manaAbilityCC(p, id, ma).Cost
 	if cost.X != 0 || cost.XMin != 0 || len(cost.Hybrid)+len(cost.Phyrexian)+len(cost.Twobrid)+len(cost.HybridPhyrexian) != 0 || cost.Snow != 0 {
-		return nil, 0, false
+		return nil, 0, 0, false, false
 	}
-	fee := cost.Generic + cost.Colored.Total()
-	once := cost.Tap || cost.Untap || strings.TrimSpace(ma.ParamStr(cards.PKActivationLimit)) == "1" ||
+	fee = cost.Generic + cost.Colored.Total()
+	once = cost.Tap || cost.Untap || strings.TrimSpace(ma.ParamStr(cards.PKActivationLimit)) == "1" ||
 		strings.TrimSpace(ma.ParamStr(cards.PKGameActivationLimit)) == "1"
 	for _, part := range cost.Sac {
 		once = once || pay.PlanSelfCost(part, id)
@@ -1846,21 +1949,38 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 	for _, part := range cost.Return {
 		once = once || pay.PlanSelfCost(part, id)
 	}
-	if !once {
-		return nil, 0, false
+	if once {
+		repeats = 1
+	} else if tapOnlyManaCost(cost) {
+		// A repeatable tap-another cost: every activation taps N distinct
+		// untapped permanents of each part, and a mana-payment prefix never
+		// untaps them, so the untapped candidates bound the activations.
+		repeats = -1
+		for _, part := range cost.TapPermanent {
+			n := int32(len(pay.ManaTapCandidates(asPayer(e), p, id, part.Spec, nil))) / part.N
+			if repeats < 0 || n < repeats {
+				repeats = n
+			}
+		}
+		if repeats == 0 {
+			// The cost cannot be paid even once: no unit, still bounded.
+			return nil, 0, 0, false, true
+		}
+	} else {
+		return nil, 0, 0, false, false
 	}
 	amt := availableAmount(ma)
 	if amt <= 0 {
 		live, ok := e.castWindowAmount(p, id, o, ma)
 		if !ok {
-			return nil, 0, false
+			return nil, 0, 0, false, false
 		}
 		if *probe == nil {
 			*probe = e.paymentPlanTappedProbe(p)
 		}
 		tapped, ok := (*probe).castWindowAmount(p, id, o, ma)
 		if !ok {
-			return nil, 0, false
+			return nil, 0, 0, false, false
 		}
 		amt = max(live, tapped)
 	}
@@ -1885,10 +2005,10 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 			m[state.ManaIndex(cards.ManaSymbol(i))] += n * amt
 		}
 		if m.Total() <= 0 {
-			return nil, 0, false
+			return nil, 0, 0, false, false
 		}
 		add(m)
-		return out, fee, true
+		return out, fee, repeats, once, true
 	}
 	var cols []int
 	for i, n := range counts {
@@ -1897,7 +2017,7 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 		}
 	}
 	if len(cols) == 0 || amt > 6 {
-		return nil, 0, false
+		return nil, 0, 0, false, false
 	}
 	// Every multiset of amt units over cols (non-decreasing index runs).
 	var m state.Mana
@@ -1914,7 +2034,7 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 		}
 	}
 	rec(0, amt)
-	return out, fee, true
+	return out, fee, repeats, once, true
 }
 
 type potentialModeBaseCostCode uint16

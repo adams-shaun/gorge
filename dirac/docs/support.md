@@ -9,7 +9,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | list | cards | lowered | refused | unverified | supported |
 |---|---:|---:|---:|---:|---:|
 | BIG | 30 | 23 | 1 | 1 | 21 |
-| BLB | 278 | 256 | 3 | 33 | 220 |
+| BLB | 278 | 256 | 3 | 1 | 252 |
 | DFT | 276 | 248 | 0 | 2 | 246 |
 | DSK | 276 | 242 | 4 | 50 | 188 |
 | ECL | 273 | 234 | 1 | 0 | 233 |
@@ -21,16 +21,16 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | LCI | 290 | 251 | 1 | 22 | 228 |
 | MKM | 279 | 242 | 1 | 31 | 210 |
 | MSH | 276 | 235 | 1 | 2 | 232 |
-| OTJ | 276 | 241 | 1 | 28 | 212 |
-| SOS | 270 | 249 | 0 | 28 | 221 |
+| OTJ | 276 | 241 | 1 | 0 | 240 |
+| SOS | 270 | 249 | 0 | 0 | 249 |
 | SPM | 192 | 161 | 1 | 2 | 158 |
-| TDM | 276 | 250 | 3 | 5 | 242 |
-| TLA | 285 | 253 | 1 | 1 | 251 |
+| TDM | 276 | 250 | 3 | 2 | 245 |
+| TLA | 285 | 254 | 1 | 2 | 251 |
 | TMT | 194 | 171 | 1 | 0 | 170 |
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 6 | 246 |
-| ALL | 34442 | 21706 | 24 | 16759 | 4923 |
+| ALL | 34442 | 21707 | 24 | 16669 | 5014 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -44,7 +44,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | fdn | 1500 |
 | pauper | 1500 |
 | std-big | 1500 |
-| std-blb | 75 |
+| std-blb | 1500 |
 | std-dft | 1500 |
 | std-dsk | 105 |
 | std-ecl | 1455 |
@@ -56,8 +56,8 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | std-lci | 250 |
 | std-mkm | 1500 |
 | std-msh | 1500 |
-| std-otj | 70 |
-| std-sos | 118 |
+| std-otj | 1500 |
+| std-sos | 1500 |
 | std-spm | 1500 |
 | std-tdm | 1500 |
 | std-tla | 1500 |

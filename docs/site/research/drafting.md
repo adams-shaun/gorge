@@ -3,6 +3,7 @@
 *How `cmd/draftres` measures a drafter or deck-builder variant against others*
 
 Does a change to how a bot drafts, or to how it builds its 40 cards, win more games? `cmd/draftres` answers this in self-play: the variants draft pods together, every pool is built, and the decks play each other in dirac.
+The [champion draft persona](draft-champion.md) is the persona built from the tuned knobs.
 
 ## Method
 

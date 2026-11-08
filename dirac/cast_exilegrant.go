@@ -176,6 +176,13 @@ func (s *State) copyCastAbortsBeforeWindow(k *prep, c CardID, p uint8, o Obj) bo
 	if !spellRequiresTarget(k, c) || k.t.Cards[c].Cost.X != 0 {
 		return false
 	}
+	if s.copyCensusOpen(k, &s.bld().e) {
+		// the window census cannot price a source the payer still has, so
+		// gorge's target menu keeps every candidate however short the pool
+		// is (affordableTargetCandidates' census fallback, CR 601.2c,
+		// 601.2g): the cast raises its menu and reverses in the window.
+		return false
+	}
 	return s.copyCastUnpayable(k, c, p, o, s.restrOriginOfObj(o), 0)
 }
 
@@ -204,6 +211,9 @@ func (s *State) copyCastXTargetAbort(k *prep, t *kop.TargetSpec) bool {
 	if k.gen == nil || !k.gen.anyCopyCast || b.e.kind != seSpell || b.bfl&bflLowered == 0 || b.origin != kop.ZoneLibrary ||
 		t.UpTo || t.TFlags&kop.TgfBoundsV != 0 || k.t.Cards[b.e.card].Cost.X == 0 {
 		return false
+	}
+	if s.copyCensusOpen(k, &b.e) {
+		return false // a census gap keeps the candidate on the menu (affordableTargetCandidates)
 	}
 	return s.copyCastUnpayable(k, b.e.card, b.e.ctrl, b.e.obj, s.restrOriginOfObj(b.e.obj), int(b.e.x))
 }

@@ -138,8 +138,7 @@ func (s *State) sagaSBA(k *prep) bool {
 		var ord [MaxPerm]Slot
 		n := s.battlefieldOrder(p, s.ctrlM[p], ord[:], 0)
 		for _, sl := range ord[:n] {
-			final := k.cards[s.cardAt(sl)].sagaN
-			if final == 0 || s.perms[sl].ctrN(s, int(kop.CtrLore)) < int(final) || s.genLost(k, sl) || s.sagaBusy(k, sl) || s.sacBlocked(k, sl) {
+			if !s.sagaDue(k, sl) {
 				continue
 			}
 			s.fireSac(k, sl)
@@ -148,4 +147,31 @@ func (s *State) sagaSBA(k *prep) bool {
 		}
 	}
 	return changed
+}
+
+// sagaDue reports whether the Saga at sl is sacrificed by the state-based
+// check now (sagaSBA's test).
+func (s *State) sagaDue(k *prep, sl Slot) bool {
+	final := k.cards[s.cardAt(sl)].sagaN
+	return final != 0 && s.perms[sl].ctrN(s, int(kop.CtrLore)) >= int(final) && !s.genLost(k, sl) && !s.sagaBusy(k, sl) && !s.sacBlocked(k, sl)
+}
+
+// sagasDue is the battlefield's Sagas that sagaDue now (nothing without a
+// Saga in the table).
+//
+//go:noinline
+func (s *State) sagasDue(k *prep) (m slotMask) {
+	if !k.anySaga {
+		return m
+	}
+	for p := uint8(0); p < 2; p++ {
+		var ord [MaxPerm]Slot
+		n := s.battlefieldOrder(p, s.ctrlM[p], ord[:], 0)
+		for _, sl := range ord[:n] {
+			if s.sagaDue(k, sl) {
+				m = m.with(sl)
+			}
+		}
+	}
+	return m
 }

@@ -20,9 +20,9 @@ package dirac
 // times are copies of the one triggering (CR 603.2d), not new counter events,
 // and gorge's panharmoniconEchoes echoes them the same way.
 //
-// Known approximation: the used record's object version means a source that
-// leaves and returns in the same turn fires again here, where gorge's log
-// scan keys on the object id alone and refuses.
+// A source that leaves and returns in the same turn is a new object (CR
+// 400.7): the used record's object version gives it a fresh latch, and
+// gorge's log scan stops at the object's departure from the battlefield.
 
 // DebugCounterFirstOff is the mutation switch of TestEnterpriseDMutation:
 // the latch never refuses, so every matching counter batch fires.

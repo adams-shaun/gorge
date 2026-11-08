@@ -21,8 +21,9 @@ const (
 	otherAnyR
 	otherTapX
 	otherGrant
-	otherAnswer // filtStep.act answers the ask a step's Taps trigger posed
-	otherPass   // p passes with a trigger of the path on the stack
+	otherAnswer   // filtStep.act answers the ask a step's Taps trigger posed
+	otherPass     // p passes with a trigger of the path on the stack
+	otherDeferred // a deferred source tapped for its {R} (mixDeferred)
 )
 
 // otherStep is one activation of a gap that is no filter.
@@ -35,13 +36,22 @@ type otherStep struct {
 }
 
 // mixBoard: p's census gaps mix filters, restricted any-colour sources and
-// tap-another-permanent sources, and hold nothing else.
+// tap-another-permanent sources, or a filter beside a deferred source
+// (mixDeferred), and hold nothing else.
 func (s *State) mixBoard(k *prep, p uint8) bool {
-	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.tapMana {
+	if k.gen != nil && k.gen.anyMultiR && s.wide2Board(k, p) {
+		return true // any-colour restricted gaps, a second-ability wide one among them (mana_restrictedcombo.go)
+	}
+	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.tapMana && !k.gen.anyDeferred {
 		return false
 	}
 	n := 0
-	if s.scriptFilt(k, p).any() {
+	filt := s.scriptFilt(k, p).any()
+	if filt {
+		n++
+	}
+	def := s.mixDeferred(k, p, filt)
+	if def.any() {
 		n++
 	}
 	if s.scriptAnyR(k, p).any() {
@@ -50,7 +60,22 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 	if s.scriptTapX(k, p).any() {
 		n++
 	}
-	return n >= 2 && !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptCtr(k, p)).any()
+	return n >= 2 && !s.scriptGaps(k, p).or(s.scriptRestr(k, p).andNot(def)).or(s.scriptCtr(k, p)).any()
+}
+
+// mixDeferred: p's activatable deferred sources (Pyromancer's Goggles,
+// mana_deferred.go) when a filter is a gap beside them (filt). gorge's census
+// misses both (a paid filter, a relaxed deferred {R}), and its one prefix
+// search (scriptSearch.visit) activates every census gap in battlefield
+// order, so the filter search takes the deferred source as an otherGap step:
+// Pyromancer's Goggles' {R} pays Three Tree Mascot's {1}, whose {U} and a
+// Plains' {W} cast Negate (CR 601.2g-h, 605.3a). Without a filter the deferred
+// source keeps the restricted-gap scripts (scriptRestr).
+func (s *State) mixDeferred(k *prep, p uint8, filt bool) slotMask {
+	if !filt || !k.gen.anyDeferred {
+		return slotMask{}
+	}
+	return s.scriptDeferred(k, p)
 }
 
 // otherGaps: the gaps a filter search on p's board activates beside its
@@ -62,7 +87,7 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 	var m slotMask
 	if s.mixBoard(k, p) {
-		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p))
+		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p)).or(s.mixDeferred(k, p, true))
 	}
 	if len(k.gen.grantPC) != 0 && s.grantsLive(k) {
 		for b := s.ctrlM[p&1].and(s.occ); b.any(); b = b.rest() {
@@ -108,12 +133,28 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 		return fs.try(k, t, filtStep{sl: sl, gap: true, other: o}, funded, true)
 	}
 	switch {
+	case k.gen.anyDeferred && k.gen.has(t.cardAt(sl), gfDeferred):
+		// a single fixed {R} ability: no ask node (deferBranch)
+		return t.perms[sl].flags&pfTapped == 0 && try(otherStep{kind: otherDeferred})
 	case t.scriptAnyR(k, p).has(sl):
 		if !fs.tick() {
 			return false
 		}
 		c := t.cardAt(sl)
 		if restrWideAnyMana(&k.t.Cards[c].Abilities[k.gen.anyR(c)]) {
+			off := uint8(0)
+			if t.wideSecond(k, sl) {
+				// the first tick was the "choose a mana ability" ask; the
+				// first ability's colours, then the allocation ask's node
+				// (mana_restrictedcombo.go)
+				if fs.wide2FirstColours(func(col uint8) bool { return try(otherStep{kind: otherAnyR, ans: col}) }) {
+					return true
+				}
+				if !fs.tick() {
+					return false
+				}
+				off = kop.NumManaKinds - 1
+			}
 			// the two-unit ask: gorge's 25 per-unit answers (scriptAnswers,
 			// unit-major W W, W U ... G G), those naming a colour the play
 			// announces first and engine order kept in each half (gorge's
@@ -121,7 +162,8 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 			// search's budget before the first wanted pair). A mirrored pair (its
 			// second unit below its first) makes the pool its twin, earlier in
 			// the same half, made: it charges its node where gorge visits it and
-			// finds the state seen.
+			// finds the state seen. off shifts the multiset answers past the
+			// first ability's colours when the gap is a second ability.
 			for half := 0; half < 2; half++ {
 				for a := 0; a < 5; a++ {
 					for b := 0; b < 5; b++ {
@@ -134,7 +176,7 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 							}
 							continue
 						}
-						if try(otherStep{kind: otherAnyR, ans: wideAnswerIndex(a, b)}) {
+						if try(otherStep{kind: otherAnyR, ans: off + wideAnswerIndex(a, b)}) {
 							return true
 						}
 					}
@@ -186,31 +228,26 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 		}
 		if c := t.cardAt(sl); k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.N == 2 {
 			// two permanents: no ask for exactly two, else one "choose 2" whose
-			// per-unit answers scriptAnswers enumerates (tapXSearch.visit)
+			// answers scriptAnswers enumerates as every pair of its candidates
+			// in lexicographic order, 64 at most (tapXSearch.visit)
 			if nc > 2 && !fs.tick() {
 				return false
 			}
-			per := nc / 2
-			if nc == 2 {
-				per = 1
+			npair := nc * (nc - 1) / 2
+			if npair > 64 {
+				npair = 64
 			}
-			n := 0
-			for i := 0; i < per && nc%2 == 0; i++ {
-				for j := 0; j < per && n < 64; j++ {
-					n++
-					a, b := cs[i], cs[1]
-					if nc > 2 {
-						b = cs[per+j]
-					}
-					if tapXOwnAnswer(fs.own, a, b) {
-						// A forced tap (no ask: exactly the cost's candidates)
-						// that takes the play's own {T} source is no continuation
-						// (CR 602.2b), as the tap-another search's is skipped.
-						continue
-					}
-					if colours(a, b) {
-						return true
-					}
+			for pi := 0; pi < npair; pi++ {
+				i, j := tapXPairAt(nc, pi)
+				a, b := cs[i], cs[j]
+				if tapXOwnAnswer(fs.own, a, b) {
+					// A forced tap (no ask: exactly the cost's candidates)
+					// that takes the play's own {T} source is no continuation
+					// (CR 602.2b), as the tap-another search's is skipped.
+					continue
+				}
+				if colours(a, b) {
+					return true
 				}
 			}
 			return false
@@ -281,6 +318,8 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 	o := &st.other
 	switch o.kind {
+	case otherDeferred:
+		s.deferApply(k, p, st.sl) // its {R} floats as the deferred source's (mana_grantdeferred.go)
 	case otherAnyR:
 		var spill [kop.NumManaKinds]uint8
 		s.tapGapChoice(k, p, st.sl, slotMask{}, slotMask{}.with(st.sl), slotMask{}, int(o.ans), &spill)

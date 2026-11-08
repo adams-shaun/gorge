@@ -711,6 +711,7 @@ type build struct {
 	pipN      uint8    // hybrid pips announced so far
 	pipC      [2]uint8 // their colours (W U B R G = 0..4), in pip order
 	pushNP    uint8    // pending triggers when the spell was pushed: a reversed cast drops the ones its own move queued (CR 733.1)
+	manaNP    uint8    // 1 + pending triggers when the spell's mana step began (0 = not begun): the reversal keeps what its mana abilities queued after it (unpushSpell)
 	fbGrants  uint8    // the card's flashback grants before this cast ended them (the undo restores them)
 	divSlot   uint8    // bsDivide: the divided target slot
 	divLeft   uint8    // bsDivide: points still to place beyond each target's 1
@@ -912,6 +913,7 @@ type stateCore struct {
 	legP        uint8    // legend rule: the choosing player
 	legCard     CardID   // legend rule: the duplicated legendary card
 	legDie      slotMask // legend rule: the creature casualties parked at the ask, applied with the answer
+	legSaga     slotMask // legend rule: the Sagas due their sacrifice at the ask, one batch with the answer (CR 704.3)
 	divA        Slot     // damage division: the attacker being divided (NoSlot = none in progress)
 	divI        uint8    // index (in block order) of the blocker being assigned
 	divRem      uint8    // damage left to assign

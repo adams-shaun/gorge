@@ -1072,7 +1072,7 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 			}
 			priced.Evidence = nil
 		}
-		if !pay.EnergyPayable(e.G, tc.player, &priced) || !pay.CostPayablePool(asPayer(e), tc.player, tc.source, false, priced, pot, e.G.Players[tc.player].ManaUnits()) {
+		if !pay.EnergyPayable(e.G, tc.player, &priced) || !pay.CostPayablePool(asPayer(e), tc.player, tc.source, pay.SAOther, priced, pot, e.G.Players[tc.player].ManaUnits()) {
 			continue
 		}
 		opts = append(opts, decision.Option{Index: len(opts), Kind: "trigger_cost_x",
@@ -1631,7 +1631,7 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 			return
 		}
 		if announced.Priceable() &&
-			pay.PayManaCumulative(asPayer(e), cu.player, cu.source, announced, asEval(e).Conv(cu.player, cu.source, false)) {
+			pay.PayManaCumulative(asPayer(e), cu.player, cu.source, announced, asEval(e).Conv(cu.player, cu.source, pay.SAOther)) {
 			e.finishCumulative()
 			return
 		}
@@ -1922,7 +1922,7 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 			// answer is never a partial payment. Any energy part is charged by
 			// the shared helper beside the mana (payMana ignores Energy).
 			draws, ok := e.triggeredCostDrawCounts(tc)
-			if ok && pay.PayManaConv(asPayer(e), tc.player, announced.WithoutEnergy(), asEval(e).Conv(tc.player, tc.source, false)) {
+			if ok && pay.PayManaConv(asPayer(e), tc.player, announced.WithoutEnergy(), asEval(e).Conv(tc.player, tc.source, pay.SAOther)) {
 				paid = true
 				pay.ChargeEnergyCost(asPayer(e), tc.player, tc.amount, tc.xPaid)
 				for i, part := range announced.Draw {
@@ -1940,7 +1940,7 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 			// covered, so a paid answer is never a partial payment.
 			lower := announced.WithoutEnergy()
 			paid = lower.Priceable() &&
-				pay.PayManaConv(asPayer(e), tc.player, lower, asEval(e).Conv(tc.player, tc.source, false))
+				pay.PayManaConv(asPayer(e), tc.player, lower, asEval(e).Conv(tc.player, tc.source, pay.SAOther))
 			if paid {
 				pay.ChargeEnergyCost(asPayer(e), tc.player, tc.amount, tc.xPaid)
 			}
@@ -2317,7 +2317,7 @@ func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
 	stripped.MoveToGrave, stripped.Return = nil, nil
 	stripped.Evidence = nil
 	if (stripped.HasManaPayment() || stripped.Life > 0) &&
-		!pay.PayManaConv(asPayer(e), tc.player, stripped.WithoutEnergy(), asEval(e).Conv(tc.player, tc.source, false)) {
+		!pay.PayManaConv(asPayer(e), tc.player, stripped.WithoutEnergy(), asEval(e).Conv(tc.player, tc.source, pay.SAOther)) {
 		e.triggeredCostDecline(tc)
 		return
 	}
@@ -2760,7 +2760,7 @@ func (e *Engine) triggeredCostNumTimesAsk(tc *triggeredEffectCost) bool {
 	opts := []decision.Option{{Index: 0, Kind: "trigger_cost_x", Label: "0 times", Amount: 0, Obj: tc.source}}
 	for n := int32(1); n <= bound; n++ {
 		v := tc.numTimes.times(n)
-		if !v.Priceable() || !pay.CostPayablePool(asPayer(e), tc.player, tc.source, false, v, pot, e.G.Players[tc.player].ManaUnits()) {
+		if !v.Priceable() || !pay.CostPayablePool(asPayer(e), tc.player, tc.source, pay.SAOther, v, pot, e.G.Players[tc.player].ManaUnits()) {
 			break
 		}
 		opts = append(opts, decision.Option{Index: len(opts), Kind: "trigger_cost_x",

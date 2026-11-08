@@ -86,7 +86,7 @@ func (e *Engine) paymentPlanCheckUnits(pc *pendingCast) (string, []windowManaUni
 	plan := pc.Payment.Plan
 	rider := pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}
 	if !pc.isAbility() {
-		rider = rider.Or(pay.ConvRider(asEval(e).Conv(pc.player, pc.card, false))) // a creature spell under Vizier (payment_plan.go)
+		rider = rider.Or(pay.ConvRider(asEval(e).Conv(pc.player, pc.card, pay.SASpell))) // a creature spell under Vizier (payment_plan.go)
 	}
 	cost := pay.PlanManaUnderRider(e.castPaymentMana(pc), rider)
 	if plan.Version != decision.PaymentPlanV1 || plan.Cost != pay.WireCost(cost) {

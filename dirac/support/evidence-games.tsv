@@ -2,7 +2,7 @@ blb	1500
 fdn	1500
 pauper	1500
 std-big	1500
-std-blb	75
+std-blb	1500
 std-dft	1500
 std-dsk	105
 std-ecl	1455
@@ -14,8 +14,8 @@ std-hob	1500
 std-lci	250
 std-mkm	1500
 std-msh	1500
-std-otj	70
-std-sos	118
+std-otj	1500
+std-sos	1500
 std-spm	1500
 std-tdm	1500
 std-tla	1500

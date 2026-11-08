@@ -439,6 +439,18 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 		if f.NotSub > 0 {
 			f.NotSub = subOf(f.NotSub - 1)
 		}
+		if f.Pred == kop.PredHistoric && f.PredN > 0 {
+			// PredN is the pool's Saga subtype index+1; the matchup's compact
+			// table renumbers subtypes, so the pool index would test an
+			// arbitrary other subtype (an all-creature-types permanent
+			// satisfies any creature type). A matchup with no Saga keeps 0:
+			// the clause is artifact or legendary only.
+			if m, ok := subMap[uint8(f.PredN-1)]; ok {
+				f.PredN = int16(m) + 1
+			} else {
+				f.PredN = 0
+			}
+		}
 		if f.Pred == kop.PredNamed {
 			// PredN is a pool index; the table's CardIDs are the matchup's
 			// compact ids (inert: the pool's stable PoolID), so the

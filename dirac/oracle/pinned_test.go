@@ -34,8 +34,10 @@ import (
 const (
 	pinGames = 3   // games recorded per call
 	pinTail  = 150 // decisions kept after the last condition is reached
-	pinScan  = 6000
 )
+
+// pinScan is a var rather than a const only so a test can bound the scan.
+var pinScan = 6000
 
 var pinCalls = struct {
 	sync.Mutex
@@ -78,7 +80,9 @@ func pinnedGamesRun(t *testing.T, pool string, rc RunConfig, mulligans int, reac
 	reg := synthReg(t)
 	set := cardsettest.Synth(t, pool)
 	if os.Getenv("PINS_RECORD") == "1" {
-		recordPins(t, path, pool, set, rc, mulligans, reached)
+		if err := recordPins(t, path, pool, set, rc, mulligans, reached); err != nil {
+			t.Fatal(err)
+		}
 	}
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -156,8 +160,9 @@ func playPinned(set cardset.Set, reg *cards.Registry, r *Repro, rc RunConfig, re
 }
 
 // recordPins writes the games of the synthetic pool that reach every condition and
-// play clean to path.
-func recordPins(t *testing.T, path, pool string, set cardset.Set, rc RunConfig, mulligans int, reached []func(ref *GorgeSide) bool) {
+// play clean to path. It returns an error, and writes nothing, when the scan finds no
+// game to record; under PINS_MUTANT=1 that means no game the mutated build diverges in.
+func recordPins(t *testing.T, path, pool string, set cardset.Set, rc RunConfig, mulligans int, reached []func(ref *GorgeSide) bool) error {
 	t.Helper()
 	reg := synthReg(t)
 	hit := make([]bool, len(reached))
@@ -199,12 +204,24 @@ func recordPins(t *testing.T, path, pool string, set cardset.Set, rc RunConfig, 
 		if err != nil { // a pair the set refuses holds no game
 			continue
 		}
-		if mutant && res.Div != nil && allAt >= 0 {
+		if mutant {
+			// A mutant pin is a game the mutated build diverges in: a clean game
+			// recorded here would pass on the mutated tree and guard nothing.
+			if res.Div == nil || allAt < 0 {
+				continue
+			}
 			// a game the mutated code diverges in: keep the actions up to the divergence, to
 			// be played against the code as it should be
 			r := NewRepro(m, seed, rc, &res)
 			r.Readable, r.MaxTurns, r.Divergence = nil, 0, nil
 			r.Actions = r.Actions[:min(len(r.Actions), res.Div.At+pinTail)]
+			// Only write a game the replay actually reaches the divergence in:
+			// ScriptPolicy skips actions a decision does not offer, so a recorded
+			// action can play out differently.
+			got, h, perr := playPinned(set, reg, r, rc, reached)
+			if perr != nil || got.Div == nil || contains(h, false) {
+				continue
+			}
 			games = append(games, r)
 			continue
 		}
@@ -234,7 +251,10 @@ func recordPins(t *testing.T, path, pool string, set cardset.Set, rc RunConfig, 
 		}
 	}
 	if len(games) == 0 {
-		t.Fatalf("no pair of %s within %d reaches every condition and plays clean", pool, pinScan)
+		if mutant {
+			return fmt.Errorf("PINS_MUTANT=1: no pair of %s within %d diverges after reaching every condition and reproduces on replay", pool, pinScan)
+		}
+		return fmt.Errorf("no pair of %s within %d reaches every condition and plays clean", pool, pinScan)
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
@@ -247,6 +267,7 @@ func recordPins(t *testing.T, path, pool string, set cardset.Set, rc RunConfig, 
 		t.Fatal(err)
 	}
 	t.Logf("recorded %d games to %s, %d of them kept", len(games), path, kept)
+	return nil
 }
 
 // keptPins is the games already at path that still reach every condition and play clean.

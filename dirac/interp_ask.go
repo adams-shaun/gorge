@@ -792,19 +792,17 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				s.tapCostPerm(k, s.objs[o].slot, o)
 			}
 		} else {
-			if k.gen.anyBatch {
-				s.payPickSacBatch(k)
-			}
-			s.fireSac(k, s.objs[o].slot)
-			s.leaveParked(k, s.objs[o].slot)
+			// gorge collects every pick before it sacrifices any (CR 601.2h:
+			// the payment is made in full after the choices): the picks stay
+			// on the battlefield, so an Aura's pick does not return the
+			// creature it stole before the next menu (unlessflow, PaySacrificeCost)
+			s.addSac(s.objs[o].slot)
 		}
 		s.g.pickLeft--
 		if s.g.pickLeft > 0 {
 			return
 		}
-		if s.g.batchLatch&batchSac != 0 {
-			s.batchClose(0) // the payment's sacrifice batch (payPickSacBatch)
-		}
+		s.payCommitSacs(k) // trig_sacbatch.go
 		if s.payReturnPark() {
 			return
 		}
@@ -1727,13 +1725,22 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			s.pickLeaves(k, o, z) // a hidden pick from the battlefield (trig_delayedtiming.go)
 			continue
 		}
+		ep := p
+		if z == kop.ZoneBattlefield {
+			if fl&kop.SrGraveExile != 0 && fl&kop.SrUnderYourControl == 0 {
+				ep = s.objs[o].owner() // graveexile: gorge enters a hidden pick under its owner unless GainControl$
+			}
+			if DebugGyBfOwnerEntry && fl&kop.SrUnderYourControl != 0 {
+				ep = s.objs[o].owner() // mutation: a GainControl$ graveyard pick keeps its owner
+			}
+		}
 		if z == kop.ZoneBattlefield && s.handAuraArmed(k) {
 			ans := host // the answered enchant ask is for the parked card, the look's first
 			if i != 0 {
 				ans = NoSlot // every card after it asks for itself again
 			}
 			var parked, stay bool
-			if host, parked, stay = s.handAuraEnter(k, o, p, ans); parked {
+			if host, parked, stay = s.handAuraEnter(k, o, ep, ans); parked {
 				// the card waits in its zone for the enchant ask; its answer moves the
 				// cards from this one on, not the earlier ones that entered
 				n := copy(s.resArm().look[:], s.resArm().look[i:s.g.nlook])
@@ -1746,14 +1753,7 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				continue
 			}
 		}
-		ep := p
 		if z == kop.ZoneBattlefield {
-			if fl&kop.SrGraveExile != 0 && fl&kop.SrUnderYourControl == 0 {
-				ep = s.objs[o].owner() // graveexile: gorge enters a hidden pick under its owner unless GainControl$
-			}
-			if DebugGyBfOwnerEntry && fl&kop.SrUnderYourControl != 0 {
-				ep = s.objs[o].owner() // mutation: a GainControl$ graveyard pick keeps its owner
-			}
 			if host == NoSlot && s.cloneReturnPark(k, o, ep) {
 				// the card waits in its zone for the answer (rerunMove), which
 				// moves the cards from this one on
