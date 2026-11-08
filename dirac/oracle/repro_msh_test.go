@@ -37,5 +37,6 @@ func TestStdMshReprosLockstep(t *testing.T) {
 		{"ward_discard_or_mana_counts_restricted_source", false, false},         // CR 702.21a, 106.6: Titania's ward—discard a card or pay {2} offers the {2} while Hydraulic Helper's restricted {U} is the only untapped source (gorge's untapped-source gate reads the restriction unread)
 		{"sneak_entry_tap_fires_no_tap_all", true, false},                       // CR 603.2e: Elektra sneaked in tapped and attacking was not tapped, so Rewrite History's "become tapped" does not trigger
 		{"power_up_pay_window_offers_both_amounts", true, false},                // CR 601.2b, 702.193b: Abomination entered this turn owes {R/G}{R/G}; its pip ask prices each face against that reduced charge, so G is offered when an Island funds Surveillance Room's {1},{T} any-colour filter beside a Mountain
+		{"graveyard_activation_copy_returns_card", true, false},                 // CR 707.10, 400.7: Echo copies Project Deathlok Soldier's graveyard activation after the card was returned and discarded (graveyard -> hand -> graveyard, never the battlefield): the copy keeps the original's source, a new object by now, so the card stays in the graveyard
 	})
 }

@@ -124,6 +124,12 @@ func foldStackCopy(g *state.Game, e *Event) {
 	// answers "as you cast this spell" with the ORIGINAL cast's facts.
 	castBattlefield := src.CastBattlefield
 	stackKind, stackKindKnown := src.StackKind, src.StackKindKnown
+	// A copied ability has the original's source as it stood at the push
+	// (CR 707.10): a source that left and came back since is a new object
+	// to the copy too (CR 400.7), so the push stamp is inherited, not
+	// re-taken from the source as it is now.
+	pushStamped, pushOnBF := src.PushSourceStamped, src.PushSourceOnBattlefield
+	pushInc, pushZoneGen, pushZone := src.PushSourceIncarnation, src.PushSourceZoneGen, src.PushSourceZone
 	// A copy resolves the same compiled SA, so it reads the same owning face.
 	abilityFace, gainedFrom := src.AbilityFace, src.GainedFrom
 	copyNonLegendary := src.CopyNonLegendary
@@ -213,6 +219,11 @@ func foldStackCopy(g *state.Game, e *Event) {
 	o.RuntimeSVars = runtimeSVars
 	o.CastBattlefield = castBattlefield
 	o.StackKind, o.StackKindKnown = stackKind, stackKindKnown
+	if pushStamped {
+		o.PushSourceStamped, o.PushSourceOnBattlefield = true, pushOnBF
+		o.PushSourceIncarnation, o.PushSourceZoneGen = pushInc, pushZoneGen
+		o.PushSourceZone = pushZone
+	}
 	o.AbilityFace, o.GainedFrom = abilityFace, gainedFrom
 	o.Targets = targets
 	o.SubTargets = subTargets

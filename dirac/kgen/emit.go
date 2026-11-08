@@ -192,6 +192,11 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 			if f.NotSub > 0 {
 				set[f.NotSub-1] = true
 			}
+			if f.Pred == kop.PredHistoric && f.PredN > 0 {
+				// PredN is the Saga subtype index+1; the kernel reads it by index,
+				// and the matchup must keep that subtype or its remap zeroes the clause
+				set[uint8(f.PredN-1)] = true
+			}
 			if f.Pred == kop.PredOutlaw {
 				// the kernel reads the five outlaw types by name
 				// (genPrep.outlawSub), so the matchup keeps them
