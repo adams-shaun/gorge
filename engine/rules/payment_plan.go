@@ -154,7 +154,7 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		// the one the chosen set will charge.
 		base := pay.RawBaseCost(asPayer(e), p, cast.Object)
 		base = pay.WithSpellAbilityExtras(o.Face(), base)
-		rider := pay.ConvRider(asEval(e).Conv(p, cast.Object, false))
+		rider := pay.ConvRider(asEval(e).Conv(p, cast.Object, pay.SASpell))
 		if _, got := e.targetPricedPlan(statics.get(), p, cast.Object, base, spellScope(""), rider); got.Plan != nil && got.Reason == "" {
 			return got
 		}
