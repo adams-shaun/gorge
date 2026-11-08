@@ -115,16 +115,33 @@ func entBodyInert(prog []kop.Instr) bool {
 	return len(prog) > 0
 }
 
+// entBodyHard reports whether a replacement program enters the entrant
+// attacking (ExtEnterAttacking, Kira Nerys): gorge classes the ChangeZone body
+// "other" (replacement_updated.go, updatedBodyClass), which commutes with no
+// other body, so beside any second enter body gorge asks the CR 616.1 order,
+// and the order decides the result (picked after a counter body the entrant has
+// entered, and Kira's body no longer applies).
+func entBodyHard(prog []kop.Instr) bool {
+	for i := range prog {
+		if prog[i].Ext() == kop.ExtEnterAttacking {
+			return true
+		}
+	}
+	return false
+}
+
 // prepEntUntap sets anyEntUntap: some card has an other-enter program that
-// untaps the entrant (ExtEnterUntapped).
+// untaps the entrant (ExtEnterUntapped), and anyEntAttack: some card has one
+// that enters it attacking.
 func prepEntUntap(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
-			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplOthersEnterProgram && entBodyClass(a.Prog) == entClsUntap {
-				g.anyEntUntap = true
-				return
+			if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplOthersEnterProgram {
+				continue
 			}
+			g.anyEntUntap = g.anyEntUntap || entBodyClass(a.Prog) == entClsUntap
+			g.anyEntAttack = g.anyEntAttack || entBodyHard(a.Prog)
 		}
 	}
 }
@@ -141,6 +158,7 @@ type entComp struct {
 	anyUntap   bool
 	over       bool // more than eight candidates
 	other      bool // a body this ask cannot class (a self enters program, counters, a choice)
+	hard       bool // some live body enters the entrant attacking (entBodyHard): it fails to commute with any other body
 }
 
 func (c *entComp) add(src Obj, cls uint8) {
@@ -224,6 +242,11 @@ func (s *State) entryComp(k *prep, o Obj, ctrl uint8, skip Slot, fixEarly bool) 
 				c.add(s.perms[b].obj, entBodyClass(a.Prog))
 				if c.n > n0 && entBodyInert(a.Prog) {
 					c.inert |= 1 << n0
+				}
+				// A body gated on IsPresent$ is a candidate only while its gate holds
+				// (gorge's replacementMatches); the entrant is off the battlefield.
+				if c.n > n0 && entBodyHard(a.Prog) && (a.Repl.Cond == 0 || s.condEval(k, a.Repl.Cond, evalCtx{src: s.perms[b].obj, srcSl: b, ctrl: s.perms[b].ctrl})) {
+					c.hard = true
 				}
 			}
 		}
@@ -585,7 +608,7 @@ func (s *State) entryOrderEnter(k *prep, sl Slot, o Obj) uint8 {
 		}
 		return v
 	}
-	if c, pair := s.entryComp(k, o, s.perms[sl].ctrl, sl, false); pair {
+	if c, pair := s.entryComp(k, o, s.perms[sl].ctrl, sl, false); pair || c.hard && c.n > 1 {
 		if DebugEntryOrderTapLast {
 			return entOvrTap
 		}

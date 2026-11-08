@@ -117,7 +117,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	saveRep := s.g.replaced
 	s.g.replaced = o
 	var ovr uint8
-	if g.anyEntUntap && face == 0 {
+	if (g.anyEntUntap || g.anyEntAttack) && face == 0 {
 		ovr = s.entryOrderEnter(k, sl, o) // the CR 616.1 order ask's result, or a stall (repl_entryorder.go)
 	}
 	// The entrant's own enters programs and the other permanents' enter

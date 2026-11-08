@@ -292,6 +292,7 @@ type genPrep struct {
 	anyDiscRef     bool           // some expression reads RefDiscarded (value_discardedref.go)
 	anySpellCond   bool           // some spell ability carries a cast restriction in Trig.Cond (cast_spellcondition.go)
 	anyEntUntap    bool           // some ReplOthersEnterProgram untaps the entrant (ExtEnterUntapped): a tap/untap pair asks the CR 616.1 order (repl_entryorder.go)
+	anyEntAttack   bool           // some ReplOthersEnterProgram enters the entrant attacking (ExtEnterAttacking): beside another enter body it competes (repl_entryorder.go)
 	anyEachTgt     bool           // some ExtEachDamage reads damager target slots (extop.go)
 	anyXBadMV      bool           // a TgfMaxTotalMV slot: later ops on its objects see them as the resolution began (tgt_setconstraints.go)
 	anyTgtSetBf    bool           // a TgfSharedCrType slot on the battlefield (tgt_setconstraints.go)
