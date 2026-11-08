@@ -14,11 +14,11 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | DSK | 276 | 242 | 4 | 50 | 188 |
 | ECL | 273 | 234 | 1 | 0 | 233 |
 | EOE | 266 | 239 | 0 | 0 | 239 |
-| FDN | 517 | 517 | 0 | 24 | 493 |
+| FDN | 517 | 517 | 0 | 0 | 517 |
 | FIN | 312 | 268 | 1 | 22 | 245 |
 | FRA | 269 | 245 | 0 | 6 | 239 |
 | HOB | 172 | 153 | 0 | 0 | 153 |
-| LCI | 290 | 251 | 1 | 22 | 228 |
+| LCI | 290 | 251 | 1 | 21 | 229 |
 | MKM | 279 | 242 | 1 | 31 | 210 |
 | MSH | 276 | 235 | 1 | 2 | 232 |
 | OTJ | 276 | 241 | 1 | 0 | 240 |
@@ -30,7 +30,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 6 | 246 |
-| ALL | 34442 | 21707 | 24 | 16669 | 5014 |
+| ALL | 34442 | 21707 | 24 | 16645 | 5038 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -49,7 +49,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | std-dsk | 105 |
 | std-ecl | 1455 |
 | std-eoe | 1500 |
-| std-fdn | 568 |
+| std-fdn | 1474 |
 | std-fin | 199 |
 | std-fra | 1500 |
 | std-hob | 1500 |

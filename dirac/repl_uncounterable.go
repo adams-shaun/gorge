@@ -5,10 +5,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // ReplSpellsCantBeCountered (Chimil, the Inner Sun,
 // Sphinx of the Final Word): a battlefield "spells you control can't be
 // countered" replacement. gorge stops the Counter effect's event
-// (counterReplacementMatchesAll, effCounter -> CounterAllowed). Only the
-// Counter effect is such an event: ward (effWard), a bounce or a move of a
-// spell off the stack (changeZone) and a fizzle on illegal targets
-// (CR 608.2b) never ask it, so those kernel sites stay as they were.
+// (counterReplacementMatchesAll, effCounter -> CounterAllowed). The Counter
+// effect and ward (effWard; both through effects.counterStopped) are such
+// events: a bounce or a move of a spell off the stack (changeZone) and a
+// fizzle on illegal targets (CR 608.2b) never ask it, so those kernel sites
+// stay as they were.
 
 // StallUncounterOrder: two or more "can't be countered" replacements match
 // one Counter event (this spell's own plus a battlefield source, or two
@@ -94,4 +95,15 @@ func (s *State) uncounterMatch(k *prep, f kop.FilterID, e *stackEntry) bool {
 		return s.matchSpellCard(k, f, e.card, e.ctrl, e.ctrl, e.obj, NoSlot)
 	}
 	return s.matchCard(k, f, e.card, e.ctrl, e.ctrl)
+}
+
+// wardCounterAt is every ward resolution's counter of its warded entry idx:
+// a spell that can't be countered stays on the stack (Out Cold, Long
+// Goodbye: "This includes by the ward ability"; CR 101.2, 702.21a), as gorge
+// effWard asks counterStopped before its MoveZone.
+func (s *State) wardCounterAt(k *prep, idx int) {
+	if s.stack[idx].kind == seSpell && s.uncounterable(k, idx) {
+		return
+	}
+	s.counterAt(k, idx)
 }

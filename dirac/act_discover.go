@@ -7,7 +7,8 @@ import (
 // discover is OpDiscover (gorge effDiscover / effDiscoverBottom). C=0: the
 // player's library cards are exiled from the top until a nonland card with
 // mana value A or less (printed, X = 0), the others go to the library
-// bottom in exile order, and the found card becomes the remembered set
+// bottom in a random order drawn from the engine rng (CR 701.57a, exactly
+// gorge's Fisher-Yates), and the found card becomes the remembered set
 // (replacing it). C=1: the remembered card still in exile goes to its
 // owner's hand (the declined or uncastable discovery).
 func (s *State) discover(k *prep, in *kop.Instr) {
@@ -61,6 +62,10 @@ func (s *State) discover(k *prep, in *kop.Instr) {
 		}
 		ex[ne] = o
 		ne++
+	}
+	for i := ne - 1; i > 0; i-- {
+		j := s.rng.IntN(i + 1)
+		ex[i], ex[j] = ex[j], ex[i]
 	}
 	for _, o := range ex[:ne] {
 		from := s.detach(o)

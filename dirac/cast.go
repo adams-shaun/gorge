@@ -170,7 +170,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		s.bld().bfl |= bflLowered
 	}
 	if s.npend > n0 {
-		s.resolveLowerCounterTriggers(k, n0)
+		s.resolveLowerCounterTriggers(k, n0, k.cards[c].instant || s.castFlash(k, p, c))
 	}
 }
 
@@ -792,6 +792,20 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.nextStage(k) // CR 702.37b: no additional costs on a face-down cast
 				continue
 			}
+			if e.kind == seSpell {
+				// any spell build can owe a fixed PayLife<N> the offer's cost
+				// census did not price (Wishing Well's Play). A cast with no
+				// target asks nothing before this stage, so the life part would
+				// otherwise be paid into negative life instead of reversing
+				// (CR 119.4, 601.2h, 733.1); this applies to any spell, not
+				// only a free cast. A PayLife<X> is bounded by the X ask.
+				// buildPickCost is the chosen either-or part: an alt-add cast
+				// paying its mana part owes no life (Redirect Lightning).
+				if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 && int(s.pl[e.ctrl&1].life) < int(pc.N) {
+					s.reverseCast(k)
+					return false
+				}
+			}
 			// gorge's order: sacrifice, the counter removals, discard
 			// (the forage either-or first: gorge forageAsk; an exile
 			// part is the only counted one of its cost: act_forage.go)
@@ -929,7 +943,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.bld().ti++ // chosen mid-resolution (OpChooseTargets), as gorge asks it
 				continue
 			}
-			if !s.tgtAsksNothing(k, t, e) && (s.convokeTargetAbort(k) || s.altAddTargetAbort(k) || s.copyCastTargetWindowShort(k) || s.copyCastXTargetAbort(k, t)) {
+			if !s.tgtAsksNothing(k, t, e) && (s.convokeTargetAbort(k) || s.altAddTargetAbort(k) || s.addCostTargetAbort(k) || s.copyCastTargetWindowShort(k) || s.copyCastXTargetAbort(k, t)) {
 				// Gorge's target menu (affordableTargetCandidates) probes the
 				// CR 601.2g window and withholds every candidate of a convoke
 				// cast the announced picks plus the pool cannot complete: a
@@ -1977,7 +1991,9 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 		}
 		d.N = 0
 		s.costCands(k, pc, src, d)
-		if s.bld().pickK == pkSac && int(d.N) < int(s.bld().pickLeft) {
+		if s.bld().pickK == pkSac && int(d.N) < int(s.bld().pickLeft) || s.bld().pickK == pkDiscard && d.N == 0 {
+			// no card left to discard: a free cast begun without the offer's cost census
+			// (Wishing Well's Play) reverses here, as gorge's discardAsk aborts (CR 733.1)
 			s.sacShort(k, d)
 			return true
 		}

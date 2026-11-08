@@ -1,0 +1,8 @@
+# the offer path's pre-cast trigger walk vs the dead scratch build arm (xwitnessoffer):
+# Al Bhed Salvagers turns a Treasure's sacrifice into the opponent's last life, beside a
+# sorcery and an instant {X} spell whose only source is that Treasure
+Al Bhed Salvagers
+Choco-Comet
+Mountain
+Namazu Trader
+Syncopate

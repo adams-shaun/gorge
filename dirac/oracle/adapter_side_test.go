@@ -425,8 +425,25 @@ func TestAcceptsNamesTheCard(t *testing.T) {
 	}
 	cmd := base
 	cmd.Format = game.FormatCommander
-	if err := e.Accepts(cmd); err == nil || !strings.Contains(err.Error(), "constructed") {
-		t.Fatalf("commander: %v", err)
+	cmd.StartingLife = 40
+	cmd.Commanders = [][]int{{0}, {0}}
+	if err := e.Accepts(cmd); err != nil {
+		t.Fatalf("a two-seat commander config: %v", err)
+	}
+	threeCmd := cmd
+	threeCmd.Decks = three.Decks
+	if err := e.Accepts(threeCmd); err == nil || !strings.Contains(err.Error(), "two seats") {
+		t.Fatalf("commander with three seats: %v", err)
+	}
+	noCommander := cmd
+	noCommander.Commanders = nil
+	if err := e.Accepts(noCommander); err == nil || !strings.Contains(err.Error(), "commander") {
+		t.Fatalf("commander with no commander: %v", err)
+	}
+	outside := cmd
+	outside.Commanders = [][]int{{len(m.Decks[0])}, {0}}
+	if err := e.Accepts(outside); err == nil || !strings.Contains(err.Error(), "outside") {
+		t.Fatalf("commander outside the deck: %v", err)
 	}
 	stranger := &cards.Card{Path: "Not A Card In This Set"}
 	bad := base

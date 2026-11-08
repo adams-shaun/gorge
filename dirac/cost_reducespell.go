@@ -84,6 +84,7 @@ func (s *State) freeDropTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 
 func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]uint8, n int, free bool) int {
 	e := &s.bld().e
+	defer s.markCostComposition()()
 	cd := &k.t.Cards[e.card]
 	has := false
 	for i := range cd.Abilities {
@@ -97,7 +98,7 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]uint8, n int, free bo
 		return n
 	}
 	var av avail
-	s.availFor(k, e.ctrl, &av)
+	s.availForBuilt(k, e, &av)
 	nt, t0 := e.nt, e.tgt[0]
 	m := 0
 	for i := 0; i < n; i++ {

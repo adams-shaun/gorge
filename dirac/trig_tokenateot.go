@@ -15,7 +15,7 @@ func (s *State) tokenAtEOT(in *kop.Instr, t Obj) {
 		s.tokenAtEOTExt(in, t) // an extended rider (trig_tokenateot.go)
 		return
 	}
-	if in.B.N&kop.TokExileAtEnd == 0 && s.g.tokMade > 1 && s.sacAtEndJoin(t) {
+	if in.B.N&kop.TokExileAtEnd == 0 && s.g.tokMade > 1 && s.sacAtEndJoin(t, dlyUntracked) {
 		return // a later token of one resolution joins the first one's trigger
 	}
 	s.atEOTRider(t, in.B.N&kop.TokExileAtEnd != 0)
@@ -29,11 +29,12 @@ func (s *State) tokenAtEOT(in *kop.Instr, t Obj) {
 const dlyGrpFollow = 6
 
 // sacAtEndJoin registers token t, made after another token by the same
-// resolution, as a follower of the previous token's end-step sacrifice, and
-// reports whether it did.
+// resolution, as a follower of the previous token's sacrifice, and reports
+// whether it did. when is the head record's trigger step: dlyUntracked for
+// the next end step, dlyEndCombat for this turn's end of combat.
 //
 //go:noinline
-func (s *State) sacAtEndJoin(t Obj) bool {
+func (s *State) sacAtEndJoin(t Obj, when uint8) bool {
 	if s.ndly == 0 || s.ndly >= MaxDelayed {
 		return false
 	}
@@ -42,7 +43,7 @@ func (s *State) sacAtEndJoin(t Obj) bool {
 	switch {
 	case prev.when == dlyGrpFollow:
 		head = prev.creator
-	case prev.when != dlyUntracked || prev.creator != s.res.e.obj || prev.obj == t:
+	case prev.when != when || prev.creator != s.res.e.obj || prev.obj == t:
 		return false
 	}
 	s.dly[s.ndly] = delayed{act: uint8(kop.OpSacrifice), ctrl: s.res.e.ctrl, obj: t, ver: s.objs[t].ver, when: dlyGrpFollow, creator: head}
@@ -142,10 +143,15 @@ const dlyEndCombat = 4
 var DebugTokAtEOTDestroyIsLeave bool
 
 // tokenAtEOTExt registers the extended rider of token t (both AtEOT bits
-// set in in.B.N, the kind in the high byte).
+// set in in.B.N, the kind in the high byte). A later SacrificeCombat token of
+// one resolution joins the first token's sacrifice (sacAtEndJoin, the grouping
+// tokenAtEOT documents), so the resolution's tokens fall to one trigger.
 //
 //go:noinline
 func (s *State) tokenAtEOTExt(in *kop.Instr, t Obj) {
+	if in.B.N>>8 == kop.TokAtEOTSacCombat && s.g.tokMade > 1 && s.sacAtEndJoin(t, dlyEndCombat) {
+		return // a later token of one resolution joins the first one's sacrifice
+	}
 	d := delayed{act: uint8(kop.OpDestroy), ctrl: s.res.e.ctrl, obj: t, ver: s.objs[t].ver, creator: s.res.e.obj}
 	if in.B.N>>8 == kop.TokAtEOTSacCombat {
 		d.act, d.when = uint8(kop.OpSacrifice), dlyEndCombat
@@ -186,7 +192,11 @@ func (s *State) fireDlyEndCombat(k *prep) {
 			keep++
 			continue
 		}
-		s.enqueue(dlySource(&d), d.ver, s.objs[d.obj].card, abDelayed, d.ctrl, d.obj, d.ctrl, int16(d.act))
+		amt := int16(d.act)
+		if kop.Op(d.act) == kop.OpSacrifice {
+			amt = opSacUntracked // __kwEncoreSacrifice: sacrifice the group by id
+		}
+		s.enqueue(dlySource(&d), d.ver, s.objs[d.obj].card, abDelayed, d.ctrl, d.obj, d.ctrl, amt)
 	}
 	for i := keep; i < n; i++ {
 		s.dly[i] = delayed{}

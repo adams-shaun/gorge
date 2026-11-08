@@ -2142,7 +2142,7 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 		// one resolution's copies share one delayed triggered ability (CR 603.7;
 		// gorge effCopyPermanent registers one group): a later copy joins the
 		// first one's trigger
-		if eb == nil || eb.n < 2 || !s.sacAtEndJoin(t) {
+		if eb == nil || eb.n < 2 || !s.sacAtEndJoin(t, dlyUntracked) {
 			s.sacAtEndUntracked(t, e.ctrl) // trig_tokenateot.go
 		}
 	}

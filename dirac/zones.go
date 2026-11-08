@@ -401,6 +401,13 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 		panic("kernel: battlefield full")
 	}
 	sl := free.first()
+	// CR 614.12: while this object's entry counters are placed, its own
+	// general AddCounter replacement does not apply to them (gorge
+	// ownEntryCounterExcluded). The marker spans the whole fold: the printed
+	// counters below and enterGen's entry window, own/foreign bodies and
+	// effect-borne counters.
+	savedEntrySelf := s.g.entrySelf
+	s.g.entrySelf = uint8(sl) + 1
 	s.touch(o)
 	ob := &s.objs[o]
 	ob.zone = kop.ZoneBattlefield
@@ -490,6 +497,7 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 	if k.engines {
 		s.speedStart(k, SpeedCntStartEntry) // kw_speed.go
 	}
+	s.g.entrySelf = savedEntrySelf
 	return sl
 }
 
@@ -622,6 +630,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	}
 	if s.sp|s.npend != 0 || s.res.active || s.buildLive() {
 		s.settleSrcKw(k, sl, o)
+		s.snapSrcDepart(o) // CR 608.2h: its abilities read it as it last existed here (zone_lkisource.go)
 	}
 	if k.gen != nil && k.gen.anyPanharm {
 		p.flags &^= pfPanhGone

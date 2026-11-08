@@ -12,8 +12,8 @@ import (
 // Discover (CR 701.57) exiles cards from the top of the controller's library
 // until a nonland card with mana value at most Num is found.  The found card
 // is offered as a free Play; every other card exiled by the scan is put on the
-// bottom first.  The engine's deterministic existing-order convention is used
-// for the CR's random bottom order, as it is for Cascade.
+// bottom first, in a random order drawn from the engine's seeded rng
+// (CR 701.57a).
 func init() {
 	Register("Discover", effDiscover)
 	Register("DiscoverBottom", effDiscoverBottom)
@@ -106,9 +106,23 @@ func effDiscover(h Host, c *Ctx, sa *cards.SA) {
 	// The found card is left in exile for the Play election.  All preceding
 	// cards are already known not to be the discover card and can be bottomed
 	// before the election without changing anything observable.
+	//
+	// CR 701.57a: "Put the remaining exiled cards on the bottom of your
+	// library in a random order."  The order the MoveZone events below are
+	// emitted in IS the bottom order (Move appends), so the scan-order list
+	// is shuffled first through the engine's seeded rng -- the same
+	// Fisher-Yates h.Rand idiom ChangeZoneAll's RandomOrder$ and DigUntil's
+	// reveal return use.  The shuffle works on a fresh list: the Note above
+	// already published the scan order and must keep it.  A replay re-derives
+	// the same permutation from the same draws.
 	rest := exiled
 	if found != 0 {
 		rest = exiled[:len(exiled)-1]
+	}
+	rest = append([]state.ObjID(nil), rest...)
+	for i := len(rest) - 1; i > 0; i-- {
+		j := h.Rand(i + 1)
+		rest[i], rest[j] = rest[j], rest[i]
 	}
 	for _, id := range rest {
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZExile,

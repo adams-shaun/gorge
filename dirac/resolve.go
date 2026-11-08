@@ -366,7 +366,7 @@ func (s *State) resolveWard(k *prep) {
 		s.ctl = ctlResolve
 		return
 	}
-	s.counterAt(k, idx)
+	s.wardCounterAt(k, idx)
 	s.finishResolve(k, false)
 }
 

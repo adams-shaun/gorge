@@ -58,6 +58,7 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"collect_evidence_selection_stale", true, false},            // CR 701.59a: Forensic Researcher's evidence pick lists the whole graveyard after a declined Lamplight Phoenix cost left its reservation behind
 		{"copy_each_target_copies_enter_together_two", false, false}, // ... and Doppelgang's copies of several targets likewise enter in one batch
 		{"sacrifice_menu_keeps_stolen_creature", true, false},
+		{"ward_cannot_counter_uncounterable_spell", false, false}, // CR 101.2, 702.21a: Long Goodbye can't be countered, so an unpaid ward leaves it on the stack
 	})
 }
 
@@ -176,6 +177,10 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		// CR 701.21a, 610.3d: Scavenger's Talent's sacrifice-three cost includes Banishing Light, so its card returns after all three are gone
 		{"blb_sac_cost_exile_return_after_all_sacrificed", true, false},
 		{"blb_sac_cost_exile_return_after_all_sacrificed_sword", true, false},
+		// CR 601.2a, 601.2f, 106.6: Head of the Homestead pays its hybrid pips through Helga's floating restricted {G}, so the spell is on the stack when the target/pip asks come
+		{"target_dependent_cost_spell_on_stack_at_first_ask", false, false},
+		// CR 601.2c, 733.1: Wishing Well casts Sazacap's Brew from the graveyard with the hand empty, so its discard cost is unpayable and the cast is reversed at the target ask, after the gift election
+		{"free_cast_unpayable_cost_aborts_at_target", true, false},
 		{"common_good_double_x_no_autopay_panic", false, false},         // CR 601.2b: For the Common Good paid with two Treasures whose largest X eats both targets: the witness is the smaller X that consumes one, not the unpayable X = 0 that keeps both
 		{"x_cast_unreachable_witness_no_prefix", false, false},          // CR 601.2b: a Treasure pays For the Common Good's {G} at X = 0 and is the only token it copies, so gorge's verdict is witness_unreachable and no prefix search runs
 		{"x_cast_rider_keeping_plan", false, false},                     // CR 609.4b, 601.2b: Cruelclaw's Heist's any-type rider pays For the Common Good's {G} from a Swamp, so the keeping plan leaves the Treasure as its target
@@ -388,6 +393,10 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		{"registered_effect_remembered_scope", true, false},
 		{"registered_effect_remembered_scope", false, false},
 		{"clone_returns_from_until_leaves_exile_asks_copy", true, false}, // CR 614.12, 707.2: a clone returning from "until this leaves" exile during a resolution is asked its enter-as-a-copy election, as gorge asks it
+		// CR 601.2f: a per-target cost reprice hides the in-flight cast from the turn's cast counts, as the build's own pricing does
+		{"per_target_reprice_hides_inflight_cast_from_cast_counts", false, false},
+		// CR 601.2g-h: a hybrid cast whose dry census cannot price a filter's fee still completes when the real window pays it from the floated pool
+		{"hybrid_cast_filter_fee_from_floated_pool", true, false},
 	})
 }
 
@@ -479,6 +488,9 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"attached_and_global_mana_grants_follow_the_static_walk", true, false}, // CR 613.7, 605.1a: Honest Work's {T}: Add {C} on a land of the other seat is listed after Great Divide Guide's any-colour grant, as gorge walks the statics by seat
 		{"waterbend_self_taps_watcher_census", false, true},                     // CR 605.1b, 701.67a: Great Divide Guide's granted {T} ability on Compassionate Healer fires the Healer's own Taps watcher, which gorge's census cannot price, so the waterbend announcement offers Done
 		{"free_waterbend_cast_stranded_reverses_untapped", true, false},         // CR 733.1: Benevolent River Spirit cast free off Solstice Revelations with Ty Lee waterbent leaves {4} no source pays; the cast reverses before the Mountain taps
+		// CR 605.4a: Gran-Gran, deferred by its own tap trigger, still adds Badgermole Cub's extra {G} when tapped for Great Divide Guide's granted mana, so the relaxed proof cannot rule out Foggy Swamp Vinebender's Waterbend {5}
+		{"deferred_source_keeps_tap_extra_mana", true, false},
+		{"source_lki_power_keeps_unattached_equipment", true, false}, // CR 608.2h: Firebending Student killed by Razor Rings with its firebending trigger waiting adds its power as it last existed, Glider Staff's +1 included, though the Staff became unattached since
 	})
 }
 
@@ -543,6 +555,14 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"equip_target_reduction_payable_full_surface", false, false}, // CR 601.2f, 602.2b: the same equip offer on the full surface
 		// CR 106.6, 601.2g: a Tiered cast's window asks Cargo Ship's abilities with its printed artifact-only {C} ahead of A Realm Reborn's grant, so the {C} floats unspent
 		{"window_printed_restricted_before_grant", false, false},
+		// CR 601.2f, 106.6: a Spree mode is priced beside the floating restricted mana the payment may spend, so the mode stays offered
+		{"spree_mode_counts_floating_restricted_mana", true, false},
+		// CR 601.2b, 601.2g, 733.1: Choco-Comet's largest-X lowered witness
+		// would sacrifice a Treasure, and Al Bhed Salvagers' trigger would end
+		// the game before the push, so gorge's potentialWitnessKeeping prices
+		// the smaller X that keeps it and both engines ask X with the spell on
+		// the stack
+		{"choco_comet_x_witness_sacrifice_before_push", false, false},
 		// CR 601.2g, 603.3b: Choco-Comet's largest-X witness would sacrifice the Treasure into Al Bhed Salvagers' lethal drain before the cast, so gorge plans X=5 from the lands and keeps the Treasure
 		{"x_witness_lethal_sacrifice_trigger_keeps_treasure", false, false},
 	})
@@ -600,11 +620,16 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"wide_restricted_source_funds_hand_ability", true, false},                 // CR 106.6, 601.2g: Flamebraider's two any-colour mana for an Elemental pays Kulrath Zealot's basic landcycling, a hand activation the census has no unit for
 		{"behold_exile_cast_pays_restricted_wide_mana", false, false},              // CR 106.6, 601.2g: Champion of the Path cast from Sanar's exile is affordable through Flamebraider's restricted two mana, which gorge's prefix search taps ahead of the pricing
 		{"behold_exile_cast_tap_another_source_not_census_gap", false, false},      // CR 601.2g: a plain hand Champions of the Shoal is not one of gorge's potential plays (shape:additional_cost is refused before the mana is priced), so no prefix search taps Springleaf Drum for it and dirac must not offer the cast
-		{"mayplay_optional_cost_cast_offered_alike", false, false},                 // CR 601.2g, 605.3a: Requiting Hex (optional blight) cast from Burning Curiosity's exile is a composed may-play cast, so gorge's prefix search taps Springleaf Drum for its {B} and dirac offers it too
-		{"reversed_cast_keeps_same_taps", true, false},                             // CR 733.1: Sun-Dappled Celebrant's convoke picks strand its cost over Eclipsed Realms' Treefolk mana; the cast reverses before any land taps
-		{"reversed_cast_keeps_mana_ability_trigger", false, false},                 // CR 733.1: Springleaf Drum tapped Wanderwine Distracter for Appeal to Eirdu; the cast is reversed, the mana ability is not, so the "becomes tapped" trigger stays queued
-		{"reversed_cast_trigger_push_is_progress", true, false},                    // CR 733.2: Silvergill Peddler's kept tap trigger is pushed after Disruptor of Currents' reversal, so a second no-progress reversal still leaves the cast offered
-		{"until_leaves_return_asks_choice_after_top_bottom_answer", true, false},   // CR 614.12, 610.3: an as-enters choice of a card returning when its exiler is put second-from-top is asked with the card in exile
+		// CR 610.3, 616.1: Temporal Cleansing's "second from top or bottom"
+		// answer moves the owner's Liminal Hold into the library inside that
+		// answer, so its until-leaves exile ends there and Rimefire Torque's
+		// as-enters creature-type choice is asked with the card still in exile
+		{"rimefire_torque_until_leaves_return_choose_type", true, false},
+		{"mayplay_optional_cost_cast_offered_alike", false, false},               // CR 601.2g, 605.3a: Requiting Hex (optional blight) cast from Burning Curiosity's exile is a composed may-play cast, so gorge's prefix search taps Springleaf Drum for its {B} and dirac offers it too
+		{"reversed_cast_keeps_same_taps", true, false},                           // CR 733.1: Sun-Dappled Celebrant's convoke picks strand its cost over Eclipsed Realms' Treefolk mana; the cast reverses before any land taps
+		{"reversed_cast_keeps_mana_ability_trigger", false, false},               // CR 733.1: Springleaf Drum tapped Wanderwine Distracter for Appeal to Eirdu; the cast is reversed, the mana ability is not, so the "becomes tapped" trigger stays queued
+		{"reversed_cast_trigger_push_is_progress", true, false},                  // CR 733.2: Silvergill Peddler's kept tap trigger is pushed after Disruptor of Currents' reversal, so a second no-progress reversal still leaves the cast offered
+		{"until_leaves_return_asks_choice_after_top_bottom_answer", true, false}, // CR 614.12, 610.3: an as-enters choice of a card returning when its exiler is put second-from-top is asked with the card in exile
 	})
 }
 
@@ -652,13 +677,14 @@ func TestStdSpmReprosLockstep(t *testing.T) {
 func TestStdDftReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-dft", []stdRepro{
-		{"clone_entry_order_beside_counter", false, false},         // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
-		{"clone_entry_order_three_candidates", false, false},       // CR 616.1, 616.1f: ... beside two Velocipedes the ask has three options, and a counter source named first moves the card in and asks the two left with it on the battlefield
-		{"copy_entry_trigger_after_order_ask", false, false},       // CR 614.12/603.6a: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first; the copy's Hulldrifter enters trigger queues after the bodies
-		{"tap_power_value_lost_with_abilities", true, false},       // CR 613.1f: Interface Ace under Flood the Engine has lost its crew-with-toughness static, so its 0 power does not crew Rangers' Refueler
-		{"lookback_player_turn_uses_lki_controller", false, false}, // CR 603.10a: a stolen Ketramose exiled from the battlefield on its thief's turn triggers for the thief (PlayerTurn$ reads the last-known controller)
-		{"returned_aura_host_before_paid_draw", false, false},      // CR 303.4f, 610.3: sacrificing Perilous Snare pays Chandra's "if you do, draw": its exiled Aura's host answer comes before the draw, as gorge asks it mid-payment
-		{"lost_abilities_tappower_bonus", false, false},            // CR 613.1f: a Pilot token under Flood the Engine loses the TapPowerValue static, so it contributes its printed power to a Saddle cost
+		{"clone_entry_order_beside_counter", false, false},                    // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
+		{"clone_entry_order_three_candidates", false, false},                  // CR 616.1, 616.1f: ... beside two Velocipedes the ask has three options, and a counter source named first moves the card in and asks the two left with it on the battlefield
+		{"copy_entry_trigger_after_order_ask", false, false},                  // CR 614.12/603.6a: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first; the copy's Hulldrifter enters trigger queues after the bodies
+		{"tap_power_value_lost_with_abilities", true, false},                  // CR 613.1f: Interface Ace under Flood the Engine has lost its crew-with-toughness static, so its 0 power does not crew Rangers' Refueler
+		{"lookback_player_turn_uses_lki_controller", false, false},            // CR 603.10a: a stolen Ketramose exiled from the battlefield on its thief's turn triggers for the thief (PlayerTurn$ reads the last-known controller)
+		{"own_counter_replacement_does_not_apply_to_own_entry", false, false}, // CR 614.12: Caradora's "a creature or Vehicle you control" plus-one does not apply to the +1/+1 counter Thunderous Velocipede grants it as it enters; a general subset excludes the entrant itself
+		{"returned_aura_host_before_paid_draw", false, false},                 // CR 303.4f, 610.3: sacrificing Perilous Snare pays Chandra's "if you do, draw": its exiled Aura's host answer comes before the draw, as gorge asks it mid-payment
+		{"lost_abilities_tappower_bonus", false, false},                       // CR 613.1f: a Pilot token under Flood the Engine loses the TapPowerValue static, so it contributes its printed power to a Saddle cost
 	})
 }
 

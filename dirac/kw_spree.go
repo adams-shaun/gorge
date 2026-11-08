@@ -80,7 +80,7 @@ func (s *State) spreeAffordable(k *prep) bool {
 	c := s.buildCost(k)
 	var av avail
 	ctrl := s.bld().e.ctrl
-	s.availFor(k, ctrl, &av)
+	s.availForBuilt(k, &s.bld().e, &av)
 	return s.faceReachable(k, ctrl, &av, &c, 0)
 }
 

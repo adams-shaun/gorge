@@ -209,15 +209,25 @@ func checkCommander(c game.Config) error {
 	if c.StartingLife != 0 && c.StartingLife != 40 {
 		return fmt.Errorf("dirac starts a commander game at 40 life, the table asks for %d", c.StartingLife)
 	}
-	for i, cs := range c.Commanders {
+	// table names a non-two-seat table before this check, so a wrong seat
+	// count keeps that error even when the commander list is short.
+	if len(c.Decks) != 2 {
+		return nil
+	}
+	for i := range c.Decks {
+		if i >= len(c.Commanders) || len(c.Commanders[i]) == 0 {
+			return fmt.Errorf("dirac plays one commander per seat: seat %d names none", i)
+		}
+		cs := c.Commanders[i]
 		switch {
-		case i >= len(c.Decks):
-			return fmt.Errorf("dirac plays two seats, the table names commanders for seat %d", i)
 		case len(cs) > 1:
 			return fmt.Errorf("dirac plays one commander per seat: seat %d has %d (partners need the gorge engine)", i, len(cs))
-		case len(cs) == 1 && (cs[0] < 0 || cs[0] >= len(c.Decks[i])):
+		case cs[0] < 0 || cs[0] >= len(c.Decks[i]):
 			return fmt.Errorf("seat %d: commander index %d is outside its %d-card deck", i, cs[0], len(c.Decks[i]))
 		}
+	}
+	if len(c.Commanders) > len(c.Decks) {
+		return fmt.Errorf("dirac plays two seats, the table names commanders for seat %d", len(c.Decks))
 	}
 	return nil
 }

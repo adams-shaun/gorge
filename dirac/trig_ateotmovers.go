@@ -22,7 +22,7 @@ func (s *State) entryAtEOT(r *sweepRiders, o Obj, later bool) {
 	if !r.eot || DebugAteotMoversSkip {
 		return
 	}
-	if later && !r.eotExile && s.sacAtEndJoin(o) {
+	if later && !r.eotExile && s.sacAtEndJoin(o, dlyUntracked) {
 		return
 	}
 	s.atEOTRider(o, r.eotExile)

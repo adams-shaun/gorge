@@ -292,6 +292,7 @@ type genPrep struct {
 	anyDiscRef     bool           // some expression reads RefDiscarded (value_discardedref.go)
 	anySpellCond   bool           // some spell ability carries a cast restriction in Trig.Cond (cast_spellcondition.go)
 	anyEntUntap    bool           // some ReplOthersEnterProgram untaps the entrant (ExtEnterUntapped): a tap/untap pair asks the CR 616.1 order (repl_entryorder.go)
+	anyEntAttack   bool           // some ReplOthersEnterProgram enters the entrant attacking (ExtEnterAttacking): beside another enter body it competes (repl_entryorder.go)
 	anyEachTgt     bool           // some ExtEachDamage reads damager target slots (extop.go)
 	anyXBadMV      bool           // a TgfMaxTotalMV slot: later ops on its objects see them as the resolution began (tgt_setconstraints.go)
 	anyTgtSetBf    bool           // a TgfSharedCrType slot on the battlefield (tgt_setconstraints.go)
@@ -1784,6 +1785,12 @@ type genState struct {
 		tap  bool
 		ctrl bool
 	} // counters/tapped for the next enter (OpReturnEx)
+	// entrySelf is the slot+1 of the permanent whose entry counters are being
+	// placed (0: none). Its own general AddCounter replacement does not apply
+	// to them (CR 614.12; gorge ownEntryCounterExcluded). Set for the whole
+	// enterNF fold, which places the printed, requested, own/foreign-body and
+	// effect-borne entry counters.
+	entrySelf uint8
 	// tokPT: the P/T set the token entering next takes with its entry
 	// (act_tokenpt.go): on, the override index, the evaluated P/T
 	tokPT struct {

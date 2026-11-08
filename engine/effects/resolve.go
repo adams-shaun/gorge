@@ -438,6 +438,26 @@ func setStateChoose(h Host, c *Ctx, sa *cards.SA, sp *SetStateParams, optional, 
 // UnlessSwitched$ True inverts the whole ask — paying CAUSES the counter —
 // and is real switched semantics through the same gate; the orientation is
 // read from the SA, not hardcoded here.
+// counterStopped reports whether an attempt to counter stack object o fails
+// because o can't be countered: a FlagNoCounter spell (AddsNoCounter$ mana,
+// Cavern of Souls) or a matching R:Event$ Counter replacement (Out Cold's
+// "this spell can't be countered", Mistrise Village's AntiMagic), which
+// CounterAllowed applies. Each stop is one Note naming the object. Every
+// counter path (Counter, Ward) asks it before removing o (CR 101.2: "can't"
+// wins, including against ward, CR 702.21a). A false return with
+// h.Suspended() set means a replacement choice is pending.
+func counterStopped(h Host, c *Ctx, o *state.Object) bool {
+	if o.CastFlags&state.FlagNoCounter != 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: o.ID, Text: "can't be countered"})
+		return true
+	}
+	if !h.CounterAllowed(o.ID, c.Source) {
+		h.Emit(events.Event{Kind: events.Note, Obj: o.ID, Text: "counter prevented"})
+		return true
+	}
+	return false
+}
+
 func effCounter(h Host, c *Ctx, sa *cards.SA) {
 	remember := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberCountered)), "True") ||
 		strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberCounteredSA)), "True")
@@ -472,12 +492,7 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		// still a legal TARGET (CR: "can't be countered" does not stop
 		// targeting), so the record is one loud Note naming the object, and
 		// the Counter's remaining targets (and SubAbility$ chain) run on.
-		if o.CastFlags&state.FlagNoCounter != 0 {
-			h.Emit(events.Event{Kind: events.Note, Obj: o.ID, Text: "can't be countered"})
-			continue
-		}
-		if !h.CounterAllowed(o.ID, c.Source) {
-			h.Emit(events.Event{Kind: events.Note, Obj: o.ID, Text: "counter prevented"})
+		if counterStopped(h, c, o) {
 			if h.Suspended() {
 				return // replacement order must settle before any later target/SA
 			}

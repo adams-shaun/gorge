@@ -95,6 +95,48 @@ func (s *State) replCtrOn(k *prep, sl Slot, kind, n int) int {
 	return s.replCtrOnX(k, sl, kind, n, false)
 }
 
+// entryCtrSelfExcluded reports whether an AddCounter replacement whose source
+// is the permanent at src must stay out of the entry-counter placement on recv
+// (CR 614.12; gorge ownEntryCounterExcluded): a replacement that modifies how
+// a permanent enters may come from the permanent itself only if it affects
+// that permanent alone (Card.Self), not a general subset that includes it.
+func (s *State) entryCtrSelfExcluded(k *prep, src, recv Slot, f kop.FilterID) bool {
+	return s.g.entrySelf != 0 && src == recv && int(s.g.entrySelf) == int(recv)+1 &&
+		!filterSelfOnly(k.t, f)
+}
+
+// dblCtrN counts the any-kind counter doublers (ReplDoubleCounters, Doubling
+// Season) whose source is a permanent controlled by ctrl. Outside an entry it
+// is replN's count; during the entrant's entry fold a doubler on the entrant
+// itself is left out unless it affects the entrant alone (CR 614.12).
+func (s *State) dblCtrN(k *prep, sl Slot, ctrl uint8) int {
+	g := k.gen
+	n := 0
+	for m := s.statM.and(s.ctrlM[ctrl]); m.any(); m = m.rest() {
+		b := m.first()
+		if g.replBits[s.cardAt(b)]&rbDblCtr == 0 || s.genLost(k, b) {
+			continue
+		}
+		if b == sl && s.g.entrySelf == uint8(sl)+1 {
+			selfOnly := false
+			cd := &k.t.Cards[s.cardAt(b)]
+			for i := range cd.Abilities {
+				a := &cd.Abilities[i]
+				if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplDoubleCounters &&
+					filterSelfOnly(k.t, a.Repl.Filter) {
+					selfOnly = true
+					break
+				}
+			}
+			if !selfOnly {
+				continue
+			}
+		}
+		n++
+	}
+	return n
+}
+
 // replCtrOnX is replCtrOn with the EffectOnly$ doubler (Doubling Season)
 // left out when noEO: a cost's counters are no effect's (replCostCtr,
 // repl_addcounter.go).
@@ -103,7 +145,7 @@ func (s *State) replCtrOnX(k *prep, sl Slot, kind, n int, noEO bool) int {
 	ctrl := s.perms[sl].ctrl
 	dbl := 0
 	if g.anyRepl&rbDblCtr != 0 && !noEO {
-		dbl = s.replN(k, ctrl, rbDblCtr)
+		dbl = s.dblCtrN(k, sl, ctrl)
 	}
 	if g.anyRepl&rbDblCtrYou != 0 {
 		dbl += s.dblCtrYou(k, s.counterAdder()) // trig_leavereturn.go
@@ -124,14 +166,14 @@ func (s *State) replCtrOnX(k *prep, sl Slot, kind, n int, noEO bool) int {
 				}
 				switch a.Repl.Kind {
 				case kop.ReplDoubleCountersOn:
-					if !s.ctrKindMatch(a, kind, lc) { // repl_addcounter.go
+					if s.entryCtrSelfExcluded(k, b, sl, a.Repl.Filter) || !s.ctrKindMatch(a, kind, lc) { // repl_addcounter.go
 						continue
 					}
 					if s.matchPerm(k, a.Repl.Filter, sl, lc, b) {
 						dbl++
 					}
 				case kop.ReplAddCountersOn:
-					if !s.ctrKindMatch(a, kind, lc) { // repl_addcounter.go
+					if s.entryCtrSelfExcluded(k, b, sl, a.Repl.Filter) || !s.ctrKindMatch(a, kind, lc) { // repl_addcounter.go
 						continue
 					}
 					if s.matchPerm(k, a.Repl.Filter, sl, lc, b) {
