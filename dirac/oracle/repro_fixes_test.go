@@ -101,6 +101,10 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// is payable, but no mode is, so neither engine offers the cast (CR
 		// 702.172a/702.183a: the mode cost is part of the cheapest legal total).
 		{"explosive_derailment_needs_a_mode_cost", false, false},
+		// CR 601.2c/f, 118.8: a Spree/Charm per-mode target ask withholds
+		// Terror of the Peaks when its controller's "an additional 3 life"
+		// leaves the caster unable to pay, as the root target ask does
+		{"charm_mode_targets_skip_unaffordable_terror", false, false},
 		// CR 601.2f: This Town Ain't Big Enough cast from Jasper Flint's
 		// mayplay, whose TargetMax$ 2 keeps the potential planner at the full
 		// price: the offer gate's target retry prices one matching target,
