@@ -19,8 +19,8 @@ func TestPotentialWitnessReachesPastAnOpponentsWaitingTrigger(t *testing.T) {
 	mountain := "Name:Hill\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ R | SpellDescription$ x\nOracle:x\n"
 	treasure := "Name:Loot Gem\nTypes:Artifact\nA:AB$ Mana | Cost$ T Sac<1/CARDNAME> | Produced$ Any | SpellDescription$ x\nOracle:x\n"
 	watcher := "Name:Gem Mourner\nTypes:Creature Imp\nPT:1/1\n" +
-		"T:Mode$ Sacrificed | ValidCard$ Permanent.token | Origin$ Any | Destination$ Battlefield | TriggerZones$ Battlefield | OptionalDecider$ You | Execute$ TrigDraw | TriggerDescription$ x\n" +
-		"SVar:TrigDraw:DB$ Draw | NumCards$ 1\nOracle:x\n"
+		"T:Mode$ Sacrificed | ValidCard$ Permanent.token | Origin$ Any | Destination$ Battlefield | TriggerZones$ Battlefield | OptionalDecider$ You | Execute$ TrigMournerDraw | TriggerDescription$ x\n" +
+		"SVar:TrigMournerDraw:DB$ Draw | NumCards$ 1 | Defined$ You\nOracle:x\n"
 	onBoard(t, e, 0, mountain)
 	putToken(t, e, 0, treasure, state.ZBattlefield)
 	onBoard(t, e, 1, watcher)
