@@ -54,6 +54,24 @@ func (b *trigBoard) Facts() trigmatch.Facts {
 	}
 }
 
+// DepartedSourceController reads the stack top's captured last-known
+// controller of src (engine_damage.go captures it when src leaves).
+func (b *trigBoard) DepartedSourceController(src state.ObjID) (state.PlayerID, bool) {
+	e := b.eng()
+	if len(e.G.Stack) == 0 {
+		return 0, false
+	}
+	top := e.G.Stack[len(e.G.Stack)-1]
+	if l, ok := e.damageSourceLKI[top][src]; ok {
+		return l.Controller, true
+	}
+	if o := e.G.Obj(top); o != nil && o.Source == src {
+		c, ok := e.sourceControllerLKI[top]
+		return c, ok
+	}
+	return 0, false
+}
+
 func (b *trigBoard) ControllerOf(id state.ObjID) state.PlayerID { return b.eng().controllerOf(id) }
 
 func (b *trigBoard) EffectMatchControllerFor(id state.ObjID) (state.PlayerID, bool) {

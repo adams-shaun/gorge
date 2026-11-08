@@ -41,6 +41,10 @@ type Board interface {
 
 	// ControllerOf is the object's current controller (rules' controllerOf).
 	ControllerOf(id state.ObjID) state.PlayerID
+	// DepartedSourceController is the controller a damage source had on the
+	// battlefield (CR 113.7a last known information), for a source that has
+	// left it while the ability dealing the damage waited on the stack.
+	DepartedSourceController(src state.ObjID) (state.PlayerID, bool)
 	// EffectMatchControllerFor is the recurring-Effect matching overlay's
 	// virtual controller for id, when the overlay is armed for it.
 	EffectMatchControllerFor(id state.ObjID) (state.PlayerID, bool)
