@@ -8,46 +8,43 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-func graveActTdm(t *testing.T, names ...string) (*scen, map[string]CardID) {
-	t.Helper()
-	var deck []cardset.Entry
-	set := cardsettest.Synth(t, "std-tdm")
-	for _, n := range names {
-		if i, ok := set.Lookup(n); !ok || !set.Supported()[i] {
-			t.Skipf("%s not in the std-tdm table", n)
-		}
-		deck = append(deck, cardset.Entry{Name: n, Count: 1})
-	}
+// TestRenewTargetWithProtectionNotOffered: an ability worked from the
+// graveyard targets with the card there as its source, so a creature with
+// protection from that card's colour (Ureni, the Song Unending against
+// Alchemist's Assistant's Renew) is not a legal target (CR 115.2, 702.16b).
+// With no other creature the ability is not offered; an unprotected creature
+// restores the offer.
+func TestRenewTargetWithProtectionNotOffered(t *testing.T) {
+	deck := []cardset.Entry{{Name: "Plains", Count: 20}}
+	set := cardsettest.Set(t, "fdn")
 	tbl, da, _, err := set.Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
 	}
-	id := map[string]CardID{}
-	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
-	}
-	return newScenTable(t, tbl, Config{NoElide: true}), id
-}
-
-// TestRenewTargetWithProtectionNotOffered: Renew works from the graveyard
-// and targets, so its source is the black card there: a creature with
-// protection from black (Ureni, the Song Unending: white and black) is not a
-// legal target (CR 115.2, 702.16b), and with no other creature the ability is
-// not offered; an unprotected creature restores the offer.
-func TestRenewTargetWithProtectionNotOffered(t *testing.T) {
-	sc, id := graveActTdm(t, "Alchemist's Assistant", "Ureni, the Song Unending", "Swamp")
-	sc.perm(id["Swamp"], 0)
-	sc.perm(id["Swamp"], 0)
-	sc.perm(id["Ureni, the Song Unending"], 1)
-	renew := sc.obj(id["Alchemist's Assistant"], 0)
-	sc.s.place(renew, kop.ZoneGraveyard, false)
+	plains := da[0]
+	tbl.Filters = append(tbl.Filters, kop.Filter{Types: kop.TCreature})
+	creature := kop.FilterID(len(tbl.Filters) - 1)
+	renew, prot, bear := CardID(len(tbl.Cards)), CardID(len(tbl.Cards)+1), CardID(len(tbl.Cards)+2)
+	tbl.Cards = append(tbl.Cards,
+		kop.CardDef{Name: "Test Renewer", Types: kop.TCreature, Power: 2, Toughness: 1, Colors: kop.ColB,
+			Abilities: []kop.Ability{{Kind: kop.AbActivated, ActZone: kop.ZoneGraveyard,
+				Cost:    kop.Cost{Mana: kop.ManaCost{Generic: 1}, Flags: kop.CostSorcery},
+				Targets: [kop.MaxTargets]kop.TargetSpec{{Kind: kop.TgtObject, Filter: creature}}, NTargets: 1,
+				Prog: []kop.Instr{{Op: kop.OpDraw, Obj: kop.RefController, A: kop.Const(1)}}}}},
+		kop.CardDef{Name: "Test Protected", Types: kop.TCreature, Power: 2, Toughness: 2, Colors: kop.ColW | kop.ColB, ProtColors: kop.ColW | kop.ColB},
+		kop.CardDef{Name: "Test Bear", Types: kop.TCreature, Power: 2, Toughness: 2, Colors: kop.ColG})
+	sc := newScenTable(t, tbl, Config{NoElide: true})
+	sc.lands(0, plains, 2)
+	sc.perm(prot, 1)
+	o := sc.obj(renew, 0)
+	sc.s.place(o, kop.ZoneGraveyard, false)
 	sc.s.ctl = ctlPriority
-	if n := sc.graveActivations(renew); n != 0 {
-		t.Fatalf("Renew offered %d times with only a protection-from-black creature to target, want 0", n)
+	if n := sc.graveActivations(o); n != 0 {
+		t.Fatalf("offered %d times with only a protection-from-black creature to target, want 0", n)
 	}
-	sc.perm(id["Alchemist's Assistant"], 1)
+	sc.perm(bear, 1)
 	sc.s.ctl = ctlPriority
-	if n := sc.graveActivations(renew); n != 1 {
-		t.Fatalf("Renew offered %d times with an unprotected creature to target, want 1", n)
+	if n := sc.graveActivations(o); n != 1 {
+		t.Fatalf("offered %d times with an unprotected creature to target, want 1", n)
 	}
 }
