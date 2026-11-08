@@ -202,6 +202,12 @@ func (e *Encoder) entryTarget(seat uint8, se *dirac.ProjStack) (cre *vcard, play
 	return
 }
 
+// isDraw reports whether a card's spell API is Draw; it compares the bytes
+// without converting them to a string.
+func isDraw(api []byte) bool {
+	return len(api) == 4 && api[0] == 'D' && api[1] == 'r' && api[2] == 'a' && api[3] == 'w'
+}
+
 // imp is the impact of spell entry i if it resolves, in live-strength
 // units before bucketing: the value the head spends a removal or a counter
 // on. An ability entry is 0.
@@ -254,7 +260,7 @@ func (e *Encoder) imp(seat uint8, i int, me, opp *vplayer) int32 {
 			return int32(ef.NumAtt) + int32(ef.NumDef) + liveStrength(cre)/2
 		}
 	case EffOther:
-		if string(c.c.api) == "Draw" {
+		if isDraw(c.c.api) {
 			amt := int32(ef.Amount)
 			if ef.Amount == -1 {
 				amt = int32(c.rel.x)
