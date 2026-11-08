@@ -647,6 +647,8 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"reversed_cast_keeps_mana_ability_trigger", false, false},               // CR 733.1: Springleaf Drum tapped Wanderwine Distracter for Appeal to Eirdu; the cast is reversed, the mana ability is not, so the "becomes tapped" trigger stays queued
 		{"reversed_cast_trigger_push_is_progress", true, false},                  // CR 733.2: Silvergill Peddler's kept tap trigger is pushed after Disruptor of Currents' reversal, so a second no-progress reversal still leaves the cast offered
 		{"until_leaves_return_asks_choice_after_top_bottom_answer", true, false}, // CR 614.12, 610.3: an as-enters choice of a card returning when its exiler is put second-from-top is asked with the card in exile
+		{"behold_or_mana_mana_part_taps_planner_order", true, false},             // CR 601.2b, 601.2g-h: Mudbutton Cursetosser's chosen {2} part is paid by the payment plan's ObjID-ordered sources, not the manual window's battlefield order
+		{"behold_or_mana_generic_taps_planner_order", true, false},               // CR 601.2b, 601.2g-h: Kinsbaile Aspirant's {2} part taps the plan's sources, not the window's battlefield order
 	})
 }
 

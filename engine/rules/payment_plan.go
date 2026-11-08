@@ -268,7 +268,7 @@ func (e *Engine) planCastAltAdd(statics costStaticViews, p state.PlayerID, cast 
 	if mayPlay {
 		scope = spellScope("mayplay")
 	}
-	rider := pay.ConvRider(asEval(e).Conv(p, cast.Object, false))
+	rider := pay.ConvRider(asEval(e).Conv(p, cast.Object, pay.SASpell))
 	if mayPlay {
 		rider = rider.Or(asPayer(e).Eval().MayPlayRider(p, cast.Object))
 	}
