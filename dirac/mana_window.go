@@ -1867,7 +1867,15 @@ func (s *State) payCastWindow(k *prep, p uint8, cost *kop.ManaCost, anyType, any
 		}
 		return // the pick is posed; the cast pays when the window ends
 	}
-	s.payFromPoolRider(k, p, cost, 0, anyColor)
+	if s.rbAny(p) {
+		// the window can float a restricted source's mana beside the pool (an
+		// any-colour source whose restriction admits this cast); spend that
+		// admitted batch first, as gorge's payment does (loweredWindowOK's
+		// arm, CR 106.6)
+		s.payRestrRider(k, p, cost, 0, s.bld().e.obj, anyColor)
+	} else {
+		s.payFromPoolRider(k, p, cost, 0, anyColor)
+	}
 	for c := range held {
 		s.pl[p].pool[c] += held[c]
 	}
