@@ -197,9 +197,13 @@ func (e *Engine) reconcileControlStatics() {
 			src == nil || src.Zone != state.ZBattlefield || src.Timestamp != w.sourceStamp {
 			continue
 		}
-		if o.Controller == w.controller {
-			continue
-		}
+		// A static whose controller already controls the bearer (your
+		// own Confiscate on your own creature) changes nothing now, but it
+		// is still an effect with a timestamp (CR 613.7): it is tracked
+		// without a ControlChange, so a later steal stacks on top of it
+		// instead of this untracked want re-stealing the bearer on the
+		// next reconcile as if it had just begun.
+		noop := o.Controller == w.controller
 		prev := o.Controller
 		gr := effects.ControlGrant{
 			Obj: w.obj, ObjStamp: w.objStamp,
@@ -218,7 +222,9 @@ func (e *Engine) reconcileControlStatics() {
 		// The same registration pattern the API path uses: emit the
 		// ControlChange FIRST, then record the grant whose Previous is the
 		// controller immediately before the effect.
-		e.emit(events.Event{Kind: events.ControlChange, Obj: w.obj, Player: w.controller})
+		if !noop {
+			e.emit(events.Event{Kind: events.ControlChange, Obj: w.obj, Player: w.controller})
+		}
 		before := len(e.controlGrants)
 		e.RegisterControl(gr)
 		if len(e.controlGrants) > before {
