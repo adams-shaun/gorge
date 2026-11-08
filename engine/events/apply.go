@@ -181,6 +181,7 @@ func stampPushedAbilitySources(g *state.Game, n int) {
 			// your graveyard") must not find the card once it has been to
 			// the battlefield and back (CR 400.7).
 			o.PushSourceIncarnation = src.Incarnation
+			o.PushSourceZoneGen, o.PushSourceZone = src.ZoneGen, src.Zone
 			if src.Zone == state.ZBattlefield {
 				o.PushSourceOnBattlefield = true
 			}

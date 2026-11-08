@@ -84,6 +84,27 @@ func (s *State) copyExcKw(k *prep, sl Slot) (m kop.KwMask) {
 	return
 }
 
+// copyExcKwRestore returns the keyword exceptions of the copies in m that an
+// ended until-end-of-turn effect had set aside (loseAllOnset zeroes
+// perm.ovr.kw, where they are settled, while the permanent loses its
+// abilities): a copy's exceptions are layer 1 (CR 707.9b), so once no loss
+// stands (CR 613.1f) they apply again.
+func (s *State) copyExcKwRestore(k *prep, m slotMask) {
+	if k.gen == nil {
+		return
+	}
+	for ; m.any(); m = m.rest() {
+		sl := m.first()
+		if !s.occ.has(sl) || !s.fxM.has(sl) || s.genLost(k, sl) {
+			continue
+		}
+		if p := &s.perms[sl]; p.ovr.kw|s.copyExcKw(k, sl) != p.ovr.kw {
+			p.ovr.kw |= s.copyExcKw(k, sl)
+			s.touchSl(sl)
+		}
+	}
+}
+
 // copyExcKwReps adds to rep the keywords slot sl's copy exceptions grant more
 // than once (FeatKwReps): a copy of a copy carries its template's "except it
 // has haste" beside its own.

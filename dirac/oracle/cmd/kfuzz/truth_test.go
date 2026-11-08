@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -72,14 +73,19 @@ func reportOf(t *testing.T, out []played, absolute bool) (int, string) {
 func TestFuzzHangIsAFailure(t *testing.T) {
 	release := make(chan struct{})
 	t.Cleanup(func() { close(release) })
+	var calls atomic.Int32
 	out := playAll(3, 1, time.Second, true, func(i int) played {
 		if i == 1 {
+			calls.Add(1)
 			return lockstepStub(release)
 		}
 		return lockstepStub(nil)
 	})
 	if !out[1].hang || out[0].hang || out[2].hang {
 		t.Fatalf("hang flags %v %v %v, want only pair 1", out[0].hang, out[1].hang, out[2].hang)
+	}
+	if n := calls.Load(); n != 2 {
+		t.Errorf("pair 1 played %d times, want 2 (one retry, no more)", n)
 	}
 	for _, absolute := range []bool{false, true} {
 		code, stdout := reportOf(t, out, absolute)
@@ -95,6 +101,30 @@ func TestFuzzHangIsAFailure(t *testing.T) {
 				t.Errorf("absolute=%v: no %q in\n%s", absolute, want, stdout)
 			}
 		}
+	}
+}
+
+// A game that stalls past the watchdog once (a host stall) and then finishes is
+// clean: the watchdog plays it once more before recording a hang.
+func TestFuzzHangRetryRecovers(t *testing.T) {
+	release := make(chan struct{})
+	t.Cleanup(func() { close(release) })
+	var calls atomic.Int32
+	out := playAll(3, 1, time.Second, true, func(i int) played {
+		if i == 1 && calls.Add(1) == 1 {
+			return lockstepStub(release)
+		}
+		return lockstepStub(nil)
+	})
+	if n := calls.Load(); n != 2 {
+		t.Fatalf("pair 1 played %d times, want 2 (the first attempt timed out)", n)
+	}
+	if out[0].hang || out[1].hang || out[2].hang {
+		t.Fatalf("hang flags %v %v %v, want none", out[0].hang, out[1].hang, out[2].hang)
+	}
+	code, stdout := reportOf(t, out, true)
+	if code != 0 || !strings.Contains(stdout, "3 clean") {
+		t.Errorf("exit %d, want 0 with 3 clean\n%s", code, stdout)
 	}
 }
 
@@ -724,5 +754,50 @@ func TestFuzzPoolRunFlags(t *testing.T) {
 		if !bytes.Contains(covRaw, []byte(strings.ReplaceAll(n, "_", " ")+"\t")) {
 			t.Errorf("evidence names %q, absent from the coverage", n)
 		}
+	}
+}
+
+// The generic oracle.Fuzz path retries a timed-out game too: pair 1's kernel blocks
+// only on its first build, so the retry finishes and nothing hangs.
+func TestFuzzGenericHangRetryRecovers(t *testing.T) {
+	corpus, err := cardset.CorpusDir()
+	if err != nil {
+		t.Skipf("gorge corpus: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(corpus, "cardsfolder")); err != nil {
+		t.Skipf("gorge corpus has no cardsfolder: %v", err)
+	}
+	decks := oracle.PoolDecks("fdn")
+	if err := oracle.NeedDecks(decks); err != nil {
+		t.Skipf("FDN pool absent: %v", err)
+	}
+	c, err := oracle.OpenCorpus(corpus, decks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pool, err := oracle.ReadPool(filepath.Join(filepath.Dir(decks), "pool.tsv"), "all")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ps := oracle.PairingsFrom(pool, 0, 3, 1)
+	release := make(chan struct{})
+	t.Cleanup(func() { close(release) })
+	inner := oracle.GorgeKernel(oracle.Config{})
+	var seen atomic.Int32
+	mk := func(m *oracle.Matchup, seed uint64) (oracle.Side, error) {
+		if seed == ps[1].Seed && seen.Add(1) == 1 {
+			return &blockSide{name: "kernel", release: release}, nil
+		}
+		return inner(m, seed)
+	}
+	sum := oracle.Fuzz(c, ps, mk, oracle.FuzzConfig{Run: oracle.RunConfig{MaxDecisions: 30}, GameTimeout: 2 * time.Second, Workers: 2}, nil)
+	if n := seen.Load(); n != 2 {
+		t.Fatalf("pair %d built %d times, want 2 (the first attempt timed out)", ps[1].Index, n)
+	}
+	if sum.Hung != 0 || len(sum.Hangs) != 0 {
+		t.Errorf("hung %d %+v, want none", sum.Hung, sum.Hangs)
+	}
+	if sum.Games != 3 {
+		t.Errorf("%d games, want 3", sum.Games)
 	}
 }

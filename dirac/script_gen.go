@@ -251,8 +251,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if cd := &k.t.Cards[s.objs[Obj(a.Source())].card]; isCastKind(a.Kind()) && (s.spellTgtDep(k, p, s.objs[Obj(a.Source())].card, Obj(a.Source())) || cd.HasModeCost && !modalFloorZero(k, s.objs[Obj(a.Source())].card)) {
 			continue // gorge searches no prefix for a target-priced cost, nor for a modal one whose cheapest mode still costs mana
 		}
-		if isCastKind(a.Kind()) && k.gen.anyOptCost && optCostCard(k, s.objs[Obj(a.Source())].card) {
-			continue // nor for an OptionalCost card: the planner declines it (shape:optional_cost, cost_optional.go)
+		if isCastKind(a.Kind()) && a.Mode()&castMayPlay == 0 && k.gen.anyOptCost && optCostCard(k, s.objs[Obj(a.Source())].card) {
+			continue // nor for an OptionalCost card: the planner declines it (shape:optional_cost, cost_optional.go); a may-play cast it composes (potentialModeCastPlan)
 		}
 		kk := s.walkKey(a, p, i)
 		j := nc

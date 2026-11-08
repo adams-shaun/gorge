@@ -1119,6 +1119,15 @@ type Object struct {
 	PushSourceStamped       bool
 	PushSourceOnBattlefield bool
 	PushSourceIncarnation   uint32
+	// PushSourceZoneGen and PushSourceZone are the source's ZoneGen and zone
+	// at the push (the CR 400.7 identity of a source that is not on the
+	// battlefield: a card that went graveyard -> hand -> graveyard is a new
+	// object though it never crossed the battlefield). The zone lets the
+	// reader tell a return to the push zone from a cost that moved the
+	// source elsewhere (Kogla and Yidaro discards itself from hand). A stack
+	// copy inherits both with the other three.
+	PushSourceZoneGen uint32
+	PushSourceZone    Zone
 	// GrantedBy is the GRANTOR of a cross-object granted activated ability
 	// (events.GrantAbilityPush's IDs[0], CR 613.1f): the Equipment or Aura
 	// whose static gives the recipient (Source) the ability. Forge's
@@ -2020,7 +2029,7 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [36]byte
+	_ [28]byte
 }
 
 // IntensityTotal is the card's intensity as its text reads it: the printed
