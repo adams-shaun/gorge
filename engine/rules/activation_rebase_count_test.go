@@ -8,9 +8,10 @@ import (
 )
 
 // A copy effect that ends while another survives is settled by one clear that
-// re-bases onto the survivor and names its source in IDs[1]; when the survivor copies the same source the
-// permanent's "activate only once each turn" count carries over, and when it
-// copies another source the abilities are new ones.
+// re-bases onto the survivor and names its source in IDs[1]; when the
+// survivor copies the same source the permanent's "activate only once each
+// turn" count carries over, and when it copies another source the abilities
+// are new ones.
 func TestActivationCountSurvivesSameSourceRebase(t *testing.T) {
 	const id, src, other = state.ObjID(7), state.ObjID(31), state.ObjID(32)
 	clone := func(s state.ObjID) events.Event {

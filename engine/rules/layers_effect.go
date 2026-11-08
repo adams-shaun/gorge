@@ -693,16 +693,12 @@ func (e *Engine) settleExpiredClones(expired []cloneExpiry) {
 				survivor = ce
 			}
 		}
-		// Clear first, unconditionally. With no survivor that is the whole
-		// settle (the single-unit case, byte-identical to the pre-overlap
-		// build). With one, it puts the object back on its PRINTED face
-		// before the re-base, which is what the survivor's copy is taken
-		// against -- notably GainThisAbility$, whose fold appends the become
-		// object's own current face abilities and would otherwise append the
-		// EXPIRING copy's.
-		// With live layers the clear lists their Seqs (CR 707.2b/c): the fold
-		// keeps those layers and re-bases onto the newest one's LOCKED face,
-		// so no source is re-read.
+		// One clear settles the target. With no survivor it restores the
+		// printed face (the single-unit case, byte-identical to the
+		// pre-overlap build). With live layers it lists their Seqs (CR
+		// 707.2b/c): the fold keeps those layers and re-bases onto the newest
+		// one's LOCKED face (GainThisAbility$ rider and prototype status
+		// included), so no source is re-read.
 		var live []int32
 		for i := range e.continuous {
 			ce := &e.continuous[i]
