@@ -683,6 +683,10 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		p.chosen = uint8(host)
 		p.flags |= pfLastBear
 		s.recordLastBearLKI(o, host)
+	} else {
+		// It left attached to nothing: an earlier departure's bearer is stale
+		// (gorge LastBearer = 0, engine/events/apply_zone.go:1325-1327).
+		s.dropAttLKI(o)
 	}
 	s.occ.clr(sl)
 	s.ctrlM[0].clr(sl)
