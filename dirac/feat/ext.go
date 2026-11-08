@@ -309,12 +309,8 @@ func (e *Encoder) encodeExt(seat uint8, me, opp *vplayer) []Feature {
 		e.extStack(seat, me, opp)
 	}
 	if e.ext&ExtKill != 0 {
+		// every encode path runs mzGlobal first, which stashes the aggregates
 		mine, theirs := e.killMine, e.killTheirs
-		if !e.killAgg {
-			// a path that did not build the aggregates (the contract: the
-			// across-paths test asserts equality with the built ones)
-			mine, theirs = e.aggOf(me), e.aggOf(opp)
-		}
 		e.extKill(seat, me, opp, &mine, &theirs)
 		if theirs.canAttackPower >= me.life && nCastI > 0 {
 			e.extAdd(xKOppLethalCast, 1)
@@ -417,15 +413,6 @@ func ExtSlotName(slot uint16) string {
 // EffectSpec Amount (X as its committed rel.x), and a "removes the last
 // blocker" entry is a Kind-0 kill/bounce targeting the defender's only
 // untapped creature.
-
-// aggOf rebuilds the mz aggregates when an encode path did not.
-func (e *Encoder) aggOf(pv *vplayer) agg {
-	var a agg
-	for _, ci := range pv.bf {
-		a.add(&e.v.cards[ci])
-	}
-	return a
-}
 
 // clockP is a side's next-turn attacking power: every non-defender
 // creature's positive power, tapped and summoning-sick included.
@@ -563,8 +550,9 @@ func (e *Encoder) hitsPlayer(seat uint8, i, tc int) bool {
 	return false
 }
 
-// hitsObj reports whether stack entry i targets battlefield object obj.
-func (e *Encoder) hitsObj(seat uint8, i int, obj uint8) bool {
+// hitsObj reports whether stack entry i targets battlefield creature obj,
+// whose controller's class (tcCreatureMe or tcCreatureOpp) is want.
+func (e *Encoder) hitsObj(seat uint8, i int, obj uint8, want int) bool {
 	se := &e.kp.Stack[i]
 	for j := 0; j < len(se.Targets)+int(se.NExtra); j++ {
 		t := se.Extra[max(j-len(se.Targets), 0)]
@@ -572,7 +560,7 @@ func (e *Encoder) hitsObj(seat uint8, i int, obj uint8) bool {
 			t = se.Targets[j]
 		}
 		if t != dirac.NoTarget && t == obj {
-			if tc, host := e.targetClass(seat, t); tc == tcCreatureMe && host != nil {
+			if tc, host := e.targetClass(seat, t); tc == want && host != nil {
 				return true
 			}
 		}
@@ -639,10 +627,10 @@ func (e *Encoder) extKill(seat uint8, me, opp *vplayer, mine, theirs *agg) {
 			}
 		}
 		if ef.Class == EffKill || ef.Class == EffBounce {
-			if se.Ctrl != seat && oneMe && e.hitsObj(seat, i, onlyMe) {
+			if se.Ctrl != seat && oneMe && e.hitsObj(seat, i, onlyMe, tcCreatureMe) {
 				oppKills = true
 			}
-			if se.Ctrl == seat && oneOpp && e.hitsObj(seat, i, onlyOpp) {
+			if se.Ctrl == seat && oneOpp && e.hitsObj(seat, i, onlyOpp, tcCreatureOpp) {
 				meKills = true
 			}
 		}
@@ -693,18 +681,20 @@ func (e *Encoder) extKill(seat uint8, me, opp *vplayer, mine, theirs *agg) {
 					continue
 				}
 				ks := &e.kp.Stack[k]
-				if ks.Ctrl != seat {
+				// the counter's controller picks the side: mine on their
+				// entry (490), theirs on mine (491)
+				if se.Ctrl == seat && ks.Ctrl != seat {
 					if set486 && kef.Class == EffDamage && e.hitsPlayer(seat, k, tcPlayerMe) && knownAmount(kef, int32(kc.rel.x)) > 0 {
 						ctrMe = true
 					}
-					if set488 && oneMe && (kef.Class == EffKill || kef.Class == EffBounce) && e.hitsObj(seat, k, onlyMe) {
+					if set488 && oneMe && (kef.Class == EffKill || kef.Class == EffBounce) && e.hitsObj(seat, k, onlyMe, tcCreatureMe) {
 						ctrMe = true
 					}
-				} else {
+				} else if se.Ctrl != seat && ks.Ctrl == seat {
 					if set487 && kef.Class == EffDamage && e.hitsPlayer(seat, k, tcPlayerOpp) && knownAmount(kef, int32(kc.rel.x)) > 0 {
 						ctrOpp = true
 					}
-					if set489 && oneOpp && (kef.Class == EffKill || kef.Class == EffBounce) && e.hitsObj(seat, k, onlyOpp) {
+					if set489 && oneOpp && (kef.Class == EffKill || kef.Class == EffBounce) && e.hitsObj(seat, k, onlyOpp, tcCreatureOpp) {
 						ctrOpp = true
 					}
 				}

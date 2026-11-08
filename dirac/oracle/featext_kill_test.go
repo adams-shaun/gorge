@@ -165,7 +165,7 @@ func TestExtKillEqualAcrossPaths(t *testing.T) {
 		x := append([]feat.Feature(nil), full.EncodeStateFor(sc.State, &sc.Dec, sc.Seat).Ext...)
 		y := append([]feat.Feature(nil), inc.EncodeStateIncFor(sc.State, &sc.Dec, sc.Seat).Ext...)
 		z := append([]feat.Feature(nil), parts.EncodeParts(sc.State, &sc.Dec, sc.Seat).Ext...)
-		if len(x) > 0 {
+		if extAny(x, 448, 493) {
 			nonEmpty++
 		}
 		if !reflect.DeepEqual(x, y) || !reflect.DeepEqual(x, z) {
@@ -173,7 +173,7 @@ func TestExtKillEqualAcrossPaths(t *testing.T) {
 		}
 	}
 	if nonEmpty != len(ss) {
-		t.Fatalf("%d of %d scenarios have an empty Ext", len(ss)-nonEmpty, len(ss))
+		t.Fatalf("%d of %d scenarios have no group K slot in Ext", len(ss)-nonEmpty, len(ss))
 	}
 }
 
@@ -212,6 +212,7 @@ func killPair(t *testing.T, c *Corpus, p Pairing) (*dirac.State, *feat.Pool, boo
 func TestExtLethalCrossingsKeepMzRows(t *testing.T) {
 	c, pool := testCorpus(t)
 	rowLethal := featRowID("mz|me|lethal-unblocked")
+	rowCastI := featRowID("mz|hand|castable|instant-speed")
 	seen, withMz, with492, with493 := 0, 0, 0, 0
 	for _, p := range Pairings(pool, 40, 11) {
 		s, fp, ok := killPair(t, c, p)
@@ -243,15 +244,20 @@ func TestExtLethalCrossingsKeepMzRows(t *testing.T) {
 				}
 			}
 			_, s492 := extSlot(a.Ext, 492)
-			if want := mz && oppSpell; s492 != want {
-				t.Fatalf("%s vs %s decision %d: 492 set=%v, want %v (mz=%v opp-spell=%v)",
-					p.A, p.B, seen, s492, want, mz, oppSpell)
+			// the projection decides the rule; the bag row is the spec's
+			// reading (a hashed row can only collide into presence)
+			if want := canAttackPower(&proj, d.Player) >= int32(proj.Life[1-d.Player]) && oppSpell; s492 != want {
+				t.Fatalf("%s vs %s decision %d: 492 set=%v, want %v (opp-spell=%v)",
+					p.A, p.B, seen, s492, want, oppSpell)
+			}
+			if s492 && !mz {
+				t.Fatalf("%s vs %s decision %d: 492 set without mz|me|lethal-unblocked in the bag", p.A, p.B, seen)
 			}
 			_, s493 := extSlot(a.Ext, 493)
-			hasI := extAny(a.Ext, 84, 87)
-			want493 := canAttackPower(&proj, 1-d.Player) >= int32(proj.Life[d.Player]) && hasI
-			if s493 != want493 {
-				t.Fatalf("%s vs %s decision %d: 493 set=%v, want %v (opp power, castable-i)", p.A, p.B, seen, s493, want493)
+			// one way: the castable-instant row is hashed, so its presence
+			// can only over-approximate
+			if s493 && !(canAttackPower(&proj, 1-d.Player) >= int32(proj.Life[d.Player]) && extHasRow(a.Sparse, rowCastI)) {
+				t.Fatalf("%s vs %s decision %d: 493 set without opponent lethal power and a castable instant", p.A, p.B, seen)
 			}
 			if mz {
 				withMz++

@@ -96,7 +96,15 @@ func TestExtClockBuckets(t *testing.T) {
 			{xKClockMe, int32(p.Life[1-seat]), pm, "me"},
 			{xKClockOpp, int32(p.Life[seat]), po, "opp"},
 		} {
-			want := clockT(c.life, c.p)
+			// ceil(life/P) clamped to 1..8, 8 for no power, spelled out apart
+			// from clockT
+			want := int32(8)
+			if c.p > 0 {
+				want = 1
+				for want < 8 && want*c.p < c.life {
+					want++
+				}
+			}
 			set := 0
 			for j := 0; j <= 8; j++ {
 				if _, ok := extHas(st.Ext, c.base+j); ok {
