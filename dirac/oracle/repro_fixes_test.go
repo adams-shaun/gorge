@@ -353,6 +353,10 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		{"registered_effect_remembered_scope", true, false},
 		{"registered_effect_remembered_scope", false, false},
 		{"clone_returns_from_until_leaves_exile_asks_copy", true, false}, // CR 614.12, 707.2: a clone returning from "until this leaves" exile during a resolution is asked its enter-as-a-copy election, as gorge asks it
+		// CR 601.2f: a per-target cost reprice hides the in-flight cast from the turn's cast counts, as the build's own pricing does
+		{"per_target_reprice_hides_inflight_cast_from_cast_counts", false, false},
+		// CR 601.2g-h: a hybrid cast whose dry census cannot price a filter's fee still completes when the real window pays it from the floated pool
+		{"hybrid_cast_filter_fee_from_floated_pool", true, false},
 	})
 }
 
@@ -506,6 +510,8 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"equip_target_reduction_payable_full_surface", false, false}, // CR 601.2f, 602.2b: the same equip offer on the full surface
 		// CR 106.6, 601.2g: a Tiered cast's window asks Cargo Ship's abilities with its printed artifact-only {C} ahead of A Realm Reborn's grant, so the {C} floats unspent
 		{"window_printed_restricted_before_grant", false, false},
+		// CR 601.2f, 106.6: a Spree mode is priced beside the floating restricted mana the payment may spend, so the mode stays offered
+		{"spree_mode_counts_floating_restricted_mana", true, false},
 	})
 }
 
