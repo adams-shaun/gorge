@@ -25,8 +25,13 @@ import (
 // a colour-reading spec asks, and only a board with a live layer-5 effect
 // (active()'s summary) builds anything, so a match with no colour effect pays
 // one cached probe per colour spec. The key is active()'s own -- log head,
-// continuous version, object count -- because the derived colours are a pure
-// function of the board at that key.
+// continuous version, object count, static build sequence -- because the
+// derived colours are a pure function of the active list at that key. The
+// build sequence matters inside a rescan: a gate the first walk evaluates
+// reads the table off the previous static list (Imprisoned in the Moon's
+// colourless, without the Witness Protection that just resolved), and the
+// colour gate's second walk (static_colorgate.go), at the same log head,
+// must not be served that table back.
 //
 // Scope: battlefield objects. An AffectedZone$ colour grant reaching another
 // zone (Painter's Servant's cards in hand) keeps the printed read in the
@@ -45,7 +50,7 @@ func (e *Engine) derivedColorTable() []effects.ObjectColors {
 	if !e.activeSummaryOf(act).hasLColor {
 		return nil
 	}
-	if n := len(e.L.Events); e.colorsValid && e.colorsEpoch == n && e.colorsVersion == e.continuousVersion && e.colorsObjs == len(e.G.Objs) {
+	if n := len(e.L.Events); e.colorsValid && e.colorsEpoch == n && e.colorsVersion == e.continuousVersion && e.colorsObjs == len(e.G.Objs) && e.colorsStatic == e.staticBuildSeq {
 		return e.layer5Colors
 	}
 	e.colorsBuilding = true
@@ -104,6 +109,7 @@ func (e *Engine) derivedColorTable() []effects.ObjectColors {
 	// tier's own face-down handling is unchanged by this table.
 	e.layer5Colors = buf
 	e.colorsValid, e.colorsEpoch, e.colorsVersion, e.colorsObjs = true, len(e.L.Events), e.continuousVersion, len(e.G.Objs)
+	e.colorsStatic = e.staticBuildSeq
 	if len(buf) == 0 {
 		return nil
 	}

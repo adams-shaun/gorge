@@ -216,6 +216,7 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"surveil_own_replacement", true, false},                     // a surveil's graveyard pile meets Darksteel Colossus's "from anywhere"
 		{"color_gate_made_black", true, false},                       // Knight of Grace counts what Eaten by Piranhas made black
 		{"color_gate_recoloured", true, false},                       // ... and not what Witness Protection made green and white
+		{"color_gate_beside_live_colour_effect", false, false},       // CR 613.1e: Knight of Malice counts Three Tree Mascot Witness Protection made green and white beside Imprisoned in the Moon's live colourless
 		{"exile_instead_planeswalker", true, false},                  // CR 700.4: a planeswalker with no loyalty dies, so Obliterating Bolt exiles it
 		{"lifelink_plus_per_source", true, false},                    // two lifelink sources are two gains, each with Angel of Vitality's plus one
 		{"lost_ability_no_shuffle", true, false},                     // CR 613.1f: Witness Protection on Darksteel Colossus: it dies

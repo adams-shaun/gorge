@@ -384,6 +384,7 @@ type engineScratch struct {
 	colorsEpoch    int                    `clone:"reset"`
 	colorsVersion  int                    `clone:"reset"`
 	colorsObjs     int                    `clone:"reset"`
+	colorsStatic   uint64                 `clone:"reset"`
 	colorsValid    bool                   `clone:"reset"`
 	colorsBuilding bool                   `clone:"reset"`
 	// charsSum is active()'s per-build digest for Characteristics' printed
