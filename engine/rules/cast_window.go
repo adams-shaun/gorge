@@ -981,7 +981,7 @@ func (e *Engine) striveAffordableTargets(pc *pendingCast, max int) int {
 		}
 		av := pay.AvailableFor(asPayer(e), pc.player, desc)
 		return e.castWindowReachable(pc.player, convoked, av.Pool, pl.Snow, av.Typed, pl.Life,
-			asEval(e).Conv(pc.player, desc.ID, desc.Class == paymentActivated), rider, units)
+			asEval(e).Conv(pc.player, desc.ID, desc.SAKind()), rider, units)
 	}
 	// Ascending: the price is monotone in n, so the first unaffordable count
 	// ends the walk and at most one exhaustive (failing) window search runs.

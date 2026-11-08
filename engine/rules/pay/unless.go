@@ -287,7 +287,7 @@ func UnlessCostValuePayable(e Engine, p state.PlayerID, cost costvocab.Cost, ctx
 	}
 	av := unlessAvailable(e, p, stackObj, cost)
 	return UnlessManaReachable(e, p, cost, av.Pool, player.Snow, av.Typed, player.Life,
-		e.Eval().Conv(p, stackObj, false), e.Eval().WindowUnits(p))
+		e.Eval().Conv(p, stackObj, SAOther), e.Eval().WindowUnits(p))
 }
 
 // unlessAvailable is the floating mana an unless cost may spend: the pool

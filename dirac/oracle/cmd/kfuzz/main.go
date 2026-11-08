@@ -144,7 +144,7 @@ func run() int {
 		surfaceArg = flag.String("surface", "", "the option surface both sides offer: autopay (neither side offers the plain casts gorge's planner never prices, oracle.Config.GorgeAutopaySurface) or full (default)")
 		surface    = flag.Bool("autopay-surface", false, "deprecated alias of -surface autopay")
 		absolute   = flag.Bool("absolute", false, "pool runs: exit 1 on any divergence, hang, panic, unmodelled stall, unknown option kind or error skip, or when no game was played; capacity stalls and refusals are counted and do not fail")
-		gameLimit  = flag.Duration("game-timeout", 30*time.Second, "a game with no result after this long is recorded as a hang and the run moves on; a hang fails the run (0: no watchdog)")
+		gameLimit  = flag.Duration("game-timeout", 30*time.Second, "a game with no result after this long, twice (one retry), is recorded as a hang and the run moves on; a hang fails the run (0: no watchdog)")
 		pairsFile  = flag.String("pairs-file", "", "pool runs: play these pairs instead of drawing from pool.tsv: deckA<TAB>deckB[<TAB>seed] per line (oracle.ExplicitPairs); -first-pair skips lines and -pairs, when given, caps them")
 		evidence   = flag.String("evidence", "", "pool runs: play the cards the table does not refuse, unverified ones too, and write the cards the run's clean games evidence (oracle.Coverage.Evidence), one name a line, here")
 		allowUnv   = flag.Bool("allow-unverified", false, "pool runs: play the cards the table does not refuse, unverified ones too, as -evidence does")
@@ -1061,33 +1061,23 @@ func playAll(n, workers int, timeout time.Duration, play func(i int) played) []p
 	return out
 }
 
-// watchGame runs play(i) on its own goroutine and waits at most timeout for it. A
-// game past its time is a hang: the goroutine cannot be stopped, so it leaks until
-// the process exits, but it only ever touches its own game and its buffered result
-// channel (a -stats or -features run also shares that run's report-only counters).
-// A panic outside the lockstep's own recover (building the game) is a divergence:
-// one bad pair does not end the sweep.
+// watchGame runs play(i) on its own goroutine and waits at most timeout for it,
+// twice (oracle.WithinTimeoutRetry: one retry absorbs a host stall). A game past
+// its time on both attempts is a hang: a timed-out goroutine cannot be stopped, so
+// it leaks until the process exits, but it only ever touches its own game and its
+// buffered result channel (a -stats or -features run also shares that run's
+// report-only counters). A panic outside the lockstep's own recover (building the
+// game) is a divergence: one bad pair does not end the sweep.
 func watchGame(i int, timeout time.Duration, play func(int) played) played {
-	done := make(chan played, 1)
-	go func() {
+	wrapped := func() (p played) {
 		defer func() {
 			if r := recover(); r != nil {
-				done <- played{res: oracle.Result{Winner: -1, Div: &oracle.Divergence{What: "kfuzz", Field: "panic", Detail: fmt.Sprintf("%v\n%s", r, debug.Stack())}}}
+				p = played{res: oracle.Result{Winner: -1, Div: &oracle.Divergence{What: "kfuzz", Field: "panic", Detail: fmt.Sprintf("%v\n%s", r, debug.Stack())}}}
 			}
 		}()
-		done <- play(i)
-	}()
-	if timeout <= 0 {
-		return <-done
+		return play(i)
 	}
-	t := time.NewTimer(timeout)
-	defer t.Stop()
-	select {
-	case r := <-done:
-		return r
-	case <-t.C:
-		return played{hang: true}
-	}
+	return oracle.WithinTimeoutRetry(timeout, wrapped, played{hang: true})
 }
 
 // writePairRepro writes one bad game's repro as dir/name, so the game replays from

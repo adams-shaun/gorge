@@ -256,9 +256,11 @@ func hasRememberedDestroyedLand(g *state.Game, ts []state.Target) bool {
 // source, the ability went on the stack while that source was OFF the
 // battlefield (Reassembling Skeleton's "{1}{B}: Return this card from your
 // graveyard to the battlefield tapped"), and the source has crossed the
-// battlefield boundary since: the card back in the graveyard is a new object
-// (CR 400.7) the ability cannot find, so a second activation that resolves
-// after the first returned the card and it died again moves nothing. The
+// battlefield boundary since (or any zone since: graveyard -> hand ->
+// graveyard): the card back in the graveyard is a new object (CR 400.7) the
+// ability cannot find, so a second activation (or a copy of it, which
+// inherits the push stamp) that resolves after the first returned the card
+// and it died again moves nothing. The
 // battlefield-push case is sourceLeftSincePush's.
 func sourceReturnedSincePush(h Host, c *Ctx, o *state.Object) bool {
 	if o.ID != c.Source || c.ResolvingObj == 0 {
@@ -268,7 +270,11 @@ func sourceReturnedSincePush(h Host, c *Ctx, o *state.Object) bool {
 	if ro == nil || ro.Source != o.ID || !ro.PushSourceStamped || ro.PushSourceOnBattlefield {
 		return false
 	}
-	return o.Incarnation != ro.PushSourceIncarnation
+	// Same zone as at the push, different generation: the card left and came
+	// back, so this is a new object. A source now in another zone was moved
+	// by the activation's own cost (Kogla and Yidaro discards itself from
+	// hand), not replaced by a new object in the zone the effect names.
+	return o.Zone == ro.PushSourceZone && o.ZoneGen != ro.PushSourceZoneGen
 }
 
 // SourceIsNewObject reports that ro, an ability on the stack, has a source on the
@@ -387,10 +393,22 @@ func definedDelayRememberedTargets(h Host, c *Ctx, sa *cards.SA) []state.Target 
 // (ceaseDeadTokens). A token on the stack legitimately lives there (a spell
 // copy, CR 111.7's stack exemption), and a prepared exile copy (CR 722.3c)
 // was minted directly in exile and is castable there, so neither has left
-// the battlefield. The movers that resolve a Defined/Remembered/Targeted set
-// share this one test.
-func tokenCannotChangeZone(o *state.Object) bool {
-	return o.IsToken && !o.PreparedExileCopy() && o.Zone != state.ZBattlefield && o.Zone != state.ZStack
+// the battlefield. Nor has a copy minted for a CopyPermanent or Myriad entry
+// that a replacement is still moving onto the battlefield (CR 614.1c: Kira
+// Nerys, Firebrand's "enters tapped and attacking" body moves the mint itself):
+// the mint waits unlisted in its owner's library slot, where a token that has
+// left the battlefield for the library is listed. The movers that resolve a
+// Defined/Remembered/Targeted set share this one test.
+func tokenCannotChangeZone(g *state.Game, o *state.Object) bool {
+	return o.IsToken && !o.PreparedExileCopy() && o.Zone != state.ZBattlefield && o.Zone != state.ZStack &&
+		!mintAwaitingEntry(g, o)
+}
+
+// mintAwaitingEntry reports whether the token o is a minted copy whose entry
+// has not happened yet: it sits in the library state the mint leaves it in
+// without being one of its owner's library cards.
+func mintAwaitingEntry(g *state.Game, o *state.Object) bool {
+	return o.Zone == state.ZLibrary && !slices.Contains(g.Zone(state.ZLibrary, o.Owner), o.ID)
 }
 
 // instantCannotEnter is CR 304.4 and 307.4: an instant or sorcery card that
@@ -429,7 +447,7 @@ func changeZoneMoveSkip(h Host, cz *ChangeZoneParams, o *state.Object, to state.
 	// CR 111.8 first: an off-battlefield token would otherwise be moved again
 	// inside one resolution, before any state-based action could cease it
 	// (Splash Portal's exile then its DBReturn sub-ability).
-	if tokenCannotChangeZone(o) {
+	if tokenCannotChangeZone(h.Game(), o) {
 		return true
 	}
 	// CR 702.26b: a phased-out permanent can't be affected by anything, so a

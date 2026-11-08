@@ -36,7 +36,7 @@ var manaLetters = pay.ManaLetters
 // is on the stack and a zone re-derivation would wrongly drop the grant.
 func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana, state.Mana, [7]state.Mana) {
 	ok, spentAll, _, spentSnow, spentTyped := pay.PayManaDescriptorForSpent(asPayer(e), pc.player, paymentForCast(pc, cost), cost,
-		asEval(e).Conv(pc.player, pc.card, false),
+		asEval(e).Conv(pc.player, pc.card, pay.SASpell),
 		pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType})
 	return ok, spentAll, spentSnow, spentTyped
 }
@@ -101,31 +101,31 @@ func (pe *payEval) LifeChangeForbidden(p state.PlayerID) bool {
 	return e.playerLifeChangeForbidden(p) || e.playerLifeLossForbidden(p)
 }
 
-// Conv (pay.Engine; formerly paymentConv) is the conversion set for p paying id (ability selects the
-// ValidSA$ Spell/Activated scoping), or nil when no ManaConvert static would
+// Conv (pay.Engine; formerly paymentConv) is the conversion set for p paying id (kind selects the
+// ValidSA$ Spell/Activated scoping; SAOther reads neither side), or nil when no ManaConvert static would
 // change any pip match. Returning nil -- not a zero conv -- keeps the pure
 // resolveMana path (and every game without a converter on the board)
 // byte-identical.
-func (pe *payEval) Conv(p state.PlayerID, id state.ObjID, ability bool) *manaConv {
+func (pe *payEval) Conv(p state.PlayerID, id state.ObjID, kind pay.SAKind) *manaConv {
 	e := (*Engine)(pe)
 	// A Play SA's per-cast ManaConversion$ rider is a conversion source that
 	// no board static represents: the early nil answer must not swallow it.
-	rider := !ability && e.cast != nil && e.cast.card == id && e.cast.playManaConversion != ""
+	rider := kind == pay.SASpell && e.cast != nil && e.cast.card == id && e.cast.playManaConversion != ""
 	// A gained ability's grant ManaConversion$ is likewise a source no board
 	// static represents (manaConversionParts, gainedManaConversion).
-	rider = rider || e.gainedManaConversion(p, id, ability) != ""
+	rider = rider || e.gainedManaConversion(p, id, kind) != ""
 	// With no printed ManaConvert static on the board and no Effect-delivered
 	// one in active()'s list (its build digest), manaConversionParts has no
 	// source to apply, so both parts are empty: the nil answer, directly.
 	if !rider && len(e.manaConvPrintedSources()) == 0 && !e.activeSummaryOf(e.active()).hasManaConvert {
 		if walkCacheVerify {
-			if m, o := e.manaConversionParts(p, id, ability); !m.Empty() || !o.Empty() {
+			if m, o := e.manaConversionParts(p, id, kind); !m.Empty() || !o.Empty() {
 				panic(fmt.Sprintf("rules: a board with no ManaConvert source converts mana for obj %d", id))
 			}
 		}
 		return nil
 	}
-	mandatory, optional := e.manaConversionParts(p, id, ability)
+	mandatory, optional := e.manaConversionParts(p, id, kind)
 	conv := mandatory
 	// During an Optional$ ManaConvert cast, the offer-side path uses the union
 	// until the election is answered. Thereafter the selected arm is the only
