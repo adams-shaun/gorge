@@ -39,6 +39,9 @@ type otherStep struct {
 // tap-another-permanent sources, or a filter beside a deferred source
 // (mixDeferred), and hold nothing else.
 func (s *State) mixBoard(k *prep, p uint8) bool {
+	if k.gen != nil && k.gen.anyMultiR && s.wide2Board(k, p) {
+		return true // any-colour restricted gaps, a second-ability wide one among them (mana_restrictedcombo.go)
+	}
 	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.tapMana && !k.gen.anyDeferred {
 		return false
 	}
@@ -139,6 +142,19 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 		}
 		c := t.cardAt(sl)
 		if restrWideAnyMana(&k.t.Cards[c].Abilities[k.gen.anyR(c)]) {
+			off := uint8(0)
+			if t.wideSecond(k, sl) {
+				// the first tick was the "choose a mana ability" ask; the
+				// first ability's colours, then the allocation ask's node
+				// (mana_restrictedcombo.go)
+				if fs.wide2FirstColours(func(col uint8) bool { return try(otherStep{kind: otherAnyR, ans: col}) }) {
+					return true
+				}
+				if !fs.tick() {
+					return false
+				}
+				off = kop.NumManaKinds - 1
+			}
 			// the two-unit ask: gorge's 25 per-unit answers (scriptAnswers,
 			// unit-major W W, W U ... G G), those naming a colour the play
 			// announces first and engine order kept in each half (gorge's
@@ -146,7 +162,8 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 			// search's budget before the first wanted pair). A mirrored pair (its
 			// second unit below its first) makes the pool its twin, earlier in
 			// the same half, made: it charges its node where gorge visits it and
-			// finds the state seen.
+			// finds the state seen. off shifts the multiset answers past the
+			// first ability's colours when the gap is a second ability.
 			for half := 0; half < 2; half++ {
 				for a := 0; a < 5; a++ {
 					for b := 0; b < 5; b++ {
@@ -159,7 +176,7 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 							}
 							continue
 						}
-						if try(otherStep{kind: otherAnyR, ans: wideAnswerIndex(a, b)}) {
+						if try(otherStep{kind: otherAnyR, ans: off + wideAnswerIndex(a, b)}) {
 							return true
 						}
 					}
