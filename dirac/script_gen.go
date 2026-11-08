@@ -587,8 +587,15 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 		if k.gen.anyFiltFirst && s.scriptFilt(k, p).any() {
 			continue // nor is a first-and-only filter (Prophetic Prism's {1},{T}) funded by a granted {G}: scriptOffers' filter search listed the play (CR 605.1a, 106.1)
 		}
-		if cost, ex, _, ok := s.grantPlayCost(k, p, a, true); ok && !s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
+		if cost, ex, need, ok := s.grantPlayCost(k, p, a, true); ok && !s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
 			d.remove(a)
+			if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g) {
+				// gorge's one prefix search gave the play up (its granted gaps
+				// spent the node budget before the tap-another line): the
+				// tap-another search alone, which skips the grants, must not
+				// offer it again (scriptOffers)
+				capSpent.add(a)
+			}
 		}
 	}
 	for i := 0; i < int(walk.N); i++ {
@@ -602,13 +609,15 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 		}
 		if !s.grantRelaxedAffords(k, p, a, &cost, ex, s.grantPayDesc(a), m) {
 			d.remove(a) // gorge's relaxed proof: insufficient, no prefix search (mana_grantrelaxed.go)
+			capSpent.add(a)
 			continue
 		}
-		if k.tapMana && hasOption(d, a) && s.scriptTapXModelled(k, p).any() && s.tapXScript(k, a, p, false) {
+		if k.tapMana && hasOption(d, a) && s.tapXOffGrant(k, p) && s.tapXScript(k, a, p, false) {
 			continue // a tap-another source (Gene Pollinator) pays it in scriptOffers' search, which the grant search does not run (mana_tapanother.go)
 		}
 		if m&availHyp == 0 && s.relaxRestrRefuses(k, p, &cost, s.grantPayDesc(a)) {
 			d.remove(a) // gorge's relaxed proof refuses the restricted grant: insufficient, never searched (mana_grantrelaxrestr.go)
+			capSpent.add(a)
 			continue
 		}
 		if n++; n > potentialScriptPlays {
@@ -616,7 +625,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			continue
 		}
 		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g) {
-			if !s.tapXScript(k, a, p, false) {
+			if !s.tapXOffGrant(k, p) || !s.tapXScript(k, a, p, false) {
 				// Gorge's script search covers every census gap — granted units and
 				// tap-another-permanent gaps alike (CR 605.1a, 601.2g-h) — so the
 				// kernel drops the play only when neither route prices it.
