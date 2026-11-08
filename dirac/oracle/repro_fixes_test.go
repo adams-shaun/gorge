@@ -161,6 +161,8 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"blb_sac_cost_exile_return_after_all_sacrificed_sword", true, false},
 		// CR 601.2a, 601.2f, 106.6: Head of the Homestead pays its hybrid pips through Helga's floating restricted {G}, so the spell is on the stack when the target/pip asks come
 		{"target_dependent_cost_spell_on_stack_at_first_ask", false, false},
+		// CR 601.2c, 733.1: Wishing Well casts Sazacap's Brew from the graveyard with the hand empty, so its discard cost is unpayable and the cast is reversed at the target ask, after the gift election
+		{"free_cast_unpayable_cost_aborts_at_target", true, false},
 	})
 }
 

@@ -245,7 +245,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 			}
 		}
 		var owed kop.ManaCost
-		col := s.windowCol(k, p, s.windowOwedCost(k, p, cost, &owed), sl, pc, anyColor, noOwed)
+		col := s.windowColOwed(k, p, cost, s.windowOwedCost(k, p, cost, &owed), sl, pc, anyColor, noOwed)
 		if noOwed && clamp && !anyColor {
 			if pc.manaMulti {
 				// a cast's ability ask lists what the cost owes first (gorge owedAbilitiesFirst)
@@ -557,13 +557,21 @@ func askOwedColour(ab *kop.Ability, mask, want uint8) int {
 // first owed colour of the source's ask order: for a printed Combo that is its
 // printed order (colourAskOrder), not W U B R G.
 func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pcard, anyColor, noOwed bool) int {
+	return s.windowColOwed(k, p, cost, cost, sl, pc, anyColor, noOwed)
+}
+
+// windowColOwed is windowCol for a cost whose shortfall the pool is measured against as owed:
+// cost less the restricted mana the payment may spend (windowOwedCost). The helpers that
+// price the restricted pool themselves (windowDemand, windowUseful) read the full cost, so
+// the mana is not taken off it twice.
+func (s *State) windowColOwed(k *prep, p uint8, cost, owed *kop.ManaCost, sl Slot, pc *pcard, anyColor, noOwed bool) int {
 	mask := s.windowOwnMask(k, sl)
 	col := bits.TrailingZeros8(mask)
 	if anyColor {
-		col = s.windowAnyColour(p, cost, mask, pc.manaMulti)
+		col = s.windowAnyColour(p, owed, mask, pc.manaMulti)
 	} else if !noOwed {
 		if pc.manaMulti && k.gen != nil && k.gen.anyVergeOrder {
-			if c0, ok := s.vergeAbility0Col(k, sl); ok && c0 < 5 && cost.Pips[c0] > s.pl[p].pool[c0] {
+			if c0, ok := s.vergeAbility0Col(k, sl); ok && c0 < 5 && owed.Pips[c0] > s.pl[p].pool[c0] {
 				return c0 // a Verge's ability 0 comes before its lower colour
 			}
 		}
@@ -585,7 +593,7 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 				ab := &k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb]
 				var ord [5]uint8
 				for _, c := range ord[:manaColourOrder(ab, &ord)] {
-					if all&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
+					if all&(1<<c) != 0 && owed.Pips[c] > s.pl[p].pool[c] {
 						return int(c)
 					}
 				}
@@ -608,7 +616,7 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 				nOrder, printed := colourAskOrder(&k.t.Cards[cd].Abilities[pc.manaAb], mask, &order)
 				for i := 0; i < nOrder; i++ {
 					c := int(order[i])
-					if c < 5 && all&(1<<uint(c)) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
+					if c < 5 && all&(1<<uint(c)) != 0 && owed.Pips[c] > s.pl[p].pool[c] {
 						return c // gorge lists what a fixed pip still owes first (owedColoursFirst, owedAbilitiesFirst)
 					}
 				}
@@ -623,14 +631,14 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 			if ab := manaAbView(&k.t.Cards[s.cardAt(sl)], pc); ab != nil && ab.Kind == kop.AbMana && ab.AFlags&kop.AfManaChoice != 0 {
 				var ord [5]uint8
 				for _, c := range ord[:manaColourOrder(ab, &ord)] {
-					if all&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
+					if all&(1<<c) != 0 && owed.Pips[c] > s.pl[p].pool[c] {
 						return int(c)
 					}
 				}
 			}
 		}
 		for c := 0; c < 5; c++ {
-			if all&(1<<c) != 0 && seen&(1<<c) == 0 && cost.Pips[c] > s.pl[p].pool[c] {
+			if all&(1<<c) != 0 && seen&(1<<c) == 0 && owed.Pips[c] > s.pl[p].pool[c] {
 				return c // a granted ability's colour follows the source's own
 			}
 		}
