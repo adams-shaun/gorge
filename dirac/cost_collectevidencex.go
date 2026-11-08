@@ -86,7 +86,9 @@ func (s *State) startTrigNewEvidence(k *prep) {
 // evExcl is the index of the reserved triggered card in the payer p's
 // graveyard while the evidence stage of a Lamplight Phoenix cost runs, else -1.
 func (s *State) evExcl(p uint8) int {
-	if s.g.pickZ != payKindTrigNewEvidence || s.res.e.kind != seTrigger {
+	if s.ctl == ctlBuild || s.g.pickZ != payKindTrigNewEvidence || s.res.e.kind != seTrigger {
+		// an activation's or spell's evidence pick never excludes a card: a
+		// declined Lamplight Phoenix cost leaves pickZ and res.e behind
 		return -1
 	}
 	o := s.trigNewInGrave()

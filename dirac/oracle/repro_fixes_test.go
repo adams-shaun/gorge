@@ -54,6 +54,7 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		// Interrogation still owes its per-target RaiseCost; the pool cannot
 		// pay it, so the cast window reverses the cast (std-mkm pair 2359)
 		{"free_copy_raise_cost_per_target_reversed", false, false},
+		{"collect_evidence_selection_stale", true, false}, // CR 701.59a: Forensic Researcher's evidence pick lists the whole graveyard after a declined Lamplight Phoenix cost left its reservation behind
 	})
 }
 

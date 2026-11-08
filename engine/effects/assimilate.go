@@ -29,7 +29,7 @@ func effAssimilate(h Host, c *Ctx, sa *cards.SA) {
 	}
 	for _, t := range targets {
 		o := g.Obj(t.Obj)
-		if t.IsPlayer || o == nil || tokenCannotChangeZone(o) {
+		if t.IsPlayer || o == nil || tokenCannotChangeZone(g, o) {
 			continue
 		}
 		if o.Zone == state.ZBattlefield {
