@@ -251,8 +251,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if cd := &k.t.Cards[s.objs[Obj(a.Source())].card]; isCastKind(a.Kind()) && (s.spellTgtDep(k, p, s.objs[Obj(a.Source())].card, Obj(a.Source())) || cd.HasModeCost && !modalFloorZero(k, s.objs[Obj(a.Source())].card)) {
 			continue // gorge searches no prefix for a target-priced cost, nor for a modal one whose cheapest mode still costs mana
 		}
-		if isCastKind(a.Kind()) && k.gen.anyOptCost && optCostCard(k, s.objs[Obj(a.Source())].card) {
-			continue // nor for an OptionalCost card: the planner declines it (shape:optional_cost, cost_optional.go)
+		if isCastKind(a.Kind()) && a.Mode()&castMayPlay == 0 && k.gen.anyOptCost && optCostCard(k, s.objs[Obj(a.Source())].card) {
+			continue // nor for an OptionalCost card: the planner declines it (shape:optional_cost, cost_optional.go); a may-play cast it composes (potentialModeCastPlan)
 		}
 		kk := s.walkKey(a, p, i)
 		j := nc
@@ -347,11 +347,17 @@ func (s *State) scriptDeadEnd(k *prep, a Action, p uint8, restr slotMask) bool {
 	// must be priced here (restrictedGrantLive).
 	t.g.noGrant = a.Kind() == AkActivate && s.restrictedGrantLive(k, p)
 	var order [MaxPerm]Slot
-	n := t.battlefieldOrder(p, t.scriptGaps(k, p).or(restr), order[:], 0)
+	ctr := t.scriptCtr(k, p) // a counter-cost gap (Ramos) among them, as scriptPrefix plays it
+	n := t.battlefieldOrder(p, t.scriptGaps(k, p).or(restr).or(ctr), order[:], 0)
 	var d Decision
 	var held [kop.NumManaKinds]uint8 // the restricted mana in the copy's pool
 	for i := 0; i < n; i++ {
-		t.tapGap(k, p, order[i], restr, &held)
+		if ctr.has(order[i]) {
+			t.ctrGap(k, p, order[i])
+			t.sba(k)
+		} else {
+			t.tapGap(k, p, order[i], restr, &held)
+		}
 		t.restrOptions(k, &d, p)
 		if hasOption(&d, a) {
 			if held == ([kop.NumManaKinds]uint8{}) {

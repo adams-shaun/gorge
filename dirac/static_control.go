@@ -505,7 +505,7 @@ func (s *State) ovDurFl(dur int16) uint8 {
 // controller's next turn when that turn is the next one: gorge ends an
 // UntilYourNextTurn effect at the cleanup before the turn begins
 // (layers_effect.go: UntilTurn = nextTurnFor - 1).
-func (s *State) dropNextTurnOv() {
+func (s *State) dropNextTurnOv() (ended slotMask) {
 	nt := s.nextActive()
 	n := 0
 	s.fxM = slotMask{}
@@ -513,6 +513,7 @@ func (s *State) dropNextTurnOv() {
 		r := &s.g.fx[i]
 		if r.kind == fxOverride && r.r.fl&ovNT != 0 && (r.r.fl&ovNTYou)>>5 == nt {
 			s.touchSl(r.sl)
+			ended = ended.with(r.sl)
 			continue
 		}
 		s.g.fx[n] = *r
@@ -523,4 +524,5 @@ func (s *State) dropNextTurnOv() {
 		s.g.fx[i] = fxRec{}
 	}
 	s.g.nfx = uint8(n)
+	return ended
 }

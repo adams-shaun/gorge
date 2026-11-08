@@ -233,7 +233,10 @@ func manaGapModelled(first, a *lAbility) bool {
 		// kernel's restricted pair unit (mana_restrictedsource.go) plans.
 		// Its colours must hold the first ability's, so the larger
 		// alternative serves everything the smaller does. A Combo of any
-		// colours (Hermitic Herbalist's) is no planner alternative: a gap.
+		// colours is no planner alternative: a gap (restrictedComboModelled).
+		if a.Mana.Choice {
+			return restrictedComboModelled(first, a)
+		}
 		return a.Mana.Colors == "WUBRG" && !a.Mana.Choice && a.Mana.Amount.N <= maxRestrictedAmount &&
 			!first.Mana.Choice && (first.Mana.Colors == "WUBRG" || len(first.Mana.Colors) == 1 && strings.Contains("WUBRG", first.Mana.Colors))
 	case plainTapMana(a, true):
@@ -252,6 +255,23 @@ func manaGapModelled(first, a *lAbility) bool {
 	}
 	return false
 }
+
+// restrictedComboModelled: a, a restricted {T} ability of a Combo of any
+// colours, is the one shape the kernel's wide gap step models beside a first
+// ability (Hermitic Herbalist): exactly maxRestrictedCombo mana, a spell-only
+// restriction, and a first ability that is a plain unrestricted {T} one mana
+// of any colour. gorge's prefix search activates the source, asks which
+// ability, then the first's colour or the combination's per-unit allocation
+// (kernel mana_restrictedcombo.go). Any other Combo stays refused.
+func restrictedComboModelled(first, a *lAbility) bool {
+	return a.Mana.Colors == "WUBRG" && a.Mana.Amount.N == maxRestrictedCombo && a.Mana.RestrictAb == nil && !a.Mana.NonSpell &&
+		!a.Mana.Each && first.Mana.Colors == "WUBRG" && !first.Mana.Choice && !first.Mana.Each
+}
+
+// maxRestrictedCombo is the only literal amount of a restricted Combo of any
+// colours the kernel models beside a first ability: its answer walk is the
+// fifteen two-colour multisets (kernel wideAnswer).
+const maxRestrictedCombo = 2
 
 // maxRestrictedAmount bounds the literal amount of a restricted any-colour
 // ability the kernel's pair unit plans (its planner's unit counts are bytes

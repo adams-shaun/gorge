@@ -15,7 +15,7 @@ import (
 
 // manaConversionParts is the mandatory and Optional$ conversion sets the
 // active ManaConvert statics grant p paying for id.
-func (e *Engine) manaConversionParts(p state.PlayerID, id state.ObjID, ability bool) (manaConv, manaConv) {
+func (e *Engine) manaConversionParts(p state.PlayerID, id state.ObjID, kind pay.SAKind) (manaConv, manaConv) {
 	var mandatory, optional manaConv
 	// The printed sources are a board-only list, cached for a legal-actions
 	// walk (engine/rules/walkcache.go); the per-payment filter below still runs.
@@ -36,7 +36,7 @@ func (e *Engine) manaConversionParts(p state.PlayerID, id state.ObjID, ability b
 			!e.matchesSpec(vc, id, e.manaConvSpecCtx(sv, p, remembered)) {
 			return
 		}
-		if vsa, ok := sv.Param(cards.PKValidSA); ok && !pay.StaticSAKindMatches(vsa, ability) {
+		if vsa, ok := sv.Param(cards.PKValidSA); ok && !pay.StaticSAKindMatches(vsa, kind) {
 			return
 		}
 		dst := &mandatory
@@ -73,10 +73,10 @@ func (e *Engine) manaConversionParts(p state.PlayerID, id state.ObjID, ability b
 	// only while this exact spell's payment is being resolved -- never to an
 	// activated ability, and never to a later ordinary cast. The rider is
 	// subject to the pool's normal conversion semantics ("can be spent").
-	if !ability && e.cast != nil && e.cast.card == id && e.cast.playManaConversion != "" {
+	if kind == pay.SASpell && e.cast != nil && e.cast.card == id && e.cast.playManaConversion != "" {
 		applyManaConversionWords(&mandatory, e.cast.playManaConversion)
 	}
-	if g := e.gainedManaConversion(p, id, ability); g != "" {
+	if g := e.gainedManaConversion(p, id, kind); g != "" {
 		applyManaConversionWords(&mandatory, g)
 	}
 	return mandatory, optional
@@ -89,8 +89,8 @@ func (e *Engine) manaConversionParts(p state.PlayerID, id state.ObjID, ability b
 // looked up from the cast's (gainedFrom, gainedIdx) anchor among id's current
 // grants, merging every matching grant's list when two grants give the same
 // ability. A spell, a printed ability and another grant's ability get "".
-func (e *Engine) gainedManaConversion(p state.PlayerID, id state.ObjID, ability bool) string {
-	if !ability {
+func (e *Engine) gainedManaConversion(p state.PlayerID, id state.ObjID, kind pay.SAKind) string {
+	if kind != pay.SAActivated {
 		return ""
 	}
 	if e.cast == nil {

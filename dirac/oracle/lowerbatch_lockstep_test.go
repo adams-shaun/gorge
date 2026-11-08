@@ -13,6 +13,12 @@ import (
 // fails on the first divergence.
 func fixtureLockstep(t *testing.T, setName string, decks [2][]cardset.Entry, seeds int) {
 	t.Helper()
+	fixtureLockstepSeeds(t, setName, decks, 1, seeds)
+}
+
+// fixtureLockstepSeeds is fixtureLockstep over seeds first to last.
+func fixtureLockstepSeeds(t *testing.T, setName string, decks [2][]cardset.Entry, first, last int) {
+	t.Helper()
 	reg := synthReg(t)
 	set := cardsettest.Synth(t, setName)
 	var cs [2][]*cards.Card
@@ -36,7 +42,7 @@ func fixtureLockstep(t *testing.T, setName string, decks [2][]cardset.Entry, see
 	if err != nil {
 		t.Fatal(err)
 	}
-	for seed := uint64(1); seed <= uint64(seeds); seed++ {
+	for seed := uint64(first); seed <= uint64(last); seed++ {
 		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 		m, err := NewMatchup(reg, [2]string{"fixture-a", "fixture-b"}, cs, 0)
 		if err != nil {

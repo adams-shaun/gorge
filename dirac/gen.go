@@ -1102,10 +1102,11 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					} else if kop.FilterManaAb(a) {
 						g.prepFiltFirst(CardID(i), j) // a filter first and only (mana_filterfirst.go)
 					}
-				} else if restrAnyTapMana(a) && !restrSrcAb(a) && !restrWideAnyMana(a) && g.anyR(CardID(i)) < 0 && firstManaAb(&t.Cards[i]) >= 0 {
+				} else if restrAnyTapMana(a) && !restrSrcAb(a) && (!restrWideAnyMana(a) || wideBesideAny(&t.Cards[i], a)) && g.anyR(CardID(i)) < 0 && firstManaAb(&t.Cards[i]) >= 0 {
 					g.smallFor(CardID(i)).anyR = int8(j)
 					g.setFlag(CardID(i), gfAnyR)
 					g.anyAnyR = true
+					g.anyMultiR = g.anyMultiR || restrWideAnyMana(a) // (Hermitic Herbalist: mana_restrictedcombo.go)
 				} else if filterTapMana(&t.Cards[i], a) && g.filt(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).filt = int8(j)
 					g.setFlag(CardID(i), gfFilt)

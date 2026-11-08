@@ -12,8 +12,8 @@ import (
 // ExtWidth fixed slots, each computed arithmetically (nothing hashed). It is
 // off by default (SetExt(0)): Ext is then empty and every other output is
 // unchanged. The economy (E), turn-structure (T), stack-target (S,
-// ext_stack.go) and belief (B) groups are built; SetExt accepts the other
-// groups and they write nothing yet.
+// ext_stack.go), impact (I) and belief (B) groups are built; SetExt accepts
+// the kill group and it writes nothing yet.
 
 // ExtWidth is the block's slot count; ExtLayoutVersion names its layout.
 const (
@@ -56,6 +56,20 @@ const (
 	xPredraw    = 102
 	xPremature  = 104
 	xTEnd       = 112
+	xITopMe     = 400 // I: impact 400..441
+	xITopOpp    = 404
+	xIWorthy    = 408
+	xILowOnly   = 409
+	xITopRemOpp = 410 // 410..416, 417..423
+	xITopRemMe  = 417
+	xICtxStr    = 424 // 424..427, 428..432, 433..437
+	xICtxHand   = 428
+	xICtxOpen   = 433
+	xIProtect   = 438
+	xIBestHex   = 439
+	xIBestIndes = 440
+	xICounter   = 441
+	xIEnd       = 442
 	// K: kill conditions and clocks.
 	xKClockMe       = 448 // me 448..456, opp 457..465
 	xKClockOpp      = 457
@@ -154,6 +168,275 @@ func (e *Encoder) extBelief(seat uint8, opp *vplayer) {
 	}
 	e.extOneHot(xThreat, threat, 4)
 	e.extOneHot(xAnswer, answer, 4)
+}
+
+// entryTarget scans an entry's targets once: the first creature it aims at,
+// the first player class, the first stack entry index, and the number of
+// distinct real targets. Classes are targetClass's.
+func (e *Encoder) entryTarget(seat uint8, se *dirac.ProjStack) (cre *vcard, player, stack, n int) {
+	player, stack = tcNone, -1
+	var seen [kop.MaxTargets + len(se.Extra)]uint8
+	nseen := 0
+	total := len(se.Targets) + int(se.NExtra)
+	for j := 0; j < total; j++ {
+		t := se.Extra[max(j-len(se.Targets), 0)]
+		if j < len(se.Targets) {
+			t = se.Targets[j]
+		}
+		if t == dirac.NoTarget {
+			continue
+		}
+		dup := false
+		for k := 0; k < nseen; k++ {
+			if seen[k] == t {
+				dup = true
+				break
+			}
+		}
+		if dup {
+			continue
+		}
+		seen[nseen] = t
+		nseen++
+		n++
+		tc, host := e.targetClass(seat, t)
+		switch {
+		case host != nil && (tc == tcCreatureMe || tc == tcCreatureOpp):
+			if cre == nil {
+				cre = host
+			}
+		case tc == tcPlayerMe || tc == tcPlayerOpp:
+			if player == tcNone {
+				player = tc
+			}
+		case tc == tcStack:
+			if stack < 0 {
+				stack = e.stackEntryOf(t)
+			}
+		}
+	}
+	return
+}
+
+// isDraw reports whether a card's spell API is Draw; it compares the bytes
+// without converting them to a string.
+func isDraw(api []byte) bool {
+	return len(api) == 4 && api[0] == 'D' && api[1] == 'r' && api[2] == 'a' && api[3] == 'w'
+}
+
+// imp is the impact of spell entry i if it resolves, in live-strength
+// units before bucketing: the value the head spends a removal or a counter
+// on. An ability entry is 0.
+func (e *Encoder) imp(seat uint8, i int, me, opp *vplayer) int32 {
+	if i < 0 || i >= len(e.v.stack) || i >= int(e.kp.NStack) || e.kp.Stack[i].Kind != 0 {
+		return 0
+	}
+	st := &e.v.stack[i]
+	if st.cv < 0 {
+		return 0
+	}
+	c := &e.v.cards[st.cv]
+	ef := &c.c.eff
+	cre, player, stack, n := e.entryTarget(seat, &e.kp.Stack[i])
+	smv := stackMV(c)
+	switch ef.Class {
+	case EffKill, EffDamage, EffDebuff:
+		if cre != nil {
+			if resolvesKills(ef, int32(c.rel.x), cre) {
+				return liveStrength(cre)
+			}
+			return liveStrength(cre) / 2
+		}
+		if ef.Class == EffDamage && player != tcNone {
+			amt := int32(ef.Amount)
+			if ef.Amount == -1 {
+				amt = int32(c.rel.x)
+			} else if ef.Amount < 0 {
+				return 2 * smv
+			}
+			life := me.life
+			if player == tcPlayerOpp {
+				life = opp.life
+			}
+			if amt >= life {
+				return max(2*amt, 13) // lethal: strength bucket 3
+			}
+			return 2 * amt
+		}
+	case EffCounter:
+		if stack >= 0 && e.v.stack[stack].cv >= 0 {
+			return stackPstr(&e.v.cards[e.v.stack[stack].cv])
+		}
+	case EffBounce:
+		if cre != nil {
+			return liveStrength(cre)
+		}
+	case EffPump:
+		if cre != nil {
+			return int32(ef.NumAtt) + int32(ef.NumDef) + liveStrength(cre)/2
+		}
+	case EffOther:
+		if isDraw(c.c.api) {
+			amt := int32(ef.Amount)
+			if ef.Amount == -1 {
+				amt = int32(c.rel.x)
+			} else if ef.Amount < 0 {
+				return 2 * smv
+			}
+			return 3 * amt
+		}
+	}
+	if n == 0 && c.c.fold&(tbInstant|tbSorcery) == 0 {
+		return c.c.pstr // a permanent spell with no target
+	}
+	return 2 * smv
+}
+
+// extImpact writes group I for seat: the impact of each side's topmost spell,
+// the worth of my hand removal, the tempo of a removal on the stack, and the
+// counter-decision and protection context.
+func (e *Encoder) extImpact(seat uint8, me, opp *vplayer) {
+	v := &e.v
+	n := int(e.kp.NStack)
+	if n > len(v.stack) {
+		n = len(v.stack)
+	}
+	var top [2]bool
+	for i := n - 1; i >= 0 && (!top[0] || !top[1]); i-- {
+		se := &e.kp.Stack[i]
+		if se.Kind != 0 {
+			continue
+		}
+		s := 0
+		if se.Ctrl != seat {
+			s = 1
+		}
+		if top[s] {
+			continue
+		}
+		top[s] = true
+		e.extOneHot(xITopMe+4*s, int32(StrengthBucket(e.imp(seat, i, me, opp))), 3)
+	}
+	// 408/409: does my castable removal have a worthy target?
+	hasRemoval, hasCreature, worthy := false, false, false
+	for _, ci := range me.hand {
+		c := &v.cards[ci]
+		if c.c.land || c.c.mv > me.avail {
+			continue
+		}
+		ef := &c.c.eff
+		if !(ef.Class == EffKill || ef.Class == EffDamage || ef.Class == EffDebuff) || !ef.TgtCreat {
+			continue
+		}
+		hasRemoval = true
+		for _, oi := range opp.bf {
+			t := &v.cards[oi]
+			if !t.creature() {
+				continue
+			}
+			hasCreature = true
+			if t.c.mv >= c.c.mv || liveStrength(t) >= 2*c.c.mv+2 {
+				worthy = true
+			}
+		}
+	}
+	if hasRemoval && hasCreature {
+		if worthy {
+			e.extAdd(xIWorthy, 1)
+		} else {
+			e.extAdd(xILowOnly, 1)
+		}
+	}
+	// 410-423: the topmost removal each side has aimed at a creature, as the
+	// target's mana value against the spell's stack mana value.
+	var remTop [2]bool
+	for i := n - 1; i >= 0 && (!remTop[0] || !remTop[1]); i-- {
+		se := &e.kp.Stack[i]
+		if se.Kind != 0 || v.stack[i].cv < 0 {
+			continue
+		}
+		s := 0
+		if se.Ctrl != seat {
+			s = 1
+		}
+		if remTop[s] {
+			continue
+		}
+		c := &v.cards[v.stack[i].cv]
+		ef := &c.c.eff
+		if !(ef.Class == EffKill || ef.Class == EffDamage || ef.Class == EffDebuff) {
+			continue
+		}
+		cre, _, _, _ := e.entryTarget(seat, se)
+		if cre == nil {
+			continue
+		}
+		remTop[s] = true
+		k := int(max(-3, min(3, cre.c.mv-stackMV(c)))) + 3
+		base := xITopRemMe
+		if s == 1 {
+			base = xITopRemOpp
+		}
+		e.extAdd(base+k, 1)
+	}
+	// 424-437: the counter decision's context: the spell I could counter,
+	// and the opponent's hand and open mana.
+	counterCastable := false
+	protect := false
+	for _, ci := range me.hand {
+		c := &v.cards[ci]
+		if c.c.land || c.c.mv > me.avail {
+			continue
+		}
+		ef := &c.c.eff
+		if ef.Class == EffCounter {
+			counterCastable = true
+		}
+		if ef.Class == EffPump && (c.c.instantType || c.hasFlash()) {
+			protect = true
+		}
+	}
+	if counterCastable {
+		topOpp := -1
+		for i := n - 1; i >= 0; i-- {
+			if e.kp.Stack[i].Kind == 0 && e.kp.Stack[i].Ctrl != seat {
+				topOpp = i
+				break
+			}
+		}
+		if topOpp >= 0 && v.stack[topOpp].cv >= 0 {
+			e.extOneHot(xICtxStr, int32(StrengthBucket(stackPstr(&v.cards[v.stack[topOpp].cv]))), 3)
+			e.extOneHot(xICtxHand, opp.handN, 4)
+			e.extOneHot(xICtxOpen, opp.avail, 4)
+		}
+	}
+	if protect {
+		e.extAdd(xIProtect, 1)
+	}
+	// 439/440: my max-str creature's protection keywords.
+	best := int32(-1)
+	for _, ci := range me.bf {
+		if c := &v.cards[ci]; c.creature() {
+			best = max(best, liveStrength(c))
+		}
+	}
+	if best >= 0 {
+		for _, ci := range me.bf {
+			c := &v.cards[ci]
+			if !c.creature() || liveStrength(c) != best {
+				continue
+			}
+			if c.hasKw(kop.KwHexproof) || c.hasKw(kop.KwWard) {
+				e.extAdd(xIBestHex, 1)
+			}
+			if c.hasKw(kop.KwIndestructible) {
+				e.extAdd(xIBestIndes, 1)
+			}
+		}
+	}
+	if counterCastable {
+		e.extAdd(xICounter, 1)
+	}
 }
 
 // SetExt selects the extension groups; 0 (the default) turns the block off.
@@ -308,6 +591,9 @@ func (e *Encoder) encodeExt(seat uint8, me, opp *vplayer) []Feature {
 	if e.ext&ExtStackTarget != 0 {
 		e.extStack(seat, me, opp)
 	}
+	if e.ext&ExtImpact != 0 {
+		e.extImpact(seat, me, opp)
+	}
 	if e.ext&ExtKill != 0 {
 		// every encode path runs mzGlobal first, which stashes the aggregates
 		mine, theirs := e.killMine, e.killTheirs
@@ -384,8 +670,32 @@ func ExtSlotName(slot uint16) string {
 		return "reserved"
 	case n < xSEnd:
 		return extStackSlotName(n)
-	case n < 442:
-		return "todo:I"
+	case n < xITopOpp:
+		return one(xITopMe, "I|top|me|imp=")
+	case n < xIWorthy:
+		return one(xITopOpp, "I|top|opp|imp=")
+	case n == xIWorthy:
+		return "I|hand-removal|worthy"
+	case n == xILowOnly:
+		return "I|hand-removal|low-only"
+	case n < xITopRemMe:
+		return one(xITopRemOpp, "I|top-removal|opp|tempo=")
+	case n < xICtxStr:
+		return one(xITopRemMe, "I|top-removal|me|tempo=")
+	case n < xICtxHand:
+		return one(xICtxStr, "I|counterctx|str=")
+	case n < xICtxOpen:
+		return one(xICtxHand, "I|counterctx|opp-hand=")
+	case n < xIProtect:
+		return one(xICtxOpen, "I|counterctx|opp-open=")
+	case n == xIProtect:
+		return "I|me|protect-castable"
+	case n == xIBestHex:
+		return "I|my-best|hexproof-or-ward"
+	case n == xIBestIndes:
+		return "I|my-best|indestructible"
+	case n == xICounter:
+		return "I|me|counter-castable"
 	case n < 448:
 		return "reserved"
 	case n < xKEnd:

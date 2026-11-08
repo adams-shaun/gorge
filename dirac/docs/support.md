@@ -9,7 +9,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | list | cards | lowered | refused | unverified | supported |
 |---|---:|---:|---:|---:|---:|
 | BIG | 30 | 23 | 1 | 1 | 21 |
-| BLB | 278 | 256 | 3 | 33 | 220 |
+| BLB | 278 | 256 | 3 | 1 | 252 |
 | DFT | 276 | 248 | 0 | 2 | 246 |
 | DSK | 276 | 242 | 4 | 50 | 188 |
 | ECL | 273 | 234 | 1 | 0 | 233 |
@@ -25,12 +25,12 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | SOS | 270 | 249 | 0 | 28 | 221 |
 | SPM | 192 | 161 | 1 | 2 | 158 |
 | TDM | 276 | 250 | 3 | 5 | 242 |
-| TLA | 285 | 253 | 1 | 1 | 251 |
+| TLA | 285 | 254 | 1 | 2 | 251 |
 | TMT | 194 | 171 | 1 | 0 | 170 |
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 6 | 246 |
-| ALL | 34442 | 21706 | 24 | 16759 | 4923 |
+| ALL | 34442 | 21707 | 24 | 16728 | 4955 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -44,7 +44,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | fdn | 1500 |
 | pauper | 1500 |
 | std-big | 1500 |
-| std-blb | 75 |
+| std-blb | 1500 |
 | std-dft | 1500 |
 | std-dsk | 105 |
 | std-ecl | 1455 |

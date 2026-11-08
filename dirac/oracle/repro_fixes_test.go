@@ -50,6 +50,12 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		// CR 601.2b, 601.2g-h: Fuss's {R/W} cast from Outrageous Robbery's exile is priced under the any-type rider, so the printed lands pay it and Insidious Roots' granted token stays untapped
 		{"granted_any_prefix_respects_the_any_type_rider", false, false},
 		{"cost_sacrifices_latch_one_or_more_die", false, false},
+		{"mayplay_any_type_either_or_cost_offered", false, false}, // CR 601.2f-h: Demand Answers cast from Outrageous Robbery's exile with GGG floating and a card to discard: the any-type rider pays the recomposed {1}{R}
+		// CR 118.9d, 601.2f: Reenact the Crime's free copy of Officious
+		// Interrogation still owes its per-target RaiseCost; the pool cannot
+		// pay it, so the cast window reverses the cast (std-mkm pair 2359)
+		{"free_copy_raise_cost_per_target_reversed", false, false},
+		{"collect_evidence_selection_stale", true, false}, // CR 701.59a: Forensic Researcher's evidence pick lists the whole graveyard after a declined Lamplight Phoenix cost left its reservation behind
 	})
 }
 
@@ -96,6 +102,10 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// is payable, but no mode is, so neither engine offers the cast (CR
 		// 702.172a/702.183a: the mode cost is part of the cheapest legal total).
 		{"explosive_derailment_needs_a_mode_cost", false, false},
+		// CR 601.2c/f, 118.8: a Spree/Charm per-mode target ask withholds
+		// Terror of the Peaks when its controller's "an additional 3 life"
+		// leaves the caster unable to pay, as the root target ask does
+		{"charm_mode_targets_skip_unaffordable_terror", false, false},
 		// CR 601.2f: This Town Ain't Big Enough cast from Jasper Flint's
 		// mayplay, whose TargetMax$ 2 keeps the potential planner at the full
 		// price: the offer gate's target retry prices one matching target,
@@ -159,6 +169,8 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		// CR 701.21a, 610.3d: Scavenger's Talent's sacrifice-three cost includes Banishing Light, so its card returns after all three are gone
 		{"blb_sac_cost_exile_return_after_all_sacrificed", true, false},
 		{"blb_sac_cost_exile_return_after_all_sacrificed_sword", true, false},
+		{"copy_keyword_exception_returns_when_loss_ends", false, false}, // CR 707.9b, 613.1f: Mockingbird copying Shoreline Looter, made to lose all abilities until its controller's next turn, has its copy exception's flying again when the loss ends
+		{"any_one_colour_restricted_x_colour_choice", false, false},     // CR 106.6, 601.2b: Helga's two restricted mana count in the {X} ceiling of Mockingbird's cast, so its witness taps every source for X = 4
 	})
 }
 
@@ -173,6 +185,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"entry_counter_put_by_opposing_grant", false, false},           // CR 122.6a: Overflow Submatrix's finality counter on the opponent's Storied Veteran is put by the Submatrix's controller, so Dr. Joseph M'Benga doubles only the Veteran's own grant
 		{"stack_spell_controller_not_owner", true, false},               // CR 108.4, 110.2: Brazen Bluff asks the controller of the spell it targets, the player casting Transporter Malfunction from the opponent's exile, not its owner
 		{"copy_cast_x_targets_ask_after_x", false, false},               // CR 601.2b, 601.2c: Q's Play of Dominion Infiltration announces X before its "X target creatures", so a copy cast no mana can pay still asks X and reaches its mana window
+		{"copy_cast_enters_as_cast", false, false},                      // CR 707.12: Q's Play of Crystalline Entity casts the copy, so its "if you cast it" enter trigger fires beside Sickbay's
 		{"refused_paid_copy_cast_keeps_window_tap", true, false},        // CR 733.1: Encounter the Unknown's copy cast that gorge cannot pay is reversed after its mana window, so the tapped source and its mana stay
 		{"exile_grant_host_is_a_copy", false, false},                    // CR 707.2, 603.6a: Dominion Saboteur enters as Q, Stacking the Deck, so its enter trigger's exiled Assembly Specialist gains Q's exile-from-hand cast ability, which the copy's host offers
 		{"turn_once_resets_while_phased_out", false, false},             // CR 602.5b, 702.26d: DOT-7 Repair Squad activated, then phased out through its turn's end, has its once-each-turn limit lifted when it phases back in
@@ -202,11 +215,14 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"phased_out_copy_grant_survives", true, false},                 // CR 702.26b: a phased-out copy's granting static is silent, but phase-out unsubscribed only the printed card, so the copy's grant still fired
 		{"copy_cast_zero_x_reaches_window", false, false},               // CR 601.2c, 601.2g, 733.1: Q's Play of Dominion Infiltration announces X = 0, so its "X target creatures" asks no menu and no affordability census reverses it; the cast reaches its mana window, and the taps and mana stand when it is then reversed
 		{"copy_cast_zero_x_reaches_window_autopay", true, false},        // CR 601.2c, 601.2g, 733.1: ... the same on the autopay surface, where two Mountains tap for the {R}{R}{R} the pool cannot cover
+		{"copy_card_play_on_stack_before_mode_asks", false, false},      // CR 601.2a, 707.12: Q's Play of an exiled Infinite Diversity puts the copy on the stack before its target ask, and the Treasure the census cannot price keeps that ask on the menu
 		{"deanna_spacecraft_enterprise_a_s125", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_oberth_s162", false, false},                 // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_suurok_s193", false, false},                 // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_enterprise_a_s203", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_enterprise_d_s205", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
+		{"first_charge_counter_each_turn_after_bounce", false, false},   // CR 400.7, 603.2: U.S.S. Enterprise-D bounced and recast this turn is a new object, so its first charge counters after the recast queue "for the first time each turn" again
+		{"unrelaxable_filter_no_grant_funding", false, false},           // CR 601.2g-h: Starfleet Academy's X=7 filter makes gorge's census unrelaxable, so the grant search funds no fee and Rok-Tahk's granted {G}{G} from three creatures pays the {5}
 	})
 }
 
@@ -248,6 +264,9 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"vizier_conversion_kicked_cast_four", true, false},          // ... and another
 		{"vizier_kicked_cast_granted_prefix", true, false},           // ... and Gnarlid Colony's kicked {3}{G}{G} beside Imprisoned in the Moon's granted {C}: the grant search prices the kicked total under the conversion too
 		{"deferred_gap_beside_granted_land", true, false},            // CR 601.2g-h, 605.1a: Pyromancer's Goggles' deferred {R} beside Giant Cindermaw's Imprisoned-in-the-Moon {C} pays Pirate's Cutlass's Equip {2}: the restricted/deferred script search must count the unrestricted grant
+		{"goggles_deferred_red_play_offered", false, false},          // CR 601.2g-h, 605.3a: Blossoming Sands and Pyromancer's Goggles' deferred {R}, one funding Three Tree Mascot's {1} for {U}, pay Negate: the filter search runs the Goggles as a gap step
+		{"deferred_red_funds_first_filter_fee", false, false},        // ... and the Goggles' {R} alone funds the Mascot's {1}, so An Offer You Can't Refuse's {U} is offered
+		{"counter_gap_beside_deferred_script", false, false},         // CR 601.2g: Ramos, Dragon Engine's counter-cost mana beside the Goggles pays Zetalpa, Primal Dawn: the deferred script's dead-end check plays the counter gap as the prefix does
 		{"deferred_gap_beside_granted_mana", false, false},           // CR 601.2g-h, 605.1a: gorge's prefix search taps New Horizons' Mountain for {R}{R} and Pyromancer's Goggles' deferred {R}, both census gaps, so Lathliss, Dragon Queen's {4}{R}{R} is offered
 	})
 }
@@ -312,6 +331,7 @@ func TestStdBigReprosLockstep(t *testing.T) {
 		{"replacement_answer_mid_payment_pays_through_window", true, false}, // gorge's payment plan stops at a step that poses a decision, so Legion Extruder's second Treasure, behind Rest in Peace's order ask, is activated by the manual window, which asks its colour
 		{"sba_batch_asks_before_tokens_cease", true, false},                 // CR 704.3: three Golems destroyed at once under Rest in Peace are each asked which replacement applies, and the two already in exile cease at the next check, not between the asks
 		{"ability_target_before_cost_replacement", true, false},             // CR 601.2c: Harvester of Misery's target is a target of the ability before Rest in Peace asks where its discarded source goes
+		{"rest_in_peace_ask_between_cost_parts", true, false},               // CR 602.2b: the {T} part is paid before the discard, so the replacement ask the discard raises with two Rest in Peace sees Fomori Vault already tapped
 	})
 }
 
@@ -319,10 +339,11 @@ func TestStdBigReprosLockstep(t *testing.T) {
 func TestStdTdmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-tdm", []stdRepro{
-		{"shuffle_target_already_returned", false, false},       // CR 608.2b: Rite of Renewal's shuffled cards are in the graveyard still; one already returned to hand stays there
-		{"declined_delve_picks_reverse_the_cast", false, false}, // CR 702.66a: declining the granted delve leaves the {2} unpayable; the mana window taps what it can and the cast is reversed (CR 733.1)
-		{"omen_permanent_spell_copy", false, false},             // CR 720.2c, 720.4: an omen card is one card, so Flamehold Grappler's copy of an omen creature spell (Runescale Stormbrood) is an ordinary copy whose token is the front face, not a 707.10g double-faced token
-		{"dig_aura_no_host_joins_the_rest", true, false},        // CR 303.4g: United Battlefront picks Fresh Start with nothing to enchant; it stays in the library and joins "the rest" on the bottom, so the six other window cards keep their relative order
+		{"shuffle_target_already_returned", false, false},          // CR 608.2b: Rite of Renewal's shuffled cards are in the graveyard still; one already returned to hand stays there
+		{"renew_target_with_protection_not_offered", false, false}, // CR 115.2, 702.16b: Renew's source is the black card in the graveyard, so Ureni (protection from white and black) is no target and Alchemist's Assistant's ability is not offered
+		{"declined_delve_picks_reverse_the_cast", false, false},    // CR 702.66a: declining the granted delve leaves the {2} unpayable; the mana window taps what it can and the cast is reversed (CR 733.1)
+		{"omen_permanent_spell_copy", false, false},                // CR 720.2c, 720.4: an omen card is one card, so Flamehold Grappler's copy of an omen creature spell (Runescale Stormbrood) is an ordinary copy whose token is the front face, not a 707.10g double-faced token
+		{"dig_aura_no_host_joins_the_rest", true, false},           // CR 303.4g: United Battlefront picks Fresh Start with nothing to enchant; it stays in the library and joins "the rest" on the bottom, so the six other window cards keep their relative order
 		// Teval, Arbiter of Virtue's delve grant on an unresolved twobrid
 		// (Gurmag Nightwatch): the cast is offered on the per-face credit
 		// (CR 702.66a), and a payment the window's activations still cannot
@@ -423,6 +444,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"filter_fee_paid_with_granted_mana", true, false},                 // CR 605.3a, 601.2g: Honest Work's Humble Merchant on Fire Sages pays Rumble Arena's {1} filter fee, so the one prefix search taps it before any printed land to pay Realm of Koh's token activation
 		{"resolved_this_turn_across_zone_change", false, false},            // CR 707.10b: Airbender Ascension returns South Pole Voyager, whose resolution count keeps the turn's tally, so the second resolution overall does not draw Earth Kingdom Jailer
 		{"filter_fee_barred_from_unusable_restricted_mana", false, false},  // CR 106.6, 605.3a: Professor Zei over Barrels of Blasting Jelly: the Tea Shop's Ally-only {U} cannot pay Barrels' {1}, so the second {U/R} pip cannot be paid {R} through it
+		{"restricted_combination_tap_extra", false, false},                 // CR 106.6, 605.4a: Hermitic Herbalist's Lesson-only two-mana combination brings Badgermole Cub's {G} when the creature taps, so with an Island it pays Waterbending Lesson's {3}{U}
 		{"granted_mana_funds_filter_fee", true, false},                     // CR 602.2b, 605.3a: Rumble Arena's {1},{T} filter fee is paid by the granted {C} the prefix search taps first in battlefield order, not by a land the filter-only script would fund it with
 		{"crew_override_source_returned_is_new_object", false, false},      // CR 400.7: Fire Nation Warship destroyed in response to its own crew ability comes back as a new object; the crew effect finds nothing to animate
 		{"hybrid_window_restricted_any_colour_admission", false, false},    // CR 106.6, 601.2g: the lowered hybrid window takes a restricted any-colour ability ahead of a useless fixed {C} only when the restriction admits the payment (an Ally-only source pays a hybrid face; a Lesson's generic takes the {C}), and the admitted mana floats restricted
@@ -438,6 +460,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"widened_restricted_source_granted_island_colour_first", true, false},  // CR 305.6, 601.2g: Jasmine Dragon Tea Shop made an Island taps for its intrinsic {U}, not its restricted any-colour {R}, toward Earthen Ally's {2}{W}{U}{B}{R}{G}: gorge's witness ranks an intrinsic ability before a printed one, so Avatar Kyoshi makes the six {R}
 		{"attached_and_global_mana_grants_follow_the_static_walk", true, false}, // CR 613.7, 605.1a: Honest Work's {T}: Add {C} on a land of the other seat is listed after Great Divide Guide's any-colour grant, as gorge walks the statics by seat
 		{"waterbend_self_taps_watcher_census", false, true},                     // CR 605.1b, 701.67a: Great Divide Guide's granted {T} ability on Compassionate Healer fires the Healer's own Taps watcher, which gorge's census cannot price, so the waterbend announcement offers Done
+		{"free_waterbend_cast_stranded_reverses_untapped", true, false},         // CR 733.1: Benevolent River Spirit cast free off Solstice Revelations with Ty Lee waterbent leaves {4} no source pays; the cast reverses before the Mountain taps
 	})
 }
 
@@ -509,13 +532,15 @@ func TestStdFinReprosLockstep(t *testing.T) {
 func TestStdSosReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-sos", []stdRepro{
-		{"printed_flashback_beside_granted", false, false},                // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
-		{"granted_and_printed_flashback_ambiguous", false, false},         // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
-		{"graveyard_ability_source_new_object", true, false},              // CR 400.7: a second Postmortem Professor return ability resolves after the card came back and died again, and finds a new object
-		{"cascade_mana_value_evaluated_at_resolution", false, false},      // CR 202.3b: cascade reads the spell's mana value where the spell resolved, so the ward-counted Fractalize (X paid 4, now a card in the graveyard) prices 1 and does not hit Textbook Tabulator
-		{"charm_gate_ignores_restricted_float", false, false},             // CR 106.6, 601.2c: the pre-target gate keeps a cast alive whose floating restricted mana its restriction admits, as gorge's pool does
-		{"effetbctr_prepared_entry_order", false, false},                  // CR 616.1c, 616.1f: the effect's enters-with counters and the entrant's own prepared body compete over the entry, the order is asked and the own body first ends the rider's effect with the move it upgrades
-		{"granted_flashback_when_printed_nonmana_unpayable", true, false}, // CR 702.34a: a printed flashback whose tap-three-creatures cost is unpayable leaves the granted mana-cost instance castable (Group Project)
+		{"printed_flashback_beside_granted", false, false},                  // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
+		{"granted_and_printed_flashback_ambiguous", false, false},           // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
+		{"graveyard_ability_source_new_object", true, false},                // CR 400.7: a second Postmortem Professor return ability resolves after the card came back and died again, and finds a new object
+		{"cascade_mana_value_evaluated_at_resolution", false, false},        // CR 202.3b: cascade reads the spell's mana value where the spell resolved, so the ward-counted Fractalize (X paid 4, now a card in the graveyard) prices 1 and does not hit Textbook Tabulator
+		{"charm_gate_ignores_restricted_float", false, false},               // CR 106.6, 601.2c: the pre-target gate keeps a cast alive whose floating restricted mana its restriction admits, as gorge's pool does
+		{"effetbctr_prepared_entry_order", false, false},                    // CR 616.1c, 616.1f: the effect's enters-with counters and the entrant's own prepared body compete over the entry, the order is asked and the own body first ends the rider's effect with the move it upgrades
+		{"granted_flashback_when_printed_nonmana_unpayable", true, false},   // CR 702.34a: a printed flashback whose tap-three-creatures cost is unpayable leaves the granted mana-cost instance castable (Group Project)
+		{"restricted_pool_cast_plans_sources_before_discard", false, false}, // CR 601.2b, 601.2g-h, 106.6: Seize the Spoils cast with Abstract Paintmage's restricted {U}{R} floating taps the planned Mountain at announcement, before the discard is chosen
+		{"free_cast_unpayable_discard_returns_to_zone_end", true, false},    // CR 601.2b, 733.1: Improvisation Capstone's free Seize the Spoils with no card to discard is pushed and reversed, and returns behind the other exiled cards
 	})
 }
 
@@ -555,6 +580,10 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"wide_restricted_source_funds_hand_ability", true, false},                 // CR 106.6, 601.2g: Flamebraider's two any-colour mana for an Elemental pays Kulrath Zealot's basic landcycling, a hand activation the census has no unit for
 		{"behold_exile_cast_pays_restricted_wide_mana", false, false},              // CR 106.6, 601.2g: Champion of the Path cast from Sanar's exile is affordable through Flamebraider's restricted two mana, which gorge's prefix search taps ahead of the pricing
 		{"behold_exile_cast_tap_another_source_not_census_gap", false, false},      // CR 601.2g: a plain hand Champions of the Shoal is not one of gorge's potential plays (shape:additional_cost is refused before the mana is priced), so no prefix search taps Springleaf Drum for it and dirac must not offer the cast
+		{"mayplay_optional_cost_cast_offered_alike", false, false},                 // CR 601.2g, 605.3a: Requiting Hex (optional blight) cast from Burning Curiosity's exile is a composed may-play cast, so gorge's prefix search taps Springleaf Drum for its {B} and dirac offers it too
+		{"reversed_cast_keeps_same_taps", true, false},                             // CR 733.1: Sun-Dappled Celebrant's convoke picks strand its cost over Eclipsed Realms' Treefolk mana; the cast reverses before any land taps
+		{"reversed_cast_keeps_mana_ability_trigger", false, false},                 // CR 733.1: Springleaf Drum tapped Wanderwine Distracter for Appeal to Eirdu; the cast is reversed, the mana ability is not, so the "becomes tapped" trigger stays queued
+		{"reversed_cast_trigger_push_is_progress", true, false},                    // CR 733.2: Silvergill Peddler's kept tap trigger is pushed after Disruptor of Currents' reversal, so a second no-progress reversal still leaves the cast offered
 	})
 }
 
@@ -571,6 +600,8 @@ func TestStdFraReprosLockstep(t *testing.T) {
 func TestStdLciReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-lci", []stdRepro{
+		{"tapxtype_plain_plan_leaves_candidates", false, false},       // CR 601.2g-h: nine lands cast Guardian of the Great Door: the plan paying {W}{W} from the Plains and Restless Anchorage leaves seven to tap, whatever the reservation order
+		{"witness_waiting_trigger_other_answer", false, false},        // CR 601.2g, 603.3b: the Treasure sacrificed for Guardian of the Great Door's {W} sets off p0's Zoetic Glyph, whose discover waits for the cast, so its answer does not make the witness unreachable
 		{"granted_sac_host_cost_poses_no_choice", false, false},       // CR 602.2b, 701.21a: Deconstruction Hammer's granted "Sacrifice Deconstruction Hammer" cost has one possible payment, so it is paid without a choice after the targets
 		{"attack_trigger_pump_skips_returned_attacker", false, false}, // CR 400.7: Grasping Shadows' attack trigger does not grant deathtouch and lifelink to Aclazotz once it died and returned as Temple of the Dead
 		{"lose_all_setter_overwrites_self_chosen_type", true, false},  // CR 613.6, 613.7: Eaten by Piranhas on Roaming Throne makes it only a Skeleton; the Throne's older chosen-type grant outlives the ability loss but is overwritten in timestamp order
@@ -587,10 +618,11 @@ func TestStdLciReprosLockstep(t *testing.T) {
 func TestStdSpmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-spm", []stdRepro{
-		{"tapcost_source_not_paid_with_itself", false, false},              // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
-		{"tap_two_forced_answer_taps_the_plays_own_source", false, false},  // CR 602.2b: the Parents' second activation has exactly two candidates, so nothing is asked and the forced tap takes Guy; the search drops that line and reaches the pair that leaves Spider Manifestation untapped within its budget
-		{"web_watch_exile_x_restricted_mana", true, false},                 // CR 106.6, 601.2b: Morlun cast from exile under Interdimensional Web Watch's permission announces an X its two restricted mana pay for, as gorge's xAsk does
-		{"face_down_exile_played_face_up_not_creature_entry", true, false}, // CR 708.2: a land exiled face down by Black Cat and played face up enters as a land, not the 2/2 face-down creature, so Spider-UK's end-step count stays at 1
+		{"tapcost_source_not_paid_with_itself", false, false},               // CR 602.2b: Guy in the Chair's {T} activation is payable through Supportive Parents tapping two other creatures; gorge's prefix search no longer stops at the line whose forced tap takes Guy
+		{"tap_two_forced_answer_taps_the_plays_own_source", false, false},   // CR 602.2b: the Parents' second activation has exactly two candidates, so nothing is asked and the forced tap takes Guy; the search drops that line and reaches the pair that leaves Spider Manifestation untapped within its budget
+		{"web_watch_exile_x_restricted_mana", true, false},                  // CR 106.6, 601.2b: Morlun cast from exile under Interdimensional Web Watch's permission announces an X its two restricted mana pay for, as gorge's xAsk does
+		{"face_down_exile_played_face_up_not_creature_entry", true, false},  // CR 708.2: a land exiled face down by Black Cat and played face up enters as a land, not the 2/2 face-down creature, so Spider-UK's end-step count stays at 1
+		{"convoked_tap_another_source_keeps_census_complete", false, false}, // CR 601.2g, 733.1: Supportive Parents convoked for Web of Life and Destiny is no window source, so the stranded cast reverses before Guy in the Chair or a Forest taps
 	})
 }
 
@@ -650,6 +682,9 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"sac_after_aura_control_ends", false, false},                   // CR 613.1b, 701.21: Vile Mutilator's second sacrifice counts creatures after the first (an Aura) left, so the creature it stole is back with its owner and the lone manifest is forced
 		{"painless_plan_at_nonpositive_life", false, false},             // CR 119.4, 601.2g: a player at life <= 0 (a lose-the-game replacement) still pays a {1} spell from painless lands; the pain guard cuts only a plan that pays life
 		{"animate_rider_before_entry_triggers", true, false},            // CR 603.6a: an Enduring creature returned as an enchantment has its type-changing rider applied before an "another creature enters" watcher matches it, so no extra pump trigger
+		{"tapxtype_cost_reserves_tap_candidates", false, false},         // CR 601.2g-h: Fear of Exposure's tap-two is priced from its composed cost, so the granted-mana prefix taps Enduring Vitality's creatures in battlefield order and leaves the rest for the pick
+		{"tapxtype_restricted_source_not_free", false, false},           // CR 601.2g-h: Creeping Peeper's enchantment-only {U} paying Fear of Exposure is not also one of the two permanents it taps, so three mana sources and Patchwork Beastie do not cast it
+		{"grant_prefix_paid_life_trigger", false, false},                // CR 119.4, 603.3, 307.1: Haunted Screen's 1 life in Overlord of the Hauntwoods' granted-mana prefix stacks Marina Vendrell's Grimoire's trigger, so the prefix taps on and passes for it to resolve before the cast
 	})
 }
 
@@ -792,5 +827,6 @@ func TestStdWoeReprosLockstep(t *testing.T) {
 		{"filter_fed_by_granted_mana", false, false},                    // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
 		{"act_paid_filter_second_colour", true, false},                  // CR 601.2g, 602.2b: Restless Fortress's {1}{W}{B} animation is offered when a free filter (Crystal Grotto) makes one pip and Rootrider Faun's paid filter the other
 		{"woe_activation_sac_exile_return_asks_in_exile", false, false}, // CR 614.12, 610.3: Werefox Bodyguard sacrificed for its own activation returns Talion, the Kindly Lord, whose number is asked in exile before it enters
+		{"hidden_pick_aura_entry_attach_choice", false, false},          // CR 303.4f/g: Fetch Quest's hidden pick takes Bestial Bloodline, which waits in the graveyard for its enchant choice while the spell is still on the stack
 	})
 }

@@ -119,31 +119,65 @@ func ApplyConversionTo(conv *Conv, from []int, word string) bool {
 	return true
 }
 
+// SAKind is the side of a ManaConvert static's ValidSA$ a payment reads: a
+// spell cast, an activated ability, or any other mana payment (a triggered
+// cost, upkeep, echo, ward, an unless tax, an attack cost, a special action),
+// which CR 609.4b puts on neither side.
+type SAKind uint8
+
+const (
+	SASpell SAKind = iota
+	SAActivated
+	SAOther
+)
+
+// SAKindFor is the spell/activated side of a cast-flow payment.
+func SAKindFor(ability bool) SAKind {
+	if ability {
+		return SAActivated
+	}
+	return SASpell
+}
+
+// SAKind is the ValidSA$ side this descriptor's payment reads: only a spell cast
+// is the spell side and only an activation the activated side (CR 609.4b), so a
+// triggered, upkeep, ward or special-action payment inherits neither.
+func (d Descriptor) SAKind() SAKind {
+	switch d.Class {
+	case PurposeSpell:
+		return SASpell
+	case PurposeActivated:
+		return SAActivated
+	}
+	return SAOther
+}
+
 // StaticSAKindMatches reports whether a ValidSA$ value on a ManaConvert
 // static admits this kind of payment. The value is Forge's comma-separated
 // OR list of "<kind>[.<qualifier>]" ("Spell", "Activated", "Spell.MayPlaySource",
-// "Spell,Activated"); an absent value admits both. An alternative whose kind
+// "Spell,Activated"); an absent value admits every kind. An alternative whose kind
 // is neither Spell nor Activated (a Loyalty/other qualifier this build
 // cannot evaluate) is skipped rather than guessed: a conversion the engine
 // cannot scope never grants, the fail-closed direction every other
-// restriction-class reader here uses.
-func StaticSAKindMatches(validSA string, ability bool) bool {
+// restriction-class reader here uses. An SAOther payment matches no
+// alternative (CR 609.4b).
+func StaticSAKindMatches(validSA string, kind SAKind) bool {
 	v := strings.TrimSpace(validSA)
 	if v == "" {
 		return true
 	}
 	for alt := range strings.SplitSeq(v, ",") {
-		kind := strings.TrimSpace(alt)
-		if i := strings.IndexByte(kind, '.'); i >= 0 {
-			kind = kind[:i]
+		k := strings.TrimSpace(alt)
+		if i := strings.IndexByte(k, '.'); i >= 0 {
+			k = k[:i]
 		}
-		switch staticSAKindMatchesCodes.Code(string(kind)) {
+		switch staticSAKindMatchesCodes.Code(string(k)) {
 		case staticSAKindMatchesSpell:
-			if !ability {
+			if kind == SASpell {
 				return true
 			}
 		case staticSAKindMatchesActivated:
-			if ability {
+			if kind == SAActivated {
 				return true
 			}
 		}

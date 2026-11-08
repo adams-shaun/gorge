@@ -39,7 +39,7 @@ func (r *oracleRun) unpayableTriggerCostWindowDone(d *decision.Decision) (int, b
 		return 0, false
 	}
 	potential := e.PotentialMana(tc.player)
-	if pay.CostPayablePool(asPayer(e), tc.player, tc.source, false, amt, potential, e.G.Players[tc.player].ManaUnits()) {
+	if pay.CostPayablePool(asPayer(e), tc.player, tc.source, pay.SAOther, amt, potential, e.G.Players[tc.player].ManaUnits()) {
 		return 0, false
 	}
 	return d.Options[done].Index, true
