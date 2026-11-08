@@ -21,9 +21,11 @@ import (
 //     does (Engine.emit's tail for every state-changing event, and the SBA
 //     safety net), derives the WANTED set -- for every live GainControl
 //     static, every battlefield object its Affected$ matches, the player the
-//     value names -- and registers a real tracked grant plus emits
-//     events.ControlChange wherever the object's controller actually differs;
-//
+//     value names -- collapses it to the layer-2 winner per object (the
+//     latest timestamp, CR 613.1b/613.7a), and registers a real tracked
+//     grant plus emits events.ControlChange wherever the object's controller
+//     actually differs. A newer control static therefore overrides an older
+//     one instead of the two alternating which one holds the object;
 //   - ENDING is not the reconcile's job: a static grant is marked `static`
 //     and its grantEnded reads the same wanted set -- a grant whose static
 //     stopped being live (source left the battlefield, the "as long as" gate
@@ -48,14 +50,21 @@ type staticWant struct {
 	obj         state.ObjID
 	sourceStamp uint32
 	objStamp    uint32
+	// effectStamp is the CR 613.7a timestamp of the static ability's
+	// continuous effect, the source object's layer timestamp (the scan's
+	// ContinuousEffect.Timestamp). Layer 2 applies effects by it, and two
+	// control statics on one object are not additive: the latest applies.
+	effectStamp uint32
 	controller  state.PlayerID
 }
 
-// staticControlWants derives the wanted set fresh from the live static scan.
-// The static memo (Engine.staticContinuous, layers.go) is refreshed first
-// under the same epoch discipline active() uses, so the two can never read
-// different boards. With no GainControl static anywhere the derivation is
-// the memo epoch guard plus one slice walk -- the common game's cost.
+// staticControlWants derives the wanted set fresh from the live static scan,
+// in scan order. The static memo (Engine.staticContinuous, layers.go) is
+// refreshed first under the same epoch discipline active() uses, so the two
+// can never read different boards. With no GainControl static anywhere the
+// derivation is the memo epoch guard plus one slice walk -- the common
+// game's cost. The result is every want, not the layer-2 outcome; see
+// staticControlLayer.
 func (e *Engine) staticControlWants() []staticWant {
 	e.refreshStaticContinuous()
 	var w []staticWant
@@ -85,11 +94,39 @@ func (e *Engine) staticControlWants() []staticWant {
 					continue
 				}
 				w = append(w, staticWant{source: ce.Source, obj: id,
-					sourceStamp: src.Timestamp, objStamp: o.Timestamp, controller: ctrl})
+					sourceStamp: src.Timestamp, objStamp: o.Timestamp,
+					effectStamp: ce.Timestamp, controller: ctrl})
 			}
 		}
 	}
 	return w
+}
+
+// staticControlLayer applies CR 613.1b/613.7 to the wants: control-changing
+// effects in layer 2 are applied in timestamp order and are not additive, so
+// for each object only the want with the latest timestamp has any effect.
+// Ties keep the scan order (the same stable order active() sorts by), so the
+// last want in scan order wins; the map is only ever looked up, never
+// ranged, so nothing here can depend on map iteration order. The result
+// keeps the wants' scan order.
+func staticControlLayer(w []staticWant) []staticWant {
+	if len(w) < 2 {
+		return w
+	}
+	latest := make(map[state.ObjID]int, len(w))
+	for i := range w {
+		j, ok := latest[w[i].obj]
+		if !ok || w[i].effectStamp >= w[j].effectStamp {
+			latest[w[i].obj] = i
+		}
+	}
+	kept := w[:0]
+	for i := range w {
+		if latest[w[i].obj] == i {
+			kept = append(kept, w[i])
+		}
+	}
+	return kept
 }
 
 // poolHasControlStatic reports whether any card this match can put into play
@@ -142,18 +179,35 @@ func staticGainControlController(g *state.Game, spec string, you state.PlayerID,
 }
 
 // staticGrantLive reports whether the static-derived grant g's static is
-// still live with the SAME resolved controller. Called from grantEnded
-// inside expireControl; the derivation is a pure function of current state,
-// so a mid-pass re-derivation (the ControlChange emits advance the log
-// epoch) is still correct.
+// still live with the SAME resolved controller and is still the layer-2
+// winner for its object. Called from grantEnded inside expireControl; the
+// derivation is a pure function of current state, so a mid-pass
+// re-derivation (the ControlChange emits advance the log epoch) is still
+// correct.
 func (e *Engine) staticGrantLive(g controlGrant) bool {
+	var own bool
+	var latest uint32
+	var winner state.PlayerID
 	for _, w := range e.staticControlWants() {
-		if w.source == g.Source && w.sourceStamp == g.SourceStamp &&
-			w.obj == g.Obj && w.objStamp == g.ObjStamp {
-			return w.controller == g.Controller
+		if w.obj != g.Obj || w.objStamp != g.ObjStamp {
+			continue
+		}
+		if w.source == g.Source && w.sourceStamp == g.SourceStamp && w.controller == g.Controller {
+			own = true
+		}
+		if w.effectStamp >= latest {
+			latest, winner = w.effectStamp, w.controller
 		}
 	}
-	return false
+	if !own {
+		return false
+	}
+	// Two control statics on one object are not additive: a statically
+	// granted control change with a later timestamp applies after this one
+	// and overrides it (CR 613.1b/613.7a), so this grant ends even though
+	// its own static is still live. The winner's want then registers on top
+	// in reconcileControlStatics.
+	return winner == g.Controller
 }
 
 // staticGrantTracked reports whether the wanted transfer w already has its
@@ -188,7 +242,7 @@ func (e *Engine) reconcileControlStatics() {
 	}
 	e.reconcilingControlStatics = true
 	defer func() { e.reconcilingControlStatics = false }()
-	for _, w := range e.staticControlWants() {
+	for _, w := range staticControlLayer(e.staticControlWants()) {
 		if e.staticGrantTracked(w) {
 			continue
 		}
