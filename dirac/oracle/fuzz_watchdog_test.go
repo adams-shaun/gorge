@@ -60,3 +60,22 @@ func TestWithinTimeoutRetryNoWatchdogDoesNotRetry(t *testing.T) {
 		t.Errorf("played %d times, want 1", n)
 	}
 }
+
+// A run that cannot retry (a shared diagnostic counter keeps one attempt) takes
+// the first timeout as its answer and does not start a second game.
+func TestWithinTimeoutRetryWithoutRetryGivesUpAfterOne(t *testing.T) {
+	var calls atomic.Int32
+	release := make(chan struct{})
+	t.Cleanup(func() { close(release) })
+	got := WithinTimeoutRetry(time.Second, false, func() int {
+		calls.Add(1)
+		<-release
+		return 7
+	}, -1)
+	if got != -1 {
+		t.Fatalf("result %d, want hung -1", got)
+	}
+	if n := calls.Load(); n != 1 {
+		t.Errorf("played %d times, want 1 without retry", n)
+	}
+}
