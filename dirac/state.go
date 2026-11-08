@@ -555,6 +555,13 @@ type pendingTrig struct {
 	// trigMV is the triggering spell's pre-cast mana value, snapshotted
 	// when the trigger is queued (value_spellmv.go).
 	trigMV uint8
+	// wardSid is the stack identity of the ability a ward trigger answers,
+	// captured when checkWard queues the trigger. The stack at placement can
+	// hold a newer ability of the same source (two triggered abilities of one
+	// source can be pending at once), which is not the warded one (CR 603.3b,
+	// 701.6a). 0 = none: a spell is answered by its trigObj, and a table with
+	// no ward flag has no identity to stamp.
+	wardSid uint8
 	// grp is the AttackersDeclared event's attacker group: State.cold.atkGrp
 	// index + 1 (trig_attackers.go; 0 = none)
 	grp uint8
@@ -650,6 +657,8 @@ const (
 	ctlOver
 	ctlExileOrder // a parked move to a graveyard with several exile-instead effects: which applies (CR 616.1)
 	ctlTurnUpX    // a keyword turn-up awaiting its announced X (face_turnfaceup.go; parked in genState.pick*)
+	ctlCmdZone0   // the CR 903.9a commander-zone ask to seat 0 (zone_cmdzone.go)
+	ctlCmdZone1   // the CR 903.9a commander-zone ask to seat 1
 )
 
 // build stages.

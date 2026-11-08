@@ -147,6 +147,7 @@ type genPrep struct {
 	embCombatEv    uint32         // events (DamageDone, AttackersDeclared, LifeGained) some emblem trigger listens to (trig_effectuntileot.go)
 	anyGrant       bool           // some override or static grants an ability
 	meleeGrant     bool           // some static grants Melee (kop.Ability.MeleeGrant): slotTriggers places it as gorge's keyword walk does (kw_melee.go)
+	anyWard        bool           // some card has printed ward: abilities get a stack identity (cast.go push; wardedIndex)
 	anyWardGrant   bool           // some Continuous static grants ward {N} (kop.Static.Ward; kw_ward.go)
 	btWatch        bool           // some BecomesTarget trigger watches other objects (Pawpatch Recruit; trig_becomestarget.go)
 	btSpell        bool           // ... and one counts a creature spell on the stack (kop.Tf2SpellToo: Surrak)
@@ -326,6 +327,10 @@ type genPrep struct {
 	// anyTapsDefer / anyTapsPain: some card has a lowered Taps watcher of
 	// class kop.TapPlanDefer / TapPlanPain (gfTapsDefer / gfTapsPain; mana_tapsdefer.go)
 	anyTapsDefer, anyTapsPain bool
+	// anySelfTaps: some card has a lowered self Taps watcher (TfSelf). kgen
+	// lowers one only on a card with no printed mana ability, so it can only
+	// defer a granted mana ability's tap (act_waterbend.go windowCensusComplete).
+	anySelfTaps bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
 	// a potential play's scripted prefix (script_gen.go)
@@ -1220,6 +1225,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.anyTapAll = g.anyTapAll || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Flags2&kop.Tf2Batch != 0
 			g.tapsWhose = g.tapsWhose || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Whose != kop.WhoseAny
 			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps {
+				g.anySelfTaps = g.anySelfTaps || a.Trig.Flags&kop.TfSelf != 0
 				switch a.Trig.TapPlan {
 				case kop.TapPlanDefer:
 					g.setFlag(CardID(i), gfTapsDefer)
@@ -1276,6 +1282,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 	}
 	for i := range t.Cards {
+		if t.Cards[i].Keywords&kop.KwWard != 0 {
+			g.anyWard = true
+		}
 		if t.Cards[i].Keywords&kop.KwProtectionAll != 0 {
 			g.replBits[i] |= rbProtAll
 		}

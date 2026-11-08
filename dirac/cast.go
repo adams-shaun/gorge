@@ -267,8 +267,8 @@ func (s *State) pushBuild(k *prep) {
 			}
 		}
 	}
-	if e.kind != seSpell && k.gen != nil && k.gen.anyStackTgt {
-		s.stackSid(e) // a stack-ability target's identity (tgt_stackability.go)
+	if e.kind != seSpell && k.gen != nil && (k.gen.anyStackTgt || k.gen.anyWard || k.gen.anyWardGrant) {
+		s.stackSid(e) // a stack-ability target's identity (tgt_stackability.go); a ward trigger's warded ability (wardedIndex)
 	}
 	s.push(*e)
 	s.bld().bfl |= bflPushed
@@ -1711,8 +1711,22 @@ func (s *State) targetedOne(k *prep, e *stackEntry, t uint8) {
 		amt = 2 // CR 702.168b: a face-down Disguise permanent has ward {2}
 	}
 	np := s.npend
-	s.enqueue(p.obj, ob.ver, s.cardAt(sl), abWard, p.ctrl, e.obj, e.ctrl, amt)
+	s.enqueueWard(e, p.obj, ob.ver, s.cardAt(sl), p.ctrl, e.ctrl, amt)
 	s.panharmKeyword(k, sl, kop.TrigBecomesTarget, e.obj, np)
+}
+
+// enqueueWard queues the ward trigger e's targeting of a permanent answers,
+// carrying e's stack identity so the trigger answers that ability and not the
+// topmost one of the same source at placement: a sibling ability of the same
+// source can be pending in one batch (a doubler's copy), so the stack is not
+// authoritative then (CR 603.3b, 701.6a). A spell has no identity stamp: its
+// trigObj names it directly (wardedIndex).
+func (s *State) enqueueWard(e *stackEntry, o Obj, ver uint8, c CardID, ctrl, tpl uint8, amt int16) {
+	np := s.npend
+	s.enqueue(o, ver, c, abWard, ctrl, e.obj, tpl, amt)
+	if s.npend > np && e.kind != seSpell {
+		s.pend[np].wardSid = e.sid
+	}
 }
 
 // checkWard: a spell or ability an opponent controls that targets a
@@ -1858,6 +1872,12 @@ func (s *State) takePending(k *prep, i int) {
 		s.dpManyVers(&s.bld().e)
 	}
 	s.bld().e.tgt = noTargets
+	if pt.ab == abWard && pt.wardSid != 0 {
+		// the ability this ward trigger answers, by the identity captured when
+		// checkWard queued it: a sibling ward may counter it first, and a newer
+		// ability of the same source is not the one it targets (CR 603.3b, 701.6a)
+		s.bld().e.tver[0] = pt.wardSid
+	}
 	s.bld().stage = stageFirst[seTrigger]
 	if k.gift {
 		s.giftPushed(k, &pt)

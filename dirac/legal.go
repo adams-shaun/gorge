@@ -849,7 +849,9 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		// before it prices the cast again, as for an either-or additional
 		// cost above (CR 601.2b, 601.2f, 601.2g). A plain hand cast is not:
 		// gorge's potential planner refuses it at "shape:additional_cost"
-		// before any mana is priced, so its prefix search never runs for one.
+		// before any mana is priced, so its prefix search never runs for one
+		// (Bloom Tender beside Champions of the Perfect, the lone Elf the cost
+		// also exiles).
 		if cd.BeholdExile && k.gen != nil && mayPlay && s.scriptSourceLive(k, p) {
 			cost := s.featCost(k, p, c, o, k.cards[c].cost)
 			if s.g.mayPlayAny {

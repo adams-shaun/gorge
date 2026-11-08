@@ -1129,20 +1129,23 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 	// state-based actions run right after each damage pass (gorge
 	// completeCombatPass -> checkStateBased); a legend-rule ask waits for
 	// the next priority check
-	ask := false
+	ask := uint8(0)
 	if ctl := s.ctl; s.sba(k) {
 		if s.over {
 			return
 		}
 		// a casualty's order ask is posed inside the check (CR 616.1)
-		ask = s.ctl == ctlExileOrder
+		switch s.ctl {
+		case ctlExileOrder, ctlCmdZone0, ctlCmdZone1:
+			ask = s.ctl
+		}
 		s.ctl = ctl
 	}
 	// CR 510.3: a priority round in the combat damage step, so its damage
 	// triggers resolve before end of combat's
 	s.openPriority()
-	if ask {
-		s.ctl = ctlExileOrder
+	if ask != 0 {
+		s.ctl = ask
 	}
 }
 
