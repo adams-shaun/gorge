@@ -2368,6 +2368,11 @@ func (s *State) lkiCtrlSlot(k *prep, o Obj, i int) uint8 {
 // Alesha's power" after she was sacrificed: pairs 12267 52089); pw, t
 // (the card's printed values) otherwise.
 func (s *State) selfPTLKI(k *prep, e *stackEntry, pw, t int) (int, int) {
+	if ob := &s.objs[e.obj]; ob.zone != kop.ZoneBattlefield && ob.ver == e.srcVer+1 {
+		if r := s.srcDepartRec(e); r != nil {
+			return int(r.power), int(r.tough) // the departure snapshot (zone_lkisource.go)
+		}
+	}
 	best := s.departedSrcSlot(e)
 	if best == NoSlot {
 		return pw, t
