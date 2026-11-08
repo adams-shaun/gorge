@@ -51,8 +51,28 @@ func modeIsCastFaceDown(mode string) bool {
 func (e *Engine) manaFeasibleDescriptor(p state.PlayerID, d paymentDescriptor, c Cost, mods costMods, taxGeneric, delve int32, rider pipRider) bool {
 	pl := e.G.Players[p]
 	av := pay.AvailableFor(asPayer(e), p, d)
-	return mods.FeasibleAny(c, av.Pool, pl.Snow, av.Typed, pl.Life, taxGeneric, delve,
-		asEval(e).PayLifeInsteadOfB(p), rider, asEval(e).Conv(p, d.ID, d.SAKind()))
+	// A floating restricted batch whose admission reads the paid cost's shape
+	// is readable only once its announcement pips resolve: the unresolved cost
+	// that built av above carries no twobrid generic, so the batch is admitted
+	// for a generic face it could not pay. Supply the feasibility walk with the
+	// batch filtered per composed leaf instead (CR 106.6, 107.4e). With no
+	// restricted batch the per-leaf read is the fixed pool, and the common path
+	// builds no supplier.
+	var avail func(cost Cost) (state.Mana, [7]state.Mana)
+	if len(pl.RestrictedMana) > 0 {
+		template := d
+		template.Cost = nil
+		avail = func(cost Cost) (state.Mana, [7]state.Mana) {
+			leaf := template.Priced(&cost)
+			// The raw cost's X marker survives composition: WithX clears Cost.X
+			// when XMin folds, but the payment still contains an X component.
+			leaf.XAnnounced = template.XAnnounced || leaf.XAnnounced
+			leafAv := pay.AvailableFor(asPayer(e), p, leaf)
+			return leafAv.Pool, leafAv.Typed
+		}
+	}
+	return mods.FeasibleAnyAvail(c, av.Pool, pl.Snow, av.Typed, pl.Life, taxGeneric, delve,
+		asEval(e).PayLifeInsteadOfB(p), rider, asEval(e).Conv(p, d.ID, d.SAKind()), avail)
 }
 
 // manaFeasiblePool is manaFeasible priced against an EXPLICIT pool instead of
@@ -95,8 +115,9 @@ func (e *Engine) manaFeasiblePriced(p state.PlayerID, desc paymentDescriptor, c 
 // manaFeasiblePricedP is manaFeasiblePriced over pointers (*c and *mods are
 // only read). The priced pool is manaAvailableFor's, whose descriptor matters
 // only to a RestrictedMana batch: without one it is the floating pool and the
-// raw tally verbatim, and under hyp both are replaced outright, so neither
-// case builds the descriptor (a Cost copy).
+// raw tally verbatim, and under hyp both are replaced outright. The restricted
+// real-pool case is the one that builds the descriptor (a Cost copy), because
+// its admission has to be re-filtered per announcement leaf.
 func (e *Engine) manaFeasiblePricedP(p state.PlayerID, desc paymentDescriptor, c *Cost, mods *costMods, taxGeneric, delve int32, hyp *state.Mana) bool {
 	pl := &e.G.Players[p]
 	var pool state.Mana
@@ -109,8 +130,11 @@ func (e *Engine) manaFeasiblePricedP(p state.PlayerID, desc paymentDescriptor, c
 	case len(pl.RestrictedMana) == 0:
 		pool, typed = pl.Pool, pl.ManaUnits()
 	default:
-		av := pay.AvailableFor(asPayer(e), p, desc.Priced(c))
-		pool, typed = av.Pool, av.Typed
+		// The restricted pool is real, and its admission can depend on the
+		// announcement faces the walk has not chosen yet; route through the
+		// descriptor entry, which filters the batch per composed leaf.
+		return e.manaFeasibleDescriptor(p, desc.Priced(c), *c, *mods, taxGeneric, delve,
+			asEval(e).MayPlayRider(p, desc.ID))
 	}
 	return e.manaFeasiblePoolP(p, desc.ID, desc.Class == paymentActivated, c, mods, taxGeneric, delve, pool, typed)
 }

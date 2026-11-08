@@ -885,10 +885,14 @@ func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability b
 	// (CR 107.4e, 702.66a). The offer gate (offerCastableUsing) prices the
 	// same way, so a may-play cast from exile and its hand counterpart cannot
 	// disagree about an all-twobrid spell under a granted Delve.
-	// The descriptor keeps the historical cost shape: delve already taken off
-	// the generic requirement the restricted-mana batches see. The feasibility
-	// walk below gets the raw cost plus the credit so it can price a twobrid
-	// pip's generic face, which the descriptor's pre-reduced generic cannot.
+	// A cost carrying an XMin<N> lower bound is priced at its smallest LEGAL
+	// announcement (WithX(XMin)), which the hand offer gate already does; the
+	// old CostPayable did not fold that bound, so such a may-play offer can
+	// now be withheld when the floor is unpayable (the safe direction).
+	// The descriptor is built from the historical delve-reduced shape, but
+	// manaFeasibleDescriptor rebuilds the restriction-adjusted pool for each
+	// composed leaf: a CantPayGenericCosts batch admitted for a generic-0
+	// announcement must not pay a leaf whose generic face adds mana.
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic, ability)
 	var delve int32
@@ -939,21 +943,29 @@ func (e *Engine) countComposedCost(pc *pendingCast, cand Cost) Cost {
 }
 
 // castablePriced is castable priced against an EXPLICIT pool instead of the
-// seat's restriction-adjusted floating one. Its only caller is the
-// potential-action walk (engine/rules/legal.go legalActionsPriced's affordable, and
-// its own hyp==nil arm routes back to castable): pool is the hypothetical
-// bound the seat would hold after floating every untapped source. The pool is
+// seat's restriction-adjusted floating one. Its callers are the potential-action
+// walk (engine/rules/legal.go legalActionsPriced's affordable, and
+// its own hyp==nil arm routes back to castable) and the X announcement gate
+// (xAnnouncementPayable): pool is the hypothetical bound the seat would hold
+// after floating every untapped source. The pool is
 // a pure mana bound -- the walk may price against raw units a RestrictValid$
 // provenance would refuse at payment time, because a wrongly WITHHELD pass
 // costs one idle stop while a wrongly eaten window loses the player's action
 // -- but every non-mana part (Sac candidates, Discard candidates, SubCounter
 // counts, Tap untappedness) is still checked against the REAL state: floating
-// or hypothetical mana never satisfies a sacrifice.
+// or hypothetical mana never satisfies a sacrifice. The mana half goes through
+// the same feasibility primitive as castable, with the raw cost and the delve
+// credit so an all-twobrid pip's generic face is walked; the two pricing modes
+// cannot disagree about that cast.
 func (e *Engine) castablePriced(p state.PlayerID, id state.ObjID, cost Cost, ability bool, pool state.Mana) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic, ability)
 	pool = e.potentialPoolFor(p, pay.DescriptorFor(id, ability, mana), pool)
-	if !pay.CostPayablePool(asPayer(e), p, id, pay.SAKindFor(ability), mana, pool, e.G.Players[p].ManaUnits()) {
+	var delve int32
+	if e.hasCastDelve(id, ability) {
+		delve = int32(len(e.G.Zone(state.ZGraveyard, p)))
+	}
+	if !e.manaFeasiblePoolP(p, id, ability, &cost, &costMods{}, 0, delve, pool, e.G.Players[p].ManaUnits()) {
 		return false
 	}
 	return pay.NonManaCastable(asPayer(e), p, id, cost, ability, "")
