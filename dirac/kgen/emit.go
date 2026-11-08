@@ -291,6 +291,7 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 	filt(d.Landwalk)
 	filt(d.OptCost.Filter)
 	filt(d.FbCost.Filter)
+	val(d.ModesPickV) // a dynamic triggered charm's count filter (the matchup keeps the subtype it names)
 	for i := range d.Abilities {
 		abil(&d.Abilities[i])
 	}

@@ -328,6 +328,7 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// covers the whole generic part leaves no shortfall for Teval's
 		// granted delve, so no graveyard card is offered (Ureni's Rebuff).
 		{"delve_harmonize_covered_generic", true, false},
+		{"alt_add_treasure_lowering_reaches_with_part_mana", true, false}, // CR 601.2f, 601.2g: Caustic Exhale ({B}, behold a Dragon or pay {1}) with a Treasure as the only {B}: gorge's lowering floats {B}{1} together and reaches the cast, so it is not a planned one; the kernel priced the witness without the {1}
 		// CR 603.3b: Host of the Hereafter copies a legend's +1/+1 and flying
 		// counters onto the survivor beside Hollowmurk Siege's Sultai
 		// trigger, which hears both kinds only once each turn: the two orders
@@ -416,7 +417,8 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"plan_alts_lotus_hideout_island_grant", true, false},
 		{"plan_alts_lotus_hideout_island_grant_late", true, false},
 		{"plan_alts_lotus_hideout_island_grant_lesson", true, false},
-		{"widened_restricted_source_granted_island_colour_first", true, false}, // CR 305.6, 601.2g: Jasmine Dragon Tea Shop made an Island taps for its intrinsic {U}, not its restricted any-colour {R}, toward Earthen Ally's {2}{W}{U}{B}{R}{G}: gorge's witness ranks an intrinsic ability before a printed one, so Avatar Kyoshi makes the six {R}
+		{"widened_restricted_source_granted_island_colour_first", true, false},  // CR 305.6, 601.2g: Jasmine Dragon Tea Shop made an Island taps for its intrinsic {U}, not its restricted any-colour {R}, toward Earthen Ally's {2}{W}{U}{B}{R}{G}: gorge's witness ranks an intrinsic ability before a printed one, so Avatar Kyoshi makes the six {R}
+		{"attached_and_global_mana_grants_follow_the_static_walk", true, false}, // CR 613.7, 605.1a: Honest Work's {T}: Add {C} on a land of the other seat is listed after Great Divide Guide's any-colour grant, as gorge walks the statics by seat
 	})
 }
 

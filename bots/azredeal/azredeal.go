@@ -114,6 +114,10 @@ func ClosedFactory(belief *searchprobe.Belief, sims int) bots.Factory {
 		// answer there, and every fallback, reads the hand (never the
 		// default bot's coin).
 		cfg.Search.Kinds.Mulligan = true
+		// The commander-zone choice too: a commander's owner chooses whether
+		// it returns to the command zone (CR 903.9), and the paired bot weighs
+		// that choice instead of answering it by rule.
+		cfg.Search.Kinds.CommanderZone = true
 		cfg.Search.MulliganWorlds, cfg.Search.MulliganTurns = MulliganWorlds, MulliganTurns
 		cfg.Mulligan = botpolicy.MulliganConstructed
 		cfg.Search.AutoPayment = o.AutoPayMana

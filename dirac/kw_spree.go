@@ -203,6 +203,12 @@ func (s *State) targetPaidPlanned(k *prep, p uint8, o Obj) bool {
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
 	cost := s.featCost(k, p&1, c, o, k.cards[c].cost)
+	if cd.HasAltAdd {
+		// gorge's witness floats the spell's mana with the first either-or
+		// part that has mana (potentialAltAddPlan), so the lowering reaches
+		// the cast with that mana pooled too (CR 601.2f)
+		cost = addCost(cost, s.altAddManaPart(k, c))
+	}
 	t := s.fork()
 	var pk planner
 	pk.try = true
