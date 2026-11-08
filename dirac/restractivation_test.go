@@ -147,6 +147,29 @@ func TestLandGrantComboKeepsTokenOrder(t *testing.T) {
 		t.Fatalf("view manaCol %b lacks G, W or U", v.manaCol)
 	}
 	sl := Slot(sc.perm(c, 0))
+	// give the live state the Island subtype the view models (The Legend of
+	// Kyoshi's Earthbend Animate is the table's AddSub override), so
+	// manaPCGen hands stepColours the same granted-type view
+	islandIdx := g.blgSub[kop.U]
+	found := false
+	for i := range tbl.Overrides {
+		if tbl.Overrides[i].AddSub.Has(int(islandIdx)) {
+			sc.s.applyOverride(sc.k, sl, i, c, false)
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("no Animate override adds Island: cannot exercise the live granted-type view")
+	}
+	if got := sc.s.manaPCGen(sc.k, sl); got != v {
+		t.Fatalf("live state holds view blgFirst %d, want the granted-type view's %d", got.blgFirst, v.blgFirst)
+	}
+	var order [kop.NumManaKinds]uint8
+	no := sc.s.stepColours(sc.k, sl, -1, uint8(v.manaCol), &order)
+	if no < 3 || order[0] != kop.G || order[1] != kop.W || order[2] != kop.U {
+		t.Errorf("stepColours %v, want G W U: the Combo's printed order, then the granted intrinsic", order[:no])
+	}
 	both := cost(0, kop.W, kop.G)
 	if col := sc.s.windowCol(sc.k, 0, &both, sl, v, false, false); col != kop.G {
 		t.Errorf("{W}{G} owed: window answers %d, want G (token order)", col)

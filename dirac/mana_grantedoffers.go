@@ -871,24 +871,34 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 // Peak's "R or W"; manaColourOrder), else W U B R G C. gi is the granted
 // ability the step taps, -1 for the source's own.
 func (s *State) stepColours(k *prep, sl Slot, gi int16, mask uint8, out *[kop.NumManaKinds]uint8) (n int) {
+	cd := s.cardAt(sl)
+	var pc *pcard
+	if gi < 0 {
+		pc = s.manaPCGen(k, sl)
+	}
 	var ab *kop.Ability
 	if gi < 0 {
 		if ra := s.ownRestrAb(k, sl); ra != nil && !s.ownManaUsable(k, sl) {
 			ab = ra // the printed restricted ability (mana_grantrestrictedown.go)
-		} else if pc := s.manaPCGen(k, sl); pc.manaAb >= 0 {
-			ab = &k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb]
+		} else if pc.manaAb >= 0 && (pc == &k.cards[cd] || pc.blgFirst != 0) {
+			// the source's own profile or a granted-type view names one of the
+			// card's own abilities; a grant/var/gate view's index names another
+			// card's (mana_window.go windowCol)
+			ab = manaAbView(&k.t.Cards[cd], pc)
 		}
 	} else if r := k.gen.grantOf[gi]; !k.gen.grantSelf[gi] {
 		ab = &k.t.Cards[r.card].Abilities[r.ab]
 	}
 	var seen uint8
-	if gi < 0 {
+	if gi < 0 && pc.blgFirst != 0 {
 		// a land with a granted basic type: gorge lists the face's own abilities
 		// before the intrinsic ones the type adds (appendAvailableManaAbilities),
-		// so a Forest made an Island asks G then U, not U then G
-		if pc := s.manaPCGen(k, sl); pc.blgFirst != 0 {
-			if own := &k.cards[s.cardAt(sl)]; own.manaAb >= 0 {
-				for c := uint8(0); c < 5; c++ {
+		// so a Forest made an Island asks G then U, not U then G; a printed
+		// Combo asks its token order (Kyoshi Village's Combo G W asks G first)
+		if own := &k.cards[cd]; own.manaAb >= 0 {
+			if ownAb := manaAbView(&k.t.Cards[cd], own); ownAb != nil {
+				var ord [5]uint8
+				for _, c := range ord[:manaColourOrder(ownAb, &ord)] {
 					if uint8(own.manaCol)&mask&(1<<c) != 0 {
 						out[n] = c
 						n++

@@ -600,10 +600,10 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 				}
 			}
 		}
-		if pc.blgFirst != 0 && pc.manaAb >= 0 {
+		if pc.blgFirst != 0 {
 			// a granted basic land type's view of the card's own Combo: its
 			// printed token order comes first, the intrinsic colours after
-			if ab := &k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb]; ab.Kind == kop.AbMana && ab.AFlags&kop.AfManaChoice != 0 {
+			if ab := manaAbView(&k.t.Cards[s.cardAt(sl)], pc); ab != nil && ab.Kind == kop.AbMana && ab.AFlags&kop.AfManaChoice != 0 {
 				var ord [5]uint8
 				for _, c := range ord[:manaColourOrder(ab, &ord)] {
 					if all&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {

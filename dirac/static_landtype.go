@@ -89,7 +89,7 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 				}
 				v.manaCol |= kop.ColorMask(m)
 			} else {
-				v.manaAb = 0 // no own ability: the intrinsic one (no ability index reads a view)
+				v.manaAb = 0 // no own ability: the intrinsic one (manaAbView guards the reads)
 				v.manaCol = kop.ColorMask(m)
 			}
 			v.manaN, v.manaTap = 1, true
@@ -213,6 +213,17 @@ func (s *State) hybStrand(k *prep, p uint8, c *kop.ManaCost, anyColor bool) bool
 	return false
 }
 
+// manaAbView is the card ability a view's manaAb names, nil when it names
+// none. A no-own-ability granted-type view sets manaAb to 0 for the intrinsic
+// ability (prepLandGrant above), so a card with no abilities has no index 0
+// for a reader to dereference; the readers guard through this helper.
+func manaAbView(cd *kop.CardDef, pc *pcard) *kop.Ability {
+	if pc.manaAb < 0 || int(pc.manaAb) >= len(cd.Abilities) {
+		return nil
+	}
+	return &cd.Abilities[pc.manaAb]
+}
+
 // potentialFirstMask is the colours a multi-colour source adds for its first
 // mana ability in the potential walk (availPotentialFor), which then admits the
 // card's other table abilities one by one. A granted basic land type's intrinsic
@@ -221,7 +232,10 @@ func (s *State) hybStrand(k *prep, p uint8, c *kop.ManaCost, anyColor bool) bool
 // so the colours the view holds beyond the card's own mana abilities belong here.
 func (s *State) potentialFirstMask(k *prep, sl Slot, pc *pcard) uint8 {
 	cd := &k.t.Cards[s.cardAt(sl)]
-	mask := uint8(cd.Abilities[pc.manaAb].ManaColors)
+	var mask uint8
+	if ab := manaAbView(cd, pc); ab != nil {
+		mask = uint8(ab.ManaColors)
+	}
 	if k.gen == nil || !k.gen.blgOn {
 		return mask
 	}
