@@ -261,7 +261,8 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				s.bld().obsWin |= obsWinTapped // a pre-payment tap; one by the payment's own window spends its mana
 			}
 		}
-		col := s.windowCol(k, p, s.windowOwedCost(k, p, cost), sl, pc, anyColor, noOwed)
+		var owed kop.ManaCost
+		col := s.windowCol(k, p, s.windowOwedCost(k, p, cost, &owed), sl, pc, anyColor, noOwed)
 		if noOwed && clamp && !anyColor {
 			if pc.manaMulti {
 				// a cast's ability ask lists what the cost owes first (gorge owedAbilitiesFirst)
@@ -317,10 +318,10 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 // pool AvailableFor holds, restricted batches included, so Interdimensional Web Watch's
 // floating {W}{W} already covers a {G/W}{G/W} cast's {W} pip and a Treasure answers {G},
 // not the lowest colour (CR 106.6).
-func (s *State) windowOwedCost(k *prep, p uint8, cost *kop.ManaCost) *kop.ManaCost {
+func (s *State) windowOwedCost(k *prep, p uint8, cost, buf *kop.ManaCost) *kop.ManaCost {
 	if m := s.restrPoolAdmits(k, p); m != 0 {
-		c := s.restrShortAdm(p, m, *cost)
-		return &c
+		*buf = s.restrShortAdm(p, m, *cost)
+		return buf
 	}
 	return cost
 }
