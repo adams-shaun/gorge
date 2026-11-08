@@ -733,7 +733,7 @@ func CostPayableGrant(e Engine, p state.PlayerID, id state.ObjID, ability bool, 
 func costPayableDescriptor(e Engine, p state.PlayerID, d Descriptor, cost Cost, rider PipRider) bool {
 	av := AvailableFor(e, p, d)
 	_, ok := ResolveManaWith(cost, av.Pool, e.Game().Players[p].Snow, av.Typed,
-		e.Game().Players[p].Life, e.Eval().PayLifeInsteadOfB(p), rider, e.Eval().Conv(p, d.ID, d.Class == PurposeActivated))
+		e.Game().Players[p].Life, e.Eval().PayLifeInsteadOfB(p), rider, e.Eval().Conv(p, d.ID, convAbility(d)))
 
 	return ok
 }
@@ -762,12 +762,12 @@ func CostPayableClassLife(e Engine, p state.PlayerID, d Descriptor, rider PipRid
 		// CR 119.4b keeps a 0-life cost payable exactly as before.
 		av := AvailableFor(e, p, d)
 		_, ok := ResolveManaNoLifePay(cost, av.Pool, e.Game().Players[p].Snow, av.Typed,
-			e.Eval().Conv(p, d.ID, d.Class == PurposeActivated))
+			e.Eval().Conv(p, d.ID, convAbility(d)))
 		return ok
 	}
 	av := AvailableFor(e, p, d)
 	_, ok := ResolveManaWith(cost, av.Pool, e.Game().Players[p].Snow, av.Typed,
-		e.Game().Players[p].Life, lifeGrant, rider, e.Eval().Conv(p, d.ID, d.Class == PurposeActivated))
+		e.Game().Players[p].Life, lifeGrant, rider, e.Eval().Conv(p, d.ID, convAbility(d)))
 
 	return ok
 }
@@ -881,3 +881,9 @@ var restrictValidTermMatchesCodes = state.NewStrCodes(
 	state.StrEntry[restrictValidTermMatchesCode]{Key: "CantPayGenericCosts", Val: restrictValidTermMatchesCantPayGenericCosts},
 	state.StrEntry[restrictValidTermMatchesCode]{Key: "CumulativeUpkeep", Val: restrictValidTermMatchesCumulativeUpkeep},
 )
+
+// convAbility is the ability flag a descriptor's payment reads its ManaConvert
+// statics under: only a spell cast is the "spell" side (Vizier of the Menagerie
+// converts mana "to cast creature spells", CR 609.4b), so a triggered cost, a ward,
+// an upkeep payment or a special action never inherits a ValidSA$ Spell conversion.
+func convAbility(d Descriptor) bool { return d.Class != PurposeSpell }

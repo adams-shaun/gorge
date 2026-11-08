@@ -80,7 +80,9 @@ func (e *Engine) resPayNeedsMana(player state.PlayerID, source state.ObjID, amou
 			break
 		}
 	}
-	return sources && pay.CostPayablePool(asPayer(e), player, source, false, amount,
+	// ability=true: a triggered or upkeep cost is no spell cast, so a ValidSA$ Spell
+	// ManaConvert (Vizier of the Menagerie) does not widen it (CR 609.4b).
+	return sources && pay.CostPayablePool(asPayer(e), player, source, true, amount,
 		e.potentialManaFor(player, &desc), pay.AvailableFor(asPayer(e), player, desc).Typed)
 }
 
