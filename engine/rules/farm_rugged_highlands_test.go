@@ -26,11 +26,11 @@ func TestFarmRuggedHighlands(t *testing.T) {
 	  "name": "farm-rugged-highlands",
 	  "cr": ["613.8a"],
 	  "why": "DFT-s122 xe:RAND:2:17:w16: Guidelight Matrix animates a Vehicle under March of the World Ooze; the animation changes what March applies to, so March applies after it and the Vehicle is an Ooze (CR 613.8a)",
-	  "setup": {"p0": {"battlefield": ["Forest", "Forest", "March of the World Ooze", "Thunderous Velocipede", "Guidelight Matrix"]},
+	  "setup": {"p0": {"battlefield": ["Forest", "Rugged Highlands", "March of the World Ooze", "Thunderous Velocipede", "Guidelight Matrix"]},
 	            "p1": {}},
 	  "steps": [
 	    {"op": "activate", "seat": 0, "card": "p0:Forest", "ability_index": 0},
-	    {"op": "activate", "seat": 0, "card": "p0:Forest#2", "ability_index": 0},
+	    {"op": "activate", "seat": 0, "card": "p0:Rugged Highlands", "answers": [{"kind": "choose", "pick": ["G"]}], "ability_index": 0},
 	    {"op": "activate", "seat": 0, "card": "p0:Guidelight Matrix", "targets": ["p0:Thunderous Velocipede"], "ability_index": 1},
 	    {"op": "pass", "seat": 0},
 	    {"op": "pass", "seat": 1}
@@ -47,12 +47,14 @@ func TestFarmRuggedHighlands(t *testing.T) {
 	if len(last.Stack) != 0 {
 		t.Fatalf("stack not drained, precondition for the check: %+v", last.Stack)
 	}
-	var matrixTapped, march bool
+	var matrixTapped, highlandsTapped, march bool
 	var velocipede *OracleSnapPerm
 	for i := range last.Permanents {
 		switch last.Permanents[i].Ref {
 		case "p0:Guidelight Matrix":
 			matrixTapped = last.Permanents[i].Tapped
+		case "p0:Rugged Highlands":
+			highlandsTapped = last.Permanents[i].Tapped
 		case "p0:March of the World Ooze":
 			march = true
 		case "p0:Thunderous Velocipede":
@@ -62,8 +64,8 @@ func TestFarmRuggedHighlands(t *testing.T) {
 	if velocipede == nil {
 		t.Fatalf("Thunderous Velocipede not on the battlefield (march=%v): %+v", march, last.Permanents)
 	}
-	if !matrixTapped {
-		t.Fatalf("Guidelight Matrix is untapped, so the animate ability did not resolve")
+	if !matrixTapped || !highlandsTapped {
+		t.Fatalf("Guidelight Matrix tapped=%v, Rugged Highlands tapped=%v: the animation did not resolve", matrixTapped, highlandsTapped)
 	}
 	// The precondition: the animation resolved (it is a creature) and March's
 	// layer-7 base P/T reached it.
