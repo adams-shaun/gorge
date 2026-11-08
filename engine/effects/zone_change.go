@@ -256,9 +256,11 @@ func hasRememberedDestroyedLand(g *state.Game, ts []state.Target) bool {
 // source, the ability went on the stack while that source was OFF the
 // battlefield (Reassembling Skeleton's "{1}{B}: Return this card from your
 // graveyard to the battlefield tapped"), and the source has crossed the
-// battlefield boundary since: the card back in the graveyard is a new object
-// (CR 400.7) the ability cannot find, so a second activation that resolves
-// after the first returned the card and it died again moves nothing. The
+// battlefield boundary since (or any zone since: graveyard -> hand ->
+// graveyard): the card back in the graveyard is a new object (CR 400.7) the
+// ability cannot find, so a second activation (or a copy of it, which
+// inherits the push stamp) that resolves after the first returned the card
+// and it died again moves nothing. The
 // battlefield-push case is sourceLeftSincePush's.
 func sourceReturnedSincePush(h Host, c *Ctx, o *state.Object) bool {
 	if o.ID != c.Source || c.ResolvingObj == 0 {
@@ -268,7 +270,11 @@ func sourceReturnedSincePush(h Host, c *Ctx, o *state.Object) bool {
 	if ro == nil || ro.Source != o.ID || !ro.PushSourceStamped || ro.PushSourceOnBattlefield {
 		return false
 	}
-	return o.Incarnation != ro.PushSourceIncarnation
+	// Same zone as at the push, different generation: the card left and came
+	// back, so this is a new object. A source now in another zone was moved
+	// by the activation's own cost (Kogla and Yidaro discards itself from
+	// hand), not replaced by a new object in the zone the effect names.
+	return o.Zone == ro.PushSourceZone && o.ZoneGen != ro.PushSourceZoneGen
 }
 
 // SourceIsNewObject reports that ro, an ability on the stack, has a source on the

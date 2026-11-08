@@ -38,11 +38,12 @@ func (s *State) handAuraEnter(k *prep, o Obj, ctrl uint8, answered Slot) (host S
 	return host, false, false
 }
 
-// handAuraArmed reports whether the running instruction is the one-card hand
-// move marked SrAuraEntry, or a library search onto the battlefield, which kgen
-// keeps to one card when its filter may admit an Aura (Guardian Sunmare; the card
-// waits in the library, unshuffled, as gorge's search does); false when moveFound
-// is driven outside a program (kernel tests).
+// handAuraArmed reports whether the running instruction is a found-card move
+// onto the battlefield: a library search, or any hidden pick (OpChooseMove,
+// whose hand, graveyard, graveyard-and-exile and exile walks all reach the same
+// CR 303.4f/g entry). handAuraEnter screens the card itself, so a filter that
+// cannot admit an Aura is a no-op. False when moveFound is driven outside a
+// program (kernel tests).
 //
 //go:noinline
 func (s *State) handAuraArmed(k *prep) bool {
@@ -51,7 +52,7 @@ func (s *State) handAuraArmed(k *prep) bool {
 		return false
 	}
 	in := &pr[s.res.pc]
-	return in.Op == kop.OpSearchEx || in.Op == kop.OpChooseMove && in.B.N&kop.SrAuraEntry != 0
+	return in.Op == kop.OpSearchEx || in.Op == kop.OpChooseMove
 }
 
 // enterOnto arms the next enter to attach its Aura to host before the enters

@@ -87,9 +87,9 @@ type CardIn struct {
 func (g *Net) EvalCards(sc *Scratch, cards []CardIn, dense []float32, sparse []policynet.Feature, opts []policynet.Option, scores []float32) float32 {
 	nc := g.cardsIn(sc, cards)
 	if g.one {
-		return g.trunkBag1(sc, nc, dense, sparse, nil, opts, scores)
+		return g.trunkBag1(sc, nc, dense, sparse, nil, nil, opts, scores)
 	}
-	return g.trunkBagN(sc, nc, dense, sparse, nil, opts, scores)
+	return g.trunkBagN(sc, nc, dense, sparse, nil, nil, opts, scores)
 }
 
 // cardsIn fills sc's card vectors and groups from cards.
@@ -151,11 +151,22 @@ func SumRows(dst, table []float32, width int, rows []policynet.Feature) {
 // order than Eval sums the sorted entries, the logits agree with Eval's to
 // float rounding, not bit for bit.
 func (g *Net) EvalBag(sc *Scratch, cards []CardIn, dense, bagSum []float32, opts []policynet.Option, scores []float32) float32 {
+	return g.EvalBagExt(sc, cards, dense, bagSum, nil, opts, scores)
+}
+
+// ExtWidth is the extension block's slot count the net reads: 0 for a net
+// without ext_in, else extW.
+func (g *Net) ExtWidth() int { return g.extW }
+
+// EvalBagExt is EvalBag with the state's extension block, Σ v·ext_in[slot]
+// added into the trunk input after the dense layer. A nil ext is every
+// slot 0; a net without ext_in ignores it.
+func (g *Net) EvalBagExt(sc *Scratch, cards []CardIn, dense, bagSum []float32, ext []policynet.Feature, opts []policynet.Option, scores []float32) float32 {
 	nc := g.cardsIn(sc, cards)
 	if g.one {
-		return g.trunkBag1(sc, nc, dense, nil, bagSum, opts, scores)
+		return g.trunkBag1(sc, nc, dense, nil, bagSum, ext, opts, scores)
 	}
-	return g.trunkBagN(sc, nc, dense, nil, bagSum, opts, scores)
+	return g.trunkBagN(sc, nc, dense, nil, bagSum, ext, opts, scores)
 }
 
 // CardVec is card k's vector from the last evaluation on sc (CardWidth
