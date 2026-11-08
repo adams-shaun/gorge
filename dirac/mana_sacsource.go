@@ -76,6 +76,10 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 			return true
 		}
 	}
+	// the wait budget counts the triggers the witness stacks, before any resolve
+	if stacked && int(t.npend)-int(n0) > witnessWaits {
+		return true
+	}
 	if plannerConsumesSac(&pk) {
 		// gorge's potentialWitnessReaches runs the witness's activations and
 		// requires the play still offered: a sacrifice whose trigger resolves
@@ -87,9 +91,6 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 		if t.over {
 			return true
 		}
-	}
-	if stacked && int(t.npend)-int(n0) > witnessWaits {
-		return true
 	}
 	return s.xWitnessEndsGame(k, p, t, n0, cost)
 }
