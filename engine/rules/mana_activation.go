@@ -1049,7 +1049,7 @@ func (e *Engine) manaCostStepNext(st pay.ManaCostStep) bool {
 
 func (e *Engine) commitManaDiscard() {
 	md := e.ManaCost
-	if md == nil || !pay.PayManaConvFor(asPayer(e), md.Player, md.Source, true, md.Cost, asEval(e).Conv(md.Player, md.Source, true)) {
+	if md == nil || !pay.PayManaConvFor(asPayer(e), md.Player, md.Source, true, md.Cost, asEval(e).Conv(md.Player, md.Source, pay.SAActivated)) {
 		e.ManaCost = nil
 		e.choosing = chooseNone
 		return

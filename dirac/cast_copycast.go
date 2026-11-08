@@ -117,6 +117,9 @@ func (s *State) copyCastTargetAbort(k *prep, t *kop.TargetSpec) bool {
 	if t.TFlags&kop.TgfBoundsV != 0 && t.MinV.K != kop.VConst {
 		return false // "X target ...": X is announced first and may be 0
 	}
+	if s.copyCensusOpen(k, e) {
+		return false // a census gap keeps the candidate on the menu (affordableTargetCandidates)
+	}
 	return s.copyCastUnpayable(k, e.card, e.ctrl, e.obj, restrOriginOfEntry(e), 0)
 }
 

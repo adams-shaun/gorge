@@ -506,6 +506,12 @@ func (s *State) convokeTargetAbort(k *prep) bool {
 // every candidate is withheld. hidePicks withholds the announced convoke
 // creatures from the window, as at payment.
 func (s *State) targetWindowShort(k *prep, e *stackEntry, cost *kop.ManaCost, hidePicks bool) bool {
+	if s.copyCastPaid(k, e) && s.copyCensusOpen(k, e) {
+		// a paid copy cast's menu keeps its candidates on a census gap
+		// (copyCensusOpen; affordableTargetCandidates' fallback), as the
+		// copy abort helpers read it too.
+		return false
+	}
 	saved := s.fork()
 	defer s.unfork()
 	hide := s.convokeHidden()
