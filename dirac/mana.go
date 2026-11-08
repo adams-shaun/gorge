@@ -1192,28 +1192,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				fl := uint8(bits.OnesCount8(dmk | xm))
 				if phase > 0 && k.painMana && pc.painCol != 0 {
-					// a pain source whose painful alternative painUnit
-					// withheld (it would be lethal) still reads its
-					// flexibility over that alternative: gorge's phase-2
-					// key 5 is Alt.FlexAll, which counts the painful colours
-					// whether or not the lethal guard admits them
-					// (pay/plan.go). The normal unit is the only one left,
-					// so its flex carries the whole source.
-					all := uint8(pc.painCol) & 0x3f
-					if !pc.painOnly {
-						all |= uint8(pc.manaCol) & 0x3f
-					}
-					if xc, xp, ok := s.srcExtraPain(k, sl, pc); ok {
-						for c := range xc {
-							if xc[c] > 0 {
-								all |= 1 << c
-							}
-							if xp[c] > 0 {
-								all |= 1 << c
-							}
-						}
-					}
-					fl = uint8(bits.OnesCount8(all))
+					xc, xp, _ := s.srcExtraPain(k, sl, pc)
+					fl = painFlexAll(pc, xc, xp) // the withheld painful alternative's colours still count
 				}
 				ti := -1
 				for t := 0; t < pk.nt; t++ {

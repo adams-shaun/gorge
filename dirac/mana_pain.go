@@ -171,6 +171,31 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 // whose summed pain reaches it is never a plan.
 func (s *State) painPlanLife(p uint8) int { return int(s.pl[p].life) }
 
+// painFlexAll is a pain source's flexibility over every alternative: gorge's
+// phase-2 key 5, Alt.FlexAll, counts each mana type any alternative makes,
+// the painful colours included whether or not the lethal guard admits them.
+// A painland whose painful alternative painUnit withheld (its damage alone
+// would reach the payer's life) is then its normal unit, and that unit must
+// still read the whole source: if it read only its normal alternative's
+// colours, it would fold into an otherwise identical plain source's type and
+// take that source's flex (plan's type match). A pain-only source has no
+// normal unit, so it keeps its painful colours alone.
+func painFlexAll(pc *pcard, xc, xp [kop.NumManaKinds]uint8) uint8 {
+	all := uint8(pc.painCol) & 0x3f
+	if !pc.painOnly {
+		all |= uint8(pc.manaCol) & 0x3f
+	}
+	for c := range xc {
+		if xc[c] > 0 {
+			all |= 1 << c
+		}
+		if xp[c] > 0 {
+			all |= 1 << c
+		}
+	}
+	return uint8(bits.OnesCount8(all))
+}
+
 // painAvailMask is a pain source's production mask for the offer gate
 // (availFor): a painland makes its normal ability's mana and, while one
 // point of its damage would not be lethal, its colours; a pain-only source
@@ -242,11 +267,7 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 			xtp += xp[c]
 		}
 	}
-	all := pm | xmc | xmp
-	if !pc.painOnly {
-		all |= prim
-	}
-	fl := uint8(bits.OnesCount8(all)) // FlexAll: the normal mana and the colours, and the extra's
+	fl := painFlexAll(pc, xc, xp) // FlexAll: the normal mana and the colours, and the extra's
 	add := func(mask, pain uint8, alt bool) int {
 		if pk.nt == len(pk.types) {
 			return -1
