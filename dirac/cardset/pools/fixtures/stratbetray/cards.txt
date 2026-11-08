@@ -1,7 +1,7 @@
 # the Strategic Betrayal pool: the two-zone Origin$ Battlefield,Graveyard
 # ChangeZoneAll sweep to exile, chosen by a mandatory ChooseCard whose
 # TargetedPlayerOwn clause pins the target's graveyard
-# (dirac/zone_changezoneall_battlegrave_test.go and
+# (dirac/zone_battlegrave_test.go and
 # dirac/oracle/stratbetray_test.go). Thought Scour fills graveyards; the
 # creatures give both seats bodies at several mana values.
 Strategic Betrayal
