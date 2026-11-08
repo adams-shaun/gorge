@@ -94,9 +94,16 @@ func TestAbilityStrandCountsRestrictedManaOnce(t *testing.T) {
 		t.Fatalf("precondition: dry walk on the full cost ok=%v known=%v, want false/true", ok, known)
 	}
 
-	if !s.manaStep(sc.k) {
-		t.Fatal("manaStep did not reverse the activation: the dry walk counted the floating restricted {U} twice and cleared a payment the planner cannot fund")
-	}
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				t.Fatalf("manaStep panicked before reversing the activation, so the dry walk cleared a payment the planner cannot fund: %v", r)
+			}
+		}()
+		if !s.manaStep(sc.k) {
+			t.Fatal("manaStep did not reverse the activation: the dry walk counted the floating restricted {U} twice and cleared a payment the planner cannot fund")
+		}
+	}()
 	if s.perms[forest].flags&pfTapped != 0 {
 		t.Fatal("the reversed activation kept the Forest tapped")
 	}
