@@ -2573,8 +2573,14 @@ func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude O
 //go:noinline
 func (s *State) manaStep(k *prep) bool {
 	e := &s.bld().e
+	// A plan cut stays cut for the rest of the build: the plan stopped at a
+	// decision (a Treasure's sacrifice behind a replacement ask), so every
+	// later re-entry pays through the manual window too. Clearing the bit
+	// after its first read let a re-entry after the window's own parked
+	// sacrifice plan again, and a fresh plan names an any-colour source's
+	// colour by its own rule (G first) where gorge's window asks the
+	// lowest, so one Treasure floated a different colour on each engine.
 	planCut := s.bld().bfl&bflPlanCut != 0
-	s.bld().bfl &^= bflPlanCut
 	switch e.kind {
 	case seSpell:
 		cost := s.buildCost(k)
