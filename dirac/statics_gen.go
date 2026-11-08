@@ -200,12 +200,23 @@ func (s *State) matchSpellCard(k *prep, f kop.FilterID, c CardID, owner, ctrl ui
 	return false
 }
 
+// targetsAnswered reports whether the build's target stages have passed: the
+// chosen set (none included) is what a target-dependent price reads then
+// (CR 601.2c before 601.2f), not the candidate census that priced the ask.
+func (s *State) targetsAnswered() bool {
+	switch s.bld().stage {
+	case bsDivide, bsEvidence, bsMana, bsCosts, bsPay:
+		return true
+	}
+	return false
+}
+
 // costTargetOK: the spell being built targets an object matching f, or (no
 // target chosen yet) some object could be such a target: a battlefield
 // object, or for a stack-zone f (a Spell head: Out of Air's Spell.Creature)
 // a spell on the stack (costTargetMatch, filter_heads.go).
 func (s *State) costTargetOK(k *prep, f kop.FilterID, p uint8, c CardID) bool {
-	if s.ctl == ctlBuild && (s.bld().e.nt > 0 || s.bld().stage == bsPay) { // at bsPay none means an "up to" answered with none
+	if s.ctl == ctlBuild && (s.bld().e.nt > 0 || s.targetsAnswered()) { // once the ask is answered, none means an "up to" answered with none
 		e := &s.bld().e
 		for i := 0; i < int(e.nt); i++ {
 			if s.costTargetMatch(k, f, p, e.tgt[i]) {

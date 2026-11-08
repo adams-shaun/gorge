@@ -2116,7 +2116,8 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			} else {
 				ok = true
 			}
-			if !ok && (!s.spellTgtDep(k, s.bld().e.ctrl, s.bld().e.card, s.bld().e.obj) || severalTargets(k, s.bld().e.card)) {
+			if !ok && (!s.spellTgtDep(k, s.bld().e.ctrl, s.bld().e.card, s.bld().e.obj) ||
+				severalTargets(k, s.bld().e.card) && s.bld().e.flags&(sfMayPlay|sfFlashback) != 0) {
 				s.g.noTgtRed = false
 				return
 			}
@@ -2229,7 +2230,8 @@ func (s *State) witnessAtCheapest(k *prep, p uint8, cost *kop.ManaCost, av *avai
 		*cost = s.altAddReduced(k, *cost, s.altAddManaPart(k, e.card))
 		return
 	}
-	if s.spellTgtDep(k, p, e.card, e.obj) && !severalTargets(k, e.card) && cost.Hyb[0] == 0 {
+	if s.spellTgtDep(k, p, e.card, e.obj) && cost.Hyb[0] == 0 &&
+		(!severalTargets(k, e.card) || e.flags&(sfMayPlay|sfFlashback) == 0) {
 		funded := av.affords(cost, pipMaskOf(cost), 0)
 		if k.gen != nil && len(k.gen.grantPC) != 0 {
 			// the planner's census has no granted source (Imprisoned in the Moon's {C})
@@ -2772,7 +2774,26 @@ func (s *State) manaStep(k *prep) bool {
 					cost = s.restrShortAdm(e.ctrl, m, cost)
 				}
 			}
-			s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
+			if s.spellTgtDep(k, e.ctrl, e.card, e.obj) {
+				// A target-dependent price is fixed after the targets (CR
+				// 601.2c before 601.2f), so the offer's plan may no longer
+				// fund it: an "up to" answered with none loses a "if it
+				// targets ..." reduction and the cast is then unpayable. The
+				// planned-offer invariant (a plan exists) no longer holds;
+				// reverse through the manual window's own answer instead of
+				// the planner panic (gorge casts the zero-target proposal and
+				// reverses it, cast_payment.go abortCast).
+				var pk planner
+				pk.try = true
+				s.tapForPK(k, e.ctrl, &cost, int(e.x), e.obj, false, anyColor, &pk)
+				if !pk.found {
+					s.releaseCostTaps(k, &saved)
+					s.reverseCast(k)
+					return true
+				}
+			} else {
+				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
+			}
 		}
 		s.bld().bfl &^= bflManaStep
 		s.releaseCostTaps(k, &saved)

@@ -123,7 +123,8 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	if o == nil || o.Zone != originZone || (!mayPlay && o.Owner != p) || o.Face() == nil || int(o.FaceIdx) != cast.Face {
 		return PaymentPlanOutcome{Reason: "unsupported"}
 	}
-	if detail := e.paymentPlanCastShapeDetailScoped(statics.get(), p, cast.Object, plannedCastScope(o.Zone, flashback)); detail != "" {
+	detail := e.paymentPlanCastShapeDetailScoped(statics.get(), p, cast.Object, plannedCastScope(o.Zone, flashback))
+	if detail != "" {
 		if !targetPaidShape(detail) || flashback || mayPlay || !e.targetPaidNeedsPlannedPayment(p, cast.Object) {
 			return PaymentPlanOutcome{Reason: "unsupported", Detail: detail}
 		}
@@ -141,6 +142,21 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	default:
 		if !candidates.has(cast.Object) {
 			return PaymentPlanOutcome{Reason: "unsupported"}
+		}
+	}
+	if targetPaid && detail == "shape:target_dependent_cost" {
+		// A ValidTarget$ cost reduction prices the cast for the targets it
+		// will have (CR 601.2f), and a cast that is payable only by spending
+		// one of those targets pays at CR 601.2g, after they are chosen
+		// (targetPaidNeedsPlannedPayment). Plan the cheapest legal target
+		// set's composed cost, the same enumeration the potential walk's
+		// witness uses (potentialTargetPricedPlan), so the witness's price is
+		// the one the chosen set will charge.
+		base := pay.RawBaseCost(asPayer(e), p, cast.Object)
+		base = pay.WithSpellAbilityExtras(o.Face(), base)
+		rider := pay.ConvRider(asEval(e).Conv(p, cast.Object, false))
+		if _, got := e.targetPricedPlan(statics.get(), p, cast.Object, base, spellScope(""), rider); got.Plan != nil && got.Reason == "" {
+			return got
 		}
 	}
 	// V1 has no way to carry a target-dependent reprice or a choice made at
@@ -831,6 +847,18 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 		rider = rider.Or(asPayer(e).Eval().MayPlayRider(p, cast.Object))
 	}
 	cost = pay.PlanManaUnderRider(cost, rider)
+	if got.Plan != nil && pay.WireCost(cost) != got.Plan.Cost {
+		// A planned target-paid cast witnesses the cheapest legal target
+		// set's composed price (planCastPaymentChecked's targetPaid arm), not
+		// the printed composition: re-derive that enumeration so the settle
+		// proves the price the target ask will charge.
+		base := pay.WithSpellAbilityExtras(e.G.Obj(cast.Object).Face(), settleBase)
+		if priced, alt := e.targetPricedPlan(e.collectCostStatics(), p, cast.Object, base, settleScope, rider); alt.Plan != nil && alt.Reason == "" {
+			if altCost := pay.PlanManaHalf(priced); pay.WireCost(altCost) == got.Plan.Cost {
+				cost = altCost
+			}
+		}
+	}
 	desc := pay.DescriptorFor(cast.Object, false, cost)
 	initial := pay.PlanPool(asPayer(e), p, &desc)
 	payment, ok := resolveManaWith(cost, pay.ManaAdd(initial, produced), state.Mana{}, [7]state.Mana{}, e.G.Players[p].Life, false, pipRider{}, nil)

@@ -471,6 +471,17 @@ func (e *Engine) targetAsk() bool {
 	min, max, _, _ = e.oneEachTargetBounds(sa, candidates, min, max)
 	min, max, _, sameController := e.sameControllerTargetBounds(sa, candidates, min, max)
 	min, max, _, setMode, setKind := e.setPropTargetBounds(sa, candidates, min, max)
+	if min == 0 && !pc.isAbility() && pc.mode == "" && len(candidates) != 0 &&
+		e.paymentPlanTargetDependentFor(e.collectCostStatics(), pc.player, pc.card, spellScope("")) {
+		// A target-dependent reduction is priced by the targets chosen (CR
+		// 601.2c before 601.2f), so the "up to" empty answer can make the
+		// settled cost one no source can pay. Withhold it, exactly as an
+		// unaffordable target candidate is withheld: choosing it would only
+		// reverse the proposal (CR 601.2h, 733.1).
+		if e.paymentStranded(pc) {
+			min = 1
+		}
+	}
 	// The ONE feasibility rule (engine/rules/legal.go's targetChoiceFeasible) is the
 	// same predicate the cast offer census ran (targetSAAvailable), so an
 	// offered cast can always announce a legal target: the count, the

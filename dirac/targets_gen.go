@@ -158,7 +158,23 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 	for i := 0; i < n; i++ {
 		d.add(MakeAction(AkTarget, 0, buf[i], 0))
 	}
-	if mt.picked >= mt.min {
+	doneOK := mt.picked >= mt.min
+	if doneOK && mt.picked == 0 && mt.min == 0 && e.kind == seSpell && e.flags&(sfMayPlay|sfFlashback) == 0 &&
+		s.spellTgtDep(k, e.ctrl, e.card, e.obj) {
+		// A target-dependent price is fixed by the targets chosen (CR
+		// 601.2c before 601.2f): the "up to" empty answer can make the cost
+		// one no source can pay, and gorge withholds it exactly as it
+		// withholds an unaffordable candidate (affordableTargetCandidates)
+		// rather than exposing a completion that only reverses the cast.
+		was := s.g.noTgtRed
+		s.g.noTgtRed = true
+		zero := s.buildCost(k)
+		s.g.noTgtRed = was
+		var av avail
+		s.availFor(k, e.ctrl, &av)
+		doneOK = av.affords(&zero, pipMaskOf(&zero), 0)
+	}
+	if doneOK {
 		d.add(MakeAction(AkDone, 0, 0, 0))
 	}
 	return mtPosed
