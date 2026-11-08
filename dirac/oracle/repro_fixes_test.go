@@ -162,6 +162,7 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"common_good_double_x_no_autopay_panic", false, false}, // CR 601.2b: For the Common Good paid with two Treasures whose largest X eats both targets: the witness is the smaller X that consumes one, not the unpayable X = 0 that keeps both
 		{"x_cast_unreachable_witness_no_prefix", false, false},  // CR 601.2b: a Treasure pays For the Common Good's {G} at X = 0 and is the only token it copies, so gorge's verdict is witness_unreachable and no prefix search runs
 		{"x_cast_rider_keeping_plan", false, false},             // CR 609.4b, 601.2b: Cruelclaw's Heist's any-type rider pays For the Common Good's {G} from a Swamp, so the keeping plan leaves the Treasure as its target
+		{"x_cast_rider_keeping_plan_lowered", false, false},     // CR 609.4b, 601.2b: the same cast played: its payment taps the rider's keeping plan, not the smaller-X witness
 	})
 }
 
@@ -210,6 +211,8 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"deanna_spacecraft_suurok_s193", false, false},                 // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_enterprise_a_s203", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_enterprise_d_s205", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
+		// CR 605.3a, 601.2g-h: Starfleet Academy's filter makes seven, past the relaxed census's six, so gorge's prefix search funds no fee and taps Rok-Tahk's granted {G}{G} on three creatures before the filter's {B} pays Artificial Anomaly
+		{"granted_creatures_fund_unrelaxable_dynamic_filter", false, false},
 	})
 }
 

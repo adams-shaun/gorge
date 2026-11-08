@@ -508,6 +508,7 @@ func (g *grantSrch) candidates(s *State) {
 	dm := s.scriptDeferred(g.k, g.p)
 	g.n = 0
 	holders := 0
+	var fc slotMask // the filter candidates
 	for i := 0; i < n; i++ {
 		sl := order[i]
 		if sl == g.ex {
@@ -524,13 +525,22 @@ func (g *grantSrch) candidates(s *State) {
 		g.def[g.n] = ng == 0 && dm.has(sl)
 		g.gap[g.n] = true
 		if fm.has(sl) {
-			g.funding += s.filtFee(g.k, sl)
+			fc = fc.with(sl)
 		}
 		g.n++
 	}
 	if holders == 0 {
 		g.n, g.gapN = 0, 0
 		return
+	}
+	// gorge funds the fees its relaxed census holds (census.fees()); an
+	// unrelaxable census (a fourth filter, a dynamic amount above six:
+	// Starfleet Academy's seven creature types) holds none, so the search
+	// funds nothing and activates the gaps alone (filtRelaxable, CR 605.3a)
+	if s.filtRelaxable(g.k, fc) {
+		for b := fc; b.any(); b = b.rest() {
+			g.funding += s.filtFee(g.k, b.first())
+		}
 	}
 	// A paid gap's fee is funded by other sources (gorge scriptSearch's
 	// funding loop: the gaps first, then non-gaps while funding lasts). The
