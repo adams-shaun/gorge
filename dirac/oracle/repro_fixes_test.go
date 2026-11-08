@@ -474,6 +474,8 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"count_reduction_fixed_before_treasure_mana", true, false},
 		// CR 601.2f: Cloud, Planet's Champion's "Equip abilities you activate that target NICKNAME cost {2} less" prices Equip {3} at {1} for a target named only at CR 601.2c, so the offer and the payment plan agree
 		{"equip_cost_target_reduction", true, false},
+		// CR 601.2f: on the full surface too, Cloud, Planet's Champion's equip reduction prices Excalibur II's and Red Mage's Rapier's Equip {3} at {1}, so gorge offers both activations dirac offers
+		{"equip_cost_target_reduction_full_surface", false, false},
 		// CR 601.2f: Cloud, Planet's Champion's {2} less makes White Mage's Staff's equip onto it {1}, payable by tapping Balamb Garden
 		{"equip_target_reduced_autopay_offer", true, false},
 		// CR 601.2f, 602.2b: Cloud's {2} equip reduction prices Dragoon's Lance's Equip {4} for the target Cloud, so the autopay offer plans {2}
