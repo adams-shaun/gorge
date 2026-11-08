@@ -275,8 +275,9 @@ func (e *Engine) planCastAltAdd(statics costStaticViews, p state.PlayerID, cast 
 	opt := decision.Option{Kind: "cast", Obj: cast.Object, Mode: cast.CastMode()}
 	for _, part := range altAddCostParts(o.Face()) {
 		c := ParseCost(part)
+		nonMana := !c.HasManaPayment()
 		total := base.Plus(c)
-		if !c.HasManaPayment() && !pay.NonManaCastable(asPayer(e), p, cast.Object, total, false, "") {
+		if nonMana && !pay.NonManaCastable(asPayer(e), p, cast.Object, total, false, "") {
 			continue
 		}
 		// The part joins the price BEFORE the cost statics (CR 601.2f/h);
@@ -288,7 +289,17 @@ func (e *Engine) planCastAltAdd(statics costStaticViews, p state.PlayerID, cast 
 		}
 		composed = pay.PlanManaUnderRider(composed, rider)
 		got := e.planComposedCost(p, cast.Object, composed, false, false)
-		if got.Plan != nil && got.Reason == "" && e.potentialWitnessOffers(p, opt, *got.Plan) {
+		// A part with no mana of its own is paid by the cast flow's in-flow
+		// ask (altAddAsk), not by the offer walk, so the walk cannot price it
+		// on its own: a Behold part makes offerCastable decline the cast
+		// however payable the beholding is. Requiring potentialWitnessOffers
+		// here therefore dropped the cast whenever this free part was the
+		// first payable one (pair 73: Silvergill Mentor's behold part was
+		// payable while the {2} part was not, so neither the pool's option
+		// list nor the planner carried the cast). NonManaCastable above is the
+		// free part's own payability gate; the parts with mana still take the
+		// offer gate. CR 601.2b/h.
+		if got.Plan != nil && got.Reason == "" && (nonMana || e.potentialWitnessOffers(p, opt, *got.Plan)) {
 			return got
 		}
 	}
