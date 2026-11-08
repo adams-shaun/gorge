@@ -12,7 +12,7 @@ import (
 // hybrid pip, or a generic the pool does not cover yet): the ability lists no
 // symbol, so gorge's window offers every colour and the payment window's bot
 // takes the first listed one (W), not {C}. The decided case is covered by
-// TestWindowOwedCountsTheRestrictedManaOnce.
+// TestWindowColOwedCountsTheRestrictedManaOnce.
 func TestWindowColStartingTownUndecidedAnswersFirstColour(t *testing.T) {
 	t.Parallel()
 	sc := newScen(t, Config{})

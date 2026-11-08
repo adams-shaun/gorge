@@ -82,7 +82,7 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 		// life) is no witness while one that keeps the source exists
 		// (potentialWitnessKeeping). The kernel's pre-cast resolution is the
 		// same walk.
-		t.resolveLowerCounterTriggers(k, n0)
+		t.resolveLowerCounterTriggers(k, n0, k.cards[c].instant || t.castFlash(k, p, c))
 		if t.over {
 			return true
 		}
@@ -237,9 +237,12 @@ func (s *State) availTappedSac(k *prep, p uint8, a *avail) {
 // check would end the witness) and an optional trigger. A trigger that
 // mills, loses life, gains life or draws for a target player is answered
 // with the first player gorge's default answer names.
-func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
-	b := s.bld()
-	instant := b.e.kind == seSpell && (k.cards[b.e.card].instant || s.castFlash(k, b.e.ctrl, b.e.card))
+//
+// The caller states whether the cast being lowered is instant-speed: the offer
+// path walks this on a fork with no build live (bld holds the build only in
+// ctlBuild), so reading its entry there would take the speed of whichever card
+// was built or resolved last.
+func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 	resolved := false
 	for i := int(n0); i < int(s.npend); {
 		if s.over {

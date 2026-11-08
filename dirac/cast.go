@@ -170,7 +170,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		s.bld().bfl |= bflLowered
 	}
 	if s.npend > n0 {
-		s.resolveLowerCounterTriggers(k, n0)
+		s.resolveLowerCounterTriggers(k, n0, k.cards[c].instant || s.castFlash(k, p, c))
 	}
 }
 
@@ -769,11 +769,12 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				continue
 			}
 			if e.kind == seSpell {
-				// a free cast begun without the offer's cost census (Wishing Well's
-				// Play) can owe a fixed PayLife<N> no cast option priced. A cast
-				// with no target asks nothing before this stage, so the life part
-				// would otherwise be paid into negative life instead of reversing
-				// (CR 601.2h, 733.1). A PayLife<X> is bounded by the X ask.
+				// any spell build can owe a fixed PayLife<N> the offer's cost
+				// census did not price (Wishing Well's Play). A cast with no
+				// target asks nothing before this stage, so the life part would
+				// otherwise be paid into negative life instead of reversing
+				// (CR 119.4, 601.2h, 733.1); this applies to any spell, not
+				// only a free cast. A PayLife<X> is bounded by the X ask.
 				// buildPickCost is the chosen either-or part: an alt-add cast
 				// paying its mana part owes no life (Redirect Lightning).
 				if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 && int(s.pl[e.ctrl&1].life) < int(pc.N) {

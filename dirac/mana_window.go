@@ -2009,7 +2009,8 @@ func (s *State) lowerWitness(k *prep, p uint8) {
 		s.bld().obsWin |= obsWinTapped // the witness floats its mana before the announced X prices the cast (mana_spendtrigger.go obsWinSettle)
 	}
 	if s.npend > n0 {
-		s.resolveLowerCounterTriggers(k, n0)
+		b := s.bld()
+		s.resolveLowerCounterTriggers(k, n0, b.e.kind == seSpell && (k.cards[b.e.card].instant || s.castFlash(k, b.e.ctrl, b.e.card)))
 	}
 }
 
