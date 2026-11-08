@@ -18,12 +18,16 @@ import (
 // policy, because no table may seat it.
 const pairedBotBuiltin = "az-closed"
 
+// pairedBotBuiltinCommander is the same search over a belief of the server's
+// Commander decks, for 2-seat Commander tables.
+const pairedBotBuiltinCommander = "az-closed-commander"
+
 // pairedBotEntry resolves -paired-bot: nil when it is off (empty, or "off",
 // which a deploy's environment can spell), the built-in search over a belief,
 // or a registered policy. The host checks the entry's seats. conPool is what
 // the built-in search believes opponents play when -paired-bot-decks is not
 // given: the constructed decks this server deals.
-func (c config) pairedBotEntry(reg *cards.Registry, load func(string) (host.Deck, error), conPool []string) (*bots.Entry, error) {
+func (c config) pairedBotEntry(reg *cards.Registry, load func(string) (host.Deck, error), conPool, cmdPool []string) (*bots.Entry, error) {
 	if c.pairedBot == "" || c.pairedBot == host.PairedBotOff {
 		return nil, nil
 	}
@@ -33,7 +37,7 @@ func (c config) pairedBotEntry(reg *cards.Registry, load func(string) (host.Deck
 	if c.pairedBotSearches < 1 {
 		return nil, fmt.Errorf("-paired-bot-searches %d, want >= 1", c.pairedBotSearches)
 	}
-	return c.pairedBotNamed(c.pairedBot, reg, load, conPool)
+	return c.pairedBotNamed(c.pairedBot, reg, load, conPool, cmdPool)
 }
 
 // pairedBotChoices lists what a table may choose besides -paired-bot: the
@@ -41,11 +45,14 @@ func (c config) pairedBotEntry(reg *cards.Registry, load func(string) (host.Deck
 // with no -paired-bot offers none, since searching is its operator's to allow.
 // A choice that cannot be built is logged and left out, because the operator
 // did not ask for it by name.
-func (c config) pairedBotChoices(o host.Options, reg *cards.Registry, load func(string) (host.Deck, error), conPool []string) []*bots.Entry {
+func (c config) pairedBotChoices(o host.Options, reg *cards.Registry, load func(string) (host.Deck, error), conPool, cmdPool []string) []*bots.Entry {
 	if o.PairedBot == nil {
 		return nil
 	}
 	names := []string{pairedBotBuiltin}
+	if len(cmdPool) > 0 {
+		names = append(names, pairedBotBuiltinCommander)
+	}
 	for _, e := range bots.Entries() {
 		if e.ClosedLists && e.Search {
 			names = append(names, e.Name)
@@ -56,7 +63,7 @@ func (c config) pairedBotChoices(o host.Options, reg *cards.Registry, load func(
 		if name == o.PairedBot.Name {
 			continue
 		}
-		e, err := c.pairedBotNamed(name, reg, load, conPool)
+		e, err := c.pairedBotNamed(name, reg, load, conPool, cmdPool)
 		if err == nil {
 			err = host.ValidatePairedBot(*e, o)
 		}
@@ -70,11 +77,25 @@ func (c config) pairedBotChoices(o host.Options, reg *cards.Registry, load func(
 }
 
 // pairedBotNamed builds the entry for a paired bot's name.
-func (c config) pairedBotNamed(name string, reg *cards.Registry, load func(string) (host.Deck, error), conPool []string) (*bots.Entry, error) {
+func (c config) pairedBotNamed(name string, reg *cards.Registry, load func(string) (host.Deck, error), conPool, cmdPool []string) (*bots.Entry, error) {
+	if name == pairedBotBuiltinCommander {
+		if c.pairedBotSims < 1 {
+			return nil, fmt.Errorf("-paired-bot-sims %d, want >= 1", c.pairedBotSims)
+		}
+		belief, err := pairedBotCommanderBelief(load, cmdPool)
+		if err != nil {
+			return nil, err
+		}
+		return &bots.Entry{
+			Info: bots.Info{Name: pairedBotBuiltinCommander, Label: "az-closed (search, Commander)", Tier: bots.Experimental,
+				Env: true, Search: true, ClosedLists: true, Formats: []string{"commander"}, MaxSeats: 2},
+			New: azredeal.ClosedFactory(belief, c.pairedBotSims),
+		}, nil
+	}
 	if name != pairedBotBuiltin {
 		e, ok := bots.Lookup(name)
 		if !ok {
-			return nil, fmt.Errorf("-paired-bot: unknown bot %q (%s, or a registered closed-list search policy)", name, pairedBotBuiltin)
+			return nil, fmt.Errorf("-paired-bot: unknown bot %q (%s, %s, or a registered closed-list search policy)", name, pairedBotBuiltin, pairedBotBuiltinCommander)
 		}
 		// bots.New fills the policy's declared option defaults; its factory
 		// alone would not.
@@ -110,6 +131,27 @@ func (c config) pairedBotBelief(reg *cards.Registry, load func(string) (host.Dec
 	b, err := searchprobe.NewBelief(decks)
 	if err != nil {
 		return nil, fmt.Errorf("-paired-bot: -decks holds no constructed deck to guess from: %w", err)
+	}
+	return b, nil
+}
+
+// pairedBotCommanderBelief is the cards of every deck in the server's Commander
+// pool: what the Commander search believes an unseen opponent plays.
+func pairedBotCommanderBelief(load func(string) (host.Deck, error), cmdPool []string) (*searchprobe.Belief, error) {
+	if len(cmdPool) == 0 {
+		return nil, fmt.Errorf("-paired-bot %s: this server deals no Commander deck", pairedBotBuiltinCommander)
+	}
+	var decks [][]*cards.Card
+	for _, name := range cmdPool {
+		d, err := load(name)
+		if err != nil {
+			return nil, fmt.Errorf("-paired-bot: deck %s: %w", name, err)
+		}
+		decks = append(decks, d.Cards)
+	}
+	b, err := searchprobe.NewBelief(decks)
+	if err != nil {
+		return nil, fmt.Errorf("-paired-bot %s: no Commander deck to guess from: %w", pairedBotBuiltinCommander, err)
 	}
 	return b, nil
 }
