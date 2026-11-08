@@ -1883,6 +1883,10 @@ func (s *State) takePending(k *prep, i int) {
 	pt := s.pend[i]
 	copy(s.pend[i:s.npend-1], s.pend[i+1:s.npend])
 	s.npend--
+	// the trigger's push is progress: gorge's TriggerPush event clears the
+	// no-progress abort counts (emit's suppression rule), so a cast reversed
+	// before it may be redone after it (CR 733.2; noProgress)
+	s.touchN++
 	// A stale warp / unearth / destroy / exile promise, or an incarnation-tracked
 	// one (Decayed), still triggers and is put on the stack (CR 603.7); it
 	// resolves doing nothing to the new object (CR 400.7: resolveDelayed and
