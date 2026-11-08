@@ -450,6 +450,9 @@ type grantSrch struct {
 	// play needs before the colours it does not. It only reorders a colour
 	// ask's answers, never the answer set.
 	need [kop.NumManaKinds]bool
+	// pver is the play's own object's version at the root (Obj.ver): the play
+	// stands only while its card has not changed zones (waitsForStack)
+	pver uint8
 }
 
 // grantKey identifies a payer state (gorge scriptStateKey: the pool and
@@ -537,6 +540,9 @@ func (g *grantSrch) candidates(s *State) {
 	// non-gaps sit after every gap in battlefield order, exactly the walk
 	// order that loop reads.
 	g.gapN = g.n
+	if !s.filtFunded(g.k, g.p, fm) {
+		g.funding = 0 // (gorge's unrelaxable census funds no fee)
+	}
 	if g.funding == 0 {
 		return
 	}
@@ -749,6 +755,12 @@ func (g *grantSrch) visit(t *State) bool {
 func (g *grantSrch) waitsForStack(t *State) bool {
 	if !g.d.hasPlay {
 		return false
+	}
+	if o := Obj(g.d.play.Source()); o != NoObj && int(o) < len(t.objs) && t.objs[o].ver != g.pver {
+		// the play's own card left the zone it is played from (a Mechan
+		// Navigator tap's draw-then-discard binning the library-top spell): a
+		// new object (CR 400.7), so gorge's search finds no such play
+		return true
 	}
 	// a stack the prefix grew, or a trigger's answer that may have moved the
 	// play's own card (Gran-Gran's loot discarding the spell: gorge prices a
@@ -1026,6 +1038,11 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 	if d.hasPlay {
 		if full, ok := s.grantWaterbendFull(k, d.play); ok {
 			g.full, g.dyn = full, true
+		}
+	}
+	if d.hasPlay {
+		if o := Obj(d.play.Source()); o != NoObj && int(o) < len(s.objs) {
+			g.pver = s.objs[o].ver
 		}
 	}
 	g.candidates(s)

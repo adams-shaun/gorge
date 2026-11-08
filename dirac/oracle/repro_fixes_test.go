@@ -55,7 +55,9 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		// Interrogation still owes its per-target RaiseCost; the pool cannot
 		// pay it, so the cast window reverses the cast (std-mkm pair 2359)
 		{"free_copy_raise_cost_per_target_reversed", false, false},
-		{"collect_evidence_selection_stale", true, false}, // CR 701.59a: Forensic Researcher's evidence pick lists the whole graveyard after a declined Lamplight Phoenix cost left its reservation behind
+		{"collect_evidence_selection_stale", true, false},            // CR 701.59a: Forensic Researcher's evidence pick lists the whole graveyard after a declined Lamplight Phoenix cost left its reservation behind
+		{"copy_each_target_copies_enter_together_two", false, false}, // ... and Doppelgang's copies of several targets likewise enter in one batch
+		{"sacrifice_menu_keeps_stolen_creature", true, false},
 	})
 }
 
@@ -169,6 +171,10 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		// CR 701.21a, 610.3d: Scavenger's Talent's sacrifice-three cost includes Banishing Light, so its card returns after all three are gone
 		{"blb_sac_cost_exile_return_after_all_sacrificed", true, false},
 		{"blb_sac_cost_exile_return_after_all_sacrificed_sword", true, false},
+		{"common_good_double_x_no_autopay_panic", false, false},         // CR 601.2b: For the Common Good paid with two Treasures whose largest X eats both targets: the witness is the smaller X that consumes one, not the unpayable X = 0 that keeps both
+		{"x_cast_unreachable_witness_no_prefix", false, false},          // CR 601.2b: a Treasure pays For the Common Good's {G} at X = 0 and is the only token it copies, so gorge's verdict is witness_unreachable and no prefix search runs
+		{"x_cast_rider_keeping_plan", false, false},                     // CR 609.4b, 601.2b: Cruelclaw's Heist's any-type rider pays For the Common Good's {G} from a Swamp, so the keeping plan leaves the Treasure as its target
+		{"x_cast_rider_keeping_plan_lowered", false, false},             // CR 609.4b, 601.2b: the same cast played: its payment taps the rider's keeping plan, not the smaller-X witness
 		{"copy_keyword_exception_returns_when_loss_ends", false, false}, // CR 707.9b, 613.1f: Mockingbird copying Shoreline Looter, made to lose all abilities until its controller's next turn, has its copy exception's flying again when the loss ends
 		{"any_one_colour_restricted_x_colour_choice", false, false},     // CR 106.6, 601.2b: Helga's two restricted mana count in the {X} ceiling of Mockingbird's cast, so its witness taps every source for X = 4
 	})
@@ -185,6 +191,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"entry_counter_put_by_opposing_grant", false, false},           // CR 122.6a: Overflow Submatrix's finality counter on the opponent's Storied Veteran is put by the Submatrix's controller, so Dr. Joseph M'Benga doubles only the Veteran's own grant
 		{"stack_spell_controller_not_owner", true, false},               // CR 108.4, 110.2: Brazen Bluff asks the controller of the spell it targets, the player casting Transporter Malfunction from the opponent's exile, not its owner
 		{"copy_cast_x_targets_ask_after_x", false, false},               // CR 601.2b, 601.2c: Q's Play of Dominion Infiltration announces X before its "X target creatures", so a copy cast no mana can pay still asks X and reaches its mana window
+		{"copy_cast_enters_as_cast", false, false},                      // CR 707.12: Q's Play of Crystalline Entity casts the copy, so its "if you cast it" enter trigger fires beside Sickbay's
 		{"refused_paid_copy_cast_keeps_window_tap", true, false},        // CR 733.1: Encounter the Unknown's copy cast that gorge cannot pay is reversed after its mana window, so the tapped source and its mana stay
 		{"exile_grant_host_is_a_copy", false, false},                    // CR 707.2, 603.6a: Dominion Saboteur enters as Q, Stacking the Deck, so its enter trigger's exiled Assembly Specialist gains Q's exile-from-hand cast ability, which the copy's host offers
 		{"turn_once_resets_while_phased_out", false, false},             // CR 602.5b, 702.26d: DOT-7 Repair Squad activated, then phased out through its turn's end, has its once-each-turn limit lifted when it phases back in
@@ -220,7 +227,11 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"deanna_spacecraft_suurok_s193", false, false},                 // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_enterprise_a_s203", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_enterprise_d_s205", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
-		{"first_charge_counter_each_turn_after_bounce", false, false},   // CR 400.7, 603.2: U.S.S. Enterprise-D bounced and recast this turn is a new object, so its first charge counters after the recast queue "for the first time each turn" again
+		{"copy_each_target_copies_enter_together", true, false},         // CR 603.6a: Dominion Infiltration's copies of V'Ger and Captain Janeway enter together, so the Janeway copy also triggers for the V'Ger copy
+		// CR 605.3a, 601.2g-h: Starfleet Academy's filter makes seven, past the relaxed census's six, so gorge's prefix search funds no fee and taps Rok-Tahk's granted {G}{G} on three creatures before the filter's {B} pays Artificial Anomaly
+		{"granted_creatures_fund_unrelaxable_dynamic_filter", false, false},
+		{"first_charge_counter_each_turn_after_bounce", false, false}, // CR 400.7, 603.2: U.S.S. Enterprise-D bounced and recast this turn is a new object, so its first charge counters after the recast queue "for the first time each turn" again
+		{"unrelaxable_filter_no_grant_funding", false, false},         // CR 601.2g-h: Starfleet Academy's X=7 filter makes gorge's census unrelaxable, so the grant search funds no fee and Rok-Tahk's granted {G}{G} from three creatures pays the {5}
 	})
 }
 
@@ -296,6 +307,10 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"ward_failed_pay_skips_unspendable_grant", true, false},               // CR 106.6: the failed pay arm taps what the window lists, not Mm'menon's granted artifact blue a ward cannot spend
 		{"grant_cap_tapx_activation_torpedo", false, false},                    // CR 605.1a, 601.2g-h: Thaumaton Torpedo's {6},{T},Sac is paid by five lands and Gene Pollinator beside Mm'menon's grant: the granted-only artifact is no unit to take out of the prefix search's availability
 		{"grant_cap_tapx_activation_lander", false, false},                     // ... and a Lander token's {2},{T},Sac by one Island and Gene Pollinator
+		{"trigger_order_menu_lists_same_pending_triggers", false, false},       // CR 603.10a: Devastating Onslaught's Encore sacrifices its two Lightless Evangel tokens together, so each token's sacrifice trigger sees the other go
+		{"mmmenon_hand_barred_blue_not_spent_on_hand_cast", true, false},       // CR 106.6, 602.2b: Mm'menon's hand-barred granted blue is no relaxed unit for Atomic Microsizer's Equip {2} nor Sinister Cryologist's hand warp, and the tap-another search alone (Gene Pollinator tapping Nanoform Sentinel) may not keep the play gorge's one prefix search gave up on
+		{"mmmenon_hand_barred_blue_not_spent_on_hand_cast_full", false, false}, // ... and Biosynthic Burst from the hand, on the full surface
+		{"mmmenon_library_top_cast_binned_by_prefix_draw", true, false},        // CR 400.7: Mechan Navigator's tap draws the library-top Cryogen Relic and discards it, so the cast the granted blue would pay no longer exists
 	})
 }
 
@@ -591,6 +606,7 @@ func TestStdFraReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-fra", []stdRepro{
 		{"sweep_returns_aura_after_earlier_entrants", true, false}, // CR 303.4f: Return to the Light Realms asks for Infinite Coursework's host with the cards before it entered and the ones after still in the graveyard
 		{"sacrificed_mana_source_moves_its_aura", false, false},    // CR 704.3, 704.5m: the check after a mana source's sacrifice while paying a cast takes its Aura before the cast's next choice
+		{"flashback_dynamic_source_graveyard_amount", true, false}, // CR 117.1d, 605.3a: Bestial Incursion's flashback is paid by Loot, the Nexus tapped at its graveyard-time amount (Tarmogoyf one point larger), a lowered potential play and not a planned cast
 	})
 }
 
@@ -825,6 +841,7 @@ func TestStdWoeReprosLockstep(t *testing.T) {
 		{"filter_fed_by_granted_mana", false, false},                    // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
 		{"act_paid_filter_second_colour", true, false},                  // CR 601.2g, 602.2b: Restless Fortress's {1}{W}{B} animation is offered when a free filter (Crystal Grotto) makes one pip and Rootrider Faun's paid filter the other
 		{"woe_activation_sac_exile_return_asks_in_exile", false, false}, // CR 614.12, 610.3: Werefox Bodyguard sacrificed for its own activation returns Talion, the Kindly Lord, whose number is asked in exile before it enters
+		{"legend_rule_and_saga_sacrifice_one_batch", true, false},       // CR 704.3, 603.10a: the Neva the legend rule removes still sees The Princess Takes Flight sacrificed in the same state-based check
 		{"hidden_pick_aura_entry_attach_choice", false, false},          // CR 303.4f/g: Fetch Quest's hidden pick takes Bestial Bloodline, which waits in the graveyard for its enchant choice while the spell is still on the stack
 	})
 }

@@ -32,6 +32,12 @@ func (s *State) relaxRestrRefuses(k *prep, p uint8, cost *kop.ManaCost, d payDes
 	kept.xd, kept.xdOn = d, true
 	s.availFor(k, p&1, &kept)
 	s.g.availX = prev
+	if k.tapMana {
+		// a tap-another source is a free any-colour unit of the relaxed census
+		// either way (mana_tapanother.go): it makes up what the grant lacks
+		s.availTapX(k, p&1, &all)
+		s.availTapX(k, p&1, &kept)
+	}
 	return all.affords(cost, pm, 0) && !kept.affords(cost, pm, 0)
 }
 

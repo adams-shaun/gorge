@@ -21,5 +21,8 @@ func (s *State) grantRelaxedAffords(k *prep, p uint8, a Action, cost *kop.ManaCo
 	s.g.availX = availPlain | m
 	s.availFor(k, p, &av)
 	s.g.availX = 0
+	if k.tapMana {
+		s.availTapX(k, p, &av) // the relaxed census counts a tap-another source as a free any-colour unit (mana_tapanother.go)
+	}
 	return av.affords(cost, pipMaskOf(cost), 0)
 }

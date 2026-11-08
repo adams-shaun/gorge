@@ -51,10 +51,14 @@ func (s *State) sacAtEndJoin(t Obj) bool {
 }
 
 // sacAtEndFollowers sacrifices the followers of head's end-step trigger as it
-// resolves, consuming their records (gorge's one Sacrifice over the group).
+// resolves, consuming their records, together with head itself when hit
+// already holds its slot (gorge's one Sacrifice over the group: the sacrifices
+// are simultaneous, so each token's "whenever you sacrifice another creature"
+// looks back at the others, CR 603.10a). A group of one is the plain
+// sacrifice.
 //
 //go:noinline
-func (s *State) sacAtEndFollowers(k *prep, head Obj) {
+func (s *State) sacAtEndFollowers(k *prep, head Obj, hit slotMask) {
 	var fol [MaxDelayed]Obj
 	nf := 0
 	w := uint8(0)
@@ -77,9 +81,17 @@ func (s *State) sacAtEndFollowers(k *prep, head Obj) {
 		if ob.zone != kop.ZoneBattlefield || s.sacBlocked(k, ob.slot) {
 			continue
 		}
-		sl := ob.slot
+		hit = hit.with(ob.slot)
+	}
+	switch hit.count() {
+	case 0:
+	case 1:
+		sl := hit.first()
 		s.fireSac(k, sl)
 		s.leaveParked(k, sl)
+	default:
+		s.fireSacAll(k, hit)
+		s.leaveAll(k, hit, kop.ZoneGraveyard)
 	}
 }
 

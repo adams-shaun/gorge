@@ -311,6 +311,21 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 	return true, held
 }
 
+// windowOwedCost is the cost a window source's colour ask measures against the pool
+// (windowCol's owed colours, for every window walk: the paying one, windowDry's and
+// a tap-another source's): cost less the floating restricted mana the payment may
+// spend. That mana sits beside the pool, not in it, but gorge's colour ask prices the
+// pool AvailableFor holds, restricted batches included, so Interdimensional Web Watch's
+// floating {W}{W} already covers a {G/W}{G/W} cast's {W} pip and a Treasure answers {G},
+// not the lowest colour (CR 106.6).
+func (s *State) windowOwedCost(k *prep, p uint8, cost, buf *kop.ManaCost) *kop.ManaCost {
+	if m := s.restrPoolAdmits(k, p); m != 0 {
+		*buf = s.restrShortAdm(p, m, *cost)
+		return buf
+	}
+	return cost
+}
+
 // windowSpellSettled: the pool settles cost, counting the floating restricted mana
 // the spell being built may spend (gorge's window prices AvailableFor's pool, CR 106.6).
 func (s *State) windowSpellSettled(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) bool {
@@ -555,8 +570,13 @@ func askOwedColour(ab *kop.Ability, mask, want uint8) int {
 // a plain any-colour source is W (gorge's trigger-cost manual window, the
 // payexec.WindowAnswer fallback). When a pip is still owed, the answer is the
 // first owed colour of the source's ask order: for a printed Combo that is its
-// printed order (colourAskOrder), not W U B R G.
-func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pcard, anyColor, noOwed bool) int {
+// printed order (colourAskOrder), not W U B R G. The owed colours are measured
+// against cost less the floating restricted mana the payment may spend
+// (windowOwedCost); Starting Town's clamp reads the raw cost, as windowUseful
+// adds that mana itself.
+func (s *State) windowCol(k *prep, p uint8, raw *kop.ManaCost, sl Slot, pc *pcard, anyColor, noOwed bool) int {
+	var owed kop.ManaCost
+	cost := s.windowOwedCost(k, p, raw, &owed)
 	mask := s.windowOwnMask(k, sl)
 	col := bits.TrailingZeros8(mask)
 	if anyColor {
@@ -666,7 +686,7 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 			// Starting Town: the any-colour ability lists no symbol, so the
 			// answer is the {C} ability while the payment can use it, and the
 			// colour the window owes when it can't
-			want, decided := s.windowUseful(k, p, cost)
+			want, decided := s.windowUseful(k, p, raw)
 			col = kop.C
 			if decided && want&(1<<kop.C) == 0 {
 				col = bits.TrailingZeros8(want)
@@ -2159,10 +2179,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		}
 	}
 	if cost.X != 0 && s.bld().e.kind == seSpell && s.xWitnessEats(k, p, s.bld().e.card, &cost, x, excl) {
-		held := s.sacSourcesHeld(k, p)
-		s.availFor(k, p, &av)
-		s.tapForRider(k, p, &cost, max(0, av.maxX(&cost, pipMaskOf(&cost))), excl, anyColor)
-		s.ctrlM[p] = s.ctrlM[p].or(held)
+		s.lowerXEats(k, p, &cost, x, excl, anyColor)
 		return
 	}
 	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 {
