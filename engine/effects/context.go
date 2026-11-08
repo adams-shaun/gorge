@@ -1173,7 +1173,13 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// The TriggeredBlocker spellings moved OUT of this case (trig:Blocks):
 		// a Blocks trigger's Remembered carries the pair's ATTACKER, so the
 		// blocker role is the only exact referent -- see the case below.
-		return triggeredCardGroup(c), true
+		// A remembered card that changed zones since the trigger fired is a
+		// new object the trigger cannot find (CR 400.7): Enduring Courage's
+		// TriggeredCardLKICopy pump must not reach Unstoppable Slasher after
+		// it dies and returns. Moves the resolution itself makes are never
+		// listed (CR 400.7j), so a body that moves its own referent still
+		// finds it.
+		return dropTriggerRememberedMoved(c, triggeredCardGroup(c)), true
 	case definedSpecRememberedLKI:
 		// The LKI spelling of the Remembered$ group names the SAME object set
 		// the RememberedLKI ref group (engine/effects/count.go rememberedLKIGroup)
