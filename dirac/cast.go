@@ -1226,9 +1226,20 @@ func (s *State) applyBuild(k *prep, a Action) {
 			break
 		}
 		if s.bld().stage == bsAltAdd {
-			s.bld().altAdd = a.Target()
+			part := a.Target()
+			s.bld().altAdd = part
 			s.nextStage(k)
-			if !s.altAddPayable(k, a.Target()) && !s.altAddOpenTargets(k) && !s.altAddPipsFirst(k) {
+			if !s.altAddPayable(k, part) && !s.altAddOpenTargets(k) && !s.altAddPipsFirst(k) {
+				if k.t.Cards[e.card].BeholdN != 0 && !s.requiredTarget(k) {
+					// The seat chose an unpayable part of a behold-or-mana
+					// cost: gorge pays through its fallback CR 601.2g
+					// window first, which can pose a tap-another pick, and
+					// reverses the cast when the window cannot finish it
+					// (CR 733.1). manaStep runs that window, so this
+					// choice only defers to it.
+					s.bld().altAbort = true
+					return
+				}
 				// gorge offers an unpayable part too (Config.GorgeAltAdd);
 				// choosing it undoes the cast and returns to priority;
 				// gorge reverses the cast (CR 733.1), the card moving back

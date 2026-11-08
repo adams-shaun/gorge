@@ -652,6 +652,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"behold_or_mana_mana_part_taps_planner_order", true, false},             // CR 601.2b, 601.2g-h: Mudbutton Cursetosser's chosen {2} part is paid by the payment plan's ObjID-ordered sources, not the manual window's battlefield order
 		{"behold_or_mana_generic_taps_planner_order", true, false},               // CR 601.2b, 601.2g-h: Kinsbaile Aspirant's {2} part taps the plan's sources, not the window's battlefield order
 		{"behold_or_mana_full_surface_offer", false, false},                      // CR 601.2b/h: Silvergill Mentor's behold part is payable while its {2} part is not, so the free part's plan must not wait on the offer walk (which can only price the mana part); gorge now lists the cast on the full surface too
+		{"behold_or_mana_abort_window_tap_another_pick", true, false},            // CR 601.2g, 733.1: Mudbutton Cursetosser's chosen {2} part falls back to the manual window, which poses Springleaf Drum's tap-another pick before it reverses the unpayable cast
 	})
 }
 

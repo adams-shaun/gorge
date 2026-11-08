@@ -725,6 +725,7 @@ type build struct {
 	fixedGen  uint8    // the generic part as last priced (bflCostFixed: the total cost, CR 601.2f)
 	obsWin    uint8    // obsWinTapped: obsSl was set by a manual-window tap before the payment, so it counts only if the payment spends that source's colour; obsWinPaying: the payment began (mana_spendtrigger.go obsWinSettle)
 	pipShort  bool     // the lowered pip window ran dry (loweredPipWindow): the cost objects are still asked, and the payment reverses the cast
+	altAbort  bool     // the chosen either-or part cannot be paid: the fallback CR 601.2g window runs at bsMana (manaStep) and reverses the cast (CR 733.1)
 }
 
 // build.bfl bits. bflLowered: a cast gorge's planner does not price,
