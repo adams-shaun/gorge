@@ -381,17 +381,20 @@ func (s *State) ctrlCleanup(k *prep) {
 // ctrlSBA is the control part of the state-based check (gorge runs
 // expireControl and reconcileControlStatics after every event): records
 // whose source condition ended go, then the layer-2 winner among the live
-// control statics registers a record when the permanent's controller
-// differs. Control-changing effects in layer 2 are not additive (CR
-// 613.1b/613.7): only the latest-timestamp static has any effect, so an
-// older static must not re-register after a newer one took the permanent.
+// control statics registers its record, a no-op one included when its
+// controller already controls the permanent (gorge's noop grant: it still
+// carries the effect's timestamp). Control-changing effects in layer 2 are
+// not additive (CR 613.1b/613.7): only the latest-timestamp static has any
+// effect, so an older static must not re-register after a newer one took
+// the permanent.
 //
 // The statics are walked in gorge's wanted-set order -- player 0's
 // battlefield list, then player 1's (control_static.go staticControlWants
 // preserves the static_layerwalk.go staticEffects walk) -- not slot order:
 // enterNF reuses the lowest free slot, so a later-entered Aura can hold a
-// lower slot than an older one. Ties keep that order, as
-// staticControlLayer's stable sort does.
+// lower slot than an older one. staticControlLayer keeps the want with the
+// latest effectStamp and never reorders, so on a tie the last source in
+// that scan order wins (the >= below).
 //
 //go:noinline
 func (s *State) ctrlSBA(k *prep) {
@@ -424,10 +427,15 @@ func (s *State) ctrlSBA(k *prep) {
 	for _, src := range ord[:n] {
 		sp := &s.perms[src]
 		host := sp.attached
-		if host == NoSlot || !have.has(host) || winSrc[host] != src ||
-			s.perms[host].ctrl == sp.ctrl {
+		if host == NoSlot || !have.has(host) || winSrc[host] != src {
 			continue
 		}
+		// Register even when the winner's controller already controls the
+		// host (gorge reconcileControlStatics's noop grant): gainControl
+		// makes a same-controller record a no-op move, and recording it is
+		// what stops the standing static from re-stealing the host after a
+		// later control change (ctrlStaticTracked guards duplicates by
+		// source and version).
 		o := sp.obj
 		if s.ctrlStaticTracked(host, sp.ctrl, o, s.objs[o].ver) {
 			continue

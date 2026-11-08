@@ -255,10 +255,10 @@ func TestL5TwoControlStatics(t *testing.T) {
 	s.removePerm(k, l.sc.slot(a1), kop.ZoneGraveyard, false)
 	s.sba(k)
 	if got := l.ctrl(w); got != 0 {
-		t.Fatalf("after the winning Aura left: controller %d, want 0 (the surviving Aura's controller)", got)
+		t.Fatalf("after the winning Aura left: controller %d, want 0 (no control effect remains, so the owner takes it back)", got)
 	}
 	if got := l.records(); got != 0 {
-		t.Fatalf("after the winning Aura left: control records %d, want 0 (the survivor already controls the host)", got)
+		t.Fatalf("after the winning Aura left: control records %d, want 0 (no static survives to register a grant)", got)
 	}
 }
 
@@ -314,8 +314,8 @@ func TestL5FourControlStatics(t *testing.T) {
 	if got := l.ctrl(w); got != 1 {
 		t.Fatalf("after a0 left: controller %d, want 1 (a3 is the only survivor)", got)
 	}
-	if got := l.records(); got != 0 {
-		t.Fatalf("control records %d after a0 left, want 0 (a3 already controls the host)", got)
+	if got := l.records(); got != 1 {
+		t.Fatalf("control records %d after a0 left, want 1 (a3's no-op grant: it already controls the host)", got)
 	}
 }
 
