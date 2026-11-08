@@ -422,8 +422,10 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 	if !decided {
 		// gorge's owedAbilitiesFirst sorts an ability ahead when the colours a
 		// fixed pip still owes are non-empty, whether or not the generic
-		// remainder is settled (paymentUsefulColours' second result is not read)
-		w = s.windowOwedPips(k, p, useful)
+		// remainder is settled (paymentUsefulColours' second result is not read).
+		// windowDemand reads the fixed pips beside a hybrid pip, which leaves
+		// windowUseful's own verdict undecided.
+		w = s.windowDemand(k, p, useful)
 	}
 	if ra, ok := s.grantRestrOwnFirst(k, sl, w); ok {
 		return ra, uint8(ra.ManaColors) & 0x3f, true // (mana_grantrestrictedown.go)
@@ -1005,23 +1007,4 @@ func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
 		}
 	}
 	return false
-}
-
-// windowOwedPips is the colours a fixed pip of cost still owes after the pool
-// (windowUseful's want without its generic-remainder verdict); none for a
-// flexible pip, whose faces gorge keeps whole.
-func (s *State) windowOwedPips(k *prep, p uint8, cost *kop.ManaCost) (want uint8) {
-	if cost.Hyb[0] != 0 {
-		return 0
-	}
-	pool := s.pl[p].pool
-	if m := s.restrPoolAdmits(k, p); m != 0 {
-		s.rbUnits(p, m, &pool)
-	}
-	for c := 0; c < kop.NumManaKinds; c++ {
-		if cost.Pips[c] > pool[c] {
-			want |= 1 << c
-		}
-	}
-	return want
 }

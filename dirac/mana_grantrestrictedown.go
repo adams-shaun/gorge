@@ -38,10 +38,12 @@ func (s *State) ownRestrAb(k *prep, sl Slot) *kop.Ability {
 // gorge's owedAbilitiesFirst moves the grant ahead only when the grant makes
 // a colour a fixed pip still owes (want) and the printed ability does not.
 // Only a single-colour printed ability: an any-colour one's ordering reads
-// its admission, which windowRestrOwed's own walk answers.
+// its admission, which windowRestrOwed's own walk answers. A dynamic amount
+// is left to windowRestrDyn (lockstepconfig.go), which floats its evaluated
+// amount: kgen's ManaN is the placeholder 1 for every dynamic ability.
 func (s *State) grantRestrOwnFirst(k *prep, sl Slot, want uint8) (*kop.Ability, bool) {
 	ra := s.ownRestrAb(k, sl)
-	if ra == nil || s.ownManaUsable(k, sl) || bits.OnesCount8(uint8(ra.ManaColors)&0x3f) != 1 {
+	if ra == nil || ra.AFlags&kop.AfManaDynamic != 0 || s.ownManaUsable(k, sl) || bits.OnesCount8(uint8(ra.ManaColors)&0x3f) != 1 {
 		return nil, false
 	}
 	if len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) {
