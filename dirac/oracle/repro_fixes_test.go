@@ -247,6 +247,7 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"vizier_conversion_kicked_cast_four", true, false},          // ... and another
 		{"vizier_kicked_cast_granted_prefix", true, false},           // ... and Gnarlid Colony's kicked {3}{G}{G} beside Imprisoned in the Moon's granted {C}: the grant search prices the kicked total under the conversion too
 		{"deferred_gap_beside_granted_land", true, false},            // CR 601.2g-h, 605.1a: Pyromancer's Goggles' deferred {R} beside Giant Cindermaw's Imprisoned-in-the-Moon {C} pays Pirate's Cutlass's Equip {2}: the restricted/deferred script search must count the unrestricted grant
+		{"deferred_gap_beside_granted_mana", false, false},           // CR 601.2g-h, 605.1a: gorge's prefix search taps New Horizons' Mountain for {R}{R} and Pyromancer's Goggles' deferred {R}, both census gaps, so Lathliss, Dragon Queen's {4}{R}{R} is offered
 	})
 }
 
