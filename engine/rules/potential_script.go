@@ -634,6 +634,9 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 		}
 		d := c.Pending()
 		for guard := 0; d != nil && d.Player != p && guard < 8; guard++ {
+			if d.Kind != decision.KPriority && waits > 0 {
+				break // another player's answer to a waiting trigger: searched below
+			}
 			// Another player's priority while a trigger resolves: pass.
 			pass := -1
 			for _, opt := range d.Options {
@@ -652,7 +655,12 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 			// so the play was payable.
 			return true
 		}
-		if d == nil || d.Player != p || c.G.Over || c.G.Turn != turn || c.G.Step != step {
+		// A trigger the paying sacrifice set off waits for the cast to
+		// finish (CR 601.2g, 603.3b): its controller's answer to it, when the
+		// walk lets it resolve first, is any answer (Zoetic Glyph's discover
+		// after its Treasure paid).
+		other := d != nil && d.Player != p && d.Kind != decision.KPriority && waits > 0
+		if d == nil || d.Player != p && !other || c.G.Over || c.G.Turn != turn || c.G.Step != step {
 			return false
 		}
 		if d.Kind != decision.KPriority {
