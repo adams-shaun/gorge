@@ -43,7 +43,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // copy exceptions aside (cloneHold), and the cleanup step puts them back, as
 // gorge restores state.Object.TokenBasis.
 //
-// A permanent copying itself stalls StallCloneLayer. A copy onto an Aegis
+// A permanent copying itself (CR 707.2) is an ordinary layer: its copiable
+// values are its own, its current copy exceptions among them (CR 707.9b), so
+// the new layer locks its current card and keeps those exceptions beside the
+// op's own, as gorge appends the op's to the copied face. A copy onto an Aegis
 // bearer is the Aegis layer covered by a newer one: copy_aegisunder.go keeps
 // every layer's timestamp, and the cleanup step gives the newest one left
 // back.
@@ -81,7 +84,8 @@ var DebugCloneCopyNoHold bool
 // DebugCloneCopyStats, when set, receives the counts.
 var DebugCloneCopyStats *CloneCopyStats
 
-// StallCloneLayer: a permanent copying itself.
+// StallCloneLayer was a permanent copying itself, which the kernel could not
+// model. It is no longer raised: cloneCopy applies the layer.
 const StallCloneLayer = 141
 
 func init() { stallNames[StallCloneLayer] = "clonelayer" }
@@ -235,14 +239,15 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 	}
 	eot := in.B.N&kop.CloneEOT != 0
 	made := 0
+	// keptExc/keptN hold a self-copy's current exception override indices
+	// across cloneLayerPrep, which clears the slot's for the new layer.
+	var keptExc [maxFx]uint8
+	var keptN int
 	for i := 0; i < n; i++ {
 		sl := ord[i]
-		if sl == tmpl && eot && in.C == 0 && in.Obj == kop.RefNone && in.B.N&kop.CloneExclTmpl == 0 {
+		self := tmpl != NoSlot && sl == tmpl
+		if self && eot && in.C == 0 && in.Obj == kop.RefNone && in.B.N&kop.CloneExclTmpl == 0 {
 			continue // a Valid set holding its template: a copy of itself changes nothing (CR 707.2)
-		}
-		if sl == tmpl {
-			s.capFull(StallCloneLayer)
-			continue
 		}
 		p := &s.perms[sl]
 		ts := s.tick()
@@ -251,6 +256,19 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		}
 		s.touchSl(sl)
 		s.onceBasisBegin(sl)
+		keptN = 0
+		if self {
+			// CR 707.2, 707.9b: the become object copies its own copiable
+			// values, its current copy exceptions among them. Capture them
+			// before cloneHold sets a token copy's aside and cloneLayerPrep
+			// clears the rest; they are re-pushed as the new layer's below.
+			for j := 0; j < int(s.g.nfx); j++ {
+				if r := &s.g.fx[j]; r.sl == sl && r.kind == fxCopyExc {
+					keptExc[keptN] = r.r.idx
+					keptN++
+				}
+			}
+		}
 		held, ok := kop.KwMask(0), true
 		if eot {
 			held, ok = s.cloneHold(k, sl)
@@ -271,7 +289,19 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		p.ovr.flags |= ovCopy
 		p.ovr.copyOf = c
 		s.subscribe(sl, &k.cards[c], true)
-		s.copyExcAdd(k, sl, tmpl, uint8(in.C))
+		if self {
+			// the layer's exceptions are the ones it copied plus the op's;
+			// copyExcAdd would read the slot as its own template and re-push
+			// each record as it appends it.
+			for j := 0; j < keptN; j++ {
+				s.copyExcPush(sl, keptExc[j])
+			}
+			if in.C != 0 {
+				s.copyExcPush(sl, uint8(in.C))
+			}
+		} else {
+			s.copyExcAdd(k, sl, tmpl, uint8(in.C))
+		}
 		p.ovr.kw = p.ovr.kw&^old | s.copyExcKw(k, sl)
 		if !eot {
 			s.clonePermNote(sl, s.perms[tmpl].obj, c, uint8(in.C), ts)
