@@ -637,6 +637,7 @@ func (s *State) sba(k *prep) bool {
 			// gorge poses the legend ask before the pass's other actions
 			// apply, a token outside the battlefield still there (pair 3630)
 			if s.legendRule(k) {
+				s.legSaga = s.sagasDue(k) // parked with the ask (applyLegend)
 				return true
 			}
 			// gorge's pass order (rules/sba.go): ceaseDeadTokens, then
@@ -665,6 +666,7 @@ func (s *State) sba(k *prep) bool {
 		// the answer applies ahead of the non-kept legends
 		if s.legendRule(k) {
 			s.legDie = die
+			s.legSaga = s.sagasDue(k)
 			return true
 		}
 		if k.gen != nil {
@@ -1121,7 +1123,22 @@ func (s *State) applyLegend(k *prep, a Action) {
 	for i := 0; i < n; i++ {
 		zs[i] = s.dieZone(k, order[i])
 	}
+	// the Sagas the same state-based check sacrificed join the batch (gorge
+	// parkLegendChoice parks the pass's acts with the ask): the legend ruled
+	// out sees them go (CR 704.3), they see it go
+	sag := s.legSaga.and(s.occ).andNot(die).andNot(out)
+	s.legSaga = slotMask{}
+	nl := n
+	for p := uint8(0); p < 2; p++ {
+		n = s.battlefieldOrder(p, sag.and(s.ctrlM[p]), order[:], n)
+	}
+	for i := nl; i < n; i++ {
+		zs[i] = s.dieZone(k, order[i])
+	}
 	for i := 0; i < n; i++ {
+		if i >= nl {
+			s.fireSac(k, order[i])
+		}
 		s.fireLeave(k, order[i], zs[i])
 	}
 	for i := 0; i < n; i++ {

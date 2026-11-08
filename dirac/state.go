@@ -912,6 +912,7 @@ type stateCore struct {
 	legP        uint8    // legend rule: the choosing player
 	legCard     CardID   // legend rule: the duplicated legendary card
 	legDie      slotMask // legend rule: the creature casualties parked at the ask, applied with the answer
+	legSaga     slotMask // legend rule: the Sagas due their sacrifice at the ask, one batch with the answer (CR 704.3)
 	divA        Slot     // damage division: the attacker being divided (NoSlot = none in progress)
 	divI        uint8    // index (in block order) of the blocker being assigned
 	divRem      uint8    // damage left to assign
