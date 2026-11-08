@@ -72,22 +72,6 @@ func (s *State) adjustCostGen(k *prep, p uint8, c CardID, o Obj, base kop.ManaCo
 // StBargained statics apply only then (cost_reducespell.go). priced is
 // the card the statics' zone counts skip (evalCtx.uncounted), NoObj for none.
 func (s *State) adjustCostGenB(k *prep, p uint8, c CardID, o, priced Obj, base kop.ManaCost, bargained bool) kop.ManaCost {
-	// Every composition of a cast's cost hides the in-flight cast's own ring
-	// push from the turn's cast counts, as gorge's costCompositionEvent does:
-	// a per-target reprice (dropTargetsOwing) must read "the second spell you
-	// cast" the same way the build's own buildCost did, or Highspire
-	// Bell-Ringer's reduction vanishes from the target menu.
-	comp := s.buildLive() && s.bld().e.kind == seSpell && s.bld().e.card == c
-	var prevComp uint16
-	if comp {
-		prevComp = s.bld().bfl & bflCostComp
-		s.bld().bfl |= bflCostComp
-		defer func() {
-			if prevComp == 0 {
-				s.bld().bfl &^= bflCostComp
-			}
-		}()
-	}
 	g := int(base.Generic)
 	if s.g.raiseO|s.g.raiseB != 0 {
 		g += s.partitionRaise(o) // a may-play surcharge, before the cost statics (cast_whileexiled.go)
@@ -491,6 +475,23 @@ func (s *State) abilityAffordableTargets(k *prep, buf *[MaxOptions]uint8, n int)
 	return m
 }
 
+// markCostComposition marks a per-target cost reprice of the in-flight cast, so
+// the turn's cast counts hide its own ring push as gorge's costCompositionEvent
+// does. Without it a "second spell you cast" reduction (Highspire Bell-Ringer)
+// vanishes from the target menu while the build's own buildCost saw it.
+func (s *State) markCostComposition() (restore func()) {
+	if !s.buildLive() || s.bld().e.kind != seSpell {
+		return func() {}
+	}
+	prev := s.bld().bfl & bflCostComp
+	s.bld().bfl |= bflCostComp
+	return func() {
+		if prev == 0 {
+			s.bld().bfl &^= bflCostComp
+		}
+	}
+}
+
 // affordableTargets keeps, for a spell whose cost reduction depends on its
 // target (Luminous Rebuke), only the targets it can still pay for: all of
 // them when the full cost is affordable, else those the reduction needs.
@@ -539,7 +540,9 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 		}
 	}
 	s.g.noTgtRed = true
+	restore := s.markCostComposition()
 	full := s.adjustCostGen(k, e.ctrl, e.card, e.obj, cd.Cost)
+	restore()
 	s.g.noTgtRed = false
 	if e.flags&sfAnyMana != 0 {
 		full = anyType(full)
