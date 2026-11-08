@@ -213,7 +213,7 @@ func (s *State) applyAskWinTap(k *prep, a Action) bool {
 	s.g.winMode = winNone
 	if mode == winWard {
 		if idx := s.wardedIndex(&s.res.e); short && idx >= 0 {
-			s.counterAt(k, idx)
+			s.wardCounterAt(k, idx)
 		}
 		s.finishResolve(k, false)
 	} else {

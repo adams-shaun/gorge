@@ -1264,7 +1264,7 @@ func (s *State) payDone(k *prep, paid bool) {
 		s.res.ask = raNone
 		if !paid {
 			if idx := s.wardedIndex(&s.res.e); idx >= 0 {
-				s.counterAt(k, idx)
+				s.wardCounterAt(k, idx)
 			}
 		}
 		s.finishResolve(k, false)
@@ -1311,13 +1311,13 @@ func (s *State) payWardN(k *prep, n uint8, pay bool) {
 			return // a tap-another source's pick (mana_windowtapx.go)
 		}
 		if short && idx >= 0 {
-			s.counterAt(k, idx) // the colours taken left the ward unpaid
+			s.wardCounterAt(k, idx) // the colours taken left the ward unpaid
 		}
 	} else if idx >= 0 {
 		if pay {
 			s.tapAllForMana(k, r.e.trigPl) // gorge taps what it has, then can't pay
 		}
-		s.counterAt(k, idx)
+		s.wardCounterAt(k, idx)
 	}
 	s.finishResolve(k, false)
 }
@@ -1332,7 +1332,7 @@ func (s *State) resolveWardLife(k *prep) {
 	}
 	n := int(-e.trigAmt)
 	if int(s.pl[e.trigPl].life) < n {
-		s.counterAt(k, idx)
+		s.wardCounterAt(k, idx)
 		s.finishResolve(k, false)
 		return
 	}

@@ -86,7 +86,7 @@ func (s *State) resolveWardManaLife(k *prep) {
 		s.ctl = ctlResolve
 		return
 	}
-	s.counterAt(k, idx)
+	s.wardCounterAt(k, idx)
 	s.finishResolve(k, false)
 }
 
@@ -103,7 +103,7 @@ func (s *State) applyWardManaLife(k *prep, a Action) {
 	if a.Mode() == 1 && int(s.pl[p].life) >= l && (k.gen == nil || s.affordsFor(k, p, &c) || s.windowAffords(k, p, &c)) {
 		if _, short := s.payWindow(k, p, &c); short {
 			if idx >= 0 {
-				s.counterAt(k, idx) // the colours taken left the mana unpaid, so the life is not
+				s.wardCounterAt(k, idx) // the colours taken left the mana unpaid, so the life is not
 			}
 		} else if !DebugWardMLNoLife {
 			s.loseLife(k, p, l)
@@ -112,7 +112,7 @@ func (s *State) applyWardManaLife(k *prep, a Action) {
 		if a.Mode() == 1 {
 			s.tapAllForMana(k, p) // gorge's window taps what it has, then can't pay
 		}
-		s.counterAt(k, idx)
+		s.wardCounterAt(k, idx)
 	}
 	s.finishResolve(k, false)
 }
