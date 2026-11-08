@@ -1550,6 +1550,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 	// let the filter search see the play priced.
 	grants := k.gen != nil && len(k.gen.grantPC) != 0
 	grantFirst := grants && a.Kind() == AkActivate && k.gen.anyFilt && s.filtOnly(k, p)
+	grantFirst = grantFirst || grants && s.deferBesideGrant(k, p) // the same one search (mana_grantdeferred.go)
 	if grantFirst {
 		s.grantPrefix(k, a, p)
 		if s.npend != 0 {
