@@ -340,6 +340,7 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		{"counter_copy_once_listener", false, false},
 		{"registered_effect_remembered_scope", true, false},
 		{"registered_effect_remembered_scope", false, false},
+		{"clone_returns_from_until_leaves_exile_asks_copy", true, false}, // CR 614.12, 707.2: a clone returning from "until this leaves" exile during a resolution is asked its enter-as-a-copy election, as gorge asks it
 	})
 }
 

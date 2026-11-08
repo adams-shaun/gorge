@@ -49,5 +49,5 @@ func (s *State) answerReturnOrder(k *prep, a Action) {
 		return
 	}
 	p.kind = akClone // the copy stays answered; ordPick names the order
-	s.rerunReturn(k)
+	s.finishCloneReturn(k)
 }

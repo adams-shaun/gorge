@@ -2498,6 +2498,10 @@ type preAsk struct {
 	state uint8
 	val   uint8
 	land  bool // a land being played (asked while it is still in the hand)
+	// link: the clone park is an until-leaves link return (returnLinked), not
+	// a resolution's return op; the answer enters the card from exile instead
+	// of rerunning the op (copy_cloneenter.go finishCloneReturn)
+	link bool
 	// ordPick[:ordN] are the replacement sources the player named, in answer
 	// order, to a CR 616.1 entry order ask; ordSet marks that the ask was
 	// posed. The as-enters copy and the other sources compete over the entry
