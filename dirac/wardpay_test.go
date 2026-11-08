@@ -346,16 +346,7 @@ func TestWardPayTapAnotherPermanent(t *testing.T) {
 // ability, asked for a payment, and kept the trigger on the stack.
 func TestStackedWardTriggersLeaveSameStack(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Realm-Scorcher Hellkite", Count: 1}, {Name: "Toadstool Admirer", Count: 1}, {Name: "Redtooth Genealogist", Count: 1}, {Name: "Mountain", Count: 8}, {Name: "Forest", Count: 4}}
-	tbl, da, _, err := cardsettest.Synth(t, "std-woe").Matchup(deck, deck)
-	if err != nil {
-		t.Fatal(err)
-	}
-	id := map[string]CardID{}
-	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
-	}
-	sc := newScenTableLib(t, tbl, id["Mountain"], Config{NoElide: true})
-	sc.s.cfg |= cfgGorgeAutopay | cfgGorgeUnpriced
+	sc, id := xScen(t, "std-woe", deck)
 	s := sc.s
 	adm := sc.perm(id["Toadstool Admirer"], 1)
 	hk := sc.perm(id["Realm-Scorcher Hellkite"], 0)
