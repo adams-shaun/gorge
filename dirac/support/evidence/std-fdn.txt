@@ -1,12 +1,14 @@
 Abrade
 Abyssal Harvester
 Adamant Will
+Adaptive Automaton
 Adventuring Gear
 Aegis Turtle
 Aetherize
 Affectionate Indrik
 Aggressive Mammoth
 Ajani's Pridemate
+Ajani, Caller of the Pride
 Alesha, Who Laughs at Fate
 Ambush Wolf
 An Offer You Can't Refuse
@@ -69,9 +71,11 @@ Bushwhack
 Cackling Prowler
 Campus Guide
 Cancel
+Carnelian Orb of Dragonkind
 Cat Collector
 Cathar Commando
 Celestial Armor
+Cemetery Recruitment
 Cephalid Inkmage
 Chandra, Flameshaper
 Charming Prince
@@ -86,12 +90,14 @@ Corsair Captain
 Courageous Goblin
 Crackling Cyclops
 Crash Through
+Crawling Barrens
 Crossway Troublemakers
 Crow of Dark Tidings
 Crusader of Odric
 Crypt Feaster
 Cryptic Caves
 Crystal Barricade
+Cultivator's Caravan
 Curator of Destinies
 Darksteel Colossus
 Dauntless Veteran
@@ -107,6 +113,7 @@ Demolition Field
 Demonic Pact
 Desecration Demon
 Devout Decree
+Diamond Mare
 Dictate of Kruphix
 Dimir Guildgate
 Diregraf Ghoul
@@ -175,13 +182,17 @@ Flamewake Phoenix
 Flashfreeze
 Fleeting Distraction
 Fleeting Flight
+Fog Bank
 Forest
 Frenzied Goblin
 Fumigate
 Fynn, the Fangbearer
+Garna, Bloodfist of Keld
 Garruk's Uprising
+Gate Colossus
 Gatekeeper of Malakir
 Gateway Sneak
+Genesis Wave
 Ghalta, Primal Hunger
 Ghitu Lavarunner
 Giada, Font of Hope
@@ -210,6 +221,7 @@ Guarded Heir
 Gutless Plunderer
 Guttersnipe
 Halana and Alena, Partners
+Harbinger of the Tides
 Hare Apparent
 Harmless Offering
 Healer's Hawk
@@ -217,8 +229,10 @@ Heartfire Immolator
 Hedron Archive
 Helpful Hunter
 Herald of Eternal Dawn
+Herald of Faith
 Heraldic Banner
 Hero's Downfall
+Heroes' Bane
 Heroic Reinforcements
 Hidetsugu's Second Rite
 High Fae Trickster
@@ -258,6 +272,7 @@ Kindled Fury
 Kiora, the Rising Tide
 Kitesail Corsair
 Knight of Grace
+Knight of Malice
 Koma, World-Eater
 Krenko, Mob Boss
 Kykar, Zephyr Awakener
@@ -283,6 +298,7 @@ Make a Stand
 Marauding Blight-Priest
 Massacre Wurm
 Maze's End
+Mazemind Tome
 Mentor of the Meek
 Meteor Golem
 Micromancer
@@ -335,6 +351,7 @@ Prime Speaker Zegana
 Primeval Bounty
 Progenitus
 Pulse Tracker
+Pyromancer's Goggles
 Quakestrider Ceratops
 Quick Study
 Quick-Draw Katana
@@ -342,6 +359,7 @@ Quilled Greatwurm
 Raging Redcap
 Raise the Past
 Rakdos Guildgate
+Ramos, Dragon Engine
 Rampaging Baloths
 Rapacious Dragon
 Ravenous Amulet
@@ -373,6 +391,7 @@ Scorching Dragonfire
 Scoured Barrens
 Scrawling Crawler
 Searslicer Goblin
+Secluded Courtyard
 Seeker's Folly
 Seismic Rupture
 Seize the Spoils
@@ -391,6 +410,7 @@ Slagstorm
 Slumbering Cerberus
 Snakeskin Veil
 Solemn Simulacrum
+Sorcerous Spyglass
 Soul-Guide Lantern
 Soul-Shackled Zombie
 Soulstone Sanctuary
@@ -440,6 +460,7 @@ Temple of Silence
 Temple of Triumph
 Terror of Mount Velus
 Think Twice
+Thornweald Archer
 Thornwood Falls
 Thousand-Year Storm
 Thrashing Brontodon
@@ -477,6 +498,7 @@ Venom Connoisseur
 Viashino Pyromancer
 Vile Entomber
 Vivien Reid
+Vizier of the Menagerie
 Volley Veteran
 Voracious Greatshark
 Wardens of the Cycle
@@ -484,7 +506,9 @@ Wary Thespian
 Wildborn Preserver
 Wildheart Invoker
 Wildwood Scourge
+Wilt-Leaf Liege
 Wind-Scarred Crag
+Wishclaw Talisman
 Witness Protection
 Youthful Valkyrie
 Zetalpa, Primal Dawn

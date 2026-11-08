@@ -35,7 +35,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //	r.idx  bit 0 to, bit 1 prev, bit 2 you (the effect's controller),
 //	       bits 3-5 the duration (kop.Dur*), bit 6 static, bit 7 armed
 //	r.src  the source object | its ver << 8 (NoObj: none)
-//	r.fl   unused; r.ts 0
+//	r.fl   unused; r.ts the static's CR 613.7a layer stamp (fcStatic;
+//	       0 for an API record)
 
 const (
 	fcTo       = 1 << 0
@@ -110,6 +111,12 @@ func (s *State) gainControl(sl Slot, to, you, dur uint8, src Obj, srcVer uint8, 
 	r.r.idx = to&1 | (p.ctrl&1)<<1 | (you&1)<<2 | (dur&7)<<fcDurShift
 	if static {
 		r.r.idx |= fcStatic
+		// CR 613.7a: the static's layer timestamp, captured at registration
+		// (gorge controlGrant.staticStamp). ctrlStaticNewer keeps an older
+		// want from registering above this record.
+		if int(src) < int(s.nobj) && s.objs[src].zone == kop.ZoneBattlefield && s.objs[src].ver == srcVer {
+			r.r.ts = s.lstamp[s.objs[src].slot]
+		}
 	}
 	if dur == kop.DurYourNextTurn && s.active != you {
 		// made during another player's turn: the controller's next turn
@@ -214,44 +221,13 @@ func (s *State) ctrlEnded(k *prep, r *fxRec, cleanup bool) bool {
 // ctrlStaticLive: the static that registered r still applies to its
 // object with the same controller (gorge staticGrantLive): the same source
 // on the battlefield with its abilities, attached to the object, which its
-// filter matches, and controlled by the record's controller. It also must
-// still be the layer-2 outcome for the object: a control static with a
-// later layer timestamp that gives the object to a different controller
-// overrides it even though its own static is still live (CR 613.1b/613.7).
+// filter matches, and controlled by the record's controller.
 func (s *State) ctrlStaticLive(k *prep, r *fxRec) bool {
 	src := s.ctrlSrcSlot(r)
 	if src == NoSlot || s.perms[src].attached != r.sl || s.perms[src].ctrl != r.cTo() {
 		return false
 	}
-	if !s.ctrlStaticWants(k, src, r.sl) {
-		return false
-	}
-	_, winCtrl, ok := s.ctrlStaticWinner(k, r.sl)
-	return ok && winCtrl == r.cTo()
-}
-
-// ctrlStaticWinner returns the control static whose effect wins layer 2 for
-// the permanent at host: the live static source with the latest layer
-// timestamp (gorge staticControlLayer, CR 613.1b/613.7). Ties keep the
-// wanted-set scan order, so the last source in it wins.
-func (s *State) ctrlStaticWinner(k *prep, host Slot) (Slot, uint8, bool) {
-	var ord [MaxPerm]Slot
-	n := s.listenerOrder(s.statM.and(s.occ), &ord)
-	win, winCtrl := NoSlot, uint8(0)
-	var winTs uint16
-	for _, src := range ord[:n] {
-		sp := &s.perms[src]
-		if sp.attached != host || !k.gen.has(s.cardAt(src), gfCtrlStat) {
-			continue
-		}
-		if !s.ctrlStaticWants(k, src, host) {
-			continue
-		}
-		if ts := s.layerTs(src); win == NoSlot || ts >= winTs {
-			win, winTs, winCtrl = src, ts, sp.ctrl
-		}
-	}
-	return win, winCtrl, win != NoSlot
+	return s.ctrlStaticWants(k, src, r.sl)
 }
 
 // ctrlStaticWants: the source at src has a live StatControl static whose
@@ -380,18 +356,12 @@ func (s *State) ctrlCleanup(k *prep) {
 
 // ctrlSBA is the control part of the state-based check (gorge runs
 // expireControl and reconcileControlStatics after every event): records
-// whose source condition ended go, then the layer-2 winner among the live
-// control statics registers a record when the permanent's controller
-// differs. Control-changing effects in layer 2 are not additive (CR
-// 613.1b/613.7): only the latest-timestamp static has any effect, so an
-// older static must not re-register after a newer one took the permanent.
-//
-// The statics are walked in gorge's wanted-set order -- player 0's
-// battlefield list, then player 1's (control_static.go staticControlWants
-// preserves the static_layerwalk.go staticEffects walk) -- not slot order:
-// enterNF reuses the lowest free slot, so a later-entered Aura can hold a
-// lower slot than an older one. Ties keep that order, as
-// staticControlLayer's stable sort does.
+// whose source condition ended go, then every live control static registers
+// its record, in CR 613.7a layer-timestamp order. A static that already
+// names the host's controller still registers (a no-op record): it keeps
+// its timestamp place below any later API control effect, so it cannot
+// register late above that effect when a newer static ends. This is gorge's
+// reconcileControlStatics (engine/rules/control_static.go).
 //
 //go:noinline
 func (s *State) ctrlSBA(k *prep) {
@@ -400,36 +370,37 @@ func (s *State) ctrlSBA(k *prep) {
 	}
 	var ord [MaxPerm]Slot
 	n := s.listenerOrder(s.statM.and(s.occ), &ord)
-	if n == 0 {
-		return
+	// Insertion sort: a handful of statics at most, and sort.Slice would
+	// move ord to the heap (the gate's escape step).
+	for i := 1; i < n; i++ {
+		v := ord[i]
+		vt := s.layerTs(v)
+		j := i - 1
+		for ; j >= 0; j-- {
+			t := s.layerTs(ord[j])
+			if t < vt || (t == vt && ord[j] < v) {
+				break
+			}
+			ord[j+1] = ord[j]
+		}
+		ord[j+1] = v
 	}
-	var winSrc [MaxPerm]Slot
-	var winTs [MaxPerm]uint16
-	var have slotMask
 	for _, src := range ord[:n] {
 		sp := &s.perms[src]
 		host := sp.attached
 		if host == NoSlot || !k.gen.has(s.cardAt(src), gfCtrlStat) {
 			continue
 		}
-		if !s.ctrlStaticWants(k, src, host) {
-			continue
-		}
-		if ts := s.layerTs(src); !have.has(host) || ts >= winTs[host] {
-			have.set(host)
-			winTs[host] = ts
-			winSrc[host] = src
-		}
-	}
-	for _, src := range ord[:n] {
-		sp := &s.perms[src]
-		host := sp.attached
-		if host == NoSlot || !have.has(host) || winSrc[host] != src ||
-			s.perms[host].ctrl == sp.ctrl {
-			continue
-		}
 		o := sp.obj
-		if s.ctrlStaticTracked(host, sp.ctrl, o, s.objs[o].ver) {
+		if s.ctrlStaticTracked(host, sp.ctrl, o, s.objs[o].ver) || !s.ctrlStaticWants(k, src, host) {
+			continue
+		}
+		// CR 613.7: a static already tracked on this host with a later
+		// layer timestamp wins; this want stays live but must not register
+		// above it. Without this an older Aura whose controller changes
+		// would re-register at the end of the record list, above a newer
+		// static (gorge staticGrantNewer).
+		if s.ctrlStaticNewer(host, src, s.layerTs(src)) {
 			continue
 		}
 		if !s.gainControl(host, sp.ctrl, sp.ctrl, kop.DurPermanent, o, s.objs[o].ver, true) {
@@ -447,6 +418,32 @@ func (s *State) ctrlStaticTracked(sl Slot, to uint8, o Obj, ver uint8) bool {
 	}
 	for i := 0; i < int(s.g.nfx); i++ {
 		if r := &s.g.fx[i]; r.kind == fxControl && r.sl == sl && r.r.idx&fcStatic != 0 && r.cTo() == to && r.cSrc() == o && r.cSrcVer() == ver {
+			return true
+		}
+	}
+	return false
+}
+
+// ctrlStaticNewer reports whether a static control record already tracked on
+// host has a later CR 613.7 layer timestamp than the static at src (gorge
+// staticGrantNewer). Such a want is shadowed: it stays live but must not
+// register above the newer grant. The timestamp is the one the record locked
+// at registration (gainControl), and a tie falls back to the source slot,
+// the order ctrlSBA registers equal stamps in.
+func (s *State) ctrlStaticNewer(host, src Slot, stamp uint16) bool {
+	if !s.fxM.has(host) {
+		return false
+	}
+	for i := 0; i < int(s.g.nfx); i++ {
+		r := &s.g.fx[i]
+		if r.kind != fxControl || r.r.idx&fcStatic == 0 || r.sl != host {
+			continue
+		}
+		rs := s.ctrlSrcSlot(r)
+		if rs == NoSlot {
+			continue
+		}
+		if r.r.ts > stamp || (r.r.ts == stamp && rs > src) {
 			return true
 		}
 	}

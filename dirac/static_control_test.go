@@ -224,11 +224,10 @@ func TestL5ControlStatic(t *testing.T) {
 	}
 }
 
-// TestL5TwoControlStatics: two control Auras on one host. Layer 2 applies
-// them in timestamp order and they are not additive (CR 613.1b/613.7), so
-// the Aura attached second (the later layer timestamp) wins and the older
-// one registers no record. Removing the losing Aura changes nothing;
-// removing the winning one hands the host to the older Aura's controller.
+// TestL5TwoControlStatics: two control Auras on one host. CR 613.7: the
+// later Aura wins by layer timestamp, whether or not it is the one that
+// moves control (gorge reconcileControlStatics registers the no-op record
+// too). The surviving newer Aura keeps the host when the older one leaves.
 func TestL5TwoControlStatics(t *testing.T) {
 	l := newL5(t)
 	s, k := l.sc.s, l.sc.k
@@ -238,35 +237,24 @@ func TestL5TwoControlStatics(t *testing.T) {
 	s.attachTo(k, l.sc.slot(a0), l.sc.slot(w))
 	s.attachTo(k, l.sc.slot(a1), l.sc.slot(w))
 	s.sba(k)
+	// a1 attached after a0, so its static is the later one (CR 613.7).
 	if got := l.ctrl(w); got != 1 {
-		t.Fatalf("two control statics: controller %d, want 1 (the later Aura's controller)", got)
+		t.Fatalf("two control statics: controller %d, want 1 (the newer Aura)", got)
 	}
-	if got := l.records(); got != 1 {
-		t.Fatalf("control records %d, want 1 (only the layer-2 winner registers)", got)
+	if got := l.records(); got != 2 {
+		t.Fatalf("control records %d, want 2", got)
 	}
 	s.removePerm(k, l.sc.slot(a0), kop.ZoneGraveyard, false)
 	s.sba(k)
 	if got := l.ctrl(w); got != 1 {
-		t.Fatalf("after the losing Aura left: controller %d, want 1", got)
-	}
-	if got := l.records(); got != 1 {
-		t.Fatalf("after the losing Aura left: control records %d, want 1", got)
-	}
-	s.removePerm(k, l.sc.slot(a1), kop.ZoneGraveyard, false)
-	s.sba(k)
-	if got := l.ctrl(w); got != 0 {
-		t.Fatalf("after the winning Aura left: controller %d, want 0 (the surviving Aura's controller)", got)
-	}
-	if got := l.records(); got != 0 {
-		t.Fatalf("after the winning Aura left: control records %d, want 0 (the survivor already controls the host)", got)
+		t.Fatalf("after the older Aura left: controller %d, want 1", got)
 	}
 }
 
-// TestL5FourControlStatics: four control Auras on one host, attached in the
-// order a3, a0, a1, a2, so a2 has the latest layer timestamp and wins layer
-// 2 whatever the slot or battlefield order. The winner registers one record;
-// removing it hands the host to the next-latest Aura (a0), not to the
-// earliest (a3).
+// TestL5FourControlStatics: registration order is CR 613.7a layer-timestamp
+// order, not slot order. A freed slot lets a later Aura enter below an older
+// one, so a slot-order scan would register the grants in a different order
+// and ctrlExpire would later hand the host to a different survivor.
 func TestL5FourControlStatics(t *testing.T) {
 	l := newL5(t)
 	s, k := l.sc.s, l.sc.k
@@ -287,35 +275,27 @@ func TestL5FourControlStatics(t *testing.T) {
 		s.attachTo(k, l.sc.slot(a), l.sc.slot(w))
 	}
 	s.sba(k)
+	// Attached in the order a3, a0, a1, a2, so a2 is the latest static and
+	// a3 the earliest; all four register (a3, a1 and a2 are no-ops once a0
+	// moves the host). CR 613.7: a2's controller 0 wins.
 	if got := l.ctrl(w); got != 0 {
-		t.Fatalf("four control statics: controller %d, want 0 (a2, attached last, wins layer 2)", got)
+		t.Fatalf("four control statics: controller %d, want 0 (a2, the latest)", got)
 	}
-	if got := l.records(); got != 1 {
-		t.Fatalf("control records %d, want 1 (only the layer-2 winner registers)", got)
+	if got := l.records(); got != 4 {
+		t.Fatalf("control records %d, want 4", got)
 	}
 	s.removePerm(k, l.sc.slot(a1), kop.ZoneGraveyard, false)
 	s.sba(k)
 	if got := l.ctrl(w); got != 0 {
-		t.Fatalf("after a1 left: controller %d, want 0 (a2 still wins)", got)
+		t.Fatalf("after a1 left: controller %d, want 0 (a2 is still the latest)", got)
 	}
-	if got := l.records(); got != 1 {
-		t.Fatalf("control records %d after a1 left, want 1", got)
+	if got := l.records(); got != 3 {
+		t.Fatalf("control records %d after a1 left, want 3", got)
 	}
 	s.removePerm(k, l.sc.slot(a2), kop.ZoneGraveyard, false)
 	s.sba(k)
 	if got := l.ctrl(w); got != 0 {
-		t.Fatalf("after a2 left: controller %d, want 0 (a0 is now the latest)", got)
-	}
-	if got := l.records(); got != 1 {
-		t.Fatalf("control records %d after a2 left, want 1 (a0's grant)", got)
-	}
-	s.removePerm(k, l.sc.slot(a0), kop.ZoneGraveyard, false)
-	s.sba(k)
-	if got := l.ctrl(w); got != 1 {
-		t.Fatalf("after a0 left: controller %d, want 1 (a3 is the only survivor)", got)
-	}
-	if got := l.records(); got != 0 {
-		t.Fatalf("control records %d after a0 left, want 0 (a3 already controls the host)", got)
+		t.Fatalf("after a2 left: controller %d, want 0 (a0 is the latest survivor)", got)
 	}
 }
 
