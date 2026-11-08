@@ -122,7 +122,20 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 	// Read before the walk (CR 608.2h): a pump registered below must not change
 	// the amount the next object gets.
 	numAtt, numDef := numText(h, c, p.NumAtt, 0), numText(h, c, p.NumDef, 0)
-	for _, t := range pumpSet(h, c, sa, p) {
+	targets := pumpSet(h, c, sa, p)
+	if pumpedTriggeredCard(DefinedRefOf(sa)) {
+		// A pump's Defined$ TriggeredCardLKICopy names the object the trigger
+		// fired for. If it changed zones before the trigger resolves it is a
+		// new object the pump does not reach (CR 400.7): Enduring Courage's
+		// +2/+0/haste must not land on Unstoppable Slasher after it dies and
+		// returns. The strip is here, at the affected-object read, and not in
+		// definedSpecTriggeredCard: the same spelling is also an LKI SOURCE
+		// for another effect (Donatello, Mutant Mechanic reads a dead
+		// artifact's counters), where the snapshot must survive a later move.
+		// Moves the resolution itself makes are never listed (CR 400.7j).
+		targets = dropTriggerRememberedMoved(c, targets)
+	}
+	for _, t := range targets {
 		if t.IsPlayer {
 			continue
 		}
@@ -445,4 +458,12 @@ func pumpSet(h Host, c *Ctx, sa *cards.SA, p *PumpParams) []state.Target {
 		out = append(out, t)
 	}
 	return out
+}
+
+// pumpedTriggeredCard reports whether a pump's Defined$ is one of the
+// TriggeredCard family spellings (including a dotted qualifier) whose objects
+// the pump would affect, so the CR 400.7 move strip applies to them.
+func pumpedTriggeredCard(r Ref) bool {
+	base, _, _ := strings.Cut(r.Text, ".")
+	return definedSpecCodes.Code(base) == definedSpecTriggeredCard
 }
