@@ -228,31 +228,26 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 		}
 		if c := t.cardAt(sl); k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.N == 2 {
 			// two permanents: no ask for exactly two, else one "choose 2" whose
-			// per-unit answers scriptAnswers enumerates (tapXSearch.visit)
+			// answers scriptAnswers enumerates as every pair of its candidates
+			// in lexicographic order, 64 at most (tapXSearch.visit)
 			if nc > 2 && !fs.tick() {
 				return false
 			}
-			per := nc / 2
-			if nc == 2 {
-				per = 1
+			npair := nc * (nc - 1) / 2
+			if npair > 64 {
+				npair = 64
 			}
-			n := 0
-			for i := 0; i < per && nc%2 == 0; i++ {
-				for j := 0; j < per && n < 64; j++ {
-					n++
-					a, b := cs[i], cs[1]
-					if nc > 2 {
-						b = cs[per+j]
-					}
-					if tapXOwnAnswer(fs.own, a, b) {
-						// A forced tap (no ask: exactly the cost's candidates)
-						// that takes the play's own {T} source is no continuation
-						// (CR 602.2b), as the tap-another search's is skipped.
-						continue
-					}
-					if colours(a, b) {
-						return true
-					}
+			for pi := 0; pi < npair; pi++ {
+				i, j := tapXPairAt(nc, pi)
+				a, b := cs[i], cs[j]
+				if tapXOwnAnswer(fs.own, a, b) {
+					// A forced tap (no ask: exactly the cost's candidates)
+					// that takes the play's own {T} source is no continuation
+					// (CR 602.2b), as the tap-another search's is skipped.
+					continue
+				}
+				if colours(a, b) {
+					return true
 				}
 			}
 			return false
