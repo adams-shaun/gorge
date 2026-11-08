@@ -817,13 +817,17 @@ func (g *grantSrch) settle(t *State) bool {
 }
 
 // next continues the search after sl's tap: a tap that fires a trigger runs on a
-// copy whose trigger is stacked.
+// copy whose trigger is stacked, as does a step whose own cost queued one (Haunted
+// Screen's 1 life heard by Marina Vendrell's Grimoire, CR 119.4, 603.3).
 func (g *grantSrch) next(t *State, sl Slot) bool {
-	if !g.tapTriggers(t, sl) {
+	taps := g.tapTriggers(t, sl)
+	if !taps && t.npend == 0 {
 		return g.visit(t)
 	}
 	u := t.fork()
-	u.manaTapped(g.k, sl)
+	if taps {
+		u.manaTapped(g.k, sl)
+	}
 	ok := g.settle(u)
 	t.unfork()
 	return ok
@@ -1123,8 +1127,8 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 				s.ceaseManaToken(o)
 			}
 		}
-		if g.tapTriggers(s, sl) {
-			// the tap's trigger is stacked before the next activation, as the
+		if g.tapTriggers(s, sl) || s.npend != 0 {
+			// the tap's trigger (or the one its paid life queued) is stacked before the next activation, as the
 			// search's settle stacked it: gorge answers each activation as its own
 			// decision, so two Taps triggers of one prefix (Beckett Mariner and
 			// Erica Ortegas tapped for Rok-Tahk's {G}{G}) go on the stack one at a
