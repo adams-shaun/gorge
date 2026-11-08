@@ -25,8 +25,9 @@ import (
 // singleton), paid at payCast after the mana and before the sacrifices,
 // so a reversed cast moves nothing (CR 733.1).
 //
-// A permanent spell cast this way enters tapped (a Tap event first, so a
-// Taps trigger fires) and then attacking the captured defender when that
+// A permanent spell cast this way enters tapped (its entry state: no Taps
+// or TapAll trigger fires, CR 603.2e; gorge emitTap's entering flag) and
+// then attacking the captured defender when that
 // is still legal (CR 702.190b; gorge kw_sneak.go sneakEnter,
 // effects.EnteringAttackLegal). It was never declared as an attacker: no
 // Attacks trigger, no attacked count (CR 508.4); and no blocker blocks it.
@@ -217,16 +218,14 @@ func (s *State) sneakCapture(o Obj) {
 }
 
 // sneakEnter is CR 702.190b's entry rider on permanent sl, just entered
-// from sneak entry e: tapped first (a Tap event), then attacking the
+// from sneak entry e: tapped first (the entry state, not a tapping: gorge
+// emitTap(.., entering) fires no Taps or TapAll trigger), then attacking the
 // captured defender if that is still legal. Nothing is declared.
 func (s *State) sneakEnter(k *prep, sl Slot, e *stackEntry) {
 	pp := &s.perms[sl]
 	if pp.flags&pfTapped == 0 {
 		pp.flags |= pfTapped
 		s.touchSl(sl)
-		if s.subs[kop.TrigTaps].any() {
-			s.fireTaps(k, sl)
-		}
 	}
 	if DebugSneakNoAttack || !s.enteringAttackLegal(k, e.ctrl, e.trigObj) {
 		return
