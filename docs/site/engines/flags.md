@@ -173,7 +173,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-features` | bool | `false` | vanilla/fdn: also assert the network inputs (dirac/feat vs policynet) at every decision |
 | `-first-game` | int | `0` | -v2 transcript: index of the first pool pair (repro anchor) |
 | `-first-pair` | int | `0` | index of the first pair |
-| `-game-timeout` | duration | `30*time.Second` | a game with no result after this long is recorded as a hang and the run moves on; a hang fails the run (0: no watchdog) |
+| `-game-timeout` | duration | `30*time.Second` | a game with no result after this long, twice (one retry), is recorded as a hang and the run moves on; a hang fails the run (0: no watchdog) |
 | `-games` | int | `100` | -v2 transcript: seeded games per answerer |
 | `-implicates-all` | bool | `false` | pool runs: name every implicated card instead of the top ten, and print one line per game that fails -absolute: bad-game, pair, seed, outcome, class, the implicated cards joined by \|, the sources of its latest actions joined by \|, the cards of both decks joined by \|, tab-separated; a game that recorded an unknown option kind also prints unknown-game, pair, seed, the kinds joined by \| |
 | `-json` | bool | `false` | print the summary as JSON |
