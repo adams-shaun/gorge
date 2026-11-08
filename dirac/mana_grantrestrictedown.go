@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // A restricted source beside a granted mana ability (Creeping Peeper under a
 // "creatures have {T}: add {W}" grant): gorge's census lists the printed
@@ -24,4 +28,31 @@ func (s *State) ownRestrAb(k *prep, sl Slot) *kop.Ability {
 		return nil
 	}
 	return &k.t.Cards[c].Abilities[rec.ab]
+}
+
+// grantRestrOwnFirst: the cast window's "choose a mana ability" ask of sl, a
+// table-restricted source whose only own ability is its printed restricted
+// one beside a grant (Cargo Ship's artifact-only {C} under A Realm Reborn),
+// lists that printed ability first, and the answer takes it, whether or not
+// the payment may spend its mana (CR 106.6: the mana floats restricted).
+// gorge's owedAbilitiesFirst moves the grant ahead only when the grant makes
+// a colour a fixed pip still owes (want) and the printed ability does not.
+// Only a single-colour printed ability: an any-colour one's ordering reads
+// its admission, which windowRestrOwed's own walk answers.
+func (s *State) grantRestrOwnFirst(k *prep, sl Slot, want uint8) (*kop.Ability, bool) {
+	ra := s.ownRestrAb(k, sl)
+	if ra == nil || s.ownManaUsable(k, sl) || bits.OnesCount8(uint8(ra.ManaColors)&0x3f) != 1 {
+		return nil, false
+	}
+	if len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) {
+		return nil, false
+	}
+	gm := s.windowGrantMask(k, sl)
+	if gm == 0 {
+		return nil, false
+	}
+	if uint8(ra.ManaColors)&want == 0 && gm&want != 0 {
+		return nil, false // the grant owes and the printed ability does not: the grant first
+	}
+	return ra, true
 }

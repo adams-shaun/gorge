@@ -425,6 +425,9 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 		// remainder is settled (paymentUsefulColours' second result is not read)
 		w = s.windowOwedPips(k, p, useful)
 	}
+	if ra, ok := s.grantRestrOwnFirst(k, sl, w); ok {
+		return ra, uint8(ra.ManaColors) & 0x3f, true // (mana_grantrestrictedown.go)
+	}
 	if w == 0 || s.windowSrcMask(k, sl)&w != 0 {
 		return nil, 0, false
 	}
