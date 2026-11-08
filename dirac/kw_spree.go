@@ -168,7 +168,10 @@ func (s *State) charmTargetAskDead(k *prep) bool {
 }
 
 // hasUntappedMana reports whether p controls an untapped mana-ability
-// source (gorge hasUntappedManaSource over pay.ManaSourceIDs).
+// source (gorge hasUntappedManaSource over pay.ManaSourceIDs). The
+// restriction is unread: gorge's untapped-source gate reads every
+// available mana ability, so a restricted source that will not pay the
+// cost still opens the window (restrManaUntapped).
 //
 //go:noinline
 func (s *State) hasUntappedMana(k *prep, p uint8) bool {
@@ -177,7 +180,7 @@ func (s *State) hasUntappedMana(k *prep, p uint8) bool {
 		if s.perms[sl].flags&pfTapped != 0 {
 			continue
 		}
-		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyNowAt(k, sl) {
+		if s.canTapForMana(k, sl) || s.restrManaUntapped(k, sl) || k.sacOnlyMana && s.canSacOnlyNowAt(k, sl) {
 			return true
 		}
 	}
