@@ -18,9 +18,9 @@ import (
 // kernel registered a delayed rider per token. The two pending riders then
 // made the kernel pose an order ask before its stack held what gorge's did, so
 // the projection parted at the end of combat. The pin carries the farm's decks
-// (the tape's lower row has swap=true, so the game's seat 0 is the tape's p1
-// deck), its seed and the whole game's explore-policy actions up to the
-// divergence; it is written from the farm's tape rather than dealt by the
+// (the tape's lower row has swap=true, so the game's seat 0 is the lowered
+// item's p1 deck, the WR build, and seat 1 its p0 deck, WG), its seed and the
+// whole game's explore-policy actions up to the divergence; it is written from the farm's tape rather than dealt by the
 // synthetic pool, so PINS_RECORD is deliberately not used.
 func TestPinnedFarmEdgeRover(t *testing.T) {
 	t.Parallel()
