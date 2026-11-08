@@ -49,6 +49,7 @@ type roleCand struct {
 	mv   int
 	cols kop.ColorMask
 	tgt  string // the gorge spell ability's ValidTgts
+	sa   bool   // the gorge card has a spell ability
 }
 
 // featRoles lists, per role, the pool cards that fit it, by ascending
@@ -77,15 +78,16 @@ func featRoles(set cardset.Set, c *Corpus) (map[string][]roleCand, error) {
 		cc := roleCand{name: cd.Name, id: id, mv: cd.Cost.MV(), cols: cd.Colors}
 		if gc, ok := c.Reg.Lookup(cd.Name); ok && len(gc.Faces) > 0 {
 			if sa := gc.Faces[0].SpellAbility(); sa != nil {
-				cc.tgt = sa.Params["ValidTgts"]
+				cc.tgt, cc.sa = sa.Params["ValidTgts"], true
 			}
 		}
 		e := fp.Effect(id)
 		creature := cd.Types&kop.TCreature != 0
-		spell := cd.Types&(kop.TInstant|kop.TSorcery) != 0 && e.Amount != 0 // Amount 0: no spell ability read
+		spell := cd.Types&(kop.TInstant|kop.TSorcery) != 0 && cc.sa
 		instant := cd.Types&kop.TInstant != 0
 		switch {
-		case creature && cc.mv >= 6 && feat.StrengthBucket(fp.PrintedStrength(id)) == 3:
+		case creature && cc.mv >= 6 && feat.StrengthBucket(fp.PrintedStrength(id)) == 3 && !cantBeCountered(cd):
+			// the bomb positions counter it: an uncounterable bomb would resolve
 			r["bomb"] = append(r["bomb"], cc)
 		case creature && cd.Power == 1 && cd.Toughness == 1 && cc.mv <= 2:
 			r["oneone"] = append(r["oneone"], cc)
@@ -131,19 +133,49 @@ func featRoles(set cardset.Set, c *Corpus) (map[string][]roleCand, error) {
 	return r, nil
 }
 
+// landkillClasses reports which of land, artifact and enchantment a kill
+// spell with ValidTgts tg admits ("Permanent.nonLand" admits no land).
+func landkillClasses(tg string) (land, art, ench bool) {
+	for _, t := range strings.Split(tg, ",") {
+		switch base, _, _ := strings.Cut(t, "."); base {
+		case "Land":
+			land = true
+		case "Permanent":
+			land = land || !strings.Contains(t, "nonLand")
+			art = art || !strings.Contains(t, "nonArtifact")
+			ench = ench || !strings.Contains(t, "nonEnchantment")
+		case "Artifact":
+			art = true
+		case "Enchantment":
+			ench = true
+		}
+	}
+	return land, art, ench
+}
+
 // landkillClass is the permanent class a kill spell with ValidTgts tg admits
 // beside creatures: "land", "artifact" or "enchantment"; "" for none.
 func landkillClass(tg string) string {
-	t := strings.ReplaceAll(tg, "nonLand", "")
+	land, art, ench := landkillClasses(tg)
 	switch {
-	case strings.Contains(t, "Land"), strings.Contains(t, "Permanent"):
+	case land:
 		return "land"
-	case strings.Contains(t, "Artifact"):
+	case art:
 		return "artifact"
-	case strings.Contains(t, "Enchantment"):
+	case ench:
 		return "enchantment"
 	}
 	return ""
+}
+
+// cantBeCountered reports a card whose spell can't be countered.
+func cantBeCountered(cd *kop.CardDef) bool {
+	for i := range cd.Abilities {
+		if a := &cd.Abilities[i]; a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplCantBeCountered {
+			return true
+		}
+	}
+	return false
 }
 
 // featBasics are the basic land of each colour bit, W U B R G.
@@ -264,7 +296,8 @@ func (v *sview) castable(id kop.CardID) bool {
 func (v *sview) atPrio(seat uint8) bool { return v.d.Kind == dirac.DkPriority && v.d.Player == seat }
 
 // seatPol is one seat's script. cast says whether to cast the plain-cast
-// hand card o (of card id); tgt scores a target byte (the best is chosen).
+// hand card o (of card id), asked only at an empty stack so a seat casts
+// one spell at a time; tgt scores a target byte (the best is chosen).
 type seatPol struct {
 	cast func(v *sview, id kop.CardID) bool
 	tgt  func(v *sview, t uint8) int
@@ -286,7 +319,7 @@ func (v *sview) choose(pols *[2]seatPol) dirac.Action {
 				return a
 			}
 		}
-		if pol.cast != nil {
+		if pol.cast != nil && v.p.NStack == 0 {
 			for _, a := range opts {
 				if a.Kind() == dirac.AkCast && a.Mode() == 0 {
 					if o := &v.p.Objs[a.Source()]; o.Zone == kop.ZoneHand && pol.cast(v, o.Card) {
@@ -433,10 +466,13 @@ func FeatScenarios(set cardset.Set, c *Corpus) ([]FeatScenario, error) {
 	lk := landkillClass(roles["landkill"][0].tgt)
 	baitRole := ""
 	if lk != "land" {
-		tg := roles["landkill"][0].tgt
-		for _, k := range []string{"artifact", "enchantment"} {
-			if strings.Contains(tg, strings.ToUpper(k[:1])+k[1:]) && len(roles["bait-"+k]) > 0 {
-				baitRole = "bait-" + k
+		_, art, ench := landkillClasses(roles["landkill"][0].tgt)
+		for _, k := range []struct {
+			cls string
+			ok  bool
+		}{{"artifact", art}, {"enchantment", ench}} {
+			if k.ok && len(roles["bait-"+k.cls]) > 0 {
+				baitRole = "bait-" + k.cls
 				break
 			}
 		}
@@ -521,8 +557,9 @@ func FeatScenarios(set cardset.Set, c *Corpus) ([]FeatScenario, error) {
 			func(int) [2]featSide { return [2]featSide{{"oneone", "counter"}, {"cheapkill"}} },
 			func(g *featGame, seed uint64) ([]FeatScenario, bool) {
 				one, kill, ctr := g.id["oneone"], g.id["cheapkill"], g.id["counter"]
+				// the kill is cast on its own turn, so my counter's lands are untapped
 				pols := &[2]seatPol{{cast: castOnly(one)}, {
-					cast: func(v *sview, _ kop.CardID) bool { return v.count(0, kop.TCreature, false) > 0 },
+					cast: func(v *sview, _ kop.CardID) bool { return v.p.Active == 1 && v.count(0, kop.TCreature, false) > 0 },
 					tgt: targetObj(func(v *sview, o uint8) bool {
 						return mineOnBf(kop.TCreature)(v, o) && v.p.Objs[o].Card == one
 					})}}
@@ -536,15 +573,17 @@ func FeatScenarios(set cardset.Set, c *Corpus) ([]FeatScenario, error) {
 			func(int) [2]featSide { return [2]featSide{{"bomb", "counter"}, {"bigkill"}} },
 			func(g *featGame, seed uint64) ([]FeatScenario, bool) {
 				bomb, kill, ctr := g.id["bomb"], g.id["bigkill"], g.id["counter"]
-				pols := &[2]seatPol{{cast: castOnly(bomb)}, {
-					cast: func(v *sview, _ kop.CardID) bool { return v.count(0, kop.TCreature, false) > 0 },
+				// one bomb of mine; the kill is cast on its own turn, so my
+				// counter's lands are untapped
+				pols := &[2]seatPol{{cast: func(v *sview, id kop.CardID) bool { return id == bomb && v.count(0, kop.TCreature, false) == 0 }}, {
+					cast: func(v *sview, _ kop.CardID) bool { return v.p.Active == 1 && v.count(0, kop.TCreature, false) > 0 },
 					tgt: targetObj(func(v *sview, o uint8) bool {
 						return mineOnBf(kop.TCreature)(v, o) && v.p.Objs[o].Card == bomb
 					})}}
 				return g.one("bigkill-on-bomb", seed, pols, func(v *sview) bool {
 					t := v.top()
 					return v.atPrio(0) && t != nil && t.Card == kill && t.Ctrl == 1 && t.Targets[0] < uint8(dirac.MaxObj) &&
-						mineOnBf(kop.TCreature)(v, t.Targets[0]) && v.p.Objs[t.Targets[0]].Card == bomb && v.find(0, kop.ZoneHand, ctr) >= 0
+						mineOnBf(kop.TCreature)(v, t.Targets[0]) && v.p.Objs[t.Targets[0]].Card == bomb && v.castable(ctr)
 				}, "bigkill", "bomb", "counter")
 			}},
 		{"counter-prevents-lethal", []string{"counter-prevents-lethal"},
@@ -672,6 +711,10 @@ func buildBomb(g *featGame, seed uint64) ([]FeatScenario, bool) {
 		return nil, false
 	}
 	onStack := g.scenario("bomb-on-stack", st, d, "bomb", "counter-creature")
+	var p0 dirac.Projection
+	st.Project(&p0)
+	src := p0.Stack[0].Source // the bomb spell's object, followed into both branches
+	turn := st.Turn()         // both branches stop on this turn
 
 	cs, cd := fork(st, d)
 	var cast *dirac.Action
@@ -689,7 +732,8 @@ func buildBomb(g *featGame, seed uint64) ([]FeatScenario, bool) {
 		return nil, false
 	}
 	if !g.advance(cs, cd, pols, func(v *sview) bool {
-		return v.atPrio(0) && v.p.NStack == 0 && v.find(1, kop.ZoneGraveyard, bomb) >= 0
+		o := &v.p.Objs[src]
+		return v.atPrio(0) && v.s.Turn() == turn && v.p.NStack == 0 && o.Card == bomb && o.Zone == kop.ZoneGraveyard
 	}, cast) {
 		return nil, false
 	}
@@ -703,7 +747,8 @@ func buildBomb(g *featGame, seed uint64) ([]FeatScenario, bool) {
 		}
 	}
 	if !g.advance(rs, rd, pols, func(v *sview) bool {
-		return v.atPrio(0) && v.p.NStack == 0 && v.count(1, kop.TCreature, false) > 0
+		o := &v.p.Objs[src]
+		return v.atPrio(0) && v.s.Turn() == turn && v.p.NStack == 0 && o.Card == bomb && o.Zone == kop.ZoneBattlefield
 	}, &pass) {
 		return nil, false
 	}

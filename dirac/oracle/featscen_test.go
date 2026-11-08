@@ -50,15 +50,6 @@ func TestFeatScenariosBuild(t *testing.T) {
 		}
 		return &p.Stack[p.NStack-1]
 	}
-	inZone := func(s *FeatScenario, role string, z kop.Zone, owner uint8) bool {
-		id, p := idOf(s, role), pj[s.Name]
-		for i := 0; i < int(p.NObj); i++ {
-			if o := &p.Objs[i]; o.Card == id && o.Zone == z && o.Owner == owner {
-				return true
-			}
-		}
-		return false
-	}
 	// the four bomb positions are one turn of one game
 	for _, n := range []string{"bomb-on-stack", "bomb-countered", "bomb-resolved"} {
 		if by[n].State.Turn() != by["bomb-precast"].State.Turn() {
@@ -69,13 +60,36 @@ func TestFeatScenariosBuild(t *testing.T) {
 	if p := pj[s.Name]; p.NStack != 1 || top(s.Name).Card != idOf(s, "bomb") || top(s.Name).Ctrl != 1-s.Seat {
 		t.Errorf("bomb-on-stack: NStack %d top %+v", p.NStack, top(s.Name))
 	}
-	s = by["bomb-countered"]
-	if pj[s.Name].NStack != 0 || !inZone(s, "bomb", kop.ZoneGraveyard, 1-s.Seat) {
-		t.Errorf("bomb-countered: NStack %d, bomb in opp graveyard %v", pj[s.Name].NStack, inZone(s, "bomb", kop.ZoneGraveyard, 1-s.Seat))
+	// the bomb spell's own object, followed into both branches (a graveyard
+	// already holds discarded copies, so a card-name check proves nothing)
+	src := top("bomb-on-stack").Source
+	for _, c := range []struct {
+		name string
+		z    kop.Zone
+	}{{"bomb-countered", kop.ZoneGraveyard}, {"bomb-resolved", kop.ZoneBattlefield}} {
+		s = by[c.name]
+		o := &pj[c.name].Objs[src]
+		if pj[c.name].NStack != 0 || o.Card != idOf(s, "bomb") || o.Zone != c.z || o.Owner != 1-s.Seat {
+			t.Errorf("%s: NStack %d, the bomb spell's object is card %d in zone %d owner %d", c.name, pj[c.name].NStack, o.Card, o.Zone, o.Owner)
+		}
 	}
-	s = by["bomb-resolved"]
-	if !inZone(s, "bomb", kop.ZoneBattlefield, 1-s.Seat) {
-		t.Errorf("bomb-resolved: bomb is not on the opponent's battlefield")
+	// the removal positions hold one spell, and my counter is castable
+	castable := func(s *FeatScenario, role string) bool {
+		id, p := idOf(s, role), pj[s.Name]
+		for _, a := range s.Dec.Options[:s.Dec.N] {
+			if a.Kind() == dirac.AkCast && p.Objs[a.Source()].Card == id && p.Objs[a.Source()].Zone == kop.ZoneHand {
+				return true
+			}
+		}
+		return false
+	}
+	for _, n := range []string{"cheapkill-on-oneone", "bigkill-on-bomb", "counter-prevents-lethal"} {
+		if s := by[n]; pj[n].NStack != 1 || !castable(s, "counter") {
+			t.Errorf("%s: NStack %d, counter castable %v", n, pj[n].NStack, castable(s, "counter"))
+		}
+	}
+	if s := by["bomb-on-stack"]; !castable(s, "counter") {
+		t.Errorf("bomb-on-stack: counter not castable")
 	}
 	s = by["cheapkill-on-oneone"]
 	if tg := top(s.Name).Targets[0]; int(tg) >= int(pj[s.Name].NObj) || pj[s.Name].Objs[tg].Card != idOf(s, "oneone") || pj[s.Name].Objs[tg].Ctrl != s.Seat {
@@ -104,6 +118,22 @@ func TestFeatScenariosDeterministic(t *testing.T) {
 		b[i].State.Project(&pb)
 		if pa != pb || a[i].Dec != b[i].Dec {
 			t.Errorf("%s: two builds differ", a[i].Name)
+		}
+	}
+}
+
+func TestFeatLandkillClass(t *testing.T) {
+	for tg, want := range map[string]string{
+		"Permanent.nonLand":             "artifact",
+		"Permanent":                     "land",
+		"Land":                          "land",
+		"Artifact,Enchantment":          "artifact",
+		"Enchantment":                   "enchantment",
+		"Creature":                      "",
+		"Permanent.nonLand+nonArtifact": "enchantment",
+	} {
+		if got := landkillClass(tg); got != want {
+			t.Errorf("landkillClass(%q) = %q, want %q", tg, got, want)
 		}
 	}
 }
