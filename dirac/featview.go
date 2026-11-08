@@ -785,8 +785,10 @@ func (s *State) affordsUngrantedPlay(k *prep, p uint8, a Action, cost *kop.ManaC
 	}
 	o := Obj(a.Source())
 	card := s.objs[o].card
+	src := NoSlot // the ability's source, for a sacrifice filter that reads it (Aura.Attached)
 	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {
 		card = s.cardAt(ob.slot)
+		src = ob.slot
 	}
 	ab := int(a.Mode())
 	if ab < 0 || ab >= len(k.t.Cards[card].Abilities) {
@@ -803,7 +805,7 @@ func (s *State) affordsUngrantedPlay(k *prep, p uint8, a Action, cost *kop.ManaC
 	pm := pipMaskOf(cost)
 	for c := 0; c < 1<<ms.n; c++ {
 		b := ms.modes(av, c)
-		if b.affords(cost, pm, 0) && s.costPartDisjoint(k, p, ex, &ca.Cost, cost, &b, pm) {
+		if b.affords(cost, pm, 0) && s.costPartDisjoint(k, p, src, &ca.Cost, cost, &b, pm) {
 			return true
 		}
 		if k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, p&1, d, cost, &b, ex, 0) {
