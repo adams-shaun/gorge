@@ -80,7 +80,32 @@ func (s *State) answerCloneReturn(k *prep, a Action) {
 	if s.cloneReturnOrderPark(k) {
 		return // the CR 616.1 order between the copy and another entry replacement (copy_returnorder.go)
 	}
-	s.rerunReturn(k)
+	s.finishCloneReturn(k)
+}
+
+// finishCloneReturn resumes the parked clone return once its copy election (and
+// any CR 616.1 order) is answered. A resolution's return op re-runs the
+// instruction (rerunReturn); an until-leaves link return enters the card from
+// exile instead, with the answer read by its enters program (CR 614.12, 707.2,
+// 610.3).
+//
+//go:noinline
+func (s *State) finishCloneReturn(k *prep) {
+	if !s.g.pre.link {
+		s.rerunReturn(k)
+		return
+	}
+	o := s.g.pre.obj
+	s.g.pre.state = 2
+	if s.objs[o].zone == kop.ZoneExile {
+		from := s.detach(o)
+		s.enterLinkRet(k, o, s.objs[o].owner(), from)
+	}
+	s.g.pre = preAsk{}
+	if s.resumeReturns(k) {
+		return // another held return parks its own ask
+	}
+	s.continueRes(k, 0)
 }
 
 // rerunReturn runs the parked return op, whose enters program reads the answer in
