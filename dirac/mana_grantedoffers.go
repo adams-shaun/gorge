@@ -665,6 +665,17 @@ func (g *grantSrch) visit(t *State) bool {
 				return true
 			}
 		}
+		if g.dual[i] && t.ownManaUsable(g.k, sl) {
+			// a restricted printed ability beside the usable one (White Lotus
+			// Hideout's Lesson-only any colour): gorge's search taps it too, after
+			// the usable one, whether or not the play may spend it
+			if ra := t.ownRestrAb(g.k, sl); ra != nil {
+				g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
+				if g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, max(ra.ManaN, 1), false) {
+					return true
+				}
+			}
+		}
 		if fok && g.filtBranch(t, i, sl) { // (listed after the printed ability, before the grants)
 			return true
 		}
