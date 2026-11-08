@@ -60,6 +60,8 @@ func KernelDKind(d *dirac.Decision) DKind {
 			return DModes // gorge poses an effect discard as KModes "discard"
 		case dirac.ChOptional:
 			return DTriggerOptional
+		case dirac.ChCommanderZone:
+			return DCommanderZone // CR 903.9a: the owner's put-it-there/leave ask
 		}
 		return DChoose
 	case dirac.DkTriggerOrder:
@@ -358,6 +360,10 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return ch("no", RefNone, 0)
 		case dirac.ChLegend:
 			return ch("keep", src, 0)
+		case dirac.ChCommanderZone:
+			// gorge's KCommanderZone packs the commander as source and the
+			// option index as mode (0 command_zone, 1 leave).
+			return Pack(ActCommanderZone, src, RefNone, mode)
 		case dirac.ChDivide:
 			return ch("division", src, mode)
 		case dirac.ChAltAdd:

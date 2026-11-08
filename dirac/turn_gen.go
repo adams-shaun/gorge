@@ -499,13 +499,23 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			continue // nothing it can enchant: it stays in exile (CR 303.4g; pair 74242)
 		}
 		if x.zone == kop.ZoneExile {
-			if kind := s.enterChoiceKind(k, x.card); kind != 0 && s.res.active && (s.res.ask == raNone || s.res.ask == raGenPayPick) && s.g.pre.state == 0 {
+			// the clone election comes first: a card whose enters replacement
+			// opens with OpBecomeCopy (Naga Fleshcrafter) has no
+			// enterChoiceKind, and enterChoiceKind alone would miss it
+			kind := uint8(0)
+			if !DebugCloneReturnNoAsk && k.gen.has(x.card, gfEnterRepl) {
+				kind = s.cloneAskKind(k, x.card)
+			}
+			if kind == 0 {
+				kind = s.enterChoiceKind(k, x.card)
+			}
+			if kind != 0 && s.res.active && (s.res.ask == raNone || s.res.ask == raGenPayPick) && s.g.pre.state == 0 {
 				// during a resolution gorge asks the as-enters choice with
 				// the card still in exile (Heraldic Banner, pair 544); it
 				// enters once answered (runProg, raGenRetChoice); so does one whose
 				// source a cost's pick still being answered sacrificed (In the Pale
 				// Moonlight's Malfunctioning Holodeck), as the Aura's host ask above
-				s.g.pre = preAsk{obj: l.obj, kind: kind, state: preReturn}
+				s.g.pre = preAsk{obj: l.obj, kind: kind, state: preReturn, link: kind == akClone}
 				if k.gen.anyLinkCtr {
 					s.linkRetStall(k, srcCtrl, o, l.obj)
 				}
@@ -821,7 +831,8 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		copy(s.g.freeQ[:], s.g.freeQ[1:s.g.nfq])
 		s.g.nfq--
 		c := s.objs[o].card
-		// freeP: bit 0 caster, bits 1-3 zone, bit 4 ReplaceGraveyard, bit 5 CopyCard, bit 6 paid
+		// freeP: bit 0 caster, bits 1-3 zone, bit 4 ReplaceGraveyard,
+		// bit 5 CopyCard, bit 6 paid, bit 7 ForgetPlayed
 		ctrl := s.g.freeP & 1
 		if s.g.freeP&32 != 0 {
 			paid := s.g.freeP&64 != 0
@@ -863,6 +874,10 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		s.prio = holder
 		return false
 	}
+	// the queue is drained: the ForgetPlayed$ marker has served its casts
+	// (cast.go finishBuild drops a committed card; a refused or reversed one
+	// stays remembered)
+	s.g.freeP &^= 128
 	if s.res.ask == raGenFreeParked {
 		s.resumeFreeCast(k) // the rest were refused: the parked tail runs
 		return false

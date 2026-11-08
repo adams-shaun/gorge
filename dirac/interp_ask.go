@@ -997,12 +997,12 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.capFull(StallFree)
 		}
 		// the CastFree instruction still at res.pc carries the
-		// Amount$ 1 and ForgetPlayed$ bits. Gorge forgets the begun card on
-		// the PlayDone pass (before the Sub chain reads the remembered set).
+		// Amount$ 1 and ForgetPlayed$ bits. ForgetPlayed$ is not applied at
+		// the pick: the cast is only begun later, by the freeQ drain, and a
+		// refused or reversed cast never happens (CR 733.1-2) and stays
+		// remembered. The freeP marker forgets it once the cast commits
+		// (cast.go finishBuild).
 		in := &s.prog(k)[s.res.pc]
-		if in.C&16 != 0 {
-			s.forgetRemGen(o)
-		}
 		if DebugRepeatNoOptional && in.C&128 != 0 {
 			s.freeRepeatForce() // mutation only: every copy queued at the first pick
 		}

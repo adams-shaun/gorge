@@ -23,14 +23,18 @@ Avengers Disassembled
 Avengers Hangar
 Avengers Tower
 Avengers: Under Siege
+Baron Strucker, HYDRA Overlord
+Baxter Building
 Beast, Erudite Aerialist
 Birnin Zana Plaza
 Black Panther, Vanguard
 Black Widow, Double Agent
+Black Widow, Super Spy
 Blazing Crescendo
 Bold Biochemist
 Borough Backup
 Brave Brawler
+Bruce Banner
 Call Damage Control
 Captain America's Shield
 Captain America, Super-Soldier
@@ -40,6 +44,7 @@ Captain Marvel, Earth's Protector
 Castle Doom
 Claim the Kingdom
 Colleen Wing, Street Samurai
+Cosmic Cube
 Crimson Operative
 Crossbones, Malicious Mercenary
 Crowd of True Believers
@@ -53,8 +58,10 @@ Dependable Quinjet
 Depower
 Doc Samson, Super Psychiatrist
 Doctor Doom
+Doom Reigns Supreme
 Earth's Mightiest Heroes
 Echo, Perceptive Prodigy
+Elektra, Daughter of the Hand
 Epic Fight
 Falcon's Wing Harness
 Falcon, Winged Wonder
@@ -76,7 +83,9 @@ HULK SMASH!
 HYDRA Assault Robot
 HYDRA Infiltration
 HYDRA Troopers
+Hawkeye's Bow
 Hawkeye, Master Marksman
+Hawkeye, Young Avenger
 Helicarrier Strike
 Hell's Kitchen
 Hellcat, Undying Vigilante
@@ -87,6 +96,7 @@ Hex Magic
 Hidden Lair
 Hire a Crew
 Hour of Defeat
+Hulk, Gamma Goliath
 Human Torch, Johnny Storm
 Hydraulic Helper
 I Am Iron Man
@@ -100,6 +110,7 @@ K'un-Lun Warrior
 Ka-Zar of the Savage Land
 Kang, Temporal Tyrant
 Killmonger, Scourge of Wakanda
+King T'Challa
 Kingpin's Enforcers
 Knight of Wundagore
 Kree Commandos
@@ -119,11 +130,15 @@ Monica Rambeau
 Moon Girl and Devil Dinosaur
 Moonstone, Harsh Mistress
 Mountain
+Ms. Marvel, Kamala Khan
+Multiversal Incursion
 Murdock's Crusade
+Namor the Sub-Mariner
 Night Nurse, Healer of Heroes
 Ninja of the Hand
 Okoye, Dora Milaje Leader
 Origin of the Avengers
+Panther Pounce
 Patriot, Shield Wielder
 Pet Avengers
 Photon Blast Barrage
@@ -140,10 +155,14 @@ Red Room Recruit
 Reptil, Dinomorpher
 Repulsor Blast
 Restorative Technique
+Rewrite History
 Rick Jones, Destined Sidekick
+Roxxon Brutes
 S.H.I.E.L.D. Deployment Drone
 S.H.I.E.L.D. Flying Car
+S.H.I.E.L.D. Helicarrier
 S.H.I.E.L.D. Spy Kit
+Savage Land Dinosaur
 Scientist Supreme of A.I.M.
 Serpent Specialist
 She-Hulk, Jade Defender
@@ -152,6 +171,7 @@ Speedball, New Warrior
 Spider-Man, To the Rescue
 Stark Industries
 Stark Industries Executive
+Stature, Size Shifter
 Stolen Stark Tech
 Subterranean Cavern
 Super Intelligence
@@ -166,6 +186,8 @@ Swordsman, Sharp Scoundrel
 Take Up the Shield
 Team Tactics
 The Coming of Galactus
+The Masters of Evil
+The Ruinous Wrecking Crew
 The Scarlet Witch
 The Sentry, Golden Guardian
 The Ten Rings
@@ -177,6 +199,7 @@ Thor Odinson
 Thor, God of Thunder
 Thunderbolts Conspiracy
 Tigra, Feline Fury
+Titania, Rugged Rumbler
 Tony Stark
 Too Evil to Stay Dead
 Training Compound
@@ -185,6 +208,7 @@ Trickster's Stratagem
 Truck Toss
 U.S.Agent, John Walker
 Ultron Drone
+Ultron, Artificial Malevolence
 Undercover Skrull
 Unliving Legionnaire
 Vibranium Energy Daggers
@@ -204,4 +228,5 @@ White Widow, Free Agent
 Wiccan, Rising Magician
 Widow's Bite
 Winter Soldier, Icy Assassin
+Worlds Within Worlds
 Yellowjacket, Heartless Marauder

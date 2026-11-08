@@ -600,6 +600,18 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 				}
 			}
 		}
+		if pc.blgFirst != 0 {
+			// a granted basic land type's view of the card's own Combo: its
+			// printed token order comes first, the intrinsic colours after
+			if ab := manaAbView(&k.t.Cards[s.cardAt(sl)], pc); ab != nil && ab.Kind == kop.AbMana && ab.AFlags&kop.AfManaChoice != 0 {
+				var ord [5]uint8
+				for _, c := range ord[:manaColourOrder(ab, &ord)] {
+					if all&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
+						return int(c)
+					}
+				}
+			}
+		}
 		for c := 0; c < 5; c++ {
 			if all&(1<<c) != 0 && seen&(1<<c) == 0 && cost.Pips[c] > s.pl[p].pool[c] {
 				return c // a granted ability's colour follows the source's own
@@ -1867,7 +1879,15 @@ func (s *State) payCastWindow(k *prep, p uint8, cost *kop.ManaCost, anyType, any
 		}
 		return // the pick is posed; the cast pays when the window ends
 	}
-	s.payFromPoolRider(k, p, cost, 0, anyColor)
+	if s.rbAny(p) {
+		// the window can float a restricted source's mana beside the pool (an
+		// any-colour source whose restriction admits this cast); spend that
+		// admitted batch first, as gorge's payment does (loweredWindowOK's
+		// arm, CR 106.6)
+		s.payRestrRider(k, p, cost, 0, s.bld().e.obj, anyColor)
+	} else {
+		s.payFromPoolRider(k, p, cost, 0, anyColor)
+	}
 	for c := range held {
 		s.pl[p].pool[c] += held[c]
 	}

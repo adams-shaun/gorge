@@ -168,7 +168,10 @@ func (s *State) charmTargetAskDead(k *prep) bool {
 }
 
 // hasUntappedMana reports whether p controls an untapped mana-ability
-// source (gorge hasUntappedManaSource over pay.ManaSourceIDs).
+// source (gorge hasUntappedManaSource over pay.ManaSourceIDs). The
+// restriction is unread: gorge's untapped-source gate reads every
+// available mana ability, so a restricted source that will not pay the
+// cost still opens the window (restrManaUntapped).
 //
 //go:noinline
 func (s *State) hasUntappedMana(k *prep, p uint8) bool {
@@ -177,7 +180,7 @@ func (s *State) hasUntappedMana(k *prep, p uint8) bool {
 		if s.perms[sl].flags&pfTapped != 0 {
 			continue
 		}
-		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyNowAt(k, sl) {
+		if s.canTapForMana(k, sl) || s.restrManaUntapped(k, sl) || k.sacOnlyMana && s.canSacOnlyNowAt(k, sl) {
 			return true
 		}
 	}
@@ -203,6 +206,12 @@ func (s *State) targetPaidPlanned(k *prep, p uint8, o Obj) bool {
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
 	cost := s.featCost(k, p&1, c, o, k.cards[c].cost)
+	if cd.HasAltAdd {
+		// gorge's witness floats the spell's mana with the first either-or
+		// part that has mana (potentialAltAddPlan), so the lowering reaches
+		// the cast with that mana pooled too (CR 601.2f)
+		cost = addCost(cost, s.altAddManaPart(k, c))
+	}
 	t := s.fork()
 	var pk planner
 	pk.try = true

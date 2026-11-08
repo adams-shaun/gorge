@@ -324,6 +324,9 @@ func (s *State) stepRaw(d *Decision) {
 		case ctlTurnUpX:
 			s.turnUpXOptions(d) // face_turnfaceup.go
 			return
+		case ctlCmdZone0, ctlCmdZone1:
+			s.askCmdZone(k, d, s.ctl-ctlCmdZone0) // CR 903.9a (zone_cmdzone.go)
+			return
 		case ctlDivide:
 			if s.divA != NoSlot {
 				s.divideOptions(k, d)
@@ -382,6 +385,8 @@ func (s *State) Apply(a Action) {
 		s.applyExileOrder(k, a)
 	case ctlTurnUpX:
 		s.applyTurnUpX(k, a) // face_turnfaceup.go
+	case ctlCmdZone0, ctlCmdZone1:
+		s.applyCmdZone(k, s.ctl-ctlCmdZone0, a.Mode()) // CR 903.9a (zone_cmdzone.go)
 	case ctlDivide:
 		s.applyDivide(k, a)
 	case ctlCleanupDiscard:

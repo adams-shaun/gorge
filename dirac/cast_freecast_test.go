@@ -269,10 +269,26 @@ func TestFreePlayForgetPlayed(t *testing.T) {
 	m11Start(sc, synth, nil)
 	d := m11FreeAsk(t, sc)
 	m11Choose(t, sc, d, rem[0])
-	if sc.s.g.nrem != 1 || sc.s.g.rem[0] != rem[1] {
-		t.Fatalf("remembered set %v, want only %d (ForgetPlayed dropped the begun card)", sc.s.g.rem[:sc.s.g.nrem], rem[1])
+	// the pick only queues the card: no cast has begun yet, so nothing is
+	// forgotten (gorge forgets on the PlayDone pass, after the cast commits)
+	if sc.s.g.nrem != 2 || sc.s.g.rem[0] != rem[0] || sc.s.g.rem[1] != rem[1] {
+		t.Fatalf("remembered set %v after the pick, want %d then %d (the cast has not begun)", sc.s.g.rem[:sc.s.g.nrem], rem[0], rem[1])
 	}
 	if sc.s.g.freeQ[0] != rem[0] {
-		t.Fatalf("freeQ[0] = %d, want the forgotten begun card %d", sc.s.g.freeQ[0], rem[0])
+		t.Fatalf("freeQ[0] = %d, want the queued card %d", sc.s.g.freeQ[0], rem[0])
+	}
+	// the freeQ drain begins the cast: the card reaches the stack, and the
+	// commit drops it from the remembered set (forge's PlayDone timing)
+	cast := false
+	m11Drive(t, sc, func() bool {
+		z := sc.s.objs[rem[0]].zone
+		cast = cast || z == kop.ZoneStack
+		return cast
+	})
+	if !cast {
+		t.Fatalf("the picked card was never cast (zone %d)", sc.s.objs[rem[0]].zone)
+	}
+	if sc.s.g.nrem != 1 || sc.s.g.rem[0] != rem[1] {
+		t.Fatalf("remembered set %v, want only %d (ForgetPlayed dropped the begun card)", sc.s.g.rem[:sc.s.g.nrem], rem[1])
 	}
 }

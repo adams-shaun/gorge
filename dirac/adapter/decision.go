@@ -315,6 +315,8 @@ func (g *Game) poseAsk() {
 		}
 	case canon.DReplacement:
 		d.Kind, d.Prompt = decision.KReplacement, "Choose a replacement to apply"
+	case canon.DCommanderZone:
+		d.Kind, d.Prompt = decision.KCommanderZone, "Put this commander into the command zone?"
 	case canon.DMulligan:
 		d.Kind, d.Prompt = decision.KMulligan, "Mulligan?"
 	default:
@@ -363,6 +365,9 @@ func (g *Game) poseAsk() {
 
 // askSource is the object a decision other than a target's belongs to.
 func (g *Game) askSource(d *decision.Decision) state.ObjID {
+	if d.Kind == decision.KCommanderZone && len(d.Options) > 0 {
+		return d.Options[0].Obj // the commander its owner is asked about (CR 903.9a)
+	}
 	if g.d.Sub == dirac.ChDivide && len(d.Options) > 0 {
 		return d.Options[0].Obj
 	}
@@ -546,6 +551,12 @@ func (g *Game) askOption(x dirac.Action, c canon.Canon, i uint32) (o decision.Op
 		key = g.zoneKey(c.Src())
 	case k == canon.ActKeep:
 		o.Kind, o.Label = "keep", "Keep"
+	case k == canon.ActCommanderZone:
+		// CR 903.9a: mode 0 puts it into the command zone, mode 1 leaves it
+		o.Kind, o.Label = "command_zone", "Put it into the command zone"
+		if c.Mode() == 1 {
+			o.Kind, o.Label = "leave", "Leave it"
+		}
 	case k == canon.ActMulligan:
 		o.Kind, o.Label = "mulligan", "Mulligan"
 	case k >= canon.ActChoose:

@@ -23,16 +23,18 @@ func (s *State) freeQueued(o Obj) bool {
 // OpCastFree's operands:
 //   - C low 3 bits: the population zone (Exile / Hand / Graveyard / Library).
 //   - C bit 3: Amount$ 1 (close the ask after one pick).
-//   - C bit 4: ForgetPlayed$ True (drop the begun card from s.g.rem).
+//   - C bit 4: ForgetPlayed$ True (drop the card from s.g.rem once its cast
+//     commits; a refused or reversed cast never commits and keeps it).
 //   - C bit 5: ReplaceGraveyard$ Exile (exile when it leaves the stack).
 //   - C bit 6: CopyCard$ True; bit 7: AllowRepeats$ True with Amount$ A (cast_freerepeat.go).
 //   - C bit 8: the copy pays its mana cost; bit 9: a literal Amount$ A (the ask closes after A picks).
 //   - Obj: RefRemembered (P1), a target slot (P2), or RefNone with F (P3/P4
 //     filter population over the zone).
 //
-// The zone and ReplaceGraveyard bit ride to the freeQ drain in s.g.freeP:
-// bit 0 is the caster, bits 1-3 the zone, bit 4 ReplaceGraveyard. freeP is
-// only a player index everywhere else, so its readers mask it.
+// The zone, ReplaceGraveyard and ForgetPlayed bits ride to the freeQ drain
+// in s.g.freeP: bit 0 is the caster, bits 1-3 the zone, bit 4
+// ReplaceGraveyard, bit 7 ForgetPlayed. freeP is only a player index
+// everywhere else, so its readers mask it.
 
 // sfFreeGY is stackEntry.flags bit 4, meaning "exile instead of the
 // graveyard" on a free cast. Bit 4 also means sfFbGranted while a cast is built

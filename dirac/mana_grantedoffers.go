@@ -99,7 +99,10 @@ func (s *State) contGrants(k *prep, sl Slot, lost bool, lts uint16, f func(c Car
 			if !s.statCond(k, st) || !s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, src, layerKw) {
 				continue
 			}
+			prev := s.g.grantSrc
+			s.g.grantSrc = uint8(st.obj) + 1 // grantIdxs orders by this source's place in the walk
 			f(cid, a.Static.Grant-1, 1)
+			s.g.grantSrc = prev
 		}
 	}
 }
@@ -117,7 +120,28 @@ const maxGrants = 16
 //go:noinline
 func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 	g := k.gen
+	// gorge lists every Continuous AddAbility$ grant in its static walk's
+	// order (seat, then entry), an attached source's among the unattached
+	// ones (an Honest Work's "{T}: Add {C}" on a land of the other seat
+	// follows a Great Divide Guide's grant of the first); grantedAbilities
+	// reports the attached statics first, so the list is stably reordered
+	// by the granting source's place in that walk. A grant without a
+	// source in it (an Animate record) keeps its place after them.
+	var order [MaxPerm]Slot
+	no := 0
+	if g.anyContGrant {
+		no = s.battlefieldOrder(0, s.statM.and(s.ctrlM[0]), order[:], 0)
+		no = s.battlefieldOrder(1, s.statM.and(s.ctrlM[1]), order[:], no)
+	}
+	var key [maxGrants]uint8
 	s.grantedAbilities(k, sl, func(c CardID, ab uint8) {
+		pos := uint8(255)
+		for oi := 0; oi < no; oi++ {
+			if s.g.grantSrc != 0 && uint8(s.perms[order[oi]].obj)+1 == s.g.grantSrc {
+				pos = uint8(oi)
+				break
+			}
+		}
 		for i, r := range g.grantOf {
 			if r.card != c || r.ab != ab {
 				continue
@@ -129,7 +153,12 @@ func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 			if g.grantSelf[i] && s.selfColMask(sl) == 0 {
 				continue // a colourless grantee reflects nothing: gorge lists no such ability
 			}
-			out[n] = int16(i)
+			j := n
+			for j > 0 && key[j-1] > pos {
+				out[j], key[j] = out[j-1], key[j-1]
+				j--
+			}
+			out[j], key[j] = int16(i), pos
 			n++
 		}
 	})
@@ -636,6 +665,17 @@ func (g *grantSrch) visit(t *State) bool {
 				return true
 			}
 		}
+		if g.dual[i] && t.ownManaUsable(g.k, sl) {
+			// a restricted printed ability beside the usable one (White Lotus
+			// Hideout's Lesson-only any colour): gorge's search taps it too, after
+			// the usable one, whether or not the play may spend it
+			if ra := t.ownRestrAb(g.k, sl); ra != nil {
+				g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
+				if g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, max(ra.ManaN, 1), false) {
+					return true
+				}
+			}
+		}
 		if fok && g.filtBranch(t, i, sl) { // (listed after the printed ability, before the grants)
 			return true
 		}
@@ -831,24 +871,34 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 // Peak's "R or W"; manaColourOrder), else W U B R G C. gi is the granted
 // ability the step taps, -1 for the source's own.
 func (s *State) stepColours(k *prep, sl Slot, gi int16, mask uint8, out *[kop.NumManaKinds]uint8) (n int) {
+	cd := s.cardAt(sl)
+	var pc *pcard
+	if gi < 0 {
+		pc = s.manaPCGen(k, sl)
+	}
 	var ab *kop.Ability
 	if gi < 0 {
 		if ra := s.ownRestrAb(k, sl); ra != nil && !s.ownManaUsable(k, sl) {
 			ab = ra // the printed restricted ability (mana_grantrestrictedown.go)
-		} else if pc := s.manaPCGen(k, sl); pc.manaAb >= 0 {
-			ab = &k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb]
+		} else if pc.manaAb >= 0 && (pc == &k.cards[cd] || pc.blgFirst != 0) {
+			// the source's own profile or a granted-type view names one of the
+			// card's own abilities; a grant/var/gate view's index names another
+			// card's (mana_window.go windowCol)
+			ab = manaAbView(&k.t.Cards[cd], pc)
 		}
 	} else if r := k.gen.grantOf[gi]; !k.gen.grantSelf[gi] {
 		ab = &k.t.Cards[r.card].Abilities[r.ab]
 	}
 	var seen uint8
-	if gi < 0 {
+	if gi < 0 && pc.blgFirst != 0 {
 		// a land with a granted basic type: gorge lists the face's own abilities
 		// before the intrinsic ones the type adds (appendAvailableManaAbilities),
-		// so a Forest made an Island asks G then U, not U then G
-		if pc := s.manaPCGen(k, sl); pc.blgFirst != 0 {
-			if own := &k.cards[s.cardAt(sl)]; own.manaAb >= 0 {
-				for c := uint8(0); c < 5; c++ {
+		// so a Forest made an Island asks G then U, not U then G; a printed
+		// Combo asks its token order (Kyoshi Village's Combo G W asks G first)
+		if own := &k.cards[cd]; own.manaAb >= 0 {
+			if ownAb := manaAbView(&k.t.Cards[cd], own); ownAb != nil {
+				var ord [5]uint8
+				for _, c := range ord[:manaColourOrder(ownAb, &ord)] {
 					if uint8(own.manaCol)&mask&(1<<c) != 0 {
 						out[n] = c
 						n++

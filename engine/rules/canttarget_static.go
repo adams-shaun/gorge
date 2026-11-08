@@ -104,6 +104,11 @@ func (e *Engine) cantTargetBlocks(b cantTargetBody, id state.ObjID, actor state.
 	for _, r := range b.remembered {
 		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
 	}
+	// An Effect-delivered body's IsRemembered scope is the set it captured
+	// (CR 611.2), so it must not union the source card's later persistent
+	// memory. A printed static (effectDelivered false) keeps the union: its
+	// remembered set is the static's own.
+	sc.SourceRememberedStrict = b.effectDelivered
 	if spec != "" {
 		if !e.matchesSpec(spec, id, sc) {
 			return false

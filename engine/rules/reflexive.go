@@ -180,6 +180,11 @@ func reflexiveTableIsSources(c *effects.Ctx, src *state.Object) bool {
 	if svarTableIsFaces(c, src.Face()) {
 		return true
 	}
+	if src.LeftCopyFace != nil && svarTableIsFaces(c, src.LeftCopyFace) {
+		// A copy sacrificed to its own cost: the table is the copied face's
+		// (events.ResolveSVarAcrossFaces searches LeftCopyFace on replay).
+		return true
+	}
 	if src.Card == nil {
 		return false
 	}

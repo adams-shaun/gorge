@@ -19,6 +19,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/heuristic"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/replay"
@@ -56,6 +57,7 @@ func main() {
 	policyA := flag.String("a", "", "bot policy name for seat 0 (default: heuristic)")
 	policyB := flag.String("b", "", "bot policy name for seat 1 (default: heuristic)")
 	format := flag.String("format", "constructed", "game format: constructed or commander (40 life, commanders in the command zone)")
+	shape := flag.String("shape", "", "write a JSON game-shape census to this file (game rows, then one aggregate)")
 	var sbAgents []string
 	flag.Func("sb-agent", "register a SpellBench v2 stdio agent: name=/path/to/agent (repeatable)", func(arg string) error {
 		sbAgents = append(sbAgents, arg)
@@ -66,7 +68,7 @@ func main() {
 	o := simOptions{
 		Decks: *decksFlag, Seats: *seats, Seed: *seed, Games: *games,
 		Verify: *verify, Verbose: *verbose, Dir: *dir,
-		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format,
+		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format, Shape: *shape,
 	}
 	if err := runSim(o, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "mtgsim:", err)
@@ -100,6 +102,8 @@ type simOptions struct {
 	SBAgents        []string
 	// Format is "constructed" or "commander".
 	Format string
+	// Shape, when non-empty, is the path of the JSON game-shape census.
+	Shape string
 }
 
 func runAgents(decksFlag string, seats int, baseSeed uint64, games int, verify, verbose bool, dir, policyA, policyB string, sbAgents []string, out io.Writer) error {
@@ -186,11 +190,40 @@ func runSim(o simOptions, out io.Writer) error {
 		}
 	}
 
+	// shapes, when non-nil, is the run's collector; a nil one adds no
+	// per-decision work and leaves stdout byte-identical.
+	var shapeFile *os.File
+	var shapes *shapeRun
+	if o.Shape != "" {
+		f, err := os.Create(o.Shape)
+		if err != nil {
+			return fmt.Errorf("creating -shape file %s: %w", o.Shape, err)
+		}
+		defer f.Close()
+		shapeFile = f
+		shapes = &shapeRun{kind: fmt.Sprintf("%s/%d", o.Format, seats)}
+	}
+
 	failures := 0
 	for g := 0; g < games; g++ {
 		gameSeed := baseSeed + uint64(g)
-		if !playOne(out, gameSeed, names, decks, reg, verify, policyA, policyB, format, cmds) {
+		var sg *shapeGame
+		if shapes != nil {
+			sg = &shapeGame{}
+		}
+		if !playOne(out, gameSeed, names, decks, reg, verify, policyA, policyB, format, cmds, sg) {
 			failures++
+		}
+		if sg != nil {
+			if err := shapes.writeGame(shapeFile, sg); err != nil {
+				return fmt.Errorf("writing -shape file %s: %w", o.Shape, err)
+			}
+			shapes.games = append(shapes.games, sg)
+		}
+	}
+	if shapes != nil {
+		if err := shapes.writeAggregate(shapeFile); err != nil {
+			return fmt.Errorf("writing -shape aggregate to %s: %w", o.Shape, err)
 		}
 	}
 	if failures > 0 {
@@ -266,8 +299,9 @@ func gameConfig(seed uint64, names []string, decks [][]*cards.Card, reg *cards.R
 // playOne plays a single game to completion (or to maxIntents) and prints
 // its one-line summary, then -- if verify is set -- a second line reporting
 // the replay outcome. It returns false for anything counted as
-// failure: non-termination, a replay error or a chain divergence.
-func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policyA, policyB string, format rules.Format, cmds [][]int) (ok bool) {
+// failure: non-termination, a replay error or a chain divergence. shape,
+// when non-nil, observes every decision and records the game's final shape.
+func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policyA, policyB string, format rules.Format, cmds [][]int, shape *shapeGame) (ok bool) {
 	cfg := gameConfig(seed, names, decks, reg, format, cmds)
 	// The default object cap, the same volume bound the shared drive
 	// loop arms: a degenerate token storm here ends as a LIVELOCK failure
@@ -277,6 +311,17 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	spare := sparePool.Get()
 	cfg.Spare = spare
 	e := rules.NewStartingPlayerChoice(cfg)
+	var observe func(*rules.Engine, *decision.Decision)
+	if shape != nil {
+		shape.seed = seed
+		shape.decks = append([]string(nil), names...)
+		observe = shape.observe
+	}
+	finish := func(n int, status string) {
+		if shape != nil {
+			shape.finish(e, n, status)
+		}
+	}
 	defer func() {
 		// Only a clean finish recycles: a game that failed or did not
 		// terminate has no trustworthy log shape to hand to the next game.
@@ -292,6 +337,7 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 
 	seats, err := matchSeats(e, reg, seed, names, policyA, policyB, matchFormat(format), out)
 	if err != nil {
+		finish(0, "failed")
 		fmt.Fprintf(out, "seed %d: %d seats -- FAILED: %v\n", seed, len(names), err)
 		return false
 	}
@@ -312,13 +358,19 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 		}
 	}()
 
-	n, err := driveMatch(e, seats)
+	n, err := driveMatch(e, seats, observe)
 	if err != nil {
+		status := "failed"
+		if _, ok := err.(*rules.LivelockError); ok {
+			status = "livelock"
+		}
+		finish(n, status)
 		reportDriveFailure(out, seed, len(names), n, err)
 		return false
 	}
 
 	if !e.G.Over {
+		finish(n, "did_not_terminate")
 		fmt.Fprintf(out, "seed %d: %d seats, %6d intents, %6d events, %3d turns -- DID NOT TERMINATE\n",
 			seed, len(names), n, len(e.L.Events), e.G.Turn)
 		return false
@@ -332,6 +384,7 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	}
 	fmt.Fprintf(out, "seed %d: %d seats, %6d intents, %6d events, %3d turns, winner=%s, chain=%s\n",
 		seed, len(names), n, len(e.L.Events), e.G.Turn, result, e.L.Head())
+	finish(n, "over")
 
 	if !verify {
 		return true
@@ -367,10 +420,13 @@ func reportDriveFailure(out io.Writer, seed uint64, seats, n int, err error) boo
 // either way -- crashing loudly. The engine is abandoned once it has
 // livelocked; nothing may drive it again.
 func driveGame(e *rules.Engine, s engineseat.Seat) (int, error) {
-	return driveMatch(e, []engineseat.Seat{s})
+	return driveMatch(e, []engineseat.Seat{s}, nil)
 }
 
-func driveMatch(e *rules.Engine, seats []engineseat.Seat) (n int, err error) {
+// driveMatch submits intents for a table until the game ends. observe, when
+// non-nil, is called with every decision before the seat is asked; it only
+// reads the engine.
+func driveMatch(e *rules.Engine, seats []engineseat.Seat, observe func(*rules.Engine, *decision.Decision)) (n int, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if lle, ok := r.(*rules.LivelockError); ok {
@@ -385,6 +441,9 @@ func driveMatch(e *rules.Engine, seats []engineseat.Seat) (n int, err error) {
 		d := e.Pending()
 		if int(d.Player) >= len(seats) {
 			return n, fmt.Errorf("decision for seat %d, but only %d seats", d.Player, len(seats))
+		}
+		if observe != nil {
+			observe(e, d)
 		}
 		// A consumer seat (the SpellBench v2 agent) sees the planner's cast
 		// candidates only through Decision.PaymentActions; build them before

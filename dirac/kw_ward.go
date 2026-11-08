@@ -42,7 +42,7 @@ func (s *State) wardGranted(k *prep, sl Slot, ob *object, e *stackEntry, disguis
 	}
 	if hasPrinted && !(DebugDropLifeWard && printed < 0) {
 		np := s.npend
-		s.enqueue(p.obj, ob.ver, s.cardAt(sl), abWard, p.ctrl, e.obj, e.ctrl, printed)
+		s.enqueueWard(e, p.obj, ob.ver, s.cardAt(sl), p.ctrl, e.ctrl, printed)
 		s.panharmKeyword(k, sl, kop.TrigBecomesTarget, e.obj, np)
 	}
 	lts, lost := s.lossAt(k, sl)
@@ -83,7 +83,7 @@ func (s *State) wardGranted(k *prep, sl Slot, ob *object, e *stackEntry, disguis
 	}
 	for i := 0; i < n; i++ {
 		np := s.npend
-		s.enqueue(p.obj, ob.ver, s.cardAt(sl), abWard, p.ctrl, e.obj, e.ctrl, amt[i]|wardGrantedBits)
+		s.enqueueWard(e, p.obj, ob.ver, s.cardAt(sl), p.ctrl, e.ctrl, amt[i]|wardGrantedBits)
 		s.panharmKeyword(k, sl, kop.TrigBecomesTarget, e.obj, np)
 	}
 }

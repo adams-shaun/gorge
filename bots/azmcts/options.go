@@ -36,6 +36,11 @@ type Kinds struct {
 	// mulligan, and its walks then use Options.MulliganSims and
 	// MulliganTurns.
 	Mulligan bool
+	// CommanderZone is decision.KCommanderZone, the owner's command-zone
+	// choice (CR 903.9): the bot's answer first, then the other option. Off
+	// in AllKinds and FullKinds: only a seat that sets it searches the
+	// commander-zone choice.
+	CommanderZone bool
 	// chooseMax is the largest KChoose option list Choose searches: Search
 	// sets it to Options.Limit; 0 (a Kinds built by hand and passed to an
 	// enumerator directly) reads DefaultOptions' Limit.

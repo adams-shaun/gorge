@@ -81,6 +81,40 @@ add up per policy.
   It needs at least 2 seats. Neither format runs a mulligan round. For example:
   `go run ./cmd/mtgsim -format commander -seats 4 -games 1 -verify`.
 
+### Measuring game shape
+
+`-shape <path>` writes a read-only census of what the games saw, useful for
+sizing a search or a reimplementation: one JSON line per game, then one
+aggregate line. Stdout does not change, and the file is a pure function of the
+flags.
+
+```sh
+go run ./cmd/mtgsim -seats 2 -games 20 -shape /tmp/constructed.jsonl
+go run ./cmd/mtgsim -format commander -seats 4 -games 20 -shape /tmp/commander.jsonl
+```
+
+Every line carries `kind` (`constructed/2`, `commander/4`) and `row`. A game
+row has `seed`, `decks` (in seat order), `status` (`over`, `did_not_terminate`,
+`livelock` or `failed`), `turns`, `decisions` (the intents the drive loop
+submitted, as on the summary line), `options`, `peak`, `tokens`,
+`token_events` and `commander_casts`.
+
+`options` maps each decision Kind to `n`, `mean`, `p95`, `max` and a `hist`
+from each option count to how many decisions had it, over that game's
+decisions of the Kind. `peak` is the largest `objects` (the whole object
+arena), `live_objects` (arena entries not ceased), `permanents` (battlefield
+permanents over every seat), `stack`, and `pending` (matched triggers not yet
+on the stack) seen at any decision. At game end `tokens` counts the tokens
+still in the arena, `token_events` counts token-minting events, and
+`commander_casts` sums the seats' commander casts (0 outside Commander).
+
+The aggregate row has the same `kind`, `games`, `statuses` counts,
+`mean`/`p95`/`max` for `decisions`, `turns`, `tokens`, `token_events` and
+`commander_casts`, per-Kind `options` over every decision, and `p95`/`max` per
+`peak` table. `p95` is the nearest-rank value (sort ascending, take index
+`ceil(0.95·n)-1`); `hist` keeps every option count, so a larger census can be
+recomputed exactly from the game rows alone.
+
 For three to eight seats, `-seats N` deals the first N pinned decks, or `-decks` with one name per seat.
 To balance seats, rotate the deck list across runs:
 

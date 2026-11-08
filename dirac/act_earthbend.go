@@ -82,14 +82,10 @@ func (s *State) execEarthbend(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		return true, true
 	}
-	// A token land that leaves the battlefield ceases to exist (CR 111.7);
-	// gorge drops the registration, so it never returns.
-	if s.objs[o].of&ofToken != 0 {
-		if DebugEarthbendResolved != nil {
-			DebugEarthbendResolved(s.res.e.card, int(s.ndly))
-		}
-		return true, true
-	}
+	// A token land is registered like any other: gorge's registration is
+	// keyed by object id with no token test, so the return trigger still
+	// queues when the token dies (CR 603.7); it resolves to nothing, the
+	// token having ceased to exist (CR 111.8; earthbendReturn).
 	if s.ndly >= MaxDelayed {
 		if DebugEarthbendFull != nil {
 			eb, other := 0, 0

@@ -381,7 +381,7 @@ func (s *State) wardedIndex(e *stackEntry) int {
 	}
 	for j := i; j >= 0; j-- {
 		se := &s.stack[j]
-		if se.obj != e.trigObj || se.kind == seSpell {
+		if se.obj != e.trigObj || se.kind == seSpell || e.tver[0] != 0 && se.sid != e.tver[0] {
 			continue
 		}
 		var codes [kop.MaxTargets + maxXTgt]uint8
@@ -636,13 +636,21 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 
 // srcCtrl is the controller of the resolving entry's source as it deals damage:
 // the permanent's current controller while it is still the same object on the
-// battlefield (Stiltzkin gave it away with its ability on the stack; CR 702.15b
-// gains the life for the source's controller), else the entry's.
+// battlefield, else the last-known controller from the departed battlefield
+// record (Stiltzkin gave the source away with its ability on the stack, then it
+// left; CR 702.15b gains the life for the source's last-known controller). Only
+// an entry with no such record falls back to the ability's controller.
 func (s *State) srcCtrl(k *prep) uint8 {
 	if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
 		return s.perms[sl].ctrl
 	}
-	return s.res.e.ctrl
+	e := &s.res.e
+	if e.kind != seSpell {
+		if sl := s.departedSrcSlot(e); sl != NoSlot {
+			return s.perms[sl].ctrl
+		}
+	}
+	return e.ctrl
 }
 
 func (s *State) ctrlOfObj(o Obj) uint8 {
@@ -821,7 +829,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 		if s.parkNC(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
 			return n // gorge's replacement-order ask, after the resolution
 		}
-		if n = s.replDamage(k, e.ctrl, s.objRef(k, kop.RefSelf), e.card, code, false, n); n <= 0 {
+		if n = s.replDamage(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, false, n); n <= 0 {
 			return 0
 		}
 	}

@@ -414,7 +414,26 @@ func DamageMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, ev e
 		// the published override, e.damaging during combat's assignment loop,
 		// else the resolving stack object).
 		src := DamageEventSource(e)
-		if src == 0 || !e.MatchesSpec(v, src, source, ctrl, SpecOpts{DelayedRemembered: remembered}) {
+		if src == 0 {
+			return false
+		}
+		opts := SpecOpts{DelayedRemembered: remembered}
+		matched := false
+		// CR 113.7a: a source that left the battlefield while its ability
+		// waited is matched by the controller it last had there; its card
+		// reverts to its owner in the new zone.
+		if o := e.Game().Obj(src); o != nil && o.Zone != state.ZBattlefield {
+			if c, ok := e.DepartedSourceController(src); ok && c != o.Controller {
+				lki := *o
+				lki.Controller = c
+				matched = e.MatchesObject(v, &lki, source, ctrl, opts)
+			} else {
+				matched = e.MatchesSpec(v, src, source, ctrl, opts)
+			}
+		} else {
+			matched = e.MatchesSpec(v, src, source, ctrl, opts)
+		}
+		if !matched {
 			return false
 		}
 	}

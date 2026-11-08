@@ -81,9 +81,15 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 			first := bits.TrailingZeros8(uint8(m))
 			if base.manaAb >= 0 {
 				first = bits.TrailingZeros8(uint8(base.manaCol & 0x3f))
+				if ab := &t.Cards[i].Abilities[base.manaAb]; ab.AFlags&kop.AfManaChoice != 0 {
+					var ord [5]uint8
+					if manaColourOrder(ab, &ord) > 0 {
+						first = int(ord[0]) // a Combo answers its printed token order (Combo G W: {G})
+					}
+				}
 				v.manaCol |= kop.ColorMask(m)
 			} else {
-				v.manaAb = 0 // no own ability: the intrinsic one (no ability index reads a view)
+				v.manaAb = 0 // no own ability: the intrinsic one (manaAbView guards the reads)
 				v.manaCol = kop.ColorMask(m)
 			}
 			v.manaN, v.manaTap = 1, true
@@ -132,8 +138,8 @@ func blgPlain(c *kop.CardDef, pc *pcard) bool {
 		if j != int(pc.manaAb) && (censusGapMana(a) || restrSrcAb(a)) {
 			continue // a costed or restricted ability beside the first: the census gap / restricted-source machinery's, not a view colour
 		}
-		if a.AFlags != 0 || a.ManaRestrict != 0 || a.ManaN > 1 || a.Cost.Flags != kop.CostTap || a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0 ||
-			bits.OnesCount8(uint8(a.ManaColors&0x3f)) != 1 || len(a.Prog) != 0 || a.Trig.Cond != 0 {
+		if a.AFlags&^kop.AfManaChoice != 0 || a.ManaRestrict != 0 || a.ManaN > 1 || a.Cost.Flags != kop.CostTap || a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0 ||
+			a.ManaColors&0x3f == 0 || a.AFlags&kop.AfManaChoice == 0 && bits.OnesCount8(uint8(a.ManaColors&0x3f)) != 1 || len(a.Prog) != 0 || a.Trig.Cond != 0 {
 			return false
 		}
 	}
@@ -145,8 +151,8 @@ func blgPlain(c *kop.CardDef, pc *pcard) bool {
 //
 //go:noinline
 func (s *State) blgMask(k *prep, sl Slot) kop.ColorMask {
-	if s.typesAt(k, sl)&kop.TLand == 0 {
-		return 0
+	if s.typesAt(k, sl)&kop.TLand == 0 || s.genLost(k, sl) {
+		return 0 // a layer-6 loss takes the intrinsic abilities too, whatever its timestamp (gorge: lossStamp != 0, mana_activation.go)
 	}
 	var m kop.ColorMask
 	for c, i := range k.gen.blgSub {
@@ -207,6 +213,17 @@ func (s *State) hybStrand(k *prep, p uint8, c *kop.ManaCost, anyColor bool) bool
 	return false
 }
 
+// manaAbView is the card ability a view's manaAb names, nil when it names
+// none. A no-own-ability granted-type view sets manaAb to 0 for the intrinsic
+// ability (prepLandGrant above), so a card with no abilities has no index 0
+// for a reader to dereference; the readers guard through this helper.
+func manaAbView(cd *kop.CardDef, pc *pcard) *kop.Ability {
+	if pc.manaAb < 0 || int(pc.manaAb) >= len(cd.Abilities) {
+		return nil
+	}
+	return &cd.Abilities[pc.manaAb]
+}
+
 // potentialFirstMask is the colours a multi-colour source adds for its first
 // mana ability in the potential walk (availPotentialFor), which then admits the
 // card's other table abilities one by one. A granted basic land type's intrinsic
@@ -215,7 +232,10 @@ func (s *State) hybStrand(k *prep, p uint8, c *kop.ManaCost, anyColor bool) bool
 // so the colours the view holds beyond the card's own mana abilities belong here.
 func (s *State) potentialFirstMask(k *prep, sl Slot, pc *pcard) uint8 {
 	cd := &k.t.Cards[s.cardAt(sl)]
-	mask := uint8(cd.Abilities[pc.manaAb].ManaColors)
+	var mask uint8
+	if ab := manaAbView(cd, pc); ab != nil {
+		mask = uint8(ab.ManaColors)
+	}
 	if k.gen == nil || !k.gen.blgOn {
 		return mask
 	}

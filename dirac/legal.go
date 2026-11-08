@@ -841,7 +841,25 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
 	}
 	if cd.BeholdExile || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
-		return s.plannerPaysCast(k, p, c, o) // a shape lowered only on the composed plan's witness
+		if s.plannerPaysCast(k, p, c, o) { // a shape lowered only on the composed plan's witness
+			return true
+		}
+		// a cast through a play permission is priced by mayPlayAffordable's
+		// retry, which taps a census gap (Flamebraider's restricted two mana)
+		// before it prices the cast again, as for an either-or additional
+		// cost above (CR 601.2b, 601.2f, 601.2g). A plain hand cast is not:
+		// gorge's potential planner refuses it at "shape:additional_cost"
+		// before any mana is priced, so its prefix search never runs for one
+		// (Bloom Tender beside Champions of the Perfect, the lone Elf the cost
+		// also exiles).
+		if cd.BeholdExile && k.gen != nil && mayPlay && s.scriptSourceLive(k, p) {
+			cost := s.featCost(k, p, c, o, k.cards[c].cost)
+			if s.g.mayPlayAny {
+				cost = anyType(cost)
+			}
+			return s.affordsFor(k, p, &cost)
+		}
+		return false
 	}
 	return true
 }

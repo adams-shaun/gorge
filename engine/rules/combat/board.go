@@ -58,10 +58,12 @@ type Board interface {
 	// current derived characteristics, in the spec context of (source, you)
 	// with the engine's numeric-RHS resolver and derived tables bound, plus a
 	// registration's remembered objects (Card.IsRemembered) and captured
-	// players (RememberedPlayer). The context is built on the engine side:
-	// it carries a resolver closure that must not cross this interface,
-	// where it would escape to the heap on every call.
-	MatchesSpec(spec string, id, source state.ObjID, you state.PlayerID, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool
+	// players (RememberedPlayer). strictRemembered drops the source object's
+	// event-backed Remembered union, so a registered continuous effect's
+	// IsRemembered scope is exactly the set it captured. The context is built
+	// on the engine side: it carries a resolver closure that must not cross
+	// this interface, where it would escape to the heap on every call.
+	MatchesSpec(spec string, id, source state.ObjID, you state.PlayerID, remembered []state.ObjID, rememberedPlayers []state.PlayerID, strictRemembered bool) bool
 	// MatchesStaticSpec is MatchesSpec in a printed static's own context:
 	// its source, controller and SVar table.
 	MatchesStaticSpec(spec string, id state.ObjID, sv Static) bool

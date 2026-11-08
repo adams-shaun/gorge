@@ -2815,6 +2815,16 @@ type SpecContext struct {
 	TriggerContext
 	You    state.PlayerID
 	Source state.ObjID
+	// SourceRememberedStrict makes IsRemembered (and the *Remembered
+	// block-history words that share anyRemembered) read only the
+	// resolution/registration set bound on this context, never the source
+	// object's event-backed Remembered list. A registered continuous effect
+	// sets it: its Card.IsRemembered scope is the set the Effect captured
+	// (CR 611.2), not whatever else the source card has remembered for
+	// unrelated abilities since. The union stays on for a resolution, where
+	// the source's persistent list is the ordinary host memory a trigger
+	// body reads.
+	SourceRememberedStrict bool
 	// CombatDamageHits is the per-turn combat-to-player ledger for
 	// resolution-time predicates that refer to damage dealt by Source.
 	CombatDamageHits []CombatDamageHit

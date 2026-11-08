@@ -56,8 +56,26 @@ func TestPairedBotCensus(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	own := testutil.RepoDeck(t, reg, decks[0])
 	opp := testutil.RepoDeck(t, reg, decks[1])
+	commander := os.Getenv("GORGE_ADVICE_FORMAT") == "commander"
+	deckOf := func(name string, cards []*cards.Card) Deck {
+		d := Deck{Name: name, Cards: cards}
+		if commander {
+			d.Commanders = testutil.RepoDeckFile(t, name).CommanderIndices()
+		}
+		return d
+	}
+	formats := []string{"constructed"}
+	if commander {
+		formats = []string{"commander"}
+	}
 	var belief [][]*cards.Card
 	for _, n := range testutil.RepoDeckNames() {
+		if commander {
+			if len(testutil.RepoDeckFile(t, n).CommanderIndices()) > 0 {
+				belief = append(belief, testutil.RepoDeck(t, reg, n))
+			}
+			continue
+		}
 		if strings.HasPrefix(n, "mono-") || slices.Contains([]string{"ur-delver", "uw-control", "dimir-tempo", "death-n-taxes", "boros-moxite-burn", "uw-tempo", "eldrazi-stompy"}, n) {
 			belief = append(belief, testutil.RepoDeck(t, reg, n))
 		}
@@ -68,15 +86,15 @@ func TestPairedBotCensus(t *testing.T) {
 	}
 	entry := &bots.Entry{
 		Info: bots.Info{Name: "census-paired", Tier: bots.Experimental, Env: true, Search: true, ClosedLists: true,
-			Formats: []string{"constructed"}, MaxSeats: 2},
+			Formats: formats, MaxSeats: 2},
 		New: azredeal.ClosedFactory(b, sims),
 	}
 	for g := 0; g < games; g++ {
 		o := Options{LoadDeck: func(name string) (Deck, error) {
 			if name == "human" {
-				return Deck{Name: "own", Cards: own}, nil
+				return deckOf(decks[0], own), nil
 			}
-			return Deck{Name: "opposing", Cards: opp}, nil
+			return deckOf(decks[1], opp), nil
 		}, Sleep: func(time.Duration, <-chan struct{}) {}}
 		o.PairedBot = entry
 		o.Seats = func([]string, uint64) []seat.Seat { return []seat.Seat{passSeat{}, heuristic.NewBot(uint64(g) + 77)} }
@@ -86,6 +104,9 @@ func TestPairedBotCensus(t *testing.T) {
 		}
 		cfg := pairedTable(nil)
 		cfg.Humans = []int{0}
+		if commander {
+			cfg.Format = FormatCommander
+		}
 		cfg.Seed = uint64(20261100 + g)
 		cfg.AutoMana, cfg.BotAutoPayMana, cfg.Mulligans = !manual, true, 7
 		if err := r.AddTable(cfg); err != nil {

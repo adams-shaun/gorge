@@ -194,7 +194,7 @@ func LandwalkEvades(b Board, attacker state.ObjID) bool {
 func MustBlockCandidates(b Board, defender state.PlayerID) map[state.ObjID]bool {
 	required := make(map[state.ObjID]bool)
 	matches := func(spec string, source state.ObjID, controller state.PlayerID, id state.ObjID) bool {
-		return spec == "" || b.MatchesSpec(spec, id, source, controller, nil, nil)
+		return spec == "" || b.MatchesSpec(spec, id, source, controller, nil, nil, false)
 	}
 	for _, id := range b.Game().Zone(state.ZBattlefield, defender) {
 		if !b.IsCreature(id) {
