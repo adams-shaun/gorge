@@ -229,6 +229,8 @@ func TestCascadeNoCandidateExilesAndBottomsWithNoElection(t *testing.T) {
 	forestID, giantID := lib[0], lib[1]
 	elfID := searchMoveByName(t, e, "Bloodbraid Elf", state.ZHand)
 	addMana(t, e, 0, "GGRR")
+	libN := len(e.G.Zone(state.ZLibrary, 0))
+	drawsBefore := e.RNGDraws()
 	d := e.Pending()
 	idx := -1
 	for _, o := range d.Options {
@@ -254,9 +256,13 @@ func TestCascadeNoCandidateExilesAndBottomsWithNoElection(t *testing.T) {
 	if got := e.G.Obj(forestID).Zone; got != state.ZLibrary {
 		t.Fatalf("land in %s, want the library", got)
 	}
-	lib = e.G.Zone(state.ZLibrary, 0)
-	if lib[0] != forestID || lib[1] != giantID {
-		t.Fatalf("bottom order wrong: the whole exile-and-return round trip must preserve the library order")
+	// CR 702.85a: the whole library was the batch (nothing found), bottomed in
+	// a seeded random order: one Fisher-Yates pass, libN-1 draws.
+	if got := len(e.G.Zone(state.ZLibrary, 0)); got != libN {
+		t.Fatalf("library has %d cards after the cascade, want %d", got, libN)
+	}
+	if got := e.RNGDraws() - drawsBefore; got != uint64(libN-1) {
+		t.Fatalf("cascade drew %d rng values, want %d (one Fisher-Yates pass over the %d-card batch)", got, libN-1, libN)
 	}
 	if n := movedTo(t, e, giantID, state.ZLibrary, state.ZExile); n != 1 {
 		t.Fatalf("Hill Giant exiled %d times", n)

@@ -3,6 +3,10 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -124,5 +128,44 @@ func TestFarmIzzetGuildgate(t *testing.T) {
 		if got := b["p1:High Fae Trickster"]; got.Owner != 1 || got.Controller != 1 {
 			t.Fatalf("Trickster is c%d o%d, want c1 o1 (p1's later Confiscate, CR 613.7)", got.Controller, got.Owner)
 		}
+	})
+	t.Run("a re-appearing Fealty want stays below a later Act of Treason", func(t *testing.T) {
+		t.Parallel()
+		reg := testutil.CorpusRegistry(t)
+		ft, ok := reg.Lookup("Fealty to the Realm")
+		if !ok {
+			t.Fatal("corpus missing Fealty to the Realm")
+		}
+		treason, ok := reg.Lookup("Act of Treason")
+		if !ok {
+			t.Fatal("corpus missing Act of Treason")
+		}
+		e, cfg, bear := staticGainControlGame(t, 7341, []*cards.Card{ft}, 1, treason)
+		castControlAura(t, e, "Fealty to the Realm", bear)
+		if !e.G.IsMonarch(0) {
+			t.Fatalf("precondition: monarch = %d/%v, want seat 0 (Fealty's ETB)", e.G.Monarch, e.G.HasMonarch)
+		}
+		if got := e.G.Obj(bear).Controller; got != 0 {
+			t.Fatalf("precondition: bear controller %d, want 0 (the monarch)", got)
+		}
+		// Seat 1's later until-EOT steal, resolved off the real card face.
+		trID := findAndMoveToHand(t, e, 1, "Act of Treason")
+		addMana(t, e, 1, "RRR")
+		trObj := e.G.Obj(trID)
+		effects.Resolve(e, &effects.Ctx{Source: trID, Controller: 1,
+			Targets: []state.Target{{Obj: bear}}, TargetsOffered: true,
+			SVars: trObj.Face().SVars}, trObj.Face().SpellAbility())
+		if got := e.G.Obj(bear).Controller; got != 1 {
+			t.Fatalf("precondition: bear controller after the steal %d, want 1", got)
+		}
+		// The monarch designation moves to seat 1 and back. The Fealty want
+		// disappears and re-appears with its ORIGINAL layer timestamp (CR 613.7d),
+		// so Act of Treason, which began later, must stay on top.
+		e.emit(events.Event{Kind: events.MonarchChange, Player: 1})
+		e.emit(events.Event{Kind: events.MonarchChange, Player: 0})
+		if got := e.G.Obj(bear).Controller; got != 1 {
+			t.Fatalf("bear controller after the monarch returned = %d, want 1 (Act of Treason is the later effect, CR 613.7)", got)
+		}
+		replayCheck(t, e, cfg)
 	})
 }

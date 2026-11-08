@@ -201,9 +201,9 @@ func (e *Engine) reconcileControlStatics() {
 				src == nil || src.Zone != state.ZBattlefield || src.Timestamp != w.sourceStamp {
 				continue
 			}
-			// CR 613.7: the later static wins. A want older than a static
-			// grant already tracked on this bearer must not register above
-			// it; it waits (still live, see grantEnded) until that one stops.
+			// CR 613.7: the later effect wins. A want older than a grant
+			// already tracked on this bearer must not register above it; it
+			// waits (still live, see grantEnded) until that one stops.
 			if staticGrantNewer(e.controlGrants, w) {
 				continue
 			}
@@ -236,7 +236,7 @@ func (e *Engine) reconcileControlStatics() {
 			if len(e.controlGrants) > before {
 				last := &e.controlGrants[len(e.controlGrants)-1]
 				last.static = true
-				last.staticStamp = w.layerStamp
+				last.orderStamp = w.layerStamp
 			}
 		}
 	}
@@ -274,18 +274,21 @@ func staticWantsOrdered(wants []staticWant) [][]staticWant {
 	return groups
 }
 
-// staticGrantNewer reports whether a static grant already tracked on w's
-// bearer has a later CR 613.7 timestamp than w's static. Such a want is
-// shadowed: it stays live but must not register above the newer grant.
+// staticGrantNewer reports whether a control grant already tracked on w's
+// bearer has a CR 613.7 timestamp at or after w's static. Such a want is
+// shadowed: it stays live but must not register above the tracked grant.
+// An equal-stamp API grant shadows too (it is already registered; CR 613.7
+// orders equal stamps by when they began); equal statics keep the source
+// tie-break staticWantsOrdered registers them in.
 func staticGrantNewer(grants []controlGrant, w staticWant) bool {
 	for _, g := range grants {
-		if !g.static || g.Obj != w.obj || g.ObjStamp != w.objStamp {
+		if g.Obj != w.obj || g.ObjStamp != w.objStamp {
 			continue
 		}
-		if g.staticStamp > w.layerStamp {
+		if g.orderStamp > w.layerStamp {
 			return true
 		}
-		if g.staticStamp == w.layerStamp && g.Source > w.source {
+		if g.orderStamp == w.layerStamp && (!g.static || g.Source > w.source) {
 			return true
 		}
 	}

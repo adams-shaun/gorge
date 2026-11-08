@@ -29,10 +29,9 @@ import (
 //     Optional$ True, population = the found card), whose answer rules'
 //     resumeResolution "play" arm turns into a zero-mana-cost cast from
 //     exile. The population rides the resolution's Remembered.
-//   - "Put the exiled cards on the bottom in a random order" — the random
-//     order is the engine's standing determinism stand-in (the same one the
-//     Dig rows record in AGENTS.md): the cards return in their existing
-//     library order. The cards that did not match are bottomed right after
+//   - "Put the exiled cards on the bottom in a random order" (CR 702.85a) —
+//     the cards that did not match are shuffled with the engine's seeded
+//     Fisher-Yates (Host.Rand) and bottomed in that order. They are bottomed right after
 //     the scan (before the election — nothing between the election and that
 //     bottoming can observe the difference, and the found card would be the
 //     last move either way); the found card is bottomed by the chained
@@ -125,10 +124,10 @@ func effCascade(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Player: p, IDs: exiled,
 			Text: "cascades, exiling cards from the top of the library"})
 	}
-	// Bottom the cards the scan exiled below the found one now, in their
-	// existing library order (the random-order stand-in). The found card is
-	// by construction the LAST card the scan exiled, so the final library
-	// order is the same one a single post-election bottoming would produce.
+	// Bottom the cards the scan exiled below the found one now, in a seeded
+	// random order (CR 702.85a; effCascadeResidue shuffles). The found card is
+	// by construction the LAST card the scan exiled, so it is still bottomed
+	// after them.
 	//
 	// The Averna boundary (R:Event$ Cascade) sits BEFORE that bottoming and
 	// before the election: the whole exiled batch is offered to the
@@ -182,6 +181,13 @@ func effCascadeResidue(h Host, c *Ctx, sa *cards.SA) {
 	rest := batch
 	if found != 0 {
 		rest = batch[:len(batch)-1]
+	}
+	// CR 702.85a: the cards go on the bottom in a random order -- a seeded
+	// Fisher-Yates pass over a fresh copy (batch stays in scan order).
+	rest = append([]state.ObjID(nil), rest...)
+	for i := len(rest) - 1; i > 0; i-- {
+		j := h.Rand(i + 1)
+		rest[i], rest[j] = rest[j], rest[i]
 	}
 	for _, id := range rest {
 		o := g.Obj(id)

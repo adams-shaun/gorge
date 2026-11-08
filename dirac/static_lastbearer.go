@@ -88,7 +88,7 @@ func (s *State) recordLastBearLKI(o, host Obj) {
 	if s.objs[host].zone != kop.ZoneBattlefield {
 		for i := range s.g.attLKI {
 			if r := &s.g.attLKI[i]; r.obj == o && r.ver != 0 {
-				*r = attLKIRec{obj: NoObj, host: NoObj}
+				r.obj, r.host, r.ver = NoObj, NoObj, 0
 			}
 		}
 	}
@@ -113,6 +113,20 @@ func (s *State) recordLastBearLKI(o, host Obj) {
 		if r.ver == 0 {
 			r.obj, r.host = o, host
 			return
+		}
+	}
+}
+
+// dropAttLKI forgets every departure record for o. An already-unattached
+// departure names no bearer (gorge Object.LastBearer = 0), so a host an
+// earlier departure recorded must not survive (CR 608.2h). Reset to the
+// pad's empty sentinel: a zero record names object 0, a real card (Init).
+//
+//go:noinline
+func (s *State) dropAttLKI(o Obj) {
+	for i := range s.g.attLKI {
+		if r := &s.g.attLKI[i]; r.obj == o {
+			r.obj, r.host, r.ver = NoObj, NoObj, 0
 		}
 	}
 }
