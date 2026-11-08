@@ -349,47 +349,42 @@ func (s *State) ctrlCleanup(k *prep) {
 
 // ctrlSBA is the control part of the state-based check (gorge runs
 // expireControl and reconcileControlStatics after every event): records
-// whose source condition ended go, then each live control static that
-// wants a permanent its controller does not control registers a record.
+// whose source condition ended go, then each live control static that wants
+// a permanent registers a record.
+//
+// One pass per event, as gorge's reconcile is one derivation per event. A
+// static whose want is already tracked is skipped (ctrlStaticTracked), so a
+// standing static does not register again; every other live want registers,
+// including one naming the controller the host already has, because that
+// record is the Previous the next statically controlled change stacks on and
+// the record that keeps an earlier static's end from handing the host back
+// (gorge reconcileControlStatics).
+//
+// The statics are walked in gorge's wanted-set order -- player 0's
+// battlefield list, then player 1's (control_static.go staticControlWants
+// preserves the static_layerwalk.go staticEffects walk) -- not slot order:
+// enterNF reuses the lowest free slot, so a later-entered Aura can hold a
+// lower slot than an older one.
 //
 //go:noinline
 func (s *State) ctrlSBA(k *prep) {
 	if s.g.nfx > 0 {
 		s.ctrlExpire(k, false)
 	}
-	// gorge's reconcileControlStatics skips a static whose controller already
-	// controls the host (control_static.go:200), so the older static is
-	// registered only on the next reconcile, after the newer one; expireControl
-	// then picks the older (control.go:202). Settle the same chain here so the
-	// kernel's final controller matches the reference gorge. This emulates a
-	// known gorge bug (CR 613.7); remove the loop when the upstream fix lands.
-	//
-	// Each pass walks the statics in gorge's wanted-set order -- player 0's
-	// battlefield list, then player 1's (control_static.go staticControlWants
-	// preserves the static_layerwalk.go staticEffects walk) -- not slot order: enterNF
-	// reuses the lowest free slot, so a later-entered Aura can hold a lower
-	// slot than an older one.
-	for {
-		changed := false
-		var ord [MaxPerm]Slot
-		n := s.listenerOrder(s.statM.and(s.occ), &ord)
-		for _, src := range ord[:n] {
-			sp := &s.perms[src]
-			host := sp.attached
-			if host == NoSlot || !k.gen.has(s.cardAt(src), gfCtrlStat) || s.perms[host].ctrl == sp.ctrl {
-				continue
-			}
-			o := sp.obj
-			if s.ctrlStaticTracked(host, sp.ctrl, o, s.objs[o].ver) || !s.ctrlStaticWants(k, src, host) {
-				continue
-			}
-			if !s.gainControl(host, sp.ctrl, sp.ctrl, kop.DurPermanent, o, s.objs[o].ver, true) {
-				return
-			}
-			changed = true
+	var ord [MaxPerm]Slot
+	n := s.listenerOrder(s.statM.and(s.occ), &ord)
+	for _, src := range ord[:n] {
+		sp := &s.perms[src]
+		host := sp.attached
+		if host == NoSlot || !k.gen.has(s.cardAt(src), gfCtrlStat) {
+			continue
 		}
-		if !changed {
-			break
+		o := sp.obj
+		if s.ctrlStaticTracked(host, sp.ctrl, o, s.objs[o].ver) || !s.ctrlStaticWants(k, src, host) {
+			continue
+		}
+		if !s.gainControl(host, sp.ctrl, sp.ctrl, kop.DurPermanent, o, s.objs[o].ver, true) {
+			return
 		}
 	}
 }

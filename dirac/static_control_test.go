@@ -224,11 +224,11 @@ func TestL5ControlStatic(t *testing.T) {
 	}
 }
 
-// TestL5TwoControlStatics: two control Auras on one host. Gorge's
-// reconcileControlStatics skips a static whose controller already controls
-// the host, so the older Aura registers only after the newer one and
-// expireControl picks it; the kernel settles the same chain. The surviving
-// newer Aura's grant takes over when the older one leaves.
+// TestL5TwoControlStatics: two control Auras on one host. Every live static
+// registers its own record, in the wanted-set order, and the later Aura's
+// record is the latest one, so it controls the host (CR 613.7); the older
+// Aura's record stays underneath, so removing the newer one would hand the
+// host straight back to the older controller instead of the owner.
 func TestL5TwoControlStatics(t *testing.T) {
 	l := newL5(t)
 	s, k := l.sc.s, l.sc.k
@@ -238,11 +238,10 @@ func TestL5TwoControlStatics(t *testing.T) {
 	s.attachTo(k, l.sc.slot(a0), l.sc.slot(w))
 	s.attachTo(k, l.sc.slot(a1), l.sc.slot(w))
 	s.sba(k)
-	// Gorge's current order: the older Aura re-registers after the newer
-	// one, so the older controller wins. CR 613.7 would be 1; this pins the
-	// reference gorge until the upstream fix lands.
-	if got := l.ctrl(w); got != 0 {
-		t.Fatalf("two control statics: controller %d, want 0 (gorge order)", got)
+	// Both Auras register (a0's grant under a1's), and the later one (a1)
+	// decides.
+	if got := l.ctrl(w); got != 1 {
+		t.Fatalf("two control statics: controller %d, want 1 (the later Aura, CR 613.7)", got)
 	}
 	if got := l.records(); got != 2 {
 		t.Fatalf("control records %d, want 2", got)
@@ -278,19 +277,19 @@ func TestL5FourControlStatics(t *testing.T) {
 		s.attachTo(k, l.sc.slot(a), l.sc.slot(w))
 	}
 	s.sba(k)
-	// Gorge's order registers a0 (0), a3 (1), then a1 (0) on the next
-	// reconcile; CR 613.7 would keep a3's later timestamp, but this pins
-	// the reference gorge.
-	if got := l.ctrl(w); got != 0 {
-		t.Fatalf("four control statics: controller %d, want 0 (gorge order)", got)
+	// Every Aura registers in battlefield order a0, a1, a2, a3, so a3's
+	// record is the latest and it controls the host (CR 613.7). A slot-order
+	// walk would end with a0 instead.
+	if got := l.ctrl(w); got != 1 {
+		t.Fatalf("four control statics: controller %d, want 1 (a3, the latest record)", got)
 	}
-	if got := l.records(); got != 3 {
-		t.Fatalf("control records %d, want 3", got)
+	if got := l.records(); got != 4 {
+		t.Fatalf("control records %d, want 4", got)
 	}
 	s.removePerm(k, l.sc.slot(a1), kop.ZoneGraveyard, false)
 	s.sba(k)
-	if got := l.ctrl(w); got != 0 {
-		t.Fatalf("after a1 left: controller %d, want 0 (a2's new grant)", got)
+	if got := l.ctrl(w); got != 1 {
+		t.Fatalf("after a1 left: controller %d, want 1 (a3's surviving grant)", got)
 	}
 	if got := l.records(); got != 3 {
 		t.Fatalf("control records %d after a1 left, want 3", got)
@@ -299,6 +298,9 @@ func TestL5FourControlStatics(t *testing.T) {
 	s.sba(k)
 	if got := l.ctrl(w); got != 1 {
 		t.Fatalf("after a2 left: controller %d, want 1 (a3's surviving grant)", got)
+	}
+	if got := l.records(); got != 2 {
+		t.Fatalf("control records %d after a2 left, want 2", got)
 	}
 }
 

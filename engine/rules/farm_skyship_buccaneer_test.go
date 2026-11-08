@@ -143,3 +143,56 @@ func TestFarmSkyshipBuccaneerSameControllerAuras(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestFarmSkyshipBuccaneerReversedAttachOrder is the sibling direction of the
+// farm case: seat 1's Confiscate attaches FIRST and seat 0's attaches later,
+// so CR 613.1b gives the bearer to the seat that comes FIRST in the static
+// scan order. Selection in scan order (the previous latest-want filter) would
+// keep seat 1's Aura instead; only source-timestamp order gives seat 0 the
+// bearer. Removing the later grant then returns the bearer to the surviving
+// earlier Aura, not to its owner mid-chain.
+func TestFarmSkyshipBuccaneerReversedAttachOrder(t *testing.T) {
+	t.Parallel()
+	conf, ok := testutil.CorpusRegistry(t).Lookup("Confiscate")
+	if !ok {
+		t.Fatal("corpus missing Confiscate")
+	}
+	e, cfg, bear := staticGainControlGame(t, 49119, []*cards.Card{conf}, 1, conf)
+	attach := func(seat state.PlayerID) state.ObjID {
+		t.Helper()
+		id := findAndMoveToHand(t, e, seat, "Confiscate")
+		// Entry and attachment in one step, as a resolving Aura spell does:
+		// a drain between the two would sweep the unattached Aura (CR 704.5m).
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+		e.emit(events.Event{Kind: events.Attach, Obj: id, IDs: []state.ObjID{bear}})
+		if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield || o.AttachedTo != bear || o.Controller != seat {
+			t.Fatalf("precondition: seat %d's Confiscate %d = %+v, want it attached to bear %d", seat, id, o, bear)
+		}
+		return id
+	}
+	// Precondition: seat 1's Aura attaches first and takes the seat 0-owned
+	// bearer; seat 0's later Aura is the later effect.
+	earlier := attach(1)
+	if got := e.G.Obj(bear).Controller; got != 1 {
+		t.Fatalf("precondition: controller after seat 1's Confiscate = %d, want 1", got)
+	}
+	later := attach(0)
+	earlierTS, laterTS := e.G.Obj(earlier).Timestamp, e.G.Obj(later).Timestamp
+	if earlierTS >= laterTS {
+		t.Fatalf("precondition: Aura timestamps %d and %d, want seat 1's Aura earlier", earlierTS, laterTS)
+	}
+	// CR 613.1b: the later Confiscate wins even though its seat is first in
+	// the static scan order.
+	if got := e.G.Obj(bear).Controller; got != 0 {
+		t.Fatalf("bearer controller = %d, want 0 (the later Confiscate, CR 613.1b)", got)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: later, From: state.ZBattlefield, To: state.ZGraveyard})
+	if got := e.G.Obj(bear).Controller; got != 1 {
+		t.Fatalf("bearer controller after the later Confiscate left = %d, want 1 (seat 1's surviving Confiscate)", got)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: earlier, From: state.ZBattlefield, To: state.ZGraveyard})
+	if got := e.G.Obj(bear).Controller; got != 1 {
+		t.Fatalf("bearer controller after both Confiscates left = %d, want 1 (its owner)", got)
+	}
+	replayCheck(t, e, cfg)
+}

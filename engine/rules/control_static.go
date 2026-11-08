@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -189,63 +190,81 @@ func (e *Engine) reconcileControlStatics() {
 	e.reconcilingControlStatics = true
 	defer func() { e.reconcilingControlStatics = false }()
 	wants := e.staticControlWants()
-	// CR 613.1b: control-changing effects apply in timestamp order, so when
-	// several live statics grant control of the same object the LATEST one
-	// wins. staticControlWants lists them in CR 613 order (layer, then
-	// timestamp), so each object's last want is its controlling one: keep
-	// only that want and never register an earlier, dominated static. The
-	// earlier static's want is otherwise skipped only while it already
-	// happens to control the object, so a later event would re-register it
-	// and take the object back from the effect that beat it (the farm's two
-	// Confiscates, FDN-s491). The map is only looked up, never ranged, so
-	// the emit order stays the wants' own.
-	latest := make(map[state.ObjID]int, len(wants))
+	// CR 613.1b: control-changing effects apply in timestamp order (CR
+	// 613.7), so when several live statics grant control of one object the
+	// greatest source timestamp wins and each earlier want is the Previous
+	// the next one stacks on. staticControlWants lists them in the static
+	// scan's seat-major order, NOT timestamp order, so the wants of one
+	// object are registered in ascending source-timestamp order here. Every
+	// live want is registered, including one naming the controller the
+	// object already has: a dominated want that was never tracked is
+	// re-registered by a later reconcile and takes the object back from the
+	// effect that beat it (the farm's two Confiscates, FDN-s491), and
+	// dropping it loses the Previous a surviving static must return to. The
+	// map is only looked up, never ranged, so the emit order stays
+	// deterministic.
+	seen := make(map[state.ObjID]bool, len(wants))
 	for i := range wants {
-		latest[wants[i].obj] = i
+		if seen[wants[i].obj] {
+			continue
+		}
+		seen[wants[i].obj] = true
+		objWants := make([]int, 0, 1)
+		for j := i; j < len(wants); j++ {
+			if wants[j].obj == wants[i].obj {
+				objWants = append(objWants, j)
+			}
+		}
+		sort.SliceStable(objWants, func(a, b int) bool {
+			return wants[objWants[a]].sourceStamp < wants[objWants[b]].sourceStamp
+		})
+		for _, j := range objWants {
+			e.registerStaticControlWant(wants[j])
+		}
 	}
-	for i := range wants {
-		w := wants[i]
-		if latest[w.obj] != i {
-			continue
-		}
-		if e.staticGrantTracked(w) {
-			continue
-		}
-		o, src := e.G.Obj(w.obj), e.G.Obj(w.source)
-		if o == nil || o.Zone != state.ZBattlefield || o.Timestamp != w.objStamp ||
-			src == nil || src.Zone != state.ZBattlefield || src.Timestamp != w.sourceStamp {
-			continue
-		}
-		prev := o.Controller
-		gr := effects.ControlGrant{
-			Obj: w.obj, ObjStamp: w.objStamp,
-			Previous: prev, Controller: w.controller,
-			You: w.controller, Source: w.source, SourceStamp: w.sourceStamp,
-		}
-		// CR 611.2b: an effect whose "for as long as" duration has already
-		// ended when it would begin does nothing -- the same gate the API
-		// path (effGainControl) runs before its own emit. Without it a
-		// controller who has left the game would be re-registered every
-		// emit and re-ended by grantEnded's CR 800.4a check, a grant
-		// ping-pong no board state justifies.
-		if effects.ControlGrantEnded(e, gr) {
-			continue
-		}
-		// The same registration pattern the API path uses: emit the
-		// ControlChange FIRST, then record the grant whose Previous is the
-		// controller immediately before the effect. A latest want that
-		// already names the current controller (an Aura over a creature its
-		// controller already controls, or a second Aura from the same seat)
-		// still needs its record -- otherwise ending an earlier grant hands
-		// the object away before this one re-takes it -- but no
-		// ControlChange is visible, so none is emitted.
-		if prev != w.controller {
-			e.emit(events.Event{Kind: events.ControlChange, Obj: w.obj, Player: w.controller})
-		}
-		before := len(e.controlGrants)
-		e.RegisterControl(gr)
-		if len(e.controlGrants) > before {
-			e.controlGrants[len(e.controlGrants)-1].static = true
-		}
+}
+
+// registerStaticControlWant registers the tracked grant and the matching
+// events.ControlChange for one wanted static control transfer, unless that
+// transfer is already tracked.
+func (e *Engine) registerStaticControlWant(w staticWant) {
+	if e.staticGrantTracked(w) {
+		return
+	}
+	o, src := e.G.Obj(w.obj), e.G.Obj(w.source)
+	if o == nil || o.Zone != state.ZBattlefield || o.Timestamp != w.objStamp ||
+		src == nil || src.Zone != state.ZBattlefield || src.Timestamp != w.sourceStamp {
+		return
+	}
+	prev := o.Controller
+	gr := effects.ControlGrant{
+		Obj: w.obj, ObjStamp: w.objStamp,
+		Previous: prev, Controller: w.controller,
+		You: w.controller, Source: w.source, SourceStamp: w.sourceStamp,
+	}
+	// CR 611.2b: an effect whose "for as long as" duration has already
+	// ended when it would begin does nothing -- the same gate the API
+	// path (effGainControl) runs before its own emit. Without it a
+	// controller who has left the game would be re-registered every
+	// emit and re-ended by grantEnded's CR 800.4a check, a grant
+	// ping-pong no board state justifies.
+	if effects.ControlGrantEnded(e, gr) {
+		return
+	}
+	// The same registration pattern the API path uses: emit the
+	// ControlChange FIRST, then record the grant whose Previous is the
+	// controller immediately before the effect. A want that already names
+	// the current controller (an Aura over a creature its controller
+	// already controls, or a second Aura from the same seat) still needs
+	// its record -- otherwise ending an earlier grant hands the object
+	// away before this one re-takes it -- but no ControlChange is visible,
+	// so none is emitted.
+	if prev != w.controller {
+		e.emit(events.Event{Kind: events.ControlChange, Obj: w.obj, Player: w.controller})
+	}
+	before := len(e.controlGrants)
+	e.RegisterControl(gr)
+	if len(e.controlGrants) > before {
+		e.controlGrants[len(e.controlGrants)-1].static = true
 	}
 }
