@@ -131,6 +131,11 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 	if k.ctrMana {
 		n += s.scriptCtr(k, p).count()
 	}
+	if k.gen.anyDeferred {
+		// a deferred source's {R} (mana_deferred.go): gorge's PotentialMana
+		// counts it, so Pyromancer's Goggles alone funds Three Tree Mascot's {1}
+		n += s.scriptDeferred(k, p).count()
+	}
 	return n
 }
 

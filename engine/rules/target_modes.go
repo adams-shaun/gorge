@@ -105,7 +105,7 @@ func (e *Engine) askCharmModeTargets(p state.PlayerID, source state.ObjID, svars
 		if min != 1 || max != 1 {
 			allSimple = false
 		}
-		cs := e.legalTargetCandidates(p, source, source, sa)
+		cs := e.affordableCharmCandidates(source, e.legalTargetCandidates(p, source, source, sa))
 		if len(cs) < min {
 			// A mandatory minimum the board cannot meet makes the whole
 			// announcement impossible (CR 601.2c): abort rather than pose an
@@ -143,6 +143,54 @@ func (e *Engine) askCharmModeTargets(p state.PlayerID, source state.ObjID, svars
 	return true, false
 }
 
+// affordableCharmCandidates withholds, while source is being cast, a per-mode
+// target candidate whose target-dependent added cost the cast cannot pay
+// (Terror of the Peaks' "an additional 3 life"; CR 601.2c/f, 118.8), through
+// the probe the root and SubAbility$ link asks use (affordableTargetCandidates).
+// The candidate is priced with the targets already announced -- earlier
+// sequential modes' groups are in pc.targets -- so a mode's choice reads the
+// whole set's total cost.
+//
+// Unlike the root ask, a Spree/Charm mode set is not proven payable before
+// its targets are asked (an over-budget mode set is reversed at payment,
+// CR 601.2h), so a candidate is withheld only when IT is what the cast cannot
+// pay: its set fails a half of the cost (non-mana, then mana) the
+// announcement without it could pay. A mode set already mana-short keeps a
+// target that only raises its mana and loses one whose life it cannot pay;
+// withholding every candidate would instead abort the cast at this ask. A
+// triggered Charm (no cast in progress) has no cost to price and keeps every
+// candidate.
+func (e *Engine) affordableCharmCandidates(source state.ObjID, cs []targetCandidate) []targetCandidate {
+	pc := e.cast
+	if pc == nil || pc.card != source {
+		return cs
+	}
+	e.beginDerivedMemo()
+	defer e.endDerivedMemo()
+	pr, ok := e.newTargetCostProbe(pc)
+	if !ok {
+		return cs
+	}
+	base := pc.allTargets()
+	var baseAll []state.Target
+	if len(base) > 0 {
+		baseAll = base
+	}
+	baseVerdict := pr.verdict(base, pc.targets, baseAll)
+	if baseVerdict == probeNonManaShort {
+		return cs
+	}
+	out := make([]targetCandidate, 0, len(cs))
+	for _, candidate := range cs {
+		v := pr.verdict(pc.candidateTargetSets(base, candidate))
+		if v == probeNonManaShort || v == probeManaShort && baseVerdict == probePayable {
+			continue
+		}
+		out = append(out, candidate)
+	}
+	return out
+}
+
 // askCharmSeqSlot poses the next per-mode target ask of a sequential
 // distinct-mode Charm. It walks slots from len(groups) forward: a mode whose
 // mandatory minimum the board cannot meet reports infeasible; an optional mode
@@ -164,7 +212,7 @@ func (e *Engine) askCharmSeqSlot(p state.PlayerID, source state.ObjID, svars map
 			continue
 		}
 		min, max := e.resolvedTargetBounds(p, source, sa, e.charmBoundX(source))
-		cs := e.legalTargetCandidates(p, source, source, sa)
+		cs := e.affordableCharmCandidates(source, e.legalTargetCandidates(p, source, source, sa))
 		if len(cs) < min {
 			return out, false, true
 		}
