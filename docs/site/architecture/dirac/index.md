@@ -115,7 +115,7 @@ reason must be in one or a test fails:
 
 Nothing is dropped silently: a full pool stalls by name, and an op the interpreter lacks panics by name.
 
-The engine has no event log, no per-seat view, no Commander, no concede and no manual mana. A cast is offered when
+The engine has no event log, no per-seat view, no concede and no manual mana. A cast is offered when
 untapped sources and the pool can pay, and it is paid by a planner that mirrors gorge's auto-pay planner. A server
 reaches it through `dirac/adapter`, which derives a game's log and views from its positions
 ([Serving dirac](../../guide/dirac.md)).

@@ -592,13 +592,18 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 		statics := e.collectCostStatics()
 		if e.paymentPlanTargetDependentFor(statics, p, id, scope) {
 			// A ValidTarget$ cost static may price this cast lower for some
-			// target (CR 601.2f reads the chosen targets; offerCastable's
+			// target set (CR 601.2f reads the chosen targets; offerCastable's
 			// second pass). The target ask tests each candidate as the sole
-			// selection, which does not price a spell choosing several, so one
-			// of those stays unknown.
-			if sa := pay.CostTargetingSA(e.G, id, scope); sa != nil {
-				if _, max := targetBounds(sa); max > 1 {
-					return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape:target_dependent_cost"}
+			// selection, which does not price a mode cast choosing several, so
+			// one of those stays unknown; a plain cast's cheapest set is
+			// priced (potentialTargetPricedPlan), one own permanent enough
+			// for a flat "if it targets ..." reduction on a TargetMax$ 2
+			// spell exactly as on a single-target one.
+			if o.Mode != "" || o.AltCostIndex != 0 {
+				if sa := pay.CostTargetingSA(e.G, id, scope); sa != nil {
+					if _, max := targetBounds(sa); max > 1 {
+						return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape:target_dependent_cost"}
+					}
 				}
 			}
 			return e.potentialTargetPricedPlan(statics, p, o, base, scope, rider)
@@ -666,33 +671,65 @@ func (e *Engine) potentialTargetPriced(p state.PlayerID, o decision.Option) bool
 }
 
 // potentialTargetPricedPlan is a witness for a cast whose ValidTarget$ cost
-// statics price it lower for some legal target, tried one target at a time
-// (potentialCostModsUsing), or "insufficient" when no target's price is payable.
-// The target ask then keeps the targets the mana floated can pay for.
+// statics price it lower for some legal target set, tried one assignment at a
+// time (potentialCostModsUsing), or "insufficient" when no set's price is
+// payable. The target ask then keeps the targets the mana floated can pay for.
 func (e *Engine) potentialTargetPricedPlan(statics costStaticViews, p state.PlayerID, o decision.Option, base Cost, scope costScope, rider pipRider) PaymentPlanOutcome {
 	// A consumption-only query reads the plans only for whether one pays
 	// and what it consumes, so when even the cheapest price a target
 	// assignment can announce is beyond the option set's cover, no target's
 	// plan pays and the enumeration is skipped (planTargetCostFloor,
-	// planCoverInsufficient).
+	// planCoverInsufficient). The floor subtracts a matching reduction's
+	// literal amount ONCE, which bounds a single-target declaration; a spell
+	// that may choose several targets can apply a per-target reduction more
+	// than once (or the cheapest legal set may announce fewer than the
+	// maximum), so its floor is not a lower bound and the enumeration runs.
 	if e.planConsumptionOnly {
-		if floor, ok := e.planTargetCostFloor(statics, p, o.Obj, scope, base); ok &&
-			e.planCoverInsufficient(p, pay.PlanManaUnderRider(floor, rider)) {
-			return PaymentPlanOutcome{Reason: "insufficient"}
+		sa := pay.CostTargetingSA(e.G, o.Obj, scope)
+		singleTarget := sa == nil
+		if !singleTarget {
+			_, max := targetBounds(sa)
+			singleTarget = max <= 1
+		}
+		if singleTarget {
+			if floor, ok := e.planTargetCostFloor(statics, p, o.Obj, scope, base); ok &&
+				e.planCoverInsufficient(p, pay.PlanManaUnderRider(floor, rider)) {
+				return PaymentPlanOutcome{Reason: "insufficient"}
+			}
 		}
 	}
 	got := PaymentPlanOutcome{Reason: "insufficient"}
-	e.potentialCostModsUsing(statics, p, o.Obj, scope, e.costPotentialTargets(p, o.Obj, scope), 0, func(m costMods) bool {
-		var c Cost
-		e.composedOfferCostInto(&c, p, o.Obj, &base, &m, scope)
-		got = e.planComposedCost(p, o.Obj, pay.PlanManaUnderRider(c, rider), false, false)
-		return got.Plan != nil && got.Reason == ""
-	})
+	_, got = e.targetPricedPlan(statics, p, o.Obj, base, scope, rider)
 	if got.Plan != nil && got.Reason == "" && len(e.PaymentPlanRelaxed) == 0 &&
 		e.planWitnessOffersNeeded(e.G.Obj(o.Obj).Face(), *got.Plan) && !e.potentialWitnessOffers(p, o, *got.Plan) {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
 	}
 	return got
+}
+
+// targetPricedPlan composes the cheapest payable legal target assignment of a
+// cast whose ValidTarget$ cost statics price it per target set (CR 601.2f),
+// returning the composed cost and its mana plan. It is the enumeration both
+// the potential walk's witness (potentialTargetPricedPlan) and the planned
+// target-paid cast (planCastPaymentChecked, ValidateCastPayment) read. The
+// caller decides whether the plan is offered: the potential walk lowers it
+// before the cast, while a planned cast pays it at CR 601.2g, after the
+// targets are chosen.
+func (e *Engine) targetPricedPlan(statics costStaticViews, p state.PlayerID, id state.ObjID, base Cost, scope costScope, rider pipRider) (Cost, PaymentPlanOutcome) {
+	var composed Cost
+	got := PaymentPlanOutcome{Reason: "insufficient"}
+	e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
+		var c Cost
+		e.composedOfferCostInto(&c, p, id, &base, &m, scope)
+		out := e.planComposedCost(p, id, pay.PlanManaUnderRider(c, rider), false, false)
+		if out.Plan != nil && out.Reason == "" {
+			composed, got = c, out
+			return true
+		}
+		got = out
+		return false
+	})
+	return composed, got
 }
 
 // planPoolCoversPrintedCost reports whether the floating pool alone pays the

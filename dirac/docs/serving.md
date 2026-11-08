@@ -22,7 +22,8 @@ gorged -engine dirac -seats 2 -vsbot -dir /tmp/gorge-dirac
 
 ## What it plays
 
-- Two seats, constructed. Every cast is paid by the server's plan, so the client
+- Two seats, constructed or commander (one commander per seat, from a set that holds
+  the deck: `-format commander -dirac-sets cmd5 -decks testkit/testutil/decks`). Every cast is paid by the server's plan, so the client
   shows no Auto Mana switch.
 - A human against a bot, or bots against each other. A bot table skips, with a log
   line, a deck that the rotation cannot pair with its neighbour.
@@ -50,7 +51,7 @@ Each of these says why, at startup or in the request's error.
 
 | Asked for | Answer |
 |---|---|
-| `-seats` other than 2, `-format commander` | dirac plays two-seat constructed |
+| `-seats` other than 2, partner commanders | dirac plays two seats, and one commander per seat |
 | `-auto-mana=false`, `-bot-auto-mana=false` | dirac has no manual mana |
 | `-events`, a chosen starting player, sideboards | these need gorge |
 | `-<policy>-net`, `az-redeal`, any search policy | a search needs a root, and dirac deals none |

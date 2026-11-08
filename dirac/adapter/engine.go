@@ -81,11 +81,17 @@ func (e *Engine) CheckDeck(deck []*cards.Card) error {
 
 // table picks the first set holding both decks and builds their table.
 func (e *Engine) table(c game.Config) (cardset.Set, *kop.Table, error) {
+	var cmdErr error
+	if c.Format == game.FormatCommander {
+		cmdErr = checkCommander(c)
+	}
 	switch {
 	case len(c.Decks) != 2:
 		return nil, nil, fmt.Errorf("dirac plays two seats, table has %d", len(c.Decks))
-	case c.Format != game.FormatConstructed:
-		return nil, nil, errors.New("dirac plays constructed only")
+	case c.Format != game.FormatConstructed && c.Format != game.FormatCommander:
+		return nil, nil, errors.New("dirac plays constructed and two-seat commander only")
+	case cmdErr != nil:
+		return nil, nil, cmdErr
 	case c.StartChooser != nil:
 		return nil, nil, errors.New("dirac tosses for the first turn: a chosen starting player needs the gorge engine")
 	case c.Sideboards != nil:
@@ -186,7 +192,34 @@ func (e *Engine) config(c game.Config) dirac.Config {
 	cfg.NoElide = true
 	cfg.Mulligans = uint8(c.Mulligans)
 	cfg.ArrangeRestOrder = true
+	if c.Format == game.FormatCommander {
+		cfg.Commander = true
+		for i := range cfg.Commanders {
+			if i < len(c.Commanders) && len(c.Commanders[i]) == 1 {
+				cfg.Commanders[i] = int16(c.Commanders[i][0])
+			}
+		}
+	}
 	return cfg
+}
+
+// checkCommander names what a Commander table asks of dirac beyond Constructed: one
+// commander per seat, from inside its deck, at the 40 life the kernel starts on (CR 903.7).
+func checkCommander(c game.Config) error {
+	if c.StartingLife != 0 && c.StartingLife != 40 {
+		return fmt.Errorf("dirac starts a commander game at 40 life, the table asks for %d", c.StartingLife)
+	}
+	for i, cs := range c.Commanders {
+		switch {
+		case i >= len(c.Decks):
+			return fmt.Errorf("dirac plays two seats, the table names commanders for seat %d", i)
+		case len(cs) > 1:
+			return fmt.Errorf("dirac plays one commander per seat: seat %d has %d (partners need the gorge engine)", i, len(cs))
+		case len(cs) == 1 && (cs[0] < 0 || cs[0] >= len(c.Decks[i])):
+			return fmt.Errorf("seat %d: commander index %d is outside its %d-card deck", i, cs[0], len(c.Decks[i]))
+		}
+	}
+	return nil
 }
 
 // deckIDs is a deck as table cards, one per copy in the deck's own order: that

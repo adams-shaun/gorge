@@ -218,6 +218,7 @@ func (s *State) lkiSweep() {
 	if s.res.active {
 		s.lkiHold(s.g.tli & tliIdx)
 	}
+	s.srcDepartHold() // the departure snapshots of a live ability's source (zone_lkisource.go)
 	if g.nctrOver != 0 {
 		s.ctrOverSweep()
 	}

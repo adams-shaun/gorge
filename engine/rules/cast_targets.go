@@ -471,6 +471,7 @@ func (e *Engine) targetAsk() bool {
 	min, max, _, _ = e.oneEachTargetBounds(sa, candidates, min, max)
 	min, max, _, sameController := e.sameControllerTargetBounds(sa, candidates, min, max)
 	min, max, _, setMode, setKind := e.setPropTargetBounds(sa, candidates, min, max)
+	min = e.targetAskWithholdsEmptyTargetSet(pc, candidates, min)
 	// The ONE feasibility rule (engine/rules/legal.go's targetChoiceFeasible) is the
 	// same predicate the cast offer census ran (targetSAAvailable), so an
 	// offered cast can always announce a legal target: the count, the
@@ -610,6 +611,23 @@ func (e *Engine) targetAsk() bool {
 	effects.RandomTargetsAsk(e, d, sa)
 	e.ask(d)
 	return true
+}
+
+// targetAskWithholdsEmptyTargetSet raises an "up to" target ask's minimum to
+// one when the empty (zero-target) answer would leave a target-dependent cost
+// unpayable. A target-dependent reduction is priced by the targets chosen (CR
+// 601.2c before 601.2f), so the empty answer can make the settled cost one no
+// source can pay. Withhold it, exactly as an unaffordable target candidate is
+// withheld: choosing it would only reverse the proposal (CR 601.2h, 733.1).
+func (e *Engine) targetAskWithholdsEmptyTargetSet(pc *pendingCast, candidates []targetCandidate, min int) int {
+	if min != 0 || pc.isAbility() || pc.mode != "" || len(candidates) == 0 ||
+		!e.paymentPlanTargetDependentFor(e.collectCostStatics(), pc.player, pc.card, spellScope("")) {
+		return min
+	}
+	if e.paymentStranded(pc) {
+		return 1
+	}
+	return min
 }
 
 // allTargets is Forge's AllTargeted$ union: the root

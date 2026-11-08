@@ -158,10 +158,41 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 	for i := 0; i < n; i++ {
 		d.add(MakeAction(AkTarget, 0, buf[i], 0))
 	}
-	if mt.picked >= mt.min {
+	doneOK := mt.picked >= mt.min
+	if doneOK && mt.picked == 0 && mt.min == 0 && e.kind == seSpell && e.flags&(sfMayPlay|sfFlashback) == 0 {
+		doneOK = s.emptyTargetSetPayable(k)
+	}
+	if doneOK {
 		d.add(MakeAction(AkDone, 0, 0, 0))
 	}
 	return mtPosed
+}
+
+// emptyTargetSetPayable reports whether the "up to" empty answer leaves the
+// spell payable. A target-dependent price is fixed by the targets chosen (CR
+// 601.2c before 601.2f), so the empty answer can make the cost one no source
+// can pay, and gorge withholds it exactly as it withholds an unaffordable
+// candidate (targetAskWithholdsEmptyTargetSet, which keys on every cost static
+// that prices by target) rather than exposing a completion that only reverses
+// the cast. The dependence is read from the composition itself: the cast
+// card's own ValidTarget$ static or a life raise (spellTgtDep), or any
+// battlefield reduction the cost build applies for some candidate target but
+// not for none.
+func (s *State) emptyTargetSetPayable(k *prep) bool {
+	e := &s.bld().e
+	b := s.bld()
+	fixed, was := b.fixedGen, s.g.noTgtRed
+	s.g.noTgtRed = false
+	full := s.buildCost(k)
+	s.g.noTgtRed = true
+	zero := s.buildCost(k)
+	s.g.noTgtRed, b.fixedGen = was, fixed
+	if full == zero && !s.spellTgtDep(k, e.ctrl, e.card, e.obj) {
+		return true
+	}
+	var av avail
+	s.availFor(k, e.ctrl, &av)
+	return av.affords(&zero, pipMaskOf(&zero), 0)
 }
 
 // finishSlot ends the slot's picks (a divided slot's damage is announced
