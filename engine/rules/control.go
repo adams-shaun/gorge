@@ -27,6 +27,11 @@ type controlGrant struct {
 	// through expireControl's ordinary Previous chain exactly like an API
 	// grant ending.
 	static bool
+	// staticStamp is the CR 613.7a layer timestamp of the static that
+	// registered this grant (0 for an API grant). Static grants for one
+	// bearer are registered in nondecreasing staticStamp order, so the
+	// tracker's begin order is the CR 613.7 timestamp order.
+	staticStamp uint32
 }
 
 // controlMoment says which fixed points of the turn are being passed when

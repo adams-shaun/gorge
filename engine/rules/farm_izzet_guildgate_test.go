@@ -54,6 +54,58 @@ func TestFarmIzzetGuildgate(t *testing.T) {
 			t.Fatalf("Trickster is c%d o%d, want c1 o0 (p1's later Confiscate, CR 613.7)", got.Controller, got.Owner)
 		}
 	})
+	t.Run("an older Confiscate re-attached later wins by its new timestamp", func(t *testing.T) {
+		t.Parallel()
+		b := run(t, `{
+		  "name": "farm-izzet-guildgate-reattached-confiscate",
+		  "setup": {
+		    "p0": {"battlefield": ["High Fae Trickster", "Grizzly Bears", "Confiscate"], "attached": [{"card": "Confiscate", "to": "p0:High Fae Trickster"}]},
+		    "p1": {"battlefield": ["Confiscate"], "attached": [{"card": "Confiscate", "to": "p0:High Fae Trickster"}]}
+		  },
+		  "steps": [
+		    {"op": "attach", "seat": 0, "card": "p0:Confiscate", "attached_to": "p0:Grizzly Bears"},
+		    {"op": "attach", "seat": 0, "card": "p0:Confiscate", "attached_to": "p0:High Fae Trickster"},
+		    {"op": "pass", "seat": 0}
+		  ]
+		}`)
+		// Precondition: the returned Aura is the latest effect on the bearer
+		// (CR 613.7e restamps it on each attach), so it must beat p1's Aura.
+		if b["p0:Confiscate"].AttachedTo != "p0:High Fae Trickster" {
+			t.Fatalf("p0:Confiscate attached to %q, want the Trickster", b["p0:Confiscate"].AttachedTo)
+		}
+		if got := b["p0:High Fae Trickster"]; got.Owner != 0 || got.Controller != 0 {
+			t.Fatalf("Trickster is c%d o%d, want c0 o0 (the re-attached Confiscate's new layer timestamp, CR 613.7e)", got.Controller, got.Owner)
+		}
+	})
+	t.Run("an Act of Treason above the statics survives the newer static leaving", func(t *testing.T) {
+		t.Parallel()
+		b := run(t, `{
+		  "name": "farm-izzet-guildgate-treason-over-statics",
+		  "players": 3,
+		  "setup": {
+		    "p0": {"battlefield": ["Grizzly Bears", "Confiscate"], "attached": [{"card": "Confiscate", "to": "p0:Grizzly Bears"}]},
+		    "p1": {"battlefield": ["Confiscate"], "attached": [{"card": "Confiscate", "to": "p0:Grizzly Bears"}]},
+		    "p2": {"hand": ["Act of Treason"], "mana": "RRR"}
+		  },
+		  "steps": [
+		    {"op": "pass_to", "seat": 2, "step": "main1", "active": "p2"},
+		    {"op": "cast", "seat": 2, "card": "p2:Act of Treason", "mana": "RRR", "targets": ["p0:Grizzly Bears"]},
+		    {"op": "resolve", "seat": 2},
+		    {"op": "move", "seat": 2, "card": "p1:Confiscate", "to": "graveyard"},
+		    {"op": "pass", "seat": 2}
+		  ]
+		}`)
+		// Precondition: the newer Aura really left, and the older one holds.
+		if b["p1:Confiscate"].Ref != "" {
+			t.Fatalf("p1:Confiscate still on the battlefield: %+v", b["p1:Confiscate"])
+		}
+		if b["p0:Confiscate"].AttachedTo != "p0:Grizzly Bears" {
+			t.Fatalf("p0:Confiscate attached to %q, want the Bears", b["p0:Confiscate"].AttachedTo)
+		}
+		if got := b["p0:Grizzly Bears"]; got.Owner != 0 || got.Controller != 2 {
+			t.Fatalf("Bears is c%d o%d, want c2 o0 (Act of Treason is later than either static)", got.Controller, got.Owner)
+		}
+	})
 	t.Run("a later own Confiscate wins over the opponent's earlier one", func(t *testing.T) {
 		t.Parallel()
 		b := run(t, `{

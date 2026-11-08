@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -48,6 +49,7 @@ type staticWant struct {
 	obj         state.ObjID
 	sourceStamp uint32
 	objStamp    uint32
+	layerStamp  uint32 // CR 613.7a: source.LayerTimestamp(), the grant's order
 	controller  state.PlayerID
 }
 
@@ -85,7 +87,8 @@ func (e *Engine) staticControlWants() []staticWant {
 					continue
 				}
 				w = append(w, staticWant{source: ce.Source, obj: id,
-					sourceStamp: src.Timestamp, objStamp: o.Timestamp, controller: ctrl})
+					sourceStamp: src.Timestamp, objStamp: o.Timestamp,
+					layerStamp: src.LayerTimestamp(), controller: ctrl})
 			}
 		}
 	}
@@ -188,62 +191,101 @@ func (e *Engine) reconcileControlStatics() {
 	}
 	e.reconcilingControlStatics = true
 	defer func() { e.reconcilingControlStatics = false }()
-	wants := e.staticControlWants()
-	for i, w := range wants {
-		if e.staticGrantTracked(w) {
-			continue
-		}
-		// CR 613.7: two live statics that both name the bearer's controller
-		// apply in timestamp order, and the later one wins. An older static
-		// whose controller already holds the bearer registers no grant, so
-		// without this it would register on a later emit, after the newer
-		// static's grant, and win by registration order instead.
-		if staticWantShadowed(wants, i) {
-			continue
-		}
-		o, src := e.G.Obj(w.obj), e.G.Obj(w.source)
-		if o == nil || o.Zone != state.ZBattlefield || o.Timestamp != w.objStamp ||
-			src == nil || src.Zone != state.ZBattlefield || src.Timestamp != w.sourceStamp {
-			continue
-		}
-		if o.Controller == w.controller {
-			continue
-		}
-		prev := o.Controller
-		gr := effects.ControlGrant{
-			Obj: w.obj, ObjStamp: w.objStamp,
-			Previous: prev, Controller: w.controller,
-			You: w.controller, Source: w.source, SourceStamp: w.sourceStamp,
-		}
-		// CR 611.2b: an effect whose "for as long as" duration has already
-		// ended when it would begin does nothing -- the same gate the API
-		// path (effGainControl) runs before its own emit. Without it a
-		// controller who has left the game would be re-registered every
-		// emit and re-ended by grantEnded's CR 800.4a check, a grant
-		// ping-pong no board state justifies.
-		if effects.ControlGrantEnded(e, gr) {
-			continue
-		}
-		// The same registration pattern the API path uses: emit the
-		// ControlChange FIRST, then record the grant whose Previous is the
-		// controller immediately before the effect.
-		e.emit(events.Event{Kind: events.ControlChange, Obj: w.obj, Player: w.controller})
-		before := len(e.controlGrants)
-		e.RegisterControl(gr)
-		if len(e.controlGrants) > before {
-			e.controlGrants[len(e.controlGrants)-1].static = true
+	for _, group := range staticWantsOrdered(e.staticControlWants()) {
+		for _, w := range group {
+			if e.staticGrantTracked(w) {
+				continue
+			}
+			o, src := e.G.Obj(w.obj), e.G.Obj(w.source)
+			if o == nil || o.Zone != state.ZBattlefield || o.Timestamp != w.objStamp ||
+				src == nil || src.Zone != state.ZBattlefield || src.Timestamp != w.sourceStamp {
+				continue
+			}
+			// CR 613.7: the later static wins. A want older than a static
+			// grant already tracked on this bearer must not register above
+			// it; it waits (still live, see grantEnded) until that one stops.
+			if e.staticGrantNewer(w) {
+				continue
+			}
+			prev := o.Controller
+			gr := effects.ControlGrant{
+				Obj: w.obj, ObjStamp: w.objStamp,
+				Previous: prev, Controller: w.controller,
+				You: w.controller, Source: w.source, SourceStamp: w.sourceStamp,
+			}
+			// CR 611.2b: an effect whose "for as long as" duration has already
+			// ended when it would begin does nothing -- the same gate the API
+			// path (effGainControl) runs before its own emit. Without it a
+			// controller who has left the game would be re-registered every
+			// emit and re-ended by grantEnded's CR 800.4a check, a grant
+			// ping-pong no board state justifies.
+			if effects.ControlGrantEnded(e, gr) {
+				continue
+			}
+			// The same registration pattern the API path uses: emit the
+			// ControlChange FIRST, then record the grant whose Previous is
+			// the controller immediately before the effect. A grant that
+			// moves nothing is still recorded: it must keep its timestamp
+			// place below any later API control effect, or it would register
+			// late, above that effect, when a newer static ends.
+			if o.Controller != w.controller {
+				e.emit(events.Event{Kind: events.ControlChange, Obj: w.obj, Player: w.controller})
+			}
+			before := len(e.controlGrants)
+			e.RegisterControl(gr)
+			if len(e.controlGrants) > before {
+				last := &e.controlGrants[len(e.controlGrants)-1]
+				last.static = true
+				last.staticStamp = w.layerStamp
+			}
 		}
 	}
 }
 
-// staticWantShadowed reports whether another wanted transfer of the same
-// bearer comes from a static with a later timestamp than wants[i]'s source
-// (CR 613.7). The shadowed static still lives (grantEnded reads the full
-// wanted set); it only waits to register until the newer one stops.
-func staticWantShadowed(wants []staticWant, i int) bool {
-	w := wants[i]
-	for j := range wants {
-		if j != i && wants[j].obj == w.obj && wants[j].objStamp == w.objStamp && wants[j].sourceStamp > w.sourceStamp {
+// staticWantsOrdered groups the wanted transfers by bearer and orders each
+// bearer's wants by the CR 613.7a layer timestamp of their static, the order
+// their grants must register in so the tracker's begin order is timestamp
+// order. Bearers keep the scan's first-seen order (no map is ranged), and a
+// timestamp tie falls back to the source object and controller for a stable
+// event order.
+func staticWantsOrdered(wants []staticWant) [][]staticWant {
+	groups := make([][]staticWant, 0, len(wants))
+	at := make(map[state.ObjID]int, len(wants))
+	for _, w := range wants {
+		i, ok := at[w.obj]
+		if !ok {
+			i = len(groups)
+			at[w.obj] = i
+			groups = append(groups, nil)
+		}
+		groups[i] = append(groups[i], w)
+	}
+	for _, g := range groups {
+		sort.SliceStable(g, func(i, j int) bool {
+			if g[i].layerStamp != g[j].layerStamp {
+				return g[i].layerStamp < g[j].layerStamp
+			}
+			if g[i].source != g[j].source {
+				return g[i].source < g[j].source
+			}
+			return g[i].controller < g[j].controller
+		})
+	}
+	return groups
+}
+
+// staticGrantNewer reports whether a static grant already tracked on w's
+// bearer has a later CR 613.7 timestamp than w's static. Such a want is
+// shadowed: it stays live but must not register above the newer grant.
+func (e *Engine) staticGrantNewer(w staticWant) bool {
+	for _, g := range e.controlGrants {
+		if !g.static || g.Obj != w.obj || g.ObjStamp != w.objStamp {
+			continue
+		}
+		if g.staticStamp > w.layerStamp {
+			return true
+		}
+		if g.staticStamp == w.layerStamp && g.Source > w.source {
 			return true
 		}
 	}
