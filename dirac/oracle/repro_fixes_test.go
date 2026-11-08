@@ -218,6 +218,7 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 		{"deanna_spacecraft_suurok_s193", false, false},                 // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_enterprise_a_s203", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
 		{"deanna_spacecraft_enterprise_d_s205", false, false},           // CR 614.12, 122.6: Deanna Troi's extra +1/+1 counter joins a Spacecraft entering with seven charge counters
+		{"first_charge_counter_each_turn_after_bounce", false, false},   // CR 400.7, 603.2: U.S.S. Enterprise-D bounced and recast this turn is a new object, so its first charge counters after the recast queue "for the first time each turn" again
 	})
 }
 
