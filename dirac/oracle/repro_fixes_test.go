@@ -335,6 +335,7 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// reach the same one trigger.
 		{"counter_copy_once_listener", false, false},
 		{"registered_effect_remembered_scope", true, false},
+		{"registered_effect_remembered_scope", false, false},
 	})
 }
 
