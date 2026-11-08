@@ -1022,6 +1022,9 @@ func (e *Engine) settleEntryGrants(entrant state.ObjID, grants []entryGrant) ([]
 	// notification names the same adder.
 	savedAdder := e.SetCounterAdder(e.controllerOf(entrant))
 	defer e.SetCounterAdder(savedAdder)
+	savedSettling := e.entrySettling
+	e.entrySettling = entrant
+	defer func() { e.entrySettling = savedSettling }()
 	for i, g := range grants {
 		if g.amount <= 0 || e.PutCounterBlocked(g.kind, entrant, 0, false) {
 			continue
