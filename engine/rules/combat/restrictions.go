@@ -252,14 +252,14 @@ func BlockRestricted(b Board, blocker, attacker state.ObjID) bool {
 		// context's RememberedPlayers (The Motherlode, Excavator's
 		// RememberObjects$ TargetedController -- the defender of the
 		// destroyed land), bound with the remembered objects.
-		if !b.MatchesSpec(atkSpec, attacker, ce.Source, ce.Controller, ce.Remembered, ce.RememberedPlayers) {
+		if !b.MatchesSpec(atkSpec, attacker, ce.Source, ce.Controller, ce.Remembered, ce.RememberedPlayers, true) {
 			continue
 		}
 		blkSpec, ok := ce.RestrictParamOk(cards.PKValidBlocker)
 		if !ok {
 			return true
 		}
-		if b.MatchesSpec(blkSpec, blocker, ce.Source, ce.Controller, ce.Remembered, ce.RememberedPlayers) {
+		if b.MatchesSpec(blkSpec, blocker, ce.Source, ce.Controller, ce.Remembered, ce.RememberedPlayers, true) {
 			return true
 		}
 	}
@@ -298,7 +298,7 @@ func BlockRestricted(b Board, blocker, attacker state.ObjID) bool {
 		if ce.Restriction != "CantBlock" {
 			continue
 		}
-		if b.MatchesSpec(ce.RestrictParam(cards.PKValidCard), blocker, ce.Source, ce.Controller, ce.Remembered, ce.RememberedPlayers) {
+		if b.MatchesSpec(ce.RestrictParam(cards.PKValidCard), blocker, ce.Source, ce.Controller, ce.Remembered, ce.RememberedPlayers, true) {
 			return true
 		}
 	}
@@ -369,11 +369,11 @@ func BlockRestricted(b Board, blocker, attacker state.ObjID) bool {
 			if !remembered {
 				continue
 			}
-		} else if !b.MatchesSpec(attackerSpec, attacker, ce.Source, ce.Controller, ce.Remembered, ce.RememberedPlayers) {
+		} else if !b.MatchesSpec(attackerSpec, attacker, ce.Source, ce.Controller, ce.Remembered, ce.RememberedPlayers, true) {
 			continue
 		}
 		if spec, ok := ce.RestrictParamOk(cards.PKValidBlocker); ok {
-			if !b.MatchesSpec(spec, blocker, ce.Source, ce.Controller, ce.Remembered, ce.RememberedPlayers) {
+			if !b.MatchesSpec(spec, blocker, ce.Source, ce.Controller, ce.Remembered, ce.RememberedPlayers, true) {
 				continue
 			}
 		}
@@ -520,7 +520,7 @@ func AttackBlocked(b Board, id state.ObjID, defender state.PlayerID, attacked st
 			continue
 		}
 		spec := sv.ParamStr(cards.PKValidCard)
-		if spec == "" || !b.MatchesSpec(spec, id, sv.Source, sv.Controller, nil, nil) {
+		if spec == "" || !b.MatchesSpec(spec, id, sv.Source, sv.Controller, nil, nil, false) {
 			continue
 		}
 		if !RestrictionTargetMatches(b.Game(), sv.ParamStr(cards.PKTarget), defender, sv.Controller, sv.Source, nil, attacked) {

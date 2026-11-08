@@ -244,6 +244,7 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"vizier_conversion_kicked_cast_three", true, false},         // ... and another
 		{"vizier_conversion_kicked_cast_four", true, false},          // ... and another
 		{"vizier_kicked_cast_granted_prefix", true, false},           // ... and Gnarlid Colony's kicked {3}{G}{G} beside Imprisoned in the Moon's granted {C}: the grant search prices the kicked total under the conversion too
+		{"deferred_gap_beside_granted_land", true, false},            // CR 601.2g-h, 605.1a: Pyromancer's Goggles' deferred {R} beside Giant Cindermaw's Imprisoned-in-the-Moon {C} pays Pirate's Cutlass's Equip {2}: the restricted/deferred script search must count the unrestricted grant
 	})
 }
 
@@ -335,6 +336,8 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// trigger, which hears both kinds only once each turn: the two orders
 		// reach the same one trigger.
 		{"counter_copy_once_listener", false, false},
+		{"registered_effect_remembered_scope", true, false},
+		{"registered_effect_remembered_scope", false, false},
 	})
 }
 
@@ -394,6 +397,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"first_only_filter_funds_play_autopay", true, false},              // CR 605.1a, 106.1: ... and on the autopay surface, where the same first-and-only filter funds Fire Nation Palace's activation from the floating pool
 		{"tap_cost_source_not_its_own_granted_mana", true, false},          // CR 602.2b, 605.3a: Agna Qel'a's {2}{U},{T} is not paid by the tap that is its cost, so Great Divide Guide's grant on it adds no third mana beside Guide and Badgermole Cub's extra {G}
 		{"waterbend_taps_needed_counts_tap_cost_source", true, false},      // CR 602.2b, 701.67a: Yue, the Moon Spirit's {T} is part of the ability cost the waterbend ask is paying, so its granted any-colour ability is no window unit and the ask demands the pick the 4-mana pool leaves
+		{"token_earthbend_return_queues_on_death", false, false},           // CR 603.7: a copy-token Forest earthbent by Earthbending Lesson and killed by Jet's damage still queues the return trigger (it does nothing: the token has ceased, CR 111.8), as gorge's id-keyed registration does
 		{"replplus_commuting_order", true, false},                          // CR 616.1: two plus-N replacements are a sum no order changes
 		{"waterbend_census_granted_source_tap_extra", false, false},        // CR 605.1b, 701.67a: Honest Work's Humble Merchant grant survives its lose-all abilities, so Badgermole Cub's tap extra makes the waterbend census incomplete and Foggy Swamp Vinebender's announcement offers Done
 		{"waterbend_census_granted_tap_extra_capacity", false, false},      // CR 605.1b: the same merchant tapped later in the game floats its {G} tap extra, so the payment no longer stalls
@@ -636,25 +640,26 @@ func TestStdPoolReprosLockstep(t *testing.T) {
 		name string
 		pool string
 	}{
-		{"convoke_colour_no_owed", "std-fra"},                           // a convoke cast's window owes no colour: Dedicated Commons makes its lowest
-		{"convoke_colour_no_picks", "std-fra"},                          // ... with no creature announced, and the cast reversed
-		{"improvise_treasure_census", "std-msh"},                        // Arc Reactor short with its Treasures counted: reversed, no Treasure spent
-		{"excess_of_a_replaced_amount", "std-fra"},                      // CR 120.10: Violent Echoes' excess reads the damage as replaced
-		{"free_cast_two_statics", "std-fra"},                            // two Omnipresences list one free cast
-		{"ward_discard_is_a_discard", "std-fra"},                        // CR 701.9a: Tinybones sees the discard ward was paid with
-		{"cast_trigger_second_target", "std-fra"},                       // Danitha, on the second object of a multi-object slot
-		{"restricted_any_colour_window", "std-fra"},                     // Gideon's Memorial in a window makes the announced pip's colour
-		{"ward_counters_the_targeting_ability", "std-fra"},              // Koth's two triggers: ward counters the one that targeted
-		{"eot_pump_past_int8", "std-fra"},                               // Aerid Konstrari's pump past int8 stalls loudly
-		{"attached_equipment_becomes_a_copy", "std-msh"},                // CR 704.5p: Shuri makes an attached Equipment a copy of a creature
-		{"unless_evaluated_amount", "std-msh"},                          // Doc Samson's mana can pay an unless cost
-		{"room_alt_granted_prefix_prices_the_other_door", "std-dsk"},    // Unholy Annex showing door 0 cast as Ritual Chamber: the granted-mana prefix is priced at {3}{B}{B}, not the shown door's {2}{B}
-		{"lotus_pair_pays_two_colours", "std-fra"},                      // two Lotus tokens, three mana of one colour each, pay {R}{G}: the plan search keeps the second unit for the colour the first leaves owed
-		{"granted_mana_creature_is_no_ability_planner_unit", "std-tla"}, // Honest Work's Humble Merchant (Katara) is no unit of an ability's planner, so Flexible Waterbender's waterbend {3} falls to the window, which taps her before the Islands
-		{"granted_types_any_land_census_position", "std-mkm"},           // Leyline of the Guildpact: Public Thoroughfare (Produced$ Any) is listed with the fixed sources, so the plan taps Plains, not the Thoroughfare
-		{"delayed_return_skips_object_blinked_since", "std-fin"},        // CR 400.7: Random Encounter's end-step return finds Y'shtola Rhul already exiled and returned by her own trigger, a new object
-		{"returned_creature_was_not_dealt_damage", "std-fin"},           // CR 400.7: Qutrub Forayer raised after combat damage killed it is dealt no damage this turn, so its destroy mode has no target
-		{"echo_copied_equip_offers_its_own_source", "std-msh"},          // CR 301.5c, 707.10c: Echo's copy of Vibranium Energy Daggers' Equip never offers the animated Daggers itself
+		{"convoke_colour_no_owed", "std-fra"},                             // a convoke cast's window owes no colour: Dedicated Commons makes its lowest
+		{"convoke_colour_no_picks", "std-fra"},                            // ... with no creature announced, and the cast reversed
+		{"improvise_treasure_census", "std-msh"},                          // Arc Reactor short with its Treasures counted: reversed, no Treasure spent
+		{"excess_of_a_replaced_amount", "std-fra"},                        // CR 120.10: Violent Echoes' excess reads the damage as replaced
+		{"free_cast_two_statics", "std-fra"},                              // two Omnipresences list one free cast
+		{"ward_discard_is_a_discard", "std-fra"},                          // CR 701.9a: Tinybones sees the discard ward was paid with
+		{"cast_trigger_second_target", "std-fra"},                         // Danitha, on the second object of a multi-object slot
+		{"restricted_any_colour_window", "std-fra"},                       // Gideon's Memorial in a window makes the announced pip's colour
+		{"ward_counters_the_targeting_ability", "std-fra"},                // Koth's two triggers: ward counters the one that targeted
+		{"eot_pump_past_int8", "std-fra"},                                 // Aerid Konstrari's pump past int8 stalls loudly
+		{"attached_equipment_becomes_a_copy", "std-msh"},                  // CR 704.5p: Shuri makes an attached Equipment a copy of a creature
+		{"unless_evaluated_amount", "std-msh"},                            // Doc Samson's mana can pay an unless cost
+		{"room_alt_granted_prefix_prices_the_other_door", "std-dsk"},      // Unholy Annex showing door 0 cast as Ritual Chamber: the granted-mana prefix is priced at {3}{B}{B}, not the shown door's {2}{B}
+		{"lotus_pair_pays_two_colours", "std-fra"},                        // two Lotus tokens, three mana of one colour each, pay {R}{G}: the plan search keeps the second unit for the colour the first leaves owed
+		{"granted_mana_creature_is_no_ability_planner_unit", "std-tla"},   // Honest Work's Humble Merchant (Katara) is no unit of an ability's planner, so Flexible Waterbender's waterbend {3} falls to the window, which taps her before the Islands
+		{"granted_types_any_land_census_position", "std-mkm"},             // Leyline of the Guildpact: Public Thoroughfare (Produced$ Any) is listed with the fixed sources, so the plan taps Plains, not the Thoroughfare
+		{"delayed_return_skips_object_blinked_since", "std-fin"},          // CR 400.7: Random Encounter's end-step return finds Y'shtola Rhul already exiled and returned by her own trigger, a new object
+		{"returned_creature_was_not_dealt_damage", "std-fin"},             // CR 400.7: Qutrub Forayer raised after combat damage killed it is dealt no damage this turn, so its destroy mode has no target
+		{"echo_copied_equip_offers_its_own_source", "std-msh"},            // CR 301.5c, 707.10c: Echo's copy of Vibranium Energy Daggers' Equip never offers the animated Daggers itself
+		{"departed_damage_source_keeps_last_known_controller", "std-msh"}, // CR 113.7a: Human Torch (owned by the opponent) dies, then deals damage; The Thing, Ben Grimm still sees a Hero its controller controlled
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, true, false)

@@ -151,13 +151,14 @@ func (b *combatBoard) StaticGateHolds(sv combat.Static) bool {
 // only while the context never crosses an interface -- and binds the
 // registration's remembered objects and captured players exactly as the
 // predicate did before it moved.
-func (b *combatBoard) MatchesSpec(spec string, id, source state.ObjID, you state.PlayerID, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
+func (b *combatBoard) MatchesSpec(spec string, id, source state.ObjID, you state.PlayerID, remembered []state.ObjID, rememberedPlayers []state.PlayerID, strictRemembered bool) bool {
 	e := (*Engine)(b)
 	sc := e.specCtx(source, you)
 	for _, r := range remembered {
 		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
 	}
 	sc.RememberedPlayers = rememberedPlayers
+	sc.SourceRememberedStrict = strictRemembered
 	return e.matchesSpec(spec, id, sc)
 }
 

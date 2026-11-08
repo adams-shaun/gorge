@@ -220,7 +220,7 @@ func AttackRequirements(b Board, id state.ObjID) RequirementSet {
 		if ce.Restriction != "MustAttack" {
 			continue
 		}
-		if !mustAttackLineSelects(b, ce.RestrictParam(cards.PKValidCreature), id, ce.Source, ce.Controller, ce.Remembered, ce.RememberedPlayers) {
+		if !mustAttackLineSelects(b, ce.RestrictParam(cards.PKValidCreature), id, ce.Source, ce.Controller, ce.Remembered, ce.RememberedPlayers, true) {
 			continue
 		}
 		spec := strings.TrimSpace(ce.RestrictParam(cards.PKMustAttack))
@@ -240,7 +240,7 @@ func AttackRequirements(b Board, id state.ObjID) RequirementSet {
 		if !effects.MustAttackParamsReadableForRules(sv.Params) || !b.StaticGateHolds(sv) {
 			continue
 		}
-		if !mustAttackLineSelects(b, sv.ParamStr(cards.PKValidCreature), id, sv.Source, sv.Controller, nil, nil) {
+		if !mustAttackLineSelects(b, sv.ParamStr(cards.PKValidCreature), id, sv.Source, sv.Controller, nil, nil, false) {
 			continue
 		}
 		spec := strings.TrimSpace(sv.ParamStr(cards.PKMustAttack))
@@ -273,12 +273,12 @@ func AttackRequirements(b Board, id state.ObjID) RequirementSet {
 // captured player (Gideon Jura's DelayedTrigger Effect) resolves both.
 // An absent ValidCreature$ is Forge's Card.Self default, the same default
 // AttackRequirements applies.
-func mustAttackLineSelects(b Board, spec string, id state.ObjID, source state.ObjID, controller state.PlayerID, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
+func mustAttackLineSelects(b Board, spec string, id state.ObjID, source state.ObjID, controller state.PlayerID, remembered []state.ObjID, rememberedPlayers []state.PlayerID, strictRemembered bool) bool {
 	v := strings.TrimSpace(spec)
 	if v == "" {
 		v = "Card.Self"
 	}
-	return b.MatchesSpec(v, id, source, controller, remembered, rememberedPlayers)
+	return b.MatchesSpec(v, id, source, controller, remembered, rememberedPlayers, strictRemembered)
 }
 
 // requirementDefender resolves a MustAttack$ player reference to the
@@ -396,7 +396,7 @@ func requirementPermanent(b Board, spec string, source state.ObjID) (perm state.
 	}
 	o := b.Game().Obj(source)
 	if o == nil || o.Zone != state.ZBattlefield || o.PhasedOut || o.FaceDown ||
-		!b.MatchesSpec("Planeswalker", source, source, o.Controller, nil, nil) {
+		!b.MatchesSpec("Planeswalker", source, source, o.Controller, nil, nil, false) {
 		return 0, true
 	}
 	return source, true
@@ -450,7 +450,7 @@ func AttackRestrictLimit(b Board, defender state.PlayerID, battle state.ObjID) (
 		}
 		ok := effects.MatchesPlayerSpecCtx(b.Game(), spec, defender, sv.Controller, b.PlayerSpecCtx(sv.Source))
 		if !ok && battle != 0 {
-			ok = b.MatchesSpec(spec, battle, sv.Source, sv.Controller, nil, nil)
+			ok = b.MatchesSpec(spec, battle, sv.Source, sv.Controller, nil, nil, false)
 		}
 		if !ok {
 			continue

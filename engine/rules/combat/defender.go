@@ -74,7 +74,7 @@ func AttackAllowedThroughDefender(b Board, id state.ObjID, defender state.Player
 		if spec == "" {
 			spec = sv.ParamStr(cards.PKValidCards)
 		}
-		if spec == "" || !b.MatchesSpec(spec, id, sv.Source, sv.Controller, nil, nil) {
+		if spec == "" || !b.MatchesSpec(spec, id, sv.Source, sv.Controller, nil, nil, false) {
 			continue
 		}
 		if !attackedSpecHolds(b, sv.ParamStr(cards.PKValidAttacked), defender, sv.Controller, nil) {
