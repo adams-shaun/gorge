@@ -233,6 +233,7 @@ CtrlEachPl	CtrlSel	3
 CtrlHitBySrc	CtrlSel	4
 CtrlOpp	CtrlSel	2
 CtrlYou	CtrlSel	1
+CzBattleGrave	untyped int	8
 CzUntilLeaves	untyped int	1
 DelayBeginCombat	untyped int	6
 DelayDiesThisTurn	untyped int	5
