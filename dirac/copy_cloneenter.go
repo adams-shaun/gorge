@@ -50,24 +50,28 @@ func (s *State) cloneReturnPark(k *prep, o Obj, ctrl uint8) bool {
 //
 //go:noinline
 func (s *State) execReturnSimple(k *prep, in *kop.Instr, o Obj) {
+	z, bottom := kop.Zone(in.C), false
+	if s.cmdZoneReplace(k, o, &z, &bottom) {
+		return // a CR 903.9b commander move parked before it happens
+	}
 	ob := &s.objs[o]
 	from := s.detach(o)
 	if k.gen != nil {
 		s.g.retMiss = false
 	}
-	if kop.Zone(in.C) == kop.ZoneBattlefield && k.gen != nil && k.gen.anyMayLimit {
+	if z == kop.ZoneBattlefield && k.gen != nil && k.gen.anyMayLimit {
 		s.countMayPlayLand(k, o, from)
 	}
-	if kop.Zone(in.C) == kop.ZoneBattlefield && k.gen != nil && s.g.batchLatch&batchHeld == 0 && s.enterWithOverride(k, in) {
+	if z == kop.ZoneBattlefield && k.gen != nil && s.g.batchLatch&batchHeld == 0 && s.enterWithOverride(k, in) {
 		// a StaticEffect$ rider (the Enduring cycle's "it's an enchantment")
 		// applies before the entry's triggers match the permanent (CR 603.6a,
 		// gorge applyStaticEffect ahead of the entry event); a held entry's
 		// checks fire after the rider op applies it
 		s.enterAssimilated(k, o, ob.owner(), from)
-	} else if kop.Zone(in.C) == kop.ZoneBattlefield {
+	} else if z == kop.ZoneBattlefield {
 		s.enterMoved(k, o, ob.owner(), false, from) // under its owner's control (Kykar's blink of a stolen creature)
 	} else {
-		s.placeFromK(k, o, kop.Zone(in.C), false, from, false)
+		s.placeFromK(k, o, z, bottom, from, false)
 	}
 }
 

@@ -71,7 +71,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			o := s.objRefObj(in.Obj)
 			if o != NoObj {
 				s.moveRef(k, in.Obj, kop.ZoneLibrary, true)
-				s.shuffleLib(s.objs[o].owner())
+				if s.res.ask != raGenCmdZone {
+					s.shuffleLib(s.objs[o].owner())
+				}
 			}
 		}
 	case kop.OpPumpUntilEOT:
@@ -702,6 +704,9 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 		// gorge begins a Play's free cast at the answer, so an "if you don't
 		// cast it, move it" tail finds a spell, not a card in its zone
 		return
+	}
+	if s.cmdZoneReplace(k, o, &z, &bottom) {
+		return // a CR 903.9b commander move parked before it happens
 	}
 	ob := &s.objs[o]
 	switch ob.zone {

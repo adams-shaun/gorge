@@ -535,6 +535,8 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		for i := 0; i < n; i++ {
 			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}
+	case raGenCmdZone:
+		s.cmdZoneOptions(d) // zone_cmdzone.go
 	case raRecruitDiscard:
 		s.recruitOptions(k, d) // act_recruit.go
 	default:
@@ -827,6 +829,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.toLibrarySecond(k, in, a.Mode() == 0) // zone_librarysecond.go
 		} else if !s.topBottomStack(k, in.Obj, a.Mode() == 0) { // a spell target (tgt_permorspell.go)
 			s.moveRef(k, in.Obj, kop.ZoneLibrary, a.Mode() == 0)
+		}
+		if s.res.ask == raGenCmdZone {
+			return // a CR 903.9b commander move parked; its answer reruns this instruction
 		}
 		s.continueRes(k, 0)
 	case raGenCopyTarget, raGenCopyTargets:
@@ -1241,6 +1246,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		}
 		s.continueRes(k, 0)
+	case raGenCmdZone:
+		s.cmdZoneAnswer(k, a) // zone_cmdzone.go
 	case raRecruitDiscard:
 		s.recruitPick(k, a) // act_recruit.go
 		s.continueRes(k, 0)
@@ -1498,7 +1505,7 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 // an Attacking$ entry's CR 508.4 defender (zone_changezoneparams.go).
 func (s *State) moveAsked() bool {
 	return s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder ||
-		s.res.ask == raGenEnterDefender
+		s.res.ask == raGenEnterDefender || s.res.ask == raGenCmdZone
 }
 
 // searchPick poses a search's (or a choose-move's) first pick, or finishes
@@ -1762,11 +1769,19 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				return
 			}
 		}
+		zz, bb := z, false
+		if s.cmdZoneReplace(k, o, &zz, &bb) {
+			// a CR 903.9b commander move: the cards from this one on wait in
+			// their zone for the answer (zone_cmdzone.go)
+			n := copy(s.resArm().look[:], s.resArm().look[i:s.g.nlook])
+			s.g.nlook = uint8(n)
+			return
+		}
 		from := s.detach(o)
-		if z == kop.ZoneBattlefield && k.gen != nil && k.gen.anyMayLimit {
+		if zz == kop.ZoneBattlefield && k.gen != nil && k.gen.anyMayLimit {
 			s.countMayPlayLand(k, o, from)
 		}
-		switch z {
+		switch zz {
 		case kop.ZoneBattlefield:
 			hg := from != kop.ZoneLibrary
 			if hg {
@@ -1793,7 +1808,7 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.remember(o) // Shuffle$ False's library-to-library search
 			}
 		default:
-			s.placeFromK(k, o, z, false, from, false)
+			s.placeFromK(k, o, zz, bb, from, false)
 			if fl&kop.SrRemember != 0 {
 				s.remember(o) // a hand move's RememberChanged$
 			}
@@ -1977,7 +1992,17 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 		}()
 	}
 	arranges := digArranges(n, s.g.lookSel, rz, fl)
-	if arranges || z == kop.ZoneBattlefield {
+	cmdPick := -1
+	if (z == kop.ZoneHand || z == kop.ZoneLibrary) && s.cfg&cfgCommander != 0 {
+		for i := 0; i < n; i++ {
+			o := s.resArm().look[i]
+			if s.g.lookSel&(1<<i) != 0 && s.cmdZoneCommander(o) {
+				cmdPick = i
+				break
+			}
+		}
+	}
+	if arranges || z == kop.ZoneBattlefield || cmdPick >= 0 {
 		// the taken cards move one at a time with the rest still on top; one
 		// entering the battlefield is asked its as-enters choice in the library
 		// (gorge's parked entry), and this runs again from the answer
@@ -2002,8 +2027,13 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 				s.g.lookSel &^= 1 << i // CR 303.4g: an Aura with nothing to enchant stays in the library with the rest
 				continue
 			}
+			zz, bb := z, false
+			if s.cmdZoneReplace(k, o, &zz, &bb) {
+				deferred = s.heldPark(hr)
+				return true // a CR 903.9b commander move parked before it happens
+			}
 			s.detach(o)
-			s.digTake(k, o, z, fl)
+			s.digTake(k, o, zz, fl)
 			if s.g.pre.obj == o {
 				s.g.pre = preAsk{}
 			}
@@ -2037,6 +2067,12 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 			}
 			return true
 		}
+		s.digRestAside(n)
+		s.finishDigTail(k)
+		return false
+	} else if cmdPick >= 0 {
+		// a picked commander was moved one card at a time above; the rest go
+		// where the dig's rest zone says
 		s.digRestAside(n)
 		s.finishDigTail(k)
 		return false
@@ -2274,6 +2310,9 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 		sl := s.enterMoved(k, o, p, fl&kop.DigTapped != 0, kop.ZoneLibrary)
 		s.attachedTo(k, sl, host) // CR 303.4f: an Aura put onto the battlefield enters attached
 	case z == kop.ZoneLibrary:
+		if p := &s.g.pre; p.kind == akCmdZone && p.obj == o && p.state == preCmdZoneOK {
+			*p = preAsk{} // the answered CR 903.9b move lands here, not through placeFromK
+		}
 		s.objs[o].zone = kop.ZoneLibrary
 		s.objs[o].ver++
 		if fl&kop.DigTakeToTop != 0 {

@@ -108,3 +108,134 @@ func (s *State) applyCmdZone(k *prep, p, mode uint8) {
 	from := s.detach(o)
 	s.placeFromK(k, o, kop.ZoneCommand, false, from, false)
 }
+
+// CR 903.9b: a commander that would be put into its owner's hand or library
+// from anywhere may be put into the command zone instead. The move is parked
+// before anything happens to the object (it stays in its zone, as gorge parks
+// the MoveZone event), the owner is asked at once, and the answered move runs
+// where it was going to happen, so the resolution continues after the answer.
+// Graveyard and exile destinations are CR 903.9a's state-based action and are
+// not replaced here.
+
+// Ask kinds parked in genState.pre while the owner decides. preCmdZone is the
+// wait; the answered states drive the re-run: Move lets the parked move happen,
+// Cmd rewrites its destination to the command zone, and OK is the one move
+// placeFromK then lets through (and clears).
+const (
+	preCmdZone     uint8 = 10
+	preCmdZoneMove uint8 = 11
+	preCmdZoneCmd  uint8 = 12
+	preCmdZoneOK   uint8 = 13
+)
+
+// akCmdZone marks genState.pre as a commander-zone park (turn_gen.go's ask
+// kinds).
+const akCmdZone uint8 = 16
+
+// cmdZoneCommander reports whether o is the commander of its owner's seat and
+// this is a Commander game: CR 903.9b asks only about the owner's commander.
+func (s *State) cmdZoneCommander(o Obj) bool {
+	if s.cfg&cfgCommander == 0 || o == NoObj {
+		return false
+	}
+	return o == s.pl[s.objs[o].owner()].cmd
+}
+
+// cmdZoneAnswered reports whether o's parked move has its answer, not yet
+// consumed by the move.
+func (s *State) cmdZoneAnswered(o Obj) bool {
+	p := &s.g.pre
+	return p.kind == akCmdZone && p.obj == o && (p.state == preCmdZoneMove || p.state == preCmdZoneCmd)
+}
+
+// cmdZoneReplace is the CR 903.9b gate every zone change to a hand or a
+// library passes before it touches the object. z and bottom are the move as
+// the effect said it; true means the move must not happen now (it was parked,
+// or a stall ended the game). An answered move: mode 1 leaves the destination
+// as it was, mode 0 rewrites it to the command zone. The OK marker it leaves
+// is what placeFromK consumes to let the move through.
+//
+// Outside a resolution the answer has no program to resume, so the guard
+// stalls (StallLowering): a cost, an SBA or a cleanup that would move a
+// commander to a hand or a library is not reachable from the five precons.
+func (s *State) cmdZoneReplace(_ *prep, o Obj, z *kop.Zone, bottom *bool) bool {
+	if s.cfg&cfgCommander == 0 || o == NoObj {
+		return false
+	}
+	if p := &s.g.pre; p.kind == akCmdZone && p.obj == o {
+		switch p.state {
+		case preCmdZoneCmd:
+			*z, *bottom = kop.ZoneCommand, false
+			p.state = preCmdZoneOK
+			return false
+		case preCmdZoneMove:
+			p.state = preCmdZoneOK
+			return false
+		case preCmdZoneOK:
+			return false
+		}
+	}
+	if (*z != kop.ZoneHand && *z != kop.ZoneLibrary) || !s.cmdZoneCommander(o) {
+		return false
+	}
+	if !s.res.active || s.over || s.g.pre.state != 0 {
+		s.stall(StallLowering)
+		return true
+	}
+	s.g.pre = preAsk{obj: o, kind: akCmdZone, state: preCmdZone}
+	s.res.ask, s.res.askP = raGenCmdZone, s.objs[o].owner()
+	return true
+}
+
+// cmdZoneOptions poses the parked move's two-option ask, in the same order and
+// with the same modes as the CR 903.9a ask: 0 into the command zone, 1 let it
+// go to where the effect would put it.
+func (s *State) cmdZoneOptions(d *Decision) {
+	d.Sub = ChCommanderZone
+	o := s.g.pre.obj
+	d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+	d.add(MakeAction(AkChoose, uint8(o), 0, 1))
+}
+
+// cmdZoneAnswer records the owner's answer and runs the instruction that
+// parked the move again, now with the answer consumed by cmdZoneReplace: the
+// commander moves where it was going (or to the command zone) and the
+// resolution continues after it. A second commander in the same sweep parks
+// again on the same instruction and is asked next.
+func (s *State) cmdZoneAnswer(k *prep, a Action) {
+	p := &s.g.pre
+	if p.kind != akCmdZone || p.state != preCmdZone {
+		s.res.ask = raNone
+		s.stall(StallLowering) // a hand-built decision with no parked move
+		return
+	}
+	if a.Mode() == 0 {
+		p.state = preCmdZoneCmd
+	} else {
+		p.state = preCmdZoneMove
+	}
+	s.res.ask = raNone
+	in := &s.prog(k)[s.res.pc]
+	switch in.Op {
+	case kop.OpChangeZoneAll, kop.OpChangeZoneAllEx:
+		if !s.execChangeZoneAll(k, in, true) {
+			return // parked again
+		}
+	case kop.OpDigUntil:
+		if !s.execDigUntil(k, in, true) {
+			return
+		}
+	case kop.OpDigEx:
+		if s.finishDigAt(k, true, false) {
+			return
+		}
+	case kop.OpSearchEx, kop.OpChooseMove:
+		s.finishSearchNow(k)
+	default:
+		s.exec(k, in)
+	}
+	if s.res.ask != raNone {
+		return // parked again (or another ask)
+	}
+	s.continueRes(k, 0)
+}
