@@ -27,11 +27,11 @@ type controlGrant struct {
 	// through expireControl's ordinary Previous chain exactly like an API
 	// grant ending.
 	static bool
-	// staticStamp is the CR 613.7a layer timestamp of the static that
-	// registered this grant (0 for an API grant). Static grants for one
-	// bearer are registered in nondecreasing staticStamp order, so the
-	// tracker's begin order is the CR 613.7 timestamp order.
-	staticStamp uint32
+	// orderStamp is the grant's CR 613.7a timestamp: a static grant takes
+	// its source's layer timestamp, an API grant the clock when it began.
+	// Grants for one bearer are registered in nondecreasing orderStamp
+	// order, so the tracker's begin order is the CR 613.7 timestamp order.
+	orderStamp uint32
 }
 
 // controlMoment says which fixed points of the turn are being passed when
@@ -65,7 +65,7 @@ func (e *Engine) RegisterControl(gr effects.ControlGrant) {
 	// earlier grant's expiry from moving control (CR 613.7), it ends if its
 	// controller leaves the game (CR 800.4a), and its record drops -- with its
 	// keywords -- when the object leaves the battlefield.
-	cg := controlGrant{ControlGrant: gr, kwStamp: kwStamp}
+	cg := controlGrant{ControlGrant: gr, kwStamp: kwStamp, orderStamp: e.G.Clock}
 	if gr.Duration.NextTurn {
 		cg.untilTurn = e.nextTurnFor(gr.You)
 		if cg.untilTurn == 0 {
