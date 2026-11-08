@@ -578,6 +578,12 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 		cost.Tb, cost.Hyb = 0, [len(kop.ManaCost{}.Hyb)]kop.ColorMask{}
 	}
 	if cd := &k.t.Cards[c]; cd.HasAltAdd && cd.BeholdN != 0 {
+		// gorge's planCastPaymentChecked plans the behold-or-mana shape only
+		// for a hand or may-play cast (`!flashback`), so a flashback face is
+		// not priced here (its shape stays "shape:optional_cost").
+		if mode&2 != 0 {
+			return kop.ManaCost{}, false
+		}
 		// A behold-or-mana additional cost is chosen at announcement (CR
 		// 601.2b/h); gorge's offer/planner price the spell with the part it
 		// will charge: the printed cost when the behold part is payable,
@@ -636,12 +642,12 @@ func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 		// gorge's PlanTargetPaidManaHalf funds the mana without life and energy
 		return spellAddCost(k, c).Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered|kop.CostPayLife|kop.CostPayEnergy) != 0
 	}
-	if !(cd.HasAltAdd && cd.BeholdN != 0) && planDeclinesAddCost(k, c) {
-		// A behold-or-mana either-or additional cost (Mudbutton Cursetosser's
-		// Behold<1/Goblin>:2) is paid by the cast flow's altAddAsk after the
-		// witness, and plannedCastCostOf prices the chosen part; the
-		// either-or shape is not the standalone Cost$ shape this gate
-		// declines.
+	if planDeclinesAddCost(k, c) {
+		// The spell's own Cost$ is separate from an AlternateAdditionalCost
+		// either-or part (Mudbutton Cursetosser's Behold<1/Goblin>:2), which
+		// the cast flow's altAddAsk pays after the witness: a face carrying
+		// both still has gorge's standalone "shape:additional_cost" part
+		// (PayLife, Exile, tapXType, ...), so the gate applies to every face.
 		return true
 	}
 	for i := range cd.Abilities {

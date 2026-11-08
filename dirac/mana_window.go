@@ -48,7 +48,27 @@ func (s *State) altAddWindowTap(k *prep) {
 		return
 	}
 	c := s.buildCost(k)
-	s.windowTap(k, e.ctrl, &c, true)
+	// Gorge's fallback window (a chosen part that changed the plan's cost)
+	// carries a PaymentFallback but no ManaPayment, so the oracle's windowOwed
+	// reads only the flexible pip faces the payer announced: with none, the
+	// colour ask takes the source's lowest colour, not the pip the printed
+	// cost still owes. A window whose plan still matches (the chosen part is
+	// the priced one) carries the ManaPayment and answers the owed pip, so
+	// the no-owed answer applies only to the fallback: the mana part chosen
+	// while the free part is still payable (planCastAltAdd priced the free
+	// part, and the choice changed the cost). CR 601.2b/h, 601.2g.
+	noOwed := s.bld().altAdd == 1 && s.bld().pipN == 0 && s.altAddFreePart(k, e.ctrl, e.card, e.obj)
+	// The real window runs at the mana stage (CR 601.2g), after the push: a
+	// tap-another-permanent source (Springleaf Drum) is listed there and its
+	// creature tapped as part of the activation. This synchronous walk runs
+	// at the choice stage instead, so it borrows the mana stage's
+	// castTapX listing and takes the first candidate the oracle's
+	// WindowAnswer would answer (the build cannot pause for a pick here).
+	b := s.bld()
+	saved := b.stage
+	b.stage = bsAltAdd
+	s.windowTapUseful(k, e.ctrl, &c, &c, true, false, noOwed, false)
+	b.stage = saved
 }
 
 // DebugAltAddNoPipsFirst reverses an unpayable either-or part at the choice,
@@ -3174,7 +3194,7 @@ func (s *State) castTapX(k *prep) bool {
 		return false
 	}
 	b := s.bld()
-	return b.e.kind == seSpell && (b.stage == bsMana || b.stage == bsPay)
+	return b.e.kind == seSpell && (b.stage == bsMana || b.stage == bsPay || b.stage == bsAltAdd)
 }
 
 // isFork: s is a probe copy (fork), whose window never waits on an answer.

@@ -141,7 +141,11 @@ func (s *State) windowTapXGo(k *prep, p uint8, cost, useful *kop.ManaCost, sl Sl
 			}
 		}
 	}
-	if n > need && s.castWinTapPause(sl, col) {
+	// The altAdd abort window (mana_window.go altAddWindowTap) runs before
+	// the mana stage and is synchronous: it has no build stage to resume
+	// after a pick, so it takes the first candidates the oracle's
+	// WindowAnswer would answer. CR 601.2g.
+	if n > need && s.bld().stage != bsAltAdd && s.castWinTapPause(sl, col) {
 		return true
 	}
 	cand2 := NoSlot

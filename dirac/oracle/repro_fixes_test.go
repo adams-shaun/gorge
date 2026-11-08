@@ -629,6 +629,8 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"subcounter_wildcard_flying_counter_kind", false, false},         // CR 122.1b: Reaping Willow's remove-any-two-counters cost names a Flying counter by its own kind, not as a +1/+1 counter
 
 		{"free_cast_owes_either_or_additional_cost", true, false},                  // CR 601.2b, 118.9d: Kinsbaile Aspirant cast free from Maralen's exile still owes behold or {2}; with neither payable it is not offered
+		{"behold_or_mana_fallback_window_colour", true, false},                     // CR 601.2g: a plan that fell back when the chosen mana part changed the cost has no ManaPayment, so the window answers the source's lowest colour, not the owed pip
+		{"behold_or_mana_window_tap_another_source", false, false},                 // CR 601.2g: the fallback window lists a tap-another source (Springleaf Drum) at its battlefield place, so it taps that source and its creature before a later land
 		{"either_or_mana_part_spends_restricted_source", false, false},             // CR 106.6, 601.2f: Kinsbaile Aspirant's {2} part with its {W} is affordable through Eclipsed Realms' chosen-type mana
 		{"aura_etb_lki_bearer_flickered", true, false},                             // CR 400.7, 608.2h: Aquitect's Defenses' ETB pump, its Aura gone after Personify flickered Rimekin Recluse, gives the returned Rimekin nothing
 		{"repeat_loss_after_static_grant", false, false},                           // CR 613.7: Abigale's second loss of abilities, after Chronicle of Victory entered, is newer than its first-strike-and-trample grant and takes it away from Prideful Feastling
