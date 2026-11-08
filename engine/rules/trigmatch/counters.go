@@ -125,6 +125,11 @@ func counterAddedMatches(e Board, t cards.Trigger, source state.ObjID, ev events
 // for every later batch. A counter of another kind is a different placement
 // event and never spends the latch.
 //
+// The scan also stops at the object's own departure from the battlefield: by
+// CR 400.7 a permanent that left and came back (bounced and recast, blinked)
+// is a new object, so counters put on its earlier incarnation this turn do not
+// spend the new one's latch even though the log keeps the one ObjID.
+//
 // An entry notice (the counters a permanent enters with, folded into its move)
 // that precedes the object's own ClonePermanent was echoed while the object
 // still wore the stack card's face: the entering copy puts those counters as
@@ -135,6 +140,9 @@ func firstCounterAddedThisTurn(e Board, ev events.Event) bool {
 	for i := len(e.Log().Events) - 1; i >= 0; i-- {
 		le := e.Log().Events[i]
 		if le.Kind == events.TurnChange {
+			return seenCurrent
+		}
+		if le.Kind == events.MoveZone && le.Obj == ev.Obj && le.From == state.ZBattlefield {
 			return seenCurrent
 		}
 		if le.Kind == events.ClonePermanent && le.Obj == ev.Obj {

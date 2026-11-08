@@ -154,7 +154,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		} else {
 			tgtOK = s.spellTargetsFeasible(k, c, p)
 		}
-		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, &base, false, &av) {
+		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, &base, false, false, &av) {
 			continue
 		}
 		if s.castHeldOut(o) {
@@ -797,7 +797,8 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		if s.g.mayPlayAny {
 			cost = anyType(cost)
 		}
-		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
+		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}) ||
+			mayPlay && s.mayPlayPrefixPays(k, p, c, o) // (a may-play cast is composed, not declined: Urgent Necropsy from Outrageous Robbery's exile)
 	}
 	if s.spellTgtDep(k, p, c, o) {
 		if mayPlay {
@@ -852,22 +853,15 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		if s.plannerPaysCast(k, p, c, o) { // a shape lowered only on the composed plan's witness
 			return true
 		}
-		// a cast through a play permission is priced by mayPlayAffordable's
-		// retry, which taps a census gap (Flamebraider's restricted two mana)
-		// before it prices the cast again, as for an either-or additional
-		// cost above (CR 601.2b, 601.2f, 601.2g). A plain hand cast is not:
-		// gorge's potential planner refuses it at "shape:additional_cost"
-		// before any mana is priced, so its prefix search never runs for one
-		// (Bloom Tender beside Champions of the Perfect, the lone Elf the cost
-		// also exiles).
-		if cd.BeholdExile && k.gen != nil && mayPlay && s.scriptSourceLive(k, p) {
-			cost := s.featCost(k, p, c, o, k.cards[c].cost)
-			if s.g.mayPlayAny {
-				cost = anyType(cost)
-			}
-			return s.affordsFor(k, p, &cost)
-		}
-		return false
+		// a cast through a play permission is composed (mayPlayPrefixPays),
+		// and a prefix taps a census gap (Flamebraider's restricted two
+		// mana) before it prices the cast again, as for an either-or
+		// additional cost above (CR 601.2b, 601.2f, 601.2g). A plain hand
+		// cast is not: gorge's potential planner refuses it at
+		// "shape:additional_cost" or "shape:optional_cost" before any mana
+		// is priced, so its prefix search never runs for one (Bloom Tender
+		// beside Champions of the Perfect, the lone Elf the cost also exiles).
+		return mayPlay && s.mayPlayPrefixPays(k, p, c, o)
 	}
 	return true
 }
@@ -939,7 +933,7 @@ func (s *State) altAddManaPart(k *prep, c CardID) kop.ManaCost {
 // the part's -- unless gorge's shape is asked for (Config.GorgeAltAdd),
 // where a payable pick cost is enough (spellCostsFeasible).
 func (s *State) altAddCastable(k *prep, c CardID, p uint8, o Obj, cost *kop.ManaCost, av *avail) bool {
-	return s.altAddCastableFrom(k, c, p, o, cost, nil, false, av)
+	return s.altAddCastableFrom(k, c, p, o, cost, nil, false, false, av)
 }
 
 // altAddCastableFrom is altAddCastable for a plain cast whose unreduced cost is
@@ -947,8 +941,10 @@ func (s *State) altAddCastable(k *prep, c CardID, p uint8, o Obj, cost *kop.Mana
 // generic off the total (CR 601.2f), as gorge's offer composes it, so Uncle
 // Iroh's {1} off Redirect Lightning's {R} plus {2} leaves {1}{R}, not {2}{R}.
 // gen is the generic-cost statics' form of adjustFit. A nil base adds the part
-// to cost as it stands.
-func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base *kop.ManaCost, gen bool, av *avail) bool {
+// to cost as it stands. anyMana is a may-play rider letting mana of any type
+// pay the cast (Outrageous Robbery): it covers the recomposed total, the
+// part's mana included (CR 601.2f-h), as it covers cost.
+func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base *kop.ManaCost, gen, anyMana bool, av *avail) bool {
 	cd := &k.t.Cards[c]
 	if !cd.HasAltAdd {
 		return true
@@ -963,6 +959,9 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 	t := addCost(*cost, cd.AltAddCost.Mana)
 	if base != nil && (s.statM.any() || k.gen != nil) {
 		t = s.adjustFit(k, av, p, c, o, addCost(*base, cd.AltAddCost.Mana), gen)
+	}
+	if anyMana {
+		t = anyType(t)
 	}
 	if k.gen != nil && k.gen.anyDelve && o != NoObj && (base == nil || !av.tbLeafCredited(base)) {
 		t = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, t) // the total's one credit
