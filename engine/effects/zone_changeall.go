@@ -320,7 +320,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		// (no MoveZone, no remember bookkeeping) leaves it where it is until
 		// ceaseDeadTokens retires it, the same guard ChangeZone's mover
 		// applies through changeZoneMoveSkip.
-		if o := g.Obj(id); o != nil && (tokenCannotChangeZone(o) || instantCannotEnter(h, o, to, cza.Riders.FaceDownRiders.FaceDown, cza.Riders.Transformed)) {
+		if o := g.Obj(id); o != nil && (tokenCannotChangeZone(g, o) || instantCannotEnter(h, o, to, cza.Riders.FaceDownRiders.FaceDown, cza.Riders.Transformed)) {
 			return
 		}
 		// A CantExile restriction withholds the object from a battlefield exile
