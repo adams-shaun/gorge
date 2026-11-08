@@ -146,52 +146,47 @@ func (e *Engine) askCharmModeTargets(p state.PlayerID, source state.ObjID, svars
 // affordableCharmCandidates withholds, while source is being cast, a per-mode
 // target candidate whose target-dependent added cost the cast cannot pay
 // (Terror of the Peaks' "an additional 3 life"; CR 601.2c/f, 118.8), through
-// the same probe the root and SubAbility$ link asks use
-// (affordableTargetCandidates). The candidate is priced with the targets
-// already announced -- earlier sequential modes' groups are in pc.targets --
-// so a mode's choice reads the whole set's total cost.
+// the probe the root and SubAbility$ link asks use (affordableTargetCandidates).
+// The candidate is priced with the targets already announced -- earlier
+// sequential modes' groups are in pc.targets -- so a mode's choice reads the
+// whole set's total cost.
 //
 // Unlike the root ask, a Spree/Charm mode set is not proven payable before
 // its targets are asked (an over-budget mode set is reversed at payment,
-// CR 601.2h), so a candidate the probe rejects is withheld only when the
-// candidate itself changes the price: a target that adds nothing to the
-// announcement's cost is not what makes it unpayable, and withholding it
-// would abort the cast at the target ask instead. A triggered Charm (no cast
-// in progress) has no cost to price and keeps every legal candidate.
+// CR 601.2h), so a candidate is withheld only when IT is what the cast cannot
+// pay: its set fails a half of the cost (non-mana, then mana) the
+// announcement without it could pay. A mode set already mana-short keeps a
+// target that only raises its mana and loses one whose life it cannot pay;
+// withholding every candidate would instead abort the cast at this ask. A
+// triggered Charm (no cast in progress) has no cost to price and keeps every
+// candidate.
 func (e *Engine) affordableCharmCandidates(source state.ObjID, cs []targetCandidate) []targetCandidate {
 	pc := e.cast
 	if pc == nil || pc.card != source {
 		return cs
 	}
-	scope, ok := e.pendingCastScope(pc)
+	e.beginDerivedMemo()
+	defer e.endDerivedMemo()
+	pr, ok := e.newTargetCostProbe(pc)
 	if !ok {
 		return cs
 	}
 	base := pc.allTargets()
-	affordable := e.affordableTargetCandidates(pc, base, cs)
-	if len(affordable) == len(cs) {
+	var baseAll []state.Target
+	if len(base) > 0 {
+		baseAll = base
+	}
+	baseVerdict := pr.verdict(base, pc.targets, baseAll)
+	if baseVerdict == probeNonManaShort {
 		return cs
 	}
-	priced := func(targets []state.Target) Cost {
-		return pc.withDefiler(e.costModifiersForTargets(pc.player, pc.card, scope, targets)).Apply(pc.resolvedMana())
-	}
-	baseCost := priced(base)
 	out := make([]targetCandidate, 0, len(cs))
-	next := 0
 	for _, candidate := range cs {
-		if next < len(affordable) && affordable[next] == candidate {
-			out = append(out, candidate)
-			next++
+		v := pr.verdict(pc.candidateTargetSets(base, candidate))
+		if v == probeNonManaShort || v == probeManaShort && baseVerdict == probePayable {
 			continue
 		}
-		target := state.Target{Obj: candidate.obj}
-		if candidate.kind == "player" {
-			target = state.Target{Player: candidate.player, IsPlayer: true}
-		}
-		withTarget := priced(append(append([]state.Target(nil), base...), target))
-		if withTarget.Equal(&baseCost) {
-			out = append(out, candidate)
-		}
+		out = append(out, candidate)
 	}
 	return out
 }

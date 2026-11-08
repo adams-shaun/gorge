@@ -294,11 +294,55 @@ func (e *Engine) pendingCastScope(pc *pendingCast) (costScope, bool) {
 func (e *Engine) affordableTargetCandidates(pc *pendingCast, base []state.Target, candidates []targetCandidate) []targetCandidate {
 	e.beginDerivedMemo()
 	defer e.endDerivedMemo()
-	scope, ok := e.pendingCastScope(pc)
+	pr, ok := e.newTargetCostProbe(pc)
 	if !ok {
 		return nil
 	}
-	pl := e.G.Players[pc.player]
+	out := make([]targetCandidate, 0, len(candidates))
+	for _, candidate := range candidates {
+		if pr.verdict(pc.candidateTargetSets(base, candidate)) == probePayable {
+			out = append(out, candidate)
+		}
+	}
+	return out
+}
+
+// candidateTargetSets is the target sets the probe prices candidate with,
+// mirroring repriceForTargets: the root-only Targeted$ slot and the whole
+// announcement (root + links) as AllTargeted$. base nil prices candidate as
+// the sole (root) target.
+func (pc *pendingCast) candidateTargetSets(base []state.Target, candidate targetCandidate) (targets, rootTargets, allTargets []state.Target) {
+	target := state.Target{Obj: candidate.obj}
+	if candidate.kind == "player" {
+		target = state.Target{Player: candidate.player, IsPlayer: true}
+	}
+	if len(base) == 0 {
+		return []state.Target{target}, []state.Target{target}, nil
+	}
+	targets = append(append([]state.Target(nil), base...), target)
+	return targets, pc.targets, targets
+}
+
+// targetCostProbe is affordableTargetCandidates' per-transaction context:
+// the cast's cost scope and its CR 601.2g mana-window census, computed once
+// and shared by every target set the probe prices.
+type targetCostProbe struct {
+	e              *Engine
+	pc             *pendingCast
+	scope          costScope
+	pl             *state.Player
+	targetDiscount bool
+	windowUnits    []windowManaUnit
+	censusComplete bool
+}
+
+// newTargetCostProbe builds the probe context for pc; ok is false when pc
+// has no cost scope (its card or ability is gone).
+func (e *Engine) newTargetCostProbe(pc *pendingCast) (*targetCostProbe, bool) {
+	scope, ok := e.pendingCastScope(pc)
+	if !ok {
+		return nil, false
+	}
 	// A root-target-dependent own reduction needs a proven window
 	// reachability check, and so does every other pool-short candidate once
 	// the window census is complete (see the pool-short arm below): the
@@ -312,153 +356,160 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, base []state.Target
 		windowUnits = e.castWindowUnits(pc)
 		censusComplete = e.castWindowCensusComplete(pc, windowUnits)
 	}
-	out := make([]targetCandidate, 0, len(candidates))
-	for _, candidate := range candidates {
-		target := state.Target{Obj: candidate.obj}
-		if candidate.kind == "player" {
-			target = state.Target{Player: candidate.player, IsPlayer: true}
-		}
-		// the probe mirrors repriceForTargets: the root-only Targeted$ slot
-		// and the whole announcement (root + links) as AllTargeted$
-		targets, rootTargets, allTargets := []state.Target{target}, []state.Target{target}, []state.Target(nil)
-		if len(base) > 0 {
-			targets = append(append([]state.Target(nil), base...), target)
-			rootTargets, allTargets = pc.targets, targets
-		}
-		mods := pc.withDefiler(e.costModifiersForTargets(pc.player, pc.card, scope, targets))
-		if e.costRepricesOnX(pc) {
-			// the announced X is known by now (CR 601.2b): a static reading
-			// the spell's mana value prices this target at it
-			mods = pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, targets, pc.x))
-		}
-		cost := mods.Apply(pc.resolvedMana())
-		if pc.ownReduce > 0 {
-			if n := e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), rootTargets, allTargets, pc.abilityMerged); n < pc.ownReduce {
-				cost.Generic = addClampedGeneric(cost.Generic, int64(pc.ownReduce-n))
-			}
-		}
-		// An announce-bound Exile part (the Shoal cycle's cmcEQX) is priced
-		// by the ANNOUNCED X, not by the candidate: nonManaCastable below
-		// evaluates a non-literal cmc comparison fail-closed (it has no X
-		// binding in scope), so an alt-cost cast whose only payment is such
-		// an exile would drop every candidate and reverse the proposal at
-		// the target ask. The offer gate (altCostXCandidates' existential
-		// over X) and the X ask settled the part's payability independent of
-		// any target, so the probe re-runs the exact exAsk binding for it
-		// rather than dropping it silently. Parts are collected and filtered
-		// AFTER the loop — mutating cost.Exile mid-range would splice wrong
-		// indices once a second announce-bound part exists.
-		exileSpent := make([]bool, len(cost.Exile))
-		for i, part := range cost.Exile {
-			if pc.announceX == "" || !strings.Contains(part.Spec, "cmcEQ"+pc.announceX) {
-				continue
-			}
-			zone := part.Zone
-			if zone == 0 {
-				zone = state.ZHand
-			}
-			sc := e.withNames(effects.NewSpecContext(pc.player, pc.card))
-			sc.Resolve = func(n string) (int32, bool) {
-				if n == pc.announceX {
-					return pc.x, true
-				}
-				return 0, false
-			}
-			n := 0
-			for _, oid := range e.G.Zone(zone, pc.player) {
-				if e.matchesSpec(part.Spec, oid, sc) {
-					n++
-				}
-			}
-			if n >= int(part.N) {
-				exileSpent[i] = true
-			}
-		}
-		for _, spent := range exileSpent {
-			if !spent {
-				continue
-			}
-			kept := make([]CostPart, 0, len(cost.Exile))
-			for i, part := range cost.Exile {
-				if !exileSpent[i] {
-					kept = append(kept, part)
-				}
-			}
-			cost.Exile = kept
-			break
-		}
-		cost.Generic = addClampedGeneric(cost.Generic, int64(pc.taxGeneric))
-		if !pc.isAbility() {
-			cost.Generic -= int32(len(pc.delve))
-			if cost.Generic < 0 {
-				cost.Generic = 0
-			}
-		}
-		// Mana abilities cannot make a non-mana payment or a life shortage
-		// disappear, so preserve a candidate for the mana window only after
-		// those independent requirements pass.
-		if !pay.NonManaCastable(asPayer(e), pc.player, pc.card, cost, pc.isAbility(), tapCostSAKind(e.pcAbility(pc))) {
-			continue
-		}
-		// A life cost with a POSITIVE component needs that much life (CR
-		// 119.4: paying N>0 life requires life >= N). A cost with NO life
-		// component pays 0 life, which is always legal whatever the life
-		// total -- a payer dropped below 0 mid-cast (Ancient Tomb's rider)
-		// may still select targets and finish paying (CR 704.3: state-based
-		// actions wait for a player to receive priority). The same gate
-		// lives in resolveManaWith, which payCast charges through.
-		if cost.Life > 0 && cost.Life > pl.Life {
-			continue
-		}
-		// resolvedMana carries no live pip, so manaFeasible (the shared
-		// primitive) here degenerates to the composed payable check — the same
-		// composition payCast will charge for this candidate's repricing. The
-		// announced Convoke/Harmonize/Improvise contributions fold in exactly
-		// the way paymentMana folds them into the charged total (applyConvoke
-		// on the composed mods+tax+delve cost), so a cast whose pool alone
-		// cannot pay but whose announced artifacts/creatures can keeps its
-		// targets on the menu instead of being reversed at this ask. The
-		// announcement itself was already gate-checked for absorbability
-		// (convokeAbsorbs), so the fold is the payment's own arithmetic,
-		// probed, never charged.
-		convoked := e.applyConvoke(pc, cost)
-		desc := paymentForCast(pc, convoked)
-		if e.manaFeasibleDescriptor(pc.player, desc, convoked, costMods{}, 0, 0, pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}) {
-			out = append(out, candidate)
-			continue
-		}
-		if !cost.HasManaPayment() {
-			continue
-		}
-		if !targetDiscount && !e.hasUntappedManaSource(pc.player) {
-			continue
-		}
-		// A best-target discount can make this option affordable before
-		// choosing targets while a weaker target is not. And for every other
-		// pool-short candidate an arbitrary untapped source is not proof that
-		// the 601.2g window can cover the repriced cost. Probe the window's
-		// concrete productions, one alternative per source, instead of
-		// offering a target whose activation will abort at payment
-		// (CR 601.2h). The discount arm judges on the concrete productions
-		// alone (its fail-closed boundary is the committed contract: a
-		// RestrictValid$-governed source stays unpriced and unpromised); the
-		// census fallback applies to the OTHER arm only, where the probe's
-		// fail-closed exclusions leave a source unpriced that the historical
-		// offer assumed -- there an incomplete census keeps the historical
-		// offer rather than withholding on productions the census could not
-		// see.
-		av := pay.AvailableFor(asPayer(e), pc.player, desc)
-		if targetDiscount || censusComplete {
-			if e.castWindowReachable(pc.player, convoked, av.Pool, pl.Snow, av.Typed, pl.Life,
-				asEval(e).Conv(pc.player, desc.ID, desc.Class == paymentActivated),
-				pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}, windowUnits) {
-				out = append(out, candidate)
-			}
-		} else {
-			out = append(out, candidate)
+	return &targetCostProbe{e: e, pc: pc, scope: scope, pl: &e.G.Players[pc.player],
+		targetDiscount: targetDiscount, windowUnits: windowUnits, censusComplete: censusComplete}, true
+}
+
+// probeVerdict is targetCostProbe's answer for one target set: payable, or
+// which half of the CR 601.2f total cost it cannot pay -- a non-mana part
+// (life, sacrifice, discard, exile, ...) or the mana.
+type probeVerdict uint8
+
+const (
+	probePayable probeVerdict = iota
+	probeNonManaShort
+	probeManaShort
+)
+
+// verdict is the per-target-set body of affordableTargetCandidates: targets
+// is the set the cost statics read, rootTargets the root-only Targeted$
+// slot and allTargets the AllTargeted$ announcement (nil for a lone root
+// target), exactly as repriceForTargets will charge them.
+func (pr *targetCostProbe) verdict(targets, rootTargets, allTargets []state.Target) probeVerdict {
+	e, pc, scope, pl := pr.e, pr.pc, pr.scope, pr.pl
+	targetDiscount, windowUnits, censusComplete := pr.targetDiscount, pr.windowUnits, pr.censusComplete
+	mods := pc.withDefiler(e.costModifiersForTargets(pc.player, pc.card, scope, targets))
+	if e.costRepricesOnX(pc) {
+		// the announced X is known by now (CR 601.2b): a static reading
+		// the spell's mana value prices this target at it
+		mods = pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, targets, pc.x))
+	}
+	cost := mods.Apply(pc.resolvedMana())
+	if pc.ownReduce > 0 {
+		if n := e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), rootTargets, allTargets, pc.abilityMerged); n < pc.ownReduce {
+			cost.Generic = addClampedGeneric(cost.Generic, int64(pc.ownReduce-n))
 		}
 	}
-	return out
+	// An announce-bound Exile part (the Shoal cycle's cmcEQX) is priced
+	// by the ANNOUNCED X, not by the candidate: nonManaCastable below
+	// evaluates a non-literal cmc comparison fail-closed (it has no X
+	// binding in scope), so an alt-cost cast whose only payment is such
+	// an exile would drop every candidate and reverse the proposal at
+	// the target ask. The offer gate (altCostXCandidates' existential
+	// over X) and the X ask settled the part's payability independent of
+	// any target, so the probe re-runs the exact exAsk binding for it
+	// rather than dropping it silently. Parts are collected and filtered
+	// AFTER the loop — mutating cost.Exile mid-range would splice wrong
+	// indices once a second announce-bound part exists.
+	exileSpent := make([]bool, len(cost.Exile))
+	for i, part := range cost.Exile {
+		if pc.announceX == "" || !strings.Contains(part.Spec, "cmcEQ"+pc.announceX) {
+			continue
+		}
+		zone := part.Zone
+		if zone == 0 {
+			zone = state.ZHand
+		}
+		sc := e.withNames(effects.NewSpecContext(pc.player, pc.card))
+		sc.Resolve = func(n string) (int32, bool) {
+			if n == pc.announceX {
+				return pc.x, true
+			}
+			return 0, false
+		}
+		n := 0
+		for _, oid := range e.G.Zone(zone, pc.player) {
+			if e.matchesSpec(part.Spec, oid, sc) {
+				n++
+			}
+		}
+		if n >= int(part.N) {
+			exileSpent[i] = true
+		}
+	}
+	for _, spent := range exileSpent {
+		if !spent {
+			continue
+		}
+		kept := make([]CostPart, 0, len(cost.Exile))
+		for i, part := range cost.Exile {
+			if !exileSpent[i] {
+				kept = append(kept, part)
+			}
+		}
+		cost.Exile = kept
+		break
+	}
+	cost.Generic = addClampedGeneric(cost.Generic, int64(pc.taxGeneric))
+	if !pc.isAbility() {
+		cost.Generic -= int32(len(pc.delve))
+		if cost.Generic < 0 {
+			cost.Generic = 0
+		}
+	}
+	// Mana abilities cannot make a non-mana payment or a life shortage
+	// disappear, so preserve a candidate for the mana window only after
+	// those independent requirements pass.
+	if !pay.NonManaCastable(asPayer(e), pc.player, pc.card, cost, pc.isAbility(), tapCostSAKind(e.pcAbility(pc))) {
+		return probeNonManaShort
+	}
+	// A life cost with a POSITIVE component needs that much life (CR
+	// 119.4: paying N>0 life requires life >= N). A cost with NO life
+	// component pays 0 life, which is always legal whatever the life
+	// total -- a payer dropped below 0 mid-cast (Ancient Tomb's rider)
+	// may still select targets and finish paying (CR 704.3: state-based
+	// actions wait for a player to receive priority). The same gate
+	// lives in resolveManaWith, which payCast charges through.
+	if cost.Life > 0 && cost.Life > pl.Life {
+		return probeNonManaShort
+	}
+	// resolvedMana carries no live pip, so manaFeasible (the shared
+	// primitive) here degenerates to the composed payable check — the same
+	// composition payCast will charge for this candidate's repricing. The
+	// announced Convoke/Harmonize/Improvise contributions fold in exactly
+	// the way paymentMana folds them into the charged total (applyConvoke
+	// on the composed mods+tax+delve cost), so a cast whose pool alone
+	// cannot pay but whose announced artifacts/creatures can keeps its
+	// targets on the menu instead of being reversed at this ask. The
+	// announcement itself was already gate-checked for absorbability
+	// (convokeAbsorbs), so the fold is the payment's own arithmetic,
+	// probed, never charged.
+	convoked := e.applyConvoke(pc, cost)
+	desc := paymentForCast(pc, convoked)
+	if e.manaFeasibleDescriptor(pc.player, desc, convoked, costMods{}, 0, 0, pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}) {
+		return probePayable
+	}
+	if !cost.HasManaPayment() {
+		return probeManaShort
+	}
+	if !targetDiscount && !e.hasUntappedManaSource(pc.player) {
+		return probeManaShort
+	}
+	// A best-target discount can make this option affordable before
+	// choosing targets while a weaker target is not. And for every other
+	// pool-short candidate an arbitrary untapped source is not proof that
+	// the 601.2g window can cover the repriced cost. Probe the window's
+	// concrete productions, one alternative per source, instead of
+	// offering a target whose activation will abort at payment
+	// (CR 601.2h). The discount arm judges on the concrete productions
+	// alone (its fail-closed boundary is the committed contract: a
+	// RestrictValid$-governed source stays unpriced and unpromised); the
+	// census fallback applies to the OTHER arm only, where the probe's
+	// fail-closed exclusions leave a source unpriced that the historical
+	// offer assumed -- there an incomplete census keeps the historical
+	// offer rather than withholding on productions the census could not
+	// see.
+	av := pay.AvailableFor(asPayer(e), pc.player, desc)
+	if targetDiscount || censusComplete {
+		if e.castWindowReachable(pc.player, convoked, av.Pool, pl.Snow, av.Typed, pl.Life,
+			asEval(e).Conv(pc.player, desc.ID, desc.Class == paymentActivated),
+			pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}, windowUnits) {
+			return probePayable
+		}
+	} else {
+		return probePayable
+	}
+	return probeManaShort
 }
 
 // manaToPay is the CR 601.2f total-cost composition for pc: resolvedMana
