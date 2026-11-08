@@ -23,15 +23,15 @@ func TestPairedBotFlags(t *testing.T) {
 	pool := []string{"d"}
 
 	cfg := config{engine: "gorge", pairedBotSims: 8, pairedBotSearches: 1}
-	if e, err := cfg.pairedBotEntry(reg, load, pool); err != nil || e != nil {
+	if e, err := cfg.pairedBotEntry(reg, load, pool, nil); err != nil || e != nil {
 		t.Fatalf("off: %+v, %v", e, err)
 	}
 	cfg.pairedBot = host.PairedBotOff
-	if e, err := cfg.pairedBotEntry(reg, load, pool); err != nil || e != nil {
+	if e, err := cfg.pairedBotEntry(reg, load, pool, nil); err != nil || e != nil {
 		t.Fatalf("-paired-bot off: %+v, %v", e, err)
 	}
 	cfg.pairedBot = pairedBotBuiltin
-	e, err := cfg.pairedBotEntry(reg, load, pool)
+	e, err := cfg.pairedBotEntry(reg, load, pool, nil)
 	if err != nil || e == nil || !e.ClosedLists {
 		t.Fatalf("built-in: %+v, %v", e, err)
 	}
@@ -42,7 +42,7 @@ func TestPairedBotFlags(t *testing.T) {
 		t.Helper()
 		bad := cfg
 		mutate(&bad)
-		_, err := bad.pairedBotEntry(reg, load, pool)
+		_, err := bad.pairedBotEntry(reg, load, pool, nil)
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%s: error %v, want %q", name, err, want)
 		}
@@ -51,7 +51,7 @@ func TestPairedBotFlags(t *testing.T) {
 	refused("another engine", func(c *config) { c.engine = "dirac" }, "needs -engine")
 	refused("no sims", func(c *config) { c.pairedBotSims = 0 }, "-paired-bot-sims")
 	refused("no searches", func(c *config) { c.pairedBotSearches = 0 }, "-paired-bot-searches")
-	if _, err := cfg.pairedBotEntry(reg, load, nil); err == nil {
+	if _, err := cfg.pairedBotEntry(reg, load, nil, nil); err == nil {
 		t.Error("a built-in with no decks to guess from was accepted")
 	}
 }
@@ -63,7 +63,7 @@ func TestPairedBotRefusesAnOpenListPolicy(t *testing.T) {
 	deck := testutil.RepoDeck(t, reg, "mono-red-goblins")
 	load := func(string) (host.Deck, error) { return host.Deck{Name: "d", Cards: deck}, nil }
 	cfg := config{engine: "gorge", pairedBot: "az-redeal", pairedBotSearches: 1}
-	e, err := cfg.pairedBotEntry(reg, load, nil)
+	e, err := cfg.pairedBotEntry(reg, load, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func TestCreateGameChoosesAPairedBot(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	deck := testutil.RepoDeck(t, reg, "mono-red-goblins")
 	load := func(string) (host.Deck, error) { return host.Deck{Name: "d", Cards: deck}, nil }
-	builtin, err := (config{engine: "gorge", pairedBot: pairedBotBuiltin, pairedBotSims: 4, pairedBotSearches: 1}).pairedBotEntry(reg, load, []string{"a", "b"})
+	builtin, err := (config{engine: "gorge", pairedBot: pairedBotBuiltin, pairedBotSims: 4, pairedBotSearches: 1}).pairedBotEntry(reg, load, []string{"a", "b"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,22 +117,60 @@ func TestPairedBotChoicesNeedTheFlag(t *testing.T) {
 	deck := testutil.RepoDeck(t, reg, "mono-red-goblins")
 	load := func(string) (host.Deck, error) { return host.Deck{Name: "d", Cards: deck}, nil }
 	c := config{engine: "gorge", pairedBot: pairedBotBuiltin, pairedBotSims: 4, pairedBotSearches: 1}
-	if got := c.pairedBotChoices(host.Options{}, reg, load, []string{"a"}); got != nil {
+	if got := c.pairedBotChoices(host.Options{}, reg, load, []string{"a"}, nil); got != nil {
 		t.Errorf("no default: %v", got)
 	}
-	def, err := c.pairedBotEntry(reg, load, []string{"a"})
+	def, err := c.pairedBotEntry(reg, load, []string{"a"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, e := range c.pairedBotChoices(host.Options{LoadDeck: load, PairedBot: def}, reg, load, []string{"a"}) {
+	for _, e := range c.pairedBotChoices(host.Options{LoadDeck: load, PairedBot: def}, reg, load, []string{"a"}, nil) {
 		if e.Name == pairedBotBuiltin {
 			t.Error("the default is listed as its own choice")
 		}
 	}
 	other := *def
 	other.Name = "another"
-	got := c.pairedBotChoices(host.Options{LoadDeck: load, PairedBot: &other}, reg, load, []string{"a"})
+	got := c.pairedBotChoices(host.Options{LoadDeck: load, PairedBot: &other}, reg, load, []string{"a"}, nil)
 	if len(got) == 0 || got[0].Name != pairedBotBuiltin {
 		t.Errorf("beside another default: %v", got)
+	}
+}
+
+// A server with Commander decks offers the Commander search beside the default,
+// and one without them neither offers nor builds it.
+func TestPairedBotCommanderChoice(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	deck := testutil.RepoDeck(t, reg, "mono-red-goblins")
+	load := func(string) (host.Deck, error) { return host.Deck{Name: "d", Cards: deck}, nil }
+	c := config{engine: "gorge", pairedBot: pairedBotBuiltin, pairedBotSims: 4, pairedBotSearches: 1}
+	def, err := c.pairedBotEntry(reg, load, []string{"a"}, []string{"c"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := host.Options{LoadDeck: load, PairedBot: def}
+	var got *bots.Entry
+	for _, e := range c.pairedBotChoices(o, reg, load, []string{"a"}, []string{"c"}) {
+		if e.Name == pairedBotBuiltinCommander {
+			got = e
+		}
+	}
+	if got == nil {
+		t.Fatal("az-closed-commander is not offered with a Commander pool")
+	}
+	if len(got.Formats) != 1 || got.Formats[0] != "commander" || got.MaxSeats != 2 {
+		t.Errorf("entry %+v", got.Info)
+	}
+	if err := host.ValidatePairedBot(*got, o); err != nil {
+		t.Errorf("host refuses it: %v", err)
+	}
+	for _, e := range c.pairedBotChoices(o, reg, load, []string{"a"}, nil) {
+		if e.Name == pairedBotBuiltinCommander {
+			t.Error("offered with an empty Commander pool")
+		}
+	}
+	c.pairedBot = pairedBotBuiltinCommander
+	if _, err := c.pairedBotEntry(reg, load, []string{"a"}, nil); err == nil || !strings.Contains(err.Error(), "deals no Commander deck") {
+		t.Errorf("empty pool: %v", err)
 	}
 }

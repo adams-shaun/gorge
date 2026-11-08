@@ -417,7 +417,8 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"plan_alts_lotus_hideout_island_grant", true, false},
 		{"plan_alts_lotus_hideout_island_grant_late", true, false},
 		{"plan_alts_lotus_hideout_island_grant_lesson", true, false},
-		{"widened_restricted_source_granted_island_colour_first", true, false}, // CR 305.6, 601.2g: Jasmine Dragon Tea Shop made an Island taps for its intrinsic {U}, not its restricted any-colour {R}, toward Earthen Ally's {2}{W}{U}{B}{R}{G}: gorge's witness ranks an intrinsic ability before a printed one, so Avatar Kyoshi makes the six {R}
+		{"widened_restricted_source_granted_island_colour_first", true, false},  // CR 305.6, 601.2g: Jasmine Dragon Tea Shop made an Island taps for its intrinsic {U}, not its restricted any-colour {R}, toward Earthen Ally's {2}{W}{U}{B}{R}{G}: gorge's witness ranks an intrinsic ability before a printed one, so Avatar Kyoshi makes the six {R}
+		{"attached_and_global_mana_grants_follow_the_static_walk", true, false}, // CR 613.7, 605.1a: Honest Work's {T}: Add {C} on a land of the other seat is listed after Great Divide Guide's any-colour grant, as gorge walks the statics by seat
 	})
 }
 

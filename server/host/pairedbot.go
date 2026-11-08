@@ -104,7 +104,16 @@ func ValidatePairedBot(e bots.Entry, o Options) error {
 func (r *Registry) pairedBotOf(c *TableConfig) *bots.Entry {
 	switch c.PairedBot {
 	case "":
-		return r.opts.PairedBot
+		def := r.opts.PairedBot
+		if def == nil || len(def.Formats) == 0 || slices.Contains(def.Formats, c.Format.String()) {
+			return def
+		}
+		for _, e := range r.opts.PairedBotChoices {
+			if slices.Contains(e.Formats, c.Format.String()) {
+				return e
+			}
+		}
+		return def
 	case PairedBotOff:
 		return nil
 	}
