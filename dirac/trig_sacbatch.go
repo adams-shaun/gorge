@@ -28,14 +28,25 @@ func (s *State) sacBatchOpen() uint8 {
 	return old
 }
 
-// payPickSacBatch opens an unless / if-you-do cost's sacrifice batch at its
-// first sacrificed pick (gorge pays the picks together, emitSacrifices);
-// the kernel sacrifices each pick as it is answered, so the batch stays open
-// until the last pick (raGenPayPick closes it). An open batch is kept.
+// payCommitSacs sacrifices the picks of an unless / if-you-do cost payment
+// together, in pick order, in one cost-site sacrifice batch (gorge collects
+// every pick, then PaySacrificeCost emits them, emitSacrifices). The picks
+// stay on the battlefield until the last is answered (addSac), so a pick that
+// ends a control effect does not drop the permanents it gave from the menu.
 //
 //go:noinline
-func (s *State) payPickSacBatch(k *prep) {
-	if s.g.batchLatch&batchOpenMask == 0 {
-		s.sacBatchOpen()
+func (s *State) payCommitSacs(k *prep) {
+	n := int(s.g.nsac)
+	if n == 0 {
+		return
+	}
+	ord := s.g.sacOrd
+	s.g.nsac, s.g.sacM = 0, slotMask{}
+	if k.gen.anyBatch {
+		defer s.batchClose(s.sacBatchOpen())
+	}
+	for _, sl := range ord[:n] {
+		s.fireSac(k, sl)
+		s.leaveParked(k, sl)
 	}
 }

@@ -792,19 +792,17 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				s.tapCostPerm(k, s.objs[o].slot, o)
 			}
 		} else {
-			if k.gen.anyBatch {
-				s.payPickSacBatch(k)
-			}
-			s.fireSac(k, s.objs[o].slot)
-			s.leaveParked(k, s.objs[o].slot)
+			// gorge collects every pick before it sacrifices any (CR 601.2h:
+			// the payment is made in full after the choices): the picks stay
+			// on the battlefield, so an Aura's pick does not return the
+			// creature it stole before the next menu (unlessflow, PaySacrificeCost)
+			s.addSac(s.objs[o].slot)
 		}
 		s.g.pickLeft--
 		if s.g.pickLeft > 0 {
 			return
 		}
-		if s.g.batchLatch&batchSac != 0 {
-			s.batchClose(0) // the payment's sacrifice batch (payPickSacBatch)
-		}
+		s.payCommitSacs(k) // trig_sacbatch.go
 		if s.payReturnPark() {
 			return
 		}

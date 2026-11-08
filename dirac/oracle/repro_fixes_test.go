@@ -57,6 +57,7 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"free_copy_raise_cost_per_target_reversed", false, false},
 		{"collect_evidence_selection_stale", true, false},            // CR 701.59a: Forensic Researcher's evidence pick lists the whole graveyard after a declined Lamplight Phoenix cost left its reservation behind
 		{"copy_each_target_copies_enter_together_two", false, false}, // ... and Doppelgang's copies of several targets likewise enter in one batch
+		{"sacrifice_menu_keeps_stolen_creature", true, false},
 	})
 }
 
