@@ -233,10 +233,7 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 			if nc > 2 && !fs.tick() {
 				return false
 			}
-			npair := nc * (nc - 1) / 2
-			if npair > 64 {
-				npair = 64
-			}
+			npair := tapXPairLimit(nc)
 			for pi := 0; pi < npair; pi++ {
 				i, j := tapXPairAt(nc, pi)
 				a, b := cs[i], cs[j]
