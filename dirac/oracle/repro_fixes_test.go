@@ -50,6 +50,10 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		// CR 601.2b, 601.2g-h: Fuss's {R/W} cast from Outrageous Robbery's exile is priced under the any-type rider, so the printed lands pay it and Insidious Roots' granted token stays untapped
 		{"granted_any_prefix_respects_the_any_type_rider", false, false},
 		{"cost_sacrifices_latch_one_or_more_die", false, false},
+		// CR 118.9d, 601.2f: Reenact the Crime's free copy of Officious
+		// Interrogation still owes its per-target RaiseCost; the pool cannot
+		// pay it, so the cast window reverses the cast (std-mkm pair 2359)
+		{"free_copy_raise_cost_per_target_reversed", false, false},
 	})
 }
 

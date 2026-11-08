@@ -1376,8 +1376,13 @@ func (s *State) finishBuild(k *prep) {
 		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || e.trigPl == trigPlMadness {
 			// a free cast mid-resolution (Etali) pays the rest of its
 			// cost (Eaten Alive's {3}{B} part) through gorge's mana
-			// window, not the priority planner (pair 9954)
-			s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0)
+			// window, not the priority planner (pair 9954); a cost the
+			// window cannot finish (Reenact the Crime's copy of Officious
+			// Interrogation, whose per-target RaiseCost the pool lacks)
+			// reverses the cast (CR 733.1)
+			if !s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0) {
+				return
+			}
 		} else if k.gen != nil && k.gen.anyConvoke && s.tapPaysEntry(k, &e) {
 			if !s.payConvoke(k, &e, &cost, e.flags&sfAnyMana != 0, anyColor) || s.winPaused() {
 				return
@@ -1398,7 +1403,9 @@ func (s *State) finishBuild(k *prep) {
 		} else if (k.t.Cards[e.card].HasModeCost || wbSpell) && cost.X == 0 {
 			// gorge's planner declines a Spree face ("shape:modal_cost"):
 			// it pays through the mana window (kw_spree.go)
-			s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0)
+			if !s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0) {
+				return
+			}
 		} else if k.gen != nil && s.delvePaysEntry(k, &e) {
 			// gorge's planner declines a delve cast ("shape:contribution",
 			// payment_plan.go), so its CR 601.2g window ran at manaStep
