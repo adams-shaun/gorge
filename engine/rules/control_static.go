@@ -188,16 +188,32 @@ func (e *Engine) reconcileControlStatics() {
 	}
 	e.reconcilingControlStatics = true
 	defer func() { e.reconcilingControlStatics = false }()
-	for _, w := range e.staticControlWants() {
+	wants := e.staticControlWants()
+	// CR 613.1b: control-changing effects apply in timestamp order, so when
+	// several live statics grant control of the same object the LATEST one
+	// wins. staticControlWants lists them in CR 613 order (layer, then
+	// timestamp), so each object's last want is its controlling one: keep
+	// only that want and never register an earlier, dominated static. The
+	// earlier static's want is otherwise skipped only while it already
+	// happens to control the object, so a later event would re-register it
+	// and take the object back from the effect that beat it (the farm's two
+	// Confiscates, FDN-s491). The map is only looked up, never ranged, so
+	// the emit order stays the wants' own.
+	latest := make(map[state.ObjID]int, len(wants))
+	for i := range wants {
+		latest[wants[i].obj] = i
+	}
+	for i := range wants {
+		w := wants[i]
+		if latest[w.obj] != i {
+			continue
+		}
 		if e.staticGrantTracked(w) {
 			continue
 		}
 		o, src := e.G.Obj(w.obj), e.G.Obj(w.source)
 		if o == nil || o.Zone != state.ZBattlefield || o.Timestamp != w.objStamp ||
 			src == nil || src.Zone != state.ZBattlefield || src.Timestamp != w.sourceStamp {
-			continue
-		}
-		if o.Controller == w.controller {
 			continue
 		}
 		prev := o.Controller
@@ -217,8 +233,15 @@ func (e *Engine) reconcileControlStatics() {
 		}
 		// The same registration pattern the API path uses: emit the
 		// ControlChange FIRST, then record the grant whose Previous is the
-		// controller immediately before the effect.
-		e.emit(events.Event{Kind: events.ControlChange, Obj: w.obj, Player: w.controller})
+		// controller immediately before the effect. A latest want that
+		// already names the current controller (an Aura over a creature its
+		// controller already controls, or a second Aura from the same seat)
+		// still needs its record -- otherwise ending an earlier grant hands
+		// the object away before this one re-takes it -- but no
+		// ControlChange is visible, so none is emitted.
+		if prev != w.controller {
+			e.emit(events.Event{Kind: events.ControlChange, Obj: w.obj, Player: w.controller})
+		}
 		before := len(e.controlGrants)
 		e.RegisterControl(gr)
 		if len(e.controlGrants) > before {
