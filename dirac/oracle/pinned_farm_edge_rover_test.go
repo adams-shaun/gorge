@@ -20,7 +20,8 @@ import (
 // the projection parted at the end of combat. The pin carries the farm's decks
 // (the tape's lower row has swap=true, so the game's seat 0 is the lowered
 // item's p1 deck, the WR build, and seat 1 its p0 deck, WG), its seed and the
-// whole game's explore-policy actions up to the divergence; it is written from the farm's tape rather than dealt by the
+// whole game's explore-policy actions (532 decisions, well past the decision-181
+// group sacrifice); it is written from the farm's tape rather than dealt by the
 // synthetic pool, so PINS_RECORD is deliberately not used.
 func TestPinnedFarmEdgeRover(t *testing.T) {
 	t.Parallel()
@@ -38,10 +39,16 @@ func TestPinnedFarmEdgeRover(t *testing.T) {
 	set := cardset.AllowUnverified(cardsettest.Synth(t, "std-eoe"))
 	rc := RunConfig{Config: Config{GorgeAutopaySurface: true}}
 	for i, r := range games {
+		if len(r.Actions) <= 181 {
+			t.Fatalf("%s game %d: %d actions, the pin must pass decision 181 (the end-of-combat group sacrifice that diverged)", path, i, len(r.Actions))
+		}
 		res, hit, err := playPinned(set, reg, r, rc, []func(*GorgeSide) bool{onBattlefield("Edge Rover")})
 		if err != nil {
 			t.Fatalf("%s game %d: %v", path, i, err)
 		}
 		reportPinned(t, fmt.Sprintf("%s game %d", path, i), res, hit)
+		if res.Decisions <= 181 {
+			t.Errorf("%s game %d: played %d decisions, short of the decision-181 group sacrifice", path, i, res.Decisions)
+		}
 	}
 }

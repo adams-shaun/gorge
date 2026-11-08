@@ -143,7 +143,9 @@ const dlyEndCombat = 4
 var DebugTokAtEOTDestroyIsLeave bool
 
 // tokenAtEOTExt registers the extended rider of token t (both AtEOT bits
-// set in in.B.N, the kind in the high byte).
+// set in in.B.N, the kind in the high byte). A later SacrificeCombat token of
+// one resolution joins the first token's sacrifice (sacAtEndJoin, the grouping
+// tokenAtEOT documents), so the resolution's tokens fall to one trigger.
 //
 //go:noinline
 func (s *State) tokenAtEOTExt(in *kop.Instr, t Obj) {
