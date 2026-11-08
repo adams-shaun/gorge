@@ -37,6 +37,27 @@ const (
 	akEtbOrder uint8 = 14
 )
 
+// placeEntryCounters places an entry-characteristic counter grant on the
+// entrant at sl with the entrant itself out of the static walk. Gorge settles
+// a permanent's entry counters against the would-enter board, before the move
+// folds (engine/rules/entry_counters.go), so the entrant's own AddCounter
+// replacement is not a source for its own entry; CR 614.12 also keeps a
+// replacement that affects a general subset (not only itself) from applying
+// to how it enters. enterNF has already subscribed the entrant to statM by
+// the time enterGen places a requested count, so take it back out here.
+func (s *State) placeEntryCounters(k *prep, sl Slot, kind, n int, ctrl uint8) int {
+	if n <= 0 {
+		return 0
+	}
+	had := s.statM.has(sl)
+	s.statM.clr(sl)
+	m := s.placeCounters(k, sl, kind, n, ctrl, ctrPutBy)
+	if had {
+		s.statM.set(sl)
+	}
+	return m
+}
+
 // enterGen runs after the core's enter placed o at sl, before its ETB triggers:
 // it resets the slot's generated state, records how the permanent arrived,
 // and applies the as-enters replacements (its own and other permanents').
@@ -80,7 +101,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		s.entryWinOpen(k, sl, p) // ctr_entryperkind.go: the printed and requested counters start the entry's one put per kind
 	} else if n := s.g.enterCtr.n; n > 0 {
 		if face == 0 {
-			s.placeCounters(k, sl, int(s.g.enterCtr.kind), int(n), p.ctrl, ctrPutBy)
+			s.placeEntryCounters(k, sl, int(s.g.enterCtr.kind), int(n), p.ctrl)
 		}
 		s.g.enterCtr.n = 0
 	}
