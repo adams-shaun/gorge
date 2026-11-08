@@ -50,6 +50,10 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		// CR 601.2b, 601.2g-h: Fuss's {R/W} cast from Outrageous Robbery's exile is priced under the any-type rider, so the printed lands pay it and Insidious Roots' granted token stays untapped
 		{"granted_any_prefix_respects_the_any_type_rider", false, false},
 		{"cost_sacrifices_latch_one_or_more_die", false, false},
+		// CR 118.9d, 601.2f: Reenact the Crime's free copy of Officious
+		// Interrogation still owes its per-target RaiseCost; the pool cannot
+		// pay it, so the cast window reverses the cast (std-mkm pair 2359)
+		{"free_copy_raise_cost_per_target_reversed", false, false},
 		{"collect_evidence_selection_stale", true, false}, // CR 701.59a: Forensic Researcher's evidence pick lists the whole graveyard after a declined Lamplight Phoenix cost left its reservation behind
 	})
 }
@@ -97,6 +101,10 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// is payable, but no mode is, so neither engine offers the cast (CR
 		// 702.172a/702.183a: the mode cost is part of the cheapest legal total).
 		{"explosive_derailment_needs_a_mode_cost", false, false},
+		// CR 601.2c/f, 118.8: a Spree/Charm per-mode target ask withholds
+		// Terror of the Peaks when its controller's "an additional 3 life"
+		// leaves the caster unable to pay, as the root target ask does
+		{"charm_mode_targets_skip_unaffordable_terror", false, false},
 		// CR 601.2f: This Town Ain't Big Enough cast from Jasper Flint's
 		// mayplay, whose TargetMax$ 2 keeps the potential planner at the full
 		// price: the offer gate's target retry prices one matching target,

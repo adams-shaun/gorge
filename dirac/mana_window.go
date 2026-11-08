@@ -1913,14 +1913,25 @@ func (s *State) attLKIHost(o Obj) (Obj, bool) {
 
 // payCastWindow pays the rest of a cast's cost through gorge's CR 601.2g
 // cast window (a lowered or a free cast). That window's colour ask carries no
-// owed cost, only the pips the caster announced.
-func (s *State) payCastWindow(k *prep, p uint8, cost *kop.ManaCost, anyType, anyColor bool) {
-	_, held := s.windowTapUseful(k, p, cost, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
+// owed cost, only the pips the caster announced. It reports false after
+// reversing the cast when the window runs out of sources: the rest of the
+// cost, a free cast's RaiseCost per target included, is unpayable (gorge
+// payCast abortCast "cost no longer payable", CR 733.1; the taps and floating
+// mana stay, as loweredWindowOK leaves them).
+func (s *State) payCastWindow(k *prep, p uint8, cost *kop.ManaCost, anyType, anyColor bool) bool {
+	ok, held := s.windowTapUseful(k, p, cost, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
 	if s.winPaused() {
 		for c := range held {
 			s.pl[p].pool[c] += held[c]
 		}
-		return // the pick is posed; the cast pays when the window ends
+		return true // the pick is posed; the cast pays when the window ends
+	}
+	if !ok {
+		for c := range held {
+			s.pl[p].pool[c] += held[c]
+		}
+		s.reverseCast(k)
+		return false
 	}
 	if s.rbAny(p) {
 		// the window can float a restricted source's mana beside the pool (an
@@ -1934,6 +1945,7 @@ func (s *State) payCastWindow(k *prep, p uint8, cost *kop.ManaCost, anyType, any
 	for c := range held {
 		s.pl[p].pool[c] += held[c]
 	}
+	return true
 }
 
 // loweredPoolPays: the floating pool settles a lowered cast with no window,
