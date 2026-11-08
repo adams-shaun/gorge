@@ -214,7 +214,11 @@ func TestExtLethalCrossingsKeepMzRows(t *testing.T) {
 	rowLethal := featRowID("mz|me|lethal-unblocked")
 	rowCastI := featRowID("mz|hand|castable|instant-speed")
 	seen, withMz, with492, with493 := 0, 0, 0, 0
-	for _, p := range Pairings(pool, 40, 11) {
+	// the first 200 decisions are the base sample; the scan goes on past
+	// them only until one 492-positive decision has been checked, so the
+	// exact-492 predicate is exercised positively (rare: about 1 in 7000).
+	more := func() bool { return seen < 200 || with492 == 0 && seen < 60000 }
+	for _, p := range Pairings(pool, 600, 11) {
 		s, fp, ok := killPair(t, c, p)
 		if !ok {
 			continue
@@ -223,7 +227,7 @@ func TestExtLethalCrossingsKeepMzRows(t *testing.T) {
 		on.SetExt(feat.ExtAll)
 		pol := dirac.NewRandomPolicy(p.Seed)
 		var d dirac.Decision
-		for n := 0; n < 20000 && seen < 200; n++ {
+		for n := 0; n < 20000 && more(); n++ {
 			s.StepInto(&d)
 			if d.Kind == dirac.DkNone {
 				break
@@ -271,17 +275,20 @@ func TestExtLethalCrossingsKeepMzRows(t *testing.T) {
 			seen++
 			s.Apply(pol.Pick(&d))
 		}
-		if seen >= 200 {
+		if !more() {
 			break
 		}
 	}
-	if seen != 200 {
-		t.Fatalf("visited %d decisions, want 200", seen)
+	if seen < 200 {
+		t.Fatalf("visited %d decisions, want at least 200", seen)
+	}
+	if with492 == 0 {
+		t.Fatalf("no 492-positive decision within %d: the crossing was never exercised positively", seen)
 	}
 	if withMz == 0 {
 		t.Fatalf("no decision held mz|me|lethal-unblocked: the crossing was never exercised")
 	}
-	t.Logf("200 decisions: %d with mz me-lethal, %d with 492, %d with 493", withMz, with492, with493)
+	t.Logf("%d decisions: %d with mz me-lethal, %d with 492, %d with 493", seen, withMz, with492, with493)
 }
 
 // canAttackPower is mzGlobal's canAttackPower from the projection: the

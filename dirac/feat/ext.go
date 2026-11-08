@@ -388,7 +388,7 @@ func ExtSlotName(slot uint16) string {
 		return "todo:I"
 	case n < 448:
 		return "reserved"
-	case n < 494:
+	case n < xKEnd:
 		return extKillSlotName(n)
 	case n < 496:
 		return "reserved"
