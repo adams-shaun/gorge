@@ -1333,6 +1333,16 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			}
 			return cost, ex, need, true
 		}
+		if c := s.objs[a.Source()].card; s.fixedTapsCast(k, a) {
+			// a fixed tap of other permanents beside the printed cost: gorge's
+			// potential planner prices the composed cost (cost_fixedtaps.go), so
+			// the prefix search taps a granted source the census misses (CR 601.2g-h)
+			cost := s.featCost(k, p&1, c, Obj(a.Source()), k.cards[c].cost)
+			if s.g.mayPlayAny {
+				cost = anyType(cost)
+			}
+			return cost, ex, need, true
+		}
 		cost, ok = s.plannedCastCostOf(k, p, Obj(a.Source()), a.Mode()&(3|castMayPlay), true, true)
 		return cost, ex, need, ok
 	}
