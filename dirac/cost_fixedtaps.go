@@ -71,6 +71,9 @@ func (s *State) restrTapUnit(k *prep, p uint8, x Slot, d *payDesc) (*pcard, bool
 // enchantment-only {U} paying Fear of Exposure is not also one of the two
 // permanents it taps; CR 601.2g-h, gorge planReserving).
 func (s *State) spellPartDisjoint(k *prep, p uint8, c CardID, o Obj, part *kop.Cost, cost *kop.ManaCost) bool {
+	if part.Flags&kop.CostTapX != 0 && s.plainPlanLeavesTaps(k, p, part, cost) {
+		return true
+	}
 	var av avail
 	s.availFor(k, p, &av)
 	if k.restrSrc && k.gen != nil && part.Flags&kop.CostTapX != 0 {
@@ -80,4 +83,26 @@ func (s *State) spellPartDisjoint(k *prep, p uint8, c CardID, o Obj, part *kop.C
 		}
 	}
 	return s.costPartDisjoint(k, p, NoSlot, part, cost, &av, pipMaskOf(cost))
+}
+
+// plainPlanLeavesTaps is gorge planReserving's first step for a spell's tap part:
+// the mana plan made with nothing reserved stands when it leaves N candidates
+// untapped (planLeavesCostPayable), before any assignment is tried. Nine lands
+// pay Guardian of the Great Door's {W}{W} from the Plains and a Restless
+// Anchorage and leave seven to tap, however far down the reservation order the
+// assignments that keep both {W} sources sit (CR 601.2g-h).
+func (s *State) plainPlanLeavesTaps(k *prep, p uint8, part *kop.Cost, cost *kop.ManaCost) bool {
+	pk := planner{dry: true}
+	s.tapForPK(k, p, cost, 0, NoObj, false, false, &pk)
+	if !pk.found {
+		return false
+	}
+	left := 0
+	for m := s.ctrlM[p]; m.any(); m = m.rest() {
+		x := m.first()
+		if s.perms[x].flags&pfTapped == 0 && !pk.planUses(x) && s.matchPerm(k, part.Filter, x, p, NoSlot) {
+			left++
+		}
+	}
+	return left >= int(part.N)
 }
