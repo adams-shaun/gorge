@@ -1677,6 +1677,12 @@ type genState struct {
 	plusSrc  [2]Obj   // per player, the Boimler that made them (NoObj: more than one; the order ask's source, repl_ctrorder.go; padding)
 	cast1    uint8    // bit p: seat p has cast a spell this game, recorded only for a table reading ExFirstCast (cast_firstcast.go; padding)
 	ctrAdder uint8    // transient: the player putting the counters being placed, +1 (0: the resolving / building controller; trig_leavereturn.go; padding)
+	// ctrSettle is the entrant whose entry counters are being placed, +1
+	// (0: none). While set, the AddCounter matcher skips that permanent as a
+	// source unless its recipient filter is FSelf (CR 614.12, gorge's
+	// ownEntryCounterExcluded); the entrant's other statics stay live. Set
+	// only across one placeEntryCounters call (turn_gen.go).
+	ctrSettle uint8
 	// this turn's counter placements (ExCtrAdded; ctr_addedthisturn.go).
 	// pl: bit p set when player p put a counter on a creature; e: per object whose card
 	// reads a Self form (gfCtrAdd), fl bit p any kind by p, bit 2+p +1/+1

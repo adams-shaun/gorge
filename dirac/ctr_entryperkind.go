@@ -108,13 +108,13 @@ func (s *State) entryWinOpen(k *prep, sl Slot, p *perm) {
 	e.n, e.tap, e.ctrl = 0, true, false
 	if rn > 0 {
 		if !s.entryAcc(rk, rn) {
-			s.placeCounters(k, sl, rk, rn, p.ctrl, ctrPutBy)
+			s.placeEntryCounters(k, sl, rk, rn, p.ctrl)
 		}
 	}
 	if pc := &k.cards[p.card]; pc.enterCtr != 0 {
 		ck := int(pc.enterCK)
 		if !s.entryAcc(ck, int(pc.enterCtr)) {
-			s.placeCounters(k, sl, ck, int(pc.enterCtr), p.ctrl, ctrPutBy)
+			s.placeEntryCounters(k, sl, ck, int(pc.enterCtr), p.ctrl)
 		}
 	}
 }
@@ -131,7 +131,7 @@ func (s *State) entryWinClose(k *prep, sl Slot, p *perm) {
 	if n == 0 {
 		return
 	}
-	v := s.placeCounters(k, sl, kind, n, p.ctrl, ctrPutBy)
+	v := s.placeEntryCounters(k, sl, kind, n, p.ctrl)
 	if merged {
 		EntryMergeStats.Merged.Add(1)
 		if v > 0 && v != n && v != 2*n { // an additive modifier acted on the sum (a pure doubling would not tell the merge from the split)

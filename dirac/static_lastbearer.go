@@ -69,6 +69,29 @@ func (s *State) noteLastBear(q Slot, host Obj) {
 //
 //go:noinline
 func (s *State) recordLastBearLKI(o, host Obj) {
+	// A departure whose bearer had already left (the live link was broken
+	// first) supersedes any earlier departure of the same attachment: drop
+	// the older versioned AttachedTo record, or attLKIHost would resurrect a
+	// bearer the attachment left long before (gorge Object.LastBearer names
+	// only the MOST RECENT departure, CR 608.2h).
+	//
+	// Clear to the pad's empty sentinel, not the zero record: zero names
+	// object 0, a real card, so lastBearerObj(0) would read the phantom and
+	// the obj == NoObj free-slot test would never reclaim it.
+	//
+	// The clear is keyed on the card object, not its incarnation: the pad
+	// holds only two records, so a trigger still pending from an earlier
+	// incarnation of this object can lose the record dropped here and read
+	// the newest bearer where gorge names the older one. That is the pad's
+	// bounded capacity, widened by this clear; it is not an unbounded
+	// divergence, and the slot scan still covers an unreused slot.
+	if s.objs[host].zone != kop.ZoneBattlefield {
+		for i := range s.g.attLKI {
+			if r := &s.g.attLKI[i]; r.obj == o && r.ver != 0 {
+				*r = attLKIRec{obj: NoObj, host: NoObj}
+			}
+		}
+	}
 	for i := range s.g.attLKI {
 		r := &s.g.attLKI[i]
 		if r.obj == o && r.ver == 0 {

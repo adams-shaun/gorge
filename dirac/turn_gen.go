@@ -37,6 +37,26 @@ const (
 	akEtbOrder uint8 = 14
 )
 
+// placeEntryCounters places an entry-characteristic counter grant on the
+// entrant at sl, with the AddCounter matcher skipping the entrant's own
+// general-subset replacements (CR 614.12, gorge's ownEntryCounterExcluded).
+// Gorge settles a permanent's entry counters against the would-enter board
+// (engine/rules/entry_counters.go), so a line the entrant itself carries
+// applies to its own entry only when it selects the entrant alone (Mowu's
+// "on CARDNAME"); a general subset such as Yoshimaru's "a creature you
+// control" does not. The entrant stays in statM: its other statics, notably a
+// CantPutCounter prohibition, are live on gorge's post-entry preview.
+func (s *State) placeEntryCounters(k *prep, sl Slot, kind, n int, ctrl uint8) int {
+	if n <= 0 {
+		return 0
+	}
+	saved := s.g.ctrSettle
+	s.g.ctrSettle = uint8(sl) + 1
+	m := s.placeCounters(k, sl, kind, n, ctrl, ctrPutBy)
+	s.g.ctrSettle = saved
+	return m
+}
+
 // enterGen runs after the core's enter placed o at sl, before its ETB triggers:
 // it resets the slot's generated state, records how the permanent arrived,
 // and applies the as-enters replacements (its own and other permanents').
@@ -80,7 +100,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		s.entryWinOpen(k, sl, p) // ctr_entryperkind.go: the printed and requested counters start the entry's one put per kind
 	} else if n := s.g.enterCtr.n; n > 0 {
 		if face == 0 {
-			s.placeCounters(k, sl, int(s.g.enterCtr.kind), int(n), p.ctrl, ctrPutBy)
+			s.placeEntryCounters(k, sl, int(s.g.enterCtr.kind), int(n), p.ctrl)
 		}
 		s.g.enterCtr.n = 0
 	}
