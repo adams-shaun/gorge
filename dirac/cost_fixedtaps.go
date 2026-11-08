@@ -53,3 +53,31 @@ func (s *State) affordsUngrantedReserving(k *prep, p uint8, cost *kop.ManaCost, 
 	}
 	return false
 }
+
+// restrTapUnit is the restricted unit p's source at x adds for payment d
+// (restrSrcAvail's rkExt arm), when d may spend it.
+func (s *State) restrTapUnit(k *prep, p uint8, x Slot, d *payDesc) (*pcard, bool) {
+	if d == nil || !k.restrSrc || k.gen == nil || k.gen.flags[s.cardAt(x)]&gfRestrSrc == 0 {
+		return nil, false
+	}
+	v, kind, _ := s.restrView(k, p, x, s.manaPCGen(k, x), d)
+	return v, v != nil && kind == rkExt
+}
+
+// spellPartDisjoint is costPartDisjoint for p's cast of card c (object o) at
+// cost, whose additional cost c's part taps or sacrifices permanents: the
+// restricted sources the spell may spend join the mana as restrSrcAvail counts
+// them, each a candidate whose tap takes that mana away (Creeping Peeper's
+// enchantment-only {U} paying Fear of Exposure is not also one of the two
+// permanents it taps; CR 601.2g-h, gorge planReserving).
+func (s *State) spellPartDisjoint(k *prep, p uint8, c CardID, o Obj, part *kop.Cost, cost *kop.ManaCost) bool {
+	var av avail
+	s.availFor(k, p, &av)
+	if k.restrSrc && k.gen != nil && part.Flags&kop.CostTapX != 0 {
+		d := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
+		if t, _, nm := s.restrSrcAvail(k, p, d, &av, NoSlot); nm == 0 {
+			return s.costPartDisjointD(k, p, NoSlot, part, cost, &t, pipMaskOf(cost), &d)
+		}
+	}
+	return s.costPartDisjoint(k, p, NoSlot, part, cost, &av, pipMaskOf(cost))
+}
