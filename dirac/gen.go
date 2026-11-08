@@ -147,6 +147,7 @@ type genPrep struct {
 	embCombatEv    uint32         // events (DamageDone, AttackersDeclared, LifeGained) some emblem trigger listens to (trig_effectuntileot.go)
 	anyGrant       bool           // some override or static grants an ability
 	meleeGrant     bool           // some static grants Melee (kop.Ability.MeleeGrant): slotTriggers places it as gorge's keyword walk does (kw_melee.go)
+	anyWard        bool           // some card has printed ward: abilities get a stack identity (cast.go push; wardedIndex)
 	anyWardGrant   bool           // some Continuous static grants ward {N} (kop.Static.Ward; kw_ward.go)
 	btWatch        bool           // some BecomesTarget trigger watches other objects (Pawpatch Recruit; trig_becomestarget.go)
 	btSpell        bool           // ... and one counts a creature spell on the stack (kop.Tf2SpellToo: Surrak)
@@ -1276,6 +1277,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 	}
 	for i := range t.Cards {
+		if t.Cards[i].Keywords&kop.KwWard != 0 {
+			g.anyWard = true
+		}
 		if t.Cards[i].Keywords&kop.KwProtectionAll != 0 {
 			g.replBits[i] |= rbProtAll
 		}

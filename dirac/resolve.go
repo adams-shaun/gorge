@@ -381,7 +381,7 @@ func (s *State) wardedIndex(e *stackEntry) int {
 	}
 	for j := i; j >= 0; j-- {
 		se := &s.stack[j]
-		if se.obj != e.trigObj || se.kind == seSpell {
+		if se.obj != e.trigObj || se.kind == seSpell || e.tver[0] != 0 && se.sid != e.tver[0] {
 			continue
 		}
 		var codes [kop.MaxTargets + maxXTgt]uint8

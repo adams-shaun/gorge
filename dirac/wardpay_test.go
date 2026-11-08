@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -331,4 +333,109 @@ func TestWardPayTapAnotherPermanent(t *testing.T) {
 	if !sc.s.ctrlM[0].has(sc.slot(warded)) {
 		t.Fatal("Harmonious Grovestrider is not controlled by p0: the spell was countered by the ward")
 	}
+}
+
+// TestStackedWardTriggersLeaveSameStack: Realm-Scorcher Hellkite activates
+// three times at a Ward {2} Toadstool Admirer wearing a Royal Role (Ward {1}),
+// so each activation queues two ward triggers (CR 603.3b). With one spare
+// mana the top trigger (Ward {1} of the third activation) is paid; the next
+// (Ward {2}, same activation) cannot be and counters it; the Role's Ward {1}
+// of the second activation counters that one; its Ward {2} trigger then has
+// nothing left to counter and leaves with no ask, as gorge's does (kfuzz
+// WOE-s222). dirac answered it with the first activation's still-targeting
+// ability, asked for a payment, and kept the trigger on the stack.
+func TestStackedWardTriggersLeaveSameStack(t *testing.T) {
+	deck := []cardset.Entry{{Name: "Realm-Scorcher Hellkite", Count: 1}, {Name: "Toadstool Admirer", Count: 1}, {Name: "Redtooth Genealogist", Count: 1}, {Name: "Mountain", Count: 8}, {Name: "Forest", Count: 4}}
+	tbl, da, _, err := cardsettest.Synth(t, "std-woe").Matchup(deck, deck)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := map[string]CardID{}
+	for _, c := range da {
+		id[tbl.Cards[c].Name] = c
+	}
+	sc := newScenTableLib(t, tbl, id["Mountain"], Config{NoElide: true})
+	sc.s.cfg |= cfgGorgeAutopay | cfgGorgeUnpriced
+	s := sc.s
+	adm := sc.perm(id["Toadstool Admirer"], 1)
+	hk := sc.perm(id["Realm-Scorcher Hellkite"], 0)
+	gen := sc.hand(id["Redtooth Genealogist"], 1)
+	for i := 0; i < 3; i++ {
+		sc.perm(id["Forest"], 1)
+	}
+	for i := 0; i < 7; i++ {
+		sc.perm(id["Mountain"], 0)
+	}
+	// p1 mints the Role on its Admirer, then p0 holds priority with 7 Mountains
+	s.active, s.prio = 1, 1
+	sc.do(t, AkCast, uint8(gen), 0xff)
+	for i := 0; i < 40 && !(s.sp == 0 && s.ctl == ctlPriority && s.passes == 0 && s.prio == 1 && s.nobj > 0 && roleOn(sc, adm)); i++ {
+		d := s.Step()
+		switch {
+		case d.Kind == DkTarget:
+			s.Apply(MakeAction(AkTarget, 0, uint8(adm), 0))
+		case d.Kind == DkPriority:
+			s.Apply(MakeAction(AkPass, 0, 0, 0))
+		default:
+			s.Apply(d.Options[0])
+		}
+	}
+	if !roleOn(sc, adm) {
+		t.Fatal("precondition: the Admirer wears no Role")
+	}
+	if s.sp != 0 {
+		t.Fatalf("precondition: %d entries on the stack after the Role", s.sp)
+	}
+	s.active, s.prio, s.passes, s.ctl = 0, 0, 0, ctlPriority
+	acts := 0
+	var sizes, asks []int
+	last := -1
+	for i := 0; i < 200 && !(acts == 3 && s.sp == 0); i++ {
+		d := s.Step()
+		switch {
+		case d.Kind == DkTarget:
+			s.Apply(MakeAction(AkTarget, 0, uint8(adm), 0))
+		case d.Kind == DkChoose && d.Sub == ChWardPay:
+			asks = append(asks, int(s.sp))
+			for _, a := range d.Options[:d.N] {
+				if a.Mode() == 1 {
+					s.Apply(a)
+				}
+			}
+		case d.Kind == DkPriority && acts < 3 && int(s.sp) == 3*acts && s.prio == 0:
+			for j := 0; j < int(d.N); j++ {
+				if a := d.Options[j]; a.Kind() == AkActivate && a.Source() == uint8(hk) {
+					s.Apply(a)
+					acts++
+					break
+				}
+			}
+		case d.Kind == DkPriority:
+			if int(s.sp) != last {
+				sizes = append(sizes, int(s.sp))
+				last = int(s.sp)
+			}
+			s.Apply(MakeAction(AkPass, 0, 0, 0))
+		default:
+			s.Apply(d.Options[0])
+		}
+	}
+	// gorge (WOE-s222): 9 entries, then 8, 6 and 4 after the first three
+	// resolutions, and 3 after the fourth, which asked nothing
+	if got := fmt.Sprint(sizes); !strings.HasPrefix(got, "[9 8 6 4 3 ") {
+		t.Fatalf("stack after each resolution %v, want 9 8 6 4 3 ...", sizes)
+	}
+	if got := fmt.Sprint(asks); got != "[9 8 6 3]" {
+		t.Fatalf("ward pay asked with %v on the stack, want [9 8 6 3]: the trigger of a countered ability asks nothing", asks)
+	}
+}
+
+func roleOn(sc *scen, o Obj) bool {
+	for i := Obj(0); i < Obj(sc.s.nobj); i++ {
+		ob := &sc.s.objs[i]
+		if ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot && sc.s.perms[ob.slot].attached == sc.slot(o) {
+			return true
+		}
+	}
+	return false
 }

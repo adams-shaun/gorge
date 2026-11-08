@@ -267,8 +267,8 @@ func (s *State) pushBuild(k *prep) {
 			}
 		}
 	}
-	if e.kind != seSpell && k.gen != nil && k.gen.anyStackTgt {
-		s.stackSid(e) // a stack-ability target's identity (tgt_stackability.go)
+	if e.kind != seSpell && k.gen != nil && (k.gen.anyStackTgt || k.gen.anyWard || k.gen.anyWardGrant) {
+		s.stackSid(e) // a stack-ability target's identity (tgt_stackability.go); a ward trigger's warded ability (wardedIndex)
 	}
 	s.push(*e)
 	s.bld().bfl |= bflPushed
@@ -1858,6 +1858,14 @@ func (s *State) takePending(k *prep, i int) {
 		s.dpManyVers(&s.bld().e)
 	}
 	s.bld().e.tgt = noTargets
+	if pt.ab == abWard {
+		// the ability this ward trigger answers, by its stack identity: a
+		// sibling ward may counter it first, and the older ability of the same
+		// source that also targets the permanent is not the warded one (CR 603.3b)
+		if i := s.wardedIndex(&s.bld().e); i >= 0 && s.stack[i].kind != seSpell {
+			s.bld().e.tver[0] = s.stack[i].sid
+		}
+	}
 	s.bld().stage = stageFirst[seTrigger]
 	if k.gift {
 		s.giftPushed(k, &pt)
