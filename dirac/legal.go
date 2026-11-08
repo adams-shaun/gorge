@@ -789,7 +789,8 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		if s.g.mayPlayAny {
 			cost = anyType(cost)
 		}
-		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
+		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}) ||
+			mayPlay && s.mayPlayPrefixPays(k, p, c, o) // (a may-play cast is composed, not declined: Urgent Necropsy from Outrageous Robbery's exile)
 	}
 	if s.spellTgtDep(k, p, c, o) {
 		if mayPlay {
@@ -844,22 +845,15 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		if s.plannerPaysCast(k, p, c, o) { // a shape lowered only on the composed plan's witness
 			return true
 		}
-		// a cast through a play permission is priced by mayPlayAffordable's
-		// retry, which taps a census gap (Flamebraider's restricted two mana)
-		// before it prices the cast again, as for an either-or additional
-		// cost above (CR 601.2b, 601.2f, 601.2g). A plain hand cast is not:
-		// gorge's potential planner refuses it at "shape:additional_cost"
-		// before any mana is priced, so its prefix search never runs for one
-		// (Bloom Tender beside Champions of the Perfect, the lone Elf the cost
-		// also exiles).
-		if cd.BeholdExile && k.gen != nil && mayPlay && s.scriptSourceLive(k, p) {
-			cost := s.featCost(k, p, c, o, k.cards[c].cost)
-			if s.g.mayPlayAny {
-				cost = anyType(cost)
-			}
-			return s.affordsFor(k, p, &cost)
-		}
-		return false
+		// a cast through a play permission is composed (mayPlayPrefixPays),
+		// and a prefix taps a census gap (Flamebraider's restricted two
+		// mana) before it prices the cast again, as for an either-or
+		// additional cost above (CR 601.2b, 601.2f, 601.2g). A plain hand
+		// cast is not: gorge's potential planner refuses it at
+		// "shape:additional_cost" or "shape:optional_cost" before any mana
+		// is priced, so its prefix search never runs for one (Bloom Tender
+		// beside Champions of the Perfect, the lone Elf the cost also exiles).
+		return mayPlay && s.mayPlayPrefixPays(k, p, c, o)
 	}
 	return true
 }
