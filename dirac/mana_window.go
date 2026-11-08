@@ -737,7 +737,12 @@ func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bo
 	var used [MaxPerm]uint8
 	nt := 0
 	ok, known = true, true
-	for !s.windowPoolPays(p, cost, anyColor) {
+	// The walk settles on the pool the payment may spend: floating restricted
+	// mana the spell admits counts, as windowSpellSettled reads it (CR 106.6).
+	// A plain-pool census here would tap a source for a pip the restricted
+	// mana already covers, after windowPick's usefulness clamp (which does
+	// count it) offered none.
+	for !s.windowSpellSettled(k, p, cost, anyColor) {
 		var order [MaxPerm]Slot
 		n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
 		sl, gap := s.windowPick(k, p, order[:n], cost, true, anyColor)
