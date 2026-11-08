@@ -1190,10 +1190,35 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 						}
 					}
 				}
+				fl := uint8(bits.OnesCount8(dmk | xm))
+				if phase > 0 && k.painMana && pc.painCol != 0 {
+					// a pain source whose painful alternative painUnit
+					// withheld (it would be lethal) still reads its
+					// flexibility over that alternative: gorge's phase-2
+					// key 5 is Alt.FlexAll, which counts the painful colours
+					// whether or not the lethal guard admits them
+					// (pay/plan.go). The normal unit is the only one left,
+					// so its flex carries the whole source.
+					all := uint8(pc.painCol) & 0x3f
+					if !pc.painOnly {
+						all |= uint8(pc.manaCol) & 0x3f
+					}
+					if xc, xp, ok := s.srcExtraPain(k, sl, pc); ok {
+						for c := range xc {
+							if xc[c] > 0 {
+								all |= 1 << c
+							}
+							if xp[c] > 0 {
+								all |= 1 << c
+							}
+						}
+					}
+					fl = uint8(bits.OnesCount8(all))
+				}
 				ti := -1
 				for t := 0; t < pk.nt; t++ {
 					ty := &pk.types[t]
-					if ty.mask == mask && ty.dmask == dmk && ty.n == pc.manaN && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed && ty.xv == xv {
+					if ty.mask == mask && ty.dmask == dmk && ty.n == pc.manaN && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv {
 						ti = t
 						break
 					}
@@ -1204,7 +1229,6 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					}
 					ti = pk.nt
 					pk.nt++
-					fl := uint8(bits.OnesCount8(dmk | xm))
 					pk.types[ti] = utype{mask: mask, dmask: dmk, n: pc.manaN, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: sac, first: first, printed: printed, xv: xv, xmask: xm, xt: xt}
 					if sac {
 						pk.types[ti].irr = 10
