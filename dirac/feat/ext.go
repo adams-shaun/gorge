@@ -202,7 +202,7 @@ func (e *Encoder) entryTarget(seat uint8, se *dirac.ProjStack) (cre *vcard, play
 	return
 }
 
-// imp is the impact of spell entry i if it resolves (§2.2), in live-strength
+// imp is the impact of spell entry i if it resolves, in live-strength
 // units before bucketing: the value the head spends a removal or a counter
 // on. An ability entry is 0.
 func (e *Encoder) imp(seat uint8, i int, me, opp *vplayer) int32 {
