@@ -864,8 +864,12 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 			}
 			return false
 		}
-		if s.objs[o].zone != kop.Zone((s.g.freeP>>1)&7) || !s.spellTargetsFeasibleFrom(k, c, ctrl, o) || !s.spellCostsFeasible(k, c, ctrl, o) {
+		if s.objs[o].zone != kop.Zone((s.g.freeP>>1)&7) || !s.spellTargetsFeasibleFrom(k, c, ctrl, o) {
 			continue // no legal target any more: the card stays in its zone
+		}
+		if !s.spellCostsFeasible(k, c, ctrl, o) {
+			s.freeCostAbort(o) // cast_freecostabort.go: gorge pushes it and aborts at the cost
+			continue
 		}
 		holder := s.prio
 		s.prio = ctrl // the caster (beginCast reads it)
