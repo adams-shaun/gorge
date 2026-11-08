@@ -6,7 +6,8 @@ import (
 
 // publicPick lowers a Hidden$ True ChangeZone over a public origin with no
 // object selector (gorge effHiddenPick): Origin$ Battlefield -> Hand or
-// Exile, or Origin$ Graveyard -> Hand or Exile. The pool is the matching
+// Exile, or Origin$ Graveyard -> Hand or Exile, or Origin$ Exile ->
+// Graveyard. The pool is the matching
 // cards of every player's zone (seat order; game-wide), of that zone's
 // player with ValidTgts$ a player and DefinedPlayer$ Targeted (SrOwnZone on
 // a battlefield origin; a graveyard walk is that player's zone anyway), or,
@@ -19,11 +20,22 @@ import (
 // pick (no ValidTgts$, no DefinedPlayer$) is lowered only over an Exile
 // destination, where both engines enter the card under its owner; over a
 // hand destination gorge would enter an opponent's card into its owner's
-// hand, which the kernel's per-player walk cannot pose. Without Hidden$
-// gorge takes the object path, not lowered here.
+// hand, which the kernel's per-player walk cannot pose. An Exile pick is
+// game-wide only: gorge effHiddenPick's gameWide is true for the public
+// origin with no fetch player, and the kernel's exwPickCands always walks
+// every seat's exile, so a scoping parameter is refused rather than posed
+// against a pool the kernel would not narrow. Without Hidden$ gorge takes
+// the object path, not lowered here.
 func (lc *lowerCtx) publicPick(ps *params, f *lFilter, n lValue, flags []string, counterKind string, override *lOverride, origin, dest int) error {
 	if !ps.is("Hidden", "True") {
 		return refuse("ChangeType$ move %s->%s without Hidden$", zoneLabel[origin], zoneLabel[dest])
+	}
+	if origin == zExile {
+		for _, k := range []string{"ValidTgts", "DefinedPlayer", "Chooser"} {
+			if _, ok := ps.get(k); ok {
+				return refuse("exile pick %s$: the kernel's exile walk is game-wide", k)
+			}
+		}
 	}
 	if counterKind != "" || override != nil {
 		return refuse("public pick with counters/override")
