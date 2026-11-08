@@ -470,6 +470,9 @@ func (s *State) targetableGen(k *prep, sl Slot, p uint8) bool {
 				srcSl = s.g.probe.src
 				card = s.cardAt(srcSl)
 				c = s.colorsGen(k, s.g.probe.src)
+			} else if s.g.probe.off {
+				card = s.g.probe.card // CR 702.16b: the card's own colours (Renew from a graveyard)
+				c = k.t.Cards[card].Colors
 			}
 		default:
 			return true
@@ -502,6 +505,7 @@ type probe struct {
 	kind uint8
 	src  Slot
 	card CardID
+	off  bool  // the ability's source is the card, off the battlefield (a graveyard activation)
 	x    uint8 // the X an affordability sweep is trying, plus one; 0 is an unannounced X
 	ctrl uint8 // who would cast or activate it
 }
@@ -521,6 +525,19 @@ func (s *State) probeSpell(k *prep, c CardID, p uint8) bool {
 func (s *State) probeAbility(k *prep, a *kop.Ability, p uint8, src Slot, modes uint8) bool {
 	s.g.probe = probe{kind: probeAbility, src: src, ctrl: p}
 	ok := s.abilityTargetsFeasible(k, a, p, src, modes)
+	s.g.probe = probe{}
+	return ok
+}
+
+// probeAbilityFrom is abilityTargetsFeasible for an activated ability of the
+// card c that works off the battlefield (Renew from a graveyard): its source
+// is the card, so protection from its colours bars a target (CR 115.2, 702.16b).
+func (s *State) probeAbilityFrom(k *prep, a *kop.Ability, p uint8, c CardID) bool {
+	if k.gen == nil || s.g.probe.kind != 0 {
+		return s.abilityTargetsFeasible(k, a, p, NoSlot, 0xff)
+	}
+	s.g.probe = probe{kind: probeAbility, src: NoSlot, card: c, off: true, ctrl: p}
+	ok := s.abilityTargetsFeasible(k, a, p, NoSlot, 0xff)
 	s.g.probe = probe{}
 	return ok
 }
@@ -737,7 +754,7 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 					continue
 				}
 			}
-			if s.abilityTargetsFeasible(k, a, p, NoSlot, 0xff) {
+			if s.probeAbilityFrom(k, a, p, s.objs[o].card) {
 				d.add(MakeAction(AkActivate, uint8(o), 0, uint8(ai)))
 			}
 		}
