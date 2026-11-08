@@ -75,3 +75,13 @@ func (g *grantSrch) tapXBranch(t *State, i int, sl Slot) bool {
 	}
 	return false
 }
+
+// tapXOffGrant: p has a live tap-another source the grant search does not
+// activate (a two-permanent cost, Baylen): only the tap-another search prices
+// a play it pays. A source the grant search covers is tried in gorge's one
+// prefix search beside the grants, whose budget the granted gaps spend
+// (rules scriptSearch.visit), so the tap-another search alone, which skips
+// the grants, must not keep a play that search gave up on.
+func (s *State) tapXOffGrant(k *prep, p uint8) bool {
+	return s.scriptTapXModelled(k, p).andNot(s.grantTapXGaps(k, p)).any()
+}

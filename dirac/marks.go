@@ -447,6 +447,9 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 		uint64(s.discardLeft)<<32|uint64(s.legP)<<40|uint64(s.legCard)<<48)
 	h = hmix(h, s.legDie.lo)
 	h = hmix(h, s.legDie.hi)
+	if s.legSaga.any() {
+		h = hmix(hmix(h, s.legSaga.lo), s.legSaga.hi)
+	}
 	h = hbytes(h, unsafe.Pointer(&s.ordList[0]), uintptr(len(s.ordList))*unsafe.Sizeof(s.ordList[0]))
 	h = hmix(h, uint64(s.mullOrder[0])|uint64(s.mullOrder[1])<<8|uint64(s.mullCur)<<16|uint64(s.mullLeft)<<24|
 		uint64(s.mullMax)<<32|uint64(s.divA)<<40|uint64(s.divI)<<48|uint64(s.divRem)<<56)
