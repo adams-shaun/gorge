@@ -103,8 +103,9 @@ func nameInertCards(d *PoolData) []bool {
 // or the whole pool for the pool table), ascending by CardID. gorge lists the
 // same cards' names sorted; the lockstep compares the two as sets. A matchup
 // holding a multi-face card or a nameable CardID of 255 or more beside a name
-// chooser is refused, as roomNameGuard refuses a Room beside a name reader;
-// the pool table instead plays the chooser inert when it cannot fit
+// chooser is refused, as roomNameGuard refuses a Room beside a name reader,
+// with an InteractionRefusal of reason "namechoice" (kfuzz counts it as a
+// refused pair: either card plays without the other); the pool table instead plays the chooser inert when it cannot fit
 // (nameInertCards), so it never reaches here with one.
 func (s dataSet) nameChoices(t *kop.Table, pool []int, id map[int]kop.CardID) error {
 	chooses, anyCard := false, false
@@ -122,13 +123,13 @@ func (s dataSet) nameChoices(t *kop.Table, pool []int, id map[int]kop.CardID) er
 		c := id[i]
 		cd := &t.Cards[c]
 		if len(cd.Faces) > 0 {
-			return fmt.Errorf("table holds a card that chooses a card name and the multi-face card %q", cd.Name)
+			return nameChoiceRefusal(t, cd.Name, "a nameable card has more than one name")
 		}
 		if anyCard && activatesOffBattlefield(cd) {
-			return fmt.Errorf("table holds a card that chooses any card name and %q activates from off the battlefield", cd.Name)
+			return nameChoiceRefusal(t, cd.Name, "an any-card name forbids an ability activated from off the battlefield, which the kernel does not model")
 		}
 		if c >= 255 && (anyCard || cd.Types&kop.TLand == 0) {
-			return fmt.Errorf("table holds a card that chooses a card name and %q has CardID %d", cd.Name, c)
+			return nameChoiceRefusal(t, cd.Name, fmt.Sprintf("a nameable card has CardID %d, past the chosen byte", c))
 		}
 		if anyCard {
 			t.NameCardsAny = append(t.NameCardsAny, c)
@@ -141,4 +142,16 @@ func (s dataSet) nameChoices(t *kop.Table, pool []int, id map[int]kop.CardID) er
 	sort.Slice(t.NameCards, func(a, b int) bool { return t.NameCards[a] < t.NameCards[b] })
 	sort.Slice(t.NameCardsAny, func(a, b int) bool { return t.NameCardsAny[a] < t.NameCardsAny[b] })
 	return nil
+}
+
+// nameChoiceRefusal is nameChoices' refusal of t: its name choosers beside the
+// nameable card named, which cannot share a table with them.
+func nameChoiceRefusal(t *kop.Table, named, why string) error {
+	var cards []string
+	for i := range t.Cards {
+		if choosesName(&t.Cards[i]) && t.Cards[i].Name != named {
+			cards = append(cards, t.Cards[i].Name)
+		}
+	}
+	return &InteractionRefusal{Reason: "namechoice", Why: why, Cards: append(cards, named)}
 }
