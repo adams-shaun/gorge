@@ -1063,8 +1063,8 @@ func playAll(n, workers int, timeout time.Duration, play func(i int) played) []p
 
 // watchGame runs play(i) on its own goroutine and waits at most timeout for it,
 // twice (oracle.WithinTimeoutRetry: one retry absorbs a host stall). A game past
-// its time on both attempts is a hang: the goroutine cannot be stopped, so it
-// leaks until the process exits, but it only ever touches its own game and its
+// its time on both attempts is a hang: a timed-out goroutine cannot be stopped, so
+// it leaks until the process exits, but it only ever touches its own game and its
 // buffered result channel (a -stats or -features run also shares that run's
 // report-only counters). A panic outside the lockstep's own recover (building the
 // game) is a divergence: one bad pair does not end the sweep.
