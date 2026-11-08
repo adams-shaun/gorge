@@ -155,14 +155,8 @@ func (s *State) costPartDisjointD(k *prep, p uint8, sl Slot, c *kop.Cost, mana *
 		for i := 0; i < need; i++ {
 			x := cons[idx[i]]
 			pc := s.manaPCAt(k, x)
-			if v, ok := s.restrTapUnit(k, p, x, rd); ok && !s.canTapForManaPC(k, x, pc) {
-				r.remove(srcMask(v), v.manaN)
-				for col, n := range v.manaXv {
-					if n > 0 {
-						r.remove(1<<col, n)
-					}
-				}
-				continue
+			if kind := s.takeRestrUnit(k, p, x, rd, &r); kind == rkWiden || kind == rkExt && !s.canTapForManaPC(k, x, pc) {
+				continue // its census unit is not in r (widened) or it has none
 			}
 			s.removeSrc(k, &r, x, pc)
 			if tapX && k.gen != nil && s.g.availX&availGaps != 0 {

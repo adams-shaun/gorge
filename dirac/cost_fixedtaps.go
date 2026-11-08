@@ -57,11 +57,51 @@ func (s *State) affordsUngrantedReserving(k *prep, p uint8, cost *kop.ManaCost, 
 // restrTapUnit is the restricted unit p's source at x adds for payment d
 // (restrSrcAvail's rkExt arm), when d may spend it.
 func (s *State) restrTapUnit(k *prep, p uint8, x Slot, d *payDesc) (*pcard, bool) {
+	v, kind := s.restrTapView(k, p, x, d)
+	return v, kind == rkExt
+}
+
+// restrTapView is the restricted view restrSrcAvail counts for p's source at x
+// and payment d, with its kind (v nil when there is none).
+func (s *State) restrTapView(k *prep, p uint8, x Slot, d *payDesc) (*pcard, uint8) {
 	if d == nil || !k.restrSrc || k.gen == nil || k.gen.flags[s.cardAt(x)]&gfRestrSrc == 0 {
-		return nil, false
+		return nil, 0
 	}
 	v, kind, _ := s.restrView(k, p, x, s.manaPCGen(k, x), d)
-	return v, v != nil && kind == rkExt
+	if v == nil {
+		return nil, 0
+	}
+	return v, kind
+}
+
+// takeRestrUnit takes out of r the units restrSrcAvail added for p's source at
+// x (a reserved tap candidate's mana): an rkExt source's restricted unit, or an
+// rkWiden source's widened unit, which replaced its census one (Secluded
+// Courtyard's {C} beside its restricted {W}). It reports the view's kind, 0 when
+// the source has none; an evaluated rkDyn amount is never in r.
+func (s *State) takeRestrUnit(k *prep, p uint8, x Slot, d *payDesc, r *avail) uint8 {
+	v, kind := s.restrTapView(k, p, x, d)
+	switch kind {
+	case rkWiden:
+		if v.wideN != 0 && DebugRestrictedSource != 4 {
+			r.remove(uint8(v.wideCol), v.wideN)
+			if uint8(v.wideCol) != uint8(kop.ColAny) {
+				r.dropOneColour(v.wideN)
+			}
+			return kind
+		}
+		r.remove(s.srcMaskAt(v, x), v.manaN)
+	case rkExt:
+		r.remove(srcMask(v), v.manaN)
+	default:
+		return kind
+	}
+	for col, n := range v.manaXv {
+		if n > 0 {
+			r.remove(1<<col, n)
+		}
+	}
+	return kind
 }
 
 // spellPartDisjoint is costPartDisjoint for p's cast of card c (object o) at
@@ -78,9 +118,10 @@ func (s *State) spellPartDisjoint(k *prep, p uint8, c CardID, o Obj, part *kop.C
 	s.availFor(k, p, &av)
 	if k.restrSrc && k.gen != nil && part.Flags&kop.CostTapX != 0 {
 		d := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
-		if t, _, nm := s.restrSrcAvail(k, p, d, &av, NoSlot); nm == 0 {
-			return s.costPartDisjointD(k, p, NoSlot, part, cost, &t, pipMaskOf(cost), &d)
-		}
+		// an evaluated-amount source (rkDyn, Helga) is no unit of t, as it is
+		// none of av: the restricted units t does hold stay reserved
+		t, _, _ := s.restrSrcAvail(k, p, d, &av, NoSlot)
+		return s.costPartDisjointD(k, p, NoSlot, part, cost, &t, pipMaskOf(cost), &d)
 	}
 	return s.costPartDisjoint(k, p, NoSlot, part, cost, &av, pipMaskOf(cost))
 }
