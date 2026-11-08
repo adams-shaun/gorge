@@ -350,10 +350,41 @@ func (s *State) entryLateSet(k *prep, idx, cls uint8) {
 	}
 	s.touch(o)
 	if p := &s.perms[sl]; cls == entOvrTap {
+		if s.shockLateTap(k, o, sl, idx) {
+			// The body is the entrant's own shock-land Tap behind its
+			// pay-life election, and the election is still queued: the tap
+			// belongs to the election's decline (shockAnswer runs the Tap
+			// body then), so applying it here would show a tapped land at
+			// the election ask and pay the tap even when the player pays.
+			p.flags &^= pfTapped
+			return
+		}
 		p.flags |= pfTapped
 	} else {
 		p.flags &^= pfTapped
 	}
+}
+
+// shockLateTap reports whether scan index idx of the late entry-order ask is
+// the entering permanent's own shock-land Tap body whose pay-life election is
+// still queued. The election's answer owns the tap: shockAnswer runs the Tap
+// body on a decline and skips it on a pay.
+func (s *State) shockLateTap(k *prep, o Obj, sl Slot, idx uint8) bool {
+	cid := s.objs[o].card
+	if s.shockCardAmount(k, cid) == 0 {
+		return false
+	}
+	ro := &s.g.ro
+	c, _ := s.entryComp(k, o, ro.p, sl, ro.pcol&entEarly != 0)
+	if int(idx) >= int(c.n) || c.cand[idx] != o {
+		return false
+	}
+	for i := 0; i < int(s.g.nask); i++ {
+		if a := &s.g.ask[i]; a.kind == akPayLife && a.sl == sl {
+			return true
+		}
+	}
+	return false
 }
 
 // entrantCondTapFails: the body at scan index idx of the late ask is the
