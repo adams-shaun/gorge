@@ -1562,6 +1562,8 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	if in.Op == kop.OpChangeZoneAllEx {
 		mv = in.C >> 3
 	}
+	var carry czallCarry // the prefix placed before a CR 903.9b park
+	carry.load(&s.g.pre)
 	if mv&kop.MvForgetOther != 0 || z == kop.ZoneExile && in.B.N&kop.CzUntilLeaves != 0 {
 		s.czall3(k, in, mv, z) // zone_changezoneall.go
 		return true
@@ -1703,6 +1705,19 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 						s.g.held, s.g.retTS = 0, stamp
 					}
 					s.holdBatch(&eb)
+					// The detached library-bound cards before the commander
+					// stay in their destination library across the answer; the
+					// re-run cannot recover them from the source zone. Place
+					// them now (gorge moved them before the ask) and carry the
+					// per-owner prefix so the re-run keeps move order.
+					if nz == 2 {
+						pend.place(s, &carry)
+						pend = czallPend{}
+					}
+					if nl > 0 {
+						s.czallPlace(list[:nl], listFrom[:nl], &carry)
+					}
+					carry.store(&s.g.pre)
 					return false // a CR 903.9b commander move parked before it happens
 				}
 				from := s.detach(o)
@@ -1750,7 +1765,14 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					}
 				} else if zz == kop.ZoneLibrary {
 					if p := &s.g.pre; p.kind == akCmdZone && p.obj == o && p.state == preCmdZoneOK {
-						*p = preAsk{} // the answered move lands through libTopInOrder
+						// the answered move happens now: placeFromK consumes
+						// the answer, and the cards after it rotate under this
+						// one at the end of the sweep (czallPlace)
+						var one [1]Obj
+						var oneFrom [1]kop.Zone
+						one[0], oneFrom[0] = o, from
+						s.czallPlace(one[:], oneFrom[:], &carry)
+						continue
 					}
 					list[nl] = o // placed below, in gorge's order
 					listFrom[nl] = from
@@ -1763,12 +1785,12 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 				if nz == 2 {
 					pend.add(p, list[:nl], listFrom[:nl])
 				} else {
-					s.libTopInOrder(list[:nl], listFrom[:nl])
+					s.czallPlace(list[:nl], listFrom[:nl], &carry)
 				}
 			}
 		}
 	}
-	pend.place(s)
+	pend.place(s, &carry)
 	if resume {
 		s.holdBatch(&eb)
 		s.fireHeld(k, s.g.retTS)

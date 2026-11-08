@@ -705,17 +705,17 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 		// cast it, move it" tail finds a spell, not a card in its zone
 		return
 	}
-	if s.cmdZoneReplace(k, o, &z, &bottom) {
-		return // a CR 903.9b commander move parked before it happens
-	}
 	ob := &s.objs[o]
 	switch ob.zone {
 	case kop.ZoneBattlefield:
 		if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell {
 			return
 		}
-		s.leave(k, ob.slot, z, bottom)
+		s.leave(k, ob.slot, z, bottom) // leave applies the CR 903.9b gate itself
 	case kop.ZoneStack:
+		if s.cmdZoneReplace(k, o, &z, &bottom) {
+			return // a CR 903.9b commander move parked before it happens
+		}
 		if i := s.stackIndexOf(o); i >= 0 {
 			copy(s.stack[i:s.sp-1], s.stack[i+1:s.sp])
 			s.sp--
@@ -733,6 +733,9 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 		}
 		if s.tokenLeftBattlefield(o) {
 			return // CR 111.8 (zone_tokenleft.go)
+		}
+		if s.cmdZoneReplace(k, o, &z, &bottom) {
+			return // a CR 903.9b commander move parked before it happens
 		}
 		from := s.detach(o)
 		s.placeFromK(k, o, z, bottom, from, false)

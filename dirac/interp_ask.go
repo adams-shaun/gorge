@@ -1902,8 +1902,11 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 					s.g.lookSel |= 1 << i
 				}
 			}
-			if s.finishDigAt(k, second == 255, false) && (s.res.ask == raGenEnterAsk || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder) {
-				return false // a taken card's as-enters ask, the tail parked
+			if s.finishDigAt(k, second == 255, false) && s.res.ask != raNone {
+				// a taken card's as-enters ask or a commander's CR 903.9b
+				// park stops the each-player loop here; the answer re-runs
+				// this player's window (not the next player's)
+				return false
 			}
 			continue
 		}
@@ -1968,6 +1971,15 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 	p := s.g.pickP
 	pl := &s.pl[p]
 	n := int(s.g.nlook)
+	// A commander's CR 903.9b park carries the look index it stopped at: the
+	// answer re-runs the take loop from that card, so cards it already took
+	// (and a library destination has already placed) are not taken twice
+	// (CR 400.7 would make them new objects). moveFoundAns truncates instead;
+	// a dig's rest ordering still needs the whole window.
+	start := 0
+	if pre := &s.g.pre; pre.kind == akCmdZone && (pre.state == preCmdZoneMove || pre.state == preCmdZoneCmd) {
+		start = int(pre.val)
+	}
 	z := kop.Zone(in.C & 7)
 	fl := in.C >> 3
 	rz := kop.Zone(fl & 7)
@@ -2006,7 +2018,7 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 		// the taken cards move one at a time with the rest still on top; one
 		// entering the battlefield is asked its as-enters choice in the library
 		// (gorge's parked entry), and this runs again from the answer
-		for i := 0; i < n; i++ {
+		for i := start; i < n; i++ {
 			o := s.resArm().look[i]
 			if s.g.lookSel&(1<<i) == 0 || s.objs[o].zone != kop.ZoneLibrary {
 				continue
@@ -2030,6 +2042,8 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 			zz, bb := z, false
 			if s.cmdZoneReplace(k, o, &zz, &bb) {
 				deferred = s.heldPark(hr)
+				// resume the take loop at this card after the answer
+				s.g.pre.val = uint8(i)
 				return true // a CR 903.9b commander move parked before it happens
 			}
 			s.detach(o)
