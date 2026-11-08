@@ -713,6 +713,16 @@ func (s *State) gorgeOffersMay(p uint8, o Obj) bool {
 // may spend (restrFallback), as a cast from the hand reads them.
 func (s *State) offerSourcesAfford(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost) bool {
 	wasX := s.g.availX
+	// The printed sources alone: a cost they pay is priced by gorge's planner
+	// whatever a census gap would cost beside them. The gaps' view below charges
+	// each paid filter's fee, so it can read short a cost the printed sources
+	// pay (Starfleet Academy's {5},{T} makes nothing with no creature, yet its
+	// fee came off the five lands that pay Guidance Failure's {3}{U}).
+	var pl avail
+	s.availFor(k, p, &pl)
+	if pl.affords(cost, pipMaskOf(cost), 0) {
+		return true
+	}
 	s.g.availX |= availGaps
 	var av avail
 	s.availFor(k, p, &av)

@@ -11,6 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -51,7 +52,7 @@ func TestLandPlayMayAskUnderOptionalManaConvert(t *testing.T) {
 	}
 
 	activateNorthStarConvert(t, e, star)
-	if _, opt := e.manaConversionParts(0, land, false); opt.Empty() {
+	if _, opt := e.manaConversionParts(0, land, pay.SASpell); opt.Empty() {
 		t.Fatal("precondition: North Star grants no Optional$ conversion for the land play")
 	}
 	if tapeLandMayAsk(e, 0, land) {
@@ -96,7 +97,7 @@ func TestLandPlayMayAskReadsTheIntentsPlayer(t *testing.T) {
 	land := moveByName(t, e, 1, "Mountain", state.ZHand)
 	face := e.G.Obj(star).Face()
 	effects.Resolve(e, &effects.Ctx{Source: star, Controller: 1, SVars: face.SVars}, face.Abilities[0])
-	if _, opt := e.manaConversionParts(1, land, false); opt.Empty() {
+	if _, opt := e.manaConversionParts(1, land, pay.SASpell); opt.Empty() {
 		t.Fatal("precondition: North Star grants seat 1 no Optional$ conversion")
 	}
 	d := &decision.Decision{Player: 1, Kind: decision.KPriority,

@@ -52,7 +52,7 @@ func (e *Engine) manaFeasibleDescriptor(p state.PlayerID, d paymentDescriptor, c
 	pl := e.G.Players[p]
 	av := pay.AvailableFor(asPayer(e), p, d)
 	return mods.FeasibleAny(c, av.Pool, pl.Snow, av.Typed, pl.Life, taxGeneric, delve,
-		asEval(e).PayLifeInsteadOfB(p), rider, asEval(e).Conv(p, d.ID, d.Class == paymentActivated))
+		asEval(e).PayLifeInsteadOfB(p), rider, asEval(e).Conv(p, d.ID, d.SAKind()))
 }
 
 // manaFeasiblePool is manaFeasible priced against an EXPLICIT pool instead of
@@ -82,7 +82,7 @@ func (e *Engine) manaFeasiblePoolP(p state.PlayerID, id state.ObjID, ability boo
 	return mods.FeasibleAny(*c, pool, pl.Snow, typed, pl.Life, taxGeneric, delve,
 		asEval(e).PayLifeInsteadOfB(p),
 		asEval(e).MayPlayRider(p, id),
-		asEval(e).Conv(p, id, ability))
+		asEval(e).Conv(p, id, pay.SAKindFor(ability)))
 }
 
 // manaFeasiblePriced is manaFeasible's priced-mode entry: hyp nil keeps the

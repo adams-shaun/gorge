@@ -456,7 +456,7 @@ func (e *Engine) morphTurnUpPayablePriced(p state.PlayerID, id state.ObjID, sp p
 	if cost.X != 0 {
 		cost = cost.WithX(max(cost.XMin, 0))
 	}
-	return pay.CostPayablePool(asPayer(e), p, id, false, mods.Apply(cost), *hyp, e.G.Players[p].ManaUnits())
+	return pay.CostPayablePool(asPayer(e), p, id, pay.SAOther, mods.Apply(cost), *hyp, e.G.Players[p].ManaUnits())
 }
 
 // turnUpPay carries the CR 708.6 turn-face-up special action's payment

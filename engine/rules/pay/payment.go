@@ -733,7 +733,7 @@ func CostPayableGrant(e Engine, p state.PlayerID, id state.ObjID, ability bool, 
 func costPayableDescriptor(e Engine, p state.PlayerID, d Descriptor, cost Cost, rider PipRider) bool {
 	av := AvailableFor(e, p, d)
 	_, ok := ResolveManaWith(cost, av.Pool, e.Game().Players[p].Snow, av.Typed,
-		e.Game().Players[p].Life, e.Eval().PayLifeInsteadOfB(p), rider, e.Eval().Conv(p, d.ID, d.Class == PurposeActivated))
+		e.Game().Players[p].Life, e.Eval().PayLifeInsteadOfB(p), rider, e.Eval().Conv(p, d.ID, d.SAKind()))
 
 	return ok
 }
@@ -762,12 +762,12 @@ func CostPayableClassLife(e Engine, p state.PlayerID, d Descriptor, rider PipRid
 		// CR 119.4b keeps a 0-life cost payable exactly as before.
 		av := AvailableFor(e, p, d)
 		_, ok := ResolveManaNoLifePay(cost, av.Pool, e.Game().Players[p].Snow, av.Typed,
-			e.Eval().Conv(p, d.ID, d.Class == PurposeActivated))
+			e.Eval().Conv(p, d.ID, d.SAKind()))
 		return ok
 	}
 	av := AvailableFor(e, p, d)
 	_, ok := ResolveManaWith(cost, av.Pool, e.Game().Players[p].Snow, av.Typed,
-		e.Game().Players[p].Life, lifeGrant, rider, e.Eval().Conv(p, d.ID, d.Class == PurposeActivated))
+		e.Game().Players[p].Life, lifeGrant, rider, e.Eval().Conv(p, d.ID, d.SAKind()))
 
 	return ok
 }
@@ -806,12 +806,12 @@ func CostPayable(e Engine, p state.PlayerID, id state.ObjID, ability bool, cost 
 // source. The payer grants and conversion shaping are the same reads in both
 // modes, so a potential action and the payment it promises can never disagree
 // about what the pool may satisfy.
-func CostPayablePool(e Engine, p state.PlayerID, id state.ObjID, ability bool, cost Cost, pool state.Mana, typed [7]state.Mana) bool {
+func CostPayablePool(e Engine, p state.PlayerID, id state.ObjID, kind SAKind, cost Cost, pool state.Mana, typed [7]state.Mana) bool {
 	if e.Eval().LifeChangeForbidden(p) {
 		// CR 119.7/119.8: the payer can pay no positive life, so the same
 		// closed-life resolve every other offer gate uses prices this
 		// hypothetical pool.
-		_, ok := ResolveManaNoLifePay(cost, pool, e.Game().Players[p].Snow, typed, e.Eval().Conv(p, id, ability))
+		_, ok := ResolveManaNoLifePay(cost, pool, e.Game().Players[p].Snow, typed, e.Eval().Conv(p, id, kind))
 		return ok
 	}
 	if !cost.HasPips() {
@@ -825,7 +825,7 @@ func CostPayablePool(e Engine, p state.PlayerID, id state.ObjID, ability bool, c
 			_, slow := ResolveManaWith(cost, pool, e.Game().Players[p].Snow, typed, e.Game().Players[p].Life,
 				e.Eval().PayLifeInsteadOfB(p),
 				e.Eval().MayPlayRider(p, id),
-				e.Eval().Conv(p, id, ability))
+				e.Eval().Conv(p, id, kind))
 
 			if slow != ok {
 				panic("rules: pip-free CostPayablePool fast path disagrees with the full resolve")
@@ -836,7 +836,7 @@ func CostPayablePool(e Engine, p state.PlayerID, id state.ObjID, ability bool, c
 	_, ok := ResolveManaWith(cost, pool, e.Game().Players[p].Snow, typed, e.Game().Players[p].Life,
 		e.Eval().PayLifeInsteadOfB(p),
 		e.Eval().MayPlayRider(p, id),
-		e.Eval().Conv(p, id, ability))
+		e.Eval().Conv(p, id, kind))
 
 	return ok
 }

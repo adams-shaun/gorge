@@ -85,7 +85,24 @@ func (s *State) altAddOpenTargets(k *prep) bool {
 // tap, so gorge keeps the pool-short candidates of a target menu or an either-or
 // part on offer (affordableTargetCandidates' census fallback, CR 601.2g).
 func (s *State) windowUnpricedOpen(k *prep, e *stackEntry) bool {
-	if s.windowCensusComplete(k, e) {
+	return s.windowUnpricedOpenIf(k, e, !s.windowCensusComplete(k, e))
+}
+
+// copyCensusOpen is windowUnpricedOpen for a paid copy cast's target menu: a
+// blocked self-sacrifice any-colour mana source (a Treasure under Quark,
+// sacAnyManaGap) is a census gap too (gorge castWindowSourceExcluded's
+// CountsAny arm), so the menu keeps its candidates however short the pool is.
+// Only this gap is read on the copy path; the copy abort's other census
+// classes keep their existing affordability arm.
+func (s *State) copyCensusOpen(k *prep, e *stackEntry) bool {
+	return s.windowUnpricedOpenIf(k, e, k.sacMana && s.sacAnyManaGap(k, e.ctrl))
+}
+
+// windowUnpricedOpenIf is windowUnpricedOpen with the census gap decided by
+// the caller: open reports the unpriced census, and a source must be left to
+// tap (gorge's hasUntappedManaSource).
+func (s *State) windowUnpricedOpenIf(k *prep, e *stackEntry, open bool) bool {
+	if !open {
 		return false
 	}
 	tapX := s.windowTapXLive(k, e.ctrl)
@@ -668,6 +685,15 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 // A Treasure prices like any tapped source: gorge's census counts it as a unit
 // (castWindowPays).
 func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (ok, known bool) {
+	ok, known, _ = s.windowDryRestr(k, p, cost, anyColor)
+	return ok, known
+}
+
+// windowDryRestr is windowDry, and also reports whether the walk stopped
+// unknown only because a source's restricted ability is owed ahead of its
+// census one (windowRestrOwed): mana gorge's census prices as a typed unit
+// (castWindowReachable), which the real walk on a fork can count.
+func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (ok, known, restr bool) {
 	pool := s.pl[p].pool
 	var tapped [MaxPerm]Slot
 	var flags [MaxPerm]uint16
@@ -694,7 +720,7 @@ func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (
 			// State.rb, which this plain-pool census cannot model. Leave the
 			// walk to the caller's full probe.
 			if _, _, owed := s.windowRestrOwed(k, p, sl, cost); owed {
-				ok, known = false, false
+				ok, known, restr = false, false, true
 				break
 			}
 		}
@@ -715,7 +741,7 @@ func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (
 		s.perms[tapped[i]].flags, s.perms[tapped[i]].actUsed = flags[i], used[i]
 	}
 	s.pl[p].pool = pool
-	return ok, known
+	return ok, known, restr
 }
 
 // windowDryFilter is windowDry's step over a first-only filter the floating mana
@@ -1485,6 +1511,9 @@ func (s *State) availAnyR(k *prep, p uint8, a *avail) {
 		if cd := &k.t.Cards[s.cardAt(sl)]; restrWideAnyMana(&cd.Abilities[k.gen.anyR(s.cardAt(sl))]) {
 			if s.g.availX&availNoWide == 0 {
 				a.addUnits(0x3f, 2) // (no census unit of its own to replace: its only ability is the gap)
+				if s.wideSecond(k, sl) {
+					s.wide2RelaxExtra(k, sl, a) // (beside its census unit, mana_restrictedcombo.go)
+				}
 			}
 			continue
 		}
@@ -1519,6 +1548,9 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 	if anyR.has(sl) {
 		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]
 		if restrWideAnyMana(ab) {
+			if s.wideSecond(k, sl) {
+				return wide2EngineAnswer(s.playNeed(k, a), c)
+			}
 			return wideEngineAnswer(s.playNeed(k, a), c)
 		}
 		mask = uint8(ab.ManaColors)
@@ -1574,6 +1606,14 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slo
 		return
 	}
 	if ab := &cd.Abilities[k.gen.anyR(s.cardAt(sl))]; restrWideAnyMana(ab) {
+		if s.wideSecond(k, sl) { // its first ability's colours, then the multisets (mana_restrictedcombo.go)
+			s.addExtra(k, p&1, sl, s.manaPCGen(k, sl)) // either tap brings its TapsForMana extra (gorge addTapExtra)
+			if c < kop.NumManaKinds-1 {
+				s.pl[p].pool[c]++
+				return
+			}
+			c -= kop.NumManaKinds - 1
+		}
 		c1, c2 := wideAnswer(c)
 		for _, col := range [2]int{c1, c2} {
 			if !s.floatRestrAb(k, p, sl, ab, col, 1) {
@@ -1674,6 +1714,9 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR,
 				nch = 6
 				if cd := &k.t.Cards[s.cardAt(order[j])]; restrWideAnyMana(&cd.Abilities[k.gen.anyR(s.cardAt(order[j]))]) {
 					nch = wideAnswers
+					if s.wideSecond(k, order[j]) {
+						nch = wide2Answers
+					}
 				}
 			case tapsDef.has(order[j]):
 				nch = s.deferGapAnswers(k, order[j])
@@ -1870,14 +1913,25 @@ func (s *State) attLKIHost(o Obj) (Obj, bool) {
 
 // payCastWindow pays the rest of a cast's cost through gorge's CR 601.2g
 // cast window (a lowered or a free cast). That window's colour ask carries no
-// owed cost, only the pips the caster announced.
-func (s *State) payCastWindow(k *prep, p uint8, cost *kop.ManaCost, anyType, anyColor bool) {
-	_, held := s.windowTapUseful(k, p, cost, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
+// owed cost, only the pips the caster announced. It reports false after
+// reversing the cast when the window runs out of sources: the rest of the
+// cost, a free cast's RaiseCost per target included, is unpayable (gorge
+// payCast abortCast "cost no longer payable", CR 733.1; the taps and floating
+// mana stay, as loweredWindowOK leaves them).
+func (s *State) payCastWindow(k *prep, p uint8, cost *kop.ManaCost, anyType, anyColor bool) bool {
+	ok, held := s.windowTapUseful(k, p, cost, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
 	if s.winPaused() {
 		for c := range held {
 			s.pl[p].pool[c] += held[c]
 		}
-		return // the pick is posed; the cast pays when the window ends
+		return true // the pick is posed; the cast pays when the window ends
+	}
+	if !ok {
+		for c := range held {
+			s.pl[p].pool[c] += held[c]
+		}
+		s.reverseCast(k)
+		return false
 	}
 	if s.rbAny(p) {
 		// the window can float a restricted source's mana beside the pool (an
@@ -1891,6 +1945,7 @@ func (s *State) payCastWindow(k *prep, p uint8, cost *kop.ManaCost, anyType, any
 	for c := range held {
 		s.pl[p].pool[c] += held[c]
 	}
+	return true
 }
 
 // loweredPoolPays: the floating pool settles a lowered cast with no window,
@@ -2564,8 +2619,14 @@ func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude O
 //go:noinline
 func (s *State) manaStep(k *prep) bool {
 	e := &s.bld().e
+	// A plan cut stays cut for the rest of the build: the plan stopped at a
+	// decision (a Treasure's sacrifice behind a replacement ask), so every
+	// later re-entry pays through the manual window too. Clearing the bit
+	// after its first read let a re-entry after the window's own parked
+	// sacrifice plan again, and a fresh plan names an any-colour source's
+	// colour by its own rule (G first) where gorge's window asks the
+	// lowest, so one Treasure floated a different colour on each engine.
 	planCut := s.bld().bfl&bflPlanCut != 0
-	s.bld().bfl &^= bflPlanCut
 	switch e.kind {
 	case seSpell:
 		cost := s.buildCost(k)
@@ -2584,6 +2645,9 @@ func (s *State) manaStep(k *prep) bool {
 		wbFull := cost
 		if wbCast && s.bld().bfl&bflCostFixed == 0 {
 			wbFull = xFolded(s.waterbendFullCost(k), int(e.x))
+		}
+		if s.bld().manaNP == 0 && s.bld().bfl&bflPushed != 0 {
+			s.bld().manaNP = 1 + uint8(s.npend) // the payment's mana abilities queue from here (unpushSpell keeps them)
 		}
 		s.bld().bfl |= bflManaStep | bflCostFixed
 		anyColor := s.bld().bfl&bflAnyColor != 0
@@ -2846,12 +2910,26 @@ func (s *State) reverseActivation(k *prep, saved *[len(build{}.picks)]uint8, hos
 // committed can't also tap for mana, so that answer is an illegal action, undone
 // before any mana is activated (CR 601.2g-h, 602.2b, 733.1; gorge
 // reverseStrandedPayment). The picks are already out of the sources; a census that
-// can't price every source leaves the window open.
+// can't price every source leaves the window open. A restricted source the
+// payment may spend (Eclipsed Realms' chosen-type mana for a Treefolk) is a unit
+// gorge's census prices (castWindowReachable's typed pool), so the dry walk's
+// restricted stop is settled by the real walk on a fork, as targetWindowShort
+// does: the window must not tap and float mana for a cast the census already
+// reverses before any mana ability (CR 733.1).
 func (s *State) paymentStranded(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
 	if k.gen == nil || s.bld().pickN == 0 || !s.committedPicks() || !s.windowCensusComplete(k, e) {
 		return false
 	}
-	ok, known := s.windowDry(k, e.ctrl, cost, s.bld().bfl&bflAnyColor != 0)
+	anyColor := s.bld().bfl&bflAnyColor != 0
+	ok, known, restr := s.windowDryRestr(k, e.ctrl, cost, anyColor)
+	if !known && restr {
+		saved := s.fork()
+		defer s.unfork()
+		c := *cost
+		ok, _ = s.windowTapRider(k, e.ctrl, &c, false, anyColor)
+		s.CopyFrom(saved)
+		return !ok
+	}
 	return known && !ok
 }
 

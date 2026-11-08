@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -20,7 +21,7 @@ func TestOptionalManaConvertMayAskOnStacklessCast(t *testing.T) {
 	if e.G.Obj(holder).Zone != state.ZBattlefield || e.G.Obj(land).Zone != state.ZHand || e.G.Obj(land).Face().IsLand() || !e.G.Obj(land).Card.Faces[1].IsLand() {
 		t.Fatal("precondition: holder on battlefield and modal land front in hand, back is land")
 	}
-	if _, before := e.manaConversionParts(0, land, false); !before.Empty() {
+	if _, before := e.manaConversionParts(0, land, pay.SASpell); !before.Empty() {
 		t.Fatal("precondition: the front face already admits conversion")
 	}
 	e.priorityRound()
@@ -53,7 +54,7 @@ func TestOptionalManaConvertMayAskOnStacklessCast(t *testing.T) {
 	if e.G.Obj(land).FaceIdx != 1 || e.G.Obj(land).Face().Name != "Quiet Back" {
 		t.Fatalf("precondition: selected face was not Quiet Back: %+v", e.G.Obj(land))
 	}
-	if _, after := e.manaConversionParts(0, land, false); after.Empty() {
+	if _, after := e.manaConversionParts(0, land, pay.SASpell); after.Empty() {
 		t.Fatal("precondition: the back face must admit a conversion that the front face did not")
 	}
 	if e.G.Obj(land).Zone != state.ZBattlefield {

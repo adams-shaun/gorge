@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -35,7 +36,7 @@ func TestManaConvertPlansCreatureFromSources(t *testing.T) {
 	if e.G.Players[0].Pool.Total() != 0 || e.G.Obj(m1).Tapped || e.G.Obj(m2).Tapped {
 		t.Fatal("precondition: the pool is not empty or a Mountain is tapped")
 	}
-	if c := asEval(e).Conv(0, thespian, false); c == nil || !c.WildC {
+	if c := asEval(e).Conv(0, thespian, pay.SASpell); c == nil || !c.WildC {
 		t.Fatalf("precondition: Vizier's conversion does not reach the Thespian: %+v", c)
 	}
 	var action *decision.PaymentAction
