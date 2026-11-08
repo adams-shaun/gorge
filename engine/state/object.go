@@ -2013,11 +2013,11 @@ type Object struct {
 	// "Intensity" writes it, so a replay rebuilds it.
 	Intensity int32
 
-	// _ pads the Object to 1472 bytes (23 64-byte cache lines), so in the
+	// _ pads the Object to 1536 bytes (24 64-byte cache lines), so in the
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [4]byte
+	_ [36]byte
 }
 
 // IntensityTotal is the card's intensity as its text reads it: the printed
