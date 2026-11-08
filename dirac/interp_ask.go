@@ -2086,8 +2086,9 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 		return false
 	} else if cmdPick >= 0 {
 		// a picked commander was moved one card at a time above; the rest go
-		// where the dig's rest zone says
-		s.digRestAside(n)
+		// where the dig's rest zone says; the picks may already sit on top, so
+		// the rest come out by identity, not by advancing the window
+		s.digRestOut(n)
 		s.finishDigTail(k)
 		return false
 	} else {
@@ -2167,6 +2168,21 @@ func (s *State) digRestAside(n int) {
 			s.touch(s.resArm().look[i])
 			s.objs[s.resArm().look[i]].zone = kop.ZoneNone
 			pl.libLo++
+		}
+	}
+}
+
+// digRestOut takes the looked-at cards a dig did not take out of the library
+// by identity, for a dig whose taken cards were already placed (possibly back
+// on top of the library).
+func (s *State) digRestOut(n int) {
+	pl := &s.pl[s.g.pickP]
+	for i := 0; i < n; i++ {
+		o := s.resArm().look[i]
+		if s.g.lookSel&(1<<i) == 0 && s.objs[o].zone == kop.ZoneLibrary {
+			s.touch(o)
+			pl.libRemove(o)
+			s.objs[o].zone = kop.ZoneNone
 		}
 	}
 }
