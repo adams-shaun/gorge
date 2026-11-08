@@ -205,9 +205,15 @@ func (s *State) blgStall(k *prep, sl Slot, c CardID) {
 //
 //go:noinline
 func (s *State) hybStrand(k *prep, p uint8, c *kop.ManaCost, anyColor bool) bool {
-	_, held := s.windowTapRider(k, p, c, true, anyColor)
+	ok, held := s.windowTapRider(k, p, c, true, anyColor)
 	for col := range held {
 		s.pl[p].pool[col] += held[col]
+	}
+	if ok {
+		// the real walk completed the cost the dry census could not price: a
+		// filter's fee paid from the pool it already floated (Temur Devotee
+		// beside a {2/G}{2/U}{2/R} cast)
+		return true
 	}
 	s.reverseCast(k)
 	return false

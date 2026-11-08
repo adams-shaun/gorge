@@ -72,6 +72,22 @@ func (s *State) adjustCostGen(k *prep, p uint8, c CardID, o Obj, base kop.ManaCo
 // StBargained statics apply only then (cost_reducespell.go). priced is
 // the card the statics' zone counts skip (evalCtx.uncounted), NoObj for none.
 func (s *State) adjustCostGenB(k *prep, p uint8, c CardID, o, priced Obj, base kop.ManaCost, bargained bool) kop.ManaCost {
+	// Every composition of a cast's cost hides the in-flight cast's own ring
+	// push from the turn's cast counts, as gorge's costCompositionEvent does:
+	// a per-target reprice (dropTargetsOwing) must read "the second spell you
+	// cast" the same way the build's own buildCost did, or Highspire
+	// Bell-Ringer's reduction vanishes from the target menu.
+	comp := s.buildLive() && s.bld().e.kind == seSpell && s.bld().e.card == c
+	var prevComp uint16
+	if comp {
+		prevComp = s.bld().bfl & bflCostComp
+		s.bld().bfl |= bflCostComp
+		defer func() {
+			if prevComp == 0 {
+				s.bld().bfl &^= bflCostComp
+			}
+		}()
+	}
 	g := int(base.Generic)
 	if s.g.raiseO|s.g.raiseB != 0 {
 		g += s.partitionRaise(o) // a may-play surcharge, before the cost statics (cast_whileexiled.go)
@@ -536,7 +552,7 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 	// the reduction pays for looks affordable.
 	full.Generic = uint8(int(full.Generic) + full.XGeneric(int(e.x)))
 	var av avail
-	s.availFor(k, e.ctrl, &av)
+	s.availForBuilt(k, e, &av)
 	if av.affords(&full, pipMaskOf(&full), 0) {
 		return n
 	}

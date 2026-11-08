@@ -244,16 +244,18 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				s.bld().obsWin |= obsWinTapped // a pre-payment tap; one by the payment's own window spends its mana
 			}
 		}
-		col := s.windowCol(k, p, cost, sl, pc, anyColor, noOwed)
+		col := s.windowCol(k, p, s.windowOwedCost(k, p, cost), sl, pc, anyColor, noOwed)
 		if noOwed && clamp && !anyColor {
 			if pc.manaMulti {
 				// a cast's ability ask lists what the cost owes first (gorge owedAbilitiesFirst)
 				col = s.windowCol(k, p, useful, sl, pc, false, false)
-			} else if c, ok := s.painAnyOwed(p, useful, pc); ok {
-				col = c
 			} else if want, decided := s.windowUseful(k, p, useful); decided {
-				// the colour ask lists only what the clamp keeps (gorge paymentUsefulColours)
-				if m := s.windowSrcMask(k, sl) & want; m != 0 {
+				// the colour ask lists only what the clamp keeps (gorge
+				// paymentUsefulColours): with the generic covered, an
+				// any-colour ability answers the owed pip
+				if c, ok := s.painAnyOwed(p, useful, pc); ok {
+					col = c
+				} else if m := s.windowSrcMask(k, sl) & want; m != 0 {
 					col = bits.TrailingZeros8(m)
 				}
 			}
@@ -292,6 +294,20 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 		}
 	}
 	return true, held
+}
+
+// windowOwedCost is the cost a window source's colour ask measures against the pool
+// (windowCol's owed colours): cost less the floating restricted mana the payment may
+// spend. That mana sits beside the pool, not in it, but gorge's colour ask prices the
+// pool AvailableFor holds, restricted batches included, so Helga's floating {G} already
+// covers a {G/W} cast's {G} pip and a Blossoming Sands answers {W}, not the lowest
+// colour (CR 106.6).
+func (s *State) windowOwedCost(k *prep, p uint8, cost *kop.ManaCost) *kop.ManaCost {
+	if m := s.restrPoolAdmits(k, p); m != 0 {
+		c := s.restrShortAdm(p, m, *cost)
+		return &c
+	}
+	return cost
 }
 
 // windowSpellSettled: the pool settles cost, counting the floating restricted mana
@@ -646,13 +662,18 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 		// the window owes (mana_pain.go)
 		col = bits.TrailingZeros8(uint8(pc.painCol))
 		if pc.painCol == kop.ColAny {
-			// Starting Town: the any-colour ability lists no symbol, so the
-			// answer is the {C} ability while the payment can use it, and the
-			// colour the window owes when it can't
-			want, decided := s.windowUseful(k, p, cost)
+			// Starting Town: the any-colour ability lists no symbol. A fixed
+			// pip still owed makes the ability ask take it (owedAbilitiesFirst);
+			// the colour ask then answers the owed pip when the demand is
+			// decided, and otherwise offers every colour, where the payment
+			// window's bot takes the first listed one (W), not an owed pip.
+			demand := s.windowDemand(k, p, cost)
 			col = kop.C
-			if decided && want&(1<<kop.C) == 0 {
-				col = bits.TrailingZeros8(want)
+			if m := uint8(pc.painCol) & 0x1f & demand; m != 0 {
+				col = bits.TrailingZeros8(uint8(pc.painCol))
+				if _, decided := s.windowUseful(k, p, cost); decided {
+					col = bits.TrailingZeros8(m)
+				}
 			}
 		}
 	}

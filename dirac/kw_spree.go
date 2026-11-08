@@ -67,6 +67,9 @@ func (s *State) spreeModeAffordable(k *prep, m int) bool {
 	e.mode = saved
 	var av avail
 	s.availPotential(k, e.ctrl, &av)
+	if s.rbAny(e.ctrl) {
+		s.restrAvail(k, e.ctrl, e.card, s.payDescNow(NoObj).og, &av)
+	}
 	return av.affords(&c, pipMaskOf(&c), 0)
 }
 
@@ -80,7 +83,7 @@ func (s *State) spreeAffordable(k *prep) bool {
 	c := s.buildCost(k)
 	var av avail
 	ctrl := s.bld().e.ctrl
-	s.availFor(k, ctrl, &av)
+	s.availForBuilt(k, &s.bld().e, &av)
 	return s.faceReachable(k, ctrl, &av, &c, 0)
 }
 
