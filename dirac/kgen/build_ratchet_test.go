@@ -201,9 +201,11 @@ import (
 // +1 (Hundred-Battle Veteran: the self-pump gate counts the different counter kinds among your creatures; ALL build-level 21682 -> 21683).
 // +1 (Hawkeye, Young Avenger: the damage-plus operand reads the replacement host's power; ALL build-level 21683 -> 21684).
 // +1 (Hermitic Herbalist: a restricted Combo of any colours beside {T}: any colour is a wide census gap; ALL build-level 21706 -> 21707).
-// +1 (Strategic Betrayal: the Origin$ Battlefield,Graveyard ChangeZoneAll sweep builds; ALL build-level 21707 -> 21708).
+// +2 (the merge with land: this branch's Strategic Betrayal Origin$ Battlefield,Graveyard
+// ChangeZoneAll sweep builds beside land's Binding Negotiation game-wide Exile->Graveyard
+// hidden pick; merged ALL build-level 21707 -> 21709).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21708, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21709, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
