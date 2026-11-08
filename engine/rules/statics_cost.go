@@ -49,6 +49,15 @@ func modeIsCastFaceDown(mode string) bool {
 // hide every CostContainsX batch from the target-repricing gates exactly
 // where the offer and the payment both admit it.
 func (e *Engine) manaFeasibleDescriptor(p state.PlayerID, d paymentDescriptor, c Cost, mods costMods, taxGeneric, delve int32, rider pipRider) bool {
+	return e.manaFeasibleDescriptorKind(p, d, c, mods, taxGeneric, delve, rider, d.SAKind())
+}
+
+// manaFeasibleDescriptorKind is manaFeasibleDescriptor with the ValidSA$ side
+// selected by the caller: the priced offer walk keeps its historical
+// spell/activated split (pay.SAKindFor) rather than the descriptor's class
+// split, so rerouting its restricted pool through this entry does not change
+// which ManaConvert statics a special-action payment reads.
+func (e *Engine) manaFeasibleDescriptorKind(p state.PlayerID, d paymentDescriptor, c Cost, mods costMods, taxGeneric, delve int32, rider pipRider, kind pay.SAKind) bool {
 	pl := e.G.Players[p]
 	av := pay.AvailableFor(asPayer(e), p, d)
 	// A floating restricted batch whose admission reads the paid cost's shape
@@ -72,7 +81,7 @@ func (e *Engine) manaFeasibleDescriptor(p state.PlayerID, d paymentDescriptor, c
 		}
 	}
 	return mods.FeasibleAnyAvail(c, av.Pool, pl.Snow, av.Typed, pl.Life, taxGeneric, delve,
-		asEval(e).PayLifeInsteadOfB(p), rider, asEval(e).Conv(p, d.ID, d.SAKind()), avail)
+		asEval(e).PayLifeInsteadOfB(p), rider, asEval(e).Conv(p, d.ID, kind), avail)
 }
 
 // manaFeasiblePool is manaFeasible priced against an EXPLICIT pool instead of
@@ -133,8 +142,8 @@ func (e *Engine) manaFeasiblePricedP(p state.PlayerID, desc paymentDescriptor, c
 		// The restricted pool is real, and its admission can depend on the
 		// announcement faces the walk has not chosen yet; route through the
 		// descriptor entry, which filters the batch per composed leaf.
-		return e.manaFeasibleDescriptor(p, desc.Priced(c), *c, *mods, taxGeneric, delve,
-			asEval(e).MayPlayRider(p, desc.ID))
+		return e.manaFeasibleDescriptorKind(p, desc.Priced(c), *c, *mods, taxGeneric, delve,
+			asEval(e).MayPlayRider(p, desc.ID), pay.SAKindFor(desc.Class == paymentActivated))
 	}
 	return e.manaFeasiblePoolP(p, desc.ID, desc.Class == paymentActivated, c, mods, taxGeneric, delve, pool, typed)
 }
