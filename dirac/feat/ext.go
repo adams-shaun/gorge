@@ -3,13 +3,15 @@ package feat
 import (
 	"math/bits"
 	"strconv"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // The value head's extension block: State.Ext lists (slot, value) pairs over
 // ExtWidth fixed slots, each computed arithmetically (nothing hashed). It is
 // off by default (SetExt(0)): Ext is then empty and every other output is
-// unchanged. Only the economy (E) and turn-structure (T) groups are built;
-// SetExt accepts the other groups and they write nothing yet.
+// unchanged. The economy (E), turn-structure (T) and belief (B) groups are
+// built; SetExt accepts the other groups and they write nothing yet.
 
 // ExtWidth is the block's slot count; ExtLayoutVersion names its layout.
 const (
@@ -52,7 +54,89 @@ const (
 	xPredraw    = 102
 	xPremature  = 104
 	xTEnd       = 112
+	xThreat     = 496 // B: unseen strong cards 496..500, unseen answers 501..505
+	xAnswer     = 501
 )
+
+// SetOppBelief sets the believed opponent list, counts indexed by kop.CardID
+// (the slice is kept, not copied, and must stay unchanged until cleared); nil
+// clears it. Group B reads it only while ExtBelief is on.
+//
+// Pass the search's closed-list belief (four-yay kplay `:closedlist`), not the
+// true list: a net trained on the true list learns a fact hosted play never has.
+func (e *Encoder) SetOppBelief(counts []uint8) {
+	e.belief, e.bThreat, e.bAnswer = counts, 0, 0
+	if counts == nil {
+		e.bseen, e.bkind = nil, nil
+		return
+	}
+	e.bseen = make([]uint8, len(counts))
+	e.bkind = make([]uint8, len(counts))
+	for i, n := range counts {
+		if n == 0 {
+			continue
+		}
+		c := e.pool.card(kop.CardID(i))
+		ef := &c.eff
+		if StrengthBucket(c.pstr) >= 2 {
+			e.bkind[i] |= 1
+			e.bThreat += int32(n)
+		}
+		if ef.Class == EffCounter || (ef.Class == EffKill || ef.Class == EffDamage || ef.Class == EffDebuff) && ef.TgtCreat {
+			e.bkind[i] |= 2
+			e.bAnswer += int32(n)
+		}
+	}
+}
+
+// extBelief writes group B: the believed opponent cards not yet seen in the
+// opponent's public zones or on the stack under its control.
+func (e *Encoder) extBelief(seat uint8, opp *vplayer) {
+	v := &e.v
+	threat, answer := e.bThreat, e.bAnswer
+	see := func(cid kop.CardID) {
+		i := int(cid)
+		if i >= len(e.belief) {
+			return
+		}
+		e.bseen[i]++
+		if e.bseen[i] <= e.belief[i] {
+			if e.bkind[i]&1 != 0 {
+				threat--
+			}
+			if e.bkind[i]&2 != 0 {
+				answer--
+			}
+		}
+	}
+	for _, l := range [3][]int32{opp.bf, opp.grave, opp.exile} {
+		for _, ci := range l {
+			see(v.cards[ci].cid)
+		}
+	}
+	for i := range v.stack {
+		st := &v.stack[i]
+		if e.kp.Stack[i].Kind == 0 && st.cv >= 0 && st.ctrl != seat {
+			see(v.cards[st.cv].cid)
+		}
+	}
+	for _, l := range [3][]int32{opp.bf, opp.grave, opp.exile} {
+		for _, ci := range l {
+			if i := int(v.cards[ci].cid); i < len(e.bseen) {
+				e.bseen[i] = 0
+			}
+		}
+	}
+	for i := range v.stack {
+		if st := &v.stack[i]; st.cv >= 0 && st.ctrl != seat {
+			if j := int(v.cards[st.cv].cid); j < len(e.bseen) {
+				e.bseen[j] = 0
+			}
+		}
+	}
+	e.extOneHot(xThreat, threat, 4)
+	e.extOneHot(xAnswer, answer, 4)
+}
 
 // SetExt selects the extension groups; 0 (the default) turns the block off.
 func (e *Encoder) SetExt(g ExtGroups) { e.ext = g }
@@ -203,6 +287,9 @@ func (e *Encoder) encodeExt(seat uint8, me, opp *vplayer) []Feature {
 			e.extAdd(xPremature, 1)
 		}
 	}
+	if e.ext&ExtBelief != 0 && e.belief != nil {
+		e.extBelief(seat, opp)
+	}
 	out := e.extOut[:0]
 	for w := range e.extHit {
 		for b := e.extHit[w]; b != 0; b &= b - 1 {
@@ -276,8 +363,10 @@ func ExtSlotName(slot uint16) string {
 		return "todo:K"
 	case n < 496:
 		return "reserved"
+	case n < xAnswer:
+		return one(xThreat, "B|opp-unseen-threats=")
 	case n < 506:
-		return "todo:B"
+		return one(xAnswer, "B|opp-unseen-answers=")
 	}
 	return "reserved"
 }
