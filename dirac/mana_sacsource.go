@@ -76,6 +76,18 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 			return true
 		}
 	}
+	if plannerConsumesSac(&pk) {
+		// gorge's potentialWitnessReaches runs the witness's activations and
+		// requires the play still offered: a sacrifice whose trigger resolves
+		// to end the game before the cast (Al Bhed Salvagers draining the last
+		// life) is no witness while one that keeps the source exists
+		// (potentialWitnessKeeping). The kernel's pre-cast resolution is the
+		// same walk.
+		t.resolveLowerCounterTriggers(k, n0, k.cards[c].instant || t.castFlash(k, p, c))
+		if t.over {
+			return true
+		}
+	}
 	if stacked && int(t.npend)-int(n0) > witnessWaits {
 		return true
 	}
@@ -96,10 +108,13 @@ func (s *State) xWitnessEndsGame(k *prep, p uint8, t *State, n0 uint8, cost *kop
 	if t.npend <= n0 || !s.buildLive() {
 		return false
 	}
-	if b := s.bld(); b.e.kind != seSpell || k.cards[b.e.card].instant || s.castFlash(k, b.e.ctrl, b.e.card) {
+	b := s.bld()
+	if b.e.kind != seSpell || k.cards[b.e.card].instant || s.castFlash(k, b.e.ctrl, b.e.card) {
 		return false
 	}
-	t.resolveLowerCounterTriggers(k, n0)
+	// the guard above leaves only the sorcery-speed build, whose triggers the
+	// lowering resolves before the cast (instant is false).
+	t.resolveLowerCounterTriggers(k, n0, false)
 	if !t.over {
 		return false
 	}
@@ -327,9 +342,12 @@ func (s *State) availTappedSac(k *prep, p uint8, a *avail) {
 // check would end the witness) and an optional trigger. A trigger that
 // mills, loses life, gains life or draws for a target player is answered
 // with the first player gorge's default answer names.
-func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
-	b := s.bld()
-	instant := b.e.kind == seSpell && (k.cards[b.e.card].instant || s.castFlash(k, b.e.ctrl, b.e.card))
+//
+// The caller states whether the cast being lowered is instant-speed: the offer
+// path walks this on a fork with no build live (bld holds the build only in
+// ctlBuild), so reading its entry there would take the speed of whichever card
+// was built or resolved last.
+func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 	resolved := false
 	for i := int(n0); i < int(s.npend); {
 		if s.over {

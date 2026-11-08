@@ -516,7 +516,12 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 				// source a cost's pick still being answered sacrificed (In the Pale
 				// Moonlight's Malfunctioning Holodeck), as the Aura's host ask above;
 				// so does one whose exiler leaves inside a top/bottom answer (Temporal
-				// Cleansing), before continueRes clears the ask: parkReturnAsk poses it
+				// Cleansing), before continueRes clears the ask: parkReturnAsk poses it.
+				// A "second from top or bottom" answer (raGenTopBottom) moves
+				// the source inside its own answer and gorge asks the return's
+				// choice right after that move (CR 616.1, 610.3d; ecl 2517's
+				// Liminal Hold returning a Rimefire Torque): the answer resumes
+				// through continueRes, which poses the parked ask.
 				s.g.pre = preAsk{obj: l.obj, kind: kind, state: preReturn, link: kind == akClone}
 				if k.gen.anyLinkCtr {
 					s.linkRetStall(k, srcCtrl, o, l.obj)
@@ -875,10 +880,6 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		}
 		if s.objs[o].zone != kop.Zone((s.g.freeP>>1)&7) || !s.spellTargetsFeasibleFrom(k, c, ctrl, o) {
 			continue // no legal target any more: the card stays in its zone
-		}
-		if !s.spellCostsFeasible(k, c, ctrl, o) {
-			s.freeCostAbort(o) // cast_freecostabort.go: gorge pushes it and aborts at the cost
-			continue
 		}
 		holder := s.prio
 		s.prio = ctrl // the caster (beginCast reads it)

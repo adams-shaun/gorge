@@ -261,16 +261,19 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				s.bld().obsWin |= obsWinTapped // a pre-payment tap; one by the payment's own window spends its mana
 			}
 		}
-		col := s.windowCol(k, p, cost, sl, pc, anyColor, noOwed)
+		var owed kop.ManaCost
+		col := s.windowColOwed(k, p, cost, s.windowOwedCost(k, p, cost, &owed), sl, pc, anyColor, noOwed)
 		if noOwed && clamp && !anyColor {
 			if pc.manaMulti {
 				// a cast's ability ask lists what the cost owes first (gorge owedAbilitiesFirst)
 				col = s.windowCol(k, p, useful, sl, pc, false, false)
-			} else if c, ok := s.painAnyOwed(p, useful, pc); ok {
-				col = c
 			} else if want, decided := s.windowUseful(k, p, useful); decided {
-				// the colour ask lists only what the clamp keeps (gorge paymentUsefulColours)
-				if m := s.windowSrcMask(k, sl) & want; m != 0 {
+				// the colour ask lists only what the clamp keeps (gorge
+				// paymentUsefulColours): with the generic covered, an
+				// any-colour ability answers the owed pip
+				if c, ok := s.painAnyOwed(p, useful, pc); ok {
+					col = c
+				} else if m := s.windowSrcMask(k, sl) & want; m != 0 {
 					col = bits.TrailingZeros8(m)
 				}
 			}
@@ -317,13 +320,14 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 // spend. That mana sits beside the pool, not in it, but gorge's colour ask prices the
 // pool AvailableFor holds, restricted batches included, so Interdimensional Web Watch's
 // floating {W}{W} already covers a {G/W}{G/W} cast's {W} pip and a Treasure answers {G},
-// not the lowest colour (CR 106.6).
+// not the lowest colour (CR 106.6). buf holds the owed cost in both cases (no admitted
+// restricted mana: the cost itself), so a caller may read either the return or the buffer.
 func (s *State) windowOwedCost(k *prep, p uint8, cost, buf *kop.ManaCost) *kop.ManaCost {
+	*buf = *cost
 	if m := s.restrPoolAdmits(k, p); m != 0 {
 		*buf = s.restrShortAdm(p, m, *cost)
-		return buf
 	}
-	return cost
+	return buf
 }
 
 // windowSpellSettled: the pool settles cost, counting the floating restricted mana
@@ -576,14 +580,22 @@ func askOwedColour(ab *kop.Ability, mask, want uint8) int {
 // adds that mana itself.
 func (s *State) windowCol(k *prep, p uint8, raw *kop.ManaCost, sl Slot, pc *pcard, anyColor, noOwed bool) int {
 	var owed kop.ManaCost
-	cost := s.windowOwedCost(k, p, raw, &owed)
+	s.windowOwedCost(k, p, raw, &owed)
+	return s.windowColOwed(k, p, raw, &owed, sl, pc, anyColor, noOwed)
+}
+
+// windowColOwed is windowCol for a cost whose shortfall the pool is measured against as owed:
+// cost less the restricted mana the payment may spend (windowOwedCost). cost is the full
+// (raw) cost: the helpers that price the restricted pool themselves (windowDemand,
+// windowUseful) read it, so the mana is not taken off it twice, while owed is the shortfall.
+func (s *State) windowColOwed(k *prep, p uint8, cost, owed *kop.ManaCost, sl Slot, pc *pcard, anyColor, noOwed bool) int {
 	mask := s.windowOwnMask(k, sl)
 	col := bits.TrailingZeros8(mask)
 	if anyColor {
-		col = s.windowAnyColour(p, cost, mask, pc.manaMulti)
+		col = s.windowAnyColour(p, owed, mask, pc.manaMulti)
 	} else if !noOwed {
 		if pc.manaMulti && k.gen != nil && k.gen.anyVergeOrder {
-			if c0, ok := s.vergeAbility0Col(k, sl); ok && c0 < 5 && cost.Pips[c0] > s.pl[p].pool[c0] {
+			if c0, ok := s.vergeAbility0Col(k, sl); ok && c0 < 5 && owed.Pips[c0] > s.pl[p].pool[c0] {
 				return c0 // a Verge's ability 0 comes before its lower colour
 			}
 		}
@@ -605,7 +617,7 @@ func (s *State) windowCol(k *prep, p uint8, raw *kop.ManaCost, sl Slot, pc *pcar
 				ab := &k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb]
 				var ord [5]uint8
 				for _, c := range ord[:manaColourOrder(ab, &ord)] {
-					if all&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
+					if all&(1<<c) != 0 && owed.Pips[c] > s.pl[p].pool[c] {
 						return int(c)
 					}
 				}
@@ -628,7 +640,7 @@ func (s *State) windowCol(k *prep, p uint8, raw *kop.ManaCost, sl Slot, pc *pcar
 				nOrder, printed := colourAskOrder(&k.t.Cards[cd].Abilities[pc.manaAb], mask, &order)
 				for i := 0; i < nOrder; i++ {
 					c := int(order[i])
-					if c < 5 && all&(1<<uint(c)) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
+					if c < 5 && all&(1<<uint(c)) != 0 && owed.Pips[c] > s.pl[p].pool[c] {
 						return c // gorge lists what a fixed pip still owes first (owedColoursFirst, owedAbilitiesFirst)
 					}
 				}
@@ -643,14 +655,14 @@ func (s *State) windowCol(k *prep, p uint8, raw *kop.ManaCost, sl Slot, pc *pcar
 			if ab := manaAbView(&k.t.Cards[s.cardAt(sl)], pc); ab != nil && ab.Kind == kop.AbMana && ab.AFlags&kop.AfManaChoice != 0 {
 				var ord [5]uint8
 				for _, c := range ord[:manaColourOrder(ab, &ord)] {
-					if all&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
+					if all&(1<<c) != 0 && owed.Pips[c] > s.pl[p].pool[c] {
 						return int(c)
 					}
 				}
 			}
 		}
 		for c := 0; c < 5; c++ {
-			if all&(1<<c) != 0 && seen&(1<<c) == 0 && cost.Pips[c] > s.pl[p].pool[c] {
+			if all&(1<<c) != 0 && seen&(1<<c) == 0 && owed.Pips[c] > s.pl[p].pool[c] {
 				return c // a granted ability's colour follows the source's own
 			}
 		}
@@ -683,13 +695,18 @@ func (s *State) windowCol(k *prep, p uint8, raw *kop.ManaCost, sl Slot, pc *pcar
 		// the window owes (mana_pain.go)
 		col = bits.TrailingZeros8(uint8(pc.painCol))
 		if pc.painCol == kop.ColAny {
-			// Starting Town: the any-colour ability lists no symbol, so the
-			// answer is the {C} ability while the payment can use it, and the
-			// colour the window owes when it can't
-			want, decided := s.windowUseful(k, p, raw)
+			// Starting Town: the any-colour ability lists no symbol. A fixed
+			// pip still owed makes the ability ask take it (owedAbilitiesFirst);
+			// the colour ask then answers the owed pip when the demand is
+			// decided, and otherwise offers every colour, where the payment
+			// window's bot takes the first listed one (W), not an owed pip.
+			demand := s.windowDemand(k, p, cost)
 			col = kop.C
-			if decided && want&(1<<kop.C) == 0 {
-				col = bits.TrailingZeros8(want)
+			if m := uint8(pc.painCol) & 0x1f & demand; m != 0 {
+				col = bits.TrailingZeros8(uint8(pc.painCol))
+				if _, decided := s.windowUseful(k, p, cost); decided {
+					col = bits.TrailingZeros8(m)
+				}
 			}
 		}
 	}
@@ -2054,7 +2071,8 @@ func (s *State) lowerWitness(k *prep, p uint8) {
 		s.bld().obsWin |= obsWinTapped // the witness floats its mana before the announced X prices the cast (mana_spendtrigger.go obsWinSettle)
 	}
 	if s.npend > n0 {
-		s.resolveLowerCounterTriggers(k, n0)
+		b := s.bld()
+		s.resolveLowerCounterTriggers(k, n0, b.e.kind == seSpell && (k.cards[b.e.card].instant || s.castFlash(k, b.e.ctrl, b.e.card)))
 	}
 }
 
