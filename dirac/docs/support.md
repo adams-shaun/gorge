@@ -21,7 +21,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | LCI | 290 | 251 | 1 | 22 | 228 |
 | MKM | 279 | 242 | 1 | 31 | 210 |
 | MSH | 276 | 235 | 1 | 2 | 232 |
-| OTJ | 276 | 241 | 1 | 28 | 212 |
+| OTJ | 276 | 241 | 1 | 0 | 240 |
 | SOS | 270 | 249 | 0 | 28 | 221 |
 | SPM | 192 | 161 | 1 | 2 | 158 |
 | TDM | 276 | 250 | 3 | 2 | 245 |
@@ -30,7 +30,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 6 | 246 |
-| ALL | 34442 | 21707 | 24 | 16725 | 4958 |
+| ALL | 34442 | 21707 | 24 | 16697 | 4986 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -56,7 +56,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | std-lci | 250 |
 | std-mkm | 1500 |
 | std-msh | 1500 |
-| std-otj | 70 |
+| std-otj | 1500 |
 | std-sos | 118 |
 | std-spm | 1500 |
 | std-tdm | 1500 |
