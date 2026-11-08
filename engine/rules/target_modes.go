@@ -105,7 +105,7 @@ func (e *Engine) askCharmModeTargets(p state.PlayerID, source state.ObjID, svars
 		if min != 1 || max != 1 {
 			allSimple = false
 		}
-		cs := e.legalTargetCandidates(p, source, source, sa)
+		cs := e.affordableCharmCandidates(source, e.legalTargetCandidates(p, source, source, sa))
 		if len(cs) < min {
 			// A mandatory minimum the board cannot meet makes the whole
 			// announcement impossible (CR 601.2c): abort rather than pose an
@@ -143,6 +143,59 @@ func (e *Engine) askCharmModeTargets(p state.PlayerID, source state.ObjID, svars
 	return true, false
 }
 
+// affordableCharmCandidates withholds, while source is being cast, a per-mode
+// target candidate whose target-dependent added cost the cast cannot pay
+// (Terror of the Peaks' "an additional 3 life"; CR 601.2c/f, 118.8), through
+// the same probe the root and SubAbility$ link asks use
+// (affordableTargetCandidates). The candidate is priced with the targets
+// already announced -- earlier sequential modes' groups are in pc.targets --
+// so a mode's choice reads the whole set's total cost.
+//
+// Unlike the root ask, a Spree/Charm mode set is not proven payable before
+// its targets are asked (an over-budget mode set is reversed at payment,
+// CR 601.2h), so a candidate the probe rejects is withheld only when the
+// candidate itself changes the price: a target that adds nothing to the
+// announcement's cost is not what makes it unpayable, and withholding it
+// would abort the cast at the target ask instead. A triggered Charm (no cast
+// in progress) has no cost to price and keeps every legal candidate.
+func (e *Engine) affordableCharmCandidates(source state.ObjID, cs []targetCandidate) []targetCandidate {
+	pc := e.cast
+	if pc == nil || pc.card != source {
+		return cs
+	}
+	scope, ok := e.pendingCastScope(pc)
+	if !ok {
+		return cs
+	}
+	base := pc.allTargets()
+	affordable := e.affordableTargetCandidates(pc, base, cs)
+	if len(affordable) == len(cs) {
+		return cs
+	}
+	priced := func(targets []state.Target) Cost {
+		return pc.withDefiler(e.costModifiersForTargets(pc.player, pc.card, scope, targets)).Apply(pc.resolvedMana())
+	}
+	baseCost := priced(base)
+	out := make([]targetCandidate, 0, len(cs))
+	next := 0
+	for _, candidate := range cs {
+		if next < len(affordable) && affordable[next] == candidate {
+			out = append(out, candidate)
+			next++
+			continue
+		}
+		target := state.Target{Obj: candidate.obj}
+		if candidate.kind == "player" {
+			target = state.Target{Player: candidate.player, IsPlayer: true}
+		}
+		withTarget := priced(append(append([]state.Target(nil), base...), target))
+		if withTarget.Equal(&baseCost) {
+			out = append(out, candidate)
+		}
+	}
+	return out
+}
+
 // askCharmSeqSlot poses the next per-mode target ask of a sequential
 // distinct-mode Charm. It walks slots from len(groups) forward: a mode whose
 // mandatory minimum the board cannot meet reports infeasible; an optional mode
@@ -164,7 +217,7 @@ func (e *Engine) askCharmSeqSlot(p state.PlayerID, source state.ObjID, svars map
 			continue
 		}
 		min, max := e.resolvedTargetBounds(p, source, sa, e.charmBoundX(source))
-		cs := e.legalTargetCandidates(p, source, source, sa)
+		cs := e.affordableCharmCandidates(source, e.legalTargetCandidates(p, source, source, sa))
 		if len(cs) < min {
 			return out, false, true
 		}
