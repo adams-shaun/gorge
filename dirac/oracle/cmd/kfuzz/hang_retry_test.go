@@ -15,7 +15,7 @@ func TestPlayAllRetriesATimedOutGame(t *testing.T) {
 	var calls atomic.Int32
 	release := make(chan struct{})
 	t.Cleanup(func() { close(release) })
-	out := playAll(1, 1, time.Second, func(int) played {
+	out := playAll(1, 1, time.Second, true, func(int) played {
 		if calls.Add(1) == 1 {
 			<-release
 		}
@@ -38,7 +38,7 @@ func TestPlayAllHangsOnlyAfterBothAttempts(t *testing.T) {
 	var calls atomic.Int32
 	release := make(chan struct{})
 	t.Cleanup(func() { close(release) })
-	out := playAll(1, 1, time.Second, func(int) played {
+	out := playAll(1, 1, time.Second, true, func(int) played {
 		calls.Add(1)
 		<-release
 		return played{}

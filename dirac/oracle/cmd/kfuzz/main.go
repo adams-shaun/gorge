@@ -503,7 +503,7 @@ func run() int {
 		}
 	}
 	for _, p := range sum.Hangs {
-		fmt.Printf("pair %d (%s vs %s, seed %d): hang: no result after %s\n", p.Index, p.A, p.B, p.Seed, *gameLimit)
+		fmt.Printf("pair %d (%s vs %s, seed %d): hang: no result after two watchdogs of %s\n", p.Index, p.A, p.B, p.Seed, *gameLimit)
 	}
 	if sum.First != nil {
 		printDiv(sum.First.Divergence)
@@ -772,14 +772,14 @@ func vanillaSweep(first, games, n int, seed uint64, timeout time.Duration, rc or
 		a := g % n
 		b := (a + 1 + (g/n)%(n-1)) % n
 		s := seed + uint64(g)
-		o := watchGame(g, timeout, play)
+		o := watchGame(g, timeout, !statsOn && feat == nil, play)
 		if o.err != nil {
 			fmt.Fprintln(os.Stderr, "kfuzz:", o.err)
 			return 1
 		}
 		if o.hang {
 			classes["hang"]++
-			fmt.Printf("game %d (vanilla %d vs %d, seed %d): hang: no result after %s\n", g, a, b, s, timeout)
+			fmt.Printf("game %d (vanilla %d vs %d, seed %d): hang: no result after two watchdogs of %s\n", g, a, b, s, timeout)
 			continue
 		}
 		m, res := o.m, o.res
@@ -1030,7 +1030,7 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 	if statsOn || o.features || workers < 1 {
 		workers = 1
 	}
-	out := playAll(len(ps), workers, o.timeout, play)
+	out := playAll(len(ps), workers, o.timeout, !statsOn && !o.features, play)
 	var feat *oracle.FeatStats
 	if o.features {
 		feat = &fs
@@ -1039,8 +1039,9 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 }
 
 // playAll runs play(0..n-1) on workers goroutines under the per-game watchdog and
-// returns the outcomes by index.
-func playAll(n, workers int, timeout time.Duration, play func(i int) played) []played {
+// returns the outcomes by index. retry decides whether a timed-out game is played
+// once more (see watchGame).
+func playAll(n, workers int, timeout time.Duration, retry bool, play func(i int) played) []played {
 	out := make([]played, n)
 	jobs := make(chan int)
 	var wg sync.WaitGroup
@@ -1049,7 +1050,7 @@ func playAll(n, workers int, timeout time.Duration, play func(i int) played) []p
 		go func() {
 			defer wg.Done()
 			for i := range jobs {
-				out[i] = watchGame(i, timeout, play)
+				out[i] = watchGame(i, timeout, retry, play)
 			}
 		}()
 	}
@@ -1062,13 +1063,15 @@ func playAll(n, workers int, timeout time.Duration, play func(i int) played) []p
 }
 
 // watchGame runs play(i) on its own goroutine and waits at most timeout for it,
-// twice (oracle.WithinTimeoutRetry: one retry absorbs a host stall). A game past
-// its time on both attempts is a hang: a timed-out goroutine cannot be stopped, so
-// it leaks until the process exits, but it only ever touches its own game and its
-// buffered result channel (a -stats or -features run also shares that run's
-// report-only counters). A panic outside the lockstep's own recover (building the
-// game) is a divergence: one bad pair does not end the sweep.
-func watchGame(i int, timeout time.Duration, play func(int) played) played {
+// twice when retry is set (oracle.WithinTimeoutRetry: one retry absorbs a host
+// stall). A game past its time on both attempts is a hang: the goroutine cannot
+// be stopped, so it leaks until the process exits, but it only ever touches its
+// own game and its buffered result channel. A -stats or -features run keeps one
+// attempt, because a stalled attempt shares that run's report-only counters and
+// would double-count once its retry finishes. A panic outside the lockstep's own
+// recover (building the game) is a divergence: one bad pair does not end the
+// sweep.
+func watchGame(i int, timeout time.Duration, retry bool, play func(int) played) played {
 	wrapped := func() (p played) {
 		defer func() {
 			if r := recover(); r != nil {
@@ -1077,7 +1080,7 @@ func watchGame(i int, timeout time.Duration, play func(int) played) played {
 		}()
 		return play(i)
 	}
-	return oracle.WithinTimeoutRetry(timeout, wrapped, played{hang: true})
+	return oracle.WithinTimeoutRetry(timeout, retry, wrapped, played{hang: true})
 }
 
 // writePairRepro writes one bad game's repro as dir/name, so the game replays from
@@ -1118,7 +1121,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 			v.Games++
 			v.Hang++
 			classes["hang"]++
-			fmt.Printf("pair %d (%s vs %s, seed %d): hang: no result after %s\n", p.Index, p.A, p.B, p.Seed, o.timeout)
+			fmt.Printf("pair %d (%s vs %s, seed %d): hang: no result after two watchdogs of %s\n", p.Index, p.A, p.B, p.Seed, o.timeout)
 			printBadGame(o.corpus, p, "hang", "hang", nil, nil)
 			continue
 		}
