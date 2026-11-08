@@ -1,14 +1,18 @@
 Abigale, Eloquent First-Year
 Adept Watershaper
+Ajani, Outland Chaperone
+Appeal to Eirdu
 Aquitect's Defenses
 Assert Perfection
 Auntie's Sentence
 Barbed Bloodletter
+Bark of Doran
 Bile-Vial Boggart
 Bitterbloom Bearer
 Blight Rot
 Blighted Blackthorn
 Blood Crypt
+Bloodline Bidding
 Bloom Tender
 Blossombind
 Blossoming Defense
@@ -20,11 +24,14 @@ Boldwyr Aggressor
 Boneclub Berserker
 Boulder Dash
 Brambleback Brute
+Bre of Clan Stoutarm
 Brigid's Command
 Bristlebane Battler
 Bristlebane Outrider
 Burdened Stoneback
 Burning Curiosity
+Catharsis
+Champion of the Clachan
 Champion of the Path
 Champions of the Perfect
 Champions of the Shoal
@@ -50,6 +57,7 @@ Deepchannel Duelist
 Deepway Navigator
 Disruptor of Currents
 Dose of Dawnglow
+Dream Harvest
 Dream Seizer
 Dundoolin Weaver
 Eclipsed Boggart
@@ -57,20 +65,26 @@ Eclipsed Elf
 Eclipsed Flamekin
 Eclipsed Kithkin
 Eclipsed Merrow
+Eclipsed Realms
 Elder Auntie
 Emptiness
+Encumbered Reejerey
 Enraged Flamecaster
 Evershrike's Gift
 Evolving Wilds
 Explosive Prodigy
 Feed the Flames
+Feisty Spikeling
+Firdoch Core
 Flame-Chain Mauler
+Flamebraider
 Flamekin Gildweaver
 Flaring Cinder
 Flock Impostor
 Forest
 Formidable Speaker
 Gallant Fowlknight
+Gangly Stompling
 Gathering Stone
 Giantfall
 Gilt-Leaf's Embrace
@@ -89,6 +103,7 @@ Gristle Glutton
 Grub's Command
 Gutsplitter Gang
 Hallowed Fountain
+Harmonized Crescendo
 Heirloom Auntie
 High Perfect Morcant
 Illusion Spinners
@@ -96,14 +111,22 @@ Impolite Entrance
 Iron-Shield Elf
 Island
 Keep Out
+Kinbinding
+Kinsbaile Aspirant
+Kinscaer Sentry
+Kirol, Attentive First-Year
+Kithkeeper
 Kulrath Mystic
+Kulrath Zealot
 Lasting Tarfire
 Liminal Hold
 Loch Mare
+Lofty Dreams
 Luminollusk
 Lys Alana Informant
 Maralen, Fae Ascendant
 Meanders Guide
+Merrow Skyswimmer
 Midnight Tilling
 Mischievous Sneakling
 Mistmeadow Council
@@ -114,7 +137,10 @@ Morcant's Eyes
 Morcant's Loyalist
 Mornsong Aria
 Mountain
+Mudbutton Cursetosser
 Nameless Inversion
+Nightmare Sower
+Noggle Robber
 Noggle the Mind
 Overgrown Tomb
 Perfect Intimidation
@@ -125,18 +151,25 @@ Plains
 Prideful Feastling
 Prismabasher
 Prismatic Undercurrents
+Protective Response
+Puca's Eye
 Pummeler for Hire
+Pyrrhic Strike
+Raiding Schemes
 Reaping Willow
 Reckless Ransacking
 Reluctant Dounguard
 Requiting Hex
 Retched Wretch
 Rime Chill
+Rimefire Torque
 Rimekin Recluse
 Riverguard's Reflexes
 Rooftop Percher
 Run Away Together
 Safewright Cavalry
+Sanar, Innovative First-Year
+Sapling Nursery
 Scarblade Scout
 Scarblade's Malice
 Scuzzback Scrounger
@@ -146,6 +179,7 @@ Shadow Urchin
 Shimmercreep
 Shinestriker
 Shore Lurker
+Silvergill Mentor
 Silvergill Peddler
 Sizzling Changeling
 Slumbering Walker
@@ -158,6 +192,7 @@ Stalactite Dagger
 Steam Vents
 Sting-Slinger
 Stoic Grove-Guide
+Stratosoarer
 Summit Sentinel
 Sun-Dappled Celebrant
 Sunderflock
@@ -167,11 +202,14 @@ Swat Away
 Sygg's Command
 Tanufel Rimespeaker
 Temple Garden
+Temporal Cleansing
 Tend the Sprigs
 Thirst for Identity
 Thoughtweft Charge
+Thoughtweft Imbuer
 Thoughtweft Lieutenant
 Timid Shieldbearer
+Tributary Vaulter
 Trystan's Command
 Trystan, Callous Cultivator
 Tweeze
@@ -180,11 +218,16 @@ Unbury
 Unexpected Assistance
 Unforgiving Aim
 Unwelcome Sprite
+Vibrance
 Vinebred Brawler
 Virulent Emissary
+Voracious Tome-Skimmer
 Wanderbrine Preacher
+Wanderbrine Trapper
 Wanderwine Distracter
+Wanderwine Farewell
 Warren Torchmaster
 Wary Farmer
 Wild Unraveling
+Wildvine Pummeler
 Wistfulness
