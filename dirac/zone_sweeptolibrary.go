@@ -31,14 +31,33 @@ func (s *State) libSweep(k *prep, in *kop.Instr) {
 	for p := uint8(0); p < 2; p++ {
 		n = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), order[:], n)
 	}
-	if n == 0 {
-		return // gorge shuffles only a receiving library
-	}
 	var objs [MaxPerm]Obj
-	for i := 0; i < n; i++ {
-		objs[i] = s.perms[order[i]].obj
+	if pre := &s.g.pre; pre.kind == akCmdZone && (pre.state == preCmdZoneMove || pre.state == preCmdZoneCmd) {
+		// the answer's re-run: the parked commander is the only matching
+		// permanent still on the battlefield. The earlier ones are already on
+		// top of their libraries, so the placement order and the shuffle's
+		// owners are the sweep this instruction saved before the park; the
+		// placement and shuffle below then run once, after the answer.
+		n = int(s.res.left)
+		if n == 0 {
+			s.stall(StallLowering) // a commander park with no saved sweep
+			return
+		}
+		copy(objs[:n], s.res.arr[:n])
+	} else {
+		if n == 0 {
+			return // gorge shuffles only a receiving library
+		}
+		for i := 0; i < n; i++ {
+			objs[i] = s.perms[order[i]].obj
+		}
+		copy(s.res.arr[:n], objs[:n])
+		s.res.left = uint8(n)
 	}
 	s.leaveAll(k, hit, kop.ZoneLibrary)
+	if s.res.ask == raGenCmdZone {
+		return // the commander's CR 903.9b answer finishes the placement and shuffle
+	}
 	first := [2]int{-1, -1} // the first placement of each owner's cards
 	for i := 0; i < n; i++ {
 		if p := s.objs[objs[i]].owner(); first[p&1] < 0 {

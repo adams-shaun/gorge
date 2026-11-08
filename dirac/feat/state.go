@@ -37,6 +37,8 @@ type State struct {
 	Dense  [DenseWidth]float32
 	Sparse []Feature
 	Cards  []Card
+	// Ext is the extension block (SetExt), empty when off
+	Ext []Feature
 }
 
 // Encoder encodes kernel positions against one Pool. It owns every buffer
@@ -71,7 +73,20 @@ type Encoder struct {
 	kpg  [dirac.MaxObj]uint32
 	kgen uint32
 	// parts is EncodeParts' per-seat cache.
-	parts      [2]*partsSeat
+	parts [2]*partsSeat
+
+	// ext is the extension groups (SetExt); extAcc/extHit accumulate a
+	// block, extOut is its emission
+	ext    ExtGroups
+	extAcc [ExtWidth]float32
+	extHit [ExtWidth / 64]uint64
+	extOut []Feature
+	// belief is SetOppBelief's list; bseen/bkind its per-card scratch and
+	// class bits (1 threat, 2 answer), bThreat/bAnswer the class totals
+	belief           []uint8
+	bseen, bkind     []uint8
+	bThreat, bAnswer int32
+
 	PartsStats PartsStats
 	slot       [dirac.MaxObj]*partCache // this encode's slot per listed object
 	// vc is the content-keyed card view cache (cachedCard); hb the
@@ -158,7 +173,9 @@ func (e *Encoder) EncodeState(s *dirac.State, d *dirac.Decision) *State {
 // value reads the searching seat's view whoever's decision is pending).
 func (e *Encoder) EncodeStateFor(s *dirac.State, d *dirac.Decision, seat uint8) *State {
 	seat, me, opp := e.prelude(s, d, seat)
-	return e.fullTail(seat, me, opp)
+	st := e.fullTail(seat, me, opp)
+	st.Ext = e.extFor(seat, me, opp)
+	return st
 }
 
 // prelude builds the view of s at d for seat and the dense vector; it
@@ -893,6 +910,9 @@ func stableSortByRow(fs []Feature, sc *sortScratch) {
 // calls it once per encoder).
 func (e *Encoder) Reserve() {
 	const objs = dirac.MaxObj
+	if cap(e.extOut) < ExtWidth {
+		e.extOut = make([]Feature, 0, ExtWidth)
+	}
 	if cap(e.sp) < 4096 {
 		e.sp = make([]Feature, 0, 4096)
 	}

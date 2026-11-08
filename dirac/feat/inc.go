@@ -282,6 +282,7 @@ func (e *Encoder) EncodeStateIncFor(s *dirac.State, d *dirac.Decision, seat uint
 				si.entObj = append(si.entObj, noObj)
 				si.entVer = append(si.entVer, 0)
 			}
+			si.st.Ext = e.extFor(seat, me, opp)
 			return &si.st
 		}
 	}
@@ -369,6 +370,7 @@ func (e *Encoder) EncodeStateIncFor(s *dirac.State, d *dirac.Decision, seat uint
 	} else {
 		si.st.Cards = si.cards
 	}
+	si.st.Ext = e.extFor(seat, me, opp)
 	return &si.st
 }
 

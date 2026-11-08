@@ -835,13 +835,12 @@ type ContinuousEffect struct {
 	// every non-clone effect. Engine-runtime, rebuilt by re-execution on
 	// replay like CloneTarget itself.
 	//
-	// The re-base re-snapshots the surviving source's face at expiry time
-	// rather than replaying the original snapshot, so a survivor whose own
-	// source has since changed re-bases onto the source's CURRENT printed
-	// face. Measured corpus-unreachable (no carrier stacks two clone units
-	// on one permanent and then mutates the older one's source), recorded in
-	// AGENTS.md's clone row.
-	CloneSource          ObjID
+	// The re-base restores the survivor's face as LOCKED when it was applied
+	// (state.Object.CloneLayers, CR 707.2b/c), found through CloneSeq; the
+	// source is never re-read.
+	CloneSource ObjID
+	// CloneSeq is the marker's state.CloneLayer.Seq on CloneTarget.
+	CloneSeq             int32
 	CloneName            string
 	CloneChosenName      string
 	CloneStaticBodies    []string

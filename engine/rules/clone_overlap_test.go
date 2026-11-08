@@ -274,3 +274,48 @@ func TestShiftingWoodlandCopiesAGraveyardCard(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+func TestCloneRebaseKeepsTheLockedFace(t *testing.T) {
+	const oxWithClone = "Name:Fixture Ox\nManaCost:2 G\nTypes:Creature Ox\nPT:2/3\n" +
+		"A:AB$ Clone | Cost$ 1 | ValidTgts$ Creature | Duration$ UntilEndOfTurn | SpellDescription$ becomes a copy until end of turn.\nOracle:x\n"
+	e, cfg, id := newFixtureDeck(t, 999, twoCloneAbilities, oxWithClone, cloneBruiserSrc)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	ox := moveSeeded(t, e, 0, oxWithClone, state.ZBattlefield)
+	bruiser := moveSeeded(t, e, 0, cloneBruiserSrc, state.ZBattlefield)
+
+	addMana(t, e, 0, "C")
+	activateCloneAbilityIdx(t, e, id, ox, 0) // unit A, permanent: mimic is the Ox 2/3
+	addMana(t, e, 0, "C")
+	// unit B, EOT: the copied Ox's own ability (index 0 now); mimic is the Bruiser 3/3
+	activateCloneAbilityIdx(t, e, id, bruiser, 0)
+	addMana(t, e, 0, "C")
+	activateCloneAbilityIdx(t, e, ox, bruiser, 0) // the SOURCE Ox becomes the Bruiser 3/3
+	if o := e.G.Obj(ox); o == nil || o.Zone != state.ZBattlefield || o.Face().Name != "Fixture Bruiser" {
+		t.Fatalf("source Ox %+v, want a battlefield Fixture Bruiser", o)
+	}
+	if o := e.G.Obj(id); o.Face().Name != "Fixture Bruiser" || e.Derived(id).Power != 3 {
+		t.Fatalf("mimic before cleanup %v %d, want Fixture Bruiser 3/3", o.Face(), e.Derived(id).Power)
+	}
+	// Two layers are live on the mimic: the precondition for a re-base.
+	layers := 0
+	for _, ce := range e.continuous {
+		if ce.Layer == LCopy && ce.CloneTarget == id {
+			layers++
+		}
+	}
+	if layers != 2 {
+		t.Fatalf("mimic carries %d copy layers, want 2", layers)
+	}
+	// CR 707.2b: the re-base keeps the face locked when unit A was applied
+	// (the Ox, 2/3), never the source's CURRENT face (the Bruiser, 3/3).
+	e.pending = nil
+	e.setStep(state.StepCleanup)
+	e.priorityRound()
+	if o := e.G.Obj(id); o.Face() == nil || o.Face().Name != "Fixture Ox" {
+		t.Fatalf("mimic re-based onto %v, want the locked Fixture Ox (CR 707.2b)", o.Face())
+	}
+	if d := e.Derived(id); d.Power != 2 || d.Toughness != 3 {
+		t.Fatalf("mimic P/T %d/%d, want the locked Ox 2/3", d.Power, d.Toughness)
+	}
+	replayCheck(t, e, cfg)
+}

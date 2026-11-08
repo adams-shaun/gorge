@@ -114,44 +114,30 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 		}
 		c := t.cardAt(sl)
 		if restrWideAnyMana(&k.t.Cards[c].Abilities[k.gen.anyR(c)]) {
-			// the two-unit ask: per-unit answers, W W, W U ... G G, a mirrored
-			// pair charging its node and finding the state seen. An answer
-			// naming a colour the play announces comes first (gorge's
-			// scriptOrderAnswers on the same ask): its W-subtree spent the
-			// search's budget before the first wanted pair.
-			type twoUnit struct{ a, b, ans uint8 }
-			var ps [15]twoUnit
-			np := 0
-			ans := uint8(0)
-			for a := 0; a < 5; a++ {
-				for b := 0; b < 5; b++ {
-					if b < a {
-						if !fs.tick() {
-							return false
+			// the two-unit ask: gorge's 25 per-unit answers (scriptAnswers,
+			// unit-major W W, W U ... G G), those naming a colour the play
+			// announces first and engine order kept in each half (gorge's
+			// scriptOrderAnswers on the same ask: its W-subtree spent the
+			// search's budget before the first wanted pair). A mirrored pair (its
+			// second unit below its first) makes the pool its twin, earlier in
+			// the same half, made: it charges its node where gorge visits it and
+			// finds the state seen.
+			for half := 0; half < 2; half++ {
+				for a := 0; a < 5; a++ {
+					for b := 0; b < 5; b++ {
+						if (fs.need[a] || fs.need[b]) != (half == 0) {
+							continue
 						}
-						continue
+						if b < a {
+							if !fs.tick() {
+								return false
+							}
+							continue
+						}
+						if try(otherStep{kind: otherAnyR, ans: wideAnswerIndex(a, b)}) {
+							return true
+						}
 					}
-					ps[np] = twoUnit{uint8(a), uint8(b), ans}
-					np++
-					ans++
-				}
-			}
-			nf := 0
-			for i := 0; i < np; i++ {
-				if fs.need[ps[i].a] || fs.need[ps[i].b] {
-					ps[nf] = ps[i]
-					nf++
-				}
-			}
-			for i := 0; i < np; i++ {
-				if !fs.need[ps[i].a] && !fs.need[ps[i].b] {
-					ps[nf] = ps[i]
-					nf++
-				}
-			}
-			for i := 0; i < nf; i++ {
-				if try(otherStep{kind: otherAnyR, ans: ps[i].ans}) {
-					return true
 				}
 			}
 			return false
@@ -348,4 +334,10 @@ func (s *State) filtFeeRestrM(k *prep, p uint8, sl Slot) uint8 {
 func (s *State) filtFeeRestr(k *prep, p uint8, sl Slot, fee int) int {
 	m := s.filtFeeRestrM(k, p, sl)
 	return s.rbSpendN(p, m, min(fee, s.rbTotal(p, m)))
+}
+
+// wideAnswerIndex is the scriptDFS answer of the two-colour multiset a <= b,
+// wideAnswer's inverse: the multisets in order W W, W U ... W G, U U ... G G.
+func wideAnswerIndex(a, b int) uint8 {
+	return uint8(a*5 - a*(a-1)/2 + b - a)
 }

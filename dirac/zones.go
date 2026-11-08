@@ -169,6 +169,14 @@ func (s *State) placeFrom(o Obj, z kop.Zone, bottom bool, from kop.Zone, wasCrea
 // placeFromK is placeFrom for a caller that holds the table's prep (k is nil
 // off the generic path): the hot movers pass it so the move does not reload it.
 func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zone, wasCreature bool) {
+	if p := &s.g.pre; p.kind == akCmdZone && p.obj == o && p.state == preCmdZoneOK {
+		*p = preAsk{} // the answered CR 903.9b move is happening
+	} else if (z == kop.ZoneHand || z == kop.ZoneLibrary) && s.cmdZoneCommander(o) {
+		// a move no resolving effect parked: the guard the ticket asks for (a
+		// cost, an SBA, a cleanup, or a move path the gate does not reach)
+		s.stall(StallLowering)
+		return
+	}
 	if k != nil && k.mayhem {
 		s.mObjClr(k, mechMayhem, o) // a new object nobody discarded (CR 400.7)
 	}
@@ -537,6 +545,9 @@ func (s *State) subscribe(sl Slot, pc *pcard, on bool) {
 func (s *State) leave(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if z == kop.ZoneGraveyard {
 		z = s.dieZone(k, sl) // Fiery Annihilation / a dies-to-exile replacement
+	}
+	if s.cmdZoneReplace(k, s.perms[sl].obj, &z, &bottom) {
+		return // a CR 903.9b commander move parked before it happens
 	}
 	if s.res.active && k.gen != nil {
 		s.snapResTarget(s.perms[sl].obj) // CR 608.2h: a moved target's LKI (zone_lki.go)
