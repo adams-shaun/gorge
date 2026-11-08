@@ -66,20 +66,49 @@ func WriteRaw(dir, name string, rawW int, extra map[string]any) (string, error) 
 // WriteShape is WriteRaw at shape sh. Its weights follow the same
 // pseudo-random sequence, so the same arguments always write the same bytes.
 func WriteShape(dir, name string, sh Shape, rawW int, extra map[string]any) (string, error) {
-	return writeShape(dir, name, sh, rawW, extra, nil)
+	return writeShape(dir, name, sh, rawW, extra, nil, DefaultLayout)
+}
+
+// Layout is a network's depth: its trunk blocks and the hidden layers of
+// its policy and value heads (the trainer's layers, policy_layers and
+// value_layers).
+type Layout struct {
+	Layers, PolicyLayers, ValueLayers int
+}
+
+// DefaultLayout is every other Write*'s layout: one trunk block and one
+// hidden layer per head (policy.0/2, value.0/2).
+var DefaultLayout = Layout{Layers: 1, PolicyLayers: 1, ValueLayers: 1}
+
+// ProductionLayout is dzg's trained layout: one trunk block, a two-layer
+// policy head (policy.0/2/4) and a one-layer value head (value.0/2), which
+// netsimd.Load runs on its straight-line trunk.
+var ProductionLayout = Layout{Layers: 1, PolicyLayers: 2, ValueLayers: 1}
+
+// WriteLayout is WriteShape at layout lay.
+func WriteLayout(dir, name string, sh Shape, rawW int, extra map[string]any, lay Layout) (string, error) {
+	return writeShape(dir, name, sh, rawW, extra, nil, lay)
 }
 
 // WriteExt writes a Small-or-sh network with the extension block: the const
 // EXT_W = extW and the tensor ext_in.weight (d × extW, row-major, no bias)
 // from extIn (len d·extW). The other tensors are WriteShape's, bit for bit.
 func WriteExt(dir, name string, sh Shape, extW int, extIn []float32) (string, error) {
+	return WriteExtLayout(dir, name, sh, extW, extIn, DefaultLayout)
+}
+
+// WriteExtLayout is WriteExt at layout lay.
+func WriteExtLayout(dir, name string, sh Shape, extW int, extIn []float32, lay Layout) (string, error) {
 	if len(extIn) != sh.D*extW {
 		return "", fmt.Errorf("gonettest: ext_in has %d values, want %d·%d", len(extIn), sh.D, extW)
 	}
-	return writeShape(dir, name, sh, policynet.EntityRawWidth, map[string]any{"EXT_W": extW}, extIn)
+	return writeShape(dir, name, sh, policynet.EntityRawWidth, map[string]any{"EXT_W": extW}, extIn, lay)
 }
 
-func writeShape(dir, name string, sh Shape, rawW int, extra map[string]any, extIn []float32) (string, error) {
+func writeShape(dir, name string, sh Shape, rawW int, extra map[string]any, extIn []float32, lay Layout) (string, error) {
+	if lay.Layers < 1 || lay.PolicyLayers < 1 || lay.ValueLayers < 1 {
+		return "", fmt.Errorf("gonettest: layout %+v: layers must be positive", lay)
+	}
 	d, ff, e, cd, hh := sh.D, sh.FF, sh.E, sh.CD, sh.HH
 	if rawW < policynet.EntityRawWidthV1 {
 		return "", fmt.Errorf("gonettest: rawW %d is below the format-1 width %d", rawW, policynet.EntityRawWidthV1)
@@ -141,9 +170,12 @@ func writeShape(dir, name string, sh Shape, rawW int, extra map[string]any, extI
 	lin("dense_in", policynet.DenseWidth, d, true)
 	lin("sparse_proj", e, d, false)
 	lin("pool_proj", 2*grps*cd, d, true)
-	norm("blocks.0.norm", d)
-	lin("blocks.0.fc1", d, ff, true)
-	lin("blocks.0.fc2", ff, d, true)
+	for i := 0; i < lay.Layers; i++ {
+		p := fmt.Sprintf("blocks.%d", i)
+		norm(p+".norm", d)
+		lin(p+".fc1", d, ff, true)
+		lin(p+".fc2", ff, d, true)
+	}
 	norm("norm", d)
 	rand("opt_in.slots.weight", policynet.OptionSlotWidth, d)
 	lin("opt_in.hproj", e, d, false)
@@ -154,10 +186,18 @@ func writeShape(dir, name string, sh Shape, rawW int, extra map[string]any, extI
 	rand("none_a", cd)
 	rand("none_b", cd)
 	norm("opt_norm", d)
-	lin("policy.0", 2*d, hh, true)
-	lin("policy.2", hh, 1, true)
-	lin("value.0", d, hh, true)
-	lin("value.2", hh, 1, true)
+	head := func(name string, in, layers int) {
+		for i := 0; i <= layers; i++ {
+			out := hh
+			if i == layers {
+				out = 1
+			}
+			lin(fmt.Sprintf("%s.%d", name, 2*i), in, out, true)
+			in = out
+		}
+	}
+	head("policy", 2*d, lay.PolicyLayers)
+	head("value", d, lay.ValueLayers)
 	if extIn != nil {
 		ts = append(ts, tensor{"ext_in.weight", []int{sh.D, len(extIn) / sh.D}, extIn})
 	}
@@ -170,7 +210,7 @@ func writeShape(dir, name string, sh Shape, rawW int, extra map[string]any, extI
 			body = binary.LittleEndian.AppendUint32(body, math.Float32bits(v))
 		}
 	}
-	header, err := headerShape(table, sh, rawW, extra)
+	header, err := headerShape(table, sh, rawW, extra, lay)
 	if err != nil {
 		return "", err
 	}
@@ -202,21 +242,25 @@ func Header(tensors []Entry, extra map[string]any) ([]byte, error) {
 
 // headerRaw is Header with an explicit RAW_W const.
 func headerRaw(tensors []Entry, rawW int, extra map[string]any) ([]byte, error) {
-	return headerShape(tensors, Small, rawW, extra)
+	return headerShape(tensors, Small, rawW, extra, DefaultLayout)
 }
 
-// headerShape is headerRaw for a network of shape sh.
-func headerShape(tensors []Entry, sh Shape, rawW int, extra map[string]any) ([]byte, error) {
+// headerShape is headerRaw for a network of shape sh and layout lay.
+func headerShape(tensors []Entry, sh Shape, rawW int, extra map[string]any, lay Layout) ([]byte, error) {
 	d, ff, e, cd, hh := float64(sh.D), float64(sh.FF), float64(sh.E), float64(sh.CD), float64(sh.HH)
+	eps := map[string]float64{"norm": 1e-5, "opt_norm": 1e-5}
+	for i := 0; i < lay.Layers; i++ {
+		eps[fmt.Sprintf("blocks.%d.norm", i)] = 1e-5
+	}
 	h := map[string]any{
 		"format": "dzgw-1",
 		"arch":   "mlp",
 		"config": map[string]float64{"d": d, "ff": ff, "d_emb": e, "card_d": cd, "head_hidden": hh,
-			"layers": 1, "policy_layers": 1, "value_layers": 1},
+			"layers": float64(lay.Layers), "policy_layers": float64(lay.PolicyLayers), "value_layers": float64(lay.ValueLayers)},
 		"consts": map[string]int{"DENSE_W": policynet.DenseWidth, "RAW_W": rawW,
 			"OPT_DENSE_W": policynet.OptionDenseWidth, "TABLE_ROWS": policynet.TableRows,
 			"SLOT_ROWS": policynet.OptionSlotWidth, "GROUPS": grps},
-		"layernorm_eps": map[string]float64{"blocks.0.norm": 1e-5, "norm": 1e-5, "opt_norm": 1e-5},
+		"layernorm_eps": eps,
 		"tensors":       tensors,
 	}
 	for k, v := range extra {

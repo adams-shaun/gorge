@@ -75,6 +75,9 @@ func LoadWeights(path string) (*Weights, error) {
 	if err := checkWidths(path, g.BagWidth(), g.CardWidth(), g.RawWidth()); err != nil {
 		return nil, err
 	}
+	if x := g.ExtWidth(); x != 0 && x != feat.ExtWidth {
+		return nil, fmt.Errorf("neteval %s: net reads EXT_W = %d, this encoder writes %d", path, x, feat.ExtWidth)
+	}
 	return &Weights{g: g, vecW: g.BagWidth()}, nil
 }
 

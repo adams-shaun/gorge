@@ -6,7 +6,6 @@ import (
 	"math"
 	"math/rand/v2"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -18,9 +17,50 @@ import (
 
 const extSlots = 512
 
-var extShapes = map[string]gonettest.Shape{
-	"d64fast":    gonettest.Wide,
-	"d96generic": {D: 96, FF: 96, E: 32, CD: 32, HH: 96},
+// extShape is one test network: sh is its widths, prod says whether it uses
+// the production head layout (one trunk block, policy_layers 2, value_layers
+// 1) that netsimd.Load runs through trunkBag1.
+type extShape struct {
+	name string
+	sh   gonettest.Shape
+	prod bool
+}
+
+var extShapes = []extShape{
+	{"d64fast", gonettest.Wide, true},
+	{"d96generic", gonettest.Shape{D: 96, FF: 96, E: 32, CD: 32, HH: 96}, false},
+}
+
+// writeBase writes fx's network without EXT_W; writeExt writes it with the
+// extension block. The layouts match, so the non-ext tensors are identical.
+func writeBase(t *testing.T, dir, name string, fx extShape) string {
+	t.Helper()
+	var p string
+	var err error
+	if fx.prod {
+		p, err = gonettest.WriteLayout(dir, name, fx.sh, policynet.EntityRawWidth, nil, gonettest.ProductionLayout)
+	} else {
+		p, err = gonettest.WriteShape(dir, name, fx.sh, policynet.EntityRawWidth, nil)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+func writeExt(t *testing.T, dir, name string, fx extShape, w []float32) string {
+	t.Helper()
+	var p string
+	var err error
+	if fx.prod {
+		p, err = gonettest.WriteExtLayout(dir, name, fx.sh, extSlots, w, gonettest.ProductionLayout)
+	} else {
+		p, err = gonettest.WriteExt(dir, name, fx.sh, extSlots, w)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
 }
 
 func randExt(r *rand.Rand) []policynet.Feature {
@@ -56,15 +96,10 @@ func TestExtNetZeroWeightsEqualsBase(t *testing.T) {
 	dir := t.TempDir()
 	sts, opts := synthInputs(50, 11)
 	r := rand.New(rand.NewPCG(5, 5))
-	for name, sh := range extShapes {
-		base, err := gonettest.WriteShape(dir, name+"-base.dzgw", sh, policynet.EntityRawWidth, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		extp, err := gonettest.WriteExt(dir, name+"-ext.dzgw", sh, extSlots, make([]float32, sh.D*extSlots))
-		if err != nil {
-			t.Fatal(err)
-		}
+	for _, fx := range extShapes {
+		name, sh := fx.name, fx.sh
+		base := writeBase(t, dir, name+"-base.dzgw", fx)
+		extp := writeExt(t, dir, name+"-ext.dzgw", fx, make([]float32, sh.D*extSlots))
 		gb, err := netsimd.Load(base, 0)
 		if err != nil {
 			t.Fatal(err)
@@ -129,27 +164,43 @@ func patchDenseBias(t *testing.T, path string, delta []float64) {
 }
 
 // The ext add equals folding Σ v·ext_in[:, slot] into dense_in's bias: gonet
-// (which has no ext) over the patched ext-free net is the reference, on both
-// the d=64 fast trunk and the generic one (and the d=64 net through the
-// general loops).
+// (which has no ext) over the patched ext-free net is the reference. The d=64
+// fixture uses the production head layout, so both trunk paths run it: the
+// straight-line trunkBag1 and the general trunkBagN. The d=96 fixture has no
+// production layout and runs trunkBagN only.
 func TestExtNetMatchesReference(t *testing.T) {
 	dir := t.TempDir()
 	sts, opts := synthInputs(6, 21)
 	r := rand.New(rand.NewPCG(8, 8))
 	gonet.CacheSize = 0
-	for name, sh := range extShapes {
+	for _, fx := range extShapes {
+		name, sh := fx.name, fx.sh
 		w := randWeights(r, sh.D*extSlots, 0.2)
-		extp, err := gonettest.WriteExt(dir, name+"-ext.dzgw", sh, extSlots, w)
-		if err != nil {
-			t.Fatal(err)
-		}
+		extp := writeExt(t, dir, name+"-ext.dzgw", fx, w)
 		g, err := netsimd.Load(extp, 0)
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, general := range []bool{false, true} {
-			if general && !netsimd.SetGeneral(g, true) {
-				continue
+		if g.ExtWidth() != extSlots {
+			t.Fatalf("%s: ExtWidth = %d, want %d", name, g.ExtWidth(), extSlots)
+		}
+		paths := []struct {
+			name    string
+			general bool
+		}{{"trunkBagN", true}}
+		if fx.prod {
+			paths = []struct {
+				name    string
+				general bool
+			}{{"trunkBag1", false}, {"trunkBagN", true}}
+		}
+		for _, path := range paths {
+			if fx.prod {
+				if !netsimd.SetGeneral(g, path.general) {
+					t.Fatalf("%s %s: SetGeneral(%v) = false, want the production layout", name, path.name, path.general)
+				}
+			} else if netsimd.SetGeneral(g, false) {
+				t.Fatalf("%s %s: SetGeneral(false) = true for a non-production layout", name, path.name)
 			}
 			var sc netsimd.Scratch
 			for i := range sts {
@@ -160,10 +211,7 @@ func TestExtNetMatchesReference(t *testing.T) {
 						delta[o] += float64(f.Value) * float64(w[o*extSlots+int(f.Row)])
 					}
 				}
-				base, err := gonettest.WriteShape(dir, name+"-ref.dzgw", sh, policynet.EntityRawWidth, nil)
-				if err != nil {
-					t.Fatal(err)
-				}
+				base := writeBase(t, dir, name+"-ref.dzgw", fx)
 				patchDenseBias(t, base, delta)
 				ref, err := gonet.Load(base)
 				if err != nil {
@@ -173,13 +221,13 @@ func TestExtNetMatchesReference(t *testing.T) {
 				want := ref.Eval(&sts[i], opts[i], make([]float32, len(opts[i])))
 				got, _ := evalExt(g, &sc, &sts[i], ext, opts[i])
 				if math.Abs(float64(want-got)) > 1e-5*(1+math.Abs(float64(want))) {
-					t.Fatalf("%s general=%v rec %d: reference %v netsimd %v", name, general, i, want, got)
+					t.Fatalf("%s %s rec %d: reference %v netsimd %v", name, path.name, i, want, got)
 				}
 				// the ext must matter, or the check proves nothing
 				if i == 0 {
 					plain, _ := evalExt(g, &sc, &sts[i], nil, opts[i])
 					if plain == got {
-						t.Fatalf("%s: ext did not move the value (%v)", name, got)
+						t.Fatalf("%s %s: ext did not move the value (%v)", name, path.name, got)
 					}
 				}
 			}
@@ -212,5 +260,4 @@ func TestExtWidthRefused(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "100") || !strings.Contains(err.Error(), "512") {
 		t.Fatalf("Load = %v, want an error naming 100 and 512", err)
 	}
-	_ = filepath.Base(p)
 }

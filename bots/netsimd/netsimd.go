@@ -151,7 +151,7 @@ func growB(s []bool, n int) []bool {
 }
 
 // extSlots is the extension block's width (feat.ExtWidth; netsimd does not
-// import dirac, neteval checks the two agree).
+// import dirac, neteval refuses a net whose EXT_W differs).
 const extSlots = 512
 
 // addExt adds Σ v·ext_in[slot] to s (d floats); a no-op for a net without ext_in.
