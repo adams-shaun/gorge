@@ -53,6 +53,16 @@ type TargetStamp struct {
 // Source and Duration preserve the condition Forge attached to the effect;
 // Controller is the target creature's controller when an AsLongAsControl
 // relationship began. All fields are reconstructed by events.Apply.
+// CloneLayer is one layer-1 copy effect on a permanent: Seq is its
+// application ordinal (state.Object.CloneSeq at the time), Face the copiable
+// values locked when it was applied, before the effect's CopyExcept/CloneStatic
+// edits (those are re-emitted on a re-base), and GainThisAbility its rider.
+type CloneLayer struct {
+	Seq             int32
+	Face            *cards.Face
+	GainThisAbility bool
+}
+
 type GoadEffect struct {
 	Player     PlayerID
 	Source     ObjID
@@ -1944,6 +1954,15 @@ type Object struct {
 	// CopyFace.
 	CopyGainThisAbility bool
 
+	// CloneLayers are the layer-1 copy effects applied to this permanent, in
+	// application (timestamp) order, each holding the copiable values locked
+	// when it was applied (CR 707.2b/c): a re-base after a newer layer ends
+	// restores the survivor's locked face, never a fresh read of its source.
+	// CloneSeq numbers them. Rebuilt by events.Apply (ClonePermanent) only;
+	// the slice and its faces are replaced, never mutated in place.
+	CloneLayers []CloneLayer
+	CloneSeq    int32
+
 	// LeftCopyFace is the CopyFace this object last left the battlefield with.
 	// The object is no longer a copy, but what the copy did is not undone: a
 	// leaves-the-battlefield trigger of the copied card fires, and a delayed
@@ -2617,6 +2636,7 @@ func (o *Object) cloneDeepIntoArena(c *Object, a *cloneArena) {
 		c.Chosen = []Target{}
 	}
 	c.Goads = append([]GoadEffect(nil), o.Goads...)
+	c.CloneLayers = append([]CloneLayer(nil), o.CloneLayers...)
 	c.ChosenModes = CloneChosenModes(o.ChosenModes)
 	c.IntrinsicKeywords = append([]string(nil), o.IntrinsicKeywords...)
 	c.Imprinted = carveClone(&a.ids, o.Imprinted)

@@ -7,6 +7,8 @@ package events
 
 import (
 	"maps"
+	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -472,6 +474,10 @@ func foldClonePermanent(g *state.Game, e *Event) {
 		return
 	}
 	if e.Counter != "chosen-name" && (len(e.IDs) == 0 || e.IDs[0] == 0) {
+		if e.Text != "" && rebaseCloneLayers(o, e.Text) {
+			return
+		}
+		o.CloneLayers = nil
 		// a token copy goes back to the copy it was created as, its own
 		// copiable values (CR 707.2), not to the printed card it was minted on
 		o.SetCopyFace(o.TokenBasis)
@@ -588,6 +594,12 @@ func foldClonePermanent(g *state.Game, e *Event) {
 		// overrides only while it lasts (CR 707.2, 707.9b)
 		o.TokenBasis, o.TokenBasisBack, o.TokenBasisSaved = o.CopyFace, o.CopyFaceBack, true
 	}
+	// CR 707.2b/c: lock this layer's copiable values; a later re-base onto it
+	// restores them rather than re-reading the source.
+	o.CloneSeq++
+	locked := sf
+	o.CloneLayers = append(append([]state.CloneLayer(nil), o.CloneLayers...),
+		state.CloneLayer{Seq: o.CloneSeq, Face: &locked, GainThisAbility: o.CopyGainThisAbility})
 	o.SetCopyFace(&sf)
 	// CR 718.3c/d: a permanent that becomes a copy of a prototyped permanent
 	// is prototyped; a chosen-name copy has no prototyped source.
@@ -652,4 +664,49 @@ func foldTurnFaceUp(g *state.Game, e *Event) {
 		o.FaceDownHasPT = false
 		restampLayer(g, o) // CR 613.7f
 	}
+}
+
+// rebaseCloneLayers folds the clear a clone expiry emits while other layers
+// stay live: live is the comma-joined Seq list of the layers that survive.
+// Only those layers stay; the newest one's LOCKED face becomes the basis again
+// (CR 707.2b/c), and the caller's CopyExcept/CloneStatic events restore its
+// edits. False when no listed layer exists (the caller clears outright).
+func rebaseCloneLayers(o *state.Object, live string) bool {
+	var kept []state.CloneLayer
+	seqs := ParseCloneLive(live)
+	for _, l := range o.CloneLayers {
+		if slices.Contains(seqs, l.Seq) {
+			kept = append(kept, l)
+		}
+	}
+	if len(kept) == 0 {
+		return false
+	}
+	top := kept[len(kept)-1]
+	o.CloneLayers = kept
+	o.CopyGainThisAbility = top.GainThisAbility
+	o.CastFlags &^= state.FlagPrototype
+	o.SetCopyFace(top.Face)
+	return true
+}
+
+// CloneLiveText is the clear's Text naming the layers that stay live: their
+// Seqs, comma-joined (empty for none).
+func CloneLiveText(seqs []int32) string {
+	parts := make([]string, len(seqs))
+	for i, n := range seqs {
+		parts[i] = strconv.Itoa(int(n))
+	}
+	return strings.Join(parts, ",")
+}
+
+// ParseCloneLive reads CloneLiveText's encoding; malformed fields are skipped.
+func ParseCloneLive(s string) []int32 {
+	var out []int32
+	for f := range strings.SplitSeq(s, ",") {
+		if n, err := strconv.Atoi(f); err == nil {
+			out = append(out, int32(n))
+		}
+	}
+	return out
 }

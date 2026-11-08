@@ -698,26 +698,23 @@ func (e *Engine) settleExpiredClones(expired []cloneExpiry) {
 		// against -- notably GainThisAbility$, whose fold appends the become
 		// object's own current face abilities and would otherwise append the
 		// EXPIRING copy's.
-		e.emit(events.Event{Kind: events.ClonePermanent, Obj: k.Target})
+		// With live layers the clear lists their Seqs (CR 707.2b/c): the fold
+		// keeps those layers and re-bases onto the newest one's LOCKED face,
+		// so no source is re-read.
+		var live []int32
+		for i := range e.continuous {
+			ce := &e.continuous[i]
+			if ce.Layer == LCopy && ce.CloneTarget == k.Target && ce.CloneSeq > 0 {
+				live = append(live, ce.CloneSeq)
+			}
+		}
+		if survivor != nil && survivor.CloneSeq == 0 {
+			live = nil
+		}
+		e.emit(events.Event{Kind: events.ClonePermanent, Obj: k.Target, Text: events.CloneLiveText(live)})
 		if survivor == nil {
 			continue
 		}
-		ev := events.Event{Kind: events.ClonePermanent, Obj: k.Target,
-			IDs: []state.ObjID{survivor.CloneSource}, Player: survivor.Controller,
-			Text: survivor.CloneName}
-		if survivor.CloneChosenName != "" {
-			ev.Counter = "chosen-name"
-			ev.Text = survivor.CloneChosenName
-		} else if survivor.CloneGainThisAbility {
-			if survivor.CloneTriggerIndex > 0 {
-				ev.Counter = "gain-this-trigger"
-				ev.Amount = survivor.CloneTriggerIndex
-			} else {
-				ev.Counter = "gain-this-ability"
-				ev.Amount = survivor.CloneAbilityIndex
-			}
-		}
-		e.emit(ev)
 		for _, raw := range survivor.CloneStaticBodies {
 			e.emit(events.Event{Kind: events.CloneStatic, Obj: k.Target, Text: raw})
 		}

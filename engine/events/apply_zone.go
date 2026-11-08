@@ -1160,6 +1160,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.SetCopyFace(nil)
 		o.TokenBasis, o.TokenBasisBack, o.TokenBasisSaved = nil, nil, false
 		o.CopyGainThisAbility = false
+		o.CloneLayers = nil
 		o.Paired = 0
 		o.Targets = nil
 		o.SubTargets = nil
