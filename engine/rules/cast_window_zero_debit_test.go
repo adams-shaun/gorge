@@ -188,7 +188,7 @@ func TestZeroDebitManaReachableSurvivesNegativeLife(t *testing.T) {
 	if len(units) == 0 || len(units[0].Alts) != 1 || units[0].Alts[0].Life != 0 {
 		t.Fatalf("precondition: window census = %+v, want one zero-debit Island alt", units)
 	}
-	conv := asEval(e).Conv(0, payment.ID, payment.Class == paymentActivated)
+	conv := asEval(e).Conv(0, payment.ID, payment.SAKind())
 	if !e.castWindowReachable(0, face, av.Pool, e.G.Players[0].Snow,
 		av.Typed, e.G.Players[0].Life, conv, rider, units) {
 		t.Fatal("castWindowReachable refused {2}{U} from the zero-debit window at life -1")

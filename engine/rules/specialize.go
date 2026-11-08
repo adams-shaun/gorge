@@ -111,7 +111,7 @@ func (e *Engine) specializeLegalPriced(p state.PlayerID, id state.ObjID, faceIdx
 		if !pay.CostPayableOther(asPayer(e), p, id, cost) {
 			return Cost{}, false
 		}
-	} else if !pay.CostPayablePool(asPayer(e), p, id, false, cost, *hyp, e.G.Players[p].ManaUnits()) {
+	} else if !pay.CostPayablePool(asPayer(e), p, id, pay.SAOther, cost, *hyp, e.G.Players[p].ManaUnits()) {
 		return Cost{}, false
 	}
 	for _, kw := range o.Face().Keywords {
