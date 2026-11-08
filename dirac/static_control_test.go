@@ -389,3 +389,42 @@ func TestL5BeastbinderUntilYourNextTurn(t *testing.T) {
 		t.Fatalf("after p1's cleanup: lost %v, %d/%d, want 1/3 with its abilities", s.genLost(k, sl), p, tg)
 	}
 }
+
+// TestL5ControlStaticReappearsBelowLaterSteal: a static that loses its
+// resolved controller and gets it back (the Aura changes controller away
+// and returns, its layer timestamp unchanged, CR 613.7d) must not register
+// above a control effect that began later. The re-appearing want anchors
+// below the later until-EOT steal; the static takes the permanent back only
+// when that steal ends (gorge staticGrantNewer + expireControl).
+func TestL5ControlStaticReappearsBelowLaterSteal(t *testing.T) {
+	l := newL5(t)
+	s, k := l.sc.s, l.sc.k
+	w := l.sc.perm(l.id["Ambush Wolf"], 0)
+	a := l.sc.perm(l.id["Witness Protection"], 1)
+	s.attachTo(k, l.sc.slot(a), l.sc.slot(w))
+	s.sba(k)
+	if got := l.ctrl(w); got != 1 {
+		t.Fatalf("precondition: enchanted controller %d, want the Aura's 1", got)
+	}
+	l.gain(w, 0, kop.DurEOT, NoObj)
+	if got := l.ctrl(w); got != 0 {
+		t.Fatalf("after the later steal: controller %d, want 0", got)
+	}
+	l.gain(a, 0, kop.DurPermanent, NoObj)
+	s.sba(k)
+	if got := l.ctrl(w); got != 0 {
+		t.Fatalf("after the Aura's controller moved: controller %d, want 0", got)
+	}
+	l.gain(a, 1, kop.DurPermanent, NoObj)
+	s.sba(k)
+	if got := l.ctrl(w); got != 0 {
+		t.Fatalf("the re-appearing static took back over the later steal: controller %d, want 0 (CR 613.7)", got)
+	}
+	// The cleanup's state-based check (dirac/turn.go: ctrlCleanup then sba)
+	// re-registers the static now that the later steal is gone.
+	s.ctrlCleanup(k)
+	s.sba(k)
+	if got := l.ctrl(w); got != 1 {
+		t.Fatalf("after the later steal ended: controller %d, want the static's 1", got)
+	}
+}

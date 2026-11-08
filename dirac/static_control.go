@@ -35,8 +35,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //	r.idx  bit 0 to, bit 1 prev, bit 2 you (the effect's controller),
 //	       bits 3-5 the duration (kop.Dur*), bit 6 static, bit 7 armed
 //	r.src  the source object | its ver << 8 (NoObj: none)
-//	r.fl   unused; r.ts the static's CR 613.7a layer stamp (fcStatic;
-//	       0 for an API record)
+//	r.fl   unused; r.ts the CR 613.7a timestamp (static: the source's
+//	       layerTs; API: s.ts at begin)
 
 const (
 	fcTo       = 1 << 0
@@ -112,11 +112,14 @@ func (s *State) gainControl(sl Slot, to, you, dur uint8, src Obj, srcVer uint8, 
 	if static {
 		r.r.idx |= fcStatic
 		// CR 613.7a: the static's layer timestamp, captured at registration
-		// (gorge controlGrant.staticStamp). ctrlStaticNewer keeps an older
+		// (gorge controlGrant.orderStamp). ctrlStaticShadowed keeps an older
 		// want from registering above this record.
 		if int(src) < int(s.nobj) && s.objs[src].zone == kop.ZoneBattlefield && s.objs[src].ver == srcVer {
 			r.r.ts = s.lstamp[s.objs[src].slot]
 		}
+	} else {
+		// CR 613.7a: an API effect takes the layer clock when it began.
+		r.r.ts = s.ts
 	}
 	if dur == kop.DurYourNextTurn && s.active != you {
 		// made during another player's turn: the controller's next turn
@@ -395,12 +398,12 @@ func (s *State) ctrlSBA(k *prep) {
 		if s.ctrlStaticTracked(host, sp.ctrl, o, s.objs[o].ver) || !s.ctrlStaticWants(k, src, host) {
 			continue
 		}
-		// CR 613.7: a static already tracked on this host with a later
-		// layer timestamp wins; this want stays live but must not register
-		// above it. Without this an older Aura whose controller changes
-		// would re-register at the end of the record list, above a newer
-		// static (gorge staticGrantNewer).
-		if s.ctrlStaticNewer(host, src, s.layerTs(src)) {
+		// CR 613.7: a record already tracked on this host with a later
+		// timestamp wins; this want stays live but must not register above
+		// it. Without this an older Aura whose controller changes would
+		// re-register at the end of the record list, above a newer effect
+		// (gorge staticGrantNewer).
+		if s.ctrlStaticShadowed(host, src, s.layerTs(src)) {
 			continue
 		}
 		if !s.gainControl(host, sp.ctrl, sp.ctrl, kop.DurPermanent, o, s.objs[o].ver, true) {
@@ -424,19 +427,27 @@ func (s *State) ctrlStaticTracked(sl Slot, to uint8, o Obj, ver uint8) bool {
 	return false
 }
 
-// ctrlStaticNewer reports whether a static control record already tracked on
-// host has a later CR 613.7 layer timestamp than the static at src (gorge
+// ctrlStaticShadowed reports whether a control record already tracked on host
+// has a CR 613.7 timestamp at or after the static at src (gorge
 // staticGrantNewer). Such a want is shadowed: it stays live but must not
-// register above the newer grant. The timestamp is the one the record locked
-// at registration (gainControl), and a tie falls back to the source slot,
-// the order ctrlSBA registers equal stamps in.
-func (s *State) ctrlStaticNewer(host, src Slot, stamp uint16) bool {
+// register above the tracked record. The timestamp is the one the record
+// locked at registration (gainControl). An equal-stamp API record shadows
+// (it is already registered, so it began first); an equal-stamp static record
+// shadows only a higher source slot, the order ctrlSBA registers equal stamps
+// in.
+func (s *State) ctrlStaticShadowed(host, src Slot, stamp uint16) bool {
 	if !s.fxM.has(host) {
 		return false
 	}
 	for i := 0; i < int(s.g.nfx); i++ {
 		r := &s.g.fx[i]
-		if r.kind != fxControl || r.r.idx&fcStatic == 0 || r.sl != host {
+		if r.kind != fxControl || r.sl != host {
+			continue
+		}
+		if r.r.idx&fcStatic == 0 {
+			if r.r.ts >= stamp {
+				return true
+			}
 			continue
 		}
 		rs := s.ctrlSrcSlot(r)
