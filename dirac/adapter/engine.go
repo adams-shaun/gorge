@@ -81,13 +81,17 @@ func (e *Engine) CheckDeck(deck []*cards.Card) error {
 
 // table picks the first set holding both decks and builds their table.
 func (e *Engine) table(c game.Config) (cardset.Set, *kop.Table, error) {
+	var cmdErr error
+	if c.Format == game.FormatCommander {
+		cmdErr = checkCommander(c)
+	}
 	switch {
 	case len(c.Decks) != 2:
 		return nil, nil, fmt.Errorf("dirac plays two seats, table has %d", len(c.Decks))
 	case c.Format != game.FormatConstructed && c.Format != game.FormatCommander:
 		return nil, nil, errors.New("dirac plays constructed and two-seat commander only")
-	case c.Format == game.FormatCommander && checkCommander(c) != nil:
-		return nil, nil, checkCommander(c)
+	case cmdErr != nil:
+		return nil, nil, cmdErr
 	case c.StartChooser != nil:
 		return nil, nil, errors.New("dirac tosses for the first turn: a chosen starting player needs the gorge engine")
 	case c.Sideboards != nil:
