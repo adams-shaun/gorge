@@ -24,10 +24,18 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // ceases (CR 704.5d), as gorge's does. Not modelled, stalling loud
 // (StallCopyCast): a multi-face card other than an Adventure card (whose
 // front face is cast: gorge's Play never offers the Adventure, CR 715.3).
+//
+// The copy is cast, so its own "if you cast it" enter trigger reads true
+// (CR 707.12): pushBuild records its holding zone as prov, and enterGen reads
+// it through copyCastEntry.
 
 // DebugCopyCastNoCopy casts the original itself instead of a copy (mutation
 // test only).
 var DebugCopyCastNoCopy bool
+
+// DebugCopyCastNotCast records no provenance for a Play copy, so the copy that
+// was cast enters as if it were not (mutation test only).
+var DebugCopyCastNotCast bool
 
 // prepCopyCast sets genPrep.anyCopyCast.
 func prepCopyCast(t *kop.Table, g *genPrep) {
@@ -48,6 +56,14 @@ func prepCopyCast(t *kop.Table, g *genPrep) {
 func (s *State) copyCastFrom(o Obj) bool {
 	ob := &s.objs[o]
 	return ob.zone == kop.ZoneNone && ob.of&(ofCopy|ofToken) == ofCopy
+}
+
+// copyCastEntry reports whether the resolving spell e is a Play CopyCard$ copy
+// that was cast: pushBuild records its holding zone as prov, while a stack copy
+// that was never cast keeps prov zero (mintSpellCopy). The resolving permanent
+// is a token by now (permCopyEnters), so the cast bit cannot be read from of.
+func (s *State) copyCastEntry(k *prep, e *stackEntry) bool {
+	return !DebugCopyCastNotCast && k.gen != nil && k.gen.anyCopyCast && kop.Zone(e.prov&7) == kop.ZoneLibrary
 }
 
 // beginCopyCast mints the copy of original o for caster ctrl and begins its
