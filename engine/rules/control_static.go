@@ -204,7 +204,7 @@ func (e *Engine) reconcileControlStatics() {
 			// CR 613.7: the later static wins. A want older than a static
 			// grant already tracked on this bearer must not register above
 			// it; it waits (still live, see grantEnded) until that one stops.
-			if e.staticGrantNewer(w) {
+			if staticGrantNewer(e.controlGrants, w) {
 				continue
 			}
 			prev := o.Controller
@@ -277,8 +277,8 @@ func staticWantsOrdered(wants []staticWant) [][]staticWant {
 // staticGrantNewer reports whether a static grant already tracked on w's
 // bearer has a later CR 613.7 timestamp than w's static. Such a want is
 // shadowed: it stays live but must not register above the newer grant.
-func (e *Engine) staticGrantNewer(w staticWant) bool {
-	for _, g := range e.controlGrants {
+func staticGrantNewer(grants []controlGrant, w staticWant) bool {
+	for _, g := range grants {
 		if !g.static || g.Obj != w.obj || g.ObjStamp != w.objStamp {
 			continue
 		}
