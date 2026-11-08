@@ -20,7 +20,7 @@ import (
 // it is compared here.
 
 const (
-	continuousEffectFieldCount = 132
+	continuousEffectFieldCount = 133
 	attackOfferFieldCount      = 4
 	blockChargeFieldCount      = 7
 	objectTypesFieldCount      = 3
@@ -173,7 +173,7 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		a.AdjustLandPlays == b.AdjustLandPlays &&
 		a.CloneTarget == b.CloneTarget &&
 		a.CloneDurationTarget == b.CloneDurationTarget &&
-		a.CloneSource == b.CloneSource &&
+		a.CloneSource == b.CloneSource && a.CloneSeq == b.CloneSeq &&
 		a.CloneName == b.CloneName &&
 		a.CloneChosenName == b.CloneChosenName &&
 		sliceEq(a.CloneStaticBodies, b.CloneStaticBodies) &&

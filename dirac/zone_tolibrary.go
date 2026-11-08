@@ -41,6 +41,9 @@ func (s *State) toLibraryShuffle(k *prep, in *kop.Instr, bottom bool) {
 		// object, so the Origin$ Battlefield move still applies.
 		s.leave(k, s.objs[o].slot, kop.ZoneLibrary, bottom)
 	}
+	if s.res.ask == raGenCmdZone {
+		return // a CR 903.9b commander move parked: the shuffle waits for the answer
+	}
 	if in.Obj == kop.RefAttached && DebugEquipShufNoShuffle {
 		return
 	}
@@ -87,7 +90,13 @@ func (s *State) reverseLook() {
 func (s *State) toLibraryPair(k *prep, in *kop.Instr) {
 	first, src := s.objRefObj(in.Obj), s.objRefObj(kop.RefSelf)
 	s.moveRef(k, kop.RefSelf, kop.ZoneLibrary, false)
+	if s.res.ask == raGenCmdZone {
+		return // a CR 903.9b commander move parked: the target and the shuffle wait
+	}
 	s.moveRef(k, in.Obj, kop.ZoneLibrary, false)
+	if s.res.ask == raGenCmdZone {
+		return
+	}
 	p1 := uint8(255)
 	if first != NoObj {
 		p1 = s.objs[first].owner()

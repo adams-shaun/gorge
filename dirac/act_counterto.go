@@ -17,10 +17,6 @@ func (s *State) counterTo(k *prep, i int, dest int16) {
 		s.counterAt(k, i)
 		return
 	}
-	copy(s.stack[i:s.sp-1], s.stack[i+1:s.sp])
-	s.sp--
-	s.touch(e.obj)
-	s.objs[e.obj].zone = kop.ZoneNone
 	z, bottom := kop.ZoneLibrary, true
 	switch dest {
 	case kop.CtrDestExile:
@@ -30,6 +26,13 @@ func (s *State) counterTo(k *prep, i int, dest int16) {
 	case kop.CtrDestLibTop:
 		z, bottom = kop.ZoneLibrary, false
 	}
+	if s.cmdZoneReplace(k, e.obj, &z, &bottom) {
+		return // a CR 903.9b commander spell: parked on the stack before it leaves
+	}
+	copy(s.stack[i:s.sp-1], s.stack[i+1:s.sp])
+	s.sp--
+	s.touch(e.obj)
+	s.objs[e.obj].zone = kop.ZoneNone
 	if k.gen != nil && k.gen.anyFaces {
 		// every exit from the stack is its front again; a countered
 		// Adventure is not on an adventure (face_castface.go)

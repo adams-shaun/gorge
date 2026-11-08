@@ -321,7 +321,7 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 		case dirac.ChLegend:
 			o.kind = okKeep
 		case dirac.ChCommanderZone:
-			// CR 903.9a: gorge's KCommanderZone options command_zone / leave
+			// CR 903.9a/b: gorge's KCommanderZone options command_zone / leave
 			o.dk, o.kind = dkCommanderZone, okCommandZone
 			if mode == 1 {
 				o.kind = okLeave

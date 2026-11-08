@@ -478,6 +478,10 @@ func (s *State) runProg(k *prep) {
 		if k.gen != nil && s.entryLatePark() {
 			return // the order ask that follows a land's entry (repl_entryorder.go)
 		}
+		if s.res.ask == raGenCmdZone {
+			s.ctl = ctlResolve // a commander's CR 903.9b move was parked at a hand/library destination
+			return
+		}
 		if s.g.nask != 0 && s.midResAsk(k) {
 			return
 		}

@@ -1549,7 +1549,11 @@ func (s *State) applyPriority(k *prep, a Action) {
 	// before the granted source gorge taps; run the grant search first and
 	// let the filter search see the play priced.
 	grants := k.gen != nil && len(k.gen.grantPC) != 0
-	grantFirst := grants && a.Kind() == AkActivate && k.gen.anyFilt && s.filtOnly(k, p)
+	// A deferred source (Pyromancer's Goggles) is a gap candidate of the same
+	// search (mana_grantdeferred.go): scriptPrefix would tap it alone, ahead of a
+	// granted source that precedes it in battlefield order, which gorge's search
+	// taps first (Imprisoned in the Moon's land beside Goggles).
+	grantFirst := grants && (a.Kind() == AkActivate && k.gen.anyFilt && s.filtOnly(k, p) || k.gen.anyDeferred && s.scriptDeferred(k, p).any())
 	grantFirst = grantFirst || grants && s.deferBesideGrant(k, p) // the same one search (mana_grantdeferred.go)
 	if grantFirst {
 		s.grantPrefix(k, a, p)

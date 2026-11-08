@@ -1110,7 +1110,7 @@ func (g *GorgeSide) completeFrom(fr *frame, chosen []int, last int, budget *int)
 	if g.validAnswer(fr, chosen) {
 		return true
 	}
-	if !blockFloorsMatchable(fr, chosen) {
+	if !blockFloorsMatchable(fr, chosen) || !blockAttackMustReachable(fr, chosen) {
 		return false
 	}
 	if len(chosen) >= fr.d.Max {

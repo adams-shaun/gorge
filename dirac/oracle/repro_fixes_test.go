@@ -143,6 +143,7 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// still the one spell that turn, so neither engine offers it again
 		// (CR 601.2e; gorge excluded every push of the same ObjID).
 		{"cast_limit_counts_a_bounced_spell", false, false},
+		{"clone_rebase_locked_face", false, false}, // CR 707.2b: a clone re-base keeps the values locked when its layer was applied
 	})
 }
 
