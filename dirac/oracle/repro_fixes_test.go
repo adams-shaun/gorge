@@ -471,7 +471,8 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"blitzball_counts_crewed_legendary_vehicle", false, false},
 		// CR 113.7a, 608.2h, 702.15b: Phoenix's chapter I, pending when the legend rule bins it, deals damage with the Phoenix's lifelink
 		{"delayed_trigger_departed_source_lifelink", false, false},
-		{"effect_lifelink_follows_source_controller", false, false}, // CR 702.15b: Phoenix's chapter damage, after Stiltzkin gave Phoenix away with the ability on the stack, gains life for Phoenix's controller
+		{"effect_lifelink_follows_source_controller", false, false},  // CR 702.15b: Phoenix's chapter damage, after Stiltzkin gave Phoenix away with the ability on the stack, gains life for Phoenix's controller
+		{"effect_lifelink_departed_source_controller", false, false}, // CR 702.15b, 608.2h: Phoenix's chapter damage, after Stiltzkin donated Phoenix and Ice Magic returned it to hand, gains life for Phoenix's last-known controller
 		// CR 601.2f-g: Valkyrie Aerial Unit's affinity counts both Treasures before one is sacrificed for mana, so {2}{U}{U} is payable
 		{"count_reduction_fixed_before_treasure_mana", true, false},
 		// CR 601.2f: Cloud, Planet's Champion's "Equip abilities you activate that target NICKNAME cost {2} less" prices Equip {3} at {1} for a target named only at CR 601.2c, so the offer and the payment plan agree
