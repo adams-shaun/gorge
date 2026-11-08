@@ -42,6 +42,12 @@ func (s *State) tapsWatchClass(k *prep, p uint8, sl Slot) (painN int, deferSrc b
 				a.Trig.Zone != kop.ZoneNone && a.Trig.Zone != kop.ZoneBattlefield {
 				continue
 			}
+			// ValidPlayer$ reads the TAPPER (gorge tapsMatches/TapActor), and a
+			// mana tap is the payer's; the listener's controller is only the
+			// reference for "you"/"opponent" (tapsWhoseOK).
+			if !whoseOK(a.Trig.Whose, s.perms[w].ctrl, p) {
+				continue
+			}
 			if !s.matchPermGen(k, a.Trig.Filter, sl, s.perms[w].ctrl, w, layerFull) {
 				continue
 			}

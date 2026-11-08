@@ -577,12 +577,19 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 // the window taps it for mana. kgen lowers a self Taps trigger only on a card
 // with no printed mana ability, so this can only matter to a granted mana
 // ability; gorge's paymentPlanTapObservers defers such a source for any body
-// the census doesn't price.
+// the census doesn't price. It skips the carriers that walk skips: a permanent
+// that lost all abilities has no printed watcher left (Honest Work's Humble
+// Merchant keeps only the granted {T}), and a latent line is never subscribed
+// (tapsWatchClass's genLost/AfLatent gates).
 func (s *State) selfTapsDefer(k *prep, sl Slot) bool {
+	if s.genLost(k, sl) {
+		return false
+	}
 	cd := &k.t.Cards[s.cardAt(sl)]
 	for j := range cd.Abilities {
 		a := &cd.Abilities[j]
 		if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Flags&kop.TfSelf != 0 &&
+			a.AFlags&kop.AfLatent == 0 &&
 			(a.Trig.Zone == kop.ZoneNone || a.Trig.Zone == kop.ZoneBattlefield) {
 			return true
 		}
