@@ -2594,6 +2594,9 @@ func (s *State) manaStep(k *prep) bool {
 		if wbCast && s.bld().bfl&bflCostFixed == 0 {
 			wbFull = xFolded(s.waterbendFullCost(k), int(e.x))
 		}
+		if s.bld().manaNP == 0 && s.bld().bfl&bflPushed != 0 {
+			s.bld().manaNP = 1 + uint8(s.npend) // the payment's mana abilities queue from here (unpushSpell keeps them)
+		}
 		s.bld().bfl |= bflManaStep | bflCostFixed
 		anyColor := s.bld().bfl&bflAnyColor != 0
 		if (e.flags&sfAnyMana != 0 || anyColor) && s.bld().bfl&bflMsDone == 0 {

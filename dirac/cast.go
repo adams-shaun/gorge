@@ -274,6 +274,16 @@ func (s *State) pushBuild(k *prep) {
 	s.bld().bfl |= bflPushed
 }
 
+// proposalPendHi is the end of the pending triggers a reversed spell's own
+// proposal queued (its push, its targets, its dilemma): every one before its
+// mana step began, the rest being its mana abilities'.
+func (s *State) proposalPendHi() uint8 {
+	if m := s.bld().manaNP; m != 0 && m-1 < s.npend {
+		return m - 1
+	}
+	return s.npend
+}
+
 // unpushSpell reverses a spell pushed first (CR 601.2a) whose cast is
 // undone (CR 733.1): its stack entry is popped and the card returns from the
 // stack to the end of the zone it was cast from, as gorge's reversal moves it
@@ -302,13 +312,17 @@ func (s *State) unpushSpell(k *prep) {
 		ob.zone = kop.ZoneNone
 		return
 	}
-	if s.npend > s.bld().pushNP {
+	if hi := s.proposalPendHi(); hi > s.bld().pushNP {
 		// CR 733.1: the move off the zone it was cast from never happened, so
 		// its triggers (a card leaving a graveyard) are dropped, and the
 		// once-per-turn records they consumed come back (gorge abortCast's
 		// proposalLimits: an undone action triggered nothing, so a
-		// once-each-turn trigger it queued has not used its turn)
-		s.dropPendingLimits(k, s.bld().pushNP)
+		// once-each-turn trigger it queued has not used its turn). A mana
+		// ability the payment activated is not undone (CR 733.1 lets it
+		// stand), so what it queued stays: a creature Springleaf Drum
+		// tapped still "becomes tapped" (gorge drops only
+		// pendingCast.proposalTriggers).
+		s.dropPendingRange(k, s.bld().pushNP, hi)
 	}
 	ob.zone = s.bld().origin
 	ob.slot = NoSlot // off slotFaceDownSpell
