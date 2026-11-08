@@ -865,8 +865,9 @@ func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32, ab
 // withheld (the engine's standing rule is that wrongly withholding a legal
 // option is safe, while wrongly offering an unpayable one is an illegal game
 // action). castable is the ordinary offer gate's price check. The mana half
-// resolves through costPayable -- the seat's RESTRICTION-ADJUSTED floating
-// pool (manaAvailableFor), exactly the pool payManaFor will charge -- because
+// resolves through the shared feasibility primitive (CostMods.FeasibleAny with
+// no modifiers), against the seat's RESTRICTION-ADJUSTED floating pool
+// (manaAvailableFor), exactly the pool payManaFor will charge -- because
 // the engine must never offer a cast whose payment would later fail:
 // restricted mana (a RestrictValid$ batch, e.g. Eldrazi Temple's "colorless
 // mana that can be used only to pay Eldrazi costs") that does not match this
@@ -877,9 +878,24 @@ func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32, ab
 // candidates, SubCounter counts, Tap untappedness -- is checked against the
 // REAL state: floating mana never satisfies a sacrifice.
 func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability bool) bool {
+	// Price through the one shared feasibility primitive with the zero
+	// modifier set. For an ordinary cost that composes to the same pool check
+	// CostPayable made; for an unresolved twobrid pip it walks the pip's
+	// announcement faces, so the delve credit can pay the generic face
+	// (CR 107.4e, 702.66a). The offer gate (offerCastableUsing) prices the
+	// same way, so a may-play cast from exile and its hand counterpart cannot
+	// disagree about an all-twobrid spell under a granted Delve.
+	// The descriptor keeps the historical cost shape: delve already taken off
+	// the generic requirement the restricted-mana batches see. The feasibility
+	// walk below gets the raw cost plus the credit so it can price a twobrid
+	// pip's generic face, which the descriptor's pre-reduced generic cannot.
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic, ability)
-	if !pay.CostPayable(asPayer(e), p, id, ability, mana) {
+	var delve int32
+	if e.hasCastDelve(id, ability) {
+		delve = int32(len(e.G.Zone(state.ZGraveyard, p)))
+	}
+	if !e.manaFeasibleDescriptor(p, pay.DescriptorFor(id, ability, mana), cost, costMods{}, 0, delve, asEval(e).MayPlayRider(p, id)) {
 		return false
 	}
 	return pay.NonManaCastable(asPayer(e), p, id, cost, ability, "")
