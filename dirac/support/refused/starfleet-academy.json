@@ -1,0 +1,16 @@
+{
+  "card": "Starfleet Academy",
+  "class": "lockstep",
+  "why": "a {5},{T} dynamic-amount any-colour filter beside a granted creature mana ability (Rok-Tahk's {T}: GG): gorge's prefix search taps the granted creatures to fund its fee and the play pays from B, while the kernel's grant search finds no prefix and its autopay plan panics",
+  "repro": {
+    "pool": "std-trk",
+    "surface": "full",
+    "seed": 1,
+    "pair": 9885,
+    "policy": "random",
+    "mulligans": 1
+  },
+  "evidence": [
+    "std-trk"
+  ]
+}
