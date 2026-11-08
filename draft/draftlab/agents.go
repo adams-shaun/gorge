@@ -41,6 +41,8 @@ var builtinVersions = map[string]string{
 	"drafter:best23":         "1",
 	"drafter:balanced":       "1",
 	"builder:best23":         "1",
+	"drafter:champion":       "1",
+	"builder:champion":       "1",
 	"builder:rating-colour":  "1",
 	"builder:balanced":       "1",
 	"player:bot":             "1",

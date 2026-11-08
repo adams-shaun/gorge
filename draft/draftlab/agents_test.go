@@ -139,3 +139,24 @@ func pickbotRegisterForTest(t *testing.T, name string) {
 		return &pickbot.Best23{Lookup: lookup}
 	})
 }
+
+func TestLabResolvesChampion(t *testing.T) {
+	l := testLab(t)
+	d := testDrafter(t, l, "champion")
+	if d.Ref != (AgentRef{Name: "champion", Version: "1"}) {
+		t.Errorf("drafter ref = %+v", d.Ref)
+	}
+	if _, ok := d.Drafter.(*pickbot.Knobbed); !ok {
+		t.Errorf("drafter is %T", d.Drafter)
+	}
+	b, err := l.Builder(AgentRef{Name: "champion"})
+	if err != nil || b.Ref.Version != "1" {
+		t.Errorf("builder: %+v %v", b.Ref, err)
+	}
+	if _, err := l.Builder(AgentRef{Name: "champion", Version: "1"}); err != nil {
+		t.Error(err)
+	}
+	if _, err := l.Drafter(AgentRef{Name: "champion", Version: "2"}); !errors.Is(err, ErrVersion) {
+		t.Errorf("version 2 err = %v", err)
+	}
+}

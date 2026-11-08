@@ -17,6 +17,7 @@ import (
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/draft/event"
 	"github.com/adams-shaun/gorge/draft/limited/draft"
+	"github.com/adams-shaun/gorge/draft/limited/pickbot"
 	"github.com/adams-shaun/gorge/draft/limited/setdata"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/server/host"
@@ -430,6 +431,10 @@ func (h *Host) CreateEvent(req protocol.CreateEventRequest) (protocol.CreateEven
 				drafter = "rating-colour"
 			}
 			if _, _, err := h.newPersona(drafter, h.lookup()); err != nil {
+				h.mu.Unlock()
+				return protocol.CreateEventResponse{}, errBadRequest("eventhost: %v", err)
+			}
+			if err := pickbot.CheckPersonaSet(drafter, req.Set); err != nil {
 				h.mu.Unlock()
 				return protocol.CreateEventResponse{}, errBadRequest("eventhost: %v", err)
 			}

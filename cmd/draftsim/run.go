@@ -84,6 +84,11 @@ func run(o options, out io.Writer) (*result, error) {
 	if err != nil {
 		return nil, err
 	}
+	for _, name := range []string{o.drafter, o.builder} {
+		if err := pickbot.CheckPersonaSet(name, o.set); err != nil {
+			return nil, err
+		}
+	}
 	// The pod shape is validated next, still before anything expensive:
 	// a bad -seats/-mode/-structure/-rounds/-draftlog pairing is refused
 	// without opening the corpus.

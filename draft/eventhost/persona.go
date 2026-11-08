@@ -22,8 +22,13 @@ type (
 // newPersona builds one fresh drafter/builder pair for a named persona.
 // Only the concrete types the registry ships are supported: the pair is
 // rebuilt with the caller's Lookup so no persona ever shares a card-facts
-// closure with the registry's zero values.
+// closure with the registry's zero values. The champion pair is the
+// exception: it comes from pickbot.New, which carries its tuning and table.
 func (h *Host) newPersona(name string, lookup pickbotCardLookup) (pickbotDrafter, pickbotBuilder, error) {
+	if name == pickbot.ChampionName {
+		d, b, _ := pickbot.New(name, lookup)
+		return d, b, nil
+	}
 	d, b, ok := pickbot.Lookup(name)
 	if !ok {
 		return nil, nil, fmt.Errorf("unknown pickbot persona %q (known: %s)", name, strings.Join(pickbot.Names(), ", "))
