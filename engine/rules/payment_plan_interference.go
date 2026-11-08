@@ -133,7 +133,7 @@ func (e *Engine) paymentPlanSourceInterference(id state.ObjID, ma *cards.SA) (pa
 	cost := e.abilityCompiledCost(ma).Cost
 	for _, produced := range pay.PaymentPlanProductions(asPayer(e), id, ma) {
 		if cost.Tap {
-			dmg, _, by, ok := e.paymentPlanTapObservers(id, controller, produced)
+			dmg, _, by, ok := e.paymentPlanTapObservers(id, controller, produced, false)
 			if !ok {
 				return deferredBy(by)
 			}
@@ -160,14 +160,16 @@ func (e *Engine) paymentPlanSourceInterference(id state.ObjID, ma *cards.SA) (pa
 // paymentPlanTapExtraMana is the additional mana the deterministic static
 // TapsForMana triggers (pay.PaymentPlanFoldableTapMana) add when id taps for
 // ma producing `produced`. It is the same walk paymentPlanSourceInterference
-// ran: that verdict was not deferred, so every observer is either the source's
-// own damage trigger or folded here.
+// ran, taken whole: a source that verdict deferred (Gran-Gran's own "becomes
+// tapped" loot beside Great Divide Guide's granted {T}) still gets every
+// folded trigger's mana when it taps (CR 605.4a), so the potential bound and
+// the relaxed proof, which may only over-produce, read it too.
 func (e *Engine) paymentPlanTapExtraMana(id state.ObjID, produced string) state.Mana {
 	src := e.G.Obj(id)
 	if src == nil {
 		return state.Mana{}
 	}
-	_, extra, _, _ := e.paymentPlanTapObservers(id, src.Controller, produced)
+	_, extra, _, _ := e.paymentPlanTapObservers(id, src.Controller, produced, true)
 	return extra
 }
 
@@ -189,6 +191,8 @@ func (e *Engine) manaProductionAltered(id state.ObjID, ma *cards.SA) bool {
 // a mana tap of id (activated by activator, declaring produced) through the
 // real matcher. It returns the source's own City-of-Brass damage, or ok=false
 // with the object whose trigger would otherwise act on the tap or the mana.
+// whole keeps walking past such an object (by and ok still name the first),
+// so extra sums every folded trigger whatever else watches the tap.
 //
 // The printed walk visits every carrier object (paymentPlanInterferenceCarriers)
 // of an alive player that the engine's own trigger walk would consider --
@@ -196,7 +200,7 @@ func (e *Engine) manaProductionAltered(id state.ObjID, ma *cards.SA) bool {
 // checkFaceTriggers walks them -- and leaves the zone question to the real
 // zoneGate. Granted-trigger statics that observe a Tap are walked over the
 // battlefield recipients their Affected$ admits.
-func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerID, produced string) (damage uint32, extra state.Mana, by state.ObjID, ok bool) {
+func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerID, produced string, whole bool) (damage uint32, extra state.Mana, by state.ObjID, ok bool) {
 	// The synchronous context emitManaTap/emitTap establish around the Tap
 	// event, restored before return: this is matcher scratch, not game state.
 	savedObj, savedPlayer, savedEntering := e.tapObj, e.tapPlayer, e.tapEntering
@@ -208,6 +212,15 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 		e.tappingForMana, e.tappingManaProduced = savedMana, savedProduced
 	}()
 	ev := events.Event{Kind: events.Tap, Obj: id}
+	ok = true
+	// deferBy records the first object whose trigger defers the tap; the walk
+	// stops there unless whole.
+	deferBy := func(obj state.ObjID) bool {
+		if ok {
+			by, ok = obj, false
+		}
+		return !whole
+	}
 	tapMode := func(mode string) bool { return mode == "Taps" || mode == "TapsForMana" }
 	for _, oid := range pay.PaymentPlanInterferenceCarriers(asPayer(e)) {
 		o := e.G.Obj(oid)
@@ -235,8 +248,11 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 				// is the payer; a ProduceMana replacement on that extra mana
 				// defers as it does for the source's own production.
 				if tm, folds := pay.PaymentPlanFoldableTapMana(fc.face, t); folds && (tm.ToTapped || o.Controller == activator) {
-					if by, replaced := e.paymentPlanExtraReplaced(oid, activator, tm.Mana); replaced {
-						return 0, state.Mana{}, by, false
+					if rby, replaced := e.paymentPlanExtraReplaced(oid, activator, tm.Mana); replaced {
+						if deferBy(rby) {
+							return 0, state.Mana{}, by, false
+						}
+						continue
 					}
 					for i := range extra {
 						extra[i] += tm.Mana[i]
@@ -256,7 +272,9 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 					}
 					continue
 				}
-				return 0, state.Mana{}, oid, false
+				if deferBy(oid) {
+					return 0, state.Mana{}, by, false
+				}
 			}
 		}
 	}
@@ -297,15 +315,18 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 					continue
 				}
 				for i, t := range granted {
-					if e.triggerMatchesWithSVars(t, rid, ev, nil, svars[i]) {
-						return 0, state.Mana{}, ce.Source, false
+					if e.triggerMatchesWithSVars(t, rid, ev, nil, svars[i]) && deferBy(ce.Source) {
+						return 0, state.Mana{}, by, false
 					}
 				}
 			}
 		}
 	}
-	if by, seen := e.paymentPlanDelayedTapObserver(id, ev); seen {
+	if dby, seen := e.paymentPlanDelayedTapObserver(id, ev); seen && deferBy(dby) {
 		return 0, state.Mana{}, by, false
+	}
+	if !ok {
+		return 0, extra, by, false
 	}
 	return damage, extra, 0, true
 }

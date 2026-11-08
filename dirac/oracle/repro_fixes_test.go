@@ -474,6 +474,8 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"attached_and_global_mana_grants_follow_the_static_walk", true, false}, // CR 613.7, 605.1a: Honest Work's {T}: Add {C} on a land of the other seat is listed after Great Divide Guide's any-colour grant, as gorge walks the statics by seat
 		{"waterbend_self_taps_watcher_census", false, true},                     // CR 605.1b, 701.67a: Great Divide Guide's granted {T} ability on Compassionate Healer fires the Healer's own Taps watcher, which gorge's census cannot price, so the waterbend announcement offers Done
 		{"free_waterbend_cast_stranded_reverses_untapped", true, false},         // CR 733.1: Benevolent River Spirit cast free off Solstice Revelations with Ty Lee waterbent leaves {4} no source pays; the cast reverses before the Mountain taps
+		// CR 605.4a: Gran-Gran, deferred by its own tap trigger, still adds Badgermole Cub's extra {G} when tapped for Great Divide Guide's granted mana, so the relaxed proof cannot rule out Foggy Swamp Vinebender's Waterbend {5}
+		{"deferred_source_keeps_tap_extra_mana", true, false},
 	})
 }
 
