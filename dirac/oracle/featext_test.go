@@ -176,7 +176,7 @@ func TestExtCounteredBombEconomy(t *testing.T) {
 	const on = feat.ExtEconomy | feat.ExtTurn
 	pre, stk, ctr, res := enc(names[0], on, -1), enc(names[1], on, -1), enc(names[2], on, -1), enc(names[3], on, -1)
 	// my open mana is the untapped lands (Dense[37]) and my hand size Dense[29]; the
-	// brief's "3 open lands" is the count after the counter is paid (measured: 6 before, 3 after)
+	// the 3 open lands after the counter is paid (measured: 6 before, 3 after)
 	dense := func(name string) (open, hand int) {
 		sc := by[name]
 		st := feat.NewEncoder(sc.Pool).EncodeStateFor(sc.State, &sc.Dec, sc.Seat)
