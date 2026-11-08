@@ -14,10 +14,8 @@ import (
 // cheapest legal set (one own permanent, or two targets one of which is own)
 // costs {1}{U}; the potential planner must witness that price, not the
 // printed {4}{U}, or the cast is never offered (kfuzz std-otj pair 1576).
-const ttabeSrc = "Name:This Town Ain't Big Enough\nManaCost:4 U\nTypes:Instant\n" +
-	"S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ 3 | ValidTarget$ Permanent.YouCtrl | EffectZone$ All | Description$ This spell costs {3} less to cast if it targets a permanent you control.\n" +
-	"A:SP$ ChangeZone | Origin$ Battlefield | Destination$ Hand | TgtPrompt$ Choose target nonland permanent | ValidTgts$ Permanent.nonLand | TargetMin$ 0 | TargetMax$ 2 | SpellDescription$ Return up to two target nonland permanents to their owners' hands.\n" +
-	"Oracle:x\n"
+// The card text is read from the corpus rather than copied here (the GPL
+// boundary test rejects a verbatim Forge line in a committed fixture).
 
 func ttabeIsland() string { return "Name:TTABE Island\nTypes:Basic Land Island\nOracle:x\n" }
 
@@ -29,7 +27,7 @@ func ttabeIsland() string { return "Name:TTABE Island\nTypes:Basic Land Island\n
 // not.
 func TestPotentialMultiTargetCostPricesCheapestSet(t *testing.T) {
 	t.Parallel()
-	e := handEngine(t, card(t, ttabeSrc))
+	e := handEngine(t, card(t, corpusCardText(t, "t/this_town_aint_big_enough.txt")))
 	spell := e.G.Zone(state.ZHand, 0)[0]
 	onBoard(t, e, 0, ttabeIsland())
 	onBoard(t, e, 0, ttabeIsland())
@@ -64,7 +62,7 @@ func TestPotentialMultiTargetCostPricesCheapestSet(t *testing.T) {
 	// the reduction, so {4}{U} is unpayable and the cast is not even a
 	// potential play. This proves the assertion above depends on the own
 	// target.
-	e2 := handEngine(t, card(t, ttabeSrc))
+	e2 := handEngine(t, card(t, corpusCardText(t, "t/this_town_aint_big_enough.txt")))
 	spell2 := e2.G.Zone(state.ZHand, 0)[0]
 	onBoard(t, e2, 0, ttabeIsland())
 	onBoard(t, e2, 0, ttabeIsland())
