@@ -285,14 +285,30 @@ func ComposeFeasibleP(m *CostMods, c *Cost, taxGeneric, delve int32) Cost {
 // payable assignment, so a payable cost is found without visiting the whole
 // tree.
 func (m CostMods) FeasibleAny(c Cost, pool, snow state.Mana, typed [7]state.Mana, life, taxGeneric, delve int32, bLifeOK bool, rider PipRider, conv *Conv) bool {
+	return m.FeasibleAnyAvail(c, pool, snow, typed, life, taxGeneric, delve, bLifeOK, rider, conv, nil)
+}
+
+// FeasibleAnyAvail is FeasibleAny with a per-leaf availability supplier:
+// avail, when non-nil, replaces pool and typed for each composed leaf with
+// the restriction-adjusted pool for THAT leaf's resolved cost. A restriction
+// whose admission reads the cost's shape (CantPayGenericCosts) must not be
+// admitted for a leaf whose announced generic face adds mana its batch
+// cannot pay, so a caller pricing a cost with live announcement pips whose
+// availability depends on them passes the supplier; a caller with a fixed
+// pool passes nil and keeps FeasibleAny exactly.
+func (m CostMods) FeasibleAnyAvail(c Cost, pool, snow state.Mana, typed [7]state.Mana, life, taxGeneric, delve int32, bLifeOK bool, rider PipRider, conv *Conv, avail func(cost Cost) (state.Mana, [7]state.Mana)) bool {
 	composed := func(c Cost) bool {
 		cc := m.ComposeFeasible(c, taxGeneric, delve)
+		p, t := pool, typed
+		if avail != nil {
+			p, t = avail(cc)
+		}
 		// The pool-unit floor is a necessary condition of ResolveManaWith's
 		// own search (poolUnitsFloor), decided without building its pips.
-		if int64(pool.Total()) < cc.PoolUnitsFloor() {
+		if int64(p.Total()) < cc.PoolUnitsFloor() {
 			return false
 		}
-		_, ok := ResolveManaWith(cc, pool, snow, typed, life, bLifeOK, rider, conv)
+		_, ok := ResolveManaWith(cc, p, snow, t, life, bLifeOK, rider, conv)
 		return ok
 	}
 	if !m.FaceSensitiveP(&c) || c.AnnPipCount() == 0 {

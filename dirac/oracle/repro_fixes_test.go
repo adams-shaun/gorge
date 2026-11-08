@@ -383,6 +383,12 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// finish reverses the cast keeping the floated mana (CR 733.1: a
 		// player may reverse mana abilities activated for an illegal play)
 		{"twobrid_delve_unpayable_window", true, false},
+		// CR 107.4e, 702.66a: a card exiled by Cori Mountain Monastery's
+		// may-play permission is still castable when Teval, Arbiter of
+		// Virtue's granted delve pays the twobrid pips' generic faces, so
+		// the offer is present from exile with an empty pool and six
+		// graveyard cards (the hand walk already priced this).
+		{"mayplay_twobrid_delve_offer", true, false},
 		// CR 601.2g with CR 107.4e: the reversed twobrid cast's window taps
 		// Opulent Palace's "Combo B G U" while both G and U are owed; gorge's
 		// ask lists the Combo's printed order, so its answer is G, and the
