@@ -57,12 +57,11 @@ func delayedAmt(d delayed) int16 {
 func (s *State) resolveSacUntracked(k *prep, e *stackEntry) {
 	head := dlyRef(e.obj, e.trigObj)
 	ob := &s.objs[head]
+	var hit slotMask
 	if ob.zone == kop.ZoneBattlefield && !s.sacBlocked(k, ob.slot) {
-		sl := ob.slot
-		s.fireSac(k, sl)
-		s.leaveParked(k, sl)
+		hit = hit.with(ob.slot)
 	}
-	s.sacAtEndFollowers(k, head)
+	s.sacAtEndFollowers(k, head, hit)
 }
 
 // staleOrdered: a next-end-step action whose gorge body is incarnation-
