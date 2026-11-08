@@ -119,6 +119,19 @@ func (s *State) fireEntries(k *prep, b *entBatch) {
 	b.n = 0
 }
 
+// fireOrHoldEntries is fireEntries, except inside a "for each of them" loop's
+// open frame (execEachTarget): the copies of the loop's other targets enter
+// in the same zone batch (gorge effCopyPermanent, CR 603.6a), so these
+// entrants' checks wait for the frame's end (genState.held, fireHeld).
+func (s *State) fireOrHoldEntries(k *prep, b *entBatch) {
+	if s.g.inLoop && s.g.batchLatch&batchHeld != 0 {
+		s.holdBatch(b)
+		b.n = 0
+		return
+	}
+	s.fireEntries(k, b)
+}
+
 // createTokensHeld is OpCreateToken / OpCreateTokenEx for n ≥ 2 tokens:
 // one Token resolution's creations enter together (gorge runTokenMints'
 // zone batch, CR 603.6a), so their enters checks are held to the end. True
