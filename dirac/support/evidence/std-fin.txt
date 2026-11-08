@@ -5,6 +5,7 @@ Adventurer's Airship
 Adventurer's Inn
 Aerith Gainsborough
 Aerith Rescue Mission
+Aettir and Priwen
 Ahriman
 Airship Crash
 Al Bhed Salvagers
@@ -12,6 +13,7 @@ Ambrosia Whiteheart
 Ashe, Princess of Dalmasca
 Auron's Inspiration
 Balamb Garden, SeeD Academy
+Balamb T-Rexaur
 Balthier and Fran
 Bard's Bow
 Baron, Airship Kingdom
@@ -27,6 +29,7 @@ Buster Sword
 Cactuar
 Call the Mountain Chocobo
 Capital City
+Cargo Ship
 Cecil, Dark Knight
 Choco-Comet
 Chocobo Kick
@@ -38,6 +41,7 @@ Clive's Hideaway
 Clive, Ifrit's Dominant
 Cloud of Darkness
 Cloud, Midgar Mercenary
+Cloud, Planet's Champion
 Cloudbound Moogle
 Coeurl
 Coliseum Behemoth
@@ -45,6 +49,8 @@ Combat Tutorial
 Commune with Beavers
 Coral Sword
 Cornered by Black Mages
+Crossroads Village
+Crystal Fragments
 Dark Confidant
 Dark Knight's Greatsword
 Deadly Embrace
@@ -61,21 +67,25 @@ Elixir
 Emet-Selch, Unsundered
 Esper Origins
 Evil Reawakened
+Excalibur II
 Exdeath, Void Warlock
 Fang, Fearless l'Cie
 Fate of the Sun-Cryst
 Fight On!
+Fire Magic
 Forest
 From Father to Son
 Gaelicat
 Gaius van Baelsar
 Galuf's Final Act
 Garland, Knight of Cornelia
+Garnet, Princess of Alexandria
 Genji Glove
 Gigantoad
 Giott, King of the Dwarves
 Gladiolus Amicitia
 Gohn, Town of Ruin
+Golbez, Crystal Collector
 Gongaga, Reactor Town
 Goobbue Gardener
 Gran Pulse Ochu
@@ -83,7 +93,9 @@ Guadosalam, Farplane Gateway
 Gysahl Greens
 Haste Magic
 Hecteyes
+Hill Gigas
 Hope Estheim
+Ice Flan
 Ice Magic
 Ignis Scientia
 Il Mheg Pixie
@@ -97,8 +109,10 @@ Jecht, Reluctant Guardian
 Jenova, Ancient Calamity
 Jidoor, Aristocratic Capital
 Jill, Shiva's Dominant
+Joshua, Phoenix's Dominant
 Judge Magister Gabranth
 Judgment Bolt
+Jumbo Cactuar
 Kefka, Court Mage
 Kuja, Genome Sorcerer
 Laughing Mad
@@ -116,6 +130,7 @@ Magic Pot
 Magitek Armor
 Magitek Infantry
 Magitek Scythe
+Malboro
 Midgar, City of Mako
 Minwu, White Mage
 Monk's Fist
@@ -145,11 +160,13 @@ Raubahn, Bull of Ala Mhigo
 Reach the Horizon
 Red Mage's Rapier
 Relentless X-ATM092
+Relm's Sketching
 Resentful Revelation
 Restoration Magic
 Retrieve the Esper
 Ride the Shoopuf
 Ring of the Lucii
+Rinoa Heartilly
 Rook Turret
 Rosa, Resolute White Mage
 Rufus Shinra
@@ -202,6 +219,7 @@ Syncopate
 Tellah, Great Sage
 The Crystal's Chosen
 The Earth Crystal
+The Emperor of Palamecia
 The Final Days
 The Fire Crystal
 The Gold Saucer
@@ -210,8 +228,10 @@ The Prima Vista
 The Regalia
 The Wind Crystal
 Thief's Knife
+Thunder Magic
 Tidus, Blitzball Star
 Tifa Lockhart
+Tifa's Limit Break
 Tonberry
 Torgal, A Fine Hound
 Town Greeter
@@ -221,6 +241,7 @@ Treno, Dark City
 Ultima
 Ultima Weapon
 Ultimecia, Temporal Threat
+Ultros, Obnoxious Octopus
 Undercity Dire Rat
 Valkyrie Aerial Unit
 Vayne's Treachery
