@@ -880,7 +880,16 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			_, t := s.pt(k, b)
 			lethal := t - int(s.perms[b].damage) - int(r.toPerm[b])
 			if dt {
-				lethal = 1
+				// A deathtouch source owes the blocker only 1, or nothing
+				// once the blocker already carries a Deathtouched mark: the
+				// mark alone is lethal (CR 704.5h), so a second-strike
+				// trampler may spill over without assigning to it again
+				// (CR 702.19b; gorge's lethalDamageNeed).
+				if s.perms[b].flags&pfDeathtouched != 0 {
+					lethal = 0
+				} else if lethal > 1 {
+					lethal = 1
+				}
 			}
 			if lethal < 0 {
 				lethal = 0
