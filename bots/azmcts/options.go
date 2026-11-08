@@ -129,6 +129,16 @@ type Options struct {
 	// bounds a decision's wall time sets it, and the answer then depends on
 	// how many simulations the clock allowed.
 	DeadlineMinSims int
+	// StopEarly, when set, is asked after every simulation RunTree attempts
+	// with the root children's visits so far (root order; the slice is
+	// reused, so it must not be kept), the simulations completed and those
+	// attempted. True stops the loop there and counts Stats.EarlyStops; the
+	// tree's choice is played as on a full run (it is not a deadline hit).
+	// A host uses it to end a search whose most-visited child can no longer
+	// be overtaken. nil (the default) costs nothing and changes nothing. It
+	// is an interface, not a func, so Options stays comparable; implement it
+	// on a pointer type.
+	StopEarly EarlyStopper
 	// Kinds are the searched decision kinds.
 	Kinds Kinds
 	// AutoPayment lifts engine-provided automatic payment witnesses into
@@ -403,6 +413,12 @@ func ParseDiscountUnit(s string) (DiscountUnit, error) {
 // and RootTruncated count every cut that happens anyway).
 const BenchCandidateLimit = 512
 
+// EarlyStopper is Options.StopEarly: Stop reports whether RunTree should end
+// after the simulation just attempted.
+type EarlyStopper interface {
+	Stop(visits []int, completed, attempted int) bool
+}
+
 // DefaultOptions are the design's values (§2) and the candidate and
 // step caps.
 func DefaultOptions() Options {
@@ -479,6 +495,9 @@ type Stats struct {
 	// or became done between simulations, the tree stopped where it was and
 	// the bot's answer was played. A live context never counts it.
 	DeadlineHits int
+	// EarlyStops counts searches Options.StopEarly ended before Sims (0 or
+	// 1 per Search).
+	EarlyStops int
 	// OppPoints and OppExpanded are Options.OpponentNodes at work:
 	// OppPoints counts the selections simulations made at an opponent's
 	// point (one per visit, a discarded simulation's included), OppExpanded
@@ -666,6 +685,7 @@ func (s *Stats) Add(o Stats) {
 	s.BotTapRerooted += o.BotTapRerooted
 	s.Livelocks += o.Livelocks
 	s.DeadlineHits += o.DeadlineHits
+	s.EarlyStops += o.EarlyStops
 	s.OppPoints += o.OppPoints
 	s.OppExpanded += o.OppExpanded
 	s.Truncated += o.Truncated

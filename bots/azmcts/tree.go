@@ -344,6 +344,7 @@ func RunTree(ctx context.Context, root *Point, src EnvSource, opts Options, st *
 		top.pt = root
 		cache = &nodeCache{src: ns, max: opts.NodeCache}
 	}
+	var seen []int // StopEarly's visits, reused
 	for i := 0; i < opts.Sims; i++ {
 		if ctx != nil {
 			if err := ctx.Err(); err != nil {
@@ -357,21 +358,30 @@ func RunTree(ctx context.Context, root *Point, src EnvSource, opts Options, st *
 		if cache != nil {
 			if err := cache.simulate(top, i, opts, st); err != nil {
 				classify(st, err)
-				continue
+			} else {
+				st.Completed++
 			}
-			st.Completed++
+			if stopEarly(top, opts, st, &seen, i) {
+				break
+			}
 			continue
 		}
 		env, err := src.Env(i)
 		if err != nil {
 			classify(st, err)
+			if stopEarly(top, opts, st, &seen, i) {
+				break
+			}
 			continue
 		}
 		if err := simulate(top, env, opts, st); err != nil {
 			classify(st, err)
-			continue
+		} else {
+			st.Completed++
 		}
-		st.Completed++
+		if stopEarly(top, opts, st, &seen, i) {
+			break
+		}
 	}
 	if cache != nil {
 		cache.reclaim()
@@ -391,6 +401,26 @@ func RunTree(ctx context.Context, root *Point, src EnvSource, opts Options, st *
 		}
 	}
 	return res, nil
+}
+
+// stopEarly asks opts.StopEarly, when set, whether to end the loop after
+// simulation i, and counts st.EarlyStops when it does. The last simulation
+// never counts as an early stop.
+func stopEarly(top *node, opts Options, st *Stats, seen *[]int, i int) bool {
+	if opts.StopEarly == nil || i+1 >= opts.Sims {
+		return false
+	}
+	if *seen == nil {
+		*seen = make([]int, len(top.kids))
+	}
+	for k := range top.kids {
+		(*seen)[k] = top.kids[k].n
+	}
+	if !opts.StopEarly.Stop(*seen, st.Completed, i+1) {
+		return false
+	}
+	st.EarlyStops++
+	return true
 }
 
 // simulate is one simulation. Availability marks, visits and values are
