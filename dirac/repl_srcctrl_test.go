@@ -81,3 +81,74 @@ func TestDamageBatchDonatedSourceUsesSourceController(t *testing.T) {
 		t.Fatalf("P0 lost %d, want 6", got)
 	}
 }
+
+// TestSrcCtrlDepartedDonatedSourceUsesLastKnownController: a source donated
+// after its ability was activated, then removed with the ability still on the
+// stack, reads its last-known controller from the departed battlefield record,
+// not the ability's (CR 702.15b, 608.2h).
+func TestSrcCtrlDepartedDonatedSourceUsesLastKnownController(t *testing.T) {
+	sc, bear := donatedSrcScen(t)
+	s := sc.s
+	// Preconditions: the source is live and its controller differs from the
+	// ability's, so the two candidate answers actually differ.
+	if s.srcCtrl(sc.k) != 1 {
+		t.Fatalf("precondition: live srcCtrl = %d, want 1", s.srcCtrl(sc.k))
+	}
+	if s.res.e.ctrl != 0 {
+		t.Fatalf("precondition: ability controller = %d, want 0", s.res.e.ctrl)
+	}
+	s.leave(sc.k, sc.slot(bear), kop.ZoneGraveyard, false)
+	// Preconditions: the source is gone from the battlefield, the departed
+	// record exists, and its controller is 1 (not the ability's 0).
+	if s.objRef(sc.k, kop.RefSelf) != NoSlot {
+		t.Fatal("precondition: the source is still the resolving entry's self on the battlefield")
+	}
+	dsl := s.departedSrcSlot(&s.res.e)
+	if dsl == NoSlot {
+		t.Fatal("precondition: no departed battlefield record for the source")
+	}
+	if s.perms[dsl].ctrl != 1 {
+		t.Fatalf("precondition: departed slot controller = %d, want 1", s.perms[dsl].ctrl)
+	}
+	if s.res.e.ctrl != 0 {
+		t.Fatalf("precondition: ability controller = %d, want 0", s.res.e.ctrl)
+	}
+	if got := s.srcCtrl(sc.k); got != 1 {
+		t.Fatalf("srcCtrl after departure = %d, want its last-known controller 1", got)
+	}
+}
+
+// TestDamageToDepartedDonatedSourceUsesLastKnownController: the single-target
+// damage path reads the departed source's last-known controller too, so P1's
+// Twinflame Tyrant doubles the damage the ability deals to P0 (CR 702.15b,
+// 608.2h).
+func TestDamageToDepartedDonatedSourceUsesLastKnownController(t *testing.T) {
+	sc, bear := donatedSrcScen(t)
+	s := sc.s
+	if s.srcCtrl(sc.k) != 1 {
+		t.Fatalf("precondition: live srcCtrl = %d, want 1", s.srcCtrl(sc.k))
+	}
+	s.leave(sc.k, sc.slot(bear), kop.ZoneGraveyard, false)
+	if s.objRef(sc.k, kop.RefSelf) != NoSlot {
+		t.Fatal("precondition: the source is still the resolving entry's self on the battlefield")
+	}
+	if dsl := s.departedSrcSlot(&s.res.e); dsl == NoSlot || s.perms[dsl].ctrl != 1 {
+		t.Fatalf("precondition: departed record controller, want slot with controller 1")
+	}
+	if s.res.e.ctrl != 0 {
+		t.Fatalf("precondition: ability controller = %d, want 0", s.res.e.ctrl)
+	}
+	if sc.k.gen.anyRepl&rbDblDmg == 0 {
+		t.Fatal("rbDblDmg unset with Twinflame Tyrant in the table")
+	}
+	life := s.pl[0].life
+	if n := s.damageTo(sc.k, PlayerTarget0, 3); n != 6 {
+		t.Fatalf("damageTo returned %d, want 6", n)
+	}
+	if got := life - s.pl[0].life; got != 6 {
+		t.Fatalf("P0 lost %d, want 6", got)
+	}
+	if s.g.ro.n != 0 {
+		t.Fatalf("a replacement order ask was parked (%d candidates)", s.g.ro.n)
+	}
+}

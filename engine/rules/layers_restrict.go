@@ -57,6 +57,23 @@ func (e *Engine) restrictionBlocksTarget(id state.ObjID, actor state.PlayerID, s
 	return false
 }
 
+// registrationSpecCtx binds a registered continuous effect's captured scope
+// onto sc: its remembered objects, its captured players, and
+// SourceRememberedStrict, so Card.IsRemembered reads only what the Effect
+// captured (CR 611.2), never the source card's later persistent memory (a
+// Mobilize token appended to the source's list). Every registration reader
+// (restrictionApplies, untapDenied, the CantAttackUnless/CantBlockUnless
+// charge walks) goes through this one helper, so the scope cannot drift
+// between them.
+func registrationSpecCtx(sc effects.SpecContext, ce *ContinuousEffect) effects.SpecContext {
+	for _, r := range ce.Remembered {
+		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
+	}
+	sc.RememberedPlayers = ce.RememberedPlayers
+	sc.SourceRememberedStrict = true
+	return sc
+}
+
 // restrictionApplies reports whether a registered restriction's ValidCard$/
 // ValidTarget$ spec selects the object id. A spec containing IsRemembered is
 // resolved through the ordinary object matcher with the effect's remembered
@@ -96,15 +113,7 @@ func (e *Engine) restrictionApplies(ce *ContinuousEffect, id state.ObjID) bool {
 	if spec == "" {
 		return len(ce.Remembered) > 0
 	}
-	sc := e.specCtx(ce.Source, ce.Controller)
-	for _, r := range ce.Remembered {
-		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
-	}
-	// the registration's captured players, as untapDenied binds them: a
-	// ValidCard$ Creature.RememberedPlayerCtrl restriction (Peace in Our
-	// Time's CantAttack) selects only that player's creatures
-	sc.RememberedPlayers = ce.RememberedPlayers
-	return e.matchesSpec(spec, id, sc)
+	return e.matchesSpec(spec, id, registrationSpecCtx(e.specCtx(ce.Source, ce.Controller), ce))
 }
 
 // untapDenied reports whether a live Effect-registered UntapDenial
@@ -123,11 +132,7 @@ func (e *Engine) untapDenied(id state.ObjID) bool {
 		if spec == "" {
 			continue
 		}
-		sc := e.specCtx(ce.Source, ce.Controller)
-		for _, r := range ce.Remembered {
-			sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
-		}
-		sc.RememberedPlayers = ce.RememberedPlayers
+		sc := registrationSpecCtx(e.specCtx(ce.Source, ce.Controller), ce)
 		if e.matchesSpec(spec, id, sc) {
 			return true
 		}
