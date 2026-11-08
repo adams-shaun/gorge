@@ -274,6 +274,16 @@ func (s *State) pushBuild(k *prep) {
 	s.bld().bfl |= bflPushed
 }
 
+// proposalPendHi is the end of the pending triggers a reversed spell's own
+// proposal queued (its push, its targets, its dilemma): every one before its
+// mana step began, the rest being its mana abilities'.
+func (s *State) proposalPendHi() uint8 {
+	if m := s.bld().manaNP; m != 0 && m-1 < s.npend {
+		return m - 1
+	}
+	return s.npend
+}
+
 // unpushSpell reverses a spell pushed first (CR 601.2a) whose cast is
 // undone (CR 733.1): its stack entry is popped and the card returns from the
 // stack to the end of the zone it was cast from, as gorge's reversal moves it
@@ -302,13 +312,17 @@ func (s *State) unpushSpell(k *prep) {
 		ob.zone = kop.ZoneNone
 		return
 	}
-	if s.npend > s.bld().pushNP {
+	if hi := s.proposalPendHi(); hi > s.bld().pushNP {
 		// CR 733.1: the move off the zone it was cast from never happened, so
 		// its triggers (a card leaving a graveyard) are dropped, and the
 		// once-per-turn records they consumed come back (gorge abortCast's
 		// proposalLimits: an undone action triggered nothing, so a
-		// once-each-turn trigger it queued has not used its turn)
-		s.dropPendingLimits(k, s.bld().pushNP)
+		// once-each-turn trigger it queued has not used its turn). A mana
+		// ability the payment activated is not undone (CR 733.1 lets it
+		// stand), so what it queued stays: a creature Springleaf Drum
+		// tapped still "becomes tapped" (gorge drops only
+		// pendingCast.proposalTriggers).
+		s.dropPendingRange(k, s.bld().pushNP, hi)
 	}
 	ob.zone = s.bld().origin
 	ob.slot = NoSlot // off slotFaceDownSpell
@@ -1362,7 +1376,14 @@ func (s *State) finishBuild(k *prep) {
 		payDone := s.bld().bfl&bflPayDone != 0
 		_, wbSpell := s.waterbendPartFor(k, &e)
 		if wbSpell && s.waterbendTargetAbort(k) {
-			s.spreeCastWindowAbort(k) // the picks left the cost unpayable: the window taps as it walks, then aborts (CR 733.1)
+			if s.waterbendPickCount() > 0 {
+				// the picks stranded a cost a complete census prices
+				// (waterbendTargetAbort's probe): gorge reverses the cast
+				// before any mana ability (reverseStrandedPayment, CR 733.1)
+				s.reverseCast(k)
+				return
+			}
+			s.spreeCastWindowAbort(k) // no pick committed: the window taps as it walks, then aborts (CR 733.1)
 			return
 		}
 		if !payDone {
@@ -1862,6 +1883,10 @@ func (s *State) takePending(k *prep, i int) {
 	pt := s.pend[i]
 	copy(s.pend[i:s.npend-1], s.pend[i+1:s.npend])
 	s.npend--
+	// the trigger's push is progress: gorge's TriggerPush event clears the
+	// no-progress abort counts (emit's suppression rule), so a cast reversed
+	// before it may be redone after it (CR 733.2; noProgress)
+	s.touchN++
 	// A stale warp / unearth / destroy / exile promise, or an incarnation-tracked
 	// one (Decayed), still triggers and is put on the stack (CR 603.7); it
 	// resolves doing nothing to the new object (CR 400.7: resolveDelayed and
