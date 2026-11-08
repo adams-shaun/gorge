@@ -253,6 +253,7 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind) {
 	v := &e.v
 	kp := &e.kp
 	e.st0 = s
+	e.killAgg = false
 	e.kgen++
 	if e.kgen == 0 {
 		e.kpg = [dirac.MaxObj]uint32{}
