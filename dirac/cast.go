@@ -774,7 +774,9 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				// with no target asks nothing before this stage, so the life part
 				// would otherwise be paid into negative life instead of reversing
 				// (CR 601.2h, 733.1). A PayLife<X> is bounded by the X ask.
-				if ac := spellAddCost(k, e.card); ac.Flags&kop.CostPayLife != 0 && int(s.pl[e.ctrl&1].life) < int(ac.N) {
+				// buildPickCost is the chosen either-or part: an alt-add cast
+				// paying its mana part owes no life (Redirect Lightning).
+				if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 && int(s.pl[e.ctrl&1].life) < int(pc.N) {
 					s.reverseCast(k)
 					return false
 				}
