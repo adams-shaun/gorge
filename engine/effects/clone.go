@@ -689,6 +689,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		// carries ANOTHER live unit re-bases the object onto the
 		// survivor instead of clearing the shared CopyFace basis.
 		reg(state.ContinuousEffect{Layer: state.LCopy, CloneSource: t.Obj,
+			CloneSeq:  g.Obj(b.Obj).CloneSeq,
 			CloneName: newName, CloneChosenName: chosenName,
 			CloneStaticBodies: staticBodies, CloneGainThisAbility: gainThisAbility,
 			CloneAbilityIndex: cloneAbilityIndex, CloneTriggerIndex: cloneTriggerIndex,

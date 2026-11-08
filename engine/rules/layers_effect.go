@@ -666,9 +666,11 @@ func (e *Engine) expireUntilTargetedUntaps(ev events.Event, wasTapped bool) {
 // exactly the event stream this cleanup emitted before overlapping units were
 // modelled (heads unmoved for every game with at most one copy per object).
 //
-// The re-base is one ClonePermanent naming the survivor's own source, name
-// and GainThisAbility$ rider, so it goes through events.Apply like every
-// other state change and a replay derives the identical face.
+// The re-base is the clear itself: its Text lists the live layers' Seqs and
+// the fold restores the newest one's LOCKED face (CR 707.2b/c), never a fresh
+// read of a source; IDs[1] names the survivor's source for the activation
+// count (activationUsedSince). IDs[0] stays zero, so every reader that does
+// not know the form still sees a clear.
 func (e *Engine) settleExpiredClones(expired []cloneExpiry) {
 	if len(expired) == 0 {
 		return
@@ -691,33 +693,30 @@ func (e *Engine) settleExpiredClones(expired []cloneExpiry) {
 				survivor = ce
 			}
 		}
-		// Clear first, unconditionally. With no survivor that is the whole
-		// settle (the single-unit case, byte-identical to the pre-overlap
-		// build). With one, it puts the object back on its PRINTED face
-		// before the re-base, which is what the survivor's copy is taken
-		// against -- notably GainThisAbility$, whose fold appends the become
-		// object's own current face abilities and would otherwise append the
-		// EXPIRING copy's.
-		e.emit(events.Event{Kind: events.ClonePermanent, Obj: k.Target})
+		// One clear settles the target. With no survivor it restores the
+		// printed face (the single-unit case, byte-identical to the
+		// pre-overlap build). With live layers it lists their Seqs (CR
+		// 707.2b/c): the fold keeps those layers and re-bases onto the newest
+		// one's LOCKED face (GainThisAbility$ rider and prototype status
+		// included), so no source is re-read.
+		var live []int32
+		for i := range e.continuous {
+			ce := &e.continuous[i]
+			if ce.Layer == LCopy && ce.CloneTarget == k.Target && ce.CloneSeq > 0 {
+				live = append(live, ce.CloneSeq)
+			}
+		}
+		if survivor != nil && survivor.CloneSeq == 0 {
+			live = nil
+		}
+		clear := events.Event{Kind: events.ClonePermanent, Obj: k.Target, Text: events.CloneLiveText(live)}
+		if len(live) > 0 {
+			clear.IDs = []state.ObjID{0, survivor.CloneSource}
+		}
+		e.emit(clear)
 		if survivor == nil {
 			continue
 		}
-		ev := events.Event{Kind: events.ClonePermanent, Obj: k.Target,
-			IDs: []state.ObjID{survivor.CloneSource}, Player: survivor.Controller,
-			Text: survivor.CloneName}
-		if survivor.CloneChosenName != "" {
-			ev.Counter = "chosen-name"
-			ev.Text = survivor.CloneChosenName
-		} else if survivor.CloneGainThisAbility {
-			if survivor.CloneTriggerIndex > 0 {
-				ev.Counter = "gain-this-trigger"
-				ev.Amount = survivor.CloneTriggerIndex
-			} else {
-				ev.Counter = "gain-this-ability"
-				ev.Amount = survivor.CloneAbilityIndex
-			}
-		}
-		e.emit(ev)
 		for _, raw := range survivor.CloneStaticBodies {
 			e.emit(events.Event{Kind: events.CloneStatic, Obj: k.Target, Text: raw})
 		}
