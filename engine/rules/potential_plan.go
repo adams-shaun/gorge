@@ -335,7 +335,14 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 			// exact total only when a legal mode is free; a costlier
 			// cheapest mode would be over-offered (potentialModalCastFreeMode).
 			modalFree := got.Detail == "shape:modal_cost" && e.potentialModalCastFreeMode(p, o.Obj)
-			if alt.Reason == "" || got.Detail == "cost:x" || got.Detail == "cost:hybrid" || e.manaSpentReaderComposed(o.Obj, got.Detail) ||
+			// shape:additional_cost is the same composed-cost case even when
+			// the composition proves the mana half insufficient: the census
+			// may miss a source (Springleaf Drum's tap-another ability) the
+			// prefix search can tap, exactly as it does for an either-or
+			// part below. Returning the planner's unsupported verdict here
+			// would hide the play from that search.
+			if alt.Reason == "" || alt.Reason == pay.ReasonInsufficient && got.Detail == "shape:additional_cost" ||
+				got.Detail == "cost:x" || got.Detail == "cost:hybrid" || e.manaSpentReaderComposed(o.Obj, got.Detail) ||
 				got.Detail == "shape:target_dependent_cost" || modalFree || e.G.Obj(o.Obj) != nil && (len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 || spellExtrasAreFixedTaps(e.G.Obj(o.Obj).Face())) {
 				// A witness always; a proof only for the shapes the
 				// composition models exactly (the planner declined the
