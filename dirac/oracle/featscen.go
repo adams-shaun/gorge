@@ -12,7 +12,7 @@ import (
 )
 
 // featscen.go: constructed kernel positions for the value-head extension
-// block's tests and four-yay's value probe. dirac has no position builder, so
+// block's tests and the value probe. dirac has no position builder, so
 // each position is reached by playing a scripted mono-card game on a table
 // built from set: decks of basic lands plus one or two role cards per side,
 // driven by a rule policy (play a land; cast a role card when the scenario's
