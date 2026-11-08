@@ -6,11 +6,17 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// A game recorded from the std-dsk farm where Unstoppable Slasher returned
-// from its own dies trigger while Enduring Courage's enters trigger was still
-// on the stack. The trigger's Defined$ TriggeredCardLKICopy names the Slasher
-// that entered, so the pump does not reach the new object the card became
-// (CR 400.7). The pinned actions replay both engines in lockstep.
+// A pinned game in the shape the std-dsk farm game had: Enduring Courage is on
+// the battlefield, Unstoppable Slasher enters under it, and the Slasher is
+// killed and returned by its own dies trigger while Courage's enters trigger is
+// still on the stack. The trigger's Defined$ TriggeredCardLKICopy names the
+// Slasher that entered, so the pump does not reach the new object the card
+// became (CR 400.7). The pinned actions replay both engines in lockstep.
+//
+// The condition below is the returned board only: a Slasher with a stun counter
+// beside an Enduring Courage. It deliberately does not claim the pending-trigger
+// race, which the condition cannot see; the lockstep check is what proves the
+// race, and it parts at Cards[].Power when the pump strip is removed.
 func TestPinnedFarmUnstoppableSlasher(t *testing.T) {
 	pinnedGames(t, "std-dsk", Config{GorgeAutopaySurface: true},
 		slasherReturnedUnderCourage,

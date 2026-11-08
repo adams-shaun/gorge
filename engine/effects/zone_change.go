@@ -321,6 +321,31 @@ func dropDelayedRememberedMoved(h Host, c *Ctx, targets []state.Target) []state.
 	return out
 }
 
+// triggeredCardFamilyDefined reports whether a Defined$ reference is (or,
+// for a " & "-joined compound, has a member that is) one of the Triggered-card
+// family spellings, including a dotted qualifier. The move strip below applies
+// to the reference's whole resolved set: a compound "Self & TriggeredCardLKICopy"
+// names the moved object through both members, so only dropping the family
+// member would still let the other spelling reach the new object (CR 400.7).
+func triggeredCardFamilyDefined(r Ref) bool {
+	if r.Has(RefCompound) {
+		for part := range strings.SplitSeq(r.Raw, " & ") {
+			if triggeredCardFamilySelector(strings.TrimSpace(part)) {
+				return true
+			}
+		}
+		return false
+	}
+	return triggeredCardFamilySelector(r.Text)
+}
+
+// triggeredCardFamilySelector is one selector's base code in the Triggered-card
+// family (a dotted qualifier rides after the base).
+func triggeredCardFamilySelector(spec string) bool {
+	base, _, _ := strings.Cut(spec, ".")
+	return definedSpecCodes.Code(base) == definedSpecTriggeredCard
+}
+
 // dropTriggerRememberedMoved removes from a Defined$ TriggeredCard mover's
 // list every non-player target listed in c.TriggerRememberedMoved: the
 // object changed zones between the trigger firing and the start of its

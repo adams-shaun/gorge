@@ -123,7 +123,7 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 	// the amount the next object gets.
 	numAtt, numDef := numText(h, c, p.NumAtt, 0), numText(h, c, p.NumDef, 0)
 	targets := pumpSet(h, c, sa, p)
-	if pumpedTriggeredCard(DefinedRefOf(sa)) {
+	if triggeredCardFamilyDefined(DefinedRefOf(sa)) {
 		// A pump's Defined$ TriggeredCardLKICopy names the object the trigger
 		// fired for. If it changed zones before the trigger resolves it is a
 		// new object the pump does not reach (CR 400.7): Enduring Courage's
@@ -458,12 +458,4 @@ func pumpSet(h Host, c *Ctx, sa *cards.SA, p *PumpParams) []state.Target {
 		out = append(out, t)
 	}
 	return out
-}
-
-// pumpedTriggeredCard reports whether a pump's Defined$ is one of the
-// TriggeredCard family spellings (including a dotted qualifier) whose objects
-// the pump would affect, so the CR 400.7 move strip applies to them.
-func pumpedTriggeredCard(r Ref) bool {
-	base, _, _ := strings.Cut(r.Text, ".")
-	return definedSpecCodes.Code(base) == definedSpecTriggeredCard
 }
