@@ -182,10 +182,7 @@ func (e *Engine) attackPairCharge(id state.ObjID, defender state.PlayerID, attac
 		if spec == "" {
 			continue
 		}
-		sc := e.specCtx(ce.Source, ce.Controller)
-		for _, r := range ce.Remembered {
-			sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
-		}
+		sc := registrationSpecCtx(e.specCtx(ce.Source, ce.Controller), ce)
 		if !e.matchesSpec(spec, id, sc) {
 			continue
 		}
@@ -424,10 +421,7 @@ func (e *Engine) blockPairCharge(blocker, attacker state.ObjID) blockCharge {
 		if !cantAttackUnlessParamsReadable(sv.Params) || !e.continuousGateHolds(sv) {
 			continue
 		}
-		sc := e.specCtx(ce.Source, ce.Controller)
-		for _, r := range ce.Remembered {
-			sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
-		}
+		sc := registrationSpecCtx(e.specCtx(ce.Source, ce.Controller), ce)
 		if !e.blockStaticMatches(sv, sc, blocker, attacker) {
 			continue
 		}
