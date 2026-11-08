@@ -8,8 +8,9 @@ import (
 // The value head's extension block: State.Ext lists (slot, value) pairs over
 // ExtWidth fixed slots, each computed arithmetically (nothing hashed). It is
 // off by default (SetExt(0)): Ext is then empty and every other output is
-// unchanged. Only the economy (E) and turn-structure (T) groups are built;
-// SetExt accepts the other groups and they write nothing yet.
+// unchanged. The economy (E), turn-structure (T) and stack-target (S,
+// ext_stack.go) groups are built; SetExt accepts the other groups and they
+// write nothing yet.
 
 // ExtWidth is the block's slot count; ExtLayoutVersion names its layout.
 const (
@@ -203,6 +204,9 @@ func (e *Encoder) encodeExt(seat uint8, me, opp *vplayer) []Feature {
 			e.extAdd(xPremature, 1)
 		}
 	}
+	if e.ext&ExtStackTarget != 0 {
+		e.extStack(seat, me, opp)
+	}
 	out := e.extOut[:0]
 	for w := range e.extHit {
 		for b := e.extHit[w]; b != 0; b &= b - 1 {
@@ -266,8 +270,8 @@ func ExtSlotName(slot uint16) string {
 		return "T|me|premature-window"
 	case n < xTEnd:
 		return "reserved"
-	case n < 400:
-		return "todo:S"
+	case n < xSEnd:
+		return extStackSlotName(n)
 	case n < 442:
 		return "todo:I"
 	case n < 448:
