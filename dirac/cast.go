@@ -1362,7 +1362,14 @@ func (s *State) finishBuild(k *prep) {
 		payDone := s.bld().bfl&bflPayDone != 0
 		_, wbSpell := s.waterbendPartFor(k, &e)
 		if wbSpell && s.waterbendTargetAbort(k) {
-			s.spreeCastWindowAbort(k) // the picks left the cost unpayable: the window taps as it walks, then aborts (CR 733.1)
+			if s.waterbendPickCount() > 0 {
+				// the picks stranded a cost a complete census prices
+				// (waterbendTargetAbort's probe): gorge reverses the cast
+				// before any mana ability (reverseStrandedPayment, CR 733.1)
+				s.reverseCast(k)
+				return
+			}
+			s.spreeCastWindowAbort(k) // no pick committed: the window taps as it walks, then aborts (CR 733.1)
 			return
 		}
 		if !payDone {
