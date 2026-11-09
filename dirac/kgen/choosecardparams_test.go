@@ -24,7 +24,6 @@ func TestChooseCardDefaultParams(t *testing.T) {
 	// and assert none of them is the shared unread-params check.
 	second := map[string]string{
 		"Summoner's Grimoire": "move Hand->Battlefield",
-		"End-Blaze Epiphany":  "Effect static Duration$",
 	}
 	seen := map[string]bool{}
 	for _, c := range lowerNamed(t, carriers) {

@@ -183,7 +183,12 @@ type lowerCtx struct {
 	// RememberObjects$ Imprinted, its MayPlay and the Cleanup's
 	// ClearImprinted$ read it
 	digImprintChosen bool
-	known            func(string) bool
+	// digImprintRoot: the chain root whose Dig imprinted the resolution's
+	// imprinted set (Dig Imprint$ on a permanent's ability, Reno and Rude,
+	// Rotisserie Elemental; lower_digimprintset.go): only that chain's
+	// Effect, Defined$ Imprinted and Cleanup read it
+	digImprintRoot *cards.SA
+	known          func(string) bool
 	// granted > 0 while an ability or trigger another object is granted
 	// (an AddAbility$/AddTrigger$ SVar, an emblem's trigger) is lowered
 	granted int
@@ -1711,7 +1716,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			// an AlternateAdditionalCost's first part, a MayFlashCost
 			// extra, an OptionalCost part and a flashback cost read it
 			// (beholdOK); each caller bounds N and the parts beside it.
-			if !lc.beholdOK || len(parts) != 2 || c.BeholdN != 0 {
+			if !(lc.beholdOK || lc.unlessParse) || len(parts) != 2 || c.BeholdN != 0 {
 				return c, refuse("behold cost %q", t)
 			}
 			n, err := strconv.Atoi(parts[0])

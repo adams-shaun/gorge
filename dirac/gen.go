@@ -485,10 +485,10 @@ func tableHasPrevent(t *kop.Table) bool {
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) {
 		return nil
 	}
-	enteredNeed := false
+	enteredNeed := tableHasEnteredFrom(t)
 	for i := range t.Exprs {
 		if k := t.Exprs[i].Kind; k == kop.ExThisTurnEntered || k == kop.ExRevolt || k == kop.ExLeftZone {
 			enteredNeed = true
@@ -1917,6 +1917,9 @@ func wardAmt(c *kop.CardDef) int16 {
 	}
 	if c.WardWaterbend != 0 {
 		return wardWBBit | int16(c.WardWaterbend) // cost_unlesswaterbend.go
+	}
+	if c.WardPoison != 0 {
+		return wardPoisBit | int16(c.WardPoison) // cost_restokens.go
 	}
 	if c.WardEvidence != 0 {
 		return wardEvBit | int16(c.WardEvidence) // kw_wardcost.go

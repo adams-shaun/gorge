@@ -355,6 +355,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"PROMOTION":  kop.CtrPromotion,  // Beckett Mariner's named counter (CR 122.1)
 	"PEACE":      kop.CtrPeace,      // Peace in Our Time's named counter (CR 122.1)
 	"WISH":       kop.CtrWish,       // Wishclaw Talisman's named counter (CR 122.1)
+	"SKEWER":     kop.CtrSkewer,     // Rotisserie Elemental's named counter (CR 122.1)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -1459,6 +1460,10 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			// a permanent's granted or lost abilities change the answer
 			return kf, refuse("NoAbilities on the battlefield")
 		}
+		if c.CmpN == int(kop.W7EnteredFromBF) && zone == kop.ZoneBattlefield {
+			// the word reads a card's latest arrival; a permanent has none to read
+			return kf, refuse("ThisTurnEnteredFrom_Battlefield on the battlefield")
+		}
 		kf.Pred, kf.PredN = kop.PredWord7, int16(c.CmpN) // (kernel wordPerm / wordCard)
 	case cmpNotF2:
 		// !targetedBy / !ThisTurnEntered / !wasDealtDamageThisTurn
@@ -1691,6 +1696,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefTriggerAttackers, nil
 	case rRememberedOwner:
 		return kop.RefRememberedOwner, nil
+	case rImprinted:
+		return kop.RefImprinted, nil
 	case rTargetUnion:
 		switch r.N {
 		case 3:

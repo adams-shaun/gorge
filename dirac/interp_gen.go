@@ -621,7 +621,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		s.res.ask, s.res.askP = raGenCastFree, e.ctrl
 		return false, true
 	case kop.OpMayPlay:
-		if in.Obj == kop.RefRemembered || in.Obj == kop.RefChosen {
+		if in.Obj == kop.RefRemembered || in.Obj == kop.RefChosen || in.Obj == kop.RefImprinted {
 			n0 := s.g.nmay
 			s.mayPlayRemembered(k, in, e.ctrl) // every remembered card
 			if k.gen.anyMayWhileSrc {
@@ -2128,8 +2128,10 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 		act := kop.OpSacrifice
 		// AtEOTTrig$ Sacrifice is the token's own granted trigger: its source
 		// stays the token. Only the AtEOT$ rider is sourced on its creator
-		// (CR 603.7d-e; gorge copypermanent.go scheduleAtEOTRider).
-		creator := NoObj
+		// (CR 603.7d-e; gorge copypermanent.go scheduleAtEOTRider). The
+		// record names the token as its own creator: delayed.ownTrig marks it
+		// for the Panharmonicon echo at fire (trig_ateotecho.go).
+		creator := t
 		if fl&kop.CpExileAtEnd != 0 {
 			act = kop.OpExile // AtEOT$ Exile (gorge scheduleAtEOT, __kwWarpExile)
 			creator = e.obj
