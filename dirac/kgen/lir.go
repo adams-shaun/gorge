@@ -473,6 +473,7 @@ type lCost struct {
 	SacN         int
 	DiscardN     int      // discard N cards (any)
 	DiscardSpec  string   // Discard<N/Spec>: "" (Card, any card), "Random" or "Hand"
+	DiscardHand  bool     // Discard<N/Hand> as an activated ability's cost: the whole hand (kop.Cost.DiscardHand)
 	DiscardSelf  bool     // discard this card (a hand ability: cycling)
 	DiscardF     *lFilter // Discard<N/Spec>: the discard candidates' filter (CostDiscardFiltered)
 	Loyalty      int      // +N / -N loyalty
@@ -512,7 +513,7 @@ type lCost struct {
 	EvidenceX    bool     // CollectEvidence<X>: the announced X (a trigger's own cost only)
 	ExileTrigNew bool     // ExileAnyGrave<1/Card.TriggeredNewCard>: exile the triggered card from any graveyard (a dies trigger's own cost)
 	PutLibSelf   bool     // PutCardToLibFromGrave<1/-1/CARDNAME>: the source card goes from its graveyard to the bottom of its owner's library (a graveyard activated ability's cost)
-	BeholdN      int      // Behold<N/Type>: reveal or choose N permanents or hand cards matching BeholdF (CR 701.4a; a spell's AlternateAdditionalCost part only)
+	BeholdN      int      // Behold<N/Type>: reveal or choose N permanents or hand cards matching BeholdF (CR 701.4a; a spell's additional, optional, may-flash or flashback cost part)
 	BeholdF      *lFilter // the Behold<N/Type> candidates' filter
 }
 
@@ -521,7 +522,7 @@ type lCost struct {
 // with any other cost is outside the modelled shape.
 func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
-		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardSelf && c.DiscardF == nil && c.Loyalty == 0 && !c.LoyaltyX &&
+		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && c.Loyalty == 0 && !c.LoyaltyX &&
 		c.SubCtr == 0 && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.TapN == 0 && !c.TapHost && !c.SacHost && c.TapPowN == 0 &&
 		c.Forage == nil && c.ExileG == nil && c.ExileHandN == 0 && c.Energy == 0 && !c.ReturnSelf &&
 		!c.ExileSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.ExileTrigNew &&
@@ -905,6 +906,8 @@ type lCard struct {
 	WebSling       *manaCost // K:Web-slinging:<cost> (CR 702.188a): the hand's alternative cost (plus returning a tapped creature)
 	MayFlash       *manaCost // K:MayFlashCost:<cost> (CR 702.8): the extra mana that buys an instant-timing cast from the hand
 	MayFlashBehold *lFilter  // K:MayFlashCost:Behold<1/Type>: the extra is beholding one of these, no mana (MayFlash is empty)
+	FbBeholdN      int       // K:Flashback:<mana> Behold<N/Type>: the flashback cast also beholds N of FbBeholdF (lower_fbcost.go, CardDef.FbBehold)
+	FbBeholdF      *lFilter
 	Evoke          *manaCost // K:Evoke:<cost> (CR 702.74a): the hand's alternative cost; the permanent is sacrificed as it enters
 	Bestow         *manaCost // K:Bestow:<cost> (CR 702.103a): the hand's alternative cost of the Aura cast
 	BestowT        *lTarget  // the bestowed Aura's enchant creature target (gorge bestowedAttachSA)

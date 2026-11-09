@@ -182,7 +182,8 @@ const (
 	wasCastHand      = 2 // cast from its owner's hand by the permanent's controller; synthesised for Count$wasCastFromYourHandByYou, never a filter word
 	wasCastYourGrave = 3 // wasCastFromYourGraveyard: cast from a graveyard by the reading player (gorge castOriginTokens)
 	wasCastNot       = 4
-	wasCastSpentZero = 8 // CastSa Spell.ManaSpent EQ0: cast, and no mana was spent (gorge castSaTokenHolds)
+	wasCastSpentZero = 8  // CastSa Spell.ManaSpent EQ0: cast, and no mana was spent (gorge castSaTokenHolds)
+	wasCastWebSling  = 16 // webSlinged: cast for its web-slinging cost (gorge webSlingedAdmits; a copy reads false)
 )
 
 // Comparison operators.
@@ -752,6 +753,10 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		case "wasCastFromYourGraveyard":
 			n = wasCastYourGrave
 		}
+		if c.CmpStat == cmpWasCast && c.CmpN == wasCastWebSling && n == wasCastAny {
+			// wasCast beside webSlinged, which already implies the cast
+			return nil
+		}
 		if c.CmpStat == cmpWasCastSpell && n == wasCastAny {
 			// wasCast beside a spell word that already implies the cast
 			// (wasCastFromExile) or reads it (!wasCastFromYourHand: cast,
@@ -791,6 +796,18 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 			n |= spellNot
 		}
 		return c.setCmp(cmpWasCastSpell, 0, n, "", "")
+	case "webSlinged":
+		// gorge webSlingedAdmits (CR 702.188): the permanent entering was
+		// cast for its web-slinging cost; a stack copy never carries it
+		// (CR 707.10). Implies the cast, so it composes with a bare wasCast.
+		// Read as the permanent enters from its own spell (kernel
+		// wasCastRead bit 16; lc.wasCastOK); a spell-side read refuses in
+		// lc.filter. "!webSlinged" stays an unknown property
+		if c.CmpStat == cmpWasCast && c.CmpN == wasCastAny {
+			c.CmpN = wasCastWebSling
+			return nil
+		}
+		return c.setCmp(cmpWasCast, 0, wasCastWebSling, "", "")
 	case "CastSa Spell.ManaSpent EQ0":
 		// gorge castSaTokens {ManaSpent EQ0, tag -1}: the object was cast
 		// (a PutOnStack window exists) and its total spend is 0. Read as the
