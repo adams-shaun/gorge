@@ -1393,6 +1393,9 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 	if k.gen != nil && k.gen.anyRaiseLife {
 		s.payRaiseLife(k) // a RaiseCost PayLife<N> the chosen target owes (cost_raiselife.go)
 	}
+	if s.bld().bfl&bflPayLifeMV != 0 {
+		s.payMayPlayLife(k) // a may-play cast's alternative cost: life equal to its mana value (cast_mayplaypaylife.go)
+	}
 	if k.phyMana {
 		s.payPhyrexianLife(k) // the two-life faces (mana_phyrexian.go)
 	}

@@ -744,6 +744,10 @@ const (
 	bflTre      // this cast tapped a Treasure source for mana (CastSpecTreasure)
 )
 
+// bflPayLifeMV: the cast went through a may-play permission whose alternative
+// cost is life equal to the spell's mana value (cast_mayplaypaylife.go).
+const bflPayLifeMV uint16 = 1 << 7
+
 // bflTargetPaid: a convoke cast gorge's planner takes because only its own
 // target pays it (targetPaidPlanned): with no creature announced, its plan runs
 // at the printed cost as any planned cast's does, not the manual window.
