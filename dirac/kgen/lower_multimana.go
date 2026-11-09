@@ -459,12 +459,11 @@ func (lc *lowerCtx) refuseEachMana(ms []*lAbility) bool {
 			lc.refuseNode("card", "granted mana ability adding several colours at once")
 		case len(ms) != 1:
 			lc.refuseNode("card", "mana ability adding several colours at once beside another mana ability")
-		case m.RestrictAb != nil || m.NonSpell || m.Restrict != nil && !filterHasSpecial(m.Restrict):
-			// a restricted planner unit floats one restricted colour per tap
-			// (kernel mana_restrictedsource.go). An all-at-once ability under a
-			// spell-only restriction (Troyan, Gutsy Explorer) stays refused;
-			// Tin Street Gossip's Static.isTurnFaceUp clause is modelled with
-			// the all-at-once extra.
+		case m.RestrictAb != nil || m.NonSpell:
+			// an ability-only or non-spell restriction on an all-at-once
+			// ability has no measured repro. A spell restriction (Troyan,
+			// Gutsy Explorer; Tin Street Gossip's Static.isTurnFaceUp clause)
+			// is a restricted planner unit (kernel mana_restrictedsource.go).
 			lc.refuseNode("card", "mana ability adding several colours at once under a spend restriction")
 		case !plainTapMana(a, false) && !ctrEachMana(a):
 			// gorge's planner defers any cost beyond {T} (a filter's fee, a

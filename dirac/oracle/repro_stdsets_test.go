@@ -192,6 +192,10 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "behold_trigger_cost_makes_a_treasure"},                              // Sarkhan, Dragon Ascendant's enters trigger offers its own behold cost of a Dragon: paying with one of two candidates makes the Treasure, and both engines agree through the pick and past it (CR 701.4a)
 		{"custom", "end_blaze_chosen_card_played_next_turn", full},                      // End-Blaze Epiphany kills a Grizzly Bears, exiles that many cards and lets its controller play the chosen one on their next turn (the may-play of the chosen card to the end of the next turn)
 		{"custom", "wondrous_wasp_target_loses_abilities"},                              // The Wondrous Wasp enters and taps a Llanowar Elves, which loses all abilities for as long as the Wasp stays on the battlefield (a host-bound loss of abilities)
+		{"custom", "belligerent_attack_plays_top_of_library"},                           // The Belligerent crewed and attacking: its trigger lets p0 look at and play the top card of their library for the turn, lands and spells, and the top card changes as each is played
+		{"custom", "gwenom_attack_pays_life_for_top_of_library"},                        // Gwenom, Remorseless attacking: a spell cast from the top of the library is offered at the alternative cost only and pays life equal to its mana value in place of its mana cost (CR 118.9)
+		{"std-woe", "restricted_each_source_no_colour_ask_beside_filter"},               // Troyan, Gutsy Explorer's {G}{U} is one activation with no colour ask: the filter search beside Crystal Grotto charges it one node, so Restless Fortress's animate is still found within the 160-node budget (CR 106.1, 605.3b)
+		{"std-woe", "bargain_only_offer_with_restricted_source_in_pool"},                // Johann's Stopgap bargained for {1}{U} off a floating pool is offered whatever restricted sources the pool holds: Troyan in the decks no longer hides the discounted cast (CR 702.166, 601.2f)
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {
