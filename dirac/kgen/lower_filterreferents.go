@@ -39,6 +39,49 @@ func (lc *lowerCtx) sameNameT0Filter() (*lFilter, error) {
 	return &lFilter{Clauses: []lClause{{Types: tPermanent, CmpStat: cmpSameNameT0}}}, nil
 }
 
+// Two ChangeZoneAll ChangeType$ spellings of "the target and every other
+// card with its name". The graveyard one (Rat King, Verminister) lowers to
+// one PredSameNameT0 card clause; the Legions to Ashes one also needs
+// ControlledBy TargetedController, which the kernel's filters do not read.
+const (
+	czaSameNameGrave  = "TargetedCard.Self,Card.NotDefinedTargeted+sharesNameWith Targeted"
+	czaSameNameTokens = "TargetedCard.Self,Card.NotDefinedTargeted+token+sharesNameWith Targeted+ControlledBy TargetedController"
+)
+
+// changeZoneAllFilter reads a ChangeZoneAll's ChangeType$, routing the
+// same-name sweep spellings to sameNameT0CardFilter.
+func (lc *lowerCtx) changeZoneAllFilter(ps *params) (*lFilter, error) {
+	switch ct := ps.str("ChangeType"); ct {
+	case czaSameNameGrave:
+		return lc.sameNameT0CardFilter(ps)
+	case czaSameNameTokens:
+		return nil, refuse("ChangeZoneAll same-name tokens ControlledBy TargetedController")
+	default:
+		return lc.filter(ct)
+	}
+}
+
+// sameNameT0CardFilter lowers czaSameNameGrave: a sweep of your graveyard
+// (Origin$ Graveyard, Defined$ You: gorge changeZoneAllPlayers scopes the
+// sweep to your graveyard) taking target 0, a card in that graveyard, and
+// every other card there with its name, as one Card.YouOwn clause carrying
+// PredSameNameT0 (the kernel's card form, State.sameNameT0Card).
+func (lc *lowerCtx) sameNameT0CardFilter(ps *params) (*lFilter, error) {
+	if strings.TrimSpace(ps.str("Origin")) != "Graveyard" || strings.TrimSpace(ps.str("Defined")) != "You" {
+		return nil, refuse("sharesNameWith Targeted sweep beyond your own graveyard")
+	}
+	if len(lc.ab.Targets) != 1 || lc.ab.Targets[0].F == nil || lc.ab.Targets[0].F.Players != 0 || lc.ab.Targets[0].Zone != zGraveyard {
+		return nil, refuse("sharesNameWith Targeted sweep without one graveyard card target")
+	}
+	f, err := lc.filter("Card.YouOwn")
+	if err != nil || len(f.Clauses) != 1 {
+		return nil, refuse("sharesNameWith Targeted: Card.YouOwn")
+	}
+	ps.consume("Defined")
+	f.Clauses[0].CmpStat = cmpSameNameT0
+	return f, nil
+}
+
 // ownerRoleF2 reads an Owner role (OwnedBy TriggeredDefendingPlayer, OwnedBy
 // Targeted) off the battlefield. gorge's
 // controlReferentPlayers (op "OwnedBy") matches a card whose OWNER is one of
