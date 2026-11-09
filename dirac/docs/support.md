@@ -9,7 +9,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | list | cards | lowered | refused | unverified | supported |
 |---|---:|---:|---:|---:|---:|
 | BIG | 30 | 23 | 1 | 1 | 21 |
-| BLB | 278 | 256 | 3 | 1 | 252 |
+| BLB | 278 | 257 | 3 | 2 | 252 |
 | DFT | 276 | 249 | 0 | 3 | 246 |
 | DSK | 276 | 242 | 4 | 21 | 217 |
 | ECL | 273 | 235 | 2 | 0 | 233 |
@@ -17,20 +17,20 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | FDN | 517 | 517 | 0 | 0 | 517 |
 | FIN | 312 | 268 | 1 | 1 | 266 |
 | FRA | 269 | 247 | 0 | 8 | 239 |
-| HOB | 172 | 153 | 0 | 0 | 153 |
-| LCI | 290 | 251 | 1 | 21 | 229 |
+| HOB | 172 | 154 | 0 | 1 | 153 |
+| LCI | 290 | 252 | 1 | 22 | 229 |
 | MKM | 279 | 242 | 1 | 31 | 210 |
 | MSH | 276 | 236 | 1 | 3 | 232 |
 | OTJ | 276 | 242 | 1 | 0 | 241 |
-| SOS | 270 | 249 | 0 | 0 | 249 |
-| SPM | 192 | 163 | 1 | 4 | 158 |
+| SOS | 270 | 250 | 0 | 1 | 249 |
+| SPM | 192 | 162 | 1 | 3 | 158 |
 | TDM | 276 | 252 | 3 | 4 | 245 |
 | TLA | 285 | 254 | 1 | 2 | 251 |
 | TMT | 194 | 172 | 1 | 1 | 170 |
 | TRC | 337 | 287 | 0 | 21 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 252 | 0 | 6 | 246 |
-| ALL | 34442 | 21753 | 25 | 16639 | 5089 |
+| ALL | 34442 | 21746 | 25 | 16632 | 5089 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 

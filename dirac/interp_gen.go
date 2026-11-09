@@ -416,6 +416,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			if in.C&kop.MvRemember != 0 {
 				s.remember(o)
 			}
+			if in.C&kop.MvImprint != 0 {
+				s.imprint(o) // zone_imprint.go
+			}
 			if in.C&kop.MvForgetChanged != 0 {
 				s.forgetChanged(o) // zone_forget.go
 			}
@@ -641,7 +644,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		headed := false
 		mk := uint8(in.B.N)&kop.MayPlayKinds | uint8(in.B.N>>8)&kop.MayPlayAdvKind
-		s.g.may[s.g.nmay] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed), kind: mk, turn: s.turn}
+		s.g.may[s.g.nmay] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: s.turn}
 		s.g.nmay++
 		if k.gen.anyMayWhileSrc {
 			s.mayWhileSrcStamp(s.g.nmay-1, e.obj) // cast_whilesource.go
@@ -651,13 +654,14 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if p == 255 {
 			p = e.ctrl
 		}
-		if k.gen.anyWhileHost && k.t.Emblems[in.C].WhileHost && s.hostEmblemDone(e, p, uint8(in.C)+1) {
+		if k.gen.anyWhileHost && k.t.Emblems[in.C].HostBound() && s.hostEmblemDone(e, p, uint8(in.C)+1) {
 			break // filter_combatwords.go
 		}
 		if k.embComb && s.idemEmblemHeld(k, p, uint8(in.C)+1) {
 			break // static_emblemcombat.go
 		}
 		if s.g.nemb[p] < maxEmb {
+			s.g.embF[p] &^= 1 << s.g.nemb[p] // a new emblem has begun no turn yet
 			s.g.emb[p][s.g.nemb[p]] = uint8(in.C) + 1
 			s.g.embC[p][s.g.nemb[p]] = e.card
 			s.g.embO[p][s.g.nemb[p]] = e.obj

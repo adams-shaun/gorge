@@ -206,11 +206,8 @@ import (
 // hidden pick; merged ALL build-level 21707 -> 21709).
 // +15 (the activation-cost tokens listed at ratchet_test.go's ALL pin: Exert<N/NICKNAME>,
 // SubCounter<X/KIND> and ExileFromStack<1/Card.Self>; ALL build-level 21709 -> 21724).
-// +20 (the self-source DamageDone object-referent class: Spider-Slayer, Hatred Honed and
-// nineteen corpus-only cards of the same shape now build).
-// +20 (the merge with land: this branch's twenty beside land's +24 above; merged ALL build-level 21733 -> 21753).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21753, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21746, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

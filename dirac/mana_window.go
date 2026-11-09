@@ -201,7 +201,7 @@ func (s *State) requiredTarget(k *prep) bool {
 			continue
 		}
 		if a != nil {
-			if tm := a.TgtModes[ti]; tm != 0 && tm&e.mode == 0 {
+			if tm := a.TgtModes[ti]; tm != 0 && tm&a.ModeSet(e.mode) == 0 {
 				continue
 			}
 		}
@@ -2522,7 +2522,7 @@ func (s *State) startCastDivide(k *prep) {
 			continue
 		}
 		if a != nil {
-			if tm := a.TgtModes[ti]; tm != 0 && tm&e.mode == 0 {
+			if tm := a.TgtModes[ti]; tm != 0 && tm&a.ModeSet(e.mode) == 0 {
 				continue
 			}
 		}

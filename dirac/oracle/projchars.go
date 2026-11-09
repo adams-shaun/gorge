@@ -127,6 +127,8 @@ var gorgeKwElsewhere = map[string]string{
 	"Horsemanship": "CardDef.Evasion (compared through the block options)",
 	"Intimidate":   "CardDef.Evasion (compared through the block options)",
 	"Wither":       "CardDef.Wither (compared through the -1/-1 counters)",
+	"Undying":      "gorge kwUndying's dies trigger (kgen expandedKeywords; compared through the zone moves and the +1/+1 counters)",
+	"Exalted":      "gorge's expanded attacks-alone trigger (kgen expandedKeywords, Tf2Alone; compared through the pump on the stack and P/T)",
 	"Prevent all damage that would be dealt to CARDNAME.": "CardDef.PreventDmgTo (CR 615.1; compared through the damage behaviour)",
 	"CantAttackAlone":    "CardDef.AloneAtk (CR 506.5; compared through the attack options and Done, combat_alone.go)",
 	"Warp":               "CardDef.HasWarp (a hand alt cost and the exile recast; compared through the cast options)",

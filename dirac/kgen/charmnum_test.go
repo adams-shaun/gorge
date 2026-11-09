@@ -14,11 +14,10 @@ func TestCharmnumRefusals(t *testing.T) {
 		[]string{"Pinecone Strike", "Craftwork Crusher", "Farewell", "Azula Always Lies", "Flash Thompson, Spider-Fan", "Rankle's Prank",
 			"Epic Fight", "Go Nuts!", "HULK SMASH!", // a chain target announced after the combined ask
 			"Trystan's Command", "Atlantis Attacks", "Amazing Acrobatics", // a 1..N slot, asked sequentially
-			"Pyrrhic Strike", "Bumi, King of Three Trials", "The Ruinous Wrecking Crew",
+			"Pyrrhic Strike", "Bumi, King of Three Trials", "The Ruinous Wrecking Crew", "Moment of Reckoning", // Moment: repeatable modes (charmrepeat_test.go)
 			"Drown in Dreams", "Prophetic Titan"},
 		map[string]string{
-			"Blessed Alliance":    "multi-pick charm mode target", // "up to two target players" (0..2)
-			"Moment of Reckoning": "CanRepeatModes",
+			"Blessed Alliance": "multi-pick charm mode target", // "up to two target players" (0..2)
 		},
 		[]string{"Charm"})
 }

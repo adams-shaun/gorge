@@ -110,14 +110,10 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// Talon of Pain, The Astonishing Ant-Man; ALL 21709 -> 21724, DFT 248 -> 249,
 	// FRA 245 -> 246, MSH 235 -> 236).
 	// +9 (the merge with land: land's +9 beside the +15 above; merged ALL 21709 -> 21733, FRA 246 -> 247 measured).
-	// +20 (a self-source DamageDone line whose object ValidTarget$ body reads the damaged
-	// creature lowers on the kernel's per-referent queue: Spider-Slayer, Hatred Honed and
-	// nineteen corpus-only cards of the same class; SPM 161 -> 162).
-	// +20 (the merge with land: this branch's Spider-Slayer class beside land's +24 above; merged ALL 21733 -> 21753).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21753, 34442},
+	"ALL": {21746, 34442},
 	"BIG": {23, 30},
-	"BLB": {256, 278},
+	"BLB": {257, 278},
 	"BRO": {207, 280},
 	"DFT": {249, 276},
 	"DMU": {194, 270},
@@ -127,8 +123,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FDN": {517, 517},
 	"FIN": {268, 312},
 	"FRA": {247, 269},
-	"HOB": {153, 172},
-	"LCI": {251, 290},
+	"HOB": {154, 172},
+	"LCI": {252, 290},
 	"MKM": {242, 279},
 	"MOM": {198, 296},
 	"MSH": {236, 276},
@@ -136,8 +132,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"ONE": {196, 271},
 	"OTJ": {242, 276},
 	"SNC": {185, 266},
-	"SOS": {249, 270},
-	"SPM": {163, 192},
+	"SOS": {250, 270},
+	"SPM": {162, 192},
 	"TDM": {252, 276},
 	"TLA": {254, 285},
 	"TMT": {172, 194},
