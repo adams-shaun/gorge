@@ -193,6 +193,10 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "wondrous_wasp_target_loses_abilities"},                         // The Wondrous Wasp enters and taps a Llanowar Elves, which loses all abilities for as long as the Wasp stays on the battlefield (a host-bound loss of abilities)
 		{"custom", "cmd5_hidden_pick_commander_to_command_zone"},                   // kfuzz cmd5 heuristic pair 110: Temur Sabertooth returns Ghalta, Primal Hunger, a commander, and the owner sends it to the command zone instead: it leaves the battlefield, Rancor goes to the graveyard and its trigger is stacked (CR 903.9b)
 		{"custom", "cmd5_hidden_pick_commander_to_hand"},                           // kfuzz cmd5 heuristic pair 92: the same return answered to let it go: Ghalta reaches its owner's hand and the resolution goes on (CR 903.9b)
+		{"custom", "belligerent_attack_plays_top_of_library"},                      // The Belligerent crewed and attacking: its trigger lets p0 look at and play the top card of their library for the turn, lands and spells, and the top card changes as each is played
+		{"custom", "gwenom_attack_pays_life_for_top_of_library"},                   // Gwenom, Remorseless attacking: a spell cast from the top of the library is offered at the alternative cost only and pays life equal to its mana value in place of its mana cost (CR 118.9)
+		{"std-woe", "restricted_each_source_no_colour_ask_beside_filter"},          // Troyan, Gutsy Explorer's {G}{U} is one activation with no colour ask: the filter search beside Crystal Grotto charges it one node, so Restless Fortress's animate is still found within the 160-node budget (CR 106.1, 605.3b)
+		{"std-woe", "bargain_only_offer_with_restricted_source_in_pool"},           // Johann's Stopgap bargained for {1}{U} off a floating pool is offered whatever restricted sources the pool holds: Troyan in the decks no longer hides the discounted cast (CR 702.166, 601.2f)
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			// A tail pool is a hash-ordered run of the lowered non-Standard cards, so its
