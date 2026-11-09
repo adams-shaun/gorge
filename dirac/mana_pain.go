@@ -208,7 +208,7 @@ func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 		// (windowManaUnitsWith) lists a painland by its normal ability alone
 		// and a pain-only source by its colour, with no lethal guard
 		if pc.painOnly {
-			return uint8(pc.painCol) & 0x1f
+			return uint8(pc.painCol) & 0x3f
 		}
 		return prim
 	}
@@ -217,7 +217,7 @@ func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 		m = prim
 	}
 	if s.g.availX&availWinCol != 0 || int(pc.painN) < int(s.pl[p].life) {
-		m |= uint8(pc.painCol) & 0x1f
+		m |= uint8(pc.painCol) & 0x3f
 	}
 	return m
 }
@@ -248,7 +248,7 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	}
 	cr := s.isCreature(k, sl)
 	prim := uint8(pc.manaCol) & 0x3f
-	pm := uint8(pc.painCol) & 0x1f
+	pm := uint8(pc.painCol) & 0x3f // a pain-only {C}{C} source (Ancient Tomb) makes colourless
 	// the tap's extra: the normal ability's carriers' on its type, the
 	// painful one's non-restricted carriers' on the painful type
 	// (srcExtraPain)
@@ -274,7 +274,11 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 		}
 		t := pk.nt
 		pk.nt++
-		pk.types[t] = utype{mask: mask, dmask: mask, n: 1, creat: cr, flex: fl, pain: pain, alt: alt, irr: 3 * pain, nocol: pain != 0}
+		n := uint8(1)
+		if pain != 0 && pc.painOnly {
+			n = max(pc.manaN, 1) // Ancient Tomb's {C}{C} in one activation
+		}
+		pk.types[t] = utype{mask: mask, dmask: mask, n: n, creat: cr, flex: fl, pain: pain, alt: alt, irr: 3 * pain, nocol: pain != 0}
 		if pain != 0 {
 			pk.types[t].xv, pk.types[t].xmask, pk.types[t].xt = xp, xmp, xtp
 		} else {
@@ -283,7 +287,7 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 		if pk.types[t].xt != 0 {
 			pk.maxXt = true
 		}
-		if m := 1 + int(pk.types[t].xt); pk.maxN < m {
+		if m := int(n) + int(pk.types[t].xt); pk.maxN < m {
 			pk.maxN = m
 		}
 		return t
