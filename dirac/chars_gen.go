@@ -54,7 +54,7 @@ func (s *State) eachStatic(k *prep, f func(st statSrc) bool) {
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
 			e := &k.t.Emblems[s.g.emb[pp][i]-1]
 			sl, obj := NoSlot, NoObj
-			if e.WhileHost {
+			if e.HostBound() {
 				// a host-bound emblem reads its host as the source
 				// (filter_combatwords.go)
 				if obj = s.g.embO[pp][i]; s.objs[obj].zone != kop.ZoneBattlefield {

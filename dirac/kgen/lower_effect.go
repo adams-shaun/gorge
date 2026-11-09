@@ -936,6 +936,7 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		return in, nil
 	}
 	n := 0
+	hasGraveExile := c.ExileG != nil
 	if c.ExileG != nil {
 		// a printed trigger's own ExileFromGrave<N/Spec> (gorge's
 		// triggered-cost window: trigger_cost pay/decline, then the
@@ -952,6 +953,16 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		n++
 		in.CS, in.A, in.F = "ExileGrave", cst(c.ExileGN), c.ExileG
 		c.ExileG = nil
+	}
+	if c.ExileStackSelf {
+		// ExileFromStack<1/Card.Self> beside the graveyard exile (Sphinx's
+		// Approach, Dragon's Approach): the resolving spell itself leaves the
+		// stack as the same unless cost is paid, after the grave picks.
+		if !hasGraveExile || !lc.unlessCost {
+			return in, refuse("resolution exile-from-stack cost shape")
+		}
+		in.CS = "ExileStackSelf"
+		c.ExileStackSelf = false
 	}
 	if c.DrawN > 0 {
 		// gorge's triggered-cost window: a Draw-bearing cost of a printed
