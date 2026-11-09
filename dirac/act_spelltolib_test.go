@@ -51,3 +51,19 @@ func TestSpellToLibCopy(t *testing.T) {
 		t.Fatalf("zone %d, library %d -> %d, draws %d: want the copy on the stack, the library shuffled", s.objs[a].zone, n0, pl.libLen(), s.rng.Draws-d0)
 	}
 }
+
+// TestSpellToLibFlashback: a flashback spell stays on the stack for the
+// finish to exile (CR 702.34a), and the owner's library is still shuffled.
+func TestSpellToLibFlashback(t *testing.T) {
+	s, k, a := resolvingSpell(t)
+	s.res.e.flags |= sfFlashback
+	if !s.spellRestExiles(&s.res.e) {
+		t.Fatal("precondition: a flashback spell rests in exile")
+	}
+	pl := &s.pl[0]
+	n0, d0 := pl.libLen(), s.rng.Draws
+	s.spellToLib(k)
+	if s.objs[a].zone != kop.ZoneStack || pl.libLen() != n0 || s.rng.Draws == d0 {
+		t.Fatalf("zone %d, library %d -> %d, draws %d: want the flashback spell on the stack, the library shuffled", s.objs[a].zone, n0, pl.libLen(), s.rng.Draws-d0)
+	}
+}
