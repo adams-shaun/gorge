@@ -26,7 +26,8 @@ type Option struct {
 	// measured 23 kinds plus "other"; the hashed kind id keeps an unseen kind
 	// distinguishable instead of collapsing into "other".)
 	Hashed []Feature
-	// Dense is the fixed 24-wide scalar vector documented at EncodeOption.
+	// Dense is the fixed OptionDenseWidth-wide scalar vector documented at
+	// EncodeOption; a 24-wide model reads only its first 24 columns.
 	Dense []float32
 	// Extra is an EXPERIMENTAL per-option dense augmentation appended after
 	// Dense in the hidden-layer input. It is NOT produced by EncodeOption and

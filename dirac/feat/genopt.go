@@ -114,6 +114,7 @@ func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 		o.kind = okCard
 		if src >= dirac.PlayerTarget0 {
 			o.kind, o.obj, o.player = okPlayer, noObj, true
+			o.named = int8(src - dirac.PlayerTarget0)
 		}
 	case dirac.ChGenReplOrder:
 		o.dk, o.kind = dkReplacement, okReplacement // obj: the replacement's source

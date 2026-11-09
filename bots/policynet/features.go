@@ -187,7 +187,10 @@ func encoderHashWith(fs FeatureSet, entSuffix string, optW int) uint64 {
 }
 
 // FeaturesForHash maps a checkpoint's encoder hash back to the non-diagnostic
-// feature set it was written under.
+// feature set it was written under. It knows only current-width hashes: a
+// 24-wide option row's hash is not accepted here (that would make the legacy
+// format-1 entity hash checkpointable); featuresForHashW accepts both widths
+// and also reports which one the hash was taken at.
 func FeaturesForHash(h uint64) (FeatureSet, bool) {
 	for _, fs := range []FeatureSet{FeaturesV1, FeaturesMZ, FeaturesEntity, FeaturesMZOwnLib, FeaturesMZGrave} {
 		if EncoderHashFor(fs) == h {

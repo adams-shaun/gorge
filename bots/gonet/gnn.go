@@ -123,7 +123,7 @@ type gnGNN struct {
 
 	slots          []float32 // OptionSlotWidth×d
 	htab           []float32 // TableRows×d: opt_in.hproj(table[r])
-	odense         gnLinear  // OptionDenseWidth -> d
+	odense         gnLinear  // the header's OPT_DENSE_W (24 or 28) -> d
 	bot            []float32 // d
 	eaProj, ebProj gnLinear  // d -> d
 	noneA, noneB   []float32 // the learned "no card" vectors (unprojected)

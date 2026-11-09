@@ -278,7 +278,7 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 		if isOracle {
 			return nil, fmt.Errorf("checkpoint: feature set %s reads hidden information; it is an oracle checkpoint, loadable only as a sampled-world search leaf (LoadOracleCheckpoint)", fs)
 		}
-		if _, known := FeaturesForHash(h); known {
+		if _, _, known := featuresForHashW(h); known {
 			return nil, fmt.Errorf("checkpoint: not an oracle checkpoint (its feature set reads no hidden information); load it with LoadCheckpoint")
 		}
 	}

@@ -6,8 +6,8 @@ import (
 )
 
 // Option is one encoded option (policynet.Option's network inputs): Slots
-// and Hashed in emission order, the 24 dense scalars, and the entity refs
-// (1 + the State.Cards index; 0 none).
+// and Hashed in emission order, the OptionDenseWidth dense scalars, and the
+// entity refs (1 + the State.Cards index; 0 none).
 type Option struct {
 	Slots   [64]Feature
 	NSlots  uint8

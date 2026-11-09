@@ -112,7 +112,7 @@ type Scratch struct {
 	h          []float32 // ff
 	vh         []float32 // hh
 	o, oh, oh2 []float32 // d, hh, hh
-	od         []float32 // optDense
+	od         []float32 // per option: g.optIn (24 or 28)
 	pa, pb     []float32 // per card: d
 	paOK, pbOK []bool
 	keys       []uint64

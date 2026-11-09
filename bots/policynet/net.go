@@ -101,7 +101,7 @@ type Model struct {
 	Rows   int // embedding table rows (TableRows for a checkpoint-rounded model)
 	H      int // embedding width
 	Hidden int // hidden layer width
-	InW    int // hidden input width = 2H + OptionSlotWidth + OptionDenseWidth + ExtraW
+	InW    int // hidden input width = 2H + OptionSlotWidth + OptDenseW() + ExtraW
 	// ExtraW is the experimental per-option augmentation width (Option.Extra).
 	// Zero for every encoder-produced model, so InW keeps the pinned geometry;
 	// a feature-family experiment sets it through NewModelExtra. Not part of
