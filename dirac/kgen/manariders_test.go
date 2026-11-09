@@ -9,13 +9,10 @@ import (
 // for the reason the measurement found. A lockstep sweep with the shape lowered
 // diverged (or the kernel has no mechanism), so a card here is lowered only
 // when the mechanism and a lockstep repro land together:
-//   - an artifact's triggered mana restricted to activating abilities (Boommobile):
-//     the resolving restricted batch has no activated half and the artifact tag
-//     is not recorded on a resolving AddMana;
 //   - a filter's cost that sacrifices its source (Omni-Cheese Pizza): the
 //     prefix search would sacrifice on its State copies;
 var manaRiderForms = []formCase{
-	{card: "Boommobile", form: "an artifact's triggered mana restricted to activated abilities", refused: "typed mana"},
+	{card: "Boommobile", form: "an artifact's triggered mana restricted to activated abilities", lir: "ManaChoice A=4 C=1 CS=WUBRG F={types=0x0 special=0x20}"},
 }
 
 func TestManaRiderShapes(t *testing.T) {

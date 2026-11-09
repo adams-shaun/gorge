@@ -45,7 +45,7 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 			if !aff && !(k.restrSrc && s.restrSrcAffords(k, p, pd, mana, av, NoSlot, 0)) {
 				continue
 			}
-			if mana.X > 0 && s.cfg&cfgGorgeUnpriced != 0 && !s.poolPays(p, mana) {
+			if mana.X > 0 && s.cfg&cfgGorgeUnpriced != 0 && !s.poolPaysAct(k, p, mana, pd) {
 				// gorge's planner declines an {X} activation (PlanCostDetail
 				// cost:x; legal.go's battlefield gate): a hand one (X cycling,
 				// ) is offered only when the floating pool pays it
