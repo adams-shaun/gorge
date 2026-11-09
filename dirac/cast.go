@@ -784,6 +784,9 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if np := s.convokeXCredit(k); np > 0 {
 				hi = min(maxXAsk, max(hi, mx+np)) // each announced pick pays one generic (a harmonize pick its power) of the X total
 			}
+			if e.kind == seAbility && k.gen != nil && k.gen.anyLoyaltyX {
+				mx, hi = s.counterXClamp(k, mx, hi) // a shared {X} / SubCounter<X/KIND> is bounded by the source's counters
+			}
 			s.addXOptions(k, d, e, mx, hi, &av)
 			s.bld().stage = bsX | 0x80 // awaiting X
 			return true

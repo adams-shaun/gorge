@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -109,6 +110,9 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-msh", "graveyard_creature_count_skips_a_waiting_token"},              // a Villain token that died waits in the graveyard for the next check: it is no card, so Killmonger, Scourge of Wakanda's two-creature-cards bonus stays off (CR 111.7, 704.5d)
 		{"std-msh", "copy_ability_sacrificed_clue_is_still_an_artifact"},           // Scientist Supreme of A.I.M. copies the ability of a Clue sacrificed to pay for it: the token has ceased to exist but was an artifact when it left (CR 113.7a), so the ability is a target
 		{"std-msh", "x_spell_mana_value_counts_x_for_cost_reduction"},              // Photon Blast Barrage cast for X = 3 beside The Scarlet Witch: the spell on the stack has mana value 5 (CR 202.3e), so its {2} reduction applies and the X ask offers the values only the reduced cost can pay
+		{"std-msh", "ant_man_activation_subcounter_x"},                             // The Astonishing Ant-Man's activation removes an announced X up to its +1/+1 counters and makes that many Insects (CR 107.3, 118.3)
+		{"std-dft", "basri_exert_cost"},                                            // Basri, Tomorrow's Champion's {W}, {T}, Exert cost makes the token and leaves the exerted creature unable to untap at its controller's next untap step (CR 702.100a-b)
+		{"std-fra", "sphinxs_approach_exile_stack_self"},                           // Sphinx's Approach's unless cost exiles itself from the stack and four cards named Sphinx's Approach from the graveyard, then searches a Sphinx creature (CR 118.12a)
 		{"std-msh", "x_spell_cast_from_hand_counts_x_for_cost_reduction"},          // the same cast from the hand with floating mana: the X ask offers 7 and 8, which only the reduced cost pays
 		{"std-msh", "lowered_discard_cast_window_restricted_mana"},                 // Titania, Rugged Rumbler cast with a discard, its {B} pip's window tapping Villainous Hideout for Villain-only mana: the window pays, no planner tapping again after the discard (CR 601.2g-h, 106.6)
 		{"std-msh", "power_up_used_then_becomes_copy_is_new_ability"},              // a token Aerial Doombot that used its Power-up and is made a copy of the other Doombot by Shuri until end of turn: the copy's abilities are new, so it may power up again, and the used one returns at cleanup (CR 613.1a, 702.193a)
@@ -152,13 +156,13 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-msh", "improvise_cast_spends_artifact_only_mana"},                    // Arc Reactor improvised with Captain America's Shield beside Hydraulic Helper's artifact-only blue: the cast spends the restricted blue before the plain pool
 		{"std-fin", "setpt_static_live_attached_controller"},                       // Aettir and Priwen gives the equipped creature base P/T equal to the Equipment controller's life total: the live layer-7b set is re-read as the life total changes, after the equip cost is paid
 		{"std-fin", "flickered_bearer_equipment_unattached_at_reentry"},            // Phoenix, Warden of Fire exiles itself and returns beside its twin, a legend ask pending: the Coral Swords it bore show unattached (CR 400.7), not on the returned Joshua
-		{"tail-04", "search_second_pick_shares_a_land_type"},                       // Myriad Landscape finds an Island, then a second Island: gorge's Submit refuses two basics with no common land type, so the second pick offers only the Islands, as the kernel offers them
+		{"custom", "search_second_pick_shares_a_land_type"},                        // Myriad Landscape finds an Island, then a second Island: gorge's Submit refuses two basics with no common land type, so the second pick offers only the Islands, as the kernel offers them; played on its own decks' table because the tail partition no longer holds every card of the recorded decks
 		{"std-msh", "noncombat_damage_plus_host_power"},                            // Avengers Disassembled beside Hawkeye, Young Avenger (power 2): its 3 damage to each opposing creature becomes 5, to its controller's own creatures stays 3 (CR 614.1a)
 		{"std-tdm", "three_counter_kinds_among_creatures_pump_the_veteran"},        // +1/+1, stun and a lifelink counter spread over one player's creatures: both Hundred-Battle Veterans get +2/+4 while three different kinds are among them, and both engines agree on every one
 		{"std-tdm", "reverberating_summons_discard_hand"},                          // Reverberating Summons activates with six cards in hand: the whole hand is discarded in hand order, then the enchantment is sacrificed, and both engines agree through the resolution
 		{"std-tdm", "omen_face_census_credits_granted_delve"},                      // Skimming Strike, Dirgur Island Dragon's Omen, offered off one floating {U} with Teval's granted delve paying its {1} (CR 702.66a, 720.3a)
 		{"std-tmt", "graveyard_return_target_and_same_named_cards_tapped"},         // Rat King, Verminister's return resolves: its graveyard target and every other card there with its name enter tapped, both engines agreeing on every one
-		{"tail-53", "graveyard_return_target_and_same_named_cards_to_hand"},        // Echoing Return resolves: its graveyard target and every other card there with its name go to the hand, both engines agreeing on every one
+		{"custom", "graveyard_return_target_and_same_named_cards_to_hand"},         // Echoing Return resolves: its graveyard target and every other card there with its name go to the hand, both engines agreeing on every one
 		{"custom", "return_animate_before_entry_replacement"},                      // Good-Fortune Unicorn returned by Valkyrie's Call beside Giada, Font of Hope: the return's "it's an Angel" applies before the entry replacements read it, so Giada's extra counters count (CR 614.12)
 		{"custom", "printed_delve_gurmag_angler"},                                  // Gurmag Angler cast off Priest of Gix's floating black with two graveyard cards delved: the printed keyword pays through the kernel's existing delve ask (CR 702.66a)
 		{"custom", "printed_delve_murderous_cut"},                                  // Murderous Cut cast off Priest of Gix's floating black with graveyard cards delved: the same printed-keyword path
@@ -166,6 +170,12 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "webslinged_enter_spiders_man_tokens"},                          // Spiders-Man, Heroic Horde cast for its web-slinging cost off two Hulking Raptors' and a Burning-Tree Emissary's floating mana, a crewed Smuggler's Copter's pilot returned: its enters trigger gains 3 life and makes two Spider tokens (CR 702.188, 603.4); a plain cast would not
 	} {
 		t.Run(c.name, func(t *testing.T) {
+			// A tail pool is a hash-ordered run of the lowered non-Standard cards, so its
+			// membership moves whenever another card is lowered: a repro pinned to one
+			// breaks on an unrelated change. Such a repro plays on its own cards.
+			if strings.HasPrefix(c.pool, "tail-") {
+				t.Fatalf("pool %q: a repro on a tail pool uses the pool \"custom\"", c.pool)
+			}
 			if div := replayStdRepro(t, reg, c.pool, c.name, fullSurface[c.name]); div != nil {
 				t.Fatalf("divergence at %d: %s %s %v", div.At, div.What, div.Field, div.Diff)
 			}
