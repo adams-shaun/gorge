@@ -18,19 +18,25 @@ type copyAuraFixture struct {
 	e                        *Engine
 	cfg                      Config
 	copyID, fist, lion, bear state.ObjID
+	extra                    []state.ObjID
 	ask                      *decision.Decision
 }
 
 // copyAuraSetup casts Copy Enchantment with Inferno Fist on seat 0's Lion
-// (and the Bears too when withBears) and returns at the clone election.
-func copyAuraSetup(t *testing.T, withBears bool) copyAuraFixture {
+// (and the Bears too when withBears, and each extra creature) and returns at
+// the clone election.
+func copyAuraSetup(t *testing.T, withBears bool, extra ...string) copyAuraFixture {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
-	e, cfg := searchEngine(t, reg, "Copy Enchantment", "Inferno Fist", "Silvercoat Lion", "Grizzly Bears")
+	names := append([]string{"Copy Enchantment", "Inferno Fist", "Silvercoat Lion", "Grizzly Bears"}, extra...)
+	e, cfg := searchEngine(t, reg, names...)
 	f := copyAuraFixture{e: e, cfg: cfg}
 	f.lion = searchMoveByName(t, e, "Silvercoat Lion", state.ZBattlefield)
 	if withBears {
 		f.bear = searchMoveByName(t, e, "Grizzly Bears", state.ZBattlefield)
+	}
+	for _, name := range extra {
+		f.extra = append(f.extra, searchMoveByName(t, e, name, state.ZBattlefield))
 	}
 	f.fist = searchMoveByName(t, e, "Inferno Fist", state.ZBattlefield)
 	e.emit(events.Event{Kind: events.Attach, Obj: f.fist, IDs: []state.ObjID{f.lion}})
@@ -221,4 +227,53 @@ func TestCopyEnchantmentCopyingAuraNoBearerGoesToGraveyard(t *testing.T) {
 		t.Fatal("the copy never entered the battlefield from the stack")
 	}
 	replayCheck(t, e, cfg)
+}
+
+// TestCopyEnchantmentCopyingRedAuraProtection: the copy of Inferno Fist is red
+// as it enters (CR 707.2, 614.12), so protection from blue (Copy
+// Enchantment's printed colour) does not stop it enchanting Goblin
+// Piledriver, while protection from red does stop Auriok Champion (CR
+// 702.16c).
+func TestCopyEnchantmentCopyingRedAuraProtection(t *testing.T) {
+	t.Parallel()
+	f := copyAuraSetup(t, false, "Goblin Piledriver", "Auriok Champion")
+	e := f.e
+	goblin, champ := f.extra[0], f.extra[1]
+	if !e.protectedFrom(goblin, f.copyID) || e.protectedFrom(champ, f.copyID) {
+		t.Fatalf("precondition: the blue spell should be blocked by the Goblin only")
+	}
+	if !e.protectedFrom(champ, f.fist) || e.protectedFrom(goblin, f.fist) {
+		t.Fatalf("precondition: the red Fist should be blocked by the Champion only")
+	}
+	idx := copyAuraCloneOpt(f.ask, f.fist)
+	if idx < 0 {
+		t.Fatalf("clone election does not offer Inferno Fist: %+v", f.ask.Options)
+	}
+	submitChoices(t, e, idx)
+	d := passUntilAsk(t, e)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" {
+		t.Fatalf("no enchant ask after the clone answer: %+v", d)
+	}
+	var lion, gob bool
+	for _, o := range d.Options {
+		if o.Kind != "enchant" || o.Obj == champ {
+			t.Fatalf("enchant options must be the Lion and the Goblin only: %+v", d.Options)
+		}
+		lion = lion || o.Obj == f.lion
+		gob = gob || o.Obj == goblin
+	}
+	if !lion || !gob || len(d.Options) != 2 {
+		t.Fatalf("enchant options must offer exactly Lion and Goblin: %+v", d.Options)
+	}
+	for _, o := range d.Options {
+		if o.Obj == goblin {
+			submitChoices(t, e, o.Index)
+		}
+	}
+	passUntilStackEmpty(t, e, 60)
+	co := e.G.Obj(f.copyID)
+	if co == nil || co.Zone != state.ZBattlefield || co.AttachedTo != goblin {
+		t.Fatalf("copy should sit on the battlefield attached to the Goblin: %+v", co)
+	}
+	replayCheck(t, e, f.cfg)
 }

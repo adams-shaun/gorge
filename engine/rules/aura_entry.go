@@ -188,6 +188,16 @@ func auraEnchantCandidates(e *Engine, f *cards.Face, id state.ObjID, you state.P
 // entry (events.NamedAttachEntry) keeps only its named bearers, in the
 // effect's order.
 func auraEntryCandidates(e *Engine, o *state.Object, f *cards.Face, ev *events.Event) ([]auraEntryCand, bool) {
+	if f != o.Face() {
+		// A copied Aura's protection leg (CR 702.16c) reads the permanent as
+		// it will enter: the template's colours and types, not the printed
+		// face ClonePermanent has not replaced yet.
+		basis := *o
+		basis.SetCopyFace(f)
+		saved := e.entryBasis
+		e.entryBasis = &basis
+		defer func() { e.entryBasis = saved }()
+	}
 	cands := auraEnchantCandidates(e, f, o.ID, o.Controller, e.auraEntryCands)
 	e.auraEntryCands = cands
 	named, ok := events.NamedAttachEntry(ev)
