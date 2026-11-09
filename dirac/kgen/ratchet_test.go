@@ -110,8 +110,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// Talon of Pain, The Astonishing Ant-Man; ALL 21709 -> 21724, DFT 248 -> 249,
 	// FRA 245 -> 246, MSH 235 -> 236).
 	// +9 (the merge with land: land's +9 beside the +15 above; merged ALL 21709 -> 21733, FRA 246 -> 247 measured).
+	// +5 (the merge with land: this branch's +5 beside land's +26, disjoint; merged ALL 21784 -> 21789 measured).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21784, 34442},
+	"ALL": {21789, 34442},
 	"BIG": {23, 30},
 	"BLB": {257, 278},
 	"BRO": {207, 280},
@@ -122,7 +123,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"EOE": {239, 266},
 	"FDN": {517, 517},
 	"FIN": {269, 312},
-	"FRA": {247, 269},
+	"FRA": {248, 269},
 	"HOB": {155, 172},
 	"LCI": {252, 290},
 	"MKM": {242, 279},
@@ -132,7 +133,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"ONE": {196, 271},
 	"OTJ": {242, 276},
 	"SNC": {185, 266},
-	"SOS": {250, 270},
+	"SOS": {251, 270},
 	"SPM": {163, 192},
 	"TDM": {253, 276},
 	"TLA": {255, 285},
