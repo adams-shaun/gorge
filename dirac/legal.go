@@ -1075,7 +1075,7 @@ func (s *State) abilityTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slo
 		return s.probeAbility(k, a, p, src, modes)
 	}
 	if a.NModes > 0 && modes == 0xff {
-		if a.ModesPick > 1 || a.ModesFew != 0 {
+		if a.ModesPick > 1 || a.ModesFew != 0 || a.Repeats() {
 			return s.charmFeasible(k, a, p, src)
 		}
 		for m := 0; m < int(a.NModes); m++ {

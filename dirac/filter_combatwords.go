@@ -56,7 +56,9 @@ func prepMcombat(t *kop.Table, g *genPrep) {
 		g.anyOvCantAtk = g.anyOvCantAtk || t.Overrides[i].CantAttack
 	}
 	for i := range t.Emblems {
-		g.anyWhileHost = g.anyWhileHost || t.Emblems[i].WhileHost
+		e := &t.Emblems[i]
+		g.anyWhileHost = g.anyWhileHost || e.HostBound()
+		g.anyEmbCtrl = g.anyEmbCtrl || e.AsLongAsControl
 	}
 	for i := range t.Cards {
 		c := &t.Cards[i]
@@ -402,20 +404,15 @@ func (s *State) hostLeft(k *prep, o Obj) {
 		s.refreshTy(k)
 	}
 	for p := 0; p < 2; p++ {
-		n := 0
+		var drop uint8
 		for i := 0; i < int(s.g.nemb[p]); i++ {
-			if k.t.Emblems[s.g.emb[p][i]-1].WhileHost && s.g.embO[p][i] == o {
-				continue
+			if k.t.Emblems[s.g.emb[p][i]-1].HostBound() && s.g.embO[p][i] == o {
+				drop |= 1 << uint(i)
 			}
-			s.g.emb[p][n], s.g.embC[p][n], s.g.embO[p][n], s.g.embN[p][n] = s.g.emb[p][i], s.g.embC[p][i], s.g.embO[p][i], s.g.embN[p][i]
-			s.g.embT[p][n] = s.g.embT[p][i]
-			n++
 		}
-		for i := n; i < int(s.g.nemb[p]); i++ {
-			s.g.emb[p][i], s.g.embC[p][i], s.g.embO[p][i], s.g.embN[p][i] = 0, 0, 0, 0
-			s.g.embT[p][i] = 0
+		if drop != 0 {
+			s.embCompact(uint8(p), drop)
 		}
-		s.g.nemb[p] = uint8(n)
 	}
 }
 
@@ -440,6 +437,9 @@ func (s *State) ovCantAttack(k *prep, sl Slot) bool {
 func (s *State) hostEmblemDone(e *stackEntry, p uint8, emb uint8) bool {
 	if !s.hostHere(e) {
 		return true
+	}
+	if s.k().t.Emblems[emb-1].AsLongAsControl && s.perms[s.objs[e.obj].slot].ctrl != p {
+		return true // CR 611.2b: its player no longer controls the host
 	}
 	for i := 0; i < int(s.g.nemb[p]); i++ {
 		if s.g.emb[p][i] == emb && s.g.embO[p][i] == e.obj {

@@ -57,6 +57,15 @@ func tspecE(k *prep, e *stackEntry, i int) *kop.TargetSpec {
 		}
 		return nil
 	}
+	if e.kind == seSpell && e.ab < 255 {
+		if a := &k.t.Cards[e.card].Abilities[e.ab]; i >= int(a.NTargets) && a.Repeats() {
+			// an extra instance of a repeated mode takes its mode's spec (kop/repeat.go)
+			if t, ok := a.SlotOwner(e.mode, i); ok {
+				return &a.Targets[t]
+			}
+			return nil
+		}
+	}
 	return tspec(k, e.card, e.ab, i)
 }
 

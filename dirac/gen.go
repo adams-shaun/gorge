@@ -143,6 +143,7 @@ type genPrep struct {
 	anyWitherGrant bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyEOTEmb      bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb       bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
+	anyNTEndEmb    bool           // some emblem ends at its controller's next turn's cleanup (kop.Emblem.UntilEndOfNextTurn; static_emblemdurations.go)
 	embObjEv       uint32         // object events (bit per TrigEvent) some emblem trigger listens to (fireEmblemsObj)
 	embCombatEv    uint32         // events (DamageDone, AttackersDeclared, LifeGained) some emblem trigger listens to (trig_effectuntileot.go)
 	anyGrant       bool           // some override or static grants an ability
@@ -306,7 +307,8 @@ type genPrep struct {
 	anyYouHex      bool           // some Continuous static gives its controller hexproof (StYouHexproof; ctr_shield.go)
 	anyRole        bool           // some card carries the Role subtype: the SBA runs the Role exclusivity check (static_roletokens.go)
 	roleSub        uint8          // the matchup subtype index of Role (static_roletokens.go)
-	anyWhileHost   bool           // some override or emblem ends when its host leaves (kop.Override/Emblem.WhileHost; filter_combatwords.go)
+	anyWhileHost   bool           // some override or emblem ends when its host leaves (kop.Override/Emblem.HostBound; filter_combatwords.go)
+	anyEmbCtrl     bool           // some emblem ends when its host's controller changes (kop.Emblem.AsLongAsControl; static_emblemdurations.go)
 	anyWhileTapped bool           // some override also ends at its host's untap (kop.Override.WhileTapped; static_animatewhiletapped.go)
 	anyOvCantAtk   bool           // some override says its permanent can't attack (kop.Override.CantAttack; filter_combatwords.go)
 	anySrcMark     bool           // some filter reads F2DamagedBy or F2CrewedSrc: the source-mark records are kept (filter_combatwords.go)
@@ -1267,6 +1269,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if t.Emblems[i].UntilNextTurn {
 			g.anyNTEmb = true
 		}
+		if t.Emblems[i].UntilEndOfNextTurn {
+			g.anyNTEndEmb = true
+		}
 		for j := range t.Emblems[i].Abilities {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCanAttackDefender {
 				g.anyCanAtkDef = true // an Effect-delivered grant: prepared like a printed one
@@ -1875,7 +1880,7 @@ type genState struct {
 	imp     [maxImp]Obj
 	nimp    uint8
 	linkImp uint8
-	embF    [MaxSeats]uint8
+	embF    [MaxSeats]uint8 // bit i: player p's emblem i (UntilEndOfNextTurn) has begun a turn since creation (static_emblemdurations.go)
 	embR    [MaxSeats][maxEmb]Obj
 	rsv     [rsvN]uint8
 }

@@ -76,7 +76,7 @@ func (s *State) uniqueChainViable(k *prep, ti uint8, buf *[MaxOptions]uint8, n i
 			continue
 		}
 		if a != nil {
-			if tm := a.TgtModes[j]; tm != 0 && tm&e.mode == 0 {
+			if tm := a.TgtModes[j]; tm != 0 && tm&a.ModeSet(e.mode) == 0 {
 				continue
 			}
 		}
