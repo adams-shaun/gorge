@@ -44,6 +44,24 @@ func (s *State) loyaltyXOptions(k *prep, d *Decision) bool {
 	return true
 }
 
+// counterXClamp min-clamps an X ask's mana bounds by the counters of the
+// announced cost's kind the source has (gorge's shared xAsk caps the one X by
+// every announced part); unchanged when the ability has no such cost.
+//
+//go:noinline
+func (s *State) counterXClamp(k *prep, mx, hi int) (int, int) {
+	e := &s.bld().e
+	a := &k.t.Cards[e.card].Abilities[e.ab]
+	if a.Cost.Flags&kop.CostLoyaltyX == 0 {
+		return mx, hi
+	}
+	have := 0
+	if sl := s.srcSlot(); sl != NoSlot {
+		have = s.perms[sl].ctrLow(int(a.Cost.Ctr))
+	}
+	return min(mx, have), min(hi, have)
+}
+
 // payCounterX removes the announced X counters of kind (the cost's
 // CounterChange; CR 606.4 for loyalty, 118.3 for any other kind).
 //
