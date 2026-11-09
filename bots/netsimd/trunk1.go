@@ -30,10 +30,10 @@ func (g *Net) trunkBag1(sc *Scratch, nc int, dense []float32, sparse []policynet
 	gemvT(&g.poolProj.wt[0], &sc.pool[0], &g.poolProj.b[0], s, poolW*cd, d, false)
 
 	// state trunk: s += dense_in(dense) + sparse_proj(bag(sparse))
-	sc.dense = growF(sc.dense, denseW)
+	sc.dense = growF(sc.dense, g.denseIn.in)
 	n := copy(sc.dense, dense)
 	clear(sc.dense[n:])
-	gemvT(&g.denseIn.wt[0], &sc.dense[0], s, s, denseW, d, false)
+	gemvT(&g.denseIn.wt[0], &sc.dense[0], s, s, g.denseIn.in, d, false)
 	g.addv(s, &g.denseIn.b[0])
 	g.addExt(s, ext)
 	if bagIn != nil {
@@ -69,7 +69,7 @@ func (g *Net) trunkBag1(sc *Scratch, nc int, dense []float32, sparse []policynet
 	sc.o = growF(sc.o, d)
 	sc.oh = growF(sc.oh, hh)
 	sc.oh2 = growF(sc.oh2, hh)
-	sc.od = growF(sc.od, optDense)
+	sc.od = growF(sc.od, g.optIn)
 	sc.pa = growF(sc.pa, max(nc, 1)*d)
 	sc.pb = growF(sc.pb, max(nc, 1)*d)
 	sc.paOK = growB(sc.paOK, nc)
@@ -80,7 +80,7 @@ func (g *Net) trunkBag1(sc *Scratch, nc int, dense []float32, sparse []policynet
 		// o = dense(opt dense) + bag(slots) + hproj(bag(hashed)) + bot·bot_vec + ea + eb
 		n := copy(sc.od, op.Dense)
 		clear(sc.od[n:])
-		gemvT(&g.odense.wt[0], &sc.od[0], &g.odense.b[0], o, optDense, d, false)
+		gemvT(&g.odense.wt[0], &sc.od[0], &g.odense.b[0], o, g.optIn, d, false)
 		if len(op.Slots) > 0 {
 			bag(o, &g.slots[0], (*feat)(unsafe.Pointer(&op.Slots[0])), len(op.Slots), slotRows, d)
 		}

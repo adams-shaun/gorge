@@ -10,6 +10,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
+// mzLifeBucketHi: life/2 buckets up to 61 life, Commander's 40 plus lifegain.
+const mzLifeBucketHi int32 = 30
+
 // FeatureSet selects the state/option encoding a model was trained under
 // (the feature axis). FeaturesV1 is the pinned encoder of
 // policynet.go/option.go, byte for byte: every existing checkpoint, golden and
@@ -134,27 +137,55 @@ func SplitOmniscientView(v view.View, seat state.PlayerID) (view.View, *Diag) {
 // name and token-format version, so a checkpoint cannot be read under the
 // wrong feature set.
 func EncoderHashFor(fs FeatureSet) uint64 {
+	return encoderHashForDenseW(fs, DenseWidth, OptionDenseWidth)
+}
+
+// EncoderHashForV1Dense is EncoderHashFor at the 68-wide dense vector
+// (DenseWidthV1): the hash every network of feature set fs exported after
+// the relative-seat option columns and before the Commander block carries.
+// Loaders accept it and read only the first 68 dense columns.
+func EncoderHashForV1Dense(fs FeatureSet) uint64 {
+	return encoderHashForDenseW(fs, DenseWidthV1, OptionDenseWidth)
+}
+
+// EncoderHashForV1Options is EncoderHashFor at the 24-wide option row
+// (OptionDenseWidthV1) and the 68-wide dense vector: the hash every network
+// of feature set fs exported before the relative-seat option columns
+// carries. Loaders accept it and read only the first 24 option columns.
+func EncoderHashForV1Options(fs FeatureSet) uint64 {
+	return encoderHashForDenseW(fs, DenseWidthV1, OptionDenseWidthV1)
+}
+
+// encoderHashForDenseW is EncoderHashFor at an explicit state dense width
+// and option dense width.
+func encoderHashForDenseW(fs FeatureSet, denseW, w int) uint64 {
 	if fs == FeaturesV1 {
-		return EncoderHash()
+		return encoderHashDenseOptW(denseW, w)
 	}
 	if fs == FeaturesEntity {
-		return encoderHashWith(fs, entityHashSuffix())
+		return encoderHashWithDense(fs, entityHashSuffix(), denseW, w)
 	}
-	return encoderHashWith(fs, "")
+	return encoderHashWithDense(fs, "", denseW, w)
 }
 
 // EncoderHashEntityV1 is the encoder digest of the format-1 (68-wide) entity
 // encoding: the hash every network and training corpus recorded before the
 // relational slots existed. It is not a checkpointable feature set for
 // training (FeaturesForHash refuses it), only a load path.
-func EncoderHashEntityV1() uint64 { return encoderHashWith(FeaturesEntity, entityHashSuffixV1()) }
+//
+// Every format-1 entity network predates the relative-seat option columns and
+// the Commander block, so this hash is taken at the 68-wide dense vector and
+// the 24-wide option row.
+func EncoderHashEntityV1() uint64 {
+	return encoderHashWithDense(FeaturesEntity, entityHashSuffixV1(), DenseWidthV1, OptionDenseWidthV1)
+}
 
-// encoderHashWith is EncoderHashFor's body with the entity suffix supplied by
-// the caller, so the format-1 and format-2 entity hashes share one string
-// shape.
-func encoderHashWith(fs FeatureSet, entSuffix string) uint64 {
+// encoderHashWithDense is EncoderHashFor's body with the entity suffix
+// supplied by the caller, so the format-1 and format-2 entity hashes share
+// one string shape.
+func encoderHashWithDense(fs FeatureSet, entSuffix string, denseW, optW int) uint64 {
 	s := fmt.Sprintf("gorge-policynet-features\x1fbase=%#016x\x1fset=%s\x1fmz-format=1\x1fpins=%d,%d",
-		EncoderHash(), fs, hashID("mz|bf-opp|canblock"), hashID("mz|me|avail"))
+		encoderHashDenseOptW(denseW, optW), fs, hashID("mz|bf-opp|canblock"), hashID("mz|me|avail"))
 	s += entSuffix
 	if fs == FeaturesMZOwnLib {
 		s += ownLibHashSuffix()
@@ -171,7 +202,10 @@ func encoderHashWith(fs FeatureSet, entSuffix string) uint64 {
 }
 
 // FeaturesForHash maps a checkpoint's encoder hash back to the non-diagnostic
-// feature set it was written under.
+// feature set it was written under. It knows only current-width hashes: an
+// older dense or option width's hash is not accepted here (that would make a
+// legacy hash checkpointable); featuresForHashW accepts the legacy widths and
+// also reports which widths the hash was taken at.
 func FeaturesForHash(h uint64) (FeatureSet, bool) {
 	for _, fs := range []FeatureSet{FeaturesV1, FeaturesMZ, FeaturesEntity, FeaturesMZOwnLib, FeaturesMZGrave} {
 		if EncoderHashFor(fs) == h {
@@ -179,6 +213,25 @@ func FeaturesForHash(h uint64) (FeatureSet, bool) {
 		}
 	}
 	return 0, false
+}
+
+// featuresForHashW is FeaturesForHash that also accepts the legacy dense and
+// option widths (EncoderHashForV1Dense, EncoderHashForV1Options) and reports
+// the state dense and option dense widths the hash was taken at.
+func featuresForHashW(h uint64) (FeatureSet, int, int, bool) {
+	if fs, ok := FeaturesForHash(h); ok {
+		return fs, DenseWidth, OptionDenseWidth, true
+	}
+	for _, denseW := range [...]int{DenseWidthV1} {
+		for _, optW := range [...]int{OptionDenseWidth, OptionDenseWidthV1} {
+			for _, fs := range []FeatureSet{FeaturesV1, FeaturesMZ, FeaturesEntity, FeaturesMZOwnLib, FeaturesMZGrave} {
+				if encoderHashForDenseW(fs, denseW, optW) == h {
+					return fs, denseW, optW, true
+				}
+			}
+		}
+	}
+	return 0, 0, 0, false
 }
 
 // Features is the feature set the scorer's model was trained under; a seat
@@ -423,8 +476,8 @@ func mzState(v view.View, seat state.PlayerID, sk *sink) {
 	if me != nil && len(others) > 0 {
 		diff := me.Life - others[0].Life
 		sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|lifediff="), mzClamp(diff/3+7, 14)), 1)
-		sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|opp|life="), mzClamp(others[0].Life/2, 12)), 1)
-		sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|me|life="), mzClamp(me.Life/2, 12)), 1)
+		sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|opp|life="), mzClamp(others[0].Life/2, mzLifeBucketHi)), 1)
+		sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|me|life="), mzClamp(me.Life/2, mzLifeBucketHi)), 1)
 		// Lethal reads: can my untapped attackers' power alone kill through no
 		// blocks; can theirs kill me.
 		if mine.canAttackPower >= others[0].Life {

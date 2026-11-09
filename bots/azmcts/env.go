@@ -929,8 +929,10 @@ func clampValue(x float64) float64 {
 // would have carried -- the same objects (view's cardViews filter: faced,
 // non-ephemeral, phased-in), the same face-down redaction for this viewer
 // (Seat visibility, no also-visible seats), the printed face's types, the
-// engine's derived power and toughness -- summed in the same order, so the
-// float is bit-identical (TestHeuristicLeafMatchesTheView).
+// engine's derived power and toughness -- so the float is bit-identical
+// (TestHeuristicLeafMatchesTheView). The actor's score has the strongest
+// living opponent's subtracted; lost seats are skipped, and a lost actor is
+// terminal at 0 even while the game plays on for other seats.
 func heuristicLeafValue(e *rules.Engine, actor state.PlayerID) float64 {
 	g := e.G
 	if g.Over {
@@ -944,8 +946,17 @@ func heuristicLeafValue(e *rules.Engine, actor state.PlayerID) float64 {
 		}
 	}
 	value := 0.0
+	oppMax := 0.0
+	haveOpp := false
+	actorLost := false
 	for i := range g.Players {
 		p := &g.Players[i]
+		if p.Lost {
+			if p.ID == actor {
+				actorLost = true
+			}
+			continue
+		}
 		score := float64(p.Life) + 2*float64(len(g.Zone(state.ZHand, p.ID)))
 		for _, id := range g.Zone(state.ZBattlefield, p.ID) {
 			o := g.Obj(id)
@@ -954,11 +965,19 @@ func heuristicLeafValue(e *rules.Engine, actor state.PlayerID) float64 {
 			}
 			score += leafMaterial(e, o, actor)
 		}
-		if p.ID == actor {
+		switch {
+		case p.ID == actor:
 			value += score
-		} else {
-			value -= score
+		case !haveOpp || score > oppMax:
+			oppMax = score
+			haveOpp = true
 		}
+	}
+	if actorLost {
+		return 0
+	}
+	if haveOpp {
+		value -= oppMax
 	}
 	return 1 / (1 + math.Exp(-value/20))
 }

@@ -12,7 +12,7 @@ package host
 // past it (the same pass removes destroyed tokens).
 //
 // The fixture is measured, not constructed: decks foundations-reign-of-
-// dragons vs foundations-calling-all-angels, seed 1, burst 664 — a board
+// dragons vs foundations-calling-all-angels, seed 17, burst 918 — a board
 // wipe destroys seat 1's commander, the next state-based check asks seat 1
 // at its first pass, and the same pass removes three destroyed tokens
 // ("ceased to exist") AFTER the ask. The park lands on that ask; replaying
@@ -44,17 +44,18 @@ import (
 const (
 	overshootDeckA = "foundations-reign-of-dragons"
 	overshootDeckB = "foundations-calling-all-angels"
-	overshootSeed  = 1
+	overshootSeed  = 17
 	// The hosted game opens with the CR 103.1 winner-chooses ask, so every
 	// later intent (including the overshoot burst's own) sits one later in the
 	// count. The fixture is foundations-reign-of-dragons vs
-	// foundations-calling-all-angels, seed 1, burst 664: a board wipe destroys
+	// foundations-calling-all-angels, seed 17, burst 918 (re-measured when the
+	// Foundations decks lost Ancient Tomb; seed 1, burst 664 before): a board wipe destroys
 	// seat 1's commander, the next check asks seat 1 at its first pass, and the
 	// same pass removes three destroyed tokens ("ceased to exist") after the
 	// ask. assertOvershootShape requires that token-cleanup tail. A rules change
 	// that adds or removes a decision before the burst moves this count;
 	// re-record the capture via TestGenerateOvershootCapture with it.
-	overshootIntents = 664 // intents recorded when parked on the overshoot burst's pending ask
+	overshootIntents = 918 // intents recorded when parked on the overshoot burst's pending ask
 )
 
 // gateSeat is a bot behind a test gate: every decision is signalled to the
@@ -357,8 +358,8 @@ func TestUndoRewindsAcrossAnOvershootBurst(t *testing.T) {
 	t.Parallel()
 	r, tb, m, _ := parkedOvershootMatch(t, "")
 	assertOvershootShape(t, m)
-	// The overshoot burst is intent overshootIntents-1's (537); the requester
-	// is its own player.
+	// The overshoot burst is intent overshootIntents-1's; the requester is
+	// its own player.
 	before := m.intents
 	tailStart := m.bounds[before-1]
 	saved := append([]events.Event(nil), m.e.L.Events[tailStart:]...)
@@ -501,9 +502,11 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // decision. The fixture verifies under plain replay.Replay with no cut-tail
 // tolerance anywhere and cmd/repro on it exits 0. The test pins both, so an
 // engine or corpus move that breaks the capture fails loudly here instead of
-// leaving a stale fixture behind. Re-record it via
-// TestGenerateOvershootCapture: 3653 events, 664 intents, head
-// 8f92486feb45ce6b, with the parked ask and its tail as above.
+// leaving a stale fixture behind. The committed capture is the historical
+// seed-1 fixture: 3653 events, 664 intents, head 8f92486feb45ce6b, with the
+// parked ask and its tail as above. The live fixture has since moved to seed
+// 17 / 918 intents, so regenerating it now with TestGenerateOvershootCapture
+// writes that capture with new pins.
 const committedCaptureRel = "../../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:

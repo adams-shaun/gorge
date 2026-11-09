@@ -13,14 +13,24 @@ type Feature struct {
 
 // Widths (policynet's pinned constants).
 const (
-	DenseWidth       = 68
+	DenseWidth       = 92
 	EntityRawWidth   = 100
 	EntityRawWidthV1 = 68
-	OptionDenseWidth = 24
+	OptionDenseWidth = 28
 	OptionSlotWidth  = 128
 	// EntityRawWidthRelEnd is the end of the relational block (68..83); the
 	// v2 block (colour, pips, category) starts above it.
 	EntityRawWidthRelEnd = 84
+
+	// The Commander block: two relative seats (the kernel is 2-seat) of
+	// commanderBlockWidth values, appended after the 68-wide pre-Commander
+	// vector.
+	denseCmd0           = 68
+	commanderBlockWidth = 6
+	denseCmdDamage0     = 0
+	denseCmdCasts       = 3
+	denseCmdOnField     = 4
+	denseCmdLost        = 5
 )
 
 // Card is one entity card (policynet.EntityCard).
@@ -261,6 +271,36 @@ func (e *Encoder) prelude(s *dirac.State, d *dirac.Decision, seat uint8) (uint8,
 	for k := 0; k < 6; k++ {
 		dn[22+k] = float32(me.pool[k])
 	}
+	// The Commander block: the kernel is 2-seat, so each relative seat has
+	// one other commander to take damage from. Blocks are relative to the
+	// deciding seat, the same order policynet writes: block 0 is the viewer,
+	// block 1 the next seat in turn order. A non-Commander game leaves the
+	// block zero except the left-the-game bit.
+	cmdGame := s.FeatCommanderGame()
+	for blk := uint8(0); blk < 2; blk++ {
+		p := (seat + blk) & 1
+		base := denseCmd0 + int(blk)*commanderBlockWidth
+		if s.FeatLost(p) {
+			dn[base+denseCmdLost] = 1
+		}
+		if !cmdGame {
+			continue
+		}
+		src := 1 - p
+		dmg := float32(s.FeatCommanderDamage(p, src)) / 21
+		if dmg > 1 {
+			dmg = 1
+		}
+		dn[base+denseCmdDamage0] = dmg
+		casts := float32(s.FeatCommanderCast(p)) / 4
+		if casts > 1 {
+			casts = 1
+		}
+		dn[base+denseCmdCasts] = casts
+		if cmd := s.FeatCommander(p); cmd != dirac.NoObj && e.po(uint8(cmd)).Zone == kop.ZoneBattlefield {
+			dn[base+denseCmdOnField] = 1
+		}
+	}
 	return seat, me, opp
 }
 
@@ -381,6 +421,9 @@ func newNumKey(k string, hi int32) numKey {
 	return n
 }
 
+// lifeBucketHi is policynet's mzLifeBucketHi: life/2 buckets up to 61 life, Commander's 40 plus lifegain.
+const lifeBucketHi int32 = 30
+
 // bucketRows is "<prefix><v>" for v in 0..hi.
 func bucketRows(prefix string, hi int32) []uint16 {
 	out := make([]uint16, hi+1)
@@ -396,7 +439,7 @@ var (
 	nkOppCanBlockN, nkOppCanBlockTough            = newNumKey("opp|canblock-n", 6), newNumKey("opp|canblock-tough", 12)
 	nkOppCanAttackN, nkOppCanAttackPower          = newNumKey("opp|canattack-n", 6), newNumKey("opp|canattack-power", 12)
 	nkMeCanBlockN, nkMeFlyers, nkOppFlyers        = newNumKey("me|canblock-n", 6), newNumKey("me|flyers", 4), newNumKey("opp|flyers", 4)
-	rowsLifediff, rowsOppLife, rowsMeLife         = bucketRows("mz|lifediff=", 14), bucketRows("mz|opp|life=", 12), bucketRows("mz|me|life=", 12)
+	rowsLifediff, rowsOppLife, rowsMeLife         = bucketRows("mz|lifediff=", 14), bucketRows("mz|opp|life=", lifeBucketHi), bucketRows("mz|me|life=", lifeBucketHi)
 	rowMeLethal, rowOppLethal                     = row(add(off, "mz|me|lethal-unblocked")), row(add(off, "mz|opp|lethal-unblocked"))
 	rowStack                                      = [2]uint16{row(add(off, "mz|stack|me")), row(add(off, "mz|stack|opp"))}
 	rowHandInstant, rowHandCastable, rowHandCastI = row(add(off, "mz|hand|instant-speed")), row(add(off, "mz|hand|castable")), row(add(off, "mz|hand|castable|instant-speed"))
@@ -467,8 +510,8 @@ func (e *Encoder) mzGlobal(seat uint8, me, opp *vplayer, mine, theirs *agg) {
 	num(&nkOppFlyers, theirs.flyers)
 	diff := me.life - opp.life
 	e.push(rowsLifediff[clampI(diff/3+7, 14)], 1)
-	e.push(rowsOppLife[clampI(opp.life/2, 12)], 1)
-	e.push(rowsMeLife[clampI(me.life/2, 12)], 1)
+	e.push(rowsOppLife[clampI(opp.life/2, lifeBucketHi)], 1)
+	e.push(rowsMeLife[clampI(me.life/2, lifeBucketHi)], 1)
 	if mine.canAttackPower >= opp.life {
 		e.push(rowMeLethal, 1)
 	}

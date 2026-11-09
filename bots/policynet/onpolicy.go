@@ -30,9 +30,9 @@ import (
 //	kind, turn, sequence         decision kind, view turn, decision Seq
 //	subset                       true: per-option Bernoulli π (attackers,
 //	                             blockers); false: softmax over in-space options
-//	state                        {"dense":[68 floats],"rows":[...],"vals":[...]}
+//	state                        {"dense":[92 floats],"rows":[...],"vals":[...]}
 //	options[]                    {"slots_r","slots_v","hashed_r","hashed_v",
-//	                              "dense":[24 floats],"bot_pick","in_space"}
+//	                              "dense":[28 floats],"bot_pick","in_space"}
 //	scores                       π_old full scores (head + residual), per option
 //	chosen                       option POSITIONS the seat answered
 //	bot_chosen                   option positions of the default bot's answer

@@ -39,7 +39,7 @@ func Pools() []Pool {
 		{Name: "fdn", Label: "gorge self-play", Tree: "b6ecdc390c432582f34348ee28f36cf3f0bf03d15d7f61814931ad93fe6c3b65", Decks: 31516},
 		{Name: "blb", Label: "17lands", Tree: "e01290b140e80bd559b2df92aaa9f9a846d8db647e098effce742c92fdefc7f0", Decks: 145},
 		{Name: "pauper", Label: "SpellBench pauper-bo1", Tree: "63423c92b1c867dc4e0406a23a08e6a84ba8e8975ff226902024674f40f9655a", Decks: 8},
-		{Name: "cmd5", Label: "gorge Foundations Commander precons", Tree: "21a9de758fac5635bf3f6cb368db2ac23b700865804c2aa5f26d0153496928f1", Decks: 5},
+		{Name: "cmd5", Label: "gorge Foundations Commander precons", Tree: "7c45079fa2218c41c4a30c961c4b3342f2995ac2b65bab51e026964a7ebdc9b2", Decks: 5},
 	}
 }
 

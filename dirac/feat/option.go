@@ -6,8 +6,8 @@ import (
 )
 
 // Option is one encoded option (policynet.Option's network inputs): Slots
-// and Hashed in emission order, the 24 dense scalars, and the entity refs
-// (1 + the State.Cards index; 0 none).
+// and Hashed in emission order, the OptionDenseWidth dense scalars, and the
+// entity refs (1 + the State.Cards index; 0 none).
 type Option struct {
 	Slots   [64]Feature
 	NSlots  uint8
@@ -162,10 +162,14 @@ var (
 // optIn is the gorge decision.Option a kernel action stands for: the
 // fields policynet's option encoder reads.
 type optIn struct {
-	kind     uint8
-	dk       int8 // decisionKinds index
-	obj      uint8
-	player   bool // names a player
+	kind   uint8
+	dk     int8 // decisionKinds index
+	obj    uint8
+	player bool // names a player
+	// named is the seat (0 or 1) of the player the option names, -1 none:
+	// a player target, or an attack's defending player (policynet's
+	// odSeat0.. relative-seat one-hot)
+	named    int8
 	attacker uint8
 	battle   uint8
 	mode     uint8 // modeValues index; len(modeValues) = other
@@ -178,7 +182,7 @@ type optIn struct {
 // optionOf maps a kernel action of decision d onto the gorge option it
 // stands for (dirac/doc.go's decision grammar).
 func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
-	o := optIn{obj: noObj, attacker: noObj, battle: noObj}
+	o := optIn{obj: noObj, attacker: noObj, battle: noObj, named: -1}
 	src, tgt, mode := a.Source(), a.Target(), a.Mode()
 	if a.Kind() == dirac.AkDone {
 		o.kind = okDone
@@ -224,6 +228,10 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 		o.dk = dkAttackers
 		if a.Kind() == dirac.AkAttack {
 			o.kind, o.obj = okAttacker, src
+			// gorge's attacker option names the defending player (Option.
+			// Player): with two seats, always the attacker's opponent --
+			// a planeswalker's controller or a battle's protector included
+			o.named = int8(1 - d.Player&1)
 			// gorge marks every pair of a creature that attacks each
 			// combat if able Required (rules mustAttackRequired)
 			o.required = e.st0.MustAttack(dirac.Obj(src))
@@ -244,6 +252,7 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 			o.kind = okDone // closing a multi-object slot / declining "up to one"
 		case tgt == dirac.PlayerTarget0 || tgt == dirac.PlayerTarget1:
 			o.kind, o.player = okPlayer, true
+			o.named = int8(tgt - dirac.PlayerTarget0)
 		default:
 			// gorge names every object target "permanent" except one on
 			// the stack ("spell").
@@ -593,6 +602,10 @@ func (e *Encoder) encodeOption(out *Option, o optIn, idx, n int) {
 		d[22] = b2f(rc.attached != noObj)
 	}
 	d[7] = b2f(isPlayer)
+	if o.named >= 0 {
+		// the relative seat: 0 me, 1 the opponent (policynet odSeat0..)
+		d[24+int((o.named-int8(e.v.seat&1))&1)] = 1
+	}
 	var aref cref
 	haveAtk := false
 	if o.attacker != noObj {

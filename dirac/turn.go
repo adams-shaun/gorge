@@ -23,7 +23,7 @@ func (s *State) beginTurn(p uint8) {
 		s.g.yourTurns[p&1]++ // ExYourTurns: this turn is begun with p active
 	}
 	if s.k().anyRedNC {
-		s.g.redNC = [2]uint8{} // ExRedNCDmg: a fresh turn's tally
+		s.g.redNC = [MaxSeats]uint8{} // ExRedNCDmg: a fresh turn's tally
 	}
 	if s.k().anyDayNight {
 		s.dnTurn() // CR 731.2's count, before the bank resets (kw_daynight.go)
@@ -259,7 +259,7 @@ func (s *State) endStep(next kop.Step) {
 	s.rbClear(uint8(0))
 	s.pl[1].pool = [kop.NumManaKinds]uint8{}
 	s.rbClear(uint8(1))
-	s.g.poolArt = [2]uint8{}
+	s.g.poolArt = [MaxSeats]uint8{}
 	s.step = next
 	s.ctl = ctlStepBegin
 }
@@ -387,8 +387,8 @@ func (s *State) finishCleanup(k *prep) {
 		s.rbClear(uint8(0))
 		s.pl[1].pool = [kop.NumManaKinds]uint8{}
 		s.rbClear(uint8(1))
-		s.fbR = [2]uint8{} // already 0 (end of combat dropped it); explicit
-		s.g.poolArt = [2]uint8{}
+		s.fbR = [MaxSeats]uint8{} // already 0 (end of combat dropped it); explicit
+		s.g.poolArt = [MaxSeats]uint8{}
 	}
 	// CR 514.3a: the state-based check follows the 514.1/514.2 actions; when
 	// one is performed the active player gets priority even with an empty

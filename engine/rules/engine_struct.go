@@ -127,12 +127,14 @@ type Engine struct {
 	// as-enters choice parked, whose entry triggers putTriggersOnStack
 	// discards once the entry completes. nil outside a fixture setup.
 	setupEntryDrops []setupEntryDrop `clone:"reset"`
-	// startingLife is Config.StartingLife with the 0-means-20 convention
-	// already resolved at genesis — the value state.NewGameLife opened the
-	// game with. It is the effects.Host StartingLife backing (the
-	// PlayerCountDefinedPlayer.PlayerUID_RelativePlayerUID$StartingLife read
-	// behind Anya, Merciless Angel's and Game Over's relative
-	// half-starting-life thresholds). Plain int32, so Clone copies it.
+	// startingLife is Config.StartingLife with the format default already
+	// resolved at genesis — 40 for FormatCommander (CR 903.7), 20 otherwise,
+	// and an explicit Config.StartingLife overrides it. It is the value
+	// state.NewGameLife opened the game with and the effects.Host
+	// StartingLife backing (the PlayerCountDefinedPlayer.
+	// PlayerUID_RelativePlayerUID$StartingLife read behind Anya, Merciless
+	// Angel's and Game Over's relative half-starting-life thresholds). Plain
+	// int32, so Clone copies it.
 	startingLife int32 `clone:"deep"`
 	// setNameInPool is a genesis-time fact: does any card this match can put
 	// on the battlefield print a SetName$ static? False for almost every

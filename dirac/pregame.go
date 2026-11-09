@@ -12,6 +12,6 @@ func (s *State) ChooseStarter(p uint8) bool {
 		return false
 	}
 	s.startPl = p
-	s.mullOrder = [2]uint8{p, 1 - p}
+	s.mullOrder = [MaxSeats]uint8{p, 1 - p}
 	return true
 }

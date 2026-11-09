@@ -660,13 +660,14 @@ type HostTurnLedger interface {
 	// Repriser, Whiplash Wordsmith, Command the Stage).
 	WasDealtNoncombatDamageThisTurn(p state.PlayerID) bool
 	WasDealtNoncombatDamageLastTurn(p state.PlayerID) bool
-	// StartingLife reports this game's opening life total (Config's
-	// 0-means-20 convention already resolved at genesis). It is the
-	// PlayerCountDefinedPlayer.PlayerUID_RelativePlayerUID$StartingLife
-	// backing (Anya, Merciless Angel's per-opponent "less than half their
-	// starting life total" and Game Over's relative half-starting-life
-	// threshold), the ONE game-wide value the relative-player property reads.
-	// Captured at genesis, so a replay derives the same number.
+	// StartingLife reports this game's opening life total (the format
+	// default — 40 for Commander, 20 otherwise — already resolved at
+	// genesis). It is the PlayerCountDefinedPlayer.
+	// PlayerUID_RelativePlayerUID$StartingLife backing (Anya, Merciless
+	// Angel's per-opponent "less than half their starting life total" and
+	// Game Over's relative half-starting-life threshold), the ONE game-wide
+	// value the relative-player property reads. Captured at genesis, so a
+	// replay derives the same number.
 	StartingLife() int32
 	// PricedFromGraveyard is the graveyard card whose cast is being priced
 	// before it moves (0: none). CR 601.2a puts the spell on the stack before

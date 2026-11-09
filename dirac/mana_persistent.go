@@ -99,7 +99,7 @@ func (s *State) persistEmpty(ec bool) {
 		s.pl[p].pool = keep
 		s.rbClear(uint8(p))
 	}
-	s.g.poolArt, s.g.defSrc = [2]uint8{}, [2]uint8{}
+	s.g.poolArt, s.g.defSrc = [MaxSeats]uint8{}, [MaxSeats]uint8{}
 }
 
 // persistTurn is the turn change. Gorge's TurnChange zeroes the tally and the
@@ -107,15 +107,15 @@ func (s *State) persistEmpty(ec bool) {
 // ManaClear for a seat whose pool is nonempty, before the first decision of
 // the new turn), empties the now-ordinary units, so both pools empty here.
 func (s *State) persistTurn() {
-	s.pm = [2][kop.NumManaKinds]uint8{}
+	s.pm = [MaxSeats][kop.NumManaKinds]uint8{}
 	s.pmOn = 0
 	for p := range s.pl {
 		s.pl[p].pool = [kop.NumManaKinds]uint8{}
 		s.rbClear(uint8(p))
 	}
-	s.g.poolArt, s.g.defSrc = [2]uint8{}, [2]uint8{}
+	s.g.poolArt, s.g.defSrc = [MaxSeats]uint8{}, [MaxSeats]uint8{}
 }
 
 // PersistMana is each player's persistent units per colour (State.pm) for the
 // oracle's probes.
-func (s *State) PersistMana() [2][kop.NumManaKinds]uint8 { return s.pm }
+func (s *State) PersistMana() [MaxSeats][kop.NumManaKinds]uint8 { return s.pm }

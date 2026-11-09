@@ -105,9 +105,27 @@ func WriteExtLayout(dir, name string, sh Shape, extW int, extIn []float32, lay L
 	return writeShape(dir, name, sh, policynet.EntityRawWidth, map[string]any{"EXT_W": extW}, extIn, lay)
 }
 
+// denseWidthFor returns the state dense width a net with extra writes: the
+// current width unless DENSE_W overrides it. A network written with the old
+// 24-wide option row predates the Commander block too, so it defaults to the
+// 68-wide vector as well.
+func denseWidthFor(extra map[string]any) int {
+	if w, ok := extra["DENSE_W"].(int); ok {
+		return w
+	}
+	if w, ok := extra["OPT_DENSE_W"].(int); ok && w == policynet.OptionDenseWidthV1 {
+		return policynet.DenseWidthV1
+	}
+	return policynet.DenseWidth
+}
+
 func writeShape(dir, name string, sh Shape, rawW int, extra map[string]any, extIn []float32, lay Layout) (string, error) {
 	if lay.Layers < 1 || lay.PolicyLayers < 1 || lay.ValueLayers < 1 {
 		return "", fmt.Errorf("gonettest: layout %+v: layers must be positive", lay)
+	}
+	denseW := denseWidthFor(extra)
+	if denseW != policynet.DenseWidth && denseW != policynet.DenseWidthV1 {
+		return "", fmt.Errorf("gonettest: DENSE_W %d is neither %d nor %d", denseW, policynet.DenseWidthV1, policynet.DenseWidth)
 	}
 	d, ff, e, cd, hh := sh.D, sh.FF, sh.E, sh.CD, sh.HH
 	if rawW < policynet.EntityRawWidthV1 {
@@ -167,7 +185,22 @@ func writeShape(dir, name string, sh Shape, rawW int, extra map[string]any, extI
 	rand("card_raw.bias", cd)
 	lin("card_rows", e, cd, false)
 	lin("card_phi", cd, cd, true)
-	lin("dense_in", policynet.DenseWidth, d, true)
+	// dense_in is always DRAWN DenseWidth columns wide, so every later
+	// tensor's pseudo-random sequence is the same at DENSE_W 68 and 92, then
+	// written denseW wide; a pre-Commander net's extra columns are zero.
+	{
+		f := make([]float32, d*denseW)
+		for o := 0; o < d; o++ {
+			for i := 0; i < policynet.DenseWidth; i++ {
+				x := next()
+				if i < denseW {
+					f[o*denseW+i] = x
+				}
+			}
+		}
+		ts = append(ts, tensor{"dense_in.weight", []int{d, denseW}, f})
+		rand("dense_in.bias", d)
+	}
 	lin("sparse_proj", e, d, false)
 	lin("pool_proj", 2*grps*cd, d, true)
 	for i := 0; i < lay.Layers; i++ {
@@ -179,7 +212,28 @@ func writeShape(dir, name string, sh Shape, rawW int, extra map[string]any, extI
 	norm("norm", d)
 	rand("opt_in.slots.weight", policynet.OptionSlotWidth, d)
 	lin("opt_in.hproj", e, d, false)
-	lin("opt_in.dense", policynet.OptionDenseWidth, d, true)
+	// opt_in.dense is always DRAWN 24 columns wide (OptionDenseWidthV1), so
+	// every later tensor's pseudo-random sequence is what Write produced
+	// before the relative-seat option columns, then written optW wide; the
+	// extra columns are zero. extra {"OPT_DENSE_W": 24} writes a
+	// pre-relative-seat network.
+	optW := policynet.OptionDenseWidth
+	if w, ok := extra["OPT_DENSE_W"].(int); ok {
+		optW = w
+	}
+	if optW < policynet.OptionDenseWidthV1 {
+		return "", fmt.Errorf("gonettest: OPT_DENSE_W %d is below %d", optW, policynet.OptionDenseWidthV1)
+	}
+	{
+		f := make([]float32, d*optW)
+		for o := 0; o < d; o++ {
+			for i := 0; i < policynet.OptionDenseWidthV1; i++ {
+				f[o*optW+i] = next()
+			}
+		}
+		ts = append(ts, tensor{"opt_in.dense.weight", []int{d, optW}, f})
+		rand("opt_in.dense.bias", d)
+	}
 	rand("opt_in.bot", d)
 	lin("ea_proj", cd, d, true)
 	lin("eb_proj", cd, d, true)
@@ -257,15 +311,15 @@ func headerShape(tensors []Entry, sh Shape, rawW int, extra map[string]any, lay 
 		"arch":   "mlp",
 		"config": map[string]float64{"d": d, "ff": ff, "d_emb": e, "card_d": cd, "head_hidden": hh,
 			"layers": float64(lay.Layers), "policy_layers": float64(lay.PolicyLayers), "value_layers": float64(lay.ValueLayers)},
-		"consts": map[string]int{"DENSE_W": policynet.DenseWidth, "RAW_W": rawW,
+		"consts": map[string]int{"DENSE_W": denseWidthFor(extra), "RAW_W": rawW,
 			"OPT_DENSE_W": policynet.OptionDenseWidth, "TABLE_ROWS": policynet.TableRows,
 			"SLOT_ROWS": policynet.OptionSlotWidth, "GROUPS": grps},
 		"layernorm_eps": eps,
 		"tensors":       tensors,
 	}
 	for k, v := range extra {
-		if k == "EXT_W" { // a const of the net, not a top-level header key
-			h["consts"].(map[string]int)["EXT_W"] = v.(int)
+		if k == "EXT_W" || k == "OPT_DENSE_W" || k == "DENSE_W" { // a const of the net, not a top-level header key
+			h["consts"].(map[string]int)[k] = v.(int)
 			continue
 		}
 		h[k] = v

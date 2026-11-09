@@ -103,7 +103,10 @@ func TestOwnLibFeatures(t *testing.T) {
 // The mz-ownlib hash is pinned, distinct from every other set's, maps back
 // to the set, and the set is checkpointable and round-trips a checkpoint.
 func TestOwnLibCheckpoint(t *testing.T) {
-	const pinned = uint64(0xdfccca3c483243e2)
+	const pinned = uint64(0x74f6f973c0a86be7)
+	if EncoderHashForV1Options(FeaturesMZOwnLib) != 0xdfccca3c483243e2 {
+		t.Fatal("mz-ownlib's 24-wide option hash moved")
+	}
 	h := EncoderHashFor(FeaturesMZOwnLib)
 	t.Logf("mz-ownlib encoder hash %#016x", h)
 	if h != pinned {

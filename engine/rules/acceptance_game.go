@@ -56,6 +56,24 @@ func AcceptanceConfig(reg *cards.Registry, names []string, decks [][]*cards.Card
 		Mulligans: 1}
 }
 
+// CommanderAcceptanceSeed is the seed of the 4-seat Commander acceptance
+// game TestHeads pins as TestHeads/cmd4. It is separate from AcceptanceSeed
+// because a Commander pod and a constructed table are different games; the
+// pinned seed was measured to finish by a win (see TestCommanderHeadGameEnds).
+const CommanderAcceptanceSeed uint64 = 42
+
+// CommanderAcceptanceConfig returns the 4-seat Commander acceptance game's
+// Config for decks already seated and resolved, with commanders[i] naming
+// seat i's commander indices into decks[i]. FormatCommander leaves
+// StartingLife at the format default (40, CR 903.7), so the head pins the
+// engine-default life total. The mulligan round is on for the same reason
+// AcceptanceConfig keeps it on: the pinned game exercises keep/mulligan and
+// bottoming.
+func CommanderAcceptanceConfig(reg *cards.Registry, names []string, decks [][]*cards.Card, commanders [][]int) Config {
+	return Config{Seed: CommanderAcceptanceSeed, Names: names, Decks: decks, Commanders: commanders,
+		Format: FormatCommander, Tokens: reg.Tokens, NameUniverse: reg.Universe(), Mulligans: 1}
+}
+
 // Answerer answers one pending decision of e.
 type Answerer func(e *Engine, d *decision.Decision) decision.Intent
 

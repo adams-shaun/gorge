@@ -48,7 +48,33 @@ func (s *State) altAddWindowTap(k *prep) {
 		return
 	}
 	c := s.buildCost(k)
-	s.windowTap(k, e.ctrl, &c, true)
+	// The behold-or-mana fallback window is the only either-or shape this
+	// walk models: the other shapes' parts are the parent's offer gate's
+	// business, and the window's widened behaviour below is gated on BeholdN.
+	behold := k.t.Cards[e.card].BeholdN != 0
+	// Gorge's fallback window (a chosen part that changed the plan's cost)
+	// carries a PaymentFallback but no ManaPayment, so the oracle's windowOwed
+	// reads only the flexible pip faces the payer announced: with none, the
+	// colour ask takes the source's lowest colour, not the pip the printed
+	// cost still owes. A window whose plan still matches (the chosen part is
+	// the priced one) carries the ManaPayment and answers the owed pip, so
+	// the no-owed answer applies only to the fallback: the mana part chosen
+	// while the free part is still payable (planCastAltAdd priced the free
+	// part, and the choice changed the cost). CR 601.2b/h, 601.2g.
+	noOwed := behold && s.bld().altAdd == 1 && s.bld().pipN == 0 && s.altAddFreePart(k, e.ctrl, e.card, e.obj)
+	// The real window runs at the mana stage (CR 601.2g), after the push: a
+	// tap-another-permanent source (Springleaf Drum) is listed there and its
+	// creature tapped as part of the activation. This synchronous walk runs
+	// at the choice stage instead, so it borrows the mana stage's
+	// castTapX listing and takes the first candidate the oracle's
+	// WindowAnswer would answer (the build cannot pause for a pick here).
+	b := s.bld()
+	saved := b.stage
+	if behold {
+		b.stage = bsAltAdd
+	}
+	s.windowTapUseful(k, e.ctrl, &c, &c, true, false, noOwed, false)
+	b.stage = saved
 }
 
 // DebugAltAddNoPipsFirst reverses an unpayable either-or part at the choice,
@@ -2778,20 +2804,46 @@ func (s *State) manaStep(k *prep) bool {
 			if !s.tapForHyb(k, e.ctrl, &cost, int(e.x), e.obj, anyColor) {
 				return true // stranded: the cast was reversed (static_landtype.go)
 			}
-		} else if cd := k.t.Cards[e.card]; cd.HasAltAdd && s.bld().altAdd == 1 && cd.AltAddCost.Mana != (kop.ManaCost{}) {
-			// An either-or additional cost's mana part (CR 601.2b): gorge's
-			// payment plan was armed at the offer, before the part was chosen,
-			// and the choice folds the part's mana into the cost before any
-			// other cost stage (altAddAsk), so the plan's mana no longer
-			// matches and the planner refuses the cast
-			// (paymentPlanCheckUnits paymentFallbackCostChanged). rearmAutoPay
-			// declines a plain spell, so the cast pays through the manual CR
-			// 601.2g window: the first useful source in battlefield order
-			// (pay.ManaSourceIDs), repeated until the pool pays. The part's
-			// non-mana shape (a life part) leaves the mana untouched and the
-			// plan intact, so only the mana part routes here.
+		} else if s.bld().altAbort {
+			// The chosen either-or part cannot be paid, so gorge pays what
+			// the part owes through its fallback CR 601.2g window and then
+			// reverses the cast (CR 733.1), keeping the window's taps and
+			// floating mana. The window has no ManaPayment (a fallback), so
+			// a colour ask takes the source's lowest colour (noOwed). It
+			// runs here, at the mana stage, so a tap-another source's pick
+			// is posed instead of walked over.
 			c := xFolded(cost, int(e.x))
-			s.windowTapRider(k, e.ctrl, &c, true, anyColor)
+			noOwed := s.bld().altAdd == 1 && s.bld().pipN == 0 && s.altAddFreePart(k, e.ctrl, e.card, e.obj)
+			ok, _ := s.windowTapUseful(k, e.ctrl, &c, &c, true, anyColor, noOwed, false)
+			if !s.winPaused() {
+				if !ok || s.bld().altAdd == 0 {
+					// the window ran out, or paid the spell's own cost
+					// while the chosen non-mana part stays unpayable:
+					// gorge reverses the cast
+					s.releaseCostTaps(k, &saved)
+					s.reverseCast(k)
+					return true
+				}
+				s.bld().altAbort = false // the window paid the chosen mana part
+			}
+		} else if cd := k.t.Cards[e.card]; cd.HasAltAdd && s.bld().altAdd == 1 && cd.AltAddCost.Mana != (kop.ManaCost{}) {
+			// An either-or additional cost's mana part (CR 601.2b): the offer
+			// priced the composed total when no mana-free part was payable
+			// (plannedCastCostOf, as gorge's planCastAltAdd plans it), and the
+			// choice folds that same part's mana into the cost before any
+			// other cost stage (altAddAsk). Plan it here so its sources are
+			// the planner's ObjID-ordered witness (pay.CompareSteps), as
+			// gorge's plan is, not the manual CR 601.2g window's battlefield
+			// order (pay.ManaSourceIDs). When the offer priced a mana-free
+			// part instead, the seat's choice of the mana part changes the
+			// cost the plan was armed for, so fall back to the window as
+			// gorge's plan does.
+			if cd.BeholdN == 0 || s.altAddFreePart(k, e.ctrl, e.card, e.obj) {
+				c := xFolded(cost, int(e.x))
+				s.windowTapRider(k, e.ctrl, &c, true, anyColor)
+			} else {
+				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
+			}
 		} else {
 			if s.rbAny(e.ctrl) {
 				// a rider plan that tapped a wide restricted source floated its
@@ -3170,7 +3222,7 @@ func (s *State) castTapX(k *prep) bool {
 		return false
 	}
 	b := s.bld()
-	return b.e.kind == seSpell && (b.stage == bsMana || b.stage == bsPay)
+	return b.e.kind == seSpell && (b.stage == bsMana || b.stage == bsPay || b.stage == bsAltAdd)
 }
 
 // isFork: s is a probe copy (fork), whose window never waits on an answer.

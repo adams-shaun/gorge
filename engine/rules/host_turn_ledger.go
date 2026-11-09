@@ -187,9 +187,10 @@ func (e *Engine) CardsDrawnThisTurn(p state.PlayerID) int32 {
 }
 
 // StartingLife satisfies effects.Host's StartingLife: the opening life total
-// genesis resolved (Config.StartingLife's 0-means-20 convention already
-// applied in newWithRNG). Captured at construction and copied by Clone, so a
-// replay derives the same value.
+// genesis resolved (Config.StartingLife's zero value means the format's
+// default — 40 for FormatCommander, 20 otherwise; an explicit value overrides
+// it — already applied in newEngineShell). Captured at construction and
+// copied by Clone, so a replay derives the same value.
 func (e *Engine) StartingLife() int32 { return e.startingLife }
 
 func (e *Engine) TurnsTaken(p state.PlayerID) int32 {

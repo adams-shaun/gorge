@@ -123,12 +123,41 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	if o == nil || o.Zone != originZone || (!mayPlay && o.Owner != p) || o.Face() == nil || int(o.FaceIdx) != cast.Face {
 		return PaymentPlanOutcome{Reason: "unsupported"}
 	}
-	detail := e.paymentPlanCastShapeDetailScoped(statics.get(), p, cast.Object, plannedCastScope(o.Zone, flashback))
+	scope := plannedCastScope(o.Zone, flashback)
+	altAdd := len(altAddCostParts(o.Face())) != 0
+	beholdAltAdd := false
+	if altAdd {
+		// The beholder-or-mana shape (Mudbutton Cursetosser's
+		// Behold<1/Goblin>:2) is the one the planned witness prices: the
+		// Behold part is paid by the in-flow ask, and the mana part by the
+		// witness. Other either-or shapes stay with the offer gate.
+		for _, part := range altAddCostParts(o.Face()) {
+			if len(ParseCost(part).Behold) != 0 {
+				beholdAltAdd = true
+				break
+			}
+		}
+	}
+	planAltAdd := false
+	detail := e.paymentPlanCastShapeDetailScoped(statics.get(), p, cast.Object, scope)
 	if detail != "" {
-		if !targetPaidShape(detail) || flashback || mayPlay || !e.targetPaidNeedsPlannedPayment(p, cast.Object) {
+		switch {
+		case targetPaidShape(detail) && !flashback && !mayPlay && e.targetPaidNeedsPlannedPayment(p, cast.Object):
+			// A witness whose target pays for it is the target-paid path's
+			// (see targetPaidNeedsPlannedPayment); keep it first.
+			targetPaid = true
+		case beholdAltAdd && detail == "shape:optional_cost" && !flashback &&
+			e.paymentPlanCastShapeDetailAltAdd(statics.get(), p, cast.Object, scope, true) == "":
+			// A mandatory either-or additional cost (CR 601.2b/h) is a
+			// choice made at announcement, so the printed-cost witness
+			// alone cannot price it: the cast flow asks altAddAsk and folds
+			// the chosen part into the total. Plan that total here instead
+			// of withholding the cast (the autopay surface only offers
+			// plain casts the planner witnesses).
+			planAltAdd = true
+		default:
 			return PaymentPlanOutcome{Reason: "unsupported", Detail: detail}
 		}
-		targetPaid = true
 	}
 	switch {
 	case flashback:
@@ -162,7 +191,9 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	// V1 has no way to carry a target-dependent reprice or a choice made at
 	// announcement. Candidate discovery below owns timing, targets and
 	// prohibitions; this method owns the exact cost/witness subset.
-	var cost Cost
+	// base is the cast's price BEFORE the cost statics (the composition the
+	// either-or additional cost's part joins, CR 601.2f/h).
+	var base, cost Cost
 	if flashback {
 		cost = e.plannedFlashbackCost(statics.get(), p, cast.Object)
 	} else if mayPlay {
@@ -171,7 +202,7 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		// charges it: the free grant empties the mana part, the granting
 		// static's RaiseCost$ is added before the cost statics apply, and
 		// the spell ability's extras follow in "mayplay" scope.
-		base := pay.RawBaseCost(asPayer(e), p, cast.Object)
+		base = pay.RawBaseCost(asPayer(e), p, cast.Object)
 		if free, ok := e.mayPlayGrant(p, cast.Object); ok && free {
 			base = Cost{}
 		}
@@ -183,7 +214,7 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		}
 		cost = pay.WithSpellAbilityExtras(o.Face(), e.offerCostForUsing(statics.get(), p, cast.Object, base, spellScope("mayplay")))
 	} else {
-		base := pay.RawBaseCost(asPayer(e), p, cast.Object)
+		base = pay.RawBaseCost(asPayer(e), p, cast.Object)
 		base = pay.WithSpellAbilityExtras(o.Face(), base)
 		cost = e.offerCostForUsing(statics.get(), p, cast.Object, base, spellScope(""))
 	}
@@ -195,6 +226,9 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	}
 	if global, detail := e.paymentPlanGlobalManaEffect(p, cast.Object); global {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: detail}
+	}
+	if planAltAdd {
+		return e.planCastAltAdd(statics.get(), p, cast, base, mayPlay)
 	}
 	desc := pay.DescriptorFor(cast.Object, false, cost)
 	mana := pay.PlanManaHalf(cost)
@@ -214,6 +248,78 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	return e.planReserving(p, cast.Object, cost, false, false, parts, func(tapR, keptR []state.ObjID) PaymentPlanOutcome {
 		return pay.PlanPaymentCostWithout(asPayer(e), p, cast, mana, &desc, tapR, nil, keptR)
 	})
+}
+
+// planCastAltAdd prices a plain cast's mandatory either-or additional cost
+// (AlternateAdditionalCost, CR 601.2b/h) into the payment witness. altAddAsk
+// runs at announcement, before this witness's mana window, and folds ONE
+// chosen part into the total; the witness must therefore fund the printed
+// cost plus the part the flow will ask for. altAddAsk offers the payable
+// parts first in script order, so the witness is built for the first part
+// that is payable: a mana part plans its total, a pure non-mana part (Behold,
+// Blight) leaves the printed cost and just has to be payable now. The plan's
+// Cost carries the selected part, which ValidateCastPayment re-derives.
+func (e *Engine) planCastAltAdd(statics costStaticViews, p state.PlayerID, cast decision.PlannedCast, base Cost, mayPlay bool) PaymentPlanOutcome {
+	o := e.G.Obj(cast.Object)
+	if o == nil || o.Face() == nil {
+		return PaymentPlanOutcome{Reason: "unsupported"}
+	}
+	scope := spellScope("")
+	if mayPlay {
+		scope = spellScope("mayplay")
+	}
+	rider := pay.ConvRider(asEval(e).Conv(p, cast.Object, pay.SASpell))
+	if mayPlay {
+		rider = rider.Or(asPayer(e).Eval().MayPlayRider(p, cast.Object))
+	}
+	opt := decision.Option{Kind: "cast", Obj: cast.Object, Mode: cast.CastMode()}
+	for _, part := range altAddCostParts(o.Face()) {
+		c := ParseCost(part)
+		nonMana := !c.HasManaPayment()
+		total := base.Plus(c)
+		if nonMana && !pay.NonManaCastable(asPayer(e), p, cast.Object, total, false, "") {
+			continue
+		}
+		// The part joins the price BEFORE the cost statics (CR 601.2f/h);
+		// the spell ability's extras follow the composition in "mayplay"
+		// scope, exactly as the offer walk and beginCast charge them.
+		composed := e.offerCostForUsing(statics, p, cast.Object, total, scope)
+		if mayPlay {
+			composed = pay.WithSpellAbilityExtras(o.Face(), composed)
+		}
+		composed = pay.PlanManaUnderRider(composed, rider)
+		got := e.planComposedCostFor(p, cast.Object, cast, composed, false, false)
+		// A part with no mana of its own is paid by the cast flow's in-flow
+		// ask (altAddAsk), not by the offer walk, so the walk cannot price it
+		// on its own: a Behold part makes offerCastable decline the cast
+		// however payable the beholding is. Requiring potentialWitnessOffers
+		// here therefore dropped the cast whenever this free part was the
+		// first payable one (pair 73: Silvergill Mentor's behold part was
+		// payable while the {2} part was not, so neither the pool's option
+		// list nor the planner carried the cast). NonManaCastable above is the
+		// free part's own payability gate; the parts with mana still take the
+		// offer gate. CR 601.2b/h.
+		if got.Plan != nil && got.Reason == "" && (nonMana || e.potentialWitnessOffers(p, opt, *got.Plan)) {
+			return got
+		}
+	}
+	return PaymentPlanOutcome{Reason: "insufficient"}
+}
+
+// planCastAltAddSettleCost folds the either-or part the witness planned into
+// ValidateCastPayment's settle price. planCastAltAdd builds the witness's
+// Cost from the chosen part's composed total, so the settle price is that
+// Cost, rebuilt as the same mana vector.
+func (e *Engine) planCastAltAddSettleCost(p state.PlayerID, cast decision.PlannedCast, cost Cost, plan decision.PaymentPlan) Cost {
+	o := e.G.Obj(cast.Object)
+	if o == nil || o.Face() == nil || len(altAddCostParts(o.Face())) == 0 {
+		return cost
+	}
+	var colored state.Mana
+	for i := range colored {
+		colored[i] = int32(plan.Cost.Mana[i])
+	}
+	return Cost{Generic: int32(plan.Cost.Generic), Colored: colored}
 }
 
 // paymentPlanCastCandidate deliberately delegates timing, mandatory-target
@@ -361,12 +467,25 @@ func (e *Engine) paymentPlanCastShapeDetailUsing(statics costStaticViews, p stat
 // cast priced in scope: the may-play origins' "mayplay", a planned
 // flashback's "flashback" (plannedCastScope), the plain casts' "".
 func (e *Engine) paymentPlanCastShapeDetailScoped(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope) string {
+	return e.paymentPlanCastShapeDetailAltAdd(statics, p, id, scope, false)
+}
+
+// paymentPlanCastShapeDetailAltAdd is paymentPlanCastShapeDetailScoped with
+// the mandatory either-or additional cost (AlternateAdditionalCost) either
+// withheld as before or treated as plannable. planCastPaymentChecked plans
+// the chosen part into the witness (planCastAltAdd), so the alternative's
+// presence stops being a reason to withhold the cast; every other shape gate
+// still answers.
+func (e *Engine) paymentPlanCastShapeDetailAltAdd(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, altAddPlannable bool) string {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return "shape:additional_cost"
 	}
 	f := o.Face()
-	if len(altAddCostParts(f)) != 0 || len(e.optionalCostViews(statics, p, id)) != 0 || len(e.reduceColorOptionalViews(statics, p, id)) != 0 {
+	if len(altAddCostParts(f)) != 0 && !altAddPlannable {
+		return "shape:optional_cost"
+	}
+	if len(e.optionalCostViews(statics, p, id)) != 0 || len(e.reduceColorOptionalViews(statics, p, id)) != 0 {
 		return "shape:optional_cost"
 	}
 	// Cost$ on the spell ability and the supported cost-static extra are both
@@ -842,6 +961,12 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 		}
 	}
 	cost := pay.PlanManaHalf(e.offerCostFor(p, cast.Object, pay.WithSpellAbilityExtras(e.G.Obj(cast.Object).Face(), settleBase), settleScope))
+	if got.Plan != nil {
+		// The witness planned the mandatory either-or additional cost's
+		// chosen part (planCastAltAdd); settle the same total or the exact
+		// witness re-check at the end rejects a plan that pays.
+		cost = e.planCastAltAddSettleCost(p, cast, cost, *got.Plan)
+	}
 	rider := pay.ConvRider(asEval(e).Conv(p, cast.Object, pay.SASpell))
 	if o := e.G.Obj(cast.Object); o != nil && plannedMayPlayZone(o.Zone) && cast.Origin != decision.OriginFlashback {
 		rider = rider.Or(asPayer(e).Eval().MayPlayRider(p, cast.Object))

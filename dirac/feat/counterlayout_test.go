@@ -8,9 +8,12 @@ import (
 
 // TestCounterFeatureLayoutFrozen (kcounters): the unfeaturized counter
 // kinds (kop.CtrCharge..) leave the encoder's widths, the counter table it
-// hashes and its order exactly as the trained models saw them.
+// hashes and its order exactly as the trained models saw them. The option
+// row is 28 wide since the relative-seat columns (24..27; a 24-wide net
+// reads only the first 24); the dense vector is 92 wide since the Commander
+// block (68..91; a 68-wide net reads only the first 68).
 func TestCounterFeatureLayoutFrozen(t *testing.T) {
-	if DenseWidth != 68 || EntityRawWidth != 100 || OptionDenseWidth != 24 || OptionSlotWidth != 128 {
+	if DenseWidth != 92 || EntityRawWidth != 100 || OptionDenseWidth != 28 || OptionSlotWidth != 128 {
 		t.Fatalf("widths %d %d %d %d changed", DenseWidth, EntityRawWidth, OptionDenseWidth, OptionSlotWidth)
 	}
 	want := [...]string{"P1P1", "M1M1", "LOYALTY", "STUN", "SHIELD", "FLYING", "OTHER",

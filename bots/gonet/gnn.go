@@ -116,14 +116,14 @@ type gnGNN struct {
 
 	nodeType, edgeType []float32         // types×d
 	ltab               []float32         // TableRows×d: leaf_proj(table[r]) (leaf_proj has no bias)
-	rawLeaf, denseLeaf gnLinear          // rawW -> d, DenseWidth -> d
+	rawLeaf, denseLeaf gnLinear          // rawW -> d, DENSE_W -> d
 	local              [][4]gnLocalLayer // [pass][card, zone, player, root]
 	blocks             []gnSABlock
 	norm               gnNorm
 
 	slots          []float32 // OptionSlotWidth×d
 	htab           []float32 // TableRows×d: opt_in.hproj(table[r])
-	odense         gnLinear  // OptionDenseWidth -> d
+	odense         gnLinear  // the header's OPT_DENSE_W (24 or 28) -> d
 	bot            []float32 // d
 	eaProj, ebProj gnLinear  // d -> d
 	noneA, noneB   []float32 // the learned "no card" vectors (unprojected)
@@ -243,10 +243,10 @@ func loadGNN(path string, h gnHeader, tensors map[string][]float32, shapes map[s
 		nodeType:  get("node_type.weight", gnNumNodeTypes, d),
 		edgeType:  get("edge_type.weight", gnNumEdgeTypes, d),
 		rawLeaf:   lin("raw_leaf", rawW, d, true),
-		denseLeaf: lin("dense_leaf", policynet.DenseWidth, d, true),
+		denseLeaf: lin("dense_leaf", h.Consts["DENSE_W"], d, true),
 		norm:      norm("norm", d),
 		slots:     get("opt_in.slots.weight", gnSlotRow, d),
-		odense:    lin("opt_in.dense", policynet.OptionDenseWidth, d, true),
+		odense:    lin("opt_in.dense", h.Consts["OPT_DENSE_W"], d, true),
 		bot:       get("opt_in.bot", d),
 		eaProj:    lin("ea_proj", d, d, true),
 		ebProj:    lin("eb_proj", d, d, true),
@@ -580,7 +580,7 @@ func (g *Net) evalGNNBatch(gsc *gnScratch, sts []*policynet.State, opts [][]poli
 	}
 	// the root's children per state: me, opp, the stack zone (filled per
 	// pass), DENSE, then one leaf per sparse row; every DENSE in one GEMM
-	const dw = policynet.DenseWidth
+	dw := n.denseLeaf.in // 92, or 68 for a pre-Commander-block net
 	dense := takeF(&sc.dense, B*dw)
 	for b, st := range sts {
 		r := dense[b*dw : (b+1)*dw]
@@ -724,7 +724,7 @@ func gnnOptions(n *gnGNN, sc *gnnScratch, x []float32, tOff []int, opts [][]poli
 	ha := takeF(&sc.ha, no*d)
 	hb := takeF(&sc.hb, no*d)
 	// o = opt_in.dense(dense) + slots + hashed bag + bot, every option's dense row in one GEMM
-	const ow = policynet.OptionDenseWidth
+	ow := n.odense.in // the net's own option width (24 or 28)
 	od := takeF(&sc.od, no*ow)
 	j := 0
 	for b := range opts {

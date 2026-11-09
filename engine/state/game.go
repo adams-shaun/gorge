@@ -783,8 +783,9 @@ const startingLife = 20
 // did.
 func NewGame(names []string) *Game { return NewGameLife(names, startingLife) }
 
-// NewGameLife is NewGame with an explicit starting life total (Config.
-// StartingLife's 0-means-20 convention is resolved by the caller).
+// NewGameLife is NewGame with an explicit starting life total (the format
+// default — 40 for Commander, 20 otherwise — is resolved by the caller, e.g.
+// rules.startingLife).
 func NewGameLife(names []string, life int32, objectCapacity ...int) *Game {
 	capacity := 0
 	if len(objectCapacity) > 0 && objectCapacity[0] > 0 {

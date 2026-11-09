@@ -85,7 +85,7 @@ func TestLegacyRawWidthNetIsExact(t *testing.T) {
 
 	v1 := policynet.EncoderHashEntityV1()
 	live := policynet.EncoderHashFor(policynet.FeaturesEntity)
-	good, err := gonettest.WriteRaw(dir, "v1hash.dzgw", policynet.EntityRawWidthV1, map[string]any{"encoder_hash": fmt.Sprintf("%016x", v1)})
+	good, err := gonettest.WriteRaw(dir, "v1hash.dzgw", policynet.EntityRawWidthV1, map[string]any{"encoder_hash": fmt.Sprintf("%016x", v1), "OPT_DENSE_W": policynet.OptionDenseWidthV1})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -101,12 +101,22 @@ type Model struct {
 	Rows   int // embedding table rows (TableRows for a checkpoint-rounded model)
 	H      int // embedding width
 	Hidden int // hidden layer width
-	InW    int // hidden input width = 2H + OptionSlotWidth + OptionDenseWidth + ExtraW
+	InW    int // hidden input width = 2H + OptionSlotWidth + OptDenseW() + ExtraW
 	// ExtraW is the experimental per-option augmentation width (Option.Extra).
 	// Zero for every encoder-produced model, so InW keeps the pinned geometry;
 	// a feature-family experiment sets it through NewModelExtra. Not part of
 	// EncoderHash and not checkpointable.
 	ExtraW int
+	// optDenseW is the option dense width the model reads (OptDenseW): 0
+	// means OptionDenseWidth. A checkpoint of the 24-wide option row loads
+	// with 24 and reads only the first 24 columns of Option.Dense, so it
+	// scores exactly as it did before the relative-seat columns.
+	optDenseW int
+	// stateDenseW is the state dense width the model reads (StateDenseW): 0
+	// means DenseWidth. A checkpoint of the 68-wide dense vector loads with
+	// 68 and reads only the first 68 columns, so it scores exactly as it did
+	// before the Commander block.
+	stateDenseW int
 	// Features is the feature set (features.go) the model encodes under.
 	// FeaturesV1, the zero value, is the pinned encoder every existing
 	// checkpoint was trained on. It changes no geometry: the other sets only
@@ -115,7 +125,7 @@ type Model struct {
 	Features FeatureSet
 
 	Table  []float32 // Rows*H, row-major: Table[r*H+j]
-	StateW []float32 // DenseWidth*H, row-major: StateW[d*H+j]
+	StateW []float32 // StateDenseW()*H, row-major: StateW[d*H+j]
 	StateB []float32 // H
 	HidW   []float32 // Hidden*InW, row-major: HidW[h*InW+i]
 	HidB   []float32 // Hidden
@@ -409,14 +419,54 @@ func NewModelExtra(rows, h, hidden, extraW int, rng *rand.Rand) *Model {
 		ExtraW: extraW,
 		InW:    2*h + OptionSlotWidth + OptionDenseWidth + extraW,
 	}
+	return m.initWeights(rng)
+}
+
+// NewModelOptDense is NewModel reading an option dense row of width w
+// (OptionDenseWidth or OptionDenseWidthV1): a 24-wide model scores only the
+// first 24 option columns, as every network before the relative-seat
+// columns did. With w == OptionDenseWidthV1 the weights draw from rng in
+// exactly the order NewModel drew them before the widening; it also takes the
+// pre-Commander 68-wide state vector, so the old checkpoint geometry is
+// reproduced exactly.
+func NewModelOptDense(rows, h, hidden, w int, rng *rand.Rand) *Model {
+	if w != OptionDenseWidth && w != OptionDenseWidthV1 {
+		panic(fmt.Errorf("policynet: option dense width %d, want %d or %d", w, OptionDenseWidthV1, OptionDenseWidth))
+	}
+	m := &Model{Rows: rows, H: h, Hidden: hidden, InW: 2*h + OptionSlotWidth + w, optDenseW: w}
+	if w == OptionDenseWidthV1 {
+		m.stateDenseW = DenseWidthV1
+	}
+	return m.initWeights(rng)
+}
+
+// OptDenseW is the option dense width the model reads.
+func (m *Model) OptDenseW() int {
+	if m.optDenseW == 0 {
+		return OptionDenseWidth
+	}
+	return m.optDenseW
+}
+
+// StateDenseW is the state dense width the model reads.
+func (m *Model) StateDenseW() int {
+	if m.stateDenseW == 0 {
+		return DenseWidth
+	}
+	return m.stateDenseW
+}
+
+func (m *Model) initWeights(rng *rand.Rand) *Model {
+	rows, h, hidden := m.Rows, m.H, m.Hidden
+	dw := m.StateDenseW()
 	m.Table = make([]float32, rows*h)
-	m.StateW = make([]float32, DenseWidth*h)
+	m.StateW = make([]float32, dw*h)
 	m.StateB = make([]float32, h)
 	m.HidW = make([]float32, hidden*m.InW)
 	m.HidB = make([]float32, hidden)
 	m.OutW = make([]float32, hidden)
 	fillUniform(m.Table, 0.05, rng)
-	fillUniform(m.StateW, glorot(DenseWidth, h), rng)
+	fillUniform(m.StateW, glorot(dw, h), rng)
 	fillUniform(m.HidW, glorot(m.InW, hidden), rng)
 	fillUniform(m.OutW, glorot(hidden, 1), rng)
 	return m
@@ -454,7 +504,7 @@ func (m *Model) stateTrunkEnt(st State) ([]float32, *entCache) {
 			s[j] += row[j] * v
 		}
 	}
-	for d := 0; d < DenseWidth && d < len(st.Dense); d++ {
+	for d := 0; d < m.StateDenseW() && d < len(st.Dense); d++ {
 		v := st.Dense[d]
 		if v == 0 {
 			continue
@@ -490,8 +540,8 @@ func (m *Model) inputVector(s []float32, o Option, c *entCache) []float32 {
 		}
 	}
 	off += OptionSlotWidth
-	copy(x[off:], o.Dense)
-	off += OptionDenseWidth
+	copy(x[off:off+m.OptDenseW()], o.Dense)
+	off += m.OptDenseW()
 	for i := 0; i < m.ExtraW && i < len(o.Extra); i++ {
 		x[off+i] = o.Extra[i]
 	}
@@ -1227,7 +1277,7 @@ func (m *Model) LossGrad(ex Example, lc LossConfig, g *Grads) StepStat {
 	for j := 0; j < m.H; j++ {
 		g.StateB[j] += g.ds[j]
 	}
-	for d := 0; d < DenseWidth && d < len(ex.State.Dense); d++ {
+	for d := 0; d < m.StateDenseW() && d < len(ex.State.Dense); d++ {
 		v := ex.State.Dense[d]
 		if v == 0 {
 			continue

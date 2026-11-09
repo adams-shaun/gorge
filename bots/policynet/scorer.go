@@ -127,7 +127,7 @@ func (sc *Scorer) SetState(st State) {
 			s[j] += row[j] * v
 		}
 	}
-	for d := 0; d < DenseWidth && d < len(st.Dense); d++ {
+	for d := 0; d < m.StateDenseW() && d < len(st.Dense); d++ {
 		v := st.Dense[d]
 		if v == 0 {
 			continue
@@ -164,7 +164,7 @@ func (sc *Scorer) ScoreOption(o Option) float32 {
 		}
 	}
 	off += OptionSlotWidth
-	copy(x[off:], o.Dense)
+	copy(x[off:off+m.OptDenseW()], o.Dense)
 	m.entFillInput(x, o, sc.ec)
 	return sc.scoreHead(x) + m.residual(o)
 }

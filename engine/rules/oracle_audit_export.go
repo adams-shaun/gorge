@@ -114,11 +114,7 @@ var oracleAuditOps = map[string]bool{
 // genesis bookkeeping rather than logged state, so they are rebuilt from
 // Config and the event stream as New initializes them.
 func logReplayGame(cfg Config, log []events.Event) *state.Game {
-	life := int32(20)
-	if cfg.StartingLife > 0 {
-		life = cfg.StartingLife
-	}
-	g := state.NewGameLife(cfg.Names, life)
+	g := state.NewGameLife(cfg.Names, startingLife(cfg))
 	g.Tokens = cfg.Tokens
 	cmdIDs := make([][]state.ObjID, len(cfg.Names))
 	totalCmd := 0

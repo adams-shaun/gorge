@@ -1514,7 +1514,7 @@ type genState struct {
 	xtp       [maxXTPool]xTargets // stackEntry.xi - 1 indexes it
 	atkHi     uint8               // the highest attacker group ever taken (the hash walks 1..atkHi)
 	tli       uint8               // LKI index of a target the resolving entry moved off the battlefield; bit 7: a filter is reading it (zone_lki.go)
-	energy    [2]uint8            // each player's energy counters (CR 122.1; saturates at 255; act_energy.go)
+	energy    [MaxSeats]uint8     // each player's energy counters (CR 122.1; saturates at 255; act_energy.go)
 	roll      uint8               // the last OpRollDie result (ExRollResult; act_energy.go)
 	drawFirst bool                // the turn-based draw of the draw step is pending and no card has been drawn in it yet (repl_draw.go; transient, false between decisions)
 	conn      uint8               // OpConnive's nonland hand count before its discard, +1 (0: no connive pending; padding; trig_delayedtiming.go)
@@ -1546,7 +1546,7 @@ type genState struct {
 	nmay uint8
 	// parad[p] bit i: p resolved a Paradigm spell with the table's i-th
 	// Paradigm name (CardDef.Paradigm-1); never reset (kw_paradigm.go)
-	parad [2]uint8
+	parad [MaxSeats]uint8
 	sidN  uint8 // the last stack identity given (tgt_stackability.go)
 
 	dp    [maxDProg]dprog
@@ -1554,18 +1554,18 @@ type genState struct {
 	ndp   uint8
 	stkCt uint8 // a countered stack ability's controller+1, for its "its controller" (tgt_stackability.go)
 
-	emb  [2][maxEmb]uint8  // emblem index+1
-	embC [2][maxEmb]CardID // the card that created it (its latent abilities run the emblem's triggers)
-	embO [2][maxEmb]Obj    // that card's object (the source of the emblem's triggers)
-	embN [2][maxEmb]uint8  // the Effect's frozen SetChosenNumber$
-	embT [2][maxEmb]uint16 // the emblem's CR 613.7 layer timestamp, set at creation (static_layer6.go)
-	nemb [2]uint8
-	qgO  [qgN]uint8 // exile grants (Q, Stacking the Deck): the granted exiled object+1, 0 = free (cast_exilegrant.go)
-	qgV  [qgN]uint8 // each grant's object version: stale once the card left exile
-	qgH  [qgN]uint8 // each grant's host (the card whose ability was granted) object+1
-	pgT  [pgN]uint8 // Panharmonicon grants: the granted object+1, compacted (act_grantpanharm.go)
-	pgH  [pgN]uint8 // each grant's host (the tapped source) object+1
-	nlA  [2]uint8   // locked permanents, object+1, compacted (act_lockpermanent.go; fills the padding before lki)
+	emb  [MaxSeats][maxEmb]uint8  // emblem index+1
+	embC [MaxSeats][maxEmb]CardID // the card that created it (its latent abilities run the emblem's triggers)
+	embO [MaxSeats][maxEmb]Obj    // that card's object (the source of the emblem's triggers)
+	embN [MaxSeats][maxEmb]uint8  // the Effect's frozen SetChosenNumber$
+	embT [MaxSeats][maxEmb]uint16 // the emblem's CR 613.7 layer timestamp, set at creation (static_layer6.go)
+	nemb [MaxSeats]uint8
+	qgO  [qgN]uint8      // exile grants (Q, Stacking the Deck): the granted exiled object+1, 0 = free (cast_exilegrant.go)
+	qgV  [qgN]uint8      // each grant's object version: stale once the card left exile
+	qgH  [qgN]uint8      // each grant's host (the card whose ability was granted) object+1
+	pgT  [pgN]uint8      // Panharmonicon grants: the granted object+1, compacted (act_grantpanharm.go)
+	pgH  [pgN]uint8      // each grant's host (the tapped source) object+1
+	nlA  [MaxSeats]uint8 // locked permanents, object+1, compacted (act_lockpermanent.go; fills the padding before lki)
 	// the untap step suspended on a keep-tapped ask (repl_untapchoice.go):
 	// untapUp the slots untapped so far, untapNext the scan index of the
 	// asked permanent, untapSl its slot, untapAns its answer (0 unanswered,
@@ -1581,17 +1581,17 @@ type genState struct {
 	used  [maxUsed]usedRec // once-per-turn triggers / statics used this turn
 	nused uint8
 
-	died     uint8    // creatures put into a graveyard from the battlefield this turn
-	attacked [2]uint8 // creatures each player attacked with this turn
-	oppAtt   uint8    // 1 once a declaration this turn named a player as defender (prep.anyOppsAtt only; value_oppsattacked.go)
-	isCast   [2]uint8 // instants and sorceries each player cast this turn (Tf2CastSnapshot)
+	died     uint8           // creatures put into a graveyard from the battlefield this turn
+	attacked [MaxSeats]uint8 // creatures each player attacked with this turn
+	oppAtt   uint8           // 1 once a declaration this turn named a player as defender (prep.anyOppsAtt only; value_oppsattacked.go)
+	isCast   [MaxSeats]uint8 // instants and sorceries each player cast this turn (Tf2CastSnapshot)
 	// the turn history bank (value_turnhistory.go): per player, counters kgen's
 	// readers name by slot (histSpells: spells cast), and the mana spent
 	// casting spells (expend). Kept only when genPrep.anyHist.
-	hist [2][3]uint8
+	hist [MaxSeats][3]uint8
 	// actRing: per activator, the first actRingN abilities activated this turn, each as the source Obj+1 (0 = empty), actN the counts. Written only when genPrep.actRingOn; in no hash (cast_activationledger.go).
-	actRing [2][actRingN]uint8
-	actN    [2]uint8
+	actRing [MaxSeats][actRingN]uint8
+	actN    [MaxSeats]uint8
 
 	// pending as-enters choices (colour / creature type) and the leyline ask
 	ask  [4]askRec
@@ -1600,10 +1600,10 @@ type genState struct {
 	// was queued (gorge asks it mid-resolution, the holder unchanged);
 	// priSave (0x80 | holder) the holder to restore once the asks are done
 	askPrio, priSave uint8
-	holdPrio         uint8    // the priority holder when the free casts were picked
-	ctlRet           uint8    // control state to return to after the asks
-	pre              preAsk   // an as-enters choice asked while the permanent spell is on the stack
-	ley              [2]uint8 // leyline asks: starting player done, Leylines declined (nextLeyline)
+	holdPrio         uint8           // the priority holder when the free casts were picked
+	ctlRet           uint8           // control state to return to after the asks
+	pre              preAsk          // an as-enters choice asked while the permanent spell is on the stack
+	ley              [MaxSeats]uint8 // leyline asks: starting player done, Leylines declined (nextLeyline)
 	leyP             uint8
 	leyOn            bool
 	leyDn            bool
@@ -1613,29 +1613,29 @@ type genState struct {
 		sl Slot
 		m  uint8
 	} // per restricted charm source: m bits 0-3 picked modes, bit 7 ThisGame scope (modal_charmpick.go)
-	nchPick    uint8     // entries of chPick in use
-	trigTurn   uint16    // triggered abilities resolved this turn (StallLoop)
-	dilemmas   [2]uint8  // the dilemmas each player faced this turn (trig_dilemma.go)
-	on         bool      // the State plays a generated table
-	tapBatch   uint8     // trig_tapall.go: the open tap batch's first pending index + 1 (0 = none)
-	batchLatch uint8     // trig_oneormore.go: bit 7 a leave to a graveyard is being checked; bits 0-4 the open batch's first pending index + 1 (0 = none). Was pendOver (unused), so State is unchanged
-	tyM        slotMask  // slots whose perm.gty holds override-derived types (ovGenTy)
-	stalled    uint8     // why the game was stopped at the kernel's capacity (a draw); 0 = it wasn't
-	noTgtRed   bool      // cost computation without target-dependent reductions
-	mayPlayAny bool      // the may-play cast being priced is under the any-type rider
-	probe      probe     // the spell / ability a priority feasibility check is for
-	tgtSelf    uint8     // the graveyard card a feasibility check is for, plus one (0: none): it leaves the graveyard for the stack when cast, so it is no target of its own cast
-	inLoop     bool      // executing one object of a multi-object target slot
-	each       eachSusp  // an each-target loop parked on a copy token's as-enters ask (copy_eachtarget.go)
-	tokFrz     slotMask  // the permanents whose CreateToken replacements an each-target copy loop reads, fixed when it began (tokSrcM)
-	tokFrzOn   bool      // tokFrz is in force
-	sweep      sweepSusp // a copy-all sweep parked on a copy's as-enters ask (copy_allpark.go)
-	mt         multiTgt  // the multi-object target slot being chosen
+	nchPick    uint8           // entries of chPick in use
+	trigTurn   uint16          // triggered abilities resolved this turn (StallLoop)
+	dilemmas   [MaxSeats]uint8 // the dilemmas each player faced this turn (trig_dilemma.go)
+	on         bool            // the State plays a generated table
+	tapBatch   uint8           // trig_tapall.go: the open tap batch's first pending index + 1 (0 = none)
+	batchLatch uint8           // trig_oneormore.go: bit 7 a leave to a graveyard is being checked; bits 0-4 the open batch's first pending index + 1 (0 = none). Was pendOver (unused), so State is unchanged
+	tyM        slotMask        // slots whose perm.gty holds override-derived types (ovGenTy)
+	stalled    uint8           // why the game was stopped at the kernel's capacity (a draw); 0 = it wasn't
+	noTgtRed   bool            // cost computation without target-dependent reductions
+	mayPlayAny bool            // the may-play cast being priced is under the any-type rider
+	probe      probe           // the spell / ability a priority feasibility check is for
+	tgtSelf    uint8           // the graveyard card a feasibility check is for, plus one (0: none): it leaves the graveyard for the stack when cast, so it is no target of its own cast
+	inLoop     bool            // executing one object of a multi-object target slot
+	each       eachSusp        // an each-target loop parked on a copy token's as-enters ask (copy_eachtarget.go)
+	tokFrz     slotMask        // the permanents whose CreateToken replacements an each-target copy loop reads, fixed when it began (tokSrcM)
+	tokFrzOn   bool            // tokFrz is in force
+	sweep      sweepSusp       // a copy-all sweep parked on a copy's as-enters ask (copy_allpark.go)
+	mt         multiTgt        // the multi-object target slot being chosen
 	lastCK     kop.CounterKind
-	disc       Obj      // the card being discarded (TrigDiscarded)
-	nlB        [2]uint8 // locked permanents 3 and 4 (nlA; fills the padding before kicked)
+	disc       Obj             // the card being discarded (TrigDiscarded)
+	nlB        [MaxSeats]uint8 // locked permanents 3 and 4 (nlA; fills the padding before kicked)
 
-	redNC [2]uint8 // ExRedNCDmg: the noncombat damage each player's red sources dealt this turn, saturating (prep.anyRedNC only; value_damagetally.go; fills the pad before kicked)
+	redNC [MaxSeats]uint8 // ExRedNCDmg: the noncombat damage each player's red sources dealt this turn, saturating (prep.anyRedNC only; value_damagetally.go; fills the pad before kicked)
 	// grantSrc is the granting permanent plus one (0 = none) while a grant
 	// walk (grantedAbilitiesN) reports one ability to its callback; it fills
 	// the pad after redNC.
@@ -1653,31 +1653,31 @@ type genState struct {
 	// the initiative's holder+1 (0 nobody), each player's venture marker
 	// (room index+1, 0 no dungeon) and dungeon object
 	initH   uint8
-	room    [2]uint8
-	dObj    [2]Obj
-	retMiss bool            // the last OpReturnEx returned nothing (its StaticEffect rider then applies to nothing)
-	ewDone  bool            // the last return applied its OvEnterWith override as the object entered (zone_assimilate.go)
-	ewPend  bool            // a return's OvEnterWith override waits for its entrant: enterGen applies it before the as-enters replacements (zone_assimilate.go)
-	retAt   uint8           // the remembered object a many-object return is moving, + 1 (0 = none; returnrem.go)
-	retTS   uint16          // the entry stamp a many-object return started at: its entrants are the ones after it
-	batchTS uint16          // the entry stamp the open batch began at: a watcher entered after it looks back to the board before the batch (trig_oneormore.go)
-	spent   [2]uint16       // the history bank (value_turnhistory.go): mana each player spent casting spells this turn (expend)
-	sacM    slotMask        // permanents picked for an effect's sacrifice, sacrificed together once all are picked
-	sacOrd  [maxSacOrd]Slot // sacM's slots in sacrifice order (gorge zone_bulk.go effSacrifice: player by player, each in answer order)
+	room    [MaxSeats]uint8
+	dObj    [MaxSeats]Obj
+	retMiss bool             // the last OpReturnEx returned nothing (its StaticEffect rider then applies to nothing)
+	ewDone  bool             // the last return applied its OvEnterWith override as the object entered (zone_assimilate.go)
+	ewPend  bool             // a return's OvEnterWith override waits for its entrant: enterGen applies it before the as-enters replacements (zone_assimilate.go)
+	retAt   uint8            // the remembered object a many-object return is moving, + 1 (0 = none; returnrem.go)
+	retTS   uint16           // the entry stamp a many-object return started at: its entrants are the ones after it
+	batchTS uint16           // the entry stamp the open batch began at: a watcher entered after it looks back to the board before the batch (trig_oneormore.go)
+	spent   [MaxSeats]uint16 // the history bank (value_turnhistory.go): mana each player spent casting spells this turn (expend)
+	sacM    slotMask         // permanents picked for an effect's sacrifice, sacrificed together once all are picked
+	sacOrd  [maxSacOrd]Slot  // sacM's slots in sacrifice order (gorge zone_bulk.go effSacrifice: player by player, each in answer order)
 	nsac    uint8
 	// an Aura or Equipment whose host left stays attached to it, as gorge
 	// shows it, until the next state-based check; lingerM is the live set
 	linger   [maxLinger]lingerRec
 	nlinger  uint8
-	poison   [2]uint8 // each player's poison counters (CR 122.1f; infect and toxic, kw_infect.go; padding before lingerM)
-	poolArt  [2]uint8 // per player, the pool slots holding mana an artifact produced (mana_artifact.go; padding)
-	defSrc   [2]uint8 // per player, the slot + 1 of the deferred source whose {R} floats in the pool (mana_deferred.go; padding)
-	speed    uint8    // both seats' speed (3 bits each) and the once-per-turn speed trigger latch (bit 6; kw_speed.go; padding)
-	noPoison uint8    // bit p: player p can't get additional poison counters this turn (Melira's replacement; trig_leavereturn.go; padding)
-	plusCtr  [2]uint8 // per player, how many Brad Boimler counter-plus-one effects are active this turn (ctr_pluseot.go; padding)
-	plusSrc  [2]Obj   // per player, the Boimler that made them (NoObj: more than one; the order ask's source, repl_ctrorder.go; padding)
-	cast1    uint8    // bit p: seat p has cast a spell this game, recorded only for a table reading ExFirstCast (cast_firstcast.go; padding)
-	ctrAdder uint8    // transient: the player putting the counters being placed, +1 (0: the resolving / building controller; trig_leavereturn.go; padding)
+	poison   [MaxSeats]uint8 // each player's poison counters (CR 122.1f; infect and toxic, kw_infect.go; padding before lingerM)
+	poolArt  [MaxSeats]uint8 // per player, the pool slots holding mana an artifact produced (mana_artifact.go; padding)
+	defSrc   [MaxSeats]uint8 // per player, the slot + 1 of the deferred source whose {R} floats in the pool (mana_deferred.go; padding)
+	speed    uint8           // both seats' speed (3 bits each) and the once-per-turn speed trigger latch (bit 6; kw_speed.go; padding)
+	noPoison uint8           // bit p: player p can't get additional poison counters this turn (Melira's replacement; trig_leavereturn.go; padding)
+	plusCtr  [MaxSeats]uint8 // per player, how many Brad Boimler counter-plus-one effects are active this turn (ctr_pluseot.go; padding)
+	plusSrc  [MaxSeats]Obj   // per player, the Boimler that made them (NoObj: more than one; the order ask's source, repl_ctrorder.go; padding)
+	cast1    uint8           // bit p: seat p has cast a spell this game, recorded only for a table reading ExFirstCast (cast_firstcast.go; padding)
+	ctrAdder uint8           // transient: the player putting the counters being placed, +1 (0: the resolving / building controller; trig_leavereturn.go; padding)
 	// ctrSettle is the entrant whose entry counters are being placed, +1
 	// (0: none). While set, the AddCounter matcher skips that permanent as a
 	// source unless its recipient filter is FSelf (CR 614.12, gorge's
@@ -1745,7 +1745,7 @@ type genState struct {
 	winFirst       uint8                   // a two-permanent tap-another source's first window pick, slot+1 (0: none yet; mana_windowtapx.go)
 	winHeld        [kop.NumManaKinds]uint8 // the restricted mana that walk kept out of the pool so far
 	nlook          uint8                   // cards looked at (dig / peek / reveal): the live prefix of armRes.look (scratch.go)
-	attLKI         [2]attLKIRec            // the last departed attachments' hosts (CR 608.2h; fills the pad before evSel)
+	attLKI         [MaxSeats]attLKIRec     // the last departed attachments' hosts (CR 608.2h; fills the pad before evSel)
 	evSel          uint64                  // ward evidence picks (bit per graveyard index; MaxDeck 60; kw_wardcost.go)
 	endTurn        bool                    // OpEndTurn: skip to cleanup after this resolution
 	fog            bool                    // OpFog: all combat damage this turn is prevented (padding)
@@ -1754,7 +1754,7 @@ type genState struct {
 	beamGrant      bool                    // the beam me up cast beginCast starts is the granted instance of a card that prints the keyword (kw_beammeup.go; padding)
 	impCast        bool                    // the cast beginCast starts is for the card's impending cost (castImpTgt; kw_impending.go; padding)
 	noUntapL       uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step (padding)
-	yourTurns      [2]uint8                // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)
+	yourTurns      [MaxSeats]uint8         // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)
 	extraTurnBegun uint8                   // ExYourExtraTurns: bit p, player p has begun an extra turn this game (CR 500.7; value_exprs.go)
 	dayNight       uint8                   // CR 731: bits 0-1 the designation (dnDay, dnNight), bits 2-3 the last turn's active player's spells, at most 2 (kw_daynight.go; padding)
 	links          [8]struct {

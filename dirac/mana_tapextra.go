@@ -281,7 +281,11 @@ func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 func (s *State) addPainAvail(k *prep, sl Slot, pc *pcard, p uint8, a *avail, ms *modalSet, tight bool) {
 	m := s.painAvailMask(pc, p)
 	if m != 0 {
-		a.addUnits(m, 1)
+		n := uint8(1)
+		if pc.painOnly {
+			n = max(pc.manaN, 1) // a pain-only source's whole activation (Ancient Tomb's {C}{C})
+		}
+		a.addUnits(m, n)
 	}
 	if m == 0 || k.gen == nil || !k.gen.anyTapExtra {
 		return

@@ -26,7 +26,8 @@ type Option struct {
 	// measured 23 kinds plus "other"; the hashed kind id keeps an unseen kind
 	// distinguishable instead of collapsing into "other".)
 	Hashed []Feature
-	// Dense is the fixed 24-wide scalar vector documented at EncodeOption.
+	// Dense is the fixed OptionDenseWidth-wide scalar vector documented at
+	// EncodeOption; a 24-wide model reads only its first 24 columns.
 	Dense []float32
 	// Extra is an EXPERIMENTAL per-option dense augmentation appended after
 	// Dense in the hidden-layer input. It is NOT produced by EncodeOption and
@@ -200,9 +201,14 @@ const (
 	zoneExile       = 3
 )
 
-// Option dense-scalar offsets (24 wide, pinned).
+// Option dense-scalar offsets (28 wide, pinned).
 const (
-	OptionDenseWidth = 24
+	OptionDenseWidth = 28
+	// OptionDenseWidthV1 is the 24-wide option row every network exported
+	// before the relative-seat columns (odSeat0..3). Loaders accept it and
+	// read only the first 24 columns, so such a network scores exactly as
+	// it did.
+	OptionDenseWidthV1 = 24
 
 	odPower      = 0
 	odToughness  = 1
@@ -230,6 +236,13 @@ const (
 	odCounters  = 21 // total counters on the option card
 	odAttached  = 22 // AttachedTo != 0
 	odGroup     = 23 // Option.Group != ""
+	// odSeat0..odSeat0+3: a one-hot of the relative seat (0 = me, 1 = next
+	// in turn order, ...) of the player the option names: a player-ref Obj,
+	// a Kind "player" option's Player, or an attacker option's Player (the
+	// defending player, or the attacked planeswalker's controller / battle's
+	// protector). All zero when no player is named or the seat is beyond
+	// the fourth.
+	odSeat0 = 24
 )
 
 // EncodeOption encodes one offered option. d is the decision kind
@@ -270,17 +283,24 @@ func (x *OptionEncoder) encodeV1(d decision.Kind, o decision.Option, idx, n int)
 	// Card resolution: a player-ref Obj (a player-target option) resolves
 	// to the player, not a card.
 	isPlayer := false
+	named, hasNamed := state.PlayerID(0), false
 	var card *cardRef
 	if o.Obj != 0 {
 		if p, ok := o.Obj.PlayerRef(); ok {
 			isPlayer = true
-			_ = p
+			named, hasNamed = p, true
 		} else if ref, ok := x.lookup(o.Obj); ok {
 			card = ref
 		}
 	}
 	if o.Kind == "player" {
 		isPlayer = true
+		if !hasNamed {
+			named, hasNamed = o.Player, true
+		}
+	}
+	if o.Kind == "attacker" && !hasNamed {
+		named, hasNamed = o.Player, true
 	}
 
 	// Card-type bits.
@@ -374,6 +394,11 @@ func (x *OptionEncoder) encodeV1(d decision.Kind, o decision.Option, idx, n int)
 		dense[odAttached] = float32(boolInt(card.cv.AttachedTo != 0))
 	}
 	dense[odIsPlayer] = float32(boolInt(isPlayer))
+	if hasNamed {
+		if r := relSeat(x.v, x.seat, named); r >= 0 && r < maxSeatBlocks {
+			dense[odSeat0+r] = 1
+		}
+	}
 	if o.Attacker != 0 {
 		if aref, ok := x.lookup(o.Attacker); ok {
 			dense[odAtkPower] = float32(aref.cv.Power)
@@ -723,4 +748,25 @@ func boolInt(b bool) int {
 		return 1
 	}
 	return 0
+}
+
+// relSeat is p's seat relative to the viewer in turn order: 0 the viewer,
+// 1 the next seat to take a turn, and so on (the engine's turn order is the
+// Players order, wrapping; a seat that has left keeps its place). -1 when
+// either seat is not in the view.
+func relSeat(v *view.View, viewer, p state.PlayerID) int {
+	me, at := -1, -1
+	for i := range v.Players {
+		if v.Players[i].ID == viewer {
+			me = i
+		}
+		if v.Players[i].ID == p {
+			at = i
+		}
+	}
+	if me < 0 || at < 0 {
+		return -1
+	}
+	n := len(v.Players)
+	return (at - me + n) % n
 }

@@ -117,7 +117,7 @@ func (s *State) Init(tbl *Table, deckA, deckB []CardID, seed uint64, cfg Config)
 	// (the mulligan round and the opening-hand Leyline asks come first)
 	s.active = 0
 	if s.mullMax > 0 {
-		s.mullOrder = [2]uint8{toss, 1 - toss}
+		s.mullOrder = [MaxSeats]uint8{toss, 1 - toss}
 		s.mullCur = 0
 		s.ctl = ctlMullDeclare
 		return

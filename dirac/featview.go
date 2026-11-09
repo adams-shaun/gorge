@@ -577,6 +577,22 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 		// Phyrexian pips (each face is announced afterwards)
 		cost.Tb, cost.Hyb = 0, [len(kop.ManaCost{}.Hyb)]kop.ColorMask{}
 	}
+	if cd := &k.t.Cards[c]; cd.HasAltAdd && cd.BeholdN != 0 {
+		// gorge's planCastPaymentChecked plans the behold-or-mana shape only
+		// for a hand or may-play cast (`!flashback`), so a flashback face is
+		// not priced here (its shape stays "shape:optional_cost").
+		if mode&2 != 0 {
+			return kop.ManaCost{}, false
+		}
+		// A behold-or-mana additional cost is chosen at announcement (CR
+		// 601.2b/h); gorge's offer/planner price the spell with the part it
+		// will charge: the printed cost when the behold part is payable,
+		// otherwise the part's mana on top (potentialAltAddPlan,
+		// planCastAltAdd). The part joins the total before the reductions.
+		if !s.altAddFreePart(k, p, c, o) {
+			cost = addCost(cost, s.altAddManaPart(k, c))
+		}
+	}
 	if s.statM.any() || k.gen != nil {
 		cost = s.featCost(k, p&1, c, o, cost) // a flashback cost is reduced too
 	}
@@ -616,7 +632,7 @@ func planNeverPricesOf(k *prep, c CardID, hyb, composed bool) bool {
 func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 	cd := &k.t.Cards[c]
 	if cd.BeholdExile || cd.SpellWaterbend != 0 || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !hyb && !cd.Cost.Phyrexian() ||
-		!modal && (cd.HasAltAdd || cd.AltAddOne || cd.HasModeCost || !composed && (cd.SpendRead || cd.SpentSelf)) {
+		!modal && (cd.HasAltAdd && cd.BeholdN == 0 || cd.AltAddOne || cd.HasModeCost || !composed && (cd.SpendRead || cd.SpentSelf)) {
 		return true // (a hybrid cost: the planner's "cost:hybrid"; a Phyrexian one is priced by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold")
 	}
 	if k.gen != nil && k.gen.anyEvTargets && spellEvidenceTargets(cd) {
@@ -627,6 +643,11 @@ func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 		return spellAddCost(k, c).Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered|kop.CostPayLife|kop.CostPayEnergy) != 0
 	}
 	if planDeclinesAddCost(k, c) {
+		// The spell's own Cost$ is separate from an AlternateAdditionalCost
+		// either-or part (Mudbutton Cursetosser's Behold<1/Goblin>:2), which
+		// the cast flow's altAddAsk pays after the witness: a face carrying
+		// both still has gorge's standalone "shape:additional_cost" part
+		// (PayLife, Exile, tapXType, ...), so the gate applies to every face.
 		return true
 	}
 	for i := range cd.Abilities {

@@ -10,9 +10,25 @@ import (
 // in the hash function, a feature-string format, a vocabulary or a layout
 // moves this value — and with it every existing checkpoint's loadability,
 // which is exactly the point.
-const pinnedEncoderHash = uint64(0xbe2c331ca2000aa6)
+const pinnedEncoderHash = uint64(0x3d2e6eb7d427bcc3)
+
+// pinnedEncoderHashV1Options is the hash before the relative-seat option
+// columns (OptionDenseWidth 24 -> 28): every 24-wide checkpoint carries it and
+// must keep loading.
+const pinnedEncoderHashV1Options = uint64(0xbe2c331ca2000aa6)
+
+// pinnedEncoderHashV1Dense is the hash before the Commander block (DenseWidth
+// 68 -> 92, option width already 28): every pre-Commander network carries it
+// and must keep loading with the new block zero-padded away.
+const pinnedEncoderHashV1Dense = uint64(0x00904d5022b8512a)
 
 func TestEncoderHashPinned(t *testing.T) {
+	if got := EncoderHashForV1Options(FeaturesV1); got != pinnedEncoderHashV1Options {
+		t.Fatalf("EncoderHashForV1Options(v1) = %#x, want %#x: 24-wide checkpoints no longer load", got, pinnedEncoderHashV1Options)
+	}
+	if got := EncoderHashForV1Dense(FeaturesV1); got != pinnedEncoderHashV1Dense {
+		t.Fatalf("EncoderHashForV1Dense(v1) = %#x, want %#x: 68-wide pre-Commander checkpoints no longer load", got, pinnedEncoderHashV1Dense)
+	}
 	if got := EncoderHash(); got != pinnedEncoderHash {
 		t.Fatalf("EncoderHash() = %#x, want %#x — the encoder contract moved; every existing checkpoint is now stale (this is the intended tripwire, not a bug to paper over: bump CheckpointVersion consciously if the encoder really changed)", got, pinnedEncoderHash)
 	}

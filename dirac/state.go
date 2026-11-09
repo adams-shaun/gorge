@@ -110,14 +110,14 @@ type Config struct {
 	// genesis does, and each player starts at 40 life (CR 903.7). A caller
 	// that sets it gives gorge StartingLife 40.
 	Commander  bool
-	Commanders [2]int16
+	Commanders [MaxSeats]int16
 	// Side is each seat's sideboard, the cards "outside the game" (CR 400.11):
 	// Side[p][:SideN[p]], at most MaxSide per seat. They are objects of their
 	// own, numbered after both decks, in the zone ZoneSideboard; only a play
 	// permission that names the sideboard (The Holodeck) ever reaches one
 	// (zone_sideboard.go). The zero value is no sideboard.
-	Side  [2][MaxSide]CardID
-	SideN [2]uint8
+	Side  [MaxSeats][MaxSide]CardID
+	SideN [MaxSeats]uint8
 }
 
 // object is one card instance.
@@ -414,13 +414,13 @@ type player struct {
 	lifeGained  int16 // this turn
 	lifeLost    int16 // this turn
 	extraTurns  uint8
-	scry        uint8    // this turn: scry instructions in bits 0-3, surveil instructions in bits 4-7 (one byte: it fills padding)
-	sac         [3]uint8 // this turn: [sacAll] every sacrifice, [sacArtifact] artifact cards, [sacFood] Food cards
-	disc        uint8    // cards this player discarded this turn
-	cmd         Obj      // this seat's commander (CR 903.3), NoObj none; set at Init (zone_cmdinit.go)
-	cmdCast     uint8    // times the commander was cast from the command zone (CR 903.8)
-	cmdAsk      uint8    // commander bookkeeping byte for the command-zone replacement
-	cmdDmg      [2]uint8 // combat damage dealt to this player by each seat's commander (CR 903.10a)
+	scry        uint8           // this turn: scry instructions in bits 0-3, surveil instructions in bits 4-7 (one byte: it fills padding)
+	sac         [3]uint8        // this turn: [sacAll] every sacrifice, [sacArtifact] artifact cards, [sacFood] Food cards
+	disc        uint8           // cards this player discarded this turn
+	cmd         Obj             // this seat's commander (CR 903.3), NoObj none; set at Init (zone_cmdinit.go)
+	cmdCast     uint8           // times the commander was cast from the command zone (CR 903.8)
+	cmdAsk      uint8           // commander bookkeeping byte for the command-zone replacement
+	cmdDmg      [MaxSeats]uint8 // combat damage dealt to this player by each seat's commander (CR 903.10a)
 }
 
 // stack entry kinds.
@@ -725,6 +725,7 @@ type build struct {
 	fixedGen  uint8    // the generic part as last priced (bflCostFixed: the total cost, CR 601.2f)
 	obsWin    uint8    // obsWinTapped: obsSl was set by a manual-window tap before the payment, so it counts only if the payment spends that source's colour; obsWinPaying: the payment began (mana_spendtrigger.go obsWinSettle)
 	pipShort  bool     // the lowered pip window ran dry (loweredPipWindow): the cost objects are still asked, and the payment reverses the cast
+	altAbort  bool     // the chosen either-or part cannot be paid: the fallback CR 601.2g window runs at bsMana (manaStep) and reverses the cast (CR 733.1)
 }
 
 // build.bfl bits. bflLowered: a cast gorge's planner does not price,
@@ -863,7 +864,7 @@ type stateCore struct {
 
 	rng rng
 
-	pl     [2]player
+	pl     [MaxSeats]player
 	objs   [MaxObj]object
 	nobj   uint8
 	permHi Slot              // one past the highest battlefield slot this game has used: perms[permHi:] is all zero
@@ -872,8 +873,8 @@ type stateCore struct {
 	nkwx   uint8
 	ptx    [maxPtX]ptRepX // until-end-of-turn pumps past the int8 range (eotPT)
 	nptx   uint8
-	occ    slotMask    // occupied battlefield slots
-	ctrlM  [2]slotMask // slots by controller
+	occ    slotMask           // occupied battlefield slots
+	ctrlM  [MaxSeats]slotMask // slots by controller
 	subs   [nSubEvents]slotMask
 	statM  slotMask // slots whose card has a static ability
 	fxM    slotMask // slots with any record in g.fx (CR 613 plan: beside statM)
@@ -894,11 +895,11 @@ type stateCore struct {
 	res resCtx
 
 	// mulligan round
-	mullOrder [2]uint8
+	mullOrder [MaxSeats]uint8
 	mullCur   uint8
-	mullKept  [2]bool
-	mullMull  [2]bool // mulliganed this pass
-	mullLeft  uint8   // bottom picks left for the current seat
+	mullKept  [MaxSeats]bool
+	mullMull  [MaxSeats]bool // mulliganed this pass
+	mullLeft  uint8          // bottom picks left for the current seat
 	mullMax   uint8
 
 	// combat
@@ -923,19 +924,19 @@ type stateCore struct {
 	// boundaries until the end-of-combat step ends. Spends are
 	// ordinary-first, so the units still floating at a boundary are
 	// min(fbR[p], pool[R]) (kw_firebend.go).
-	fbR [2]uint8
+	fbR [MaxSeats]uint8
 	// rb[p] is player p's restricted mana floating beside the pool, batch by
 	// batch in gorge's order (Giada's Angel-only {W}, a Village's {U};
 	// gorge's Players[p].RestrictedMana): spent only by a payment its
 	// restriction admits, projected as pool mana (mana_restrbatch.go).
-	rb [2][maxRB]rbatch
+	rb [MaxSeats][maxRB]rbatch
 	// pm[p][c] is player p's persistent units of colour c (PersistentMana$
 	// True, B = 2 on the AddMana): they survive step boundaries and the
 	// cleanup step, and become ordinary mana at the turn change. Spends are
 	// ordinary-first, so the units floating at a boundary are
 	// min(pm[p][c], pool[c]) (mana_persistent.go). pmOn bit p is set
 	// while pm[p] is nonzero, so the hot guards test one byte.
-	pm   [2][kop.NumManaKinds]uint8
+	pm   [MaxSeats][kop.NumManaKinds]uint8
 	pmOn uint8
 
 	// change marks since SetEpoch (marks.go): one bit per object
@@ -957,7 +958,7 @@ type stateCore struct {
 	// Skipped counts decisions elided because they had a single option
 	// (with Config.NoElide off), per player: chiefly priority decisions
 	// where passing is the only legal action.
-	Skipped [2]uint32
+	Skipped [MaxSeats]uint32
 	nlC     [4]uint8 // Braided Net locks 5..8 (genState.nlA; fills the padding before g; act_lockpermanent.go)
 	g       genState // the generated-table extension (gen.go)
 

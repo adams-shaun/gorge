@@ -40,7 +40,7 @@ func (m *Model) ValueGrad(st State, target float64, g *Grads) (loss float64) {
 	for j := 0; j < m.H; j++ {
 		g.StateB[j] += g.ds[j]
 	}
-	for d := 0; d < DenseWidth && d < len(st.Dense); d++ {
+	for d := 0; d < m.StateDenseW() && d < len(st.Dense); d++ {
 		v := st.Dense[d]
 		if v == 0 {
 			continue
