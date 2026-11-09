@@ -214,38 +214,9 @@ func sharedPumpGrant(h Host, c *Ctx, sa *cards.SA, g PumpGrant) PumpGrant {
 			}
 		}
 	}
-	var kws []string
-	add := func(kw string) {
-		if !slices.Contains(kws, kw) {
-			kws = append(kws, kw)
-		}
-	}
-	for _, want := range g.KW {
-		for _, have := range shared {
-			switch {
-			case sharedKeywordFamilySet.Has(want):
-				if strings.EqualFold(sharedKeywordFamily(have), want) {
-					add(have)
-				}
-			case strings.EqualFold(have, want):
-				add(want)
-			}
-		}
-	}
-	g.KW = kws
+	g.KW = SharedKeywordSpellings(g.KW, shared)
 	return g
 }
-
-// sharedKeywordFamily is the family word a keyword's spelling belongs to:
-// "Protection from red" and "Protection:Card.Red:..." are both Protection.
-func sharedKeywordFamily(kw string) string {
-	if strings.HasPrefix(kw, "Protection") {
-		return "Protection"
-	}
-	return cards.KeywordHead(kw)
-}
-
-var sharedKeywordFamilySet = state.NewNameSet("Landwalk", "Protection", "Hexproof", "Trample")
 
 // numForObjectText is NumForObject over a compiled parameter: a
 // statAddMultiplier token ("Double", "Triple") adds that multiple of obj's own

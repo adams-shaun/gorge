@@ -1405,6 +1405,9 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		if !bodyAbsorbed(absorbed, m) {
 			e.runReplaceWith(ctx, ev.Obj, m.repl.With, nil)
 		}
+		// CR 303.4f: an Aura entering through an Updated body (a copy
+		// election) enters attached once that body has made it the Aura.
+		settleAuraEntry(e, &stored)
 		// The entry's own triggers are matched AFTER the Updated body: the
 		// body is how the permanent ENTERS (CR 614.1c/614.12 -- "enters
 		// tapped", "enters with counters"), so a leaves/enters trigger's

@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -1499,12 +1500,28 @@ func (lc *lowerCtx) cost(s string) (lCost, error) {
 	if err != nil {
 		return c, err
 	}
-	if c.DiscardSpec != "" {
-		// Random/Hand are unless-cost selection methods (gorge
-		// d66db41d8); a cast or activated discard cost keeps refusing them.
-		return c, refuse("discard cost %q outside an unless cost", c.DiscardSpec)
+	if err := discardHandCost(&c); err != nil {
+		return c, err
 	}
 	return c, lc.costParts(c)
+}
+
+// discardHandCost rewrites Discard<N/Hand> (the whole hand) to the
+// DiscardHand table byte: an activated ability's own cost pays it with the
+// other non-mana picks, in hand order, before the source's own sacrifice,
+// asking no choice (gorge pay.DiscardCandidates' whole-hand spec; an empty
+// hand pays with nothing). Random stays an unless-cost selection method
+// (gorge d66db41d8), and every other spec is refused by name.
+func discardHandCost(c *lCost) error {
+	switch c.DiscardSpec {
+	case "":
+		return nil
+	case "Hand":
+		c.DiscardHand, c.DiscardSpec, c.DiscardN = true, "", 0
+		return nil
+	default:
+		return refuse("discard cost %q outside an unless cost", c.DiscardSpec)
+	}
 }
 
 // costUnless is cost for an UnlessCost$: it also reads the Random and Hand
@@ -1546,6 +1563,9 @@ func (lc *lowerCtx) costParts(c lCost) error {
 		// a filtered discard is a battlefield activated ability's own cost
 		// (the candidates are that controller's hand cards; CR 118.3)
 		return refuse("filtered discard cost outside an activated ability")
+	}
+	if c.DiscardHand && (lc.ab == nil || lc.ab.Kind != akActivated) {
+		return refuse("discard-hand cost outside an activated ability")
 	}
 	if c.ReturnSelf {
 		return refuse("return-self cost outside an activated ability")
@@ -1688,19 +1708,23 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		if head == "Behold" {
 			// Behold<N/Type> (CR 701.4a): reveal or choose N permanents or
 			// hand cards of the type, as a spell's additional cost. Only
-			// an AlternateAdditionalCost's first part and a MayFlashCost
-			// extra read it (beholdOK).
+			// an AlternateAdditionalCost's first part, a MayFlashCost
+			// extra, an OptionalCost part and a flashback cost read it
+			// (beholdOK); each caller bounds N and the parts beside it.
 			if !lc.beholdOK || len(parts) != 2 || c.BeholdN != 0 {
 				return c, refuse("behold cost %q", t)
 			}
 			n, err := strconv.Atoi(parts[0])
-			if err != nil || n != 1 {
-				return c, refuse("behold cost %q: not a count of 1", t)
+			if err != nil || n < 1 {
+				return c, refuse("behold cost %q: not a fixed count", t)
 			}
-			if !effects.CreatureTypeWords(parts[1]) {
-				// Countersculpt's Jace is a planeswalker type: its beholder
-				// is the Empower token, which no lockstep reaches
-				return c, refuse("behold cost %q: not a creature type", t)
+			if strings.Contains(parts[1], "ChosenType") {
+				// the type a ChooseCreatureType cost part names
+				return c, refuse("behold cost %q: of a type chosen as a cost", t)
+			}
+			if !effects.CreatureTypeWords(parts[1]) && !slices.Contains(effects.TypeChoiceLabels("Planeswalker", "", ""), parts[1]) {
+				// a creature or planeswalker subtype (Countersculpt's Jace)
+				return c, refuse("behold cost %q: not a creature or planeswalker type", t)
 			}
 			f, err := lc.filter(parts[1])
 			if err != nil {
@@ -2114,7 +2138,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			return c, refuse("cost %q: a forage / exile part beside another counted part", s)
 		}
 	}
-	if c.BeholdN > 0 && (len(mana) != 0 || c.BlightN != 0 || c.Sac != nil || c.DiscardN > 0 || c.Forage != nil || c.ExileG != nil || c.Tap || c.PayLife > 0) {
+	if c.BeholdN > 0 && (c.BlightN != 0 || c.Sac != nil || c.DiscardN > 0 || c.Forage != nil || c.ExileG != nil || c.Tap || c.PayLife > 0) {
 		return c, refuse("behold cost %q beside another part", s)
 	}
 	if c.ExileStackSelf && c.ExileG == nil {
@@ -2203,6 +2227,9 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			if c.CmpN&wasCastSpentZero != 0 {
 				return nil, refuse("filter %q: CastSa Spell.ManaSpent EQ0 on a spell", expr)
 			}
+			if c.CmpN&wasCastWebSling != 0 {
+				return nil, refuse("filter %q: webSlinged on a spell", expr)
+			}
 			if c.CmpN&^wasCastNot != wasCastAny {
 				return nil, refuse("filter %q: wasCastFromGraveyard on a spell", expr)
 			}
@@ -2251,6 +2278,9 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			lc.out.CombatHitRec = true
 		}
 		if c.CmpStat == cmpWasCast && !lc.wasCastOK {
+			if c.CmpN&wasCastWebSling != 0 {
+				return nil, refuse("filter %q: webSlinged outside a battlefield-entering trigger's ValidCard$", expr)
+			}
 			// the kernel reads the cast only while the entering spell is
 			// still resolving (kernel enterCast); a later read has no spell
 			return nil, refuse("filter %q: wasCast outside a battlefield-entering trigger's ValidCard$", expr)
@@ -2379,8 +2409,11 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if err != nil {
 			return err
 		}
-		if cost.DiscardSpec != "" {
-			return refuse("discard cost %q outside an unless cost", cost.DiscardSpec)
+		if err := discardHandCost(&cost); err != nil {
+			return err
+		}
+		if cost.DiscardHand && ab.Kind != akActivated {
+			return refuse("discard-hand cost on a mana ability")
 		}
 		if cost.TapPowN != 0 && (ab.Kind != akActivated || !tapPowerAlone(cost)) {
 			return refuse("tap-any-number cost beside another part or on a mana ability")

@@ -138,7 +138,10 @@ func hasChosenPlayers(ts []state.Target) bool {
 // instead of a FlipFace. This is the effect-driven turn-up the corpus's
 // `AB$ SetState | Mode$ TurnFaceUp` lines carry (Woolly Loxodon and its 22
 // siblings); a non-face-down permanent is left alone, matching the marker's
-// own battlefield gate.
+// own battlefield gate. A face-down card in EXILE (Hostile Negotiations'
+// piles) turns up in place through events.ExileTurnFaceUp, a pure reveal with
+// no turn-up trigger; setStateExileTurnUp skips the battlefield's instant
+// and ValidNewFace$ gate.
 //
 // Optional$ True is a real may election (Dowsing Dagger's "you may transform
 // this Equipment", High Marshal Arguel's "you may transform it"): the ask is
@@ -219,6 +222,11 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		if turnUp {
+			if setStateExileTurnUp(o) {
+				h.Emit(events.Event{Kind: events.ExileTurnFaceUp, Obj: o.ID})
+				setstateRememberChanged(c, sa, o.ID)
+				continue
+			}
 			if o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown {
 				if !setStateTurnUpGate(h, c, sa, o) {
 					continue
@@ -301,6 +309,15 @@ func setstateRememberChanged(c *Ctx, sa *cards.SA, id state.ObjID) {
 	}
 }
 
+// setStateExileTurnUp is the exile branch of Mode$ TurnFaceUp, the one home
+// shared by the emit and the would-change gate: a face-down card in exile
+// turns face up in place (Forge's SetStateEffect allows TurnFaceUp outside the
+// battlefield). The battlefield-only CR 701.40g instant rule and ValidNewFace$
+// do not apply to it.
+func setStateExileTurnUp(o *state.Object) bool {
+	return o.Card != nil && o.Zone == state.ZExile && o.FaceDown
+}
+
 // setStateWouldChange reports whether the SetState resolution would change at
 // least one of its Defined$ objects' faces -- the gate that keeps an Optional$
 // ask from being posed when decline and accept are the same outcome. It is the
@@ -326,8 +343,9 @@ func setStateWouldChange(h Host, c *Ctx, sa *cards.SA, turnUp, turnDown, unspeci
 // the Choices$ pool's filter (setStateChoose).
 func setStateObjWouldChange(h Host, c *Ctx, sa *cards.SA, o *state.Object, turnUp, turnDown, unspecialize, transform bool) bool {
 	if turnUp {
-		return o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown &&
-			setStateTurnUpGate(h, c, sa, o)
+		return setStateExileTurnUp(o) ||
+			o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown &&
+				setStateTurnUpGate(h, c, sa, o)
 	}
 	if turnDown {
 		return o.Zone == state.ZBattlefield && !o.FaceDown

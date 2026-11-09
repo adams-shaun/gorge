@@ -414,6 +414,11 @@ type CardDef struct {
 	// Exhale), no mana: the cast is offered only with a candidate and owes
 	// the behold (BeholdN/BeholdF) in its cost-pick stage (kw_mayflash.go).
 	MayFlashBehold bool
+	// FbBehold: the printed flashback cost carries Behold<N/Type> beside
+	// its mana (Kindle the Inner Flame): the printed flashback cast is
+	// offered only with BeholdN candidates and owes the behold (BeholdN/
+	// BeholdF) in its cost-pick stage (dirac/act_behold.go).
+	FbBehold bool
 	// HasEvoke is printed evoke (CR 702.74a; no KwMask bit is free): the
 	// hand offers the evoked cast at EvokeCost (gorge's "evoked" option,
 	// FlagEvoked), and a permanent cast that way queues a mandatory

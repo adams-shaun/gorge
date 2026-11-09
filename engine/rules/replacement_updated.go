@@ -149,6 +149,7 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 		}
 		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
 	}
+	settleAuraEntry(e, &stored) // CR 303.4f, as in the single-match branch
 	// Matched after every Updated body, as in the single-match branch.
 	e.refreshEntryTriggerTables()
 	e.checkTriggers(&stored, nil, 0, 0, false)
@@ -324,6 +325,7 @@ func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
 		}
 		e.runReplaceWith(e.replCtx(m, rc.ev), rc.ev.Obj, m.repl.With, nil)
 	}
+	settleAuraEntry(e, &rc.stored) // CR 303.4f, as in the synchronous composition
 	e.refreshEntryTriggerTables()
 	e.checkTriggers(&rc.stored, nil, 0, 0, false)
 	if e.pending == nil && rc.ev.Kind == events.MoveZone && rc.ev.To == state.ZBattlefield {

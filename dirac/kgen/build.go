@@ -657,6 +657,17 @@ func (cb *cardBuilder) record() error {
 			}
 		}
 	}
+	if c.FbBeholdN != 0 {
+		// the flashback cost's behold part (kernel act_behold.go): the
+		// card's behold fields, which no other behold cost may share
+		if d.BeholdN != 0 || c.BeholdExile || c.SpellCost != nil || c.OptCost != nil || c.FbBeholdN > 255 {
+			return fmt.Errorf("flashback behold beside another behold or additional cost")
+		}
+		d.FbBehold, d.BeholdN = true, uint8(c.FbBeholdN)
+		if d.BeholdF, err = cb.filter(c.FbBeholdF, kop.ZoneBattlefield); err != nil {
+			return err
+		}
+	}
 	if c.Evoke != nil {
 		// CR 702.74a: no KwMask bit is free, so the evoke marker is its own
 		// field; the cost is the hand's alternative cost, and the permanent
@@ -840,7 +851,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		return out, fmt.Errorf("draw cost outside a trigger's own cost window") // kop.PayDraw only
 	}
 	if c.BeholdN != 0 {
-		return out, fmt.Errorf("behold cost outside a spell's alternate additional cost")
+		return out, fmt.Errorf("behold cost outside a spell's behold fields") // CardDef.BeholdN/BeholdF
 	}
 	if c.EvidenceN > 0 || c.EvidenceX {
 		// an activated ability's evidence is a table byte (kop.Ability.Evidence,
@@ -891,6 +902,9 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	}
 	if c.DiscardN > 0 {
 		set(kop.CostDiscard, c.DiscardN)
+	}
+	if c.DiscardHand {
+		out.DiscardHand = true
 	}
 	if c.DiscardF != nil {
 		// a filtered discard shares Cost.N (the card count) and Cost.Filter
