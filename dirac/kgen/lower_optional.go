@@ -66,13 +66,11 @@ func (lc *lowerCtx) optDecider(ps *params, guard int) error {
 
 // drawDecider gates a Draw on its OptionalDecider$: one drawing player only
 // (gorge asks once for every drawing player; a multi-player set is out of
-// scope), and no RememberDrawn$.
+// scope). A declined draw remembers nothing, so RememberDrawn$ rides the same
+// one-instruction skip as the draw itself.
 func (lc *lowerCtx) drawDecider(ps *params, who lRef) error {
 	if _, ok := ps.get("OptionalDecider"); !ok {
 		return nil
-	}
-	if _, ok := ps.get("RememberDrawn"); ok {
-		return refuse("OptionalDecider$ beside RememberDrawn$")
 	}
 	switch who.Kind {
 	case rYou, rTarget, rTargetController, rTriggeredPlayer:

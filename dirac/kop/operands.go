@@ -202,6 +202,11 @@ const (
 // into the graveyard.
 const SurveilRememberKept = 1 << 1
 
+// DrawRememberAll (OpDraw C): RememberDrawn$ AllReplaced records every card
+// the draw and its replacement body moved into the drawing player's hand,
+// not only the pre-draw top card (gorge recordDrawn; CR 121.6c, 614.1).
+const DrawRememberAll = 1 << 1
+
 // SearchFlags (OpSearchEx / OpChooseMove C>>3).
 const (
 	SrTapped           = 1 << iota // the found cards enter tapped

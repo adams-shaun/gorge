@@ -102,7 +102,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// (Strategic Betrayal; TDM 250 -> 251) beside land's game-wide Exile->Graveyard hidden pick
 	// (Binding Negotiation; OTJ 241 -> 242); merged ALL 21707 -> 21709).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21709, 34442},
+	"ALL": {21714, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -113,7 +113,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"EOE": {239, 266},
 	"FDN": {517, 517},
 	"FIN": {268, 312},
-	"FRA": {245, 269},
+	"FRA": {246, 269},
 	"HOB": {153, 172},
 	"LCI": {251, 290},
 	"MKM": {242, 279},
@@ -123,7 +123,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"ONE": {196, 271},
 	"OTJ": {242, 276},
 	"SNC": {185, 266},
-	"SOS": {249, 270},
+	"SOS": {250, 270},
 	"SPM": {161, 192},
 	"TDM": {251, 276},
 	"TLA": {254, 285},

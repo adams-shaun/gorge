@@ -205,7 +205,7 @@ import (
 // ChangeZoneAll sweep builds beside land's Binding Negotiation game-wide Exile->Graveyard
 // hidden pick; merged ALL build-level 21707 -> 21709).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21709, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21714, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
