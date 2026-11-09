@@ -1044,6 +1044,14 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			if kt.Filter2, err = cb.filter(t.F2, kop.ZoneBattlefield); err != nil {
 				return kt, err
 			}
+		case t.Event == "DamageDone" && t.F2.Players == plBoth && len(t.F2.Clauses) == 1 && t.F2.Clauses[0] == (lClause{Types: tPlaneswalker}):
+			// ValidTarget$ Player,Planeswalker: TfToPlayer beside a Filter2
+			// reads "a player, or a permanent matching Filter2"
+			// (dirac/trig_damagedonce.go ddoRecipient)
+			kt.Flags |= kop.TfToPlayer
+			if kt.Filter2, err = cb.filter(&lFilter{Clauses: t.F2.Clauses}, kop.ZoneBattlefield); err != nil {
+				return kt, err
+			}
 		case t.TargetsAll && t.Event == "SpellCast" && len(t.F2.Clauses) > 0 && (t.F2.Players == plYou || t.F2.Players == plOpp):
 			// TargetsValid$ with a player alternative
 			if kt.Filter2, err = cb.filterPlayerAlt(t.F2, kop.ZoneBattlefield, t.F2.Players); err != nil {
@@ -3379,6 +3387,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "RemoveCounterAny":
 		// (Glissa Sunslayer) OpExt ExtRemoveCounterAny
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtRemoveCounterAny)), int16(in.C)
+	case "DistCounters":
+		// (Vastwood Hydra) OpExt ExtDistCounters: B the total, F the pool
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtDistCounters))
+		if err := objFilter(kop.ZoneBattlefield); err != nil {
+			return ki, err
+		}
 	case "TurnFaceUp":
 		// (CR 708.6; gorge effSetState Mode$ TurnFaceUp) OpExt ExtTurnFaceUp:
 		// C 0 the target in Obj, C 1 the up-to-one pick over F

@@ -219,6 +219,12 @@ func (lc *lowerCtx) definedValid(sa *cards.SA, ps *params) (done bool, err error
 			return true, refuse("Pump over Defined$ %q: Double beside a fixed amount", d)
 		}
 		in := lInstr{Op: "PumpAllEach", F: f, A: att, B: def, C: bits}
+		if kwc, ok := ps.m["KWChoice"]; ok && !hasA && !hasB {
+			// a keyword-only mass grant; with a P/T change KWChoice$ stays
+			// unread and the ability refuses
+			ps.get("KWChoice")
+			return true, lc.pumpAllEachChoice(ps, in, kwc)
+		}
 		if kw, ok := ps.get("KW"); ok {
 			ks, err := pumpKeywords(kw)
 			if err != nil {

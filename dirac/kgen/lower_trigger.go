@@ -80,7 +80,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if tr.Zone == 0 {
 			return refuse("TriggerZones %q", z)
 		}
-		if tr.Zone == zGraveyard && !graveTriggerModes[t.Mode] {
+		if tr.Zone == zGraveyard && !graveTriggerModes[t.Mode] && !graveDamageLine(t) {
 			return refuse("TriggerZones$ Graveyard over Mode$ %s: the kernel's walk for it reads no graveyard", t.Mode)
 		}
 	}
@@ -699,8 +699,16 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if tr.SrcInPlay, err = srcInPlay(tp.str("ValidSource")); err != nil {
 			return err
 		}
-		if tr.F, err = readF("ValidSource"); err != nil {
+		lc.spellBaseOK = tr.Zone == zGraveyard // lower_gravedamage.go drops the head
+		tr.F, err = readF("ValidSource")
+		lc.spellBaseOK = false
+		if err != nil {
 			return err
+		}
+		if tr.Zone == zGraveyard {
+			if err := dropSpellSourceHead(tr.F); err != nil {
+				return err
+			}
 		}
 		if tr.F2, err = readF("ValidTarget"); err != nil {
 			return err

@@ -77,8 +77,11 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 				if t.Flags&kop.TfCombat != 0 && !combat || t.Flags2&kop.Tf2NonCombat != 0 && combat {
 					continue
 				}
-				if t.Flags&kop.TfToPlayer != 0 && !toPlayer {
+				if t.Flags&kop.TfToPlayer != 0 && !toPlayer && t.Filter2 == 0 {
 					continue
+				}
+				if t.Filter2 != 0 && !s.emblemRecipientOK(k, t, rcp, toPlayer, pp) {
+					continue // "a player or a planeswalker": Filter2 beside TfToPlayer
 				}
 				if t.Flags2&kop.Tf2ToOpponent != 0 && dpl == pp {
 					continue
@@ -127,6 +130,22 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 			}
 		}
 	}
+}
+
+// emblemRecipientOK is the recipient half of an emblem's DamageDone line
+// that carries a Filter2: with TfToPlayer a player always passes (Tf2ToYou
+// and Tf2ToOpponent are tested by the caller), and a damaged permanent must
+// be a battlefield object matching Filter2 for the emblem owner; without
+// TfToPlayer only such a permanent passes.
+func (s *State) emblemRecipientOK(k *prep, t *kop.Trigger, rcp uint8, toPlayer bool, owner uint8) bool {
+	if toPlayer {
+		return t.Flags&kop.TfToPlayer != 0
+	}
+	if !isObjTarget(rcp) {
+		return false
+	}
+	ob := &s.objs[rcp]
+	return ob.zone == kop.ZoneBattlefield && s.matchPermGen(k, t.Filter2, ob.slot, owner, NoSlot, layerFull)
 }
 
 // fireEmblemsAttack fires the emblems' AttackersDeclared triggers for the

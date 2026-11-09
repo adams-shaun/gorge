@@ -125,7 +125,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		if k.gen != nil && k.gen.anyPermMark && sl != NoSlot {
 			s.markDealt(k, sl, false)
 		}
-		if s.subs[kop.TrigDamageDone].any() || k.gen != nil && s.subs[kop.TrigDamageDealtOnce].any() {
+		if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) {
 			if sl != NoSlot {
 				s.fireDamage(k, sl, int16(m), true, false, code)
 			} else if k.gen != nil {
