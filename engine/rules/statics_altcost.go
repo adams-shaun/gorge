@@ -28,6 +28,10 @@ type altCostView struct {
 	// mayPlayKey is the limit identity of the may-play static that delivered
 	// this alternative (mayPlayAltView.key); beginCast stamps it on the cast.
 	mayPlayKey string
+	// manaRestriction is the static's ManaRestriction$ ("Treasure": spend
+	// only mana produced by Treasures to cast it this way), as parsed; empty
+	// is unrestricted. A value pay.OnlyTagKnown rejects withholds the offer.
+	manaRestriction string
 }
 
 // alternativeCosts lists extra ways to cast id, each becoming its own
@@ -69,7 +73,8 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 			continue
 		}
 		out = append(out, altCostView{cost: cost,
-			announce: strings.TrimSpace(sv.ParamStr(cards.PKAnnounce)), src: sv.Source})
+			announce: strings.TrimSpace(sv.ParamStr(cards.PKAnnounce)), src: sv.Source,
+			manaRestriction: sv.Params["ManaRestriction"]})
 	}
 	// The Effect-delivered AlternativeCost statics (task
 	// param:api:Effect.ForgetOnCast, Marshland Bloodcaster): registry entries
@@ -104,7 +109,8 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 			continue
 		}
 		out = append(out, altCostView{cost: cost,
-			announce: strings.TrimSpace(sv.ParamStr(cards.PKAnnounce)), src: sv.Source})
+			announce: strings.TrimSpace(sv.ParamStr(cards.PKAnnounce)), src: sv.Source,
+			manaRestriction: sv.Params["ManaRestriction"]})
 	}
 	if o := e.G.Obj(id); o != nil {
 		if f := o.Face(); f != nil {
@@ -120,7 +126,8 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 					continue
 				}
 				out = append(out, altCostView{cost: cost,
-					announce: strings.TrimSpace(st.ParamStr(cards.PKAnnounce)), src: id})
+					announce: strings.TrimSpace(st.ParamStr(cards.PKAnnounce)), src: id,
+					manaRestriction: st.Params["ManaRestriction"]})
 			}
 		}
 	}

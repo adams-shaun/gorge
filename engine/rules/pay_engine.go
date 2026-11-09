@@ -53,6 +53,7 @@ func paymentForCast(pc *pendingCast, cost Cost) paymentDescriptor {
 	}
 	d := paymentFor(pc.card, pc.isAbility(), cost)
 	d.XAnnounced = pc.cost.X > 0
+	d.OnlyTag = pc.altOnlyTag
 	return d
 }
 
@@ -215,7 +216,7 @@ func offerPayment(id state.ObjID, ability bool, scope costScope) paymentDescript
 	if ability {
 		class = paymentActivated
 	}
-	return paymentDescriptor{ID: id, Class: class}
+	return paymentDescriptor{ID: id, Class: class, OnlyTag: scope.OnlyTag}
 }
 
 func (pe *payer) Game() *state.Game                 { return pe.G }
