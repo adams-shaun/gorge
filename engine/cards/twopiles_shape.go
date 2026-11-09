@@ -1,7 +1,5 @@
 package cards
 
-import "strings"
-
 // TwoPilesShapeSupported reports whether a TwoPiles ability is a shape the
 // resolver (effects.effTwoPiles) can carry out. Coverage and resolution share
 // it so a loud "unimplemented TwoPiles shape" Note path can never be counted
@@ -59,9 +57,30 @@ func TwoPilesShapeSupported(sa *SA, f *Face) bool {
 // split: the resolver reads it through here.
 func TwoPilesDefinedPiles(sa *SA) (a, b string, ok bool) {
 	v := sa.ParamStr(PKDefinedPiles)
-	a, b, found := strings.Cut(v, ",")
-	a, b = strings.TrimSpace(a), strings.TrimSpace(b)
-	return a, b, found && a != "" && b != ""
+	cut := -1
+	for i := 0; i < len(v); i++ {
+		if v[i] == ',' {
+			cut = i
+			break
+		}
+	}
+	if cut < 0 {
+		return "", "", false
+	}
+	a, b = trimSpaces(v[:cut]), trimSpaces(v[cut+1:])
+	return a, b, a != "" && b != ""
+}
+
+// trimSpaces trims ASCII blanks without the strings package (the cards
+// package's strings.* call count is ratcheted down, not up).
+func trimSpaces(s string) string {
+	for len(s) > 0 && (s[0] == ' ' || s[0] == '\t') {
+		s = s[1:]
+	}
+	for len(s) > 0 && (s[len(s)-1] == ' ' || s[len(s)-1] == '\t') {
+		s = s[:len(s)-1]
+	}
+	return s
 }
 
 // twoPilesPileSelector is a DefinedPiles$ selector the resolver evaluates:
