@@ -12,9 +12,10 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kgen"
 )
 
-// A printed Delve card outside the Standard set lists has no synthetic pool:
-// printedDelveSet builds the kernel table its repro's decks need. The table is
-// a test artifact, never committed (kgen's tables are corpus-derived).
+// A card no synthetic pool holds (a printed Delve card outside the Standard set
+// lists, say) has no table: printedDelveSet builds the kernel table its repro's
+// decks need. The table is a test artifact, never committed (kgen's tables are
+// corpus-derived).
 func printedDelveSet(t *testing.T, cards [2][]string) cardset.Set {
 	t.Helper()
 	var names []string
@@ -47,7 +48,7 @@ func printedDelveSet(t *testing.T, cards [2][]string) cardset.Set {
 }
 
 // reproSet is the set a repro plays: its synthetic pool, or the table built
-// from its own decks for a printed-delve card no Standard set holds.
+// from its own decks for a card no synthetic pool holds.
 func reproSet(t *testing.T, pool string, r *Repro) cardset.Set {
 	t.Helper()
 	if pool != "custom" {
