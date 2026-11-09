@@ -109,7 +109,11 @@ type CardDef struct {
 	// ward.go's ward_waterbend pick; kernel cost_unlesswaterbend.go; The Unagi
 	// of Kyoshi Island).
 	WardWaterbend uint8
-	Leyline       bool // may begin the game on the battlefield from the opening hand
+	// WardPoison: ward—AddCounterYou<N/POISON>, N here (KwWard with WardN 0;
+	// gorge ward.go's AddCounterYou arm; kernel cost_restokens.go; The Serpent
+	// Society).
+	WardPoison uint8
+	Leyline    bool // may begin the game on the battlefield from the opening hand
 	// SelfFlash: a CastWithFlash EffectZone$ All self grant ("you may cast this
 	// spell as though it had flash if ..."; Illusion Spinners). The card's own
 	// StatCastWithFlash ability grants it from hand, never from the

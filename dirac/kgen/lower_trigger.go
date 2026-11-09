@@ -712,6 +712,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				tr.Combat = -1
 			}
 		}
+		if err := lc.damageDoneSelfObjRef(tp, tr, t); err != nil {
+			return err
+		}
 	case "BecomesTarget":
 		switch {
 		case tp.is("Ward", "True") && tp.str("ValidTarget") == "Card.Self":
@@ -1798,6 +1801,9 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		}
 		if err := lc.selfCondCheck(&st); err != nil {
 			return nil, err // lower_selfcondition.go
+		}
+		if err := affectedKwCheck(&st); err != nil {
+			return nil, err // lower_selfkwaffected.go
 		}
 		extra = sts
 		if goad {

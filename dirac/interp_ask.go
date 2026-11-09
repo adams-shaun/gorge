@@ -40,6 +40,8 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		return int(s.pl[p].handN) >= amt
 	case kop.PayDiscardHand:
 		return true // gorge unlessflow: the whole hand; empty pays with nothing
+	case payKindBehold:
+		return s.unlessBeholdCands(k, p, f, nil) >= amt // cost_unlessbehold.go
 	case kop.PaySac:
 		if pips == kop.PayBSubBlight {
 			return s.countPermMatch(k, p, f, s.resSrcSlot(k), false) >= 1 // a Blight: one creature, source included
@@ -59,7 +61,9 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 	case payKindSacHost:
 		return s.sacHostSlot(p) != NoSlot // the granting host, still the payer's (cost_sachost.go)
 	case kop.PayDraw:
-		return true // gorge triggeredCostDrawCounts: payable once the count resolves
+		return amt > 0 // gorge triggeredCostDrawCounts: payable once the count resolves; an unresolved or zero X stays unpriceable (decline only)
+	case payKindDamage:
+		return amt > 0 // gorge: DamageYou<X> folds only for a positive X (cost_restokens.go)
 	case kop.PaySubCounter:
 		sl := s.resSrcSlot(k)
 		return sl != NoSlot && permCtrN(s, &s.perms[sl], int(pips)) >= amt // pips carries the counter kind (CtrAll sums every kind)
@@ -104,7 +108,8 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubTrigNew {
 		kind = payKindTrigNew // a trigger's own ExileAnyGrave<1/Card.TriggeredNewCard> cost rides PayExileGrave (trig_mayexile.go)
 	}
-	kind = unlessPayKind(kind, in.B.N) // an UnlessCost$ Waterbend<N> rides PayTapX (cost_unlesswaterbend.go)
+	kind = resTokenPayKind(kind, in.B.N) // DamageYou<X> rides PayDraw (cost_restokens.go)
+	kind = unlessPayKind(kind, in.B.N)   // an UnlessCost$ Waterbend<N> rides PayTapX (cost_unlesswaterbend.go)
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubExileHand {
 		kind = payKindExileHand // a trigger's own ExileFromHand<N/Card> cost rides PayExileGrave (cost_exilefromhand.go)
 	}
@@ -352,6 +357,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			s.handExileOptions(d, p) // cost_exilefromhand.go
 			break
 		}
+		if s.g.pickZ == payKindBehold {
+			s.unlessBeholdOptions(k, d, p) // cost_unlessbehold.go
+			break
+		}
 		if s.g.pickZ == kop.PayDiscard {
 			d.Sub = ChCostDiscard
 			pl := &s.pl[p]
@@ -578,6 +587,10 @@ func (s *State) autoPayPick(k *prep) bool {
 	if int(d.N) != int(s.g.pickLeft) {
 		return false
 	}
+	if s.g.pickZ == payKindBehold {
+		s.g.pickLeft = 0 // exactly the candidates owed: beholding moves nothing
+		return true
+	}
 	objs := d.Options[:d.N]
 	for i := 1; i < len(objs); i++ { // battlefield (entry) order
 		for j := i; j > 0; j-- {
@@ -709,6 +722,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.paySacHost(k)
 		case kop.PayDraw:
 			s.payDraw(s.g.pickP, int(s.g.pickLeft))
+		case payKindDamage, payKindPoison:
+			s.payResToken(k) // cost_restokens.go
 		case kop.PaySubCounter:
 			// B: drain the resolving source's own counters (gorge
 			// unless_cost.go:47 / trigger_cost_subcounter.go:91).
@@ -770,6 +785,11 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		}
 		o := Obj(a.Source())
+		if s.g.pickZ == payKindBehold {
+			s.g.pickLeft = 0 // beholding moves and marks nothing (cost_unlessbehold.go)
+			s.payDone(k, true)
+			break
+		}
 		if s.g.pickZ == payKindWaterbend {
 			s.applyUnlessWaterbendPick(k, o) // cost_unlesswaterbend.go
 			return
@@ -2336,6 +2356,9 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 	pl := &s.pl[p]
 	if fl&kop.DigRemember != 0 {
 		s.remember(o)
+	}
+	if s.digImprintMarked(k) {
+		s.imprint(o) // Dig Imprint$ (zone_digimprint.go)
 	}
 	switch {
 	case z == kop.ZoneBattlefield:

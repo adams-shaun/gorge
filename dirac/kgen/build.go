@@ -355,6 +355,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"PROMOTION":  kop.CtrPromotion,  // Beckett Mariner's named counter (CR 122.1)
 	"PEACE":      kop.CtrPeace,      // Peace in Our Time's named counter (CR 122.1)
 	"WISH":       kop.CtrWish,       // Wishclaw Talisman's named counter (CR 122.1)
+	"SKEWER":     kop.CtrSkewer,     // Rotisserie Elemental's named counter (CR 122.1)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -1695,6 +1696,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefTriggerAttackers, nil
 	case rRememberedOwner:
 		return kop.RefRememberedOwner, nil
+	case rImprinted:
+		return kop.RefImprinted, nil
 	case rTargetUnion:
 		switch r.N {
 		case 3:
