@@ -3010,6 +3010,9 @@ func (lc *lowerCtx) putCounter(ps *params) error {
 		if ok, err := lc.dividedCountersAnyX(ps); ok || err != nil {
 			return err
 		}
+		if ok, err := lc.dividedCountersPick(ps); ok || err != nil { // (Vastwood Hydra)
+			return err
+		}
 		return lc.dividedCountersLKI(ps) // (Quirion Beastcaller)
 	}
 	if ps.is("ETB", "True") {

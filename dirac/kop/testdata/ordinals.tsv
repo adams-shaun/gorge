@@ -417,6 +417,7 @@ ExtCounterAll	ExtOp	226
 ExtCounterLose	ExtOp	41
 ExtCounterPlusEOT	ExtOp	247
 ExtDigImprint	ExtOp	282
+ExtDistCounters	ExtOp	310
 ExtDividedCounters	ExtOp	30
 ExtEachDamage	ExtOp	2
 ExtEffEtbCtr	ExtOp	197
