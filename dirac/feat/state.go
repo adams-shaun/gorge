@@ -381,6 +381,9 @@ func newNumKey(k string, hi int32) numKey {
 	return n
 }
 
+// lifeBucketHi is policynet's mzLifeBucketHi: life/2 buckets up to 61 life, Commander's 40 plus lifegain.
+const lifeBucketHi int32 = 30
+
 // bucketRows is "<prefix><v>" for v in 0..hi.
 func bucketRows(prefix string, hi int32) []uint16 {
 	out := make([]uint16, hi+1)
@@ -396,7 +399,7 @@ var (
 	nkOppCanBlockN, nkOppCanBlockTough            = newNumKey("opp|canblock-n", 6), newNumKey("opp|canblock-tough", 12)
 	nkOppCanAttackN, nkOppCanAttackPower          = newNumKey("opp|canattack-n", 6), newNumKey("opp|canattack-power", 12)
 	nkMeCanBlockN, nkMeFlyers, nkOppFlyers        = newNumKey("me|canblock-n", 6), newNumKey("me|flyers", 4), newNumKey("opp|flyers", 4)
-	rowsLifediff, rowsOppLife, rowsMeLife         = bucketRows("mz|lifediff=", 14), bucketRows("mz|opp|life=", 12), bucketRows("mz|me|life=", 12)
+	rowsLifediff, rowsOppLife, rowsMeLife         = bucketRows("mz|lifediff=", 14), bucketRows("mz|opp|life=", lifeBucketHi), bucketRows("mz|me|life=", lifeBucketHi)
 	rowMeLethal, rowOppLethal                     = row(add(off, "mz|me|lethal-unblocked")), row(add(off, "mz|opp|lethal-unblocked"))
 	rowStack                                      = [2]uint16{row(add(off, "mz|stack|me")), row(add(off, "mz|stack|opp"))}
 	rowHandInstant, rowHandCastable, rowHandCastI = row(add(off, "mz|hand|instant-speed")), row(add(off, "mz|hand|castable")), row(add(off, "mz|hand|castable|instant-speed"))
@@ -467,8 +470,8 @@ func (e *Encoder) mzGlobal(seat uint8, me, opp *vplayer, mine, theirs *agg) {
 	num(&nkOppFlyers, theirs.flyers)
 	diff := me.life - opp.life
 	e.push(rowsLifediff[clampI(diff/3+7, 14)], 1)
-	e.push(rowsOppLife[clampI(opp.life/2, 12)], 1)
-	e.push(rowsMeLife[clampI(me.life/2, 12)], 1)
+	e.push(rowsOppLife[clampI(opp.life/2, lifeBucketHi)], 1)
+	e.push(rowsMeLife[clampI(me.life/2, lifeBucketHi)], 1)
 	if mine.canAttackPower >= opp.life {
 		e.push(rowMeLethal, 1)
 	}

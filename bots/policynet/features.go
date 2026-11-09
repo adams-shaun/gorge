@@ -10,6 +10,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
+// mzLifeBucketHi: life/2 buckets up to 61 life, Commander's 40 plus lifegain.
+const mzLifeBucketHi int32 = 30
+
 // FeatureSet selects the state/option encoding a model was trained under
 // (the feature axis). FeaturesV1 is the pinned encoder of
 // policynet.go/option.go, byte for byte: every existing checkpoint, golden and
@@ -457,8 +460,8 @@ func mzState(v view.View, seat state.PlayerID, sk *sink) {
 	if me != nil && len(others) > 0 {
 		diff := me.Life - others[0].Life
 		sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|lifediff="), mzClamp(diff/3+7, 14)), 1)
-		sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|opp|life="), mzClamp(others[0].Life/2, 12)), 1)
-		sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|me|life="), mzClamp(me.Life/2, 12)), 1)
+		sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|opp|life="), mzClamp(others[0].Life/2, mzLifeBucketHi)), 1)
+		sk.h(fnvAddInt(fnvAdd(fnvOffset, "mz|me|life="), mzClamp(me.Life/2, mzLifeBucketHi)), 1)
 		// Lethal reads: can my untapped attackers' power alone kill through no
 		// blocks; can theirs kill me.
 		if mine.canAttackPower >= others[0].Life {
