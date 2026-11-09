@@ -207,7 +207,7 @@ import (
 // +15 (the activation-cost tokens listed at ratchet_test.go's ALL pin: Exert<N/NICKNAME>,
 // SubCounter<X/KIND> and ExileFromStack<1/Card.Self>; ALL build-level 21709 -> 21724).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21781, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21784, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
