@@ -162,7 +162,7 @@ func (s *State) ctrlMove(sl Slot, to uint8) {
 		s.mayWhileSrcCtrlDrop(p.obj, to) // CR 611.2b (cast_aslongascontrol.go)
 	}
 	if k.gen != nil && k.gen.anyEmbCtrl {
-		s.embCtrlDrop(k, p.obj, to) // CR 611.2b: AsLongAsControl emblems (emblem_durations.go)
+		s.embCtrlDrop(k, p.obj, to) // CR 611.2b: AsLongAsControl emblems (static_emblemdurations.go)
 	}
 }
 
