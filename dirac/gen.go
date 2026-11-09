@@ -1865,7 +1865,27 @@ type genState struct {
 
 	ctrOver  [maxCtrOver]ctrOverEntry // counter kinds past the general slots, sorted (ctr_sparse.go)
 	nctrOver uint8
+
+	// Reserved tail: State bytes set aside so later work never edits a struct
+	// definition. Nothing reads or writes these yet. The rule: new State bytes
+	// come out of rsv, the mech arena, a cold array or a scr overlay; never a
+	// mid-struct insertion, which moves every later field. rsv is named, not _,
+	// so SameGame's == compares it. Together the block grows State by 64 bytes
+	// (statelayout_test.go pins the size and perms' cache-line phase).
+	imp     [maxImp]Obj
+	nimp    uint8
+	linkImp uint8
+	embF    [MaxSeats]uint8
+	embR    [MaxSeats][maxEmb]Obj
+	rsv     [rsvN]uint8
 }
+
+const (
+	maxImp = 16
+	// rsvN pads the reserved block to 64 bytes (genState's 5 bytes of tail
+	// padding absorb the rest of the alignment).
+	rsvN = 64 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb
+)
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
 // kind: 0 empty, 1 "except by creatures with haste", 0x80|cmp<<4|N the
