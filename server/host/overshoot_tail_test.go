@@ -358,8 +358,8 @@ func TestUndoRewindsAcrossAnOvershootBurst(t *testing.T) {
 	t.Parallel()
 	r, tb, m, _ := parkedOvershootMatch(t, "")
 	assertOvershootShape(t, m)
-	// The overshoot burst is intent overshootIntents-1's (537); the requester
-	// is its own player.
+	// The overshoot burst is intent overshootIntents-1's; the requester is
+	// its own player.
 	before := m.intents
 	tailStart := m.bounds[before-1]
 	saved := append([]events.Event(nil), m.e.L.Events[tailStart:]...)
@@ -502,9 +502,11 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // decision. The fixture verifies under plain replay.Replay with no cut-tail
 // tolerance anywhere and cmd/repro on it exits 0. The test pins both, so an
 // engine or corpus move that breaks the capture fails loudly here instead of
-// leaving a stale fixture behind. Re-record it via
-// TestGenerateOvershootCapture: 3653 events, 664 intents, head
-// 8f92486feb45ce6b, with the parked ask and its tail as above.
+// leaving a stale fixture behind. The committed capture is the historical
+// seed-1 fixture: 3653 events, 664 intents, head 8f92486feb45ce6b, with the
+// parked ask and its tail as above. The live fixture has since moved to seed
+// 17 / 918 intents, so regenerating it now with TestGenerateOvershootCapture
+// writes that capture with new pins.
 const committedCaptureRel = "../../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:
