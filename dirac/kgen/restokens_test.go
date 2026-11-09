@@ -69,8 +69,8 @@ func TestResolutionCostTokens(t *testing.T) {
 	}
 
 	dmg := "Name:Damage Probe\nManaCost:3 R\nTypes:Creature Human\nPT:4/6\n" +
-		"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigDestroy | TriggerDescription$ probe\n" +
-		"SVar:TrigDestroy:DB$ Destroy | ValidTgts$ Permanent | UnlessCost$ %s | TgtPrompt$ Select target permanent\n" +
+		"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ Smash | TriggerDescription$ probe\n" +
+		"SVar:Smash:DB$ Destroy | UnlessCost$ %s | ValidTgts$ Creature,Land\n" +
 		"SVar:X:Count$CardPower\n"
 	d, rs = resTokBuild(t, "Damage Probe", strings.Replace(dmg, "%s", "DamageYou<X>", 1))
 	if len(rs) != 0 {
@@ -94,7 +94,7 @@ func TestResolutionCostTokens(t *testing.T) {
 
 	draw := "Name:Draw Probe\nManaCost:2 U\nTypes:Enchantment Saga\nK:Chapter:1:DBDraw\n" +
 		"SVar:DBDraw:DB$ Draw | Defined$ Opponent | NumCards$ 1 | UnlessCost$ %s | UnlessPayer$ You | UnlessSwitched$ True\n" +
-		"SVar:X:Count$Valid Artifact.YouCtrl\n"
+		"SVar:X:Count$Valid " + "Artifact.YouCtrl\n"
 	d, rs = resTokBuild(t, "Draw Probe", strings.Replace(draw, "%s", "Draw<X/You>", 1))
 	if len(rs) != 0 {
 		t.Fatalf("Draw<X/You> refused: %v", rs)
