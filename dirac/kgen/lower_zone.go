@@ -1192,7 +1192,8 @@ func (lc *lowerCtx) dig(ps *params) error {
 	if blind && lc.blind != nil && lc.blind.exilerOther {
 		flags = append(flags, "ExilerOther")
 	}
-	if err := lc.digImprint(ps); err != nil { // lower_handmove.go
+	imprintSet, err := lc.digImprint(ps, dest, take) // lower_digparams.go
+	if err != nil {
 		return err
 	}
 	in.CS = strings.Join(flags, "|")
@@ -1217,6 +1218,9 @@ func (lc *lowerCtx) dig(ps *params) error {
 		return nil
 	}
 	lc.emit(in)
+	if imprintSet {
+		lc.emit(lInstr{Op: "DigImprint"}) // the dig's takes join the imprinted set
+	}
 	return nil
 }
 
@@ -1996,6 +2000,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	if ok, err := lc.unspentRedEOT(ps, ss); ok || err != nil {
 		return err
 	}
+	if obj, ok := lc.chosenMayPlayNextTurn(ps, ss); ok { // lower_effectdurations.go
+		return lc.effectTargetStatic(ps, ss[0], obj)
+	}
 	_, hasTgt := ps.m["ValidTgts"]
 	if _, hasRO := ps.get("RememberObjects"); !hasTgt && !hasRO {
 		return lc.effectStaticEOT(ps, ss)
@@ -2144,6 +2151,9 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		sp.consume("ValidCard")
 		lc.emit(lInstr{Op: "GrantPanharm", Obj: obj, Note: "the target's triggers trigger an additional time while the source stays tapped"})
 	case "Continuous":
+		if sp.is("RemoveAllAbilities", "True") { // lower_effectdurations.go
+			return lc.loseAbilitiesWhileHost(ps, sp, obj)
+		}
 		if !sp.is("MayPlay", "True") {
 			return refuse("Effect continuous shape")
 		}

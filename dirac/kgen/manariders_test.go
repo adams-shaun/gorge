@@ -11,12 +11,8 @@ import (
 // when the mechanism and a lockstep repro land together:
 //   - a filter's cost that sacrifices its source (Omni-Cheese Pizza): the
 //     prefix search would sacrifice on its State copies;
-//   - a {T} ability adding several colours under a spell restriction (Troyan,
-//     Gutsy Explorer): with the shape lowered, a filter land's activation search
-//     beside it offers fewer plays than gorge's.
 var manaRiderForms = []formCase{
 	{card: "Boommobile", form: "an artifact's triggered mana restricted to activated abilities", lir: "ManaChoice A=4 C=1 CS=WUBRG F={types=0x0 special=0x20}"},
-	{card: "Troyan, Gutsy Explorer", form: "two colours at once under a spell restriction", refused: "several colours at once under a spend restriction"},
 }
 
 func TestManaRiderShapes(t *testing.T) {

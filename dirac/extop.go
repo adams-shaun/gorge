@@ -128,6 +128,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtClearImprinted:
 		s.g.nimp = 0
 		return true, true
+	case kop.ExtDigImprint:
+		return true, true // read by the dig it follows (zone_digimprint.go)
 	case kop.ExtSuspect:
 		s.suspectExt(k, in) // act_suspect.go
 		return true, true

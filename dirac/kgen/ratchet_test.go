@@ -110,37 +110,38 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// Talon of Pain, The Astonishing Ant-Man; ALL 21709 -> 21724, DFT 248 -> 249,
 	// FRA 245 -> 246, MSH 235 -> 236).
 	// +9 (the merge with land: land's +9 beside the +15 above; merged ALL 21709 -> 21733, FRA 246 -> 247 measured).
-	// +1 (Boommobile: an artifact's resolving mana restricted to activated abilities, kop.SpmActivated; ALL 21753 -> 21754, DFT 250 -> 251).
+	// +5 (the merge with land: this branch's +5 beside land's +26, disjoint; merged ALL 21784 -> 21789 measured).
+	// +1 (Boommobile: an artifact's resolving mana restricted to activated abilities, kop.SpmActivated; the merge with land: land's 21792 + 1 = 21793, DFT 250 -> 251).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21754, 34442},
+	"ALL": {21793, 34442},
 	"BIG": {23, 30},
 	"BLB": {257, 278},
 	"BRO": {207, 280},
 	"DFT": {251, 276},
 	"DMU": {194, 270},
 	"DSK": {242, 276},
-	"ECL": {235, 273},
+	"ECL": {236, 273},
 	"EOE": {239, 266},
 	"FDN": {517, 517},
-	"FIN": {268, 312},
-	"FRA": {247, 269},
-	"HOB": {154, 172},
-	"LCI": {252, 290},
+	"FIN": {269, 312},
+	"FRA": {248, 269},
+	"HOB": {155, 172},
+	"LCI": {253, 290},
 	"MKM": {242, 279},
 	"MOM": {198, 296},
-	"MSH": {236, 276},
+	"MSH": {239, 276},
 	"NEO": {198, 287},
 	"ONE": {196, 271},
 	"OTJ": {242, 276},
 	"SNC": {185, 266},
-	"SOS": {250, 270},
-	"SPM": {162, 192},
-	"TDM": {252, 276},
-	"TLA": {254, 285},
-	"TMT": {172, 194},
+	"SOS": {251, 270},
+	"SPM": {164, 192},
+	"TDM": {253, 276},
+	"TLA": {255, 285},
+	"TMT": {173, 194},
 	"TRC": {288, 337},
 	"TRK": {311, 311},
-	"WOE": {252, 281},
+	"WOE": {255, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory

@@ -1276,6 +1276,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCanAttackDefender {
 				g.anyCanAtkDef = true // an Effect-delivered grant: prepared like a printed one
 			}
+			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom {
+				g.anyMayPlay = true // an Effect-delivered library-top permission (cast_staticpaylife.go)
+			}
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.Kw&kop.KwProwess != 0 {
 				g.anyProwessGrant = true
 			} else if a.Kind == kop.AbTriggered {
@@ -1917,6 +1920,9 @@ func wardAmt(c *kop.CardDef) int16 {
 	}
 	if c.WardWaterbend != 0 {
 		return wardWBBit | int16(c.WardWaterbend) // cost_unlesswaterbend.go
+	}
+	if c.WardPoison != 0 {
+		return wardPoisBit | int16(c.WardPoison) // cost_restokens.go
 	}
 	if c.WardEvidence != 0 {
 		return wardEvBit | int16(c.WardEvidence) // kw_wardcost.go

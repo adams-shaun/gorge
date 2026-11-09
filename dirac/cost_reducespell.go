@@ -149,9 +149,12 @@ func (s *State) bargainOffers(k *prep, p uint8, o Obj) bool {
 // unaffordable but the discounted one is: gorge's hand walk prices the
 // bargained mode under its own scope, so a card the discount alone makes
 // payable is still offered (Hamlet Glutton with {3}{G}{G} floating). The
-// gates are the ones the plain cast ran, the price is the bargained one.
+// gates are the ones the plain cast ran, the price is the bargained one. A
+// restricted source on the battlefield or in the pool of cards (k.restrSrc)
+// only adds payers, so the plain avail that affords the discount affords it
+// with them too.
 func (s *State) offerBargainOnly(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
-	if k.gen == nil || !k.t.Cards[c].Bargain || s.rbAny(p) || k.restrSrc || !s.bargainOffer(k, p, c) {
+	if k.gen == nil || !k.t.Cards[c].Bargain || s.rbAny(p) || !s.bargainOffer(k, p, c) {
 		return
 	}
 	cost := s.bargainedPrice(k, p, c, o, k.cards[c].cost)

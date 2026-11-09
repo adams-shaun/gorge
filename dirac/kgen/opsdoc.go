@@ -542,6 +542,7 @@ var opsEntries = []opsDoc{
 	{"st:ReduceAny", "StReduceAny (= StRaiseOpp, on a StatReduceCost)", "ReduceCost with no Activator$: the reduction applies to either player's spells, not the controller's alone (gorge costStaticApplies reads Activator$ only when present; Forge StaticAbilityCostChange). Helm of Awakening."},
 	{"st:TargetsFilter2", "StTargetsFilter2", "ReduceCost applies only if the spell targets an object matching Filter2 (Luminous Rebuke)."},
 	{"st:Bargained", "StBargained", "A self ReduceCost that prices only the bargained cast (ValidSpell$ Spell.Bargain: Hamlet Glutton, Ice Out, Johann's Stopgap; gorge spellConstraintMatchesBargain reads the cast mode): the plain cast pays the full cost, the bargained cast (AkCastCasualty of a Bargain card) the discounted one, at the offer and at the charge."},
+	{"st:MayPayLife", "StMayPayLife (= StReduceColor, on a StatMayPlayFrom)", "A library-top play permission whose cast pays life equal to the card's mana value in place of its mana cost (Effect MayPlayAltManaCost$ PayLife<ConvertedManaCost> beside MayPlay$ over Card.TopLibrary: Gwenom, Remorseless; gorge prices the cast through the grant's alternative only, CR 118.9). The offer is free of mana when the caster has the life (CR 119.4); the cast pays the mana value in life beside its other costs; a land is played for nothing. The Effect's MayLookAt$ look is information only and lowers to nothing."},
 	{"st:ReduceColor", "StReduceColor (Static.A generic, Static.B coloured counts)", "ReduceCost whose Color$ names coloured pips (Brush Off, Color$ 1 U | Amount$ 1): A is the generic part, B packs a count per colour (two bits each, W U B R G C from bit 0). The coloured pips come off first and the shortfall spills to generic, never below 0 (gorge pay CostMods.ApplyTo)."},
 	{"repl:Cond", "Repl.Cond / Repl.Filter", "The replacement applies only while the condition holds; Filter: the other objects it applies to."},
 	{"card:WardLife", "CardDef.WardLife", "Ward—pay N life (KwWard with WardN 0; Sire of Seven Deaths, Zul Ashur)."},
@@ -554,6 +555,7 @@ var opsEntries = []opsDoc{
 	{"card:WardDiscard", "CardDef.WardDiscard", "Ward—Discard a card (gorge kw_ward.go's Discard arm): pay or not, then a ward_discard pick of one hand card (posed even with one card); an empty hand counters (Graveyard Trespasser)."},
 	{"card:WardSac", "CardDef.WardSac", "Ward—Sacrifice a <filter> (gorge kw_ward.go's Sac arm, N = 1): pay or not (both offered always), then a ward_sac pick of one permanent the payer controls matching WardSac, evaluated on the live layers (Ygra makes creatures Food); none matching counters at once. The pick leaves for the graveyard without fireSac: gorge's \"sacrificed for ward\" MoveZone is not events.IsSacrifice, so no Sacrificed trigger or tally (GORGE-FINDINGS.md; Vein Ripper, Ygra)."},
 	{"card:WardWaterbend", "CardDef.WardWaterbend", "Ward—Waterbend {N} (gorge ward.go's Waterbend arm): pay or not (both offered always), then the taps owed past the floating pool: none pays from the pool unasked, fewer candidates than owed counters, else one ward_waterbend pick of that many untapped artifacts and creatures, asked even when exactly that many exist (The Unagi of Kyoshi Island)."},
+	{"card:WardPoison", "CardDef.WardPoison", "Ward—AddCounterYou<N/POISON> (gorge ward.go's AddCounterYou arm): pay or not (both offered always), paying gives the ward's payer N poison counters through the kernel's addPoison, a decline countering the warded spell or ability (The Serpent Society)."},
 	{"card:WardDiscOrN", "CardDef.WardDiscOrN", "Ward—Discard a card or pay {N} (gorge ward.go's \">:\" arm): pay or not (both offered always), then one ward_alt pick of a hand card to discard (hand order) or {N} (offered while the pool pays it or the payer controls an untapped mana source), the {N} charged as the plain {N} ward's through its mana window; no option counters at once (Titania, Rugged Rumbler)."},
 	{"card:WardLifePower", "CardDef.WardLifePower", "Ward—Pay life equal to its power (gorge kw_ward.go's PayLife<X/…> arm): the ward permanent's power read when the ward resolves, floored at 0, then the pay-N-life ask (a pump in response changes the life paid; Raubahn, Bull of Ala Mhigo)."},
 	{"card:Lure", "CardDef.Lure", "The all-must-block keyword: every able creature blocks it (CR 509.1c; gorge kw:AllMustBlock, cr-lure-all-must-block): while it attacks, a creature able to block a lure attacker is offered only its lure blocks, and the declaration completes only when every such creature blocks one. Not when it has lost its abilities. Prized Unicorn."},
@@ -1062,7 +1064,11 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 					add("st:Bargained", name)
 				}
 				if st.StFlags&kop.StReduceColor != 0 {
-					add("st:ReduceColor", name)
+					if st.Kind == kop.StatMayPlayFrom {
+						add("st:MayPayLife", name) // StMayPayLife aliases StReduceColor
+					} else {
+						add("st:ReduceColor", name)
+					}
 				}
 				if st.StFlags&kop.StYouHexproof != 0 {
 					add("st:YouHexproof", name)
@@ -1198,6 +1204,9 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		}
 		if d.WardWaterbend != 0 {
 			add("card:WardWaterbend", name)
+		}
+		if d.WardPoison != 0 {
+			add("card:WardPoison", name)
 		}
 		if d.WardDiscOrN != 0 {
 			add("card:WardDiscOrN", name)
