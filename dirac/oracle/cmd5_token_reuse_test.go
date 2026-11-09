@@ -18,7 +18,7 @@ func TestCmd5TokenIdsReusedNoStall(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res := replayStdReproResult(t, synthReg(t), "custom", name, false)
+	res := replayStdReproResult(t, synthReg(t), "custom", name, true) // recorded on the full surface
 	if res.Div != nil {
 		t.Fatalf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
 	}
