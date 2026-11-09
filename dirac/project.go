@@ -342,7 +342,9 @@ func (s *State) projRest(p *Projection, lib bool) {
 		p.GraveN[pi] = pl.graveN
 		p.ExileN[pi] = pl.exileN
 		p.CmdCast[pi] = pl.cmdCast
-		p.CmdDmg[pi] = pl.cmdDmg
+		for q := range p.CmdDmg[pi] {
+			p.CmdDmg[pi][q] = pl.cmdDmg[q]
+		}
 	}
 	k := s.k()
 	p.NStack = s.sp

@@ -610,14 +610,14 @@ func (s *State) newTurnGen() {
 	if s.g.ctrAdd.pl|s.g.ctrAdd.n != 0 {
 		s.ctrAddedReset() // ctr_addedthisturn.go
 	}
-	s.g.attacked = [2]uint8{}
+	s.g.attacked = [MaxSeats]uint8{}
 	s.g.oppAtt = 0
-	s.g.isCast = [2]uint8{}
-	s.g.hist = [2][3]uint8{}
+	s.g.isCast = [MaxSeats]uint8{}
+	s.g.hist = [MaxSeats][3]uint8{}
 	clear(s.cold.castRing)
-	s.g.actRing = [2][actRingN]uint8{}
-	s.g.actN = [2]uint8{}
-	s.g.spent = [2]uint16{}
+	s.g.actRing = [MaxSeats][actRingN]uint8{}
+	s.g.actN = [MaxSeats]uint8{}
+	s.g.spent = [MaxSeats]uint16{}
 	if k := s.k(); k.gen != nil && k.gen.anyGameOnce {
 		s.keepGameOnce() // GameActivationLimit records outlive the turn (trig_params.go)
 	} else {
@@ -641,7 +641,7 @@ func (s *State) newTurnGen() {
 	}
 	s.mObjZero(s.k(), mechMayhem) // the discard-this-turn marks end with the turn (CR 702.187a; gorge's TurnChange bound)
 	s.g.trigTurn = 0
-	s.g.dilemmas = [2]uint8{}
+	s.g.dilemmas = [MaxSeats]uint8{}
 	if s.g.nchPick != 0 {
 		s.charmPickTurn() // modal_charmpick.go: ChoiceRestriction$ ThisTurn picks end
 	}
@@ -1171,7 +1171,7 @@ func (s *State) leylineStart(k *prep) bool {
 		return false
 	}
 	s.g.leyP = s.startPl
-	s.g.ley = [2]uint8{}
+	s.g.ley = [MaxSeats]uint8{}
 	s.g.leyOn = true
 	s.g.ctlRet = ctlStepBegin
 	s.ctl = ctlGenAsk
@@ -1208,7 +1208,7 @@ func (s *State) leyCard(k *prep, p, skip uint8) Obj {
 // player's declined Leylines.
 func (s *State) nextLeyline(k *prep) {
 	if s.g.ley[0] == 0 {
-		s.g.ley = [2]uint8{1, 0}
+		s.g.ley = [MaxSeats]uint8{1, 0}
 		s.g.leyP = 1 - s.startPl
 		return
 	}

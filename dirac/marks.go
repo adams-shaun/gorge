@@ -167,7 +167,7 @@ func (s *State) genViewHash(h uint64) uint64 {
 	h = hbytes(h, unsafe.Pointer(&g.embT[0]), uintptr(len(g.embT))*unsafe.Sizeof(g.embT[0])) // the layer timestamp
 	h = hmix(h, uint64(g.nemb[0])|uint64(g.nemb[1])<<8|uint64(g.died)<<16|uint64(g.attacked[0])<<24|
 		uint64(g.attacked[1])<<32|uint64(g.nused)<<40|uint64(g.oppAtt)<<48)
-	if g.spent != [2]uint16{} || g.hist != [2][3]uint8{} {
+	if g.spent != [MaxSeats]uint16{} || g.hist != [MaxSeats][3]uint8{} {
 		// the turn history bank: only a table that reads it keeps it
 		h = hbytes(h, unsafe.Pointer(&g.hist), unsafe.Sizeof(g.hist))
 		for p := uint8(0); p < 2; p++ {

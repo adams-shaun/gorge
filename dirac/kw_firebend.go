@@ -50,4 +50,4 @@ func (s *State) firebendEnd(next kop.Step) {
 
 // FirebendRed is each player's firebending red (State.fbR) for the oracle's
 // probes.
-func (s *State) FirebendRed() [2]uint8 { return s.fbR }
+func (s *State) FirebendRed() [MaxSeats]uint8 { return s.fbR }
