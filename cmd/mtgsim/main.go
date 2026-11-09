@@ -341,7 +341,7 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	// runs the no-host default underneath it.
 	e.AskStartingPlayer()
 
-	seats, err := matchSeats(e, reg, seed, names, policyA, policyB, matchFormat(format), out)
+	seats, err := matchSeats(e, reg, seed, names, policyA, policyB, matchFormat(format), mulligans, out)
 	if err != nil {
 		finish(0, "failed")
 		fmt.Fprintf(out, "seed %d: %d seats -- FAILED: %v\n", seed, len(names), err)
@@ -530,7 +530,7 @@ func registerSBAgents(specs []string) error {
 	return nil
 }
 
-func matchSeats(e *rules.Engine, reg *cards.Registry, seed uint64, names []string, policyA, policyB, format string, logOut io.Writer) ([]engineseat.Seat, error) {
+func matchSeats(e *rules.Engine, reg *cards.Registry, seed uint64, names []string, policyA, policyB, format string, mulligans int, logOut io.Writer) ([]engineseat.Seat, error) {
 	seatsOut := make([]engineseat.Seat, len(names))
 	for i := range names {
 		policy := ""
@@ -564,7 +564,7 @@ func matchSeats(e *rules.Engine, reg *cards.Registry, seed uint64, names []strin
 			Format:       format,
 			Seed:         []byte(fmt.Sprintf("%d", seed)),
 			OwnDeck:      e.OwnDeck(state.PlayerID(i)),
-			Mulligan:     "none",
+			Mulligan:     matchMulligan(mulligans),
 			StartingSeat: int(e.G.Active),
 			DeadlineMS:   0,
 			Logf: func(format string, args ...any) {
@@ -587,4 +587,14 @@ func matchFormat(f rules.Format) string {
 		return "commander"
 	}
 	return "constructed"
+}
+
+// matchMulligan is the bots.MatchContext.Mulligan word for a Config's
+// mulligan count, the same derivation server/host and testkit/bench use: a
+// seat is told "london" exactly when the engine will pose the round.
+func matchMulligan(n int) string {
+	if n > 0 {
+		return "london"
+	}
+	return "none"
 }
