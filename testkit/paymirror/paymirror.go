@@ -2172,12 +2172,22 @@ func sourceTapped(evs []events.Event, source state.ObjID) bool {
 }
 
 // productionAfter sums the mana one activation starting at evs[at] added:
-// the positive ManaAdd run after the rest of its own cost (isActivationCost).
+// the positive ManaAdd run after the rest of its own cost (isActivationCost)
+// and the source's own damage rider. Ancient Tomb's "{T}: Add {C}{C}. Ancient
+// Tomb deals 2 damage to you" emits that damage between its two mana and a
+// TapsForMana extra's mana (Forsaken Monument, CR 605.4a): the damage is part
+// of the activation, not the end of its production window. The rider is tied
+// to the source by the DamageProvenance event the engine appends immediately
+// after every landed hit; an unrelated damage event still ends the window.
 func productionAfter(evs []events.Event, at int, source state.ObjID, payer state.PlayerID) decision.ManaAmount {
 	var got decision.ManaAmount
 	started := false
-	for _, ev := range evs[at+1:] {
+	for i := at + 1; i < len(evs); i++ {
+		ev := evs[i]
 		if !started && isActivationCost(ev, source, payer) {
+			continue
+		}
+		if sourceDamage(evs, i, source) {
 			continue
 		}
 		if ev.Kind != events.ManaAdd || ev.Amount <= 0 || ev.Counter == "" {
@@ -2188,6 +2198,21 @@ func productionAfter(evs []events.Event, at int, source state.ObjID, payer state
 		got[state.ManaIndex(sym)] += uint32(ev.Amount)
 	}
 	return got
+}
+
+// sourceDamage reports whether evs[i] is a damage rider of source: the Damage
+// event itself, or the DamageProvenance fact the engine appends immediately
+// after it. A Damage event names only its recipient, so the adjacent
+// provenance is what ties it to the source.
+func sourceDamage(evs []events.Event, i int, source state.ObjID) bool {
+	switch evs[i].Kind {
+	case events.DamageProvenance:
+		return evs[i].Obj == source
+	case events.Damage:
+		return i+1 < len(evs) && evs[i+1].Kind == events.DamageProvenance &&
+			evs[i+1].Obj == source && evs[i+1].Amount == evs[i].Amount
+	}
+	return false
 }
 
 // lifeOnlyStarts is, per planned activation, the event index where a
