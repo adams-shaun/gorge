@@ -395,6 +395,13 @@ const W7WithDisguise int16 = 22
 // with Disguise, in any zone.
 const W7FaceUpDisguise int16 = 23
 
+// W7EnteredFromBF (PredWord7 sub-kind 24): the card is in a graveyard, or
+// another zone off the battlefield, because it was put there from the
+// battlefield this turn (gorge's ThisTurnEnteredFrom_Battlefield: the
+// object's latest arrival into its current zone, read off the entered
+// ledger). Read off the battlefield only: kgen refuses it on a permanent.
+const W7EnteredFromBF int16 = 24
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go
