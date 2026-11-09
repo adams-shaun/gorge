@@ -36,8 +36,8 @@ func TestMayPlayAltPayLife(t *testing.T) {
 
 	const head = "Name:Probe\nManaCost:1 U\nTypes:Sorcery\n" +
 		"A:SP$ Dig | ValidTgts$ Opponent | DigNum$ 2 | ChangeNum$ All | DestinationZone$ Exile | RememberChanged$ True | SubAbility$ DBEffect | SpellDescription$ Probe.\n" +
-		"SVar:DBEffect:DB$ Effect | RememberObjects$ RememberedCard | StaticAbilities$ Play | ForgetOnMoved$ Exile%s | SubAbility$ DBCleanup\n" +
-		"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\n" +
+		"SVar:DBEffect:DB$ Effect | RememberObjects$ RememberedCard | StaticAbilities$ Play | ForgetOnMoved$ Exile%s | SubAbility$ Wipe\n" +
+		"SVar:Wipe:DB$ Cleanup | ClearRemembered$ True\n" +
 		"SVar:Play:Mode$ Continuous | MayPlay$ True | Affected$ Card.IsRemembered | AffectedZone$ Exile | %s | Description$ Probe.\n"
 	const life = "MayPlayAltManaCost$ PayLife<ConvertedManaCost>"
 	ok := mzLower(t, fmt.Sprintf(head, "", life))

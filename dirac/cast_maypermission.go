@@ -136,7 +136,7 @@ func (s *State) spendMayKind(k *prep, o Obj, p uint8, mode uint8) bool {
 	}
 	r := s.g.may[i]
 	if r.payLife() {
-		s.bld().bfl |= bflPayLifeMV
+		s.bld().payLifeMV = true
 	}
 	if r.kind&kop.MayPlayAnyType != 0 {
 		s.bld().e.flags |= sfAnyMana

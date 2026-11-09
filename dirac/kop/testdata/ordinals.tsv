@@ -577,6 +577,7 @@ MayPlayLimitShift	untyped int	5
 MayPlayNonLand	untyped int	2
 MayPlayOpponent	untyped int	16384
 MayPlayOwner	untyped int	512
+MayPlayPayLife	untyped int	-32768
 MayPlayRaiseShift	untyped int	10
 MorphDisguise	uint8	3
 MorphMegamorph	uint8	2
