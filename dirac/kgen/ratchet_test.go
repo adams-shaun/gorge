@@ -110,12 +110,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// Talon of Pain, The Astonishing Ant-Man; ALL 21709 -> 21724, DFT 248 -> 249,
 	// FRA 245 -> 246, MSH 235 -> 236).
 	// +9 (the merge with land: land's +9 beside the +15 above; merged ALL 21709 -> 21733, FRA 246 -> 247 measured).
+	// +1 (Boommobile: an artifact's resolving mana restricted to activated abilities, kop.SpmActivated; ALL 21753 -> 21754, DFT 250 -> 251).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21753, 34442},
+	"ALL": {21754, 34442},
 	"BIG": {23, 30},
 	"BLB": {257, 278},
 	"BRO": {207, 280},
-	"DFT": {250, 276},
+	"DFT": {251, 276},
 	"DMU": {194, 270},
 	"DSK": {242, 276},
 	"ECL": {235, 273},
