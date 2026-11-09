@@ -2178,6 +2178,9 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			if c.CmpN&wasCastSpentZero != 0 {
 				return nil, refuse("filter %q: CastSa Spell.ManaSpent EQ0 on a spell", expr)
 			}
+			if c.CmpN&wasCastWebSling != 0 {
+				return nil, refuse("filter %q: webSlinged on a spell", expr)
+			}
 			if c.CmpN&^wasCastNot != wasCastAny {
 				return nil, refuse("filter %q: wasCastFromGraveyard on a spell", expr)
 			}
@@ -2226,6 +2229,9 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			lc.out.CombatHitRec = true
 		}
 		if c.CmpStat == cmpWasCast && !lc.wasCastOK {
+			if c.CmpN&wasCastWebSling != 0 {
+				return nil, refuse("filter %q: webSlinged outside a battlefield-entering trigger's ValidCard$", expr)
+			}
 			// the kernel reads the cast only while the entering spell is
 			// still resolving (kernel enterCast); a later read has no spell
 			return nil, refuse("filter %q: wasCast outside a battlefield-entering trigger's ValidCard$", expr)
