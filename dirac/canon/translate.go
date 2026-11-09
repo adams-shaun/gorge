@@ -683,6 +683,10 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("dig"), src, RefNone, 0), true
 	case dirac.ChGenBolster:
 		return Pack(kind("counter_pick"), src, RefNone, 0), true
+	case dirac.ChGenDistPick:
+		// gorge's "counter_dist" pick, an option kind outside ChooseKinds
+		// (the oracle's "other")
+		return Pack(kind("counter_dist"), src, RefNone, 0), true
 	case dirac.ChGenProlif:
 		// gorge's proliferate pick: a permanent by Obj, a player by Player
 		if src >= dirac.PlayerTarget0 {

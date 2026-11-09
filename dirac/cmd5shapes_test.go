@@ -68,7 +68,7 @@ func TestChandrasPhoenixFromGraveyard(t *testing.T) {
 		fire func()
 		want int
 	}{
-		{"red sorcery-speed spell to the opponent", func() { s.fireDamageSrc(sc.k, bolt, 0, 3, 1<<1, uint8(opp), nil) }, 1},
+		{"red instant spell to the opponent", func() { s.fireDamageSrc(sc.k, bolt, 0, 3, 1<<1, uint8(opp), nil) }, 1},
 		{"red planeswalker to the opponent", func() { s.fireDamage(sc.k, sc.slot(pw), 2, true, false, uint8(opp)) }, 1},
 		{"a creature's noncombat damage", func() { s.fireDamage(sc.k, sc.slot(ogre), 2, true, false, uint8(opp)) }, 0},
 		{"a creature's combat damage", func() { s.fireDamage(sc.k, sc.slot(ogre), 2, true, true, uint8(opp)) }, 0},
@@ -125,7 +125,7 @@ func hydraDies(t *testing.T, n, nBears int, picks []int) (counters []int, asked 
 		}
 		a := d.Options[0]
 		switch {
-		case d.Sub == ChGenDig:
+		case d.Sub == ChGenDistPick:
 			asked++
 			if next < len(picks) {
 				for j := 0; j < int(d.N); j++ {

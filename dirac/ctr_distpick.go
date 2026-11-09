@@ -16,7 +16,7 @@ import (
 // lookOrig, lookSel: digPick keeps the picks at the front in pick order).
 
 // raGenDistPick is ExtDistCounters's pick: a recipient, or Done once one is
-// picked. The pick is a ChGenDig decision (source = the creature).
+// picked (ChGenDistPick, source = the creature).
 const raGenDistPick = raGenManifestDread + 77
 
 // distPickStart runs ExtDistCounters: B is the total, F the recipients. It
@@ -57,7 +57,7 @@ func (s *State) askOptionsDistPick(k *prep, d *Decision) bool {
 	if s.res.ask != raGenDistPick {
 		return false
 	}
-	d.Sub = ChGenDig
+	d.Sub = ChGenDistPick
 	for i := 0; i < int(s.g.nlook); i++ {
 		if s.g.lookSel&(1<<i) == 0 {
 			d.add(MakeAction(AkChoose, uint8(s.resArm().look[i]), 0, 0))
