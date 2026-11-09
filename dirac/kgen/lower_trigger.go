@@ -1802,6 +1802,9 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		if err := lc.selfCondCheck(&st); err != nil {
 			return nil, err // lower_selfcondition.go
 		}
+		if err := affectedKwCheck(&st); err != nil {
+			return nil, err // lower_selfkwaffected.go
+		}
 		extra = sts
 		if goad {
 			// Goad$ True: the affected creatures are goaded while the
