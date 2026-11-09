@@ -542,6 +542,7 @@ var opsEntries = []opsDoc{
 	{"st:ReduceAny", "StReduceAny (= StRaiseOpp, on a StatReduceCost)", "ReduceCost with no Activator$: the reduction applies to either player's spells, not the controller's alone (gorge costStaticApplies reads Activator$ only when present; Forge StaticAbilityCostChange). Helm of Awakening."},
 	{"st:TargetsFilter2", "StTargetsFilter2", "ReduceCost applies only if the spell targets an object matching Filter2 (Luminous Rebuke)."},
 	{"st:Bargained", "StBargained", "A self ReduceCost that prices only the bargained cast (ValidSpell$ Spell.Bargain: Hamlet Glutton, Ice Out, Johann's Stopgap; gorge spellConstraintMatchesBargain reads the cast mode): the plain cast pays the full cost, the bargained cast (AkCastCasualty of a Bargain card) the discounted one, at the offer and at the charge."},
+	{"st:MayPayLife", "StMayPayLife (= StReduceColor, on a StatMayPlayFrom)", "A library-top play permission whose cast pays life equal to the card's mana value in place of its mana cost (Effect MayPlayAltManaCost$ PayLife<ConvertedManaCost> beside MayPlay$ over Card.TopLibrary: Gwenom, Remorseless; gorge prices the cast through the grant's alternative only, CR 118.9). The offer is free of mana when the caster has the life (CR 119.4); the cast pays the mana value in life beside its other costs; a land is played for nothing. The Effect's MayLookAt$ look is information only and lowers to nothing."},
 	{"st:ReduceColor", "StReduceColor (Static.A generic, Static.B coloured counts)", "ReduceCost whose Color$ names coloured pips (Brush Off, Color$ 1 U | Amount$ 1): A is the generic part, B packs a count per colour (two bits each, W U B R G C from bit 0). The coloured pips come off first and the shortfall spills to generic, never below 0 (gorge pay CostMods.ApplyTo)."},
 	{"repl:Cond", "Repl.Cond / Repl.Filter", "The replacement applies only while the condition holds; Filter: the other objects it applies to."},
 	{"card:WardLife", "CardDef.WardLife", "Ward—pay N life (KwWard with WardN 0; Sire of Seven Deaths, Zul Ashur)."},
@@ -1063,7 +1064,11 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 					add("st:Bargained", name)
 				}
 				if st.StFlags&kop.StReduceColor != 0 {
-					add("st:ReduceColor", name)
+					if st.Kind == kop.StatMayPlayFrom {
+						add("st:MayPayLife", name) // StMayPayLife aliases StReduceColor
+					} else {
+						add("st:ReduceColor", name)
+					}
 				}
 				if st.StFlags&kop.StYouHexproof != 0 {
 					add("st:YouHexproof", name)

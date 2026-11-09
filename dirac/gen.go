@@ -1276,6 +1276,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCanAttackDefender {
 				g.anyCanAtkDef = true // an Effect-delivered grant: prepared like a printed one
 			}
+			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom {
+				g.anyMayPlay = true // an Effect-delivered library-top permission (cast_staticpaylife.go)
+			}
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.Kw&kop.KwProwess != 0 {
 				g.anyProwessGrant = true
 			} else if a.Kind == kop.AbTriggered {

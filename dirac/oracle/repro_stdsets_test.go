@@ -191,6 +191,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "behold_trigger_cost_makes_a_treasure"},                         // Sarkhan, Dragon Ascendant's enters trigger offers its own behold cost of a Dragon: paying with one of two candidates makes the Treasure, and both engines agree through the pick and past it (CR 701.4a)
 		{"custom", "end_blaze_chosen_card_played_next_turn"},                       // End-Blaze Epiphany kills a Grizzly Bears, exiles that many cards and lets its controller play the chosen one on their next turn (the may-play of the chosen card to the end of the next turn)
 		{"custom", "wondrous_wasp_target_loses_abilities"},                         // The Wondrous Wasp enters and taps a Llanowar Elves, which loses all abilities for as long as the Wasp stays on the battlefield (a host-bound loss of abilities)
+		{"custom", "belligerent_attack_plays_top_of_library"},                      // The Belligerent crewed and attacking: its trigger lets p0 look at and play the top card of their library for the turn, lands and spells, and the top card changes as each is played
+		{"custom", "gwenom_attack_pays_life_for_top_of_library"},                   // Gwenom, Remorseless attacking: a spell cast from the top of the library is offered at the alternative cost only and pays life equal to its mana value in place of its mana cost (CR 118.9)
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			// A tail pool is a hash-ordered run of the lowered non-Standard cards, so its

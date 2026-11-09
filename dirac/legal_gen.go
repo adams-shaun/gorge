@@ -284,6 +284,12 @@ func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
 		if st.a.Static.StFlags&kop.StRemove6Counters != 0 && s.creatureCounters(k, p) < int(st.a.Static.A) {
 			return true // unpayable: another permission is the cast's (Muldrotha; priorityMayPlay, pair 20520)
 		}
+		if st.a.Static.StFlags&kop.StMayPayLife != 0 {
+			if !s.payLifeOfferable(k, p, o) {
+				return true // not the permission that offered the cast (cast_staticpaylife.go)
+			}
+			s.bld().payLifeMV = true
+		}
 		if st.a.Static.StFlags&kop.StAnyManaType != 0 {
 			s.bld().e.flags |= sfAnyMana
 		}
@@ -648,6 +654,12 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 			fl := st.a.Static.StFlags
 			if fl&kop.StRemove6Counters != 0 && s.creatureCounters(k, p) < int(st.a.Static.A) {
 				return true // the extra cost can't be paid (Quilled Greatwurm)
+			}
+			if fl&kop.StMayPayLife != 0 {
+				if !s.payLifeOfferable(k, p, o) {
+					return true // the mana value in life can't be paid (cast_staticpaylife.go)
+				}
+				free = true // the mana part is replaced by the life
 			}
 			if fl&kop.StFreeOnly == 0 || s.objs[o].zone == kop.ZoneHand {
 				grant = true // a free-only static opens no zone; a hand cast is already legal
