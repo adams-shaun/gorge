@@ -439,6 +439,11 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 		if f.NotSub > 0 {
 			f.NotSub = subOf(f.NotSub - 1)
 		}
+		for i, n := range f.NotSubs {
+			if n > 0 {
+				f.NotSubs[i] = subOf(n - 1)
+			}
+		}
 		if f.Pred == kop.PredHistoric && f.PredN > 0 {
 			// PredN is the pool's Saga subtype index+1; the matchup's compact
 			// table renumbers subtypes, so the pool index would test an

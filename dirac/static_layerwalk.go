@@ -592,6 +592,11 @@ func (s *State) matchCurOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Sl
 	if fl.Sub != 0 && !hasSubCur(k, cur, fl.Sub-1) || fl.NotSub != 0 && hasSubCur(k, cur, fl.NotSub-1) {
 		return false
 	}
+	for _, n := range fl.NotSubs {
+		if n != 0 && hasSubCur(k, cur, n-1) {
+			return false
+		}
+	}
 	if f2 := fl.Flags2; f2 != 0 {
 		if f2&(kop.F2ChosenType|kop.F2ChosenColor) != 0 {
 			if src == NoSlot {
