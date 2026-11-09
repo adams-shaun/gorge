@@ -194,7 +194,6 @@ const (
 	MvAlsoSelf                     // OpReturnEx C>>3: ThisDefinedAndTgts$ Self, the source returns too, after the target, as one entry batch
 	MvForgetChanged                // ForgetChanged$ True (OpReturnEx C>>3, OpExileEx C, OpBounce C): each object that moved leaves the resolution's remembered set, order kept (gorge eventForgetChanged); bit 11 is the last positive bit of OpReturnEx's int16 C>>3
 	MvEntryRiders                  // OpChangeZoneAllEx C>>3, onto the battlefield: each entrant gets A.N&255 counters of kind A.N>>8 (A.N 0 = none) and override uint16(B.N)-1 (B.N 0 = none) before its enters checks fire (WithCountersType$ / StaticEffect$; CR 122.6, 603.6b); bit 12 (ChangeZoneAllEx's C sign bit, kept readable by the arithmetic C>>3 shift; no other op reads it)
-	MvImprint          = 1 << 14   // OpExileEx C: the moved objects join the resolution's imprinted set (Imprint$ True); independent of MvRemember
 	MvFromGraveyard    = 1 << 13   // OpExile/OpExileEx C: a trigger object's graveyard-origin exile moves only if the card is still in the graveyard (bits 11 and 12 belong to the shifted OpChangeZoneAllEx/OpReturnEx space, so this unshifted flag takes 13)
 )
 

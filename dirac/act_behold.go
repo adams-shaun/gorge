@@ -40,6 +40,9 @@ func (s *State) beholdCands(k *prep, p uint8, c CardID, src Obj, d *Decision) in
 			}
 			for m := s.ctrlM[p]; m.any(); m = m.rest() {
 				sl := m.first()
+				if d != nil && s.beholdPicked(s.perms[sl].obj) {
+					continue
+				}
 				if s.matchPerm(k, f, sl, p, NoSlot) {
 					n++
 					if d != nil {
@@ -52,7 +55,7 @@ func (s *State) beholdCands(k *prep, p uint8, c CardID, src Obj, d *Decision) in
 		pl := &s.pl[p]
 		for i := 0; i < int(pl.handN); i++ {
 			o := pl.hand[i]
-			if o == src || !s.matchCardGen(k, f, s.objs[o].card, p, p, o) {
+			if o == src || d != nil && s.beholdPicked(o) || !s.matchCardGen(k, f, s.objs[o].card, p, p, o) {
 				continue
 			}
 			n++
@@ -62,6 +65,48 @@ func (s *State) beholdCands(k *prep, p uint8, c CardID, src Obj, d *Decision) in
 		}
 	}
 	return n
+}
+
+// beholdPicked: o is an earlier pick of the behold being asked (a
+// Behold<N/Type> of N > 1 is posed one pick at a time, as the lockstep
+// walks gorge's one N-pick KChoose).
+func (s *State) beholdPicked(o Obj) bool {
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if s.bld().picks[i] == o && s.bld().pickKs[i] == pkBehold {
+			return true
+		}
+	}
+	return false
+}
+
+// beholdPicks counts the behold picks recorded so far.
+func (s *State) beholdPicks() int {
+	n := 0
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if s.bld().pickKs[i] == pkBehold {
+			n++
+		}
+	}
+	return n
+}
+
+// fbBeholdEntry: e is card cd's printed flashback cast, which owes the
+// flashback cost's behold part (a granted flashback pays the mana cost
+// only).
+func fbBeholdEntry(cd *kop.CardDef, e *stackEntry) bool {
+	return cd.FbBehold && e.flags&sfFlashback != 0 && e.flags&sfFbGranted == 0
+}
+
+// fbBeholdUnplanned: p's flashback cast of o pays the printed flashback
+// cost's behold part, a shape gorge's cast planner declines ("cost:behold",
+// rules/pay classify.go), so the oracle lowers the cast by tapping a witness
+// at priority (beginCast). The granted instance pays mana only.
+func (s *State) fbBeholdUnplanned(k *prep, p uint8, o Obj, mode uint8) bool {
+	if mode&2 == 0 || !k.t.Cards[s.objs[o].card].FbBehold {
+		return false
+	}
+	_, _, granted := s.fbInstances(k, p&1, o)
+	return !granted
 }
 
 // beholdPayable: card c has no behold part, or p has enough candidates to
@@ -81,15 +126,19 @@ func (s *State) beholdOptions(k *prep, d *Decision) bool {
 		return false
 	}
 	cd := &k.t.Cards[e.card]
-	if cd.BeholdN == 0 || !(cd.BeholdExile || cd.HasAltAdd && s.bld().altAdd == 0 || optCostBehold(k, e) || cd.MayFlashBehold && mayFlashEntry(e)) {
+	if cd.BeholdN == 0 || !(cd.BeholdExile || cd.HasAltAdd && s.bld().altAdd == 0 || optCostBehold(k, e) || cd.MayFlashBehold && mayFlashEntry(e) || fbBeholdEntry(cd, e)) {
 		return false
 	}
 	d.N = 0
 	n := s.beholdCands(k, e.ctrl, e.card, e.obj, d)
-	if n < int(cd.BeholdN) {
+	left := int(cd.BeholdN)
+	if left > 1 {
+		left -= s.beholdPicks() // the picks so far are no candidates
+	}
+	if n < left {
 		panic("kernel: behold cost no longer payable") // gorge aborts the cast; unreachable after the offer gate
 	}
-	if n == int(cd.BeholdN) {
+	if n == left {
 		if cd.BeholdExile {
 			s.beholdExRecord(Obj(d.Options[0].Source())) // the lone candidate is exiled too (act_beholdexile.go)
 		}
@@ -97,13 +146,22 @@ func (s *State) beholdOptions(k *prep, d *Decision) bool {
 		d.N = 0
 		return false
 	}
-	s.bld().pickK, s.bld().pickLeft = pkBehold, cd.BeholdN
+	s.bld().pickK, s.bld().pickLeft = pkBehold, uint8(left)
 	d.Kind, d.Sub, d.Player = DkChoose, ChCostBehold, e.ctrl
 	return true
 }
 
-// answerBehold consumes the behold answer: nothing moves or is marked.
-func (s *State) answerBehold() {
+// answerBehold consumes the behold answer a: nothing moves or is marked.
+// A Behold<N/Type> of N > 1 records each pick (pkBehold) so the next one
+// excludes it, and stays open until N are made.
+func (s *State) answerBehold(a Action) {
+	if b := s.bld(); s.k().t.Cards[b.e.card].BeholdN > 1 {
+		s.recordPick(Obj(a.Source())) // under pickK pkBehold
+		if s.beholdPicks() < int(s.k().t.Cards[b.e.card].BeholdN) {
+			b.pickK, b.pickLeft = 0, 0 // beholdOptions poses the next one
+			return
+		}
+	}
 	s.bld().donePicks |= pkBehold
 	s.bld().pickK, s.bld().pickLeft = 0, 0
 }

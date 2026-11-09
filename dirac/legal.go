@@ -253,6 +253,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if fb := &k.t.Cards[c].FbCost; fb.Flags != 0 && !fbGrant && !s.pickCostPayable(k, p, fb, o) {
 			continue // a non-mana flashback cost (gorge castable's Sac / tapXType census)
 		}
+		if k.t.Cards[c].FbBehold && !fbGrant && !s.beholdPayable(k, p, c, o) {
+			continue // the flashback cost's behold part (gorge castable's Behold census)
+		}
 		if s.castHeldOut(o) {
 			continue // reversed twice in a row (Eaten Alive's unpayable part, pair 2359)
 		}
@@ -1338,7 +1341,7 @@ func (s *State) fbInstances(k *prep, p uint8, o Obj) (two, ambiguous, granted bo
 	// a printed non-mana part (Group Project's tap three creatures) the
 	// census cannot pay leaves the printed instance uncastable whatever its
 	// mana: gorge offers the granted one (CR 702.34a)
-	printedOK := cd.FbCost.Flags == 0 || s.pickCostPayable(k, p, &cd.FbCost, o)
+	printedOK := (cd.FbCost.Flags == 0 || s.pickCostPayable(k, p, &cd.FbCost, o)) && (!cd.FbBehold || s.beholdPayable(k, p, c, o))
 	pPot = pPot && printedOK
 	var av avail
 	s.availFor(k, p, &av)

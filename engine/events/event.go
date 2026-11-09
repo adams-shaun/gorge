@@ -1332,10 +1332,18 @@ const (
 	// after EndCombatPhase so every earlier ordinal, hash chain and golden
 	// replay is unchanged.
 	ManaAbilityActivation
+	// ExileTurnFaceUp turns a face-down card in exile face up in place (Hostile
+	// Negotiations' "turn a pile of your choice face up"): Obj is the exiled
+	// card. It is a pure reveal that clears only the face-down marker; unlike
+	// TurnFaceUp it is not a permanent turning up (CR 708.8 / 702.36e), so no
+	// trigger, replacement or static reads it. Appended after
+	// ManaAbilityActivation so every earlier ordinal, hash chain and golden
+	// replay is unchanged.
+	ExileTurnFaceUp
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(ManaAbilityActivation) + 1
+	NumKinds = int(ExileTurnFaceUp) + 1
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving

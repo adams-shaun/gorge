@@ -439,7 +439,7 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 		h = hbytes(h, unsafe.Pointer(&g.rem[0]), uintptr(g.nrem)*unsafe.Sizeof(g.rem[0]))
 		h = hbytes(h, unsafe.Pointer(&g.chosen[0]), uintptr(g.nchosen)*unsafe.Sizeof(g.chosen[0]))
 		if g.nimp != 0 {
-			h = hmix(h, uint64(g.nimp)|uint64(g.linkImp)<<8)
+			h = hmix(h, uint64(g.nimp)) // linkImp joins the hash with the persistence that writes it
 			h = hbytes(h, unsafe.Pointer(&g.imp[0]), uintptr(g.nimp)*unsafe.Sizeof(g.imp[0]))
 		}
 	}

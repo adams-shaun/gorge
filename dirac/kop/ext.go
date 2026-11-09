@@ -213,8 +213,11 @@ const (
 	// creatures with haste (gorge Effect Mode$ CantBlockBy ValidBlocker$
 	// Creature.withoutHaste; CR 509.1b, 702.10a). dirac/static_cantblockexcept.go.
 	ExtExHaste ExtOp = 171
-	// NumExtOps is the capacity of the sub-op tables (ordinals below it).
-	NumExtOps ExtOp = 258
+	// NumExtOps is a fixed capacity of the sub-op tables, not last+1: a new
+	// sub-op takes the next free value below it (values are pinned by
+	// testdata/ordinals.tsv) and never edits this line. Unused slots stay
+	// unnamed. Raise it only when the free values run out.
+	NumExtOps ExtOp = 320
 )
 
 // extOpNames is filled by per-sub-op init registrations (extOpNames[ExtX] = "X").
@@ -670,10 +673,3 @@ func init() { extOpNames[ExtAttacksIfAble] = "AttacksIfAble" }
 const ExtBlocksIfAble ExtOp = 256
 
 func init() { extOpNames[ExtBlocksIfAble] = "BlocksIfAble" }
-
-// ExtClearImprinted forgets the resolution's imprinted objects (Cleanup
-// ClearImprinted$; the op space is full, so it is an extension sub-op beside
-// the Imprint flag MvImprint). dirac/imprint.go.
-const ExtClearImprinted ExtOp = 257
-
-func init() { extOpNames[ExtClearImprinted] = "ClearImprinted" }

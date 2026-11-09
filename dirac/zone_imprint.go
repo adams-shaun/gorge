@@ -7,10 +7,7 @@ package dirac
 // (gorge's Imprinted and Remembered are independent lists, and one object
 // may be in both) and from the chosen set the older imprint shapes borrow.
 
-// maxImp bounds the set; a seventeenth object stalls with StallImprint.
-const maxImp = 16
-
-// StallImprint: more than maxImp objects imprinted in one resolution.
+// StallImprint: more than maxImp (gen.go) objects imprinted in one resolution.
 const StallImprint = 145
 
 func init() { stallNames[StallImprint] = "imprint" }
