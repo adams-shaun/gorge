@@ -12,7 +12,7 @@ package host
 // past it (the same pass removes destroyed tokens).
 //
 // The fixture is measured, not constructed: decks foundations-reign-of-
-// dragons vs foundations-calling-all-angels, seed 1, burst 664 — a board
+// dragons vs foundations-calling-all-angels, seed 17, burst 918 — a board
 // wipe destroys seat 1's commander, the next state-based check asks seat 1
 // at its first pass, and the same pass removes three destroyed tokens
 // ("ceased to exist") AFTER the ask. The park lands on that ask; replaying
@@ -44,17 +44,18 @@ import (
 const (
 	overshootDeckA = "foundations-reign-of-dragons"
 	overshootDeckB = "foundations-calling-all-angels"
-	overshootSeed  = 1
+	overshootSeed  = 17
 	// The hosted game opens with the CR 103.1 winner-chooses ask, so every
 	// later intent (including the overshoot burst's own) sits one later in the
 	// count. The fixture is foundations-reign-of-dragons vs
-	// foundations-calling-all-angels, seed 1, burst 664: a board wipe destroys
+	// foundations-calling-all-angels, seed 17, burst 918 (re-measured when the
+	// Foundations decks lost Ancient Tomb; seed 1, burst 664 before): a board wipe destroys
 	// seat 1's commander, the next check asks seat 1 at its first pass, and the
 	// same pass removes three destroyed tokens ("ceased to exist") after the
 	// ask. assertOvershootShape requires that token-cleanup tail. A rules change
 	// that adds or removes a decision before the burst moves this count;
 	// re-record the capture via TestGenerateOvershootCapture with it.
-	overshootIntents = 664 // intents recorded when parked on the overshoot burst's pending ask
+	overshootIntents = 918 // intents recorded when parked on the overshoot burst's pending ask
 )
 
 // gateSeat is a bot behind a test gate: every decision is signalled to the

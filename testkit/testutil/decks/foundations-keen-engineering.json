@@ -3,7 +3,7 @@
   "format": "commander",
   "commander": "Sai, Master Thopterist",
   "archetype": "artifact-tempo",
-  "notes": "Interim 100-card mono-blue Commander deck for the Foundations Keen Engineering precon (official list unreleased; Ruling M3-P). Commanded by Sai, Master Thopterist: every artifact spell makes a 1/1 Thopter and {1}{U} sac-two-artifacts draws, so the deck is a critical mass of cheap artefacts (thirty-plus) feeding Skullclamp and the sac outlets. Interaction is blue's classic tempo suite (Counterspell, Mana Leak, Remand, Exclude plus the bounce family), draw is Ponder/Brainstorm/Impulse/Thirst and friends, and the top end (Solemn Simulacrum, Master of Etherium, Hangarback Walker, Sharding Sphinx, Steel Hellkite) closes through air. Colour identity is exactly blue: the only off-colour cards are colourless-identity artifacts and lands.",
+  "notes": "Interim 100-card mono-blue Commander deck for the Foundations Keen Engineering precon (official list unreleased; Ruling M3-P). Ancient Tomb, never a Foundations card, was replaced by a basic land. Commanded by Sai, Master Thopterist: every artifact spell makes a 1/1 Thopter and {1}{U} sac-two-artifacts draws, so the deck is a critical mass of cheap artefacts (thirty-plus) feeding Skullclamp and the sac outlets. Interaction is blue's classic tempo suite (Counterspell, Mana Leak, Remand, Exclude plus the bounce family), draw is Ponder/Brainstorm/Impulse/Thirst and friends, and the top end (Solemn Simulacrum, Master of Etherium, Hangarback Walker, Sharding Sphinx, Steel Hellkite) closes through air. Colour identity is exactly blue: the only off-colour cards are colourless-identity artifacts and lands.",
   "cards": [
     {"name": "Sai, Master Thopterist",    "count": 1},
     {"name": "Solemn Simulacrum",         "count": 1},
@@ -68,13 +68,12 @@
     {"name": "Concentrate",               "count": 1},
     {"name": "Tidings",                   "count": 1},
     {"name": "Blue Sun's Zenith",         "count": 1},
-    {"name": "Island",                    "count": 30},
+    {"name": "Island",                    "count": 31},
     {"name": "Evolving Wilds",            "count": 1},
     {"name": "Terramorphic Expanse",      "count": 1},
     {"name": "Myriad Landscape",          "count": 1},
     {"name": "Temple of the False God",   "count": 1},
     {"name": "Buried Ruin",               "count": 1},
-    {"name": "Blighted Cataract",         "count": 1},
-    {"name": "Ancient Tomb",              "count": 1}
+    {"name": "Blighted Cataract",         "count": 1}
   ]
 }

@@ -3,7 +3,7 @@
   "format": "commander",
   "commander": "Giada, Font of Hope",
   "archetype": "angels",
-  "notes": "Interim 100-card mono-white Commander deck for the Foundations Calling All Angels precon (official list unreleased; Ruling M3-P). Commanded by Giada, Font of Hope: the +1/+1-counter-on-angel-ETB engine wants a critical mass of Angels, and a life-gain subtheme (Soul Warden, Dawnbringer Cleric, Resplendent Angel, Righteous Valkyrie) powers the Angel token payoff and Serra/Serra's Guardian beatdown. Curve is skewed low (a dozen 1-2 drop creatures, 28 Plains) so the deck acts before turn 10; Swords/Path/Condemn and the O-Ring family handle permanents, Day of Judgment/Wrath of God wipe, Sun Titan recurs, Avacyn tops out. Colour identity is exactly white: every non-Plains land and artifact is colourless-identity (Karakas, Ancient Tomb, Sol Ring family), and no card carries a coloured symbol outside white.",
+  "notes": "Interim 100-card mono-white Commander deck for the Foundations Calling All Angels precon (official list unreleased; Ruling M3-P). Ancient Tomb, never a Foundations card, was replaced by a basic land. Commanded by Giada, Font of Hope: the +1/+1-counter-on-angel-ETB engine wants a critical mass of Angels, and a life-gain subtheme (Soul Warden, Dawnbringer Cleric, Resplendent Angel, Righteous Valkyrie) powers the Angel token payoff and Serra/Serra's Guardian beatdown. Curve is skewed low (a dozen 1-2 drop creatures, 29 Plains) so the deck acts before turn 10; Swords/Path/Condemn and the O-Ring family handle permanents, Day of Judgment/Wrath of God wipe, Sun Titan recurs, Avacyn tops out. Colour identity is exactly white: every non-Plains land and artifact is colourless-identity (Karakas, Sol Ring family), and no card carries a coloured symbol outside white.",
   "cards": [
     {"name": "Giada, Font of Hope",       "count": 1},
     {"name": "Sun Titan",                 "count": 1},
@@ -68,7 +68,7 @@
     {"name": "Worn Powerstone",           "count": 1},
     {"name": "Marble Diamond",            "count": 1},
     {"name": "Pearl Medallion",           "count": 1},
-    {"name": "Plains",                    "count": 28},
+    {"name": "Plains",                    "count": 29},
     {"name": "Evolving Wilds",            "count": 1},
     {"name": "Terramorphic Expanse",      "count": 1},
     {"name": "Myriad Landscape",          "count": 1},
@@ -76,7 +76,6 @@
     {"name": "Karakas",                   "count": 1},
     {"name": "Kabira Crossroads",         "count": 1},
     {"name": "Forbidding Watchtower",     "count": 1},
-    {"name": "Mistveil Plains",           "count": 1},
-    {"name": "Ancient Tomb",              "count": 1}
+    {"name": "Mistveil Plains",           "count": 1}
   ]
 }
