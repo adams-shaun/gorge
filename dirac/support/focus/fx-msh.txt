@@ -1,0 +1,3 @@
+# fx-msh: the unverified MSH cards, reach-limited first; enablers after the tab
+Agent Maria Hill	Atlantis Attacks;Cruel Alliance;Earth's Mightiest Heroes;Go Nuts!
+Ironheart, Clever Champion

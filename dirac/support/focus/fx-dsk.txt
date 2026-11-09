@@ -1,0 +1,22 @@
+# fx-dsk: the unverified DSK cards, reach-limited first; enablers after the tab
+Balemurk Leech	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall
+Bottomless Pool // Locker Room	Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall;Glassworks // Shattered Yard
+Defiled Crypt // Cadaver Lab	Bottomless Pool // Locker Room;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall;Glassworks // Shattered Yard
+Derelict Attic // Widow's Walk	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Funeral Room // Awakening Hall;Glassworks // Shattered Yard
+Funeral Room // Awakening Hall	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Glassworks // Shattered Yard
+Glassworks // Shattered Yard	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall
+Grand Entryway // Elegant Rotunda	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall
+Gremlin Tamer	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall
+Meat Locker // Drowned Diner	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall
+Mirror Room // Fractured Realm	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall
+Moldering Gym // Weight Room	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall
+Optimistic Scavenger	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall
+Overgrown Zealot	Abhorrent Oculus;Bashful Beastie;Break Down the Door;Conductive Machete
+Painter's Studio // Defaced Gallery	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall
+Restricted Office // Lecture Hall	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall
+Roaring Furnace // Steaming Sauna	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall
+Smoky Lounge // Misty Salon	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall
+Surgical Suite // Hospital Room	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall
+Ticket Booth // Tunnel of Hate	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall
+Underwater Tunnel // Slimy Aquarium	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall
+Unholy Annex // Ritual Chamber	Bottomless Pool // Locker Room;Defiled Crypt // Cadaver Lab;Derelict Attic // Widow's Walk;Funeral Room // Awakening Hall
