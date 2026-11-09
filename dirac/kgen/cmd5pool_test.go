@@ -21,8 +21,8 @@ func TestCmd5PoolBuilds(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("%d cards, %d lowered, %d refused, %d tokens", cv.cards, cv.lowered, len(cv.refused), d.NumTokens)
-	if cv.cards != 320 {
-		t.Errorf("%d cards, want 320", cv.cards)
+	if cv.cards != 321 {
+		t.Errorf("%d cards, want 321", cv.cards)
 	}
 	if cv.lowered < 302 {
 		t.Errorf("%d lowered, want at least 302", cv.lowered)
