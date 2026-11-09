@@ -189,6 +189,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "behold_trigger_cost_makes_a_treasure"},                         // Sarkhan, Dragon Ascendant's enters trigger offers its own behold cost of a Dragon: paying with one of two candidates makes the Treasure, and both engines agree through the pick and past it (CR 701.4a)
 		{"custom", "end_blaze_chosen_card_played_next_turn"},                       // End-Blaze Epiphany kills a Grizzly Bears, exiles that many cards and lets its controller play the chosen one on their next turn (the may-play of the chosen card to the end of the next turn)
 		{"custom", "wondrous_wasp_target_loses_abilities"},                         // The Wondrous Wasp enters and taps a Llanowar Elves, which loses all abilities for as long as the Wasp stays on the battlefield (a host-bound loss of abilities)
+		{"custom", "cmd5_token_ids_reused_after_cease"},                            // kfuzz cmd5 heuristic pair 3: Keen Engineering's thopters and the goblins make the game's 25th token with both 100-card decks holding 200 object ids: the new token takes the id of one that ceased to exist in an earlier turn, on both sides (CR 111.7, 704.5d); TestCmd5TokenIdsReusedNoStall checks it does not stall
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			// A tail pool is a hash-ordered run of the lowered non-Standard cards, so its
@@ -207,6 +208,12 @@ func TestStdSetReprosLockstep(t *testing.T) {
 // replayStdRepro replays std pool's repro name on the full surface or on
 // autopay, and 200 decisions past its script: the divergence, or nil.
 func replayStdRepro(t *testing.T, reg *cards.Registry, pool, name string, full bool) *Divergence {
+	t.Helper()
+	return replayStdReproResult(t, reg, pool, name, full).Div
+}
+
+// replayStdReproResult is replayStdRepro's whole lockstep result.
+func replayStdReproResult(t *testing.T, reg *cards.Registry, pool, name string, full bool) Result {
 	t.Helper()
 	r, err := ReadRepro(filepath.Join("testdata", "repro", name+".repro.json"))
 	if err != nil {
@@ -236,7 +243,7 @@ func replayStdRepro(t *testing.T, reg *cards.Registry, pool, name string, full b
 		t.Fatal(err)
 	}
 	defer CloseSide(k)
-	return Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc).Div
+	return Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
 }
 
 // TestTapXOwnAnswerMutation: with the answers that tap the play's own {T}
