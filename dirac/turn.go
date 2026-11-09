@@ -943,7 +943,9 @@ func (s *State) fireDelayed(k *prep) {
 			// token's AtEOT$ Destroy (__kwAtEOTDestroy) is the same.
 			continue
 		}
+		m := s.npend
 		s.enqueue(dlySource(&d), d.ver, s.objs[d.obj].card, abDelayed, d.ctrl, d.obj, d.ctrl, delayedAmt(d))
+		s.echoOwnDelayed(k, &d, m)
 	}
 	if keep != 0 {
 		copy(s.dly[:keep], s.dly[n:n+keep])
