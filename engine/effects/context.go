@@ -2641,14 +2641,17 @@ func moveZoneEvent(c *Ctx, id state.ObjID, from, to state.Zone) events.Event {
 
 // exileProvenanceNeeded avoids changing every ordinary exile event merely
 // because it shares the movement primitive. A source needs the association
-// only when its own compiled script later names ExiledWithSource; testing the
-// immutable SVar table makes that decision stable through replay.
+// only when its own compiled script later names the provenance, in either
+// spelling: ExiledWithSource, or the Effect-delivered filter word
+// ".ExiledWithEffectSource" (the leading dot keeps the ChangeZone rider key
+// ExiledWithEffectSource$ out, since that mover tags its own exile); testing
+// the immutable SVar table makes that decision stable through replay.
 func exileProvenanceNeeded(c *Ctx) bool {
 	if c == nil || c.Source == 0 {
 		return false
 	}
 	for _, body := range c.SVars {
-		if strings.Contains(body, "ExiledWithSource") {
+		if strings.Contains(body, "ExiledWithSource") || strings.Contains(body, ".ExiledWithEffectSource") {
 			return true
 		}
 	}
