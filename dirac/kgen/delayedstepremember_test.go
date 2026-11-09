@@ -47,10 +47,10 @@ func delayedStepProbe(phase, ro string) string {
 		"ManaCost:1 R",
 		"Types:Creature Human",
 		"PT:2/2",
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigTap | TriggerDescription$ probe",
-		"SVar:TrigTap:DB$ Tap | ValidTgts$ Creature | TargetMin$ 0 | TargetMax$ 2 | SubAbility$ DelTrig",
-		"SVar:DelTrig:DB$ DelayedTrigger | Mode$ Phase | Phase$ " + phase + " | ThisTurn$ True | RememberObjects$ " + ro + " | Execute$ TrigUntap",
-		"SVar:TrigUntap:DB$ Untap | Defined$ DelayTriggerRememberedLKI",
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ ProbeTap | TriggerDescription$ probe",
+		"SVar:ProbeTap:DB$ Tap | TargetMax$ 2 | TargetMin$ 0 | ValidTgts$ Creature | SubAbility$ ProbeDelay",
+		"SVar:ProbeDelay:DB$ DelayedTrigger | Mode$ Phase | Phase$ " + phase + " | ThisTurn$ True | RememberObjects$ " + ro + " | Execute$ ProbeUntap",
+		"SVar:ProbeUntap:DB$ Untap | Defined$ DelayTriggerRememberedLKI",
 		"Oracle:probe",
 	}, "\n")
 }
