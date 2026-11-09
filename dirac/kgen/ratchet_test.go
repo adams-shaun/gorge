@@ -101,8 +101,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (the merge with land: this branch's Origin$ Battlefield,Graveyard ChangeZoneAll sweep
 	// (Strategic Betrayal; TDM 250 -> 251) beside land's game-wide Exile->Graveyard hidden pick
 	// (Binding Negotiation; OTJ 241 -> 242); merged ALL 21707 -> 21709).
+	// +20 (a self-source DamageDone line whose object ValidTarget$ body reads the damaged
+	// creature lowers on the kernel's per-referent queue: Spider-Slayer, Hatred Honed and
+	// nineteen corpus-only cards of the same class; SPM 161 -> 162, ALL 21709 -> 21729).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21709, 34442},
+	"ALL": {21729, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
@@ -124,7 +127,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"OTJ": {242, 276},
 	"SNC": {185, 266},
 	"SOS": {249, 270},
-	"SPM": {161, 192},
+	"SPM": {162, 192},
 	"TDM": {251, 276},
 	"TLA": {254, 285},
 	"TMT": {171, 194},

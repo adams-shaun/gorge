@@ -83,14 +83,10 @@ func (lc *lowerCtx) damageDoneOnce(tp *params, tr *lTrigger, t cards.Trigger) er
 	return nil
 }
 
-// ddoReads names the first trigger-context read of a DamageDoneOnce body the
-// per-referent trigger does not carry exactly. The batch total
-// (TriggerCount$DamageAmount, the pending amount) is carried; so are the
-// referent shapes ddoReadOK admits (the damaged object for an object-only
-// ValidTarget$, the one attacking player for combat damage to You). Every
-// other Triggered*/TriggerCount* spelling refuses (the effect lowerer's own
-// Remember* and Triggered* readers keep their rules).
-func (lc *lowerCtx) ddoReads(sa *cards.SA) string {
+// ddoBodyReads lists every trigger-context spelling a DamageDone body reads,
+// the SVars it names transitively included, in text order. A body of one
+// admitted spelling and one refused spelling yields both.
+func (lc *lowerCtx) ddoBodyReads(sa *cards.SA) []string {
 	// read appends every trigger-context spelling in s, in text order: a
 	// body can read an admitted spelling and a refused one, so a first-only
 	// scan would miss the second.
@@ -149,12 +145,35 @@ func (lc *lowerCtx) ddoReads(sa *cards.SA) string {
 	for _, k := range names {
 		reads = read(lc.face.SVars[k], reads)
 	}
-	for _, r := range reads {
+	return reads
+}
+
+// ddoReads names the first trigger-context read of a DamageDone body the
+// per-referent trigger does not carry exactly. The batch total
+// (TriggerCount$DamageAmount, the pending amount) is carried; so are the
+// referent shapes ddoReadOK admits (the damaged object for an object-only
+// ValidTarget$, the one attacking player for combat damage to You). Every
+// other Triggered*/TriggerCount* spelling refuses (the effect lowerer's own
+// Remember* and Triggered* readers keep their rules).
+func (lc *lowerCtx) ddoReads(sa *cards.SA) string {
+	for _, r := range lc.ddoBodyReads(sa) {
 		if !ddoReadOK(r, lc.ab.Trigger) {
 			return r
 		}
 	}
 	return ""
+}
+
+// ddoReadsTriggeredTarget reports whether the body reads the damaged object
+// (TriggeredTarget / TriggeredTargetLKICopy): the shape a plain DamageDone
+// line from the card itself may carry as its trigger object.
+func (lc *lowerCtx) ddoReadsTriggeredTarget(sa *cards.SA) bool {
+	for _, r := range lc.ddoBodyReads(sa) {
+		if r == "TriggeredTarget" || r == "TriggeredTargetLKICopy" {
+			return true
+		}
+	}
+	return false
 }
 
 // saReadsBatch: some line or parameter of the body, or an SVar it names (transitively), reads the
