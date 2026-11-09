@@ -101,24 +101,32 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (the merge with land: this branch's Origin$ Battlefield,Graveyard ChangeZoneAll sweep
 	// (Strategic Betrayal; TDM 250 -> 251) beside land's game-wide Exile->Graveyard hidden pick
 	// (Binding Negotiation; OTJ 241 -> 242); merged ALL 21707 -> 21709).
+	// +15 (the activation-cost tokens: Exert<N/NICKNAME> as an announced ability cost,
+	// SubCounter<X/KIND> announced up to the source's counters, and
+	// ExileFromStack<1/Card.Self> as an unless part: Angel of Condemnation, Auntie Blyte,
+	// Bad Influence, Basri, Tomorrow's Champion, Chamber Sentry, Cruel Sadist,
+	// Dragon's Approach, Fervent Paincaster, Geistflame Reservoir, Hope Tender,
+	// Infused Arrows, Pride Sovereign, Sphinx's Approach, Steward of Solidarity,
+	// Talon of Pain, The Astonishing Ant-Man; ALL 21709 -> 21724, DFT 248 -> 249,
+	// FRA 245 -> 246, MSH 235 -> 236).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21709, 34442},
+	"ALL": {21724, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
-	"DFT": {248, 276},
+	"DFT": {249, 276},
 	"DMU": {194, 270},
 	"DSK": {242, 276},
 	"ECL": {234, 273},
 	"EOE": {239, 266},
 	"FDN": {517, 517},
 	"FIN": {268, 312},
-	"FRA": {245, 269},
+	"FRA": {246, 269},
 	"HOB": {153, 172},
 	"LCI": {251, 290},
 	"MKM": {242, 279},
 	"MOM": {198, 296},
-	"MSH": {235, 276},
+	"MSH": {236, 276},
 	"NEO": {198, 287},
 	"ONE": {196, 271},
 	"OTJ": {242, 276},

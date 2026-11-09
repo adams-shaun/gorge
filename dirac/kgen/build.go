@@ -916,6 +916,17 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		set(kop.CostLoyaltyX, 0)
 		out.Ctr = kop.CtrLoyalty
 	}
+	if c.SubCtrX {
+		// SubCounter<X/KIND>: the same announced-X cost flag, without the
+		// loyalty marker, announcing up to the source's counters of this kind
+		set(kop.CostLoyaltyX, 0)
+		if out.Ctr, err = counterKind(c.SubCtrXKnd); err != nil {
+			return out, err
+		}
+	}
+	if c.Exert {
+		out.Exert = true
+	}
 	if c.AddCtr > 0 {
 		if c.Loyalty != 0 || c.SubCtr != 0 {
 			return out, fmt.Errorf("counter-placing cost beside another counter part")
