@@ -101,7 +101,7 @@ Each entity also carries up to two hashed identity rows, `ent|name|<Name>` (omit
 
 ## 2. The MLP
 
-Production nets are the trainer's `MLPNet` exports in the `.dzgw` format. The file is the magic `DZGW0001`, a u64 header length, a JSON header (`format:"dzgw-1"`, `arch`, `config`, `consts`, tensor table, optional `encoder_hash`), padding to 64 bytes, then float32 tensors under their PyTorch names. gorge's loader is [`bots/gonet/gonet.go`][gonet] lines 187-194 and 231-313, and [Training data and nets](../engines/training-data.md) describes the format. The loader requires DENSE_W 68, OPT_DENSE_W 28 (or 24 for a net from before the relative-seat option columns), TABLE_ROWS 16384, SLOT_ROWS 128, GROUPS 4 and RAW_W 68 or 100.
+Production nets are the trainer's `MLPNet` exports in the `.dzgw` format. The file is the magic `DZGW0001`, a u64 header length, a JSON header (`format:"dzgw-1"`, `arch`, `config`, `consts`, tensor table, optional `encoder_hash`), padding to 64 bytes, then float32 tensors under their PyTorch names. gorge's loader is [`bots/gonet/gonet.go`][gonet] lines 187-194 and 231-313, and [Training data and nets](../engines/training-data.md) describes the format. The loader requires DENSE_W 92 (or 68 for a net from before the Commander block), OPT_DENSE_W 28 (or 24 for a net from before the relative-seat option columns), TABLE_ROWS 16384, SLOT_ROWS 128, GROUPS 4 and RAW_W 68 or 100.
 
 ```mermaid
 flowchart TB
