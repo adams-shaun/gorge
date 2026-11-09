@@ -673,3 +673,15 @@ func init() { extOpNames[ExtAttacksIfAble] = "AttacksIfAble" }
 const ExtBlocksIfAble ExtOp = 256
 
 func init() { extOpNames[ExtBlocksIfAble] = "BlocksIfAble" }
+
+// ExtSpellToLib: the resolving spell moves from the stack to the top of its
+// owner's library, then that library is shuffled (CR 608.2n: the spell's own
+// instruction replaces the default move to the graveyard; gorge effChangeZone
+// Origin$ Stack, Destination$ Library, Shuffle$ True over Defined$ Parent,
+// the spell itself). The spell has left the stack when the resolution
+// finishes, so it goes to no graveyard. A spell copy (CR 707.10) stays for
+// the finish to cease it, and the shuffle still happens. Blue Sun's Zenith
+// and the other Zenith cycle. dirac/act_spelltolib.go.
+const ExtSpellToLib ExtOp = 308
+
+func init() { extOpNames[ExtSpellToLib] = "SpellToLib" }

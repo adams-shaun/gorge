@@ -450,6 +450,7 @@ ExtSearchCounters	ExtOp	252
 ExtSuspect	ExtOp	190
 ExtSweepFrom	ExtOp	97
 ExtToGraveyard	ExtOp	192
+ExtSpellToLib	ExtOp	308
 ExtTokenPT	ExtOp	170
 ExtTurnFaceUp	ExtOp	254
 ExtTwoPilesSac	ExtOp	4

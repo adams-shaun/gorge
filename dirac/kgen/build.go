@@ -1249,6 +1249,16 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		}
 		kf.NotSub = uint8(i + 1)
 	}
+	for j, w := range c.MoreNotSubtype {
+		if w == "" {
+			continue
+		}
+		i, ok := cb.pt.sub(w)
+		if !ok {
+			return kf, fmt.Errorf("subtype %q", w)
+		}
+		kf.NotSubs[j] = uint8(i + 1)
+	}
 	if c.Flags&fWarped != 0 && zone != kop.ZoneBattlefield {
 		// the kernel's warp mark is the pending warp exile of a
 		// battlefield permanent (kernel warpedPerm); a spell or card read
