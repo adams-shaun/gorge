@@ -16,27 +16,27 @@ import (
 
 func TestPinnedEnteredFromBroughtBack(t *testing.T) {
 	t.Parallel()
-	pinnedGames(t, "tail-04", Config{GorgeAutopaySurface: true}, onStack("Brought Back"), diedCardLeavesGraveSameTurn)
+	pinnedGames(t, "tail-05", Config{GorgeAutopaySurface: true}, onStack("Brought Back"), diedCardLeavesGraveSameTurn)
 }
 
 func TestPinnedEnteredFromGrimReturn(t *testing.T) {
 	t.Parallel()
-	pinnedGames(t, "tail-14", Config{GorgeAutopaySurface: true}, onStack("Grim Return"), diedCardLeavesGraveSameTurn)
+	pinnedGames(t, "tail-15", Config{GorgeAutopaySurface: true}, onStack("Grim Return"), diedCardLeavesGraveSameTurn)
 }
 
 func TestPinnedEnteredFromContinue(t *testing.T) {
 	t.Parallel()
-	pinnedGames(t, "tail-57", Config{GorgeAutopaySurface: true}, onStack("Continue?"), diedCardLeavesGraveSameTurn)
+	pinnedGames(t, "tail-63", Config{GorgeAutopaySurface: true}, onStack("Continue?"), diedCardLeavesGraveSameTurn)
 }
 
 func TestPinnedEnteredFromSalvagerOfRuin(t *testing.T) {
 	t.Parallel()
-	pinnedGames(t, "tail-28", Config{GorgeAutopaySurface: true}, onStack("Salvager of Ruin"), diedCardLeavesGraveSameTurn)
+	pinnedGames(t, "tail-32", Config{GorgeAutopaySurface: true}, onStack("Salvager of Ruin"), diedCardLeavesGraveSameTurn)
 }
 
 func TestPinnedEnteredFromMoira(t *testing.T) {
 	t.Parallel()
-	pinnedGames(t, "tail-13", Config{GorgeAutopaySurface: true}, onStack("Moira, Urborg Haunt"), diedCardLeavesGraveSameTurn)
+	pinnedGames(t, "tail-15", Config{GorgeAutopaySurface: true}, onStack("Moira, Urborg Haunt"), diedCardLeavesGraveSameTurn)
 }
 
 // diedCardLeavesGraveSameTurn: some card went from the battlefield to a
