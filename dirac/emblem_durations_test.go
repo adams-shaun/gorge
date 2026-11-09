@@ -159,6 +159,26 @@ func TestEmblemDurations(t *testing.T) {
 		})
 	})
 
+	// An AsLongAsControl effect whose host is already under another player's
+	// control when it would start creates nothing (CR 611.2b).
+	t.Run("AsLongAsControl at creation", func(t *testing.T) {
+		sc := embDurScen(t)
+		host := sc.perm(v.GrizzlyBears, 0)
+		e := &stackEntry{obj: host, srcVer: sc.s.objs[host].ver}
+		if sc.s.perms[sc.s.objs[host].slot].ctrl != 0 {
+			t.Fatalf("precondition: the host is controlled by %d, want 0", sc.s.perms[sc.s.objs[host].slot].ctrl)
+		}
+		if sc.s.hostEmblemDone(e, 0, embDurAsLongAsControl) {
+			t.Fatal("the host's controller is refused its own emblem")
+		}
+		if !sc.s.hostEmblemDone(e, 1, embDurAsLongAsControl) {
+			t.Fatal("a player who does not control the host got an emblem")
+		}
+		if sc.s.hostEmblemDone(e, 1, embDurWhileHostNoEOT) {
+			t.Fatal("the control check applied to an emblem without the flag")
+		}
+	})
+
 	t.Run("flags move with survivors", func(t *testing.T) {
 		sc := embDurScen(t)
 		host := sc.perm(v.GrizzlyBears, 0)
