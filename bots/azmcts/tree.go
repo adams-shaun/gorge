@@ -44,7 +44,9 @@ type Point struct {
 	// Prior parallels Keys: non-negative, summing to 1.
 	Prior []float64
 	// Opp marks an opponent's decision (Options.OpponentNodes): selection
-	// here maximises the opponent's value, 1 - Q. Its keys carry
+	// here maximises the opponent's value, 1 - Q. With more than two seats
+	// every opponent therefore minimises the searching seat's value
+	// (paranoid search); a later change adds max^n. Its keys carry
 	// oppKeyPrefix, so they never coincide with the searching seat's.
 	Opp bool
 	// cut and fell record what producing this point counted (an Env's

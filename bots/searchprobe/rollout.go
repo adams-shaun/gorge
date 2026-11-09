@@ -211,9 +211,12 @@ func appendJSONString(dst []byte, s string) []byte {
 
 func candidateKind(kind string) bool { return kind == "cast" || kind == "ability" || kind == "pass" }
 
-// Frozen calibration scorer v1: terminal +/-100000 (draw 0); otherwise
-// life + 2*hand-count + material. Land=3; other permanent=10; creatures add
-// 2*(power+toughness). Only the projected public board/counts are read.
+// Frozen calibration scorer v1: terminal +/-100000 (draw 0); a lost actor is
+// terminal at -100000 even while the game plays on for other seats. Otherwise
+// life + 2*hand-count + material for the actor minus the same score of the
+// strongest living opponent (with two seats, the only opponent). Land=3; other
+// permanent=10; creatures add 2*(power+toughness). Lost seats are skipped.
+// Only the projected public board/counts are read.
 func LeafScore(v view.View, actor state.PlayerID) float64 {
 	if v.Over {
 		if v.Draw {
@@ -225,16 +228,33 @@ func LeafScore(v view.View, actor state.PlayerID) float64 {
 		return -100000
 	}
 	value := 0.0
+	oppMax := 0.0
+	haveOpp := false
+	actorLost := false
 	for _, p := range v.Players {
+		if p.Lost {
+			if p.ID == actor {
+				actorLost = true
+			}
+			continue
+		}
 		score := float64(p.Life) + 2*float64(p.HandSize)
 		for _, c := range p.Battlefield {
 			score += material(c)
 		}
-		if p.ID == actor {
+		switch {
+		case p.ID == actor:
 			value += score
-		} else {
-			value -= score
+		case !haveOpp || score > oppMax:
+			oppMax = score
+			haveOpp = true
 		}
+	}
+	if actorLost {
+		return -100000
+	}
+	if haveOpp {
+		value -= oppMax
 	}
 	return value
 }
