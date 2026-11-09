@@ -30,8 +30,17 @@ func (s *State) FeatMayPayLifeCast(p uint8, o Obj) bool {
 	}
 	found := false
 	s.mayPlayStatics(k, p, o, func(st statSrc) bool {
-		found = st.a.Static.StFlags&kop.StMayPayLife != 0
+		found = st.a.Static.StFlags&kop.StMayPayLife != 0 && s.payLifeOfferable(k, p, o)
 		return !found
 	})
 	return found
 }
+
+// StallPayLifeShared: a pay-life library static and a second play permission
+// admit the same card (Gwenom's emblem beside Madame Web, Clairvoyant). gorge
+// offers two casts there, the plain one paying mana and the alternative paying
+// life (AltCostIndex 1); the kernel joins the permissions into one offer, so
+// the game stalls loudly rather than let the cast skip both payments.
+const StallPayLifeShared = 153
+
+func init() { stallNames[StallPayLifeShared] = "paylifeshared" }

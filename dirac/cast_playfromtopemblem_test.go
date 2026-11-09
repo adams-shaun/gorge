@@ -104,4 +104,41 @@ func TestPlayFromTopEmblem(t *testing.T) {
 			t.Fatalf("life after the cast is %d, want %d", got, 20-mv)
 		}
 	})
+
+	t.Run("pay life beside a second permission stalls", func(t *testing.T) {
+		tbl := playTopTable(0) // a plain library permission, walked first
+		pl := playTopTable(kop.StMayPayLife)
+		tbl.Emblems = append(tbl.Emblems, pl.Emblems[len(pl.Emblems)-1])
+		sc := newScenTable(t, tbl, Config{NoElide: true})
+		s, k := sc.s, sc.k
+		o := playTopPutOnTop(sc, v.ThinkTwice)
+		n := uint8(len(k.t.Emblems))
+		s.g.emb[0][0], s.g.emb[0][1], s.g.nemb[0] = n-1, n, 2
+		s.pl[0].life = 20
+		if s.Stalled() {
+			t.Fatalf("stalled (%s) before the offer", StallName(s.StallReason()))
+		}
+		if got := playTopOffers(sc, o); len(got) != 1 {
+			t.Fatalf("offered %v, want the joined offer of the two permissions: the precondition", got)
+		}
+		if s.StallReason() != StallPayLifeShared {
+			t.Fatalf("stall reason %q, want %q: the joined offer would pay neither mana nor life", StallName(s.StallReason()), StallName(StallPayLifeShared))
+		}
+	})
+
+	t.Run("pay-life canon follows the payable life", func(t *testing.T) {
+		sc := newScenTable(t, playTopTable(kop.StMayPayLife), Config{NoElide: true})
+		s, k := sc.s, sc.k
+		mv := int(k.t.Cards[v.ThinkTwice].Cost.MV())
+		o := playTopPutOnTop(sc, v.ThinkTwice)
+		s.g.emb[0][0], s.g.nemb[0] = uint8(len(k.t.Emblems)), 1
+		s.pl[0].life = 20
+		if !s.FeatMayPayLifeCast(0, o) {
+			t.Fatalf("not a pay-life cast at 20 life: the precondition")
+		}
+		s.pl[0].life = int16(mv - 1)
+		if s.FeatMayPayLifeCast(0, o) {
+			t.Fatalf("a pay-life cast at %d life owing %d", s.pl[0].life, mv)
+		}
+	})
 }
