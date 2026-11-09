@@ -355,7 +355,7 @@ func (e *Engine) potentialTapExtra(id state.ObjID, ma *cards.SA) state.Mana {
 // payment satisfies (CR 106.6), so an Orb of Dragonkind's mana funds a
 // Dragon's ability as a potential action and never an Equip.
 func (e *Engine) potentialPoolFor(p state.PlayerID, d paymentDescriptor, hyp state.Mana) state.Mana {
-	if !e.potentialRestricted || e.potentialWitness {
+	if d.OnlyTag == "" && (!e.potentialRestricted || e.potentialWitness) {
 		// A witness walk's pool is what the plan floats, built by the payment
 		// planner for this very payment: it already spent only mana the
 		// restriction admits. Rebuilding it from the board's over-bound (which
@@ -380,6 +380,14 @@ func potentialIdentityEmpty(e *Engine, p state.PlayerID, ma *cards.SA) bool {
 func potentialRestrictionAdmits(e *Engine, p state.PlayerID, id state.ObjID, ma *cards.SA, payment *paymentDescriptor) bool {
 	if payment == nil {
 		return true
+	}
+	if payment.OnlyTag != "" {
+		// An AlternativeCost ManaRestriction$: only a source whose production
+		// carries the tag can fund the payment (the producer tag the
+		// activation would stamp on the mana).
+		if tag, _ := effects.ManaProducerTag(e, id); !pay.OnlyTagAdmitsProducer(payment.OnlyTag, tag) {
+			return false
+		}
 	}
 	rv := effects.ManaOf(ma).RestrictValid
 	return rv == "" || pay.RestrictValidMatches(asPayer(e), p, *payment, rv, id)

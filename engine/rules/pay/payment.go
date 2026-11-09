@@ -344,6 +344,72 @@ type Descriptor struct {
 	// leaks: escape analysis is field-insensitive, and a leaked face pointer
 	// would drag Cost to the heap at every pricing site (perf/bisect-2026-10-27).
 	FaceIdx uint8
+	// OnlyTag, when set, is an AlternativeCost static's ManaRestriction$
+	// ("Spend only mana produced by Treasures to cast it this way"): the
+	// payment may spend only units whose producer carries that tag
+	// (state.TypedManaTags). AvailableFor narrows the visible pool to those
+	// units, so the offer, the autopay plan and the spend agree. Empty, the
+	// ordinary case, costs one string-empty check.
+	OnlyTag string
+}
+
+// OnlyTagKnown reports whether tag names a modelled producer tag (the
+// ManaRestriction$ values this build can enforce); any other value is
+// refused so an unevaluable restriction never widens an alternative cost.
+func OnlyTagKnown(tag string) bool {
+	for _, t := range state.TypedManaTags {
+		if t == tag {
+			return true
+		}
+	}
+	return false
+}
+
+// OnlyTagAdmitsUnit reports whether the exclusive pool unit (a
+// state.ManaUnitTags index) counts as produced by a permanent of type tag.
+func OnlyTagAdmitsUnit(tag string, unit int) bool {
+	base, artifact := state.ManaUnitTypes(unit)
+	if tag == "Artifact" {
+		return artifact
+	}
+	return base == tagIndex(tag) && unit != state.TypedArtifact
+}
+
+// OnlyTagAdmitsProducer reports whether mana produced by source id counts as
+// produced by a permanent of type tag (the producer tag the production would
+// stamp, effects.ManaProducerTag's spelling).
+func OnlyTagAdmitsProducer(tag, producerTag string) bool {
+	for u, name := range state.ManaUnitTags {
+		if name == producerTag {
+			return OnlyTagAdmitsUnit(tag, u)
+		}
+	}
+	return false
+}
+
+func tagIndex(tag string) int {
+	for i, t := range state.TypedManaTags {
+		if t == tag {
+			return i
+		}
+	}
+	return -1
+}
+
+// onlyTagNarrow leaves only the units OnlyTagAdmitsUnit admits: each pool
+// slot becomes the admitted units' sum and every other typed tally is zeroed.
+func onlyTagNarrow(a *Available, tag string) {
+	for slot := range a.Pool {
+		var sum int32
+		for u := range a.Typed {
+			if OnlyTagAdmitsUnit(tag, u) {
+				sum += a.Typed[u][slot]
+			} else {
+				a.Typed[u][slot] = 0
+			}
+		}
+		a.Pool[slot] = sum
+	}
 }
 
 // DescriptorFor is the descriptor for paying cost for id (a spell, or an
@@ -383,6 +449,9 @@ func AvailableFor(e Engine, p state.PlayerID, d Descriptor) Available {
 			available.Typed[tag][slot] -= r.Amount
 		}
 	}
+	if d.OnlyTag != "" {
+		onlyTagNarrow(&available, d.OnlyTag)
+	}
 	return available
 }
 
@@ -398,6 +467,11 @@ func AvailableFor(e Engine, p state.PlayerID, d Descriptor) Available {
 func visiblePersistentMana(e Engine, p state.PlayerID, d Descriptor) state.Mana {
 	pl := e.Game().Players[p]
 	per := pl.PersistentMana
+	if d.OnlyTag != "" {
+		// A tag-restricted payment sees producer-typed units only; persistent
+		// mana is never typed (every carrier makes plain mana).
+		return state.Mana{}
+	}
 	for _, r := range pl.RestrictedMana {
 		if !r.Persistent || (r.Valid != "" && RestrictValidMatches(e, p, d, r.Valid, r.Source)) {
 			continue
