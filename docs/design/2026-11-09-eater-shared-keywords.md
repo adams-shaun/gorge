@@ -56,17 +56,22 @@ Eater specifics that make it easy:
 
 - The affected set is the equipped creature (`AffectedDefined$ Equipped`),
   already resolved correctly (the probe shows the grant lands on the Bear).
-- The keyword source is cards in **exile** with printed characteristics
-  (CR 400.7; nothing in exile has layer effects in practice), so the source's
-  keywords need no layer walk: `Face().Keywords` plus keyword counters, which
-  is `effects.objectHasKeyword`'s reading (`PrintedHasKeyword`).
+- The keyword source is cards in **exile**, read with printed
+  characteristics (CR 400.7), so the source's keywords need no layer walk:
+  `Face().Keywords` plus keyword counters. No existing helper returns that
+  *list*: `PrintedHasKeyword` (`effects/filter.go`) is a per-keyword boolean
+  and cannot return the card's own spellings, and `PrintedChars` returns only
+  `Face().Keywords` without counters. The build adds one list helper (4.3).
+  This is an approximation for exiled cards under a layer-6 effect that
+  reaches exile (4.3, section 7).
 - Provenance is already recorded: `SharedRestrictions` is in
   `exiledWithSourceKeyCodes` (`effects/context.go`), so the S: line makes
   `exileProvenanceNeeded`/`faceNamesExiledWithSource` true and the trigger's
   `ChangeZone` writes `ExiledWith` + `ExiledWithInc` through
   `moveZoneEvent` / `exiledWithAssociation`. **Not measured**: my probe could
   not drive a dies-trigger end to end (no live decision loop in that fixture).
-  Test 1 below must assert this precondition rather than assume it.
+  Test 4 of section 5 step 3 must assert this precondition rather than
+  assume it.
 
 ## 3. Precedent to copy
 
@@ -99,13 +104,25 @@ Move the matching core out of `sharedPumpGrant` into an exported pure function
 in `engine/effects` (rules may import effects; effects must not import rules):
 
     // SharedKeywords narrows want to the keywords some card in zones
-    // matching spec has; family words grant the card's own spelling.
-    func SharedKeywords(g *state.Game, zones []state.Zone, spec string,
-        sc SpecContext, want []string, kwOf func(*state.Object) []string) []string
+    // (every zone when all) for which match reports true has; family
+    // words grant the card's own spelling.
+    func SharedKeywords(g *state.Game, zones []state.Zone, all bool,
+        match func(*state.Object) bool, want []string,
+        kwOf func(*state.Object) []string) []string
 
-`sharedPumpGrant` becomes a caller with `kwOf = h.Chars(id).Keywords` (its
-current behaviour, unchanged); the static caller passes the printed reader
-(section 4.3). Two readings of one rule must not drift (the repo's
+`zones, all` are `effects.ParseZones`' first two results passed through
+unchanged, so a legal `SharedKeywordsZone$ Any`/`All` walks every zone rather
+than silently matching none (no corpus carrier uses `Any`/`All` today; this is
+a guard). The zone walk loops `AliveFrom(0)` in APNAP order, never a map.
+
+The spec match is a callback, not a `SpecContext`, because the two callers
+must match through different seams: `sharedPumpGrant` passes effects'
+`MatchesSpecCtx` (its current behaviour, unchanged) with
+`kwOf = func(o *state.Object) []string { return h.Chars(o.ID).Keywords }`;
+the static caller passes the scan-safe `e.matchesSpecFrom(spec, o.ID,
+controller, src)` (`compiled_text.go`, the seam `gainedFacesForSpec` uses), so
+a future spec reading derived keywords or P/T does not re-enter the layer
+walk, and the printed reader of section 4.3. Two readings of one rule must not drift (the repo's
 "a legal-answer rule has one home" principle applies in spirit); the existing
 pump tests keep pinning the shared core.
 
@@ -120,13 +137,41 @@ keyword branch (fail-closed). `RemoveKeyword`/`CantHaveKeyword` are not shared
 
 `kwOf` reads **printed** keywords + keyword counters, not `Derived`: calling
 `Derived`/`h.Chars` from inside `staticEffects` re-enters the layer walk
-(`activeDepth`/`charsWalk`) and is a CR 613.8 dependency cycle. For
-Exile / Graveyard / Hand / Library zones the printed read is also the correct
-one (no layer-6 effect applies to those cards in practice; if one ever does,
-the "Known approximations" table gets a line, delete-only). This covers
-Eater, Altar, Urborg, Death-Mask, Cairn, Rayami, Soulflayer. Zones are parsed
-with `effects.ParseZones`; an unparseable list yields no grant (as
-`sharedPumpGrant` does, plus its `Note` event).
+(`activeDepth`/`charsWalk`) and is a CR 613.8 dependency cycle. The reader is a
+new pure helper in `engine/effects` next to `PrintedHasKeyword`:
+
+    // PrintedKeywords is o's printed keyword list plus the keywords its
+    // keyword counters grant (cards.CounterKeyword), in a fixed order.
+    func PrintedKeywords(o *state.Object) []string
+
+folding `o.Face().Keywords` with each counter kind that `cards.CounterKeyword`
+maps (counter kinds sorted, never a map range). `objectHasKeyword` may be
+rewritten over it, but only if its tests stay green unchanged.
+
+The printed read is an approximation, not the rule: layer-6 keyword effects
+do reach non-battlefield cards in this corpus. `AffectedZone$ All` perpetual
+`AddKeyword$` effects (Wilson, Bear Comrade: Lifelink/Menace/Double
+Strike/Reach/Trample; Viconia, Nightsinger's Disciple: Haste) follow a card
+into exile, and graveyard keyword grants exist (Varolz, the Scar-Striped;
+Wrenn and Six), so the pattern is real. An exiled card under such an effect
+has a current keyword the printed read misses, so Eater would under-grant.
+The paper-Standard Eater line has none of those digital/perpetual sources, so
+the target is unaffected. The builder records this deviation **in the commit
+message** (the Known-approximations register in
+`docs/agents/known-approximations/` is closing: no row may be added,
+`docs/agents/invariants.md` section 10, `docs/agents/do-not.md`) and pins it
+with a test (section 5 step 3, test 7) so a later fix is visible.
+
+This covers Eater, Altar, Urborg, Death-Mask, Cairn, Rayami, Soulflayer.
+Zones are parsed with `effects.ParseZones`; an unparseable list yields no
+grant, **silently**. `staticEffects` is a pure per-event scan (the
+`control_static.go` header: "no callbacks, no emits"; the `layers.go` colour
+branch: "No Note is emitted because this scan re-runs on every event; a
+per-derivation Note would flood the log"), so it fails closed the
+`continuousGateKeys` way and emits nothing. `sharedPumpGrant`'s `Note` is a
+resolution-time primitive and stays where it is. A one-time diagnostic for a
+bad zone list, if wanted, belongs at a non-scan site (card load / param-table
+parse), not in the scan.
 
 ### 4.4 What ends up on the effect
 Nothing new: `ContinuousEffect.AddKeywords` carries the already-narrowed list,
@@ -158,23 +203,29 @@ deduplicated by the existing layer-6 add.
 2. `layers.go` keyword-branch hook, `staticMemoStateRead = true`.
 3. Tests, new file `engine/rules/static_shared_keywords_test.go`, each with a
    precondition assert and shown failing without the fix:
-   - Eater, nothing exiled: Bear has **no** granted keyword (fails today:
+   1. Eater, nothing exiled: Bear has **no** granted keyword (fails today:
      13 keywords).
-   - A Flying + Protection-from-red card with `ExiledWith = Eater` and
+   2. A Flying + Protection-from-red card with `ExiledWith = Eater` and
      `ExiledWithInc` set: Bear gains exactly `Flying` and
      `Protection from red`, not `Reach`; P/T 4/2.
-   - Memo: exile a Flying card **after** a first `Derived` read, with no other
+   3. Memo: exile a Flying card **after** a first `Derived` read, with no other
      event class in between (the stale-memo case for `staticMemoStateRead`);
      flying appears. Move it out of exile: flying goes.
-   - Provenance end to end: kill the equipped Bear through the real
+   4. Provenance end to end: kill the equipped Bear through the real
      dies-trigger, assert it is in exile, `ExiledWith == Eater`, and the
      next creature Eater is equipped to has the Bear's keywords.
-   - A card exiled by someone else (`ExiledWith` zero or another source) does
+   5. A card exiled by someone else (`ExiledWith` zero or another source) does
      not count; Eater leaving and re-entering does not keep the link
      (`ExiledWithInc`).
-   - Family word: a card with `Landwalk:Forest` grants nothing for Eater
+   6. Family word: a card with `Landwalk:Forest` grants nothing for Eater
      (Eater's list has no Landwalk); a card with `Trample:...` /
      `Hexproof from red` spellings grants the card's spelling.
+   7. Printed-read approximation pin: an exiled card with no printed Haste
+      under a perpetual `AffectedZone$ All` Haste grant does **not** give
+      Eater's creature haste (documents the 4.3 deviation; flip it when a
+      non-printed exile read lands).
+   8. `PrintedKeywords` unit test: printed list plus a flying counter yields
+      both, in a fixed order.
 4. Delete the Eater rows from the census TSV via the writer; run archtest,
    codeshape, the NEO census test, `TestHeads`, dirac gate.
 
@@ -192,8 +243,8 @@ mechanism from section 4 (no printed read, a cycle guard, probably a
 `layers_derived` hook), has zero Standard cards, and shares only
 `SharedKeywords`'s matching core. Treat it as its own ticket; until then the
 battlefield-zone case should be fail-closed: in 4.3, if the zones include
-`Battlefield` (or any zone with layered keywords), emit no grant and a
-`Note` event rather than the printed read. The other Pump carriers that name
+`Battlefield` (or `all` is set, which includes it), emit no grant, silently
+(the scan emits nothing; see 4.3), rather than the printed read. The other Pump carriers that name
 the Battlefield are unaffected (their path is `sharedPumpGrant`).
 
 ## 7. Risks
@@ -204,8 +255,11 @@ the Battlefield are unaffected (their path is `sharedPumpGrant`).
 - **Printed vs. current** for exiled cards: a face-down card, a split /
   adventure card or a transformed DFC in exile have characteristics that
   `Face()` may not reflect (CR 708.2, 709.3 / 712.8). Eater exiles from a
-  graveyard face-up, so the main line is fine; record any deviation in
-  AGENTS.md's Known-approximations table only if tested.
+  graveyard face-up, so the main line is fine; record any deviation in the
+  commit message (the register in `docs/agents/known-approximations/` takes
+  no new rows), with a test if it is tolerated.
+- **Layer-6 effects reaching exile** (Wilson / Viconia perpetual grants):
+  under-grant, see 4.3; pinned by test 7.
 - **Forge fidelity**: I did not have Forge's `StaticAbilityContinuous` source
   here. The Continuous reading is assumed to match the Pump reading that
   `shared_keywords_pump_test.go` pins; the implementer should confirm against
