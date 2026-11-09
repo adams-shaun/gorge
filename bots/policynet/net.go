@@ -424,7 +424,7 @@ func NewModelExtra(rows, h, hidden, extraW int, rng *rand.Rand) *Model {
 // exactly the order NewModel drew them before the widening.
 func NewModelOptDense(rows, h, hidden, w int, rng *rand.Rand) *Model {
 	if w != OptionDenseWidth && w != OptionDenseWidthV1 {
-		panic(fmt.Sprintf("policynet: option dense width %d, want %d or %d", w, OptionDenseWidthV1, OptionDenseWidth))
+		panic(fmt.Errorf("policynet: option dense width %d, want %d or %d", w, OptionDenseWidthV1, OptionDenseWidth))
 	}
 	m := &Model{Rows: rows, H: h, Hidden: hidden, InW: 2*h + OptionSlotWidth + w, optDenseW: w}
 	return m.initWeights(rng)
