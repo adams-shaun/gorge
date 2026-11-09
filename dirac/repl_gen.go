@@ -1042,7 +1042,7 @@ func (s *State) dealNC(k *prep) {
 			s.markDealt(k, ob.slot, false) // filter_permmarks.go
 		}
 	}
-	if s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any() {
+	if s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any() || k.gen != nil && k.gen.graveDmg {
 		if ob := &s.objs[nc.src]; !nc.spell && ob.zone == kop.ZoneBattlefield {
 			s.fireDamage(k, ob.slot, int16(n), code >= PlayerTarget0, false, code)
 		} else if nc.spell || ob.zone != kop.ZoneBattlefield { // an ability whose source is gone too (pair 3334)

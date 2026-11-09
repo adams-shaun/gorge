@@ -460,6 +460,9 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 		m = s.grantTrigHosts(k, m)
 	}
 	if !m.any() {
+		if k.gen.graveDmg && (rl == nil || !rl.agg) { // a batch's aggregate fire is not a damage event
+			s.fireGraveDamage(k, src, s.perms[src].obj, s.perms[src].ctrl, amt, dmgPlayers(toPlayer, s.perms[src].ctrl, rcp), combat, rcp)
+		}
 		if k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 {
 			s.fireEmblemsDmg(k, src, amt, toPlayer, combat, rcp, false)
 		}
@@ -537,9 +540,25 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 			s.queueTrig(k, l, a, tobj, tpl, n)
 		})
 	}
+	if k.gen.graveDmg && (rl == nil || !rl.agg) { // a batch's aggregate fire is not a damage event
+		s.fireGraveDamage(k, src, srcObj, srcCtrl, amt, dmgPlayers(toPlayer, srcCtrl, rcp), combat, rcp)
+	}
 	if k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 {
 		s.fireEmblemsDmg(k, src, amt, toPlayer, combat, rcp, true)
 	}
+}
+
+// dmgPlayers is the player mask a permanent-source damage event names: the
+// damaged player when rcp is one, else (an aggregate event to players) the
+// source controller's opponent.
+func dmgPlayers(toPlayer bool, srcCtrl uint8, rcp uint8) uint8 {
+	if !toPlayer {
+		return 0
+	}
+	if pl, ok := recipientPlayer(rcp); ok {
+		return 1 << pl
+	}
+	return 1 << (1 - srcCtrl)
 }
 
 // dmgPl is the player mask fireDamageSrc takes for one damage target code.
@@ -596,6 +615,9 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 			}
 			s.queueTrig(k, l, a, tobj, tpl, n)
 		})
+	}
+	if k.gen.graveDmg && (rl == nil || !rl.agg) { // a batch's aggregate fire is not a damage event
+		s.fireGraveDamage(k, NoSlot, o, ctrl, amt, plM, false, rcp)
 	}
 }
 
@@ -781,7 +803,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 			}
 		}
 	}
-	dmg := s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() || k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0
+	dmg := s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() || k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 || k.gen.graveDmg
 	if dmg && k.gen.anyBatch {
 		defer s.batchClose(s.batchOpen())
 	}
