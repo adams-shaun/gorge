@@ -46,7 +46,8 @@ func cardLIRChunks(lir string) map[string]string {
 // whatever the count; CR 118.3, 603.4). Narset, Jeskai Waymaster (TDM) and
 // Byway Barterer (BLB) write Discard<1/Hand>, Vaultguard Trooper (EOE) writes
 // Discard<0/Hand>, which reads as Discard<1/Hand>. An activated
-// discard-your-hand (Reverberating Summons, TDM) still refuses.
+// discard-your-hand (Reverberating Summons, TDM) is the activated-cost form and
+// lowers to the DiscardHand cost table byte (TestDiscardHandActCostLowers).
 func TestTrigOwnDiscardHand(t *testing.T) {
 	carriers := []string{"Narset, Jeskai Waymaster", "Vaultguard Trooper", "Byway Barterer"}
 	lir, ref := lowerCarriers(t, append(carriers, "Reverberating Summons"))
@@ -65,8 +66,8 @@ func TestTrigOwnDiscardHand(t *testing.T) {
 			t.Errorf("%s: trigger program does not start with a DiscardHand IfPaid:\n%s", n, block)
 		}
 	}
-	if rs := ref["Reverberating Summons"]; len(rs) == 0 || !strings.Contains(rs[0], `discard cost "Hand" outside an unless cost`) {
-		t.Errorf("Reverberating Summons: want the outside-an-unless-cost refusal, got %v", rs)
+	if rs := ref["Reverberating Summons"]; len(rs) > 0 {
+		t.Errorf("Reverberating Summons: the activated discard-your-hand cost refused: %v", rs)
 	}
 
 	// Discard<0/Hand> lowers identically to Discard<1/Hand>: a probe with

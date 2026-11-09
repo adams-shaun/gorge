@@ -206,8 +206,9 @@ import (
 // hidden pick; merged ALL build-level 21707 -> 21709).
 // +20 (the self-source DamageDone object-referent class: Spider-Slayer, Hatred Honed and
 // nineteen corpus-only cards of the same shape now build; ALL build-level 21709 -> 21729).
+// +9 (the merge with land: land's nine beside this branch's twenty, disjoint; merged ALL build-level 21729 -> 21738).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21729, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21738, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

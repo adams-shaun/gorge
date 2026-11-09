@@ -411,6 +411,16 @@ func (w *legalWalk) handWalk() {
 			// SpellAbility Cost$) are paid beside any alternative cost
 			// (CR 118.9d), as Forge's copyWithManaCostReplaced keeps them.
 			gate := pay.WithSpellAbilityExtras(f, alt.cost)
+			// ManaRestriction$ (Security Rhox): the offer prices only the
+			// units its producer tag admits, the same narrowing the payment
+			// applies (pay.Descriptor.OnlyTag). An unmodelled value withholds.
+			altScope := spellScope("")
+			if alt.manaRestriction != "" {
+				if !pay.OnlyTagKnown(alt.manaRestriction) {
+					continue
+				}
+				altScope.OnlyTag = alt.manaRestriction
+			}
 			if alt.announce != "" {
 				gate.Exile = nil
 				if len(e.altCostXCandidates(p, id, alt)) == 0 {
@@ -430,7 +440,7 @@ func (w *legalWalk) handWalk() {
 			// beginCast then asked a sacrifice decision with zero options
 			// that no answer could escape. castable is the same gate every
 			// other "cast" option uses.
-			if w.offerCastable(p, id, gate, spellScope(""), false) && targetsAvailable() {
+			if w.offerCastable(p, id, gate, altScope, false) && targetsAvailable() {
 				// AltCostIndex is i+1, not i: the zero value must mean "the
 				// card's own cost" so every other Option literal in the tree
 				// (play_land, activate, pass, and the base "cast" option

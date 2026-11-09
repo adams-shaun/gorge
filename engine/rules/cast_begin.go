@@ -709,6 +709,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 	}
 	if announceAlt != nil {
 		e.cast.mayPlayPerm = announceAlt.mayPlayKey
+		e.cast.altOnlyTag = announceAlt.manaRestriction
 	}
 	// CR 903.8: the commander tax, applied to whatever cost this cast pays
 	// (the base/alternative/kicked/flashback/surged/miracle cost resolved

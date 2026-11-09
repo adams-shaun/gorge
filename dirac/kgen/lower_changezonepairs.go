@@ -69,6 +69,11 @@ func czPair(tr *lTrigger, mask int16, zone string, giftSelf, costBody bool) (ok 
 		tr.Event, tr.From = "Leaves", zGraveyard
 	case tr.Origin == zBattlefield && (tr.Dest == zHand || tr.Dest == zExile || tr.Dest == zLibrary):
 		tr.Event, tr.N = "Leaves", 1<<zoneBit(tr.Dest)
+	case tr.Dest == zBattlefield && tr.Origin == zStack && czReadsOwnCast(tr.F):
+		// every alternative holds only for the resolving spell becoming the
+		// permanent (PredWasCastEnter, not negated: kernel enterCast), which
+		// moves from the stack, so Origin$ Stack adds nothing to the enter
+		tr.Event = "ETB"
 	case tr.Dest == zBattlefield && tr.Origin == zExile:
 		// gorge matches a source that enters itself against its LKI snapshot,
 		// still in Exile, so a bare Permanent ValidCard$ never reads true of
@@ -81,6 +86,20 @@ func czPair(tr *lTrigger, mask int16, zone string, giftSelf, costBody bool) (ok 
 		return false, refuse("ChangesZone %s->%s trigger zone %d", zoneLabel[tr.Origin], zoneLabel[tr.Dest], tr.Zone)
 	}
 	return true, nil
+}
+
+// czReadsOwnCast reports a filter whose every clause reads the entering
+// object's own cast (a non-negated cmpWasCast).
+func czReadsOwnCast(f *lFilter) bool {
+	if f == nil || f.Players != 0 || len(f.Clauses) == 0 {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.CmpStat != cmpWasCast || c.CmpN&wasCastNot != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // czReadsAttachment reports a filter clause that reads attachment to the

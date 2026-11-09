@@ -13,8 +13,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // and prohibition gates (no timing rider of its own). The cast is
 // AkWebSling; its provenance rides the spell entry's trigPl =
 // trigPlWebSling (0 B), which a copy does not keep (CR 707.10: gorge's
-// FlagWebSlinged is cast provenance; mintSpellCopy). Nothing reads it but
-// buildCost and the cost stage: the webSlinged word is unlowered.
+// FlagWebSlinged is cast provenance; mintSpellCopy). It is read by
+// buildCost, the cost stage and the webSlinged word on the entering
+// permanent (PredWasCastEnter bit 16, cast_wascastenter.go wasCastRead).
 //
 // The return is sneak's (kw_sneak.go sneakReturnOptions over the
 // activation Return machinery, act_energy.go pkReturn / ChCostReturn /

@@ -21,6 +21,11 @@ func TestTwoPilesCoverageRejectsOtherShapes(t *testing.T) {
 		{"left/right piles (Raging River)", "SP$ TwoPiles | Defined$ Remembered | Separator$ Remembered | ValidCards$ Creature | Zone$ Battlefield | LeftRightPile$ True | ChosenPile$ DBPile", false},
 		{"remembered pool (Bend or Break)", "SP$ TwoPiles | Defined$ Remembered | Separator$ Remembered | Chooser$ ChosenPlayer | ChosenPile$ DBPile | ValidCards$ Land.RememberedPlayerCtrl | Zone$ Battlefield", false},
 		{"RememberChosen without a pile body (Make an Example)", "SP$ TwoPiles | Defined$ Remembered | Separator$ Remembered | Chooser$ You | RememberChosen$ True | ValidCards$ Creature | Zone$ Battlefield", false},
+		{"Hostile Negotiations you-choose", "SP$ TwoPiles | Zone$ Exile | DefinedPiles$ Remembered,Imprinted | ChosenPile$ DBPile | KeepRemembered$ True", true},
+		{"Hostile Negotiations they-choose", "SP$ TwoPiles | Zone$ Exile | DefinedPiles$ Remembered,Imprinted | Chooser$ Opponent | ChosenPile$ DBPile | UnchosenPile$ DBPile", true},
+		{"DefinedPiles one selector", "SP$ TwoPiles | DefinedPiles$ Remembered | ChosenPile$ DBPile", false},
+		{"DefinedPiles unknown selector", "SP$ TwoPiles | DefinedPiles$ Remembered,Sacrificed | ChosenPile$ DBPile", false},
+		{"DefinedPiles with LeftRightPile", "SP$ TwoPiles | DefinedPiles$ Remembered,Imprinted | LeftRightPile$ True | ChosenPile$ DBPile", false},
 		{"unresolvable pile body", "SP$ TwoPiles | ValidTgts$ Player | Separator$ You | ChosenPile$ NoSuchSVar | ValidCards$ Creature | Zone$ Battlefield", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

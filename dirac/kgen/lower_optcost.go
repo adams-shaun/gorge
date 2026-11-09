@@ -46,6 +46,12 @@ func (lc *lowerCtx) optCostStatic(s cards.Static) error {
 		return refuse("OptionalCost beside another optional or alternative cost")
 	}
 	raw := strings.TrimSpace(s.Params["Cost"])
+	if strings.Contains(raw, "ChooseCreatureType<") {
+		// a creature type chosen while paying, which the cost's behold and
+		// the resolution then read (gorge cast_choose_type_cost.go): a
+		// second mechanism the kernel's cost picks do not carry
+		return refuse("OptionalCost cost %q: a creature type chosen as a cost part", raw)
+	}
 	lc.beholdOK = true
 	var c lCost
 	var err error

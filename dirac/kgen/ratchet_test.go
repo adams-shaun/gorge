@@ -104,19 +104,20 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +20 (a self-source DamageDone line whose object ValidTarget$ body reads the damaged
 	// creature lowers on the kernel's per-referent queue: Spider-Slayer, Hatred Honed and
 	// nineteen corpus-only cards of the same class; SPM 161 -> 162, ALL 21709 -> 21729).
+	// +9 (the merge with land: land's nine (one SPM, SPM 162 -> 163) beside this branch's Spider-Slayer class, disjoint; merged ALL 21729 -> 21738).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21729, 34442},
+	"ALL": {21738, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {207, 280},
 	"DFT": {248, 276},
 	"DMU": {194, 270},
 	"DSK": {242, 276},
-	"ECL": {234, 273},
+	"ECL": {235, 273},
 	"EOE": {239, 266},
 	"FDN": {517, 517},
 	"FIN": {268, 312},
-	"FRA": {245, 269},
+	"FRA": {246, 269},
 	"HOB": {153, 172},
 	"LCI": {251, 290},
 	"MKM": {242, 279},
@@ -127,10 +128,10 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"OTJ": {242, 276},
 	"SNC": {185, 266},
 	"SOS": {249, 270},
-	"SPM": {162, 192},
-	"TDM": {251, 276},
+	"SPM": {163, 192},
+	"TDM": {252, 276},
 	"TLA": {254, 285},
-	"TMT": {171, 194},
+	"TMT": {172, 194},
 	"TRC": {287, 337},
 	"TRK": {311, 311},
 	"WOE": {252, 281},

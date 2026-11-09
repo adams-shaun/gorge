@@ -29,6 +29,10 @@ type CostScope struct {
 	// a ValidCard$ mana-value test reads the spell as it is on the stack (CR
 	// 202.3e); zero is the offer-time read.
 	X int32
+	// OnlyTag is the AlternativeCost static's ManaRestriction$ the priced
+	// alternative carries (pay.Descriptor.OnlyTag); the offer's payment
+	// descriptor reads it so the gate prices only the admitted units.
+	OnlyTag string
 }
 
 // CostMod is ONE evaluated ReduceCost static's contribution to a total cost.

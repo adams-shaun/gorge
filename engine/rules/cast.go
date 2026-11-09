@@ -204,6 +204,12 @@ type pendingCast struct {
 	// exactly like replaceGraveyard.
 	playManaConversion string `clone:"deep"`
 
+	// altOnlyTag is the chosen AlternativeCost static's ManaRestriction$
+	// (Security Rhox's "spend only mana produced by Treasures"): a per-cast
+	// rider like playManaConversion, read by paymentForCast so only that
+	// tag's units pay this cast.
+	altOnlyTag string `clone:"deep"`
+
 	// faceDown marks the morph family's face-down cast (CR 702.37a
 	// Morph, 702.168a Megamorph, 702.169a Disguise): the {3} cast puts a
 	// face-down spell on the stack. It gates the cast-flow stages the

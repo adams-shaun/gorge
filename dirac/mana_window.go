@@ -3167,6 +3167,11 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 	}
 	s.payPicks(k)
 	s.payPutLibPicks(k) // cost_putlibself.go
+	if a.Cost.DiscardHand {
+		// the whole hand leaves before the source's own sacrifice, as
+		// gorge's payCast pays the discard then the sacrifice
+		s.payDiscardHandCost(k, e.ctrl)
+	}
 	if a.Cost.Host == kop.CostHostSac {
 		s.sacHostCost(k, e)
 	}
