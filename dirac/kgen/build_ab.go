@@ -4141,6 +4141,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op = kop.OpClearRemembered
 	case "ClearChosen":
 		ki.Op = kop.OpClearChosen
+	case "ClearImprinted":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtClearImprinted))
+	case "DigImprint":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtDigImprint)) // marks the Dig before it (zone_digimprint.go)
 	case "AddTurn":
 		ki.Op = kop.OpAddTurn
 	case "EndTurn":

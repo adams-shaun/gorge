@@ -206,6 +206,9 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// DigUntil's ImprintFound$ chain (lower_digimprint.go): gorge
 		// effectRemembered reads the source's seek-found Imprint, which the
 		// kernel holds in the chosen set (DuImprintFound).
+		if lc.digImprintSetLive() { // lower_digimprintset.go
+			return lRef{Kind: rImprinted}, nil
+		}
 		if !lc.digImprintChosen {
 			return lRef{}, refuse("Defined$ Imprinted outside a DigUntil ImprintFound$")
 		}
@@ -1848,6 +1851,10 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if lc.exileLandStage == 2 && ps.is("ClearImprinted", "True") && ps.is("ClearChosenCard", "True") && ps.is("ClearRemembered", "True") {
 			ps.consume("ClearImprinted") // Ensign Pavel Chekov: the chosen set is the imprint (lower_repeatexilechoice.go)
 			lc.exileLandStage = 0
+		}
+		if lc.digImprintSetLive() && ps.is("ClearImprinted", "True") {
+			ps.consume("ClearImprinted") // the Dig's imprinted set (lower_digimprintset.go)
+			lc.emit(lInstr{Op: "ClearImprinted"})
 		}
 		if lc.digImprinted && ps.is("ClearImprinted", "True") {
 			// the imprinted card is the kernel's remembered set

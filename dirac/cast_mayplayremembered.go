@@ -18,10 +18,13 @@ var DebugVulcanWrongHolder bool
 //
 //go:noinline
 func (s *State) mayPlayRemembered(k *prep, in *kop.Instr, ctrl uint8) {
-	set, n := &s.g.rem, int(s.g.nrem)
+	set := s.g.rem[:s.g.nrem]
 	if in.Obj == kop.RefChosen {
-		set, n = &s.g.chosen, int(s.g.nchosen) // the imprint (act_exilelandchoose.go)
+		set = s.g.chosen[:s.g.nchosen] // the imprint (act_exilelandchoose.go)
+	} else if in.Obj == kop.RefImprinted {
+		set = s.g.imp[:s.g.nimp] // Dig Imprint$ (zone_digimprint.go)
 	}
+	n := len(set)
 	if in.B.N&kop.MayPlayExileOnMoved != 0 && n > 1 {
 		// ExileOnMoved$: gorge ends the whole effect when one remembered
 		// card leaves; per-card permissions cannot follow that
