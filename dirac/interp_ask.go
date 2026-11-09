@@ -2357,6 +2357,9 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 	if fl&kop.DigRemember != 0 {
 		s.remember(o)
 	}
+	if s.digImprintMarked(k) {
+		s.imprint(o) // Dig Imprint$ (zone_digimprint.go)
+	}
 	switch {
 	case z == kop.ZoneBattlefield:
 		host := s.digAuraHost(k, o, p)

@@ -1192,7 +1192,8 @@ func (lc *lowerCtx) dig(ps *params) error {
 	if blind && lc.blind != nil && lc.blind.exilerOther {
 		flags = append(flags, "ExilerOther")
 	}
-	if err := lc.digImprint(ps); err != nil { // lower_handmove.go
+	imprintSet, err := lc.digImprint(ps, dest, take) // lower_digparams.go
+	if err != nil {
 		return err
 	}
 	in.CS = strings.Join(flags, "|")
@@ -1217,6 +1218,9 @@ func (lc *lowerCtx) dig(ps *params) error {
 		return nil
 	}
 	lc.emit(in)
+	if imprintSet {
+		lc.emit(lInstr{Op: "DigImprint"}) // the dig's takes join the imprinted set
+	}
 	return nil
 }
 
