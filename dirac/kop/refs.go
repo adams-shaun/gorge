@@ -60,6 +60,9 @@ const (
 	// leave trigger manifests dread for the owner of the card its ETB exiled
 	// (the RemPersist seed); none when the remembered set is empty.
 	RefRememberedOwner
+	// RefImprinted: the resolution's imprinted objects (genState.imp; the
+	// set MvImprint fills and ExtClearImprinted empties).
+	RefImprinted
 )
 
 // RefTgtCtrl1 / RefTgtCtrl2 are RefTargetController for target slot 1 / 2

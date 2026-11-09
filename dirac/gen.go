@@ -1524,6 +1524,8 @@ type genState struct {
 	nrem    uint8
 	chosen  [maxRem]Obj
 	nchosen uint8
+	imp     [maxImp]Obj // the resolution's imprinted set (imprint.go)
+	nimp    uint8
 	remCnt  uint16 // OpRemoveCounterRem's count
 	availX  uint8  // transient availFor mode while scriptOffers re-walks priority (script_gen.go)
 	noGrant bool   // transient: an activated ability's prefix search prices without granted mana (its grant prefix is its own search; script_gen.go)
@@ -1767,6 +1769,7 @@ type genState struct {
 	nexw     uint8
 	linkHide uint8 // bit i: links[i] is a Hideaway link (the card stays exiled face down; kw_hideaway.go; padding)
 	linkAeg  uint8 // bit i: links[i] is an attachment whose copy of its exiled card is live (Assimilation Aegis; zone_exilethenattach.go; padding)
+	linkImp  uint8 // bit i: links[i] is imprinted on its source (imprint.go; padding; set by no lowering yet)
 	linkHand uint8 // bit i: links[i] returns its card to its owner's hand, not the battlefield (a hand exile until the source leaves; act_mayask.go)
 
 	// retHeld lists, in departure order, the sources that left in the open
@@ -1997,7 +2000,7 @@ const (
 	StallPanharmGrant  = 142 // a fifth Panharmonicon grant (Lwaxana Troi) live at once (genState.pgT; act_grantpanharm.go)
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
-	NumStall           = 145 // capacity of the reason tables (StallName); a reason registers its name in its own file
+	NumStall           = 146 // capacity of the reason tables (StallName); a reason registers its name in its own file
 )
 
 // StallName is reason r's short name ("" for StallNone).

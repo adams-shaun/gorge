@@ -404,6 +404,11 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 			return s.g.rem[0]
 		}
 		return NoObj
+	case kop.RefImprinted:
+		if s.g.nimp > 0 {
+			return s.g.imp[0]
+		}
+		return NoObj
 	case kop.RefChosen:
 		if s.g.nchosen > 0 {
 			return s.g.chosen[0]
@@ -590,6 +595,12 @@ func (s *State) countRefMatchesN(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx
 		return 0
 	}
 	switch r {
+	case kop.RefImprinted:
+		n := 0
+		for i := 0; i < int(s.g.nimp); i++ {
+			n += one(s.g.imp[i])
+		}
+		return n
 	case kop.RefRemembered:
 		n := 0
 		ceased = true
@@ -668,7 +679,7 @@ func (s *State) countRefMatchesN(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx
 // set lives in genState) for the core's objRefObj.
 func (s *State) objRefGen(r kop.Ref) (Obj, bool) {
 	switch r {
-	case kop.RefChosen, kop.RefRemembered, kop.RefReplaced, kop.RefDelayedRemembered, kop.RefTriggerSource, kop.RefHost:
+	case kop.RefChosen, kop.RefRemembered, kop.RefImprinted, kop.RefReplaced, kop.RefDelayedRemembered, kop.RefTriggerSource, kop.RefHost:
 		return s.refObjCtx(r, s.ctxEntry(&s.res.e)), true
 	case kop.RefSacrificed:
 		return NoObj, true

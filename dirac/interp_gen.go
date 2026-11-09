@@ -416,6 +416,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			if in.C&kop.MvRemember != 0 {
 				s.remember(o)
 			}
+			if in.C&kop.MvImprint != 0 {
+				s.imprint(o) // imprint.go
+			}
 			if in.C&kop.MvForgetChanged != 0 {
 				s.forgetChanged(o) // zone_forget.go
 			}
