@@ -179,6 +179,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "season_of_loss_sacrifices_three_times"},                        // Season of Loss chooses its one-pawprint mode three times and its two-pawprint mode once: five pawprints, nothing left to add (CR 700.2i, 107.18)
 		{"custom", "cmd5_commander_bounce_waits_for_the_command_zone_choice"},      // kfuzz cmd5 heuristic pair 3: Boomerang aimed at Lathliss, Dragon Queen, a commander: the owner's command-zone choice is posed while Boomerang is still on the stack, as the bounce instruction would move her, and Boomerang reaches the graveyard only after the answer (CR 608.2n, 903.9b)
 		{"custom", "webslinged_enter_spiders_man_tokens"},                          // Spiders-Man, Heroic Horde cast for its web-slinging cost off two Hulking Raptors' and a Burning-Tree Emissary's floating mana, a crewed Smuggler's Copter's pilot returned: its enters trigger gains 3 life and makes two Spider tokens (CR 702.188, 603.4); a plain cast would not
+		{"custom", "behold_resolution_cost_untaps_the_searched_land"},              // Elven Passage's search finds a basic land and its unless-switched behold of an Elf pays with one of three candidates (battlefield Elves then hand Elves): nothing moves and the land untaps; both engines agree through the pick and past it (CR 701.4a)
+		{"custom", "behold_trigger_cost_makes_a_treasure"},                         // Sarkhan, Dragon Ascendant's enters trigger offers its own behold cost of a Dragon: paying with one of two candidates makes the Treasure, and both engines agree through the pick and past it (CR 701.4a)
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			// A tail pool is a hash-ordered run of the lowered non-Standard cards, so its

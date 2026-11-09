@@ -40,6 +40,8 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		return int(s.pl[p].handN) >= amt
 	case kop.PayDiscardHand:
 		return true // gorge unlessflow: the whole hand; empty pays with nothing
+	case payKindBehold:
+		return s.unlessBeholdCands(k, p, f, nil) >= amt // cost_unlessbehold.go
 	case kop.PaySac:
 		if pips == kop.PayBSubBlight {
 			return s.countPermMatch(k, p, f, s.resSrcSlot(k), false) >= 1 // a Blight: one creature, source included
@@ -355,6 +357,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			s.handExileOptions(d, p) // cost_exilefromhand.go
 			break
 		}
+		if s.g.pickZ == payKindBehold {
+			s.unlessBeholdOptions(k, d, p) // cost_unlessbehold.go
+			break
+		}
 		if s.g.pickZ == kop.PayDiscard {
 			d.Sub = ChCostDiscard
 			pl := &s.pl[p]
@@ -581,6 +587,10 @@ func (s *State) autoPayPick(k *prep) bool {
 	if int(d.N) != int(s.g.pickLeft) {
 		return false
 	}
+	if s.g.pickZ == payKindBehold {
+		s.g.pickLeft = 0 // exactly the candidates owed: beholding moves nothing
+		return true
+	}
 	objs := d.Options[:d.N]
 	for i := 1; i < len(objs); i++ { // battlefield (entry) order
 		for j := i; j > 0; j-- {
@@ -775,6 +785,11 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		}
 		o := Obj(a.Source())
+		if s.g.pickZ == payKindBehold {
+			s.g.pickLeft = 0 // beholding moves and marks nothing (cost_unlessbehold.go)
+			s.payDone(k, true)
+			break
+		}
 		if s.g.pickZ == payKindWaterbend {
 			s.applyUnlessWaterbendPick(k, o) // cost_unlesswaterbend.go
 			return

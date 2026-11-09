@@ -45,7 +45,7 @@ func unlessPayKind(kind int, bn int16) int {
 	if kind == kop.PayTapX && bn == kop.PayBSubWaterbend {
 		return payKindWaterbend
 	}
-	return kind
+	return beholdPayKind(kind, bn) // a resolution Behold<1/Type> rides PayDiscard (cost_unlessbehold.go)
 }
 
 // unlessWaterbendOwed is how many permanents p must tap to waterbend n.
