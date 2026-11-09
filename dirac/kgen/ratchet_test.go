@@ -136,10 +136,10 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SPM": {163, 192},
 	"TDM": {253, 276},
 	"TLA": {255, 285},
-	"TMT": {172, 194},
+	"TMT": {173, 194},
 	"TRC": {288, 337},
 	"TRK": {311, 311},
-	"WOE": {252, 281},
+	"WOE": {253, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory
