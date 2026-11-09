@@ -79,6 +79,28 @@ func imprintWriter(in lInstr) bool {
 	return false
 }
 
+// unclearedImprint reports whether prog adds to the imprinted set through a
+// Token or exile writer but never clears it unconditionally. gorge keeps the
+// imprint on the source across resolutions until a ClearImprinted$ Cleanup
+// (or the source leaves the battlefield), the kernel empties its set at each
+// resolution, so a repeatable ability without the Cleanup would see only the
+// newest objects from its second resolution on.
+func unclearedImprint(prog []lInstr) bool {
+	writes, clears := false, false
+	for j, in := range prog {
+		writes = writes || in.Op == "CreateToken" && in.C&2048 != 0 || in.Op == "Exile" && strings.Contains(in.CS, "ImprintMove")
+		if in.Op != "ClearImprinted" || in.Cond.Kind != cNone {
+			continue
+		}
+		guarded := false
+		for i := 0; i < j; i++ {
+			guarded = guarded || prog[i].Skip > 0 && j <= i+prog[i].Skip
+		}
+		clears = clears || !guarded
+	}
+	return writes && !clears
+}
+
 // refuseCrossAbilityImprinted refuses each ability that reads the imprinted
 // set but never writes it in its own program: gorge's imprint persists on the
 // source, the kernel's set does not outlive the resolution (Oblivious
@@ -89,6 +111,9 @@ func (lc *lowerCtx) refuseCrossAbilityImprinted() {
 		for _, in := range a.Prog {
 			reads = reads || in.Obj.Kind == rImprinted || in.Obj2.Kind == rImprinted
 			writes = writes || imprintWriter(in)
+		}
+		if unclearedImprint(a.Prog) {
+			lc.refuseNode(fmt.Sprintf("ab[%d]", a.Index), "imprints without an unconditional Cleanup ClearImprinted$ (gorge's imprint outlives the resolution; the kernel's set does not)")
 		}
 		if reads && !writes {
 			lc.refuseNode(fmt.Sprintf("ab[%d]", a.Index), "reads Imprinted written by another ability (the kernel's imprinted set is per resolution; gorge's persists on the source)")

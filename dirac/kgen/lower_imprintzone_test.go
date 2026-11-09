@@ -84,6 +84,14 @@ Oracle:probe
 	if rf := lowerScript(t, "Imprint Zone Probe", strings.Replace(src, "TOKPARAMS", "", 1)); len(rf) != 0 {
 		t.Fatalf("the probe refused: %v", rf)
 	}
+	noClear := strings.Replace(strings.Replace(src, "TOKPARAMS", "", 1), " | SubAbility$ PrClean", "", 1)
+	noClear = strings.Replace(noClear, "Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self", "Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You", 1)
+	if !strings.Contains(noClear, "Phase$ Upkeep") || strings.Contains(noClear, "SubAbility$ PrClean") {
+		t.Fatal("the no-Cleanup probe was not built")
+	}
+	if rf := lowerScript(t, "Imprint Zone Probe", noClear); !strings.Contains(strings.Join(rf, "\n"), "imprints without an unconditional Cleanup ClearImprinted$") {
+		t.Errorf("a repeatable imprint without the Cleanup: refusals %v, want the uncleared-imprint refusal", rf)
+	}
 	for _, c := range []struct{ params, want string }{
 		{"| AtEOT$ Destroy ", "Token ImprintTokens$ beside AttachedTo$ or an extended AtEOT$"},
 		{"| AtEOT$ SacrificeCombat ", "Token AtEOT SacrificeCombat outside an Attacks trigger"},
@@ -101,10 +109,16 @@ Oracle:probe
 // Spider-Man, the probe below), and the card-level check refuses an ability
 // that reads the set without writing it.
 func TestImprintCrossAbilityRefuses(t *testing.T) {
-	for _, name := range []string{"Oblivious Bookworm", "Superior Foes of Spider-Man"} {
-		lc := lowerCorpusCard(t, name)
-		if len(lc.Refusals) == 0 {
-			t.Errorf("%s lowered clean, want a refusal", name)
+	for _, c := range []struct{ name, want string }{
+		{"Oblivious Bookworm", "Count$ImprintedSize"},
+		{"Superior Foes of Spider-Man", "Defined$ Imprinted outside a DigUntil ImprintFound$"},
+	} {
+		var got []string
+		for _, rf := range lowerCorpusCard(t, c.name).Refusals {
+			got = append(got, rf.Reason)
+		}
+		if !strings.Contains(strings.Join(got, "\n"), c.want) {
+			t.Errorf("%s: refusals %v, want %q", c.name, got, c.want)
 		}
 	}
 
@@ -124,7 +138,7 @@ Oracle:probe
 
 	lc := &lowerCtx{out: &lCard{Name: "x"}, name: "x"}
 	lc.out.Abilities = []*lAbility{
-		{Index: 0, Prog: []lInstr{{Op: "CreateToken", C: 2048}}},
+		{Index: 0, Prog: []lInstr{{Op: "CreateToken", C: 2048}, {Op: "ClearImprinted"}}},
 		{Index: 1, Prog: []lInstr{{Op: "PutCounter", Obj: lRef{Kind: rImprinted}}}},
 	}
 	lc.refuseCrossAbilityImprinted()
