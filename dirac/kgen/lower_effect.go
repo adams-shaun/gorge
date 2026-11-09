@@ -808,7 +808,13 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 		return fn()
 	}
 	var in lInstr
-	if _, isVar := lc.face.SVars[strings.TrimSpace(uc)]; isVar {
+	ri, isRes, rerr := lc.resUnlessToken(strings.TrimSpace(uc)) // lower_costtokens.go
+	if rerr != nil {
+		return rerr
+	}
+	if isRes {
+		in = ri
+	} else if _, isVar := lc.face.SVars[strings.TrimSpace(uc)]; isVar {
 		// an SVar-sized generic mana cost (Dazzling Denial's Y: {4} if you
 		// control a Bird, else {2}); gorge evaluates it as the ask is posed
 		v, err := lc.value(strings.TrimSpace(uc))
@@ -1179,6 +1185,19 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		}
 		in.CS, in.A = "ExileHand", cst(c.ExileHandN)
 		c.ExileHandN = 0
+		n++
+	}
+	if c.BeholdN > 0 {
+		// Behold<1/Type> as a resolution cost (CR 701.4a): an UnlessCost$ or
+		// a printed trigger's own cost. gorge's unless and triggered-cost
+		// flows pose the pay election, then the "beholdcost" pick over the
+		// payer's matching permanents then hand cards, unasked with exactly
+		// the count; nothing moves (kernel cost_unlessbehold.go). Alone, one.
+		if !lc.trigOwnCost && !lc.unlessCost || n != 0 || c.BeholdN != 1 || c.BeholdF == nil {
+			return in, refuse("resolution behold cost shape")
+		}
+		in.CS, in.A, in.F = "Behold", cst(1), c.BeholdF
+		c.BeholdN, c.BeholdF = 0, nil
 		n++
 	}
 	if n != 1 || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.SubAmongN != 0 || c.TapN != 0 || c.TapHost || c.SacHost || c.BlightN != 0 || c.EvidenceN != 0 || c.EvidenceX {
@@ -1899,6 +1918,12 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 				return refuse("ward life cost X %q", x)
 			}
 			lc.emit(lInstr{Op: "Ward", CS: "PayLifePower", A: cst(0), Obj: lRef{Kind: rTriggered}})
+			break
+		}
+		if wi, ok, err := lc.wardPoison(uc); err != nil { // lower_costtokens.go
+			return err
+		} else if ok {
+			lc.emit(wi)
 			break
 		}
 		lc.wbOK = true

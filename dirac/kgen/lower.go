@@ -1711,7 +1711,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			// an AlternateAdditionalCost's first part, a MayFlashCost
 			// extra, an OptionalCost part and a flashback cost read it
 			// (beholdOK); each caller bounds N and the parts beside it.
-			if !lc.beholdOK || len(parts) != 2 || c.BeholdN != 0 {
+			if !(lc.beholdOK || lc.unlessParse) || len(parts) != 2 || c.BeholdN != 0 {
 				return c, refuse("behold cost %q", t)
 			}
 			n, err := strconv.Atoi(parts[0])

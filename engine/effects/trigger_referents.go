@@ -876,6 +876,7 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 			Source:          sc.Source,
 			Remembered:      sc.Remembered,
 			RememberedBound: len(sc.Remembered) > 0,
+			Layers:          sc.Layers,
 		}
 		for p := range g.Players {
 			if MatchesPlayerSpecCtx(g, ref, state.PlayerID(p), sc.You, pc) {
