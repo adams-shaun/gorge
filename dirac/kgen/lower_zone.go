@@ -1988,6 +1988,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	if serr != nil {
 		return serr
 	}
+	if ok, err := lc.noRegenRemembered(ps, ss); ok || err != nil { // lower_noregen.go
+		return err
+	}
 	if ps.is("Duration", "Permanent") {
 		if ok, err := lc.partitionMayPlay(ps, ss); ok || err != nil {
 			return err

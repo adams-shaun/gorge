@@ -38,6 +38,7 @@ const (
 	mechMustBlockedPost             // slots marked must-be-blocked while their permanent had lost all abilities: the grant postdates the loss and survives it (CR 613.7)
 	mechAttacksIfAble               // slots whose permanent attacks this turn if able (CR 508.1d; combat_attacksifable.go)
 	mechBlocksIfAble                // slots whose permanent blocks this turn if able (CR 509.1c; combat_blocksifable.go)
+	mechNoRegen                     // slots whose creature can't be regenerated this turn (CR 701.19c; repl_noregen.go)
 	numMech
 )
 
@@ -70,9 +71,10 @@ var mechWidth = [numMech]uint8{
 	mechMustBlockedPost: wSlot,
 	mechAttacksIfAble:   wSlot,
 	mechBlocksIfAble:    wSlot,
+	mechNoRegen:         wSlot,
 }
 
-var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble"}
+var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen"}
 
 // arenaNone is the index of a mechanic the table does not use.
 const arenaNone = 0xFF
@@ -109,6 +111,9 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 				case kop.OpDealDamageEx:
 					if in.C&kop.DmgExileIfDiesThisTurn != 0 {
 						u[mechExileEx] = true
+					}
+					if in.C&kop.DmgNoRegen != 0 {
+						u[mechNoRegen] = true // repl_noregen.go
 					}
 				case kop.OpExileEx:
 					if kop.CounterKind(in.B.N) == kop.CtrStash {
