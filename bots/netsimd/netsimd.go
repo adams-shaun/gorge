@@ -214,6 +214,13 @@ func Load(path string, cardCache int) (*Net, error) {
 	if rawIn != policynet.EntityRawWidth && rawIn != policynet.EntityRawWidthV1 && rawIn != policynet.EntityRawWidthV3 {
 		return nil, fmt.Errorf("netsimd %s: RAW_W = %d, this build reads %d, %d or %d", path, rawIn, policynet.EntityRawWidthV1, policynet.EntityRawWidthV3, policynet.EntityRawWidth)
 	}
+	// DENSE_W is 92, or 68 for a network exported before the Commander
+	// block (policynet.DenseWidthV1): such a net reads only the first 68
+	// dense columns, so it scores exactly as it did.
+	denseIn := h.Consts["DENSE_W"]
+	if denseIn != denseW && denseIn != policynet.DenseWidthV1 {
+		return nil, fmt.Errorf("netsimd %s: DENSE_W = %d, this build reads %d or %d", path, denseIn, policynet.DenseWidthV1, denseW)
+	}
 	// OPT_DENSE_W is 28, or 24 for a network exported before the
 	// relative-seat option columns (policynet.OptionDenseWidthV1): such a net
 	// reads only the first 24 columns of an option's dense row, so it scores
@@ -222,7 +229,7 @@ func Load(path string, cardCache int) (*Net, error) {
 	if optIn != optDense && optIn != policynet.OptionDenseWidthV1 {
 		return nil, fmt.Errorf("netsimd %s: OPT_DENSE_W = %d, this build reads %d or %d", path, optIn, policynet.OptionDenseWidthV1, optDense)
 	}
-	want := map[string]int{"DENSE_W": denseW, "TABLE_ROWS": tableRows, "SLOT_ROWS": slotRows, "GROUPS": groups}
+	want := map[string]int{"TABLE_ROWS": tableRows, "SLOT_ROWS": slotRows, "GROUPS": groups}
 	for k, v := range want {
 		if h.Consts[k] != v {
 			return nil, fmt.Errorf("netsimd %s: %s = %d, this build has %d", path, k, h.Consts[k], v)
@@ -317,7 +324,7 @@ func Load(path string, cardCache int) (*Net, error) {
 	g.cardRaw = linear("card_raw", rawIn, cd, true)
 	g.cardRows = linear("card_rows", e, cd, false)
 	g.cardPhi = linear("card_phi", cd, cd, true)
-	g.denseIn = linear("dense_in", denseW, d, true)
+	g.denseIn = linear("dense_in", denseIn, d, true)
 	if extW > 0 {
 		g.extIn = linear("ext_in", extSlots, d, false)
 		g.extW = extW
@@ -497,10 +504,10 @@ func (g *Net) trunkBagN(sc *Scratch, nc int, dense []float32, sparse []policynet
 	gemvT(&g.poolProj.wt[0], &sc.pool[0], &g.poolProj.b[0], s, poolW*cd, d, false)
 
 	// state trunk: s += dense_in(dense) + sparse_proj(bag(sparse))
-	sc.dense = growF(sc.dense, denseW)
+	sc.dense = growF(sc.dense, g.denseIn.in)
 	n := copy(sc.dense, dense)
 	clear(sc.dense[n:])
-	gemvT(&g.denseIn.wt[0], &sc.dense[0], s, s, denseW, d, false)
+	gemvT(&g.denseIn.wt[0], &sc.dense[0], s, s, g.denseIn.in, d, false)
 	g.addv(s, &g.denseIn.b[0])
 	g.addExt(s, ext)
 	if bagIn != nil {

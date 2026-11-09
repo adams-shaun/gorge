@@ -1,6 +1,6 @@
 // Package feat encodes a kernel position into the network inputs gorge's
 // bots/policynet produces for the same position under FeaturesEntity (the
-// entity network's feature set): the state (68 dense scalars, the sorted hashed
+// entity network's feature set): the state (92 dense scalars, the sorted hashed
 // sparse bag, one entity card per visible card) and one option encoding per
 // decision option -- byte-for-byte what policynet.EncodeStateWith and
 // EncodeOptionsWith produce from gorge's redacted view.View of the deciding

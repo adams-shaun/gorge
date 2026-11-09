@@ -30,10 +30,10 @@ func (g *Net) trunkBag1(sc *Scratch, nc int, dense []float32, sparse []policynet
 	gemvT(&g.poolProj.wt[0], &sc.pool[0], &g.poolProj.b[0], s, poolW*cd, d, false)
 
 	// state trunk: s += dense_in(dense) + sparse_proj(bag(sparse))
-	sc.dense = growF(sc.dense, denseW)
+	sc.dense = growF(sc.dense, g.denseIn.in)
 	n := copy(sc.dense, dense)
 	clear(sc.dense[n:])
-	gemvT(&g.denseIn.wt[0], &sc.dense[0], s, s, denseW, d, false)
+	gemvT(&g.denseIn.wt[0], &sc.dense[0], s, s, g.denseIn.in, d, false)
 	g.addv(s, &g.denseIn.b[0])
 	g.addExt(s, ext)
 	if bagIn != nil {

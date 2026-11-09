@@ -22,12 +22,12 @@ func TestOptionWidth24NetUnchanged(t *testing.T) {
 
 	dir := t.TempDir()
 	hash24 := fmt.Sprintf("%016x", policynet.EncoderHashForV1Options(policynet.FeaturesEntity))
-	hash28 := fmt.Sprintf("%016x", policynet.EncoderHashFor(policynet.FeaturesEntity))
-	narrowPath, err := gonettest.WriteWith(dir, "n24.dzgw", map[string]any{"OPT_DENSE_W": policynet.OptionDenseWidthV1, "encoder_hash": hash24})
+	hash28 := fmt.Sprintf("%016x", policynet.EncoderHashForV1Dense(policynet.FeaturesEntity))
+	narrowPath, err := gonettest.WriteWith(dir, "n24.dzgw", map[string]any{"DENSE_W": policynet.DenseWidthV1, "OPT_DENSE_W": policynet.OptionDenseWidthV1, "encoder_hash": hash24})
 	if err != nil {
 		t.Fatal(err)
 	}
-	widePath, err := gonettest.WriteWith(dir, "w28.dzgw", map[string]any{"encoder_hash": hash28})
+	widePath, err := gonettest.WriteWith(dir, "w28.dzgw", map[string]any{"DENSE_W": policynet.DenseWidthV1, "encoder_hash": hash28})
 	if err != nil {
 		t.Fatal(err)
 	}

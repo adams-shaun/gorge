@@ -76,7 +76,11 @@ type State struct {
 
 // Dense section offsets. The layout is a pinned contract (golden test).
 const (
-	DenseWidth = 68
+	DenseWidth = 92
+	// DenseWidthV1 is the 68-wide dense vector every network and training
+	// corpus recorded before the Commander block: loaders accept it and read
+	// only the first 68 columns, so such a network scores bit-identically.
+	DenseWidthV1 = 68
 
 	denseTurn       = 0
 	denseTurnBucket = 1
@@ -92,6 +96,18 @@ const (
 	denseSeat0      = 28 // maxSeatBlocks blocks of seatBlockWidth
 	seatBlockWidth  = 10
 	maxSeatBlocks   = 4
+
+	// The Commander block: maxSeatBlocks relative seats of
+	// commanderBlockWidth values, appended after the seat blocks.
+	denseCmd0           = 68
+	commanderBlockWidth = 6
+	// Within a seat's 6 values: the three damage columns (from the other
+	// seats, in relative turn order from this seat), its casts, its commander
+	// on the battlefield, and whether it has left the game.
+	denseCmdDamage0 = 0
+	denseCmdCasts   = 3
+	denseCmdOnField = 4
+	denseCmdLost    = 5
 )
 
 // stepNames is the fixed step one-hot vocabulary — the same 12 names
@@ -129,7 +145,7 @@ const (
 // EncodeState encodes the seat's view into the fixed-width dense vector and
 // the sorted hashed sparse bag.
 //
-// Dense layout (68 floats, each section pinned by the golden test):
+// Dense layout (92 floats, each section pinned by the golden test):
 //
 //	 0      turn (raw)
 //	 1      turn bucket min(turn, 40)/40
@@ -140,10 +156,15 @@ const (
 //	21      stack depth
 //	22..27  viewer's floating pool by colour (WUBRG C)
 //	28..67  four seat blocks of 10 (viewer first, then other seats in
-//	        ascending seat order; a block beyond the table's seats stays
-//	        all-zero): life, hand size, library size, graveyard size,
+//	        turn order; a block beyond the table's seats stays all-zero):
+//	        life, hand size, library size, graveyard size,
 //	        battlefield count, creature count, total derived power, total
 //	        derived toughness, untapped permanents, untapped lands
+//	68..91  four Commander blocks of 6 (same relative seat order; zeros
+//	        outside a Commander game except the left-the-game bit):
+//	        commander damage from the next three relative seats /21
+//	        clamped, commander casts /4 clamped, commander on battlefield,
+//	        seat has left the game
 //
 // Sparse layout (sorted ascending by row, duplicates kept — it is a bag):
 // one id per card as "<name>|<zone tag>" over my hand, my battlefield,
@@ -248,6 +269,71 @@ func encodeState(buf *StateBuf, vp *view.View, seat state.PlayerID) State {
 		dense[base+7] = float32(th)
 		dense[base+8] = float32(untapped)
 		dense[base+9] = float32(untappedLands)
+	}
+
+	// The Commander block, after the seat blocks: for each relative seat,
+	// commander damage taken from each other relative seat's commanders,
+	// its command-zone casts, whether one of its commanders is on the
+	// battlefield, and whether it has left the game. A non-Commander game
+	// leaves the whole block zero except the left-the-game bit.
+	commanderGame := false
+	for _, pv := range seats {
+		if pv != nil && len(pv.Commanders) > 0 {
+			commanderGame = true
+			break
+		}
+	}
+	n := len(v.Players)
+	onField := func(pv *view.PlayerView, id state.ObjID) bool {
+		for i := range pv.Battlefield {
+			if pv.Battlefield[i].ID == id {
+				return true
+			}
+		}
+		return false
+	}
+	for blk, pv := range seats {
+		base := denseCmd0 + blk*commanderBlockWidth
+		if pv == nil {
+			continue
+		}
+		if pv.Lost {
+			dense[base+denseCmdLost] = 1
+		}
+		if !commanderGame {
+			continue
+		}
+		// (a)-(c): damage from the other relative seats, in turn order from
+		// this seat. A partner pair's commanders each carry their own tally,
+		// so the column takes the max over the source seat's commanders.
+		if n > 0 {
+			for k := 1; k < n && k <= 3; k++ {
+				spv := seats[(blk+k)%n]
+				if spv == nil || len(spv.Commanders) == 0 {
+					continue
+				}
+				var dmg int32
+				for _, cmd := range spv.Commanders {
+					if d := pv.CmdDamage[cmd.ID]; d > dmg {
+						dmg = d
+					}
+				}
+				dense[base+denseCmdDamage0+k-1] = clamp01(float32(dmg) / 21)
+			}
+		}
+		// (d): partner pairs sum their command-zone casts.
+		var casts int32
+		for _, c := range pv.CommanderCasts {
+			casts += c
+		}
+		dense[base+denseCmdCasts] = clamp01(float32(casts) / 4)
+		// (e): any of its commanders is currently on the battlefield.
+		for _, cmd := range pv.Commanders {
+			if onField(pv, cmd.ID) {
+				dense[base+denseCmdOnField] = 1
+				break
+			}
+		}
 	}
 
 	// Sparse bag, in the fixed zone order documented above.

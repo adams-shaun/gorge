@@ -325,8 +325,9 @@ func TestLegacyEntityCheckpointZeroPads(t *testing.T) {
 }
 
 // narrowOptDense turns a model built at OptionDenseWidth into one that reads
-// the 24-wide option row (OptionDenseWidthV1), dropping the hidden layer's
-// relative-seat columns: the shape of every network before them.
+// the 24-wide option row (OptionDenseWidthV1) and the pre-Commander 68-wide
+// dense vector, dropping the hidden layer's relative-seat columns: the shape
+// of every network before them.
 func narrowOptDense(m *Model) {
 	if m.OptDenseW() != OptionDenseWidth || m.EntK != 0 {
 		panic("narrowOptDense: want a fresh full-width model")
@@ -341,4 +342,6 @@ func narrowOptDense(m *Model) {
 		hid = append(hid, row[at+drop:]...)
 	}
 	m.HidW, m.InW, m.optDenseW = hid, inW, OptionDenseWidthV1
+	m.StateW = m.StateW[:DenseWidthV1*m.H]
+	m.stateDenseW = DenseWidthV1
 }

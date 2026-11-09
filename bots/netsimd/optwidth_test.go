@@ -15,11 +15,11 @@ import (
 // a 28-wide net whose new columns' weights are zero.
 func TestOptionWidth24NetUnchanged(t *testing.T) {
 	dir := t.TempDir()
-	narrowPath, err := gonettest.WriteShape(dir, "n24.dzgw", gonettest.Wide, policynet.EntityRawWidth, map[string]any{"OPT_DENSE_W": policynet.OptionDenseWidthV1})
+	narrowPath, err := gonettest.WriteShape(dir, "n24.dzgw", gonettest.Wide, policynet.EntityRawWidth, map[string]any{"DENSE_W": policynet.DenseWidthV1, "OPT_DENSE_W": policynet.OptionDenseWidthV1})
 	if err != nil {
 		t.Fatal(err)
 	}
-	widePath, err := gonettest.WriteShape(dir, "w28.dzgw", gonettest.Wide, policynet.EntityRawWidth, nil)
+	widePath, err := gonettest.WriteShape(dir, "w28.dzgw", gonettest.Wide, policynet.EntityRawWidth, map[string]any{"DENSE_W": policynet.DenseWidthV1})
 	if err != nil {
 		t.Fatal(err)
 	}

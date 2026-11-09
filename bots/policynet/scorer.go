@@ -127,7 +127,7 @@ func (sc *Scorer) SetState(st State) {
 			s[j] += row[j] * v
 		}
 	}
-	for d := 0; d < DenseWidth && d < len(st.Dense); d++ {
+	for d := 0; d < m.StateDenseW() && d < len(st.Dense); d++ {
 		v := st.Dense[d]
 		if v == 0 {
 			continue

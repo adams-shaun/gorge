@@ -13,7 +13,7 @@ type Feature struct {
 
 // Widths (policynet's pinned constants).
 const (
-	DenseWidth       = 68
+	DenseWidth       = 92
 	EntityRawWidth   = 100
 	EntityRawWidthV1 = 68
 	OptionDenseWidth = 28
@@ -21,6 +21,16 @@ const (
 	// EntityRawWidthRelEnd is the end of the relational block (68..83); the
 	// v2 block (colour, pips, category) starts above it.
 	EntityRawWidthRelEnd = 84
+
+	// The Commander block: two relative seats (the kernel is 2-seat) of
+	// commanderBlockWidth values, appended after the 68-wide pre-Commander
+	// vector.
+	denseCmd0           = 68
+	commanderBlockWidth = 6
+	denseCmdDamage0     = 0
+	denseCmdCasts       = 3
+	denseCmdOnField     = 4
+	denseCmdLost        = 5
 )
 
 // Card is one entity card (policynet.EntityCard).
@@ -260,6 +270,33 @@ func (e *Encoder) prelude(s *dirac.State, d *dirac.Decision, seat uint8) (uint8,
 	}
 	for k := 0; k < 6; k++ {
 		dn[22+k] = float32(me.pool[k])
+	}
+	// The Commander block: the kernel is 2-seat, so each relative seat has
+	// one other commander to take damage from. A non-Commander game leaves
+	// the block zero except the left-the-game bit.
+	cmdGame := s.FeatCommanderGame()
+	for p := uint8(0); p < 2; p++ {
+		base := denseCmd0 + int(p)*commanderBlockWidth
+		if s.FeatLost(p) {
+			dn[base+denseCmdLost] = 1
+		}
+		if !cmdGame {
+			continue
+		}
+		src := 1 - p
+		dmg := float32(s.FeatCommanderDamage(p, src)) / 21
+		if dmg > 1 {
+			dmg = 1
+		}
+		dn[base+denseCmdDamage0] = dmg
+		casts := float32(s.FeatCommanderCast(p)) / 4
+		if casts > 1 {
+			casts = 1
+		}
+		dn[base+denseCmdCasts] = casts
+		if cmd := s.FeatCommander(p); cmd != dirac.NoObj && e.po(uint8(cmd)).Zone == kop.ZoneBattlefield {
+			dn[base+denseCmdOnField] = 1
+		}
 	}
 	return seat, me, opp
 }

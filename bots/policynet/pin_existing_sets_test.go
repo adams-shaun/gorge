@@ -163,8 +163,11 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 	// this test's other three digests prove. entity-full also carries the
 	// whole option row, so it moved when the relative-seat option columns
 	// (24..27) were appended; v1, mz and entity hash the first 24 columns and
-	// score 24-wide models, and kept their pins through that change.
-	want := []uint64{0xa18e3b3aa51a7cbb, 0xcc0da53e80b20357, 0xadbda00837a5504b, 0x20fe633f48af9965}
+	// score 24-wide models. All four moved when the Commander block (68..91)
+	// widened the dense vector: this constructed game has no commander, so
+	// the appended values are zero and the 68-wide models score exactly as
+	// before, but their JSON bodies carry the extra columns.
+	want := []uint64{0xf05f921fce0b74bb, 0xc02a1decba01e7d7, 0x388ade33ed32114b, 0x088e6347dc8d36e5}
 	t.Logf("decisions %d, digests v1=%#016x mz=%#016x entity=%#016x entity-full=%#016x relDecisions=%d combatDecisions=%d",
 		decisions, digests[0], digests[1], digests[2], digests[3], relDecisions, combatDecisions)
 	if decisions < 200 {

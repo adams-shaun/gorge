@@ -10,7 +10,7 @@ import (
 // in the hash function, a feature-string format, a vocabulary or a layout
 // moves this value — and with it every existing checkpoint's loadability,
 // which is exactly the point.
-const pinnedEncoderHash = uint64(0x00904d5022b8512a)
+const pinnedEncoderHash = uint64(0x3d2e6eb7d427bcc3)
 
 // pinnedEncoderHashV1Options is the hash before the relative-seat option
 // columns (OptionDenseWidth 24 -> 28): every 24-wide checkpoint carries it and

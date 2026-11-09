@@ -136,25 +136,36 @@ func SplitOmniscientView(v view.View, seat state.PlayerID) (view.View, *Diag) {
 // keeps loading); every other set digests the v1 hash plus its own
 // name and token-format version, so a checkpoint cannot be read under the
 // wrong feature set.
-func EncoderHashFor(fs FeatureSet) uint64 { return encoderHashForW(fs, OptionDenseWidth) }
-
-// EncoderHashForV1Options is EncoderHashFor at the 24-wide option row
-// (OptionDenseWidthV1): the hash every network of feature set fs exported
-// before the relative-seat option columns carries. Loaders accept it and
-// read only the first 24 option columns.
-func EncoderHashForV1Options(fs FeatureSet) uint64 {
-	return encoderHashForW(fs, OptionDenseWidthV1)
+func EncoderHashFor(fs FeatureSet) uint64 {
+	return encoderHashForDenseW(fs, DenseWidth, OptionDenseWidth)
 }
 
-// encoderHashForW is EncoderHashFor at option dense width w.
-func encoderHashForW(fs FeatureSet, w int) uint64 {
+// EncoderHashForV1Dense is EncoderHashFor at the 68-wide dense vector
+// (DenseWidthV1): the hash every network of feature set fs exported after
+// the relative-seat option columns and before the Commander block carries.
+// Loaders accept it and read only the first 68 dense columns.
+func EncoderHashForV1Dense(fs FeatureSet) uint64 {
+	return encoderHashForDenseW(fs, DenseWidthV1, OptionDenseWidth)
+}
+
+// EncoderHashForV1Options is EncoderHashFor at the 24-wide option row
+// (OptionDenseWidthV1) and the 68-wide dense vector: the hash every network
+// of feature set fs exported before the relative-seat option columns
+// carries. Loaders accept it and read only the first 24 option columns.
+func EncoderHashForV1Options(fs FeatureSet) uint64 {
+	return encoderHashForDenseW(fs, DenseWidthV1, OptionDenseWidthV1)
+}
+
+// encoderHashForDenseW is EncoderHashFor at an explicit state dense width
+// and option dense width.
+func encoderHashForDenseW(fs FeatureSet, denseW, w int) uint64 {
 	if fs == FeaturesV1 {
-		return encoderHashOptW(w)
+		return encoderHashDenseOptW(denseW, w)
 	}
 	if fs == FeaturesEntity {
-		return encoderHashWith(fs, entityHashSuffix(), w)
+		return encoderHashWithDense(fs, entityHashSuffix(), denseW, w)
 	}
-	return encoderHashWith(fs, "", w)
+	return encoderHashWithDense(fs, "", denseW, w)
 }
 
 // EncoderHashEntityV1 is the encoder digest of the format-1 (68-wide) entity
@@ -162,18 +173,19 @@ func encoderHashForW(fs FeatureSet, w int) uint64 {
 // relational slots existed. It is not a checkpointable feature set for
 // training (FeaturesForHash refuses it), only a load path.
 //
-// Every format-1 entity network predates the relative-seat option columns, so
-// this hash is taken at the 24-wide option row.
+// Every format-1 entity network predates the relative-seat option columns and
+// the Commander block, so this hash is taken at the 68-wide dense vector and
+// the 24-wide option row.
 func EncoderHashEntityV1() uint64 {
-	return encoderHashWith(FeaturesEntity, entityHashSuffixV1(), OptionDenseWidthV1)
+	return encoderHashWithDense(FeaturesEntity, entityHashSuffixV1(), DenseWidthV1, OptionDenseWidthV1)
 }
 
-// encoderHashWith is EncoderHashFor's body with the entity suffix supplied by
-// the caller, so the format-1 and format-2 entity hashes share one string
-// shape.
-func encoderHashWith(fs FeatureSet, entSuffix string, optW int) uint64 {
+// encoderHashWithDense is EncoderHashFor's body with the entity suffix
+// supplied by the caller, so the format-1 and format-2 entity hashes share
+// one string shape.
+func encoderHashWithDense(fs FeatureSet, entSuffix string, denseW, optW int) uint64 {
 	s := fmt.Sprintf("gorge-policynet-features\x1fbase=%#016x\x1fset=%s\x1fmz-format=1\x1fpins=%d,%d",
-		encoderHashOptW(optW), fs, hashID("mz|bf-opp|canblock"), hashID("mz|me|avail"))
+		encoderHashDenseOptW(denseW, optW), fs, hashID("mz|bf-opp|canblock"), hashID("mz|me|avail"))
 	s += entSuffix
 	if fs == FeaturesMZOwnLib {
 		s += ownLibHashSuffix()
@@ -190,10 +202,10 @@ func encoderHashWith(fs FeatureSet, entSuffix string, optW int) uint64 {
 }
 
 // FeaturesForHash maps a checkpoint's encoder hash back to the non-diagnostic
-// feature set it was written under. It knows only current-width hashes: a
-// 24-wide option row's hash is not accepted here (that would make the legacy
-// format-1 entity hash checkpointable); featuresForHashW accepts both widths
-// and also reports which one the hash was taken at.
+// feature set it was written under. It knows only current-width hashes: an
+// older dense or option width's hash is not accepted here (that would make a
+// legacy hash checkpointable); featuresForHashW accepts the legacy widths and
+// also reports which widths the hash was taken at.
 func FeaturesForHash(h uint64) (FeatureSet, bool) {
 	for _, fs := range []FeatureSet{FeaturesV1, FeaturesMZ, FeaturesEntity, FeaturesMZOwnLib, FeaturesMZGrave} {
 		if EncoderHashFor(fs) == h {
@@ -203,19 +215,23 @@ func FeaturesForHash(h uint64) (FeatureSet, bool) {
 	return 0, false
 }
 
-// featuresForHashW is FeaturesForHash that also accepts the 24-wide option
-// row's hashes (EncoderHashForV1Options) and reports the option dense width
-// the hash was taken at.
-func featuresForHashW(h uint64) (FeatureSet, int, bool) {
+// featuresForHashW is FeaturesForHash that also accepts the legacy dense and
+// option widths (EncoderHashForV1Dense, EncoderHashForV1Options) and reports
+// the state dense and option dense widths the hash was taken at.
+func featuresForHashW(h uint64) (FeatureSet, int, int, bool) {
 	if fs, ok := FeaturesForHash(h); ok {
-		return fs, OptionDenseWidth, true
+		return fs, DenseWidth, OptionDenseWidth, true
 	}
-	for _, fs := range []FeatureSet{FeaturesV1, FeaturesMZ, FeaturesEntity, FeaturesMZOwnLib, FeaturesMZGrave} {
-		if EncoderHashForV1Options(fs) == h {
-			return fs, OptionDenseWidthV1, true
+	for _, denseW := range [...]int{DenseWidthV1} {
+		for _, optW := range [...]int{OptionDenseWidth, OptionDenseWidthV1} {
+			for _, fs := range []FeatureSet{FeaturesV1, FeaturesMZ, FeaturesEntity, FeaturesMZOwnLib, FeaturesMZGrave} {
+				if encoderHashForDenseW(fs, denseW, optW) == h {
+					return fs, denseW, optW, true
+				}
+			}
 		}
 	}
-	return 0, 0, false
+	return 0, 0, 0, false
 }
 
 // Features is the feature set the scorer's model was trained under; a seat
