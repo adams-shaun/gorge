@@ -272,11 +272,14 @@ func (e *Encoder) prelude(s *dirac.State, d *dirac.Decision, seat uint8) (uint8,
 		dn[22+k] = float32(me.pool[k])
 	}
 	// The Commander block: the kernel is 2-seat, so each relative seat has
-	// one other commander to take damage from. A non-Commander game leaves
-	// the block zero except the left-the-game bit.
+	// one other commander to take damage from. Blocks are relative to the
+	// deciding seat, the same order policynet writes: block 0 is the viewer,
+	// block 1 the next seat in turn order. A non-Commander game leaves the
+	// block zero except the left-the-game bit.
 	cmdGame := s.FeatCommanderGame()
-	for p := uint8(0); p < 2; p++ {
-		base := denseCmd0 + int(p)*commanderBlockWidth
+	for blk := uint8(0); blk < 2; blk++ {
+		p := (seat + blk) & 1
+		base := denseCmd0 + int(blk)*commanderBlockWidth
 		if s.FeatLost(p) {
 			dn[base+denseCmdLost] = 1
 		}

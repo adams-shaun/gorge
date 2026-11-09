@@ -25,7 +25,7 @@ import (
 //	uint32 × 7                rows, H, hidden, stateDenseW, optSlotW, optDenseW,
 //	                          valueHidden (schema version 3+; 0 = no value head)
 //	float32 × rows·H          Table
-//	float32 × DenseWidth·H    StateW
+//	float32 × StateDenseW()·H StateW
 //	float32 × H               StateB
 //	float32 × hidden·inW      HidW
 //	float32 × hidden          HidB

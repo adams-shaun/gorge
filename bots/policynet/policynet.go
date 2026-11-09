@@ -277,13 +277,30 @@ func encodeState(buf *StateBuf, vp *view.View, seat state.PlayerID) State {
 	// battlefield, and whether it has left the game. A non-Commander game
 	// leaves the whole block zero except the left-the-game bit.
 	commanderGame := false
-	for _, pv := range seats {
-		if pv != nil && len(pv.Commanders) > 0 {
+	for i := range v.Players {
+		if len(v.Players[i].Commanders) > 0 {
 			commanderGame = true
 			break
 		}
 	}
 	n := len(v.Players)
+	// relPlayer is the player at relative seat r in turn order from the
+	// viewer, the order the seat blocks use. The block buffer holds only the
+	// first maxSeatBlocks relative seats; a 5+ seat game still needs the
+	// player behind a damage column, so read past it in the full list rather
+	// than wrapping into the short buffer.
+	relPlayer := func(r int) *view.PlayerView {
+		if n == 0 {
+			return nil
+		}
+		if meIdx >= 0 {
+			return &v.Players[(meIdx+r)%n]
+		}
+		if r < len(seats) {
+			return seats[r]
+		}
+		return nil
+	}
 	onField := func(pv *view.PlayerView, id state.ObjID) bool {
 		for i := range pv.Battlefield {
 			if pv.Battlefield[i].ID == id {
@@ -308,7 +325,7 @@ func encodeState(buf *StateBuf, vp *view.View, seat state.PlayerID) State {
 		// so the column takes the max over the source seat's commanders.
 		if n > 0 {
 			for k := 1; k < n && k <= 3; k++ {
-				spv := seats[(blk+k)%n]
+				spv := relPlayer(blk + k)
 				if spv == nil || len(spv.Commanders) == 0 {
 					continue
 				}

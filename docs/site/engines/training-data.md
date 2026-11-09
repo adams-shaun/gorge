@@ -48,7 +48,7 @@ It may carry `encoder_hash`; if it does, the loader refuses a net trained on a d
 
 | Constant | Value |
 |---|---|
-| `DENSE_W` (state scalars) | 68 |
+| `DENSE_W` (state scalars) | 92 (68 accepted: a net from before the Commander block reads only the first 68) |
 | `OPT_DENSE_W` (option scalars) | 28 (24 accepted: a net from before the relative-seat columns reads only the first 24) |
 | `SLOT_ROWS` (option slots) | 128 |
 | `TABLE_ROWS` (hashed rows) | 16,384 |
