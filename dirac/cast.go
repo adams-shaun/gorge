@@ -856,7 +856,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.nextStage(k)
 				continue
 			}
-			if pick > 1 || a.ModesFew != 0 { // "choose up to one" takes the multi-pick step
+			if pick > 1 || a.ModesFew != 0 || a.Repeats() { // "choose up to one" takes the multi-pick step
 				switch s.charmModesStep(k, a, d) {
 				case cmPosed:
 					return true
@@ -930,7 +930,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				continue
 			}
 			if a := s.buildAbility(k); a != nil {
-				if tm := a.TgtModes[ti]; tm != 0 && tm&e.mode == 0 {
+				if tm := a.TgtModes[ti]; tm != 0 && tm&a.ModeSet(e.mode) == 0 {
 					s.bld().ti++
 					continue
 				}
@@ -1326,7 +1326,11 @@ func (s *State) applyBuild(k *prep, a Action) {
 		}
 		s.tapPowerDone() // a CostTapPower pick closed (kw_crewsaddle.go)
 	case AkMode:
-		e.mode |= 1 << a.Mode()
+		if ab := s.buildAbility(k); ab != nil && ab.Repeats() {
+			e.mode = ab.ModeAdd(e.mode, int(a.Mode())) // a count per mode (kop/repeat.go)
+		} else {
+			e.mode |= 1 << a.Mode()
+		}
 		s.bld().modesN++
 		if k.gen != nil && k.gen.anyCharmPick {
 			if e.kind != seAbility { // an activation can still be reversed: recorded at payment

@@ -158,6 +158,9 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "printed_delve_gurmag_angler"},                                  // Gurmag Angler cast off Priest of Gix's floating black with two graveyard cards delved: the printed keyword pays through the kernel's existing delve ask (CR 702.66a)
 		{"custom", "printed_delve_murderous_cut"},                                  // Murderous Cut cast off Priest of Gix's floating black with graveyard cards delved: the same printed-keyword path
 		{"custom", "cmd5_ancient_tomb_two_colourless_fund_a_spell"},                // kfuzz cmd5 heuristic pair 10: Ancient Tomb's one activation adds {C}{C} (a pain-only source, 2 damage), so beside two Mountains it funds Archwing Dragon's {2}{R}{R} and the cast is offered (CR 106.1, 605.1a); played on its own decks' table because the cmd5 pool no longer holds the card
+		{"custom", "cosmium_confluence_destroys_two_enchantments"},                 // Cosmium Confluence chooses its destroy mode twice and its search mode once: the two enchantments are the two instances' targets, the groups asked in printed order (CR 700.2d, 601.2c)
+		{"custom", "moment_of_reckoning_destroys_twice"},                           // Moment of Reckoning chooses its destroy mode twice: each instance destroys its own target (CR 700.2d)
+		{"custom", "season_of_loss_sacrifices_three_times"},                        // Season of Loss chooses its one-pawprint mode three times and its two-pawprint mode once: five pawprints, nothing left to add (CR 700.2i, 107.18)
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if div := replayStdRepro(t, reg, c.pool, c.name, fullSurface[c.name]); div != nil {

@@ -704,7 +704,9 @@ type lAbility struct {
 	Modes           int // charm: number of modes to choose from
 	// charm: CharmNum$ (the most picks) and MinCharmNum$ (default: the most)
 	ModesPick, ModesMin int
-	ModeRestrict        uint8 // charm ChoiceRestriction$: 0 none, 1 ThisTurn, 2 ThisGame (lower_charmrestrict.go)
+	RepMax, RepCost     [4]uint8 // charm CanRepeatModes$ (lower_charmrepeat.go): the most each mode is chosen, its pawprint price
+	RepBudget           uint8    // charm Pawprint$
+	ModeRestrict        uint8    // charm ChoiceRestriction$: 0 none, 1 ThisTurn, 2 ThisGame (lower_charmrestrict.go)
 	Trigger             *lTrigger
 	Prog                []lInstr
 	Mana                *lMana

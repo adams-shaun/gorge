@@ -392,7 +392,11 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.touchSl(src)
 		}
 	case kop.OpCharm:
-		if e.mode&(1<<uint(in.C)) == 0 {
+		if in.C&kop.CharmRepeat != 0 {
+			if !s.charmRepeatEnter(k, in.C) {
+				s.res.pc += uint8(s.value(k, in.A))
+			}
+		} else if e.mode&(1<<uint(in.C)) == 0 {
 			s.res.pc += uint8(s.value(k, in.A))
 		}
 	case kop.OpIfKicked:
