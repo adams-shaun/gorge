@@ -16,7 +16,7 @@ const (
 	DenseWidth       = 68
 	EntityRawWidth   = 100
 	EntityRawWidthV1 = 68
-	OptionDenseWidth = 24
+	OptionDenseWidth = 28
 	OptionSlotWidth  = 128
 	// EntityRawWidthRelEnd is the end of the relational block (68..83); the
 	// v2 block (colour, pips, category) starts above it.

@@ -246,7 +246,7 @@ func loadGNN(path string, h gnHeader, tensors map[string][]float32, shapes map[s
 		denseLeaf: lin("dense_leaf", policynet.DenseWidth, d, true),
 		norm:      norm("norm", d),
 		slots:     get("opt_in.slots.weight", gnSlotRow, d),
-		odense:    lin("opt_in.dense", policynet.OptionDenseWidth, d, true),
+		odense:    lin("opt_in.dense", h.Consts["OPT_DENSE_W"], d, true),
 		bot:       get("opt_in.bot", d),
 		eaProj:    lin("ea_proj", d, d, true),
 		ebProj:    lin("eb_proj", d, d, true),
@@ -724,7 +724,7 @@ func gnnOptions(n *gnGNN, sc *gnnScratch, x []float32, tOff []int, opts [][]poli
 	ha := takeF(&sc.ha, no*d)
 	hb := takeF(&sc.hb, no*d)
 	// o = opt_in.dense(dense) + slots + hashed bag + bot, every option's dense row in one GEMM
-	const ow = policynet.OptionDenseWidth
+	ow := n.odense.in // the net's own option width (24 or 28)
 	od := takeF(&sc.od, no*ow)
 	j := 0
 	for b := range opts {

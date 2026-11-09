@@ -201,16 +201,20 @@ func encodeState(buf *StateBuf, vp *view.View, seat state.PlayerID) State {
 	}
 
 	// Seat blocks: the viewer's own block first, then the other seats in
-	// ascending seat order, zero-filled beyond the table. The DENSE blocks
-	// cap at maxSeatBlocks (a fixed-width vector must); the sparse bag below
-	// iterates everyOther uncapped — its length is variable by design.
+	// turn order from the viewer (next, the one after, ...), zero-filled
+	// beyond the table. A seat that has left keeps its place in the view, so
+	// it keeps its block. With two seats this is the old ascending order
+	// exactly. The DENSE blocks cap at maxSeatBlocks (a fixed-width vector
+	// must); the sparse bag below iterates everyOther uncapped, in ascending
+	// seat order — its length is variable by design.
 	var me *view.PlayerView
+	meIdx := -1
 	var othersBuf [8]*view.PlayerView
 	everyOther := othersBuf[:0]
 	for i := range v.Players {
 		pv := &v.Players[i]
 		if pv.ID == seat {
-			me = pv
+			me, meIdx = pv, i
 		} else {
 			everyOther = append(everyOther, pv)
 		}
@@ -218,8 +222,15 @@ func encodeState(buf *StateBuf, vp *view.View, seat state.PlayerID) State {
 	var seatsBuf [maxSeatBlocks]*view.PlayerView
 	seats := seatsBuf[:]
 	seats[0] = me
-	for i := 0; i < len(everyOther) && i < maxSeatBlocks-1; i++ {
-		seats[1+i] = everyOther[i]
+	if meIdx >= 0 {
+		n := len(v.Players)
+		for r := 1; r < n && r < maxSeatBlocks; r++ {
+			seats[r] = &v.Players[(meIdx+r)%n]
+		}
+	} else {
+		for i := 0; i < len(everyOther) && i < maxSeatBlocks-1; i++ {
+			seats[1+i] = everyOther[i]
+		}
 	}
 	for blk, pv := range seats {
 		base := denseSeat0 + blk*seatBlockWidth

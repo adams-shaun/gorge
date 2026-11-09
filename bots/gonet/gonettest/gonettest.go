@@ -179,7 +179,28 @@ func writeShape(dir, name string, sh Shape, rawW int, extra map[string]any, extI
 	norm("norm", d)
 	rand("opt_in.slots.weight", policynet.OptionSlotWidth, d)
 	lin("opt_in.hproj", e, d, false)
-	lin("opt_in.dense", policynet.OptionDenseWidth, d, true)
+	// opt_in.dense is always DRAWN 24 columns wide (OptionDenseWidthV1), so
+	// every later tensor's pseudo-random sequence is what Write produced
+	// before the relative-seat option columns, then written optW wide; the
+	// extra columns are zero. extra {"OPT_DENSE_W": 24} writes a
+	// pre-relative-seat network.
+	optW := policynet.OptionDenseWidth
+	if w, ok := extra["OPT_DENSE_W"].(int); ok {
+		optW = w
+	}
+	if optW < policynet.OptionDenseWidthV1 {
+		return "", fmt.Errorf("gonettest: OPT_DENSE_W %d is below %d", optW, policynet.OptionDenseWidthV1)
+	}
+	{
+		f := make([]float32, d*optW)
+		for o := 0; o < d; o++ {
+			for i := 0; i < policynet.OptionDenseWidthV1; i++ {
+				f[o*optW+i] = next()
+			}
+		}
+		ts = append(ts, tensor{"opt_in.dense.weight", []int{d, optW}, f})
+		rand("opt_in.dense.bias", d)
+	}
 	rand("opt_in.bot", d)
 	lin("ea_proj", cd, d, true)
 	lin("eb_proj", cd, d, true)
@@ -264,8 +285,8 @@ func headerShape(tensors []Entry, sh Shape, rawW int, extra map[string]any, lay 
 		"tensors":       tensors,
 	}
 	for k, v := range extra {
-		if k == "EXT_W" { // a const of the net, not a top-level header key
-			h["consts"].(map[string]int)["EXT_W"] = v.(int)
+		if k == "EXT_W" || k == "OPT_DENSE_W" { // a const of the net, not a top-level header key
+			h["consts"].(map[string]int)[k] = v.(int)
 			continue
 		}
 		h[k] = v

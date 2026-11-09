@@ -77,7 +77,7 @@ func TestGraveyardCheckpoint(t *testing.T) {
 			t.Fatalf("mz-grave hash collides with %s", fs)
 		}
 	}
-	if EncoderHashFor(FeaturesMZOwnLib) != 0xdfccca3c483243e2 {
+	if EncoderHashFor(FeaturesMZOwnLib) != 0x615cf1b2d37a1b7c {
 		t.Fatal("mz-ownlib hash moved")
 	}
 	if fs, ok := FeaturesForHash(h); !ok || fs != FeaturesMZGrave || FeaturesMZGrave.Diagnostic() {

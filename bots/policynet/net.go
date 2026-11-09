@@ -107,6 +107,11 @@ type Model struct {
 	// a feature-family experiment sets it through NewModelExtra. Not part of
 	// EncoderHash and not checkpointable.
 	ExtraW int
+	// optDenseW is the option dense width the model reads (OptDenseW): 0
+	// means OptionDenseWidth. A checkpoint of the 24-wide option row loads
+	// with 24 and reads only the first 24 columns of Option.Dense, so it
+	// scores exactly as it did before the relative-seat columns.
+	optDenseW int
 	// Features is the feature set (features.go) the model encodes under.
 	// FeaturesV1, the zero value, is the pinned encoder every existing
 	// checkpoint was trained on. It changes no geometry: the other sets only
@@ -409,6 +414,32 @@ func NewModelExtra(rows, h, hidden, extraW int, rng *rand.Rand) *Model {
 		ExtraW: extraW,
 		InW:    2*h + OptionSlotWidth + OptionDenseWidth + extraW,
 	}
+	return m.initWeights(rng)
+}
+
+// NewModelOptDense is NewModel reading an option dense row of width w
+// (OptionDenseWidth or OptionDenseWidthV1): a 24-wide model scores only the
+// first 24 option columns, as every network before the relative-seat
+// columns did. With w == OptionDenseWidthV1 the weights draw from rng in
+// exactly the order NewModel drew them before the widening.
+func NewModelOptDense(rows, h, hidden, w int, rng *rand.Rand) *Model {
+	if w != OptionDenseWidth && w != OptionDenseWidthV1 {
+		panic(fmt.Sprintf("policynet: option dense width %d, want %d or %d", w, OptionDenseWidthV1, OptionDenseWidth))
+	}
+	m := &Model{Rows: rows, H: h, Hidden: hidden, InW: 2*h + OptionSlotWidth + w, optDenseW: w}
+	return m.initWeights(rng)
+}
+
+// OptDenseW is the option dense width the model reads.
+func (m *Model) OptDenseW() int {
+	if m.optDenseW == 0 {
+		return OptionDenseWidth
+	}
+	return m.optDenseW
+}
+
+func (m *Model) initWeights(rng *rand.Rand) *Model {
+	rows, h, hidden := m.Rows, m.H, m.Hidden
 	m.Table = make([]float32, rows*h)
 	m.StateW = make([]float32, DenseWidth*h)
 	m.StateB = make([]float32, h)
@@ -490,8 +521,8 @@ func (m *Model) inputVector(s []float32, o Option, c *entCache) []float32 {
 		}
 	}
 	off += OptionSlotWidth
-	copy(x[off:], o.Dense)
-	off += OptionDenseWidth
+	copy(x[off:off+m.OptDenseW()], o.Dense)
+	off += m.OptDenseW()
 	for i := 0; i < m.ExtraW && i < len(o.Extra); i++ {
 		x[off+i] = o.Extra[i]
 	}

@@ -57,7 +57,10 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 	}
 	models := map[policynet.FeatureSet]*policynet.Model{}
 	for _, fs := range []policynet.FeatureSet{policynet.FeaturesV1, policynet.FeaturesMZ} {
-		m := policynet.NewModel(policynet.TableRows, 8, 16, rand.New(rand.NewPCG(11, uint64(fs))))
+		// The pinned models are 24-wide (the option row before the
+		// relative-seat columns): they score exactly as before over the
+		// widened encoding, which is what this digest proves.
+		m := policynet.NewModelOptDense(policynet.TableRows, 8, 16, policynet.OptionDenseWidthV1, rand.New(rand.NewPCG(11, uint64(fs))))
 		m.Features = fs
 		models[fs] = m
 	}
@@ -125,6 +128,11 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 					writeJSON(len(sets), opts)
 					st = truncate(st)
 				}
+				// the pinned sets' option rows are the first 24 columns:
+				// the relative-seat columns (24..27) are entity-full's
+				for k := range opts {
+					opts[k].Dense = opts[k].Dense[:policynet.OptionDenseWidthV1]
+				}
 				writeJSON(i, st)
 				writeJSON(i, opts)
 				if m := models[fs]; m != nil {
@@ -152,8 +160,11 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 	// moves whenever the relational slots or the v2 block (colour, pip counts,
 	// coarse category at 84..99) do. v1, mz and entity keep their pins through
 	// the v2 block because it is appended above every slot those sets read, which
-	// this test's other three digests prove.
-	want := []uint64{0xa18e3b3aa51a7cbb, 0xcc0da53e80b20357, 0xadbda00837a5504b, 0xaf64d95f4b2b2145}
+	// this test's other three digests prove. entity-full also carries the
+	// whole option row, so it moved when the relative-seat option columns
+	// (24..27) were appended; v1, mz and entity hash the first 24 columns and
+	// score 24-wide models, and kept their pins through that change.
+	want := []uint64{0xa18e3b3aa51a7cbb, 0xcc0da53e80b20357, 0xadbda00837a5504b, 0x20fe633f48af9965}
 	t.Logf("decisions %d, digests v1=%#016x mz=%#016x entity=%#016x entity-full=%#016x relDecisions=%d combatDecisions=%d",
 		decisions, digests[0], digests[1], digests[2], digests[3], relDecisions, combatDecisions)
 	if decisions < 200 {

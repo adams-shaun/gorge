@@ -164,7 +164,7 @@ func (sc *Scorer) ScoreOption(o Option) float32 {
 		}
 	}
 	off += OptionSlotWidth
-	copy(x[off:], o.Dense)
+	copy(x[off:off+m.OptDenseW()], o.Dense)
 	m.entFillInput(x, o, sc.ec)
 	return sc.scoreHead(x) + m.residual(o)
 }

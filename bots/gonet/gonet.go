@@ -259,16 +259,23 @@ func Load(path string) (*Net, error) {
 			return nil, fmt.Errorf("gonet %s: encoder_hash %q: %w", path, h.EncoderHash, err)
 		}
 		live := policynet.EncoderHashFor(policynet.FeaturesEntity)
+		live24 := policynet.EncoderHashForV1Options(policynet.FeaturesEntity)
 		v1 := policynet.EncoderHashEntityV1()
+		optW := h.Consts["OPT_DENSE_W"]
 		switch {
-		case got == live && rawW == policynet.EntityRawWidth, got == v1 && rawW == policynet.EntityRawWidthV1:
+		case got == live && rawW == policynet.EntityRawWidth && optW == policynet.OptionDenseWidth,
+			got == live24 && rawW == policynet.EntityRawWidth && optW == policynet.OptionDenseWidthV1,
+			got == v1 && rawW == policynet.EntityRawWidthV1 && optW == policynet.OptionDenseWidthV1:
 			hashChecked = true
-		case got == live, got == v1:
-			wantW := policynet.EntityRawWidthV1
-			if got == live {
+		case got == live, got == live24, got == v1:
+			wantW, wantOpt := policynet.EntityRawWidthV1, policynet.OptionDenseWidthV1
+			if got != v1 {
 				wantW = policynet.EntityRawWidth
 			}
-			return nil, fmt.Errorf("gonet %s: encoder hash %#x does not match RAW_W = %d (that encoder is %d wide)", path, got, rawW, wantW)
+			if got == live {
+				wantOpt = policynet.OptionDenseWidth
+			}
+			return nil, fmt.Errorf("gonet %s: encoder hash %#x does not match RAW_W = %d, OPT_DENSE_W = %d (that encoder is %d wide with %d option columns)", path, got, rawW, optW, wantW, wantOpt)
 		default:
 			return nil, fmt.Errorf("gonet %s: encoder hash %#x does not match this build's entity encoder %#x — the encoder drifted since this network was trained", path, got, live)
 		}
@@ -278,8 +285,15 @@ func Load(path string) (*Net, error) {
 	default:
 		return nil, fmt.Errorf("gonet %s: arch %q: no Go forward pass (this build reads mlp and gnn)", path, h.Arch)
 	}
+	// OPT_DENSE_W is 28, or 24 for a network exported before the
+	// relative-seat option columns: such a net reads only the first 24
+	// columns of an option's dense row, so it scores exactly as it did.
+	optDenseW := h.Consts["OPT_DENSE_W"]
+	if optDenseW != policynet.OptionDenseWidth && optDenseW != policynet.OptionDenseWidthV1 {
+		return nil, fmt.Errorf("gonet %s: OPT_DENSE_W = %d, this build reads %d or %d", path, optDenseW, policynet.OptionDenseWidthV1, policynet.OptionDenseWidth)
+	}
 	want := map[string]int{"DENSE_W": policynet.DenseWidth,
-		"OPT_DENSE_W": policynet.OptionDenseWidth, "TABLE_ROWS": gnRows, "SLOT_ROWS": gnSlotRow, "GROUPS": gnGroups}
+		"TABLE_ROWS": gnRows, "SLOT_ROWS": gnSlotRow, "GROUPS": gnGroups}
 	for k, v := range want {
 		if h.Consts[k] != v {
 			return nil, fmt.Errorf("gonet %s: %s = %d, this build has %d", path, k, h.Consts[k], v)
@@ -368,7 +382,7 @@ func Load(path string) (*Net, error) {
 	g.norm = norm("norm", d)
 	g.slots = get("opt_in.slots.weight", gnSlotRow, d)
 	g.hproj = lin("opt_in.hproj", e, d, false)
-	g.odense = lin("opt_in.dense", policynet.OptionDenseWidth, d, true)
+	g.odense = lin("opt_in.dense", optDenseW, d, true)
 	g.bot = get("opt_in.bot", d)
 	g.eaProj = lin("ea_proj", cd, d, true)
 	g.ebProj = lin("eb_proj", cd, d, true)
@@ -678,16 +692,14 @@ func (g *Net) options(sc *gnScratch, st *policynet.State, s []float32, opts []po
 	sc.pb = grow(sc.pb, nc*d)
 	sc.paOK = growB(sc.paOK, nc)
 	sc.pbOK = growB(sc.pbOK, nc)
-	var odense [policynet.OptionDenseWidth]float32
+	var odenseBuf [policynet.OptionDenseWidth]float32
+	odense := odenseBuf[:g.odense.in] // the net's own option width (24 or 28)
 	for j := range opts {
 		op := &opts[j]
 		o := sc.o[j*d : (j+1)*d]
 		// bag(slots) + hproj(bag(hashed)) + dense(opt_dense) + bot·bot_vec
-		copy(odense[:], op.Dense)
-		for k := len(op.Dense); k < len(odense); k++ {
-			odense[k] = 0
-		}
-		g.odense.apply(o, odense[:])
+		clear(odense[copy(odense, op.Dense):])
+		g.odense.apply(o, odense)
 		for _, f := range op.Slots {
 			if r := int(f.Row); r < gnSlotRow {
 				axpy(o, g.slots[r*d:(r+1)*d], f.Value)

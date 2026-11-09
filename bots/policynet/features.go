@@ -133,28 +133,44 @@ func SplitOmniscientView(v view.View, seat state.PlayerID) (view.View, *Diag) {
 // keeps loading); every other set digests the v1 hash plus its own
 // name and token-format version, so a checkpoint cannot be read under the
 // wrong feature set.
-func EncoderHashFor(fs FeatureSet) uint64 {
+func EncoderHashFor(fs FeatureSet) uint64 { return encoderHashForW(fs, OptionDenseWidth) }
+
+// EncoderHashForV1Options is EncoderHashFor at the 24-wide option row
+// (OptionDenseWidthV1): the hash every network of feature set fs exported
+// before the relative-seat option columns carries. Loaders accept it and
+// read only the first 24 option columns.
+func EncoderHashForV1Options(fs FeatureSet) uint64 {
+	return encoderHashForW(fs, OptionDenseWidthV1)
+}
+
+// encoderHashForW is EncoderHashFor at option dense width w.
+func encoderHashForW(fs FeatureSet, w int) uint64 {
 	if fs == FeaturesV1 {
-		return EncoderHash()
+		return encoderHashOptW(w)
 	}
 	if fs == FeaturesEntity {
-		return encoderHashWith(fs, entityHashSuffix())
+		return encoderHashWith(fs, entityHashSuffix(), w)
 	}
-	return encoderHashWith(fs, "")
+	return encoderHashWith(fs, "", w)
 }
 
 // EncoderHashEntityV1 is the encoder digest of the format-1 (68-wide) entity
 // encoding: the hash every network and training corpus recorded before the
 // relational slots existed. It is not a checkpointable feature set for
 // training (FeaturesForHash refuses it), only a load path.
-func EncoderHashEntityV1() uint64 { return encoderHashWith(FeaturesEntity, entityHashSuffixV1()) }
+//
+// Every format-1 entity network predates the relative-seat option columns, so
+// this hash is taken at the 24-wide option row.
+func EncoderHashEntityV1() uint64 {
+	return encoderHashWith(FeaturesEntity, entityHashSuffixV1(), OptionDenseWidthV1)
+}
 
 // encoderHashWith is EncoderHashFor's body with the entity suffix supplied by
 // the caller, so the format-1 and format-2 entity hashes share one string
 // shape.
-func encoderHashWith(fs FeatureSet, entSuffix string) uint64 {
+func encoderHashWith(fs FeatureSet, entSuffix string, optW int) uint64 {
 	s := fmt.Sprintf("gorge-policynet-features\x1fbase=%#016x\x1fset=%s\x1fmz-format=1\x1fpins=%d,%d",
-		EncoderHash(), fs, hashID("mz|bf-opp|canblock"), hashID("mz|me|avail"))
+		encoderHashOptW(optW), fs, hashID("mz|bf-opp|canblock"), hashID("mz|me|avail"))
 	s += entSuffix
 	if fs == FeaturesMZOwnLib {
 		s += ownLibHashSuffix()
@@ -179,6 +195,21 @@ func FeaturesForHash(h uint64) (FeatureSet, bool) {
 		}
 	}
 	return 0, false
+}
+
+// featuresForHashW is FeaturesForHash that also accepts the 24-wide option
+// row's hashes (EncoderHashForV1Options) and reports the option dense width
+// the hash was taken at.
+func featuresForHashW(h uint64) (FeatureSet, int, bool) {
+	if fs, ok := FeaturesForHash(h); ok {
+		return fs, OptionDenseWidth, true
+	}
+	for _, fs := range []FeatureSet{FeaturesV1, FeaturesMZ, FeaturesEntity, FeaturesMZOwnLib, FeaturesMZGrave} {
+		if EncoderHashForV1Options(fs) == h {
+			return fs, OptionDenseWidthV1, true
+		}
+	}
+	return 0, 0, false
 }
 
 // Features is the feature set the scorer's model was trained under; a seat

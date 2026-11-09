@@ -79,11 +79,16 @@ const (
 // trained before the drift refuses to load (TestEncoderHashPinned holds the
 // literal). The full encoding goldens (policynet_test.go) pin the encodings
 // themselves; this hash is the wire-contract digest a checkpoint carries.
-func EncoderHash() uint64 {
+func EncoderHash() uint64 { return encoderHashOptW(OptionDenseWidth) }
+
+// encoderHashOptW is EncoderHash with the option dense width w: the current
+// OptionDenseWidth, or OptionDenseWidthV1 for the networks exported before
+// the relative-seat option columns (their hashes still load).
+func encoderHashOptW(w int) uint64 {
 	var b strings.Builder
 	b.WriteString("gorge-policynet-encoder-v1\x1f")
 	fmt.Fprintf(&b, "rows=%d\ndense=%d\nslots=%d\noptdense=%d\n",
-		TableRows, DenseWidth, OptionSlotWidth, OptionDenseWidth)
+		TableRows, DenseWidth, OptionSlotWidth, w)
 	writeVocab := func(name string, vs []string) {
 		b.WriteString(name)
 		b.WriteByte('=')
@@ -148,7 +153,7 @@ func WriteOracleCheckpoint(m *Model, w io.Writer) error {
 }
 
 func writeCheckpoint(m *Model, w io.Writer) error {
-	return writeCheckpointAs(m, w, EncoderHashFor(m.Features), EntityRawWidth, m.EntW)
+	return writeCheckpointAs(m, w, encoderHashForW(m.Features, m.OptDenseW()), EntityRawWidth, m.EntW)
 }
 
 // writeCheckpointAs writes a checkpoint under an explicit encoder hash and
@@ -176,7 +181,7 @@ func writeCheckpointAs(m *Model, w io.Writer, hash uint64, entRaw int, entW []fl
 		_, err := bw.Write(b4[:])
 		return err
 	}
-	geom := []uint32{uint32(m.Hidden), uint32(DenseWidth), uint32(OptionSlotWidth), uint32(OptionDenseWidth), uint32(m.ValueHidden)}
+	geom := []uint32{uint32(m.Hidden), uint32(DenseWidth), uint32(OptionSlotWidth), uint32(m.OptDenseW()), uint32(m.ValueHidden)}
 	blocks := [][]float32{m.Table, m.StateW, m.StateB, m.HidW, m.HidB, m.OutW, {m.OutB}, {m.ResidualW}, m.VHidW, m.VHidB, m.VOutW, {m.VOutB}}
 	if m.EntK > 0 {
 		geom = append(geom, uint32(m.EntK), uint32(entRaw))
@@ -238,12 +243,21 @@ func LoadOracleCheckpointFile(path string) (*Model, error) {
 
 // oracleFeaturesForHash maps an encoder hash onto the diagnostic set it names.
 func oracleFeaturesForHash(h uint64) (FeatureSet, bool) {
-	for _, fs := range []FeatureSet{FeaturesMZOppHand, FeaturesMZOracle} {
-		if EncoderHashFor(fs) == h {
-			return fs, true
+	fs, _, ok := oracleFeaturesForHashW(h)
+	return fs, ok
+}
+
+// oracleFeaturesForHashW is oracleFeaturesForHash that also reports the
+// option dense width the hash was taken at.
+func oracleFeaturesForHashW(h uint64) (FeatureSet, int, bool) {
+	for _, w := range [...]int{OptionDenseWidth, OptionDenseWidthV1} {
+		for _, fs := range []FeatureSet{FeaturesMZOppHand, FeaturesMZOracle} {
+			if encoderHashForW(fs, w) == h {
+				return fs, w, true
+			}
 		}
 	}
-	return 0, false
+	return 0, 0, false
 }
 
 func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
@@ -268,13 +282,13 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 			return nil, fmt.Errorf("checkpoint: not an oracle checkpoint (its feature set reads no hidden information); load it with LoadCheckpoint")
 		}
 	}
-	features, ok := FeaturesForHash(h)
+	features, hashOptW, ok := featuresForHashW(h)
 	legacyEnt := false
 	if !ok && !oracle && h == EncoderHashEntityV1() {
-		features, ok, legacyEnt = FeaturesEntity, true, true
+		features, hashOptW, ok, legacyEnt = FeaturesEntity, OptionDenseWidthV1, true, true
 	}
 	if oracle {
-		features, ok = oracleFeaturesForHash(h)
+		features, hashOptW, ok = oracleFeaturesForHashW(h)
 	}
 	if !ok {
 		return nil, fmt.Errorf("checkpoint: encoder hash %#x does not match this build's encoder %#x — the encoder drifted since this checkpoint was trained", h, EncoderHash())
@@ -341,8 +355,8 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 	if slotW != OptionSlotWidth {
 		return nil, fmt.Errorf("checkpoint geometry: option slot width %d, want %d", slotW, OptionSlotWidth)
 	}
-	if optDenseW != OptionDenseWidth {
-		return nil, fmt.Errorf("checkpoint geometry: option dense width %d, want %d", optDenseW, OptionDenseWidth)
+	if optDenseW != hashOptW {
+		return nil, fmt.Errorf("checkpoint geometry: option dense width %d, want %d (its encoder hash's)", optDenseW, hashOptW)
 	}
 	if hh <= 0 || hidden <= 0 {
 		return nil, fmt.Errorf("checkpoint geometry: h %d hidden %d", hh, hidden)
@@ -357,6 +371,8 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 		H:      hh,
 		Hidden: hidden,
 		InW:    2*hh + slotW + optDenseW + 2*entK,
+
+		optDenseW: optDenseW,
 
 		ValueHidden: valueHidden,
 		Features:    features,

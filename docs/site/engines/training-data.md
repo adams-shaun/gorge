@@ -49,7 +49,7 @@ It may carry `encoder_hash`; if it does, the loader refuses a net trained on a d
 | Constant | Value |
 |---|---|
 | `DENSE_W` (state scalars) | 68 |
-| `OPT_DENSE_W` (option scalars) | 24 |
+| `OPT_DENSE_W` (option scalars) | 28 (24 accepted: a net from before the relative-seat columns reads only the first 24) |
 | `SLOT_ROWS` (option slots) | 128 |
 | `TABLE_ROWS` (hashed rows) | 16,384 |
 | `GROUPS` (card pools) | 4 |

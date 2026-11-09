@@ -155,7 +155,10 @@ func TestMZDecisionKindOtherDoesNotSetLandBit(t *testing.T) {
 // checkpoint round-trips carrying its feature set, and a diagnostic model is
 // never written.
 func TestFeatureSetCheckpoints(t *testing.T) {
-	const pinnedMZ = uint64(0xd1f1d3f0cef67bb2)
+	const pinnedMZ = uint64(0x34be3b8dce6281c8)
+	if got := EncoderHashForV1Options(FeaturesMZ); got != 0xd1f1d3f0cef67bb2 {
+		t.Fatalf("EncoderHashForV1Options(mz) = %#016x, want the pre-relative-seat pin 0xd1f1d3f0cef67bb2", got)
+	}
 	if got := EncoderHashFor(FeaturesMZ); got != pinnedMZ {
 		t.Fatalf("EncoderHashFor(mz) = %#016x, want pinned %#016x", got, pinnedMZ)
 	}

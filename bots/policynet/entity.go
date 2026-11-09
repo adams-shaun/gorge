@@ -623,7 +623,7 @@ func (m *Model) entAddTrunk(s []float32, c *entCache) {
 }
 
 // entOffset is the hidden-input offset of the option's entity block.
-func (m *Model) entOffset() int { return 2*m.H + OptionSlotWidth + OptionDenseWidth + m.ExtraW }
+func (m *Model) entOffset() int { return 2*m.H + OptionSlotWidth + m.OptDenseW() + m.ExtraW }
 
 // entFillInput writes [h_EntA ‖ h_EntB] into the option's hidden input x.
 func (m *Model) entFillInput(x []float32, o Option, c *entCache) {

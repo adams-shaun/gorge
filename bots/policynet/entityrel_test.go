@@ -232,6 +232,7 @@ func TestEntityRelationalLayoutAndHashes(t *testing.T) {
 func TestLegacyEntityCheckpointZeroPads(t *testing.T) {
 	rng := rand.New(rand.NewPCG(3, 4))
 	m, ex, _ := valueFixture(rng)
+	narrowOptDense(m) // a format-1 entity net predates the relative-seat option columns
 	m.Features = FeaturesMZ
 	m.Rows = TableRows
 	m.Table = make([]float32, TableRows*m.H)
@@ -321,4 +322,23 @@ func TestLegacyEntityCheckpointZeroPads(t *testing.T) {
 			t.Fatalf("%s: error %q does not name the entity raw width", tc.name, err)
 		}
 	}
+}
+
+// narrowOptDense turns a model built at OptionDenseWidth into one that reads
+// the 24-wide option row (OptionDenseWidthV1), dropping the hidden layer's
+// relative-seat columns: the shape of every network before them.
+func narrowOptDense(m *Model) {
+	if m.OptDenseW() != OptionDenseWidth || m.EntK != 0 {
+		panic("narrowOptDense: want a fresh full-width model")
+	}
+	drop := OptionDenseWidth - OptionDenseWidthV1
+	at := 2*m.H + OptionSlotWidth + OptionDenseWidthV1
+	inW := m.InW - drop
+	hid := make([]float32, 0, m.Hidden*inW)
+	for h := 0; h < m.Hidden; h++ {
+		row := m.HidW[h*m.InW : (h+1)*m.InW]
+		hid = append(hid, row[:at]...)
+		hid = append(hid, row[at+drop:]...)
+	}
+	m.HidW, m.InW, m.optDenseW = hid, inW, OptionDenseWidthV1
 }
