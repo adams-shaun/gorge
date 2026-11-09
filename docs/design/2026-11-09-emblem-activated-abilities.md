@@ -64,7 +64,9 @@ worth designing for so E's data model does not have to be redone, but they are
   `abZones` mask from the same read, so the offer walks skip faces whose mask
   lacks the scanned zone.
 - `dirac/` models emblems as table rows (`kop.Emblem`, `g.emb[p][i]`), not
-  objects, with triggered abilities only. A dirac "supported" card must play
+  objects. `kop.Emblem` carries triggered or static abilities
+  (`dirac/kop/statics.go`, `Emblem.Abilities`) but has no activated-ability
+  slot and no option kind to activate one. A dirac "supported" card must play
   identically to gorge; Karn is not supported there today (not in
   `dirac/docs/support.md`; I did not run the support test), so a gorge-only
   feature changes no supported card.
@@ -91,8 +93,9 @@ from the `Abilities$` SVar names, `SVars` shared with the creating face (so
 - It generalises: Ring emblem triggers, `Stackable$ False` dedup, and shapes
   I/P can move onto the same object later.
 - Cost: every `Zone(ZCommand, …)` reader now sees a non-commander object that
-  is not a dungeon. I audited the readers (list below); one is a real bug if
-  not guarded, the rest are benign.
+  is not a dungeon. I audited the readers in `engine/rules` and `engine/view`
+  (table below, including the ones that only name, scan or classify); one is a
+  real bug if not guarded, the rest are benign or need a one-line skip.
 
 ### B. Registry entry, no object (Karn registered like a continuous effect)
 
@@ -134,7 +137,8 @@ where they are, and revisit C only if P/I/M want it.
 - `events.Kind` append-only: add `EmblemCreate`. Fields (no `Event` struct
   change): `Player` owner, `Obj` creating source (the host whose face owns the
   SVar table; `svarTableOwner` rules decide which face, as for Animate),
-  `Text` = `Name$` + `\x00` + comma-joined `Abilities$` names. `Apply` mints
+  `Text` = `Name$` + `\x00` + comma-joined `Abilities$` names + `\x00` +
+  the creating `Effect` SVar name (the `Stackable$` identity, below). `Apply` mints
   the object (`AddObject` + `Move` library→command, the dungeon sequence). The
   card is built inside `Apply`, from event text and the host's face, so
   a log-only replay reproduces it (the Ring emblem rule). Retirement, only when
@@ -143,9 +147,17 @@ where they are, and revisit C only if P/I/M want it.
 - `Stackable$ False` (Karn, Ob Nixilis, 1996 World Champion all set it):
   `effect.go` dedups through `ContinuousNamed`, a continuous-registry query. An
   emblem that registers no continuous row (Karn's only product is the object)
-  would never be found there, so the implementing ticket must make the dedup ask
-  "is there already an `Emblem` object of this name owned by this player?" in
-  one place, not two.
+  would never be found there, so the dedup needs a new question, asked in one
+  place. It must **not** key on the name: CR 114.3 says most emblems have no
+  name, and a name key would make two different nameless emblems from one
+  player suppress each other. Key it on the creating effect's identity — the
+  host card's face plus the creating `Effect` SVar (both already in the
+  `EmblemCreate` event: `Obj` and the SVar name, stored on the minted object)
+  — so "does this player already own an emblem object minted by this same
+  Effect of this same card?" is the test. `Name$` is display only. (Shape E's
+  four cards all carry `Name$`, so a name key would happen to work for them,
+  but the object design is meant to generalise.) The event `Text` therefore
+  carries the creating SVar name as a third `\x00`-separated field.
 
 ### Activation
 
@@ -153,11 +165,26 @@ where they are, and revisit C only if P/I/M want it.
    three tables to one** (the AGENTS.md rule "dispatch on a word: the existing
    StrCodes table"): `abilityZoneMask`, `abilityZoneOK` and
    `activationZoneMask` should read one table; the new bit is `1 << ZCommand`.
-2. A new file `engine/rules/legal_walk_command.go` (a new file, not an edit to
-   the hot `legal_walk_*.go` walks) enumerates `Zone(ZCommand, p)` objects with
-   `Card.Emblem`, for abilities whose mask has the command bit, and calls the
-   **same** per-ability offer helper the battlefield walk uses. Everything
-   battlefield-specific must be audited when reusing the helper: summoning
+2. There is **no reusable per-ability offer helper today.** The whole gate
+   sequence for a printed activated ability (zone mask, `Activator$` via
+   `activatorAllows`, phases/`PlayerTurn$`, loyalty, `ActivationLimit$`,
+   cost feasibility via `offerCastable`/`autoPayOffer`, targets, `CheckSVar$`,
+   `IsPresent$`, Adapt, Monstrosity, …) is inline in `battlefieldWalk`
+   (`engine/rules/legal_walk_battlefield.go:158`, a ~750-line function; the
+   printed-ability block is roughly lines 250-500). Only the cost feasibility
+   checks are extracted. Ticket 2 therefore **first extracts that printed-ability
+   gate sequence into a named helper inside `legal_walk_battlefield.go`**
+   (AGENTS.md: "a branch in a 300+ line func → a named helper"), a pure
+   move with no behaviour change, proven by the existing walk tests and
+   `TestHeads` not moving. That is a deliberate, minimal hot-file edit; the
+   alternative (re-implementing ~150 lines of gates in a new file) is a pasted
+   block and is rejected. Then a new file
+   `engine/rules/legal_walk_command.go` holds `commandAbilitiesWalk`, which
+   enumerates `Zone(ZCommand, p)` objects with `Card.Emblem`, for abilities
+   whose mask has the command bit, and calls that helper. It is wired into the
+   walk dispatch in `engine/rules/legal.go` (the `w.commandZoneWalk()` …
+   `w.battlefieldWalk()` sequence, ~line 179), next to `w.commandZoneWalk()`.
+   Everything battlefield-specific must be audited when reusing the helper: summoning
    sickness is irrelevant (the emblem has no `{T}`); `tapXType` is tap *other*
    permanents (Karn, CR 302.6 does not apply to them); `Sac<1/Creature>` and
    `Discard<1/Hand>` are ordinary payments; `ActivationPhases$`/`PlayerTurn$`
@@ -189,20 +216,31 @@ where they are, and revisit C only if P/I/M want it.
 | `view/view.go:665` | the emblem appears in the seat's `Command` list | check `describe.go` can name a face with no types; view test; no wire type change |
 | `count_zone_fold.go`, `filter_word.go` `Zone$ Command` counts | "cards in command zone" counts would include the emblem | count `Card.Emblem` out (CR 114.5: neither a card nor a permanent) |
 | triggers: `trigger_zoneskip.go` (`ZCommand` slot) | emblem triggers (future) | out of scope for E |
+| `oracle_snapshot.go:302` `Command: r.zoneNames(ZCommand…)` | the emblem's name appears in the oracle snapshot's `Command` list; reachable if an emblem game is replayed through the oracle harness | none for gorge (it is a real command-zone object, CR 114.1); the oracle/dirac comparison must expect it, which ticket 4 owns |
+| `prio_memo.go:266` priority-memo sensitivity scan | iterates command-zone objects through `prioObjSensitive`; an emblem with activated abilities may mark the memo sensitive | benign: that only costs memo hits; verify the emblem's activation is not memoised away (ticket 2 test) |
+| `statics_costscan.go:81` cost-static scan | reads statics of command-zone objects; an emblem face has none | benign |
+| `potential_plan.go:1330` origin label | labels a plan's origin `command_zone`; only reached for a cast/activation option from `ZCommand` | benign: correct label for an emblem activation |
+| `replacement_match.go:56` `commandReplZoneAdmits` | only consulted for replacements whose source is in `ZCommand`; an emblem face carries no replacements | benign |
+| `mana.go:52` commander tax | returns tax only for `Player.Commanders` ids; an emblem is never one | benign |
 
 ### Determinism, ratchets, dirac
 
 - Every field is derived from event text and the host face's SVar table:
   no map ranges reach events; `Abilities$` names are comma-split in written
   order.
-- `knownUnsupportedParams`: `Effect.Abilities` leaves the ratchet exactly for
-  the shape-E cards when they are made real (Karn, A-Karn, Ob Nixilis, 1996
-  World Champion); the P, I and M rows stay until their own tickets. The
-  paramcensus split must be by card, not by key, or `Effect.Abilities` can only
-  leave when all 12 are done — **this is the main sequencing constraint**
-  (implementing ticket must decide whether to key the ratchet by `(card, param)`
-  or to gate shape E on a recognisable `Name$ Emblem` + `ActivationZone$ Command`
-  pair and keep a residual entry for the rest).
+- Ratchets are already per card, so there is no sequencing constraint here.
+  `knownUnsupportedParams` is `map[string][]string` loaded one JSON file per
+  card (`loadPerCardLabels`, `engine/rules/paramcensus_test.go`; the
+  `testdata/paramcensus/` directory is absent in this tree), and the set
+  baseline is one `<card>\t<labels>` row per card. The only live
+  `param:api:Effect.Abilities` entry is Karn's row,
+  `engine/rules/testdata/paramcensus-sets/DMU.tsv:1`
+  (`param:api:ChooseNumber.ChooseAnyNumber,param:api:Effect.Abilities`);
+  A-Karn, Ob Nixilis, 1996 World Champion and the P/I/M cards have no baseline
+  row. The ticket that makes the emblem real deletes exactly
+  `param:api:Effect.Abilities` from Karn's row and leaves
+  `ChooseNumber.ChooseAnyNumber`. No ratchet refactor, no residual entry, and
+  the P/I/M cards are unaffected whenever shape E lands.
 - Karn's −1 needs `ChooseNumber.ChooseAnyNumber`, the other unsupported param
   in the DMU census row. It is independent of the emblem; the emblem work makes
   the −7 work, not the whole card.
@@ -246,10 +284,13 @@ where they are, and revisit C only if P/I/M want it.
    artifact), targeted (any target), resolved (1 damage, emblem as source), and
    not offered with no untapped artifact / not offered from the opponent's
    seat. Ob Nixilis (`Sacrificed$CardPower`) and A-Karn follow for free.
-   Depends on 1. Removes the shape-E rows from `knownUnsupportedParams`.
+   Depends on 1. Includes the gate-sequence extraction from `battlefieldWalk`
+   described under Activation step 2 (a pure move, first commit of the ticket)
+   and the dispatch line in `legal.go`.
 3. **effects: `Effect` resolution mints the emblem for `Name$ Emblem…` +
-   `Abilities$`.** Stackable dedup, A-Karn, hook-up of ticket 2. Could merge
-   into 2; keep separate if the ratchet change is large.
+   `Abilities$`.** Stackable dedup (keyed on the creating effect, not the
+   name), A-Karn, hook-up of ticket 2. Deletes `param:api:Effect.Abilities`
+   from Karn's `DMU.tsv` row (the only ratchet change). Could merge into 2.
 4. **dirac: activated emblem ability** (`kop.Emblem` slot + option), after 1–3
    land. Independent.
 5. **Shape P** (5 cards) design-then-ticket, after 1–3.
@@ -263,9 +304,8 @@ is why they are a table above.
 
 ## Open questions for the operator
 
-- Is shape P in scope (5 cards)? If not,
-  the object design still holds but `Effect.Abilities` can never leave the
-  ratchet; a residual entry would be permanent.
+- Is shape P in scope (5 cards)? If not, the object design still holds and
+  shape E leaves the ratchet on its own; the P cards simply stay unsupported.
 - Is a quiet-fast-path regression (any game with an emblem leaves it) acceptable?
   A game with a dungeon already has a non-empty command zone, so this only
   extends an existing cost to emblem games.
