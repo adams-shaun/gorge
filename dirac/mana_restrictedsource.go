@@ -553,7 +553,8 @@ func (s *State) payRiderRestr(k *prep, p uint8, cost *kop.ManaCost, x int, exclu
 }
 
 // filtRestrMask: the colours of the restricted ability of the source at sl
-// a script's funding step may activate now (0: none). A widened source
+// a script's funding step may activate now (0: none; an all-at-once
+// ability's lowest colour alone, its one answer). A widened source
 // needs its census ability usable too (gorge lists the source's activation
 // once; the ask offers both abilities).
 func (s *State) filtRestrMask(k *prep, sl Slot) uint8 {
@@ -565,7 +566,15 @@ func (s *State) filtRestrMask(k *prep, sl Slot) uint8 {
 	if rec == nil || rec.kind == rkDyn || !s.restrUsable(k, sl) {
 		return 0
 	}
-	return uint8(k.t.Cards[c].Abilities[rec.ab].ManaColors) & 0x3f
+	ab := &k.t.Cards[c].Abilities[rec.ab]
+	m := uint8(ab.ManaColors) & 0x3f
+	if ab.ManaEach {
+		// an all-at-once ability (Troyan's {G}{U}) is one activation with no
+		// colour ask in gorge, and floatRestrAb floats every colour: a single
+		// answer, so the search charges and branches as gorge does (CR 106.1)
+		m &= -m
+	}
+	return m
 }
 
 // filtRestrDo plays the restricted answer st: the source's restricted mana

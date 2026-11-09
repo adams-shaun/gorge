@@ -274,6 +274,7 @@ DmgTrackExcess	untyped int	1
 DpGroup	untyped int	1
 DpMany	untyped int	3
 DpTrack	untyped int	2
+DrawRememberAll	untyped int	2
 DuDugMark	untyped int	256
 DuFoundAttacking	untyped int	512
 DuFoundTapped	untyped int	64
@@ -1038,6 +1039,7 @@ StEmbNum	StaticFlags	16384
 StFreeOnly	StaticFlags	128
 StFunctionsInExile	StaticFlags	1024
 StFunctionsInGraveyard	StaticFlags	16
+StMayPayLife	StaticFlags	8192
 StMayRaise	StaticFlags	32768
 StOncePerTurn	StaticFlags	2
 StPanhETB	StaticFlags	2048

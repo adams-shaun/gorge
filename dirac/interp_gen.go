@@ -2128,8 +2128,10 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 		act := kop.OpSacrifice
 		// AtEOTTrig$ Sacrifice is the token's own granted trigger: its source
 		// stays the token. Only the AtEOT$ rider is sourced on its creator
-		// (CR 603.7d-e; gorge copypermanent.go scheduleAtEOTRider).
-		creator := NoObj
+		// (CR 603.7d-e; gorge copypermanent.go scheduleAtEOTRider). The
+		// record names the token as its own creator: delayed.ownTrig marks it
+		// for the Panharmonicon echo at fire (trig_ateotecho.go).
+		creator := t
 		if fl&kop.CpExileAtEnd != 0 {
 			act = kop.OpExile // AtEOT$ Exile (gorge scheduleAtEOT, __kwWarpExile)
 			creator = e.obj
