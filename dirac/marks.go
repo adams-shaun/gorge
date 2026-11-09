@@ -438,6 +438,10 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 		h = hmix(h, uint64(g.nask)|uint64(g.ctlRet)<<8|uint64(g.nmay)<<16|uint64(g.nrem)<<24|uint64(g.nchosen)<<32|uint64(g.priSave)<<40|uint64(g.askPrio)<<48|uint64(g.holdPrio)<<56)
 		h = hbytes(h, unsafe.Pointer(&g.rem[0]), uintptr(g.nrem)*unsafe.Sizeof(g.rem[0]))
 		h = hbytes(h, unsafe.Pointer(&g.chosen[0]), uintptr(g.nchosen)*unsafe.Sizeof(g.chosen[0]))
+		if g.nimp != 0 {
+			h = hmix(h, uint64(g.nimp)) // linkImp joins the hash with the persistence that writes it
+			h = hbytes(h, unsafe.Pointer(&g.imp[0]), uintptr(g.nimp)*unsafe.Sizeof(g.imp[0]))
+		}
 	}
 	h = hbytes(h, unsafe.Pointer(&s.pend[0]), uintptr(s.npend)*unsafe.Sizeof(s.pend[0]))
 	if s.g.atkHi != 0 {

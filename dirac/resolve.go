@@ -49,6 +49,7 @@ func (s *State) resolveTop(k *prep) {
 	s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
 	s.res.trigGone = e.kind == seTrigger && e.li != 0 && e.trigObj != NoObj && s.objs[e.trigObj].ver > s.lk(e.li).ver+1
 	if k.gen != nil {
+		s.g.nimp = 0
 		s.g.nrem, s.g.remCnt, s.g.tli = 0, 0, 0 // a resolution remembers afresh (gorge's per-resolution Ctx)
 		s.g.stkCt = 0                           // tgt_stackability.go
 		if k.anyStateCtr && e.kind == seTrigger && e.ab < abCascade &&

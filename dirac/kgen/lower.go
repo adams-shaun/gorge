@@ -129,6 +129,7 @@ type lowerCtx struct {
 	trigXPaid      bool      // the body's Count$xPaid is that announced X (set once the PayManaX cost lowered)
 	wbOK           bool      // costParts: a Waterbend<N> part may lower (an UnlessCost$ read by unless(); payInstr gates the shape)
 	unlessCost     bool      // payInstr: the cost is an UnlessCost$ of a non-delayed body
+	unlessParse    bool      // costHand: the tokens are an UnlessCost$ (ExileFromStack)
 	wardCost       bool      // payInstr: the cost is a Ward keyword's UnlessCost$
 	unlessSubs     []usGate  // UnlessResolveSubs$ gates awaiting their chain level's end (lower_unlesssubs.go)
 	reflexMulti    bool      // lowering a NumTimes reflexive latent: a multi-pick charm may lower on it (lower_numtimes.go)
@@ -1526,7 +1527,9 @@ func discardHandCost(c *lCost) error {
 // costUnless is cost for an UnlessCost$: it also reads the Random and Hand
 // discard selection methods gorge pays (pay/unlessflow.go AdvanceUnless).
 func (lc *lowerCtx) costUnless(s string) (lCost, error) {
+	lc.unlessParse = true
 	c, err := lc.costHand(s)
+	lc.unlessParse = false
 	if err != nil {
 		return c, err
 	}
@@ -1748,6 +1751,20 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			mana = append(mana, strconv.Itoa(n))
 			continue
 		}
+		if head == "Exert" {
+			// Exert<1/NICKNAME> (CR 702.100a): the source is exerted as the
+			// ability's cost. It taps nothing and removes nothing; the
+			// payment stamps the one-shot no-untap mark. Only a printed
+			// activated ability's own cost, and only the source.
+			if len(parts) < 2 || len(parts) > 3 || parts[0] != "1" || c.Exert || !lc.actCost {
+				return c, refuse("exert cost %q", t)
+			}
+			if !strings.EqualFold(parts[1], "NICKNAME") && !strings.EqualFold(parts[1], "CARDNAME") {
+				return c, refuse("exert cost %q: not the source", t)
+			}
+			c.Exert = true
+			continue
+		}
 		if head == "tapXType" && parts[0] == "Any" {
 			// tap any number with a total-power floor (Crew, Saddle;
 			// lower_tappower.go): an activated ability's whole cost only
@@ -1767,6 +1784,26 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				return c, refuse("life cost PayLife<X> beside a second announced-X part")
 			}
 			c.LoyaltyX = true
+			continue
+		}
+		if head == "SubCounter" && len(parts) >= 2 && parts[0] == "X" && !strings.EqualFold(parts[1], "LOYALTY") {
+			// SubCounter<X/KIND> (CR 107.3, 118.3): the activation announces
+			// X up to the counters of that kind the source has, then removes
+			// that many (gorge cost.parse's announced part, cast_subcounter.go).
+			// Only the source form; a filtered target is another payment.
+			if len(parts) > 3 || c.SubCtrX || c.SubCtr != 0 || c.SubAmongN != 0 || c.Loyalty != 0 || c.LoyaltyX || c.AddCtr != 0 || c.LifeX {
+				return c, refuse("counter cost %q", t)
+			}
+			if strings.EqualFold(parts[1], "Any") {
+				return c, refuse("counter cost %q: a wildcard kind", t)
+			}
+			if len(parts) == 3 && !strings.EqualFold(parts[2], "CARDNAME") && !strings.EqualFold(parts[2], "NICKNAME") {
+				return c, refuse("counter cost %q: a filtered target", t)
+			}
+			if !lc.actCost {
+				return c, refuse("counter cost %q outside an activated ability's own cost", t)
+			}
+			c.SubCtrX, c.SubCtrXKnd = true, parts[1]
 			continue
 		}
 		n, err := strconv.Atoi(parts[0])
@@ -2003,6 +2040,15 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				return c, err
 			}
 			c.Return, c.ReturnN = f, n
+		case "ExileFromStack":
+			// ExileFromStack<1/Card.Self> (gorge cost.parse's stack part):
+			// the resolving spell exiles itself, as an unless cost beside its
+			// graveyard exile (payInstr pairs them). An activated cost's other
+			// stack specs stay refused.
+			if !lc.unlessParse || n != 1 || len(parts) < 2 || len(parts) > 3 || parts[1] != "Card.Self" || c.ExileStackSelf {
+				return c, refuse("cost token %q", t)
+			}
+			c.ExileStackSelf = true
 		case "Exile":
 			// Exile<1/CARDNAME[/description]> (gorge exAsk takes the
 			// source from the battlefield); any other Exile<> refuses
@@ -2094,6 +2140,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 	}
 	if c.BeholdN > 0 && (c.BlightN != 0 || c.Sac != nil || c.DiscardN > 0 || c.Forage != nil || c.ExileG != nil || c.Tap || c.PayLife > 0) {
 		return c, refuse("behold cost %q beside another part", s)
+	}
+	if c.ExileStackSelf && c.ExileG == nil {
+		return c, refuse("ExileFromStack self without a graveyard exile")
 	}
 	if c.BlightN > 0 {
 		parts := 0

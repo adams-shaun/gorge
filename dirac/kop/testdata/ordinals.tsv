@@ -68,6 +68,7 @@ CfCloakRemembered	untyped int	32
 CfRemember	untyped int	4
 CfShuffle	untyped int	2
 CfTapped	untyped int	1
+CharmRepeat	untyped int	256
 ChooseOpp	untyped int	2
 ChooseRandom	untyped int	1
 ChooseSelf	untyped int	0
@@ -403,6 +404,7 @@ ExtChangeTargets	ExtOp	225
 ExtChooseColorRes	ExtOp	5
 ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230
+ExtClearImprinted	ExtOp	257
 ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
 ExtCopyAbility	ExtOp	191
@@ -591,6 +593,7 @@ MvForgetOther	untyped int	64
 MvFromBattlefield	untyped int	32
 MvFromGraveyard	untyped int	8192
 MvGraveExile	untyped int	8
+MvImprint	untyped int	16384
 MvLKI	untyped int	128
 MvMayMill	untyped int	256
 MvPermOrSpell	untyped int	32
@@ -787,6 +790,7 @@ PayBSubEvidence	untyped int	2
 PayBSubEvidenceX	untyped int	11
 PayBSubExileHand	untyped int	9
 PayBSubSacHost	untyped int	7
+PayBSubStackSelf	untyped int	13
 PayBSubTrigNew	untyped int	3
 PayBSubTrigNewEvidence	untyped int	10
 PayBSubWaterbend	untyped int	12
@@ -900,6 +904,7 @@ RefEach	Ref	16
 RefEachOpponent	Ref	8
 RefEachPlayer	Ref	7
 RefHost	Ref	23
+RefImprinted	Ref	35
 RefLastCreated	Ref	12
 RefLibTop	Ref	30
 RefNone	Ref	0

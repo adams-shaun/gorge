@@ -201,7 +201,7 @@ func (s *State) requiredTarget(k *prep) bool {
 			continue
 		}
 		if a != nil {
-			if tm := a.TgtModes[ti]; tm != 0 && tm&e.mode == 0 {
+			if tm := a.TgtModes[ti]; tm != 0 && tm&a.ModeSet(e.mode) == 0 {
 				continue
 			}
 		}
@@ -2522,7 +2522,7 @@ func (s *State) startCastDivide(k *prep) {
 			continue
 		}
 		if a != nil {
-			if tm := a.TgtModes[ti]; tm != 0 && tm&e.mode == 0 {
+			if tm := a.TgtModes[ti]; tm != 0 && tm&a.ModeSet(e.mode) == 0 {
 				continue
 			}
 		}
@@ -3125,9 +3125,16 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 	}
 	if f&kop.CostLoyalty != 0 {
 		s.perms[sl].flags |= pfLoyaltyUsed
-		if f&kop.CostLoyaltyX != 0 {
-			s.payLoyaltyX(sl, e.x)
-		}
+	}
+	if f&kop.CostLoyaltyX != 0 && sl != NoSlot {
+		s.payCounterX(sl, int(a.Cost.Ctr), e.x) // [-X] loyalty or SubCounter<X/KIND>
+	}
+	if a.Cost.Exert && sl != NoSlot {
+		// Exert<1/NICKNAME> as an activation cost (CR 702.100a): the
+		// one-shot no-untap mark, consumed at the controller's next untap
+		// step (turn.go's pfSkipUntap)
+		s.touchSl(sl)
+		s.perms[sl].flags |= pfSkipUntap
 	}
 	if f&kop.CostOncePerGame != 0 {
 		s.perms[sl].flags |= pfOnceGame
