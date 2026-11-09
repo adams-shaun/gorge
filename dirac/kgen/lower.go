@@ -1499,12 +1499,28 @@ func (lc *lowerCtx) cost(s string) (lCost, error) {
 	if err != nil {
 		return c, err
 	}
-	if c.DiscardSpec != "" {
-		// Random/Hand are unless-cost selection methods (gorge
-		// d66db41d8); a cast or activated discard cost keeps refusing them.
-		return c, refuse("discard cost %q outside an unless cost", c.DiscardSpec)
+	if err := discardHandCost(&c); err != nil {
+		return c, err
 	}
 	return c, lc.costParts(c)
+}
+
+// discardHandCost rewrites Discard<N/Hand> (the whole hand) to the
+// DiscardHand table byte: an activated ability's own cost pays it with the
+// other non-mana picks, in hand order, before the source's own sacrifice,
+// asking no choice (gorge pay.DiscardCandidates' whole-hand spec; an empty
+// hand pays with nothing). Random stays an unless-cost selection method
+// (gorge d66db41d8), and every other spec is refused by name.
+func discardHandCost(c *lCost) error {
+	switch c.DiscardSpec {
+	case "":
+		return nil
+	case "Hand":
+		c.DiscardHand, c.DiscardSpec, c.DiscardN = true, "", 0
+		return nil
+	default:
+		return refuse("discard cost %q outside an unless cost", c.DiscardSpec)
+	}
 }
 
 // costUnless is cost for an UnlessCost$: it also reads the Random and Hand
@@ -1544,6 +1560,9 @@ func (lc *lowerCtx) costParts(c lCost) error {
 		// a filtered discard is a battlefield activated ability's own cost
 		// (the candidates are that controller's hand cards; CR 118.3)
 		return refuse("filtered discard cost outside an activated ability")
+	}
+	if c.DiscardHand && (lc.ab == nil || lc.ab.Kind != akActivated) {
+		return refuse("discard-hand cost outside an activated ability")
 	}
 	if c.ReturnSelf {
 		return refuse("return-self cost outside an activated ability")
@@ -2335,8 +2354,11 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if err != nil {
 			return err
 		}
-		if cost.DiscardSpec != "" {
-			return refuse("discard cost %q outside an unless cost", cost.DiscardSpec)
+		if err := discardHandCost(&cost); err != nil {
+			return err
+		}
+		if cost.DiscardHand && ab.Kind != akActivated {
+			return refuse("discard-hand cost on a mana ability")
 		}
 		if cost.TapPowN != 0 && (ab.Kind != akActivated || !tapPowerAlone(cost)) {
 			return refuse("tap-any-number cost beside another part or on a mana ability")

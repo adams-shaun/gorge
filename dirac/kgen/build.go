@@ -903,6 +903,9 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.DiscardN > 0 {
 		set(kop.CostDiscard, c.DiscardN)
 	}
+	if c.DiscardHand {
+		out.DiscardHand = true
+	}
 	if c.DiscardF != nil {
 		// a filtered discard shares Cost.N (the card count) and Cost.Filter
 		// (the candidates' spec, the hand zone): alone among the counted
