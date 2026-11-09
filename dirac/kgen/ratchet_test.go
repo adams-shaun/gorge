@@ -111,7 +111,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// FRA 245 -> 246, MSH 235 -> 236).
 	// +9 (the merge with land: land's +9 beside the +15 above; merged ALL 21709 -> 21733, FRA 246 -> 247 measured).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21753, 34442},
+	"ALL": {21772, 34442},
 	"BIG": {23, 30},
 	"BLB": {257, 278},
 	"BRO": {207, 280},
@@ -133,7 +133,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"OTJ": {242, 276},
 	"SNC": {185, 266},
 	"SOS": {250, 270},
-	"SPM": {162, 192},
+	"SPM": {163, 192},
 	"TDM": {252, 276},
 	"TLA": {254, 285},
 	"TMT": {172, 194},
