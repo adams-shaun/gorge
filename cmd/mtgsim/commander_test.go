@@ -32,7 +32,7 @@ func TestCommanderConfigSeatsTheCommanders(t *testing.T) {
 			t.Fatalf("deck %s: no commander indices", n)
 		}
 	}
-	cfg := gameConfig(0, commanderPair, decks, reg, rules.FormatCommander, cmds)
+	cfg := gameConfig(0, commanderPair, decks, reg, rules.FormatCommander, cmds, 0)
 	e := rules.New(cfg)
 	e.Advance()
 	if e.Pending() == nil {

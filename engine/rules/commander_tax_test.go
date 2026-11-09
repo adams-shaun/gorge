@@ -51,8 +51,9 @@ func twoCommanderDeck(t *testing.T, cmd0Src, cmd1Src string) []*cards.Card {
 // commanderTaxGame is the commander-tax fixture, a thin wrapper over
 // the ONE shared commanderGame (engine/rules/commander_damage_test.go): both seats
 // lead their deck with the same decision-free Beatstick commander (one per
-// seat, at deck index 0), life is the default 20 (StartingLife 0 -- the zero
-// value New maps to 20), and the game is driven to turn 1 Main1, the only
+// seat, at deck index 0), life is the Commander default 40 (StartingLife 0 --
+// the zero value New maps to 40 for FormatCommander), and the game is driven
+// to turn 1 Main1, the only
 // point a command-zone cast can be offered (a creature is sorcery-speed: no
 // Flash). The wrapper exists because the tax suite needs a DRIVEN session
 // with the commander object extracted, while the shared fixture deliberately

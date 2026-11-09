@@ -49,8 +49,7 @@ type Config struct {
 	// Commander rules (the tax, CR 903.9, commander damage) read it.
 	Format Format
 	// StartingLife is a game's opening life total. 0 (the zero value) means
-	// the existing 20, so every Config that never sets it observes exactly
-	// what it always did.
+	// the format's default: 40 for FormatCommander (CR 903.7), 20 otherwise.
 	StartingLife int32
 	// Commanders holds, for each seat i, the indices into Decks[i] that are
 	// that seat's commanders; nil or absent means none. Genesis places those

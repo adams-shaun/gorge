@@ -272,7 +272,12 @@ func newWithRNG(cfg Config, random *rng, tossAsk bool) *Engine {
 func newEngineShell(cfg Config, random *rng) *Engine {
 	// cfg.Tokens is shared, never copied: the game reads it and never writes
 	// it (state.Game.Tokens), so one corpus registry map backs every engine.
+	// CR 903.7: a Commander game starts at 40 life. StartingLife overrides
+	// it for every format; 0 means the format's default (20 Constructed).
 	life := int32(20)
+	if cfg.Format == FormatCommander {
+		life = 40
+	}
 	if cfg.StartingLife > 0 {
 		life = cfg.StartingLife
 	}

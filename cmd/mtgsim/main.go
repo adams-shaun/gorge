@@ -57,6 +57,7 @@ func main() {
 	policyA := flag.String("a", "", "bot policy name for seat 0 (default: heuristic)")
 	policyB := flag.String("b", "", "bot policy name for seat 1 (default: heuristic)")
 	format := flag.String("format", "constructed", "game format: constructed or commander (40 life, commanders in the command zone)")
+	mulligans := flag.Int("mulligans", 0, "London mulligans each seat may take before turn 1 (default 0, none)")
 	shape := flag.String("shape", "", "write a JSON game-shape census to this file (game rows, then one aggregate)")
 	var sbAgents []string
 	flag.Func("sb-agent", "register a SpellBench v2 stdio agent: name=/path/to/agent (repeatable)", func(arg string) error {
@@ -68,7 +69,7 @@ func main() {
 	o := simOptions{
 		Decks: *decksFlag, Seats: *seats, Seed: *seed, Games: *games,
 		Verify: *verify, Verbose: *verbose, Dir: *dir,
-		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format, Shape: *shape,
+		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format, Mulligans: *mulligans, Shape: *shape,
 	}
 	if err := runSim(o, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "mtgsim:", err)
@@ -102,6 +103,8 @@ type simOptions struct {
 	SBAgents        []string
 	// Format is "constructed" or "commander".
 	Format string
+	// Mulligans is the London mulligans each seat may take before turn 1.
+	Mulligans int
 	// Shape, when non-empty, is the path of the JSON game-shape census.
 	Shape string
 }
@@ -211,7 +214,7 @@ func runSim(o simOptions, out io.Writer) error {
 		if shapes != nil {
 			sg = &shapeGame{}
 		}
-		if !playOne(out, gameSeed, names, decks, reg, verify, policyA, policyB, format, cmds, sg) {
+		if !playOne(out, gameSeed, names, decks, reg, verify, policyA, policyB, format, cmds, o.Mulligans, sg) {
 			failures++
 		}
 		if sg != nil {
@@ -286,8 +289,11 @@ func commanderDeckNames() ([]string, error) {
 // gameConfig is one game's rules.Config. A commander game starts at 40
 // life with cmds[i] (deck indices) naming seat i's commanders, which
 // genesis puts in the command zone.
-func gameConfig(seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, format rules.Format, cmds [][]int) rules.Config {
-	cfg := rules.Config{Seed: seed, Names: append([]string(nil), names...), Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Universe()}
+func gameConfig(seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, format rules.Format, cmds [][]int, mulligans int) rules.Config {
+	cfg := rules.Config{
+		Seed: seed, Names: append([]string(nil), names...), Decks: decks,
+		Tokens: reg.Tokens, NameUniverse: reg.Universe(), Mulligans: mulligans,
+	}
 	if format == rules.FormatCommander {
 		cfg.Format = rules.FormatCommander
 		cfg.StartingLife = 40
@@ -301,8 +307,8 @@ func gameConfig(seed uint64, names []string, decks [][]*cards.Card, reg *cards.R
 // the replay outcome. It returns false for anything counted as
 // failure: non-termination, a replay error or a chain divergence. shape,
 // when non-nil, observes every decision and records the game's final shape.
-func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policyA, policyB string, format rules.Format, cmds [][]int, shape *shapeGame) (ok bool) {
-	cfg := gameConfig(seed, names, decks, reg, format, cmds)
+func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policyA, policyB string, format rules.Format, cmds [][]int, mulligans int, shape *shapeGame) (ok bool) {
+	cfg := gameConfig(seed, names, decks, reg, format, cmds, mulligans)
 	// The default object cap, the same volume bound the shared drive
 	// loop arms: a degenerate token storm here ends as a LIVELOCK failure
 	// line under a bounded arena instead of growing the process until the
