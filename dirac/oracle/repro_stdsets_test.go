@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -152,13 +153,13 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-msh", "improvise_cast_spends_artifact_only_mana"},                    // Arc Reactor improvised with Captain America's Shield beside Hydraulic Helper's artifact-only blue: the cast spends the restricted blue before the plain pool
 		{"std-fin", "setpt_static_live_attached_controller"},                       // Aettir and Priwen gives the equipped creature base P/T equal to the Equipment controller's life total: the live layer-7b set is re-read as the life total changes, after the equip cost is paid
 		{"std-fin", "flickered_bearer_equipment_unattached_at_reentry"},            // Phoenix, Warden of Fire exiles itself and returns beside its twin, a legend ask pending: the Coral Swords it bore show unattached (CR 400.7), not on the returned Joshua
-		{"tail-04", "search_second_pick_shares_a_land_type"},                       // Myriad Landscape finds an Island, then a second Island: gorge's Submit refuses two basics with no common land type, so the second pick offers only the Islands, as the kernel offers them
+		{"custom", "search_second_pick_shares_a_land_type"},                        // Myriad Landscape finds an Island, then a second Island: gorge's Submit refuses two basics with no common land type, so the second pick offers only the Islands, as the kernel offers them
 		{"std-msh", "noncombat_damage_plus_host_power"},                            // Avengers Disassembled beside Hawkeye, Young Avenger (power 2): its 3 damage to each opposing creature becomes 5, to its controller's own creatures stays 3 (CR 614.1a)
 		{"std-tdm", "three_counter_kinds_among_creatures_pump_the_veteran"},        // +1/+1, stun and a lifelink counter spread over one player's creatures: both Hundred-Battle Veterans get +2/+4 while three different kinds are among them, and both engines agree on every one
 		{"std-tdm", "reverberating_summons_discard_hand"},                          // Reverberating Summons activates with six cards in hand: the whole hand is discarded in hand order, then the enchantment is sacrificed, and both engines agree through the resolution
 		{"std-tdm", "omen_face_census_credits_granted_delve"},                      // Skimming Strike, Dirgur Island Dragon's Omen, offered off one floating {U} with Teval's granted delve paying its {1} (CR 702.66a, 720.3a)
 		{"std-tmt", "graveyard_return_target_and_same_named_cards_tapped"},         // Rat King, Verminister's return resolves: its graveyard target and every other card there with its name enter tapped, both engines agreeing on every one
-		{"tail-53", "graveyard_return_target_and_same_named_cards_to_hand"},        // Echoing Return resolves: its graveyard target and every other card there with its name go to the hand, both engines agreeing on every one
+		{"custom", "graveyard_return_target_and_same_named_cards_to_hand"},         // Echoing Return resolves: its graveyard target and every other card there with its name go to the hand, both engines agreeing on every one
 		{"custom", "return_animate_before_entry_replacement"},                      // Good-Fortune Unicorn returned by Valkyrie's Call beside Giada, Font of Hope: the return's "it's an Angel" applies before the entry replacements read it, so Giada's extra counters count (CR 614.12)
 		{"custom", "printed_delve_gurmag_angler"},                                  // Gurmag Angler cast off Priest of Gix's floating black with two graveyard cards delved: the printed keyword pays through the kernel's existing delve ask (CR 702.66a)
 		{"custom", "printed_delve_murderous_cut"},                                  // Murderous Cut cast off Priest of Gix's floating black with graveyard cards delved: the same printed-keyword path
@@ -166,6 +167,12 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "webslinged_enter_spiders_man_tokens"},                          // Spiders-Man, Heroic Horde cast for its web-slinging cost off two Hulking Raptors' and a Burning-Tree Emissary's floating mana, a crewed Smuggler's Copter's pilot returned: its enters trigger gains 3 life and makes two Spider tokens (CR 702.188, 603.4); a plain cast would not
 	} {
 		t.Run(c.name, func(t *testing.T) {
+			// A tail pool is a hash-ordered run of the lowered non-Standard cards, so its
+			// membership moves whenever another card is lowered: a repro pinned to one
+			// breaks on an unrelated change. Such a repro plays on its own cards.
+			if strings.HasPrefix(c.pool, "tail-") {
+				t.Fatalf("pool %q: a repro on a tail pool uses the pool \"custom\"", c.pool)
+			}
 			if div := replayStdRepro(t, reg, c.pool, c.name, fullSurface[c.name]); div != nil {
 				t.Fatalf("divergence at %d: %s %s %v", div.At, div.What, div.Field, div.Diff)
 			}
