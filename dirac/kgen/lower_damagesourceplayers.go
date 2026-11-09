@@ -25,3 +25,23 @@ func (lc *lowerCtx) dmgSrcPlayers(ps *params, dmgSrc, obj lRef, n lValue) error 
 	lc.emit(lInstr{Op: "DealDamageFrom", Obj: dmgSrc, A: n, C: 0, CS: "players", Note: "trigger object deals A to each opponent"})
 	return nil
 }
+
+// dmgSrcAnyTarget emits the any-target form of the trigger-object
+// DealDamageFrom (Scourge of Valkas: "it deals X damage to any target"): the
+// trigger object is the damage source and the one target slot names a player
+// or a permanent (CS "anytgt": the kernel's player mode with a slot in C,
+// dirac/act_damagefrom.go). Exactly source rTriggered; a divided or
+// damage-map form refuses.
+func (lc *lowerCtx) dmgSrcAnyTarget(ps *params, dmgSrc, obj lRef, n lValue) error {
+	if ps.is("DamageMap", "True") {
+		return refuse("DamageMap$ True with DamageSource$: the kernel has no damage-map flush")
+	}
+	if _, ok := ps.get("DividedAsYouChoose"); ok {
+		return refuse("DamageSource$ to a player-capable slot with DividedAsYouChoose$")
+	}
+	if dmgSrc.Kind != rTriggered || obj.Kind != rTarget {
+		return refuse("DamageSource$ %s to %s", dmgSrc, obj)
+	}
+	lc.emit(lInstr{Op: "DealDamageFrom", Obj: dmgSrc, A: n, C: obj.N, CS: "anytgt", Note: "trigger object deals A to the target (a player or a permanent)"})
+	return nil
+}

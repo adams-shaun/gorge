@@ -693,7 +693,7 @@ func (s *State) destroy(k *prep, sl Slot) {
 	if s.destroyHeal(k, sl) {
 		return
 	}
-	if s.perms[sl].flags&pfRegen != 0 {
+	if s.canRegen(sl) {
 		s.regenerate(sl)
 		return
 	}
