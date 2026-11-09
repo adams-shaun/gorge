@@ -1011,7 +1011,7 @@ func (lc *lowerCtx) changeZoneAll(ps *params) error {
 		return lc.originBattleGrave(ps) // lower_changezoneall.go
 	}
 	lc.exwOK = true // a ChangeZoneAll sweep is a resolution-time mover: ExiledWithSource reads the resolving source
-	f, err := lc.filter(ps.str("ChangeType"))
+	f, err := lc.changeZoneAllFilter(ps)
 	lc.exwOK = false
 	if err != nil {
 		return err

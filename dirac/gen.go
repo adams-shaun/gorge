@@ -1865,7 +1865,27 @@ type genState struct {
 
 	ctrOver  [maxCtrOver]ctrOverEntry // counter kinds past the general slots, sorted (ctr_sparse.go)
 	nctrOver uint8
+
+	// Reserved tail: State bytes set aside so later work never edits a struct
+	// definition. Nothing reads or writes these yet. The rule: new State bytes
+	// come out of rsv, the mech arena, a cold array or a scr overlay; never a
+	// mid-struct insertion, which moves every later field. rsv is named, not _,
+	// so SameGame's == compares it. Together the block grows State by 64 bytes
+	// (statelayout_test.go pins the size and perms' cache-line phase).
+	imp     [maxImp]Obj
+	nimp    uint8
+	linkImp uint8
+	embF    [MaxSeats]uint8
+	embR    [MaxSeats][maxEmb]Obj
+	rsv     [rsvN]uint8
 }
+
+const (
+	maxImp = 16
+	// rsvN pads the reserved block to 64 bytes (genState's 5 bytes of tail
+	// padding absorb the rest of the alignment).
+	rsvN = 64 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb
+)
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
 // kind: 0 empty, 1 "except by creatures with haste", 0x80|cmp<<4|N the
@@ -1997,7 +2017,7 @@ const (
 	StallPanharmGrant  = 142 // a fifth Panharmonicon grant (Lwaxana Troi) live at once (genState.pgT; act_grantpanharm.go)
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
-	NumStall           = 145 // capacity of the reason tables (StallName); a reason registers its name in its own file
+	NumStall           = 192 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
 )
 
 // StallName is reason r's short name ("" for StallNone).

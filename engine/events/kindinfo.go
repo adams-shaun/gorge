@@ -236,6 +236,7 @@ var kindInfo = [NumKinds]KindInfo{
 	DestroyProposal:       {Name: "destroy_proposal", Trigger: TriggerNone, Describe: "{obj} would be destroyed"},
 	EndCombatPhase:        {Name: "end_combat_phase", Trigger: TriggerNone, Describe: "The combat phase ends"},                                    // CR 724.2
 	ManaAbilityActivation: {Name: "mana_ability_activation", Trigger: TriggerAbilityPush, Describe: "{player} activates a mana ability of {obj}"}, // CR 605.1a marker: AbilityCast/SpellAbilityCast observe it, no stack object
+	ExileTurnFaceUp:       {Name: "exile_turn_face_up", Trigger: TriggerNone, Describe: "{obj} is turned face up in exile"},
 }
 
 // Info returns k's descriptor; ok is false for a value past the enum.

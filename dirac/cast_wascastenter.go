@@ -91,6 +91,11 @@ func (s *State) wasCastRead(fl *kop.Filter, o Obj, ctrl uint8) bool {
 		// CastSa Spell.ManaSpent EQ0: the cast spent no mana
 		cast = (cast && s.spentOfSpell(&s.res.e) == 0) != DebugWord9Flip
 	}
+	if fl.PredN&wasCastWebSling != 0 {
+		// webSlinged: the entry's web-slinging mark (a copy's is cleared,
+		// CR 707.10; mintSpellCopy)
+		cast = cast && webSlingEntry(&s.res.e)
+	}
 	return cast != (fl.PredN&4 != 0)
 }
 

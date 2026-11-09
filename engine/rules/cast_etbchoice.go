@@ -92,15 +92,29 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 	// enters -- the first as-enters election, so every later one (and the
 	// entry's replacements) sees the Aura's bearer settled
 	// (engine/rules/aura_entry.go).
-	if choice, ok := auraEntryChoice(e, &ev); ok {
-		if seen == ordinal {
-			return choice, true
-		}
-		seen++
-	}
+	// An Aura that is one by its printed face asks first; one that becomes an
+	// Aura by an answered copy election asks once that answer is in, so its
+	// position after the clone election is the same at every ordinal.
 	f := o.Face()
+	printedAura := o.Zone != state.ZStack && faceIsAura(f)
+	if printedAura {
+		if choice, ok := auraEntryChoice(e, &ev); ok {
+			if seen == ordinal {
+				return choice, true
+			}
+			seen++
+		}
+	}
 	if choice, ok := e.faceETBChoice(o, f, ev, ordinal, &seen, false); ok {
 		return choice, true
+	}
+	if !printedAura {
+		if choice, ok := auraEntryChoice(e, &ev); ok {
+			if seen == ordinal {
+				return choice, true
+			}
+			seen++
+		}
 	}
 	// CR 707.2 and 614.12: an entrant whose copy election was answered for a
 	// template enters with the template's copiable values, so the template's

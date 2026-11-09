@@ -544,6 +544,69 @@ func statKeywords(st cards.Static) []string {
 	return cards.SplitKeywordList(st.ParamStr(cards.PKAddKeyword))
 }
 
+// statSharedKeywords narrows a Mode$ Continuous static's AddKeyword$ list for
+// Forge's SharedKeywordsZone$/SharedRestrictions$ filter ("as long as a card
+// exiled with CARDNAME has flying, equipped creature has flying" -- Eater of
+// Virtue, Cairn Wanderer, Soulflayer). A listed keyword survives only when
+// some card in the named zones matching one of the restrictions has it right
+// now, which is the same reading effects' pump-side sharedPumpGrant takes
+// (effects.SharedKeywordSpellings owns the family matching).
+//
+// SharedRestrictions$ is a comma-separated list of independent card filters
+// and defaults to Card (Forge's default). The spec is evaluated with the
+// static's own source as its spec-context source, so Card.ExiledWithSource
+// resolves against the permanent that owns the static. A zone word this build
+// cannot parse, or a restriction list that parses to nothing, fails CLOSED:
+// no keyword is granted.
+//
+// The cards in the zones are read the way their zone warrants: a battlefield
+// card's CURRENT (layer-derived) keywords, because a continuous effect may
+// have granted it one, and every other card's printed keywords. The scan order
+// is the shared deterministic one -- alive seats in APNAP order, then the
+// named zones, then each zone's slice -- so the granted list, and therefore
+// the derived keyword order, is reproducible run to run.
+func (e *Engine) statSharedKeywords(st cards.Static, source state.ObjID, controller state.PlayerID, want []string) []string {
+	zones, ok := effects.ParseSharedKeywordZones(st.ParamStr(cards.PKSharedKeywordsZone))
+	if !ok {
+		return nil
+	}
+	specs := effects.ParseSharedKeywordRestrictions(st.ParamStr(cards.PKSharedRestrictions))
+	if len(specs) == 0 {
+		return nil
+	}
+	sc := e.specCtx(source, controller)
+	var shared []string
+	for _, p := range e.G.AliveFrom(0) {
+		for _, z := range zones {
+			for _, id := range e.G.Zone(z, p) {
+				o := e.G.Obj(id)
+				if o == nil || o.Face() == nil {
+					continue
+				}
+				matched := false
+				for _, spec := range specs {
+					if e.matchesSpec(spec, id, sc) {
+						matched = true
+						break
+					}
+				}
+				if !matched {
+					continue
+				}
+				if o.Zone == state.ZBattlefield {
+					shared = append(shared, e.Derived(id).Keywords...)
+				} else {
+					shared = append(shared, effects.PrintedChars(o).Keywords...)
+				}
+			}
+		}
+	}
+	if len(shared) == 0 {
+		return nil
+	}
+	return effects.SharedKeywordSpellings(want, shared)
+}
+
 func statRemoveKeywords(st cards.Static) []string {
 	return cards.SplitKeywordList(st.ParamStr(cards.PKRemoveKeyword))
 }
