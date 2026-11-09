@@ -163,3 +163,19 @@ func TestOpValuesUnique(t *testing.T) {
 		seen[v] = n
 	}
 }
+
+// TestExtOpNamesUnique: NumExtOps is a fixed ceiling with unnamed slots, so
+// the per-constant checks above are what keep it honest; this adds that no
+// two sub-ops register the same name.
+func TestExtOpNamesUnique(t *testing.T) {
+	seen := map[string]int{}
+	for v, n := range extOpNames {
+		if n == "" {
+			continue
+		}
+		if o, dup := seen[n]; dup {
+			t.Errorf("extOpNames[%d] and extOpNames[%d] are both %q", o, v, n)
+		}
+		seen[n] = v
+	}
+}

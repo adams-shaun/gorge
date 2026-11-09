@@ -452,6 +452,8 @@ func applyKind(g *state.Game, e *Event) {
 		foldTurnFaceDown(g, e)
 	case TurnFaceUp:
 		foldTurnFaceUp(g, e)
+	case ExileTurnFaceUp:
+		foldExileTurnFaceUp(g, e)
 	case PhaseOut:
 		foldPhaseOut(g, e)
 	case ClockTick:

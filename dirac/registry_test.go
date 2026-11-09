@@ -100,3 +100,21 @@ func TestEnumValuesUnique(t *testing.T) {
 		seen[v] = n
 	}
 }
+
+// TestStallNamesUnique: NumStall is a fixed ceiling with unnamed slots; no
+// two reasons register the same name, and the ceiling fits the uint8 reason.
+func TestStallNamesUnique(t *testing.T) {
+	if NumStall > 255 {
+		t.Fatalf("NumStall %d does not fit a uint8 reason", NumStall)
+	}
+	seen := map[string]int{}
+	for v, n := range stallNames {
+		if n == "" {
+			continue
+		}
+		if o, dup := seen[n]; dup {
+			t.Errorf("stallNames[%d] and stallNames[%d] are both %q", o, v, n)
+		}
+		seen[n] = v
+	}
+}
