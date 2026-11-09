@@ -1746,7 +1746,13 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			continue
 		}
 		if s.objs[o].zone == kop.ZoneBattlefield {
-			s.pickLeaves(k, o, z) // a hidden pick from the battlefield (trig_delayedtiming.go)
+			if s.pickLeaves(k, o, z) { // a hidden pick from the battlefield (trig_delayedtiming.go)
+				// a CR 903.9b commander move: the cards from this one on wait on
+				// the battlefield for the answer (zone_cmdzone.go)
+				n := copy(s.resArm().look[:], s.resArm().look[i:s.g.nlook])
+				s.g.nlook = uint8(n)
+				return
+			}
 			continue
 		}
 		ep := p

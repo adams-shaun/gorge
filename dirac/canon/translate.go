@@ -213,6 +213,11 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			// CR 118.9), after its other alternative costs (none in FDN
 			// the kernel offers): mode "", AltCostIndex 1
 			cm = 1 << 4
+		case mode&8 != 0 && r.S.FeatMayPayLifeCast(r.D.Player, dirac.Obj(src)):
+			// a permission whose alternative cost is life (CR 118.9): gorge's
+			// "mayplay" option at AltCostIndex 1 (cast_staticpaylife.go)
+			cm, _ = CastModeCode("mayplay")
+			cm |= 1 << 4
 		case mode&8 != 0:
 			cm, _ = CastModeCode("mayplay") // a generated table's play permission (castMayPlay)
 		}

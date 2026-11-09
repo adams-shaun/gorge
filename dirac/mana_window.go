@@ -1218,9 +1218,10 @@ func (s *State) restrSpendable(k *prep, p uint8, c CardID, og restrOrigin) uint8
 func (s *State) restrSpendableB(k *prep, p uint8, b *rbatch, c CardID, og restrOrigin) bool {
 	for f := k.gen.restrFOf(b.kind); f != 0; f = k.t.Filters[f].Or {
 		fl := k.t.Filters[f]
-		if fl.Special != 0 {
-			continue // a Static.* alternative: only a special action may spend it
+		if fl.Special != 0 && !(DebugActOnlyRestrSpell && fl.Special&kop.SpmActivated != 0) {
+			continue // a Static.* alternative: only a special action may spend it; the SpmActivated marker is refused here on purpose
 		}
+		fl.Special = 0
 		fl.Zone = kop.ZoneNone // the spell is matched before it moves to the stack
 		chosen := fl.Flags2&kop.F2ChosenType != 0
 		fl.Flags2 &^= kop.F2ChosenType

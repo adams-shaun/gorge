@@ -1358,7 +1358,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "ChangeZoneAll":
 		return lc.changeZoneAll(ps)
 	case "Draw":
-		remDrawn, err := rememberParam(ps, "RememberDrawn")
+		remDrawn, remAll, err := rememberDrawn(ps)
 		if err != nil {
 			return err
 		}
@@ -1391,7 +1391,10 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			return err
 		}
 		in := lInstr{Op: "Draw", Obj: who, A: n}
-		if remDrawn {
+		switch {
+		case remAll:
+			in.CS = "RememberAll"
+		case remDrawn:
 			in.CS = "Remember"
 		}
 		lc.emit(in)
