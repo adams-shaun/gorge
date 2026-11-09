@@ -154,7 +154,8 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	if kind == kop.PayManaX {
 		return s.execTrigX(k, p, skip, amt) // trig_maypayx.go
 	}
-	if !s.canPayGen(k, p, kind, amt, pips, in.F) && !s.windowPays(k, p, kind, skip, amt, pips) &&
+	stackSelfGone := kind == kop.PayExileGrave && in.B.N == kop.PayBSubStackSelf && s.objs[s.res.e.obj].zone != kop.ZoneStack
+	if stackSelfGone || !s.canPayGen(k, p, kind, amt, pips, in.F) && !s.windowPays(k, p, kind, skip, amt, pips) &&
 		!s.trigCostPotentialPays(k, p, kind, skip, amt, pips, in.F) {
 		skip |= pfNoPay // still asked, decline only (gorge poses it)
 	}
@@ -1275,6 +1276,9 @@ func (s *State) payDone(k *prep, paid bool) {
 		return
 	}
 	if paid && s.g.pickZ == kop.PayExileGrave {
+		if s.prog(k)[s.res.pc].B.N == kop.PayBSubStackSelf {
+			s.exileStackSelf(k) // ExileFromStack<1/Card.Self> (cost_exilestack.go)
+		}
 		s.chainCharge(k) // the mana half of a mana-and-exile cost (cost_exilepool.go)
 	}
 	skip := uint8(0)
