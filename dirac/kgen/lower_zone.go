@@ -760,8 +760,16 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	if origin != zNone && origin != zAny {
 		in.CS = strings.TrimPrefix(in.CS+"|from="+zoneLabel[origin], "|")
 	}
-	if origin == zLibrary && (in.Op == "Bounce" || in.Op == "Return") && lc.fetchShuffleOwed(ps) {
-		in.CS += "|ShuffleOwed"
+	if origin == zLibrary && (in.Op == "Bounce" || in.Op == "Return") {
+		if v, ok := ps.get("NoLooking"); ok && v != "True" {
+			// NoLooking$ True on a Defined$ fetch (the second half of a
+			// split search): the chooser picks without seeing the rest of
+			// the library, no state change, as on the search path
+			return refuse("library fetch NoLooking$ %q", v)
+		}
+		if lc.fetchShuffleOwed(ps) {
+			in.CS += "|ShuffleOwed"
+		}
 	}
 	if counterKind != "" {
 		if in.Op != "Return" || in.C != zBattlefield && dest != zExile {

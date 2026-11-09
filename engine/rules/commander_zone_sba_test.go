@@ -130,11 +130,13 @@ func TestCR903_9aCounteredCommanderIsAskedAtTheNextStateBasedCheck(t *testing.T)
 }
 
 // TestCR903_9aDepartedOwnersAskDoesNotBlockLaterCommanders: in a three-seat
-// game seat 0's commander reaches the graveyard and, at the same
-// state-based check, seat 0 loses (CR 704.5a). The ask posed to the departed
-// owner is released (CR 800.4a), and its parked entry must go with it --
-// otherwise every later commander's CR 903.9a choice waits behind it
-// forever. Seat 1's commander then dies and seat 1 is asked.
+// game seat 0's commander reaches the graveyard and seat 0 is at 0 life. The
+// CR 903.9a choice is one of that check's state-based actions, so it is made
+// before the check applies anything (CR 704.3) -- seat 0 is asked while still
+// in the game -- and the answer's check makes seat 0 lose (CR 704.5a). Its
+// entry must be gone with the answer -- otherwise every later commander's
+// CR 903.9a choice waits behind it forever. Seat 1's commander then dies and
+// seat 1 is asked.
 func TestCR903_9aDepartedOwnersAskDoesNotBlockLaterCommanders(t *testing.T) {
 	t.Parallel()
 	e, _ := commanderGame(t, commanderDamageSeed, FormatCommander, 40, [][]string{{tinyCmdSrc}, {tinyCmdSrc2}, {}})
@@ -145,11 +147,15 @@ func TestCR903_9aDepartedOwnersAskDoesNotBlockLaterCommanders(t *testing.T) {
 
 	e.checkStateBased()
 
+	if d := e.Pending(); d == nil || d.Kind != decision.KCommanderZone || d.Player != 0 || e.G.Players[0].Lost {
+		t.Fatalf("CR 704.3: the commander-zone choice precedes the check's loss; pending = %s, seat 0 lost = %v", pendingKind(d), e.G.Players[0].Lost)
+	}
+	submit(t, e, 1) // leave it; the answer's check applies the loss
 	if !e.G.Players[0].Lost {
-		t.Fatal("fixture: seat 0 at 0 life must lose at the check")
+		t.Fatal("fixture: seat 0 at 0 life must lose at the check after the answer")
 	}
 	if len(e.cmdZone) != 0 {
-		t.Fatalf("the departed owner's released ask left %d parked command-zone entries", len(e.cmdZone))
+		t.Fatalf("the departed owner's answered ask left %d parked command-zone entries", len(e.cmdZone))
 	}
 	e.emit(events.Event{Kind: events.Damage, Obj: b, Amount: 1})
 	d := passPriorityUntilNonPriority(t, e)

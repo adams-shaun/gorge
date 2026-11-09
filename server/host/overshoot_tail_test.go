@@ -8,15 +8,18 @@ package host
 // decision — and boundsOf/viewAt treated the last ask as the end of the
 // log. These tests pin the fixed model end to end on a deterministic
 // commander fixture that reaches the reported shape: a burst whose SBA
-// pass asks the CR 903.9a commander_zone decision and then keeps going
-// past it (the same pass removes destroyed tokens).
+// pass asks the CR 903.9a commander_zone decision. The reported defect was a
+// pass that kept going past the ask (removing destroyed tokens); the engine
+// now holds the rest of the check until the owner answers (CR 704.3, 704.6d,
+// 903.9a), so the ask is the burst's last event and assertOvershootShape pins
+// exactly that. The host's tail handling stays covered only by the ask-parked
+// shape here: no engine path emits events after a parked ask any more.
 //
 // The fixture is measured, not constructed: decks foundations-reign-of-
 // dragons vs foundations-calling-all-angels, seed 17, burst 918 — a board
 // wipe destroys seat 1's commander, the next state-based check asks seat 1
 // at its first pass, and the same pass removes three destroyed tokens
-// ("ceased to exist") AFTER the ask. The park lands on that ask; replaying
-// the recorded intents reproduces the tail byte for byte. The shape is
+// ("ceased to exist") only after the answer. The park lands on that ask. The shape is
 // re-derived from the live match below, so a corpus or engine move fails
 // here loudly instead of testing nothing. (Measured history: before CR
 // 903.9a, the shape was an ask parked mid-lethal-sweep on
@@ -51,8 +54,8 @@ const (
 	// foundations-calling-all-angels, seed 17, burst 918 (re-measured when the
 	// Foundations decks lost Ancient Tomb; seed 1, burst 664 before): a board wipe destroys
 	// seat 1's commander, the next check asks seat 1 at its first pass, and the
-	// same pass removes three destroyed tokens ("ceased to exist") after the
-	// ask. assertOvershootShape requires that token-cleanup tail. A rules change
+	// same pass holds its three destroyed tokens in the graveyard until the
+	// answer. assertOvershootShape requires the ask to end the burst. A rules change
 	// that adds or removes a decision before the burst moves this count;
 	// re-record the capture via TestGenerateOvershootCapture with it.
 	overshootIntents = 918 // intents recorded when parked on the overshoot burst's pending ask
@@ -186,23 +189,19 @@ func assertOvershootShape(t *testing.T, m *match) (askSeq uint64, burstEnd uint6
 			lastAsk = s
 		}
 	}
-	if lastAsk == 0 || hi <= lastAsk+1 {
-		t.Fatalf("burst %d carries no overshoot tail (last ask %d, burst end %d) — the measured shape moved",
-			overshootIntents, lastAsk, hi)
+	if lastAsk == 0 {
+		t.Fatalf("burst %d carries no ask (burst end %d) — the measured shape moved", overshootIntents, hi)
+	}
+	// A state-based check that owes the CR 903.9a choice applies nothing else
+	// before the answer (CR 704.3, 704.6d, 903.9a): no event follows the ask.
+	if hi != lastAsk+1 {
+		t.Fatalf("burst %d runs %d events past its ask %d — the rest of the state-based check must wait for the answer",
+			overshootIntents, hi-lastAsk-1, lastAsk)
 	}
 	ask := m.e.L.Events[lastAsk]
 	if ask.Text != "commander_zone" || ask.Player != 1 {
 		t.Fatalf("overshoot ask at %d is %q for seat %d, want commander_zone for seat 1 — the measured shape moved",
 			lastAsk, ask.Text, ask.Player)
-	}
-	ceased := 0
-	for s := lastAsk + 1; s < hi; s++ {
-		if ev := m.e.L.Events[s]; ev.Kind == events.MoveZone && ev.Text == "ceased to exist" {
-			ceased++
-		}
-	}
-	if ceased == 0 {
-		t.Fatal("no token cleanup landed after the ask — the measured shape moved")
 	}
 	d := m.e.Pending()
 	if d == nil || d.Kind != decision.KCommanderZone || d.Player != 1 {
@@ -451,19 +450,13 @@ func TestArchivedParkedTailMatchLoadsAfterRestart(t *testing.T) {
 			t.Fatalf("archived ViewAtSeat(%d): %v", seq, err)
 		}
 	}
-	// And the events endpoint serves the tail: the post-ask sweep is there.
+	// And the events endpoint serves the ask, the burst's last event.
 	bodies, err := r2.Events("t1", k, askSeq)
 	if err != nil {
 		t.Fatalf("archived Events: %v", err)
 	}
-	found := false
-	for _, b := range bodies {
-		if b.Event.Kind == "move_zone" && b.Event.Text == "ceased to exist" {
-			found = true
-		}
-	}
-	if !found {
-		t.Fatal("the archived match's events lost the post-ask lethal-damage sweep")
+	if len(bodies) != 1 || bodies[0].Event.Text != string(decision.KCommanderZone) {
+		t.Fatalf("archived Events from the ask = %+v, want the commander_zone ask alone", bodies)
 	}
 }
 
@@ -487,8 +480,8 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SnapshotForFeedback: %v", err)
 	}
-	if got := len(snap.Log.Events); got >= int(burstEnd) {
-		t.Fatalf("crashed capture holds %d events, want the trimmed prefix (below the burst end %d)", got, burstEnd)
+	if got := len(snap.Log.Events); got > int(burstEnd) {
+		t.Fatalf("crashed capture holds %d events, want the trimmed prefix (at most the burst end %d)", got, burstEnd)
 	}
 	last := snap.Log.Events[len(snap.Log.Events)-1]
 	if last.Kind != events.DecisionAsk {
@@ -498,13 +491,13 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 
 // committedCaptureRel is a REAL capture, committed as a fixture beside
 // cmd/repro's fixture set (testdata -- a fixture, not a production package).
-// Its parked burst has an overshoot tail: events after the ask that parks the
-// decision. The fixture verifies under plain replay.Replay with no cut-tail
-// tolerance anywhere and cmd/repro on it exits 0. The test pins both, so an
+// It is parked on seat 1's commander_zone ask, the last event on its log (the
+// tail the ask once carried is held back by CR 704.3 and 903.9a). The fixture
+// verifies under plain replay.Replay with no cut-tail tolerance anywhere and cmd/repro on it exits 0. The test pins both, so an
 // engine or corpus move that breaks the capture fails loudly here instead of
 // leaving a stale fixture behind. The committed capture is the historical
-// seed-1 fixture: 3653 events, 664 intents, head 8f92486feb45ce6b, with the
-// parked ask and its tail as above. The live fixture has since moved to seed
+// seed-1 fixture: 3650 events, 664 intents, head 4e49b15e79cad14d, ending at the
+// parked ask. The live fixture has since moved to seed
 // 17 / 918 intents, so regenerating it now with TestGenerateOvershootCapture
 // writes that capture with new pins.
 const committedCaptureRel = "../../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
@@ -522,7 +515,7 @@ func requireCommittedCapture(t *testing.T) {
 
 // TestCommittedOvershootCaptureReplaysToTheParkedAsk is the committed
 // capture's gate: the REAL reported match, parked on seat 1's commander_zone
-// ask with its overshoot tail on the log, verifies under plain
+// ask, the last event on its log, verifies under plain
 // replay.Replay (no tolerance, host or otherwise) and the rebuilt engine is
 // parked on that ask — the state cmd/repro prints and a -emit-test
 // skeleton starts from.
@@ -532,8 +525,8 @@ func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("feedback.Load: %v", err)
 	}
-	if n := len(l.Events); n != 3653 {
-		t.Fatalf("capture carries %d events, want the full 3653-event stream (re-recorded)", n)
+	if n := len(l.Events); n != 3650 {
+		t.Fatalf("capture carries %d events, want the full 3650-event stream (re-recorded)", n)
 	}
 	e, err := replay.Replay(l, cfg)
 	if err != nil {
@@ -546,25 +539,12 @@ func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
 	if d == nil || d.Kind != decision.KCommanderZone || d.Player != 1 {
 		t.Fatalf("pending is %+v, want seat 1's commander_zone ask", d)
 	}
-	// The tail events are on the rebuilt log, after the ask that parked it.
-	// event-802 re-record (2026-09-17): with Tokens now attached, the token
-	// creatures the burst's lethal-damage sweep hits are real permanents, so
-	// their own SBA cleanup ("ceased to exist") lands after the sweep, one
-	// step past the sweep itself.
+	// The ask is the last event: a state-based check that owes the CR 903.9a
+	// choice applies nothing else until the owner answers (CR 704.3, 704.6d,
+	// 903.9a), so the tokens the sweep left in the graveyard have not ceased
+	// to exist yet.
 	last := l.Events[len(l.Events)-1]
-	if last.Kind != events.MoveZone || last.Text != "ceased to exist" {
-		t.Fatalf("capture ends with %+v, want a token's post-sweep cleanup", last)
-	}
-	if prev := l.Events[len(l.Events)-2]; prev.Kind != events.MoveZone || prev.Text != "ceased to exist" {
-		t.Fatalf("second-to-last event is %+v, want a token's post-sweep cleanup", prev)
-	}
-	asked := false
-	for _, ev := range l.Events[len(l.Events)-6:] {
-		if ev.Kind == events.DecisionAsk && ev.Text == string(decision.KCommanderZone) {
-			asked = true
-		}
-	}
-	if !asked {
-		t.Fatal("no commander_zone ask found ahead of the capture's token-cleanup tail")
+	if last.Kind != events.DecisionAsk || last.Text != string(decision.KCommanderZone) {
+		t.Fatalf("capture ends with %+v, want the commander_zone ask", last)
 	}
 }

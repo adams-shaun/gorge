@@ -2722,12 +2722,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	if ab.Ninjutsu {
 		return lc.ninjutsuBody(ps) // lower_ninjutsu.go
 	}
-	if sa.API == "Mana" && ab.Kind == akSpell {
-		// a spell that adds mana (Manamorphose, Seasonal Ritual): the mana
-		// ability record would resolve as a spell that does nothing
-		return refuse("SP$ Mana")
-	}
-	if sa.API == "Mana" {
+	if sa.API == "Mana" && ab.Kind != akSpell {
 		return lc.lowerMana(sa, ps, ab)
 	}
 	if sa.API == "ManaReflected" && ab.Kind == akMana {
