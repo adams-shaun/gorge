@@ -97,6 +97,26 @@ func TestCommanderBlockTracksDamageAndTax(t *testing.T) {
 		t.Fatalf("after the commanders leave the battlefield the bit = %v, want 0", got)
 	}
 
+	// A commander controlled by another player is still on the battlefield.
+	// Battlefield lists are per controller, so the owner's list can be empty
+	// while the commander sits in the controller's list; the bit must follow
+	// the object, not the owner's zone list.
+	v = commanderBlockView()
+	v.Players[0].Battlefield = []view.CardView{{ID: 101, Name: "Commander", Types: "Creature"}}
+	if len(v.Players[1].Battlefield) != 0 {
+		t.Fatal("setup: the owner's battlefield must be empty for the control-change case")
+	}
+	if v.Players[1].Commanders[0].ID != 101 {
+		t.Fatalf("setup: seat 1's commander id = %d, want 101", v.Players[1].Commanders[0].ID)
+	}
+	st = EncodeState(v, 0)
+	if got := st.Dense[denseCmd0+1*commanderBlockWidth+denseCmdOnField]; got != 1 {
+		t.Fatalf("seat 1's commander controlled by seat 0: on-field bit = %v, want 1", got)
+	}
+	if got := st.Dense[denseCmd0+0*commanderBlockWidth+denseCmdOnField]; got != 0 {
+		t.Fatalf("seat 0's own commander on-field bit = %v, want 0", got)
+	}
+
 	// The left-the-game bit is present even outside the commander data.
 	if got := st.Dense[denseCmd0+3*commanderBlockWidth+denseCmdLost]; got != 1 {
 		t.Fatalf("seat 3's left-the-game bit = %v, want 1", got)

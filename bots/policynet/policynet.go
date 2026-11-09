@@ -301,10 +301,16 @@ func encodeState(buf *StateBuf, vp *view.View, seat state.PlayerID) State {
 		}
 		return nil
 	}
-	onField := func(pv *view.PlayerView, id state.ObjID) bool {
-		for i := range pv.Battlefield {
-			if pv.Battlefield[i].ID == id {
-				return true
+	// The battlefield is public and zoned by CONTROLLER, so a commander
+	// controlled by another player is not in its owner's list. Search every
+	// seat's list for the object id: the bit means "this commander is on the
+	// battlefield", not "it is on its owner's battlefield".
+	onField := func(id state.ObjID) bool {
+		for j := range v.Players {
+			for i := range v.Players[j].Battlefield {
+				if v.Players[j].Battlefield[i].ID == id {
+					return true
+				}
 			}
 		}
 		return false
@@ -346,7 +352,7 @@ func encodeState(buf *StateBuf, vp *view.View, seat state.PlayerID) State {
 		dense[base+denseCmdCasts] = clamp01(float32(casts) / 4)
 		// (e): any of its commanders is currently on the battlefield.
 		for _, cmd := range pv.Commanders {
-			if onField(pv, cmd.ID) {
+			if onField(cmd.ID) {
 				dense[base+denseCmdOnField] = 1
 				break
 			}
