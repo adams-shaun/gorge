@@ -76,6 +76,8 @@ func TestEffectLongDurations(t *testing.T) {
 		{"lose abilities while the host stays", fmt.Sprintf(lose, "ForgetOnMoved$ Battlefield", "AsLongAsInPlay", "Battlefield"), ""},
 		{"lose abilities without the forget rider", fmt.Sprintf(lose, "ConditionDefined$ Targeted", "AsLongAsInPlay", "Battlefield"), "Effect continuous shape"},
 		{"lose abilities, another duration", fmt.Sprintf(lose, "ForgetOnMoved$ Battlefield", "Permanent", "Battlefield"), "Effect"},
+		{"lose abilities with an extra static key", strings.Replace(fmt.Sprintf(lose, "ForgetOnMoved$ Battlefield", "AsLongAsInPlay", "Battlefield"),
+			"RemoveAllAbilities$ True", "RemoveAllAbilities$ True | AddPower$ -3", 1), "unread"},
 		{"lose abilities, another zone", fmt.Sprintf(lose, "ForgetOnMoved$ Battlefield", "AsLongAsInPlay", "Graveyard"), "Effect continuous shape"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

@@ -51,6 +51,11 @@ func (lc *lowerCtx) loseAbilitiesWhileHost(ps, sp *params, obj lRef) error {
 	}
 	ps.consume("Duration", "ForgetOnMoved")
 	sp.consume("Affected", "AffectedZone", "RemoveAllAbilities")
+	// This arm returns before effectTargetStatic's closing check, so an
+	// extra key on the static must be refused here, not dropped.
+	if left := sp.unread(); len(left) > 0 {
+		return refuse("Effect static unread %v", left)
+	}
 	lc.emitOverride(obj, &lOverride{LoseAbilities: true, WhileHost: true}, "WhileHost")
 	return nil
 }
