@@ -43,6 +43,9 @@ func (s *State) beginTurn(p uint8) {
 	}
 	s.turn++
 	s.active = p
+	if k := s.k(); k.gen != nil && k.gen.anyNTEndEmb {
+		s.embTurnStart(k, p) // UntilTheEndOfYourNextTurn: this turn is its last (emblem_durations.go)
+	}
 	s.step = kop.StepUntap
 	s.ctl = ctlStepBegin
 	s.carry = carryNone

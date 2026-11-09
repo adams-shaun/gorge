@@ -698,6 +698,9 @@ func (s *State) cleanupGen(k *prep) {
 	if k.gen.anyNTEmb {
 		s.dropNextTurnEmblems(k) // Duration$ UntilYourNextTurn (static_effectdelivered.go)
 	}
+	if k.gen.anyNTEndEmb {
+		s.dropEndOfNextTurnEmblems(k) // Duration$ UntilTheEndOfYourNextTurn (emblem_durations.go)
+	}
 	n := 0
 	for i := 0; i < int(s.g.nmay); i++ {
 		r := s.g.may[i]
