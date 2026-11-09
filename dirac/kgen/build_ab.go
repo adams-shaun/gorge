@@ -1044,6 +1044,14 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			if kt.Filter2, err = cb.filter(t.F2, kop.ZoneBattlefield); err != nil {
 				return kt, err
 			}
+		case t.Event == "DamageDone" && t.F2.Players == plBoth && len(t.F2.Clauses) == 1 && t.F2.Clauses[0] == (lClause{Types: tPlaneswalker}):
+			// ValidTarget$ Player,Planeswalker: TfToPlayer beside a Filter2
+			// reads "a player, or a permanent matching Filter2"
+			// (dirac/trig_damagedonce.go ddoRecipient)
+			kt.Flags |= kop.TfToPlayer
+			if kt.Filter2, err = cb.filter(&lFilter{Clauses: t.F2.Clauses}, kop.ZoneBattlefield); err != nil {
+				return kt, err
+			}
 		case t.TargetsAll && t.Event == "SpellCast" && len(t.F2.Clauses) > 0 && (t.F2.Players == plYou || t.F2.Players == plOpp):
 			// TargetsValid$ with a player alternative
 			if kt.Filter2, err = cb.filterPlayerAlt(t.F2, kop.ZoneBattlefield, t.F2.Players); err != nil {

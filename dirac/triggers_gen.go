@@ -489,7 +489,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 			if t.Flags&kop.TfCombat != 0 && !combat || t.Flags2&kop.Tf2NonCombat != 0 && combat {
 				return
 			}
-			if t.Flags&kop.TfToPlayer != 0 && !toPlayer {
+			if t.Flags&kop.TfToPlayer != 0 && !toPlayer && t.Filter2 == 0 {
 				return
 			}
 			if t.Flags2&kop.Tf2ToOpponent != 0 && dpl == l.ctrl {
@@ -573,7 +573,7 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 			if t.Flags2&kop.Tf2SrcInPlay != 0 {
 				return
 			}
-			if t.Flags&(kop.TfCombat|kop.TfSelf) != 0 || t.Flags&kop.TfToPlayer != 0 && !toPlayer {
+			if t.Flags&(kop.TfCombat|kop.TfSelf) != 0 || t.Flags&kop.TfToPlayer != 0 && !toPlayer && t.Filter2 == 0 {
 				return
 			}
 			// "to an opponent": one of the listener's opponents was dealt it
