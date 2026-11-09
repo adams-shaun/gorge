@@ -97,6 +97,18 @@ func fbBeholdEntry(cd *kop.CardDef, e *stackEntry) bool {
 	return cd.FbBehold && e.flags&sfFlashback != 0 && e.flags&sfFbGranted == 0
 }
 
+// fbBeholdUnplanned: p's flashback cast of o pays the printed flashback
+// cost's behold part, a shape gorge's cast planner declines ("cost:behold",
+// rules/pay classify.go), so the oracle lowers the cast by tapping a witness
+// at priority (beginCast). The granted instance pays mana only.
+func (s *State) fbBeholdUnplanned(k *prep, p uint8, o Obj, mode uint8) bool {
+	if mode&2 == 0 || !k.t.Cards[s.objs[o].card].FbBehold {
+		return false
+	}
+	_, _, granted := s.fbInstances(k, p&1, o)
+	return !granted
+}
+
 // beholdPayable: card c has no behold part, or p has enough candidates to
 // pay it (src: the cast card, not a hand candidate).
 func (s *State) beholdPayable(k *prep, p uint8, c CardID, src Obj) bool {
