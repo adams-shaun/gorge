@@ -59,7 +59,9 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 	case payKindSacHost:
 		return s.sacHostSlot(p) != NoSlot // the granting host, still the payer's (cost_sachost.go)
 	case kop.PayDraw:
-		return true // gorge triggeredCostDrawCounts: payable once the count resolves
+		return amt > 0 // gorge triggeredCostDrawCounts: payable once the count resolves; an unresolved or zero X stays unpriceable (decline only)
+	case payKindDamage:
+		return amt > 0 // gorge: DamageYou<X> folds only for a positive X (cost_restokens.go)
 	case kop.PaySubCounter:
 		sl := s.resSrcSlot(k)
 		return sl != NoSlot && permCtrN(s, &s.perms[sl], int(pips)) >= amt // pips carries the counter kind (CtrAll sums every kind)
@@ -104,7 +106,8 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubTrigNew {
 		kind = payKindTrigNew // a trigger's own ExileAnyGrave<1/Card.TriggeredNewCard> cost rides PayExileGrave (trig_mayexile.go)
 	}
-	kind = unlessPayKind(kind, in.B.N) // an UnlessCost$ Waterbend<N> rides PayTapX (cost_unlesswaterbend.go)
+	kind = resTokenPayKind(kind, in.B.N) // DamageYou<X> rides PayDraw (cost_restokens.go)
+	kind = unlessPayKind(kind, in.B.N)   // an UnlessCost$ Waterbend<N> rides PayTapX (cost_unlesswaterbend.go)
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubExileHand {
 		kind = payKindExileHand // a trigger's own ExileFromHand<N/Card> cost rides PayExileGrave (cost_exilefromhand.go)
 	}
@@ -709,6 +712,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.paySacHost(k)
 		case kop.PayDraw:
 			s.payDraw(s.g.pickP, int(s.g.pickLeft))
+		case payKindDamage, payKindPoison:
+			s.payResToken(k) // cost_restokens.go
 		case kop.PaySubCounter:
 			// B: drain the resolving source's own counters (gorge
 			// unless_cost.go:47 / trigger_cost_subcounter.go:91).

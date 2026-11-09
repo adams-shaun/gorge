@@ -323,6 +323,10 @@ func (s *State) resolveWard(k *prep) {
 		s.resolveWardLife(k)
 		return
 	}
+	if e.trigAmt&(wardMLBit|wardPoisBit) == wardPoisBit {
+		s.resolveWardPoison(k) // cost_restokens.go
+		return
+	}
 	if e.trigAmt&wardPowBit != 0 {
 		s.resolveWardPower(k) // kw_wardcost.go
 		return

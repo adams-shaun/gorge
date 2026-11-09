@@ -808,7 +808,13 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 		return fn()
 	}
 	var in lInstr
-	if _, isVar := lc.face.SVars[strings.TrimSpace(uc)]; isVar {
+	ri, isRes, rerr := lc.resUnlessToken(strings.TrimSpace(uc)) // lower_costtokens.go
+	if rerr != nil {
+		return rerr
+	}
+	if isRes {
+		in = ri
+	} else if _, isVar := lc.face.SVars[strings.TrimSpace(uc)]; isVar {
 		// an SVar-sized generic mana cost (Dazzling Denial's Y: {4} if you
 		// control a Bird, else {2}); gorge evaluates it as the ask is posed
 		v, err := lc.value(strings.TrimSpace(uc))
@@ -1899,6 +1905,12 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 				return refuse("ward life cost X %q", x)
 			}
 			lc.emit(lInstr{Op: "Ward", CS: "PayLifePower", A: cst(0), Obj: lRef{Kind: rTriggered}})
+			break
+		}
+		if wi, ok, err := lc.wardPoison(uc); err != nil { // lower_costtokens.go
+			return err
+		} else if ok {
+			lc.emit(wi)
 			break
 		}
 		lc.wbOK = true
