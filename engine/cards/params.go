@@ -858,6 +858,12 @@ const (
 	// Play's AllowRepeats$: a chosen card stays a candidate for the next play.
 	PKAllowRepeats
 	PKRegeneration
+	// A Mode$ Continuous static's SharedKeywordsZone$/SharedRestrictions$
+	// filter (Eater of Virtue, Cairn Wanderer): the AddKeyword$ list is
+	// narrowed to the keywords a card in those zones matching the
+	// restriction has. Appended: earlier ordinals stay stable.
+	PKSharedKeywordsZone
+	PKSharedRestrictions
 	paramKeyCount
 )
 
@@ -1665,6 +1671,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKSameNameAsEach:                   "SameNameAsEach",
 	PKAllowRepeats:                     "AllowRepeats",
 	PKRegeneration:                     "Regeneration",
+	PKSharedKeywordsZone:               "SharedKeywordsZone",
+	PKSharedRestrictions:               "SharedRestrictions",
 }
 
 // String is the key's Forge text.

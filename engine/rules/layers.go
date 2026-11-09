@@ -296,6 +296,22 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 							kw := base
 							kw.Layer = LAbilities
 							kw.AddKeywords = statKeywords(st)
+							if st.HasParam(cards.PKSharedKeywordsZone) {
+								// A shared-keyword grant is filtered by the cards in the
+								// named zones right now (Eater of Virtue's exile, Cairn
+								// Wanderer's graveyards). A token entering the
+								// battlefield can add a sharing card, so the memo must
+								// not be re-stamped across a TokenCreate; the scan
+								// re-evaluates the filter like every other "as long
+								// as" static.
+								e.staticMemoGated = true
+								// The filter also reads other cards' derived keywords,
+								// which is not one of the recorded gate inputs: mark the
+								// build a state read so only a layer-inert run may
+								// re-stamp it without a rescan.
+								e.staticMemoStateRead = true
+								kw.AddKeywords = e.statSharedKeywords(st, id, o.Controller, kw.AddKeywords)
+							}
 							kw.RemoveKeywords = statRemoveKeywords(st)
 							kw.CantHaveKeywords = statCantHaveKeywords(st)
 							kw.AffectedZone = strings.TrimSpace(st.ParamStr(cards.PKAffectedZone))

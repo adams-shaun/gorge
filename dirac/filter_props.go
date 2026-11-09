@@ -251,6 +251,10 @@ var DebugWord9Flip bool
 // Spell.ManaSpent EQ0 (kgen wasCastSpentZero).
 const wasCastSpentZero = 8
 
+// wasCastWebSling is PredWasCastEnter's PredN bit for webSlinged: the
+// resolving spell was cast for its web-slinging cost (kgen wasCastWebSling).
+const wasCastWebSling = 16
+
 // wordPerm3 is the sub-kinds on a battlefield permanent; src is the source
 // slot (NoSlot for a spell or a walk).
 //

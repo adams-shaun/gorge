@@ -40,8 +40,12 @@ func init() {
 // (Defined$, else the targeted player), the Chooser$ defaults to that player,
 // and the pile bodies run exactly as above.
 //
+// DefinedPiles$ (Hostile Negotiations; effTwoPilesDefined) names the two piles
+// directly as two selectors (Remembered, Imprinted, Targeted): no split ask,
+// the Chooser$/Defined$/controller player picks, and the bodies run as above.
+//
 // Scoped out (each ONE loud Note naming the unread parameter, nothing
-// moves; cards.TwoPilesShapeSupported keeps coverage in step): DefinedPiles$, Zone$ other
+// moves; cards.TwoPilesShapeSupported keeps coverage in step): Zone$ other
 // than that battlefield shape, FaceDown$, LeftRightPile$, a DefinedCards$
 // value other than Remembered/Targeted, a ChosenPile$/UnchosenPile$ value
 // that is not an SVar name of the resolving face (the TurnFaceUp/ToHand/
@@ -49,15 +53,14 @@ func init() {
 // cannot evaluate. AILogic$/RememberChosen$/KeepRemembered$ and the
 // description params are unread display/AI metadata.
 func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
-	for _, p := range []struct{ name, value string }{
-		{"DefinedPiles", sa.ParamStr(cards.PKDefinedPiles)},
-		{"LeftRightPile", sa.ParamStr(cards.PKLeftRightPile)},
-	} {
-		if v := strings.TrimSpace(p.value); v != "" {
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "unimplemented TwoPiles shape: " + p.name + "$ " + v})
-			return
-		}
+	if v := strings.TrimSpace(sa.ParamStr(cards.PKLeftRightPile)); v != "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented TwoPiles shape: LeftRightPile$ " + v})
+		return
+	}
+	if twoPilesDefinedPilesValue(sa) != "" {
+		effTwoPilesDefined(h, c, sa)
+		return
 	}
 	spec := DefinedOf(sa).Cards.Text
 	battlefield := false
@@ -81,23 +84,6 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 			Text: "unimplemented TwoPiles shape: FaceDown$ " + v})
 		return
 	}
-	// The pile bodies must be SVar names on the resolving face: the core
-	// carriers all point at DB$ ChangeZone/Play bodies, while the exotic
-	// one-offs (TurnFaceUp, ToHand, ToGrave) name actions no SVar defines.
-	// An unresolvable value emits its own Note and returns "".
-	pileBodyFor := func(value, label string) string {
-		v := strings.TrimSpace(value)
-		if v == "" {
-			return ""
-		}
-		if cards.ResolveSVar(c.SVars, v) == nil {
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "unimplemented TwoPiles shape: " + label + "$ " + v})
-			return ""
-		}
-		return v
-	}
-
 	// The card set, in the deterministic Remembered/Targets order. Defined$
 	// Remembered is Forge's host remembered list, which never contains the
 	// event object the trigger fired on (rememberedExcludingCapture): a
@@ -170,49 +156,13 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 	// (Forge's core carriers all do); UnchosenPile$ is optional — Brilliant
 	// Ultimatum leaves the unchosen pile in exile. An unresolvable value
 	// emitted its own Note inside pileBodyFor and stops the walk.
-	chosenBody := pileBodyFor(sa.ParamStr(cards.PKChosenPile), "ChosenPile")
+	chosenBody := twoPilesBodyFor(h, c, sa.ParamStr(cards.PKChosenPile), "ChosenPile")
 	if chosenBody == "" {
 		return
 	}
-	unchosenBody := pileBodyFor(sa.ParamStr(cards.PKUnchosenPile), "UnchosenPile")
+	unchosenBody := twoPilesBodyFor(h, c, sa.ParamStr(cards.PKUnchosenPile), "UnchosenPile")
 	if strings.TrimSpace(sa.ParamStr(cards.PKUnchosenPile)) != "" && unchosenBody == "" {
 		return
-	}
-
-	runPile := func(name string, pile []state.ObjID) {
-		if name == "" || len(pile) == 0 {
-			return
-		}
-		sub := cards.ResolveSVar(c.SVars, name)
-		if sub == nil {
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "unimplemented TwoPiles shape: " + name + " does not resolve"})
-			return
-		}
-		// A FRESH Ctx carrying ONLY the pile (the Remembered aliasing
-		// hazard cardflow.go documents): the pile body's ChangeZone reads
-		// exactly these cards and its riders land on the fresh slice, never
-		// on the outer resolution's Remembered. Child keeps the script
-		// table (and the layer tables Resolve rebinds on entry anyway).
-		k := c.Child(c.Source, c.Controller)
-		sc := &k
-		sc.Remembered = make([]state.Target, 0, len(pile))
-		for _, id := range pile {
-			sc.Remembered = append(sc.Remembered, state.Target{Obj: id})
-		}
-		Resolve(h, sc, noShuffleBody(sub))
-	}
-
-	// runPiles runs the bodies once the pick is settled: ChosenPile$ on the
-	// chosen pile, UnchosenPile$ on the other.
-	runPiles := func(pickB bool, pileA, pileB []state.ObjID) {
-		if pickB {
-			runPile(chosenBody, pileB)
-			runPile(unchosenBody, pileA)
-		} else {
-			runPile(chosenBody, pileA)
-			runPile(unchosenBody, pileB)
-		}
 	}
 
 	// Pose the split ask (skipped for a one-card set — a decision
@@ -240,12 +190,132 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 
 		pileA, pileB := splitSet(ids, pileA)
 		pickB := twoPilesPosePick(h, c, sa, chooser)
-		runPiles(pickB, pileA, pileB)
+		twoPilesRunPiles(h, c, chosenBody, unchosenBody, pickB, pileA, pileB)
 		return
 	}
 	// One-card set: the split ask is skipped, the chooser is still asked.
 	pickB := twoPilesPosePick(h, c, sa, chooser)
-	runPiles(pickB, ids[:1], nil)
+	twoPilesRunPiles(h, c, chosenBody, unchosenBody, pickB, ids[:1], nil)
+}
+
+// twoPilesBodyFor validates a ChosenPile$/UnchosenPile$ value: it must be an
+// SVar name on the resolving face. The core carriers all point at DB$
+// ChangeZone/Play bodies, while the exotic one-offs (TurnFaceUp, ToHand,
+// ToGrave) name actions no SVar defines. An unresolvable value emits its own
+// Note and returns "".
+func twoPilesBodyFor(h Host, c *Ctx, value, label string) string {
+	v := strings.TrimSpace(value)
+	if v == "" {
+		return ""
+	}
+	if cards.ResolveSVar(c.SVars, v) == nil {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented TwoPiles shape: " + label + "$ " + v})
+		return ""
+	}
+	return v
+}
+
+// twoPilesRunPile runs one pile body with the pile as its Remembered set.
+func twoPilesRunPile(h Host, c *Ctx, name string, pile []state.ObjID) {
+	if name == "" || len(pile) == 0 {
+		return
+	}
+	sub := cards.ResolveSVar(c.SVars, name)
+	if sub == nil {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented TwoPiles shape: " + name + " does not resolve"})
+		return
+	}
+	// A FRESH Ctx carrying ONLY the pile (the Remembered aliasing
+	// hazard cardflow.go documents): the pile body's ChangeZone reads
+	// exactly these cards and its riders land on the fresh slice, never
+	// on the outer resolution's Remembered. Child keeps the script
+	// table (and the layer tables Resolve rebinds on entry anyway).
+	k := c.Child(c.Source, c.Controller)
+	sc := &k
+	sc.Remembered = make([]state.Target, 0, len(pile))
+	for _, id := range pile {
+		sc.Remembered = append(sc.Remembered, state.Target{Obj: id})
+	}
+	Resolve(h, sc, noShuffleBody(sub))
+}
+
+// twoPilesRunPiles runs the bodies once the pick is settled: ChosenPile$ on
+// the chosen pile, UnchosenPile$ on the other.
+func twoPilesRunPiles(h Host, c *Ctx, chosenBody, unchosenBody string, pickB bool, pileA, pileB []state.ObjID) {
+	if pickB {
+		twoPilesRunPile(h, c, chosenBody, pileB)
+		twoPilesRunPile(h, c, unchosenBody, pileA)
+	} else {
+		twoPilesRunPile(h, c, chosenBody, pileA)
+		twoPilesRunPile(h, c, unchosenBody, pileB)
+	}
+}
+
+// effTwoPilesDefined is the DefinedPiles$ arm (Hostile Negotiations): the two
+// piles already exist as the named selectors' objects, so there is no split
+// ask -- only the chooser's pile pick, then the ChosenPile$/UnchosenPile$
+// bodies. Zone$, ValidCards$, DefinedCards$ and Separator$ are not read
+// (Forge ignores them with DefinedPiles). Both piles empty returns silently
+// (Forge's empty-pool return); one empty pile is still a legal choice. The
+// chooser is Chooser$, else Defined$, else the controller.
+func effTwoPilesDefined(h Host, c *Ctx, sa *cards.SA) {
+	loud := func(text string) {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "unimplemented TwoPiles shape: " + text})
+	}
+	selA, selB, ok := twoPilesDefinedPiles(sa)
+	var pileA, pileB []state.ObjID
+	if ok {
+		pileA, ok = twoPilesPileObjs(h, c, selA)
+	}
+	if ok {
+		pileB, ok = twoPilesPileObjs(h, c, selB)
+	}
+	if !ok {
+		loud("DefinedPiles$ " + twoPilesDefinedPilesValue(sa))
+		return
+	}
+	if len(pileA) == 0 && len(pileB) == 0 {
+		return
+	}
+	chooser := c.Controller
+	if spec := twoPilesChooserSpec(sa); spec != "" {
+		if chooser, ok = twoPilesPlayer(h, c, spec); !ok {
+			loud("Chooser$ " + spec + " names no player this engine can resolve")
+			return
+		}
+	}
+	chosenBody := twoPilesBodyFor(h, c, sa.ParamStr(cards.PKChosenPile), "ChosenPile")
+	if chosenBody == "" {
+		return
+	}
+	unchosenBody := twoPilesBodyFor(h, c, sa.ParamStr(cards.PKUnchosenPile), "UnchosenPile")
+	if strings.TrimSpace(sa.ParamStr(cards.PKUnchosenPile)) != "" && unchosenBody == "" {
+		return
+	}
+	pickB := twoPilesPosePick(h, c, sa, chooser)
+	twoPilesRunPiles(h, c, chosenBody, unchosenBody, pickB, pileA, pileB)
+}
+
+// twoPilesPileObjs resolves one DefinedPiles$ selector to the live objects it
+// names, in the resolver's order. ok is false for a selector this engine
+// cannot evaluate.
+func twoPilesPileObjs(h Host, c *Ctx, sel string) ([]state.ObjID, bool) {
+	ts, ok := knownDefinedTargets(h, c, sel)
+	if !ok {
+		return nil, false
+	}
+	var ids []state.ObjID
+	for _, t := range ts {
+		if t.IsPlayer {
+			continue
+		}
+		if o := h.Game().Obj(t.Obj); o != nil {
+			ids = append(ids, o.ID)
+		}
+	}
+	return ids, true
 }
 
 // twoPilesPoolPlayer is the player whose permanents the battlefield shape
