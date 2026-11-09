@@ -266,21 +266,28 @@ func newWithRNG(cfg Config, random *rng, tossAsk bool) *Engine {
 	return e.genesisDeal(cfg, tossAsk)
 }
 
+// startingLife resolves Config.StartingLife's zero value to the format's
+// default: a FormatCommander game starts at 40 life (CR 903.7), every other
+// format at 20. An explicit StartingLife overrides the default for every
+// format. newEngineShell and logReplayGame both call this, so a log-only
+// replay opens the game with exactly the life the live game did.
+func startingLife(cfg Config) int32 {
+	if cfg.StartingLife > 0 {
+		return cfg.StartingLife
+	}
+	if cfg.Format == FormatCommander {
+		return 40
+	}
+	return 20
+}
+
 // newEngineShell builds an Engine with every Config-derived field set and an
 // empty board: no GameStart, no toss, no deal. newWithRNG deals a game onto
 // it; NewStaged (engine/rules/staging.go) places a described position instead.
 func newEngineShell(cfg Config, random *rng) *Engine {
 	// cfg.Tokens is shared, never copied: the game reads it and never writes
 	// it (state.Game.Tokens), so one corpus registry map backs every engine.
-	// CR 903.7: a Commander game starts at 40 life. StartingLife overrides
-	// it for every format; 0 means the format's default (20 Constructed).
-	life := int32(20)
-	if cfg.Format == FormatCommander {
-		life = 40
-	}
-	if cfg.StartingLife > 0 {
-		life = cfg.StartingLife
-	}
+	life := startingLife(cfg)
 	initialObjects := 0
 	for i, deck := range cfg.Decks {
 		if i >= len(cfg.Names) {
