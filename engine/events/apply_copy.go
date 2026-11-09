@@ -678,6 +678,15 @@ func foldTurnFaceUp(g *state.Game, e *Event) {
 	}
 }
 
+// foldExileTurnFaceUp folds Kind ExileTurnFaceUp into state: a face-down card
+// in exile becomes face up in place. Only the marker clears (MayLook/ExiledWith
+// provenance stays); any other zone, or a face-up card, is a no-op.
+func foldExileTurnFaceUp(g *state.Game, e *Event) {
+	if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZExile && o.FaceDown {
+		o.FaceDown = false
+	}
+}
+
 // rebaseCloneLayers folds the clear a clone expiry emits while other layers
 // stay live: live is the comma-joined Seq list of the layers that survive.
 // Only those layers stay; the newest one's LOCKED face becomes the basis again
