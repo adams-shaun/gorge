@@ -73,4 +73,25 @@ func TestHeads(t *testing.T) {
 			}
 		})
 	}
+	// cmd4 is the one Commander game: four Foundations precons at
+	// FormatCommander's 40 life, pinned in cmd4.txt because 4.txt already
+	// holds the constructed 4-seat head.
+	t.Run("cmd4", func(t *testing.T) {
+		t.Parallel()
+		got := commanderAcceptanceHead(t, reg)
+		if update {
+			if err := os.WriteFile(commanderHeadPath, []byte(got+"\n"), 0o644); err != nil {
+				t.Fatalf("cmd4: writing %s: %v", commanderHeadPath, err)
+			}
+			t.Logf("cmd4: pinned %s in engine/rules/%s", got, commanderHeadPath)
+			return
+		}
+		// The "<n> seats: chain head <got>, golden <want>" prefix is parsed by
+		// tooling outside this repo; keep it.
+		if want := pinnedHeadAt(t, commanderHeadPath); got != want {
+			t.Errorf("4 seats: chain head %s, golden %s -- if this move is intended, re-pin with `%s` "+
+				"and name the first diverging event and its cause in the COMMIT MESSAGE (not in a file)",
+				got, want, rePinHint)
+		}
+	})
 }

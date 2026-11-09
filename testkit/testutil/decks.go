@@ -106,6 +106,52 @@ func AcceptanceDecks(r *cards.Registry, seats int) ([]string, [][]*cards.Card, e
 	return names, decks, nil
 }
 
+// commanderAcceptanceDeckNames is the 4-seat Commander acceptance game's
+// seating: one Foundations precon per seat, in seat order. It is a closed
+// list like legacyDeckNames so that growing the deck directory cannot move
+// the pinned Commander head.
+var commanderAcceptanceDeckNames = [...]string{
+	"foundations-calling-all-angels",
+	"foundations-keen-engineering",
+	"foundations-reign-of-dragons",
+	"foundations-wretched-ranks",
+}
+
+// CommanderAcceptanceDeckNames returns the 4-seat Commander acceptance
+// game's deck names in seat order.
+func CommanderAcceptanceDeckNames() []string { return commanderAcceptanceDeckNames[:] }
+
+// CommanderAcceptanceDecks seats the deterministic 4-seat Commander
+// acceptance game: the closed Foundations precon list, each deck resolved
+// through LoadRepoDeck, each deck's commander field validated and turned into
+// rules.Config.Commanders indices the way mtgsim's -format commander does.
+// It is the seating half of the game TestHeads/cmd4 pins and cmd/headdiff
+// can replay; rules.CommanderAcceptanceConfig is the rest.
+func CommanderAcceptanceDecks(r *cards.Registry) (names []string, decks [][]*cards.Card, commanders [][]int, err error) {
+	names = CommanderAcceptanceDeckNames()
+	decks = make([][]*cards.Card, len(names))
+	commanders = make([][]int, len(names))
+	for i, name := range names {
+		f, err := LoadRepoDeckFile(name)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		if len(f.CommanderNames()) == 0 {
+			return nil, nil, nil, fmt.Errorf("testutil: commander acceptance deck %q names no commander", name)
+		}
+		if err := f.ValidateCommander(r); err != nil {
+			return nil, nil, nil, fmt.Errorf("testutil: commander acceptance deck %q: %w", name, err)
+		}
+		d, err := LoadRepoDeck(r, name)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		decks[i] = d
+		commanders[i] = f.CommanderIndices()
+	}
+	return names, decks, commanders, nil
+}
+
 // LoadRepoDeck reads decks/<name>.json and resolves it through the deck package
 // (deck.Parse then File.Resolve, which runs cards.NormalizeName so
 // Scryfall-shaped catalogue names and Forge script names fold to the same key)
