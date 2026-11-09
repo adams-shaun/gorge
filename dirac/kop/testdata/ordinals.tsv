@@ -68,6 +68,7 @@ CfCloakRemembered	untyped int	32
 CfRemember	untyped int	4
 CfShuffle	untyped int	2
 CfTapped	untyped int	1
+CharmRepeat	untyped int	256
 ChooseOpp	untyped int	2
 ChooseRandom	untyped int	1
 ChooseSelf	untyped int	0
