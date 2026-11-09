@@ -754,6 +754,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		in.CS = strings.TrimPrefix(in.CS+"|ForgetOther", "|")
 	}
+	if err := lc.changeZoneImprint(ps, &in); err != nil { // lower_imprintzone.go
+		return err
+	}
 	if self && (in.Op != "Return" || in.C != zBattlefield || counterKind != "" || override != nil) {
 		return refuse("ThisDefinedAndTgts$ Self on a %s move", in.Op)
 	}

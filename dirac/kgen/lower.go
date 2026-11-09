@@ -399,6 +399,7 @@ func (lc *lowerCtx) lowerTail() {
 	}
 	lc.lowerGift()
 	lc.refuseCrossAbilityRemembered()
+	lc.refuseCrossAbilityImprinted()
 	lc.refuseRememberedPower() // value_countheads.go
 	lc.refuseMultiMana()
 	lc.refuseCtxRememberedCount()

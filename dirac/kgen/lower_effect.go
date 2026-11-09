@@ -3354,6 +3354,9 @@ func (lc *lowerCtx) token(ps *params) error {
 		}
 		in.C |= 4
 	}
+	if err := lc.tokenImprint(ps, &in); err != nil { // lower_imprintzone.go
+		return err
+	}
 	var pump []string
 	if kw, ok := ps.get("PumpKeywords"); ok {
 		// gorge token.go: each minted token gets one LAbilities effect
