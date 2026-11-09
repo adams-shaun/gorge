@@ -71,6 +71,11 @@ var replEventGates = [cards.ReplEventCount]replEventGate{
 // entries an ask-free chain makes are new tokens and the source returning
 // itself, whose own entry text the text half judges (FaceEntryMayAsk).
 func tapeMovedReplMayAsk(e *Engine) bool {
+	// CR 903.9b: a commander that would be put into its owner's hand or
+	// library asks its owner, from any zone it can be moved out of.
+	if tapeCommanderMayAsk(e) {
+		return true
+	}
 	// A static can GRANT an optional Moved replacement (Pulmonic Sliver's
 	// "you may put it on top of its owner's library instead"). The granted
 	// line is not in any face's Repls, so the walk below cannot count it; the
@@ -123,4 +128,25 @@ func movedOwnEntryLine(r *cards.Repl, source state.ObjID) bool {
 	return movedLineRejects(r, source, events.Event{Obj: 0, To: state.ZBattlefield}) &&
 		!movedLineRejects(r, source, events.Event{Obj: source, To: state.ZBattlefield}) &&
 		movedLineRejects(r, source, events.Event{Obj: source, To: state.ZGraveyard})
+}
+
+// tapeCommanderMayAsk is the CR 903.9b gate of the Moved event: in a
+// Commander game, a commander outside the command zone can be moved to its
+// owner's hand or library by an ask-free-looking bounce or tuck, and the
+// owner's command-zone choice is then posed inside that resolution. The
+// resolution takes a checkpoint so the choice is served in place, at the
+// instruction that moves the commander (parkAsk), and the object that is
+// resolving stays on the stack until the choice is made.
+func tapeCommanderMayAsk(e *Engine) bool {
+	if e.format != FormatCommander {
+		return false
+	}
+	for p := range e.G.Players {
+		for _, id := range e.G.Players[p].Commanders {
+			if o := e.G.Obj(id); o != nil && o.Zone != state.ZCommand {
+				return true
+			}
+		}
+	}
+	return false
 }
