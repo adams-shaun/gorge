@@ -185,6 +185,12 @@ type Cost struct {
 	// CostFlags bit (the words are full). Read only for an exile-granted
 	// ability (ExtGrantExile): its own cost beside nothing else.
 	ExileHand bool
+	// DiscardHand: discard the whole hand as part of an activated ability's
+	// cost (Discard<N/Hand>, CR 118.3, 602.2b; gorge pay.DiscardCandidates'
+	// whole-hand spec discards every card in hand order, asks no choice and
+	// an empty hand pays with nothing). A table byte, not a CostFlags bit
+	// (the words are full).
+	DiscardHand bool
 }
 
 // CostHostSac: sacrifice the granting host (Sac<1/OriginalHost>: Deconstruction

@@ -150,7 +150,7 @@ func predCardCold(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 		return predCardKvf(k, fl, c, fd) // filter_valueheads.go
 	}
 	if fl.Pred == kop.PredSameNameT0 {
-		return false // only a battlefield permanent
+		return false // reached only with no object (the object form: sameNameT0Card)
 	}
 	if fl.Pred == kop.PredCountersLT {
 		// off the battlefield a card has no counters (a stash mark is read

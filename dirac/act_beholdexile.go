@@ -38,7 +38,7 @@ func (s *State) answerBeholdPick(a Action) {
 	if s.k().t.Cards[s.bld().e.card].BeholdExile {
 		s.beholdExRecord(Obj(a.Source()))
 	}
-	s.answerBehold()
+	s.answerBehold(a)
 }
 
 // payBeholdExilePicks exiles each recorded BeholdExile pick and links it to
