@@ -14,6 +14,11 @@ const (
 // CostFlags are the non-mana parts of a cost.
 type CostFlags uint32
 
+// CostFlags bits are allocated by explicit bit number (1 << n): take the
+// next free bit; values are pinned by testdata/ordinals.tsv. All 32 bits of
+// the uint32 are taken (bits 0-13 by the iota block below, 14-28 by the
+// explicit constants after it, 29-31 by the hand-placed ones); a new flag
+// needs a wider word or a sub-variant sharing a bit (CostSubCtrPick).
 const (
 	CostTap         CostFlags = 1 << iota // {T}
 	CostUntap                             // {Q}
@@ -180,6 +185,19 @@ type Cost struct {
 	// CostFlags bit (the words are full). Read only for an exile-granted
 	// ability (ExtGrantExile): its own cost beside nothing else.
 	ExileHand bool
+	// Exert: Exert<1/NICKNAME|CARDNAME>, the source is exerted as the cost is
+	// paid (CR 118.3, 702.100a; gorge cost.parse's Exert part, rules
+	// pay_ability.go). It taps nothing and leaves no counter: the payment
+	// stamps the one-shot "doesn't untap during its controller's next untap
+	// step" mark (pfSkipUntap). A table byte, not a CostFlags bit (the words
+	// are full).
+	Exert bool
+	// DiscardHand: discard the whole hand as part of an activated ability's
+	// cost (Discard<N/Hand>, CR 118.3, 602.2b; gorge pay.DiscardCandidates'
+	// whole-hand spec discards every card in hand order, asks no choice and
+	// an empty hand pays with nothing). A table byte, not a CostFlags bit
+	// (the words are full).
+	DiscardHand bool
 }
 
 // CostHostSac: sacrifice the granting host (Sac<1/OriginalHost>: Deconstruction
@@ -238,6 +256,13 @@ const PayBSubEvidenceX = 11
 // grants the trigger is sacrificed, not the creature carrying it (CR 701.21a).
 const PayBSubSacHost = 7
 
+// PayBSubStackSelf: a PayExileGrave whose B.N carries this sentinel also
+// exiles the resolving spell itself from the stack, after the graveyard
+// cards (UnlessCost$ ExileFromGrave<N/Spec> ExileFromStack<1/Card.Self>;
+// Sphinx's Approach, gorge pay/unlessspecial.go's stack exile part). B's
+// other PayExileGrave sentinels are 3, 8, 9 and 10.
+const PayBSubStackSelf = 13
+
 // PayBSubChain: a PayExileGrave whose B.N carries this sentinel is the second
 // half of a trigger's own "{N} and ExileFromGrave<1/Spec>" cost. It follows the
 // PayMana instruction that holds the pay or decline election and never poses an
@@ -292,11 +317,11 @@ const CostExileCtrlOrGrave CostFlags = 1 << 30
 // << 1 chains.
 const CostSubAmong CostFlags = 1 << 31
 
-// CostLoyaltyX (Chandra, Hope's Beacon): a planeswalker's [-X]
-// (SubCounter<X/LOYALTY>): X is announced 0..the loyalty it has (CR 606.4,
-// gorge xAsk bounded by the walker's loyalty) and that many loyalty counters
-// are removed. Cost.N is 0 and Cost.Ctr CtrLoyalty; CostLoyalty rides beside
-// it. Bit 29, clear of the iota and << 1 chains.
+// CostLoyaltyX: an announced-X counter removal, X announced 0..the counters
+// of Cost.Ctr the source has and that many removed. A planeswalker's [-X]
+// (SubCounter<X/LOYALTY>; CR 606.4) has CostLoyalty beside it and Cost.Ctr
+// CtrLoyalty; a creature's SubCounter<X/KIND> (CR 107.3, 118.3) rides alone
+// with that kind. Cost.N is 0. Bit 29, clear of the iota and << 1 chains.
 const CostLoyaltyX CostFlags = 1 << 29
 
 // PayBRemember: a PayDiscard unless-cost whose B.N
@@ -358,38 +383,38 @@ const (
 )
 
 // CostTapHost: tap the granting host (an Equipment's granted ability).
-const CostTapHost CostFlags = CostOncePerGame << 1
+const CostTapHost CostFlags = 1 << 14
 
 // CostDiscardSelf: discard the source card (a hand ability: cycling, CR
 // 702.29a; gorge's Discard<1/CARDNAME> cost, DiscardCostCycling).
-const CostDiscardSelf CostFlags = CostTapHost << 1
+const CostDiscardSelf CostFlags = 1 << 15
 
 // CostForage: forage (CR 701.61a): exile three cards from your graveyard or
 // sacrifice a Food (Cost.Filter: the Food you control). The either-or is
 // chosen at payment (gorge forageAsk), then the three cards one pick each.
 // Never combined with another counted part (Cost.N stays free).
-const CostForage CostFlags = CostDiscardSelf << 1
+const CostForage CostFlags = 1 << 16
 
 // CostPayEnergy: pay N energy counters (CR 107.14, 122.1; gorge
 // cost.Energy / Forge CostPayEnergy): payable when the controller has N.
-const CostPayEnergy CostFlags = CostForage << 1
+const CostPayEnergy CostFlags = 1 << 17
 
 // CostReturnSelf: return this permanent to its owner's hand (gorge
 // Return<1/CARDNAME>, Forge CostReturn payCostFromSource).
-const CostReturnSelf CostFlags = CostPayEnergy << 1
+const CostReturnSelf CostFlags = 1 << 18
 
 // CostReturn: return N permanents you control matching Filter to their
 // owner's hand, chosen at payment (gorge Return<N/Spec>, returnAsk).
-const CostReturn CostFlags = CostReturnSelf << 1
+const CostReturn CostFlags = 1 << 19
 
 // CostExileSelf: exile this permanent (gorge Exile<1/CARDNAME>, exAsk's
 // source part; Forge CostExile payCostFromSource).
-const CostExileSelf CostFlags = CostReturn << 1
+const CostExileSelf CostFlags = 1 << 20
 
 // CostUntapSelf: {Q}, untap this permanent (CR 107.6; gorge cost.Untap:
 // payable while it is tapped and, a creature, not summoning sick; paid by
 // an untap, a stun counter removed instead).
-const CostUntapSelf CostFlags = CostExileSelf << 1
+const CostUntapSelf CostFlags = 1 << 21
 
 // CostTapPower: tap any number of untapped creatures you control matching
 // Filter with total power N or greater (CR 702.122a Crew, 702.171a Saddle;
@@ -397,7 +422,7 @@ const CostUntapSelf CostFlags = CostExileSelf << 1
 // by an any-number pick at bsTapCost closed by Done (gorge's KChoose
 // "tapcost", Min 1, MinSum N, each option valued at its power); never
 // beside CostTapX (the two share the pick record's pkTapX kind).
-const CostTapPower CostFlags = CostUntapSelf << 1
+const CostTapPower CostFlags = 1 << 22
 
 // CostCrew / CostSaddle mark a CostTapPower part that pays Crew (CR
 // 702.122) or Saddle (CR 702.171): only then does a tapped creature's
@@ -406,9 +431,9 @@ const CostTapPower CostFlags = CostUntapSelf << 1
 // and its mana cost is reduced by the permanent's mana cost on its entry
 // turn (kw_powerup.go).
 const (
-	CostCrew    CostFlags = CostTapPower << 1
-	CostSaddle  CostFlags = CostCrew << 1
-	CostPowerUp CostFlags = CostSaddle << 1
+	CostCrew    CostFlags = 1 << 23
+	CostSaddle  CostFlags = 1 << 24
+	CostPowerUp CostFlags = 1 << 25
 )
 
 // CostWaterbend: Waterbend<N> (CR 701.67): N generic in Cost.Mana may be
@@ -417,12 +442,12 @@ const (
 // for, and the picks are tapped at payment. An activated ability's own cost
 // only, never beside {T} (gorge taps the source twice), a counted part or an
 // {X} (kgen refuses all three).
-const CostWaterbend CostFlags = CostPowerUp << 1
+const CostWaterbend CostFlags = 1 << 26
 
 // CostBlight: Blight<N> (CR 701.68): put Cost.N -1/-1 counters on a
 // creature Cost.Filter you control, the source included (gorge cost.parse's
 // Blight part).
-const CostBlight CostFlags = CostWaterbend << 1
+const CostBlight CostFlags = 1 << 27
 
 // CostDiscardFiltered: the CostDiscard part counts and pays only the hand
 // cards matching Cost.Filter (a filtered discard cost, Discard<N/Spec> with
@@ -431,7 +456,7 @@ const CostBlight CostFlags = CostWaterbend << 1
 // Pred = PredNamed, PredN = the card's own id (grandeur, CR 702.36).
 // Alone among the counted parts (Cost.N / Cost.Filter), a battlefield
 // activated ability's own cost only; kgen refuses the rest.
-const CostDiscardFiltered CostFlags = CostBlight << 1
+const CostDiscardFiltered CostFlags = 1 << 28
 
 // EvidenceTargetsMV: an AbSpell's Ability.Evidence of this value is a
 // mandatory CollectEvidence<X> additional cost, X the total mana value of

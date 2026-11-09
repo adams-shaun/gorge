@@ -143,6 +143,7 @@ type genPrep struct {
 	anyWitherGrant bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyEOTEmb      bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb       bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
+	anyNTEndEmb    bool           // some emblem ends at its controller's next turn's cleanup (kop.Emblem.UntilEndOfNextTurn; static_emblemdurations.go)
 	embObjEv       uint32         // object events (bit per TrigEvent) some emblem trigger listens to (fireEmblemsObj)
 	embCombatEv    uint32         // events (DamageDone, AttackersDeclared, LifeGained) some emblem trigger listens to (trig_effectuntileot.go)
 	anyGrant       bool           // some override or static grants an ability
@@ -306,7 +307,8 @@ type genPrep struct {
 	anyYouHex      bool           // some Continuous static gives its controller hexproof (StYouHexproof; ctr_shield.go)
 	anyRole        bool           // some card carries the Role subtype: the SBA runs the Role exclusivity check (static_roletokens.go)
 	roleSub        uint8          // the matchup subtype index of Role (static_roletokens.go)
-	anyWhileHost   bool           // some override or emblem ends when its host leaves (kop.Override/Emblem.WhileHost; filter_combatwords.go)
+	anyWhileHost   bool           // some override or emblem ends when its host leaves (kop.Override/Emblem.HostBound; filter_combatwords.go)
+	anyEmbCtrl     bool           // some emblem ends when its host's controller changes (kop.Emblem.AsLongAsControl; static_emblemdurations.go)
 	anyWhileTapped bool           // some override also ends at its host's untap (kop.Override.WhileTapped; static_animatewhiletapped.go)
 	anyOvCantAtk   bool           // some override says its permanent can't attack (kop.Override.CantAttack; filter_combatwords.go)
 	anySrcMark     bool           // some filter reads F2DamagedBy or F2CrewedSrc: the source-mark records are kept (filter_combatwords.go)
@@ -483,10 +485,10 @@ func tableHasPrevent(t *kop.Table) bool {
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) {
 		return nil
 	}
-	enteredNeed := false
+	enteredNeed := tableHasEnteredFrom(t)
 	for i := range t.Exprs {
 		if k := t.Exprs[i].Kind; k == kop.ExThisTurnEntered || k == kop.ExRevolt || k == kop.ExLeftZone {
 			enteredNeed = true
@@ -1267,6 +1269,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if t.Emblems[i].UntilNextTurn {
 			g.anyNTEmb = true
 		}
+		if t.Emblems[i].UntilEndOfNextTurn {
+			g.anyNTEndEmb = true
+		}
 		for j := range t.Emblems[i].Abilities {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCanAttackDefender {
 				g.anyCanAtkDef = true // an Effect-delivered grant: prepared like a printed one
@@ -1865,7 +1870,27 @@ type genState struct {
 
 	ctrOver  [maxCtrOver]ctrOverEntry // counter kinds past the general slots, sorted (ctr_sparse.go)
 	nctrOver uint8
+
+	// Reserved tail: State bytes set aside so later work never edits a struct
+	// definition. Nothing reads or writes these yet. The rule: new State bytes
+	// come out of rsv, the mech arena, a cold array or a scr overlay; never a
+	// mid-struct insertion, which moves every later field. rsv is named, not _,
+	// so SameGame's == compares it. Together the block grows State by 64 bytes
+	// (statelayout_test.go pins the size and perms' cache-line phase).
+	imp     [maxImp]Obj
+	nimp    uint8
+	linkImp uint8
+	embF    [MaxSeats]uint8 // bit i: player p's emblem i (UntilEndOfNextTurn) has begun a turn since creation (static_emblemdurations.go)
+	embR    [MaxSeats][maxEmb]Obj
+	rsv     [rsvN]uint8
 }
+
+const (
+	maxImp = 16
+	// rsvN pads the reserved block to 64 bytes (genState's 5 bytes of tail
+	// padding absorb the rest of the alignment).
+	rsvN = 64 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb
+)
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
 // kind: 0 empty, 1 "except by creatures with haste", 0x80|cmp<<4|N the
@@ -1997,7 +2022,7 @@ const (
 	StallPanharmGrant  = 142 // a fifth Panharmonicon grant (Lwaxana Troi) live at once (genState.pgT; act_grantpanharm.go)
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
-	NumStall           = 145 // capacity of the reason tables (StallName); a reason registers its name in its own file
+	NumStall           = 192 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
 )
 
 // StallName is reason r's short name ("" for StallNone).

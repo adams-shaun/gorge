@@ -11,20 +11,15 @@ import (
 //go:noinline
 func (s *State) dropEOTEmblems(k *prep) {
 	for p := 0; p < 2; p++ {
-		n := 0
+		var drop uint8
 		for i := 0; i < int(s.g.nemb[p]); i++ {
 			if k.t.Emblems[s.g.emb[p][i]-1].UntilEOT {
-				continue
+				drop |= 1 << uint(i)
 			}
-			s.g.emb[p][n], s.g.embC[p][n], s.g.embO[p][n], s.g.embN[p][n] = s.g.emb[p][i], s.g.embC[p][i], s.g.embO[p][i], s.g.embN[p][i]
-			s.g.embT[p][n] = s.g.embT[p][i]
-			n++
 		}
-		for i := n; i < int(s.g.nemb[p]); i++ {
-			s.g.emb[p][i], s.g.embC[p][i], s.g.embO[p][i], s.g.embN[p][i] = 0, 0, 0, 0
-			s.g.embT[p][i] = 0
+		if drop != 0 {
+			s.embCompact(uint8(p), drop)
 		}
-		s.g.nemb[p] = uint8(n)
 	}
 }
 

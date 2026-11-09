@@ -45,7 +45,7 @@ func (s *State) copyHasSub(k *prep, e *stackEntry) bool {
 // copySlotChosen reports whether slot i belongs to no mode or to one e chose.
 func copySlotChosen(a *kop.Ability, i int, e *stackEntry) bool {
 	tm := a.TgtModes[i]
-	return tm == 0 || tm&e.mode != 0
+	return tm == 0 || tm&a.ModeSet(e.mode) != 0
 }
 
 // copyLinkSlot reports whether slot i is a SubAbility$ link's announced target:

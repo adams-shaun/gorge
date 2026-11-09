@@ -490,16 +490,21 @@ func (s *State) abilityAffordableTargets(k *prep, buf *[MaxOptions]uint8, n int)
 // the turn's cast counts hide its own ring push as gorge's costCompositionEvent
 // does. Without it a "second spell you cast" reduction (Highspire Bell-Ringer)
 // vanishes from the target menu while the build's own buildCost saw it.
-func (s *State) markCostComposition() (restore func()) {
-	if !s.buildLive() || s.bld().e.kind != seSpell {
-		return func() {}
+//
+// It reports whether it set the bit (the cast is a live spell build and the bit
+// was clear); unmarkCostComposition(set) undoes exactly that.
+func (s *State) markCostComposition() (set bool) {
+	if !s.buildLive() || s.bld().e.kind != seSpell || s.bld().bfl&bflCostComp != 0 {
+		return false
 	}
-	prev := s.bld().bfl & bflCostComp
 	s.bld().bfl |= bflCostComp
-	return func() {
-		if prev == 0 {
-			s.bld().bfl &^= bflCostComp
-		}
+	return true
+}
+
+// unmarkCostComposition clears the mark markCostComposition set.
+func (s *State) unmarkCostComposition(set bool) {
+	if set {
+		s.bld().bfl &^= bflCostComp
 	}
 }
 
@@ -551,9 +556,9 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 		}
 	}
 	s.g.noTgtRed = true
-	restore := s.markCostComposition()
+	marked := s.markCostComposition()
 	full := s.adjustCostGen(k, e.ctrl, e.card, e.obj, cd.Cost)
-	restore()
+	s.unmarkCostComposition(marked)
 	s.g.noTgtRed = false
 	if e.flags&sfAnyMana != 0 {
 		full = anyType(full)

@@ -211,10 +211,11 @@ const (
 	PredLacksKeyword                                        // !with<Keyword>: does not have keyword bit PredN (PredHasKeyword negated)
 	PredOutlaw                                              // an Assassin, Mercenary, Pirate, Rogue or Warlock (gorge outlawMatches); PredN 1 negates (!Outlaw)
 	PredMonoColor                                           // exactly one colour (gorge wordMonoColor)
-	// PredSameNameT0: a battlefield permanent that is the resolving
-	// ability's target 0, or shares its name (a named, face-up one; gorge
+	// PredSameNameT0: the resolving ability's target 0, or an object
+	// sharing its name: a battlefield permanent (a named, face-up one; gorge
 	// "TargetedCard.Self,Permanent.NotDefinedTargeted+sharesNameWith
-	// Targeted": Maelstrom Pulse)
+	// Targeted": Maelstrom Pulse) or a card whose target is a graveyard card
+	// (the Card.NotDefinedTargeted spelling: Rat King, Verminister)
 	PredSameNameT0
 	// PredCountersLT: fewer than PredN>>8 counters of kind PredN&0xff
 	// (gorge counters_LT/LE/EQ0: Reckoner Bankbuster's counters_EQ0_CHARGE
@@ -393,6 +394,13 @@ const W7WithDisguise int16 = 22
 // in one clause (a clause holds one comparison): not face down and printed
 // with Disguise, in any zone.
 const W7FaceUpDisguise int16 = 23
+
+// W7EnteredFromBF (PredWord7 sub-kind 24): the card is in a graveyard, or
+// another zone off the battlefield, because it was put there from the
+// battlefield this turn (gorge's ThisTurnEnteredFrom_Battlefield: the
+// object's latest arrival into its current zone, read off the entered
+// ledger). Read off the battlefield only: kgen refuses it on a permanent.
+const W7EnteredFromBF int16 = 24
 
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and

@@ -78,24 +78,35 @@ type auraEntryCand struct {
 }
 
 // nonCastAuraEntrant returns the object of a MoveZone that puts a face-up
-// Aura card onto the battlefield other than by resolving as an Aura spell
-// (CR 303.4f's "by any means other than"): the object is neither on the stack
-// (a resolving Aura spell attaches through its own cast-time target) nor
-// already on the battlefield. A face-down entry is a vanilla 2/2 (CR 708.5),
-// not an Aura. The face read is the entering face: a Transformed$ entry has
-// already flipped before its move is emitted.
-func nonCastAuraEntrant(e *Engine, ev *events.Event) *state.Object {
+// Aura onto the battlefield other than by resolving as an Aura spell (CR
+// 303.4f's "by any means other than"), with the face it enters with. The
+// object is not already on the battlefield, and not a stack object whose own
+// printed face is the Aura (a resolving Aura spell attaches through its
+// cast-time target). A face-down entry is a vanilla 2/2 (CR 708.5), not an
+// Aura. The face is the entering face: the answered as-enters clone
+// template's copiable face when there is one (CR 707.2 and 614.12: a Copy
+// Enchantment resolving from the stack that copies an Aura enters as that
+// Aura, though ClonePermanent has not installed the face yet), else the
+// printed face. A Transformed$ entry has already flipped before its move is
+// emitted.
+func nonCastAuraEntrant(e *Engine, ev *events.Event) (*state.Object, *cards.Face) {
 	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || events.IsFaceDownEntry(ev.Counter) {
-		return nil
+		return nil, nil
 	}
 	o := e.G.Obj(ev.Obj)
-	if o == nil || o.Zone == state.ZBattlefield || o.Zone == state.ZStack {
-		return nil
+	if o == nil || o.Zone == state.ZBattlefield || o.Face() == nil {
+		return nil, nil
 	}
-	if !faceIsAura(o.Face()) {
-		return nil
+	if tpl := entryCloneTemplateFace(e, o.ID, o.Face(), *ev); tpl != nil {
+		if faceIsAura(tpl) {
+			return o, tpl
+		}
+		return nil, nil
 	}
-	return o
+	if o.Zone == state.ZStack || !faceIsAura(o.Face()) {
+		return nil, nil
+	}
+	return o, o.Face()
 }
 
 // faceIsAura reports the Aura subtype on a printed face. Every Aura is an
@@ -176,8 +187,18 @@ func auraEnchantCandidates(e *Engine, f *cards.Face, id state.ObjID, you state.P
 // auraEntryCandidates is the entering Aura's own candidate walk; a marked
 // entry (events.NamedAttachEntry) keeps only its named bearers, in the
 // effect's order.
-func auraEntryCandidates(e *Engine, o *state.Object, ev *events.Event) ([]auraEntryCand, bool) {
-	cands := auraEnchantCandidates(e, o.Face(), o.ID, o.Controller, e.auraEntryCands)
+func auraEntryCandidates(e *Engine, o *state.Object, f *cards.Face, ev *events.Event) ([]auraEntryCand, bool) {
+	if f != o.Face() {
+		// A copied Aura's protection leg (CR 702.16c) reads the permanent as
+		// it will enter: the template's colours and types, not the printed
+		// face ClonePermanent has not replaced yet.
+		basis := *o
+		basis.SetCopyFace(f)
+		saved := e.entryBasis
+		e.entryBasis = &basis
+		defer func() { e.entryBasis = saved }()
+	}
+	cands := auraEnchantCandidates(e, f, o.ID, o.Controller, e.auraEntryCands)
 	e.auraEntryCands = cands
 	named, ok := events.NamedAttachEntry(ev)
 	if !ok {
@@ -214,11 +235,19 @@ func filterAuraCandidates(cands []auraEntryCand, named []state.ObjID) []auraEntr
 // bearer, the controller's earlier answer, or the first candidate as the
 // default an unasked entry keeps.
 func auraEntryGate(e *Engine, ev *events.Event) bool {
-	o := nonCastAuraEntrant(e, ev)
+	o, f := nonCastAuraEntrant(e, ev)
 	if o == nil {
 		return false
 	}
-	cands, named := auraEntryCandidates(e, o, ev)
+	cands, named := auraEntryCandidates(e, o, f, ev)
+	if len(cands) == 0 && o.Zone == state.ZStack {
+		// CR 303.4g: a stack object has no zone to stay in; the copy enters
+		// unattached and the CR 704.5m state-based action puts it away.
+		if e.auraEntry.obj == ev.Obj {
+			e.auraEntry = auraEntryState{}
+		}
+		return false
+	}
 	if len(cands) == 0 {
 		if e.auraEntry.obj == ev.Obj {
 			e.auraEntry = auraEntryState{}
@@ -267,11 +296,11 @@ func auraTokenGate(e *Engine, ev *events.Event) bool {
 // already recorded it. Object options carry the bearer in Obj; a player
 // option carries Obj 0 and the seat in Player.
 func auraEntryChoice(e *Engine, ev *events.Event) (etbChoice, bool) {
-	o := nonCastAuraEntrant(e, ev)
+	o, f := nonCastAuraEntrant(e, ev)
 	if o == nil {
 		return etbChoice{}, false
 	}
-	cands, named := auraEntryCandidates(e, o, ev)
+	cands, named := auraEntryCandidates(e, o, f, ev)
 	if named || len(cands) < 2 {
 		return etbChoice{}, false
 	}
@@ -302,12 +331,12 @@ func (c etbChoice) promptText() string {
 
 // answerAuraEntry records the controller's "enchant" answer for the parked
 // entry; the re-emitted move's gate keeps it and its fold attaches it. The
-// answer is recognised by the entry record, not by an option kind: an
-// entry with a multi record owes the enchant answer first, because the
-// choice is its first as-enters election.
+// answer is recognised by the entry record and the "enchant" option kind: an
+// entry with a multi record owes the enchant answer, but a copied Aura's
+// clone election (or a template's own as-enters choice) can come before it.
 func answerAuraEntry(e *Engine, move *events.Event, opt *decision.Option) {
 	st := &e.auraEntry
-	if st.obj != move.Obj || !st.multi || st.answered {
+	if st.obj != move.Obj || !st.multi || st.answered || opt.Kind != "enchant" {
 		return
 	}
 	if opt.Obj != 0 {

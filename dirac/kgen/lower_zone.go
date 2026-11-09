@@ -1011,7 +1011,7 @@ func (lc *lowerCtx) changeZoneAll(ps *params) error {
 		return lc.originBattleGrave(ps) // lower_changezoneall.go
 	}
 	lc.exwOK = true // a ChangeZoneAll sweep is a resolution-time mover: ExiledWithSource reads the resolving source
-	f, err := lc.filter(ps.str("ChangeType"))
+	f, err := lc.changeZoneAllFilter(ps)
 	lc.exwOK = false
 	if err != nil {
 		return err
@@ -2274,6 +2274,18 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 				return refuse("Effect MayPlayLimit %q", v)
 			}
 			fl |= n << kop.MayPlayLimitShift
+		}
+		if v, ok := sp.get("MayPlayAltManaCost"); ok {
+			// Inside Information: the exiled cards are cast by paying life
+			// equal to their mana value instead of their mana cost
+			// (CR 118.9). The one alternative the kernel's remembered
+			// permission record carries; it rides alone, over the
+			// end-of-turn grant of the remembered set.
+			if strings.TrimSpace(v) != "PayLife<ConvertedManaCost>" || obj.Kind != rRemembered || dur != "EOT" ||
+				fl&(kop.MayPlayFree|kop.MayPlayAnyType|kop.MayPlayIgnoreColor|kop.MayPlayLimitMask|kop.MayPlayOwner|kop.MayPlayAdventure|kop.MayPlayOpponent) != 0 {
+				return refuse("Effect MayPlayAltManaCost %q", v)
+			}
+			fl |= kop.MayPlayPayLife
 		}
 		if fl != 0 {
 			in.B = cst(fl)

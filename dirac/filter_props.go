@@ -186,6 +186,9 @@ func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctr
 	if fl.PredN&0xff == kop.W7SharesCrTrigObj {
 		return o != NoObj && s.sharesCrTrigObj(k, o)
 	}
+	if fl.PredN&0xff == kop.W7EnteredFromBF {
+		return o != NoObj && s.enteredFromBattlefield(o) != DebugWord7Flip
+	}
 	if fl.PredN&0xff == kop.W7NoNameTwinGrave {
 		// off the battlefield the card has no other self to skip; in the
 		// evaluating controller's graveyard it shares a name with itself
@@ -250,6 +253,10 @@ var DebugWord9Flip bool
 // wasCastSpentZero is PredWasCastEnter's PredN bit for CastSa
 // Spell.ManaSpent EQ0 (kgen wasCastSpentZero).
 const wasCastSpentZero = 8
+
+// wasCastWebSling is PredWasCastEnter's PredN bit for webSlinged: the
+// resolving spell was cast for its web-slinging cost (kgen wasCastWebSling).
+const wasCastWebSling = 16
 
 // wordPerm3 is the sub-kinds on a battlefield permanent; src is the source
 // slot (NoSlot for a spell or a walk).

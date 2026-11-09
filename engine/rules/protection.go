@@ -266,6 +266,14 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 		return true
 	}
 	o := e.G.Obj(source)
+	// An entering object read as it will enter (e.entryBasis, CR 614.12: a
+	// Copy Enchantment about to become a copy of a red Aura is red) carries
+	// only its basis face's characteristics; it is off the battlefield, so
+	// no layer effect applies to it.
+	basis := false
+	if b := e.entryBasis; b != nil && b.ID == source {
+		o, basis = b, true
+	}
 	if o == nil {
 		return false
 	}
@@ -325,14 +333,20 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	// Parameterised protection qualities are Forge object specs (Artifact,
 	// Creature.God, Card.MultiColor, and so on). Reuse the filter grammar so
 	// every supported type/colour predicate has identical meaning here.
-	if e.matchesSpec(q, source, e.specCtx(0, e.controllerOf(source))) {
+	sc := e.specCtx(0, e.controllerOf(source))
+	if basis && effects.MatchesObjectCtx(e.G, q, o, sc) || !basis && e.matchesSpec(q, source, sc) {
 		return true
 	}
 	if c := protecColourLetter(q); c != 0 {
-		col := e.objColors(e.G.Obj(source))
+		col := e.objColors(o)
 		return col != "" && strings.ContainsRune(col, c)
 	}
-	types := e.derivedTypesOf(source)
+	var types []string
+	if basis {
+		types = o.Face().Types
+	} else {
+		types = e.derivedTypesOf(source)
+	}
 	switch sourceQualityPluralCodes.Code(string(strings.ToLower(q))) {
 	case sourceQualityPluralArtifacts:
 		return slices.Contains(types, "Artifact")

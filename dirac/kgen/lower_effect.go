@@ -936,6 +936,7 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		return in, nil
 	}
 	n := 0
+	hasGraveExile := c.ExileG != nil
 	if c.ExileG != nil {
 		// a printed trigger's own ExileFromGrave<N/Spec> (gorge's
 		// triggered-cost window: trigger_cost pay/decline, then the
@@ -952,6 +953,16 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		n++
 		in.CS, in.A, in.F = "ExileGrave", cst(c.ExileGN), c.ExileG
 		c.ExileG = nil
+	}
+	if c.ExileStackSelf {
+		// ExileFromStack<1/Card.Self> beside the graveyard exile (Sphinx's
+		// Approach, Dragon's Approach): the resolving spell itself leaves the
+		// stack as the same unless cost is paid, after the grave picks.
+		if !hasGraveExile || !lc.unlessCost {
+			return in, refuse("resolution exile-from-stack cost shape")
+		}
+		in.CS = "ExileStackSelf"
+		c.ExileStackSelf = false
 	}
 	if c.DrawN > 0 {
 		// gorge's triggered-cost window: a Draw-bearing cost of a printed
@@ -3525,8 +3536,15 @@ func (lc *lowerCtx) charm(ps *params) error {
 	if lo := lc.out.ModesMinCount; lo != 0 {
 		minPick = min(lo, pick) // the offer gate's minimum (CardDef.ModesMinCount)
 	}
+	rp, err := lc.charmRepeatPlan(ps, choices, pick, twPick, lc.out.ModesPickV.Kind != vNone) // lower_charmrepeat.go
+	if err != nil {
+		return err
+	}
 	lc.ab.Modes = len(choices)
 	lc.ab.ModesPick, lc.ab.ModesMin = pick, minPick
+	if rp != nil {
+		lc.ab.RepMax, lc.ab.RepCost, lc.ab.RepBudget = rp.max, rp.cost, rp.budget
+	}
 	rootTargeted := make([]bool, len(choices)) // gorge Targeted(): the mode root's ValidTgts$ is non-empty
 	for i, name := range choices {
 		sa := cards.ResolveSVar(lc.face.SVars, strings.TrimSpace(name))
@@ -3539,32 +3557,45 @@ func (lc *lowerCtx) charm(ps *params) error {
 		if err != nil {
 			return err
 		}
+		c := i
+		if rp != nil {
+			if mps == nil {
+				mps = newParams(sa.Params)
+			}
+			mps.consume("Pawprint") // the mode's price, read by charmRepeatPlan
+			c = rp.c(i, 0)
+		}
 		saved := lc.chainT
 		lc.chainT = append([]int(nil), lc.chainT...)
 		at := len(lc.ab.Prog)
-		lc.emit(lInstr{Op: "Charm", C: i})
+		lc.emit(lInstr{Op: "Charm", C: c})
 		if err := lc.chain(sa, mps); err != nil {
 			return err
 		}
 		lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
+		if rp != nil {
+			rp.replicate(lc, at, i)
+		}
 		lc.chainT = saved
 	}
 	lc.mode = -1
-	if _, ok := ps.get("CanRepeatModes"); ok {
-		return refuse("charm CanRepeatModes$")
-	}
 	if err := lc.charmRestrict(ps); err != nil {
 		return err
 	}
 	if pick > 1 && len(choices) > 4 {
 		return refuse("charm with more than 4 modes") // mode bits 0..3 only
 	}
-	if pick > len(choices) {
+	if pick > len(choices) && rp == nil {
 		// gorge clamps the maximum to the eligible modes; no carrier reads it
 		return refuse("charm count above its modes (%d of %d)", pick, len(choices))
 	}
 	if max(pick, twPick) > 1 {
-		return lc.charmMultiTargets(len(choices), rootTargeted)
+		if err := lc.charmMultiTargets(len(choices), rootTargeted); err != nil {
+			return err
+		}
+		if rp != nil {
+			return lc.charmRepeatTargets(rp, len(choices))
+		}
 	}
 	return nil
 }
