@@ -272,6 +272,7 @@ DmgTrackExcess	untyped int	1
 DpGroup	untyped int	1
 DpMany	untyped int	3
 DpTrack	untyped int	2
+DrawRememberAll	untyped int	2
 DuDugMark	untyped int	256
 DuFoundAttacking	untyped int	512
 DuFoundTapped	untyped int	64
