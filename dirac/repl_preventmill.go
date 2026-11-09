@@ -24,6 +24,10 @@ func (s *State) preventMill(k *prep, srcCtrl, rcp uint8, n int) bool {
 	if s.replN(k, srcCtrl, rbPrevMill) == 0 {
 		return false
 	}
+	if s.noPrev(k) {
+		s.capFull(StallNoPrevent) // gorge prevents and mills anyway (static_cantprevent.go)
+		return true
+	}
 	if s.g.ro.on || s.parkedAny() {
 		s.capFull(StallReplPlus)
 		return true

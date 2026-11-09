@@ -12,9 +12,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // replacement bit (replCandLive, parkNC, kw_wither).
 func (s *State) prevCombatTo(k *prep, sl Slot) bool {
 	if s.kwGen(k, sl)&kop.KwPreventCombatDamageTo != 0 {
-		return true
+		return !s.noPrev(k)
 	}
-	return k.gen != nil && k.gen.replBits[s.cardAt(sl)]&(rbPrevCombatTo|rbPrevDmgTo) != 0 && !s.genLost(k, sl)
+	return k.gen != nil && k.gen.replBits[s.cardAt(sl)]&(rbPrevCombatTo|rbPrevDmgTo) != 0 && !s.genLost(k, sl) && !s.noPrev(k)
 }
 
 // prevCombatFrom reports whether the permanent at sl prevents every combat
@@ -23,9 +23,9 @@ func (s *State) prevCombatTo(k *prep, sl Slot) bool {
 // latter gone with lost abilities or face down (prevCombatTo).
 func (s *State) prevCombatFrom(k *prep, sl Slot) bool {
 	if s.kwGen(k, sl)&kop.KwPreventCombatDamageFrom != 0 {
-		return true
+		return !s.noPrev(k)
 	}
-	return k.gen != nil && k.gen.replBits[s.cardAt(sl)]&rbPrevCombatBy != 0 && !s.genLost(k, sl)
+	return k.gen != nil && k.gen.replBits[s.cardAt(sl)]&rbPrevCombatBy != 0 && !s.genLost(k, sl) && !s.noPrev(k)
 }
 
 // prevAnyTo reports whether the permanent at sl prevents every damage event
@@ -33,7 +33,7 @@ func (s *State) prevCombatFrom(k *prep, sl Slot) bool {
 // to CARDNAME."), the printed fact gone with lost abilities or face down
 // (prevCombatTo).
 func (s *State) prevAnyTo(k *prep, sl Slot) bool {
-	return k.gen != nil && k.gen.replBits[s.cardAt(sl)]&rbPrevDmgTo != 0 && !s.genLost(k, sl)
+	return k.gen != nil && k.gen.replBits[s.cardAt(sl)]&rbPrevDmgTo != 0 && !s.genLost(k, sl) && !s.noPrev(k)
 }
 
 // preventCombatEv takes combat damage event ev out of r's accounting: the

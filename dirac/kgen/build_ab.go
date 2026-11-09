@@ -1799,6 +1799,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		st.Kind = kop.StatAnyTypeCreatures // lower_manaconvert.go
 	case "CantDraw":
 		st.Kind = kop.StatCantDraw
+	case "CantPreventDamage":
+		st.Kind = kop.StatCantPreventDamage // static_cantprevent.go
 	case "MinMaxBlocker":
 		st.Kind = kop.StatMaxBlockers
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {

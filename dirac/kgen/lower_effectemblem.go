@@ -252,6 +252,8 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 				}
 			}
 		}
+	case "CantPreventDamage":
+		keys = map[string]bool{"Mode": true, "Description": true, "Secondary": true} // the global form (gorge cantPreventDamage: no Affected$)
 	case "CanAttackDefender":
 		// gorge canAttackDefenderGrantParamsReadableKeys
 		keys = map[string]bool{"Mode": true, "ValidCard": true, "ValidCards": true, "ValidTarget": true, "ValidAttacked": true, "Description": true, "Secondary": true}

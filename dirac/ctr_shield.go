@@ -25,8 +25,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     shieldFrozen, replOrderCandsFz, parkNC). A plus-N replacement or the
 //     source's combat prevention is not one of the ask's candidates, so that
 //     competition still stalls (StallShield). Damage that can't be prevented
-//     would skip it in gorge; the kernel has no CantPreventDamage reader, so
-//     the case does not arise.
+//     skips it, as in gorge (noPrev, static_cantprevent.go).
 //
 // Combat damage is a sequence of events in gorge (runCombatAssignments,
 // replOrderOrder's order): an attacker double-blocked onto a shielded
@@ -150,7 +149,7 @@ func (s *State) shieldOther(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, 
 	}
 	if g.anyRepl&rbPrevNC != 0 && !combat && s.isCreature(k, sl) {
 		for m := s.statM.and(s.ctrlM[rcp]); m.any(); m = m.rest() {
-			if b := m.first(); b != sl && g.replBits[s.cardAt(b)]&rbPrevNC != 0 && !s.genLost(k, b) {
+			if b := m.first(); b != sl && g.replBits[s.cardAt(b)]&rbPrevNC != 0 && !s.genLost(k, b) && !s.noPrev(k) {
 				return true
 			}
 		}
@@ -247,10 +246,10 @@ func (s *State) shieldNC(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, sl 
 // spend the counter when no other replacement matches, otherwise stall (an
 // orderable one would have been a candidate and asked).
 func (s *State) shieldFrozen(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, dst Slot, n int) bool {
-	if k.gen.anyRepl&rbShield == 0 || dst == NoSlot || n <= 0 || !s.occ.has(dst) || s.shieldN(dst) <= 0 {
+	if k.gen.anyRepl&rbShield == 0 || dst == NoSlot || n <= 0 || !s.occ.has(dst) || s.shieldN(dst) <= 0 || s.noPrev(k) {
 		return false
 	}
-	if s.kw(k, dst)&kop.KwProtectionAll != 0 ||
+	if s.kw(k, dst)&kop.KwProtectionAll != 0 && !s.noPrev(k) ||
 		k.gen.anyRepl&rbProtCol != 0 && s.protFrom(k, dst, srcSl, srcCard, s.srcColors(k, srcSl, srcCard)) {
 		return true // protection prevents it before the replacements: keep the counter
 	}
@@ -281,11 +280,11 @@ func (s *State) shieldCombat(k *prep, r *dmgRec) {
 	var ord [MaxPerm]uint8
 	for _, i := range ord[:s.replOrderOrder(r, &ord)] {
 		ev := &r.ev[i]
-		if ev.n <= 0 || ev.dst == NoSlot || !s.occ.has(ev.dst) || s.shieldN(ev.dst) <= 0 {
+		if ev.n <= 0 || ev.dst == NoSlot || !s.occ.has(ev.dst) || s.shieldN(ev.dst) <= 0 || s.noPrev(k) {
 			continue
 		}
 		d, src := ev.dst, ev.src
-		if s.kw(k, d)&kop.KwProtectionAll != 0 ||
+		if s.kw(k, d)&kop.KwProtectionAll != 0 && !s.noPrev(k) ||
 			k.gen.anyRepl&rbProtCol != 0 && s.protFrom(k, d, src, s.cardAt(src), s.colorsGen(k, src)) {
 			continue
 		}

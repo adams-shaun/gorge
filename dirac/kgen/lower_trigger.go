@@ -2067,6 +2067,8 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			return nil, refuse("%s ValidPlayer %q", s.Mode, v)
 		}
 		sp.consume("ValidPlayer", "Secondary")
+	case "CantPreventDamage": // the blanket form only: ValidSource$, IsCombat$, EffectZone$, Affected$ stay unread (gorge cantPreventDamage)
+		sp.consume("Secondary")
 	case "CantPutCounter":
 		// gorge PutCounterBlocked's object form (rules/layers_restrict.go):
 		// ValidCard$ (or ValidObject$) scopes the permanent, CounterType$

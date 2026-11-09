@@ -1127,6 +1127,9 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 	// damage divisions are still asked first (gorge asks them before its
 	// damageStep, which then returns at fogActive; kverify-c4)
 	fog := k.gen != nil && s.g.fog
+	if fog {
+		s.fogNoPrev(k) // static_cantprevent.go
+	}
 	if s.cfg&cfgAutoDivide == 0 && s.nextDivision(k, first) {
 		s.ctl = ctlDivide
 		return
