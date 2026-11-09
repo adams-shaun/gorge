@@ -26,7 +26,7 @@ Oracle:Return target creature to its owner's hand. Its controller loses 1 life.
 	bombBounceFixtureSrc = `Name:Fixture Bounce Bomb
 ManaCost:0
 Types:Artifact
-A:AB$ ChangeZone | Cost$ Sac<1/CARDNAME> | ValidTgts$ Creature | Origin$ Battlefield | Destination$ Hand | SpellDescription$ Return target creature to its owner's hand.
+A:AB$ ChangeZone | Cost$ Sac<1/CARDNAME> | Origin$ Battlefield | Destination$ Hand | ValidTgts$ Creature | SpellDescription$ Bounce target creature.
 Oracle:Sacrifice: Return target creature to its owner's hand.
 `
 )
