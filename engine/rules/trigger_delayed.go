@@ -331,6 +331,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 				TriggerContext: effects.TriggerContext{
 					DelayedSelf:             delayedSelf,
 					DelayedRemembered:       append([]state.Target(nil), dt.Remembered...),
+					DelayedCaptureOnly:      dt.CaptureOnly,
 					DelayedRememberedStamps: dt.RememberedStamps,
 					DelayedManaSpent:        dt.RememberedManaSpent,
 					OptionalSpec:            dt.OptionalSpec,

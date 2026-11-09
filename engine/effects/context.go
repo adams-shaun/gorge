@@ -2476,6 +2476,9 @@ func resolvedRemembered(h Host, c *Ctx) []state.Target {
 	if ts, ok := chapterLinkedRemembered(h, c); ok {
 		return ts
 	}
+	if ts, ok := captureOnlyRemembered(c); ok {
+		return ts
+	}
 	return selectRemembered(c.Remembered, c.Captured, c.DelayedRemembered, sourceRemembered(h, c), noFallback)
 }
 
@@ -2524,7 +2527,21 @@ func hostRemembered(h Host, c *Ctx) []state.Target {
 	if ts, ok := chapterLinkedRemembered(h, c); ok {
 		return ts
 	}
+	if ts, ok := captureOnlyRemembered(c); ok {
+		return ts
+	}
 	return filterCapturedRemembered(c.Remembered, c.Captured, c.DelayedRemembered, sourceRemembered(h, c))
+}
+
+// captureOnlyRemembered is a capture-only delayed registration's read
+// (TriggerContext.DelayedCaptureOnly): the body's own writes, never the
+// capture (Forge: the delayed trigger remembered nothing; CR "those cards" =
+// what this ability acted on). A RepeatEach iteration keeps its subject.
+func captureOnlyRemembered(c *Ctx) ([]state.Target, bool) {
+	if !c.DelayedCaptureOnly || c.RepeatSubject != (state.Target{}) {
+		return nil, false
+	}
+	return excludeCaptureOccurrences(c.Remembered, c.Captured), true
 }
 
 // chapterLinkedRemembered is a Saga chapter's Defined$ Remembered read when
