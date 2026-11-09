@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -1685,19 +1686,23 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		if head == "Behold" {
 			// Behold<N/Type> (CR 701.4a): reveal or choose N permanents or
 			// hand cards of the type, as a spell's additional cost. Only
-			// an AlternateAdditionalCost's first part and a MayFlashCost
-			// extra read it (beholdOK).
+			// an AlternateAdditionalCost's first part, a MayFlashCost
+			// extra, an OptionalCost part and a flashback cost read it
+			// (beholdOK); each caller bounds N and the parts beside it.
 			if !lc.beholdOK || len(parts) != 2 || c.BeholdN != 0 {
 				return c, refuse("behold cost %q", t)
 			}
 			n, err := strconv.Atoi(parts[0])
-			if err != nil || n != 1 {
-				return c, refuse("behold cost %q: not a count of 1", t)
+			if err != nil || n < 1 {
+				return c, refuse("behold cost %q: not a fixed count", t)
 			}
-			if !effects.CreatureTypeWords(parts[1]) {
-				// Countersculpt's Jace is a planeswalker type: its beholder
-				// is the Empower token, which no lockstep reaches
-				return c, refuse("behold cost %q: not a creature type", t)
+			if strings.Contains(parts[1], "ChosenType") {
+				// the type a ChooseCreatureType cost part names
+				return c, refuse("behold cost %q: of a type chosen as a cost", t)
+			}
+			if !effects.CreatureTypeWords(parts[1]) && !slices.Contains(effects.TypeChoiceLabels("Planeswalker", "", ""), parts[1]) {
+				// a creature or planeswalker subtype (Countersculpt's Jace)
+				return c, refuse("behold cost %q: not a creature or planeswalker type", t)
 			}
 			f, err := lc.filter(parts[1])
 			if err != nil {
@@ -2068,7 +2073,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			return c, refuse("cost %q: a forage / exile part beside another counted part", s)
 		}
 	}
-	if c.BeholdN > 0 && (len(mana) != 0 || c.BlightN != 0 || c.Sac != nil || c.DiscardN > 0 || c.Forage != nil || c.ExileG != nil || c.Tap || c.PayLife > 0) {
+	if c.BeholdN > 0 && (c.BlightN != 0 || c.Sac != nil || c.DiscardN > 0 || c.Forage != nil || c.ExileG != nil || c.Tap || c.PayLife > 0) {
 		return c, refuse("behold cost %q beside another part", s)
 	}
 	if c.BlightN > 0 {
