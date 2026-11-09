@@ -83,6 +83,9 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 				if t.Flags2&kop.Tf2ToOpponent != 0 && dpl == pp {
 					continue
 				}
+				if t.Flags2&kop.Tf2ToYou != 0 && dpl != pp {
+					continue // ValidTarget$ You: the emblem owner is the damaged player
+				}
 				if t.Flags2&kop.Tf2YourTurn != 0 && s.active != pp {
 					continue
 				}
