@@ -712,23 +712,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				tr.Combat = -1
 			}
 		}
-		// A plain DamageDone line from the card itself to an object, whose
-		// body reads the damaged creature, has a referent the plain damage
-		// trigger does not carry (its trigger object is the damage SOURCE).
-		// gorge fires the line once per damage event, and one source deals
-		// at most one damage event to a given object per batch (a combat
-		// damage step, one fight, one DealDamage), so the kernel's
-		// per-referent queue carries the damaged permanent as the trigger
-		// object exactly. Any other trigger-context read that queue does
-		// not carry refuses by name. A line without the read keeps the
-		// plain trigger.
-		if t.Mode == "DamageDone" && tp.is("ValidSource", "Card.Self") &&
-			tr.F2 != nil && tr.F2.Players == 0 && len(tr.F2.Clauses) != 0 &&
-			lc.ddoReadsTriggeredTarget(t.Effect) {
-			tr.Batch, tr.PerRef = true, true
-			if r := lc.ddoReads(t.Effect); r != "" {
-				return refuse("DamageDone body reads %s", r)
-			}
+		if err := lc.damageDoneSelfObjRef(tp, tr, t); err != nil {
+			return err
 		}
 	case "BecomesTarget":
 		switch {

@@ -83,6 +83,28 @@ func (lc *lowerCtx) damageDoneOnce(tp *params, tr *lTrigger, t cards.Trigger) er
 	return nil
 }
 
+// damageDoneSelfObjRef gives a plain DamageDone line from the card itself to
+// an object, whose body reads the damaged creature, the referent the plain
+// damage trigger does not carry (its trigger object is the damage SOURCE).
+// gorge fires the line once per damage event, and one source deals at most
+// one damage event to a given object per batch (a combat damage step, one
+// fight, one DealDamage), so the kernel's per-referent queue carries the
+// damaged permanent as the trigger object exactly. Any other trigger-context
+// read that queue does not carry refuses by name. A line without the read
+// keeps the plain trigger.
+func (lc *lowerCtx) damageDoneSelfObjRef(tp *params, tr *lTrigger, t cards.Trigger) error {
+	if t.Mode != "DamageDone" || !tp.is("ValidSource", "Card.Self") ||
+		tr.F2 == nil || tr.F2.Players != 0 || len(tr.F2.Clauses) == 0 ||
+		!lc.ddoReadsTriggeredTarget(t.Effect) {
+		return nil
+	}
+	tr.Batch, tr.PerRef = true, true
+	if r := lc.ddoReads(t.Effect); r != "" {
+		return refuse("DamageDone body reads %s", r)
+	}
+	return nil
+}
+
 // ddoBodyReads lists every trigger-context spelling a DamageDone body reads,
 // the SVars it names transitively included, in text order. A body of one
 // admitted spelling and one refused spelling yields both.
