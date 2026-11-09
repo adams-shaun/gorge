@@ -85,7 +85,7 @@ func (s *State) FeatRegenShields(o Obj) uint8 {
 // anyRegen reports whether a permanent of hit has a regeneration shield.
 func (s *State) anyRegen(hit slotMask) bool {
 	for m := hit; m.any(); m = m.rest() {
-		if s.perms[m.first()].flags&pfRegen != 0 {
+		if s.canRegen(m.first()) {
 			return true
 		}
 	}
@@ -101,7 +101,7 @@ func (s *State) regenAll(hit slotMask) slotMask {
 	var out slotMask
 	for m := hit; m.any(); m = m.rest() {
 		sl := m.first()
-		if s.perms[sl].flags&pfRegen != 0 {
+		if s.canRegen(sl) {
 			s.regenerate(sl)
 			continue
 		}

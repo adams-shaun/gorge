@@ -269,6 +269,7 @@ DmgLE	DmgCmp	2
 DmgLT	DmgCmp	6
 DmgMapped	untyped int	4
 DmgNE	DmgCmp	4
+DmgNoRegen	untyped int	32
 DmgRemember	untyped int	8
 DmgTrackExcess	untyped int	1
 DpGroup	untyped int	1
@@ -999,6 +1000,7 @@ SacSumMV	untyped int	8
 SacSumPower	untyped int	2
 SacSumToughness	untyped int	4
 SacrificedFood	untyped int	2
+SpmActivated	SpecialMask	32
 SpmCloakUp	SpecialMask	8
 SpmDisguiseUp	SpecialMask	2
 SpmManifestUp	SpecialMask	4

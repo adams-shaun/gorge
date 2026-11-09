@@ -175,6 +175,16 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{Kind: rTriggeredTgtCtrl}, nil
 		}
 		return lRef{}, refuse("Defined$ %q without a damage object referent", v)
+	case "TriggeredSourceController":
+		// gorge definedSpecTriggeredSourceController: the controller of the
+		// spell or ability that targeted the watched permanent. The watcher
+		// arm that sets Whose = opp is ValidSource$ SpellAbility.OppCtrl, so
+		// the controller is an opponent of the listener's controller: in a
+		// two-player game the one opponent (CR 102.2; Thunderbreak Regent).
+		if tr := lc.ab.Trigger; tr != nil && tr.Event == "BecomesTarget" && tr.Watch && tr.Whose == whoOpp {
+			return lRef{Kind: rEachOpp}, nil
+		}
+		return lRef{}, refuse("Defined$ %q outside an opponent-source BecomesTarget watcher", v)
 	case "TriggeredAttackingPlayer":
 		// gorge trigger_referents.go: the controller of the in-flight
 		// combat source when it is attacking. A per-referent DamageDone
@@ -595,7 +605,12 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 		// only a spell ability has that object
 		d0, hasD := ps.get("ConditionDefined")
 		lc.spellProvOK = hasD && strings.TrimSpace(d0) == "Self" && lc.ab != nil && lc.ab.Kind == akSpell
+		// the remembered-persist leave token asks whether the remembered card
+		// is still exiled with the source (a resolution-time read of the
+		// source's own exile link, lower_rempersist.go)
+		lc.exwOK = hasD && strings.TrimSpace(d0) == "Remembered" && strings.TrimSpace(cp) == "Card.ExiledWithSource" && lc.remPersistShape()
 		f, err := lc.filter(cp)
+		lc.exwOK = false
 		lc.spellProvOK = false
 		if err != nil {
 			return lCond{}, err
@@ -2251,6 +2266,9 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 			// Bite / DealDamageFrom hit permanent slots only (hitBatch); a
 			// player the slot may name is offered by the kernel, then dropped
 			if f := lc.ab.Targets[obj.N].F; f != nil && f.Players != 0 {
+				if dmgSrc.Kind == rTriggered {
+					return lc.dmgSrcAnyTarget(ps, dmgSrc, obj, n) // lower_damagesourceplayers.go
+				}
 				return refuse("DamageSource$ to a target slot that may name a player")
 			}
 		}
@@ -3201,6 +3219,13 @@ func (lc *lowerCtx) token(ps *params) error {
 		// controller (with a Note). Match that one-token fallback; the
 		// target is still asked.
 		owner = lRef{Kind: rYou}
+	} else if o, ok := ps.get("TokenOwner"); ok && o == "RememberedOwner" {
+		// the owner of the card the enters trigger exiled (CR 108.3), only
+		// in the remembered-persist shape (lower_rempersist.go)
+		if !lc.remPersistShape() {
+			return refuse("Token TokenOwner$ RememberedOwner outside the remembered-persist shape")
+		}
+		owner = lRef{Kind: rRememberedOwner}
 	} else if o, ok := ps.get("TokenOwner"); ok && o == "RememberedController" {
 		// gorge rememberedControllersLKI: the remembered object's
 		// controller, its RememberLKI$ capture once it left the battlefield

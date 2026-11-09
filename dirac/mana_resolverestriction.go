@@ -30,6 +30,12 @@ func (s *State) addManaRestr(k *prep, p uint8, col, n int, f kop.FilterID) {
 		s.pl[p].pool[col] += uint8(n)
 		return
 	}
+	if k.artMana && k.cards[s.res.e.card].manaTyped {
+		// gorge tags a resolving DB$ Mana by its source (effects.ManaProducerTag):
+		// an artifact's units are typed, spent after the plain ones (rbTyped), as
+		// floatRestrV records for a mana ability
+		s.g.poolArt[p&1] |= poolArtRestr
+	}
 	if k.gen == nil || n > 255 || !s.addRestr(k, p, f, col, uint8(n)) {
 		s.capFull(StallRestrSrc)
 	}
@@ -54,6 +60,10 @@ func (g *genPrep) prepAddManaRestr(a *kop.Ability) {
 // colour choice is ExtManaChoice F; both float the units as restricted mana
 // (State.rb) through addManaRestr, one restriction for every unit
 // (gorge effMana's ManaAdd restriction, askManaChoice picking first).
+
+// DebugActOnlyRestrSpell: a test-only mutation that lets a spell spend the
+// activated-only marker batch (restrSpendableB).
+var DebugActOnlyRestrSpell bool
 
 // DebugDBManaRestrPlain: a test-only mutation that adds a resolving colour
 // choice's restricted units to the plain pool (the pre-fix behavior).

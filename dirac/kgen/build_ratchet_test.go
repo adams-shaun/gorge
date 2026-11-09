@@ -207,8 +207,10 @@ import (
 // +15 (the activation-cost tokens listed at ratchet_test.go's ALL pin: Exert<N/NICKNAME>,
 // SubCounter<X/KIND> and ExileFromStack<1/Card.Self>; ALL build-level 21709 -> 21724).
 // +5 (the merge with land: this branch's +5 beside land's +26, disjoint; merged ALL build-level 21784 -> 21789).
+// +1 (Boommobile: kop.SpmActivated; the merge with land: land's 21792 + 1 = 21793).
+// +2 (hybrid pips in flashback and sneak mana costs; the merge with land: land's 21809 + 2 = 21811).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21794, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21811, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

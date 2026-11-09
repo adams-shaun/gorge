@@ -1942,7 +1942,7 @@ func wardAmt(c *kop.CardDef) int16 {
 // slot off every mask (kw_phasing.go), so a phasing table measures the slots
 // an entrant can actually take: enterNF's freeSlots branch.
 func (s *State) nearCapacity(k *prep) bool {
-	if int(s.nobj) >= MaxObj {
+	if s.objTableFull() {
 		return true
 	}
 	if k != nil && k.phasing {

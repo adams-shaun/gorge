@@ -111,12 +111,14 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// FRA 245 -> 246, MSH 235 -> 236).
 	// +9 (the merge with land: land's +9 beside the +15 above; merged ALL 21709 -> 21733, FRA 246 -> 247 measured).
 	// +5 (the merge with land: this branch's +5 beside land's +26, disjoint; merged ALL 21784 -> 21789 measured).
+	// +1 (Boommobile: an artifact's resolving mana restricted to activated abilities, kop.SpmActivated; the merge with land: land's 21792 + 1 = 21793, DFT 250 -> 251).
+	// +2 (hybrid pips in flashback and sneak mana costs: Twinned Vision FRA, a TMT sneak card; the merge with land: land's 21809 + 2 = 21811 measured).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21794, 34442},
+	"ALL": {21811, 34442},
 	"BIG": {23, 30},
 	"BLB": {257, 278},
 	"BRO": {207, 280},
-	"DFT": {250, 276},
+	"DFT": {251, 276},
 	"DMU": {194, 270},
 	"DSK": {242, 276},
 	"ECL": {236, 273},
@@ -135,7 +137,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SNC": {185, 266},
 	"SOS": {251, 270},
 	"SPM": {164, 192},
-	"TDM": {253, 276},
+	"TDM": {254, 276},
 	"TLA": {255, 285},
 	"TMT": {174, 194},
 	"TRC": {288, 337},
