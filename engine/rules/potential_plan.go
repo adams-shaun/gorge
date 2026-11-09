@@ -1452,6 +1452,14 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 // each had no mana plan; any other failure is "unsupported" with Detail
 // "cost:reserved_sources".
 func (e *Engine) planComposedCost(p state.PlayerID, id state.ObjID, composed Cost, ability, selfSource bool) PaymentPlanOutcome {
+	return e.planComposedCostFor(p, id, decision.PlannedCast{}, composed, ability, selfSource)
+}
+
+// planComposedCostFor is planComposedCost with the cast the plan is for: its
+// Object is the card pay.PaymentPlanHandDemand leaves out of key 6 (an
+// either-or additional cost's witness prices the cast while the card is still
+// in hand, so it must name it exactly as the plain cast planner does).
+func (e *Engine) planComposedCostFor(p state.PlayerID, id state.ObjID, cast decision.PlannedCast, composed Cost, ability, selfSource bool) PaymentPlanOutcome {
 	if len(composed.Hybrid) != 0 {
 		return e.planHybridCost(p, id, composed, ability, selfSource)
 	}
@@ -1484,7 +1492,7 @@ func (e *Engine) planComposedCost(p state.PlayerID, id state.ObjID, composed Cos
 	desc := pay.DescriptorFor(id, ability, composed)
 	desc.FaceIdx = e.planFaceIdx(id) // an alternate-face route's restriction reads the cast face
 	return e.planReserving(p, id, composed, ability, selfSource, parts, func(tapR, keptR []state.ObjID) PaymentPlanOutcome {
-		out := pay.PlanPaymentCostWithout(asPayer(e), p, decision.PlannedCast{}, manaOnly, &desc, append(slices.Clone(tapped), tapR...), nil, append(slices.Clone(kept), keptR...))
+		out := pay.PlanPaymentCostWithout(asPayer(e), p, cast, manaOnly, &desc, append(slices.Clone(tapped), tapR...), nil, append(slices.Clone(kept), keptR...))
 		if out.Plan != nil && out.Reason == "search_limit" {
 			// The node budget only stops the hunt for the rank-best plan; the
 			// plan it holds pays the cost, so it is a witness like any other

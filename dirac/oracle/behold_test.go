@@ -272,16 +272,16 @@ func runBehold(t *testing.T, seeds int, mutate bool) (games, divs int, tl kbehol
 	return games, divs, tl
 }
 
-// NOTE: manaCasts counts {N}-part picks, which are all undone: gorge's
-// pool-only castable leaves no completed cast through altAdd==1 on a behold
-// carrier, and the canonical priority list has no mana ability to top the
-// pool up. The completed {N}-part payment (and the altAdd != 0 skip in
-// beholdOptions) is covered by the kernel's TestBeholdManaPartCompletes;
-// the undone part's CR 601.2g window (sources tapped, mana floating) by
-// TestBeholdUnpayableManaPart. The kbeholdSpent/drain steering stays: without
-// it the lockstep still diverges in the options of the priority decision
-// after the floating mana (gorgeLowers does not model the pool paying an
-// either-or part; a separate offer-gate bug).
+// NOTE: manaCasts counts {N}-part picks, which are all undone. The planned
+// offer now lists a behold-or-mana cast from untapped lands whenever the
+// behold part is payable (planCastAltAdd, pair 73), so the policy casts
+// before it taps out and this harness no longer takes the {N} part: the
+// count is 0, not a coverage loss. The completed {N}-part payment (and the
+// altAdd != 0 skip in beholdOptions) is covered by the kernel's
+// TestBeholdManaPartCompletes; the undone part's CR 601.2g window (sources
+// tapped, mana floating) by TestBeholdUnpayableManaPart. The
+// kbeholdSpent/drain steering stays for the boards that still reach it (a
+// cast from floating mana) and costs nothing.
 func TestBeholdLockstep(t *testing.T) {
 	if isolate(t) {
 		return
@@ -292,9 +292,9 @@ func TestBeholdLockstep(t *testing.T) {
 	if divs != 0 {
 		t.Fatalf("%d divergences", divs)
 	}
-	if tl.beholdCasts < 50 || tl.asked < 20 || tl.unasked < 10 || tl.manaCasts < 20 {
-		t.Errorf("thin coverage: behold %d (want 50), asked %d (want 20), unasked %d (want 10), {N} %d (want 20)",
-			tl.beholdCasts, tl.asked, tl.unasked, tl.manaCasts)
+	if tl.beholdCasts < 50 || tl.asked < 20 || tl.unasked < 10 {
+		t.Errorf("thin coverage: behold %d (want 50), asked %d (want 20), unasked %d (want 10)",
+			tl.beholdCasts, tl.asked, tl.unasked)
 	}
 }
 

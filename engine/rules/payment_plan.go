@@ -288,7 +288,7 @@ func (e *Engine) planCastAltAdd(statics costStaticViews, p state.PlayerID, cast 
 			composed = pay.WithSpellAbilityExtras(o.Face(), composed)
 		}
 		composed = pay.PlanManaUnderRider(composed, rider)
-		got := e.planComposedCost(p, cast.Object, composed, false, false)
+		got := e.planComposedCostFor(p, cast.Object, cast, composed, false, false)
 		// A part with no mana of its own is paid by the cast flow's in-flow
 		// ask (altAddAsk), not by the offer walk, so the walk cannot price it
 		// on its own: a Behold part makes offerCastable decline the cast
