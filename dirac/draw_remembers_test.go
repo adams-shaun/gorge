@@ -38,8 +38,11 @@ func TestDrawRemembers(t *testing.T) {
 		}
 	})
 
-	// A replacement that draws nothing moves no card to hand.
-	for _, all := range []bool{false, true} {
+	// An AllReplaced draw whose replacement draws nothing moves no card to
+	// hand, so it remembers nothing (gorge recordDrawn: the pre-draw library
+	// snapshot met with the hand). Only AllReplaced is pinned here: a lowered
+	// True writer never meets such a replacement.
+	{
 		sc, id := newBLBScenTweak(t, []cardset.Entry{{Name: "Plains", Count: 20}},
 			func(tbl *kop.Table, id map[string]CardID) {
 				id["Test DrawNothing"] = CardID(len(tbl.Cards))
@@ -48,12 +51,10 @@ func TestDrawRemembers(t *testing.T) {
 			})
 		sc.perm(id["Test DrawNothing"], 0)
 		in := draw
-		if all {
-			in.C |= kop.DrawRememberAll
-		}
+		in.C |= kop.DrawRememberAll
 		sc.s.exec(sc.k, &in)
 		if sc.s.g.nrem != 0 || sc.s.pl[0].handN != 0 {
-			t.Fatalf("all=%v: remembered %d hand %d, want none", all, sc.s.g.nrem, sc.s.pl[0].handN)
+			t.Fatalf("draw nothing: remembered %d hand %d, want none", sc.s.g.nrem, sc.s.pl[0].handN)
 		}
 	}
 
