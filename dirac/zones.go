@@ -331,21 +331,32 @@ func (s *State) checkOver() {
 	}
 }
 
-// newToken mints a token object of card c owned by p.
+// newToken mints a token object of card c owned by p. While the object
+// table has room it appends; once it is full it reuses the lowest id of a
+// token or copy that has ceased to exist (CR 111.7, 704.5d) and that nothing
+// names any more (freeTokenObj, zone_objreuse.go).
 func (s *State) newToken(c CardID, p uint8) Obj {
-	if int(s.nobj) >= MaxObj {
-		// every caller checks nearCapacity first (gorge never reuses an id)
+	if int(s.nobj) < MaxObj {
+		o := Obj(s.nobj)
+		s.nobj++
+		s.objs[o] = object{card: c, chosen: 255, of: ofToken, slot: NoSlot, acts: p << 7}
+		s.touch(o)
+		return o
+	}
+	o := s.freeTokenObj()
+	if o == NoObj {
+		// every caller checks nearCapacity (objTableFull) first
 		panic("kernel: object table full")
 	}
-	o := Obj(s.nobj)
-	s.nobj++
-	s.objs[o] = object{card: c, chosen: 255, of: ofToken, slot: NoSlot, acts: p << 7}
+	s.reuseObj(o)
+	s.objs[o] = object{card: c, chosen: 255, of: ofToken, slot: NoSlot, acts: p << 7, ver: s.objs[o].ver + 1}
 	s.touch(o)
 	return o
 }
 
-// objReferenced reports whether a stack entry or pending trigger still
-// names o (its object index must not be reused yet).
+// objReferenced reports whether a stack entry, pending trigger or any
+// longer-lived record still names o (its object index must not be reused
+// yet; heldReferenced lists the records beyond the stack).
 func (s *State) objReferenced(o Obj) bool {
 	for i := 0; i < int(s.sp); i++ {
 		e := &s.stack[i]
@@ -364,7 +375,7 @@ func (s *State) objReferenced(o Obj) bool {
 	if s.g.ndp != 0 && s.dprogReferenced(o) {
 		return true // a delayed program's source (trig_delayedspell.go)
 	}
-	return s.enteredReferenced(o)
+	return s.enteredReferenced(o) || s.heldReferenced(o)
 }
 
 // enter puts o onto the battlefield under ctrl's control and fires ETB

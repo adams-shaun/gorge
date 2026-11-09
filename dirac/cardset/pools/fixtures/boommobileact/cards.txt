@@ -1,0 +1,9 @@
+# an artifact's resolving DB$ Mana restricted to activating abilities
+# (Boommobile; dirac/oracle/boommobileact_test.go)
+Boommobile
+Furnace Whelp
+Lightning Bolt
+Shock
+Hill Giant
+Goblin Chieftain
+Mountain

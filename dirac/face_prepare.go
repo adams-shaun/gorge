@@ -108,7 +108,7 @@ func (s *State) prepare(k *prep, o Obj) {
 		}
 		return
 	}
-	if int(s.nobj) >= MaxObj { // a copy's object slot is never reused
+	if s.objTableFull() {
 		s.capFull(StallBoard)
 		return
 	}

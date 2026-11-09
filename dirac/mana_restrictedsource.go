@@ -257,6 +257,9 @@ func (s *State) restrPoolAct(k *prep, p uint8, d *payDesc) uint8 {
 // read from a source of p's with that restriction and the batch's choice, and
 // a restriction with none admits as printed even if its source has left.
 func (s *State) restrActB(k *prep, p uint8, b *rbatch, d *payDesc) bool {
+	if s.restrActOnly(k, b.kind) {
+		return true
+	}
 	for i := range k.t.Cards {
 		abs := k.t.Cards[i].Abilities
 		for j := range abs {
@@ -284,13 +287,25 @@ func (s *State) restrActB(k *prep, p uint8, b *rbatch, d *payDesc) bool {
 	return false
 }
 
+// restrActOnly: batch kind kind's restriction holds the activated-only marker
+// (a resolving DB$ Mana's undotted RestrictValid$ Activated, kop.SpmActivated):
+// it admits every activated-ability payment, from any source in any zone.
+func (s *State) restrActOnly(k *prep, kind uint8) bool {
+	for f := k.gen.restrFOf(kind); f != 0; f = k.t.Filters[f].Or {
+		if k.t.Filters[f].Special&kop.SpmActivated != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // restrSpellMatch: card c, cast as a spell, matches the spell restriction f
 // of the source at sl.
 func (s *State) restrSpellMatch(k *prep, p uint8, sl Slot, f kop.FilterID, c CardID, og restrOrigin) bool {
 	for ; f != 0; f = k.t.Filters[f].Or {
 		fl := k.t.Filters[f]
 		if fl.Special != 0 {
-			continue // a Static.* alternative: only a special action's mana batch may spend it
+			continue // a Static.* alternative: only a special action's mana batch may spend it; the SpmActivated marker is refused here on purpose
 		}
 		fl.Zone = kop.ZoneNone // the spell is matched before it moves to the stack
 		chosen := fl.Flags2&kop.F2ChosenType != 0
@@ -772,6 +787,33 @@ func (s *State) actPoolAffords(k *prep, sl Slot, cost *kop.ManaCost, av *avail) 
 	t := *av
 	s.restrAvailAdd(p, m, &t)
 	return t.affords(cost, pipMaskOf(cost), 0)
+}
+
+// poolPaysAct reports whether p's floating pool alone pays cost for the
+// activation d describes: gorge prices an {X} activation against the pool it
+// would spend (AvailableFor), the restricted batches the activation may spend
+// (CR 106.6) included. Cold, out of line.
+//
+//go:noinline
+func (s *State) poolPaysAct(k *prep, p uint8, cost *kop.ManaCost, d payDesc) bool {
+	if s.poolPays(p, cost) {
+		return true
+	}
+	m := uint8(0)
+	if s.rbAny(p) {
+		m = s.restrPoolAct(k, p&1, &d)
+	}
+	if m == 0 {
+		return false
+	}
+	var av avail
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if n := s.pl[p&1].pool[c]; n > 0 {
+			av.addUnits(1<<c, n)
+		}
+	}
+	s.restrAvailAdd(p&1, m, &av)
+	return av.affords(cost, pipMaskOf(cost), 0)
 }
 
 // Restricted sources whose alternatives make different amounts (gorge

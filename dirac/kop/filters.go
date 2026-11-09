@@ -136,6 +136,10 @@ const (
 	SpmManifestUp
 	SpmCloakUp
 	SpmUnlock
+	// SpmActivated marks an undotted RestrictValid$ Activated on a resolving
+	// DB$ Mana: the clause admits every activated-ability payment and nothing
+	// else (gorge restrictValidTermMatches); never a CR 116.2 special action.
+	SpmActivated
 )
 
 // SpmTurnFaceUp is Forge's isTurnFaceUp: every turn-up procedure.

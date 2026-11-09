@@ -2465,6 +2465,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if _, ok := fl["ExileIfDealt"]; ok {
 			c |= kop.DmgExileIfDealt
 		}
+		if _, ok := fl["NoRegen"]; ok {
+			c |= kop.DmgNoRegen
+		}
 		if strings.HasPrefix(in.Note, "damage map") || cb.inDamageMap {
 			c |= kop.DmgMapped
 			cb.inDamageMap = true
@@ -2554,6 +2557,15 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			// each-opponent recipients (lower_damagesourceplayers.go): B.N 1 is the
 			// kernel's player mode (dirac/act_damagefrom.go)
 			ki.C, ki.B = int16(kop.RefEachOpponent), kop.Const(1)
+			break
+		}
+		if in.CS == "anytgt" {
+			// the slot may name a player or a permanent (lower_damagesourceplayers.go)
+			r, err := cb.ref(lRef{Kind: rTarget, N: in.C})
+			if err != nil {
+				return ki, err
+			}
+			ki.C, ki.B = int16(r), kop.Const(1)
 			break
 		}
 		r, err := cb.ref(lRef{Kind: rTarget, N: in.C})
