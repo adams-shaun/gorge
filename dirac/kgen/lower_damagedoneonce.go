@@ -258,7 +258,8 @@ func (lc *lowerCtx) saReadsBatch(sa0 *cards.SA) bool {
 // an object filter (the referent is the damaged object), and
 // TriggeredAttackingPlayer on a combat damage line whose ValidTarget$ is
 // You (the damaged player is the listener's controller and, two players,
-// the only possible attacking player). Everything else still refuses.
+// the only possible attacking player; twoSeat-at-caller: lower_effect.go's
+// TriggeredAttackingPlayer marks the card). Everything else still refuses.
 //
 // One shared predicate per shape: lowering (lower_effect.go defined), the
 // body-read gate (lower_damagedoneonce.go ddoReads) and the DamageAll admission all ask
@@ -277,7 +278,8 @@ func ddoObjectReferent(tr *lTrigger) bool {
 // line whose ValidTarget$ is exactly You: with two players the only
 // creature dealing combat damage to the listener's controller is an
 // attacker that player's opponent controls, so the kernel's single
-// opponent is gorge's TriggeredAttackingPlayer.
+// opponent is gorge's TriggeredAttackingPlayer (twoSeat-at-caller:
+// lower_effect.go's TriggeredAttackingPlayer marks the card).
 func ddoAttackingPlayer(tr *lTrigger) bool {
 	return tr != nil && tr.Event == "DamageDone" && tr.PerRef && tr.Combat == 1 &&
 		tr.F2 != nil && tr.F2.Players == plYou && len(tr.F2.Clauses) == 0

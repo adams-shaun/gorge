@@ -187,6 +187,11 @@ func buildCard(pt *poolTables, c *lCard) built {
 		}
 		cb.out.def.RoomSplit = uint8(n)
 	}
+	if kop.CardTwoSeat(&cb.out.def) {
+		// an operand naming the one opponent marks the card as its lowering
+		// would (lc.twoSeat), so the support count sees it too
+		cb.out.def.TwoSeat, c.TwoSeat = true, true
+	}
 	return cb.out
 }
 
@@ -441,6 +446,7 @@ func (cb *cardBuilder) record() error {
 	d.Colors = colorMask(c.Colors)
 	d.Power, d.Toughness, d.Loyalty = int8(c.P), int8(c.T), int8(c.Loyalty)
 	d.NoPT = c.NoPT
+	d.TwoSeat = c.TwoSeat
 	d.Defense = int8(c.Defense)
 	switch {
 	case c.Types&tLand != 0:

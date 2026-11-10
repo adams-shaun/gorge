@@ -16,6 +16,7 @@ func (lc *lowerCtx) choosePlayer(ps *params) error {
 	default:
 		return refuse("ChoosePlayer Choices$ %q", ps.str("Choices"))
 	}
+	lc.twoSeat("ChoosePlayer among the opponents answered as the one opponent")
 	if v := ps.str("Defined"); v != "" && v != "You" {
 		return refuse("ChoosePlayer Defined$ %q", v)
 	}

@@ -25,6 +25,7 @@ func (lc *lowerCtx) triggeredDefenderOrPW(v string) (lRef, error) {
 	if tr == nil || tr.Event != "Attacks" || !lc.ownAttackTrigger() {
 		return lRef{}, refuse("Defined$ %q outside an Attacks trigger of the controller's own attack", v)
 	}
+	lc.twoSeat("the attacked player read as the controller's opponent")
 	lc.emit(lInstr{Op: "AtkPWGuard", Note: "the attacker attacks a player (else the game stalls)"})
 	return lRef{Kind: rDefending}, nil
 }

@@ -63,7 +63,15 @@ func (lc *lowerCtx) refuseMultiMana() {
 			return
 		}
 	}
-	ms = slices.DeleteFunc(ms, func(a *lAbility) bool { return a != ms[0] && redundantMana(ms[0], a) })
+	ms = slices.DeleteFunc(ms, func(a *lAbility) bool {
+		if a == ms[0] || !redundantMana(ms[0], a) {
+			return false
+		}
+		if a.Mana.Amount.Kind == vOppsAttacked {
+			lc.twoSeat("the opponents attacked this turn read as at most one")
+		}
+		return true
+	})
 	if lc.refuseEachMana(ms) || lc.refuseGatedMana(ms) || lc.refuseReflectedMana(ms) || lc.refuseCtrRiderBeside(ms) {
 		return
 	}
@@ -176,7 +184,8 @@ func anyRFiltMana(ms []*lAbility) bool {
 }
 
 // redundantMana reports whether a, a mana ability after the card's first,
-// never offers what first does not, in the kernel's two-player games: a
+// never offers what first does not, in the kernel's two-player games
+// (twoSeat-at-caller: the opponents-attacked arm marks the card): a
 // plain {T} ability of any one colour, unrestricted, whose amount is
 //
 //   - a read over commanders (Command Chair's greatest mana value among

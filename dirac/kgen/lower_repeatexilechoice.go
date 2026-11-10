@@ -25,6 +25,7 @@ func (lc *lowerCtx) repeatExileLand(who lRef, ps *params, body *cards.SA) (bool,
 	if who.Kind != rEachOpp || body.Sub != nil {
 		return true, refuse("RepeatEach imprint ChooseCard from exile shape")
 	}
+	lc.twoSeat("RepeatEach over the opponents read as one iteration")
 	bp := newParams(body.Params)
 	for _, w := range [][2]string{
 		{"Choices", "Land.IsRemembered+RememberedPlayerOwn"},

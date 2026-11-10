@@ -111,7 +111,7 @@ func (s *State) InitN(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64
 	}
 	s.initSideboards(&cfg)
 	if s.g.on {
-		if why := s.k().gen.initStall(); why != StallNone {
+		if why := s.k().gen.initStall(s.nSeats()); why != StallNone {
 			s.stall(why) // loud; a built matchup refuses first (stallclass.go)
 		}
 	}

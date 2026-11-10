@@ -2888,6 +2888,7 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		}
 		delete(ps.m, "Controller") // read here, not as a copy exception
 		flags = append(flags, "NonRemCtrl")
+		lc.twoSeat("NonRememberedController read as the one opponent")
 	}
 	if n, ok := ps.get("NumCopies"); ok {
 		// gorge copyPermanentNumCopies: CalculateAmount (For the Common

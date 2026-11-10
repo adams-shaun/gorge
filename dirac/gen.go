@@ -149,6 +149,7 @@ type genPrep struct {
 	// damage-to-counters conversion does not order like gorge (StallInfect)
 	anyInfect      bool
 	infectStall    bool
+	twoSeatOnly    bool           // a card plays only two seats (stallclass.go prepTwoSeat): StallTwoSeat in a larger game
 	anyWitherGrant bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyEOTEmb      bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb       bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
@@ -1395,6 +1396,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
 	prepInfect(t, g)
+	prepTwoSeat(t, g) // stallclass.go
 	prepPoison(t, g)
 	prepLayerWalk(t, g)
 	prepChooseType(t, g) // act_choosetype.go

@@ -2601,7 +2601,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.Op, ki.Obj = kop.OpDealDamage, kop.RefEachPlayer
 		case in.F != nil && len(in.F.Clauses) == 0 && in.F.Players == plOpp:
 			// "N damage to each opponent" (Grab the Prize's ValidPlayers$
-			// Player.Opponent; two players: the one opponent)
+			// Player.Opponent; seat-exact: the kernel deals each opponent)
 			ki.Op, ki.Obj = kop.OpDealDamage, kop.RefEachOpponent
 		case in.F != nil && in.F.Players == 0:
 			ki.Op = kop.OpDamageAll

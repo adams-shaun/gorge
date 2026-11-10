@@ -46,6 +46,7 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 		// one opponent, one iteration, so the bracket is the iteration's
 		// own (Adeline)
 		ps.consume("ChangeZoneTable")
+		lc.twoSeat("ChangeZoneTable over the opponents read as one iteration's batch")
 	}
 	name := ps.str("RepeatSubAbility")
 	body := cards.ResolveSVar(lc.face.SVars, name)
@@ -153,6 +154,7 @@ func (lc *lowerCtx) repeatChooseGreatest(who lRef, body *cards.SA) (bool, error)
 	if !ps.is("Mandatory", "True") || !ps.is("RememberChosen", "True") {
 		return true, refuse("RepeatEach greatest-power ChooseCard shape")
 	}
+	lc.twoSeat("the repeated opponent's greatest power read as OppCtrl's")
 	ps.consume("Choices", "Defined", "Mandatory", "RememberChosen", "Reveal", "ChoiceTitle", "SpellDescription", "StackDescription")
 	if left := ps.unread(); len(left) > 0 {
 		return true, refuse("RepeatEach greatest-power ChooseCard: unread params %v", left)

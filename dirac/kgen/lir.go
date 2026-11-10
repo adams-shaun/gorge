@@ -895,6 +895,7 @@ type lCard struct {
 	P, T           int
 	PTStar         bool
 	NoPT           bool // the face prints no power or toughness (CardDef.NoPT)
+	TwoSeat        bool // the lowering holds only for 2 players (CardDef.TwoSeat, set by lowerCtx.twoSeat)
 	Loyalty        int
 	Defense        int // a Battle's printed Defense (lower_battle.go)
 	Kw             []string

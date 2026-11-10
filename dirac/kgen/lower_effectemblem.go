@@ -227,6 +227,7 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 			// two-player "other than you" spelling is exact
 			return lStatic{}, refuse("Effect static MustAttack$ %q", v)
 		}
+		lc.twoSeat("MustAttack$ Player.Other read as the one opponent")
 		// staticBody has no field for the player reference; the check
 		// above makes the two-player reading exact, so drop the key
 		// before lowering.

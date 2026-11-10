@@ -25,7 +25,8 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 	case "Player":
 		return lRef{Kind: rEachPlayer}, nil
 	case "Player.Other":
-		// gorge definedSpecOpponent (two players)
+		// gorge definedSpecOpponent: every player but you, which is each
+		// opponent at any seat count (seat-exact)
 		return lRef{Kind: rEachOpp}, nil
 	case "Targeted", "ParentTarget", "ParentTargeted":
 		if v == "Targeted" {
@@ -156,6 +157,8 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// the opponent of the source's controller (two players), which is
 		// the damaged player when the damage is combat damage to a player,
 		// or damage to an opponent from a source the listener controls.
+		// seat-exact: with more seats the kernel's trigger player is the
+		// damaged seat itself (dirac dmgSeat).
 		if lc.damagedPlayerIsTriggerPlayer() {
 			return lRef{Kind: rTriggeredPlayer}, nil
 		}
@@ -182,6 +185,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// the controller is an opponent of the listener's controller: in a
 		// two-player game the one opponent (CR 102.2; Thunderbreak Regent).
 		if tr := lc.ab.Trigger; tr != nil && tr.Event == "BecomesTarget" && tr.Watch && tr.Whose == whoOpp {
+			lc.twoSeat("TriggeredSourceController read as the one opponent")
 			return lRef{Kind: rEachOpp}, nil
 		}
 		return lRef{}, refuse("Defined$ %q outside an opponent-source BecomesTarget watcher", v)
@@ -192,6 +196,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// damage to this listener's controller, so with two players the
 		// source is an attacker the one opponent controls.
 		if tr := lc.ab.Trigger; ddoAttackingPlayer(tr) {
+			lc.twoSeat("TriggeredAttackingPlayer read as the one opponent")
 			return lRef{Kind: rEachOpp}, nil
 		}
 		return lRef{}, refuse("Defined$ %q outside a combat damage-to-you trigger the kernel's attacking player names", v)
@@ -261,6 +266,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		if !lc.spawnDmg {
 			return lRef{}, refuse("Defined$ %q outside an ImmediateTrigger spawned by Card.Self's combat damage to a player", v)
 		}
+		lc.twoSeat("Spawner>TriggeredTarget read as the one opponent")
 		return lRef{Kind: rEachOpp}, nil
 	case "Promised":
 		// the opponent the gift was promised to (CR 702.174a; gorge
@@ -268,6 +274,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		if !lc.out.Gift {
 			return lRef{}, refuse("Defined$ Promised without a gift")
 		}
+		lc.twoSeat("the gift's promised opponent read as the one opponent")
 		return lRef{Kind: rEachOpp}, nil
 	}
 	if lc.targetedDefined != "" && v == lc.targetedDefined {
@@ -324,6 +331,9 @@ func (lc *lowerCtx) damagedPlayerIsTriggerPlayer() bool {
 // source itself (ValidCard$ Card.Self), or an AttackersDeclared trigger of
 // its controller's attack: the defending player is then the controller's
 // opponent (two players), which is what kop.RefDefendingPlayer resolves to.
+// With more seats the kernel resolves it to the defender of an attacking
+// source (seat-exact for the source's own attack); any other attacker, or the
+// declaration as a whole, marks the card two-seat only.
 func (lc *lowerCtx) ownAttackTrigger() bool {
 	tr := lc.ab.Trigger
 	if tr == nil {
@@ -334,14 +344,23 @@ func (lc *lowerCtx) ownAttackTrigger() bool {
 		if tr.F == nil || len(tr.F.Clauses) == 0 {
 			return false
 		}
+		self := true
 		for _, c := range tr.F.Clauses {
 			if c.Flags&fSelf == 0 && c.Ctrl != whoYou {
 				return false
 			}
+			self = self && c.Flags&fSelf != 0
+		}
+		if !self {
+			lc.twoSeat("the defending player of another attacker read as the one opponent")
 		}
 		return true
 	case "AttackersDeclared":
-		return tr.Whose == whoYou
+		if tr.Whose != whoYou {
+			return false
+		}
+		lc.twoSeat("the defending player of a declaration read as the one opponent")
+		return true
 	}
 	return false
 }
@@ -506,8 +525,8 @@ func (lc *lowerCtx) objOrTargetOpt(ps *params, dflt string, zone int, allowParen
 // targetedAndYou reads Defined$/TokenOwner$ TargetedAndYou (graveexile): gorge's
 // alias for TargetedController & You (context.go:1834), deduplicated, the
 // target player first then the controller. Only a target slot that is
-// exactly ValidTgts$ Opponent is lowered: in two players the dedupe can
-// never merge the opponent with the controller, and any other filter (or a
+// exactly ValidTgts$ Opponent is lowered: the dedupe can never merge the
+// opponent with the controller (seat-exact), and any other filter (or a
 // target-count rider) would change who receives the instruction.
 func (lc *lowerCtx) targetedAndYou(ps *params, key string) (lRef, bool, error) {
 	v, ok := ps.get(key)
@@ -2454,6 +2473,7 @@ func (lc *lowerCtx) damageAll(ps *params) error {
 		if !lc.damagedPlayerIsTriggerPlayer() {
 			return refuse("ValidPlayers$ OppNonTriggeredTarget outside a damage-to-player trigger")
 		}
+		lc.twoSeat("OppNonTriggeredTarget read as nobody")
 		ps.consume("ValidPlayers")
 		return nil
 	}

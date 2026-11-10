@@ -24,11 +24,13 @@ func (lc *lowerCtx) kvfHead(head, rest string) (lValue, error) {
 		case "Amount":
 			// gorge playerGroupCount over AliveFrom: the living players,
 			// both of them while a two-player game goes on
+			lc.twoSeat("the living players counted as two")
 			return cst(2), nil
 		case "LowestLifeTotal":
 			// gorge lifeExtreme over AliveFrom (engine/effects/
 			// count_player.go): the lowest CURRENT life total among the
-			// living players, min of both while a two-player game goes on,
+			// living players, min of both while a two-player game goes on
+			// (seat-exact: ExLowestLife reads every living seat),
 			// read as the replacement applies. The DSK "unless a player has
 			// 13 or less life" lands. HighestLifeTotal and every other
 			// property stay refused.

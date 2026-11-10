@@ -103,7 +103,8 @@ func (lc *lowerCtx) hasCardsValue(group, rest string) (v lValue, ok bool, err er
 }
 
 // zeroOne reports whether v is provably 0 or 1: the opponents-who-lost-life
-// count in a two-player game, or a vCompare whose arms are the constants 0
+// count in a two-player game (twoSeat-at-caller: lower_keywordaction.go marks
+// that arm), or a vCompare whose arms are the constants 0
 // and 1, with no Mul/Div/Add/Neg applied on top.
 func zeroOne(v lValue) bool {
 	if v.Mul != 0 || v.Div != 0 || v.Add != 0 || v.Neg {

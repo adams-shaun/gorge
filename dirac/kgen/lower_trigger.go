@@ -256,6 +256,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// gorge attackedDefenderMatches, from the trigger controller's
 			// seat: only the player / your-planeswalker alternatives the
 			// two-player kernel answers exactly; the rest refuse
+			// (seat-exact but for Player.withMostLife, marked below)
 			for _, alt := range strings.Split(v, ",") {
 				switch strings.TrimSpace(alt) {
 				case "You":
@@ -277,6 +278,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 					}
 					tr.Attacked |= atkOpp
 					atkMostLife = true
+					lc.twoSeat("Attacked$ Player.withMostLife read as the one opponent")
 				default:
 					return refuse("Attacks Attacked %q", v)
 				}
@@ -690,7 +692,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// referents, which the line key collapses) stays refused.
 		// ExcessDamageAll is not this mode.
 		switch vt := tp.str("ValidTarget"); vt {
-		case "Opponent", "You":
+		case "Opponent":
+			lc.twoSeat("DamageAll over the opponents read as one referent")
+		case "You":
 		default:
 			return refuse("DamageAll ValidTarget %q", vt)
 		}

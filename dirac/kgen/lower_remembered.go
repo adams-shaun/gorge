@@ -536,6 +536,7 @@ func (lc *lowerCtx) pumpRememberOppController(t0 int) error {
 			return refuse("Pump RememberObjects$ TargetedController over a slot not limited to opponents' objects")
 		}
 	}
+	lc.twoSeat("the remembered target controller read as the one opponent")
 	var links []*cards.SA
 	cleared := false
 	for n := lc.curNode.Sub; n != nil; n = n.Sub {

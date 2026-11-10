@@ -2315,6 +2315,15 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 	if err != nil {
 		return nil, refuse("filter %q: %v", expr, err)
 	}
+	if strings.Contains(expr, "attackingYou") {
+		lc.twoSeat("attackingYou read as an attacker an opponent controls")
+	}
+	for _, c := range f.Clauses {
+		if c.Ctrl == whoDefending || c.Owner == whoDefending {
+			lc.twoSeat("the defending player read as the non-active player (kop.F2DefendingCtrl)")
+			break
+		}
+	}
 	for i := range f.Clauses {
 		c := &f.Clauses[i]
 		if c.Flags&fNamedAsSource != 0 {

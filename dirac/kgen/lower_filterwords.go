@@ -221,6 +221,7 @@ func (lc *lowerCtx) spawnerTargetCtrl(expr string) (string, error) {
 	if !lc.spawnDmg {
 		return expr, refuse("filter %q: Spawner>TriggeredTarget outside an ImmediateTrigger spawned by Card.Self's combat damage to a player", expr)
 	}
+	lc.twoSeat("ControlledBy Spawner>TriggeredTarget read as OppCtrl")
 	return strings.ReplaceAll(expr, word, "OppCtrl"), nil
 }
 
