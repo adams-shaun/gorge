@@ -84,10 +84,9 @@ func (s *State) takeRestrUnit(k *prep, p uint8, x Slot, d *payDesc, r *avail) ui
 	switch kind {
 	case rkWiden:
 		if v.wideN != 0 && DebugRestrictedSource != 4 {
+			// remove drops the one-colour entry restrSrcAvail added, and
+			// only for ColAny: a fixed colour adds none
 			r.remove(uint8(v.wideCol), v.wideN)
-			if uint8(v.wideCol) != uint8(kop.ColAny) {
-				r.dropOneColour(v.wideN)
-			}
 			return kind
 		}
 		r.remove(s.srcMaskAt(v, x), v.manaN)

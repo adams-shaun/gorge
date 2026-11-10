@@ -84,3 +84,40 @@ func TestGrantedRestrictGapFloats(t *testing.T) {
 		})
 	}
 }
+
+// TestRestrictedGrantRefusedByHandCastCensus: a hand cast's affordability
+// census leaves out a restricted granted mana ability the cast's payment
+// cannot spend, and with it the tap's extra on that source (CR 106.6, 605.3a;
+// gorge potentialRestrictionAdmits). Ambulatory Reactor's {C} spends only on
+// an artifact spell or an artifact source's ability, so with Forsaken
+// Monument's extra it must not make a non-artifact {3}{U} spell payable from
+// two Islands.
+func TestRestrictedGrantRefusedByHandCastCensus(t *testing.T) {
+	cast := func(t *testing.T, islands int, monument bool, hand string) bool {
+		t.Helper()
+		sc, id := synthScen(t, "std-trc", "Ambulatory Reactor", "Forsaken Monument", "Pelia, Immortal Innovator", "Island")
+		for i := 0; i < islands; i++ {
+			sc.perm(id["Island"], 0)
+		}
+		rs := sc.slot(sc.perm(id["Ambulatory Reactor"], 0))
+		if g := sc.s.grantIdx(sc.k, rs); g < 0 || sc.k.gen.grantRestr[g] == 0 {
+			t.Fatalf("the Reactor holds no restricted granted mana ability (grant %d)", g)
+		}
+		if monument {
+			sc.perm(id["Forsaken Monument"], 0)
+		}
+		sc.perm(id["Ambulatory Reactor"], 1) // Pelia's ETB target
+		o := sc.hand(id[hand], 0)
+		d := sc.s.Step()
+		return hasOption(&d, MakeAction(AkCast, uint8(o), 0, 0))
+	}
+	if cast(t, 2, true, "Pelia, Immortal Innovator") {
+		t.Fatal("Pelia offered on 2 Islands + Reactor + Monument: the Reactor's restricted {C} and the Monument's extra were counted for a nonartifact spell")
+	}
+	if !cast(t, 4, false, "Pelia, Immortal Innovator") {
+		t.Fatal("Pelia not offered on 4 Islands + Reactor: the filter dropped an unrestricted payment")
+	}
+	if !cast(t, 2, true, "Ambulatory Reactor") {
+		t.Fatal("a second Reactor (an artifact spell) not offered on 2 Islands + Reactor + Monument: the filter is not keyed on the cast")
+	}
+}

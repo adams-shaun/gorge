@@ -1600,6 +1600,7 @@ func (s *State) finishBuild(k *prep) {
 		if !early {
 			cost = s.buildCostCharge(k)
 		}
+		cost = s.waterbendXCharge(k, &e, cost) // a Waterbend<X> pick pays one generic of the folded X (act_waterbend.go)
 		if m := s.restrActNow(k, e.ctrl); m != 0 {
 			s.payRestrSpend(k, e.ctrl, m, &cost, int(e.x), NoObj, false) // an ability its restriction admits spends it first
 		} else {

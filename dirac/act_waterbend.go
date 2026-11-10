@@ -150,7 +150,53 @@ func (s *State) waterbendCredit(k *prep, p uint8, src Slot, a *kop.Ability, cost
 	if a.Cost.Flags&kop.CostTap == 0 {
 		src = NoSlot
 	}
-	return s.waterbendCreditN(k, p, src, int(a.Cost.N), cost)
+	n := int(a.Cost.N)
+	if waterbendIsX(a) {
+		n = costXMin(&a.Cost) // gorge want = WaterbendPartX*xMin: the cost priced at the floor
+	}
+	return s.waterbendCreditN(k, p, src, n, cost)
+}
+
+// waterbendIsX reports an ability's Waterbend<X> cost (Katara, Water Tribe's
+// Hope): CostWaterbend with N 0 beside the {X}, the announced X the amount.
+func waterbendIsX(a *kop.Ability) bool {
+	return a.Cost.Flags&kop.CostWaterbend != 0 && a.Cost.N == 0 && a.Cost.Mana.X != 0
+}
+
+// waterbendXBuilding reports whether the activation being built pays a
+// Waterbend<X> cost.
+func (s *State) waterbendXBuilding(k *prep) bool {
+	if k.gen == nil || !k.gen.anyWaterbend {
+		return false
+	}
+	e := &s.bld().e
+	return e.kind == seAbility && e.ab != 255 && e.ab < abDelayed && waterbendIsX(&k.t.Cards[e.card].Abilities[e.ab])
+}
+
+// waterbendXCost folds x into cost and pays one generic of it per announced
+// waterbend pick, false when the picks exceed x (gorge waterbendCap: the taps
+// pay only the waterbend amount, CR 701.67a) or the generic runs out.
+func (s *State) waterbendXCost(cost kop.ManaCost, x int) (kop.ManaCost, bool) {
+	n := s.waterbendPickCount()
+	cost = xFolded(cost, x)
+	if n > x || n > int(cost.Generic) {
+		return cost, false
+	}
+	cost.Generic -= uint8(n)
+	return cost, true
+}
+
+// waterbendXCharge is the charge of a Waterbend<X> activation being paid: the
+// announced X folded and the picks' generic taken off (gorge applyConvoke
+// after WithX); any other cost goes back as it came.
+func (s *State) waterbendXCharge(k *prep, e *stackEntry, cost kop.ManaCost) kop.ManaCost {
+	if !s.waterbendXBuilding(k) {
+		return cost
+	}
+	if c, ok := s.waterbendXCost(cost, int(e.x)); ok {
+		return c
+	}
+	return cost
 }
 
 // waterbendOwnPart reports a spell's own waterbend amount: card c's
@@ -320,6 +366,11 @@ func (s *State) waterbendPartFor(k *prep, e *stackEntry) (waterbendPart, bool) {
 			return waterbendPart{}, false
 		}
 		a := &k.t.Cards[e.card].Abilities[e.ab]
+		if waterbendIsX(a) {
+			// gorge ConvokeAsk with HasX and WaterbendOpen: Max is the
+			// option count, no amount or slot cap (the X ask bounds the taps)
+			return waterbendPart{n: maxXAsk, slots: maxXAsk, tapSrc: a.Cost.Flags&kop.CostTap != 0, hasX: true}, true
+		}
 		if a.Cost.Flags&kop.CostWaterbend == 0 || a.Cost.N <= 0 || a.Cost.Mana.Generic == 0 {
 			return waterbendPart{}, false
 		}
