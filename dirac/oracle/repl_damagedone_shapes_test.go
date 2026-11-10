@@ -37,6 +37,9 @@ type sdCase struct {
 	effectLongCase
 	host, burn string
 	damaged    bool
+	// pile: the host takes its damage in combat (sdPilePolicy): only it
+	// attacks and every blocker the options offer blocks it; no burn.
+	pile bool
 }
 
 func sdCases() []sdCase {
@@ -61,6 +64,16 @@ func sdCases() []sdCase {
 				reached: sdHealedThenDealt,
 			},
 			host: sdWolverine, burn: "Lightning Strike", damaged: true,
+		},
+		{
+			effectLongCase: effectLongCase{
+				name:    "wolverine_double_blocked_heals_first_hit",
+				prefer:  []string{sdWolverine, "Grizzly Bears"},
+				decks:   [2][]string{append(deckOf(8, sdWolverine), append(deckOf(8, "Mountain"), deckOf(8, "Forest")...)...), append(deckOf(12, "Grizzly Bears"), deckOf(12, "Forest")...)},
+				surface: "autopay",
+				reached: sdDoubleBlockHealed,
+			},
+			host: sdWolverine, pile: true,
 		},
 	}
 }
@@ -100,6 +113,41 @@ func sdHealedThenDealt(g *GorgeSide) bool {
 	return false
 }
 
+// sdDoubleBlockHealed: in one damage step Wolverine was dealt damage, healed
+// of it by each next event's heal (a negative Damage), and dealt that next
+// event: three positive Damage events (6 damage a kernel that did not heal
+// would mark on his 5 toughness) with a negative one before each of the
+// later two and no step change, and the game goes on past the end of combat to the second
+// main phase (the marked damage is observable at a decision before the game
+// ends).
+func sdDoubleBlockHealed(g *GorgeSide) bool {
+	pos, healed, reached, later := 0, 0, false, 0
+	for _, e := range g.E.L.Events {
+		if e.Kind == events.StepChange || e.Kind == events.TurnChange {
+			if reached {
+				later++ // end of combat, then the second main phase
+				if later == 2 {
+					return true
+				}
+				continue
+			}
+			pos, healed = 0, 0
+			continue
+		}
+		if e.Kind != events.Damage || !sdNamed(g, e.Obj, sdWolverine) {
+			continue
+		}
+		switch {
+		case e.Amount < 0:
+			healed = pos
+		case e.Amount > 0:
+			pos++
+			reached = reached || pos >= 3 && healed >= 2
+		}
+	}
+	return false
+}
+
 func sdNamed(g *GorgeSide, id state.ObjID, name string) bool {
 	if id == 0 {
 		return false
@@ -127,6 +175,9 @@ func sdHost(g *GorgeSide, c sdCase) *state.Object {
 // sdPolicy is effectLongPolicy, except that the burn waits for the host and
 // a target choice takes the host when it is offered.
 func sdPolicy(m *Matchup, c sdCase, seed uint64) Policy {
+	if c.pile {
+		return sdPilePolicy(m, c, seed)
+	}
 	inner := effectLongPolicy(m, c.effectLongCase, seed)
 	return PolicyFunc(func(p *PickCtx) Canon {
 		host := sdHost(p.G, c)
@@ -158,6 +209,51 @@ func sdPolicy(m *Matchup, c sdCase, seed uint64) Policy {
 				d.Options = append(d.Options, o)
 			}
 			return inner.Pick(&PickCtx{D: &d, G: p.G, Seq: p.Seq})
+		}
+		return inner.Pick(p)
+	})
+}
+
+// sdPilePolicy casts the case's preferred cards and lands, attacks with the
+// host alone, and blocks with every creature the options offer onto the
+// attacker the first blocker blocked.
+func sdPilePolicy(m *Matchup, c sdCase, seed uint64) Policy {
+	inner := effectLongPolicy(m, c.effectLongCase, seed)
+	var tgt uint32
+	var have bool
+	return PolicyFunc(func(p *PickCtx) Canon {
+		var block, done Canon
+		var atk []Canon
+		haveBlock, haveDone := false, false
+		for _, o := range p.D.Options {
+			switch o.Kind() {
+			case ActBlock:
+				if have && uint32(o.Tgt()) == tgt {
+					return o
+				}
+				if !haveBlock {
+					block, haveBlock = o, true
+				}
+			case ActAttack:
+				if m.InstanceCard(int(o.Src())) == c.host {
+					atk = append(atk, o)
+				}
+			case ActDone:
+				done, haveDone = o, true
+			}
+		}
+		if haveBlock {
+			if !have {
+				tgt, have = uint32(block.Tgt()), true
+			}
+			return block
+		}
+		have = false
+		if len(atk) > 0 {
+			return atk[0]
+		}
+		if haveDone && p.D.Kind != DPriority {
+			return done
 		}
 		return inner.Pick(p)
 	})

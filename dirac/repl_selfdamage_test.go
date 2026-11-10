@@ -3,41 +3,37 @@ package dirac
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
+	v "github.com/adams-shaun/gorge/dirac/vanilla"
 )
 
-const wolverineName = "Wolverine, Fierce Fighter"
+// wolverineTable is vanilla's table with a 3/5 whose own DamageDone
+// replacement heals the damage already marked on it first (Wolverine, Fierce
+// Fighter's ReplDamageHealFirst).
+func wolverineTable() (*kop.Table, CardID) {
+	tbl := *v.Table
+	tbl.Cards = append([]kop.CardDef(nil), v.Table.Cards...)
+	tbl.Exprs = []kop.Expr{{}} // prepareGen only runs a table with generated side tables
+	host := CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Wolverine", Types: kop.TCreature, Power: 3, Toughness: 5,
+		Abilities: []kop.Ability{{Kind: kop.AbReplacement, Repl: kop.Repl{Kind: kop.ReplDamageHealFirst}}}})
+	return &tbl, host
+}
 
-// wolverineScen is a scenario on the std-msh pool: Wolverine on seat 0 and
-// two creatures on seat 1 (the first with power 3, the second with power 2).
+// wolverineScen: the heal host on seat 0, a Hill Giant (power 3) and a
+// Grizzly Bears (power 2) on seat 1.
 func wolverineScen(t *testing.T) (sc *scen, w, a, b Obj) {
 	t.Helper()
-	deck := []cardset.Entry{{Name: wolverineName, Count: 1}, {Name: "Atlantean Cavalry", Count: 1}, {Name: "Agent of Atlas", Count: 1}, {Name: "Plains", Count: 8}}
-	set := cardsettest.Synth(t, "std-msh")
-	for _, e := range deck {
-		if i, ok := set.Lookup(e.Name); !ok || !set.Supported()[i] {
-			t.Skipf("%s not supported in the std-msh table", e.Name)
-		}
-	}
-	tbl, da, _, err := set.Matchup(deck, deck)
-	if err != nil {
-		t.Fatal(err)
-	}
-	id := map[string]CardID{}
-	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
-	}
-	sc = newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true, AutoDivide: true})
-	w = sc.perm(id[wolverineName], 0)
-	a = sc.perm(id["Atlantean Cavalry"], 1)
-	b = sc.perm(id["Agent of Atlas"], 1)
+	tbl, host := wolverineTable()
+	sc = newScenTable(t, tbl, Config{NoElide: true, AutoDivide: true})
+	w = sc.perm(host, 0)
+	a = sc.perm(v.HillGiant, 1)
+	b = sc.perm(v.GrizzlyBears, 1)
 	if sc.k.gen == nil || sc.k.gen.anyRepl&rbHealSelf == 0 {
 		t.Fatal("the table has no heal-self replacement")
 	}
 	if !sc.s.selfDamageHost(sc.k, sc.slot(w), rbHealSelf) {
-		t.Fatal("Wolverine is not a heal host")
+		t.Fatal("the host is not a heal host")
 	}
 	return
 }
