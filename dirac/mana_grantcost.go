@@ -15,12 +15,211 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // The grant view (genPrep.grantPC) carries the cost in painLife/painN, with
 // painCol left zero: the painland readers (availGrant's addPainAvail, the
 // window's pain rider) key on painCol and never price this view.
+//
+// Lotus Ring's "Sacrifice this creature: Add three mana of any one color",
+// granted to the equipped creature, has no {T}: a tapped, attacking or
+// summoning-sick creature activates it (CR 602.2b, 302.6 reads only {T}).
+// Its view carries grantSac (never manaSacOnly, so the printed Eldrazi
+// Spawn readers never see a grant). The search's step sacrifices the
+// source on a fork (sacBranch) and the state-based check runs at once, so
+// the Equipment is unattached before the play is re-read (CR 704.3,
+// 704.5n); grantApply replays it (grantSacApply), and the manual mana
+// window sacrifices it as it does a printed sacrifice-only source
+// (windowSacOnly).
 
-// prepGrantCost records granted mana ability a's life cost on its view gp.
+// prepGrantCost records granted mana ability a's life or sacrifice cost on
+// its view gp.
 func prepGrantCost(gp *pcard, a *kop.Ability) {
-	if a.Cost.Flags == kop.CostTap|kop.CostPayLife && a.Cost.N >= 1 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 {
+	plain := a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
+	if a.Cost.Flags == kop.CostTap|kop.CostPayLife && a.Cost.N >= 1 && plain {
 		gp.manaTap, gp.painLife, gp.painN = true, true, a.Cost.N
 	}
+	if a.Cost.Flags == kop.CostSacSelf && plain {
+		gp.grantSac = true
+	}
+}
+
+// grantSacLive: pc is a granted sacrifice-only view sl can activate now (no
+// {T}: tapped or sick alike; only a lost ability stops it).
+func (s *State) grantSacLive(sl Slot, pc *pcard) bool {
+	return pc.grantSac && s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+}
+
+// grantSacOK: one of sl's granted mana abilities is a live sacrifice-only one.
+func (s *State) grantSacOK(k *prep, sl Slot) bool {
+	if k.gen == nil || len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) || k.gen.anyCantAct && s.actForbidden(k, sl, true) {
+		return false
+	}
+	var gi [maxGrants]int16
+	for i, n := 0, s.grantIdxs(k, sl, &gi); i < n; i++ {
+		if s.grantSacLive(sl, s.grantView(k.gen, gi[i], sl)) {
+			return true
+		}
+	}
+	return false
+}
+
+// grantGapUsable: sl holds a granted mana ability its controller can
+// activate now: an untapped source's {T} one, or a sacrifice-only one.
+func (s *State) grantGapUsable(k *prep, sl Slot) bool {
+	if s.grantIdx(k, sl) < 0 {
+		return false
+	}
+	return s.canTapForMana(k, sl) || s.grantSacOK(k, sl)
+}
+
+// grantTapOK is the grant search's "the source can tap" test: canTapForMana,
+// or, when its first granted view is a sacrifice-only one, an untapped
+// source that another of its granted abilities can tap.
+func (s *State) grantTapOK(k *prep, sl Slot) bool {
+	if s.canTapForMana(k, sl) {
+		return true
+	}
+	if !s.manaPCGen(k, sl).grantSac {
+		return false
+	}
+	var gi [maxGrants]int16
+	for i, n := 0, s.grantIdxs(k, sl, &gi); i < n; i++ {
+		if g := s.grantView(k.gen, gi[i], sl); !g.grantSac && s.canTapForManaPC(k, sl, g) {
+			return true
+		}
+	}
+	return false
+}
+
+// grantHasCost: granted view pc's step pays more than a tap (a life
+// payment, or the source's sacrifice).
+func grantHasCost(pc *pcard) bool { return grantCostLife(pc) > 0 || pc.grantSac }
+
+// windowSacOnly: the manual window's view pc is a sacrifice-only mana
+// ability, printed (Eldrazi Spawn) or granted (Lotus Ring): the window
+// sacrifices the source instead of tapping it.
+func windowSacOnly(k *prep, pc *pcard) bool {
+	return k.sacOnlyMana && pc.manaSacOnly || pc.grantSac
+}
+
+// windowSacNow: sl is a sacrifice-only source the manual window may take
+// now, printed or granted.
+func (s *State) windowSacNow(k *prep, sl Slot) bool {
+	if k.sacOnlyMana && s.canSacOnlyNowAt(k, sl) {
+		return true
+	}
+	return k.gen != nil && len(k.gen.grantPC) != 0 && s.grantSacLive(sl, s.windowGrantPC(k, sl))
+}
+
+// sacOnlyVisit is visit's step for candidate i at sl when it cannot tap: its
+// live sacrifice-only granted abilities, each a step sacrificing it (a
+// "choose a mana ability" ask when there are several).
+func (g *grantSrch) sacOnlyVisit(t *State, i int, sl Slot) bool {
+	var gi [maxGrants]int16
+	var sac [maxGrants]int16
+	n := 0
+	for j, ng := 0, t.grantIdxs(g.k, sl, &gi); j < ng; j++ {
+		if t.grantSacLive(sl, t.grantView(g.k.gen, gi[j], sl)) {
+			sac[n] = gi[j]
+			n++
+		}
+	}
+	if n == 0 || g.k.gen.anyCantAct && t.actForbidden(g.k, sl, true) {
+		return false
+	}
+	if n > 1 && !g.node() {
+		return false
+	}
+	for j := 0; j < n; j++ {
+		pc := t.grantView(g.k.gen, sac[j], sl)
+		mask := t.srcMaskAt(pc, sl)
+		g.skipPool = !g.grantAdmits(t, sl, sac[j])
+		if g.sacBranch(t, i, sl, sac[j], pc, mask, n == 1 || mask&uint8(kop.ColAny) == uint8(kop.ColAny)) {
+			return true
+		}
+	}
+	return false
+}
+
+// sacBranch is costBranch for a sacrifice-only granted ability: each colour
+// of mask in the source's ask order, the step taken on a fork that floats
+// the mana, sacrifices the source and runs the state-based check (the
+// Equipment that granted it falls off, CR 704.5n), as grantSacApply
+// replays it. A sacrifice whose dies trigger stacks settles first.
+func (g *grantSrch) sacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, mask uint8, ask bool) bool {
+	if mask == 0 {
+		mask = 1 << kop.C
+	}
+	skip := g.skipPool
+	g.skipPool = false
+	if ask && mask&(mask-1) != 0 && !g.node() {
+		return false
+	}
+	n := max(pc.manaN, 1)
+	pn := n
+	if skip {
+		pn = 0 // mana the play cannot spend prices nothing
+	}
+	var order [kop.NumManaKinds]uint8
+	no := t.stepColours(g.k, sl, gi, mask, &order)
+	needFirst(order[:no], g.need)
+	for _, c := range order[:no] {
+		u := t.fork()
+		u.pl[g.p&1].pool[c] += pn
+		u.artTag(g.k, g.p, sl, int(c))
+		u.grantSacDo(g.k, sl)
+		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl, sac: true}
+		g.np++
+		var ok bool
+		switch {
+		case u.over:
+			g.node() // the game ended: gorge's node finds nothing
+		case u.npend != 0:
+			ok = g.settle(u)
+		default:
+			ok = g.visit(u)
+		}
+		t.unfork()
+		if ok {
+			return true
+		}
+		g.np--
+	}
+	return false
+}
+
+// grantSacDo sacrifices sl to pay a granted sacrifice-only ability at
+// priority (the template is grantApply's printed Treasure), then runs the
+// state-based check that unattaches the Equipment (CR 704.3, 704.5n).
+func (s *State) grantSacDo(k *prep, sl Slot) {
+	o := s.perms[sl].obj
+	s.fireSac(k, sl)
+	s.leave(k, sl, kop.ZoneGraveyard, false)
+	if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard {
+		s.ceaseManaToken(o)
+	}
+	s.sba(k)
+}
+
+// grantSacApply replays prefix step st, a granted sacrifice-only ability,
+// on s: the mana, the sacrifice, the state-based check.
+func (s *State) grantSacApply(k *prep, p uint8, st *grantStep) {
+	if ab := restrAbOfStep(k, st); ab != nil {
+		if !s.floatRestrAb(k, p&1, st.sl, ab, int(st.col), st.n) {
+			s.capFull(StallRestrSrc) // never a silent spill
+		}
+	} else {
+		s.pl[p&1].pool[st.col] += st.n
+	}
+	s.grantSacDo(k, st.sl)
+}
+
+// sacrificed: the path holds a step that sacrificed its source (the play's
+// only target, or the Equipment's creature, may be gone: waitsForStack
+// re-reads the offer).
+func (g *grantSrch) sacrificed() bool {
+	for i := 0; i < g.np; i++ {
+		if g.path[i].kind == stepAct && g.path[i].sac {
+			return true
+		}
+	}
+	return false
 }
 
 // grantCostLife is the life a granted view's activation pays (0: none).
