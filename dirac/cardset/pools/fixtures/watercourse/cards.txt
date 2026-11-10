@@ -1,0 +1,8 @@
+# Domesticated Watercourse pool: its Animate becomes an Equipment with equip
+# {2} while keeping its abilities, a vanilla creature to equip and the two
+# lands that pay its {U}{B}
+# (dirac/static_selfgrant_equip_test.go)
+Domesticated Watercourse
+Grizzly Bears
+Island
+Swamp

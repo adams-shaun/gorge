@@ -10,9 +10,9 @@ import (
 // source static gated by the override record the animation applies
 // (kop.Static.OvGate): Tenth District Hero's indestructible anthem and The
 // Irencrag's equipped pump. With the Animate's Name$, its Equip:N keyword
-// (beside RemoveAllAbilities$ only) and OptionQuestion$ read, both cards lower
-// whole; a body that is not an anthem, keyword grant or equipped pump still
-// refuses by name.
+// (with or without RemoveAllAbilities$) and OptionQuestion$ read, both cards
+// lower whole; a body that is not an anthem, keyword grant or equipped pump
+// still refuses by name.
 func TestLowerAnimateGrantStatic(t *testing.T) {
 	const base = "Name:Animate Grant Probe\nManaCost:1\nTypes:Creature Human\nPT:1/1\n"
 	for _, tc := range []struct {
@@ -109,9 +109,8 @@ func TestLowerAnimateGrantStatic(t *testing.T) {
 			body: "A:AB$ Animate | Cost$ 1 | Defined$ Self | RemoveAllAbilities$ True | Keywords$ Equip:3 & Vigilance | Duration$ Permanent | SpellDescription$ test\n",
 		},
 		{
-			name: "Equip without the loss of abilities refuses",
+			name: "Equip without the loss of abilities",
 			body: "A:AB$ Animate | Cost$ 1 | Defined$ Self | Keywords$ Equip:2 | Duration$ Permanent | SpellDescription$ test\n",
-			want: `Animate Keywords$ "Equip:2" without RemoveAllAbilities$`,
 		},
 	} {
 		got := keclReason(keclSynth(t, "Animate Grant Probe", base+tc.body))
@@ -126,8 +125,8 @@ func TestLowerAnimateGrantStatic(t *testing.T) {
 		}
 	}
 
-	// Both corpus cards lower whole: the granted static, the rename, the
-	// granted equip ability.
+	// The first two corpus cards lower whole: the granted static, the rename,
+	// the granted equip ability.
 	all, _ := keclBuild(t, []string{"Tenth District Hero", "The Irencrag"})
 	for _, tc := range []struct{ name string }{
 		{"Tenth District Hero"},
@@ -156,5 +155,19 @@ func TestLowerAnimateGrantStatic(t *testing.T) {
 				t.Errorf("The Irencrag: lowered IR lacks the override-granted Equip beside loseabilities:\n%s", ir)
 			}
 		}
+	}
+
+	// Domesticated Watercourse lowers whole too: its self-granted Equip:2
+	// beside no RemoveAllAbilities$ (the kernel hosts it on the animated
+	// permanent itself).
+	wc, _ := keclBuild(t, []string{"Domesticated Watercourse"})
+	wi := keclIndex(t, wc, "Domesticated Watercourse")
+	if reason := keclReason(lowerRefusals(wc[wi])); reason != "" {
+		t.Errorf("Domesticated Watercourse: refused: %s", reason)
+	}
+	var wb strings.Builder
+	dumpLIR(&wb, wc[wi])
+	if ir := wb.String(); !strings.Contains(ir, "Activated Equip") || !strings.Contains(ir, "grant=") {
+		t.Errorf("Domesticated Watercourse: lowered IR lacks the override-granted Equip:\n%s", ir)
 	}
 }
