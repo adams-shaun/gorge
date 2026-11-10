@@ -226,7 +226,7 @@ func (s *State) windowGrantMask(k *prep, sl Slot) (mask uint8) {
 //
 //go:noinline
 func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
-	mask, n := s.srcMaskAt(pc, sl), pc.manaN
+	mask, n := s.srcMaskAt(pc, sl), srcYield(pc) // a pair view's larger alternative, as availFor (mana_gate.go)
 	var gi [maxGrants]int16
 	ng := s.grantIdxs(k, sl, &gi)
 	own := s.ownManaUsable(k, sl)
@@ -394,6 +394,10 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 		}
 		pc := s.manaPCGen(k, sl)
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || !s.canTapForManaPC(k, sl, pc) {
+			continue
+		}
+		if k.painMana && pc.painCol != 0 {
+			s.addPainAvail(k, sl, pc, p&1, a, nil, false) // the planner's census has a pain ability (Spire of Industry's any colour for 1 life), as ungrAvail counts it
 			continue
 		}
 		a.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))

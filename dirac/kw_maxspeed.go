@@ -55,7 +55,7 @@ func (s *State) maxSpeedGraveOK(k *prep, p uint8, o Obj, a *kop.Ability) bool {
 	if s.speedOf(p) < speedMaxV {
 		return false
 	}
-	if !DebugSpeedGrantLands && !s.poolPaysAct(k, p, &a.Cost.Mana, payDesc{class: pdAct, card: s.objs[o].card}) {
+	if !DebugSpeedGrantLands && !s.poolPaysAct(k, p, &a.Cost.Mana, payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}) {
 		return false
 	}
 	if SpeedCounting {
@@ -65,7 +65,8 @@ func (s *State) maxSpeedGraveOK(k *prep, p uint8, o Obj, a *kop.Ability) bool {
 }
 
 // maxSpeedPoolOK: a battlefield max-speed gated ability is offered only when
-// the floating pool pays its mana cost (true when it has none).
-func (s *State) maxSpeedPoolOK(p uint8, a *kop.Ability) bool {
-	return DebugSpeedGrantLands || s.poolPays(p, &a.Cost.Mana)
+// the floating pool pays its mana cost, the restricted batches the activation
+// may spend included (true when it has none).
+func (s *State) maxSpeedPoolOK(k *prep, p uint8, sl Slot, a *kop.Ability) bool {
+	return DebugSpeedGrantLands || s.poolPaysAct(k, p, &a.Cost.Mana, payDesc{class: pdAct, card: s.cardAt(sl), src: sl})
 }

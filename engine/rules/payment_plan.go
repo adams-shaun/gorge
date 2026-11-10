@@ -203,7 +203,7 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		// static's RaiseCost$ is added before the cost statics apply, and
 		// the spell ability's extras follow in "mayplay" scope.
 		base = pay.RawBaseCost(asPayer(e), p, cast.Object)
-		if free, ok := e.mayPlayGrant(p, cast.Object); ok && free {
+		if e.mayPlayFreeCast(p, cast.Object) {
 			base = Cost{}
 		}
 		if raise, hasRaise, priced := e.mayPlayRaiseCost(p, cast.Object); hasRaise {
@@ -950,7 +950,7 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 		settleBase, settleScope = e.flashbackCost(cast.Object), spellScope("flashback")
 	} else if o := e.G.Obj(cast.Object); o != nil && plannedMayPlayZone(o.Zone) {
 		settleScope = spellScope("mayplay")
-		if free, granted := e.mayPlayGrant(p, cast.Object); granted && free {
+		if e.mayPlayFreeCast(p, cast.Object) {
 			settleBase = Cost{}
 		}
 		if raise, hasRaise, priced := e.mayPlayRaiseCost(p, cast.Object); hasRaise {

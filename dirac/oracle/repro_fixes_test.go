@@ -727,6 +727,9 @@ func TestStdDftReprosLockstep(t *testing.T) {
 		// as-enters choice with the card still in exile, before the delayed
 		// trigger leaves the stack
 		{"until_leaves_return_asenters_in_exile", false, false},
+		{"actonly_pool_pays_surveyor_grave_grant", true, false}, // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Leonin Surveyor's max-speed graveyard activation
+		{"actonly_pool_pays_grave_return", false, false},        // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Deathless Pilot's graveyard return
+		{"actonly_pool_pays_battlefield_grant", true, false},    // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Hour of Victory's max-speed battlefield grant
 	})
 }
 

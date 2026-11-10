@@ -32,7 +32,8 @@ import (
 //   - seatloop2: a for loop bounded by the literal 2 ("< 2", "<= 1") or a
 //     "range 2" loop whose variable indexes a [MaxSeats] field of a struct
 //     in this package (s.pl[p], s.g.poison[p]). Bound it by MaxSeats.
-//   - ptarget: a use of PlayerTarget0 or PlayerTarget1 outside types.go.
+//   - ptarget: a use of PlayerTarget0 or PlayerTarget1 outside types.go and
+//     the seats files that define them.
 //     Use PlayerCode(p), CodeSeat(c) and isPlayerTarget(c).
 //
 // A site that is genuinely not seat arithmetic is exempted by a trailing
@@ -253,7 +254,7 @@ func scanSeatArithmetic(t *testing.T) (map[string]int, map[string][]string) {
 					}
 				}
 			case *ast.Ident:
-				if (x.Name == "PlayerTarget0" || x.Name == "PlayerTarget1") && n != "types.go" {
+				if (x.Name == "PlayerTarget0" || x.Name == "PlayerTarget1") && n != "types.go" && n != "seats_default.go" && n != "seats_mp.go" {
 					add("ptarget", x.Pos())
 				}
 			}

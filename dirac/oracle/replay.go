@@ -95,7 +95,10 @@ func compareHash(p *Projection) uint64 {
 		q.Cards[i].Chars = CharsProj{}
 	}
 	if q.Over {
-		q = Projection{Over: true, Winner: q.Winner, Life: q.Life}
+		q = Projection{Over: true, Winner: q.Winner, Life: q.Life, Seats: SeatsProj{NSeat: q.Seats.NSeat, Lost: q.Seats.Lost}}
+		for i := range q.Seats.More {
+			q.Seats.More[i].Life = p.Seats.More[i].Life
+		}
 	}
 	return ProjectionHash(&q)
 }
@@ -104,12 +107,20 @@ func compareHash(p *Projection) uint64 {
 // CmdDamage.
 const cmdProjBytes = 2 + 2*2
 
+// seatsProjBytes is the encoded size of Projection's trailing Seats.
+var seatsProjBytes = binary.Size(SeatsProj{})
+
 // ProjectionHash is FNV-1a 64 over p's fixed-size little-endian encoding.
 func ProjectionHash(p *Projection) uint64 {
 	var buf bytes.Buffer
 	_ = binary.Write(&buf, binary.LittleEndian, p)
 	b := buf.Bytes()
-	if p.CmdCasts == [2]uint8{} && p.CmdDamage == [2][2]uint8{} {
+	if p.Seats == (SeatsProj{}) {
+		// a two-seat game hashes as it did before the further seats existed
+		// (they are the encoding's last bytes)
+		b = b[:len(b)-seatsProjBytes]
+	}
+	if p.Seats == (SeatsProj{}) && p.CmdCasts == [2]uint8{} && p.CmdDamage == [2][2]uint8{} {
 		// a game with no commander bookkeeping hashes as it did before the
 		// fields existed (they are the encoding's last bytes)
 		b = b[:len(b)-cmdProjBytes]

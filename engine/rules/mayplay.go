@@ -293,12 +293,11 @@ func (e *Engine) mayPlayPermFreeRaise(p state.PlayerID, id state.ObjID, key stri
 	if key != "" {
 		for _, off := range e.mayPlayPermissions(p, id, true) {
 			if off.key == key {
-				return off.free, off.raise, off.hasRaise, off.priced
+				return off.free || e.mayPlayNoZoneFreeID(p, id), off.raise, off.hasRaise, off.priced
 			}
 		}
 	}
-	free, granted := e.mayPlayGrant(p, id)
-	free = free && granted
+	free = e.mayPlayFreeCast(p, id)
 	raise, hasRaise, priced = e.mayPlayRaiseCost(p, id)
 	return free, raise, hasRaise, priced
 }
@@ -862,7 +861,7 @@ func (e *Engine) mayPlayEffectPermKey(p state.PlayerID, id state.ObjID) string {
 	ces := e.active()
 	for i := range ces {
 		ce := &ces[i]
-		if !ce.MayPlay || !mayPlayEffectBenefits(ce, o, p) || (ce.MayPlayPlayerTurn && e.G.Active != p) {
+		if !ce.MayPlay || ce.MayPlayNoZone || !mayPlayEffectBenefits(ce, o, p) || (ce.MayPlayPlayerTurn && e.G.Active != p) {
 			continue
 		}
 		zones, all, ok := effects.ParseZones(ce.AffectedZone)
@@ -1088,6 +1087,14 @@ func (e *Engine) mayPlayCastAlts(p state.PlayerID, id state.ObjID, plain bool) [
 			out = append(out, v)
 		}
 	}
+	if !plain && e.mayPlayNoZoneFreeID(p, id) {
+		// Under an alt-only permission the printed offer is withheld, and
+		// the no-zone free grant (MayPlayDontGrantZonePermissions$) is its
+		// own free alternative to that cast (CR 118.9): listed last, at no
+		// cost. With a printed-cost permission the free grant zeroes the
+		// printed offer instead (mayPlayFreeCast), so it is not listed twice.
+		out = append(out, mayPlayAltView{})
+	}
 	return out
 }
 
@@ -1309,7 +1316,7 @@ func (e *Engine) mayPlayEffectFree(p state.PlayerID, o *state.Object) (free, cov
 	ces := e.active()
 	for i := range ces {
 		ce := &ces[i]
-		if !ce.MayPlay || !ce.MayPlayFree || !mayPlayEffectBenefits(ce, o, p) {
+		if !ce.MayPlay || !ce.MayPlayFree || ce.MayPlayNoZone || !mayPlayEffectBenefits(ce, o, p) {
 			continue
 		}
 		if ce.MayPlayPlayerTurn && e.G.Active != p {

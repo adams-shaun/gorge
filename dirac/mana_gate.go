@@ -216,7 +216,8 @@ func srcYield(pc *pcard) uint8 { return max(pc.manaN, pc.wideN) }
 // beside its census manaN: gorge's potentialManaFor admits each listed mana
 // ability of a source on its own and sums them, and with the gate on both
 // {T}: Add {G} and {T}: Add {G}{G} are listed (Whisperer: 3 {G}, not the
-// planner's max of 2). Zero for any other view. Only a gate-on pair view
-// reaches the potential walk with wideN set (manaPCGen never returns a
-// restricted record view).
+// planner's max of 2). Zero for any other view. A gate-on pair view reaches the
+// potential walk with wideN set (manaPCGen never returns a restricted record
+// view); a dynamic pair view (mana_dynpair.go) does too but the walk reads it
+// as open before this.
 func gatePairPotential(pc *pcard) uint8 { return pc.wideN }

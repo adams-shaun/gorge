@@ -161,6 +161,8 @@ func run() int {
 		v2NoChance = flag.Bool("v2-no-chance", false, "-v2 transcript: negative control: the gorge host keeps its secret-stream shuffles instead of dealing the dirac kernel's chance (must diff)")
 		synth      = flag.String("synth", "", "play a synthetic evidence pool (make dirac-tables writes them): deal its decks in memory from -seed and report its reach; replaces -kernel, -set and -decks")
 		synthDecks = flag.Int("synth-decks", oracle.SynthDecks, "-synth: decks to deal")
+		seats      = flag.Int("seats", 2, "seats a game: 2 plays deck pairs; 3 or 4 plays pods of distinct decks (oracle.PodAt), gorge against gorge only (-kernel gorge)")
+		pods       = flag.Int("pods", 0, "-seats above 2: pods to play (one game each; 0: -pairs)")
 		eventTail  = flag.Int("events", 0, "-repro: print the last N events of gorge's log when the game ends, objects named by card")
 		refusedIn  = flag.Bool("play-refused", false, "pool runs: play the pairs holding a card refused by name too, as scripts/dirac-first-refusals.py settle does")
 		reachPath  = flag.String("reach", "", "-synth: write one row per card of the list here: card, how far it got, decks, games, plays in clean games")
@@ -192,6 +194,31 @@ func run() int {
 	explicit := map[string]bool{}
 	flag.Visit(func(f *flag.Flag) { explicit[f.Name] = true })
 	var err error
+	if *seats < 2 || *seats > oracle.MaxSeats {
+		fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: want 2 to %d\n", *seats, oracle.MaxSeats)
+		return 2
+	}
+	if explicit["pods"] && *seats == 2 {
+		fmt.Fprintln(os.Stderr, "kfuzz: -pods needs -seats above 2")
+		return 2
+	}
+	// synthGorge plays a synthetic pool's decks gorge against gorge, the
+	// harness check of a game of more than two seats.
+	synthGorge := *synth != "" && *seats > 2 && explicit["kernel"] && *kernel == "gorge"
+	if *seats > 2 {
+		for _, name := range []string{"repro", "replay", "v2", "pairs-file", "coverage"} {
+			if explicit[name] {
+				fmt.Fprintf(os.Stderr, "kfuzz: -seats %d cannot be used with -%s\n", *seats, name)
+				return 2
+			}
+		}
+		if *pods > 0 {
+			*pairs = *pods
+		}
+	}
+	if synthGorge {
+		delete(explicit, "kernel")
+	}
 	if *synth != "" {
 		if err := checkSynthFlags(explicit); err != nil {
 			fmt.Fprintln(os.Stderr, "kfuzz:", err)
@@ -205,6 +232,13 @@ func run() int {
 	*kernel, *setName, *decksDir, err = resolveKernel(*kernel, *setName, *decksDir, explicit)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
+		return 2
+	}
+	if synthGorge {
+		*kernel = "gorge"
+	}
+	if *seats > 2 && *kernel != "gorge" {
+		fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: the dirac kernel plays two seats; a game of more seats runs gorge against gorge only (-kernel gorge)\n", *seats)
 		return 2
 	}
 	if *kernel != "fdn" {
@@ -451,16 +485,21 @@ func run() int {
 		printDiv(res.Div)
 		return 1
 	}
-	if err := oracle.NeedDecks(*decksDir); err != nil {
+	if err := oracle.NeedDecks(*decksDir); err != nil && !synthGorge {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		return 1
 	}
-	pool, err := oracle.ReadPool(*poolPath, *split)
-	if err != nil {
+	var pool []oracle.PoolDeck
+	if synthGorge {
+		if pool, _, err = dealSynth(c, set, *seed, *synthDecks, ""); err != nil {
+			fmt.Fprintln(os.Stderr, "kfuzz:", err)
+			return 1
+		}
+	} else if pool, err = oracle.ReadPool(*poolPath, *split); err != nil {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		return 1
 	}
-	ps := oracle.PairingsFrom(pool, *firstPair, *pairs, *seed)
+	ps := oracle.PodsFrom(pool, *firstPair, *pairs, *seed, *seats)
 	every := max(1, len(ps)/20)
 	n := 0
 	t0 := time.Now()
@@ -468,7 +507,7 @@ func run() int {
 		Shrink: *shrink, Workers: *workers, Coverage: coveragePath != "", GameTimeout: *gameLimit}, func(i int, p oracle.Pairing, r *oracle.Result) {
 		n++
 		if r.Div != nil {
-			fmt.Fprintf(os.Stderr, "pair %d (%s vs %s, seed %d): %v\n", p.Index, p.A, p.B, p.Seed, r.Div)
+			fmt.Fprintf(os.Stderr, "pair %d (%s, seed %d): %v\n", p.Index, strings.Join(p.Decks(), " vs "), p.Seed, r.Div)
 		}
 		if n%every == 0 {
 			fmt.Fprintf(os.Stderr, "[%d/%d %.0fs]\n", n, len(ps), time.Since(t0).Seconds())

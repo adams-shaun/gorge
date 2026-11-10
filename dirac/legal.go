@@ -346,7 +346,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 					continue
 				}
 			}
-			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedPoolOK(p, a) {
+			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedPoolOK(k, p, sl, a) {
 				continue // a max-speed grant is offered from the floating pool alone (kw_maxspeed.go)
 			}
 			if s.canActivate(k, sl, ai, a, sorc, &av) {
@@ -1428,7 +1428,8 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 					done[sl] &^= s.filtPipBit(k, sl) // a one-pip filter joins below once the pool pays it (mana_filterpip.go)
 				}
 				cd := &k.t.Cards[c]
-				dynamic = pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) && cd.Abilities[pc.manaAb].AFlags&kop.AfManaDynamic != 0
+				dynamic = pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) && cd.Abilities[pc.manaAb].AFlags&kop.AfManaDynamic != 0 ||
+					k.gen.flags[c]&gfManaDynPair != 0 // gorge's potentialAmount reads the second ability's Count$ as indeterminate: unbounded (mana_dynpair.go)
 			}
 		}
 		if dynamic || !pc.manaMulti && (pc.manaCol == kop.ColAny && !pc.manaChosen || pc.manaChosen && !payment) {

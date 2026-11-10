@@ -11,14 +11,14 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | BIG | 30 | 24 | 1 | 2 | 21 |
 | BLB | 278 | 260 | 3 | 5 | 252 |
 | DFT | 276 | 252 | 0 | 6 | 246 |
-| DSK | 276 | 243 | 4 | 22 | 217 |
-| ECL | 273 | 237 | 1 | 3 | 233 |
-| EOE | 266 | 242 | 0 | 3 | 239 |
+| DSK | 276 | 244 | 4 | 23 | 217 |
+| ECL | 273 | 238 | 2 | 3 | 233 |
+| EOE | 266 | 243 | 0 | 4 | 239 |
 | FDN | 517 | 517 | 0 | 0 | 517 |
 | FIN | 312 | 271 | 1 | 4 | 266 |
 | FRA | 269 | 249 | 0 | 10 | 239 |
-| HOB | 172 | 156 | 0 | 3 | 153 |
-| LCI | 290 | 255 | 1 | 25 | 229 |
+| HOB | 172 | 157 | 0 | 4 | 153 |
+| LCI | 290 | 256 | 1 | 26 | 229 |
 | MKM | 279 | 245 | 1 | 34 | 210 |
 | MSH | 276 | 240 | 1 | 7 | 232 |
 | OTJ | 276 | 244 | 1 | 2 | 241 |
@@ -30,7 +30,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 291 | 0 | 25 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 256 | 0 | 10 | 246 |
-| ALL | 34442 | 21945 | 24 | 16832 | 5089 |
+| ALL | 34442 | 21961 | 25 | 16847 | 5089 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -70,11 +70,12 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-24 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+25 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 2 |
+| lockstep | 1 |
 | options | 5 |
 | options-options | 1 |
 | projection | 1 |

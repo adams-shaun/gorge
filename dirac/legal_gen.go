@@ -755,10 +755,13 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 			if a.Cost.Flags&kop.CostSorcery != 0 && !sorc {
 				continue
 			}
-			// a restricted source (Heartwood Crafter's {C}) pays an activated
-			// ability from the graveyard as from the hand (CR 106.6)
+			// a restricted source (Heartwood Crafter's {C}) or floating restricted
+			// mana (Boommobile's activated-only units) pays an activated ability
+			// from the graveyard as from the hand (CR 106.6)
+			gd := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
 			if !av.affords(&a.Cost.Mana, pipMaskOf(&a.Cost.Mana), 0) &&
-				!(k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}, &a.Cost.Mana, av, NoSlot, 0)) {
+				!(k.restrSrc && s.restrSrcAffords(k, p, gd, &a.Cost.Mana, av, NoSlot, 0)) &&
+				!s.actPoolAffordsDesc(k, p, &a.Cost.Mana, gd, av) {
 				continue
 			}
 			if a.Trig.Cond != 0 && !s.graveActCond(k, a, p, o) {

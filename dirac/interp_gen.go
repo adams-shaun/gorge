@@ -717,8 +717,13 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.Obj != kop.RefNone {
 			tobj, amt = s.reflexCapture(in.Obj) // zone_rememberwrites.go: RememberObjects$ Targeted
 		}
+		biteLKI := tobj != NoObj && s.reflexBites(k, e.card, uint8(in.C))
 		for i := 0; i < n; i++ {
+			m := s.npend
 			s.enqueue(e.obj, e.srcVer, e.card, uint8(in.C), e.ctrl, tobj, e.ctrl, amt)
+			if biteLKI && s.npend > m {
+				s.pend[m].li = s.snapLKI(tobj) // zone_rememberwrites.go: the captured creature's last known power
+			}
 		}
 	case kop.OpDelayedProgram:
 		o := s.delayedRegObj(in.Obj)

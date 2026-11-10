@@ -56,6 +56,13 @@ type engineResolution struct {
 	// own-source maps above, every waiting resolution receives departures: the
 	// named source can be TriggeredCard, Targeted, or Remembered.
 	damageSourceLKI map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI `clone:"deep"`
+	// reflexiveRememberedPT maps a reflexive ability's stack object to the
+	// battlefield power/toughness its remembered objects had as it was put on
+	// the stack (CR 608.2h; QueueReflexiveTrigger's capture). Resolution
+	// seeds Ctx.Snap.TargetPT from it, so Thorin, Mountain-king's
+	// TriggerRemembered$CardPower of a creature bounced in response reads
+	// that power, not the printed power of the card in its new zone.
+	reflexiveRememberedPT map[state.ObjID]map[state.ObjID]effects.TargetPT `clone:"deep"`
 	// replReplaced is the ev.Obj of the replacement applyReplacements is
 	// currently resolving — the object the replaced event was about. It is
 	// seeded by applyReplacements (Ctx.Replaced = ev.Obj) and read by Ask to
