@@ -1,0 +1,8 @@
+# Growing Rites of Itlimoc (its back, Itlimoc, Cradle of the Sun: {T}: Add {G}, then {T}: Add {G} for each creature you control) beside Forests, Islands and creatures,
+# for dirac/mana_dynpair_test.go and the oracle lockstep (dirac/oracle/dynpairmana_test.go)
+Forest
+Giant Growth
+Grizzly Bears
+Growing Rites of Itlimoc
+Island
+Leatherback Baloth
