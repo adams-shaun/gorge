@@ -175,29 +175,31 @@ func (s *State) matchSpellCard(k *prep, f kop.FilterID, c CardID, owner, ctrl ui
 	}
 	for f != 0 {
 		fl := k.t.Filters[f]
-		if fl.Zone == kop.ZoneStack {
-			fl.Zone = kop.ZoneNone
-		}
-		if src != NoSlot && fl.Flags2&kop.F2ChosenType != 0 {
-			ch, ok := s.chosenTypeSub(src)
-			cd := &k.t.Cards[c]
-			has := ok && int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
-			if ok && outsideSub(k, ch) {
-				has = cd.AllCreatureTypes
-			}
-			fl.Flags2 &^= kop.F2ChosenType
-			if has && s.matchCardOne(k, &fl, c, owner, ctrl, o) {
-				return true
-			}
-			f = fl.Or
-			continue
-		}
-		if s.matchCardOne(k, &fl, c, owner, ctrl, o) {
+		if s.matchSpellAlt(k, fl, c, owner, ctrl, o, src) {
 			return true
 		}
 		f = fl.Or
 	}
 	return false
+}
+
+// matchSpellAlt is one alternative of matchSpellCard's Or chain (fl is a
+// copy: the zone and chosen-type words are rewritten on it).
+func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint8, o Obj, src Slot) bool {
+	if fl.Zone == kop.ZoneStack {
+		fl.Zone = kop.ZoneNone
+	}
+	if src != NoSlot && fl.Flags2&kop.F2ChosenType != 0 {
+		ch, ok := s.chosenTypeSub(src)
+		cd := &k.t.Cards[c]
+		has := ok && int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
+		if ok && outsideSub(k, ch) {
+			has = cd.AllCreatureTypes
+		}
+		fl.Flags2 &^= kop.F2ChosenType
+		return has && s.matchCardOne(k, &fl, c, owner, ctrl, o)
+	}
+	return s.matchCardOne(k, &fl, c, owner, ctrl, o)
 }
 
 // targetsAnswered reports whether the build's target stages have passed: the
