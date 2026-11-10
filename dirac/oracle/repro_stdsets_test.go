@@ -220,6 +220,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "pyrewood_gearhulk_enters_damage_cant_be_prevented"},                 // Pyrewood Gearhulk enters: its trigger pumps the other creatures and makes damage unpreventable for the turn (an end-of-turn emblem)
 		{"custom", "flaring_pain_resolves"},                                             // Flaring Pain resolves: damage can't be prevented this turn
 		{"custom", "leyline_of_punishment_on_the_battlefield"},                          // Leyline of Punishment's printed statics: players can't gain life, damage can't be prevented
+		{"custom", "frenzied_baloth_combat_damage_to_a_shielded_creature"},              // Frenzied Baloth's combat damage to a blocking Swooping Protector: combat damage can't be prevented, so its SHIELD counter stays and the damage is dealt (CR 615.12, 122.1c)
 		{"custom", "cmd5_commander_death_choice_precedes_token_cease", full},            // kfuzz cmd5 heuristic pair 31: Giada, Font of Hope, a commander, blocks a Zombie token and both die in combat: the command-zone choice is posed before the check's other actions, so the token is still in the graveyard at the ask and ceases after the answer (CR 704.3, 704.6d, 903.9a)
 		{"custom", "cmd5_hidden_pick_commander_to_command_zone", full},                  // kfuzz cmd5 heuristic pair 110: Temur Sabertooth returns Ghalta, Primal Hunger, a commander, and the owner sends it to the command zone instead: it leaves the battlefield, Rancor goes to the graveyard and its trigger is stacked (CR 903.9b)
 		{"custom", "cmd5_hidden_pick_commander_to_hand", full},                          // kfuzz cmd5 heuristic pair 92: the same return answered to let it go: Ghalta reaches its owner's hand and the resolution goes on (CR 903.9b)
@@ -260,6 +261,11 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "cryoshatter_enchanted_attacker_tapped_is_destroyed"},                // Cryoshatter on a Grizzly Bears that attacks: the attack tap fires its AttachedBy Taps watcher and the Bears is destroyed (TriggeredCardLKICopy)
 		{"custom", "cryoshatter_enchanted_vigilant_attacker_stays"},                     // Cryoshatter on a Brushstrider that attacks: vigilance, so it is not tapped and stays
 		{"std-lci", "free_cast_unpayable_tap_cost_returns_to_hand"},                     // CR 601.2b, 118.3, 733.1, 701.57a: a discover's free cast of Guardian of the Great Door with one untapped permanent left cannot pay its tap four: the cast is reversed and the card goes to hand
+		{"custom", "static_untap_other_own_artifacts_unwinding_clock"},                  // Unwinding Clock untaps the Alpha Myr its controller attacked with during the other player's untap step (CR 502.3): a static over its controller's artifacts, not only itself
+		{"custom", "static_can_attack_defender_own_creatures_ghalta"},                   // Ghalta the Immovable lets the Reito Sentinels its controller has attack as though they lacked defender (CR 702.3b)
+		{"custom", "static_cant_attack_enchanted_by_own_aura_eriette"},                  // Eriette of the Charmed Apple: an opponent's creature enchanted by an Aura Eriette's controller controls is offered no attack at them (CR 508.1c)
+		{"custom", "static_can_attack_defender_modified_guardians_of_oboro"},            // Guardians of Oboro under an Aura is a modified Defender creature: it attacks as though it lacked defender (CR 702.3b)
+		{"custom", "static_untap_other_own_creatures_prop_room"},                        // Prop Room untaps the Savannah Lions its controller attacked with during the other player's untap step (CR 502.3)
 		{"std-dsk", "graveexile_pick_count_is_the_trigger_amount"},                      // Nashi, Searcher in the Dark deals combat damage: it mills that many cards and takes a legendary or enchantment card from among them to hand, the pick's count the damage dealt
 	} {
 		pool, name := c[0], c[1]

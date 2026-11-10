@@ -208,6 +208,10 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"return_batch_asenters_two_creatures", false, false},
 		{"return_batch_asenters_three_creatures", false, false},
 		{"return_batch_asenters_three_creatures_m1", false, false},
+		{"restricted_witness_tap_survives_hybrid_lowering", false, false},
+		{"granted_mana_ask_tries_needed_colour_first", false, false},
+		{"clone_template_entry_condition_mockingbird_cutthroat", false, false},
+		{"clone_template_entry_condition_mockingbird_sparkshooter", false, false},
 	})
 }
 
@@ -742,6 +746,7 @@ func TestStdTmtReprosLockstep(t *testing.T) {
 		{"put_counters_from_unheard_kind_order", false, false},                 // CR 603.3b: Donatello, Mutant Mechanic copies a dead artifact's +1/+1 and stun counters while a +1/+1 trigger listens: the stun is heard by none, so gorge's insertion order is unobservable
 		{"second_ability_counter_cost_taps_source_for_generic", true, false},   // CR 605.3b, 601.2g: Weather Maker beside a plain {T} first ability: its "{T}, remove two charge counters: Add {C}{C}" pays Frog Butler's {2} reach activation when every land is tapped, so gorge offers it
 		{"second_ability_counter_gap_tries_plain_ability_first", false, false}, // CR 605.3b, 601.2g: two Weather Makers pay Metalhead: gorge's prefix search answers the first one's ability ask with its plain ability (the colour ask behind it), then the second one's with its counters, so only the second loses them
+		{"attach_triggered_card_moved_skips_ninja", true, false},               // CR 400.7: Quintessential Katana's "attach to the entering Ninja" trigger waits on the stack while that Ninja returns to hand and re-enters, so its TriggeredCardLKICopy is a new object and the attach finds nothing
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if res := replayReproRes(t, reg, set, c.name, c.autopay); res.Stall != "" {

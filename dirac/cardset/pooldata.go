@@ -119,7 +119,15 @@ func (s dataSet) AbilityOrigin(i, ab int) uint8 {
 }
 
 func (s dataSet) Matchup(a, b []Entry) (*kop.Table, []kop.CardID, []kop.CardID, error) {
-	return s.matchup(a, b, false)
+	t, ids, err := s.matchup([][]Entry{a, b}, false)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return t, ids[0], ids[1], nil
+}
+
+func (s dataSet) MatchupN(decks [][]Entry) (*kop.Table, [][]kop.CardID, error) {
+	return s.matchup(decks, false)
 }
 
 func (s dataSet) Pool() (*kop.Table, error) {
@@ -127,7 +135,7 @@ func (s dataSet) Pool() (*kop.Table, error) {
 	for i := range all {
 		all[i] = Entry{Name: s.d.Names[i], Count: 1}
 	}
-	t, _, _, err := s.matchup(all, nil, true)
+	t, _, err := s.matchup([][]Entry{all, nil}, true)
 	return t, err
 }
 
@@ -225,7 +233,7 @@ func (s dataSet) abReduceGuard(pool []int) error {
 	return AbReduceRefusal(reducers, costed)
 }
 
-func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []kop.CardID, error) {
+func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardID, error) {
 	dd := s.d
 	var pool []int
 	seen := map[int]bool{}
@@ -240,14 +248,14 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 			add(int(t))
 		}
 	}
-	for _, d := range [][]Entry{a, b} {
+	for _, d := range decks {
 		for _, e := range d {
 			i, ok := s.Lookup(e.Name)
 			if !ok {
-				return nil, nil, nil, fmt.Errorf("card %q is not in the pool", e.Name)
+				return nil, nil, fmt.Errorf("card %q is not in the pool", e.Name)
 			}
 			if !s.plays[i] && !inert {
-				return nil, nil, nil, &RefusedError{Card: e.Name, Status: dd.Status[i], Reason: dd.Reason[i]}
+				return nil, nil, &RefusedError{Card: e.Name, Status: dd.Status[i], Reason: dd.Reason[i]}
 			}
 			add(i)
 		}
@@ -255,17 +263,17 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 	sort.Ints(pool)
 	if !inert {
 		if err := s.layerGuard(pool); err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		if err := s.roomNameGuard(pool); err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		if err := s.abReduceGuard(pool); err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 	}
 	if len(pool) >= int(kop.NoCard) {
-		return nil, nil, nil, fmt.Errorf("matchup needs %d cards", len(pool))
+		return nil, nil, fmt.Errorf("matchup needs %d cards", len(pool))
 	}
 	id := map[int]kop.CardID{}
 	for j, i := range pool {
@@ -410,7 +418,7 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 		}
 	}
 	if len(t.Subtypes) > kop.MaxSubtypes {
-		return nil, nil, nil, fmt.Errorf("matchup needs %d subtypes", len(t.Subtypes))
+		return nil, nil, fmt.Errorf("matchup needs %d subtypes", len(t.Subtypes))
 	}
 	// A filter naming a subtype no object in this matchup can have keeps
 	// the sentinel NoSubtype: Sub never matches, NotSub always passes.
@@ -552,11 +560,11 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 	}
 	if !inert {
 		if err := s.interactionGuard(t, pool); err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 	}
 	if err := s.nameChoices(t, pool, id); err != nil { // pooldata_names.go
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	deck := func(d []Entry) []kop.CardID {
 		var out []kop.CardID
@@ -568,5 +576,9 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 		}
 		return out
 	}
-	return t, deck(a), deck(b), nil
+	out := make([][]kop.CardID, len(decks))
+	for p, d := range decks {
+		out[p] = deck(d)
+	}
+	return t, out, nil
 }

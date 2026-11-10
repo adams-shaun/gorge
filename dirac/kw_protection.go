@@ -24,8 +24,8 @@ func (s *State) protPrinted(k *prep, sl Slot) kop.ColorMask {
 // source (slot srcSl, NoSlot off the battlefield; card srcCard; colours
 // col): from one of its colours (protColFrom), or a printed K:Protection:
 // <spec> quality it matches (CardDef.ProtFrom; gorge sourceHasQuality).
-func (s *State) protFrom(k *prep, sl, srcSl Slot, srcCard CardID, col kop.ColorMask) bool {
-	return (s.protColFrom(k, sl, col) || k.gen.anyProtF && s.protQuality(k, sl, srcSl, srcCard)) && !s.noPrev(k) // CR 615.12
+func (s *State) protFrom(k *prep, sl, srcSl Slot, srcCard CardID, col kop.ColorMask, combat bool) bool {
+	return (s.protColFrom(k, sl, col) || k.gen.anyProtF && s.protQuality(k, sl, srcSl, srcCard)) && !s.noPrev(k, combat) // CR 615.12
 }
 
 // protQuality: sl's printed K:Protection:<spec> filter matches the source

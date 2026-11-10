@@ -32,6 +32,9 @@ const (
 	refusedGateSample = 50
 )
 
+// staleRemedy is what a stale entry asks of the seat: either cause, and what each needs.
+const staleRemedy = "A stale entry means either the defect is fixed (add the passing test and a row in dirac/support/unrefused.tsv, then go run ./dirac/cmd/kgen -unrefuse <card>) or the pinned game moved (re-record the game with pool custom; see checkRefusedRepro)"
+
 // refusedRun is one entry's pool: its raw set and the decks its pairs draw from.
 type refusedRun struct {
 	card    string
@@ -283,7 +286,7 @@ func checkRefusedEntry(t *testing.T, e *cardset.RefusedEntry) {
 		}
 		return
 	}
-	t.Errorf("stale: %d pairs of %s with %s dealt in and none implicates it: go run ./dirac/cmd/kgen -unrefuse %q", played, e.Repro.Pool, e.Card, e.Card)
+	t.Errorf("stale: %d pairs of %s with %s dealt in and none implicates it. %s", played, e.Repro.Pool, e.Card, staleRemedy)
 }
 
 // checkRefusedRepro is checkRefusedEntry for an entry pinned to a recorded game (pool
@@ -323,7 +326,7 @@ func checkRefusedRepro(t *testing.T, e *cardset.RefusedEntry) {
 	defer CloseSide(k)
 	res := Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
 	if !gameImplicates(&res, m, e.Card) {
-		t.Errorf("stale: %s's recorded game %s no longer diverges with it implicated: go run ./dirac/cmd/kgen -unrefuse %q", e.Card, e.Repro.File, e.Card)
+		t.Errorf("stale: %s's recorded game %s no longer diverges with it implicated. %s", e.Card, e.Repro.File, staleRemedy)
 	}
 }
 

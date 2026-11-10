@@ -605,6 +605,13 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		// the evidence the cast of the source permanent collected, at fire
 		// time and at resolution alike (castCollectedGroup).
 		return castCollectedGroup(h, c), true
+	case refTargetsCastReturned:
+		// CastSA>Returned$CardManaCost (Scarlet Spider, Ben Reilly's X): the
+		// cards the cast's Return cost returned (Paid.Returned, the same list
+		// Defined$ Returned reads). A returned token has ceased to exist, so
+		// g.Obj is nil and evalRefProperty skips it (reads 0); a card in hand
+		// reads its printed mana value (CR 202.3); no return is a resolved zero.
+		return paidCostTargets(c, "Returned"), true
 	case refTargetsRemembered:
 		// Forge's plain Remembered$ form reads the executing ability's shared
 		// host-card remembered list: the ctx walk's set UNIONED with the
@@ -933,6 +940,7 @@ const (
 	refTargetsCollected
 	refTargetsDiscarded
 	refTargetsCastCollected
+	refTargetsCastReturned
 )
 
 var refTargetsCodes = state.NewStrCodes(
@@ -979,6 +987,7 @@ var refTargetsCodes = state.NewStrCodes(
 	state.StrEntry[refTargetsCode]{Key: "TriggerObjectsAttackers", Val: refTargetsTriggerObjectsAttackers},
 	state.StrEntry[refTargetsCode]{Key: "Collected", Val: refTargetsCollected},
 	state.StrEntry[refTargetsCode]{Key: "CastSA>Collected", Val: refTargetsCastCollected},
+	state.StrEntry[refTargetsCode]{Key: "CastSA>Returned", Val: refTargetsCastReturned},
 	state.StrEntry[refTargetsCode]{Key: "Discarded", Val: refTargetsDiscarded},
 )
 

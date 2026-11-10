@@ -54,7 +54,7 @@ and1	mana_specialaction.go	5
 and1	mana_spendtrigger.go	2
 and1	mana_tapanother.go	6
 and1	mana_tapsdefer.go	1
-and1	mana_window.go	11
+and1	mana_window.go	10
 and1	marks.go	6
 and1	script_gen.go	7
 and1	searchapi.go	1
@@ -88,7 +88,6 @@ opp1minus	combat_blocksifable.go	1
 opp1minus	combat_lure.go	1
 opp1minus	combat_mustbeblocked.go	2
 opp1minus	copy_riders.go	1
-opp1minus	engine.go	1
 opp1minus	exprs.go	2
 opp1minus	face_battle.go	1
 opp1minus	filter_combatwords.go	1
@@ -101,7 +100,6 @@ opp1minus	kw_infect.go	1
 opp1minus	kw_sneak.go	1
 opp1minus	kw_speed.go	1
 opp1minus	mana_sacsource.go	1
-opp1minus	pregame.go	1
 opp1minus	repl_choosename.go	1
 opp1minus	repl_gen.go	1
 opp1minus	repl_lifelossdouble.go	1
@@ -174,7 +172,7 @@ seatloop2	combat_cmddamage.go	1
 seatloop2	copy_asenters.go	1
 seatloop2	cost_mayplayraise.go	1
 seatloop2	cost_reduceability.go	1
-seatloop2	engine.go	5
+seatloop2	engine.go	2
 seatloop2	exprs.go	1
 seatloop2	face_battle.go	1
 seatloop2	face_fullyunlock.go	2
