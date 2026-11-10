@@ -575,7 +575,7 @@ func (g *grantSrch) candidates(s *State) {
 		if ng > 0 {
 			holders++
 		}
-		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), !tm.has(sl) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
+		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
 		g.def[g.n] = ng == 0 && dm.has(sl)
 		g.cobj[g.n] = s.perms[sl].obj
 		g.none[g.n] = ng == 0 && nm.has(sl)
@@ -757,6 +757,14 @@ func (g *grantSrch) visit(t *State) bool {
 		}
 		if alts > 1 && !g.node() {
 			return false
+		}
+		if tx && g.k.tapXSecond(t.cardAt(sl)) && g.dual[i] {
+			// a second-ability tap-another source: its plain {T} ability is the
+			// ask's first answer (mana_tapanother.go tapXPlainDo)
+			ppc := t.manaPCGen(g.k, sl)
+			if g.branch(t, i, sl, -1, t.srcMaskAt(ppc, sl), ppc.manaN, false) {
+				return true
+			}
 		}
 		if tx && g.tapXBranch(t, i, sl) { // the printed tap-another ability first (mana_granttapx.go)
 			return true
