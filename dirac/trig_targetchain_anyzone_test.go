@@ -15,10 +15,17 @@ import (
 func TestCastTargetsAnyZone(t *testing.T) {
 	sc, id := newBLBScen(t, []cardset.Entry{{Name: "Downwind Ambusher", Count: 2}, {Name: "Plains", Count: 8}})
 	creature := id["Downwind Ambusher"]
-	sc.k.t.Filters = append(sc.k.t.Filters, kop.Filter{Types: kop.TCreature, Ctrl: kop.CtrlOpp, Zone: kop.ZoneAny})
-	anyZone := kop.FilterID(len(sc.k.t.Filters) - 1)
-	sc.k.t.Filters = append(sc.k.t.Filters, kop.Filter{Types: kop.TCreature, Ctrl: kop.CtrlOpp})
-	battlefieldOnly := kop.FilterID(len(sc.k.t.Filters) - 1)
+	// the chains kgen builds for Danitha's "Opponent,Creature.OppCtrl": the
+	// object clause points at filterPlayerAlt's player sentinel (an FPlayer
+	// alternative that names no object)
+	chain := func(zone kop.Zone) kop.FilterID {
+		sc.k.t.Filters = append(sc.k.t.Filters, kop.Filter{Ctrl: kop.CtrlOpp, Flags: kop.FPlayer | kop.FSelf | kop.FOther})
+		sentinel := kop.FilterID(len(sc.k.t.Filters) - 1)
+		sc.k.t.Filters = append(sc.k.t.Filters, kop.Filter{Types: kop.TCreature, Ctrl: kop.CtrlOpp, Zone: zone, Or: sentinel})
+		return kop.FilterID(len(sc.k.t.Filters) - 1)
+	}
+	anyZone := chain(kop.ZoneAny)
+	battlefieldOnly := chain(kop.ZoneNone)
 
 	src := sc.perm(creature, 0)
 	l := trigListener{obj: src, sl: sc.slot(src), ctrl: 0}
@@ -31,6 +38,19 @@ func TestCastTargetsAnyZone(t *testing.T) {
 	}
 	var e stackEntry
 	e.nt, e.tgt[0] = 1, 0
+
+	// A creature permanent: an opponent's matches (the burn-spell case), the
+	// listener's own does not.
+	oppPerm := sc.perm(creature, 1)
+	e.tgt[0] = uint8(oppPerm)
+	if !sc.s.castTargetsAll(sc.k, anyZone, &e, l) || !sc.s.castTargetsAll(sc.k, battlefieldOnly, &e, l) {
+		t.Fatal("an opponent's creature permanent did not match")
+	}
+	minePerm := sc.perm(creature, 0)
+	e.tgt[0] = uint8(minePerm)
+	if sc.s.castTargetsAll(sc.k, anyZone, &e, l) {
+		t.Fatal("the listener's own creature permanent matched an opponent filter")
+	}
 
 	// A creature spell the opponent controls: the target spell's stack entry
 	// says who controls it, not its owner (seat 0 owns this one).
@@ -51,7 +71,8 @@ func TestCastTargetsAnyZone(t *testing.T) {
 	}
 	sc.s.sp--
 
-	// A noncreature spell an opponent controls does not match Creature.
+	// A noncreature spell an opponent controls does not match Creature: the
+	// chain's player sentinel (Ctrl opp, no types) names no object.
 	land := sc.obj(id["Plains"], 1)
 	pushSpell(land, 1)
 	e.tgt[0] = uint8(land)

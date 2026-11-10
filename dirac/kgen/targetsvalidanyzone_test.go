@@ -53,6 +53,22 @@ func TestTargetsValidAnyZone(t *testing.T) {
 	if !sawCreature || !sawPlayer {
 		t.Fatalf("Filter2 chain: creature %v, player %v", sawCreature, sawPlayer)
 	}
+	// A lone zone-free alternative (no player alternative) carries the marker
+	// too.
+	why, tr, pt = ktqBuild(t, line("Creature.OppCtrl"))
+	if why != "" {
+		t.Fatalf("lone zone-free alternative refused: %s", why)
+	}
+	if tr.Filter2 == 0 || pt.filters[tr.Filter2].Zone != kop.ZoneAny || pt.filters[tr.Filter2].Or != 0 {
+		t.Fatalf("lone zone-free Filter2 = %+v, want one ZoneAny clause", pt.filters[tr.Filter2])
+	}
+	// A zone-free tapped/untapped/blocking alternative stays refused: the
+	// kernel's card matcher ignores those off the battlefield, gorge does not.
+	for _, v := range []string{"Creature.OppCtrl+tapped", "Opponent,Creature.untapped", "Creature.blocking"} {
+		if why, _, _ := ktqBuild(t, line(v)); !strings.Contains(why, `TargetsValid "`+v+`"`) {
+			t.Errorf("zone-free TargetsValid %q: refusal %q", v, why)
+		}
+	}
 	// The same alternative with inZoneBattlefield is still battlefield-only,
 	// and must not pick up the any-zone marker.
 	why, tr, pt = ktqBuild(t, line("Opponent,Creature.OppCtrl+inZoneBattlefield"))
