@@ -2554,6 +2554,7 @@ func (lc *lowerCtx) animate(ps *params) error {
 		return err
 	}
 	_, optional := ps.m["Optional"]
+	ps.consume("OptionQuestion") // prompt text only (gorge combatfx.go); the yes/no is the same
 	if optional && obj.Kind != rSelf {
 		// gorge asks only while some Defined object is still there
 		// (animateWouldChange): MayGuardMove tests that for the one source
@@ -2742,12 +2743,28 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 			o.PVal, o.TVal = pv, tv
 		}
 	}
+	if n, ok := ps.get("Name"); ok {
+		// a literal layer-3 rename (gorge combatfx.go: a chooser token is
+		// not a rename there; refuse it here rather than mint a name card)
+		n = strings.TrimSpace(n)
+		if strings.EqualFold(n, "ChosenName") || strings.EqualFold(n, "Chosen") || n == "" {
+			return nil, "", false, refuse("Animate Name$ %q", n)
+		}
+		o.Name = n
+		lc.out.Tokens = append(lc.out.Tokens, nameCardKey+n)
+	}
 	if k, ok := ps.get("Keywords"); ok {
-		ks, err := pumpKeywords(k)
+		k, err := lc.animateGrantedKeywordAbilities(k, o) // lower_animatekwability.go
 		if err != nil {
 			return nil, "", false, err
 		}
-		o.AddKw = ks
+		if k != "" {
+			ks, err := pumpKeywords(k)
+			if err != nil {
+				return nil, "", false, err
+			}
+			o.AddKw = ks
+		}
 	}
 	if tr, ok := ps.get("Triggers"); ok {
 		idx, err := lc.latentTrigger(tr)

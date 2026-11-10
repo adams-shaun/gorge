@@ -85,7 +85,7 @@ func (s *State) eachStaticC(k *prep, cls uint16, f func(st statSrc) bool) {
 		cd := &k.t.Cards[s.cardAt(sl)]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
-			if lost && !keptOnLoss(k.t, a) {
+			if lost && !s.keptOnLossAt(k, sl, a) {
 				continue // a source that lost its abilities keeps only the effects that began before layer 6
 			}
 			if a.Kind == kop.AbStatic || a.Kind == kop.AbReplacement {

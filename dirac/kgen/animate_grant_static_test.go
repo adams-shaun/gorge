@@ -9,9 +9,9 @@ import (
 // is a Continuous static over other permanents lowers that body as an ordinary
 // source static gated by the override record the animation applies
 // (kop.Static.OvGate): Tenth District Hero's indestructible anthem and The
-// Irencrag's equipped pump. Each card then names its next refusal from another
-// class (the Animate's Name$ unread, its parameterised Equip keyword); a body
-// that is not an anthem, keyword grant or equipped pump still refuses by name.
+// Irencrag's equipped pump. With the Animate's Name$, its Equip:N keyword and
+// OptionQuestion$ read, both cards lower whole; a body that is not an anthem,
+// keyword grant or equipped pump still refuses by name.
 func TestLowerAnimateGrantStatic(t *testing.T) {
 	const base = "Name:Animate Grant Probe\nManaCost:1\nTypes:Creature Human\nPT:1/1\n"
 	for _, tc := range []struct {
@@ -89,6 +89,24 @@ func TestLowerAnimateGrantStatic(t *testing.T) {
 				"SVar:B:Mode$ Continuous | Affected$ Creature.Other+YouCtrl | AddKeyword$ Vigilance | Description$ test\n",
 			want: "shape",
 		},
+		{
+			name: "chooser Name$ is not a rename",
+			body: "A:AB$ Animate | Cost$ 1 | Defined$ Self | Name$ ChosenName | Duration$ Permanent | SpellDescription$ test\n",
+			want: `Animate Name$ "ChosenName"`,
+		},
+		{
+			name: "literal Name$ renames",
+			body: "A:AB$ Animate | Cost$ 1 | Defined$ Self | Name$ Probe Renamed | Types$ Legendary | Duration$ Permanent | SpellDescription$ test\n",
+		},
+		{
+			name: "Fortify keyword still refuses",
+			body: "A:AB$ Animate | Cost$ 1 | Defined$ Self | Keywords$ Fortify:2 | Duration$ Permanent | SpellDescription$ test\n",
+			want: `keyword "Fortify:2"`,
+		},
+		{
+			name: "Equip beside a plain keyword",
+			body: "A:AB$ Animate | Cost$ 1 | Defined$ Self | Keywords$ Equip:3 & Vigilance | Duration$ Permanent | SpellDescription$ test\n",
+		},
 	} {
 		got := keclReason(keclSynth(t, "Animate Grant Probe", base+tc.body))
 		if tc.want == "" {
@@ -102,22 +120,16 @@ func TestLowerAnimateGrantStatic(t *testing.T) {
 		}
 	}
 
-	// Both corpus cards lower the granted static; their remaining refusals are
-	// the next class, never the staticAbilities$ grant.
+	// Both corpus cards lower whole: the granted static, the rename, the
+	// granted equip ability.
 	all, _ := keclBuild(t, []string{"Tenth District Hero", "The Irencrag"})
-	for _, tc := range []struct {
-		name, next string
-	}{
-		{"Tenth District Hero", "unread params [Name]"},
-		{"The Irencrag", `keyword "Equip:3"`},
+	for _, tc := range []struct{ name string }{
+		{"Tenth District Hero"},
+		{"The Irencrag"},
 	} {
 		i := keclIndex(t, all, tc.name)
-		reason := keclReason(lowerRefusals(all[i]))
-		if strings.Contains(reason, "staticAbilities$") {
-			t.Errorf("%s: the granted-static class still refuses: %s", tc.name, reason)
-		}
-		if !strings.Contains(reason, tc.next) {
-			t.Errorf("%s: refusals %q, want the next class %q", tc.name, reason, tc.next)
+		if reason := keclReason(lowerRefusals(all[i])); reason != "" {
+			t.Errorf("%s: refused: %s", tc.name, reason)
 		}
 		var sb strings.Builder
 		dumpLIR(&sb, all[i])
@@ -133,6 +145,9 @@ func TestLowerAnimateGrantStatic(t *testing.T) {
 		case "The Irencrag":
 			if !strings.Contains(ir, "EquippedBy") || !strings.Contains(ir, "P=3 T=3") {
 				t.Errorf("The Irencrag: lowered IR lacks the gated equipped pump:\n%s", ir)
+			}
+			if !strings.Contains(ir, "Activated Equip") || !strings.Contains(ir, "grant=") || !strings.Contains(ir, "loseabilities") {
+				t.Errorf("The Irencrag: lowered IR lacks the override-granted Equip beside loseabilities:\n%s", ir)
 			}
 		}
 	}
