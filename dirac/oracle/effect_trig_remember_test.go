@@ -72,7 +72,7 @@ func effectTrigRememberCases() []effectLongCase {
 				append(deckOf(8, "Lightning Bolt"), deckOf(16, "Mountain")...),
 			},
 			surface: "autopay",
-			reached: mysterioTokenExiledAfterBlink,
+			reached: mysterioTokensStayAfterBlink,
 		},
 	}
 }
@@ -159,21 +159,29 @@ func mysterioRegistrationAfterLeaving(g *GorgeSide) bool {
 	return false
 }
 
-// mysterioTokenExiledAfterBlink: Mysterio was exiled and returned by Cloudshift
-// while his enters trigger was on the stack, the trigger then registered the
-// Effect against the returned Mysterio (gorge ends such a registration with
+// mysterioTokensStayAfterBlink: Mysterio was exiled and returned by Cloudshift
+// while his enters trigger was on the stack (no Illusion token was made before
+// the blink), both that trigger and the blink's resolved with the returned
+// Mysterio out and registered their Effects against it (gorge ends such a registration with
 // that incarnation, without firing), he left again with Illusion Villain tokens
 // out, and none of them was exiled.
-func mysterioTokenExiledAfterBlink(g *GorgeSide) bool {
+func mysterioTokensStayAfterBlink(g *GorgeSide) bool {
 	entered, blinked, tokens, left := 0, false, false, false
+	var res state.ObjID            // the stack object resolving
+	made := map[state.ObjID]bool{} // the enters triggers that made tokens after the blink
 	for _, e := range g.E.L.Events {
 		switch {
+		case e.Kind == events.Resolve:
+			res = e.Obj
 		case e.Kind == events.MoveZone && e.To == state.ZBattlefield && evName(g, e.Obj) == "Mysterio, Master of Illusion":
 			entered++
+		case !blinked && e.Kind == events.TokenCreate && strings.Contains(e.Text, "illusion"):
+			return false // his enters trigger resolved before the blink
 		case entered == 1 && e.Kind == events.MoveZone && e.From == state.ZBattlefield && e.To == state.ZExile && evName(g, e.Obj) == "Mysterio, Master of Illusion":
 			blinked = true
-		case blinked && entered >= 2 && e.Kind == events.TokenCreate && strings.Contains(e.Text, "illusion"):
-			tokens = true
+		case blinked && entered >= 2 && !left && e.Kind == events.TokenCreate && strings.Contains(e.Text, "illusion"):
+			made[res] = true
+			tokens = len(made) >= 2 // the first enters trigger resolved with the returned Mysterio out, then the blink's
 		case tokens && e.Kind == events.MoveZone && e.From == state.ZBattlefield && evName(g, e.Obj) == "Mysterio, Master of Illusion":
 			left = true
 		case left && e.Kind == events.MoveZone && e.From == state.ZBattlefield && e.To == state.ZExile:
@@ -203,6 +211,33 @@ func mysterioDeaths(g *GorgeSide) int {
 		}
 	}
 	return n
+}
+
+// mysterioTriggerPending: the stack holds an ability whose source is the
+// Mysterio on seat 0's battlefield (his enters trigger, waiting to resolve).
+func mysterioTriggerPending(g *GorgeSide) bool {
+	for _, id := range g.E.G.Stack {
+		o := g.E.G.Obj(id)
+		if o == nil || o.Ability == nil || evName(g, o.Source) != "Mysterio, Master of Illusion" {
+			continue
+		}
+		if src := g.E.G.Obj(o.Source); src != nil && src.Zone == state.ZBattlefield {
+			return true
+		}
+	}
+	return false
+}
+
+// cloudshiftOnStack: a Cloudshift is already waiting to resolve (one blink is
+// enough: a second would leave the first enters trigger to resolve with
+// Mysterio gone).
+func cloudshiftOnStack(g *GorgeSide) bool {
+	for _, id := range g.E.G.Stack {
+		if evName(g, id) == "Cloudshift" {
+			return true
+		}
+	}
+	return false
 }
 
 // mysterioOnBattlefield: Mysterio is on seat 0's battlefield.
@@ -258,7 +293,9 @@ func effectTrigRememberPolicy(m *Matchup, c effectLongCase, seed uint64) Policy 
 			bolt = mysterioOnBattlefield(p.G) && len(p.G.E.G.Stack) > 0
 		}
 		if blink {
-			bolt = mysterioOut(p.G) && mysterioEntered(p.G) >= 2
+			// both enters triggers (the first, and the blink's) have resolved
+			// with Mysterio on the battlefield
+			bolt = mysterioOut(p.G) && mysterioEntered(p.G) >= 2 && !mysterioTriggerPending(p.G)
 		} else if bolt {
 			return inner.Pick(p)
 		}
@@ -267,7 +304,7 @@ func effectTrigRememberPolicy(m *Matchup, c effectLongCase, seed uint64) Policy 
 		for _, o := range p.D.Options {
 			if blink && o.Kind() == ActCast && m.InstanceCard(int(o.Src())) == "Cloudshift" {
 				// cast it only with Mysterio out and his enters trigger waiting
-				if mysterioEntered(p.G) == 1 && mysterioOnBattlefield(p.G) && len(p.G.E.G.Stack) > 0 {
+				if mysterioEntered(p.G) == 1 && mysterioTriggerPending(p.G) && !cloudshiftOnStack(p.G) {
 					return o
 				}
 				continue
