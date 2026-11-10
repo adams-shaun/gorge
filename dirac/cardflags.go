@@ -40,6 +40,7 @@ const (
 	gfTapsDefer                      // a TrigTaps watcher classed kop.TapPlanDefer: its tapped mana source is a payment tier gorge defers (mana_tapsdefer.go)
 	gfTapsPain                       // a TrigTaps watcher classed kop.TapPlanPain: its tapped mana source is a last-resort unit (mana_tapsdefer.go)
 	gfEtbOrder                       // the card's own enter body is exactly one prepared line the CR 616.1 entry-order ask orders (repl_etborder.go)
+	gfManaNone                       // a plain {T} mana ability of no colour (commander identity, CR 903.4f): a census gap of gorge's that adds nothing (mana_grantnone.go)
 )
 
 // cardSmall is a card's sparse generated-table values, all -1 when absent.
