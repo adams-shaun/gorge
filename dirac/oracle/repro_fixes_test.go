@@ -428,7 +428,8 @@ func TestStdBigReprosLockstep(t *testing.T) {
 		{"granted_sac_mana_two_replacements", false, false},                 // CR 616.1, 602.2b: Lotus Ring's granted sacrifice mana, activated as the prefix with two Rest in Peace out, is asked which replacement applies and the script answers the first, so Oltec Matterweaver is exiled
 		{"granted_sac_mana_sba_ask_after", false, false},                    // CR 704.3, 616.1: the sacrificed Construct token's death leaves its sibling too small, and the check's own replacement ask is answered first by the script, so both tokens are exiled and cease
 		{"granted_sac_mana_offer_beside_trigger", false, false},             // CR 602.2b, 605.3a: with a trigger on the stack, the offer search of Esoteric Duplicator's {2} through Lotus Ring's granted sacrifice runs the sacrifice's replacement-order ask on its trial game, and the two sides agree on whether the activation is offered
-		{"prefix_search_skips_sacrificing_own_source", true, false},         // CR 602.2b: Lost Jitte's Equip {1} is paid by sacrificing the Bat token Lotus Ring equips, not by sacrificing the Jitte token itself (a prefix that removes the play's own source offers nothing)
+		{"prefix_search_skips_sacrificing_own_source", true, false},
+		{"sba_chain_tokens_wait_through_new_casualty", true, false}, // CR 704.3, 704.5d: combat casualties under two Rest in Peace are asked one by one; a creature that comes to die between the asks parks too, and the tokens already exiled by the earlier answers still wait for the pass that destroys nothing         // CR 602.2b: Lost Jitte's Equip {1} is paid by sacrificing the Bat token Lotus Ring equips, not by sacrificing the Jitte token itself (a prefix that removes the play's own source offers nothing)
 	})
 }
 

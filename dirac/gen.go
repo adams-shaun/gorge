@@ -2748,15 +2748,19 @@ func (s *State) ceaseTokensGen() {
 	for i0 > 0 && s.objs[i0-1].of&(ofToken|ofCopy) != 0 {
 		i0--
 	}
+	k := s.k()
 	for i := i0; i < int(s.nobj); i++ {
 		ob := &s.objs[i]
 		if ob.of&(ofToken|ofCopy) == 0 {
 			continue
 		}
+		if s.mObj(k, mechSBAChain, Obj(i)) {
+			continue // gorge's sbaChain: it ceases at the pass that destroys nothing (sbaChainEnd)
+		}
 		switch ob.zone {
 		case kop.ZoneLibrary, kop.ZoneHand, kop.ZoneGraveyard, kop.ZoneExile:
 			if ob.zone == kop.ZoneExile && ob.of&ofCopy != 0 {
-				if k := s.k(); k.gen != nil && k.gen.anyPrepare { // CR 722.3c: a linked prepared copy waits in exile
+				if k.gen != nil && k.gen.anyPrepare { // CR 722.3c: a linked prepared copy waits in exile
 					if _, ok := s.preparedCopyLive(k, Obj(i)); ok {
 						continue
 					}
