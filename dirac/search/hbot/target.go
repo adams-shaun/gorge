@@ -61,15 +61,36 @@ func (bt *Bot) target(s *dirac.State, d *dirac.Decision) int {
 	// gorge's option list, in its order (NoTarget is gorge's done)
 	rs := &bt.tr
 	n := 0
+	// botpolicy's self-host skip: an up-to removal (the slot offers
+	// NoTarget, gorge's Min reached) never takes its own host, whose exile
+	// "until this leaves" would return host and exiles at once
+	skipHost := dirac.NoObj
+	if te != nil && te.Remove != RmNone {
+		skipHost = s.FeatSource()
+	}
+	noTarget, skipped := -1, false
+	for i := 0; i < int(d.N); i++ {
+		a := d.Options[i]
+		if a.Kind() == dirac.AkTarget && a.Target() == dirac.NoTarget && noTarget < 0 {
+			noTarget = i
+		}
+	}
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
 		if a.Kind() != dirac.AkTarget || a.Target() == dirac.NoTarget {
+			continue
+		}
+		if noTarget >= 0 && skipHost != dirac.NoObj && dirac.IsObjTarget(a.Target()) && dirac.Obj(a.Target()) == skipHost {
+			skipped = true
 			continue
 		}
 		rs[n] = tgtRank{opt: int16(i), key: bt.targetKey(s, a.Target())}
 		n++
 	}
 	if n == 0 {
+		if skipped {
+			return noTarget
+		}
 		return 0
 	}
 	for i := 1; i < n; i++ {
