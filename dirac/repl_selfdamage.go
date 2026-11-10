@@ -103,12 +103,13 @@ func (s *State) selfDamageCounters(k *prep, sl Slot, n int) {
 }
 
 // selfDamageCombat is replCombatGen's arm for combat event i of r to a
-// self-damage host, before replDamage: a heal host's second event of the
-// pass would heal the first, which the kernel has not marked yet (gorge
-// deals the pass event by event): that stalls. true when the pass stalled.
+// self-damage host, before replDamage: a heal host's second event of a pass
+// inside the CR 616.1 ordered walk (s.g.ro.on) is not modelled: that stalls.
+// Outside the walk healCombat does the pass's heals. true when the pass
+// stalled.
 func (s *State) selfDamageCombat(k *prep, r *dmgRec, i int) bool {
 	ev := &r.ev[i]
-	if ev.dst == NoSlot || !s.selfDamageHost(k, ev.dst, rbHealSelf) {
+	if !s.g.ro.on || ev.dst == NoSlot || !s.selfDamageHost(k, ev.dst, rbHealSelf) {
 		return false
 	}
 	for j := 0; j < i; j++ {
@@ -118,6 +119,41 @@ func (s *State) selfDamageCombat(k *prep, r *dmgRec, i int) bool {
 		}
 	}
 	return false
+}
+
+// healCombat applies a heal host's per-event heal to the pass r after
+// prevention (non-ordered pass). gorge deals the pass event by event and each
+// event's heal wipes the damage and the deathtouch mark of the events before
+// it, so of the live events to one host only the last keeps its damage and
+// its deathtouch mark. Infect/wither hits to a creature are counters, which
+// no heal removes (infectCombat takes them out of toPerm itself). It never
+// touches dealt, dealtPl or ev.n: every event was dealt (lifelink, damage
+// triggers).
+func (s *State) healCombat(k *prep, r *dmgRec) {
+	var later slotMask // hosts with a later live event
+	for i := r.nev - 1; i >= 0; i-- {
+		ev := &r.ev[i]
+		if ev.n <= 0 || ev.dst == NoSlot || !s.selfDamageHost(k, ev.dst, rbHealSelf) {
+			continue
+		}
+		dt := s.kw(k, ev.src)&kop.KwDeathtouch != 0
+		if later.has(ev.dst) {
+			if !s.combatHitIsCounters(k, ev) {
+				r.toPerm[ev.dst] -= ev.n
+			}
+			if dt {
+				s.touchSl(ev.dst)
+				s.perms[ev.dst].cseen |= cseenDT // gorge lists the healed mark at 0
+			}
+			continue
+		}
+		later = later.with(ev.dst)
+		if dt {
+			r.dtPerm.set(ev.dst)
+		} else {
+			r.dtPerm.clr(ev.dst)
+		}
+	}
 }
 
 // selfDamagePair is pairRefusal's halves for initStall's self-damage

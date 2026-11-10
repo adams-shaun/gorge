@@ -818,6 +818,9 @@ type dmgEv struct {
 // dtEvents counts the damage events r deals sl from deathtouch sources
 // (gorge marks each: rules/combat.go).
 func (s *State) dtEvents(k *prep, r *dmgRec, sl Slot) int {
+	if k.gen != nil && k.gen.anyRepl&rbHealSelf != 0 && s.selfDamageHost(k, sl, rbHealSelf) {
+		return 1 // each event healed the marks before it: only the last survives
+	}
 	n := 0
 	for i := 0; i < r.nev; i++ {
 		if ev := &r.ev[i]; ev.dst == sl && ev.n > 0 && s.kw(k, ev.src)&kop.KwDeathtouch != 0 {
@@ -1023,6 +1026,9 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			s.replCombatGen(k, &r) // amounts first, then prevention
 		}
 		s.preventCombatGen(k, &r)
+		if k.gen.anyRepl&rbHealSelf != 0 && !s.g.ro.on {
+			s.healCombat(k, &r) // a heal host's events heal each other (repl_selfdamage.go)
+		}
 		s.noteCmdDamagePass(&r)
 		if s.g.ro.on {
 			return s.replOrderCombat(k, &r)

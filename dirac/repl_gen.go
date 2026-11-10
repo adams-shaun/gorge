@@ -209,7 +209,7 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 			continue
 		}
 		if k.gen.anyRepl&rbHealSelf != 0 && s.selfDamageCombat(k, r, i) {
-			return // a heal host's second event of the pass (repl_selfdamage.go)
+			return // a heal host's second event of an ordered-walk pass (repl_selfdamage.go)
 		}
 		n := s.replDamage(k, src.ctrl, ev.src, s.cardAt(ev.src), code, true, int(ev.n))
 		if n == 0 && ev.dst != NoSlot && k.gen.anyRepl&rbPrevCtrSelf != 0 && s.selfDamageHost(k, ev.dst, rbPrevCtrSelf) {
