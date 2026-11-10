@@ -2451,6 +2451,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if sa.API == "Mana" || sa.API == "ManaReflected" {
 			ab.Kind = akMana // ManaReflected: lower_reflectedmana.go
 		}
+		if ab.Kind == akMana && (strings.TrimSpace(sa.Params["ValidTgts"]) != "" || strings.TrimSpace(sa.Params["TargetType"]) != "") {
+			return refuse("AB$ Mana with a target: gorge resolves it on the stack and adds the mana to the target (not a CR 605.1a mana ability), and an artifact source's mana is typed (pay.PlanPoolOK)")
+		}
 		c, ok := ps.get("Cost")
 		if !ok {
 			return refuse("activated ability without Cost$")
