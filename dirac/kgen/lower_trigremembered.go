@@ -49,6 +49,15 @@ func (lc *lowerCtx) triggerRemembered(rest string) (lValue, error) {
 		}
 		return lValue{Kind: vCountersOn, Ref: lRef{Kind: rDelayedRemembered}, S: strings.TrimPrefix(rest, "CardCounters.")}, nil
 	}
+	if rest == "CardPower" {
+		// the captured object's power (Thorin, Mountain-king: the creature
+		// the reflexive instance was handed by RememberObjects$ ParentTarget),
+		// read live as gorge's count_ref TriggerRemembered$CardPower does
+		if ab := lc.ab; ab == nil || !ab.Latent || ab.Name != "ReflexiveTrigger" || !ab.ReflexObj {
+			return lValue{}, fmt.Errorf("value head TriggerRemembered$CardPower outside a reflexive trigger handed one object")
+		}
+		return lValue{Kind: vPowerOf, Ref: lRef{Kind: rDelayedRemembered}}, nil
+	}
 	switch rest {
 	case "Amount", "CardManaCost", "GreatestCardManaCost":
 	default:
