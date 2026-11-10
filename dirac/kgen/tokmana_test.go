@@ -18,7 +18,6 @@ var ktokmanaForms = []formCase{
 	{card: "Goldspan Dragon", form: "a granted Treasure ability ({T}, Sacrifice)", refused: "granted mana ability whose cost is not {T}"},
 	{card: "Lotus Ring", form: "a granted sacrifice-only ability", refused: "granted mana ability whose cost is not {T}"},
 	{card: "Forgotten Monument", form: "a granted {T}, Pay 1 life ability", refused: "granted mana ability whose cost is not {T}"},
-	{card: "Evendo, Waking Haven", form: "a granted {G}, {T} ability with a dynamic amount", refused: "granted mana ability with a mana fee"},
 	{card: "The Eternity Elevator", form: "a granted ability whose amount is a counter count", refused: "granted mana ability with a dynamic amount"},
 	{card: "Thranduil the Strategist", form: "a granted Combo whose colour order ({G} or {U}) is not W U B R G", lir: "Mana Granted cost=T"},
 }

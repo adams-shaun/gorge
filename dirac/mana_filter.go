@@ -49,9 +49,12 @@ const relaxedPaidLimit = 3
 // Prism) is kop.FilterManaAb's (mana_filterfirst.go).
 func filterTapMana(cd *kop.CardDef, a *kop.Ability) bool {
 	m := &a.Cost.Mana
+	_, pip := fixedPipFilt(a) // a gated one-pip fixed-colour filter (mana_filterpip.go)
 	if a.Kind != kop.AbMana || a.AFlags&^(kop.AfManaDynamic|kop.AfManaChoice) != 0 || a.ManaRestrict != 0 || a.Cost.Flags != kop.CostTap ||
-		m.Generic == 0 || m.X != 0 || m.Hyb[0] != 0 || m.Pips != ([kop.NumManaKinds]uint8{}) ||
-		a.ManaColors != kop.ColAny || a.ManaN == 0 || a.ManaN > 1 && (a.AFlags&kop.AfManaChoice == 0 || !comboFiltAb(a)) {
+		m.X != 0 || m.Hyb[0] != 0 || a.ManaN == 0 {
+		return false
+	}
+	if !pip && (m.Generic == 0 || m.Pips != ([kop.NumManaKinds]uint8{}) || a.ManaColors != kop.ColAny || a.ManaN > 1 && (a.AFlags&kop.AfManaChoice == 0 || !comboFiltAb(a))) {
 		return false
 	}
 	f := firstManaAb(cd)
@@ -80,6 +83,13 @@ func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 	} else {
 		m = s.gapMask(k, p, gfFilt)
 	}
+	if k.gen.anyFiltPip {
+		for b := m; b.any(); b = b.rest() {
+			if sl := b.first(); !s.filtGateOn(k, sl) {
+				m = m.without(sl) // a counters-gated filter is no gap while its gate fails (mana_filterpip.go)
+			}
+		}
+	}
 	// A filter whose fee an activated-ability reducer takes to nothing is the
 	// source's own mana (mana_filterfree.go's gate-on view): it stays out of
 	// the gap set on both paths. Otherwise a table holding any first-ability
@@ -107,6 +117,9 @@ func FilterTapMana(cd *kop.CardDef, a *kop.Ability) bool { return filterTapMana(
 func (s *State) filtFee(k *prep, sl Slot) int {
 	c := s.cardAt(sl)
 	a := &k.t.Cards[c].Abilities[k.gen.filt(c)]
+	if _, ok := s.filtPip(k, sl); ok {
+		return 1 // the pip: a generic reducer cannot lower it
+	}
 	if k.gen.anyAbReduce {
 		return int(s.abReduced(k, a, sl, s.perms[sl].ctrl, a.Cost.Mana).Generic)
 	}
@@ -357,8 +370,13 @@ func (s *State) filtActivate(k *prep, t *avail, filt *[maxFaceFilters]Slot, set 
 // covered by p's floating mana (gorge's paymentSourceUseful reads the window
 // abilities, and a filter's is listed only once the pool pays it).
 func (s *State) windowFiltUseful(k *prep, p uint8, sl Slot, want uint8) bool {
-	return k.gen != nil && k.gen.has(s.cardAt(sl), gfFilt) && uint8(s.filtAb(k, sl).ManaColors)&want != 0 &&
-		poolTotal(&s.pl[p&1]) >= s.filtFee(k, sl)
+	if k.gen == nil || !k.gen.has(s.cardAt(sl), gfFilt) || uint8(s.filtAb(k, sl).ManaColors)&want == 0 {
+		return false
+	}
+	if col, ok := s.filtPip(k, sl); ok {
+		return s.filtGateOn(k, sl) && s.pl[p&1].pool[col] >= 1
+	}
+	return poolTotal(&s.pl[p&1]) >= s.filtFee(k, sl)
 }
 
 // windowRestrUseful: sl has a restricted tap mana ability that makes a colour in
@@ -808,7 +826,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 			if gap {
 				free := t.canTapForMana(k, sl)
-				filt := poolTotal(&t.pl[p&1])+t.filtFeeRestrN(k, p, sl) >= t.filtFee(k, sl)
+				filt := t.filtPaid(k, p, sl)
 				if rm := t.mixSrcMask(k, sl); free && rm != 0 {
 					if fs.mixSrcGap(k, t, sl, funded, rm, filt) { // (a restricted ability beside the filter: mana_mixsrc.go)
 						return true

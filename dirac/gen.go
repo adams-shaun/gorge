@@ -394,6 +394,9 @@ type genPrep struct {
 	// paid census gap, which gorge's prefix search funds and activates
 	// (mana_filter.go)
 	anyFilt bool
+	// anyFiltPip: some filter is a gated one-pip fixed-colour one
+	// (mana_filterpip.go)
+	anyFiltPip bool
 	// anyFiltFirst: some card's filter is its first mana ability (Abzan
 	// Devotee, Prophetic Prism; mana_filterfirst.go)
 	anyFiltFirst bool
@@ -1133,6 +1136,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.smallFor(CardID(i)).filt = int8(j)
 					g.setFlag(CardID(i), gfFilt)
 					g.anyFilt = true
+					if _, pip := fixedPipFilt(a); pip {
+						g.anyFiltPip = true
+					}
 				}
 				if int(g.filt(CardID(i))) != j && censusGapMana(a) && !lifePainLandAb(&t.Cards[i], a) && g.gapOther(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).gapOther = int8(j)

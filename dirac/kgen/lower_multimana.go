@@ -337,6 +337,13 @@ func (lc *lowerCtx) refuseGatedMana(ms []*lAbility) bool {
 	if gated == 0 {
 		return false
 	}
+	if len(ms) == 2 && fixedColourFiltMana(ms[0], ms[1]) {
+		// a plain {T}: Add {c} and a Station-gated {c}, {T}: Add {c} for each
+		// ... (Evendo, Uthros): gorge's census lists the first ability alone
+		// while the grant is off and the second as a paid gap while it is on
+		// (the kernel's gated fixed-colour filter, filterTapMana)
+		return true
+	}
 	// the gate may be the only thing off the plain shape; a card's only mana
 	// ability may also make a literal amount above one of one fixed colour
 	// (Temple of the False God's {C}{C}): its gate-on view is the plain
@@ -406,6 +413,43 @@ func (lc *lowerCtx) refuseGatedMana(ms []*lAbility) bool {
 		lc.refuseNode("card", "gated mana ability of the same colour as the first")
 	case strings.Index("WUBRG", ms[0].Mana.Colors) < 0 || strings.Index("WUBRG", ms[1].Mana.Colors) < 0:
 		lc.refuseNode("card", "gated mana ability producing {C} beside another")
+	}
+	return true
+}
+
+// fixedColourFiltMana: first is a plain unrestricted {T}: Add one mana of one
+// WUBRG colour and a is the card's own counters-gated "{c}, {T}: Add {c} for
+// each ...": one coloured pip of the colour it makes, a dynamic amount, no
+// restriction (the Station-granted Planets, stationGrantMana). The gate is
+// the Station threshold, the only one the filter's gap view reads.
+func fixedColourFiltMana(first, a *lAbility) bool {
+	if first.ActCond.Kind != cNone || !plainTapMana(first, false) || !unrestrictedOne(first) || first.Mana.Choice ||
+		first.Mana.Each || len(first.Mana.Colors) != 1 || !strings.Contains("WUBRG", first.Mana.Colors) {
+		return false
+	}
+	if a.ActCond.Kind != cPresent {
+		return false
+	}
+	if _, ok := stationThreshold(a.ActCond.F); !ok || a.ActCond.F.Clauses[0].CmpCounter != "CHARGE" || a.ActCond.F.Clauses[0].CmpOp != opGE ||
+		a.ActCond.Op != opGE || !a.ActCond.A.isConst() || a.ActCond.A.N != 1 {
+		return false
+	}
+	c := *a
+	c.ActCond = lCond{}
+	m := c.Cost.Mana
+	pip, n := -1, 0
+	for i, v := range m.Pips {
+		if v != 0 {
+			pip, n = i, n+v
+		}
+	}
+	if n != 1 || m.Pips[pip] != 1 || m.Generic != 0 || m.X || m.XX || m.C != 0 || len(m.Hybrid) != 0 {
+		return false
+	}
+	c.Cost.Mana.Pips = [5]int{}
+	if !plainTapMana(&c, false) || c.Mana.Choice || c.Mana.Each || c.Mana.Restrict != nil || c.Mana.RestrictAb != nil || c.Mana.NonSpell ||
+		c.Mana.Colors != string("WUBRG"[pip]) || c.Mana.Amount.Kind <= vConst {
+		return false
 	}
 	return true
 }

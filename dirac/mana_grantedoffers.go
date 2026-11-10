@@ -625,7 +625,7 @@ func (g *grantSrch) visit(t *State) bool {
 		if g.ng[i] == 0 && g.filt[i] && g.k.gen.anyFiltFirst && t.filtFirstOnly(g.k, sl) {
 			// a filter that is its source's only mana ability: no printed
 			// ability to ask beside, one colour ask once its fee is in the pool
-			if t.filtUsable(g.k, sl) && poolTotal(&t.pl[g.p&1])+t.filtFeeRestrN(g.k, g.p, sl) >= t.filtFee(g.k, sl) && g.filtBranch(t, i, sl) {
+			if t.filtUsable(g.k, sl) && t.filtPaid(g.k, g.p, sl) && g.filtBranch(t, i, sl) {
 				return true
 			}
 			continue
@@ -645,7 +645,7 @@ func (g *grantSrch) visit(t *State) bool {
 		// "choose a mana ability" ask, one node, the printed ability's
 		// answers first (gorge flattens a Combo's colours into that ask;
 		// an Any ability still asks its colour)
-		fok := g.filt[i] && poolTotal(&t.pl[g.p&1])+t.filtFeeRestrN(g.k, g.p, sl) >= t.filtFee(g.k, sl)
+		fok := g.filt[i] && t.filtPaid(g.k, g.p, sl)
 		alts := 0
 		if grants {
 			alts = int(g.ng[i])
