@@ -360,3 +360,33 @@ func TestImproviseArtifactCreatureQualifies(t *testing.T) {
 		t.Fatal("artifact creature was not tapped as the payment")
 	}
 }
+
+// TestImproviseAnnouncementMaxIsTheGenericPart: an Improvise artifact pays
+// only generic mana (CR 702.126a), so the announcement admits at most the
+// cost's generic part, not its generic plus coloured pips. Organic
+// Extinction at {8}{W}{W} with twelve untapped artifacts offers all twelve
+// but admits eight; a Max of ten let a seat choose ten, which the
+// absorption gate then rejected (a Kappa Cannoneer at {3}{U} beside four
+// artifacts stalled a Commander pod that way).
+func TestImproviseAnnouncementMaxIsTheGenericPart(t *testing.T) {
+	t.Parallel()
+	e := handEngine(t, corpusAlternativeCard(t, "Organic Extinction"))
+	addArtifacts(t, e, 12, plainArtifactSrc)
+	spell := e.G.Zone(state.ZHand, 0)[0]
+	e.G.Players[0].Pool[state.MW] = 2
+	castMode(t, e, spell, "")
+	d := e.Pending()
+	if d == nil || len(d.Options) != 12 {
+		t.Fatalf("Improvise announcement = %+v, want twelve artifact options", d)
+	}
+	if d.Max != 8 {
+		t.Fatalf("Improvise announcement Max = %d, want 8 (the generic part only)", d.Max)
+	}
+	all := make([]int, d.Max)
+	for i := range all {
+		all[i] = i
+	}
+	if !CastContributionsAdmitted(e, d, all) {
+		t.Fatalf("a Max-wide improvise answer (%d artifacts) is refused by the absorption gate", d.Max)
+	}
+}
