@@ -60,8 +60,8 @@ func TestLowerCopypermChoicesAttacking(t *testing.T) {
 				switch {
 				case in.Op == kop.OpChooseCard:
 					picks++
-					if in.F == 0 || in.C != 0 {
-						t.Errorf("pick F %d C %d: want a filter and the mandatory code", in.F, in.C)
+					if in.F == 0 || in.C != 8 {
+						t.Errorf("pick F %d C %d: want a filter and the copy-pick code 8", in.F, in.C)
 					}
 				case in.Op == kop.OpExt && in.Ext() == kop.ExtCopyPicked:
 					copies++

@@ -8,6 +8,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // registers the AtEOT$ rider's delayed trigger (scheduleAtEOTNone), which
 // goes on the stack at the end step and does nothing (CR 603.7).
 
+// chooseCopyPick is OpChooseCard C: the CopyPermanent Choices$ pick (gorge's
+// KChoose with ResumeKind "copypermanent_choice", Min 1 and Max 1, its
+// options of Kind "permanent"): the mandatory single pick OpChooseCard
+// already poses, with one candidate too and none with no candidate, always
+// followed by an ExtCopyPicked over RefChosen. The ask is ChGenCopyPick.
+const chooseCopyPick = 8
+
 // copyPicked is ExtCopyPicked. True when a copy's ask parked the resolution
 // (the shapes that would pose one stall instead, as copyNamed does).
 func (s *State) copyPicked(k *prep, in *kop.Instr) bool {

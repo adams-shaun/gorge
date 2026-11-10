@@ -24,7 +24,7 @@ func (lc *lowerCtx) copyChoicePick(ps *params) (lRef, error) {
 		return lRef{}, err
 	}
 	ps.consume("Choices", "ChoiceTitle")
-	lc.emit(lInstr{Op: "ChooseCard", Obj: lRef{Kind: rYou}, F: f, C: zBattlefield})
+	lc.emit(lInstr{Op: "ChooseCard", Obj: lRef{Kind: rYou}, F: f, C: zBattlefield, CS: "CopyPick"})
 	return lRef{Kind: rChosen}, nil
 }
 

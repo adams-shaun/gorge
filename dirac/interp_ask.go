@@ -523,6 +523,9 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		if s.prog(k)[r.pc].C == chooseFaceDownPick {
 			d.Sub = ChGenFaceDownPick // gorge's face_down_choice pick (CR 701.58a)
 		}
+		if s.prog(k)[r.pc].C == chooseCopyPick {
+			d.Sub = ChGenCopyPick // gorge's copypermanent_choice pick (copy_picked.go)
+		}
 		s.cardCands(k, s.prog(k)[r.pc].F, r.askP, d)
 		if c := s.prog(k)[r.pc].C; c == 1 || c == chooseLibUpTo {
 			d.add(MakeAction(AkDone, 0, 0, 0)) // up to one (gorge choiceBounds Min 0)
