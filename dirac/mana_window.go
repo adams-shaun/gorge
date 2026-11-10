@@ -2872,7 +2872,7 @@ func (s *State) manaStep(k *prep) bool {
 		// itself (windowSpellSettled), so it takes the cost before
 		// restrShortAdm: handed the shortened cost it would count that mana
 		// twice and clear a payment the planner's plain pool cannot fund.
-		strandCost := cost
+		strandCost := s.waterbendXCharge(k, e, cost)
 		if m := s.restrActNow(k, e.ctrl); m != 0 {
 			cost = s.restrShortAdm(e.ctrl, m, cost) // the sources tap for what the restricted mana leaves (pay.PlanPool)
 		}
@@ -2899,7 +2899,7 @@ func (s *State) manaStep(k *prep) bool {
 			s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
 			return true
 		case cost.X != 0 && s.cfg&cfgGorgeSurface != 0:
-			cc := s.buildCostCharge(k)
+			cc := s.waterbendXCharge(k, e, s.buildCostCharge(k))
 			if !s.xWindowPay(k, e, &cc) {
 				s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
 				return true

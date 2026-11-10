@@ -60,11 +60,11 @@ func TestVariableAltCosts(t *testing.T) {
 		}
 	})
 
-	t.Run("waterbend X still refused", func(t *testing.T) {
+	t.Run("waterbend X beside printed mana still refused", func(t *testing.T) {
 		c := hybridLower(&cards.Face{
 			Name: "Synthetic", ManaCost: "2 W", Types: []string{"Creature"},
 			Abilities: []*cards.SA{{Kind: "AB", API: "Draw", Params: map[string]string{
-				"Cost": "Waterbend<X>", "XMin": "1", "Defined": "You", "NumCards": "1",
+				"Cost": "1 Waterbend<X>", "XMin": "1", "Defined": "You", "NumCards": "1",
 			}}},
 			SVars: map[string]string{"X": "Count$xPaid"},
 		})

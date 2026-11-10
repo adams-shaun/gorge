@@ -1610,7 +1610,7 @@ func (lc *lowerCtx) costParts(c lCost) error {
 	if c.TapPowN != 0 {
 		return refuse("tap-any-number cost outside an activated ability")
 	}
-	if c.Waterbend != 0 && !lc.wbOK {
+	if (c.Waterbend != 0 || c.WaterbendX) && !lc.wbOK {
 		return refuse("waterbend cost outside an activated ability's own cost")
 	}
 	if c.ExileHandN != 0 {
@@ -1776,10 +1776,28 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		}
 		if head == "Waterbend" {
 			// Waterbend<N> (CR 701.67): N generic in the cost may be paid by
-			// tapping artifacts/creatures instead. The amount is fixed; a
-			// variable Waterbend<X> is not modelled.
+			// tapping artifacts/creatures instead. Waterbend<X> (an
+			// activated ability's own cost, Katara, Water Tribe's Hope) adds
+			// one {X} the picks may pay (gorge cost.parse's c.X++ /
+			// WaterbendX); one waterbend part per cost.
 			if len(parts) != 1 {
 				return c, refuse("waterbend cost %q", t)
+			}
+			if parts[0] == "X" {
+				if !lc.actCost {
+					// an unless, ward or optional cost's Waterbend<X> has no
+					// announced X the kernel reads
+					return c, refuse("waterbend cost %q: a variable amount outside an activated ability's own cost", t)
+				}
+				if c.WaterbendX || c.Waterbend > 0 {
+					return c, refuse("waterbend cost %q: a second waterbend part", t)
+				}
+				c.WaterbendX = true
+				mana = append(mana, "X")
+				continue
+			}
+			if c.WaterbendX {
+				return c, refuse("waterbend cost %q: a second waterbend part", t)
 			}
 			n, err := strconv.Atoi(parts[0])
 			if err != nil {
@@ -2190,7 +2208,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 	}
 	if c.BlightN > 0 {
 		parts := 0
-		for _, on := range []bool{c.BlightN > 0, c.Forage != nil, c.ExileG != nil, c.Sac != nil, c.DiscardN > 0, c.Loyalty != 0, c.SubCtr > 0, c.SubAmongN > 0, c.PayLife > 0, c.TapN > 0, c.Waterbend > 0, c.Energy > 0, c.Return != nil, c.AddCtr > 0, c.EvidenceN > 0} {
+		for _, on := range []bool{c.BlightN > 0, c.Forage != nil, c.ExileG != nil, c.Sac != nil, c.DiscardN > 0, c.Loyalty != 0, c.SubCtr > 0, c.SubAmongN > 0, c.PayLife > 0, c.TapN > 0, c.Waterbend > 0 || c.WaterbendX, c.Energy > 0, c.Return != nil, c.AddCtr > 0, c.EvidenceN > 0} {
 			if on {
 				parts++
 			}
@@ -2523,7 +2541,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				return refuse("exile-self cost beside another non-mana part")
 			}
 		}
-		if cost.Waterbend != 0 {
+		if cost.Waterbend != 0 || cost.WaterbendX {
 			// Waterbend is an activated ability's own cost (CR 701.67a); the
 			// kernel's offer credit and pick record cannot express a spell,
 			// trigger, mana-ability or non-battlefield activation. A {T} in
@@ -2535,7 +2553,15 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			if ab.Zone != 0 && ab.Zone != zBattlefield {
 				return refuse("waterbend cost outside a battlefield ability")
 			}
-			if cost.Mana.X || cost.Mana.XX {
+			if cost.WaterbendX {
+				// Waterbend<X> is the cost's one {X} and nothing else: a
+				// printed mana symbol beside it would let the pre-fold pick
+				// subtraction and the folded X's credit pay the same pick
+				m := cost.Mana
+				if !m.X || m.XX || m.Generic != 0 || m.Pips != [5]int{} || m.C != 0 || len(m.Hybrid) != 0 || len(m.Twobrid) != 0 || len(m.Phyrexian) != 0 {
+					return refuse("waterbend cost Waterbend<X> beside printed mana")
+				}
+			} else if cost.Mana.X || cost.Mana.XX {
 				return refuse("waterbend cost with an {X} in the mana cost")
 			}
 			if cost.Sac != nil || cost.SacSelf || cost.DiscardN > 0 || cost.DiscardSelf || cost.Loyalty != 0 || cost.SubCtr > 0 ||
@@ -2681,7 +2707,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				}
 			} else if ab.Kind == akMana {
 				return refuse("counter-placing cost outside a non-mana ability")
-			} else if cost.Sac != nil || cost.DiscardN > 0 || cost.Loyalty != 0 || cost.SubCtr > 0 || cost.SubAmongN > 0 || cost.PayLife > 0 || cost.TapN > 0 || cost.TapPowN > 0 || cost.Forage != nil || cost.ExileG != nil || cost.Energy > 0 || cost.Return != nil || cost.DrawN > 0 || cost.Waterbend > 0 || cost.BlightN > 0 || cost.EvidenceN > 0 {
+			} else if cost.Sac != nil || cost.DiscardN > 0 || cost.Loyalty != 0 || cost.SubCtr > 0 || cost.SubAmongN > 0 || cost.PayLife > 0 || cost.TapN > 0 || cost.TapPowN > 0 || cost.Forage != nil || cost.ExileG != nil || cost.Energy > 0 || cost.Return != nil || cost.DrawN > 0 || cost.Waterbend > 0 || cost.WaterbendX || cost.BlightN > 0 || cost.EvidenceN > 0 {
 				return refuse("counter-placing cost beside another counted part")
 			}
 		}
