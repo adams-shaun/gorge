@@ -280,6 +280,14 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 			if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
 				return 0, false, true
 			}
+			// An argument filters the plays (Spider-Man 2099's
+			// "Card.!inRealZoneHand,Card.YouDontOwn", Visions of
+			// Phyrexia's "Card.inRealZoneExile"); an unknown filter word
+			// fails closed.
+			if a := strings.TrimSpace(arg); a != "" {
+				n, ok := landsPlayedFiltered(&g.Players[c.Controller], c.Controller, a)
+				return n, ok, true
+			}
 			return g.Players[c.Controller].LandsPlayed, true, true
 		case evalCountBodyPlayerRingTemptedYou:
 			// The resolving controller's own "the Ring has tempted you" count
