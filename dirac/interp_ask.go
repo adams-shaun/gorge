@@ -899,7 +899,11 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.g.pickLeft--
 		var d Decision
 		s.searchCands(k, &d)
-		if s.g.pickLeft == 0 || d.N == 0 {
+		// A pick whose pool an answer emptied still poses its Done while Max
+		// is unreached (the option builder's Done): gorge keeps the
+		// multi-pick decision open until the chooser stops.
+		in := &s.prog(k)[s.res.pc]
+		if s.g.pickLeft == 0 || d.N == 0 && (s.g.pickF&kop.SrMandatory != 0 || !s.exactlyMayStop(in)) {
 			s.finishSearch(k)
 		}
 	case raGenDig:
@@ -1571,6 +1575,11 @@ func (s *State) searchPick(k *prep) bool {
 	if d.N == 0 || s.g.pickLeft == 0 {
 		s.finishSearchNow(k)
 		return true
+	}
+	if !eachOp(k, &s.prog(k)[s.res.pc]) && int(s.g.pickLeft) > int(d.N) {
+		// gorge caps a pick's Max to the candidates it has: a pick of every
+		// candidate completes rather than posing a Done
+		s.g.pickLeft = uint8(d.N)
 	}
 	s.res.ask, s.res.askP = raGenSearch, s.chooserOf(k, p)
 	return false
