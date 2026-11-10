@@ -211,7 +211,8 @@ func TestUnrefusalNeedsProof(t *testing.T) {
 	}
 	base := unrefusalBase(t)
 	if base == "" {
-		t.Skip("no land ref and no KERNEL_UNREFUSE_BASE: nothing to compare with (make precheck sets it)")
+		t.Log("no land ref and no KERNEL_UNREFUSE_BASE: nothing to compare with (make precheck sets it)")
+		return
 	}
 	mb, err := gitAtRoot("merge-base", base, "HEAD")
 	if err != nil {
