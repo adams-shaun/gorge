@@ -3,11 +3,12 @@
   "class": "projection-Cards.Flags",
   "why": "the engines' state differs at projection Cards[].Flags",
   "repro": {
-    "pool": "std-lci",
+    "pool": "custom",
     "surface": "full",
-    "seed": 2,
-    "pair": 2247,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 0,
+    "file": "thousand_moons_infantry_card_flags_differ"
   }
 }

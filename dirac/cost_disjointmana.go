@@ -45,16 +45,7 @@ func (s *State) scriptGapAvail(k *prep, p uint8, sl Slot, a *avail) {
 		a.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))
 	}
 	if k.ctrMana && s.scriptCtr(k, p).has(sl) {
-		pc := &k.cards[c]
-		if k.t.Cards[c].Abilities[pc.manaAb].ManaEach {
-			for col := 0; col < kop.NumManaKinds; col++ {
-				if uint8(pc.manaCol)&(1<<col) != 0 {
-					a.addUnits(1<<col, pc.manaN)
-				}
-			}
-		} else {
-			a.addUnits(uint8(pc.manaCol), pc.manaN)
-		}
+		addCtrUnits(a, k.ctrAbOf(c))
 	}
 	if s.scriptTapXModelled(k, p).has(sl) {
 		a.addUnits(tapXUnit(k.tapXAbOf(c)))

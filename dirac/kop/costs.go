@@ -448,7 +448,9 @@ const (
 // (each pays {1}); an offer credit reduces the mana the ability is offered
 // for, and the picks are tapped at payment. An activated ability's own cost
 // only, never beside {T} (gorge taps the source twice), a counted part or an
-// {X} (kgen refuses all three).
+// {X} (kgen refuses all three). Waterbend<X> is the one exception to the last:
+// N 0 with Mana exactly {X} means the announced X is the amount (the CostSac
+// N 0 convention), each pick paying one generic of the folded X.
 const CostWaterbend CostFlags = 1 << 26
 
 // CostBlight: Blight<N> (CR 701.68): put Cost.N -1/-1 counters on a

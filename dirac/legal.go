@@ -333,6 +333,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				if k.gen != nil && k.gen.anyAbReduce {
 					m = s.abReduced(k, a, sl, p, m) // the cost statics compose after it
 				}
+				if k.gen != nil && k.gen.anyWaterbend && waterbendIsX(a) {
+					m = s.waterbendCredit(k, p, sl, a, m) // gorge mana.go: Waterbend<X>'s offer credit at the floor (act_waterbend.go)
+				}
 				if !s.poolPaysAct(k, p, &m, payDesc{class: pdAct, card: cid, src: sl}) {
 					// gorge's planner declines an {X} activation (PlanCostDetail
 					// cost:x, Domesticated Hydra's {X}{G}{G}{G}: Monstrosity X,
@@ -1537,11 +1540,11 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 // beyond a tap, a self-sacrifice and life, is one gorge's potential-mana walk
 // admits while its cost can be paid: a tap-another-permanent source with a permanent to
 // tap (Springleaf Drum, Baylen's tokens), or a counter cost put on its source once each
-// turn (Wall of Roots). They are the shapes kop.ManaAbilityHonoured lists.
+// turn (Wall of Roots) or with its {T} (Weather Maker's second ability). They are the shapes kop.ManaAbilityHonoured lists.
 func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Ability) bool {
 	c := s.cardAt(sl)
 	switch {
-	case k.cards[c].manaAb == int8(j) && kop.CtrManaAb(ab):
+	case int(k.ctrAb[c]) == j && (kop.CtrManaAb(ab) || kop.CtrTapSecondManaAb(ab)):
 		return ab.Cost.Flags&kop.CostRemoveCtr == 0 || s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) >= int(ab.Cost.N)
 	case k.tapMana && kop.TapXMana(ab) && int(k.tapXAb[c]) == j: // the first mana ability or a second beside a plain one (mana_tapanother.go tapXAbOf)
 		var cs [MaxPerm]Slot

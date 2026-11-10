@@ -3,11 +3,12 @@
   "class": "options",
   "why": "its {2},{T} mana ability of a dynamic amount: gorge's prefix search activates it for a play, dirac's filter search does not model it; 53 of 61 divergent std-blb games at 12,000 pairs",
   "repro": {
-    "pool": "std-blb",
+    "pool": "custom",
     "surface": "full",
-    "seed": 1,
-    "pair": 535,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 0,
+    "file": "three_tree_city_dynamic_mana_ability_unoffered"
   }
 }

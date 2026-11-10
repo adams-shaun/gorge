@@ -172,3 +172,33 @@ func TestCopyControllerForRemembered(t *testing.T) {
 		t.Fatalf("copyControllerFor(empty Remembered) = (%d, %v), want (0, false)", got, ok)
 	}
 }
+
+// TestPlayerCountRememberedControllerReadsLKIOffBattlefield pins the CR 608.2h
+// look-back (Faerie Slumber Party): a remembered object that has left the
+// battlefield answers with the controller RememberLKI$ captured before the
+// move, not its live controller (Move reset that to the owner, CR 400.7).
+func TestPlayerCountRememberedControllerReadsLKIOffBattlefield(t *testing.T) {
+	g, _, obj1, _ := rememberedControllerBoard(t)
+	// obj1 is owned by seat 1; it was controlled by seat 0 when it left.
+	o := g.Obj(obj1)
+	o.Zone = state.ZHand
+	o.Controller = o.Owner
+	// PRECONDITION: off the battlefield, and the captured controller differs
+	// from the live one, or the assertions below prove nothing.
+	if o.Zone == state.ZBattlefield || o.Controller != 1 {
+		t.Fatalf("fixture: zone %v controller %d, want off-battlefield and owner 1", o.Zone, o.Controller)
+	}
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0, Remembered: []state.Target{{Obj: obj1}}}
+	// No capture: the live controller (seat 1, an opponent) counts.
+	if got, ok := EvalCountOK(h, c, "Count$PlayerCountRememberedController$HasPropertyOpponent"); !ok || got != 1 {
+		t.Fatalf("no capture: HasPropertyOpponent = (%d, %v), want (1, true)", got, ok)
+	}
+	c.Snap.ChangeZone = append(c.Snap.ChangeZone, state.LKIObject{Obj: obj1, Controller: 0, Owner: 1})
+	if got, ok := EvalCountOK(h, c, "Count$PlayerCountRememberedController$HasPropertyOpponent"); !ok || got != 0 {
+		t.Fatalf("captured controller 0: HasPropertyOpponent = (%d, %v), want (0, true)", got, ok)
+	}
+	if got, ok := EvalCountOK(h, c, "Count$PlayerCountRememberedController$Amount"); !ok || got != 1 {
+		t.Fatalf("captured controller 0: Amount = (%d, %v), want (1, true)", got, ok)
+	}
+}

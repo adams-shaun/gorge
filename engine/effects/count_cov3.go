@@ -452,8 +452,19 @@ func evalCov3PlayerHead(h Host, c *Ctx, head, arg string, depth int) (int32, boo
 			if o == nil {
 				continue
 			}
-			if !slices.Contains(players, o.Controller) {
-				players = append(players, o.Controller)
+			ctrl := o.Controller
+			if o.Zone != state.ZBattlefield {
+				// CR 608.2h look-back, as rememberedControllersLKI: a
+				// remembered object that left the battlefield answers with the
+				// controller RememberLKI$ captured before the move (Move
+				// reset the live one to the owner, CR 400.7). No capture:
+				// the live controller, as before.
+				if p, ok := lkiControllerFor(c, t.Obj); ok {
+					ctrl = p
+				}
+			}
+			if !slices.Contains(players, ctrl) {
+				players = append(players, ctrl)
 			}
 		}
 		if prop == "Amount" {

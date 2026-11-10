@@ -3,11 +3,12 @@
   "class": "decision",
   "why": "the engines pose different decisions; 7 games in the corpus",
   "repro": {
-    "pool": "std-mkm",
+    "pool": "custom",
     "surface": "autopay",
-    "seed": 1,
-    "pair": 20,
+    "seed": 0,
+    "pair": 0,
     "policy": "heuristic",
-    "mulligans": 1
+    "mulligans": 1,
+    "file": "relive_the_past_poses_a_different_decision"
   }
 }
