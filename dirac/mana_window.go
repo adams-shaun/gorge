@@ -2853,7 +2853,9 @@ func (s *State) manaStep(k *prep) bool {
 			// gorge's plan does.
 			if cd.BeholdN == 0 || s.altAddFreePart(k, e.ctrl, e.card, e.obj) {
 				c := xFolded(cost, int(e.x))
-				s.windowTapRider(k, e.ctrl, &c, true, anyColor)
+				// the fallback window has no ManaPayment: a source answers its lowest
+				// colour, not the owed pip (windowCol)
+				s.windowTapUseful(k, e.ctrl, &c, &c, true, anyColor, s.bld().pipN == 0, false)
 			} else {
 				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 			}
