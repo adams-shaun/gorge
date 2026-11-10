@@ -22,6 +22,18 @@ flowchart LR
   R --> T[summary table]
 ```
 
+```mermaid
+flowchart LR
+  G[games played in the<br/>measured window] --> GPS[games per core-second]
+  CPU[process user + system CPU,<br/>GC and JIT included] --> GPS
+  CPU --> UT[µs per turn]
+  T[turns, both players'] --> UT
+  CPU --> UD[µs per decision]
+  DC[decisions, counted<br/>per engine] --> UD
+  RSS["max RSS from /usr/bin/time,<br/>corpus load included"] --> PR[peak RSS]
+  GPS & UT & UD & PR --> MED[median and min-max<br/>over the row's runs]
+```
+
 | Metric | Definition |
 |---|---|
 | games per core-second | measured games ÷ CPU seconds of the measured window |
@@ -43,6 +55,11 @@ two clusters. The summary keeps the median and lists every rep.
 | XMage | each `priority`, `selectAttackers` and `selectBlockers` call on the game thread |
 | mtg-kernel | every `advance_until_decision` call on the raw engine API |
 | Forge | not counted: the driver has no per-decision hook |
+
+<figure markdown="span">
+--8<-- "performance/figs/decisions-per-turn.svg"
+<figcaption>Why µs per decision is compared only within one engine: dirac answers single-option decisions in place and poses about five a turn, while gorge, counting each tap and target, poses about 24-28. Derived from the comparison table as µs per turn ÷ µs per decision.</figcaption>
+</figure>
 
 ## The workload
 

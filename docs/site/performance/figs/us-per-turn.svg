@@ -1,0 +1,67 @@
+<svg class="mzc" viewBox="0 0 760 396" role="img" aria-label="Bar chart, log scale: CPU microseconds per turn for each engine and policy" xmlns="http://www.w3.org/2000/svg">
+<text x="16.0" y="20.0" class="mz-title" text-anchor="start">CPU per turn, by engine and policy (lower is cheaper)</text>
+<line class="mz-grid" x1="210.0" y1="40" x2="210.0" y2="356"/>
+<text x="210.0" y="371.0" class="mz-muted" text-anchor="middle">10</text>
+<line class="mz-grid" x1="325.5" y1="40" x2="325.5" y2="356"/>
+<text x="325.5" y="371.0" class="mz-muted" text-anchor="middle">100</text>
+<line class="mz-grid" x1="440.9" y1="40" x2="440.9" y2="356"/>
+<text x="440.9" y="371.0" class="mz-muted" text-anchor="middle">1,000</text>
+<line class="mz-grid" x1="556.4" y1="40" x2="556.4" y2="356"/>
+<text x="556.4" y="371.0" class="mz-muted" text-anchor="middle">10,000</text>
+<line class="mz-grid" x1="671.8" y1="40" x2="671.8" y2="356"/>
+<text x="671.8" y="371.0" class="mz-muted" text-anchor="middle">100,000</text>
+<text x="16.0" y="61.0" class="mz-title" text-anchor="start">Random legal action: the engine almost alone</text>
+<text x="202.0" y="87.0" text-anchor="end">dirac · random</text>
+<g><title>dirac · random: 23.5 µs/turn (min 23.2, max 23.6), measured 2026-11-05</title><rect class="s3" x="210.0" y="74.0" width="42.8" height="18" rx="2" style="stroke:none"/>
+<line class="mz-axis" x1="252.2" y1="83.0" x2="253.1" y2="83.0" style="stroke-width:2"/><line class="mz-axis" x1="253.1" y1="77.0" x2="253.1" y2="89.0"/>
+</g>
+<text x="259.1" y="87.0" text-anchor="start">23.5</text>
+<text x="202.0" y="113.0" text-anchor="end">gorge · random (auto-pay)</text>
+<g><title>gorge · random (auto-pay): 629 µs/turn (min 618, max 669), measured 2026-11-05</title><rect class="s1" x="210.0" y="100.0" width="207.7" height="18" rx="2" style="stroke:none"/>
+<line class="mz-axis" x1="416.8" y1="109.0" x2="420.8" y2="109.0" style="stroke-width:2"/><line class="mz-axis" x1="420.8" y1="103.0" x2="420.8" y2="115.0"/>
+</g>
+<text x="426.8" y="113.0" text-anchor="start">629</text>
+<text x="202.0" y="139.0" text-anchor="end">gorge · random (manual)</text>
+<g><title>gorge · random (manual): 311 µs/turn (min 296, max 330), measured 2026-11-05</title><rect class="s1" x="210.0" y="126.0" width="172.3" height="18" rx="2" style="stroke:none"/>
+<line class="mz-axis" x1="379.9" y1="135.0" x2="385.3" y2="135.0" style="stroke-width:2"/><line class="mz-axis" x1="385.3" y1="129.0" x2="385.3" y2="141.0"/>
+</g>
+<text x="391.3" y="139.0" text-anchor="start">311</text>
+<text x="202.0" y="165.0" text-anchor="end">XMage · random</text>
+<g><title>XMage · random: 13,193 µs/turn (min 12,774, max 13,751), measured 2026-10-20</title><rect class="s2" x="210.0" y="152.0" width="360.3" height="18" rx="2" style="stroke:none"/>
+<line class="mz-axis" x1="568.6" y1="161.0" x2="572.3" y2="161.0" style="stroke-width:2"/><line class="mz-axis" x1="572.3" y1="155.0" x2="572.3" y2="167.0"/>
+</g>
+<text x="578.3" y="165.0" text-anchor="start">13,193</text>
+<text x="16.0" y="191.0" class="mz-title" text-anchor="start">Each engine's own AI</text>
+<text x="202.0" y="217.0" text-anchor="end">dirac · heuristic bot</text>
+<g><title>dirac · heuristic bot: 28.9 µs/turn (min 26.2, max 31.6), measured 2026-11-05</title><rect class="s3" x="210.0" y="204.0" width="53.2" height="18" rx="2" style="stroke:none"/>
+<line class="mz-axis" x1="258.3" y1="213.0" x2="267.7" y2="213.0" style="stroke-width:2"/><line class="mz-axis" x1="267.7" y1="207.0" x2="267.7" y2="219.0"/>
+</g>
+<text x="273.7" y="217.0" text-anchor="start">28.9</text>
+<text x="202.0" y="243.0" text-anchor="end">gorge · bot (auto-pay)</text>
+<g><title>gorge · bot (auto-pay): 709 µs/turn (min 669, max 756), measured 2026-11-05</title><rect class="s1" x="210.0" y="230.0" width="213.7" height="18" rx="2" style="stroke:none"/>
+<line class="mz-axis" x1="420.8" y1="239.0" x2="426.9" y2="239.0" style="stroke-width:2"/><line class="mz-axis" x1="426.9" y1="233.0" x2="426.9" y2="245.0"/>
+</g>
+<text x="432.9" y="243.0" text-anchor="start">709</text>
+<text x="202.0" y="269.0" text-anchor="end">gorge · bot (manual)</text>
+<g><title>gorge · bot (manual): 548 µs/turn (min 509, max 572), measured 2026-11-05</title><rect class="s1" x="210.0" y="256.0" width="200.8" height="18" rx="2" style="stroke:none"/>
+<line class="mz-axis" x1="407.0" y1="265.0" x2="412.9" y2="265.0" style="stroke-width:2"/><line class="mz-axis" x1="412.9" y1="259.0" x2="412.9" y2="271.0"/>
+</g>
+<text x="418.9" y="269.0" text-anchor="start">548</text>
+<text x="202.0" y="295.0" text-anchor="end">XMage · simple AI</text>
+<g><title>XMage · simple AI: 761 µs/turn (min 743, max 791), measured 2026-10-20</title><rect class="s2" x="210.0" y="282.0" width="217.2" height="18" rx="2" style="stroke:none"/>
+<line class="mz-axis" x1="426.0" y1="291.0" x2="429.2" y2="291.0" style="stroke-width:2"/><line class="mz-axis" x1="429.2" y1="285.0" x2="429.2" y2="297.0"/>
+</g>
+<text x="435.2" y="295.0" text-anchor="start">761</text>
+<text x="202.0" y="321.0" text-anchor="end">XMage · mad AI</text>
+<g><title>XMage · mad AI: 62,343 µs/turn (min 49,069, max 101,733), measured 2026-10-20</title><rect class="s2" x="210.0" y="308.0" width="438.1" height="18" rx="2" style="stroke:none"/>
+<line class="mz-axis" x1="636.1" y1="317.0" x2="672.7" y2="317.0" style="stroke-width:2"/><line class="mz-axis" x1="672.7" y1="311.0" x2="672.7" y2="323.0"/>
+</g>
+<text x="678.7" y="321.0" text-anchor="start">62,343</text>
+<text x="202.0" y="347.0" text-anchor="end">Forge · Forge AI</text>
+<g><title>Forge · Forge AI: 54,513 µs/turn (min 45,904, max 71,387), measured 2026-10-20</title><rect class="c4" x="210.0" y="334.0" width="431.4" height="18" rx="2" style="stroke:none"/>
+<line class="mz-axis" x1="632.8" y1="343.0" x2="654.9" y2="343.0" style="stroke-width:2"/><line class="mz-axis" x1="654.9" y1="337.0" x2="654.9" y2="349.0"/>
+</g>
+<text x="660.9" y="347.0" text-anchor="start">54,513</text>
+<line class="mz-axis" x1="210.0" y1="40" x2="210.0" y2="356"/>
+<text x="450.0" y="390.0" class="mz-muted" text-anchor="middle">CPU µs per turn (log scale); whisker = slowest to fastest run</text>
+</svg>

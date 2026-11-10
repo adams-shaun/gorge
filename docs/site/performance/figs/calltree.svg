@@ -1,0 +1,37 @@
+<svg class="mzc" viewBox="0 0 760 214" role="img" aria-label="Bar chart: cumulative share of CPU of the main call-tree nodes" xmlns="http://www.w3.org/2000/svg">
+<text x="16.0" y="20.0" class="mz-title" text-anchor="start">The hot path, random auto-pay run: cumulative CPU by call</text>
+<line class="mz-grid" x1="230.0" y1="40" x2="230.0" y2="174"/>
+<text x="230.0" y="189.0" class="mz-muted" text-anchor="middle">0</text>
+<line class="mz-grid" x1="322.0" y1="40" x2="322.0" y2="174"/>
+<text x="322.0" y="189.0" class="mz-muted" text-anchor="middle">20</text>
+<line class="mz-grid" x1="414.0" y1="40" x2="414.0" y2="174"/>
+<text x="414.0" y="189.0" class="mz-muted" text-anchor="middle">40</text>
+<line class="mz-grid" x1="506.0" y1="40" x2="506.0" y2="174"/>
+<text x="506.0" y="189.0" class="mz-muted" text-anchor="middle">60</text>
+<line class="mz-grid" x1="598.0" y1="40" x2="598.0" y2="174"/>
+<text x="598.0" y="189.0" class="mz-muted" text-anchor="middle">80</text>
+<line class="mz-grid" x1="690.0" y1="40" x2="690.0" y2="174"/>
+<text x="690.0" y="189.0" class="mz-muted" text-anchor="middle">100</text>
+<text x="222.0" y="61.0" text-anchor="end">Engine.Submit</text>
+<g><title>Engine.Submit: 63% cumulative CPU</title><rect class="s1" x="230.0" y="48.0" width="289.8" height="18" rx="2" style="stroke:none"/>
+</g>
+<text x="525.8" y="61.0" text-anchor="start">63</text>
+<text x="222.0" y="87.0" text-anchor="end">payment planning</text>
+<g><title>payment planning: 35% cumulative CPU</title><rect class="s1" x="230.0" y="74.0" width="161.0" height="18" rx="2" style="stroke:none"/>
+</g>
+<text x="397.0" y="87.0" text-anchor="start">35</text>
+<text x="222.0" y="113.0" text-anchor="end">Engine.Advance</text>
+<g><title>Engine.Advance: 33% cumulative CPU</title><rect class="s1" x="230.0" y="100.0" width="151.8" height="18" rx="2" style="stroke:none"/>
+</g>
+<text x="387.8" y="113.0" text-anchor="start">33</text>
+<text x="222.0" y="139.0" text-anchor="end">legal-action walk over the hand</text>
+<g><title>legal-action walk over the hand: 25% cumulative CPU</title><rect class="s1" x="230.0" y="126.0" width="115.0" height="18" rx="2" style="stroke:none"/>
+</g>
+<text x="351.0" y="139.0" text-anchor="start">25</text>
+<text x="222.0" y="165.0" text-anchor="end">Engine.emit (events.Apply)</text>
+<g><title>Engine.emit (events.Apply): 14% cumulative CPU</title><rect class="s1" x="230.0" y="152.0" width="64.4" height="18" rx="2" style="stroke:none"/>
+</g>
+<text x="300.4" y="165.0" text-anchor="start">14</text>
+<line class="mz-axis" x1="230.0" y1="40" x2="230.0" y2="174"/>
+<text x="460.0" y="208.0" class="mz-muted" text-anchor="middle">% of CPU, cumulative (nodes nest, so the bars don't sum)</text>
+</svg>

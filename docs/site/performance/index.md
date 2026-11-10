@@ -29,90 +29,36 @@ four gorge rows (below), where it is the 2026-11-02 spread scaled by the same fa
 `b78e4c8b1` medians scaled by this head's interleaved paired cand/base ratios, so they carry the code's share and not the loaded
 box's absolute speed. Turns count both players' turns. Compare µs per decision only within one engine, because each engine splits a game into decisions differently.
 
-<figure markdown>
-<svg viewBox="0 0 760 330" width="100%" role="img" aria-label="Bar chart, log scale: CPU microseconds per turn for each engine and policy">
-<text class="dg-text-bold" x="0" y="16">CPU microseconds per turn (log scale; lower is cheaper)</text>
-<rect class="dg-box-solid" x="460" y="6" width="12" height="12" rx="2"/><text class="dg-text-muted" x="476" y="16">random legal action</text>
-<rect class="dg-box-accent" x="610" y="6" width="12" height="12" rx="2"/><text class="dg-text-muted" x="626" y="16">engine's own AI</text>
-<line class="dg-line-dashed" x1="210.0" y1="28" x2="210.0" y2="308"/>
-<text class="dg-text-muted" x="210.0" y="322" text-anchor="middle">10</text>
-<line class="dg-line-dashed" x1="306.0" y1="28" x2="306.0" y2="308"/>
-<text class="dg-text-muted" x="306.0" y="322" text-anchor="middle">100</text>
-<line class="dg-line-dashed" x1="402.0" y1="28" x2="402.0" y2="308"/>
-<text class="dg-text-muted" x="402.0" y="322" text-anchor="middle">1,000</text>
-<line class="dg-line-dashed" x1="498.0" y1="28" x2="498.0" y2="308"/>
-<text class="dg-text-muted" x="498.0" y="322" text-anchor="middle">10,000</text>
-<line class="dg-line-dashed" x1="594.0" y1="28" x2="594.0" y2="308"/>
-<text class="dg-text-muted" x="594.0" y="322" text-anchor="middle">100,000</text>
-<line class="dg-line-dashed" x1="690.0" y1="28" x2="690.0" y2="308"/>
-<text class="dg-text-muted" x="690.0" y="322" text-anchor="middle">1,000,000</text>
-<g><title>dirac · random: 23.5 µs/turn (min 23.2, max 23.6)</title>
-<text class="dg-text" x="202" y="48" text-anchor="end">dirac · random</text>
-<rect class="dg-box-solid" x="210" y="34" width="35.6" height="20" rx="3"/>
-<line class="dg-line" x1="245.1" y1="44" x2="245.8" y2="44"/>
-<text class="dg-text" x="251.8" y="48">23.5</text></g>
-<g><title>gorge · random (auto-pay): 629 µs/turn (min 618, max 669)</title>
-<text class="dg-text" x="202" y="76" text-anchor="end">gorge · random (auto-pay)</text>
-<rect class="dg-box-solid" x="210" y="62" width="172.5" height="20" rx="3"/>
-<line class="dg-line" x1="381.8" y1="72" x2="385.1" y2="72"/>
-<text class="dg-text" x="391.1" y="76">629</text></g>
-<g><title>gorge · random (manual): 311 µs/turn (min 296, max 330)</title>
-<text class="dg-text" x="202" y="104" text-anchor="end">gorge · random (manual)</text>
-<rect class="dg-box-solid" x="210" y="90" width="143.2" height="20" rx="3"/>
-<line class="dg-line" x1="351.1" y1="100" x2="355.6" y2="100"/>
-<text class="dg-text" x="361.6" y="104">311</text></g>
-<g><title>XMage · random: 13,193 µs/turn (min 12,774, max 13,751)</title>
-<text class="dg-text" x="202" y="132" text-anchor="end">XMage · random</text>
-<rect class="dg-box-solid" x="210" y="118" width="299.6" height="20" rx="3"/>
-<line class="dg-line" x1="508.2" y1="128" x2="511.3" y2="128"/>
-<text class="dg-text" x="517.3" y="132">13,193</text></g>
-<g><title>dirac · heuristic bot: 28.9 µs/turn (min 26.2, max 31.6)</title>
-<text class="dg-text" x="202" y="160" text-anchor="end">dirac · heuristic bot</text>
-<rect class="dg-box-accent" x="210" y="146" width="44.2" height="20" rx="3"/>
-<line class="dg-line" x1="250.2" y1="156" x2="258.0" y2="156"/>
-<text class="dg-text" x="264.0" y="160">28.9</text></g>
-<g><title>gorge · bot (auto-pay): 709 µs/turn (min 669, max 756)</title>
-<text class="dg-text" x="202" y="188" text-anchor="end">gorge · bot (auto-pay)</text>
-<rect class="dg-box-accent" x="210" y="174" width="177.5" height="20" rx="3"/>
-<line class="dg-line" x1="385.1" y1="184" x2="390.2" y2="184"/>
-<text class="dg-text" x="396.2" y="188">709</text></g>
-<g><title>gorge · bot (manual): 548 µs/turn (min 509, max 572)</title>
-<text class="dg-text" x="202" y="216" text-anchor="end">gorge · bot (manual)</text>
-<rect class="dg-box-accent" x="210" y="202" width="166.8" height="20" rx="3"/>
-<line class="dg-line" x1="373.7" y1="212" x2="378.6" y2="212"/>
-<text class="dg-text" x="384.6" y="216">548</text></g>
-<g><title>XMage · simple AI: 761 µs/turn (min 743, max 791)</title>
-<text class="dg-text" x="202" y="244" text-anchor="end">XMage · simple AI</text>
-<rect class="dg-box-accent" x="210" y="230" width="180.6" height="20" rx="3"/>
-<line class="dg-line" x1="389.6" y1="240" x2="392.2" y2="240"/>
-<text class="dg-text" x="398.2" y="244">761</text></g>
-<g><title>XMage · mad AI: 62,343 µs/turn (min 49,069, max 101,733)</title>
-<text class="dg-text" x="202" y="272" text-anchor="end">XMage · mad AI</text>
-<rect class="dg-box-accent" x="210" y="258" width="364.3" height="20" rx="3"/>
-<line class="dg-line" x1="564.3" y1="268" x2="594.7" y2="268"/>
-<text class="dg-text" x="600.7" y="272">62,343</text></g>
-<g><title>Forge · Forge AI: 54,513 µs/turn (min 45,904, max 71,387)</title>
-<text class="dg-text" x="202" y="300" text-anchor="end">Forge · Forge AI</text>
-<rect class="dg-box-accent" x="210" y="286" width="358.7" height="20" rx="3"/>
-<line class="dg-line" x1="561.5" y1="296" x2="579.9" y2="296"/>
-<text class="dg-text" x="585.9" y="300">54,513</text></g>
-<line class="dg-line" x1="210" y1="28" x2="210" y2="308"/>
-</svg>
-<figcaption>CPU µs per turn, log scale, FDN pairs A and B pooled, median of 6 runs, thin line = min-max. gorge 2026-11-05, dirac 2026-11-05, XMage and Forge 2026-10-20. Filled bars: random legal action. Outlined bars: the engine's own AI.</figcaption>
+<figure markdown="span">
+--8<-- "performance/figs/us-per-turn.svg"
+<figcaption>Read across a row of bars, not down: every tick is ten times the last. dirac sits a decade and a half under gorge, and gorge another decade and a half under XMage's random row and two under the AIs that search (XMage mad, Forge). Whiskers are the slowest and fastest of six runs.</figcaption>
 </figure>
 
-| Engine · policy | games / core-s | ms / game | µs / turn | µs / decision | turns / game | peak RSS (MB) | measured |
-|---|--:|--:|--:|--:|--:|--:|---|
-| dirac · random | 1,759 <small>(1,645-1,870)</small> | 0.569 | 23.5 <small>(23.2-23.6)</small> | 4.61 | 24 | 105 | 2026-11-05 |
-| gorge · random (auto-pay) | 64.0 <small>(58.7-70.7)</small> | 15.6 | 629 <small>(618-669)</small> | 26.4 | 24 | 375 | 2026-11-05 |
-| gorge · random (manual) | 78.8 <small>(76.2-80.6)</small> | 12.6 | 311 <small>(296-330)</small> | 11.4 | 41 | 356 | 2026-11-05 |
-| XMage · random | 2.38 <small>(2.16-2.58)</small> | 420 | 13,193 <small>(12,774-13,751)</small> | 499 | 32 | 1,228 | 2026-10-20 |
-| dirac · heuristic bot | 1,971 <small>(1,763-2,175)</small> | 0.507 | 28.9 <small>(26.2-31.6)</small> | 5.60 | 18 | 103 | 2026-11-05 |
-| gorge · bot (auto-pay) | 78.6 <small>(74.0-83.6)</small> | 12.7 | 709 <small>(669-756)</small> | 28.7 | 18 | 353 | 2026-11-05 |
-| gorge · bot (manual) | 102 <small>(97.8-109)</small> | 9.86 | 548 <small>(509-572)</small> | 19.6 | 18 | 396 | 2026-11-05 |
-| XMage · simple AI | 19.3 <small>(18.6-19.7)</small> | 51.9 | 761 <small>(743-791)</small> | 48.3 | 68 | 1,219 | 2026-10-20 |
-| XMage · mad AI | 0.947 <small>(0.552-1.25)</small> | 1,121 | 62,343 <small>(49,069-101,733)</small> | 2,902 | 17 | 1,288 | 2026-10-20 |
-| Forge · Forge AI | 1.02 <small>(0.723-1.22)</small> | 983 | 54,513 <small>(45,904-71,387)</small> | n/a | 18 | 882 | 2026-10-20 |
+<figure markdown="span">
+--8<-- "performance/figs/games-per-core-s.svg"
+<figcaption>The same rows as whole games. A cheap turn doesn't always mean a cheap game: gorge's bot ends games in 18 turns, so its games cost no more than random ones, and XMage's simple AI plays 68-turn games.</figcaption>
+</figure>
+
+<figure markdown="span">
+--8<-- "performance/figs/peak-rss.svg"
+<figcaption>Peak resident memory of a process playing games, corpus loaded. gorge's and XMage's floor is their card database; mtg-kernel compiles its few hundred cards into the binary, so its figure is not comparable.</figcaption>
+</figure>
+
+??? info "The exact numbers, every row"
+
+    | Engine · policy | games / core-s | ms / game | µs / turn | µs / decision | turns / game | peak RSS (MB) | measured |
+    |---|--:|--:|--:|--:|--:|--:|---|
+    | dirac · random | 1,759 <small>(1,645-1,870)</small> | 0.569 | 23.5 <small>(23.2-23.6)</small> | 4.61 | 24 | 105 | 2026-11-05 |
+    | gorge · random (auto-pay) | 64.0 <small>(58.7-70.7)</small> | 15.6 | 629 <small>(618-669)</small> | 26.4 | 24 | 375 | 2026-11-05 |
+    | gorge · random (manual) | 78.8 <small>(76.2-80.6)</small> | 12.6 | 311 <small>(296-330)</small> | 11.4 | 41 | 356 | 2026-11-05 |
+    | XMage · random | 2.38 <small>(2.16-2.58)</small> | 420 | 13,193 <small>(12,774-13,751)</small> | 499 | 32 | 1,228 | 2026-10-20 |
+    | dirac · heuristic bot | 1,971 <small>(1,763-2,175)</small> | 0.507 | 28.9 <small>(26.2-31.6)</small> | 5.60 | 18 | 103 | 2026-11-05 |
+    | gorge · bot (auto-pay) | 78.6 <small>(74.0-83.6)</small> | 12.7 | 709 <small>(669-756)</small> | 28.7 | 18 | 353 | 2026-11-05 |
+    | gorge · bot (manual) | 102 <small>(97.8-109)</small> | 9.86 | 548 <small>(509-572)</small> | 19.6 | 18 | 396 | 2026-11-05 |
+    | XMage · simple AI | 19.3 <small>(18.6-19.7)</small> | 51.9 | 761 <small>(743-791)</small> | 48.3 | 68 | 1,219 | 2026-10-20 |
+    | XMage · mad AI | 0.947 <small>(0.552-1.25)</small> | 1,121 | 62,343 <small>(49,069-101,733)</small> | 2,902 | 17 | 1,288 | 2026-10-20 |
+    | Forge · Forge AI | 1.02 <small>(0.723-1.22)</small> | 983 | 54,513 <small>(45,904-71,387)</small> | n/a | 18 | 882 | 2026-10-20 |
+
 
 **Engine cost.** The random rows use a policy that costs almost nothing, so they are as close to pure engine cost as each engine
 allows. Per turn, dirac is about 25 times cheaper than gorge with auto-pay,
@@ -131,21 +77,35 @@ A search copies a position and steps it many times per decision, so these two nu
 benchmark plays real decks with a random policy and counts one `Step` and `Apply` as one operation. Its whole-pool row loads a table of the
 full FDN pool, as a search with a card belief does, so work that scales with the table shows there.
 
-| dirac benchmark, 2026-11-02 | ns per op, median of 5 | instructions per op | allocations |
-|---|--:|--:|--:|
-| Transition, Foundations (FDN) | 2,748 | 45,604 | 0 |
-| Transition, Bloomburrow (BLB) | 2,909 | 51,990 | 0 |
-| Transition, FDN whole-pool table | 3,601 | 60,463 | 0 |
-| `CopyFrom`, mid-game FDN position | 40.2 | 187 | 0 |
+<figure markdown="span">
+--8<-- "performance/figs/copy-vs-step.svg"
+<figcaption>One copy and one transition, the two operations a search repeats. dirac copies a position in 40 ns and steps it in under 3 µs, with no allocation; gorge's clone allocates 195 KB and its garbage collector doubles the cost.</figcaption>
+</figure>
+
+<figure markdown="span">
+--8<-- "performance/figs/dirac-ops.svg"
+<figcaption>Instructions per operation, the number that holds still under machine load. Loading the whole FDN pool's table, as a search with a card belief does, costs a third more per transition.</figcaption>
+</figure>
+
 
 These ran on one pinned core at a 1-minute load average of 13 on the box. Time per operation moves with the load, the machine and
 code layout. Instructions per operation is the steadier number, and
 [How it is measured](methodology.md#dirac) shows how to get it.
 
-| gorge row, 2026-11-05 | µs per op, no GC | µs per op, with GC | bytes per op | mallocs per op |
-|---|--:|--:|--:|--:|
-| `clone`: `Engine.Clone` of a mid-game position | 12.9 | 27.2 | 195 KB | 50 |
-| `step`: clone, then submit one candidate | 43.5 | 71.2 | 369 KB | 140 |
+??? info "The exact numbers"
+
+    | dirac benchmark, 2026-11-02 | ns per op, median of 5 | instructions per op | allocations |
+    |---|--:|--:|--:|
+    | Transition, Foundations (FDN) | 2,748 | 45,604 | 0 |
+    | Transition, Bloomburrow (BLB) | 2,909 | 51,990 | 0 |
+    | Transition, FDN whole-pool table | 3,601 | 60,463 | 0 |
+    | `CopyFrom`, mid-game FDN position | 40.2 | 187 | 0 |
+
+    | gorge row, 2026-11-05 | µs per op, no GC | µs per op, with GC | bytes per op | mallocs per op |
+    |---|--:|--:|--:|--:|
+    | `clone`: `Engine.Clone` of a mid-game position | 12.9 | 27.2 | 195 KB | 50 |
+    | `step`: clone, then submit one candidate | 43.5 | 71.2 | 369 KB | 140 |
+
 
 ## A second workload: decks mtg-kernel plays
 
@@ -154,17 +114,25 @@ pool. It can't play FDN pair B, so it isn't in the table above. It plays two wor
 fixture decks, and the **Burn mirror**, the mono-red Pauper deck from its own pool. It has no standalone bot, so it has random rows only. No
 dirac pool holds the Burn deck.
 
-| Workload · engine · policy | games / core-s | µs / turn | turns / game | peak RSS (MB) | measured |
-|---|--:|--:|--:|--:|---|
-| Pair A · dirac · random | 1,867 | 23.5 | 23 | 106 | 2026-11-05 |
-| Pair A · gorge · random (auto-pay) | 70.8 | 613 | 23 | 397 | 2026-11-05 |
-| Pair A · gorge · random (manual) | 83.3 | 285 | 42 | 356 | 2026-11-05 |
-| Pair A · mtg-kernel · random | 18.6 | 3,075 | 17 | 15.7 | 2026-10-20 |
-| Pair A · XMage · random | 2.50 | 13,063 | 31 | 1,228 | 2026-10-20 |
-| Burn · gorge · random (auto-pay) | 140 | 287 | 25 | 353 | 2026-10-31 |
-| Burn · gorge · random (manual) | 166 | 173 | 35 | 349 | 2026-10-31 |
-| Burn · mtg-kernel · random | 174 | 367 | 16 | 10.9 | 2026-10-20 |
-| Burn · XMage · random | 3.14 | 11,188 | 29 | 1,262 | 2026-10-20 |
+<figure markdown="span">
+--8<-- "performance/figs/kernel-workloads.svg"
+<figcaption>On its home Burn mirror mtg-kernel costs about what gorge does per turn; on FDN pair A it is 5-11 times slower than gorge. XMage stays around 11-13 ms a turn on both.</figcaption>
+</figure>
+
+??? info "The exact numbers"
+
+    | Workload · engine · policy | games / core-s | µs / turn | turns / game | peak RSS (MB) | measured |
+    |---|--:|--:|--:|--:|---|
+    | Pair A · dirac · random | 1,867 | 23.5 | 23 | 106 | 2026-11-05 |
+    | Pair A · gorge · random (auto-pay) | 70.8 | 613 | 23 | 397 | 2026-11-05 |
+    | Pair A · gorge · random (manual) | 83.3 | 285 | 42 | 356 | 2026-11-05 |
+    | Pair A · mtg-kernel · random | 18.6 | 3,075 | 17 | 15.7 | 2026-10-20 |
+    | Pair A · XMage · random | 2.50 | 13,063 | 31 | 1,228 | 2026-10-20 |
+    | Burn · gorge · random (auto-pay) | 140 | 287 | 25 | 353 | 2026-10-31 |
+    | Burn · gorge · random (manual) | 166 | 173 | 35 | 349 | 2026-10-31 |
+    | Burn · mtg-kernel · random | 174 | 367 | 16 | 10.9 | 2026-10-20 |
+    | Burn · XMage · random | 3.14 | 11,188 | 29 | 1,262 | 2026-10-20 |
+
 
 Its random player asks every priority window and every mana ability separately, so gorge's manual row is the closest match. Its FDN cards
 are a build option, and that build plays Burn several times slower than the default build, so pair A uses the FDN build and Burn the default
@@ -186,12 +154,14 @@ one. Its memory isn't comparable, since it compiles its few hundred cards into t
 
 ## Provenance
 
-| | |
-|---|---|
-| gorge | `b1630d6b89bb` (2026-11-05), go1.26.3, `cmd/enginebench` |
-| dirac | `0ec285f67` (2026-11-05) for the game rows, 2026-11-02 for the transition rows, `dirac/cmd/dplay` and `go test -bench`, with `-trimpath` |
-| XMage | `magefree/mage` `6b602a1c85` (1.4.61), Temurin JDK 17.0.20.1, driver `XEngineBench` (gorge-compliance), 2026-10-20 |
-| Forge | gorge's Forge fork at `da1c712c31`, JDK 17.0.20.1, driver `forge.oracle.GameReplay`, 2026-10-20 |
-| mtg-kernel | `jackmaiorino/mtg-kernel` `058d075e3`, Rust 1.94.1, release build of `examples/bench_kernel` with gorge's `--xengine-json` mode, 2026-10-20 |
-| Measured time | 20 CPU-s per gorge and dirac run, 15 per gorge Burn run; 40 s warm-up and 60 CPU-s per XMage and Forge run; 30 CPU-s per mtg-kernel run |
-| Errors | no stalled, unfinished or failed game in any gorge, XMage, Forge or mtg-kernel row. dirac's random row counts 385 stalled games of 215,042 and its bot row 39 of 234,124, all on pair A and all at a declared capacity (the stack and pending-effect tables); they stay in the rows' counts. XMage's base AI on the Burn mirror never casts its burn spells and hit the 100-turn cap every game, so that row is left out |
+??? info "Commits, toolchains and errors per engine"
+
+    | | |
+    |---|---|
+    | gorge | `b1630d6b89bb` (2026-11-05), go1.26.3, `cmd/enginebench` |
+    | dirac | `0ec285f67` (2026-11-05) for the game rows, 2026-11-02 for the transition rows, `dirac/cmd/dplay` and `go test -bench`, with `-trimpath` |
+    | XMage | `magefree/mage` `6b602a1c85` (1.4.61), Temurin JDK 17.0.20.1, driver `XEngineBench` (gorge-compliance), 2026-10-20 |
+    | Forge | gorge's Forge fork at `da1c712c31`, JDK 17.0.20.1, driver `forge.oracle.GameReplay`, 2026-10-20 |
+    | mtg-kernel | `jackmaiorino/mtg-kernel` `058d075e3`, Rust 1.94.1, release build of `examples/bench_kernel` with gorge's `--xengine-json` mode, 2026-10-20 |
+    | Measured time | 20 CPU-s per gorge and dirac run, 15 per gorge Burn run; 40 s warm-up and 60 CPU-s per XMage and Forge run; 30 CPU-s per mtg-kernel run |
+    | Errors | no stalled, unfinished or failed game in any gorge, XMage, Forge or mtg-kernel row. dirac's random row counts 385 stalled games of 215,042 and its bot row 39 of 234,124, all on pair A and all at a declared capacity (the stack and pending-effect tables); they stay in the rows' counts. XMage's base AI on the Burn mirror never casts its burn spells and hit the 100-turn cap every game, so that row is left out |

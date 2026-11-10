@@ -17,6 +17,9 @@ on:
       - scripts/docs_sets.py
       - scripts/docs_sets_test.py
       - scripts/docs_web_test.py
+      - scripts/docs_perf_figs.py
+      - scripts/docs_perf_figs_test.py
+      - scripts/docs_magezero_figs.py
       - web/src/lib/layoutprofile.ts
       - web/src/components/PlaySettingsPanel.svelte
       - dirac/docs/support.md
@@ -31,6 +34,9 @@ on:
       - scripts/docs_sets.py
       - scripts/docs_sets_test.py
       - scripts/docs_web_test.py
+      - scripts/docs_perf_figs.py
+      - scripts/docs_perf_figs_test.py
+      - scripts/docs_magezero_figs.py
       - web/src/lib/layoutprofile.ts
       - web/src/components/PlaySettingsPanel.svelte
       - dirac/docs/support.md
@@ -87,6 +93,10 @@ jobs:
       # client's layout presets and play settings; fail if the source moved.
       - name: Check the web client pages against the client source
         run: python3 scripts/docs_web_test.py
+
+      # The performance figures are drawn from docs/site/performance/data/perf.json.
+      - name: Check the performance figures against their data
+        run: python3 -m unittest discover -s scripts -p 'docs_perf_figs_test.py'
 
       - name: Render the per-set support tables
         run: |
