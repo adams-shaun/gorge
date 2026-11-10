@@ -472,6 +472,9 @@ func (s *State) firePhase(k *prep, st kop.Step) {
 // sba performs state-based actions until none apply. It reports whether
 // the game ended.
 func (s *State) sba(k *prep) bool {
+	if s.g.ndp != 0 && k.gen != nil && k.gen.anyDelaySpell {
+		s.dropUncounterGone() // a protected spell that left the stack (repl_uncounterable.go)
+	}
 	for {
 		if k.gen != nil && k.gen.ctrlSBA {
 			s.ctrlSBA(k) // layer-2 control records and statics (static_control.go)

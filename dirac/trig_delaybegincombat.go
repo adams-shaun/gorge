@@ -31,6 +31,9 @@ func dpExt(in *kop.Instr) uint8 {
 	if in.A.N == kop.DelayYourEndStep {
 		return dpExtYourEndStep
 	}
+	if in.A.N == kop.DelaySpellUncounter {
+		return dpExtUncounter // repl_uncounterable.go
+	}
 	return 0
 }
 

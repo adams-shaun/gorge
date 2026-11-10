@@ -246,6 +246,7 @@ DelayBeginCombat	untyped int	6
 DelayDiesThisTurn	untyped int	5
 DelayEndCombat	untyped int	3
 DelaySpellCast	untyped int	4
+DelaySpellUncounter	untyped int	8
 DelayUpkeep	untyped int	1
 DelayYourEndStep	untyped int	7
 DelayYourUpkeep	untyped int	2

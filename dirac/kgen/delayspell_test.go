@@ -18,11 +18,9 @@ func TestDelayspellRefusals(t *testing.T) {
 	checkCarrier(t,
 		[]string{"Teach by Example", "Twinferno", "Najal, the Storm Runner", "Mercurial Spelldancer",
 			"Doublecast", "Summon: G.F. Cerberus", "Pigment Wrangler", "Rimefire Torque",
-			"Flamehold Grappler", "Loki Laufeyson"},
+			"Flamehold Grappler", "Loki Laufeyson", "Mistrise Village", "Theorist's Proxy"},
 		map[string]string{
 			"Narset Transcendent":   "delayed SpellCast without ThisTurn$",
-			"Mistrise Village":      "delayed SpellCast Static$",
-			"Theorist's Proxy":      "delayed SpellCast Static$",
 			"Way of the Cryomancer": "delayed SpellCast in a granted ability",
 			"Storm King's Thunder":  `delayed SpellCast body reads "X"`,
 			"Sea Gate Stormcaller":  `delayed SpellCast body reads "X"`,

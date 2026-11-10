@@ -506,6 +506,10 @@ const (
 	// DelayYourEndStep: the controller's next end step (gorge Phase$ End of
 	// Turn, ValidPlayer$ You; another player's end step leaves it pending)
 	DelayYourEndStep = 7
+	// DelaySpellUncounter: DelaySpellCast whose fire resolves inline with no
+	// stack object (gorge Static$ True), its body "the spell that fired it
+	// can't be countered" while that spell is on the stack; one-shot
+	DelaySpellUncounter = 8
 )
 
 // DpGroup is OpDelayedProgram B's group flag: the program remembers the

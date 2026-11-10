@@ -4295,6 +4295,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				ki.A = kop.Const(kop.DelayBeginCombat) // dirac/trig_delaybegincombat.go
 			case "NextSpellCast":
 				ki.A = kop.Const(kop.DelaySpellCast)
+			case "NextSpellCastUncounter":
+				ki.A = kop.Const(kop.DelaySpellUncounter) // dirac/repl_uncounterable.go
 			case "DiesThisTurn":
 				ki.A = kop.Const(kop.DelayDiesThisTurn) // dirac/trig_delayeddies.go
 			default:
