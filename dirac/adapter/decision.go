@@ -602,6 +602,21 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 	case "pay":
 		o.Kind = "pay_" + [8]string{"W", "U", "B", "R", "G", "C", "generic", "life"}[c.Mode()&7]
 		o.Amount = 1
+	case "gift_promise":
+		// gorge giftAsk: the promised opponent, the mode-th of the
+		// decider's opponents in AliveFrom(decider) order
+		n := 0
+		for _, p := range g.board.g.AliveFrom(state.PlayerID(g.d.Player)) {
+			if p == state.PlayerID(g.d.Player) {
+				continue
+			}
+			if n == int(c.Mode()) {
+				o.Player = p
+				o.Label = "Promise " + g.board.g.SeatFacingName(p) + " the gift"
+				break
+			}
+			n++
+		}
 	case "vote_card":
 		// gorge effCardVote names the candidate's controller (CR 400.2)
 		if t := c.Src(); int(t) < int(g.kp.NObj) {
