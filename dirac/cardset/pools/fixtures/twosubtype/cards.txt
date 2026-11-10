@@ -1,7 +1,7 @@
 # the two-subtype filter pool (twosubtype): Radioactive Spider's library
 # search for a Spider Hero beside a Spider that is not a Hero, a Spider Hero
 # and a Spider Human Hero, for the kernel's two-subtype test
-# (dirac/filter_subtype2_test.go)
+# (dirac/filter_twosubtypes_test.go)
 Radioactive Spider
 Lady Spider, Maybelle Reilly
 Iron Spider, Stark Upgrade
