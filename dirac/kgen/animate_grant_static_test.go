@@ -69,6 +69,20 @@ func TestLowerAnimateGrantStatic(t *testing.T) {
 			want: "grants an ability the kernel does not gate",
 		},
 		{
+			name: "anthem granting a subtype reads no gate",
+			body: "A:AB$ Animate | Cost$ 1 | Duration$ Permanent | staticAbilities$ Static | SpellDescription$ test\n" +
+				"SVar:Static:Mode$ Continuous | Affected$ Creature.Other+YouCtrl | AddKeyword$ Haste | AddType$ Soldier | Description$ test\n",
+			want: "grants a subtype the kernel does not gate",
+		},
+		{
+			name: "anthem granting the chosen type reads no gate",
+			body: "K:ETBReplacement:Copy:ChooseCT\n" +
+				"SVar:ChooseCT:DB$ ChooseType | Defined$ You | Type$ Creature | AILogic$ MostProminentInComputerDeck | SpellDescription$ test\n" +
+				"A:AB$ Animate | Cost$ 1 | Duration$ Permanent | staticAbilities$ Static | SpellDescription$ test\n" +
+				"SVar:Static:Mode$ Continuous | Affected$ Creature.Other+YouCtrl | AddPower$ 1 | AddType$ ChosenType | Description$ test\n",
+			want: "grants a subtype the kernel does not gate",
+		},
+		{
 			name: "comma list stays a permission shape",
 			body: "A:AB$ Animate | Cost$ 1 | Defined$ Self | Duration$ Permanent | staticAbilities$ A,B | SpellDescription$ test\n" +
 				"SVar:A:Mode$ Continuous | Affected$ Creature.Other+YouCtrl | AddKeyword$ Indestructible | Description$ test\n" +
