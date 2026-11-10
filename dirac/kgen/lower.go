@@ -2057,8 +2057,35 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				continue
 			}
 			if head == "AddCounter" {
-				if len(parts) != 2 || c.AddCtr != 0 {
+				// AddCounter<N/KIND> is a source-anchored cost. An
+				// UnlessCost$ may also spell the recipient: CARDNAME/NICKNAME
+				// is the source again, Card.targetedBy the parent's single
+				// target. Any other third field is a different payment and
+				// stays refused; a fourth field is reminder text only.
+				if c.AddCtr != 0 || len(parts) < 2 || len(parts) > 4 {
 					return c, refuse("counter cost %q", t)
+				}
+				if len(parts) == 2 {
+					c.AddCtr, c.AddCtrKnd = n, kind
+					continue
+				}
+				if !lc.unlessParse {
+					return c, refuse("counter cost %q outside an unless cost", t)
+				}
+				switch {
+				case strings.EqualFold(parts[2], "CARDNAME"), strings.EqualFold(parts[2], "NICKNAME"):
+					c.AddCtrRef = lRef{Kind: rSelf}
+				case strings.EqualFold(parts[2], "Card.targetedBy"):
+					if len(lc.parentChain()) != 1 {
+						return c, refuse("counter cost %q: targetedBy without one parent target", t)
+					}
+					slot := lc.parentLastTarget()
+					if slot < 0 || slot > 2 {
+						return c, refuse("counter cost %q: targetedBy target slot %d", t, slot)
+					}
+					c.AddCtrRef = lRef{Kind: rTarget, N: slot}
+				default:
+					return c, refuse("counter cost %q: AddCounter target %q", t, parts[2])
 				}
 				c.AddCtr, c.AddCtrKnd = n, kind
 				continue

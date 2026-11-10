@@ -883,7 +883,9 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 		in = lInstr{CS: "Mana", A: v, B: cst(0)}
 	} else {
 		lc.wbOK = lc.ab.Kind != akLatent
+		lc.unlessParse = lc.ab.Kind != akLatent
 		cost, err := lc.costUnless(uc)
+		lc.unlessParse = false
 		lc.wbOK = false
 		if err != nil {
 			return err
@@ -1266,7 +1268,24 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		c.BeholdN, c.BeholdF = 0, nil
 		n++
 	}
-	if n != 1 || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.SubAmongN != 0 || c.TapN != 0 || c.TapHost || c.SacHost || c.BlightN != 0 || c.EvidenceN != 0 || c.EvidenceX {
+	if c.AddCtr > 0 {
+		// An UnlessCost$ AddCounter<N/KIND/recipient> (gorge
+		// pay/costparts.go PayManaSourceParts' unless placement; kernel
+		// cost_unlessaddcounter.go): alone, with the recipient the source
+		// (CARDNAME/NICKNAME) or the parent's target. A two-field token
+		// stays an activation cost.
+		if !lc.unlessCost || c.AddCtrRef.Kind == rNone || n != 0 {
+			return in, refuse("resolution AddCounter cost shape")
+		}
+		ck, err := counterKind(c.AddCtrKnd)
+		if err != nil {
+			return in, refuse("resolution AddCounter cost of kind %q", c.AddCtrKnd)
+		}
+		in.CS, in.A, in.B, in.Obj2 = "AddCounter", cst(c.AddCtr), cst(int(ck)), c.AddCtrRef
+		c.AddCtr, c.AddCtrRef, c.AddCtrKnd = 0, lRef{}, ""
+		n++
+	}
+	if n != 1 || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.SubAmongN != 0 || c.TapN != 0 || c.TapHost || c.SacHost || c.BlightN != 0 || c.EvidenceN != 0 || c.EvidenceX || c.AddCtr != 0 || c.AddCtrRef.Kind != rNone {
 		return in, refuse("resolution cost shape")
 	}
 	return in, nil

@@ -2483,7 +2483,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		} else if in.Op == "UnlessSwitched" {
 			ki.Op = kop.OpUnlessSwitched
 		}
-		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "DamageYou": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "Waterbend": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileStackSelf": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
+		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "DamageYou": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "Waterbend": kop.PayTapX, "AddCounter": kop.PayAddCounter, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileStackSelf": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
 		if pk == 0 {
 			return ki, fmt.Errorf("pay kind %q", in.CS)
 		}
@@ -2491,6 +2491,23 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, fmt.Errorf("pay skip %d", in.Skip)
 		}
 		ki.C = int16(pk | in.Skip<<4)
+		if in.CS == "AddCounter" {
+			// PayAddCounter is not a C-nibble kind (it is appended past the
+			// 15 the nibble holds): the instruction rides PayTapX with B.N
+			// packing the counter kind and the recipient (kop.PayAddCounterB).
+			// The kernel widens it to its own pay kind
+			// (cost_unlessaddcounter.go).
+			r, err := cb.ref(in.Obj2)
+			if err != nil {
+				return ki, err
+			}
+			n, ok := kop.PayAddCounterB(kop.CounterKind(in.B.N), r)
+			if !ok {
+				return ki, fmt.Errorf("AddCounter recipient ref %d", r)
+			}
+			ki.C = int16(kop.PayTapX | in.Skip<<4)
+			ki.B = kop.Const(n)
+		}
 		if in.CS == "Blight" {
 			ki.B = kop.Const(kop.PayBSubBlight) // a Blight, not a sacrifice
 		}

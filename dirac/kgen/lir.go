@@ -498,6 +498,7 @@ type lCost struct {
 	SubCtrKnd      string
 	AddCtr         int // put N counters of kind AddCtrKnd on the source (AddCounter<N/KIND>; Wall of Roots' M0M1)
 	AddCtrKnd      string
+	AddCtrRef      lRef // the UnlessCost$ AddCounter recipient: rSelf for CARDNAME/NICKNAME, rTarget for Card.targetedBy
 	PayLife        int
 	LifeX          bool    // PayLife<X>: pay the announced X life, SVar X Count$xPaid (kop.CostPayLife with N 0)
 	LifeBy         *lValue // PayLife<X> of a printed trigger's own cost, X read as the cost is paid (SVar X TriggeredCard$CardPower; payInstr)

@@ -799,9 +799,11 @@ OvChosenColor	untyped int	1
 OvEnterWith	untyped int	2
 PanhModeDrawn	int16	2
 PanhModeLifeGained	int16	1
+PayAddCounter	untyped int	16
 PayBBehold	untyped int	6
 PayBRemember	untyped int	4
 PayBReveal	untyped int	5
+PayBSubAddCounter	untyped int	13
 PayBSubBlight	untyped int	1
 PayBSubChain	untyped int	8
 PayBSubDamage	untyped int	14

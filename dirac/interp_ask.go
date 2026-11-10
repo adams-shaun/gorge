@@ -71,6 +71,8 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		return s.countUntapped(k, p, f, s.resSrcSlot(k)) >= amt
 	case payKindWaterbend:
 		return s.unlessWaterbendPayable(k, p, amt) // cost_unlesswaterbend.go
+	case payKindAddCounter:
+		return s.addCounterTarget(k, pips) != NoSlot // cost_unlessaddcounter.go
 	case kop.PayExileGrave:
 		return s.countGraveExile(k, p, f) >= amt
 	case payKindExileHand:
@@ -109,7 +111,7 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 		kind = payKindTrigNew // a trigger's own ExileAnyGrave<1/Card.TriggeredNewCard> cost rides PayExileGrave (trig_mayexile.go)
 	}
 	kind = resTokenPayKind(kind, in.B.N) // DamageYou<X> rides PayDraw (cost_restokens.go)
-	kind = unlessPayKind(kind, in.B.N)   // an UnlessCost$ Waterbend<N> rides PayTapX (cost_unlesswaterbend.go)
+	kind = unlessPayKind(kind, in)       // an UnlessCost$ Waterbend<N> or AddCounter rides PayTapX (cost_unlesswaterbend.go)
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubExileHand {
 		kind = payKindExileHand // a trigger's own ExileFromHand<N/Card> cost rides PayExileGrave (cost_exilefromhand.go)
 	}
@@ -729,6 +731,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.payDraw(s.g.pickP, int(s.g.pickLeft))
 		case payKindDamage, payKindPoison:
 			s.payResToken(k) // cost_restokens.go
+		case payKindAddCounter:
+			s.payAddCounter(k, &s.prog(k)[r.pc]) // cost_unlessaddcounter.go
+			return
 		case kop.PaySubCounter:
 			// B: drain the resolving source's own counters (gorge
 			// unless_cost.go:47 / trigger_cost_subcounter.go:91).
@@ -2450,7 +2455,7 @@ func (s *State) branchPayable(k *prep, b uint8, p uint8) bool {
 		if n.Op != kop.OpUnlessPaid && n.Op != kop.OpIfPaid && n.Op != kop.OpUnlessSwitched {
 			return true
 		}
-		return s.canPayGen(k, p, unlessPayKind(int(n.C&0xF), n.B.N), s.value(k, n.A), n.B.N, n.F)
+		return s.canPayGen(k, p, unlessPayKind(int(n.C&0xF), n), s.value(k, n.A), n.B.N, n.F)
 	}
 	return true
 }
