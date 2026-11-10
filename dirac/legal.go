@@ -346,7 +346,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 					continue
 				}
 			}
-			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedPoolOK(p, a) {
+			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedPoolOK(k, p, sl, a) {
 				continue // a max-speed grant is offered from the floating pool alone (kw_maxspeed.go)
 			}
 			if s.canActivate(k, sl, ai, a, sorc, &av) {

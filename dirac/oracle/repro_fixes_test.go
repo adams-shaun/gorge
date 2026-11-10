@@ -716,6 +716,9 @@ func TestStdDftReprosLockstep(t *testing.T) {
 		{"own_counter_replacement_does_not_apply_to_own_entry", false, false}, // CR 614.12: Caradora's "a creature or Vehicle you control" plus-one does not apply to the +1/+1 counter Thunderous Velocipede grants it as it enters; a general subset excludes the entrant itself
 		{"returned_aura_host_before_paid_draw", false, false},                 // CR 303.4f, 610.3: sacrificing Perilous Snare pays Chandra's "if you do, draw": its exiled Aura's host answer comes before the draw, as gorge asks it mid-payment
 		{"lost_abilities_tappower_bonus", false, false},                       // CR 613.1f: a Pilot token under Flood the Engine loses the TapPowerValue static, so it contributes its printed power to a Saddle cost
+		{"actonly_pool_pays_surveyor_grave_grant", true, false},               // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Leonin Surveyor's max-speed graveyard activation
+		{"actonly_pool_pays_grave_return", false, false},                      // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Deathless Pilot's graveyard return
+		{"actonly_pool_pays_battlefield_grant", true, false},                  // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Hour of Victory's max-speed battlefield grant
 	})
 }
 
