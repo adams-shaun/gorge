@@ -16,8 +16,8 @@ import (
 // refusal is by name.
 func TestSecondFixedManaAbility(t *testing.T) {
 	want := map[string]string{
-		"Weather Maker":            "a cost beyond {T}",
-		"Scene of the Crime":       "a cost beyond {T}",
+		"Weather Maker":            "a cost beyond {T} the kernel's mana walk cannot activate: its tap-another and counter gap kinds read only the first mana ability",
+		"Scene of the Crime":       "a cost beyond {T} the kernel's mana walk cannot activate: its tap-another and counter gap kinds read only the first mana ability",
 		"Tablet of Discovery":      "a restricted fixed colour of several mana",
 		"Growing Rites of Itlimoc": "an evaluated amount of the first ability's colour",
 	}

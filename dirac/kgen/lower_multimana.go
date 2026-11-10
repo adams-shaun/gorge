@@ -38,7 +38,8 @@ import (
 //     which the kernel models as a pain source (mana_pain.go painLife).
 //
 // Every other shape (a second ability with a sacrifice, counter or
-// tap-another cost: a last-resort alternative gorge's planner may take; an
+// tap-another cost: gorge's census leaves a counter or tap-another one a
+// relaxable gap its prefix search activates, not a planner alternative; an
 // unrestricted choice beside a fixed one; a paid fixed-colour or hybrid
 // filter; a dynamic fixed colour) is refused.
 func (lc *lowerCtx) refuseMultiMana() {
@@ -261,8 +262,12 @@ func manaGapModelled(first, a *lAbility) bool {
 // reasons the kernel's lockstep games and activation walk show):
 //
 //   - a cost beyond {T}: tapping another creature (Scene of the Crime) or
-//     removing counters (Weather Maker): the kernel's mana walk cannot
-//     activate it, and gorge's planner takes it as an alternative;
+//     removing counters (Weather Maker): gorge's census leaves it a
+//     relaxable once-only gap (pay.PlanLastResortCostOK refuses both parts)
+//     whose prefix script activates the source, answers the ability ask with
+//     the second ability, then its colour; the kernel's tap-another and
+//     counter gap kinds (mana_tapanother.go, mana_countercost.go) read only
+//     a source's first mana ability (pcard.manaAb), so neither can play it;
 //   - a spend-restricted ability of several mana of the first ability's own
 //     fixed colour (Tablet of Discovery): the kernel's restricted pair unit
 //     plans only the any-colour larger alternative, so the planner taps
@@ -274,7 +279,7 @@ func manaGapWhy(first, a *lAbility) string {
 	m := a.Mana
 	switch {
 	case !plainTapMana(a, false) && !plainTapMana(a, true):
-		return "a cost beyond {T} the kernel's mana walk cannot activate"
+		return "a cost beyond {T} the kernel's mana walk cannot activate: its tap-another and counter gap kinds read only the first mana ability"
 	case m.Restrict != nil && m.Amount.Kind == vConst && m.Amount.N > 1 && len(m.Colors) == 1 && m.Colors != "WUBRG" && !m.Choice:
 		return "a restricted fixed colour of several mana: the kernel's restricted pair unit plans only an any-colour one"
 	case m.Amount.Kind > vConst && len(m.Colors) == 1 && m.Colors == first.Mana.Colors && plainTapMana(a, false):
