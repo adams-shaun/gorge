@@ -722,7 +722,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.enqueue(e.obj, e.srcVer, e.card, uint8(in.C), e.ctrl, tobj, e.ctrl, amt)
 		}
 	case kop.OpDelayedProgram:
-		o := s.objRefObj(in.Obj)
+		o := s.delayedRegObj(in.Obj)
 		if s.g.ndp >= maxDProg {
 			s.capFull(StallDProg)
 			break

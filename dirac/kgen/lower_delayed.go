@@ -153,8 +153,16 @@ func (lc *lowerCtx) delayedRemember(ro string, exec *cards.SA) (lRef, error) {
 			// a triggered ability's plain Remembered group is its fire-time
 			// capture unless this resolution wrote its own set and the delayed
 			// body is the group sacrifice over it (DigUntil RememberFound$ True
-			// then SacrificeAll Defined$ DelayTriggerRememberedLKI, Will Riker)
-			return lRef{}, refuse("delayed trigger RememberObjects %q in a triggered ability (the trigger capture)", ro)
+			// then SacrificeAll Defined$ DelayTriggerRememberedLKI, Will Riker).
+			// A set the chain wrote is the registration's own memory when it
+			// holds one object (rememberedHoldsOne); several refuse by name.
+			if lc.ab.Kind == akTriggered && lc.hasRememberWriter() {
+				if !lc.rememberedHoldsOne() {
+					return lRef{}, refuse("delayed trigger RememberObjects %q in a triggered ability: a set of several objects (the record holds one)", ro)
+				}
+			} else {
+				return lRef{}, refuse("delayed trigger RememberObjects %q in a triggered ability (the trigger capture)", ro)
+			}
 		}
 		if lc.czForgetSet {
 			// a ChangeZoneAll ForgetOtherRemembered$ leaves a many-object
@@ -169,6 +177,14 @@ func (lc *lowerCtx) delayedRemember(ro string, exec *cards.SA) (lRef, error) {
 			}
 		}
 		return lRef{Kind: rRemembered}, nil
+	case "SacrificedCards":
+		// the one object an activation cost sacrificed (the kernel's
+		// entry LKI record, sacrificedIsCost); read as the card it is when
+		// the ability resolves, which is what gorge stamps
+		if lc.ab.Kind != akActivated || !lc.sacrificedIsCost() {
+			return lRef{}, refuse("delayed trigger RememberObjects %q without exactly one sacrifice paid as the ability's own cost", ro)
+		}
+		return lRef{Kind: rSacrificed}, nil
 	case "TriggeredCard", "TriggeredCardLKICopy":
 		// gorge effDelayedTrigger's RememberObjects$ replaces the chain's
 		// capture with the trigger's card (knownDefinedTargets). The delayed
