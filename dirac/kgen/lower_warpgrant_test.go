@@ -32,8 +32,8 @@ func warpGrantCard(t *testing.T, statics ...string) (*lCard, []built, error) {
 // The hand warp grant in the shape Tannuk, Steadfast Second prints, and its
 // haste static.
 const (
-	warpGrantLine = "S:Mode$ Continuous | Affected$ Artifact.YouOwn,Creature.Red+YouOwn | EffectZone$ Battlefield | AffectedZone$ Hand | AddKeyword$ Warp:2 R | Description$ Artifact cards and red creature cards in your hand have warp {2}{R}."
-	warpHasteLine = "S:Mode$ Continuous | Affected$ Creature.YouCtrl+Other | AddKeyword$ Haste | Description$ Other creatures you control have haste."
+	warpGrantLine = "S:Mode$ Continuous | AffectedZone$ Hand | Affected$ Artifact.YouOwn,Creature.Red+YouOwn | AddKeyword$ Warp:2 R | EffectZone$ Battlefield | Description$ The probe's controller's hand artifacts and red creatures gain warp {2}{R}."
+	warpHasteLine = "S:Mode$ Continuous | AddKeyword$ Haste | Affected$ Creature.Other+YouCtrl | Description$ The probe's other creatures gain haste."
 )
 
 // TestLowerAffzoneHandWarpGrant: a Continuous static granting warp to cards

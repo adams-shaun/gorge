@@ -68,12 +68,16 @@ func (s *State) warpInstances(k *prep, p uint8, o Obj) warpInsts {
 	}
 	var out warpInsts
 	for i := uint8(0); i < all.n; i++ {
-		j := 1 - i
-		if warpCostCovers(&all.cost[j], &all.cost[i]) && (j < i || !warpCostCovers(&all.cost[i], &all.cost[j])) {
-			continue
+		dropped := false
+		for j := uint8(0); j < all.n; j++ {
+			if j != i && warpCostCovers(&all.cost[j], &all.cost[i]) && (j < i || !warpCostCovers(&all.cost[i], &all.cost[j])) {
+				dropped = true
+			}
 		}
-		out.cost[out.n], out.grant[out.n] = all.cost[i], all.grant[i]
-		out.n++
+		if !dropped {
+			out.cost[out.n], out.grant[out.n] = all.cost[i], all.grant[i]
+			out.n++
+		}
 	}
 	return out
 }
