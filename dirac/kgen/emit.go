@@ -282,6 +282,15 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 			if in.Op == kop.OpSkipUnless {
 				cond(kop.CondID(in.C))
 			}
+			if in.Op == kop.OpSearchEx && in.B.K == kop.VConst && in.B.N&kop.SrShareLandType != 0 {
+				// zone_sharelandtype.go compares the found lands' printed
+				// types, so the matchup keeps the five basic land types
+				for _, w := range [...]string{"Plains", "Island", "Swamp", "Mountain", "Forest"} {
+					if i, ok := pt.subIdx[w]; ok {
+						set[uint8(i)] = true
+					}
+				}
+			}
 			if in.Op == kop.OpCreateEmblem {
 				for i := range pt.emblems[in.C].Abilities {
 					abil(&pt.emblems[in.C].Abilities[i])

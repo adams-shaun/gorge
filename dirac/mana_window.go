@@ -313,9 +313,13 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 			s.touchSl(sl)
 			s.manaTapped(k, sl)
 		}
+		life := s.windowGrantLife(k, sl, pc, col)
 		s.poolAdd(p, col, int(pc.manaN))
 		s.addExtraCol(k, p, sl, pc, col)
 		s.artTag(k, p, sl, col)
+		if life > 0 {
+			s.loseLife(k, p&1, int(life)) // a granted ability's life cost, not damage (mana_grantcost.go)
+		}
 		if k.painMana && pc.painCol != 0 && (pc.painOnly || uint8(pc.manaCol)&(1<<col) == 0) {
 			s.painDamage(k, sl, p, int(pc.painN)) // the painful ability's rider (mana_pain.go)
 		}
@@ -469,7 +473,7 @@ func (s *State) windowGrantPC(k *prep, sl Slot) *pcard {
 	if n = s.grantsAdmitted(k, sl, &gi, n, &d); n == 0 {
 		return &noManaPC
 	}
-	return s.grantView(k.gen, gi[0], sl)
+	return s.windowPayableGrant(k, sl, &gi, n)
 }
 
 // windowWide: sl is p's untapped wide any-colour restricted source (Flamebraider)

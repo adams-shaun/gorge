@@ -69,6 +69,14 @@ func (s *State) fundSac(k *prep, sl Slot) {
 	if !s.manaPCGen(k, sl).manaSac {
 		return
 	}
+	s.sacFilterSource(k, sl)
+}
+
+// sacFilterSource sacrifices the mana source at sl: its Sacrificed triggers
+// fire, it leaves for its owner's graveyard, and a token ceases. A Treasure's
+// funding step (fundSac) and a filter whose activation cost sacrifices the
+// source (Omni-Cheese Pizza, filtDo) share it.
+func (s *State) sacFilterSource(k *prep, sl Slot) {
 	o := s.perms[sl].obj
 	s.fireSac(k, sl)
 	s.leave(k, sl, kop.ZoneGraveyard, false)

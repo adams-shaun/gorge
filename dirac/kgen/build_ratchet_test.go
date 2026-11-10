@@ -209,8 +209,9 @@ import (
 // +5 (the merge with land: this branch's +5 beside land's +26, disjoint; merged ALL build-level 21784 -> 21789).
 // +1 (Boommobile: kop.SpmActivated; the merge with land: land's 21792 + 1 = 21793).
 // +6 (a static's granted Exalted: the cards listed at ratchet_test.go's ALL pin; ALL build-level 21873 -> 21879).
+// +3 (a filter whose activation cost sacrifices its source: the cards listed at ratchet_test.go's ALL pin; ALL build-level 21930 -> 21933).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21930, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21935, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

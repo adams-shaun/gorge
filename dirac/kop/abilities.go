@@ -234,11 +234,12 @@ func TapXMana(a *Ability) bool { return TapXManaAb(a) || TapXManaTwo(a) }
 // (Produced$ Combo, AfManaChoice). gorge's planner census misses it (a paid
 // census gap); the kernel runs gorge's prefix search over it (kernel
 // mana_filter.go, mana_filterfirst.go). {1}, {T}, sacrifice this
-// (Omni-Cheese Pizza) is not modelled: dirac/kgen refuses it by name.
+// (Omni-Cheese Pizza, Chromatic Star, Golden Egg) is one too: the kernel
+// sacrifices the source as the activation is applied (sacFilterSource).
 func FilterManaAb(a *Ability) bool {
 	m := &a.Cost.Mana
 	if a.Kind != AbMana || m.Generic == 0 || m.X != 0 || m.Hyb != ([4]ColorMask{}) || m.Tb != 0 || m.Pips != ([NumManaKinds]uint8{}) ||
-		a.Cost.Flags != CostOncePerTurn && a.Cost.Flags != CostTap || a.ManaRestrict != 0 || a.ManaN > 1 || len(a.Prog) != 0 ||
+		a.Cost.Flags != CostOncePerTurn && a.Cost.Flags != CostTap && a.Cost.Flags != CostTap|CostSacSelf || a.ManaRestrict != 0 || a.ManaN > 1 || len(a.Prog) != 0 ||
 		a.Gate.Ctr != 0 || a.Trig.Cond != 0 || a.ActZone != ZoneNone && a.ActZone != ZoneBattlefield {
 		return false
 	}
@@ -259,7 +260,8 @@ func FilterManaAb(a *Ability) bool {
 //     sacrifice this alone (pcard.manaTap / manaSac / manaSacOnly), a counter
 //     placed on or removed from the source once a turn (CtrManaAb), the tap-another-
 //     permanent shape of TapXManaAb, or a filter (FilterManaAb);
-//   - a granted (latent) one: a mana-free {T} (genPrep.grantPC);
+//   - a granted (latent) one: a mana-free {T} or {T} + pay N life
+//     (genPrep.grantPC; dirac mana_grantcost.go);
 //   - any later own mana ability: a {T} (a fixed-colour set, a restricted,
 //     filter or each-colour gap) or {T} + pay life (a pain alternative); the
 //     shape guards in dirac/kgen refuseMultiMana choose among those.
@@ -271,7 +273,8 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	f := a.Cost.Flags
 	plain := a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
 	if a.AFlags&AfLatent != 0 {
-		return f == CostTap && plain
+		// {T}, or {T} + pay N life (Forgotten Monument)
+		return plain && (f == CostTap || f == CostTap|CostPayLife && a.Cost.N >= 1)
 	}
 	first := -1
 	for i := range cd.Abilities {

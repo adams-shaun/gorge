@@ -6,7 +6,7 @@
     "pool": "std-trc",
     "surface": "full",
     "seed": 1,
-    "pair": 18,
+    "pair": 1249,
     "policy": "random",
     "mulligans": 0
   }

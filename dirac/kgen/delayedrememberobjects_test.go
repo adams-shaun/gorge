@@ -12,6 +12,9 @@ var delayedRememberObjectsCarriers = map[string]struct{ form, lir string }{
 	"U.S.S. Farragut, Bold Explorer": {
 		"a triggered ability's Remembered set that its own hand-to-battlefield choice of one card wrote",
 		"DelayedTrigger obj=Remembered C=1 CS=NextEndStep"},
+	"The Guardian of Forever": {
+		"the one card an activation cost sacrificed",
+		"DelayedTrigger obj=Sacrificed C=1 CS=NextEndStep"},
 }
 
 func TestDelayedRememberObjects(t *testing.T) {
@@ -58,22 +61,4 @@ func TestDelayedRememberObjectsRefusesSets(t *testing.T) {
 	if n != 2 {
 		t.Errorf("%d refusals name %q, want 2 (enters and attacks): %v", n, want, cs[0].Refusals)
 	}
-}
-
-// TestDelayedRememberObjectsRefusesSacrificed: gorge still finds a sacrificed
-// card after it moved from the graveyard to exile (its incarnation advances
-// only across the battlefield boundary) where the kernel's program does not,
-// so The Guardian of Forever refuses by name.
-func TestDelayedRememberObjectsRefusesSacrificed(t *testing.T) {
-	cs := lowerNamed(t, []string{"The Guardian of Forever"})
-	if len(cs) != 1 {
-		t.Fatalf("lowered %d cards, want 1", len(cs))
-	}
-	want := `delayed trigger RememberObjects "SacrificedCards": gorge still finds the card`
-	for _, r := range cs[0].Refusals {
-		if strings.Contains(r.Reason, want) {
-			return
-		}
-	}
-	t.Errorf("refusals %v, want %q", cs[0].Refusals, want)
 }

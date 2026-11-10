@@ -43,9 +43,9 @@ type TargetStamp struct {
 	// it advances on every zone change (not only the battlefield crossing
 	// Incarnation marks), so the resolution recheck drops a target that
 	// changed zones since, whatever zones it passed through. Only the
-	// target stamps (foldTargetsChosen, a StackCopy's named targets) and
-	// the trigger fire-time stamps set it; the remembered-list stamps that
-	// share the type leave it zero and nothing judges them by it.
+	// target stamps (foldTargetsChosen, a StackCopy's named targets), the
+	// trigger fire-time stamps and the delayed-trigger remembered-list
+	// stamps (DelayedTrigger.RememberedStamps) set it.
 	ZoneGen uint32
 }
 

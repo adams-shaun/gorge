@@ -25,6 +25,16 @@ func (lc *lowerCtx) rememberedHoldsOne() bool {
 	return writers == 1 && ok
 }
 
+// dualDelayedReturn reports a ChangeZone Origin$ Graveyard,Exile whose Defined$
+// is the delayed registration's remembered object and whose destination is the
+// battlefield: gorge moves the object when it lies in either zone (a Return
+// whose origin mask holds both), and does nothing once it has gone elsewhere.
+// A ChangeType$ or Hidden$ pick is another shape (graveExilePick).
+func dualDelayedReturn(ps *params) bool {
+	return ps.str("Defined") == "DelayTriggerRememberedLKI" && ps.str("Destination") == "Battlefield" &&
+		ps.str("ChangeType") == "" && ps.str("Hidden") == ""
+}
+
 // rememberedFromDig reports whether a dig of the program so far wrote the
 // remembered set: it holds as many cards as the dig takes, which the delayed
 // record cannot carry (Dragonhawk's exiled top X cards).
