@@ -360,6 +360,10 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"mmmenon_library_top_cast_binned_by_prefix_draw", true, false},        // CR 400.7: Mechan Navigator's tap draws the library-top Cryogen Relic and discards it, so the cast the granted blue would pay no longer exists
 		{"plan_tap_skips_granted_mana_ability", true, false},                   // CR 106.6, 702.185a: the plan's All-Fates Scroll tap is its printed any-colour ability, not Mm'menon's granted hand-barred {U} the wheel also lists, so the Starwinder warp cast from hand is paid and made
 		{"starwinder_warp_needs_second_blue", true, false},                     // CR 106.6, 702.185a: Starwinder's warp {2}{U}{U} has only Uthros's {U} beside Mm'menon's hand-barred artifact blue, and the live filter that makes grantCap stand down does not make the hand-barred grant a unit, so no warp cast is offered
+		// CR 603.3, 602.2b: Cryoshatter on Zookeeper Mechan: its {T}: Add {R} fires the unvetted Taps watcher, so gorge's census never lists it and the {6}{R} sorcery pump it would help pay is not offered on autopay
+		{"taps_deferred_source_pays_no_own_sorcery_activation", true, false},
+		// ... and on the full surface
+		{"taps_deferred_source_pays_no_own_sorcery_activation_full", false, false},
 	})
 }
 
