@@ -269,6 +269,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Madness != nil {
 		fmt.Fprintf(w, " madness=%s", c.Madness)
 	}
+	if c.Miracle != nil {
+		fmt.Fprintf(w, " miracle=%s", c.Miracle)
+	}
 	if c.Warp != nil {
 		fmt.Fprintf(w, " warp=%s", c.Warp)
 	}

@@ -567,6 +567,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if e.trigPl == trigPlMadness && cd.HasMadness {
 			c = cd.MadnessCost // the madness cast from exile (CR 702.35b)
 		}
+		if e.trigPl == trigPlMiracle && cd.HasMiracle {
+			c = cd.MiracleCost // the miracle cast from hand (CR 702.94a; kw_miracle.go)
+		}
 		if k.gen != nil && k.gen.anySneak && e.trigPl == trigPlSneak && cd.HasSneak {
 			c = cd.SneakCost // the sneak cost (CR 702.190a; kw_sneak.go)
 		}
@@ -641,6 +644,9 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 	}
 	for {
 		switch s.bld().stage {
+		case bsMiracle:
+			s.miracleRevealOptions(d)
+			return true
 		case bsPush:
 			if s.bld().bfl&bflPushed == 0 {
 				if k.gen != nil && k.gen.anyStation && s.stationPick(k, d) {
@@ -1220,6 +1226,10 @@ func (s *State) applyBuild(k *prep, a Action) {
 	e := &s.bld().e
 	switch a.Kind() {
 	case AkChoose:
+		if s.bld().stage == bsMiracle {
+			s.answerMiracleReveal(k, a)
+			return
+		}
 		if s.bld().stage == bsGift {
 			s.answerGift(k, a)
 			break
@@ -1456,7 +1466,7 @@ func (s *State) finishBuild(k *prep) {
 			s.tapRiderPlan(k, e) // (a lowered cast has no plan: its window below)
 		}
 		obsPool, obsOK := s.obsWinPool(e.ctrl)
-		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || e.trigPl == trigPlMadness {
+		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || e.trigPl == trigPlMadness || e.trigPl == trigPlMiracle {
 			// a free cast mid-resolution (Etali) pays the rest of its
 			// cost (Eaten Alive's {3}{B} part) through gorge's mana
 			// window, not the priority planner (pair 9954); a cost the
@@ -1854,8 +1864,9 @@ const abWard uint8 = 253
 
 // abCascade marks a kernel-native cascade trigger (CR 702.85a; no CardDef
 // ability): its source is the cascade spell, trigAmt its mana value. Every
-// ab at or above it is kernel-native (no Abilities entry to index).
-const abCascade uint8 = 249
+// ab at or above it is kernel-native (no Abilities entry to index). It was
+// 249 until abMiracle (kw_miracle.go) took that value to stay above it.
+const abCascade uint8 = 248
 
 // abStorm marks a kernel-native storm trigger (CR 702.40a; no CardDef
 // ability): its source is the spell, trigObj the same spell, trigAmt the
@@ -1973,6 +1984,11 @@ func (s *State) takePending(k *prep, i int) {
 		s.bld().e.tver[0] = pt.wardSid
 	}
 	s.bld().stage = stageFirst[seTrigger]
+	if pt.ab == abMiracle {
+		s.bld().stage = bsMiracle // asked before it is put on the stack (kw_miracle.go)
+		s.ctl = ctlBuild
+		return
+	}
 	if k.gift {
 		s.giftPushed(k, &pt)
 	}

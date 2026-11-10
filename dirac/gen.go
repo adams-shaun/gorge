@@ -112,6 +112,7 @@ type genPrep struct {
 	anyDisETB                bool // a card has a DisableTriggers enters static (kop.StatDisableETB; trig_disable.go)
 	anyLatentDies            bool // a card has a latent dies trigger an override or static can grant (trig_diesleaves.go)
 	anyMadness               bool // a card has printed madness (CardDef.HasMadness; kw_madness.go)
+	anyMiracle               bool // a card has printed miracle (CardDef.HasMiracle; kw_miracle.go)
 	anyHexCol                bool // a card has printed hexproof from a colour (CardDef.HexColors; kw_hexproofcolor.go)
 	anyProtCol               bool // a card has printed protection from a colour (CardDef.ProtColors; kw_protection.go)
 	// grantTrigEv: events (bit per TrigEvent) of triggered abilities a
@@ -803,6 +804,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.HasMadness {
 			g.anyMadness = true
+		}
+		if c.HasMiracle {
+			g.anyMiracle = true
 		}
 		firstMana := true
 		graveAdded := false // graveTrig lists a card once, though it may carry several graveyard triggers

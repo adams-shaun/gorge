@@ -304,6 +304,9 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 	if s.subs[kop.TrigDrawn].any() || s.cfgx&cfgxGraveDrawn != 0 {
 		s.fireDrawn(p)
 	}
+	if pl.drawnTurn == 1 && s.turn > 0 {
+		s.queueMiracle(o) // kw_miracle.go: after the T: lines, as gorge's offerMiracle
+	}
 }
 
 func (s *State) lose(p uint8) {

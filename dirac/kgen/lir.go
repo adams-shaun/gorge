@@ -904,6 +904,7 @@ type lCard struct {
 	SpendRead      bool      // an SVar body reads Count$CastTotalManaSpent: gorge's planner declines the cast
 	FbCost         *lCost    // the flashback cost's non-mana part (Sac<N/Spec> or tapXType<N/Spec>)
 	Madness        *manaCost // K:Madness:<cost> (CR 702.35a): the exile-cast cost
+	Miracle        *manaCost // K:Miracle:<cost> (CR 702.94a): the hand-cast cost of the revealed first draw
 	Warp           *manaCost // K:Warp:<cost> (CR 702.185a): the hand's alternate cost and the end-step exile marker
 	NoAbilities    bool      // the printed face has no ability (effects.FaceHasNoAbilities): CardDef.NoAbilities, the NoAbilities filter word's card read
 	Impending      *manaCost // K:Impending:<N>:<cost> (CR 702.176a): the hand's alternate cost; ImpendingN time counters

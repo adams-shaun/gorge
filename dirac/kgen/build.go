@@ -591,6 +591,12 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Miracle != nil {
+		d.HasMiracle = true // CR 702.94a (dirac/kw_miracle.go)
+		if d.MiracleCost, err = manaCostOf(*c.Miracle); err != nil {
+			return err
+		}
+	}
 	d.NoAbilities = c.NoAbilities
 	if c.Warp != nil {
 		// CR 702.185a: no KwMask bit is free, so the warp marker is its own

@@ -608,6 +608,9 @@ func (s *State) applyAskUnread(k *prep, a Action) bool {
 //
 //go:noinline
 func (s *State) askOptionsPauperkw(k *prep, d *Decision) bool {
+	if s.res.ask == raGenMiracle {
+		return s.miracleAskOptions(k, d) // kw_miracle.go
+	}
 	if s.res.ask != raGenMadness {
 		return false
 	}
@@ -625,6 +628,9 @@ func (s *State) askOptionsPauperkw(k *prep, d *Decision) bool {
 //
 //go:noinline
 func (s *State) applyAskPauperkw(k *prep, a Action) bool {
+	if s.res.ask == raGenMiracle {
+		return s.applyMiracleAsk(k, a) // kw_miracle.go
+	}
 	if s.res.ask != raGenMadness {
 		return false
 	}

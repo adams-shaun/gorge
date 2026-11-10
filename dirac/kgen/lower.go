@@ -1482,13 +1482,17 @@ func (lc *lowerCtx) lowerKeywords() {
 			// requirement, one blocker satisfies it)
 			lc.out.MustBeBlocked = true
 		case head == "Miracle":
-			// CR 702.94a: a revealed first draw triggers, and the card may
-			// be cast as that trigger resolves. gorge instead asks as the
-			// offer is put on the stack and casts the card there and then,
-			// with no stack object; the kernel has no cast begun from
-			// trigger placement, so it is refused by name until both
-			// engines resolve the trigger on the stack.
-			lc.refuseNode(node, "keyword %q: gorge casts at trigger placement, not as the trigger resolves (CR 702.94a)", head)
+			// CR 702.94a: the first draw of a turn offers the reveal; the
+			// revealed card's trigger is on the stack, and its resolution
+			// offers the cast from hand for this cost (dirac/kw_miracle.go).
+			// X, hybrid and a ":" rider or granted spelling (Aminatou's
+			// ManaCost form) refuse.
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.Contains(param, ":") || mc.X || len(mc.Hybrid) > 0 || len(mc.Twobrid) > 0 {
+				lc.refuseNode(node, "miracle cost %q", param)
+				continue
+			}
+			lc.out.Miracle = &mc
 		default:
 			lc.refuseNode(node, "keyword %q", head)
 		}

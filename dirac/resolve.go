@@ -195,6 +195,10 @@ func (s *State) resolveTop(k *prep) {
 			s.resolveMadness(k) // kw_madness.go
 			return
 		}
+		if e.ab == abMiracle {
+			s.resolveMiracle(k) // kw_miracle.go
+			return
+		}
 		if e.ab == abDelayed {
 			if e.trigAmt == initTrigAmt && e.obj == NoObj {
 				if s.resolveVentureTrig(k) { // act_initiative.go
