@@ -467,6 +467,7 @@ func TestAnnouncedLifeCastBehindAFilterLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "announced_life_cast_behind_filter", "std-trc", Config{})
 }
+
 // A delayed return brings two exiled lands back, the first a land that asks to
 // reveal a card as it enters. The election is asked inside its own move, so the
 // second land is still in exile while the first one's controller answers.
@@ -481,4 +482,13 @@ func TestRememberedReturnAsksBetweenMovesLockstep(t *testing.T) {
 func TestAbilityReductionExcessPaysXLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "ability_reduction_excess_pays_x", "std-dft", Config{GorgeAutopaySurface: true})
+}
+
+// A creature that took away another's abilities for as long as it stays on the
+// battlefield is blinked: the effect ends as it leaves (CR 611.2b), and the
+// object that returns is a new one (CR 400.7), so the other creature's
+// activated ability is offered again.
+func TestBlinkedSourceEndsAbilityLossLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "blinked_source_ends_ability_loss", "std-msh", Config{GorgeAutopaySurface: true})
 }

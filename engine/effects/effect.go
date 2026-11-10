@@ -1147,6 +1147,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ChosenNumber:  chosenNumber,
 					FromEffect:    true,
 				}
+				if isAsLongAsInPlayDuration(rawDur) {
+					// CR 611.2b, 400.7: the grant ends when its source leaves the
+					// battlefield, and a source that comes back is a new object
+					lt.SourceIncarnation = effectHostIncarnation(h, c)
+				}
 				if registerStaticEffectGrant(h, c, c.Source, affects, g, lt) {
 					registered = true
 				} else {
