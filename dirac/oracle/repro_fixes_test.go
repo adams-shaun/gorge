@@ -201,6 +201,10 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"x_cast_rider_keeping_plan_lowered", false, false},             // CR 609.4b, 601.2b: the same cast played: its payment taps the rider's keeping plan, not the smaller-X witness
 		{"copy_keyword_exception_returns_when_loss_ends", false, false}, // CR 707.9b, 613.1f: Mockingbird copying Shoreline Looter, made to lose all abilities until its controller's next turn, has its copy exception's flying again when the loss ends
 		{"any_one_colour_restricted_x_colour_choice", false, false},     // CR 106.6, 601.2b: Helga's two restricted mana count in the {X} ceiling of Mockingbird's cast, so its witness taps every source for X = 4
+		// CR 106.6, 601.2b: Pond Prophet's {G/U}{G/U} after Lilysplash Mentor's creature-only {G}: the witness taps Lilypad Village for {U}, which floats restricted beside the {G} the lowering took into the pool, so the pip ask sees both
+		{"restricted_witness_tap_survives_hybrid_lowering", false, false},
+		// CR 106.6, 601.2g-h: Helga, a Frog under Clement's grant, asks its mana ability with the {U} answer first for Plumecreed Mentor, so the grant's creature-only {U} prices the cast and Clement stays untapped
+		{"granted_mana_ask_tries_needed_colour_first", false, false},
 	})
 }
 

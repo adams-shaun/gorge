@@ -481,6 +481,10 @@ type grantSrch struct {
 	// play needs before the colours it does not. It only reorders a colour
 	// ask's answers, never the answer set.
 	need [kop.NumManaKinds]bool
+	// sel is the pass of a source's several-ability ask (visit, needPass):
+	// 1 branches only the answers that name a needed colour, 2 the others
+	// (selColours). 0: the ask is not split.
+	sel uint8
 	// pver is the play's own object's version at the root (Obj.ver): the play
 	// stands only while its card has not changed zones (waitsForStack)
 	pver uint8
@@ -726,67 +730,79 @@ func (g *grantSrch) visit(t *State) bool {
 		if !grants {
 			continue
 		}
-		if ppc := t.manaPCGen(g.k, sl); g.dual[i] && !t.ownRestrPrinted(g.k, sl) && grantPainShape(g.k, ppc) {
-			if g.painBranch(t, i, sl, ppc, alts == 1) { // its painful ability's colours too (mana_grantpain.go)
-				return true
-			}
-		} else if g.dual[i] {
-			mask, n := uint8(0), uint8(0)
-			if ra := t.ownRestrAb(g.k, sl); ra != nil && !t.ownManaUsable(g.k, sl) {
-				mask, n = uint8(ra.ManaColors)&0x3f, max(ra.ManaN, 1) // the restricted printed ability
-				// gorge's search taps it first whether or not the play may spend
-				// it; mana the play cannot spend prices nothing
-				g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
-			} else {
-				ppc := t.manaPCGen(g.k, sl)
-				mask, n = t.srcMaskAt(ppc, sl), ppc.manaN
-			}
-			if g.branch(t, i, sl, -1, mask, n, alts == 1) {
-				return true
-			}
+		// gorge's "choose a mana ability" ask lists the answers of the source's
+		// abilities flattened (a Combo's colours each, an Any ability one
+		// option that asks its colour after) and tries first the ones that name
+		// a colour the play needs (scriptOrderAnswers): a granted {U} before
+		// the printed any-colour ability's answers when the play needs {U}
+		lo, hi := uint8(0), uint8(0)
+		if alts > 1 && !tx && !fok && g.needPass(t, i, sl) {
+			lo, hi = 1, 2
 		}
-		if g.dual[i] && t.ownManaUsable(g.k, sl) {
-			// a restricted printed ability beside the usable one (White Lotus
-			// Hideout's Lesson-only any colour): gorge's search taps it too, after
-			// the usable one, whether or not the play may spend it
-			if ra := t.ownRestrAb(g.k, sl); ra != nil {
-				g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
-				if g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, max(ra.ManaN, 1), false) {
+		for g.sel = lo; g.sel <= hi; g.sel++ {
+			if ppc := t.manaPCGen(g.k, sl); g.dual[i] && !t.ownRestrPrinted(g.k, sl) && grantPainShape(g.k, ppc) {
+				if g.painBranch(t, i, sl, ppc, alts == 1) { // its painful ability's colours too (mana_grantpain.go)
+					return true
+				}
+			} else if g.dual[i] {
+				mask, n := uint8(0), uint8(0)
+				if ra := t.ownRestrAb(g.k, sl); ra != nil && !t.ownManaUsable(g.k, sl) {
+					mask, n = uint8(ra.ManaColors)&0x3f, max(ra.ManaN, 1) // the restricted printed ability
+					// gorge's search taps it first whether or not the play may spend
+					// it; mana the play cannot spend prices nothing
+					g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
+				} else {
+					ppc := t.manaPCGen(g.k, sl)
+					mask, n = t.srcMaskAt(ppc, sl), ppc.manaN
+				}
+				if g.branch(t, i, sl, -1, mask, n, alts == 1) {
+					return true
+				}
+			}
+			if g.dual[i] && t.ownManaUsable(g.k, sl) {
+				// a restricted printed ability beside the usable one (White Lotus
+				// Hideout's Lesson-only any colour): gorge's search taps it too, after
+				// the usable one, whether or not the play may spend it
+				if ra := t.ownRestrAb(g.k, sl); ra != nil {
+					g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
+					if g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, max(ra.ManaN, 1), false) {
+						return true
+					}
+				}
+			}
+			if fok && g.filtBranch(t, i, sl) { // (listed after the printed ability, before the grants)
+				return true
+			}
+			for j := 0; j < int(g.ng[i]); j++ {
+				gi := g.gi[i][j]
+				pc := t.grantView(g.k.gen, gi, sl)
+				mask := t.srcMaskAt(pc, sl)
+				if !t.grantCostPayable(g.p, pc) {
+					continue // its life cannot be paid (CR 119.4)
+				}
+				// gorge's search taps a granted census gap whether or not the play may
+				// spend it (the mana floats, the tap fires its triggers); mana the
+				// play's origin or class cannot spend prices nothing
+				g.skipPool = !g.grantAdmits(t, sl, gi)
+				ask := alts == 1 || mask&uint8(kop.ColAny) == uint8(kop.ColAny)
+				if pc.grantSac {
+					if g.sacBranch(t, i, sl, gi, pc, mask, ask) { // the step sacrifices the source (mana_grantcost.go)
+						return true
+					}
+					continue
+				}
+				if grantCostLife(pc) > 0 {
+					if g.costBranch(t, i, sl, gi, pc, mask, ask) { // the step pays its life (mana_grantcost.go)
+						return true
+					}
+					continue
+				}
+				if g.branch(t, i, sl, gi, mask, pc.manaN, ask) {
 					return true
 				}
 			}
 		}
-		if fok && g.filtBranch(t, i, sl) { // (listed after the printed ability, before the grants)
-			return true
-		}
-		for j := 0; j < int(g.ng[i]); j++ {
-			gi := g.gi[i][j]
-			pc := t.grantView(g.k.gen, gi, sl)
-			mask := t.srcMaskAt(pc, sl)
-			if !t.grantCostPayable(g.p, pc) {
-				continue // its life cannot be paid (CR 119.4)
-			}
-			// gorge's search taps a granted census gap whether or not the play may
-			// spend it (the mana floats, the tap fires its triggers); mana the
-			// play's origin or class cannot spend prices nothing
-			g.skipPool = !g.grantAdmits(t, sl, gi)
-			ask := alts == 1 || mask&uint8(kop.ColAny) == uint8(kop.ColAny)
-			if pc.grantSac {
-				if g.sacBranch(t, i, sl, gi, pc, mask, ask) { // the step sacrifices the source (mana_grantcost.go)
-					return true
-				}
-				continue
-			}
-			if grantCostLife(pc) > 0 {
-				if g.costBranch(t, i, sl, gi, pc, mask, ask) { // the step pays its life (mana_grantcost.go)
-					return true
-				}
-				continue
-			}
-			if g.branch(t, i, sl, gi, mask, pc.manaN, ask) {
-				return true
-			}
-		}
+		g.sel = 0
 	}
 	// A paid gap's fee is funded by other sources (gorge scriptSearch's
 	// funding loop: the gaps first, then non-gaps while funding lasts).
@@ -931,11 +947,66 @@ func (g *grantSrch) tapTriggers(t *State, sl Slot) bool {
 // A step floats its tap's extra (mana_tapextra.go), whatever kind of effect
 // granted the ability it taps (gorge adds the extra to every tapped source).
 func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, ask bool) bool {
+	sel := g.sel
+	g.sel = 0 // the search below is whole again
+	ok := g.branchSel(t, i, sl, gi, mask, n, ask, sel)
+	g.sel = sel
+	return ok
+}
+
+// needPass reports whether source i (slot sl) with several mana abilities
+// asks its answers in two passes (sel): its alternatives all go through
+// branch, none a pain, sacrifice or life step.
+func (g *grantSrch) needPass(t *State, i int, sl Slot) bool {
+	any := false
+	for _, b := range g.need {
+		any = any || b
+	}
+	if !any {
+		return false
+	}
+	if g.dual[i] && !t.ownRestrPrinted(g.k, sl) && grantPainShape(g.k, t.manaPCGen(g.k, sl)) {
+		return false
+	}
+	for j := 0; j < int(g.ng[i]); j++ {
+		if pc := t.grantView(g.k.gen, g.gi[i][j], sl); pc.grantSac || grantCostLife(pc) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// selColours keeps of cols the answers pass sel of the ask walks (gorge's
+// scriptOrderAnswers: an option naming a needed colour first): pass 1 the
+// colours the play needs, pass 2 the others. An any-colour ability's
+// option names no colour, so it waits for pass 2 with all of its colours.
+func (g *grantSrch) selColours(cols []uint8, mask, sel uint8) []uint8 {
+	anyAb := mask&uint8(kop.ColAny) == uint8(kop.ColAny)
+	if anyAb {
+		if sel == 1 {
+			return nil
+		}
+		return cols
+	}
+	out := cols[:0]
+	for _, c := range cols {
+		if g.need[c] == (sel == 1) {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// branchSel is branch walking only pass sel's answers (0: all of them).
+func (g *grantSrch) branchSel(t *State, i int, sl Slot, gi int16, mask, n uint8, ask bool, sel uint8) bool {
 	if mask == 0 {
 		mask = 1 << kop.C
 	}
 	skip := g.skipPool // the printed restricted ability's unspendable mana (mana_grantrestrictedown.go)
 	g.skipPool = false
+	if sel == 1 && mask&uint8(kop.ColAny) == uint8(kop.ColAny) {
+		return false // an any-colour ability's option names no colour: its ask waits for pass 2
+	}
 	if ask && mask&(mask-1) != 0 && !g.node() {
 		return false
 	}
@@ -950,7 +1021,11 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 	var order [kop.NumManaKinds]uint8
 	no := t.stepColours(g.k, sl, gi, mask, &order)
 	needFirst(order[:no], g.need)
-	for _, c := range order[:no] {
+	cols := order[:no]
+	if sel != 0 {
+		cols = g.selColours(cols, mask, sel)
+	}
+	for _, c := range cols {
 		t.perms[sl].flags |= pfTapped
 		preBit := t.g.poolArt[g.p&1] // the typed-mana tag before the step: the untag restores exactly it (the slot may hold plain mana too)
 		t.pl[g.p&1].pool[c] += pn

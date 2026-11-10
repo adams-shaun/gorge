@@ -2189,16 +2189,19 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			// floating {R} taps nothing more, and {1}{U/R}{U/R} cast with its
 			// {W}{U} and a Treasure's {U} taps no further
 			pl := &s.pl[p&1]
-			rb := s.rb[p&1]
 			var tk [maxRB][kop.NumManaKinds]uint8
 			s.rbTake(p, m, &tk)
 			defer func() {
+				// the units go back to their batches (rbTake left them in
+				// place, emptied), beside the restricted mana the plan's own
+				// taps floated since (witnessManaRestricted): Lilypad
+				// Village's {U} beside the Mentor's {G} (CR 106.6)
 				for i := range tk {
 					for c, n := range tk[i] {
 						pl.pool[c] -= n
+						s.rb[p&1][i].n[c] += n
 					}
 				}
-				s.rb[p&1] = rb
 			}()
 		} else {
 			cost = s.restrShort(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj), cost)
