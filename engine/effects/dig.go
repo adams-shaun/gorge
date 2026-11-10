@@ -439,7 +439,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 					h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}})
 				}
 			}
-			digRemember(c, dp, id)
+			digRemember(h, c, dp, id)
 			if tapped && dest == state.ZBattlefield {
 				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
 			}
@@ -565,7 +565,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 						emitChangeZoneCounters(h, id, dp.ExileWithCounters, 1)
 					}
 				}
-				digRemember(c, dp, id)
+				digRemember(h, c, dp, id)
 			}
 		}
 		// takeAnswered applies an answered take for this target: move exactly
@@ -952,10 +952,12 @@ func defaultDigChangeNum(dp *DigParams, digNum int32) int32 {
 // Atsushi's DBEffect RememberObjects$ RememberedCard seeds the registered
 // may-play grant's Remembered from exactly this list. Absent the parameter
 // (the corpus default) the walk adds nothing, so every pre-existing game
-// replays byte-identically.
-func digRemember(c *Ctx, dp *DigParams, id state.ObjID) {
+// replays byte-identically. Both halves are written (rememberMilled): the ctx
+// list for the chained SubAbility and the source's event-backed list a
+// Count$RememberedSize read (Expand the Sphere's Number$2/Minus.Y) sees.
+func digRemember(h Host, c *Ctx, dp *DigParams, id state.ObjID) {
 	if dp.RememberChanged {
-		c.Remembered = append(c.Remembered, state.Target{Obj: id})
+		rememberMilled(h, c, id)
 	}
 }
 
