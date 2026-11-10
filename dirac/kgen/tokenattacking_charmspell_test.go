@@ -39,23 +39,23 @@ func tacsLower(t *testing.T, src string) string {
 // count); a selector other than True and Adeline's, and a True in a trigger
 // that is not the controller's own attack, still refuse.
 func TestTokenAttackingCharmSpell(t *testing.T) {
-	warren := `Name:Warren Warleader
+	warren := `Name:Probe
 ManaCost:2 W W
 Types:Creature Rabbit Knight
 PT:4/4
-T:Mode$ AttackersDeclared | AttackingPlayer$ You | Execute$ TrigCharm | TriggerZones$ Battlefield | TriggerDescription$ Whenever you attack, ABILITY
-SVar:TrigCharm:DB$ Charm | Choices$ DBToken,DBPumpAll
-SVar:DBToken:DB$ Token | TokenScript$ w_1_1_rabbit | TokenOwner$ You | TokenTapped$ True | TokenAttacking$ True | SpellDescription$ Create a 1/1 white Rabbit creature token that's tapped and attacking.
-SVar:DBPumpAll:DB$ PumpAll | ValidCards$ Creature.attacking+YouCtrl | NumAtt$ +1 | NumDef$ +1 | SpellDescription$ Attacking creatures you control get +1/+1 until end of turn.
+T:Mode$ AttackersDeclared | AttackingPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigCharm
+SVar:TrigCharm:DB$ Charm | Choices$ DBMake,DBGrow
+SVar:DBMake:DB$ Token | TokenAttacking$ True | TokenTapped$ True | TokenOwner$ You | TokenScript$ w_1_1_rabbit
+SVar:DBGrow:DB$ PumpAll | NumAtt$ +1 | NumDef$ +1 | ValidCards$ Creature.attacking+YouCtrl
 Oracle:x`
-	ronin := `Name:The Last Ronin's Technique
+	ronin := `Name:Probe
 ManaCost:3 W
 Types:Instant
 K:Sneak:1 W
-A:SP$ Branch | BranchConditionSVar$ X | BranchConditionSVarCompare$ GE1 | TrueSubAbility$ AttackingTokens | FalseSubAbility$ NormalTokens | SpellDescription$ Create three 1/1 tokens.
-SVar:NormalTokens:DB$ Token | TokenAmount$ 3 | TokenScript$ w_1_1_ninja_turtle_spirit | TokenOwner$ You
-SVar:AttackingTokens:DB$ Token | TokenAmount$ 3 | TokenScript$ w_1_1_ninja_turtle_spirit | TokenOwner$ You | TokenTapped$ True | TokenAttacking$ True
-SVar:X:Count$ValidStack Card.Self+sneaked
+A:SP$ Branch | BranchConditionSVar$ Sn | BranchConditionSVarCompare$ GE1 | TrueSubAbility$ AttackingTokens | FalseSubAbility$ NormalTokens
+SVar:NormalTokens:DB$ Token | TokenAmount$ 3 | TokenOwner$ You | TokenScript$ w_1_1_ninja_turtle_spirit
+SVar:AttackingTokens:DB$ Token | TokenAttacking$ True | TokenTapped$ True | TokenAmount$ 3 | TokenOwner$ You | TokenScript$ w_1_1_ninja_turtle_spirit
+SVar:Sn:Count$ValidStack Card.Self+sneaked
 Oracle:x`
 	for _, c := range []struct{ name, script, want string }{
 		{"warren", warren, ""},
