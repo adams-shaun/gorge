@@ -32,7 +32,7 @@ func remLKIManaValueCases() []rememberMassCase {
 			// the Researcher becomes prepared and its controller casts the
 			// spell copy on one of them
 			charmRepeatCase: charmRepeatCase{
-				name: "prepared_copy_remembers_lki_mana_value_grave_researcher", card: "Grave Researcher", prefer: []string{"Reanimate", "Walking Corpse", "Disfigure"},
+				name: "prepared_face_copy_remembers_lki_mana_value", card: "Grave Researcher", prefer: []string{"Reanimate", "Walking Corpse", "Disfigure"},
 				decks: [2][]string{
 					append(deckOf(3, "Grave Researcher"), append(deckOf(9, "Walking Corpse"), deckOf(12, "Swamp")...)...),
 					append(deckOf(10, "Disfigure"), deckOf(14, "Swamp")...),

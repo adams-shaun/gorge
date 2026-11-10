@@ -11,10 +11,10 @@ import (
 const remLKIMVProbe = `Name:Mv Probe
 ManaCost:B
 Types:Sorcery
-A:SP$ ChangeZone | Origin$ Graveyard | Destination$ Battlefield | GainControl$ True | ValidTgts$ Creature | ChangeNum$ 1 | RememberLKI$ True PARAMS| SubAbility$ DBLose
-SVar:DBLose:DB$ LoseLife | Defined$ You | LifeAmount$ X | SubAbility$ DBEnd
+A:SP$ ChangeZone | ValidTgts$ Creature | Origin$ Graveyard | Destination$ Battlefield | ChangeNum$ 1 | GainControl$ True | RememberLKI$ True PARAMS| SubAbility$ DBPay
+SVar:DBPay:DB$ LoseLife | LifeAmount$ Cost | Defined$ You | SubAbility$ DBEnd
 SVar:DBEnd:DB$ Cleanup | ClearRemembered$ True
-SVar:X:RememberedLKI$CardManaCost
+SVar:Cost:RememberedLKI$CardManaCost
 Oracle:probe
 `
 
@@ -37,8 +37,8 @@ func TestRemLKIManaValue(t *testing.T) {
 
 	for _, tc := range []struct{ name, script, params, want string }{
 		{"no writer", strings.Replace(remLKIMVProbe, " | RememberLKI$ True PARAMS", "", 1), "", "(0 earlier writers)"},
-		{"clear before the read", strings.Replace(strings.Replace(remLKIMVProbe, "SubAbility$ DBLose", "SubAbility$ DBEnd", 1),
-			"ClearRemembered$ True", "ClearRemembered$ True | SubAbility$ DBLose", 1), "", "ClearRemembered$ before the read"},
+		{"clear before the read", strings.Replace(strings.Replace(remLKIMVProbe, "SubAbility$ DBPay", "SubAbility$ DBEnd", 1),
+			"ClearRemembered$ True", "ClearRemembered$ True | SubAbility$ DBPay", 1), "", "ClearRemembered$ before the read"},
 		{"another head", strings.Replace(remLKIMVProbe, "RememberedLKI$CardManaCost", "RememberedLKI$CardCMC", 1), "", "RememberedLKI$CardCMC"},
 		{"loyalty", strings.Replace(remLKIMVProbe, "RememberedLKI$CardManaCost", "RememberedLKI$CardLoyalty", 1), "", "RememberedLKI$CardLoyalty"},
 	} {
@@ -55,7 +55,7 @@ func TestRemLKIManaValue(t *testing.T) {
 	}
 
 	// a Defined$ Self move is not a targeted Return
-	self := strings.Replace(remLKIMVProbe, "ValidTgts$ Creature | ChangeNum$ 1", "Defined$ Self", 1)
+	self := strings.Replace(remLKIMVProbe, "ValidTgts$ Creature | Origin$", "Defined$ Self | Origin$", 1)
 	if got := probeRefusals(lowerProbe(t, self, "Mv Probe", "")); !strings.Contains(got, remLKIMVShape) {
 		t.Errorf("self move: refusals %q, want %q", got, remLKIMVShape)
 	}
