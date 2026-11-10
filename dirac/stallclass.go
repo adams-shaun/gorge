@@ -236,9 +236,21 @@ func init() { stallNames[StallTwoSeat] = "twoseat" }
 
 // prepTwoSeat sets genPrep.twoSeatOnly when any card of t is two-seat only.
 func prepTwoSeat(t *kop.Table, g *genPrep) {
+	if sp, _ := prepSpeed(t); MaxSeats > 2 && sp {
+		g.twoSeatOnly = true // genState.speed packs two seats' speed, 3 bits each (kw_speed.go)
+		return
+	}
 	for i := range t.Cards {
 		if cardTwoSeat(&t.Cards[i]) {
 			g.twoSeatOnly = true
+			return
+		}
+		if MaxSeats > 2 && skipUntapCard(&t.Cards[i]) {
+			g.twoSeatOnly = true // perm.cseen holds two seats' skip-untap marks (act_skipuntap.go)
+			return
+		}
+		if MaxSeats > 2 && t.Cards[i].Types&kop.TBattle != 0 {
+			g.twoSeatOnly = true // a battle's protector is the one opponent (face_battle.go): gorge asks among the opponents (CR 310.10)
 			return
 		}
 	}
@@ -252,3 +264,15 @@ func prepTwoSeat(t *kop.Table, g *genPrep) {
 
 // cardTwoSeat reports whether c plays only in a two-seat game (kop.CardTwoSeat).
 func cardTwoSeat(c *kop.CardDef) bool { return kop.CardTwoSeat(c) }
+
+// skipUntapCard reports whether a program of c carries OpSkipUntap.
+func skipUntapCard(c *kop.CardDef) bool {
+	for i := range c.Abilities {
+		for j := range c.Abilities[i].Prog {
+			if c.Abilities[i].Prog[j].Op == kop.OpSkipUntap {
+				return true
+			}
+		}
+	}
+	return false
+}

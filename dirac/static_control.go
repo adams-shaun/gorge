@@ -53,15 +53,39 @@ const (
 // entrant takes its own override record); 32 -> 64 since 2026-11-03.
 var _ = [1]struct{}{}[maxFx-64]
 
-func (r *fxRec) cTo() uint8   { return r.r.idx & fcTo }
-func (r *fxRec) cPrev() uint8 { return r.r.idx & fcPrev >> 1 }
-func (r *fxRec) cYou() uint8  { return r.r.idx & fcYou >> 2 }
-func (r *fxRec) cDur() uint8  { return r.r.idx & fcDurMask >> fcDurShift }
-func (r *fxRec) cSrc() Obj    { return Obj(r.r.src) }
+// At more than two seats a seat takes two bits: to, prev and you live in
+// r.fl (bits 0-1, 2-3, 4-5; unused by a control record) and idx's bits 0-2
+// stay clear.
+func (r *fxRec) cTo() uint8 {
+	if MaxSeats > 2 {
+		return r.r.fl & 3
+	}
+	return r.r.idx & fcTo
+}
+func (r *fxRec) cPrev() uint8 {
+	if MaxSeats > 2 {
+		return r.r.fl >> 2 & 3
+	}
+	return r.r.idx & fcPrev >> 1
+}
+func (r *fxRec) cYou() uint8 {
+	if MaxSeats > 2 {
+		return r.r.fl >> 4 & 3
+	}
+	return r.r.idx & fcYou >> 2
+}
+func (r *fxRec) cDur() uint8 { return r.r.idx & fcDurMask >> fcDurShift }
+func (r *fxRec) cSrc() Obj   { return Obj(r.r.src) }
 func (r *fxRec) cSrcVer() uint8 {
 	return uint8(r.r.src >> 8)
 }
-func (r *fxRec) setPrev(p uint8) { r.r.idx = r.r.idx&^fcPrev | (p&1)<<1 }
+func (r *fxRec) setPrev(p uint8) {
+	if MaxSeats > 2 {
+		r.r.fl = r.r.fl&^(3<<2) | (p&3)<<2
+		return
+	}
+	r.r.idx = r.r.idx&^fcPrev | (p&1)<<1
+}
 
 // prepCtrl derives the control gates: ctrlStat per card (a StatControl
 // static) and ctrlSBA (the state-based check must look at control: a
@@ -108,7 +132,12 @@ func (s *State) gainControl(sl Slot, to, you, dur uint8, src Obj, srcVer uint8, 
 	}
 	p := &s.perms[sl]
 	r := fxRec{sl: sl, kind: fxControl}
-	r.r.idx = to&1 | (p.ctrl&1)<<1 | (you&1)<<2 | (dur&7)<<fcDurShift
+	if MaxSeats > 2 {
+		r.r.idx = (dur & 7) << fcDurShift
+		r.r.fl = to&3 | (p.ctrl&3)<<2 | (you&3)<<4
+	} else {
+		r.r.idx = to&1 | (p.ctrl&1)<<1 | (you&1)<<2 | (dur&7)<<fcDurShift
+	}
 	if static {
 		r.r.idx |= fcStatic
 		// CR 613.7a: the static's layer timestamp, captured at registration
@@ -522,7 +551,7 @@ func (s *State) ctrlPlayerRef(r kop.Ref) (uint8, bool) {
 	case kop.RefController:
 		return e.ctrl, true
 	case kop.RefOpponent, kop.RefEachOpponent:
-		return 1 - e.ctrl, true
+		return s.nextAlive(e.ctrl), true // the first of gorge's Opponent list (oneOpp)
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		t := s.tgtCode(sl)
@@ -539,7 +568,7 @@ func (s *State) nextActive() uint8 {
 	if s.pl[s.active].extraTurns > 0 {
 		return s.active
 	}
-	return 1 - s.active
+	return s.nextAlive(s.active)
 }
 
 // ovDurFl is an OpOverride / OpOverrideAll duration's record bits.

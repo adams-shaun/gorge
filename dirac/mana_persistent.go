@@ -43,7 +43,7 @@ func (s *State) persistAdd(p uint8, col, n int) {
 		s.capFull(StallPersistMana)
 	}
 	s.pm[SeatIx(p)][col] = uint8(t)
-	s.pmOn |= 1 << (p & 1)
+	s.pmOn |= 1 << SeatIx(p)
 }
 
 // persistSync clamps p's persistent tallies (pm and firebending's fbR) to the

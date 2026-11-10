@@ -10,7 +10,7 @@ import (
 // false: the ask is posed.
 func (s *State) rearrange(k *prep, in *kop.Instr) bool {
 	p := s.playerRef(k, in.Obj)
-	if p > 1 {
+	if p >= MaxSeats {
 		return true
 	}
 	n := s.value(k, in.A)

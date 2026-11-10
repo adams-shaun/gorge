@@ -248,7 +248,7 @@ func (s *State) copyGroup(c uint8) uint8 {
 	if isPlayerOrNone(c) {
 		return SeatIx(CodeSeat(c))
 	}
-	return s.ctrlOfObj(Obj(c)) & 1
+	return SeatIx(s.ctrlOfObj(Obj(c)))
 }
 
 // copyHold is the resolution that made a copy, waiting while the copy's

@@ -175,7 +175,7 @@ func (s *State) genViewHash(h uint64) uint64 {
 	if g.spent != [MaxSeats]uint16{} || g.hist != [MaxSeats][3]uint8{} {
 		// the turn history bank: only a table that reads it keeps it
 		h = hbytes(h, unsafe.Pointer(&g.hist), unsafe.Sizeof(g.hist))
-		for p := uint8(0); p < 2; p++ {
+		for p := uint8(0); p < MaxSeats; p++ {
 			if r := s.castPushes(p); len(r) > 0 {
 				h = hbytes(h, unsafe.Pointer(&r[0]), uintptr(len(r))*unsafe.Sizeof(r[0]))
 			}

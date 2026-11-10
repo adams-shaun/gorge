@@ -84,7 +84,7 @@ func prepCold(g *genPrep, l *coldLayout) {
 		l.parked = maxParked
 	}
 	if g.castRingOn || g.anyParadigm {
-		l.castRing = 2 * castRingN
+		l.castRing = MaxSeats * castRingN
 	}
 	if g.anyDiscard {
 		l.discHeld = discHeldLen

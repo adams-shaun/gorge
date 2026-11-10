@@ -38,7 +38,7 @@ func (s *State) embNumAt(emb uint8) uint8 {
 		return 0
 	}
 	p, i := emb>>4, int(emb&15)-1
-	if p > 1 || i < 0 || i >= int(s.g.nemb[p]) {
+	if p >= MaxSeats || i < 0 || i >= int(s.g.nemb[p]) {
 		return 0
 	}
 	return s.embNum(p, i)
@@ -62,7 +62,7 @@ func (s *State) embNumLive(k *prep, emb uint8) uint8 {
 		return 0
 	}
 	p, i := emb>>4, int(emb&15)-1
-	if p > 1 || i < 0 || i >= int(s.g.nemb[p]) {
+	if p >= MaxSeats || i < 0 || i >= int(s.g.nemb[p]) {
 		return 0
 	}
 	c, idx := s.embCard(p, i), s.embIdx(p, i)-1

@@ -75,7 +75,7 @@ func (s *State) treSync(p uint8) {
 
 // artSync drops the slots of p's pool that have emptied.
 func (s *State) artSync(p uint8) {
-	if s.fbR[SeatIx(p)]|(s.pmOn>>(p&1))&1 != 0 {
+	if s.fbR[SeatIx(p)]|(s.pmOn>>SeatIx(p))&1 != 0 {
 		s.persistSync(p) // ordinary mana is spent first (kw_firebend.go, mana_persistent.go)
 	}
 	a := s.g.poolArt[SeatIx(p)]
