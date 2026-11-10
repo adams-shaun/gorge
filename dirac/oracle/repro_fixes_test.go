@@ -408,6 +408,11 @@ func TestStdHobReprosLockstep(t *testing.T) {
 		// is paid from the plain {B} (a plain unit goes before a Treasure's).
 		{"floating_treasure_mana_unspent_by_cast", false, false},
 		{"floating_treasure_mana_unspent_by_cast_two", false, false}, // ... and An Unexpected Party's
+		// CR 601.2g, 602.2b: no plan pays Goblin Plate Mail's equip without
+		// Bolg's Company, so the activation is paid through the manual
+		// window, which activates it in its battlefield place and asks which
+		// of two Goblins to sacrifice
+		{"window_sacrifices_another_for_activation", false, false},
 	})
 }
 
