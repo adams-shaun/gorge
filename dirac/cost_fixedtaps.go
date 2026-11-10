@@ -146,3 +146,17 @@ func (s *State) plainPlanLeavesTaps(k *prep, p uint8, part *kop.Cost, cost *kop.
 	}
 	return left >= int(part.N)
 }
+
+// altAddOneCast reports a plain hand cast a of a card whose additional cost is
+// a one-part AlternateAdditionalCost (Dusk Rose Reliquary's sacrifice): gorge's
+// cast planner declines it ("shape:optional_cost"), so the potential planner
+// prices the printed mana from its census and the prefix search taps a granted
+// source the census misses (CR 601.2g-h).
+func (s *State) altAddOneCast(k *prep, a Action) bool {
+	if a.Kind() != AkCast || a.Mode() != 0 || a.Target() != 0 {
+		return false
+	}
+	o := s.objs[a.Source()]
+	cd := &k.t.Cards[o.card]
+	return cd.AltAddOne && !cd.HasAltAdd && o.zone == kop.ZoneHand && cd.Cost.X == 0 && cd.Cost.Hyb[0] == 0
+}

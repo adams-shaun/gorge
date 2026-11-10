@@ -713,6 +713,7 @@ func TestStdLciReprosLockstep(t *testing.T) {
 		{"aura_type_add_filter_drops_after_transform", true, false},   // CR 613.1d, 704.5m: Zoetic Glyph's "enchanted artifact is a 5/4 Golem creature" stops applying when Matzalantli transforms into a land, so the land stays and only the Glyph falls off
 		{"aura_type_add_drops_after_device_transform", true, false},   // CR 613.1d, 704.5m: Zoetic Glyph's "enchanted artifact" override stops applying when Dowsing Device transforms into Geode Grotto, so the land stays on the battlefield
 		{"granted_tap_pay_life_mana_prefix", true, false},             // CR 119.4, 605.1a: Cavernous Maw's "{T}, Pay 1 life: Add one mana of any color" granted by Forgotten Monument is the prefix paying Restless Vents' {B}, and its life is paid
+		{"granted_prefix_one_part_additional_cost", false, false},     // CR 601.2g-h, 605.1a: Dusk Rose Reliquary's {W} beside Hidden Necropolis (printed {B} only) and Forgotten Monument's granted any-colour Cave ability: the one-part additional-cost shape is lowered, so the grant search prices its printed {W} and floats the granted mana as the prefix, where the witness found no plan and panicked
 	})
 }
 
