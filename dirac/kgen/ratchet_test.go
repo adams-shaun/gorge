@@ -118,7 +118,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the merge with land: this branch's Tam, Mindful First-Year static Hexproof:CardColors lower beside land's Amalia Benavides Aguirre / Hulkling / Burgeoning Bruiser lowers, disjoint; merged ECL 238 -> 239, ALL 21989 -> 21990).
 	// +2 (the merge with land: this branch's Hollow Marauder lowers OTJ 244 -> 245 and Madame Null lowers TMT 176 -> 177 beside land's; merged ALL 22036 -> 22038).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22081, 34442},
+	"ALL": {22086, 34442},
 	"BIG": {25, 30},
 	"BLB": {261, 278},
 	"BRO": {214, 280},
@@ -144,7 +144,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TDM": {256, 276},
 	"TLA": {260, 285},
 	"TMT": {180, 194},
-	"TRC": {294, 337},
+	"TRC": {295, 337},
 	"TRK": {311, 311},
 	"WOE": {261, 281},
 }
