@@ -525,6 +525,20 @@ func (s *State) FeatScripted(p uint8, a Action) bool {
 	return !hasOption(&d, a)
 }
 
+// filterFunds reports whether the payment d of the play costing cost can be
+// met by the censuses grantCap's walk leaves out -- a controlled or
+// first-and-only filter's mana, a tap-another source, a restricted source --
+// once every granted ability the payment refuses is dropped. It is the read
+// that decides whether a play absent from the walk may stay on the offer.
+func (s *State) filterFunds(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc) bool {
+	var av avail
+	s.walkHandAvail(k, p, d, &av)
+	if k.tapMana {
+		s.availTapX(k, p, &av)
+	}
+	return s.faceReachable(k, p, &av, cost, 0)
+}
+
 // grantCap applies gorge's prefix-search cap to the plays only a granted
 // mana ability pays (Imprisoned in the Moon's land): gorge searches a
 // prefix for the first potentialScriptPlays plays of its potential walk
@@ -587,21 +601,27 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 		if k.gen.anyTapExtra {
 			continue // a tap's extra is no part of the walk's units here, yet gorge's relaxed census counts it (mana_tapextra.go)
 		}
-		if k.multiMana && s.filterSource(k, p) {
-			continue // a controlled filter (Rumble Arena's {1},{T}: any colour) is no unit of the census here, yet it funds Ba Sing Se's {G} (CR 605.1a, 106.1)
+		cost, ex, need, ok := s.grantPlayCost(k, p, a, true)
+		if !ok || s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
+			continue
 		}
-		if k.gen.anyFiltFirst && s.scriptFilt(k, p).any() {
-			continue // nor is a first-and-only filter (Prophetic Prism's {1},{T}) funded by a granted {G}: scriptOffers' filter search listed the play (CR 605.1a, 106.1)
+		if (k.multiMana && s.filterSource(k, p) || k.gen.anyFiltFirst && s.scriptFilt(k, p).any()) &&
+			s.filterFunds(k, p, &cost, ex, s.grantPayDesc(a)) {
+			// a controlled filter (Rumble Arena's {1},{T}: any colour) or a
+			// first-and-only filter (Prophetic Prism's {1},{T}) is no unit of
+			// the census here, yet it can fund the play (CR 605.1a, 106.1):
+			// keep it only when this play's own payment reaches it, so a
+			// filter on the board cannot keep a hand-barred grant's overcount
+			// (Starwinder's warp beside Mm'menon; CR 106.6, 702.185a)
+			continue
 		}
-		if cost, ex, need, ok := s.grantPlayCost(k, p, a, true); ok && !s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
-			d.remove(a)
-			if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g) {
-				// gorge's one prefix search gave the play up (its granted gaps
-				// spent the node budget before the tap-another line): the
-				// tap-another search alone, which skips the grants, must not
-				// offer it again (scriptOffers)
-				capSpent.add(a)
-			}
+		d.remove(a)
+		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g) {
+			// gorge's one prefix search gave the play up (its granted gaps
+			// spent the node budget before the tap-another line): the
+			// tap-another search alone, which skips the grants, must not
+			// offer it again (scriptOffers)
+			capSpent.add(a)
 		}
 	}
 	for i := 0; i < int(walk.N); i++ {
