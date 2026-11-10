@@ -212,7 +212,7 @@ func (g *grantSrch) sacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, mas
 func (s *State) grantSacDo(k *prep, sl Slot) {
 	o := s.perms[sl].obj
 	s.fireSac(k, sl)
-	s.leave(k, sl, kop.ZoneGraveyard, false)
+	s.leaveAskedFirst(k, sl) // two exile-instead effects: the script's order ask, answered first (mana_grantsacask.go)
 	if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard {
 		s.ceaseManaToken(o)
 	}
