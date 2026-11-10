@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -50,15 +51,19 @@ func trigCmpN(cmp uint8, lit int) int16 {
 	return kop.DmgGate(kop.DmgCmp(cmp), lit)
 }
 
-// filterPlayerAlt is filter with a player alternative appended to the Or
+// filterPlayerAlt is filterZones with a player alternative appended to the Or
 // chain: an entry that never matches a permanent (FSelf with FOther) and
 // carries FPlayer and the controller selector, which the kernel's
-// castTargetsPlayer reads for a player target.
-func (cb *cardBuilder) filterPlayerAlt(f *lFilter, zone kop.Zone, players uint8) (kop.FilterID, error) {
+// castTargetsPlayer reads for a player target. zones[i] is clause i's zone
+// (a TargetsValid$ zone-free alternative carries kop.ZoneAny).
+func (cb *cardBuilder) filterPlayerAlt(f *lFilter, zones []kop.Zone, players uint8) (kop.FilterID, error) {
+	if len(zones) != len(f.Clauses) {
+		return 0, fmt.Errorf("TargetsValid player alternative zones")
+	}
 	alt := cb.pt.internFilter(kop.Filter{Ctrl: playerCtrl(players), Flags: kop.FPlayer | kop.FSelf | kop.FOther})
 	var next kop.FilterID = alt
 	for i := len(f.Clauses) - 1; i >= 0; i-- {
-		kf, err := cb.clause(f.Clauses[i], zone)
+		kf, err := cb.clause(f.Clauses[i], zones[i])
 		if err != nil {
 			return 0, err
 		}

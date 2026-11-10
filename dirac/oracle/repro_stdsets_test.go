@@ -25,6 +25,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "temporal_tribulation_returns_both_exiled_together"},                 // Temporal Tribulation exiles two permanents and returns both at the next end step as one delayed trigger's set, in the order they were exiled (CR 603.7)
 		{"custom", "hide_on_the_ceiling_returns_x_exiled_together", full},               // Hide on the Ceiling with X of two or more: the same delayed return over a variable target slot
 		{"custom", "eerie_interlude_returns_any_number_exiled_together"},                // Eerie Interlude exiles any number of its controller's creatures and returns them together at the next end step
+		{"custom", "danitha_counters_a_creature_spell"},                                 // Danitha, Spear of Agony's zone-free TargetsValid$ Creature.OppCtrl fires when a Counterspell targets an opponent's creature spell, not only a battlefield permanent (CR 603.2)
 		{"std-big", "worldwalker_helm_map_follows_the_first_of_two_foods"},              // Worldwalker Helm beside Bristlebud Farmer's two Foods: the Map is made once for the Token resolution, entering after the first Food (CR 614.1a, 616)
 		{"std-big", "worldwalker_helm_copy_makes_its_map_before_the_copy"},              // Worldwalker Helm copying an artifact token: gorge makes the Map first, then the copy (CR 707.2, 111.5)
 		{"std-big", "worldwalker_helm_five_adders_all_make_a_map_copy_a", full},         // five Worldwalker Helms copying a Map token: each adds its Map before the copy, five of them (the kernel's adder buffer held four)

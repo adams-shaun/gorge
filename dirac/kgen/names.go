@@ -98,7 +98,8 @@ func init() {
 	enum[kop.Zone]("kop.ZoneNone", kop.ZoneNone, "kop.ZoneLibrary", kop.ZoneLibrary, "kop.ZoneHand", kop.ZoneHand,
 		"kop.ZoneBattlefield", kop.ZoneBattlefield, "kop.ZoneGraveyard", kop.ZoneGraveyard, "kop.ZoneExile", kop.ZoneExile,
 		"kop.ZoneStack", kop.ZoneStack, "kop.ZoneCommand", kop.ZoneCommand,
-		"kop.ZonePhased", kop.ZonePhased, "kop.ZonePhasedInd", kop.ZonePhasedInd, "kop.ZoneSideboard", kop.ZoneSideboard)
+		"kop.ZonePhased", kop.ZonePhased, "kop.ZonePhasedInd", kop.ZonePhasedInd, "kop.ZoneSideboard", kop.ZoneSideboard,
+		"kop.ZoneAny", kop.ZoneAny)
 	enum[kop.Timing]("kop.TimingSorcery", kop.TimingSorcery, "kop.TimingInstant", kop.TimingInstant, "kop.TimingLand", kop.TimingLand)
 	enum[kop.TargetKind]("kop.TgtNone", kop.TgtNone, "kop.TgtObject", kop.TgtObject, "kop.TgtPlayer", kop.TgtPlayer,
 		"kop.TgtAny", kop.TgtAny, "kop.TgtSpell", kop.TgtSpell, "kop.TgtCard", kop.TgtCard, "kop.TgtStackObj", kop.TgtStackObj, "kop.TgtStackAb", kop.TgtStackAb,

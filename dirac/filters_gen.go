@@ -501,6 +501,11 @@ func (s *State) matchCardOne(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint
 }
 
 func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint8, o Obj, ctx *evalCtx) bool {
+	if fl.Flags&kop.FPlayer != 0 {
+		// a target spec's player alternative (kgen filterPlayerAlt) names a
+		// player, never an object; kernel castTargetsPlayer reads it
+		return false
+	}
 	if fl.Flags2&kop.F2BasePermanent != 0 {
 		// a ThisTurnEntered battlefield entry whose object has since left
 		// (a live permanent is read by the perm matcher): the Permanent base
@@ -558,7 +563,10 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 			return false
 		}
 	}
-	if fl.Zone != kop.ZoneNone && o != NoObj && s.objs[o].zone != fl.Zone {
+	if fl.Zone != kop.ZoneNone && fl.Zone != kop.ZoneAny && o != NoObj && s.objs[o].zone != fl.Zone {
+		// ZoneAny is the TargetsValid$ any-zone marker: a zone-free object
+		// alternative matches a target in any zone (kernel castTargetsAll
+		// reads it only on a SpellCast Tf2TargetsFilter2 chain)
 		return false
 	}
 	if fl.Flags&kop.FToken != 0 && (o == NoObj || s.objs[o].of&ofToken == 0) || fl.Flags&kop.FNontoken != 0 && o != NoObj && s.objs[o].of&ofToken != 0 {

@@ -235,7 +235,7 @@ const (
 	Tf2CastSnapshot                          // SpellCast: the trigger amount is the instants and sorceries the controller cast this turn, the triggering spell included, counted when it triggers
 	Tf2NthSpell                              // SpellCast: only the caster's N-th spell this turn (gorge ActivatorThisTurnCast$ EQN)
 	Tf2BlockedBySelf                         // BecomesBlocked: only an attacker this permanent blocks (gorge ValidBlocker$ Card.Self)
-	Tf2TargetsFilter2                        // SpellCast: the spell has a target and every target is a battlefield object matching Filter2 (gorge TargetsValid$)
+	Tf2TargetsFilter2                        // SpellCast: the spell has a target and some target of its chain matches Filter2 (a battlefield object, a player alternative, or a ZoneAny zone-free object alternative: gorge TargetsValid$)
 	Tf2Alone                                 // Attacks: only when exactly one creature was declared as an attacker (gorge Alone$ True, Exalted)
 	Tf2AtkYou                                // Attacks with Attacked$: the attacked defender may be the trigger's controller
 	Tf2AtkYourPW                             // ... or a planeswalker the trigger's controller controls

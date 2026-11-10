@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/effects"
 )
 
@@ -612,12 +613,17 @@ const (
 var abilityKindNames = [...]string{"Spell", "Activated", "Mana", "Triggered", "Latent"}
 
 type lTrigger struct {
-	Event         string
-	F             *lFilter // the object filter (ValidCard / ValidSource / ...)
-	F2            *lFilter // the second filter (ValidTarget of damage / attackers)
-	Whose         uint8    // whoAny / whoYou / whoOpp (ValidPlayer / ValidActivatingPlayer / AttackingPlayer)
-	Zone          int      // the zone the source must be in (TriggerZones)
-	Step          string   // Phase trigger step
+	Event string
+	F     *lFilter // the object filter (ValidCard / ValidSource / ...)
+	F2    *lFilter // the second filter (ValidTarget of damage / attackers)
+	// F2Zones is the zone each F2 clause is matched in (TargetsValid$): a
+	// battlefield alternative lowers as ZoneNone, a zone-free one as
+	// kop.ZoneAny, the marker kernel castTargetsAll reads for a target off
+	// the battlefield.
+	F2Zones       []kop.Zone
+	Whose         uint8  // whoAny / whoYou / whoOpp (ValidPlayer / ValidActivatingPlayer / AttackingPlayer)
+	Zone          int    // the zone the source must be in (TriggerZones)
+	Step          string // Phase trigger step
 	Origin        int
 	Dest          int
 	From          int  // Leaves: the zone left (graveyard leaves)
