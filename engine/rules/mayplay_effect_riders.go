@@ -144,3 +144,23 @@ func (e *Engine) mayPlayNoZoneFree(p state.PlayerID, o *state.Object) bool {
 	}
 	return false
 }
+
+// mayPlayNoZoneFreeID is mayPlayNoZoneFree for a card named by id, true only
+// off the hand: the hand cast's free alternative is its own option
+// (mayPlayEffectAltCosts), every other zone prices the cast it is already
+// offered under a separate permission.
+func (e *Engine) mayPlayNoZoneFreeID(p state.PlayerID, id state.ObjID) bool {
+	o := e.G.Obj(id)
+	return o != nil && o.Zone != state.ZHand && e.mayPlayNoZoneFree(p, o)
+}
+
+// mayPlayFreeCast reports whether a cast of card id through a may-play
+// permission pays no mana: a free permission (mayPlayGrant free with the
+// grant held) or the no-zone free grant. The one read every offer and price
+// site shares, so the offered and the charged cost cannot differ.
+func (e *Engine) mayPlayFreeCast(p state.PlayerID, id state.ObjID) bool {
+	if free, ok := e.mayPlayGrant(p, id); ok && free {
+		return true
+	}
+	return e.mayPlayNoZoneFreeID(p, id)
+}
