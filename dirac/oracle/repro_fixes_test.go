@@ -95,6 +95,16 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// gorge, so the game stops as the declared StallCounters capacity
 		// (the divergence this replaces was the silent clamp).
 		{"bristly_bill_counter_overflow_stalls", false, true},
+		// CR 603.2d: Annie Joins Up makes Roxanne, Starfall Savant's triggered
+		// mana ability trigger twice, so a Meteorite tap brings two extra mana
+		// that gorge's planner prices as one: the kernel stops as the
+		// declared StallTapExtra rather than floating one fewer
+		{"tap_extra_trigger_echoed_by_panharmonicon_stalls", false, true},
+		// CR 301.7b, 303.4f: One Last Job returns Demonic Ruckus "attached to
+		// a creature you control" while a crewed Luxurious Locomotive is an
+		// artifact creature, so the controller chooses between it and
+		// Stingerback Terror (gorge read the Enchant spec off printed types)
+		{"attach_filter_reads_crewed_vehicle_as_creature", false, false},
 		// Oko, the Ringleader's -5 copies each other permanent you control and
 		// a copy's as-enters ask parks the sweep; the parked answer leaves
 		// the sweep's zone batch to fire once, in entry order, when the sweep
