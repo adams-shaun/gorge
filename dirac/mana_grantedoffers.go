@@ -691,6 +691,9 @@ func (g *grantSrch) visit(t *State) bool {
 		}
 		if g.dual[i] {
 			alts++
+			if t.ownManaUsable(g.k, sl) && t.ownRestrAb(g.k, sl) != nil {
+				alts++ // (the restricted printed ability beside the usable one is an answer of the ask)
+			}
 		}
 		if fok {
 			alts++
@@ -741,7 +744,7 @@ func (g *grantSrch) visit(t *State) bool {
 			// the usable one, whether or not the play may spend it
 			if ra := t.ownRestrAb(g.k, sl); ra != nil {
 				g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
-				if g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra), false) {
+				if g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra), ra.ManaColors&kop.ColAny == kop.ColAny) {
 					return true
 				}
 			}
