@@ -34,6 +34,11 @@ func init() { stallNames[StallHandSize] = "handsize" }
 // diverge. Read in maxHand only.
 var DebugIgnoreHandSize bool
 
+// DebugHandOppAsYou is TestMaxHandOppKernel's switch: the opponents flag is
+// read as "the controller". It must make the lockstep diverge. Read in
+// maxHand only.
+var DebugHandOppAsYou bool
+
 // handUnlimited is maxHand's value for "no maximum".
 const handUnlimited = 1 << 20
 
@@ -44,16 +49,31 @@ func (s *State) maxHand(k *prep, p uint8) int {
 	}
 	max, found, emb, ts := 7, false, false, uint16(0)
 	s.eachStatic(k, func(st statSrc) bool {
-		if st.a.Kind != kop.AbStatic || st.a.Static.Kind != kop.StatNoMaxHandSize || st.ctrl != p {
+		if st.a.Kind != kop.AbStatic || st.a.Static.Kind != kop.StatNoMaxHandSize {
 			return true
 		}
-		a := int(st.a.Static.A)
+		sf := &st.a.Static
+		// StHandOpp: the controller's opponents (two players: p != ctrl)
+		if (sf.StFlags&kop.StHandOpp != 0 && !DebugHandOppAsYou) == (st.ctrl == p) {
+			return true
+		}
+		ctx := s.ctxStatic(st)
+		if sf.Cond2 != 0 && !s.condEval(k, sf.Cond2, ctx) {
+			return true
+		}
+		a := int(sf.A)
 		if DebugIgnoreHandSize && a != 0 {
 			return true
 		}
 		v := handUnlimited
 		if a != 0 {
 			v = a - 1
+		}
+		if sf.StFlags&kop.StDynamic != 0 {
+			// gorge setMaxHandSizeSVar: a negative value is no maximum at all
+			if v = s.evalV(k, sf.VA, ctx); v < 0 {
+				return true
+			}
 		}
 		if st.emb != 0 || emb {
 			if found && v != max {

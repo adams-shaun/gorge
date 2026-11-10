@@ -2003,8 +2003,21 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		case s.Amount.Kind == vNone: // Unlimited: A 0
 		case s.Amount.isConst() && s.Amount.N >= 0 && s.Amount.N <= 255:
 			st.A = int16(s.Amount.N + 1) // a numeric maximum: A = N+1
+		case len(s.Flags) == 1 && s.Flags[0] == "HandOpp":
+			// the opponents' maximum from an SVar (Winter): VA, read per
+			// cleanup under Cond2 (kernel maxHand)
+			st.StFlags |= kop.StDynamic
+			if st.VA, err = cb.value(s.Amount); err != nil {
+				return ka, nil, err
+			}
 		default:
 			return ka, nil, fmt.Errorf("NoMaxHandSize amount %v", s.Amount)
+		}
+		for _, fl := range s.Flags {
+			if fl != "HandOpp" {
+				return ka, nil, fmt.Errorf("NoMaxHandSize flag %q", fl)
+			}
+			st.StFlags |= kop.StHandOpp
 		}
 	case "ExtraLandPlay":
 		st.Kind = kop.StatExtraLandPlay

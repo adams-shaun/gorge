@@ -8,16 +8,16 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 
 | list | cards | lowered | refused | unverified | supported | 4-seat |
 |---|---:|---:|---:|---:|---:|---:|
-| BIG | 30 | 26 | 1 | 4 | 21 | 20 |
+| BIG | 30 | 26 | 0 | 5 | 21 | 20 |
 | BLB | 278 | 261 | 3 | 6 | 252 | 230 |
 | DFT | 276 | 252 | 0 | 6 | 246 | 243 |
-| DSK | 276 | 248 | 4 | 27 | 217 | 215 |
+| DSK | 276 | 249 | 4 | 28 | 217 | 215 |
 | ECL | 273 | 242 | 1 | 8 | 233 | 232 |
 | EOE | 266 | 248 | 0 | 9 | 239 | 235 |
 | FDN | 517 | 517 | 0 | 0 | 517 | 514 |
 | FIN | 312 | 275 | 1 | 8 | 266 | 265 |
 | FRA | 269 | 254 | 0 | 15 | 239 | 235 |
-| HOB | 172 | 157 | 0 | 4 | 153 | 151 |
+| HOB | 172 | 158 | 0 | 5 | 153 | 151 |
 | LCI | 290 | 258 | 1 | 28 | 229 | 223 |
 | MKM | 279 | 250 | 1 | 39 | 210 | 205 |
 | MSH | 276 | 245 | 1 | 12 | 232 | 231 |
@@ -30,7 +30,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 297 | 0 | 31 | 266 | 253 |
 | TRK | 311 | 311 | 0 | 0 | 311 | 306 |
 | WOE | 281 | 261 | 0 | 15 | 246 | 245 |
-| ALL | 34442 | 22138 | 24 | 17025 | 5089 | 4991 |
+| ALL | 34442 | 22140 | 23 | 17028 | 5089 | 4991 |
 
 `ALL` is the whole corpus; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 
@@ -70,7 +70,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-24 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+23 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
@@ -80,7 +80,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection | 1 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Damage | 1 |
-| projection-Cards.Flags | 3 |
+| projection-Cards.Flags | 2 |
 | projection-Cards.Power | 1 |
 | projection-Cards.Zone | 1 |
 | projection-NStack | 2 |
