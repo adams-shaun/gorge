@@ -1049,8 +1049,8 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		// same count the You.descended trigger gate lowers (CR 700.11)
 		return lc.countValue("ThisTurnEntered_Graveyard_Permanent.YouOwn+nonToken", depth)
 	case "ResolvedThisTurn":
-		if lc.ab == nil || lc.ab.Kind != akTriggered || lc.ab.Latent {
-			return lValue{}, fmt.Errorf("Count$ResolvedThisTurn outside a printed triggered ability")
+		if lc.ab == nil || lc.ab.Kind != akTriggered && lc.ab.Kind != akActivated || lc.ab.Latent {
+			return lValue{}, fmt.Errorf("Count$ResolvedThisTurn outside a printed triggered or activated ability")
 		}
 		lc.ab.ResolveCount = true
 		return lValue{Kind: vResolvedThisTurn}, nil

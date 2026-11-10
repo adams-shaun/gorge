@@ -747,9 +747,11 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 	if a.ResolveCount {
 		// kernel countResolve runs in trigResolveOK before the
 		// intervening-if: a trigger with one would count a resolution
-		// gorge may not (refused)
-		if a.Trigger == nil || a.Latent || ka.Trig.Cond != 0 {
-			return ka, fmt.Errorf("Count$ResolvedThisTurn on a latent, conditional or non-trigger ability")
+		// gorge may not (refused). An activated ability counts as it
+		// resolves (resolve.go), after the fizzle check, as gorge's Resolve
+		// event does
+		if a.Latent || a.Kind == akTriggered && (a.Trigger == nil || ka.Trig.Cond != 0) || a.Kind != akTriggered && a.Kind != akActivated {
+			return ka, fmt.Errorf("Count$ResolvedThisTurn on a latent, conditional or non-printed-ability")
 		}
 		ka.AFlags |= kop.AfResolveCount
 	}

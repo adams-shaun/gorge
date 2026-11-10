@@ -953,9 +953,6 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		if w == "BottomLibrary" {
 			return c.setCmp(cmpWord7, 0, int(kop.W7NotBottomLibrary), "", "") // lower_filterwords.go
 		}
-		if w == "wasDealtDamageThisTurn" {
-			return refuse("!wasDealtDamageThisTurn: gorge keeps the damage record on the destroyed target in the graveyard; the kernel has no per-card record")
-		}
 		if i, ok := notF2Bit(w); ok {
 			return c.setCmp(cmpNotF2, 0, i, "", "") // lower_filterwords.go
 		}

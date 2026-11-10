@@ -33,7 +33,7 @@ var dbmanaForms = []formCase{
 	{card: "Konstrari Charm", form: "a charm mode's fixed DB$ Mana (Produced$ C Amount$ 3) lowers", lir: "AddMana obj=You A=3"},
 	{card: "Rapturous Moment", form: "a spell chain's fixed DB$ Mana (Produced$ U U R R R) lowers", lir: "AddMana obj=You A=1"},
 	{card: "Narset's Rebuke", form: "a spell chain's defined-You DB$ Mana lowers", lir: "AddMana obj=You A=1"},
-	{card: "Soulbright Seeker", form: "a targeted AB$ Pump with a DB$ Mana sub is admitted; its Count$ResolvedThisTurn X stays refused", refused: "Count$ResolvedThisTurn outside a printed triggered ability"},
+	{card: "Soulbright Seeker", form: "a targeted AB$ Pump with a DB$ Mana sub is admitted, and its Count$ResolvedThisTurn X counts the activated ability's resolutions", lir: "AddMana obj=You A=4"},
 	{card: "Sacellum Godspeaker", form: "gorge finding: a CR 605.1a mana ability gorge resolves on the stack stays refused (cards/ability_class.go L48)", refused: "DB$ Mana under a CR 605.1a mana ability gorge resolves on the stack (gorge cards/ability_class.go L48)"},
 	{card: "Priest of Forgotten Gods", form: "an any-number-of-target-players chain lowers now that the multi-target Sacrifice asks each player", lir: "AddMana obj=You A=2"},
 	{card: "Red Death, Shipwrecker", form: "a targeted AB$ Goad with a library-moving Draw and a DB$ Mana sub lowers", lir: "AddMana obj=You A=1"},

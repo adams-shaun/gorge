@@ -225,6 +225,9 @@ func (s *State) resolveTop(k *prep) {
 			return
 		}
 		a := &k.t.Cards[e.card].Abilities[e.ab]
+		if e.kind == seAbility && e.ab < abCascade && a.AFlags&kop.AfResolveCount != 0 {
+			s.countResolve(k, &e) // an activated ability's tally, past the fizzle check (gorge's Resolve event)
+		}
 		if a.Trig.Flags2&kop.Tf2ResolvedLimit != 0 && e.kind == seTrigger && s.rlSpent(e.obj) {
 			s.finishResolve(k, false) // a batched sibling already spent the limit: no ask, no effect, no count (gorge resolvedLimitSpent)
 			return
