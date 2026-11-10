@@ -242,7 +242,7 @@ func TestCharmRepeatReprosChooseRepeats(t *testing.T) {
 // CHARM_REPEAT_RECORD=1; the games it writes are the committed repros.
 func TestCharmRepeatRecord(t *testing.T) {
 	if os.Getenv("CHARM_REPEAT_RECORD") == "" {
-		t.Skip("set CHARM_REPEAT_RECORD=1 to record the games")
+		return // a recording tool, not coverage: it returns rather than skips, since a skip here must name a missing pool (testdata/poolskips.txt)
 	}
 	reg := synthReg(t)
 	for _, c := range charmRepeatCases() {

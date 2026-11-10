@@ -166,6 +166,11 @@ func (s *State) featCardMatch1(k *prep, id kop.FilterID, ob *object, ctrl uint8,
 	if f.NotSub != 0 && subs.Has(int(f.NotSub-1)) {
 		return false
 	}
+	for _, n := range f.NotSubs {
+		if n != 0 && subs.Has(int(n-1)) {
+			return false
+		}
+	}
 	if f.Zone != kop.ZoneNone && f.Zone != ob.zone {
 		return false
 	}

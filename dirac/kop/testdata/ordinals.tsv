@@ -269,6 +269,7 @@ DmgLE	DmgCmp	2
 DmgLT	DmgCmp	6
 DmgMapped	untyped int	4
 DmgNE	DmgCmp	4
+DmgNoRegen	untyped int	32
 DmgRemember	untyped int	8
 DmgTrackExcess	untyped int	1
 DpGroup	untyped int	1
@@ -416,6 +417,7 @@ ExtCounterAll	ExtOp	226
 ExtCounterLose	ExtOp	41
 ExtCounterPlusEOT	ExtOp	247
 ExtDigImprint	ExtOp	282
+ExtDistCounters	ExtOp	310
 ExtDividedCounters	ExtOp	30
 ExtEachDamage	ExtOp	2
 ExtEffEtbCtr	ExtOp	197
@@ -449,6 +451,7 @@ ExtSearchCounters	ExtOp	252
 ExtSuspect	ExtOp	190
 ExtSweepFrom	ExtOp	97
 ExtToGraveyard	ExtOp	192
+ExtSpellToLib	ExtOp	308
 ExtTokenPT	ExtOp	170
 ExtTurnFaceUp	ExtOp	254
 ExtTwoPilesSac	ExtOp	4
@@ -999,6 +1002,7 @@ SacSumMV	untyped int	8
 SacSumPower	untyped int	2
 SacSumToughness	untyped int	4
 SacrificedFood	untyped int	2
+SpmActivated	SpecialMask	32
 SpmCloakUp	SpecialMask	8
 SpmDisguiseUp	SpecialMask	2
 SpmManifestUp	SpecialMask	4

@@ -1,0 +1,14 @@
+# the unit-test pool for the cmd5 trigger shapes: Chandra's Phoenix beside burn,
+# Vastwood Hydra beside creatures (dirac/cmd5shapes_test.go)
+Angelic Skirmisher
+Chandra, Flameshaper
+Chandra's Phoenix
+Counterspell
+Forest
+Gray Ogre
+Grizzly Bears
+Hunter's Insight
+Lightning Bolt
+Mountain
+Plains
+Vastwood Hydra

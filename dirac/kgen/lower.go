@@ -1286,12 +1286,11 @@ func (lc *lowerCtx) lowerKeywords() {
 		case head == "Sneak" && sneakLowered:
 			// CR 702.190a: an alternative hand cost paid in the caster's own
 			// declare-blockers step, plus the mandatory return of an
-			// unblocked attacker (dirac/kw_sneak.go). X, hybrid (the
-			// pip announcement for an alternative cost is unported),
-			// CardManaCost, a ":" rider (the granted form) and any non-mana
-			// part are refused.
+			// unblocked attacker (dirac/kw_sneak.go). X, CardManaCost, a ":"
+			// rider (the granted form) and any non-mana part are refused;
+			// a hybrid pip is announced like a printed cost's.
 			mc, err := parseManaCost(param)
-			if err != nil || param == "" || strings.Contains(param, ":") || mc.X || mc.None || len(mc.Hybrid) != 0 {
+			if err != nil || param == "" || strings.Contains(param, ":") || mc.X || mc.None {
 				lc.refuseNode(node, "sneak cost %q", param)
 				continue
 			}
@@ -2724,12 +2723,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	if ab.Ninjutsu {
 		return lc.ninjutsuBody(ps) // lower_ninjutsu.go
 	}
-	if sa.API == "Mana" && ab.Kind == akSpell {
-		// a spell that adds mana (Manamorphose, Seasonal Ritual): the mana
-		// ability record would resolve as a spell that does nothing
-		return refuse("SP$ Mana")
-	}
-	if sa.API == "Mana" {
+	if sa.API == "Mana" && ab.Kind != akSpell {
 		return lc.lowerMana(sa, ps, ab)
 	}
 	if sa.API == "ManaReflected" && ab.Kind == akMana {

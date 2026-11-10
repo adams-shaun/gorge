@@ -213,6 +213,16 @@ const (
 	// creatures with haste (gorge Effect Mode$ CantBlockBy ValidBlocker$
 	// Creature.withoutHaste; CR 509.1b, 702.10a). dirac/static_cantblockexcept.go.
 	ExtExHaste ExtOp = 171
+	// ExtDistCounters (Vastwood Hydra): "distribute N +1/+1 counters among
+	// any number of creatures you control", N the op's B value (the dying
+	// source's last-known counters): no targets. The resolving controller
+	// picks 1..min(N, eligible) of the F-matching battlefield permanents
+	// (seat 0 first, entry order; one DkChoose per pick, Done after the
+	// first), then the N counters go round-robin in pick order, the earlier
+	// picks taking the remainder (gorge putCounterPickDistribute). With one
+	// eligible permanent it takes all N unasked, with none nothing happens.
+	// dirac/ctr_distpick.go.
+	ExtDistCounters ExtOp = 310
 	// NumExtOps is a fixed capacity of the sub-op tables, not last+1: a new
 	// sub-op takes the next free value below it (values are pinned by
 	// testdata/ordinals.tsv) and never edits this line. Unused slots stay
@@ -537,6 +547,7 @@ func init() {
 	extOpNames[ExtLibSweep] = "LibSweep"
 	extOpNames[ExtRecruit] = "Recruit"
 	extOpNames[ExtExHaste] = "ExHaste"
+	extOpNames[ExtDistCounters] = "DistCounters"
 }
 
 func init() { extOpNames[ExtTokenPT] = "TokenPT" }
@@ -673,3 +684,15 @@ func init() { extOpNames[ExtAttacksIfAble] = "AttacksIfAble" }
 const ExtBlocksIfAble ExtOp = 256
 
 func init() { extOpNames[ExtBlocksIfAble] = "BlocksIfAble" }
+
+// ExtSpellToLib: the resolving spell moves from the stack to the top of its
+// owner's library, then that library is shuffled (CR 608.2n: the spell's own
+// instruction replaces the default move to the graveyard; gorge effChangeZone
+// Origin$ Stack, Destination$ Library, Shuffle$ True over Defined$ Parent,
+// the spell itself). The spell has left the stack when the resolution
+// finishes, so it goes to no graveyard. A spell copy (CR 707.10) stays for
+// the finish to cease it, and the shuffle still happens. Blue Sun's Zenith
+// and the other Zenith cycle. dirac/act_spelltolib.go.
+const ExtSpellToLib ExtOp = 308
+
+func init() { extOpNames[ExtSpellToLib] = "SpellToLib" }

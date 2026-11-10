@@ -110,7 +110,7 @@ func (s *State) venture(k *prep, p uint8) bool {
 // dungeonEnter puts a new dungeon object into p's command zone with the
 // marker on the top room (gorge ventureEnter).
 func (s *State) dungeonEnter(k *prep, p uint8) {
-	if int(s.nobj) >= MaxObj {
+	if s.objTableFull() {
 		s.capFull(StallBoard)
 		return
 	}

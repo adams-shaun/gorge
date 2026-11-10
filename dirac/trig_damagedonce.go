@@ -160,7 +160,7 @@ func (s *State) ddoLine(k *prep, l trigListener, a *kop.Ability, src Slot, srcOb
 // per-referent queue carries.
 func (s *State) ddoRecipient(k *prep, l trigListener, t *kop.Trigger, srcObj Obj, rcp uint8) (Obj, uint8, bool) {
 	if pl, ok := recipientPlayer(rcp); ok {
-		if t.Filter2 != 0 && !DebugDmgIgnoreFilter2 || t.Flags2&kop.Tf2ToYou != 0 && pl != l.ctrl {
+		if t.Filter2 != 0 && t.Flags&kop.TfToPlayer == 0 && !DebugDmgIgnoreFilter2 || t.Flags2&kop.Tf2ToYou != 0 && pl != l.ctrl {
 			return NoObj, 0, false
 		}
 		return srcObj, pl, true

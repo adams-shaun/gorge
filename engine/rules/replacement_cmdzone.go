@@ -226,6 +226,45 @@ func (e *Engine) commanderZoneSBA() {
 	}
 }
 
+// cmdZoneSBAHolds reports whether a CR 903.9a choice holds the state-based
+// check: the choice is one of the check's state-based actions (CR 704.6d), and
+// all of them are performed as one event (CR 704.3), so it is made first and
+// nothing else applies while it is open -- the legend rule's model
+// (parkLegendChoice). It holds when an sba entry heads the cmdZone queue (posed,
+// or displaced and re-posed by holdForCommanderZone), or when an eligible
+// commander is owed the choice but another decision is outstanding (the
+// deferral in commanderZoneSBA): that decision's answer reruns the check, which
+// poses the choice then.
+func (e *Engine) cmdZoneSBAHolds() bool {
+	if len(e.cmdZone) > 0 && e.cmdZone[0].sba {
+		return true
+	}
+	if e.pending == nil {
+		return false
+	}
+	for _, id := range e.cmdZoneDue {
+		if o := e.G.Obj(id); o != nil && (o.Zone == state.ZGraveyard || o.Zone == state.ZExile) && !e.G.Players[o.Owner].Lost {
+			return true
+		}
+	}
+	return false
+}
+
+// holdForCommanderZone ends a check held by cmdZoneSBAHolds. A posed sba entry
+// whose ask was displaced is re-posed (parked implies asked, as for the legend
+// batch); the run is marked unquiet so the check after the answer is never
+// skipped.
+func (e *Engine) holdForCommanderZone() {
+	if e.pending == nil && len(e.cmdZone) > 0 && e.cmdZone[0].sba {
+		if o := e.G.Obj(e.cmdZone[0].obj); o != nil {
+			e.askCommandZone(o.Owner)
+		}
+	}
+	e.sbaUnquiet = true
+	e.checkGameOver()
+	e.releasePendingDecisionOfDepartedPlayer()
+}
+
 // parkCommanderZoneMove applies the CR 903.9 replacement to one matching
 // zone change: the event is deferred (never logged, never applied -- the
 // commander stays where it is) and its owner is asked whether to put the

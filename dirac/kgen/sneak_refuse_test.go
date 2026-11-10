@@ -32,7 +32,6 @@ func TestSneakRefusals(t *testing.T) {
 				}
 			},
 		},
-		{name: "hybrid cost (Foot Ninjas)", card: &cards.Card{Faces: []*cards.Face{face("3 B", "Sneak:3 WB")}}, want: `sneak cost "3 WB"`},
 		{name: "empty cost", card: &cards.Card{Faces: []*cards.Face{face("1 R", "Sneak:")}}, want: `sneak cost ""`},
 		{name: "X cost", card: &cards.Card{Faces: []*cards.Face{face("1 R", "Sneak:X R")}}, want: `sneak cost "X R"`},
 		{name: "CardManaCost", card: &cards.Card{Faces: []*cards.Face{face("1 R", "Sneak:CardManaCost")}}, want: `sneak cost "CardManaCost"`},

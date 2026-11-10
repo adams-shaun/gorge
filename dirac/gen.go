@@ -17,6 +17,7 @@ type genPrep struct {
 	graveTrig   []CardID // cards with a triggered ability that works from the graveyard
 	graveDies   bool     // one of them is a Dies trigger (Furious Forebear; fireGraveDies)
 	graveDrawn  bool     // some graveyard trigger is a Drawn (trig_gravedrawn.go)
+	graveDmg    bool     // some graveyard trigger is a DamageDone (trig_gravedamage.go)
 	graveETB    bool     // some graveyard trigger is an ETB (Fear of Infinity; face_fullyunlock.go)
 	graveSac    bool     // some graveyard trigger is a Sacrificed (Curious Cadaver; act_sweeps.go)
 	anyCastProv bool     // some trigger reads a spell's cast provenance (Tf2CastFromHand, Tf2Convoked): pushBuild records stackEntry.prov (trig_gravedrawn.go)
@@ -878,6 +879,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					}
 					if a.Trig.Event == kop.TrigDrawn {
 						g.graveDrawn = true
+					}
+					if a.Trig.Event == kop.TrigDamageDone {
+						g.graveDmg = true
 					}
 					if a.Trig.Event == kop.TrigDies {
 						g.graveDies = true
@@ -1942,7 +1946,7 @@ func wardAmt(c *kop.CardDef) int16 {
 // slot off every mask (kw_phasing.go), so a phasing table measures the slots
 // an entrant can actually take: enterNF's freeSlots branch.
 func (s *State) nearCapacity(k *prep) bool {
-	if int(s.nobj) >= MaxObj {
+	if s.objTableFull() {
 		return true
 	}
 	if k != nil && k.phasing {

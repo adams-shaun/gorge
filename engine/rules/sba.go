@@ -247,6 +247,12 @@ func (e *Engine) checkStateBased() {
 		e.askLegendChoice()
 		return
 	}
+	// The CR 903.9a choice holds the check the same way (cmdZoneSBAHolds):
+	// a posed or owed commander-zone ask applies nothing until it is answered.
+	if e.cmdZoneSBAHolds() {
+		e.holdForCommanderZone()
+		return
+	}
 	stable := false
 	// The attempt memories start nil and are allocated on their first mark
 	// (markTried): a read of a nil map is false, so the common call -- one
@@ -283,6 +289,13 @@ func (e *Engine) checkStateBased() {
 			e.collectCommanderArrivals()
 			if len(e.cmdZoneDue) > 0 {
 				e.commanderZoneSBA()
+			}
+			if e.cmdZoneSBAHolds() {
+				if quiet {
+					e.verifySBAQuiet(ep0)
+				}
+				e.holdForCommanderZone()
+				return
 			}
 		}
 		var b sbaBatch
