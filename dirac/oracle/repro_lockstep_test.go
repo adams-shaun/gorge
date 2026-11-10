@@ -449,3 +449,13 @@ func TestHandPickEntersTogetherLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "hand_pick_enters_together", "std-msh", Config{GorgeAutopaySurface: true})
 }
+
+// Ambulatory Reactor grants artifact creatures a {C} spendable only on artifact spells and
+// artifact sources' abilities. Floated in the granted-mana prefix search for an artifact
+// play, that {C} cannot pay Skycloud Expanse's {1}: the land's activation is no artifact
+// source's (CR 106.6), so neither engine funds the filter with it.
+func TestRestrictedGrantPaysNoLandFeeLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "restricted_grant_pays_no_land_fee", "std-trc", Config{})
+}
+
