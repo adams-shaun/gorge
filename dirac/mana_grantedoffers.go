@@ -1137,6 +1137,9 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			s.addXv(g.p&1, &xv)
 		}
 		if sacrifice {
+			// at priority, outside the build's and a resolution's mana steps, so the
+			// move cannot park for gorge's order ask: two competing exile-instead
+			// replacements stall it by name in dieZone (StallReplLeave, CR 616.1)
 			o := s.perms[sl].obj
 			s.fireSac(k, sl)
 			s.leave(k, sl, kop.ZoneGraveyard, false)
