@@ -342,6 +342,7 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 func TestStdEoeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-eoe", []stdRepro{
+		{"station_departed_creature_reads_toughness_static", true, false},      // CR 702.184a, 608.2h: Survey Mechan, tapped to station Uthros Scanship and then sacrificed, stations with its toughness under Tapestry Warden
 		{"restricted_grant_no_unit_for_hand_cast_x", false, false},             // Mm'menon grants an untapped Specimen Freighter blue for spells not cast from hand, so Zero Point Ballad from hand has no extra mana to announce X with
 		{"restricted_grant_no_unit_for_hand_cast_x_two", false, false},         // ... and Devastating Onslaught's X likewise stops one short
 		{"restricted_grant_no_unit_for_hand_cast_pip", true, false},            // ... and a hand warp's {U/R} pip asks one colour, not the blue the Freighter's grant cannot pay a hand cast with (CR 106.6)
