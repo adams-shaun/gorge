@@ -271,7 +271,11 @@ func (s *State) finishAttacks(k *prep) {
 			s.markAttackedObj(k) // value_turntallies.go: after the declaration's triggers, so a FirstAttack read sees the earlier declarations only
 		}
 		if k.gen.embCombatEv&(1<<kop.TrigAttackersDeclared) != 0 {
+			n0 := s.npend
 			s.fireEmblemsAttack(k) // gorge: the delayed check after the event's face triggers
+			if MaxSeats > 2 && !DebugDropDefSeat {
+				s.stampDefSeat(n0, s.firstAtkSeat(k)) // the declaration's first event's seat
+			}
 		}
 		if s.subs[kop.TrigTaps].any() {
 			tb := s.tapBatchOpen(k)   // the declaration's taps are one tapping action (CR 508.1f; trig_tapall.go)
@@ -324,76 +328,143 @@ func (s *State) fireAttacksGen(k *prep) {
 	}
 	var ord [MaxPerm]Slot
 	n := s.listenerOrder(m, &ord)
+	// gorge emits one DeclareAttackers event per defender, sorted by the
+	// defending seat and then the attacked planeswalker or battle by object
+	// id, the player's own event first (rules/combat.go finishAttackers),
+	// and runs the listeners once per event: the attack triggers of one
+	// group are all queued before the next group's; the batch "whenever you
+	// attack" fires on the first event only. Two-player, every group is the
+	// one opponent's. Past two seats each queued trigger keeps its event's
+	// defending seat (pendingTrig.defSeat), and an IsPresent$ checked as it
+	// fires reads it from g.atkDef.
+	var atkQ [MaxPerm]uint8
+	for i, as := range atk[:na] {
+		atkQ[i] = s.atkSeat(k, as)
+	}
+	if DebugAtkSeatsMerged {
+		q0 := s.firstAtkSeat(k) // a test-only mutation: every attacked player's attackers in one event
+		for i, as := range atk[:na] {
+			if isPlayerTarget(s.perms[as].atk) {
+				atkQ[i] = q0
+			}
+		}
+	}
+	first := true
+	for q := uint8(0); q < MaxSeats; q++ {
+		def := uint8(NoTarget)
+		for {
+			var grp [MaxPerm]Slot
+			ng := 0
+			for i, as := range atk[:na] {
+				if t := s.perms[as].atk; atkQ[i] == q && (t == def || def == NoTarget && isPlayerOrNone(t)) {
+					grp[ng] = as
+					ng++
+				}
+			}
+			if ng > 0 {
+				n0 := s.npend
+				if MaxSeats > 2 {
+					s.g.atkDef = q + 1
+				}
+				s.fireAtkGroup(k, &ord, n, atk[:na], grp[:ng], first, emb)
+				if MaxSeats > 2 {
+					s.g.atkDef = 0
+					if !DebugDropDefSeat {
+						s.stampDefSeat(n0, q)
+					}
+				}
+				first = false
+			}
+			next := uint8(NoTarget)
+			for i, as := range atk[:na] {
+				if t := s.perms[as].atk; atkQ[i] == q && isObjTarget(t) && (def == NoTarget || t > def) && t < next {
+					next = t
+				}
+			}
+			if next == NoTarget {
+				break
+			}
+			def = next
+		}
+	}
+}
+
+// firstAtkSeat is the lowest seat an attacker attacks (gorge's first
+// DeclareAttackers event of the declaration), NoTarget with none.
+func (s *State) firstAtkSeat(k *prep) uint8 {
+	q := uint8(NoTarget)
+	for x := s.ctrlM[s.active].and(s.occ); x.any(); x = x.rest() {
+		if sl := x.first(); s.perms[sl].flags&pfAttacking != 0 {
+			q = min(q, s.atkSeat(k, sl))
+		}
+	}
+	return q
+}
+
+// stampDefSeat binds defending seat q to the pending triggers from n0 on
+// (pendingTrig.defSeat); NoTarget binds none.
+func (s *State) stampDefSeat(n0 uint8, q uint8) {
+	if q == NoTarget {
+		return
+	}
+	for i := n0; i < s.npend; i++ {
+		s.pend[i].defSeat = q + 1
+	}
+}
+
+// DebugAtkSeatsMerged is a test-only mutation: the attackers of every
+// attacked player make one attack event, not one per defending seat.
+var DebugAtkSeatsMerged bool
+
+// DebugDropDefSeat is a test-only mutation: an attack trigger keeps no
+// defending seat once queued.
+var DebugDropDefSeat bool
+
+// fireAtkGroup runs the listeners in ord[:n] over one DeclareAttackers event
+// of fireAttacksGen: grp is the event's attackers, atk the declaration's;
+// first marks the declaration's first event.
+func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot, first, emb bool) {
 	isAtk := func(a *kop.Ability) bool {
 		return a.Trig.Event == kop.TrigAttacks || a.Trig.Event == kop.TrigAttackersDeclared
 	}
-	// gorge emits one DeclareAttackers event per defender, the player's
-	// first, then each planeswalker's by object id (rules/combat.go
-	// byDef), and runs the listeners once per event: the attack
-	// triggers of one group are all queued before the next group's; the
-	// batch "whenever you attack" fires on the first event only.
-	def, first := uint8(NoTarget), true
-	for {
-		var grp [MaxPerm]Slot
-		ng := 0
-		for _, as := range atk[:na] {
-			if t := s.perms[as].atk; t == def || def == NoTarget && isPlayerOrNone(t) {
-				grp[ng] = as
-				ng++
+	fire := func(l trigListener, a *kop.Ability) {
+		if a.Trig.Event == kop.TrigAttackersDeclared {
+			if a.Trig.Flags2&kop.Tf2DefPlayer != 0 {
+				s.fireDefPlayer(k, l, a, grp) // act_discover.go
+				return
 			}
-		}
-		if ng > 0 {
-			fire := func(l trigListener, a *kop.Ability) {
-				if a.Trig.Event == kop.TrigAttackersDeclared {
-					if a.Trig.Flags2&kop.Tf2DefPlayer != 0 {
-						s.fireDefPlayer(k, l, a, grp[:ng]) // act_discover.go
-						return
-					}
-					if first {
-						n := int16(s.nAttackers)
-						if a.Trig.Filter != 0 {
-							n = s.attackersMatching(k, l, a, atk[:na]) // filter_predicates.go
-						}
-						if n > 0 {
-							s.fireAtkDecl(k, l, a, n, atk[:na]) // trig_attackers.go
-						}
-					}
-					return
+			if first {
+				n := int16(s.nAttackers)
+				if a.Trig.Filter != 0 {
+					n = s.attackersMatching(k, l, a, atk) // filter_predicates.go
 				}
-				if a.Trig.Flags2&(kop.Tf2Alone|kop.Tf2Attacked) != 0 && !s.attacksGate(a.Trig.Flags2, l.ctrl, s.perms[grp[0]].atk) {
-					return // gorge Alone$ / Attacked$ (filter_predicates.go)
-				}
-				if a.Trig.N == kop.TrigNTraining && !s.trainingGate(k, l.sl, atk[:na]) {
-					return // Training (kw_training.go)
-				}
-				for _, as := range grp[:ng] {
-					if k.gen.anyAddPhase && a.Trig.Flags3&kop.Tf3FirstAttack != 0 && s.attackedBefore(k, s.perms[as].obj) {
-						continue // FirstAttack$ True: AttacksThisTurn == 1 (act_addphase.go)
-					}
-					s.objTrigGen(k, kop.TrigAttacks, l, a, as, s.perms[as].obj, s.perms[as].ctrl, 0)
+				if n > 0 {
+					s.fireAtkDecl(k, l, a, n, atk) // trig_attackers.go
 				}
 			}
-			for _, sl := range ord[:n] {
-				s.slotTriggers(k, sl, isAtk, fire)
-			}
-			if emb {
-				s.emblemAtkListeners(k, fire) // gorge: the delayed registrations are checked after the event's face triggers
-			}
-			if first && len(k.gen.graveTrig) != 0 {
-				s.fireGraveAttackers(k, atk[:na]) // zone_changezoneparams.go
-			}
-			first = false
-		}
-		next := uint8(NoTarget)
-		for _, as := range atk[:na] {
-			if t := s.perms[as].atk; isObjTarget(t) && (def == NoTarget || t > def) && t < next {
-				next = t
-			}
-		}
-		if next == NoTarget {
 			return
 		}
-		def = next
+		if a.Trig.Flags2&(kop.Tf2Alone|kop.Tf2Attacked) != 0 && !s.attacksGate(a.Trig.Flags2, l.ctrl, s.perms[grp[0]].atk) {
+			return // gorge Alone$ / Attacked$ (filter_predicates.go)
+		}
+		if a.Trig.N == kop.TrigNTraining && !s.trainingGate(k, l.sl, atk) {
+			return // Training (kw_training.go)
+		}
+		for _, as := range grp {
+			if k.gen.anyAddPhase && a.Trig.Flags3&kop.Tf3FirstAttack != 0 && s.attackedBefore(k, s.perms[as].obj) {
+				continue // FirstAttack$ True: AttacksThisTurn == 1 (act_addphase.go)
+			}
+			s.objTrigGen(k, kop.TrigAttacks, l, a, as, s.perms[as].obj, s.perms[as].ctrl, 0)
+		}
+	}
+	for _, sl := range ord[:n] {
+		s.slotTriggers(k, sl, isAtk, fire)
+	}
+	if emb {
+		s.emblemAtkListeners(k, fire) // gorge: the delayed registrations are checked after the event's face triggers
+	}
+	if first && len(k.gen.graveTrig) != 0 {
+		s.fireGraveAttackers(k, atk) // zone_changezoneparams.go
 	}
 }
 

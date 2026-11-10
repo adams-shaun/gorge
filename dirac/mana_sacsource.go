@@ -385,7 +385,7 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 			continue
 		}
 		e := stackEntry{kind: seTrigger, obj: pt.obj, srcVer: pt.srcVer, card: pt.card, ab: pt.ab, ctrl: pt.ctrl,
-			trigObj: pt.trigObj, trigPl: pt.trigPl, trigAmt: pt.trigAmt, tgt: noTargets}
+			trigObj: pt.trigObj, trigPl: pt.trigPl, defSeat: pt.defSeat, trigAmt: pt.trigAmt, tgt: noTargets}
 		if instant {
 			// the lowering is done as soon as the play is offered, and an
 			// instant-speed cast is offered with the trigger still on the stack
