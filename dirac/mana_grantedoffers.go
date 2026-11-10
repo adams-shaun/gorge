@@ -670,10 +670,13 @@ func (g *grantSrch) visit(t *State) bool {
 	// gorge's key reads the floated pool, whose restriction it does not
 	// (scriptStateKey): a state that differs from a seen one only in which
 	// pool units are the play's unspendable ones (ghost) is that state, and
-	// gorge drops it before pricing. A state equal in the ghost too is priced
-	// first: dirac's seen key leaves out what gorge's also reads (counters,
-	// snow) and what its verdict reads (waitsForStack), so a repeat of it may
-	// still be the answer.
+	// gorge drops it before pricing. Its offered check comes before the seen
+	// check, though: the priority options price a cast against the floating
+	// pool alone (legalActions), so a unit that is spendable here where the
+	// seen state's was not still offers the play when the pool pays it. A
+	// state equal in the ghost too is priced first: dirac's seen key leaves
+	// out what gorge's also reads (counters, snow) and what its verdict reads
+	// (waitsForStack), so a repeat of it may still be the answer.
 	same := false
 	fk := key.folded()
 	for i := 0; i < g.nseen; i++ {
@@ -681,7 +684,8 @@ func (g *grantSrch) visit(t *State) bool {
 		case e == key:
 			same = true
 		case e.folded() == fk:
-			return false // (gorge's seen check precedes its pricing: scriptSearch.visit)
+			// (gorge's seen check precedes its pricing: scriptSearch.visit)
+			return t.floatPaysPlay(g.k, g.p, &cost, g.d) && !g.waitsForStack(t)
 		}
 	}
 	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && !g.waitsForStack(t) {
@@ -1797,4 +1801,20 @@ func (s *State) restrAbN(k *prep, sl Slot, ra *kop.Ability) uint8 {
 		return uint8(min(max(s.dynManaN(k, ra, sl), 1), maxDynMana))
 	}
 	return uint8(max(ra.ManaN, 1))
+}
+
+// floatPaysPlay reports whether p's floating pool alone pays cost for the
+// play d describes, the restricted batches it may spend included (CR 106.6):
+// gorge's priority options price a cast against that pool (legalActions).
+func (s *State) floatPaysPlay(k *prep, p uint8, cost *kop.ManaCost, d payDesc) bool {
+	var av avail
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if n := s.pl[SeatIx(p)].pool[c]; n > 0 {
+			av.addUnits(1<<c, n)
+		}
+	}
+	if m := s.restrFloatAdmits(k, SeatIx(p), &d); m != 0 {
+		s.restrAvailAdd(SeatIx(p), m, &av)
+	}
+	return av.affords(cost, pipMaskOf(cost), 0)
 }
