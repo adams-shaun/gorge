@@ -76,7 +76,11 @@ func (cb *cardBuilder) abilities() error {
 			if err != nil {
 				return bfail(cb.node, "%v", err)
 			}
-			ke.Capture = r
+			if e.CaptureIsPlayer {
+				ke.CapturePlayer = r
+			} else {
+				ke.Capture = r
+			}
 		}
 		for _, s := range e.Statics {
 			ka, add, err := cb.static(s)

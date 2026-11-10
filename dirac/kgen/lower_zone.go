@@ -2463,15 +2463,9 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	// RememberObjects$ Targeted beside ValidTgts$ (The Inner Light: "choose
 	// target creature. Whenever it deals combat damage to a player this
 	// turn"): the chain's target slot is the emblem's capture
-	capture, hasCap, drop, t, err := lc.emblemCapture(ps, t, eot)
+	capture, hasCap, player, t, err := lc.emblemCapture(ps, t, eot)
 	if err != nil {
 		return err
-	}
-	if drop {
-		// RememberObjects$ TargetedPlayer: gorge's event-trigger registration
-		// drops the player, so the mode's trigger never fires (the target was
-		// still declared in emblemCapture)
-		return nil
 	}
 	if !hasCap && eot {
 		var src bool
@@ -2493,7 +2487,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return refuse("emblem trigger lowering")
 	}
 	ab := lc.out.Abilities[saved]
-	if hasCap {
+	if hasCap && !player {
 		if err := emblemCaptureFilter(ab); err != nil {
 			return err
 		}
@@ -2508,7 +2502,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	}
 	ab.Latent = true
 	ab.Name = "EmblemTrigger"
-	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap})
+	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap, CaptureIsPlayer: player})
 	lc.emit(lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}, C: len(lc.out.Emblems) - 1})
 	return nil
 }

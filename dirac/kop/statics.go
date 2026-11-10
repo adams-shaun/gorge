@@ -183,6 +183,15 @@ type Emblem struct {
 	// Creature.IsRemembered over the registration's Remembered set; The Inner
 	// Light). The trigger's filter carries no Remembered flag.
 	Capture Ref
+	// CapturePlayer: the target slot (a Ref) whose PLAYER the emblem
+	// remembers (an Effect's RememberObjects$ TargetedPlayer over a DamageDone
+	// trigger). RefNone when it remembers no player. OpCreateEmblem stores the
+	// seat+1 in State.g.embN (0 = none), the same byte Capture uses for
+	// object+1; an emblem never carries both. The DamageDone hook fires only
+	// when the damaged player is that seat, which is the exact "to that
+	// player" scope in any seat count (the trigger's ValidTarget$ is Player,
+	// TfToPlayer).
+	CapturePlayer Ref
 	// UntilEndOfNextTurn: Duration$ UntilTheEndOfYourNextTurn. gorge keeps
 	// the registration through its controller's next turn and drops it at
 	// that turn's cleanup (engine/rules/layers_effect.go:91 freezes

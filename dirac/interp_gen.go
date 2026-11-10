@@ -671,16 +671,26 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if n := int(s.g.nemb[p]); n < s.embCap() {
 			s.g.embF[p] &^= 1 << n // a new emblem has begun no turn yet
 			r := embRec{idx: uint8(in.C) + 1, c: e.card, obj: e.obj}
-			r.num = s.freezeEmbNum(k, in.A, s.ctxEntry(e))
-			r.t = s.tick() // gorge's AddContinuous ClockTick: a new continuous effect is newer than everything before it (CR 613.7)
-			if cr := k.t.Emblems[in.C].Capture; cr != kop.RefNone {
+			emb := &k.t.Emblems[in.C]
+			switch {
+			case emb.Capture != kop.RefNone:
 				// the Effect's RememberObjects$ Targeted: the chain's target object + 1
 				// (0 none; an emblem with a capture has no frozen number)
 				r.num = 0
-				if o := s.objRefObj(cr); o != NoObj {
+				if o := s.objRefObj(emb.Capture); o != NoObj {
 					r.num = uint8(o) + 1
 				}
+			case emb.CapturePlayer != kop.RefNone:
+				// the Effect's RememberObjects$ TargetedPlayer: the chain's player
+				// target seat + 1, read through the same playerRef the creator uses
+				r.num = 0
+				if pp := s.playerRef(k, emb.CapturePlayer); pp != 255 {
+					r.num = pp + 1
+				}
+			default:
+				r.num = s.freezeEmbNum(k, in.A, s.ctxEntry(e))
 			}
+			r.t = s.tick() // gorge's AddContinuous ClockTick: a new continuous effect is newer than everything before it (CR 613.7)
 			s.embPut(p, n, r)
 			s.g.nemb[p]++
 		} else {
