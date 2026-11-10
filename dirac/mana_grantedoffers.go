@@ -386,10 +386,14 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 			a.addUnits(1<<i, pl.pool[i])
 		}
 	}
+	var deferGap slotMask
+	if s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0 {
+		deferGap = s.scriptTapsDefer(k, p&1) // as availFor: gorge's census never lists a planner-deferred source (a counter rider, a Taps watcher), so the witness never pays with it
+	}
 	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
-		if pm.flags&pfTapped != 0 || s.manaGranted(k, sl) {
+		if pm.flags&pfTapped != 0 || s.manaGranted(k, sl) || deferGap.has(sl) {
 			continue
 		}
 		pc := s.manaPCGen(k, sl)
