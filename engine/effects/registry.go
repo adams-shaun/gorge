@@ -1221,25 +1221,8 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 				}
 			}
 		}
-		// The P/T half of the same entry capture (the fallback for a
-		// departure the host did not see; rules refreshes it at the move).
-		// Per target, keeping an entry already held: a re-entry keeps the
-		// earlier capture, and a reflexive ability arrives seeded with its
-		// remembered objects' queue-time P/T (rules' rememberedPTLKI) while
-		// its own targets are still captured here.
-		for _, target := range c.Targets {
-			if _, seeded := c.Snap.TargetPT[target.Obj]; target.IsPlayer || seeded {
-				continue
-			}
-			if object := h.Game().Obj(target.Obj); object != nil && object.Zone == state.ZBattlefield &&
-				object.Face() != nil {
-				if c.Snap.TargetPT == nil {
-					c.Snap.TargetPT = make(map[state.ObjID]TargetPT)
-				}
-				c.Snap.TargetPT[target.Obj] = TargetPT{Power: h.Power(target.Obj), Toughness: h.Toughness(target.Obj),
-					Tapped: object.Tapped, Attacking: object.IsAttacking}
-			}
-		}
+		// The P/T half of the same entry capture.
+		captureTargetPT(h, c)
 		// Capture the stack-kind and cast-spend snapshots for the same set of
 		// object targets, at the same instant (see captureStackTargetSnapshots).
 		captureStackTargetSnapshots(h, c)
@@ -1479,6 +1462,28 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// a paid unswitched body both runs AND suppresses a WhenNotPaid chain.
 		if ActivationOf(sa).Unless() && !unlessSubsRun(sa, paid) {
 			return
+		}
+	}
+}
+
+// captureTargetPT is the P/T half of Resolve's entry capture (the fallback for
+// a departure the host did not see; rules refreshes it at the move). It fills
+// per target, keeping an entry already held: a re-entry keeps the earlier
+// capture, and a reflexive ability arrives seeded with its remembered
+// objects' queue-time P/T (rules' rememberedPTLKI) while its own targets are
+// still captured here.
+func captureTargetPT(h Host, c *Ctx) {
+	for _, target := range c.Targets {
+		if _, seeded := c.Snap.TargetPT[target.Obj]; target.IsPlayer || seeded {
+			continue
+		}
+		if object := h.Game().Obj(target.Obj); object != nil && object.Zone == state.ZBattlefield &&
+			object.Face() != nil {
+			if c.Snap.TargetPT == nil {
+				c.Snap.TargetPT = make(map[state.ObjID]TargetPT)
+			}
+			c.Snap.TargetPT[target.Obj] = TargetPT{Power: h.Power(target.Obj), Toughness: h.Toughness(target.Obj),
+				Tapped: object.Tapped, Attacking: object.IsAttacking}
 		}
 	}
 }

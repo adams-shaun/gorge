@@ -202,10 +202,18 @@ func rememberedPTLKI(h ptReader, g *state.Game, remembered []state.Target) map[s
 // the spawning ability's capture: resolveTop seeds Captured from the stack
 // object's Remembered, which for a reflexive ability is the instance's own
 // remembered set (real memory the body reads through Remembered /
-// TriggerRemembered, never to be excluded as a capture).
-func reflexiveCaptured(ctx *effects.Ctx) {
+// TriggerRemembered, never to be excluded as a capture). rememberedPT is the
+// stack object's queue-time P/T of its remembered objects
+// (reflexiveRememberedPT; nil where no resolution follows, as in a target
+// bound), seeded into Snap.TargetPT as a private copy so a remembered creature
+// that has since left is read at that last known power (CR 608.2h). Every
+// resolution Ctx builder (resolveTop, resumeResolution) goes through here.
+func reflexiveCaptured(ctx *effects.Ctx, rememberedPT map[state.ObjID]effects.TargetPT) {
 	if ctx.TriggerContext.Reflexive {
 		ctx.Captured = append([]state.Target(nil), ctx.TriggerContext.SpawnerCaptured...)
+		if rememberedPT != nil {
+			ctx.Snap.TargetPT = effects.CloneTargetPTLKI(rememberedPT)
+		}
 	}
 }
 
