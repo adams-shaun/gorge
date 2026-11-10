@@ -12,7 +12,7 @@ import (
 // filter matches the source and, for B bit 0 only for an Exhaust ability,
 // for B bit 2 only for a Power-up ability and for B bit 3 only for an Equip
 // ability, subtracts its amount from the generic part, floored at zero after
-// each (CR 601.2f, 602.2b; gorge costModifiersCompose after the ability's own
+// each, the excess past it paying into {X} (CR 601.2f, 602.2b; gorge costModifiersCompose after the ability's own
 // reduction, pay.ApplyTo), in battlefield entry order (eachStaticTS). The
 // offer, the planner witness and the view price this cost; a target-gated
 // equip reduction (kop.StTargetsFilter2: Cloud, Planet's Champion) is priced
@@ -97,7 +97,7 @@ func (s *State) abilityHasTargetReduction(k *prep, a *kop.Ability, sl Slot, ctrl
 // target-gated static lowers the cost only when one of them matches its
 // Filter2 read with the static's source as Self (nt == 0: none applies).
 func (s *State) abReducedFor(k *prep, a *kop.Ability, sl Slot, ctrl uint8, c kop.ManaCost, tgts *[kop.MaxTargets]uint8, nt int) kop.ManaCost {
-	g := int(c.Generic)
+	g, xr := int(c.Generic), int(c.XRed)
 	s.eachStaticTS(k, sclsReduce, func(st statSrc) bool {
 		sa := &st.a.Static
 		if !s.abReduceStaticApplies(k, st, a, sl, ctrl) {
@@ -121,6 +121,9 @@ func (s *State) abReducedFor(k *prep, a *kop.Ability, sl Slot, ctrl uint8, c kop
 		}
 		floor := int(sa.B>>kop.ReduceAbMinShift) & 15
 		if floor == 0 || DebugNoMinManaFloor {
+			if g < n && c.X != 0 {
+				xr = min(xr+n-g, 255) // CR 601.2f: the excess pays into {X}
+			}
 			g = max(g-n, 0)
 			return true
 		}
@@ -136,7 +139,7 @@ func (s *State) abReducedFor(k *prep, a *kop.Ability, sl Slot, ctrl uint8, c kop
 		}
 		return true
 	})
-	c.Generic = uint8(g)
+	c.Generic, c.XRed = uint8(g), uint8(xr)
 	return c
 }
 

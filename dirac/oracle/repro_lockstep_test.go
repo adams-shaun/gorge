@@ -474,3 +474,11 @@ func TestRememberedReturnAsksBetweenMovesLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "remembered_return_asks_between_moves", "std-trc", Config{})
 }
+
+// Two permanents that each make another permanent's exhaust abilities cost {2}
+// less lower an {X}{2}{R} activation by four: the two past its generic part pay
+// into {X} (CR 601.2f), so the X ask reaches two more than the mana on hand.
+func TestAbilityReductionExcessPaysXLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "ability_reduction_excess_pays_x", "std-dft", Config{GorgeAutopaySurface: true})
+}
