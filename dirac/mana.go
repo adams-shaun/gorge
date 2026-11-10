@@ -279,6 +279,9 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 			continue // a source whose only mana ability is granted: grantCap/grantPrefix's search, not another gap's
 		}
 		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) && !(dual && s.grantSacLive(sl, pc)) {
+			if dual {
+				s.availGrantSacOnly(k, sl, a) // a tapped source's granted sacrifice-only ability (mana_grantcost.go)
+			}
 			continue
 		}
 		if deferSkip && deferGap.has(sl) {

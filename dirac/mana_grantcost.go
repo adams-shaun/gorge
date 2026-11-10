@@ -113,6 +113,41 @@ func (s *State) potentialGrantSac(k *prep, sl Slot, payment bool, add func(Slot,
 	}
 }
 
+// availGrantSacOnly adds to a the live granted sacrifice-only abilities of sl,
+// a source that cannot tap (tapped or sick) and whose own view is no
+// sacrifice-only grant: Lotus Ring's "Sacrifice this creature: Add three mana"
+// on a tapped Ancient Cornucopia. The source's own {T} ability and its granted
+// {T} ones are spent; the sacrifice needs no {T}, so gorge's census still lists
+// it (CR 602.2, 605.1a). The source is sacrificed once: one unit, the grants'
+// colours joined, as availGrant joins them, or each its own unit under the
+// relaxed walk census.
+func (s *State) availGrantSacOnly(k *prep, sl Slot, a *avail) {
+	if !s.grantSacOK(k, sl) {
+		return
+	}
+	var gi [maxGrants]int16
+	ng := s.grantIdxs(k, sl, &gi)
+	if a.xdOn {
+		ng = s.grantsAdmitted(k, sl, &gi, ng, &a.xd)
+	}
+	var mask, n uint8
+	for i := 0; i < ng; i++ {
+		gv := s.grantView(k.gen, gi[i], sl)
+		if !s.grantSacLive(sl, gv) {
+			continue
+		}
+		if s.g.availX&availWalk != 0 {
+			s.addGrantUnits(a, s.srcMaskAt(gv, sl), gv.manaN)
+			continue
+		}
+		mask |= s.srcMaskAt(gv, sl)
+		n = max(n, gv.manaN)
+	}
+	if mask != 0 {
+		s.addGrantUnits(a, mask, n)
+	}
+}
+
 // windowSacOnly: the manual window's view pc is a sacrifice-only mana
 // ability, printed (Eldrazi Spawn) or granted (Lotus Ring): the window
 // sacrifices the source instead of tapping it.

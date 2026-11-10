@@ -396,3 +396,12 @@ func TestPlanTapsItsSacrificingSourcesLastLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "plan_taps_sacrifice_last", "std-big", Config{})
 }
+
+// Lotus Ring's granted "Sacrifice this creature: Add three mana" on a tapped Ancient
+// Cornucopia: the sacrifice needs no {T}, so gorge's census still counts the bearer
+// and offers both Rings' Equip {3}. The kernel's availability skipped a tapped source
+// unless its own view was the sacrifice-only grant (CR 602.2, 605.1a).
+func TestGrantedSacrificeOnATappedBearerLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "granted_sacrifice_on_tapped_bearer", "std-big", Config{})
+}
