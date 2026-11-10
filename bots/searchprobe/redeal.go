@@ -271,6 +271,12 @@ func NewRedealer(setup PublicGame, h History, known KnownCards, base RedealBase)
 	var plans []redealPlan
 	for pi := range e.G.Players {
 		p := state.PlayerID(pi)
+		if e.G.Players[pi].Lost {
+			// A seat that has left the game holds no cards (CR 800.4a ceased
+			// them all), so it has no hidden pool to deal and no deck-list
+			// accounting to balance: its public cards left the board with it.
+			continue
+		}
 		plan := redealPlan{player: p, hand: append([]state.ObjID(nil), e.G.Zone(state.ZHand, p)...)}
 		pinHand := make(map[state.ObjID]bool)
 		lib := e.G.Zone(state.ZLibrary, p)

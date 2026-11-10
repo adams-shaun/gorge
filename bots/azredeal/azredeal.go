@@ -42,16 +42,16 @@ func init() {
 	bots.Register(bots.Entry{Info: bots.Info{
 		Name:        Policy,
 		Label:       "az-redeal (AlphaZero search)",
-		Description: "The az search seat in its honest world: at every searched decision it runs 100 MCTS simulations over freshly redealt worlds rebuilt from its own observations, and plays the production bot everywhere else.",
+		Description: "The az search seat in its honest world: at every searched decision it runs 100 MCTS simulations over freshly redealt worlds rebuilt from its own observations, and plays the production bot everywhere else. Plays constructed 1v1 and Commander pods of up to four seats, reading the other seats as opponents who minimise its value.",
 		Tier:        bots.Experimental,
 		Cost: bots.Cost{
 			MeanMS: 247, P95MS: 465, Scope: "per searched decision",
-			Note:   "at 100 simulations, uncontended; contention raises it, and the host never cuts the search",
+			Note:   "at 100 simulations, uncontended, in 2-seat constructed; 4-seat cost unmeasured; contention raises it, and the host never cuts the search",
 			Source: "docs/design/2026-09-28-spellbench-agent-design.md §12.5",
 		},
 		Env: true, Search: true,
-		Formats:   []string{"constructed"},
-		MaxSeats:  2,
+		Formats:   []string{"constructed", "commander"},
+		MaxSeats:  4,
 		Caretaker: "bot",
 	}, New: newAZRedeal})
 }
