@@ -956,16 +956,18 @@ const cardColorsToken = "CardColors"
 var cardColorNames = [5]string{"White", "Blue", "Black", "Red", "Green"}
 
 // appendGrantedKeywords appends one effect's granted keywords to kw,
-// replacing each keyword that names CardColors by one copy per colour in col.
+// replacing each keyword that ends in CardColors (the only printed shape,
+// "Hexproof:CardColors") by one copy per colour in col.
 func appendGrantedKeywords(kw, add []string, col effects.ColorMask) []string {
 	for _, k := range add {
-		if !strings.Contains(k, cardColorsToken) {
+		n := len(k) - len(cardColorsToken)
+		if n < 0 || k[n:] != cardColorsToken {
 			kw = append(kw, k)
 			continue
 		}
 		for i, name := range cardColorNames {
 			if col&(1<<i) != 0 {
-				kw = append(kw, strings.ReplaceAll(k, cardColorsToken, name))
+				kw = append(kw, k[:n]+name)
 			}
 		}
 	}

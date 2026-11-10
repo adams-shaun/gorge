@@ -10,7 +10,7 @@ import (
 )
 
 const tamSrc = "Name:Test Tam\nManaCost:1 GU\nTypes:Legendary Creature Gorgon Wizard\nPT:2/2\n" +
-	"S:Mode$ Continuous | Affected$ Creature.Other+YouCtrl | AddKeyword$ Hexproof:CardColors | Description$ Each other creature you control has hexproof from each of its colors.\n" +
+	"S:Mode$ Continuous | Affected$ Creature.YouCtrl+Other | AddKeyword$ Hexproof:CardColors | Description$ Your other creatures are hexproof from their own colours.\n" +
 	"Oracle:x\n"
 
 func TestHexproofFromOwnColours(t *testing.T) {
