@@ -500,3 +500,12 @@ func TestFreeCastAltAddNoPartPayableLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "free_cast_alt_add_no_part_payable", "std-fdn", Config{GorgeAutopaySurface: true})
 }
+
+// TestFilterBesideCounterSourceShortLockstep: Three Tree Mascot's {1} filter
+// pays Infernal Vessel's {B} beside Ramos, Dragon Engine with one +1/+1
+// counter; a counter-cost source that cannot remove its counters is no
+// census gap, so the board is still a filter-only one (CR 605.3a, 602.2b).
+func TestFilterBesideCounterSourceShortLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "filter_beside_counter_source_short_of_counters", "std-fdn", Config{})
+}
