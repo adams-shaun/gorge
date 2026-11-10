@@ -41,13 +41,13 @@ func TestUngatedFixedColourFilterStaysRefused(t *testing.T) {
 		lines      []string
 	}{
 		{"ungated {G},{T}: Add {G} per creature", "2 mana abilities: mana ability 1",
-			[]string{"A:AB$ Mana | Cost$ T | Produced$ G", "A:AB$ Mana | Cost$ G T | Produced$ G | Amount$ X", "SVar:X:Count$Valid Creature.YouCtrl"}},
+			[]string{"A:AB$ Mana | Cost$ T | Produced$ G", "A:AB$ Mana | Cost$ G T | Produced$ G | Amount$ ProbeCount", "SVar:ProbeCount:Count$Valid Creature.YouCtrl"}},
 		{"Station-gated {G},{T}: Add {U} per creature (fee is not the product)", "granted mana ability with a mana fee",
-			stationProbe("AB$ Mana | Cost$ G T | Produced$ U | Amount$ X")},
+			stationProbe("AB$ Mana | Cost$ G T | Produced$ U | Amount$ ProbeCount")},
 		{"Station-gated {1},{T}: Add {G} per creature (generic fee)", "granted mana ability with a mana fee",
-			stationProbe("AB$ Mana | Cost$ 1 T | Produced$ G | Amount$ X")},
+			stationProbe("AB$ Mana | Cost$ 1 T | Produced$ G | Amount$ ProbeCount")},
 		{"Station-gated {G}{G},{T}: Add {G} per creature (two pips)", "granted mana ability with a mana fee",
-			stationProbe("AB$ Mana | Cost$ G G T | Produced$ G | Amount$ X")},
+			stationProbe("AB$ Mana | Cost$ G G T | Produced$ G | Amount$ ProbeCount")},
 		{"Station-gated {G},{T}: Add {G} (literal amount)", "a coloured-fee mana ability the kernel does not model",
 			stationProbe("AB$ Mana | Cost$ G T | Produced$ G | Amount$ 2")},
 		{"Station-granted {T}, Sacrifice mana ability", "granted mana ability whose cost is not {T}",
@@ -68,6 +68,6 @@ func stationProbe(grant string) []string {
 		"A:AB$ Mana | Cost$ T | Produced$ G",
 		"S:Mode$ Continuous | AffectedDefined$ Self | Affected$ Card.counters_GE12_CHARGE | AddAbility$ ProbeMana",
 		"SVar:ProbeMana:" + grant,
-		"SVar:X:Count$Valid Creature.YouCtrl",
+		"SVar:ProbeCount:Count$Valid Creature.YouCtrl",
 	}
 }
