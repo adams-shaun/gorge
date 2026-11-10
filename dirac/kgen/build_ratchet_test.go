@@ -211,9 +211,9 @@ import (
 // +6 (a static's granted Exalted: the cards listed at ratchet_test.go's ALL pin; ALL build-level 21873 -> 21879).
 // +3 (a filter whose activation cost sacrifices its source: the cards listed at ratchet_test.go's ALL pin; ALL build-level 21930 -> 21933).
 // +1 (the merge with land: this branch's Tam, Mindful First-Year static Hexproof:CardColors lower beside land's Amalia Benavides Aguirre / Hulkling / Burgeoning Bruiser lowers, disjoint; merged ALL build-level 21989 -> 21990).
-// +2 (the merge with land: this branch's Hollow Marauder and Madame Null lowers beside land's; merged ALL build-level 22034 -> 22036).
+// +2 (the merge with land: this branch's Hollow Marauder and Madame Null lowers beside land's; merged ALL build-level 22035 -> 22037).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22036, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22037, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

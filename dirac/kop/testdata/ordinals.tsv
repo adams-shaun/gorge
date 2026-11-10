@@ -1066,7 +1066,9 @@ StReduceAny	StaticFlags	256
 StReduceColor	StaticFlags	8192
 StRemove6Counters	StaticFlags	32
 StSeatActive	StaticFlags	16384
+StTapAnyPlayer	StaticFlags	8
 StTapOnC	StaticFlags	2
+StTapReflect	StaticFlags	4
 StTargetsFilter2	StaticFlags	64
 StWithoutManaCost	StaticFlags	8
 StYouHexproof	StaticFlags	512

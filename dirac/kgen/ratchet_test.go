@@ -116,16 +116,16 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (a filter whose activation cost sacrifices its source lowers, kop.FilterManaAb: Omni-Cheese Pizza (TMT 174 -> 175), Chromatic Star, Golden Egg; ALL 21930 -> 21933).
 	// +3 (a battlefield power == a constant and a toughness > a value lower: Amalia Benavides Aguirre (LCI 255 -> 256), Hulkling, Burgeoning Bruiser (MSH 240 -> 241), Savage Swipe's powerEQ2 condition; ALL 21945 -> 21948).
 	// +1 (the merge with land: this branch's Tam, Mindful First-Year static Hexproof:CardColors lower beside land's Amalia Benavides Aguirre / Hulkling / Burgeoning Bruiser lowers, disjoint; merged ECL 238 -> 239, ALL 21989 -> 21990).
-	// +2 (the merge with land: this branch's Hollow Marauder lowers OTJ 244 -> 245 and Madame Null lowers TMT 176 -> 177 beside land's; merged ALL 22034 -> 22036).
+	// +2 (the merge with land: this branch's Hollow Marauder lowers OTJ 244 -> 245 and Madame Null lowers TMT 176 -> 177 beside land's; merged ALL 22035 -> 22037).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22036, 34442},
+	"ALL": {22037, 34442},
 	"BIG": {25, 30},
 	"BLB": {260, 278},
 	"BRO": {214, 280},
 	"DFT": {252, 276},
 	"DMU": {194, 270},
 	"DSK": {245, 276},
-	"ECL": {239, 273},
+	"ECL": {240, 273},
 	"EOE": {244, 266},
 	"FDN": {517, 517},
 	"FIN": {271, 312},
