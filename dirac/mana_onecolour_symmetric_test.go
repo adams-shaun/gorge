@@ -104,3 +104,27 @@ func TestOneColourSymmetricMatchesExhaustive(t *testing.T) {
 		t.Fatalf("%d fits, %d misses over %d lists: the costs do not exercise both answers", fits, misses, lists)
 	}
 }
+
+// TestOneColourLargeAmountsStayExact: two one-colour sources of 200 each make
+// two colours between them, never three; a count byte that saturated would
+// leave phantom any-colour mana behind when the sources are taken out.
+func TestOneColourLargeAmountsStayExact(t *testing.T) {
+	var a avail
+	for i := 0; i < 2; i++ {
+		a.addUnits(uint8(kop.ColAny), 200)
+		a.one[a.nOne] = 200
+		a.nOne++
+	}
+	var three, two kop.ManaCost
+	three.Pips[kop.W], three.Pips[kop.U], three.Pips[kop.B] = 1, 1, 1
+	two.Pips[kop.W], two.Pips[kop.U] = 1, 1
+	if a.oneColourPays(&three, 1<<kop.W|1<<kop.U|1<<kop.B, 0) {
+		t.Fatal("two one-colour sources paid {W}{U}{B}")
+	}
+	if !a.oneColourPays(&two, 1<<kop.W|1<<kop.U, 0) {
+		t.Fatal("two one-colour sources failed {W}{U}")
+	}
+	if a.nOne != 2 {
+		t.Fatalf("oneColourPays changed the board: %d sources", a.nOne)
+	}
+}

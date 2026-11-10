@@ -254,7 +254,7 @@ func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 			u.xd, u.xdOn = a.xd, a.xdOn
 			s.availGrant(k, sl, pc, &u)
 			for i := 0; i < u.n; i++ {
-				a.remove(u.mask[i], u.cnt[i])
+				a.removeWide(u.mask[i], u.cnt[i])
 			}
 			return
 		}

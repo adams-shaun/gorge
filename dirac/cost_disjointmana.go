@@ -163,7 +163,7 @@ func (s *State) costPartDisjointD(k *prep, p uint8, sl Slot, c *kop.Cost, mana *
 				var gap avail
 				s.scriptGapAvail(k, p, x, &gap)
 				for j := 0; j < gap.n; j++ {
-					r.remove(gap.mask[j], gap.cnt[j])
+					r.removeWide(gap.mask[j], gap.cnt[j])
 				}
 			}
 		}

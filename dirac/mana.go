@@ -69,8 +69,8 @@ func (s *State) canTapForManaPC(k *prep, sl Slot, pc *pcard) bool {
 type avail struct {
 	total int
 	n     int
-	mask  [16]uint8 // distinct production masks (nine on a five-gain-land board: pair 5901)
-	cnt   [16]uint8
+	mask  [16]uint8  // distinct production masks (nine on a five-gain-land board: pair 5901)
+	cnt   [16]uint16 // wide enough that eight 255-mana sources never saturate
 	// pain: the painful units' budget when their summed damage could be
 	// lethal (mana_pain.go painTight): their colours are
 	// then held out of mask/cnt and affordsPlain enumerates how many of
@@ -176,13 +176,13 @@ func (a *avail) oneColourPays(cost *kop.ManaCost, pipMask uint8, extra int) bool
 	return b.oneColourFits(cost, pipMask, extra, sorted)
 }
 
-// satAdd is a+n held at 255: two dynamic mana amounts of one mask can pass
-// what a count byte holds, and a wrapped count would read as a short board.
-func satAdd(a, n uint8) uint8 {
-	if s := int(a) + int(n); s < 255 {
-		return uint8(s)
+// satAdd is a+n held at the top of a count: a wrapped count would read as a
+// short board. The top is out of reach of any board (255 mana a source).
+func satAdd(a uint16, n uint8) uint16 {
+	if s := int(a) + int(n); s < 65535 {
+		return uint16(s)
 	}
-	return 255
+	return 65535
 }
 
 func (a *avail) addUnits(mask, n uint8) {
@@ -200,18 +200,21 @@ func (a *avail) addUnits(mask, n uint8) {
 		a.cnt[a.n-1] = satAdd(a.cnt[a.n-1], n)
 		return
 	}
-	a.mask[a.n], a.cnt[a.n] = mask, n
+	a.mask[a.n], a.cnt[a.n] = mask, uint16(n)
 	a.n++
 }
 
 // remove takes n units of mask out (a source paying its own {T} cost).
-func (a *avail) remove(mask, n uint8) {
+func (a *avail) remove(mask, n uint8) { a.removeWide(mask, uint16(n)) }
+
+// removeWide is remove for a group's whole count, which can pass a byte.
+func (a *avail) removeWide(mask uint8, n uint16) {
 	for i := 0; i < a.n; i++ {
 		if a.mask[i] == mask && a.cnt[i] >= n {
 			a.cnt[i] -= n
 			a.total -= int(n)
-			if a.nOne != 0 && mask == uint8(kop.ColAny) {
-				a.dropOneColour(n)
+			if a.nOne != 0 && mask == uint8(kop.ColAny) && n <= 255 {
+				a.dropOneColour(uint8(n))
 			}
 			return
 		}
