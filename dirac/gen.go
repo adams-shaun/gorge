@@ -1899,7 +1899,7 @@ type genState struct {
 	// definition. Nothing reads or writes these yet. The rule: new State bytes
 	// come out of rsv, the mech arena, a cold array or a scr overlay; never a
 	// mid-struct insertion, which moves every later field. rsv is named, not _,
-	// so SameGame's == compares it. Together the block grows State by 64 bytes
+	// so SameGame's == compares it. Together the block grows State by 80 bytes
 	// (statelayout_test.go pins the size and perms' cache-line phase).
 	imp     [maxImp]Obj
 	nimp    uint8
@@ -1911,9 +1911,10 @@ type genState struct {
 
 const (
 	maxImp = 16
-	// rsvN pads the reserved block to 64 bytes (genState's 5 bytes of tail
-	// padding absorb the rest of the alignment).
-	rsvN = 64 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb
+	// rsvN pads the reserved block to 80 bytes (genState's 5 bytes of tail
+	// padding absorb the rest of the alignment): 64, plus the 16 that carry
+	// State's growth for MaxObj 236 to a multiple of 64 so perms keeps its phase.
+	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).

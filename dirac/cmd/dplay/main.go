@@ -71,7 +71,7 @@ func (o *options) flags(errs io.Writer) *flag.FlagSet {
 	fs.StringVar(&o.out, "out", "", "games file, one JSON line per game (default: stdout)")
 	fs.StringVar(&o.summary, "summary", "", "summary file, one JSON object (default: stderr)")
 	fs.BoolVar(&o.skipRefused, "skip-refused", false, "skip a pair the set refuses and count it, instead of failing")
-	fs.Float64Var(&o.sampleReplay, "sample-replay", 0, "fraction of games also written as koracle-game-1 records under <out>.replays, which kfuzz -replay re-executes in gorge; needs -out")
+	fs.Float64Var(&o.sampleReplay, "sample-replay", 0, "fraction of games also written as koracle-game-2 records under <out>.replays, which kfuzz -replay re-executes in gorge; needs -out")
 	fs.StringVar(&o.config, "config", configAutopay, "the verified surface to play: "+configAutopay+" or "+configFull)
 	return fs
 }

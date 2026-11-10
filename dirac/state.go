@@ -13,7 +13,7 @@ import (
 const (
 	MaxDeck    = 100 // cards per seat's deck (a Commander deck's 100)
 	MaxSide    = 15  // cards per seat's sideboard (a Config's; each one is an object, so MaxObj bounds the decks and sideboards together)
-	MaxObj     = 224 // card instances: both decks + tokens (at most StackTarget0: a target byte's 0xE0.. are stack abilities)
+	MaxObj     = 236 // card instances: both decks + tokens (at most StackTarget0: a target byte's 0xEC.. are stack abilities)
 	MaxPerm    = 112 // battlefield slots (no gate-slice game exceeds 112)
 	MaxStack   = 48  // stack entries (24 before 2026-11-03, raised with MaxPending: the triggers a pending queue holds all go on the stack together, CR 603.3b)
 	MaxPending = 48  // triggered abilities waiting to be put on the stack (24 before 2026-11-03: Return to the Light Realms bringing back a graveyard of creatures beside three enters listeners queues more)
@@ -22,14 +22,14 @@ const (
 )
 
 // ObjWords is the number of 64-bit words an object bitset takes (the change
-// marks, objBits). MaxObj may be any value up to 224: an Obj is a uint8 whose
-// 0xE0..0xEF are stack abilities (StackTarget0) and 0xF0..0xFF
+// marks, objBits). MaxObj may be any value up to 236: an Obj is a uint8 whose
+// 0xEC..0xFB are stack abilities (StackTarget0) and 0xFC..0xFF
 // PlayerTarget0/1 and NoTarget/NoObj in target bytes.
 const ObjWords = (MaxObj + 63) / 64
 
 // Compile-time bounds: a constant conversion that overflows fails the build.
 const (
-	_ = uint8(StackTarget0 - MaxObj) // MaxObj <= 224 (Obj 0xE0.. are stack-ability / player targets / none)
+	_ = uint8(StackTarget0 - MaxObj) // MaxObj <= 236 (Obj 0xEC.. are stack-ability / player targets / none)
 	_ = uint8(255 - MaxPerm)         // MaxPerm <= 255 (Slot 255 is NoSlot)
 )
 

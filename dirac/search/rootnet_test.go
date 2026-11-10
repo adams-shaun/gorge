@@ -19,8 +19,8 @@ func TestRootEvalUnsetMatchesBase(t *testing.T) {
 		o    Options
 		want uint64
 	}{
-		{"plain", rootnetBaseOpts(false), 0xff1ad0065c786f3a},
-		{"cached", rootnetBaseOpts(true), 0xcb54a562f6e15f7b},
+		{"plain", rootnetBaseOpts(false), 0x2590747fad8bed2d},
+		{"cached", rootnetBaseOpts(true), 0xa871909bd159b647},
 	} {
 		h := fnv.New64a()
 		var buf [8]byte

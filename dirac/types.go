@@ -21,15 +21,16 @@ const (
 	NoObj  Obj  = 255
 	// PlayerTarget0 / PlayerTarget1 encode a player in an Action's target
 	// byte and in stack target records.
-	PlayerTarget0 uint8 = 0xF0
-	PlayerTarget1 uint8 = 0xF1
+	PlayerTarget0 uint8 = 0xFC
+	PlayerTarget1 uint8 = 0xFD
 	NoTarget      uint8 = 0xFF
 	// StackTarget0 encodes the activated or triggered ability at stack
 	// index i (from the bottom) as StackTarget0+i in a target byte, the
 	// oracle's canonical RefStack+i (tgt_stackability.go): codes
 	// below MaxObj are objects, StackTarget0..PlayerTarget0-1 stack
-	// abilities, PlayerTarget0.. players.
-	StackTarget0 uint8 = 0xE0
+	// abilities, PlayerTarget0.. players (0xFE is a departed stack
+	// target, 0xFF none).
+	StackTarget0 uint8 = 0xEC
 )
 
 // isObjTarget reports whether target byte c names an object (a card or

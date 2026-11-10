@@ -136,7 +136,7 @@ func run() int {
 		shrink     = flag.Int("shrink", 200, "shrink reruns for the first divergence (0: none)")
 		out        = flag.String("out", "", "directory for the first divergence's repro.json, and one file a bad game: capacity-<table>-pair<N>.repro.json for a capacity stall, unmodelled-<why>-pair<N>.repro.json for an unmodelled kernel stall, divergent-pair<N>.repro.json for a divergent game (default: none written)")
 		reproPath  = flag.String("repro", "", "re-run this repro in lockstep and report")
-		replayPath = flag.String("replay", "", "re-execute this kernel game (koracle-game-1) in gorge and report")
+		replayPath = flag.String("replay", "", "re-execute this kernel game (koracle-game-2) in gorge and report")
 		jsonOut    = flag.Bool("json", false, "print the summary as JSON")
 		features   = flag.Bool("features", false, "vanilla/fdn: also assert the network inputs (dirac/feat vs policynet) at every decision")
 		stats      = flag.Bool("stats", false, "fdn/blb: print each kernel pool's peak occupancy and the pair that reached it (kstats)")

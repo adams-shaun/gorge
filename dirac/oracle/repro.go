@@ -13,7 +13,7 @@ import (
 // run's knobs and the canonical action prefix that reached the divergence.
 // It is the JSON a fuzz run writes and `kfuzz -repro` replays.
 type Repro struct {
-	Format      string      `json:"format"` // "koracle-repro-1"
+	Format      string      `json:"format"` // "koracle-repro-2"
 	Decks       [2]string   `json:"decks"`
 	Cards       [2][]string `json:"cards"` // each deck's card names in decklist order
 	Seed        uint64      `json:"seed"`
@@ -50,7 +50,35 @@ type ShrinkInfo struct {
 	From     int `json:"from"`
 }
 
-const reproFormat = "koracle-repro-1"
+const (
+	reproFormat = "koracle-repro-2"
+	// reproFormat1 is the format before the target byte was repacked
+	// (RefStack 0xE0, RefPlayer 0xF0, MaxInst 224): ReadRepro maps its
+	// actions to the current bytes.
+	reproFormat1 = "koracle-repro-1"
+)
+
+// format1Ref maps a Ref byte of a format-1 recording to the current Refs:
+// the stack-ability and player codes 0xE0..0xF1 moved up by 12 (RefStack
+// 0xE0 -> 0xEC, RefPlayer 0xF0 -> 0xFC). A format-1 recording never names an
+// instance at or above 224, and RefNone (0xFF) did not move, so every other
+// byte is unchanged.
+func format1Ref(r Ref) Ref {
+	if r >= 0xE0 && r <= 0xF1 {
+		return r + 12
+	}
+	return r
+}
+
+// format1Actions returns as with each action's source and target mapped by
+// format1Ref (kind and mode are not Refs).
+func format1Actions(as []Canon) []Canon {
+	out := make([]Canon, len(as))
+	for i, a := range as {
+		out[i] = Pack(a.Kind(), format1Ref(a.Src()), format1Ref(a.Tgt()), a.Mode())
+	}
+	return out
+}
 
 // NewRepro records res (a lockstep game of m on seed) as a repro.
 func NewRepro(m *Matchup, seed uint64, rc RunConfig, res *Result) *Repro {
@@ -141,7 +169,12 @@ func ReadRepro(path string) (*Repro, error) {
 	if err := json.Unmarshal(b, &r); err != nil {
 		return nil, err
 	}
-	if r.Format != reproFormat {
+	switch r.Format {
+	case reproFormat:
+	case reproFormat1:
+		r.Actions = format1Actions(r.Actions)
+		r.Format = reproFormat
+	default:
 		return nil, fmt.Errorf("repro %s: format %q, want %q", path, r.Format, reproFormat)
 	}
 	return &r, nil

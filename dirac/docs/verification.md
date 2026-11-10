@@ -208,7 +208,7 @@ divergence as `DIR/repro.json` (a pool repro needs no deck files or `pool.tsv`),
 writes up to three files per divergence class under `DIR`. A clean run writes nothing. `-repro` takes
 the surface from the command line, since a repro does not record it.
 
-For a game dirac played on its own, `oracle.RecordKernelGame` makes a `koracle-game-1` record, and
+For a game dirac played on its own, `oracle.RecordKernelGame` makes a `koracle-game-2` record, and
 `kfuzz -replay FILE` re-executes one saved as JSON in gorge with
 its chance draws forced, and verifies gorge's log. `-replay` is routed before dirac switch, so it
 works under any `-kernel`.
