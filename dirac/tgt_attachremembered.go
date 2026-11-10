@@ -49,7 +49,7 @@ func (s *State) attachOne(k *prep, in *kop.Instr, dst Slot) {
 // such an attach.
 func (s *State) attachEachTarget(k *prep, in *kop.Instr, dst Slot) bool {
 	e := &s.res.e
-	if DebugNoAttachEach || k.gen == nil || s.xtOf(e).n == 0 {
+	if k.gen == nil || s.xtOf(e).n == 0 {
 		return false
 	}
 	sl, ok := tgtSlot(kop.Ref(in.C))
@@ -69,10 +69,6 @@ func (s *State) attachEachTarget(k *prep, in *kop.Instr, dst Slot) bool {
 	e.tgt[sl], e.tver[sl], s.res.bad = saveT, saveV, saveBad
 	return true
 }
-
-// DebugNoAttachEach drops attachEachTarget (a test-only mutation: only the
-// slot's first object is attached, as before plural ParentTarget).
-var DebugNoAttachEach bool
 
 // attachRemembered is OpAttachObj with Ref C = RefRemembered over several
 // remembered objects (gorge attachObjectRemembered / rememberedAttachObjects:
