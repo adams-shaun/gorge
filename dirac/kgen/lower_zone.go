@@ -3226,6 +3226,7 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	var obj lRef
 	group := false
 	sacGroup := false
+	lkiMany := false
 	if ps.str("RememberChain") == "False" {
 		if ro != "" {
 			return refuse("RememberChain$ False delayed trigger shape")
@@ -3248,10 +3249,13 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	case ro == "RememberedLKI":
 		// the delayed record holds one object (kernel dprog/delayed): a
 		// target slot taking several would return only the first
-		for _, t := range lc.ab.Targets {
-			if !t.Max.isConst() || t.Max.N > 1 {
-				return refuse("delayed trigger RememberedLKI over a multi-object target slot")
+		if lc.delayedLKIMulti() {
+			// a set of several objects: the kernel's DpMany program, for the
+			// one shape it returns exactly (lower_delayedlkimany.go)
+			if why := lc.delayedLKIManyShape(exec); why != "" {
+				return refuse("delayed trigger RememberedLKI over a multi-object target slot: %s", why)
 			}
+			lkiMany = true
 		}
 		obj = lRef{Kind: rRemembered}
 	case ro == "TriggeredNewCardLKICopy":
@@ -3284,6 +3288,17 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 			return refuse("delayed many-object body lowered to %d ops, not one Bounce of the delayed set", len(lat.Prog))
 		}
 		lat.Prog[0].CS = "DelayedMany"
+		in.B = cst(3)
+	}
+	if lkiMany {
+		if len(lat.Prog) != 1 || lat.Prog[0].Op != "Return" || lat.Prog[0].Obj.Kind != rDelayedRemembered {
+			return refuse("delayed trigger RememberedLKI over a multi-object target slot: the body lowered to %d ops, not one Return of the delayed set", len(lat.Prog))
+		}
+		if cs := lat.Prog[0].CS; cs == "" {
+			lat.Prog[0].CS = "DelayedMany"
+		} else {
+			lat.Prog[0].CS = cs + "|DelayedMany"
+		}
 		in.B = cst(3)
 	}
 	lc.emit(in)

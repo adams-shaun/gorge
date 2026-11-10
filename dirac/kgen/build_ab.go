@@ -2886,6 +2886,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if ki.Op == kop.OpReturn {
 			ki.B = kop.Const(originMask(fl["from"]))
+			if _, ok := fl["DelayedMany"]; ok {
+				ki.B = kop.Const(originMask(fl["from"]) | kop.RetDelayedMany) // the delayed many-object return (dirac/trig_delayedmanyreturn.go)
+			}
 		}
 		if fl["from"] == "Library" {
 			// Origin$ Library: the move takes a library card only, then its
