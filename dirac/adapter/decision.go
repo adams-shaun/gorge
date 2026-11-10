@@ -602,6 +602,11 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 	case "pay":
 		o.Kind = "pay_" + [8]string{"W", "U", "B", "R", "G", "C", "generic", "life"}[c.Mode()&7]
 		o.Amount = 1
+	case "vote_card":
+		// gorge effCardVote names the candidate's controller (CR 400.2)
+		if t := c.Src(); int(t) < int(g.kp.NObj) {
+			o.Player = state.PlayerID(g.kp.Objs[t].Ctrl)
+		}
 	}
 	if o.Label == "" {
 		if o.Obj != 0 {

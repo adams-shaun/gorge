@@ -151,6 +151,7 @@ var ChooseKinds = []string{
 	"setstate_pick",    // gorge setStateChoose's pick (SetState Choices$; Hustle // Bustle)
 	"face_down_choice", // gorge effCloak's cloak-from-hand pick (chooseFromZoneForFaceDown, CR 701.58a)
 	"ward_waterbend",   // gorge kw_ward.go's Ward—Waterbend pick (The Unagi of Kyoshi Island)
+	"vote_card",        // gorge effCardVote's ballot pick (CR 701.38a)
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.

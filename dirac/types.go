@@ -147,6 +147,7 @@ const (
 	ChCostBlight                // source = a creature to blight to pay a cost (CR 701.68)
 	ChOptDiscMay                // mode 1 = yes / 0 = no: a discard election ("you may discard") (act_optionalask.go)
 	ChCommanderZone             // source = the commander, mode 0 = command zone / 1 = leave it (CR 903.9a/b; zone_cmdzone.go)
+	ChVoteCard                  // source = the permanent voted for (gorge effCardVote's KChoose option kind "vote_card", CR 701.38a; act_vote.go)
 )
 
 // Decision is the next question the game asks a player.

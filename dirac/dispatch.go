@@ -94,6 +94,8 @@ func (s *State) askOptionsCold1(k *prep, d *Decision) bool {
 		d.Sub = ChGenConfirm
 		d.add(MakeAction(AkChoose, 0, 0, 1)) // gorge's options: yes, no
 		d.add(MakeAction(AkChoose, 0, 0, 0))
+	case raVote:
+		s.voteOptions(k, d) // act_vote.go
 	default:
 		return s.askOptionsCold2(k, d)
 	}
@@ -115,6 +117,8 @@ func (s *State) applyAskCold1(k *prep, a Action) bool {
 		if s.searchPick(k) && !s.moveAsked() {
 			s.continueRes(k, 0)
 		}
+	case raVote:
+		s.voteAnswer(k, a) // act_vote.go
 	default:
 		return s.applyAskCold2(k, a)
 	}

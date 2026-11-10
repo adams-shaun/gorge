@@ -3657,6 +3657,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventDamageScope)), int16(in.C)
 	case "CounterPlusEOT":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCounterPlusEOT))
+	case "Vote":
+		// OpExt ExtVote, F the ballot (battlefield permanents), C bit 0
+		// exile the most-voted
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtVote)), int16(in.C&1)
+		if err := objFilter(kop.ZoneBattlefield); err != nil {
+			return ki, err
+		}
 	case "Recruit":
 		// OpExt ExtRecruit. The token is a fixed corpus
 		// script (the lowering registered it in lc.out.Tokens); the kernel

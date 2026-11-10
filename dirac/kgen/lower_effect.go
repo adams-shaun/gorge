@@ -1417,6 +1417,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.discard(ps)
 	case "Recruit":
 		return lc.recruit(sa, ps) // lower_recruit.go
+	case "Vote":
+		return lc.vote(sa, ps) // lower_vote.go
 	case "Mill":
 		who, err := lc.objOrTarget(ps, "You", zNone)
 		if err != nil {

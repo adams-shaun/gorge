@@ -122,6 +122,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtSpellToLib:
 		s.spellToLib(k) // act_spelltolib.go
 		return true, true
+	case kop.ExtVote:
+		return s.voteStart(k, in), true // act_vote.go
 	case kop.ExtAttacksIfAble:
 		s.attacksIfAbleExt(k, in) // combat_attacksifable.go
 		return true, true

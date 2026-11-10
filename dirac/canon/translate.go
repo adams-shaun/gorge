@@ -295,6 +295,10 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return ch("x", RefNone, mode)
 		case dirac.ChCostDiscard, dirac.ChDiscard, dirac.ChCleanupDiscard:
 			return ch("discard", src, 0)
+		case dirac.ChVoteCard:
+			// gorge effCardVote's KChoose option kind "vote_card" over the
+			// permanent voted for (DChoose, the default KernelDKind arm)
+			return ch("vote_card", src, 0)
 		case dirac.ChRecruitDiscard:
 			// gorge effRecruit's KChoose option kind
 			// "discard" (its canonical kind is DChoose, the default
