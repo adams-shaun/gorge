@@ -16,7 +16,7 @@ import (
 // out-of-shape variant still refuses by name.
 func TestLowerMultimanaCostBeyondTap(t *testing.T) {
 	const land = "Name:Expanse Probe\nManaCost:no cost\nTypes:Land\n"
-	def, rs := kwardpowBuild(t, "Expanse Probe", land+"A:AB$ Mana | Cost$ 1 T | Produced$ W U | SpellDescription$ Add {W}{U}.\n")
+	def, rs := kwardpowBuild(t, "Expanse Probe", land+"A:AB$ Mana | Cost$ 1 T | Produced$ W U | SpellDescription$ Probe pair.\n")
 	if len(rs) != 0 {
 		t.Fatalf("{1},{T}: Add {W}{U} refused: %v", rs)
 	}
@@ -40,7 +40,7 @@ func TestLowerMultimanaCostBeyondTap(t *testing.T) {
 
 	const goblin = "Name:Company Probe\nManaCost:B R\nTypes:Creature Goblin Soldier\nPT:2/2\n"
 	for _, c := range []struct{ name, src, want string }{
-		{"sacrifice another", goblin + "A:AB$ Mana | Cost$ T Sac<1/Goblin.Other/another Goblin> | Produced$ B R | SpellDescription$ Add {B}{R}.\n",
+		{"sacrifice another", goblin + "A:AB$ Mana | Cost$ T Sac<1/Goblin.Other/another Goblin> | Produced$ B R | SpellDescription$ Probe sac pair.\n",
 			"from a cost beyond {T}: a sacrifice of another permanent (no sacrifice gap kind"},
 		{"coloured fee", land + "A:AB$ Mana | Cost$ W T | Produced$ W U | SpellDescription$ Filter.\n", "several colours at once from a cost beyond {T}"},
 		{"two of each", land + "A:AB$ Mana | Cost$ 1 T | Produced$ W U W U | SpellDescription$ Filter.\n", "several colours at once from a cost beyond {T}"},
