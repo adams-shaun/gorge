@@ -369,7 +369,15 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 			// The Effect's own capture scopes the object half too: Shielded
 			// Passage's `ValidTarget$ Card.IsRemembered` names the creature it
 			// targeted, and a ChosenCard spec reads the creation-time choice.
-			if !e.matchesSpec(v, ev.Obj, e.rememberedSpecContextCap(ctrl, source, remembered, cc)) {
+			// A captured player scopes the object half as well: Stagger's
+			// `Permanent.ControlledBy Player.IsRemembered` names the
+			// permanents of the player it hit.
+			sc := e.rememberedSpecContextCap(ctrl, source, remembered, cc)
+			for _, p := range rememberedPlayers {
+				sc.Remembered = append(sc.Remembered, state.Target{Player: p, IsPlayer: true})
+				sc.Resolving = true // the capture is bound, as a resolution's remembered set is
+			}
+			if !e.matchesSpec(v, ev.Obj, sc) {
 				return false
 			}
 		} else if len(rememberedPlayers) > 0 {

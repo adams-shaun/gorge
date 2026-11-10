@@ -624,6 +624,10 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"equip_unattach_waits_for_legend_ask", true, false},    // CR 704.3, 704.5n: Magitek Scythe stays on Serah Farron, transformed beside another Crystallized Serah, until the legend answer
 		// CR 510.2, 301.7b, 608.2h: Blitzball's "dealt combat damage by a legendary creature" reads the crewed Prima Vista as the creature it was
 		{"blitzball_counts_crewed_legendary_vehicle", false, false},
+		// CR 614.1, 120.3: Lightning, Army of One's Stagger doubles damage to a
+		// permanent the player it hit controls, so Giott's regular-step hit on
+		// the blocking Matoya is doubled
+		{"stagger_doubles_damage_to_the_hit_players_permanent", false, false},
 		// CR 113.7a, 608.2h, 702.15b: Phoenix's chapter I, pending when the legend rule bins it, deals damage with the Phoenix's lifelink
 		{"delayed_trigger_departed_source_lifelink", false, false},
 		{"effect_lifelink_follows_source_controller", false, false},  // CR 702.15b: Phoenix's chapter damage, after Stiltzkin gave Phoenix away with the ability on the stack, gains life for Phoenix's controller
