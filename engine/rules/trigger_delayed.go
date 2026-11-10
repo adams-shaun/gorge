@@ -600,7 +600,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			// names the exiled card, so the registration's capture IS the
 			// referent this body resolves.
 			remembered = append([]state.Target(nil), dt.Remembered...)
-		} else if dt.EffectRepeat && dt.EventMode == "ChangesZone" {
+		} else if dt.EffectRepeat && (dt.EventMode == "ChangesZone" || t.ModeKind() == cards.TriggerDamageDealtOnce) {
 			// An Effect-owned ChangesZone trigger's `Defined$ Remembered`
 			// names the Effect's OWN capture (Forge's created-effect
 			// Remembered list), not the zone-changing card: Out of Time's
@@ -608,7 +608,10 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			// phase the creatures the Effect remembered, not the host that
 			// just left. The firing event's object rides the ordinary
 			// Triggered* referents (refs.DelayedObject), so a body naming
-			// the trigger source still resolves it.
+			// the trigger source still resolves it. DamageDealtOnce joins
+			// for Long River Lurker / Niko Aris ("exile it, then return
+			// it"): no Effect body on that mode reads a Triggered*
+			// spelling, so the capture cannot shadow one.
 			remembered = append([]state.Target(nil), dt.Remembered...)
 		}
 		refs.DelayedRemembered = append([]state.Target(nil), dt.Remembered...)

@@ -24,7 +24,7 @@ func (s *State) FeatMayPayLifeCast(p uint8, o Obj) bool {
 	}
 	ob := &s.objs[o]
 	for i := 0; i < int(s.g.nmay); i++ {
-		if r := s.g.may[i]; r.obj == o && r.ctrl == p && r.ver == ob.ver && !ownWalkerRecord(r) && r.payLife() {
+		if r := *s.mayAt(i); r.obj == o && r.ctrl == p && r.ver == ob.ver && !ownWalkerRecord(r) && r.payLife() {
 			return true
 		}
 	}

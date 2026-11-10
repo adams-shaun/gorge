@@ -51,11 +51,11 @@ func (s *State) plotGrant(k *prep) {
 		if ob.zone != kop.ZoneExile {
 			continue
 		}
-		if s.g.nmay >= maxMay {
+		if s.mayFull() {
 			s.capFull(StallMayPlay)
 			return
 		}
-		s.g.may[s.g.nmay] = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurPlot, turn: s.turn}
+		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurPlot, turn: s.turn}
 		s.g.nmay++
 		if k.cards[ob.card].plotTrig {
 			s.fireBecomesPlotted(k, o) // kw_plot.go
@@ -105,7 +105,7 @@ func ownWalkerRecord(r mayPlay) bool {
 func (s *State) plotRecord(p uint8, o Obj) bool {
 	ob := &s.objs[o]
 	for i := 0; i < int(s.g.nmay); i++ {
-		r := s.g.may[i]
+		r := *s.mayAt(i)
 		if r.obj == o && r.ctrl == p && r.ver == ob.ver && r.until == kop.DurPlot && (s.turn > r.turn || DebugPlotSameTurn) {
 			return true
 		}
@@ -170,11 +170,11 @@ func (s *State) plotAction(k *prep, o Obj, p uint8) {
 	}
 	from := s.detach(o)
 	s.placeFrom(o, kop.ZoneExile, false, from, false)
-	if s.g.nmay >= maxMay {
+	if s.mayFull() {
 		s.capFull(StallMayPlay)
 		return
 	}
-	s.g.may[s.g.nmay] = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurPlot, turn: s.turn}
+	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurPlot, turn: s.turn}
 	s.g.nmay++
 	s.passes = 0
 	if pc := &k.cards[c]; pc.plotTrig {

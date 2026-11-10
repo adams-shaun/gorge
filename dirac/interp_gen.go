@@ -629,7 +629,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				s.mayWhileSrcStamp(n0, e.obj) // cast_whilesource.go
 				if in.A.N == kop.DurWhileValid {
 					for i := n0; i < s.g.nmay; i++ {
-						s.g.may[i].turn = uint16(in.F)
+						s.mayAt(int(i)).turn = uint16(in.F)
 					}
 				}
 			}
@@ -639,13 +639,13 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if o == NoObj || s.objs[o].zone != kop.Zone(in.C) {
 			break
 		}
-		if s.g.nmay >= maxMay {
+		if s.mayFull() {
 			s.capFull(StallMayPlay)
 			break
 		}
 		headed := false
 		mk := uint8(in.B.N)&kop.MayPlayKinds | uint8(in.B.N>>8)&kop.MayPlayAdvKind
-		s.g.may[s.g.nmay] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: s.turn}
+		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: s.turn}
 		s.g.nmay++
 		if k.gen.anyMayWhileSrc {
 			s.mayWhileSrcStamp(s.g.nmay-1, e.obj) // cast_whilesource.go

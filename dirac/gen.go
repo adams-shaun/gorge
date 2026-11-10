@@ -69,6 +69,7 @@ type genPrep struct {
 	anyMayPlay      bool
 	anyMayRaise     bool     // some may-play static owes a non-mana RaiseCost$ (cost_mayplayraise.go)
 	anyMayKind      bool     // some OpMayPlay grants a record with a kind rider (cast_maypermission.go)
+	anyMayCold      bool     // some OpMayPlay grants over a remembered set: the cold buffer holds maxMayCold more records (cast_maycold.go)
 	anyMayLimit     bool     // some OpMayPlay record carries a MayPlayLimit cap (cast_maypermission.go)
 	sCls            []uint16 // per card: its static classes (static_classgates.go scls*)
 	anyGraveAct     bool
@@ -679,6 +680,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyRemDisc = tableRemembersDiscards(t)
 	g.anySpellMana = prepDbMana(t) // mana_dbresolve.go
 	g.anyMayKind = tableMayPlayKinds(t)
+	g.anyMayCold = tableMayPlayRemembered(t)
 	g.anyMayRaise = tableMayRaise(t)
 	if tableCastFromGrave(t) {
 		g.anyCastProv = true // castFromGrave reads the cast's zone (cast_mayplayoffers.go)

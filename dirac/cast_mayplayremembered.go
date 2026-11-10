@@ -46,14 +46,14 @@ func (s *State) mayPlayRemembered(k *prep, in *kop.Instr, ctrl uint8) {
 		if in.B.N&kop.MayPlayInstSorc != 0 && k.t.Cards[s.objs[o].card].Types&(kop.TInstant|kop.TSorcery) == 0 {
 			continue
 		}
-		if s.g.nmay >= maxMay {
+		if s.mayFull() {
 			s.capFull(StallMayPlay)
 			return
 		}
 		mk := uint8(in.B.N)&kop.MayPlayKinds | uint8(in.B.N>>8)&kop.MayPlayAdvKind
-		s.g.may[s.g.nmay] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: s.turn}
+		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: s.turn}
 		if in.B.N&kop.MayPlayOwner != 0 {
-			s.partitionRecord(&s.g.may[s.g.nmay], o, ctrl, int(in.B.N)>>kop.MayPlayRaiseShift&7) // cast_whileexiled.go
+			s.partitionRecord(s.mayAt(int(s.g.nmay)), o, ctrl, int(in.B.N)>>kop.MayPlayRaiseShift&7) // cast_whileexiled.go
 		}
 		s.g.nmay++
 	}

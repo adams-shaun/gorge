@@ -43,7 +43,7 @@ const (
 var (
 	PoolNames = [NumPools]string{"obj", "perm", "stack", "pending", "delayed", "rem", "chosen", "may", "dprog",
 		"emblem", "dmgmap", "xtgt", "xtpool", "used", "kwrepx", "ovpool", "ovr", "trigturn", "links", "exiledwith", "free", "freeq", "ask", "ctrkinds", "ptx", "ts"}
-	PoolCaps = [NumPools]int{MaxObj, MaxPerm, MaxStack, MaxPending, MaxDelayed, maxRem, maxRem, maxMay, maxDProg,
+	PoolCaps = [NumPools]int{MaxObj, MaxPerm, MaxStack, MaxPending, MaxDelayed, maxRem, maxRem, maxMay + maxMayCold, maxDProg,
 		maxEmb, maxDmgMap, maxXTgt, maxXTPool, maxUsed, maxKwRepX, maxFx, maxOvr, maxTrigTurn,
 		len(State{}.g.links), maxExw, len(State{}.g.free), len(State{}.g.freeQ), len(State{}.g.ask), 0, maxPtX, 1<<16 - 1}
 )

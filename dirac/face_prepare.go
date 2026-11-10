@@ -64,7 +64,7 @@ func (s *State) prepared(o Obj) bool {
 		return false
 	}
 	for i := 0; i < int(s.g.nmay); i++ {
-		if r := s.g.may[i]; r.until == kop.DurPrepared && Obj(uint8(r.turn)) == o && uint8(r.turn>>8) == ob.ver {
+		if r := *s.mayAt(i); r.until == kop.DurPrepared && Obj(uint8(r.turn)) == o && uint8(r.turn>>8) == ob.ver {
 			return true
 		}
 	}
@@ -80,7 +80,7 @@ func (s *State) preparedCopyLive(k *prep, o Obj) (src Obj, ok bool) {
 	}
 	ob := &s.objs[o]
 	for i := 0; i < int(s.g.nmay); i++ {
-		if r := s.g.may[i]; r.until == kop.DurPrepared && r.obj == o && r.ver == ob.ver && s.preparedSrc(r) {
+		if r := *s.mayAt(i); r.until == kop.DurPrepared && r.obj == o && r.ver == ob.ver && s.preparedSrc(r) {
 			return Obj(uint8(r.turn)), true
 		}
 	}
@@ -112,7 +112,7 @@ func (s *State) prepare(k *prep, o Obj) {
 		s.capFull(StallBoard)
 		return
 	}
-	if s.g.nmay >= maxMay {
+	if s.mayFull() {
 		s.capFull(StallMayPlay)
 		return
 	}
@@ -129,7 +129,7 @@ func (s *State) prepare(k *prep, o Obj) {
 	pl.exile[pl.exileN] = c
 	pl.exileN++
 	s.touch(o)
-	s.g.may[s.g.nmay] = mayPlay{obj: c, ver: cp.ver, ctrl: ctrl, until: kop.DurPrepared, turn: uint16(o) | uint16(ob.ver)<<8}
+	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: c, ver: cp.ver, ctrl: ctrl, until: kop.DurPrepared, turn: uint16(o) | uint16(ob.ver)<<8}
 	s.g.nmay++
 	if st := DebugPrepareStats; st != nil {
 		st.Grants++
@@ -206,11 +206,11 @@ func (s *State) offerPreparedCasts(k *prep, d *Decision, p uint8, sorc bool) {
 func (s *State) unprepareCast(o Obj) {
 	ver := s.objs[o].ver
 	for i := 0; i < int(s.g.nmay); i++ {
-		if r := s.g.may[i]; r.until == kop.DurPrepared && r.obj == o && r.ver == ver {
+		if r := *s.mayAt(i); r.until == kop.DurPrepared && r.obj == o && r.ver == ver {
 			if DebugPrepareKeep {
 				return
 			}
-			copy(s.g.may[i:s.g.nmay-1], s.g.may[i+1:s.g.nmay])
+			s.mayShiftDown(i)
 			s.g.nmay--
 			if st := DebugPrepareStats; st != nil {
 				st.Casts++
@@ -253,8 +253,8 @@ func (s *State) unprepare(k *prep, o Obj) {
 		return
 	}
 	for i := 0; i < int(s.g.nmay); {
-		if r := s.g.may[i]; r.until == kop.DurPrepared && Obj(uint8(r.turn)) == o && uint8(r.turn>>8) == ob.ver {
-			copy(s.g.may[i:s.g.nmay-1], s.g.may[i+1:s.g.nmay])
+		if r := *s.mayAt(i); r.until == kop.DurPrepared && Obj(uint8(r.turn)) == o && uint8(r.turn>>8) == ob.ver {
+			s.mayShiftDown(i)
 			s.g.nmay--
 			if st := DebugPrepareStats; st != nil {
 				st.Unprepares++
