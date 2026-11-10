@@ -386,10 +386,14 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 			a.addUnits(1<<i, pl.pool[i])
 		}
 	}
+	var deferGap slotMask
+	if s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0 {
+		deferGap = s.scriptTapsDefer(k, p&1) // as availFor: gorge's census never lists a planner-deferred source (a counter rider, a Taps watcher), so the witness never pays with it
+	}
 	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
-		if pm.flags&pfTapped != 0 || s.manaGranted(k, sl) {
+		if pm.flags&pfTapped != 0 || s.manaGranted(k, sl) || deferGap.has(sl) {
 			continue
 		}
 		pc := s.manaPCGen(k, sl)
@@ -575,7 +579,7 @@ func (g *grantSrch) candidates(s *State) {
 		if ng > 0 {
 			holders++
 		}
-		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), !tm.has(sl) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
+		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
 		g.def[g.n] = ng == 0 && dm.has(sl)
 		g.cobj[g.n] = s.perms[sl].obj
 		g.none[g.n] = ng == 0 && nm.has(sl)
@@ -757,6 +761,14 @@ func (g *grantSrch) visit(t *State) bool {
 		}
 		if alts > 1 && !g.node() {
 			return false
+		}
+		if tx && g.k.tapXSecond(t.cardAt(sl)) && g.dual[i] {
+			// a second-ability tap-another source: its plain {T} ability is the
+			// ask's first answer (mana_tapanother.go tapXPlainDo)
+			ppc := t.manaPCGen(g.k, sl)
+			if g.branch(t, i, sl, -1, t.srcMaskAt(ppc, sl), ppc.manaN, false) {
+				return true
+			}
 		}
 		if tx && g.tapXBranch(t, i, sl) { // the printed tap-another ability first (mana_granttapx.go)
 			return true
@@ -1156,12 +1168,16 @@ func (s *State) stepColours(k *prep, sl Slot, gi int16, mask uint8, out *[kop.Nu
 // filtBranch is the filter's colour ask at candidate i (slot sl): its fee comes out
 // of the pool, then the colours in turn (gorge's askManaColor, mana_filter.go).
 func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
-	if !g.node() {
+	each := t.filtAb(g.k, sl).ManaEach // a fixed production: no colour ask, one branch (mana_filtereach.go)
+	if !each && !g.node() {
 		return false
 	}
 	var order [5]uint8
 	n := manaColourOrder(t.filtAb(g.k, sl), &order)
 	needFirst(order[:n], g.need)
+	if each {
+		n = 1
+	}
 	for j := 0; j < n; j++ {
 		c := order[j]
 		u := t.fork()

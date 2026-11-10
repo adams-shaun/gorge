@@ -354,10 +354,20 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 	sr.nodes++
 	p := sr.p
 	d := c.Pending()
-	// Another player's decision (their priority while a trigger resolves):
-	// the searched line assumes they pass.
+	// Another player's decision (their priority while a trigger resolves,
+	// or the order of their simultaneous triggers the line set off, CR
+	// 603.3b): the searched line assumes they pass, or order the triggers
+	// as offered. Any other ask of another player dead-ends the line.
 	for guard := 0; d != nil && d.Player != p && guard < 8; guard++ {
 		sr.approx = true
+		if d.Kind == decision.KTriggerOrder {
+			answers := scriptAnswers(d)
+			if len(answers) == 0 || c.Submit(answers[0]) != nil {
+				return false
+			}
+			d = c.Pending()
+			continue
+		}
 		pass := -1
 		for _, opt := range d.Options {
 			if opt.Kind == "pass" {

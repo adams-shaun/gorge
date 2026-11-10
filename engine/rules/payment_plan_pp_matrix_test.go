@@ -276,7 +276,7 @@ func TestPaymentPlanProducerAndPoolExclusions(t *testing.T) {
 	t.Run("source matched by a taps-for-mana trigger is deferred", func(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9353, redSpell)
 		mtn := onBoard(t, e, 0, ppMountain)
-		onBoard(t, e, 1, "Name:Flare Test\nTypes:Enchantment\nT:Mode$ TapsForMana | ValidCard$ Land | Execute$ OnMana | TriggerZones$ Battlefield | Static$ True | TriggerDescription$ x\nSVar:OnMana:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ TriggeredActivator\nOracle:x\n")
+		onBoard(t, e, 1, "Name:Flare Test\nTypes:Enchantment\nT:Mode$ TapsForMana | ValidCard$ Land | Execute$ OnMana | TriggerZones$ Battlefield | Static$ True | TriggerDescription$ x\nSVar:OnMana:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ TriggeredActivator | SubAbility$ OnGain\nSVar:OnGain:DB$ GainLife | LifeAmount$ 1 | Defined$ You\nOracle:x\n")
 		d := ppAsk(t, e)
 		for _, a := range d.PaymentActions {
 			for _, p := range a.Plans {

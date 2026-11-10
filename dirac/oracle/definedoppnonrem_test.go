@@ -323,7 +323,7 @@ func TestDefinedHeadsOppNonRememberedLockstep(t *testing.T) {
 	}
 }
 
-// TestDefinedHeadsOppNonRememberedMutation: with oppNonRemCtrl ignoring the remembered set (the
+// TestDefinedHeadsOppNonRememberedMutation: with oppsNonRemCtrl ignoring the remembered set (the
 // opponent who sacrificed or discarded is still named), the lockstep must
 // diverge within 128 seeds. Not parallel: it sets a package-level hook.
 func TestDefinedHeadsOppNonRememberedMutation(t *testing.T) {

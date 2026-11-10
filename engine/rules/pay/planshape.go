@@ -8,6 +8,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/effects/params"
 	"github.com/adams-shaun/gorge/engine/events"
 	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
@@ -468,22 +469,8 @@ type PlanTapMana struct {
 // no SubAbility$, cost or other parameter. Anything else is not foldable and
 // the caller keeps deferring.
 func PaymentPlanFoldableTapMana(f *cards.Face, t cards.Trigger) (PlanTapMana, bool) {
-	if t.Mode != "TapsForMana" || !strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKStatic)), "True") {
-		return PlanTapMana{}, false
-	}
-	if v, ok := t.Param(cards.PKTriggerZones); ok && strings.TrimSpace(v) != "Battlefield" {
-		return PlanTapMana{}, false
-	}
-	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
-		if paymentPlanTapManaTriggerCodes.Code(string(k)) == 0 {
-			return PlanTapMana{}, false
-		}
-	}
-	body := t.Effect
-	if body == nil && f != nil {
-		body = cards.ResolveSVar(f.SVars, strings.TrimSpace(t.ParamStr(cards.PKExecute)))
-	}
-	if body == nil || body.API != "Mana" || body.Sub != nil || strings.TrimSpace(body.ParamStr(cards.PKSubAbility)) != "" {
+	body := paymentPlanStaticTapManaBody(f, t, "Mana")
+	if body == nil {
 		return PlanTapMana{}, false
 	}
 	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
@@ -521,6 +508,89 @@ func PaymentPlanFoldableTapMana(f *cards.Face, t cards.Trigger) (PlanTapMana, bo
 		out.Mana[i] = c * int32(n)
 	}
 	return out, true
+}
+
+// paymentPlanStaticTapManaBody is the body of a `Mode$ TapsForMana |
+// Static$ True` battlefield trigger of face f whose parameters are all in the
+// closed world paymentPlanTapManaTriggerCodes names and whose body is one api
+// ability with no SubAbility$, or nil.
+func paymentPlanStaticTapManaBody(f *cards.Face, t cards.Trigger, api string) *cards.SA {
+	if t.Mode != "TapsForMana" || !strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKStatic)), "True") {
+		return nil
+	}
+	if v, ok := t.Param(cards.PKTriggerZones); ok && strings.TrimSpace(v) != "Battlefield" {
+		return nil
+	}
+	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
+		if paymentPlanTapManaTriggerCodes.Code(string(k)) == 0 {
+			return nil
+		}
+	}
+	body := t.Effect
+	if body == nil && f != nil {
+		body = cards.ResolveSVar(f.SVars, strings.TrimSpace(t.ParamStr(cards.PKExecute)))
+	}
+	if body == nil || body.API != api || body.Sub != nil || strings.TrimSpace(body.ParamStr(cards.PKSubAbility)) != "" {
+		return nil
+	}
+	return body
+}
+
+// PaymentPlanReflectedTapMana classifies a `Mode$ TapsForMana | Static$ True`
+// trigger of face f whose body adds one mana of the type the tap produced
+// (`DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced`:
+// Lavaleaper, Mana Flare; CR 106.12a, 605.1b), closed-world as
+// PaymentPlanFoldableTapMana. Its mana is a read of the planned production,
+// not a literal: PaymentPlanReflectedMana sizes it per production. ToTapped
+// records a Defined$ naming the tapping player (TriggeredActivator) or the
+// tapped permanent's controller (TriggeredCardController): either is the
+// payer of a planned tap.
+func PaymentPlanReflectedTapMana(f *cards.Face, t cards.Trigger) (PlanTapMana, bool) {
+	body := paymentPlanStaticTapManaBody(f, t, "ManaReflected")
+	if body == nil {
+		return PlanTapMana{}, false
+	}
+	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
+		switch k {
+		case "API", "ColorOrType", "ReflectProperty", "Defined", "SpellDescription", "StackDescription":
+		default:
+			return PlanTapMana{}, false
+		}
+	}
+	mr := effects.ManaReflectedOf(body)
+	if mr.ReflectProperty != "Produced" || !mr.WidenType {
+		return PlanTapMana{}, false
+	}
+	var out PlanTapMana
+	switch mr.Defined {
+	case "", "You":
+	case "TriggeredActivator", "TriggeredCardController":
+		out.ToTapped = true
+	default:
+		return PlanTapMana{}, false
+	}
+	return out, true
+}
+
+// PaymentPlanReflectedMana is the mana a PaymentPlanReflectedTapMana body
+// adds to a tap that produced `produced` (a PaymentPlanProductions entry):
+// one mana of its type when it names exactly one type. A production of
+// several types leaves the body a choice (effManaReflected's ask), which
+// is not foldable.
+func PaymentPlanReflectedMana(produced string) (state.Mana, bool) {
+	var out state.Mana
+	counts, anyColour := cards.ProducedCounts(produced)
+	if anyColour {
+		return out, false
+	}
+	n := 0
+	for i, c := range counts {
+		if c > 0 {
+			n++
+			out[i] = 1
+		}
+	}
+	return out, n == 1
 }
 
 type paymentPlanTapManaTriggerCode uint16

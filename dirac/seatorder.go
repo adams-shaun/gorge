@@ -236,42 +236,47 @@ func (s *State) oppsFrom(p uint8) seatSeq {
 // one acting now. At two seats that is at most one seat, kept as itself
 // (255: none). At more seats it packs up to MaxSeats-1 seats, two bits each
 // from the low end, under a count in the top two bits; distinct seats never
-// spell 255.
+// spell 255. seatsPack and seatsPop are that byte's encoding, shared with
+// other one-byte seat chains (the may-mill asks' g.pickZ).
 
-// repRest queues q's seats from index i on as the chain's remainder.
-func (s *State) repRest(q seatSeq, i uint8) {
+// seatsPack packs q's seats from index i on.
+func seatsPack(q seatSeq, i uint8) uint8 {
 	if MaxSeats == 2 {
-		s.g.repNext = q.at(i)
-		return
+		return q.at(i)
 	}
 	if i >= q.n {
-		s.g.repNext = 255
-		return
+		return 255
 	}
 	b, m := uint8(0), uint8(0)
 	for j := i; j < q.n; j++ {
 		b |= (q.s[j] & 3) << (2 * m)
 		m++
 	}
-	s.g.repNext = m<<6 | b
+	return m<<6 | b
 }
 
-// repPop takes the chain's next seat (255: none).
-func (s *State) repPop() uint8 {
-	b := s.g.repNext
+// seatsPop takes a packed chain's next seat (255: none).
+func seatsPop(c *uint8) uint8 {
+	b := *c
 	if MaxSeats == 2 || b == 255 {
-		s.g.repNext = 255
+		*c = 255
 		return b
 	}
 	m := b >> 6
 	p := b & 3
 	if m <= 1 {
-		s.g.repNext = 255
+		*c = 255
 	} else {
-		s.g.repNext = (m-1)<<6 | (b&0x3f)>>2
+		*c = (m-1)<<6 | (b&0x3f)>>2
 	}
 	return p
 }
+
+// repRest queues q's seats from index i on as the chain's remainder.
+func (s *State) repRest(q seatSeq, i uint8) { s.g.repNext = seatsPack(q, i) }
+
+// repPop takes the chain's next seat (255: none).
+func (s *State) repPop() uint8 { return seatsPop(&s.g.repNext) }
 
 // repPending reports whether the chain has a seat to come.
 func (s *State) repPending() bool { return s.g.repNext != 255 }

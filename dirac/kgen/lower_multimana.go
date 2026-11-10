@@ -674,11 +674,18 @@ func (lc *lowerCtx) refuseEachMana(ms []*lAbility) bool {
 			// Gutsy Explorer; Tin Street Gossip's Static.isTurnFaceUp clause)
 			// is a restricted planner unit (kernel mana_restrictedsource.go).
 			lc.refuseNode("card", "mana ability adding several colours at once under a spend restriction")
-		case !plainTapMana(a, false) && !ctrEachMana(a):
+		case !plainTapMana(a, false) && !ctrEachMana(a) && !filtEachMana(a):
 			// gorge's planner defers any cost beyond {T} (a filter's fee, a
-			// sacrifice of another permanent, removed counters): a census gap
-			// the kernel's gap searches model for one colour only
-			lc.refuseNode("card", "mana ability adding several colours at once from a cost beyond {T}")
+			// sacrifice of another permanent, removed counters): a census gap.
+			// The kernel's gap searches model the counter removal (ctrEachMana)
+			// and a generic fee (filtEachMana); a sacrifice of another
+			// permanent (Bolg's Company) has no gap kind: the kernel's mana
+			// walk cannot activate a sacrifice cost (manaGapWhy).
+			if a.Cost.Sac != nil && !a.Cost.SacSelf {
+				lc.refuseNode("card", "mana ability adding several colours at once from a cost beyond {T}: a sacrifice of another permanent (no sacrifice gap kind in the kernel's prefix search)")
+			} else {
+				lc.refuseNode("card", "mana ability adding several colours at once from a cost beyond {T}")
+			}
 		case !m.Amount.isConst() || m.Amount.N < 1 || m.Amount.N > maxEachMana:
 			lc.refuseNode("card", "mana ability adding several colours at once, %v of each", m.Amount)
 		default:
@@ -701,6 +708,26 @@ func ctrEachMana(a *lAbility) bool {
 	c := *a
 	c.Cost.Tap, c.Cost.SubCtr, c.Cost.SubCtrKnd, c.TurnOnce = true, 0, "", false
 	return plainTapMana(&c, false)
+}
+
+// filtEachMana: a is "{N}, {T}: Add {c1}{c2}..." (Skycloud Expanse's {1},{T}:
+// Add {W}{U}): a generic-only fee, one of each of two or more distinct WUBRG
+// colours, unrestricted, the card's first mana ability. gorge's planner census
+// skips its paid cost; its relaxed alternative is one fixed production (fee
+// charged as generic, once: its {T}), which the kernel's first-only filter gap
+// activates (kop.FilterEachManaAb, mana_filtereach.go).
+func filtEachMana(a *lAbility) bool {
+	m := a.Mana
+	if !plainTapMana(a, true) || a.Cost.Mana.Generic < 1 || m.Choice || m.Restrict != nil || m.RestrictAb != nil || m.NonSpell ||
+		!m.Amount.isConst() || m.Amount.N != 1 || len(m.Colors) < 2 || strings.Trim(m.Colors, "WUBRG") != "" {
+		return false
+	}
+	for i := 0; i < len(m.Colors); i++ {
+		if strings.IndexByte(m.Colors[i+1:], m.Colors[i]) >= 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // filterHasSpecial reports whether f carries a RestrictValid$ Static.*

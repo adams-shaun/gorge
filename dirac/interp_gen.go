@@ -550,7 +550,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			// gorge poses no split for a one-card set: pile A is the card
 			// (effects/twopiles.go), the opponent still picks (pair 1004)
 			s.g.lookSel, s.resArm().pileOrd[0] = 1, 0
-			s.res.ask, s.res.askP = raGenPileChoose, 1-e.ctrl
+			s.res.ask, s.res.askP = raGenPileChoose, s.nextAlive(e.ctrl) // the first opponent (twoPilesPlayer)
 		}
 		s.g.pickZ = uint8(in.C)
 		return false, true
@@ -868,7 +868,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			p = e.ctrl
 		}
 		if DebugChooseCardAmount2 {
-			p = 1 - p // TestKchoosecardparamsMutation: the opponent picks
+			p = NextSeat(p) // TestKchoosecardparamsMutation: another player picks
 		}
 		if c := in.C; c == chooseAttachPick || c == chooseAttachPickOpt {
 			return s.attachPick(k, in, p) // tgt_attachpick.go
@@ -1096,12 +1096,10 @@ func (s *State) eachPlayersSac(k *prep, in *kop.Instr, slot uint8) (ok, done boo
 // answers, and the next is asked with those picks still in hand.
 func (s *State) eachPlayersDiscard(k *prep, in *kop.Instr, slot uint8) (ok, done bool) {
 	ps, over := s.slotPlayers(k, slot)
-	if ps.n == 0 || over || ps.n > 2 {
-		// a third targeted player has no room in the held discard
-		// (act_eachdiscard.go): left to the two-seat path
+	if ps.n == 0 || over {
 		return false, false
 	}
-	return s.discardChain(k, in, ps.s[0], ps.at(1)), true
+	return s.discardSeq(k, in, ps), true
 }
 
 // slotPlayers lists the seats target slot holds as player targets, in pick order;
@@ -1145,7 +1143,7 @@ func (s *State) eachPlayers(k *prep, r kop.Ref) seatSeq {
 		// gorge Defined$ Opponent: AliveFrom(controller) without the controller
 		return s.oppsFrom(s.res.e.ctrl)
 	case kop.RefOppNonRemCtrl:
-		return seatOne(s.oppNonRemCtrl()) // filter_defined.go
+		return s.oppsNonRemCtrl() // filter_defined.go
 	case kop.RefSrcOwner:
 		return seatOne(s.srcOwner())
 	}
@@ -1986,7 +1984,6 @@ func (s *State) digPop(pl *player, n int, a, b []Obj) {
 // none it is not created (CR 303.4g). The tokens still owed wait in
 // s.g.pickLeft.
 func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
-	e := &s.res.e
 	o := s.objRefObj(in.Obj)
 	if o == NoObj {
 		return false
@@ -1995,6 +1992,13 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 	if s.objs[o].zone == kop.ZoneBattlefield {
 		c = s.cardAt(s.objs[o].slot)
 	}
+	return s.copyCardToken(k, in, c)
+}
+
+// copyCardToken is execCopyToken's creation of the token copies of card c,
+// shared with the named-card copy (copy_named.go), whose card is no object.
+func (s *State) copyCardToken(k *prep, in *kop.Instr, c CardID) bool {
+	e := &s.res.e
 	if uint16(in.B.N)&kop.CopyNonRemCtrl != 0 {
 		was := e.ctrl
 		e.ctrl = s.copyCtrl(in)

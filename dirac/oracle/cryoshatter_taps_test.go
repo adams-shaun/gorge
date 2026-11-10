@@ -51,38 +51,90 @@ func cryoshatterCases() []effectLongCase {
 				append(deckOf(6, "Grizzly Bears", deckOf(4, "Llanowar Elves")...), deckOf(14, "Forest")...),
 			},
 			surface: "autopay",
-			reached: cryoshatterDorkPriority,
+			reached: func(g *GorgeSide) bool { return cryoshatterDorkPriority(g, 1) },
+		},
+		{
+			// Two Cryoshatters on the Elves: its tap sets off two of the
+			// opponent's triggers, which the opponent orders before the
+			// Elves' controller gets priority again (CR 603.3b); the {G} is
+			// in the pool (CR 605.3a), so the Bears are castable on the full
+			// surface.
+			name:   "cryoshatter_twice_on_dork_opponent_orders_the_triggers",
+			prefer: []string{"Cryoshatter", "Llanowar Elves"},
+			decks: [2][]string{
+				append(deckOf(8, "Cryoshatter"), deckOf(16, "Island")...),
+				append(deckOf(6, "Grizzly Bears", deckOf(4, "Llanowar Elves")...), deckOf(14, "Forest")...),
+			},
+			surface: "full",
+			reached: func(g *GorgeSide) bool { return cryoshatterDorkPriority(g, 2) },
 		},
 	}
 }
 
-// cryoshatterDorkPriority: a Cryoshatter was attached to a Llanowar Elves,
-// and in a later turn of the Elves' controller (so it is not summoning sick)
-// that player received priority with the Elves still enchanted, untapped
-// and on the battlefield -- the offer the census gap decides.
-func cryoshatterDorkPriority(g *GorgeSide) bool {
-	var elves, aura state.ObjID
-	var owner state.PlayerID
-	tapped, ownTurn := false, false
+// cryoshatterDorkPriority: at least auras distinct Cryoshatters were
+// attached to one Llanowar Elves, and in a later turn of the Elves'
+// controller (so it is not summoning sick) that player received priority
+// with the Elves still enchanted by them all, untapped and on the
+// battlefield -- the offer the census gap decides.
+func cryoshatterDorkPriority(g *GorgeSide, auras int) bool {
+	host := map[state.ObjID]state.ObjID{} // Cryoshatter -> enchanted Llanowar Elves
+	tapped := map[state.ObjID]bool{}
+	ready := map[state.ObjID]bool{} // enchanted enough when the current turn began
+	var active state.PlayerID
+	enchantedBy := func(elves state.ObjID) int {
+		n := 0
+		for _, h := range host {
+			if h == elves {
+				n++
+			}
+		}
+		return n
+	}
 	for _, e := range g.E.L.Events {
-		switch {
-		case elves == 0 && e.Kind == events.Attach && len(e.IDs) == 1:
+		switch e.Kind {
+		case events.Attach:
+			delete(host, e.Obj)
+			if len(e.IDs) != 1 {
+				break
+			}
 			a, h := g.E.G.Obj(e.Obj), g.E.G.Obj(e.IDs[0])
 			if a != nil && a.Face() != nil && a.Face().Name == "Cryoshatter" &&
 				h != nil && h.Face() != nil && h.Face().Name == "Llanowar Elves" {
-				elves, aura, owner = e.IDs[0], e.Obj, h.Controller
+				host[e.Obj] = e.IDs[0]
 			}
-		case elves == 0:
-		case e.Kind == events.MoveZone && (e.Obj == elves || e.Obj == aura) && e.From == state.ZBattlefield:
-			elves = 0
-		case e.Kind == events.Tap && e.Obj == elves:
-			tapped = true
-		case e.Kind == events.Untap && e.Obj == elves:
-			tapped = false
-		case e.Kind == events.TurnChange:
-			ownTurn = e.Player == owner
-		case e.Kind == events.Priority && ownTurn && e.Player == owner && !tapped:
-			return true
+		case events.MoveZone:
+			if e.From != state.ZBattlefield {
+				break
+			}
+			delete(host, e.Obj)
+			for a, h := range host {
+				if h == e.Obj {
+					delete(host, a)
+				}
+			}
+			delete(tapped, e.Obj)
+			delete(ready, e.Obj)
+		case events.Tap:
+			tapped[e.Obj] = true
+		case events.Untap:
+			tapped[e.Obj] = false
+		case events.TurnChange:
+			active = e.Player
+			clear(ready)
+			for _, h := range host {
+				if o := g.E.G.Obj(h); o != nil && o.Controller == active && enchantedBy(h) >= auras {
+					ready[h] = true
+				}
+			}
+		case events.Priority:
+			if e.Player != active {
+				break
+			}
+			for h := range ready {
+				if !tapped[h] && enchantedBy(h) >= auras {
+					return true
+				}
+			}
 		}
 	}
 	return false

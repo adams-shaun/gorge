@@ -337,8 +337,8 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 		cost = s.convokeCredit(k, p&1, c, o, cost)
 	}
 	tb := false
-	if mode&4 != 0 {
-		cost = s.bargainedPrice(k, p&1, c, o, cost) // the bargained cast's price (cost_reducespell.go)
+	if mode&4 != 0 || mode&1 != 0 && k.bargainRed && k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
+		cost = s.bargainedPrice(k, p&1, c, o, cost) // the bargained cast's price, or the optional-cost cast's (cost_reducespell.go)
 	} else if s.statM.any() || k.gen != nil {
 		// a reduction applies to the total cost, a flashback or kicked one
 		// too (CR 601.2f; the kernel's buildCost): Archmage of Runes on a

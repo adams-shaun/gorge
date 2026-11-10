@@ -479,6 +479,20 @@ const StatTapExtra StaticKind = 254
 // StTapOnC on a StatTapExtra static: it fires only for a tap that makes {C}.
 const StTapOnC StaticFlags = 1 << 1
 
+// StTapReflect (aliases StAnyManaType, a MayPlayFrom-only bit) on a
+// StatTapExtra static: the extra is B mana of the type the tap produced, not
+// of colour A (a DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$
+// Produced body over basic lands: Lavaleaper; gorge
+// pay.PaymentPlanReflectedTapMana). A source making several types stalls
+// (StallTapExtra), as a pick-dependent extra does.
+const StTapReflect = StAnyManaType
+
+// StTapAnyPlayer (aliases StWithoutManaCost, a MayPlayFrom-only bit) on a
+// StatTapExtra static: it fires whoever taps the permanent, and the extra
+// goes to the tapping player (no Activator$, Defined$ TriggeredActivator:
+// Lavaleaper), not only for its controller's taps.
+const StTapAnyPlayer = StWithoutManaCost
+
 // StNoPrevCombat (aliases StOncePerTurn, a MayPlayFrom-only bit) on a
 // StatCantPreventDamage static: only combat damage can't be prevented
 // (IsCombat$ True: Frenzied Baloth; gorge cantPreventDamage reads it against

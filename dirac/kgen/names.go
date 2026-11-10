@@ -143,7 +143,7 @@ func init() {
 		"kop.ExPoisonOf", kop.ExPoisonOf, "kop.ExProduct", kop.ExProduct, "kop.ExAttackersAll", kop.ExAttackersAll, "kop.ExRefCount", kop.ExRefCount, "kop.ExNumColorsOf", kop.ExNumColorsOf,
 		"kop.ExCountHand", kop.ExCountHand, "kop.ExYourTurns", kop.ExYourTurns, "kop.ExLowestLife", kop.ExLowestLife, "kop.ExOppsAttacked", kop.ExOppsAttacked, "kop.ExRedNCDmg", kop.ExRedNCDmg, "kop.ExVoid", kop.ExVoid, "kop.ExYourExtraTurns", kop.ExYourExtraTurns,
 		"kop.ExRevolt", kop.ExRevolt, "kop.ExLeftZone", kop.ExLeftZone, "kop.ExCtrAdded", kop.ExCtrAdded,
-		"kop.ExCastFromGrave", kop.ExCastFromGrave, "kop.ExFirstCast", kop.ExFirstCast, "kop.ExExiledWithN", kop.ExExiledWithN,
+		"kop.ExCastFromGrave", kop.ExCastFromGrave, "kop.ExFirstCast", kop.ExFirstCast, "kop.ExIfCastOwnMain", kop.ExIfCastOwnMain, "kop.ExExiledWithN", kop.ExExiledWithN,
 		"kop.ExSacrificedThisTurn", kop.ExSacrificedThisTurn, "kop.ExDiscardedThisTurn", kop.ExDiscardedThisTurn,
 		"kop.ExScriedThisTurn", kop.ExScriedThisTurn, "kop.ExDilemmasFaced", kop.ExDilemmasFaced, "kop.ExRemLKIPT", kop.ExRemLKIPT, "kop.ExCastBattlefield", kop.ExCastBattlefield, "kop.ExUnlockedDoors", kop.ExUnlockedDoors, "kop.ExNotOwnLibMV", kop.ExNotOwnLibMV, "kop.ExChromaOf", kop.ExChromaOf, "kop.ExChosenMode", kop.ExChosenMode, "kop.ExChosenNumber", kop.ExChosenNumber, "kop.ExMod", kop.ExMod, "kop.ExPow", kop.ExPow, "kop.ExAttackedTurn", kop.ExAttackedTurn, "kop.ExPhaseCount", kop.ExPhaseCount, "kop.ExAdamant", kop.ExAdamant, "kop.ExCounterKinds", kop.ExCounterKinds)
 	enum[kop.CondKind]("kop.CondAlways", kop.CondAlways, "kop.CondPresent", kop.CondPresent, "kop.CondValue", kop.CondValue,

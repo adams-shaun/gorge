@@ -831,6 +831,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"rider_mana_extends_x_announcement_second", false, false},      // CR 601.2b, 601.2g: the same counter-rider unit makes X = 1 payable from the floating {G}, the Doll and Abandoned Campground (mana_rider.go)
 		{"rider_mana_pays_x_announcement", false, false},                // CR 601.2g: the same game answering X = 2: the window, with no auto-fill plan for {4}{G}, taps Strangled Cemetery then the Doll (its nest counter) and the spell stays on the stack
 		{"rider_mana_pays_x_announcement_second", false, false},         // CR 601.2g: the second game answering X = 1: the Doll, first in battlefield order once the planner census falls short, then Abandoned Campground pay it
+		{"x_witness_skips_deferred_rider_source", false, false},         // CR 601.2b, 605.3b: the {X} cast witness prices the planner's census, which never lists Twitching Doll's counter-rider mana, so The Rollercrusher Ride's lowered cast taps three lands for X = 0 and leaves the Doll untapped
 	})
 }
 

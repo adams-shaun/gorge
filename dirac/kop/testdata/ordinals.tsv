@@ -103,6 +103,8 @@ CondRefMatches	CondKind	6
 CondThreshold	CondKind	4
 CondValue	CondKind	2
 CondYourTurn	CondKind	5
+CopyCardKeyPrefix	untyped string	"copycard:"
+CopyNamedExcShift	untyped int	8
 CopyNonRemCtrl	untyped int	32768
 CopyPumpEOT	untyped int	16384
 CopyPumpShift	untyped int	8
@@ -344,6 +346,7 @@ ExGraveAgg	ExprKind	43
 ExGraveTypes	ExprKind	41
 ExHandSizeOf	ExprKind	26
 ExHighestOppPoison	ExprKind	45
+ExIfCastOwnMain	ExprKind	224
 ExKicked	ExprKind	7
 ExLastLifeLost	ExprKind	22
 ExLeftZone	ExprKind	249
@@ -413,6 +416,7 @@ ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
 ExtCopyAbility	ExtOp	191
 ExtCopyAllEach	ExtOp	224
+ExtCopyNamed	ExtOp	314
 ExtCopyTokenCtr	ExtOp	172
 ExtCounterAll	ExtOp	226
 ExtCounterLose	ExtOp	41
@@ -1064,7 +1068,9 @@ StReduceAny	StaticFlags	256
 StReduceColor	StaticFlags	8192
 StRemove6Counters	StaticFlags	32
 StSeatActive	StaticFlags	16384
+StTapAnyPlayer	StaticFlags	8
 StTapOnC	StaticFlags	2
+StTapReflect	StaticFlags	4
 StTargetsFilter2	StaticFlags	64
 StWithoutManaCost	StaticFlags	8
 StYouHexproof	StaticFlags	512

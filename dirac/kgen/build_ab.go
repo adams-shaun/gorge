@@ -439,6 +439,20 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		}
 		ts.TFlags |= kop.TgfBoundsV
 		ts.UpTo = true
+	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && t.Divided == 0 && t.Mode < 0 && t.ParentPlus1 == 0 &&
+		t.Min.isConst() && t.Min.N == 1 && !t.Max.isConst() && !plainX(t.Max) && tgtBoundReads(t.Max):
+		// one target at least, up to a value read as the slot is announced
+		// (Return to Dust: TargetMin$ 1, TargetMax$ the own-main-phase count).
+		// The slot is mandatory: the kernel's bound check asks MinV
+		// candidates (tgtBoundsFeasible) and the ask closes at MaxV.
+		var err error
+		if ts.MinV, err = cb.value(t.Min); err != nil {
+			return ts, fmt.Errorf("target count %s..%s: %w", t.Min, t.Max, err)
+		}
+		if ts.MaxV, err = cb.value(t.Max); err != nil {
+			return ts, fmt.Errorf("target count %s..%s: %w", t.Min, t.Max, err)
+		}
+		ts.TFlags |= kop.TgfBoundsV
 	default:
 		return ts, fmt.Errorf("target count %s..%s", t.Min, t.Max)
 	}
@@ -531,7 +545,7 @@ func plainX(v lValue) bool {
 
 func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
-	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked:
+	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain:
 		return true
 	case vSum, vProduct:
 		for _, sv := range v.Sub {
@@ -1638,8 +1652,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		for _, fl := range s.Flags {
 			switch fl {
-			case "Bargained":
-				st.StFlags |= kop.StBargained // lower_reducespell.go
+			case "Bargained", "OptPaid":
+				st.StFlags |= kop.StBargained // lower_reducespell.go, lower_optcost.go
 			case "ReduceColor":
 				st.StFlags |= kop.StReduceColor
 				st.B = int16(s.RedCol)
@@ -1687,10 +1701,16 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		st.A, st.B = int16(s.TapCol), int16(s.TapAmt)
 		for _, fl := range s.Flags {
-			if fl != "TapOnC" {
+			switch fl {
+			case "TapOnC":
+				st.StFlags |= kop.StTapOnC
+			case "TapReflect":
+				st.StFlags |= kop.StTapReflect
+			case "TapAnyPlayer":
+				st.StFlags |= kop.StTapAnyPlayer
+			default:
 				return ka, nil, fmt.Errorf("tap extra flag %q", fl)
 			}
-			st.StFlags |= kop.StTapOnC
 		}
 	case "CantBeCast":
 		st.Kind = kop.StatCantBeCast
@@ -4056,7 +4076,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		default:
 			return ki, fmt.Errorf("override duration %q", in.CS)
 		}
-	case "CopyAsToken":
+	case "CopyAsToken", "CopyNamed":
 		ki.Op = kop.OpCopyAsTokenEx
 		cf := 0
 		if _, ok := fl["SacAtEndStep"]; ok {
@@ -4105,6 +4125,20 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, err
 			}
 			ki.C = int16(i + 1)
+		}
+		if in.Op == "CopyNamed" {
+			// kop.ExtCopyNamed: B holds the named card's pool index (the
+			// matchup remaps it to its CardID), C the flags and exception;
+			// A held the count (one), now the sub-op
+			idx, ok := cb.pt.tokenIdx[copyCardKey+fl["card"]]
+			if !ok {
+				return ki, fmt.Errorf("copied card %q", fl["card"])
+			}
+			if cf := int(uint16(ki.B.N)); cf>>8 != 0 || int(ki.C) > 0xff {
+				return ki, fmt.Errorf("named copy flags %#x or exception override %d past a byte", cf, ki.C)
+			}
+			ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCopyNamed))
+			ki.B, ki.C = kop.Const(idx), int16(int(ki.C)<<kop.CopyNamedExcShift|int(uint16(ki.B.N)))
 		}
 	case "CopyAsTokenCtr":
 		// dirac/copy_counters.go: Obj the source, B the

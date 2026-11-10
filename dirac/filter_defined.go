@@ -9,22 +9,23 @@ import (
 // RefOppNonRemCtrl and RefSrcOwner (gorge effects
 // context.go definedSpecNonRememberedController / definedSpecCardOwner).
 
-// DebugOppNonRemFirstOnly is a test hook: oppNonRemCtrl ignores the
+// DebugOppNonRemFirstOnly is a test hook: oppsNonRemCtrl ignores the
 // remembered set and always names the opponent. The lockstep must fail with
 // it set.
 var DebugOppNonRemFirstOnly bool
 
-// oppNonRemCtrl is RefOppNonRemCtrl: the controller's opponent, or 255 when
-// any remembered object's controller (its LKI capture once it left the
-// battlefield, else the live one) is that opponent. Every remembered object
-// is tested, not just the first.
+// oppsNonRemCtrl is RefOppNonRemCtrl: the controller's opponents in gorge's
+// order (AliveFrom the controller), less every remembered object's controller
+// (its LKI capture once it left the battlefield, else the live one). Every
+// remembered object is tested, not just the first.
 //
 //go:noinline
-func (s *State) oppNonRemCtrl() uint8 {
-	opp := 1 - s.res.e.ctrl
+func (s *State) oppsNonRemCtrl() seatSeq {
+	q := s.oppsFrom(s.res.e.ctrl)
 	if DebugOppNonRemFirstOnly {
-		return opp
+		return q
 	}
+	var ex uint8 // seat mask of the remembered controllers
 	for i := uint8(0); i < s.g.nrem; i++ {
 		o := s.g.rem[i]
 		c := uint8(0)
@@ -33,11 +34,15 @@ func (s *State) oppNonRemCtrl() uint8 {
 		} else {
 			c = s.ctrlOfObj(o)
 		}
-		if c == opp {
-			return 255
+		ex |= 1 << SeatIx(c)
+	}
+	var out seatSeq
+	for i := uint8(0); i < q.n; i++ {
+		if ex&(1<<q.s[i]) == 0 {
+			out.add(q.s[i])
 		}
 	}
-	return opp
+	return out
 }
 
 // srcOwner is RefSrcOwner: the resolving source object's owner.
@@ -174,7 +179,7 @@ func (s *State) playerPred(k *prep, in *kop.Instr, p uint8) bool {
 	case kop.PlayerPredCorrupted:
 		r = s.g.poison[p] >= 3
 	case kop.PlayerPredMostCreatures:
-		r = s.creaturesCtrl(k, p) >= s.creaturesCtrl(k, 1-p)
+		r = s.mostCreatures(k, p)
 	}
 	kept := r == (n&kop.PlayerPredNeg == 0)
 	if n&^kop.PlayerPredNeg > kop.PlayerPredArtOrEnch {
@@ -191,6 +196,22 @@ func (s *State) playerPred(k *prep, in *kop.Instr, p uint8) bool {
 		kdHit(i)
 	}
 	return kept
+}
+
+// mostCreatures reports whether p controls at least as many creatures as
+// each other player still in the game (gorge playerHasMost: no player has
+// more).
+func (s *State) mostCreatures(k *prep, p uint8) bool {
+	if MaxSeats == 2 {
+		return s.creaturesCtrl(k, p) >= s.creaturesCtrl(k, 1-p)
+	}
+	n := s.creaturesCtrl(k, p)
+	for q := uint8(0); q < s.nSeats(); q++ {
+		if q != p && !s.out(q) && s.creaturesCtrl(k, q) > n {
+			return false
+		}
+	}
+	return true
 }
 
 // creaturesCtrl is the number of creatures p controls (gorge playerHasMost
@@ -220,10 +241,14 @@ func (s *State) playerSet(k *prep, in *kop.Instr, q seatSeq) seatSeq {
 }
 
 // playerSetMask is playerSet for the each-player damage sequence: bit 0 the
-// active player, bit 1 the other (damageSeqNext's dmgSeqPl).
+// active player, bit 1 the other (damageSeqNext's dmgSeqPl); at more seats
+// the seat mask of the seats still in the game that match.
 //
 //go:noinline
 func (s *State) playerSetMask(k *prep, in *kop.Instr) uint8 {
+	if MaxSeats != 2 {
+		return seatBits(s.playerSet(k, in, s.aliveFrom(s.res.e.ctrl)))
+	}
 	var m uint8
 	if s.playerPred(k, in, s.active) {
 		m |= 1

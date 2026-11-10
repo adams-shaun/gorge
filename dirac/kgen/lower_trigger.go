@@ -1841,8 +1841,12 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		if st.F, err = readF("ValidCard"); err != nil {
 			return nil, err
 		}
-		if st.Amount, err = lc.value(sp.str("Amount")); err != nil {
-			return nil, err
+		if opt, err := lc.reduceOptPaid(sp, &st); err != nil {
+			return nil, err // lower_optcost.go
+		} else if !opt {
+			if st.Amount, err = lc.value(sp.str("Amount")); err != nil {
+				return nil, err
+			}
 		}
 		if a, ok := sp.get("Activator"); ok && a != "You" {
 			return nil, refuse("ReduceCost Activator %q", a)

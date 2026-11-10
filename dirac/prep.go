@@ -308,7 +308,7 @@ func prepare(t *kop.Table) *prep {
 					}
 					pc.manaOne = manaOneColour(a, pc.manaN)
 					p.manaOne = p.manaOne || pc.manaOne
-					if a.ManaEach && !kop.CtrEachManaAb(a) { // (a counter-cost one keeps its whole mask: mana_countercost.go)
+					if a.ManaEach && !kop.CtrEachManaAb(a) && !kop.FilterEachManaAb(a) { // (a counter-cost one keeps its whole mask: mana_countercost.go; a filter's is mana_filtereach.go's)
 						prepEachMana(a, pc)
 						p.manaEach = true
 					}

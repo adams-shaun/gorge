@@ -343,6 +343,8 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 				case kop.OpExt:
 					if x := kop.ExtOp(in.A.N); (x == kop.ExtCopyAllEach || x == kop.ExtCloneCopy) && in.C > 0 {
 						usesOverride[int(in.C)-1] = true // the copy exceptions
+					} else if x == kop.ExtCopyNamed && uint16(in.C)>>kop.CopyNamedExcShift > 0 {
+						usesOverride[int(uint16(in.C)>>kop.CopyNamedExcShift)-1] = true
 					}
 				case kop.OpBecomeCopy:
 					if x := in.C >> 1; x > 0 {
@@ -501,6 +503,9 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 					if in.Ext() == kop.ExtEndure {
 						in.B.N = int16(id[int(in.B.N)]) // the Spirit token
 					}
+					if in.Ext() == kop.ExtCopyNamed {
+						in.B.N = int16(id[int(in.B.N)]) // the named card's entry, a table token
+					}
 				}
 			}
 		}
@@ -549,6 +554,11 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 	}
 	if !inert {
 		if err := s.interactionGuard(t, pool); err != nil {
+			return nil, nil, err
+		}
+	}
+	if !inert {
+		if err := copyNamedGuard(t); err != nil { // pooldata_names.go
 			return nil, nil, err
 		}
 	}

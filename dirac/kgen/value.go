@@ -1237,7 +1237,7 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		kind    valKind
 		bargain bool
 	}{{"Kicked.", vKicked, false}, {"Teamwork.", vKicked, false}, {"Morbid.", vMorbid, false}, {"PromisedGift.", vPromisedGift, false},
-		{"CommittedCrimeThisTurn.", vCommittedCrime, false}, {"Void.", vVoid, false},
+		{"CommittedCrimeThisTurn.", vCommittedCrime, false}, {"Void.", vVoid, false}, {"IfCastInOwnMainPhase.", vIfCastOwnMain, false},
 		{"wasCastFromGraveyard.", vCastFromGrave, false},
 		{"Bargained.", vKicked, true}, {"Bargain.", vKicked, true}, {"OptionalGenericCostPaid.", vKicked, false}} {
 		if !strings.HasPrefix(rest, cv.pre) {
@@ -1248,6 +1248,10 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 			// kernel reads the resolving stack entry, so only a spell
 			// ability has the same object.
 			return lValue{}, refuse("Count$%s outside a spell ability", strings.TrimSuffix(cv.pre, "."))
+		}
+		if cv.kind == vIfCastOwnMain && (lc.ab == nil || lc.ab.Kind != akSpell) {
+			// the kernel reads the spell entry under resolution or announcement
+			return lValue{}, refuse("Count$IfCastInOwnMainPhase outside a spell ability")
 		}
 		if cv.pre == "Teamwork." && lc.out.Teamwork == 0 {
 			return lValue{}, refuse("Count$%s without Teamwork", rest)
@@ -1262,12 +1266,12 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		}
 		parts := strings.Split(strings.TrimPrefix(rest, cv.pre), ".")
 		if len(parts) != 2 {
-			if cv.kind == vCommittedCrime || cv.kind == vVoid {
+			if cv.kind == vCommittedCrime || cv.kind == vVoid || cv.kind == vIfCastOwnMain {
 				return lValue{}, refuse("Count$%s arms %q", strings.TrimSuffix(cv.pre, "."), rest)
 			}
 			return lValue{}, fmt.Errorf("Count$%s", rest)
 		}
-		if cv.kind == vCommittedCrime || cv.kind == vVoid {
+		if cv.kind == vCommittedCrime || cv.kind == vVoid || cv.kind == vIfCastOwnMain {
 			// gorge cov3BranchHoldsCommittedCrimeThisTurn / ...HoldsVoid: two
 			// arms, read as integers here (an SVar arm refuses)
 			for _, p := range parts {
