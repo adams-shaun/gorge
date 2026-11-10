@@ -86,6 +86,9 @@ var builtinSVars = map[string]string{
 	// goes to the graveyard. A distinct API marker lets the ordinary stack
 	// object stay respondable without pretending this is an effects primitive.
 	"__kwMadnessCast": "DB$ MadnessCast",
+	// Miracle's reveal trigger (CR 702.94a): rules asks its owner, as it
+	// resolves, whether to cast the revealed card from hand for the miracle cost.
+	"__kwMiracleCast": "DB$ MiracleCast",
 	// Dash (CR 702): "returned from the battlefield to its owner's hand at
 	// the beginning of the next end step". The registered source is the
 	// dashed permanent itself, so Defined$ Self is it.

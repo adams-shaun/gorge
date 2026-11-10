@@ -54,9 +54,10 @@ type pendingTrigger struct {
 	sourceCharLKIValid bool
 	// Miracle marks a keyword offer rather than a matched T: line: a
 	// Miracle drawing queued with Idx/SA unset, which the drain treats as an
-	// optional trigger whose decider is the owner and routes a yes through
-	// castMiracle (miracle.go) instead of minting a triggered-ability stack
-	// object. optionalDecider, triggerLabel and pushTrigger all special-case it.
+	// optional trigger whose decider is the owner (the CR 702.94a reveal) and
+	// routes a yes through revealMiracle (miracle.go), which mints the
+	// MiracleCast stack object. optionalDecider, triggerLabel and pushTrigger
+	// all special-case it.
 	// Madness marks the mandatory triggered ability created after its owner
 	// accepts the optional discard-to-exile replacement (CR 702.35a-b). Unlike
 	// Miracle it is pushed unconditionally and asks whether to cast only when

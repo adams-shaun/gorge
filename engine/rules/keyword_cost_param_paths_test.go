@@ -227,7 +227,13 @@ func TestKeywordCostParamMiracleCastUsesFirstField(t *testing.T) {
 	if d := e.Pending(); d == nil || d.Kind != decision.KTriggerOptional || d.Player != 0 {
 		t.Fatalf("miracle offer decision = %+v, want a seat-0 trigger-optional ask", d)
 	}
-	submitChoices(t, e, 0) // accept
+	submitChoices(t, e, 0) // reveal: accept
+	miracleTriggerOnStack(t, e, id)
+	ask := passToMiracleAsk(t, e)
+	if ask == nil {
+		t.Fatal("no miracle cast ask after the trigger resolved")
+	}
+	submitChoices(t, e, miracleOption(t, ask, "yes"))
 	o := e.G.Obj(id)
 	if o.Zone != state.ZStack || o.CastFlags&state.FlagMiracle == 0 {
 		t.Fatalf("miracle cast: zone=%s flags=%d pool=%d, want a flagged Miracle spell on the stack",

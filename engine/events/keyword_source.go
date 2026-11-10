@@ -51,6 +51,9 @@ func keywordTriggerBindsSource(counter string, sa *cards.SA) bool {
 		// rules.askMadnessCast reads the exiled source card and only offers
 		// the cast while that exact card is still in exile.
 		return true
+	case counter == "__kwMiracleCast":
+		// rules.askMiracleCast reads the revealed source card in hand.
+		return true
 	}
 	return false
 }

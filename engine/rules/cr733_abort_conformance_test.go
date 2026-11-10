@@ -379,9 +379,10 @@ func TestCR733UnderDelveReversalAllowsLegalRetry(t *testing.T) {
 }
 
 // All three arms are green in the ordinary suite: the miracle entry check, the
-// early return and the cast-trigger control. Each arm was checked against a
+// unpayable reveal (the trigger resolves with no cast offered) and the
+// cast-trigger control. Each arm was checked against a
 // deliberate production mutation before the former opt-in guard came off:
-// dropping the o.Zone != state.ZHand check in miracle.go's castMiracle turns
+// dropping the o.Zone != state.ZHand check in miracle.go's revealMiracle turns
 // stale_card red, and suppressing the CastInfo emit at cast.go:810 turns
 // paid_control red.
 func TestCR733MiracleAbortAndTriggerControl(t *testing.T) {
@@ -414,6 +415,24 @@ func TestCR733MiracleAbortAndTriggerControl(t *testing.T) {
 			before, start := e.G.Clone(), len(e.L.Events)
 			checked++
 			crAbortAnswer(t, e, "Terminus", crAbortOption(t, e, "Terminus", "yes", 0))
+			if arm != "stale_card" {
+				// CR 702.94a: the yes revealed the card and put the miracle trigger
+				// on the stack; the cast is asked as it resolves. An unpayable card
+				// is still revealed, but that ask then offers no cast.
+				miracleTriggerOnStack(t, e, id)
+				ask := passToMiracleAsk(t, e)
+				if ask == nil {
+					t.Fatalf("CR 702.94a Terminus seq %d: no cast ask as the trigger resolved", len(e.L.Events))
+				}
+				hasYes := false
+				for _, o := range ask.Options {
+					hasYes = hasYes || o.Kind == "yes"
+				}
+				if hasYes != (arm == "paid_control") {
+					t.Fatalf("CR 702.94a Terminus %s: cast offered=%v", arm, hasYes)
+				}
+				crAbortAnswer(t, e, "Terminus", crAbortOption(t, e, "Terminus", map[bool]string{true: "yes", false: "no"}[hasYes], id))
+			}
 			pushes, reveals := 0, 0
 			for _, ev := range e.L.Events[start:] {
 				if ev.Kind == events.TriggerPush && ev.Obj == pyro {
@@ -427,6 +446,10 @@ func TestCR733MiracleAbortAndTriggerControl(t *testing.T) {
 			if arm == "paid_control" {
 				if e.G.Obj(id).Zone != state.ZStack || pushes != 1 || e.G.Players[0].Pool.Total() != 0 || e.G.Obj(id).CastFlags&state.FlagMiracle == 0 {
 					t.Errorf("CR 601.2i/702.94a Terminus seq %d: payable control failed: zone=%s pushes=%d pool=%v flags=%v", start, e.G.Obj(id).Zone, pushes, e.G.Players[0].Pool, e.G.Obj(id).CastFlags)
+				}
+			} else if arm == "unpayable" {
+				if e.G.Obj(id).Zone != state.ZHand || pushes != 0 || reveals != 1 || len(e.G.Stack) != 0 {
+					t.Errorf("CR 702.94a Terminus seq %d: unpayable card was cast or not revealed: zone=%s pushes=%d reveals=%d stack=%v", start, e.G.Obj(id).Zone, pushes, reveals, e.G.Stack)
 				}
 			} else {
 				crAbortUnchanged(t, e, before, start, "Terminus", pyro)

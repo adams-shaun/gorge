@@ -314,8 +314,8 @@ type oppSelectState struct {
 // replaces it one-for-one and the target ask is re-posed by answerOppPick
 // once the seat is named. The pending KChoose is routed through the
 // chooseOppPick flow marker (handleChoose), NOT the mid-resolution resume
-// machinery: a cast begun inside a suspended resolution (a Miracle cast in
-// the trigger drain) parks the resolution's own resume point, and a resume
+// machinery: a cast begun inside a suspended resolution (a Madness cast at
+// its trigger) parks the resolution's own resume point, and a resume
 // dispatch would consume the selection answer as the resolution's ask
 // answer.
 func (e *Engine) poseOpponentPick(controller state.PlayerID, source state.ObjID, sa *cards.SA, stage oppPickStage) {
