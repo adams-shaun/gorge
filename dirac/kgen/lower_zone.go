@@ -797,6 +797,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 	}
 	if counterKind != "" {
+		if err := withCountersList(counterKind, in.Op, in.C); err != nil { // lower_counterlist.go
+			return err
+		}
 		if in.Op != "Return" || in.C != zBattlefield && dest != zExile {
 			if dest != zExile {
 				return refuse("WithCounters on a %s move", in.Op)

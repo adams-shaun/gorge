@@ -208,6 +208,7 @@ const (
 	TrTapped    = 1 << iota // the token enters tapped
 	TrAttacking             // the token enters tapped and attacking (reserved)
 	TrHasteEOT              // the token gains haste until end of turn
+	TrList                  // one of a comma-listed TokenScript$'s tokens: a Token resolution's one creation event spans the ops, which a ReplAddToken cannot claim once across (stall)
 )
 
 // DamageFlags (OpDealDamageEx C).

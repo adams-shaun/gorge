@@ -713,9 +713,11 @@ const landPlayedMayPlaySourceClause = "SpellAbility.MayPlaySource"
 // landPlayedMatches implements Mode$ LandPlayed. This fires on the MoveZone
 // that the land-play special action uses to move a land to the battlefield
 // (from the hand or, under a play permission, another zone) -- not on the
-// separate LandPlayed event legal.go's "play_land" case also emits, which
-// carries only a Player (no Obj), and so has nothing ValidCard$ could ever
-// match against.
+// separate LandPlayed bookkeeping event legal.go's "play_land" case also
+// emits. That event carries no usable object for a hand play (an off-hand or
+// not-owned play stamps its Obj/From only as LandsPlayed provenance), so the
+// trigger is intentionally answered from the MoveZone, never from the
+// bookkeeping event.
 //
 // ValidSA$ SpellAbility.MayPlaySource (Share the Spoils, The Fourth / Eighth
 // Doctor, Serra Paragon: "When they do ...") scopes the trigger to a land

@@ -170,7 +170,9 @@ func (s *State) beginStep(k *prep) {
 		}
 		s.openPriority()
 	case kop.StepDraw:
-		if s.turn == 1 {
+		if s.turn == 1 && s.nSeats() == 2 {
+			// CR 103.8a skips the starting player's first draw step in a
+			// two-player game only; CR 103.8c: no one skips it at more
 			s.step = kop.StepMain1
 			return
 		}
@@ -298,7 +300,7 @@ func (s *State) advance(k *prep) {
 // pass is the priority holder passing.
 func (s *State) pass(k *prep) {
 	s.passes++
-	if s.passes >= 2 {
+	if s.passes >= s.aliveCount() {
 		if s.sp == 0 {
 			s.advance(k)
 			return
@@ -310,7 +312,7 @@ func (s *State) pass(k *prep) {
 		s.resolveTop(k)
 		return
 	}
-	s.prio = 1 - s.prio
+	s.prio = s.nextAlive(s.prio)
 }
 
 // afterResolve: priority returns to the active player (gorge legal_priority.go:73).
@@ -405,7 +407,7 @@ func (s *State) finishCleanup(k *prep) {
 		s.openPriority()
 		return
 	}
-	next := 1 - s.active
+	next := s.nextAlive(s.active)
 	if s.pl[s.active].extraTurns > 0 {
 		s.pl[s.active].extraTurns--
 		next = s.active

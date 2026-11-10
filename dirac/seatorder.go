@@ -59,3 +59,48 @@ func mullOrderFrom(p, n uint8) [MaxSeats]uint8 {
 	}
 	return o
 }
+
+// out reports whether seat p has left the game (CR 800.4a). At two seats a
+// loss ends the game, so no live-seat walk ever meets a departed seat.
+func (s *State) out(p uint8) bool {
+	if MaxSeats == 2 {
+		return false
+	}
+	return s.pl[SeatIx(p)].lost
+}
+
+// nextAlive is the first seat after p in turn order that is still in the
+// game, or p when no other is (gorge state.Game.NextAlive).
+func (s *State) nextAlive(p uint8) uint8 {
+	if MaxSeats == 2 {
+		return 1 - p
+	}
+	n := s.nSeats()
+	q := p
+	for i := uint8(1); i < n; i++ {
+		q++
+		if q >= n {
+			q = 0
+		}
+		if !s.out(q) {
+			return q
+		}
+	}
+	return p
+}
+
+// aliveCount is the number of seats still in the game (gorge
+// state.Game.AliveCount): a round of priority passes by each of them
+// resolves or advances (CR 117.4).
+func (s *State) aliveCount() uint8 {
+	if MaxSeats == 2 {
+		return 2
+	}
+	c := uint8(0)
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if !s.out(p) {
+			c++
+		}
+	}
+	return c
+}

@@ -80,7 +80,6 @@ opp1minus	act_exilelandchoose.go	1
 opp1minus	act_gameover.go	1
 opp1minus	act_initiative.go	1
 opp1minus	act_millthenreturn.go	1
-opp1minus	cast.go	1
 opp1minus	cast_castledger.go	1
 opp1minus	cast_mayplayremembered.go	1
 opp1minus	combat.go	12
@@ -111,7 +110,6 @@ opp1minus	trig_damagedonce.go	4
 opp1minus	trig_effectuntileot.go	3
 opp1minus	trig_gravedamage.go	2
 opp1minus	triggers_gen.go	6
-opp1minus	turn.go	2
 opp1minus	turn_gen.go	1
 opp1minus	types.go	3
 opp1minus	value_exprs.go	2
@@ -172,7 +170,6 @@ seatloop2	combat_cmddamage.go	1
 seatloop2	copy_asenters.go	1
 seatloop2	cost_mayplayraise.go	1
 seatloop2	cost_reduceability.go	1
-seatloop2	engine.go	2
 seatloop2	exprs.go	1
 seatloop2	face_battle.go	1
 seatloop2	face_fullyunlock.go	2
@@ -220,7 +217,6 @@ seatloop2	zone_changezoneparams.go	2
 seatloop2	zone_exiledwith.go	1
 seatloop2	zone_hiddenpick.go	1
 seatloop2	zone_rememberparams.go	1
-seatloop2	zone_sideboard.go	1
 seatloop2	zone_sweeptolibrary.go	2
 xor1	act_eachdiscard.go	2
 xor1	face_prepare.go	1
