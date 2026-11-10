@@ -55,7 +55,7 @@ and1	mana_window.go	9
 and1	marks.go	5
 and1	script_gen.go	7
 and1	searchapi.go	1
-and1	targets_gen.go	4
+and1	targets_gen.go	1
 and1	trig_dilemma.go	3
 and1	trig_mayexile.go	1
 and1	trig_oneormore.go	1
@@ -68,7 +68,6 @@ and1	value_sacrificedthisturn.go	2
 and1	value_scrytally.go	1
 and1	zone_changezoneall.go	1
 and1	zone_sweeptolibrary.go	3
-and1	zone_untilleaves.go	1
 and1	zone_viewfacts.go	2
 opp1minus	act_damageallopp.go	1
 opp1minus	act_damagefrom.go	1

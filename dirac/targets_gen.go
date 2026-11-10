@@ -84,13 +84,13 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 			// with one card in each closes after the first pick)
 			var buf [MaxOptions]uint8
 			n := s.multiCands(k, t, ti, &buf)
-			var per [2]uint8
+			var per [MaxSeats]uint8
 			for i := 0; i < n; i++ {
 				if c := buf[i]; isObjTarget(c) {
-					per[s.ctrlOfObj(Obj(c))&1]++
+					per[SeatIx(s.ctrlOfObj(Obj(c)))]++
 				}
 			}
-			if g := max8(per[0], per[1]); g < mt.max && g > 0 {
+			if g := seatMax(&per); g < mt.max && g > 0 {
 				mt.max = max8(g, mt.min)
 			}
 		}
@@ -212,7 +212,7 @@ func (s *State) multiCands(k *prep, t *kop.TargetSpec, ti uint8, out *[MaxOption
 	var all [MaxOptions]uint8
 	n := s.targetCands(k, t, e.ctrl, s.srcSlot(), e.obj, &all)
 	mt := &s.g.mt
-	var per [2]uint8
+	var per [MaxSeats]uint8
 	if mt.picked == 0 && mt.min > 1 && t.TFlags&kop.TgfSameController != 0 {
 		// a same-controller slot's first pick comes from a controller
 		// with enough for the whole slot (gorge: Pestilent Cauldron's
@@ -220,7 +220,7 @@ func (s *State) multiCands(k *prep, t *kop.TargetSpec, ti uint8, out *[MaxOption
 		// with three)
 		for i := 0; i < n; i++ {
 			if c := all[i]; c != NoTarget && isObjTarget(c) {
-				per[s.ctrlOfObj(Obj(c))&1]++
+				per[SeatIx(s.ctrlOfObj(Obj(c)))]++
 			}
 		}
 	}
@@ -339,22 +339,22 @@ func (s *State) hasTargetsMin(k *prep, t *kop.TargetSpec, p uint8, src Slot, sel
 		return s.tgtSetCap(k, t, buf[:n]) >= t.Min // tgt_setconstraints.go
 	}
 	if t.TFlags&kop.TgfSameController != 0 {
-		var per [2]uint8
+		var per [MaxSeats]uint8
 		for i := 0; i < n; i++ {
 			if isObjTarget(buf[i]) {
-				per[s.ctrlOfObj(Obj(buf[i]))&1]++
+				per[SeatIx(s.ctrlOfObj(Obj(buf[i])))]++
 			}
 		}
-		return max8(per[0], per[1]) >= t.Min
+		return seatMax(&per) >= t.Min
 	}
 	if t.TFlags&kop.TgfDiffController != 0 {
-		var seen [2]bool
+		var seen [MaxSeats]bool
 		for i := 0; i < n; i++ {
 			if isObjTarget(buf[i]) {
-				seen[s.ctrlOfObj(Obj(buf[i]))] = true
+				seen[SeatIx(s.ctrlOfObj(Obj(buf[i])))] = true
 			}
 		}
-		return seen[0] && seen[1]
+		return seatCount(&seen) >= 2
 	}
 	return true
 }

@@ -175,6 +175,27 @@ func (s *State) blockAtkM(k *prep) slotMask {
 	return m
 }
 
+// seatMax is the largest per-seat count in per (max8(per[0], per[1]) at two
+// seats).
+func seatMax(per *[MaxSeats]uint8) uint8 {
+	m := per[0]
+	for _, v := range per[1:] {
+		m = max8(m, v)
+	}
+	return m
+}
+
+// seatCount is the number of seats seen marks.
+func seatCount(seen *[MaxSeats]bool) uint8 {
+	d := uint8(0)
+	for _, b := range seen {
+		if b {
+			d++
+		}
+	}
+	return d
+}
+
 // seatSeq is an ordered set of seats, at most MaxSeats, returned by value
 // (an each-player or each-opponent expansion, in gorge's order).
 type seatSeq struct {

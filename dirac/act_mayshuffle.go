@@ -202,7 +202,7 @@ func (s *State) doMayShuffleMove(refs *[maxXTgt + 1]Obj, legal *[maxXTgt + 1]boo
 	if n > 0 {
 		s.libTopInOrder(moved[:n], movedFrom[:n])
 	}
-	var owners [2]uint8
+	var owners [MaxSeats]uint8
 	no := 0
 	for i := 0; i < nr; i++ {
 		o := s.objs[refs[i]].owner()
