@@ -1058,7 +1058,7 @@ func heuristicLeafVec(e *rules.Engine, actor state.PlayerID) (vec [maxVecSeats]f
 	g := e.G
 	n := len(g.Players)
 	if n > maxVecSeats {
-		panic(fmt.Sprintf("azmcts: a value vector over %d seats (at most %d)", n, maxVecSeats))
+		panic("azmcts: a value vector over more seats than maxVecSeats")
 	}
 	nv = uint8(n)
 	if g.Over && !g.Draw {
