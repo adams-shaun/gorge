@@ -284,15 +284,20 @@ func (s *State) repPending() bool { return s.g.repNext != 255 }
 // dmgSeat is the player a damage trigger names as "that player" (its
 // trigger player): the damaged seat when the recipient rcp is a player. At
 // two seats the old reading stays, the source controller's opponent. At more
-// seats a recipient that is no player (a permanent, or a batch's aggregate)
-// has no single damaged seat; the next seat stands in, and the cards that
-// read it there are still two-seat.
-func dmgSeat(rcp, srcCtrl uint8) uint8 {
+// seats a permanent recipient carries its controller (the referent's
+// controller, as ddoRecipient queues an object referent and gorge's
+// TriggeredTargetController reads it). A batch's aggregate (NoTarget) names
+// no single damaged seat; the next seat stands in there, and every line that
+// reads a recipient's player skips the aggregate fire (ddoLine).
+func (s *State) dmgSeat(rcp, srcCtrl uint8) uint8 {
 	if MaxSeats == 2 {
 		return 1 - srcCtrl
 	}
 	if isPlayerTarget(rcp) {
 		return CodeSeat(rcp)
+	}
+	if isObjTarget(rcp) && s.objs[rcp].zone == kop.ZoneBattlefield {
+		return s.perms[s.objs[rcp].slot].ctrl
 	}
 	return NextSeat(srcCtrl)
 }

@@ -145,7 +145,7 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 						if DebugInnerLightNoAmount {
 							n = 0
 						}
-						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, srcObj, dmgSeat(rcp, srcCtrl), n)
+						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, srcObj, s.dmgSeat(rcp, srcCtrl), n)
 						break
 					}
 				}

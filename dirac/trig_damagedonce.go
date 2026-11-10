@@ -81,7 +81,7 @@ func recipientPlayer(rcp uint8) (uint8, bool) {
 func (s *State) ddoLine(k *prep, l trigListener, a *kop.Ability, src Slot, srcObj Obj, srcCtrl uint8, amt int16, rcp uint8, rl *refLatch) (int16, Obj, uint8, bool) {
 	t := &a.Trig
 	if t.Filter2 == 0 && t.Flags2&(kop.Tf2PerReferent|kop.Tf2ToYou) == 0 {
-		return amt, srcObj, dmgSeat(rcp, srcCtrl), true
+		return amt, srcObj, s.dmgSeat(rcp, srcCtrl), true
 	}
 	if rcp == NoTarget {
 		return 0, NoObj, 0, false // damageBatch's aggregate fire: its per-recipient pass handles it
@@ -114,9 +114,9 @@ func (s *State) ddoLine(k *prep, l trigListener, a *kop.Ability, src Slot, srcOb
 					}
 				}
 			}
-			return int16(total), srcObj, dmgSeat(rcp, srcCtrl), true
+			return int16(total), srcObj, s.dmgSeat(rcp, srcCtrl), true
 		}
-		return amt, srcObj, dmgSeat(rcp, srcCtrl), true
+		return amt, srcObj, s.dmgSeat(rcp, srcCtrl), true
 	}
 	total := int(amt)
 	if rl != nil && rl.r != nil {
