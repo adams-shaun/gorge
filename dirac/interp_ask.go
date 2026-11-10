@@ -1673,7 +1673,7 @@ func (s *State) searchCands(k *prep, d *Decision) {
 		if s.picksHas(o) {
 			continue
 		}
-		if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) && s.pickFits(k, in.F, o, false) {
+		if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) && s.pickFits(k, in.F, o, false) { // a token off the battlefield is no card (CR 111.8)
 			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
 		}
 	}
