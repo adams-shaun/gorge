@@ -275,7 +275,7 @@ func (s *State) execCreateToken(k *prep, in *kop.Instr) (ok, done bool) {
 			}
 		}
 	}
-	var cs [4]CardID
+	var cs [maxTokAdds]CardID
 	na := 0
 	if !t.on && n > 0 {
 		// an adder's token enters with the op's own (it is alone: replTokensOp)
@@ -345,10 +345,15 @@ func (s *State) mintTokens(k *prep, in *kop.Instr, p uint8, n int) bool {
 	return false
 }
 
+// maxTokAdds is how many ReplAddToken replacements one token creation holds
+// (gorge adds one token per matching adder, with no bound: four Worldwalker
+// Helms and a copy of one are five).
+const maxTokAdds = 8
+
 // tokAddCards collects the ReplAddToken replacements p controls that match a
 // token of card tok, the card each adds, in battlefield order. over is set
 // when there are more than the buffer holds.
-func (s *State) tokAddCards(k *prep, p uint8, tok CardID) (cs [4]CardID, n int, over bool) {
+func (s *State) tokAddCards(k *prep, p uint8, tok CardID) (cs [maxTokAdds]CardID, n int, over bool) {
 	g := k.gen
 	for m := s.tokSrcM(p); m.any(); m = m.rest() {
 		b := m.first()
@@ -385,7 +390,11 @@ func (s *State) mintTokAdds(k *prep, in *kop.Instr, p uint8, tok CardID, n int) 
 	if n <= 0 || !k.gen.anyTokRew || k.gen.anyRepl&rbDblTok == 0 || p > 1 {
 		return false
 	}
-	cs, na, _ := s.tokAddCards(k, p, tok)
+	cs, na, over := s.tokAddCards(k, p, tok)
+	if over {
+		s.capFull(StallReplCands) // loud: never leave an adder's token out
+		return true
+	}
 	for _, c := range cs[:na] {
 		rw := *in
 		rw.C = int16(c)
