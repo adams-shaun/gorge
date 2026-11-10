@@ -92,6 +92,9 @@ func TestLowerCopypermChoicesAttacking(t *testing.T) {
 		{"copy exception", ccAttack, ccCopy + " | NonLegendary$ True", "Choices$ beside copy exceptions"},
 		{"attacking selector", ccAttack, strings.Replace(ccCopy, "TokenAttacking$ True", "TokenAttacking$ Opponent", 1), `Choices$ with TokenAttacking$ "Opponent"`},
 		{"attacking outside the own attack trigger", "Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCopy | TriggerDescription$ x", ccCopy, "TokenAttacking$ True in a trigger other than the controller's own attack"},
+		{"pawprint", ccAttack, ccCopy + " | Pawprint$ 2", "Choices$ beside Pawprint$"},
+		{"different names", ccAttack, ccCopy + " | WithDifferentNames$ True", "Choices$ beside WithDifferentNames$"},
+		{"chooser", ccAttack, ccCopy + " | Chooser$ Remembered", "Choices$ beside Chooser$"},
 		{"end step trigger rider", ccAttack, ccCopy + " | AtEOTTrig$ Sacrifice", "Choices$ beside AtEOTTrig$"},
 	} {
 		t.Run(v.name, func(t *testing.T) {

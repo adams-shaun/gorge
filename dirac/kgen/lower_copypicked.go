@@ -13,8 +13,12 @@ package kgen
 // copy reads. Every parameter the picked-copy op does not carry refuses by
 // name.
 func (lc *lowerCtx) copyChoicePick(ps *params) (lRef, error) {
-	for _, k := range []string{"ValidTgts", "Defined", "Chooser", "DifferentNames", "Populate", "NumCopies",
-		"WithCountersType", "PumpKeywords", "RememberTokens", "AtEOTTrig", "Controller", "DefinedName"} {
+	// Pawprint$, RandomCopied$, RandomNum$ and ValidSupportedCopy$ block gorge's
+	// CopyPermanent altogether (compileCopyPermanent: it mints nothing); Chooser$,
+	// Controller$ and WithDifferentNames$ leave its single-pick arm (supportsChoice)
+	for _, k := range []string{"ValidTgts", "Defined", "Chooser", "WithDifferentNames", "Populate", "NumCopies",
+		"WithCountersType", "PumpKeywords", "RememberTokens", "AtEOTTrig", "Controller", "DefinedName",
+		"Pawprint", "RandomCopied", "RandomNum", "ValidSupportedCopy"} {
 		if _, ok := ps.m[k]; ok {
 			return lRef{}, refuse("CopyPermanent Choices$ beside %s$", k)
 		}
