@@ -2397,6 +2397,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			return nil, err
 		}
 		rest, melee := splitMeleeGrant(rest)
+		rest, exalted := splitExaltedGrant(rest)
 		if rest != "" {
 			if st.Kw, err = pumpKeywords(rest); err != nil {
 				return nil, err
@@ -2418,6 +2419,16 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			// CR 702.121a/b granted: one latent Attacks trigger, listed
 			// once per instance (lower_meleegrant.go; gorge rules/melee.go)
 			idx, err := lc.meleeGrantTrigger()
+			if err != nil {
+				return nil, err
+			}
+			st.Grant = append(st.Grant, idx)
+		}
+		for ; exalted > 0; exalted-- {
+			// CR 702.83a-b granted: one latent Attacks trigger, listed
+			// once per instance (lower_exaltedgrant.go; gorge
+			// rules/exalted_granted.go)
+			idx, err := lc.exaltedGrantTrigger()
 			if err != nil {
 				return nil, err
 			}

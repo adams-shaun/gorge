@@ -1,0 +1,8 @@
+# the unit-test pool for a static's granted exalted (dirac/oracle/exaltedgrant_test.go)
+Akrasan Squire
+Gray Ogre
+Grizzly Bears
+Lightning Bolt
+Mountain
+Plains
+Sublime Archangel

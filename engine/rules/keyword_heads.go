@@ -74,6 +74,7 @@ var (
 	kwhStation          = newKWHead("Station")
 	kwhStoried          = newKWHead("Storied")
 	kwhSunburst         = newKWHead("Sunburst")
+	kwhExalted          = newKWHead("Exalted")
 	kwhTraining         = newKWHead("Training")
 	kwhTrample          = newKWHead("Trample")
 	kwhTeamwork         = newKWHead("Teamwork")

@@ -467,7 +467,7 @@ func (e *Engine) forEachTriggerObject(ev *events.Event, skip, kindOnly bool, fn 
 	if planHeld {
 		e.trigWalkUnion, e.trigWalkUnionOK = e.trigPlan.union, true
 		if trigNoReferent(ev) && !e.trigPlan.union.admits(ev, e.G.Step) &&
-			!(ev.Kind == events.StepChange && e.stepWalksBattlefield()) {
+			!e.grantWalksBattlefield(ev) {
 			if verify == nil {
 				return
 			}
@@ -539,7 +539,7 @@ func (e *Engine) forEachTriggerObject(ev *events.Event, skip, kindOnly bool, fn 
 			// summary could hide is gated on the object being an event
 			// referent. Hidden-ish zones keep their skip -- both synthesized
 			// triggers function only from the battlefield.
-			stepFull := slot == trigZoneSlot(state.ZBattlefield) && ev.Kind == events.StepChange && e.stepWalksBattlefield()
+			stepFull := slot == trigZoneSlot(state.ZBattlefield) && e.grantWalksBattlefield(ev)
 			if stepFull && kindOnly {
 				// The step's full battlefield walk, narrowed exactly: besides
 				// the selected hot objects only an object one of the two
@@ -657,7 +657,7 @@ func (e *Engine) trigHotMergeScan(buf []state.ObjID, ev *events.Event, cur, hotI
 				sel = !kindOnly || hotSigs[j].admits(ev, e.G.Step)
 				j++
 			}
-			if sel || trigMustVisit(*ev, id) || (step && e.stepGrantMay(id)) {
+			if sel || trigMustVisit(*ev, id) || (step && e.stepGrantMay(ev, id)) {
 				fn(id)
 			} else {
 				verify(id)
@@ -669,11 +669,11 @@ func (e *Engine) trigHotMergeScan(buf []state.ObjID, ev *events.Event, cur, hotI
 	j := 0
 	for _, id := range cur {
 		if j < len(hotIDs) && hotIDs[j] == id {
-			if !kindOnly || hotSigs[j].admits(ev, e.G.Step) || trigMustVisit(*ev, id) || (step && e.stepGrantMay(id)) {
+			if !kindOnly || hotSigs[j].admits(ev, e.G.Step) || trigMustVisit(*ev, id) || (step && e.stepGrantMay(ev, id)) {
 				buf = append(buf, id)
 			}
 			j++
-		} else if trigMustVisit(*ev, id) || (step && e.stepGrantMay(id)) {
+		} else if trigMustVisit(*ev, id) || (step && e.stepGrantMay(ev, id)) {
 			buf = append(buf, id)
 		}
 	}
@@ -688,15 +688,33 @@ func (e *Engine) trigHotMergeScan(buf []state.ObjID, ev *events.Event, cur, hotI
 // checkGrantedCumulativeUpkeepTriggers (battlefield, upkeep, the derived
 // keyword precheck) and checkGrantedAtEOTTriggers (battlefield, end step, a
 // copied AtEOTTrig$ body) return on.
-func (e *Engine) stepGrantMay(id state.ObjID) bool {
+func (e *Engine) stepGrantMay(ev *events.Event, id state.ObjID) bool {
 	o := e.G.Obj(id)
 	if o == nil || o.Zone != state.ZBattlefield {
 		return false
+	}
+	if ev.Kind == events.DeclareAttackers {
+		return e.mayHaveDerivedKeywordH(id, kwhExalted)
 	}
 	if atEOTTrigSteps.Has(e.G.Step) && o.AtEOTTrigBody != "" {
 		return true
 	}
 	return cumulativeUpkeepSteps.Has(e.G.Step) && e.mayHaveDerivedKeywordH(id, kwhCumulativeUpkeep)
+}
+
+// grantWalksBattlefield reports whether ev must consider every battlefield
+// object stepGrantMay admits besides its referents and hot objects: a
+// StepChange into a step stepWalksBattlefield names, and a declaration of
+// attackers, whose granted Exalted triggers for a holder that is no referent
+// (checkGrantedExaltedTriggers: the holder need not attack, CR 702.83a).
+func (e *Engine) grantWalksBattlefield(ev *events.Event) bool {
+	switch ev.Kind {
+	case events.StepChange:
+		return e.stepWalksBattlefield()
+	case events.DeclareAttackers:
+		return true
+	}
+	return false
 }
 
 // stepWalksBattlefield reports whether a StepChange into the current step

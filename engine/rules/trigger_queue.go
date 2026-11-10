@@ -574,6 +574,35 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
+	// A layer-6 Exalted instance (CR 702.83a-b) has no printed trigger index.
+	// Remembered (the declaration's attackers and the defending player) rides
+	// the payload so replay and stack copies read the same Pump target as a
+	// printed instance; the attacker role rides the stack context.
+	if pt.Exalted {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
+		for _, tgt := range pt.Ctx.Remembered {
+			if tgt.IsPlayer {
+				ids = append(ids, state.PlayerRef(tgt.Player))
+				continue
+			}
+			ids = append(ids, tgt.Obj)
+		}
+		stackLen := len(e.G.Stack)
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwExaltedGranted", IDs: ids, Text: "exalted ability"})
+		if len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+		}
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
 	// A granted afflict (CR 702.130 via a layer-6 AddKeyword$ Afflict:<N> --
 	// Lost Monarch of Ifnir's "Other Zombies you control have afflict 3"):
 	// the Ward shape exactly. The trigger is mandatory; its Counter payload

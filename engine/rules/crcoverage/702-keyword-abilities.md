@@ -129,7 +129,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.80a-d | follows | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.runCombatAssignments` | `TestWitherVillagePillagersETBDamageAllDealsCounters` |  |
 | 702.81a | follows | `engine/rules/cast_altcost.go#retraceExtra` | `TestGrantedRetraceChargesTheLandDiscard` |  |
 | 702.82a-c | follows | `engine/cards/kw_devour.go#kwDevour` | - |  |
-| 702.83a,b | follows | `engine/cards/kw_exalted.go#kwExalted` | `TestExaltedDragonAttackSacrificesALand` |  |
+| 702.83a,b | follows | `engine/cards/kw_exalted.go#kwExalted` `engine/rules/exalted_granted.go#Engine.checkGrantedExaltedTriggers` | `TestExaltedDragonAttackSacrificesALand` `TestGrantedExaltedTriggersPerInstance` | a granted instance triggers beside the printed ones |
 | 702.84a | follows | `engine/rules/unearth.go#Engine.unearthEnter` `engine/rules/unearth.go#Engine.unearthReplacementApplies` | `TestUnearthKeywordExpandsToGraveyardAbility` | haste granted UntilEOT (CR: no duration) |
 | 702.85a | deviates | `engine/effects/cascade.go#effCascade` | - | rest bottomed in fixed, not random, order |
 | 702.85b,c | follows | `engine/rules/cascade.go#Engine.queueCascadeTriggers` | - |  |
