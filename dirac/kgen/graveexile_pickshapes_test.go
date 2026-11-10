@@ -15,7 +15,7 @@ T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.S
 SVar:PrMill:DB$ Mill | NumCards$ 4 | RememberMilled$ True | SubAbility$ PrPick
 SVar:PrPick:DB$ ChangeZone | Hidden$ True | Origin$ Graveyard,Exile | PICK | ChangeType$ Creature.IsRemembered | SubAbility$ PrClean
 SVar:PrClean:DB$ Cleanup | ClearRemembered$ True
-SVar:X:Count$Valid Creature.YouCtrl
+SVar:X:Count$Valid Elf
 Oracle:probe
 `
 
