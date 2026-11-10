@@ -2858,6 +2858,13 @@ func (s *State) manaStep(k *prep) bool {
 				// its lowest colour, not the owed pip (windowCol)
 				s.windowTapUseful(k, e.ctrl, &c, &c, true, anyColor, cd.BeholdN != 0 && s.bld().pipN == 0, false)
 			} else {
+				if s.rbAny(e.ctrl) {
+					// the plan taps only for what the admitted restricted mana
+					// leaves (pay.PlanPool), as the plain branch below does
+					if m := s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)); m != 0 {
+						cost = s.restrShortAdm(e.ctrl, m, cost)
+					}
+				}
 				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 			}
 		} else {
