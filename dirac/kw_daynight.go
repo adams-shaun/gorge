@@ -36,7 +36,7 @@ var DebugNoNight bool
 
 // dnTurn keeps the outgoing active player's spell count for CR 731.2.
 func (s *State) dnTurn() {
-	n := min(s.g.hist[s.active&1][histSpells], 2)
+	n := min(s.g.hist[SeatIx(s.active)][histSpells], 2)
 	s.g.dayNight = s.g.dayNight&3 | n<<2
 }
 
@@ -92,7 +92,7 @@ func (s *State) dnSync(k *prep) bool {
 		return false
 	}
 	changed := false
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < MaxSeats; p++ {
 		var ord [MaxPerm]Slot
 		n := s.battlefieldOrder(p, s.ctrlM[p], ord[:], 0)
 		for _, sl := range ord[:n] {

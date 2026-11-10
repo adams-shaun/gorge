@@ -67,7 +67,7 @@ func TestCantPreventDamage(t *testing.T) {
 			t.Fatalf("precondition: Rhox Pummeler has %d SHIELD, want 1", n)
 		}
 		embDurPut(sc, 0, NoObj, emb)
-		if !sc.s.noPrevLive(sc.k) && !off {
+		if !sc.s.noPrevLive(sc.k, false) && !off {
 			t.Fatal("precondition: the emblem's static is not in force")
 		}
 		sc.castAt(t, sc.hand(id["Shock"], 0), rhox)
@@ -82,7 +82,7 @@ func TestCantPreventDamage(t *testing.T) {
 			t.Fatalf("while damage can't be prevented: %d SHIELD, %d damage; want 1, 2", n, d)
 		}
 		sc.s.cleanupGen(sc.k)
-		if sc.s.g.nemb[0] != 0 || sc.s.noPrev(sc.k) {
+		if sc.s.g.nemb[0] != 0 || sc.s.noPrev(sc.k, false) {
 			t.Fatal("the emblem outlived the cleanup")
 		}
 		sc.s.perms[sc.slot(rhox)].damage = 0
@@ -98,7 +98,7 @@ func TestCantPreventDamage(t *testing.T) {
 // TestCantPreventDamagePrepOff: a pool without the static pays nothing.
 func TestCantPreventDamagePrepOff(t *testing.T) {
 	sc, _ := shieldScen(t, "Rhox Pummeler")
-	if sc.k.gen.anyNoPrev || sc.s.noPrev(sc.k) {
+	if sc.k.gen.anyNoPrev || sc.s.noPrev(sc.k, false) {
 		t.Fatal("anyNoPrev set on a table without StatCantPreventDamage")
 	}
 }

@@ -46,15 +46,15 @@ func TestReproFormat1MapsTargetBytes(t *testing.T) {
 		Pack(ActActivate, RefNone, RefNone, 0xE5),
 	}
 	want := []Canon{
-		Pack(ActActivate, 0x05, 0xFC, 7),
-		Pack(ActAttack, 0x17, 0xFD, 0),
-		Pack(ActActivate, 0xEC, RefNone, 3),
-		Pack(ActActivate, 0x02, 0xEF, 0),
-		Pack(ActActivate, 0xFB, 0xDF, 1),
+		Pack(ActActivate, 0x05, RefPlayer, 7),
+		Pack(ActAttack, 0x17, RefPlayer+1, 0),
+		Pack(ActActivate, RefStack, RefNone, 3),
+		Pack(ActActivate, 0x02, RefStack+3, 0),
+		Pack(ActActivate, RefStack+15, 0xDF, 1),
 		Pack(ActActivate, RefNone, RefNone, 0xE5), // the mode byte is not a Ref
 	}
-	if RefStack != 0xEC || RefPlayer != 0xFC {
-		t.Fatalf("RefStack %#x RefPlayer %#x, want 0xEC and 0xFC", RefStack, RefPlayer)
+	if RefPlayer-RefStack != 16 {
+		t.Fatalf("RefStack %#x RefPlayer %#x: %d stack codes, a format-1 recording names 16", RefStack, RefPlayer, RefPlayer-RefStack)
 	}
 	for i := range old[:len(old)-1] { // the last case is the unchanged mode byte
 		if old[i] == want[i] {

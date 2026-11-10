@@ -51,8 +51,8 @@ func (s *State) rbAny(p uint8) bool {
 // rbAll is the mask of p's batches holding mana.
 func (s *State) rbAll(p uint8) uint8 {
 	var m uint8
-	for i := range s.rb[p&1] {
-		if b := &s.rb[p&1][i]; b.kind != 0 && b.units() != 0 {
+	for i := range s.rb[SeatIx(p)] {
+		if b := &s.rb[SeatIx(p)][i]; b.kind != 0 && b.units() != 0 {
 			m |= 1 << i
 		}
 	}
@@ -61,12 +61,12 @@ func (s *State) rbAll(p uint8) uint8 {
 
 // rbClear empties p's restricted mana.
 func (s *State) rbClear(p uint8) {
-	s.rb[p&1] = [maxRB]rbatch{}
+	s.rb[SeatIx(p)] = [maxRB]rbatch{}
 }
 
 // rbCompact drops p's emptied batches, keeping the order of the rest.
 func (s *State) rbCompact(p uint8) {
-	rb := &s.rb[p&1]
+	rb := &s.rb[SeatIx(p)]
 	j := 0
 	for i := range rb {
 		if rb[i].kind != 0 && rb[i].units() != 0 {
@@ -81,9 +81,9 @@ func (s *State) rbCompact(p uint8) {
 
 // rbUnits adds the units of p's batches in mask m to t.
 func (s *State) rbUnits(p, m uint8, t *[kop.NumManaKinds]uint8) {
-	for i := range s.rb[p&1] {
+	for i := range s.rb[SeatIx(p)] {
 		if m&(1<<i) != 0 {
-			for c, n := range s.rb[p&1][i].n {
+			for c, n := range s.rb[SeatIx(p)][i].n {
 				t[c] += n
 			}
 		}

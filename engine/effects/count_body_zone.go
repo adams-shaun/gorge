@@ -145,6 +145,7 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// rules' Derived pin holds the line on.
 		// Built once here and passed to visit as a parameter instead.
 		specCtx := c.SpecContext(c.Controller)
+		specCtx.CounterAdds = counterAddsFor(h, spec)
 		if specCtx.Layers.DerivedKeywords == nil && specNamesKeyword(spec) {
 			// A with<Keyword> filter reads the layer-6 keyword table, which a
 			// cost or mana-amount context does not bind: ask the host for it,

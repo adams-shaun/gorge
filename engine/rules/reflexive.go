@@ -89,6 +89,7 @@ func (e *Engine) QueueReflexiveTrigger(c *effects.Ctx, execute string, body *car
 		pt.Granted, pt.Grantor = true, c.Grantor
 	}
 	pt.Ctx.Remembered = append([]state.Target(nil), remembered...)
+	pt.Ctx.Snap.TargetPT = rememberedPTLKI(e, e.G, pt.Ctx.Remembered)
 	e.pendingTriggers = append(e.pendingTriggers, pt)
 	return true
 }
@@ -104,6 +105,12 @@ func (e *Engine) bindReflexiveContext(id state.ObjID, pt *pendingTrigger) {
 		return
 	}
 	e.keepTriggerLKI(id, pt)
+	if pt.Ctx.Snap.TargetPT != nil {
+		if e.reflexiveRememberedPT == nil {
+			e.reflexiveRememberedPT = make(map[state.ObjID]map[state.ObjID]effects.TargetPT)
+		}
+		e.reflexiveRememberedPT[id] = effects.CloneTargetPTLKI(pt.Ctx.Snap.TargetPT)
+	}
 	if pt.Ctx.Snap.SourceLifelinkValid {
 		if e.sourceLifelinkLKI == nil {
 			e.sourceLifelinkLKI = make(map[state.ObjID]bool)
@@ -160,14 +167,53 @@ func (e *Engine) bindReflexiveContext(id state.ObjID, pt *pendingTrigger) {
 	}
 }
 
+// ptReader is the derived power/toughness read rememberedPTLKI needs.
+type ptReader interface {
+	Power(state.ObjID) int32
+	Toughness(state.ObjID) int32
+}
+
+// rememberedPTLKI is the last known power/toughness (CR 608.2h) of each
+// remembered object on the battlefield as a reflexive ability is put on the
+// stack, in a fresh map (never the spawning Ctx's, whose map headers a
+// shallow Ctx copy shares); nil when none is there. Taken at that instant,
+// not at a later departure: a pump between the two is not seen (the kernel's
+// reflexive capture is the same instant).
+func rememberedPTLKI(h ptReader, g *state.Game, remembered []state.Target) map[state.ObjID]effects.TargetPT {
+	var out map[state.ObjID]effects.TargetPT
+	for _, t := range remembered {
+		if t.IsPlayer {
+			continue
+		}
+		o := g.Obj(t.Obj)
+		if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+			continue
+		}
+		if out == nil {
+			out = make(map[state.ObjID]effects.TargetPT)
+		}
+		out[t.Obj] = effects.TargetPT{Power: h.Power(t.Obj), Toughness: h.Toughness(t.Obj),
+			Tapped: o.Tapped, Attacking: o.IsAttacking}
+	}
+	return out
+}
+
 // reflexiveCaptured rebinds a reflexive ability's resolution Ctx.Captured to
 // the spawning ability's capture: resolveTop seeds Captured from the stack
 // object's Remembered, which for a reflexive ability is the instance's own
 // remembered set (real memory the body reads through Remembered /
-// TriggerRemembered, never to be excluded as a capture).
-func reflexiveCaptured(ctx *effects.Ctx) {
+// TriggerRemembered, never to be excluded as a capture). rememberedPT is the
+// stack object's queue-time P/T of its remembered objects
+// (reflexiveRememberedPT; nil where no resolution follows, as in a target
+// bound), seeded into Snap.TargetPT as a private copy so a remembered creature
+// that has since left is read at that last known power (CR 608.2h). Every
+// resolution Ctx builder (resolveTop, resumeResolution) goes through here.
+func reflexiveCaptured(ctx *effects.Ctx, rememberedPT map[state.ObjID]effects.TargetPT) {
 	if ctx.TriggerContext.Reflexive {
 		ctx.Captured = append([]state.Target(nil), ctx.TriggerContext.SpawnerCaptured...)
+		if rememberedPT != nil {
+			ctx.Snap.TargetPT = effects.CloneTargetPTLKI(rememberedPT)
+		}
 	}
 }
 

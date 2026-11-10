@@ -77,7 +77,7 @@ func TestEffectTriggerExpiryAndUnsupportedLifetime(t *testing.T) {
 			} else {
 				// The turn ceiling is checked before any SpellCast matching;
 				// the registration's positive MaxTurn is asserted above.
-				e.checkEventDelayedTriggers(events.Event{Kind: events.PutOnStack, Obj: src, Player: 0}, nil)
+				e.checkEventDelayedTriggers(events.Event{Kind: events.PutOnStack, Obj: src, Player: 0}, nil, 0, 0, false)
 			}
 			if len(e.pendingTriggers) != 0 || e.G.Players[0].Life != before {
 				t.Fatalf("expired promise fired: pending=%+v life=%d (was %d)", e.pendingTriggers, e.G.Players[0].Life, before)

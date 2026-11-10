@@ -138,6 +138,11 @@ type LKIObject struct {
 	Controller PlayerID
 	Owner      PlayerID
 	Snapshot   Object
+	// Colors is the WUBRG letter set the object had through layer 5 on the
+	// battlefield (CR 613.1e); meaningful only when ColorsKnown. Only a
+	// Destroy RememberLKI$ capture sets it.
+	Colors      string
+	ColorsKnown bool
 }
 
 // CastFlags bits record how an object was cast. Several can be set at once

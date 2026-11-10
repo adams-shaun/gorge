@@ -484,7 +484,7 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 				}
 				kw = keptKW
 			}
-			kw = append(kw, ce.AddKeywords...)
+			kw = appendGrantedKeywords(kw, ce.AddKeywords, col)
 		case state.LType:
 			// Already applied in Types above — layer 4 must
 			// settle before any filter that tests a type runs.
@@ -942,4 +942,34 @@ func lockedLayer4Types(b Board, active []state.ContinuousEffect, ce *state.Conti
 		return types
 	}
 	return effects.TypeMatchWords(pre, all)
+}
+
+// cardColorsToken is Forge's placeholder inside an AddKeyword$ value
+// (Tam, Mindful First-Year's "Hexproof:CardColors"): the grant expands to one
+// keyword per colour of the creature receiving it, read when the layer-6
+// grant applies, after layer 5 settled (CR 613.1e, 613.1f). A colourless
+// recipient gets none (CR 702.11d: no colour, no quality to protect from).
+const cardColorsToken = "CardColors"
+
+// cardColorNames spells the colour bits in WUBRG order, the capitalised form
+// Forge substitutes ("Hexproof:White").
+var cardColorNames = [5]string{"White", "Blue", "Black", "Red", "Green"}
+
+// appendGrantedKeywords appends one effect's granted keywords to kw,
+// replacing each keyword that ends in CardColors (the only printed shape,
+// "Hexproof:CardColors") by one copy per colour in col.
+func appendGrantedKeywords(kw, add []string, col effects.ColorMask) []string {
+	for _, k := range add {
+		n := len(k) - len(cardColorsToken)
+		if n < 0 || k[n:] != cardColorsToken {
+			kw = append(kw, k)
+			continue
+		}
+		for i, name := range cardColorNames {
+			if col&(1<<i) != 0 {
+				kw = append(kw, k[:n]+name)
+			}
+		}
+	}
+	return kw
 }

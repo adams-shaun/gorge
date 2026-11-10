@@ -471,6 +471,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 		if s.Kind == "CantPutCounter" {
 			fmt.Fprintf(w, " ctr=%d", s.Ctr)
 		}
+		if s.Kind == "FbGrant" && len(s.Flags) != 0 {
+			fmt.Fprintf(w, " fbcost=%s", s.Cost.Mana)
+		}
 		if s.Override != nil {
 			fmt.Fprintf(w, " %s", overrideString(s.Override))
 		}

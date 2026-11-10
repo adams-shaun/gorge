@@ -723,9 +723,11 @@ func suspendCost(f *cards.Face) (suspendInfo, bool) {
 }
 
 // flashbackCost is id's Flashback cost: the printed parameter if this face
-// carries one, or -- Flashback granted by a continuous effect with no
-// printed parameter of its own (Snapcaster Mage's shape) -- the card's own
-// mana cost (CR 702.32a's "cast for its normal cost" fallback).
+// carries one; else, for Flashback granted by a continuous effect, the first
+// granted instance's own cost (Iroh, Grand Lotus's "flashback {1}" on a
+// Lesson, CR 702.34a), or -- a grant with no cost of its own (Snapcaster
+// Mage's shape) -- the card's own mana cost (CR 702.32a's "cast for its
+// normal cost" fallback).
 func (e *Engine) flashbackCost(id state.ObjID) Cost {
 	o := e.G.Obj(id)
 	if o == nil {
@@ -735,10 +737,7 @@ func (e *Engine) flashbackCost(id state.ObjID) Cost {
 	if f == nil {
 		return Cost{}
 	}
-	if s, ok := f.KeywordCostParam("Flashback"); ok {
-		return ParseCost(s)
-	}
-	return ParseCost(f.ManaCost)
+	return ParseCost(e.flashbackCostStringOf(id, f))
 }
 
 // extraFlashbackCosts lists the raw costs of id's flashback instances
@@ -758,7 +757,7 @@ func (e *Engine) extraFlashbackCosts(id state.ObjID) []string {
 	// Costs compare by their whitespace-separated fields (the normalised
 	// form out holds), without building the normalised string for the
 	// common answer: the printed instance only.
-	first := e.flashbackCostString(f)
+	first := e.flashbackCostStringOf(id, f)
 	var out []string
 	for _, k := range e.Derived(id).Keywords {
 		if !strings.EqualFold(cardsKeywordHead(k), kwhFlashback.S) {
@@ -804,12 +803,25 @@ func costFieldsEqual(a, b string) bool {
 	}
 }
 
-// flashbackCostString is the raw cost string flashbackCost parses.
-func (e *Engine) flashbackCostString(f *cards.Face) string {
+// flashbackCostString is the raw cost string of face f's printed flashback:
+// its parameter, or the mana cost.
+func flashbackCostString(f *cards.Face) string {
 	if s, ok := f.KeywordCostParam("Flashback"); ok {
 		return s
 	}
 	return f.ManaCost
+}
+
+// flashbackCostStringOf is the raw cost string flashbackCost parses for id
+// showing face f: the printed one, else the first granted instance's own
+// cost, else the mana cost.
+func (e *Engine) flashbackCostStringOf(id state.ObjID, f *cards.Face) string {
+	if _, ok := f.KeywordCostParam("Flashback"); !ok {
+		if s, ok := e.derivedKeywordParamH(id, kwhFlashback); ok && s != "" {
+			return cards.KeywordCostField(s)
+		}
+	}
+	return flashbackCostString(f)
 }
 
 // flashbackCostFor is the flashback cost a cast option charges: the cost it

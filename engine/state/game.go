@@ -6,6 +6,13 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
+// LandPlay is one land play's provenance in Player.LandsPlayedOffHand: the
+// zone the land was played from and the card's owner.
+type LandPlay struct {
+	From  Zone
+	Owner PlayerID
+}
+
 type Player struct {
 	ID          PlayerID
 	Name        string
@@ -13,6 +20,14 @@ type Player struct {
 	Life        int32
 	Lost        bool
 	LandsPlayed int32
+	// LandsPlayedOffHand records, in play order, each of this turn's land
+	// plays (counted in LandsPlayed) that came from outside this player's
+	// hand or was of a card this player does not own: its origin zone and
+	// owner. Every other play counted in LandsPlayed was of an owned card
+	// from the hand. Folded only by events.Apply (a LandPlayed naming its
+	// land) and cleared with LandsPlayed at TurnChange; the filtered
+	// PlayerCountPropertyYou$LandsPlayed <filter> read evaluates it.
+	LandsPlayedOffHand []LandPlay
 	// DrewFromEmpty is set when this player attempted to draw from an empty
 	// library since state-based actions were last checked (CR 704.5b);
 	// rules' next check turns it into the loss. Folded only by events.Apply
@@ -1006,6 +1021,7 @@ func (g *Game) CloneIntoDirty(objs []Object, dirty int) *Game {
 		c.Players[i].DamageTakenByGame = append([]ObjID(nil), g.Players[i].DamageTakenByGame...)
 		c.Players[i].RestrictedMana = append([]ManaRestriction(nil), g.Players[i].RestrictedMana...)
 		c.Players[i].Notes = append([]string(nil), g.Players[i].Notes...)
+		c.Players[i].LandsPlayedOffHand = append([]LandPlay(nil), g.Players[i].LandsPlayedOffHand...)
 	}
 	// A little spare capacity: a clone that mints even one object (a token,
 	// a copy on the stack) would otherwise regrow the whole arena through

@@ -92,7 +92,7 @@ func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 	}
 	if len(k.gen.grantPC) != 0 && s.grantsLive(k) {
 		for b := s.ctrlM[p&1].and(s.occ); b.any(); b = b.rest() {
-			if sl := b.first(); s.grantIdx(k, sl) >= 0 && s.canTapForMana(k, sl) {
+			if sl := b.first(); s.grantGapUsable(k, sl) {
 				m = m.with(sl)
 			}
 		}
@@ -313,8 +313,8 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 				continue
 			}
 			pc := t.grantView(k.gen, gi[j], sl)
-			if grantCostLife(pc) > 0 {
-				continue // a life cost: skipped, not modelled here (this step only taps); the grant search's step pays it (mana_grantcost.go)
+			if grantHasCost(pc) {
+				continue // a life or sacrifice cost: skipped, not modelled here (this step only taps); the grant search's step pays it (mana_grantcost.go)
 			}
 			mask := t.srcMaskAt(pc, sl)
 			if colours(gi[j], mask, pc.manaN, alts == 1 || mask&uint8(kop.ColAny) == uint8(kop.ColAny)) {
@@ -340,7 +340,7 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 	case otherTapX:
 		s.tapXDo(k, p, tapXStep{sl: st.sl, cand: o.cand, cand2: o.cand2, col: o.ans})
 	case otherTapXPlain:
-		s.tapXPlainDo(k, p, st.sl)
+		s.tapXPlainDo(k, p, st.sl, o.ans)
 	case otherGrant:
 		s.perms[st.sl].flags |= pfTapped
 		s.touchSl(st.sl)

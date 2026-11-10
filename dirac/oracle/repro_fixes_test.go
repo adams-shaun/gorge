@@ -201,6 +201,23 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"x_cast_rider_keeping_plan_lowered", false, false},             // CR 609.4b, 601.2b: the same cast played: its payment taps the rider's keeping plan, not the smaller-X witness
 		{"copy_keyword_exception_returns_when_loss_ends", false, false}, // CR 707.9b, 613.1f: Mockingbird copying Shoreline Looter, made to lose all abilities until its controller's next turn, has its copy exception's flying again when the loss ends
 		{"any_one_colour_restricted_x_colour_choice", false, false},     // CR 106.6, 601.2b: Helga's two restricted mana count in the {X} ceiling of Mockingbird's cast, so its witness taps every source for X = 4
+		// CR 106.6, 601.2g-h: Helga's own restricted any colour is tried before Clement's creature-only {G}, which reaches the same floated pool and tapped set, so gorge's search drops the state unpriced and offers no offspring cast of Bushy Bodyguard
+		{"seen_state_drops_granted_colour_after_printed_any", true, false},
+		// CR 106.6, 601.2g-h: gorge's search answers Helga's "choose a mana ability" ask with the colour the cost names first, so Clement's {G}{U} and Burrowguard Mentor's {G} find their prefix, while Thistledown Players' {W} leaves her own any colour first and the granted {G} is a seen state: no prefix
+		{"needed_granted_colour_answered_before_printed_any", false, false},
+		// CR 106.6, 302.6, 601.2g-h: Rockface Village's {R},{T} pump is paid by Helga's two restricted {R}, Clement's {G}, a Forest's {G} for Three Tree Mascot's summoning-sick Changeling filter, whose {1} needs no tap
+		{"sick_changeling_filter_pays_prefix_activation", true, false},
+		// CR 614.12, 707.2: the cards one return instruction returns each make
+		// their as-enters choice before any of them is on the battlefield, so
+		// Mockingbird's copy election is asked with the other targets still in
+		// the graveyard
+		{"return_batch_asenters_two_creatures", false, false},
+		{"return_batch_asenters_three_creatures", false, false},
+		{"return_batch_asenters_three_creatures_m1", false, false},
+		{"restricted_witness_tap_survives_hybrid_lowering", false, false},
+		{"granted_mana_ask_tries_needed_colour_first", false, false},
+		{"clone_template_entry_condition_mockingbird_cutthroat", false, false},
+		{"clone_template_entry_condition_mockingbird_sparkshooter", false, false},
 	})
 }
 
@@ -326,6 +343,9 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"warp_cast_from_hand_spends_no_hand_barred_grant", true, false},       // CR 106.6, 702.185a: a warp cast is from the hand, so Nanoform Sentinel's Mm'menon-granted blue cannot pay Codecracker Hound's warp {2}{U} beside two Plains; the warp cast is not offered
 		{"relaxed_proof_refuses_restricted_grant", true, false},                // CR 106.6, 602.2b: Mm'menon's spell-only granted blue is no relaxed unit for Atomic Microsizer's Equip {2}, so gorge proves it unpayable off Godless Shrine alone and never searches the Nanoform Sentinel untap line
 		{"station_monitor_hand_cast_needs_no_hand_barred_grant", false, false}, // CR 106.6: Mm'menon's hand-barred granted blue is no relaxed unit for Station Monitor's plain hand cast, so neither copy is offered
+		{"warp_hand_cast_no_hand_barred_grant_offer", true, false},             // CR 106.6, 702.185a: with every land tapped, only Mm'menon's hand-barred granted blue on the artifacts could pay Sinister Cryologist's warp {U}, and a warp cast is from the hand, so it is not offered
+		{"warp_hand_cast_gated_filter_no_stand_down", true, false},             // CR 106.6, 702.184a: ... and Evendo, Waking Haven's {G},{T} filter is no mana ability below STATION 12, so it does not shield Mechanozoa's and Starbreach Whale's hand warp casts from the prune
+		{"warp_hand_cast_tapped_filter_no_stand_down", false, false},           // CR 106.6, 302.6: ... and a tapped Uthros, Titanic Godcore past STATION 12 funds nothing either, so it does not shield Sinister Cryologist's hand warp cast from the prune
 		{"ward_pays_through_tap_another_source", true, false},                  // CR 601.2g, 702.21a: the ward {2} pay answer opens the mana window, whose census leaves out Gene Pollinator's tap-another-permanent mana, so the spell is paid not countered
 		{"ward_pays_through_tap_another_source_two", true, false},              // ... and Sunset Saboteur's attack trigger is paid the same way
 		{"ward_failed_pay_skips_unspendable_grant", true, false},               // CR 106.6: the failed pay arm taps what the window lists, not Mm'menon's granted artifact blue a ward cannot spend
@@ -356,6 +376,13 @@ func TestStdHobReprosLockstep(t *testing.T) {
 		// the opponent's last life, so the spell stays in hand and the game
 		// ends there rather than at a hybrid pip ask.
 		{"lowered_hybrid_cast_lethal_sacrifice_trigger", false, false},
+		// CR 106.4, 601.2h: Smaug, Wicked Worm's "mana from a Treasure was
+		// spent" reads the mana the cast spent, not the Treasures tapped
+		// before it: three Treasures sacrificed at priority leave their {G}
+		// floating beside the Swamps' {B}, and Inside Information's {X}{B}{B}
+		// is paid from the plain {B} (a plain unit goes before a Treasure's).
+		{"floating_treasure_mana_unspent_by_cast", false, false},
+		{"floating_treasure_mana_unspent_by_cast_two", false, false}, // ... and An Unexpected Party's
 	})
 }
 
@@ -369,6 +396,9 @@ func TestStdBigReprosLockstep(t *testing.T) {
 		{"sba_batch_asks_before_tokens_cease", true, false},                 // CR 704.3: three Golems destroyed at once under Rest in Peace are each asked which replacement applies, and the two already in exile cease at the next check, not between the asks
 		{"ability_target_before_cost_replacement", true, false},             // CR 601.2c: Harvester of Misery's target is a target of the ability before Rest in Peace asks where its discarded source goes
 		{"rest_in_peace_ask_between_cost_parts", true, false},               // CR 602.2b: the {T} part is paid before the discard, so the replacement ask the discard raises with two Rest in Peace sees Fomori Vault already tapped
+		{"granted_sac_only_mana_prefix", true, false},                       // CR 602.2b, 704.5n: Lotus Ring's granted "Sacrifice this creature: Add three mana of any one color" is the prefix paying an activation, the equipped Hostile Investigator sacrificed and the Ring unattached
+		{"granted_sac_only_mana_window", true, false},                       // CR 602.2b, 605.3a: Esoteric Duplicator's resolution-time {2} is paid in the manual mana window by sacrificing the Lost Jitte token Lotus Ring equips, a tapped creature whose granted ability has no {T}
+		{"granted_sac_dies_token_copy_is_equip_target", true, false},        // CR 603.10a, 400.7: the prefix sacrifices the Lotus Ring-equipped Vaultborn Tyrant and its dies trigger's token copy, a new object, is the other Ring's Equip target; the search keys a payer state on its battlefield objects as gorge's scriptStateKey does
 	})
 }
 
@@ -655,7 +685,12 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"behold_or_mana_mana_part_taps_planner_order", true, false},             // CR 601.2b, 601.2g-h: Mudbutton Cursetosser's chosen {2} part is paid by the payment plan's ObjID-ordered sources, not the manual window's battlefield order
 		{"behold_or_mana_generic_taps_planner_order", true, false},               // CR 601.2b, 601.2g-h: Kinsbaile Aspirant's {2} part taps the plan's sources, not the window's battlefield order
 		{"behold_or_mana_full_surface_offer", false, false},                      // CR 601.2b/h: Silvergill Mentor's behold part is payable while its {2} part is not, so the free part's plan must not wait on the offer walk (which can only price the mana part); gorge now lists the cast on the full surface too
+		{"behold_or_mana_relaxed_proof_tap_another_source", false, false},        // CR 601.2b, 601.2g: Mudbutton Cursetosser's {2} part, payable only through Springleaf Drum tapping a creature, is not proved unpayable by the relaxed census, so gorge searches the prefix and offers the cast after an aborted one
+		{"behold_or_mana_unpayable_behold_chosen_window_colour", false, false},   // CR 601.2g, 733.1: Silvergill Mentor's unpayable behold chosen beside a plan armed for the {2} part falls back to a window with no ManaPayment, so Eclipsed Realms answers its lowest colour, not the owed pip, and the seat taps the Island that pays the pip, not the first Mountain
+		{"behold_or_mana_chosen_mana_part_window_colour", false, false},          // CR 601.2g: Silvergill Mentor's {2} chosen beside a payable behold falls back to a window with no ManaPayment, so Springleaf Drum answers its lowest colour, not the owed pip, and the last pip is paid by the Island, not the first Plains
 		{"behold_or_mana_abort_window_tap_another_pick", true, false},            // CR 601.2g, 733.1: Mudbutton Cursetosser's chosen {2} part falls back to the manual window, which poses Springleaf Drum's tap-another pick before it reverses the unpayable cast
+		{"delayed_dies_trigger_last_known_power_m1m1", false, false},             // CR 608.2h: End-Blaze Epiphany's delayed dies trigger exiles the graveyard-bound creature's last-known 2 power (a -1/-1 counter), not its printed 3
+		{"delayed_dies_trigger_last_known_power_aura", false, false},             // CR 608.2h: ... and its last-known 3 power with a +1/+0 Aura attached, not the printed 2
 	})
 }
 
@@ -667,6 +702,8 @@ func TestStdFraReprosLockstep(t *testing.T) {
 		{"sacrificed_mana_source_moves_its_aura", false, false},       // CR 704.3, 704.5m: the check after a mana source's sacrifice while paying a cast takes its Aura before the cast's next choice
 		{"flashback_dynamic_source_graveyard_amount", true, false},    // CR 117.1d, 605.3a: Bestial Incursion's flashback is paid by Loot, the Nexus tapped at its graveyard-time amount (Tarmogoyf one point larger), a lowered potential play and not a planned cast
 		{"entry_counters_skip_entrants_own_replacement", true, false}, // CR 614.12: Generous Revival returns Yoshimaru, Beloved Companion with a +1/+1 counter; its own "that many plus one" does not apply, since the replacement affects a general subset, not only itself
+		{"search_enters_together_canopy_two_forests", true, false},    // CR 603.2, 603.4: Hexhaven Invigorator's search puts two Forests onto the battlefield together, making six, so each sees five others and Roiling Canopy triggers twice
+		{"search_enters_together_canopy_order_ask", true, false},      // CR 603.2, 603.4: the same search puts Forests #8 and #9 on beside three other lands, and both Canopy triggers are ordered
 	})
 }
 
@@ -713,6 +750,13 @@ func TestStdDftReprosLockstep(t *testing.T) {
 		{"own_counter_replacement_does_not_apply_to_own_entry", false, false}, // CR 614.12: Caradora's "a creature or Vehicle you control" plus-one does not apply to the +1/+1 counter Thunderous Velocipede grants it as it enters; a general subset excludes the entrant itself
 		{"returned_aura_host_before_paid_draw", false, false},                 // CR 303.4f, 610.3: sacrificing Perilous Snare pays Chandra's "if you do, draw": its exiled Aura's host answer comes before the draw, as gorge asks it mid-payment
 		{"lost_abilities_tappower_bonus", false, false},                       // CR 613.1f: a Pilot token under Flood the Engine loses the TapPowerValue static, so it contributes its printed power to a Saddle cost
+		// CR 614.12, 610.3: a delayed sacrifice's returning card is asked its
+		// as-enters choice with the card still in exile, before the delayed
+		// trigger leaves the stack
+		{"until_leaves_return_asenters_in_exile", false, false},
+		{"actonly_pool_pays_surveyor_grave_grant", true, false}, // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Leonin Surveyor's max-speed graveyard activation
+		{"actonly_pool_pays_grave_return", false, false},        // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Deathless Pilot's graveyard return
+		{"actonly_pool_pays_battlefield_grant", true, false},    // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Hour of Victory's max-speed battlefield grant
 	})
 }
 
@@ -722,7 +766,10 @@ func TestStdTmtReprosLockstep(t *testing.T) {
 	reg := synthReg(t)
 	set := cardsettest.Synth(t, "std-tmt")
 	for _, c := range []stdRepro{
-		{"put_counters_from_unheard_kind_order", false, false}, // CR 603.3b: Donatello, Mutant Mechanic copies a dead artifact's +1/+1 and stun counters while a +1/+1 trigger listens: the stun is heard by none, so gorge's insertion order is unobservable
+		{"put_counters_from_unheard_kind_order", false, false},                 // CR 603.3b: Donatello, Mutant Mechanic copies a dead artifact's +1/+1 and stun counters while a +1/+1 trigger listens: the stun is heard by none, so gorge's insertion order is unobservable
+		{"second_ability_counter_cost_taps_source_for_generic", true, false},   // CR 605.3b, 601.2g: Weather Maker beside a plain {T} first ability: its "{T}, remove two charge counters: Add {C}{C}" pays Frog Butler's {2} reach activation when every land is tapped, so gorge offers it
+		{"second_ability_counter_gap_tries_plain_ability_first", false, false}, // CR 605.3b, 601.2g: two Weather Makers pay Metalhead: gorge's prefix search answers the first one's ability ask with its plain ability (the colour ask behind it), then the second one's with its counters, so only the second loses them
+		{"attach_triggered_card_moved_skips_ninja", true, false},               // CR 400.7: Quintessential Katana's "attach to the entering Ninja" trigger waits on the stack while that Ninja returns to hand and re-enters, so its TriggeredCardLKICopy is a new object and the attach finds nothing
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if res := replayReproRes(t, reg, set, c.name, c.autopay); res.Stall != "" {
@@ -762,6 +809,8 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"tapxtype_cost_reserves_tap_candidates", false, false},         // CR 601.2g-h: Fear of Exposure's tap-two is priced from its composed cost, so the granted-mana prefix taps Enduring Vitality's creatures in battlefield order and leaves the rest for the pick
 		{"tapxtype_restricted_source_not_free", false, false},           // CR 601.2g-h: Creeping Peeper's enchantment-only {U} paying Fear of Exposure is not also one of the two permanents it taps, so three mana sources and Patchwork Beastie do not cast it
 		{"grant_prefix_paid_life_trigger", false, false},                // CR 119.4, 603.3, 307.1: Haunted Screen's 1 life in Overlord of the Hauntwoods' granted-mana prefix stacks Marina Vendrell's Grimoire's trigger, so the prefix taps on and passes for it to resolve before the cast
+		{"tapxtype_lands_need_green_pip", false, false},                 // CR 601.2g-h: Fear of Exposure's {G} has no source among p1's untapped permanents, so tapping two of them for the cost does not make it castable
+		{"tapxtype_floating_mana_beside_tapped_lands", false, false},    // CR 601.2g-h: floating U, B and G pay Fear of Exposure's mana cost, so two untapped lands remain to tap for its additional cost
 	})
 }
 

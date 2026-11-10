@@ -490,6 +490,12 @@ func foldUnattached(g *state.Game, e *Event) {
 func foldLandPlayed(g *state.Game, e *Event) {
 	if validPlayer(g, e.Player) {
 		g.Players[e.Player].LandsPlayed++
+		// A play naming its land is off the hand or of a card the player
+		// does not own (engine/rules settleLandPlay); record its provenance.
+		if o := g.Obj(e.Obj); e.Obj != 0 && o != nil {
+			pl := &g.Players[e.Player]
+			pl.LandsPlayedOffHand = append(pl.LandsPlayedOffHand, state.LandPlay{From: e.From, Owner: o.Owner})
+		}
 	}
 }
 

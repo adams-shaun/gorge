@@ -3,11 +3,12 @@
   "class": "projection-Cards.Damage",
   "why": "the engines' state differs at projection Cards[].Damage; 12 games in the corpus",
   "repro": {
-    "pool": "std-dsk",
+    "pool": "custom",
     "surface": "autopay",
-    "seed": 1,
-    "pair": 521,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 0,
+    "file": "sawblade_skinripper_damage_differs"
   }
 }

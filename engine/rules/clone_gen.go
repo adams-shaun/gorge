@@ -481,6 +481,19 @@ func cloneFieldsEngineResolution(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			c.damageSourceLKI[k0] = nv0
 		}
 	}
+	if e.reflexiveRememberedPT != nil {
+		c.reflexiveRememberedPT = make(map[state.ObjID]map[state.ObjID]effects.TargetPT, len(e.reflexiveRememberedPT))
+		for k0, v0 := range e.reflexiveRememberedPT {
+			var nv0 map[state.ObjID]effects.TargetPT
+			if v0 != nil {
+				nv0 = make(map[state.ObjID]effects.TargetPT, len(v0))
+				for k1, v1 := range v0 {
+					nv0[k1] = v1
+				}
+			}
+			c.reflexiveRememberedPT[k0] = nv0
+		}
+	}
 }
 
 func cloneFieldsEngineDrain(c, e *Engine, sp *Spare, remap *cloneRemap) {
@@ -825,6 +838,7 @@ func cloneFieldsEngineContinuation(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.etbLandObj = e.etbLandObj
 	c.etbLandPlayer = e.etbLandPlayer
 	c.etbLandPerm = e.etbLandPerm
+	c.etbLandFrom = e.etbLandFrom
 	if e.riotMove != nil {
 		p0 := *e.riotMove
 		p0.IDs = append([]state.ObjID(nil), e.riotMove.IDs...)

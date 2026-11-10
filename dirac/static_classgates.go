@@ -19,6 +19,7 @@ const (
 	sclsGyMay                      // the card's own StatMayPlayFrom that works from its graveyard
 	sclsPTRel                      // a static basePTGen/ptGen can read: P/T delta, CDA P/T, override, subtype grant (kprio2 sbaPTQuiet)
 	sclsExMay                      // the card's own StatMayPlayFrom that works from exile
+	sclsFbGrant                    // StatFbGrant (kw_fbgrant.go)
 )
 
 // prepStaticClasses fills g.sCls.
@@ -62,6 +63,8 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 				}
 			case kop.StatReduceAbility:
 				m |= sclsReduce // cost_reduceability.go
+			case kop.StatFbGrant:
+				m |= sclsFbGrant
 			}
 		}
 		g.sCls[i] = m

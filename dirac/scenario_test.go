@@ -60,7 +60,7 @@ func (sc *scen) obj(c CardID, owner uint8) Obj {
 	s := sc.s
 	o := Obj(s.nobj)
 	s.nobj++
-	s.objs[o] = object{card: c, chosen: 255, slot: NoSlot, acts: owner << 7}
+	s.objs[o] = object{card: c, chosen: 255, slot: NoSlot, acts: owner << objOwnerShift}
 	return o
 }
 

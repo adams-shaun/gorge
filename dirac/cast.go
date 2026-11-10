@@ -548,6 +548,8 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		c := cd.Cost
 		if e.flags&sfFlashback != 0 && ((cd.Keywords&kop.KwFlashback != 0 || cd.BeamMeUp) && e.flags&sfFbGranted == 0 || cd.Harmonize) {
 			c = cd.AltCost // a granted flashback costs the mana cost
+		} else if e.flags&sfFlashback != 0 && k.gen != nil && k.gen.anyFbGrant && !cd.BeamMeUp {
+			c = s.fbGrantCost(k, e.ctrl, e.obj, s.bld().fbGrants != 0) // or a live grant's own cost (kw_fbgrant.go)
 		}
 		if e.mode&modeWarped != 0 && cd.HasWarp {
 			c = cd.WarpCost // the hand's warp cost (CR 702.185a)
@@ -1600,6 +1602,7 @@ func (s *State) finishBuild(k *prep) {
 		if !early {
 			cost = s.buildCostCharge(k)
 		}
+		cost = s.waterbendXCharge(k, &e, cost) // a Waterbend<X> pick pays one generic of the folded X (act_waterbend.go)
 		if m := s.restrActNow(k, e.ctrl); m != 0 {
 			s.payRestrSpend(k, e.ctrl, m, &cost, int(e.x), NoObj, false) // an ability its restriction admits spends it first
 		} else {
@@ -1911,8 +1914,14 @@ func (s *State) placeTriggers(k *prep, d *Decision) bool {
 	p := s.active
 	n := s.pendCount(p)
 	if n == 0 {
-		p = 1 - p
-		n = s.pendCount(p)
+		// CR 603.3b: APNAP order, each player in turn order from the
+		// active player (gorge sortPendingTriggers over AliveFrom(Active))
+		for {
+			p = s.nextAlive(p)
+			if n = s.pendCount(p); n != 0 || MaxSeats == 2 {
+				break
+			}
+		}
 	}
 	if s.orderLeft == 0 && n >= 2 {
 		// gorge KTriggerOrder is one Min=Max=n multi-select over the

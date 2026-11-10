@@ -3,11 +3,12 @@
   "class": "projection-Cards.Flags",
   "why": "the engines' state differs at projection Cards[].Flags; 4 games in the corpus",
   "repro": {
-    "pool": "std-big",
+    "pool": "custom",
     "surface": "autopay",
-    "seed": 1,
-    "pair": 30,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 0,
+    "file": "ancient_cornucopia_card_flags_after_its_cast"
   }
 }

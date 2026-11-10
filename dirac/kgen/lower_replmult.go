@@ -84,10 +84,20 @@ func (lc *lowerCtx) tokenRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	if rp.str("ActiveZones") != "Battlefield" {
 		return refuse("repl-hard: CreateToken ActiveZones")
 	}
-	for _, k := range []string{"ValidPlayer", "Layer", "Optional", "IsPresent"} {
+	for _, k := range []string{"Layer", "Optional", "IsPresent"} {
 		if _, ok := rp.get(k); ok {
 			return refuse("repl-hard: CreateToken %s", k)
 		}
+	}
+	// ValidPlayer$ You is the creating player being the replacement's
+	// controller, which the kernel's token replacements read already (they walk
+	// the creator's battlefield); any other player is not modelled.
+	youOnly := false
+	if vp, ok := rp.get("ValidPlayer"); ok {
+		if strings.TrimSpace(vp) != "You" {
+			return refuse("repl-hard: CreateToken ValidPlayer %q", vp)
+		}
+		youOnly = true
 	}
 	if e, ok := rp.get("EffectOnly"); ok && strings.TrimSpace(e) != "True" {
 		return refuse("repl-hard: CreateToken EffectOnly %q", e)
@@ -97,6 +107,8 @@ func (lc *lowerCtx) tokenRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	}
 	if t := strings.TrimSpace(w.Params["Type"]); t == "ReplaceToken" {
 		return lc.tokenRewrite(rp, w, rl)
+	} else if t == "AddToken" {
+		return lc.tokenAdd(rp, w, rl, youOnly)
 	} else if t != "Amount" {
 		return refuse("repl-hard: CreateToken Type %q", t)
 	}
@@ -165,6 +177,49 @@ func (lc *lowerCtx) tokenRewrite(rp *params, w *cards.SA, rl *lRepl) error {
 		lc.out.Tokens = append(lc.out.Tokens, script)
 	}
 	rl.Kind, rl.S = "RewriteTokens", script
+	return nil
+}
+
+// tokenAdd lowers a CreateToken adder: DB$ ReplaceToken | Type$ AddToken |
+// Amount$ 1 | TokenScript$ one fixed script, ValidPlayer$ You, ValidToken$ a
+// filter on the token created (Worldwalker Helm: Artifact). Beside the tokens
+// the controller creates, one token of the script is created too, once per
+// creation event (gorge applyTokenReplacementToPlan: the fixed Amount$ block is
+// claimed once per Token resolution, claimTokenCreationAdd). The script rides
+// the card's token list. The kernel makes the extra token at a CreateToken op
+// and stalls where it cannot (repl_tokorder.go mintTokAdds).
+func (lc *lowerCtx) tokenAdd(rp *params, w *cards.SA, rl *lRepl, youOnly bool) error {
+	if !youOnly {
+		return refuse("repl-hard: CreateToken AddToken without ValidPlayer$ You")
+	}
+	script := strings.TrimSpace(w.Params["TokenScript"])
+	if script == "" || strings.Contains(script, ",") || strings.EqualFold(script, "Chosen") {
+		return refuse("repl-hard: CreateToken adder TokenScript %q", script)
+	}
+	if !withIs(w, "ReplaceToken", map[string]string{"Type": "AddToken", "Amount": "1", "TokenScript": w.Params["TokenScript"]}) {
+		return refuse("repl-hard: CreateToken adder shape")
+	}
+	vt := rp.str("ValidToken")
+	f, err := lc.filter(vt)
+	if err != nil {
+		return err
+	}
+	if f.Players != 0 || len(f.Clauses) == 0 {
+		return refuse("repl-hard: CreateToken adder ValidToken %q", vt)
+	}
+	for _, c := range f.Clauses {
+		// the kernel reads the token's card and its creator's own battlefield
+		if c.Flags&fSelf != 0 || (c.Ctrl != whoYou && c.Ctrl != whoAny) {
+			return refuse("repl-hard: CreateToken adder ValidToken %q", vt)
+		}
+	}
+	if _, ok := lc.p.reg.Token(script); !ok {
+		return refuse("token script %q not in the corpus", script)
+	}
+	if !slices.Contains(lc.out.Tokens, script) {
+		lc.out.Tokens = append(lc.out.Tokens, script)
+	}
+	rl.F, rl.Kind, rl.S = f, "AddToken", script
 	return nil
 }
 

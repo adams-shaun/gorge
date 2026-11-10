@@ -142,6 +142,9 @@ func (s *State) rerunReturn(k *prep) {
 		s.execReturnSimple(k, in, o)
 	}
 	s.g.pre = preAsk{}
+	if s.eachReturnResume(k) {
+		return // the multi-target return's remaining targets (zone_eachreturnask.go)
+	}
 	s.continueRes(k, 0)
 }
 

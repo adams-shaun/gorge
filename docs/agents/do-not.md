@@ -40,6 +40,12 @@ these hurt someone other than you.
   experiment that needs one is a separate module that imports gorge.
 - **Don't use maps or per-call string parsing on hot paths.** Use bitsets and
   dense slices, and compile strings to masks once.
+- **Don't write raw two-seat arithmetic in `dirac/`** (`1-p`, `p^1`, `[p&1]`,
+  `p < 2` seat loops, `PlayerTarget0+p`). Use the helpers in `dirac/seatorder.go`
+  (`NextSeat`, `IsOpponent`, `SeatIx`, `PlayerCode`, `CodeSeat`) and `MaxSeats`;
+  `TestSeatArithmeticOnlyShrinks` pins what is left per file and only shrinks
+  (`DIRAC_SEAT_REPIN=1` lowers it). A lone "the opponent" has no helper yet:
+  leave it raw rather than invent one.
 - **Don't hand-edit `web/src/protocol.ts`.** Run `make gentypes`.
 - **Don't edit `engine/cards/` casually.** Any change moves `CompilerFingerprint` and
   forces every IR cache to recompile. `engine/cards/oracletext` is exempt.
@@ -103,6 +109,13 @@ these hurt someone other than you.
 - **Don't run heavy jobs unbounded or in parallel.** Run one at a time, under
   a `systemd-run` scope with `MemoryMax`, and set `GOMEMLIMIT`.
 - **Don't put large data in a RAM-backed `/tmp`.**
+
+## Dirac
+
+- **Don't delete a `dirac/support/refused/<card>.json` (or run `kgen -unrefuse`) because the entry went stale.**
+  Stale means the defect is fixed or the pinned game moved; for the first, add the passing test and a row in
+  `dirac/support/unrefused.tsv`; for the second, re-record the game with pool custom.
+- **Don't unrefuse without that register row.** `TestUnrefusalNeedsProof` fails any card that had an entry at the merge base and has neither one nor a row.
 
 ## Bots and training
 

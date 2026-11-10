@@ -882,6 +882,9 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		// other counted part.
 		set(kop.CostWaterbend, c.Waterbend)
 	}
+	if c.WaterbendX {
+		set(kop.CostWaterbend, 0) // N 0: the announced X is the amount (Cost.Mana.X)
+	}
 	if c.SacSelf {
 		out.Flags |= kop.CostSacSelf
 	}
@@ -1343,27 +1346,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			kf.Pred, kf.PredN, kf.PredV = kop.PredPowerGEV, 2, v
 			break
 		}
-		if c.CmpV != nil {
-			bound := *c.CmpV
-			if c.CmpOp == opGT && !bound.Neg {
-				// power is an integer: > X is >= X+1 (Ensign Harry Kim,
-				// Operations' powerGTY over his own power)
-				bound.Add++
-			} else if c.CmpOp != opGE {
-				return kf, fmt.Errorf("power compare against a value")
-			}
-			if zone != kop.ZoneBattlefield && zone != kop.ZoneNone {
-				return kf, fmt.Errorf("power compare against a value")
-			}
-			// a power >= a value: a permanent's (Gix's Command's greatest
-			// power; kernel predPermCold, or powerGEVFrom in the filter's
-			// source context), or an object's where it now is, a departed
-			// trigger object's last known power (kernel cardPowerGEV)
-			v, err := cb.value(bound)
-			if err != nil {
-				return kf, err
-			}
-			kf.Pred, kf.PredV = kop.PredPowerGEV, v
+		if done, err := cb.powerBattlefieldClause(c, zone, &kf); err != nil {
+			return kf, err
+		} else if done {
 			break
 		}
 		op, n := intCmpGELE(c.CmpOp, c.CmpN) // powers are integers: LT n is LE n-1
@@ -1403,6 +1388,11 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 				return kf, err
 			}
 			kf.Pred, kf.PredV = kop.PredToughnessLEV, v
+			break
+		}
+		if done, err := cb.toughnessGTClause(c, zone, &kf); err != nil {
+			return kf, err
+		} else if done {
 			break
 		}
 		op, n := c.CmpOp, c.CmpN
@@ -1647,6 +1637,59 @@ func tgtRefOf(n int) kop.Ref {
 		return kop.RefTarget4
 	}
 	return kop.RefTarget0 + kop.Ref(n)
+}
+
+// powerBattlefieldClause lowers a clause's power compare against a value, or
+// a battlefield power == a constant, into kf (done false: not one of these).
+// A power >= a value is a permanent's (Gix's Command's greatest power; kernel
+// predPermCold, or powerGEVFrom in the filter's source context), or an
+// object's where it now is, a departed trigger object's last known power
+// (kernel cardPowerGEV); > X lowers as >= X+1 (power is an integer; Ensign
+// Harry Kim, Operations' powerGTY over his own power). A battlefield power ==
+// a constant (Amalia Benavides Aguirre's powerEQ20) is PredPowerGEV with
+// PredN 3.
+func (cb *cardBuilder) powerBattlefieldClause(c lClause, zone kop.Zone, kf *kop.Filter) (done bool, err error) {
+	if c.CmpV == nil && c.CmpX == "" && c.CmpOp == opEQ && zone == kop.ZoneBattlefield {
+		kf.Pred, kf.PredN, kf.PredV = kop.PredPowerGEV, 3, kop.Const(c.CmpN)
+		return true, nil
+	}
+	if c.CmpV == nil {
+		return false, nil
+	}
+	bound := *c.CmpV
+	if c.CmpOp == opGT && !bound.Neg {
+		bound.Add++
+	} else if c.CmpOp != opGE {
+		return false, fmt.Errorf("power compare against a value")
+	}
+	if zone != kop.ZoneBattlefield && zone != kop.ZoneNone {
+		return false, fmt.Errorf("power compare against a value")
+	}
+	v, err := cb.value(bound)
+	if err != nil {
+		return false, err
+	}
+	kf.Pred, kf.PredV = kop.PredPowerGEV, v
+	return true, nil
+}
+
+// toughnessGTClause lowers a toughness > a value (Hulkling's toughnessGTZ;
+// kernel predPermCold, or cardToughnessGEV for a departed trigger object's
+// last known toughness) into kf (done false: not this shape). Toughness is an
+// integer, so > X is >= X+1: PredToughnessLEV with PredN 3 (toughness >=
+// PredV).
+func (cb *cardBuilder) toughnessGTClause(c lClause, zone kop.Zone, kf *kop.Filter) (done bool, err error) {
+	if c.CmpV == nil || c.CmpOp != opGT || c.CmpV.Neg || (zone != kop.ZoneBattlefield && zone != kop.ZoneNone) {
+		return false, nil
+	}
+	bound := *c.CmpV
+	bound.Add++
+	v, err := cb.value(bound)
+	if err != nil {
+		return false, err
+	}
+	kf.Pred, kf.PredN, kf.PredV = kop.PredToughnessLEV, 3, v
+	return true, nil
 }
 
 // tgtSlotOfRef is the target slot a kop target ref names (ok false: not one).

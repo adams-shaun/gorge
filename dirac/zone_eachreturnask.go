@@ -26,6 +26,15 @@ func (s *State) eachReturnParks(k *prep, in *kop.Instr, n0 uint8) bool {
 	return returnToBattlefield(in) && s.g.nask > n0 && s.midResAsk(k)
 }
 
+// eachReturnParked reports whether the Return just run for one target parked
+// its as-enters choice with the card still in its zone (cloneReturnPark's
+// preReturn ask, raGenRetChoice); the loop waits for that answer before it
+// moves the targets after it, so none of them is on the battlefield while
+// gorge asks (CR 614.12, 707.2).
+func (s *State) eachReturnParked(in *kop.Instr) bool {
+	return returnToBattlefield(in) && s.res.ask == raGenRetChoice
+}
+
 // eachReturnResume continues a Return loop parked on an as-enters ask once
 // the queue is answered; true when a later target parked it again.
 func (s *State) eachReturnResume(k *prep) bool {

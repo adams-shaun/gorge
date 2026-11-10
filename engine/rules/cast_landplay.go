@@ -44,7 +44,16 @@ func (e *Engine) settleLandPlay(id state.ObjID) {
 		text = "perm=" + e.etbLandPerm
 	}
 	e.etbLandPerm = ""
-	e.emit(events.Event{Kind: events.LandPlayed, Player: p, Text: text})
+	// A play off the hand, or of a card p does not own, names the land and
+	// its origin so events.Apply records it for the filtered
+	// PlayerCountPropertyYou$LandsPlayed <filter> read (Spider-Man 2099,
+	// Visions of Phyrexia). The ordinary hand play of an owned land stays
+	// byte-identical: Obj zero means "from p's hand, owned by p".
+	ev := events.Event{Kind: events.LandPlayed, Player: p, Text: text}
+	if o := e.G.Obj(id); o != nil && (e.etbLandFrom != state.ZHand || o.Owner != p) {
+		ev.Obj, ev.From = id, e.etbLandFrom
+	}
+	e.emit(ev)
 }
 
 // landEntryParked reports whether some engine machinery still holds id's
