@@ -176,6 +176,35 @@ func (s *State) windowFiltFirst(k *prep, p uint8, sl Slot, useful *kop.ManaCost,
 	s.filtDo(k, p, filtStep{sl: sl, ans: uint8(1 + c), gap: true})
 }
 
+// windowFiltFirstFallback is windowFiltFirst for a cast's fallback window (a
+// PaymentFallback with no ManaPayment, altAddWindowTap): the ask carries no
+// owed pips, so it answers the lowest colour of the source, narrowed only
+// to what the clamp keeps once it has decided (windowUseful, gorge
+// paymentUsefulColours). Gorge asks the colour after the fee is paid, so the
+// clamp reads the pool the fee leaves: an unsettled generic leaves every
+// colour listed, and Abzan Devotee's {W}{B}{G} answers {W} while a {B} pip is
+// still owed (CR 601.2g).
+func (s *State) windowFiltFirstFallback(k *prep, p uint8, sl Slot, useful *kop.ManaCost) {
+	mask := uint8(s.filtAb(k, sl).ManaColors)
+	pool := &s.pl[p&1].pool
+	saved := *pool
+	if _, pip := s.filtPip(k, sl); !pip {
+		fee := s.filtFee(k, sl) // filtDo's order: generic in C W U B R G
+		for _, c := range [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G} {
+			for fee > 0 && pool[c] > 0 {
+				pool[c]--
+				fee--
+			}
+		}
+	}
+	want, decided := s.windowUseful(k, p, useful)
+	*pool = saved
+	if decided && mask&want != 0 {
+		mask &= want
+	}
+	s.filtDo(k, p, filtStep{sl: sl, ans: uint8(1 + bits.TrailingZeros8(mask)), gap: true})
+}
+
 // filtUse spends the filter at sl: its {T}, or its use this turn.
 func (s *State) filtUse(k *prep, sl Slot) {
 	if s.filtNoTap(k, sl) {

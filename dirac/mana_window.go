@@ -273,7 +273,11 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				continue
 			}
 			if k.gen.anyFiltFirst && k.gen.has(s.cardAt(sl), gfFilt) && s.filtFirstOnly(k, sl) {
-				s.windowFiltFirst(k, p, sl, useful, noOwed && !clamp) // mana_filterfirst.go
+				if noOwed && clamp {
+					s.windowFiltFirstFallback(k, p, sl, useful) // mana_filterfirst.go
+				} else {
+					s.windowFiltFirst(k, p, sl, useful, noOwed && !clamp) // mana_filterfirst.go
+				}
 				continue
 			}
 			if k.gen.anyMultiR && s.scriptWide(k, p).has(sl) {
@@ -2893,7 +2897,16 @@ func (s *State) manaStep(k *prep) bool {
 				c := xFolded(cost, int(e.x))
 				// a behold carrier's fallback window has no ManaPayment: a source answers
 				// its lowest colour, not the owed pip (windowCol)
-				s.windowTapUseful(k, e.ctrl, &c, &c, true, anyColor, cd.BeholdN != 0 && s.bld().pipN == 0, false)
+				ok, _ := s.windowTapUseful(k, e.ctrl, &c, &c, true, anyColor, cd.BeholdN != 0 && s.bld().pipN == 0, false)
+				if !ok && !s.winPaused() {
+					// the fallback window ran out of useful sources (a colour
+					// answered with no owed pip strands the payment): gorge
+					// reverses the cast, keeping the window's taps and floating
+					// mana (CR 733.1, as the altAbort window above)
+					s.releaseCostTaps(k, &saved)
+					s.reverseCast(k)
+					return true
+				}
 			} else {
 				if s.rbAny(e.ctrl) {
 					// the plan taps only for what the admitted restricted mana
