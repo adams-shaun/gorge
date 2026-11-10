@@ -1,6 +1,7 @@
 package dirac_test
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,6 +25,9 @@ func TestActivatedOnlyRestrictedPair(t *testing.T) {
 		"Lightning Bolt", "Mind Stone", "Gilded Assault Cart",
 	}
 	cardsDir, err := cardset.CorpusDir()
+	if errors.Is(err, cardset.ErrNoCorpus) {
+		t.Skip(err)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -411,13 +411,15 @@ func (s *State) restrUsable(k *prep, sl Slot) bool {
 // as the source it is: gorge's Alt.Flex and Alt.Colours describe the
 // SOURCE over every normal alternative, withheld or not (pay/planalts.go).
 func (s *State) restrView(k *prep, p uint8, sl Slot, own *pcard, d *payDesc) (v *pcard, kind uint8, ab *kop.Ability) {
-	v, kind, ab, _ = s.restrViewW(k, p, sl, own, d)
+	v, kind, ab, _, _ = s.restrViewW(k, p, sl, own, d)
 	return v, kind, ab
 }
 
 // restrViewW is restrView, also reporting the colours a widened source's
-// unit ranks over when d may not spend the restricted ability (dmask).
-func (s *State) restrViewW(k *prep, p uint8, sl Slot, own *pcard, d *payDesc) (v *pcard, kind uint8, ab *kop.Ability, dmask uint8) {
+// unit ranks over when d may not spend the restricted ability (dmask) and the
+// index of the admitting record's ability (abi: -1 with no view), which a card
+// of several restricted abilities cannot recover from its first record.
+func (s *State) restrViewW(k *prep, p uint8, sl Slot, own *pcard, d *payDesc) (v *pcard, kind uint8, ab *kop.Ability, dmask uint8, abi int8) {
 	g := k.gen
 	c := s.cardAt(sl)
 	// a card may hold several restricted abilities (Steelswarm Operator):
@@ -454,9 +456,9 @@ func (s *State) restrViewW(k *prep, p uint8, sl Slot, own *pcard, d *payDesc) (v
 			}
 			view += int32(min(n, maxDynMana))
 		}
-		return &g.rs.views[view], rec.kind, a, 0
+		return &g.rs.views[view], rec.kind, a, 0, rec.ab
 	}
-	return nil, 0, nil, dmask
+	return nil, 0, nil, dmask, -1
 }
 
 // restrOnlyUsable: the source at sl has no census mana ability and a
@@ -913,8 +915,11 @@ func (s *State) poolPaysAct(k *prep, p uint8, cost *kop.ManaCost, d payDesc) boo
 // whose larger alternative makes ordinary mana: the same unit, no restricted
 // float.
 //
+// recAb is the restricted ability whose view v is (restrViewW's abi); negative
+// (a gated pair) looks the card's record up.
+//
 //go:noinline
-func (s *State) restrPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int, restricted bool) bool {
+func (s *State) restrPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int, restricted bool, recAb int8) bool {
 	own := s.manaPCGen(k, sl)
 	ma, na := s.srcMaskAt(own, sl), own.manaN
 	mb, nb := s.restrWideMask(v, sl), v.wideN
@@ -974,9 +979,11 @@ func (s *State) restrPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int, re
 	pk.utyp[pk.nu] = uint8(ta)
 	pk.rkind[pk.nu] = 0
 	pk.rAb[pk.nu] = v.manaAb
-	if k.gen.rs != nil {
+	if recAb >= 0 {
+		pk.rAb[pk.nu] = recAb // the pair's restricted alternative
+	} else if k.gen.rs != nil {
 		if rec := k.gen.restrRecOf(s.cardAt(sl)); rec != nil {
-			pk.rAb[pk.nu] = rec.ab // the pair's restricted alternative
+			pk.rAb[pk.nu] = rec.ab
 		}
 	}
 	pk.nu++

@@ -1063,6 +1063,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	var pcs [MaxPerm]*pcard
 	var granted [MaxPerm]bool
 	var rv [MaxPerm]uint8
+	var ra [MaxPerm]int8      // the ability a restricted view is (restrViewW)
 	var rk, dm [MaxPerm]uint8 // a restricted source's record kind and unadmitted ranking colours (restrViewW)
 	var intr [MaxPerm]uint8   // a widened source's intrinsic colours: its granted basic land types' (static_landtype.go)
 	var tapsPain [4]pcard     // pain-only views of the sources a Pain-class Taps watcher prices (mana_tapsdefer.go)
@@ -1083,7 +1084,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			}
 			granted[i] = s.manaGranted(k, sl)
 			if k.restrSrc && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
-				if v, kd, ab, dmask := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
+				if v, kd, ab, dmask, abi := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
+					ra[i] = abi
 					if kd == rkWiden && pcs[i].blgFirst != 0 {
 						// the restricted view is the card's: the intrinsic
 						// abilities a granted basic land type gives (Jasmine
@@ -1198,10 +1200,10 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				} else if pass == 2 || (pass == 0) == choice {
 					continue
 				}
-				if pc.wideN != 0 && rv[i] == rkWiden && s.restrPairUnit(k, sl, pc, pk, i, true) {
+				if pc.wideN != 0 && rv[i] == rkWiden && s.restrPairUnit(k, sl, pc, pk, i, true, ra[i]) {
 					continue
 				}
-				if pc.wideN != 0 && rv[i] == 0 && k.gen != nil && k.gen.anyGatePair && k.gen.flags[s.cardAt(sl)]&(gfManaGate|gfManaDynPair) != 0 && debugGatedPair != 2 && s.restrPairUnit(k, sl, pc, pk, i, false) {
+				if pc.wideN != 0 && rv[i] == 0 && k.gen != nil && k.gen.anyGatePair && k.gen.flags[s.cardAt(sl)]&(gfManaGate|gfManaDynPair) != 0 && debugGatedPair != 2 && s.restrPairUnit(k, sl, pc, pk, i, false, -1) {
 					continue // a gated same-colour larger ability: the pair, its larger alternative ordinary mana (mana_gate.go)
 				}
 				cr := s.isCreature(k, sl)
@@ -1283,9 +1285,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				pk.rkind[pk.nu] = rv[i]
 				pk.rAb[pk.nu] = pc.manaAb
 				if rv[i] == rkWiden && k.gen != nil && k.gen.rs != nil {
-					if rec := k.gen.restrRecOf(s.cardAt(sl)); rec != nil {
-						pk.rAb[pk.nu] = rec.ab // the widened view's restricted ability
-					}
+					pk.rAb[pk.nu] = ra[i] // the widened view's restricted ability
 				}
 				pk.nu++
 				if sac {
