@@ -78,21 +78,23 @@ func (s *State) suspectOne(k *prep, sl Slot, set bool) {
 
 // suspectWouldChange is the OpMayAsk guard of an Optional$ suspect (gorge
 // alterAttributeWouldChange): the election is posed only when the next
-// ExtSuspect would flip some object.
+// ExtSuspect would flip some object. A StatCantBeSuspected static is not read
+// here: gorge reads it only at the emit choke point, so the ask is still posed
+// and suspectOne then swallows the answer.
 func (s *State) suspectWouldChange(k *prep, next *kop.Instr) bool {
 	set := next.C&1 == 0
 	if next.Obj == kop.RefNone {
 		var ord [MaxPerm]Slot
 		n := s.sweepHits(k, next.F, &ord)
 		for _, sl := range ord[:n] {
-			if s.mSl(k, mechSuspected, sl) != set && !(set && s.cantSuspect(k, sl)) {
+			if s.mSl(k, mechSuspected, sl) != set {
 				return true
 			}
 		}
 		return false
 	}
 	sl := s.objRef(k, next.Obj)
-	return sl != NoSlot && s.mSl(k, mechSuspected, sl) != set && !(set && s.cantSuspect(k, sl))
+	return sl != NoSlot && s.mSl(k, mechSuspected, sl) != set
 }
 
 // DebugCantSuspectOff is a mutation switch: a StatCantBeSuspected static

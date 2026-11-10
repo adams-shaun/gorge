@@ -114,8 +114,9 @@ func TestAsIfHasteActivatesNotAttacks(t *testing.T) {
 
 // TestCantBeSuspectedSkipsTheSuspect: a creature a StatCantBeSuspected
 // static selects (Airtight Alibi's enchanted creature) does not become
-// suspected, and an Optional$ suspect over it alone is not posed (gorge
-// suppressSuspectedEvent, alterAttributeWouldChange). One already suspected
+// suspected, while an Optional$ suspect over it is still posed (gorge's
+// alterAttributeWouldChange does not read the static; suppressSuspectedEvent
+// swallows the event after the ask). One already suspected
 // stays suspected, and an un-suspect still clears it (CR 701.60; gorge
 // gates the Suspected event only).
 func TestCantBeSuspectedSkipsTheSuspect(t *testing.T) {
@@ -152,8 +153,8 @@ func TestCantBeSuspectedSkipsTheSuspect(t *testing.T) {
 		if !sc.s.cantSuspect(sc.k, sl) {
 			t.Fatal("precondition: the static does not select the creature")
 		}
-		if sc.s.suspectWouldChange(sc.k, &sweep) {
-			t.Fatal("an Optional$ suspect over a creature that can't become suspected was posed")
+		if !sc.s.suspectWouldChange(sc.k, &sweep) {
+			t.Fatal("an Optional$ suspect over a creature that can't become suspected was not posed (gorge asks, then swallows the event)")
 		}
 		sc.s.suspectOne(sc.k, sl, true)
 		if sc.s.suspected(sc.k, sl) {
