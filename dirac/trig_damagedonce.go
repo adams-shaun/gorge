@@ -65,8 +65,8 @@ var DebugDmgIgnoreFilter2 bool
 
 // recipientPlayer is the player a recipient code names.
 func recipientPlayer(rcp uint8) (uint8, bool) {
-	if rcp == PlayerTarget0 || rcp == PlayerTarget0+1 {
-		return rcp - PlayerTarget0, true
+	if isPlayerTarget(rcp) {
+		return CodeSeat(rcp), true
 	}
 	return 0, false
 }

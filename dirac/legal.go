@@ -1171,8 +1171,8 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 	if t.ParentPlus1 != 0 && !s.parentTargetOK(t, code) {
 		return false
 	}
-	if code >= PlayerTarget0 && code <= PlayerTarget1 {
-		pp := code - PlayerTarget0
+	if isPlayerTarget(code) {
+		pp := CodeSeat(code)
 		if pp != p && k.gen != nil && k.gen.anyRepl&rbPlHex != 0 && s.playerHexproof(k, pp) {
 			return false
 		}
@@ -1254,9 +1254,11 @@ func (s *State) stackCtrl(o Obj) uint8 {
 func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]uint8) int {
 	n := 0
 	if t.Kind == kop.TgtAny || t.Kind == kop.TgtPlayer {
-		for pp := uint8(0); pp < 2; pp++ {
-			if s.targetOK(k, t, p, src, self, PlayerTarget0+pp) {
-				out[n] = PlayerTarget0 + pp
+		// every seat still in the game, in seat order (gorge offers
+		// AliveFrom(0), target_legal.go)
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
+			if !s.out(pp) && s.targetOK(k, t, p, src, self, PlayerCode(pp)) {
+				out[n] = PlayerCode(pp)
 				n++
 			}
 		}

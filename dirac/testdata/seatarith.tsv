@@ -112,7 +112,7 @@ ptarget	act_commitcrime.go	2
 ptarget	act_damageallopp.go	1
 ptarget	act_damagefrom.go	3
 ptarget	act_initiative.go	1
-ptarget	act_mayshuffle.go	5
+ptarget	act_mayshuffle.go	3
 ptarget	act_optionaldecider.go	1
 ptarget	act_proliferate.go	1
 ptarget	combat.go	7
@@ -134,16 +134,14 @@ ptarget	interp.go	2
 ptarget	interp_gen.go	7
 ptarget	kw_infect.go	4
 ptarget	kw_sneak.go	3
-ptarget	legal.go	5
 ptarget	mana_pain.go	1
 ptarget	mana_sacsource.go	9
 ptarget	mana_tapanother.go	1
-ptarget	repl_gen.go	15
+ptarget	repl_gen.go	9
 ptarget	repl_preventscope.go	1
 ptarget	resolve.go	11
-ptarget	static_control.go	3
 ptarget	tgt_stackability.go	4
-ptarget	trig_damagedonce.go	5
+ptarget	trig_damagedonce.go	2
 ptarget	trig_targetchain.go	1
 ptarget	trig_validsa.go	1
 ptarget	triggers_gen.go	4
