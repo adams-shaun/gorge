@@ -1386,17 +1386,43 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	rem = pk.need
 	remAny := pk.needAny
 	pk.fixedOffSeq(&rem, &remAny, &pk.bestTy, pk.bestN)
+	// Each unit's colour is chosen in unit order; the sources are then
+	// activated with the sacrificing ones last, as gorge orders its witness
+	// (pay/plancost.go SacrificesLast): a Treasure's sacrifice that waits on a
+	// replacement choice finds every other source of the plan already tapped.
+	var cols, run [maxUnits]uint8
 	for i := 0; i < bn; i++ {
+		ty := &pk.types[pk.bestTy[i]]
+		col := int(pk.bestCol[i])
+		if !pk.keepCols {
+			col = pk.pickUnitColour(ty, &rem, remAny, &pk.bestTy, i+1, pk.bestN)
+		}
+		cols[i] = uint8(col)
+		if pk.anyColor && col != kop.C {
+			remAny = max(remAny-int(ty.n), 0)
+		} else if rem[col] > 0 {
+			rem[col] = max(rem[col]-int(ty.n), 0)
+		}
+	}
+	nr := 0
+	for pass := 0; pass < 2; pass++ {
+		for i := 0; i < bn; i++ {
+			ty := &pk.types[pk.bestTy[i]]
+			if (ty.sac || ty.sacOnly) == (pass == 1) {
+				run[nr] = uint8(i)
+				nr++
+			}
+		}
+	}
+	for r := 0; r < bn; r++ {
+		i := int(run[r])
 		u := best[i]
 		sl := pk.units[u]
 		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && k.cards[s.cardAt(sl)].castSrc != 0 {
 			s.noteTapSrc(k, &k.cards[s.cardAt(sl)], sl)
 		}
 		ty := &pk.types[pk.bestTy[i]]
-		col := int(pk.bestCol[i])
-		if !pk.keepCols {
-			col = pk.pickUnitColour(ty, &rem, remAny, &pk.bestTy, i+1, pk.bestN)
-		}
+		col := int(cols[i])
 		if !ty.sacOnly {
 			s.perms[sl].flags |= pfTapped
 			s.touchSl(sl)
@@ -1459,11 +1485,6 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				s.sbaAfterManaSacrifice(k)
 			}
-		}
-		if pk.anyColor && col != kop.C {
-			remAny = max(remAny-int(ty.n), 0)
-		} else if rem[col] > 0 {
-			rem[col] = max(rem[col]-int(ty.n), 0)
 		}
 	}
 }
