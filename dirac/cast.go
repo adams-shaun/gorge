@@ -166,6 +166,12 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		if s.bld().altAdd != buildBeamGrant && !s.FeatPoolPays(p, o, mode&3) {
 			s.lowerWitness(k, p)
 		}
+	} else if mode&castMayPlay != 0 && mode&castFree != 0 && s.cfg&(cfgGorgeLowering|cfgGorgeAutopay) != 0 && s.freeAltAddLowers(k, p, c, o) {
+		// a free may-play cast still owing an either-or part only its mana
+		// pays (Silvergill Mentor from Maralen's exile) is priced by gorge's
+		// witness at that part (potentialAltAddPlan), so the oracle lowers it
+		s.bld().bfl |= bflLowered
+		s.lowerWitness(k, p)
 	} else if s.cfg&cfgGorgeAutopay != 0 && s.cfg&cfgGorgeLowering == 0 && mode == 0 && ob.zone == kop.ZoneHand && k.t.Cards[c].Cost.X != 0 {
 		// the autopay surface's plain {X} cast is one the floating pool alone
 		// pays at X = 0 (gorge's planner prices no {X} spell, FeatPlannedCast):

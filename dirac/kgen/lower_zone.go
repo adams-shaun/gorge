@@ -3923,9 +3923,9 @@ func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride, 
 		// keyword/P/T walks honour OvGate (statCond); a player-hexproof or
 		// stack-keyword static reads no gate and would be live unanimated.
 		// Two walks read no OvGate: the attached-grant walk (grantsBetween)
-		// reads no statCond, so a granted ability or trigger
-		// (AddAbility$/AddTrigger$) beside the pump would reach the equipped
-		// creature unanimated; and the layer walk's lfxApplies gates a
+		// now reads statCond, but its StatOverride arm still does not, so a
+		// granted ability or trigger (AddAbility$/AddTrigger$) is refused
+		// here until that is checked; and the layer walk's lfxApplies gates a
 		// collected subtype grant (AddType$ subtype or ChosenType) on Cond2
 		// only, so it would apply unanimated whenever the walk is on: refuse
 		// both.
