@@ -396,6 +396,10 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || !s.canTapForManaPC(k, sl, pc) {
 			continue
 		}
+		if k.painMana && pc.painCol != 0 {
+			s.addPainAvail(k, sl, pc, p&1, a, nil, false) // the planner's census has a pain ability (Spire of Industry's any colour for 1 life), as ungrAvail counts it
+			continue
+		}
 		a.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))
 		if pc.manaOne {
 			s.addOneColour(a, pc.manaN)
