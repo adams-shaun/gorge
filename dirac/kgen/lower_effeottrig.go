@@ -52,20 +52,40 @@ func eotCombatEmblemRefuse(ab *lAbility) error {
 	return nil
 }
 
-// emblemCapture reads an Effect's RememberObjects$ Targeted for the one
-// shape the kernel's emblem remembers: an until-end-of-turn DamageDone
-// trigger over its own ValidTgts$ creature slot, the trigger's source filter
-// being exactly that remembered object (Creature.IsRemembered). It declares
-// the target slot on the chain and returns it; every other RememberObjects$
-// beside an Effect trigger refuses (the kernel's remembered set is
-// per resolution, so the trigger would read an empty set).
-func (lc *lowerCtx) emblemCapture(ps *params, t cards.Trigger, eot bool) (lRef, bool, error) {
+// emblemCapture reads an Effect's RememberObjects$ for the one shape the
+// kernel's emblem remembers: an until-end-of-turn DamageDone trigger over its
+// own ValidTgts$ creature slot, the trigger's source filter being exactly that
+// remembered object (Creature.IsRemembered). It declares the target slot on
+// the chain and returns it. RememberObjects$ TargetedPlayer over a target
+// opponent's damage is lowered as a no-op: gorge's event-trigger registration
+// rebuilds the capture from effectRemembered, which holds objects only, and
+// only its phase-trigger arm appends the remembered players, so the trigger's
+// ValidTarget$ Player.IsRemembered can never match. The target is still
+// declared (the mode's printed target); the caller drops the never-firing
+// effect. Every other RememberObjects$ beside an Effect trigger refuses (the
+// kernel's remembered set is per resolution, so the trigger would read an
+// empty set). drop reports that no emblem is to be created.
+func (lc *lowerCtx) emblemCapture(ps *params, t cards.Trigger, eot bool) (lRef, bool, bool, cards.Trigger, error) {
 	ro, ok := ps.m["RememberObjects"]
 	if !ok {
-		return lRef{}, false, nil
+		return lRef{}, false, false, t, nil
+	}
+	if strings.TrimSpace(ro) == "TargetedPlayer" {
+		if !eot || t.Mode != "DamageDone" && t.Mode != "DamageDealtOnce" {
+			return lRef{}, false, false, t, refuse("Effect triggers with RememberObjects$ %q", ro)
+		}
+		if ps.str("ValidTgts") != "Opponent" || strings.TrimSpace(t.Params["ValidTarget"]) != "Player.IsRemembered" {
+			return lRef{}, false, false, t, refuse("Effect RememberObjects$ TargetedPlayer with ValidTgts$ %q and ValidTarget$ %q",
+				ps.str("ValidTgts"), t.Params["ValidTarget"])
+		}
+		if _, err := lc.objOrTarget(ps, "", zBattlefield); err != nil {
+			return lRef{}, false, false, t, err
+		}
+		ps.consume("RememberObjects")
+		return lRef{}, false, true, t, nil
 	}
 	if strings.TrimSpace(ro) != "Targeted" || !eot || t.Mode != "DamageDone" && t.Mode != "DamageDealtOnce" {
-		return lRef{}, false, refuse("Effect triggers with RememberObjects$ %q", ro)
+		return lRef{}, false, false, t, refuse("Effect triggers with RememberObjects$ %q", ro)
 	}
 	var ref lRef
 	if lc.pairCap != nil {
@@ -73,19 +93,19 @@ func (lc *lowerCtx) emblemCapture(ps *params, t cards.Trigger, eot bool) (lRef, 
 	} else if _, ok := ps.m["ValidTgts"]; !ok {
 		var err error
 		if ref, err = lc.parentCapture(); err != nil {
-			return lRef{}, false, err
+			return lRef{}, false, false, t, err
 		}
 	} else {
 		var err error
 		if ref, err = lc.objOrTarget(ps, "", zBattlefield); err != nil {
-			return lRef{}, false, err
+			return lRef{}, false, false, t, err
 		}
 	}
 	if ref.Kind != rTarget {
-		return lRef{}, false, refuse("Effect RememberObjects$ Targeted over %s", ref)
+		return lRef{}, false, false, t, refuse("Effect RememberObjects$ Targeted over %s", ref)
 	}
 	ps.consume("RememberObjects")
-	return ref, true, nil
+	return ref, true, false, t, nil
 }
 
 // parentCapture is an Effect link's RememberObjects$ Targeted with no target

@@ -2470,8 +2470,15 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	var capture lRef
 	var hasCap bool
 	if mem.kind == memNone {
-		if capture, hasCap, err = lc.emblemCapture(ps, t, eot); err != nil {
+		var drop bool
+		if capture, hasCap, drop, t, err = lc.emblemCapture(ps, t, eot); err != nil {
 			return err
+		}
+		if drop {
+			// RememberObjects$ TargetedPlayer: gorge's event-trigger registration
+			// drops the player, so the mode's trigger never fires (the target was
+			// still declared in emblemCapture)
+			return nil
 		}
 	}
 	if !hasCap && eot && mem.kind == memNone {

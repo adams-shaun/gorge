@@ -172,6 +172,11 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return n
 	case kop.ExPhaseCount:
 		return s.phaseCount(x) // act_addphase.go
+	case kop.ExStepIn:
+		if x.N&(int16(1)<<s.step) != 0 { // the bitmask names the current step
+			return 1
+		}
+		return 0
 	case kop.ExAttackedTurn:
 		return s.attackedTurn(k, x, ctx) // value_turntallies.go
 	case kop.ExOppsLostLife:
