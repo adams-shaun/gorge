@@ -219,6 +219,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "imprint_token_counters_summoners_sending_spirit"},                   // Summoner's Sending exiles a creature card from a graveyard and makes a Spirit that takes a +1/+1 counter off the imprinted token when the exiled card's mana value is 4 or more
 		{"custom", "warp_x_broodguard_elite"},                                           // Broodguard Elite warped for {X}{G} at several X, once with a floating {G} that pays it at X = 0: the X is announced like a printed one, and that cast taps nothing more (CR 601.2b, 702.185a)
 		{"custom", "disguise_reduced_turn_up_fugitive_codebreaker"},                     // Fugitive Codebreaker turned face up from Priest of Urabrask's {R}{R}{R} with Lightning Bolts in its owner's graveyard: the disguise cost is reduced by {1} for each (CR 601.2f, 702.168c)
+		{"custom", "bilbos_gambit_gift_promised_players_cannot_cast"},                   // Bilbo's Gambit returns a Lightning Bolt to its owner's hand with the gift promised: players can't cast spells this turn, so the other seat's second Bolt is not offered (an end-of-turn emblem)
+		{"custom", "calamitys_wake_players_cannot_cast_noncreature_spells"},             // Calamity's Wake resolves while the other seat holds a Lightning Bolt and an untapped Mountain: no noncreature spell can be cast this turn (an end-of-turn emblem)
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {
