@@ -1912,8 +1912,14 @@ func (s *State) placeTriggers(k *prep, d *Decision) bool {
 	p := s.active
 	n := s.pendCount(p)
 	if n == 0 {
-		p = 1 - p
-		n = s.pendCount(p)
+		// CR 603.3b: APNAP order, each player in turn order from the
+		// active player (gorge sortPendingTriggers over AliveFrom(Active))
+		for {
+			p = s.nextAlive(p)
+			if n = s.pendCount(p); n != 0 || MaxSeats == 2 {
+				break
+			}
+		}
 	}
 	if s.orderLeft == 0 && n >= 2 {
 		// gorge KTriggerOrder is one Min=Max=n multi-select over the
