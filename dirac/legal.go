@@ -1416,6 +1416,9 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 			if c := s.cardAt(sl); k.gen.flags[c]&gfManaVar != 0 && !s.filtFeeOwed(k, sl, c) {
 				// a gated or reflected source's view already holds its abilities
 				done[sl] = ^uint16(0)
+				if k.gen.anyFiltPip {
+					done[sl] &^= s.filtPipBit(k, sl) // a one-pip filter joins below once the pool pays it (mana_filterpip.go)
+				}
 				cd := &k.t.Cards[c]
 				dynamic = pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) && cd.Abilities[pc.manaAb].AFlags&kop.AfManaDynamic != 0
 			}
@@ -1520,6 +1523,9 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 	}
 	if ab.Trig.Cond != 0 && !s.condEval(k, ab.Trig.Cond, evalCtx{src: pp.obj, srcSl: sl, ctrl: pp.ctrl}) {
 		return false
+	}
+	if col, ok := fixedPipFilt(ab); ok && k.gen.anyFiltPip && s.filtPipHeld(k, pp.ctrl, sl, col) < 1 {
+		return false // gorge lists the granted filter only while the live pool pays its pip (mana_filterpip.go)
 	}
 	return d == nil || ab.ManaRestrict == 0 || s.restrSrcAdmits(k, p, sl, ab, d)
 }

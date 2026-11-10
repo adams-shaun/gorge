@@ -5,18 +5,24 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // A coloured-fee filter of one fixed colour and a dynamic amount, gated by a
 // counters condition: Evendo, Waking Haven's Station grant "{G}, {T}: Add {G}
 // for each creature you control" (Uthros: {U}, artifacts), beside the land's
-// free "{T}: Add {G}". gorge's census sees the ability only while the grant is
-// live (appendAvailableManaAbilitiesGate), as a paid gap whose fee its relaxed
-// proof charges as generic one (the same arithmetic availFilt, faceReachable
-// and filtActivate run), and its prefix search activates it only once the pool
-// really pays {G}: the window lists an ability the floating mana pays
-// (manaAbilityPayablePool, pay.ManaCostPayableFull, a real coloured check).
+// free "{T}: Add {G}".
 //
-// So the kernel models it as a filter (filterTapMana) whose fee is one pip of
-// the product's colour: it counts one in the fee arithmetic (filtFee) and the
-// gap step is legal only when that colour floats (filtPaid), spending it from
-// the restricted mana the activation may use first, then the pool (filtDo).
-// Out of the gate it is no gap (scriptFilt).
+// gorge lists an AddAbility$ grant as a mana ability only while the LIVE pool
+// pays its cost (mana_activation.go's AddAbility$ scan runs
+// manaAbilityPayable whatever ignorePayable says), so with nothing floating
+// the filter is in no census, no PotentialMana and no payment window; once
+// {G} floats it is a member, its Amount$ X makes PotentialMana open in every
+// colour (potentialAmount: indeterminate), and the census holds it as a paid
+// gap whose fee the relaxed proof charges as generic one and the prefix
+// search pays from the pool.
+//
+// So the kernel models it as a filter (filterTapMana) live only while its gate
+// holds and the pool (with the restricted mana its activation may spend)
+// holds its colour (filtGateOn): a gap of the census (scriptFilt) and an open
+// source of the potential walk (potentialAdmits) only then. Its fee counts one
+// in the fee arithmetic (filtFee), the gap step is legal only when that colour
+// floats (filtPaid), and it is spent in that colour, restricted mana first
+// (filtDo, filtPayPip).
 //
 // Not modelled: gorge's X-spell window (filtActivate, faceReachable) funds the
 // fee from the mana made so far as a count, not by colour.
@@ -50,11 +56,31 @@ func (s *State) filtPip(k *prep, sl Slot) (int, bool) {
 	return fixedPipFilt(s.filtAb(k, sl))
 }
 
+// filtPipBit is the ability bit of sl's one-pip filter, 0 for none.
+func (s *State) filtPipBit(k *prep, sl Slot) uint16 {
+	c := s.cardAt(sl)
+	if !k.gen.has(c, gfFilt) {
+		return 0
+	}
+	if _, ok := s.filtPip(k, sl); !ok || k.gen.filt(c) >= 16 {
+		return 0
+	}
+	return 1 << k.gen.filt(c)
+}
+
 // filtGateOn: the filter at sl is live. A counters-gated one (the Station
-// grant) is no census gap while its condition fails.
+// grant) is no census gap while its condition fails, and a one-pip one is no
+// mana ability of gorge's at all until the live pool pays its pip.
 func (s *State) filtGateOn(k *prep, sl Slot) bool {
 	a := s.filtAb(k, sl)
-	return a.Trig.Cond == 0 || s.condEval(k, a.Trig.Cond, evalCtx{src: s.perms[sl].obj, srcSl: sl, ctrl: s.perms[sl].ctrl})
+	pp := &s.perms[sl]
+	if a.Trig.Cond != 0 && !s.condEval(k, a.Trig.Cond, evalCtx{src: pp.obj, srcSl: sl, ctrl: pp.ctrl}) {
+		return false
+	}
+	if col, ok := s.filtPip(k, sl); ok {
+		return s.filtPipHeld(k, pp.ctrl, sl, col) >= 1
+	}
+	return true
 }
 
 // filtPipHeld is how much of colour col filter sl's fee may spend: p's pool

@@ -8,7 +8,6 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/cards"
-	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -17,15 +16,21 @@ import (
 // Uthros, Titanic Godcore): at 12 charge counters "{G}, {T}: Add {G} for each
 // creature you control" ({U} per artifact) beside the land's free tap. The
 // kernel plays it as a counters-gated one-pip fixed-colour filter (dirac
-// filterTapMana, mana_filterpip.go): a paid census gap that gorge's prefix
-// search activates only once the pool really pays the pip.
+// filterTapMana, mana_filterpip.go). gorge lists that granted ability only
+// while the live pool pays its pip, so a game reaches it only with the colour
+// floating at a decision; the lockstep never taps a land by hand, so here
+// Crumbling Vestige's enters trigger floats it. On the autopay surface a
+// plain cast the planner prices only through a prefix script is offered by
+// neither engine (gorge.go's autopay vocabulary), so the games are played on
+// the full surface, where gorge's payment window lists the filter.
 //
 // Random games rarely reach 12 counters, so each case is a constructed
-// matchup played by a policy that stations, plays lands and casts whenever it
-// can, recorded once (PIPFILTER_RECORD=1) as a repro whose gorge log holds a
-// pure multi-mana add of the land's colour: the filter's product, which
-// nothing else in the deck makes. Replayed, both engines agree through the
-// whole game.
+// matchup played by a policy that stations, plays lands and casts its
+// costliest spell whenever it can, recorded once (PIPFILTER_RECORD=1) as a
+// repro whose gorge log holds the filter's product: a pure add of the land's
+// colour in an amount past one, right after the Planet tapped. Replayed, both
+// engines agree through the whole game. Each repro is also a row of
+// TestStdSetReprosLockstep.
 
 type pipFilterCase struct {
 	name, card, colour string
@@ -34,20 +39,21 @@ type pipFilterCase struct {
 
 func pipFilterCases() []pipFilterCase {
 	blank := deckOf(40, "Plains")
-	// land-light decks whose four-mana spells (Giant Spider, Uthros Scanship) are
-	// out of reach of the plain taps of three lands and within the filter's
-	evendo := slices.Concat(deckOf(4, "Evendo, Waking Haven"), deckOf(10, "Grizzly Bears"), deckOf(4, "Wall of Wood"),
-		deckOf(14, "Giant Spider"), deckOf(8, "Forest"))
+	// land-light decks of cheap bodies and seven-mana spells, with Crumbling
+	// Vestige, whose enters trigger adds one mana of any colour
+	evendo := slices.Concat(deckOf(4, "Evendo, Waking Haven"), deckOf(14, "Grizzly Bears"), deckOf(4, "Wall of Wood"),
+		deckOf(5, "Enormous Baloth"), deckOf(5, "Kalonian Behemoth"), deckOf(6, "Crumbling Vestige"), deckOf(2, "Forest"))
 	uthros := slices.Concat(deckOf(4, "Uthros, Titanic Godcore"), deckOf(6, "Coral Merfolk"), deckOf(4, "Golden Urn"), deckOf(4, "Shriekhorn"),
-		deckOf(6, "Wurmwall Sweeper"), deckOf(8, "Uthros Scanship"), deckOf(8, "Island"))
+		deckOf(4, "Wurmwall Sweeper"), deckOf(2, "Uthros Scanship"), deckOf(4, "Pinnacle Kill-Ship"), deckOf(6, "Crumbling Vestige"), deckOf(6, "Island"))
 	return []pipFilterCase{
 		{name: "evendo_filter_pays_a_spell_with_a_green_fee", card: "Evendo, Waking Haven", colour: "G", decks: [2][]string{evendo, blank}},
 		{name: "uthros_filter_pays_a_spell_with_a_blue_fee", card: "Uthros, Titanic Godcore", colour: "U", decks: [2][]string{uthros, blank}},
 	}
 }
 
-// pipFilterPolicy stations, plays a land or casts whenever one is offered,
-// else plays randomly (the answers to every ask are random too).
+// pipFilterPolicy stations, plays a land or casts (the costliest spell, by
+// gorge's card) whenever one is offered, else plays randomly (the answers to
+// every ask are random too).
 func pipFilterPolicy(seed uint64) Policy {
 	rnd := RandomPolicy(seed)
 	return PolicyFunc(func(c *PickCtx) Canon {
@@ -58,6 +64,9 @@ func pipFilterPolicy(seed uint64) Policy {
 					if a.Kind() == want {
 						buf = append(buf, a)
 					}
+				}
+				if want == ActCast && len(buf) > 1 && c.G != nil {
+					buf = costliest(c.G, buf)
 				}
 				if len(buf) > 0 {
 					d := *c.D
@@ -70,79 +79,58 @@ func pipFilterPolicy(seed uint64) Policy {
 	})
 }
 
+// costliest keeps the casts of casts whose card has the largest mana value.
+func costliest(g *GorgeSide, casts []Canon) []Canon {
+	mv := map[Ref]int32{} // lookup only
+	for _, p := range g.E.G.AliveFrom(0) {
+		for _, id := range g.E.G.Zone(state.ZHand, p) {
+			if o := g.E.G.Obj(id); o != nil && o.Face() != nil {
+				mv[g.InstRef(id)] = o.Face().ManaValue()
+			}
+		}
+	}
+	best := int32(-1)
+	for _, a := range casts {
+		best = max(best, mv[a.Src()])
+	}
+	var out []Canon
+	for _, a := range casts {
+		if mv[a.Src()] == best {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
 // pipFilterFired is a Check hook that scans gorge's log as it grows for the
-// filter's product: a pure add of colour in an amount past one. at is the
-// number of the decision (the Check call) that first saw it, 0 for none.
+// filter's product: a pure add of colour in an amount past one, the next
+// mana event after the Planet itself tapped (its free ability makes one). at
+// is the number of the decision (the Check call) that first saw it, 0 for
+// none.
 type pipFilterFired struct {
-	colour  string
-	seen    int
-	checks  int
-	at      int
-	amount  int32
-	charge  map[state.ObjID]int32 // charge counters per object, from the log
-	most    int32                 // the most any object held
-	checked func(*GorgeSide, Side) *Divergence
+	card, colour string
+	seen         int
+	checks       int
+	tapped       bool // the last Tap in the log was the Planet's
+	at           int
+	amount       int32
 }
 
 func (f *pipFilterFired) check(ref *GorgeSide, ker Side) *Divergence {
 	f.checks++
 	evs := ref.E.L.Events
 	for ; f.seen < len(evs); f.seen++ {
-		if e := &evs[f.seen]; e.Counter == "CHARGE" {
-			if f.charge == nil {
-				f.charge = map[state.ObjID]int32{}
+		e := &evs[f.seen]
+		switch e.Kind {
+		case events.Tap:
+			o := ref.E.G.Obj(e.Obj)
+			f.tapped = o != nil && o.Face() != nil && o.Face().Name == f.card
+		case events.ManaAdd:
+			if f.at == 0 && f.tapped && e.Counter == f.colour && e.Amount >= 2 && e.Text == "" {
+				f.at, f.amount = f.checks, e.Amount
 			}
-			f.charge[e.Obj] += e.Amount
-			f.most = max(f.most, f.charge[e.Obj])
+			f.tapped = false
 		}
-		if e := &evs[f.seen]; e.Kind == events.ManaAdd && e.Amount >= 2 {
-			println("DBGMANA", e.Counter, e.Amount, e.Text)
-		}
-		if e := &evs[f.seen]; f.at == 0 && e.Kind == events.ManaAdd && e.Counter == f.colour && e.Amount >= 2 && e.Text == "" {
-			f.at, f.amount = f.checks, e.Amount
-		}
-	}
-	if d := ref.E.Pending(); d != nil && d.Kind == decision.KPriority && ref.E.G.Active == 0 && ref.E.G.Step.IsMain() && len(ref.E.G.Stack) == 0 {
-		g := ref.E.G
-				var hand []string
-		for _, id := range g.Zone(state.ZHand, 0) {
-			if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Giant Spider" {
-				hand = append(hand, o.Face().Name)
-			}
-		}
-		if len(hand) > 0 {
-			ev, lands, cr := 0, 0, 0
-			for _, id := range g.Zone(state.ZBattlefield, 0) {
-				o := g.Obj(id)
-				if o == nil || o.Face() == nil {
-					continue
-				}
-				if o.Face().Name == "Evendo, Waking Haven" {
-					ev += int(o.Counter("CHARGE"))
-					if o.Tapped {
-						ev += 1000
-					}
-				}
-				if o.Face().Name == "Forest" {
-					lands++
-				}
-				if o.Face().Name == "Grizzly Bears" || o.Face().Name == "Wall of Wood" {
-					cr++
-				}
-			}
-			cast := 0
-			for _, op := range d.Options {
-				if op.Kind == "cast" {
-					cast++
-				}
-			}
-			if ev > 0 {
-				println("DBGPOS", f.checks, "hand", len(hand), "evendo charge", ev, "forests", lands, "creatures", cr, "cast options", cast)
-			}
-		}
-	}
-	if f.checked != nil {
-		return f.checked(ref, ker)
 	}
 	return nil
 }
@@ -165,7 +153,7 @@ func pipFilterPlay(t *testing.T, reg *cards.Registry, c pipFilterCase, r *Repro,
 	if err != nil {
 		t.Fatal(err)
 	}
-	f := &pipFilterFired{colour: c.colour}
+	f := &pipFilterFired{card: c.card, colour: c.colour}
 	rc := r.RunConfig()
 	rc.Check = f.check
 	rc.MaxDecisions = 4000
@@ -193,22 +181,10 @@ func TestPipFilterRecord(t *testing.T) {
 	for _, c := range pipFilterCases() {
 		t.Run(c.card, func(t *testing.T) {
 			for seed := uint64(1); seed <= 600; seed++ {
-				r := &Repro{Format: reproFormat, Decks: [2]string{c.name + "_0", c.name + "_1"}, Cards: c.decks, Seed: seed, PassElision: true, Surface: "autopay", Kernel: "custom", MaxTurns: 40}
+				r := &Repro{Format: reproFormat, Decks: [2]string{c.name + "_0", c.name + "_1"}, Cards: c.decks, Seed: seed, PassElision: true, Surface: "full", Kernel: "custom", MaxTurns: 40}
 				res, f := pipFilterPlay(t, reg, c, r, pipFilterPolicy(seed))
 				if res.Div != nil {
 					t.Fatalf("seed %d: divergence at %d: %s %s %v", seed, res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
-				}
-				if seed <= 12 {
-					sp, cast := 0, 0
-					for _, a := range res.Actions {
-						switch a.Kind() {
-						case ActSpecial:
-							sp++
-						case ActCast:
-							cast++
-						}
-					}
-					t.Logf("DBG seed %d: %d decisions, %d specials, %d casts, turns %d, most charge %d", seed, len(res.Actions), sp, cast, res.Turns, f.most)
 				}
 				if f.at == 0 {
 					continue

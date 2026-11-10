@@ -682,8 +682,13 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 	switch {
 	case st.gap && st.ans > 0:
 		// the fee is paid from the pool, generic in C W U B R G order, after
-		// the restricted mana it may spend
+		// the restricted mana it may spend; a one-pip filter's {c} is paid in
+		// c (mana_filterpip.go)
 		fee := s.filtFee(k, st.sl)
+		if col, ok := s.filtPip(k, st.sl); ok {
+			s.filtPayPip(k, p, st.sl, col)
+			fee = 0
+		}
 		fee -= s.filtFeeRestr(k, p, st.sl, fee)
 		for _, c := range [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G} {
 			for fee > 0 && pl.pool[c] > 0 {
