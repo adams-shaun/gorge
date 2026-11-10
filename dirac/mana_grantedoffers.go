@@ -659,7 +659,7 @@ func (g *grantSrch) visit(t *State) bool {
 		fok := g.filt[i] && t.filtPaid(g.k, g.p, sl)
 		alts := 0
 		if grants {
-			alts = int(g.ng[i])
+			alts = t.grantAlts(g.k, g.p, sl, &g.gi[i], int(g.ng[i]))
 		}
 		if g.dual[i] {
 			alts++
@@ -716,11 +716,21 @@ func (g *grantSrch) visit(t *State) bool {
 			gi := g.gi[i][j]
 			pc := t.grantView(g.k.gen, gi, sl)
 			mask := t.srcMaskAt(pc, sl)
+			if !t.grantCostPayable(g.p, pc) {
+				continue // its life cannot be paid (CR 119.4)
+			}
 			// gorge's search taps a granted census gap whether or not the play may
 			// spend it (the mana floats, the tap fires its triggers); mana the
 			// play's origin or class cannot spend prices nothing
 			g.skipPool = !g.grantAdmits(t, sl, gi)
-			if g.branch(t, i, sl, gi, mask, pc.manaN, alts == 1 || mask&uint8(kop.ColAny) == uint8(kop.ColAny)) {
+			ask := alts == 1 || mask&uint8(kop.ColAny) == uint8(kop.ColAny)
+			if grantCostLife(pc) > 0 {
+				if g.costBranch(t, i, sl, gi, pc, mask, ask) { // the step pays its life (mana_grantcost.go)
+					return true
+				}
+				continue
+			}
+			if g.branch(t, i, sl, gi, mask, pc.manaN, ask) {
 				return true
 			}
 		}
@@ -1118,6 +1128,14 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			s.filtDo(k, g.p, filtStep{sl: sl, gap: true, ans: 1 + st.col})
 			if !s.filtNoTap(k, sl) {
 				s.manaTapped(k, sl) // (a once-each-turn filter taps nothing)
+			}
+			continue
+		}
+		if st.gi >= 0 && grantCostLife(s.grantView(k.gen, st.gi, sl)) > 0 {
+			s.grantCostApply(k, g.p, st) // the tap and its life (mana_grantcost.go)
+			if g.tapTriggers(s, sl) || s.npend != 0 {
+				passed = true
+				s.tapXNext(g.p, &d)
 			}
 			continue
 		}

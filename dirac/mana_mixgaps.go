@@ -302,6 +302,9 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 				continue
 			}
 			pc := t.grantView(k.gen, gi[j], sl)
+			if grantCostLife(pc) > 0 {
+				continue // a life cost: the grant search's step pays it (mana_grantcost.go), this one only taps
+			}
 			mask := t.srcMaskAt(pc, sl)
 			if colours(gi[j], mask, pc.manaN, alts == 1 || mask&uint8(kop.ColAny) == uint8(kop.ColAny)) {
 				return true
