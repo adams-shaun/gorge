@@ -213,7 +213,7 @@ import (
 // +1 (the merge with land: this branch's Tam, Mindful First-Year static Hexproof:CardColors lower beside land's Amalia Benavides Aguirre / Hulkling / Burgeoning Bruiser lowers, disjoint; merged ALL build-level 21989 -> 21990).
 // +2 (the merge with land: this branch's Hollow Marauder and Madame Null lowers beside land's; merged ALL build-level 22036 -> 22038).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22088, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22090, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
