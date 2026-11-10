@@ -580,6 +580,18 @@ func (s *State) enchantingObj(k *prep) Obj {
 	return s.res.lastTok
 }
 
+// enchantReturnObj is the Aura a pending enchant ask of a return (OpReturn,
+// OpReturnEx) is about; NoObj for any other enchant ask.
+func (s *State) enchantReturnObj(k *prep) Obj {
+	if !s.res.active {
+		return NoObj
+	}
+	if in := &s.prog(k)[s.res.pc]; in.Op == kop.OpReturnEx || in.Op == kop.OpReturn {
+		return s.objRefObj(in.Obj)
+	}
+	return NoObj
+}
+
 // autoPayPick pays the pending pick at once when its candidates are
 // exactly the number owed (in battlefield order); false leaves it asked.
 func (s *State) autoPayPick(k *prep) bool {
