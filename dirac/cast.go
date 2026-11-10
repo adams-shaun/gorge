@@ -753,6 +753,9 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			// bounded by what that window can pay (CR 601.2g; gorge xAsk).
 			var av avail
 			s.availXWindow(k, e.ctrl, &av)
+			if s.bld().pickN != 0 {
+				s.excludePickedSources(k, &av) // a waterbend/convoke pick cannot also tap for mana
+			}
 			if e.kind == seAbility {
 				s.excludeTapSource(k, &av)
 				if m := s.restrActNow(k, e.ctrl); m != 0 {
@@ -997,6 +1000,17 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if k.gen != nil && k.gen.anyWaterbend && s.waterbendTargetAbort(k) {
 				// the same census after a waterbend ability's picks
 				// (act_waterbend.go)
+				if !t.UpTo {
+					s.reverseCast(k)
+					return false
+				}
+				s.bld().ti = kop.MaxTargets
+				s.nextStage(k)
+				continue
+			}
+			if k.gen != nil && s.tapXTargetAbort(k) {
+				// the same census after an ability's tap-another picks took
+				// the mana sources its cost needs (cast_tapxtarget.go)
 				if !t.UpTo {
 					s.reverseCast(k)
 					return false

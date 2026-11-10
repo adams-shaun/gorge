@@ -915,16 +915,18 @@ func (s *State) refCode(k *prep, r kop.Ref) uint8 {
 }
 
 // forPlayers runs f for the player(s) a Ref names.
-func (s *State) players(k *prep, r kop.Ref) (uint8, uint8) {
+func (s *State) players(k *prep, r kop.Ref) seatSeq {
 	switch r {
 	case kop.RefEachPlayer:
 		// gorge's "each player" set is AliveFrom(controller): the resolving
-		// controller first, then the other seat (also on the controller's
-		// own turn, where it equals APNAP).
-		return s.res.e.ctrl, 1 - s.res.e.ctrl
+		// controller first, then the other seats in turn order (on the
+		// controller's own turn that is APNAP).
+		return s.aliveFrom(s.res.e.ctrl)
+	case kop.RefEachOpponent:
+		// gorge Defined$ Opponent: AliveFrom(controller) without it
+		return s.oppsFrom(s.res.e.ctrl)
 	}
-	p := s.playerRef(k, r)
-	return p, 255
+	return seatOne(s.playerRef(k, r))
 }
 
 // tgtCode is the resolving entry's target i, or NoTarget when it was

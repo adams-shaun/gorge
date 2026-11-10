@@ -16,15 +16,16 @@ const (
 	StatIncreaseCost               // spells matching Filter cost A more (Ward-like taxes)
 
 	// --- appended by dirac/kgen (fields in table.go) ---
-	StatCDAPT          // characteristic-defining P/T: the source's P/T are VA/VB
-	StatNoMaxHandSize  // the controller has no maximum hand size
-	StatExtraLandPlay  // the controller may play an additional land each turn
-	StatMayPlayFrom    // the controller may play cards matching Filter from zone Zone (StFlags qualify)
-	StatOverride       // objects matching Filter get Table.Overrides[Override-1]
-	StatPlayerHexproof // the controller has hexproof (Crystal Barricade)
-	StatCantBeCast     // spells matching Filter can't be cast (StRaiseYou: by the controller only; StRaiseOpp: by its opponents only; Cond2) (gorge castRestricted)
-	StatControl        // the source's controller controls the objects matching Filter (the source Aura's enchanted permanent; layer 2, CR 613.1b): Control Magic, Kitnap
-	StatPanharmonicon  // a triggered ability of an object of the controller matching Filter triggers an additional time (CR 603.2d; gorge statics_echo.go panharmoniconEchoes)
+	StatCDAPT             // characteristic-defining P/T: the source's P/T are VA/VB
+	StatNoMaxHandSize     // the controller has no maximum hand size
+	StatExtraLandPlay     // the controller may play an additional land each turn
+	StatMayPlayFrom       // the controller may play cards matching Filter from zone Zone (StFlags qualify)
+	StatOverride          // objects matching Filter get Table.Overrides[Override-1]
+	StatPlayerHexproof    // the controller has hexproof (Crystal Barricade)
+	StatCantBeCast        // spells matching Filter can't be cast (StRaiseYou: by the controller only; StRaiseOpp: by its opponents only; Cond2) (gorge castRestricted)
+	StatControl           // the source's controller controls the objects matching Filter (the source Aura's enchanted permanent; layer 2, CR 613.1b): Control Magic, Kitnap
+	StatPanharmonicon     // a triggered ability of an object of the controller matching Filter triggers an additional time (CR 603.2d; gorge statics_echo.go panharmoniconEchoes)
+	StatHexproofOwnColors // objects matching Filter have hexproof from each of their own current colours (a granted Hexproof:CardColors, CR 702.11d; kw_hexproofcolor.go)
 	StatCount
 )
 

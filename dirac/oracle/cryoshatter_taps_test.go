@@ -40,7 +40,52 @@ func cryoshatterCases() []effectLongCase {
 			surface: "autopay",
 			reached: func(g *GorgeSide) bool { return cryoshatterAttack(g, false) },
 		},
+		{
+			// A Taps-deferred mono-colour dork: gorge's census never lists
+			// the enchanted Elves (its tap fires an unvetted Taps watcher),
+			// so its {G} funds no Bears in the offer.
+			name:   "cryoshatter_on_mono_colour_dork_does_not_fund_a_cast",
+			prefer: []string{"Cryoshatter", "Llanowar Elves"},
+			decks: [2][]string{
+				append(deckOf(8, "Cryoshatter"), deckOf(16, "Island")...),
+				append(deckOf(6, "Grizzly Bears", deckOf(4, "Llanowar Elves")...), deckOf(14, "Forest")...),
+			},
+			surface: "autopay",
+			reached: cryoshatterDorkPriority,
+		},
 	}
+}
+
+// cryoshatterDorkPriority: a Cryoshatter was attached to a Llanowar Elves,
+// and in a later turn of the Elves' controller (so it is not summoning sick)
+// that player received priority with the Elves still enchanted, untapped
+// and on the battlefield -- the offer the census gap decides.
+func cryoshatterDorkPriority(g *GorgeSide) bool {
+	var elves, aura state.ObjID
+	var owner state.PlayerID
+	tapped, ownTurn := false, false
+	for _, e := range g.E.L.Events {
+		switch {
+		case elves == 0 && e.Kind == events.Attach && len(e.IDs) == 1:
+			a, h := g.E.G.Obj(e.Obj), g.E.G.Obj(e.IDs[0])
+			if a != nil && a.Face() != nil && a.Face().Name == "Cryoshatter" &&
+				h != nil && h.Face() != nil && h.Face().Name == "Llanowar Elves" {
+				elves, aura, owner = e.IDs[0], e.Obj, h.Controller
+			}
+		case elves == 0:
+		case e.Kind == events.MoveZone && (e.Obj == elves || e.Obj == aura) && e.From == state.ZBattlefield:
+			elves = 0
+		case e.Kind == events.Tap && e.Obj == elves:
+			tapped = true
+		case e.Kind == events.Untap && e.Obj == elves:
+			tapped = false
+		case e.Kind == events.TurnChange:
+			ownTurn = e.Player == owner
+		case e.Kind == events.Priority && ownTurn && e.Player == owner && !tapped:
+			return true
+		}
+	}
+	return false
 }
 
 // cryoshatterAttack: a creature enchanted by a Cryoshatter was declared an

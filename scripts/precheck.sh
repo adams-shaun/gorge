@@ -61,7 +61,13 @@ echo "== 3 dirac gate ($base's copy)"
 gate=$(mktemp "${TMPDIR:-/tmp}/precheck-dirac-gate.XXXXXX") || exit 2
 trap 'rm -f -- "$gate"' EXIT
 git show "$base:scripts/dirac-gate.sh" >"$gate" || exit 2
-out=$(bash "$gate" "$base" 2>&1)
+# PRECHECK_DIRAC_GATE names a program that runs the same gate elsewhere (another machine) and prints its
+# output and exits with its code; it is called with the base and must itself fall back to a local run.
+if [ -n "${PRECHECK_DIRAC_GATE:-}" ] && [ -x "$PRECHECK_DIRAC_GATE" ]; then
+	out=$("$PRECHECK_DIRAC_GATE" "$base" 2>&1)
+else
+	out=$(bash "$gate" "$base" 2>&1)
+fi
 rc=$?
 grep -E '^(==|dirac gate|State|Benchmark|fdn:|blb:|std-|  )' <<<"$out" | head -60
 [ "$rc" -eq 0 ] || bad "dirac gate rc=$rc"

@@ -13,7 +13,7 @@ import (
 // TestFourSeatVanillaKernelGenesisAgrees starts four-seat vanilla matchups
 // on the kernel through the oracle (KernelMatchupN, RealKernel's InitN) and
 // on gorge: at the first decision both projections carry four seats and
-// agree on every field the kernel's Projection holds. A short lockstep then runs to its first divergence
+// agree on every field, further seats' zone positions included. A short lockstep then runs to its first divergence
 // or the end without the harness panicking.
 func TestFourSeatVanillaKernelGenesisAgrees(t *testing.T) {
 	c, _ := testCorpus(t)
@@ -49,20 +49,6 @@ func TestFourSeatVanillaKernelGenesisAgrees(t *testing.T) {
 		gs.Project(&gp)
 		if kp.Seats.NSeat != 4 || gp.Seats.NSeat != 4 {
 			t.Fatalf("game %d: NSeat kernel %d gorge %d, want 4", g, kp.Seats.NSeat, gp.Seats.NSeat)
-		}
-		// The kernel's Projection lists zone positions for seats 0 and 1
-		// only: a further seat's library card projects no position. Every
-		// other field agrees.
-		unplaced := 0
-		for i := range kp.Cards {
-			c := &kp.Cards[i]
-			if c.Owner >= 2 && c.Zone == ZoneLibrary && c.Pos == 255 && gp.Cards[i].Pos != 255 {
-				c.Pos = gp.Cards[i].Pos
-				unplaced++
-			}
-		}
-		if want := len(decks[2]) + len(decks[3]) - 14; unplaced != want {
-			t.Fatalf("game %d: %d further-seat library cards without a kernel position, want %d", g, unplaced, want)
 		}
 		if d := DiffProjection(&gp, &kp); len(d) != 0 {
 			t.Fatalf("game %d: genesis projections differ (gorge, kernel): %v", g, d)

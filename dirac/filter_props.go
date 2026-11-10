@@ -117,7 +117,12 @@ func (s *State) wordPerm2(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot
 		}
 	case kop.W7AttackingOpp:
 		// attacking a PLAYER who is an opponent of ctrl; a planeswalker defender matches nothing
-		ans = s.perms[sl].flags&pfAttacking != 0 && s.perms[sl].atk == PlayerTarget0+(1-ctrl)
+		if MaxSeats == 2 {
+			ans = s.perms[sl].flags&pfAttacking != 0 && s.perms[sl].atk == PlayerTarget0+(1-ctrl)
+		} else {
+			t := s.perms[sl].atk
+			ans = s.perms[sl].flags&pfAttacking != 0 && isPlayerTarget(t) && IsOpponent(ctrl, CodeSeat(t))
+		}
 	case kop.W7EnchantedByYours:
 		// some Aura attached to the candidate is controlled by ctrl (CR 303.4)
 		for m := s.occ; m.any(); m = m.rest() {

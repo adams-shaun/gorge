@@ -454,6 +454,9 @@ func (s *State) targetableGen(k *prep, sl Slot, p uint8) bool {
 	if k.gen.anyHexCol && s.perms[sl].ctrl != p {
 		hexC |= s.hexPrinted(k, sl) // printed hexproof from a colour (kw_hexproofcolor.go)
 	}
+	if k.gen.anyHexOwn && s.perms[sl].ctrl != p {
+		hexC |= s.hexOwnColors(k, sl) // a granted hexproof from its own colours (kw_hexproofcolor.go)
+	}
 	if k.gen.anyCantTgt && s.cantTargetGen(k, sl, p) {
 		return false // a printed CantTarget static (tgt_canttarget.go)
 	}

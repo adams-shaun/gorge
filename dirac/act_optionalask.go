@@ -71,8 +71,7 @@ func (s *State) startOptSac(k *prep, in *kop.Instr, p uint8) bool {
 			s.ctl = ctlResolve
 			return false
 		}
-		p = s.g.repNext
-		s.g.repNext = 255
+		p = s.repPop()
 	}
 	return true
 }

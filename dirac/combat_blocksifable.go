@@ -29,5 +29,5 @@ func (s *State) blocksIfAbleExt(k *prep, in *kop.Instr) {
 // blockDuty is the defending player's permanents that block this turn if
 // able (empty when the table never marks one).
 func (s *State) blockDuty(k *prep) slotMask {
-	return s.mSlMask(k, mechBlocksIfAble).and(s.ctrlM[1-s.active])
+	return s.mSlMask(k, mechBlocksIfAble).and(s.ctrlM[s.blockDef()])
 }

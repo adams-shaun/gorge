@@ -41,11 +41,11 @@ func TestPlayersControllerFirst(t *testing.T) {
 	sc, _ := newBLBScen(t, []cardset.Entry{{Name: "Plains", Count: 8}})
 	sc.s.active = 0
 	sc.s.res.e.ctrl = 1
-	if a, b := sc.s.players(sc.k, kop.RefEachPlayer); a != 1 || b != 0 {
-		t.Fatalf("ctrl 1 active 0: players %d then %d, want the controller (1) then 0", a, b)
+	if q := sc.s.players(sc.k, kop.RefEachPlayer); q.n != 2 || q.s[0] != 1 || q.s[1] != 0 {
+		t.Fatalf("ctrl 1 active 0: players %v, want the controller (1) then 0", q.s[:q.n])
 	}
 	sc.s.res.e.ctrl = 0
-	if a, b := sc.s.players(sc.k, kop.RefEachPlayer); a != 0 || b != 1 {
-		t.Fatalf("ctrl 0 active 0: players %d then %d, want 0 then 1", a, b)
+	if q := sc.s.players(sc.k, kop.RefEachPlayer); q.n != 2 || q.s[0] != 0 || q.s[1] != 1 {
+		t.Fatalf("ctrl 0 active 0: players %v, want 0 then 1", q.s[:q.n])
 	}
 }
