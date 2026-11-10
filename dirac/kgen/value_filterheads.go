@@ -126,9 +126,11 @@ func (lc *lowerCtx) kvfTimesSVar(v lValue, m, arg string, depth int) (lValue, er
 
 // kvfInlineOperand reports whether a modifier operand is an inline count
 // expression the lowering reads exactly (gorge countOperandValue's '$'
-// fallback): only Remembered$Amount (Refurbished Familiar).
+// fallback): Remembered$Amount (Refurbished Familiar) and the remembered
+// objects matching a Valid spec (Hollow Marauder), each the value the same
+// text reads as a head.
 func kvfInlineOperand(arg string) bool {
-	return arg == "Remembered$Amount"
+	return arg == "Remembered$Amount" || strings.HasPrefix(arg, "Remembered$Valid ")
 }
 
 // kvfTriggerConds adds the player gates to a trigger's

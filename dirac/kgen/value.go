@@ -433,6 +433,16 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vLibrarySizeOf, Ref: ref}
 		case "CardsInHand":
 			v = lValue{Kind: vHandSizeOf, Ref: ref}
+		case "Amount":
+			// gorge counts the player targets of the resolution (the
+			// Hollow Marauder family): over an opponents-only slot two-player
+			// that is whether the slot holds the one opponent. A slot that may
+			// hold the controller counts up to two and refuses.
+			if f := lc.ab.Targets[t].F; f == nil || f.Players != plOpp || len(f.Clauses) != 0 {
+				err = refuse("TargetedPlayer$%s of a slot that is not opponents-only", rest)
+				break
+			}
+			v = lValue{Kind: vTargetPlayers, Ref: ref}
 		case "LifeLostThisTurn":
 			// Thought-Stalker Warlock: lowered only for an opponents-only
 			// player slot, where two-player it is the controller's

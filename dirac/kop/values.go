@@ -464,6 +464,13 @@ const ExYourExtraTurns ExprKind = 227
 // untouched.
 const ExCounterKinds ExprKind = 225
 
+// ExTargetPlayers: 1 when target slot Ref holds a player, else 0 (an unfilled
+// optional slot, or one whose player is no longer a legal target on
+// resolution, CR 608.2b). gorge TargetedPlayer$Amount over a slot of an
+// opponents-only ValidTgts$ in a two-player game, where the slot holds at
+// most the one opponent. Explicit ordinal, the iota tail stays untouched.
+const ExTargetPlayers ExprKind = 224
+
 // ExNotOwnLibMV: the summed mana value of the library cards in the
 // resolution's remembered set that the repeated player (an OpRepeatEachPlayer
 // in progress) does not own: Parker Luck's Count$ValidLibrary
