@@ -8,7 +8,10 @@ import (
 
 // castThroughPayLifeGrant is the condition that Inside Information is in a
 // graveyard and a spell is on the stack that was cast through a may-play
-// grant: the card it exiled was cast for life, not mana.
+// grant: the card it exiled was cast for life, not mana. The spell must be
+// one its caster does not own: Inside Information exiles the opponent's
+// library, so this excludes Snowslope Hunter's own-library permission (which
+// carries no pay-life bit and never reaches the canon pay-life arm).
 func castThroughPayLifeGrant(name string) func(ref *GorgeSide) bool {
 	return func(ref *GorgeSide) bool {
 		g := ref.E.G
@@ -20,7 +23,7 @@ func castThroughPayLifeGrant(name string) func(ref *GorgeSide) bool {
 			return false
 		}
 		for _, id := range g.Zone(state.ZStack, 0) {
-			if o := g.Obj(id); o != nil && o.CastFlags&state.FlagMayPlay != 0 {
+			if o := g.Obj(id); o != nil && o.CastFlags&state.FlagMayPlay != 0 && o.Owner != o.Controller {
 				return true
 			}
 		}
