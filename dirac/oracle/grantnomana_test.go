@@ -8,8 +8,8 @@ import (
 
 // A granted mana ability (Cryptolith Rite) beside a source of no colour
 // (Command Tower, Path of Ancestry: commander identity, nothing without a
-// commander, CR 903.4f): gorge's prefix search taps the no-colour gap in
-// battlefield order with the granted ones, so the kernel's must too.
+// commander, CR 903.4f): the source makes nothing, so it is no census gap of
+// gorge's and neither prefix search taps it beside the granted ones.
 var kgrantNoManaDecks = [2][]cardset.Entry{
 	{{Name: "Cryptolith Rite", Count: 8}, {Name: "Path of Ancestry", Count: 6}, {Name: "Command Tower", Count: 4},
 		{Name: "Grizzly Bears", Count: 8}, {Name: "Craw Wurm", Count: 6}, {Name: "Forest", Count: 8}},

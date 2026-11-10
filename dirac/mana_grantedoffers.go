@@ -456,9 +456,6 @@ type grantSrch struct {
 	// def: the candidate is a deferred source (Pyromancer's Goggles), a census
 	// gap of gorge's beside the grants (mana_grantdeferred.go)
 	def [MaxPerm]bool
-	// none: the candidate is a source of no colour (Command Tower), a census gap
-	// of gorge's that adds nothing (mana_grantnone.go)
-	none [MaxPerm]bool
 	// each: the candidate is an each-colour gap (Tarnation Vista), a census gap
 	// of gorge's beside the grants (mana_granteach.go)
 	each [MaxPerm]bool
@@ -567,8 +564,7 @@ func (g *grantSrch) candidates(s *State) {
 	}
 	tm := s.grantTapXGaps(g.k, g.p)
 	dm := s.scriptDeferred(g.k, g.p)
-	nm := s.scriptManaNone(g.k, g.p).or(s.scriptDynZero(g.k, g.p)) // (mana_grantnone.go)
-	em := s.scriptGaps(g.k, g.p)                                   // (mana_granteach.go)
+	em := s.scriptGaps(g.k, g.p) // (mana_granteach.go)
 	g.n = 0
 	holders := 0
 	for i := 0; i < n; i++ {
@@ -577,7 +573,7 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		ng := s.grantIdxs(g.k, sl, &g.gi[g.n])
-		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !nm.has(sl) && !em.has(sl) {
+		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) {
 			continue
 		}
 		if ng > 0 {
@@ -586,8 +582,7 @@ func (g *grantSrch) candidates(s *State) {
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
 		g.def[g.n] = ng == 0 && dm.has(sl)
 		g.cobj[g.n] = s.perms[sl].obj
-		g.none[g.n] = ng == 0 && nm.has(sl)
-		g.each[g.n] = ng == 0 && em.has(sl) && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !nm.has(sl)
+		g.each[g.n] = ng == 0 && em.has(sl) && !fm.has(sl) && !tm.has(sl) && !dm.has(sl)
 		g.gap[g.n] = true
 		if fm.has(sl) {
 			g.funding += s.filtFee(g.k, sl)
@@ -622,7 +617,7 @@ func (g *grantSrch) candidates(s *State) {
 		if sl == g.ex || seen(sl) || !s.canTapForMana(g.k, sl) {
 			continue
 		}
-		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n], g.def[g.n], g.none[g.n] = sl, 0, true, false, false, false, false
+		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n], g.def[g.n] = sl, 0, true, false, false, false
 		g.each[g.n] = false
 		g.gap[g.n] = false
 		g.n++
@@ -721,12 +716,6 @@ func (g *grantSrch) visit(t *State) bool {
 		}
 		if g.each[i] {
 			if g.eachBranch(t, i, sl) { // its chosen colour, or its fee-paid colours (mana_granteach.go)
-				return true
-			}
-			continue
-		}
-		if g.none[i] {
-			if g.noneBranch(t, i, sl) { // taps for nothing (mana_grantnone.go)
 				return true
 			}
 			continue
@@ -1304,13 +1293,6 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		switch st.gi {
 		case stepTapX:
 			s.tapXDo(k, g.p, tapXStep{sl: sl, cand: st.cand, cand2: NoSlot, col: st.col, kind: tapXAct})
-			continue
-		case stepManaNone:
-			s.noneApply(k, g.p, sl, st.col) // (mana_grantnone.go)
-			if g.tapTriggers(s, sl) {
-				passed = true
-				s.tapXNext(g.p, &d)
-			}
 			continue
 		case stepEach:
 			s.eachApply(k, g.p, sl, st.col) // (mana_granteach.go)

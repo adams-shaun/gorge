@@ -1854,7 +1854,9 @@ func (c paymentPlanCensus) fees() int {
 // color" counts, since other sources could fund its fee), while every
 // non-mana part of the cost is read for real. A tapped land's {T} ability
 // can contribute nothing to this payment (CR 602.2b: its cost cannot be
-// paid), so it never makes the census incomplete.
+// paid), so it never makes the census incomplete; nor does an ability that
+// makes nothing (manaAbilityYieldsNothing: an empty commander colour
+// identity, CR 903.4f, or an Amount$ that resolves to zero).
 //
 // For each ability the census misses it also builds the relaxed
 // alternatives (paymentPlanRelaxedAlternatives); relaxable is false when
@@ -1873,8 +1875,17 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 	bounded := true // every gap ability so far has a once-only or bounded relaxation
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		var abs []*cards.SA
+		var face *cards.Face
+		if o := e.G.Obj(id); o != nil {
+			face = o.Face()
+		}
 		for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
-			if e.manaAbilityPayablePool(p, id, ma, hyp) {
+			// An ability that makes nothing -- "any color in your commander's
+			// color identity" with no such colour (CR 903.4f), an Amount$ that
+			// resolves to zero -- can, like a tapped land's, contribute
+			// nothing to the payment, so the planner missing it leaves the
+			// census complete and no prefix activates it.
+			if !(face != nil && e.manaAbilityYieldsNothing(p, id, face, ma)) && e.manaAbilityPayablePool(p, id, ma, hyp) {
 				abs = append(abs, ma)
 			}
 		}

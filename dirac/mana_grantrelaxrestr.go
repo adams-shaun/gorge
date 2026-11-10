@@ -58,3 +58,17 @@ func (g *genPrep) anyGrantRestr() bool {
 	}
 	return false
 }
+
+// grantRefusedPrices reports whether the walk prices play a of p only through
+// a restricted granted mana ability a's payment may not spend (Clement's
+// creature-spell-only {G} or {U} beside an instant): the walk counts every
+// grant as a unit, but gorge's planner reads no granted ability, and the mana
+// a prefix tap of that grant floats is refused by the payment (CR 106.6), so
+// no node of gorge's search prices the play with it.
+func (s *State) grantRefusedPrices(k *prep, p uint8, a Action) bool {
+	if k.gen == nil || !k.gen.anyGrantRestr() || !isCastKind(a.Kind()) && a.Kind() != AkActivate {
+		return false
+	}
+	cost, _, _, ok := s.grantPlayCost(k, p, a, true)
+	return ok && s.relaxRestrRefuses(k, p, &cost, s.grantPayDesc(a))
+}

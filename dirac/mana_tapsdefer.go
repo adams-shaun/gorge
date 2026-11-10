@@ -200,3 +200,11 @@ func (s *State) planTiered(k *prep, p uint8, pk *planner, exclude Obj) {
 	pk.tapsIn = true
 	s.plan(k, p, pk, exclude)
 }
+
+// StallRestrDefer: a non-spell payment only a Taps-deferred restricted mana
+// source can fund (restrSrcAffords). gorge pays it through its prefix search,
+// tapping the source first and choosing among its restricted abilities; the
+// kernel's Taps-deferred gap route models one plain production.
+const StallRestrDefer = 160
+
+func init() { stallNames[StallRestrDefer] = "restrdefer" }

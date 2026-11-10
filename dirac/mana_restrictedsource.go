@@ -72,6 +72,11 @@ type payDesc struct {
 	// (grantPayDesc): a sorcery-speed play waits for a stack its prefix grew
 	play    Action
 	hasPlay bool
+	// instant: the play may be made with a trigger on the stack (an
+	// instant-speed activation, an instant or flash spell), so gorge's prefix
+	// search, which leaves a tapped source's watcher trigger stacked, can fund
+	// it (restrSrcAffords)
+	instant bool
 }
 
 // restrRec is one restricted mana ability of the table: card c's ability
@@ -481,8 +486,23 @@ func (s *State) restrSrcAffords(k *prep, p uint8, d payDesc, cost *kop.ManaCost,
 	if restrSrcNone(k.gen.rs, &d, cost, av, extra) {
 		return false
 	}
-	t, multi, nm := s.restrSrcAvail(k, p, d, av, skip)
-	return t.affordsMulti(cost, extra, multi[:nm])
+	t, multi, nm := s.restrSrcAvailD(k, p, d, av, skip, false)
+	if t.affordsMulti(cost, extra, multi[:nm]) {
+		return true
+	}
+	if d.instant && s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0 {
+		// Only a Taps-deferred restricted source pays it (Steelswarm Operator
+		// under Cryoshatter, funding an artifact's activation): gorge's census
+		// leaves the source out and its prefix search pays an instant-speed
+		// play by tapping the source first, its watcher's trigger stacked
+		// beneath, choosing which restricted ability to tap (a sorcery-speed
+		// play waits for that stack and is not offered). The script route
+		// models no restricted gap's ability choice.
+		if t, multi, nm = s.restrSrcAvailD(k, p, d, av, skip, true); t.affordsMulti(cost, extra, multi[:nm]) {
+			s.capFull(StallRestrDefer)
+		}
+	}
+	return false
 }
 
 // restrSrcNone: no restricted source of the table can make av pay cost
@@ -512,10 +532,23 @@ func restrSrcNone(rs *restrData, d *payDesc, cost *kop.ManaCost, av *avail, extr
 // colours; an evaluated amount (Helga) is returned apart (multi[:nm]): that
 // many mana of one colour.
 func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot) (t avail, multi [2]uint8, nm int) {
+	return s.restrSrcAvailD(k, p, d, av, skip, false)
+}
+
+// restrSrcAvailD is restrSrcAvail; withDeferred counts the Taps-deferred
+// sources too. Without it they follow availFor's census gate: gorge's census
+// never lists a source whose tap fires an unvetted Taps watcher
+// (mana_tapsdefer.go), restricted or not, so its restricted mana funds no
+// planned payment; the potential walks still count it.
+func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot, withDeferred bool) (t avail, multi [2]uint8, nm int) {
 	t = *av
+	deferSkip := !withDeferred && s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
 		if sl == skip || k.gen.flags[s.cardAt(sl)]&gfRestrSrc == 0 {
+			continue
+		}
+		if deferSkip && s.planDeferred(k, p, sl) {
 			continue
 		}
 		own := s.manaPCGen(k, sl)
@@ -608,7 +641,7 @@ func (s *State) restrFallback(k *prep, p uint8, c CardID, og restrOrigin, cost *
 		}
 	}
 	// restrSrcNone precondition: every caller tests !av.affords first.
-	return k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: og}, cost, av, NoSlot, 0)
+	return k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: og, instant: k.cards[c].instant || s.castFlash(k, p, c)}, cost, av, NoSlot, 0)
 }
 
 // payRiderRestr is payRider on a table with restricted planner sources: a
@@ -718,7 +751,7 @@ func (s *State) castAffordsR(k *prep, p uint8, c CardID, og restrOrigin, cost *k
 		}
 	}
 	// restrSrcNone precondition: restrSrcAffords runs only once av.affords failed (above).
-	return k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: og}, cost, av, NoSlot, 0)
+	return k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: og, instant: k.cards[c].instant || s.castFlash(k, p, c)}, cost, av, NoSlot, 0)
 }
 
 // restrFaceAffords: a hybrid pip's face r (plus extra generic) is payable once
@@ -825,9 +858,9 @@ func (a avail) maxXMulti(cost *kop.ManaCost, pipMask uint8, ns []uint8) int {
 // failed (legal.go abilityAffords): restrSrcNone's precondition.
 //
 //go:noinline
-func (s *State) actRestrAffords(k *prep, sl Slot, cost *kop.ManaCost, av *avail, skip Slot) bool {
+func (s *State) actRestrAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaCost, av *avail, skip Slot) bool {
 	p := s.perms[sl].ctrl
-	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl}
+	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl, instant: a.Cost.Flags&kop.CostSorcery == 0}
 	if m := s.restrPoolAct(k, p, &d); m != 0 {
 		// the floating restricted mana beside the restricted sources
 		// (gorge AvailableFor holds both)

@@ -51,7 +51,7 @@ func cryoshatterCases() []effectLongCase {
 				append(deckOf(6, "Grizzly Bears", deckOf(4, "Llanowar Elves")...), deckOf(14, "Forest")...),
 			},
 			surface: "autopay",
-			reached: func(g *GorgeSide) bool { return cryoshatterDorkPriority(g, 1) },
+			reached: func(g *GorgeSide) bool { return cryoshatterDorkPriority(g, "Llanowar Elves", 1) },
 		},
 		{
 			// Two Cryoshatters on the Elves: its tap sets off two of the
@@ -66,18 +66,32 @@ func cryoshatterCases() []effectLongCase {
 				append(deckOf(6, "Grizzly Bears", deckOf(4, "Llanowar Elves")...), deckOf(14, "Forest")...),
 			},
 			surface: "full",
-			reached: func(g *GorgeSide) bool { return cryoshatterDorkPriority(g, 2) },
+			reached: func(g *GorgeSide) bool { return cryoshatterDorkPriority(g, "Llanowar Elves", 2) },
+		},
+		{
+			// A Taps-deferred source whose only mana is restricted (an
+			// artifact-spell {U}, an artifact-activation {U}{U}): gorge's
+			// census leaves it out for the restricted mana too, so it funds
+			// no artifact creature on the autopay surface.
+			name:   "cryoshatter_on_restricted_mana_source_does_not_fund_a_cast",
+			prefer: []string{"Cryoshatter", "Steelswarm Operator"},
+			decks: [2][]string{
+				append(deckOf(8, "Cryoshatter"), deckOf(16, "Island")...),
+				append(deckOf(6, "Mechan Navigator", deckOf(4, "Steelswarm Operator")...), deckOf(14, "Island")...),
+			},
+			surface: "autopay",
+			reached: func(g *GorgeSide) bool { return cryoshatterDorkPriority(g, "Steelswarm Operator", 1) },
 		},
 	}
 }
 
 // cryoshatterDorkPriority: at least auras distinct Cryoshatters were
-// attached to one Llanowar Elves, and in a later turn of the Elves'
+// attached to one permanent named dork, and in a later turn of its
 // controller (so it is not summoning sick) that player received priority
-// with the Elves still enchanted by them all, untapped and on the
-// battlefield -- the offer the census gap decides.
-func cryoshatterDorkPriority(g *GorgeSide, auras int) bool {
-	host := map[state.ObjID]state.ObjID{} // Cryoshatter -> enchanted Llanowar Elves
+// with it still enchanted by them all, untapped and on the battlefield --
+// the offer the census gap decides.
+func cryoshatterDorkPriority(g *GorgeSide, dork string, auras int) bool {
+	host := map[state.ObjID]state.ObjID{} // Cryoshatter -> enchanted dork
 	tapped := map[state.ObjID]bool{}
 	ready := map[state.ObjID]bool{} // enchanted enough when the current turn began
 	var active state.PlayerID
@@ -99,7 +113,7 @@ func cryoshatterDorkPriority(g *GorgeSide, auras int) bool {
 			}
 			a, h := g.E.G.Obj(e.Obj), g.E.G.Obj(e.IDs[0])
 			if a != nil && a.Face() != nil && a.Face().Name == "Cryoshatter" &&
-				h != nil && h.Face() != nil && h.Face().Name == "Llanowar Elves" {
+				h != nil && h.Face() != nil && h.Face().Name == dork {
 				host[e.Obj] = e.IDs[0]
 			}
 		case events.MoveZone:

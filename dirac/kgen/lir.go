@@ -1041,6 +1041,10 @@ type lEmblem struct {
 	// emblem's own capture, lowered without the Remembered flag
 	Capture    lRef
 	CaptureSet bool
+	// CaptureIsPlayer: the capture names the chain's PLAYER target (an
+	// Effect's RememberObjects$ TargetedPlayer), so build_ab sends it to
+	// kop.Emblem.CapturePlayer rather than Capture.
+	CaptureIsPlayer bool
 	// CaptureLapse: the capture ends when the object leaves the battlefield
 	// (ForgetOnMoved$ / ExileOnMoved$ Battlefield; kop.Emblem.CaptureLapse)
 	CaptureLapse bool
