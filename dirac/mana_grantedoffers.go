@@ -677,14 +677,14 @@ func (g *grantSrch) visit(t *State) bool {
 		}
 		tx := g.tapx[i] && t.scriptTapX(g.k, g.p).has(sl)
 		grants := t.canTapForMana(g.k, sl)
-		if !grants && !tx {
-			continue
+		fok := g.filt[i] && t.filtPaid(g.k, g.p, sl)
+		if !grants && !tx && !fok {
+			continue // (a summoning-sick Changeling's filter stays: only its granted {T} ability is out, CR 302.6)
 		}
 		// several abilities (its own beside a grant, two grants): the
 		// "choose a mana ability" ask, one node, the printed ability's
 		// answers first (gorge flattens a Combo's colours into that ask;
 		// an Any ability still asks its colour)
-		fok := g.filt[i] && t.filtPaid(g.k, g.p, sl)
 		alts := 0
 		if grants {
 			alts = t.grantAlts(g.k, g.p, sl, &g.gi[i], int(g.ng[i]))
@@ -705,6 +705,9 @@ func (g *grantSrch) visit(t *State) bool {
 			return true
 		}
 		if !grants {
+			if fok && g.filtBranch(t, i, sl) {
+				return true
+			}
 			continue
 		}
 		pre := g.askNeededFirst(t, i, sl) // (the granted colours the ask answers first)
@@ -720,7 +723,7 @@ func (g *grantSrch) visit(t *State) bool {
 			}
 			mask, n := uint8(0), uint8(0)
 			if ra := t.ownRestrAb(g.k, sl); ra != nil && !t.ownManaUsable(g.k, sl) {
-				mask, n = uint8(ra.ManaColors)&0x3f, max(ra.ManaN, 1) // the restricted printed ability
+				mask, n = uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra) // the restricted printed ability
 				// gorge's search taps it first whether or not the play may spend
 				// it; mana the play cannot spend prices nothing
 				g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
@@ -738,7 +741,7 @@ func (g *grantSrch) visit(t *State) bool {
 			// the usable one, whether or not the play may spend it
 			if ra := t.ownRestrAb(g.k, sl); ra != nil {
 				g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
-				if g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, max(ra.ManaN, 1), false) {
+				if g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra), false) {
 					return true
 				}
 			}
@@ -1691,4 +1694,14 @@ func (g *grantSrch) preBranch(t *State, i int, sl Slot, j int, mask uint8, one b
 	pc := t.grantView(g.k.gen, gi, sl)
 	g.skipPool = !g.grantAdmits(t, sl, gi)
 	return g.branch(t, i, sl, gi, mask, pc.manaN, one)
+}
+
+// restrAbN is the mana a tap of sl's printed restricted ability ra makes: an
+// evaluated amount (Helga's X, her power) is read off the board, where kgen's
+// ManaN is the placeholder 1 for every dynamic ability.
+func (s *State) restrAbN(k *prep, sl Slot, ra *kop.Ability) uint8 {
+	if ra.AFlags&kop.AfManaDynamic != 0 {
+		return uint8(max(s.dynManaN(k, ra, sl), 1))
+	}
+	return uint8(max(ra.ManaN, 1))
 }
