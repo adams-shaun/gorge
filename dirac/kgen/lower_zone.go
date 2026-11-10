@@ -3820,10 +3820,16 @@ func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride, 
 			return refuse("Animate staticAbilities$ %q lowered to %d statics", name, len(lc.out.Statics)-before)
 		}
 		// A single body must lower to the layer P/T/keyword kind, whose
-		// kernel walk honours OvGate (statCond); a player-hexproof or
+		// keyword/P/T walks honour OvGate (statCond); a player-hexproof or
 		// stack-keyword static reads no gate and would be live unanimated.
+		// The attached-grant walk (grantsBetween) reads no statCond, so a
+		// granted ability or trigger (AddAbility$/AddTrigger$) beside the
+		// pump would reach the equipped creature unanimated: refuse it.
 		if k := lc.out.Statics[before].Kind; single && !may && !land && k != "Continuous" {
 			return refuse("Animate staticAbilities$ %q lowers to ungated static kind %s", name, k)
+		}
+		if single && !may && !land && len(lc.out.Statics[before].Grant) != 0 {
+			return refuse("Animate staticAbilities$ %q grants an ability the kernel does not gate", name)
 		}
 		bit := uint8(1) << gated
 		lc.out.Statics[before].OvGate = bit

@@ -54,6 +54,21 @@ func TestLowerAnimateGrantStatic(t *testing.T) {
 			want: "ungated static kind StackKw",
 		},
 		{
+			name: "equipped pump granting an ability reads no gate",
+			body: "A:AB$ Animate | Cost$ 1 | Defined$ Self | Duration$ Permanent | staticAbilities$ Static | SpellDescription$ test\n" +
+				"SVar:Static:Mode$ Continuous | AffectedDefined$ Equipped | Affected$ Creature | AddPower$ 1 | AddAbility$ ABP | Description$ test\n" +
+				"SVar:ABP:AB$ Pump | Cost$ T | Defined$ Self | NumAtt$ +1 | SpellDescription$ test\n",
+			want: "grants an ability the kernel does not gate",
+		},
+		{
+			name: "anthem granting a trigger reads no gate",
+			body: "A:AB$ Animate | Cost$ 1 | Duration$ Permanent | staticAbilities$ Static | SpellDescription$ test\n" +
+				"SVar:Static:Mode$ Continuous | Affected$ Creature.Other+YouCtrl | AddKeyword$ Haste | AddTrigger$ TrigP | Description$ test\n" +
+				"SVar:TrigP:Mode$ Attacks | ValidCard$ Card.Self | Execute$ ProbePump | TriggerDescription$ probe grant trigger\n" +
+				"SVar:ProbePump:DB$ Pump | Defined$ Self | NumAtt$ +1 | NumDef$ +0\n",
+			want: "grants an ability the kernel does not gate",
+		},
+		{
 			name: "comma list stays a permission shape",
 			body: "A:AB$ Animate | Cost$ 1 | Defined$ Self | Duration$ Permanent | staticAbilities$ A,B | SpellDescription$ test\n" +
 				"SVar:A:Mode$ Continuous | Affected$ Creature.Other+YouCtrl | AddKeyword$ Indestructible | Description$ test\n" +
