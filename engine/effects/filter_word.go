@@ -1331,6 +1331,11 @@ func contextPredicateBound(g *state.Game, kind wordKind, key string, sc SpecCont
 		return o != nil && o.AttachedTo != 0 && g.Obj(o.AttachedTo) != nil
 	case wordImprinted, wordChosenColor:
 		return sc.Source != 0
+	case wordCountersReceived:
+		// The per-turn counter ledger is bound only where a caller publishes
+		// it (counterAddsFor); without it the word must not answer, or the
+		// '!' spelling would match every object.
+		return sc.CounterAdds != nil
 	case wordDealtDamageByThisGame:
 		// The bare word names the bound source; without one it must not
 		// invert an absent referent beneath '!'.

@@ -29,14 +29,19 @@ type counterAddsHost interface {
 
 // counterAddsFor returns the ledger for a spec that reads it, nil for every
 // other spec (the hot count path pays one substring test and nothing else).
+// For a spec that names the word the result is never nil: a host without the
+// role publishes an empty, bound ledger. nil means "not bound" to
+// contextPredicateBound, which makes both spellings fail closed.
 func counterAddsFor(h Host, spec string) []CounterAdd {
 	if !strings.Contains(spec, countersReceivedWord) {
 		return nil
 	}
 	if ch, ok := h.(counterAddsHost); ok {
-		return ch.CounterAddsThisTurn()
+		if adds := ch.CounterAddsThisTurn(); adds != nil {
+			return adds
+		}
 	}
-	return nil
+	return []CounterAdd{}
 }
 
 const countersReceivedWord = "countersReceivedThisTurn_"

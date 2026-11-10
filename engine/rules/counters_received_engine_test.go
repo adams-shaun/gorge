@@ -9,8 +9,8 @@ import (
 
 // TestCountersReceivedThisTurnEngine runs La Forge's real X body against the
 // engine's counter ledger: my placement marks the permanent, an opponent's
-// placement on it does not, a marked permanent that left is not counted (it is
-// not on the battlefield), and the TurnChange ends every mark.
+// placement on it does not, my placement on an opponent's permanent fails
+// YouCtrl, and the TurnChange ends every mark.
 func TestCountersReceivedThisTurnEngine(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
