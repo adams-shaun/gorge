@@ -812,10 +812,12 @@ type lStatic struct {
 	Cost         lCost
 	Zone         int
 	Override     *lOverride
-	Grant        []int    // latent abilities the affected objects gain
-	Flags        []string // kind-specific flags
-	Note         string
-	Ward         int // a Continuous grant's "Ward:N" (Kw then holds "Ward")
+	// ProtFrom: a Continuous grant's protection qualities (kop.Static.ProtFrom)
+	ProtFrom *lFilter
+	Grant    []int    // latent abilities the affected objects gain
+	Flags    []string // kind-specific flags
+	Note     string
+	Ward     int // a Continuous grant's "Ward:N" (Kw then holds "Ward")
 	// AbilityRed: a ReduceCost static of activated abilities (Type$ Ability)
 	// rather than spells: 1 any, 2 Exhaust abilities only, 3 a Room unlock,
 	// 4 Power-up abilities only, 5 Equip abilities only (F2: their target;

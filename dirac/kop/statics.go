@@ -74,6 +74,12 @@ type Static struct {
 	// grant costs each card's mana cost. A StatWarpGrant's warp cost
 	// (AddKeyword$ Warp:2 R, Tannuk, Steadfast Second).
 	GrantCost ManaCost
+	// ProtFrom: a StatContinuous grant of protection from a quality, besides
+	// its other parts: the affected objects have protection from the sources
+	// this filter matches (CR 702.16; the grant's AddKeyword$ Protection:
+	// <spec>, Sword of Wealth and Power's instants and sorceries). 0 = none.
+	// Read behind genPrep.anyProtF (kernel kw_protection.go).
+	ProtFrom FilterID
 }
 
 // Override is a fixed-order override record (the plan's replacement for a

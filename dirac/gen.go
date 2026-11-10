@@ -127,7 +127,8 @@ type genPrep struct {
 	// source's host ("artifact creatures you control have ..."), so any
 	// permanent can hold the trigger (trigger_granted.go grantTrigHosts)
 	globTrigGrant bool
-	anyProtF      bool // a card has printed K:Protection:<spec> (CardDef.ProtFrom; kw_protection.go)
+	anyProtF      bool // a card has printed K:Protection:<spec> (CardDef.ProtFrom), or a granted one (anyProtGrant)
+	anyProtGrant  bool // a Continuous static has a ProtFrom quality (kop.Static.ProtFrom; kw_protection.go)
 	// manaTaps: the table has a Taps trigger (TrigTaps) and a granted mana
 	// ability, which can tap a Taps listener for mana: the mana taps fire it
 	// (manaTapped)
@@ -1396,6 +1397,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			}
 		}
 	}
+	prepProtGrant(t, g) // kw_protection.go
 	for _, b := range g.replBits {
 		g.anyRepl |= b
 	}

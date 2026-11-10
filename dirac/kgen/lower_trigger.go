@@ -2468,6 +2468,10 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		rest, melee := splitMeleeGrant(rest)
 		rest, exalted := splitExaltedGrant(rest)
+		rest, st.ProtFrom, err = lc.splitProtGrant(rest) // lower_protgrant.go
+		if err != nil {
+			return nil, err
+		}
 		if rest != "" {
 			if st.Kw, err = pumpKeywords(rest); err != nil {
 				return nil, err

@@ -62,6 +62,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-ecl", "convoke_target_window_drum_three_picks"},                           // Appeal to Eirdu convoked by three Kithkin, the last generic from the Drum
 		{"std-ecl", "convoke_target_window_bloom_tender", full},                         // Temporal Cleansing with no picks and a Bloom Tender, a source gorge's census cannot price: the cast is not reversed at the target
 		{"std-ecl", "static_hexproof_own_colours_red_spell"},                            // Tam, Mindful First-Year's own-colours hexproof static: a red creature beside it is not an opponent's red spell target while Tam is, and both engines agree
+		{"std-big", "sword_granted_protection_instants_sorceries"},                      // Sword of Wealth and Power: the equipped creature has protection from instants and sorceries, so a target menu of either kind leaves it out (CR 702.16b)
 		{"std-ecl", "wretch_blight_dies"},                                               // a Retched Wretch that came back has no abilities: its second death, with -1/-1 counters again, triggers nothing
 		{"std-ecl", "pyrrhic_strike_unpaid"},                                            // Pyrrhic Strike cast without its optional two-life cost: its charm chooses exactly one mode (CR 117.12, 702.34)
 		{"std-ecl", "pyrrhic_strike_paid"},                                              // Pyrrhic Strike cast paying the two life: its charm chooses up to two modes (CR 117.12, 702.34)
