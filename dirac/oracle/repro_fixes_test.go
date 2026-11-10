@@ -643,6 +643,7 @@ func TestStdSosReprosLockstep(t *testing.T) {
 		{"granted_flashback_when_printed_nonmana_unpayable", true, false},   // CR 702.34a: a printed flashback whose tap-three-creatures cost is unpayable leaves the granted mana-cost instance castable (Group Project)
 		{"restricted_pool_cast_plans_sources_before_discard", false, false}, // CR 601.2b, 601.2g-h, 106.6: Seize the Spoils cast with Abstract Paintmage's restricted {U}{R} floating taps the planned Mountain at announcement, before the discard is chosen
 		{"free_cast_unpayable_discard_returns_to_zone_end", true, false},    // CR 601.2b, 733.1: Improvisation Capstone's free Seize the Spoils with no card to discard is pushed and reversed, and returns behind the other exiled cards
+		{"permission_cast_from_graveyard_not_own_target", false, false},     // CR 601.2a, 601.2c: Flashback cast from the graveyard through Tablet of Discovery's permission is on the stack when its target is chosen, so with no other instant or sorcery there it is not offered
 	})
 }
 

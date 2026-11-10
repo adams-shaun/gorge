@@ -157,7 +157,9 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 			return // (a free cast is no potential play: the floating pool pays what it owes)
 		}
 	}
-	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) {
+	// a graveyard card cast through the permission is on the stack when its
+	// targets are chosen (CR 601.2a, 601.2c): it is no candidate for them
+	if !s.spellTargetsFeasibleFrom(k, c, p, o) || !s.spellCostsFeasible(k, c, p, o) {
 		return
 	}
 	if mode&castFree != 0 && !s.altAddCastableFrom(k, c, p, o, &kop.ManaCost{}, &kop.ManaCost{}, true, anyMana, av) {
