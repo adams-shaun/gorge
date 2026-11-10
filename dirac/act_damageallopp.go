@@ -20,8 +20,10 @@ func (s *State) damageAllOpp(k *prep, in *kop.Instr, ctrl uint8, n int) {
 			hit = hit.with(sl)
 		}
 	}
-	var pl uint8 // dmgSeqPl's bits: 1 the active player, 2 the other
-	if in.B.N&2 != 0 {
+	var pl uint8 // dmgSeqPl's bits: 1 the active player, 2 the other; the seat mask at more seats
+	if in.B.N&2 != 0 && MaxSeats != 2 {
+		pl = seatBits(s.oppsFrom(ctrl))
+	} else if in.B.N&2 != 0 {
 		if 1-ctrl == s.active {
 			pl = 1
 		} else {
@@ -35,16 +37,20 @@ func (s *State) damageAllOpp(k *prep, in *kop.Instr, ctrl uint8, n int) {
 		return
 	}
 	// Same sweep order as OpDamageAll's plain path (gorge effDamageAll:
-	// seat 0's battlefield in entry order, then seat 1's, players last).
+	// each seat's battlefield in entry order, seat 0 first, then each
+	// opponent from the controller, players last).
 	var ord [MaxPerm]Slot
 	hi := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
 		hi = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), ord[:], hi)
 	}
 	for _, sl := range ord[:hi] {
 		s.damageTo(k, uint8(s.perms[sl].obj), n)
 	}
 	if pl != 0 {
-		s.damageTo(k, PlayerTarget0+1-ctrl, n)
+		q := s.oppsFrom(ctrl)
+		for i := uint8(0); i < q.n; i++ {
+			s.damageTo(k, PlayerCode(q.s[i]), n)
+		}
 	}
 }

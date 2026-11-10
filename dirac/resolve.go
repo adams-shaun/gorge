@@ -605,7 +605,7 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 	case kop.RefController:
 		return e.ctrl
 	case kop.RefOpponent, kop.RefEachOpponent, kop.RefDefendingPlayer:
-		return 1 - e.ctrl
+		return s.oneOpp(k, r)
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		t := s.tgtCode(sl)
@@ -640,7 +640,7 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 	case kop.RefSelf:
 		return e.ctrl
 	case kop.RefOppNonRemCtrl:
-		return s.oppNonRemCtrl() // filter_defined.go
+		return s.oppsNonRemCtrl().at(0) // filter_defined.go: the first of the set
 	case kop.RefSrcOwner:
 		return s.srcOwner()
 	}
@@ -927,6 +927,30 @@ func (s *State) players(k *prep, r kop.Ref) seatSeq {
 		return s.oppsFrom(s.res.e.ctrl)
 	}
 	return seatOne(s.playerRef(k, r))
+}
+
+// oneOpp is a single-player read of an opponent ref. At two seats it is the
+// one opponent. At more, the defending player is the player the resolving
+// source is attacking (gorge binds c.DefendingPlayer from the attacking
+// damage or attack source), and an opponent ref read as one player is the
+// first of gorge's Defined$ Opponent list, AliveFrom(controller) without the
+// controller: the next seat still in the game (twoPilesPlayer and the other
+// first-player reads).
+func (s *State) oneOpp(k *prep, r kop.Ref) uint8 {
+	e := &s.res.e
+	if MaxSeats == 2 {
+		return 1 - e.ctrl
+	}
+	if r == kop.RefDefendingPlayer {
+		if e.obj != NoObj {
+			if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].flags&pfAttacking != 0 {
+				if p := s.atkSeat(k, ob.slot); p != NoTarget {
+					return p
+				}
+			}
+		}
+	}
+	return s.nextAlive(e.ctrl)
 }
 
 // tgtCode is the resolving entry's target i, or NoTarget when it was

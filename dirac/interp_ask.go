@@ -950,7 +950,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				return
 			}
 		}
-		r.ask, r.askP = raGenPileChoose, 1-r.e.ctrl
+		r.ask, r.askP = raGenPileChoose, s.nextAlive(r.e.ctrl) // gorge twoPilesPlayer: the first live opponent
 	case raGenPileChoose:
 		// mode 0: the face-down pile (the picks), 1: the face-up pile. The
 		// chosen pile goes to its zone first: the picks in pick order
@@ -2412,7 +2412,7 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 		if fl&kop.DigFaceDown != 0 && z == kop.ZoneExile {
 			exiler := s.res.e.ctrl
 			if fl&kop.DigExilerOther != 0 {
-				exiler = 1 - exiler // DefinedExiler$ Targeted: the opponent exiled it
+				exiler = s.targetedExiler(exiler) // DefinedExiler$ Targeted: the targeted player exiled it
 			}
 			s.faceDownExile(o, s.res.e.obj, exiler) // zone_exilefacedown.go
 		}
@@ -2452,4 +2452,19 @@ func (s *State) pileMove(o Obj, z kop.Zone) {
 	}
 	from := s.detach(o)
 	s.placeFrom(o, z, false, from, false)
+}
+
+// targetedExiler is DefinedExiler$ Targeted: the resolving entry's first
+// player target (gorge's Targeted reads the targets' players in order). At
+// two seats it is the controller's opponent, the one player it can target.
+func (s *State) targetedExiler(ctrl uint8) uint8 {
+	if MaxSeats == 2 {
+		return 1 - ctrl
+	}
+	for i := range s.res.e.tgt {
+		if t := s.tgtCode(i); isPlayerTarget(t) {
+			return CodeSeat(t)
+		}
+	}
+	return NextSeat(ctrl)
 }

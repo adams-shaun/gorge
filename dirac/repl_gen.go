@@ -801,17 +801,38 @@ type ncDmg struct {
 // 1's, then the players; players last when players is set).
 func (s *State) damageSeqStart(k *prep, hit slotMask, players bool) {
 	s.g.dmgSeqOn, s.g.dmgSeqN, s.g.dmgSeqI, s.g.dmgSeqPl = true, 0, 0, 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
 		s.g.dmgSeqN = uint8(s.battlefieldOrder(p, hit.and(s.ctrlM[p]), s.resArm().dmgSeqOrd[:], int(s.g.dmgSeqN)))
 	}
 	if players {
-		s.g.dmgSeqPl = 3
+		if MaxSeats == 2 {
+			s.g.dmgSeqPl = 3
+		} else {
+			s.g.dmgSeqPl = seatBits(s.aliveFrom(0))
+		}
 	}
+}
+
+// At more than two seats dmgSeqPl is a seat mask (bit q: seat q is still to
+// be dealt damage), dealt in turn order from the resolving controller, the
+// order gorge's ValidPlayers$ lists them (definedSpec: AliveFrom the
+// controller). At two seats it keeps its active/other bits below.
+
+// seatBits is the seat mask of q.
+func seatBits(q seatSeq) uint8 {
+	var m uint8
+	for i := uint8(0); i < q.n; i++ {
+		m |= 1 << q.s[i]
+	}
+	return m
 }
 
 // dmgSeqCtrlFirst orders the sequence's two players controller first, as
 // gorge's ValidPlayers$ Player lists them (AliveFrom the controller).
 func (s *State) dmgSeqCtrlFirst(ctrl uint8) {
+	if MaxSeats != 2 {
+		return // the seat mask is always dealt from the controller
+	}
 	if ctrl != s.active {
 		s.g.dmgSeqPl |= 4
 	}
@@ -833,7 +854,24 @@ func (s *State) damageSeqNext(k *prep, n int) {
 			}
 			continue
 		}
-		if pl := s.g.dmgSeqPl & 3; pl != 0 {
+		if MaxSeats != 2 && s.g.dmgSeqPl != 0 {
+			q := s.aliveFrom(s.res.e.ctrl)
+			for i := uint8(0); i < q.n; i++ {
+				if p := q.s[i]; s.g.dmgSeqPl&(1<<p) != 0 {
+					s.g.dmgSeqPl &^= 1 << p
+					s.damageTo(k, PlayerCode(p), n)
+					break
+				}
+			}
+			if s.g.nc.n != 0 {
+				return
+			}
+			if s.g.dmgSeqPl&seatBits(q) != 0 {
+				continue
+			}
+			s.g.dmgSeqPl = 0 // a seat that has left is dealt nothing
+		}
+		if pl := s.g.dmgSeqPl & 3; MaxSeats == 2 && pl != 0 {
 			// bit 0 the active player, bit 1 the other; bit 2 deals the
 			// other first (the controller first off its turn: dmgSeqCtrlFirst)
 			b := uint8(1)

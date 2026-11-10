@@ -49,7 +49,7 @@ type coldArrays struct {
 	exMark   []exMarkRec  // this turn's exile-instead-of-dying effects
 	parked   []parkedMove // moves waiting on a replacement order ask
 	castRing []castPush   // this turn's spell pushes, castRingN per player
-	discHeld []uint8      // the first player's discard while the next chooses
+	discHeld []uint8      // the earlier players' discards while the next chooses
 	copyHeld []copyHold   // the resolution waiting on its copy's election
 }
 
@@ -87,7 +87,7 @@ func prepCold(g *genPrep, l *coldLayout) {
 		l.castRing = 2 * castRingN
 	}
 	if g.anyDiscard {
-		l.discHeld = 1 + maxDiscHeld
+		l.discHeld = discHeldLen
 	}
 	if g.anyCopyElect {
 		l.copyHeld = 1

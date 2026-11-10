@@ -238,7 +238,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		q := s.players(k, in.Obj)
 		n := s.value(k, in.A)
 		if in.C&kop.MvMayMill != 0 && n > 0 {
-			return s.mayMill(q.at(0), q.at(1), n) // two seats: pickZ keeps the second
+			return s.mayMill(q, n)
 		}
 		for i := uint8(0); i < q.n; i++ {
 			p := q.s[i]
@@ -921,13 +921,13 @@ func (s *State) applyResolve(k *prep, a Action) {
 			s.holdDiscard(r.arr[:r.peekI])
 			r.peekI = 0
 			p := s.repPop()
-			if !s.discardChain(k, in, p, 255) {
+			if !s.discardChain(k, in, p) {
 				return // the next player's ask is live
 			}
 			break
 		}
 		if chained {
-			s.flushHeldDiscard(k, r.chosen^1)
+			s.flushHeldDiscard(k)
 		}
 		// a competing pick waits for its order ask, and the picks behind it, or
 		// behind a held pick's ask, wait too (discardPicks)
