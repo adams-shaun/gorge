@@ -1369,6 +1369,12 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			kf.Pred, kf.PredV = kop.PredPowerGEV, v
 			break
 		}
+		if c.CmpV == nil && c.CmpX == "" && c.CmpOp == opEQ && zone == kop.ZoneBattlefield {
+			// a battlefield power == a constant (Amalia Benavides Aguirre's
+			// powerEQ20; kernel predPermCold): PredPowerGEV with PredN 3
+			kf.Pred, kf.PredN, kf.PredV = kop.PredPowerGEV, 3, kop.Const(c.CmpN)
+			break
+		}
 		op, n := intCmpGELE(c.CmpOp, c.CmpN) // powers are integers: LT n is LE n-1
 		switch op {
 		case opGE:
@@ -1406,6 +1412,20 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 				return kf, err
 			}
 			kf.Pred, kf.PredV = kop.PredToughnessLEV, v
+			break
+		}
+		if c.CmpV != nil && c.CmpOp == opGT && !c.CmpV.Neg && (zone == kop.ZoneBattlefield || zone == kop.ZoneNone) {
+			// a toughness > a value (Hulkling's toughnessGTZ; kernel
+			// predPermCold, or cardToughnessGEV for a departed trigger
+			// object's last known toughness): toughness is an integer, so
+			// > X is >= X+1, PredToughnessLEV with PredN 3 (toughness >= PredV)
+			bound := *c.CmpV
+			bound.Add++
+			v, err := cb.value(bound)
+			if err != nil {
+				return kf, err
+			}
+			kf.Pred, kf.PredN, kf.PredV = kop.PredToughnessLEV, 3, v
 			break
 		}
 		op, n := c.CmpOp, c.CmpN

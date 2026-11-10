@@ -154,7 +154,7 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 		if fl.Pred == kop.PredAttached {
 			return s.predAttached(sl, src)
 		}
-		if fl.Pred == kop.PredPowerGEV && src != NoSlot {
+		if (fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV && fl.PredN == 3) && src != NoSlot {
 			return s.powerGEVFrom(k, fl, sl, src) // filter_typesall.go
 		}
 		return s.predPermGen(k, fl, sl, layer)
@@ -707,6 +707,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		}
 		if (fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV) && fl.PredN == 1 {
 			return s.cardPTEqV(k, fl, c, owner, o, fd, ctx) // filter_ptvalue.go
+		}
+		if fl.Pred == kop.PredToughnessLEV && fl.PredN == 3 {
+			return s.cardToughnessGEV(k, fl, c, owner, o, fd, ctx) // filter_ptvalue.go
 		}
 		if fl.Pred == kop.PredPowerGEV {
 			return s.cardPowerGEV(k, fl, c, owner, o, fd, ctx) // filter_ptvalue.go

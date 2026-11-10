@@ -16,7 +16,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // creature); off the battlefield the printed types (prep.cards[c].types,
 // as every other card-path type read).
 
-// powerGEVFrom is PredPowerGEV for a filter read with a source permanent:
+// powerGEVFrom is PredPowerGEV (and PredToughnessLEV with PredN 3) for a filter read with a source permanent:
 // the value is read in that source's context when it is not the resolving
 // entry's source, as gorge evaluates a trigger's ValidCard$ with the
 // trigger's host as the source (Ensign Harry Kim, Operations' "greater
@@ -31,8 +31,15 @@ func (s *State) powerGEVFrom(k *prep, fl *kop.Filter, sl, src Slot) bool {
 	if ctx.srcSl != src {
 		ctx = evalCtx{src: s.perms[src].obj, srcSl: src, ctrl: s.perms[src].ctrl}
 	}
-	pw, _ := s.ptGen(k, sl)
-	return pw >= s.evalV(k, fl.PredV, ctx)
+	pw, t := s.ptGen(k, sl)
+	v := s.evalV(k, fl.PredV, ctx)
+	switch {
+	case fl.Pred == kop.PredToughnessLEV:
+		return t >= v // PredN 3: Hulkling's toughness > his own (toughnessGTZ)
+	case fl.PredN == 3:
+		return pw == v // power == the value (Amalia's powerEQ20)
+	}
+	return pw >= v
 }
 
 // predPermCold is the predicate switch's default arm for a battlefield
@@ -58,11 +65,17 @@ func (s *State) predPermCold(k *prep, fl *kop.Filter, sl Slot) bool {
 		return true
 	}
 	if fl.Pred == kop.PredPowerGEV {
-		pw, _ := s.ptGen(k, sl) // power >= the value PredV
+		pw, _ := s.ptGen(k, sl) // power >= the value PredV; PredN 3: power == PredV
+		if fl.PredN == 3 {
+			return pw == s.evalV(k, fl.PredV, s.ctxCur())
+		}
 		return pw >= s.evalV(k, fl.PredV, s.ctxCur())
 	}
 	if fl.Pred == kop.PredToughnessLEV {
-		_, t := s.ptGen(k, sl) // toughness <= the value PredV (current toughness, layers applied)
+		_, t := s.ptGen(k, sl) // toughness <= the value PredV (current toughness, layers applied); PredN 3: >=
+		if fl.PredN == 3 {
+			return t >= s.evalV(k, fl.PredV, s.ctxCur())
+		}
 		return t <= s.evalV(k, fl.PredV, s.ctxCur())
 	}
 	if fl.Pred >= kop.PredNoCounters && fl.Pred <= kop.PredMonoColor {
