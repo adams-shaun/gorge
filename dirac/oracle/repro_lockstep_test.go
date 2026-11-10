@@ -441,3 +441,11 @@ func TestZeroAmountSourceIsNoCensusGapLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "zero_amount_source_beside_filter", "std-trc", Config{})
 }
+
+// Worlds Within Worlds puts two Spider-Men and Black Panther onto the battlefield from
+// the hand at once: Black Panther sees each Hero entering beside it (CR 603.6a), so it
+// triggers twice whatever order the cards were picked in.
+func TestHandPickEntersTogetherLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "hand_pick_enters_together", "std-msh", Config{GorgeAutopaySurface: true})
+}
