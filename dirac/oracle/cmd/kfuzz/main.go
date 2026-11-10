@@ -162,7 +162,7 @@ func run() int {
 		v2NoChance = flag.Bool("v2-no-chance", false, "-v2 transcript: negative control: the gorge host keeps its secret-stream shuffles instead of dealing the dirac kernel's chance (must diff)")
 		synth      = flag.String("synth", "", "play a synthetic evidence pool (make dirac-tables writes them): deal its decks in memory from -seed and report its reach; replaces -kernel, -set and -decks")
 		synthDecks = flag.Int("synth-decks", oracle.SynthDecks, "-synth: decks to deal")
-		seats      = flag.Int("seats", 2, "seats a game: 2 plays deck pairs; 3 or 4 plays pods of distinct decks (oracle.PodAt), gorge against gorge only (-kernel gorge)")
+		seats      = flag.Int("seats", 2, "seats a game: 2 plays deck pairs; 3 or 4 plays pods of distinct decks (oracle.PodAt): -kernel gorge in any build, -kernel vanilla or a -synth pool in a build with -tags dirac_mp")
 		pods       = flag.Int("pods", 0, "-seats above 2: pods to play (one game each; 0: -pairs)")
 		eventTail  = flag.Int("events", 0, "-repro: print the last N events of gorge's log when the game ends, objects named by card")
 		refusedIn  = flag.Bool("play-refused", false, "pool runs: play the pairs holding a card refused by name too, as scripts/dirac-first-refusals.py settle does")
@@ -238,9 +238,16 @@ func run() int {
 	if synthGorge {
 		*kernel = "gorge"
 	}
-	if *seats > 2 && *kernel != "gorge" && (*kernel != "vanilla" || *seats > dirac.MaxSeats) {
-		fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: this dirac build plays %d seats; a game of more seats runs gorge against gorge only (-kernel gorge), or -kernel vanilla in a build with -tags dirac_mp\n", *seats, dirac.MaxSeats)
-		return 2
+	if *seats > 2 && *kernel != "gorge" {
+		podKernel := *kernel == "vanilla" || *kernel == "fdn" && *synth != ""
+		switch {
+		case !podKernel:
+			fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: a kernel game of more than two seats plays -kernel vanilla or a -synth pool; -kernel %s plays two seats (-kernel gorge plays any)\n", *seats, *kernel)
+			return 2
+		case *seats > dirac.MaxSeats:
+			fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: this dirac build holds %d seats; build with -tags dirac_mp for up to %d (-kernel gorge plays any)\n", *seats, dirac.MaxSeats, oracle.MaxSeats)
+			return 2
+		}
 	}
 	if *kernel != "fdn" {
 		for _, name := range []string{"absolute", "pairs-file", "evidence"} {
@@ -435,7 +442,7 @@ func run() int {
 			fmt.Fprintln(os.Stderr, "kfuzz:", err)
 			return 1
 		}
-		o := sweepOpts{features: *features, lead: *lead, surface: surfaceName, workers: *workers, out: *out, timeout: *gameLimit, absolute: *absolute, reach: reach, mulligans: *mulligans}
+		o := sweepOpts{features: *features, lead: *lead, surface: surfaceName, workers: *workers, out: *out, timeout: *gameLimit, absolute: *absolute, reach: reach, mulligans: *mulligans, seats: *seats}
 		if *synth == "" && *firstPair == 0 && *pairs == oracle.SynthPairs && *seed == oracle.EvidenceSeed {
 			o.minGames = oracle.GateMinGames[*setName]
 			if sliced {
@@ -458,7 +465,7 @@ func run() int {
 				return 1
 			}
 		}
-		ps := oracle.PairingsFrom(pool, *firstPair, *pairs, *seed)
+		ps := oracle.PodsFrom(pool, *firstPair, *pairs, *seed, *seats)
 		if o.minGames > 0 {
 			ps = oracle.PairingsPlayable(c, set, pool, *firstPair, *pairs, *seed)
 		}
@@ -543,7 +550,7 @@ func run() int {
 		}
 	}
 	for _, p := range sum.Hangs {
-		fmt.Printf("pair %d (%s vs %s, seed %d): hang: no result after two watchdogs of %s\n", p.Index, p.A, p.B, p.Seed, *gameLimit)
+		fmt.Printf("pair %d (%s, seed %d): hang: no result after two watchdogs of %s\n", p.Index, vs(p), p.Seed, *gameLimit)
 	}
 	if sum.First != nil {
 		printDiv(sum.First.Divergence)
@@ -714,7 +721,7 @@ func printBadGame(c *oracle.Corpus, p oracle.Pairing, outcome, class string, imp
 	if !implicatesAll {
 		return
 	}
-	m, err := c.Matchup(p.A, p.B, 0)
+	m, err := c.MatchupN(p.Decks(), 0)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		return
@@ -910,6 +917,8 @@ type sweepOpts struct {
 
 	minGames int // -absolute: fewer started games than this fail the run; 0: no floor
 
+	seats int // -seats: 2 plays pairs; more plays pods (oracle.PodsFrom) and prints the pod line
+
 	onGame func(*oracle.Result) // a test's look at each game, Actions included
 
 	corpus *oracle.Corpus // where a bad-game line reads its decks
@@ -965,6 +974,8 @@ type verdict struct {
 	RefusedCard, RefusedPair, SkipError                 int
 	Unknown                                             int // options with no canonical form
 
+	TwoSeat int // of Capacity: twoseat stalls (dirac.StallTwoSeat), a two-seat table in a pod
+
 	UnmodelledWhy, CapacityWhy map[string]int // stalls by reason
 	RefusedPairWhy             map[string]int // refused pairs by reason (pairReason)
 }
@@ -1016,6 +1027,19 @@ func (v *verdict) line(name, lead, surface string) string {
 		name, v.Games, v.RefusedCard, v.RefusedPair, v.SkipError, v.Clean, v.Divergent, v.Unmodelled, strings.TrimSpace(sortedCounts(v.UnmodelledWhy)), v.Capacity, strings.TrimSpace(sortedCounts(v.CapacityWhy)), v.Hang, lead, surface)
 }
 
+// twoSeatStall is the kernel stall name of dirac.StallTwoSeat.
+const twoSeatStall = "twoseat"
+
+// podLine is a pod run's census: twoseat stalls (a table that plays only two
+// seats, a declared limit) apart from the other capacity stalls.
+func (v *verdict) podLine(name string, seats int) string {
+	return fmt.Sprintf("%s pods (%d seats): %d games, %d clean, %d divergent, %d capacity, %d twoseat, %d unmodelled, %d hang",
+		name, seats, v.Games, v.Clean, v.Divergent, v.Capacity-v.TwoSeat, v.TwoSeat, v.Unmodelled, v.Hang)
+}
+
+// vs is a pairing's decks joined by " vs ".
+func vs(p oracle.Pairing) string { return strings.Join(p.Decks(), " vs ") }
+
 // legacyLine is the shorter verdict line. A script reads "N without divergence"
 // from it and takes the first line that starts with the pool's name, so it prints
 // first.
@@ -1055,7 +1079,7 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 	play := func(i int) played {
 		p := ps[i]
 		ks.pair = p.Index
-		m, tbl, err := oracle.SetMatchup(set, c, p.A, p.B, o.mulligans)
+		m, tbl, err := oracle.SetMatchupN(set, c, p.Decks(), o.mulligans)
 		if err != nil {
 			return played{skip: err}
 		}
@@ -1186,7 +1210,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 			v.Games++
 			v.Hang++
 			classes["hang"]++
-			fmt.Printf("pair %d (%s vs %s, seed %d): hang: no result after two watchdogs of %s\n", p.Index, p.A, p.B, p.Seed, o.timeout)
+			fmt.Printf("pair %d (%s, seed %d): hang: no result after two watchdogs of %s\n", p.Index, vs(p), p.Seed, o.timeout)
 			printBadGame(o.corpus, p, "hang", "hang", nil, nil)
 			continue
 		}
@@ -1203,7 +1227,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 			}
 			skips[cls+": "+err.Error()]++
 			if cls == skipError || verboseFDN {
-				fmt.Printf("pair %d (%s vs %s, seed %d): %s: %v\n", p.Index, p.A, p.B, p.Seed, cls, err)
+				fmt.Printf("pair %d (%s, seed %d): %s: %v\n", p.Index, vs(p), p.Seed, cls, err)
 			}
 			continue
 		}
@@ -1225,7 +1249,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 			v.Capacity++
 			v.CapacityWhy[res.Stall]++
 			if verboseFDN || o.absolute {
-				fmt.Printf("pair %d (%s vs %s, seed %d): %s stall after %d decisions\n", p.Index, p.A, p.B, p.Seed, res.Stall, res.Decisions)
+				fmt.Printf("pair %d (%s, seed %d): %s stall after %d decisions\n", p.Index, vs(p), p.Seed, res.Stall, res.Decisions)
 			}
 			continue
 		}
@@ -1235,7 +1259,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 				v.Unmodelled++
 				v.UnmodelledWhy[why]++
 				if verboseFDN || o.absolute {
-					fmt.Printf("pair %d (%s vs %s, seed %d): %s unmodelled stall after %d decisions\n", p.Index, p.A, p.B, p.Seed, res.Stall, res.Decisions)
+					fmt.Printf("pair %d (%s, seed %d): %s unmodelled stall after %d decisions\n", p.Index, vs(p), p.Seed, res.Stall, res.Decisions)
 				}
 				printBadGame(o.corpus, p, "unmodelled", why, nil, res.RecentSources(m, recentSourcesShown))
 				writePairRepro(o.out, fmt.Sprintf("unmodelled-%s-pair%d.repro.json", why, p.Index), m, p.Seed, rc, &res)
@@ -1243,8 +1267,11 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 			}
 			v.Capacity++
 			v.CapacityWhy[why]++
+			if why == twoSeatStall {
+				v.TwoSeat++
+			}
 			if verboseFDN {
-				fmt.Printf("pair %d (%s vs %s, seed %d): %s capacity stall after %d decisions; latest sources: %s\n", p.Index, p.A, p.B, p.Seed, res.Stall, res.Decisions, strings.Join(res.RecentSources(m, 40), "|"))
+				fmt.Printf("pair %d (%s, seed %d): %s capacity stall after %d decisions; latest sources: %s\n", p.Index, vs(p), p.Seed, res.Stall, res.Decisions, strings.Join(res.RecentSources(m, 40), "|"))
 			}
 			// the game up to the stall, one file a pair: a test that plays it on
 			// fails for as long as the table stalls there
@@ -1272,7 +1299,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 		printBadGame(o.corpus, p, "divergent", cls, implicates, res.RecentSources(m, recentSourcesShown))
 		writePairRepro(o.out, fmt.Sprintf("divergent-pair%d.repro.json", p.Index), m, p.Seed, rc, &res)
 		if res.Div.What == "features" {
-			fmt.Printf("pair %d (%s vs %s): %s\n", p.Index, p.A, p.B, res.Div.Detail)
+			fmt.Printf("pair %d (%s): %s\n", p.Index, vs(p), res.Div.Detail)
 		}
 		if verboseFDN {
 			printVerboseDiv(p, m, &res, implicates)
@@ -1283,6 +1310,9 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 	}
 	fmt.Println(v.legacyLine(name, o.lead, classes))
 	fmt.Println(v.line(name, o.lead, o.surface))
+	if o.seats > 2 {
+		fmt.Println(v.podLine(name, o.seats))
+	}
 	if b, err := json.Marshal(classes); err == nil {
 		fmt.Printf("%s-classes-json: %s\n", name, b)
 	}
@@ -1363,7 +1393,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 // printVerboseDiv is -v's report of one divergent game: the last actions and the
 // divergence, with every object annotated with its card.
 func printVerboseDiv(p oracle.Pairing, m *oracle.Matchup, res *oracle.Result, implicates []string) {
-	fmt.Printf("pair %d (%s vs %s, seed %d) after %d decisions:\n", p.Index, p.A, p.B, p.Seed, res.Decisions)
+	fmt.Printf("pair %d (%s, seed %d) after %d decisions:\n", p.Index, vs(p), p.Seed, res.Decisions)
 	if m == nil {
 		printDiv(res.Div)
 		return

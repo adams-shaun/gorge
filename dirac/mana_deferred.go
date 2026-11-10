@@ -23,18 +23,18 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // floatDeferred adds the deferred source sl's {R} to p's pool and remembers
 // the source (tapGap's deferred arm).
 func (s *State) floatDeferred(k *prep, p uint8, sl Slot) {
-	s.pl[p&1].pool[kop.R]++
+	s.pl[SeatIx(p)].pool[kop.R]++
 	s.artTag(k, p, sl, kop.R)
-	s.g.defSrc[p&1] = uint8(sl) + 1
+	s.g.defSrc[SeatIx(p)] = uint8(sl) + 1
 }
 
 // deferredPool is p's floating deferred {R} before a payment, 0 when none,
 // and the source's slot + 1 (the payment's pool spend forgets it).
 func (s *State) deferredPool(k *prep, p uint8) (r uint8, src uint8) {
-	if k.gen == nil || !k.gen.anyDeferred || s.g.defSrc[p&1] == 0 {
+	if k.gen == nil || !k.gen.anyDeferred || s.g.defSrc[SeatIx(p)] == 0 {
 		return 0, 0
 	}
-	return s.pl[p&1].pool[kop.R], s.g.defSrc[p&1]
+	return s.pl[SeatIx(p)].pool[kop.R], s.g.defSrc[SeatIx(p)]
 }
 
 // deferredSpent records the deferred source on the cast being built when the
@@ -42,7 +42,7 @@ func (s *State) deferredPool(k *prep, p uint8) (r uint8, src uint8) {
 //
 //go:noinline
 func (s *State) deferredSpent(k *prep, p uint8, r0, src uint8) {
-	if s.pl[p&1].pool[kop.R] >= r0 || !s.buildLive() || s.bld().e.kind != seSpell {
+	if s.pl[SeatIx(p)].pool[kop.R] >= r0 || !s.buildLive() || s.bld().e.kind != seSpell {
 		return
 	}
 	sl := Slot(src - 1)

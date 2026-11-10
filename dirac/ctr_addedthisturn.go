@@ -50,6 +50,9 @@ func prepCtrAdded(t *kop.Table, p *prep, g *genPrep) {
 		for i := range ab {
 			if condReadsCtrSelf(t, ab[i].Trig.Cond) || condReadsCtrSelf(t, ab[i].Static.Cond2) || condReadsCtrSelf(t, ab[i].Repl.Cond) {
 				g.setFlag(CardID(c), gfCtrAdd)
+				if MaxSeats > 2 {
+					g.twoSeatOnly = true // ctrAdd.e[].fl packs two seats per kind
+				}
 			}
 		}
 	}
@@ -152,7 +155,7 @@ func (s *State) ctrAddedReset() {
 //
 //go:noinline
 func (s *State) ctrAdded(k *prep, x *kop.Expr, ctx evalCtx) int {
-	p := ctx.ctrl & 1
+	p := SeatIx(ctx.ctrl)
 	g := &s.g.ctrAdd
 	form := int(x.N) >> kop.CtrAddedFormShift
 	if form == kop.CtrAddedFormCreature {

@@ -233,7 +233,10 @@ func (s *State) hidePlay(k *prep, in *kop.Instr) bool {
 	if s.g.linkHide == 0 {
 		return true
 	}
-	for p := 0; p < 2; p++ {
+	for p := 0; p < int(s.nSeats()); p++ {
+		if s.out(uint8(p)) {
+			continue
+		}
 		pl := &s.pl[p]
 		for i := 0; i < int(pl.exileN); i++ {
 			o := pl.exile[i]

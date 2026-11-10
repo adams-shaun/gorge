@@ -25,12 +25,7 @@ import (
 func (s *State) scriptGapAvail(k *prep, p uint8, sl Slot, a *avail) {
 	c := s.cardAt(sl)
 	if s.scriptGaps(k, p).has(sl) {
-		out := s.eachColorOut(k, p, sl)
-		for col := 0; col < 5; col++ {
-			if out&(1<<col) != 0 {
-				a.addUnits(1<<col, 1)
-			}
-		}
+		s.eachGapUnits(k, p, sl, a)
 	}
 	if s.scriptRestr(k, p).has(sl) {
 		if k.gen.has(c, gfDeferred) {

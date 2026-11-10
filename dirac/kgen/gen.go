@@ -196,6 +196,7 @@ func lowerPool(p *pool) *lowered {
 			tokSet[t] = true
 		}
 	}
+	injectEquipGrants(lw.cards)
 	var keys []string
 	for k := range tokSet {
 		keys = append(keys, k)
@@ -478,6 +479,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 		if s.Kind == "FbGrant" && len(s.Flags) != 0 {
 			fmt.Fprintf(w, " fbcost=%s", s.Cost.Mana)
 		}
+		if s.Kind == "WarpGrant" {
+			fmt.Fprintf(w, " warpcost=%s", s.Cost.Mana)
+		}
 		if s.Override != nil {
 			fmt.Fprintf(w, " %s", overrideString(s.Override))
 		}
@@ -590,6 +594,9 @@ func costString(c lCost) string {
 		p = append(p, fmt.Sprintf("Return%d%s", c.ReturnN, c.Return))
 	}
 	if c.ExileG != nil {
+		if c.ExileGSelf {
+			p = append(p, "ExileGraveSelf")
+		}
 		p = append(p, fmt.Sprintf("ExileGrave%d%s", c.ExileGN, c.ExileG))
 	}
 	if c.Untap {

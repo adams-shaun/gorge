@@ -27,7 +27,7 @@ func (s *State) returnSelfDeferred(k *prep, e *stackEntry) {
 func (s *State) countReturn(k *prep, p uint8, f kop.FilterID) int {
 	src := s.resSrcSlot(k)
 	n := 0
-	for m := s.ctrlM[p&1].andNot(s.g.sacM); m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)].andNot(s.g.sacM); m.any(); m = m.rest() {
 		if s.matchPermGen(k, f, m.first(), p, src, layerFull) {
 			n++
 		}
@@ -49,7 +49,7 @@ func (s *State) returnCands(k *prep, p uint8, f kop.FilterID, src Obj, d *Decisi
 		srcSl = s.objs[src].slot
 	}
 	n := 0
-	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		o := s.perms[sl].obj
 		if s.picked(o) || !s.matchPerm(k, f, sl, p, srcSl) {

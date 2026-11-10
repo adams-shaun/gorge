@@ -181,7 +181,7 @@ func (s *State) tokAnswer(k *prep, a Action) {
 // when the game stalled.
 func (s *State) replTokensOp(k *prep, in *kop.Instr, p uint8, tok CardID, n int) (tc CardID, cnt int, ok, parked bool) {
 	g := k.gen
-	if !g.anyTokRew || g.anyRepl&rbDblTok == 0 || n <= 0 || p > 1 {
+	if !g.anyTokRew || g.anyRepl&rbDblTok == 0 || n <= 0 || p >= MaxSeats {
 		tc, cnt, ok = s.replTokensCard(k, p, tok, n)
 		return tc, cnt, ok, false
 	}
@@ -387,7 +387,7 @@ func (s *State) tokAddCards(k *prep, p uint8, tok CardID) (cs [maxTokAdds]CardID
 // tapped, remembered, imprinted: gorge's Token effect applies them to every
 // planned mint). True when the board is full (a stall).
 func (s *State) mintTokAdds(k *prep, in *kop.Instr, p uint8, tok CardID, n int) bool {
-	if n <= 0 || !k.gen.anyTokRew || k.gen.anyRepl&rbDblTok == 0 || p > 1 {
+	if n <= 0 || !k.gen.anyTokRew || k.gen.anyRepl&rbDblTok == 0 || p >= MaxSeats {
 		return false
 	}
 	cs, na, over := s.tokAddCards(k, p, tok)

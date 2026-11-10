@@ -42,7 +42,7 @@ func (s *State) voidHolds(k *prep) bool {
 	if s.bld().bfl&(bflCostComp|bflPushed) == bflCostComp|bflPushed && s.bld().e.kind == seSpell {
 		hide, hideP = s.bld().e.obj, s.bld().e.ctrl // as thisTurnCastSpec: the in-flight cast is not yet in the ledger
 	}
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < MaxSeats; p++ {
 		ring := s.castPushes(p)
 		if p == hideP && len(ring) > 0 && Obj(ring[len(ring)-1].obj-1) == hide {
 			ring = ring[:len(ring)-1]

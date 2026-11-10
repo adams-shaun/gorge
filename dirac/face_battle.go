@@ -76,7 +76,7 @@ const sfDefeatPass uint8 = 1 << 3
 // resets perm.chosen): the protector (CR 310.10, the sole opponent in two
 // players). The defense counters are put with the other entry counters.
 func (s *State) enterBattle(k *prep, sl Slot, ctrl uint8) {
-	pr := uint8(1 - ctrl)
+	pr := s.nextAlive(ctrl) // two live seats only (stallclass.go prepTwoSeat: a battle)
 	if DebugBattleOwnProtector {
 		pr = ctrl
 	}
@@ -99,7 +99,10 @@ func (s *State) enterDefense(k *prep, sl Slot, c CardID) {
 func (s *State) addBattleOffers(k *prep, d *Decision, o uint8) {
 	var order [MaxPerm]Slot
 	n := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		var m slotMask
 		for q := s.ctrlM[p]; q.any(); q = q.rest() {
 			if sl := q.first(); s.battleAttackable(k, sl, s.active) {

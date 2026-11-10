@@ -62,7 +62,7 @@ func (s *State) trigNewEvidencePayable(k *prep, p uint8, need int) bool {
 	if o == NoObj {
 		return false
 	}
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	rest := s.graveTotalMV(k, p)
 	for i := 0; i < int(pl.graveN); i++ {
 		if pl.grave[i] == o {
@@ -95,7 +95,7 @@ func (s *State) evExcl(p uint8) int {
 	if o == NoObj {
 		return -1
 	}
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	for i := 0; i < int(pl.graveN); i++ {
 		if pl.grave[i] == o {
 			return i
@@ -107,14 +107,14 @@ func (s *State) evExcl(p uint8) int {
 // evExclMV is the reserved card's mana value (0 when none).
 func (s *State) evExclMV(k *prep, p uint8) int {
 	if i := s.evExcl(p); i >= 0 {
-		return s.graveMV(k, s.pl[p&1].grave[i])
+		return s.graveMV(k, s.pl[SeatIx(p)].grave[i])
 	}
 	return 0
 }
 
 // evCandN is how many cards of player p's graveyard the evidence may pick.
 func (s *State) evCandN(p uint8) int {
-	n := int(s.pl[p&1].graveN)
+	n := int(s.pl[SeatIx(p)].graveN)
 	if s.evExcl(p) >= 0 {
 		n--
 	}
@@ -123,7 +123,7 @@ func (s *State) evCandN(p uint8) int {
 
 // evAllMask is the selection of every evidence candidate of player p.
 func (s *State) evAllMask(p uint8) uint64 {
-	m := uint64(1)<<s.pl[p&1].graveN - 1
+	m := uint64(1)<<s.pl[SeatIx(p)].graveN - 1
 	if i := s.evExcl(p); i >= 0 {
 		m &^= 1 << i
 	}

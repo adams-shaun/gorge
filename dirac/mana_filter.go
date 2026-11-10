@@ -381,9 +381,9 @@ func (s *State) windowFiltUseful(k *prep, p uint8, sl Slot, want uint8) bool {
 		return false
 	}
 	if col, ok := s.filtPip(k, sl); ok {
-		return s.filtGateOn(k, sl) && s.pl[p&1].pool[col] >= 1
+		return s.filtGateOn(k, sl) && s.pl[SeatIx(p)].pool[col] >= 1
 	}
-	return poolTotal(&s.pl[p&1]) >= s.filtFee(k, sl)
+	return poolTotal(&s.pl[SeatIx(p)]) >= s.filtFee(k, sl)
 }
 
 // windowRestrUseful: sl has a restricted tap mana ability that makes a colour in
@@ -678,7 +678,7 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		s.otherDo(k, p, st)
 		return
 	}
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	if st.gap && st.ans > 0 {
 		s.filtUse(k, st.sl) // (a once-each-turn filter spends its use, not its {T})
 	} else {
@@ -795,12 +795,12 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		return false
 	}
 	p := fs.p
-	key := filtKey{pool: t.pl[p&1].pool, rb: t.rb[p&1], sp: t.sp, hand: t.pl[p&1].handN, gy: t.pl[p&1].graveN}
+	key := filtKey{pool: t.pl[SeatIx(p)].pool, rb: t.rb[SeatIx(p)], sp: t.sp, hand: t.pl[SeatIx(p)].handN, gy: t.pl[SeatIx(p)].graveN}
 	if k.artMana {
 		t.artSync(p)
-		key.art = t.g.poolArt[p&1]
+		key.art = t.g.poolArt[SeatIx(p)]
 	}
-	for b := t.ctrlM[p&1].and(t.occ); b.any(); b = b.rest() {
+	for b := t.ctrlM[SeatIx(p)].and(t.occ); b.any(); b = b.rest() {
 		if sl := b.first(); t.perms[sl].flags&pfTapped != 0 {
 			key.tapped = key.tapped.with(sl)
 		}
@@ -822,7 +822,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		}
 	}
 	var order [MaxPerm]Slot
-	n := t.battlefieldOrder(p, t.ctrlM[p&1].and(t.occ), order[:], 0)
+	n := t.battlefieldOrder(p, t.ctrlM[SeatIx(p)].and(t.occ), order[:], 0)
 	for pass := 0; pass < 2; pass++ {
 		gap := pass == 0
 		if !gap && funded >= fs.fees {

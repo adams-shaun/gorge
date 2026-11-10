@@ -14,4 +14,5 @@ const (
 	trigPlWebSling                     // kw_websling.go
 	trigPlMayFlash                     // kw_mayflash.go
 	trigPlMiracle                      // kw_miracle.go
+	trigPlWarpG                        // kw_warpgrant.go: a warp cast at a battlefield grant's cost
 )

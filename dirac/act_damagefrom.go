@@ -61,7 +61,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		case 1:
 			kw = 0
 		case 2:
-			ctrl = 1 - ctrl
+			ctrl = 1 - ctrl // seat-ok: a test-only mutation (DebugDmgSrcPlLKI)
 		}
 		infect = k.t.Cards[s.objs[o].card].Infect
 	default:
@@ -95,7 +95,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	)
 	// the first seat is coded even when the set is empty, as before (its
 	// code then names no player and the pass sees it as such)
-	plCodes[0], plAmts[0] = PlayerTarget0+q.at(0), int(n)
+	plCodes[0], plAmts[0] = PlayerCode(q.at(0)), int(n)
 	ne := 1
 	for i := uint8(1); i < q.n; i++ {
 		plCodes[i], plAmts[i] = PlayerCode(q.s[i]), int(n)

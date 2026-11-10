@@ -279,7 +279,7 @@ func (s *State) flags2Obj(f kop.FilterFlags2, o Obj) bool {
 		if f&kop.F2AttachedToT0 != 0 {
 			t := e.tgt[0]
 			ob := &s.objs[o]
-			if t >= PlayerTarget0 || ob.zone != kop.ZoneBattlefield || s.objs[t].zone != kop.ZoneBattlefield || s.perms[ob.slot].attached != s.objs[t].slot {
+			if isPlayerOrNone(t) || ob.zone != kop.ZoneBattlefield || s.objs[t].zone != kop.ZoneBattlefield || s.perms[ob.slot].attached != s.objs[t].slot {
 				return false
 			}
 		}

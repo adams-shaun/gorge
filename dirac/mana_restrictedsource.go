@@ -283,8 +283,8 @@ func (s *State) restrPoolAct(k *prep, p uint8, d *payDesc) uint8 {
 		return 0
 	}
 	var m uint8
-	for i := range s.rb[p&1] {
-		b := &s.rb[p&1][i]
+	for i := range s.rb[SeatIx(p)] {
+		b := &s.rb[SeatIx(p)][i]
 		if b.kind == 0 {
 			break
 		}
@@ -318,7 +318,7 @@ func (s *State) restrActB(k *prep, p uint8, b *rbatch, d *payDesc) bool {
 			}
 		}
 	}
-	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		abs := k.t.Cards[s.cardAt(sl)].Abilities
 		for j := range abs {
@@ -619,7 +619,7 @@ func (s *State) restrFallback(k *prep, p uint8, c CardID, og restrOrigin, cost *
 //
 //go:noinline
 func (s *State) payRiderRestr(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, anyColor bool) {
-	sv := s.rb[p&1]
+	sv := s.rb[SeatIx(p)]
 	var pk planner
 	s.tapForPK(k, p, cost, x, exclude, false, anyColor, &pk)
 	if !pk.rbOn && !pk.rdynOn {
@@ -885,7 +885,7 @@ func (s *State) poolPaysAct(k *prep, p uint8, cost *kop.ManaCost, d payDesc) boo
 	}
 	var av avail
 	for c := 0; c < kop.NumManaKinds; c++ {
-		if n := s.pl[p&1].pool[c]; n > 0 {
+		if n := s.pl[SeatIx(p)].pool[c]; n > 0 {
 			av.addUnits(1<<c, n)
 		}
 	}

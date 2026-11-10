@@ -93,8 +93,8 @@ func (s *State) isCrime(actor, t uint8) bool {
 	switch {
 	case DebugCrimeAnyTarget:
 		return true
-	case t >= PlayerTarget0:
-		return t-PlayerTarget0 != actor
+	case isPlayerOrNone(t):
+		return CodeSeat(t) != actor
 	case isStackTarget(t):
 		// an ability an opponent controls (CR 700.13a; tgt_stackability.go)
 		i := int(t - StackTarget0)
@@ -368,7 +368,10 @@ func (s *State) fireCrime(k *prep, actor uint8) {
 	}
 	for _, c := range k.gen.graveTrig {
 		cd := &k.t.Cards[c]
-		for pp := uint8(0); pp < 2; pp++ {
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
+			if s.out(pp) {
+				continue
+			}
 			pl := &s.pl[pp]
 			for i := 0; i < int(pl.graveN); i++ {
 				o := pl.grave[i]

@@ -266,8 +266,10 @@ var DebugCastRingLive bool
 // controller, and counts at payment rather than at the push.
 func (s *State) thisTurnCastSpecTally(x *kop.Expr, ctx evalCtx) int {
 	n := int(s.g.hist[ctx.ctrl][histSpells])
-	if x.N&kop.CastSpecYou == 0 && ctx.ctrl < 2 {
-		n += int(s.g.hist[1-ctx.ctrl][histSpells])
+	for q := uint8(0); x.N&kop.CastSpecYou == 0 && q < s.nSeats(); q++ {
+		if q != ctx.ctrl {
+			n += int(s.g.hist[q][histSpells])
+		}
 	}
 	return n
 }
@@ -280,7 +282,7 @@ func (s *State) thisTurnCastSpecTally(x *kop.Expr, ctx evalCtx) int {
 //go:noinline
 func (s *State) thisTurnCast(k *prep, x *kop.Expr, ctx evalCtx) int {
 	p := s.refPlayer(k, x.Ref, ctx)
-	if p > 1 {
+	if p >= MaxSeats {
 		return 0
 	}
 	if x.N == 1 {

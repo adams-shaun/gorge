@@ -510,9 +510,10 @@ func TestAbilityPlanLeavesOutCommittedPermanents(t *testing.T) {
 }
 
 // TestGrantedManaPricesAnImpendedCast: the search through granted mana prices an
-// impended cast at its alternative cost (CR 118.9, 702.176a).
+// impended cast at its alternative cost (CR 118.9, 702.176a): an Overlord cast for
+// its impending cost.
 func TestGrantedManaPricesAnImpendedCast(t *testing.T) {
-	synthPairs(t, "std-dsk", []int{11, 43, 292, 479}, nil)
+	pinnedGames(t, "std-dsk", Config{GorgeAutopaySurface: true}, impendedCast)
 }
 
 // TestShuffledPairReachesTheLibraryInOrder: Floodpits Drowner and its target reach

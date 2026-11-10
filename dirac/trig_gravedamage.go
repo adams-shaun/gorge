@@ -61,7 +61,7 @@ func (s *State) fireGraveDamage(k *prep, src Slot, o Obj, ctrl uint8, amt int16,
 					if !s.trigOK(k, l, a) {
 						continue
 					}
-					tobj, tpl, n := o, dmgSeat(rcp, ctrl), amt
+					tobj, tpl, n := o, s.dmgSeat(rcp, ctrl), amt
 					if k.gen.anyDmgRef {
 						var ok bool
 						if n, tobj, tpl, ok = s.ddoLine(k, l, a, src, o, ctrl, amt, rcp, nil); !ok {

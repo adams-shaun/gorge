@@ -19,7 +19,7 @@ func (s *State) castTargetsAll(k *prep, f kop.FilterID, e *stackEntry, l trigLis
 	for i := 0; i < n; i++ {
 		t := codes[i]
 		if isPlayerTarget(t) {
-			if s.castTargetsPlayer(k, f, t-PlayerTarget0, l.ctrl) {
+			if s.castTargetsPlayer(k, f, CodeSeat(t), l.ctrl) {
 				return true
 			}
 			continue

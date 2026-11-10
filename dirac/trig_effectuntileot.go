@@ -52,7 +52,7 @@ var DebugEffEOTTrigStats *EffEOTTrigStats
 func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bool, rcp uint8, listeners bool, latch *dmgLatch) {
 	srcObj := s.perms[src].obj
 	srcCtrl := s.perms[src].ctrl
-	dpl := 1 - srcCtrl
+	dpl := s.dmgSeat(rcp, srcCtrl)
 	if pl, ok := recipientPlayer(rcp); ok {
 		dpl = pl
 	}
@@ -98,7 +98,7 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 				}
 				who := pp
 				if DebugEffEOTTrigOppOwner {
-					who = 1 - pp
+					who = 1 - pp // seat-ok: a test-only mutation (DebugEffEOTTrigOppOwner)
 				}
 				if t.Filter != 0 && !s.matchPermGen(k, t.Filter, src, who, NoSlot, layerFull) {
 					continue
@@ -145,7 +145,7 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 						if DebugInnerLightNoAmount {
 							n = 0
 						}
-						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, srcObj, dmgSeat(rcp, srcCtrl), n)
+						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, srcObj, s.dmgSeat(rcp, srcCtrl), n)
 						break
 					}
 				}

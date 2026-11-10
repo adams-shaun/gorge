@@ -94,6 +94,11 @@ type Projection struct {
 	// Chars is each battlefield object's derived characteristics, by Obj
 	// index; only ProjectChars (the oracle's) fills it.
 	Chars [MaxObj]ProjChars
+	// NSeat is the seat count of a game of more than two seats and Lost
+	// each seat's loss (CR 800.4a); both stay zero at two seats, where a
+	// loss ends the game.
+	NSeat uint8
+	Lost  [MaxSeats]bool
 }
 
 // Project writes s's canonical projection into p.
@@ -344,6 +349,12 @@ func (s *State) projRest(p *Projection, lib bool) {
 		p.CmdCast[pi] = pl.cmdCast
 		for q := range p.CmdDmg[pi] {
 			p.CmdDmg[pi][q] = pl.cmdDmg[q]
+		}
+	}
+	if n := s.nSeats(); n > 2 {
+		p.NSeat = n
+		for q := uint8(0); q < n; q++ {
+			p.Lost[q] = s.out(q)
 		}
 	}
 	k := s.k()

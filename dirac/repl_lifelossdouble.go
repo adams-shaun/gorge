@@ -13,8 +13,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 //go:noinline
 func (s *State) replLoss(k *prep, p uint8, n int) int {
-	q := 1 - p
-	if s.active != q {
+	q := s.active // the doubler's controller: an opponent of p, on its own turn
+	if q == p {
 		return n
 	}
 	g := k.gen

@@ -86,7 +86,7 @@ func (s *State) filtGateOn(k *prep, sl Slot) bool {
 // filtPipHeld is how much of colour col filter sl's fee may spend: p's pool
 // and the restricted mana its activation may use.
 func (s *State) filtPipHeld(k *prep, p uint8, sl Slot, col int) int {
-	n := int(s.pl[p&1].pool[col])
+	n := int(s.pl[SeatIx(p)].pool[col])
 	if s.rbAny(p) {
 		var held [kop.NumManaKinds]uint8
 		s.rbUnits(p, s.filtFeeRestrM(k, p, sl), &held)
@@ -101,7 +101,7 @@ func (s *State) filtPaid(k *prep, p uint8, sl Slot) bool {
 	if col, ok := s.filtPip(k, sl); ok {
 		return s.filtPipHeld(k, p, sl, col) >= 1
 	}
-	return poolTotal(&s.pl[p&1])+s.filtFeeRestrN(k, p, sl) >= s.filtFee(k, sl)
+	return poolTotal(&s.pl[SeatIx(p)])+s.filtFeeRestrN(k, p, sl) >= s.filtFee(k, sl)
 }
 
 // filtPayPip pays the pip of the filter at sl: the restricted mana the
@@ -111,21 +111,21 @@ func (s *State) filtPayPip(k *prep, p uint8, sl Slot, col int) {
 	if s.rbAny(p) && s.rbSpendCol(p, s.filtFeeRestrM(k, p, sl), col) {
 		return
 	}
-	s.pl[p&1].pool[col]--
+	s.pl[SeatIx(p)].pool[col]--
 }
 
 // rbSpendCol spends one unit of colour col from p's batches in mask m and
 // reports whether it found one.
 func (s *State) rbSpendCol(p, m uint8, col int) bool {
-	for i := range s.rb[p&1] {
+	for i := range s.rb[SeatIx(p)] {
 		if m&(1<<i) == 0 {
 			continue
 		}
-		if b := &s.rb[p&1][i]; b.n[col] > 0 {
+		if b := &s.rb[SeatIx(p)][i]; b.n[col] > 0 {
 			b.n[col]--
 			s.rbCompact(p)
 			if !s.rbAny(p) {
-				s.g.poolArt[p&1] &^= poolArtRestr
+				s.g.poolArt[SeatIx(p)] &^= poolArtRestr
 			}
 			return true
 		}

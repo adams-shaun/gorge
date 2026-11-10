@@ -162,45 +162,61 @@ func (s *State) chosenGrantMask(k *prep, a *kop.Ability, src Slot, add kop.SubMa
 }
 
 // lfxChosen applies a walked AddChosen static's grant to c: a matchup
-// subtype bit, or the outside-type mark (c.out) naming its type (outsideSub code, 255 for two).
+// subtype bit, or an outside-type grant (c.outs) naming its type
+// (outsideSub code).
 func lfxChosen(k *prep, e *lfx, c *dchars) {
 	switch ch := e.ch; {
 	case ch == 255 || e.src == NoSlot:
 	case outsideSub(k, ch):
-		if c.out == 0 {
-			c.out, c.outSrc = ch, uint8(e.src)+1
-		} else {
-			if c.out != ch {
-				c.out = 255
-			}
-			if c.outSrc != uint8(e.src)+1 {
-				c.outSrc = 255
+		g := outGrant{code: ch, src: uint8(e.src) + 1}
+		for i := uint8(0); i < c.nOuts && i < outsMax; i++ {
+			if c.outs[i] == g {
+				return // the same source's same grant again
 			}
 		}
+		if c.nOuts == outsOver {
+			return
+		}
+		if c.nOuts >= outsMax {
+			c.nOuts = outsOver
+			return
+		}
+		c.outs[c.nOuts] = g
+		c.nOuts++
 	case int(ch) < kop.MaxSubtypes:
 		c.subs = c.subs.With(int(ch))
 	}
 }
 
 // curOutsideHas reports whether the walked characteristics cur have the
-// outside type src chose (src's perm.chosen is subOutside): an outside
-// grant from src itself; one from another source is the loud collision.
+// outside type src chose (src's perm.chosen is outsideSub): src's own
+// grant on cur, a known source of the same type, or a different type.
 func (s *State) curOutsideHas(k *prep, cur *dchars, src Slot) bool {
-	if !k.gen.anyAddChosen || cur.out == 0 || src == NoSlot {
+	if !k.gen.anyAddChosen || cur.nOuts == 0 || src == NoSlot {
 		return false
 	}
-	if cur.outSrc == uint8(src)+1 {
-		return true // the only grant is src's own
+	if cur.nOuts == outsOver {
+		s.capFull(StallOutsideType) // more outside grants than the walk holds
+		return false
+	}
+	own := uint8(src) + 1
+	for i := uint8(0); i < cur.nOuts; i++ {
+		if cur.outs[i].src == own {
+			return true // src's own grant is on cur
+		}
 	}
 	ch := s.perms[src].chosen
-	if cur.out != 255 && cur.out != ch {
-		return false // a different outside type
+	for i := uint8(0); i < cur.nOuts; i++ {
+		if cur.outs[i].code != ch {
+			continue
+		}
+		if !outsideAliased(k, ch) {
+			return true
+		}
+		s.capFull(StallOutsideType) // another source's aliased outside type: equal or not is unknown
+		return false
 	}
-	if cur.out == ch && !outsideAliased(k, ch) {
-		return true
-	}
-	s.capFull(StallOutsideType) // another source's outside type: equal or not is unknown
-	return false
+	return false // every grant's code differs: different types (CR 205.3m)
 }
 
 // outsideChosenHas is curOutsideHas off the walk: the AddChosen statics

@@ -19,8 +19,8 @@ func (s *State) beginTurn(p uint8) {
 	if s.pmOn != 0 {
 		s.persistTurn() // the PersistentMana$ tally ends with the turn, its units with the cleanup-to-untap boundary (mana_persistent.go)
 	}
-	if s.k().anyYourTurns && s.g.yourTurns[p&1] < 255 {
-		s.g.yourTurns[p&1]++ // ExYourTurns: this turn is begun with p active
+	if s.k().anyYourTurns && s.g.yourTurns[SeatIx(p)] < 255 {
+		s.g.yourTurns[SeatIx(p)]++ // ExYourTurns: this turn is begun with p active
 	}
 	if s.k().anyRedNC {
 		s.g.redNC = [MaxSeats]uint8{} // ExRedNCDmg: a fresh turn's tally
@@ -165,6 +165,9 @@ func (s *State) beginStep(k *prep) {
 		if k.gen != nil && k.gen.anyDelayUp {
 			s.fireDelayedUpkeep(k)
 		}
+		if s.ndly != 0 {
+			s.fireDlyUpkeep(k) // AtEOT$ SacrificeUpkeep (trig_upkeepsac.go)
+		}
 		if initOn(k) {
 			s.initUpkeep(k) // CR 726.2 (act_initiative.go)
 		}
@@ -264,10 +267,10 @@ func (s *State) endStep(next kop.Step) {
 		s.firebendEnd(next) // firebending red survives the combat steps, PersistentMana$ units every step (kw_firebend.go, mana_persistent.go)
 		return
 	}
-	s.pl[0].pool = [kop.NumManaKinds]uint8{}
-	s.rbClear(uint8(0))
-	s.pl[1].pool = [kop.NumManaKinds]uint8{}
-	s.rbClear(uint8(1))
+	for p := uint8(0); p < s.nSeats(); p++ {
+		s.pl[p].pool = [kop.NumManaKinds]uint8{}
+		s.rbClear(p)
+	}
 	s.g.poolArt = [MaxSeats]uint8{}
 	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
 	s.step = next
@@ -393,10 +396,10 @@ func (s *State) finishCleanup(k *prep) {
 		// 514.3a priority in it can still spend them (mana_persistent.go)
 		s.persistEmpty(true)
 	} else {
-		s.pl[0].pool = [kop.NumManaKinds]uint8{}
-		s.rbClear(uint8(0))
-		s.pl[1].pool = [kop.NumManaKinds]uint8{}
-		s.rbClear(uint8(1))
+		for p := uint8(0); p < s.nSeats(); p++ {
+			s.pl[p].pool = [kop.NumManaKinds]uint8{}
+			s.rbClear(p)
+		}
 		s.fbR = [MaxSeats]uint8{} // already 0 (end of combat dropped it); explicit
 		s.g.poolArt = [MaxSeats]uint8{}
 		s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
@@ -934,8 +937,8 @@ func (s *State) fireDelayed(k *prep) {
 	}
 	for i := 0; i < int(n); i++ {
 		d := s.dly[i]
-		if d.when == dlyGrpFollow {
-			fol[nf] = d // carried by its head's trigger (trig_tokenateot.go)
+		if d.when == dlyGrpFollow || d.when == dlyUpkeep {
+			fol[nf] = d // carried by its head's trigger (trig_tokenateot.go), or due at the next upkeep (trig_upkeepsac.go)
 			nf++
 			continue
 		}
@@ -1042,7 +1045,10 @@ func (s *State) legendGroup(k *prep, peek bool) bool {
 	if !s.legM.many() && (k.gen == nil || !k.gen.legendGrant) {
 		return false // no printed legendary and no effect can grant the supertype
 	}
-	for _, p := range [2]uint8{0, 1} { // gorge legendGroups: AliveFrom(0)
+	for p := uint8(0); p < s.nSeats(); p++ { // gorge legendGroups: AliveFrom(0)
+		if s.out(p) {
+			continue
+		}
 		// gorge asks the groups in the battlefield order of each group's
 		// FIRST member (legendGroups appends a group when its name is
 		// first seen), not of the first duplicate: two groups made at once

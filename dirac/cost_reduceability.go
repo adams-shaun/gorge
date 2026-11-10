@@ -182,7 +182,10 @@ func (s *State) eachStaticTS(k *prep, cls uint16, f func(st statSrc) bool) {
 			}
 		}
 	}
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
 			e := &k.t.Emblems[s.embIdx(pp, i)-1]
 			for j := range e.Abilities {

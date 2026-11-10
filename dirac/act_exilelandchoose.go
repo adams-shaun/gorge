@@ -44,7 +44,7 @@ func (s *State) exileLandCand(k *prep, o Obj, p uint8) bool {
 func (s *State) exileLandStart(k *prep) bool {
 	e := &s.res.e
 	s.g.nchosen = 0
-	p := 1 - e.ctrl
+	p := s.nextAlive(e.ctrl) // two live seats only (kop.TwoSeatInstr: ExtExileLandChoose)
 	if DebugExileLandOwn {
 		p = e.ctrl
 	}

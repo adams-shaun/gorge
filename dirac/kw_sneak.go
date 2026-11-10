@@ -96,7 +96,7 @@ func (s *State) sneakReturnable(k *prep, sl Slot) bool {
 // sneakHasReturn reports whether p controls a creature the return can
 // take.
 func (s *State) sneakHasReturn(k *prep, p uint8) bool {
-	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		if s.sneakReturnable(k, m.first()) {
 			return true
 		}
@@ -108,7 +108,7 @@ func (s *State) sneakHasReturn(k *prep, p uint8) bool {
 // card c, object o (FeatPoolPays's pool, the restriction rider included;
 // the cast's own delve credit prices the twobrid faces like the offer).
 func (s *State) sneakPoolPays(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost) bool {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	var a avail
 	for i := 0; i < kop.NumManaKinds; i++ {
 		if pl.pool[i] > 0 {
@@ -192,7 +192,7 @@ func (s *State) sneakReturnOptions(k *prep, d *Decision) bool {
 		}
 	}
 	d.N = 0
-	for m := s.ctrlM[e.ctrl&1]; m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(e.ctrl)]; m.any(); m = m.rest() {
 		sl := m.first()
 		if s.altReturnable(k, sl, e) {
 			d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
@@ -253,14 +253,14 @@ func (s *State) sneakEnter(k *prep, sl Slot, e *stackEntry) {
 // check (or refuse the card) before it can be lowered.
 func (s *State) enteringAttackLegal(k *prep, ctrl uint8, d Obj) bool {
 	t := uint8(d)
-	if t == PlayerTarget0 || t == PlayerTarget1 {
-		return t-PlayerTarget0 != ctrl&1
+	if isPlayerTarget(t) {
+		return CodeSeat(t) != SeatIx(ctrl)
 	}
 	if d == NoObj {
 		return false
 	}
 	ob := &s.objs[d]
-	return ob.zone == kop.ZoneBattlefield && s.typesGen(k, ob.slot)&kop.TPlaneswalker != 0 && s.ctrlM[1-ctrl&1].has(ob.slot)
+	return ob.zone == kop.ZoneBattlefield && s.typesGen(k, ob.slot)&kop.TPlaneswalker != 0 && s.oppsM(ctrl).has(ob.slot)
 }
 
 // the per-permanent `sneaked` mark (CR 702.190a), one slot

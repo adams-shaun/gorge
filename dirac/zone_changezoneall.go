@@ -61,7 +61,10 @@ func (s *State) czall3(k *prep, in *kop.Instr, mv int16, z kop.Zone) {
 		var order [MaxPerm]Slot
 		var objs [MaxPerm]Obj
 		n := 0
-		for p := uint8(0); p < 2; p++ {
+		for p := uint8(0); p < s.nSeats(); p++ {
+			if s.out(p) {
+				continue
+			}
 			n = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), order[:], n)
 		}
 		for i := 0; i < n; i++ {
@@ -97,7 +100,10 @@ func (s *State) czall3(k *prep, in *kop.Instr, mv int16, z kop.Zone) {
 		if zi == 1 {
 			zsrc = czallSecondZone(in)
 		}
-		for p := uint8(0); p < 2; p++ {
+		for p := uint8(0); p < s.nSeats(); p++ {
+			if s.out(p) {
+				continue
+			}
 			pl := &s.pl[p]
 			var list [MaxDeck]Obj
 			nl := 0
@@ -216,9 +222,9 @@ func czallFirstZone(in *kop.Instr) kop.Zone {
 // libraryOrderPlacement: zone-major moves, then the rest), not
 // per zone, which would leave the second zone's cards on top.
 type czallPend struct {
-	list [2][2 * MaxDeck]Obj
-	from [2][2 * MaxDeck]kop.Zone
-	n    [2]int
+	list [MaxSeats][2 * MaxDeck]Obj
+	from [MaxSeats][2 * MaxDeck]kop.Zone
+	n    [MaxSeats]int
 }
 
 func (c *czallPend) add(p uint8, os []Obj, from []kop.Zone) {
@@ -231,7 +237,7 @@ func (c *czallPend) add(p uint8, os []Obj, from []kop.Zone) {
 }
 
 func (c *czallPend) place(s *State, carry *czallCarry) {
-	for p := 0; p < 2; p++ {
+	for p := 0; p < MaxSeats; p++ {
 		if c.n[p] > 0 {
 			s.czallPlace(c.list[p][:c.n[p]], c.from[p][:c.n[p]], carry)
 		}
@@ -246,7 +252,9 @@ func (c *czallPend) place(s *State, carry *czallCarry) {
 // would make them new objects, CR 400.7). k is carried in the parked ask's
 // spare bytes across the answer, so the sweep needs no State field.
 type czallCarry struct {
-	k [2]int
+	// k is per owner; a commander park carries seats 0 and 1 only (the
+	// kernel plays Commander at two seats)
+	k [MaxSeats]int
 	// first is the seat whose card moved first plus one (0: none yet), read by
 	// a CzShuffleEach sweep to shuffle the receiving libraries in gorge's order.
 	// k is at most MaxDeck (100), so bit 7 of each parked byte carries it.
@@ -271,7 +279,7 @@ func (c *czallCarry) store(pre *preAsk) {
 // the receiving libraries (CzShuffleEach); the first card wins.
 func (c *czallCarry) noteFirst(s *State, o Obj) {
 	if c.first == 0 {
-		c.first = s.objs[o].owner()&1 + 1
+		c.first = SeatIx(s.objs[o].owner()) + 1
 	}
 }
 
@@ -280,11 +288,15 @@ func (c *czallCarry) noteFirst(s *State, o Obj) {
 // shuffles first, then the other seat; with nothing moved, seat 0 then seat 1.
 func (c *czallCarry) shuffleEach(s *State) {
 	f := uint8(0)
-	if c.first == 2 {
-		f = 1
+	if c.first != 0 {
+		f = c.first - 1
 	}
-	s.shuffleLib(f)
-	s.shuffleLib(NextSeat(f))
+	n := s.nSeats()
+	for i := uint8(0); i < n; i++ {
+		if p := (f + i) % n; !s.out(p) {
+			s.shuffleLib(p) // each library in turn order from the first mover's
+		}
+	}
 }
 
 // czallPlace puts os on top of their owners' libraries in move order. When
@@ -296,13 +308,13 @@ func (s *State) czallPlace(os []Obj, from []kop.Zone, c *czallCarry) {
 		return
 	}
 	s.libTopInOrder(os, from)
-	var m [2]int
+	var m [MaxSeats]int
 	for _, o := range os {
 		if s.objs[o].zone == kop.ZoneLibrary {
-			m[s.objs[o].owner()&1]++
+			m[SeatIx(s.objs[o].owner())]++
 		}
 	}
-	for p := 0; p < 2; p++ {
+	for p := 0; p < MaxSeats; p++ {
 		if m[p] == 0 {
 			continue
 		}

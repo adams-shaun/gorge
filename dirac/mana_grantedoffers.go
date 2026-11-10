@@ -380,7 +380,7 @@ func (s *State) availGrantExtra(k *prep, sl Slot, pc *pcard, gi *[maxGrants]int1
 //go:noinline
 func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 	a.total, a.n, a.nOne = 0, 0, 0
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	for i := 0; i < kop.NumManaKinds; i++ {
 		if pl.pool[i] > 0 {
 			a.addUnits(1<<i, pl.pool[i])
@@ -390,7 +390,7 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 	if s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0 {
 		deferGap = s.scriptTapsDefer(k, p&1) // as availFor: gorge's census never lists a planner-deferred source (a counter rider, a Taps watcher), so the witness never pays with it
 	}
-	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
 		if pm.flags&pfTapped != 0 || s.manaGranted(k, sl) || deferGap.has(sl) {
@@ -404,7 +404,7 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 			s.addPainAvail(k, sl, pc, p&1, a, nil, false) // the planner's census has a pain ability (Spire of Industry's any colour for 1 life), as ungrAvail counts it
 			continue
 		}
-		a.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))
+		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 		if pc.manaOne {
 			s.addOneColour(a, pc.manaN)
 		}
@@ -557,7 +557,7 @@ const stepFilt int16 = -2
 // modelled here).
 func (g *grantSrch) candidates(s *State) {
 	var order [MaxPerm]Slot
-	n := s.battlefieldOrder(g.p, s.ctrlM[g.p&1].and(s.occ), order[:], 0)
+	n := s.battlefieldOrder(g.p, s.ctrlM[SeatIx(g.p)].and(s.occ), order[:], 0)
 	var fm slotMask
 	if k := g.k; k.gen.anyFilt {
 		fm = s.scriptFilt(k, g.p)
@@ -626,7 +626,7 @@ func (g *grantSrch) candidates(s *State) {
 // tappedOf is the tapped bits of p's permanents.
 func (s *State) tappedOf(p uint8) slotMask {
 	var m slotMask
-	for b := s.ctrlM[p&1].and(s.occ); b.any(); b = b.rest() {
+	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
 		if s.perms[b.first()].flags&pfTapped != 0 {
 			m = m.with(b.first())
 		}
@@ -665,11 +665,11 @@ func (g *grantSrch) visit(t *State) bool {
 	if g.dyn {
 		cost = t.grantDynamicCost(g.k, g.p, g.d.play, g.full)
 	}
-	pl := &t.pl[g.p&1]
+	pl := &t.pl[SeatIx(g.p)]
 	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(g.p)}
 	if g.k.artMana {
 		t.artSync(g.p)
-		key.art = t.g.poolArt[g.p&1]
+		key.art = t.g.poolArt[SeatIx(g.p)]
 	}
 	// gorge's key reads the floated pool, whose restriction it does not
 	// (scriptStateKey): a state that differs from a seen one only in which
@@ -1076,8 +1076,8 @@ func (g *grantSrch) branchSel(t *State, i int, sl Slot, gi int16, mask, n uint8,
 	}
 	for _, c := range cols {
 		t.perms[sl].flags |= pfTapped
-		preBit := t.g.poolArt[g.p&1] // the typed-mana tag before the step: the untag restores exactly it (the slot may hold plain mana too)
-		t.pl[g.p&1].pool[c] += pn
+		preBit := t.g.poolArt[SeatIx(g.p)] // the typed-mana tag before the step: the untag restores exactly it (the slot may hold plain mana too)
+		t.pl[SeatIx(g.p)].pool[c] += pn
 		t.artTag(g.k, g.p, sl, int(c))
 		xv := t.srcExtraPick(g.k, sl, pc, int(c))
 		var gx [kop.NumManaKinds]uint8 // the unspendable tap prices no extra either; its units sit in the ghost
@@ -1099,8 +1099,8 @@ func (g *grantSrch) branchSel(t *State, i int, sl Slot, gi int16, mask, n uint8,
 			g.ghost[j] -= gx[j]
 		}
 		t.subXv(g.p&1, &xv)
-		t.pl[g.p&1].pool[c] -= pn
-		t.g.poolArt[g.p&1] = preBit
+		t.pl[SeatIx(g.p)].pool[c] -= pn
+		t.g.poolArt[SeatIx(g.p)] = preBit
 		t.perms[sl].flags &^= pfTapped
 	}
 	return false
@@ -1354,7 +1354,7 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 				s.capFull(StallRestrSrc)
 			}
 		} else {
-			s.pl[g.p&1].pool[st.col] += st.n
+			s.pl[SeatIx(g.p)].pool[st.col] += st.n
 		}
 		if st.pain {
 			s.painDamage(k, sl, g.p&1, int(s.manaPCGen(k, sl).painN)) // its life or damage (mana_grantpain.go)
@@ -1410,7 +1410,7 @@ func (s *State) grantTapXPrefix(k *prep, a Action, p uint8) {
 	desc := s.grantPayDesc(a)
 	var gaps, tx slotMask
 	tx = s.scriptTapXModelled(k, p)
-	for b := s.ctrlM[p&1].and(s.occ); b.any(); b = b.rest() {
+	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
 		sl := b.first()
 		if s.canTapForMana(k, sl) && s.grantIdx(k, sl) >= 0 {
 			gaps = gaps.with(sl)
@@ -1464,7 +1464,7 @@ func (s *State) tapGrantedGap(k *prep, p uint8, sl Slot) {
 		}
 		return
 	}
-	s.pl[p&1].pool[order[0]] += n
+	s.pl[SeatIx(p)].pool[order[0]] += n
 }
 
 // stepView is the mana ability a prefix step taps on sl: the source's own
@@ -1713,6 +1713,9 @@ func (s *State) altPlayCost(k *prep, p uint8, a Action) (kop.ManaCost, bool) {
 	case m == castAirbend:
 		return s.airbendCost(k, p, c, o), true
 	case m&castWarp != 0:
+		if wi := s.warpInstances(k, p, o); a.Target() < wi.n {
+			return s.adjustCost(k, p, c, o, wi.cost[a.Target()]), true // the action's warp instance (kw_warpgrant.go)
+		}
 		return s.adjustCost(k, p, c, o, cd.WarpCost), true
 	case m&castFree != 0:
 		return kop.ManaCost{}, true
@@ -1781,7 +1784,7 @@ func (s *State) grantsFixedMana(k *prep, sl Slot) bool {
 // hand-barred grant, either leaves a hand warp cast to the prune (CR 106.6,
 // 702.185a).
 func (s *State) filterSource(k *prep, p uint8) bool {
-	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		c := s.cardAt(sl)
 		if k.cards[c].manaAb < 0 {

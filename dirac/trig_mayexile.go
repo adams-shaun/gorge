@@ -60,7 +60,7 @@ func (s *State) trigNewInGrave() Obj {
 // matches gorge's "exiled as a cost" MoveZone.
 func (s *State) exileTrigNew() {
 	if DebugExileTrigNewAnyCard {
-		pl := &s.pl[s.g.pickP&1]
+		pl := &s.pl[SeatIx(s.g.pickP)]
 		if pl.graveN > 0 {
 			s.exileFromGrave(pl.grave[pl.graveN-1]) // the payer's top card, not the triggered card
 			return

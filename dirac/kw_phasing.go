@@ -207,7 +207,7 @@ func (s *State) phaseIn(k *prep, sl Slot) {
 	s.touch(p.obj)
 	s.objs[p.obj].zone = kop.ZoneBattlefield
 	s.occ.set(sl)
-	s.ctrlM[p.ctrl&1].set(sl)
+	s.ctrlM[SeatIx(p.ctrl)].set(sl)
 	// whatever the permanent wears now: a copy that began or ended while
 	// phased out is subscribed as it phases in (CR 702.26c)
 	s.subscribe(sl, &k.cards[s.cardAt(sl)], true)

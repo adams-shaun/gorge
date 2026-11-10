@@ -33,14 +33,14 @@ func (s *State) gainEnergy(k *prep, in *kop.Instr) {
 //
 //go:noinline
 func (s *State) energyPayable(p uint8, c *kop.Cost) bool {
-	return p <= 1 && s.g.energy[p] >= c.N
+	return p < MaxSeats && s.g.energy[p] >= c.N
 }
 
 // payEnergy pays a CostPayEnergy cost.
 //
 //go:noinline
 func (s *State) payEnergy(p uint8, c *kop.Cost) {
-	if p <= 1 {
+	if p < MaxSeats {
 		s.g.energy[p] -= min(s.g.energy[p], c.N)
 	}
 }
@@ -53,7 +53,7 @@ func (s *State) Energy(p uint8) int { return int(s.g.energy[SeatIx(p)]) }
 //
 //go:noinline
 func (s *State) payEnergyN(p uint8, n uint8) {
-	if p <= 1 {
+	if p < MaxSeats {
 		s.g.energy[p] -= min(s.g.energy[p], n)
 	}
 }

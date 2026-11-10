@@ -12,11 +12,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 //go:noinline
 func (s *State) faceDilemma(k *prep, p uint8) {
-	if s.g.dilemmas[p&1] == 255 {
+	if s.g.dilemmas[SeatIx(p)] == 255 {
 		s.capFull(StallTables) // loud: the byte holds 255
 		return
 	}
-	s.g.dilemmas[p&1]++
+	s.g.dilemmas[SeatIx(p)]++
 	var ord [MaxPerm]Slot
 	n := s.listenerOrder(s.occ, &ord)
 	for _, sl := range ord[:n] {
@@ -31,7 +31,10 @@ func (s *State) faceDilemma(k *prep, p uint8) {
 	// 0's graveyard first, each in graveyard order (fireGraveDrawn's walk)
 	for _, c := range k.gen.graveTrig {
 		cd := &k.t.Cards[c]
-		for pp := uint8(0); pp < 2; pp++ {
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
+			if s.out(pp) {
+				continue
+			}
 			pl := &s.pl[pp]
 			for i := 0; i < int(pl.graveN); i++ {
 				o := pl.grave[i]
@@ -72,7 +75,7 @@ func (s *State) buildModesChosen(k *prep, a *kop.Ability) {
 // unfaceDilemma takes back the dilemma of the build a reversal ends.
 func (s *State) unfaceDilemma() {
 	b := s.bld()
-	s.g.dilemmas[b.e.ctrl&1]--
+	s.g.dilemmas[SeatIx(b.e.ctrl)]--
 	copy(s.pend[b.dilLo:s.npend], s.pend[b.dilHi:s.npend])
 	s.npend -= b.dilHi - b.dilLo
 }

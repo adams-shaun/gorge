@@ -74,8 +74,8 @@ func (s *State) declareMustAttack(k *prep) {
 				continue // CR 508.1d: no declaration obeys it alone (combat_alone.go)
 			}
 			s.perms[sl].flags |= pfAttacking
-			s.perms[sl].atk = PlayerTarget0 + 1 - s.active
-			s.perms[sl].bord = s.nAttackers // declaration order (fireAttacksGen)
+			s.perms[sl].atk = PlayerCode(s.nextAlive(s.active)) // two live seats only: mustAttackAsked asks at more
+			s.perms[sl].bord = s.nAttackers                     // declaration order (fireAttacksGen)
 			s.touchSl(sl)
 			s.nAttackers++
 		}
@@ -97,7 +97,7 @@ func (s *State) anyAttacker(k *prep) bool {
 func (s *State) attackerOptions(k *prep, d *Decision) bool {
 	d.Kind, d.Player = DkAttackers, s.active
 	m := s.ctrlM[s.active]
-	def := 1 - s.active
+	def := NextSeat(s.active) // read on the two-seat path only (MaxSeats > 2 offers attackOffersN)
 	// one attacker's offers are at most the player and every other
 	// permanent (its walkers, any attackable battle)
 	room := MaxOptions - 1 - (MaxSeats - 1 + s.occ.count())
@@ -121,7 +121,7 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 		}
 		// defenders: the defending player, then each planeswalker they
 		// control in slot order
-		d.add(MakeAction(AkAttack, o, PlayerTarget0+def, 0))
+		d.add(MakeAction(AkAttack, o, PlayerCode(def), 0))
 		if gd && s.goadedAt(k, sl) {
 			continue // a goad is satisfied by attacking a player only (act_goad.go)
 		}
@@ -201,7 +201,7 @@ func (s *State) MustAttack(o Obj) bool {
 // attacks, or NoSlot when it attacks a player or the target is gone.
 func (s *State) attackedPerm(k *prep, a Slot) Slot {
 	t := s.perms[a].atk
-	if t >= PlayerTarget0 {
+	if isPlayerOrNone(t) {
 		return NoSlot
 	}
 	ob := &s.objs[t]
@@ -337,7 +337,7 @@ func (s *State) fireAttacksGen(k *prep) {
 		var grp [MaxPerm]Slot
 		ng := 0
 		for _, as := range atk[:na] {
-			if t := s.perms[as].atk; t == def || def == NoTarget && t >= PlayerTarget0 {
+			if t := s.perms[as].atk; t == def || def == NoTarget && isPlayerOrNone(t) {
 				grp[ng] = as
 				ng++
 			}
@@ -1098,8 +1098,8 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 // the defending player, or its planeswalker (none if that left).
 func (s *State) toDefender(k *prep, r *dmgRec, a Slot, n int) {
 	t := s.perms[a].atk
-	if t >= PlayerTarget0 {
-		r.toPl[t-PlayerTarget0] = s.addSat16(r.toPl[t-PlayerTarget0], n)
+	if isPlayerOrNone(t) {
+		r.toPl[CodeSeat(t)] = s.addSat16(r.toPl[CodeSeat(t)], n)
 		r.dealtPl[a] = s.addSat16(r.dealtPl[a], n)
 		r.dealt[a] = s.addSat16(r.dealt[a], n)
 		r.note(a, NoSlot, s.sat16(n))
@@ -1139,7 +1139,7 @@ func (s *State) fireDamage(k *prep, src Slot, amt int16, toPlayer, combat bool, 
 			} else if !s.matchPerm(k, a.Trig.Filter, src, lp.ctrl, ls) {
 				continue
 			}
-			s.enqueue(lp.obj, s.objs[lp.obj].ver, s.cardAt(ls), uint8(i), lp.ctrl, s.perms[src].obj, 1-s.perms[src].ctrl, amt)
+			s.enqueue(lp.obj, s.objs[lp.obj].ver, s.cardAt(ls), uint8(i), lp.ctrl, s.perms[src].obj, s.dmgSeat(rcp, s.perms[src].ctrl), amt)
 		}
 	}
 }

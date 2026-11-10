@@ -231,7 +231,10 @@ func (s *State) exwMVSum(k *prep, ctx evalCtx) int {
 		trig, fire = ctx.e.kind == seTrigger, ctx.e.srcVer
 	}
 	n := 0
-	for p := 0; p < 2; p++ {
+	for p := 0; p < int(s.nSeats()); p++ {
+		if s.out(uint8(p)) {
+			continue
+		}
 		pl := &s.pl[p]
 		for j := 0; j < int(pl.exileN); j++ {
 			o := pl.exile[j]
@@ -271,7 +274,10 @@ func (s *State) exwSharedTypes(k *prep, ctx evalCtx) int {
 			continue
 		}
 		n := 0
-		for p := 0; p < 2; p++ {
+		for p := 0; p < int(s.nSeats()); p++ {
+			if s.out(uint8(p)) {
+				continue
+			}
 			pl := &s.pl[p]
 			for j := 0; j < int(pl.exileN); j++ {
 				if o := pl.exile[j]; s.exwHas(o, ctx.src, trig, fire) && k.t.Cards[s.objs[o].card].Types&b != 0 {
@@ -390,7 +396,10 @@ func (s *State) ownMainPhase(ctrl uint8) int {
 //go:noinline
 func (s *State) countLibrary(k *prep, x *kop.Expr, ctx evalCtx) int {
 	v := 0
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		pl := &s.pl[pp]
 		for j := int(pl.libLo); j < int(pl.libHi); j++ {
 			o := pl.lib[j]
@@ -409,7 +418,7 @@ func (s *State) countLibrary(k *prep, x *kop.Expr, ctx evalCtx) int {
 //go:noinline
 func (s *State) unlockedDoors(k *prep, ctrl uint8) int {
 	n := 0
-	for m := s.ctrlM[ctrl&1].and(s.occ); m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(ctrl)].and(s.occ); m.any(); m = m.rest() {
 		c := s.perms[m.first()].card
 		if roomDef(k, c) {
 			n += bits.OnesCount8(roomMask(k, c))
@@ -469,7 +478,10 @@ func (s *State) exprMod(k *prep, x *kop.Expr, ctx evalCtx) int {
 //go:noinline
 func (s *State) graveGreatestPower(k *prep, x *kop.Expr, ctx evalCtx) int {
 	best := 0
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		pl := &s.pl[pp]
 		for j := 0; j < int(pl.graveN); j++ {
 			o := pl.grave[j]

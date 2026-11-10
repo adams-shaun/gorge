@@ -58,6 +58,81 @@ func TestGrantedWarpHandOffer(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestGrantedWarpArtifactAndGrantLoss: Tannuk's grant covers artifact cards as
+// well as red creature cards, and it is a hand static: with Tannuk gone the
+// warped row and the derived warp cost both vanish. With Tannuk back, an
+// artifact card (Sol Ring) is warp-cast, exiled at the end step and recast
+// from exile two turns later.
+func TestGrantedWarpArtifactAndGrantLoss(t *testing.T) {
+	t.Parallel()
+	e, cfg, _ := altCostEngine(t, 958, []string{"Tannuk, Steadfast Second", "Sol Ring", "Goblin Piker"}, nil, nil)
+	tannuk := findCardObj(t, e, 0, "Tannuk, Steadfast Second", state.ZBattlefield)
+	ring := findCardObj(t, e, 0, "Sol Ring", state.ZHand)
+	piker := findCardObj(t, e, 0, "Goblin Piker", state.ZHand)
+	for _, id := range []state.ObjID{ring, piker} {
+		if z := e.G.Obj(id).Zone; z != state.ZHand {
+			t.Fatalf("%s in %s, want the hand the grant reads", e.G.Obj(id).Face().Name, z)
+		}
+	}
+	if z := e.G.Obj(tannuk).Zone; z != state.ZBattlefield {
+		t.Fatalf("Tannuk in %s, want the battlefield", z)
+	}
+	if _, printed := e.G.Obj(ring).Face().KeywordParam("Warp"); printed {
+		t.Fatal("Sol Ring prints Warp; the test needs a granted warp")
+	}
+	want := ParseCost("2 R")
+	if got := grantedWarpCosts(e, ring); len(got) != 1 || !got[0].Equal(&want) {
+		t.Fatalf("Sol Ring granted warp costs %v, want [{2}{R}]; derived keywords %v", got, e.Keywords(ring))
+	}
+	addMana(t, e, 0, "RRR")
+	for _, id := range []state.ObjID{ring, piker} {
+		if !grantedWarpOffered(e, id) {
+			t.Fatalf("no warped row for %s under Tannuk with RRR floating", e.G.Obj(id).Face().Name)
+		}
+	}
+
+	// Tannuk leaves: the grant goes with it.
+	findCardObj(t, e, 0, "Tannuk, Steadfast Second", state.ZGraveyard)
+	if z := e.G.Obj(tannuk).Zone; z != state.ZGraveyard {
+		t.Fatalf("Tannuk in %s, want the graveyard", z)
+	}
+	if got := e.G.Players[0].Pool.Total(); got != 3 {
+		t.Fatalf("pool after Tannuk left: %d, want the 3 floated still there", got)
+	}
+	for _, id := range []state.ObjID{ring, piker} {
+		if grantedWarpOffered(e, id) {
+			t.Fatalf("warped row for %s offered after Tannuk left", e.G.Obj(id).Face().Name)
+		}
+		if got := grantedWarpCosts(e, id); len(got) != 0 {
+			t.Fatalf("%s still has granted warp costs %v after Tannuk left", e.G.Obj(id).Face().Name, got)
+		}
+	}
+
+	// Tannuk returns: the artifact version of the Goblin Piker flow.
+	findCardObj(t, e, 0, "Tannuk, Steadfast Second", state.ZBattlefield)
+	if !grantedWarpOffered(e, ring) {
+		t.Fatal("no warped row for Sol Ring after Tannuk returned")
+	}
+	submitChoices(t, e, castModeOption(t, e, ring, "warped"))
+	passUntilStackEmpty(t, e, 40)
+	if o := e.G.Obj(ring); o.Zone != state.ZBattlefield || o.CastFlags&state.FlagWarped == 0 {
+		t.Fatalf("Sol Ring zone %s flags %d, want a warped permanent", o.Zone, o.CastFlags)
+	}
+	driveToStepAll(t, e, e.G.Turn, 0, state.StepEnd)
+	passUntilStackEmpty(t, e, 40)
+	if o := e.G.Obj(ring); o.Zone != state.ZExile {
+		t.Fatalf("Sol Ring after the end step: %s, want exile", o.Zone)
+	}
+	driveToStepAll(t, e, e.G.Turn+2, 0, state.StepMain1)
+	addMana(t, e, 0, "R")
+	submitChoices(t, e, castModeOption(t, e, ring, "warp_recast"))
+	passUntilStackEmpty(t, e, 40)
+	if o := e.G.Obj(ring); o.Zone != state.ZBattlefield || o.CastFlags&state.FlagWarped != 0 {
+		t.Fatalf("Sol Ring after the recast: zone=%s flags=%d", o.Zone, o.CastFlags)
+	}
+	replayCheck(t, e, cfg)
+}
+
 func grantedWarpOffered(e *Engine, id state.ObjID) bool {
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KPriority {

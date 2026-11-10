@@ -137,19 +137,13 @@ func (s *State) linkRetStall(k *prep, srcCtrl uint8, o Obj, ret Obj) {
 func (s *State) diffCtrlCap(k *prep, t *kop.TargetSpec, ti uint8, mt *multiTgt) uint8 {
 	var buf [MaxOptions]uint8
 	n := s.multiCands(k, t, ti, &buf)
-	var seen [2]bool
+	var seen [MaxSeats]bool
 	for i := 0; i < n; i++ {
 		if isObjTarget(buf[i]) {
-			seen[s.ctrlOfObj(Obj(buf[i]))&1] = true
+			seen[SeatIx(s.ctrlOfObj(Obj(buf[i])))] = true
 		}
 	}
-	d := uint8(0)
-	if seen[0] {
-		d++
-	}
-	if seen[1] {
-		d++
-	}
+	d := seatCount(&seen)
 	if d > 0 && mt.max > d {
 		mt.max = max8(d, mt.min)
 	}

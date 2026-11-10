@@ -99,7 +99,10 @@ func (s *State) untapCands(k *prep, sl Slot) int {
 	ro := &s.g.ro
 	ro.replHdr = replHdr{}
 	c := 0
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		var bf [MaxPerm]Slot
 		for _, b := range bf[:s.battlefieldOrder(pp, s.statM.and(s.ctrlM[pp]).with(sl).and(s.ctrlM[pp]), bf[:], 0)] {
 			if s.genLost(k, b) {

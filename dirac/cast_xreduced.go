@@ -28,7 +28,7 @@ func (s *State) xReducedCeiling(k *prep, e *stackEntry, cost *kop.ManaCost, av *
 	if e.kind != seSpell || cost.X == 0 || !s.statM.any() {
 		return mx
 	}
-	ceil := min(av.total+int(s.pl[e.ctrl&1].graveN)+s.convokeXCredit(k)+1, maxXAsk)
+	ceil := min(av.total+int(s.pl[SeatIx(e.ctrl)].graveN)+s.convokeXCredit(k)+1, maxXAsk)
 	if ceil <= mx {
 		return mx
 	}

@@ -21,7 +21,11 @@ func (s *State) copyPicked(k *prep, in *kop.Instr) bool {
 	o := s.objRefObj(in.Obj)
 	if o == NoObj {
 		if in.B.N&(kop.CpSacAtEndDly|kop.CpExileAtEnd) != 0 {
-			s.delayEmpty(&s.res.e)
+			if sacAtUpkeepOf(in.B.N) {
+				s.delayEmptyUpkeep(&s.res.e)
+			} else {
+				s.delayEmpty(&s.res.e)
+			}
 		}
 		return false
 	}

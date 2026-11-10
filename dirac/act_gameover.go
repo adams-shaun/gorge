@@ -31,7 +31,7 @@ func (s *State) winGame(k *prep, p uint8) {
 			}
 		}
 	} else {
-		s.pl[1-p].lost = true
+		s.pl[NextSeat(p)].lost = true
 	}
 	s.checkOver()
 }

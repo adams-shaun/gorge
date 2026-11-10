@@ -234,6 +234,8 @@ type genPrep struct {
 	anyTwobrid     bool           // some card has a twobrid pip in its printed cost (kop.ManaCost.Tb; mana_twobrid.go)
 	anyBeamGrant   bool           // some card has a StatBeamGrant static
 	anyFbGrant     bool           // some card has a StatFbGrant static (kw_fbgrant.go)
+	anyWarpGrant   bool           // some card has a StatWarpGrant static (kw_warpgrant.go; sets anyWarp too)
+	warpGrantCost  kop.ManaCost   // the first StatWarpGrant's warp cost (kw_warpgrant.go warpGrantCost's fallback)
 	partyRole      [4]uint8       // the matchup subtype index of Cleric, Rogue, Warrior, Wizard (subOutside: absent; act_remember.go partySize)
 	outlawSub      [5]uint8       // the matchup subtype index of Assassin, Mercenary, Pirate, Rogue, Warlock (subOutside: absent; filter_valueheads.go PredOutlaw)
 	anyRemSac      bool           // some OpSacrifice remembers what it sacrifices (B.N&1, RememberSacrificed$; act_remember.go)
@@ -1074,6 +1076,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatFbGrant:
 					g.anyFbGrant = true
 					pc.hasStat = true // scanned through statM (kw_fbgrant.go)
+				case kop.StatWarpGrant:
+					if !g.anyWarpGrant {
+						g.warpGrantCost = a.Static.GrantCost
+					}
+					g.anyWarpGrant, g.anyWarp = true, true
+					pc.hasStat = true // scanned through statM (kw_warpgrant.go)
 				case kop.StatCantPutCounter:
 					g.anyCtrBlock = true
 					pc.hasStat = true // scanned through statM (ctr_cantput.go)
@@ -1820,6 +1828,7 @@ type genState struct {
 	altCast        bool                    // the cast beginCast starts is for the card's own alternative mana cost (castAltTgt; cast_altfree.go; padding)
 	beamGrant      bool                    // the beam me up cast beginCast starts is the granted instance of a card that prints the keyword (kw_beammeup.go; padding)
 	impCast        bool                    // the cast beginCast starts is for the card's impending cost (castImpTgt; kw_impending.go; padding)
+	warpGrant      bool                    // the warp cast beginCast starts pays a battlefield grant's instance (kw_warpgrant.go; padding)
 	noUntapL       uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step (padding)
 	yourTurns      [MaxSeats]uint8         // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)
 	extraTurnBegun uint8                   // ExYourExtraTurns: bit p, player p has begun an extra turn this game (CR 500.7; value_exprs.go)
@@ -1948,6 +1957,8 @@ type genState struct {
 	nseat   uint8                             // seats in this game, set by InitN; read only when MaxSeats > 2 (nSeats)
 	poolTre [MaxSeats][kop.NumManaKinds]uint8 // per player and colour, the floating units a Treasure produced (mana_artifact.go artTag/treSync)
 	blkDef  uint8                             // the defending player declaring blockers; read only when MaxSeats > 2 (blockDef)
+	ul      [maxUntapLock]untapLock           // source-bound untap locks (act_untaplock.go)
+	nul     uint8
 	rsv     [rsvN]uint8
 }
 
@@ -1956,7 +1967,7 @@ const (
 	// rsvN pads the reserved block to 80 bytes (genState's 5 bytes of tail
 	// padding absorb the rest of the alignment): 64, plus the 16 that carry
 	// State's growth for MaxObj 236 to a multiple of 64 so perms keeps its phase.
-	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 2 - MaxSeats*kop.NumManaKinds
+	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 2 - MaxSeats*kop.NumManaKinds - ulBytes
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).

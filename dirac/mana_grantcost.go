@@ -255,7 +255,7 @@ func grantCostLife(pc *pcard) uint8 {
 
 // grantCostPayable: p can pay pc's life now (CR 119.4: life at least N).
 func (s *State) grantCostPayable(p uint8, pc *pcard) bool {
-	return int(s.pl[p&1].life) >= int(grantCostLife(pc))
+	return int(s.pl[SeatIx(p)].life) >= int(grantCostLife(pc))
 }
 
 // grantAlts counts the granted abilities of sl a "choose a mana ability" ask
@@ -293,7 +293,7 @@ func (g *grantSrch) costBranch(t *State, i int, sl Slot, gi int16, pc *pcard, ma
 	for _, c := range order[:no] {
 		u := t.fork()
 		u.perms[sl].flags |= pfTapped
-		u.pl[g.p&1].pool[c] += pn
+		u.pl[SeatIx(g.p)].pool[c] += pn
 		u.artTag(g.k, g.p, sl, int(c))
 		if g.k.gen.anyTapExtra && !skip {
 			xv := u.srcExtraPick(g.k, sl, pc, int(c))
@@ -303,7 +303,7 @@ func (g *grantSrch) costBranch(t *State, i int, sl Slot, gi int16, pc *pcard, ma
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl}
 		g.np++
 		var ok bool
-		if u.pl[g.p&1].life <= 0 {
+		if u.pl[SeatIx(g.p)].life <= 0 {
 			g.node() // the payment ends the game before the next priority (CR 704.5a): gorge's node finds nothing
 		} else {
 			ok = g.next(u, sl)
@@ -339,7 +339,7 @@ func (s *State) grantCostApply(k *prep, p uint8, st *grantStep) {
 			s.capFull(StallRestrSrc) // never a silent spill
 		}
 	} else {
-		s.pl[p&1].pool[st.col] += st.n
+		s.pl[SeatIx(p)].pool[st.col] += st.n
 	}
 	if k.gen.anyTapExtra {
 		xv := s.srcExtraPick(k, sl, pc, int(st.col))

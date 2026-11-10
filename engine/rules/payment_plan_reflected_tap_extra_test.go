@@ -31,6 +31,18 @@ func TestPaymentPlanReflectedTapExtraFolds(t *testing.T) {
 			t.Fatalf("the Mountain's step produces %v, want {R}{R}", acts[0].Produces)
 		}
 	})
+	t.Run("a choice production folds per colour", func(t *testing.T) {
+		e, _, spell := newFixtureDeck(t, 9363, twoSpell)
+		dual := onBoard(t, e, 0, "Name:Combo Test\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Combo R G | SpellDescription$ x\nOracle:x\n")
+		onBoard(t, e, 1, reflectedTapExtraCarrier)
+		acts := ppAction(t, ppAsk(t, e), spell).Plans[0].Activations
+		if len(acts) != 1 || acts[0].Source != dual {
+			t.Fatalf("plan = %#v, want the one dual land", acts)
+		}
+		if got := acts[0].Produces[state.ManaIndex('R')]; got != 2 {
+			t.Fatalf("the dual land's step produces %v, want {R}{R}", acts[0].Produces)
+		}
+	})
 	t.Run("two types stay deferred", func(t *testing.T) {
 		e, _, _ := newFixtureDeck(t, 9362, twoSpell)
 		dual := onBoard(t, e, 0, "Name:Dual Test\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ R G\nOracle:x\n")

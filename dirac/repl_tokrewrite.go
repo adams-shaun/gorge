@@ -31,7 +31,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (the creation is contested: the CreateToken ops pose the order ask first,
 // replTokensOp).
 func (s *State) replTokensCard(k *prep, p uint8, tok CardID, n int) (CardID, int, bool) {
-	if k.gen != nil && k.gen.anyTokRew && k.gen.anyRepl&rbDblTok != 0 && n > 0 && p <= 1 {
+	if k.gen != nil && k.gen.anyTokRew && k.gen.anyRepl&rbDblTok != 0 && n > 0 && p < MaxSeats {
 		return s.replTokensRew(k, p, tok, n)
 	}
 	return tok, s.replTokens(k, p, tok, n), true
@@ -64,7 +64,7 @@ func (s *State) replTokensRew(k *prep, p uint8, tok CardID, n int) (CardID, int,
 // card but is still rewritten to a plain, untapped, non-copy mint.
 func (s *State) replTokensRewApplied(k *prep, p uint8, tok CardID, n int, addsOK bool) (CardID, int, bool, bool) {
 	g := k.gen
-	if n <= 0 || p > 1 {
+	if n <= 0 || p >= MaxSeats {
 		return tok, n, false, true
 	}
 	card, cands, rew, adds := tok, 0, 0, 0
@@ -136,7 +136,7 @@ func (s *State) replTokensRewApplied(k *prep, p uint8, tok CardID, n int, addsOK
 // when the game stalled. addsOK: the site mints a lone ReplAddToken's extra
 // token itself (mintTokAdds), else the adder stalls.
 func (s *State) copyTokenRewrite(k *prep, p uint8, tok CardID, n int, addsOK bool) (card CardID, cnt int, rewritten, ok bool) {
-	if k.gen == nil || !k.gen.anyTokRew || k.gen.anyRepl&rbDblTok == 0 || n <= 0 || p > 1 {
+	if k.gen == nil || !k.gen.anyTokRew || k.gen.anyRepl&rbDblTok == 0 || n <= 0 || p >= MaxSeats {
 		return tok, s.replTokens(k, p, tok, n), false, true
 	}
 	return s.replTokensRewApplied(k, p, tok, n, addsOK)

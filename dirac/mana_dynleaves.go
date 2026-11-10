@@ -15,7 +15,7 @@ func (s *State) plannedAfterLeaving(k *prep, p uint8, o Obj, cost *kop.ManaCost)
 		return true
 	}
 	dynamic := false
-	for m := s.ctrlM[p&1]; m.any() && !dynamic; m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)]; m.any() && !dynamic; m = m.rest() {
 		dynamic = k.gen.flags[s.cardAt(m.first())]&gfManaVar != 0
 	}
 	if !dynamic {

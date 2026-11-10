@@ -40,9 +40,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 		return 0
 	case kop.ExScriedThisTurn:
-		return int(s.pl[ctx.ctrl&1].scry>>(4*(x.N&1))) & 15
+		return int(s.pl[SeatIx(ctx.ctrl)].scry>>(4*(x.N&1))) & 15
 	case kop.ExDilemmasFaced:
-		return int(s.g.dilemmas[ctx.ctrl&1])
+		return int(s.g.dilemmas[SeatIx(ctx.ctrl)])
 	case kop.ExCastBattlefield:
 		// Count$LastStateBattlefieldWithFallback: the
 		// count frozen at beginCast into the spell entry's trigMV
@@ -89,14 +89,14 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		if DebugNoYourTurns {
 			return 0
 		}
-		return int(s.g.yourTurns[ctx.ctrl&1])
+		return int(s.g.yourTurns[SeatIx(ctx.ctrl)])
 	case kop.ExYourExtraTurns:
 		return int(s.g.extraTurnBegun>>(ctx.ctrl&1)) & 1
 	case kop.ExRedNCDmg:
 		if DebugNoRedNC {
 			return 0
 		}
-		return int(s.g.redNC[ctx.ctrl&1])
+		return int(s.g.redNC[SeatIx(ctx.ctrl)])
 	case kop.ExRemLKIPT:
 		return s.remLKIPT() // zone_rememberlki.go
 	case kop.ExExiledWithN:
@@ -157,7 +157,10 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 			return s.exileTypeAgg(k, x, ctx) // zone_exiledwithstatic.go
 		}
 		n := 0
-		for pp := uint8(0); pp < 2; pp++ {
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
+			if s.out(pp) {
+				continue
+			}
 			pl := &s.pl[pp]
 			for j := 0; j < int(pl.exileN); j++ {
 				o := pl.exile[j]
@@ -173,12 +176,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.attackedTurn(k, x, ctx) // value_turntallies.go
 	case kop.ExOppsLostLife:
 		if x.N == 1 {
-			return int(s.g.cdLeg >> (1 - ctx.ctrl) & 1) // dealt combat damage by a legendary creature (value_turntallies.go)
+			return s.oppsLostLife(ctx.ctrl, true) // dealt combat damage by a legendary creature (value_turntallies.go)
 		}
-		if s.pl[1-ctx.ctrl].lifeLost > 0 {
-			return 1
-		}
-		return 0
+		return s.oppsLostLife(ctx.ctrl, false)
 	case kop.ExNotOwnLibMV:
 		return s.notOwnLibMV(k) // value_objectmv.go
 	case kop.ExCounterKinds:
@@ -289,4 +289,32 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.exprKvf(k, x, ctx) // filter_valueheads.go
 	}
 	panic("kernel: expr kind not implemented")
+}
+
+// oppsLostLife is ExOppsLostLife: the number of p's opponents who lost life
+// this turn, or (leg) who were dealt combat damage by a legendary creature
+// (genState.cdLeg bit q).
+func (s *State) oppsLostLife(p uint8, leg bool) int {
+	c := 0
+	for q := uint8(0); q < s.nSeats(); q++ {
+		if q == p {
+			continue
+		}
+		if leg && s.g.cdLeg>>q&1 != 0 || !leg && s.pl[q].lifeLost > 0 {
+			c++
+		}
+	}
+	return c
+}
+
+// oppsLifeLost is the life p's opponents lost this turn (gorge
+// LifeOppsLostThisTurn sums over the opponents).
+func (s *State) oppsLifeLost(p uint8) int {
+	v := 0
+	for q := uint8(0); q < s.nSeats(); q++ {
+		if q != p {
+			v += int(s.pl[q].lifeLost)
+		}
+	}
+	return v
 }

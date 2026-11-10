@@ -50,7 +50,7 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 	case kop.PayLife:
 		return int(s.pl[p].life) >= amt
 	case kop.PayEnergy:
-		return int(s.g.energy[p&1]) >= amt
+		return int(s.g.energy[SeatIx(p)]) >= amt
 	case kop.PayReturn:
 		return s.countReturn(k, p, f) >= amt
 	case kop.PayForage:
@@ -76,7 +76,7 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 	case kop.PayExileGrave:
 		return s.countGraveExile(k, p, f) >= amt
 	case payKindExileHand:
-		return int(s.pl[p&1].handN) >= amt // cost_exilefromhand.go
+		return int(s.pl[SeatIx(p)].handN) >= amt // cost_exilefromhand.go
 	case kop.PayManaX:
 		return true // X = 0 is always payable
 	case payKindEvidence:
@@ -193,7 +193,7 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	if kind != kop.PayMana || skip&pfModes != 0 || s.res.e.kind != seTrigger {
 		return false
 	}
-	if life != 0 && int(s.pl[p&1].life) < int(life) {
+	if life != 0 && int(s.pl[SeatIx(p)].life) < int(life) {
 		return false
 	}
 	other := payDesc{class: pdOther}
@@ -223,7 +223,7 @@ func (s *State) anyManaSource(k *prep, p uint8, d *payDesc) bool {
 	if s.scriptDeferred(k, p).any() {
 		return true
 	}
-	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pc := s.manaPCGen(k, sl)
 		if s.canTapForManaPC(k, sl, pc) || k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc) {
@@ -2313,7 +2313,10 @@ func (s *State) cardCands(k *prep, f kop.FilterID, p uint8, d *Decision) int {
 	if z == kop.ZoneLibrary {
 		return s.libWindowCands(k, f, p, d) // zone_optionalmoves.go
 	}
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		pl := &s.pl[pp]
 		var list []Obj
 		switch z {
@@ -2478,7 +2481,7 @@ func (s *State) pileMove(o Obj, z kop.Zone) {
 // two seats it is the controller's opponent, the one player it can target.
 func (s *State) targetedExiler(ctrl uint8) uint8 {
 	if MaxSeats == 2 {
-		return 1 - ctrl
+		return NextSeat(ctrl)
 	}
 	for i := range s.res.e.tgt {
 		if t := s.tgtCode(i); isPlayerTarget(t) {
