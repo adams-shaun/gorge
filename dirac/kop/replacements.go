@@ -57,6 +57,8 @@ const (
 	ReplDiscardOppToBattlefield  // this card in hand discarded by a spell or ability an opponent of its owner controls (not a cost, not cleanup) enters the battlefield under its owner's control instead of the graveyard (Wilt-Leaf Liege; gorge replacement_match.go ReplMoved Discard$ True, EffectOnly$ True, ValidCause$ SpellAbility.OppCtrl)
 	ReplPreventMillOpps          // damage a source the controller controls would deal to an opponent is prevented and that opponent mills that many cards instead (The Mindskinner; gorge's ReplaceWith$ DB$ Mill body, NumCards$ ReplaceCount$DamageAmount)
 	ReplAddToken                 // a token matching Repl.Filter (none: every token) the controller would create is made, and one token of pool token index Repl.C is made beside the creation as well, once per creation event (R:Event$ CreateToken | ValidPlayer$ You | ReplaceWith$ DB$ ReplaceToken | Type$ AddToken | Amount$ 1 | TokenScript$; Worldwalker Helm). The matchup remaps Repl.C to its CardID
+	ReplPreventDamageCounters    // damage that would be dealt to this permanent is prevented and that many +1/+1 counters are put on it instead, once per damage event (Anti-Venom, Horrifying Healer; gorge's PreventionEffect$ True with a DB$ PutCounter | Defined$ ReplacedTarget | CounterNum$ ReplaceCount$DamageAmount body: under a can't-prevent static the counters are put and the damage stands, CR 615.12)
+	ReplDamageHealFirst          // damage that would be dealt to this permanent is dealt, but all damage already marked on it is healed first, once per damage event (Wolverine, Fierce Fighter; gorge's ReplacementResult$ Updated DB$ HealDamage | Defined$ ReplacedTarget body: the damage is still dealt, so lifelink and damage triggers see it)
 	ReplCount
 )
 

@@ -461,6 +461,8 @@ const (
 	rbPrevCombatBy                    // CardDef.PreventCombatBy: the combat damage it would deal is prevented (combat_preventfrom.go)
 	rbDiscETB                         // ReplDiscardOppToBattlefield (repl_discardetb.go)
 	rbPrevMill                        // ReplPreventMillOpps (repl_preventmill.go)
+	rbPrevCtrSelf                     // ReplPreventDamageCounters (repl_selfdamage.go)
+	rbHealSelf                        // ReplDamageHealFirst (repl_selfdamage.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -945,6 +947,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					pc.hasStat = true
 				case kop.ReplPreventMillOpps:
 					g.replBits[i] |= rbPrevMill
+					pc.hasStat = true
+				case kop.ReplPreventDamageCounters:
+					g.replBits[i] |= rbPrevCtrSelf
+					pc.hasStat = true
+				case kop.ReplDamageHealFirst:
+					g.replBits[i] |= rbHealSelf
 					pc.hasStat = true
 				case kop.ReplDoubleTokens, kop.ReplRewriteTokens, kop.ReplAddToken:
 					g.replBits[i] |= rbDblTok

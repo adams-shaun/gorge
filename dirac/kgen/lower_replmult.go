@@ -251,3 +251,59 @@ func (lc *lowerCtx) preventMillRepl(rp *params, w *cards.SA, rl *lRepl) (bool, e
 	rl.Kind = "PreventMillOpps"
 	return true, nil
 }
+
+// selfDamageRepl lowers the two DamageDone replacements of a permanent on
+// damage to itself (ValidTarget$ Card.Self, no ValidSource$ or IsCombat$):
+//
+//   - Anti-Venom, Horrifying Healer: PreventionEffect$ True | AlwaysReplace$
+//     True with a DB$ PutCounter | Defined$ ReplacedTarget | CounterType$ P1P1
+//     | CounterNum$ ReplaceCount$DamageAmount body. gorge
+//     (rules/replacement.go applyNonMoveReplacements) runs the body at the
+//     proposal and hands back a stopped event (no damage, no lifelink, no
+//     damage trigger); under a can't-prevent effect the counters are put and
+//     the damage stands (CR 615.12). AlwaysReplace$ is not read there.
+//   - Wolverine, Fierce Fighter: ReplacementResult$ Updated with a DB$
+//     HealDamage | Defined$ ReplacedTarget body: the marked damage is healed
+//     and the held event is still dealt (the damage, its lifelink and its
+//     triggers all happen).
+//
+// false: not this shape (ValidTarget$ is not Card.Self).
+func (lc *lowerCtx) selfDamageRepl(rp *params, w *cards.SA, rl *lRepl) (bool, error) {
+	if rp.peek("ValidTarget") != "Card.Self" || w == nil || w.API != "PutCounter" && w.API != "HealDamage" {
+		return false, nil
+	}
+	rp.consume("ValidTarget")
+	if _, ok := rp.get("ValidSource"); ok {
+		return true, refuse("repl-hard: DamageDone self replacement ValidSource")
+	}
+	if _, ok := rp.get("IsCombat"); ok {
+		return true, refuse("repl-hard: DamageDone self replacement IsCombat")
+	}
+	bp := newParams(w.Params)
+	if w.API == "HealDamage" {
+		if _, ok := rp.get("PreventionEffect"); ok || rp.peek("ReplacementResult") != "Updated" {
+			return true, refuse("repl-hard: DamageDone heal replacement shape")
+		}
+		bp.consume("Defined")
+		if w.Sub != nil || bp.str("Defined") != "ReplacedTarget" || len(bp.unread()) != 0 {
+			return true, refuse("repl-hard: DamageDone heal replacement body")
+		}
+		rl.Kind = "DamageHealFirst"
+		return true, nil
+	}
+	if !rp.is("PreventionEffect", "True") || rp.peek("ReplacementResult") != "" {
+		return true, refuse("repl-hard: DamageDone prevent-and-counters shape")
+	}
+	rp.consume("AlwaysReplace") // not read by gorge
+	bp.consume("Defined", "CounterType", "CounterNum")
+	cn := strings.TrimSpace(w.Params["CounterNum"])
+	if sv, ok := lc.face.SVars[cn]; ok {
+		cn = strings.TrimSpace(sv)
+	}
+	if w.Sub != nil || bp.str("Defined") != "ReplacedTarget" || bp.str("CounterType") != "P1P1" ||
+		cn != "ReplaceCount$DamageAmount" || len(bp.unread()) != 0 {
+		return true, refuse("repl-hard: DamageDone prevent-and-counters body")
+	}
+	rl.Kind = "PreventDamageCounters"
+	return true, nil
+}

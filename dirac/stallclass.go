@@ -104,6 +104,8 @@ func (g *genPrep) initStall() uint8 {
 		return StallL6Walk // static_layer6.go prepL6
 	case g.anyRepl&rbPrevMill != 0 && g.anyRepl&(rbDblDmg|rbPlusDmg|rbPrevCol) != 0:
 		return StallReplPlus // repl_preventmill.go: gorge asks the order of a prevent-and-mill and an amount change
+	case g.anyRepl&rbSelfDmg != 0 && g.anyRepl&rbSelfDmgCompete != 0:
+		return StallReplPlus // repl_selfdamage.go: gorge asks the order of a self-damage replacement and another damage replacement
 	}
 	return StallNone
 }
@@ -159,6 +161,10 @@ func pairRefusal(t *kop.Table) (r *kop.PairRefusal) {
 		a = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbDblLife != 0 }
 		b = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbPlusLife != 0 }
 	case StallReplPlus:
+		if g.anyRepl&rbPrevMill == 0 || g.anyRepl&(rbDblDmg|rbPlusDmg|rbPrevCol) == 0 {
+			text, a, b = selfDamagePair(g)
+			break
+		}
 		text = "a prevent-and-mill damage replacement beside a damage doubler, plus-N or colour prevention: gorge asks the CR 616.1 order and the mill changes with it"
 		a = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbPrevMill != 0 }
 		b = func(c *kop.CardDef, i int) bool {

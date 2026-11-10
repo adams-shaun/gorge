@@ -2206,6 +2206,10 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplPreventNoncombatToOthers
 	case "PreventMillOpps":
 		rp.Kind = kop.ReplPreventMillOpps
+	case "PreventDamageCounters":
+		rp.Kind = kop.ReplPreventDamageCounters
+	case "DamageHealFirst":
+		rp.Kind = kop.ReplDamageHealFirst
 	case "DoubleTokens":
 		rp.Kind = kop.ReplDoubleTokens
 		if r.N.isConst() && r.N.N > 2 {
