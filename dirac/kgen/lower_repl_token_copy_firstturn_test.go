@@ -1,16 +1,48 @@
 package kgen
 
 import (
+	"slices"
 	"strings"
 	"testing"
 )
 
-const (
-	crownScript = "Name:Copy Probe\nManaCost:4\nTypes:Artifact Equipment\nK:Equip:2\n" +
-		"R:Event$ CreateToken | ActiveZones$ Battlefield | IsPresent$ Card.Self+AttachedTo Creature | CheckSVar$ X | SVarCompare$ EQ0 | ValidPlayer$ You | Optional$ True | Layer$ Copy | ReplaceWith$ DBCopy | Description$ x\n" +
-		"SVar:DBCopy:DB$ ReplaceToken | Type$ ReplaceToken | ValidChoices$ Card.EquippedBy | TokenScript$ Chosen\n" +
-		"SVar:X:Count$ThisTurnEntered_Battlefield_Card.tokenCreated+YouOwn\n"
+// copyProbe assembles an Equipment probe whose replacement is the shape under
+// test: the parameter fields of the R: line, the body's fields and the SVar X
+// (the card's own text is not copied: this is the shape).
+func copyProbe(repl, body []string, x string) string {
+	return "Name:Copy Probe\nManaCost:4\nTypes:Artifact Equipment\nK:Equip:2\n" +
+		"R:" + strings.Join(repl, " | ") + "\n" +
+		"SVar:DBCopy:" + strings.Join(body, " | ") + "\n" +
+		"SVar:X:" + x + "\n"
+}
+
+var (
+	probeRepl = []string{"Event$ CreateToken", "ActiveZones$ Battlefield", "ValidPlayer$ You", "Optional$ True", "Layer$ Copy",
+		"CheckSVar$ X", "SVarCompare$ EQ0", "IsPresent$ Card.Self+AttachedTo Creature", "ReplaceWith$ DBCopy", "Description$ probe"}
+	probeBody = []string{"DB$ ReplaceToken", "Type$ ReplaceToken", "ValidChoices$ Card.EquippedBy", "TokenScript$ Chosen"}
+	probeGate = "Count$ThisTurnEntered_Battlefield_Card." + "tokenCreated+YouOwn"
 )
+
+// variant is the probe with one field of the replacement (or body) replaced by
+// new ("" drops it) and, when gate is set, its own SVar X.
+func variant(old, new, gate string) string {
+	sub := func(fs []string) []string {
+		var out []string
+		for _, f := range fs {
+			switch {
+			case f != old:
+				out = append(out, f)
+			case new != "":
+				out = append(out, new)
+			}
+		}
+		return out
+	}
+	if gate == "" {
+		gate = probeGate
+	}
+	return copyProbe(sub(probeRepl), sub(probeBody), gate)
+}
 
 // TestLowerReplTokenCopyFirstturn: the optional copy-instead CreateToken
 // replacement of an Equipment or Aura gated on no token of yours having
@@ -27,27 +59,24 @@ func TestLowerReplTokenCopyFirstturn(t *testing.T) {
 			t.Errorf("%s lowered %+v, want one CopyFirstToken replacement gated by a value compare", name, lc.Repls)
 		}
 	}
-	rep := func(old, new string) string {
-		if !strings.Contains(crownScript, old) {
-			t.Fatalf("variant text %q not in the script", old)
-		}
-		return strings.Replace(crownScript, old, new, 1)
-	}
+	auraRepl := []string{"Event$ CreateToken", "ActiveZones$ Battlefield", "ValidPlayer$ You", "Optional$ True", "Layer$ Copy",
+		"CheckSVar$ X", "SVarCompare$ EQ0", "ReplaceWith$ DBCopy", "Description$ probe"}
+	auraBody := []string{"DB$ ReplaceToken", "Type$ ReplaceToken", "ValidChoices$ Card.EnchantedBy", "TokenScript$ Chosen"}
 	for _, c := range []struct{ name, script, want string }{
-		{"the shape", crownScript, ""},
-		{"an Aura's host", strings.Replace(rep("Card.EquippedBy", "Card.EnchantedBy"), "IsPresent$ Card.Self+AttachedTo Creature | ", "", 1), ""},
-		{"opponent's tokens", rep("ValidPlayer$ You", "ValidPlayer$ Opponent"), "CreateToken copy ValidPlayer"},
-		{"every creation", rep("ValidPlayer$ You | ", ""), "CreateToken copy ValidPlayer"},
-		{"not a may", rep("Optional$ True | ", ""), "CreateToken copy replacement Layer/Optional"},
-		{"no copy layer", rep("Layer$ Copy | ", ""), "CreateToken copy replacement Layer/Optional"},
-		{"tokens it controls", rep("tokenCreated+YouOwn", "tokenCreated+YouCtrl"), "CreateToken copy gate"},
-		{"any permanent entered", rep("Card.tokenCreated+YouOwn", "Card.YouOwn"), "CreateToken copy gate"},
-		{"the second time", rep("SVarCompare$ EQ0", "SVarCompare$ EQ1"), "CreateToken copy gate"},
-		{"no gate", rep("CheckSVar$ X | SVarCompare$ EQ0 | ", ""), "CreateToken copy gate"},
-		{"another presence test", rep("Card.Self+AttachedTo Creature", "Creature.YouCtrl"), "CreateToken copy IsPresent"},
-		{"a presence test on an Aura", strings.Replace(rep("Card.EquippedBy", "Card.EnchantedBy"), "Card.Self+AttachedTo Creature", "Card.Self+AttachedTo Artifact", 1), "CreateToken copy IsPresent"},
-		{"a rider on the body", rep("TokenScript$ Chosen", "TokenScript$ Chosen | RememberTokens$ True"), "CreateToken copy replacement shape"},
-		{"a choice among other creatures", rep("Card.EquippedBy", "Creature.Other"), "CreateToken Layer"}, // Esix's shape stays refused
+		{"the shape", copyProbe(probeRepl, probeBody, probeGate), ""},
+		{"an Aura's host", copyProbe(auraRepl, auraBody, probeGate), ""},
+		{"opponent's tokens", variant("ValidPlayer$ You", "ValidPlayer$ Opponent", ""), "CreateToken copy ValidPlayer"},
+		{"every creation", variant("ValidPlayer$ You", "", ""), "CreateToken copy ValidPlayer"},
+		{"not a may", variant("Optional$ True", "", ""), "CreateToken copy replacement Layer/Optional"},
+		{"no copy layer", variant("Layer$ Copy", "", ""), "CreateToken copy replacement Layer/Optional"},
+		{"tokens it controls", variant("", "", "Count$ThisTurnEntered_Battlefield_Card.token+YouCtrl"), "CreateToken copy gate"},
+		{"any permanent entered", variant("", "", "Count$ThisTurnEntered_Battlefield_Card.YouOwn"), "CreateToken copy gate"},
+		{"the second time", variant("SVarCompare$ EQ0", "SVarCompare$ EQ1", ""), "CreateToken copy gate"},
+		{"no gate", copyProbe(slices.DeleteFunc(slices.Clone(auraRepl), func(f string) bool { return strings.HasPrefix(f, "CheckSVar") || strings.HasPrefix(f, "SVarCompare") }), auraBody, probeGate), "CreateToken copy gate"},
+		{"another presence test", variant("IsPresent$ Card.Self+AttachedTo Creature", "IsPresent$ Creature.YouCtrl", ""), "CreateToken copy IsPresent"},
+		{"a presence test on an Aura", copyProbe(append(append([]string(nil), auraRepl...), "IsPresent$ Card.Self+AttachedTo Creature"), auraBody, probeGate), "CreateToken copy IsPresent"},
+		{"a rider on the body", copyProbe(probeRepl, append(append([]string(nil), probeBody...), "RememberTokens$ True"), probeGate), "CreateToken copy replacement shape"},
+		{"a choice among other creatures", variant("ValidChoices$ Card.EquippedBy", "ValidChoices$ Creature.Other", ""), "CreateToken Layer"}, // Esix's shape stays refused
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			got := strings.Join(lowerScript(t, "Copy Probe", c.script), "; ")
