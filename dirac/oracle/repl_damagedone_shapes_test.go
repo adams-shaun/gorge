@@ -40,6 +40,10 @@ type sdCase struct {
 	// pile: the host takes its damage in combat (sdPilePolicy): only it
 	// attacks and every blocker the options offer blocks it; no burn.
 	pile bool
+	// pileLast: the blockers are declared last-offered first, so their
+	// declaration order (gorge deals their hits in it) differs from the
+	// slot order the kernel adds them in.
+	pileLast bool
 }
 
 func sdCases() []sdCase {
@@ -74,6 +78,16 @@ func sdCases() []sdCase {
 				reached: sdDoubleBlockHealed,
 			},
 			host: sdWolverine, pile: true,
+		},
+		{
+			effectLongCase: effectLongCase{
+				name:    "wolverine_double_blocked_last_declared_survives",
+				prefer:  []string{sdWolverine, "Grizzly Bears", "Typhoid Rats"},
+				decks:   [2][]string{append(deckOf(8, sdWolverine), append(deckOf(8, "Mountain"), deckOf(8, "Forest")...)...), append(append(deckOf(6, "Grizzly Bears"), deckOf(6, "Typhoid Rats")...), append(deckOf(6, "Forest"), deckOf(6, "Swamp")...)...)},
+				surface: "autopay",
+				reached: sdDoubleBlockMixed,
+			},
+			host: sdWolverine, pile: true, pileLast: true,
 		},
 	}
 }
@@ -143,6 +157,44 @@ func sdDoubleBlockHealed(g *GorgeSide) bool {
 		case e.Amount > 0:
 			pos++
 			reached = reached || pos >= 3 && healed >= 2
+		}
+	}
+	return false
+}
+
+// sdDoubleBlockMixed: in one damage step Wolverine was dealt two or more
+// damage events of different amounts (a Bears' 2, a Rats' 1 with
+// deathtouch), each healed by the next (a negative Damage between), and the
+// game goes on past the end of combat. The last event dealt is the one whose
+// damage and deathtouch mark stay.
+func sdDoubleBlockMixed(g *GorgeSide) bool {
+	var amts []int32
+	healed, reached, later := false, false, 0
+	for _, e := range g.E.L.Events {
+		if e.Kind == events.StepChange || e.Kind == events.TurnChange {
+			if reached {
+				later++
+				if later == 2 {
+					return true
+				}
+				continue
+			}
+			amts, healed = amts[:0], false
+			continue
+		}
+		if e.Kind != events.Damage || !sdNamed(g, e.Obj, sdWolverine) {
+			continue
+		}
+		switch {
+		case e.Amount < 0:
+			healed = true
+		case e.Amount > 0:
+			if len(amts) > 0 && !healed {
+				amts = amts[:0] // two events with no heal between: not the shape
+			}
+			amts = append(amts, e.Amount)
+			healed = false
+			reached = reached || len(amts) >= 2 && amts[len(amts)-1] != amts[len(amts)-2]
 		}
 	}
 	return false
@@ -222,16 +274,19 @@ func sdPilePolicy(m *Matchup, c sdCase, seed uint64) Policy {
 	var tgt uint32
 	var have bool
 	return PolicyFunc(func(p *PickCtx) Canon {
-		var block, done Canon
+		var block, done, more Canon
 		var atk []Canon
-		haveBlock, haveDone := false, false
+		haveBlock, haveDone, haveMore := false, false, false
 		for _, o := range p.D.Options {
 			switch o.Kind() {
 			case ActBlock:
 				if have && uint32(o.Tgt()) == tgt {
-					return o
+					if !c.pileLast {
+						return o
+					}
+					more, haveMore = o, true
 				}
-				if !haveBlock {
+				if !haveBlock || c.pileLast {
 					block, haveBlock = o, true
 				}
 			case ActAttack:
@@ -241,6 +296,9 @@ func sdPilePolicy(m *Matchup, c sdCase, seed uint64) Policy {
 			case ActDone:
 				done, haveDone = o, true
 			}
+		}
+		if haveMore {
+			return more
 		}
 		if haveBlock {
 			if !have {

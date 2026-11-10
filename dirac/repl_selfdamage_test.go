@@ -124,3 +124,98 @@ func TestCombatDamageWolverineDoubleBlockNoStall(t *testing.T) {
 		t.Fatalf("marked damage %d, want %d (the last blocker's power; the first dealt %d)", got, want, pa)
 	}
 }
+
+// declareBlock marks blocker b as blocking host w with declaration order bord
+// (gorge deals the blockers' hit-backs in that order, not in slot order).
+func declareBlock(s *State, b, w Slot, bord uint8) {
+	s.perms[b].flags |= pfBlocking
+	s.perms[b].blocking = w
+	s.perms[b].bord = bord
+}
+
+// TestHealCombatBlockOrder: the event of the pass that survives is the one
+// gorge deals last: the blocker declared last, whatever its slot. The kernel
+// lists the blockers' events in slot order, so the surviving damage and the
+// deathtouch mark must follow bord. The Hill Giant (3, slot 1) and the Bears
+// (2, slot 2) differ in power, and only one of them has deathtouch.
+func TestHealCombatBlockOrder(t *testing.T) {
+	for _, tc := range []struct {
+		name             string
+		giantFirst       bool // the Giant is declared before the Bears
+		dtGiant, dtBear  bool
+		infectGiant      bool
+		wantTo           int16
+		wantDT, wantSeen bool
+	}{
+		{"giant declared first", true, false, false, false, 2, false, false},
+		{"bears declared first", false, false, false, false, 3, false, false},
+		{"bears declared first, deathtouch on the later giant", false, true, false, false, 3, true, false},
+		{"giant declared first, deathtouch on the earlier giant", true, true, false, false, 2, false, true},
+		{"bears declared first, deathtouch on the earlier bears", false, false, true, false, 3, false, true},
+		// infect on an earlier event: its counters stay (infectCombat takes them out of toPerm)
+		{"infect giant first", true, true, false, true, 2, false, true},
+		// infect on the last event: infectCombat brings toPerm to 0 and marks deathtouch
+		{"infect giant last", false, true, false, true, 0, true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			sc, w, a, b := wolverineScen(t)
+			s, sw, sa, sb := sc.s, sc.slot(w), sc.slot(a), sc.slot(b)
+			if sa >= sb {
+				t.Fatalf("precondition: the Giant's slot %d must precede the Bears' %d", sa, sb)
+			}
+			if tc.infectGiant {
+				sc.k.t.Cards[s.cardAt(sa)].Infect = true
+				sc.k.gen.anyInfect = true
+			}
+			if tc.dtGiant {
+				s.perms[sa].eotKw |= kop.KwDeathtouch
+			}
+			if tc.dtBear {
+				s.perms[sb].eotKw |= kop.KwDeathtouch
+			}
+			if tc.giantFirst {
+				declareBlock(s, sa, sw, 1)
+				declareBlock(s, sb, sw, 2)
+			} else {
+				declareBlock(s, sb, sw, 1)
+				declareBlock(s, sa, sw, 2)
+			}
+			var r dmgRec
+			for _, e := range []struct {
+				src Slot
+				n   int16
+				dt  bool
+			}{{sa, 3, tc.dtGiant}, {sb, 2, tc.dtBear}} { // slot order, as combatDamage adds them
+				r.toPerm[sw] += e.n
+				r.dealt[e.src] += e.n
+				r.note(e.src, sw, e.n)
+				if e.dt {
+					r.dtPerm.set(sw)
+				}
+			}
+			s.healCombat(sc.k, &r)
+			if tc.infectGiant {
+				s.infectCombat(sc.k, &r)
+			}
+			if got := r.toPerm[sw]; got != tc.wantTo {
+				t.Fatalf("toPerm %d, want %d", got, tc.wantTo)
+			}
+			wantDT := tc.wantDT && !tc.infectGiant // infectCombat consumes dtPerm into the mark
+			if got := r.dtPerm.has(sw); got != wantDT {
+				t.Fatalf("dtPerm %v, want %v", got, wantDT)
+			}
+			if tc.infectGiant && tc.wantDT && s.perms[sw].flags&pfDeathtouched == 0 {
+				t.Fatal("the last event's deathtouch mark was not placed")
+			}
+			if tc.infectGiant && !tc.wantDT && s.perms[sw].flags&pfDeathtouched != 0 {
+				t.Fatal("a Deathtouched mark stays from a healed event")
+			}
+			if got := s.perms[sw].cseen&cseenDT != 0; got != tc.wantSeen {
+				t.Fatalf("cseenDT %v, want %v", got, tc.wantSeen)
+			}
+			if r.dealt[sa] != 3 || r.dealt[sb] != 2 {
+				t.Fatalf("dealt %d/%d, want 3/2", r.dealt[sa], r.dealt[sb])
+			}
+		})
+	}
+}
