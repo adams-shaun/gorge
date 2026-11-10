@@ -9,7 +9,7 @@ import (
 // RefOppNonRemCtrl and RefSrcOwner (gorge effects
 // context.go definedSpecNonRememberedController / definedSpecCardOwner).
 
-// DebugOppNonRemFirstOnly is a test hook: oppNonRemCtrl ignores the
+// DebugOppNonRemFirstOnly is a test hook: oppsNonRemCtrl ignores the
 // remembered set and always names the opponent. The lockstep must fail with
 // it set.
 var DebugOppNonRemFirstOnly bool
