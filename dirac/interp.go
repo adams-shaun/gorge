@@ -535,7 +535,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.addManaRestr(k, p, col, n, in.F) // mana_resolverestriction.go
 			break
 		}
-		s.pl[p].pool[col] += uint8(n)
+		s.poolAdd(p, col, n)
 	case kop.OpReturn:
 		o := s.objRefObj(in.Obj)
 		if o == NoObj {

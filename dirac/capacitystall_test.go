@@ -408,3 +408,68 @@ func TestStallBuildingOptionsPosesNothing(t *testing.T) {
 		t.Fatalf("a stalled game posed decision kind %d with %d options", d.Kind, d.N)
 	}
 }
+
+// TestPoolAddPast255Stalls: a pool colour is a byte, so poolAdd saturates at
+// 255 and stalls StallDynMana instead of wrapping (200 + 100 once left 44).
+func TestPoolAddPast255Stalls(t *testing.T) {
+	const col = 0
+	fresh := func(have uint8) *scen {
+		sc := newScen(t, Config{NoElide: true})
+		sc.s.pl[0].pool[col] = have
+		if sc.s.pl[0].pool[col] != have || sc.s.Stalled() {
+			t.Fatalf("precondition: pool %d stalled %v", sc.s.pl[0].pool[col], sc.s.Stalled())
+		}
+		return sc
+	}
+	sc := fresh(200)
+	sc.s.poolAdd(0, col, 100)
+	if got := sc.s.pl[0].pool[col]; got != 255 || sc.s.g.stalled != StallDynMana {
+		t.Fatalf("200+100: pool %d stalled %d, want 255 and StallDynMana", got, sc.s.g.stalled)
+	}
+	sc = fresh(200)
+	sc.s.poolAdd(0, col, 55)
+	if got := sc.s.pl[0].pool[col]; got != 255 || sc.s.Stalled() {
+		t.Fatalf("200+55: pool %d stalled %d, want 255 and no stall", got, sc.s.g.stalled)
+	}
+	for _, n := range []int{0, -3} {
+		sc = fresh(200)
+		sc.s.poolAdd(0, col, n)
+		if got := sc.s.pl[0].pool[col]; got != 200 || sc.s.Stalled() {
+			t.Fatalf("add %d: pool %d stalled %d, want 200 and no stall", n, got, sc.s.g.stalled)
+		}
+	}
+}
+
+// TestDynManaPast255Stalls: a dynamic mana amount above 255 stalls
+// StallDynMana at the amount (dynManaN) and at the pool add (OpAddMana), where
+// uint8(300) used to leave 44 in the pool with no stall.
+func TestDynManaPast255Stalls(t *testing.T) {
+	t.Run("dynManaN", func(t *testing.T) {
+		sc, c := actProliferateScen(t)
+		sl := sc.slot(sc.perm(c.bear, 0))
+		ab := kop.Ability{Kind: kop.AbMana, ManaV: kop.Const(255)}
+		if got := sc.s.dynManaN(sc.k, &ab, sl); got != 255 || sc.s.Stalled() {
+			t.Fatalf("amount 255: got %d stalled %d, want 255 and no stall", got, sc.s.g.stalled)
+		}
+		ab.ManaV = kop.Const(300)
+		if got := sc.s.dynManaN(sc.k, &ab, sl); got != 300 || sc.s.g.stalled != StallDynMana {
+			t.Fatalf("amount 300: got %d stalled %d, want 300 and StallDynMana", got, sc.s.g.stalled)
+		}
+	})
+	t.Run("addMana", func(t *testing.T) {
+		sc := newScen(t, Config{NoElide: true})
+		sc.s.res = resCtx{e: stackEntry{ctrl: 0}, active: true}
+		in := &kop.Instr{Op: kop.OpAddMana, Obj: kop.RefController, A: kop.Const(255), C: 1}
+		sc.s.exec(sc.k, in)
+		if got := sc.s.pl[0].pool[0]; got != 255 || sc.s.Stalled() {
+			t.Fatalf("255: pool %d stalled %d, want 255 and no stall", got, sc.s.g.stalled)
+		}
+		sc = newScen(t, Config{NoElide: true})
+		sc.s.res = resCtx{e: stackEntry{ctrl: 0}, active: true}
+		in.A = kop.Const(300)
+		sc.s.exec(sc.k, in)
+		if got := sc.s.pl[0].pool[0]; got != 255 || sc.s.g.stalled != StallDynMana {
+			t.Fatalf("300: pool %d stalled %d, want 255 and StallDynMana", got, sc.s.g.stalled)
+		}
+	})
+}

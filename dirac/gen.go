@@ -2163,10 +2163,11 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 }
 
 // maxDynMana caps a dynamic mana ability's amount as an autopay source; a
-// larger amount stalls StallDynMana. 255, what a mana count byte holds
-// (pcard.manaN, a pool's colour): a runaway Improvised Arsenal game passed
-// 40, then 130, then 300; The Core's permanent cards in your graveyard
-// reached 21.
+// larger amount stalls StallDynMana. The amount indexes varPC, one variant
+// per amount, and a pool colour is a byte in State (poolAdd saturates there).
+// A self-pumping source (Improvised Arsenal copies on the tapping creature)
+// grows without bound, so 255 is the declared ceiling and a larger amount is
+// a counted capacity stall, not a bigger table.
 const maxDynMana = 255
 
 // dynManaN evaluates a dynamic mana ability's amount and stalls when it is

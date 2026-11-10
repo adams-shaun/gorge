@@ -530,7 +530,7 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		s.manaTapped(k, st.sl)
 	}
 	pc := &k.cards[s.cardAt(st.sl)]
-	s.pl[p&1].pool[st.col] += max(pc.manaN, 1)
+	s.poolAdd(p, int(st.col), int(max(pc.manaN, 1)))
 	s.tapExtraStall(k, st.sl)
 	s.artTag(k, p, st.sl, int(st.col))
 }

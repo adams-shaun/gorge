@@ -690,7 +690,7 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 			s.tapExtraStall(k, st.sl)
 			break
 		}
-		pl.pool[st.ans-1] += uint8(s.filtUnits(k, st.sl))
+		s.poolAdd(p, int(st.ans-1), int(s.filtUnits(k, st.sl)))
 		// the filter taps the source for mana, so a TapsForMana static adds
 		// its extra beside the filter's unit (mana_tapextra.go filtExtra)
 		xv := s.filtExtra(k, st.sl)
@@ -699,13 +699,13 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 	case st.gap:
 		pc := s.manaPCGen(k, st.sl)
 		c := bits.TrailingZeros8(s.srcMaskAt(pc, st.sl))
-		pl.pool[c] += max(pc.manaN, 1)
+		s.poolAdd(p, c, int(max(pc.manaN, 1)))
 		s.addExtra(k, p, st.sl, pc)
 		s.artTag(k, p, st.sl, c)
 	case st.restr:
 		s.filtRestrDo(k, p, st)
 	default:
-		pl.pool[st.ans] += max(s.manaPCGen(k, st.sl).manaN, 1)
+		s.poolAdd(p, int(st.ans), int(max(s.manaPCGen(k, st.sl).manaN, 1)))
 		s.addExtra(k, p, st.sl, s.manaPCGen(k, st.sl))
 		s.artTag(k, p, st.sl, int(st.ans))
 		if k.sacMana {
