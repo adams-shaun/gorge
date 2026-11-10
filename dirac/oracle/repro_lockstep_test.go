@@ -565,3 +565,13 @@ func TestTyLeeLockOnHerselfEndsWhenSheLeavesLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "ty_lee_lock_on_herself_ends_when_she_leaves", "std-tla", Config{GorgeAutopaySurface: true})
 }
+
+// TestWideGapTapsBeforeGrantedSourceLockstep: Hermitic Herbalist, entered
+// before a permanent holding a granted mana ability, is a census gap beside
+// it. gorge's one prefix search activates the gaps in battlefield order, so
+// Ba Sing Se's Earthbend activation is preceded by the Herbalist's tap for its
+// first ability's colour, then the granted source's (CR 605.3a, 601.2g-h).
+func TestWideGapTapsBeforeGrantedSourceLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "wide_gap_taps_before_granted_source", "std-tla", Config{GorgeAutopaySurface: true})
+}
