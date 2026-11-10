@@ -389,6 +389,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "effect_trig_remember_mysterio_tokens_stay_when_it_dies"},
 		// Mysterio dies with its enters trigger on the stack, returns, and dies again: the registration made while it was gone exiles the token it remembered (CR 603.7, 400.7)
 		{"custom", "effect_trig_remember_mysterio_exiles_tokens_of_a_registration_made_after_it_left"},
+		// Mysterio is blinked with its enters trigger on the stack: gorge binds the Effect to the returned incarnation, which ends without exiling (CR 603.7, 400.7)
+		{"custom", "effect_trig_remember_mysterio_tokens_stay_when_blinked_with_its_trigger_on_the_stack"},
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {

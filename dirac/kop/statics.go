@@ -230,8 +230,8 @@ type Emblem struct {
 	// the emblem (State.g.embO), which keeps its id across zones.
 	Source bool
 	// NotHere: the emblem is made only when its host is not on the battlefield
-	// (an Effect registered by a permanent that is there ends with that
-	// incarnation: gorge's delayedRegistrationLive reads SourceBattlefield, so
+	// (an Effect registered by a permanent that is there ends with the
+	// incarnation on the battlefield at registration: gorge's delayedRegistrationLive reads SourceBattlefield, so
 	// a host-leaves trigger of such a registration never fires; one made with
 	// the host already gone is unbounded and fires when the object leaves
 	// again).

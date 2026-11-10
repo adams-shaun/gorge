@@ -668,7 +668,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if k.embComb && s.idemEmblemHeld(k, p, uint8(in.C)+1) {
 			break // static_emblemcombat.go
 		}
-		if k.t.Emblems[in.C].NotHere && s.hostHere(e) {
+		if k.t.Emblems[in.C].NotHere && s.hostNow(e) {
 			break // a registration made with its host on the battlefield ends with it (kop.Emblem.NotHere)
 		}
 		if n := int(s.g.nemb[p]); n < s.embCap() {

@@ -14,7 +14,8 @@ import (
 // by decision against gorge: The Eagles Are Coming! (a Bird at the next upkeep
 // for each creature the spell returned), T'Pring, Never Parted (a card drawn
 // when either fighter dies this turn) and Mysterio, Master of Illusion (its
-// tokens stay when it leaves: gorge's Effect registration ends with Mysterio).
+// tokens stay when it leaves: gorge's Effect registration ends with Mysterio,
+// also when a blink returned it while its enters trigger was on the stack).
 // TestStdSetReprosLockstep replays the three repros; TestEffectTrigRememberReprosReach
 // requires each recorded game to reach the trigger's observable effect, since a
 // lockstep entry alone would pass a script that never cast the card.
@@ -62,6 +63,16 @@ func effectTrigRememberCases() []effectLongCase {
 			},
 			surface: "autopay",
 			reached: mysterioRegistrationAfterLeaving,
+		},
+		{
+			name:   "effect_trig_remember_mysterio_tokens_stay_when_blinked_with_its_trigger_on_the_stack",
+			prefer: []string{"Cloudshift", "Mysterio, Master of Illusion", "Lightning Bolt"},
+			decks: [2][]string{
+				append(append(deckOf(5, "Mysterio, Master of Illusion"), deckOf(5, "Cloudshift")...), append(deckOf(7, "Island"), deckOf(7, "Plains")...)...),
+				append(deckOf(8, "Lightning Bolt"), deckOf(16, "Mountain")...),
+			},
+			surface: "autopay",
+			reached: mysterioTokenExiledAfterBlink,
 		},
 	}
 }
@@ -148,6 +159,41 @@ func mysterioRegistrationAfterLeaving(g *GorgeSide) bool {
 	return false
 }
 
+// mysterioTokenExiledAfterBlink: Mysterio was exiled and returned by Cloudshift
+// while his enters trigger was on the stack, the trigger then registered the
+// Effect against the returned Mysterio (gorge ends such a registration with
+// that incarnation, without firing), he left again with Illusion Villain tokens
+// out, and none of them was exiled.
+func mysterioTokenExiledAfterBlink(g *GorgeSide) bool {
+	entered, blinked, tokens, left := 0, false, false, false
+	for _, e := range g.E.L.Events {
+		switch {
+		case e.Kind == events.MoveZone && e.To == state.ZBattlefield && evName(g, e.Obj) == "Mysterio, Master of Illusion":
+			entered++
+		case entered == 1 && e.Kind == events.MoveZone && e.From == state.ZBattlefield && e.To == state.ZExile && evName(g, e.Obj) == "Mysterio, Master of Illusion":
+			blinked = true
+		case blinked && entered >= 2 && e.Kind == events.TokenCreate && strings.Contains(e.Text, "illusion"):
+			tokens = true
+		case tokens && e.Kind == events.MoveZone && e.From == state.ZBattlefield && evName(g, e.Obj) == "Mysterio, Master of Illusion":
+			left = true
+		case left && e.Kind == events.MoveZone && e.From == state.ZBattlefield && e.To == state.ZExile:
+			return false
+		}
+	}
+	return left
+}
+
+// mysterioEntered counts how often Mysterio has entered the battlefield.
+func mysterioEntered(g *GorgeSide) int {
+	n := 0
+	for _, e := range g.E.L.Events {
+		if e.Kind == events.MoveZone && e.To == state.ZBattlefield && evName(g, e.Obj) == "Mysterio, Master of Illusion" {
+			n++
+		}
+	}
+	return n
+}
+
 // mysterioDeaths counts how often Mysterio has left the battlefield.
 func mysterioDeaths(g *GorgeSide) int {
 	n := 0
@@ -195,6 +241,7 @@ func effectTrigRememberPolicy(m *Matchup, c effectLongCase, seed uint64) Policy 
 		return inner
 	}
 	again := strings.Contains(c.name, "after_it_left")
+	blink := strings.Contains(c.name, "blinked")
 	return PolicyFunc(func(p *PickCtx) Canon {
 		if p.D.Kind == DTarget && p.G != nil {
 			for _, a := range p.D.Options {
@@ -210,13 +257,22 @@ func effectTrigRememberPolicy(m *Matchup, c effectLongCase, seed uint64) Policy 
 		if again && mysterioDeaths(p.G) == 0 {
 			bolt = mysterioOnBattlefield(p.G) && len(p.G.E.G.Stack) > 0
 		}
-		if bolt {
+		if blink {
+			bolt = mysterioOut(p.G) && mysterioEntered(p.G) >= 2
+		} else if bolt {
 			return inner.Pick(p)
 		}
 		d := *p.D
 		d.Options = nil
 		for _, o := range p.D.Options {
-			if o.Kind() == ActCast && m.InstanceCard(int(o.Src())) == "Lightning Bolt" {
+			if blink && o.Kind() == ActCast && m.InstanceCard(int(o.Src())) == "Cloudshift" {
+				// cast it only with Mysterio out and his enters trigger waiting
+				if mysterioEntered(p.G) == 1 && mysterioOnBattlefield(p.G) && len(p.G.E.G.Stack) > 0 {
+					return o
+				}
+				continue
+			}
+			if !bolt && o.Kind() == ActCast && m.InstanceCard(int(o.Src())) == "Lightning Bolt" {
 				continue
 			}
 			d.Options = append(d.Options, o)

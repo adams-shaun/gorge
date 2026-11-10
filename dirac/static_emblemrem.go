@@ -98,3 +98,17 @@ func (s *State) embRemFill(e *kop.Emblem, r *embRec) bool {
 	}
 	return true
 }
+
+// hostNow reports whether e's source is on the battlefield now. gorge binds a
+// permanent Effect to the source's current incarnation when it is registered
+// (SourceBattlefield at registration), not to the one that put the trigger on
+// the stack: a source blinked or reanimated while the trigger waited still has
+// the registration end with it. A token cannot return, so its id on the
+// battlefield with another version is a reused id, not the source.
+func (s *State) hostNow(e *stackEntry) bool {
+	if e.obj == NoObj || int(e.obj) >= MaxObj {
+		return false
+	}
+	ob := &s.objs[e.obj]
+	return ob.zone == kop.ZoneBattlefield && (ob.of&ofToken == 0 || ob.ver == e.srcVer)
+}
