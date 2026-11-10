@@ -7,28 +7,26 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// TestThorinAttachLowers: Thorin, Mountain-king's ETB attach and reflexive
-// capture lower -- the plural Object$ ParentTarget AttachObj that remembers
-// what it attached, the reflexive trigger handed the Attach's own creature
-// target (slot 1) and its body reading that creature -- shown on the card's
-// chain with a Fight body (Curse of the Werefox's DelayTriggerRemembered read). The real card stays
-// refused on its X = TriggerRemembered$CardPower: gorge reads the captured
-// creature off the battlefield (the printed power of the card in its new
-// zone), where the kernel skips the damage.
+// TestThorinAttachLowers: Thorin, Mountain-king lowers whole -- the plural
+// Object$ ParentTarget AttachObj that remembers what it attached, the
+// reflexive trigger handed the Attach's own creature target (slot 1), and the
+// reflexive Bite whose source is that captured creature, its X =
+// TriggerRemembered$CardPower the creature's power (live, or last known once
+// it left: gorge rememberedPTLKI, the kernel's reflexBiteGone). The card's
+// chain with a Fight body (Curse of the Werefox's DelayTriggerRemembered
+// read) lowers too.
 func TestThorinAttachLowers(t *testing.T) {
 	cs := lowerNamed(t, []string{"Thorin, Mountain-king"})
 	if len(cs) != 1 || cs[0].Name != "Thorin, Mountain-king" {
 		t.Fatalf("lowered %d cards, want Thorin", len(cs))
 	}
-	var reasons []string
 	for _, r := range cs[0].Refusals {
-		reasons = append(reasons, r.Reason)
+		t.Errorf("Thorin refused: %s", r.Reason)
 	}
-	kdefWant(t, reasons, "TriggerRemembered$CardPower of a captured creature")
-	for _, r := range reasons {
-		if strings.Contains(r, "Attach") || strings.Contains(r, "RememberObjects") {
-			t.Errorf("the attach or the capture refused: %s", r)
-		}
+	var real strings.Builder
+	dumpLIR(&real, cs[0])
+	if !strings.Contains(real.String(), "Bite obj=DelayedRemembered") {
+		t.Errorf("Thorin's reflexive body is not a Bite from the captured creature:\n%s", real.String())
 	}
 
 	c := kremw4Card(t, thorinFightSVars())
@@ -95,8 +93,10 @@ func TestThorinAttachRefusals(t *testing.T) {
 			t.Fatalf("refused: %q", got)
 		}
 	})
-	t.Run("CardPower of a captured creature", func(t *testing.T) {
-		kdefWant(t, kremw4Lowered(t, thorinSVars()), "TriggerRemembered$CardPower of a captured creature")
+	t.Run("synthetic Thorin with its CardPower body lowers", func(t *testing.T) {
+		if got := kremw4Lowered(t, thorinSVars()); len(got) != 0 {
+			t.Fatalf("refused: %q", got)
+		}
 	})
 	t.Run("Object Targeted over several", func(t *testing.T) {
 		kdefWant(t, kremw4Lowered(t, map[string]string{

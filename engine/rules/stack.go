@@ -436,6 +436,9 @@ func (e *Engine) resolveTop() {
 			ctx.OfferedSA = offeredSA
 		}
 		reflexiveCaptured(ctx)
+		if pt := e.reflexiveRememberedPT[id]; pt != nil {
+			ctx.Snap.TargetPT = effects.CloneTargetPTLKI(pt)
+		}
 		if lki, ok := e.triggerLKI[id]; ok && lki.object != nil {
 			ctx.LKI = lki.object
 			ctx.Snap.Power, ctx.Snap.Toughness, ctx.Snap.PTValid =
