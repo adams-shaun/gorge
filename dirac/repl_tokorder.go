@@ -191,6 +191,21 @@ func (s *State) replTokensOp(k *prep, in *kop.Instr, p uint8, tok CardID, n int)
 		s.capFull(StallReplCands) // loud: never truncate the candidates
 		return tok, 0, false, false
 	}
+	if _, na, over := s.tokAddCards(k, p, tok); over {
+		s.capFull(StallReplCands)
+		return tok, 0, false, false
+	} else if na > 0 {
+		// an adder beside another matching replacement is gorge's CR 616.1 order
+		// ask (an adder does not commute with a multiplier or a rewriter); a
+		// Role mint (TokAttach) is no plain mint to add beside
+		// a listed script (TrList) shares a creation event with the ops beside it
+		if t.nc > 0 || in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokAttach != 0 ||
+			in.Op == kop.OpCreateToken && in.B.N&kop.TrList != 0 {
+			s.capFull(StallTokRewrite)
+			return tok, 0, false, false
+		}
+		return tok, n, true, false
+	}
 	if rew == 0 || t.nc < 2 {
 		tc, cnt, ok = s.replTokensCard(k, p, tok, n)
 		return tc, cnt, ok, false
@@ -260,7 +275,17 @@ func (s *State) execCreateToken(k *prep, in *kop.Instr) (ok, done bool) {
 			}
 		}
 	}
-	if s.mintTokens(k, in, p, n) {
+	var cs [4]CardID
+	na := 0
+	if !t.on && n > 0 {
+		// an adder's token enters with the op's own (it is alone: replTokensOp)
+		cs, na, _ = s.tokAddCards(k, p, CardID(in0.C))
+	}
+	if na > 0 {
+		if s.createTokensHeld(k, in, p, n, cs[:na]) {
+			return true, true
+		}
+	} else if s.mintTokens(k, in, p, n) {
 		return true, true
 	}
 	if t.on {
@@ -281,7 +306,7 @@ func (s *State) execCreateToken(k *prep, in *kop.Instr) (ok, done bool) {
 // the board is full (a stall).
 func (s *State) mintTokens(k *prep, in *kop.Instr, p uint8, n int) bool {
 	if n > 1 {
-		return s.createTokensHeld(k, in, p, n)
+		return s.createTokensHeld(k, in, p, n, nil)
 	}
 	for i := 0; i < n; i++ {
 		if s.nearCapacity(k) {
@@ -316,6 +341,57 @@ func (s *State) mintTokens(k *prep, in *kop.Instr, p uint8, n int) bool {
 			s.promoKw(k, sl, kop.KwHaste)
 		}
 		s.res.lastTok = o
+	}
+	return false
+}
+
+// tokAddCards collects the ReplAddToken replacements p controls that match a
+// token of card tok, the card each adds, in battlefield order. over is set
+// when there are more than the buffer holds.
+func (s *State) tokAddCards(k *prep, p uint8, tok CardID) (cs [4]CardID, n int, over bool) {
+	g := k.gen
+	for m := s.tokSrcM(p); m.any(); m = m.rest() {
+		b := m.first()
+		if g.replBits[s.cardAt(b)]&rbDblTok == 0 || s.genLost(k, b) {
+			continue
+		}
+		cd := &k.t.Cards[s.cardAt(b)]
+		for i := range cd.Abilities {
+			a := &cd.Abilities[i]
+			if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplAddToken {
+				continue
+			}
+			if a.Repl.Filter != 0 && !s.matchCardGen(k, a.Repl.Filter, tok, p, p, NoObj) {
+				continue
+			}
+			if n == len(cs) {
+				return cs, n, true
+			}
+			cs[n] = CardID(a.Repl.C)
+			n++
+		}
+	}
+	return cs, n, false
+}
+
+// mintTokAdds makes the extra token of each ReplAddToken that matched a
+// creation of n tokens of card tok under p (one per creation event, gorge's
+// fixed Amount$ AddToken block: replacement_token.go
+// applyTokenReplacementToPlan appends it after the event's own tokens). It is
+// one more mint of the effect, so it takes the effect's riders in (entering
+// tapped, remembered, imprinted: gorge's Token effect applies them to every
+// planned mint). True when the board is full (a stall).
+func (s *State) mintTokAdds(k *prep, in *kop.Instr, p uint8, tok CardID, n int) bool {
+	if n <= 0 || !k.gen.anyTokRew || k.gen.anyRepl&rbDblTok == 0 || p > 1 {
+		return false
+	}
+	cs, na, _ := s.tokAddCards(k, p, tok)
+	for _, c := range cs[:na] {
+		rw := *in
+		rw.C = int16(c)
+		if s.mintTokens(k, &rw, p, 1) {
+			return true
+		}
 	}
 	return false
 }

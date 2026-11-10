@@ -69,6 +69,10 @@ type Static struct {
 	// Animate staticAbilities$ grant of a permission or an extra land play:
 	// Nog, Ambitious Cadet's Officer step). 0 = a printed static.
 	OvGate uint8
+	// GrantCost: a StatFbGrant's own flashback cost when StFbOwnCost is set
+	// (AddKeyword$ Flashback:1, Iroh, Grand Lotus's Lessons); otherwise the
+	// grant costs each card's mana cost.
+	GrantCost ManaCost
 }
 
 // Override is a fixed-order override record (the plan's replacement for a
@@ -475,6 +479,12 @@ const StatTapExtra StaticKind = 254
 // StTapOnC on a StatTapExtra static: it fires only for a tap that makes {C}.
 const StTapOnC StaticFlags = 1 << 1
 
+// StNoPrevCombat (aliases StOncePerTurn, a MayPlayFrom-only bit) on a
+// StatCantPreventDamage static: only combat damage can't be prevented
+// (IsCombat$ True: Frenzied Baloth; gorge cantPreventDamage reads it against
+// combatDamaging). Noncombat damage is prevented as usual.
+const StNoPrevCombat = StOncePerTurn
+
 // StatAnyTypeCreatures: the static's controller may spend mana as though it
 // were mana of any type to cast creature spells (S:Mode$ ManaConvert |
 // ValidPlayer$ You | ValidCard$ Creature.YouCtrl | ValidSA$ Spell |
@@ -483,3 +493,15 @@ const StTapOnC StaticFlags = 1 << 1
 // read from the battlefield. Explicit ordinal: the StaticKind iota tail
 // stays untouched.
 const StatAnyTypeCreatures StaticKind = 239
+
+// StatFbGrant: during the static's controller's turn when Cond2 holds, each
+// card in their graveyard matching Filter has flashback (a Continuous static's
+// AffectedZone$ Graveyard AddKeyword$ Flashback; CR 702.34a; Iroh, Grand Lotus).
+// The grant is read live from the battlefield, never stamped on the card: its
+// cost is the card's mana cost, or GrantCost under StFbOwnCost (gorge
+// flashbackCost). Explicit ordinal: the StaticKind iota tail stays untouched.
+const StatFbGrant StaticKind = 242
+
+// StFbOwnCost on a StatFbGrant static: the flashback costs Static.GrantCost,
+// not the card's mana cost.
+const StFbOwnCost StaticFlags = 1 << 0

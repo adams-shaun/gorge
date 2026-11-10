@@ -33,6 +33,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/dirac/oracle"
@@ -161,6 +162,8 @@ func run() int {
 		v2NoChance = flag.Bool("v2-no-chance", false, "-v2 transcript: negative control: the gorge host keeps its secret-stream shuffles instead of dealing the dirac kernel's chance (must diff)")
 		synth      = flag.String("synth", "", "play a synthetic evidence pool (make dirac-tables writes them): deal its decks in memory from -seed and report its reach; replaces -kernel, -set and -decks")
 		synthDecks = flag.Int("synth-decks", oracle.SynthDecks, "-synth: decks to deal")
+		seats      = flag.Int("seats", 2, "seats a game: 2 plays deck pairs; 3 or 4 plays pods of distinct decks (oracle.PodAt), gorge against gorge only (-kernel gorge)")
+		pods       = flag.Int("pods", 0, "-seats above 2: pods to play (one game each; 0: -pairs)")
 		eventTail  = flag.Int("events", 0, "-repro: print the last N events of gorge's log when the game ends, objects named by card")
 		refusedIn  = flag.Bool("play-refused", false, "pool runs: play the pairs holding a card refused by name too, as scripts/dirac-first-refusals.py settle does")
 		reachPath  = flag.String("reach", "", "-synth: write one row per card of the list here: card, how far it got, decks, games, plays in clean games")
@@ -192,6 +195,31 @@ func run() int {
 	explicit := map[string]bool{}
 	flag.Visit(func(f *flag.Flag) { explicit[f.Name] = true })
 	var err error
+	if *seats < 2 || *seats > oracle.MaxSeats {
+		fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: want 2 to %d\n", *seats, oracle.MaxSeats)
+		return 2
+	}
+	if explicit["pods"] && *seats == 2 {
+		fmt.Fprintln(os.Stderr, "kfuzz: -pods needs -seats above 2")
+		return 2
+	}
+	// synthGorge plays a synthetic pool's decks gorge against gorge, the
+	// harness check of a game of more than two seats.
+	synthGorge := *synth != "" && *seats > 2 && explicit["kernel"] && *kernel == "gorge"
+	if *seats > 2 {
+		for _, name := range []string{"repro", "replay", "v2", "pairs-file", "coverage"} {
+			if explicit[name] {
+				fmt.Fprintf(os.Stderr, "kfuzz: -seats %d cannot be used with -%s\n", *seats, name)
+				return 2
+			}
+		}
+		if *pods > 0 {
+			*pairs = *pods
+		}
+	}
+	if synthGorge {
+		delete(explicit, "kernel")
+	}
 	if *synth != "" {
 		if err := checkSynthFlags(explicit); err != nil {
 			fmt.Fprintln(os.Stderr, "kfuzz:", err)
@@ -205,6 +233,13 @@ func run() int {
 	*kernel, *setName, *decksDir, err = resolveKernel(*kernel, *setName, *decksDir, explicit)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
+		return 2
+	}
+	if synthGorge {
+		*kernel = "gorge"
+	}
+	if *seats > 2 && *kernel != "gorge" && (*kernel != "vanilla" || *seats > dirac.MaxSeats) {
+		fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: this dirac build plays %d seats; a game of more seats runs gorge against gorge only (-kernel gorge), or -kernel vanilla in a build with -tags dirac_mp\n", *seats, dirac.MaxSeats)
 		return 2
 	}
 	if *kernel != "fdn" {
@@ -375,7 +410,7 @@ func run() int {
 				return oracle.RealKernel(vanilla.Table, nil, rrc.Config), nil
 			})
 		}
-		return runVanilla(c, rc, *firstPair, *pairs, *seed, *mulligans, *gameLimit, *features, *out, *lead, pol)
+		return runVanilla(c, rc, *seats, *firstPair, *pairs, *seed, *mulligans, *gameLimit, *features, *out, *lead, pol)
 	case "fdn":
 		if *reproPath != "" {
 			// before ReadPool: a repro carries its own deck names and needs
@@ -451,16 +486,21 @@ func run() int {
 		printDiv(res.Div)
 		return 1
 	}
-	if err := oracle.NeedDecks(*decksDir); err != nil {
+	if err := oracle.NeedDecks(*decksDir); err != nil && !synthGorge {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		return 1
 	}
-	pool, err := oracle.ReadPool(*poolPath, *split)
-	if err != nil {
+	var pool []oracle.PoolDeck
+	if synthGorge {
+		if pool, _, err = dealSynth(c, set, *seed, *synthDecks, ""); err != nil {
+			fmt.Fprintln(os.Stderr, "kfuzz:", err)
+			return 1
+		}
+	} else if pool, err = oracle.ReadPool(*poolPath, *split); err != nil {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		return 1
 	}
-	ps := oracle.PairingsFrom(pool, *firstPair, *pairs, *seed)
+	ps := oracle.PodsFrom(pool, *firstPair, *pairs, *seed, *seats)
 	every := max(1, len(ps)/20)
 	n := 0
 	t0 := time.Now()
@@ -468,7 +508,7 @@ func run() int {
 		Shrink: *shrink, Workers: *workers, Coverage: coveragePath != "", GameTimeout: *gameLimit}, func(i int, p oracle.Pairing, r *oracle.Result) {
 		n++
 		if r.Div != nil {
-			fmt.Fprintf(os.Stderr, "pair %d (%s vs %s, seed %d): %v\n", p.Index, p.A, p.B, p.Seed, r.Div)
+			fmt.Fprintf(os.Stderr, "pair %d (%s, seed %d): %v\n", p.Index, strings.Join(p.Decks(), " vs "), p.Seed, r.Div)
 		}
 		if n%every == 0 {
 			fmt.Fprintf(os.Stderr, "[%d/%d %.0fs]\n", n, len(ps), time.Since(t0).Seconds())
@@ -727,7 +767,7 @@ func writeCoverage(path string, cov *oracle.Coverage) error {
 // Every divergent game prints one "DIV" line (game, decks, seed, class); with
 // -out, the first three games of each class write <out>/<class>-g<g>.json
 // (the lockstep's action prefix, a Repro).
-func runVanilla(c *oracle.Corpus, rc oracle.RunConfig, first, games int, seed uint64, mulligans int, timeout time.Duration, features bool, out string, lead string, pol func(uint64) oracle.Policy) int {
+func runVanilla(c *oracle.Corpus, rc oracle.RunConfig, seats, first, games int, seed uint64, mulligans int, timeout time.Duration, features bool, out string, lead string, pol func(uint64) oracle.Policy) int {
 	mk := oracle.RealKernel(vanilla.Table, nil, rc.Config)
 	var fs oracle.FeatStats
 	if features {
@@ -739,12 +779,19 @@ func runVanilla(c *oracle.Corpus, rc oracle.RunConfig, first, games int, seed ui
 		rc.Check = oracle.FeatCheck(fp, &fs)
 	}
 	n := len(vanilla.Decks)
+	if seats > n {
+		fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: dirac/vanilla holds %d decks\n", seats, n)
+		return 2
+	}
 	play := func(g int) played {
-		a := g % n
-		b := (a + 1 + (g/n)%(n-1)) % n
+		ix := vanillaSeats(g, n, seats)
+		labels := make([]string, len(ix))
+		decks := make([][]kop.CardID, len(ix))
+		for i, d := range ix {
+			labels[i], decks[i] = fmt.Sprint("vanilla", d), vanilla.Decks[d]
+		}
 		s := seed + uint64(g)
-		m, err := oracle.KernelMatchup(c.Reg, vanilla.Table, [2]string{fmt.Sprint("vanilla", a), fmt.Sprint("vanilla", b)},
-			[2][]kop.CardID{vanilla.Decks[a], vanilla.Decks[b]}, nil, mulligans)
+		m, err := oracle.KernelMatchupN(c.Reg, vanilla.Table, labels, decks, nil, mulligans)
 		if err != nil {
 			return played{err: err}
 		}
@@ -759,18 +806,36 @@ func runVanilla(c *oracle.Corpus, rc oracle.RunConfig, first, games int, seed ui
 	if features {
 		feat = &fs
 	}
-	return vanillaSweep(first, games, n, seed, timeout, rc, out, lead, feat, play)
+	return vanillaSweep(first, games, n, seats, seed, timeout, rc, out, lead, feat, play)
+}
+
+// vanillaSeats is game g's deck indexes of n decks, one per seat. Two seats
+// play every ordered pair of distinct decks, cycling; more seats play n
+// distinct decks from g's in a rotation.
+func vanillaSeats(g, n, seats int) []int {
+	a := g % n
+	if seats <= 2 {
+		return []int{a, (a + 1 + (g/n)%(n-1)) % n}
+	}
+	ix := make([]int, seats)
+	for i := range ix {
+		ix[i] = (a + i) % n
+	}
+	return ix
 }
 
 // vanillaSweep plays games first..first+games-1 serially, each under the watchdog
 // (watchGame), and reports them. n is the deck count, for the game's deck indexes.
-func vanillaSweep(first, games, n int, seed uint64, timeout time.Duration, rc oracle.RunConfig, out, lead string, feat *oracle.FeatStats, play func(int) played) int {
+func vanillaSweep(first, games, n, seats int, seed uint64, timeout time.Duration, rc oracle.RunConfig, out, lead string, feat *oracle.FeatStats, play func(int) played) int {
 	classes := map[string]int{}
 	clean := 0
 	written := map[string]int{}
 	for g := first; g < first+games; g++ {
-		a := g % n
-		b := (a + 1 + (g/n)%(n-1)) % n
+		ix := vanillaSeats(g, n, seats)
+		vs, ds := fmt.Sprint(ix[0]), fmt.Sprint(ix[0])
+		for _, d := range ix[1:] {
+			vs, ds = fmt.Sprintf("%s vs %d", vs, d), fmt.Sprintf("%s,%d", ds, d)
+		}
 		s := seed + uint64(g)
 		o := watchGame(g, timeout, !statsOn && feat == nil, play)
 		if o.err != nil {
@@ -779,7 +844,7 @@ func vanillaSweep(first, games, n int, seed uint64, timeout time.Duration, rc or
 		}
 		if o.hang {
 			classes["hang"]++
-			fmt.Printf("game %d (vanilla %d vs %d, seed %d): hang: no result after two watchdogs of %s\n", g, a, b, s, timeout)
+			fmt.Printf("game %d (vanilla %s, seed %d): hang: no result after two watchdogs of %s\n", g, vs, s, timeout)
 			continue
 		}
 		m, res := o.m, o.res
@@ -789,7 +854,7 @@ func vanillaSweep(first, games, n int, seed uint64, timeout time.Duration, rc or
 		}
 		cls := res.Div.What + " " + res.Div.Field
 		classes[cls]++
-		fmt.Printf("DIV game=%d decks=%d,%d seed=%d decisions=%d class=%q\n", g, a, b, s, res.Decisions, cls)
+		fmt.Printf("DIV game=%d decks=%s seed=%d decisions=%d class=%q\n", g, ds, s, res.Decisions, cls)
 		if out != "" && written[cls] < 3 && m != nil {
 			written[cls]++
 			slug := strings.Map(func(r rune) rune {
@@ -806,7 +871,7 @@ func vanillaSweep(first, games, n int, seed uint64, timeout time.Duration, rc or
 			}
 		}
 		if g < 12 || res.Div.What == "features" || verboseFDN {
-			fmt.Printf("game %d (vanilla %d vs %d, seed %d): %v\n", g, a, b, s, res.Div)
+			fmt.Printf("game %d (vanilla %s, seed %d): %v\n", g, vs, s, res.Div)
 		}
 		if verboseFDN {
 			from := max(0, len(res.Actions)-5)

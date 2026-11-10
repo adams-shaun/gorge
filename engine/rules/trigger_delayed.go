@@ -421,9 +421,18 @@ type delayedSpellCastFire struct {
 	referents  effects.TriggerContext
 	svars      map[string]string
 	static     bool
+	// lki is the departing event object's pre-move snapshot, with the
+	// layer-derived power and toughness it had on the battlefield
+	// (CR 608.2h). It seeds the fired ability's Ctx.LKI so a delayed dies
+	// body reads "its power" as the creature last existed, not the printed
+	// face of the card now in the graveyard.
+	lki                    *state.Object
+	lkiPower, lkiToughness int32
+	lkiPTValid             bool
 }
 
-func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
+func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
+	lkiPower, lkiToughness int32, lkiPTValid bool) {
 	var fires []delayedSpellCastFire
 	var remove []uint32
 	for i := range e.G.Delayed {
@@ -622,15 +631,32 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		// Mode$ Phase registration (never re-parsed), so it is carried from
 		// state rather than read from t.Params here.
 		refs.OptionalSpec = dt.OptionalSpec
+		// A battlefield departure's snapshot rides the fired ability exactly
+		// as the face-trigger walk seeds an ordinary trigger's Ctx.LKI. The
+		// live object has already left the battlefield by the time this body
+		// resolves, so a delayed dies trigger reading TriggeredCard$CardPower
+		// must look back to the power it had there (CR 608.2h). Outside a
+		// departure (an entry, a cast) the live object stays authoritative,
+		// so no snapshot is carried.
+		firePTValid := referentsArg != nil && lkiPTValid
+		fireLKI := referentsArg
+		firePower, fireToughness := lkiPower, lkiToughness
+		if !firePTValid {
+			fireLKI, firePower, fireToughness = nil, 0, 0
+		}
 		makeFire := func(r effects.TriggerContext) delayedSpellCastFire {
 			return delayedSpellCastFire{
-				dt:         *dt,
-				sa:         sa,
-				trigger:    t,
-				remembered: remembered,
-				referents:  r,
-				svars:      src.Face().SVars,
-				static:     strings.TrimSpace(t.ParamStr(cards.PKStatic)) != "",
+				dt:           *dt,
+				sa:           sa,
+				trigger:      t,
+				remembered:   remembered,
+				referents:    r,
+				svars:        src.Face().SVars,
+				static:       strings.TrimSpace(t.ParamStr(cards.PKStatic)) != "",
+				lki:          fireLKI,
+				lkiPower:     firePower,
+				lkiToughness: fireToughness,
+				lkiPTValid:   firePTValid,
 			}
 		}
 		// CR 508.3a/603.2c: an event-matched delayed Mode$ Attacks
@@ -706,6 +732,8 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 				SVars:          f.svars,
 				EffectFrame:    effectDelayedFrame(dt),
 				TriggerContext: f.referents,
+				LKI:            f.lki,
+				Snap:           effects.LKISnapshots{Power: f.lkiPower, Toughness: f.lkiToughness, PTValid: f.lkiPTValid},
 			})
 			effects.Resolve(e, &ctx, f.sa)
 			continue
@@ -741,6 +769,8 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 				// so the fired ability resolves TriggeredActivator/
 				// TriggeredSource exactly as a face trigger would.
 				TriggerContext: f.referents,
+				LKI:            f.lki,
+				Snap:           effects.LKISnapshots{Power: f.lkiPower, Toughness: f.lkiToughness, PTValid: f.lkiPTValid},
 			}),
 		})
 	}

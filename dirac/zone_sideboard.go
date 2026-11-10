@@ -20,7 +20,7 @@ var DebugHolodeckNoSideboard bool
 // initSideboards creates the objects of cfg's sideboards, seat 0's first,
 // after the decks' objects.
 func (s *State) initSideboards(cfg *Config) {
-	for p := 0; p < 2; p++ {
+	for p := 0; p < int(s.nSeats()); p++ {
 		n := int(cfg.SideN[p])
 		if n > MaxSide {
 			panic("kernel: sideboard larger than MaxSide")
@@ -31,7 +31,7 @@ func (s *State) initSideboards(cfg *Config) {
 			}
 			o := Obj(s.nobj)
 			s.nobj++
-			s.objs[o] = object{card: c, chosen: 255, zone: kop.ZoneSideboard, slot: NoSlot, acts: uint8(p) << 7}
+			s.objs[o] = object{card: c, chosen: 255, zone: kop.ZoneSideboard, slot: NoSlot, acts: uint8(p) << objOwnerShift}
 			s.touch(o)
 		}
 	}

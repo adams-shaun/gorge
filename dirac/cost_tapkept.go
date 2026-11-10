@@ -56,12 +56,31 @@ func (s *State) tapForTapKept(k *prep, p uint8, cost *kop.ManaCost, x int, a *ko
 		s.tapFor(k, p, cost, x, NoObj) // nothing owed (or no plan: the offer's own panic)
 		return
 	}
-	// the tap candidates in battlefield (entry) order
-	var cands [MaxPerm]Slot
-	nc := 0
+	skip := NoSlot
+	if a.Cost.Flags&kop.CostTap != 0 {
+		skip = src
+	}
+	cands, nc := s.tapCandsByEntry(k, p, a.Cost.Filter, src, skip)
+	n := int(a.Cost.N)
+	if pk.unplannedCount(&cands, nc) >= n || n > nc {
+		s.payArmed(k, p, cost, x, &pk, saved, slotMask{})
+		return
+	}
+	if held, r, ok := s.firstHeldPlan(k, p, cost, x, NoObj, false, &cands, nc, n); ok {
+		s.payArmed(k, p, cost, x, &r, saved, held)
+		return
+	}
+	s.retakeCostTaps(saved)
+	s.tapFor(k, p, cost, x, NoObj)
+}
+
+// tapCandsByEntry collects p's untapped permanents matching f (matchPerm with
+// src), skip left out, in battlefield (entry) order: the order gorge's
+// planEachReservation assigns the tap candidates in.
+func (s *State) tapCandsByEntry(k *prep, p uint8, f kop.FilterID, src, skip Slot) (cands [MaxPerm]Slot, nc int) {
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		c := m.first()
-		if s.perms[c].flags&pfTapped != 0 || a.Cost.Flags&kop.CostTap != 0 && c == src || !s.matchPerm(k, a.Cost.Filter, c, p, src) {
+		if s.perms[c].flags&pfTapped != 0 || c == skip || !s.matchPerm(k, f, c, p, src) {
 			continue
 		}
 		cands[nc] = c
@@ -72,49 +91,63 @@ func (s *State) tapForTapKept(k *prep, p uint8, cost *kop.ManaCost, x int, a *ko
 			cands[j], cands[j-1] = cands[j-1], cands[j]
 		}
 	}
-	n := int(a.Cost.N)
+	return cands, nc
+}
+
+// unplannedCount is how many of the nc candidates pk's plan does not tap.
+func (pk *planner) unplannedCount(cands *[MaxPerm]Slot, nc int) int {
 	left := 0
 	for i := 0; i < nc; i++ {
 		if !pk.planUses(cands[i]) {
 			left++
 		}
 	}
-	if left >= n || n > nc {
-		s.payArmed(k, p, cost, x, &pk, saved, slotMask{})
-		return
-	}
+	return left
+}
+
+// firstHeldPlan is gorge's planEachReservation: the first assignment of n of the
+// nc candidates (lexicographic, up to planReservationLimit) that, held back from
+// the mana, leaves a plan for cost. It returns the held candidates and that dry
+// plan, the candidates untapped again; ok is false when no assignment has one.
+func (s *State) firstHeldPlan(k *prep, p uint8, cost *kop.ManaCost, x int, excl Obj, anyColor bool, cands *[MaxPerm]Slot, nc, n int) (held slotMask, r planner, ok bool) {
 	var idx [MaxPerm]uint8
 	for i := 0; i < n; i++ {
 		idx[i] = uint8(i)
 	}
 	for tries := 0; tries < planReservationLimit; tries++ {
-		var held slotMask
+		held = slotMask{}
 		for i := 0; i < n; i++ {
 			held.set(cands[idx[i]])
 		}
 		s.holdSlots(held, true)
-		var r planner
-		r.dry = true
-		s.tapForPK(k, p, cost, x, NoObj, false, false, &r)
+		r = planner{dry: true}
+		s.tapForPK(k, p, cost, x, excl, false, anyColor, &r)
 		s.holdSlots(held, false)
 		if r.found {
-			s.payArmed(k, p, cost, x, &r, saved, held)
-			return
+			return held, r, true
 		}
-		i := n - 1
-		for i >= 0 && int(idx[i]) == nc-n+i {
-			i--
-		}
-		if i < 0 {
+		if !nextCombination(&idx, n, nc) {
 			break
 		}
-		idx[i]++
-		for j := i + 1; j < n; j++ {
-			idx[j] = idx[j-1] + 1
-		}
 	}
-	s.retakeCostTaps(saved)
-	s.tapFor(k, p, cost, x, NoObj)
+	return slotMask{}, planner{}, false
+}
+
+// nextCombination advances idx, an n-subset of 0..nc-1 in increasing order, to
+// the next one in lexicographic order; it reports false after the last.
+func nextCombination(idx *[MaxPerm]uint8, n, nc int) bool {
+	i := n - 1
+	for i >= 0 && int(idx[i]) == nc-n+i {
+		i--
+	}
+	if i < 0 {
+		return false
+	}
+	idx[i]++
+	for j := i + 1; j < n; j++ {
+		idx[j] = idx[j-1] + 1
+	}
+	return true
 }
 
 // holdSlots taps (on) or untaps (off) the permanents of m, which are untapped

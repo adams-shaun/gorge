@@ -100,6 +100,7 @@ func (s *State) persistEmpty(ec bool) {
 		s.rbClear(uint8(p))
 	}
 	s.g.poolArt, s.g.defSrc = [MaxSeats]uint8{}, [MaxSeats]uint8{}
+	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
 }
 
 // persistTurn is the turn change. Gorge's TurnChange zeroes the tally and the
@@ -114,6 +115,7 @@ func (s *State) persistTurn() {
 		s.rbClear(uint8(p))
 	}
 	s.g.poolArt, s.g.defSrc = [MaxSeats]uint8{}, [MaxSeats]uint8{}
+	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
 }
 
 // PersistMana is each player's persistent units per colour (State.pm) for the

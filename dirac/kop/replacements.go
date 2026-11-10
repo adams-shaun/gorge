@@ -56,6 +56,7 @@ const (
 	ReplDestroyHeal              // a creature matching Repl.Filter would be destroyed: remove all +1/+1 counters from it and heal all damage on it instead (Dr. McCoy, Surly Surgeon; gorge's Destroy ReplaceWith$ RemoveCounter body)
 	ReplDiscardOppToBattlefield  // this card in hand discarded by a spell or ability an opponent of its owner controls (not a cost, not cleanup) enters the battlefield under its owner's control instead of the graveyard (Wilt-Leaf Liege; gorge replacement_match.go ReplMoved Discard$ True, EffectOnly$ True, ValidCause$ SpellAbility.OppCtrl)
 	ReplPreventMillOpps          // damage a source the controller controls would deal to an opponent is prevented and that opponent mills that many cards instead (The Mindskinner; gorge's ReplaceWith$ DB$ Mill body, NumCards$ ReplaceCount$DamageAmount)
+	ReplAddToken                 // a token matching Repl.Filter (none: every token) the controller would create is made, and one token of pool token index Repl.C is made beside the creation as well, once per creation event (R:Event$ CreateToken | ValidPlayer$ You | ReplaceWith$ DB$ ReplaceToken | Type$ AddToken | Amount$ 1 | TokenScript$; Worldwalker Helm). The matchup remaps Repl.C to its CardID
 	ReplCount
 )
 

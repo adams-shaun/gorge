@@ -789,6 +789,15 @@ func (s *State) actRestrAffords(k *prep, sl Slot, cost *kop.ManaCost, av *avail,
 func (s *State) actPoolAffords(k *prep, sl Slot, cost *kop.ManaCost, av *avail) bool {
 	p := s.perms[sl].ctrl
 	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl}
+	return s.actPoolAffordsDesc(k, p, cost, d, av)
+}
+
+// actPoolAffordsDesc: av, with the floating restricted batches d admits
+// counted, pays cost: the same test for an activation whose source is not on
+// the battlefield (a graveyard card, src NoSlot), CR 106.6.
+//
+//go:noinline
+func (s *State) actPoolAffordsDesc(k *prep, p uint8, cost *kop.ManaCost, d payDesc, av *avail) bool {
 	m := s.restrPoolAct(k, p, &d)
 	if m == 0 {
 		return false

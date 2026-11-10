@@ -14,7 +14,9 @@ import (
 // "Damage can't be prevented" played decision by decision against gorge: the
 // Effect form (Impractical Joke, Pyrewood Gearhulk's enters trigger, Flaring
 // Pain, A-Ready to Rumble's first mode) and the printed static (Leyline of
-// Punishment), each against Swooping Protector, whose SHIELD counter would
+// Punishment) and the printed combat-only static (Frenzied Baloth, whose
+// combat damage is the only damage the Protectors meet), each against
+// Swooping Protector, whose SHIELD counter would
 // otherwise prevent the damage. TestStdSetReprosLockstep replays the repros;
 // TestCantPreventReprosReach requires each recorded game to reach the card,
 // since a lockstep entry alone would pass a script that never cast it.
@@ -59,6 +61,13 @@ func cantPreventCases() []effectLongCase {
 			decks:   [2][]string{append(deckOf(8, "Leyline of Punishment"), deckOf(16, "Mountain")...), vs},
 			surface: "autopay",
 			reached: movedFrom("Leyline of Punishment", state.ZStack, state.ZBattlefield),
+		},
+		{
+			name:    "frenzied_baloth_combat_damage_to_a_shielded_creature",
+			prefer:  []string{"Frenzied Baloth", "Swooping Protector"},
+			decks:   [2][]string{append(deckOf(8, "Frenzied Baloth"), deckOf(16, "Forest")...), vs},
+			surface: "autopay",
+			reached: damagedShielded("Frenzied Baloth"),
 		},
 	}
 }

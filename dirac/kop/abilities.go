@@ -260,8 +260,8 @@ func FilterManaAb(a *Ability) bool {
 //     sacrifice this alone (pcard.manaTap / manaSac / manaSacOnly), a counter
 //     placed on or removed from the source once a turn (CtrManaAb), the tap-another-
 //     permanent shape of TapXManaAb, or a filter (FilterManaAb);
-//   - a granted (latent) one: a mana-free {T} or {T} + pay N life
-//     (genPrep.grantPC; dirac mana_grantcost.go);
+//   - a granted (latent) one: a mana-free {T}, {T} + pay N life, or
+//     sacrifice this alone (genPrep.grantPC; dirac mana_grantcost.go);
 //   - any later own mana ability: a {T} (a fixed-colour set, a restricted,
 //     filter or each-colour gap), {T} + pay life (a pain alternative), or the
 //     TapXManaAb shape beside a plain fixed-colour {T} first one
@@ -276,8 +276,8 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	f := a.Cost.Flags
 	plain := a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
 	if a.AFlags&AfLatent != 0 {
-		// {T}, or {T} + pay N life (Forgotten Monument)
-		return plain && (f == CostTap || f == CostTap|CostPayLife && a.Cost.N >= 1)
+		// {T}, {T} + pay N life (Forgotten Monument), or sacrifice this alone (Lotus Ring)
+		return plain && (f == CostTap || f == CostTap|CostPayLife && a.Cost.N >= 1 || f == CostSacSelf)
 	}
 	first := -1
 	for i := range cd.Abilities {

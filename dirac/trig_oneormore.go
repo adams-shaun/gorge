@@ -146,7 +146,7 @@ func (s *State) replPlus(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp
 		}
 		if g.anyRepl&rbPrevNC != 0 && !combat && sl != NoSlot && s.isCreature(k, sl) {
 			for m := s.statM.and(s.ctrlM[rcp&1]); m.any(); m = m.rest() {
-				if b := m.first(); b != sl && g.replBits[s.cardAt(b)]&rbPrevNC != 0 && !s.genLost(k, b) && !s.noPrev(k) {
+				if b := m.first(); b != sl && g.replBits[s.cardAt(b)]&rbPrevNC != 0 && !s.genLost(k, b) && !s.noPrev(k, combat) {
 					c++
 					break
 				}

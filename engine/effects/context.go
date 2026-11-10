@@ -1976,6 +1976,43 @@ func lkiControllerFor(c *Ctx, id state.ObjID) (state.PlayerID, bool) {
 	return 0, false
 }
 
+// lkiColorsFor returns the layer-5 colour letters a Destroy RememberLKI$
+// capture recorded for id (CR 608.2h), if this resolution recorded them.
+func lkiColorsFor(c *Ctx, id state.ObjID) (string, bool) {
+	if c == nil || id == 0 {
+		return "", false
+	}
+	for _, e := range c.Snap.ChangeZone {
+		if e.Obj == id && e.ColorsKnown {
+			return e.Colors, true
+		}
+	}
+	return "", false
+}
+
+// withLKIColors binds the captured battlefield colours of o into a copy of
+// sc's derived-colour table when o has left the battlefield and a capture
+// exists; otherwise it returns sc unchanged. The shared table is never
+// mutated.
+func withLKIColors(c *Ctx, o *state.Object, sc SpecContext) SpecContext {
+	if o == nil || o.Zone == state.ZBattlefield {
+		return sc
+	}
+	letters, ok := lkiColorsFor(c, o.ID)
+	if !ok {
+		return sc
+	}
+	src := sc.Layers.DerivedColors
+	table := make([]ObjectColors, 0, len(src)+1)
+	for _, e := range src {
+		if e.ID != o.ID {
+			table = append(table, e)
+		}
+	}
+	sc.Layers.DerivedColors = append(table, ObjectColors{ID: o.ID, Mask: ColorMaskFromLetters(letters)})
+	return sc
+}
+
 // rememberedControllersLKI is the controller read of a Remembered$ group,
 // with CR 608.2h look-back: a remembered object that is no longer on the
 // battlefield answers with the controller RememberLKI$ captured before its

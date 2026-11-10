@@ -135,18 +135,24 @@ func (s *State) fireOrHoldEntries(k *prep, b *entBatch) {
 // createTokensHeld is OpCreateToken / OpCreateTokenEx for n ≥ 2 tokens:
 // one Token resolution's creations enter together (gorge runTokenMints'
 // zone batch, CR 603.6a), so their enters checks are held to the end. True
-// when the board is full (a stall).
+// when the board is full (a stall). ad are the cards of the ReplAddToken
+// tokens made beside them, entering after the first token (they take the
+// op's riders: gorge plans them as mints of the same Token effect).
 //
 //go:noinline
-func (s *State) createTokensHeld(k *prep, in *kop.Instr, p uint8, n int) bool {
+func (s *State) createTokensHeld(k *prep, in *kop.Instr, p uint8, n int, ad []CardID) bool {
 	var eb entBatch
-	for i := 0; i < n; i++ {
+	for i := 0; i < n+len(ad); i++ {
 		if s.nearCapacity(k) {
 			s.fireEntries(k, &eb)
 			s.stall(StallBoard)
 			return true
 		}
-		o := s.newToken(CardID(in.C), p)
+		c := CardID(in.C)
+		if i >= 1 && i <= len(ad) {
+			c = ad[i-1] // a ReplAddToken's token follows the first one (repl_tokorder.go)
+		}
+		o := s.newToken(c, p)
 		tapped := in.B.N&kop.TrTapped != 0
 		if in.Op == kop.OpCreateTokenEx {
 			tapped = in.B.N&kop.TokTapped != 0

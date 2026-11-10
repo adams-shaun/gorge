@@ -6,9 +6,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // ValidSAMatches, :731).
 //
 // Tf3ManaFromTreasure (Spell.ManaFromTreasure, Smaug): the cast's payment
-// spent mana a Treasure produced. The planner and the payment window note it
-// on the cast's build (noteTapSrc, bflTre) when they tap a source marked
-// csTreasure; castTrigGen runs while that build is live.
+// spent mana a Treasure produced. The pool tallies the floating units a
+// Treasure produced (artTag, poolTre) and every pool spend sets the cast's
+// build bit (treSync, bflTre) for the Treasure units it took; castTrigGen
+// runs while that build is live.
 //
 // Tf3OrTargets ("Spell.X,Spell.IsTargeting Valid Y", Danitha): the spell
 // matches Filter OR some target of it matches Filter2 (gorge

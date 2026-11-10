@@ -114,37 +114,38 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Boommobile: an artifact's resolving mana restricted to activated abilities, kop.SpmActivated; the merge with land: land's 21792 + 1 = 21793, DFT 250 -> 251).
 	// +6 (a static's granted Exalted lowers as a latent Attacks trigger: First Sliver's Chosen, Merchant of Truth, Order of Sacred Dusk, Sublime Archangel, Xenk, Paladin Unbroken, Zarda, the Power Princess; ALL 21873 -> 21879).
 	// +3 (a filter whose activation cost sacrifices its source lowers, kop.FilterManaAb: Omni-Cheese Pizza (TMT 174 -> 175), Chromatic Star, Golden Egg; ALL 21930 -> 21933).
-	// +1 (Tam, Mindful First-Year: a static AddKeyword$ Hexproof:CardColors lowers as kop.StatHexproofOwnColors, the own-colours hexproof static; ECL 237 -> 238, ALL 21943 -> 21944).
+	// +3 (a battlefield power == a constant and a toughness > a value lower: Amalia Benavides Aguirre (LCI 255 -> 256), Hulkling, Burgeoning Bruiser (MSH 240 -> 241), Savage Swipe's powerEQ2 condition; ALL 21945 -> 21948).
+	// +1 (the merge with land: this branch's Tam, Mindful First-Year static Hexproof:CardColors lower beside land's Amalia Benavides Aguirre / Hulkling / Burgeoning Bruiser lowers, disjoint; merged ECL 238 -> 239, ALL 21989 -> 21990).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21944, 34442},
-	"BIG": {23, 30},
+	"ALL": {21990, 34442},
+	"BIG": {25, 30},
 	"BLB": {260, 278},
 	"BRO": {214, 280},
 	"DFT": {252, 276},
 	"DMU": {194, 270},
-	"DSK": {243, 276},
-	"ECL": {238, 273},
-	"EOE": {242, 266},
+	"DSK": {245, 276},
+	"ECL": {239, 273},
+	"EOE": {244, 266},
 	"FDN": {517, 517},
 	"FIN": {271, 312},
-	"FRA": {249, 269},
-	"HOB": {156, 172},
-	"LCI": {255, 290},
+	"FRA": {250, 269},
+	"HOB": {157, 172},
+	"LCI": {257, 290},
 	"MKM": {245, 279},
 	"MOM": {198, 296},
-	"MSH": {240, 276},
-	"NEO": {198, 287},
+	"MSH": {241, 276},
+	"NEO": {199, 287},
 	"ONE": {196, 271},
 	"OTJ": {244, 276},
 	"SNC": {186, 266},
 	"SOS": {255, 270},
 	"SPM": {164, 192},
-	"TDM": {254, 276},
-	"TLA": {259, 285},
+	"TDM": {255, 276},
+	"TLA": {260, 285},
 	"TMT": {176, 194},
-	"TRC": {291, 337},
+	"TRC": {292, 337},
 	"TRK": {311, 311},
-	"WOE": {256, 281},
+	"WOE": {257, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory

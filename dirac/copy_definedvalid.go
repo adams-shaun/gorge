@@ -47,7 +47,7 @@ func (s *State) copyAllEach(k *prep, in *kop.Instr) bool {
 	var rwCard CardID
 	rwN, rewritten := 0, false
 	for i := 0; i < n; i++ {
-		tc, c, rw, ok := s.copyTokenRewrite(k, ctrl, s.cardAt(ord[i]), 1)
+		tc, c, rw, ok := s.copyTokenRewrite(k, ctrl, s.cardAt(ord[i]), 1, false)
 		if !ok {
 			return false // StallTokRewrite
 		}

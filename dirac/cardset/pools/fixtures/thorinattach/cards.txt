@@ -1,0 +1,18 @@
+# the thorinattach lockstep pool: Thorin, Mountain-king (plural Object$
+# ParentTarget attach, the reflexive "that creature deals damage equal to its
+# power" from the captured creature) with cheap Equipment and creatures,
+# against Unsummon and Shock to answer the reflexive trigger
+# (dirac/oracle/thorinattach_test.go)
+Thorin, Mountain-king
+Raging Goblin
+Bonesplitter
+Short Sword
+Leather Armor
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Shock
+Unsummon
+Mountain
+Forest
+Island

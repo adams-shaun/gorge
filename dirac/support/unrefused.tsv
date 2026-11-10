@@ -1,0 +1,6 @@
+# Cards that had a dirac/support/refused entry and no longer do, with the proof the defect is fixed.
+# card <TAB> proof <TAB> why. The proof is a TestXxx that exists, or a dirac/oracle/testdata/repro/<name>.repro.json
+# that replays clean (no divergence, no unmodelled stall) on a raw table of its own cards.
+# TestUnrefusalNeedsProof fails for a card that had an entry at the merge base with land and has none now
+# without a row here. An entry that went stale only because the pinned game moved is re-recorded
+# (pool custom, see checkRefusedRepro), not unrefused.

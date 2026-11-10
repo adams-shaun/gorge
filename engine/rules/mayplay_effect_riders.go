@@ -37,7 +37,7 @@ func (e *Engine) mayPlayEffectReaches(p state.PlayerID, o *state.Object) bool {
 // set loaded. A library card is covered only by a grant that NAMES the
 // library; the no-zone fallback means graveyard and exile only.
 func (e *Engine) mayPlayEffectCoversCard(ce *state.ContinuousEffect, p state.PlayerID, o *state.Object, limited *lazyMayPlays) bool {
-	if !ce.MayPlay || !mayPlayEffectBenefits(ce, o, p) {
+	if !ce.MayPlay || ce.MayPlayNoZone || !mayPlayEffectBenefits(ce, o, p) {
 		return false
 	}
 	if ce.MayPlayPlayerTurn && e.G.Active != p {
@@ -90,6 +90,12 @@ func (e *Engine) mayPlayEffectLibraryTop(ce *state.ContinuousEffect, p state.Pla
 // the AltCostIndex cannot drift between offer and charge.
 func (e *Engine) mayPlayEffectAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltView {
 	o := e.G.Obj(id)
+	if o != nil && o.Zone == state.ZHand && e.mayPlayNoZoneFree(p, o) {
+		// The no-zone-permission free grant is the hand cast's own free
+		// alternative (CR 118.9); the other zones price it through
+		// mayPlayGrant's free flag under their separate permission.
+		return []mayPlayAltView{{}}
+	}
 	if o == nil || !e.mayPlayEffectReaches(p, o) {
 		return nil
 	}
@@ -106,4 +112,55 @@ func (e *Engine) mayPlayEffectAltCosts(p state.PlayerID, id state.ObjID) []mayPl
 		}
 	}
 	return out
+}
+
+// mayPlayNoZoneFree reports whether an active Effect-delivered free grant
+// that gives no zone permission (MayPlayDontGrantZonePermissions$ True: World
+// War Hulk) covers card o for p right now. It runs mayPlayEffectFree's gate
+// chain (seat, PlayerTurn, MayPlayLimit$ cap, AffectedZone$, Affects spec) but
+// reaches any zone, the hand included: it only prices a cast that is legal
+// anyway.
+func (e *Engine) mayPlayNoZoneFree(p state.PlayerID, o *state.Object) bool {
+	limited := lazyMayPlays{e: e, p: p}
+	ces := e.active()
+	for i := range ces {
+		ce := &ces[i]
+		if !ce.MayPlay || !ce.MayPlayFree || !ce.MayPlayNoZone || !mayPlayEffectBenefits(ce, o, p) {
+			continue
+		}
+		if ce.MayPlayPlayerTurn && e.G.Active != p {
+			continue
+		}
+		if !e.mayPlayCapOpen(ce, &limited) {
+			continue
+		}
+		zones, all, ok := effects.ParseZones(ce.AffectedZone)
+		if (!ok && !all) || (!all && !slices.Contains(zones, o.Zone)) {
+			continue
+		}
+		if e.effectGrantMatches(ce, o.ID) {
+			return true
+		}
+	}
+	return false
+}
+
+// mayPlayNoZoneFreeID is mayPlayNoZoneFree for a card named by id, true only
+// off the hand: the hand cast's free alternative is its own option
+// (mayPlayEffectAltCosts), every other zone prices the cast it is already
+// offered under a separate permission.
+func (e *Engine) mayPlayNoZoneFreeID(p state.PlayerID, id state.ObjID) bool {
+	o := e.G.Obj(id)
+	return o != nil && o.Zone != state.ZHand && e.mayPlayNoZoneFree(p, o)
+}
+
+// mayPlayFreeCast reports whether a cast of card id through a may-play
+// permission pays no mana: a free permission (mayPlayGrant free with the
+// grant held) or the no-zone free grant. The one read every offer and price
+// site shares, so the offered and the charged cost cannot differ.
+func (e *Engine) mayPlayFreeCast(p state.PlayerID, id state.ObjID) bool {
+	if free, ok := e.mayPlayGrant(p, id); ok && free {
+		return true
+	}
+	return e.mayPlayNoZoneFreeID(p, id)
 }

@@ -30,9 +30,77 @@ func IsOpponent(p, q uint8) bool { return p != q }
 func SeatIx(p uint8) uint8 { return p % MaxSeats }
 
 // PlayerCode is seat p's target code (CR 115.1: a player can be a target).
-// Only seats 0 and 1 have one: the code space holds two player codes.
+// Every seat has one: the code space holds MaxSeats player codes.
 func PlayerCode(p uint8) uint8 { return PlayerTarget0 + p }
 
 // CodeSeat is the seat a player target code names; c must satisfy
 // isPlayerTarget.
 func CodeSeat(c uint8) uint8 { return c - PlayerTarget0 }
+
+// nSeats is the number of seats in this game. The default build plays two
+// and never reads the byte; the multiplayer build reads what InitN set.
+func (s *State) nSeats() uint8 {
+	if MaxSeats == 2 {
+		return 2
+	}
+	return s.g.nseat
+}
+
+// mullOrderFrom is the mulligan order of n seats: turn order from the
+// starting player p (CR 103.5: the starting player decides first, then each
+// other player in turn order).
+func mullOrderFrom(p, n uint8) [MaxSeats]uint8 {
+	if MaxSeats == 2 {
+		return [MaxSeats]uint8{p, 1 - p}
+	}
+	var o [MaxSeats]uint8
+	for i := uint8(0); i < n; i++ {
+		o[i] = (p + i) % n
+	}
+	return o
+}
+
+// out reports whether seat p has left the game (CR 800.4a). At two seats a
+// loss ends the game, so no live-seat walk ever meets a departed seat.
+func (s *State) out(p uint8) bool {
+	if MaxSeats == 2 {
+		return false
+	}
+	return s.pl[SeatIx(p)].lost
+}
+
+// nextAlive is the first seat after p in turn order that is still in the
+// game, or p when no other is (gorge state.Game.NextAlive).
+func (s *State) nextAlive(p uint8) uint8 {
+	if MaxSeats == 2 {
+		return 1 - p
+	}
+	n := s.nSeats()
+	q := p
+	for i := uint8(1); i < n; i++ {
+		q++
+		if q >= n {
+			q = 0
+		}
+		if !s.out(q) {
+			return q
+		}
+	}
+	return p
+}
+
+// aliveCount is the number of seats still in the game (gorge
+// state.Game.AliveCount): a round of priority passes by each of them
+// resolves or advances (CR 117.4).
+func (s *State) aliveCount() uint8 {
+	if MaxSeats == 2 {
+		return 2
+	}
+	c := uint8(0)
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if !s.out(p) {
+			c++
+		}
+	}
+	return c
+}

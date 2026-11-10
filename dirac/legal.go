@@ -221,7 +221,8 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		o := pl.grave[i]
 		c := s.objs[o].card
 		pc := &k.cards[c]
-		granted := pc.kw&kop.KwFlashback == 0 && fbLo != nil && (fbLo.has(o) || fbHi.has(o))
+		marked := fbLo != nil && (fbLo.has(o) || fbHi.has(o))
+		granted := pc.kw&kop.KwFlashback == 0 && (marked || s.fbLive(k, o)) // a stamped grant or a live static's (kw_fbgrant.go)
 		if pc.kw&kop.KwFlashback == 0 && !granted || (!pc.instant && !sorc && !s.castFlash(k, p, c)) {
 			continue // (cast as though it had flash: High Fae Trickster)
 		}
@@ -234,7 +235,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		fc := k.t.Cards[c].AltCost
 		if granted {
-			fc = k.t.Cards[c].Cost // the granted flashback costs the card's mana cost
+			fc = s.fbGrantCost(k, p, o, marked) // the granted flashback costs the card's mana cost, or the grant's own
 		}
 		if s.statM.any() || k.gen != nil {
 			fc = s.adjustCost(k, p, c, o, fc)
@@ -244,7 +245,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if two, amb, g := s.fbInstances(k, p, o); amb {
 				continue
 			} else if two && g {
-				fc = s.adjustCost(k, p, c, o, k.t.Cards[c].Cost)
+				fc = s.adjustCost(k, p, c, o, s.fbGrantCost(k, p, o, s.fbGranted(k, o)))
 				fbGrant = true
 			}
 		}
@@ -268,7 +269,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// gorge's potential planner prices a target-conditional reduction on
 			// a mode spell choosing several targets with no target: the full cost
 			s.g.noTgtRed = true
-			full := s.adjustCost(k, p, c, o, k.t.Cards[c].Cost)
+			full := s.adjustCost(k, p, c, o, s.fbGrantCost(k, p, o, marked))
 			if !granted {
 				full = s.adjustCost(k, p, c, o, k.t.Cards[c].AltCost)
 			}
@@ -346,7 +347,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 					continue
 				}
 			}
-			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedPoolOK(p, a) {
+			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedPoolOK(k, p, sl, a) {
 				continue // a max-speed grant is offered from the floating pool alone (kw_maxspeed.go)
 			}
 			if s.canActivate(k, sl, ai, a, sorc, &av) {
@@ -1338,7 +1339,12 @@ func (s *State) hasTarget(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Ob
 func (s *State) fbInstances(k *prep, p uint8, o Obj) (two, ambiguous, granted bool) {
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
-	if k.gen == nil || k.cards[c].kw&kop.KwFlashback == 0 || !s.fbGranted(k, o) || cd.Cost == cd.AltCost {
+	marked := k.gen != nil && s.fbGranted(k, o)
+	if k.gen == nil || k.cards[c].kw&kop.KwFlashback == 0 || !marked && !s.fbLive(k, o) {
+		return false, false, false
+	}
+	gc := s.fbGrantCost(k, p, o, marked) // the granted instance's cost (kw_fbgrant.go)
+	if gc == cd.AltCost {
 		return false, false, false
 	}
 	// gorge prices each instance for this spell: a source whose restriction
@@ -1347,7 +1353,7 @@ func (s *State) fbInstances(k *prep, p uint8, o Obj) (two, ambiguous, granted bo
 	var pa avail
 	s.availPotentialFor(k, p, &pa, &spell)
 	pf := s.adjustCost(k, p, c, o, cd.AltCost)
-	gf := s.adjustCost(k, p, c, o, cd.Cost)
+	gf := s.adjustCost(k, p, c, o, gc)
 	pPot, gPot := pa.affords(&pf, pipMaskOf(&pf), 0), pa.affords(&gf, pipMaskOf(&gf), 0)
 	// a printed non-mana part (Group Project's tap three creatures) the
 	// census cannot pay leaves the printed instance uncastable whatever its
@@ -1411,6 +1417,9 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 			pc = s.manaPCGen(k, sl)
 		}
 		if !s.canTapForManaPC(k, sl, pc) || pc.manaAb < 0 && s.perms[sl].ovr.flags&ovCopy == 0 || payment && k.gen != nil && s.openManaRefused(k, p, sl, d) {
+			if k.gen != nil && !s.canTapForManaPC(k, sl, pc) {
+				s.potentialGrantSac(k, sl, payment, add, &open) // a granted sacrifice-only ability, tapped or not (mana_grantcost.go)
+			}
 			continue
 		}
 		if pc.manaAb >= 0 {
@@ -1425,7 +1434,8 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 					done[sl] &^= s.filtPipBit(k, sl) // a one-pip filter joins below once the pool pays it (mana_filterpip.go)
 				}
 				cd := &k.t.Cards[c]
-				dynamic = pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) && cd.Abilities[pc.manaAb].AFlags&kop.AfManaDynamic != 0
+				dynamic = pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) && cd.Abilities[pc.manaAb].AFlags&kop.AfManaDynamic != 0 ||
+					k.gen.flags[c]&gfManaDynPair != 0 // gorge's potentialAmount reads the second ability's Count$ as indeterminate: unbounded (mana_dynpair.go)
 			}
 		}
 		if dynamic || !pc.manaMulti && (pc.manaCol == kop.ColAny && !pc.manaChosen || pc.manaChosen && !payment) {

@@ -1740,6 +1740,12 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 	if z == kop.ZoneLibrary && s.g.nlook > 1 && (s.searchZone(k) == kop.ZoneHand || fl&kop.SrNoShuffle != 0) {
 		s.reverseLook() // act_mayask.go: the first answered ends on top (an unshuffled search too)
 	}
+	// CR 603.6a: the cards a search puts onto the battlefield enter together, so
+	// each one's enters check sees the whole batch (gorge's zone batch): Roiling
+	// Canopy's "five other Forests" holds for both of two Forests entering as
+	// the sixth. The checks fire when the walk ends or suspends.
+	var eb entBatch
+	defer s.fireEntries(k, &eb)
 	for i := 0; i < int(s.g.nlook); i++ {
 		o := s.resArm().look[i]
 		if z == kop.ZoneNone {
@@ -1821,7 +1827,15 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.handGraveArm(k) // WithCountersType$ on a hand/graveyard pick
 			}
 			s.enterOnto(host)
-			sl := s.enter(k, o, ep, fl&kop.SrTapped != 0, from)
+			var sl Slot
+			if s.g.nlook > 1 && host == NoSlot && s.g.entHost == 0 && !(s.g.pre.ordMid && s.g.pre.obj == o) {
+				sl = s.enterHeld(k, &eb, o, ep, fl&kop.SrTapped != 0, from)
+				if from == kop.ZoneGraveyard {
+					s.fireLeavesGraveyardSelf(k, sl, o) // trig_leftgraveyard.go, as enter does
+				}
+			} else {
+				sl = s.enter(k, o, ep, fl&kop.SrTapped != 0, from)
+			}
 			if s.g.pre.obj == o {
 				s.g.pre = preAsk{}
 			}

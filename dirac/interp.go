@@ -263,7 +263,10 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		}
 	case kop.OpFight, kop.OpBite:
 		a := s.objRef(k, in.Obj)
-		if in.Obj == kop.RefDelayedRemembered && a != NoSlot && s.reflexStale() {
+		if in.Obj == kop.RefDelayedRemembered && (a == NoSlot || s.reflexStale()) {
+			if in.Op == kop.OpBite && s.reflexBiteGone(k, in) {
+				break // the gone capture dealt its last known power (zone_rememberwrites.go)
+			}
 			a = NoSlot // the reflexive capture changed zones since (zone_rememberwrites.go)
 		}
 		if in.Op == kop.OpBite && s.biteEachTarget(k, in, a) {

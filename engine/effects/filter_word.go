@@ -317,6 +317,8 @@ const (
 	wordBlockedByRemembered
 	wordBlockedRemembered
 	wordBlockedBySourceLKI
+	// countersReceivedThisTurn_<cmp><N>_Any_You: filter_word_counters_received.go.
+	wordCountersReceived
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -935,6 +937,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	case wordBlockingSource, wordBlockedBySource, wordBlockedByValid, wordBlockedValid,
 		wordBlockedByRemembered, wordBlockedRemembered, wordBlockedBySourceLKI:
 		return blockHistoryMatches(kind, key, g, o, &sc)
+	case wordCountersReceived:
+		return countersReceivedMatches(o, sc, key)
 	case wordNumTypesGE:
 		// Forge's numTypesGE<n>: the object's printed face carries at least
 		// n distinct real card types (CR 205.1). The vocabulary is the one
@@ -1327,6 +1331,11 @@ func contextPredicateBound(g *state.Game, kind wordKind, key string, sc SpecCont
 		return o != nil && o.AttachedTo != 0 && g.Obj(o.AttachedTo) != nil
 	case wordImprinted, wordChosenColor:
 		return sc.Source != 0
+	case wordCountersReceived:
+		// The per-turn counter ledger is bound only where a caller publishes
+		// it (counterAddsFor); without it the word must not answer, or the
+		// '!' spelling would match every object.
+		return sc.CounterAdds != nil
 	case wordDealtDamageByThisGame:
 		// The bare word names the bound source; without one it must not
 		// invert an absent referent beneath '!'.

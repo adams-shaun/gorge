@@ -26,11 +26,13 @@ func TestMayPlayPayLifeWithTreasureTap(t *testing.T) {
 		}
 		s.pl[0].life = 20
 		sc.do(t, AkCast, uint8(o), 0xff)
-		bear := sc.perm(v.GrizzlyBears, 0)
-		k.cards[s.objs[bear].card].castSrc |= csTreasure
-		s.noteTapSrc(k, &k.cards[s.objs[bear].card], s.objs[bear].slot)
+		sc.perm(v.GrizzlyBears, 0)
+		// a pool spend that takes a Treasure's unit marks the build (treSync)
+		s.g.poolTre[0][kop.G] = 1
+		s.pl[0].pool[kop.G] = 0
+		s.treSync(0)
 		if s.bld().bfl&bflTre == 0 {
-			t.Fatalf("the Treasure tap was not recorded (bfl %#x)", s.bld().bfl)
+			t.Fatalf("the Treasure spend was not recorded (bfl %#x)", s.bld().bfl)
 		}
 		for i := 0; i < 8 && s.objs[o].zone != kop.ZoneStack; i++ {
 			d := s.Step()

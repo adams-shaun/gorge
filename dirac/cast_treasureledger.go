@@ -7,10 +7,13 @@ package dirac
 // (engine/effects/mana_effect.go ManaProducerTag; an artifact Treasure is
 // TypedArtifactTreasure) and folds the spend into the caster's bucket until
 // the next PutOnStack consumes it (rules/host_cast_ledger.go castSpendFacts).
-// The kernel's planner is the only way a spell's mana is paid, so a tap of
-// a Treasure source during the spell's build marks that build; histCast
-// copies the mark onto the ring entry noteCast appended at the push
-// (CastSpecTreasure, thisTurnCastSpec).
+// The kernel tallies the Treasure units floating in each player's pool
+// (artTag, poolTre) and, plain units of a colour going before a Treasure's
+// as gorge's pay.takeUnit does, marks the spell's build when a pool spend
+// takes one (treSync); mana a Treasure made at priority or in the payment
+// window and left floating marks nothing. histCast copies the mark onto the
+// ring entry noteCast appended at the push (CastSpecTreasure,
+// thisTurnCastSpec).
 //
 // The bit follows the push, not the object: a recast gets its own bit, and
 // an aborted cast that never reached histCast leaves its entry unmarked.

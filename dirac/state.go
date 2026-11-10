@@ -13,7 +13,6 @@ import (
 const (
 	MaxDeck    = 100 // cards per seat's deck (a Commander deck's 100)
 	MaxSide    = 15  // cards per seat's sideboard (a Config's; each one is an object, so MaxObj bounds the decks and sideboards together)
-	MaxObj     = 236 // card instances: both decks + tokens (at most StackTarget0: a target byte's 0xEC.. are stack abilities)
 	MaxPerm    = 112 // battlefield slots (no gate-slice game exceeds 112)
 	MaxStack   = 48  // stack entries (24 before 2026-11-03, raised with MaxPending: the triggers a pending queue holds all go on the stack together, CR 603.3b)
 	MaxPending = 48  // triggered abilities waiting to be put on the stack (24 before 2026-11-03: Return to the Light Realms bringing back a graveyard of creatures beside three enters listeners queues more)
@@ -22,14 +21,15 @@ const (
 )
 
 // ObjWords is the number of 64-bit words an object bitset takes (the change
-// marks, objBits). MaxObj may be any value up to 236: an Obj is a uint8 whose
-// 0xEC..0xFB are stack abilities (StackTarget0) and 0xFC..0xFF
-// PlayerTarget0/1 and NoTarget/NoObj in target bytes.
+// marks, objBits). MaxObj (seats_default.go, seats_mp.go) may be any value
+// up to StackTarget0: an Obj is a uint8 whose StackTarget0.. codes are stack
+// abilities, PlayerTarget0.. players and 0xFE/0xFF a departed stack target
+// and NoTarget/NoObj in target bytes.
 const ObjWords = (MaxObj + 63) / 64
 
 // Compile-time bounds: a constant conversion that overflows fails the build.
 const (
-	_ = uint8(StackTarget0 - MaxObj) // MaxObj <= 236 (Obj 0xEC.. are stack-ability / player targets / none)
+	_ = uint8(StackTarget0 - MaxObj) // MaxObj <= StackTarget0 (Obj StackTarget0.. are stack-ability / player targets / none)
 	_ = uint8(255 - MaxPerm)         // MaxPerm <= 255 (Slot 255 is NoSlot)
 )
 
@@ -143,11 +143,8 @@ const (
 )
 
 // object stays 8 bytes: the owner shares the acts byte with the activation
-// count, and chosen takes the byte the owner used to hold.
-const (
-	objActsMask uint8 = 0x7f // object.acts: this turn's non-mana activation count
-	objOwnerBit uint8 = 0x80 // object.acts: the owner (0 or 1)
-)
+// count (objActsMask, objOwnerBits: seats_default.go, seats_mp.go), and
+// chosen takes the byte the owner used to hold.
 
 type object struct {
 	card CardID
@@ -159,8 +156,8 @@ type object struct {
 	zone   kop.Zone
 	slot   Slot  // battlefield slot when zone == ZoneBattlefield
 	ver    uint8 // bumped on every zone change (CR 400.7: a new object)
-	// acts holds this turn's non-mana activation count in its low seven
-	// bits (objActsMask) and the owner in bit 7 (objOwnerBit). It counts
+	// acts holds this turn's non-mana activation count in its low bits
+	// (objActsMask) and the owner in its top bits (objOwnerBits). It counts
 	// activations of the object whose source is still on the battlefield
 	// once the costs are paid (gorge's Object.ActivatedThisTurn, counted at
 	// AbilityPush: a sacrificed source does not count; a new object when it
@@ -175,11 +172,11 @@ type object struct {
 	of uint8
 }
 
-// owner is the object's owner (0 or 1), packed into acts.
-func (o *object) owner() uint8 { return (o.acts & objOwnerBit) >> 7 }
+// owner is the object's owner seat, packed into acts.
+func (o *object) owner() uint8 { return (o.acts & objOwnerBits) >> objOwnerShift }
 
 // setOwner packs the object's owner into acts, keeping its activation count.
-func (o *object) setOwner(p uint8) { o.acts = o.acts&objActsMask | (p&1)<<7 }
+func (o *object) setOwner(p uint8) { o.acts = o.acts&objActsMask | (p&(MaxSeats-1))<<objOwnerShift }
 
 // activations is this turn's non-mana activation count (FeatActivations).
 func (o *object) activations() uint8 { return o.acts & objActsMask }

@@ -2,6 +2,26 @@
 
 package dirac
 
-// The dirac_mp size class: four seat slots. Later size knobs (MaxObj, Obj,
-// MaxPerm) move into this file and seats_default.go.
+// The dirac_mp size class: four seat slots. The size knobs that depend on the
+// seat count live here and in seats_default.go; every other file derives from
+// them.
 const MaxSeats = 4
+
+// The target-code space (types.go): objects 0..MaxObj-1, stack abilities
+// StackTarget0..PlayerTarget0-1 (16 codes, as in the default class), players
+// PlayerTarget0..PlayerTarget0+3 (one code per seat), 0xFE a departed stack
+// target and 0xFF none. Four player codes cost two object slots.
+const (
+	MaxObj              = 234  // card instances: the decks + tokens (at most StackTarget0)
+	StackTarget0  uint8 = 0xEA // the bottom stack ability's target code
+	PlayerTarget0 uint8 = 0xFA // seat 0's target code
+)
+
+// object.acts packs the owner above this turn's activation count: two owner
+// bits for four seats, so the count saturates at 63 (cast.go stalls with
+// StallActs rather than wrapping).
+const (
+	objActsMask   uint8 = 0x3f // object.acts: this turn's non-mana activation count
+	objOwnerBits  uint8 = 0xc0 // object.acts: the owner (0..3)
+	objOwnerShift       = 6
+)

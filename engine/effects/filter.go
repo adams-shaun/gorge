@@ -267,21 +267,21 @@ var predicates = map[string]predFn{
 	"blocked": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.IsAttacking && len(o.BlockedBy) > 0
 	},
-	// attackingYou is the source-relative attacker predicate (Watchdog's and
-	// Boarded Window's continuous `Affected$ Creature.attackingYou`, Ice
-	// Floe's/Hunting Kavu's/Snow Fortress's `Creature.attackingYou` target
-	// specs, and Stalking Leonin's). It reads the defender the combat engine
+	// attackingYou is the attacker predicate relative to the player the
+	// evaluation calls "you" (Watchdog's and Boarded Window's continuous
+	// `Affected$ Creature.attackingYou`, Ice Floe's/Hunting Kavu's/Snow
+	// Fortress's `Creature.attackingYou` target specs, Stalking Leonin's, and
+	// Red Alert!'s own cost static). It reads the defender the combat engine
 	// records on state.Object.Attacking at DeclareAttackers, so it stays exact
-	// through extra combats. An absent source (a call site that passes 0) or a
-	// source that has left the game fails closed, never "every attacker": the
-	// widening direction would let a removal spell hit a creature attacking
-	// somebody else.
-	"attackingYou": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
-		if !o.IsAttacking || src == 0 {
-			return false
-		}
-		s := g.Obj(src)
-		return s != nil && o.Attacking == s.Controller
+	// through extra combats. "You" is the caster for a spell's own cost static
+	// (CR 601.2a, 601.2f), which differs from the source object's controller
+	// for a card cast from another player's zone; for a battlefield or stack
+	// source it is that source's controller. An absent source (a call site
+	// that passes 0) fails closed, never "every attacker": the widening
+	// direction would let a removal spell hit a creature attacking somebody
+	// else.
+	"attackingYou": func(g *state.Game, o *state.Object, you state.PlayerID, src state.ObjID) bool {
+		return o.IsAttacking && src != 0 && o.Attacking == you
 	},
 	// Mangara/Tomik count attackers at you or your planeswalkers. Attacking
 	// and AttackingBattle (engine/state/object.go) distinguish a battle protector
@@ -2828,7 +2828,12 @@ type SpecContext struct {
 	// CombatDamageHits is the per-turn combat-to-player ledger for
 	// resolution-time predicates that refer to damage dealt by Source.
 	CombatDamageHits []CombatDamageHit
-	Resolve          func(name string) (int32, bool)
+	// CounterAdds is the per-turn counter-placement ledger the
+	// countersReceivedThisTurn word reads (filter_word_counters_received.go);
+	// nil when the site that built the context did not bind it, which the word
+	// reads as "no counters were put".
+	CounterAdds []CounterAdd
+	Resolve     func(name string) (int32, bool)
 	// The source's chosen-type/colour LKI (SourceLKIValid,
 	// SourceChosenType, SourceChosenColor) rides the embedded
 	// TriggerContext, so a resolving Ctx's SpecContext carries it with no
