@@ -208,6 +208,9 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "sneak_hybrid_pip_announced"},                                        // Foot Ninjas sneaked for {3}{W/B}: the hybrid pip's colour is announced like a printed cost's (CR 107.4e, 601.2b, 702.190a)
 		{"std-woe", "restricted_each_source_no_colour_ask_beside_filter"},               // Troyan, Gutsy Explorer's {G}{U} is one activation with no colour ask: the filter search beside Crystal Grotto charges it one node, so Restless Fortress's animate is still found within the 160-node budget (CR 106.1, 605.3b)
 		{"std-woe", "bargain_only_offer_with_restricted_source_in_pool"},                // Johann's Stopgap bargained for {1}{U} off a floating pool is offered whatever restricted sources the pool holds: Troyan in the decks no longer hides the discounted cast (CR 702.166, 601.2f)
+		{"custom", "imprint_token_counters_iroh_tea_master_ally"},                       // Iroh, Tea Master gives a permanent away and makes the 1/1 Ally: its +1/+1 counters go on the imprinted token only, and the cleanup clears the imprint (the imprinted set apart from the remembered given-away permanent)
+		{"custom", "imprint_exile_return_sirens_ruse"},                                  // Siren's Ruse exiles a creature you control and returns the imprinted card to the battlefield, both engines agreeing through the return and past it
+		{"custom", "imprint_token_counters_summoners_sending_spirit"},                   // Summoner's Sending exiles a creature card from a graveyard and makes a Spirit that takes a +1/+1 counter off the imprinted token when the exiled card's mana value is 4 or more
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {

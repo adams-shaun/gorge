@@ -2295,6 +2295,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if _, ok := fl["Remember"]; ok {
 			m |= kop.MvRemember
 		}
+		if _, ok := fl["ImprintMove"]; ok {
+			m |= kop.MvImprint // lower_imprintzone.go
+		}
 		if _, ok := fl["Tapped"]; ok {
 			m |= kop.MvTapped
 		}
@@ -3252,7 +3255,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, fmt.Errorf("token %q", in.CS)
 		}
 		ki.C = int16(idx)
-		if in.C&(6|24|32|64|128|256|512|1024) == 0 {
+		if in.C&(6|24|32|64|128|256|512|1024|2048) == 0 {
 			// the core's CreateToken: B.N = TokenRider flags.
 			ki.Op = kop.OpCreateToken
 			if in.C&1 != 0 {
@@ -3269,6 +3272,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if in.C&1 != 0 {
 			tf |= kop.TokTapped
+		}
+		if in.C&2048 != 0 {
+			tf |= kop.TokImprintObj // lower_imprintzone.go
 		}
 		if in.C&8 != 0 {
 			tf |= kop.TokSacAtEnd

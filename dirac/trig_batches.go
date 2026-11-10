@@ -154,6 +154,9 @@ func (s *State) createTokensHeld(k *prep, in *kop.Instr, p uint8, n int) bool {
 			if in.B.N&kop.TokRememberObj != 0 {
 				s.remember(o)
 			}
+			if in.B.N&kop.TokImprintObj != 0 {
+				s.imprint(o) // zone_imprint.go
+			}
 		}
 		sl := s.enterHeld(k, &eb, o, p, tapped, kop.ZoneLibrary)
 		if in.Op == kop.OpCreateTokenEx && in.B.N&(kop.TokSacAtEnd|kop.TokExileAtEnd) != 0 {
