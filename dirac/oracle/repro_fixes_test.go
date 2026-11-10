@@ -201,6 +201,13 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"x_cast_rider_keeping_plan_lowered", false, false},             // CR 609.4b, 601.2b: the same cast played: its payment taps the rider's keeping plan, not the smaller-X witness
 		{"copy_keyword_exception_returns_when_loss_ends", false, false}, // CR 707.9b, 613.1f: Mockingbird copying Shoreline Looter, made to lose all abilities until its controller's next turn, has its copy exception's flying again when the loss ends
 		{"any_one_colour_restricted_x_colour_choice", false, false},     // CR 106.6, 601.2b: Helga's two restricted mana count in the {X} ceiling of Mockingbird's cast, so its witness taps every source for X = 4
+		// CR 614.12, 707.2: the cards one return instruction returns each make
+		// their as-enters choice before any of them is on the battlefield, so
+		// Mockingbird's copy election is asked with the other targets still in
+		// the graveyard
+		{"return_batch_asenters_two_creatures", false, false},
+		{"return_batch_asenters_three_creatures", false, false},
+		{"return_batch_asenters_three_creatures_m1", false, false},
 	})
 }
 
@@ -716,6 +723,10 @@ func TestStdDftReprosLockstep(t *testing.T) {
 		{"own_counter_replacement_does_not_apply_to_own_entry", false, false}, // CR 614.12: Caradora's "a creature or Vehicle you control" plus-one does not apply to the +1/+1 counter Thunderous Velocipede grants it as it enters; a general subset excludes the entrant itself
 		{"returned_aura_host_before_paid_draw", false, false},                 // CR 303.4f, 610.3: sacrificing Perilous Snare pays Chandra's "if you do, draw": its exiled Aura's host answer comes before the draw, as gorge asks it mid-payment
 		{"lost_abilities_tappower_bonus", false, false},                       // CR 613.1f: a Pilot token under Flood the Engine loses the TapPowerValue static, so it contributes its printed power to a Saddle cost
+		// CR 614.12, 610.3: a delayed sacrifice's returning card is asked its
+		// as-enters choice with the card still in exile, before the delayed
+		// trigger leaves the stack
+		{"until_leaves_return_asenters_in_exile", false, false},
 	})
 }
 
