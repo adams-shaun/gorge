@@ -147,7 +147,7 @@ func (s *State) thisTurnCastSpec(k *prep, x *kop.Expr, ctx evalCtx) int {
 	}
 	n := 0
 	var tm kop.TypeMask // CastSpecTypes: the matching objects' card-type union
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < MaxSeats; p++ {
 		if x.N&kop.CastSpecYou != 0 && p != ctx.ctrl {
 			continue
 		}

@@ -23,7 +23,7 @@ func (s *State) untapBlocked(k *prep, sl Slot) bool {
 	if s.perms[sl].flags&pfTapped == 0 {
 		return false // no Untap event: gorge TryUntap returns early
 	}
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < MaxSeats; pp++ {
 		var bf [MaxPerm]Slot
 		m := s.statM.and(s.ctrlM[pp]).with(sl).and(s.ctrlM[pp]) // untapCands' scan shape
 		for _, b := range bf[:s.battlefieldOrder(pp, m, bf[:], 0)] {

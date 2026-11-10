@@ -153,7 +153,7 @@ func (s *State) noteCombatHits(k *prep, r *dmgRec) {
 		}
 		// toDefender gives a player recipient (dst NoSlot) only to an attacker
 		// whose target is a player: PlayerTarget0 or PlayerTarget0+1
-		pl := s.perms[ev.src].atk - PlayerTarget0
+		pl := CodeSeat(s.perms[ev.src].atk)
 		if pl > 1 {
 			continue
 		}
