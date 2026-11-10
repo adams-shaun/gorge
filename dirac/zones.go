@@ -318,6 +318,10 @@ func (s *State) lose(p uint8) {
 }
 
 func (s *State) checkOver() {
+	if MaxSeats > 2 {
+		s.checkOverN()
+		return
+	}
 	l0, l1 := s.pl[0].lost, s.pl[1].lost
 	if !l0 && !l1 {
 		return
@@ -703,8 +707,14 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.dropAttLKI(o)
 	}
 	s.occ.clr(sl)
-	s.ctrlM[0].clr(sl)
-	s.ctrlM[1].clr(sl)
+	if MaxSeats == 2 {
+		s.ctrlM[0].clr(sl)
+		s.ctrlM[1].clr(sl)
+	} else {
+		for q := range s.ctrlM {
+			s.ctrlM[q].clr(sl)
+		}
+	}
 	if k.phasing {
 		s.phasedHostLeft(sl, o) // its phased-out attachments (kw_phasing.go)
 	}

@@ -1215,9 +1215,16 @@ func (s *State) leyCard(k *prep, p, skip uint8) Obj {
 // game. ley[0] is 1 once the starting player is done, ley[1] the current
 // player's declined Leylines.
 func (s *State) nextLeyline(k *prep) {
-	if s.g.ley[0] == 0 {
+	if MaxSeats == 2 {
+		if s.g.ley[0] == 0 {
+			s.g.ley = [MaxSeats]uint8{1, 0}
+			s.g.leyP = 1 - s.startPl
+			return
+		}
+	} else if p := s.nextAlive(s.g.leyP); p != s.startPl {
+		// gorge asks over AliveFrom(starting player)
 		s.g.ley = [MaxSeats]uint8{1, 0}
-		s.g.leyP = 1 - s.startPl
+		s.g.leyP = p
 		return
 	}
 	s.g.leyOn = false

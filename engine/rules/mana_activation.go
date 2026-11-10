@@ -931,16 +931,17 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 		// offers today, so the two cannot disagree. Any / Combo Any / Chosen
 		// keep the single option + stage-2 ask (the choice there is not
 		// enumerable at option-build time).
+		_, planned := pay.PaymentAbility(e.G, source, ma)
 		if cols, ok := pay.ManaAbilityComboColours(ma, chosen); ok {
 			for _, col := range cols {
 				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source,
-					Ability: i, Label: pay.ManaAbilityCostPrefix(ma) + "Add " + pay.ManaAmountPips(ma, col), ManaSymbol: col})
+					Ability: i, Label: pay.ManaAbilityCostPrefix(ma) + "Add " + pay.ManaAmountPips(ma, col), ManaSymbol: col, Granted: !planned})
 			}
 			continue
 		}
 		label := pay.ManaAbilityLabel(ma, chosen)
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source,
-			Ability: i, Label: label})
+			Ability: i, Label: label, Granted: !planned})
 	}
 	gained := make([]pay.GainedManaRef, len(abilities))
 	for i, ma := range abilities {

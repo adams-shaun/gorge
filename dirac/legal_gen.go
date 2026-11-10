@@ -277,7 +277,11 @@ func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
 	if s.spendMayRecord(k, o, p) {
 		return
 	}
+	lifeOnly := s.castLifeOnly(k, p, o, mode) // cast_staticpaylife.go
 	s.mayPlayStatics(k, p, o, func(st statSrc) bool {
+		if castSkipsStatic(st, mode, lifeOnly) {
+			return true // the other cast's permission (cast_staticpaylife.go)
+		}
 		if k.gen.anyMayRaise && !s.mayRaiseSpend(k, p, o) {
 			return true // the raise can't be paid (cost_mayplayraise.go)
 		}
@@ -449,6 +453,9 @@ func (s *State) targetableGen(k *prep, sl Slot, p uint8) bool {
 	}
 	if k.gen.anyHexCol && s.perms[sl].ctrl != p {
 		hexC |= s.hexPrinted(k, sl) // printed hexproof from a colour (kw_hexproofcolor.go)
+	}
+	if k.gen.anyHexOwn && s.perms[sl].ctrl != p {
+		hexC |= s.hexOwnColors(k, sl) // a granted hexproof from its own colours (kw_hexproofcolor.go)
 	}
 	if k.gen.anyCantTgt && s.cantTargetGen(k, sl, p) {
 		return false // a printed CantTarget static (tgt_canttarget.go)
@@ -646,76 +653,32 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 			(ob.zone != kop.ZoneExile || ob.owner() != p || k.gen.sCls[ob.card]&sclsExMay == 0) {
 			return
 		}
-		// the parts of every permission admitting o join into one offer: a
-		// free-only static (Weftwalking) opens no zone but waives the cost of
-		// the cast another static grants (CR 118.9)
-		grant, free, anyMana := false, false, false
-		nst, nPL, payLife := 0, 0, false
-		s.mayPlayStatics(k, p, o, func(st statSrc) bool {
-			fl := st.a.Static.StFlags
-			if fl&kop.StRemove6Counters != 0 && s.creatureCounters(k, p) < int(st.a.Static.A) {
-				return true // the extra cost can't be paid (Quilled Greatwurm)
-			}
-			if fl&kop.StMayPayLife != 0 {
-				if !s.payLifeOfferable(k, p, o) {
-					return true // the mana value in life can't be paid (cast_staticpaylife.go)
-				}
-				free, payLife = true, true // the mana part is replaced by the life
-				nPL++
-			}
-			nst++
-			if fl&kop.StFreeOnly == 0 || s.objs[o].zone == kop.ZoneHand {
-				grant = true // a free-only static opens no zone; a hand cast is already legal
-			}
-			free = free || fl&kop.StWithoutManaCost != 0
-			anyMana = anyMana || fl&kop.StAnyManaType != 0
-			return true
-		})
-		if !grant {
+		// the parts of every permission admitting o join into one offer; a
+		// pay-life static's alternative is offered apart (mayPlayParts)
+		rest, life := s.mayPlayParts(k, p, o)
+		if !rest.grant && life == 0 {
 			return
 		}
-		// several pay-life statics and nothing else: one life alternative each
-		// (cast_staticpaylife.go); a pay-life static beside any other
-		// permission stalls, gorge offers the plain cast and the life one apart
-		payAlts := 0
-		if payLife && nst > 1 {
-			if nPL != nst || nPL > payLifeAltMax {
-				s.capFull(StallPayLifeShared)
-			} else {
-				payAlts = nPL
-			}
+		// pay-life statics alone offer one life alternative each (fanPayLifeAlts);
+		// beside another permission only a single one is offered apart, and a
+		// waived mana cost would share its mode (cast_staticpaylife.go)
+		if life > payLifeAltMax || rest.grant && life > 0 && (life > 1 || rest.free) {
+			s.capFull(StallPayLifeShared)
 		}
 		seen.set(o)
-		mode := castMayPlay
-		if free {
-			mode |= castFree
-		}
-		// Config.GorgeUnpriced: gorge's planner funds an any-type cast's pips
-		// as generic where it plans the shape (Tinybones), and prices no cast
-		// two permissions offer (Muldrotha's per-type statics for an artifact
-		// creature: "ambiguous"); gorge lists those only when the pool pays
-		unpriced := false
-		if s.cfg&cfgGorgeUnpriced != 0 {
-			if anyMana {
-				cost := s.adjustCostGen(k, p, s.objs[o].card, o, k.cards[s.objs[o].card].cost)
-				cost = planUnderRider(cost, true, false)                                           // a hybrid pip is generic to the plan too (pay.PlanManaUnderRider)
-				unpriced = !s.castAffordsR(k, p, s.objs[o].card, s.restrOriginOfObj(o), &cost, av) // (the restricted sources the planner counts price it too)
-			} else {
-				// Two offers are ambiguous to gorge's potential planner,
-				// but its payment builder still plans the untyped
-				// (MayPlayPerm=="") offer from a graveyard or exile
-				// (payment_plan.go plannedMayPlayZone), so that cast is
-				// priced rather than ambiguous (Storied Veteran beside
-				// The Holodeck). A top-of-library cast has no such plan
-				// (Boltwave beside Madame Web and Johann).
-				unpriced = s.mayPlayOffers(k, p, o) >= 2 &&
-					!(s.mayPlayFolds(k, p, o) && mayPlayPlannedZone(s.objs[o].zone))
+		if rest.grant {
+			mode := castMayPlay
+			if rest.free {
+				mode |= castFree
 			}
+			s.offerPlay(k, d, p, o, mode, sorc, landOK, rest.anyMana, false, s.mayPlayUnpriced(k, p, o, rest.anyMana, av), av)
 		}
-		n0 := int(d.N)
-		s.offerPlay(k, d, p, o, mode, sorc, landOK, anyMana, false, unpriced, av)
-		if payAlts > 1 {
-			fanPayLifeAlts(d, n0, payAlts)
+		if life > 0 && !(rest.grant && rest.free) {
+			n0 := int(d.N)
+			s.offerPlay(k, d, p, o, castMayPlay|castFree, sorc, landOK, false, false, false, av) // the mana part is replaced by the life (CR 118.9)
+			if life > 1 && !rest.grant && life <= payLifeAltMax {
+				fanPayLifeAlts(d, n0, life)
+			}
 		}
 	}
 	for pp := uint8(0); pp < 2; pp++ {

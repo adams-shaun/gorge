@@ -18,15 +18,13 @@ import (
 //
 //go:noinline
 func (s *State) gainEnergy(k *prep, in *kop.Instr) {
-	p1, p2 := s.players(k, in.Obj)
+	q := s.players(k, in.Obj)
 	n := s.value(k, in.A)
 	if n <= 0 {
 		return
 	}
-	for _, p := range [2]uint8{p1, p2} {
-		if p > 1 {
-			continue
-		}
+	for i := uint8(0); i < q.n; i++ {
+		p := q.s[i]
 		s.g.energy[p] = uint8(min(int(s.g.energy[p])+n, 255))
 	}
 }
@@ -48,7 +46,7 @@ func (s *State) payEnergy(p uint8, c *kop.Cost) {
 }
 
 // Energy is player p's energy counter count (oracle / tests).
-func (s *State) Energy(p uint8) int { return int(s.g.energy[p&1]) }
+func (s *State) Energy(p uint8) int { return int(s.g.energy[SeatIx(p)]) }
 
 // payEnergyN pays n energy for an unless / if-you-do cost (kop.PayEnergy;
 // asked only when payable, else decline-only).

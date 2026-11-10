@@ -49,8 +49,8 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	}
 	rcp := uint8(255) // the recipient's controller
 	sl := NoSlot
-	if code >= PlayerTarget0 && code <= PlayerTarget1 {
-		rcp = code - PlayerTarget0
+	if isPlayerTarget(code) {
+		rcp = CodeSeat(code)
 	} else if int(code) < MaxObj && s.objs[code].zone == kop.ZoneBattlefield {
 		sl = s.objs[code].slot
 		rcp = s.perms[sl].ctrl
@@ -879,8 +879,8 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 	}
 	rcp := uint8(255)
 	sl := NoSlot
-	if code >= PlayerTarget0 && code <= PlayerTarget1 {
-		rcp = code - PlayerTarget0
+	if isPlayerTarget(code) {
+		rcp = CodeSeat(code)
 		if g.anyRepl&rbPlProt != 0 && s.plProtected(k, ctrl, rcp, false) {
 			return false // prevented before the replacements (replDamage)
 		}

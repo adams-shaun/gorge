@@ -1,10 +1,12 @@
 package oracle
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // The Effect-delivered top-of-library permission in lockstep: The Belligerent
@@ -34,6 +36,19 @@ var maylookTopDecks = []struct {
 		},
 		{
 			{Name: "Walking Corpse", Count: 8}, {Name: "Doom Blade", Count: 4}, {Name: "Swamp", Count: 28},
+		},
+	},
+}, {
+	// Madame Web, Clairvoyant's permission (Spiders and noncreature spells)
+	// beside Gwenom's over one top card: the plain cast paying mana and the
+	// life alternative are offered apart (AltCostIndex 0 and 1, CR 118.9)
+	"gwenom_madame_web", [2][]cardset.Entry{
+		{
+			{Name: "Gwenom, Remorseless", Count: 4}, {Name: "Madame Web, Clairvoyant", Count: 4}, {Name: "Giant Spider", Count: 4},
+			{Name: "Think Twice", Count: 4}, {Name: "Doom Blade", Count: 4}, {Name: "Island", Count: 10}, {Name: "Swamp", Count: 10},
+		},
+		{
+			{Name: "Walking Corpse", Count: 8}, {Name: "Gray Ogre", Count: 8}, {Name: "Swamp", Count: 12}, {Name: "Mountain", Count: 12},
 		},
 	},
 }}
@@ -87,9 +102,13 @@ func runMayLookTop(t *testing.T, seeds int) map[string]klibtopStats {
 			if err != nil {
 				t.Fatal(err)
 			}
-			res := LockstepLed(m, seed, g, k, klibtopPolicy(seed, &st), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 20})
+			res := LockstepLed(m, seed, g, k, mayLookTopTwoCasts(klibtopPolicy(seed, &st), &st), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 20})
 			CloseSide(k)
 			st.games++
+			if res.StallUnmodelled {
+				st.divs++
+				t.Errorf("%s seed %d: the kernel stalled: %s", md.name, seed, res.Stall)
+			}
 			if d := res.Div; d != nil {
 				st.divs++
 				t.Errorf("%s seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", md.name, seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
@@ -105,9 +124,41 @@ func TestMayLookTopLockstep(t *testing.T) {
 		return
 	}
 	for name, st := range runMayLookTop(t, 128) {
-		t.Logf("%s: %d games, %d divergences, %d casts and %d land plays from the top of a library", name, st.games, st.divs, st.libCasts, st.libLands)
+		t.Logf("%s: %d games, %d divergences, %d casts and %d land plays from the top of a library, %d decisions offering two casts of one", name, st.games, st.divs, st.libCasts, st.libLands, st.twoCasts)
 		if st.libCasts < 10 || st.libLands < 5 {
 			t.Errorf("%s: thin coverage: %d casts, %d land plays (want >= 10, 5)", name, st.libCasts, st.libLands)
 		}
+		if name == "gwenom_madame_web" && st.twoCasts < 5 {
+			t.Errorf("%s: thin coverage: %d decisions offering two casts of one top card (want >= 5)", name, st.twoCasts)
+		}
 	}
+}
+
+// mayLookTopTwoCasts wraps p to count the decisions where gorge offers two
+// casts of one library card (Madame Web's plain cast beside Gwenom's life
+// alternative).
+func mayLookTopTwoCasts(p Policy, st *klibtopStats) Policy {
+	return PolicyFunc(func(c *PickCtx) Canon {
+		if g := c.G; g != nil {
+			var objs []state.ObjID
+			for _, a := range c.D.Options {
+				if a.Kind() != ActCast {
+					continue
+				}
+				o, ok := g.GorgeOption(a)
+				if !ok {
+					continue
+				}
+				if ob := g.E.G.Obj(o.Obj); ob == nil || ob.Zone != state.ZLibrary {
+					continue
+				}
+				if slices.Contains(objs, o.Obj) {
+					st.twoCasts++
+					break
+				}
+				objs = append(objs, o.Obj)
+			}
+		}
+		return p.Pick(c)
+	})
 }

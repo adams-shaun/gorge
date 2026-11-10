@@ -1047,6 +1047,7 @@ StBeamGranted	StaticFlags	1
 StCasterActive	StaticFlags	64
 StDynamic	StaticFlags	1
 StEmbNum	StaticFlags	16384
+StFbOwnCost	StaticFlags	1
 StFreeOnly	StaticFlags	128
 StFunctionsInExile	StaticFlags	1024
 StFunctionsInGraveyard	StaticFlags	16
@@ -1098,10 +1099,12 @@ StatCastWithFlash	StaticKind	6
 StatCombatDmgToughness	StaticKind	245
 StatContinuous	StaticKind	1
 StatControl	StaticKind	17
-StatCount	StaticKind	19
+StatCount	StaticKind	20
 StatDisableETB	StaticKind	234
 StatExtraLandPlay	StaticKind	12
+StatFbGrant	StaticKind	242
 StatGoad	StaticKind	249
+StatHexproofOwnColors	StaticKind	19
 StatIncreaseCost	StaticKind	9
 StatMaxBlockers	StaticKind	241
 StatMayPlayFrom	StaticKind	13

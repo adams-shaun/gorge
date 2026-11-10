@@ -89,6 +89,26 @@ func (s *State) sacLeaveOrder(k *prep, o Obj, n0 uint8) {
 	}
 }
 
+// sacEachDeparture is flushSac's fireSac / dieZone / fireLeave loops for a
+// sacrifice of several permanents with a Sacrificed listener on the table:
+// gorge walks each departure's triggers on its own, in departure order, so
+// the queue holds each permanent's Sacrificed and dies/leaves triggers
+// together (sacLeaveOrder sorts that block) instead of every Sacrificed
+// trigger before every dies trigger (Season of Loss against Scavenger's
+// Talent). The destinations are read before any trigger is queued, as the
+// separate loops did.
+//
+//go:noinline
+func (s *State) sacEachDeparture(k *prep, ord []Slot, zs *[MaxPerm]kop.Zone) {
+	for i, sl := range ord {
+		zs[i] = s.dieZone(k, sl)
+	}
+	for i, sl := range ord {
+		s.fireSac(k, sl)
+		s.fireLeave(k, sl, zs[i])
+	}
+}
+
 // sacTrigOf reports a pending printed Sacrificed trigger whose event object
 // is o.
 func (s *State) sacTrigOf(k *prep, pt *pendingTrig, o Obj) bool {

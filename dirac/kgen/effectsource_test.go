@@ -89,12 +89,16 @@ func TestEffectSourceHostBound(t *testing.T) {
 	if len(got) == 0 || !strings.Contains(strings.Join(got, "; "), "ValidBlocker") {
 		t.Errorf("ValidBlocker$ Card.EffectSource refusals = %q, want a ValidBlocker refusal", got)
 	}
-	// An Effect TRIGGER reading EffectSource has no host-bound emblem hook.
-	if got := effectSourceSynthetic(t, "AB$ Effect | Cost$ 3 U U | Triggers$ DamageTrig",
-		map[string]string{
-			"DamageTrig": "Mode$ DamageDone | ValidSource$ Card.EffectSource | ValidTarget$ Player | Execute$ TrigDraw",
-			"TrigDraw":   "DB$ Draw | NumCards$ 2",
-		}); len(got) == 0 {
-		t.Errorf("Effect trigger reading Card.EffectSource lowered, want a refusal")
+	// An Effect TRIGGER reads EffectSource only as a DamageDone source (the
+	// remembered-source emblem hook, TestEffectSourceTrigger); any other key
+	// or mode still has no host-bound reading.
+	for _, body := range []string{
+		"Mode$ DamageDone | ValidSource$ Player | ValidTarget$ Card.EffectSource | Execute$ TrigDraw",
+		"Mode$ ChangesZone | ValidCard$ Card.EffectSource | Execute$ TrigDraw",
+	} {
+		if got := effectSourceSynthetic(t, "AB$ Effect | Cost$ 3 U U | Triggers$ DamageTrig",
+			map[string]string{"DamageTrig": body, "TrigDraw": "DB$ Draw | NumCards$ 2"}); len(got) == 0 {
+			t.Errorf("Effect trigger %q lowered, want a refusal", body)
+		}
 	}
 }

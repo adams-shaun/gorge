@@ -63,13 +63,16 @@ const (
 )
 
 // format1Ref maps a Ref byte of a format-1 recording to the current Refs:
-// the stack-ability and player codes 0xE0..0xF1 moved up by 12 (RefStack
-// 0xE0 -> 0xEC, RefPlayer 0xF0 -> 0xFC). A format-1 recording never names an
+// stack ability i (0xE0+i) is RefStack+i and seat p (0xF0+p) RefPlayer+p, in
+// whichever size class reads it (0xEC and 0xFC in the default one). A format-1 recording never names an
 // instance at or above 224, and RefNone (0xFF) did not move, so every other
 // byte is unchanged.
 func format1Ref(r Ref) Ref {
-	if r >= 0xE0 && r <= 0xF1 {
-		return r + 12
+	switch {
+	case r >= 0xE0 && r < 0xF0:
+		return RefStack + (r - 0xE0)
+	case r == 0xF0 || r == 0xF1:
+		return RefPlayer + (r - 0xF0)
 	}
 	return r
 }

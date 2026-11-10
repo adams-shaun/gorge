@@ -159,6 +159,7 @@ func foldTurnChange(g *state.Game, e *Event) {
 		g.Turn = e.Amount
 		g.Active = e.Player
 		g.Players[e.Player].LandsPlayed = 0
+		g.Players[e.Player].LandsPlayedOffHand = nil
 		for i := range g.Players {
 			g.Players[i].CoinFlipsThisTurn = 0
 			resetTurnWatchers(&g.Players[i])

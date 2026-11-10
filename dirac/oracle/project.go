@@ -144,6 +144,9 @@ type SeatsProj struct {
 	NSeat uint8
 	Lost  [MaxSeats]bool
 	More  [MaxSeats - 2]SeatProj
+	// CmdDamageFrom[p][q-2] is the combat damage seat p (0 or 1) was dealt
+	// by further seat q's commander.
+	CmdDamageFrom [2][MaxSeats - 2]uint8
 }
 
 // SeatProj is one further seat's Projection fields (Life .. LibCount, CmdCasts).
@@ -157,6 +160,9 @@ type SeatProj struct {
 	HandCount   uint8
 	LibCount    uint8
 	CmdCasts    uint8
+	// CmdDamage[q] is the combat damage this seat was dealt by seat q's
+	// commander (Projection.CmdDamage's row for a further seat).
+	CmdDamage [MaxSeats]uint8
 }
 
 // identity is a game's stable map between gorge objects and canonical card
@@ -567,6 +573,18 @@ func (p *Projection) seat(s int) seatFields {
 	return seatFields{&m.Life, &m.Poison, &m.Speed, &m.Room, &m.LandsPlayed, &m.Pool, &m.HandCount, &m.LibCount, &m.CmdCasts}
 }
 
+// cmdDamage is the combat damage seat s was dealt by seat q's commander: the
+// two-seat CmdDamage for seats 0 and 1, Seats past them.
+func (p *Projection) cmdDamage(s, q int) *uint8 {
+	switch {
+	case s >= 2:
+		return &p.Seats.More[s-2].CmdDamage[q]
+	case q >= 2:
+		return &p.Seats.CmdDamageFrom[s][q-2]
+	}
+	return &p.CmdDamage[s][q]
+}
+
 // projectCommander fills p's commander bookkeeping from g. A seat's
 // CmdDamage is indexed by the match-wide dense commander index, every
 // seat's Commanders in seat order: the slot is mapped to its owner's seat.
@@ -584,13 +602,10 @@ func projectCommander(g *state.Game, p *Projection) {
 			n += c
 		}
 		*p.seat(s).casts = uint8(min(max(n, 0), 255))
-		if s >= 2 {
-			continue // CmdDamage is the two-seat game's
-		}
 		for k, d := range pl.CmdDamage {
-			if k < len(owner) && owner[k] < 2 {
-				q := owner[k]
-				p.CmdDamage[s][q] = uint8(min(max(int32(p.CmdDamage[s][q])+d, 0), 255))
+			if k < len(owner) && owner[k] < MaxSeats {
+				c := p.cmdDamage(s, owner[k])
+				*c = uint8(min(max(int32(*c)+d, 0), 255))
 			}
 		}
 	}

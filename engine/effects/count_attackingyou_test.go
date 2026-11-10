@@ -122,3 +122,30 @@ func TestCountValidAttackingYouCountsAttackersAtTheCountingPlayer(t *testing.T) 
 		t.Fatalf("Count$Valid Creature.attackingYou/Times.3 = (%d, %v), want (6, true)", got, ok)
 	}
 }
+
+// TestCountValidAttackingYouReadsYouNotTheSourceController: "you" is the
+// evaluating player (the caster, for a spell's own cost static cast from
+// another player's zone: Red Alert!, CR 601.2a, 601.2f), not the controller of
+// the source object. The source is seat 1's; the evaluating player is seat 0.
+func TestCountValidAttackingYouReadsYouNotTheSourceController(t *testing.T) {
+	g, _, src1, atYou1, atYou2, atOther, _ := attackingYouBoard(t)
+	if s := g.Obj(src1); s == nil || s.Controller != 1 {
+		t.Fatalf("precondition: src1 %+v is not controlled by seat 1", s)
+	}
+	atSeat := func(want state.PlayerID) (n int) {
+		for _, id := range []state.ObjID{atYou1, atYou2, atOther} {
+			if o := g.Obj(id); o.IsAttacking && o.Attacking == want {
+				n++
+			}
+		}
+		return n
+	}
+	if atSeat(0) != 2 || atSeat(1) != 1 {
+		t.Fatalf("precondition: attackers at seat 0 = %d, at seat 1 = %d, want 2 and 1", atSeat(0), atSeat(1))
+	}
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0, Source: src1}
+	if got, ok := EvalCountOK(h, c, "Count$Valid Creature.attackingYou"); !ok || got != 2 {
+		t.Fatalf("attackingYou for you = seat 0, source of seat 1 = (%d, %v), want (2, true)", got, ok)
+	}
+}

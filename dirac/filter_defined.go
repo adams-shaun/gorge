@@ -205,27 +205,18 @@ func (s *State) creaturesCtrl(k *prep, p uint8) int {
 	return n
 }
 
-// playerSet filters an each-player op's (first, second) candidates by its
-// predicate, both read before either acts; 255 = none.
+// playerSet filters an each-player op's candidates q by its predicate, every
+// one read before any acts, keeping q's order.
 //
 //go:noinline
-func (s *State) playerSet(k *prep, in *kop.Instr, first, second uint8) (uint8, uint8) {
-	var ok1, ok2 bool
-	if first != 255 {
-		ok1 = s.playerPred(k, in, first)
+func (s *State) playerSet(k *prep, in *kop.Instr, q seatSeq) seatSeq {
+	var o seatSeq
+	for i := uint8(0); i < q.n; i++ {
+		if s.playerPred(k, in, q.s[i]) {
+			o.add(q.s[i])
+		}
 	}
-	if second != 255 {
-		ok2 = s.playerPred(k, in, second)
-	}
-	switch {
-	case ok1 && ok2:
-		return first, second
-	case ok1:
-		return first, 255
-	case ok2:
-		return second, 255
-	}
-	return 255, 255
+	return o
 }
 
 // playerSetMask is playerSet for the each-player damage sequence: bit 0 the

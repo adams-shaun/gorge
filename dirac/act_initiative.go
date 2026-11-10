@@ -74,7 +74,7 @@ func (s *State) Initiative() int8 { return int8(s.g.initH) - 1 }
 
 // DungeonRoom is player p's venture marker: 0 no dungeon, else the room
 // index + 1 in the dungeon's printed order (oracle).
-func (s *State) DungeonRoom(p uint8) uint8 { return s.g.room[p&1] }
+func (s *State) DungeonRoom(p uint8) uint8 { return s.g.room[SeatIx(p)] }
 
 // takeInitiative is OpTakeInitiative; false: the venture asks.
 func (s *State) takeInitiative(k *prep, in *kop.Instr) bool {
@@ -167,9 +167,18 @@ func (s *State) initUpkeep(k *prep) {
 //
 //go:noinline
 func (s *State) initCombat(k *prep, r *dmgRec) {
-	def := 1 - s.active
-	if s.g.initH != def+1 || DebugNoInitSteal {
-		return
+	var def uint8
+	if MaxSeats == 2 {
+		def = 1 - s.active
+		if s.g.initH != def+1 || DebugNoInitSteal {
+			return
+		}
+	} else {
+		// the initiative's holder, when an opponent holds it
+		def = s.g.initH - 1
+		if s.g.initH == 0 || def == s.active || DebugNoInitSteal {
+			return
+		}
 	}
 	for i := 0; i < r.nev; i++ {
 		ev := &r.ev[i]

@@ -2185,6 +2185,11 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	return []lStatic{st}, nil
 }
 
+// hexproofOwnColorsKW is the granted keyword lowered to its own static kind
+// (kop.StatHexproofOwnColors): the kernel has no free keyword bit, and the
+// quality is the recipient's own current colours, not the source's.
+const hexproofOwnColorsKW = "Hexproof:CardColors"
+
 // continuous lowers a Mode$ Continuous static.
 func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 	aff := sp.str("Affected")
@@ -2196,6 +2201,24 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			return nil, refuse("Continuous without Affected")
 		}
 		aff = "Card.Self"
+	}
+	if kw := sp.str("AddKeyword"); kw == hexproofOwnColorsKW {
+		// Tam, Mindful First-Year's "each other creature you control has
+		// hexproof from each of its colors": the exact Affected$ shape only,
+		// and nothing beside it (a condition or any unread key refuses).
+		if aff != "Creature.Other+YouCtrl" {
+			return nil, refuse("Hexproof:CardColors Affected %q", aff)
+		}
+		if st.Cond.Kind != cNone {
+			return nil, refuse("Hexproof:CardColors static with a condition")
+		}
+		f, err := lc.filter(aff)
+		if err != nil {
+			return nil, err
+		}
+		st.F = f
+		st.Kind = "HexproofOwnColors"
+		return nil, nil
 	}
 	// the view-only top-of-library look. gorge reads
 	// MayLookAt$ You/True/Player into a look-only continuous effect
@@ -2244,6 +2267,8 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			// The default.
 		} else if az == "Stack" && !sp.is("MayPlay", "True") {
 			return nil, lc.stackKwGrant(sp, st, aff) // lower_stackkw.go
+		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Flashback") {
+			return nil, lc.graveFbGrant(sp, st, aff) // lower_fbgrant.go
 		} else if !sp.is("MayPlay", "True") {
 			return nil, refuse("AffectedZone %q without MayPlay", az)
 		}

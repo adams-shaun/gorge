@@ -616,3 +616,27 @@ func TestMatchManaTapExtraColourless(t *testing.T) {
 		t.Fatal("CC matched an any-colour ability")
 	}
 }
+
+func TestMatchManaSkipsGrantedAbility(t *testing.T) {
+	u := decision.PaymentActivation{Source: 5, Produces: decision.ManaAmount{0, 1, 0, 0, 0, 0}}
+	wheel := func(granted bool) *decision.Decision {
+		return &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Options: []decision.Option{
+			{Index: 0, Kind: "mana", Obj: 5, Label: "Add any color"},
+			{Index: 1, Kind: "mana", Obj: 5, Label: "Add U", Granted: granted},
+		}}
+	}
+	if c, ok := matchMana(wheel(true), u); !ok || c[0] != 0 {
+		t.Fatalf("granted U taken over the printed any-colour option: %v %v", c, ok)
+	}
+	// The pin: with the grant unmarked the exact-production class still wins.
+	if c, ok := matchMana(wheel(false), u); !ok || c[0] != 1 {
+		t.Fatalf("unmarked U: %v %v", c, ok)
+	}
+	only := &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Options: []decision.Option{
+		{Index: 0, Kind: "mana", Obj: 5, Label: "Add C"},
+		{Index: 1, Kind: "mana", Obj: 5, Label: "Add U", Granted: true},
+	}}
+	if c, ok := matchMana(only, u); !ok || c[0] != 1 {
+		t.Fatalf("granted-only fallback: %v %v", c, ok)
+	}
+}

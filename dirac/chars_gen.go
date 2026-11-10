@@ -31,18 +31,20 @@ type statSrc struct {
 }
 
 // eachStatic calls f for every static ability in force (battlefield
-// permanents that haven't lost their abilities, then emblems); f returns
+// permanents that haven't lost their abilities -- a lost one keeps only a
+// static its own live override grant switches on -- then emblems); f returns
 // false to stop.
 func (s *State) eachStatic(k *prep, f func(st statSrc) bool) {
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()
-		if s.genLost(k, sl) {
-			continue
-		}
+		lost := s.genLost(k, sl)
 		p := &s.perms[sl]
 		cd := &k.t.Cards[s.cardAt(sl)]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
+			if lost && !s.ovGateKeptOnLoss(k, sl, a) {
+				continue // only a static its own live, not-older grant switches on outlives the loss
+			}
 			if a.Kind == kop.AbStatic || a.Kind == kop.AbReplacement {
 				if !f(statSrc{a: a, sl: sl, ctrl: p.ctrl, obj: p.obj}) {
 					return

@@ -41,8 +41,7 @@ func (s *State) scriptGapAvail(k *prep, p uint8, sl Slot, a *avail) {
 		}
 	}
 	if s.scriptTapsDefer(k, p).has(sl) {
-		pc := s.manaPCGen(k, sl)
-		a.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))
+		s.addTapsDeferUnits(k, sl, a)
 	}
 	if k.ctrMana && s.scriptCtr(k, p).has(sl) {
 		addCtrUnits(a, k.ctrAbOf(c))
@@ -160,16 +159,8 @@ func (s *State) costPartDisjointD(k *prep, p uint8, sl Slot, c *kop.Cost, mana *
 		if r.affords(mana, pm, 0) {
 			return true
 		}
-		i := need - 1
-		for i >= 0 && int(idx[i]) == nc-need+i {
-			i--
-		}
-		if i < 0 {
+		if !nextCombination(&idx, need, nc) {
 			return false
-		}
-		idx[i]++
-		for j := i + 1; j < need; j++ {
-			idx[j] = idx[j-1] + 1
 		}
 	}
 	return false

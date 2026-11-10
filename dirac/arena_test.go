@@ -221,3 +221,29 @@ func TestArenaSlotReuseClears(t *testing.T) {
 		t.Fatal("a new permanent in a reused slot inherits kicked or exileEx")
 	}
 }
+
+// TestArenaSlotReuseEndsExileRecords: the exile-instead record a dead creature
+// left on its slot ends when a new permanent takes the slot (CR 400.7), so the
+// new permanent's own mark is the only one its death competes with.
+func TestArenaSlotReuseEndsExileRecords(t *testing.T) {
+	sc, id := newObjScen(t, []cardset.Entry{{Name: "Gnarlid Colony", Count: 1}, {Name: "Fiery Annihilation", Count: 1}, {Name: "Forest", Count: 8}})
+	k := sc.k
+	for i := 0; i < 5; i++ {
+		sc.perm(id["Forest"], 0)
+	}
+	old := sc.perm(id["Forest"], 0)
+	sl := sc.slot(old)
+	sc.s.markExileEx(k, sl)
+	if sc.s.exMarkCount(sl) != 1 {
+		t.Fatalf("precondition: %d records on the slot, want 1", sc.s.exMarkCount(sl))
+	}
+	sc.s.removePerm(k, sl, kop.ZoneExile, false)
+	sw := sc.perm(id["Forest"], 0)
+	if sc.slot(sw) != sl {
+		t.Fatalf("the new permanent took slot %d, want the vacated %d", sc.slot(sw), sl)
+	}
+	sc.s.markExileEx(k, sl)
+	if n := sc.s.exMarkCount(sl); n != 1 {
+		t.Fatalf("%d exile-instead records on the reused slot, want only the new one", n)
+	}
+}

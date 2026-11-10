@@ -170,12 +170,16 @@ func (s *State) beginStep(k *prep) {
 		}
 		s.openPriority()
 	case kop.StepDraw:
-		if s.turn == 1 {
+		if s.turn == 1 && s.nSeats() == 2 {
+			// CR 103.8a skips the starting player's first draw step in a
+			// two-player game only; CR 103.8c: no one skips it at more
 			s.step = kop.StepMain1
 			return
 		}
-		s.g.drawFirst = true // repl_draw.go: the first card drawn in this draw step
-		s.draw(s.active)
+		s.g.drawFirst = true  // repl_draw.go: the first card drawn in this draw step
+		if !s.out(s.active) { // a departed active player draws nothing (gorge turn.go)
+			s.draw(s.active)
+		}
 		s.g.drawFirst = false
 		if s.over {
 			return
@@ -209,7 +213,9 @@ func (s *State) beginStep(k *prep) {
 	case kop.StepBlockers:
 		s.lastPick = NoSlot
 		s.blockSeq = 0
-		if s.anyBlock(k) {
+		if MaxSeats > 2 {
+			s.blockRound(k, s.active)
+		} else if s.anyBlock(k) {
 			s.ctl = ctlBlockers
 		} else {
 			s.finishBlocks(k)
@@ -263,6 +269,7 @@ func (s *State) endStep(next kop.Step) {
 	s.pl[1].pool = [kop.NumManaKinds]uint8{}
 	s.rbClear(uint8(1))
 	s.g.poolArt = [MaxSeats]uint8{}
+	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
 	s.step = next
 	s.ctl = ctlStepBegin
 }
@@ -298,7 +305,7 @@ func (s *State) advance(k *prep) {
 // pass is the priority holder passing.
 func (s *State) pass(k *prep) {
 	s.passes++
-	if s.passes >= 2 {
+	if s.passes >= s.aliveCount() {
 		if s.sp == 0 {
 			s.advance(k)
 			return
@@ -310,7 +317,7 @@ func (s *State) pass(k *prep) {
 		s.resolveTop(k)
 		return
 	}
-	s.prio = 1 - s.prio
+	s.prio = s.nextAlive(s.prio)
 }
 
 // afterResolve: priority returns to the active player (gorge legal_priority.go:73).
@@ -392,6 +399,7 @@ func (s *State) finishCleanup(k *prep) {
 		s.rbClear(uint8(1))
 		s.fbR = [MaxSeats]uint8{} // already 0 (end of combat dropped it); explicit
 		s.g.poolArt = [MaxSeats]uint8{}
+		s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
 	}
 	// CR 514.3a: the state-based check follows the 514.1/514.2 actions; when
 	// one is performed the active player gets priority even with an empty
@@ -405,7 +413,7 @@ func (s *State) finishCleanup(k *prep) {
 		s.openPriority()
 		return
 	}
-	next := 1 - s.active
+	next := s.nextAlive(s.active)
 	if s.pl[s.active].extraTurns > 0 {
 		s.pl[s.active].extraTurns--
 		next = s.active
@@ -478,7 +486,7 @@ func (s *State) sba(k *prep) bool {
 			// returns at its first order ask and its answer re-enters it
 			s.lingerDrain(k)
 		}
-		for p := uint8(0); p < 2; p++ {
+		for p := uint8(0); p < s.nSeats(); p++ {
 			if s.pl[p].life <= 0 && !s.pl[p].lost && !s.cantLoseLife(k, p) {
 				s.pl[p].lost = true
 			}
@@ -498,6 +506,9 @@ func (s *State) sba(k *prep) bool {
 				s.ceaseTokensGen()
 			}
 			return true
+		}
+		if MaxSeats > 2 && s.sweepDeparted(k) {
+			continue // CR 800.4a: the departed seats' objects left (zone_leavegame.go)
 		}
 		if (s.nAttackers > 0 || s.declared) && (k.gen == nil || k.gen.tyCombat) {
 			s.removeNoncreatureCombatants(k) // CR 506.4 (cold)
@@ -677,12 +688,12 @@ func (s *State) sba(k *prep) bool {
 		}
 		// gorge's order (rules/sba.go): the creature casualties (lethal
 		// damage, zero toughness), then planeswalkers with no loyalty, then
-		// defeated battles (to exile), then unattached Auras; within each, player 0's battlefield list then
-		// player 1's. The graveyard and the pending triggers follow it.
+		// defeated battles (to exile), then unattached Auras; within each, each seat's battlefield
+		// list in seat order. The graveyard and the pending triggers follow it.
 		var order [MaxPerm]Slot
 		n := 0
 		for _, gm := range [4]slotMask{die, pwz.andNot(die), bat.andNot(die.or(pwz)), aur.andNot(die.or(pwz).or(bat))} {
-			for p := uint8(0); p < 2; p++ {
+			for p := uint8(0); p < MaxSeats; p++ {
 				n = s.battlefieldOrder(p, gm.and(s.ctrlM[p]), order[:], n)
 			}
 		}
@@ -766,7 +777,7 @@ func (s *State) enchantLegal(k *prep, sl Slot) bool {
 func (s *State) leaveAll(k *prep, mask slotMask, z kop.Zone) {
 	var order [MaxPerm]Slot
 	n := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < MaxSeats; p++ {
 		n = s.battlefieldOrder(p, mask.and(s.ctrlM[p]), order[:], n)
 	}
 	if len(s.cold.parked) != 0 && z == kop.ZoneGraveyard && s.res.active {
@@ -1111,7 +1122,7 @@ func (s *State) applyLegend(k *prep, a Action) {
 	var zs [MaxPerm]kop.Zone
 	var order [MaxPerm]Slot
 	n := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < MaxSeats; p++ {
 		n = s.battlefieldOrder(p, die.and(s.ctrlM[p]), order[:], n)
 	}
 	// the non-kept legends in battlefield (entry) order, as gorge walks g.ids
@@ -1134,7 +1145,7 @@ func (s *State) applyLegend(k *prep, a Action) {
 	sag := s.legSaga.and(s.occ).andNot(die).andNot(out)
 	s.legSaga = slotMask{}
 	nl := n
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < MaxSeats; p++ {
 		n = s.battlefieldOrder(p, sag.and(s.ctrlM[p]), order[:], n)
 	}
 	for i := nl; i < n; i++ {

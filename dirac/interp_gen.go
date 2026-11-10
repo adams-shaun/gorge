@@ -226,24 +226,24 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		s.res.ask, s.res.askP = raGenBranch, p
 		return false, true
 	case kop.OpRepeatEachPlayer:
-		first, second := s.eachPlayers(k, in.Obj)
+		q := s.eachPlayers(k, in.Obj)
 		if in.C&1 == 0 && in.Obj == kop.RefEachPlayer {
 			// the C=0 form keeps APNAP, also when the controller is the
 			// active player (C&1: gorge RepeatEach's AliveFrom)
-			first, second = s.active, 1-s.active
+			q = s.aliveFrom(s.active)
 		}
 		if in.C&kop.RepeatEachSeatOrder != 0 {
-			first, second = 0, 1
+			q = s.aliveFrom(0)
 		}
-		if in.B.N != 0 { // Player.<q> set (B): the predicate, read before either player acts
-			first, second = s.playerSet(k, in, first, second)
+		if in.B.N != 0 { // Player.<q> set (B): the predicate, read before any player acts
+			q = s.playerSet(k, in, q)
 		}
-		if first == 255 {
+		if q.n == 0 {
 			s.res.pc += uint8(in.A.N)
 			break
 		}
-		s.g.eachPl = first
-		s.g.repNext = second
+		s.g.eachPl = q.s[0]
+		s.repRest(q, 1)
 		s.g.repPC = s.res.pc + 1
 		s.g.repEnd = s.res.pc + 1 + uint8(in.A.N)
 	case kop.OpUnlessPaid, kop.OpIfPaid, kop.OpUnlessSwitched:
@@ -362,9 +362,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpSacrifice:
 		if in.C&kop.OptAsk != 0 { // Optional$ (act_optionalask.go)
 			if in.Obj == kop.RefEachPlayer || in.Obj == kop.RefEachOpponent {
-				first, second := s.eachPlayers(k, in.Obj)
-				s.g.repNext = second
-				return s.startOptSac(k, in, first), true
+				q := s.eachPlayers(k, in.Obj)
+				s.repRest(q, 1)
+				return s.startOptSac(k, in, q.at(0)), true
 			}
 			p := s.playerRef(k, in.Obj)
 			if p == 255 {
@@ -373,9 +373,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			return s.optSac(k, in, p, s.value(k, in.A)), true
 		}
 		if in.Obj == kop.RefEachPlayer || in.Obj == kop.RefEachOpponent {
-			first, second := s.eachPlayers(k, in.Obj)
-			s.g.repNext = second
-			return s.startSac(k, in, first), true
+			q := s.eachPlayers(k, in.Obj)
+			s.repRest(q, 1)
+			return s.startSac(k, in, q.at(0)), true
 		}
 		return true, false
 	case kop.OpExile, kop.OpExileEx:
@@ -492,9 +492,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			if in.Obj == kop.RefEachPlayer {
 				// Defined$ Player: every player reveals, the resolving
 				// controller first, as gorge's definedPlayers walks AliveFrom.
-				first, second := s.eachPlayers(k, in.Obj)
-				s.peekPublic(k, in, first)
-				s.peekPublic(k, in, second)
+				q := s.eachPlayers(k, in.Obj)
+				for i := uint8(0); i < q.n; i++ {
+					s.peekPublic(k, in, q.s[i])
+				}
 				break
 			}
 			s.peekPublic(k, in, p)
@@ -1079,40 +1080,33 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 // program before the first answer. done=false leaves an object-target slot
 // on the execEachTarget path.
 func (s *State) eachPlayersSac(k *prep, in *kop.Instr, slot uint8) (ok, done bool) {
-	var ps [2]uint8
-	np, over := s.slotPlayers(k, slot, &ps)
+	ps, over := s.slotPlayers(k, slot)
 	if over {
 		s.capFull(StallSac) // more seats than this state models
 		return true, true
 	}
-	if np == 0 {
+	if ps.n == 0 {
 		return false, false
 	}
-	s.g.repNext = 255
-	if np == 2 {
-		s.g.repNext = ps[1]
-	}
-	return s.startSac(k, in, ps[0]), true
+	s.repRest(ps, 1)
+	return s.startSac(k, in, ps.s[0]), true
 }
 
 // eachPlayersDiscard is eachPlayersSac's discard: the first targeted player
 // answers, and the next is asked with those picks still in hand.
 func (s *State) eachPlayersDiscard(k *prep, in *kop.Instr, slot uint8) (ok, done bool) {
-	var ps [2]uint8
-	np, over := s.slotPlayers(k, slot, &ps)
-	if np == 0 || over {
+	ps, over := s.slotPlayers(k, slot)
+	if ps.n == 0 || over || ps.n > 2 {
+		// a third targeted player has no room in the held discard
+		// (act_eachdiscard.go): left to the two-seat path
 		return false, false
 	}
-	next := uint8(255)
-	if np == 2 {
-		next = ps[1]
-	}
-	return s.discardChain(k, in, ps[0], next), true
+	return s.discardChain(k, in, ps.s[0], ps.at(1)), true
 }
 
 // slotPlayers lists the seats target slot holds as player targets, in pick order;
 // the same seat twice is one. over: more seats than ps holds.
-func (s *State) slotPlayers(k *prep, slot uint8, ps *[2]uint8) (np int, over bool) {
+func (s *State) slotPlayers(k *prep, slot uint8) (ps seatSeq, over bool) {
 	var codes [maxXTgt + 1]uint8
 	m := s.divTargets(k, &s.res.e, slot, &codes)
 	for i := 0; i < m; i++ {
@@ -1120,69 +1114,81 @@ func (s *State) slotPlayers(k *prep, slot uint8, ps *[2]uint8) (np int, over boo
 		if !isPlayerTarget(c) {
 			continue
 		}
-		p := c - PlayerTarget0
+		p := CodeSeat(c)
 		dup := false
-		for j := 0; j < np; j++ {
-			if ps[j] == p {
+		for j := uint8(0); j < ps.n; j++ {
+			if ps.s[j] == p {
 				dup = true
 			}
 		}
 		if dup {
 			continue
 		}
-		if np == len(ps) {
-			return np, true
+		if ps.n == MaxSeats {
+			return ps, true
 		}
-		ps[np] = p
-		np++
+		ps.add(p)
 	}
-	return np, false
+	return ps, false
 }
 
 // eachPlayers expands an each-player ref into APNAP order (255 = none).
-func (s *State) eachPlayers(k *prep, r kop.Ref) (uint8, uint8) {
+func (s *State) eachPlayers(k *prep, r kop.Ref) seatSeq {
 	switch r {
 	case kop.RefEachPlayer:
 		// gorge's Defined$ Player / "each player" set is AliveFrom(controller):
-		// the resolving controller first, then the other seat. (RefEachOpponent
-		// is the controller's opponent; DamageAll's "each player" order is
-		// irrelevant to its simultaneous damage.)
-		return s.res.e.ctrl, 1 - s.res.e.ctrl
+		// the resolving controller first, then the other seats in turn order.
+		// (DamageAll's "each player" order is irrelevant to its simultaneous
+		// damage.)
+		return s.aliveFrom(s.res.e.ctrl)
 	case kop.RefEachOpponent:
-		return 1 - s.res.e.ctrl, 255
+		// gorge Defined$ Opponent: AliveFrom(controller) without the controller
+		return s.oppsFrom(s.res.e.ctrl)
 	case kop.RefOppNonRemCtrl:
-		return s.oppNonRemCtrl(), 255 // filter_defined.go
+		return seatOne(s.oppNonRemCtrl()) // filter_defined.go
 	case kop.RefSrcOwner:
-		return s.srcOwner(), 255
+		return seatOne(s.srcOwner())
 	}
 	if sl, ok := tgtSlot(r); ok {
 		// the slot's player targets (gorge repeatPlayers' Targeted arm:
 		// the resolution's targets' players, read in AliveFrom(controller)
 		// order, a player who has left dropped). Pick order, the controller
 		// moved first among them. over cannot fire: the slot's player
-		// targets are distinct seats and the kernel models two. A slot
-		// whose target is an object finds no player target here and falls
-		// through to playerRef.
-		var ps [2]uint8
-		np, _ := s.slotPlayers(k, uint8(sl), &ps)
-		if np == 2 {
-			if ps[0] != s.res.e.ctrl && ps[1] == s.res.e.ctrl {
-				ps[0], ps[1] = ps[1], ps[0]
-			}
-			return ps[0], ps[1]
-		}
-		if np == 1 {
-			return ps[0], 255
+		// targets are distinct seats, at most MaxSeats. A slot whose target
+		// is an object finds no player target here and falls through to
+		// playerRef.
+		ps, _ := s.slotPlayers(k, uint8(sl))
+		if ps.n > 0 {
+			return s.inAliveOrder(ps)
 		}
 	}
-	return s.playerRef(k, r), 255
+	return seatOne(s.playerRef(k, r))
+}
+
+// inAliveOrder reorders seats q as AliveFrom(controller) visits them.
+func (s *State) inAliveOrder(q seatSeq) seatSeq {
+	if MaxSeats == 2 {
+		if q.n == 2 && q.s[0] != s.res.e.ctrl && q.s[1] == s.res.e.ctrl {
+			q.s[0], q.s[1] = q.s[1], q.s[0]
+		}
+		return q
+	}
+	var o seatSeq
+	a := s.aliveFrom(s.res.e.ctrl)
+	for i := uint8(0); i < a.n; i++ {
+		for j := uint8(0); j < q.n; j++ {
+			if q.s[j] == a.s[i] {
+				o.add(a.s[i])
+			}
+		}
+	}
+	return o
 }
 
 // loopBackGen jumps back to an OpRepeatEachPlayer body for its next player.
 func (s *State) loopBackGen() {
-	if s.g.repNext != 255 && s.res.pc == s.g.repEnd && s.g.repEnd != 0 {
-		s.g.eachPl = s.g.repNext
-		s.g.repNext = 255
+	if s.repPending() && s.res.pc == s.g.repEnd && s.g.repEnd != 0 {
+		s.g.eachPl = s.repPop()
 		s.res.pc = s.g.repPC
 	}
 }
@@ -1815,9 +1821,10 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 // cards are still in the library, each ask answered in turn, and the rest move after
 // the last answer (gorge effDigUntil's emit order, Forge DigUntilEffect).
 func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
-	first, second := s.eachPlayers(k, in.Obj)
-	for _, p := range [2]uint8{first, second} {
-		if p == 255 || resume && p != s.g.pickP {
+	q := s.eachPlayers(k, in.Obj)
+	for i := uint8(0); i < q.n; i++ {
+		p := q.s[i]
+		if resume && p != s.g.pickP {
 			continue
 		}
 		resumed := resume
@@ -1879,7 +1886,7 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 		}
 		if !resumed {
 			if fl&kop.DuRememberFound != 0 {
-				s.digUntilRemember(p == first, fnd[:nf])
+				s.digUntilRemember(i == 0, fnd[:nf])
 			}
 			if fl&kop.DuDugMark != 0 {
 				s.g.digLo = pl.exileN // the dug cards start here (act_discoverbottom.go)

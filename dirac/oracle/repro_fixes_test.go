@@ -201,6 +201,12 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"x_cast_rider_keeping_plan_lowered", false, false},             // CR 609.4b, 601.2b: the same cast played: its payment taps the rider's keeping plan, not the smaller-X witness
 		{"copy_keyword_exception_returns_when_loss_ends", false, false}, // CR 707.9b, 613.1f: Mockingbird copying Shoreline Looter, made to lose all abilities until its controller's next turn, has its copy exception's flying again when the loss ends
 		{"any_one_colour_restricted_x_colour_choice", false, false},     // CR 106.6, 601.2b: Helga's two restricted mana count in the {X} ceiling of Mockingbird's cast, so its witness taps every source for X = 4
+		// CR 106.6, 601.2g-h: Helga's own restricted any colour is tried before Clement's creature-only {G}, which reaches the same floated pool and tapped set, so gorge's search drops the state unpriced and offers no offspring cast of Bushy Bodyguard
+		{"seen_state_drops_granted_colour_after_printed_any", true, false},
+		// CR 106.6, 601.2g-h: gorge's search answers Helga's "choose a mana ability" ask with the colour the cost names first, so Clement's {G}{U} and Burrowguard Mentor's {G} find their prefix, while Thistledown Players' {W} leaves her own any colour first and the granted {G} is a seen state: no prefix
+		{"needed_granted_colour_answered_before_printed_any", false, false},
+		// CR 106.6, 302.6, 601.2g-h: Rockface Village's {R},{T} pump is paid by Helga's two restricted {R}, Clement's {G}, a Forest's {G} for Three Tree Mascot's summoning-sick Changeling filter, whose {1} needs no tap
+		{"sick_changeling_filter_pays_prefix_activation", true, false},
 		// CR 614.12, 707.2: the cards one return instruction returns each make
 		// their as-enters choice before any of them is on the battlefield, so
 		// Mockingbird's copy election is asked with the other targets still in
@@ -212,6 +218,9 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"granted_mana_ask_tries_needed_colour_first", false, false},
 		{"clone_template_entry_condition_mockingbird_cutthroat", false, false},
 		{"clone_template_entry_condition_mockingbird_sparkshooter", false, false},
+		// CR 603.3b: Season of Loss makes each player sacrifice a creature, so Scavenger's Talent's die trigger and its per-sacrifice triggers are all queued: gorge walks each departure's triggers in line order (the die trigger first)
+		{"sacrifice_triggers_walk_order_batch_sacrifice_283", true, false},
+		{"sacrifice_triggers_walk_order_batch_sacrifice_1088", false, false},
 	})
 }
 
@@ -349,6 +358,7 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"mmmenon_hand_barred_blue_not_spent_on_hand_cast", true, false},       // CR 106.6, 602.2b: Mm'menon's hand-barred granted blue is no relaxed unit for Atomic Microsizer's Equip {2} nor Sinister Cryologist's hand warp, and the tap-another search alone (Gene Pollinator tapping Nanoform Sentinel) may not keep the play gorge's one prefix search gave up on
 		{"mmmenon_hand_barred_blue_not_spent_on_hand_cast_full", false, false}, // ... and Biosynthic Burst from the hand, on the full surface
 		{"mmmenon_library_top_cast_binned_by_prefix_draw", true, false},        // CR 400.7: Mechan Navigator's tap draws the library-top Cryogen Relic and discards it, so the cast the granted blue would pay no longer exists
+		{"plan_tap_skips_granted_mana_ability", true, false},                   // CR 106.6, 702.185a: the plan's All-Fates Scroll tap is its printed any-colour ability, not Mm'menon's granted hand-barred {U} the wheel also lists, so the Starwinder warp cast from hand is paid and made
 	})
 }
 
@@ -370,6 +380,13 @@ func TestStdHobReprosLockstep(t *testing.T) {
 		// the opponent's last life, so the spell stays in hand and the game
 		// ends there rather than at a hybrid pip ask.
 		{"lowered_hybrid_cast_lethal_sacrifice_trigger", false, false},
+		// CR 106.4, 601.2h: Smaug, Wicked Worm's "mana from a Treasure was
+		// spent" reads the mana the cast spent, not the Treasures tapped
+		// before it: three Treasures sacrificed at priority leave their {G}
+		// floating beside the Swamps' {B}, and Inside Information's {X}{B}{B}
+		// is paid from the plain {B} (a plain unit goes before a Treasure's).
+		{"floating_treasure_mana_unspent_by_cast", false, false},
+		{"floating_treasure_mana_unspent_by_cast_two", false, false}, // ... and An Unexpected Party's
 	})
 }
 
@@ -386,6 +403,9 @@ func TestStdBigReprosLockstep(t *testing.T) {
 		{"granted_sac_only_mana_prefix", true, false},                       // CR 602.2b, 704.5n: Lotus Ring's granted "Sacrifice this creature: Add three mana of any one color" is the prefix paying an activation, the equipped Hostile Investigator sacrificed and the Ring unattached
 		{"granted_sac_only_mana_window", true, false},                       // CR 602.2b, 605.3a: Esoteric Duplicator's resolution-time {2} is paid in the manual mana window by sacrificing the Lost Jitte token Lotus Ring equips, a tapped creature whose granted ability has no {T}
 		{"granted_sac_dies_token_copy_is_equip_target", true, false},        // CR 603.10a, 400.7: the prefix sacrifices the Lotus Ring-equipped Vaultborn Tyrant and its dies trigger's token copy, a new object, is the other Ring's Equip target; the search keys a payer state on its battlefield objects as gorge's scriptStateKey does
+		{"granted_sac_mana_two_replacements", false, false},                 // CR 616.1, 602.2b: Lotus Ring's granted sacrifice mana, activated as the prefix with two Rest in Peace out, is asked which replacement applies and the script answers the first, so Oltec Matterweaver is exiled
+		{"granted_sac_mana_sba_ask_after", false, false},                    // CR 704.3, 616.1: the sacrificed Construct token's death leaves its sibling too small, and the check's own replacement ask is answered first by the script, so both tokens are exiled and cease
+		{"granted_sac_mana_offer_beside_trigger", false, false},             // CR 602.2b, 605.3a: with a trigger on the stack, the offer search of Esoteric Duplicator's {2} through Lotus Ring's granted sacrifice runs the sacrifice's replacement-order ask on its trial game, and the two sides agree on whether the activation is offered
 	})
 }
 
@@ -410,6 +430,10 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// the offer is present from exile with an empty pool and six
 		// graveyard cards (the hand walk already priced this).
 		{"mayplay_twobrid_delve_offer", true, false},
+		// CR 601.2g, 605.3a: Mardu Devotee's {1} mana ability's own fee is
+		// paid from a Plains, so its {B} funds Caustic Exhale's {1} arm and
+		// the cast is offered with nothing floated (std-tdm pair 419).
+		{"fee_filter_source_funds_cast_offer", false, false},
 		// CR 601.2g with CR 107.4e: the reversed twobrid cast's window taps
 		// Opulent Palace's "Combo B G U" while both G and U are owed; gorge's
 		// ask lists the Combo's printed order, so its answer is G, and the
@@ -498,6 +522,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"token_earthbend_return_queues_on_death", false, false},           // CR 603.7: a copy-token Forest earthbent by Earthbending Lesson and killed by Jet's damage still queues the return trigger (it does nothing: the token has ceased, CR 111.8), as gorge's id-keyed registration does
 		{"replplus_commuting_order", true, false},                          // CR 616.1: two plus-N replacements are a sum no order changes
 		{"waterbend_census_granted_source_tap_extra", false, false},        // CR 605.1b, 701.67a: Honest Work's Humble Merchant grant survives its lose-all abilities, so Badgermole Cub's tap extra makes the waterbend census incomplete and Foggy Swamp Vinebender's announcement offers Done
+		{"waterbend_x_picked_source_not_mana", false, false},               // CR 701.67a, 601.2g-h: Katara's Waterbend<X> pick Plains (a 3/3 creature land) is tapped for the waterbend, so it is no mana source of the X announcement, which stops at 4 + 5 untapped lands
 		{"waterbend_census_granted_tap_extra_capacity", false, false},      // CR 605.1b: the same merchant tapped later in the game floats its {G} tap extra, so the payment no longer stalls
 		{"restricted_any_colour_mana_ability_sorts_first", true, false},    // CR 601.2g: White Lotus Hideout's Lesson-restricted any-colour mana sorts ahead of its {C} ability, so an announced {U} hybrid face is paid instead of stranding the cast
 		{"restricted_any_colour_owed_tap", false, false},                   // CR 601.2g, 106.6: Jasmine Dragon Tea Shop has no unrestricted any-colour sibling, so the window must tap its restricted any-colour ability for the owed pip, not its useless {C} one, or the lowered hybrid cast strands
@@ -672,7 +697,14 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"behold_or_mana_mana_part_taps_planner_order", true, false},             // CR 601.2b, 601.2g-h: Mudbutton Cursetosser's chosen {2} part is paid by the payment plan's ObjID-ordered sources, not the manual window's battlefield order
 		{"behold_or_mana_generic_taps_planner_order", true, false},               // CR 601.2b, 601.2g-h: Kinsbaile Aspirant's {2} part taps the plan's sources, not the window's battlefield order
 		{"behold_or_mana_full_surface_offer", false, false},                      // CR 601.2b/h: Silvergill Mentor's behold part is payable while its {2} part is not, so the free part's plan must not wait on the offer walk (which can only price the mana part); gorge now lists the cast on the full surface too
+		{"behold_or_mana_relaxed_proof_tap_another_source", false, false},        // CR 601.2b, 601.2g: Mudbutton Cursetosser's {2} part, payable only through Springleaf Drum tapping a creature, is not proved unpayable by the relaxed census, so gorge searches the prefix and offers the cast after an aborted one
+		{"behold_or_mana_unpayable_behold_chosen_window_colour", false, false},   // CR 601.2g, 733.1: Silvergill Mentor's unpayable behold chosen beside a plan armed for the {2} part falls back to a window with no ManaPayment, so Eclipsed Realms answers its lowest colour, not the owed pip, and the seat taps the Island that pays the pip, not the first Mountain
+		{"behold_or_mana_chosen_mana_part_window_colour", false, false},          // CR 601.2g: Silvergill Mentor's {2} chosen beside a payable behold falls back to a window with no ManaPayment, so Springleaf Drum answers its lowest colour, not the owed pip, and the last pip is paid by the Island, not the first Plains
 		{"behold_or_mana_abort_window_tap_another_pick", true, false},            // CR 601.2g, 733.1: Mudbutton Cursetosser's chosen {2} part falls back to the manual window, which poses Springleaf Drum's tap-another pick before it reverses the unpayable cast
+		{"delayed_dies_trigger_last_known_power_m1m1", false, false},             // CR 608.2h: End-Blaze Epiphany's delayed dies trigger exiles the graveyard-bound creature's last-known 2 power (a -1/-1 counter), not its printed 3
+		{"delayed_dies_trigger_last_known_power_aura", false, false},             // CR 608.2h: ... and its last-known 3 power with a +1/+0 Aura attached, not the printed 2
+		{"tapx_pick_strands_mana_aborts_activation", false, false},               // CR 601.2h, 602.2b, 733.1: Wanderbrine Trapper's tap-another pick takes Great Forest Druid, the only mana source, so its {1} cannot be paid and the activation is reversed at the target ask
+		{"tapx_pick_strands_mana_aborts_activation_second", false, false},        // ... and the same reversal in a second game (pair 372)
 	})
 }
 
@@ -680,10 +712,13 @@ func TestStdEclReprosLockstep(t *testing.T) {
 func TestStdFraReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-fra", []stdRepro{
-		{"sweep_returns_aura_after_earlier_entrants", true, false},    // CR 303.4f: Return to the Light Realms asks for Infinite Coursework's host with the cards before it entered and the ones after still in the graveyard
-		{"sacrificed_mana_source_moves_its_aura", false, false},       // CR 704.3, 704.5m: the check after a mana source's sacrifice while paying a cast takes its Aura before the cast's next choice
-		{"flashback_dynamic_source_graveyard_amount", true, false},    // CR 117.1d, 605.3a: Bestial Incursion's flashback is paid by Loot, the Nexus tapped at its graveyard-time amount (Tarmogoyf one point larger), a lowered potential play and not a planned cast
-		{"entry_counters_skip_entrants_own_replacement", true, false}, // CR 614.12: Generous Revival returns Yoshimaru, Beloved Companion with a +1/+1 counter; its own "that many plus one" does not apply, since the replacement affects a general subset, not only itself
+		{"sweep_returns_aura_after_earlier_entrants", true, false},     // CR 303.4f: Return to the Light Realms asks for Infinite Coursework's host with the cards before it entered and the ones after still in the graveyard
+		{"sacrificed_mana_source_moves_its_aura", false, false},        // CR 704.3, 704.5m: the check after a mana source's sacrifice while paying a cast takes its Aura before the cast's next choice
+		{"flashback_dynamic_source_graveyard_amount", true, false},     // CR 117.1d, 605.3a: Bestial Incursion's flashback is paid by Loot, the Nexus tapped at its graveyard-time amount (Tarmogoyf one point larger), a lowered potential play and not a planned cast
+		{"entry_counters_skip_entrants_own_replacement", true, false},  // CR 614.12: Generous Revival returns Yoshimaru, Beloved Companion with a +1/+1 counter; its own "that many plus one" does not apply, since the replacement affects a general subset, not only itself
+		{"search_enters_together_canopy_two_forests", true, false},     // CR 603.2, 603.4: Hexhaven Invigorator's search puts two Forests onto the battlefield together, making six, so each sees five others and Roiling Canopy triggers twice
+		{"search_enters_together_canopy_order_ask", true, false},       // CR 603.2, 603.4: the same search puts Forests #8 and #9 on beside three other lands, and both Canopy triggers are ordered
+		{"behold_or_mana_restricted_mana_shortens_plan", false, false}, // CR 106.6, 601.2b, 601.2g: Countersculpt's chosen {1} part is planned from the pool first, Chandra's floating noncreature-only {U} paying a pip, so the plan taps for the two sources it has left
 	})
 }
 
@@ -703,6 +738,7 @@ func TestStdLciReprosLockstep(t *testing.T) {
 		{"aura_type_add_filter_drops_after_transform", true, false},   // CR 613.1d, 704.5m: Zoetic Glyph's "enchanted artifact is a 5/4 Golem creature" stops applying when Matzalantli transforms into a land, so the land stays and only the Glyph falls off
 		{"aura_type_add_drops_after_device_transform", true, false},   // CR 613.1d, 704.5m: Zoetic Glyph's "enchanted artifact" override stops applying when Dowsing Device transforms into Geode Grotto, so the land stays on the battlefield
 		{"granted_tap_pay_life_mana_prefix", true, false},             // CR 119.4, 605.1a: Cavernous Maw's "{T}, Pay 1 life: Add one mana of any color" granted by Forgotten Monument is the prefix paying Restless Vents' {B}, and its life is paid
+		{"granted_prefix_one_part_additional_cost", false, false},     // CR 601.2g-h, 605.1a: Dusk Rose Reliquary's {W} beside Hidden Necropolis (printed {B} only) and Forgotten Monument's granted any-colour Cave ability: the one-part additional-cost shape is lowered, so the grant search prices its printed {W} and floats the granted mana as the prefix, where the witness found no plan and panicked
 	})
 }
 
@@ -789,6 +825,12 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"tapxtype_cost_reserves_tap_candidates", false, false},         // CR 601.2g-h: Fear of Exposure's tap-two is priced from its composed cost, so the granted-mana prefix taps Enduring Vitality's creatures in battlefield order and leaves the rest for the pick
 		{"tapxtype_restricted_source_not_free", false, false},           // CR 601.2g-h: Creeping Peeper's enchantment-only {U} paying Fear of Exposure is not also one of the two permanents it taps, so three mana sources and Patchwork Beastie do not cast it
 		{"grant_prefix_paid_life_trigger", false, false},                // CR 119.4, 603.3, 307.1: Haunted Screen's 1 life in Overlord of the Hauntwoods' granted-mana prefix stacks Marina Vendrell's Grimoire's trigger, so the prefix taps on and passes for it to resolve before the cast
+		{"tapxtype_lands_need_green_pip", false, false},                 // CR 601.2g-h: Fear of Exposure's {G} has no source among p1's untapped permanents, so tapping two of them for the cost does not make it castable
+		{"tapxtype_floating_mana_beside_tapped_lands", false, false},    // CR 601.2g-h: floating U, B and G pay Fear of Exposure's mana cost, so two untapped lands remain to tap for its additional cost
+		{"rider_mana_extends_x_announcement", false, false},             // CR 601.2b, 601.2g: Twitching Doll's counter-rider mana is a source the window taps, so Valgavoth's Onslaught's {X}{X} is offered for 2 beside four floating mana (mana_rider.go)
+		{"rider_mana_extends_x_announcement_second", false, false},      // CR 601.2b, 601.2g: the same counter-rider unit makes X = 1 payable from the floating {G}, the Doll and Abandoned Campground (mana_rider.go)
+		{"rider_mana_pays_x_announcement", false, false},                // CR 601.2g: the same game answering X = 2: the window, with no auto-fill plan for {4}{G}, taps Strangled Cemetery then the Doll (its nest counter) and the spell stays on the stack
+		{"rider_mana_pays_x_announcement_second", false, false},         // CR 601.2g: the second game answering X = 1: the Doll, first in battlefield order once the planner census falls short, then Abandoned Campground pay it
 	})
 }
 
@@ -927,13 +969,14 @@ func TestStdWoeReprosLockstep(t *testing.T) {
 		{"toadstool_ward_s170", true, false},
 		{"sleep_cursed_ward_s180", true, false},
 		{"toadstool_ward_s223", true, false},
-		{"role_sba_leaves_with_same_pass_death", true, false},           // CR 704.3, 603.10a: Cut In's new Role sends the old Wicked Role away in the pass Wicked Visitor dies, so Visitor sees the Role leave
-		{"filter_fed_by_granted_mana", false, false},                    // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
-		{"role_token_counts_as_attached_aura_cost", false, false},       // CR 601.2g, 602.2b: Faunsbane Troll's "Sacrifice an Aura attached to it" sees the Role token and the printed plan keeps it, so the granted Food mana funds the {1}
-		{"act_paid_filter_second_colour", true, false},                  // CR 601.2g, 602.2b: Restless Fortress's {1}{W}{B} animation is offered when a free filter (Crystal Grotto) makes one pip and Rootrider Faun's paid filter the other
-		{"woe_activation_sac_exile_return_asks_in_exile", false, false}, // CR 614.12, 610.3: Werefox Bodyguard sacrificed for its own activation returns Talion, the Kindly Lord, whose number is asked in exile before it enters
-		{"legend_rule_and_saga_sacrifice_one_batch", true, false},       // CR 704.3, 603.10a: the Neva the legend rule removes still sees The Princess Takes Flight sacrificed in the same state-based check
-		{"fell_horseman_returned_card_not_bottomed", false, false},      // CR 400.7: Edgewall Inn returns Fell Horseman to hand before its dies trigger resolves, so the trigger cannot put the new object on the bottom of the library
-		{"hidden_pick_aura_entry_attach_choice", false, false},          // CR 303.4f/g: Fetch Quest's hidden pick takes Bestial Bloodline, which waits in the graveyard for its enchant choice while the spell is still on the stack
+		{"role_sba_leaves_with_same_pass_death", true, false},                 // CR 704.3, 603.10a: Cut In's new Role sends the old Wicked Role away in the pass Wicked Visitor dies, so Visitor sees the Role leave
+		{"filter_fed_by_granted_mana", false, false},                          // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
+		{"role_token_counts_as_attached_aura_cost", false, false},             // CR 601.2g, 602.2b: Faunsbane Troll's "Sacrifice an Aura attached to it" sees the Role token and the printed plan keeps it, so the granted Food mana funds the {1}
+		{"act_paid_filter_second_colour", true, false},                        // CR 601.2g, 602.2b: Restless Fortress's {1}{W}{B} animation is offered when a free filter (Crystal Grotto) makes one pip and Rootrider Faun's paid filter the other
+		{"woe_activation_sac_exile_return_asks_in_exile", false, false},       // CR 614.12, 610.3: Werefox Bodyguard sacrificed for its own activation returns Talion, the Kindly Lord, whose number is asked in exile before it enters
+		{"legend_rule_and_saga_sacrifice_one_batch", true, false},             // CR 704.3, 603.10a: the Neva the legend rule removes still sees The Princess Takes Flight sacrificed in the same state-based check
+		{"fell_horseman_returned_card_not_bottomed", false, false},            // CR 400.7: Edgewall Inn returns Fell Horseman to hand before its dies trigger resolves, so the trigger cannot put the new object on the bottom of the library
+		{"hidden_pick_aura_entry_attach_choice", false, false},                // CR 303.4f/g: Fetch Quest's hidden pick takes Bestial Bloodline, which waits in the graveyard for its enchant choice while the spell is still on the stack
+		{"restricted_each_leftover_not_for_adventure_creature", false, false}, // CR 106.6, 715.4: Troyan's {U} left over from Grove's Bounty floats restricted, so Elusive Otter ({U}, no {X}) is not cast from adventure exile with it
 	})
 }

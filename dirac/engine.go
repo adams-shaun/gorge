@@ -302,6 +302,9 @@ func (s *State) stepRaw(d *Decision) {
 				s.ctl = ctlPlaceTriggers
 				continue
 			}
+			if s.out(s.prio) {
+				s.prio = s.nextAlive(s.prio) // gorge grantPriority: a departed holder's turn passes on
+			}
 			d.Kind, d.Player = DkPriority, s.prio
 			s.priorityOptions(k, d)
 			return
@@ -443,14 +446,14 @@ func (s *State) applyMulligan(a Action) {
 func (s *State) nextMullDeclarer() {
 	for {
 		s.mullCur++
-		if s.mullCur >= 2 {
+		if s.mullCur >= s.nSeats() {
 			break
 		}
 		if !s.mullKept[s.mullOrder[s.mullCur]] {
 			return
 		}
 	}
-	for i := 0; i < 2; i++ {
+	for i := 0; i < int(s.nSeats()); i++ {
 		p := s.mullOrder[i]
 		if !s.mullMull[p] {
 			continue
@@ -473,7 +476,7 @@ func (s *State) nextMullDeclarer() {
 			return
 		}
 	}
-	for i := 0; i < 2; i++ {
+	for i := 0; i < int(s.nSeats()); i++ {
 		if !s.mullKept[s.mullOrder[i]] {
 			s.mullCur = uint8(i)
 			s.ctl = ctlMullDeclare
@@ -488,12 +491,15 @@ func (s *State) nextMullDeclarer() {
 func (s *State) nextBottom() {
 	for {
 		s.mullCur++
-		if s.mullCur >= 2 {
+		if s.mullCur >= s.nSeats() {
 			s.beginTurn(s.startPl)
 			return
 		}
 		p := s.mullOrder[s.mullCur]
 		n := s.pl[p].mulls
+		if MaxSeats > 2 && s.nSeats() > 2 && n > 0 {
+			n-- // CR 103.5c: a multiplayer game's first mulligan is free (gorge freeMulligans)
+		}
 		if n > s.pl[p].handN {
 			n = s.pl[p].handN
 		}

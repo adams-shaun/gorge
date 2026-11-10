@@ -1666,6 +1666,20 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "BeamGrant":
 		st.Kind = kop.StatBeamGrant
+	case "FbGrant":
+		st.Kind = kop.StatFbGrant // kw_fbgrant.go
+		if st.Filter, err = filter(s.F, kop.ZoneGraveyard); err != nil {
+			return ka, nil, err
+		}
+		for _, fl := range s.Flags {
+			if fl != "OwnCost" {
+				return ka, nil, fmt.Errorf("FbGrant flag %q", fl)
+			}
+			st.StFlags |= kop.StFbOwnCost
+			if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
+				return ka, nil, err
+			}
+		}
 	case "TapExtra":
 		st.Kind = kop.StatTapExtra
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -1829,6 +1843,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "DisableTriggers":
 		st.Kind = kop.StatDisableETB
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+	case "HexproofOwnColors":
+		st.Kind = kop.StatHexproofOwnColors
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}

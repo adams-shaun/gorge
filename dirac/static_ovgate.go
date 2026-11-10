@@ -1,5 +1,7 @@
 package dirac
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // DebugNogNoGrant withholds every override-granted card static (the Nog,
 // Ambitious Cadet mutation test): the graveyard land permission and the
 // extra land play an Animate staticAbilities$ grant switches on.
@@ -23,4 +25,18 @@ func (s *State) ovGranted(k *prep, sl Slot, g uint8) bool {
 		}
 	})
 	return hit
+}
+
+// ovGateKeptOnLoss: a's effect outlives its source's loss of all abilities
+// because the override record granting it is live and not older than the
+// loss (CR 613.1f, 613.7: The Irencrag's "Equipped creature gets +3/+3"
+// comes from the same Animate that makes it lose all other abilities).
+func (s *State) ovGateKeptOnLoss(k *prep, sl Slot, a *kop.Ability) bool {
+	return a.Kind == kop.AbStatic && a.Static.OvGate != 0 && s.ovGranted(k, sl, a.Static.OvGate)
+}
+
+// keptOnLossAt is keptOnLoss for permanent sl's ability a, with the
+// override-granted exception (ovGateKeptOnLoss).
+func (s *State) keptOnLossAt(k *prep, sl Slot, a *kop.Ability) bool {
+	return keptOnLoss(k.t, a) || s.ovGateKeptOnLoss(k, sl, a)
 }
