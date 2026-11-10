@@ -121,16 +121,17 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (lt-low-tappower-station: Tapestry Warden, Sulu, Heroic Helmsman and Stoic Star-Captain lower their TapPowerValue lines to StatTapPower statics; ALL 22092 -> 22095).
 	// +3 (the merge with land: this branch's three TapPowerValue statics beside land's 22114; merged ALL 22114 -> 22117).
 	// +3 (an Effect's trigger bound to a remembered set: The Eagles Are Coming!, Mysterio, Master of Illusion, T'Pring, Never Parted; ALL 22145 -> 22148, HOB 158 -> 159, SPM 168 -> 169, TRC 297 -> 298).
+	// +2 (the optional copy-instead CreateToken replacement of an Equipment or Aura gated on no token of yours having entered this turn, kop.ReplCopyFirstToken: Mirrormind Crown, Moonlit Meditation; ECL 242 -> 243, EOE 248 -> 249, ALL 22149 -> 22151).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22149, 34442},
+	"ALL": {22151, 34442},
 	"BIG": {26, 30},
 	"BLB": {261, 278},
 	"BRO": {214, 280},
 	"DFT": {252, 276},
 	"DMU": {194, 270},
 	"DSK": {249, 276},
-	"ECL": {242, 273},
-	"EOE": {248, 266},
+	"ECL": {243, 273},
+	"EOE": {249, 266},
 	"FDN": {517, 517},
 	"FIN": {275, 312},
 	"FRA": {255, 269},

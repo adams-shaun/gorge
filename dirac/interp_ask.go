@@ -543,6 +543,8 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		s.entryOrderOptions(k, d)
 	case raGenReplOrder, raGenCtrOrder:
 		s.replOrderOptions(d)
+	case raGenTokCopy:
+		s.tokCopyOptions(d) // repl_tokcopy.go
 	case raGenCopyTarget, raGenCopyTargets:
 		s.copyTargetOptions(k, d, int(r.left))
 	case raGenEnchant:
@@ -1064,6 +1066,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.applyEntryResolve(k, a) // repl_entryorder.go
 	case raGenCtrOrder:
 		s.applyCtrOrder(k, a) // repl_ctrorder.go
+	case raGenTokCopy:
+		s.tokCopyAnswer(k, a) // repl_tokcopy.go
 	case raGenReplOrder:
 		if s.g.tok.on {
 			s.tokAnswer(k, a) // a contested token creation (repl_tokorder.go)

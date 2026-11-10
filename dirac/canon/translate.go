@@ -739,6 +739,13 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 	case dirac.ChGenCopyPick:
 		// gorge's CopyPermanent Choices$ pick: its options are "permanent"
 		return Pack(kind("permanent"), src, RefNone, 0), true
+	case dirac.ChGenTokCopy:
+		// gorge's chosen-copy token replacement election: "decline" first, then
+		// the creature to copy (poseChosenTokenReplacement)
+		if mode == 1 {
+			return Pack(kind("creature"), src, RefNone, 0), true
+		}
+		return Pack(kind("decline"), RefNone, RefNone, 0), true
 	case dirac.ChGenFaceDownPick:
 		// gorge's face_down_choice pick: the hand card to put onto the
 		// battlefield face down (CR 701.58a)

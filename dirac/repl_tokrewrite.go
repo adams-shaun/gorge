@@ -88,6 +88,12 @@ func (s *State) replTokensRewApplied(k *prep, p uint8, tok CardID, n int, addsOK
 				cands++
 				rew++
 				card = CardID(a.Repl.C)
+			case kop.ReplCopyFirstToken:
+				// the election is asked by a CreateToken op only (repl_tokcopy.go)
+				if _, ok := s.tokCopyApplies(k, b, a, p); ok {
+					s.capFull(StallTokRewrite)
+					return tok, 0, false, false
+				}
 			case kop.ReplAddToken:
 				// the extra token is minted by a CreateToken op and the
 				// single copy site (mintTokAdds); any other mint site stalls

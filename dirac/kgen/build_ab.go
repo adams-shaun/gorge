@@ -2322,6 +2322,8 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 				return ka, err
 			}
 		}
+	case "CopyFirstToken":
+		rp.Kind = kop.ReplCopyFirstToken
 	case "DoubleCounters":
 		rp.Kind = kop.ReplDoubleCounters
 	case "GraveToLibrary":

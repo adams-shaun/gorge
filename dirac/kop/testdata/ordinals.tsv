@@ -986,7 +986,8 @@ ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	38
+ReplCopyFirstToken	ReplKind	38
+ReplCount	ReplKind	39
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamageHealFirst	ReplKind	37

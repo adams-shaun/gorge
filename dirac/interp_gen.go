@@ -116,6 +116,7 @@ const (
 	ChGenFaceDownPick                         // source = the hand card picked to enter face down (gorge effCloak's "face_down_choice" pick, CR 701.58a; face_manifest.go)
 	ChGenDistPick                             // source = a creature picked to share a divided counter total, Done after the first (gorge putCounterPickDistribute's "counter_dist" KChoose, Min 1; ctr_distpick.go)
 	ChGenCopyPick                             // source = the permanent a CopyPermanent Choices$ copies (gorge's "copypermanent_choice" KChoose, whose options are "permanent"; copy_picked.go)
+	ChGenTokCopy                              // mode 0 = decline; mode 1, source = the permanent the token is instead a copy of (gorge's chosen-copy token replacement election, options "decline" then "creature"; repl_tokcopy.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
