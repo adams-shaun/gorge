@@ -503,13 +503,18 @@ func (e *Engine) paymentPlanRelaxProof(c paymentPlanCensus, verdict func() Payme
 // as manaToPay does. An {X} spell's witness pays the LARGEST X its sources
 // can fund (the X announcement then offers every value up to it, so no X is
 // lost); an X the sources cannot pay even at its minimum is insufficient.
-// Convoke, improvise and delve credits are not modelled ("unsupported").
+// Convoke, improvise and delve are OPTIONAL credits (CR 702.51a, 702.66a)
+// announced after the mode's cost is chosen, so a mode cast is planned at
+// its raw cost WITHOUT the credit: a cast that lands payable that way is
+// offered, and the commitment stays with convokeAsk. When even the no-credit
+// payment is insufficient the old non-proof verdict ("unsupported",
+// "cost:credit") stands: the credit may still pay it.
 //
 // Every witness is then checked against the offer gate itself: the play
 // must be offered by the potential walk priced with exactly the floating
 // pool plus the witness's production. A composition that disagreed with the
 // engine's gate is therefore "unsupported", never a wrong witness.
-func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) PaymentPlanOutcome {
+func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out PaymentPlanOutcome) {
 	xCap, xCapOn := e.planXCap, e.planXCapOn
 	e.planXCapOn = false
 	e.planLastX = 0
@@ -519,8 +524,23 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 		return PaymentPlanOutcome{Reason: "unsupported"}
 	}
 	f := obj.Face()
-	if !e.planIgnoreCredit && (e.hasCastConvoke(id) || e.hasCastImprovise(id) || e.hasCastDelve(id, false)) {
-		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:credit"}
+	// A plain cast keeps the cast planner's own answer: its offer base
+	// commits the convoke/improvise credit (castOfferBase) and that planner
+	// declines the credit-bearing shape (shape:contribution), so the mode
+	// witness must not second-guess it. A mode cast charges the raw
+	// alternative cost the credit is optional on, so plan its no-credit
+	// payment and keep the old unknown verdict -- never a proof -- when that
+	// payment fails.
+	credit := !e.planIgnoreCredit && (e.hasCastConvoke(id) || e.hasCastImprovise(id) || e.hasCastDelve(id, false))
+	if credit {
+		if o.Mode == "" && o.AltCostIndex == 0 {
+			return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:credit"}
+		}
+		defer func() {
+			if out.Plan == nil && out.Reason == "insufficient" {
+				out = PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:credit"}
+			}
+		}()
 	}
 	base, ok := e.potentialModeBaseCost(p, id, f, o)
 	if !ok {

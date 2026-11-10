@@ -835,6 +835,9 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"rider_mana_pays_x_announcement", false, false},                // CR 601.2g: the same game answering X = 2: the window, with no auto-fill plan for {4}{G}, taps Strangled Cemetery then the Doll (its nest counter) and the spell stays on the stack
 		{"rider_mana_pays_x_announcement_second", false, false},         // CR 601.2g: the second game answering X = 1: the Doll, first in battlefield order once the planner census falls short, then Abandoned Campground pay it
 		{"x_witness_skips_deferred_rider_source", false, false},         // CR 601.2b, 605.3b: the {X} cast witness prices the planner's census, which never lists Twitching Doll's counter-rider mana, so The Rollercrusher Ride's lowered cast taps three lands for X = 0 and leaves the Doll untapped
+		{"convoke_granted_impending_cast_plan_full_m1", false, false},   // CR 702.176a, 702.51a: Dazzling Theater grants Overlord of the Mistmoors convoke, but its {2}{W}{W} impending cost is payable without the optional credit, so the mode cast keeps its no-credit witness and is offered
+		{"convoke_granted_impending_cast_plan_autopay_m0", true, false}, // the same at the other seat: two Overlords' impended casts priced without the granted convoke
+		{"convoke_granted_impending_cast_plan_autopay_m1", true, false}, // and the post-attack window with the Overlord already on the battlefield: the hand's impending cast is offered beside the empty pool
 	})
 }
 
