@@ -345,8 +345,6 @@ type genPrep struct {
 	altFree      []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
 	// anyDeferred: some card has a deferred mana source (gfDeferred; mana_deferred.go)
 	anyDeferred bool
-	// anyManaNone: some card has a plain {T} mana ability of no colour (gfManaNone; mana_grantnone.go)
-	anyManaNone bool
 	// anyTapsDefer / anyTapsPain: some card has a lowered Taps watcher of
 	// class kop.TapPlanDefer / TapPlanPain (gfTapsDefer / gfTapsPain; mana_tapsdefer.go)
 	anyTapsDefer, anyTapsPain bool
@@ -1136,10 +1134,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.smallFor(CardID(i)).gapOther = int8(j)
 					g.setFlag(CardID(i), gfDeferred|gfGapOther)
 					g.anyDeferred, g.anyRestrScript, g.anyWindowGap = true, true, true
-				}
-				if manaNoneAb(a) {
-					g.setFlag(CardID(i), gfManaNone)
-					g.anyManaNone = true
 				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).eachCol = int8(j)
