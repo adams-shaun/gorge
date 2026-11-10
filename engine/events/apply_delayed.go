@@ -122,6 +122,13 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		}
 		text = text[:i]
 	}
+	// A capture-only registration (state.DelayedTrigger.CaptureOnly) rides a
+	// bare "|CO" immediately before |RN=, so it strips right after it. A
+	// registration logged before this slot existed decodes as before.
+	captureOnly := strings.HasSuffix(text, "|CO")
+	if captureOnly {
+		text = strings.TrimSuffix(text, "|CO")
+	}
 	effectRepeat := strings.HasSuffix(text, "|EF")
 	if effectRepeat {
 		text = strings.TrimSuffix(text, "|EF")
@@ -308,6 +315,7 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		ImprintOnHost:       imprint,
 		SourceBattlefield:   sourceBattlefield,
 		RememberedAmount:    rememberedAmount,
+		CaptureOnly:         captureOnly,
 		RememberedManaSpent: manaSpent,
 		DefinedPlayer:       definedPlayer,
 		ThisTurnDefined:     thisTurnDefined,

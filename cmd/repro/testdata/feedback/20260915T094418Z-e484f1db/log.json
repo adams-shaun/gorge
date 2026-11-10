@@ -19777,30 +19777,6 @@
       "kind": 20,
       "player": 1,
       "text": "commander_zone"
-    },
-    {
-      "seq": 3650,
-      "kind": 2,
-      "obj": 224,
-      "from": 3,
-      "to": 7,
-      "text": "ceased to exist"
-    },
-    {
-      "seq": 3651,
-      "kind": 2,
-      "obj": 225,
-      "from": 3,
-      "to": 7,
-      "text": "ceased to exist"
-    },
-    {
-      "seq": 3652,
-      "kind": 2,
-      "obj": 228,
-      "from": 3,
-      "to": 7,
-      "text": "ceased to exist"
     }
   ],
   "intents": [
@@ -24431,7 +24407,7 @@
       ]
     }
   ],
-  "head": "8f92486feb45ce6b",
+  "head": "4e49b15e79cad14d",
   "intent_count": 664,
   "turn": 22,
   "step": "main1",

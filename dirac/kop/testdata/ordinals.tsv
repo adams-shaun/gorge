@@ -68,6 +68,7 @@ CfCloakRemembered	untyped int	32
 CfRemember	untyped int	4
 CfShuffle	untyped int	2
 CfTapped	untyped int	1
+CharmRepeat	untyped int	256
 ChooseOpp	untyped int	2
 ChooseRandom	untyped int	1
 ChooseSelf	untyped int	0
@@ -216,6 +217,7 @@ CtrRev	CounterKind	49
 CtrRevival	CounterKind	11
 CtrShadow	CounterKind	32
 CtrShield	CounterKind	4
+CtrSkewer	CounterKind	65
 CtrSoul	CounterKind	9
 CtrSpore	CounterKind	17
 CtrStash	CounterKind	12
@@ -267,11 +269,13 @@ DmgLE	DmgCmp	2
 DmgLT	DmgCmp	6
 DmgMapped	untyped int	4
 DmgNE	DmgCmp	4
+DmgNoRegen	untyped int	32
 DmgRemember	untyped int	8
 DmgTrackExcess	untyped int	1
 DpGroup	untyped int	1
 DpMany	untyped int	3
 DpTrack	untyped int	2
+DrawRememberAll	untyped int	2
 DuDugMark	untyped int	256
 DuFoundAttacking	untyped int	512
 DuFoundTapped	untyped int	64
@@ -403,6 +407,7 @@ ExtChangeTargets	ExtOp	225
 ExtChooseColorRes	ExtOp	5
 ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230
+ExtClearImprinted	ExtOp	257
 ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
 ExtCopyAbility	ExtOp	191
@@ -411,6 +416,8 @@ ExtCopyTokenCtr	ExtOp	172
 ExtCounterAll	ExtOp	226
 ExtCounterLose	ExtOp	41
 ExtCounterPlusEOT	ExtOp	247
+ExtDigImprint	ExtOp	282
+ExtDistCounters	ExtOp	310
 ExtDividedCounters	ExtOp	30
 ExtEachDamage	ExtOp	2
 ExtEffEtbCtr	ExtOp	197
@@ -438,16 +445,19 @@ ExtPreventColor	ExtOp	1
 ExtPreventDamageScope	ExtOp	246
 ExtPutCounterExisting	ExtOp	253
 ExtRecruit	ExtOp	94
+ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
 ExtSearchCounters	ExtOp	252
 ExtSuspect	ExtOp	190
 ExtSweepFrom	ExtOp	97
 ExtToGraveyard	ExtOp	192
+ExtSpellToLib	ExtOp	308
 ExtTokenPT	ExtOp	170
 ExtTurnFaceUp	ExtOp	254
 ExtTwoPilesSac	ExtOp	4
 ExtUnlockDoor	ExtOp	227
+ExtVote	ExtOp	311
 F2AttachedToT0	FilterFlags2	512
 F2BasePermanent	FilterFlags2	8388608
 F2Basic	FilterFlags2	131072
@@ -577,6 +587,7 @@ MayPlayLimitShift	untyped int	5
 MayPlayNonLand	untyped int	2
 MayPlayOpponent	untyped int	16384
 MayPlayOwner	untyped int	512
+MayPlayPayLife	untyped int	-32768
 MayPlayRaiseShift	untyped int	10
 MorphDisguise	uint8	3
 MorphMegamorph	uint8	2
@@ -590,6 +601,7 @@ MvForgetOther	untyped int	64
 MvFromBattlefield	untyped int	32
 MvFromGraveyard	untyped int	8192
 MvGraveExile	untyped int	8
+MvImprint	untyped int	16384
 MvLKI	untyped int	128
 MvMayMill	untyped int	256
 MvPermOrSpell	untyped int	32
@@ -600,8 +612,8 @@ MvUnderYourControl	untyped int	4
 NoCard	CardID	65535
 NumCounterKinds	CounterKind	7
 NumCounterKinds2	CounterKind	13
-NumCounterKinds3	CounterKind	65
-NumCounterKindsX	int	50
+NumCounterKinds3	CounterKind	66
+NumCounterKindsX	int	51
 NumExtOps	ExtOp	320
 NumManaKinds	untyped int	6
 NumSteps	Step	13
@@ -782,10 +794,12 @@ PayBRemember	untyped int	4
 PayBReveal	untyped int	5
 PayBSubBlight	untyped int	1
 PayBSubChain	untyped int	8
+PayBSubDamage	untyped int	14
 PayBSubEvidence	untyped int	2
 PayBSubEvidenceX	untyped int	11
 PayBSubExileHand	untyped int	9
 PayBSubSacHost	untyped int	7
+PayBSubStackSelf	untyped int	13
 PayBSubTrigNew	untyped int	3
 PayBSubTrigNewEvidence	untyped int	10
 PayBSubWaterbend	untyped int	12
@@ -899,6 +913,7 @@ RefEach	Ref	16
 RefEachOpponent	Ref	8
 RefEachPlayer	Ref	7
 RefHost	Ref	23
+RefImprinted	Ref	35
 RefLastCreated	Ref	12
 RefLibTop	Ref	30
 RefNone	Ref	0
@@ -989,6 +1004,7 @@ SacSumMV	untyped int	8
 SacSumPower	untyped int	2
 SacSumToughness	untyped int	4
 SacrificedFood	untyped int	2
+SpmActivated	SpecialMask	32
 SpmCloakUp	SpecialMask	8
 SpmDisguiseUp	SpecialMask	2
 SpmManifestUp	SpecialMask	4
@@ -1029,6 +1045,7 @@ StEmbNum	StaticFlags	16384
 StFreeOnly	StaticFlags	128
 StFunctionsInExile	StaticFlags	1024
 StFunctionsInGraveyard	StaticFlags	16
+StMayPayLife	StaticFlags	8192
 StMayRaise	StaticFlags	32768
 StOncePerTurn	StaticFlags	2
 StPanhETB	StaticFlags	2048
@@ -1067,6 +1084,7 @@ StatCantBlockBy	StaticKind	4
 StatCantDraw	StaticKind	248
 StatCantGainLife	StaticKind	247
 StatCantPhaseIn	StaticKind	238
+StatCantPreventDamage	StaticKind	232
 StatCantPutCounter	StaticKind	252
 StatCantSacrifice	StaticKind	237
 StatCantTarget	StaticKind	235
@@ -1222,6 +1240,7 @@ TokAttach	untyped int	32
 TokAttackAsk	untyped int	128
 TokAttacking	untyped int	64
 TokExileAtEnd	untyped int	16
+TokImprintObj	untyped int	16384
 TokRemember	untyped int	2
 TokRememberObj	untyped int	4
 TokSacAtEnd	untyped int	8
@@ -1308,6 +1327,7 @@ W7BottomLibrary	int16	17
 W7CostBlue	int16	14
 W7CrewedBySrc	int16	13
 W7EnchantedByYours	int16	8
+W7EnteredFromBF	int16	24
 W7FaceUp	int16	5
 W7FaceUpDisguise	int16	23
 W7GreatestPower	int16	2

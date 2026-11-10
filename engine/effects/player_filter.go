@@ -305,7 +305,7 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 				// NewController$ and a trigger's Attacked$/restriction spec
 				// resolve the same seat. Unknown kinds fail closed (no seat
 				// matches) exactly like every other unlisted qualifier.
-				if playerHasMost(g, p, kind) {
+				if playerHasMost(g, p, kind, &pc) {
 					return true
 				}
 				continue
@@ -710,7 +710,7 @@ func playerControlsMatches(g *state.Game, p state.PlayerID, you state.PlayerID, 
 // like Forge's game.getPlayers(); the control-grant caller walks only the
 // living seats before consulting this, so a dead seat can win a filter match
 // but never gain control.
-func playerHasMost(g *state.Game, p state.PlayerID, kind string) bool {
+func playerHasMost(g *state.Game, p state.PlayerID, kind string, pc *PlayerSpecCtx) bool {
 	if int(p) >= len(g.Players) {
 		return false
 	}
@@ -740,6 +740,9 @@ func playerHasMost(g *state.Game, p state.PlayerID, kind string) bool {
 		}
 		return holder >= 0 && int(p) == holder
 	}
+	// A permanent's types are its characteristics after continuous effects
+	// (CR 613.1d, 205.1): a Case a static made a Creature counts as one.
+	sc := SpecContext{Layers: pc.Layers}
 	count := func(pi state.PlayerID) int {
 		n := 0
 		for _, id := range g.Zone(state.ZBattlefield, pi) {
@@ -748,7 +751,7 @@ func playerHasMost(g *state.Game, p state.PlayerID, kind string) bool {
 				continue
 			}
 			if t, is := strings.CutPrefix(kind, "Type"); is {
-				if hasType(o, t) {
+				if hasTypeCtxPtr(o, t, &sc) {
 					n++
 				}
 				continue
@@ -881,6 +884,7 @@ func matchesPlayerSpecSVars(g *state.Game, h Host, eval CountEval, c *Ctx, spec 
 			Source:     c.Source,
 			OpponentOf: c.Remembered,
 			Replaced:   c.Repl.Player,
+			Layers:     c.Layers,
 		}) {
 			return true
 		}

@@ -202,6 +202,11 @@ const (
 // into the graveyard.
 const SurveilRememberKept = 1 << 1
 
+// DrawRememberAll (OpDraw C): RememberDrawn$ AllReplaced records every card
+// the draw and its replacement body moved into the drawing player's hand,
+// not only the pre-draw top card (gorge recordDrawn; CR 121.6c, 614.1).
+const DrawRememberAll = 1 << 1
+
 // SearchFlags (OpSearchEx / OpChooseMove C>>3).
 const (
 	SrTapped           = 1 << iota // the found cards enter tapped
@@ -543,6 +548,15 @@ const (
 	// Mind-Meld: the player who exiled each card may play it). Grant-time
 	// only; the record's holder is that player.
 	MayPlayOpponent = 0x4000
+
+	// MayPlayPayLife (B bit 15, the int16 sign bit, so the constant is
+	// negative; test it as B.N&MayPlayPayLife != 0): MayPlayAltManaCost$ PayLife<ConvertedManaCost>
+	// (Inside Information): a spell cast through the permission pays life
+	// equal to its mana value instead of its mana cost (CR 118.9; the cast's
+	// other costs still apply). The record keeps it as MayPlayFree plus a
+	// mark on its until byte (dirac cast_mayplaypaylife.go); it never
+	// shares a grant with a cap.
+	MayPlayPayLife = -0x8000
 
 	// MayPlayKinds are the B flags a permission record keeps (mayPlay.kind).
 	MayPlayKinds = MayPlayFree | MayPlayAnyType | MayPlayIgnoreColor | MayPlayLimitMask

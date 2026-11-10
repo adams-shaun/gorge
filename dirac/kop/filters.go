@@ -106,12 +106,16 @@ type Filter struct {
 	Zone      Zone // ZoneNone = battlefield (or the stack for FSpell)
 
 	// Appended by dirac/kgen (table.go documents them).
-	Owner  CtrlSel      // owner relative to the source's controller
-	Sub    uint8        // must have subtype index Sub-1 (0 = no requirement)
-	NotSub uint8        // must not have subtype index NotSub-1
-	Flags2 FilterFlags2 // more boolean conditions
-	PredV  ValueRef     // the bound for the *V predicates
-	Or     FilterID     // the next alternative: the object matches if this OR Filters[Or] matches (0 = none)
+	Owner  CtrlSel // owner relative to the source's controller
+	Sub    uint8   // must have subtype index Sub-1 (0 = no requirement)
+	NotSub uint8   // must not have subtype index NotSub-1
+	// NotSubs are further subtypes the object must not have (index-1; 0 =
+	// unused), filled only beside NotSub ("non-Vampire, non-Werewolf,
+	// non-Zombie")
+	NotSubs [2]uint8
+	Flags2  FilterFlags2 // more boolean conditions
+	PredV   ValueRef     // the bound for the *V predicates
+	Or      FilterID     // the next alternative: the object matches if this OR Filters[Or] matches (0 = none)
 	// Each marks the head of an Or chain that is Forge's "EACH A & B" list
 	// (a search or hand pick of one card per listed type): a card belongs to
 	// the group of the FIRST chain element that matches it, and a pick takes
@@ -136,6 +140,10 @@ const (
 	SpmManifestUp
 	SpmCloakUp
 	SpmUnlock
+	// SpmActivated marks an undotted RestrictValid$ Activated on a resolving
+	// DB$ Mana: the clause admits every activated-ability payment and nothing
+	// else (gorge restrictValidTermMatches); never a CR 116.2 special action.
+	SpmActivated
 )
 
 // SpmTurnFaceUp is Forge's isTurnFaceUp: every turn-up procedure.
@@ -394,6 +402,13 @@ const W7WithDisguise int16 = 22
 // in one clause (a clause holds one comparison): not face down and printed
 // with Disguise, in any zone.
 const W7FaceUpDisguise int16 = 23
+
+// W7EnteredFromBF (PredWord7 sub-kind 24): the card is in a graveyard, or
+// another zone off the battlefield, because it was put there from the
+// battlefield this turn (gorge's ThisTurnEnteredFrom_Battlefield: the
+// object's latest arrival into its current zone, read off the entered
+// ledger). Read off the battlefield only: kgen refuses it on a permanent.
+const W7EnteredFromBF int16 = 24
 
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and

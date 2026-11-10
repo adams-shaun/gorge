@@ -424,7 +424,11 @@ func (r *realSide) stackModes(e *dirac.ProjStack) uint8 {
 	if int(e.Card) >= len(r.tbl.Cards) || int(e.Ability) >= len(r.tbl.Cards[e.Card].Abilities) {
 		return 0
 	}
-	return e.Mode & uint8(1<<r.tbl.Cards[e.Card].Abilities[e.Ability].NModes-1)
+	a := &r.tbl.Cards[e.Card].Abilities[e.Ability]
+	if a.Repeats() {
+		return a.ModeSet(e.Mode) // a count per mode: the modes chosen at least once
+	}
+	return e.Mode & uint8(1<<a.NModes-1)
 }
 
 // stackTargetOrder is the order e's target slots project in: gorge's, for an

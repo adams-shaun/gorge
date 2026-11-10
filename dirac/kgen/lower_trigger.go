@@ -80,7 +80,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if tr.Zone == 0 {
 			return refuse("TriggerZones %q", z)
 		}
-		if tr.Zone == zGraveyard && !graveTriggerModes[t.Mode] {
+		if tr.Zone == zGraveyard && !graveTriggerModes[t.Mode] && !graveDamageLine(t) {
 			return refuse("TriggerZones$ Graveyard over Mode$ %s: the kernel's walk for it reads no graveyard", t.Mode)
 		}
 	}
@@ -699,8 +699,16 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if tr.SrcInPlay, err = srcInPlay(tp.str("ValidSource")); err != nil {
 			return err
 		}
-		if tr.F, err = readF("ValidSource"); err != nil {
+		lc.spellBaseOK = tr.Zone == zGraveyard // lower_gravedamage.go drops the head
+		tr.F, err = readF("ValidSource")
+		lc.spellBaseOK = false
+		if err != nil {
 			return err
+		}
+		if tr.Zone == zGraveyard {
+			if err := dropSpellSourceHead(tr.F); err != nil {
+				return err
+			}
 		}
 		if tr.F2, err = readF("ValidTarget"); err != nil {
 			return err
@@ -711,6 +719,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			} else {
 				tr.Combat = -1
 			}
+		}
+		if err := lc.damageDoneSelfObjRef(tp, tr, t); err != nil {
+			return err
 		}
 	case "BecomesTarget":
 		switch {
@@ -1799,6 +1810,9 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		if err := lc.selfCondCheck(&st); err != nil {
 			return nil, err // lower_selfcondition.go
 		}
+		if err := affectedKwCheck(&st); err != nil {
+			return nil, err // lower_selfkwaffected.go
+		}
 		extra = sts
 		if goad {
 			// Goad$ True: the affected creatures are goaded while the
@@ -2061,6 +2075,8 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			return nil, refuse("%s ValidPlayer %q", s.Mode, v)
 		}
 		sp.consume("ValidPlayer", "Secondary")
+	case "CantPreventDamage": // the blanket form only: ValidSource$, IsCombat$, EffectZone$, Affected$ stay unread (gorge cantPreventDamage)
+		sp.consume("Secondary")
 	case "CantPutCounter":
 		// gorge PutCounterBlocked's object form (rules/layers_restrict.go):
 		// ValidCard$ (or ValidObject$) scopes the permanent, CounterType$

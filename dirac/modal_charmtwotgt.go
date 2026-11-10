@@ -18,6 +18,13 @@ var DebugCharmTwoTgtAllSlots bool
 // charmRootSlots is the combined ask's slots: for each chosen mode (a set bit
 // of mode) the lowest slot its TgtModes bit owns.
 func charmRootSlots(a *kop.Ability, mode uint8) (mask uint8, n int) {
+	if a.Repeats() {
+		order, n := a.AskOrder(mode)
+		for i := 0; i < n; i++ {
+			mask |= 1 << order[i]
+		}
+		return mask, n
+	}
 	if DebugCharmTwoTgtAllSlots {
 		return charmSlots(a, mode)
 	}
@@ -47,6 +54,19 @@ func charmRootSlots(a *kop.Ability, mode uint8) (mask uint8, n int) {
 func StackTargetOrder(a *kop.Ability, mode uint8) (order [kop.MaxTargets]uint8) {
 	roots, _ := charmRootSlots(a, mode)
 	n := 0
+	if a.Repeats() {
+		// the instances' groups in printed order, then the unused slots
+		o, no := a.AskOrder(mode)
+		copy(order[:], o[:no])
+		n = no
+		for j := range order {
+			if roots&(1<<j) == 0 {
+				order[n] = uint8(j)
+				n++
+			}
+		}
+		return order
+	}
 	for pass := 0; pass < 2; pass++ {
 		for j := range order {
 			if (roots&(1<<j) != 0) == (pass == 0) {

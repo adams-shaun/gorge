@@ -27,7 +27,7 @@ var DebugCharmSeqCombined bool
 // ordinary ask, gorge's len(slots) < 2) and some root slot takes more than
 // one target.
 func charmSeqSlots(a *kop.Ability, mode uint8) bool {
-	if DebugCharmSeqCombined {
+	if DebugCharmSeqCombined || a.Repeats() {
 		return false
 	}
 	mask, n := charmRootSlots(a, mode)

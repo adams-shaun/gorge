@@ -59,6 +59,7 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"copy_each_target_copies_enter_together_two", false, false}, // ... and Doppelgang's copies of several targets likewise enter in one batch
 		{"sacrifice_menu_keeps_stolen_creature", true, false},
 		{"ward_cannot_counter_uncounterable_spell", false, false}, // CR 101.2, 702.21a: Long Goodbye can't be countered, so an unpaid ward leaves it on the stack
+		{"most_creatures_counts_layer_types", false, false},       // CR 613.1d, 205.1: No Witnesses counts a solved Case (a Creature by its static) among the most creatures
 	})
 }
 

@@ -114,6 +114,7 @@ const (
 	ChGenDelve                                // source = a graveyard card exiled toward a granted-delve cast's generic cost, one pick per decision (gorge delveAsk's multi-pick KChoose; kw_delve.go)
 	ChGenDigOpt                               // mode 1 = yes / 0 = no: ChangeNum$ All beside Optional$ (gorge effDig's allOrNothing election, "yes"/"no")
 	ChGenFaceDownPick                         // source = the hand card picked to enter face down (gorge effCloak's "face_down_choice" pick, CR 701.58a; face_manifest.go)
+	ChGenDistPick                             // source = a creature picked to share a divided counter total, Done after the first (gorge putCounterPickDistribute's "counter_dist" KChoose, Min 1; ctr_distpick.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -416,6 +417,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			if in.C&kop.MvRemember != 0 {
 				s.remember(o)
 			}
+			if in.C&kop.MvImprint != 0 {
+				s.imprint(o) // zone_imprint.go
+			}
 			if in.C&kop.MvForgetChanged != 0 {
 				s.forgetChanged(o) // zone_forget.go
 			}
@@ -618,7 +622,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		s.res.ask, s.res.askP = raGenCastFree, e.ctrl
 		return false, true
 	case kop.OpMayPlay:
-		if in.Obj == kop.RefRemembered || in.Obj == kop.RefChosen {
+		if in.Obj == kop.RefRemembered || in.Obj == kop.RefChosen || in.Obj == kop.RefImprinted {
 			n0 := s.g.nmay
 			s.mayPlayRemembered(k, in, e.ctrl) // every remembered card
 			if k.gen.anyMayWhileSrc {
@@ -641,7 +645,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		headed := false
 		mk := uint8(in.B.N)&kop.MayPlayKinds | uint8(in.B.N>>8)&kop.MayPlayAdvKind
-		s.g.may[s.g.nmay] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed), kind: mk, turn: s.turn}
+		s.g.may[s.g.nmay] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: s.turn}
 		s.g.nmay++
 		if k.gen.anyMayWhileSrc {
 			s.mayWhileSrcStamp(s.g.nmay-1, e.obj) // cast_whilesource.go
@@ -651,13 +655,14 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if p == 255 {
 			p = e.ctrl
 		}
-		if k.gen.anyWhileHost && k.t.Emblems[in.C].WhileHost && s.hostEmblemDone(e, p, uint8(in.C)+1) {
+		if k.gen.anyWhileHost && k.t.Emblems[in.C].HostBound() && s.hostEmblemDone(e, p, uint8(in.C)+1) {
 			break // filter_combatwords.go
 		}
 		if k.embComb && s.idemEmblemHeld(k, p, uint8(in.C)+1) {
 			break // static_emblemcombat.go
 		}
 		if s.g.nemb[p] < maxEmb {
+			s.g.embF[p] &^= 1 << s.g.nemb[p] // a new emblem has begun no turn yet
 			s.g.emb[p][s.g.nemb[p]] = uint8(in.C) + 1
 			s.g.embC[p][s.g.nemb[p]] = e.card
 			s.g.embO[p][s.g.nemb[p]] = e.obj
@@ -2124,8 +2129,10 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 		act := kop.OpSacrifice
 		// AtEOTTrig$ Sacrifice is the token's own granted trigger: its source
 		// stays the token. Only the AtEOT$ rider is sourced on its creator
-		// (CR 603.7d-e; gorge copypermanent.go scheduleAtEOTRider).
-		creator := NoObj
+		// (CR 603.7d-e; gorge copypermanent.go scheduleAtEOTRider). The
+		// record names the token as its own creator: delayed.ownTrig marks it
+		// for the Panharmonicon echo at fire (trig_ateotecho.go).
+		creator := t
 		if fl&kop.CpExileAtEnd != 0 {
 			act = kop.OpExile // AtEOT$ Exile (gorge scheduleAtEOT, __kwWarpExile)
 			creator = e.obj
@@ -2249,7 +2256,7 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool 
 	if k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go
 	}
-	if s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() {
+	if s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() || k.gen.graveDmg {
 		agg := refLatch{agg: true} // the once-per-batch lines take the total, the rest wait for the pass below
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
 			s.fireDamageEvGen(k, sl, int16(total), toPl, false, nil, NoTarget, &agg)

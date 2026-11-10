@@ -182,7 +182,7 @@ func (s *State) copyDeclSlot(k *prep, e *stackEntry) int {
 		if t.TFlags&kop.TgfDecl == 0 {
 			continue
 		}
-		if tm := a.TgtModes[i]; tm != 0 && tm&e.mode == 0 {
+		if tm := a.TgtModes[i]; tm != 0 && tm&a.ModeSet(e.mode) == 0 {
 			continue // a mode the copied spell did not choose
 		}
 		return i

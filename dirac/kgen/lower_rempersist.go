@@ -82,6 +82,23 @@ func (lc *lowerCtx) remPersistShape() bool {
 				return false
 			}
 		}
+	case r != nil && r.API == "Token":
+		// the leave trigger's token for the exiled card's owner, sized by
+		// its mana value (Skyclave Apparition): only if the card is still
+		// exiled with the source (ConditionPresent$ Card.ExiledWithSource
+		// over the remembered card), the one script, the owner and the X/X
+		// sides and nothing else
+		if !is(r.Params, "TokenOwner", "RememberedOwner") || !is(r.Params, "ConditionDefined", "Remembered") ||
+			!is(r.Params, "ConditionPresent", "Card.ExiledWithSource") {
+			return false
+		}
+		for k := range r.Params {
+			switch k {
+			case "TokenScript", "TokenOwner", "ConditionDefined", "ConditionPresent", "TokenPower", "TokenToughness", "SubAbility":
+			default:
+				return false
+			}
+		}
 	default:
 		return false
 	}

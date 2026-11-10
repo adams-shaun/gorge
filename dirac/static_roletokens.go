@@ -61,6 +61,9 @@ func (s *State) createAttachedToken(k *prep, in *kop.Instr, p uint8, n int) (ok,
 	if in.B.N&kop.TokRememberObj != 0 {
 		s.remember(o)
 	}
+	if in.B.N&kop.TokImprintObj != 0 {
+		s.imprint(o) // zone_imprint.go
+	}
 	sl := s.enter(k, o, p, tapped, kop.ZoneLibrary)
 	if in.B.N&(kop.TokSacAtEnd|kop.TokExileAtEnd) != 0 {
 		s.tokenAtEOT(in, o)

@@ -834,8 +834,8 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 				// the ONE shared resolver rather than re-deriving the referent
 				// here: RememberedLKI is the capture-excluding LKI group (never the
 				// raw Remembered slice), TriggeredTargetLKICopy prefers the Attached
-				// bearer role, TriggeredAttackerLKICopy is the trigger's captured
-				// attacker, and DelayTriggerRemembered is the delayed
+				// bearer role, TriggeredAttacker and TriggeredAttackerLKICopy are the trigger's
+				// captured attacker (Forge resolves every Triggered* word alike), and DelayTriggerRemembered is the delayed
 				// registration's own capture. knownDefinedTargets is fail-closed: an
 				// unrecognised spelling answers ok=false and contributes nothing.
 				if ts, ok := knownDefinedTargets(h, c, part); ok {
@@ -1121,6 +1121,7 @@ var effectRememberedCodes = state.NewStrCodes(
 	state.StrEntry[effectRememberedCode]{Key: "TriggeredObjectLKICopy", Val: effectRememberedTriggeredCard},
 	state.StrEntry[effectRememberedCode]{Key: "ChosenCard", Val: effectRememberedChosenCard},
 	state.StrEntry[effectRememberedCode]{Key: "RememberedLKI", Val: effectRememberedRememberedLKI},
+	state.StrEntry[effectRememberedCode]{Key: "TriggeredAttacker", Val: effectRememberedRememberedLKI},
 	state.StrEntry[effectRememberedCode]{Key: "TriggeredAttackerLKICopy", Val: effectRememberedRememberedLKI},
 	state.StrEntry[effectRememberedCode]{Key: "TriggeredTargetLKICopy", Val: effectRememberedRememberedLKI},
 	state.StrEntry[effectRememberedCode]{Key: "DelayTriggerRemembered", Val: effectRememberedRememberedLKI},

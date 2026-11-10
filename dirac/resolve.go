@@ -49,6 +49,7 @@ func (s *State) resolveTop(k *prep) {
 	s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
 	s.res.trigGone = e.kind == seTrigger && e.li != 0 && e.trigObj != NoObj && s.objs[e.trigObj].ver > s.lk(e.li).ver+1
 	if k.gen != nil {
+		s.g.nimp = 0
 		s.g.nrem, s.g.remCnt, s.g.tli = 0, 0, 0 // a resolution remembers afresh (gorge's per-resolution Ctx)
 		s.g.stkCt = 0                           // tgt_stackability.go
 		if k.anyStateCtr && e.kind == seTrigger && e.ab < abCascade &&
@@ -320,6 +321,10 @@ func (s *State) resolveWard(k *prep) {
 	}
 	if e.trigAmt < 0 {
 		s.resolveWardLife(k)
+		return
+	}
+	if e.trigAmt&(wardMLBit|wardPoisBit) == wardPoisBit {
+		s.resolveWardPoison(k) // cost_restokens.go
 		return
 	}
 	if e.trigAmt&wardPowBit != 0 {
@@ -867,7 +872,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 	if k.gen != nil && k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go
 	}
-	if s.subs[kop.TrigDamageDone].any() || k.gen != nil && s.subs[kop.TrigDamageDealtOnce].any() {
+	if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) {
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
 			s.fireDamage(k, sl, int16(n), code >= PlayerTarget0, false, code)
 		} else if k.gen != nil && e.obj != NoObj {

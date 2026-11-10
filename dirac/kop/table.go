@@ -109,7 +109,11 @@ type CardDef struct {
 	// ward.go's ward_waterbend pick; kernel cost_unlesswaterbend.go; The Unagi
 	// of Kyoshi Island).
 	WardWaterbend uint8
-	Leyline       bool // may begin the game on the battlefield from the opening hand
+	// WardPoison: ward—AddCounterYou<N/POISON>, N here (KwWard with WardN 0;
+	// gorge ward.go's AddCounterYou arm; kernel cost_restokens.go; The Serpent
+	// Society).
+	WardPoison uint8
+	Leyline    bool // may begin the game on the battlefield from the opening hand
 	// SelfFlash: a CastWithFlash EffectZone$ All self grant ("you may cast this
 	// spell as though it had flash if ..."; Illusion Spinners). The card's own
 	// StatCastWithFlash ability grants it from hand, never from the
@@ -375,6 +379,10 @@ type CardDef struct {
 	// MorphFamily 0). MorphFamily says which (CardDef.Face*Family).
 	MorphCost   ManaCost
 	MorphFamily uint8
+	// MorphReduce (zero K = none) is the turn-up cost's printed generic
+	// reduction, evaluated for the permanent's controller and subtracted
+	// from MorphCost's generic, floored at zero (dirac/face_morphreduce.go).
+	MorphReduce ValueRef
 	// CostEmpty is an EMPTY printed mana-cost text, the one case gorge's
 	// manifestFaceUpCost rejects outright (strings.TrimSpace(f.ManaCost)=="");
 	// Cost is also the zero ManaCost for {0} and for a printed "no cost", so

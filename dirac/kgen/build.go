@@ -355,6 +355,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"PROMOTION":  kop.CtrPromotion,  // Beckett Mariner's named counter (CR 122.1)
 	"PEACE":      kop.CtrPeace,      // Peace in Our Time's named counter (CR 122.1)
 	"WISH":       kop.CtrWish,       // Wishclaw Talisman's named counter (CR 122.1)
+	"SKEWER":     kop.CtrSkewer,     // Rotisserie Elemental's named counter (CR 122.1)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -556,6 +557,9 @@ func (cb *cardBuilder) record() error {
 	if c.MorphCost != nil {
 		d.MorphFamily = c.MorphFamily
 		if d.MorphCost, err = manaCostOf(*c.MorphCost); err != nil {
+			return err
+		}
+		if d.MorphReduce, err = cb.value(c.MorphReduce); err != nil {
 			return err
 		}
 	}
@@ -930,6 +934,17 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		set(kop.CostLoyaltyX, 0)
 		out.Ctr = kop.CtrLoyalty
 	}
+	if c.SubCtrX {
+		// SubCounter<X/KIND>: the same announced-X cost flag, without the
+		// loyalty marker, announcing up to the source's counters of this kind
+		set(kop.CostLoyaltyX, 0)
+		if out.Ctr, err = counterKind(c.SubCtrXKnd); err != nil {
+			return out, err
+		}
+	}
+	if c.Exert {
+		out.Exert = true
+	}
 	if c.AddCtr > 0 {
 		if c.Loyalty != 0 || c.SubCtr != 0 {
 			return out, fmt.Errorf("counter-placing cost beside another counter part")
@@ -1237,6 +1252,16 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		}
 		kf.NotSub = uint8(i + 1)
 	}
+	for j, w := range c.MoreNotSubtype {
+		if w == "" {
+			continue
+		}
+		i, ok := cb.pt.sub(w)
+		if !ok {
+			return kf, fmt.Errorf("subtype %q", w)
+		}
+		kf.NotSubs[j] = uint8(i + 1)
+	}
 	if c.Flags&fWarped != 0 && zone != kop.ZoneBattlefield {
 		// the kernel's warp mark is the pending warp exile of a
 		// battlefield permanent (kernel warpedPerm); a spell or card read
@@ -1447,6 +1472,10 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		if c.CmpN == int(kop.W7NoAbilities) && zone == kop.ZoneBattlefield {
 			// a permanent's granted or lost abilities change the answer
 			return kf, refuse("NoAbilities on the battlefield")
+		}
+		if c.CmpN == int(kop.W7EnteredFromBF) && zone == kop.ZoneBattlefield {
+			// the word reads a card's latest arrival; a permanent has none to read
+			return kf, refuse("ThisTurnEnteredFrom_Battlefield on the battlefield")
 		}
 		kf.Pred, kf.PredN = kop.PredWord7, int16(c.CmpN) // (kernel wordPerm / wordCard)
 	case cmpNotF2:
@@ -1680,6 +1709,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefTriggerAttackers, nil
 	case rRememberedOwner:
 		return kop.RefRememberedOwner, nil
+	case rImprinted:
+		return kop.RefImprinted, nil
 	case rTargetUnion:
 		switch r.N {
 		case 3:

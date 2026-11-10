@@ -274,6 +274,8 @@ const (
 	CtrPeace
 	// CtrWish is Wishclaw Talisman's named counter (CR 122.1).
 	CtrWish
+	// CtrSkewer is Rotisserie Elemental's named counter (CR 122.1).
+	CtrSkewer
 	NumCounterKinds3
 )
 
@@ -291,7 +293,7 @@ var CtrXNames = [NumCounterKindsX]string{"CHARGE", "OIL", "SPORE", "QUEST", "VER
 	"First Strike", "Double Strike", "Deathtouch", "Haste", "Hexproof", "Indestructible", "Lifelink", "Menace",
 	"Reach", "Shadow", "Trample", "Vigilance", "SUPPLY", "LORE", "LANDMARK", "DREAD", "DEFENSE", "CHORUS", "M0M1", "FINALITY", "TIME", "VALOR", "NET", "PLAN",
 	"INVASION", "LOOT", "REV", "PAGE", "INGENUITY", "FILM", "FIRE", "HONE", "COIN",
-	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH"}
+	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH", "SKEWER"}
 
 // IsCounterKind reports whether c is a real counter kind (a featurized one
 // or an unfeaturized one; CtrLevel and the gap at NumCounterKinds2 are not).

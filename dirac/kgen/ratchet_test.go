@@ -101,36 +101,47 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (the merge with land: this branch's Origin$ Battlefield,Graveyard ChangeZoneAll sweep
 	// (Strategic Betrayal; TDM 250 -> 251) beside land's game-wide Exile->Graveyard hidden pick
 	// (Binding Negotiation; OTJ 241 -> 242); merged ALL 21707 -> 21709).
+	// +15 (the activation-cost tokens: Exert<N/NICKNAME> as an announced ability cost,
+	// SubCounter<X/KIND> announced up to the source's counters, and
+	// ExileFromStack<1/Card.Self> as an unless part: Angel of Condemnation, Auntie Blyte,
+	// Bad Influence, Basri, Tomorrow's Champion, Chamber Sentry, Cruel Sadist,
+	// Dragon's Approach, Fervent Paincaster, Geistflame Reservoir, Hope Tender,
+	// Infused Arrows, Pride Sovereign, Sphinx's Approach, Steward of Solidarity,
+	// Talon of Pain, The Astonishing Ant-Man; ALL 21709 -> 21724, DFT 248 -> 249,
+	// FRA 245 -> 246, MSH 235 -> 236).
+	// +9 (the merge with land: land's +9 beside the +15 above; merged ALL 21709 -> 21733, FRA 246 -> 247 measured).
+	// +5 (the merge with land: this branch's +5 beside land's +26, disjoint; merged ALL 21784 -> 21789 measured).
+	// +1 (Boommobile: an artifact's resolving mana restricted to activated abilities, kop.SpmActivated; the merge with land: land's 21792 + 1 = 21793, DFT 250 -> 251).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21718, 34442},
+	"ALL": {21872, 34442},
 	"BIG": {23, 30},
-	"BLB": {256, 278},
-	"BRO": {207, 280},
-	"DFT": {248, 276},
+	"BLB": {258, 278},
+	"BRO": {208, 280},
+	"DFT": {252, 276},
 	"DMU": {194, 270},
 	"DSK": {242, 276},
-	"ECL": {235, 273},
-	"EOE": {239, 266},
+	"ECL": {237, 273},
+	"EOE": {240, 266},
 	"FDN": {517, 517},
-	"FIN": {268, 312},
-	"FRA": {246, 269},
-	"HOB": {153, 172},
-	"LCI": {251, 290},
-	"MKM": {242, 279},
+	"FIN": {270, 312},
+	"FRA": {249, 269},
+	"HOB": {155, 172},
+	"LCI": {253, 290},
+	"MKM": {243, 279},
 	"MOM": {198, 296},
-	"MSH": {235, 276},
+	"MSH": {239, 276},
 	"NEO": {198, 287},
 	"ONE": {196, 271},
-	"OTJ": {242, 276},
+	"OTJ": {243, 276},
 	"SNC": {185, 266},
-	"SOS": {249, 270},
-	"SPM": {162, 192},
-	"TDM": {252, 276},
-	"TLA": {254, 285},
-	"TMT": {172, 194},
-	"TRC": {287, 337},
+	"SOS": {253, 270},
+	"SPM": {164, 192},
+	"TDM": {254, 276},
+	"TLA": {256, 285},
+	"TMT": {174, 194},
+	"TRC": {288, 337},
 	"TRK": {311, 311},
-	"WOE": {252, 281},
+	"WOE": {255, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory

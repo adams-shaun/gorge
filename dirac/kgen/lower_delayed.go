@@ -1,6 +1,8 @@
 package kgen
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -9,10 +11,8 @@ import (
 // into an upkeep whose active player matches ValidPlayer$; NextTurn$ True
 // only bounds it to a later turn, which a registration made after this
 // turn's upkeep began already is). ValidPlayer$ Player (or absent) is the
-// next upkeep of any player, You the controller's next upkeep. Only the
-// form without RememberObjects$ lowers, and only when the delayed body
-// reads no remembered object (gorge hands it the resolving chain's
-// capture, which the kernel's program does not carry).
+// next upkeep of any player, You the controller's next upkeep.
+// RememberObjects$ is read by delayedStepRemember.
 func (lc *lowerCtx) delayedUpkeep(ps *params) error {
 	if lc.ab.Kind == akMana {
 		// the kernel adds a mana ability's mana and runs no program
@@ -26,22 +26,23 @@ func (lc *lowerCtx) delayedUpkeep(ps *params) error {
 	default:
 		return refuse("delayed upkeep trigger ValidPlayer %q", vp)
 	}
-	if ro, ok := ps.get("RememberObjects"); ok {
-		return refuse("delayed upkeep trigger RememberObjects %q", ro)
-	}
 	ps.consume("NextTurn")
 	exec := cards.ResolveSVar(lc.face.SVars, ps.str("Execute"))
 	if exec == nil {
 		return refuse("delayed trigger Execute %q", ps.str("Execute"))
 	}
-	if lc.chainReadsRemembered(exec) {
-		return refuse("delayed upkeep trigger body reads Remembered")
+	ro := ps.str("RememberObjects")
+	obj, err := lc.delayedStepRemember("upkeep", ro, exec)
+	if err != nil {
+		return err
 	}
 	lat := lc.newLatent("DelayedTrigger")
+	lat.DelayedObjOnly = delayedObjOnly(ro)
+	lat.DelayedSelf = delayedSelf(lc.ab.Trigger, ro)
 	if err := lc.withAbility(lat, func() error { return lc.chain(exec, nil) }); err != nil {
 		return err
 	}
-	lc.emit(lInstr{Op: "DelayedTrigger", C: lat.Index, CS: when})
+	lc.emit(lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: when})
 	return nil
 }
 
@@ -50,11 +51,9 @@ func (lc *lowerCtx) delayedUpkeep(ps *params) error {
 // StepChange into an end of combat step, EarliestAfter the current step;
 // ValidPlayer$ Player, or absent, matches any active player; ThisTurn$ is
 // read only beside DelayedTriggerDefinedPlayer$, so alone it changes
-// nothing). RememberObjects$ absent keeps the resolving chain's capture,
-// which the kernel's program does not carry: the body must then read no
-// remembered object. A RememberObjects$ naming one object the lowering
-// resolves (the trigger's card or attacker, one target) is the delayed
-// program's remembered object (RefDelayedRemembered in the body).
+// nothing). RememberObjects$ is read by delayedStepRemember: one object the
+// lowering resolves is the delayed program's remembered object
+// (RefDelayedRemembered in the body).
 func (lc *lowerCtx) delayedEndCombat(ps *params) error {
 	if lc.ab.Kind == akMana {
 		return refuse("delayed end-of-combat trigger in a mana ability")
@@ -77,26 +76,9 @@ func (lc *lowerCtx) delayedEndCombat(ps *params) error {
 		}
 		ps.consume("OncePerSource", "RememberChain")
 	}
-	var obj lRef
-	if ro, ok := ps.get("RememberObjects"); ok {
-		switch ro {
-		case "TriggeredAttackerLKICopy", "TriggeredAttacker", "TriggeredCard", "TriggeredCardLKICopy", "Targeted":
-		default:
-			return refuse("delayed trigger RememberObjects %q", ro)
-		}
-		r, err := lc.defined(ro)
-		if err != nil {
-			return err
-		}
-		if r.Kind != rTriggered && r.Kind != rTarget {
-			return refuse("delayed trigger RememberObjects %q", ro)
-		}
-		if r.Kind == rTarget && lc.ab.Targets[r.N].F != nil && len(lc.ab.Targets[r.N].F.Clauses) == 0 {
-			return refuse("delayed trigger RememberObjects %q: a player target", ro)
-		}
-		obj = r
-	} else if lc.chainReadsRemembered(exec) {
-		return refuse("delayed end-of-combat trigger body reads Remembered")
+	obj, err := lc.delayedStepRemember("end-of-combat", ps.str("RememberObjects"), exec)
+	if err != nil {
+		return err
 	}
 	lat := lc.newLatent("DelayedTrigger")
 	lat.DelayedObjOnly = delayedObjOnly(ps.str("RememberObjects"))
@@ -116,9 +98,10 @@ func (lc *lowerCtx) delayedEndCombat(ps *params) error {
 // ThisTurn$ True | RememberObjects$ Targeted (The Wrath of Khan's "at the
 // beginning of the next combat this turn, gain control of that creature":
 // gorge effDelayedTrigger registers a one-shot at the next StepChange into a
-// beginning of combat step, bounded to this turn). The delayed program's
-// remembered object is the one battlefield target; the registration is
-// dropped at the turn change (kop.DelayBeginCombat). Only that shape lowers.
+// beginning of combat step, bounded to this turn). RememberObjects$ is read
+// by delayedStepRemember (Feral Encounter's absent form: a body that reads
+// no remembered object); the registration is dropped at the turn change
+// (kop.DelayBeginCombat).
 func (lc *lowerCtx) delayedBeginCombat(ps *params) error {
 	if lc.ab.Kind == akMana {
 		return refuse("delayed beginning-of-combat trigger in a mana ability")
@@ -129,19 +112,17 @@ func (lc *lowerCtx) delayedBeginCombat(ps *params) error {
 	if vp := ps.str("ValidPlayer"); vp != "" {
 		return refuse("delayed beginning-of-combat trigger ValidPlayer %q", vp)
 	}
-	if ro := ps.str("RememberObjects"); ro != "Targeted" {
-		return refuse("delayed beginning-of-combat trigger RememberObjects %q", ro)
-	}
 	exec := cards.ResolveSVar(lc.face.SVars, ps.str("Execute"))
 	if exec == nil {
 		return refuse("delayed trigger Execute %q", ps.str("Execute"))
 	}
-	obj, err := lc.delayedRemember("Targeted", exec)
+	ro := ps.str("RememberObjects")
+	obj, err := lc.delayedStepRemember("beginning-of-combat", ro, exec)
 	if err != nil {
 		return err
 	}
 	lat := lc.newLatent("DelayedTrigger")
-	lat.DelayedObjOnly = delayedObjOnly("Targeted")
+	lat.DelayedObjOnly = delayedObjOnly(ro)
 	if err := lc.withAbility(lat, func() error { return lc.chain(exec, nil) }); err != nil {
 		return err
 	}
@@ -304,4 +285,110 @@ func (lc *lowerCtx) delayedDies(ps *params, exec *cards.SA) error {
 	ps.consume("StackDescription")
 	lc.emit(lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: "DiesThisTurn"})
 	return nil
+}
+
+// delayedStepRemember reads a step-keyed delayed trigger's RememberObjects$
+// (upkeep, beginning of combat, end of combat; gorge effDelayedTrigger: an
+// absent value keeps the resolving chain's capture, any other replaces it
+// with what it names). The delayed record carries one object, so each form
+// names at most one:
+//   - absent: the body reads no remembered object (the capture is not
+//     carried);
+//   - Targeted / ParentTarget in a chain that declares no target slot
+//     (gorge names an empty set): the body must read none;
+//   - the trigger's attacker: the trigger object (RefTriggerObj);
+//   - the end-step forms (delayedRemember), except a remembered set, which
+//     can hold several objects and refuses by name.
+func (lc *lowerCtx) delayedStepRemember(arm, ro string, exec *cards.SA) (lRef, error) {
+	switch ro {
+	case "":
+		if lc.chainReadsRemembered(exec) && !(arm == "end-of-combat" && lc.captureOnlyBodyLocal(exec)) {
+			return lRef{}, refuse("delayed %s trigger body reads Remembered", arm)
+		}
+		return lRef{}, nil
+	case "Targeted", "ParentTarget":
+		last := lc.lastTarget()
+		if ro == "ParentTarget" {
+			last = lc.parentLastTarget()
+		}
+		if _, own := lc.curNode.Params["ValidTgts"]; last < 0 && !own {
+			if lc.chainReadsRemembered(exec) {
+				return lRef{}, refuse("delayed %s trigger RememberObjects %q of no target: the body reads Remembered", arm, ro)
+			}
+			return lRef{}, nil
+		}
+	case "TriggeredAttackerLKICopy", "TriggeredAttacker":
+		r, err := lc.defined(ro)
+		if err != nil {
+			return lRef{}, err
+		}
+		if r.Kind != rTriggered {
+			return lRef{}, refuse("delayed trigger RememberObjects %q", ro)
+		}
+		return r, nil
+	case "Remembered", "RememberedLKI":
+		return lRef{}, refuse("delayed %s trigger RememberObjects %q: a set of several objects (the record holds one)", arm, ro)
+	}
+	return lc.delayedRemember(ro, exec)
+}
+
+// captureOnlyBodyLocal reports whether a step-keyed delayed trigger with no
+// RememberObjects$ reads a body-local remembered set: its registration is
+// capture-only (a trigger's chain that remembered nothing before the
+// registration; gorge state.DelayedTrigger.CaptureOnly, Forge's delayed
+// trigger remembers nothing) and every Remembered read of the body follows
+// the body's own Remember* write, so it reads exactly what the body
+// remembered and never the creating trigger's event capture, which the
+// kernel's program does not carry (Fortune, Loyal Steed's exile-and-return).
+// A body that reads before it writes, or a registration whose chain wrote
+// earlier, is not this shape.
+func (lc *lowerCtx) captureOnlyBodyLocal(exec *cards.SA) bool {
+	if lc.ab == nil || lc.ab.Trigger == nil {
+		return false
+	}
+	found := false
+	for n := lc.chainRoot; n != nil; n = n.Sub {
+		if n == lc.curNode {
+			found = true
+			break
+		}
+		if r, w := lc.nodeRememberUse(n); r || w {
+			return false
+		}
+	}
+	if !found {
+		return false
+	}
+	written := false
+	for n := exec; n != nil; n = n.Sub {
+		r, w := lc.nodeRememberUse(n)
+		if r && !written {
+			return false
+		}
+		written = written || w
+	}
+	return true
+}
+
+// nodeRememberUse reads one SA link for the remembered set: reads is a
+// Remembered spelling in a value (or a card SVar it names that mentions
+// Remember), writes a Remember* key (RememberChanged$ ...). A Cleanup's
+// ClearRemembered$ is neither.
+func (lc *lowerCtx) nodeRememberUse(n *cards.SA) (reads, writes bool) {
+	for _, part := range strings.Split(n.Line, "|") {
+		key, val, _ := strings.Cut(part, "$")
+		key, val = strings.TrimSpace(key), strings.TrimSpace(val)
+		switch {
+		case key == "ClearRemembered":
+			continue
+		case strings.HasPrefix(key, "Remember") && !strings.HasPrefix(key, "Remembered"):
+			writes = true
+		case strings.Contains(key, "Remembered"):
+			reads = true
+		}
+		if strings.Contains(val, "Remember") {
+			reads = true
+		}
+	}
+	return reads || lc.chainReadsRememberedSVar(n), writes
 }

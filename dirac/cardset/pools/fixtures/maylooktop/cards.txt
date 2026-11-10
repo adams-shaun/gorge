@@ -1,0 +1,16 @@
+# the Effect-delivered top-of-library look-and-play pool: The Belligerent and
+# Gwenom, Remorseless (an attack trigger lets the controller look at and play
+# the top card of their library for the turn, Gwenom paying life for mana)
+# beside creatures, instants, sorceries and lands, for the oracle's
+# constructed lockstep (dirac/oracle/maylooktop_lockstep_test.go)
+Burst Lightning
+Doom Blade
+Gray Ogre
+Gwenom, Remorseless
+Hill Giant
+Island
+Mountain
+Swamp
+The Belligerent
+Think Twice
+Walking Corpse

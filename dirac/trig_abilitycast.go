@@ -63,7 +63,9 @@ func abilityCastClass(k *prep, e *stackEntry, cls int16) bool {
 	if cls == kop.TrigAbCastExhaust {
 		return a.Exhaust
 	}
-	return a.Cost.Flags&(kop.CostLoyalty|kop.CostLoyaltyX) != 0
+	// a planeswalker's [-X] carries CostLoyalty beside CostLoyaltyX; the
+	// latter alone is an announced SubCounter<X/KIND>, not a loyalty ability
+	return a.Cost.Flags&kop.CostLoyalty != 0
 }
 
 // abilityCastMatch is the listener test for one AbilityCast line.

@@ -83,14 +83,32 @@ func (lc *lowerCtx) damageDoneOnce(tp *params, tr *lTrigger, t cards.Trigger) er
 	return nil
 }
 
-// ddoReads names the first trigger-context read of a DamageDoneOnce body the
-// per-referent trigger does not carry exactly. The batch total
-// (TriggerCount$DamageAmount, the pending amount) is carried; so are the
-// referent shapes ddoReadOK admits (the damaged object for an object-only
-// ValidTarget$, the one attacking player for combat damage to You). Every
-// other Triggered*/TriggerCount* spelling refuses (the effect lowerer's own
-// Remember* and Triggered* readers keep their rules).
-func (lc *lowerCtx) ddoReads(sa *cards.SA) string {
+// damageDoneSelfObjRef gives a plain DamageDone line from the card itself to
+// an object, whose body reads the damaged creature, the referent the plain
+// damage trigger does not carry (its trigger object is the damage SOURCE).
+// gorge fires the line once per damage event, and one source deals at most
+// one damage event to a given object per batch (a combat damage step, one
+// fight, one DealDamage), so the kernel's per-referent queue carries the
+// damaged permanent as the trigger object exactly. Any other trigger-context
+// read that queue does not carry refuses by name. A line without the read
+// keeps the plain trigger.
+func (lc *lowerCtx) damageDoneSelfObjRef(tp *params, tr *lTrigger, t cards.Trigger) error {
+	if t.Mode != "DamageDone" || !tp.is("ValidSource", "Card.Self") ||
+		tr.F2 == nil || tr.F2.Players != 0 || len(tr.F2.Clauses) == 0 ||
+		!lc.ddoReadsTriggeredTarget(t.Effect) {
+		return nil
+	}
+	tr.Batch, tr.PerRef = true, true
+	if r := lc.ddoReads(t.Effect); r != "" {
+		return refuse("DamageDone body reads %s", r)
+	}
+	return nil
+}
+
+// ddoBodyReads lists every trigger-context spelling a DamageDone body reads,
+// the SVars it names transitively included, in text order. A body of one
+// admitted spelling and one refused spelling yields both.
+func (lc *lowerCtx) ddoBodyReads(sa *cards.SA) []string {
 	// read appends every trigger-context spelling in s, in text order: a
 	// body can read an admitted spelling and a refused one, so a first-only
 	// scan would miss the second.
@@ -149,12 +167,35 @@ func (lc *lowerCtx) ddoReads(sa *cards.SA) string {
 	for _, k := range names {
 		reads = read(lc.face.SVars[k], reads)
 	}
-	for _, r := range reads {
+	return reads
+}
+
+// ddoReads names the first trigger-context read of a DamageDone body the
+// per-referent trigger does not carry exactly. The batch total
+// (TriggerCount$DamageAmount, the pending amount) is carried; so are the
+// referent shapes ddoReadOK admits (the damaged object for an object-only
+// ValidTarget$, the one attacking player for combat damage to You). Every
+// other Triggered*/TriggerCount* spelling refuses (the effect lowerer's own
+// Remember* and Triggered* readers keep their rules).
+func (lc *lowerCtx) ddoReads(sa *cards.SA) string {
+	for _, r := range lc.ddoBodyReads(sa) {
 		if !ddoReadOK(r, lc.ab.Trigger) {
 			return r
 		}
 	}
 	return ""
+}
+
+// ddoReadsTriggeredTarget reports whether the body reads the damaged object
+// (TriggeredTarget / TriggeredTargetLKICopy): the shape a plain DamageDone
+// line from the card itself may carry as its trigger object.
+func (lc *lowerCtx) ddoReadsTriggeredTarget(sa *cards.SA) bool {
+	for _, r := range lc.ddoBodyReads(sa) {
+		if r == "TriggeredTarget" || r == "TriggeredTargetLKICopy" {
+			return true
+		}
+	}
+	return false
 }
 
 // saReadsBatch: some line or parameter of the body, or an SVar it names (transitively), reads the

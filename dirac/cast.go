@@ -784,6 +784,9 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if np := s.convokeXCredit(k); np > 0 {
 				hi = min(maxXAsk, max(hi, mx+np)) // each announced pick pays one generic (a harmonize pick its power) of the X total
 			}
+			if e.kind == seAbility && k.gen != nil && k.gen.anyLoyaltyX {
+				mx, hi = s.counterXClamp(k, mx, hi) // a shared {X} / SubCounter<X/KIND> is bounded by the source's counters
+			}
 			s.addXOptions(k, d, e, mx, hi, &av)
 			s.bld().stage = bsX | 0x80 // awaiting X
 			return true
@@ -856,7 +859,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.nextStage(k)
 				continue
 			}
-			if pick > 1 || a.ModesFew != 0 { // "choose up to one" takes the multi-pick step
+			if pick > 1 || a.ModesFew != 0 || a.Repeats() { // "choose up to one" takes the multi-pick step
 				switch s.charmModesStep(k, a, d) {
 				case cmPosed:
 					return true
@@ -930,7 +933,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				continue
 			}
 			if a := s.buildAbility(k); a != nil {
-				if tm := a.TgtModes[ti]; tm != 0 && tm&e.mode == 0 {
+				if tm := a.TgtModes[ti]; tm != 0 && tm&a.ModeSet(e.mode) == 0 {
 					s.bld().ti++
 					continue
 				}
@@ -1326,7 +1329,11 @@ func (s *State) applyBuild(k *prep, a Action) {
 		}
 		s.tapPowerDone() // a CostTapPower pick closed (kw_crewsaddle.go)
 	case AkMode:
-		e.mode |= 1 << a.Mode()
+		if ab := s.buildAbility(k); ab != nil && ab.Repeats() {
+			e.mode = ab.ModeAdd(e.mode, int(a.Mode())) // a count per mode (kop/repeat.go)
+		} else {
+			e.mode |= 1 << a.Mode()
+		}
 		s.bld().modesN++
 		if k.gen != nil && k.gen.anyCharmPick {
 			if e.kind != seAbility { // an activation can still be reversed: recorded at payment
@@ -1392,6 +1399,9 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 	}
 	if k.gen != nil && k.gen.anyRaiseLife {
 		s.payRaiseLife(k) // a RaiseCost PayLife<N> the chosen target owes (cost_raiselife.go)
+	}
+	if s.bld().payLifeMV {
+		s.payMayPlayLife(k) // a may-play cast's alternative cost: life equal to its mana value (cast_mayplaypaylife.go)
 	}
 	if k.phyMana {
 		s.payPhyrexianLife(k) // the two-life faces (mana_phyrexian.go)
@@ -2489,5 +2499,7 @@ func (s *State) poolRPays(k *prep, p uint8, c CardID, o Obj) bool {
 		return false
 	}
 	cost := s.buildCost(k)
-	return cost.X == 0 && av.affords(&cost, pipMaskOf(&cost), 0)
+	// an {X} (a warp cost's) is priced at X = 0, as gorge's witness plans it
+	// before the announcement (CR 601.2b)
+	return av.affords(&cost, pipMaskOf(&cost), 0)
 }

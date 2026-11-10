@@ -331,7 +331,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				if k.gen != nil && k.gen.anyAbReduce {
 					m = s.abReduced(k, a, sl, p, m) // the cost statics compose after it
 				}
-				if !s.poolPays(p, &m) {
+				if !s.poolPaysAct(k, p, &m, payDesc{class: pdAct, card: cid, src: sl}) {
 					// gorge's planner declines an {X} activation (PlanCostDetail
 					// cost:x, Domesticated Hydra's {X}{G}{G}{G}: Monstrosity X,
 					// Fiend Artisan's hybrid {X}): it is offered only when the
@@ -1075,7 +1075,7 @@ func (s *State) abilityTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slo
 		return s.probeAbility(k, a, p, src, modes)
 	}
 	if a.NModes > 0 && modes == 0xff {
-		if a.ModesPick > 1 || a.ModesFew != 0 {
+		if a.ModesPick > 1 || a.ModesFew != 0 || a.Repeats() {
 			return s.charmFeasible(k, a, p, src)
 		}
 		for m := 0; m < int(a.NModes); m++ {

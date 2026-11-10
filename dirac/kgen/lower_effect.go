@@ -175,6 +175,16 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{Kind: rTriggeredTgtCtrl}, nil
 		}
 		return lRef{}, refuse("Defined$ %q without a damage object referent", v)
+	case "TriggeredSourceController":
+		// gorge definedSpecTriggeredSourceController: the controller of the
+		// spell or ability that targeted the watched permanent. The watcher
+		// arm that sets Whose = opp is ValidSource$ SpellAbility.OppCtrl, so
+		// the controller is an opponent of the listener's controller: in a
+		// two-player game the one opponent (CR 102.2; Thunderbreak Regent).
+		if tr := lc.ab.Trigger; tr != nil && tr.Event == "BecomesTarget" && tr.Watch && tr.Whose == whoOpp {
+			return lRef{Kind: rEachOpp}, nil
+		}
+		return lRef{}, refuse("Defined$ %q outside an opponent-source BecomesTarget watcher", v)
 	case "TriggeredAttackingPlayer":
 		// gorge trigger_referents.go: the controller of the in-flight
 		// combat source when it is attacking. A per-referent DamageDone
@@ -206,6 +216,9 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// DigUntil's ImprintFound$ chain (lower_digimprint.go): gorge
 		// effectRemembered reads the source's seek-found Imprint, which the
 		// kernel holds in the chosen set (DuImprintFound).
+		if lc.digImprintSetLive() { // lower_digimprintset.go
+			return lRef{Kind: rImprinted}, nil
+		}
 		if !lc.digImprintChosen {
 			return lRef{}, refuse("Defined$ Imprinted outside a DigUntil ImprintFound$")
 		}
@@ -592,7 +605,12 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 		// only a spell ability has that object
 		d0, hasD := ps.get("ConditionDefined")
 		lc.spellProvOK = hasD && strings.TrimSpace(d0) == "Self" && lc.ab != nil && lc.ab.Kind == akSpell
+		// the remembered-persist leave token asks whether the remembered card
+		// is still exiled with the source (a resolution-time read of the
+		// source's own exile link, lower_rempersist.go)
+		lc.exwOK = hasD && strings.TrimSpace(d0) == "Remembered" && strings.TrimSpace(cp) == "Card.ExiledWithSource" && lc.remPersistShape()
 		f, err := lc.filter(cp)
+		lc.exwOK = false
 		lc.spellProvOK = false
 		if err != nil {
 			return lCond{}, err
@@ -808,7 +826,13 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 		return fn()
 	}
 	var in lInstr
-	if _, isVar := lc.face.SVars[strings.TrimSpace(uc)]; isVar {
+	ri, isRes, rerr := lc.resUnlessToken(strings.TrimSpace(uc)) // lower_costtokens.go
+	if rerr != nil {
+		return rerr
+	}
+	if isRes {
+		in = ri
+	} else if _, isVar := lc.face.SVars[strings.TrimSpace(uc)]; isVar {
 		// an SVar-sized generic mana cost (Dazzling Denial's Y: {4} if you
 		// control a Bird, else {2}); gorge evaluates it as the ask is posed
 		v, err := lc.value(strings.TrimSpace(uc))
@@ -936,6 +960,7 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		return in, nil
 	}
 	n := 0
+	hasGraveExile := c.ExileG != nil
 	if c.ExileG != nil {
 		// a printed trigger's own ExileFromGrave<N/Spec> (gorge's
 		// triggered-cost window: trigger_cost pay/decline, then the
@@ -952,6 +977,16 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		n++
 		in.CS, in.A, in.F = "ExileGrave", cst(c.ExileGN), c.ExileG
 		c.ExileG = nil
+	}
+	if c.ExileStackSelf {
+		// ExileFromStack<1/Card.Self> beside the graveyard exile (Sphinx's
+		// Approach, Dragon's Approach): the resolving spell itself leaves the
+		// stack as the same unless cost is paid, after the grave picks.
+		if !hasGraveExile || !lc.unlessCost {
+			return in, refuse("resolution exile-from-stack cost shape")
+		}
+		in.CS = "ExileStackSelf"
+		c.ExileStackSelf = false
 	}
 	if c.DrawN > 0 {
 		// gorge's triggered-cost window: a Draw-bearing cost of a printed
@@ -1170,6 +1205,19 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		c.ExileHandN = 0
 		n++
 	}
+	if c.BeholdN > 0 {
+		// Behold<1/Type> as a resolution cost (CR 701.4a): an UnlessCost$ or
+		// a printed trigger's own cost. gorge's unless and triggered-cost
+		// flows pose the pay election, then the "beholdcost" pick over the
+		// payer's matching permanents then hand cards, unasked with exactly
+		// the count; nothing moves (kernel cost_unlessbehold.go). Alone, one.
+		if !lc.trigOwnCost && !lc.unlessCost || n != 0 || c.BeholdN != 1 || c.BeholdF == nil {
+			return in, refuse("resolution behold cost shape")
+		}
+		in.CS, in.A, in.F = "Behold", cst(1), c.BeholdF
+		c.BeholdN, c.BeholdF = 0, nil
+		n++
+	}
 	if n != 1 || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.SubAmongN != 0 || c.TapN != 0 || c.TapHost || c.SacHost || c.BlightN != 0 || c.EvidenceN != 0 || c.EvidenceX {
 		return in, refuse("resolution cost shape")
 	}
@@ -1325,7 +1373,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "ChangeZoneAll":
 		return lc.changeZoneAll(ps)
 	case "Draw":
-		remDrawn, err := rememberParam(ps, "RememberDrawn")
+		remDrawn, remAll, err := rememberDrawn(ps)
 		if err != nil {
 			return err
 		}
@@ -1358,7 +1406,10 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			return err
 		}
 		in := lInstr{Op: "Draw", Obj: who, A: n}
-		if remDrawn {
+		switch {
+		case remAll:
+			in.CS = "RememberAll"
+		case remDrawn:
 			in.CS = "Remember"
 		}
 		lc.emit(in)
@@ -1366,6 +1417,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.discard(ps)
 	case "Recruit":
 		return lc.recruit(sa, ps) // lower_recruit.go
+	case "Vote":
+		return lc.vote(sa, ps) // lower_vote.go
 	case "Mill":
 		who, err := lc.objOrTarget(ps, "You", zNone)
 		if err != nil {
@@ -1819,6 +1872,10 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			ps.consume("ClearImprinted") // Ensign Pavel Chekov: the chosen set is the imprint (lower_repeatexilechoice.go)
 			lc.exileLandStage = 0
 		}
+		if lc.digImprintSetLive() && ps.is("ClearImprinted", "True") {
+			ps.consume("ClearImprinted") // the Dig's imprinted set (lower_digimprintset.go)
+			lc.emit(lInstr{Op: "ClearImprinted"})
+		}
 		if lc.digImprinted && ps.is("ClearImprinted", "True") {
 			// the imprinted card is the kernel's remembered set
 			// (lower_digimprint.go): ClearRemembered$ beside it clears it
@@ -1888,6 +1945,12 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 				return refuse("ward life cost X %q", x)
 			}
 			lc.emit(lInstr{Op: "Ward", CS: "PayLifePower", A: cst(0), Obj: lRef{Kind: rTriggered}})
+			break
+		}
+		if wi, ok, err := lc.wardPoison(uc); err != nil { // lower_costtokens.go
+			return err
+		} else if ok {
+			lc.emit(wi)
 			break
 		}
 		lc.wbOK = true
@@ -2205,6 +2268,9 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 			// Bite / DealDamageFrom hit permanent slots only (hitBatch); a
 			// player the slot may name is offered by the kernel, then dropped
 			if f := lc.ab.Targets[obj.N].F; f != nil && f.Players != 0 {
+				if dmgSrc.Kind == rTriggered {
+					return lc.dmgSrcAnyTarget(ps, dmgSrc, obj, n) // lower_damagesourceplayers.go
+				}
 				return refuse("DamageSource$ to a target slot that may name a player")
 			}
 		}
@@ -2946,6 +3012,9 @@ func (lc *lowerCtx) putCounter(ps *params) error {
 		if ok, err := lc.dividedCountersAnyX(ps); ok || err != nil {
 			return err
 		}
+		if ok, err := lc.dividedCountersPick(ps); ok || err != nil { // (Vastwood Hydra)
+			return err
+		}
 		return lc.dividedCountersLKI(ps) // (Quirion Beastcaller)
 	}
 	if ps.is("ETB", "True") {
@@ -3155,6 +3224,13 @@ func (lc *lowerCtx) token(ps *params) error {
 		// controller (with a Note). Match that one-token fallback; the
 		// target is still asked.
 		owner = lRef{Kind: rYou}
+	} else if o, ok := ps.get("TokenOwner"); ok && o == "RememberedOwner" {
+		// the owner of the card the enters trigger exiled (CR 108.3), only
+		// in the remembered-persist shape (lower_rempersist.go)
+		if !lc.remPersistShape() {
+			return refuse("Token TokenOwner$ RememberedOwner outside the remembered-persist shape")
+		}
+		owner = lRef{Kind: rRememberedOwner}
 	} else if o, ok := ps.get("TokenOwner"); ok && o == "RememberedController" {
 		// gorge rememberedControllersLKI: the remembered object's
 		// controller, its RememberLKI$ capture once it left the battlefield
@@ -3307,6 +3383,9 @@ func (lc *lowerCtx) token(ps *params) error {
 			return refuse("RememberTokens read outside its own resolution")
 		}
 		in.C |= 4
+	}
+	if err := lc.tokenImprint(ps, &in); err != nil { // lower_imprintzone.go
+		return err
 	}
 	var pump []string
 	if kw, ok := ps.get("PumpKeywords"); ok {
@@ -3522,8 +3601,15 @@ func (lc *lowerCtx) charm(ps *params) error {
 	if lo := lc.out.ModesMinCount; lo != 0 {
 		minPick = min(lo, pick) // the offer gate's minimum (CardDef.ModesMinCount)
 	}
+	rp, err := lc.charmRepeatPlan(ps, choices, pick, twPick, lc.out.ModesPickV.Kind != vNone) // lower_charmrepeat.go
+	if err != nil {
+		return err
+	}
 	lc.ab.Modes = len(choices)
 	lc.ab.ModesPick, lc.ab.ModesMin = pick, minPick
+	if rp != nil {
+		lc.ab.RepMax, lc.ab.RepCost, lc.ab.RepBudget = rp.max, rp.cost, rp.budget
+	}
 	rootTargeted := make([]bool, len(choices)) // gorge Targeted(): the mode root's ValidTgts$ is non-empty
 	for i, name := range choices {
 		sa := cards.ResolveSVar(lc.face.SVars, strings.TrimSpace(name))
@@ -3536,32 +3622,45 @@ func (lc *lowerCtx) charm(ps *params) error {
 		if err != nil {
 			return err
 		}
+		c := i
+		if rp != nil {
+			if mps == nil {
+				mps = newParams(sa.Params)
+			}
+			mps.consume("Pawprint") // the mode's price, read by charmRepeatPlan
+			c = rp.c(i, 0)
+		}
 		saved := lc.chainT
 		lc.chainT = append([]int(nil), lc.chainT...)
 		at := len(lc.ab.Prog)
-		lc.emit(lInstr{Op: "Charm", C: i})
+		lc.emit(lInstr{Op: "Charm", C: c})
 		if err := lc.chain(sa, mps); err != nil {
 			return err
 		}
 		lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
+		if rp != nil {
+			rp.replicate(lc, at, i)
+		}
 		lc.chainT = saved
 	}
 	lc.mode = -1
-	if _, ok := ps.get("CanRepeatModes"); ok {
-		return refuse("charm CanRepeatModes$")
-	}
 	if err := lc.charmRestrict(ps); err != nil {
 		return err
 	}
 	if pick > 1 && len(choices) > 4 {
 		return refuse("charm with more than 4 modes") // mode bits 0..3 only
 	}
-	if pick > len(choices) {
+	if pick > len(choices) && rp == nil {
 		// gorge clamps the maximum to the eligible modes; no carrier reads it
 		return refuse("charm count above its modes (%d of %d)", pick, len(choices))
 	}
 	if max(pick, twPick) > 1 {
-		return lc.charmMultiTargets(len(choices), rootTargeted)
+		if err := lc.charmMultiTargets(len(choices), rootTargeted); err != nil {
+			return err
+		}
+		if rp != nil {
+			return lc.charmRepeatTargets(rp, len(choices))
+		}
 	}
 	return nil
 }

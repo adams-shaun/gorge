@@ -1275,7 +1275,7 @@ func spellIsTargetingMatchesPtr(g *state.Game, spec string, o *state.Object, sc 
 	matches := func(targets []state.Target) bool {
 		for _, tgt := range targets {
 			if tgt.IsPlayer {
-				if MatchesPlayerSpecCtx(g, spec, tgt.Player, sc.You, PlayerSpecCtx{Source: sc.Source}) {
+				if MatchesPlayerSpecCtx(g, spec, tgt.Player, sc.You, PlayerSpecCtx{Source: sc.Source, Layers: sc.Layers}) {
 					return true
 				}
 				continue

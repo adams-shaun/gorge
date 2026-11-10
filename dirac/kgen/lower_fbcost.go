@@ -7,9 +7,11 @@ package kgen
 // through the ordinary sacrifice and tap-creatures cost stages of the
 // flashback cast. The mana part (none here) is CardDef.AltCost and the rest
 // CardDef.FbCost, which the kernel's flashback cast picks in place of the
-// spell's additional cost. Only one counted part, a sacrifice or a tap of
-// other creatures, is lowered; a Behold<N/Type> beside the mana is the
-// card's behold part (FbBeholdN/FbBeholdF), not an FbCost.
+// spell's additional cost. Only one counted part, a sacrifice, a tap of
+// other creatures or a discard, is lowered; a Behold<N/Type> beside the mana is the
+// card's behold part (FbBeholdN/FbBeholdF), not an FbCost. A hybrid pip in
+// the mana part is announced like a printed cost's. A plain Discard<N/Card>
+// is the counted part too.
 func (lc *lowerCtx) flashbackCost(param string) error {
 	lc.beholdOK = true
 	c, err := lc.cost(param)
@@ -21,7 +23,7 @@ func (lc *lowerCtx) flashbackCost(param string) error {
 	if mana.None {
 		mana = manaCost{}
 	}
-	if mana.X || len(mana.Hybrid) != 0 || len(mana.Twobrid) != 0 {
+	if mana.X || len(mana.Twobrid) != 0 {
 		return refuse("flashback mana part %s", mana)
 	}
 	if c.BeholdN != 0 {
@@ -45,6 +47,12 @@ func (lc *lowerCtx) flashbackCost(param string) error {
 	}
 	if rest.TapN > 0 {
 		counted++
+	}
+	if rest.DiscardN > 0 && rest.DiscardSpec == "" && !rest.DiscardSelf && !rest.DiscardHand && rest.DiscardF == nil {
+		// Discard<N/Card> (any cards from hand): the ordinary discard cost
+		// stage of the flashback cast (Twinned Vision)
+		counted++
+		rest.DiscardN = 0
 	}
 	rest.Sac, rest.SacN, rest.TapN, rest.TapF = nil, 0, 0, nil
 	if counted != 1 || !rest.pureMana() {

@@ -192,6 +192,11 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 			if f.NotSub > 0 {
 				set[f.NotSub-1] = true
 			}
+			for _, n := range f.NotSubs {
+				if n > 0 {
+					set[n-1] = true
+				}
+			}
 			if f.Pred == kop.PredHistoric && f.PredN > 0 {
 				// PredN is the Saga subtype index+1; the kernel reads it by index,
 				// and the matchup must keep that subtype or its remap zeroes the clause
@@ -297,6 +302,7 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 	filt(d.OptCost.Filter)
 	filt(d.FbCost.Filter)
 	val(d.ModesPickV) // a dynamic triggered charm's count filter (the matchup keeps the subtype it names)
+	val(d.MorphReduce)
 	for i := range d.Abilities {
 		abil(&d.Abilities[i])
 	}

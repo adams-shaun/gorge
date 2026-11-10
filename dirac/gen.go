@@ -17,6 +17,7 @@ type genPrep struct {
 	graveTrig   []CardID // cards with a triggered ability that works from the graveyard
 	graveDies   bool     // one of them is a Dies trigger (Furious Forebear; fireGraveDies)
 	graveDrawn  bool     // some graveyard trigger is a Drawn (trig_gravedrawn.go)
+	graveDmg    bool     // some graveyard trigger is a DamageDone (trig_gravedamage.go)
 	graveETB    bool     // some graveyard trigger is an ETB (Fear of Infinity; face_fullyunlock.go)
 	graveSac    bool     // some graveyard trigger is a Sacrificed (Curious Cadaver; act_sweeps.go)
 	anyCastProv bool     // some trigger reads a spell's cast provenance (Tf2CastFromHand, Tf2Convoked): pushBuild records stackEntry.prov (trig_gravedrawn.go)
@@ -102,6 +103,7 @@ type genPrep struct {
 	anyTapExtra              bool // a card has a StatTapExtra static (mana_tapextra.go)
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
 	anyCantGain, anyCantDraw bool // StatCantGainLife / StatCantDraw statics (static_cantdraw.go)
+	anyNoPrev                bool // a StatCantPreventDamage static, printed or on an emblem (static_cantprevent.go)
 	anyTypeCreat             bool // a StatAnyTypeCreatures static (mana_convertcreature.go)
 	anyCdmgTough             bool // a card has a StatCombatDmgToughness static (combat_toughnessassign.go)
 	anyDisETB                bool // a card has a DisableTriggers enters static (kop.StatDisableETB; trig_disable.go)
@@ -143,6 +145,7 @@ type genPrep struct {
 	anyWitherGrant bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyEOTEmb      bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb       bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
+	anyNTEndEmb    bool           // some emblem ends at its controller's next turn's cleanup (kop.Emblem.UntilEndOfNextTurn; static_emblemdurations.go)
 	embObjEv       uint32         // object events (bit per TrigEvent) some emblem trigger listens to (fireEmblemsObj)
 	embCombatEv    uint32         // events (DamageDone, AttackersDeclared, LifeGained) some emblem trigger listens to (trig_effectuntileot.go)
 	anyGrant       bool           // some override or static grants an ability
@@ -306,7 +309,8 @@ type genPrep struct {
 	anyYouHex      bool           // some Continuous static gives its controller hexproof (StYouHexproof; ctr_shield.go)
 	anyRole        bool           // some card carries the Role subtype: the SBA runs the Role exclusivity check (static_roletokens.go)
 	roleSub        uint8          // the matchup subtype index of Role (static_roletokens.go)
-	anyWhileHost   bool           // some override or emblem ends when its host leaves (kop.Override/Emblem.WhileHost; filter_combatwords.go)
+	anyWhileHost   bool           // some override or emblem ends when its host leaves (kop.Override/Emblem.HostBound; filter_combatwords.go)
+	anyEmbCtrl     bool           // some emblem ends when its host's controller changes (kop.Emblem.AsLongAsControl; static_emblemdurations.go)
 	anyWhileTapped bool           // some override also ends at its host's untap (kop.Override.WhileTapped; static_animatewhiletapped.go)
 	anyOvCantAtk   bool           // some override says its permanent can't attack (kop.Override.CantAttack; filter_combatwords.go)
 	anySrcMark     bool           // some filter reads F2DamagedBy or F2CrewedSrc: the source-mark records are kept (filter_combatwords.go)
@@ -483,10 +487,10 @@ func tableHasPrevent(t *kop.Table) bool {
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) {
 		return nil
 	}
-	enteredNeed := false
+	enteredNeed := tableHasEnteredFrom(t)
 	for i := range t.Exprs {
 		if k := t.Exprs[i].Kind; k == kop.ExThisTurnEntered || k == kop.ExRevolt || k == kop.ExLeftZone {
 			enteredNeed = true
@@ -669,6 +673,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyDisETB = tableHasStatic(t, kop.StatDisableETB)
 	g.anyCantGain = tableHasStatic(t, kop.StatCantGainLife)
 	g.anyCantDraw = tableHasStatic(t, kop.StatCantDraw)
+	g.anyNoPrev = tableHasStatic(t, kop.StatCantPreventDamage)
 	g.anyTypeCreat = tableHasStatic(t, kop.StatAnyTypeCreatures)
 	g.anyDiscard = tableHasOp(t, kop.OpDiscard)
 	g.anyRemDisc = tableRemembersDiscards(t)
@@ -876,6 +881,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					}
 					if a.Trig.Event == kop.TrigDrawn {
 						g.graveDrawn = true
+					}
+					if a.Trig.Event == kop.TrigDamageDone {
+						g.graveDmg = true
 					}
 					if a.Trig.Event == kop.TrigDies {
 						g.graveDies = true
@@ -1267,9 +1275,15 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if t.Emblems[i].UntilNextTurn {
 			g.anyNTEmb = true
 		}
+		if t.Emblems[i].UntilEndOfNextTurn {
+			g.anyNTEndEmb = true
+		}
 		for j := range t.Emblems[i].Abilities {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCanAttackDefender {
 				g.anyCanAtkDef = true // an Effect-delivered grant: prepared like a printed one
+			}
+			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom {
+				g.anyMayPlay = true // an Effect-delivered library-top permission (cast_staticpaylife.go)
 			}
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.Kw&kop.KwProwess != 0 {
 				g.anyProwessGrant = true
@@ -1875,7 +1889,7 @@ type genState struct {
 	imp     [maxImp]Obj
 	nimp    uint8
 	linkImp uint8
-	embF    [MaxSeats]uint8
+	embF    [MaxSeats]uint8 // bit i: player p's emblem i (UntilEndOfNextTurn) has begun a turn since creation (static_emblemdurations.go)
 	embR    [MaxSeats][maxEmb]Obj
 	rsv     [rsvN]uint8
 }
@@ -1913,6 +1927,9 @@ func wardAmt(c *kop.CardDef) int16 {
 	if c.WardWaterbend != 0 {
 		return wardWBBit | int16(c.WardWaterbend) // cost_unlesswaterbend.go
 	}
+	if c.WardPoison != 0 {
+		return wardPoisBit | int16(c.WardPoison) // cost_restokens.go
+	}
 	if c.WardEvidence != 0 {
 		return wardEvBit | int16(c.WardEvidence) // kw_wardcost.go
 	}
@@ -1931,7 +1948,7 @@ func wardAmt(c *kop.CardDef) int16 {
 // slot off every mask (kw_phasing.go), so a phasing table measures the slots
 // an entrant can actually take: enterNF's freeSlots branch.
 func (s *State) nearCapacity(k *prep) bool {
-	if int(s.nobj) >= MaxObj {
+	if s.objTableFull() {
 		return true
 	}
 	if k != nil && k.phasing {

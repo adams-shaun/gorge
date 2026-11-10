@@ -18,14 +18,12 @@ func TestChooseCardDefaultParams(t *testing.T) {
 		"Riverwheel Sweep",    // Amount 1 + ChoiceTitle + Defined You
 		"Heroes' Hangout",     // Amount 1 + ChoiceTitle + Defined You
 	}
-	// Riverwheel Sweep and Heroes' Hangout now lower cleanly; the other
-	// three read the same params but each card still has an unrelated
+	// Riverwheel Sweep, Heroes' Hangout and Cosmium Confluence now lower
+	// cleanly; the other two read the same params but each still has an unrelated
 	// second blocker. Pin that blocker so a silent widening here is caught,
 	// and assert none of them is the shared unread-params check.
 	second := map[string]string{
 		"Summoner's Grimoire": "move Hand->Battlefield",
-		"Cosmium Confluence":  `SP$ Charm: charm CanRepeatModes$`,
-		"End-Blaze Epiphany":  "Effect static Duration$",
 	}
 	seen := map[string]bool{}
 	for _, c := range lowerNamed(t, carriers) {

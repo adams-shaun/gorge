@@ -149,11 +149,17 @@ type identity struct {
 	// where the kernel numbers both decks, then both sideboards (sync).
 	lay   [4]int
 	ncard int
+	// gen is the genesis card objects (both decks and sideboards): the
+	// instances past it are tokens, copies and dungeons (freeInst)
+	gen int
 }
 
 // setLayout records m's genesis order for sync; a matchup with no sideboard
 // leaves the plain deck order.
 func (id *identity) setLayout(m *Matchup) {
+	if m != nil {
+		id.gen = len(m.Deck[0]) + len(m.Deck[1]) + len(m.Side[0]) + len(m.Side[1])
+	}
 	if m == nil || len(m.Side[0])+len(m.Side[1]) == 0 {
 		return
 	}
@@ -179,7 +185,9 @@ func (id *identity) genesisInst(n int) int {
 // sync binds every object created since the last call. Genesis creates the
 // deck cards owner by owner in decklist order, so deck s's i-th card is
 // instance offset(s)+i; every later card object (a token, a spell or
-// permanent copy) takes the next instance in creation (ObjID) order.
+// permanent copy) takes the next instance in creation (ObjID) order. Once
+// all MaxInst instances are bound, a new object takes the lowest instance
+// freeInst reports, the kernel's object id reuse (dirac zone_objreuse.go).
 func (id *identity) sync(g *state.Game) {
 	for id.scanned < len(g.Objs) {
 		o := &g.Objs[id.scanned]
@@ -191,6 +199,12 @@ func (id *identity) sync(g *state.Game) {
 			continue
 		}
 		if len(id.obj) >= MaxInst {
+			if inst := id.freeInst(g); inst >= 0 {
+				id.inst[id.obj[inst]] = RefNone
+				id.inst[o.ID] = Ref(inst)
+				id.obj[inst] = o.ID
+				continue
+			}
 			if id.err == "" {
 				id.err = "more than MaxInst card instances"
 			}
@@ -209,6 +223,39 @@ func (id *identity) sync(g *state.Game) {
 		id.inst[o.ID] = Ref(len(id.obj))
 		id.obj = append(id.obj, o.ID)
 	}
+}
+
+// freeInst is the lowest instance the kernel would mint again, -1 none: a
+// token, copy or dungeon instance (past genesis) whose object ceased to
+// exist in an earlier turn (ZCeased, not entered this turn: the kernel's
+// zoneTurn) and that no delayed trigger names. Instances bound by this same
+// sync entered their zone this turn, so none is handed out twice.
+func (id *identity) freeInst(g *state.Game) int {
+	for inst := id.gen; inst < len(id.obj); inst++ {
+		o := g.Obj(id.obj[inst])
+		if o == nil || o.Zone != state.ZCeased || o.EnteredThisTurn || delayedNames(g, o.ID) {
+			continue
+		}
+		return inst
+	}
+	return -1
+}
+
+// delayedNames reports whether a delayed trigger names oid as its source,
+// creator or a remembered object.
+func delayedNames(g *state.Game, oid state.ObjID) bool {
+	for i := range g.Delayed {
+		d := &g.Delayed[i]
+		if d.Source == oid || d.Creator == oid {
+			return true
+		}
+		for _, t := range d.Remembered {
+			if !t.IsPlayer && t.Obj == oid {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // ref is the canonical reference of object oid in g.

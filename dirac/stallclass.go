@@ -73,7 +73,7 @@ var stallCapacityReasons = [...]uint8{
 	StallOptions, StallSrcMark, StallDmgLatch, StallReplCands, StallReplPlusBatch, StallPrevCol, StallColGrant, StallRestrX,
 	StallObsSrc, StallDynMana, StallTapExtra, StallExiledWith, StallBreach, StallNetLock, StallPanharmGrant, StallExileGrant, StallCharmPick,
 	StallCombatHit, StallFinality, StallPersistMana, StallOptMoves, StallMustBlock, StallRestrSrc, StallFirebend,
-	StallExHaste, StallEffEtbCtr, StallAtkGrp, StallParadigm, StallFiltX, StallPlanAlts,
+	StallImprint, StallExHaste, StallEffEtbCtr, StallAtkGrp, StallParadigm, StallFiltX, StallPlanAlts,
 	StallCtrAdded, // a fifth record of genState.ctrAdd; its two non-capacity sites moved to StallLowering
 	StallAddPhase, // a fifth genState.xph entry or a 256th grant; its one non-capacity site moved to StallLowering
 }
@@ -86,7 +86,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallEntryOrder, StallCopyAllAsk, StallCloneLayer, StallTokRewrite,
 	StallGravePower, // no longer raised: FeatCDAPT evaluates every lowered CDA amount
 	StallLandGrant,  // gorge offers both productions of a land with a granted basic type; pcard holds one (static_landtype.go:148,161)
-	StallOutsideType, StallExileOnMoved, StallMultiRetarget, StallL6Walk, StallLowering,
+	StallOutsideType, StallExileOnMoved, StallMultiRetarget, StallL6Walk, StallLowering, StallPayLifeShared, StallNoPrevent,
 	StallStackKwGrant, // a granted convoke/improvise on a Harmonize or alternative-cost cast: gorge's announcement for those routes is unverified (kw_convoke.go)
 }
 

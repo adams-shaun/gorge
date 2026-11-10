@@ -201,24 +201,27 @@ var opNamesCmp = map[string]uint8{"GE": opGE, "LE": opLE, "EQ": opEQ, "GT": opGT
 // lClause is one alternative of a Forge Valid expression: an object matches
 // when every field matches.
 type lClause struct {
-	Types         uint16 // any-of card types (0 = any card)
-	TypesAll      uint16 // all-of card types (a disjoint type property beside a type head: "Artifact.Creature"; Types holds their union)
-	NotTypes      uint16 // none-of card types
-	Subtype       string // must have this subtype ("" = none)
-	Name          string // named<Name>, normalised (lower.go: the source's own name keeps fNamedAsSource, another is named-other)
-	NotSubtype    string // must not have this subtype
-	Ctrl          uint8  // controller selector
-	Owner         uint8  // owner selector
-	Flags         uint64
-	CmpStat       uint8
-	CmpOp         uint8
-	CmpN          int     // the constant, or
-	CmpX          string  // the SVar naming the bound (cmcLEX)
-	CmpV          *lValue // CmpX lowered
-	CmpCounter    string  // counter kind for cmpCounters
-	Colors        string  // must have this colour (one of WUBRG; "" = none)
-	NotColors     string  // must have none of these colours
-	BasePermanent bool    // the base head word was Permanent (ThisTurnEntered's card form marks it)
+	Types      uint16 // any-of card types (0 = any card)
+	TypesAll   uint16 // all-of card types (a disjoint type property beside a type head: "Artifact.Creature"; Types holds their union)
+	NotTypes   uint16 // none-of card types
+	Subtype    string // must have this subtype ("" = none)
+	Name       string // named<Name>, normalised (lower.go: the source's own name keeps fNamedAsSource, another is named-other)
+	NotSubtype string // must not have this subtype
+	// MoreNotSubtype are further subtypes it must not have, filled only
+	// once NotSubtype is (kop.Filter.NotSubs)
+	MoreNotSubtype [2]string
+	Ctrl           uint8 // controller selector
+	Owner          uint8 // owner selector
+	Flags          uint64
+	CmpStat        uint8
+	CmpOp          uint8
+	CmpN           int     // the constant, or
+	CmpX           string  // the SVar naming the bound (cmcLEX)
+	CmpV           *lValue // CmpX lowered
+	CmpCounter     string  // counter kind for cmpCounters
+	Colors         string  // must have this colour (one of WUBRG; "" = none)
+	NotColors      string  // must have none of these colours
+	BasePermanent  bool    // the base head word was Permanent (ThisTurnEntered's card form marks it)
 	// SpellBase: the base head word was Spell (gorge's Spell base: an
 	// object on the stack). Read only by a ReduceCost ValidTarget$
 	// (build_ab: a Filter2 in ZoneStack with FSpell); clause refuses it
@@ -294,6 +297,11 @@ func (c lClause) String() string {
 	}
 	if c.NotSubtype != "" {
 		fmt.Fprintf(&b, " notsub=%s", c.NotSubtype)
+	}
+	for _, w := range c.MoreNotSubtype {
+		if w != "" {
+			fmt.Fprintf(&b, " notsub=%s", w)
+		}
 	}
 	if c.Ctrl != 0 {
 		fmt.Fprintf(&b, " ctrl=%d", c.Ctrl)
@@ -912,11 +920,7 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 			return nil
 		}
 		if knownSub(w) {
-			if c.NotSubtype != "" {
-				return fmt.Errorf("two negated subtypes")
-			}
-			c.NotSubtype = w
-			return nil
+			return c.addNotSub(w)
 		}
 		return fmt.Errorf("unknown negation %q", p)
 	}
@@ -946,11 +950,7 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		}
 		if knownSub(w) {
 			// gorge's '!' negation of a subtype word, the same as non<sub>
-			if c.NotSubtype != "" {
-				return fmt.Errorf("two negated subtypes")
-			}
-			c.NotSubtype = w
-			return nil
+			return c.addNotSub(w)
 		}
 	}
 	if ok, err := c.noNameTwinGrave(p); ok {
@@ -1069,6 +1069,11 @@ func (f *lFilter) subtypes() []string {
 		if c.NotSubtype != "" {
 			out = append(out, c.NotSubtype)
 		}
+		for _, w := range c.MoreNotSubtype {
+			if w != "" {
+				out = append(out, w)
+			}
+		}
 	}
 	sort.Strings(out)
 	return out
@@ -1081,4 +1086,27 @@ func cmpStatName(st uint8) string {
 		return names[st]
 	}
 	return "stat"
+}
+
+// addNotSub records one more negated subtype: the first in NotSubtype, up to
+// two more in MoreNotSubtype (the kernel filter's NotSub and NotSubs). A word
+// already negated adds nothing.
+func (c *lClause) addNotSub(w string) error {
+	if c.NotSubtype == "" {
+		c.NotSubtype = w
+		return nil
+	}
+	if c.NotSubtype == w {
+		return nil
+	}
+	for i, m := range c.MoreNotSubtype {
+		if m == w {
+			return nil
+		}
+		if m == "" {
+			c.MoreNotSubtype[i] = w
+			return nil
+		}
+	}
+	return fmt.Errorf("four negated subtypes")
 }

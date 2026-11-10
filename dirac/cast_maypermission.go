@@ -16,7 +16,7 @@ func tableMayPlayKinds(t *kop.Table) bool {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
-				if in.Op == kop.OpMayPlay && (in.B.N&kop.MayPlayKinds != 0 || in.B.N&(kop.MayPlayAdventure|kop.MayPlayOwner) != 0) {
+				if in.Op == kop.OpMayPlay && (in.B.N&kop.MayPlayKinds != 0 || in.B.N&(kop.MayPlayAdventure|kop.MayPlayOwner|kop.MayPlayPayLife) != 0) {
 					return true
 				}
 			}
@@ -103,6 +103,9 @@ func (s *State) offerMayKind(k *prep, d *Decision, p uint8, r mayPlay, sorc, lan
 	if r.kind&kop.MayPlayFree != 0 {
 		mode |= castFree
 	}
+	if r.payLife() && !s.payLifeOfferable(k, p, r.obj) {
+		return // the mana value in life cannot be paid (cast_mayplaypaylife.go)
+	}
 	anyMana := r.kind&kop.MayPlayAnyType != 0 && mode&castFree == 0
 	anyColor := r.kind&kop.MayPlayIgnoreColor != 0 && !anyMana && mode&castFree == 0
 	unpriced := false
@@ -132,6 +135,9 @@ func (s *State) spendMayKind(k *prep, o Obj, p uint8, mode uint8) bool {
 		return false
 	}
 	r := s.g.may[i]
+	if r.payLife() {
+		s.bld().payLifeMV = true
+	}
 	if r.kind&kop.MayPlayAnyType != 0 {
 		s.bld().e.flags |= sfAnyMana
 	} else if r.kind&kop.MayPlayIgnoreColor != 0 {

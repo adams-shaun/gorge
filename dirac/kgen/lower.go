@@ -129,6 +129,7 @@ type lowerCtx struct {
 	trigXPaid      bool      // the body's Count$xPaid is that announced X (set once the PayManaX cost lowered)
 	wbOK           bool      // costParts: a Waterbend<N> part may lower (an UnlessCost$ read by unless(); payInstr gates the shape)
 	unlessCost     bool      // payInstr: the cost is an UnlessCost$ of a non-delayed body
+	unlessParse    bool      // costHand: the tokens are an UnlessCost$ (ExileFromStack)
 	wardCost       bool      // payInstr: the cost is a Ward keyword's UnlessCost$
 	unlessSubs     []usGate  // UnlessResolveSubs$ gates awaiting their chain level's end (lower_unlesssubs.go)
 	reflexMulti    bool      // lowering a NumTimes reflexive latent: a multi-pick charm may lower on it (lower_numtimes.go)
@@ -182,7 +183,12 @@ type lowerCtx struct {
 	// RememberObjects$ Imprinted, its MayPlay and the Cleanup's
 	// ClearImprinted$ read it
 	digImprintChosen bool
-	known            func(string) bool
+	// digImprintRoot: the chain root whose Dig imprinted the resolution's
+	// imprinted set (Dig Imprint$ on a permanent's ability, Reno and Rude,
+	// Rotisserie Elemental; lower_digimprintset.go): only that chain's
+	// Effect, Defined$ Imprinted and Cleanup read it
+	digImprintRoot *cards.SA
+	known          func(string) bool
 	// granted > 0 while an ability or trigger another object is granted
 	// (an AddAbility$/AddTrigger$ SVar, an emblem's trigger) is lowered
 	granted int
@@ -393,11 +399,13 @@ func (lc *lowerCtx) lowerTail() {
 	}
 	lc.lowerGift()
 	lc.refuseCrossAbilityRemembered()
+	lc.refuseCrossAbilityImprinted()
 	lc.refuseRememberedPower() // value_countheads.go
 	lc.refuseMultiMana()
 	lc.refuseCtxRememberedCount()
-	lc.refuseRemLKIPT()              // value_remlki.go
-	lc.refuseRememberAmountObjects() // lower_remembered.go
+	lc.refuseRemLKIPT()                // value_remlki.go
+	lc.refuseRememberAmountObjects()   // lower_remembered.go
+	lc.refuseRememberSearcherObjects() // lower_remembersearcher.go
 	lc.refuseOnceTwice()
 	lc.refusePlotCombos()
 	lc.refuseHarmonizeCombos()
@@ -1054,8 +1062,11 @@ func (lc *lowerCtx) lowerKeywords() {
 			// CR 702.37/702.168/702.169: the keyword parameter is the
 			// turn-face-up cost. The kernel's turn-up action spends only
 			// mana (an {X} is announced first), so non-mana parameters refuse.
-			mc, err := parseManaCost(param)
-			if err != nil || param == "" || strings.Contains(param, ":") || mc.None {
+			// A printed generic reduction rides the second colon field
+			// (lower_morphreduce.go).
+			cs, red, rok := lc.morphReduceParam(param)
+			mc, err := parseManaCost(cs)
+			if !rok || err != nil || cs == "" || strings.Contains(cs, ":") || mc.None || red.Kind != vNone && (mc.X || mc.Generic == 0) {
 				lc.refuseNode(node, "%s cost %q", strings.ToLower(head), param)
 				continue
 			}
@@ -1063,7 +1074,7 @@ func (lc *lowerCtx) lowerKeywords() {
 				lc.refuseNode(node, "second face-down keyword")
 				continue
 			}
-			lc.out.MorphCost = &mc
+			lc.out.MorphCost, lc.out.MorphReduce = &mc, red
 			switch head {
 			case "Morph":
 				lc.out.MorphFamily = kop.MorphMorph
@@ -1255,10 +1266,11 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Madness = &mc
 		case head == "Warp":
 			// CR 702.185a: an alternative hand cost. The recast from exile
-			// pays the mana cost, and the cost is paid from the pool, so an
-			// X warp cost (Broodguard Elite) has no fixed price to plan.
+			// pays the mana cost. An {X} in the warp cost is announced like
+			// a printed one (CR 601.2b): the cast's X ask prices the
+			// replaced cost (kernel cast.go buildCostPreRaw).
 			mc, err := parseManaCost(param)
-			if err != nil || param == "" || strings.Contains(param, ":") || mc.X {
+			if err != nil || param == "" || strings.Contains(param, ":") || mc.XX || mc.XXX {
 				lc.refuseNode(node, "warp cost %q", param)
 				continue
 			}
@@ -1279,12 +1291,11 @@ func (lc *lowerCtx) lowerKeywords() {
 		case head == "Sneak" && sneakLowered:
 			// CR 702.190a: an alternative hand cost paid in the caster's own
 			// declare-blockers step, plus the mandatory return of an
-			// unblocked attacker (dirac/kw_sneak.go). X, hybrid (the
-			// pip announcement for an alternative cost is unported),
-			// CardManaCost, a ":" rider (the granted form) and any non-mana
-			// part are refused.
+			// unblocked attacker (dirac/kw_sneak.go). X, CardManaCost, a ":"
+			// rider (the granted form) and any non-mana part are refused;
+			// a hybrid pip is announced like a printed cost's.
 			mc, err := parseManaCost(param)
-			if err != nil || param == "" || strings.Contains(param, ":") || mc.X || mc.None || len(mc.Hybrid) != 0 {
+			if err != nil || param == "" || strings.Contains(param, ":") || mc.X || mc.None {
 				lc.refuseNode(node, "sneak cost %q", param)
 				continue
 			}
@@ -1464,6 +1475,14 @@ func (lc *lowerCtx) lowerKeywords() {
 			// the sentence to the MustBlock head; the attacker-oriented
 			// requirement, one blocker satisfies it)
 			lc.out.MustBeBlocked = true
+		case head == "Miracle":
+			// CR 702.94a: a revealed first draw triggers, and the card may
+			// be cast as that trigger resolves. gorge instead asks as the
+			// offer is put on the stack and casts the card there and then,
+			// with no stack object; the kernel has no cast begun from
+			// trigger placement, so it is refused by name until both
+			// engines resolve the trigger on the stack.
+			lc.refuseNode(node, "keyword %q: gorge casts at trigger placement, not as the trigger resolves (CR 702.94a)", head)
 		default:
 			lc.refuseNode(node, "keyword %q", head)
 		}
@@ -1526,7 +1545,9 @@ func discardHandCost(c *lCost) error {
 // costUnless is cost for an UnlessCost$: it also reads the Random and Hand
 // discard selection methods gorge pays (pay/unlessflow.go AdvanceUnless).
 func (lc *lowerCtx) costUnless(s string) (lCost, error) {
+	lc.unlessParse = true
 	c, err := lc.costHand(s)
+	lc.unlessParse = false
 	if err != nil {
 		return c, err
 	}
@@ -1708,7 +1729,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			// an AlternateAdditionalCost's first part, a MayFlashCost
 			// extra, an OptionalCost part and a flashback cost read it
 			// (beholdOK); each caller bounds N and the parts beside it.
-			if !lc.beholdOK || len(parts) != 2 || c.BeholdN != 0 {
+			if !(lc.beholdOK || lc.unlessParse) || len(parts) != 2 || c.BeholdN != 0 {
 				return c, refuse("behold cost %q", t)
 			}
 			n, err := strconv.Atoi(parts[0])
@@ -1748,6 +1769,20 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			mana = append(mana, strconv.Itoa(n))
 			continue
 		}
+		if head == "Exert" {
+			// Exert<1/NICKNAME> (CR 702.100a): the source is exerted as the
+			// ability's cost. It taps nothing and removes nothing; the
+			// payment stamps the one-shot no-untap mark. Only a printed
+			// activated ability's own cost, and only the source.
+			if len(parts) < 2 || len(parts) > 3 || parts[0] != "1" || c.Exert || !lc.actCost {
+				return c, refuse("exert cost %q", t)
+			}
+			if !strings.EqualFold(parts[1], "NICKNAME") && !strings.EqualFold(parts[1], "CARDNAME") {
+				return c, refuse("exert cost %q: not the source", t)
+			}
+			c.Exert = true
+			continue
+		}
 		if head == "tapXType" && parts[0] == "Any" {
 			// tap any number with a total-power floor (Crew, Saddle;
 			// lower_tappower.go): an activated ability's whole cost only
@@ -1767,6 +1802,26 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				return c, refuse("life cost PayLife<X> beside a second announced-X part")
 			}
 			c.LoyaltyX = true
+			continue
+		}
+		if head == "SubCounter" && len(parts) >= 2 && parts[0] == "X" && !strings.EqualFold(parts[1], "LOYALTY") {
+			// SubCounter<X/KIND> (CR 107.3, 118.3): the activation announces
+			// X up to the counters of that kind the source has, then removes
+			// that many (gorge cost.parse's announced part, cast_subcounter.go).
+			// Only the source form; a filtered target is another payment.
+			if len(parts) > 3 || c.SubCtrX || c.SubCtr != 0 || c.SubAmongN != 0 || c.Loyalty != 0 || c.LoyaltyX || c.AddCtr != 0 || c.LifeX {
+				return c, refuse("counter cost %q", t)
+			}
+			if strings.EqualFold(parts[1], "Any") {
+				return c, refuse("counter cost %q: a wildcard kind", t)
+			}
+			if len(parts) == 3 && !strings.EqualFold(parts[2], "CARDNAME") && !strings.EqualFold(parts[2], "NICKNAME") {
+				return c, refuse("counter cost %q: a filtered target", t)
+			}
+			if !lc.actCost {
+				return c, refuse("counter cost %q outside an activated ability's own cost", t)
+			}
+			c.SubCtrX, c.SubCtrXKnd = true, parts[1]
 			continue
 		}
 		n, err := strconv.Atoi(parts[0])
@@ -2003,6 +2058,15 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				return c, err
 			}
 			c.Return, c.ReturnN = f, n
+		case "ExileFromStack":
+			// ExileFromStack<1/Card.Self> (gorge cost.parse's stack part):
+			// the resolving spell exiles itself, as an unless cost beside its
+			// graveyard exile (payInstr pairs them). An activated cost's other
+			// stack specs stay refused.
+			if !lc.unlessParse || n != 1 || len(parts) < 2 || len(parts) > 3 || parts[1] != "Card.Self" || c.ExileStackSelf {
+				return c, refuse("cost token %q", t)
+			}
+			c.ExileStackSelf = true
 		case "Exile":
 			// Exile<1/CARDNAME[/description]> (gorge exAsk takes the
 			// source from the battlefield); any other Exile<> refuses
@@ -2094,6 +2158,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 	}
 	if c.BeholdN > 0 && (c.BlightN != 0 || c.Sac != nil || c.DiscardN > 0 || c.Forage != nil || c.ExileG != nil || c.Tap || c.PayLife > 0) {
 		return c, refuse("behold cost %q beside another part", s)
+	}
+	if c.ExileStackSelf && c.ExileG == nil {
+		return c, refuse("ExileFromStack self without a graveyard exile")
 	}
 	if c.BlightN > 0 {
 		parts := 0
@@ -2669,12 +2736,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	if ab.Ninjutsu {
 		return lc.ninjutsuBody(ps) // lower_ninjutsu.go
 	}
-	if sa.API == "Mana" && ab.Kind == akSpell {
-		// a spell that adds mana (Manamorphose, Seasonal Ritual): the mana
-		// ability record would resolve as a spell that does nothing
-		return refuse("SP$ Mana")
-	}
-	if sa.API == "Mana" {
+	if sa.API == "Mana" && ab.Kind != akSpell {
 		return lc.lowerMana(sa, ps, ab)
 	}
 	if sa.API == "ManaReflected" && ab.Kind == akMana {

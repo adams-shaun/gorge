@@ -29,6 +29,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	if _, ok := ps.m["DestAltSVar"]; ok {
 		return lc.czAltDest(ps) // lower_czaltdest.go
 	}
+	if isSelfAndChosen(ps) {
+		return lc.selfAndChosenExile(ps) // lower_selfchosen.go
+	}
 	if v, ok := ps.m["Unearth"]; ok {
 		// K:Unearth's expansion (gorge cards/kw_unearth.go: AB$ ChangeZone
 		// Origin$ Graveyard Destination$ Battlefield Defined$ Self
@@ -402,6 +405,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				// leaves nothing behind). dirac/ctr_search.go.
 				lc.emit(*arm)
 			}
+			if err := lc.rememberSearcher(ps, obj, flags); err != nil { // lower_remembersearcher.go
+				return err
+			}
 			lc.emit(lInstr{Op: "Search", Obj: obj, A: n, F: f, C: dest, CS: strings.Join(flags, "|")})
 			if clear != nil {
 				lc.emit(*clear)
@@ -754,14 +760,25 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		in.CS = strings.TrimPrefix(in.CS+"|ForgetOther", "|")
 	}
+	if err := lc.changeZoneImprint(ps, &in); err != nil { // lower_imprintzone.go
+		return err
+	}
 	if self && (in.Op != "Return" || in.C != zBattlefield || counterKind != "" || override != nil) {
 		return refuse("ThisDefinedAndTgts$ Self on a %s move", in.Op)
 	}
 	if origin != zNone && origin != zAny {
 		in.CS = strings.TrimPrefix(in.CS+"|from="+zoneLabel[origin], "|")
 	}
-	if origin == zLibrary && (in.Op == "Bounce" || in.Op == "Return") && lc.fetchShuffleOwed(ps) {
-		in.CS += "|ShuffleOwed"
+	if origin == zLibrary && (in.Op == "Bounce" || in.Op == "Return") {
+		if v, ok := ps.get("NoLooking"); ok && v != "True" {
+			// NoLooking$ True on a Defined$ fetch (the second half of a
+			// split search): the chooser picks without seeing the rest of
+			// the library, no state change, as on the search path
+			return refuse("library fetch NoLooking$ %q", v)
+		}
+		if lc.fetchShuffleOwed(ps) {
+			in.CS += "|ShuffleOwed"
+		}
 	}
 	if counterKind != "" {
 		if in.Op != "Return" || in.C != zBattlefield && dest != zExile {
@@ -1192,7 +1209,8 @@ func (lc *lowerCtx) dig(ps *params) error {
 	if blind && lc.blind != nil && lc.blind.exilerOther {
 		flags = append(flags, "ExilerOther")
 	}
-	if err := lc.digImprint(ps); err != nil { // lower_handmove.go
+	imprintSet, err := lc.digImprint(ps, dest, take) // lower_digparams.go
+	if err != nil {
 		return err
 	}
 	in.CS = strings.Join(flags, "|")
@@ -1217,6 +1235,9 @@ func (lc *lowerCtx) dig(ps *params) error {
 		return nil
 	}
 	lc.emit(in)
+	if imprintSet {
+		lc.emit(lInstr{Op: "DigImprint"}) // the dig's takes join the imprinted set
+	}
 	return nil
 }
 
@@ -1984,6 +2005,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	if serr != nil {
 		return serr
 	}
+	if ok, err := lc.noRegenRemembered(ps, ss); ok || err != nil { // lower_noregen.go
+		return err
+	}
 	if ps.is("Duration", "Permanent") {
 		if ok, err := lc.partitionMayPlay(ps, ss); ok || err != nil {
 			return err
@@ -1995,6 +2019,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	}
 	if ok, err := lc.unspentRedEOT(ps, ss); ok || err != nil {
 		return err
+	}
+	if obj, ok := lc.chosenMayPlayNextTurn(ps, ss); ok { // lower_effectdurations.go
+		return lc.effectTargetStatic(ps, ss[0], obj)
 	}
 	_, hasTgt := ps.m["ValidTgts"]
 	if _, hasRO := ps.get("RememberObjects"); !hasTgt && !hasRO {
@@ -2144,6 +2171,9 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		sp.consume("ValidCard")
 		lc.emit(lInstr{Op: "GrantPanharm", Obj: obj, Note: "the target's triggers trigger an additional time while the source stays tapped"})
 	case "Continuous":
+		if sp.is("RemoveAllAbilities", "True") { // lower_effectdurations.go
+			return lc.loseAbilitiesWhileHost(ps, sp, obj)
+		}
 		if !sp.is("MayPlay", "True") {
 			return refuse("Effect continuous shape")
 		}
@@ -2274,6 +2304,18 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 				return refuse("Effect MayPlayLimit %q", v)
 			}
 			fl |= n << kop.MayPlayLimitShift
+		}
+		if v, ok := sp.get("MayPlayAltManaCost"); ok {
+			// Inside Information: the exiled cards are cast by paying life
+			// equal to their mana value instead of their mana cost
+			// (CR 118.9). The one alternative the kernel's remembered
+			// permission record carries; it rides alone, over the
+			// end-of-turn grant of the remembered set.
+			if strings.TrimSpace(v) != "PayLife<ConvertedManaCost>" || obj.Kind != rRemembered || dur != "EOT" ||
+				fl&(kop.MayPlayFree|kop.MayPlayAnyType|kop.MayPlayIgnoreColor|kop.MayPlayLimitMask|kop.MayPlayOwner|kop.MayPlayAdventure|kop.MayPlayOpponent) != 0 {
+				return refuse("Effect MayPlayAltManaCost %q", v)
+			}
+			fl |= kop.MayPlayPayLife
 		}
 		if fl != 0 {
 			in.B = cst(fl)

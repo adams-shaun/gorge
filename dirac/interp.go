@@ -29,7 +29,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			}
 			for i := 0; i < n && !s.over; i++ {
 				if in.C&kop.MvRemember != 0 {
-					s.drawRemember(p) // RememberDrawn$ (zone_rememberwrites.go)
+					s.drawRemember(p, in.C&kop.DrawRememberAll != 0) // RememberDrawn$ (zone_rememberwrites.go)
 				} else {
 					s.draw(p)
 				}
@@ -392,7 +392,11 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.touchSl(src)
 		}
 	case kop.OpCharm:
-		if e.mode&(1<<uint(in.C)) == 0 {
+		if in.C&kop.CharmRepeat != 0 {
+			if !s.charmRepeatEnter(k, in.C) {
+				s.res.pc += uint8(s.value(k, in.A))
+			}
+		} else if e.mode&(1<<uint(in.C)) == 0 {
 			s.res.pc += uint8(s.value(k, in.A))
 		}
 	case kop.OpIfKicked:
@@ -689,7 +693,7 @@ func (s *State) destroy(k *prep, sl Slot) {
 	if s.destroyHeal(k, sl) {
 		return
 	}
-	if s.perms[sl].flags&pfRegen != 0 {
+	if s.canRegen(sl) {
 		s.regenerate(sl)
 		return
 	}

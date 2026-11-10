@@ -126,15 +126,20 @@ func (s *State) divCounters(k *prep, in *kop.Instr) {
 		if amts[i] <= 0 || c >= PlayerTarget0 || s.objs[c].zone != kop.ZoneBattlefield {
 			continue
 		}
-		sl := s.objs[c].slot
-		n := s.placeCounters(k, sl, int(kop.CtrP1P1), amts[i], s.perms[sl].ctrl, ctrPutEffect)
-		p := &s.perms[sl]
-		if n > 0 && k.anyCtrAdded {
-			s.ctrNote(k, sl, int(kop.CtrP1P1))
-		}
-		if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
-			s.g.lastCK = kop.CtrP1P1
-			s.fireObj(k, kop.TrigCounterAddedOnce, sl, p.obj, p.ctrl, int16(n))
-		}
+		s.putDividedShare(k, s.objs[c].slot, amts[i])
+	}
+}
+
+// putDividedShare puts amt +1/+1 counters on the permanent at sl as one
+// divided share (one CounterChange; its replacements and added-triggers).
+func (s *State) putDividedShare(k *prep, sl Slot, amt int) {
+	n := s.placeCounters(k, sl, int(kop.CtrP1P1), amt, s.perms[sl].ctrl, ctrPutEffect)
+	p := &s.perms[sl]
+	if n > 0 && k.anyCtrAdded {
+		s.ctrNote(k, sl, int(kop.CtrP1P1))
+	}
+	if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+		s.g.lastCK = kop.CtrP1P1
+		s.fireObj(k, kop.TrigCounterAddedOnce, sl, p.obj, p.ctrl, int16(n))
 	}
 }

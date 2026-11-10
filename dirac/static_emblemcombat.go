@@ -47,7 +47,7 @@ func (s *State) anyEmb() bool { return s.g.nemb[0]+s.g.nemb[1] != 0 }
 //go:noinline
 func (s *State) idemEmblemHeld(k *prep, p, emb uint8) bool {
 	e := &k.t.Emblems[emb-1]
-	if !e.UntilEOT || e.UntilNextTurn || e.WhileHost {
+	if !e.UntilEOT || e.UntilNextTurn || e.UntilEndOfNextTurn || e.HostBound() {
 		return false
 	}
 	for j := range e.Abilities {

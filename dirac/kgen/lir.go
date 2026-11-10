@@ -49,12 +49,13 @@ const (
 	rSrcOwner                     // the source object's owner (Defined$ CardOwner)
 	rTriggerAttackers             // the attacker group of the AttackersDeclared event (Defined$ TriggeredAttackers)
 	rRememberedOwner              // the remembered object's owner (Unidentified Hovership's leave trigger)
+	rImprinted                    // the resolution's imprinted objects (Dig Imprint$ on a permanent's ability)
 	rCount
 )
 
 var refNames = [...]string{"None", "Target", "Self", "You", "EachOpp", "EachPlayer", "TargetController",
 	"TargetOwner", "Triggered", "TriggeredNew", "TriggeredSource", "TriggeredPlayer", "TriggeredTgtCtrl", "Equipped", "Remembered",
-	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner"}
+	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted"}
 
 type lRef struct {
 	Kind refKind
@@ -465,56 +466,60 @@ type lTarget struct {
 
 // lCost is an ability's cost.
 type lCost struct {
-	Mana         manaCost
-	Tap          bool
-	Untap        bool // {Q}: untap this permanent (an activated battlefield ability's cost)
-	SacSelf      bool
-	Sac          *lFilter // sacrifice SacN permanents matching
-	SacN         int
-	DiscardN     int      // discard N cards (any)
-	DiscardSpec  string   // Discard<N/Spec>: "" (Card, any card), "Random" or "Hand"
-	DiscardHand  bool     // Discard<N/Hand> as an activated ability's cost: the whole hand (kop.Cost.DiscardHand)
-	DiscardSelf  bool     // discard this card (a hand ability: cycling)
-	DiscardF     *lFilter // Discard<N/Spec>: the discard candidates' filter (CostDiscardFiltered)
-	Loyalty      int      // +N / -N loyalty
-	LoyaltyX     bool     // [-X]: SubCounter<X/LOYALTY>, X announced up to the loyalty
-	SubCtr       int      // remove N counters of kind SubCtrKind from the source
-	SubAmongN    int      // RemoveAnyCounter<N/Kind/Filter>: remove N counters of kind SubAmongKnd from among SubAmongF you control (kop.CostSubAmong)
-	SubAmongKnd  string
-	SubAmongF    *lFilter
-	SubCtrKnd    string
-	AddCtr       int // put N counters of kind AddCtrKnd on the source (AddCounter<N/KIND>; Wall of Roots' M0M1)
-	AddCtrKnd    string
-	PayLife      int
-	LifeX        bool // PayLife<X>: pay the announced X life, SVar X Count$xPaid (kop.CostPayLife with N 0)
-	TapN         int  // tap N untapped creatures you control matching TapF
-	TapF         *lFilter
-	TapHost      bool // tap the granting host (tapXType<1/OriginalHost>)
-	SacHost      bool // sacrifice the granting host (Sac<1/OriginalHost>)
-	TapPowN      int  // tap any number of untapped creatures you control matching TapPowF with total power >= TapPowN (Crew, Saddle; lower_tappower.go)
-	TapPowF      *lFilter
-	TapPowCrew   bool     // the tap-power cost is Crew (graveexile: candidates' TapPowerCrew applies)
-	TapPowSaddle bool     // the tap-power cost is Saddle (graveexile: candidates' TapPowerSaddle applies)
-	Forage       *lFilter // forage: exile three cards from your graveyard or sacrifice a Food matching (CR 701.61a)
-	ExileG       *lFilter // ExileFromGrave<N/Spec>: exile ExileGN cards matching from your graveyard (CARDNAME: Self)
-	ExileGN      int
-	ExileHandN   int      // ExileFromHand<N/Card>: exile N cards from your hand (a trigger's own cost only; cost_exilefromhand.go)
-	ExileHand    bool     // ExileFromHand<1/Card>: the ExileG cards come from the payer's hand (kop.Cost.ExileHand; a granted exile ability's cost only)
-	ExileGBf     bool     // ExileCtrlOrGrave<N/Spec>: the battlefield (the payer's permanents) as well (kop.CostExileCtrlOrGrave, Craft)
-	Energy       int      // PayEnergy<N>: pay N energy (an activated ability's cost only)
-	Waterbend    int      // Waterbend<N>: N generic payable by tapping artifacts/creatures (an activated ability's cost only)
-	BlightN      int      // Blight<N>: put N -1/-1 counters on a creature you control (CR 701.68; shares Cost.N/Filter)
-	ReturnSelf   bool     // Return<1/CARDNAME>: return this permanent to its owner's hand (an activated ability's cost only)
-	ExileSelf    bool     // Exile<1/CARDNAME>: exile this permanent (an activated ability's cost only)
-	Return       *lFilter // Return<N/Spec>: return ReturnN permanents you control matching (a resolution cost only)
-	ReturnN      int
-	DrawN        int      // Draw<N/You>: draw N cards (a trigger's own cost only)
-	EvidenceN    int      // CollectEvidence<N>: exile graveyard cards with total mana value >= N (CR 701.59a)
-	EvidenceX    bool     // CollectEvidence<X>: the announced X (a trigger's own cost only)
-	ExileTrigNew bool     // ExileAnyGrave<1/Card.TriggeredNewCard>: exile the triggered card from any graveyard (a dies trigger's own cost)
-	PutLibSelf   bool     // PutCardToLibFromGrave<1/-1/CARDNAME>: the source card goes from its graveyard to the bottom of its owner's library (a graveyard activated ability's cost)
-	BeholdN      int      // Behold<N/Type>: reveal or choose N permanents or hand cards matching BeholdF (CR 701.4a; a spell's additional, optional, may-flash or flashback cost part)
-	BeholdF      *lFilter // the Behold<N/Type> candidates' filter
+	Mana           manaCost
+	Tap            bool
+	Untap          bool // {Q}: untap this permanent (an activated battlefield ability's cost)
+	SacSelf        bool
+	Sac            *lFilter // sacrifice SacN permanents matching
+	SacN           int
+	DiscardN       int      // discard N cards (any)
+	DiscardSpec    string   // Discard<N/Spec>: "" (Card, any card), "Random" or "Hand"
+	DiscardHand    bool     // Discard<N/Hand> as an activated ability's cost: the whole hand (kop.Cost.DiscardHand)
+	DiscardSelf    bool     // discard this card (a hand ability: cycling)
+	DiscardF       *lFilter // Discard<N/Spec>: the discard candidates' filter (CostDiscardFiltered)
+	Loyalty        int      // +N / -N loyalty
+	LoyaltyX       bool     // [-X]: SubCounter<X/LOYALTY>, X announced up to the loyalty
+	Exert          bool     // Exert<1/NICKNAME>: exert the source as the cost (CR 702.100a)
+	SubCtr         int      // remove N counters of kind SubCtrKind from the source
+	SubCtrX        bool     // SubCounter<X/Kind>: X announced up to the counters of SubCtrXKnd on the source
+	SubCtrXKnd     string
+	SubAmongN      int // RemoveAnyCounter<N/Kind/Filter>: remove N counters of kind SubAmongKnd from among SubAmongF you control (kop.CostSubAmong)
+	SubAmongKnd    string
+	SubAmongF      *lFilter
+	SubCtrKnd      string
+	AddCtr         int // put N counters of kind AddCtrKnd on the source (AddCounter<N/KIND>; Wall of Roots' M0M1)
+	AddCtrKnd      string
+	PayLife        int
+	LifeX          bool // PayLife<X>: pay the announced X life, SVar X Count$xPaid (kop.CostPayLife with N 0)
+	TapN           int  // tap N untapped creatures you control matching TapF
+	TapF           *lFilter
+	TapHost        bool // tap the granting host (tapXType<1/OriginalHost>)
+	SacHost        bool // sacrifice the granting host (Sac<1/OriginalHost>)
+	TapPowN        int  // tap any number of untapped creatures you control matching TapPowF with total power >= TapPowN (Crew, Saddle; lower_tappower.go)
+	TapPowF        *lFilter
+	TapPowCrew     bool     // the tap-power cost is Crew (graveexile: candidates' TapPowerCrew applies)
+	TapPowSaddle   bool     // the tap-power cost is Saddle (graveexile: candidates' TapPowerSaddle applies)
+	Forage         *lFilter // forage: exile three cards from your graveyard or sacrifice a Food matching (CR 701.61a)
+	ExileG         *lFilter // ExileFromGrave<N/Spec>: exile ExileGN cards matching from your graveyard (CARDNAME: Self)
+	ExileGN        int
+	ExileHandN     int      // ExileFromHand<N/Card>: exile N cards from your hand (a trigger's own cost only; cost_exilefromhand.go)
+	ExileHand      bool     // ExileFromHand<1/Card>: the ExileG cards come from the payer's hand (kop.Cost.ExileHand; a granted exile ability's cost only)
+	ExileGBf       bool     // ExileCtrlOrGrave<N/Spec>: the battlefield (the payer's permanents) as well (kop.CostExileCtrlOrGrave, Craft)
+	ExileStackSelf bool     // ExileFromStack<1/Card.Self>: the resolving spell exiles itself from the stack (an unless cost beside ExileG)
+	Energy         int      // PayEnergy<N>: pay N energy (an activated ability's cost only)
+	Waterbend      int      // Waterbend<N>: N generic payable by tapping artifacts/creatures (an activated ability's cost only)
+	BlightN        int      // Blight<N>: put N -1/-1 counters on a creature you control (CR 701.68; shares Cost.N/Filter)
+	ReturnSelf     bool     // Return<1/CARDNAME>: return this permanent to its owner's hand (an activated ability's cost only)
+	ExileSelf      bool     // Exile<1/CARDNAME>: exile this permanent (an activated ability's cost only)
+	Return         *lFilter // Return<N/Spec>: return ReturnN permanents you control matching (a resolution cost only)
+	ReturnN        int
+	DrawN          int      // Draw<N/You>: draw N cards (a trigger's own cost only)
+	EvidenceN      int      // CollectEvidence<N>: exile graveyard cards with total mana value >= N (CR 701.59a)
+	EvidenceX      bool     // CollectEvidence<X>: the announced X (a trigger's own cost only)
+	ExileTrigNew   bool     // ExileAnyGrave<1/Card.TriggeredNewCard>: exile the triggered card from any graveyard (a dies trigger's own cost)
+	PutLibSelf     bool     // PutCardToLibFromGrave<1/-1/CARDNAME>: the source card goes from its graveyard to the bottom of its owner's library (a graveyard activated ability's cost)
+	BeholdN        int      // Behold<N/Type>: reveal or choose N permanents or hand cards matching BeholdF (CR 701.4a; a spell's additional, optional, may-flash or flashback cost part)
+	BeholdF        *lFilter // the Behold<N/Type> candidates' filter
 }
 
 // pureMana reports whether the cost is only its mana part. Power-up's
@@ -523,9 +528,9 @@ type lCost struct {
 func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && c.Loyalty == 0 && !c.LoyaltyX &&
-		c.SubCtr == 0 && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.TapN == 0 && !c.TapHost && !c.SacHost && c.TapPowN == 0 &&
+		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.TapN == 0 && !c.TapHost && !c.SacHost && c.TapPowN == 0 && !c.Exert &&
 		c.Forage == nil && c.ExileG == nil && c.ExileHandN == 0 && c.Energy == 0 && !c.ReturnSelf &&
-		!c.ExileSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.ExileTrigNew &&
+		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.ExileTrigNew &&
 		!c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil
 }
 
@@ -705,7 +710,9 @@ type lAbility struct {
 	Modes           int // charm: number of modes to choose from
 	// charm: CharmNum$ (the most picks) and MinCharmNum$ (default: the most)
 	ModesPick, ModesMin int
-	ModeRestrict        uint8 // charm ChoiceRestriction$: 0 none, 1 ThisTurn, 2 ThisGame (lower_charmrestrict.go)
+	RepMax, RepCost     [4]uint8 // charm CanRepeatModes$ (lower_charmrepeat.go): the most each mode is chosen, its pawprint price
+	RepBudget           uint8    // charm Pawprint$
+	ModeRestrict        uint8    // charm ChoiceRestriction$: 0 none, 1 ThisTurn, 2 ThisGame (lower_charmrestrict.go)
 	Trigger             *lTrigger
 	Prog                []lInstr
 	Mana                *lMana
@@ -884,6 +891,7 @@ type lCard struct {
 	ModeCost       [4]manaCost // Spree/Tiered: mode i's ModeCost$
 	MorphCost      *manaCost   // K:Morph / K:Megamorph / K:Disguise turn-face-up cost
 	MorphFamily    uint8       // kop.Morph*: which face-down keyword the cost belongs to
+	MorphReduce    lValue      // the turn-up cost's printed generic reduction (lower_morphreduce.go)
 	Flashback      *manaCost
 	RemPersist     bool      // the enters/leaves remembered pair, or a Saga's chapter pair (lower_rempersist.go)
 	RemSeed        uint32    // RemPersist: the abilities that start with the kept set (CardDef.RemSeed)

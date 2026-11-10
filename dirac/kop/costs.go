@@ -185,6 +185,13 @@ type Cost struct {
 	// CostFlags bit (the words are full). Read only for an exile-granted
 	// ability (ExtGrantExile): its own cost beside nothing else.
 	ExileHand bool
+	// Exert: Exert<1/NICKNAME|CARDNAME>, the source is exerted as the cost is
+	// paid (CR 118.3, 702.100a; gorge cost.parse's Exert part, rules
+	// pay_ability.go). It taps nothing and leaves no counter: the payment
+	// stamps the one-shot "doesn't untap during its controller's next untap
+	// step" mark (pfSkipUntap). A table byte, not a CostFlags bit (the words
+	// are full).
+	Exert bool
 	// DiscardHand: discard the whole hand as part of an activated ability's
 	// cost (Discard<N/Hand>, CR 118.3, 602.2b; gorge pay.DiscardCandidates'
 	// whole-hand spec discards every card in hand order, asks no choice and
@@ -249,6 +256,13 @@ const PayBSubEvidenceX = 11
 // grants the trigger is sacrificed, not the creature carrying it (CR 701.21a).
 const PayBSubSacHost = 7
 
+// PayBSubStackSelf: a PayExileGrave whose B.N carries this sentinel also
+// exiles the resolving spell itself from the stack, after the graveyard
+// cards (UnlessCost$ ExileFromGrave<N/Spec> ExileFromStack<1/Card.Self>;
+// Sphinx's Approach, gorge pay/unlessspecial.go's stack exile part). B's
+// other PayExileGrave sentinels are 3, 8, 9 and 10.
+const PayBSubStackSelf = 13
+
 // PayBSubChain: a PayExileGrave whose B.N carries this sentinel is the second
 // half of a trigger's own "{N} and ExileFromGrave<1/Spec>" cost. It follows the
 // PayMana instruction that holds the pay or decline election and never poses an
@@ -303,11 +317,11 @@ const CostExileCtrlOrGrave CostFlags = 1 << 30
 // << 1 chains.
 const CostSubAmong CostFlags = 1 << 31
 
-// CostLoyaltyX (Chandra, Hope's Beacon): a planeswalker's [-X]
-// (SubCounter<X/LOYALTY>): X is announced 0..the loyalty it has (CR 606.4,
-// gorge xAsk bounded by the walker's loyalty) and that many loyalty counters
-// are removed. Cost.N is 0 and Cost.Ctr CtrLoyalty; CostLoyalty rides beside
-// it. Bit 29, clear of the iota and << 1 chains.
+// CostLoyaltyX: an announced-X counter removal, X announced 0..the counters
+// of Cost.Ctr the source has and that many removed. A planeswalker's [-X]
+// (SubCounter<X/LOYALTY>; CR 606.4) has CostLoyalty beside it and Cost.Ctr
+// CtrLoyalty; a creature's SubCounter<X/KIND> (CR 107.3, 118.3) rides alone
+// with that kind. Cost.N is 0. Bit 29, clear of the iota and << 1 chains.
 const CostLoyaltyX CostFlags = 1 << 29
 
 // PayBRemember: a PayDiscard unless-cost whose B.N

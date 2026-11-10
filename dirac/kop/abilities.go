@@ -105,6 +105,16 @@ type Ability struct {
 	// a spell matching this filter, paid with this ability's mana, gains
 	// haste until end of turn as it enters (0 = no rider). A table field.
 	ManaHasteValid FilterID
+	// RepMax: a charm that may choose a mode more than once (CanRepeatModes$)
+	// has RepMax[m] > 0, the most times mode m can be chosen. stackEntry.mode
+	// then holds a COUNT per mode instead of a bitmask: mode m's count sits
+	// in bits.Len8(RepMax[m]) bits above the earlier modes' (RepeatLayout).
+	// A table field, not State; repeat.go has the readers.
+	RepMax [4]uint8
+	// RepCost / RepBudget: a pawprint charm's per-mode cost and its budget
+	// (CR 700.2i, 107.18). RepBudget 0 = no budget.
+	RepCost   [4]uint8
+	RepBudget uint8
 }
 
 // Timing is when a card may be cast.

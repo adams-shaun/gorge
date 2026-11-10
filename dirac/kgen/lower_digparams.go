@@ -59,14 +59,15 @@ func digRestTop(ps *params, n, take lValue, dest2 int) (bool, error) {
 // instant or sorcery whose script never reads the imprinted set (no SVar
 // names Imprint), the record dies with the spell as it leaves the stack,
 // so the parameter has no observable effect and is consumed. Any other
-// carrier refuses.
-func (lc *lowerCtx) digImprint(ps *params) error {
+// carrier refuses, bar the permanent shape digImprintPermanent reads; the
+// result is true when the Dig needs the imprint marker after it.
+func (lc *lowerCtx) digImprint(ps *params, dest int, take lValue) (bool, error) {
 	v, ok := ps.get("Imprint")
 	if !ok {
-		return nil
+		return false, nil
 	}
 	if strings.TrimSpace(v) != "True" {
-		return refuse("Dig Imprint$ %q", v)
+		return false, refuse("Dig Imprint$ %q", v)
 	}
 	spell := false
 	for _, t := range lc.face.Types {
@@ -75,12 +76,12 @@ func (lc *lowerCtx) digImprint(ps *params) error {
 		}
 	}
 	if !spell {
-		return refuse("Dig Imprint$ on a permanent")
+		return true, lc.digImprintPermanent(ps, dest, take) // lower_digimprintset.go
 	}
 	for _, sv := range lc.face.SVars {
 		if strings.Contains(sv, "Imprint") {
-			return refuse("Dig Imprint$ read by the script")
+			return false, refuse("Dig Imprint$ read by the script")
 		}
 	}
-	return nil
+	return false, nil
 }

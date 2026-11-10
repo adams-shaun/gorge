@@ -2,15 +2,16 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// A planeswalker's [-X] (Chandra, Hope's Beacon; CR 606.4):
-// SubCounter<X/LOYALTY> is CostLoyaltyX. The activation announces X
-// 0..the loyalty the walker has (ChX, mode = X; gorge's shared xAsk,
+// An announced-X counter removal (Chandra, Hope's Beacon; CR 606.4, 107.3):
+// SubCounter<X/LOYALTY> on a planeswalker and SubCounter<X/KIND> on any
+// permanent are CostLoyaltyX. The activation announces X 0..the counters of
+// Cost.Ctr the source has (ChX, mode = X; gorge's shared xAsk,
 // cast_subcounter.go's announced SubCounter bound), then removes that many
-// loyalty counters with the other costs (payAbilityCosts). The body reads
-// the announcement as Count$xPaid (the stack entry's X). Cold code: the
-// build reaches it only behind genPrep.anyLoyaltyX.
+// with the other costs (payAbilityCosts). The body reads the announcement as
+// Count$xPaid (the stack entry's X). Cold code: the build reaches it only
+// behind genPrep.anyLoyaltyX.
 
-// prepLoyaltyX sets anyLoyaltyX.
+// prepLoyaltyX sets anyLoyaltyX for every announced-X counter cost.
 func prepLoyaltyX(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
@@ -21,18 +22,19 @@ func prepLoyaltyX(t *kop.Table, g *genPrep) {
 	}
 }
 
-// loyaltyXOptions poses the X ask of a [-X] ability being built; false when
-// the ability has no such cost.
+// loyaltyXOptions poses the X ask of an announced-X counter ability being
+// built; false when the ability has no such cost.
 //
 //go:noinline
 func (s *State) loyaltyXOptions(k *prep, d *Decision) bool {
 	e := &s.bld().e
-	if k.t.Cards[e.card].Abilities[e.ab].Cost.Flags&kop.CostLoyaltyX == 0 {
+	a := &k.t.Cards[e.card].Abilities[e.ab]
+	if a.Cost.Flags&kop.CostLoyaltyX == 0 {
 		return false
 	}
 	have := 0
 	if sl := s.srcSlot(); sl != NoSlot {
-		have = s.perms[sl].ctrLow(int(kop.CtrLoyalty))
+		have = s.perms[sl].ctrLow(int(a.Cost.Ctr))
 	}
 	d.Kind, d.Sub, d.Player = DkChoose, ChX, e.ctrl
 	for x := 0; x <= have; x++ {
@@ -42,11 +44,29 @@ func (s *State) loyaltyXOptions(k *prep, d *Decision) bool {
 	return true
 }
 
-// payLoyaltyX removes the announced X loyalty counters (the cost's
-// CounterChange, CR 606.4).
+// counterXClamp min-clamps an X ask's mana bounds by the counters of the
+// announced cost's kind the source has (gorge's shared xAsk caps the one X by
+// every announced part); unchanged when the ability has no such cost.
 //
 //go:noinline
-func (s *State) payLoyaltyX(sl Slot, x uint8) {
+func (s *State) counterXClamp(k *prep, mx, hi int) (int, int) {
+	e := &s.bld().e
+	a := &k.t.Cards[e.card].Abilities[e.ab]
+	if a.Cost.Flags&kop.CostLoyaltyX == 0 {
+		return mx, hi
+	}
+	have := 0
+	if sl := s.srcSlot(); sl != NoSlot {
+		have = s.perms[sl].ctrLow(int(a.Cost.Ctr))
+	}
+	return min(mx, have), min(hi, have)
+}
+
+// payCounterX removes the announced X counters of kind (the cost's
+// CounterChange; CR 606.4 for loyalty, 118.3 for any other kind).
+//
+//go:noinline
+func (s *State) payCounterX(sl Slot, kind int, x uint8) {
 	s.perms[sl].seeCtr(s)
-	s.perms[sl].subCtrN(s, int(kop.CtrLoyalty), int(x))
+	s.perms[sl].subCtrN(s, kind, int(x))
 }

@@ -94,6 +94,8 @@ func (s *State) askOptionsCold1(k *prep, d *Decision) bool {
 		d.Sub = ChGenConfirm
 		d.add(MakeAction(AkChoose, 0, 0, 1)) // gorge's options: yes, no
 		d.add(MakeAction(AkChoose, 0, 0, 0))
+	case raVote:
+		s.voteOptions(k, d) // act_vote.go
 	default:
 		return s.askOptionsCold2(k, d)
 	}
@@ -115,6 +117,8 @@ func (s *State) applyAskCold1(k *prep, a Action) bool {
 		if s.searchPick(k) && !s.moveAsked() {
 			s.continueRes(k, 0)
 		}
+	case raVote:
+		s.voteAnswer(k, a) // act_vote.go
 	default:
 		return s.applyAskCold2(k, a)
 	}
@@ -514,6 +518,9 @@ func (s *State) askOptionsUnread(k *prep, d *Decision) bool {
 		if s.askOptionsTurnUpEff(k, d) { // face_turnupeffect.go
 			return true
 		}
+		if s.askOptionsDistPick(k, d) { // ctr_distpick.go
+			return true
+		}
 		if s.askOptionsPauperkw(k, d) { // kw_madness.go
 			return true
 		}
@@ -583,6 +590,9 @@ func (s *State) applyAskUnread(k *prep, a Action) bool {
 			return true
 		}
 		if s.applyAskTurnUpEff(k, a) { // face_turnupeffect.go
+			return true
+		}
+		if s.applyAskDistPick(k, a) { // ctr_distpick.go
 			return true
 		}
 		if s.applyAskPauperkw(k, a) { // kw_madness.go

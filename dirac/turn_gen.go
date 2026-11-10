@@ -628,6 +628,7 @@ func (s *State) newTurnGen() {
 	s.g.enteredN = 0
 	s.g.enteredFull = false
 	s.mSlZero(s.k(), mechExileEx)
+	s.mSlZero(s.k(), mechNoRegen) // repl_noregen.go
 	clear(s.cold.exMark)
 	s.mustBlockNewTurn(s.k()) // combat_mustbeblocked.go
 	if k := s.k(); k.gen != nil && k.gen.anyPermMark {
@@ -697,6 +698,9 @@ func (s *State) cleanupGen(k *prep) {
 	}
 	if k.gen.anyNTEmb {
 		s.dropNextTurnEmblems(k) // Duration$ UntilYourNextTurn (static_effectdelivered.go)
+	}
+	if k.gen.anyNTEndEmb {
+		s.dropEndOfNextTurnEmblems(k) // Duration$ UntilTheEndOfYourNextTurn (static_emblemdurations.go)
 	}
 	n := 0
 	for i := 0; i < int(s.g.nmay); i++ {

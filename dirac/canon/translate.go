@@ -213,6 +213,11 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			// CR 118.9), after its other alternative costs (none in FDN
 			// the kernel offers): mode "", AltCostIndex 1
 			cm = 1 << 4
+		case mode&8 != 0 && r.S.FeatMayPayLifeCast(r.D.Player, dirac.Obj(src)):
+			// a permission whose alternative cost is life (CR 118.9): gorge's
+			// "mayplay" option at AltCostIndex 1 (cast_staticpaylife.go)
+			cm, _ = CastModeCode("mayplay")
+			cm |= 1 << 4
 		case mode&8 != 0:
 			cm, _ = CastModeCode("mayplay") // a generated table's play permission (castMayPlay)
 		}
@@ -290,6 +295,10 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return ch("x", RefNone, mode)
 		case dirac.ChCostDiscard, dirac.ChDiscard, dirac.ChCleanupDiscard:
 			return ch("discard", src, 0)
+		case dirac.ChVoteCard:
+			// gorge effCardVote's KChoose option kind "vote_card" over the
+			// permanent voted for (DChoose, the default KernelDKind arm)
+			return ch("vote_card", src, 0)
 		case dirac.ChRecruitDiscard:
 			// gorge effRecruit's KChoose option kind
 			// "discard" (its canonical kind is DChoose, the default
@@ -678,6 +687,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("dig"), src, RefNone, 0), true
 	case dirac.ChGenBolster:
 		return Pack(kind("counter_pick"), src, RefNone, 0), true
+	case dirac.ChGenDistPick:
+		// gorge's "counter_dist" pick
+		return Pack(kind("counter_dist"), src, RefNone, 0), true
 	case dirac.ChGenProlif:
 		// gorge's proliferate pick: a permanent by Obj, a player by Player
 		if src >= dirac.PlayerTarget0 {

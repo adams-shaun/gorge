@@ -12,8 +12,9 @@ import (
 // (dirac/trig_effectuntileot.go; gorge effEffect registers the body as a
 // recurring delayed trigger, trigger_delayed.go delayedEventMatches). A
 // DamageDone emblem fires with the damage dealt (TriggerCount$DamageAmount),
-// and its ValidTarget$ is exactly Player (a mixed player-and-object target
-// falls to build's second-filter refusal). An AttackersDeclared one counts
+// and its ValidTarget$ is exactly Player or You (a mixed player-and-object
+// target falls to build's second-filter refusal; You is Tf2ToYou, read for
+// the emblem's owner). An AttackersDeclared one counts
 // every attacker of the declaration.
 func eotCombatEmblemRefuse(ab *lAbility) error {
 	if t := ab.Trigger; t != nil && (t.Event == "DamageDone" || t.Event == "AttackersDeclared" || t.Event == "Attacks") {
@@ -40,7 +41,7 @@ func eotCombatEmblemRefuse(ab *lAbility) error {
 		return nil
 	}
 	f2 := ab.Trigger.F2
-	if f2 == nil || f2.Players == 0 || len(f2.Clauses) == 0 && f2.Players != plBoth {
+	if f2 == nil || f2.Players == 0 || len(f2.Clauses) == 0 && f2.Players != plBoth && f2.Players != plYou {
 		return refuse("Effect DamageDone trigger ValidTarget other than Player")
 	}
 	return nil
@@ -61,18 +62,40 @@ func (lc *lowerCtx) emblemCapture(ps *params, t cards.Trigger, eot bool) (lRef, 
 	if strings.TrimSpace(ro) != "Targeted" || !eot || t.Mode != "DamageDone" {
 		return lRef{}, false, refuse("Effect triggers with RememberObjects$ %q", ro)
 	}
+	var ref lRef
 	if _, ok := ps.m["ValidTgts"]; !ok {
-		return lRef{}, false, refuse("Effect RememberObjects$ Targeted without ValidTgts$")
-	}
-	ref, err := lc.objOrTarget(ps, "", zBattlefield)
-	if err != nil {
-		return lRef{}, false, err
+		var err error
+		if ref, err = lc.parentCapture(); err != nil {
+			return lRef{}, false, err
+		}
+	} else {
+		var err error
+		if ref, err = lc.objOrTarget(ps, "", zBattlefield); err != nil {
+			return lRef{}, false, err
+		}
 	}
 	if ref.Kind != rTarget {
 		return lRef{}, false, refuse("Effect RememberObjects$ Targeted over %s", ref)
 	}
 	ps.consume("RememberObjects")
 	return ref, true, nil
+}
+
+// parentCapture is an Effect link's RememberObjects$ Targeted with no target
+// of its own: gorge remembers the union of every target choice down the
+// chain (effectRemembered, refTargetUnion), so the capture is the chain's
+// one battlefield object target (Captain Howler: the pump's creature). A
+// chain with several targets, or a player or non-battlefield one, refuses.
+func (lc *lowerCtx) parentCapture() (lRef, error) {
+	if len(lc.chainT) != 1 {
+		return lRef{}, refuse("Effect RememberObjects$ Targeted without ValidTgts$ over %d chain targets", len(lc.chainT))
+	}
+	ti := lc.chainT[0]
+	ts := lc.ab.Targets[ti]
+	if ts.F == nil || ts.F.Players != 0 || len(ts.F.Clauses) == 0 || ts.Zone != zBattlefield || !ts.Max.isConst() || ts.Max.N != 1 {
+		return lRef{}, refuse("Effect RememberObjects$ Targeted without ValidTgts$: the parent target is not one battlefield object")
+	}
+	return lRef{Kind: rTarget, N: ti}, nil
 }
 
 // emblemCaptureFilter strips the Remembered flag from a captured emblem's

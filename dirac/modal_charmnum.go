@@ -42,7 +42,7 @@ const (
 func prepCharmNum(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
-			g.anyCharmNum = g.anyCharmNum || t.Cards[i].Abilities[j].ModesPick > 1 || t.Cards[i].ModesPickTW > 1
+			g.anyCharmNum = g.anyCharmNum || t.Cards[i].Abilities[j].ModesPick > 1 || t.Cards[i].ModesPickTW > 1 || t.Cards[i].Abilities[j].Repeats()
 		}
 	}
 }
@@ -56,6 +56,9 @@ func charmMin(a *kop.Ability) int { return int(a.ModesPick) - int(a.ModesFew) }
 //
 //go:noinline
 func (s *State) charmFeasible(k *prep, a *kop.Ability, p uint8, src Slot) bool {
+	if a.Repeats() {
+		return true // gorge: repeat || min <= the legal modes (a mode can fill every pick)
+	}
 	need := charmMin(a)
 	if DebugCharmAnyFeasible {
 		need = 1
@@ -75,6 +78,9 @@ func (s *State) charmFeasible(k *prep, a *kop.Ability, p uint8, src Slot) bool {
 //
 //go:noinline
 func (s *State) charmModesStep(k *prep, a *kop.Ability, d *Decision) int {
+	if a.Repeats() {
+		return s.charmRepeatModes(k, a, d)
+	}
 	e := &s.bld().e
 	var feas [4]bool
 	n := 0
@@ -123,6 +129,9 @@ func (s *State) charmModesStep(k *prep, a *kop.Ability, d *Decision) int {
 
 // charmSlots is the target slots owned by a chosen mode.
 func charmSlots(a *kop.Ability, mode uint8) (mask uint8, n int) {
+	if a.Repeats() {
+		return charmRootSlots(a, mode)
+	}
 	for j := 0; j < int(a.NTargets); j++ {
 		if a.TgtModes[j]&mode != 0 {
 			mask |= 1 << j
@@ -154,14 +163,16 @@ func (s *State) charmCombined(k *prep) bool {
 }
 
 // charmCands lists each chosen slot's candidates (the ordinary per-slot
-// census: targetCands, then affordableTargets).
+// census: targetCands, then affordableTargets). A slot of a repeated mode's
+// extra instance takes its mode's spec (kop.Ability.SlotOwner).
 func (s *State) charmCands(k *prep, a *kop.Ability, mask uint8, bufs *[kop.MaxTargets][MaxOptions]uint8, ns *[kop.MaxTargets]int) {
 	e := &s.bld().e
-	for j := 0; j < int(a.NTargets); j++ {
+	for j := 0; j < kop.MaxTargets; j++ {
 		if mask&(1<<j) == 0 {
 			continue
 		}
-		n := s.targetCands(k, &a.Targets[j], e.ctrl, s.srcSlot(), e.obj, &bufs[j])
+		t, _ := a.SlotOwner(e.mode, j)
+		n := s.targetCands(k, &a.Targets[t], e.ctrl, s.srcSlot(), e.obj, &bufs[j])
 		if k.gen != nil {
 			n = s.affordableTargets(k, &bufs[j], n)
 		}
@@ -173,14 +184,25 @@ func (s *State) charmCands(k *prep, a *kop.Ability, mask uint8, bufs *[kop.MaxTa
 }
 
 // charmOcc is the occurrence byte of candidate c in slot j: how many chosen
-// earlier slots list it too (the oracle's disambiguate over gorge's
-// group-major listing).
+// earlier slots (mask, ascending) list it too (the oracle's disambiguate over
+// gorge's group-major listing).
 func charmOcc(mask uint8, j int, c uint8, bufs *[kop.MaxTargets][MaxOptions]uint8, ns *[kop.MaxTargets]int) uint8 {
-	occ := uint8(0)
+	var order [kop.MaxTargets]uint8
+	n := 0
 	for i := 0; i < j; i++ {
-		if mask&(1<<i) == 0 {
-			continue
+		if mask&(1<<i) != 0 {
+			order[n] = uint8(i)
+			n++
 		}
+	}
+	return charmOccOrder(&order, n, c, bufs, ns)
+}
+
+// charmOccOrder is charmOcc over the first p slots of order.
+func charmOccOrder(order *[kop.MaxTargets]uint8, p int, c uint8, bufs *[kop.MaxTargets][MaxOptions]uint8, ns *[kop.MaxTargets]int) uint8 {
+	occ := uint8(0)
+	for q := 0; q < p; q++ {
+		i := order[q]
 		for x := 0; x < ns[i]; x++ {
 			if bufs[i][x] == c {
 				occ++
@@ -192,8 +214,9 @@ func charmOcc(mask uint8, j int, c uint8, bufs *[kop.MaxTargets][MaxOptions]uint
 }
 
 // charmTargetsStep poses the combined target decision: for every unfilled
-// chosen slot (printed order), each candidate, tagged with its occurrence.
-// It returns false when the ask would overflow MaxOptions; the caller stalls.
+// chosen slot (gorge's group order: printed order), each candidate, tagged
+// with its occurrence. It returns false when the ask would overflow
+// MaxOptions; the caller stalls.
 //
 //go:noinline
 func (s *State) charmTargetsStep(k *prep, d *Decision) bool {
@@ -210,29 +233,30 @@ func (s *State) charmTargetsStep(k *prep, d *Decision) bool {
 	if !mt.active {
 		*mt = multiTgt{active: true, slot: mtCharm}
 	}
+	order, no := charmAskOrder(a, s.bld().e.mode)
 	mask, _ := charmRootSlots(a, s.bld().e.mode)
 	var bufs [kop.MaxTargets][MaxOptions]uint8
 	var ns [kop.MaxTargets]int
 	s.charmCands(k, a, mask, &bufs, &ns)
 	total := 0
-	for j := 0; j < int(a.NTargets); j++ {
-		if mask&(1<<j) == 0 || mt.picked&(1<<j) != 0 {
-			continue
+	for p := 0; p < no; p++ {
+		if j := order[p]; mt.picked&(1<<j) == 0 {
+			total += ns[j]
 		}
-		total += ns[j]
 	}
 	if int(d.N)+total > MaxOptions {
 		s.capFull(StallCharmOpts)
 		return false
 	}
 	d.Kind, d.Player = DkTarget, s.bld().e.ctrl
-	for j := 0; j < int(a.NTargets); j++ {
-		if mask&(1<<j) == 0 || mt.picked&(1<<j) != 0 {
+	for p := 0; p < no; p++ {
+		j := order[p]
+		if mt.picked&(1<<j) != 0 {
 			continue
 		}
 		for x := 0; x < ns[j]; x++ {
 			c := bufs[j][x]
-			d.add(MakeAction(AkTarget, 0, c, charmOcc(mask, j, c, &bufs, &ns)))
+			d.add(MakeAction(AkTarget, 0, c, charmOccOrder(&order, p, c, &bufs, &ns)))
 		}
 	}
 	return true
@@ -246,20 +270,22 @@ func (s *State) applyCharmTarget(k *prep, a Action) {
 	e := &s.bld().e
 	mt := &s.g.mt
 	ab := s.buildAbility(k)
+	order, no := charmAskOrder(ab, e.mode)
 	mask, _ := charmRootSlots(ab, e.mode)
 	var bufs [kop.MaxTargets][MaxOptions]uint8
 	var ns [kop.MaxTargets]int
 	s.charmCands(k, ab, mask, &bufs, &ns)
 	c := a.Target()
-	for j := 0; j < int(ab.NTargets); j++ {
-		if mask&(1<<j) == 0 || mt.picked&(1<<j) != 0 {
+	for p := 0; p < no; p++ {
+		j := int(order[p])
+		if mt.picked&(1<<j) != 0 {
 			continue
 		}
 		in := false
 		for x := 0; x < ns[j]; x++ {
 			in = in || bufs[j][x] == c
 		}
-		if !in || charmOcc(mask, j, c, &bufs, &ns) != a.Mode() {
+		if !in || charmOccOrder(&order, p, c, &bufs, &ns) != a.Mode() {
 			continue
 		}
 		e.tgt[j] = c
@@ -278,7 +304,7 @@ func (s *State) applyCharmTarget(k *prep, a Action) {
 			if k.gen != nil && k.gen.crimeOn && e.kind != seSpell {
 				// the committed window's TargetsChosen (act_commitcrime.go):
 				// every mask slot's pick, the earlier ones included
-				for jj := 0; jj < int(ab.NTargets); jj++ {
+				for jj := 0; jj < kop.MaxTargets; jj++ {
 					if mask&(1<<jj) != 0 {
 						s.noteCrime(k, e.ctrl, e.tgt[jj])
 					}

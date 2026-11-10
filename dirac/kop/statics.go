@@ -177,6 +177,29 @@ type Emblem struct {
 	// Creature.IsRemembered over the registration's Remembered set; The Inner
 	// Light). The trigger's filter carries no Remembered flag.
 	Capture Ref
+	// UntilEndOfNextTurn: Duration$ UntilTheEndOfYourNextTurn. gorge keeps
+	// the registration through its controller's next turn and drops it at
+	// that turn's cleanup (engine/rules/layers_effect.go:91 freezes
+	// UntilTurn to nextTurnFor, and :510 drops it when e.G.Turn reaches
+	// UntilTurn). The kernel marks the emblem in State.g.embF at its
+	// controller's turn start and drops it in cleanupGen when that turn ends.
+	UntilEndOfNextTurn bool
+	// WhileHostNoEOT: the WhileHost leave check without the cleanup drop
+	// (Duration$ AsLongAsInPlay): the emblem ends only when its host leaves
+	// the battlefield, and its statics read the host as their source.
+	WhileHostNoEOT bool
+	// AsLongAsControl: Duration$ AsLongAsControl. It ends when its host
+	// leaves the battlefield or is no longer controlled by the emblem's
+	// player (CR 611.2b; gorge's continuousLive and expireAsLongAsControl),
+	// and its statics read the host as their source.
+	AsLongAsControl bool
+}
+
+// HostBound reports whether the emblem's lifetime follows its host object:
+// it ends when that object leaves the battlefield, and its statics read the
+// host as their source.
+func (e *Emblem) HostBound() bool {
+	return e.WhileHost || e.WhileHostNoEOT || e.AsLongAsControl
 }
 
 // Panharmonicon's Static.A: the one trigger mode a ValidMode$ names without

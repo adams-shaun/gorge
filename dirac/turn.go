@@ -43,6 +43,9 @@ func (s *State) beginTurn(p uint8) {
 	}
 	s.turn++
 	s.active = p
+	if k := s.k(); k.gen != nil && k.gen.anyNTEndEmb {
+		s.embTurnStart(k, p) // UntilTheEndOfYourNextTurn: this turn is its last (static_emblemdurations.go)
+	}
 	s.step = kop.StepUntap
 	s.ctl = ctlStepBegin
 	s.carry = carryNone
@@ -536,7 +539,7 @@ func (s *State) sba(k *prep) bool {
 						s.cfgx |= cfgxDestroyHealPass // CR 614.1: the counters leave, so a 0-toughness creature still dies next pass
 						continue
 					}
-					if p.flags&pfRegen != 0 {
+					if s.canRegen(sl) {
 						s.regenerate(sl)
 						continue
 					}
@@ -940,7 +943,9 @@ func (s *State) fireDelayed(k *prep) {
 			// token's AtEOT$ Destroy (__kwAtEOTDestroy) is the same.
 			continue
 		}
+		m := s.npend
 		s.enqueue(dlySource(&d), d.ver, s.objs[d.obj].card, abDelayed, d.ctrl, d.obj, d.ctrl, delayedAmt(d))
+		s.echoOwnDelayed(k, &d, m)
 	}
 	if keep != 0 {
 		copy(s.dly[:keep], s.dly[n:n+keep])
