@@ -114,6 +114,7 @@ type genPrep struct {
 	anyMadness               bool // a card has printed madness (CardDef.HasMadness; kw_madness.go)
 	anyMiracle               bool // a card has printed miracle (CardDef.HasMiracle; kw_miracle.go)
 	anyHexCol                bool // a card has printed hexproof from a colour (CardDef.HexColors; kw_hexproofcolor.go)
+	anyHexOwn                bool // a card has a StatHexproofOwnColors static (kw_hexproofcolor.go)
 	anyProtCol               bool // a card has printed protection from a colour (CardDef.ProtColors; kw_protection.go)
 	// grantTrigEv: events (bit per TrigEvent) of triggered abilities a
 	// Continuous static grants to the permanent its source is attached to
@@ -711,6 +712,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyLinkRet = tableLinkRet(t)
 	g.anyLinkCtr = tableLinkCtr(t)
 	prepStaticClasses(t, g)
+	prepHexOwn(t, g) // kw_hexproofcolor.go
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]
@@ -1931,6 +1933,7 @@ type genState struct {
 	embR    [MaxSeats][maxEmb]Obj
 	nseat   uint8                             // seats in this game, set by InitN; read only when MaxSeats > 2 (nSeats)
 	poolTre [MaxSeats][kop.NumManaKinds]uint8 // per player and colour, the floating units a Treasure produced (mana_artifact.go artTag/treSync)
+	blkDef  uint8                             // the defending player declaring blockers; read only when MaxSeats > 2 (blockDef)
 	rsv     [rsvN]uint8
 }
 
@@ -1939,7 +1942,7 @@ const (
 	// rsvN pads the reserved block to 80 bytes (genState's 5 bytes of tail
 	// padding absorb the rest of the alignment): 64, plus the 16 that carry
 	// State's growth for MaxObj 236 to a multiple of 64 so perms keeps its phase.
-	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 1 - MaxSeats*kop.NumManaKinds
+	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 2 - MaxSeats*kop.NumManaKinds
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).

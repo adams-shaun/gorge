@@ -100,7 +100,7 @@ func (s *State) mustBeBlocked(k *prep, a Slot) bool {
 
 // mustBlockAttackers is the attacking creatures that must be blocked if able.
 func (s *State) mustBlockAttackers(k *prep) (m slotMask) {
-	for am := s.ctrlM[s.active]; am.any(); am = am.rest() {
+	for am := s.blockAtkM(k); am.any(); am = am.rest() {
 		if a := am.first(); s.perms[a].flags&pfAttacking != 0 && s.mustBeBlocked(k, a) {
 			m = m.with(a)
 		}
@@ -138,8 +138,8 @@ type mbSearch struct {
 // It returns the score and deficit of that declaration.
 func (m *mbSearch) mbInit(s *State, k *prep, lure, mb, duty slotMask, xb, xa Slot) (score, deficit int) {
 	*m = mbSearch{s: s, k: k, lure: lure, mb: mb, duty: duty, best: -1, want: -1}
-	def := 1 - s.active
-	for am := s.ctrlM[s.active]; am.any(); am = am.rest() {
+	def := s.blockDef()
+	for am := s.blockAtkM(k); am.any(); am = am.rest() {
 		a := am.first()
 		if s.perms[a].flags&pfAttacking == 0 {
 			continue
@@ -299,12 +299,12 @@ func (s *State) blockerOptionsReq(k *prep, d *Decision, mb slotMask) bool {
 	duty := s.blockDuty(k) // combat_blocksifable.go
 	over := false
 	q := s.mbReach(k, lure, mb, duty, NoSlot, NoSlot, -1, &over)
-	for bm := s.ctrlM[1-s.active]; bm.any() && !over; bm = bm.rest() {
+	for bm := s.ctrlM[s.blockDef()]; bm.any() && !over; bm = bm.rest() {
 		b := bm.first()
 		if !s.blockerReady(k, b) {
 			continue
 		}
-		for am := s.ctrlM[s.active]; am.any(); am = am.rest() {
+		for am := s.blockAtkM(k); am.any(); am = am.rest() {
 			a := am.first()
 			if s.perms[a].flags&pfAttacking == 0 || !s.canBlock(k, b, a) || s.menaceImpossible(k, a) ||
 				k.gen.anyMaxBlk && s.blockCapped(k, a) || s.mbReach(k, lure, mb, duty, b, a, q, &over) < q {

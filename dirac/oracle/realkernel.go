@@ -360,21 +360,32 @@ func (r *realSide) Project(p *Projection) {
 	}
 	p.Initiative = r.s.Initiative() // CR 726 (act_initiative.go)
 	p.DayNight = r.s.DayNight()     // CR 731 (kw_daynight.go)
-	for s := 0; s < 2; s++ {
-		p.Room[s] = r.s.DungeonRoom(uint8(s))
-		p.Life[s] = int32(kp.Life[s])
-		p.Poison[s] = int16(r.s.Poison(uint8(s))) // infect / toxic (kw_infect.go)
-		p.Speed[s] = uint8(r.s.Speed(uint8(s)))   // CR 702.179 (kw_speed.go)
+	for s := 0; s < int(r.n) && s < MaxSeats; s++ {
+		sp := p.seat(s)
+		*sp.room = r.s.DungeonRoom(uint8(s))
+		*sp.life = int32(kp.Life[s])
+		*sp.poison = int16(r.s.Poison(uint8(s))) // infect / toxic (kw_infect.go)
+		if s < 2 {
+			// the kernel packs speed for two seats; a further seat's stays zero
+			*sp.speed = uint8(r.s.Speed(uint8(s))) // CR 702.179 (kw_speed.go)
+		}
 		if uint8(s) == kp.Active {
-			p.LandsPlayed[s] = kp.Lands[s] // the active player's only (project.go)
+			*sp.lands = kp.Lands[s] // the active player's only (project.go)
 		}
 		for k := 0; k < 6 && k < len(kp.Pool[s]); k++ {
-			p.Pool[s][k] = int16(kp.Pool[s][k])
+			sp.pool[k] = int16(kp.Pool[s][k])
 		}
-		p.LibCount[s], p.HandCount[s] = kp.LibN[s], kp.HandN[s]
+		*sp.lib, *sp.hand = kp.LibN[s], kp.HandN[s]
+		*sp.casts = kp.CmdCast[s]
+		for q := 0; q < int(r.n) && q < MaxSeats; q++ {
+			*p.cmdDamage(s, q) = kp.CmdDmg[s][q]
+		}
 	}
 	if r.n > 2 {
-		r.projectMore(p)
+		p.Seats.NSeat = r.n
+		for s := 0; s < int(r.n) && s < MaxSeats; s++ {
+			p.Seats.Lost[s] = r.s.FeatLost(uint8(s))
+		}
 	}
 	p.NStack = kp.NStack
 	_, _, building := r.s.BuildingCast()
@@ -428,31 +439,7 @@ func (r *realSide) Project(p *Projection) {
 		p.Active = 0 // gorge's Game.Active before the first turn (kernel Projection names the starter)
 	}
 	p.RNGDraws = kp.Draws
-	for i := range p.CmdCasts {
-		p.CmdCasts[i] = kp.CmdCast[i]
-		copy(p.CmdDamage[i][:], kp.CmdDmg[i][:])
-	}
 	p.Over, p.Winner = kp.Over, kp.Winner
-}
-
-// projectMore fills a game of more than two seats' further-seat fields. The
-// kernel's Projection holds seats 0 and 1, so seats 2 and up read the
-// accessors that index every seat (life, hand, library). Poison, speed,
-// dungeon room, mana pool, lands played and loss stay zero past seat 1: the
-// kernel's accessors for them still fold the seat to its low bit, and its
-// turn order and losing are two-seat, so a game reaching them diverges there.
-func (r *realSide) projectMore(p *Projection) {
-	p.Seats.NSeat = r.n
-	for s := uint8(0); s < r.n && s < MaxSeats; s++ {
-		if s < 2 {
-			p.Seats.Lost[s] = r.s.FeatLost(s)
-			continue
-		}
-		sp := p.seat(int(s))
-		*sp.life = int32(r.s.LifeOf(s))
-		*sp.hand = uint8(r.s.HandSize(s))
-		*sp.lib = uint8(r.s.LibrarySize(s))
-	}
 }
 
 // stackModes is e's chosen modes: its mode byte also carries cast provenance

@@ -41,8 +41,7 @@ func (s *State) scriptGapAvail(k *prep, p uint8, sl Slot, a *avail) {
 		}
 	}
 	if s.scriptTapsDefer(k, p).has(sl) {
-		pc := s.manaPCGen(k, sl)
-		a.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))
+		s.addTapsDeferUnits(k, sl, a)
 	}
 	if k.ctrMana && s.scriptCtr(k, p).has(sl) {
 		addCtrUnits(a, k.ctrAbOf(c))
