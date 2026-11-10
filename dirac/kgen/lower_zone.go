@@ -2108,7 +2108,7 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		case hasExile && strings.TrimSpace(exile) == "Battlefield":
 			// ends for each permanent as it leaves (CR 611.2c), as a record does
 		case !hasExile && exHaste:
-			// the targeted haste form checked above
+			// the targeted haste or power-compare form checked above
 		case !hasExile && lc.cantBlockAttackingTarget(ps, obj):
 			// (Gossip's Talent) ExileOnMoved$ is
 			// unread here because gorge's CantBlockBy matches the remembered

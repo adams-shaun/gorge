@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -14,18 +15,21 @@ import (
 // be blocked this turn except by creatures with haste" (a targeted Effect with
 // no exile sweep), played decision by decision against gorge.
 // TestStdSetReprosLockstep replays the repro; TestCantBlockHasteReprosReach
-// requires the recorded game to reach the grant, since a lockstep entry alone
-// would pass a script that never cast a noncreature spell beside Speed.
+// requires the recorded game to reach the grant and attack with the granted
+// creature, and TestCantBlockHasteMutation requires that the replay diverges
+// once the kernel stops reading the grant, so the recorded game depends on it.
 //
 // The game is recorded by TestCantBlockHasteRecord (CANT_BLOCK_HASTE_RECORD=1)
-// on the kernel table built from the decks: seat 0 holds Speed and Lightning
-// Bolts and casts a Bolt only once Speed is out; seat 1 holds Grizzly Bears.
+// on the kernel table built from the decks: seat 0 holds the only Speed (the
+// one creature with haste, so the grant's target) and Lightning Bolts and casts
+// a Bolt only once Speed is out; seat 1 holds Grizzly Bears. A seed is kept
+// only if its game also diverges under the mutation.
 func cantBlockHasteCases() []effectLongCase {
 	return []effectLongCase{{
 		name:   "speed_young_avenger_grants_blockable_only_by_haste",
 		prefer: []string{"Speed, Young Avenger", "Lightning Bolt", "Grizzly Bears"},
 		decks: [2][]string{
-			append(append(deckOf(6, "Speed, Young Avenger"), deckOf(6, "Lightning Bolt")...), deckOf(12, "Mountain")...),
+			append(append(deckOf(1, "Speed, Young Avenger"), deckOf(9, "Lightning Bolt")...), deckOf(14, "Mountain")...),
 			append(deckOf(8, "Grizzly Bears"), deckOf(16, "Forest")...),
 		},
 		surface: "autopay",
@@ -33,20 +37,27 @@ func cantBlockHasteCases() []effectLongCase {
 	}}
 }
 
-// speedGranted: two triggers of Speed went on the stack (the cast trigger and
-// the reflexive one its paid {1} makes), then seat 0 declared attackers later
-// in the log.
+// speedGranted: in one turn, two triggers of Speed went on the stack (the
+// cast trigger and the reflexive one its paid {1} makes) and then seat 0
+// attacked with Speed, the only creature with haste and so the grant's target.
 func speedGranted(g *GorgeSide) bool {
 	pushed := 0
 	for _, e := range g.E.L.Events {
 		switch e.Kind {
+		case events.TurnChange:
+			pushed = 0
 		case events.TriggerPush:
 			if o := g.E.G.Obj(e.Obj); o != nil && o.Face() != nil && o.Face().Name == "Speed, Young Avenger" {
 				pushed++
 			}
 		case events.DeclareAttackers:
-			if pushed >= 2 && e.Player == 0 {
-				return true
+			if pushed < 2 { // e.Player is the defender; the Speed check below fixes the attacker's seat
+				continue
+			}
+			for _, id := range e.IDs {
+				if o := g.E.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Speed, Young Avenger" {
+					return true
+				}
 			}
 		}
 	}
@@ -66,11 +77,19 @@ func speedOut(g *GorgeSide) bool {
 }
 
 // cantBlockHastePolicy is effectLongPolicy, except that no Lightning Bolt is
-// cast while Speed is not on the battlefield.
+// cast unless Speed is on the battlefield in seat 0's first main phase, and an attacker is declared
+// whenever one is offered.
 func cantBlockHastePolicy(m *Matchup, c effectLongCase, seed uint64) Policy {
 	inner := effectLongPolicy(m, c, seed)
 	return PolicyFunc(func(p *PickCtx) Canon {
-		if p.D.Kind != DPriority || speedOut(p.G) {
+		if p.D.Kind == DAttackers {
+			for _, o := range p.D.Options {
+				if o.Kind() == ActAttack {
+					return o
+				}
+			}
+		}
+		if p.D.Kind != DPriority || (speedOut(p.G) && p.G.E.G.Active == 0 && p.G.E.G.Step == state.StepMain1) {
 			return inner.Pick(p)
 		}
 		d := *p.D
@@ -113,6 +132,35 @@ func cantBlockHasteReplay(t *testing.T, reg *cards.Registry, c effectLongCase) {
 	}
 }
 
+// cantBlockHasteDiverges replays the recorded game with the kernel ignoring
+// the grant and reports the divergence, if any.
+func cantBlockHasteDiverges(t *testing.T, reg *cards.Registry, c effectLongCase, r *Repro) *Divergence {
+	t.Helper()
+	dirac.DebugExHasteOff = true
+	defer func() { dirac.DebugExHasteOff = false }()
+	res, _ := effectLongPlay(t, reg, c, r, printedDelveSet(t, r.Cards), &ScriptPolicy{Actions: r.Actions})
+	return res.Div
+}
+
+// TestCantBlockHasteMutation: with the record never read, the granted Speed
+// is blockable by Grizzly Bears and the recorded game diverges.
+func TestCantBlockHasteMutation(t *testing.T) {
+	reg := synthReg(t)
+	for _, c := range cantBlockHasteCases() {
+		t.Run(c.name, func(t *testing.T) {
+			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			d := cantBlockHasteDiverges(t, reg, c, r)
+			if d == nil {
+				t.Fatalf("no divergence with DebugExHasteOff: the recorded game never depends on the grant")
+			}
+			t.Logf("diverges at %d: %s %s", d.At, d.What, d.Field)
+		})
+	}
+}
+
 // TestCantBlockHasteRecord plays the case's policy over seeds until one
 // reaches the grant, and writes the repro. It runs only with
 // CANT_BLOCK_HASTE_RECORD=1.
@@ -138,6 +186,9 @@ func TestCantBlockHasteRecord(t *testing.T) {
 					continue
 				}
 				r.setActions(res.Actions)
+				if cantBlockHasteDiverges(t, reg, c, r) == nil {
+					continue
+				}
 				if err := r.Write(filepath.Join("testdata", "repro", c.name+".repro.json")); err != nil {
 					t.Fatal(err)
 				}
