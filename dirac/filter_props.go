@@ -289,6 +289,12 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		c := s.cardAt(sl)
 		ans = c != kop.NoCard && k.t.Cards[c].MorphFamily == kop.MorphDisguise && !s.faceDown(k, sl) &&
 			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+	case kop.W7WithFlashback:
+		// gorge withFlashback on a battlefield object: the printed keyword,
+		// none while face down or after a lose-all-abilities effect
+		c := s.cardAt(sl)
+		ans = c != kop.NoCard && k.t.Cards[c].Keywords&kop.KwFlashback != 0 && !s.faceDown(k, sl) &&
+			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
 	case kop.W7GreatestPowerTgt:
 		// gorge greatestPowerControlledByTargeted: a battlefield creature a
 		// player target of the current entry controls that no OTHER such
@@ -338,6 +344,8 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 		ans = c != kop.NoCard && k.t.Cards[c].HasWarp
 	case kop.W7WithDisguise:
 		ans = c != kop.NoCard && k.t.Cards[c].MorphFamily == kop.MorphDisguise
+	case kop.W7WithFlashback:
+		ans = c != kop.NoCard && k.t.Cards[c].Keywords&kop.KwFlashback != 0
 	case kop.W7FaceUpDisguise:
 		ans = c != kop.NoCard && !fd && k.t.Cards[c].MorphFamily == kop.MorphDisguise
 	case kop.W7IsCommander:

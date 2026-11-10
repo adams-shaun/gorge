@@ -455,6 +455,11 @@ type lTarget struct {
 	// graveyard card matching F (TgtPermOrGraveCard)
 	PermOrGraveCard bool
 
+	// GraveExileCard: with Origin$ Graveyard,Exile, a card in a graveyard or
+	// exile matching F, clause i in ClauseZones[i] (TgtGraveExileCard)
+	GraveExileCard bool
+	ClauseZones    []int
+
 	AtRes   bool   // asked mid-resolution (gorge's deferred chain-link targets), at its ChooseTargets
 	ChgSub  bool   // declared by a ChangeZone chain link (not the root): gorge announces its targets on cast (castSubChangeZoneAnnounceable)
 	Decl    bool   // a spell's copy target declaration (its root node or a charm mode's head)

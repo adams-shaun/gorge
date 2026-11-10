@@ -362,11 +362,27 @@ func (lc *lowerCtx) objOrTargetParent(ps *params, dflt string, zone int) (lRef, 
 
 func (lc *lowerCtx) objOrTargetOpt(ps *params, dflt string, zone int, allowParent bool) (lRef, error) {
 	if vt, ok := ps.get("ValidTgts"); ok {
+		var gxZones []kop.Zone
+		if lc.graveExileCard {
+			var err error
+			if vt, gxZones, err = graveExileSplit(vt); err != nil { // lower_graveexiletgt.go
+				return lRef{}, err
+			}
+		}
 		f, err := lc.filter(vt)
 		if err != nil {
 			return lRef{}, err
 		}
 		t := lTarget{F: f, Zone: zone}
+		if lc.graveExileCard {
+			if f.Players != 0 || len(f.Clauses) != len(gxZones) {
+				return lRef{}, refuse("ChangeZone Origin$ Graveyard,Exile ValidTgts$ %q does not lower to one clause per alternative", vt)
+			}
+			t.GraveExileCard = true
+			for _, z := range gxZones {
+				t.ClauseZones = append(t.ClauseZones, int(z))
+			}
+		}
 		if lc.permOrGraveCard {
 			if f.Players != 0 {
 				return lRef{}, refuse("ChangeZone Origin$ Battlefield,Graveyard with a player target")

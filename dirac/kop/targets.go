@@ -101,6 +101,12 @@ const TgtPermOrSpell TargetKind = 235
 // <type> over Origin$ Battlefield,Graveyard (Aurelia's Vindicator).
 const TgtPermOrGraveCard TargetKind = 240
 
+// TgtGraveExileCard: a card in a graveyard or in exile matching Filter's Or
+// chain, each chain clause carrying its own Zone (gorge changeZoneTargetZones
+// over Origin$ Graveyard,Exile: Sorceress's Schemes). The graveyards are
+// walked before exile, so a chain names its graveyard clauses first.
+const TgtGraveExileCard TargetKind = 241
+
 // TgfSingleTgt (TargetSpec.TFlags): a TgtStackObj slot admits only a spell or
 // an ability whose targets are exactly one distinct target (gorge
 // TargetType$ SpellAbility.singleTarget, the singleTarget property).

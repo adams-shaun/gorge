@@ -1,0 +1,9 @@
+# the graveexiletgt pool: Sorceress's Schemes' one target slot across the
+# graveyards and exile (dirac/oracle/graveexiletgt_test.go), with a burn spell
+# that fills a graveyard, a flashback instant that is exiled once its
+# flashback resolves, and basics
+Sorceress's Schemes
+Shock
+Think Twice
+Mountain
+Island

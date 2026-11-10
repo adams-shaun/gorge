@@ -1117,12 +1117,21 @@ func (cb *cardBuilder) filter(f *lFilter, zone kop.Zone) (kop.FilterID, error) {
 	if f == nil {
 		return 0, nil
 	}
+	return cb.filterZones(f, slices.Repeat([]kop.Zone{zone}, len(f.Clauses)))
+}
+
+// filterZones is filter with a zone per clause (zones[i] for clause i; the
+// TgtGraveExileCard chain).
+func (cb *cardBuilder) filterZones(f *lFilter, zones []kop.Zone) (kop.FilterID, error) {
+	if f == nil {
+		return 0, nil
+	}
 	if len(f.Clauses) == 0 {
 		return 0, fmt.Errorf("player-only filter where an object filter is needed")
 	}
 	var next kop.FilterID
 	for i := len(f.Clauses) - 1; i >= 0; i-- {
-		kf, err := cb.clause(f.Clauses[i], zone)
+		kf, err := cb.clause(f.Clauses[i], zones[i])
 		if err != nil {
 			return 0, err
 		}
