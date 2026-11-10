@@ -52,6 +52,12 @@ func (s *State) exploreNonland(k *prep, in *kop.Instr, grave bool) {
 			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(n))
 		}
 	}
+	if grave && pl.libLo < pl.libHi && pl.lib[pl.libLo] == top && k.gen != nil && s.park(k, top, parkMill, 0) {
+		// two exile-instead effects compete for the revealed card's move
+		// (two Rest in Peaces): gorge asks their CR 616.1 order, and the card
+		// waits on top of the library for the answer, as a milled card does
+		grave = false
+	}
 	if grave && pl.libLo < pl.libHi && pl.lib[pl.libLo] == top {
 		pl.libLo++
 		s.touch(top)
