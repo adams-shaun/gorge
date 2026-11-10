@@ -44,8 +44,8 @@ T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.S
 SVar:TrigPick:DB$ Pump | ValidTgts$ Creature.YouCtrl+Other | SubAbility$ DBFight
 SVar:DBFight:DB$ Fight | Defined$ ParentTarget | ValidTgts$ Creature.OppCtrl | SubAbility$ DBDelay
 SVar:DBDelay:DB$ Effect | Triggers$ Dies | RememberObjects$ Targeted | ConditionDefined$ Targeted | ConditionPresent$ Creature | ConditionCompare$ CMP
-SVar:Dies:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ VALID | TriggerZones$ Command | Execute$ TrigDraw
-SVar:TrigDraw:DB$ Draw | Defined$ You | NumCards$ 1
+SVar:Dies:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ VALID | TriggerZones$ Command | Execute$ TrigPeek
+SVar:TrigPeek:DB$ Draw | NumCards$ 1 | Defined$ You | SpellDescription$ probe
 Oracle:probe
 `
 	const list = `Name:List Probe

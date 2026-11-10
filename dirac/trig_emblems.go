@@ -66,6 +66,9 @@ func (s *State) fireEmblemsObj(k *prep, ev kop.TrigEvent, evSl Slot, evObj Obj) 
 						if e.CaptureRem && s.npend > n0 {
 							s.embRemCarry(pp, i, &s.pend[n0]) // trig_emblemrem.go
 						}
+						if e.Capture != kop.RefNone && s.objs[evObj].of&ofToken != 0 {
+							s.embRemDrop(pp, i, evObj) // a token that died is gone for good: its id may name a later token (CR 111.7)
+						}
 						break
 					}
 				}
