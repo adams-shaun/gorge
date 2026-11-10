@@ -368,6 +368,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-otj", "mayplay_spree_cast_filter_prefix_search", full},                    // Dance of the Tumbleweeds may-played from exile, its only green a Conduit Pylons filter: gorge prices a may-play cast at its printed cost and searches the filter prefix even though every Spree mode adds mana
 		{"std-otj", "lively_dirge_second_pick_over_budget", full},                       // Lively Dirge's return mode after a first creature card: the remaining graveyard creatures whose mana value would carry the total past 4 are no longer offered, so the pick ends
 		{"std-tmt", "michelangelos_technique_second_pick_over_budget", full},            // Michelangelo's Technique after its first take: no other creature card in the eight fits the remaining mana-value budget, so only Done is offered
+		{"std-tmt", "manhole_missile_hand_to_bottom"},                                   // Manhole Missile's optional hand-to-library move with LibraryPosition$ -1 puts the picked card at the bottom and remembers it, so the gated draw happens (gorge handLibraryTail)
 		{"std-dsk", "rip_spawn_hunter_second_pick_repeated_power", full},                // Rip, Spawn Hunter's Dig after a first take: a card whose power was already taken is not offered again, so only Done remains
 	} {
 		pool, name := c[0], c[1]
