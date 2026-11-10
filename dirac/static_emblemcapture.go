@@ -8,15 +8,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // battlefield (the Effect's ForgetOnMoved$ / ExileOnMoved$ Battlefield).
 
 // embCaptureOK reports whether the emblem statSrc.emb names (a handle:
-// player<<3 | index+1) may apply to the permanent at sl: an emblem with no
+// player<<4 | index+1) may apply to the permanent at sl: an emblem with no
 // capture applies to anything its filter matches; one with a capture, only to
 // the captured object.
 func (s *State) embCaptureOK(k *prep, emb uint8, sl Slot) bool {
-	p, i := emb>>3, int(emb&7)-1
-	if k.t.Emblems[s.g.emb[p][i]-1].Capture == kop.RefNone {
+	p, i := emb>>4, int(emb&15)-1
+	if k.t.Emblems[s.embIdx(p, i)-1].Capture == kop.RefNone {
 		return true
 	}
-	return int(s.g.embN[p][i]) == int(s.perms[sl].obj)+1
+	return int(s.embNum(p, i)) == int(s.perms[sl].obj)+1
 }
 
 // canAtkDefGen is staticFlagGen for StatCanAttackDefender: the grant of a
@@ -45,10 +45,10 @@ func (s *State) canAtkDefGen(k *prep, sl Slot) bool {
 //
 //go:noinline
 func (s *State) embCaptureLapse(k *prep, o Obj) {
-	for p := 0; p < 2; p++ {
+	for p := uint8(0); p < 2; p++ {
 		for i := 0; i < int(s.g.nemb[p]); i++ {
-			if e := &k.t.Emblems[s.g.emb[p][i]-1]; e.CaptureLapse && s.g.embN[p][i] == uint8(o)+1 {
-				s.g.embN[p][i] = 0
+			if e := &k.t.Emblems[s.embIdx(p, i)-1]; e.CaptureLapse && s.embNum(p, i) == uint8(o)+1 {
+				s.embSetNum(p, i, 0)
 			}
 		}
 	}
