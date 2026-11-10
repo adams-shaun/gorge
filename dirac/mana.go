@@ -983,6 +983,37 @@ func (s *State) payFromPoolAnyColor(p uint8, cost *kop.ManaCost, x int) {
 	}
 }
 
+// planChosenTrial: a chosen-colour widened pair is no unit of gorge's census
+// while the plain census pays, so search once without it (granted sources
+// left out too, as gorge's census holds printed abilities only) and fall
+// back to the pair when that plan proves no payer. It reports whether the
+// trial found the plan, which is then in pk.
+func (s *State) planChosenTrial(k *prep, p uint8, pk *planner, exclude Obj, rv []uint8, pcs []*pcard) bool {
+	if pk.noChosenPair || !k.restrSrc {
+		return false
+	}
+	chosen := false
+	for i := range rv {
+		if rv[i] == rkWiden && pcs[i].wideChosen {
+			chosen = true
+			break
+		}
+	}
+	if !chosen {
+		return false
+	}
+	tp := *pk
+	tp.noChosenPair, tp.noGrant = true, true
+	tp.try = true // a census plan the pair must widen is not a panic
+	s.plan(k, p, &tp, exclude)
+	if !tp.found {
+		return false
+	}
+	tp.noChosenPair, tp.noGrant, tp.try = false, pk.noGrant, pk.try
+	*pk = tp
+	return true
+}
+
 func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// units: fixed-production sources in battlefield (entry) order, then
 	// choice-shaped sources (any colour, a choice of colours) in battlefield
@@ -1128,25 +1159,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			pcs[i] = &k.cards[s.cardAt(sl)]
 		}
 	}
-	// A chosen-colour widened pair is no unit of gorge's census while the
-	// plain census pays (see the scan above): search once without it, and
-	// fall back to the pair only when that plan proves no payer.
-	if !pk.noChosenPair && k.restrSrc {
-		chosen := false
-		for i := 0; i < no && !chosen; i++ {
-			chosen = rv[i] == rkWiden && pcs[i].wideChosen
-		}
-		if chosen {
-			tp := *pk
-			tp.noChosenPair = true
-			tp.try = true // a census plan the pair must widen is not a panic
-			s.plan(k, p, &tp, exclude)
-			if tp.found {
-				tp.noChosenPair, tp.try = false, pk.try
-				*pk = tp
-				return
-			}
-		}
+	if s.planChosenTrial(k, p, pk, exclude, rv[:no], pcs[:no]) {
+		return
 	}
 	for phase := 0; phase < 3; phase++ {
 		if phase == 1 && !hasSac && !hasPain || phase == 2 && (!hasGrant || pk.noGrant) {

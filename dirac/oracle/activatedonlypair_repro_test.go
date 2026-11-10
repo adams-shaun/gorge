@@ -95,8 +95,8 @@ func citadelSecondAbilityUsed(g *GorgeSide) bool {
 
 // citadelTwoCensusTaps: one Kher Keep activation was paid by two Sunken
 // Citadel taps, each for its census one mana, not by a Plains payment. The
-// taps may come before the push (the payment is taken first) or between the
-// push and the Keep's own tap; count either window around the Keep's tap.
+// taps counted are those between the Keep's ability push and the Keep's own
+// tap (a push resets the count).
 func citadelTwoCensusTaps(g *GorgeSide) bool {
 	in := func(e *events.Event) string {
 		if o := g.E.G.Obj(e.Obj); o != nil && o.Face() != nil {
