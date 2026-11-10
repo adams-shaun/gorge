@@ -106,6 +106,31 @@ func (s *State) dpManyVers(e *stackEntry) {
 	}
 }
 
+// dpManyCarrier is object i (0..3) the entry names with the ver the program
+// remembered it at, in registration order: dpManyCarry's layout (object 1 in
+// trigObj/remVer, 2..4 in the trigAmt, x and trigMV carriers with tver).
+// NoObj when the slot is empty. The caller filters on what it needs (still on
+// the battlefield, still in exile).
+func (e *stackEntry) dpManyCarrier(i int) (Obj, uint8) {
+	switch i {
+	case 0:
+		return e.trigObj, e.remVer
+	case 1:
+		if e.trigAmt > 0 {
+			return Obj(e.trigAmt - 1), e.tver[0]
+		}
+	case 2:
+		if e.x > 0 {
+			return Obj(e.x - 1), e.tver[1]
+		}
+	default:
+		if e.trigMV > 0 {
+			return Obj(e.trigMV - 1), e.tver[2]
+		}
+	}
+	return NoObj, 0
+}
+
 // bounceMany is BncDelayedMany: each object the resolving entry names, in
 // registration order, that is still on the battlefield and still the object
 // the program remembered returns to its owner's hand (the body's Origin$
@@ -116,30 +141,7 @@ func (s *State) dpManyVers(e *stackEntry) {
 func (s *State) bounceMany(k *prep) {
 	e := &s.res.e
 	for i := 0; i < 4; i++ {
-		var o Obj
-		var ver uint8
-		switch i {
-		case 0:
-			o, ver = e.trigObj, e.remVer
-		case 1:
-			o = Obj(e.trigAmt - 1)
-			if e.trigAmt <= 0 {
-				o = NoObj
-			}
-		case 2:
-			o = Obj(e.x - 1)
-			if e.x == 0 {
-				o = NoObj
-			}
-		default:
-			o = Obj(e.trigMV - 1)
-			if e.trigMV == 0 {
-				o = NoObj
-			}
-		}
-		if i > 0 {
-			ver = e.tver[i-1]
-		}
+		o, ver := e.dpManyCarrier(i)
 		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield || s.objs[o].ver != ver {
 			continue
 		}

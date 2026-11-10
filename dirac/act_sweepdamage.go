@@ -64,6 +64,9 @@ func (s *State) sweepReplCompete(k *prep, src Slot) bool {
 			c++
 		}
 	}
+	if g.anyDmgMark {
+		c += s.dmgMarkTotal() // a mark on some hit's recipient is one more replacement (repl_dmgmark.go)
+	}
 	if g.anyRepl&rbPrevCol != 0 && src != NoSlot {
 		col := s.srcColors(k, src, s.cardAt(src))
 		for i := range s.g.prevCol {

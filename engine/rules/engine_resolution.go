@@ -51,6 +51,11 @@ type engineResolution struct {
 	// power, toughness and counters, read by a source-relative target
 	// filter's CR 608.2b recheck (source_char_lki.go).
 	sourceCharLKI map[state.ObjID]sourceCharSnapshot `clone:"deep"`
+	// delayedSourceCharLKI is the pre-departure snapshot of a source that
+	// still names a delayed SpellCast registration, keyed by that source: the
+	// registration's filter bound (Loki's cmcLEX) reads it once the source
+	// has left (CR 608.2h; delayedSpellMatchSpec). The last departure wins.
+	delayedSourceCharLKI map[state.ObjID]sourceCharSnapshot `clone:"deep"`
 	// damageSourceLKI carries snapshots keyed first by the waiting stack
 	// object and then by a departed named DamageSource$ object. Unlike the
 	// own-source maps above, every waiting resolution receives departures: the

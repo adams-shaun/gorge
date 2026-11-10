@@ -233,10 +233,17 @@ const (
 	SrForgetChanged  = 1 << 1  // ForgetChanged$ True on a library search (OpSearchEx): each found card that moved leaves the remembered set (gorge zone_search eventForgetChanged). B bit 1 is read from the instruction (moveFound / pickLeaves), never ORed into pickF; bit 0 is the UntilLeaves hand-exile link
 	SrHandGrave      = 1 << 2  // OpChooseMove: the pool is the fetching player's Hand then Graveyard (gorge effSearchLibrary over Origin$ Hand,Graveyard); read from the instruction's B, never ORed into pickF. B bits 4..11 hold the entry counter kind+1 (WithCountersType$, amount 1; 0 = none)
 	SrGameGrave      = 1 << 3  // OpChooseMove from a graveyard with no fetch player: the pool is every player's graveyard in seat order (gorge effHiddenPick gameWide), not player Obj's; picked cards enter their owner's zone (gorge zoneOwner). B bit 3 is free on an OpChooseMove (bits 4..11 are the entry counter kind, and this bit is read in startSearch, not by a move scan)
-	SrNoShuffle      = 1 << 14 // Shuffle$ False: the library is not shuffled after the moves; a library destination puts the found cards on top in pick order, remembered with SrRemember (Flourishing Bloom-Kin)
-	SrImprint        = 1 << 8  // OpChooseMove from the Library (ChangeZone Imprint$ True under a DigUntil RememberRevealed$): each moved card joins the chosen set (imprint). Read from the instruction's B, never ORed into pickF (bit 8 there is SrOwnZone); bits 4..11 are the graveyard-pick counter kind, which a library pick never reads
-	SrShareLandType  = 1 << 9  // OpSearchEx only: ShareLandType$ True -- every found card shares a land type with the others, so a later pick is offered only the cards sharing a printed subtype with every earlier one (gorge rules.validateSearch through effects.SharedLandTypes; kgen lowers it only over a basic-land filter). Read from the instruction's B, never ORed into pickF
-	SrAltOrigin      = 1 << 4  // OpSearchEx only (bits 4..11 are OpChooseMove's entry counter kind, unread on a library search): OriginAlternative$ -- the searcher first elects which of the library and the alternative zone to search (gorge originAlternativeZones), the pool is the elected zones' cards (library first), the shuffle is owed only when the library was elected. B bits 5..7 (SrAltZoneShift) hold the alternative zone (Graveyard or Hand); SrAltGraveHand there names the Graveyard,Hand pair, so the election offers three zones; read from the instruction, never ORed into pickF
+	// SrHandBottom is SrGameGrave read on an OpChooseMove from a hand into the
+	// library: the moved cards go to the bottom (gorge handLibraryTail with
+	// LibraryPosition$ -1, libraryOrderPlacement bottom=true). A hand move
+	// carries no entry counters (kgen refuses them), so the two meanings never
+	// meet: bit 3 is read only for a graveyard-origin pick in startSearch and
+	// only for a hand-to-library pick in moveFoundAns.
+	SrHandBottom    = SrGameGrave
+	SrNoShuffle     = 1 << 14 // Shuffle$ False: the library is not shuffled after the moves; a library destination puts the found cards on top in pick order, remembered with SrRemember (Flourishing Bloom-Kin)
+	SrImprint       = 1 << 8  // OpChooseMove from the Library (ChangeZone Imprint$ True under a DigUntil RememberRevealed$): each moved card joins the chosen set (imprint). Read from the instruction's B, never ORed into pickF (bit 8 there is SrOwnZone); bits 4..11 are the graveyard-pick counter kind, which a library pick never reads
+	SrShareLandType = 1 << 9  // OpSearchEx only: ShareLandType$ True -- every found card shares a land type with the others, so a later pick is offered only the cards sharing a printed subtype with every earlier one (gorge rules.validateSearch through effects.SharedLandTypes; kgen lowers it only over a basic-land filter). Read from the instruction's B, never ORed into pickF
+	SrAltOrigin     = 1 << 4  // OpSearchEx only (bits 4..11 are OpChooseMove's entry counter kind, unread on a library search): OriginAlternative$ -- the searcher first elects which of the library and the alternative zone to search (gorge originAlternativeZones), the pool is the elected zones' cards (library first), the shuffle is owed only when the library was elected. B bits 5..7 (SrAltZoneShift) hold the alternative zone (Graveyard or Hand); SrAltGraveHand there names the Graveyard,Hand pair, so the election offers three zones; read from the instruction, never ORed into pickF
 )
 
 // SrAltZoneShift is the shift of SrAltOrigin's alternative zone in B.N.
@@ -325,6 +332,16 @@ const (
 	BncDelayedMany = 1 << 13
 	RetShuffleOwed = 1 << 13
 )
+
+// RetDelayedMany is OpReturn's B.N flag, above the Origin$ zone bits: the body
+// of a DpMany delayed program (Defined$ DelayTriggerRememberedLKI over a target
+// slot of several objects, Temporal Tribulation). Every object the firing entry
+// names that is still the object the program remembered returns, in
+// registration order, as one entering event (dirac/trig_delayedmanyreturn.go).
+// Bits 0-10 hold the Origin$ zones and 11-14 are taken, so it shares
+// RetShuffleOwed's bit: that one is read only for a card moving out of a library
+// and this body's origin is exile, where the walk skips a library card first.
+const RetDelayedMany = RetShuffleOwed
 
 // RetCounterPairShift: an OpReturnEx whose WithCountersType$ names two kinds
 // (Perennation) carries its constant A as count | (second kind + 1)<<8 (read

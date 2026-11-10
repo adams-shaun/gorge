@@ -59,6 +59,14 @@ func canEnchantEquippedBy(g *state.Game, o *state.Object, _ state.PlayerID, src 
 // own controller seat (the Aura's YouCtrl is the Aura controller's), the same
 // seat the CR 704.5m SBA's auraStillMatchesEnchant test uses.
 func attachableTo(g *state.Game, o *state.Object, bearer *state.Object) bool {
+	return attachableToLayers(g, LayerTables{}, o, bearer)
+}
+
+// attachableToLayers is attachableTo with the board's derived-characteristic
+// tables, so an Aura's Enchant spec reads the bearer's layered types: a crewed
+// Vehicle is an artifact creature until end of turn (CR 301.7b, 613.1d) and
+// may be enchanted by an Enchant creature Aura (CR 303.4f).
+func attachableToLayers(g *state.Game, layers LayerTables, o *state.Object, bearer *state.Object) bool {
 	if o == nil || bearer == nil || bearer.Zone != state.ZBattlefield {
 		return false
 	}
@@ -73,7 +81,9 @@ func attachableTo(g *state.Game, o *state.Object, bearer *state.Object) bool {
 			return true
 		}
 		spec, _, _ := strings.Cut(param, ":")
-		return MatchesSpecFrom(g, strings.TrimSpace(spec), bearer.ID, o.Controller, o.ID)
+		sc := NewSpecContext(o.Controller, o.ID)
+		sc.Layers = layers
+		return MatchesSpecCtx(g, strings.TrimSpace(spec), bearer.ID, sc)
 	case hasType(o, "Equipment"):
 		bf := bearer.Face()
 		// CR 702.176a: an impending-dormant permanent is not a creature.

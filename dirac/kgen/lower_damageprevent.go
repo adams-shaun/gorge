@@ -34,6 +34,9 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 			return err
 		}
 	}
+	if ps.is("Duration", "UntilYourNextTurn") {
+		return lc.effectDmgMark(ps) // lower_effectdmgmark.go
+	}
 	if _, ok := ps.get("Duration"); ok {
 		return refuse("Effect replacement Duration$")
 	}

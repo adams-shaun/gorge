@@ -18,7 +18,7 @@ import (
 // budget ran out and gorge has no such limit. Unmodelled: gorge does something here
 // the kernel does not.
 var (
-	capacityStalls = []string{"twoseat", "ctradded", "addphase", "untaplock", "board", "pending", "stack", "tables", "loop", "delayed", "remember", "imprint",
+	capacityStalls = []string{"twoseat", "ctradded", "addphase", "untaplock", "dmgmark", "board", "pending", "stack", "tables", "loop", "delayed", "remember", "imprint",
 		"mayplay", "dprog", "emblem", "dmgmap", "xtgt", "used", "kwrepx", "links", "free", "ask", "counters", "lki", "tappick",
 		"regen", "look", "grants", "acts", "linger", "sac", "entered", "convoke", "castring", "pt", "actring", "charmopts",
 		"reflatch", "zone", "options", "srcmark", "dmglatch", "replcands", "replplusbatch", "prevcol", "colgrant", "restrx", "obssrc", "dynmana", "tapextra", "planalts",
@@ -28,7 +28,7 @@ var (
 		"shield", "replctr", "replleave", "copyface", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
 		"endure", "linkctr", "numtimes", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",
 		"mayraise", "uncounterorder", "entryorder", "copyallask", "clonelayer", "gravepower", "landgrant",
-		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "tokrewrite", "stackkwgrant", "paylifeshared", "noprevent"}
+		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "tokrewrite", "stackkwgrant", "paylifeshared", "noprevent", "dmgmarkorder", "fbgrantstamp"}
 )
 
 // Every registered reason has a class, and it is the one the lists above name.
@@ -170,6 +170,7 @@ func stallFlagCases() []stallFlagCase {
 	vt := func(name string, a ...kop.Ability) kop.CardDef {
 		return kop.CardDef{Name: name, Types: kop.TEnchantment, Abilities: a}
 	}
+	fbKw := kop.KwFlashbackOwnCost // a variable: the stamp's mask is split into C (low 16 bits) and B.N, as build_ab.go emits it
 	repl := func(k kop.ReplKind) kop.Ability { return kop.Ability{Kind: kop.AbReplacement, Repl: kop.Repl{Kind: k}} }
 	return []stallFlagCase{
 		{StallInfect, "Half Infect", "Half Watcher", stallPool("infect", []kop.CardDef{
@@ -184,6 +185,12 @@ func stallFlagCases() []stallFlagCase {
 			vt("Half Loser", kop.Ability{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatOverride, Override: 1}}),
 			vt("Half Lord", kop.Ability{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatContinuous, Filter: 1}}),
 		}, []kop.Override{{LoseAbilities: true}}, []kop.Filter{{Sub: 1}}, map[int][]cardset.AbSubs{1: {{Ab: 0, Subs: []uint8{0}}}})},
+		{StallFbGrantStamp, "Half Fb Lotus", "Half Fb Stamper", stallPool("fbgrantstamp", []kop.CardDef{
+			vt("Half Fb Lotus", kop.Ability{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatFbGrant, StFlags: kop.StFbOwnCost}}),
+			vt("Half Fb Stamper", kop.Ability{Kind: kop.AbSpell, Prog: []kop.Instr{{
+				Op: kop.OpGrantKeyword, C: int16(uint16(fbKw)),
+				B: kop.ValueRef{K: kop.VConst, N: int16(uint16(fbKw >> 16))}}}}),
+		}, nil, nil, nil)},
 	}
 }
 

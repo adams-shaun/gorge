@@ -150,6 +150,7 @@ type genPrep struct {
 	anyInfect      bool
 	infectStall    bool
 	twoSeatOnly    bool           // a card plays only two seats (stallclass.go prepTwoSeat): StallTwoSeat in a larger game
+	fbStampOwnCost bool           // a stamped flashback grant beside an own-cost flashback static (kw_fbgrant.go prepFbStamp): StallFbGrantStamp
 	anyWitherGrant bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyEOTEmb      bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb       bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
@@ -174,6 +175,7 @@ type genPrep struct {
 	anyHist        bool           // some trigger reads the turn history bank (expend, the N-th spell; value_turnhistory.go)
 	anyPrevFrom    bool           // some program grants KwPreventCombatDamageFrom (repl_regenerate.go)
 	anyTokRew      bool           // a ReplRewriteTokens or ReplAddToken ability (repl_tokrewrite.go, repl_tokorder.go)
+	anyDmgMark     bool           // some program is ExtDmgMark: every damage site reads the per-player marks (repl_dmgmark.go)
 	anyFiltRepl    bool           // a filtered damage doubler or token multiplier, or an x3 one (repl_multipliers.go)
 	untapRepl      bool           // a ReplOthersDoesntUntap or ReplAnyUntap card: the untap step runs untapStepGen (act_energy.go)
 	anyUntapBlock  bool           // some card has ReplAnyUntap: every untap site consults State.untapBlocked (static_cantuntap.go)
@@ -1403,8 +1405,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyScriptGap = g.anyEachCol || g.anyRestrScript || g.anyAnyR || g.anyFilt || p.tapMana // (a tap-another-permanent mana gap: mana_tapanother.go)
 	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
+	prepDmgMark(t, g) // repl_dmgmark.go
 	prepInfect(t, g)
 	prepTwoSeat(t, g) // stallclass.go
+	prepFbStamp(t, g) // kw_fbgrant.go
 	prepPoison(t, g)
 	prepLayerWalk(t, g)
 	prepChooseType(t, g) // act_choosetype.go
@@ -1959,6 +1963,7 @@ type genState struct {
 	blkDef  uint8                             // the defending player declaring blockers; read only when MaxSeats > 2 (blockDef)
 	ul      [maxUntapLock]untapLock           // source-bound untap locks (act_untaplock.go)
 	nul     uint8
+	dmk     [dmkBytes]uint8 // per-player damage-doubling marks, a bit per (controller, player) (repl_dmgmark.go)
 	rsv     [rsvN]uint8
 }
 
@@ -1967,7 +1972,7 @@ const (
 	// rsvN pads the reserved block to 80 bytes (genState's 5 bytes of tail
 	// padding absorb the rest of the alignment): 64, plus the 16 that carry
 	// State's growth for MaxObj 236 to a multiple of 64 so perms keeps its phase.
-	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 2 - MaxSeats*kop.NumManaKinds - ulBytes
+	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 2 - MaxSeats*kop.NumManaKinds - ulBytes - dmkBytes
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).

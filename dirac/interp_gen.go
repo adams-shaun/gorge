@@ -447,6 +447,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			return false, true
 		}
 	case kop.OpReturn:
+		if in.B.N&kop.RetDelayedMany != 0 {
+			return !s.returnDelayedMany(k, in), true // trig_delayedmanyreturn.go
+		}
 		if s.returnsRemembered(in) {
 			return !s.returnRemembered(k, in), true
 		}

@@ -90,8 +90,14 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbPlusDmg != 0 {
 		n = s.replPlus(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n)
 	}
-	if g.anyRepl&rbDblDmg != 0 && (rcp != srcCtrl || g.anyFiltRepl) {
-		for c := s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat); c > 0 && n < 1<<12; c-- {
+	if g.anyRepl&rbDblDmg != 0 && (rcp != srcCtrl || g.anyFiltRepl || g.anyDmgMark) {
+		c := s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat)
+		if g.anyDmgMark {
+			if m := s.dmgMarkN(rcp); m > 0 && s.dmgMarkDirect(k, m, c-m, rcp, sl, combat) {
+				return 0 // the mark beside another replacement: gorge asks (repl_dmgmark.go)
+			}
+		}
+		for ; c > 0 && n < 1<<12; c-- {
 			n *= 2
 		}
 	}
@@ -450,6 +456,9 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		ro.prev |= 1 << n
 		ro.shld |= 1 << n
 		n++
+	}
+	if g.anyDmgMark && s.dmgMarkCompetes(rcp, n) {
+		return 0 // repl_dmgmark.go
 	}
 	ro.p = rcp
 	return n
@@ -1030,6 +1039,9 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 		prev |= 1 << c
 		shld |= 1 << c
 		c++
+	}
+	if g.anyDmgMark && s.dmgMarkCompetes(rcp, c) {
+		return false // repl_dmgmark.go
 	}
 	if c < 2 {
 		return false

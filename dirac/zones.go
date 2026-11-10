@@ -646,7 +646,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if k.gen != nil && (s.sp|s.npend != 0 || s.res.active) {
 		s.settleFollowed(k, o)
 	}
-	if s.sp|s.npend != 0 || s.res.active || s.buildLive() {
+	if s.sp|s.npend != 0 || s.res.active || s.buildLive() || s.delaySpellRefs(o) {
 		s.settleSrcKw(k, sl, o)
 		s.snapSrcDepart(o) // CR 608.2h: its abilities read it as it last existed here (zone_lkisource.go)
 	}

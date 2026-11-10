@@ -2886,6 +2886,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if ki.Op == kop.OpReturn {
 			ki.B = kop.Const(originMask(fl["from"]))
+			if _, ok := fl["DelayedMany"]; ok {
+				ki.B = kop.Const(originMask(fl["from"]) | kop.RetDelayedMany) // the delayed many-object return (dirac/trig_delayedmanyreturn.go)
+			}
 		}
 		if fl["from"] == "Library" {
 			// Origin$ Library: the move takes a library card only, then its
@@ -2943,10 +2946,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			// RememberChanged$: the moved cards join the remembered set
 			// (gorge zone_search eventRemember / Ctx.Remembered; kernel
 			// moveFound). moveFound remembers a card put onto the
-			// battlefield or into a hand or graveyard, not one put into a
-			// library (nor the ThenTop path): refuse those.
+			// battlefield, into a hand or graveyard, or into a library from
+			// a hand (gorge handLibraryTail: the bottom move); a library
+			// SEARCH's moveFound did not remember, and neither does the
+			// ThenTop path: refuse those.
 			_, noShuf := fl["NoShuffle"]
-			if zoneMap[in.C] == kop.ZoneLibrary && !noShuf || sf&kop.SrThenTop != 0 {
+			handToLib := in.Op == "ChooseMove" && zone == kop.ZoneHand && zoneMap[in.C] == kop.ZoneLibrary
+			if zoneMap[in.C] == kop.ZoneLibrary && !noShuf && !handToLib || sf&kop.SrThenTop != 0 {
 				return ki, fmt.Errorf("RememberChanged$ on a search into a library")
 			}
 			sf |= kop.SrRemember
@@ -2990,6 +2996,16 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, fmt.Errorf("GameGrave on a %s from %s", in.Op, fl["from"])
 			}
 			sb |= kop.SrGameGrave
+		}
+		if _, ok := fl["Bottom"]; ok {
+			// LibraryPosition$ -1 on a hand move: the picked cards go to the
+			// bottom of the library (gorge handLibraryTail's
+			// libraryOrderPlacement bottom=true). Only a hand-to-library
+			// ChooseMove carries it.
+			if in.Op != "ChooseMove" || zone != kop.ZoneHand || zoneMap[in.C] != kop.ZoneLibrary {
+				return ki, fmt.Errorf("Bottom on a %s from %s", in.Op, fl["from"])
+			}
+			sb |= kop.SrHandBottom
 		}
 		if _, ok := fl["ShareLandType"]; ok {
 			if in.Op != "Search" {
@@ -3724,6 +3740,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "StackExileMark":
 		// OpExt ExtStackExileMark, C the kop.StackExile* bits (repl_stackexile.go)
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtStackExileMark)), int16(in.C)
+	case "DmgMark":
+		// OpExt ExtDmgMark, Obj the damaged player (dirac/repl_dmgmark.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtDmgMark))
 	case "EffFinalityCtr":
 		// OpExt ExtFinalityCtr, Obj the triggering spell
 		// (the kernel reads the entry's trigObj); the spell enters with one
