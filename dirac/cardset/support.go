@@ -21,13 +21,17 @@ const (
 
 // RefusedRepro is a game that showed a refused card diverging.
 type RefusedRepro struct {
-	Pool    string `json:"pool"`    // a deck pool (blb) or a synthetic pool (std-dsk)
+	Pool    string `json:"pool"`    // a deck pool (blb), a synthetic pool (std-dsk) or custom
 	Surface string `json:"surface"` // autopay or full
 	Seed    uint64 `json:"seed"`
 	Pair    int    `json:"pair"`
 	Policy  string `json:"policy"` // random, heuristic, explore or first
 	// Mulligans is the London mulligans each player may take.
 	Mulligans int `json:"mulligans"`
+	// File, with pool custom, is a recorded game (dirac/oracle/testdata/repro/<file>.repro.json)
+	// replayed on a table of its own decks' cards: unlike a synthetic pool's pair, no
+	// change to what a set supports re-deals it.
+	File string `json:"file,omitempty"`
 }
 
 // RefusedEntry is one dirac/support/refused file.

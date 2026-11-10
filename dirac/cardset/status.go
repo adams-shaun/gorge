@@ -80,6 +80,12 @@ func RawByName(name string) (Set, error) {
 	return viewOf(s.(*dataSet).d, lowered), nil
 }
 
+// Raw returns s with every lowered card playable, refused and unverified alike:
+// RawByName for a set built outside the named pools (a table of one repro's decks).
+func Raw(s Set) Set {
+	return viewOf(s.(*dataSet).d, lowered)
+}
+
 // AllowUnverified returns s playing unverified cards too. A refused card stays
 // refused: it is known to play wrongly, where an unverified one is only unproven.
 func AllowUnverified(s Set) Set {
