@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // Extra mana a tap brings: a StatTapExtra static (Groundchuck & Dirtbag,
 // Badgermole Cub, Forsaken Monument: a Mode$ TapsForMana | Static$ True trigger
@@ -96,8 +100,21 @@ func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [ko
 	ctl := s.perms[sl].ctrl
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
-		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.ctrl != ctl || st.sl == NoSlot ||
-			!s.matchPermGen(k, a.Filter, sl, st.ctrl, st.sl, layerFull) {
+		if !s.tapExtraReaches(k, st, sl, ctl) {
+			return true
+		}
+		if a.StFlags&kop.StTapReflect != 0 {
+			// one mana of the type the tap produced: fixed for a source of one
+			// type, the pick's otherwise (and a filter's colour is picked after
+			// its tap)
+			m := srcMask(pc)
+			if colour || m == 0 || m&(m-1) != 0 {
+				hit = true
+				xv = [kop.NumManaKinds]uint8{}
+				return false
+			}
+			xv[bits.TrailingZeros8(m)] += uint8(a.B)
+			hit = true
 			return true
 		}
 		if a.StFlags&kop.StTapOnC != 0 {
@@ -144,11 +161,15 @@ func (s *State) srcExtraPick(k *prep, sl Slot, pc *pcard, col int) (xv [kop.NumM
 	hit := false
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
-		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.ctrl != ctl || st.sl == NoSlot ||
-			!s.matchPermGen(k, a.Filter, sl, st.ctrl, st.sl, layerFull) {
+		if !s.tapExtraReaches(k, st, sl, ctl) {
 			return true
 		}
 		if a.StFlags&kop.StTapOnC != 0 && col != kop.C {
+			return true
+		}
+		if a.StFlags&kop.StTapReflect != 0 {
+			xv[col] += uint8(a.B) // the type this tap made
+			hit = true
 			return true
 		}
 		xv[a.A] += uint8(a.B)
@@ -161,6 +182,19 @@ func (s *State) srcExtraPick(k *prep, sl Slot, pc *pcard, col int) (xv [kop.NumM
 	}
 	addOwnXv(&xv, pc)
 	return xv
+}
+
+// tapExtraReaches reports whether st is a StatTapExtra static that adds its
+// mana when the permanent at sl, controlled by ctl, taps for mana: its
+// controller's own taps, or every player's under StTapAnyPlayer (the extra
+// then goes to the tapping player, whose pool the caller fills).
+func (s *State) tapExtraReaches(k *prep, st statSrc, sl Slot, ctl uint8) bool {
+	a := &st.a.Static
+	if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot ||
+		st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 {
+		return false
+	}
+	return s.matchPermGen(k, a.Filter, sl, st.ctrl, st.sl, layerFull)
 }
 
 // subXv takes a plan type's fixed extra back out of p's pool.

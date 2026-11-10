@@ -1701,10 +1701,16 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		st.A, st.B = int16(s.TapCol), int16(s.TapAmt)
 		for _, fl := range s.Flags {
-			if fl != "TapOnC" {
+			switch fl {
+			case "TapOnC":
+				st.StFlags |= kop.StTapOnC
+			case "TapReflect":
+				st.StFlags |= kop.StTapReflect
+			case "TapAnyPlayer":
+				st.StFlags |= kop.StTapAnyPlayer
+			default:
 				return ka, nil, fmt.Errorf("tap extra flag %q", fl)
 			}
-			st.StFlags |= kop.StTapOnC
 		}
 	case "CantBeCast":
 		st.Kind = kop.StatCantBeCast

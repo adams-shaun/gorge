@@ -247,7 +247,15 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 				// Defined$ or You) or to the tapped permanent's controller, which
 				// is the payer; a ProduceMana replacement on that extra mana
 				// defers as it does for the source's own production.
-				if tm, folds := pay.PaymentPlanFoldableTapMana(fc.face, t); folds && (tm.ToTapped || o.Controller == activator) {
+				tm, folds := pay.PaymentPlanFoldableTapMana(fc.face, t)
+				if !folds {
+					// a reflected body (Lavaleaper) folds as one mana of the
+					// single type this production names
+					if tm, folds = pay.PaymentPlanReflectedTapMana(fc.face, t); folds {
+						tm.Mana, folds = pay.PaymentPlanReflectedMana(produced)
+					}
+				}
+				if folds && (tm.ToTapped || o.Controller == activator) {
 					if rby, replaced := e.paymentPlanExtraReplaced(oid, activator, tm.Mana); replaced {
 						if deferBy(rby) {
 							return 0, state.Mana{}, by, false
