@@ -1984,7 +1984,6 @@ func (s *State) digPop(pl *player, n int, a, b []Obj) {
 // none it is not created (CR 303.4g). The tokens still owed wait in
 // s.g.pickLeft.
 func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
-	e := &s.res.e
 	o := s.objRefObj(in.Obj)
 	if o == NoObj {
 		return false
@@ -1993,6 +1992,13 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 	if s.objs[o].zone == kop.ZoneBattlefield {
 		c = s.cardAt(s.objs[o].slot)
 	}
+	return s.copyCardToken(k, in, c)
+}
+
+// copyCardToken is execCopyToken's creation of the token copies of card c,
+// shared with the named-card copy (copy_named.go), whose card is no object.
+func (s *State) copyCardToken(k *prep, in *kop.Instr, c CardID) bool {
+	e := &s.res.e
 	if uint16(in.B.N)&kop.CopyNonRemCtrl != 0 {
 		was := e.ctrl
 		e.ctrl = s.copyCtrl(in)

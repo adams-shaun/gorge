@@ -2843,11 +2843,21 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		_, err := lc.definedValid(&cards.SA{API: "CopyPermanent"}, ps)
 		return err
 	}
-	obj, err := lc.objOrTarget(ps, "", zBattlefield)
-	if err != nil {
+	var obj lRef
+	var named *namedCopy
+	var err error
+	if n, ok := ps.get("DefinedName"); ok {
+		// the source is a card of the name universe, not an object (lower_copynamed.go)
+		if named, err = lc.copyNamedCard(ps, n); err != nil {
+			return err
+		}
+	} else if obj, err = lc.objOrTarget(ps, "", zBattlefield); err != nil {
 		return err
 	}
 	in := lInstr{Op: "CopyAsToken", Obj: obj, A: cst(1)}
+	if named != nil {
+		in.Op = "CopyNamed"
+	}
 	var flags []string
 	if ps.str("Controller") == "NonRememberedController" {
 		// each player other than the remembered permanent's controller
@@ -2874,7 +2884,7 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 	if err != nil {
 		return err
 	}
-	if hasExc {
+	if hasExc && (named == nil || named.found) {
 		lc.out.overrides = append(lc.out.overrides, exc)
 		in.C = len(lc.out.overrides) // index+1
 		in.Note = "except " + overrideString(exc)
@@ -2952,6 +2962,15 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		}
 		lc.emit(lInstr{Op: "CopyAsTokenCtr", Obj: obj, A: cst(1), B: amt, CS: ct})
 		return nil
+	}
+	if named != nil {
+		if !named.found {
+			return nil // gorge copies nothing for a name its universe lacks
+		}
+		flags = append(flags, "card="+strings.TrimPrefix(named.key, copyCardKey))
+		if !slices.Contains(lc.out.Tokens, named.key) {
+			lc.out.Tokens = append(lc.out.Tokens, named.key)
+		}
 	}
 	in.CS = strings.Join(flags, "|")
 	lc.emit(in)

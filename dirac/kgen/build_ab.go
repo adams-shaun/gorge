@@ -4076,7 +4076,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		default:
 			return ki, fmt.Errorf("override duration %q", in.CS)
 		}
-	case "CopyAsToken":
+	case "CopyAsToken", "CopyNamed":
 		ki.Op = kop.OpCopyAsTokenEx
 		cf := 0
 		if _, ok := fl["SacAtEndStep"]; ok {
@@ -4125,6 +4125,20 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, err
 			}
 			ki.C = int16(i + 1)
+		}
+		if in.Op == "CopyNamed" {
+			// kop.ExtCopyNamed: B holds the named card's pool index (the
+			// matchup remaps it to its CardID), C the flags and exception;
+			// A held the count (one), now the sub-op
+			idx, ok := cb.pt.tokenIdx[copyCardKey+fl["card"]]
+			if !ok {
+				return ki, fmt.Errorf("copied card %q", fl["card"])
+			}
+			if cf := int(uint16(ki.B.N)); cf>>8 != 0 || int(ki.C) > 0xff {
+				return ki, fmt.Errorf("named copy flags %#x or exception override %d past a byte", cf, ki.C)
+			}
+			ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCopyNamed))
+			ki.B, ki.C = kop.Const(idx), int16(int(ki.C)<<kop.CopyNamedExcShift|int(uint16(ki.B.N)))
 		}
 	case "CopyAsTokenCtr":
 		// dirac/copy_counters.go: Obj the source, B the

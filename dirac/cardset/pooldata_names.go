@@ -155,3 +155,30 @@ func nameChoiceRefusal(t *kop.Table, named, why string) error {
 	}
 	return &InteractionRefusal{Reason: "namechoice", Why: why, Cards: append(cards, named)}
 }
+
+// copyNamedGuard refuses a matchup table holding a name chooser beside a card
+// that copies a card by its name (kop.ExtCopyNamed, Mutable Explorer): gorge
+// resolves that name in the game's name universe, which a name chooser
+// narrows to the matchup's own cards (oracle NameUniverseFor), so the copy
+// would be made by the kernel and not by gorge when the named card is not
+// among them. Like nameChoices it runs on a matchup table, never the pool's.
+func copyNamedGuard(t *kop.Table) error {
+	chooser, copier := "", ""
+	for i := range t.Cards {
+		cd := &t.Cards[i]
+		if choosesName(cd) && chooser == "" {
+			chooser = cd.Name
+		}
+		for _, ab := range cd.Abilities {
+			for _, in := range ab.Prog {
+				if in.Op == kop.OpExt && in.Ext() == kop.ExtCopyNamed && copier == "" {
+					copier = cd.Name
+				}
+			}
+		}
+	}
+	if chooser == "" || copier == "" {
+		return nil
+	}
+	return &InteractionRefusal{Reason: "namechoice", Why: "a copy of a named card reads the whole card universe, which a card-name chooser narrows to the matchup's cards", Cards: []string{chooser, copier}}
+}
