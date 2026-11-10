@@ -84,6 +84,8 @@ func TestLowerAffzoneGraveFlashback(t *testing.T) {
 		{"effect zone", fbGrantOwn + " | EffectZone$ Graveyard", "EffectZone"},
 		{"x cost", strings.Replace(fbGrantFixed, "Flashback:1", "Flashback:X", 1), "flashback grant cost"},
 		{"non-mana cost", strings.Replace(fbGrantFixed, "Flashback:1", "Flashback:Sac<1/Creature>", 1), "flashback grant cost"},
+		{"land grant", strings.Replace(fbGrantFixed, "Lesson.YouOwn", "Land.YouOwn", 1), "not an instant, sorcery or Lesson"},
+		{"any card grant", strings.Replace(fbGrantFixed, "Lesson.YouOwn", "Card.YouOwn", 1), "not an instant, sorcery or Lesson"},
 		{"pump beside", fbGrantOwn + " | AddPower$ 1", "beside AddPower"},
 	} {
 		lc, _, _ := fbGrantCard(t, c.line)

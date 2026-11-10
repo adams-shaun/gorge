@@ -805,7 +805,7 @@ func costFieldsEqual(a, b string) bool {
 
 // flashbackCostString is the raw cost string of face f's printed flashback:
 // its parameter, or the mana cost.
-func (e *Engine) flashbackCostString(f *cards.Face) string {
+func flashbackCostString(f *cards.Face) string {
 	if s, ok := f.KeywordCostParam("Flashback"); ok {
 		return s
 	}
@@ -821,7 +821,7 @@ func (e *Engine) flashbackCostStringOf(id state.ObjID, f *cards.Face) string {
 			return cards.KeywordCostField(s)
 		}
 	}
-	return e.flashbackCostString(f)
+	return flashbackCostString(f)
 }
 
 // flashbackCostFor is the flashback cost a cast option charges: the cost it
