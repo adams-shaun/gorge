@@ -306,10 +306,15 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	// gorge's ask closes at Max = min(#options, slots), the uncredited
 	// Colored.Total()+Generic (pay.ConvokeAsk): an announcement whose picks
 	// reach the slot count commits without a Done.
+	// Only a Convoke creature's colour pick pays a coloured pip (CR 702.51a);
+	// an Improvise artifact pays generic only (CR 702.126a), so gorge counts
+	// the pips as slots only when the ask offers a colour pick.
 	slots := int(raw.Generic)
+	pipSlots := 0
 	for _, p := range raw.Pips {
-		slots += int(p)
+		pipSlots += int(p)
 	}
+	colourOpt := false
 	// gorge's ConvokeAsk Max is min(offered options, outstanding slots) and
 	// the answer commits as soon as Max picks are made (the oracle's Apply),
 	// with no Done-only re-pose. Count the first ask's options over the
@@ -328,6 +333,7 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 		for ci := 0; ci < 5 && cc; ci++ {
 			if raw.Pips[ci] != 0 && col&(1<<ci) != 0 {
 				offered++
+				colourOpt = true
 			}
 		}
 		if cc && genOK {
@@ -336,6 +342,9 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 		if ic && genOK {
 			offered++
 		}
+	}
+	if colourOpt {
+		slots += pipSlots
 	}
 	maxPicks := slots
 	if hasX || offered < maxPicks {
