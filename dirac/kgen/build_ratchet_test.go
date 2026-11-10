@@ -214,7 +214,7 @@ import (
 // +2 (the merge with land: this branch's Hollow Marauder and Madame Null lowers beside land's; merged ALL build-level 22036 -> 22038).
 // +8 (a reflected TapsForMana body over every land: the cards listed at ratchet_test.go's ALL pin; ALL build-level 22097 -> 22105).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22106, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22107, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
