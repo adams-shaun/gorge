@@ -824,10 +824,22 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 		return d.GroupAdmits(chosenCounts, o.Group)
 	}
 	choices := make([]int, 0, pick)
+	// An "up to" removal ask is never filled past its Min with the removal's
+	// own host: exiling it achieves nothing, and an exile "until this leaves
+	// the battlefield" aimed at its own host returns host and exiles at once
+	// -- a Saga whose chapter I does it re-enters, re-triggers and loops
+	// forever (Vault 13: Dweller's Journey, whose script omits "other").
+	var selfHost state.ObjID
+	if te := d.TargetEffect; te != nil && te.Removal != nil {
+		selfHost = te.Host
+	}
 	pickFrom := func(s []targetRank) {
 		for i := 0; i < len(s) && len(choices) < pick; i++ {
 			o := d.Options[s[i].idx]
 			if !fits(o) {
+				continue
+			}
+			if selfHost != 0 && o.Obj == selfHost && len(choices) >= d.Min {
 				continue
 			}
 			if d.TargetsWithSameController && !haveTargetController {

@@ -610,6 +610,14 @@ type TargetEffect struct {
 	// wire and the canonical Board encoding never carry it. Empty when the
 	// source declares none.
 	AttachLogic string `json:"-"`
+	// Host is the object the targeting spell or ability belongs to: the
+	// spell itself, or an ability's source permanent. Server-side only
+	// (json:"-") like AttachLogic, so both adapters read it identically and
+	// the wire never carries it. The bot reads it so an "up to" removal ask
+	// is not filled from its own host: an exile "until this leaves the
+	// battlefield" aimed at its own host brings both straight back. Zero
+	// when unknown.
+	Host state.ObjID `json:"-"`
 	// Desc is the script's noun for the legal target set (Forge
 	// ValidTgtsDesc); presentation only, never a legality fact. Absent when
 	// the script supplies none.
