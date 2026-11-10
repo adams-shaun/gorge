@@ -218,6 +218,9 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"granted_mana_ask_tries_needed_colour_first", false, false},
 		{"clone_template_entry_condition_mockingbird_cutthroat", false, false},
 		{"clone_template_entry_condition_mockingbird_sparkshooter", false, false},
+		// CR 603.3b: Season of Loss makes each player sacrifice a creature, so Scavenger's Talent's die trigger and its per-sacrifice triggers are all queued: gorge walks each departure's triggers in line order (the die trigger first)
+		{"sacrifice_triggers_walk_order_batch_sacrifice_283", true, false},
+		{"sacrifice_triggers_walk_order_batch_sacrifice_1088", false, false},
 	})
 }
 

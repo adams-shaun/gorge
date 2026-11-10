@@ -1449,15 +1449,19 @@ func (s *State) flushSac(k *prep) {
 	// gorge's earlier emits did; the parked ones are sacrificed and move after
 	// the answer, in the same batch.
 	w, parked := s.sacParkFrom(k, ord[:n])
-	for _, sl := range ord[:w] {
-		s.fireSac(k, sl)
-	}
 	var zs [MaxPerm]kop.Zone
-	for i, sl := range ord[:w] {
-		zs[i] = s.dieZone(k, sl)
-	}
-	for i, sl := range ord[:w] {
-		s.fireLeave(k, sl, zs[i])
+	if w > 1 && s.subs[kop.TrigSacrificed].any() {
+		s.sacEachDeparture(k, ord[:w], &zs) // one walk per departure (trig_sacqueueorder.go)
+	} else {
+		for _, sl := range ord[:w] {
+			s.fireSac(k, sl)
+		}
+		for i, sl := range ord[:w] {
+			zs[i] = s.dieZone(k, sl)
+		}
+		for i, sl := range ord[:w] {
+			s.fireLeave(k, sl, zs[i])
+		}
 	}
 	for i, sl := range ord[:w] {
 		s.removePerm(k, sl, zs[i], false)
