@@ -106,7 +106,11 @@ func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [ko
 		if a.StFlags&kop.StTapReflect != 0 {
 			// one mana of the type the tap produced: fixed for a source of one
 			// type, the pick's otherwise (and a filter's colour is picked after
-			// its tap)
+			// its tap); a choice source's folded view already counts it
+			// (mana_taprefl.go)
+			if pc.reflFold {
+				return true
+			}
 			m := srcMask(pc)
 			if colour || m == 0 || m&(m-1) != 0 {
 				hit = true
@@ -168,6 +172,9 @@ func (s *State) srcExtraPick(k *prep, sl Slot, pc *pcard, col int) (xv [kop.NumM
 			return true
 		}
 		if a.StFlags&kop.StTapReflect != 0 {
+			if pc.reflFold {
+				return true // the folded view's own mana (mana_taprefl.go)
+			}
 			xv[col] += uint8(a.B) // the type this tap made
 			hit = true
 			return true

@@ -67,10 +67,15 @@ func (lc *lowerCtx) tapExtraStatic(t cards.Trigger) error {
 // of the type the tap produced. Only ValidCard$ Land.Basic lowers, since a
 // basic land makes one type, so gorge folds the extra as a fixed vector
 // (pay.PaymentPlanReflectedMana); a filter reaching a source that makes
-// several types leaves the extra the pick's. The extra goes to the tapping
+// several types leaves the extra the pick's, which only Artifact.token
+// (below) is lowered for. The extra goes to the tapping
 // player: either the controller's own taps (Activator$ You, Defined$ You) or
 // every player's (no Activator$, Defined$ TriggeredActivator or
 // TriggeredCardController, the payer of a planned tap), StTapAnyPlayer.
+// ValidCard$ Artifact.token (Roxanne, Starfall Savant) reaches a source that
+// makes any colour (Meteorite): the planner reads it as one tap of one more
+// mana of the colour picked (dirac mana_taprefl.go); a token whose extra it
+// cannot price that way (a Treasure) stalls there, as every other shape.
 func (lc *lowerCtx) tapExtraReflected(t cards.Trigger) error {
 	tm, ok := pay.PaymentPlanReflectedTapMana(lc.face, t)
 	if !ok {
@@ -87,7 +92,7 @@ func (lc *lowerCtx) tapExtraReflected(t cards.Trigger) error {
 		return refuse("TapsForMana reflected mana with Activator$ %q", v)
 	}
 	tp.consume("Activator")
-	if v := strings.TrimSpace(tp.str("ValidCard")); v != "Land.Basic" {
+	if v := strings.TrimSpace(tp.str("ValidCard")); v != "Land.Basic" && v != "Artifact.token" {
 		return refuse("TapsForMana reflected mana over ValidCard$ %q: a source making several types", v)
 	}
 	var err error

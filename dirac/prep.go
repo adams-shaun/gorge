@@ -21,6 +21,7 @@ type pcard struct {
 	manaN       uint8
 	manaDyn     bool // a dynamic-amount variant (varPC): gorge's evaluated-amount layer
 	manaOne     bool // Produced$ Any with an amount above one: all of it one colour, whichever is chosen
+	reflFold    bool // the view of a choice source under a reflected TapsForMana extra: manaN already counts the extra's one mana of the picked colour (mana_taprefl.go)
 	manaTap     bool // the mana ability costs only {T}
 	manaSac     bool // the mana ability costs {T} and sacrificing the source (Treasure)
 	manaSacOnly bool // the mana ability costs only sacrificing the source (Eldrazi Spawn)
