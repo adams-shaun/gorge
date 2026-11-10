@@ -44,7 +44,8 @@ func tableDelaysDies(t *Table) bool {
 // battlefield, with o as the trigger object and its last controller pl as
 // the trigger player (gorge's TriggeredCardController reads the move's LKI:
 // Searing Blood, Virulent Wound), and removes it; the rest stay in order
-// with their LKI indexes (as fireDelayedWhen).
+// with their LKI indexes (as fireDelayedWhen). The enqueued entry carries
+// o's snapshot taken now, while it is still on the battlefield.
 //
 //go:noinline
 func (s *State) fireDiesProgs(o Obj, pl uint8) {
@@ -56,7 +57,14 @@ func (s *State) fireDiesProgs(o Obj, pl uint8) {
 			m := s.npend
 			s.enqueue(d.src, d.sv, d.card, d.ab, d.ctrl, o, pl, 0)
 			if s.npend > m {
-				s.pend[m].li = s.g.dpLKI[i]
+				// the dying creature's last known information, taken as it
+				// leaves, not at the registration (CR 603.10a, 608.2h: gorge
+				// binds TriggeredCard to the move's LKI)
+				li := s.snapLKI(o)
+				if li == 0 {
+					li = s.g.dpLKI[i]
+				}
+				s.pend[m].li = li
 			}
 			continue
 		}
