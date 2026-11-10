@@ -527,3 +527,12 @@ func TestTokenCopyOfBackFaceMVLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "token_copy_of_back_face_has_no_mana_value", "std-tla", Config{GorgeAutopaySurface: true})
 }
+
+// TestMayPlayFoldCounterRaiseAmbiguousLockstep: Quilled Greatwurm in the
+// graveyard beside Muldrotha has two may-play offers; the folded one (its
+// own permission) raises the cost by removing six counters, which gorge's
+// payment builder does not plan, so the autopay surface offers neither.
+func TestMayPlayFoldCounterRaiseAmbiguousLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "mayplay_fold_with_counter_raise_ambiguous", "std-fdn", Config{GorgeAutopaySurface: true})
+}
