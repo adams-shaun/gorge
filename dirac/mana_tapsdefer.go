@@ -84,7 +84,11 @@ func (s *State) tapsDeferred(k *prep, p uint8, sl Slot) bool {
 // census gap the prefix search branches on (potentialPrefixScript) is a
 // source whose missed ability is a plain one-mana-of-any-colour tap
 // (Firdoch Core), whose relaxed alternatives (paymentPlanRelaxedAlternatives)
-// are one mana per colour: any other production stays unmodelled.
+// are one mana per colour, or a plain one-mana tap of one fixed colour
+// (Llanowar Elves under Cryoshatter): its one relaxed alternative, no colour
+// ask (deferGapAnswers is 1). Left out, that source kept its census unit and
+// the offer priced a plain cast with it, which gorge's census never lists and
+// its autopay surface never scripts. Any other production stays unmodelled.
 func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 	if k.gen == nil || !k.gen.anyTapsDefer {
 		return slotMask{}
@@ -107,7 +111,7 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			continue
 		}
 		pc := s.manaPCGen(k, sl)
-		if pc.manaAb < 0 || !pc.manaTap || pc.manaN != 1 || pc.manaCol != kop.ColAny ||
+		if pc.manaAb < 0 || !pc.manaTap || pc.manaN != 1 || !tapsDeferColour(pc.manaCol) ||
 			pc.manaChosen || pc.manaOne || pc.manaMulti || pc.manaDyn {
 			continue
 		}
@@ -122,6 +126,12 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 		m = m.with(sl)
 	}
 	return m
+}
+
+// tapsDeferColour is the production scriptTapsDefer models: any colour, or
+// exactly one of WUBRG.
+func tapsDeferColour(c kop.ColorMask) bool {
+	return c == kop.ColAny || c != 0 && c&^kop.ColAny == 0 && c&(c-1) == 0
 }
 
 // deferGapAnswers is how many colour answers a Taps-deferred gap's
