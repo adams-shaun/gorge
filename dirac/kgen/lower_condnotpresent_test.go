@@ -15,8 +15,8 @@ Types:Creature Elf
 PT:1/1
 T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCZ | TriggerDescription$ x
 SVar:TrigCZ:DB$ ChangeZone | Origin$ Graveyard | Destination$ Hand | ChangeType$ Creature.YouOwn | RememberChanged$ True | Hidden$ True | Optional$ True | SubAbility$ DBCounter
-SVar:DBCounter:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | ConditionDefined$ Remembered | COND | SubAbility$ DBCleanup
-SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True
+SVar:DBCounter:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | ConditionDefined$ Remembered | COND | SubAbility$ DBTidy
+SVar:DBTidy:DB$ Cleanup | ClearRemembered$ True
 Oracle:x
 `
 
