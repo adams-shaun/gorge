@@ -113,7 +113,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +5 (the merge with land: this branch's +5 beside land's +26, disjoint; merged ALL 21784 -> 21789 measured).
 	// +1 (Boommobile: an artifact's resolving mana restricted to activated abilities, kop.SpmActivated; the merge with land: land's 21792 + 1 = 21793, DFT 250 -> 251).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21870, 34442},
+	"ALL": {21872, 34442},
 	"BIG": {23, 30},
 	"BLB": {258, 278},
 	"BRO": {208, 280},
@@ -121,13 +121,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"DMU": {194, 270},
 	"DSK": {242, 276},
 	"ECL": {237, 273},
-	"EOE": {239, 266},
+	"EOE": {240, 266},
 	"FDN": {517, 517},
 	"FIN": {270, 312},
 	"FRA": {249, 269},
 	"HOB": {155, 172},
 	"LCI": {253, 290},
-	"MKM": {242, 279},
+	"MKM": {243, 279},
 	"MOM": {198, 296},
 	"MSH": {239, 276},
 	"NEO": {198, 287},
