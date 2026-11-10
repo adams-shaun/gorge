@@ -14,8 +14,8 @@ const putChoicesProbe = `Name:Choice Probe
 ManaCost:2 G
 Types:Sorcery
 A:SP$ PutCounter | Choices$ Creature.YouCtrl | CounterType$ P1P1 | CounterNum$ 1 PARAMS| SubAbility$ DBPump
-SVar:DBPump:DB$ Pump | Defined$ Remembered | KW$ Trample | SubAbility$ DBClean
-SVar:DBClean:DB$ Cleanup | ClearRemembered$ True
+SVar:DBPump:DB$ Pump | Defined$ Remembered | KW$ Trample | SubAbility$ DBEnd
+SVar:DBEnd:DB$ Cleanup | ClearRemembered$ True
 Oracle:probe
 `
 
@@ -23,9 +23,9 @@ const searcherProbe = `Name:Searcher Probe
 ManaCost:2 G
 Types:Instant
 A:SP$ ChangeZone | Origin$ Library | Destination$ Battlefield | ChangeType$ Land.Basic | ChangeNum$ 1 | Tapped$ True PARAMS| SubAbility$ DBImm
-SVar:DBImm:DB$ ImmediateTrigger | Execute$ TrigCtr | ConditionCheckSVar$ Count$RememberedSize | SubAbility$ DBClean
+SVar:DBImm:DB$ ImmediateTrigger | Execute$ TrigCtr | ConditionCheckSVar$ Count$RememberedSize | SubAbility$ DBEnd
 SVar:TrigCtr:DB$ PutCounter | ValidTgts$ Creature.YouCtrl | CounterType$ P1P1
-SVar:DBClean:DB$ Cleanup | ClearRemembered$ True
+SVar:DBEnd:DB$ Cleanup | ClearRemembered$ True
 Oracle:probe
 `
 
@@ -99,7 +99,7 @@ func TestRememberChoiceWriters(t *testing.T) {
 		}
 	}
 	// an object read of the set beside the searcher refuses: the kernel counts the player
-	objRead := strings.Replace(searcherProbe, "SVar:DBClean:", "SVar:DBPump:DB$ Pump | Defined$ Remembered | KW$ Trample | SubAbility$ DBClean\nSVar:DBClean:", 1)
+	objRead := strings.Replace(searcherProbe, "SVar:DBEnd:", "SVar:DBPump:DB$ Pump | Defined$ Remembered | KW$ Trample | SubAbility$ DBEnd\nSVar:DBEnd:", 1)
 	objRead = strings.Replace(objRead, "SubAbility$ DBImm", "SubAbility$ DBPump", 1)
 	if got := probeRefusals(lowerProbe(t, objRead, "Searcher Probe", "| RememberSearcher$ True ")); !strings.Contains(got, "remembered-object read") {
 		t.Errorf("an object read beside the searcher: refusals %q, want the object-read refusal", got)
