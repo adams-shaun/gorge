@@ -143,7 +143,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	}
 	// a multi-object target slot: run the op once per object
 	if sl, ok := tgtSlot(in.Obj); ok && !s.g.inLoop && s.xtOf(e).n > 0 &&
-		in.Op != kop.OpDealDamageDivided && in.Op != kop.OpRepeatEachPlayer {
+		in.Op != kop.OpDealDamageDivided && in.Op != kop.OpRepeatEachPlayer && in.Op != kop.OpRepeatEach {
 		// OpRepeatEachPlayer is its own per-player loop (eachPlayers: gorge
 		// effRepeatEach orders the targets' players AliveFrom(controller),
 		// not the slot's pick order), never execEachTarget
@@ -225,6 +225,8 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		s.res.ask, s.res.askP = raGenBranch, p
 		return false, true
+	case kop.OpRepeatEach:
+		s.repeatEachCards(k, in) // act_repeatcards.go
 	case kop.OpRepeatEachPlayer:
 		q := s.eachPlayers(k, in.Obj)
 		if in.C&1 == 0 && in.Obj == kop.RefEachPlayer {

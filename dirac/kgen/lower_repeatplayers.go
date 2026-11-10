@@ -36,7 +36,7 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 			return err
 		}
 	case "":
-		return refuse("RepeatEach without RepeatPlayers$")
+		return lc.repeatEachCards(ps) // lower_repeatcards.go
 	default:
 		return refuse("RepeatEach RepeatPlayers %q", rp)
 	}

@@ -3330,6 +3330,12 @@ func (lc *lowerCtx) token(ps *params) error {
 			}
 		case "Self":
 			dst = lRef{Kind: rSelf}
+		case "Remembered":
+			// the repeated card of a RepeatEach over cards (lower_repeatcards.go)
+			if lc.repeatCard == 0 {
+				return refuse("Token AttachedTo %q", v)
+			}
+			dst = lRef{Kind: rEach}
 		default:
 			return refuse("Token AttachedTo %q", v)
 		}

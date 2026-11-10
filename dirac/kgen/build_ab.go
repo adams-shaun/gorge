@@ -2428,6 +2428,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.C, ki.A = kop.OpCharm, int16(in.C), skip()
 	case "Branch":
 		ki.Op, ki.C, ki.A = kop.OpBranch, int16(in.C), skip()
+	case "RepeatEachCard":
+		ki.Op, ki.B = kop.OpRepeatEach, skip() // act_repeatcards.go
+		if in.F != nil {
+			if err := objFilter(zBattlefield); err != nil {
+				return ki, err
+			}
+		}
 	case "RepeatEach":
 		ki.Op, ki.A, ki.C = kop.OpRepeatEachPlayer, skip(), int16(in.C)
 		if in.F != nil {

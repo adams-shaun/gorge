@@ -208,6 +208,9 @@ type lowerCtx struct {
 	// repeatPl > 0 while a RepeatEach-over-players body is lowered: its
 	// Defined$ Player.IsRemembered is the repeated player (lower_repeatplayers.go)
 	repeatPl int
+	// repeatCard > 0 while a RepeatEach-over-cards body is lowered: its
+	// Token AttachedTo$ Remembered is the repeated card (lower_repeatcards.go)
+	repeatCard int
 	// repeatOpp: that body repeats over the controller's opponents
 	repeatOpp bool
 	// rollName is the ResultSVar$ of a RollDice lowered in ability rollAb:
