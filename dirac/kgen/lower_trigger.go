@@ -1949,14 +1949,15 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	case "CanAttackDefender":
 		// gorge combat.AttackAllowedThroughDefender: ValidCard$ (or
 		// ValidCards$) must match the creature, ValidAttacked$ must admit
-		// the defender. Only the Card.Self-anchored ValidCard$ is lowered.
+		// the defender. ValidAttacked$ stays unread (the unread-param check
+		// refuses it); a player-only ValidCard$ filter refuses.
 		if _, ok := sp.get("ValidCard"); !ok {
 			return nil, refuse("CanAttackDefender without ValidCard$")
 		}
 		if st.F, err = readF("ValidCard"); err != nil {
 			return nil, err
 		}
-		if !filterSelfOnly(st.F) {
+		if st.F == nil || len(st.F.Clauses) == 0 || st.F.Players != 0 {
 			return nil, refuse("CanAttackDefender ValidCard %q", s.Params["ValidCard"])
 		}
 	case "MustAttack":
@@ -2057,12 +2058,18 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			return nil, refuse("Panharmonicon with a partial ValidMode$ / ValidCause$ / Destination$ set")
 		}
 	case "UntapOtherPlayer":
-		// Card.Self or absent only (gorge untapOtherStaticsMatch)
-		if v := sp.str("ValidCard"); v != "" && v != "Card.Self" {
-			return nil, refuse("UntapOtherPlayer ValidCard %q", v)
+		// ValidCard$ over the non-active player's tapped permanents, matched
+		// from the static's source and controller (gorge
+		// untapOtherStaticsMatch); absent means Card.Self. A player-only
+		// filter reads nothing the permanent scan can evaluate.
+		if st.F, err = readF("ValidCard"); err != nil {
+			return nil, err
 		}
-		sp.consume("ValidCard")
-		st.F = &lFilter{Clauses: []lClause{{Flags: fSelf}}}
+		if st.F == nil {
+			st.F = &lFilter{Clauses: []lClause{{Flags: fSelf}}}
+		} else if st.F.Players != 0 {
+			return nil, refuse("UntapOtherPlayer ValidCard %q", s.Params["ValidCard"])
+		}
 	case "CombatDamageToughness":
 		if st.F, err = readF("ValidCard"); err != nil {
 			return nil, err
