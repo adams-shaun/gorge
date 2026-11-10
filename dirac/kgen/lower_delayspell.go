@@ -17,8 +17,11 @@ import (
 // the filter at the cast (dirac/trig_delayedspell.go).
 func (lc *lowerCtx) delayedSpellCast(ps *params) error {
 	if lc.granted > 0 {
-		// gorge's delayedRegistrationLive resolves Execute$ on the source,
-		// which is the grantee here (Way of the Cryomancer)
+		// gorge's registration names the grantee as its source, and the
+		// grantee's face has none of the grantor's SVars: Execute$ cannot be
+		// resolved at fire time (Way of the Cryomancer). The table-level
+		// refusal is a defect to fix in gorge's granted registration, not a
+		// lowering this build can carry.
 		return refuse("delayed SpellCast in a granted ability")
 	}
 	if _, ok := ps.get("Static"); ok {
@@ -40,8 +43,15 @@ func (lc *lowerCtx) delayedSpellCast(ps *params) error {
 		return err
 	}
 	for _, c := range f.Clauses {
-		if c.CmpX != "" {
-			// gorge re-reads the bound at the cast (Loki's cmcLEX)
+		if c.CmpX == "" {
+			continue
+		}
+		// The kernel reads the bound at the cast from the registration's
+		// source (fireDelayedSpell's evalCtx), so only a plain source power
+		// is carried; a target's or a chosen value's CmpX stays refused
+		// (Loki Laufeyson's cmcLEX).
+		if c.CmpV == nil || c.CmpV.Kind != vPowerOf || c.CmpV.Ref.Kind != rSelf ||
+			c.CmpV.Mul != 0 || c.CmpV.Div != 0 || c.CmpV.Add != 0 || c.CmpV.Neg {
 			return refuse("delayed SpellCast filter reads %q", c.CmpX)
 		}
 	}

@@ -295,6 +295,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-ecl", "mutable_explorer_makes_a_tapped_mutavault"},                        // Mutable Explorer enters: its trigger copies the card named Mutavault, a tapped token (CopyPermanent DefinedName$, CR 707.2)
 		{"custom", "warren_attack_charm_rabbit_token"},                                  // Warren Warleader attacking with Savannah Lions: its AttackersDeclared charm makes a Rabbit tapped and attacking, the defender the attack trigger's defending player (CR 508.4)
 		{"custom", "sneaked_spell_tokens_enter_attacking"},                              // The Last Ronin's Technique cast for its sneak cost in the declare blockers step: its three Spirits enter tapped and attacking, gorge's combat fallback (CR 508.4, 702.190a)
+		{"std-msh", "delay_spell_source_bound"},                                         // CR 603.7c: Loki Laufeyson's delayed SpellCast bound is its own power at the cast, re-read after the registration (a three-mana spell misses at power 2; a two-mana one fires), and both engines agree on every one
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {

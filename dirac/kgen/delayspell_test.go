@@ -9,20 +9,20 @@ import (
 
 // TestDelayspellRefusals: a Mode$ SpellCast DelayedTrigger lowers only as
 // the ThisTurn$ True, ValidActivatingPlayer$ You, non-Static$ registration
-// with a characteristic-only filter and a body naming no SVar, outside a
-// granted ability; the latent keeps its SpellCast trigger. Flamehold
-// Grappler (ValidCard$ Card) is accepted now that lowers a
+// with a characteristic-only filter (or a source-power bound) and a body
+// naming no SVar, outside a granted ability; the latent keeps its SpellCast
+// trigger.
+// Flamehold Grappler (ValidCard$ Card) is accepted now that lowers a
 // permanent-spell copy (C&2).
 func TestDelayspellRefusals(t *testing.T) {
 	checkCarrier(t,
 		[]string{"Teach by Example", "Twinferno", "Najal, the Storm Runner", "Mercurial Spelldancer",
 			"Doublecast", "Summon: G.F. Cerberus", "Pigment Wrangler", "Rimefire Torque",
-			"Flamehold Grappler"},
+			"Flamehold Grappler", "Loki Laufeyson"},
 		map[string]string{
 			"Narset Transcendent":   "delayed SpellCast without ThisTurn$",
 			"Mistrise Village":      "delayed SpellCast Static$",
 			"Theorist's Proxy":      "delayed SpellCast Static$",
-			"Loki Laufeyson":        `delayed SpellCast filter reads "X"`,
 			"Way of the Cryomancer": "delayed SpellCast in a granted ability",
 			"Storm King's Thunder":  `delayed SpellCast body reads "X"`,
 			"Sea Gate Stormcaller":  `delayed SpellCast body reads "X"`,
@@ -31,6 +31,7 @@ func TestDelayspellRefusals(t *testing.T) {
 			"DelayedTrigger C=1 CS=NextSpellCast",
 			"Latent DelayedSpellCast",
 			"trigger SpellCast F={types=0x20 | types=0x40} F2=nil whose=1 zone=0",
+			"cmp(2 2 0 X )",                   // Loki: mana value <= the source's power
 			"CopySpell obj=Triggered A=2 C=1", // Cerberus III
 			"CopySpell obj=Triggered A=1 C=3", // Flamehold Grappler: MayChooseTarget + a permanent copy
 		})
