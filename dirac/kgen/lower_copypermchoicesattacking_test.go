@@ -12,10 +12,14 @@ import (
 // CopyPermanent line of its one effect) and returns its refusals.
 func ccLower(t *testing.T, trigger, copyLine string) []string {
 	t.Helper()
+	return ccLowerSrc(t, "T:"+trigger+"\nSVar:TrigCopy:"+copyLine+"\n")
+}
+
+// ccLowerSrc lowers the mount with body as its ability lines.
+func ccLowerSrc(t *testing.T, body string) []string {
+	t.Helper()
 	src := "Name:Mount\nManaCost:4 R R\nTypes:Legendary Creature Horse Mount\nPT:4/6\nK:Haste\n" +
-		"T:" + trigger + "\n" +
-		"SVar:TrigCopy:" + copyLine + "\n" +
-		"K:Saddle:1\n"
+		body + "K:Saddle:1\n"
 	card, diags := cards.ParseBytes("copychoice_probe.txt", []byte(src))
 	if card == nil {
 		t.Fatalf("parse: %v", diags)
@@ -81,6 +85,10 @@ func TestLowerCopypermChoicesAttacking(t *testing.T) {
 		if picks != 2 || copies != 2 {
 			t.Errorf("%d picks and %d copies, want the copy and its repeat (2 and 2)", picks, copies)
 		}
+	})
+	t.Run("attacking from an activated ability", func(t *testing.T) {
+		line := strings.Replace(ccCopy, "DB$ CopyPermanent", "A:AB$ CopyPermanent | Cost$ 2", 1)
+		kdefWant(t, ccLowerSrc(t, line+"\n"), "outside an attack trigger")
 	})
 	for _, v := range []struct{ name, trigger, line, want string }{
 		{"num copies", ccAttack, ccCopy + " | NumCopies$ 2", "Choices$ beside NumCopies$"},

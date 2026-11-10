@@ -48,5 +48,12 @@ func (lc *lowerCtx) copyChoiceAttacking(ps *params) (bool, error) {
 	if _, err := lc.tokenAttacking(v); err != nil {
 		return false, err
 	}
+	// tokenAttacking lets a no-trigger program through (the Token path gates on
+	// the combat window at run time); ExtCopyPicked has no such gate, and
+	// gorge's enteringDefenderFallback enters a token attacking only inside
+	// combat, so outside an attack trigger the flag would diverge.
+	if lc.ab.Trigger == nil {
+		return false, refuse("CopyPermanent Choices$ with TokenAttacking$ True outside an attack trigger")
+	}
 	return true, nil
 }
