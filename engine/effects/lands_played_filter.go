@@ -114,3 +114,17 @@ func landsPlayedFiltered(pl *state.Player, you state.PlayerID, arg string) (int3
 	}
 	return n, true
 }
+
+// landsPlayedCount answers PlayerCountPropertyYou$LandsPlayed for the
+// resolving controller. An argument filters the plays (Spider-Man 2099's
+// "Card.!inRealZoneHand,Card.YouDontOwn", Visions of Phyrexia's
+// "Card.inRealZoneExile"); an unknown filter word fails closed.
+func landsPlayedCount(g *state.Game, c *Ctx, arg string) (int32, bool) {
+	if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
+		return 0, false
+	}
+	if a := strings.TrimSpace(arg); a != "" {
+		return landsPlayedFiltered(&g.Players[c.Controller], c.Controller, a)
+	}
+	return g.Players[c.Controller].LandsPlayed, true
+}
