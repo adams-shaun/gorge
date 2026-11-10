@@ -229,6 +229,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "fra_fifth_one_colour_source"},                                       // Intrepid Stablemaster beside four other sources making all their mana in one colour: the fifth is priced (colour multisets per amount), not a capacity stall
 		{"custom", "tmt_dynamic_mana_past_40"},                                          // Improvised Arsenal's mana amount grows past 40 as its copies and the enchanted creature grow: the autopay variants cover it, not a capacity stall
 		{"std-dsk", "twitching_doll_mana_puts_a_nest_counter", full},                    // Twitching Doll taps for a red spell: its mana ability's rider puts a nest counter on it as the mana is added, with no stack and no decision (CR 605.3b)
+		{"custom", "speed_young_avenger_grants_blockable_only_by_haste"},                // Speed, Young Avenger casts a Lightning Bolt and pays {1}: its reflexive trigger makes a creature with haste blockable only by creatures with haste this turn (the targeted grant with no exile sweep)
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {
