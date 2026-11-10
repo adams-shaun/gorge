@@ -10,17 +10,17 @@ const antiVenomProbe = `Name:Probe Venom
 ManaCost:W
 Types:Creature Symbiote
 PT:5/5
-R:Event$ DamageDone | ActiveZones$ Battlefield | ValidTarget$ Card.Self | ReplaceWith$ Counters | PreventionEffect$ True | AlwaysReplace$ True%s | Description$ probe.
-SVar:Counters:DB$ PutCounter | Defined$ ReplacedTarget | CounterType$ %s | CounterNum$ X
-SVar:X:ReplaceCount$DamageAmount
+R:Event$ DamageDone | ActiveZones$ Battlefield | ValidTarget$ Card.Self | ReplaceWith$ ProbeCounters | PreventionEffect$ True | AlwaysReplace$ True%s | Description$ probe.
+SVar:ProbeCounters:DB$ PutCounter | Defined$ ReplacedTarget | CounterType$ %s | CounterNum$ ProbeAmount
+SVar:ProbeAmount:ReplaceCount$DamageAmount
 `
 
 const wolverineProbe = `Name:Probe Wolverine
 ManaCost:R
 Types:Creature Mutant
 PT:3/5
-R:Event$ DamageDone | ActiveZones$ Battlefield | ValidTarget$ Card.Self | ReplaceWith$ Healing%s | Description$ probe.
-SVar:Healing:DB$ HealDamage | Defined$ %s
+R:Event$ DamageDone | ActiveZones$ Battlefield | ValidTarget$ Card.Self | ReplaceWith$ ProbeHeal%s | Description$ probe.
+SVar:ProbeHeal:DB$ HealDamage | Defined$ %s
 `
 
 // TestLowerReplDamagedoneShapes: Anti-Venom's prevent-and-counters and
