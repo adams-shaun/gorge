@@ -256,7 +256,8 @@ func (e *Engine) appendGrantedCostStatic(dst *[]staticView, ce *ContinuousEffect
 			return
 		}
 		*dst = append(*dst, staticView{Source: id, Controller: o.Controller,
-			Params: ce.CostStaticParams, SVars: ce.CostStaticSVars})
+			Params: ce.CostStaticParams, SVars: ce.CostStaticSVars,
+			grantCaster: ce.Controller, castByGrantor: atStack == state.ZStack && specProvenanceGate(ce.Affects).stages&provAtAllByYou != 0})
 	}
 	affects := strings.TrimSpace(ce.Affects)
 	if affects == "" || affects == "Card.Self" {

@@ -1970,6 +1970,8 @@ type genState struct {
 	// Unravel; gorge targetManaSpentLKI).
 	tgtSpent uint8
 	rsv      [rsvN]uint8
+	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
+	embX [MaxSeats][maxEmb][embRemSlots - 2]uint8
 }
 
 const (
@@ -1978,7 +1980,7 @@ const (
 	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
 	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
 	// keeps its phase.
-	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 2 - MaxSeats*kop.NumManaKinds - ulBytes - dmkBytes
+	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2))
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).

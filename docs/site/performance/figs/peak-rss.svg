@@ -1,0 +1,36 @@
+<svg class="mzc" viewBox="0 0 760 214" role="img" aria-label="Bar chart, log scale: peak resident memory per engine" xmlns="http://www.w3.org/2000/svg">
+<text x="16.0" y="20.0" class="mz-title" text-anchor="start">Peak memory of a game-playing process</text>
+<line class="mz-grid" x1="120.0" y1="40" x2="120.0" y2="174"/>
+<text x="120.0" y="189.0" class="mz-muted" text-anchor="middle">10</text>
+<line class="mz-grid" x1="372.2" y1="40" x2="372.2" y2="174"/>
+<text x="372.2" y="189.0" class="mz-muted" text-anchor="middle">100</text>
+<line class="mz-grid" x1="624.4" y1="40" x2="624.4" y2="174"/>
+<text x="624.4" y="189.0" class="mz-muted" text-anchor="middle">1,000</text>
+<text x="112.0" y="61.0" text-anchor="end">mtg-kernel</text>
+<g><title>mtg-kernel: peak RSS 10.9-15.7 MB over its rows</title><rect class="c5" x="120.0" y="48.0" width="49.4" height="18" rx="2" style="stroke:none"/>
+<line class="mz-axis" x1="129.4" y1="57.0" x2="169.4" y2="57.0" style="stroke-width:2"/><line class="mz-axis" x1="169.4" y1="51.0" x2="169.4" y2="63.0"/>
+</g>
+<text x="175.4" y="61.0" text-anchor="start">15.7</text>
+<text x="112.0" y="87.0" text-anchor="end">dirac</text>
+<g><title>dirac: peak RSS 103-106 MB over its rows</title><rect class="s3" x="120.0" y="74.0" width="257.6" height="18" rx="2" style="stroke:none"/>
+<line class="mz-axis" x1="375.5" y1="83.0" x2="378.6" y2="83.0" style="stroke-width:2"/><line class="mz-axis" x1="378.6" y1="77.0" x2="378.6" y2="89.0"/>
+</g>
+<text x="384.6" y="87.0" text-anchor="start">105</text>
+<text x="112.0" y="113.0" text-anchor="end">gorge</text>
+<g><title>gorge: peak RSS 349-397 MB over its rows</title><rect class="s1" x="120.0" y="100.0" width="391.3" height="18" rx="2" style="stroke:none"/>
+<line class="mz-axis" x1="509.1" y1="109.0" x2="523.2" y2="109.0" style="stroke-width:2"/><line class="mz-axis" x1="523.2" y1="103.0" x2="523.2" y2="115.0"/>
+</g>
+<text x="529.2" y="113.0" text-anchor="start">356</text>
+<text x="112.0" y="139.0" text-anchor="end">Forge</text>
+<g><title>Forge: peak RSS 882-882 MB over its rows</title><rect class="c4" x="120.0" y="126.0" width="490.7" height="18" rx="2" style="stroke:none"/>
+<line class="mz-axis" x1="610.7" y1="135.0" x2="610.7" y2="135.0" style="stroke-width:2"/><line class="mz-axis" x1="610.7" y1="129.0" x2="610.7" y2="141.0"/>
+</g>
+<text x="616.7" y="139.0" text-anchor="start">882</text>
+<text x="112.0" y="165.0" text-anchor="end">XMage</text>
+<g><title>XMage: peak RSS 1,219-1,288 MB over its rows</title><rect class="s2" x="120.0" y="152.0" width="526.9" height="18" rx="2" style="stroke:none"/>
+<line class="mz-axis" x1="646.1" y1="161.0" x2="652.2" y2="161.0" style="stroke-width:2"/><line class="mz-axis" x1="652.2" y1="155.0" x2="652.2" y2="167.0"/>
+</g>
+<text x="658.2" y="165.0" text-anchor="start">1,228</text>
+<line class="mz-axis" x1="120.0" y1="40" x2="120.0" y2="174"/>
+<text x="405.0" y="208.0" class="mz-muted" text-anchor="middle">peak RSS, MB (log scale); bar = middle row, whisker = range over every row the engine has</text>
+</svg>

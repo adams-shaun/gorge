@@ -180,6 +180,7 @@ const (
 	vTapPower            // the tap-power total of Ref (a Station's amount: power plus every scoped StatTapPower bonus)
 	vStepIn              // 1 while the current step is one of the kop.Step bits in N (ConditionPhases$)
 	vTgtSpent            // the mana spent to cast the spell the resolving spell targets (Targeted$CastTotalManaSpent)
+	vOppExtreme          // a figure over the controller's living opponents, kop.OppExt* in N, F for OppExtValid (PlayerCountOpponents$)
 	vCount_
 )
 
@@ -187,7 +188,7 @@ var valNames = [...]string{"None", "Const", "X", "Count", "CountGraveyard", "Sum
 	"Morbid", "AttackedThisTurn", "PowerOf", "ToughnessOf", "LifeOf", "LibrarySizeOf", "StartingLife",
 	"TriggerAmount", "LifeGainedThisTurn", "OppLifeLostThisTurn", "CountersOn", "CreaturesDied",
 	"RememberedCount", "ExcessDamage", "LastLifeLost", "TokensCreated", "CountCast", "LifeLostThisTurn", "Sum",
-	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn", "TgtSpent"}
+	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn", "TgtSpent", "OppExtreme"}
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
 // that order, then negated when Neg.
@@ -907,8 +908,9 @@ type lCard struct {
 	Colors         string
 	P, T           int
 	PTStar         bool
-	NoPT           bool // the face prints no power or toughness (CardDef.NoPT)
-	TwoSeat        bool // the lowering holds only for 2 players (CardDef.TwoSeat, set by lowerCtx.twoSeat)
+	NoPT           bool     // the face prints no power or toughness (CardDef.NoPT)
+	TwoSeat        bool     // the lowering holds only for 2 players (CardDef.TwoSeat, set by lowerCtx.twoSeat)
+	TwoSeatWhy     []string // the reasons that set TwoSeat, in first-seen order (TestTwoSeatReasons)
 	Loyalty        int
 	Defense        int // a Battle's printed Defense (lower_battle.go)
 	Kw             []string
@@ -1049,6 +1051,21 @@ type lEmblem struct {
 	// CaptureLapse: the capture ends when the object leaves the battlefield
 	// (ForgetOnMoved$ / ExileOnMoved$ Battlefield; kop.Emblem.CaptureLapse)
 	CaptureLapse bool
+	// Capture2: the second target slot an Effect remembers beside Capture
+	// (T'Pring: RememberObjects$ Targeted over both fighters; kop.Emblem.Capture2)
+	Capture2    lRef
+	Capture2Set bool
+	// CaptureRem: the emblem remembers the resolution's remembered set
+	// (RememberObjects$ RememberedLKI; kop.Emblem.CaptureRem)
+	CaptureRem bool
+	// Source: the trigger fires for the emblem's own creator (ValidCard$
+	// Card.EffectSource; kop.Emblem.Source)
+	Source bool
+	// NotHere: made only while the host is off the battlefield (kop.Emblem.NotHere)
+	NotHere bool
+	// NumAmount and Once: the frozen number rides the trigger as its amount,
+	// and the emblem ends after it fires once (OneOff$ True)
+	NumAmount, Once bool
 }
 
 type refusal struct {

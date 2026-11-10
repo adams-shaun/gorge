@@ -668,6 +668,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if k.embComb && s.idemEmblemHeld(k, p, uint8(in.C)+1) {
 			break // static_emblemcombat.go
 		}
+		if k.t.Emblems[in.C].NotHere && s.hostNow(e) {
+			break // a registration made with its host on the battlefield ends with it (kop.Emblem.NotHere)
+		}
 		if n := int(s.g.nemb[p]); n < s.embCap() {
 			s.g.embF[p] &^= 1 << n // a new emblem has begun no turn yet
 			r := embRec{idx: uint8(in.C) + 1, c: e.card, obj: e.obj}
@@ -689,6 +692,12 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				}
 			default:
 				r.num = s.freezeEmbNum(k, in.A, s.ctxEntry(e))
+			}
+			if em := &k.t.Emblems[in.C]; em.Capture2 != kop.RefNone || em.CaptureRem {
+				if !s.embRemFill(em, &r) { // static_emblemrem.go
+					s.capFull(StallEmbRem)
+					break
+				}
 			}
 			r.t = s.tick() // gorge's AddContinuous ClockTick: a new continuous effect is newer than everything before it (CR 613.7)
 			s.embPut(p, n, r)
@@ -1248,7 +1257,7 @@ func (s *State) moveObj(k *prep, r kop.Ref, o Obj, z kop.Zone) bool {
 	case kop.ZoneNone:
 		return false
 	case kop.ZoneBattlefield:
-		if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell && !s.delayedSelfStale(k, &s.res.e) {
+		if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell {
 			return false
 		}
 		if z == kop.ZoneGraveyard {

@@ -58,5 +58,9 @@ figure svg {
 .mzc .seg4 { fill: #eda100; } .mzc .seg5 { fill: #e87ba4; }
 [data-md-color-scheme="slate"] .mzc .seg4 { fill: #c98500; }
 [data-md-color-scheme="slate"] .mzc .seg5 { fill: #d55181; }
+.mzc .c4 { fill: #eda100; stroke: #eda100; } .mzc .c5 { fill: #e87ba4; stroke: #e87ba4; }
+[data-md-color-scheme="slate"] .mzc .c4 { fill: #c98500; stroke: #c98500; }
+[data-md-color-scheme="slate"] .mzc .c5 { fill: #d55181; stroke: #d55181; }
+.mzc .soft { opacity: 0.5; }
 .mzc .dot { stroke: var(--md-default-bg-color); stroke-width: 2; }
 .mzc .hit:hover + .dot, .mzc .hit:hover { opacity: 0.85; }

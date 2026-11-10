@@ -69,6 +69,10 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 func TestStdOtjReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-otj", []stdRepro{
+		// CR 603.7c, 400.7: two Fortune, Loyal Steed end-of-combat delayed
+		// triggers; the first blinks Fortune and its saddler, so the second
+		// names a new object and moves nothing.
+		{"delayed_self_skips_returned_source", false, false},
 		{"aegis_copy_hides_older_copy_exceptions", true, false}, // CR 613.7e, 707.2: Oko's Assimilation Aegis copy of Daring Thunder-Thief is newer than his until-end-of-turn copy, so "except he has hexproof" is overwritten and returns with that layer
 		{"self_copy_layer", false, false},                       // CR 707.2, 707.9b: Oko (animated a 3/3 creature by Emergent Haunting's permanent animate) targets himself: a new layer keeps his copiable values and adds hexproof
 		{"copied_vehicle_counts_its_crew", true, false},         // CR 707.2: Loan Shark copying Luxurious Locomotive makes a Treasure per creature that crewed it
@@ -418,6 +422,7 @@ func TestStdBigReprosLockstep(t *testing.T) {
 		{"granted_sac_only_mana_prefix", true, false},                       // CR 602.2b, 704.5n: Lotus Ring's granted "Sacrifice this creature: Add three mana of any one color" is the prefix paying an activation, the equipped Hostile Investigator sacrificed and the Ring unattached
 		{"granted_sac_only_mana_window", true, false},                       // CR 602.2b, 605.3a: Esoteric Duplicator's resolution-time {2} is paid in the manual mana window by sacrificing the Lost Jitte token Lotus Ring equips, a tapped creature whose granted ability has no {T}
 		{"granted_sac_dies_token_copy_is_equip_target", true, false},        // CR 603.10a, 400.7: the prefix sacrifices the Lotus Ring-equipped Vaultborn Tyrant and its dies trigger's token copy, a new object, is the other Ring's Equip target; the search keys a payer state on its battlefield objects as gorge's scriptStateKey does
+		{"explore_reveal_asks_replacement_order", true, false},              // CR 616.1, 701.44a: a Map's explore reveals a nonland card under two Rest in Peace, so its move to the graveyard asks which replacement applies; the card waits on top of the library for the answer
 		{"granted_sac_mana_two_replacements", false, false},                 // CR 616.1, 602.2b: Lotus Ring's granted sacrifice mana, activated as the prefix with two Rest in Peace out, is asked which replacement applies and the script answers the first, so Oltec Matterweaver is exiled
 		{"granted_sac_mana_sba_ask_after", false, false},                    // CR 704.3, 616.1: the sacrificed Construct token's death leaves its sibling too small, and the check's own replacement ask is answered first by the script, so both tokens are exiled and cease
 		{"granted_sac_mana_offer_beside_trigger", false, false},             // CR 602.2b, 605.3a: with a trigger on the stack, the offer search of Esoteric Duplicator's {2} through Lotus Ring's granted sacrifice runs the sacrifice's replacement-order ask on its trial game, and the two sides agree on whether the activation is offered

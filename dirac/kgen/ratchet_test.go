@@ -121,8 +121,10 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (lt-low-tappower-station: Tapestry Warden, Sulu, Heroic Helmsman and Stoic Star-Captain lower their TapPowerValue lines to StatTapPower statics; ALL 22092 -> 22095).
 	// +3 (the merge with land: this branch's three TapPowerValue statics beside land's 22114; merged ALL 22114 -> 22117).
 	// +5 (Targeted$CardManaCost of a spell on the stack: Unravel and the four counter spells Dispersal Shield, Illumination, Prohibit and Silent Extraction; ALL 22146 -> 22151, EOE 248 -> 249).
+	// +3 (an Effect's trigger bound to a remembered set: The Eagles Are Coming!, Mysterio, Master of Illusion, T'Pring, Never Parted; ALL 22145 -> 22148, HOB 158 -> 159, SPM 168 -> 169, TRC 297 -> 298).
+	// +3 (the merge with land: this branch's +5 beside land's +3, disjoint; merged ALL 22151 -> 22154).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22151, 34442},
+	"ALL": {22154, 34442},
 	"BIG": {26, 30},
 	"BLB": {261, 278},
 	"BRO": {214, 280},
@@ -134,7 +136,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FDN": {517, 517},
 	"FIN": {275, 312},
 	"FRA": {255, 269},
-	"HOB": {158, 172},
+	"HOB": {159, 172},
 	"LCI": {259, 290},
 	"MKM": {250, 279},
 	"MOM": {199, 296},
@@ -144,11 +146,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"OTJ": {251, 276},
 	"SNC": {186, 266},
 	"SOS": {256, 270},
-	"SPM": {168, 192},
+	"SPM": {169, 192},
 	"TDM": {256, 276},
 	"TLA": {261, 285},
 	"TMT": {183, 194},
-	"TRC": {297, 337},
+	"TRC": {298, 337},
 	"TRK": {311, 311},
 	"WOE": {261, 281},
 }

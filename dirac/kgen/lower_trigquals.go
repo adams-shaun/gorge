@@ -67,6 +67,7 @@ func (cb *cardBuilder) filterPlayerAlt(f *lFilter, zones []kop.Zone, players uin
 		if err != nil {
 			return 0, err
 		}
+		cb.markDefending(kf)
 		kf.Or = next
 		if kf.Flags2&kop.F2SameNameAsSource != 0 || kf.Pred == kop.PredNamed {
 			cb.out.readsName = true

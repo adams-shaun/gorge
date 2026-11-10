@@ -449,3 +449,46 @@ func TestHandPickEntersTogetherLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "hand_pick_enters_together", "std-msh", Config{GorgeAutopaySurface: true})
 }
+
+// Ambulatory Reactor grants artifact creatures a {C} spendable only on artifact spells and
+// artifact sources' abilities. Floated in the granted-mana prefix search for an artifact
+// play, that {C} cannot pay Skycloud Expanse's {1}: the land's activation is no artifact
+// source's (CR 106.6), so neither engine funds the filter with it.
+func TestRestrictedGrantPaysNoLandFeeLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "restricted_grant_pays_no_land_fee", "std-trc", Config{})
+}
+
+// Toxic Deluge's additional cost is an announced X life, so X = 0 always pays and the
+// cast costs exactly {2}{B}. With Skycloud Expanse's filter a source the planner's census
+// misses, gorge's prefix search prices the cast as it does any other, and both engines
+// offer it.
+func TestAnnouncedLifeCastBehindAFilterLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "announced_life_cast_behind_filter", "std-trc", Config{})
+}
+
+// A delayed return brings two exiled lands back, the first a land that asks to
+// reveal a card as it enters. The election is asked inside its own move, so the
+// second land is still in exile while the first one's controller answers.
+func TestRememberedReturnAsksBetweenMovesLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "remembered_return_asks_between_moves", "std-trc", Config{})
+}
+
+// Two permanents that each make another permanent's exhaust abilities cost {2}
+// less lower an {X}{2}{R} activation by four: the two past its generic part pay
+// into {X} (CR 601.2f), so the X ask reaches two more than the mana on hand.
+func TestAbilityReductionExcessPaysXLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "ability_reduction_excess_pays_x", "std-dft", Config{GorgeAutopaySurface: true})
+}
+
+// A creature that took away another's abilities for as long as it stays on the
+// battlefield is blinked: the effect ends as it leaves (CR 611.2b), and the
+// object that returns is a new one (CR 400.7), so the other creature's
+// activated ability is offered again.
+func TestBlinkedSourceEndsAbilityLossLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "blinked_source_ends_ability_loss", "std-msh", Config{GorgeAutopaySurface: true})
+}

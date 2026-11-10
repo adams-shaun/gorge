@@ -12,7 +12,8 @@ func (s *State) returnsRemembered(in *kop.Instr) bool {
 // entering event (CR 603.6a): the enters checks wait until all are back, so an
 // entrant sees the others come in with it. It reports a pending ask: the object
 // it is for stays current in s.g.retAt, and the answer's continueRes re-enters
-// the walk, where the moved object is a miss.
+// the walk, where the moved object is a miss. An entrant's queued as-enters
+// election suspends the walk the same way, before the next object moves.
 //
 //go:noinline
 func (s *State) returnRemembered(k *prep, in *kop.Instr) bool {
@@ -24,11 +25,18 @@ func (s *State) returnRemembered(k *prep, in *kop.Instr) bool {
 	}
 	for int(s.g.retAt) <= int(s.g.nrem) {
 		o := s.g.rem[s.g.retAt-1]
+		n0 := s.g.nask
 		if s.execReturnObj(k, in, NoSlot, o) {
 			return true
 		}
 		if s.g.retAt <= s.g.nrem && s.g.rem[s.g.retAt-1] == o { // else ForgetChanged$ closed the gap
 			s.g.retAt++
+		}
+		if int(s.g.retAt) <= int(s.g.nrem) && s.eachReturnParks(k, in, n0) {
+			// the entrant's as-enters election (a reveal or shock land) is
+			// asked inside its own move: the objects after it are still in
+			// their zone while it is answered, as gorge moves them one at a time
+			return true
 		}
 	}
 	s.g.retAt = 0

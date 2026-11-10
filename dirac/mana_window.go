@@ -1373,9 +1373,6 @@ func (s *State) floatRestrAb(k *prep, p uint8, sl Slot, ab *kop.Ability, col int
 }
 
 func (s *State) floatRestrV(k *prep, p uint8, sl Slot, f kop.FilterID, v uint8, col int, n uint8) bool {
-	if k.artMana && k.cards[s.cardAt(sl)].manaTyped {
-		s.g.poolArt[SeatIx(p)] |= poolArtRestr
-	}
 	return s.addRestrSrcV(k, p, sl, f, v, col, n)
 }
 
@@ -1387,6 +1384,13 @@ func (s *State) addRestrSrc(k *prep, p uint8, sl Slot, f kop.FilterID, col int, 
 
 // addRestrSrcV is addRestrSrc for restriction variant v.
 func (s *State) addRestrSrcV(k *prep, p uint8, sl Slot, f kop.FilterID, v uint8, col int, n uint8) bool {
+	if k.artMana && k.cards[s.cardAt(sl)].manaTyped {
+		// gorge tags the unit by its producer (effects.ManaProducerTag) on
+		// every route the mana takes into the pool, a pair unit's larger
+		// alternative and a filter's restricted output too: a typed unit is
+		// spent after the plain ones of its colour (rbTyped)
+		s.g.poolArt[SeatIx(p)] |= poolArtRestr
+	}
 	var ch uint8
 	for g := f; g != 0; g = k.t.Filters[g].Or {
 		if k.t.Filters[g].Flags2&kop.F2ChosenType != 0 {

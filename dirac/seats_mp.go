@@ -25,3 +25,8 @@ const (
 	objOwnerBits  uint8 = 0xc0 // object.acts: the owner (0..3)
 	objOwnerShift       = 6
 )
+
+// embRemSlots is how many objects one emblem remembers (static_emblemrem.go):
+// the frozen-number byte and embR. The four-seat class has no reserved bytes
+// left for embX, so it holds two and a larger set stalls (StallEmbRem).
+const embRemSlots = 2

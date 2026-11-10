@@ -217,6 +217,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.extTurnFaceUp(k, in), true // face_turnupeffect.go
 	case kop.ExtDistCounters:
 		return s.distPickStart(k, in), true // ctr_distpick.go
+	case kop.ExtExileEmbRem:
+		s.exileEmbRem(k) // trig_emblemrem.go
+		return true, true
 	case kop.ExtCopyNamed:
 		return !s.copyNamed(k, in), true // copy_named.go
 	case kop.ExtCopyPicked:

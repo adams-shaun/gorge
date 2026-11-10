@@ -58,8 +58,8 @@ func (s *State) embCaptureLapse(k *prep, o Obj) {
 			if e.CapturePlayer != kop.RefNone {
 				continue // a player capture is a seat, not an object
 			}
-			if e.CaptureLapse && s.embNum(p, i) == uint8(o)+1 {
-				s.embSetNum(p, i, 0)
+			if e.CaptureLapse {
+				s.embRemDrop(p, i, o) // every slot naming o (static_emblemrem.go)
 			}
 		}
 	}

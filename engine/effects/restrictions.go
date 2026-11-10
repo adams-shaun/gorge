@@ -988,10 +988,12 @@ type untilHostLeavesPlayOrEOTCode uint16
 const (
 	untilHostLeavesPlayOrEOTNone untilHostLeavesPlayOrEOTCode = iota
 	untilHostLeavesPlayOrEOTYes
+	asLongAsInPlayYes
 )
 
 var untilHostLeavesPlayOrEOTCodes = state.NewStrCodes(
 	state.StrEntry[untilHostLeavesPlayOrEOTCode]{Key: "untilhostleavesplayoreot", Val: untilHostLeavesPlayOrEOTYes},
+	state.StrEntry[untilHostLeavesPlayOrEOTCode]{Key: "aslongasinplay", Val: asLongAsInPlayYes},
 )
 
 // IsUntilHostLeavesPlayOrEOTDuration reports whether a Duration$ value names
@@ -1001,27 +1003,41 @@ func IsUntilHostLeavesPlayOrEOTDuration(dur string) bool {
 	return untilHostLeavesPlayOrEOTCodes.Code(strings.ToLower(strings.TrimSpace(dur))) == untilHostLeavesPlayOrEOTYes
 }
 
-// anchorEffectHostIncarnation anchors an UntilHostLeavesPlayOrEOT
-// registration to the host incarnation the ability belongs to: a host that
-// leaves and returns is a new object (CR 400.7) the effect no longer governs,
-// which continuousLive reads through SourceIncarnation. The anchor is the
-// incarnation the resolving ability was put on the stack with (activate, then
-// flicker the host in response: the returned object is not "this creature"),
-// falling back to the host's current incarnation when no battlefield push
-// stamp exists.
+// isAsLongAsInPlayDuration reports whether a Duration$ value names "for as
+// long as CARDNAME remains on the battlefield" (The Wondrous Wasp's loss of
+// all abilities).
+func isAsLongAsInPlayDuration(dur string) bool {
+	return untilHostLeavesPlayOrEOTCodes.Code(strings.ToLower(strings.TrimSpace(dur))) == asLongAsInPlayYes
+}
+
+// anchorEffectHostIncarnation anchors an UntilHostLeavesPlayOrEOT or
+// AsLongAsInPlay registration to the host incarnation the ability belongs to:
+// a host that leaves and returns is a new object (CR 400.7, 611.2b) the effect
+// no longer governs, which continuousLive reads through SourceIncarnation.
 func anchorEffectHostIncarnation(h Host, c *Ctx, rawDur string, ce *state.ContinuousEffect) {
-	if !IsUntilHostLeavesPlayOrEOTDuration(rawDur) {
+	if !IsUntilHostLeavesPlayOrEOTDuration(rawDur) && !isAsLongAsInPlayDuration(rawDur) {
 		return
 	}
+	if inc := effectHostIncarnation(h, c); inc != 0 {
+		ce.SourceIncarnation = inc
+	}
+}
+
+// effectHostIncarnation is the incarnation of the host a resolving ability
+// belongs to: the one it was put on the stack with (activate, then flicker the
+// host in response: the returned object is not "this creature"), falling back
+// to the host's current incarnation when no battlefield push stamp exists; 0
+// when the host is not on the battlefield.
+func effectHostIncarnation(h Host, c *Ctx) uint32 {
 	if c.ResolvingObj != 0 {
 		if ro := h.Game().Obj(c.ResolvingObj); ro != nil && ro.Source == c.Source && ro.PushSourceStamped && ro.PushSourceOnBattlefield {
-			ce.SourceIncarnation = ro.PushSourceIncarnation
-			return
+			return ro.PushSourceIncarnation
 		}
 	}
 	if host := h.Game().Obj(c.Source); host != nil && host.Zone == state.ZBattlefield {
-		ce.SourceIncarnation = host.Incarnation
+		return host.Incarnation
 	}
+	return 0
 }
 
 // replacementLineWith reads ReplaceWith$ off a parseReplacementLine-built

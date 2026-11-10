@@ -435,6 +435,7 @@ func (lc *lowerCtx) objOrTargetOpt(ps *params, dflt string, zone int, allowParen
 					return lRef{}, err
 				}
 			}
+			t.Min, t.Max = lc.oppCountBound(t.Min), lc.oppCountBound(t.Max)
 		}
 		if allowParent {
 			if v, ok := ps.get("TargetsWithDefinedController"); ok && v != "TriggeredCardController" && v != "TriggeredTarget" { // those forms: lower_targetset.go
@@ -609,6 +610,9 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 	}
 	if err := lc.notPresentAsPresent(ps); err != nil { // lower_condnotpresent.go
 		return lCond{}, err
+	}
+	if c, ok, err := lc.effectPairCondition(ps); ok || err != nil { // lower_effectremember.go
+		return c, err
 	}
 	if cp, ok := ps.get("ConditionPresent"); ok {
 		if d, ok := ps.get("ConditionDefined"); ok && strings.TrimSpace(d) == "Collected" {

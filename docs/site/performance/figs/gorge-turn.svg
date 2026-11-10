@@ -1,0 +1,49 @@
+<svg class="mzc" viewBox="0 0 760 298" role="img" aria-label="Grouped bars: gorge CPU microseconds per turn by row and workload" xmlns="http://www.w3.org/2000/svg">
+<text x="16.0" y="20.0" class="mz-title" text-anchor="start">gorge benchmark rows: CPU per turn</text>
+<circle class="dot s1" cx="22" cy="44" r="5"/>
+<text x="40.0" y="48.0" text-anchor="start">Pair A</text>
+<circle class="dot s2" cx="94" cy="44" r="5"/>
+<text x="112.0" y="48.0" text-anchor="start">Pair B</text>
+<circle class="dot s3" cx="166" cy="44" r="5"/>
+<text x="184.0" y="48.0" text-anchor="start">Burn</text>
+<line class="mz-grid" x1="170.0" y1="64" x2="170.0" y2="262"/>
+<text x="170.0" y="277.0" class="mz-muted" text-anchor="middle">0</text>
+<line class="mz-grid" x1="300.0" y1="64" x2="300.0" y2="262"/>
+<text x="300.0" y="277.0" class="mz-muted" text-anchor="middle">200</text>
+<line class="mz-grid" x1="430.0" y1="64" x2="430.0" y2="262"/>
+<text x="430.0" y="277.0" class="mz-muted" text-anchor="middle">400</text>
+<line class="mz-grid" x1="560.0" y1="64" x2="560.0" y2="262"/>
+<text x="560.0" y="277.0" class="mz-muted" text-anchor="middle">600</text>
+<line class="mz-grid" x1="690.0" y1="64" x2="690.0" y2="262"/>
+<text x="690.0" y="277.0" class="mz-muted" text-anchor="middle">800</text>
+<text x="162.0" y="92.0" text-anchor="end">random -autopay</text>
+<g><title>random -autopay, Pair A: 532 µs/turn, 22.2 µs/decision</title><rect class="s1" x="170.0" y="71.0" width="345.8" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="520.8" y="80.0" class="mz-muted" text-anchor="start">532 µs</text>
+<g><title>random -autopay, Pair B: 507 µs/turn, 21.5 µs/decision</title><rect class="s2" x="170.0" y="83.0" width="329.6" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="504.6" y="92.0" class="mz-muted" text-anchor="start">507 µs</text>
+<g><title>random -autopay, Burn: 264 µs/turn, 12.1 µs/decision</title><rect class="s3" x="170.0" y="95.0" width="171.6" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="346.6" y="104.0" class="mz-muted" text-anchor="start">264 µs</text>
+<text x="162.0" y="140.0" text-anchor="end">random</text>
+<g><title>random, Pair A: 273 µs/turn, 9.99 µs/decision</title><rect class="s1" x="170.0" y="119.0" width="177.4" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="352.4" y="128.0" class="mz-muted" text-anchor="start">273 µs</text>
+<g><title>random, Pair B: 275 µs/turn, 10.5 µs/decision</title><rect class="s2" x="170.0" y="131.0" width="178.8" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="353.8" y="140.0" class="mz-muted" text-anchor="start">275 µs</text>
+<g><title>random, Burn: 161 µs/turn, 7.37 µs/decision</title><rect class="s3" x="170.0" y="143.0" width="104.6" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="279.6" y="152.0" class="mz-muted" text-anchor="start">161 µs</text>
+<text x="162.0" y="188.0" text-anchor="end">bot -autopay</text>
+<g><title>bot -autopay, Pair A: 631 µs/turn, 25.2 µs/decision</title><rect class="s1" x="170.0" y="167.0" width="410.1" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="585.1" y="176.0" class="mz-muted" text-anchor="start">631 µs</text>
+<g><title>bot -autopay, Pair B: 568 µs/turn, 24 µs/decision</title><rect class="s2" x="170.0" y="179.0" width="369.2" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="544.2" y="188.0" class="mz-muted" text-anchor="start">568 µs</text>
+<g><title>bot -autopay, Burn: 408 µs/turn, 17.6 µs/decision</title><rect class="s3" x="170.0" y="191.0" width="265.2" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="440.2" y="200.0" class="mz-muted" text-anchor="start">408 µs</text>
+<text x="162.0" y="236.0" text-anchor="end">bot</text>
+<g><title>bot, Pair A: 485 µs/turn, 17.3 µs/decision</title><rect class="s1" x="170.0" y="215.0" width="315.2" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="490.2" y="224.0" class="mz-muted" text-anchor="start">485 µs</text>
+<g><title>bot, Pair B: 443 µs/turn, 16.2 µs/decision</title><rect class="s2" x="170.0" y="227.0" width="287.9" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="462.9" y="236.0" class="mz-muted" text-anchor="start">443 µs</text>
+<g><title>bot, Burn: 328 µs/turn, 13.1 µs/decision</title><rect class="s3" x="170.0" y="239.0" width="213.2" height="10" rx="1.5" style="stroke:none"/></g>
+<text x="388.2" y="248.0" class="mz-muted" text-anchor="start">328 µs</text>
+<line class="mz-axis" x1="170.0" y1="64" x2="170.0" y2="262"/>
+<text x="430.0" y="292.0" class="mz-muted" text-anchor="middle">CPU µs per turn (lower is cheaper)</text>
+</svg>

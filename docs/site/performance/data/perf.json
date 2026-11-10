@@ -1,0 +1,99 @@
+{
+  "_about": "Measured results the performance pages report, transcribed from the pages as of land 8302470328; scripts/docs_perf_figs.py draws every figure from this file. Ranges are [min, max] over the runs of a row.",
+  "engines": {
+    "_source": "index.md, The numbers: FDN pairs A and B pooled, median of six runs. gorge and dirac 2026-11-05, XMage and Forge 2026-10-20.",
+    "rows": [
+      {"engine": "dirac", "policy": "random", "kind": "random", "games": [1759, 1645, 1870], "ms_game": 0.569, "us_turn": [23.5, 23.2, 23.6], "us_decision": 4.61, "turns": 24, "rss": 105, "date": "2026-11-05"},
+      {"engine": "gorge", "policy": "random (auto-pay)", "kind": "random", "games": [64.0, 58.7, 70.7], "ms_game": 15.6, "us_turn": [629, 618, 669], "us_decision": 26.4, "turns": 24, "rss": 375, "date": "2026-11-05"},
+      {"engine": "gorge", "policy": "random (manual)", "kind": "random", "games": [78.8, 76.2, 80.6], "ms_game": 12.6, "us_turn": [311, 296, 330], "us_decision": 11.4, "turns": 41, "rss": 356, "date": "2026-11-05"},
+      {"engine": "XMage", "policy": "random", "kind": "random", "games": [2.38, 2.16, 2.58], "ms_game": 420, "us_turn": [13193, 12774, 13751], "us_decision": 499, "turns": 32, "rss": 1228, "date": "2026-10-20"},
+      {"engine": "dirac", "policy": "heuristic bot", "kind": "ai", "games": [1971, 1763, 2175], "ms_game": 0.507, "us_turn": [28.9, 26.2, 31.6], "us_decision": 5.60, "turns": 18, "rss": 103, "date": "2026-11-05"},
+      {"engine": "gorge", "policy": "bot (auto-pay)", "kind": "ai", "games": [78.6, 74.0, 83.6], "ms_game": 12.7, "us_turn": [709, 669, 756], "us_decision": 28.7, "turns": 18, "rss": 353, "date": "2026-11-05"},
+      {"engine": "gorge", "policy": "bot (manual)", "kind": "ai", "games": [102, 97.8, 109], "ms_game": 9.86, "us_turn": [548, 509, 572], "us_decision": 19.6, "turns": 18, "rss": 396, "date": "2026-11-05"},
+      {"engine": "XMage", "policy": "simple AI", "kind": "ai", "games": [19.3, 18.6, 19.7], "ms_game": 51.9, "us_turn": [761, 743, 791], "us_decision": 48.3, "turns": 68, "rss": 1219, "date": "2026-10-20"},
+      {"engine": "XMage", "policy": "mad AI", "kind": "ai", "games": [0.947, 0.552, 1.25], "ms_game": 1121, "us_turn": [62343, 49069, 101733], "us_decision": 2902, "turns": 17, "rss": 1288, "date": "2026-10-20"},
+      {"engine": "Forge", "policy": "Forge AI", "kind": "ai", "games": [1.02, 0.723, 1.22], "ms_game": 983, "us_turn": [54513, 45904, 71387], "us_decision": null, "turns": 18, "rss": 882, "date": "2026-10-20"}
+    ]
+  },
+  "kernel_workloads": {
+    "_source": "index.md, A second workload: random rows only.",
+    "rows": [
+      {"workload": "Pair A", "engine": "dirac", "policy": "random", "games": 1867, "us_turn": 23.5, "turns": 23, "rss": 106, "date": "2026-11-05"},
+      {"workload": "Pair A", "engine": "gorge", "policy": "random (auto-pay)", "games": 70.8, "us_turn": 613, "turns": 23, "rss": 397, "date": "2026-11-05"},
+      {"workload": "Pair A", "engine": "gorge", "policy": "random (manual)", "games": 83.3, "us_turn": 285, "turns": 42, "rss": 356, "date": "2026-11-05"},
+      {"workload": "Pair A", "engine": "mtg-kernel", "policy": "random", "games": 18.6, "us_turn": 3075, "turns": 17, "rss": 15.7, "date": "2026-10-20"},
+      {"workload": "Pair A", "engine": "XMage", "policy": "random", "games": 2.50, "us_turn": 13063, "turns": 31, "rss": 1228, "date": "2026-10-20"},
+      {"workload": "Burn", "engine": "gorge", "policy": "random (auto-pay)", "games": 140, "us_turn": 287, "turns": 25, "rss": 353, "date": "2026-10-31"},
+      {"workload": "Burn", "engine": "gorge", "policy": "random (manual)", "games": 166, "us_turn": 173, "turns": 35, "rss": 349, "date": "2026-10-31"},
+      {"workload": "Burn", "engine": "mtg-kernel", "policy": "random", "games": 174, "us_turn": 367, "turns": 16, "rss": 10.9, "date": "2026-10-20"},
+      {"workload": "Burn", "engine": "XMage", "policy": "random", "games": 3.14, "us_turn": 11188, "turns": 29, "rss": 1262, "date": "2026-10-20"}
+    ]
+  },
+  "dirac_ops": {
+    "_source": "index.md, Transitions and copies: dirac go test -bench, 2026-11-02, median of 5, zero allocations.",
+    "rows": [
+      {"op": "Transition, FDN", "ns": 2748, "instr": 45604},
+      {"op": "Transition, BLB", "ns": 2909, "instr": 51990},
+      {"op": "Transition, FDN whole-pool table", "ns": 3601, "instr": 60463},
+      {"op": "CopyFrom, mid-game FDN", "ns": 40.2, "instr": 187}
+    ]
+  },
+  "gorge_ops": {
+    "_source": "engine.md / index.md: enginebench clone and step rows, pair A roots turns 5-8, 2026-11-05.",
+    "rows": [
+      {"op": "clone", "us_nogc": 12.9, "us_gc": 27.2, "kb": 195, "mallocs": 50},
+      {"op": "step", "us_nogc": 43.5, "us_gc": 71.2, "kb": 369, "mallocs": 140}
+    ]
+  },
+  "gorge_rows": {
+    "_source": "engine.md, Current numbers: b78e4c8b1 baseline re-measured 2026-11-05, three reps per row, 15 CPU-s a run.",
+    "pairs": ["Pair A", "Pair B", "Burn"],
+    "rows": [
+      {"row": "random -autopay", "games": [[81.4, 80.8, 82.1], [75.7, 74.7, 76.0], [152, 149, 153]], "us_turn": [532, 507, 264], "us_decision": [22.2, 21.5, 12.1], "turns": [23.1, 26.1, 24.9]},
+      {"row": "random", "games": [[87.7, 87.4, 88.0], [90.5, 85.2, 91.3], [178, 176, 179]], "us_turn": [273, 275, 161], "us_decision": [9.99, 10.5, 7.37], "turns": [41.8, 40.2, 34.8]},
+      {"row": "bot -autopay", "games": [[87.5, 87.3, 88.6], [98.8, 96.0, 99.0], [125, 123, 126]], "us_turn": [631, 568, 408], "us_decision": [25.2, 24.0, 17.6], "turns": [18.2, 17.9, 19.6]},
+      {"row": "bot", "games": [[113, 113, 114], [126, 124, 128], [155, 154, 156]], "us_turn": [485, 443, 328], "us_decision": [17.3, 16.2, 13.1], "turns": [18.2, 17.9, 19.6]}
+    ]
+  },
+  "regression": {
+    "_source": "engine.md, Current numbers: make enginebench-pair BASE=b78e4c8b1 CAND=HEAD (0ec285f67), 2026-11-05; CPU per turn, HEAD / baseline.",
+    "rows": [
+      {"row": "random -autopay", "lo": 1.24, "hi": 1.25},
+      {"row": "random", "lo": 1.11, "hi": 1.13},
+      {"row": "bot -autopay", "lo": 1.12, "hi": 1.13},
+      {"row": "bot", "lo": 1.06, "hi": 1.08},
+      {"row": "Burn mirror", "lo": 1.05, "hi": 1.10}
+    ]
+  },
+  "profile": {
+    "_source": "engine.md, Where the time goes: flat CPU by package, one 20 s pair-A run each, 2026-11-05 at 0ec285f67.",
+    "packages": ["engine/rules", "Go runtime", "engine/state", "engine/cards", "engine/effects", "Go stdlib", "engine/events", "bot policy"],
+    "runs": {
+      "random -autopay": [63.3, 15.3, 6.6, 6.2, 3.6, 4.4, 0.6, 0.0],
+      "bot -autopay": [58.8, 11.6, 5.4, 5.4, 4.3, 5.2, 1.0, 7.5]
+    },
+    "cumulative": {
+      "_source": "engine.md: call-tree cumulative shares (they nest, so they do not sum).",
+      "random -autopay": [["Engine.Submit", 63], ["payment planning", 35], ["Engine.Advance", 33], ["legal-action walk over the hand", 25], ["Engine.emit (events.Apply)", 14]]
+    }
+  },
+  "bot_games": {
+    "_source": "bots.md, The heuristic bot: both seats on gorge, FDN pairs, 2026-10-31, one pinned core per run.",
+    "rows": [
+      {"policy": "bot, manual taps", "ms_game": [9.55, 9.10], "us_decision": [19.1, 18.4]},
+      {"policy": "bot, auto-pay", "ms_game": [13.4, 11.9], "us_decision": [29.7, 27.7]},
+      {"policy": "random, auto-pay", "ms_game": [14.3, 14.8], "us_decision": [25.9, 24.0]}
+    ]
+  },
+  "search": {
+    "_source": "bots.md, Search, per simulation: PUCT search with a heuristic leaf, 2026-10-31, three reps, 20 CPU-s.",
+    "rows": [
+      {"engine": "dirac", "sims": 25, "us_sim": [44.6, 43.8, 46.0], "sims_per_s": 22400, "ms_decision": 1.11},
+      {"engine": "dirac", "sims": 100, "us_sim": [52.4, 51.6, 55.5], "sims_per_s": 19100, "ms_decision": 5.23},
+      {"engine": "dirac", "sims": 1000, "us_sim": [70.9, 66.9, 75.0], "sims_per_s": 14100, "ms_decision": 70.7},
+      {"engine": "gorge", "sims": 25, "us_sim": [761, 759, 785], "sims_per_s": 1315, "ms_decision": 19.0},
+      {"engine": "gorge", "sims": 100, "us_sim": [1063, 1044, 1079], "sims_per_s": 940, "ms_decision": 106},
+      {"engine": "gorge", "sims": 1000, "us_sim": [1906, 1454, 2177], "sims_per_s": 525, "ms_decision": 1907}
+    ]
+  }
+}

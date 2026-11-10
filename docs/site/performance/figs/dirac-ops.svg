@@ -1,0 +1,27 @@
+<svg class="mzc" viewBox="0 0 760 188" role="img" aria-label="Bar chart, log scale: instructions per dirac transition and copy" xmlns="http://www.w3.org/2000/svg">
+<text x="16.0" y="20.0" class="mz-title" text-anchor="start">dirac: instructions per operation</text>
+<line class="mz-grid" x1="230.0" y1="40" x2="230.0" y2="148"/>
+<text x="230.0" y="163.0" class="mz-muted" text-anchor="middle">100</text>
+<line class="mz-grid" x1="386.9" y1="40" x2="386.9" y2="148"/>
+<text x="386.9" y="163.0" class="mz-muted" text-anchor="middle">1,000</text>
+<line class="mz-grid" x1="543.8" y1="40" x2="543.8" y2="148"/>
+<text x="543.8" y="163.0" class="mz-muted" text-anchor="middle">10,000</text>
+<text x="222.0" y="61.0" text-anchor="end">Transition, FDN</text>
+<g><title>Transition, FDN: 45,604 instructions, 2,748 ns per op, 0 allocations</title><rect class="s3" x="230.0" y="48.0" width="417.2" height="18" rx="2" style="stroke:none"/>
+</g>
+<text x="653.2" y="61.0" text-anchor="start">45,604</text>
+<text x="222.0" y="87.0" text-anchor="end">Transition, BLB</text>
+<g><title>Transition, BLB: 51,990 instructions, 2,909 ns per op, 0 allocations</title><rect class="s3" x="230.0" y="74.0" width="426.2" height="18" rx="2" style="stroke:none"/>
+</g>
+<text x="662.2" y="87.0" text-anchor="start">51,990</text>
+<text x="222.0" y="113.0" text-anchor="end">Transition, FDN whole-pool table</text>
+<g><title>Transition, FDN whole-pool table: 60,463 instructions, 3,601 ns per op, 0 allocations</title><rect class="s3" x="230.0" y="100.0" width="436.5" height="18" rx="2" style="stroke:none"/>
+</g>
+<text x="672.5" y="113.0" text-anchor="start">60,463</text>
+<text x="222.0" y="139.0" text-anchor="end">CopyFrom, mid-game FDN</text>
+<g><title>CopyFrom, mid-game FDN: 187 instructions, 40.2 ns per op, 0 allocations</title><rect class="s3" x="230.0" y="126.0" width="42.7" height="18" rx="2" style="stroke:none"/>
+</g>
+<text x="278.7" y="139.0" text-anchor="start">187</text>
+<line class="mz-axis" x1="230.0" y1="40" x2="230.0" y2="148"/>
+<text x="460.0" y="182.0" class="mz-muted" text-anchor="middle">user-space instructions per operation (log scale), median of 5; every row allocates nothing</text>
+</svg>

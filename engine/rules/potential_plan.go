@@ -357,7 +357,7 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 			// cheapest mode would be over-offered (potentialModalCastFreeMode).
 			modalFree := got.Detail == "shape:modal_cost" && e.potentialModalCastFreeMode(p, o.Obj)
 			if alt.Reason == "" || got.Detail == "cost:x" || got.Detail == "cost:hybrid" || e.manaSpentReaderComposed(o.Obj, got.Detail) ||
-				got.Detail == "shape:target_dependent_cost" || modalFree || e.G.Obj(o.Obj) != nil && (len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 || spellExtrasAreFixedTaps(e.G.Obj(o.Obj).Face())) {
+				got.Detail == "shape:target_dependent_cost" || modalFree || e.G.Obj(o.Obj) != nil && (len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 || spellExtrasAreFixedTaps(e.G.Obj(o.Obj).Face()) || e.spellExtrasAreAnnouncedLife(p, o.Obj)) {
 				// A witness always; a proof only for the shapes the
 				// composition models exactly (the planner declined the
 				// others for a reason the composition may not see).
@@ -403,6 +403,29 @@ func spellExtrasAreFixedTaps(f *cards.Face) bool {
 	}
 	rest := extras
 	rest.TapPermanent = nil
+	return rest.IsZero()
+}
+
+// spellExtrasAreAnnouncedLife reports a cast whose face's spell ability adds nothing to
+// the printed mana cost but an announced PayLife<X> (Toxic Deluge's "As an
+// additional cost, pay X life"). X is the caster's announcement (CR 601.2b,
+// 107.3), so X = 0 is always payable and the cast costs exactly its mana: the
+// composition's verdict, proof included, stands where the cast planner declines
+// the shape, and an insufficient one goes on to the prefix search like any other
+// cast's when the census misses a source (a filter land, CR 605.1a).
+func (e *Engine) spellExtrasAreAnnouncedLife(p state.PlayerID, id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	// an X a SVar fixes is converted to fixed life (FixLifeXCost); only the
+	// announced one keeps its LifeX part
+	extras, ok := pay.FixLifeXCost(asPayer(e), p, id, pay.WithSpellAbilityExtras(o.Face(), Cost{}))
+	if !ok || len(extras.LifeX) == 0 {
+		return false
+	}
+	rest := extras
+	rest.LifeX = nil
 	return rest.IsZero()
 }
 
