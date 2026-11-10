@@ -1,12 +1,12 @@
 {
   "card": "Clement, the Worrywort",
   "class": "options",
-  "why": "a game with Clement's granted restricted mana dealt in diverges: gorge's one prefix search runs the grants within its node budget where the kernel's filter route offers a play, seen at std-blb pairs 932 and 1337 beside the Village lands (a grant-search approximation, not the restriction)",
+  "why": "a game with Clement's granted restricted mana dealt in diverges: gorge's one prefix search runs the grants within its node budget where the kernel's filter route offers a play, seen at std-blb pair 129 (a grant-search approximation, not the restriction)",
   "repro": {
     "pool": "std-blb",
     "surface": "autopay",
     "seed": 1,
-    "pair": 343,
+    "pair": 129,
     "policy": "heuristic",
     "mulligans": 1
   }
