@@ -590,21 +590,7 @@ func (w *legalWalk) handWalk() {
 		// machinery, exactly like Miracle); warp additionally offers from the
 		// graveyard and -- after an end-step exile -- from exile, in the walks
 		// below.
-		for i := range altCastModes {
-			ka := &altCastModes[i]
-			if !ka.handLoop || (!ph.has(ka.ph) && ka.id != altWarp) {
-				continue
-			}
-			for ci, alt := range altRowCosts(e, ka, id, f) {
-				if w.castRestrictedCost(p, id, alt) ||
-					!w.offerCastable(p, id, alt, spellScope(ka.mode), false) ||
-					(!ka.untargeted && !targetsAvailable()) {
-					continue
-				}
-				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
-					Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode, AltCostIndex: ci})
-			}
-		}
+		w.handAltCastRows(id, f, ph, targetsAvailable)
 		// Cleave (CR 702.148a, engine/rules/cleave.go): the cleave ability's
 		// Cost$ replaces the mana cost, and the offer's target census reads
 		// the cleave ability (its targets are the bracket-free text), so a
@@ -765,6 +751,36 @@ func (w *legalWalk) handWalk() {
 				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 					Label: "Plot " + f.Name, Obj: id, Mode: "plot"})
 			}
+		}
+	}
+}
+
+// handAltCastRows appends the hand's alternative-cost keyword rows
+// (altCastModes with handLoop) for card id on face f. Warp bypasses the
+// printed-head gate ph: a hand grant (warp_grant.go) can give a face with no
+// printed Warp its rows. Each surviving cost instance (altRowCosts) is its
+// own row, addressed by AltCostIndex; when a row has more than one instance
+// the label names the instance's cost so a client can tell them apart.
+func (w *legalWalk) handAltCastRows(id state.ObjID, f *cards.Face, ph printedHeads, targetsAvailable func() bool) {
+	e, p, out := w.e, w.p, &w.out
+	for i := range altCastModes {
+		ka := &altCastModes[i]
+		if !ka.handLoop || (!ph.has(ka.ph) && ka.id != altWarp) {
+			continue
+		}
+		costs := altRowCosts(e, ka, id, f)
+		for ci, alt := range costs {
+			if w.castRestrictedCost(p, id, alt) ||
+				!w.offerCastable(p, id, alt, spellScope(ka.mode), false) ||
+				(!ka.untargeted && !targetsAvailable()) {
+				continue
+			}
+			label := ka.mode
+			if len(costs) > 1 {
+				label += ", " + formatCost(alt)
+			}
+			*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
+				Label: "Cast " + f.Name + " (" + label + ")", Obj: id, Mode: ka.mode, AltCostIndex: ci})
 		}
 	}
 }
