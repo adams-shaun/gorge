@@ -943,7 +943,7 @@ func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.Delayed
 		if !ok {
 			return false
 		}
-		if !e.matchesSpec(trigmatch.SpellCastPermanentSpec(v), ev.Obj, delayedSpecCtx(e.specCtx(dt.Source, dt.Controller), dt)) {
+		if !e.matchesSpec(trigmatch.SpellCastPermanentSpec(v), ev.Obj, delayedSpecCtx(e.delayedSpellMatchSpec(dt), dt)) {
 			return false
 		}
 	}

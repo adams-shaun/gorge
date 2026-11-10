@@ -63,6 +63,17 @@ func (s *State) fireDelayedSpell(k *prep, e *stackEntry) {
 			srcSl = s.slotIfSame(d.src, s.objs[d.src].ver)
 		}
 		ctx := evalCtx{src: d.src, srcSl: srcSl, ctrl: d.ctrl}
+		var se stackEntry
+		if srcSl == NoSlot && d.src != NoObj {
+			// the source has left: its bound reads the departure snapshot
+			// (selfPTLKI skips a seSpell entry, so the local one is a trigger)
+			if v := s.objs[d.src].ver; v > 0 {
+				se = stackEntry{kind: seTrigger, obj: d.src, srcVer: v - 1}
+				if s.srcDepartIdx(&se) != 0 {
+					ctx.e = &se
+				}
+			}
+		}
 		due := d.n&dpSpell != 0 && (d.ctrl == e.ctrl || DebugDelaySpellAnyCaster) &&
 			s.matchCardGenAt(k, k.t.Cards[d.card].Abilities[d.ab].Trig.Filter, e.card, e.ctrl, d.ctrl, e.obj, &ctx)
 		if due && d.ext == dpExtUncounter {

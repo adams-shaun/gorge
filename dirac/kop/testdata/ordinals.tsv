@@ -1052,6 +1052,7 @@ SrForgetChanged	untyped int	2
 SrForgetOther	untyped int	1024
 SrGameGrave	untyped int	8
 SrGraveExile	untyped int	512
+SrHandBottom	untyped int	8
 SrHandGrave	untyped int	4
 SrImprint	untyped int	256
 SrMandatory	untyped int	4
