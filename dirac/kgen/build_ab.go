@@ -2156,6 +2156,18 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 			return ka, fmt.Errorf("token %q", r.S)
 		}
 		rp.C = int16(idx) // a pool token index; the matchup remaps it
+	case "AddToken":
+		rp.Kind = kop.ReplAddToken
+		idx, ok := cb.pt.tokenIdx[r.S]
+		if !ok {
+			return ka, fmt.Errorf("token %q", r.S)
+		}
+		rp.C = int16(idx) // a pool token index; the matchup remaps it
+		if r.F != nil {
+			if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
+				return ka, err
+			}
+		}
 	case "DoubleCounters":
 		rp.Kind = kop.ReplDoubleCounters
 	case "GraveToLibrary":

@@ -950,12 +950,13 @@ RefTriggerSource	Ref	21
 RefTriggerTgtCtrl	Ref	33
 RepeatEachSeatOrder	untyped int	2
 ReplAddCountersOn	ReplKind	21
+ReplAddToken	ReplKind	35
 ReplAfterEnter	untyped int	1
 ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	35
+ReplCount	ReplKind	36
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamagePlus	ReplKind	16
