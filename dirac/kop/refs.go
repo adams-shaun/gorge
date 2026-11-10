@@ -64,6 +64,11 @@ const (
 	// leave trigger manifests dread for the owner of the card its ETB exiled
 	// (the RemPersist seed); none when the remembered set is empty.
 	RefRememberedOwner Ref = 34
+	// RefPromised is a player ref: the opponent the gift was promised to
+	// (CR 702.174a; gorge Defined$ Promised, Object.GiftPromisedTo): the
+	// spell's election, or a permanent's gift trigger's queue-time
+	// snapshot. None when no gift was promised.
+	RefPromised Ref = 36
 )
 
 // RefTgtCtrl1 / RefTgtCtrl2 are RefTargetController for target slot 1 / 2

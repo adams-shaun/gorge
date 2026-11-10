@@ -80,7 +80,7 @@ const (
 	ChGenPip                                  // mode = the colour (W U B R G = 0..4) a hybrid pip is paid with (gorge's pay_* pip ask, CR 601.2b)
 	ChGenEnchant                              // source = the permanent a non-cast Aura enchants as it enters (CR 303.4f; gorge's "enchant")
 	ChCastDivide                              // source = the target given one more point of a divided total beyond its 1, announced while casting/activating (gorge's CR 601.2d "divide" ask)
-	ChGenGift                                 // mode 1 = promise the opponent a gift / 0 = don't (gorge's gift_promise / gift_decline, CR 702.174a)
+	ChGenGift                                 // mode 1+i = promise the i-th opponent (AliveFrom order) a gift / 0 = don't (gorge's gift_promise / gift_decline, CR 702.174a)
 	ChCostForage                              // mode 0 = exile three graveyard cards (gorge forage_exile), 1 = sacrifice the Food in source (forage_food); CR 701.61a
 	ChCostExile                               // source = a graveyard card exiled to pay a cost (gorge's exilecost; one pick per card)
 	ChGenPayReturn                            // source = the permanent returned to its owner's hand to pay an unless / if-you-do cost (gorge's returncost)
@@ -1171,6 +1171,8 @@ func (s *State) eachPlayers(k *prep, r kop.Ref) seatSeq {
 		return s.oppsNonRemCtrl() // filter_defined.go
 	case kop.RefSrcOwner:
 		return seatOne(s.srcOwner())
+	case kop.RefPromised:
+		return seatOne(s.promisedSeat(k, &s.res.e)) // kw_gift.go
 	}
 	if sl, ok := tgtSlot(r); ok {
 		// the slot's player targets (gorge repeatPlayers' Targeted arm:

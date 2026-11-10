@@ -409,10 +409,11 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		case dirac.ChGenTeamwork:
 			return ch("teamwork", src, 0) // gorge teamwork ask: Option.Kind "teamwork" (CR 702.194a)
 		case dirac.ChGenGift:
-			// gorge giftAsk: gift_decline, then gift_promise naming the
-			// opponent (Option.Player; no object, so canonical bare)
-			if mode == 1 {
-				return ch("gift_promise", RefNone, 0)
+			// gorge giftAsk: gift_decline, then one gift_promise per
+			// opponent in AliveFrom order, canonical by that position
+			// (the oracle's gift_promise arm); mode is 1 + the position
+			if mode >= 1 {
+				return ch("gift_promise", RefNone, mode-1)
 			}
 			return ch("gift_decline", RefNone, 0)
 		case dirac.ChGenManifestDread:

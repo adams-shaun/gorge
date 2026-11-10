@@ -51,12 +51,13 @@ const (
 	rTriggerAttackers             // the attacker group of the AttackersDeclared event (Defined$ TriggeredAttackers)
 	rRememberedOwner              // the remembered object's owner (Unidentified Hovership's leave trigger)
 	rImprinted                    // the resolution's imprinted objects (Dig Imprint$ on a permanent's ability)
+	rPromised                     // the opponent the gift was promised to (Defined$ / TokenOwner$ Promised)
 	rCount
 )
 
 var refNames = [...]string{"None", "Target", "Self", "You", "EachOpp", "EachPlayer", "TargetController",
 	"TargetOwner", "Triggered", "TriggeredNew", "TriggeredSource", "TriggeredPlayer", "TriggeredTgtCtrl", "Equipped", "Remembered",
-	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted"}
+	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised"}
 
 type lRef struct {
 	Kind refKind

@@ -951,6 +951,7 @@ RefLibTop	Ref	30
 RefNone	Ref	0
 RefOppNonRemCtrl	Ref	245
 RefOpponent	Ref	6
+RefPromised	Ref	36
 RefRemembered	Ref	18
 RefRememberedController	Ref	28
 RefRememberedOwner	Ref	34
