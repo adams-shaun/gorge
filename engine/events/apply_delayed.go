@@ -513,6 +513,11 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		o.PushSourceIncarnation = registration.SourceIncarnation
 		if src := g.Obj(o.Source); src != nil {
 			o.PushSourceOnBattlefield = src.Zone == state.ZBattlefield
+			// The zone stamp stampPushedAbilitySources would have written
+			// (it skips an already-stamped object): a source off the
+			// battlefield that left and re-entered that zone while the
+			// trigger waited is a new object too (sourceReturnedSincePush).
+			o.PushSourceZoneGen, o.PushSourceZone = src.ZoneGen, src.Zone
 		}
 	}
 	o.Remembered = rememberedFrom(e.IDs)

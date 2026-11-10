@@ -128,3 +128,82 @@ func TestDelayedSelfBlinkStaysLive(t *testing.T) {
 		t.Fatalf("live source zone = %v after the delayed trigger, want battlefield", got)
 	}
 }
+
+// delayedSelfGraveSrc registers a delayed trigger whose body returns
+// Defined$ Self from the graveyard (the Ghoulish Impetus / Prized Amalgam
+// shape).
+const delayedSelfGraveSrc = "Name:Delayed Self Grave Test\nManaCost:1\nTypes:Enchantment\n" +
+	"T:Mode$ ChangesZone | Origin$ Hand | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigRegister\n" +
+	"SVar:TrigRegister:DB$ DelayedTrigger | Mode$ Phase | Phase$ End of Turn | Execute$ TrigReturn\n" +
+	"SVar:TrigReturn:DB$ ChangeZone | Origin$ Graveyard | Defined$ Self | Destination$ Battlefield\n" +
+	"Oracle:x\n"
+
+// delayedGraveMoves registers the fixture, puts the source in the graveyard,
+// pushes the end-step delayed trigger, optionally bounces the source
+// graveyard -> exile -> graveyard while the trigger is on the stack, resolves
+// it and counts the source's moves.
+func delayedGraveMoves(t *testing.T, roundTrip bool) (*Engine, state.ObjID, int) {
+	t.Helper()
+	e := layerEngine(t)
+	o := e.G.AddObject(card(t, delayedSelfGraveSrc), 0)
+	o.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), o.ID))
+	e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZHand, To: state.ZBattlefield})
+	e.putTriggersOnStack()
+	e.resolveTop()
+	if len(e.G.Delayed) != 1 {
+		t.Fatalf("precondition: delayed registrations = %d, want one", len(e.G.Delayed))
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZBattlefield, To: state.ZGraveyard})
+	driveToEndStep(t, e)
+	for e.putTriggersOnStack() {
+		answerTriggerOrders(t, e)
+		if len(e.G.Stack) != 0 {
+			break
+		}
+	}
+	if len(e.G.Stack) == 0 {
+		t.Fatal("the delayed trigger never reached the stack")
+	}
+	if got := e.G.Obj(o.ID); got.Zone != state.ZGraveyard {
+		t.Fatalf("precondition: source zone = %v at the push, want graveyard", got.Zone)
+	}
+	if roundTrip {
+		gen := e.G.Obj(o.ID).ZoneGen
+		e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZGraveyard, To: state.ZExile})
+		e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZExile, To: state.ZGraveyard})
+		if got := e.G.Obj(o.ID); got.Zone != state.ZGraveyard || got.ZoneGen == gen {
+			t.Fatalf("precondition: zone %v gen %d (was %d), want graveyard and a new generation", got.Zone, got.ZoneGen, gen)
+		}
+	}
+	mark := len(e.L.Events)
+	passUntilStackEmpty(t, e, 40)
+	return e, o.ID, movesSince(e, mark, o.ID)
+}
+
+// TestDelayedSelfGraveyardSkipsReturnedSource: a delayed Self from the
+// graveyard names the card that was there when the trigger was pushed; one
+// that left the graveyard and re-entered it since is a new object (CR 400.7).
+func TestDelayedSelfGraveyardSkipsReturnedSource(t *testing.T) {
+	t.Parallel()
+	e, src, n := delayedGraveMoves(t, true)
+	if n != 0 {
+		t.Fatalf("re-entered graveyard card moved %d times, want none (CR 603.7c)", n)
+	}
+	if got := e.G.Obj(src).Zone; got != state.ZGraveyard {
+		t.Fatalf("source zone = %v, want graveyard", got)
+	}
+}
+
+// TestDelayedSelfGraveyardControl: the card that stayed in the graveyard is
+// still returned by the delayed trigger.
+func TestDelayedSelfGraveyardControl(t *testing.T) {
+	t.Parallel()
+	e, src, n := delayedGraveMoves(t, false)
+	if n != 1 {
+		t.Fatalf("graveyard card moved %d times, want the one return", n)
+	}
+	if got := e.G.Obj(src).Zone; got != state.ZBattlefield {
+		t.Fatalf("source zone = %v, want battlefield", got)
+	}
+}
