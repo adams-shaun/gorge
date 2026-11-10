@@ -42,7 +42,7 @@ func init() {
 	bots.Register(bots.Entry{Info: bots.Info{
 		Name:        Policy,
 		Label:       "az-redeal (AlphaZero search)",
-		Description: "The az search seat in its honest world: at every searched decision it runs 100 MCTS simulations over freshly redealt worlds rebuilt from its own observations, and plays the production bot everywhere else. Plays constructed 1v1 and Commander pods of up to four seats, reading the other seats as opponents who minimise its value.",
+		Description: "The az search seat in its honest world: at every searched decision it runs 100 MCTS simulations over freshly redealt worlds rebuilt from its own observations, and plays the production bot everywhere else. Plays constructed 1v1 and Commander pods of up to four seats.",
 		Tier:        bots.Experimental,
 		Cost: bots.Cost{
 			MeanMS: 247, P95MS: 465, Scope: "per searched decision",
