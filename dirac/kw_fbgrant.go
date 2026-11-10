@@ -67,7 +67,7 @@ func (s *State) fbGrantCost(k *prep, p uint8, o Obj, marked bool) kop.ManaCost {
 // Grand Lotus). gorge lists both granted instances, at the mana cost and at
 // the static's cost (cast_altcost.go extraFlashbackCosts); fbInstances models
 // one granted instance, so the pair is refused at its start (initStall).
-const StallFbGrantStamp = 155
+const StallFbGrantStamp = 156
 
 func init() { stallNames[StallFbGrantStamp] = "fbgrantstamp" }
 
