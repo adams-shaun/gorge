@@ -865,6 +865,12 @@ func (s *State) windowDryFilter(k *prep, p uint8, cost *kop.ManaCost, sl Slot) {
 		}
 	}
 	ab := s.filtAb(k, sl)
+	if ab.ManaEach {
+		for c, n := range filtEachVec(ab) {
+			pl.pool[c] += n // every colour at once (mana_filtereach.go)
+		}
+		return
+	}
 	mask := uint8(ab.ManaColors)
 	col := bits.TrailingZeros8(mask)
 	// The demand is the pool the payment may spend (windowUseful, CR 106.6):

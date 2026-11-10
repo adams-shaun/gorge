@@ -1156,12 +1156,16 @@ func (s *State) stepColours(k *prep, sl Slot, gi int16, mask uint8, out *[kop.Nu
 // filtBranch is the filter's colour ask at candidate i (slot sl): its fee comes out
 // of the pool, then the colours in turn (gorge's askManaColor, mana_filter.go).
 func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
-	if !g.node() {
+	each := t.filtAb(g.k, sl).ManaEach // a fixed production: no colour ask, one branch (mana_filtereach.go)
+	if !each && !g.node() {
 		return false
 	}
 	var order [5]uint8
 	n := manaColourOrder(t.filtAb(g.k, sl), &order)
 	needFirst(order[:n], g.need)
+	if each {
+		n = 1
+	}
 	for j := 0; j < n; j++ {
 		c := order[j]
 		u := t.fork()

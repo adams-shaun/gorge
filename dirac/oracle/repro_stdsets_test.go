@@ -280,6 +280,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "pt_compare_amalia_explores_power_not_twenty"},                       // Amalia Benavides Aguirre explores when her controller gains life, and her power is not exactly 20, so the destroy-all is skipped
 		{"custom", "animate_name_tenth_district_hero_becomes_mileva"},                   // Tenth District Hero's second ability, evidence collected from the Bolts in its graveyard: it becomes a legendary 5/5 named Mileva, the Stalwart, and other creatures its controller has are indestructible (CR 613.1c, 611.3a)
 		{"custom", "animate_equip_the_irencrag_becomes_everflame"},                      // The Irencrag's trigger answered yes as a legendary creature enters: it becomes the legendary Equipment Everflame, Heroes' Legacy and loses its {T}: Add {C} (CR 613.1a, 613.1f)
+		{"custom", "filter_each_skycloud_pays_white_and_blue", full},                    // Skycloud Expanse's {1},{T}: Add {W}{U}, an all-at-once filter and its card's only mana ability: a Plains funds the {1} and the Skycloud adds both colours, no colour ask, so Galina's Knight's {W}{U} is paid (CR 106.1, 605.3b); played on its own decks' table because the frozen std-trc pool predates the lowering
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {

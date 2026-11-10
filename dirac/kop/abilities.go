@@ -236,12 +236,18 @@ func TapXMana(a *Ability) bool { return TapXManaAb(a) || TapXManaTwo(a) }
 // mana_filter.go, mana_filterfirst.go). {1}, {T}, sacrifice this
 // (Omni-Cheese Pizza, Chromatic Star, Golden Egg) is one too: the kernel
 // sacrifices the source as the activation is applied (sacFilterSource).
+// {N}, {T}: one of each of two or more colours at once (Skycloud Expanse's
+// {1},{T}: Add {W}{U}; FilterEachManaAb) is one: its relaxed census
+// alternative is one fixed production (kernel mana_filtereach.go).
 func FilterManaAb(a *Ability) bool {
 	m := &a.Cost.Mana
 	if a.Kind != AbMana || m.Generic == 0 || m.X != 0 || m.Hyb != ([4]ColorMask{}) || m.Tb != 0 || m.Pips != ([NumManaKinds]uint8{}) ||
 		a.Cost.Flags != CostOncePerTurn && a.Cost.Flags != CostTap && a.Cost.Flags != CostTap|CostSacSelf || a.ManaRestrict != 0 || a.ManaN > 1 || len(a.Prog) != 0 ||
 		a.Gate.Ctr != 0 || a.Trig.Cond != 0 || a.ActZone != ZoneNone && a.ActZone != ZoneBattlefield {
 		return false
+	}
+	if a.ManaEach {
+		return FilterEachManaAb(a)
 	}
 	switch a.AFlags {
 	case 0:
@@ -251,6 +257,14 @@ func FilterManaAb(a *Ability) bool {
 		return c&^ColAny == 0 && c&(c-1) != 0
 	}
 	return false
+}
+
+// FilterEachManaAb reports whether filter a (FilterManaAb's fee shape) is the
+// all-at-once one: "{N}, {T}: Add {c1}{c2}..." of two or more distinct WUBRG
+// colours, one of each, no choice (Skycloud Expanse).
+func FilterEachManaAb(a *Ability) bool {
+	c := a.ManaColors
+	return a.ManaEach && a.AFlags == 0 && a.Cost.Flags == CostTap && a.ManaN <= 1 && c&^ColAny == 0 && c&(c-1) != 0
 }
 
 // ManaAbilityHonoured reports whether the kernel can activate ability j of
