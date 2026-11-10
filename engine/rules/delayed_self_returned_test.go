@@ -19,7 +19,7 @@ import (
 const delayedSelfReturnSrc = "Name:Delayed Self Return Test\nManaCost:1\nTypes:Enchantment\n" +
 	"T:Mode$ ChangesZone | Origin$ Hand | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigRegister\n" +
 	"SVar:TrigRegister:DB$ DelayedTrigger | Mode$ Phase | Phase$ End of Turn | Execute$ TrigExile\n" +
-	"SVar:TrigExile:DB$ ChangeZone | Defined$ Self | Origin$ Battlefield | Destination$ Exile | SubAbility$ DBReturn\n" +
+	"SVar:TrigExile:DB$ ChangeZone | Origin$ Battlefield | Defined$ Self | Destination$ Exile | SubAbility$ DBReturn\n" +
 	"SVar:DBReturn:DB$ ChangeZone | Defined$ Self | Origin$ Exile | Destination$ Battlefield\n" +
 	"Oracle:x\n"
 
