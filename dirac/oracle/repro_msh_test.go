@@ -38,5 +38,6 @@ func TestStdMshReprosLockstep(t *testing.T) {
 		{"sneak_entry_tap_fires_no_tap_all", true, false},                       // CR 603.2e: Elektra sneaked in tapped and attacking was not tapped, so Rewrite History's "become tapped" does not trigger
 		{"power_up_pay_window_offers_both_amounts", true, false},                // CR 601.2b, 702.193b: Abomination entered this turn owes {R/G}{R/G}; its pip ask prices each face against that reduced charge, so G is offered when an Island funds Surveillance Room's {1},{T} any-colour filter beside a Mountain
 		{"graveyard_activation_copy_returns_card", true, false},                 // CR 707.10, 400.7: Echo copies Project Deathlok Soldier's graveyard activation after the card was returned and discarded (graveyard -> hand -> graveyard, never the battlefield): the copy keeps the original's source, a new object by now, so the card stays in the graveyard
+		{"ward_poison_cost_ten_poison_loses", true, false},                      // CR 704.5c, 702.21a: The Serpent Society's ward—get five poison counters, paid a second time by a player already at five, puts them at ten and they lose the game (the table's only poison source was the ward)
 	})
 }

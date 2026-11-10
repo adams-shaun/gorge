@@ -216,13 +216,15 @@ func (s *State) infectCombat(k *prep, r *dmgRec) {
 	}
 }
 
-// prepPoison: a table whose programs give poison counters (OpPoison)
-// checks the ten-poison state-based action (anyInfect gates poisonSBA)
+// prepPoison: a table whose programs give poison counters (OpPoison) or
+// whose ward costs poison counters (CardDef.WardPoison, paid at resolution
+// through addPoison) checks the ten-poison state-based action (anyInfect gates poisonSBA)
 // and, beside proliferate (gorge proliferates players' poison), stalls as
 // an infect table does.
 func prepPoison(t *kop.Table, g *genPrep) {
 	poison, prolif := false, false
 	for i := range t.Cards {
+		poison = poison || t.Cards[i].WardPoison != 0
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
 				poison = poison || in.Op == kop.OpPoison
