@@ -79,6 +79,7 @@ var stallCapacityReasons = [...]uint8{
 	StallTwoSeat,   // a two-seat-only table in a larger game (stallclass.go): a declared limit
 	StallAddPhase,  // a fifth genState.xph entry or a 256th grant; its one non-capacity site moved to StallLowering
 	StallUntapLock, // a fifth source-bound untap lock at once (genState.ul; act_untaplock.go)
+	StallTurnRepl,  // the exile-instead table is full of Malicious Eclipse scope records (repl_turnrepl.go)
 	StallDmgMark,   // a second mark of one controller on one player while the first is live (genState.dmk; repl_dmgmark.go)
 }
 

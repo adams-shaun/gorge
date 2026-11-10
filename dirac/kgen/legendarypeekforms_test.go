@@ -15,7 +15,7 @@ var legendarypeekformsForms = []formCase{
 	{card: "Price of Fame", form: "Creature.Legendary (F2Legendary)", lir: "F2={types=0x2 Legendary}"},
 	{card: "Arclight Phoenix", form: "Count$ThisTurnCast_Instant.YouCtrl,Sorcery.YouCtrl lowers onto the cast ring", lir: "ThisTurnCastSpec"},
 	{card: "Battlewise Hoplite", form: "Heroic: SpellCast TargetsValid$ Card.Self (Tf2TargetsFilter2)", lir: "trigger SpellCast"},
-	{card: "Legolas, Master Archer", form: "TargetsValid$ refuses a zone-free alternative", refused: "TargetsValid"},
+	{card: "Legolas, Master Archer", form: "TargetsValid$ zone-free alternative lowers (ZoneAny)", lir: "trigger SpellCast"},
 	{card: "Aven Windreader", form: "PeekAndReveal public reveal (OpPeek C=PeekPublic, no look_ack)", lir: "Peek obj=Target0 A=1 CS=Public"},
 	{card: "Druidic Satchel", form: "PeekAndReveal public reveal + RememberRevealed (PeekPublic|PeekRemember)", lir: "CS=Public|Remember"},
 }

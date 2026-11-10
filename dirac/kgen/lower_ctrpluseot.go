@@ -3,6 +3,7 @@ package kgen
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -19,6 +20,11 @@ import (
 //	ValidCard$ Permanent.YouCtrl+inZoneBattlefield | ReplaceWith$ Body
 //	DB$ ReplaceCounter | ChooseCounter$ True | Amount$ X
 //	X: ReplaceCount$CounterNum/Plus.1
+//
+// Prairie Dog's activated Effect is the same shape over creatures with
+// ValidCounterType$ P1P1 in the replacement and its body (and the body's
+// Amount$ Y): TurnRepl TurnReplPlusCreatureCtr, a count apart from Boimler's
+// (dirac/repl_turnrepl.go).
 //
 // Every other Effect+AddCounter shape returns false, so effectPrevent's
 // existing arms keep their named refusal. The effect's ActiveZones$ gate is
@@ -38,12 +44,27 @@ func (lc *lowerCtx) effectCounterPlusEOT(ps *params) (bool, error) {
 	if az, ok := rp.get("ActiveZones"); ok && az != "Battlefield" {
 		return false, nil
 	}
-	if rp.str("ValidCard") != "Permanent.YouCtrl+inZoneBattlefield" {
+	// Boimler's shape (every kind on any permanent) or Prairie Dog's (+1/+1 only,
+	// on a creature): the second names the kind in the replacement and again in
+	// the body, which a stray kind in one but not the other would not match.
+	var (
+		wantBody = 3
+		kind     string
+		turnC    int
+	)
+	switch rp.str("ValidCard") {
+	case "Permanent.YouCtrl+inZoneBattlefield":
+	case "Creature.YouCtrl+inZoneBattlefield":
+		if kind = rp.str("ValidCounterType"); kind != "P1P1" {
+			return false, nil
+		}
+		wantBody, turnC = 4, kop.TurnReplPlusCreatureCtr
+	default:
 		return false, nil
 	}
 	body := etbParams(lc.face.SVars[rp.str("ReplaceWith")])
-	if len(body) != 3 || body["DB"] != "ReplaceCounter" ||
-		body["ChooseCounter"] != "True" || body["Amount"] != "X" {
+	if len(body) != wantBody || body["DB"] != "ReplaceCounter" ||
+		body["ChooseCounter"] != "True" || body["ValidCounterType"] != kind || turnC == 0 && body["Amount"] != "X" {
 		return false, nil
 	}
 	if lc.face.SVars[body["Amount"]] != "ReplaceCount$CounterNum/Plus.1" {
@@ -54,6 +75,10 @@ func (lc *lowerCtx) effectCounterPlusEOT(ps *params) (bool, error) {
 	}
 	if left := ps.unread(); len(left) > 0 {
 		return false, nil
+	}
+	if turnC != 0 {
+		lc.emit(lInstr{Op: "TurnRepl", C: turnC, Note: "one more +1/+1 counter on the controller's creatures until end of turn"})
+		return true, nil
 	}
 	lc.emit(lInstr{Op: "CounterPlusEOT", Note: "counters plus one on the controller's permanents until end of turn"})
 	return true, nil

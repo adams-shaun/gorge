@@ -1065,6 +1065,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 	}
 	if t.F2 != nil {
+		if t.TargetsAll && len(t.F2Zones) != len(t.F2.Clauses) {
+			return kt, fmt.Errorf("TargetsValid object alternative zones")
+		}
 		switch {
 		case len(t.F2.Clauses) == 0 && t.F2.Players == plBoth:
 			kt.Flags |= kop.TfToPlayer
@@ -1074,6 +1077,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		case len(t.F2.Clauses) == 0 && t.F2.Players == plYou && t.Event == "DamageDone":
 			kt.Flags |= kop.TfToPlayer
 			kt.Flags2 |= kop.Tf2ToYou
+		case t.TargetsAll && t.Event == "SpellCast" && len(t.F2.Clauses) > 0 && t.F2.Players == 0:
+			// TargetsValid$ without a player alternative: the battlefield
+			// clauses keep ZoneNone, a zone-free one carries kop.ZoneAny
+			if kt.Filter2, err = cb.filterZones(t.F2, t.F2Zones); err != nil {
+				return kt, err
+			}
 		case t.F2.Players == 0:
 			if kt.Filter2, err = cb.filter(t.F2, kop.ZoneBattlefield); err != nil {
 				return kt, err
@@ -1088,7 +1097,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			}
 		case t.TargetsAll && t.Event == "SpellCast" && len(t.F2.Clauses) > 0 && (t.F2.Players == plYou || t.F2.Players == plOpp):
 			// TargetsValid$ with a player alternative
-			if kt.Filter2, err = cb.filterPlayerAlt(t.F2, kop.ZoneBattlefield, t.F2.Players); err != nil {
+			if kt.Filter2, err = cb.filterPlayerAlt(t.F2, t.F2Zones, t.F2.Players); err != nil {
 				return kt, err
 			}
 		default:
@@ -3870,6 +3879,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventDamageScope)), int16(in.C)
 	case "CounterPlusEOT":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCounterPlusEOT))
+	case "TurnRepl":
+		// OpExt ExtTurnRepl, C the kop.TurnRepl* kind (dirac/repl_turnrepl.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtTurnRepl)), int16(in.C)
 	case "Vote":
 		// OpExt ExtVote, F the ballot (battlefield permanents), C bit 0
 		// exile the most-voted

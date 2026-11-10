@@ -6,14 +6,24 @@ import (
 
 // castTargetsAll is Tf2TargetsFilter2 (gorge TargetShapeMatches'
 // TargetsValid$): at least one target of spell e's whole chain (gorge
-// ChainTargets, root Targets plus SubTargets) is a battlefield
-// object matching f, read with the trigger's source and controller
-// (Card.Self is the heroic permanent). kgen lowers only battlefield object
-// alternatives, so a player or off-battlefield target never matches; a spell
-// with no targets never matches.
+// ChainTargets, root Targets plus SubTargets) matches f, read with the
+// trigger's source and controller (Card.Self is the heroic permanent). A
+// battlefield target is matched as a permanent; a player target through the
+// player alternative. A filter chain carrying kop.ZoneAny (a zone-free object
+// alternative, Danitha, Spear of Agony's Creature.OppCtrl) also matches an
+// off-battlefield target through the card matcher, controlled by its stack
+// entry for a spell and by its owner otherwise, as gorge's target match does.
+// A spell with no targets never matches.
 //
 //go:noinline
 func (s *State) castTargetsAll(k *prep, f kop.FilterID, e *stackEntry, l trigListener) bool {
+	anyZone := false
+	for g := f; g != 0; g = k.t.Filters[g].Or {
+		if k.t.Filters[g].Zone == kop.ZoneAny {
+			anyZone = true
+			break
+		}
+	}
 	var codes [kop.MaxTargets + maxXTgt]uint8
 	n := s.chainTargets(e, &codes)
 	for i := 0; i < n; i++ {
@@ -24,7 +34,26 @@ func (s *State) castTargetsAll(k *prep, f kop.FilterID, e *stackEntry, l trigLis
 			}
 			continue
 		}
-		if isObjTarget(t) && s.objs[t].zone == kop.ZoneBattlefield && s.matchPermGen(k, f, s.objs[t].slot, l.ctrl, l.sl, layerFull) {
+		if !isObjTarget(t) {
+			continue
+		}
+		ob := &s.objs[t]
+		if ob.zone == kop.ZoneBattlefield {
+			if s.matchPermGen(k, f, ob.slot, l.ctrl, l.sl, layerFull) {
+				return true
+			}
+			continue
+		}
+		if !anyZone {
+			continue
+		}
+		ctrl := ob.owner()
+		if ob.zone == kop.ZoneStack {
+			if j := s.stackIndexOf(Obj(t)); j >= 0 {
+				ctrl = s.stack[j].ctrl
+			}
+		}
+		if s.matchCardTgt(k, f, ob.card, ctrl, l.ctrl, Obj(t), l.sl, l.obj) {
 			return true
 		}
 	}

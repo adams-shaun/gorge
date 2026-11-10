@@ -57,6 +57,13 @@ const (
 	// with StAlsoSideboard, The Holodeck) reads. It follows ZonePhasedInd
 	// because the card tables pin the earlier values; see Phased.
 	ZoneSideboard
+	// ZoneAny is a filter's "any zone" marker, not a real zone: kgen sets it
+	// on a SpellCast Tf2TargetsFilter2 chain lowered from a zone-free
+	// TargetsValid$ object alternative (Danitha, Spear of Agony's
+	// Creature.OppCtrl), and only kernel castTargetsAll reads it, matching an
+	// off-battlefield target through the card matcher. Appended: the card
+	// tables pin the earlier values.
+	ZoneAny
 )
 
 // Phased reports whether z is a phased-out permanent's zone (ZonePhased or

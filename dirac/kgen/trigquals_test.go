@@ -140,7 +140,8 @@ func TestTrigqualsRefusals(t *testing.T) {
 	}
 	// TargetsValid$: a You or Opponent alternative beside a battlefield
 	// object one lowers with the player alternative on the Filter2 chain; a
-	// zone-free creature alternative (Danitha, Spear of Agony) refuses
+	// zone-free creature alternative (Danitha, Spear of Agony) lowers too
+	// (TestTargetsValidAnyZone pins its kop.ZoneAny marker)
 	tv := func(v string) string {
 		return "T:Mode$ SpellCast | ValidActivatingPlayer$ Opponent | TargetsValid$ " + v + tail
 	}
@@ -154,7 +155,7 @@ func TestTrigqualsRefusals(t *testing.T) {
 	if why != "" || tr.Flags2&kop.Tf2TargetsFilter2 == 0 || player == nil || player.Ctrl != kop.CtrlYou {
 		t.Errorf("TargetsValid You,Creature: refusal %q, trigger %+v", why, tr)
 	}
-	for _, v := range []string{"Opponent,Creature.OppCtrl", "Creature.OppCtrl", "Player,Creature.YouCtrl+inZoneBattlefield", "You"} {
+	for _, v := range []string{"Player,Creature.YouCtrl+inZoneBattlefield", "You"} {
 		if why, _, _ := ktqBuild(t, tv(v)); !strings.Contains(why, `TargetsValid "`+v+`"`) {
 			t.Errorf("TargetsValid %q: refusal %q", v, why)
 		}

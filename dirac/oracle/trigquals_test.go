@@ -24,9 +24,9 @@ import (
 // line but its body stays refused (a delayed LKI copy), Yuriko and Jin Sakai
 // by other mechanisms. Kingpin, Wilson Fisk (a
 // Self alternative beside ValidPlayer$ You) is held back by gorge's per-stint
-// trigger limit and Danitha, Spear of Agony (a zone-free Creature.OppCtrl) by
-// gorge matching a creature spell on the stack: no live card reaches
-// ValidAttackersAmount EQ or the Self-or-filter sacrifice.
+// trigger limit; Danitha, Spear of Agony (a zone-free Creature.OppCtrl) now
+// lowers as the kernel's any-zone TargetsValid read (danitha_targetsvalid_test.go):
+// no live card reaches ValidAttackersAmount EQ or the Self-or-filter sacrifice.
 
 var ktrigqualsDecks = [][2][]cardset.Entry{
 	{ // M1: Geralf (second spells) against the attacked-you enchantment and creatures

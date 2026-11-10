@@ -634,19 +634,18 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// comma alternative, a player target through the player spec,
 			// an object target through the object spec. Lowered for the
 			// object alternatives that are on the battlefield (Card.Self,
-			// or an explicit inZoneBattlefield) and one You or Opponent
-			// player alternative (kernel castTargetsPlayer). A zone-free
-			// type alternative (Danitha, Spear of Agony's Creature.OppCtrl)
-			// also matches a creature SPELL on the stack in gorge
-			// (effects matchesBase reads the type in any zone), which the
-			// kernel's battlefield-only read cannot follow: it refuses.
+			// or an explicit inZoneBattlefield), a zone-free type
+			// alternative (Danitha, Spear of Agony's Creature.OppCtrl, which
+			// also matches a creature SPELL on the stack: effects
+			// matchesBase reads the type in any zone), and one You or
+			// Opponent player alternative (kernel castTargetsPlayer). The
+			// zone-free alternatives carry kop.ZoneAny on Filter2, the marker
+			// the kernel's castTargetsAll reads for an off-battlefield
+			// target through the card matcher. A line mixing a battlefield
+			// and a zone-free object alternative stays refused: the kernel
+			// would read the battlefield one in any zone too.
 			if strings.ContainsAny(v, "<>") {
 				return refuse("TargetsValid %q", v)
-			}
-			for _, alt := range strings.Split(v, ",") {
-				if alt != "Card.Self" && !strings.Contains(alt, "inZoneBattlefield") && alt != "You" && alt != "Opponent" {
-					return refuse("TargetsValid %q", v)
-				}
 			}
 			if tr.F2, err = lc.filter(v); err != nil {
 				return err
@@ -654,6 +653,11 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			if tr.F2.Players != 0 && tr.F2.Players != plYou && tr.F2.Players != plOpp || len(tr.F2.Clauses) == 0 {
 				return refuse("TargetsValid %q", v)
 			}
+			zones, ok := targetsValidZones(v, tr.F2, lc.p.isTypeWord)
+			if !ok {
+				return refuse("TargetsValid %q", v)
+			}
+			tr.F2Zones = zones
 			tr.TargetsAll = true
 		}
 		if v, ok := tp.get("Increment"); ok {

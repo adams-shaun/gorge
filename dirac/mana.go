@@ -1051,7 +1051,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	}
 	// HandReserve demand: the most pips of each colour on any single nonland
 	// card in hand other than the card being cast (gorge pay/planner.go:234).
+	// Read afresh: planChosenTrial plans a copy of a planner that already
+	// holds it, and an inherited demand would leave maxD, so the digit base
+	// of key 6, at 0.
 	pl := &s.pl[p]
+	pk.demand = [5]int{}
 	maxD := 0
 	for i := 0; i < int(pl.handN); i++ {
 		o := pl.hand[i]

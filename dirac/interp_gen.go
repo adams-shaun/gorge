@@ -1342,6 +1342,14 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 	if exileEx {
 		n += s.exMarkCount(sl)
 	}
+	scopeN := 0
+	if k.gen != nil && k.gen.ix[mechExileEx] != arenaNone {
+		scopeN = s.exScopeN(k, sl) // an opponent's creature this turn (repl_turnrepl.go)
+	}
+	n += scopeN
+	if scopeN > 0 {
+		TurnReplStats.Exiled.Add(1)
+	}
 	if graveLib {
 		n++
 	}
@@ -1350,12 +1358,12 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 	}
 	if n > 1 {
 		s.capFull(StallReplLeave)
-		if exileN > 0 || exileEx {
+		if exileN > 0 || exileEx || scopeN > 0 {
 			return kop.ZoneExile
 		}
 		return s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard)
 	}
-	if exileN > 0 || exileEx {
+	if exileN > 0 || exileEx || scopeN > 0 {
 		return kop.ZoneExile
 	}
 	return kop.ZoneGraveyard
