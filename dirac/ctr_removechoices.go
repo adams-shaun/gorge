@@ -27,7 +27,7 @@ var DebugRmctrNoRemember bool
 func (s *State) rmctrOptions(k *prep, in *kop.Instr, d *Decision) int {
 	src := s.objRef(k, kop.RefSelf)
 	n := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < MaxSeats; p++ {
 		for m := s.ctrlM[p].and(s.occ); m.any(); m = m.rest() {
 			sl := m.first()
 			o := uint8(s.perms[sl].obj)

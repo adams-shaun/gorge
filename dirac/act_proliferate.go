@@ -23,7 +23,7 @@ import (
 
 const prolifMaxPicks = 16
 
-// prolifPicked: recipient o (an Obj, or PlayerTarget0+p) is picked in the
+// prolifPicked: recipient o (an Obj, or PlayerCode(p)) is picked in the
 // current action.
 func (s *State) prolifPicked(o uint8) bool {
 	r := &s.res
@@ -61,7 +61,7 @@ func (s *State) permRealCtrs(sl Slot) int {
 
 // prolifOptions lists the unpicked eligible recipients and Done.
 func (s *State) prolifOptions(k *prep, d *Decision) {
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < MaxSeats; p++ {
 		for m := s.ctrlM[p].and(s.occ); m.any(); m = m.rest() {
 			sl := m.first()
 			o := uint8(s.perms[sl].obj)
@@ -70,9 +70,9 @@ func (s *State) prolifOptions(k *prep, d *Decision) {
 			}
 		}
 	}
-	for p := uint8(0); p < 2; p++ {
-		if (s.g.poison[p] > 0 || s.g.energy[p] > 0) && !s.pl[p].lost && !s.prolifPicked(PlayerTarget0+p) {
-			d.add(MakeAction(AkChoose, PlayerTarget0+p, 0, 0))
+	for p := uint8(0); p < MaxSeats; p++ {
+		if (s.g.poison[p] > 0 || s.g.energy[p] > 0) && !s.pl[p].lost && !s.prolifPicked(PlayerCode(p)) {
+			d.add(MakeAction(AkChoose, PlayerCode(p), 0, 0))
 		}
 	}
 	d.add(MakeAction(AkDone, 0, 0, 0))
@@ -142,7 +142,7 @@ func (s *State) answerProlif(k *prep, a Action) {
 // prolifApply gives recipient o another counter of each kind it has.
 func (s *State) prolifApply(k *prep, o uint8) {
 	if o >= PlayerTarget0 {
-		p := o - PlayerTarget0
+		p := CodeSeat(o)
 		if s.g.poison[p] > 0 {
 			s.addPoison(p, 1)
 		}

@@ -32,7 +32,7 @@ func (s *State) lowerFaceCast(k *prep, p uint8, o Obj) {
 		// A Room showing door 1 shows Faces[1-Face] in hand (its def's Face
 		// is the door up); every other face card shows its front.
 		if roomDef(k, face) {
-			ob.card = cd.Faces[1-cd.Face]
+			ob.card = cd.Faces[1-cd.Face] // seat-ok: the other face of a two-faced card
 		} else {
 			ob.card = cd.Faces[0]
 		}

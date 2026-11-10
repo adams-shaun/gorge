@@ -157,14 +157,14 @@ func (s *State) roomUnturn(k *prep, o Obj, mode uint8) {
 	ob := &s.objs[o]
 	cd := &k.t.Cards[ob.card]
 	s.touch(o)
-	ob.card = cd.Faces[1-cd.Face]
+	ob.card = cd.Faces[1-cd.Face] // seat-ok: the other face of a two-faced card
 }
 
 // offerRoomAlt offers hand Room o's other door (gorge "room_alt",
 // legal_walk_hand.go: roomAlternateCastFace = 1 - FaceIdx).
 func (s *State) offerRoomAlt(k *prep, d *Decision, p uint8, o Obj, sorc bool) {
 	cd := &k.t.Cards[s.objs[o].card]
-	alt := 1 - cd.Face
+	alt := 1 - cd.Face // seat-ok: the other face
 	if s.faceCastable(k, p, o, cd.Faces[alt], sorc) {
 		d.add(MakeAction(AkCast, uint8(o), alt, castFace))
 	}
@@ -213,7 +213,7 @@ func (s *State) offerUnlocks(k *prep, d *Decision, p uint8) {
 		}
 		cd := &k.t.Cards[pm.card]
 		m := roomMask(k, pm.card)
-		for _, fi := range [2]uint8{1 - cd.Face, cd.Face} {
+		for _, fi := range [2]uint8{1 - cd.Face, cd.Face} { // seat-ok: the other face first
 			if m&(1<<fi) != 0 {
 				continue
 			}
