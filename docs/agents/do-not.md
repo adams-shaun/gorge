@@ -110,6 +110,13 @@ these hurt someone other than you.
   a `systemd-run` scope with `MemoryMax`, and set `GOMEMLIMIT`.
 - **Don't put large data in a RAM-backed `/tmp`.**
 
+## Dirac
+
+- **Don't delete a `dirac/support/refused/<card>.json` (or run `kgen -unrefuse`) because the entry went stale.**
+  Stale means the defect is fixed or the pinned game moved; for the first, add the passing test and a row in
+  `dirac/support/unrefused.tsv`; for the second, re-record the game with pool custom.
+- **Don't unrefuse without that register row.** `TestUnrefusalNeedsProof` fails any card that had an entry at the merge base and has neither one nor a row.
+
 ## Bots and training
 
 - **Don't let clairvoyant or oracle modes near a hosted table or a rated
