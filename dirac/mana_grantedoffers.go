@@ -564,7 +564,7 @@ func (g *grantSrch) candidates(s *State) {
 	}
 	tm := s.grantTapXGaps(g.k, g.p)
 	dm := s.scriptDeferred(g.k, g.p)
-	nm := s.scriptManaNone(g.k, g.p)
+	nm := s.scriptManaNone(g.k, g.p).or(s.scriptDynZero(g.k, g.p)) // (mana_grantnone.go)
 	g.n = 0
 	holders := 0
 	for i := 0; i < n; i++ {
