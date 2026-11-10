@@ -3,7 +3,6 @@ package dirac
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -16,11 +15,7 @@ import (
 // charged against the Forest, so the play is not proven insufficient and its
 // prefix search runs. relaxRestrRefuses must count that filter in both reads.
 func TestRelaxRestrCountsRelaxableFilters(t *testing.T) {
-	deck := []cardset.Entry{
-		{Name: "Clement, the Worrywort", Count: 1}, {Name: "Hidden Grotto", Count: 1},
-		{Name: "Lilypad Village", Count: 1}, {Name: "Forest", Count: 20},
-	}
-	tbl, _, _, err := cardsettest.Synth(t, "std-blb").Matchup(deck, deck)
+	tbl, err := cardsettest.Set(t, "relaxrestrfilter").Pool()
 	if err != nil {
 		t.Fatal(err)
 	}
