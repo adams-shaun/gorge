@@ -3,43 +3,22 @@ package dirac
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // TestTapsDeferFixedColourGapCarriesTheTapExtra: a deferred one-mana fixed
 // colour tap (the Core rewritten to "{T}: Add {G}", the Llanowar Elves under
 // Cryoshatter shape) beside a StatTapExtra carrier (Badgermole Cub's
-// static, with an open filter, grafted onto the Birds: "whenever you tap a creature for mana, add
+// static, grafted onto the Birds: "whenever you tap a creature for mana, add
 // an additional {G}") is a gap whose census unit and float carry the extra,
 // as gorge's relaxed alternative does (potential_plan.go potentialTapExtra).
 func TestTapsDeferFixedColourGapCarriesTheTapExtra(t *testing.T) {
-	cub, _, _, err := cardsettest.Synth(t, "std-tla").Matchup(
-		[]cardset.Entry{{Name: "Badgermole Cub", Count: 1}, {Name: "Island", Count: 23}},
-		[]cardset.Entry{{Name: "Island", Count: 24}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	var carrier *kop.Ability
-	for c := range cub.Cards {
-		if cub.Cards[c].Name != "Badgermole Cub" {
-			continue
-		}
-		for i := range cub.Cards[c].Abilities {
-			if a := &cub.Cards[c].Abilities[i]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatTapExtra {
-				carrier = a
-			}
-		}
-	}
-	if carrier == nil {
-		t.Fatal("precondition: the Cub has no StatTapExtra static")
-	}
+	// Badgermole Cub's static, built by hand (filters are table-local, and
+	// the Core is no creature: an open "permanent you control" filter)
+	carrier := kop.Ability{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatTapExtra, A: kop.G, B: 1}}
 	tbl, id := tapsDeferShapeTable(t, func(tbl *kop.Table, id map[string]CardID) {
 		rewriteMana(tbl, id["Firdoch Core"], func(a *kop.Ability) { a.ManaColors = kop.ColG })
-		ab := *carrier
-		// the Core is no creature and filters are table-local: an open filter
-		// of the copy, "a permanent you control", reaches it
+		ab := carrier
 		ab.Static.Filter = kop.FilterID(len(tbl.Filters))
 		tbl.Filters = append(append([]kop.Filter(nil), tbl.Filters...), kop.Filter{Ctrl: kop.CtrlYou})
 		b := &tbl.Cards[id["Birds of Paradise"]]
