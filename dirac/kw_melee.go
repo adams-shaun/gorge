@@ -13,7 +13,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // discounts the printed line only while it exists.
 //
 // gorge queues a granted Melee in its own keyword walk (rules/melee.go
-// checkGrantedMeleeTriggers), not among the triggers statics and effects
+// checkGrantedAttackPumpTriggers), not among the triggers statics and effects
 // grant by AddTrigger$ (rules/trigger_granted.go). Its place among them
 // follows gorge's per-object walk (rules/trigger_match.go): a face whose
 // printed lines may observe the declaration (kop.CardDef.AtkFace) is walked

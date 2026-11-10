@@ -8,7 +8,7 @@ import (
 
 // splitMeleeGrant takes every bare "Melee" term out of a `&` keyword list:
 // the rest of the list and how many there were. Each term is its own
-// instance (CR 702.121b): gorge checkGrantedMeleeTriggers (rules/melee.go)
+// instance (CR 702.121b): gorge checkGrantedAttackPumpTriggers (rules/melee.go)
 // queues one trigger per derived Melee entry beyond the printed lines.
 func splitMeleeGrant(kw string) (string, int) {
 	var rest []string

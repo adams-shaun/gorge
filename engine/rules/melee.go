@@ -26,55 +26,62 @@ func (e *Engine) meleeRemembered(ev events.Event) []state.Target {
 	return out
 }
 
-// checkGrantedMeleeTriggers synthesizes only the keyword instances not already
-// represented by a live printed Melee trigger. Derived preserves duplicates: two
-// Titanias grant two instances to another creature, and a printed Melee plus
-// a layer-6 grant likewise triggers twice (CR 702.121a). Every instance gets
-// its own stack object with the same declaration-wide opponent snapshot.
-func (e *Engine) checkGrantedMeleeTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
-	if ev.Kind != events.DeclareAttackers || !slices.Contains(ev.IDs, id) {
+// checkGrantedAttackPumpTriggers synthesizes the granted instances of the two
+// attack-triggered pumps, Melee then Exalted, that no live printed trigger
+// already represents (grantedKeywordInstances). Derived preserves duplicates:
+// two Titanias grant two Melee instances to another creature, and a printed
+// keyword plus a layer-6 grant likewise triggers twice (CR 702.121a,
+// 702.83b). Every Melee instance gets its own stack object with the same
+// declaration-wide opponent snapshot. Exalted's holder need not attack
+// (CR 702.83a: a creature its controller controls attacks alone), so it is
+// not gated on the object being an attacker.
+func (e *Engine) checkGrantedAttackPumpTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
+	if ev.Kind != events.DeclareAttackers {
 		return
 	}
-	instances := 0
-	for _, kw := range e.Derived(id).Keywords {
-		if cards.KeywordHead(kw) == "Melee" {
-			instances++
-		}
-	}
-	// A printed Melee line is queued by the ordinary trigger walk only while
-	// the printed face's abilities exist: not while it is face down (CR
-	// 708.2) or has lost its abilities (CR 613.1f), where the derived list
-	// holds only the grants a layer-6 walk left in force (CR 613.7), and every
-	// one of them is an instance this walk queues.
-	if !e.faceDownPrintedHides(o) && !observer.printedAbilitiesLost(o) {
-		for _, t := range f.Triggers {
-			if t.Mode == "Attacks" && t.ParamStr(cards.PKKeyword) == "Melee" {
-				instances-- // this printed marker is queued by the ordinary trigger walk
+	if slices.Contains(ev.IDs, id) {
+		printedLive := !e.faceDownPrintedHides(o) && !observer.printedAbilitiesLost(o)
+		instances := grantedKeywordInstances(e.Derived(id).Keywords, f.Triggers, "Melee", printedLive)
+		t := cards.Trigger{Mode: "Attacks", Params: map[string]string{"Mode": "Attacks", "ValidCard": "Card.Self"}}
+		if instances > 0 && observer.triggerMatches(t, id, ev, objLKI) {
+			key := triggerKey{Source: id, Idx: -1}
+			if e.triggerFireCount == nil {
+				e.triggerFireCount = map[triggerKey]int32{}
+			}
+			for i := 0; i < instances && e.triggerFireCount[key] < maxTriggerFires; i++ {
+				e.triggerFireCount[key]++
+				r := e.meleeRemembered(ev)
+				e.queueTrigger(observer, pendingTrigger{
+					Source: id, Controller: o.Controller, Idx: -1, Melee: true,
+					cause: causeOf(boardOf(observer), t, id, ev, 0),
+					Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: r,
+						Captured: r, LKI: objLKI, TriggerContext: observer.triggerReferents(t, id, ev, objLKI)}),
+				}, ev, []state.ObjID{id})
 			}
 		}
 	}
+	if !e.hasKeywordH(id, kwhExalted) {
+		return
+	}
+	printedLive := !e.faceDownPrintedHides(o) && !observer.printedAbilitiesLost(o)
+	instances := grantedKeywordInstances(e.Derived(id).Keywords, f.Triggers, "Exalted", printedLive)
 	if instances <= 0 {
 		return
 	}
-	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{"Mode": "Attacks", "ValidCard": "Card.Self"}}
-	if !observer.triggerMatches(t, id, ev, objLKI) {
+	t, ok := grantedExaltedTrigger()
+	if !ok || !observer.triggerMatches(t, id, ev, objLKI) {
 		return
 	}
-	for i := 0; i < instances; i++ {
-		key := triggerKey{Source: id, Idx: -1}
-		if e.triggerFireCount == nil {
-			e.triggerFireCount = map[triggerKey]int32{}
-		}
-		if e.triggerFireCount[key] >= maxTriggerFires {
-			return
-		}
-		e.triggerFireCount[key]++
-		r := e.meleeRemembered(ev)
-		e.queueTrigger(observer, pendingTrigger{
-			Source: id, Controller: o.Controller, Idx: -1, Melee: true,
-			cause: causeOf(boardOf(observer), t, id, ev, 0),
-			Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: r,
-				Captured: r, LKI: objLKI, TriggerContext: observer.triggerReferents(t, id, ev, objLKI)}),
-		}, ev, []state.ObjID{id})
+	pt := pendingTrigger{
+		Source: id, Controller: o.Controller, Idx: -1, Exalted: true,
+		cause: causeOf(boardOf(observer), t, id, ev, 0),
+		Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: triggerRemembered(ev, id), LKI: objLKI,
+			TriggerContext: observer.triggerReferents(t, id, ev, objLKI)}),
 	}
+	insts := e.grantedTriggerInstances(observer, &t, id, ev, pt)
+	var all []pendingTrigger
+	for range instances {
+		all = append(all, slices.Clone(insts)...)
+	}
+	e.appendReservedTriggers(triggerKey{Source: id, Idx: -1}, all)
 }

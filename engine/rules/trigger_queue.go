@@ -531,26 +531,20 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
-	// A granted ward (CR 702.21a via a layer-6 AddKeyword$ Ward:<cost> -- the
-	// printed K:Ward expansion is a face trigger and never lands here). The
-	// ward ability is mandatory: its Counter payload is the cost text, which
-	// events.Apply rebuilds into the same DB$ Ward ability a printed trigger
-	// would have carried. The targeted spell is named by the ward Ctx the
-	// walk captured (TriggeredStack roles), exactly as the printed path does.
-	if pt.Ward != "" {
+	// A granted ward or exalted instance: emit the keyword push, then hand
+	// the stack object the trigger context the walk captured
+	// (ctxKeywordTriggerPush names each shape's payload).
+	if kev, ok := ctxKeywordTriggerPush(pt); ok {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
 		}
 		stackLen := len(e.G.Stack)
-		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
-			Obj: pt.Source, Counter: "__kwWard:" + pt.Ward, Text: "ward ability"})
+		e.emit(kev)
 		if len(e.G.Stack) > stackLen {
 			id := e.G.Stack[len(e.G.Stack)-1]
 			if e.triggerContexts == nil {
 				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 			}
-			// effWard reads the targeting spell off TriggerStack at resolution,
-			// the same role the printed ward's stack object carries.
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
 		}
 		e.drainAwaitsTarget = e.Pending() != nil
@@ -571,35 +565,6 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		}
 		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
 			Obj: pt.Source, Counter: "__kwMeleeGranted", IDs: ids, Text: "melee ability"})
-		e.drainAwaitsTarget = e.Pending() != nil
-		return
-	}
-	// A layer-6 Exalted instance (CR 702.83a-b) has no printed trigger index.
-	// Remembered (the declaration's attackers and the defending player) rides
-	// the payload so replay and stack copies read the same Pump target as a
-	// printed instance; the attacker role rides the stack context.
-	if pt.Exalted {
-		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
-			return
-		}
-		ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
-		for _, tgt := range pt.Ctx.Remembered {
-			if tgt.IsPlayer {
-				ids = append(ids, state.PlayerRef(tgt.Player))
-				continue
-			}
-			ids = append(ids, tgt.Obj)
-		}
-		stackLen := len(e.G.Stack)
-		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
-			Obj: pt.Source, Counter: "__kwExaltedGranted", IDs: ids, Text: "exalted ability"})
-		if len(e.G.Stack) > stackLen {
-			id := e.G.Stack[len(e.G.Stack)-1]
-			if e.triggerContexts == nil {
-				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
-			}
-			e.triggerContexts[id] = pt.Ctx.TriggerContext
-		}
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}

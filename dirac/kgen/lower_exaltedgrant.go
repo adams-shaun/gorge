@@ -8,8 +8,8 @@ import (
 
 // splitExaltedGrant takes every bare "Exalted" term out of a `&` keyword
 // list: the rest of the list and how many there were. Each term is its own
-// instance (CR 702.83b, 113.2c): gorge checkGrantedExaltedTriggers
-// (rules/exalted_granted.go) queues one trigger per derived Exalted entry
+// instance (CR 702.83b, 113.2c): gorge checkGrantedAttackPumpTriggers
+// (rules/melee.go) queues one trigger per derived Exalted entry
 // beyond the printed lines.
 func splitExaltedGrant(kw string) (string, int) {
 	var rest []string

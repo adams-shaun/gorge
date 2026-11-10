@@ -1391,8 +1391,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				case events.DeclareAttackers:
 					e.checkGrantedDethroneTriggers(observer, id, o, f, *ev, objLKI)
 					e.checkGrantedTrainingTriggers(observer, id, o, f, *ev, objLKI)
-					e.checkGrantedMeleeTriggers(observer, id, o, f, *ev, objLKI)
-					e.checkGrantedExaltedTriggers(observer, id, o, f, *ev, objLKI)
+					e.checkGrantedAttackPumpTriggers(observer, id, o, f, *ev, objLKI)
 					e.checkGrantedMentorTriggers(observer, id, o, f, *ev, objLKI)
 					e.checkGrantedAttackKeywordTriggers(observer, id, o, f, *ev, objLKI)
 				case events.DeclareBlockers:
@@ -1993,8 +1992,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 		// trigger carrying the training grant) -- the early-return path above
 		// reaches this object through checkGrantedTrainingTriggers's own call.
 		e.checkGrantedTrainingTriggers(observer, id, o, f, *ev, objLKI)
-		e.checkGrantedMeleeTriggers(observer, id, o, f, *ev, objLKI)
-		e.checkGrantedExaltedTriggers(observer, id, o, f, *ev, objLKI)
+		e.checkGrantedAttackPumpTriggers(observer, id, o, f, *ev, objLKI)
 		// A granted Mentor must fire even when the object's own printed
 		// triggers are live for this event -- the same both-paths rule
 		// Afflict, Conspire, Exploit, Offspring and Training follow.

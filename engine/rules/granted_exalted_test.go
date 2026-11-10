@@ -34,7 +34,7 @@ func TestGrantedExaltedTriggersPerInstance(t *testing.T) {
 	e.askAttackers()
 	bi := batchAttackerOptionIndex(t, e, bear, 1)
 	declareAttackersAt(t, e, [][2]int{{int(bear), bi}})
-	if got := keywordPushes(e) + len(e.pendingTriggers); got != 2 {
+	if got := exaltedTriggers(e); got != 2 {
 		t.Fatalf("seq %d: %d exalted triggers for the lone attacker, want 2 (the Archangel's printed and the Bear's granted)", len(e.L.Events), got)
 	}
 	flushOrderAsks(t, e)
@@ -59,7 +59,7 @@ func TestGrantedExaltedNotForASplitDeclaration(t *testing.T) {
 	bi := batchAttackerOptionIndex(t, e, bear, 1)
 	fi := batchAttackerOptionIndex(t, e, fox, 2)
 	declareAttackersAt(t, e, [][2]int{{int(bear), bi}, {int(fox), fi}})
-	if got := keywordPushes(e) + len(e.pendingTriggers); got != 0 {
+	if got := exaltedTriggers(e); got != 0 {
 		t.Fatalf("seq %d: %d exalted triggers for a two-attacker declaration, want 0", len(e.L.Events), got)
 	}
 }
@@ -74,10 +74,14 @@ func countKeyword(ks []string, head string) int {
 	return n
 }
 
-func keywordPushes(e *Engine) int {
-	n := 0
+// exaltedTriggers counts the exalted triggers the declaration queued: those
+// still waiting in the order queue plus those already pushed, printed
+// (TriggerPush) or granted (KeywordTriggerPush). The fixtures hold no other
+// trigger.
+func exaltedTriggers(e *Engine) int {
+	n := len(e.pendingTriggers)
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.KeywordTriggerPush {
+		if ev.Kind == events.KeywordTriggerPush || ev.Kind == events.TriggerPush {
 			n++
 		}
 	}
@@ -104,7 +108,7 @@ func TestGrantedExaltedHolderThatDoesNotAttack(t *testing.T) {
 	e.askAttackers()
 	ai := batchAttackerOptionIndex(t, e, angel, 1)
 	declareAttackersAt(t, e, [][2]int{{int(angel), ai}})
-	if got := keywordPushes(e) + len(e.pendingTriggers); got != 3 {
+	if got := exaltedTriggers(e); got != 3 {
 		t.Fatalf("seq %d: %d exalted triggers, want 3 (the Archangel's printed, the Angel's and the Bear's granted)", len(e.L.Events), got)
 	}
 }

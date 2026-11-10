@@ -467,7 +467,7 @@ func (e *Engine) forEachTriggerObject(ev *events.Event, skip, kindOnly bool, fn 
 	if planHeld {
 		e.trigWalkUnion, e.trigWalkUnionOK = e.trigPlan.union, true
 		if trigNoReferent(ev) && !e.trigPlan.union.admits(ev, e.G.Step) &&
-			!e.grantWalksBattlefield(ev) {
+			!grantWalksBattlefield(ev.Kind, e.stepWalksBattlefield()) {
 			if verify == nil {
 				return
 			}
@@ -539,7 +539,7 @@ func (e *Engine) forEachTriggerObject(ev *events.Event, skip, kindOnly bool, fn 
 			// summary could hide is gated on the object being an event
 			// referent. Hidden-ish zones keep their skip -- both synthesized
 			// triggers function only from the battlefield.
-			stepFull := slot == trigZoneSlot(state.ZBattlefield) && e.grantWalksBattlefield(ev)
+			stepFull := slot == trigZoneSlot(state.ZBattlefield) && grantWalksBattlefield(ev.Kind, e.stepWalksBattlefield())
 			if stepFull && kindOnly {
 				// The step's full battlefield walk, narrowed exactly: besides
 				// the selected hot objects only an object one of the two
@@ -702,15 +702,16 @@ func (e *Engine) stepGrantMay(ev *events.Event, id state.ObjID) bool {
 	return cumulativeUpkeepSteps.Has(e.G.Step) && e.mayHaveDerivedKeywordH(id, kwhCumulativeUpkeep)
 }
 
-// grantWalksBattlefield reports whether ev must consider every battlefield
-// object stepGrantMay admits besides its referents and hot objects: a
-// StepChange into a step stepWalksBattlefield names, and a declaration of
-// attackers, whose granted Exalted triggers for a holder that is no referent
-// (checkGrantedExaltedTriggers: the holder need not attack, CR 702.83a).
-func (e *Engine) grantWalksBattlefield(ev *events.Event) bool {
-	switch ev.Kind {
+// grantWalksBattlefield reports whether an event of kind must consider every
+// battlefield object stepGrantMay admits besides its referents and hot
+// objects: a StepChange into a step stepWalksBattlefield names (stepWalks),
+// and a declaration of attackers, whose granted Exalted triggers for a holder
+// that is no referent (checkGrantedAttackPumpTriggers: the holder need not
+// attack, CR 702.83a).
+func grantWalksBattlefield(kind events.Kind, stepWalks bool) bool {
+	switch kind {
 	case events.StepChange:
-		return e.stepWalksBattlefield()
+		return stepWalks
 	case events.DeclareAttackers:
 		return true
 	}

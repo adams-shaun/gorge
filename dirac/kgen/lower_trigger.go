@@ -2427,7 +2427,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		for ; exalted > 0; exalted-- {
 			// CR 702.83a-b granted: one latent Attacks trigger, listed
 			// once per instance (lower_exaltedgrant.go; gorge
-			// rules/exalted_granted.go)
+			// rules/melee.go)
 			idx, err := lc.exaltedGrantTrigger()
 			if err != nil {
 				return nil, err

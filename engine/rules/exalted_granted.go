@@ -1,71 +1,80 @@
 package rules
 
 import (
-	"slices"
-
 	"github.com/adams-shaun/gorge/engine/cards"
-	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// checkGrantedExaltedTriggers synthesizes Exalted's attack trigger (CR
-// 702.83a) for each instance of the keyword the object holds beyond its
-// printed lines: a layer-6 grant (Sublime Archangel's "Other creatures you
-// control have exalted") gives the creature the same rules text as a printed
-// keyword, and the printed K:Exalted expansion (engine/cards/kw_exalted.go)
-// covers only printed lines. Each instance triggers separately (CR 702.83b,
-// 113.2c): the Derived list keeps duplicates, so a printed Exalted plus a
-// grant, or two Archangels' grants, is one trigger per instance. The
-// synthesized trigger reuses the printed shape (Attacks, ValidCard$
-// Creature.YouCtrl, Alone$ True), so it matches and expands per attacker the
-// way the printed line does, and its body is the printed Pump of the
-// triggering attacker, rebuilt by events.Apply from the KeywordTriggerPush
-// payload alone.
-func (e *Engine) checkGrantedExaltedTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
-	if ev.Kind != events.DeclareAttackers || len(ev.IDs) == 0 {
-		return
-	}
-	if !e.hasKeywordH(id, kwhExalted) {
-		return
-	}
-	instances := 0
-	for _, kw := range e.Derived(id).Keywords {
-		if cards.KeywordHead(kw) == "Exalted" {
-			instances++
+// grantedKeywordInstances counts the instances of an attack-triggered keyword
+// (Melee, Exalted) a granted walk must synthesize: every derived entry with
+// that head, less one per printed Attacks line carrying the keyword while the
+// printed face's abilities exist (printedLive: not face down, CR 708.2, nor
+// lost, CR 613.1f), since the ordinary trigger walk queues those. Derived
+// keeps duplicates, so a printed line plus a grant, or two grants, is one
+// instance each (CR 113.2c).
+func grantedKeywordInstances(derived []string, printed []cards.Trigger, head string, printedLive bool) int {
+	n := 0
+	for _, kw := range derived {
+		if cards.KeywordHead(kw) == head {
+			n++
 		}
 	}
-	// A printed line is queued by the ordinary trigger walk only while the
-	// printed face's abilities exist: not face down (CR 708.2) nor after the
-	// object lost its abilities (CR 613.1f), where the derived list holds
-	// only grants and every one is an instance queued here.
-	if !e.faceDownPrintedHides(o) && !observer.printedAbilitiesLost(o) {
-		for _, t := range f.Triggers {
-			if t.Mode == "Attacks" && t.ParamStr(cards.PKKeyword) == "Exalted" {
-				instances--
+	if printedLive {
+		for _, t := range printed {
+			if t.Mode == "Attacks" && t.ParamStr(cards.PKKeyword) == head {
+				n--
 			}
 		}
 	}
-	if instances <= 0 {
-		return
+	return n
+}
+
+// grantedExaltedTrigger is the printed Exalted expansion's trigger shape
+// (engine/cards/kw_exalted.go): a creature its holder's controller controls
+// attacks alone. A granted instance (CR 702.83a, a layer-6 grant such as
+// Sublime Archangel's "Other creatures you control have exalted") matches
+// and expands per attacker exactly as the printed line does.
+func grantedExaltedTrigger() (cards.Trigger, bool) {
+	return cards.ParseTriggerLine("Mode$ Attacks | ValidCard$ Creature.YouCtrl | Alone$ True")
+}
+
+// rememberedRefIDs encodes a trigger's Remembered list as event IDs: a player
+// entry as state.PlayerRef, so events.Apply rebuilds {Player, IsPlayer}
+// rather than an object 0 that playersOf would drop.
+func rememberedRefIDs(rem []state.Target) []state.ObjID {
+	ids := make([]state.ObjID, 0, len(rem))
+	for _, tgt := range rem {
+		if tgt.IsPlayer {
+			ids = append(ids, state.PlayerRef(tgt.Player))
+			continue
+		}
+		ids = append(ids, tgt.Obj)
 	}
-	t, ok := cards.ParseTriggerLine("Mode$ Attacks | ValidCard$ Creature.YouCtrl | Alone$ True")
-	if !ok {
-		return
+	return ids
+}
+
+// ctxKeywordTriggerPush is the KeywordTriggerPush of a granted keyword
+// instance whose stack object carries the walk's captured trigger context:
+//
+//   - Ward (CR 702.21a via a layer-6 AddKeyword$ Ward:<cost>; the printed
+//     K:Ward expansion is a face trigger and never lands here). The ability
+//     is mandatory; its Counter payload is the cost text, which events.Apply
+//     rebuilds into the printed DB$ Ward ability. effWard reads the targeting
+//     spell off the captured TriggeredStack role at resolution.
+//   - Exalted (CR 702.83a-b, no printed trigger index). Remembered (the
+//     declaration's attackers and the defending player) rides IDs, so replay
+//     and stack copies rebuild the printed Pump of the same attacker; the
+//     attacker role rides the captured context.
+func ctxKeywordTriggerPush(pt pendingTrigger) (events.Event, bool) {
+	switch {
+	case pt.Ward != "":
+		return events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwWard:" + pt.Ward, Text: "ward ability"}, true
+	case pt.Exalted:
+		return events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwExaltedGranted", IDs: rememberedRefIDs(pt.Ctx.Remembered),
+			Text: "exalted ability"}, true
 	}
-	if !observer.triggerMatches(t, id, ev, objLKI) {
-		return
-	}
-	pt := pendingTrigger{
-		Source: id, Controller: o.Controller, Idx: -1, Exalted: true,
-		cause: causeOf(boardOf(observer), t, id, ev, 0),
-		Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: triggerRemembered(ev, id), LKI: objLKI,
-			TriggerContext: observer.triggerReferents(t, id, ev, objLKI)}),
-	}
-	insts := e.grantedTriggerInstances(observer, &t, id, ev, pt)
-	var all []pendingTrigger
-	for range instances {
-		all = append(all, slices.Clone(insts)...)
-	}
-	e.appendReservedTriggers(triggerKey{Source: id, Idx: -1}, all)
+	return events.Event{}, false
 }
