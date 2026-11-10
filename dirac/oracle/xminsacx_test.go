@@ -50,7 +50,6 @@ func kxminsacxPolicy(seed uint64, tl *kxminsacxTally) Policy {
 	rnd := RandomPolicy(seed)
 	r := rand.New(rand.NewPCG(seed, 0x78736163)) // "xsac": the biases' own stream
 	xcode, _ := chooseCode("x")
-	declineCode, _ := chooseCode("trigger_cost_decline")
 	return PolicyFunc(func(c *PickCtx) Canon {
 		a := rnd.Pick(c)
 		if c.G == nil {
@@ -77,16 +76,6 @@ func kxminsacxPolicy(seed uint64, tl *kxminsacxTally) Policy {
 				}
 			}
 			return a
-		}
-		if c.D.Kind == DChoose {
-			// Ruthless Technomancer's enters trigger ("you may sacrifice
-			// another creature; create Treasures equal to its power") is not
-			// the shape under test: declined.
-			for _, o := range c.D.Options {
-				if o.Kind() == ActChoose+CanonKind(declineCode) {
-					return o
-				}
-			}
 		}
 		if c.D.Kind != DChoose || len(c.D.Options) == 0 || c.D.Options[0].Kind() != ActChoose+CanonKind(xcode) {
 			return a

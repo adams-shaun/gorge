@@ -45,6 +45,7 @@ func (s *State) payCommitSacs(k *prep) {
 	if k.gen.anyBatch {
 		defer s.batchClose(s.sacBatchOpen())
 	}
+	s.snapTrigSacrificed(k, ord[0]) // trig_sacrificedlki.go
 	for _, sl := range ord[:n] {
 		s.fireSac(k, sl)
 		s.leaveParked(k, sl)
