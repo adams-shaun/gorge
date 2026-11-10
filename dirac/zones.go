@@ -318,6 +318,10 @@ func (s *State) lose(p uint8) {
 }
 
 func (s *State) checkOver() {
+	if MaxSeats > 2 {
+		s.checkOverN()
+		return
+	}
 	l0, l1 := s.pl[0].lost, s.pl[1].lost
 	if !l0 && !l1 {
 		return

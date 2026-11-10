@@ -80,9 +80,12 @@ func gorgeAttacking(e *rules.Engine) bool {
 	return false
 }
 
-// anyDown reports whether some player is at 0 life or less: the games are
-// compared up to the first loss (a player leaving a game of more than two
-// is not modelled here).
+// combatPlayOut plays the games on past the first loss, to the end
+// (seatleave_mp_test.go); otherwise they are compared up to it.
+var combatPlayOut bool
+
+// anyDown reports whether some player is at 0 life or less: unless
+// combatPlayOut, the games are compared up to the first loss.
 func anyDown(lives []int) bool {
 	for _, l := range lives {
 		if l <= 0 {
@@ -144,7 +147,7 @@ func offerDet(per map[int][]int) string {
 	return fmt.Sprintf("offers %d %v", len(rows), rows)
 }
 
-func gorgeCombatGame(t *testing.T, n int, seed uint64, limit int) []combatEv {
+func gorgeCombatGame(t *testing.T, n int, seed uint64, limit int) (out []combatEv) {
 	t.Helper()
 	src := map[CardID]string{
 		v.Forest:           "Name:Forest\nTypes:Basic Land Forest\nOracle:x\n",
@@ -178,11 +181,31 @@ func gorgeCombatGame(t *testing.T, n int, seed uint64, limit int) []combatEv {
 		}
 		return l
 	}
-	var out []combatEv
+	var gone [MaxSeats]bool
+	defer func() {
+		if combatPlayOut && e.G.Over {
+			for p := 0; p < n; p++ {
+				if e.G.Players[p].Lost && !gone[p] {
+					out = append(out, combatEv{kind: "out", turn: int(e.G.Turn), active: int(e.G.Active), player: p})
+				}
+			}
+			w := int(e.G.Winner)
+			if e.G.Draw {
+				w = -1
+			}
+			out = append(out, combatEv{kind: "over", turn: int(e.G.Turn), active: int(e.G.Active), player: w})
+		}
+	}()
 	for len(out) < limit && !e.G.Over {
 		e.Advance()
 		d := e.Pending()
-		if d == nil || anyDown(lives()) || !combatThrough && e.G.Step == state.StepDeclareBlockers && d.Kind == decision.KPriority && gorgeAttacking(e) {
+		for p := 0; p < n && combatPlayOut; p++ {
+			if e.G.Players[p].Lost && !gone[p] {
+				gone[p] = true
+				out = append(out, combatEv{kind: "out", turn: int(e.G.Turn), active: int(e.G.Active), player: p})
+			}
+		}
+		if d == nil || !combatPlayOut && anyDown(lives()) || !combatThrough && e.G.Step == state.StepDeclareBlockers && d.Kind == decision.KPriority && gorgeAttacking(e) {
 			break
 		}
 		ev := combatEv{turn: int(e.G.Turn), active: int(e.G.Active), player: int(d.Player), sp: len(e.G.Stack)}
@@ -235,7 +258,7 @@ func gorgeCombatGame(t *testing.T, n int, seed uint64, limit int) []combatEv {
 			}
 			var opps []int
 			for p := 0; p < n; p++ {
-				if p != int(e.G.Active) {
+				if p != int(e.G.Active) && !e.G.Players[p].Lost {
 					opps = append(opps, p)
 				}
 			}
@@ -298,7 +321,7 @@ func gorgeCombatGame(t *testing.T, n int, seed uint64, limit int) []combatEv {
 	return out
 }
 
-func kernelCombatGame(t *testing.T, n int, seed uint64, limit int) []combatEv {
+func kernelCombatGame(t *testing.T, n int, seed uint64, limit int) (out []combatEv) {
 	t.Helper()
 	var decks [MaxSeats][]CardID
 	for p := 0; p < n; p++ {
@@ -314,7 +337,6 @@ func kernelCombatGame(t *testing.T, n int, seed uint64, limit int) []combatEv {
 		return l
 	}
 	cardName := func(o uint8) string { return v.Table.Cards[s.objs[o].card].Name }
-	var out []combatEv
 	var d Decision
 	// the declaration in progress: the attackers' picks queued at the
 	// decision's first pose, the defender's blocks left
@@ -322,9 +344,26 @@ func kernelCombatGame(t *testing.T, n int, seed uint64, limit int) []combatEv {
 	inDecl := false
 	usedB, usedA := map[uint8]bool{}, map[uint8]bool{}
 	quota := 0
+	var gone [MaxSeats]bool
+	defer func() {
+		if over, w := s.Terminal(); combatPlayOut && over {
+			for p := 0; p < n; p++ {
+				if s.pl[p].lost && !gone[p] {
+					out = append(out, combatEv{kind: "out", turn: int(s.turn), active: int(s.active), player: p})
+				}
+			}
+			out = append(out, combatEv{kind: "over", turn: int(s.turn), active: int(s.active), player: int(w)})
+		}
+	}()
 	for len(out) < limit && !s.Over() {
 		s.StepOne(&d)
-		if d.Kind == DkNone || anyDown(lives()) || !combatThrough && s.step == kop.StepBlockers && d.Kind == DkPriority && s.nAttackers > 0 {
+		for p := 0; p < n && combatPlayOut; p++ {
+			if s.pl[p].lost && !gone[p] {
+				gone[p] = true
+				out = append(out, combatEv{kind: "out", turn: int(s.turn), active: int(s.active), player: p})
+			}
+		}
+		if d.Kind == DkNone || !combatPlayOut && anyDown(lives()) || !combatThrough && s.step == kop.StepBlockers && d.Kind == DkPriority && s.nAttackers > 0 {
 			break
 		}
 		ev := combatEv{turn: int(s.turn), active: int(s.active), player: int(d.Player), sp: int(s.sp)}
@@ -376,7 +415,7 @@ func kernelCombatGame(t *testing.T, n int, seed uint64, limit int) []combatEv {
 				}
 				var opps []int
 				for p := 0; p < n; p++ {
-					if p != int(s.active) {
+					if p != int(s.active) && !s.pl[p].lost {
 						opps = append(opps, p)
 					}
 				}

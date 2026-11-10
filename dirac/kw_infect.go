@@ -64,7 +64,7 @@ func (s *State) addPoison(p uint8, n int) {
 //
 //go:noinline
 func (s *State) poisonSBA(k *prep) {
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
 		if s.g.poison[p] >= 10 && !s.pl[p].lost && !s.cantLose(k, p) {
 			s.pl[p].lost = true
 		}

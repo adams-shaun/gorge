@@ -176,8 +176,10 @@ func (s *State) beginStep(k *prep) {
 			s.step = kop.StepMain1
 			return
 		}
-		s.g.drawFirst = true // repl_draw.go: the first card drawn in this draw step
-		s.draw(s.active)
+		s.g.drawFirst = true  // repl_draw.go: the first card drawn in this draw step
+		if !s.out(s.active) { // a departed active player draws nothing (gorge turn.go)
+			s.draw(s.active)
+		}
 		s.g.drawFirst = false
 		if s.over {
 			return
@@ -484,7 +486,7 @@ func (s *State) sba(k *prep) bool {
 			// returns at its first order ask and its answer re-enters it
 			s.lingerDrain(k)
 		}
-		for p := uint8(0); p < 2; p++ {
+		for p := uint8(0); p < s.nSeats(); p++ {
 			if s.pl[p].life <= 0 && !s.pl[p].lost && !s.cantLoseLife(k, p) {
 				s.pl[p].lost = true
 			}
@@ -504,6 +506,9 @@ func (s *State) sba(k *prep) bool {
 				s.ceaseTokensGen()
 			}
 			return true
+		}
+		if MaxSeats > 2 && s.sweepDeparted(k) {
+			continue // CR 800.4a: the departed seats' objects left (zone_leavegame.go)
 		}
 		if (s.nAttackers > 0 || s.declared) && (k.gen == nil || k.gen.tyCombat) {
 			s.removeNoncreatureCombatants(k) // CR 506.4 (cold)

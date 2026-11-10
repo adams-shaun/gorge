@@ -302,6 +302,9 @@ func (s *State) stepRaw(d *Decision) {
 				s.ctl = ctlPlaceTriggers
 				continue
 			}
+			if s.out(s.prio) {
+				s.prio = s.nextAlive(s.prio) // gorge grantPriority: a departed holder's turn passes on
+			}
 			d.Kind, d.Player = DkPriority, s.prio
 			s.priorityOptions(k, d)
 			return
