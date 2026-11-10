@@ -207,7 +207,9 @@ func (s *State) ownManaUsable(k *prep, sl Slot) bool {
 func (s *State) windowGrantMask(k *prep, sl Slot) (mask uint8) {
 	var gi [maxGrants]int16
 	for i, n := 0, s.grantIdxs(k, sl, &gi); i < n; i++ {
-		mask |= s.srcMaskAt(s.grantView(k.gen, gi[i], sl), sl)
+		if g := s.grantView(k.gen, gi[i], sl); s.grantCostPayable(s.perms[sl].ctrl, g) {
+			mask |= s.srcMaskAt(g, sl) // a life its controller cannot pay activates nothing (CR 119.4)
+		}
 	}
 	return mask
 }

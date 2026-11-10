@@ -125,3 +125,41 @@ func (s *State) grantCostApply(k *prep, p uint8, st *grantStep) {
 	}
 	s.grantCostPay(k, p, pc)
 }
+
+// windowPayableGrant is the view a window activation of sl takes among its
+// admitted granted abilities gi[:n]: the first whose life its controller can
+// pay (CR 119.4), else &noManaPC.
+func (s *State) windowPayableGrant(k *prep, sl Slot, gi *[maxGrants]int16, n int) *pcard {
+	for i := 0; i < n; i++ {
+		if g := s.grantView(k.gen, gi[i], sl); s.grantCostPayable(s.perms[sl].ctrl, g) {
+			return g
+		}
+	}
+	return &noManaPC
+}
+
+// windowGrantLife is the life a window activation of sl taking colour col
+// pays: pc's own when the window took a life-cost grant view, else, when
+// sl's own ability does not make col, the least a granted ability making col
+// costs (0 when a free one does). Forgotten Monument's Cave owing {R} beside
+// its own {C} pays 1 life, as gorge's window activates the grant.
+func (s *State) windowGrantLife(k *prep, sl Slot, pc *pcard, col int) uint8 {
+	if n := grantCostLife(pc); n > 0 {
+		return n
+	}
+	if k.gen == nil || len(k.gen.grantPC) == 0 || s.windowOwnMask(k, sl)&(1<<col) != 0 || !s.grantMay(k, sl) {
+		return 0
+	}
+	var gi [maxGrants]int16
+	least, found := uint8(0), false
+	for i, n := 0, s.grantIdxs(k, sl, &gi); i < n; i++ {
+		g := s.grantView(k.gen, gi[i], sl)
+		if s.srcMaskAt(g, sl)&(1<<col) == 0 || !s.grantCostPayable(s.perms[sl].ctrl, g) {
+			continue
+		}
+		if l := grantCostLife(g); !found || l < least {
+			least, found = l, true
+		}
+	}
+	return least
+}

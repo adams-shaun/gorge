@@ -298,3 +298,34 @@ func TestGrantPayLifePrefix(t *testing.T) {
 		}
 	}
 }
+
+// TestGrantPayLifeWindow: the manual mana window (ward, unless, trigger
+// cost) owing {R} from Cavernous Maw under Forgotten Monument takes the
+// colour through the granted "{T}, Pay 1 life" ability, so it pays the life
+// as gorge's window activation does (CR 119.4); with no life to pay the
+// grant activates nothing and {R} is not floated.
+func TestGrantPayLifeWindow(t *testing.T) {
+	cost := kop.ManaCost{}
+	cost.Pips[kop.R] = 1
+
+	sc, maw := grantLifeScen(t, 20)
+	s, k := sc.s, sc.k
+	// precondition: the Maw's own ability does not make {R}
+	if s.windowOwnMask(k, maw)&(1<<kop.R) != 0 {
+		t.Fatal("Cavernous Maw's own ability makes {R}: the window need not take the grant")
+	}
+	before := s.pl[0].life
+	ok, _ := s.windowTap(k, 0, &cost, true)
+	if !ok || s.pl[0].pool[kop.R] != 1 || s.perms[maw].flags&pfTapped == 0 {
+		t.Fatalf("window: ok %v pool %v tapped %v, want {R} from the tapped Maw", ok, s.pl[0].pool, s.perms[maw].flags&pfTapped != 0)
+	}
+	if s.pl[0].life == before || s.pl[0].life != 19 {
+		t.Errorf("life %d after the window, want 19 (from %d)", s.pl[0].life, before)
+	}
+
+	sc, _ = grantLifeScen(t, 0)
+	sc.s.windowTap(sc.k, 0, &cost, true)
+	if sc.s.pl[0].pool[kop.R] != 0 || sc.s.pl[0].life != 0 {
+		t.Errorf("life 0: pool %v life %d, want no {R} and no payment", sc.s.pl[0].pool, sc.s.pl[0].life)
+	}
+}
