@@ -17,7 +17,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // ask arm OpCopyAsTokenEx uses. The answer path resumes the op with the card
 // the parked token carries and s.g.pickLeft copies, which is only correct when
 // no later exiled card remains; when one does, the op stalls StallCopyAllAsk
-// rather than mint the later cards out of order. An exiled card is not a
+// rather than mint the later cards out of order. It also stalls when an
+// earlier copy of the op already sits in the entry batch: the park returns
+// before fireEntries, and gorge's zone batch spans the parked ask, so those
+// copies' enters checks would be dropped. An exiled card is not a
 // battlefield permanent, so the copy has no template slot (NoSlot).
 func (s *State) copyExiledWith(k *prep, in *kop.Instr) bool {
 	e := &s.res.e
@@ -30,12 +33,12 @@ func (s *State) copyExiledWith(k *prep, in *kop.Instr) bool {
 		pl := &s.pl[p]
 		for j := 0; j < int(pl.exileN); j++ {
 			o := pl.exile[j]
+			if !s.matchCardGen(k, in.F, s.objs[o].card, s.objs[o].owner(), e.ctrl, o) {
+				continue
+			}
 			if n >= len(ord) {
 				s.capFull(StallExiledWith)
 				return false
-			}
-			if !s.matchCardGen(k, in.F, s.objs[o].card, s.objs[o].owner(), e.ctrl, o) {
-				continue
 			}
 			ord[n] = o
 			n++
@@ -81,7 +84,7 @@ func (s *State) copyExiledWith(k *prep, in *kop.Instr) bool {
 				continue // CR 303.4g: the Aura token isn't created
 			case hostAsk:
 				rem := cnt[i] - int16(j) - 1
-				if rem > 255 || !s.lastExiledCopy(cnt[:n], i, j) {
+				if rem > 255 || eb.n != 0 || !s.lastExiledCopy(cnt[:n], i, j) {
 					s.capFull(StallCopyAllAsk)
 					return false
 				}
@@ -95,7 +98,7 @@ func (s *State) copyExiledWith(k *prep, in *kop.Instr) bool {
 			}
 			if kind != 0 {
 				rem := cnt[i] - int16(j) - 1
-				if rem > 255 || !s.lastExiledCopy(cnt[:n], i, j) {
+				if rem > 255 || eb.n != 0 || !s.lastExiledCopy(cnt[:n], i, j) {
 					s.capFull(StallCopyAllAsk)
 					return false
 				}
