@@ -1725,7 +1725,8 @@ func (s *State) grantsFixedMana(k *prep, sl Slot) bool {
 // source funds is not gorge's. A filter that cannot be activated now (tapped,
 // or a summoning-sick creature, as gapMask reads it) funds nothing: Uthros,
 // Titanic Godcore tapped beside Mm'menon's hand-barred grant leaves a hand
-// warp cast to the prune (CR 302.6, 605.1a).
+// warp cast to the prune (CR 302.6, 605.1a). Nor does a gated filter whose
+// gate fails (CR 702.184a).
 func (s *State) filterSource(k *prep, p uint8) bool {
 	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
 		sl := m.first()
@@ -1742,6 +1743,9 @@ func (s *State) filterSource(k *prep, p uint8) bool {
 			a := &cd.Abilities[j]
 			if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
 				continue
+			}
+			if pm := &s.perms[sl]; a.Trig.Cond != 0 && !s.condEval(k, a.Trig.Cond, evalCtx{src: pm.obj, srcSl: sl, ctrl: pm.ctrl}) {
+				continue // a counters-gated ability while its gate fails (filtGateOn): Evendo, Waking Haven below STATION 12
 			}
 			if seen && a.Cost.Mana.MV() > 0 {
 				return true
