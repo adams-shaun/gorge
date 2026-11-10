@@ -18,7 +18,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | FIN | 312 | 270 | 1 | 3 | 266 |
 | FRA | 269 | 249 | 0 | 10 | 239 |
 | HOB | 172 | 156 | 0 | 3 | 153 |
-| LCI | 290 | 253 | 1 | 23 | 229 |
+| LCI | 290 | 254 | 1 | 24 | 229 |
 | MKM | 279 | 243 | 1 | 32 | 210 |
 | MSH | 276 | 240 | 1 | 7 | 232 |
 | OTJ | 276 | 243 | 1 | 1 | 241 |
@@ -30,7 +30,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 290 | 1 | 23 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 256 | 0 | 10 | 246 |
-| ALL | 34442 | 21898 | 26 | 16783 | 5089 |
+| ALL | 34442 | 21899 | 26 | 16784 | 5089 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
