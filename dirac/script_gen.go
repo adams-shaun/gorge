@@ -278,7 +278,11 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0 && s.cfg&cfgGorgeAutopay != 0 {
 			continue // a plain cast: dropped by the autopay surface
 		}
-		if filt.any() || mix {
+		if (filt.any() || mix) && a.Kind() == AkActivate && s.liveGrantGap(k, p) {
+			if !s.grantActScript(k, a, p) {
+				continue // no script within gorge's one search's budget (grantActScript)
+			}
+		} else if filt.any() || mix {
 			if !s.filtScript(k, a, p, false) {
 				continue // no script within gorge's search budget
 			}
@@ -641,6 +645,23 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			}
 		}
 	}
+}
+
+// grantActScript reports whether gorge's one prefix search finds a script for
+// the activation a of p on a board with a live granted mana ability and a
+// filter: the search tries the grants' colours before the funding tap that
+// pays the filter's fee (scriptSearch.visit: the gaps first), spending its
+// node budget on mana the activation cannot spend (a creature-spell-only
+// grant), so the filter script's funding-first line must not price it
+// (filtScript sets noGrant for an activation). The grant search owns the
+// prefix on such a board (scriptPrefix) and prices the offer too (CR 601.2g-h).
+func (s *State) grantActScript(k *prep, a Action, p uint8) bool {
+	cost, ex, need, ok := s.grantPlayCost(k, p, a, true)
+	if !ok {
+		return s.filtScript(k, a, p, false)
+	}
+	var g grantSrch
+	return s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), need, &g)
 }
 
 // grantPrefix: gorge's planner census holds printed mana abilities only

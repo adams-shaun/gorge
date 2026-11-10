@@ -415,6 +415,9 @@ type grantSrch struct {
 	ng       [MaxPerm]uint8
 	dual     [MaxPerm]bool // the candidate's own ability is tried first
 	skipPool bool          // the next branch's mana is restricted past the play (a printed ability or a grant): the step is taken, its mana prices nothing
+	// ghost: the units those steps floated, which price nothing but sit in gorge's
+	// pool, so its payer-state key tells a path that made them from one that did not
+	ghost [kop.NumManaKinds]uint8
 	// filt: the candidate also has a filter ability ({1},{T}: Add one mana of any
 	// color), a paid census gap of gorge's like the grants (mana_filter.go)
 	filt [MaxPerm]bool
@@ -464,6 +467,8 @@ type grantKey struct {
 	// gorge's key reads the typed units apart (Player.ManaUnits), so a
 	// filter's tagged {W} over a plain {W} is a new state
 	art uint8
+	// ghost: the units an unspendable step floated (grantSrch.ghost)
+	ghost [kop.NumManaKinds]uint8
 	// gorge's key counts the stack, hand and graveyard too (scriptStateKey)
 	sp, hand, gy uint8
 }
@@ -601,7 +606,7 @@ func (g *grantSrch) visit(t *State) bool {
 		return true
 	}
 	pl := &t.pl[g.p&1]
-	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, sp: t.sp, hand: pl.handN, gy: pl.graveN}
+	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN}
 	if g.k.artMana {
 		t.artSync(g.p)
 		key.art = t.g.poolArt[g.p&1]
@@ -875,8 +880,13 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 		t.pl[g.p&1].pool[c] += pn
 		t.artTag(g.k, g.p, sl, int(c))
 		xv := t.srcExtraPick(g.k, sl, pc, int(c))
+		var gx [kop.NumManaKinds]uint8 // the unspendable tap prices no extra either; its units sit in the ghost
 		if skip {
-			xv = [kop.NumManaKinds]uint8{} // the unspendable tap prices no extra either
+			gx, xv = xv, [kop.NumManaKinds]uint8{}
+			gx[c] += n
+			for j := range gx {
+				g.ghost[j] += gx[j]
+			}
 		}
 		t.addXv(g.p&1, &xv)
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl}
@@ -885,6 +895,9 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 			return true
 		}
 		g.np--
+		for j := range gx {
+			g.ghost[j] -= gx[j]
+		}
 		t.subXv(g.p&1, &xv)
 		t.pl[g.p&1].pool[c] -= pn
 		t.g.poolArt[g.p&1] = preBit

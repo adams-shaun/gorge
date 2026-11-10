@@ -38,6 +38,13 @@ func (s *State) relaxRestrRefuses(k *prep, p uint8, cost *kop.ManaCost, d payDes
 		s.availTapX(k, p&1, &all)
 		s.availTapX(k, p&1, &kept)
 	}
+	if k.gen.anyFilt && s.filtRelaxable(k, s.scriptFilt(k, p)) {
+		// gorge's relaxed proof also appends each subset of the census's paid
+		// alternatives, charging the subset's fees (paymentPlanRelaxProof): a
+		// filter makes up the colour a refused grant lacks, in both reads
+		s.availFilt(k, p, &all)
+		s.availFilt(k, p, &kept)
+	}
 	return all.affords(cost, pm, 0) && !kept.affords(cost, pm, 0)
 }
 
