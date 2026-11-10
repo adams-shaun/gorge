@@ -128,12 +128,7 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 		return
 	}
 	for b := s.scriptGaps(k, p); b.any(); b = b.rest() {
-		out := s.eachColorOut(k, p, b.first())
-		for c := 0; c < 5; c++ {
-			if out&(1<<c) != 0 {
-				a.addUnits(1<<c, 1)
-			}
-		}
+		s.eachGapUnits(k, p, b.first(), a)
 	}
 	// a restricted source (Giada): the prefix search prices with its mana
 	// as with any gap's (the restriction is not read there), and an Angel
@@ -297,6 +292,10 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			if s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef) {
 				continue // no script within gorge's budget (mana_window.go scriptDeadEndAny)
 			}
+		} else if !restr.any() && !s.scriptCtr(k, p).any() && s.eachFeeBoard(k, p) {
+			if !s.eachScript(k, a, p, false) {
+				continue // no script within gorge's search budget (mana_eachfee.go)
+			}
 		} else if restr.any() && s.scriptDeadEnd(k, a, p, restr) {
 			continue
 		}
@@ -423,12 +422,7 @@ func (s *State) tapGap(k *prep, p uint8, sl Slot, restr slotMask, held *[kop.Num
 		held[col] += max(ab.ManaN, 1)
 		return
 	}
-	out := s.eachColorOut(k, p, sl)
-	for c := 0; c < 5; c++ {
-		if out&(1<<c) != 0 {
-			s.pl[p].pool[c]++
-		}
-	}
+	s.eachProduce(k, p, sl, s.eachDefaultAns(k, p, sl)) // (a fee-paid each-colour gap: mana_eachfee.go)
 }
 
 // scriptPrefix plays gorge's script for play a: p's gaps tapped in
@@ -494,6 +488,10 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	}
 	if anyR.any() || tapsDef.any() {
 		s.scriptPrefixAny(k, a, p, restr, anyR, tapsDef)
+		return
+	}
+	if !restr.any() && !ctr.any() && s.eachFeeBoard(k, p) {
+		s.eachScript(k, a, p, true) // a fee-paid each-colour gap (Tarnation Vista): gorge's search, mana_eachfee.go
 		return
 	}
 	var d Decision

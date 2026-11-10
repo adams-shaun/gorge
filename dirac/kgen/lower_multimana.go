@@ -116,13 +116,14 @@ func (lc *lowerCtx) refuseMultiMana() {
 		return
 	}
 	if len(ms) == 2 && chosenTapMana(ms[0]) && feeEachAmongMana(ms[1]) {
-		// Tarnation Vista: gorge's census leaves the {N},{T} each-colour ability
-		// an unrelaxable paid gap (its Special production names no colour), which
-		// the prefix search reaches by the activation's own ability and fee asks;
-		// the kernel's each-colour gap (script_gen.go) is a fee-free {T} tapped in
-		// battlefield order, and a fee-paid kind needs a genPrep flag (all 32 of
-		// cardflags.go's uint32 are taken), so widening that word comes first
-		lc.refuseNode("card", "2 mana abilities: a chosen-colour {T} beside a {N},{T} each-colour-among ability: a fee-paid each-colour gap the kernel does not model (no free genPrep flag bit)")
+		// Tarnation Vista: a chosen-colour {T} beside a "{N}, {T}: for each colour
+		// among ... add one of that colour". gorge's census leaves the fee-paid
+		// each-colour ability an unrelaxable gap (its Special production names
+		// no colour, so no funding is searched), which the prefix search
+		// reaches only with the fee already floating: the activation then asks
+		// which ability, and the fee is paid from the pool. The kernel's
+		// each-colour search (mana_eachfee.go) mirrors it; the chosen {T} stays
+		// the planner's plain unit (pc.manaChosen)
 		return
 	}
 	if len(ms) > 2 && !anyRFiltMana(ms) || !plainTapMana(ms[0], false) || !unrestrictedOne(ms[0]) {
