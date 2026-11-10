@@ -2313,7 +2313,10 @@ func (s *State) cardCands(k *prep, f kop.FilterID, p uint8, d *Decision) int {
 	if z == kop.ZoneLibrary {
 		return s.libWindowCands(k, f, p, d) // zone_optionalmoves.go
 	}
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		pl := &s.pl[pp]
 		var list []Obj
 		switch z {

@@ -106,10 +106,6 @@ opp1minus	value_exprs.go	2
 opp1minus	value_turnfacts.go	1
 opp1minus	zone_changezoneparams.go	1
 opp1minus	zone_returndefender.go	1
-ptarget	interp_gen.go	6
-ptarget	resolve.go	11
-seatloop2	interp_ask.go	1
-seatloop2	interp_gen.go	1
 xor1	face_prepare.go	1
 xor1	filter_referents.go	1
 xor1	kw_demonstrate.go	2

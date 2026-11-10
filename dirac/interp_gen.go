@@ -1012,8 +1012,8 @@ func (s *State) xtLegalBase(k *prep, e *stackEntry, j int) bool {
 	if c == NoTarget {
 		return false
 	}
-	if c >= PlayerTarget0 {
-		return !s.pl[c-PlayerTarget0].lost
+	if isPlayerOrNone(c) {
+		return !s.pl[CodeSeat(c)].lost
 	}
 	if s.objs[c].ver != s.xtOf(e).ver[j] {
 		return false
@@ -1635,7 +1635,10 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 		if zi == 1 {
 			zsrc = czallSecondZone(in)
 		}
-		for p := uint8(0); p < 2; p++ {
+		for p := uint8(0); p < s.nSeats(); p++ {
+			if s.out(p) {
+				continue
+			}
 			if only != 255 && p != only {
 				continue
 			}
@@ -2253,14 +2256,14 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool 
 		if n <= 0 {
 			continue
 		}
-		if code >= PlayerTarget0 {
+		if isPlayerOrNone(code) {
 			if inf {
-				s.addPoison(code-PlayerTarget0, n) // CR 702.90b
+				s.addPoison(CodeSeat(code), n) // CR 702.90b
 			} else {
-				s.loseLife(k, code-PlayerTarget0, n)
+				s.loseLife(k, CodeSeat(code), n)
 			}
 			toPl = true
-			plM |= 1 << (code - PlayerTarget0)
+			plM |= 1 << CodeSeat(code)
 		} else {
 			ob := &s.objs[code]
 			if ob.zone != kop.ZoneBattlefield {

@@ -12,11 +12,11 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 	if code == NoTarget {
 		return false
 	}
-	if code >= PlayerTarget0 {
-		if pp := code - PlayerTarget0; s.g.on && pp != e.ctrl && s.playerHexproof(s.k(), pp) {
+	if isPlayerOrNone(code) {
+		if pp := CodeSeat(code); s.g.on && pp != e.ctrl && s.playerHexproof(s.k(), pp) {
 			return false
 		}
-		return !s.pl[code-PlayerTarget0].lost
+		return !s.pl[CodeSeat(code)].lost
 	}
 	if isStackTarget(code) {
 		return s.stackTgtStillLegal(e, i) // tgt_stackability.go
@@ -576,7 +576,7 @@ func (s *State) objRefObj(r kop.Ref) Obj {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		t := s.tgtCode(sl)
-		if t == NoTarget || t >= PlayerTarget0 {
+		if t == NoTarget || isPlayerOrNone(t) {
 			return NoObj
 		}
 		return Obj(t)
@@ -615,8 +615,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		t := s.tgtCode(sl)
-		if t >= PlayerTarget0 && t != NoTarget {
-			return t - PlayerTarget0
+		if isPlayerOrNone(t) && t != NoTarget {
+			return CodeSeat(t)
 		}
 		if t != NoTarget {
 			return s.ctrlOfObj(Obj(t))
@@ -639,7 +639,7 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.tgtCtrlSlot(k, int(r-kop.RefTgtCtrl1)+1) // tgt_stackability.go
 	case kop.RefTargetOwner:
 		t := s.tgtCode(0)
-		if t == NoTarget || t >= PlayerTarget0 {
+		if t == NoTarget || isPlayerOrNone(t) {
 			return 255
 		}
 		return s.objs[t].owner()
@@ -863,8 +863,8 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 		s.infectDamageTo(k, code, n, kw) // wither is infect's creature half (a player takes ordinary damage)
 		return n
 	}
-	if code >= PlayerTarget0 {
-		s.loseLife(k, code-PlayerTarget0, n)
+	if isPlayerOrNone(code) {
+		s.loseLife(k, CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]
 		if ob.zone != kop.ZoneBattlefield {
@@ -890,7 +890,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 	}
 	if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) {
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
-			s.fireDamage(k, sl, int16(n), code >= PlayerTarget0, false, code)
+			s.fireDamage(k, sl, int16(n), isPlayerOrNone(code), false, code)
 		} else if k.gen != nil && e.obj != NoObj {
 			// a spell's damage, or an ability's whose source is gone
 			// (Niv-Mizzet: the sacrificed Fanatical Firebrand's, pair 3334)
@@ -911,7 +911,7 @@ func (s *State) refCode(k *prep, r kop.Ref) uint8 {
 		if p == 255 {
 			return NoTarget
 		}
-		return PlayerTarget0 + p
+		return PlayerCode(p)
 	}
 	o := s.objRefObj(r)
 	if o == NoObj {
