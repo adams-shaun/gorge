@@ -330,7 +330,7 @@ func (s *State) mintTokens(k *prep, in *kop.Instr, p uint8, n int) bool {
 			s.tokenAtEOT(in, o)
 		}
 		if in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokAttacking != 0 {
-			s.tokenAttacks(k, sl, p) // filter_combatwords.go
+			s.tokenAttacks(k, in, sl, p) // filter_combatwords.go
 		}
 		if k.gen.anyTokCr {
 			s.fireTokenCreated(k, sl)

@@ -288,6 +288,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "animate_equip_the_irencrag_becomes_everflame"},                      // The Irencrag's trigger answered yes as a legendary creature enters: it becomes the legendary Equipment Everflame, Heroes' Legacy and loses its {T}: Add {C} (CR 613.1a, 613.1f)
 		{"custom", "filter_each_skycloud_pays_white_and_blue", full},                    // Skycloud Expanse's {1},{T}: Add {W}{U}, an all-at-once filter and its card's only mana ability: a Plains funds the {1} and the Skycloud adds both colours, no colour ask, so Galina's Knight's {W}{U} is paid (CR 106.1, 605.3b); played on its own decks' table because the frozen std-trc pool predates the lowering
 		{"std-ecl", "mutable_explorer_makes_a_tapped_mutavault"},                        // Mutable Explorer enters: its trigger copies the card named Mutavault, a tapped token (CopyPermanent DefinedName$, CR 707.2)
+		{"custom", "warren_attack_charm_rabbit_token"},                                  // Warren Warleader attacking with Savannah Lions: its AttackersDeclared charm makes a Rabbit tapped and attacking, the defender the attack trigger's defending player (CR 508.4)
+		{"custom", "sneaked_spell_tokens_enter_attacking"},                              // The Last Ronin's Technique cast for its sneak cost in the declare blockers step: its three Spirits enter tapped and attacking, gorge's combat fallback (CR 508.4, 702.190a)
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {

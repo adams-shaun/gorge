@@ -281,14 +281,21 @@ func (s *State) execMcombat(k *prep, in *kop.Instr) (ok, done bool) {
 // defender; nothing is declared, so no attack trigger fires, CR 508.4). The
 // defender is p's opponent, or, for TokenAttacking$ True with two or more
 // CR 508.4 candidates, the one p named to tokenDefenderAsk (gorge
-// resolveEnteringDefender). gorge's fallback with no trigger context and no
-// combat enters the token without attacking; every lowered carrier is an
-// attack trigger, so the unasked defender is always the controller's
-// opponent.
+// resolveEnteringDefender). gorge's fallback (enteringDefenderFallback) for
+// TokenAttacking$ True: the trigger's defending player when a trigger
+// carries one, else only from declare attackers to end of combat on the
+// controller's own turn; otherwise the token enters without attacking. An
+// attack trigger always resolves inside that window, so the gate
+// (tokenCombatWindow) costs the trigger carriers nothing and is what a spell
+// carrier (The Last Ronin's Technique, sneaked) needs. Adeline's
+// RememberedPlayer form (no TokAttackAsk) names its defender and is not gated.
 //
 //go:noinline
-func (s *State) tokenAttacks(k *prep, sl Slot, p uint8) {
+func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 	if !s.occ.has(sl) {
+		return
+	}
+	if in.B.N&kop.TokAttackAsk != 0 && !s.tokenCombatWindow(p) {
 		return
 	}
 	atk := PlayerTarget0 + (1 - p&1)
@@ -296,6 +303,13 @@ func (s *State) tokenAttacks(k *prep, sl Slot, p uint8) {
 		atk = s.g.tokDef
 	}
 	s.setEnterAttacker(k, sl, atk)
+}
+
+// tokenCombatWindow reports whether p is the active player within declare
+// attackers .. end of combat, where gorge's enteringDefenderFallback names a
+// defender for an entering attacker with no trigger context.
+func (s *State) tokenCombatWindow(p uint8) bool {
+	return p == s.active && s.step >= kop.StepAttackers && s.step <= kop.StepEndCombat
 }
 
 // tokenDefenderAsk poses TokenAttacking$ True's CR 508.4 defender pick before
@@ -307,7 +321,7 @@ func (s *State) tokenAttacks(k *prep, sl Slot, p uint8) {
 //
 //go:noinline
 func (s *State) tokenDefenderAsk(k *prep, in *kop.Instr, p uint8) bool {
-	if in.B.N&(kop.TokAttacking|kop.TokAttackAsk) != kop.TokAttacking|kop.TokAttackAsk || s.g.tokDefSet {
+	if in.B.N&(kop.TokAttacking|kop.TokAttackAsk) != kop.TokAttacking|kop.TokAttackAsk || s.g.tokDefSet || !s.tokenCombatWindow(p) {
 		return false
 	}
 	var buf [MaxOptions]uint8
