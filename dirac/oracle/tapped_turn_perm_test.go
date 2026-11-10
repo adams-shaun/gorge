@@ -102,29 +102,32 @@ func TestTappedTurnPermRecord(t *testing.T) {
 		return // a recording tool, not coverage: it returns rather than skips (testdata/poolskips.txt)
 	}
 	reg := synthReg(t)
-	c := tappedTurnPermCase()
-	set := printedDelveSet(t, c.decks)
-	for seed := uint64(1); seed <= 400; seed++ {
-		r := &Repro{Format: reproFormat, Decks: [2]string{c.name + "_0", c.name + "_1"}, Cards: c.decks, Seed: seed, PassElision: true, Surface: c.surface, Kernel: "custom"}
-		m, err := r.Matchup(reg)
-		if err != nil {
-			t.Fatal(err)
-		}
-		res, reached := effectLongPlay(t, reg, c, r, set, tappedTurnPermPolicy(m, c, seed))
-		if res.Div != nil {
-			t.Fatalf("seed %d: divergence at %d: %s %s %v\nref %v\nker %v\n%s", seed, res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff, res.Div.RefOptions, res.Div.KerOptions, res.Div.Detail)
-		}
-		if !reached {
-			continue
-		}
-		r.setActions(res.Actions)
-		if err := r.Write(filepath.Join("testdata", "repro", c.name+".repro.json")); err != nil {
-			t.Fatal(err)
-		}
-		t.Logf("seed %d: %d decisions", seed, len(res.Actions))
-		return
+	for _, c := range []effectLongCase{tappedTurnPermCase(), taleTappedTurnCase()} {
+		t.Run(c.name, func(t *testing.T) {
+			set := printedDelveSet(t, c.decks)
+			for seed := uint64(1); seed <= 400; seed++ {
+				r := &Repro{Format: reproFormat, Decks: [2]string{c.name + "_0", c.name + "_1"}, Cards: c.decks, Seed: seed, PassElision: true, Surface: c.surface, Kernel: "custom"}
+				m, err := r.Matchup(reg)
+				if err != nil {
+					t.Fatal(err)
+				}
+				res, reached := effectLongPlay(t, reg, c, r, set, tappedTurnPermPolicy(m, c, seed))
+				if res.Div != nil {
+					t.Fatalf("seed %d: divergence at %d: %s %s %v\nref %v\nker %v\n%s", seed, res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff, res.Div.RefOptions, res.Div.KerOptions, res.Div.Detail)
+				}
+				if !reached {
+					continue
+				}
+				r.setActions(res.Actions)
+				if err := r.Write(filepath.Join("testdata", "repro", c.name+".repro.json")); err != nil {
+					t.Fatal(err)
+				}
+				t.Logf("seed %d: %d decisions", seed, len(res.Actions))
+				return
+			}
+			t.Fatalf("no seed reached the trigger's effect of %s", c.name)
+		})
 	}
-	t.Fatalf("no seed reached the untap of %s", c.name)
 }
 
 // TestTappedTurnPermReprosReach replays the recorded game and requires it to
@@ -132,20 +135,52 @@ func TestTappedTurnPermRecord(t *testing.T) {
 // that never tapped a creature under Captain America.
 func TestTappedTurnPermReprosReach(t *testing.T) {
 	reg := synthReg(t)
-	c := tappedTurnPermCase()
-	r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
-	if err != nil {
-		t.Fatal(err)
+	for _, c := range []effectLongCase{tappedTurnPermCase(), taleTappedTurnCase()} {
+		t.Run(c.name, func(t *testing.T) {
+			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			script := &ScriptPolicy{Actions: r.Actions}
+			res, reached := effectLongPlay(t, reg, c, r, printedDelveSet(t, r.Cards), script)
+			if res.Div != nil {
+				t.Fatalf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+			}
+			if script.Skipped != 0 {
+				t.Fatalf("%d scripted actions were not offered", script.Skipped)
+			}
+			if !reached {
+				t.Fatal("the recorded game never reached the trigger's effect")
+			}
+		})
 	}
-	script := &ScriptPolicy{Actions: r.Actions}
-	res, reached := effectLongPlay(t, reg, c, r, printedDelveSet(t, r.Cards), script)
-	if res.Div != nil {
-		t.Fatalf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+}
+
+// Tale of Katara and Toph grants its creatures' self Taps FirstTime$ trigger:
+// the same per-slot mark, keyed by the tapped creature, gives the +1/+1
+// counter once. It is the second card the Taps FirstTime$ lowering moves.
+const taleTappedTurnCard = "Tale of Katara and Toph"
+
+func taleTappedTurnCase() effectLongCase {
+	return effectLongCase{
+		name:   "tale_of_katara_and_toph_first_tap_counter",
+		prefer: []string{taleTappedTurnCard, "Grizzly Bears"},
+		decks: [2][]string{
+			append(deckOf(4, taleTappedTurnCard), append(deckOf(8, "Grizzly Bears"), deckOf(16, "Forest")...)...),
+			append(deckOf(8, "Grizzly Bears"), deckOf(16, "Forest")...),
+		},
+		surface: "autopay",
+		reached: taleTappedTurnReached,
 	}
-	if script.Skipped != 0 {
-		t.Fatalf("%d scripted actions were not offered", script.Skipped)
+}
+
+// taleTappedTurnReached: the granted trigger put a +1/+1 counter on a
+// creature (the first tap's reward).
+func taleTappedTurnReached(g *GorgeSide) bool {
+	for _, e := range g.E.L.Events {
+		if e.Kind == events.CounterChange && e.Amount > 0 && e.Counter == "P1P1" && ownCardName(g.E, e.Obj) != "" {
+			return true
+		}
 	}
-	if !reached {
-		t.Fatal("the recorded game never reached the trigger's untap")
-	}
+	return false
 }

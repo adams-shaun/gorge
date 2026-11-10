@@ -122,7 +122,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (the merge with land: this branch's three TapPowerValue statics beside land's 22114; merged ALL 22114 -> 22117).
 	// +3 (an Effect's trigger bound to a remembered set: The Eagles Are Coming!, Mysterio, Master of Illusion, T'Pring, Never Parted; ALL 22145 -> 22148, HOB 158 -> 159, SPM 168 -> 169, TRC 297 -> 298).
 	// +2 (the optional copy-instead CreateToken replacement of an Equipment or Aura gated on no token of yours having entered this turn, kop.ReplCopyFirstToken: Mirrormind Crown, Moonlit Meditation; ECL 242 -> 243, EOE 248 -> 249, ALL 22149 -> 22151).
-	// +1 (a Taps FirstTime$ watcher lowers on the arena's per-slot tapped-this-turn mark: Captain America, Living Legend; MSH 245 -> 246, ALL 22165 -> 22167).
+	// +2 (a Taps FirstTime$ watcher lowers on the arena's per-slot tapped-this-turn mark: Captain America, Living Legend (MSH 245 -> 246) and Tale of Katara and Toph's granted self line; ALL 22165 -> 22167).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
 	"ALL": {22167, 34442},
 	"BIG": {26, 30},
