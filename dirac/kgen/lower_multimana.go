@@ -336,6 +336,18 @@ func (lc *lowerCtx) refuseGatedMana(ms []*lAbility) bool {
 			return true
 		}
 	}
+	if gatedLargerSameColour(ms) {
+		// Whisperer of the Wilds: gorge's planner lists the source with
+		// both alternatives while the gate holds and takes the one that
+		// ranks best per payment (fewest sources, then least surplus), a
+		// per-tap yield choice. The kernel's source model is one yield per
+		// view (pcard.manaN), read as such by every affordability bound and
+		// the payment window, which answers the first ability: a view of
+		// two would overpay a payment gorge makes with the one, a view of
+		// one could not afford what gorge affords.
+		lc.refuseNode("card", "gated {T} ability making several mana of the colour a plain {T} ability makes one of (a per-tap yield choice the kernel's mana source model does not hold)")
+		return true
+	}
 	for _, a := range ms {
 		if !plain(a) {
 			lc.refuseNode("card", "gated mana ability beside a mana ability or cost not modelled (plain {T}, amount 1, unrestricted only)")
@@ -511,3 +523,18 @@ func filterHasSpecial(f *lFilter) bool {
 // maxEachMana bounds the amount of each colour an all-at-once mana ability
 // adds (the kernel's unit and extra vector are bytes; no card makes more).
 const maxEachMana = 4
+
+// gatedLargerSameColour reports the pair refuseGatedMana names: a plain
+// unrestricted {T}: Add one mana of a fixed colour, then a gated {T}: Add a
+// literal two or more of that same colour.
+func gatedLargerSameColour(ms []*lAbility) bool {
+	if len(ms) != 2 || ms[0].ActCond.Kind != cNone || ms[1].ActCond.Kind != cPresent {
+		return false
+	}
+	c := *ms[1]
+	c.ActCond = lCond{}
+	m := c.Mana
+	return plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && plainTapMana(&c, false) &&
+		len(ms[0].Mana.Colors) == 1 && !ms[0].Mana.Choice && !ms[0].Mana.Each &&
+		m.Colors == ms[0].Mana.Colors && !m.Choice && !m.Each && m.Amount.Kind == vConst && m.Amount.N > 1
+}
