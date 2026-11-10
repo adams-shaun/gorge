@@ -41,11 +41,16 @@ var DebugUnlessWaterbendNoPool bool
 
 // unlessPayKind widens a pay instruction's kind nibble: a PayTapX whose B.N
 // is PayBSubWaterbend is an unless Waterbend<N> (execPay, branchPayable).
-func unlessPayKind(kind int, bn int16) int {
-	if kind == kop.PayTapX && bn == kop.PayBSubWaterbend {
-		return payKindWaterbend
+func unlessPayKind(kind int, in *kop.Instr) int {
+	if kind == kop.PayTapX {
+		if kop.IsPayAddCounterB(in.B.N) {
+			return payKindAddCounter // cost_unlessaddcounter.go
+		}
+		if in.B.N == kop.PayBSubWaterbend {
+			return payKindWaterbend
+		}
 	}
-	return beholdPayKind(kind, bn) // a resolution Behold<1/Type> rides PayDiscard (cost_unlessbehold.go)
+	return beholdPayKind(kind, in.B.N) // a resolution Behold<1/Type> rides PayDiscard (cost_unlessbehold.go)
 }
 
 // unlessWaterbendOwed is how many permanents p must tap to waterbend n.

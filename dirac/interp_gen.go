@@ -143,7 +143,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	}
 	// a multi-object target slot: run the op once per object
 	if sl, ok := tgtSlot(in.Obj); ok && !s.g.inLoop && s.xtOf(e).n > 0 &&
-		in.Op != kop.OpDealDamageDivided && in.Op != kop.OpRepeatEachPlayer {
+		in.Op != kop.OpDealDamageDivided && in.Op != kop.OpRepeatEachPlayer && in.Op != kop.OpRepeatEach {
 		// OpRepeatEachPlayer is its own per-player loop (eachPlayers: gorge
 		// effRepeatEach orders the targets' players AliveFrom(controller),
 		// not the slot's pick order), never execEachTarget
@@ -225,6 +225,8 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		s.res.ask, s.res.askP = raGenBranch, p
 		return false, true
+	case kop.OpRepeatEach:
+		s.repeatEachCards(k, in) // act_repeatcards.go
 	case kop.OpRepeatEachPlayer:
 		q := s.eachPlayers(k, in.Obj)
 		if in.C&1 == 0 && in.Obj == kop.RefEachPlayer {
@@ -1615,7 +1617,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	}
 	nz, zbase := 1, fl.Zone
 	if mv&kop.MvGraveExile != 0 {
-		nz, zbase = 2, kop.ZoneGraveyard // graveexile: Graveyard then Exile
+		nz, zbase = 2, czallFirstZone(in) // graveexile: Graveyard then Exile; Library then Sideboard
 		if in.B.N == kop.CzBattleGrave {
 			// Battlefield,Graveyard (Strategic Betrayal): the battlefield
 			// half first, one simultaneous departure, then the graveyard
@@ -1661,12 +1663,17 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					list[n] = pl.lib[i]
 					n++
 				}
+			case kop.ZoneSideboard:
+				n = s.sideboardList(p, list[:]) // zone_sideboardsearch.go
 			}
 			nl := 0 // library-bound cards, compacted into list[:nl]
 			for i := 0; i < n; i++ {
 				o := list[i]
 				if !s.matchCardGen(k, in.F, s.objs[o].card, p, e.ctrl, o) || s.tokenLeftBattlefield(o) || s.instantStays(k, o, z) {
 					continue
+				}
+				if in.B.N&kop.CzShuffleEach != 0 && mv&kop.MvGraveExile != 0 {
+					carry.noteFirst(s, o) // zone_changezoneall.go
 				}
 				if z == kop.ZoneBattlefield && s.occ.full() {
 					// a mass return onto a full battlefield: the kernel's
@@ -1803,6 +1810,9 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 		}
 	}
 	pend.place(s, &carry)
+	if mv&kop.MvGraveExile != 0 && in.B.N&kop.CzShuffleEach != 0 {
+		carry.shuffleEach(s) // after the placement: each library shuffles once all cards are in
+	}
 	if resume {
 		s.holdBatch(&eb)
 		s.fireHeld(k, s.g.retTS)
@@ -2233,7 +2243,7 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool 
 	var dn [maxXTgt + 1]int16 // each recipient's dealt amount, for the per-referent pass
 	for i, code := range codes {
 		n := amts[i]
-		if n > 0 && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
+		if n > 0 && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
 			n = s.replDamage(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), s.res.e.card, code, false, n)
 		}
 		if n <= 0 {

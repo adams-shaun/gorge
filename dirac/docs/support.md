@@ -6,33 +6,33 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 
 `cardset.EnforceEvidence` is true: a game plays supported cards only, and a deck holding an unverified or refused card is turned away.
 
-| list | cards | lowered | refused | unverified | supported |
-|---|---:|---:|---:|---:|---:|
-| BIG | 30 | 25 | 1 | 3 | 21 |
-| BLB | 278 | 260 | 3 | 5 | 252 |
-| DFT | 276 | 252 | 0 | 6 | 246 |
-| DSK | 276 | 245 | 4 | 24 | 217 |
-| ECL | 273 | 241 | 2 | 6 | 233 |
-| EOE | 266 | 244 | 0 | 5 | 239 |
-| FDN | 517 | 517 | 0 | 0 | 517 |
-| FIN | 312 | 271 | 1 | 4 | 266 |
-| FRA | 269 | 251 | 0 | 12 | 239 |
-| HOB | 172 | 157 | 0 | 4 | 153 |
-| LCI | 290 | 257 | 1 | 27 | 229 |
-| MKM | 279 | 247 | 1 | 36 | 210 |
-| MSH | 276 | 241 | 1 | 8 | 232 |
-| OTJ | 276 | 244 | 1 | 2 | 241 |
-| SOS | 270 | 255 | 0 | 6 | 249 |
-| SPM | 192 | 165 | 1 | 6 | 158 |
-| TDM | 276 | 255 | 3 | 7 | 245 |
-| TLA | 285 | 260 | 1 | 8 | 251 |
-| TMT | 194 | 176 | 1 | 5 | 170 |
-| TRC | 337 | 294 | 0 | 28 | 266 |
-| TRK | 311 | 311 | 0 | 0 | 311 |
-| WOE | 281 | 258 | 0 | 12 | 246 |
-| ALL | 34442 | 22036 | 25 | 16922 | 5089 |
+| list | cards | lowered | refused | unverified | supported | 4-seat |
+|---|---:|---:|---:|---:|---:|---:|
+| BIG | 30 | 25 | 1 | 3 | 21 | 20 |
+| BLB | 278 | 261 | 3 | 6 | 252 | 230 |
+| DFT | 276 | 252 | 0 | 6 | 246 | 243 |
+| DSK | 276 | 246 | 4 | 25 | 217 | 215 |
+| ECL | 273 | 242 | 2 | 7 | 233 | 232 |
+| EOE | 266 | 245 | 0 | 6 | 239 | 235 |
+| FDN | 517 | 517 | 0 | 0 | 517 | 514 |
+| FIN | 312 | 273 | 1 | 6 | 266 | 265 |
+| FRA | 269 | 253 | 0 | 14 | 239 | 235 |
+| HOB | 172 | 157 | 0 | 4 | 153 | 151 |
+| LCI | 290 | 257 | 1 | 27 | 229 | 223 |
+| MKM | 279 | 250 | 1 | 39 | 210 | 205 |
+| MSH | 276 | 244 | 1 | 11 | 232 | 231 |
+| OTJ | 276 | 245 | 1 | 3 | 241 | 236 |
+| SOS | 270 | 255 | 0 | 6 | 249 | 247 |
+| SPM | 192 | 167 | 1 | 8 | 158 | 157 |
+| TDM | 276 | 256 | 3 | 8 | 245 | 234 |
+| TLA | 285 | 260 | 1 | 8 | 251 | 248 |
+| TMT | 194 | 180 | 1 | 9 | 170 | 169 |
+| TRC | 337 | 295 | 0 | 29 | 266 | 253 |
+| TRK | 311 | 311 | 0 | 0 | 311 | 306 |
+| WOE | 281 | 261 | 0 | 15 | 246 | 245 |
+| ALL | 34442 | 22088 | 26 | 16973 | 5089 | 4991 |
 
-`ALL` is the whole corpus; the rest are the Standard sets.
+`ALL` is the whole corpus; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 
 ## What supported covers
 
@@ -70,7 +70,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-25 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+26 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
@@ -83,7 +83,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-Cards.Damage | 1 |
 | projection-Cards.Flags | 3 |
 | projection-Cards.Power | 1 |
-| projection-Cards.Zone | 1 |
+| projection-Cards.Zone | 2 |
 | projection-NStack | 2 |
 | projection-Pool | 1 |
 | unmodelled | 2 |

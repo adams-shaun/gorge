@@ -194,6 +194,7 @@ func (lc *lowerCtx) tgtCtrlTriggeredTarget(t *lTarget) error {
 			return err
 		}
 	}
+	lc.twoSeat("TargetsWithDefinedController$ TriggeredTarget read as OppCtrl")
 	t.F = &nf
 	return nil
 }

@@ -41,10 +41,12 @@ func TestFilterSearchActivatesTheOtherGaps(t *testing.T) {
 }
 
 // A filter's fee may be paid with the restricted mana its restriction admits, so
-// that mana counts toward whether the filter can be funded at all.
+// that mana counts toward whether the filter can be funded at all: Surveillance
+// Room's {1},{T} any-colour beside a restricted any-colour land.
 func TestFilterFeeReadsRestrictedMana(t *testing.T) {
 	t.Parallel()
-	lockstepWithCard(t, "std-msh", Config{}, "", 272)
+	pinnedGames(t, "std-msh", Config{}, onBattlefield("Surveillance Room"),
+		anyOf(onBattlefield("Avengers Tower"), onBattlefield("Castle Doom"), onBattlefield("Villainous Hideout")))
 }
 
 // Under an any-type rider a pip is spent from the first of W U B R G C the pool

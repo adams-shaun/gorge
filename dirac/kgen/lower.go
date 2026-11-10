@@ -100,6 +100,8 @@ type lowerCtx struct {
 
 	// permOrGraveCard: lowering a ValidTgts$ ChangeZone over Origin$ Battlefield,Graveyard (lower_originmulti.go)
 	permOrGraveCard bool
+	// graveExileCard: lowering a ValidTgts$ ChangeZone over Origin$ Graveyard,Exile (lower_graveexiletgt.go)
+	graveExileCard bool
 
 	// deferTrig: the TriggersWhenSpent$ rider the face's deferred mana ability queued (lower_deferredmana.go)
 	deferTrig *cards.Trigger
@@ -127,6 +129,7 @@ type lowerCtx struct {
 	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
 	exwStatic      bool      // lowering a Mode$ Continuous static: ExiledWithSource reads the static's own source
 	spellBaseOK    bool      // the filter being read is a ReduceCost ValidTarget$: a Spell head may lower (lower_trigger.go)
+	trigBodyCost   bool      // the cost parser is reading a printed trigger's own body Cost$ (PayLife<X> by a value, lowerCtx.effect)
 	trigOwnCost    bool      // payInstr: the cost is a printed trigger's own Cost$ (first instruction of its body)
 	trigXMax       *lValue   // payInstr: the XMax$ cap of a trigger's own announced {X} cost (Shanna); nil = none read
 	trigRemX       bool      // the ImmediateTrigger's RememberSVarAmount$ X is the announced X (lower_zone.go immediateTrigger)
@@ -207,6 +210,9 @@ type lowerCtx struct {
 	// repeatPl > 0 while a RepeatEach-over-players body is lowered: its
 	// Defined$ Player.IsRemembered is the repeated player (lower_repeatplayers.go)
 	repeatPl int
+	// repeatCard > 0 while a RepeatEach-over-cards body is lowered: its
+	// Token AttachedTo$ Remembered is the repeated card (lower_repeatcards.go)
+	repeatCard int
 	// repeatOpp: that body repeats over the controller's opponents
 	repeatOpp bool
 	// rollName is the ResultSVar$ of a RollDice lowered in ability rollAb:
@@ -589,6 +595,7 @@ func (lc *lowerCtx) guard(node string, fn func() error) {
 	lc.chainT = nil
 	lc.remTgt = 0
 	lc.permOrGraveCard = false
+	lc.graveExileCard = false
 }
 
 // lowerRecord fills the static card record.
@@ -1897,7 +1904,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				continue
 			}
 			// gorge cost.parse folds a cost spec's ";" alternation to ","
-			if c.SacX {
+			if c.SacX || c.SacExile {
 				return c, refuse("sacrifice cost %q beside a second sacrifice part", t)
 			}
 			f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
@@ -2050,8 +2057,35 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				continue
 			}
 			if head == "AddCounter" {
-				if len(parts) != 2 || c.AddCtr != 0 {
+				// AddCounter<N/KIND> is a source-anchored cost. An
+				// UnlessCost$ may also spell the recipient: CARDNAME/NICKNAME
+				// is the source again, Card.targetedBy the parent's single
+				// target. Any other third field is a different payment and
+				// stays refused; a fourth field is reminder text only.
+				if c.AddCtr != 0 || len(parts) < 2 || len(parts) > 4 {
 					return c, refuse("counter cost %q", t)
+				}
+				if len(parts) == 2 {
+					c.AddCtr, c.AddCtrKnd = n, kind
+					continue
+				}
+				if !lc.unlessParse {
+					return c, refuse("counter cost %q outside an unless cost", t)
+				}
+				switch {
+				case strings.EqualFold(parts[2], "CARDNAME"), strings.EqualFold(parts[2], "NICKNAME"):
+					c.AddCtrRef = lRef{Kind: rSelf}
+				case strings.EqualFold(parts[2], "Card.targetedBy"):
+					if len(lc.parentChain()) != 1 {
+						return c, refuse("counter cost %q: targetedBy without one parent target", t)
+					}
+					slot := lc.parentLastTarget()
+					if slot < 0 || slot > 2 {
+						return c, refuse("counter cost %q: targetedBy target slot %d", t, slot)
+					}
+					c.AddCtrRef = lRef{Kind: rTarget, N: slot}
+				default:
+					return c, refuse("counter cost %q: AddCounter target %q", t, parts[2])
 				}
 				c.AddCtr, c.AddCtrKnd = n, kind
 				continue
@@ -2114,10 +2148,38 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		case "Exile":
 			// Exile<1/CARDNAME[/description]> (gorge exAsk takes the
 			// source from the battlefield); any other Exile<> refuses
-			if len(parts) < 2 || len(parts) > 3 || n != 1 || parts[1] != "CARDNAME" && parts[1] != "NICKNAME" || c.ExileSelf {
+			if len(parts) < 2 || len(parts) > 3 || n < 1 || c.ExileSelf {
 				return c, refuse("cost token %q", t)
 			}
-			c.ExileSelf = true
+			switch parts[1] {
+			case "CARDNAME", "NICKNAME":
+				if n != 1 {
+					return c, refuse("cost token %q", t)
+				}
+				c.ExileSelf = true
+			case "OriginalHost":
+				// Exile<1/OriginalHost> (The Dominion Bracelet): the granting
+				// Equipment's exile, the sacrifice-host part with the exile
+				// destination (gorge bindGrantedCostReferents binds it)
+				if n != 1 || c.SacHost || !lc.actCost {
+					return c, refuse("cost token %q", t)
+				}
+				c.SacHost, c.HostExile = true, true
+			default:
+				// Exile<N/Spec> from the battlefield: the Sac<N/Spec> pick
+				// with the exile destination (kop.Cost.ExileBf)
+				if !lc.actCost && !lc.lifeXSpell {
+					return c, refuse("exile cost %q outside an activated ability's or a spell's own cost", t)
+				}
+				if c.Sac != nil || c.SacX {
+					return c, refuse("exile cost %q beside a sacrifice part", t)
+				}
+				f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
+				if err != nil {
+					return c, err
+				}
+				c.Sac, c.SacN, c.SacExile = f, n, true
+			}
 		case "PayEnergy":
 			// gorge cost.Energy: a constant N; PayEnergy<X> refuses
 			if len(parts) != 1 || n < 1 || c.Energy != 0 {
@@ -2131,6 +2193,21 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				// Count$xPaid body is read (pay.FixLifeXCost folds any other
 				// into a fixed amount), on a spell or an activated ability
 				if x, ok := lc.face.SVars["X"]; ok && strings.TrimSpace(x) != "Count$xPaid" {
+					// A printed trigger's own "pay life equal to its power": gorge
+					// folds the body into a fixed amount as the cost window opens
+					// (evalTriggerCostFixedX), so the kernel reads the same value as
+					// the payment is offered. Only the power of the card an enters
+					// trigger fires for lowers (the shape played against gorge); every
+					// other body or trigger refuses by name.
+					if lc.trigBodyCost && lc.ab.Trigger != nil && lc.ab.Trigger.Event == "ETB" && strings.TrimSpace(x) == "TriggeredCard$CardPower" &&
+						c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LoyaltyX {
+						v, verr := lc.svarValue(x, 0)
+						if verr != nil {
+							return c, verr
+						}
+						c.LifeBy = &v
+						continue
+					}
 					return c, refuse("life cost PayLife<X> with SVar X %q", x)
 				}
 				if !lc.lifeXSpell && !lc.actCost {
@@ -2264,6 +2341,15 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 	f, err := parseFilter(expr, lc.known, lc.p.isTypeWord)
 	if err != nil {
 		return nil, refuse("filter %q: %v", expr, err)
+	}
+	if strings.Contains(expr, "attackingYou") {
+		lc.twoSeat("attackingYou read as an attacker an opponent controls")
+	}
+	for _, c := range f.Clauses {
+		if c.Ctrl == whoDefending || c.Owner == whoDefending {
+			lc.twoSeat("the defending player read as the non-active player (kop.F2DefendingCtrl)")
+			break
+		}
 	}
 	for i := range f.Clauses {
 		c := &f.Clauses[i]
@@ -2623,6 +2709,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		}
 		if cost.ExileSelf && ab.Zone != 0 && ab.Zone != zBattlefield {
 			return refuse("exile-self cost outside a battlefield ability")
+		}
+		if (cost.SacExile || cost.HostExile) && ab.Zone != 0 && ab.Zone != zBattlefield {
+			return refuse("exile cost from the battlefield outside a battlefield ability")
 		}
 		if cost.Untap && (ab.Kind != akActivated || ab.Zone != 0 && ab.Zone != zBattlefield || cost.Tap) {
 			// a mana ability's {Q} would ride autopay, which never untaps

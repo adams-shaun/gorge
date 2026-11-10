@@ -75,6 +75,9 @@ func (lc *lowerCtx) investigate(ps *params) error {
 	var body []lInstr
 	switch {
 	case zeroOne(n):
+		if n.Kind == vOppsLostLife {
+			lc.twoSeat("the opponents who lost life counted as 0 or 1")
+		}
 		// one CreateToken of 0 or 1 is the TokenCreate stream of 0 or 1
 		// one-token ops (a 0/1 Num$, e.g. a Compare or the opponents who
 		// lost life)

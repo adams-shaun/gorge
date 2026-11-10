@@ -180,6 +180,31 @@ func (s *State) countPerm(k *prep, f kop.FilterID, ctx evalCtx) int {
 	return n
 }
 
+// pwTypeCount is ExCount with N 1: the number of distinct planeswalker types
+// (CR 205.3j) among the battlefield permanents matching F, read off each
+// match's printed subtypes when its printed type line has Planeswalker (gorge
+// zoneFold's PlaneswalkerType reads the face's words after the Planeswalker
+// card type; a face-down permanent's face has none). Tam, the Possibility.
+func (s *State) pwTypeCount(k *prep, f kop.FilterID, ctx evalCtx) int {
+	var seen kop.SubMask
+	for m := s.occ; m.any(); m = m.rest() {
+		sl := m.first()
+		if !s.matchPermGen(k, f, sl, ctx.ctrl, ctx.srcSl, layerFull) || s.faceDown(k, sl) {
+			continue
+		}
+		cd := &k.t.Cards[s.cardAt(sl)]
+		if cd.Types&kop.TPlaneswalker == 0 {
+			continue
+		}
+		subs := cd.Subtypes
+		if cd.PrintedSubtypes.Any() {
+			subs = cd.PrintedSubtypes // a changeling's expanded roster is not printed
+		}
+		seen = seen.Or(subs)
+	}
+	return bits.OnesCount64(seen[0]) + bits.OnesCount64(seen[1])
+}
+
 // expr evaluates Table.Exprs[i].
 func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 	x := &k.t.Exprs[i]
@@ -195,7 +220,11 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 			v = int(s.spellX(ctx.src)) // a self-enters condition, before its trigger binds X
 		}
 	case kop.ExCount:
-		v = s.countPerm(k, x.F, ctx)
+		if x.N == 1 {
+			v = s.pwTypeCount(k, x.F, ctx)
+		} else {
+			v = s.countPerm(k, x.F, ctx)
+		}
 	case kop.ExCountGraveyard:
 		for pp := uint8(0); pp < 2; pp++ {
 			pl := &s.pl[pp]

@@ -473,7 +473,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		if p.flags&pfTapped != 0 {
 			return false
 		}
-		if p.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 {
+		if s.activationSick(k, sl) {
 			return false
 		}
 	}
@@ -500,7 +500,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 			return false
 		}
 	}
-	if f&kop.CostSac != 0 && s.countSac(k, p.ctrl, a.Cost.Filter, sl) < int(a.Cost.N) {
+	if f&kop.CostSac != 0 && s.countCostSac(k, p.ctrl, &a.Cost, sl) < int(a.Cost.N) {
 		return false
 	}
 	if f&(costObjFlags|kop.CostPayEnergy) != 0 && !s.costObjPayable(k, p.ctrl, &a.Cost, p.obj, NoObj) {
@@ -1206,6 +1206,9 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 	if t.Kind == kop.TgtPermOrGraveCard {
 		return s.targetOKPermOrGraveCard(k, t, p, src, self, o) // tgt_permorgravecard.go
 	}
+	if t.Kind == kop.TgtGraveExileCard {
+		return s.targetOKGraveExileCard(k, t, p, src, self, o) // tgt_graveexilecard.go
+	}
 	ob := &s.objs[o]
 	switch t.Kind {
 	case kop.TgtObject, kop.TgtAny:
@@ -1290,6 +1293,8 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 		n = s.permOrSpellCands(k, t, p, src, self, out, n) // tgt_permorspell.go
 	case kop.TgtPermOrGraveCard:
 		n = s.permOrGraveCardCands(k, t, p, src, self, out, n) // tgt_permorgravecard.go
+	case kop.TgtGraveExileCard:
+		n = s.graveExileCardCands(k, t, p, src, self, out, n) // tgt_graveexilecard.go
 	case kop.TgtCard:
 		for pp := 0; pp < 2; pp++ {
 			pl := &s.pl[pp]
@@ -1536,7 +1541,7 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 	if k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 		return false
 	}
-	if ab.Cost.Flags&kop.CostTap != 0 && (pp.flags&pfTapped != 0 || pp.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0) {
+	if ab.Cost.Flags&kop.CostTap != 0 && (pp.flags&pfTapped != 0 || s.activationSick(k, sl)) {
 		return false
 	}
 	if ab.Trig.Cond != 0 && !s.condEval(k, ab.Trig.Cond, evalCtx{src: pp.obj, srcSl: sl, ctrl: pp.ctrl}) {

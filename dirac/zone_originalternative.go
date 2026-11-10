@@ -25,13 +25,14 @@ const (
 const ChGenKczZone ChoiceKind = 251
 
 // The election lives in genState.lookSel (dead on a search op; startSearch
-// clears it for an alt-origin search, scrResEnter at each resolution):
-// bit 0 the library was elected, bit 1 the alternative zone, bit 2 the
-// election is over.
+// clears it for an alt-origin search, scrResEnter at each resolution): bit 0
+// the library was elected, bit 1 the first alternative zone, bit 2 the
+// second (the Graveyard,Hand pair's hand), bit 3 the election is over.
 const (
 	altLib     uint32 = 1
 	altOther   uint32 = 2
-	altElected uint32 = 4
+	altOther2  uint32 = 4
+	altElected uint32 = 8
 )
 
 // altOp reports an OpSearchEx with SrAltOrigin (bit 4 of an OpChooseMove's B
@@ -48,16 +49,60 @@ func (s *State) altOriginOp(k *prep) bool { return altOp(&s.prog(k)[s.res.pc]) }
 //go:noinline
 func (s *State) altBegin() { s.g.lookSel = 0 }
 
-// altZoneOf is the alternative zone the instruction names.
+// altZoneOf is the alternative zone the instruction names. The pair's
+// SrAltGraveHand code reads as kop.ZoneLibrary, which no single alternative
+// can name.
 func altZoneOf(in *kop.Instr) kop.Zone {
 	return kop.Zone(in.B.N>>kop.SrAltZoneShift) & 7
 }
 
+// altPair reports the two-zone alternative (Graveyard then Hand).
+func altPair(in *kop.Instr) bool { return altZoneOf(in) == kop.ZoneLibrary }
+
+// altZoneCount is how many options the zone election offers: the library and
+// one alternative, or the library, graveyard and hand for the pair.
+func altZoneCount(in *kop.Instr) uint8 {
+	if altPair(in) {
+		return 3
+	}
+	return 2
+}
+
+// altZoneLists is the search's possible pool per election bit, in gorge's
+// origin order: library, first alternative, second alternative (nil for a
+// single alternative). The caller masks by the elected bits.
+func (s *State) altZoneLists(in *kop.Instr) [3][]Obj {
+	pl := &s.pl[s.g.pickP]
+	lists := [3][]Obj{pl.lib[pl.libLo:pl.libHi]}
+	switch altZoneOf(in) {
+	case kop.ZoneLibrary: // the pair
+		lists[1] = pl.grave[:pl.graveN]
+		lists[2] = pl.hand[:pl.handN]
+	case kop.ZoneHand:
+		lists[1] = pl.hand[:pl.handN]
+	default:
+		lists[1] = pl.grave[:pl.graveN]
+	}
+	return lists
+}
+
 // altSearchZone is searchZone of an alt-origin search once elected: the
-// library when it was among the chosen zones, else the alternative zone.
+// library when it was among the chosen zones; otherwise the one elected
+// alternative, or ZoneNone when the pair's two alternatives were both
+// elected (the pool spans zones, so no single-zone consumer may run).
 func (s *State) altSearchZone(in *kop.Instr) kop.Zone {
 	if s.g.lookSel&altLib != 0 {
 		return kop.ZoneLibrary
+	}
+	if altPair(in) {
+		switch {
+		case s.g.lookSel&(altOther|altOther2) == altOther:
+			return kop.ZoneGraveyard
+		case s.g.lookSel&(altOther|altOther2) == altOther2:
+			return kop.ZoneHand
+		default:
+			return kop.ZoneNone
+		}
 	}
 	return altZoneOf(in)
 }
@@ -77,7 +122,7 @@ func (s *State) altPending(k *prep) bool {
 		return false
 	}
 	s.g.lookSel = 0
-	s.res.ask, s.res.askP = raGenKczZones, s.chooserOf(s.g.pickP)
+	s.res.ask, s.res.askP = raGenKczZones, s.chooserOf(k, s.g.pickP)
 	return true
 }
 
@@ -88,18 +133,16 @@ func (s *State) altPending(k *prep) bool {
 //go:noinline
 func (s *State) altOriginCands(k *prep, in *kop.Instr, d *Decision) {
 	p := s.g.pickP
-	pl := &s.pl[p]
-	for zi := 0; zi < 2; zi++ {
-		var list []Obj
-		switch {
-		case zi == 0 && s.g.lookSel&altLib != 0:
-			list = pl.lib[pl.libLo:pl.libHi]
-		case zi == 1 && s.g.lookSel&altOther != 0:
-			if altZoneOf(in) == kop.ZoneHand {
-				list = pl.hand[:pl.handN]
-			} else {
-				list = pl.grave[:pl.graveN]
-			}
+	lists := s.altZoneLists(in)
+	dn := s.g.pickF&kop.SrDifferentNames != 0
+	for zi := uint8(0); zi < altZoneCount(in); zi++ {
+		if s.g.lookSel&(1<<zi) == 0 {
+			continue
+		}
+		list := lists[zi]
+		if dn {
+			s.differentNameCands(k, in, d, list) // the one name rule, shared with a plain library search
+			continue
 		}
 		for _, o := range list {
 			if s.picksHas(o) {
@@ -120,12 +163,15 @@ func (s *State) askOptionsCzAttach(k *prep, d *Decision) bool {
 	switch s.res.ask {
 	case raGenKczZones:
 		d.Sub = ChGenKczZone
-		for zi := uint8(0); zi < 2; zi++ {
+		in := &s.prog(k)[s.res.pc]
+		n := altZoneCount(in)
+		all := (uint32(1) << n) - 1
+		for zi := uint8(0); zi < n; zi++ {
 			if s.g.lookSel&(1<<zi) == 0 {
 				d.add(MakeAction(AkChoose, 0, 0, zi))
 			}
 		}
-		if s.g.lookSel&(altLib|altOther) != 0 {
+		if s.g.lookSel&all != 0 {
 			d.add(MakeAction(AkDone, 0, 0, 0))
 		}
 	default:
@@ -141,10 +187,17 @@ func (s *State) askOptionsCzAttach(k *prep, d *Decision) bool {
 func (s *State) applyAskCzAttach(k *prep, a Action) bool {
 	switch s.res.ask {
 	case raGenKczZones:
+		in := &s.prog(k)[s.res.pc]
+		n := altZoneCount(in)
+		all := (uint32(1) << n) - 1
 		if a.Kind() == AkChoose {
-			s.g.lookSel |= 1 << (a.Mode() & 1)
-			if s.g.lookSel&(altLib|altOther) != altLib|altOther {
-				return true // the other zone may still be added, or Done
+			if m := a.Mode(); m >= n {
+				return true
+			} else {
+				s.g.lookSel |= 1 << m
+			}
+			if s.g.lookSel&all != all {
+				return true // another zone may still be added, or Done
 			}
 		}
 		s.res.ask = raNone

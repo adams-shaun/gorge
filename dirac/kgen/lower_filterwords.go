@@ -86,7 +86,8 @@ func filterWordPred2(p string) (n int, ok bool) {
 // keywordPredicates registers Warp); only that spelling lowers: withoutWarp
 // and hasKeywordWarp stay unknown properties. withDisguise
 // (kop.W7WithDisguise) is the same read for Disguise; withoutDisguise and
-// hasKeywordDisguise stay unknown.
+// hasKeywordDisguise stay unknown. withFlashback (kop.W7WithFlashback) is the
+// same read for Flashback, with the same two unknown spellings.
 func filterWordPred3(p string) (n int, ok bool) {
 	switch p {
 	case "greatestPowerControlledByTargeted":
@@ -97,6 +98,8 @@ func filterWordPred3(p string) (n int, ok bool) {
 		return int(kop.W7WithWarp), true
 	case "withDisguise":
 		return int(kop.W7WithDisguise), true
+	case "withFlashback":
+		return int(kop.W7WithFlashback), true
 	case "ManaCostPartialBlue":
 		return int(kop.W7CostBlue), true
 	case "NoAbilities":
@@ -218,6 +221,7 @@ func (lc *lowerCtx) spawnerTargetCtrl(expr string) (string, error) {
 	if !lc.spawnDmg {
 		return expr, refuse("filter %q: Spawner>TriggeredTarget outside an ImmediateTrigger spawned by Card.Self's combat damage to a player", expr)
 	}
+	lc.twoSeat("ControlledBy Spawner>TriggeredTarget read as OppCtrl")
 	return strings.ReplaceAll(expr, word, "OppCtrl"), nil
 }
 
@@ -272,11 +276,10 @@ const cmpPowerGTBase uint8 = 202
 // the negations cannot be F2 bits of their own.
 const cmpNotF2 uint8 = 201
 
-// notF2Bit names the F2 bit of a '!'-negatable flag word: targetedBy and
-// ThisTurnEntered. Any other negated word is not read here and keeps
-// refusing. !wasDealtDamageThisTurn is not read: its only carrier (Faller's
-// Faithful) reads a destroyed target, and gorge keeps the damage record on
-// the graveyard object, which the kernel cannot (a per-card record is State).
+// notF2Bit names the F2 bit of a '!'-negatable flag word: targetedBy,
+// ThisTurnEntered and wasDealtDamageThisTurn (the kernel's dmgTurn record
+// outlives a zone change, as gorge's does on the graveyard object). Any
+// other negated word is not read here and keeps refusing.
 func notF2Bit(w string) (int, bool) {
 	var f kop.FilterFlags2
 	switch w {
@@ -284,6 +287,8 @@ func notF2Bit(w string) (int, bool) {
 		f = kop.F2TargetedBy
 	case "ThisTurnEntered":
 		f = kop.F2EnteredThisTurn
+	case "wasDealtDamageThisTurn":
+		f = kop.F2WasDamaged
 	default:
 		return 0, false
 	}

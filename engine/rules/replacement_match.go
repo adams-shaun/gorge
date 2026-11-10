@@ -740,7 +740,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		if spec == "" {
 			spec = strings.TrimSpace(r.ParamStr(cards.PKValidObject))
 		}
-		if ownEntryCounterExcluded(e.entrySettling, source, spec) {
+		if ownEntryCounterExcluded(e.entrySettling, source, ev.Obj, spec) {
 			return false
 		}
 		if spec != "" {

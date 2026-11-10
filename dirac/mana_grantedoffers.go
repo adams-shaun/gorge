@@ -564,7 +564,7 @@ func (g *grantSrch) candidates(s *State) {
 	}
 	tm := s.grantTapXGaps(g.k, g.p)
 	dm := s.scriptDeferred(g.k, g.p)
-	nm := s.scriptManaNone(g.k, g.p)
+	nm := s.scriptManaNone(g.k, g.p).or(s.scriptDynZero(g.k, g.p)) // (mana_grantnone.go)
 	g.n = 0
 	holders := 0
 	for i := 0; i < n; i++ {
@@ -1787,7 +1787,7 @@ func (s *State) filterSource(k *prep, p uint8) bool {
 		if k.cards[c].manaAb < 0 {
 			continue
 		}
-		if pm := &s.perms[sl]; pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 {
+		if pm := &s.perms[sl]; pm.flags&pfTapped != 0 || s.activationSick(k, sl) {
 			continue // a filter that cannot be activated now funds nothing (gapMask)
 		}
 		cd := &k.t.Cards[c]

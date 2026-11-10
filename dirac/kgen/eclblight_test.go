@@ -231,7 +231,7 @@ func TestBlightEffectLowering(t *testing.T) {
 
 // TestCounterCostForms: the counter-removal and counter-placement cost
 // spellings lower to the shared CostSubAmong/CostAddCtr forms, and the
-// three-field AddCounter stays refused.
+// three-field unless AddCounter lowers through its own test.
 func TestCounterCostForms(t *testing.T) {
 	all, bs := keclBuild(t, []string{"Loch Mare", "Sunstar Chaplain", "Jessica Jones, Private Eye", "Slumbering Walker", "Sanctuary Wall"})
 
@@ -288,8 +288,7 @@ func TestCounterCostForms(t *testing.T) {
 	}
 
 	i = keclIndex(t, all, "Sanctuary Wall")
-	got := keclReason(lowerRefusals(all[i]))
-	if !strings.Contains(got, "counter cost") {
-		t.Errorf("Sanctuary Wall: refusals %q, want the counter-cost reason", got)
+	if r := lowerRefusals(all[i]); len(r) != 0 {
+		t.Errorf("Sanctuary Wall refused: %v, want its unless AddCounter lowered", r)
 	}
 }

@@ -17,12 +17,15 @@ import (
 // the filter at the cast (dirac/trig_delayedspell.go).
 func (lc *lowerCtx) delayedSpellCast(ps *params) error {
 	if lc.granted > 0 {
-		// gorge's delayedRegistrationLive resolves Execute$ on the source,
-		// which is the grantee here (Way of the Cryomancer)
+		// gorge's registration names the grantee as its source, and the
+		// grantee's face has none of the grantor's SVars: Execute$ cannot be
+		// resolved at fire time (Way of the Cryomancer). The table-level
+		// refusal is a defect to fix in gorge's granted registration, not a
+		// lowering this build can carry.
 		return refuse("delayed SpellCast in a granted ability")
 	}
-	if _, ok := ps.get("Static"); ok {
-		// gorge resolves the body inline with no stack object
+	_, static := ps.get("Static")
+	if static && !ps.is("Static", "True") {
 		return refuse("delayed SpellCast Static$")
 	}
 	if !ps.is("ThisTurn", "True") {
@@ -40,14 +43,34 @@ func (lc *lowerCtx) delayedSpellCast(ps *params) error {
 		return err
 	}
 	for _, c := range f.Clauses {
-		if c.CmpX != "" {
-			// gorge re-reads the bound at the cast (Loki's cmcLEX)
+		if c.CmpX == "" {
+			continue
+		}
+		// The kernel reads the bound at the cast from the registration's
+		// source (fireDelayedSpell's evalCtx), so only a plain source power
+		// is carried; a target's or a chosen value's CmpX stays refused
+		// (Loki Laufeyson's cmcLEX).
+		if c.CmpV == nil || c.CmpV.Kind != vPowerOf || c.CmpV.Ref.Kind != rSelf ||
+			c.CmpV.Mul != 0 || c.CmpV.Div != 0 || c.CmpV.Add != 0 || c.CmpV.Neg {
 			return refuse("delayed SpellCast filter reads %q", c.CmpX)
 		}
 	}
 	exec := cards.ResolveSVar(lc.face.SVars, ps.str("Execute"))
 	if exec == nil {
 		return refuse("delayed trigger Execute %q", ps.str("Execute"))
+	}
+	if static {
+		// gorge resolves a Static$ body inline at the cast, with no stack
+		// object; only the "that spell can't be countered" Effect is
+		// carried, as the kernel's uncounter record (dirac/repl_uncounterable.go)
+		if !lc.uncounterEffect(exec) {
+			return refuse("delayed SpellCast Static$")
+		}
+		ps.consume("Mode", "Static")
+		lat := lc.newLatent("DelayedSpellUncounter")
+		lat.Trigger = &lTrigger{Event: "SpellCast", F: f, Whose: whoYou}
+		lc.emit(lInstr{Op: "DelayedTrigger", C: lat.Index, CS: "NextSpellCastUncounter"})
+		return nil
 	}
 	if v := lc.chainNamesSVar(exec); v != "" {
 		// the fired body resolves away from the registering ability: an
@@ -63,6 +86,37 @@ func (lc *lowerCtx) delayedSpellCast(ps *params) error {
 	}
 	lc.emit(lInstr{Op: "DelayedTrigger", C: lat.Index, CS: "NextSpellCast"})
 	return nil
+}
+
+// uncounterEffect reports whether exec is exactly the Effect "the triggering
+// spell can't be countered while it is on the stack": one Counter
+// replacement stopping the event (Layer$ CantHappen, no ReplaceWith$) over
+// the remembered card when a spell is countered, remembering the triggering
+// card and forgetting it when it leaves the stack (gorge
+// counterReplacementMatchesAll's effect-created arm).
+func (lc *lowerCtx) uncounterEffect(exec *cards.SA) bool {
+	if exec.API != "Effect" || exec.Sub != nil {
+		return false
+	}
+	ep := newParams(exec.Params)
+	if !ep.is("RememberObjects", "TriggeredCard") || !ep.is("ForgetOnMoved", "Stack") {
+		return false
+	}
+	name := ep.str("ReplacementEffects")
+	ep.consume("RememberObjects", "ForgetOnMoved", "ReplacementEffects")
+	if len(ep.unread()) != 0 || name == "" || strings.Contains(name, ",") {
+		return false
+	}
+	r, ok := cards.ParseReplacementLine(lc.face.SVars[name])
+	if !ok || r.Event != "Counter" {
+		return false
+	}
+	rp := newParams(r.Params)
+	if !rp.is("ValidCard", "Card.IsRemembered") || !rp.is("ValidSA", "Spell") || !rp.is("Layer", "CantHappen") {
+		return false
+	}
+	rp.consume("Event", "ValidCard", "ValidSA", "Layer", "Description")
+	return len(rp.unread()) == 0
 }
 
 // chainNamesSVar returns the first card SVar an SA chain's lines name (a

@@ -1414,7 +1414,7 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		e.effectMoveSweep(ev)
 		e.finishSourceLifelinkLKI(ev, departing, link, controller)
 		if !bodyAbsorbed(absorbed, m) {
-			e.runReplaceWith(ctx, ev.Obj, m.repl.With, nil)
+			e.runEntryBody(ctx, &stored, m.repl.With)
 		}
 		// CR 303.4f: an Aura entering through an Updated body (a copy
 		// election) enters attached once that body has made it the Aura.

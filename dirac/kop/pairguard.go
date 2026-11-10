@@ -14,3 +14,8 @@ type PairRefusal struct {
 // package dirac: dirac's own tests import cardset. Nil in a binary without the
 // kernel, which has nothing to stall.
 var PairGuard func(t *Table) *PairRefusal
+
+// PairGuardN is PairGuard for a game of nseat players: it also refuses a
+// table that can play only two seats (dirac StallTwoSeat). PairGuardN(t, 2)
+// is PairGuard(t).
+var PairGuardN func(t *Table, nseat int) *PairRefusal

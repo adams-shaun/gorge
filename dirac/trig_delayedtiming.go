@@ -23,7 +23,7 @@ var DebugDelayYourEndStepOff bool
 
 // dpWhen is an OpDelayedProgram's timing as dprog.n bits.
 func dpWhen(in *kop.Instr) uint8 {
-	if in.A.N == kop.DelaySpellCast {
+	if in.A.N == kop.DelaySpellCast || in.A.N == kop.DelaySpellUncounter {
 		return dpSpell // trig_delayedspell.go: never due at a step
 	}
 	if in.A.N == kop.DelayDiesThisTurn {

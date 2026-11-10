@@ -1,0 +1,14 @@
+{
+  "card": "Time Spiral",
+  "class": "projection-Cards.Zone",
+  "why": "the engines' state differs at projection Cards[].Zone; 1 game in the corpus",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "time_spiral_untap_pick_stack_differs"
+  }
+}

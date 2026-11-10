@@ -187,10 +187,28 @@ func (s *State) overrideRemembered(k *prep, in *kop.Instr) {
 // ZoneHand is Graveyard,Hand (Weftwalking). B.N's CzUntilLeaves bit is
 // never set on the dual shape.
 func czallSecondZone(in *kop.Instr) kop.Zone {
-	if in.B.N == int16(kop.ZoneHand) {
+	if in.B.N&kop.CzHandGrave != 0 {
+		return kop.ZoneGraveyard // Hand,Graveyard: the hand is scanned first (Echo of Eons)
+	}
+	switch in.B.N &^ kop.CzShuffleEach {
+	case int16(kop.ZoneHand):
 		return kop.ZoneHand
+	case kop.CzLibrarySideboard:
+		return kop.ZoneSideboard // Library,Sideboard (Turtles Forever)
 	}
 	return kop.ZoneExile
+}
+
+// czallFirstZone is the first source zone of a MvGraveExile sweep: the
+// graveyard, or the library for Library,Sideboard.
+func czallFirstZone(in *kop.Instr) kop.Zone {
+	if in.B.N&kop.CzHandGrave != 0 {
+		return kop.ZoneHand
+	}
+	if in.B.N == kop.CzLibrarySideboard {
+		return kop.ZoneLibrary
+	}
+	return kop.ZoneGraveyard
 }
 
 // czallPend collects the library-bound cards of a two-zone sweep per owner
@@ -227,19 +245,46 @@ func (c *czallPend) place(s *State, carry *czallCarry) {
 // moved on top) without touching the earlier cards again (a second MoveZone
 // would make them new objects, CR 400.7). k is carried in the parked ask's
 // spare bytes across the answer, so the sweep needs no State field.
-type czallCarry struct{ k [2]int }
+type czallCarry struct {
+	k [2]int
+	// first is the seat whose card moved first plus one (0: none yet), read by
+	// a CzShuffleEach sweep to shuffle the receiving libraries in gorge's order.
+	// k is at most MaxDeck (100), so bit 7 of each parked byte carries it.
+	first uint8
+}
 
 // load reads the carried prefix of an answered commander park at the
 // instruction's re-run.
 func (c *czallCarry) load(pre *preAsk) {
 	if pre.kind == akCmdZone && (pre.state == preCmdZoneMove || pre.state == preCmdZoneCmd) {
-		c.k[0], c.k[1] = int(pre.val), int(pre.val2)
+		c.k[0], c.k[1] = int(pre.val&0x7f), int(pre.val2&0x7f)
+		c.first = pre.val>>7 | pre.val2>>7<<1
 	}
 }
 
 // store writes the carried prefix for the next park.
 func (c *czallCarry) store(pre *preAsk) {
-	pre.val, pre.val2 = uint8(c.k[0]), uint8(c.k[1])
+	pre.val, pre.val2 = uint8(c.k[0])|c.first&1<<7, uint8(c.k[1])|c.first>>1<<7
+}
+
+// noteFirst records o's owner as the first mover of a sweep that shuffles
+// the receiving libraries (CzShuffleEach); the first card wins.
+func (c *czallCarry) noteFirst(s *State, o Obj) {
+	if c.first == 0 {
+		c.first = s.objs[o].owner()&1 + 1
+	}
+}
+
+// shuffleEach is the library-shuffle tail of a CzShuffleEach sweep (gorge
+// changeZoneAllShuffleLibraries, scoped): the owner of the first card moved
+// shuffles first, then the other seat; with nothing moved, seat 0 then seat 1.
+func (c *czallCarry) shuffleEach(s *State) {
+	f := uint8(0)
+	if c.first == 2 {
+		f = 1
+	}
+	s.shuffleLib(f)
+	s.shuffleLib(NextSeat(f))
 }
 
 // czallPlace puts os on top of their owners' libraries in move order. When

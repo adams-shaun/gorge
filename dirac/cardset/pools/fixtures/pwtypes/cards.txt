@@ -1,0 +1,15 @@
+# the counted-proliferate pool: proliferate a counted number of times (the
+# distinct planeswalker types among your planeswalkers; the nontoken
+# creatures that entered under you this turn), beside planeswalkers of
+# shared and distinct types and the five basics (dirac/oracle/pwtypes_test.go)
+Tam, the Possibility
+Tromell, Seymour's Butler
+Jace Beleren
+Ajani, Mentor of Heroes
+Ajani, Caller of the Pride
+Chandra, Novice Pyromancer
+Plains
+Island
+Swamp
+Mountain
+Forest

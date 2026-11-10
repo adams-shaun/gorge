@@ -323,25 +323,42 @@ func (lc *lowerCtx) bolster(ps *params) error {
 
 // proliferate lowers api:Proliferate (CR 701.34a; gorge
 // effProliferate): the resolving controller proliferates Amount$ times
-// (default 1). Only a literal Amount$ is lowered: gorge's Num read of an
-// X without an announcement or of the Number$/Minus forms loud-degrades
-// to nothing, which a lowered value would not copy. RememberPut$,
-// Defined$ and ValidTgts$ refuse.
+// (default 1). A literal Amount$ must be at least 1; any other Amount$ is
+// lowered through lc.value (an SVar count, Tam, the Possibility's distinct
+// planeswalker types), and refuses as lc.value does. A paid X (vX), a
+// negated amount and an inline Number$ expression still refuse: gorge's Num
+// read of an X without an announcement loud-degrades to nothing, and its
+// read of Expand the Sphere's Number$2/Minus.<remembered> still proliferates
+// after two lands, neither of which a lowered value would copy. A count of
+// zero proliferates nothing on both seats. RememberPut$, Defined$ and
+// ValidTgts$ refuse.
 func (lc *lowerCtx) proliferate(ps *params) error {
 	for _, k := range []string{"RememberPut", "Defined", "ValidTgts"} {
 		if _, ok := ps.m[k]; ok {
 			return refuse("Proliferate %s$", k)
 		}
 	}
-	n := 1
+	amt := cst(1)
 	if a, ok := ps.get("Amount"); ok {
-		v, err := strconv.Atoi(a)
-		if err != nil || v < 1 {
+		if v, err := strconv.Atoi(a); err == nil {
+			if v < 1 {
+				return refuse("Proliferate Amount$ %q", a)
+			}
+			amt = cst(v)
+		} else if strings.Contains(a, "$") {
 			return refuse("Proliferate Amount$ %q", a)
+		} else {
+			val, err := lc.value(a)
+			if err != nil {
+				return refuse("Proliferate Amount$ %q: %v", a, err)
+			}
+			if val.Kind == vX || val.Neg {
+				return refuse("Proliferate Amount$ %q", a)
+			}
+			amt = val
 		}
-		n = v
 	}
-	lc.emit(lInstr{Op: "Proliferate", A: cst(n)})
+	lc.emit(lInstr{Op: "Proliferate", A: amt})
 	return nil
 }
 

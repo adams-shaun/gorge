@@ -526,6 +526,12 @@ type CardDef struct {
 	// compare never matches it as a card (CR 208.3; gorge's P/T-less object,
 	// dirac/filter_ptvalue.go).
 	NoPT bool
+	// TwoSeat: the lowering reads a two-player identity (the one opponent,
+	// the one defending player, an opponents count of one) that is not the
+	// card's meaning with three or more players. The two-seat game ignores
+	// it; a game of more seats refuses a table carrying it (dirac
+	// StallTwoSeat, stallclass.go). Set by dirac/kgen's lc.twoSeat.
+	TwoSeat bool
 }
 
 // CardDef.MorphFamily values: the face-down keyword the card was printed with.

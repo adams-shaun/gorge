@@ -58,7 +58,7 @@ func (s *State) canTapForManaPC(k *prep, sl Slot, pc *pcard) bool {
 	if pc.manaAb < 0 || !(pc.manaTap || pc.manaSac) || p.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
 		return false
 	}
-	if p.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 {
+	if s.activationSick(k, sl) {
 		return false
 	}
 	return true
@@ -799,7 +799,7 @@ func (s *State) hybResolveTappable(k *prep, p uint8, cost *kop.ManaCost, x int, 
 // (Giada: its {W} floats, unspendable on the cost) are activated in their
 // turn too (windowTap, script_gen.go).
 func (s *State) payWindow(k *prep, p uint8, cost *kop.ManaCost) (paused, short bool) {
-	_, held := s.windowTapUseful(k, p, cost, cost, false, false, true, false)
+	_, held := s.windowTapWalk(k, p, cost, cost, false, false, true, false, true) // an unless / ward window takes a deferred source once the plan cannot cover the cost
 	if s.g.winMode != winNone {
 		for c := range held {
 			held[c] += s.g.winHeld[c] // what an earlier stretch of the walk kept out of the pool

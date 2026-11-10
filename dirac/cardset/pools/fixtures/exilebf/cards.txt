@@ -1,0 +1,11 @@
+# the exile-a-permanent-from-the-battlefield pool: spells and abilities whose
+# cost exiles a creature you control (Exile<1/Creature>), beside vanilla
+# creatures and basics (dirac/oracle/exilebf_test.go)
+Fear of Abduction
+Necrotic Fumes
+Altar of Bhaal
+Walking Corpse
+Savannah Lions
+Child of Night
+Plains
+Swamp

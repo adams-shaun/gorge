@@ -256,6 +256,7 @@ const supportDocPath = "dirac/docs/support.md"
 type supportCounts struct {
 	list                                           string
 	cards, lowered, refused, unverified, supported int
+	fourSeat                                       int // supported and not two-seat only (CardDef.TwoSeat)
 }
 
 func countSupport(t *testing.T, cardsDir, list string, s *supportLists) supportCounts {
@@ -281,6 +282,9 @@ func countSupport(t *testing.T, cardsDir, list string, s *supportLists) supportC
 			r.unverified++
 		case cardset.StatusSupported:
 			r.supported++
+			if !c.TwoSeat {
+				r.fourSeat++
+			}
 		}
 	}
 	return r
@@ -304,16 +308,16 @@ func supportDoc(t *testing.T, cardsDir string) []byte {
 	} else {
 		b.WriteString(", so unverified cards still play")
 	}
-	b.WriteString(".\n\n| list | cards | lowered | refused | unverified | supported |\n|---|---:|---:|---:|---:|---:|\n")
+	b.WriteString(".\n\n| list | cards | lowered | refused | unverified | supported | 4-seat |\n|---|---:|---:|---:|---:|---:|---:|\n")
 	codes, err := readCardList(filepath.Join(testRoot, standardListPath))
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, list := range append(codes, "ALL") {
 		r := countSupport(t, cardsDir, list, s)
-		fmt.Fprintf(&b, "| %s | %d | %d | %d | %d | %d |\n", r.list, r.cards, r.lowered, r.refused, r.unverified, r.supported)
+		fmt.Fprintf(&b, "| %s | %d | %d | %d | %d | %d | %d |\n", r.list, r.cards, r.lowered, r.refused, r.unverified, r.supported, r.fourSeat)
 	}
-	b.WriteString("\n`ALL` is the whole corpus; the rest are the Standard sets.\n\n## What supported covers\n\n")
+	b.WriteString("\n`ALL` is the whole corpus; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.\n\n## What supported covers\n\n")
 	b.WriteString("Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per Standard set: 1,500 pairs each, seed 1, the random policy, both surfaces, mulligans 0 and 1, every run passing `kfuzz -absolute`. A synthetic pool deals its decks from the cards it plays, so no pair is lost to a refused card; it skips only a pair the kernel refuses together, so it can play fewer games, and its cards met the floor in these:\n\n| pool | games per run |\n|---|---:|\n")
 	games, err := os.ReadFile(filepath.Join(testRoot, "dirac", "support", "evidence-games.tsv"))
 	if err != nil {

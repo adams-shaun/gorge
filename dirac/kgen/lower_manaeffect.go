@@ -43,16 +43,32 @@ func (lc *lowerCtx) manaEffect(ps *params) error {
 			return refuse("DB$ Mana %s$", k)
 		}
 	}
+	recipient := lRef{Kind: rYou}
 	if v, ok := ps.get("Defined"); ok {
 		// gorge ManaRecipients: no Defined$ means the activating player;
 		// an explicit Defined$ You names the same player. Any other
 		// selector (Opponent, ChosenPlayer, TriggeredCardController, ...)
 		// names a different seat and stays refused.
-		// TriggeredPlayer under a your-Phase trigger is the active player,
-		// the controller (gorge definedSpecTriggeredPlayer; Hulking Raptor)
-		tp := strings.TrimSpace(v) == "TriggeredPlayer" && lc.ab.Trigger != nil &&
-			lc.ab.Trigger.Event == "Phase" && lc.ab.Trigger.Whose == whoYou
-		if strings.TrimSpace(v) != "You" && !tp {
+		// TriggeredPlayer under a Phase trigger is the active player
+		// (gorge definedSpecTriggeredPlayer): the controller for a
+		// your-Phase trigger (Hulking Raptor), and the trigger's player
+		// for an each-player one (Cheering Crowd).
+		d := strings.TrimSpace(v)
+		if d == "TriggeredPlayer" && lc.ab.Trigger != nil && lc.ab.Trigger.Event == "Phase" {
+			switch {
+			case lc.ab.Trigger.Whose == whoYou:
+				// the controller
+			case lc.ab.Trigger.Whose == whoAny && strings.HasPrefix(strings.TrimSpace(ps.str("UnlessCost")), "AddCounter<") &&
+				ps.str("UnlessPayer") == "TriggeredPlayer" && ps.is("UnlessSwitched", "True"):
+				// Cheering Crowd's "that player may ... if they do, they
+				// add": the mana belongs to the trigger's player, read only for
+				// the unless AddCounter body (any other each-player mana
+				// recipient stays refused).
+				recipient = lRef{Kind: rTriggeredPlayer}
+			default:
+				return refuse("DB$ Mana Defined$")
+			}
+		} else if d != "You" {
 			return refuse("DB$ Mana Defined$")
 		}
 		ps.consume("Defined")
@@ -124,11 +140,11 @@ func (lc *lowerCtx) manaEffect(ps *params) error {
 		if err != nil {
 			return err
 		}
-		lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: n, B: persist, CS: cols[0], F: restrict})
+		lc.emit(lInstr{Op: "AddMana", Obj: recipient, A: n, B: persist, CS: cols[0], F: restrict})
 		return nil
 	}
 	for _, c := range cols {
-		lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: cst(1), B: persist, CS: c, F: restrict})
+		lc.emit(lInstr{Op: "AddMana", Obj: recipient, A: cst(1), B: persist, CS: c, F: restrict})
 	}
 	return nil
 }

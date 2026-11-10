@@ -16,10 +16,10 @@ func (s *State) searchConfirmAsk(k *prep, in *kop.Instr, p uint8) (uint8, bool) 
 	}
 	switch in.Op {
 	case kop.OpSearchEx:
-		return s.chooserOf(p), true
+		return s.chooserOf(k, p), true
 	case kop.OpChooseMove:
 		if s.g.pickF&kop.SrReveal == 0 || s.anyCand(k) {
-			return s.chooserOf(p), true
+			return s.chooserOf(k, p), true
 		}
 	}
 	return 0, false

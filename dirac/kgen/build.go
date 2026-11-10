@@ -187,6 +187,11 @@ func buildCard(pt *poolTables, c *lCard) built {
 		}
 		cb.out.def.RoomSplit = uint8(n)
 	}
+	if kop.CardTwoSeat(&cb.out.def) {
+		// an operand naming the one opponent marks the card as its lowering
+		// would (lc.twoSeat), so the support count sees it too
+		cb.out.def.TwoSeat, c.TwoSeat = true, true
+	}
 	return cb.out
 }
 
@@ -441,6 +446,7 @@ func (cb *cardBuilder) record() error {
 	d.Colors = colorMask(c.Colors)
 	d.Power, d.Toughness, d.Loyalty = int8(c.P), int8(c.T), int8(c.Loyalty)
 	d.NoPT = c.NoPT
+	d.TwoSeat = c.TwoSeat
 	d.Defense = int8(c.Defense)
 	switch {
 	case c.Types&tLand != 0:
@@ -901,7 +907,11 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	}
 	if c.SacHost {
 		out.Host = kop.CostHostSac
+		if c.HostExile {
+			out.Host = kop.CostHostExile
+		}
 	}
+	out.ExileBf = c.SacExile
 	if c.XMin > 0 {
 		out.XMin = uint8(c.XMin) // the announced X's floor (kernel cost_sacx.go)
 	}
@@ -1117,12 +1127,21 @@ func (cb *cardBuilder) filter(f *lFilter, zone kop.Zone) (kop.FilterID, error) {
 	if f == nil {
 		return 0, nil
 	}
+	return cb.filterZones(f, slices.Repeat([]kop.Zone{zone}, len(f.Clauses)))
+}
+
+// filterZones is filter with a zone per clause (zones[i] for clause i; the
+// TgtGraveExileCard chain).
+func (cb *cardBuilder) filterZones(f *lFilter, zones []kop.Zone) (kop.FilterID, error) {
+	if f == nil {
+		return 0, nil
+	}
 	if len(f.Clauses) == 0 {
 		return 0, fmt.Errorf("player-only filter where an object filter is needed")
 	}
 	var next kop.FilterID
 	for i := len(f.Clauses) - 1; i >= 0; i-- {
-		kf, err := cb.clause(f.Clauses[i], zone)
+		kf, err := cb.clause(f.Clauses[i], zones[i])
 		if err != nil {
 			return 0, err
 		}
@@ -1928,6 +1947,8 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vChromaOf:           kop.ExChromaOf,
 	vYourExtraTurns:     kop.ExYourExtraTurns,
 	vCounterKinds:       kop.ExCounterKinds,
+	vTargetPlayers:      kop.ExTargetPlayers,
+	vPWTypes:            kop.ExCount,
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
@@ -1948,6 +1969,9 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 	}
 	if v.Kind == vExileTypes {
 		e.N = 1 // ExCountExile N 1: the distinct card types, not the count
+	}
+	if v.Kind == vPWTypes {
+		e.N = 1 // ExCount N 1: the distinct planeswalker subtypes, not the count
 	}
 	if v.Kind == vThisTurnEntered {
 		e.N = int16(v.Zone)

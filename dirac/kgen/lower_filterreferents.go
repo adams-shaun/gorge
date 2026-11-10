@@ -24,6 +24,7 @@ func (lc *lowerCtx) triggeredTargetCtrl(expr string) string {
 	if c := t.F.Clauses[0]; c.Flags&fSelf == 0 && c.Ctrl != whoYou {
 		return expr
 	}
+	lc.twoSeat("ControlledBy TriggeredTarget read as OppCtrl")
 	return strings.ReplaceAll(expr, word, "OppCtrl")
 }
 
@@ -117,6 +118,7 @@ func (lc *lowerCtx) sameNameT0TokenFilter(ps *params) (*lFilter, error) {
 		return nil, refuse("%s: Permanent.token+OppCtrl", word)
 	}
 	b.Clauses[0].CmpStat = cmpSameNameT0
+	lc.twoSeat("ControlledBy TargetedController read as OppCtrl")
 	return &lFilter{Clauses: []lClause{a.Clauses[0], b.Clauses[0]}}, nil
 }
 

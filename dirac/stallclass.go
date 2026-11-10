@@ -34,6 +34,7 @@ func init() {
 		stallClasses[r] = StallUnmodelled
 	}
 	kop.PairGuard = pairRefusal
+	kop.PairGuardN = pairRefusalN
 }
 
 // StallClass is what kind of stop a stall reason is.
@@ -75,6 +76,7 @@ var stallCapacityReasons = [...]uint8{
 	StallCombatHit, StallFinality, StallPersistMana, StallOptMoves, StallMustBlock, StallRestrSrc, StallFirebend,
 	StallImprint, StallExHaste, StallEffEtbCtr, StallAtkGrp, StallParadigm, StallFiltX, StallPlanAlts,
 	StallCtrAdded, // a fifth record of genState.ctrAdd; its two non-capacity sites moved to StallLowering
+	StallTwoSeat,  // a two-seat-only table in a larger game (stallclass.go): a declared limit
 	StallAddPhase, // a fifth genState.xph entry or a 256th grant; its one non-capacity site moved to StallLowering
 }
 
@@ -90,12 +92,15 @@ var stallUnmodelledReasons = [...]uint8{
 	StallStackKwGrant, // a granted convoke/improvise on a Harmonize or alternative-cost cast: gorge's announcement for those routes is unverified (kw_convoke.go)
 }
 
-// initStall is the reason a game on this table stalls at its start, StallNone when
-// it does not: a pair of cards the kernel cannot play together, read off the table.
-// Init uses it as a guard for a hand-built table; pairRefusal refuses a built
+// initStall is the reason a game of nseat players on this table stalls at its
+// start, StallNone when it does not: a pair of cards the kernel cannot play
+// together, or a two-seat-only card in a larger game, read off the table. Init
+// uses it as a guard for a hand-built table; pairRefusalN refuses a built
 // matchup with it, so the two cannot disagree.
-func (g *genPrep) initStall() uint8 {
+func (g *genPrep) initStall(nseat uint8) uint8 {
 	switch {
+	case nseat > 2 && g.twoSeatOnly:
+		return StallTwoSeat // prepTwoSeat, below
 	case g.infectStall:
 		return StallInfect // kw_infect.go prepInfect
 	case g.anyRepl&(rbDblLife|rbPlusLife) == rbDblLife|rbPlusLife:
@@ -104,6 +109,8 @@ func (g *genPrep) initStall() uint8 {
 		return StallL6Walk // static_layer6.go prepL6
 	case g.anyRepl&rbPrevMill != 0 && g.anyRepl&(rbDblDmg|rbPlusDmg|rbPrevCol) != 0:
 		return StallReplPlus // repl_preventmill.go: gorge asks the order of a prevent-and-mill and an amount change
+	case g.anyRepl&rbSelfDmg != 0 && g.anyRepl&rbSelfDmgCompete != 0:
+		return StallReplPlus // repl_selfdamage.go: gorge asks the order of a self-damage replacement and another damage replacement
 	}
 	return StallNone
 }
@@ -114,7 +121,10 @@ func (g *genPrep) initStall() uint8 {
 // keeps nothing: a caller may still edit the table before playing it. tablesMu
 // serialises it with registerTable's prepare. A table prepare panics on is not
 // refused: Init raises that.
-func pairRefusal(t *kop.Table) (r *kop.PairRefusal) {
+func pairRefusal(t *kop.Table) *kop.PairRefusal { return pairRefusalN(t, 2) }
+
+// pairRefusalN is kop.PairGuardN: pairRefusal for a game of nseat players.
+func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 	defer func() {
 		if recover() != nil {
 			r = nil
@@ -128,13 +138,17 @@ func pairRefusal(t *kop.Table) (r *kop.PairRefusal) {
 	if g == nil {
 		return nil
 	}
-	why := g.initStall()
+	why := g.initStall(uint8(nseat))
 	if why == StallNone {
 		return nil
 	}
 	var a, b func(c *kop.CardDef, i int) bool
 	var text string
 	switch why {
+	case StallTwoSeat:
+		text = "a lowering that reads the one opponent of a two-player game, in a game of more seats"
+		a = func(c *kop.CardDef, _ int) bool { return cardTwoSeat(c) }
+		b = func(*kop.CardDef, int) bool { return false }
 	case StallInfect:
 		text = "infect, toxic, wither or poison beside a damage replacement order ask, a counter-added trigger or proliferate: gorge orders the conversion differently"
 		a = func(c *kop.CardDef, i int) bool {
@@ -159,6 +173,10 @@ func pairRefusal(t *kop.Table) (r *kop.PairRefusal) {
 		a = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbDblLife != 0 }
 		b = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbPlusLife != 0 }
 	case StallReplPlus:
+		if g.anyRepl&rbPrevMill == 0 || g.anyRepl&(rbDblDmg|rbPlusDmg|rbPrevCol) == 0 {
+			text, a, b = selfDamagePair(g)
+			break
+		}
 		text = "a prevent-and-mill damage replacement beside a damage doubler, plus-N or colour prevention: gorge asks the CR 616.1 order and the mill changes with it"
 		a = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbPrevMill != 0 }
 		b = func(c *kop.CardDef, i int) bool {
@@ -207,3 +225,30 @@ func progHas(a *kop.Ability, pred func(*kop.Instr) bool) bool {
 	}
 	return false
 }
+
+// StallTwoSeat: a game of three or more seats on a table whose lowering reads
+// a two-player identity (CardDef.TwoSeat, or a kernel operand that names "the
+// opponent" in the singular). It is a declared limit: the two-seat game plays
+// the table, a larger game refuses it at its start (initStall).
+const StallTwoSeat = 154
+
+func init() { stallNames[StallTwoSeat] = "twoseat" }
+
+// prepTwoSeat sets genPrep.twoSeatOnly when any card of t is two-seat only.
+func prepTwoSeat(t *kop.Table, g *genPrep) {
+	for i := range t.Cards {
+		if cardTwoSeat(&t.Cards[i]) {
+			g.twoSeatOnly = true
+			return
+		}
+	}
+	for i := range t.Filters {
+		if t.Filters[i].Flags2&kop.F2DefendingCtrl != 0 {
+			g.twoSeatOnly = true // "the defending player": the one non-active player
+			return
+		}
+	}
+}
+
+// cardTwoSeat reports whether c plays only in a two-seat game (kop.CardTwoSeat).
+func cardTwoSeat(c *kop.CardDef) bool { return kop.CardTwoSeat(c) }

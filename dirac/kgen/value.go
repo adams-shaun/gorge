@@ -194,9 +194,11 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			err = fmt.Errorf("value head TriggeredCapturedPlayers$%s outside a Melee trigger", rest)
 			break
 		}
+		lc.twoSeat("the melee capture counted as one")
 		v = cst(1)
 	case "PlayerCountOpponents":
 		// Two players: the highest among the opponents is the opponent's.
+		lc.twoSeat("an opponents extreme read as the one opponent's figure")
 		switch {
 		case rest == "HighestLifeTotal":
 			v = lValue{Kind: vLifeOf, Ref: lRef{Kind: rEachOpp}}
@@ -398,6 +400,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		// gorge count_ref_property.go:727: the TargetedPlayer ref; Valid <spec>
 		// counts the targeted player's battlefield with that player as You.
 		// Two-player that is the opponent's only for an opponents-only slot.
+		lc.twoSeat("the targeted player's battlefield read as the opponent's")
 		spec, ok := strings.CutPrefix(rest, "Valid ")
 		t := lc.lastTarget()
 		if !ok || t < 0 {
@@ -433,6 +436,17 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vLibrarySizeOf, Ref: ref}
 		case "CardsInHand":
 			v = lValue{Kind: vHandSizeOf, Ref: ref}
+		case "Amount":
+			// gorge counts the player targets of the resolution (the
+			// Hollow Marauder family): over an opponents-only slot two-player
+			// that is whether the slot holds the one opponent (seat-exact:
+			// the slot holds one player at any seat count). A slot that may
+			// hold the controller counts up to two and refuses.
+			if f := lc.ab.Targets[t].F; f == nil || f.Players != plOpp || len(f.Clauses) != 0 {
+				err = refuse("TargetedPlayer$%s of a slot that is not opponents-only", rest)
+				break
+			}
+			v = lValue{Kind: vTargetPlayers, Ref: ref}
 		case "LifeLostThisTurn":
 			// Thought-Stalker Warlock: lowered only for an opponents-only
 			// player slot, where two-player it is the controller's
@@ -441,6 +455,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 				err = fmt.Errorf("TargetedPlayer$%s of a slot that is not opponents-only", rest)
 				break
 			}
+			lc.twoSeat("the targeted player's life lost read as the opponent's")
 			v = lValue{Kind: vOppLifeLostThisTurn}
 		default:
 			err = fmt.Errorf("TargetedPlayer$%s", rest)
@@ -1039,8 +1054,8 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		// same count the You.descended trigger gate lowers (CR 700.11)
 		return lc.countValue("ThisTurnEntered_Graveyard_Permanent.YouOwn+nonToken", depth)
 	case "ResolvedThisTurn":
-		if lc.ab == nil || lc.ab.Kind != akTriggered || lc.ab.Latent {
-			return lValue{}, fmt.Errorf("Count$ResolvedThisTurn outside a printed triggered ability")
+		if lc.ab == nil || lc.ab.Kind != akTriggered && lc.ab.Kind != akActivated || lc.ab.Latent {
+			return lValue{}, fmt.Errorf("Count$ResolvedThisTurn outside a printed triggered or activated ability")
 		}
 		lc.ab.ResolveCount = true
 		return lValue{Kind: vResolvedThisTurn}, nil
@@ -1376,6 +1391,11 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 				kind = vSumPower
 			case "DifferentCardManaCost":
 				kind = vDistinctCMC
+			case "PlaneswalkerType":
+				// CR 205.3j: the distinct subtypes printed on the matching
+				// planeswalkers (gorge zoneFold's PlaneswalkerType): kernel
+				// ExCount N=1
+				kind = vPWTypes
 			default:
 				if ck, ok := strings.CutPrefix(agg, "CardCounters."); ok && ck != "ALL" {
 					// gorge zoneFold: CardCounters.<KIND> sums o.Counter(kind).

@@ -111,8 +111,8 @@ type Filter struct {
 	NotSub uint8   // must not have subtype index NotSub-1
 	// NotSubs are further subtypes the object must not have (index-1; 0 =
 	// unused), filled only beside NotSub ("non-Vampire, non-Werewolf,
-	// non-Zombie")
-	NotSubs [2]uint8
+	// non-Zombie, non-Human, non-Bear")
+	NotSubs [4]uint8
 	Flags2  FilterFlags2 // more boolean conditions
 	PredV   ValueRef     // the bound for the *V predicates
 	Or      FilterID     // the next alternative: the object matches if this OR Filters[Or] matches (0 = none)
@@ -416,6 +416,14 @@ const W7EnteredFromBF int16 = 24
 // imprinted set (gorge's IsImprinted; genState.imp, written by an Imprint$
 // writer earlier in the same chain). kgen lowers it only inside such a chain.
 const W7Imprinted int16 = 25
+
+// W7WithFlashback (PredWord7 sub-kind 26): the card was printed with
+// Flashback (CardDef.Keywords&KwFlashback; gorge's exact keyword word
+// withFlashback, objectHasKeyword reads the printed face). A battlefield
+// permanent that is face down or lost all abilities has none; off the
+// battlefield the printed card counts in any zone. Sorceress's Schemes,
+// Runic Repetition.
+const W7WithFlashback int16 = 26
 
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and

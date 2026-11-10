@@ -280,6 +280,15 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 	f := t.F
 	var err error
 	switch {
+	case t.GraveExileCard:
+		ts.Kind = kop.TgtGraveExileCard
+		zs := make([]kop.Zone, len(t.ClauseZones))
+		for i, z := range t.ClauseZones {
+			zs[i] = kop.Zone(z)
+		}
+		if ts.Filter, err = cb.filterZones(f, zs); err != nil {
+			return ts, err
+		}
 	case t.PermOrGraveCard:
 		ts.Kind = kop.TgtPermOrGraveCard
 		// parsed in the graveyard: matchCardOneAt reads the zone, matchPerm ignores it
@@ -747,9 +756,11 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 	if a.ResolveCount {
 		// kernel countResolve runs in trigResolveOK before the
 		// intervening-if: a trigger with one would count a resolution
-		// gorge may not (refused)
-		if a.Trigger == nil || a.Latent || ka.Trig.Cond != 0 {
-			return ka, fmt.Errorf("Count$ResolvedThisTurn on a latent, conditional or non-trigger ability")
+		// gorge may not (refused). An activated ability counts as it
+		// resolves (resolve.go), after the fizzle check, as gorge's Resolve
+		// event does
+		if a.Latent || a.Kind == akTriggered && (a.Trigger == nil || ka.Trig.Cond != 0) || a.Kind != akTriggered && a.Kind != akActivated {
+			return ka, fmt.Errorf("Count$ResolvedThisTurn on a latent, conditional or non-printed-ability")
 		}
 		ka.AFlags |= kop.AfResolveCount
 	}
@@ -874,6 +885,13 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	}
 	if m.Special != "" {
 		return fmt.Errorf("mana %s has no kop form", m.Special)
+	}
+	if m.RestrictAb != nil && m.Restrict == nil && !m.NonSpell {
+		// an activated-only restriction (Shang-Chi, Master of Kung Fu's
+		// RestrictValid$ Activated.Creature): its spell half matches no
+		// spell (the clause manaRestrict lowers Spell.isCastFaceDown to),
+		// so ManaRestrict marks the source restricted and pays no spell
+		m.Restrict = &lFilter{Clauses: []lClause{{NotTypes: tAnyCard}}}
 	}
 	if m.RestrictAb != nil && m.Restrict == nil {
 		return fmt.Errorf("mana spend restriction on activated abilities has no kop form")
@@ -1839,6 +1857,16 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "CantGainLife":
 		st.Kind = kop.StatCantGainLife
+	case "ActivateAbilityAsIfHaste":
+		st.Kind = kop.StatAsIfHaste // static_asifhaste.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+	case "CantBeSuspected":
+		st.Kind = kop.StatCantBeSuspected // act_suspect.go suspectOne
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 	case "ManaConvert":
 		st.Kind = kop.StatAnyTypeCreatures // lower_manaconvert.go
 	case "CantDraw":
@@ -2178,6 +2206,10 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplPreventNoncombatToOthers
 	case "PreventMillOpps":
 		rp.Kind = kop.ReplPreventMillOpps
+	case "PreventDamageCounters":
+		rp.Kind = kop.ReplPreventDamageCounters
+	case "DamageHealFirst":
+		rp.Kind = kop.ReplDamageHealFirst
 	case "DoubleTokens":
 		rp.Kind = kop.ReplDoubleTokens
 		if r.N.isConst() && r.N.N > 2 {
@@ -2411,6 +2443,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.C, ki.A = kop.OpCharm, int16(in.C), skip()
 	case "Branch":
 		ki.Op, ki.C, ki.A = kop.OpBranch, int16(in.C), skip()
+	case "RepeatEachCard":
+		ki.Op, ki.B = kop.OpRepeatEach, skip() // act_repeatcards.go
+		if in.F != nil {
+			if err := objFilter(zBattlefield); err != nil {
+				return ki, err
+			}
+		}
 	case "RepeatEach":
 		ki.Op, ki.A, ki.C = kop.OpRepeatEachPlayer, skip(), int16(in.C)
 		if in.F != nil {
@@ -2444,7 +2483,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		} else if in.Op == "UnlessSwitched" {
 			ki.Op = kop.OpUnlessSwitched
 		}
-		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "DamageYou": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "Waterbend": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileStackSelf": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
+		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "DamageYou": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "Waterbend": kop.PayTapX, "AddCounter": kop.PayAddCounter, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileStackSelf": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
 		if pk == 0 {
 			return ki, fmt.Errorf("pay kind %q", in.CS)
 		}
@@ -2452,6 +2491,23 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, fmt.Errorf("pay skip %d", in.Skip)
 		}
 		ki.C = int16(pk | in.Skip<<4)
+		if in.CS == "AddCounter" {
+			// PayAddCounter is not a C-nibble kind (it is appended past the
+			// 15 the nibble holds): the instruction rides PayTapX with B.N
+			// packing the counter kind and the recipient (kop.PayAddCounterB).
+			// The kernel widens it to its own pay kind
+			// (cost_unlessaddcounter.go).
+			r, err := cb.ref(in.Obj2)
+			if err != nil {
+				return ki, err
+			}
+			n, ok := kop.PayAddCounterB(kop.CounterKind(in.B.N), r)
+			if !ok {
+				return ki, fmt.Errorf("AddCounter recipient ref %d", r)
+			}
+			ki.C = int16(kop.PayTapX | in.Skip<<4)
+			ki.B = kop.Const(n)
+		}
 		if in.CS == "Blight" {
 			ki.B = kop.Const(kop.PayBSubBlight) // a Blight, not a sacrifice
 		}
@@ -2562,7 +2618,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.Op, ki.Obj = kop.OpDealDamage, kop.RefEachPlayer
 		case in.F != nil && len(in.F.Clauses) == 0 && in.F.Players == plOpp:
 			// "N damage to each opponent" (Grab the Prize's ValidPlayers$
-			// Player.Opponent; two players: the one opponent)
+			// Player.Opponent; seat-exact: the kernel deals each opponent)
 			ki.Op, ki.Obj = kop.OpDealDamage, kop.RefEachOpponent
 		case in.F != nil && in.F.Players == 0:
 			ki.Op = kop.OpDamageAll
@@ -2910,11 +2966,18 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				altZ = kop.ZoneGraveyard
 			case "Hand":
 				altZ = kop.ZoneHand
+			case "Graveyard,Hand":
+				// the pair occupies the zone code the library can never use:
+				// the election offers the library, graveyard and hand.
+				altZ = kop.Zone(kop.SrAltGraveHand)
 			default:
 				return ki, fmt.Errorf("alt origin %q", az)
 			}
 			sb |= kop.SrAltOrigin | int(altZ)<<kop.SrAltZoneShift
 			zone = kop.ZoneNone // the filter matches cards of every elected zone
+		}
+		if sb, zone, err = sideSearchFlags(in.Op, fl, sb, zone); err != nil {
+			return ki, err
 		}
 		if _, ok := fl["AuraEntry"]; ok {
 			// the hand move of one card whose filter may
@@ -2988,27 +3051,18 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.C = int16(int(zoneMap[in.C]) | (moveFlags()|kop.MvGraveExile)<<3)
 			break
 		}
-		if fl["from"] == "Graveyard,Hand" {
-			// graveyard then hand (Weftwalking): the second zone rides in B
-			// (czallSecondZone); ZoneHand leaves B.N&CzUntilLeaves clear.
+		if b, ok := czallTwoZoneB(fl["from"]); ok {
+			// two origins swept zone-major over every seat; the second zone
+			// (or a Cz* selector) rides in B, ZoneNone lets the owner role build
 			if err := objFilter(kop.ZoneNone); err != nil {
 				return ki, err
 			}
 			ki.Op = kop.OpChangeZoneAllEx
 			ki.C = int16(int(zoneMap[in.C]) | (moveFlags()|kop.MvGraveExile)<<3)
-			ki.B = kop.Const(int(kop.ZoneHand))
-			break
-		}
-		if fl["from"] == "Battlefield,Graveyard" {
-			// battlefield then graveyard (Strategic Betrayal): B carries
-			// kop.CzBattleGrave, and ZoneNone lets the owner role build (the
-			// filter's inZoneGraveyard pin keeps the battlefield scan honest).
-			if err := objFilter(kop.ZoneNone); err != nil {
-				return ki, err
+			if _, ok := fl["ShuffleEach"]; ok {
+				b |= kop.CzShuffleEach // the kernel shuffles both libraries after the sweep
 			}
-			ki.Op = kop.OpChangeZoneAllEx
-			ki.C = int16(int(zoneMap[in.C]) | (moveFlags()|kop.MvGraveExile)<<3)
-			ki.B = kop.Const(kop.CzBattleGrave)
+			ki.B = kop.Const(b)
 			break
 		}
 		if err := objFilter(zoneMap[from]); err != nil {
@@ -4244,6 +4298,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				ki.A = kop.Const(kop.DelayBeginCombat) // dirac/trig_delaybegincombat.go
 			case "NextSpellCast":
 				ki.A = kop.Const(kop.DelaySpellCast)
+			case "NextSpellCastUncounter":
+				ki.A = kop.Const(kop.DelaySpellUncounter) // dirac/repl_uncounterable.go
 			case "DiesThisTurn":
 				ki.A = kop.Const(kop.DelayDiesThisTurn) // dirac/trig_delayeddies.go
 			default:

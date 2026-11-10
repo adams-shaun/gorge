@@ -236,11 +236,50 @@ const (
 	SrNoShuffle      = 1 << 14 // Shuffle$ False: the library is not shuffled after the moves; a library destination puts the found cards on top in pick order, remembered with SrRemember (Flourishing Bloom-Kin)
 	SrImprint        = 1 << 8  // OpChooseMove from the Library (ChangeZone Imprint$ True under a DigUntil RememberRevealed$): each moved card joins the chosen set (imprint). Read from the instruction's B, never ORed into pickF (bit 8 there is SrOwnZone); bits 4..11 are the graveyard-pick counter kind, which a library pick never reads
 	SrShareLandType  = 1 << 9  // OpSearchEx only: ShareLandType$ True -- every found card shares a land type with the others, so a later pick is offered only the cards sharing a printed subtype with every earlier one (gorge rules.validateSearch through effects.SharedLandTypes; kgen lowers it only over a basic-land filter). Read from the instruction's B, never ORed into pickF
-	SrAltOrigin      = 1 << 4  // OpSearchEx only (bits 4..11 are OpChooseMove's entry counter kind, unread on a library search): OriginAlternative$ -- the searcher first elects which of the library and the alternative zone to search (gorge originAlternativeZones), the pool is the elected zones' cards (library first), the shuffle is owed only when the library was elected. B bits 5..7 (SrAltZoneShift) hold the alternative zone (Graveyard or Hand); read from the instruction, never ORed into pickF
+	SrAltOrigin      = 1 << 4  // OpSearchEx only (bits 4..11 are OpChooseMove's entry counter kind, unread on a library search): OriginAlternative$ -- the searcher first elects which of the library and the alternative zone to search (gorge originAlternativeZones), the pool is the elected zones' cards (library first), the shuffle is owed only when the library was elected. B bits 5..7 (SrAltZoneShift) hold the alternative zone (Graveyard or Hand); SrAltGraveHand there names the Graveyard,Hand pair, so the election offers three zones; read from the instruction, never ORed into pickF
 )
 
 // SrAltZoneShift is the shift of SrAltOrigin's alternative zone in B.N.
 const SrAltZoneShift = 5
+
+// SrAltGraveHand is the SrAltOrigin zone code for the OriginAlternative$
+// pair Graveyard then Hand (Agency Outfitter). The library is never an
+// alternative zone, so its code is free to name the pair; the election then
+// offers the library, the graveyard and the hand.
+const SrAltGraveHand = int(ZoneLibrary)
+
+// Sideboard searches (OpSearchEx B only; ChangeZone Origin$ Sideboard, or
+// Library,Sideboard). The pool is the fetching player's library (unless
+// SrNoLibrary) then the cards outside the game they own, in object order
+// (gorge effSearchLibrary's candidate walk: the library first, then each
+// other origin zone). Read from the instruction's B, never ORed into pickF.
+// Bit 0 is OpChooseMove's UntilLeaves link and bit 2 its SrHandGrave, neither
+// of which an OpSearchEx carries; bits 10 and 11 are the entry counter kind's
+// top bits on an OpChooseMove, unread on a search.
+const (
+	SrChooserOpp = 1 << 0  // an opponent answers the pick (Chooser$ Opponent), not the fetching player
+	SrExactly    = 1 << 2  // Exactly$ True: exactly A cards are found or none (the pick offers Done only before the first card)
+	SrSideboard  = 1 << 10 // the pool includes the fetcher's sideboard, after the library
+	SrNoLibrary  = 1 << 11 // with SrSideboard: the library is not searched (Origin$ Sideboard alone): no look, no shuffle
+)
+
+// CzLibrarySideboard is OpChangeZoneAllEx's B for a MvGraveExile sweep whose
+// origin is Library,Sideboard (Turtles Forever's put-back): every seat's
+// library, then every seat's sideboard (gorge effChangeZoneAll's zone-major
+// walk). Clear of CzUntilLeaves (bit 0), CzBattleGrave and ZoneHand.
+const CzLibrarySideboard = 16
+
+// CzHandGrave and CzShuffleEach are OpChangeZoneAllEx B flags of a MvGraveExile
+// sweep into the library, clear of every Cz* code above (Echo of Eons).
+// CzHandGrave scans every seat's hand, then every seat's graveyard (Origin$
+// Hand,Graveyard: the library order before the shuffle follows the move
+// order). CzShuffleEach ends the sweep with both libraries shuffled, the owner
+// of the first card moved first, then the other seat (UseAllOriginZones$ with
+// Shuffle$ True; gorge changeZoneAllShuffleLibraries).
+const (
+	CzHandGrave   = 32
+	CzShuffleEach = 64
+)
 
 // RetAttachTo (OpReturnEx B.N, A counters absent):
 // AttachedTo$ -- the returned permanent enters attached to the permanent the
@@ -479,6 +518,10 @@ const (
 	// DelayYourEndStep: the controller's next end step (gorge Phase$ End of
 	// Turn, ValidPlayer$ You; another player's end step leaves it pending)
 	DelayYourEndStep = 7
+	// DelaySpellUncounter: DelaySpellCast whose fire resolves inline with no
+	// stack object (gorge Static$ True), its body "the spell that fired it
+	// can't be countered" while that spell is on the stack; one-shot
+	DelaySpellUncounter = 8
 )
 
 // DpGroup is OpDelayedProgram B's group flag: the program remembers the

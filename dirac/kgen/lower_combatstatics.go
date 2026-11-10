@@ -31,11 +31,13 @@ func (lc *lowerCtx) cantAttack(sp *params, st *lStatic) error {
 			return refuse("CantAttack Target$ %q", t)
 		}
 		oppOnly = true
+		lc.twoSeat("CantAttack Target$ you and your planeswalkers read as OppCtrl")
 	}
 	if ud, ok := sp.get("UnlessDefender"); ok {
 		if vc != "Card.Self" {
 			return refuse("UnlessDefender$ on ValidCard$ %q", vc)
 		}
+		lc.twoSeat("UnlessDefender$ read as the static controller's opponent")
 		ud = strings.TrimSpace(ud)
 		neg := strings.HasPrefix(ud, "!")
 		ud = strings.TrimPrefix(ud, "!")

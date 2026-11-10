@@ -146,7 +146,7 @@ func (s *State) windowUnpricedOpenIf(k *prep, e *stackEntry, open bool) bool {
 // mana keeps a pool-short candidate on the menu once the census is incomplete.
 func (s *State) restrManaUntapped(k *prep, sl Slot) bool {
 	pm := &s.perms[sl]
-	if pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 || s.genLost(k, sl) || DebugNoRestrManaOpen {
+	if pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) || DebugNoRestrManaOpen {
 		return false
 	}
 	cd := &k.t.Cards[s.cardAt(sl)]
@@ -936,7 +936,7 @@ func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
 		return false
 	}
 	pm := &s.perms[sl]
-	if pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 ||
+	if pm.flags&pfTapped != 0 || s.activationSick(k, sl) ||
 		s.genLost(k, sl) || pm.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
 		return false
 	}
@@ -1011,19 +1011,27 @@ func (s *State) windowGapAnyColour(k *prep, p uint8, sl Slot, cost, useful *kop.
 // windowAffords: gorge's mana window pays cost from p's sources counting
 // the Tenders' mana (availFor does not), simulated on a copy.
 func (s *State) windowAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
-	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || s.scriptDeferred(k, p).any()) {
+	return s.windowAffordsTake(k, p, cost, false)
+}
+
+// windowAffordsTake is windowAffords; takeDeferred is an unless / ward window
+// (payWindow), which taps a planner-deferred source (a counter-rider mana
+// source, Twitching Doll) once the rest cannot cover the cost: gorge's
+// unlessWindowUnits lists it, so the pay is offered (CR 118.3, 605.3b).
+func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred bool) bool {
+	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.scriptTapsDefer(k, p).any()) {
 		return false
 	}
 	t := s.fork()
 	defer s.unfork()
-	ok, _ := t.windowTap(k, p, cost, false)
+	ok, _ := t.windowTapWalk(k, p, cost, cost, false, false, false, false, takeDeferred)
 	return ok
 }
 
 // windowAffordsN is windowAffords for an unless cost of amt with pips.
 func (s *State) windowAffordsN(k *prep, p uint8, amt int, pips int16) bool {
 	c := manaOf(amt, pips)
-	return s.windowAffords(k, p, &c)
+	return s.windowAffordsTake(k, p, &c, true)
 }
 
 // restrTapMana: a is a plain tap mana ability with a spend restriction
@@ -3233,6 +3241,9 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 	}
 	if a.Cost.Host == kop.CostHostSac {
 		s.sacHostCost(k, e)
+	}
+	if a.Cost.Host == kop.CostHostExile {
+		s.exileHostCost(k, e) // cost_exilebf.go
 	}
 	if a.Evidence != 0 {
 		s.payCostEvidence(k) // cost_collectevidence.go

@@ -1,0 +1,11 @@
+# the per-turn record pool: !wasDealtDamageThisTurn on a destroyed target and
+# Count$ResolvedThisTurn on an activated ability (Faller's Faithful,
+# Soulbright Seeker) plus spare creatures
+# (dirac/turnrec_reuse_test.go)
+Faller's Faithful
+Forest
+Grizzly Bears
+Mountain
+Plains
+Soulbright Seeker
+Swamp

@@ -106,6 +106,8 @@ type genPrep struct {
 	anyTapExtra              bool // a card has a StatTapExtra static (mana_tapextra.go)
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
 	anyCantGain, anyCantDraw bool // StatCantGainLife / StatCantDraw statics (static_cantdraw.go)
+	anyAsIfHaste             bool // a StatAsIfHaste static (static_asifhaste.go)
+	anyCantSuspect           bool // a StatCantBeSuspected static (act_suspect.go suspectOne)
 	anyNoPrev                bool // a StatCantPreventDamage static, printed or on an emblem (static_cantprevent.go)
 	anyTypeCreat             bool // a StatAnyTypeCreatures static (mana_convertcreature.go)
 	anyCdmgTough             bool // a card has a StatCombatDmgToughness static (combat_toughnessassign.go)
@@ -147,6 +149,7 @@ type genPrep struct {
 	// damage-to-counters conversion does not order like gorge (StallInfect)
 	anyInfect      bool
 	infectStall    bool
+	twoSeatOnly    bool           // a card plays only two seats (stallclass.go prepTwoSeat): StallTwoSeat in a larger game
 	anyWitherGrant bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyEOTEmb      bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb       bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
@@ -459,6 +462,8 @@ const (
 	rbPrevCombatBy                    // CardDef.PreventCombatBy: the combat damage it would deal is prevented (combat_preventfrom.go)
 	rbDiscETB                         // ReplDiscardOppToBattlefield (repl_discardetb.go)
 	rbPrevMill                        // ReplPreventMillOpps (repl_preventmill.go)
+	rbPrevCtrSelf                     // ReplPreventDamageCounters (repl_selfdamage.go)
+	rbHealSelf                        // ReplDamageHealFirst (repl_selfdamage.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -690,6 +695,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyCantGain = tableHasStatic(t, kop.StatCantGainLife)
 	g.anyCantDraw = tableHasStatic(t, kop.StatCantDraw)
 	g.anyNoPrev = tableHasStatic(t, kop.StatCantPreventDamage)
+	g.anyAsIfHaste = tableHasStatic(t, kop.StatAsIfHaste)
+	g.anyCantSuspect = tableHasStatic(t, kop.StatCantBeSuspected)
 	g.anyTypeCreat = tableHasStatic(t, kop.StatAnyTypeCreatures)
 	g.anyDiscard = tableHasOp(t, kop.OpDiscard)
 	g.anyRemDisc = tableRemembersDiscards(t)
@@ -941,6 +948,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					pc.hasStat = true
 				case kop.ReplPreventMillOpps:
 					g.replBits[i] |= rbPrevMill
+					pc.hasStat = true
+				case kop.ReplPreventDamageCounters:
+					g.replBits[i] |= rbPrevCtrSelf
+					pc.hasStat = true
+				case kop.ReplDamageHealFirst:
+					g.replBits[i] |= rbHealSelf
 					pc.hasStat = true
 				case kop.ReplDoubleTokens, kop.ReplRewriteTokens, kop.ReplAddToken:
 					g.replBits[i] |= rbDblTok
@@ -1383,6 +1396,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
 	prepInfect(t, g)
+	prepTwoSeat(t, g) // stallclass.go
 	prepPoison(t, g)
 	prepLayerWalk(t, g)
 	prepChooseType(t, g) // act_choosetype.go

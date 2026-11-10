@@ -359,6 +359,7 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"mmmenon_hand_barred_blue_not_spent_on_hand_cast_full", false, false}, // ... and Biosynthic Burst from the hand, on the full surface
 		{"mmmenon_library_top_cast_binned_by_prefix_draw", true, false},        // CR 400.7: Mechan Navigator's tap draws the library-top Cryogen Relic and discards it, so the cast the granted blue would pay no longer exists
 		{"plan_tap_skips_granted_mana_ability", true, false},                   // CR 106.6, 702.185a: the plan's All-Fates Scroll tap is its printed any-colour ability, not Mm'menon's granted hand-barred {U} the wheel also lists, so the Starwinder warp cast from hand is paid and made
+		{"starwinder_warp_needs_second_blue", true, false},                     // CR 106.6, 702.185a: Starwinder's warp {2}{U}{U} has only Uthros's {U} beside Mm'menon's hand-barred artifact blue, and the live filter that makes grantCap stand down does not make the hand-barred grant a unit, so no warp cast is offered
 	})
 }
 
@@ -406,6 +407,7 @@ func TestStdBigReprosLockstep(t *testing.T) {
 		{"granted_sac_mana_two_replacements", false, false},                 // CR 616.1, 602.2b: Lotus Ring's granted sacrifice mana, activated as the prefix with two Rest in Peace out, is asked which replacement applies and the script answers the first, so Oltec Matterweaver is exiled
 		{"granted_sac_mana_sba_ask_after", false, false},                    // CR 704.3, 616.1: the sacrificed Construct token's death leaves its sibling too small, and the check's own replacement ask is answered first by the script, so both tokens are exiled and cease
 		{"granted_sac_mana_offer_beside_trigger", false, false},             // CR 602.2b, 605.3a: with a trigger on the stack, the offer search of Esoteric Duplicator's {2} through Lotus Ring's granted sacrifice runs the sacrifice's replacement-order ask on its trial game, and the two sides agree on whether the activation is offered
+		{"prefix_search_skips_sacrificing_own_source", true, false},         // CR 602.2b: Lost Jitte's Equip {1} is paid by sacrificing the Bat token Lotus Ring equips, not by sacrificing the Jitte token itself (a prefix that removes the play's own source offers nothing)
 	})
 }
 
@@ -643,6 +645,7 @@ func TestStdSosReprosLockstep(t *testing.T) {
 		{"granted_flashback_when_printed_nonmana_unpayable", true, false},   // CR 702.34a: a printed flashback whose tap-three-creatures cost is unpayable leaves the granted mana-cost instance castable (Group Project)
 		{"restricted_pool_cast_plans_sources_before_discard", false, false}, // CR 601.2b, 601.2g-h, 106.6: Seize the Spoils cast with Abstract Paintmage's restricted {U}{R} floating taps the planned Mountain at announcement, before the discard is chosen
 		{"free_cast_unpayable_discard_returns_to_zone_end", true, false},    // CR 601.2b, 733.1: Improvisation Capstone's free Seize the Spoils with no card to discard is pushed and reversed, and returns behind the other exiled cards
+		{"permission_cast_from_graveyard_not_own_target", false, false},     // CR 601.2a, 601.2c: Flashback cast from the graveyard through Tablet of Discovery's permission is on the stack when its target is chosen, so with no other instant or sorcery there it is not offered
 	})
 }
 
@@ -785,6 +788,7 @@ func TestStdTmtReprosLockstep(t *testing.T) {
 		{"put_counters_from_unheard_kind_order", false, false},                 // CR 603.3b: Donatello, Mutant Mechanic copies a dead artifact's +1/+1 and stun counters while a +1/+1 trigger listens: the stun is heard by none, so gorge's insertion order is unobservable
 		{"second_ability_counter_cost_taps_source_for_generic", true, false},   // CR 605.3b, 601.2g: Weather Maker beside a plain {T} first ability: its "{T}, remove two charge counters: Add {C}{C}" pays Frog Butler's {2} reach activation when every land is tapped, so gorge offers it
 		{"second_ability_counter_gap_tries_plain_ability_first", false, false}, // CR 605.3b, 601.2g: two Weather Makers pay Metalhead: gorge's prefix search answers the first one's ability ask with its plain ability (the colour ask behind it), then the second one's with its counters, so only the second loses them
+		{"entry_body_rider_own_counter_replacement_excluded", false, false},    // CR 614.12: Michelangelo, Weirdness to 11 cast through Mikey & Don enters with one +1/+1 counter: its own "a creature you control" plus-one line is a general subset, so it does not modify how it enters, even through the Effect body's SubAbility$ rider
 		{"attach_triggered_card_moved_skips_ninja", true, false},               // CR 400.7: Quintessential Katana's "attach to the entering Ninja" trigger waits on the stack while that Ninja returns to hand and re-enters, so its TriggeredCardLKICopy is a new object and the attach finds nothing
 	} {
 		t.Run(c.name, func(t *testing.T) {
@@ -828,10 +832,15 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"tapxtype_lands_need_green_pip", false, false},                 // CR 601.2g-h: Fear of Exposure's {G} has no source among p1's untapped permanents, so tapping two of them for the cost does not make it castable
 		{"tapxtype_floating_mana_beside_tapped_lands", false, false},    // CR 601.2g-h: floating U, B and G pay Fear of Exposure's mana cost, so two untapped lands remain to tap for its additional cost
 		{"rider_mana_extends_x_announcement", false, false},             // CR 601.2b, 601.2g: Twitching Doll's counter-rider mana is a source the window taps, so Valgavoth's Onslaught's {X}{X} is offered for 2 beside four floating mana (mana_rider.go)
+		{"unless_pay_reaches_deferred_rider_source", true, false},       // CR 118.3, 605.3b: Anthropede's pay-{2} election is offered when the second mana comes only from Twitching Doll's counter-rider mana, which the planner defers but the unless window taps
+		{"unless_pay_reaches_deferred_rider_source_full", false, false}, // the same shape recorded on the full surface
 		{"rider_mana_extends_x_announcement_second", false, false},      // CR 601.2b, 601.2g: the same counter-rider unit makes X = 1 payable from the floating {G}, the Doll and Abandoned Campground (mana_rider.go)
 		{"rider_mana_pays_x_announcement", false, false},                // CR 601.2g: the same game answering X = 2: the window, with no auto-fill plan for {4}{G}, taps Strangled Cemetery then the Doll (its nest counter) and the spell stays on the stack
 		{"rider_mana_pays_x_announcement_second", false, false},         // CR 601.2g: the second game answering X = 1: the Doll, first in battlefield order once the planner census falls short, then Abandoned Campground pay it
 		{"x_witness_skips_deferred_rider_source", false, false},         // CR 601.2b, 605.3b: the {X} cast witness prices the planner's census, which never lists Twitching Doll's counter-rider mana, so The Rollercrusher Ride's lowered cast taps three lands for X = 0 and leaves the Doll untapped
+		{"convoke_granted_impending_cast_plan_full_m1", false, false},   // CR 702.176a, 702.51a: Dazzling Theater grants Overlord of the Mistmoors convoke, but its {2}{W}{W} impending cost is payable without the optional credit, so the mode cast keeps its no-credit witness and is offered
+		{"convoke_granted_impending_cast_plan_autopay_m0", true, false}, // the same at the other seat: two Overlords' impended casts priced without the granted convoke
+		{"convoke_granted_impending_cast_plan_autopay_m1", true, false}, // and the post-attack window with the Overlord already on the battlefield: the hand's impending cast is offered beside the empty pool
 	})
 }
 

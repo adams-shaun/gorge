@@ -284,23 +284,35 @@ next:
 func (s *State) clampDistinctNames(k *prep, in *kop.Instr) {
 	p := s.g.pickP
 	pl := &s.pl[p]
+	// An OriginAlternative$ search has not held its zone election yet, so
+	// the cap counts every zone it may search: the union over the elected
+	// set can only be smaller, and an early pick that repeats a name ends
+	// the search anyway.
+	var lists [3][]Obj
+	if altOp(in) {
+		lists = s.altZoneLists(in) // zone_originalternative.go
+	} else {
+		lists[0] = pl.lib[pl.libLo:pl.libHi]
+	}
 	var seen [64]CardID
 	n := 0
-	for _, o := range pl.lib[pl.libLo:pl.libHi] {
-		c := s.objs[o].card
-		dup := false
-		for i := 0; i < n; i++ {
-			if seen[i] == c {
-				dup = true
-				break
+	for zi := range lists {
+		for _, o := range lists[zi] {
+			c := s.objs[o].card
+			dup := false
+			for i := 0; i < n; i++ {
+				if seen[i] == c {
+					dup = true
+					break
+				}
 			}
-		}
-		if dup || !s.matchCardGen(k, in.F, c, p, s.res.e.ctrl, o) {
-			continue
-		}
-		if n < len(seen) {
-			seen[n] = c
-			n++
+			if dup || !s.matchCardGen(k, in.F, c, p, s.res.e.ctrl, o) {
+				continue
+			}
+			if n < len(seen) {
+				seen[n] = c
+				n++
+			}
 		}
 	}
 	if int(s.g.pickLeft) > n {

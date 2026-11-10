@@ -249,7 +249,7 @@ jobs:
         run: make dirac-tables
       - name: Play the committed slices
         run: make dirac-slices
-      - name: The dirac_mp size class vets, fits the State bar and plays
+      - name: The dirac_mp size class vets, fits the State bar and plays 4-seat vanilla and the 2-seat slices in lockstep
         run: make dirac-mp-check
       - name: Save the Go cache
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'

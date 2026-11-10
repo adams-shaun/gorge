@@ -25,7 +25,8 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 	case "Player":
 		return lRef{Kind: rEachPlayer}, nil
 	case "Player.Other":
-		// gorge definedSpecOpponent (two players)
+		// gorge definedSpecOpponent: every player but you, which is each
+		// opponent at any seat count (seat-exact)
 		return lRef{Kind: rEachOpp}, nil
 	case "Targeted", "ParentTarget", "ParentTargeted":
 		if v == "Targeted" {
@@ -156,6 +157,8 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// the opponent of the source's controller (two players), which is
 		// the damaged player when the damage is combat damage to a player,
 		// or damage to an opponent from a source the listener controls.
+		// seat-exact: with more seats the kernel's trigger player is the
+		// damaged seat itself (dirac dmgSeat).
 		if lc.damagedPlayerIsTriggerPlayer() {
 			return lRef{Kind: rTriggeredPlayer}, nil
 		}
@@ -182,6 +185,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// the controller is an opponent of the listener's controller: in a
 		// two-player game the one opponent (CR 102.2; Thunderbreak Regent).
 		if tr := lc.ab.Trigger; tr != nil && tr.Event == "BecomesTarget" && tr.Watch && tr.Whose == whoOpp {
+			lc.twoSeat("TriggeredSourceController read as the one opponent")
 			return lRef{Kind: rEachOpp}, nil
 		}
 		return lRef{}, refuse("Defined$ %q outside an opponent-source BecomesTarget watcher", v)
@@ -192,6 +196,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// damage to this listener's controller, so with two players the
 		// source is an attacker the one opponent controls.
 		if tr := lc.ab.Trigger; ddoAttackingPlayer(tr) {
+			lc.twoSeat("TriggeredAttackingPlayer read as the one opponent")
 			return lRef{Kind: rEachOpp}, nil
 		}
 		return lRef{}, refuse("Defined$ %q outside a combat damage-to-you trigger the kernel's attacking player names", v)
@@ -261,6 +266,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		if !lc.spawnDmg {
 			return lRef{}, refuse("Defined$ %q outside an ImmediateTrigger spawned by Card.Self's combat damage to a player", v)
 		}
+		lc.twoSeat("Spawner>TriggeredTarget read as the one opponent")
 		return lRef{Kind: rEachOpp}, nil
 	case "Promised":
 		// the opponent the gift was promised to (CR 702.174a; gorge
@@ -268,6 +274,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		if !lc.out.Gift {
 			return lRef{}, refuse("Defined$ Promised without a gift")
 		}
+		lc.twoSeat("the gift's promised opponent read as the one opponent")
 		return lRef{Kind: rEachOpp}, nil
 	}
 	if lc.targetedDefined != "" && v == lc.targetedDefined {
@@ -324,6 +331,9 @@ func (lc *lowerCtx) damagedPlayerIsTriggerPlayer() bool {
 // source itself (ValidCard$ Card.Self), or an AttackersDeclared trigger of
 // its controller's attack: the defending player is then the controller's
 // opponent (two players), which is what kop.RefDefendingPlayer resolves to.
+// With more seats the kernel resolves it to the defender of an attacking
+// source (seat-exact for the source's own attack); any other attacker, or the
+// declaration as a whole, marks the card two-seat only.
 func (lc *lowerCtx) ownAttackTrigger() bool {
 	tr := lc.ab.Trigger
 	if tr == nil {
@@ -334,14 +344,23 @@ func (lc *lowerCtx) ownAttackTrigger() bool {
 		if tr.F == nil || len(tr.F.Clauses) == 0 {
 			return false
 		}
+		self := true
 		for _, c := range tr.F.Clauses {
 			if c.Flags&fSelf == 0 && c.Ctrl != whoYou {
 				return false
 			}
+			self = self && c.Flags&fSelf != 0
+		}
+		if !self {
+			lc.twoSeat("the defending player of another attacker read as the one opponent")
 		}
 		return true
 	case "AttackersDeclared":
-		return tr.Whose == whoYou
+		if tr.Whose != whoYou {
+			return false
+		}
+		lc.twoSeat("the defending player of a declaration read as the one opponent")
+		return true
 	}
 	return false
 }
@@ -362,11 +381,27 @@ func (lc *lowerCtx) objOrTargetParent(ps *params, dflt string, zone int) (lRef, 
 
 func (lc *lowerCtx) objOrTargetOpt(ps *params, dflt string, zone int, allowParent bool) (lRef, error) {
 	if vt, ok := ps.get("ValidTgts"); ok {
+		var gxZones []kop.Zone
+		if lc.graveExileCard {
+			var err error
+			if vt, gxZones, err = graveExileSplit(vt); err != nil { // lower_graveexiletgt.go
+				return lRef{}, err
+			}
+		}
 		f, err := lc.filter(vt)
 		if err != nil {
 			return lRef{}, err
 		}
 		t := lTarget{F: f, Zone: zone}
+		if lc.graveExileCard {
+			if f.Players != 0 || len(f.Clauses) != len(gxZones) {
+				return lRef{}, refuse("ChangeZone Origin$ Graveyard,Exile ValidTgts$ %q does not lower to one clause per alternative", vt)
+			}
+			t.GraveExileCard = true
+			for _, z := range gxZones {
+				t.ClauseZones = append(t.ClauseZones, int(z))
+			}
+		}
 		if lc.permOrGraveCard {
 			if f.Players != 0 {
 				return lRef{}, refuse("ChangeZone Origin$ Battlefield,Graveyard with a player target")
@@ -490,8 +525,8 @@ func (lc *lowerCtx) objOrTargetOpt(ps *params, dflt string, zone int, allowParen
 // targetedAndYou reads Defined$/TokenOwner$ TargetedAndYou (graveexile): gorge's
 // alias for TargetedController & You (context.go:1834), deduplicated, the
 // target player first then the controller. Only a target slot that is
-// exactly ValidTgts$ Opponent is lowered: in two players the dedupe can
-// never merge the opponent with the controller, and any other filter (or a
+// exactly ValidTgts$ Opponent is lowered: the dedupe can never merge the
+// opponent with the controller (seat-exact), and any other filter (or a
 // target-count rider) would change who receives the instruction.
 func (lc *lowerCtx) targetedAndYou(ps *params, key string) (lRef, bool, error) {
 	v, ok := ps.get(key)
@@ -848,7 +883,9 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 		in = lInstr{CS: "Mana", A: v, B: cst(0)}
 	} else {
 		lc.wbOK = lc.ab.Kind != akLatent
+		lc.unlessParse = lc.ab.Kind != akLatent
 		cost, err := lc.costUnless(uc)
+		lc.unlessParse = false
 		lc.wbOK = false
 		if err != nil {
 			return err
@@ -1042,6 +1079,13 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		n++
 		in.CS, in.A = "PayLife", cst(c.PayLife)
 	}
+	if c.LifeBy != nil {
+		// PayLife<X> of a trigger's own cost: the amount is the value read as
+		// the cost is offered (kernel interp_ask.go execPay evaluates in.A);
+		// beside any other part the count below refuses
+		n++
+		in.CS, in.A = "PayLife", *c.LifeBy
+	}
 	if c.Energy > 0 {
 		n++
 		in.CS, in.A = "PayEnergy", cst(c.Energy)
@@ -1224,7 +1268,24 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		c.BeholdN, c.BeholdF = 0, nil
 		n++
 	}
-	if n != 1 || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.SubAmongN != 0 || c.TapN != 0 || c.TapHost || c.SacHost || c.BlightN != 0 || c.EvidenceN != 0 || c.EvidenceX {
+	if c.AddCtr > 0 {
+		// An UnlessCost$ AddCounter<N/KIND/recipient> (gorge
+		// pay/costparts.go PayManaSourceParts' unless placement; kernel
+		// cost_unlessaddcounter.go): alone, with the recipient the source
+		// (CARDNAME/NICKNAME) or the parent's target. A two-field token
+		// stays an activation cost.
+		if !lc.unlessCost || c.AddCtrRef.Kind == rNone || n != 0 {
+			return in, refuse("resolution AddCounter cost shape")
+		}
+		ck, err := counterKind(c.AddCtrKnd)
+		if err != nil {
+			return in, refuse("resolution AddCounter cost of kind %q", c.AddCtrKnd)
+		}
+		in.CS, in.A, in.B, in.Obj2 = "AddCounter", cst(c.AddCtr), cst(int(ck)), c.AddCtrRef
+		c.AddCtr, c.AddCtrRef, c.AddCtrKnd = 0, lRef{}, ""
+		n++
+	}
+	if n != 1 || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.SubAmongN != 0 || c.TapN != 0 || c.TapHost || c.SacHost || c.BlightN != 0 || c.EvidenceN != 0 || c.EvidenceX || c.AddCtr != 0 || c.AddCtrRef.Kind != rNone {
 		return in, refuse("resolution cost shape")
 	}
 	return in, nil
@@ -1255,8 +1316,10 @@ func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 			parse := lc.cost
 			if lc.ab.Kind == akTriggered && len(lc.ab.Prog) == 0 {
 				parse = lc.costUnless
+				lc.trigBodyCost = true
 			}
 			cost, err := parse(c)
+			lc.trigBodyCost = false
 			if err != nil {
 				return err
 			}
@@ -2429,6 +2492,7 @@ func (lc *lowerCtx) damageAll(ps *params) error {
 		if !lc.damagedPlayerIsTriggerPlayer() {
 			return refuse("ValidPlayers$ OppNonTriggeredTarget outside a damage-to-player trigger")
 		}
+		lc.twoSeat("OppNonTriggeredTarget read as nobody")
 		ps.consume("ValidPlayers")
 		return nil
 	}
@@ -3321,6 +3385,12 @@ func (lc *lowerCtx) token(ps *params) error {
 			}
 		case "Self":
 			dst = lRef{Kind: rSelf}
+		case "Remembered":
+			// the repeated card of a RepeatEach over cards (lower_repeatcards.go)
+			if lc.repeatCard == 0 {
+				return refuse("Token AttachedTo %q", v)
+			}
+			dst = lRef{Kind: rEach}
 		default:
 			return refuse("Token AttachedTo %q", v)
 		}

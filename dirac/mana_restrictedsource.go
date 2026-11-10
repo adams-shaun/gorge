@@ -363,7 +363,7 @@ func (s *State) restrActMatch(k *prep, p uint8, sl Slot, f kop.FilterID, d *payD
 func (s *State) restrUsable(k *prep, sl Slot) bool {
 	pm := &s.perms[sl]
 	return pm.flags&pfTapped == 0 && pm.ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0 &&
-		!(pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0) && !s.genLost(k, sl) &&
+		!(s.activationSick(k, sl)) && !s.genLost(k, sl) &&
 		!(k.gen.anyCantAct && s.actForbidden(k, sl, true)) // a CantBeActivated lock (cast_cantactivate.go)
 }
 

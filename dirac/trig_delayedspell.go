@@ -32,7 +32,7 @@ func tableDelaysSpell(t *Table) bool {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
-				if in.Op == kop.OpDelayedProgram && in.A.N == kop.DelaySpellCast {
+				if in.Op == kop.OpDelayedProgram && (in.A.N == kop.DelaySpellCast || in.A.N == kop.DelaySpellUncounter) {
 					return true
 				}
 			}
@@ -48,12 +48,33 @@ func tableDelaysSpell(t *Table) bool {
 //
 //go:noinline
 func (s *State) fireDelayedSpell(k *prep, e *stackEntry) {
+	s.dropUncounterGone()
 	n := int(s.g.ndp)
 	keep := 0
 	for i := 0; i < n; i++ {
 		d := s.g.dp[i]
+		// The filter's source-relative bound (Loki's cmcLEX) reads the
+		// registration's source, not the resolving entry's context: at a
+		// cast nothing is resolving, and a source off the battlefield has
+		// no slot (NoSlot reads its card's printed power, as the cast does
+		// in gorge's spec context).
+		srcSl := NoSlot
+		if d.src != NoObj {
+			srcSl = s.slotIfSame(d.src, s.objs[d.src].ver)
+		}
+		ctx := evalCtx{src: d.src, srcSl: srcSl, ctrl: d.ctrl}
 		due := d.n&dpSpell != 0 && (d.ctrl == e.ctrl || DebugDelaySpellAnyCaster) &&
-			s.matchCardGen(k, k.t.Cards[d.card].Abilities[d.ab].Trig.Filter, e.card, e.ctrl, d.ctrl, e.obj)
+			s.matchCardGenAt(k, k.t.Cards[d.card].Abilities[d.ab].Trig.Filter, e.card, e.ctrl, d.ctrl, e.obj, &ctx)
+		if due && d.ext == dpExtUncounter {
+			// gorge's Static$ fire: the body resolves at the match with no
+			// stack object; the record becomes the Effect it creates
+			// (repl_uncounterable.go), held while e stays on the stack
+			d = dprog{card: d.card, ab: d.ab, ctrl: d.ctrl, src: d.src, n: 1, ext: dpExtUncounter}
+			d.objs[0], d.vers[0] = e.obj, s.objs[e.obj].ver
+			s.g.dp[keep], s.g.dpLKI[keep] = d, 0
+			keep++
+			continue
+		}
 		if due {
 			m := s.npend
 			s.enqueue(d.src, s.objs[d.src].ver, d.card, d.ab, d.ctrl, e.obj, e.ctrl, 0)
@@ -73,10 +94,13 @@ func (s *State) fireDelayedSpell(k *prep, e *stackEntry) {
 }
 
 // dropDelayedSpell drops every delayed SpellCast registration at the turn
-// change (ThisTurn$ True), keeping the other records in order.
+// change (ThisTurn$ True), keeping the other records in order. A fired
+// uncounter record has no turn bound: it stays while its spell is on the
+// stack (gorge's Effect forgets the spell only as it leaves).
 //
 //go:noinline
 func (s *State) dropDelayedSpell() {
+	s.dropUncounterGone()
 	if DebugDelaySpellNoExpire {
 		return
 	}
@@ -96,13 +120,14 @@ func (s *State) dropDelayedSpell() {
 
 // dprogReferenced reports whether a delayed program names o as its source
 // (objReferenced: a token source is not recycled while a record names it),
-// or a delayed dies program remembers it (gorge matches the id, which is
+// a fired uncounter record excepted (gorge's Effect is its own source), or
+// a delayed dies program remembers it (gorge matches the id, which is
 // never reused; trig_delayeddies.go).
 //
 //go:noinline
 func (s *State) dprogReferenced(o Obj) bool {
 	for i := 0; i < int(s.g.ndp); i++ {
-		if d := &s.g.dp[i]; d.src == o || d.n&dpDies != 0 && d.objs[0] == o {
+		if d := &s.g.dp[i]; d.src == o && !dpUncounterFired(d) || d.n&dpDies != 0 && d.objs[0] == o {
 			return true
 		}
 	}

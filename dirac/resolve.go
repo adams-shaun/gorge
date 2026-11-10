@@ -225,6 +225,9 @@ func (s *State) resolveTop(k *prep) {
 			return
 		}
 		a := &k.t.Cards[e.card].Abilities[e.ab]
+		if e.kind == seAbility && e.ab < abCascade && a.AFlags&kop.AfResolveCount != 0 {
+			s.countResolve(k, &e) // an activated ability's tally, past the fizzle check (gorge's Resolve event)
+		}
 		if a.Trig.Flags2&kop.Tf2ResolvedLimit != 0 && e.kind == seTrigger && s.rlSpent(e.obj) {
 			s.finishResolve(k, false) // a batched sibling already spent the limit: no ask, no effect, no count (gorge resolvedLimitSpent)
 			return
@@ -844,7 +847,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 		return 0
 	}
 	e := &s.res.e
-	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
+	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
 		if s.parkNC(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
 			return n // gorge's replacement-order ask, after the resolution
 		}

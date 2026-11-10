@@ -71,6 +71,8 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		return s.countUntapped(k, p, f, s.resSrcSlot(k)) >= amt
 	case payKindWaterbend:
 		return s.unlessWaterbendPayable(k, p, amt) // cost_unlesswaterbend.go
+	case payKindAddCounter:
+		return s.addCounterTarget(k, pips) != NoSlot // cost_unlessaddcounter.go
 	case kop.PayExileGrave:
 		return s.countGraveExile(k, p, f) >= amt
 	case payKindExileHand:
@@ -109,7 +111,7 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 		kind = payKindTrigNew // a trigger's own ExileAnyGrave<1/Card.TriggeredNewCard> cost rides PayExileGrave (trig_mayexile.go)
 	}
 	kind = resTokenPayKind(kind, in.B.N) // DamageYou<X> rides PayDraw (cost_restokens.go)
-	kind = unlessPayKind(kind, in.B.N)   // an UnlessCost$ Waterbend<N> rides PayTapX (cost_unlesswaterbend.go)
+	kind = unlessPayKind(kind, in)       // an UnlessCost$ Waterbend<N> or AddCounter rides PayTapX (cost_unlesswaterbend.go)
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubExileHand {
 		kind = payKindExileHand // a trigger's own ExileFromHand<N/Card> cost rides PayExileGrave (cost_exilefromhand.go)
 	}
@@ -194,22 +196,24 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	if life != 0 && int(s.pl[p&1].life) < int(life) {
 		return false
 	}
-	if !s.anyManaSource(k, p) {
+	other := payDesc{class: pdOther}
+	if !s.anyManaSource(k, p, &other) {
 		return false
 	}
 	c := manaOf(amt, pips)
 	var av avail
-	other := payDesc{class: pdOther}
 	s.availPotentialFor(k, p, &av, &other)
 	return av.affords(&c, pipMaskOf(&c), 0)
 }
 
-// anyManaSource reports whether p has an untapped source to fund a payment with:
+// anyManaSource reports whether p has an untapped source to fund payment d with:
 // a tap source, the untapped sacrifice-only arm, a gap source with its cost payable,
-// a deferred source, or a restricted mana ability.
+// a deferred source, or a restricted mana ability d may spend (gorge
+// untappedManaSourceFor: a source whose every ability's RestrictValid$ refuses d
+// adds nothing to it, CR 106.6).
 //
 //go:noinline
-func (s *State) anyManaSource(k *prep, p uint8) bool {
+func (s *State) anyManaSource(k *prep, p uint8, d *payDesc) bool {
 	if k.gen == nil {
 		return false
 	}
@@ -236,13 +240,13 @@ func (s *State) anyManaSource(k *prep, p uint8) bool {
 		if c := s.cardAt(sl); k.gen.eachCol(c) >= 0 && s.potentialAdmits(k, p, sl, int(k.gen.eachCol(c)), &k.t.Cards[c].Abilities[k.gen.eachCol(c)], nil) {
 			return true
 		}
-		// gorge untappedManaSource: any available mana ability counts here,
-		// whatever its RestrictValid$ (availPotentialFor prices the
-		// restriction against this payment next), so a source whose only
-		// ability is restricted (Hydraulic Helper) funds a trigger's cost.
+		// gorge untappedManaSourceFor: an available mana ability counts when its
+		// RestrictValid$ admits this payment, so a source whose only ability is
+		// restricted to something else (Queen's Diamond's commander-only mana)
+		// is no source for a trigger's cost, while Hydraulic Helper's still is.
 		cd := &k.t.Cards[s.cardAt(sl)]
 		for j := range cd.Abilities {
-			if ab := &cd.Abilities[j]; j < 16 && ab.Kind == kop.AbMana && ab.AFlags&kop.AfLatent == 0 && ab.ManaRestrict != 0 && s.potentialAdmits(k, p, sl, j, ab, nil) {
+			if ab := &cd.Abilities[j]; j < 16 && ab.Kind == kop.AbMana && ab.AFlags&kop.AfLatent == 0 && ab.ManaRestrict != 0 && s.restrSrcAdmits(k, p, sl, ab, d) && s.potentialAdmits(k, p, sl, j, ab, nil) {
 				return true
 			}
 		}
@@ -427,8 +431,8 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 	case raGenSearch:
 		// gorge's kinds: a library search, a hand move, else a hidden pick
 		switch s.searchZone(k) {
-		case kop.ZoneLibrary:
-			d.Sub = ChGenSearch
+		case kop.ZoneLibrary, kop.ZoneSideboard:
+			d.Sub = ChGenSearch // a sideboard search is effSearchLibrary too (zone_sideboardsearch.go)
 		case kop.ZoneHand:
 			d.Sub = ChGenHandMove
 			if s.g.pickF&kop.SrReveal != 0 {
@@ -444,7 +448,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			d.Sub = ChGenSearch // an OriginAlternative$ search is effSearchLibrary whichever zones were elected
 		}
 		s.searchCands(k, d)
-		if s.g.pickF&kop.SrMandatory == 0 || d.N == 0 {
+		if s.g.pickF&kop.SrMandatory == 0 && s.exactlyMayStop(&s.prog(k)[r.pc]) || d.N == 0 {
 			d.add(MakeAction(AkDone, 0, 0, 0))
 		}
 	case raGenDig:
@@ -727,6 +731,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.payDraw(s.g.pickP, int(s.g.pickLeft))
 		case payKindDamage, payKindPoison:
 			s.payResToken(k) // cost_restokens.go
+		case payKindAddCounter:
+			s.payAddCounter(k, &s.prog(k)[r.pc]) // cost_unlessaddcounter.go
+			return
 		case kop.PaySubCounter:
 			// B: drain the resolving source's own counters (gorge
 			// unless_cost.go:47 / trigger_cost_subcounter.go:91).
@@ -1513,7 +1520,9 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 	if altOp(in) {
 		s.altBegin() // OriginAlternative$ (zone_originalternative.go)
 	}
-	if s.g.pickF&kop.SrDifferentNames != 0 {
+	if sideOp(in) {
+		s.sideClamp(k, in) // zone_sideboardsearch.go: the pool is the library and the sideboard
+	} else if s.g.pickF&kop.SrDifferentNames != 0 {
 		s.clampDistinctNames(k, in)
 	}
 	if eachOp(k, in) {
@@ -1560,7 +1569,7 @@ func (s *State) searchPick(k *prep) bool {
 		s.finishSearchNow(k)
 		return true
 	}
-	s.res.ask, s.res.askP = raGenSearch, s.chooserOf(p)
+	s.res.ask, s.res.askP = raGenSearch, s.chooserOf(k, p)
 	return false
 }
 
@@ -1585,6 +1594,9 @@ func (s *State) searchZone(k *prep) kop.Zone {
 	if in.B.N&kop.SrAltOrigin != 0 {
 		return s.altSearchZone(in) // OriginAlternative$: the elected zones (zone_originalternative.go)
 	}
+	if in.B.N&(kop.SrSideboard|kop.SrNoLibrary) == kop.SrSideboard|kop.SrNoLibrary {
+		return kop.ZoneSideboard // Origin$ Sideboard alone: the library is not searched (zone_sideboardsearch.go)
+	}
 	return kop.ZoneLibrary
 }
 
@@ -1600,6 +1612,10 @@ func (s *State) searchCands(k *prep, d *Decision) {
 	}
 	if altOp(in) {
 		s.altOriginCands(k, in, d)
+		return
+	}
+	if sideOp(in) {
+		s.sideCands(k, in, d) // zone_sideboardsearch.go
 		return
 	}
 	p := s.g.pickP
@@ -1713,7 +1729,7 @@ func (s *State) finishSearchNow(k *prep) {
 // at the ask).
 func (s *State) finishSearchTail(k *prep) {
 	if k.gen != nil && k.gen.anyKwAct && s.searchZone(k) == kop.ZoneLibrary && s.g.pickF&kop.SrGraveExile == 0 {
-		if q := s.chooserOf(s.g.pickP); q == s.g.pickP {
+		if q := s.chooserOf(k, s.g.pickP); q == s.g.pickP {
 			s.fireKwAct(k, kop.TrigSearchedLibrary, q, 0) // trig_modes.go
 		}
 	}
@@ -2439,7 +2455,7 @@ func (s *State) branchPayable(k *prep, b uint8, p uint8) bool {
 		if n.Op != kop.OpUnlessPaid && n.Op != kop.OpIfPaid && n.Op != kop.OpUnlessSwitched {
 			return true
 		}
-		return s.canPayGen(k, p, unlessPayKind(int(n.C&0xF), n.B.N), s.value(k, n.A), n.B.N, n.F)
+		return s.canPayGen(k, p, unlessPayKind(int(n.C&0xF), n), s.value(k, n.A), n.B.N, n.F)
 	}
 	return true
 }

@@ -85,7 +85,7 @@ func (s *State) filtUsable(k *prep, sl Slot) bool {
 	if s.filtNoTap(k, sl) {
 		return DebugFiltFirstNoLimit || pm.actUsed&(1<<uint(k.gen.filt(s.cardAt(sl)))) == 0
 	}
-	return pm.flags&pfTapped == 0 && !(pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0)
+	return pm.flags&pfTapped == 0 && !(s.activationSick(k, sl))
 }
 
 // filtFirstMask is scriptFilt on a table with a first-only filter: p's

@@ -113,13 +113,13 @@ def load_dirac(path):
 
 
 def read_support_page(path=SUPPORT_PAGE):
-    """The rows of dirac/docs/support.md's table: {list: {count: n}}."""
+    """The rows of dirac/docs/support.md's table: {list: {count: n}}; columns past SUPPORT_COUNTS (the 4-seat ceiling) are not part of the snapshot."""
     rows = {}
     with open(path, encoding="utf-8") as f:
         for line in f:
             cells = [c.strip() for c in line.strip().strip("|").split("|")]
-            if line.startswith("|") and len(cells) == 1 + len(SUPPORT_COUNTS) and cells[1].isdigit():
-                rows[cells[0]] = dict(zip(SUPPORT_COUNTS, map(int, cells[1:])))
+            if line.startswith("|") and len(cells) >= 1 + len(SUPPORT_COUNTS) and cells[1].isdigit():
+                rows[cells[0]] = dict(zip(SUPPORT_COUNTS, map(int, cells[1:1 + len(SUPPORT_COUNTS)])))
     return rows
 
 

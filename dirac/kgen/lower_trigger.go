@@ -256,6 +256,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// gorge attackedDefenderMatches, from the trigger controller's
 			// seat: only the player / your-planeswalker alternatives the
 			// two-player kernel answers exactly; the rest refuse
+			// (seat-exact but for Player.withMostLife, marked below)
 			for _, alt := range strings.Split(v, ",") {
 				switch strings.TrimSpace(alt) {
 				case "You":
@@ -277,6 +278,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 					}
 					tr.Attacked |= atkOpp
 					atkMostLife = true
+					lc.twoSeat("Attacked$ Player.withMostLife read as the one opponent")
 				default:
 					return refuse("Attacks Attacked %q", v)
 				}
@@ -690,7 +692,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// referents, which the line key collapses) stays refused.
 		// ExcessDamageAll is not this mode.
 		switch vt := tp.str("ValidTarget"); vt {
-		case "Opponent", "You":
+		case "Opponent":
+			lc.twoSeat("DamageAll over the opponents read as one referent")
+		case "You":
 		default:
 			return refuse("DamageAll ValidTarget %q", vt)
 		}
@@ -2169,6 +2173,18 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		if err := lc.disableTriggersStatic(sp, &st); err != nil {
 			return nil, err // lower_disabletriggers.go
 		}
+	case "ActivateAbilityAsIfHaste", "CantBeSuspected":
+		// gorge activatesAsIfHaste (rules/activateasifhaste.go) skips an
+		// unscoped static (fail closed); cantBeSuspected
+		// (rules/cantbesuspected.go) reads an unscoped one as blanket. The
+		// corpus always scopes both: refuse the bare form rather than pick.
+		sp.consume("Secondary")
+		if st.F, err = readF("ValidCard"); err != nil {
+			return nil, err
+		}
+		if st.F == nil || len(st.F.Clauses) == 0 || st.F.Players != 0 {
+			return nil, refuse("%s ValidCard %q", s.Mode, s.Params["ValidCard"])
+		}
 	default:
 		return nil, refuse("static mode %s", s.Mode)
 	}
@@ -3333,6 +3349,9 @@ func (lc *lowerCtx) damageRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		return nil
 	}
 	if ok, err := lc.preventMillRepl(rp, w, rl); ok || err != nil { // lower_replmult.go
+		return err
+	}
+	if ok, err := lc.selfDamageRepl(rp, w, rl); ok || err != nil { // lower_replmult.go
 		return err
 	}
 	return lc.damageDoubler(rp, w, rl)

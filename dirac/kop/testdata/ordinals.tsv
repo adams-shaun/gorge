@@ -118,6 +118,7 @@ CostExileCtrlOrGrave	CostFlags	1073741824
 CostExileGrave	CostFlags	512
 CostExileSelf	CostFlags	1048576
 CostForage	CostFlags	65536
+CostHostExile	uint8	2
 CostHostSac	uint8	1
 CostLoyalty	CostFlags	4096
 CostLoyaltyX	CostFlags	536870912
@@ -239,11 +240,15 @@ CtrlHitBySrc	CtrlSel	4
 CtrlOpp	CtrlSel	2
 CtrlYou	CtrlSel	1
 CzBattleGrave	untyped int	8
+CzHandGrave	untyped int	32
+CzLibrarySideboard	untyped int	16
+CzShuffleEach	untyped int	64
 CzUntilLeaves	untyped int	1
 DelayBeginCombat	untyped int	6
 DelayDiesThisTurn	untyped int	5
 DelayEndCombat	untyped int	3
 DelaySpellCast	untyped int	4
+DelaySpellUncounter	untyped int	8
 DelayUpkeep	untyped int	1
 DelayYourEndStep	untyped int	7
 DelayYourUpkeep	untyped int	2
@@ -385,6 +390,7 @@ ExSneaked	ExprKind	51
 ExStartingLife	ExprKind	14
 ExSum	ExprKind	25
 ExSumPower	ExprKind	5
+ExTargetPlayers	ExprKind	223
 ExThisTurnActGrave	ExprKind	50
 ExThisTurnCast	ExprKind	33
 ExThisTurnCastSpec	ExprKind	47
@@ -455,10 +461,10 @@ ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
 ExtSearchCounters	ExtOp	252
+ExtSpellToLib	ExtOp	308
 ExtSuspect	ExtOp	190
 ExtSweepFrom	ExtOp	97
 ExtToGraveyard	ExtOp	192
-ExtSpellToLib	ExtOp	308
 ExtTokenPT	ExtOp	170
 ExtTurnFaceUp	ExtOp	254
 ExtTwoPilesSac	ExtOp	4
@@ -796,9 +802,11 @@ OvChosenColor	untyped int	1
 OvEnterWith	untyped int	2
 PanhModeDrawn	int16	2
 PanhModeLifeGained	int16	1
+PayAddCounter	untyped int	16
 PayBBehold	untyped int	6
 PayBRemember	untyped int	4
 PayBReveal	untyped int	5
+PayBSubAddCounter	untyped int	15
 PayBSubBlight	untyped int	1
 PayBSubChain	untyped int	8
 PayBSubDamage	untyped int	14
@@ -960,9 +968,10 @@ ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	36
+ReplCount	ReplKind	38
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
+ReplDamageHealFirst	ReplKind	37
 ReplDamagePlus	ReplKind	16
 ReplDestroyHeal	ReplKind	32
 ReplDiscardOppToBattlefield	ReplKind	33
@@ -998,6 +1007,7 @@ ReplOnePoison	ReplKind	22
 ReplOppsCantWinGame	ReplKind	9
 ReplOthersDoesntUntap	ReplKind	15
 ReplOthersEnterProgram	ReplKind	7
+ReplPreventDamageCounters	ReplKind	36
 ReplPreventMillOpps	ReplKind	34
 ReplPreventNoncombatToOthers	ReplKind	11
 ReplRewriteTokens	ReplKind	30
@@ -1020,13 +1030,16 @@ SpmManifestUp	SpecialMask	4
 SpmMorphUp	SpecialMask	1
 SpmTurnFaceUp	SpecialMask	15
 SpmUnlock	SpecialMask	16
+SrAltGraveHand	int	1
 SrAltOrigin	untyped int	16
 SrAltZoneShift	untyped int	5
 SrAttacking	untyped int	4096
 SrAuraEntry	untyped int	8
+SrChooserOpp	untyped int	1
 SrChooserYou	untyped int	64
 SrConfirm	untyped int	16
 SrDifferentNames	untyped int	8192
+SrExactly	untyped int	4
 SrForgetChanged	untyped int	2
 SrForgetOther	untyped int	1024
 SrGameGrave	untyped int	8
@@ -1034,6 +1047,7 @@ SrGraveExile	untyped int	512
 SrHandGrave	untyped int	4
 SrImprint	untyped int	256
 SrMandatory	untyped int	4
+SrNoLibrary	untyped int	2048
 SrNoShuffle	untyped int	16384
 SrOwnZone	untyped int	256
 SrRandom	untyped int	32768
@@ -1041,6 +1055,7 @@ SrRemember	untyped int	32
 SrReveal	untyped int	128
 SrShareLandType	untyped int	512
 SrShuffleOptional	untyped int	8
+SrSideboard	untyped int	1024
 SrTapped	untyped int	1
 SrThenTop	untyped int	2
 SrUnderYourControl	untyped int	2048
@@ -1085,12 +1100,14 @@ StackKwSplitSecond	int16	6
 StackKwStorm	int16	5
 StatAlternativeCost	StaticKind	5
 StatAnyTypeCreatures	StaticKind	239
+StatAsIfHaste	StaticKind	231
 StatBeamGrant	StaticKind	253
 StatCDAPT	StaticKind	10
 StatCanAttackDefender	StaticKind	250
 StatCantActivate	StaticKind	236
 StatCantAttack	StaticKind	8
 StatCantBeBeamedUp	StaticKind	244
+StatCantBeSuspected	StaticKind	230
 StatCantBeCast	StaticKind	16
 StatCantBlock	StaticKind	3
 StatCantBlockBy	StaticKind	4
@@ -1238,6 +1255,7 @@ TgtCopyAb	TargetKind	236
 TgtCopyTrig	TargetKind	237
 TgtNone	TargetKind	0
 TgtObject	TargetKind	1
+TgtGraveExileCard	TargetKind	241
 TgtPermOrGraveCard	TargetKind	240
 TgtPermOrSpell	TargetKind	235
 TgtPlayer	TargetKind	2
@@ -1360,6 +1378,7 @@ W7NotChosenType	int16	6
 W7SharesCrTrigObj	int16	21
 W7SharesNameLegend	int16	10
 W7WithDisguise	int16	22
+W7WithFlashback	int16	26
 W7WithWarp	int16	11
 WhoseAny	Whose	0
 WhoseEnchCtrl	Whose	3

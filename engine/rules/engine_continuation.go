@@ -128,9 +128,10 @@ type engineContinuation struct {
 	// Zero on every live engine.
 	causePin state.ObjID `clone:"reset"`
 	// entrySettling is the entrant whose entry counters an entry-settle
-	// preview is settling (settleEntryGrants). CR 614.12: the permanent's own
+	// preview is settling (settleEntryGrants), or whose unabsorbed Updated
+	// entry body is running (runEntryBody). CR 614.12: the permanent's own
 	// AddCounter replacement applies to those counters only when it affects
-	// that permanent alone. Zero on every live engine.
+	// that permanent alone. Zero outside those two scopes.
 	entrySettling state.ObjID `clone:"reset"`
 	// costCounters is non-zero while a cost's own counter placement is being
 	// emitted (an activation's AddCounter<N/KIND> part -- a planeswalker's

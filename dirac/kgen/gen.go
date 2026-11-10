@@ -565,6 +565,12 @@ func costString(c lCost) string {
 	if c.SacHost {
 		p = append(p, "SacHost")
 	}
+	if c.HostExile {
+		p = append(p, "HostExile")
+	}
+	if c.SacExile {
+		p = append(p, "SacExile")
+	}
 	if c.TapPowN > 0 {
 		p = append(p, fmt.Sprintf("TapPow%d%s", c.TapPowN, c.TapPowF))
 	}

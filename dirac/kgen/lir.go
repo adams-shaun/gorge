@@ -173,7 +173,9 @@ const (
 	vYourExtraTurns      // 1 if the controller has begun an extra turn this game, else 0 (Count$YourExtraTurns)
 	vNotOwnLibMV         // the mana values of the remembered library cards the repeated player does not own (Count$ValidLibrary Card.IsRemembered+!RememberedPlayerOwn$CardManaCost, a RepeatEach body)
 	vCounterKinds        // the distinct counter kinds among the battlefield objects matching F (Count$DifferentCounterKinds_<spec>)
+	vTargetPlayers       // 1 when target slot Ref holds a player, else 0 (TargetedPlayer$Amount of an opponents-only slot)
 	vIfCastOwnMain       // Sub[0] if the controller is the active player in a main phase and the source spell was cast, else Sub[1] (Count$IfCastInOwnMainPhase.<yes>.<no>)
+	vPWTypes             // the distinct planeswalker subtypes printed on the battlefield planeswalkers matching F (Count$Valid <spec>$PlaneswalkerType)
 	vCount_
 )
 
@@ -181,7 +183,7 @@ var valNames = [...]string{"None", "Const", "X", "Count", "CountGraveyard", "Sum
 	"Morbid", "AttackedThisTurn", "PowerOf", "ToughnessOf", "LifeOf", "LibrarySizeOf", "StartingLife",
 	"TriggerAmount", "LifeGainedThisTurn", "OppLifeLostThisTurn", "CountersOn", "CreaturesDied",
 	"RememberedCount", "ExcessDamage", "LastLifeLost", "TokensCreated", "CountCast", "LifeLostThisTurn", "Sum",
-	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "IfCastOwnMain"}
+	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes"}
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
 // that order, then negated when Neg.
@@ -454,6 +456,11 @@ type lTarget struct {
 	// graveyard card matching F (TgtPermOrGraveCard)
 	PermOrGraveCard bool
 
+	// GraveExileCard: with Origin$ Graveyard,Exile, a card in a graveyard or
+	// exile matching F, clause i in ClauseZones[i] (TgtGraveExileCard)
+	GraveExileCard bool
+	ClauseZones    []int
+
 	AtRes   bool   // asked mid-resolution (gorge's deferred chain-link targets), at its ChooseTargets
 	ChgSub  bool   // declared by a ChangeZone chain link (not the root): gorge announces its targets on cast (castSubChangeZoneAnnounceable)
 	Decl    bool   // a spell's copy target declaration (its root node or a charm mode's head)
@@ -492,12 +499,16 @@ type lCost struct {
 	SubCtrKnd      string
 	AddCtr         int // put N counters of kind AddCtrKnd on the source (AddCounter<N/KIND>; Wall of Roots' M0M1)
 	AddCtrKnd      string
+	AddCtrRef      lRef // the UnlessCost$ AddCounter recipient: rSelf for CARDNAME/NICKNAME, rTarget for Card.targetedBy
 	PayLife        int
-	LifeX          bool // PayLife<X>: pay the announced X life, SVar X Count$xPaid (kop.CostPayLife with N 0)
-	TapN           int  // tap N untapped creatures you control matching TapF
+	LifeX          bool    // PayLife<X>: pay the announced X life, SVar X Count$xPaid (kop.CostPayLife with N 0)
+	LifeBy         *lValue // PayLife<X> of a printed trigger's own cost, X read as the cost is paid (SVar X TriggeredCard$CardPower; payInstr)
+	TapN           int     // tap N untapped creatures you control matching TapF
 	TapF           *lFilter
 	TapHost        bool // tap the granting host (tapXType<1/OriginalHost>)
-	SacHost        bool // sacrifice the granting host (Sac<1/OriginalHost>)
+	SacHost        bool // sacrifice the granting host (Sac<1/OriginalHost>), or exile it when HostExile (Exile<1/OriginalHost>)
+	HostExile      bool // SacHost's part exiles the granting host (kop.CostHostExile; an activated ability's cost only)
+	SacExile       bool // Sac/SacN's part is Exile<N/Spec> from the battlefield (kop.Cost.ExileBf; an activated ability's or a spell's additional cost only)
 	TapPowN        int  // tap any number of untapped creatures you control matching TapPowF with total power >= TapPowN (Crew, Saddle; lower_tappower.go)
 	TapPowF        *lFilter
 	TapPowCrew     bool     // the tap-power cost is Crew (graveexile: candidates' TapPowerCrew applies)
@@ -532,7 +543,7 @@ type lCost struct {
 func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && c.Loyalty == 0 && !c.LoyaltyX &&
-		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && c.TapPowN == 0 && !c.Exert &&
+		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
 		c.Forage == nil && c.ExileG == nil && c.ExileHandN == 0 && c.Energy == 0 && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.ExileTrigNew &&
 		!c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil
@@ -886,6 +897,7 @@ type lCard struct {
 	P, T           int
 	PTStar         bool
 	NoPT           bool // the face prints no power or toughness (CardDef.NoPT)
+	TwoSeat        bool // the lowering holds only for 2 players (CardDef.TwoSeat, set by lowerCtx.twoSeat)
 	Loyalty        int
 	Defense        int // a Battle's printed Defense (lower_battle.go)
 	Kw             []string

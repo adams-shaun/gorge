@@ -18,10 +18,10 @@ func (s *State) notF2Perm(k *prep, fl *kop.Filter, sl Slot) bool {
 
 // notF2Card is PredNotF2 on a card off the battlefield (mirrors the F2 reads
 // of matchCardOneAt): EnteredThisTurn is the zone-change stamp, TargetedBy
-// reads the resolving entry; no object (o == NoObj) holds none of them. kgen
-// lowers no other bit: the negated !wasDealtDamageThisTurn stays refused
-// (kgen lower_selfcondition.go); the positive form reads s.g.dmgTurn, which
-// survives a zone change like gorge's WasDealtDamageThisTurn.
+// reads the resolving entry, WasDamaged reads s.g.dmgTurn (which survives a
+// zone change like gorge's WasDealtDamageThisTurn, so a destroyed target in
+// the graveyard keeps its record); no object (o == NoObj) holds none of them.
+// kgen lowers no other bit.
 //
 //go:noinline
 func (s *State) notF2Card(fl *kop.Filter, o Obj) bool {
@@ -33,6 +33,8 @@ func (s *State) notF2Card(fl *kop.Filter, o Obj) bool {
 			has = s.g.zoneTurn.has(o)
 		case kop.F2TargetedBy:
 			has = s.flags2Obj(f, o)
+		case kop.F2WasDamaged:
+			has = s.g.dmgTurn.has(o)
 		}
 	}
 	return has == DebugPropNegPositive

@@ -1068,7 +1068,9 @@ export interface Option {
    * its own AlternateCost$ rider (engine/rules/activate.go's abilityAlternateCost,
    * the K:Equip expansion's fourth colon field), so an equip offering its
    * alternate cost is distinguishable from the printed-cost option without
-   * parsing the label. omitempty mirrors Obj: an
+   * parsing the label. On a "warped" cast option it is instead the 0-based
+   * warp instance (engine/rules/warp_grant.go's altRowCosts: the printed
+   * Warp cost, then each hand grant's) the cast pays. omitempty mirrors Obj: an
    * option paying the card's own cost (the common case, and the default
    * every other Option literal in the tree relies on) carries no field, so
    * today's payloads are unchanged for it.

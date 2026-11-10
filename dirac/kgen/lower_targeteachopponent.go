@@ -27,6 +27,7 @@ import "strings"
 // OppCtrl (filter.go maps YouDontCtrl to whoOpp). Lowered Max 1 over that
 // candidate set equals gorge's distinct-owner count (targets_ask.go:127-148):
 // one owner group, so the same single ask over the same candidates.
+// twoSeat-at-caller: forEachOpp, below, marks the card.
 // otherOneEach reports the accepted PlayerCountOther$ shape, whose bounds the
 // caller sets directly (value.go knows no PlayerCountOther head, and that
 // alias is deliberately not added). It requires the same opponent-permanent
@@ -78,6 +79,7 @@ func (lc *lowerCtx) forEachOpp(ps *params, f *lFilter, t *lTarget) error {
 	if !oneEach && (!t.Max.isConst() || t.Max.N != 1) {
 		return refuse("TargetsForEachPlayer$ shape %q: TargetMax$ %q", v, mx)
 	}
+	lc.twoSeat("one target for each opponent read as one target")
 	t.Max = cst(1)
 	return nil
 }
