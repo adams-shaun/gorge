@@ -247,7 +247,8 @@ func FilterManaAb(a *Ability) bool {
 		return false
 	}
 	if a.ManaEach {
-		return FilterEachManaAb(a)
+		c := a.ManaColors
+		return a.AFlags == 0 && a.Cost.Flags == CostTap && c&^ColAny == 0 && c&(c-1) != 0
 	}
 	switch a.AFlags {
 	case 0:
@@ -259,13 +260,11 @@ func FilterManaAb(a *Ability) bool {
 	return false
 }
 
-// FilterEachManaAb reports whether filter a (FilterManaAb's fee shape) is the
-// all-at-once one: "{N}, {T}: Add {c1}{c2}..." of two or more distinct WUBRG
-// colours, one of each, no choice (Skycloud Expanse).
-func FilterEachManaAb(a *Ability) bool {
-	c := a.ManaColors
-	return a.ManaEach && a.AFlags == 0 && a.Cost.Flags == CostTap && a.ManaN <= 1 && c&^ColAny == 0 && c&(c-1) != 0
-}
+// FilterEachManaAb reports whether mana ability a is the all-at-once filter
+// FilterManaAb admits: "{N}, {T}: Add {c1}{c2}..." of two or more distinct
+// WUBRG colours, one of each, no choice (Skycloud Expanse). A plain {T} one
+// (Azorius Chancery) is not: it has no fee.
+func FilterEachManaAb(a *Ability) bool { return a.ManaEach && FilterManaAb(a) }
 
 // ManaAbilityHonoured reports whether the kernel can activate ability j of
 // cd, an AbMana. It is true for any other ability kind.

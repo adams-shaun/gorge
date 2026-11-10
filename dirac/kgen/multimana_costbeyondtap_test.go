@@ -62,3 +62,20 @@ func TestLowerMultimanaCostBeyondTap(t *testing.T) {
 		}
 	}
 }
+
+// TestFilterEachManaAbNeedsAFee: a plain "{T}: Add {W}{U}" (a bounce land's) is
+// no all-at-once filter, so the kernel's prep keeps its all-at-once unit.
+func TestFilterEachManaAbNeedsAFee(t *testing.T) {
+	const land = "Name:Expanse Probe\nManaCost:no cost\nTypes:Land\n"
+	def, rs := kwardpowBuild(t, "Expanse Probe", land+"A:AB$ Mana | Cost$ T | Produced$ W U | SpellDescription$ Probe pair.\n")
+	if len(rs) != 0 {
+		t.Fatalf("refused: %v", rs)
+	}
+	a := &def.Abilities[0]
+	if a.Kind != kop.AbMana || !a.ManaEach || a.Cost.Mana.Generic != 0 {
+		t.Fatalf("ability %+v: want a plain {T} ManaEach", a)
+	}
+	if kop.FilterEachManaAb(a) || kop.FilterManaAb(a) {
+		t.Fatal("a plain {T}: Add {W}{U} reads as a filter")
+	}
+}
