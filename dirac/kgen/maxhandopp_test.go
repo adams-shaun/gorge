@@ -12,9 +12,9 @@ const winterScript = `Name:Test Winter
 ManaCost:1 B R G
 Types:Legendary Creature Human Warlock
 PT:3/4
-S:Mode$ Continuous | Condition$ Delirium | Affected$ Opponent | SetMaxHandSize$ Y | Description$ Delirium
-SVar:X:Count$ValidGraveyard Card.YouOwn$CardTypes
-SVar:Y:Number$7/Minus.X
+S:Mode$ Continuous | Condition$ Delirium | Affected$ Opponent | SetMaxHandSize$ Cap | Description$ Delirium
+SVar:Seen:Count$ValidGraveyard Card.YouOwn$CardTypes
+SVar:Cap:Number$7/Minus.Seen
 Oracle:Delirium.
 `
 
@@ -40,9 +40,9 @@ func TestMaxHandOpp(t *testing.T) {
 		t.Fatalf("no NoMaxHandSize static in %+v", p.Statics)
 	}
 	for _, tc := range []struct{ name, from, to, want string }{
-		{"another param", "SetMaxHandSize$ Y", "SetMaxHandSize$ Y | AddKeyword$ Hexproof", "beside AddKeyword$"},
-		{"a literal", "SetMaxHandSize$ Y", "SetMaxHandSize$ 4", "for opponents"},
-		{"unlimited", "SetMaxHandSize$ Y", "SetMaxHandSize$ Unlimited", "for opponents"},
+		{"another param", "SetMaxHandSize$ Cap", "SetMaxHandSize$ Cap | AddKeyword$ Hexproof", "beside AddKeyword$"},
+		{"a literal", "SetMaxHandSize$ Cap", "SetMaxHandSize$ 4", "for opponents"},
+		{"unlimited", "SetMaxHandSize$ Cap", "SetMaxHandSize$ Unlimited", "for opponents"},
 	} {
 		r := lowerScript(t, "Test Winter", strings.Replace(winterScript, tc.from, tc.to, 1))
 		if len(r) == 0 || !strings.Contains(strings.Join(r, "\n"), tc.want) {
