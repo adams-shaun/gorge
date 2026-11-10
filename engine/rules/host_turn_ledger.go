@@ -105,6 +105,17 @@ func (e *Engine) CountersAddedThisTurn(kind, actorSpec, objectSpec string, sc ef
 	return n
 }
 
+// CounterAddsThisTurn publishes the per-turn counter ledger as the id-keyed
+// view the countersReceivedThisTurn filter word reads (effects' counterAddsHost
+// role). Same entries and same reset as CountersAddedThisTurn's input.
+func (e *Engine) CounterAddsThisTurn() []effects.CounterAdd {
+	out := make([]effects.CounterAdd, 0, len(e.counterAddsThisTurn))
+	for _, add := range e.counterAddsThisTurn {
+		out = append(out, effects.CounterAdd{Adder: add.actor, Obj: add.object.ID, Kind: add.kind, Amount: add.amount})
+	}
+	return out
+}
+
 // DamageTakenThisTurn satisfies effects.Host's DamageTakenThisTurn for the
 // TargetedPlayer$DamageThisTurn count head (Knollspine Dragon's "draw cards
 // equal to the damage dealt to target opponent this turn"): the total damage

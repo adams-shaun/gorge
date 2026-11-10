@@ -33,6 +33,9 @@ func wordPredicateNewWords(p string) (kind wordKind, key string, ok bool) {
 	case wordPredicateWordDealtCombatDamageToAny:
 		return wordDealtCombatDamageToAny, "", true
 	}
+	if kind, key, ok := countersReceivedWordKind(p); ok {
+		return kind, key, true
+	}
 	if rest, has := strings.CutPrefix(p, "attacking "); has {
 		if arg := strings.TrimSpace(rest); playerSpecBaseCodes.Code(arg) != 0 {
 			return wordAttackingPlayer, arg, true

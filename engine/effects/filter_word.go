@@ -317,6 +317,8 @@ const (
 	wordBlockedByRemembered
 	wordBlockedRemembered
 	wordBlockedBySourceLKI
+	// countersReceivedThisTurn_<cmp><N>_Any_You: filter_word_counters_received.go.
+	wordCountersReceived
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -935,6 +937,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	case wordBlockingSource, wordBlockedBySource, wordBlockedByValid, wordBlockedValid,
 		wordBlockedByRemembered, wordBlockedRemembered, wordBlockedBySourceLKI:
 		return blockHistoryMatches(kind, key, g, o, &sc)
+	case wordCountersReceived:
+		return countersReceivedMatches(o, sc, key)
 	case wordNumTypesGE:
 		// Forge's numTypesGE<n>: the object's printed face carries at least
 		// n distinct real card types (CR 205.1). The vocabulary is the one
