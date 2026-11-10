@@ -17,7 +17,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // emblem (Mysterio, Master of Illusion's tokens past the fourth): the slots
 // hold four, so the game stalls rather than forget the rest (a declared
 // capacity limit).
-const StallEmbRem = 160
+const StallEmbRem = 161
 
 func init() { stallNames[StallEmbRem] = "embrem" }
 
