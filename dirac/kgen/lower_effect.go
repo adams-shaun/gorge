@@ -599,6 +599,14 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 	if c, ok := ps.get("ConditionPlayerTurn"); ok {
 		return lc.playerTurnCondition(ps, c)
 	}
+	if c, ok := ps.get("ConditionPhases"); ok {
+		// a lone ConditionPhases$ (the player-turn pair is handled above);
+		// any other Condition*$ key beside it refuses
+		if beside := conditionKeysBesides(ps, "ConditionPhases"); len(beside) > 0 {
+			return lCond{}, refuse("ConditionPhases$ beside %s$", beside[0])
+		}
+		return lc.phasesCondition(c)
+	}
 	if err := lc.notPresentAsPresent(ps); err != nil { // lower_condnotpresent.go
 		return lCond{}, err
 	}

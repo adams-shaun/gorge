@@ -2463,7 +2463,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	// RememberObjects$ Targeted beside ValidTgts$ (The Inner Light: "choose
 	// target creature. Whenever it deals combat damage to a player this
 	// turn"): the chain's target slot is the emblem's capture
-	capture, hasCap, err := lc.emblemCapture(ps, t, eot)
+	capture, hasCap, t, err := lc.emblemCapture(ps, t, eot)
 	if err != nil {
 		return err
 	}
