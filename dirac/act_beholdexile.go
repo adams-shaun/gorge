@@ -24,12 +24,17 @@ const pkBeholdEx = pickKind(kop.CostSacSelf) | pkExile
 // exiled-with link, so the leaves trigger never returns the card.
 var DebugBeholdExileNoLink bool
 
-// beholdExRecord records a BeholdExile candidate as the spell's pick.
+// beholdExRecord records a BeholdExile candidate as the spell's pick. It
+// leaves pickLeft as it found it: the lone candidate is recorded outside any
+// posed pick, and a pickLeft wrapped below zero would hold a later counter
+// pick (pickSubCtr, Dawnhand Dissident's "removing three counters") open in
+// costPickOptions, which then poses it with no candidate.
 func (s *State) beholdExRecord(o Obj) {
 	b := s.bld()
+	left := b.pickLeft
 	b.pickK = pkBeholdEx
 	s.recordPick(o)
-	b.pickK = 0
+	b.pickK, b.pickLeft = 0, left
 }
 
 // answerBeholdPick consumes the behold answer a: the either-or's records
