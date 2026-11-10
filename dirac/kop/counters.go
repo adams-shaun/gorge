@@ -104,6 +104,12 @@ const StAlsoSideboard = StYouHexproof
 // free = WithoutManaCost). It aliases StRaiseYou, an IncreaseCost-only flag.
 const StFreeOnly = StRaiseYou
 
+// StHandOpp is StRaiseOpp read on a StatNoMaxHandSize: the static sets its
+// controller's opponents' maximum hand size (Winter, Misanthropic Guide's
+// Affected$ Opponent), not its controller's. StaticFlags is full at 16 bits;
+// NoMaxHandSize reads no IncreaseCost flag.
+const StHandOpp = StRaiseOpp
+
 // StReduceAny is StRaiseOpp read on a StatReduceCost: the reduction applies to
 // the spells of either player (a ReduceCost with no Activator$, Helm of
 // Awakening), where a ReduceCost with Activator$ You reduces its controller's.

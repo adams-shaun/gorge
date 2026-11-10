@@ -1081,6 +1081,7 @@ StFbOwnCost	StaticFlags	1
 StFreeOnly	StaticFlags	128
 StFunctionsInExile	StaticFlags	1024
 StFunctionsInGraveyard	StaticFlags	16
+StHandOpp	StaticFlags	256
 StMayPayLife	StaticFlags	8192
 StMayRaise	StaticFlags	32768
 StNoPrevCombat	StaticFlags	2

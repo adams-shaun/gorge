@@ -2298,6 +2298,9 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 	if sp.is("MayPlay", "True") {
 		return nil, lc.mayPlayStatic(sp, st, aff)
 	}
+	if _, ok := sp.get("SetMaxHandSize"); ok && aff == "Opponent" {
+		return nil, lc.oppMaxHand(sp, st) // lower_playerstatic.go
+	}
 	if aff == "You" {
 		switch {
 		case sp.is("SetMaxHandSize", "Unlimited"):
