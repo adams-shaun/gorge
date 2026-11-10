@@ -553,6 +553,7 @@ KwVigilance	KwMask	128
 KwWard	KwMask	131072
 KwWither	KwMask	1048576
 LibBottomGrave	untyped int	11
+LibBottomRememberBF	untyped int	12
 LibBottomRememberGrave	untyped int	9
 LibBottomShuffle	untyped int	7
 LibChoiceSecond	untyped int	1
