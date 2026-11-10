@@ -115,14 +115,14 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +6 (a static's granted Exalted lowers as a latent Attacks trigger: First Sliver's Chosen, Merchant of Truth, Order of Sacred Dusk, Sublime Archangel, Xenk, Paladin Unbroken, Zarda, the Power Princess; ALL 21873 -> 21879).
 	// +3 (a filter whose activation cost sacrifices its source lowers, kop.FilterManaAb: Omni-Cheese Pizza (TMT 174 -> 175), Chromatic Star, Golden Egg; ALL 21930 -> 21933).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21945, 34442},
+	"ALL": {21947, 34442},
 	"BIG": {24, 30},
 	"BLB": {260, 278},
 	"BRO": {214, 280},
 	"DFT": {252, 276},
 	"DMU": {194, 270},
-	"DSK": {243, 276},
-	"ECL": {237, 273},
+	"DSK": {244, 276},
+	"ECL": {238, 273},
 	"EOE": {242, 266},
 	"FDN": {517, 517},
 	"FIN": {271, 312},
