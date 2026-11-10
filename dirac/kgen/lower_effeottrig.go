@@ -130,3 +130,37 @@ func emblemCaptureFilter(ab *lAbility) error {
 	}
 	return nil
 }
+
+// effectSourceTrigger reads an until-end-of-turn Effect trigger whose
+// ValidSource$ is exactly Card.EffectSource on a DamageDone event (Lyra,
+// Tolarian Archangel: "whenever it deals combat damage to a player this
+// turn"). gorge's EffectSource is the Effect's source object (a stable id: a
+// source that left and came back is still it); the kernel's capture emblem
+// remembers an object and fires only for it as the damage source, so the
+// filter is rewritten to the remembered spelling and the caller captures the
+// source (rSelf). found reports the rewrite. Any other EffectSource
+// spelling or key in the trigger body refuses; nothing else is touched.
+func effectSourceTrigger(ps *params, t cards.Trigger) (cards.Trigger, bool, error) {
+	has := false
+	for k, v := range t.Params {
+		if strings.Contains(v, "EffectSource") {
+			has = true
+			if k != "ValidSource" || v != "Card.EffectSource" || t.Mode != "DamageDone" {
+				return t, false, refuse("Effect trigger %s %s$ %q", t.Mode, k, v)
+			}
+		}
+	}
+	if !has {
+		return t, false, nil
+	}
+	if _, ok := ps.m["RememberObjects"]; ok {
+		return t, false, refuse("Effect trigger ValidSource$ Card.EffectSource beside RememberObjects$")
+	}
+	cp := make(map[string]string, len(t.Params))
+	for k, v := range t.Params {
+		cp[k] = v
+	}
+	cp["ValidSource"] = "Card.IsRemembered"
+	t.Params = cp
+	return t, true, nil
+}

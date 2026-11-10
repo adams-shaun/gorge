@@ -1253,6 +1253,14 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		}
 		kf.Sub = uint8(i + 1)
 	}
+	var sub2 int16 = -1
+	if c.Subtype2 != "" {
+		i, ok := cb.pt.sub(c.Subtype2)
+		if !ok {
+			return kf, fmt.Errorf("subtype %q", c.Subtype2)
+		}
+		sub2 = int16(i)
+	}
 	if c.NotSubtype != "" {
 		i, ok := cb.pt.sub(c.NotSubtype)
 		if !ok {
@@ -1595,6 +1603,15 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		default:
 			return kf, fmt.Errorf("counter compare %d", c.CmpOp)
 		}
+	}
+	if sub2 >= 0 {
+		// the second subtype takes the clause's one Pred slot (kernel
+		// PredSubtype: Table.Subtypes index N, read on a permanent and on a
+		// card in any other zone)
+		if kf.Pred != kop.PredNone || c.Name != "" && c.Flags&fNamedAsSource == 0 {
+			return kf, fmt.Errorf("two subtypes beside a compare")
+		}
+		kf.Pred, kf.PredN = kop.PredSubtype, sub2
 	}
 	if c.Name != "" && c.Flags&fNamedAsSource == 0 {
 		// a named<X> clause, the source's own name included

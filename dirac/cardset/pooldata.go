@@ -452,6 +452,16 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 				f.NotSubs[i] = subOf(n - 1)
 			}
 		}
+		if f.Pred == kop.PredSubtype {
+			// PredN is the pool's subtype index (a clause's second subtype);
+			// the compact table renumbers them. One no object here can have
+			// maps past every subtype (NoSubtype-1, as Sub's sentinel).
+			if m, ok := subMap[uint8(f.PredN)]; ok {
+				f.PredN = int16(m)
+			} else {
+				f.PredN = NoSubtype - 1
+			}
+		}
 		if f.Pred == kop.PredHistoric && f.PredN > 0 {
 			// PredN is the pool's Saga subtype index+1; the matchup's compact
 			// table renumbers subtypes, so the pool index would test an

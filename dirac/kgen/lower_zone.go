@@ -2424,6 +2424,15 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if err != nil {
 		return err
 	}
+	if !hasCap && eot {
+		var src bool
+		if t, src, err = effectSourceTrigger(ps, t); err != nil {
+			return err
+		}
+		if src {
+			capture, hasCap = lRef{Kind: rSelf}, true // the emblem remembers the Effect's source object
+		}
+	}
 	saved := len(lc.out.Abilities)
 	lc.capRem = hasCap && t.Mode == "DamageDealtOnce"
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
