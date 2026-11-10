@@ -198,6 +198,17 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 			a.addUnits(1<<kop.R, 1)
 		}
 	}
+	// A counter-rider or Taps-deferred source (Twitching Doll's "{T}: Add one
+	// mana of any color. Put a nest counter on this", a Taps watcher's Defer
+	// source) is deferred by the planner the same way, and CR 601.2g's window
+	// still taps it (mana_rider.go, mana_tapsdefer.go): gorge's xAsk reads the
+	// window, so the ask counts this unit too.
+	if s.g.availX&3 == 0 {
+		for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
+			pc := s.manaPCGen(k, b.first())
+			a.addUnits(s.srcMaskAt(pc, b.first()), srcYield(pc))
+		}
+	}
 	if k.gen == nil || k.gen.anyContGrant || len(k.gen.grantPC) == 0 {
 		return
 	}

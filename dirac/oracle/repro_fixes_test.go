@@ -822,6 +822,8 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"grant_prefix_paid_life_trigger", false, false},                // CR 119.4, 603.3, 307.1: Haunted Screen's 1 life in Overlord of the Hauntwoods' granted-mana prefix stacks Marina Vendrell's Grimoire's trigger, so the prefix taps on and passes for it to resolve before the cast
 		{"tapxtype_lands_need_green_pip", false, false},                 // CR 601.2g-h: Fear of Exposure's {G} has no source among p1's untapped permanents, so tapping two of them for the cost does not make it castable
 		{"tapxtype_floating_mana_beside_tapped_lands", false, false},    // CR 601.2g-h: floating U, B and G pay Fear of Exposure's mana cost, so two untapped lands remain to tap for its additional cost
+		{"rider_mana_extends_x_announcement", false, false},             // CR 601.2b, 601.2g: Twitching Doll's counter-rider mana is a source the window taps, so Valgavoth's Onslaught's {X}{X} is offered for 2 beside four floating mana (mana_rider.go)
+		{"rider_mana_extends_x_announcement_second", false, false},      // CR 601.2b, 601.2g: the same counter-rider unit makes X = 1 payable from the floating {G}, the Doll and Abandoned Campground (mana_rider.go)
 	})
 }
 
