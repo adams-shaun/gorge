@@ -54,7 +54,7 @@ func TestLowerEffectReplNamed(t *testing.T) {
 	const eclipse = "Name:Exile Bf Probe\nManaCost:1 B B\nTypes:Sorcery\n" +
 		"A:SP$ Effect | ReplacementEffects$ DeathRep | SpellDescription$ probe\n" +
 		"SVar:DeathRep:Event$ Moved | ValidLKI$ Creature.OppCtrl | Origin$ Battlefield | Destination$ Graveyard | ReplaceWith$ Exile | Description$ probe\n" +
-		"SVar:Exile:DB$ ChangeZone | Defined$ ReplacedCard | Origin$ Battlefield | Destination$ Exile\n"
+		"SVar:Exile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | Defined$ ReplacedCard\n"
 	const dog = "Name:Exile Bf Probe\nManaCost:1 W\nTypes:Creature Squirrel\nPT:2/2\n" +
 		"A:AB$ Effect | Cost$ 4 W | ReplacementEffects$ Plus | SpellDescription$ probe\n" +
 		"SVar:Plus:Event$ AddCounter | ActiveZones$ Battlefield | ValidCard$ Creature.YouCtrl+inZoneBattlefield | ValidCounterType$ P1P1 | ReplaceWith$ More | Description$ probe\n" +
@@ -71,8 +71,8 @@ func TestLowerEffectReplNamed(t *testing.T) {
 		{"eclipse permanent", eclipse, "Creature.OppCtrl", "Permanent.OppCtrl", `Effect replacement "DeathRep"`},
 		{"eclipse to hand", eclipse, "Destination$ Graveyard", "Destination$ Hand", `Effect replacement "DeathRep"`},
 		{"eclipse from anywhere", eclipse, "Origin$ Battlefield |", "Origin$ Any |", `Effect replacement "DeathRep"`},
-		{"eclipse to the library", eclipse, "Destination$ Exile", "Destination$ Library", `Effect replacement "DeathRep"`},
-		{"eclipse body extra key", eclipse, "Destination$ Exile", "Destination$ Exile | Foo$ Bar", `Effect replacement "DeathRep"`},
+		{"eclipse to the library", eclipse, "Destination$ Exile |", "Destination$ Library |", `Effect replacement "DeathRep"`},
+		{"eclipse body extra key", eclipse, "Destination$ Exile |", "Destination$ Exile | Foo$ Bar |", `Effect replacement "DeathRep"`},
 		{"eclipse active zone", eclipse, "Origin$ Battlefield | Destination$ Graveyard", "Origin$ Battlefield | Destination$ Graveyard | ActiveZones$ Command", `Effect replacement "DeathRep"`},
 		{"eclipse duration", eclipse, "ReplacementEffects$ DeathRep", "ReplacementEffects$ DeathRep | Duration$ UntilHostLeavesPlay", "Effect replacement Duration$"},
 		{"dog permanent", dog, "Creature.YouCtrl+inZoneBattlefield", "Permanent.YouCtrl+inZoneBattlefield", `Effect replacement "Plus"`},
