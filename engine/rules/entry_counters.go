@@ -486,7 +486,7 @@ func (e *Engine) entryBodyCounterGrants(ev events.Event, entrant state.ObjID) ([
 	}
 	absorb = func(m replMatch) {
 		matched := false
-		if m.svars != nil {
+		if m.face != nil && m.face != f {
 			// A clone template's line: its CheckSVar$ gate reads the
 			// TEMPLATE face's table (CR 707.2), not the entrant's own.
 			matched = e.activeZonesGateOK(*m.repl, m.id, matchEv) &&
@@ -511,13 +511,9 @@ func (e *Engine) entryBodyCounterGrants(ev events.Event, entrant state.ObjID) ([
 	// printed enters-with-counters lines (they are not on the entering face).
 	if ev.Kind == events.MoveZone {
 		if tf := entryCloneTemplateFace(e, entrant, f, matchEv); tf != nil {
-			tsv := tf.SVars
-			if tsv == nil {
-				tsv = map[string]string{}
-			}
 			for i := range tf.Repls {
 				if entryCounterBody(&tf.Repls[i]) {
-					absorb(replMatch{id: entrant, face: tf, repl: &tf.Repls[i], svars: tsv})
+					absorb(replMatch{id: entrant, face: tf, repl: &tf.Repls[i], svars: tf.SVars})
 				}
 			}
 		}

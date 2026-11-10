@@ -205,6 +205,8 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"restricted_witness_tap_survives_hybrid_lowering", false, false},
 		// CR 106.6, 601.2g-h: Helga, a Frog under Clement's grant, asks its mana ability with the {U} answer first for Plumecreed Mentor, so the grant's creature-only {U} prices the cast and Clement stays untapped
 		{"granted_mana_ask_tries_needed_colour_first", false, false},
+		{"clone_template_entry_condition_mockingbird_cutthroat", false, false},
+		{"clone_template_entry_condition_mockingbird_sparkshooter", false, false},
 	})
 }
 
