@@ -1558,6 +1558,7 @@ type dprog struct {
 	vers [4]uint8
 	n    uint8
 	ext  uint8 // dpExtBeginCombat/dpExtYourEndStep (trig_delaybegincombat.go, trig_delayedtiming.go): n's timing bits are full
+	sv   uint8 // the source's ver at registration (CR 603.7c): a delayed body's Self names that object, not the one at fire
 }
 
 // usedRec marks a once-per-turn use (a trigger, a MayPlay static).

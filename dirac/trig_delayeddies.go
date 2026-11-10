@@ -54,7 +54,7 @@ func (s *State) fireDiesProgs(o Obj, pl uint8) {
 		d := s.g.dp[i]
 		if d.n&dpDies != 0 && d.objs[0] == o {
 			m := s.npend
-			s.enqueue(d.src, s.objs[d.src].ver, d.card, d.ab, d.ctrl, o, pl, 0)
+			s.enqueue(d.src, d.sv, d.card, d.ab, d.ctrl, o, pl, 0)
 			if s.npend > m {
 				s.pend[m].li = s.g.dpLKI[i]
 			}

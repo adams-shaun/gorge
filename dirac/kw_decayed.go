@@ -23,7 +23,7 @@ const dpTrackAmt int16 = -3
 //
 //go:noinline
 func (s *State) delayTracked(e *stackEntry, in *kop.Instr) {
-	d := dprog{card: e.card, ab: uint8(in.C), ctrl: e.ctrl, src: e.obj, n: 1 | dpTrack | dpWhen(in), ext: dpExt(in)}
+	d := dprog{card: e.card, ab: uint8(in.C), ctrl: e.ctrl, src: e.obj, sv: s.objs[e.obj].ver, n: 1 | dpTrack | dpWhen(in), ext: dpExt(in)}
 	d.objs[0], d.vers[0] = e.obj, e.srcVer
 	s.g.dp[s.g.ndp] = d
 	s.g.dpLKI[s.g.ndp] = e.li

@@ -207,3 +207,43 @@ func TestDelayedSelfGraveyardControl(t *testing.T) {
 		t.Fatalf("source zone = %v, want battlefield", got)
 	}
 }
+
+// TestDelayedSelfRegistrationBlinkSkips: the source crossed the battlefield
+// boundary after the delayed trigger registered but before it fired, so the
+// body's Defined$ Self names the object that registered it (CR 603.7c), which
+// is gone; the returned card is a new object (CR 400.7) and is not moved.
+func TestDelayedSelfRegistrationBlinkSkips(t *testing.T) {
+	t.Parallel()
+	e, src := delayedSelfFixture(t)
+	if len(e.G.Delayed) != 1 {
+		t.Fatalf("precondition: delayed registrations = %d, want one", len(e.G.Delayed))
+	}
+	before := e.G.Obj(src).Incarnation
+	e.emit(events.Event{Kind: events.MoveZone, Obj: src, From: state.ZBattlefield, To: state.ZExile})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: src, From: state.ZExile, To: state.ZBattlefield})
+	o := e.G.Obj(src)
+	if o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: source zone = %v, want battlefield after the round trip", o)
+	}
+	if o.Incarnation == before {
+		t.Fatalf("precondition: incarnation = %d before and after the round trip, want a new one", before)
+	}
+	mark := len(e.L.Events)
+	driveToEndStep(t, e)
+	for e.putTriggersOnStack() {
+		answerTriggerOrders(t, e)
+		if len(e.G.Stack) != 0 {
+			break
+		}
+	}
+	if len(e.G.Stack) == 0 {
+		t.Fatal("the delayed trigger never reached the stack")
+	}
+	passUntilStackEmpty(t, e, 40)
+	if n := movesSince(e, mark, src); n != 0 {
+		t.Fatalf("source returned before the fire moved %d times in the delayed resolution, want none (CR 603.7c)", n)
+	}
+	if got := e.G.Obj(src); got == nil || got.Zone != state.ZBattlefield {
+		t.Fatalf("returned source zone = %v after the delayed trigger, want battlefield", got)
+	}
+}
