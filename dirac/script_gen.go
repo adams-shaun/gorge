@@ -148,7 +148,7 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 		a.addUnits(1<<bits.TrailingZeros8(uint8(ab.ManaColors)), max(ab.ManaN, 1))
 	}
 	// a Taps-deferred source (Firdoch Core): its relaxed census unit, the
-	// one any-colour mana its tap adds (availFor's, which the plain walk
+	// one-mana any/fixed-colour tap it adds (availFor's, which the plain walk
 	// leaves out: mana_tapsdefer.go)
 	for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
 		pc := s.manaPCGen(k, b.first())

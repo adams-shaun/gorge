@@ -65,3 +65,35 @@ func TestTapsDeferFixedColourIsAScriptGap(t *testing.T) {
 		}
 	})
 }
+
+// TestTapsDeferPainOnlyGapChargesItsDamage: a deferred pain-only fixed-colour
+// tap (the Core rewritten to "{T}: Add {G}. It deals 1 damage to you", the
+// Elves of Deep Shadow shape under Cryoshatter) is a script gap whose float
+// resolves the rider: gorge's prefix activation runs the ability's program,
+// so the life total must drop by its damage as the mana is added.
+func TestTapsDeferPainOnlyGapChargesItsDamage(t *testing.T) {
+	tbl, id := tapsDeferShapeTable(t, func(tbl *kop.Table, id map[string]CardID) {
+		rewriteMana(tbl, id["Firdoch Core"], func(a *kop.Ability) {
+			a.ManaColors = kop.ColG
+			a.Prog = []kop.Instr{{Op: kop.OpDealDamage, Obj: kop.RefController, A: kop.Const(1)}}
+		})
+	})
+	sc := newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true})
+	core := sc.perm(id["Firdoch Core"], 0)
+	sc.perm(id["Judge of Currents"], 0)
+	pc := sc.s.manaPCGen(sc.k, sc.slot(core))
+	if !pc.painOnly || pc.painN != 1 || pc.manaCol != kop.ColG || !sc.k.painMana {
+		t.Fatalf("precondition: painOnly %v painN %d col %#x painMana %v, want a pain-only 1-damage {G} tap", pc.painOnly, pc.painN, pc.manaCol, sc.k.painMana)
+	}
+	if !sc.s.scriptTapsDefer(sc.k, 0).has(sc.slot(core)) {
+		t.Fatal("precondition: the pain-only Core is no script gap")
+	}
+	life := sc.s.pl[0].life
+	sc.s.tapDeferFloat(sc.k, 0, sc.slot(core), 0)
+	if sc.s.pl[0].pool[kop.G] != 1 {
+		t.Fatalf("pool %v, want one {G}", sc.s.pl[0].pool)
+	}
+	if got := sc.s.pl[0].life; got != life-1 {
+		t.Fatalf("life %d after the gap's float, want %d (its 1 damage)", got, life-1)
+	}
+}

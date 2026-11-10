@@ -146,13 +146,17 @@ func (s *State) deferGapAnswers(k *prep, sl Slot) uint8 {
 // and the prefix player tap it first, so manaTapped has queued the
 // watcher's trigger for flushPrefixTriggers to place before the play).
 func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
-	mask := uint8(s.manaPCGen(k, sl).manaCol)
+	pc := s.manaPCGen(k, sl)
+	mask := uint8(pc.manaCol)
 	for i := 0; i < c; i++ {
 		mask &= mask - 1
 	}
 	col := bits.TrailingZeros8(mask)
 	s.pl[p].pool[col]++
 	s.artTag(k, p, sl, col)
+	if k.painMana && pc.painCol != 0 && pc.painOnly {
+		s.painDamage(k, sl, p, int(pc.painN)) // a pain-only source's rider resolves with its mana (Elves of Deep Shadow)
+	}
 }
 
 // planTiered is plan with gorge's tiers: the sources a Taps watcher
