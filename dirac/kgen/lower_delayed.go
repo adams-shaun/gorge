@@ -155,12 +155,12 @@ func (lc *lowerCtx) delayedRemember(ro string, exec *cards.SA) (lRef, error) {
 			// body is the group sacrifice over it (DigUntil RememberFound$ True
 			// then SacrificeAll Defined$ DelayTriggerRememberedLKI, Will Riker).
 			// A set the chain wrote is the registration's own memory when it
-			// holds one object (rememberedHoldsOne); several refuse by name.
-			if lc.ab.Kind == akTriggered && lc.hasRememberWriter() {
-				if !lc.rememberedHoldsOne() {
+			// holds one object (rememberedHoldsOne); a dig's several refuse by
+			// name, any other writer keeps the capture refusal.
+			if lc.ab.Kind != akTriggered || !lc.hasRememberWriter() || !lc.rememberedHoldsOne() {
+				if lc.ab.Kind == akTriggered && lc.rememberedFromDig() {
 					return lRef{}, refuse("delayed trigger RememberObjects %q in a triggered ability: a set of several objects (the record holds one)", ro)
 				}
-			} else {
 				return lRef{}, refuse("delayed trigger RememberObjects %q in a triggered ability (the trigger capture)", ro)
 			}
 		}

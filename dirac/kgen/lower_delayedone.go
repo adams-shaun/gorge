@@ -34,3 +34,18 @@ func dualDelayedReturn(ps *params) bool {
 	return ps.str("Defined") == "DelayTriggerRememberedLKI" && ps.str("Destination") == "Battlefield" &&
 		ps.str("ChangeType") == "" && ps.str("Hidden") == ""
 }
+
+// rememberedFromDig reports whether a dig of the program so far wrote the
+// remembered set: it holds as many cards as the dig takes, which the delayed
+// record cannot carry (Dragonhawk's exiled top X cards).
+func (lc *lowerCtx) rememberedFromDig() bool {
+	if lc.ab == nil {
+		return false
+	}
+	for _, in := range lc.ab.Prog {
+		if in.Op == "Dig" && kremWrites(in) {
+			return true
+		}
+	}
+	return false
+}
