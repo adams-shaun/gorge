@@ -698,3 +698,18 @@ func init() { extOpNames[ExtBlocksIfAble] = "BlocksIfAble" }
 const ExtSpellToLib ExtOp = 308
 
 func init() { extOpNames[ExtSpellToLib] = "SpellToLib" }
+
+// ExtCopyExiledWith (F, B CopyFlags, C copy exceptions override+1): for each
+// card in any seat's exile zone exiled with the resolving entry's source
+// (gorge CopyPermanent's Defined$ ExiledWith, exiledWithSet: seat 0 first,
+// exile order), create a token that's a copy of it for the resolving
+// controller. The set is read once at resolution; every source's copy count
+// is sized through the CreateToken replacements first, then the copies are
+// minted source by source and enter together (CR 603.6a). B and C are the
+// copy riders and exceptions of OpCopyAsTokenEx; F is the exiled-with filter
+// the lowering read (PredExiledWith, PredN 1). A copy whose as-enters choice
+// or Aura host parks is resumed by the ordinary copy ask when no later copy
+// remains, and stalls StallCopyAllAsk otherwise (dirac/copy_exiledwith.go).
+const ExtCopyExiledWith ExtOp = 258
+
+func init() { extOpNames[ExtCopyExiledWith] = "CopyExiledWith" }

@@ -4184,7 +4184,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		default:
 			return ki, fmt.Errorf("override duration %q", in.CS)
 		}
-	case "CopyAsToken", "CopyNamed", "CopyPicked":
+	case "CopyAsToken", "CopyNamed", "CopyPicked", "CopyExiledWith":
 		ki.Op = kop.OpCopyAsTokenEx
 		cf := 0
 		if _, ok := fl["SacAtEndStep"]; ok {
@@ -4257,6 +4257,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			}
 			ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCopyNamed))
 			ki.B, ki.C = kop.Const(idx), int16(int(ki.C)<<kop.CopyNamedExcShift|int(uint16(ki.B.N)))
+		}
+		if in.Op == "CopyExiledWith" {
+			// kop.ExtCopyExiledWith: F the exiled-with set, B and C as above
+			ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCopyExiledWith))
+			if err := objFilter(kop.ZoneExile); err != nil {
+				return ki, err
+			}
 		}
 	case "CopyAsTokenCtr":
 		// dirac/copy_counters.go: Obj the source, B the
