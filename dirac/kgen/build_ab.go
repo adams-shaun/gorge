@@ -3283,11 +3283,18 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, fmt.Errorf("token %q", in.CS)
 		}
 		ki.C = int16(idx)
-		if in.C&(6|24|32|64|128|256|512|1024|2048) == 0 {
+		if in.C&(6|24|32|64|128|256|512|1024|2048) == 0 { // tokListBit rides the core op
 			// the core's CreateToken: B.N = TokenRider flags.
 			ki.Op = kop.OpCreateToken
+			b := 0
 			if in.C&1 != 0 {
-				ki.B = kop.Const(kop.TrTapped)
+				b |= kop.TrTapped
+			}
+			if in.C&tokListBit != 0 {
+				b |= kop.TrList
+			}
+			if b != 0 {
+				ki.B = kop.Const(b)
 			}
 			break
 		}

@@ -196,9 +196,11 @@ func (s *State) replTokensOp(k *prep, in *kop.Instr, p uint8, tok CardID, n int)
 		return tok, 0, false, false
 	} else if na > 0 {
 		// an adder beside another matching replacement is gorge's CR 616.1 order
-		// ask (an adder does not commute with a multiplier or a rewriter), and
-		// the op's riders would reach the extra mint: both stall
-		if t.nc > 0 || in.B.N != 0 {
+		// ask (an adder does not commute with a multiplier or a rewriter); a
+		// Role mint (TokAttach) is no plain mint to add beside
+		// a listed script (TrList) shares a creation event with the ops beside it
+		if t.nc > 0 || in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokAttach != 0 ||
+			in.Op == kop.OpCreateToken && in.B.N&kop.TrList != 0 {
 			s.capFull(StallTokRewrite)
 			return tok, 0, false, false
 		}
@@ -273,10 +275,17 @@ func (s *State) execCreateToken(k *prep, in *kop.Instr) (ok, done bool) {
 			}
 		}
 	}
-	if s.mintTokens(k, in, p, n) {
-		return true, true
+	var cs [4]CardID
+	na := 0
+	if !t.on && n > 0 {
+		// an adder's token enters with the op's own (it is alone: replTokensOp)
+		cs, na, _ = s.tokAddCards(k, p, CardID(in0.C))
 	}
-	if !t.on && s.mintTokAdds(k, p, CardID(in0.C), n) {
+	if na > 0 {
+		if s.createTokensHeld(k, in, p, n, cs[:na]) {
+			return true, true
+		}
+	} else if s.mintTokens(k, in, p, n) {
 		return true, true
 	}
 	if t.on {
@@ -297,7 +306,7 @@ func (s *State) execCreateToken(k *prep, in *kop.Instr) (ok, done bool) {
 // the board is full (a stall).
 func (s *State) mintTokens(k *prep, in *kop.Instr, p uint8, n int) bool {
 	if n > 1 {
-		return s.createTokensHeld(k, in, p, n)
+		return s.createTokensHeld(k, in, p, n, nil)
 	}
 	for i := 0; i < n; i++ {
 		if s.nearCapacity(k) {
@@ -369,21 +378,20 @@ func (s *State) tokAddCards(k *prep, p uint8, tok CardID) (cs [4]CardID, n int, 
 // creation of n tokens of card tok under p (one per creation event, gorge's
 // fixed Amount$ AddToken block: replacement_token.go
 // applyTokenReplacementToPlan appends it after the event's own tokens). It is
-// plain, untapped and not remembered: the op's last-created token stays the
-// one the op named. True when the board is full (a stall).
-func (s *State) mintTokAdds(k *prep, p uint8, tok CardID, n int) bool {
+// one more mint of the effect, so it takes the effect's riders in (entering
+// tapped, remembered, imprinted: gorge's Token effect applies them to every
+// planned mint). True when the board is full (a stall).
+func (s *State) mintTokAdds(k *prep, in *kop.Instr, p uint8, tok CardID, n int) bool {
 	if n <= 0 || !k.gen.anyTokRew || k.gen.anyRepl&rbDblTok == 0 || p > 1 {
 		return false
 	}
 	cs, na, _ := s.tokAddCards(k, p, tok)
-	last := s.res.lastTok
 	for _, c := range cs[:na] {
-		if s.mintRewritten(k, p, c, 1) {
+		rw := *in
+		rw.C = int16(c)
+		if s.mintTokens(k, &rw, p, 1) {
 			return true
 		}
-	}
-	if na > 0 {
-		s.res.lastTok = last
 	}
 	return false
 }

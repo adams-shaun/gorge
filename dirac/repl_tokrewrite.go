@@ -148,7 +148,7 @@ func (s *State) copyTokenRewrite(k *prep, p uint8, tok CardID, n int, addsOK boo
 func (s *State) mintRewritten(k *prep, p uint8, tc CardID, n int) bool {
 	in := kop.Instr{Op: kop.OpCreateToken, C: int16(tc)}
 	if n > 1 {
-		return s.createTokensHeld(k, &in, p, n)
+		return s.createTokensHeld(k, &in, p, n, nil)
 	}
 	for i := 0; i < n; i++ {
 		if s.nearCapacity(k) {

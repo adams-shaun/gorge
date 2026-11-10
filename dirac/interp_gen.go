@@ -2000,7 +2000,7 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 		// step and does nothing (gorge scheduleAtEOTNone)
 		s.delayEmpty(e)
 	}
-	tc, n, rewritten, ok := s.copyTokenRewrite(k, e.ctrl, c, v, in.C == 0)
+	tc, n, rewritten, ok := s.copyTokenRewrite(k, e.ctrl, c, v, true)
 	if !ok {
 		return false // StallTokRewrite
 	}
@@ -2014,16 +2014,13 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 		}
 		return false
 	}
-	if s.copyTokens(k, in, c, n) {
-		if _, na, _ := s.tokAddCards(k, e.ctrl, c); na > 0 && n > 0 {
-			s.capFull(StallTokRewrite) // the extra token is not minted across the ask (repl_tokorder.go)
-		}
-		return true
+	// gorge's copy proposal puts the adder's token first, the copies after it
+	// (continueCopyTokenProposal), so it is made before them and an as-enters
+	// ask that parks the copies leaves it behind (repl_tokorder.go mintTokAdds)
+	if s.mintTokAdds(k, &kop.Instr{Op: kop.OpCreateToken}, e.ctrl, c, n) || s.g.stalled != 0 {
+		return false
 	}
-	if s.g.stalled == 0 {
-		s.mintTokAdds(k, e.ctrl, c, n) // a full board stalls inside
-	}
-	return false
+	return s.copyTokens(k, in, c, n)
 }
 
 // copyTokens creates n token copies of card c for the resolving entry's

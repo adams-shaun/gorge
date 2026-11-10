@@ -17,25 +17,30 @@ const (
 )
 
 // TestLowerReplCreatetokenValidplayer: a CreateToken replacement with
-// ValidPlayer$ You lowers (Worldwalker Helm: the AddToken shape; the Map rides
-// the card's token list), any other ValidPlayer and every out-of-shape adder
+// ValidPlayer$ You lowers (Worldwalker Helm and Xorn: the AddToken shape; the
+// added token rides the card's token list), any other ValidPlayer and every out-of-shape adder
 // still refuse by name.
 func TestLowerReplCreatetokenValidplayer(t *testing.T) {
-	helm := lowerCorpusCard(t, "Worldwalker Helm")
-	for _, rf := range helm.Refusals {
-		t.Errorf("Worldwalker Helm refused: %s", rf.Reason)
-	}
-	var add *lRepl
-	for i := range helm.Repls {
-		if helm.Repls[i].Kind == "AddToken" {
-			add = &helm.Repls[i]
+	for _, c := range []struct{ card, script string }{
+		{"Worldwalker Helm", "c_a_map_sac_explore"},
+		{"Xorn", "c_a_treasure_sac"}, // the same class: the Treasure it adds beside a Treasure
+	} {
+		lc := lowerCorpusCard(t, c.card)
+		for _, rf := range lc.Refusals {
+			t.Errorf("%s refused: %s", c.card, rf.Reason)
 		}
-	}
-	if add == nil || add.S != "c_a_map_sac_explore" || add.F == nil {
-		t.Fatalf("Worldwalker Helm lowered %+v, want an AddToken of the Map with a token filter", helm.Repls)
-	}
-	if len(helm.Repls) != 1 {
-		t.Errorf("Worldwalker Helm lowered %d replacements, want 1", len(helm.Repls))
+		var add *lRepl
+		for i := range lc.Repls {
+			if lc.Repls[i].Kind == "AddToken" {
+				add = &lc.Repls[i]
+			}
+		}
+		if add == nil || add.S != c.script || add.F == nil {
+			t.Fatalf("%s lowered %+v, want an AddToken of %s with a token filter", c.card, lc.Repls, c.script)
+		}
+		if len(lc.Repls) != 1 {
+			t.Errorf("%s lowered %d replacements, want 1", c.card, len(lc.Repls))
+		}
 	}
 
 	for _, c := range []struct{ name, repl, body, want string }{
@@ -63,5 +68,23 @@ func TestLowerReplCreatetokenValidplayer(t *testing.T) {
 				t.Fatalf("refusals %q, want one naming %q", got, c.want)
 			}
 		})
+	}
+}
+
+// TestTokenListOpsCarryTrList: the ops of a comma-listed TokenScript$ are
+// marked as one creation event (kop.TrList), so a token adder, which claims its
+// token once per Token resolution, cannot count them as separate events.
+func TestTokenListOpsCarryTrList(t *testing.T) {
+	c := lowerCorpusCard(t, "Reckoner Bankbuster")
+	n := 0
+	for _, a := range c.Abilities {
+		for _, in := range a.Prog {
+			if in.Op == "CreateToken" && in.C&tokListBit != 0 {
+				n++
+			}
+		}
+	}
+	if n < 2 {
+		t.Fatalf("Reckoner Bankbuster has %d listed CreateToken ops marked, want its two scripts", n)
 	}
 }

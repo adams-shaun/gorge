@@ -22,6 +22,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 	// (gorge's own payment asks); the others ran on autopay.
 	const full = "full"
 	for _, c := range [][]string{
+		{"std-big", "worldwalker_helm_map_follows_the_first_of_two_foods"},              // Worldwalker Helm beside Bristlebud Farmer's two Foods: the Map is made once for the Token resolution, entering after the first Food (CR 614.1a, 616)
+		{"std-big", "worldwalker_helm_copy_makes_its_map_before_the_copy"},              // Worldwalker Helm copying an artifact token: gorge makes the Map first, then the copy (CR 707.2, 111.5)
 		{"std-eoe", "restricted_grant_untap_trigger_cannot_fund_equip"},                 // Mm'menon's spell-only blue on Nanoform Sentinel, whose tap untaps a land, leaves Illvoi Light Jammer's Equip {3} unpayable: gorge's relaxed proof runs no prefix search
 		{"std-eoe", "tap_another_source_pays_equip_beside_granted_mana"},                // Gene Pollinator and four lands pay Meltstrider's Gear's Equip {5} beside Mm'menon's spell-only grant: the grant cap keeps the play
 		{"std-tla", "waterbend_min_taps_filter"},                                        // Barrels of Blasting Jelly adds nothing to what the window can pay

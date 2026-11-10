@@ -1253,6 +1253,7 @@ TokSacAtEnd	untyped int	8
 TokTapped	untyped int	1
 TrAttacking	untyped int	2
 TrHasteEOT	untyped int	4
+TrList	untyped int	8
 TrTapped	untyped int	1
 TrigAbCastExhaust	int16	1
 TrigAbCastLoyalty	int16	2
