@@ -18,6 +18,10 @@ func prepSkipUntap(t *kop.Table, g *genPrep) {
 			a := &t.Cards[i].Abilities[j]
 			for _, in := range a.Prog {
 				g.anySkipUntap = g.anySkipUntap || in.Op == kop.OpSkipUntap
+				if in.Op == kop.OpSkipUntap && in.C >= kop.SkipUntapLockStep {
+					g.anyUntapLock = true
+					g.anyUntapBlock = g.anyUntapBlock || in.C == kop.SkipUntapLockAny // untapBlocked reads the any-event locks
+				}
 			}
 		}
 	}
@@ -32,6 +36,10 @@ func prepSkipUntap(t *kop.Table, g *genPrep) {
 // of a player's end with that player's next untap step.
 func (s *State) skipUntap(k *prep, in *kop.Instr) {
 	p := s.res.e.ctrl
+	if in.C >= kop.SkipUntapLockStep {
+		s.untapLockAdd(k, in) // act_untaplock.go
+		return
+	}
 	if in.C == 1 {
 		s.g.noUntapL |= 1 << p
 		return
@@ -46,7 +54,7 @@ func (s *State) skipUntap(k *prep, in *kop.Instr) {
 // OpSkipUntap effect of the active player on it, or on their lands).
 func (s *State) skipsUntap(k *prep, sl Slot) bool {
 	a := s.active
-	return s.perms[sl].cseen&(cseenSkipUntap0<<a) != 0 ||
+	return s.perms[sl].cseen&(cseenSkipUntap0<<a) != 0 || s.g.nul != 0 && s.untapLocked(s.perms[sl].obj, false) ||
 		s.g.noUntapL&(1<<a) != 0 && s.perms[sl].ctrl == a && s.typesGen(k, sl)&kop.TLand != 0
 }
 

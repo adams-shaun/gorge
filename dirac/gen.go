@@ -195,6 +195,7 @@ type genPrep struct {
 	anyUnblocked   bool           // some trigger fires for unblocked attackers (kop.Tf2Unblocked; act_discover.go)
 	anyOrCopy      bool           // some SpellCast trigger fires for spell copies too (kop.Tf2OrCopy; act_discover.go)
 	anySkipUntap   bool           // some program skips a next untap step (OpSkipUntap): the untap step runs untapStepGen (act_discover.go)
+	anyUntapLock   bool           // some program is an OpSkipUntap source-bound lock (C 2, 3): removePerm and ctrlMove end its entries (act_untaplock.go)
 	anyDelayUp     bool           // some program registers an upkeep or end-of-combat delayed program (kop.DelayUpkeep, kop.DelayEndCombat; trig_delayedtiming.go)
 	anyDelayDies   bool           // some program registers a delayed dies program (kop.DelayDiesThisTurn; trig_delayeddies.go)
 	anyDelaySpell  bool           // some program registers a delayed SpellCast program (kop.DelaySpellCast; trig_delayedspell.go)
@@ -1957,6 +1958,8 @@ type genState struct {
 	nseat   uint8                             // seats in this game, set by InitN; read only when MaxSeats > 2 (nSeats)
 	poolTre [MaxSeats][kop.NumManaKinds]uint8 // per player and colour, the floating units a Treasure produced (mana_artifact.go artTag/treSync)
 	blkDef  uint8                             // the defending player declaring blockers; read only when MaxSeats > 2 (blockDef)
+	ul      [maxUntapLock]untapLock           // source-bound untap locks (act_untaplock.go)
+	nul     uint8
 	rsv     [rsvN]uint8
 }
 
@@ -1965,7 +1968,7 @@ const (
 	// rsvN pads the reserved block to 80 bytes (genState's 5 bytes of tail
 	// padding absorb the rest of the alignment): 64, plus the 16 that carry
 	// State's growth for MaxObj 236 to a multiple of 64 so perms keeps its phase.
-	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 2 - MaxSeats*kop.NumManaKinds
+	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 2 - MaxSeats*kop.NumManaKinds - ulBytes
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
