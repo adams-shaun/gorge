@@ -15,7 +15,9 @@ import (
 // is an unknown predicate there (UnknownPredicates), matching nothing. So
 // gorge damages the defending player in every case; that is the card only
 // when the attacker attacks a player. The lowering is the defending player
-// (two-player: the controller's opponent) behind OpAtkPWGuard, which stalls
+// (two-player: the controller's opponent; past two seats the seat of the
+// Attacks event that queued the trigger, stackEntry.defSeat: seat-exact) behind
+// OpAtkPWGuard, which stalls
 // the game when the attacker attacks a planeswalker or battle (or left):
 // the kernel never copies the planeswalker case.
 const triggeredDefenderOrPW = "TriggeredDefender.Opponent & Valid Planeswalker.TriggeredDefender"
@@ -25,7 +27,6 @@ func (lc *lowerCtx) triggeredDefenderOrPW(v string) (lRef, error) {
 	if tr == nil || tr.Event != "Attacks" || !lc.ownAttackTrigger() {
 		return lRef{}, refuse("Defined$ %q outside an Attacks trigger of the controller's own attack", v)
 	}
-	lc.twoSeat("the attacked player read as the controller's opponent")
 	lc.emit(lInstr{Op: "AtkPWGuard", Note: "the attacker attacks a player (else the game stalls)"})
 	return lRef{Kind: rDefending}, nil
 }
