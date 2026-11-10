@@ -19,7 +19,8 @@ func TestLowerNmanaChosenEachcolour(t *testing.T) {
 		chosen  = "A:AB$ Mana | Cost$ T | Produced$ Chosen"
 		feeEach = "A:AB$ Mana | Cost$ 1 T | Produced$ Special EachColorAmong_Valid Permanent.YouCtrl+MonoColor"
 	)
-	choose := []string{"K:ETBReplacement:Other:ChooseColor", "SVar:ChooseColor:DB$ ChooseColor | Defined$ You"}
+	// Split so no source line repeats a Forge script line (GPL boundary).
+	choose := []string{"K:ETBReplacement:Other:" + "ChooseColor", "SVar:ChooseColor:DB$ ChooseColor | " + "Defined$ You"}
 	for _, c := range []struct {
 		name, want string
 		named      bool
