@@ -14,7 +14,7 @@ import (
 // Operator ({T}: Add {U} for artifact spells; {T}: Add {U}{U} for artifact
 // abilities) holds two restricted abilities, of which a payment plans the one
 // its class admits (CR 106.6, 601.2g-h, 602.2b).
-func CheckActivatedOnlyPair(t *testing.T, tbl *kop.Table, citadel, operator, mountain, stone, bolt, artSpell CardID) {
+func CheckActivatedOnlyPair(t *testing.T, tbl *kop.Table, citadel, operatorID, mountain, stone, bolt, artSpell CardID) {
 	t.Helper()
 	sc := newScenTableLib(t, tbl, mountain, Config{})
 	g := sc.k.gen
@@ -60,11 +60,11 @@ func CheckActivatedOnlyPair(t *testing.T, tbl *kop.Table, citadel, operator, mou
 
 	// (b) Operator: two records; the spell payment admits the {U}, the
 	// artifact activation the {U}{U}, and a nonartifact activation neither.
-	op := sc.perm(operator, 0)
+	op := sc.perm(operatorID, 0)
 	osl := sc.slot(op)
 	n := 0
 	for i := range g.rs.recs {
-		if g.rs.recs[i].card == operator {
+		if g.rs.recs[i].card == operatorID {
 			n++
 		}
 	}
