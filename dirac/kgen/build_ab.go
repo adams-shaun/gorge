@@ -2890,6 +2890,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				altZ = kop.ZoneGraveyard
 			case "Hand":
 				altZ = kop.ZoneHand
+			case "Graveyard,Hand":
+				// the pair occupies the zone code the library can never use:
+				// the election offers the library, graveyard and hand.
+				altZ = kop.Zone(kop.SrAltGraveHand)
 			default:
 				return ki, fmt.Errorf("alt origin %q", az)
 			}

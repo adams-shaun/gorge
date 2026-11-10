@@ -275,6 +275,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-tla", "iroh_grand_lotus_grave_flashback"},                                 // Iroh, Grand Lotus on the battlefield: on its controller's turn only, a graveyard Lightning Strike or Pillar Launch has flashback at its mana cost and a Lesson at {1}, and each is exiled after (CR 702.34a)
 		{"custom", "pt_compare_hulkling_greater_power_or_toughness"},                    // CR 603.4: Hulkling, Burgeoning Bruiser (2/3) takes a +1/+1 counter when a creature of greater power (3/3) or greater toughness (2/4) enters under its controller, not a 0/3: the trigger filter and the resolution recheck compare against his own power and toughness
 		{"custom", "pt_compare_amalia_explores_power_not_twenty"},                       // Amalia Benavides Aguirre explores when her controller gains life, and her power is not exactly 20, so the destroy-all is skipped
+		{"std-mkm", "agency_outfitter_grave_hand_election"},                             // Agency Outfitter's OriginAlternative$ Graveyard,Hand pair: both zones are elected and searched, DifferentNames$ keeps a second Magnifying Glass out, and no library was searched so nothing is shuffled
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {

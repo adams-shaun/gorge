@@ -681,7 +681,7 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("search"), src, RefNone, 0), true
 	case dirac.ChGenKczZone:
 		// gorge's originAlternativeZones pick: the option index (0 the
-		// library, 1 the alternative zone)
+		// library, 1 the alternative zone, 2 the Graveyard,Hand pair's hand)
 		return Pack(kind("zone"), RefNone, RefNone, mode), true
 	case dirac.ChGenHiddenPick:
 		return Pack(kind("hidden_pick"), src, RefNone, 0), true

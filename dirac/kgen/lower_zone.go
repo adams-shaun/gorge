@@ -375,12 +375,16 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			// library and/or graveyard (hand)". gorge merges the alternative
 			// into the origin set and poses one zone election before the pick
 			// (zone_search.go originAlternativeZones); the kernel reads it
-			// from SrAltOrigin. Only the two Standard carriers: a Graveyard
-			// or Hand alternative to a Hand or Battlefield destination, a
-			// search that states a quality, none of the shuffle/count riders.
+			// from SrAltOrigin. Only the Standard carriers: a Graveyard or
+			// Hand alternative, or the Graveyard,Hand pair, to a Hand or
+			// Battlefield destination, a search that states a quality, none
+			// of the shuffle riders.
 			if av, ok := ps.get("OriginAlternative"); ok {
 				alt := strings.TrimSpace(av)
-				if alt != "Graveyard" && alt != "Hand" {
+				// The Graveyard,Hand pair is Agency Outfitter's two-name
+				// battlefield search; every other list stays refused.
+				pair := alt == "Graveyard,Hand"
+				if alt != "Graveyard" && alt != "Hand" && !pair {
 					return refuse("OriginAlternative$ %q", av)
 				}
 				switch {
@@ -390,13 +394,15 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					return refuse("OriginAlternative$ search with no stated quality or Mandatory$")
 				case noShuffle || shuffleTrue:
 					return refuse("OriginAlternative$ with Shuffle$/NoShuffle$")
-				case slices.Contains(flags, "DifferentNames"):
-					return refuse("OriginAlternative$ with DifferentNames$")
 				case obj.Kind != rYou:
 					return refuse("OriginAlternative$ with DefinedPlayer$")
 				case arm != nil:
 					return refuse("OriginAlternative$ with WithCountersType$")
-				case !isConstN(n, 1):
+				case pair && !(dest == zBattlefield && isConstN(n, 2)):
+					// the pair is only Agency Outfitter's two-name battlefield
+					// search; the other carriers are a later lowering.
+					return refuse("OriginAlternative$ with ChangeNum$ %v", n)
+				case !pair && !isConstN(n, 1):
 					return refuse("OriginAlternative$ with ChangeNum$ %v", n)
 				}
 				flags = append(flags, "alt="+alt)

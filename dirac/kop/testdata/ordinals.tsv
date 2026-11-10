@@ -1016,6 +1016,7 @@ SpmManifestUp	SpecialMask	4
 SpmMorphUp	SpecialMask	1
 SpmTurnFaceUp	SpecialMask	15
 SpmUnlock	SpecialMask	16
+SrAltGraveHand	int	1
 SrAltOrigin	untyped int	16
 SrAltZoneShift	untyped int	5
 SrAttacking	untyped int	4096
