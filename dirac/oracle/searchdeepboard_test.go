@@ -12,7 +12,7 @@ import (
 // TestSearchDeepBoardStallsNotPanics: the search rollout's heuristic bot
 // (dirac/search/hbot) answers a target decision that offers a stack
 // ability (Ertai Resurrected's counter mode: StackTarget0 + its stack
-// index, 0xE0..0xEF) without indexing its per-object tables with the byte.
+// index, 0xEC..0xFB) without indexing its per-object tables with the byte.
 // It did: optPlayer read s.objs[224], "index out of range [224] with
 // length 192" (MaxObj), the TRK kplay search games' ~1% panic, on a deck
 // whose Ertai-like counter-an-ability card met an ability on the stack.

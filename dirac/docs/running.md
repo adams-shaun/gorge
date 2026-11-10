@@ -115,7 +115,7 @@ from after the first pair's table is built. The games file depends only on the f
 | `-out` | stdout | games file |
 | `-summary` | stderr | summary file |
 | `-skip-refused` | off | skip a pair the set refuses and count it, instead of failing |
-| `-sample-replay` | 0 | fraction of games also written as `koracle-game-1` records under `<out>.replays`, which `kfuzz -replay` re-executes in gorge; needs `-out` |
+| `-sample-replay` | 0 | fraction of games also written as `koracle-game-2` records under `<out>.replays`, which `kfuzz -replay` re-executes in gorge; needs `-out` |
 | `-config` | `lockstep-autopay` | the verified surface: `lockstep-autopay` or `lockstep-full` |
 
 `random` picks uniformly from its own stream, seeded from the game's seed. `first` takes the first

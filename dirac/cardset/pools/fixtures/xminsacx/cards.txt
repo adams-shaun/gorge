@@ -1,0 +1,20 @@
+# the announced-X floor and announced-sacrifice pool: XMin<N> on a mana {X}
+# (Lair of the Hydra), Sac<X/Spec> alone (Eliminate the
+# Competition) and the two together (Ruthless Technomancer), beside artifacts
+# to sacrifice and creatures to die into the graveyard, and an {X} spell whose
+# small X leaves mana floating for the activations gorge offers only then
+# (dirac/oracle/xminsacx_test.go)
+Ruthless Technomancer
+Eliminate the Competition
+Lair of the Hydra
+Liliana's Indignation
+Ornithopter
+Memnite
+Alpha Myr
+Gilded Sentinel
+Walking Corpse
+Basal Thrull
+Savannah Lions
+Swamp
+Island
+Forest

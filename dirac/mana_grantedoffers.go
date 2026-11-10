@@ -376,7 +376,7 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || !s.canTapForManaPC(k, sl, pc) {
 			continue
 		}
-		a.addUnits(s.srcMaskAt(pc, sl), pc.manaN)
+		a.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))
 		if pc.manaOne {
 			s.addOneColour(a, pc.manaN)
 		}
@@ -415,6 +415,9 @@ type grantSrch struct {
 	ng       [MaxPerm]uint8
 	dual     [MaxPerm]bool // the candidate's own ability is tried first
 	skipPool bool          // the next branch's mana is restricted past the play (a printed ability or a grant): the step is taken, its mana prices nothing
+	// ghost: the units those steps floated, which price nothing but sit in gorge's
+	// pool, so its payer-state key tells a path that made them from one that did not
+	ghost [kop.NumManaKinds]uint8
 	// filt: the candidate also has a filter ability ({1},{T}: Add one mana of any
 	// color), a paid census gap of gorge's like the grants (mana_filter.go)
 	filt [MaxPerm]bool
@@ -424,6 +427,9 @@ type grantSrch struct {
 	// def: the candidate is a deferred source (Pyromancer's Goggles), a census
 	// gap of gorge's beside the grants (mana_grantdeferred.go)
 	def [MaxPerm]bool
+	// none: the candidate is a source of no colour (Command Tower), a census gap
+	// of gorge's that adds nothing (mana_grantnone.go)
+	none [MaxPerm]bool
 	// gap: the candidate is a census gap. Non-gap sources join the search only
 	// to fund a paid gap's fee, as many as funding allows (gorge
 	// scriptSearch.funding: census.fees()).
@@ -464,6 +470,8 @@ type grantKey struct {
 	// gorge's key reads the typed units apart (Player.ManaUnits), so a
 	// filter's tagged {W} over a plain {W} is a new state
 	art uint8
+	// ghost: the units an unspendable step floated (grantSrch.ghost)
+	ghost [kop.NumManaKinds]uint8
 	// gorge's key counts the stack, hand and graveyard too (scriptStateKey)
 	sp, hand, gy uint8
 }
@@ -509,6 +517,7 @@ func (g *grantSrch) candidates(s *State) {
 	}
 	tm := s.grantTapXGaps(g.k, g.p)
 	dm := s.scriptDeferred(g.k, g.p)
+	nm := s.scriptManaNone(g.k, g.p)
 	g.n = 0
 	holders := 0
 	for i := 0; i < n; i++ {
@@ -517,7 +526,7 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		ng := s.grantIdxs(g.k, sl, &g.gi[g.n])
-		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) {
+		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !nm.has(sl) {
 			continue
 		}
 		if ng > 0 {
@@ -525,6 +534,7 @@ func (g *grantSrch) candidates(s *State) {
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), !tm.has(sl) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
 		g.def[g.n] = ng == 0 && dm.has(sl)
+		g.none[g.n] = ng == 0 && nm.has(sl)
 		g.gap[g.n] = true
 		if fm.has(sl) {
 			g.funding += s.filtFee(g.k, sl)
@@ -559,7 +569,7 @@ func (g *grantSrch) candidates(s *State) {
 		if sl == g.ex || seen(sl) || !s.canTapForMana(g.k, sl) {
 			continue
 		}
-		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n], g.def[g.n] = sl, 0, true, false, false, false
+		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n], g.def[g.n], g.none[g.n] = sl, 0, true, false, false, false, false
 		g.gap[g.n] = false
 		g.n++
 	}
@@ -601,7 +611,7 @@ func (g *grantSrch) visit(t *State) bool {
 		return true
 	}
 	pl := &t.pl[g.p&1]
-	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, sp: t.sp, hand: pl.handN, gy: pl.graveN}
+	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN}
 	if g.k.artMana {
 		t.artSync(g.p)
 		key.art = t.g.poolArt[g.p&1]
@@ -620,7 +630,13 @@ func (g *grantSrch) visit(t *State) bool {
 		if g.ng[i] == 0 && g.filt[i] && g.k.gen.anyFiltFirst && t.filtFirstOnly(g.k, sl) {
 			// a filter that is its source's only mana ability: no printed
 			// ability to ask beside, one colour ask once its fee is in the pool
-			if t.filtUsable(g.k, sl) && poolTotal(&t.pl[g.p&1])+t.filtFeeRestrN(g.k, g.p, sl) >= t.filtFee(g.k, sl) && g.filtBranch(t, i, sl) {
+			if t.filtUsable(g.k, sl) && t.filtPaid(g.k, g.p, sl) && g.filtBranch(t, i, sl) {
+				return true
+			}
+			continue
+		}
+		if g.none[i] {
+			if g.noneBranch(t, i, sl) { // taps for nothing (mana_grantnone.go)
 				return true
 			}
 			continue
@@ -640,7 +656,7 @@ func (g *grantSrch) visit(t *State) bool {
 		// "choose a mana ability" ask, one node, the printed ability's
 		// answers first (gorge flattens a Combo's colours into that ask;
 		// an Any ability still asks its colour)
-		fok := g.filt[i] && poolTotal(&t.pl[g.p&1])+t.filtFeeRestrN(g.k, g.p, sl) >= t.filtFee(g.k, sl)
+		fok := g.filt[i] && t.filtPaid(g.k, g.p, sl)
 		alts := 0
 		if grants {
 			alts = int(g.ng[i])
@@ -875,8 +891,13 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 		t.pl[g.p&1].pool[c] += pn
 		t.artTag(g.k, g.p, sl, int(c))
 		xv := t.srcExtraPick(g.k, sl, pc, int(c))
+		var gx [kop.NumManaKinds]uint8 // the unspendable tap prices no extra either; its units sit in the ghost
 		if skip {
-			xv = [kop.NumManaKinds]uint8{} // the unspendable tap prices no extra either
+			gx, xv = xv, [kop.NumManaKinds]uint8{}
+			gx[c] += n
+			for j := range gx {
+				g.ghost[j] += gx[j]
+			}
 		}
 		t.addXv(g.p&1, &xv)
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl}
@@ -885,6 +906,9 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 			return true
 		}
 		g.np--
+		for j := range gx {
+			g.ghost[j] -= gx[j]
+		}
 		t.subXv(g.p&1, &xv)
 		t.pl[g.p&1].pool[c] -= pn
 		t.g.poolArt[g.p&1] = preBit
@@ -1076,6 +1100,13 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		case stepTapX:
 			s.tapXDo(k, g.p, tapXStep{sl: sl, cand: st.cand, cand2: NoSlot, col: st.col, kind: tapXAct})
 			continue
+		case stepManaNone:
+			s.noneApply(k, g.p, sl, st.col) // (mana_grantnone.go)
+			if g.tapTriggers(s, sl) {
+				passed = true
+				s.tapXNext(g.p, &d)
+			}
+			continue
 		case stepDeferred:
 			s.deferApply(k, g.p, sl) // (mana_grantdeferred.go)
 			if g.tapTriggers(s, sl) {
@@ -1106,10 +1137,11 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			if !s.floatRestrAb(k, g.p&1, sl, ra, int(st.col), st.n) {
 				s.capFull(StallRestrSrc)
 			}
-		} else if r := restrOfStep(k, st); r != 0 {
+		} else if ab := restrAbOfStep(k, st); ab != nil {
 			// a restricted grant floats beside the pool (State.rb), spendable only
-			// as its restriction allows; never a silent spill into the pool
-			if !s.addRestr(k, g.p&1, r, int(st.col), st.n) {
+			// as its restriction allows (both halves, spells and activated
+			// abilities); never a silent spill into the pool
+			if !s.floatRestrAb(k, g.p&1, sl, ab, int(st.col), st.n) {
 				s.capFull(StallRestrSrc)
 			}
 		} else {
@@ -1123,6 +1155,9 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			s.addXv(g.p&1, &xv)
 		}
 		if sacrifice {
+			// at priority, outside the build's and a resolution's mana steps, so the
+			// move cannot park for gorge's order ask: two competing exile-instead
+			// replacements stall it by name in dieZone (StallReplLeave, CR 616.1)
 			o := s.perms[sl].obj
 			s.fireSac(k, sl)
 			s.leave(k, sl, kop.ZoneGraveyard, false)
@@ -1214,8 +1249,8 @@ func (s *State) tapGrantedGap(k *prep, p uint8, sl Slot) {
 		xv := s.srcExtraPick(k, sl, pc, int(order[0]))
 		s.addXv(p&1, &xv)
 	}
-	if r := k.gen.grantRestr[gi[0]]; r != 0 {
-		if !s.addRestr(k, p&1, r, int(order[0]), n) {
+	if ab := restrAbOfGrant(k, gi[0]); ab != nil {
+		if !s.floatRestrAb(k, p&1, sl, ab, int(order[0]), n) {
 			s.capFull(StallRestrSrc)
 		}
 		return
@@ -1232,13 +1267,25 @@ func (s *State) stepView(k *prep, sl Slot, gi int16) *pcard {
 	return s.grantView(k.gen, gi, sl)
 }
 
-// restrOfStep is the spend restriction of the granted ability a prefix step
-// tapped (0: none, or the candidate's own printed ability).
-func restrOfStep(k *prep, st *grantStep) kop.FilterID {
+// restrAbOfStep is the granted mana ability a prefix step tapped when it
+// carries a spend restriction (nil: none, or the candidate's own printed
+// ability).
+func restrAbOfStep(k *prep, st *grantStep) *kop.Ability {
 	if st.gi < 0 {
-		return 0
+		return nil
 	}
-	return k.gen.grantRestr[st.gi]
+	return restrAbOfGrant(k, st.gi)
+}
+
+// restrAbOfGrant is grant gi's mana ability when it carries a spend
+// restriction (nil: none), so every float of its mana names both halves of
+// the restriction (spells and activated abilities).
+func restrAbOfGrant(k *prep, gi int16) *kop.Ability {
+	if k.gen.grantRestr[gi] == 0 {
+		return nil
+	}
+	r := k.gen.grantOf[gi]
+	return &k.t.Cards[r.card].Abilities[r.ab]
 }
 
 // grantPlayCost is the mana cost gorge's prefix search prices for p's

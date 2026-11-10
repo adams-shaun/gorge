@@ -511,6 +511,14 @@ func (k *Kernel) Unserved() bool {
 	return r != nil && r.inRes && !r.converting
 }
 
+// InlineServes reports whether an engine decision reaching the ask choke
+// point now is answered in place by the synchronous answerer: a resolution
+// exempted because an Answerer serves its asks, outside the Pose of an inline
+// answer already in flight. It is the inline twin of Unserved.
+func (k *Kernel) InlineServes() bool {
+	return k.run == nil && k.noCkpt && k.answerer != nil && !k.inline
+}
+
 // OnAsk runs at the engine's ask choke point while Watching. An engine
 // decision no tape path serves inside a tape run's resolution is a closed
 // conversion that is not: it fails hard (a Divergence). One reaching an

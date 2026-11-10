@@ -62,7 +62,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		return lc.permOrSpellMove(ps) // lower_permorspell.go
 	}
 	dual := strings.TrimSpace(ps.str("Origin")) == "Graveyard,Exile"
-	if dual && !everyRemembered(ps.str("ChangeType")) {
+	if dual && !everyRememberedOrImprinted(ps.str("ChangeType")) {
 		return refuse("ChangeZone Origin$ Graveyard,Exile ChangeType$ %q without IsRemembered", ps.str("ChangeType"))
 	}
 	hg := strings.TrimSpace(ps.str("Origin")) == "Hand,Graveyard" // lower_handgravepick.go
@@ -1977,6 +1977,9 @@ func (lc *lowerCtx) effectStaticBodies(list string) ([]cards.Static, error) {
 
 func (lc *lowerCtx) effectAPI(ps *params) error {
 	if tr, ok := ps.get("Triggers"); ok {
+		if _, st := ps.m["StaticAbilities"]; st && ps.m["RememberObjects"] != "" {
+			return lc.effectStaticTriggerPair(ps, tr) // lower_effectcaptured.go
+		}
 		return lc.emblem(ps, tr)
 	}
 	// EffectOwner$ (CR 611.2): effEffect resolves the created effect's owner
@@ -2075,7 +2078,9 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 	sp.consume("Mode", "Description")
 	switch s.Mode {
 	case "CantBlockBy":
-		if sp.str("ValidAttacker") != "Card.IsRemembered" {
+		// Creature.IsRemembered names the same attackers as Card.IsRemembered
+		// (an attacker is a creature); Speed, Young Avenger spells it so.
+		if va := sp.str("ValidAttacker"); va != "Card.IsRemembered" && va != "Creature.IsRemembered" {
 			return refuse("Effect CantBlockBy shape")
 		}
 		exile, hasExile := ps.get("ExileOnMoved")
@@ -2088,8 +2093,12 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 			// House-Mouse: Creature.power<op><N> (lower_cantblockpower.go, the
 			// blocker's CURRENT power). The only ValidBlocker$ the kernel
 			// holds besides the chosen-colour form (colorGrantEffect); the
-			// ExileOnMoved$ Battlefield shape only.
-			if !hasExile {
+			// ExileOnMoved$ Battlefield shape, or (Speed, Young Avenger) a
+			// targeted creature with no ExileOnMoved$ and no Duration$: the
+			// grant matches the remembered object id, which a zone change
+			// replaces, so it lapses on departure either way, and it ends at
+			// the turn's end as the exile form does.
+			if !hasExile && !lc.cantBlockTargetedUntilEOT(ps, obj) {
 				return refuse("Effect CantBlockBy ValidBlocker %q", vb)
 			}
 			c, err := lc.cantBlockValidBlocker(vb)
@@ -2101,6 +2110,8 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		switch {
 		case hasExile && strings.TrimSpace(exile) == "Battlefield":
 			// ends for each permanent as it leaves (CR 611.2c), as a record does
+		case !hasExile && exHaste:
+			// the targeted haste or power-compare form checked above
 		case !hasExile && lc.cantBlockAttackingTarget(ps, obj):
 			// (Gossip's Talent) ExileOnMoved$ is
 			// unread here because gorge's CantBlockBy matches the remembered
@@ -2361,7 +2372,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return refuse("Effect triggers without a permanent duration")
 	}
 	ps.consume("Name", "Image", "Stackable")
-	if sa, ok := ps.get("StaticAbilities"); ok {
+	if sa, ok := ps.get("StaticAbilities"); ok && lc.pairCap == nil {
 		// Osteomancer Adept: gorge's effEffect Notes its may-play grant as
 		// unimplemented and offers NOTHING through it (the RaiseCost$
 		// Forage rider; mayplay_effect_riders_test.go
@@ -2376,7 +2387,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if !ok {
 		return refuse("emblem trigger %q", tr)
 	}
-	if (eot || next) && t.Mode != "SpellCast" && t.Mode != "ChangesZone" && t.Mode != "Sacrificed" && t.Mode != "DamageDone" &&
+	if (eot || next) && t.Mode != "SpellCast" && t.Mode != "ChangesZone" && t.Mode != "Sacrificed" && t.Mode != "DamageDone" && !(t.Mode == "DamageDealtOnce" && lc.pairCap != nil) &&
 		t.Mode != "AttackersDeclared" && t.Mode != "AttackersDeclaredOneTarget" && t.Mode != "Attacks" {
 		// an until-end-of-turn Effect's trigger (gorge: the effect leaves
 		// the command zone at cleanup) is the kernel's EOT emblem, and an
@@ -2395,7 +2406,10 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return err
 	}
 	saved := len(lc.out.Abilities)
-	if err := lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") }); err != nil {
+	lc.capRem = hasCap && t.Mode == "DamageDealtOnce"
+	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
+	lc.capRem = false
+	if err != nil {
 		return err
 	}
 	if len(lc.out.Abilities) != saved+1 {

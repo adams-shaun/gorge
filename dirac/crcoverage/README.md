@@ -62,8 +62,8 @@ when a row stops matching the code.
 | [500-turn-structure](500-turn-structure.md) | 125 | 76 | 5 | 1 | 0 | 0 | 43 | 0 |
 | [600-spells-abilities-effects](600-spells-abilities-effects.md) | 288 | 136 | 22 | 5 | 1 | 9 | 99 | 16 |
 | [700-additional-rules](700-additional-rules.md) | 439 | 192 | 32 | 1 | 1 | 1 | 210 | 2 |
-| [702-keyword-abilities](702-keyword-abilities.md) | 252 | 80 | 22 | 2 | 0 | 0 | 147 | 1 |
+| [702-keyword-abilities](702-keyword-abilities.md) | 252 | 81 | 22 | 2 | 0 | 0 | 146 | 1 |
 | [800-multiplayer](800-multiplayer.md) | 43 | 0 | 0 | 0 | 0 | 0 | 43 | 0 |
 | [900-casual-variants](900-casual-variants.md) | 49 | 0 | 0 | 0 | 0 | 0 | 49 | 0 |
-| **all** | 1622 | 707 | 108 | 12 | 4 | 20 | 724 | 47 |
+| **all** | 1622 | 708 | 108 | 12 | 4 | 20 | 723 | 47 |
 <!-- /crcoverage:summary -->

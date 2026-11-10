@@ -99,6 +99,9 @@ func (s *State) wordPerm2(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot
 	if fl.PredN&0xff == kop.W7SharesCrTrigObj {
 		return s.sharesCrTrigObj(k, s.perms[sl].obj)
 	}
+	if fl.PredN&0xff == kop.W7Imprinted {
+		return s.impHas(s.perms[sl].obj) != DebugWord7Flip
+	}
 	if fl.PredN&0xff >= kop.W7WithWarp {
 		return s.wordPerm3(k, fl, sl, src) // filter_props.go
 	}
@@ -185,6 +188,9 @@ func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctr
 	}
 	if fl.PredN&0xff == kop.W7SharesCrTrigObj {
 		return o != NoObj && s.sharesCrTrigObj(k, o)
+	}
+	if fl.PredN&0xff == kop.W7Imprinted {
+		return o != NoObj && s.impHas(o) != DebugWord7Flip
 	}
 	if fl.PredN&0xff == kop.W7EnteredFromBF {
 		return o != NoObj && s.enteredFromBattlefield(o) != DebugWord7Flip

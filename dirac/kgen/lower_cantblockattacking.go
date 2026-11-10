@@ -49,3 +49,19 @@ func requiresAttackingTarget(validTgts string) bool {
 	}
 	return true
 }
+
+// cantBlockTargetedUntilEOT: the Effect's remembered object is its own target
+// (RememberObjects$ Targeted), with neither ExileOnMoved$ nor Duration$, so the
+// grant lasts the turn and lapses when the target changes zone (a new object
+// id). It is the haste or power-compare form of ValidBlocker$ (Speed, Young Avenger;
+// Bright-Palm, Soul Awakener, Ghirapur Guide, Run for Your Life).
+func (lc *lowerCtx) cantBlockTargetedUntilEOT(ps *params, obj lRef) bool {
+	if obj.Kind != rTarget || ps.str("RememberObjects") != "Targeted" {
+		return false
+	}
+	if _, ok := ps.m["ExileOnMoved"]; ok {
+		return false
+	}
+	_, hasDur := ps.m["Duration"]
+	return !hasDur
+}

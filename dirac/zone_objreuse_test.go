@@ -7,8 +7,8 @@ import (
 	v "github.com/adams-shaun/gorge/dirac/vanilla"
 )
 
-// TestTokenObjReuse: two 100-card decks leave 24 object ids for tokens. Thirty
-// tokens made one after another, each dying (CR 704.5d: it ceases to exist)
+// TestTokenObjReuse: two 100-card decks leave MaxObj-200 object ids for tokens.
+// Six more tokens than that, made one after another, each dying (CR 704.5d: it ceases to exist)
 // before the next turn's is made, never stall: once the table is full the
 // lowest ceased id is minted again, with a ver no reference to the old
 // object holds. A token that ceased this turn is not reused.
@@ -26,7 +26,7 @@ func TestTokenObjReuse(t *testing.T) {
 		t.Fatalf("genesis objects %d, want %d", s.nobj, 2*MaxDeck)
 	}
 	lastVer := map[Obj]uint8{}
-	for i := 0; i < 30; i++ {
+	for i := 0; i < MaxObj-2*MaxDeck+6; i++ {
 		if s.nearCapacity(k) {
 			t.Fatalf("token %d: the object table reads full (nobj %d)", i+1, s.nobj)
 		}

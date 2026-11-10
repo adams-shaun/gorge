@@ -181,7 +181,7 @@ func (lc *lowerCtx) graveExilePick(ps *params, f *lFilter, n lValue, flags []str
 	if f.Players != 0 || len(f.Clauses) == 0 {
 		return refuse("Graveyard,Exile pick filter %s", f)
 	}
-	if !everyRemembered(ps.str("ChangeType")) {
+	if !everyRememberedOrImprinted(ps.str("ChangeType")) {
 		return refuse("Graveyard,Exile pick ChangeType$ %q without IsRemembered", ps.str("ChangeType"))
 	}
 	if _, ok := ps.get("ValidTgts"); ok {
@@ -227,6 +227,21 @@ func (lc *lowerCtx) graveExilePick(ps *params, f *lFilter, n lValue, flags []str
 	ps.consume("SelectPrompt", "ShuffleNonMandatory", "ChangeTypeDesc", "ChangeNumDesc")
 	lc.emit(lInstr{Op: "ChooseMove", Obj: lRef{Kind: rYou}, A: n, F: f, C: dest, CS: strings.Join(cs, "|")})
 	return nil
+}
+
+// everyRememberedOrImprinted is everyRemembered where an alternative may name
+// IsImprinted instead (Patient Naturalist's Land.YouOwn+IsImprinted): the pool
+// is the resolution's imprinted cards. lc.filter admits the word only inside
+// a chain that wrote the set.
+func everyRememberedOrImprinted(ct string) bool {
+	for _, alt := range strings.Split(ct, ",") {
+		rem := strings.Contains(alt, "IsRemembered") && !strings.Contains(alt, "!IsRemembered")
+		imp := strings.Contains(alt, "IsImprinted") && !strings.Contains(alt, "!IsImprinted")
+		if !rem && !imp {
+			return false
+		}
+	}
+	return strings.TrimSpace(ct) != ""
 }
 
 // everyRemembered reports a ChangeType$ whose every comma alternative is

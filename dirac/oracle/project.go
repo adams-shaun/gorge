@@ -16,7 +16,7 @@ import (
 
 // Projection limits.
 const (
-	MaxInst  = 224 // card instances (Ref 0..223)
+	MaxInst  = 236 // card instances (Ref 0..235)
 	MaxStack = 48  // dirac.MaxStack: every kernel stack entry is compared
 	MaxTgts  = 4   // kop.MaxTargets is 5, but a choose-two Command projects <= 3 targets
 )

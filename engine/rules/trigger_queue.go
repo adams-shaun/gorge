@@ -153,9 +153,9 @@ func (e *Engine) putTriggersOnStack() bool {
 		// choice is made as it resolves (resolveTop's ability branch poses
 		// askOptionalAtResolution). So an OptionalDecider$ trigger is pushed
 		// unconditionally here, exactly like a mandatory one. Miracle is the
-		// lone keyword cast offer decided at placement. Madness is mandatory
-		// here: its cast choice happens only when its respondable keyword
-		// ability resolves.
+		// lone keyword offer decided at placement, and only its reveal (CR
+		// 702.94a): the cast is asked when the minted trigger resolves, as
+		// Madness's is.
 		if who, optional, askable := e.optionalDecider(pt); optional && pt.Miracle {
 			if !askable {
 				// The decider left the game between this trigger matching and
@@ -937,16 +937,14 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
-	// A Miracle offer is placed by casting the card for its miracle
-	// cost, not by minting a triggered-ability stack object. castMiracle
-	// verifies the card is still in the owner's hand, emits the reveal Note,
-	// and begins the ordinary cast flow; it may pause on an X/target decision
-	// of its own, which is exactly the drainAwaitsTarget continuation
-	// (see castMiracle's doc). A Miracle trigger is NOT delayed, so the flag
-	// order matters: a Miracle offer must reach castMiracle, never the
-	// DelayedPush path below.
+	// A Miracle offer (the owner chose to reveal) mints the MiracleCast
+	// keyword trigger as a real stack object; revealMiracle verifies the card
+	// is still in the owner's hand and emits the reveal Note. The cast is
+	// asked as that trigger resolves. A Miracle trigger is NOT delayed, so the
+	// flag order matters: it must reach revealMiracle, never the DelayedPush
+	// path below.
 	if pt.Miracle {
-		e.castMiracle(pt)
+		e.revealMiracle(pt)
 		return
 	}
 	// A static-grant's trigger (AddTrigger$ on a Mode$ Continuous static,
@@ -1506,11 +1504,12 @@ func (e *Engine) faceOwningTrigger(source state.ObjID, t cards.Trigger) *cards.F
 // TriggeredCardController read the wrong creature's controller whenever it
 // attacks alongside another creature that happened to be declared first.
 func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optional, askable bool) {
-	// A Miracle offer is always optional and its decider is always the
-	// owner (the controller of the drawn card). It has no T: line to read, so
-	// this must be special-cased before triggerOf (which would fail for it).
-	// Evoke and Madness are mandatory follow-ups with no placement question;
-	// Madness asks whether to cast only at resolution.
+	// A Miracle offer is always optional (the CR 702.94a reveal) and its
+	// decider is always the owner (the controller of the drawn card). It has no
+	// T: line to read, so this must be special-cased before triggerOf (which
+	// would fail for it). Evoke and Madness are mandatory follow-ups with no
+	// placement question; Madness and Miracle ask whether to cast only at
+	// resolution.
 	if pt.Miracle {
 		who = pt.Controller
 		if int(who) >= len(e.G.Players) || e.G.Players[who].Lost {
@@ -1799,14 +1798,7 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 			return name + ": madness cast-or-graveyard trigger"
 		}
 		head, verb := "Miracle", "reveal "
-		cost, _ := e.derivedKeywordParamH(pt.Source, kwhMiracle)
-		if less, ok := miracleCardCostLess(cost); ok {
-			cost = "its mana cost"
-			if less != "" {
-				cost += " less " + less
-			}
-		}
-		return head + " — " + verb + name + " for " + cost + "?"
+		return head + " — " + verb + name + " for " + e.miracleCostText(pt.Source) + "?"
 	}
 	name := "Triggered ability"
 	if o := e.G.Obj(pt.Source); o != nil {
@@ -2198,8 +2190,8 @@ func optionalAtResolutionDecision(who state.PlayerID, o *state.Object, sa *cards
 //     resumeResolution's own tail, priority returns to the active player.
 //   - The placement ask (a Miracle offer, the one place an optional decision
 //     is still handed out before the ability is on the stack): a yes places
-//     the trigger (for a Miracle, that begins the cast flow), a no discards
-//     it, then the drain resumes.
+//     the trigger (for a Miracle, reveals the card and mints the MiracleCast
+//     ability), a no discards it, then the drain resumes.
 //
 // A declined optional trigger on the resolution path still emits its
 // TriggerPush (the ability did go on the stack); only a placement no emits

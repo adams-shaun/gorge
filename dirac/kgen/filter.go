@@ -234,6 +234,10 @@ type lClause struct {
 	// Special: a RestrictValid$ Static.<tail> alternative's special actions
 	// (kop.SpecialMask). Every other clause leaves it 0.
 	Special kop.SpecialMask
+	// TheirHand: the clause's provenance word is wasCastFromTheirHand (the
+	// same predicate as wasCastFromYourHand); only a CantBeCast ValidCard$
+	// admits it (lowerCtx.cantCastProv).
+	TheirHand bool
 }
 
 // lFilter is a Forge Valid expression: any clause matching (OR), plus the
@@ -775,19 +779,22 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 			return nil
 		}
 		return c.setCmp(cmpWasCast, 0, n, "", "")
-	case "wasCastFromYourHand", "!wasCastFromYourHand", "wasCastFromYourHandByYou", "wasCastFromExile":
+	case "wasCastFromYourHand", "!wasCastFromYourHand", "wasCastFromTheirHand", "!wasCastFromTheirHand", "wasCastFromYourHandByYou", "wasCastFromExile":
 		// gorge's cast-provenance words (rules castProvenanceAdmits), read on
 		// a spell on the stack: lc.spellProvOK says the filter is a SpellCast
 		// ValidCard$ or a spell's own ConditionPresent$
 		n := spellHand
 		switch p {
-		case "!wasCastFromYourHand":
+		case "!wasCastFromYourHand", "!wasCastFromTheirHand":
+			// gorge reads wasCastFromTheirHand as a cast from a hand, any
+			// caster (cast_provenance.go): the same predicate as YourHand
 			n = spellHand | spellNot
 		case "wasCastFromYourHandByYou":
 			n = spellHandBy
 		case "wasCastFromExile":
 			n = spellExile
 		}
+		c.TheirHand = c.TheirHand || p == "wasCastFromTheirHand" || p == "!wasCastFromTheirHand"
 		if c.CmpStat == cmpWasCast && c.CmpN == wasCastAny {
 			c.CmpStat, c.CmpN = cmpNone, 0 // wasCast+<word>: the word implies the cast
 			if n == spellHand|spellNot {

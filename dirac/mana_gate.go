@@ -90,6 +90,14 @@ func prepManaGate(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 			// C|colours; the window activates ability 0 ({C})
 			on.manaCol, on.manaMulti = u, true
 		}
+		if gatedLargerPair(c, gj, pc) && debugGatedPair != 1 {
+			// Whisperer of the Wilds: {T}: Add {G}, then a gated {T}: Add
+			// {G}{G}. The unit's two alternatives differ in amount; the
+			// window answers ability 0 (manaN stays the {G}), the planner
+			// and the affordability bounds read the larger (wideN)
+			on.wideN, on.wideCol = c.Abilities[gj].ManaN, c.Abilities[gj].ManaColors&kop.ColAny
+			g.anyGatePair = true
+		}
 		if on.manaMulti && bits.TrailingZeros8(uint8(off.manaCol)) != bits.TrailingZeros8(uint8(on.manaCol)) {
 			g.anyVergeOrder = true
 		}
@@ -166,3 +174,49 @@ func (s *State) windowTapHeldOK(k *prep, p uint8, cost *kop.ManaCost) bool {
 	}
 	return ok
 }
+
+// debugGatedPair is the lockstep mutation switch of TestWhispererGatedPairMutation:
+// 1 leaves the gated larger alternative out of the gate-on view (the unit
+// makes one mana), 2 leaves the planner's pair arm out (the unit stays one
+// {G} type beside the larger affordability bound). Zero in every real run.
+var debugGatedPair uint8
+
+// SetDebugGatedPair sets the mutation switch; tests only.
+func SetDebugGatedPair(m uint8) { debugGatedPair = m }
+
+// gatedLargerPair reports card c's gated ability gj as a larger alternative of
+// the first mana ability's colour: two plain {T} abilities of one fixed colour,
+// the gated one making more (Whisperer of the Wilds, Fanatic of Rhonas).
+// gorge's census lists the gate-on source as one unit with both alternatives
+// (pay.appendUnitAlternatives) and the planner takes the one that ranks best
+// per payment; the kernel's unit is a restrPairUnit pair without the
+// restricted float.
+func gatedLargerPair(c *kop.CardDef, gj int, pc *pcard) bool {
+	if pc.manaAb < 0 || int(pc.manaAb) == gj {
+		return false
+	}
+	a0, ag := &c.Abilities[pc.manaAb], &c.Abilities[gj]
+	n := 0
+	for j := range c.Abilities {
+		if a := &c.Abilities[j]; a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 {
+			n++
+		}
+	}
+	return n == 2 && a0.AFlags == 0 && ag.AFlags == 0 && a0.ManaRestrict == 0 && ag.ManaRestrict == 0 &&
+		a0.ManaColors == ag.ManaColors && bits.OnesCount8(uint8(ag.ManaColors&0x3f)) == 1 &&
+		a0.Cost.Flags == kop.CostTap && ag.Cost.Flags == kop.CostTap && max(ag.ManaN, 1) > pc.manaN && !ag.ManaEach && !a0.ManaEach
+}
+
+// srcYield is the mana a source's view can make in one tap for an
+// affordability bound: the larger alternative of a gated pair (wideN) holds
+// the census one's. The payment window still pays manaN (ability 0).
+func srcYield(pc *pcard) uint8 { return max(pc.manaN, pc.wideN) }
+
+// gatePairPotential is what a gate-on pair view adds to the potential pool
+// beside its census manaN: gorge's potentialManaFor admits each listed mana
+// ability of a source on its own and sums them, and with the gate on both
+// {T}: Add {G} and {T}: Add {G}{G} are listed (Whisperer: 3 {G}, not the
+// planner's max of 2). Zero for any other view. Only a gate-on pair view
+// reaches the potential walk with wideN set (manaPCGen never returns a
+// restricted record view).
+func gatePairPotential(pc *pcard) uint8 { return pc.wideN }

@@ -329,11 +329,13 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 		s.perms[st.sl].flags |= pfTapped
 		s.touchSl(st.sl)
 		s.manaTapped(k, st.sl)
-		if o.gi >= 0 && k.gen.grantRestr[o.gi] != 0 {
-			if !s.addRestr(k, p&1, k.gen.grantRestr[o.gi], int(o.ans), o.n) {
-				s.capFull(StallRestrSrc)
+		if o.gi >= 0 {
+			if ab := restrAbOfGrant(k, o.gi); ab != nil {
+				if !s.floatRestrAb(k, p&1, st.sl, ab, int(o.ans), o.n) {
+					s.capFull(StallRestrSrc)
+				}
+				return
 			}
-			return
 		}
 		s.pl[p&1].pool[o.ans] += o.n
 		// The tap brings its tap-extra too (gorge addTapExtra): a granted

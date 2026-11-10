@@ -55,7 +55,7 @@ func RulesChance(tr []ChanceDraw) []rules.ChanceDraw {
 // outcomes (forced on gorge, so a kernel game from a redealt or reseeded
 // world replays too).
 type KernelGame struct {
-	Format      string      `json:"format"` // "koracle-game-1"
+	Format      string      `json:"format"` // "koracle-game-2"
 	Decks       [2]string   `json:"decks"`
 	Cards       [2][]string `json:"cards"`
 	Seed        uint64      `json:"seed"`
@@ -75,7 +75,12 @@ type KernelGame struct {
 	Winner         int8         `json:"winner"`
 }
 
-const gameFormat = "koracle-game-1"
+const (
+	gameFormat = "koracle-game-2"
+	// gameFormat1 is the format before the target byte was repacked
+	// (repro.go, format1Ref).
+	gameFormat1 = "koracle-game-1"
+)
 
 // compareHash is the hash a replay compares: the projection as the
 // lockstep compares it (the priority holder is not compared -- outside a
@@ -165,7 +170,15 @@ func ReadKernelGame(path string) (*KernelGame, error) {
 	if err := json.Unmarshal(b, &g); err != nil {
 		return nil, err
 	}
-	if g.Format != gameFormat {
+	switch g.Format {
+	case gameFormat:
+	case gameFormat1:
+		// The recorded projection hashes encode the old Ref bytes and cannot
+		// be translated; a replay without them compares actions only.
+		g.Actions = format1Actions(g.Actions)
+		g.Hashes = nil
+		g.Format = gameFormat
+	default:
 		return nil, fmt.Errorf("game %s: format %q, want %q", path, g.Format, gameFormat)
 	}
 	return &g, nil

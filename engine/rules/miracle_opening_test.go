@@ -68,7 +68,13 @@ func TestMiracleGrantedInHandOffersAndCharges(t *testing.T) {
 		if d == nil || d.Kind != decision.KTriggerOptional {
 			t.Fatalf("%s: offer decision %+v", tc.granter, d)
 		}
-		submitChoices(t, e, 0)
+		submitChoices(t, e, 0) // reveal: yes
+		miracleTriggerOnStack(t, e, id)
+		ask := passToMiracleAsk(t, e)
+		if ask == nil {
+			t.Fatalf("%s: no miracle cast ask after the trigger resolved", tc.granter)
+		}
+		submitChoices(t, e, miracleOption(t, ask, "yes"))
 		if e.G.Obj(id).Zone != state.ZStack {
 			t.Fatalf("%s: zone %v, want the stack", tc.granter, e.G.Obj(id).Zone)
 		}

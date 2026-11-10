@@ -38,7 +38,8 @@ import (
 //     which the kernel models as a pain source (mana_pain.go painLife).
 //
 // Every other shape (a second ability with a sacrifice, counter or
-// tap-another cost: a last-resort alternative gorge's planner may take; an
+// tap-another cost (gorge's census leaves a counter or tap-another one a
+// relaxable gap its prefix search activates, not a planner alternative); an
 // unrestricted choice beside a fixed one; a paid fixed-colour or hybrid
 // filter; a dynamic fixed colour) is refused.
 func (lc *lowerCtx) refuseMultiMana() {
@@ -85,7 +86,7 @@ func (lc *lowerCtx) refuseMultiMana() {
 	}
 	for i, a := range ms[1:] {
 		if !manaGapModelled(ms[0], a) {
-			lc.refuseNode("card", "%d mana abilities: mana ability %d (cost %v, produces %s) is not modelled beside the first", len(ms), i+1, a.Cost.Mana, a.Mana.Colors)
+			lc.refuseNode("card", "%d mana abilities: mana ability %d (cost %v, produces %s) is not modelled beside the first: %s", len(ms), i+1, a.Cost.Mana, a.Mana.Colors, manaGapWhy(ms[0], a))
 			return
 		}
 	}
@@ -256,6 +257,42 @@ func manaGapModelled(first, a *lAbility) bool {
 	return false
 }
 
+// manaGapWhy names what a, a second mana ability manaGapModelled refuses,
+// needs beyond the kernel's one-unit-per-permanent source model (the
+// reasons the kernel's lockstep games and activation walk show):
+//
+//   - a cost beyond {T} other than the two below (a sacrifice, a mana
+//     payment with a rider, ...): the kernel's mana walk cannot activate it;
+//   - a cost of {T} plus tapping another creature (Scene of the Crime) or
+//     removing counters (Weather Maker): gorge's census leaves it a
+//     relaxable once-only gap (pay.PlanLastResortCostOK refuses both parts)
+//     whose prefix script activates the source, answers the ability ask with
+//     the second ability, then its colour; the kernel's tap-another and
+//     counter gap kinds (mana_tapanother.go, mana_countercost.go) read only
+//     a source's first mana ability (pcard.manaAb), so neither can play it;
+//   - a spend-restricted ability of several mana of the first ability's own
+//     fixed colour (Tablet of Discovery): the kernel's restricted pair unit
+//     plans only the any-colour larger alternative, so the planner taps
+//     differently from gorge's;
+//   - an evaluated amount of the first ability's fixed colour (Itlimoc,
+//     Cradle of the Sun): the kernel plans the first ability alone, gorge's
+//     planner the larger of the two.
+func manaGapWhy(first, a *lAbility) string {
+	m := a.Mana
+	switch {
+	case !plainTapMana(a, false) && !plainTapMana(a, true):
+		if a.Cost.TapN != 0 || a.Cost.SubCtr != 0 {
+			return "a cost beyond {T} the kernel's mana walk cannot activate: its tap-another and counter gap kinds read only the first mana ability"
+		}
+		return "a cost beyond {T} the kernel's mana walk cannot activate"
+	case m.Restrict != nil && m.Amount.Kind == vConst && m.Amount.N > 1 && len(m.Colors) == 1 && m.Colors != "WUBRG" && !m.Choice:
+		return "a restricted fixed colour of several mana: the kernel's restricted pair unit plans only an any-colour one"
+	case m.Amount.Kind > vConst && len(m.Colors) == 1 && m.Colors == first.Mana.Colors && plainTapMana(a, false):
+		return "an evaluated amount of the first ability's colour: the kernel plans the first ability alone"
+	}
+	return "a shape beyond the restricted, filter and pain gaps"
+}
+
 // restrictedComboModelled: a, a restricted {T} ability of a Combo of any
 // colours, is the one shape the kernel's wide gap step models beside a first
 // ability (Hermitic Herbalist): exactly maxRestrictedCombo mana, a spell-only
@@ -310,6 +347,13 @@ func (lc *lowerCtx) refuseGatedMana(ms []*lAbility) bool {
 	if gated == 0 {
 		return false
 	}
+	if len(ms) == 2 && fixedColourFiltMana(ms[0], ms[1]) {
+		// a plain {T}: Add {c} and a Station-gated {c}, {T}: Add {c} for each
+		// ... (Evendo, Uthros): gorge's census lists the first ability alone
+		// while the grant is off and the second as a paid gap while it is on
+		// (the kernel's gated fixed-colour filter, filterTapMana)
+		return true
+	}
 	// the gate may be the only thing off the plain shape; a card's only mana
 	// ability may also make a literal amount above one of one fixed colour
 	// (Temple of the False God's {C}{C}): its gate-on view is the plain
@@ -339,13 +383,15 @@ func (lc *lowerCtx) refuseGatedMana(ms []*lAbility) bool {
 	if gatedLargerSameColour(ms) {
 		// Whisperer of the Wilds: gorge's planner lists the source with
 		// both alternatives while the gate holds and takes the one that
-		// ranks best per payment (fewest sources, then least surplus), a
-		// per-tap yield choice. The kernel's source model is one yield per
-		// view (pcard.manaN), read as such by every affordability bound and
-		// the payment window, which answers the first ability: a view of
-		// two would overpay a payment gorge makes with the one, a view of
-		// one could not afford what gorge affords.
-		lc.refuseNode("card", "gated {T} ability making several mana of the colour a plain {T} ability makes one of (a per-tap yield choice the kernel's mana source model does not hold)")
+		// ranks best per payment (fewest sources, then least surplus); the
+		// payment window answers the first ability. The kernel's gate-on
+		// view is the restricted source's pair unit without the restricted
+		// float (prepManaGate: the first ability's manaN beside the larger
+		// one's wideN), the affordability bounds read the larger amount.
+		// An amount above maxEachMana is outside the byte-sized unit.
+		if ms[1].Mana.Amount.N > maxEachMana {
+			lc.refuseNode("card", "gated {T} ability making more than four mana of the colour a plain {T} ability makes one of")
+		}
 		return true
 	}
 	for _, a := range ms {
@@ -377,6 +423,43 @@ func (lc *lowerCtx) refuseGatedMana(ms []*lAbility) bool {
 		lc.refuseNode("card", "gated mana ability of the same colour as the first")
 	case strings.Index("WUBRG", ms[0].Mana.Colors) < 0 || strings.Index("WUBRG", ms[1].Mana.Colors) < 0:
 		lc.refuseNode("card", "gated mana ability producing {C} beside another")
+	}
+	return true
+}
+
+// fixedColourFiltMana: first is a plain unrestricted {T}: Add one mana of one
+// WUBRG colour and a is the card's own counters-gated "{c}, {T}: Add {c} for
+// each ...": one coloured pip of the colour it makes, a dynamic amount, no
+// restriction (the Station-granted Planets, stationGrantMana). The gate is
+// the Station threshold, the only one the filter's gap view reads.
+func fixedColourFiltMana(first, a *lAbility) bool {
+	if first.ActCond.Kind != cNone || !plainTapMana(first, false) || !unrestrictedOne(first) || first.Mana.Choice ||
+		first.Mana.Each || len(first.Mana.Colors) != 1 || !strings.Contains("WUBRG", first.Mana.Colors) {
+		return false
+	}
+	if a.ActCond.Kind != cPresent {
+		return false
+	}
+	if _, ok := stationThreshold(a.ActCond.F); !ok || a.ActCond.F.Clauses[0].CmpCounter != "CHARGE" || a.ActCond.F.Clauses[0].CmpOp != opGE ||
+		a.ActCond.Op != opGE || !a.ActCond.A.isConst() || a.ActCond.A.N != 1 {
+		return false
+	}
+	c := *a
+	c.ActCond = lCond{}
+	m := c.Cost.Mana
+	pip, n := -1, 0
+	for i, v := range m.Pips {
+		if v != 0 {
+			pip, n = i, n+v
+		}
+	}
+	if n != 1 || m.Pips[pip] != 1 || m.Generic != 0 || m.X || m.XX || m.C != 0 || len(m.Hybrid) != 0 {
+		return false
+	}
+	c.Cost.Mana.Pips = [5]int{}
+	if !plainTapMana(&c, false) || c.Mana.Choice || c.Mana.Each || c.Mana.Restrict != nil || c.Mana.RestrictAb != nil || c.Mana.NonSpell ||
+		c.Mana.Colors != string("WUBRG"[pip]) || c.Mana.Amount.Kind <= vConst {
+		return false
 	}
 	return true
 }

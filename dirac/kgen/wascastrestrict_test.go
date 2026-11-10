@@ -110,7 +110,7 @@ func TestWascastrestrictRefusals(t *testing.T) {
 		"spell and bare":    {kwrArtifact, "A:AB$ Mana | Cost$ T | Produced$ C | RestrictValid$ Spell.wasCastFromExile,Spell.wasCast", "bare wasCast"},
 		"granted graveyard": {kwrGrantee, strings.Replace(kwrGrant, "%s", "Spell.wasCastFromGraveyard", 1), "wasCastFromGraveyard on a spell"},
 		"granted activated": {kwrGrantee, strings.Replace(kwrGrant, "%s", "Activated.wasCastFromExile", 1), "cast-provenance word outside"},
-		"granted type":      {kwrGrantee, strings.Replace(kwrGrant, "%s", "Spell.Creature", 1), "granted mana ability with a spend restriction"},
+		"granted ability":   {kwrGrantee, strings.Replace(kwrGrant, "%s", "Activated.Artifact", 1), "granted mana ability with a spend restriction"},
 	} {
 		lc := kwrLower(t, c.head, c.lines)
 		found := false

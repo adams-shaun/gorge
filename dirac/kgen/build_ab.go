@@ -70,6 +70,7 @@ func (cb *cardBuilder) abilities() error {
 		ke.UntilEOT = e.UntilEOT
 		ke.UntilNextTurn = e.UntilNextTurn
 		ke.WhileHost = e.WhileHost
+		ke.CaptureLapse = e.CaptureLapse
 		if e.CaptureSet {
 			r, err := cb.ref(e.Capture)
 			if err != nil {
@@ -611,6 +612,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 			return ka, fmt.Errorf("activation limit %d", a.Limit)
 		}
 		ka.Exhaust = a.Exhaust
+		ka.CantCopy = a.CantCopy
 		ka.Evidence = uint8(a.Cost.EvidenceN)
 		ka.GrantedKw = a.Latent && strings.HasPrefix(a.Name, "GrantedFirebending")
 		if a.PowerUp {
@@ -3057,6 +3059,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				ki.C |= kop.MvRemember
 			case "Optional":
 				ki.C |= kop.MvMayMill
+			case "ImprintMove":
+				ki.C |= kop.MvImprint
 			default:
 				return ki, fmt.Errorf("mill %s", in.CS)
 			}
@@ -3553,14 +3557,15 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// FINALITY counter per applied grant
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtFinalityCtr))
 	case "CopyAbility":
-		// OpExt ExtCopyAbility, B the target slot (not Obj: a
-		// target Ref would run the program once per target), C bit 0 the
-		// MayChooseTarget$ election
+		// OpExt ExtCopyAbility, B the copy count (Amount$, default 1), C bit 0
+		// the MayChooseTarget$ election and C>>1 the target slot (not Obj: a
+		// target Ref would run the program once per target)
 		slot, ok := tgtSlotOfRef(ki.Obj)
 		if !ok {
 			return ki, fmt.Errorf("CopyAbility Obj %d", ki.Obj)
 		}
-		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtCopyAbility)), kop.Const(slot), int16(in.C&1)
+		n := ki.A
+		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtCopyAbility)), n, int16(in.C&1)|int16(slot)<<1
 		ki.Obj = kop.RefSelf
 	case "DividedCounters":
 		// (Quirion Beastcaller) OpExt ExtDividedCounters, Obj the target slot

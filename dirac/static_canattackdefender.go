@@ -25,5 +25,5 @@ func (s *State) canAttackDefender(k *prep, sl Slot) bool {
 		})
 		return hit
 	}
-	return s.staticFlagGen(k, kop.StatCanAttackDefender, sl)
+	return s.canAtkDefGen(k, sl) // static_emblemcapture.go
 }

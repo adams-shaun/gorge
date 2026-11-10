@@ -141,7 +141,7 @@ func followsLive(k *prep, c CardID, ab uint8) bool {
 // shuffle does not change which cards are milled (CR 701.17a).
 //
 //go:noinline
-func (s *State) millShuffling(k *prep, p uint8, n int, remember bool) {
+func (s *State) millShuffling(k *prep, p uint8, n int, c int) {
 	pl := &s.pl[p]
 	var top [MaxObj]Obj
 	m := copy(top[:min(n, len(top))], pl.lib[pl.libLo:pl.libHi])
@@ -150,9 +150,7 @@ func (s *State) millShuffling(k *prep, p uint8, n int, remember bool) {
 		s.touch(o)
 		s.objs[o].zone = kop.ZoneNone
 		s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
-		if remember {
-			s.remember(o)
-		}
+		s.millMark(o, c)
 	}
 }
 
@@ -230,7 +228,7 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 // and a filter bounded by X (Rydia's Saga card with mana value X) has its candidates
 // only at some values. When no value has one, the whole range stands and the target
 // ask reverses the cast (gorge xAsk).
-func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av *avail) {
+func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av *avail) bool {
 	a := s.buildAbility(k)
 	bound := false
 	if k.gen != nil && a != nil {
@@ -265,19 +263,27 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 		return av.affords(&c, pipMaskOf(&c), 0)
 	}
 	n0 := d.N
+	fl := s.xFloor(k) // the announced X's floor (cost_sacx.go)
 	if bound {
-		for x := 0; x <= hi; x++ {
+		for x := fl; x <= hi; x++ {
 			if s.xAnswerable(k, a, e, x) && pays(x) {
 				d.add(MakeAction(AkChoose, 0, 0, uint8(x)))
 			}
 		}
 	}
 	if d.N == n0 {
-		for x := 0; x <= hi; x++ {
+		for x := fl; x <= hi; x++ {
 			if pays(x) {
 				d.add(MakeAction(AkChoose, 0, 0, uint8(x)))
 			}
 		}
+	}
+	if d.N == n0 && fl > 0 {
+		// gorge xAsk: a floored announcement with no payable value aborts the
+		// cast without posing a decision (CR 601.2b, 733.1; sacShort's exit)
+		d.N = 0
+		s.reverseCast(k)
+		return false
 	}
 	if d.N == n0 {
 		// gorge xAsk: no payable X leaves the old offer standing, X = 0, and
@@ -285,6 +291,7 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 		// is begun whatever the pool holds
 		d.add(MakeAction(AkChoose, 0, 0, 0))
 	}
+	return true
 }
 
 // xAnswerable reports whether ability a's mandatory targets have candidates once X is

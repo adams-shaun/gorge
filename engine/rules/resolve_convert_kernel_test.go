@@ -686,6 +686,60 @@ func TestKernelConvertMadness(t *testing.T) {
 	}
 }
 
+// Miracle's cast-or-keep choice at the MiracleCast ability's resolution is
+// posed and served from the tape: declined, the card stays in hand; cast, it
+// reaches the battlefield. The reveal before it is a placement ask, answered
+// outside the tape.
+func TestKernelConvertMiracle(t *testing.T) {
+	const bear = "Name:Tape Mir Bear\nManaCost:3 G\nTypes:Creature Bear\nPT:2/2\nK:Miracle:G\nOracle:x\n"
+	for i, yes := range []bool{false, true} {
+		t.Run(map[bool]string{true: "cast", false: "decline"}[yes], func(t *testing.T) {
+			asked := false
+			pick := func(d *decision.Decision) []int {
+				if d.Kind == decision.KTriggerOptional {
+					want := "yes"
+					if d.ResumeKind == "miracle" {
+						asked = true
+						if !yes {
+							want = "no"
+						}
+					}
+					for _, o := range d.Options {
+						if o.Kind == want {
+							return []int{o.Index}
+						}
+					}
+				}
+				return tapePick(d)
+			}
+			var mir state.ObjID
+			e, _ := runServedScenario(t, 2, 14200+uint64(i), 1, func(t *testing.T, e *Engine) {
+				mir = fixtureInHand(t, e, "Tape Mir Bear")
+				moveToLibraryTop(t, e, mir)
+				addMana(t, e, 0, "G")
+				e.pendingTriggers = nil
+				e.emit(events.Event{Kind: events.Draw, Player: 0, Obj: mir, From: state.ZLibrary, To: state.ZHand, Secret: true})
+				if len(e.pendingTriggers) != 1 || !e.pendingTriggers[0].Miracle {
+					t.Fatalf("no miracle offer: %+v", e.pendingTriggers)
+				}
+				e.pending = nil
+				e.Advance()
+				tapeUnlessScenarioResolve(t, e, pick)
+			}, bear)
+			if !asked {
+				t.Fatal("the miracle cast choice was never posed")
+			}
+			want := state.ZHand
+			if yes {
+				want = state.ZBattlefield
+			}
+			if z := e.G.Obj(mir).Zone; z != want {
+				t.Fatalf("the miracle card ended in %s, want %s", z, want)
+			}
+		})
+	}
+}
+
 // --- resolve_convert_zone_test.go ---
 
 func TestKernelConvertZone(t *testing.T) {

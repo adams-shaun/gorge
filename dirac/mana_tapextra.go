@@ -259,7 +259,7 @@ func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 			return
 		}
 	}
-	a.remove(s.srcMaskAt(pc, sl), pc.manaN)
+	a.remove(s.srcMaskAt(pc, sl), srcYield(pc))
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return
 	}

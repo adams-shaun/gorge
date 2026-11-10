@@ -538,7 +538,8 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 // the spell's own Cost$ (Fumarole's PayLife<3>, Fear of Exposure's tapXType,
 // Abhorrent Oculus's exile) is "shape:additional_cost", offered by the pool only.
 func planDeclinesAddCost(k *prep, c CardID) bool {
-	return spellAddCost(k, c).Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered) != 0
+	ac := spellAddCost(k, c)
+	return ac.Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered) != 0 || sacXCost(ac) // an announced Sac<X/Spec> is not "cost:sacrifice" admissible (PlanNonManaAdmissible; cost_sacx.go)
 }
 
 // plannedCastCost is the cost gorge's cast planner prices for p's cast of
@@ -648,7 +649,7 @@ func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 	}
 	if modal {
 		// gorge's PlanTargetPaidManaHalf funds the mana without life and energy
-		return spellAddCost(k, c).Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered|kop.CostPayLife|kop.CostPayEnergy) != 0
+		return spellAddCost(k, c).Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered|kop.CostPayLife|kop.CostPayEnergy) != 0 || sacXCost(spellAddCost(k, c))
 	}
 	if planDeclinesAddCost(k, c) {
 		// The spell's own Cost$ is separate from an AlternateAdditionalCost
@@ -790,7 +791,7 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
 			s.addPainAvail(k, sl, pc, p&1, av, ms, false) // the planner's census has a pain ability (mana_pain.go)
 			continue
 		}
-		av.addUnits(s.srcMaskAt(pc, sl), pc.manaN)
+		av.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))
 		if pc.manaOne {
 			s.addOneColour(av, pc.manaN)
 		}

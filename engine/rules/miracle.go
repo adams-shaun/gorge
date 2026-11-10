@@ -1,18 +1,21 @@
 // miracle.go implements the Miracle keyword (CR 702.94).
 //
 // Miracle is not a triggered ability in the T: sense -- it has no trigger
-// line to fire -- but it shares the trigger machinery's queue: when a card
-// with Miracle is the FIRST draw of its controller's turn, the draw is what
-// offers it, and the controller chooses whether to cast it for the miracle
-// cost. The draw still resolves as a normal draw (the card is already in
-// hand); what Miracle adds is a yes/no offer layered on top.
+// line to fire -- but it shares the trigger machinery's queue. When a card
+// with Miracle is the FIRST draw of its controller's turn, the draw queues a
+// reveal offer. CR 702.94a: the owner may reveal the card as they draw it, and
+// doing so creates a triggered ability; they may cast the card only as that
+// trigger resolves. The sequence is reveal ask (placement, in the drain right
+// after the Draw, before anyone has priority) -> a MiracleCast trigger on the
+// stack -> priority, so every player may respond -> cast ask at resolution
+// (askMiracleCast) -> the ordinary cast flow and payment.
 //
 // The offer is queued as a pendingTrigger with Miracle set and no Idx/SA (no
 // T: line), so the drain (putTriggersOnStack, trigger_queue.go) treats it as
 // an optional trigger whose decider is the owner: optionalDecider and
-// triggerLabel special-case Miracle, askTriggerOptional asks the yes/no, and
-// a yes routes pushTrigger into castMiracle below. A no drops the offer
-// silently -- declining costs nothing and changes nothing but the offer.
+// triggerLabel special-case Miracle, askTriggerOptional asks the yes/no
+// reveal, and a yes routes pushTrigger into revealMiracle below. A no drops
+// the offer silently -- declining costs nothing and reveals nothing.
 
 package rules
 
@@ -37,7 +40,7 @@ import (
 // The offer is queued as a trivial Miracle pendingTrigger. Idx/SA are zero/
 // nil (there is no T: line); the drain and decider read the Miracle flag
 // instead. The card at this point is guaranteed to be in the owner's hand
-// (the draw just put it there); castMiracle re-verifies before it casts, in
+// (the draw just put it there); revealMiracle re-verifies before it reveals, in
 // case the offer is still in the queue when something else moves the card.
 func (e *Engine) offerMiracle(ev events.Event) {
 	o := e.G.Obj(ev.Obj)
@@ -114,30 +117,19 @@ func (e *Engine) drawsThisTurn(p state.PlayerID) int {
 	return n
 }
 
-// castMiracle is called from pushTrigger (trigger_queue.go) when the owner
-// answered the miracle offer yes. It is the "place" step for a Miracle
-// pendingTrigger, the way pushTrigger otherwise mints a T: line's stack
-// object.
+// revealMiracle is called from pushTrigger (trigger_queue.go) when the owner
+// answered the miracle reveal ask yes. It is the "place" step for a Miracle
+// pendingTrigger: the card is revealed and the miracle triggered ability is
+// minted as a real stack object (CR 702.94a), the way Madness mints its own.
 //
 // The card must still be in the owner's hand -- the offer was queued at draw
 // time, and something (another effect, a state-based action, the owner being
 // eliminated) may have moved it since; if it is gone the offer is dropped
-// silently. Otherwise it reveals the card (a Note carries the reveal so a
-// replay observes it) and enters the ordinary cast flow with Mode "miracle",
-// which makes cast.go charge the printed miracle cost (KeywordParam Miracle)
-// and sets FlagMiracle on the spell.
-//
-// Because this runs inside the trigger drain, the same continuation
-// introduced for a trigger asking its targets applies to whatever decision
-// the cast flow pauses on: the drain stays interrupted while castMiracle's
-// own X/target ask is outstanding, and the handler that answers it
-// (handleChoose's cast case for X, handleTarget for a target) is what
-// resumes the drain (resumeTriggerDrain), rather than a fresh priorityRound
-// stealing a second attempt at state-based actions. drainAwaitsTarget is the
-// shared flag: true exactly when the cast flow left a pending decision whose
-// answer must resume the drain, false when the cast committed inline (then
-// the handleTriggerOptional that called us picks the drain back up).
-func (e *Engine) castMiracle(pt pendingTrigger) {
+// silently. Otherwise a Note carries the reveal (the text is parsed by
+// bots/searchprobe/known.go, keep it byte-identical) and KeywordTriggerPush
+// puts the MiracleCast ability on the stack. Nothing is cast here: the cast
+// is asked when that ability resolves (askMiracleCast).
+func (e *Engine) revealMiracle(pt pendingTrigger) {
 	o := e.G.Obj(pt.Source)
 	if o == nil || o.Controller != pt.Controller || o.Zone != state.ZHand {
 		return
@@ -148,9 +140,101 @@ func (e *Engine) castMiracle(pt pendingTrigger) {
 	}
 	e.emit(events.Event{Kind: events.Note, Player: pt.Controller, IDs: []state.ObjID{pt.Source},
 		Text: "reveals " + name + " (miracle)"})
-	e.drainAwaitsTarget = false
-	e.beginCast(pt.Controller, decision.Option{Kind: "cast", Obj: pt.Source, Mode: "miracle"})
-	e.drainAwaitsTarget = e.pending != nil
+	e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+		Obj: pt.Source, Counter: "__kwMiracleCast", Text: "miracle cast"})
+	e.drainAwaitsTarget = e.Pending() != nil
+}
+
+// askKeywordCast is resolveTop's hook for the two respondable keyword cast
+// triggers (Madness, Miracle). handled reports that o is one of them; asked
+// that a cast-or-not decision was posed and the resolution is spent.
+func (e *Engine) askKeywordCast(o *state.Object) (handled, asked bool) {
+	switch o.Ability.API {
+	case "MadnessCast":
+		return true, e.askMadnessCast(o)
+	case "MiracleCast":
+		return true, e.askMiracleCast(o)
+	}
+	return false, false
+}
+
+// miracleCastable reports whether id is still the card in p's hand that a
+// miracle trigger may cast.
+func miracleCastable(g *state.Game, p state.PlayerID, id state.ObjID) bool {
+	o := g.Obj(id)
+	return o != nil && o.Zone == state.ZHand && o.Owner == p
+}
+
+// miracleCostText is the cost as the reveal and cast asks print it.
+func (e *Engine) miracleCostText(id state.ObjID) string {
+	cost, _ := e.derivedKeywordParamH(id, kwhMiracle)
+	if less, ok := miracleCardCostLess(cost); ok {
+		cost = "its mana cost"
+		if less != "" {
+			cost += " less " + less
+		}
+	}
+	return cost
+}
+
+// askMiracleCast is the miracle trigger's resolution (CR 702.94a): its owner
+// may cast the revealed card, which must still be in their hand, for the
+// miracle cost. Stifle reaches the ability before this runs; a card that left
+// the hand meanwhile ends the ability with no choice (false).
+func (e *Engine) askMiracleCast(ability *state.Object) bool {
+	if ability == nil {
+		return false
+	}
+	card := e.G.Obj(ability.Source)
+	if card == nil || card.Face() == nil || card.Zone != state.ZHand || card.Owner != ability.Controller ||
+		int(card.Owner) >= len(e.G.Players) || e.G.Players[card.Owner].Lost {
+		return false
+	}
+	cost, ok := e.miracleCost(card.ID)
+	if !ok {
+		return false
+	}
+	name := card.Face().Name
+	d := &decision.Decision{Player: card.Owner, Kind: decision.KTriggerOptional,
+		Min: 1, Max: 1, Source: card.ID, ResumeKind: "miracle",
+		Prompt: "Cast " + name + " for its miracle cost?"}
+	if e.offerCastablePotential(card.Owner, card.ID, cost, spellScope("miracle"), false) &&
+		e.castTargetsAvailable(card.Owner, card.ID, card.Face().SpellAbility()) {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "yes",
+			Label: "Cast " + name + " for " + e.miracleCostText(card.ID), Obj: card.ID})
+	}
+	d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "no",
+		Label: "Keep " + name + " in hand", Obj: card.ID})
+	tapeMiracleAnswer(e, d, tapeServe(e, d), ability.ID)
+	return true
+}
+
+// tapeMiracleAnswer runs the miracle answer (resolveMiracleChoice) in line for
+// a tape-served cast-or-not choice, as tapeMadnessAnswer does for madness:
+// both arms log their own CR 117.3b priority reset, and a cast that asks
+// something (a target, a payment window) is a legacy ask that aborts the run.
+func tapeMiracleAnswer(e *Engine, d *decision.Decision, in decision.Intent, ability state.ObjID) {
+	chosen := d.Chosen(in)
+	e.resolveMiracleChoice(&resumePoint{kind: "miracle", obj: ability}, len(chosen) == 1 && chosen[0].Kind == "yes")
+	if e.cast != nil || e.pending != nil || e.Suspended() {
+		tapeUnservable(e, "miracle cast")
+	}
+	e.tapeGranted = true
+}
+
+func (e *Engine) resolveMiracleChoice(rp *resumePoint, yes bool) {
+	ability := e.G.Obj(rp.obj)
+	if ability == nil {
+		return
+	}
+	card, owner := ability.Source, ability.Controller
+	e.finishResumption(rp.obj)
+	// CR 117.3b: the trigger's resolution ends with the active player
+	// receiving priority and a fresh pass count; the reset precedes the cast.
+	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
+	if yes && miracleCastable(e.G, owner, card) {
+		e.beginCast(owner, decision.Option{Kind: "cast", Obj: card, Mode: "miracle"})
+	}
 }
 
 func init() {

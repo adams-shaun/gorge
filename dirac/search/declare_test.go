@@ -24,8 +24,8 @@ func TestBotDeclarationStopsAtTurnBoundary(t *testing.T) {
 	var s dirac.State
 	s.Init(v.Table, v.Decks[4246%5], v.Decks[(4246+2)%5], 4246, dirac.Config{})
 	script := []uint32{
-		17498112, 35061760, 19398656, 17825792, 68677888,
-		19791872, 17760256, 35848192, 117502208, 154075136, 155058176,
+		17498112, 35061760, 19398656, 17825792, 68680960,
+		19791872, 17760256, 35848192, 117505280, 154075136, 155058176,
 	}
 	var d dirac.Decision
 	for i, a := range script {

@@ -49,12 +49,16 @@ var DebugEffEOTTrigStats *EffEOTTrigStats
 // the registration's Remembered set; gorge matches the object, not a version).
 //
 //go:noinline
-func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bool, rcp uint8, listeners bool) {
+func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bool, rcp uint8, listeners bool, latch *dmgLatch) {
 	srcObj := s.perms[src].obj
 	srcCtrl := s.perms[src].ctrl
 	dpl := 1 - srcCtrl
 	if pl, ok := recipientPlayer(rcp); ok {
 		dpl = pl
+	}
+	seen := 0
+	if latch != nil {
+		seen = latch.n
 	}
 	for pp := uint8(0); pp < 2; pp++ {
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
@@ -70,7 +74,7 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 			}
 			for j := range e.Abilities {
 				ea := &e.Abilities[j]
-				if ea.Kind != kop.AbTriggered || ea.Trig.Event != kop.TrigDamageDone {
+				if ea.Kind != kop.AbTriggered || ea.Trig.Event != kop.TrigDamageDone && ea.Trig.Event != kop.TrigDamageDealtOnce {
 					continue
 				}
 				t := &ea.Trig
@@ -103,8 +107,26 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 				cd := &k.t.Cards[c]
 				for ab := range cd.Abilities {
 					la := &cd.Abilities[ab]
-					if la.Kind == kop.AbTriggered && la.AFlags&kop.AfLatent != 0 && la.Trig.Event == kop.TrigDamageDone && la.Trig.Zone == kop.ZoneCommand {
+					if la.Kind == kop.AbTriggered && la.AFlags&kop.AfLatent != 0 && la.Trig.Event == t.Event && la.Trig.Zone == kop.ZoneCommand {
 						o := s.embObj(pp, i)
+						n := amt
+						if t.Event == kop.TrigDamageDealtOnce && latch != nil {
+							// one trigger per damage batch, carrying the source's
+							// batch total (fireDamageEvGen's DamageDealtOnce latch)
+							l := trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(ab)}
+							if latch.has(l, seen) {
+								break
+							}
+							if n = latch.total; t.Flags&kop.TfToPlayer != 0 {
+								n = latch.totalPl
+							}
+							if latch.n < len(latch.l) {
+								latch.l[latch.n] = l
+								latch.n++
+							} else {
+								s.capFull(StallDmgLatch)
+							}
+						}
 						if st := DebugEffEOTTrigStats; st != nil {
 							st.DmgFires++
 							if amt > 1 {
@@ -121,9 +143,9 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 							}
 						}
 						if DebugInnerLightNoAmount {
-							amt = 0
+							n = 0
 						}
-						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, srcObj, 1-srcCtrl, amt)
+						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, srcObj, 1-srcCtrl, n)
 						break
 					}
 				}

@@ -5,6 +5,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -32,6 +33,64 @@ func moveToLibraryTop(t *testing.T, e *Engine, id state.ObjID) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZLibrary,
 		Text: "moved to library top for the miracle test"})
 }
+
+// passToMiracleAsk passes priority until the MiracleCast trigger on the stack
+// resolves and poses its cast-or-keep ask (ResumeKind "miracle"), which it
+// returns. It returns nil when the stack empties without one.
+func passToMiracleAsk(t *testing.T, e *Engine) *decision.Decision {
+	t.Helper()
+	for range 12 {
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("no decision while waiting for the miracle cast ask")
+		}
+		if d.Kind == decision.KTriggerOptional && d.ResumeKind == "miracle" {
+			return d
+		}
+		if len(e.G.Stack) == 0 {
+			return nil
+		}
+		pass := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				pass = o.Index
+			}
+		}
+		if pass < 0 {
+			t.Fatalf("waiting for the miracle cast ask: priority decision with no pass: %+v", d)
+		}
+		submitChoices(t, e, pass)
+	}
+	t.Fatal("the miracle cast ask never appeared")
+	return nil
+}
+
+// miracleOption is the index of the option of the given kind in d.
+func miracleOption(t *testing.T, d *decision.Decision, kind string) int {
+	t.Helper()
+	for _, o := range d.Options {
+		if o.Kind == kind {
+			return o.Index
+		}
+	}
+	t.Fatalf("no %q option in %+v", kind, d.Options)
+	return 0
+}
+
+// miracleTriggerOnStack asserts the stack holds exactly the MiracleCast
+// ability sourced by card, and returns nothing: the precondition every
+// "responds to the trigger" assertion depends on.
+func miracleTriggerOnStack(t *testing.T, e *Engine, card state.ObjID) {
+	t.Helper()
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack %v, want exactly the miracle trigger", e.G.Stack)
+	}
+	top := e.G.Obj(e.G.Stack[0])
+	if top.Ability == nil || top.Ability.API != "MiracleCast" || top.Source != card {
+		t.Fatalf("stack object %+v is not the MiracleCast ability of %d", top, card)
+	}
+}
+
 func TestMiracleOffersOnTheFirstDrawOnly(t *testing.T) {
 	t.Parallel()
 	terminus := "Name:Terminus\nManaCost:4 W W\nTypes:Sorcery\nK:Miracle:W\n" +
@@ -58,7 +117,13 @@ func TestMiracleOffersOnTheFirstDrawOnly(t *testing.T) {
 	if d == nil || d.Kind != decision.KTriggerOptional || d.Player != 0 {
 		t.Fatalf("offer decision %+v", d)
 	}
-	submitChoices(t, e, 0) // yes
+	submitChoices(t, e, 0) // reveal: yes
+	miracleTriggerOnStack(t, e, term)
+	ask := passToMiracleAsk(t, e)
+	if ask == nil {
+		t.Fatal("no miracle cast ask after the trigger resolved")
+	}
+	submitChoices(t, e, miracleOption(t, ask, "yes"))
 	if e.G.Obj(term).Zone != state.ZStack || e.G.Obj(term).CastFlags&state.FlagMiracle == 0 || e.G.Players[0].Pool.Total() != 0 {
 		t.Fatalf("terminus %s flags %d pool %d", e.G.Obj(term).Zone, e.G.Obj(term).CastFlags, e.G.Players[0].Pool.Total())
 	}
@@ -100,7 +165,13 @@ func TestMiracleWithXAsksX(t *testing.T) {
 	if d := e.Pending(); d == nil || d.Kind != decision.KTriggerOptional {
 		t.Fatalf("offer decision %+v", d)
 	}
-	submitChoices(t, e, 0) // yes
+	submitChoices(t, e, 0) // reveal: yes
+	miracleTriggerOnStack(t, e, en)
+	ask := passToMiracleAsk(t, e)
+	if ask == nil {
+		t.Fatal("no miracle cast ask after the trigger resolved")
+	}
+	submitChoices(t, e, miracleOption(t, ask, "yes"))
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "x" || len(d.Options) != 3 { // X = 0,1,2 with WWWW
 		t.Fatalf("X after miracle: %+v", d)
@@ -127,6 +198,157 @@ func TestMiracleWithXAsksX(t *testing.T) {
 	}
 	if angels != 2 {
 		t.Fatalf("Angels on the battlefield = %d, want 2", angels)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// terminusMiracleFixture draws a Terminus (K:Miracle:W) as seat 0's first card
+// with W available and a bear to wipe, and answers the reveal ask yes: the
+// MiracleCast trigger is then the only thing on the stack.
+func terminusMiracleFixture(t *testing.T, seed uint64) (e *Engine, cfg Config, term, bear state.ObjID) {
+	t.Helper()
+	terminus := "Name:Terminus\nManaCost:4 W W\nTypes:Sorcery\nK:Miracle:W\n" +
+		"A:SP$ ChangeZoneAll | ChangeType$ Creature | Origin$ Battlefield | Destination$ Library | LibraryPosition$ -1\n" +
+		"Oracle:x\n"
+	bearSrc := "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	e, cfg, term = newFixtureDeck(t, seed, terminus, bearSrc)
+	moveToLibraryTop(t, e, term)
+	bear = putCreature(t, e, 0, bearSrc)
+	addMana(t, e, 0, "W")
+	e.pendingTriggers = nil
+	e.emit(events.Event{Kind: events.Draw, Player: 0, Obj: term, From: state.ZLibrary, To: state.ZHand, Secret: true})
+	e.pending = nil
+	e.Advance()
+	if d := e.Pending(); d == nil || d.Kind != decision.KTriggerOptional || d.ResumeKind == "miracle" {
+		t.Fatalf("reveal ask %+v", d)
+	}
+	submitChoices(t, e, 0) // reveal: yes
+	return e, cfg, term, bear
+}
+
+// CR 702.94a: revealing the card creates a triggered ability on the stack; the
+// card is cast only as that trigger resolves, so players may respond to it.
+func TestMiracleTriggerResolvesThenCasts(t *testing.T) {
+	t.Parallel()
+	e, cfg, term, bear := terminusMiracleFixture(t, 201)
+	miracleTriggerOnStack(t, e, term)
+	if z := e.G.Obj(term).Zone; z != state.ZHand {
+		t.Fatalf("Terminus is in %s while the trigger is on the stack, want hand", z)
+	}
+	revealed := false
+	for _, ev := range e.L.Events {
+		revealed = revealed || (ev.Kind == events.Note && strings.Contains(ev.Text, "reveals Terminus (miracle)"))
+	}
+	if !revealed {
+		t.Fatal("no (miracle) reveal Note logged")
+	}
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("with the trigger on the stack players should get priority, got %+v", d)
+	}
+	ask := passToMiracleAsk(t, e)
+	if ask == nil || ask.Player != 0 {
+		t.Fatalf("cast ask %+v", ask)
+	}
+	submitChoices(t, e, miracleOption(t, ask, "yes"))
+	o := e.G.Obj(term)
+	if o.Zone != state.ZStack || o.CastFlags&state.FlagMiracle == 0 || e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("terminus %s flags %d pool %d", o.Zone, o.CastFlags, e.G.Players[0].Pool.Total())
+	}
+	passUntilStackEmpty(t, e, 20)
+	if e.G.Obj(bear).Zone != state.ZLibrary {
+		t.Fatal("Terminus did not resolve")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// The card leaving the hand while the trigger is on the stack (a response)
+// leaves the trigger nothing to cast: no cast ask is posed.
+func TestMiracleTriggerCardLeftHandNoCast(t *testing.T) {
+	t.Parallel()
+	e, _, term, _ := terminusMiracleFixture(t, 202)
+	miracleTriggerOnStack(t, e, term)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: term, From: state.ZHand, To: state.ZGraveyard, Text: "discarded in response"})
+	if z := e.G.Obj(term).Zone; z != state.ZGraveyard {
+		t.Fatalf("precondition: Terminus in %s, want graveyard", z)
+	}
+	if ask := passToMiracleAsk(t, e); ask != nil {
+		t.Fatalf("a cast ask was posed for a card no longer in hand: %+v", ask)
+	}
+	if z := e.G.Obj(term).Zone; z != state.ZGraveyard || len(e.G.Stack) != 0 {
+		t.Fatalf("Terminus %s, stack %v: want it still in the graveyard, stack empty", z, e.G.Stack)
+	}
+}
+
+// Declining the cast as the trigger resolves keeps the card in hand.
+func TestMiracleCastDeclinedKeepsCardInHand(t *testing.T) {
+	t.Parallel()
+	e, _, term, _ := terminusMiracleFixture(t, 203)
+	miracleTriggerOnStack(t, e, term)
+	ask := passToMiracleAsk(t, e)
+	if ask == nil {
+		t.Fatal("no cast ask")
+	}
+	if miracleOption(t, ask, "yes") == miracleOption(t, ask, "no") {
+		t.Fatal("yes and no are the same option")
+	}
+	submitChoices(t, e, miracleOption(t, ask, "no"))
+	if z := e.G.Obj(term).Zone; z != state.ZHand || len(e.G.Stack) != 0 {
+		t.Fatalf("Terminus %s, stack %v: want hand and an empty stack", z, e.G.Stack)
+	}
+	if d := e.Pending(); d == nil || d.Kind != decision.KPriority || d.Player != e.G.Active {
+		t.Fatalf("after the decline the active player should have priority: %+v", d)
+	}
+}
+
+// An engine answering its asks synchronously (SetTapeAnswerer, the all-bot
+// path) serves the X ask of a miracle cast begun at the MiracleCast trigger's
+// resolution in place, as the tape path does, rather than failing it as an
+// ask the ask-free predicate missed (CR 702.94a, 107.3).
+func TestMiracleXCastServedInline(t *testing.T) {
+	t.Parallel()
+	e, cfg, en, _ := entreatCorpusEngine(t, 104)
+	moveToLibraryTop(t, e, en)
+	addMana(t, e, 0, "WWWW")
+	e.pendingTriggers = nil
+	e.emit(events.Event{Kind: events.Draw, Player: 0, Obj: en, From: state.ZLibrary, To: state.ZHand, Secret: true})
+	e.pending = nil
+	e.Advance()
+	if d := e.Pending(); d == nil || d.Kind != decision.KTriggerOptional {
+		t.Fatalf("offer decision %+v", d)
+	}
+	submitChoices(t, e, 0) // reveal: yes
+	miracleTriggerOnStack(t, e, en)
+	asked := map[string]bool{}
+	SetTapeAnswerer(e, func(d *decision.Decision, reject error) (decision.Intent, bool) {
+		if reject != nil {
+			return decision.Intent{}, false
+		}
+		in := decision.Intent{Seq: d.Seq, Player: d.Player}
+		switch {
+		case d.Kind == decision.KTriggerOptional && d.ResumeKind == "miracle":
+			asked["cast"] = true
+			in.Choices = []int{miracleOption(t, d, "yes")}
+		case d.Kind == decision.KChoose && len(d.Options) == 3 && d.Options[0].Kind == "x":
+			asked["x"] = true
+			in.Choices = []int{2}
+		default:
+			t.Fatalf("unexpected inline ask %+v", d)
+		}
+		return in, true
+	})
+	passUntilStackEmpty(t, e, 20)
+	if !asked["cast"] || !asked["x"] {
+		t.Fatalf("inline asks %v, want the cast and its X", asked)
+	}
+	angels := 0
+	for _, tok := range e.G.Zone(state.ZBattlefield, 0) {
+		if f := e.G.Obj(tok).Face(); f != nil && f.Name == "Angel Token" {
+			angels++
+		}
+	}
+	if z := e.G.Obj(en).Zone; z != state.ZGraveyard || angels != 2 {
+		t.Fatalf("Entreat the Angels in %s with %d Angels, want resolved with X=2", z, angels)
 	}
 	replayCheck(t, e, cfg)
 }

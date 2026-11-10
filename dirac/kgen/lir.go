@@ -472,6 +472,8 @@ type lCost struct {
 	SacSelf        bool
 	Sac            *lFilter // sacrifice SacN permanents matching
 	SacN           int
+	SacX           bool     // Sac<X/Spec>: sacrifice the announced X permanents matching Sac (kop.CostSac with N 0; SacN stays 0)
+	XMin           int      // XMin<N> / XMin$ N: the announced X's floor (kop.Cost.XMin)
 	DiscardN       int      // discard N cards (any)
 	DiscardSpec    string   // Discard<N/Spec>: "" (Card, any card), "Random" or "Hand"
 	DiscardHand    bool     // Discard<N/Hand> as an activated ability's cost: the whole hand (kop.Cost.DiscardHand)
@@ -528,7 +530,7 @@ type lCost struct {
 func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && c.Loyalty == 0 && !c.LoyaltyX &&
-		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.TapN == 0 && !c.TapHost && !c.SacHost && c.TapPowN == 0 && !c.Exert &&
+		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && c.TapPowN == 0 && !c.Exert &&
 		c.Forage == nil && c.ExileG == nil && c.ExileHandN == 0 && c.Energy == 0 && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.ExileTrigNew &&
 		!c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil
@@ -700,6 +702,7 @@ type lAbility struct {
 	Zone            int // activation zone (battlefield unless graveyard/hand)
 	Loyalty         bool
 	Exhaust         bool    // Exhaust$ True (CR 702.177a): the AbilityCast class test (kop.Ability.Exhaust)
+	CantCopy        bool    // CantCopy$ True: "this ability can't be copied" (kop.Ability.CantCopy)
 	Limit           int     // activations per game (0 = unlimited)
 	EvidenceTargets bool    // CollectEvidence<X> with SVar:X AllTargeted$CardManaCost (a spell's mandatory additional cost; kop.EvidenceTargetsMV)
 	PowerUp         bool    // PowerUp$ True (CR 702.193): once per object stint, cost reduced on its entry turn
@@ -902,6 +905,7 @@ type lCard struct {
 	SpendRead      bool      // an SVar body reads Count$CastTotalManaSpent: gorge's planner declines the cast
 	FbCost         *lCost    // the flashback cost's non-mana part (Sac<N/Spec> or tapXType<N/Spec>)
 	Madness        *manaCost // K:Madness:<cost> (CR 702.35a): the exile-cast cost
+	Miracle        *manaCost // K:Miracle:<cost> (CR 702.94a): the hand-cast cost of the revealed first draw
 	Warp           *manaCost // K:Warp:<cost> (CR 702.185a): the hand's alternate cost and the end-step exile marker
 	NoAbilities    bool      // the printed face has no ability (effects.FaceHasNoAbilities): CardDef.NoAbilities, the NoAbilities filter word's card read
 	Impending      *manaCost // K:Impending:<N>:<cost> (CR 702.176a): the hand's alternate cost; ImpendingN time counters
@@ -1008,6 +1012,9 @@ type lEmblem struct {
 	// emblem's own capture, lowered without the Remembered flag
 	Capture    lRef
 	CaptureSet bool
+	// CaptureLapse: the capture ends when the object leaves the battlefield
+	// (ForgetOnMoved$ / ExileOnMoved$ Battlefield; kop.Emblem.CaptureLapse)
+	CaptureLapse bool
 }
 
 type refusal struct {

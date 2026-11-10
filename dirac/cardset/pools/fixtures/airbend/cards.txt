@@ -3,7 +3,8 @@
 # lockstep (dirac/oracle/airbend_test.go)
 # The Airbend pool: the Standard api:Airbend carriers
 # kgen lowers (battlefield-permanent airbend only; Aang, Swift Savior also
-# airbends a spell and Avatar's Wrath needs a CantBeCast effect: both refuse), vanilla and cheap bodies
+# airbends a spell: it refuses), Avatar's Wrath (its CantBeCast emblem, read at
+# the cast offer: dirac/oracle/cantbecastorigin_test.go), vanilla and cheap bodies
 # for the other side to lose, Dragon Fodder (a token to airbend, which
 # ceases to exist in exile and gets no cast), Opt and basics, for the
 # oracle's constructed lockstep (dirac/oracle/airbend_test.go).
@@ -12,6 +13,7 @@ Airbender Ascension
 Airbender's Reversal
 Airbending Lesson
 Appa, Loyal Sky Bison
+Avatar's Wrath
 Glider Staff
 Grizzly Bears
 Hill Giant

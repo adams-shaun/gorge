@@ -104,7 +104,7 @@ func (s *State) ctrGap(k *prep, p uint8, sl Slot) {
 	s.touchSl(sl)
 	for c := 0; c < kop.NumManaKinds; c++ {
 		if uint8(pc.manaCol)&(1<<c) != 0 {
-			s.pl[p&1].pool[c] += pc.manaN
+			s.poolAdd(p&1, c, int(pc.manaN))
 		}
 	}
 }

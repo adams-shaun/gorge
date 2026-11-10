@@ -32,7 +32,7 @@ func (lc *lowerCtx) cantBeCast(sp *params, st *lStatic) error {
 			sp.consume("EffectZone")
 			st.Zone = zAny
 		} else {
-			f, err := lc.filter(vc)
+			f, err := lc.cantBeCastFilter(vc)
 			if err != nil {
 				return err
 			}
@@ -69,4 +69,29 @@ func (lc *lowerCtx) cantBeCast(sp *params, st *lStatic) error {
 	}
 	sp.consume("Secondary")
 	return nil
+}
+
+// cantBeCastFilter lowers a CantBeCast ValidCard$. The cast-provenance words
+// (Drannith Magistrate's, Avatar's Wrath's Card.!wasCastFromTheirHand) are
+// admitted here only: the kernel reads them at the cast offer from the
+// candidate's current zone (matchSpellCardOffer), which is exact for the
+// hand (1), exile (3) and cast-not-from-hand (4) families. The ones that
+// need a stack entry (ByYou, MayPlaySource, Mayhem, bare wasCast) refuse.
+func (lc *lowerCtx) cantBeCastFilter(vc string) (*lFilter, error) {
+	save, saveC := lc.spellProvOK, lc.cantCastProv
+	lc.spellProvOK, lc.cantCastProv = true, true
+	defer func() { lc.spellProvOK, lc.cantCastProv = save, saveC }()
+	f, err := lc.filter(vc)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range f.Clauses {
+		if c.CmpStat != cmpWasCastSpell {
+			continue
+		}
+		if n := c.CmpN & 15; n != spellHand && n != spellExile && n != spellNotHand {
+			return nil, refuse("CantBeCast ValidCard %q: cast provenance %s outside the origin families", vc, vc)
+		}
+	}
+	return f, nil
 }

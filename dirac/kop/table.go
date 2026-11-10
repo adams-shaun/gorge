@@ -511,6 +511,11 @@ type CardDef struct {
 	// trigger; MadnessCost is its cast cost (dirac/kw_madness.go).
 	HasMadness  bool
 	MadnessCost ManaCost
+	// HasMiracle is printed miracle (CR 702.94a): a first draw of the turn
+	// offers the reveal, whose trigger casts the card from hand for
+	// MiracleCost as it resolves (dirac/kw_miracle.go).
+	HasMiracle  bool
+	MiracleCost ManaCost
 	Paradigm    uint8 // 1 + the table's Paradigm-name index; 0 = none
 	// CastBF is the filter Count$LastStateBattlefieldWithFallback counts
 	// the battlefield permanents matching it as the

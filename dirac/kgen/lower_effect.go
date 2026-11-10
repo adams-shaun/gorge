@@ -204,6 +204,9 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		if v == "Remembered" && lc.remOppLink() {
 			return lRef{Kind: rEachOpp}, nil // lower_remembered.go
 		}
+		if v == "Remembered" && lc.capRem && !lc.hasRememberWriter() {
+			return lRef{Kind: rTriggeredSource}, nil // lower_effectcaptured.go
+		}
 		// RememberedCard: gorge definedSpecRememberedCard,
 		// the non-player entries of the remembered list, which is all the
 		// kernel's remembered set holds.
@@ -1435,6 +1438,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		in := lInstr{Op: "Mill", Obj: who, A: n}
 		if ps.is("RememberMilled", "True") {
 			in.CS = "Remember"
+		}
+		if err := lc.millImprint(ps, &in); err != nil { // lower_imprintzone.go
+			return err
 		}
 		if err := lc.mayGate(ps, kop.MayGuardMill, who); err != nil {
 			return err

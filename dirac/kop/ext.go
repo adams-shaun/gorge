@@ -289,11 +289,13 @@ func init() {
 // and TargetType$ Activated.YouCtrl,Triggered.YouCtrl (or Triggered.YouCtrl),
 // "copy target activated or triggered ability you control; you may choose new
 // targets for the copy" (Peter Parker's Camera, Echo Perceptive Prodigy,
-// Scientist Supreme of A.I.M., Kirol Attentive First-Year). Obj is the target
-// slot (a TgtCopyAb or TgtCopyTrig one); C bit 0 is MayChooseTarget$ True: the
+// Scientist Supreme of A.I.M., Kirol Attentive First-Year), B times (Amount$:
+// Gogo's X, Mister Fantastic's 2; a missing one is Const 1). C>>1 is the target
+// slot (a TgtCopyAb or TgtCopyTrig one); C bit 0 is MayChooseTarget$ True: each
 // copy's controller may choose new targets as the copy is about to resolve
 // (CR 707.10c). The copy is an ordinary stack entry that is neither cast nor
-// activated (CR 707.10), so no cost is paid and no activation tally moves.
+// activated (CR 707.10), so no cost is paid and no activation tally moves. An
+// ability with Ability.CantCopy is not copied (gorge SpellCopyAllowed).
 const ExtCopyAbility ExtOp = 191
 
 func init() {

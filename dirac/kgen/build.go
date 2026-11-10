@@ -591,6 +591,12 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Miracle != nil {
+		d.HasMiracle = true // CR 702.94a (dirac/kw_miracle.go)
+		if d.MiracleCost, err = manaCostOf(*c.Miracle); err != nil {
+			return err
+		}
+	}
 	d.NoAbilities = c.NoAbilities
 	if c.Warp != nil {
 		// CR 702.185a: no KwMask bit is free, so the warp marker is its own
@@ -890,8 +896,11 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.SacHost {
 		out.Host = kop.CostHostSac
 	}
+	if c.XMin > 0 {
+		out.XMin = uint8(c.XMin) // the announced X's floor (kernel cost_sacx.go)
+	}
 	if c.Sac != nil {
-		set(kop.CostSac, c.SacN)
+		set(kop.CostSac, c.SacN) // SacN 0 (SacX): the announced X (kernel cost_sacx.go)
 		// You can only sacrifice what you control: say so in the filter, as
 		// dirac/vanilla's Hungry Ghoul does.
 		f := *c.Sac
@@ -1320,6 +1329,23 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 				return kf, err
 			}
 			kf.Pred, kf.PredN, kf.PredV = kop.PredPowerGEV, 1, v
+			break
+		}
+		if c.CmpV != nil && (c.CmpOp == opLE || c.CmpOp == opLT) && zone == kop.ZoneGraveyard {
+			// a graveyard card's printed power <= a value (Ruthless
+			// Technomancer's powerLEX target; kernel cardPowerGEV with PredN 2)
+			bound := *c.CmpV
+			if c.CmpOp == opLT {
+				if bound.Neg {
+					return kf, fmt.Errorf("power compare < a negated value")
+				}
+				bound.Add-- // power is an integer: < X is <= X-1
+			}
+			v, err := cb.value(bound)
+			if err != nil {
+				return kf, err
+			}
+			kf.Pred, kf.PredN, kf.PredV = kop.PredPowerGEV, 2, v
 			break
 		}
 		if c.CmpV != nil {

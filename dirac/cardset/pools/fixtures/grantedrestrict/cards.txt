@@ -1,0 +1,14 @@
+# The restricted granted mana pool: Battery Bearer (creatures make {C} that
+# is no mana for a nonartifact spell, so it pays abilities) and Ambulatory
+# Reactor (artifact spells and abilities of artifact sources), beside cheap
+# artifact creatures and an Equipment to receive the grant, and Mishra's
+# Workshop, whose artifact-spells-only mana registers the spell-only kind of
+# the same filter (so a float that drops the activated half is a different batch)
+# (dirac/granted_restrict_gaps_test.go)
+Battery Bearer
+Ambulatory Reactor
+Ornithopter
+Memnite
+Skullclamp
+Plains
+Mishra's Workshop

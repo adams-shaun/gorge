@@ -1598,7 +1598,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// The TargetingPlayer$ Opponent controller-selection ask
 		// (engine/rules/stack.go poseOpponentPick). The answer must NOT fall
 		// through to the resume dispatch: a cast begun inside a suspended
-		// resolution (a Miracle cast in the trigger drain) parks the
+		// resolution (a Madness cast at its trigger) parks the
 		// resolution's own resume point, and routing the selection answer
 		// through resumeResolution would consume it as the resolution's ask
 		// answer.
@@ -1622,21 +1622,6 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 			return
 		}
 		e.continueCast()
-		// A Miracle cast originated inside the trigger drain (castMiracle
-		// set drainAwaitsTarget when it paused on this X/Delve/Sac ask). Once the
-		// cast commits -- continueCast reached commitCast and asked nothing more,
-		// so no decision is pending -- the drain must resume through the SAME
-		// continuation the target path uses, not hand caster priority: a
-		// later, unrelated trigger in the same batch is still placed before any
-		// player acts, and re-entering a fresh step would run a second state-based
-		// pass. If commitCast instead asked a target, handleTarget honours the
-		// still-true flag itself. A non-miracle cast never sets drainAwaitsTarget,
-		// so this branch is inert for an ordinary X/Delve/Sac cast.
-		if e.drainAwaitsTarget && e.Pending() == nil {
-			e.drainAwaitsTarget = false
-			e.resumeTriggerDrain()
-			return
-		}
 	case chooseCommanderColor:
 		// The CR 903.4b pregame colour choice was answered (engine/rules/
 		// commander_color.go): record it on the commander object as the same

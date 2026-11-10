@@ -116,6 +116,9 @@ func (s *State) evalV(k *prep, v kop.ValueRef, ctx evalCtx) int {
 			if sl := s.selfCountersLKI(e, ctx.src); sl != NoSlot {
 				return s.perms[sl].ctrN(s, int(v.N)) // a departed source's last counters (CR 608.2h)
 			}
+			if n, ok := s.selfDepartCtr(e, ctx.src, kop.CounterKind(v.N)); ok {
+				return n // its slot was reused: the departure snapshot's (ctr_selfdepart.go)
+			}
 			if e != nil && e.li != 0 && e.kind == seAbility {
 				return s.lkiCounter(e.li, kop.CounterKind(v.N))
 			}
@@ -384,6 +387,9 @@ func (s *State) refCounters(k *prep, x *kop.Expr, r kop.Ref, c kop.CounterKind, 
 	if r == kop.RefSelf {
 		if sl := s.selfCountersLKI(e, o); sl != NoSlot {
 			return s.perms[sl].ctrN(s, int(c))
+		}
+		if n, ok := s.selfDepartCtr(e, o, c); ok {
+			return n // its slot was reused: the departure snapshot's (ctr_selfdepart.go)
 		}
 	}
 	if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {

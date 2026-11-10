@@ -269,6 +269,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Madness != nil {
 		fmt.Fprintf(w, " madness=%s", c.Madness)
 	}
+	if c.Miracle != nil {
+		fmt.Fprintf(w, " miracle=%s", c.Miracle)
+	}
 	if c.Warp != nil {
 		fmt.Fprintf(w, " warp=%s", c.Warp)
 	}
@@ -494,6 +497,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 		}
 		if e.CaptureSet {
 			eot += " remembers=" + e.Capture.String()
+			if e.CaptureLapse {
+				eot += " lapses"
+			}
 		}
 		fmt.Fprintf(w, "  emblem[%d] trigger=%d statics=%d%s\n", i, e.Trigger, len(e.Statics), eot)
 	}
@@ -515,6 +521,12 @@ func costString(c lCost) string {
 	}
 	if c.Sac != nil {
 		p = append(p, fmt.Sprintf("Sac%d%s", c.SacN, c.Sac))
+	}
+	if c.SacX {
+		p = append(p, "SacX")
+	}
+	if c.XMin > 0 {
+		p = append(p, fmt.Sprintf("XMin%d", c.XMin))
 	}
 	if c.DiscardN > 0 {
 		p = append(p, fmt.Sprintf("Discard%d", c.DiscardN))

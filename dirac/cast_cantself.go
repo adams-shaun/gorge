@@ -33,7 +33,7 @@ func (s *State) castForbidden(k *prep, p uint8, c CardID, o Obj) bool {
 		if st.A > 0 && s.castLimitOpen(st, p) {
 			return true // static_castlimit.go: the cap does not bind yet
 		}
-		if s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl) {
+		if s.matchSpellCardOffer(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl) {
 			hit = true
 			return false
 		}

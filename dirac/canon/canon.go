@@ -14,8 +14,8 @@ import (
 type Ref = uint8
 
 const (
-	RefStack  Ref = 0xE0
-	RefPlayer Ref = 0xF0
+	RefStack  Ref = 0xEC
+	RefPlayer Ref = 0xFC
 	RefNone   Ref = 0xFF
 )
 

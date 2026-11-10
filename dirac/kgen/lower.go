@@ -95,6 +95,9 @@ func refuse(format string, a ...any) error { return errRefuse{fmt.Sprintf(format
 
 // lowerCtx lowers one card (or token).
 type lowerCtx struct {
+	capRem  bool  // lowering the body of a capturing emblem's DamageDealtOnce trigger: a Remembered read before the body writes its own set is the captured object, the damage source (lower_effectcaptured.go)
+	pairCap *lRef // the capture slot the pair lowering already resolved for the emblem (lower_effectcaptured.go)
+
 	// permOrGraveCard: lowering a ValidTgts$ ChangeZone over Origin$ Battlefield,Graveyard (lower_originmulti.go)
 	permOrGraveCard bool
 
@@ -118,6 +121,7 @@ type lowerCtx struct {
 	exwSynth       bool      // the ExiledWithSource filter is synthesised for a Defined$ ExiledWith (the card's text does not name the word)
 	batchPoolOK    bool      // the trigger being lowered is a ChangesZoneAll exile line whose body picks among its batch members (lower_trigzonebatch.go kayaBatchBody)
 	wasCastOK      bool      // the filter being read is a battlefield-entering trigger's ValidCard(s)$: wasCast may lower
+	cantCastProv   bool      // the filter being read is a CantBeCast ValidCard$: wasCastFromTheirHand may lower (kernel matchSpellCardOffer)
 	spellProvOK    bool      // the filter being read is a SpellCast ValidCard$, a spell's own ConditionPresent$ or a mana ability's Spell. RestrictValid$: the cast-provenance words may lower
 	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
 	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
@@ -134,6 +138,7 @@ type lowerCtx struct {
 	unlessSubs     []usGate  // UnlessResolveSubs$ gates awaiting their chain level's end (lower_unlesssubs.go)
 	reflexMulti    bool      // lowering a NumTimes reflexive latent: a multi-pick charm may lower on it (lower_numtimes.go)
 	numTimesK      int       // lowering a NumTimes latent for the announced count k: Count$TriggerRememberAmount is k (lower_numtimes.go)
+	remLKMVN       int       // RememberedLKI$CardManaCost reads admitted (value_remlkimv.go)
 	remLKN         int       // RememberedLKI$ P/T reads lc.value produced: refuseRemLKIPT refuses unless each one sits in an ability program (value_remlki.go)
 	p              *pool
 	name           string
@@ -404,6 +409,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseMultiMana()
 	lc.refuseCtxRememberedCount()
 	lc.refuseRemLKIPT()                // value_remlki.go
+	lc.refuseRemLKIMV()                // value_remlkimv.go
 	lc.refuseRememberAmountObjects()   // lower_remembered.go
 	lc.refuseRememberSearcherObjects() // lower_remembersearcher.go
 	lc.refuseOnceTwice()
@@ -1476,13 +1482,17 @@ func (lc *lowerCtx) lowerKeywords() {
 			// requirement, one blocker satisfies it)
 			lc.out.MustBeBlocked = true
 		case head == "Miracle":
-			// CR 702.94a: a revealed first draw triggers, and the card may
-			// be cast as that trigger resolves. gorge instead asks as the
-			// offer is put on the stack and casts the card there and then,
-			// with no stack object; the kernel has no cast begun from
-			// trigger placement, so it is refused by name until both
-			// engines resolve the trigger on the stack.
-			lc.refuseNode(node, "keyword %q: gorge casts at trigger placement, not as the trigger resolves (CR 702.94a)", head)
+			// CR 702.94a: the first draw of a turn offers the reveal; the
+			// revealed card's trigger is on the stack, and its resolution
+			// offers the cast from hand for this cost (dirac/kw_miracle.go).
+			// X, hybrid and a ":" rider or granted spelling (Aminatou's
+			// ManaCost form) refuse.
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.Contains(param, ":") || mc.X || len(mc.Hybrid) > 0 || len(mc.Twobrid) > 0 {
+				lc.refuseNode(node, "miracle cost %q", param)
+				continue
+			}
+			lc.out.Miracle = &mc
 		default:
 			lc.refuseNode(node, "keyword %q", head)
 		}
@@ -1680,9 +1690,22 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				mana = append(mana, t) // a Phyrexian pip
 				continue
 			}
+			if strings.HasPrefix(t, "XMin") {
+				if err := xminToken(&c, t); err != nil {
+					return c, err
+				}
+				continue
+			}
 			return c, refuse("cost token %q", t)
 		}
 		parts := strings.Split(arg, "/")
+		if head == "Sac" && parts[0] == "X" {
+			// Sac<X/Spec> (lower_xminsacx.go): the announced count
+			if err := lc.sacXCost(&c, parts, t); err != nil {
+				return c, err
+			}
+			continue
+		}
 		if head == "CollectEvidence" {
 			// CollectEvidence<N> (CR 701.59a): exile graveyard cards with
 			// total mana value N or greater (gorge cost.parse's Evidence
@@ -1856,6 +1879,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				continue
 			}
 			// gorge cost.parse folds a cost spec's ";" alternation to ","
+			if c.SacX {
+				return c, refuse("sacrifice cost %q beside a second sacrifice part", t)
+			}
 			f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
 			if err != nil {
 				return c, err
@@ -2182,6 +2208,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 	} else {
 		c.Mana.None = true
 	}
+	if err := lc.announcedXCheck(&c, s); err != nil {
+		return c, err
+	}
 	return c, nil
 }
 
@@ -2209,6 +2238,9 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 	}
 	expr = expandBasicLandType(expr)
 	if err := lc.referentGate(expr); err != nil {
+		return nil, err
+	}
+	if err := lc.imprintedFilterGate(expr); err != nil { // lower_imprintzone.go
 		return nil, err
 	}
 	f, err := parseFilter(expr, lc.known, lc.p.isTypeWord)
@@ -2302,6 +2334,9 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			// the kernel reads the cast only while the entering spell is
 			// still resolving (kernel enterCast); a later read has no spell
 			return nil, refuse("filter %q: wasCast outside a battlefield-entering trigger's ValidCard$", expr)
+		}
+		if c.TheirHand && !lc.cantCastProv {
+			return nil, refuse("filter %q: wasCastFromTheirHand outside a CantBeCast ValidCard$", expr)
 		}
 		if c.CmpStat == cmpWasCastSpell && !lc.spellProvOK {
 			// the kernel finds the cast only on a spell's own stack entry
@@ -2425,6 +2460,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		cost, err := lc.costHand(c)
 		lc.unblockedOK, lc.actCost = false, false
 		if err != nil {
+			return err
+		}
+		if err := xminParam(&cost, ps, ab.Kind == akActivated); err != nil {
 			return err
 		}
 		if err := discardHandCost(&cost); err != nil {
@@ -2576,6 +2614,14 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 			ab.Limit = 1
 			ab.Exhaust = true
+		}
+		if v, ok := ps.get("CantCopy"); ok {
+			// gorge SpellCopyAllowed reads "True" or "true"; the kernel's
+			// ExtCopyAbility reads the table byte of the copied entry
+			if v != "True" && v != "true" {
+				return refuse("CantCopy$ %q", v)
+			}
+			ab.CantCopy = true
 		}
 		if v, ok := ps.get("PowerUp"); ok {
 			// CR 702.193a: activate only once per object stint; CR 702.193b

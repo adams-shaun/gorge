@@ -59,5 +59,8 @@ func (s *State) cardPowerGEV(k *prep, fl *kop.Filter, c CardID, owner uint8, o O
 	if ctx != nil {
 		cx = *ctx
 	}
+	if fl.PredN == 2 {
+		return pw <= s.evalV(k, fl.PredV, cx) // a graveyard card's power at most the value (Ruthless Technomancer's powerLEX)
+	}
 	return pw >= s.evalV(k, fl.PredV, cx)
 }

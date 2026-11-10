@@ -2470,7 +2470,8 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			}
 		}
 	}
-	if ab, ok := sp.get("AddAbility"); ok {
+	if ab, ok := sp.m["AddAbility"]; ok && !sp.used["AddAbility"] { // not already lowered by stationSelfGrant
+		sp.used["AddAbility"] = true
 		idx, err := lc.grantedAbility(ab)
 		if err != nil {
 			return nil, err

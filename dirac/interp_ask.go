@@ -604,6 +604,9 @@ func (s *State) autoPayPick(k *prep) bool {
 	if k.gen.anyBatch && s.g.pickZ != kop.PayDiscard && s.g.pickZ != kop.PayReturn && s.g.pickZ != kop.PayExileGrave && s.g.pickZ != payKindExileHand {
 		defer s.batchClose(s.sacBatchOpen()) // gorge emitSacrifices (unlessflow): one sacrifice batch
 	}
+	if len(objs) > 0 && s.g.pickZ != kop.PayExileGrave && s.g.pickZ != payKindExileHand && s.g.pickZ != kop.PayDiscard && s.g.pickZ != kop.PayReturn {
+		s.snapTrigSacrificed(k, s.objs[Obj(objs[0].Source())].slot) // trig_sacrificedlki.go
+	}
 	for _, a := range objs {
 		o := Obj(a.Source())
 		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {

@@ -138,7 +138,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-pairs` | int | `100` | deck pairs, one game each |
 | `-pairs-file` | string | none | play these pairs: deckA<TAB>deckB[<TAB>seed] per line; -first-pair skips lines and -pairs, when given, caps them |
 | `-pool` | string | none | pool.tsv (default: <decks>/../pool.tsv) |
-| `-sample-replay` | float64 | `0` | fraction of games also written as koracle-game-1 records under <out>.replays, which kfuzz -replay re-executes in gorge; needs -out |
+| `-sample-replay` | float64 | `0` | fraction of games also written as koracle-game-2 records under <out>.replays, which kfuzz -replay re-executes in gorge; needs -out |
 | `-seed` | uint64 | `1` | base seed: pairs and game seeds derive from it, as in kfuzz |
 | `-set` | string | `fdn` | the card set to play: a deck pool by name, or a synthetic pool (std-trk, tail-NN) |
 | `-skip-refused` | bool | `false` | skip a pair the set refuses and count it, instead of failing |
@@ -195,7 +195,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-policy` | string | `random` | random, heuristic, explore (gorge's coverage-exploration bot, cmd/cardfuzz's) or first |
 | `-pool` | string | none | pool.tsv (default: <decks>/../pool.tsv) |
 | `-reach` | string | none | -synth: write one row per card of the list here: card, how far it got, decks, games, plays in clean games |
-| `-replay` | string | none | re-execute this kernel game (koracle-game-1) in gorge and report |
+| `-replay` | string | none | re-execute this kernel game (koracle-game-2) in gorge and report |
 | `-repro` | string | none | re-run this repro in lockstep and report |
 | `-seed` | uint64 | `1` | base seed: pairs and game seeds derive from it (the pairing rule) |
 | `-set` | string | `fdn` | the generated card set the fdn kernel plays (a name in dirac/cardset) |

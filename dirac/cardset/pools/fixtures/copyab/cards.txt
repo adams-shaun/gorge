@@ -1,6 +1,8 @@
 # Echo, Scientist Supreme of A.I.M. and Kirol copying the
 # abilities of creatures with targeted enters triggers and of pingers
-# (dirac/oracle/copyab_test.go)
+# (dirac/oracle/copyab_test.go), and Gogo, Master of Mimicry and Mister Fantastic
+# copying a triggered or activated ability several times
+# (dirac/oracle/copyab_amount_test.go); Blaze floats the mana Gogo's {X}{X} is offered from
 Echo, Perceptive Prodigy
 Scientist Supreme of A.I.M.
 Kirol, Attentive First-Year
@@ -17,3 +19,8 @@ Island
 Mountain
 Swamp
 Strionic Resonator
+Gogo, Master of Mimicry
+Mister Fantastic
+Plains
+Forest
+Blaze

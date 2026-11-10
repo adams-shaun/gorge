@@ -176,11 +176,12 @@ func (e *Engine) resolveTop() {
 		// cast-or-graveyard choice only as it resolves. Stifle reaches this
 		// object before this branch; if the exiled card has moved meanwhile,
 		// the ability simply finishes with no choice.
-		if o.Ability.API == "MadnessCast" {
-			if e.askMadnessCast(o) {
-				return
+		// CR 702.94a: the miracle trigger's cast-or-keep choice is likewise
+		// made here, the card still in its owner's hand.
+		if handled, asked := e.askKeywordCast(o); handled {
+			if !asked {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile})
 			}
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile})
 			return
 		}
 		// CR 603.5: an optional triggered ability goes on the stack regardless

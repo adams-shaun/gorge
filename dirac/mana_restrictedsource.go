@@ -834,13 +834,16 @@ func (s *State) poolPaysAct(k *prep, p uint8, cost *kop.ManaCost, d payDesc) boo
 // restrPairUnit registers the widened source sl (view v, whose wideN is
 // set) at pcs index i as a pair of unit types. It reports whether it
 // handled the source (a source the planner has no room for stalls loud).
+// restricted is false for a gated pair (Whisperer of the Wilds, mana_gate.go),
+// whose larger alternative makes ordinary mana: the same unit, no restricted
+// float.
 //
 //go:noinline
-func (s *State) restrPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int) bool {
+func (s *State) restrPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int, restricted bool) bool {
 	own := s.manaPCGen(k, sl)
 	ma, na := s.srcMaskAt(own, sl), own.manaN
 	mb, nb := uint8(v.wideCol), v.wideN
-	if ma&^mb != 0 || own.manaAb < 0 || DebugRestrictedSource == 4 {
+	if ma&^mb != 0 || own.manaAb < 0 || restricted && DebugRestrictedSource == 4 {
 		return false // not the shape kgen lowers: the ordinary widened unit
 	}
 	cr := s.isCreature(k, sl)
@@ -862,7 +865,7 @@ func (s *State) restrPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int) bo
 		if a.pair == 0 || a.alt || a.rb || a.pain != 0 || a.mask != ma || a.n != na || a.dmask != dmk || a.creat != cr || a.xv != xv {
 			continue
 		}
-		if b := &pk.types[a.pair-1]; b.rb && b.mask == mb && b.n == nb {
+		if b := &pk.types[a.pair-1]; b.rb == restricted && b.mask == mb && b.n == nb {
 			ta, tb = t, int(a.pair)-1
 		}
 	}
@@ -875,7 +878,7 @@ func (s *State) restrPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int) bo
 		ta, tb = pk.nt, pk.nt+1
 		pk.nt += 2
 		pk.types[ta] = utype{mask: ma, dmask: dmk, n: na, creat: cr, flex: fl, pair: uint8(tb) + 1, xv: xv, xmask: xm, xt: xt}
-		pk.types[tb] = utype{mask: mb, dmask: dmk, n: nb, creat: cr, flex: fl, pair: uint8(ta) + 1, alt: true, rb: true, xv: xv, xmask: xm, xt: xt}
+		pk.types[tb] = utype{mask: mb, dmask: dmk, n: nb, creat: cr, flex: fl, pair: uint8(ta) + 1, alt: true, rb: restricted, xv: xv, xmask: xm, xt: xt}
 		pk.maxXt = pk.maxXt || xt != 0
 		pk.maxN = max(pk.maxN, int(max(na, nb))+int(xt))
 		pk.pairs = true

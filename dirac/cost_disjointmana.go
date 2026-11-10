@@ -42,7 +42,7 @@ func (s *State) scriptGapAvail(k *prep, p uint8, sl Slot, a *avail) {
 	}
 	if s.scriptTapsDefer(k, p).has(sl) {
 		pc := s.manaPCGen(k, sl)
-		a.addUnits(s.srcMaskAt(pc, sl), pc.manaN)
+		a.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))
 	}
 	if k.ctrMana && s.scriptCtr(k, p).has(sl) {
 		pc := &k.cards[c]

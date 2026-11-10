@@ -72,7 +72,7 @@ const (
 	parkFinish            // finishResolve; x is its fizzled argument
 	parkAnswered          // asked: its move no longer competes
 	parkMass              // a mass move in a resolution, one at a time: what an earlier move took away no longer competes for it
-	parkMill              // a milled card, off the library's top when asked; x is 1 for RememberMilled$
+	parkMill              // a milled card, off the library's top when asked; x bit 0 is RememberMilled$, bit 1 Imprint$
 	parkRest              // a surveil or look rest card already off the library, moved one at a time; x is 1 for RememberMoved$
 	parkDread             // a manifest dread window's other card, still on the library list; its marker fired before the ask
 )
@@ -436,15 +436,12 @@ func (s *State) massMovesGoOn(k *prep) {
 // parkMills queues p's next n milled cards when the first's move competes (gorge
 // asks and moves them one at a time, each on top until its turn); false: nothing is
 // queued and the mill goes on as usual.
-func (s *State) parkMills(k *prep, p uint8, n int, remember bool) bool {
+func (s *State) parkMills(k *prep, p uint8, n int, c int) bool {
 	pl := &s.pl[p]
 	if pl.libLo >= pl.libHi || !s.graveMoveCompetes(k, pl.lib[pl.libLo]) {
 		return false
 	}
-	x := uint8(0)
-	if remember {
-		x = 1
-	}
+	x := millParkX(c)
 	for i := 0; i < n && int(pl.libLo)+i < int(pl.libHi); i++ {
 		o := pl.lib[int(pl.libLo)+i]
 		if s.park(k, o, parkMill, x) {
@@ -556,7 +553,7 @@ func (s *State) runParkedRest(k *prep, o Obj, remember bool) {
 
 // runParkedMill takes o off its owner's library top and sends it to the graveyard
 // zone, whose exile-instead effects its answer has settled.
-func (s *State) runParkedMill(k *prep, o Obj, remember bool) {
+func (s *State) runParkedMill(k *prep, o Obj, x uint8) {
 	pl := &s.pl[s.objs[o].owner()]
 	if pl.libLo >= pl.libHi || pl.lib[pl.libLo] != o {
 		return
@@ -565,9 +562,7 @@ func (s *State) runParkedMill(k *prep, o Obj, remember bool) {
 	s.touch(o)
 	s.objs[o].zone = kop.ZoneNone
 	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
-	if remember {
-		s.remember(o)
-	}
+	s.millMark(o, millParkFlags(x))
 }
 
 // leaveParked is leave to the graveyard inside a resolution, parked when its
@@ -619,7 +614,7 @@ func (s *State) runParked(k *prep, r parkedMove) {
 	case parkFinish:
 		s.finishResolve(k, r.x != 0)
 	case parkMill:
-		s.runParkedMill(k, r.obj, r.x != 0)
+		s.runParkedMill(k, r.obj, r.x)
 	case parkRest:
 		s.runParkedRest(k, r.obj, r.x != 0)
 	case parkDread:

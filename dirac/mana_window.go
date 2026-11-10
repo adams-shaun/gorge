@@ -313,7 +313,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 			s.touchSl(sl)
 			s.manaTapped(k, sl)
 		}
-		s.pl[p].pool[col] += pc.manaN
+		s.poolAdd(p, col, int(pc.manaN))
 		s.addExtraCol(k, p, sl, pc, col)
 		s.artTag(k, p, sl, col)
 		if k.painMana && pc.painCol != 0 && (pc.painOnly || uint8(pc.manaCol)&(1<<col) == 0) {
@@ -802,7 +802,7 @@ func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bo
 		tapped[nt], flags[nt], used[nt] = sl, s.perms[sl].flags, s.perms[sl].actUsed
 		nt++
 		s.perms[sl].flags |= pfTapped
-		s.pl[p].pool[col] += pc.manaN
+		s.poolAdd(p, col, int(pc.manaN))
 		s.addExtraCol(k, p, sl, pc, col)
 	}
 	for i := 0; i < nt; i++ {
@@ -2721,7 +2721,7 @@ func (s *State) manaStep(k *prep) bool {
 		if s.bld().bfl&bflLowered != 0 && s.bld().pipN != 0 {
 			s.loweredPipWindow(k, e, &cost)
 		}
-		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || e.trigPl == trigPlMadness && debugMadnessMutate == 0 {
+		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || e.trigPl == trigPlMadness && debugMadnessMutate == 0 || e.trigPl == trigPlMiracle {
 			return false
 		}
 		var saved [len(build{}.picks)]uint8

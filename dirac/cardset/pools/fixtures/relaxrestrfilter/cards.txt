@@ -1,0 +1,7 @@
+# Clement, the Worrywort's creature-spell-only {G} or {U} on Frogs beside Hidden
+# Grotto's "{1},{T}: Add one mana of any color" and Lilypad Village's {U} ability
+# (dirac/mana_grantrelaxrestr_test.go)
+Clement, the Worrywort
+Hidden Grotto
+Lilypad Village
+Forest

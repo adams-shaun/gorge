@@ -464,7 +464,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 			s.fireGraveDamage(k, src, s.perms[src].obj, s.perms[src].ctrl, amt, dmgPlayers(toPlayer, s.perms[src].ctrl, rcp), combat, rcp)
 		}
 		if k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 {
-			s.fireEmblemsDmg(k, src, amt, toPlayer, combat, rcp, false)
+			s.fireEmblemsDmg(k, src, amt, toPlayer, combat, rcp, false, latch)
 		}
 		return
 	}
@@ -544,7 +544,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 		s.fireGraveDamage(k, src, srcObj, srcCtrl, amt, dmgPlayers(toPlayer, srcCtrl, rcp), combat, rcp)
 	}
 	if k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 {
-		s.fireEmblemsDmg(k, src, amt, toPlayer, combat, rcp, true)
+		s.fireEmblemsDmg(k, src, amt, toPlayer, combat, rcp, true, latch)
 	}
 }
 

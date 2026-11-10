@@ -57,12 +57,14 @@ func tapeServe(e *Engine, d *decision.Decision) decision.Intent {
 // answers; under the kernel the answer's handler (Engine.handle, which
 // continues the cast) runs at once, so the cast completes inside the
 // resolution that began it -- the shape a cast that asks nothing already
-// has. Reports whether d was served.
+// has. An engine answering its asks synchronously (an exempted resolution
+// with an Answerer) serves the same questions inline, so both paths log the
+// same events. Reports whether d was served.
 func tapeCastAsk(e *Engine, d *decision.Decision) bool {
 	if e.cast == nil && !e.manaCostChoicePending() {
 		return false
 	}
-	if !e.tape.Unserved() {
+	if !e.tape.Unserved() && !e.tape.InlineServes() {
 		return false
 	}
 	ans, ok := parkTapeAnswer(e, d)

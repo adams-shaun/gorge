@@ -143,7 +143,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 702.91a,b | n/a | - | - |  |
 | 702.92a | n/a | - | - |  |
 | 702.93a | n/a | - | - |  |
-| 702.94a,b | n/a | - | - |  |
+| 702.94a,b | follows | `dirac/kw_miracle.go#State.queueMiracle` `dirac/kw_miracle.go#State.answerMiracleReveal` `dirac/kw_miracle.go#State.resolveMiracle` `dirac/kw_miracle.go#State.applyMiracleAsk` | `TestMiracleFirstDrawCasts` `TestMiracleRevealDeclined` `TestMiracleCastDeclined` `TestMiracleSecondDrawNoAsk` `TestMiracleTurnZeroNoAsk` `TestMiracleLeftHandNoAsk` | printed miracle (CardDef.HasMiracle): the first draw of a turn asks the reveal, the trigger goes on the stack and its resolution offers the cast from hand for MiracleCost; the reveal is asked at trigger placement, as gorge asks it |
 | 702.95a-d | n/a | - | - |  |
 | 702.95e | n/a | - | - | unpair conditions not located |
 | 702.96 | n/a | - | - | Alt cost; overloaded flag swaps target for each at resolution. dirac: no carriers |

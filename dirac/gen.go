@@ -93,6 +93,7 @@ type genPrep struct {
 	anyOwnReduce    bool // a card has an activated ability with its own ReduceCost$ (kop.Ability.OwnReduce; cost_ownreduce.go)
 	anyAbReduce     bool // a card has a StatReduceAbility static (cost_reduceability.go)
 	anyVergeOrder   bool // a gated Verge whose first ability is not its lowest colour: the window activates ability 0 (mana_gate.go)
+	anyGatePair     bool // a gated same-colour larger mana ability is a pair unit (Whisperer of the Wilds; mana_gate.go)
 	anyLandwalk     bool // a card has printed landwalk (repl_regenerate.go)
 	anyEvasion      bool // a card has a printed CardDef.Evasion keyword (act_remember.go)
 	anyAloneAtk     bool // a card has printed "can't attack alone" (CardDef.AloneAtk; combat_alone.go)
@@ -111,6 +112,7 @@ type genPrep struct {
 	anyDisETB                bool // a card has a DisableTriggers enters static (kop.StatDisableETB; trig_disable.go)
 	anyLatentDies            bool // a card has a latent dies trigger an override or static can grant (trig_diesleaves.go)
 	anyMadness               bool // a card has printed madness (CardDef.HasMadness; kw_madness.go)
+	anyMiracle               bool // a card has printed miracle (CardDef.HasMiracle; kw_miracle.go)
 	anyHexCol                bool // a card has printed hexproof from a colour (CardDef.HexColors; kw_hexproofcolor.go)
 	anyProtCol               bool // a card has printed protection from a colour (CardDef.ProtColors; kw_protection.go)
 	// grantTrigEv: events (bit per TrigEvent) of triggered abilities a
@@ -289,6 +291,8 @@ type genPrep struct {
 	anyHideaway    bool           // some program is ExtHideaway (kw_hideaway.go)
 	anyLoyaltyX    bool           // some ability costs a planeswalker's [-X] (CostLoyaltyX; cost_loyaltyx.go)
 	anyLifeX       bool           // some spell or ability costs an announced PayLife<X> (Cost.N 0; cost_paylifex.go)
+	anySacX        bool           // some spell or ability costs an announced Sac<X/Spec> (CostSac with Cost.N 0; cost_sacx.go)
+	anyXMin        bool           // some spell or ability floors its announced X (Cost.XMin; cost_sacx.go)
 	anyCopyCast    bool           // some OpCastFree casts a copy (C bit 6; cast_copycast.go)
 	anyExileGrant  bool           // some program holds an ExtGrantExile (cast_exilegrant.go)
 	anyNumTimes    bool           // some ability announces a pay-N-times count (Ext NumTimes; cast_announcetimes.go)
@@ -331,6 +335,8 @@ type genPrep struct {
 	altFree      []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
 	// anyDeferred: some card has a deferred mana source (gfDeferred; mana_deferred.go)
 	anyDeferred bool
+	// anyManaNone: some card has a plain {T} mana ability of no colour (gfManaNone; mana_grantnone.go)
+	anyManaNone bool
 	// anyTapsDefer / anyTapsPain: some card has a lowered Taps watcher of
 	// class kop.TapPlanDefer / TapPlanPain (gfTapsDefer / gfTapsPain; mana_tapsdefer.go)
 	anyTapsDefer, anyTapsPain bool
@@ -391,6 +397,9 @@ type genPrep struct {
 	// paid census gap, which gorge's prefix search funds and activates
 	// (mana_filter.go)
 	anyFilt bool
+	// anyFiltPip: some filter is a gated one-pip fixed-colour one
+	// (mana_filterpip.go)
+	anyFiltPip bool
 	// anyFiltFirst: some card's filter is its first mana ability (Abzan
 	// Devotee, Prophetic Prism; mana_filterfirst.go)
 	anyFiltFirst bool
@@ -642,6 +651,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepNumTimes(t, g)
 	prepLoyaltyX(t, g)
 	prepLifeX(t, g)
+	prepSacX(t, g)
 	prepDiscarded(t, g)
 	prepUniqueChain(t, g)
 	prepTgtSet(t, g) // tgt_setconstraints.go
@@ -796,6 +806,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.HasMadness {
 			g.anyMadness = true
+		}
+		if c.HasMiracle {
+			g.anyMiracle = true
 		}
 		firstMana := true
 		graveAdded := false // graveTrig lists a card once, though it may carry several graveyard triggers
@@ -1093,6 +1106,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfDeferred|gfGapOther)
 					g.anyDeferred, g.anyRestrScript, g.anyWindowGap = true, true, true
 				}
+				if manaNoneAb(a) {
+					g.setFlag(CardID(i), gfManaNone)
+					g.anyManaNone = true
+				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).eachCol = int8(j)
 					g.setFlag(CardID(i), gfEachCol)
@@ -1129,6 +1146,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.smallFor(CardID(i)).filt = int8(j)
 					g.setFlag(CardID(i), gfFilt)
 					g.anyFilt = true
+					if _, pip := fixedPipFilt(a); pip {
+						g.anyFiltPip = true
+					}
 				}
 				if int(g.filt(CardID(i))) != j && censusGapMana(a) && !lifePainLandAb(&t.Cards[i], a) && g.gapOther(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).gapOther = int8(j)
@@ -1302,6 +1322,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.embObjEv |= 1 << a.Trig.Event
 				case kop.TrigDamageDone, kop.TrigAttackersDeclared, kop.TrigAttacks, kop.TrigLifeGained:
 					g.embCombatEv |= 1 << a.Trig.Event
+				case kop.TrigDamageDealtOnce:
+					g.embCombatEv |= 1 << kop.TrigDamageDone // the same hook (fireEmblemsDmg)
 				}
 			}
 		}
@@ -1893,7 +1915,7 @@ type genState struct {
 	// definition. Nothing reads or writes these yet. The rule: new State bytes
 	// come out of rsv, the mech arena, a cold array or a scr overlay; never a
 	// mid-struct insertion, which moves every later field. rsv is named, not _,
-	// so SameGame's == compares it. Together the block grows State by 64 bytes
+	// so SameGame's == compares it. Together the block grows State by 80 bytes
 	// (statelayout_test.go pins the size and perms' cache-line phase).
 	imp     [maxImp]Obj
 	nimp    uint8
@@ -1905,9 +1927,10 @@ type genState struct {
 
 const (
 	maxImp = 16
-	// rsvN pads the reserved block to 64 bytes (genState's 5 bytes of tail
-	// padding absorb the rest of the alignment).
-	rsvN = 64 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb
+	// rsvN pads the reserved block to 80 bytes (genState's 5 bytes of tail
+	// padding absorb the rest of the alignment): 64, plus the 16 that carry
+	// State's growth for MaxObj 236 to a multiple of 64 so perms keeps its phase.
+	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
@@ -2161,10 +2184,11 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 }
 
 // maxDynMana caps a dynamic mana ability's amount as an autopay source; a
-// larger amount stalls StallDynMana. 255, what a mana count byte holds
-// (pcard.manaN, a pool's colour): a runaway Improvised Arsenal game passed
-// 40, then 130, then 300; The Core's permanent cards in your graveyard
-// reached 21.
+// larger amount stalls StallDynMana. The amount indexes varPC, one variant
+// per amount, and a pool colour is a byte in State (poolAdd saturates there).
+// A self-pumping source (Improvised Arsenal copies on the tapping creature)
+// grows without bound, so 255 is the declared ceiling and a larger amount is
+// a counted capacity stall, not a bigger table.
 const maxDynMana = 255
 
 // dynManaN evaluates a dynamic mana ability's amount and stalls when it is

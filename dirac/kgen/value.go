@@ -587,6 +587,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		case "CardToughness":
 			v = lValue{Kind: vRemLKIPT, N: 1}
 			lc.remLKN++
+		case "CardManaCost":
+			v, err = lc.remLKIManaValue() // value_remlkimv.go
 		default:
 			err = fmt.Errorf("RememberedLKI$%s", rest)
 		}
