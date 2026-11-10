@@ -104,3 +104,37 @@ func TestPTCompareEqGtKernel(t *testing.T) {
 		})
 	}
 }
+
+// TestPTCompareEqGtDeparted: the entering creature leaves the battlefield
+// with Hulkling's trigger on the stack; the intervening recheck reads its
+// last known power and toughness (cardPowerGEV / cardToughnessGEV, CR 603.4,
+// 608.2h), so the counter follows what it was on the battlefield.
+func TestPTCompareEqGtDeparted(t *testing.T) {
+	const hulk = "Hulkling, Burgeoning Bruiser"
+	for _, c := range []struct {
+		name string
+		want int
+	}{{"Misty Knight, Hero for Hire", 1}, {"Echo, Perceptive Prodigy", 1}, {"Agent of Atlas", 0}, {"Kree Sentinel", 1}} {
+		t.Run(c.name, func(t *testing.T) {
+			sc, id := ptEqGtScen(t, hulk, c.name)
+			hk := sc.perm(id[hulk], 0)
+			o := sc.obj(id[c.name], 0)
+			sc.s.enter(sc.k, o, 0, false, kop.ZoneNone)
+			d := sc.s.Step()
+			if d.Kind != DkPriority || (c.want > 0 && sc.s.sp == 0) {
+				t.Fatalf("decision kind %d, stack %d: the trigger is not on the stack", d.Kind, sc.s.sp)
+			}
+			if !sc.onBF(o) {
+				t.Fatalf("%s is not on the battlefield before it leaves", c.name)
+			}
+			sc.s.leave(sc.k, sc.slot(o), kop.ZoneGraveyard, false)
+			if sc.onBF(o) {
+				t.Fatalf("%s did not leave", c.name)
+			}
+			ptEqGtDrain(t, sc)
+			if got := sc.pceCount(hk, kop.CtrP1P1); got != c.want {
+				t.Errorf("%s left in response: Hulkling has %d +1/+1 counters, want %d", c.name, got, c.want)
+			}
+		})
+	}
+}

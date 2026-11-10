@@ -74,6 +74,9 @@ func (s *State) cardPowerGEV(k *prep, fl *kop.Filter, c CardID, owner uint8, o O
 //
 //go:noinline
 func (s *State) cardToughnessGEV(k *prep, fl *kop.Filter, c CardID, owner uint8, o Obj, fd bool, ctx *evalCtx) bool {
+	if s.xBoundPending(fl) {
+		return true
+	}
 	if k.t.Cards[c].NoPT && !fd {
 		return false
 	}
