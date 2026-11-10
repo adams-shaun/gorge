@@ -74,6 +74,10 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	if len(gaps) == 0 {
 		return nil, false
 	}
+	gaps = e.scriptSpendableGaps(p, o, gaps)
+	if len(gaps) == 0 {
+		return nil, false
+	}
 	a := decision.PotentialAction{Kind: o.Kind, Obj: o.Obj, Ability: o.Ability, Mode: o.Mode}
 	sr := e.newScriptSearch(p, a, o.AltCostIndex, potentialScriptNodes)
 	if sr == nil {
@@ -84,6 +88,39 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	sr.passes = true
 	script, found := sr.run(e)
 	return script, found && len(script) > 0
+}
+
+// scriptSpendableGaps drops from gaps each source whose every mana ability
+// makes mana the plain cast o cannot spend (CR 106.6): Mm'menon's granted
+// "{T}: Add {U}. Spend this mana only to cast a spell from anywhere other
+// than your hand" on an artifact, for a cast from the hand. Activating such a
+// source can only float mana the cast refuses, so a prefix through it pays
+// nothing the prefix without it does not; the search would spend its node
+// budget on those dead branches (and on the triggers their taps set off)
+// before reaching the source that pays. Only a plain cast of the printed cost
+// is filtered; any other play keeps every gap.
+func (e *Engine) scriptSpendableGaps(p state.PlayerID, o decision.Option, gaps []state.ObjID) []state.ObjID {
+	if o.Kind != "cast" || o.Mode != "" || o.AltCostIndex != 0 {
+		return gaps
+	}
+	cost := e.castOfferBase(p, o.Obj)
+	desc := paymentDescriptor{ID: o.Obj, Class: pay.PurposeSpell, Cost: &cost}
+	var out []state.ObjID
+	for i, id := range gaps {
+		if e.untappedManaSourceFor(p, id, desc) {
+			if out != nil {
+				out = append(out, id)
+			}
+			continue
+		}
+		if out == nil {
+			out = append(make([]state.ObjID, 0, len(gaps)), gaps[:i]...)
+		}
+	}
+	if out == nil {
+		return gaps
+	}
+	return out
 }
 
 // scriptSearch is the depth-first search behind potentialPrefixScript and
