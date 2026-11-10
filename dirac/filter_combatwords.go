@@ -301,8 +301,57 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 	atk := PlayerCode(s.nextAlive(SeatIx(p)))
 	if s.g.tokDefSet {
 		atk = s.g.tokDef
+	} else if MaxSeats > 2 && in.B.N&kop.TokAttackAsk != 0 {
+		if atk = s.enterDefenderFallback(k, p); atk == NoTarget || s.out(CodeSeat(atk)) {
+			return // no defender, or the captured one left the game (gorge EnteringAttackLegal)
+		}
 	}
 	s.setEnterAttacker(k, sl, atk)
+}
+
+// enterDefenderFallback is gorge's enteringDefenderFallback past two seats:
+// a trigger's captured defending player (the seat its triggering attacker
+// attacks, a planeswalker's or battle's attack naming that seat), else the
+// first CR 508.4 candidate. A trigger the kernel cannot read that seat for
+// (its attacker has left combat, or an event other than Attacks) stalls
+// (StallDefenderPW). NoTarget: none.
+func (s *State) enterDefenderFallback(k *prep, p uint8) uint8 {
+	if e := &s.res.e; s.res.active && e.kind == seTrigger {
+		if e.ab < abCascade && k.t.Cards[e.card].Abilities[e.ab].Trig.Event == kop.TrigAttacks && e.trigObj != NoObj {
+			if ob := &s.objs[e.trigObj]; ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].flags&pfAttacking != 0 {
+				if q := s.atkSeat(k, ob.slot); q != NoTarget {
+					return PlayerCode(q)
+				}
+			}
+		}
+		s.capFull(StallDefenderPW)
+		return NoTarget
+	}
+	var buf [MaxOptions]uint8
+	if s.enteringDefenderCands(k, p, &buf) == 0 {
+		return NoTarget
+	}
+	return buf[0]
+}
+
+// enterDefenderOrder puts fb first among the n candidates in buf, as gorge's
+// chooseEnteringDefender orders its ask (fallback first, the rest in
+// enteringDefenders order); fb absent is inserted. It returns the new count.
+func enterDefenderOrder(buf *[MaxOptions]uint8, n int, fb uint8) int {
+	i := 0
+	for i < n && buf[i] != fb {
+		i++
+	}
+	if i == n {
+		if n == MaxOptions {
+			i = n - 1
+		} else {
+			n++
+		}
+	}
+	copy(buf[1:i+1], buf[:i])
+	buf[0] = fb
+	return n
 }
 
 // tokenCombatWindow reports whether p is the active player within declare
@@ -325,7 +374,15 @@ func (s *State) tokenDefenderAsk(k *prep, in *kop.Instr, p uint8) bool {
 		return false
 	}
 	var buf [MaxOptions]uint8
-	if s.enteringDefenderCands(k, p, &buf) < 2 {
+	n := s.enteringDefenderCands(k, p, &buf)
+	if MaxSeats > 2 {
+		fb := s.enterDefenderFallback(k, p)
+		if fb == NoTarget {
+			return false
+		}
+		n = enterDefenderOrder(&buf, n, fb)
+	}
+	if n < 2 {
 		return false
 	}
 	s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, p, uint8(NoSlot)

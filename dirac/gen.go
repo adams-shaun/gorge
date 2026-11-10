@@ -2095,7 +2095,7 @@ const (
 	StallOptions       = 48  // a combat declaration has more attack or block pairs than MaxOptions (combat.go optionsFull)
 	StallRoleMulti     = 49  // an AttachedTo$ token mint would create a number of tokens other than one (static_roletokens.go)
 	StallSrcMark       = 50  // more than maxSrcMark DamagedBy / CrewedThisTurn sources marked permanents this turn (genState.marks; filter_combatwords.go)
-	StallDefenderPW    = 51  // a TriggeredDefender damage whose attacker attacks a planeswalker or battle (or left): gorge damages the defending seat instead (OpAtkPWGuard; filter_combatwords.go)
+	StallDefenderPW    = 51  // a TriggeredDefender damage whose attacker attacks a planeswalker or battle (or left): gorge damages the defending seat instead (OpAtkPWGuard; filter_combatwords.go); past two seats, an entering attacker's trigger defender the kernel cannot read (enterDefenderFallback)
 	StallTokAtkAsk     = 52  // a TokenAttacking$ True mint while the opponent has a planeswalker or battle: gorge asks the CR 508.4 defender (filter_combatwords.go)
 	StallDmgLatch      = 53  // a ninth DamageDealtOnce listener of one source in one combat damage batch (triggers_gen.go dmgLatch)
 	StallReplCands     = 54  // a fifth competing replacement candidate for one event or untap (replOrd.cand; repl_gen.go, act_energy.go)
