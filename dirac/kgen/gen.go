@@ -590,6 +590,9 @@ func costString(c lCost) string {
 		p = append(p, fmt.Sprintf("Return%d%s", c.ReturnN, c.Return))
 	}
 	if c.ExileG != nil {
+		if c.ExileGSelf {
+			p = append(p, "ExileGraveSelf")
+		}
 		p = append(p, fmt.Sprintf("ExileGrave%d%s", c.ExileGN, c.ExileG))
 	}
 	if c.Untap {

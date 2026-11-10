@@ -214,6 +214,16 @@ type Cost struct {
 	// words are full). Only a printed activated ability's or a permanent
 	// spell's own additional cost carries it.
 	ExileBf bool
+	// ExileGSelf: the source card itself, in its owner's graveyard, is
+	// exiled as a first ExileFromGrave<1/CARDNAME> part beside the
+	// CostExileGrave part (Cost.N cards matching Filter, the other cards;
+	// Say Its Name: "Exile this card and two other cards named Say Its Name
+	// from your graveyard", CR 118.3, 602.2b). gorge exAsk settles the
+	// CARDNAME singleton unasked, first, then asks one KChoose of the other
+	// cards; the kernel records the source as the first exile pick, then
+	// poses one pick per other card. A table byte, not a CostFlags bit (the
+	// words are full). Only a graveyard activated ability's own cost.
+	ExileGSelf bool
 }
 
 // CostHostSac: sacrifice the granting host (Sac<1/OriginalHost>: Deconstruction

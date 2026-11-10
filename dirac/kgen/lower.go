@@ -1640,6 +1640,37 @@ func (lc *lowerCtx) costParts(c lCost) error {
 	return nil
 }
 
+// exileGraveSecond lowers a second ExileFromGrave part after the first. Only
+// ExileFromGrave<1/CARDNAME> followed by ExileFromGrave<N/Spec> of the other
+// cards lowers (kop.Cost.ExileGSelf: gorge exAsk settles the self part
+// unasked, then asks the others); the spec must exclude the source, a third
+// part, the self part second, another head or a bound X stay refused.
+func (lc *lowerCtx) exileGraveSecond(c *lCost, head string, parts []string, n int, tok string) error {
+	if !lc.actCost || !c.exileGCard || c.ExileGSelf || head != "ExileFromGrave" || parts[1] == "CARDNAME" || c.ExileGBf || c.ExileHand {
+		return refuse("second exile cost part %q", tok)
+	}
+	f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
+	if err != nil {
+		return err
+	}
+	for _, cl := range f.Clauses {
+		if cl.CmpX != "" || cl.Flags&fOther == 0 {
+			return refuse("second exile cost part %q: the spec must exclude the source (Other)", tok)
+		}
+	}
+	c.ExileGSelf, c.exileGCard, c.ExileG, c.ExileGN = true, false, f, n
+	return nil
+}
+
+// exileGSelfGate refuses the self-and-others graveyard exile anywhere but a
+// graveyard activated ability's cost.
+func exileGSelfGate(ab *lAbility, cost lCost) error {
+	if cost.ExileGSelf && (ab.Kind != akActivated || ab.Zone != zGraveyard) {
+		return refuse("exile this card and others cost outside a graveyard activated ability")
+	}
+	return nil
+}
+
 // putLibSelfCost parses PutCardToLibFromGrave<1/-1/CARDNAME[/description]>:
 // put the source card from its owner's graveyard on the bottom of that
 // library as the cost (CR 118.3, 602.2b; Daniels, Temporal Agent). Only the
@@ -1917,8 +1948,16 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			// prompt text only. ExileCtrlOrGrave (Craft's material, gorge
 			// cost.parse's ZoneSet battlefield|graveyard part)
 			// draws from the payer's other permanents too.
-			if len(parts) < 2 || len(parts) > 3 || n <= 0 || c.ExileG != nil {
+			if len(parts) < 2 || len(parts) > 3 || n <= 0 {
 				return c, refuse("exile cost %q", t)
+			}
+			if c.ExileG != nil {
+				// the one two-part shape: ExileFromGrave<1/CARDNAME> then
+				// ExileFromGrave<N/Spec> of the other cards (Say Its Name)
+				if err := lc.exileGraveSecond(&c, head, parts, n, t); err != nil {
+					return c, err
+				}
+				continue
 			}
 			if head == "ExileCtrlOrGrave" {
 				if parts[1] == "CARDNAME" {
@@ -1947,6 +1986,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				}
 			}
 			c.ExileG, c.ExileGN = f, n
+			c.exileGCard = parts[1] == "CARDNAME" && head == "ExileFromGrave"
 		case "ExileFromHand":
 			// ExileFromHand<1/Card[/description]> in the two shapes gorge
 			// lowers: the exile-granted ability's cost (lc.grantExile;
@@ -2685,6 +2725,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 		}
 		if err := putLibSelfGate(ab, cost); err != nil {
+			return err
+		}
+		if err := exileGSelfGate(ab, cost); err != nil {
 			return err
 		}
 		if cost.DiscardSelf && (ab.Zone != zHand || ab.Kind != akActivated || cost.DiscardN > 0) {

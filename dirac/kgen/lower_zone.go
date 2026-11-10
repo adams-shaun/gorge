@@ -392,7 +392,8 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if av, ok := ps.get("OriginAlternative"); ok {
 				alt := strings.TrimSpace(av)
 				// The Graveyard,Hand pair is Agency Outfitter's two-name
-				// battlefield search; every other list stays refused.
+				// battlefield search and Say Its Name's one-card search by
+				// name; every other list stays refused.
 				pair := alt == "Graveyard,Hand"
 				if alt != "Graveyard" && alt != "Hand" && !pair {
 					return refuse("OriginAlternative$ %q", av)
@@ -408,9 +409,10 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					return refuse("OriginAlternative$ with DefinedPlayer$")
 				case arm != nil:
 					return refuse("OriginAlternative$ with WithCountersType$")
-				case pair && !(dest == zBattlefield && isConstN(n, 2)):
-					// the pair is only Agency Outfitter's two-name battlefield
-					// search; the other carriers are a later lowering.
+				case pair && !(dest == zBattlefield && (isConstN(n, 1) || isConstN(n, 2))):
+					// the pair is only the two battlefield searches (Agency
+					// Outfitter's two names, Say Its Name's one); the other
+					// carriers are a later lowering.
 					return refuse("OriginAlternative$ with ChangeNum$ %v", n)
 				case !pair && !isConstN(n, 1):
 					return refuse("OriginAlternative$ with ChangeNum$ %v", n)
