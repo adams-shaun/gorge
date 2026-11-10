@@ -19,7 +19,6 @@ func prepSkipUntap(t *kop.Table, g *genPrep) {
 			for _, in := range a.Prog {
 				g.anySkipUntap = g.anySkipUntap || in.Op == kop.OpSkipUntap
 				if in.Op == kop.OpSkipUntap && in.C >= kop.SkipUntapLockStep {
-					g.anyUntapLock = true
 					g.anyUntapBlock = g.anyUntapBlock || in.C == kop.SkipUntapLockAny // untapBlocked reads the any-event locks
 				}
 			}

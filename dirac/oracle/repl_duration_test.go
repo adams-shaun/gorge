@@ -169,6 +169,20 @@ func replDurationCases() []replDurationCase {
 			reached: durationHeld("Dungeon Geists", wall),
 		}},
 		{effectLongCase: effectLongCase{
+			name:    "icefall_regent_target_stays_tapped_through_its_untap_step",
+			prefer:  []string{"Icefall Regent", wall},
+			decks:   [2][]string{append(deckOf(8, "Icefall Regent"), deckOf(16, "Island")...), wallDeck()},
+			surface: "full",
+			reached: durationHeld("Icefall Regent", wall),
+		}},
+		{effectLongCase: effectLongCase{
+			name:    "merchant_raiders_target_stays_tapped_through_its_untap_step",
+			prefer:  []string{"Merchant Raiders", wall},
+			decks:   [2][]string{append(deckOf(8, "Merchant Raiders"), deckOf(16, "Island")...), wallDeck()},
+			surface: "autopay",
+			reached: durationHeld("Merchant Raiders", wall),
+		}},
+		{effectLongCase: effectLongCase{
 			name:    "time_of_ice_target_stays_tapped_through_its_untap_step",
 			prefer:  []string{"Time of Ice", wall},
 			decks:   [2][]string{append(deckOf(8, "Time of Ice"), deckOf(16, "Island")...), wallDeck()},

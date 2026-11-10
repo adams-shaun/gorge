@@ -29,8 +29,8 @@ func untapLockScen(t *testing.T) (*scen, CardID) {
 	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Lock", Types: kop.TSorcery, Abilities: []kop.Ability{
 		{Kind: kop.AbSpell, Prog: []kop.Instr{step, anyU}}}})
 	sc := newScenTable(t, tbl, Config{NoElide: true})
-	if !sc.k.gen.anyUntapLock || !sc.k.gen.anyUntapBlock || !sc.k.gen.anySkipUntap {
-		t.Fatalf("prep flags lock %v block %v skip %v, want all true", sc.k.gen.anyUntapLock, sc.k.gen.anyUntapBlock, sc.k.gen.anySkipUntap)
+	if !sc.k.gen.anyUntapBlock || !sc.k.gen.anySkipUntap {
+		t.Fatalf("prep flags block %v skip %v, want all true", sc.k.gen.anyUntapBlock, sc.k.gen.anySkipUntap)
 	}
 	return sc, lc
 }
