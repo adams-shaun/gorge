@@ -333,6 +333,16 @@ const (
 	RetShuffleOwed = 1 << 13
 )
 
+// RetDelayedMany is OpReturn's B.N flag, above the Origin$ zone bits: the body
+// of a DpMany delayed program (Defined$ DelayTriggerRememberedLKI over a target
+// slot of several objects, Temporal Tribulation). Every object the firing entry
+// names that is still the object the program remembered returns, in
+// registration order, as one entering event (dirac/trig_delayedmanyreturn.go).
+// Bits 0-10 hold the Origin$ zones and 11-14 are taken, so it shares
+// RetShuffleOwed's bit: that one is read only for a card moving out of a library
+// and this body's origin is exile, where the walk skips a library card first.
+const RetDelayedMany = RetShuffleOwed
+
 // RetCounterPairShift: an OpReturnEx whose WithCountersType$ names two kinds
 // (Perennation) carries its constant A as count | (second kind + 1)<<8 (read
 // as unsigned) and the first kind in B.N, as for one kind. Both enter with the
