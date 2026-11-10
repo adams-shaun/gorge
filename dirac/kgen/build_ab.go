@@ -582,6 +582,10 @@ func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
 	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain:
 		return true
+	case vOppExtreme:
+		// the asking player's living opponents (PlayerCountPlayers$Amount
+		// is their count plus one): gorge's bound context holds the asker
+		return v.N == kop.OppExtAmount
 	case vSum, vProduct:
 		for _, sv := range v.Sub {
 			if !tgtBoundReads(sv) {

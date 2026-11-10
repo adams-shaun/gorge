@@ -37,7 +37,9 @@ func (s *State) oppExtreme(k *prep, x *kop.Expr, ctx evalCtx) int {
 			v = s.countPerm(k, x.F, at)
 		}
 		if what == kop.OppExtAmount {
-			best++
+			if !DebugOppCountOne || best == 0 {
+				best++
+			}
 			continue
 		}
 		if !seen || (lowest && v < best) || (!lowest && v > best) {
@@ -46,3 +48,7 @@ func (s *State) oppExtreme(k *prep, x *kop.Expr, ctx evalCtx) int {
 	}
 	return best
 }
+
+// DebugOppCountOne is a test-only mutation: the controller's living
+// opponents count at most one, as in a two-player game.
+var DebugOppCountOne bool

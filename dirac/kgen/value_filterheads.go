@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // the value heads of the MageZero sample decks' value-heads
@@ -23,9 +25,10 @@ func (lc *lowerCtx) kvfHead(head, rest string) (lValue, error) {
 			return lValue{Kind: vAttackersAll}, nil
 		case "Amount":
 			// gorge playerGroupCount over AliveFrom: the living players,
-			// both of them while a two-player game goes on
-			lc.twoSeat("the living players counted as two")
-			return cst(2), nil
+			// the controller's living opponents and the controller
+			// (seat-exact: a player who lost has left the game with
+			// everything they controlled, CR 800.4a, so the reader lives)
+			return lValue{Kind: vOppExtreme, N: kop.OppExtAmount, Add: 1}, nil
 		case "LowestLifeTotal":
 			// gorge lifeExtreme over AliveFrom (engine/effects/
 			// count_player.go): the lowest CURRENT life total among the

@@ -3162,6 +3162,7 @@ func (lc *lowerCtx) addTarget(t lTarget) int {
 	if t.Max.Kind == vNone {
 		t.Max = cst(1)
 	}
+	lc.livingBound(&t)
 	lc.ab.Targets = append(lc.ab.Targets, t)
 	i := len(lc.ab.Targets) - 1
 	lc.chainT = append(lc.chainT, i)
