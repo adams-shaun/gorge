@@ -260,6 +260,9 @@ func manaGapModelled(first, a *lAbility) bool {
 		if a.Mana.Choice {
 			return restrictedComboModelled(first, a)
 		}
+		if restrictedFixedPair(first, a) {
+			return true
+		}
 		return a.Mana.Colors == "WUBRG" && !a.Mana.Choice && a.Mana.Amount.N <= maxRestrictedAmount &&
 			!first.Mana.Choice && (first.Mana.Colors == "WUBRG" || len(first.Mana.Colors) == 1 && strings.Contains("WUBRG", first.Mana.Colors))
 	case plainTapMana(a, true):
@@ -325,10 +328,11 @@ func ctrTapGapModelled(first, a *lAbility) bool {
 //     reads a second ability only for a fixed unrestricted colour.
 //     (Weather Maker's {C}{C} is modelled: ctrTapGapMana; so is the
 //     tap-another shape, Scene of the Crime: tapXGapMana.)
-//   - a spend-restricted ability of several mana of the first ability's own
-//     fixed colour (Tablet of Discovery): the kernel's restricted pair unit
-//     plans only the any-colour larger alternative, so the planner taps
-//     differently from gorge's;
+//   - a spend-restricted ability of several mana of a fixed colour other than
+//     the first ability's, or above maxRestrictedAmount (the same colour up to
+//     that is Tablet of Discovery's modelled pair, restrictedFixedPair): the
+//     kernel's restricted pair unit plans only an any-colour larger
+//     alternative beyond it, so the planner taps differently from gorge's;
 //   - an evaluated amount of the first ability's fixed colour (Itlimoc,
 //     Cradle of the Sun): the kernel plans the first ability alone, gorge's
 //     planner the larger of the two.
@@ -341,11 +345,23 @@ func manaGapWhy(first, a *lAbility) string {
 		}
 		return "a cost beyond {T} the kernel's mana walk cannot activate"
 	case m.Restrict != nil && m.Amount.Kind == vConst && m.Amount.N > 1 && len(m.Colors) == 1 && m.Colors != "WUBRG" && !m.Choice:
-		return "a restricted fixed colour of several mana: the kernel's restricted pair unit plans only an any-colour one"
+		return "a restricted fixed colour of several mana: the kernel's restricted pair unit plans only an any-colour one or the first ability's own colour up to four"
 	case m.Amount.Kind > vConst && len(m.Colors) == 1 && m.Colors == first.Mana.Colors && plainTapMana(a, false):
 		return "an evaluated amount of the first ability's colour: the kernel plans the first ability alone"
 	}
 	return "a shape beyond the restricted, filter and pain gaps"
+}
+
+// restrictedFixedPair: a, a spell-only restricted {T} ability of several mana
+// (at most maxRestrictedAmount) of one fixed colour, beside a first ability of
+// that same colour (Tablet of Discovery's {R}{R} beside {R}) is the kernel's
+// restricted pair unit with a single-colour larger alternative
+// (mana_restrictedsource.go prepRestrSrc). A different colour, or an
+// activation-only restriction, is not modelled.
+func restrictedFixedPair(first, a *lAbility) bool {
+	return len(a.Mana.Colors) == 1 && strings.Contains("WUBRG", a.Mana.Colors) && a.Mana.Colors == first.Mana.Colors &&
+		!a.Mana.Choice && !first.Mana.Choice && !a.Mana.Each && !first.Mana.Each && a.Mana.RestrictAb == nil && !a.Mana.NonSpell &&
+		a.Mana.Amount.N <= maxRestrictedAmount
 }
 
 // restrictedComboModelled: a, a restricted {T} ability of a Combo of any

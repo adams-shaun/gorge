@@ -17,7 +17,7 @@ var coreFiles = map[string]bool{
 	"legal_gen.go": true, "lockstepconfig.go": true, "mana.go": true, "marks.go": true, "occupancy.go": true,
 	"pregame.go": true, "prep.go": true, "project.go": true, "projchars.go": true, "repl_gen.go": true,
 	"resolve.go": true, "returnrem.go": true, "rng.go": true, "scratch.go": true, "script_gen.go": true,
-	"searchapi.go": true, "seats.go": true, "seats_default.go": true, "seats_mp.go": true, "slotmask.go": true, "stallclass.go": true, "stallnames.go": true, "state.go": true,
+	"searchapi.go": true, "seats.go": true, "seats_default.go": true, "seats_mp.go": true, "seatorder.go": true, "slotmask.go": true, "stallclass.go": true, "stallnames.go": true, "state.go": true,
 	"statecopy.go": true, "statics_gen.go": true, "targets_gen.go": true, "triggers_gen.go": true,
 	"trigpl.go": true, "turn.go": true, "turn_gen.go": true, "types.go": true, "zones.go": true,
 }

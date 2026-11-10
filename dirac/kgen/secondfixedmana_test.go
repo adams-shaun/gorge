@@ -8,9 +8,10 @@ import (
 // TestSecondFixedManaAbility: a second mana ability beside a plain first one
 // that the kernel cannot play as gorge's planner does stays refused, and the
 // refusal names what the second ability needs: a cost beyond {T} (Mirrodin's
-// Core's counter and any colour, Abandoned Outpost's sacrifice), a spend-restricted
-// fixed colour of several mana (Tablet of Discovery's {R}{R}) and an
-// evaluated amount of the first ability's colour (Itlimoc, Cradle of the Sun,
+// Core's counter and any colour, Abandoned Outpost's sacrifice), a
+// spend-restricted fixed colour of several mana other than the first ability's
+// or above maxRestrictedAmount (Tablet of Discovery's {R}{R} is modelled) and
+// an evaluated amount of the first ability's colour (Itlimoc, Cradle of the Sun,
 // the back of Growing Rites of Itlimoc). Lowering any of them diverged from
 // gorge in lockstep, or the kernel's mana walk refuses the cost, so each
 // refusal is by name.
@@ -18,7 +19,6 @@ func TestSecondFixedManaAbility(t *testing.T) {
 	want := map[string]string{
 		"Mirrodin's Core":          "a cost beyond {T} the kernel's mana walk cannot activate: its counter gap kind reads a second ability only for a fixed unrestricted colour",
 		"Abandoned Outpost":        "a cost beyond {T} the kernel's mana walk cannot activate",
-		"Tablet of Discovery":      "a restricted fixed colour of several mana",
 		"Growing Rites of Itlimoc": "an evaluated amount of the first ability's colour",
 	}
 	var names []string

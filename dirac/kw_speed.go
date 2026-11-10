@@ -114,7 +114,7 @@ func (s *State) speedStart(k *prep, cnt int) {
 		return
 	}
 	var need uint8
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < MaxSeats; p++ {
 		if s.speedOf(p) == 0 {
 			need |= 1 << p
 		}
