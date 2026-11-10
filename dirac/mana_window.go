@@ -2821,7 +2821,12 @@ func (s *State) manaStep(k *prep) bool {
 			// runs here, at the mana stage, so a tap-another source's pick
 			// is posed instead of walked over.
 			c := xFolded(cost, int(e.x))
-			noOwed := s.bld().altAdd == 1 && s.bld().pipN == 0 && s.altAddFreePart(k, e.ctrl, e.card, e.obj)
+			// The plan was armed for the first payable part (planCastAltAdd): the free
+			// one when it can be paid, else the mana part. A chosen part other than the
+			// armed one changes the cost (the {2} chosen beside a payable behold, or the
+			// behold chosen when only the {2} was payable), so the plan falls back to a
+			// window with no ManaPayment (CR 601.2g).
+			noOwed := s.bld().pipN == 0 && (s.bld().altAdd == 1) == s.altAddFreePart(k, e.ctrl, e.card, e.obj)
 			ok, _ := s.windowTapUseful(k, e.ctrl, &c, &c, true, anyColor, noOwed, false)
 			if !s.winPaused() {
 				if !ok || s.bld().altAdd == 0 {
