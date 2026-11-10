@@ -1470,6 +1470,14 @@ func (lc *lowerCtx) lowerKeywords() {
 			// the sentence to the MustBlock head; the attacker-oriented
 			// requirement, one blocker satisfies it)
 			lc.out.MustBeBlocked = true
+		case head == "Miracle":
+			// CR 702.94a: a revealed first draw triggers, and the card may
+			// be cast as that trigger resolves. gorge instead asks as the
+			// offer is put on the stack and casts the card there and then,
+			// with no stack object; the kernel has no cast begun from
+			// trigger placement, so it is refused by name until both
+			// engines resolve the trigger on the stack.
+			lc.refuseNode(node, "keyword %q: gorge casts at trigger placement, not as the trigger resolves (CR 702.94a)", head)
 		default:
 			lc.refuseNode(node, "keyword %q", head)
 		}
