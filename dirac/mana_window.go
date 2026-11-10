@@ -2240,17 +2240,12 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		s.lowerXEats(k, p, &cost, x, excl, anyColor)
 		return
 	}
-	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 {
+	untapped := s.untappedRestrSrcs(k, p)
+	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 && !s.anyRestrEach(k, untapped) {
 		s.tapForRider(k, p, &cost, x, excl, anyColor)
 		return
 	}
 	pool := s.pl[p].pool
-	var untapped slotMask
-	for m := s.ctrlM[p].and(s.occ); m.any(); m = m.rest() {
-		if sl := m.first(); s.perms[sl].flags&pfTapped == 0 && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
-			untapped = untapped.or(slotBit(sl))
-		}
-	}
 	var pk planner
 	s.tapForPK(k, p, &cost, x, excl, false, anyColor, &pk)
 	s.witnessManaRestricted(k, p, &pool, untapped, &pk)
@@ -2384,6 +2379,10 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 			continue
 		}
 		col := tcol
+		if ab.ManaEach {
+			s.witnessEachRestricted(k, p, pool, sl, ab, n)
+			continue
+		}
 		if uint8(ab.ManaColors)&(1<<col) != 0 && s.pl[p].pool[col] >= pool[col]+n {
 			s.pl[p].pool[col] -= n
 			if !s.floatRestrAb(k, p, sl, ab, col, n) {
