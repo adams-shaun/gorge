@@ -367,7 +367,7 @@ func hbytes(h uint64, p unsafe.Pointer, n uintptr) uint64 {
 // graveyard or exile; 255 elsewhere.
 func (s *State) zoneIndex(o Obj) uint8 {
 	ob := &s.objs[o]
-	pl := &s.pl[ob.owner()&1]
+	pl := &s.pl[SeatIx(ob.owner())]
 	var l []Obj
 	switch ob.zone {
 	case kop.ZoneHand:

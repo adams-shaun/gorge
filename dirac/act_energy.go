@@ -48,7 +48,7 @@ func (s *State) payEnergy(p uint8, c *kop.Cost) {
 }
 
 // Energy is player p's energy counter count (oracle / tests).
-func (s *State) Energy(p uint8) int { return int(s.g.energy[p&1]) }
+func (s *State) Energy(p uint8) int { return int(s.g.energy[SeatIx(p)]) }
 
 // payEnergyN pays n energy for an unless / if-you-do cost (kop.PayEnergy;
 // asked only when payable, else decline-only).

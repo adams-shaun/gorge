@@ -1140,7 +1140,7 @@ func (s *State) addRestrChV(k *prep, p uint8, f kop.FilterID, v, ch uint8, col i
 // poolProj is p's pool as gorge's Players[p].Pool holds it: the
 // restricted mana counted with its colour.
 func (s *State) poolProj(p uint8) [kop.NumManaKinds]uint8 {
-	m := s.pl[p&1].pool
+	m := s.pl[SeatIx(p)].pool
 	s.rbUnits(p, s.rbAll(p), &m)
 	return m
 }
