@@ -86,7 +86,7 @@ func (s *State) exwNote(o, src Obj, ok bool) {
 //go:noinline
 func (s *State) exileTypeAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 	var types kop.TypeMask
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < MaxSeats; pp++ {
 		pl := &s.pl[pp]
 		for j := 0; j < int(pl.exileN); j++ {
 			o := pl.exile[j]
