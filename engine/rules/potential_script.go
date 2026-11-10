@@ -80,6 +80,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 		return nil, false
 	}
 	sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == "ability"
+	sr.instance, sr.instanced = o.Cost, o.Kind == "cast"
 	sr.passes = true
 	script, found := sr.run(e)
 	return script, found && len(script) > 0
@@ -108,6 +109,13 @@ type scriptSearch struct {
 	// printedOnly: the play is a printed ability, and a granted one sharing its
 	// Ability is another option (only a printed ability reaches the planner).
 	printedOnly bool
+	// instance, when instanced, is the Option.Cost of the cast instance the
+	// play denotes: a printed flashback ("") or a further granted one (CR
+	// 702.34a, 113.2c). Each instance is its own permission with its own
+	// cost, so the cheaper granted instance appearing is not the printed
+	// play being offered.
+	instance  string
+	instanced bool
 	// nodePlans asks the planner at every payer priority node; unproven
 	// records a node verdict that was neither a witness nor a proof.
 	nodePlans bool
@@ -339,6 +347,9 @@ func (sr *scriptSearch) targetsGone(c *Engine) bool {
 func (sr *scriptSearch) offered(o *decision.Option) bool {
 	a := sr.play
 	if sr.printedOnly && (o.SVar != "" || o.GainedSource != 0) {
+		return false
+	}
+	if sr.instanced && o.Cost != sr.instance {
 		return false
 	}
 	return o.Kind == a.Kind && o.Obj == a.Obj && o.Ability == a.Ability && o.Mode == a.Mode && (sr.altCost < 0 || o.AltCostIndex == sr.altCost)

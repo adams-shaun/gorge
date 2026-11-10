@@ -536,3 +536,12 @@ func TestMayPlayFoldCounterRaiseAmbiguousLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "mayplay_fold_with_counter_raise_ambiguous", "std-fdn", Config{GorgeAutopaySurface: true})
 }
+
+// TestFlashbackGrantedInstanceNotPrintedOfferLockstep: Fire Nation Attacks
+// prints flashback {8}{R} and Iroh grants another at its mana cost. gorge's
+// prefix search for the printed instance must not stop when the cheaper
+// granted instance becomes castable: that is a different option (CR 702.34a).
+func TestFlashbackGrantedInstanceNotPrintedOfferLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "flashback_granted_instance_not_printed_offer", "std-tla", Config{})
+}
