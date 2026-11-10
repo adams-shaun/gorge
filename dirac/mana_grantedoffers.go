@@ -306,13 +306,16 @@ func (s *State) walkHandAvail(k *prep, p uint8, d payDesc, a *avail) {
 }
 
 // castGrantAvail is the census o's plain hand cast is priced against: av (the
-// player's shared census) when no granted mana ability of the table carries a
-// spend restriction, else the census filtered by the cast's own payment into
-// fav, with a restricted grant the cast cannot spend left out and with it a
-// tap's extra on its source (CR 106.6, 605.3a; gorge potentialManaFor(payment)
-// and potentialRestrictionAdmits).
+// player's shared census) unless the table has both a restricted granted mana
+// ability and a tap's extra, else the census filtered by the cast's own
+// payment into fav, with a restricted grant the cast cannot spend left out and
+// with it a tap's extra on its source (CR 106.6, 605.3a; gorge
+// potentialManaFor(payment) and potentialRestrictionAdmits). Without a
+// tap-extra carrier grantCap removes the over-counted play afterwards
+// (script_gen.go); it skips every play when one exists, so only then does the
+// gate itself have to.
 func (s *State) castGrantAvail(k *prep, p uint8, o Obj, av, fav *avail) *avail {
-	if k.gen == nil || !k.gen.anyGrantRestr() {
+	if k.gen == nil || !k.gen.anyTapExtra || !k.gen.anyGrantRestr() {
 		return av
 	}
 	s.walkHandAvail(k, p, s.grantPayDescOf(MakeAction(AkCast, uint8(o), 0, 0)), fav)
