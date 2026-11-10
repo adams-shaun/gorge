@@ -21,7 +21,7 @@ func (s *State) exprKvf(k *prep, x *kop.Expr, ctx evalCtx) int {
 		// controller of the target)
 		v := 0
 		if p := s.refPlayer(k, x.Ref, ctx); p != 255 {
-			v = int(s.g.poison[p&1])
+			v = int(s.g.poison[SeatIx(p)])
 		}
 		kvfHit(KvfPoisonLow + min(v, 3)/3)
 		return v

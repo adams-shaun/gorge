@@ -273,7 +273,7 @@ func (s *State) Tapped(o Obj) bool {
 // read as a return cost's candidates are, with no source on the battlefield.
 func (s *State) ControlsMatching(p uint8, f kop.FilterID) bool {
 	k := s.k()
-	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		if s.matchPerm(k, f, m.first(), p, NoSlot) {
 			return true
 		}

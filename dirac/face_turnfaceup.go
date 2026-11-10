@@ -134,7 +134,7 @@ func turnUpHybOK(cost *kop.ManaCost) bool {
 // affords), so the payment spends plain pips. The caller proved
 // specialAffords (mana_specialaction.go).
 func (s *State) turnUpHybResolve(p uint8, cost kop.ManaCost, extra int) kop.ManaCost {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	var a avail
 	for c := 0; c < kop.NumManaKinds; c++ {
 		if pl.pool[c] > 0 {
@@ -148,14 +148,14 @@ func (s *State) turnUpHybResolve(p uint8, cost kop.ManaCost, extra int) kop.Mana
 // with the restricted batches its restriction admits — pays for a keyword
 // turn-up (gorge turnUpXAsk's bound, no reductions), -1 when none.
 func (s *State) turnUpMaxX(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot) int {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	bound := int(cost.Generic) + int(cost.X) + 1
 	for c := 0; c < kop.NumManaKinds; c++ {
 		bound += int(pl.pool[c])
 	}
 	if m := s.restrPoolSpecial(k, p, sp, sl); m != 0 {
-		for i := range s.rb[p&1] {
-			b := &s.rb[p&1][i]
+		for i := range s.rb[SeatIx(p)] {
+			b := &s.rb[SeatIx(p)][i]
 			if b.kind == 0 {
 				break
 			}

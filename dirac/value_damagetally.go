@@ -22,6 +22,6 @@ func (s *State) tallyRedNC(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, n
 	if s.srcColors(k, srcSl, srcCard)&kop.ColR == 0 {
 		return
 	}
-	t := &s.g.redNC[srcCtrl&1]
+	t := &s.g.redNC[SeatIx(srcCtrl)]
 	*t = uint8(min(int(*t)+n, 255))
 }

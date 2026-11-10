@@ -26,7 +26,7 @@ func (s *State) noteSac(k *prep, sl Slot) {
 	if ob.of&ofCopy != 0 {
 		return
 	}
-	pl := &s.pl[p.ctrl&1]
+	pl := &s.pl[SeatIx(p.ctrl)]
 	if pl.sac[sacAll] < 255 {
 		pl.sac[sacAll]++
 	}
@@ -42,7 +42,7 @@ func (s *State) noteSac(k *prep, sl Slot) {
 //
 //go:noinline
 func (s *State) sacrificedThisTurn(k *prep, x *kop.Expr, ctx evalCtx) int {
-	pl := &s.pl[ctx.ctrl&1]
+	pl := &s.pl[SeatIx(ctx.ctrl)]
 	if x.N == 1 {
 		return int(pl.sac[sacArtifact])
 	}

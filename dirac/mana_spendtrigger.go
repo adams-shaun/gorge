@@ -115,7 +115,7 @@ func (s *State) obsWinPool(p uint8) (pool [kop.NumManaKinds]uint8, ok bool) {
 	b := s.bld()
 	ok = b.obsWin == obsWinTapped
 	if ok {
-		pool = s.pl[p&1].pool
+		pool = s.pl[SeatIx(p)].pool
 	}
 	b.obsWin |= obsWinPaying
 	return pool, ok
@@ -139,7 +139,7 @@ func (s *State) obsWinSettle(k *prep, p uint8, before [kop.NumManaKinds]uint8, o
 	}
 	mask := s.windowOwnMask(k, b.obsSl-1)
 	for c := 0; c < kop.NumManaKinds; c++ {
-		if mask&(1<<c) != 0 && s.pl[p&1].pool[c] < before[c] {
+		if mask&(1<<c) != 0 && s.pl[SeatIx(p)].pool[c] < before[c] {
 			return
 		}
 	}

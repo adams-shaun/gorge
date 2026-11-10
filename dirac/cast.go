@@ -785,7 +785,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				// + 1 + what the window's sources make (it raises the bound for
 				// a reduction only in the named-count case): a CR 601.2f
 				// reduction past it is not offered (GORGE-FINDINGS.md "X ceiling")
-				mx = min(mx, av.total+s.filtBoundExtra(k, e.ctrl)+int(s.pl[e.ctrl&1].graveN)+s.convokeXCredit(k)+1)
+				mx = min(mx, av.total+s.filtBoundExtra(k, e.ctrl)+int(s.pl[SeatIx(e.ctrl)].graveN)+s.convokeXCredit(k)+1)
 			}
 			if k.gen != nil && k.gen.anyLifeX {
 				mx = s.lifeXClamp(k, &cost, mx) // PayLife<X> bounds the ask by life
@@ -823,7 +823,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				// only a free cast. A PayLife<X> is bounded by the X ask.
 				// buildPickCost is the chosen either-or part: an alt-add cast
 				// paying its mana part owes no life (Redirect Lightning).
-				if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 && int(s.pl[e.ctrl&1].life) < int(pc.N) {
+				if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 && int(s.pl[SeatIx(e.ctrl)].life) < int(pc.N) {
 					s.reverseCast(k)
 					return false
 				}

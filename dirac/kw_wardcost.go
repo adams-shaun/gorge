@@ -165,7 +165,7 @@ func (s *State) graveMV(k *prep, o Obj) int {
 //
 //go:noinline
 func (s *State) startWardEvidence(k *prep) {
-	pl := &s.pl[s.g.pickP&1]
+	pl := &s.pl[SeatIx(s.g.pickP)]
 	tot := 0
 	for i := 0; i < int(pl.graveN); i++ {
 		tot += s.graveMV(k, pl.grave[i])
@@ -183,7 +183,7 @@ func (s *State) askOptionsEvidence(k *prep, d *Decision) bool {
 		return s.askOptionsCostEvidence(k, d) // cost_collectevidence.go
 	}
 	d.Sub = ChWardEvidence
-	pl := &s.pl[s.g.pickP&1]
+	pl := &s.pl[SeatIx(s.g.pickP)]
 	for i := 0; i < int(pl.graveN); i++ {
 		if s.g.evSel&(1<<i) == 0 {
 			d.add(MakeAction(AkChoose, uint8(pl.grave[i]), 0, 0))
@@ -272,7 +272,7 @@ func (s *State) startWardDiscard(k *prep) {
 		s.startWardAlt(k)
 		return
 	}
-	if int(s.pl[s.g.pickP&1].handN) < int(s.g.pickLeft) {
+	if int(s.pl[SeatIx(s.g.pickP)].handN) < int(s.g.pickLeft) {
 		s.payDone(k, false)
 		return
 	}
@@ -288,7 +288,7 @@ func (s *State) askOptionsWardDisc(k *prep, d *Decision) bool {
 		return s.askOptionsWardSac(k, d) // kw_wardcost.go
 	}
 	d.Sub = ChWardDiscard
-	pl := &s.pl[s.g.pickP&1]
+	pl := &s.pl[SeatIx(s.g.pickP)]
 	for i := 0; i < int(pl.handN); i++ {
 		d.add(MakeAction(AkChoose, uint8(pl.hand[i]), 0, 0))
 	}
@@ -373,7 +373,7 @@ func (s *State) startWardAlt(k *prep) {
 
 func (s *State) askOptionsWardAlt(d *Decision) {
 	d.Sub = ChWardAlt
-	pl := &s.pl[s.g.pickP&1]
+	pl := &s.pl[SeatIx(s.g.pickP)]
 	for i := 0; i < int(pl.handN); i++ {
 		d.add(MakeAction(AkChoose, uint8(pl.hand[i]), 0, 0))
 	}

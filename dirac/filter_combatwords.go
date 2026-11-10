@@ -367,11 +367,11 @@ func (s *State) abilityAffordsSacSelf(k *prep, sl Slot, a *kop.Ability, cost *ko
 //
 //go:noinline
 func (s *State) tapForSacSelf(k *prep, p uint8, cost *kop.ManaCost, x int, sl Slot) {
-	held := s.ctrlM[p&1].has(sl)
-	s.ctrlM[p&1].clr(sl)
+	held := s.ctrlM[SeatIx(p)].has(sl)
+	s.ctrlM[SeatIx(p)].clr(sl)
 	s.tapFor(k, p, cost, x, NoObj)
 	if held {
-		s.ctrlM[p&1].set(sl)
+		s.ctrlM[SeatIx(p)].set(sl)
 	}
 }
 

@@ -226,12 +226,12 @@ func (s *State) ViewHashCached(seat uint8, base *[MaxObj]uint64, c *ObjHashCache
 		c.part = [2]objPart{}
 	}
 	var o uint64
-	if pc := c; pc != nil && s.line != 0 && pc.part[seat&1].ok && pc.part[seat&1].at == s.touchN {
-		o = pc.part[seat&1].h
+	if pc := c; pc != nil && s.line != 0 && pc.part[SeatIx(seat)].ok && pc.part[SeatIx(seat)].at == s.touchN {
+		o = pc.part[SeatIx(seat)].h
 	} else {
 		o = s.viewObjects(seat, base, c)
 		if c != nil && s.line != 0 {
-			c.part[seat&1] = objPart{ok: true, at: s.touchN, h: o}
+			c.part[SeatIx(seat)] = objPart{ok: true, at: s.touchN, h: o}
 		}
 	}
 	var fl uint64
@@ -305,7 +305,7 @@ func (s *State) viewObjects(seat uint8, base *[MaxObj]uint64, c *ObjHashCache) u
 		return h
 	}
 	h := uint64(0x6f626a7300)
-	pl := &s.pl[seat&1]
+	pl := &s.pl[SeatIx(seat)]
 	for i := 0; i < int(pl.handN); i++ {
 		h = hmix(h, oh(pl.hand[i]))
 	}

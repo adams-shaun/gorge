@@ -418,7 +418,7 @@ func (s *State) countLibrary(k *prep, x *kop.Expr, ctx evalCtx) int {
 //go:noinline
 func (s *State) unlockedDoors(k *prep, ctrl uint8) int {
 	n := 0
-	for m := s.ctrlM[ctrl&1].and(s.occ); m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(ctrl)].and(s.occ); m.any(); m = m.rest() {
 		c := s.perms[m.first()].card
 		if roomDef(k, c) {
 			n += bits.OnesCount8(roomMask(k, c))

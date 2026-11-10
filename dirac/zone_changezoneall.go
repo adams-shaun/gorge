@@ -305,7 +305,7 @@ func (s *State) czallPlace(os []Obj, from []kop.Zone, c *czallCarry) {
 	var m [2]int
 	for _, o := range os {
 		if s.objs[o].zone == kop.ZoneLibrary {
-			m[s.objs[o].owner()&1]++
+			m[SeatIx(s.objs[o].owner())]++
 		}
 	}
 	for p := 0; p < 2; p++ {

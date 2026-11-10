@@ -874,7 +874,7 @@ func (s *State) payFromPool(p uint8, cost *kop.ManaCost, x int) {
 	if g > 0 {
 		panic("kernel: payment failed (generic)")
 	}
-	if s.g.poolArt[p&1]|s.fbR[p&1]|(s.pmOn>>(p&1))&1 != 0 {
+	if s.g.poolArt[SeatIx(p)]|s.fbR[SeatIx(p)]|(s.pmOn>>(p&1))&1 != 0 {
 		s.artSync(p)
 	}
 }
@@ -968,7 +968,7 @@ func (s *State) payFromPoolAnyColor(p uint8, cost *kop.ManaCost, x int) {
 	if g > 0 {
 		panic("kernel: payment failed (generic)")
 	}
-	if s.g.poolArt[p&1]|s.fbR[p&1]|(s.pmOn>>(p&1))&1 != 0 {
+	if s.g.poolArt[SeatIx(p)]|s.fbR[SeatIx(p)]|(s.pmOn>>(p&1))&1 != 0 {
 		s.artSync(p)
 	}
 }

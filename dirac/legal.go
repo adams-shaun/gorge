@@ -1538,7 +1538,7 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 	if ab.Cost.Flags&kop.CostOncePerTurn != 0 && j < 8 && pp.actUsed&(1<<j) != 0 {
 		return false // Gravestone Strider, used this turn
 	}
-	if ab.Cost.Flags&kop.CostPayLife != 0 && int(s.pl[p&1].life) < int(ab.Cost.N) {
+	if ab.Cost.Flags&kop.CostPayLife != 0 && int(s.pl[SeatIx(p)].life) < int(ab.Cost.N) {
 		return false
 	}
 	if k.gen.anyCantAct && s.actForbidden(k, sl, true) {

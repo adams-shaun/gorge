@@ -59,7 +59,7 @@ func (s *State) lifeXClamp(k *prep, cost *kop.ManaCost, mx int) int {
 	if !s.lifeXBuilding(k) {
 		return mx
 	}
-	life := int(s.pl[s.bld().e.ctrl&1].life)
+	life := int(s.pl[SeatIx(s.bld().e.ctrl)].life)
 	life = max(0, min(life, 255))
 	if cost.X == 0 {
 		if mx < 0 {

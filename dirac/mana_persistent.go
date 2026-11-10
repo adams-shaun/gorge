@@ -37,12 +37,12 @@ func (s *State) persistAdd(p uint8, col, n int) {
 	if n <= 0 {
 		return
 	}
-	t := int(s.pm[p&1][col]) + n
+	t := int(s.pm[SeatIx(p)][col]) + n
 	if t > 255 {
 		t = 255
 		s.capFull(StallPersistMana)
 	}
-	s.pm[p&1][col] = uint8(t)
+	s.pm[SeatIx(p)][col] = uint8(t)
 	s.pmOn |= 1 << (p & 1)
 }
 

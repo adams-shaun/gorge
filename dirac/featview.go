@@ -16,7 +16,7 @@ import (
 // list order) and returns it.
 func (s *State) FeatBattlefield(p uint8, dst []Obj) []Obj {
 	n0 := len(dst)
-	m := s.ctrlM[p&1].and(s.occ)
+	m := s.ctrlM[SeatIx(p)].and(s.occ)
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
@@ -321,7 +321,7 @@ func (s *State) FeatPoolPays(p uint8, o Obj, mode uint8) bool {
 // what the pool would pay once the bot had floated that much by hand.
 func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bool {
 	k := s.k()
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	a := s.poolAvailPlus(p, extra)
 	c := s.objs[o].card
 	if s.rbAny(p) {
@@ -384,7 +384,7 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 
 // poolAvailPlus is p's floating pool plus extra as an avail.
 func (s *State) poolAvailPlus(p uint8, extra *[6]int32) avail {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	var a avail
 	for c := 0; c < kop.NumManaKinds; c++ {
 		n := int32(pl.pool[c])
@@ -414,7 +414,7 @@ func (s *State) FeatFacePoolPays(p uint8, o Obj, face uint8, extra *[6]int32) bo
 
 // poolPays reports whether p's floating pool alone pays cost.
 func (s *State) poolPays(p uint8, cost *kop.ManaCost) bool {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	var a avail
 	for c := 0; c < kop.NumManaKinds; c++ {
 		if pl.pool[c] > 0 {
@@ -426,7 +426,7 @@ func (s *State) poolPays(p uint8, cost *kop.ManaCost) bool {
 
 // poolPaysAnyColor is poolPays under the may-play any-colour rider.
 func (s *State) poolPaysAnyColor(p uint8, cost *kop.ManaCost) bool {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	var a avail
 	for c := 0; c < kop.NumManaKinds; c++ {
 		if pl.pool[c] > 0 {
@@ -444,7 +444,7 @@ func (s *State) poolPaysAnyColor(p uint8, cost *kop.ManaCost) bool {
 func (s *State) FeatManaSources(p uint8) int {
 	k := s.k()
 	n := 0
-	for m := s.ctrlM[p&1].and(s.occ); m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
 		sl := m.first()
 		if s.featManaActivatable(k, sl) {
 			n++
@@ -771,13 +771,13 @@ func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slo
 // other than ex: the planner's census, without the mana abilities effects
 // grant.
 func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	for i := 0; i < kop.NumManaKinds; i++ {
 		if pl.pool[i] > 0 {
 			av.addUnits(1<<i, pl.pool[i])
 		}
 	}
-	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
 		if sl == ex || pm.flags&pfTapped != 0 || s.grantMay(k, sl) && s.manaGranted(k, sl) {
@@ -927,7 +927,7 @@ func (s *State) FeatPayManual() bool {
 	in := &s.prog(k)[s.res.pc]
 	c := manaOf(int(s.g.pickLeft), s.numTimesPips(k, in.B.N))
 	var av avail
-	pl := &s.pl[s.g.pickP&1]
+	pl := &s.pl[SeatIx(s.g.pickP)]
 	for i := 0; i < kop.NumManaKinds; i++ {
 		if pl.pool[i] > 0 {
 			av.addUnits(1<<i, pl.pool[i])

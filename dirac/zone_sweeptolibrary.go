@@ -63,8 +63,8 @@ func (s *State) libSweep(k *prep, in *kop.Instr) {
 	}
 	first := [2]int{-1, -1} // the first placement of each owner's cards
 	for i := 0; i < n; i++ {
-		if p := s.objs[objs[i]].owner(); first[p&1] < 0 {
-			first[p&1] = i
+		if p := s.objs[objs[i]].owner(); first[SeatIx(p)] < 0 {
+			first[SeatIx(p)] = i
 		}
 	}
 	for p := uint8(0); p < s.nSeats(); p++ {
@@ -93,7 +93,7 @@ func (s *State) libSweep(k *prep, in *kop.Instr) {
 	}
 	for i := 0; i < n; i++ {
 		p := s.objs[objs[i]].owner()
-		if first[p&1] == i {
+		if first[SeatIx(p)] == i {
 			s.shuffleLib(p)
 		}
 	}

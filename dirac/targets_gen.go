@@ -230,7 +230,7 @@ func (s *State) multiCands(k *prep, t *kop.TargetSpec, ti uint8, out *[MaxOption
 		if c == NoTarget || s.pickedInSlot(e, ti, c) {
 			continue
 		}
-		if per[0]|per[1] != 0 && isObjTarget(c) && per[s.ctrlOfObj(Obj(c))&1] < mt.min {
+		if per[0]|per[1] != 0 && isObjTarget(c) && per[SeatIx(s.ctrlOfObj(Obj(c)))] < mt.min {
 			continue
 		}
 		if t.TFlags&kop.TgfDistinct != 0 && s.pickedBefore(e, ti, c) {

@@ -40,9 +40,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 		return 0
 	case kop.ExScriedThisTurn:
-		return int(s.pl[ctx.ctrl&1].scry>>(4*(x.N&1))) & 15
+		return int(s.pl[SeatIx(ctx.ctrl)].scry>>(4*(x.N&1))) & 15
 	case kop.ExDilemmasFaced:
-		return int(s.g.dilemmas[ctx.ctrl&1])
+		return int(s.g.dilemmas[SeatIx(ctx.ctrl)])
 	case kop.ExCastBattlefield:
 		// Count$LastStateBattlefieldWithFallback: the
 		// count frozen at beginCast into the spell entry's trigMV
@@ -89,14 +89,14 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		if DebugNoYourTurns {
 			return 0
 		}
-		return int(s.g.yourTurns[ctx.ctrl&1])
+		return int(s.g.yourTurns[SeatIx(ctx.ctrl)])
 	case kop.ExYourExtraTurns:
 		return int(s.g.extraTurnBegun>>(ctx.ctrl&1)) & 1
 	case kop.ExRedNCDmg:
 		if DebugNoRedNC {
 			return 0
 		}
-		return int(s.g.redNC[ctx.ctrl&1])
+		return int(s.g.redNC[SeatIx(ctx.ctrl)])
 	case kop.ExRemLKIPT:
 		return s.remLKIPT() // zone_rememberlki.go
 	case kop.ExExiledWithN:

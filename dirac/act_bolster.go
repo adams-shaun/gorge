@@ -11,7 +11,7 @@ import (
 // putCounterBolster: Zone(ZBattlefield, controller), h.Toughness).
 func (s *State) bolsterCands(k *prep, p uint8, buf *[MaxPerm]Slot) int {
 	var ord [MaxPerm]Slot
-	m := s.battlefieldOrder(p&1, s.ctrlM[p&1].and(s.occ), ord[:], 0)
+	m := s.battlefieldOrder(p&1, s.ctrlM[SeatIx(p)].and(s.occ), ord[:], 0)
 	n, best := 0, 0
 	for _, sl := range ord[:m] {
 		if !s.isCreature(k, sl) {

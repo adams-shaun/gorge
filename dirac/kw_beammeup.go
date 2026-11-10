@@ -44,7 +44,7 @@ func (s *State) beamGrantor(k *prep, p uint8) (sl Slot, n int) {
 		return NoSlot, 0
 	}
 	sl = NoSlot
-	for m := s.statM.and(s.ctrlM[p&1]); m.any(); m = m.rest() {
+	for m := s.statM.and(s.ctrlM[SeatIx(p)]); m.any(); m = m.rest() {
 		src := m.first()
 		if !s.ovrLoses(k, src) && s.hasBeamGrant(k, src) {
 			if n == 0 {

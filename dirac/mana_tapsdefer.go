@@ -94,7 +94,7 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 		return slotMask{}
 	}
 	var m slotMask
-	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
 		if !s.planDeferred(k, p, sl) {
 			continue

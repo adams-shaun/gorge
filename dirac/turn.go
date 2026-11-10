@@ -19,8 +19,8 @@ func (s *State) beginTurn(p uint8) {
 	if s.pmOn != 0 {
 		s.persistTurn() // the PersistentMana$ tally ends with the turn, its units with the cleanup-to-untap boundary (mana_persistent.go)
 	}
-	if s.k().anyYourTurns && s.g.yourTurns[p&1] < 255 {
-		s.g.yourTurns[p&1]++ // ExYourTurns: this turn is begun with p active
+	if s.k().anyYourTurns && s.g.yourTurns[SeatIx(p)] < 255 {
+		s.g.yourTurns[SeatIx(p)]++ // ExYourTurns: this turn is begun with p active
 	}
 	if s.k().anyRedNC {
 		s.g.redNC = [MaxSeats]uint8{} // ExRedNCDmg: a fresh turn's tally

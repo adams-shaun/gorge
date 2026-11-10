@@ -97,7 +97,7 @@ func (s *State) buildEvidenceN(k *prep) uint8 {
 
 // graveTotalMV is the total mana value of player p's graveyard.
 func (s *State) graveTotalMV(k *prep, p uint8) int {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	tot := 0
 	for i := 0; i < int(pl.graveN); i++ {
 		tot += s.graveMV(k, pl.grave[i])
@@ -107,7 +107,7 @@ func (s *State) graveTotalMV(k *prep, p uint8) int {
 
 // evSelTotal is the total mana value of player p's picked graveyard cards.
 func (s *State) evSelTotal(k *prep, p uint8) int {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	tot := 0
 	for i := 0; i < int(pl.graveN); i++ {
 		if s.g.evSel&(1<<i) != 0 {
@@ -121,7 +121,7 @@ func (s *State) evSelTotal(k *prep, p uint8) int {
 // mana value reaches need, the highest values first (gorge
 // pay.EvidenceGreedyMin; only the count matters, the tie order does not).
 func (s *State) evidenceGreedyMin(k *prep, p uint8, need int) int {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	var mv [MaxDeck]uint8
 	n := int(pl.graveN)
 	for i := 0; i < n; i++ {
@@ -151,7 +151,7 @@ func (s *State) evidenceGreedyMin(k *prep, p uint8, need int) int {
 // card, and Done once the picked total reaches need.
 func (s *State) evidenceOptions(k *prep, d *Decision, p uint8, need int) {
 	d.Kind, d.Sub, d.Player = DkChoose, ChCostEvidence, p
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	ex := s.evExcl(p)
 	for i := 0; i < int(pl.graveN); i++ {
 		if s.g.evSel&(1<<i) == 0 && i != ex {
@@ -166,7 +166,7 @@ func (s *State) evidenceOptions(k *prep, d *Decision, p uint8, need int) {
 // evidencePick takes one pick of player p's graveyard; it reports whether
 // every card is now picked (the answer is complete without a Done).
 func (s *State) evidencePick(p uint8, a Action) bool {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	o := Obj(a.Source())
 	for i := 0; i < int(pl.graveN); i++ {
 		if pl.grave[i] == o {
@@ -181,7 +181,7 @@ func (s *State) evidencePick(p uint8, a Action) bool {
 // evidenceSelectAll selects player p's whole graveyard in gorge's option
 // order for evidence (pay.EvidenceOrder): mana value descending, then object.
 func (s *State) evidenceSelectAll(k *prep, p uint8) {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	picks := s.evPicks()
 	ex, c := s.evExcl(p), 0
 	for i := 0; i < int(pl.graveN); i++ {

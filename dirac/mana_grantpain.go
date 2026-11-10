@@ -72,7 +72,7 @@ func (s *State) painAskOrder(k *prep, p uint8, sl Slot, pc *pcard, need [kop.Num
 		}
 	}
 	add(&c.Abilities[pc.manaAb], false)
-	if !pc.painLife || int(s.pl[p&1].life) >= int(pc.painN) {
+	if !pc.painLife || int(s.pl[SeatIx(p)].life) >= int(pc.painN) {
 		add(painAbility(c), true)
 	}
 	var first, rest [2 * kop.NumManaKinds]painOpt
@@ -108,7 +108,7 @@ func (g *grantSrch) painBranch(t *State, i int, sl Slot, pc *pcard, ask bool) bo
 	for _, o := range opts[:no] {
 		u := t.fork()
 		u.perms[sl].flags |= pfTapped
-		u.pl[g.p&1].pool[o.col] += n
+		u.pl[SeatIx(g.p)].pool[o.col] += n
 		u.artTag(g.k, g.p, sl, int(o.col))
 		xv := u.srcExtraPick(g.k, sl, xpc, int(o.col))
 		u.addXv(g.p&1, &xv)

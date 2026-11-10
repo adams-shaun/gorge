@@ -56,7 +56,7 @@ func (s *State) harmonizeCredit(k *prep, p uint8, cost kop.ManaCost) kop.ManaCos
 		return cost
 	}
 	var ord [MaxPerm]Slot
-	n := s.battlefieldOrder(p&1, s.ctrlM[p&1].and(s.occ), ord[:], 0)
+	n := s.battlefieldOrder(p&1, s.ctrlM[SeatIx(p)].and(s.occ), ord[:], 0)
 	best := 0
 	for _, sl := range ord[:n] {
 		if !s.tapPayCand(k, sl, false) {

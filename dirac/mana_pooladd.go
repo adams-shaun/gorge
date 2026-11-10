@@ -9,10 +9,10 @@ func (s *State) poolAdd(p uint8, col, n int) {
 	if n <= 0 {
 		return
 	}
-	t := int(s.pl[p&1].pool[col]) + n
+	t := int(s.pl[SeatIx(p)].pool[col]) + n
 	if t > 255 {
 		t = 255
 		s.capFull(StallDynMana)
 	}
-	s.pl[p&1].pool[col] = uint8(t)
+	s.pl[SeatIx(p)].pool[col] = uint8(t)
 }

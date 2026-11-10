@@ -16,7 +16,7 @@ var DebugDiscardedNoTurnReset bool
 //
 //go:noinline
 func (s *State) noteDisc(o Obj) {
-	pl := &s.pl[s.objs[o].owner()&1]
+	pl := &s.pl[SeatIx(s.objs[o].owner())]
 	if pl.disc < 255 {
 		pl.disc++
 	}
@@ -26,5 +26,5 @@ func (s *State) noteDisc(o Obj) {
 //
 //go:noinline
 func (s *State) discardedThisTurn(ctx evalCtx) int {
-	return int(s.pl[ctx.ctrl&1].disc)
+	return int(s.pl[SeatIx(ctx.ctrl)].disc)
 }
