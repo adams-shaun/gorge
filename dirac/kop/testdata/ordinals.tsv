@@ -1151,6 +1151,7 @@ StatReduceCost	StaticKind	2
 StatStackKw	StaticKind	251
 StatTapExtra	StaticKind	254
 StatUntapOther	StaticKind	246
+StatWarpGrant	StaticKind	240
 StepAttackers	Step	5
 StepBeginCombat	Step	4
 StepBlockers	Step	6

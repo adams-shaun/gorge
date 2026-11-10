@@ -1712,6 +1712,14 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, err
 			}
 		}
+	case "WarpGrant":
+		st.Kind = kop.StatWarpGrant // kw_warpgrant.go
+		if st.Filter, err = filter(s.F, kop.ZoneHand); err != nil {
+			return ka, nil, err
+		}
+		if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
+			return ka, nil, err
+		}
 	case "TapExtra":
 		st.Kind = kop.StatTapExtra
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {

@@ -479,6 +479,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 		if s.Kind == "FbGrant" && len(s.Flags) != 0 {
 			fmt.Fprintf(w, " fbcost=%s", s.Cost.Mana)
 		}
+		if s.Kind == "WarpGrant" {
+			fmt.Fprintf(w, " warpcost=%s", s.Cost.Mana)
+		}
 		if s.Override != nil {
 			fmt.Fprintf(w, " %s", overrideString(s.Override))
 		}

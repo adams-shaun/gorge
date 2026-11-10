@@ -97,7 +97,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			s.availFor(k, p, &av)
 			haveAv = true
 		}
-		if k.gen != nil && k.gen.anyWarp && k.t.Cards[c].HasWarp {
+		if k.gen != nil && k.gen.anyWarp && (k.t.Cards[c].HasWarp || k.gen.anyWarpGrant) {
 			// before the plain affordability gate: a warp cast is offered
 			// even when the mana cost is not payable (CR 702.185a)
 			s.offerWarpHand(k, d, p, o, c, &av) // kw_warp.go
@@ -1657,6 +1657,12 @@ func (s *State) applyPriority(k *prep, a Action) {
 		}
 		if a.Target() == castAltTgt && a.Mode() == 0 && k.gen != nil && k.gen.altFree != nil {
 			s.g.altCast = true // the card's own mana alternative cost (cast_altfree.go)
+		}
+		if a.Mode()&castWarp != 0 && a.Mode() != castAirbend && k.gen != nil && k.gen.anyWarpGrant {
+			// the warp instance the action names (kw_warpgrant.go): a grant's
+			// marks the entry for the cost builder
+			wi := s.warpInstances(k, s.prio, Obj(a.Source()))
+			s.g.warpGrant = a.Target() < wi.n && wi.grant[a.Target()]
 		}
 		if a.Mode() == 2 && k.gen != nil && k.gen.anyBeam {
 			s.noteBeamCast(k, a) // kw_beammeup.go

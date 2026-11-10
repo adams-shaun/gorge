@@ -65,7 +65,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		}
 		if mode&castWarp != 0 {
 			e.mode |= modeWarped
+			if s.g.warpGrant {
+				e.trigPl = trigPlWarpG // the grant's warp instance (kw_warpgrant.go)
+			}
 		}
+		s.g.warpGrant = false
 		if mode&castWarpRecast != 0 {
 			e.mode |= modeWarpRecast
 		}
@@ -551,7 +555,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		} else if e.flags&sfFlashback != 0 && k.gen != nil && k.gen.anyFbGrant && !cd.BeamMeUp {
 			c = s.fbGrantCost(k, e.ctrl, e.obj, s.bld().fbGrants != 0) // or a live grant's own cost (kw_fbgrant.go)
 		}
-		if e.mode&modeWarped != 0 && cd.HasWarp {
+		if e.mode&modeWarped != 0 && e.trigPl == trigPlWarpG {
+			c = s.warpGrantCost(k, e) // a battlefield grant's warp cost (kw_warpgrant.go)
+		} else if e.mode&modeWarped != 0 && cd.HasWarp {
 			c = cd.WarpCost // the hand's warp cost (CR 702.185a)
 		}
 		if cd.Impending > 0 && e.impended() {

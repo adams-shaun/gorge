@@ -338,6 +338,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-spm", "unless_addcounter_cheering_crowd", full},                           // Cheering Crowd's each-player first-main trigger pays its unless +1/+1 counter, and the body's mana follows the counter
 		{"std-mkm", "unless_addcounter_sanctuary_wall", full},                           // Sanctuary Wall's tap ability pays the stun counter on its target, and the body puts the second stun counter on the Wall
 		{"custom", "counted_proliferate_planeswalker_types", full},                      // Tam, the Possibility proliferates once per planeswalker type among its controller's planeswalkers (two Ajanis count once, CR 205.3j) and Tromell, Seymour's Butler once per nontoken creature that entered under you this turn: each a fresh proliferate ask, none at zero (CR 701.34a)
+		{"custom", "tannuk_steadfast_second_hand_warp_grant", full},                     // Tannuk, Steadfast Second on the battlefield: an artifact or red creature card in hand is warp-cast at {2}{R}, exiled at the next end step and recast from exile on a later turn, the grant read live (CR 702.185a)
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {

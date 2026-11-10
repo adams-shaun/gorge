@@ -71,7 +71,8 @@ type Static struct {
 	OvGate uint8
 	// GrantCost: a StatFbGrant's own flashback cost when StFbOwnCost is set
 	// (AddKeyword$ Flashback:1, Iroh, Grand Lotus's Lessons); otherwise the
-	// grant costs each card's mana cost.
+	// grant costs each card's mana cost. A StatWarpGrant's warp cost
+	// (AddKeyword$ Warp:2 R, Tannuk, Steadfast Second).
 	GrantCost ManaCost
 }
 
@@ -515,6 +516,13 @@ const StatAnyTypeCreatures StaticKind = 239
 // cost is the card's mana cost, or GrantCost under StFbOwnCost (gorge
 // flashbackCost). Explicit ordinal: the StaticKind iota tail stays untouched.
 const StatFbGrant StaticKind = 242
+
+// StatWarpGrant: each card in its controller's hand matching Filter has warp
+// at Static.GrantCost (a Continuous static's AffectedZone$ Hand AddKeyword$
+// Warp; CR 702.185a; Tannuk, Steadfast Second). Read live from the
+// battlefield at the hand offer and the cost builder, never stamped on the
+// card. Explicit ordinal: the StaticKind iota tail stays untouched.
+const StatWarpGrant StaticKind = 240
 
 // StFbOwnCost on a StatFbGrant static: the flashback costs Static.GrantCost,
 // not the card's mana cost.

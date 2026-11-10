@@ -1713,6 +1713,9 @@ func (s *State) altPlayCost(k *prep, p uint8, a Action) (kop.ManaCost, bool) {
 	case m == castAirbend:
 		return s.airbendCost(k, p, c, o), true
 	case m&castWarp != 0:
+		if wi := s.warpInstances(k, p, o); a.Target() < wi.n {
+			return s.adjustCost(k, p, c, o, wi.cost[a.Target()]), true // the action's warp instance (kw_warpgrant.go)
+		}
 		return s.adjustCost(k, p, c, o, cd.WarpCost), true
 	case m&castFree != 0:
 		return kop.ManaCost{}, true
