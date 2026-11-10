@@ -103,8 +103,8 @@ func TestItlimocDynPairMutation(t *testing.T) {
 		return
 	}
 	dirac.SetDebugGatedPair(2)
+	defer dirac.SetDebugGatedPair(0)
 	div := lockstepRunPolicy(t, "dynpair", dynPairDecks(), 120, false, nil, nil, castFirstPolicy)
-	dirac.SetDebugGatedPair(0)
 	if div == 0 {
 		t.Error("mutation 2 did not diverge")
 	}

@@ -68,3 +68,53 @@ func TestDynPairUnit(t *testing.T) {
 		}
 	}
 }
+
+// TestDynPairPotentialOpen: gorge's potentialAmount reads Itlimoc's second
+// ability (Amount$ X, X a Count$) as indeterminate, so an untapped Itlimoc
+// makes the potential pool unbounded in every colour, one it cannot make
+// included (Mountain's R here). The kernel's potential walk must open the
+// same way at any creature count, including 0 and 1 where the view is the
+// plain {G}; without Itlimoc the same board is bounded.
+func TestDynPairPotentialOpen(t *testing.T) {
+	set := cardsettest.Set(t, "dynpair")
+	tbl, err := set.Pool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := map[string]CardID{}
+	for c := range tbl.Cards {
+		id[tbl.Cards[c].Name] = CardID(c)
+	}
+	const back = "face:Growing Rites of Itlimoc#1"
+	// units of colour bit in the potential avail
+	units := func(a *avail, bit uint8) int {
+		n := 0
+		for i := 0; i < a.n; i++ {
+			if a.mask[i]&bit != 0 {
+				n += int(a.cnt[i])
+			}
+		}
+		return n
+	}
+	for _, withItlimoc := range []bool{false, true} {
+		for _, creatures := range []int{0, 1, 3} {
+			sc := newScenTableLib(t, tbl, id["Forest"], Config{})
+			if withItlimoc {
+				sc.perm(id[back], 0)
+			}
+			sc.perm(id["Island"], 0)
+			for i := 0; i < creatures; i++ {
+				sc.perm(id["Grizzly Bears"], 0)
+			}
+			var pot avail
+			sc.s.availPotential(sc.k, 0, &pot)
+			red := units(&pot, 1<<kop.R)
+			switch {
+			case withItlimoc && red < potentialOpenUnits:
+				t.Errorf("%d creatures, Itlimoc untapped: {R} potential %d units, want open (%d)", creatures, red, potentialOpenUnits)
+			case !withItlimoc && red != 0:
+				t.Errorf("%d creatures, no Itlimoc: {R} potential %d units, want 0 (the board is bounded)", creatures, red)
+			}
+		}
+	}
+}
