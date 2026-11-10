@@ -284,7 +284,7 @@ func (c *czallCarry) shuffleEach(s *State) {
 		f = 1
 	}
 	s.shuffleLib(f)
-	s.shuffleLib(1 - f)
+	s.shuffleLib(NextSeat(f))
 }
 
 // czallPlace puts os on top of their owners' libraries in move order. When
