@@ -8,7 +8,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 
 | list | cards | lowered | refused | unverified | supported |
 |---|---:|---:|---:|---:|---:|
-| BIG | 30 | 24 | 1 | 2 | 21 |
+| BIG | 30 | 25 | 1 | 3 | 21 |
 | BLB | 278 | 260 | 3 | 5 | 252 |
 | DFT | 276 | 252 | 0 | 6 | 246 |
 | DSK | 276 | 245 | 4 | 24 | 217 |
@@ -30,7 +30,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 292 | 0 | 26 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 257 | 0 | 11 | 246 |
-| ALL | 34442 | 21982 | 25 | 16868 | 5089 |
+| ALL | 34442 | 21984 | 25 | 16870 | 5089 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
