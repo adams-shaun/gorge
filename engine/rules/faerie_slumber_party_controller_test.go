@@ -20,8 +20,8 @@ func TestFaerieSlumberPartyCountsLastControllers(t *testing.T) {
 		name string
 		// steal moves control of a named bear to a seat before casting.
 		stealRuneclawToCaster, giveGrizzlyToOpp bool
-		oppBoard                                 []string
-		want                                     int
+		oppBoard                                []string
+		want                                    int
 	}{
 		{"each seat controls its own bear", false, false, []string{"Runeclaw Bear"}, 2},
 		{"opponent controlled the caster's bear", true, true, []string{"Runeclaw Bear"}, 2},
