@@ -485,7 +485,16 @@ func (e *Engine) entryBodyCounterGrants(ev events.Event, entrant state.ObjID) ([
 		grants = append(grants, entryGrant{kind: kind, amount: n, body: body})
 	}
 	absorb = func(m replMatch) {
-		if e.replacementMatches(*m.repl, m.id, matchEv) {
+		matched := false
+		if m.svars != nil {
+			// A clone template's line: its CheckSVar$ gate reads the
+			// TEMPLATE face's table (CR 707.2), not the entrant's own.
+			matched = e.activeZonesGateOK(*m.repl, m.id, matchEv) &&
+				e.replacementMatchesGranted(*m.repl, m.id, matchEv, m.svars)
+		} else {
+			matched = e.replacementMatches(*m.repl, m.id, matchEv)
+		}
+		if matched {
 			absorbMatched(m, false)
 		}
 	}
@@ -502,9 +511,13 @@ func (e *Engine) entryBodyCounterGrants(ev events.Event, entrant state.ObjID) ([
 	// printed enters-with-counters lines (they are not on the entering face).
 	if ev.Kind == events.MoveZone {
 		if tf := entryCloneTemplateFace(e, entrant, f, matchEv); tf != nil {
+			tsv := tf.SVars
+			if tsv == nil {
+				tsv = map[string]string{}
+			}
 			for i := range tf.Repls {
 				if entryCounterBody(&tf.Repls[i]) {
-					absorb(replMatch{id: entrant, face: tf, repl: &tf.Repls[i]})
+					absorb(replMatch{id: entrant, face: tf, repl: &tf.Repls[i], svars: tsv})
 				}
 			}
 		}
