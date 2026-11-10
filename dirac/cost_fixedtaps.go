@@ -160,3 +160,38 @@ func (s *State) altAddOneCast(k *prep, a Action) bool {
 	cd := &k.t.Cards[o.card]
 	return cd.AltAddOne && !cd.HasAltAdd && o.zone == kop.ZoneHand && cd.Cost.X == 0 && cd.Cost.Hyb[0] == 0
 }
+
+// tapForSpellTaps is tapForRider for a plain cast of a spellFixedTapsOnly card
+// when the printed plan taps too many of the candidates its additional cost
+// needs: gorge's witness is planReserving's, the first assignment of N candidates
+// (battlefield order, up to planReservationLimit) held back from the mana that
+// has a plan. Forest and Island kept apart from Forest, Island and Haunted Screen
+// leave Fear of Exposure's two permanents to tap (CR 601.2g-h). It reports false
+// when the plain plan leaves the candidates, or no assignment has a plan, and
+// taps nothing then.
+func (s *State) tapForSpellTaps(k *prep, p uint8, cost *kop.ManaCost, x int, excl Obj, anyColor bool) bool {
+	e := &s.bld().e
+	if e.kind != seSpell || e.mode != 0 || e.flags&(sfKicked|sfFlashback|sfMayPlay) != 0 || s.bld().altAdd != 0 || anyColor || x != 0 || !spellFixedTapsOnly(k, e.card) {
+		return false
+	}
+	part := spellAddCost(k, e.card)
+	var pk planner
+	pk.dry = true
+	s.tapForPK(k, p, cost, x, excl, false, anyColor, &pk)
+	if !pk.found {
+		return false
+	}
+	cands, nc := s.tapCandsByEntry(k, p, part.Filter, NoSlot, NoSlot)
+	n := int(part.N)
+	if pk.unplannedCount(&cands, nc) >= n || n > nc {
+		return false
+	}
+	held, _, ok := s.firstHeldPlan(k, p, cost, x, excl, anyColor, &cands, nc, n)
+	if !ok {
+		return false
+	}
+	s.holdSlots(held, true)
+	s.tapForRider(k, p, cost, x, excl, anyColor)
+	s.holdSlots(held, false)
+	return true
+}

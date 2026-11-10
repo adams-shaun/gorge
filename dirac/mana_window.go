@@ -1140,7 +1140,7 @@ func (s *State) addRestrChV(k *prep, p uint8, f kop.FilterID, v, ch uint8, col i
 // poolProj is p's pool as gorge's Players[p].Pool holds it: the
 // restricted mana counted with its colour.
 func (s *State) poolProj(p uint8) [kop.NumManaKinds]uint8 {
-	m := s.pl[p&1].pool
+	m := s.pl[SeatIx(p)].pool
 	s.rbUnits(p, s.rbAll(p), &m)
 	return m
 }
@@ -2240,17 +2240,14 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		s.lowerXEats(k, p, &cost, x, excl, anyColor)
 		return
 	}
-	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 {
-		s.tapForRider(k, p, &cost, x, excl, anyColor)
+	untapped := s.untappedRestrSrcs(k, p)
+	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 && !s.anyRestrEach(k, untapped) {
+		if !s.tapForSpellTaps(k, p, &cost, x, excl, anyColor) {
+			s.tapForRider(k, p, &cost, x, excl, anyColor)
+		}
 		return
 	}
 	pool := s.pl[p].pool
-	var untapped slotMask
-	for m := s.ctrlM[p].and(s.occ); m.any(); m = m.rest() {
-		if sl := m.first(); s.perms[sl].flags&pfTapped == 0 && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
-			untapped = untapped.or(slotBit(sl))
-		}
-	}
 	var pk planner
 	s.tapForPK(k, p, &cost, x, excl, false, anyColor, &pk)
 	s.witnessManaRestricted(k, p, &pool, untapped, &pk)
@@ -2384,6 +2381,10 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 			continue
 		}
 		col := tcol
+		if ab.ManaEach {
+			s.witnessEachRestricted(k, p, pool, sl, ab, n)
+			continue
+		}
 		if uint8(ab.ManaColors)&(1<<col) != 0 && s.pl[p].pool[col] >= pool[col]+n {
 			s.pl[p].pool[col] -= n
 			if !s.floatRestrAb(k, p, sl, ab, col, n) {
@@ -2821,7 +2822,12 @@ func (s *State) manaStep(k *prep) bool {
 			// runs here, at the mana stage, so a tap-another source's pick
 			// is posed instead of walked over.
 			c := xFolded(cost, int(e.x))
-			noOwed := s.bld().altAdd == 1 && s.bld().pipN == 0 && s.altAddFreePart(k, e.ctrl, e.card, e.obj)
+			// The plan was armed for the first payable part (planCastAltAdd): the free
+			// one when it can be paid, else the mana part. A chosen part other than the
+			// armed one changes the cost (the {2} chosen beside a payable behold, or the
+			// behold chosen when only the {2} was payable), so the plan falls back to a
+			// window with no ManaPayment (CR 601.2g).
+			noOwed := s.bld().pipN == 0 && (s.bld().altAdd == 1) == s.altAddFreePart(k, e.ctrl, e.card, e.obj)
 			ok, _ := s.windowTapUseful(k, e.ctrl, &c, &c, true, anyColor, noOwed, false)
 			if !s.winPaused() {
 				if !ok || s.bld().altAdd == 0 {
@@ -2848,8 +2854,17 @@ func (s *State) manaStep(k *prep) bool {
 			// gorge's plan does.
 			if cd.BeholdN == 0 || s.altAddFreePart(k, e.ctrl, e.card, e.obj) {
 				c := xFolded(cost, int(e.x))
-				s.windowTapRider(k, e.ctrl, &c, true, anyColor)
+				// a behold carrier's fallback window has no ManaPayment: a source answers
+				// its lowest colour, not the owed pip (windowCol)
+				s.windowTapUseful(k, e.ctrl, &c, &c, true, anyColor, cd.BeholdN != 0 && s.bld().pipN == 0, false)
 			} else {
+				if s.rbAny(e.ctrl) {
+					// the plan taps only for what the admitted restricted mana
+					// leaves (pay.PlanPool), as the plain branch below does
+					if m := s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)); m != 0 {
+						cost = s.restrShortAdm(e.ctrl, m, cost)
+					}
+				}
 				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 			}
 		} else {

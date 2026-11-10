@@ -299,7 +299,16 @@ func (e *Engine) planCastAltAdd(statics costStaticViews, p state.PlayerID, cast 
 		// list nor the planner carried the cast). NonManaCastable above is the
 		// free part's own payability gate; the parts with mana still take the
 		// offer gate. CR 601.2b/h.
-		if got.Plan != nil && got.Reason == "" && (nonMana || e.potentialWitnessOffers(p, opt, *got.Plan)) {
+		//
+		// A relaxed proof run (PotentialPaymentPlans' unpayability proof) reads
+		// only whether the part is payable with its uncovered sources taken as
+		// free units, and its plans are never executed: a relaxed unit produces
+		// nothing in the plan's activations, so the offer gate below would
+		// price the witness short of mana the unit stands for and the proof
+		// would call a Springleaf Drum-funded cast unpayable, never searching
+		// the prefix that pays it. The gate is skipped there as the single-cost
+		// arm's is (potentialModeCastPlan).
+		if got.Plan != nil && got.Reason == "" && (nonMana || len(e.PaymentPlanRelaxed) != 0 || e.potentialWitnessOffers(p, opt, *got.Plan)) {
 			return got
 		}
 	}

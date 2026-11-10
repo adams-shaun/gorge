@@ -160,16 +160,8 @@ func (s *State) costPartDisjointD(k *prep, p uint8, sl Slot, c *kop.Cost, mana *
 		if r.affords(mana, pm, 0) {
 			return true
 		}
-		i := need - 1
-		for i >= 0 && int(idx[i]) == nc-need+i {
-			i--
-		}
-		if i < 0 {
+		if !nextCombination(&idx, need, nc) {
 			return false
-		}
-		idx[i]++
-		for j := i + 1; j < need; j++ {
-			idx[j] = idx[j-1] + 1
 		}
 	}
 	return false

@@ -1,7 +1,5 @@
 # family	file	count: raw two-seat sites in package dirac; shrink only (TestSeatArithmeticOnlyShrinks)
 and1	act_bolster.go	1
-and1	act_energy.go	1
-and1	act_initiative.go	1
 and1	act_peekreveal.go	2
 and1	cast.go	2
 and1	cast_xreduced.go	1
@@ -14,7 +12,7 @@ and1	cost_return.go	2
 and1	cost_unlessbehold.go	2
 and1	cost_unlesswaterbend.go	2
 and1	face_turnfaceup.go	4
-and1	featview.go	10
+and1	featview.go	9
 and1	filter_combatwords.go	3
 and1	filter_valueheads.go	1
 and1	interp_ask.go	4
@@ -22,7 +20,6 @@ and1	kw_beammeup.go	1
 and1	kw_convoke.go	1
 and1	kw_delve.go	3
 and1	kw_harmonize.go	1
-and1	kw_infect.go	1
 and1	kw_phasing.go	1
 and1	kw_sneak.go	3
 and1	kw_spree.go	1
@@ -48,14 +45,14 @@ and1	mana_persistent.go	2
 and1	mana_pooladd.go	2
 and1	mana_reflected.go	7
 and1	mana_resolverestriction.go	1
-and1	mana_restrbatch.go	27
+and1	mana_restrbatch.go	21
 and1	mana_restrictedsource.go	5
 and1	mana_specialaction.go	5
 and1	mana_spendtrigger.go	2
 and1	mana_tapanother.go	6
 and1	mana_tapsdefer.go	1
-and1	mana_window.go	10
-and1	marks.go	6
+and1	mana_window.go	9
+and1	marks.go	5
 and1	script_gen.go	7
 and1	searchapi.go	1
 and1	targets_gen.go	4
@@ -70,7 +67,6 @@ and1	value_exprs.go	4
 and1	value_sacrificedthisturn.go	2
 and1	value_scrytally.go	1
 and1	zone_changezoneall.go	1
-and1	zone_cmdfeat.go	5
 and1	zone_sweeptolibrary.go	3
 and1	zone_untilleaves.go	1
 and1	zone_viewfacts.go	2
@@ -185,7 +181,6 @@ seatloop2	kw_saga.go	2
 seatloop2	legal.go	1
 seatloop2	legal_gen.go	1
 seatloop2	marks.go	2
-seatloop2	project.go	2
 seatloop2	repl_ctrorder.go	1
 seatloop2	repl_entryorder.go	1
 seatloop2	repl_exilemark.go	1

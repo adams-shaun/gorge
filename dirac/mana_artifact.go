@@ -43,6 +43,33 @@ var DebugRestrTypedFirst bool
 func (s *State) artTag(k *prep, p uint8, sl Slot, col int) {
 	if k.artMana && k.cards[s.cardAt(sl)].manaTyped {
 		s.g.poolArt[p&1] |= 1 << col
+		if k.cards[s.cardAt(sl)].castSrc&csTreasure != 0 {
+			if n := &s.g.poolTre[SeatIx(p)][col]; *n < 255 {
+				*n++
+			}
+		}
+	}
+}
+
+// treSync is the Treasure half of artSync. gorge spends a plain unit of a
+// colour before a Treasure's (pay.takeUnit), so after any spend the Treasure
+// units still floating in a slot are the fewest the slot's remaining units
+// can hold: min(tallied, left). Each one that went was spent, and when a spell
+// is being built that is the cast's Treasure-spend bit (bflTre, CR 601.2h).
+// The bit follows the spend, not the tap: a Treasure tapped (or sacrificed at
+// priority) whose mana still floats when the cast is paid did not pay for it.
+func (s *State) treSync(p uint8) {
+	t := &s.g.poolTre[SeatIx(p)]
+	for c := range t {
+		if t[c] == 0 {
+			continue
+		}
+		if left := min(t[c], s.pl[SeatIx(p)].pool[c]); left < t[c] {
+			t[c] = left
+			if s.buildLive() && s.bld().e.kind == seSpell {
+				s.bld().bfl |= bflTre
+			}
+		}
 	}
 }
 
@@ -58,6 +85,7 @@ func (s *State) artSync(p uint8) {
 		}
 	}
 	s.g.poolArt[p&1] = a
+	s.treSync(p)
 	if s.pl[p&1].pool[kop.R] == 0 {
 		s.g.defSrc[p&1] = 0 // the deferred source's {R} is spent (mana_deferred.go)
 	}
