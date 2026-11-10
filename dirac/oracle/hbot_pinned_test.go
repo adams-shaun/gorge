@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -24,13 +25,13 @@ import (
 //
 // Each call plays the games stored for the calling test (testdata/pins/<test
 // name>.<n>.json, as pinnedGames names them), requires each game to satisfy every
-// condition in reached at some decision, and hands each game's result to check. A
+// condition in reached at some decision, and fails on each disagreement wrong names. A
 // game that no longer reaches a condition fails, and the games are recorded again with
 //
 //	PINS_RECORD=1 go test -count=1 -run '^TestName$' ./dirac/oracle
 //
 // which keeps the recorded games that still satisfy every condition, then scans the
-// synthetic pool's pairs (dealt with scanSeed) for others that do, up to hbotPinGames.
+// synthetic pool's pairs (dealt with the run's ScanSeed) for others that do, up to hbotPinGames.
 const hbotPinGames = 2
 
 // hbotPinDecisions bounds each pinned hbot game, as the pair runs did.
@@ -89,15 +90,70 @@ func decidesWith(name string) hbotCond {
 	}
 }
 
-// pinnedHBotGames plays this call's recorded hbot games of pool on cfg, requiring
-// each to satisfy every condition in reached, and passes each to check.
-func pinnedHBotGames(t *testing.T, pool string, scanSeed uint64, cfg Config, check func(what string, res HBotParityResult), reached ...hbotCond) {
+// inHand is the condition that the deciding player holds a card of one of the names.
+func inHand(names ...string) hbotCond {
+	return func(c *PickCtx, _ []Canon) bool {
+		g := c.G.E.G
+		d := c.G.E.Pending()
+		if d == nil {
+			return false
+		}
+		for _, id := range g.Zone(state.ZHand, d.Player) {
+			if o := g.Obj(id); o != nil && o.Face() != nil && slices.Contains(names, o.Face().Name) {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+// casts is the condition that gorge's bot answers by casting a card named name.
+func casts(name string) hbotCond {
+	return func(c *PickCtx, gorge []Canon) bool {
+		if len(gorge) == 0 || gorge[0].Kind() != ActCast {
+			return false
+		}
+		g := c.G.E.G
+		for p := range g.Players {
+			for _, z := range []state.Zone{state.ZHand, state.ZGraveyard, state.ZExile, state.ZLibrary} {
+				for _, id := range g.Zone(z, state.PlayerID(p)) {
+					if c.G.InstRef(id) != gorge[0].Src() {
+						continue
+					}
+					if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	}
+}
+
+// hbotPinRun is how a pinned hbot game is played: the synthetic pool, the set its
+// matchups are built from (nil: the pool's supported set), whether the kernel bot's
+// facts read that set (else the FDN set's, as HBotFacts), and the seed the record
+// scan deals the pool's pairs with.
+type hbotPinRun struct {
+	Pool         string
+	Set          cardset.Set
+	FactsFromSet bool
+	ScanSeed     uint64
+}
+
+// pinnedHBotGames plays this call's recorded hbot games of run on cfg, requiring
+// each to satisfy every condition in reached, and fails on each disagreement wrong
+// names in a game's records. The record scan keeps only games wrong names none in,
+// as pinnedGames keeps only games that play clean.
+func pinnedHBotGames(t *testing.T, run hbotPinRun, cfg Config, wrong func(ParityRec) bool, reached ...hbotCond) {
 	t.Helper()
 	path := pinPath(t)
 	reg := synthReg(t)
-	set := cardsettest.Synth(t, pool)
+	if run.Set == nil {
+		run.Set = cardsettest.Synth(t, run.Pool)
+	}
 	if os.Getenv("PINS_RECORD") == "1" {
-		if err := recordHBotPins(t, path, pool, scanSeed, reg, set, cfg, reached); err != nil {
+		if err := recordHBotPins(t, path, run, reg, cfg, wrong, reached); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -111,7 +167,7 @@ func pinnedHBotGames(t *testing.T, pool string, scanSeed uint64, cfg Config, che
 	}
 	for i, g := range games {
 		what := fmt.Sprintf("%s game %d (%s v %s seed %d)", path, i, g.Decks[0].Name, g.Decks[1].Name, g.Seed)
-		res, hit, err := playHBotPin(reg, set, g, cfg, reached)
+		res, hit, err := playHBotPin(reg, run, g, cfg, reached)
 		if err != nil {
 			t.Fatalf("%s: %v", what, err)
 		}
@@ -120,14 +176,18 @@ func pinnedHBotGames(t *testing.T, pool string, scanSeed uint64, cfg Config, che
 				t.Errorf("%s never satisfies condition %d of %d: record the games again (PINS_RECORD=1)", what, j+1, len(reached))
 			}
 		}
-		check(what, res)
+		for _, r := range res.Recs {
+			if wrong(r) {
+				t.Errorf("%s: %s", what, r.Where)
+			}
+		}
 	}
 }
 
 // playHBotPin plays the recorded game g with gorge's heuristic bot and the kernel's
 // hbot port compared at every decision.
 // It reports which of the conditions in reached the game reached.
-func playHBotPin(reg *cards.Registry, set cardset.Set, g hbotPin, cfg Config, reached []hbotCond) (HBotParityResult, []bool, error) {
+func playHBotPin(reg *cards.Registry, run hbotPinRun, g hbotPin, cfg Config, reached []hbotCond) (HBotParityResult, []bool, error) {
 	if g.Decks[0].Name == g.Decks[1].Name {
 		return HBotParityResult{}, nil, fmt.Errorf("both decks are named %s", g.Decks[0].Name)
 	}
@@ -141,18 +201,23 @@ func playHBotPin(reg *cards.Registry, set cardset.Set, g hbotPin, cfg Config, re
 	}
 	c := &Corpus{Reg: reg, decks: map[string][]*cards.Card{}}
 	c.AddDecks(map[string]deck.File{g.Decks[0].Name: g.Decks[0], g.Decks[1].Name: g.Decks[1]})
-	mk := func(tbl *kop.Table) KernelBot { return hbot.New(HBotFacts(reg, tbl, nil)) }
-	res, err := HBotParityGameOpts(c, g.Decks[0].Name, g.Decks[1].Name, g.Seed, cfg, hbotPinDecisions, mk, HBotParityOptions{Set: set, Observe: observe})
+	mk := func(tbl *kop.Table) KernelBot {
+		if run.FactsFromSet {
+			return hbot.New(HBotFactsSet(reg, tbl, nil, run.Set))
+		}
+		return hbot.New(HBotFacts(reg, tbl, nil))
+	}
+	res, err := HBotParityGameOpts(c, g.Decks[0].Name, g.Decks[1].Name, g.Seed, cfg, hbotPinDecisions, mk, HBotParityOptions{Set: run.Set, Observe: observe})
 	return res, hit, err
 }
 
 // recordHBotPins writes to path the games already there that still satisfy every
-// condition, then those of the synthetic pool's pairs that do, up to hbotPinGames.
-func recordHBotPins(t *testing.T, path, pool string, scanSeed uint64, reg *cards.Registry, set cardset.Set, cfg Config, reached []hbotCond) error {
+// condition with nothing wrong, then those of the synthetic pool's pairs that do, up to hbotPinGames.
+func recordHBotPins(t *testing.T, path string, run hbotPinRun, reg *cards.Registry, cfg Config, wrong func(ParityRec) bool, reached []hbotCond) error {
 	t.Helper()
 	ok := func(g hbotPin) bool {
-		res, hit, err := playHBotPin(reg, set, g, cfg, reached)
-		return err == nil && res.Res.Div == nil && !contains(hit, false)
+		res, hit, err := playHBotPin(reg, run, g, cfg, reached)
+		return err == nil && res.Res.Div == nil && !contains(hit, false) && !slices.ContainsFunc(res.Recs, wrong)
 	}
 	var games []hbotPin
 	if b, err := os.ReadFile(path); err == nil {
@@ -167,13 +232,13 @@ func recordHBotPins(t *testing.T, path, pool string, scanSeed uint64, reg *cards
 	}
 	kept := len(games)
 	c := &Corpus{Reg: reg, decks: map[string][]*cards.Card{}}
-	pl, files, err := SynthPool(reg, set, 1, SynthDecks)
+	pl, files, err := SynthPool(reg, run.Set, 1, SynthDecks)
 	if err != nil {
 		return err
 	}
 	c.AddDecks(files)
 	for pair := 0; pair < pinScan && len(games) < hbotPinGames; pair++ {
-		p := PairingAt(pl, pair, scanSeed)
+		p := PairingAt(pl, pair, run.ScanSeed)
 		g := hbotPin{Format: "hbot-pin-1", Decks: [2]deck.File{files[p.A], files[p.B]}, Seed: p.Seed}
 		g.Decks[0].Name, g.Decks[1].Name = p.A, p.B
 		dup := false
@@ -186,7 +251,7 @@ func recordHBotPins(t *testing.T, path, pool string, scanSeed uint64, reg *cards
 		games = append(games, g)
 	}
 	if len(games) == 0 {
-		return fmt.Errorf("no pair of %s within %d satisfies every condition", pool, pinScan)
+		return fmt.Errorf("no pair of %s within %d satisfies every condition", run.Pool, pinScan)
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
