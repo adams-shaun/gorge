@@ -459,3 +459,11 @@ func TestRestrictedGrantPaysNoLandFeeLockstep(t *testing.T) {
 	synthReproLockstep(t, "restricted_grant_pays_no_land_fee", "std-trc", Config{})
 }
 
+// Toxic Deluge's additional cost is an announced X life, so X = 0 always pays and the
+// cast costs exactly {2}{B}. With Skycloud Expanse's filter a source the planner's census
+// misses, gorge's prefix search prices the cast as it does any other, and both engines
+// offer it.
+func TestAnnouncedLifeCastBehindAFilterLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "announced_life_cast_behind_filter", "std-trc", Config{})
+}
