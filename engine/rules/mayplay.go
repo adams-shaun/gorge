@@ -162,6 +162,10 @@ func (e *Engine) mayPlayGrantScoped(p state.PlayerID, id state.ObjID, board bool
 	if effectFree, covered := e.mayPlayEffectFree(p, o); covered && effectFree {
 		free = true
 		ok = true
+	} else if o.Zone != state.ZHand && e.mayPlayNoZoneFree(p, o) {
+		// MayPlayDontGrantZonePermissions$: the exemption only, never the
+		// permission (ok stays whatever the other sources made it).
+		free = true
 	}
 	return free, ok
 }
@@ -862,7 +866,7 @@ func (e *Engine) mayPlayEffectPermKey(p state.PlayerID, id state.ObjID) string {
 	ces := e.active()
 	for i := range ces {
 		ce := &ces[i]
-		if !ce.MayPlay || !mayPlayEffectBenefits(ce, o, p) || (ce.MayPlayPlayerTurn && e.G.Active != p) {
+		if !ce.MayPlay || ce.MayPlayNoZone || !mayPlayEffectBenefits(ce, o, p) || (ce.MayPlayPlayerTurn && e.G.Active != p) {
 			continue
 		}
 		zones, all, ok := effects.ParseZones(ce.AffectedZone)
@@ -1309,7 +1313,7 @@ func (e *Engine) mayPlayEffectFree(p state.PlayerID, o *state.Object) (free, cov
 	ces := e.active()
 	for i := range ces {
 		ce := &ces[i]
-		if !ce.MayPlay || !ce.MayPlayFree || !mayPlayEffectBenefits(ce, o, p) {
+		if !ce.MayPlay || !ce.MayPlayFree || ce.MayPlayNoZone || !mayPlayEffectBenefits(ce, o, p) {
 			continue
 		}
 		if ce.MayPlayPlayerTurn && e.G.Active != p {
