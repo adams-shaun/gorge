@@ -18,7 +18,7 @@ import (
 // 601.2g).
 
 // sceneScen: p0 controls board (none summoning sick, all untapped) and holds Bubble
-// Smuggler ({1}{U}); the std-mkm pool.
+// Smuggler ({1}{U}); the caretaker fixture pool.
 func sceneScen(t *testing.T, board ...string) (sc *scen, smuggler Obj, slots []Slot, id map[string]CardID) {
 	t.Helper()
 	deck := []cardset.Entry{{Name: "Bubble Smuggler", Count: 1}, {Name: "Forest", Count: 10}}
@@ -29,7 +29,7 @@ func sceneScen(t *testing.T, board ...string) (sc *scen, smuggler Obj, slots []S
 			deck = append(deck, cardset.Entry{Name: n, Count: 1})
 		}
 	}
-	set := cardsettest.Synth(t, "std-mkm")
+	set := cardsettest.Set(t, "caretaker")
 	tbl, da, _, err := set.Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
