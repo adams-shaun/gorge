@@ -1215,8 +1215,8 @@ func (s *State) tapGrantedGap(k *prep, p uint8, sl Slot) {
 		xv := s.srcExtraPick(k, sl, pc, int(order[0]))
 		s.addXv(p&1, &xv)
 	}
-	if r := k.gen.grantRestr[gi[0]]; r != 0 {
-		if !s.addRestr(k, p&1, r, int(order[0]), n) {
+	if ab := restrAbOfGrant(k, gi[0]); ab != nil {
+		if !s.floatRestrAb(k, p&1, sl, ab, int(order[0]), n) {
 			s.capFull(StallRestrSrc)
 		}
 		return
@@ -1237,10 +1237,20 @@ func (s *State) stepView(k *prep, sl Slot, gi int16) *pcard {
 // carries a spend restriction (nil: none, or the candidate's own printed
 // ability).
 func restrAbOfStep(k *prep, st *grantStep) *kop.Ability {
-	if st.gi < 0 || k.gen.grantRestr[st.gi] == 0 {
+	if st.gi < 0 {
 		return nil
 	}
-	r := k.gen.grantOf[st.gi]
+	return restrAbOfGrant(k, st.gi)
+}
+
+// restrAbOfGrant is grant gi's mana ability when it carries a spend
+// restriction (nil: none), so every float of its mana names both halves of
+// the restriction (spells and activated abilities).
+func restrAbOfGrant(k *prep, gi int16) *kop.Ability {
+	if k.gen.grantRestr[gi] == 0 {
+		return nil
+	}
+	r := k.gen.grantOf[gi]
 	return &k.t.Cards[r.card].Abilities[r.ab]
 }
 
