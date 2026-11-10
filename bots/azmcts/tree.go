@@ -46,9 +46,15 @@ type Point struct {
 	// Opp marks an opponent's decision (Options.OpponentNodes): selection
 	// here maximises the opponent's value, 1 - Q. With more than two seats
 	// every opponent therefore minimises the searching seat's value
-	// (paranoid search); a later change adds max^n. Its keys carry
+	// (paranoid search) unless Options.MaxN is in effect, when it maximises
+	// its own component of the value vector (Seat). Its keys carry
 	// oppKeyPrefix, so they never coincide with the searching seat's.
 	Opp bool
+	// Seat is the acting seat relative to the searching seat in turn order
+	// (0 the searching seat, 1 the next seat to take a turn, ...): the
+	// component of the value vector an opponent's point maximises under
+	// Options.MaxN. 0 at the searching seat's own points.
+	Seat uint8
 	// cut and fell record what producing this point counted (an Env's
 	// Stats.Truncated and PriorFallbacks), so the node cache, which reaches
 	// a stored point without producing it again, counts them exactly as a
@@ -90,10 +96,21 @@ func (pt *Point) valid() bool {
 	return pt != nil && len(pt.Keys) > 0 && (pt.resolve != nil || len(pt.Prior) == len(pt.Keys))
 }
 
+// maxVecSeats is the most seats a value vector holds (Options.MaxN): a
+// game with more falls back to paranoid search (Stats.MaxNFallbacks).
+const maxVecSeats = 4
+
 // Leaf is the value of the position a walk stopped at, for the searching
 // seat.
 type Leaf struct {
-	V        float64
+	V float64
+	// Vec, under Options.MaxN, is the position's value to every seat,
+	// indexed by the seat relative to the searching seat in turn order
+	// (Point.Seat): each entry in [0,1], a lost seat's 0. NVec is the
+	// number of seats it holds; 0 means no vector, read as V at the
+	// searching seat and 0 elsewhere (leafVec). Vec[0] is V.
+	Vec      [maxVecSeats]float64
+	NVec     uint8
 	Terminal bool // the game is over (V is 1, 0 or 0.5)
 	Capped   bool // the env step cap stopped the walk (V is the leaf evaluator's)
 	// Err, when set, means the position could not be evaluated (the engine
@@ -167,8 +184,11 @@ type TreeResult struct {
 }
 
 type node struct {
-	n    int
-	w    float64
+	n int
+	w float64
+	// wv is the backed-up value vector (Leaf.Vec), summed like w; written
+	// and read only under Options.MaxN.
+	wv   [maxVecSeats]float64
 	kids []*edge
 	// pt and snap are the node cache's (simulateCached): the point this
 	// node was expanded from, and the saved env state at it (nil when not
@@ -185,6 +205,7 @@ type edge struct {
 	prior float64
 	n     int
 	w     float64
+	wv    [maxVecSeats]float64 // node.wv's, for the edge
 	avail int
 	next  *node
 	// end is the node cache's record of an edge whose walk ended (game
@@ -233,6 +254,33 @@ func newNode(pt *Point) *node {
 	return nd
 }
 
+// seed is a new node's own evaluation l: one visit, its value, and under
+// Options.MaxN its value vector.
+func (nd *node) seed(l Leaf, opts Options) {
+	nd.n, nd.w = 1, l.V
+	if opts.MaxN {
+		nd.wv = leafVec(l)
+	}
+}
+
+// leafVec is l's value vector: Vec, or with none V at the searching seat.
+func leafVec(l Leaf) [maxVecSeats]float64 {
+	if l.NVec == 0 {
+		return [maxVecSeats]float64{l.V}
+	}
+	return l.Vec
+}
+
+// vecSeat is the value-vector component selection reads at pt under
+// opts: the acting opponent's relative seat at its point under MaxN, else
+// -1 (the scalar, read as 1 - Q at an opponent's point).
+func vecSeat(pt *Point, opts Options) int {
+	if opts.MaxN && pt.Opp && int(pt.Seat) < maxVecSeats {
+		return int(pt.Seat)
+	}
+	return -1
+}
+
 func (nd *node) q() float64 {
 	if nd.n == 0 {
 		return 0.5
@@ -276,9 +324,18 @@ func puctScore(q, prior float64, avail, n int, c float64) float64 {
 // parent's value to the opponent, so an unvisited reply is assumed slightly
 // worse FOR THE OPPONENT than the position, as it is for the searching seat
 // at its own points; the absolute UnvisitedQ is taken as the opponent's.
+// Under Options.MaxN the opponent's value is its own component of the
+// value vector (vecSeat), W_r / N, in place of 1 - Q.
 func selectEdge(nd *node, pt *Point, opts Options) *edge {
+	r := vecSeat(pt, opts)
 	parentQ := nd.q()
-	if pt.Opp {
+	switch {
+	case r >= 0:
+		parentQ = 0.5
+		if nd.n > 0 {
+			parentQ = nd.wv[r] / float64(nd.n)
+		}
+	case pt.Opp:
 		parentQ = 1 - parentQ
 	}
 	var best *edge
@@ -287,7 +344,7 @@ func selectEdge(nd *node, pt *Point, opts Options) *edge {
 		if !hasKey(pt.Keys, kid.key) {
 			continue
 		}
-		if s := edgeScore(kid, parentQ, pt.Opp, opts); best == nil || s > bestScore {
+		if s := edgeScore(kid, parentQ, pt.Opp, r, opts); best == nil || s > bestScore {
 			best, bestScore = kid, s
 		}
 	}
@@ -295,16 +352,20 @@ func selectEdge(nd *node, pt *Point, opts Options) *edge {
 }
 
 // edgeScore is kid's PUCT score in selectEdge: parentQ is the parent's Q
-// read from the selecting side (1 - Q at an opponent's point, opp), which
+// read from the selecting side (1 - Q at an opponent's point, opp, or its
+// own component r >= 0 of the value vector under Options.MaxN), which
 // first-play urgency starts from.
-func edgeScore(kid *edge, parentQ float64, opp bool, opts Options) float64 {
+func edgeScore(kid *edge, parentQ float64, opp bool, r int, opts Options) float64 {
 	q := parentQ - opts.FPU
 	if opts.AbsoluteUnvisitedQ {
 		q = opts.UnvisitedQ
 	}
 	if kid.n > 0 {
 		q = kid.w / float64(kid.n)
-		if opp {
+		switch {
+		case r >= 0:
+			q = kid.wv[r] / float64(kid.n)
+		case opp:
 			q = 1 - q
 		}
 	}
@@ -439,7 +500,7 @@ func simulate(top *node, env Env, opts Options, st *Stats) error {
 		if l.Err != nil {
 			return l.Err
 		}
-		top.n, top.w = 1, l.V
+		top.seed(l, opts)
 	}
 	var (
 		nodes   []*node
@@ -512,7 +573,7 @@ func simulate(top *node, env Env, opts Options, st *Stats) error {
 			if l.Capped {
 				st.StepCapped++
 			}
-			commit(nodes, path, marks, append(clock, now()), l.V, opts, st)
+			commit(nodes, path, marks, append(clock, now()), l, opts, st)
 			st.Unavailable += unavail
 			return nil
 		}
@@ -525,12 +586,12 @@ func simulate(top *node, env Env, opts Options, st *Stats) error {
 				return l.Err
 			}
 			sel.next = nn
-			sel.next.n, sel.next.w = 1, l.V
+			sel.next.seed(l, opts)
 			st.Expanded++
 			if next.Opp {
 				st.OppExpanded++
 			}
-			commit(nodes, path, marks, append(clock, now()), l.V, opts, st)
+			commit(nodes, path, marks, append(clock, now()), l, opts, st)
 			st.Unavailable += unavail
 			return nil
 		}
@@ -548,24 +609,27 @@ type pathClock struct{ plies, turn int }
 // Delta between clock[i] and the leaf, and edge i's by the Delta between
 // clock[i+1] and the leaf (the child's own position; the newly expanded
 // leaf keeps v undiscounted, as upstream's backprop adds the leaf's value
-// before its first multiplication).
-func commit(nodes []*node, path, marks []*edge, clock []pathClock, v float64, opts Options, st *Stats) {
+// before its first multiplication). Under Options.MaxN the leaf's value
+// vector (leafVec) is added beside v, each component discounted as v is.
+func commit(nodes []*node, path, marks []*edge, clock []pathClock, l Leaf, opts Options, st *Stats) {
+	v := l.V
 	leaf := clock[len(clock)-1]
 	discounted := opts.Discount > 0 && opts.Discount < 1
+	deltaAt := func(i int) int {
+		switch opts.DiscountUnit {
+		case DiscountAction:
+			return len(path) - i
+		case DiscountTurn:
+			return leaf.turn - clock[i].turn
+		default:
+			return leaf.plies - clock[i].plies
+		}
+	}
 	at := func(i int) float64 {
 		if !discounted {
 			return v
 		}
-		var delta int
-		switch opts.DiscountUnit {
-		case DiscountAction:
-			delta = len(path) - i
-		case DiscountTurn:
-			delta = leaf.turn - clock[i].turn
-		default:
-			delta = leaf.plies - clock[i].plies
-		}
-		return discountValue(v, opts.Discount, delta)
+		return discountValue(v, opts.Discount, deltaAt(i))
 	}
 	for i, n := range nodes {
 		n.n++
@@ -574,6 +638,23 @@ func commit(nodes []*node, path, marks []*edge, clock []pathClock, v float64, op
 	for i, e := range path {
 		e.n++
 		e.w += at(i + 1)
+	}
+	if opts.MaxN {
+		vec := leafVec(l)
+		addVec := func(wv *[maxVecSeats]float64, i int) {
+			for r, x := range vec {
+				if discounted {
+					x = discountValue(x, opts.Discount, deltaAt(i))
+				}
+				wv[r] += x
+			}
+		}
+		for i, n := range nodes {
+			addVec(&n.wv, i)
+		}
+		for i, e := range path {
+			addVec(&e.wv, i+1)
+		}
 	}
 	for _, e := range marks {
 		e.avail++

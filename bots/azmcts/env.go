@@ -72,6 +72,9 @@ type walkConfig struct {
 	// at a time, so one forked collector, rolled back, serves them all, as
 	// the redeal source's forker does for the searching seat.
 	oppNodes bool
+	// maxN is Options.MaxN in effect (maxNApplies): every leaf carries the
+	// value vector over the game's seats (engineEnv.leafVec).
+	maxN bool
 	// skipPass is Options.SkipPass.
 	skipPass int
 	oppForks []*searchprobe.Forker
@@ -654,7 +657,7 @@ func (e *engineEnv) oppPoint(pd *decision.Decision, in decision.Intent) *Point {
 			cands[i].key = Key(oppKeyPrefix + string(cands[i].key))
 		}
 		e.cur, e.cands = pd, cands
-		pt := &Point{Keys: candKeys(cands), cut: cut, Opp: true, extra: extraOf(kind), oppPay: autoPay && kind == "priority", resolve: res}
+		pt := &Point{Keys: candKeys(cands), cut: cut, Opp: true, Seat: e.relSeat(pd.Player), extra: extraOf(kind), oppPay: autoPay && kind == "priority", resolve: res}
 		pt.lines = e.lineInfos(obs, pd, cands, true)
 		if topK > 0 {
 			countTopK(e.cfg.stats, true, 0)
@@ -673,7 +676,7 @@ func (e *engineEnv) oppPoint(pd *decision.Decision, in decision.Intent) *Point {
 	if fell {
 		e.cfg.stats.PriorFallbacks++
 	}
-	pt := &Point{Keys: keys, Prior: prior, cut: cut, fell: fell, Opp: true, extra: extraOf(kind), oppPay: autoPay && kind == "priority"}
+	pt := &Point{Keys: keys, Prior: prior, cut: cut, fell: fell, Opp: true, Seat: e.relSeat(pd.Player), extra: extraOf(kind), oppPay: autoPay && kind == "priority"}
 	pt.lines = e.lineInfos(obs, pd, cands, true)
 	if topK > 0 {
 		countTopK(e.cfg.stats, true, before)
@@ -681,6 +684,17 @@ func (e *engineEnv) oppPoint(pd *decision.Decision, in decision.Intent) *Point {
 	}
 	countPoint(e.cfg.stats, pt)
 	return pt
+}
+
+// relSeat is p's seat relative to the searching seat in turn order (the
+// Players order, wrapping; a seat that has left keeps its place): 0 the
+// searching seat, 1 the next to take a turn, and so on (Point.Seat).
+func (e *engineEnv) relSeat(p state.PlayerID) uint8 {
+	return uint8(relSeatOf(len(e.e.G.Players), e.cfg.actor, p))
+}
+
+func relSeatOf(n int, actor, p state.PlayerID) int {
+	return (int(p) - int(actor) + n) % n
 }
 
 // deferPrior is lazyPrior's deferred prior for the point pd with candidates
@@ -849,6 +863,9 @@ func (e *engineEnv) stallLeaf(err error) (*Point, error) {
 // Leaf is 1/0/0.5 at game over, else the leaf evaluator on the searching
 // seat's redacted view. A panic in the evaluator (view.Project, the network)
 // is recovered into Leaf.Err wrapping ErrPanic.
+//
+// Under Options.MaxN (walkConfig.maxN) the leaf also carries the value
+// vector over the seats (leafVec), and V is its searching seat's entry.
 func (e *engineEnv) Leaf() (l Leaf) {
 	defer func() {
 		if p := recover(); p != nil {
@@ -856,6 +873,45 @@ func (e *engineEnv) Leaf() (l Leaf) {
 			l = Leaf{Err: fmt.Errorf("%w: leaf: %v", ErrPanic, p)}
 		}
 	}()
+	l = e.leaf()
+	if e.cfg.maxN {
+		e.leafVec(&l)
+	}
+	return l
+}
+
+// leafVec fills l's value vector (Leaf.Vec): a stalled world is a draw,
+// uniform over the living seats (only the seats' Lost flags are read: the
+// engine is mid-abort); a heuristic leaf, or a game that is over, is
+// heuristicLeafVec's; a network leaf, until the network has a vector head,
+// keeps its value at the searching seat and splits the rest evenly over the
+// living opponents (splitLeafVec).
+func (e *engineEnv) leafVec(l *Leaf) {
+	switch {
+	case e.stalled:
+		g := e.e.G
+		living := 0
+		for i := range g.Players {
+			if !g.Players[i].Lost {
+				living++
+			}
+		}
+		for i := range g.Players {
+			if !g.Players[i].Lost {
+				l.Vec[relSeatOf(len(g.Players), e.cfg.actor, g.Players[i].ID)] = 1 / float64(living)
+			}
+		}
+		l.NVec = uint8(len(g.Players))
+	case e.e.G.Over || e.cfg.net == nil || e.cfg.heuristicLeaf:
+		l.Vec, l.NVec = heuristicLeafVec(e.e, e.cfg.actor)
+	default:
+		l.Vec, l.NVec = splitLeafVec(e.e.G, e.cfg.actor, l.V)
+	}
+	l.V = l.Vec[0]
+}
+
+// leaf is Leaf's scalar evaluation.
+func (e *engineEnv) leaf() Leaf {
 	if e.stalled {
 		// The bench's stall outcome is a draw; the engine is mid-abort and
 		// is never read.
@@ -957,14 +1013,7 @@ func heuristicLeafValue(e *rules.Engine, actor state.PlayerID) float64 {
 			}
 			continue
 		}
-		score := float64(p.Life) + 2*float64(len(g.Zone(state.ZHand, p.ID)))
-		for _, id := range g.Zone(state.ZBattlefield, p.ID) {
-			o := g.Obj(id)
-			if o == nil || o.Face() == nil || o.Ephemeral() || o.PhasedOut {
-				continue
-			}
-			score += leafMaterial(e, o, actor)
-		}
+		score := leafSeatScore(e, p, actor)
 		switch {
 		case p.ID == actor:
 			value += score
@@ -980,6 +1029,104 @@ func heuristicLeafValue(e *rules.Engine, actor state.PlayerID) float64 {
 		value -= oppMax
 	}
 	return 1 / (1 + math.Exp(-value/20))
+}
+
+// leafSeatScore is the frozen heuristic's score of player p as actor's
+// projection reads it: life, twice the hand size, and the material of every
+// permanent p controls on the battlefield (searchprobe.LeafScore).
+func leafSeatScore(e *rules.Engine, p *state.Player, actor state.PlayerID) float64 {
+	g := e.G
+	score := float64(p.Life) + 2*float64(len(g.Zone(state.ZHand, p.ID)))
+	for _, id := range g.Zone(state.ZBattlefield, p.ID) {
+		o := g.Obj(id)
+		if o == nil || o.Face() == nil || o.Ephemeral() || o.PhasedOut {
+			continue
+		}
+		score += leafMaterial(e, o, actor)
+	}
+	return score
+}
+
+// heuristicLeafVec is the frozen heuristic's value to every seat
+// (Options.MaxN), indexed by the seat relative to actor in turn order: a
+// softmax over the living seats' scores (leafSeatScore) at heuristicLeafValue's
+// temperature, exp(s_i/20) / sum exp(s_j/20), so with two living seats the
+// actor's entry is heuristicLeafValue's sigmoid. A lost seat is 0. A game
+// that is over is one-hot on the winner, a draw uniform over the living
+// seats. The game has at most maxVecSeats seats.
+func heuristicLeafVec(e *rules.Engine, actor state.PlayerID) (vec [maxVecSeats]float64, nv uint8) {
+	g := e.G
+	n := len(g.Players)
+	if n > maxVecSeats {
+		panic(fmt.Sprintf("azmcts: a value vector over %d seats (at most %d)", n, maxVecSeats))
+	}
+	nv = uint8(n)
+	if g.Over && !g.Draw {
+		if int(g.Winner) < n {
+			vec[relSeatOf(n, actor, g.Winner)] = 1
+		}
+		return vec, nv
+	}
+	var score [maxVecSeats]float64
+	living := 0
+	top := math.Inf(-1)
+	for i := range g.Players {
+		p := &g.Players[i]
+		if p.Lost {
+			continue
+		}
+		living++
+		r := relSeatOf(n, actor, p.ID)
+		score[r] = 1
+		if !g.Over {
+			score[r] = leafSeatScore(e, p, actor) / 20
+			top = max(top, score[r])
+		}
+	}
+	if living == 0 {
+		return vec, nv
+	}
+	sum := 0.0
+	for i := range g.Players {
+		if g.Players[i].Lost {
+			continue
+		}
+		r := relSeatOf(n, actor, g.Players[i].ID)
+		if g.Over {
+			vec[r] = 1 / float64(living)
+			continue
+		}
+		vec[r] = math.Exp(score[r] - top)
+		sum += vec[r]
+	}
+	if !g.Over {
+		for r := range vec {
+			vec[r] /= sum
+		}
+	}
+	return vec, nv
+}
+
+// splitLeafVec is a network leaf's value vector (Options.MaxN): the
+// network values only the searching seat's position, v, so the rest, 1 - v,
+// is split evenly over the living opponents. A stand-in until the network
+// has a value head per seat.
+func splitLeafVec(g *state.Game, actor state.PlayerID, v float64) (vec [maxVecSeats]float64, nv uint8) {
+	n := len(g.Players)
+	nv = uint8(n)
+	vec[0] = v
+	opps := 0
+	for i := range g.Players {
+		if !g.Players[i].Lost && g.Players[i].ID != actor {
+			opps++
+		}
+	}
+	for i := range g.Players {
+		if p := &g.Players[i]; !p.Lost && p.ID != actor {
+			vec[relSeatOf(n, actor, p.ID)] = (1 - v) / float64(opps)
+		}
+	}
+	return vec, nv
 }
 
 // faceDownTypes is a face-down permanent's type line a viewer who may not look reads.
