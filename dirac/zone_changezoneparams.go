@@ -210,7 +210,7 @@ func (s *State) enteringDefenderCands(k *prep, ctrl uint8, buf *[MaxOptions]uint
 	if s.pl[opp].lost {
 		return 0
 	}
-	buf[0] = PlayerTarget0 + opp
+	buf[0] = PlayerCode(opp)
 	n := 1
 	var order [MaxPerm]Slot
 	var m slotMask

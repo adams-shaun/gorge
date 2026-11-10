@@ -189,7 +189,7 @@ func (s *State) sameReferent(r *dmgRec, ev *dmgEv, rcp uint8) bool {
 // defending player, 1 - the active player).
 func (s *State) combatRcp(ev *dmgEv) uint8 {
 	if ev.dst == NoSlot {
-		return PlayerTarget0 + 1 - s.active
+		return PlayerCode(1 - s.active)
 	}
 	return uint8(s.perms[ev.dst].obj)
 }
@@ -208,7 +208,7 @@ func (s *State) fireDamageRefs(k *prep, codes []uint8, dn []int16) {
 			continue
 		}
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
-			s.fireDamageEvGen(k, sl, dn[i], code >= PlayerTarget0, false, nil, code, &rl)
+			s.fireDamageEvGen(k, sl, dn[i], isPlayerOrNone(code), false, nil, code, &rl)
 		} else if s.res.e.obj != NoObj {
 			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, dn[i], dmgPl(code), code, &rl)
 		}

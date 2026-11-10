@@ -182,7 +182,7 @@ func (s *State) initCombat(k *prep, r *dmgRec) {
 	}
 	for i := 0; i < r.nev; i++ {
 		ev := &r.ev[i]
-		if ev.dst == NoSlot && ev.n > 0 && s.perms[ev.src].ctrl == s.active && s.perms[ev.src].atk == PlayerTarget0+def {
+		if ev.dst == NoSlot && ev.n > 0 && s.perms[ev.src].ctrl == s.active && s.perms[ev.src].atk == PlayerCode(def) {
 			s.g.initH = s.active + 1
 			s.initVentureTrig(s.active)
 			return

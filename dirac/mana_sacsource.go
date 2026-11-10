@@ -397,10 +397,7 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 				continue
 			}
 			if plTgt {
-				e.tgt[0], e.nt = PlayerTarget0, 1
-				if !s.targetOK(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, PlayerTarget0) {
-					e.tgt[0] = PlayerTarget0 + 1
-				}
+				e.tgt[0], e.nt = s.firstPlayerTgt(k, &a.Targets[0], pt), 1
 			}
 			s.pushBelowCast(k, e, pt)
 			copy(s.pend[i:], s.pend[i+1:s.npend])
@@ -408,10 +405,7 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 			continue
 		}
 		if plRun {
-			e.tgt[0], e.nt = PlayerTarget0, 1
-			if !s.targetOK(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, PlayerTarget0) {
-				e.tgt[0] = PlayerTarget0 + 1
-			}
+			e.tgt[0], e.nt = s.firstPlayerTgt(k, &a.Targets[0], pt), 1
 		}
 		if !single && (a.NTargets != 0 && !plRun || !s.runsPreCast(k, e, a.Prog)) {
 			i++
@@ -425,10 +419,7 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 			s.putCounterProg(k, &a.Prog[0])
 		case single:
 			if plTgt {
-				s.res.e.tgt[0] = PlayerTarget0
-				if !s.targetOK(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, PlayerTarget0) {
-					s.res.e.tgt[0] = PlayerTarget0 + 1
-				}
+				s.res.e.tgt[0] = s.firstPlayerTgt(k, &a.Targets[0], pt)
 			}
 			s.exec(k, &a.Prog[0])
 		default:
@@ -760,4 +751,17 @@ func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
 			return
 		}
 	}
+}
+
+// firstPlayerTgt is the player target a pre-cast trigger takes: the first
+// seat in seat order its target spec admits, else the last seat (at two
+// seats, seat 0 when legal, otherwise seat 1).
+func (s *State) firstPlayerTgt(k *prep, ts *kop.TargetSpec, pt *pendingTrig) uint8 {
+	q := uint8(0)
+	for ; q+1 < s.nSeats(); q++ {
+		if s.targetOK(k, ts, pt.ctrl, NoSlot, pt.obj, PlayerCode(q)) {
+			break
+		}
+	}
+	return PlayerCode(q)
 }

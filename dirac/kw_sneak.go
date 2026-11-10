@@ -253,8 +253,8 @@ func (s *State) sneakEnter(k *prep, sl Slot, e *stackEntry) {
 // check (or refuse the card) before it can be lowered.
 func (s *State) enteringAttackLegal(k *prep, ctrl uint8, d Obj) bool {
 	t := uint8(d)
-	if t == PlayerTarget0 || t == PlayerTarget1 {
-		return t-PlayerTarget0 != ctrl&1
+	if isPlayerTarget(t) {
+		return CodeSeat(t) != SeatIx(ctrl)
 	}
 	if d == NoObj {
 		return false

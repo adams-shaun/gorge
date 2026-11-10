@@ -388,7 +388,7 @@ func (t *State) gorgeTargetOrder(d *Decision) {
 		case c == NoTarget:
 			keys[i] = 0 // gorge scriptAnswers tries the empty answer of an up-to-one ask first
 		case isPlayerTarget(c):
-			keys[i] = 1<<8 + uint32(c-PlayerTarget0)
+			keys[i] = 1<<8 + uint32(CodeSeat(c))
 		case c < MaxObj && t.objs[c].zone == kop.ZoneBattlefield && t.objs[c].slot != NoSlot:
 			pm := &t.perms[t.objs[c].slot]
 			keys[i] = 1<<24 | uint32(pm.ctrl)<<20 | uint32(pm.ts)

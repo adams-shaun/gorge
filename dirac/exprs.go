@@ -92,7 +92,7 @@ func (s *State) evalV(k *prep, v kop.ValueRef, ctx evalCtx) int {
 		}
 		return t
 	case kop.VTargetPower, kop.VTargetToughness:
-		if e == nil || e.tgt[0] >= PlayerTarget0 {
+		if e == nil || isPlayerOrNone(e.tgt[0]) {
 			return 0
 		}
 		o := Obj(e.tgt[0])
@@ -126,7 +126,7 @@ func (s *State) evalV(k *prep, v kop.ValueRef, ctx evalCtx) int {
 		}
 		return s.perms[ctx.srcSl].ctrN(s, int(v.N))
 	case kop.VCountersTarget:
-		if e == nil || e.tgt[0] >= PlayerTarget0 {
+		if e == nil || isPlayerOrNone(e.tgt[0]) {
 			return 0
 		}
 		if sl := s.slotIfSame(Obj(e.tgt[0]), e.tver[0]); sl != NoSlot {
@@ -468,7 +468,7 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 		if e == &s.res.e {
 			t = s.tgtCode(sl)
 		}
-		if t == NoTarget || t >= PlayerTarget0 {
+		if t == NoTarget || isPlayerOrNone(t) {
 			return NoObj
 		}
 		return Obj(t)
@@ -524,8 +524,8 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 		if t == NoTarget {
 			return 255
 		}
-		if t >= PlayerTarget0 {
-			return t - PlayerTarget0
+		if isPlayerOrNone(t) {
+			return CodeSeat(t)
 		}
 		if r == kop.RefTargetOwner {
 			return s.objs[t].owner()
@@ -689,7 +689,7 @@ func (s *State) countRefMatchesN(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx
 		}
 		sl, _ := tgtSlot(r)
 		t := ctx.e.tgt[sl]
-		if t == NoTarget || t >= PlayerTarget0 {
+		if t == NoTarget || isPlayerOrNone(t) {
 			return 0
 		}
 		if s.g.tli != 0 && s.objs[Obj(t)].zone != kop.ZoneBattlefield {

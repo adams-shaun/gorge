@@ -35,6 +35,12 @@ func SeatIx(p uint8) uint8 { return p % MaxSeats }
 // Every seat has one: the code space holds MaxSeats player codes.
 func PlayerCode(p uint8) uint8 { return PlayerTarget0 + p }
 
+// isPlayerOrNone reports whether target byte c is at or above the player
+// codes: a player, a departed stack target (0xFE) or NoTarget. It is the raw
+// "c >= PlayerTarget0" range test, named so it reads the same at every seat
+// count; isPlayerTarget is the test for a player alone.
+func isPlayerOrNone(c uint8) bool { return c >= PlayerTarget0 }
+
 // CodeSeat is the seat a player target code names; c must satisfy
 // isPlayerTarget.
 func CodeSeat(c uint8) uint8 { return c - PlayerTarget0 }

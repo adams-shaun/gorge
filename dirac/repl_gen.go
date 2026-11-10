@@ -227,7 +227,7 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 		ev.n = s.sat16(n)
 		r.dealt[ev.src] = s.addSat16(r.dealt[ev.src], d)
 		if ev.dst == NoSlot {
-			r.toPl[code-PlayerTarget0] = s.addSat16(r.toPl[code-PlayerTarget0], d)
+			r.toPl[CodeSeat(code)] = s.addSat16(r.toPl[CodeSeat(code)], d)
 			r.dealtPl[ev.src] = s.addSat16(r.dealtPl[ev.src], d)
 		} else {
 			r.toPerm[ev.dst] = s.addSat16(r.toPerm[ev.dst], d)
@@ -474,7 +474,7 @@ func (s *State) replOrderFreeze(k *prep, r *dmgRec, first bool) {
 		fe.card = s.cardAt(ev.src)
 		fe.ctrl = s.perms[ev.src].ctrl
 		if ev.dst == NoSlot {
-			fe.apl = s.perms[ev.src].atk - PlayerTarget0
+			fe.apl = CodeSeat(s.perms[ev.src].atk)
 		}
 		kw := s.kw(k, ev.src)
 		fe.ll, fe.dt = kw&kop.KwLifelink != 0, kw&kop.KwDeathtouch != 0
@@ -718,8 +718,8 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 		return 0
 	}
 	if ev.dst == NoSlot {
-		s.noteCmdDamage(ev.src, src.atk-PlayerTarget0, n)
-		s.loseLife(k, src.atk-PlayerTarget0, n)
+		s.noteCmdDamage(ev.src, CodeSeat(src.atk), n)
+		s.loseLife(k, CodeSeat(src.atk), n)
 	} else {
 		sl := ev.dst
 		p := &s.perms[sl]
@@ -895,7 +895,7 @@ func (s *State) damageSeqNext(k *prep, n int) {
 			if b == 2 {
 				p = 1 - s.active
 			}
-			s.damageTo(k, PlayerTarget0+p, n)
+			s.damageTo(k, PlayerCode(p), n)
 			if s.g.nc.n != 0 {
 				return
 			}
@@ -1072,8 +1072,8 @@ func (s *State) dealNC(k *prep) {
 		return
 	}
 	code := nc.code
-	if code >= PlayerTarget0 {
-		s.loseLife(k, code-PlayerTarget0, n)
+	if isPlayerOrNone(code) {
+		s.loseLife(k, CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]
 		if ob.zone != kop.ZoneBattlefield {
@@ -1097,7 +1097,7 @@ func (s *State) dealNC(k *prep) {
 	}
 	if s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any() || k.gen != nil && k.gen.graveDmg {
 		if ob := &s.objs[nc.src]; !nc.spell && ob.zone == kop.ZoneBattlefield {
-			s.fireDamage(k, ob.slot, int16(n), code >= PlayerTarget0, false, code)
+			s.fireDamage(k, ob.slot, int16(n), isPlayerOrNone(code), false, code)
 		} else if nc.spell || ob.zone != kop.ZoneBattlefield { // an ability whose source is gone too (pair 3334)
 			s.fireDamageSrc(k, nc.src, nc.ctrl, int16(n), dmgPl(code), code, nil)
 		}

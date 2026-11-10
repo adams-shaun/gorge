@@ -123,7 +123,7 @@ func (s *State) divCounters(k *prep, in *kop.Instr) {
 	}
 	for i := 0; i < m; i++ {
 		c := codes[i]
-		if amts[i] <= 0 || c >= PlayerTarget0 || s.objs[c].zone != kop.ZoneBattlefield {
+		if amts[i] <= 0 || isPlayerOrNone(c) || s.objs[c].zone != kop.ZoneBattlefield {
 			continue
 		}
 		s.putDividedShare(k, s.objs[c].slot, amts[i])
