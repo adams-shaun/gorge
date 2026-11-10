@@ -1,0 +1,6 @@
+# A mana ability whose rider puts a counter on its own source: Twitching
+# Doll's any-colour {T} ability, a source gorge's payment planner defers
+# (its rider), beside the Forests that pay ordinarily.
+# dirac/mana_rider_test.go plays it.
+Twitching Doll
+Forest

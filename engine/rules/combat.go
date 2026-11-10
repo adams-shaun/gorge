@@ -2212,19 +2212,15 @@ func (e *Engine) damageStep(firstStrike bool) {
 		return
 	}
 	// api:Fog (CR 701.14a, engine/effects/fog.go): a Fog-registered continuous
-	// effect prevents ALL combat damage this turn. The check sits here, at
-	// the top of each damage pass, rather than per-assignment: "combat
-	// damage that would be dealt this turn" is a whole-turn fact, and the
-	// continuous registry is event-derived state a replay rebuilds
-	// identically (the registrations happen during effect resolution, which
-	// the replay re-executes). The Note marks the pass in the transcript;
-	// the step's own structure (priority rounds either side) is untouched,
-	// exactly as the CR's prevent-damage reading requires.
-	if e.fogActive() {
-		e.emit(events.Event{Kind: events.Note, Obj: 0,
-			Text: "all combat damage this turn is prevented"})
-		return
-	}
+	// effect prevents ALL combat damage this turn. The check sits at the top
+	// of each damage pass rather than per-assignment ("combat damage that
+	// would be dealt this turn" is a whole-turn fact; the continuous registry
+	// is event-derived state a replay rebuilds identically). The assignments
+	// are still built first, because CR 615.12 lets a can't-prevent effect
+	// (Spider-Punk, Leyline of Punishment) override the prevention: the
+	// assignments it covers are dealt, see fogUnpreventable below. When none
+	// survives the pass emits the Note and ends, exactly as a plain Fog does;
+	// the step's own structure (priority rounds either side) is untouched.
 	var as []assignment
 	for _, aid := range e.G.Zone(state.ZBattlefield, e.G.Active) {
 		a := e.G.Obj(aid)
@@ -2356,6 +2352,14 @@ func (e *Engine) damageStep(firstStrike bool) {
 		}
 	}
 	as = e.bandBlockerAssignments(as, firstStrike)
+	if e.fogActive() {
+		as = e.fogUnpreventable(as)
+		e.emit(events.Event{Kind: events.Note, Obj: 0,
+			Text: "all combat damage this turn is prevented"})
+		if len(as) == 0 {
+			return
+		}
+	}
 	// One damage pass is ONE damage batch (CR 510.4): every Damage event the
 	// emit loop below produces latches the DamageDealtOnce/DamageDoneOnce
 	// triggers together and accumulates their referent amounts, closed (and
@@ -2376,6 +2380,22 @@ func (e *Engine) damageStep(firstStrike bool) {
 	e.combatRound.damageNext = 0
 	e.combatRound.dealing = true
 	e.runCombatAssignments()
+}
+
+// fogUnpreventable keeps the assignments a Fog cannot stop (CR 615.12): those
+// whose combat damage a can't-prevent effect covers. The check runs with
+// combatDamaging set because cantPreventDamage's IsCombat$ gate reads it.
+func (e *Engine) fogUnpreventable(as []assignment) []assignment {
+	saved := e.combatDamaging
+	e.combatDamaging = true
+	defer func() { e.combatDamaging = saved }()
+	out := as[:0]
+	for _, x := range as {
+		if e.cantPreventDamage(x.from, x.toObj) {
+			out = append(out, x)
+		}
+	}
+	return out
 }
 
 // lethalDamageNeed is the damage an attacker must assign to blocker bid before

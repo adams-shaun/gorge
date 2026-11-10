@@ -169,6 +169,10 @@ type pendingTrigger struct {
 	Ward string
 	// Melee marks a layer-6 granted instance without a printed trigger index.
 	Melee bool
+	// Exalted marks a layer-6 granted Exalted instance (CR 702.83a-b): the
+	// drain pushes a KeywordTriggerPush whose __kwExaltedGranted payload
+	// events.Apply rebuilds into the printed expansion's Pump body.
+	Exalted bool
 	// Afflict is a GRANTED afflict keyword (a layer-6 AddKeyword$
 	// Afflict:<N>, e.g. Lost Monarch of Ifnir's "Other Zombies you control
 	// have afflict 3"): the same shape as Ward -- the queue carries the life
@@ -1387,7 +1391,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				case events.DeclareAttackers:
 					e.checkGrantedDethroneTriggers(observer, id, o, f, *ev, objLKI)
 					e.checkGrantedTrainingTriggers(observer, id, o, f, *ev, objLKI)
-					e.checkGrantedMeleeTriggers(observer, id, o, f, *ev, objLKI)
+					e.checkGrantedAttackPumpTriggers(observer, id, o, f, *ev, objLKI)
 					e.checkGrantedMentorTriggers(observer, id, o, f, *ev, objLKI)
 					e.checkGrantedAttackKeywordTriggers(observer, id, o, f, *ev, objLKI)
 				case events.DeclareBlockers:
@@ -1988,7 +1992,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 		// trigger carrying the training grant) -- the early-return path above
 		// reaches this object through checkGrantedTrainingTriggers's own call.
 		e.checkGrantedTrainingTriggers(observer, id, o, f, *ev, objLKI)
-		e.checkGrantedMeleeTriggers(observer, id, o, f, *ev, objLKI)
+		e.checkGrantedAttackPumpTriggers(observer, id, o, f, *ev, objLKI)
 		// A granted Mentor must fire even when the object's own printed
 		// triggers are live for this event -- the same both-paths rule
 		// Afflict, Conspire, Exploit, Offspring and Training follow.

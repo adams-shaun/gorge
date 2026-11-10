@@ -56,7 +56,7 @@ func (s *State) idemEmblemHeld(k *prep, p, emb uint8) bool {
 		}
 	}
 	for i := 0; i < int(s.g.nemb[p]); i++ {
-		if s.g.emb[p][i] == emb {
+		if s.embIdx(p, i) == emb {
 			return true
 		}
 	}

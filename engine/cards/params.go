@@ -864,6 +864,10 @@ const (
 	// restriction has. Appended: earlier ordinals stay stable.
 	PKSharedKeywordsZone
 	PKSharedRestrictions
+	// A DamageDone replacement's PreventionEffect$ True: the line prevents the
+	// damage and its ReplaceWith$ body is the rider (The Mindskinner's mill).
+	// CR 615.12 keeps the rider and drops the prevention under can't-prevent.
+	PKPreventionEffect
 	paramKeyCount
 )
 
@@ -1673,6 +1677,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKRegeneration:                     "Regeneration",
 	PKSharedKeywordsZone:               "SharedKeywordsZone",
 	PKSharedRestrictions:               "SharedRestrictions",
+	PKPreventionEffect:                 "PreventionEffect",
 }
 
 // String is the key's Forge text.

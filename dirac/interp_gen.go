@@ -661,21 +661,20 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if k.embComb && s.idemEmblemHeld(k, p, uint8(in.C)+1) {
 			break // static_emblemcombat.go
 		}
-		if s.g.nemb[p] < maxEmb {
-			s.g.embF[p] &^= 1 << s.g.nemb[p] // a new emblem has begun no turn yet
-			s.g.emb[p][s.g.nemb[p]] = uint8(in.C) + 1
-			s.g.embC[p][s.g.nemb[p]] = e.card
-			s.g.embO[p][s.g.nemb[p]] = e.obj
-			s.g.embN[p][s.g.nemb[p]] = s.freezeEmbNum(k, in.A, s.ctxEntry(e))
-			s.g.embT[p][s.g.nemb[p]] = s.tick() // gorge's AddContinuous ClockTick: a new continuous effect is newer than everything before it (CR 613.7)
+		if n := int(s.g.nemb[p]); n < s.embCap() {
+			s.g.embF[p] &^= 1 << n // a new emblem has begun no turn yet
+			r := embRec{idx: uint8(in.C) + 1, c: e.card, obj: e.obj}
+			r.num = s.freezeEmbNum(k, in.A, s.ctxEntry(e))
+			r.t = s.tick() // gorge's AddContinuous ClockTick: a new continuous effect is newer than everything before it (CR 613.7)
 			if cr := k.t.Emblems[in.C].Capture; cr != kop.RefNone {
 				// the Effect's RememberObjects$ Targeted: the chain's target object + 1
 				// (0 none; an emblem with a capture has no frozen number)
-				s.g.embN[p][s.g.nemb[p]] = 0
+				r.num = 0
 				if o := s.objRefObj(cr); o != NoObj {
-					s.g.embN[p][s.g.nemb[p]] = uint8(o) + 1
+					r.num = uint8(o) + 1
 				}
 			}
+			s.embPut(p, n, r)
 			s.g.nemb[p]++
 		} else {
 			s.capFull(StallEmblem)

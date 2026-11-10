@@ -1,0 +1,3 @@
+# Recorded lockstep games: written by the recorder, never by hand. Collapsed in review, and shown as one
+# line in `git diff` (use `git diff --text` to read one).
+dirac/oracle/testdata/repro/*.repro.json linguist-generated=true -diff

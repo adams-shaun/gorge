@@ -431,7 +431,7 @@ func (e *Engine) cantPreventDamage(damageSource, target state.ObjID) bool {
 			return
 		}
 		o := e.G.Obj(id)
-		if o == nil || o.Face() == nil {
+		if o == nil || o.Face() == nil || e.printedAbilitiesGone(o) {
 			return
 		}
 		for _, st := range o.Face().Statics {

@@ -41,7 +41,7 @@ dirac ships the primitives a search uses and its own bot. It ships no tree searc
 
 === "Hosted"
 
-    `az-redeal` is the hosted entry: the `redeal` world, 100 simulations, no net, constructed, two seats, experimental tier.
+    `az-redeal` is the hosted entry: the `redeal` world, 100 simulations, no net, constructed or Commander, up to four seats, experimental tier.
     `gorged.RegisterNetBot` links a policy that loads a net at startup and adds `-<policy>-net`, `-<policy>-decks`, `-<policy>-belief` and related flags.
 
 The determinised-rollout seat (`bots/searchseat`) samples K worlds per decision (default 8), rolls each out and overrides the bot only when a candidate wins by a margin.

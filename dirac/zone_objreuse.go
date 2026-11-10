@@ -84,9 +84,9 @@ func (s *State) heldReferenced(o Obj) bool {
 			return true
 		}
 	}
-	for p := range g.embO {
-		for i := 0; i < int(g.nemb[p]) && i < maxEmb; i++ {
-			if g.embO[p][i] == o {
+	for p := range g.nemb {
+		for i := 0; i < int(g.nemb[p]) && i < maxEmbTotal; i++ {
+			if s.embObj(uint8(p), i) == o {
 				return true
 			}
 		}

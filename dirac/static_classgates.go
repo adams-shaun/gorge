@@ -94,11 +94,11 @@ func (s *State) eachStaticC(k *prep, cls uint16, f func(st statSrc) bool) {
 	}
 	for pp := uint8(0); pp < 2; pp++ {
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
-			e := &k.t.Emblems[s.g.emb[pp][i]-1]
+			e := &k.t.Emblems[s.embIdx(pp, i)-1]
 			for j := range e.Abilities {
 				a := &e.Abilities[j]
 				if a.Kind == kop.AbStatic {
-					if !f(statSrc{a: a, sl: NoSlot, ctrl: pp, obj: NoObj, emb: pp<<3 | uint8(i+1)}) {
+					if !f(statSrc{a: a, sl: NoSlot, ctrl: pp, obj: NoObj, emb: pp<<4 | uint8(i+1)}) {
 						return
 					}
 				}
@@ -130,7 +130,7 @@ func (s *State) mayPlayZones(k *prep, p uint8) uint16 {
 		}
 	}
 	for i := 0; i < int(s.g.nemb[p]); i++ {
-		e := &k.t.Emblems[s.g.emb[p][i]-1]
+		e := &k.t.Emblems[s.embIdx(p, i)-1]
 		for j := range e.Abilities {
 			a := &e.Abilities[j]
 			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom && a.Static.StFlags&(kop.StFunctionsInGraveyard|kop.StFunctionsInExile) == 0 {

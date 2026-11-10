@@ -150,7 +150,7 @@ func (c *nodeCache) simulate(top *node, sim int, opts Options, st *Stats) error 
 			if l.Err != nil {
 				return l.Err
 			}
-			top.n, top.w = 1, l.V
+			top.seed(l, opts)
 		}
 		top.pt = env.Root()
 		if !validPoint(top.pt) {
@@ -217,7 +217,7 @@ func (c *nodeCache) simulate(top *node, sim int, opts Options, st *Stats) error 
 		if l.Capped {
 			st.StepCapped++
 		}
-		commit(nodes, path, marks, append(clock, last.endClk), l.V, opts, st)
+		commit(nodes, path, marks, append(clock, last.endClk), l, opts, st)
 		st.Unavailable += unavail
 		return nil
 	}
@@ -266,18 +266,18 @@ func (c *nodeCache) simulate(top *node, sim int, opts Options, st *Stats) error 
 			}
 			end := l
 			sel.end, sel.endClk = &end, clockOf(env, len(path))
-			commit(nodes, path, marks, append(clock, sel.endClk), l.V, opts, st)
+			commit(nodes, path, marks, append(clock, sel.endClk), l, opts, st)
 			st.Unavailable += unavail
 			return nil
 		}
 		sel.next = newNode(next)
 		sel.next.pt, sel.next.clk = next, clockOf(env, len(path))
-		sel.next.n, sel.next.w = 1, l.V
+		sel.next.seed(l, opts)
 		st.Expanded++
 		if next.Opp {
 			st.OppExpanded++
 		}
-		commit(nodes, path, marks, append(clock, sel.next.clk), l.V, opts, st)
+		commit(nodes, path, marks, append(clock, sel.next.clk), l, opts, st)
 		st.Unavailable += unavail
 		c.offer(sel.next, env, true, st)
 		return nil

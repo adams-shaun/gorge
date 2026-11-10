@@ -652,6 +652,12 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 			// next modifier applies to the result.
 			continue
 		}
+		if ev.Kind == events.Damage && damageReplacementPreventsWithRider(*m.repl) &&
+			e.cantPreventDamage(e.inFlightDamageSource(), ev.Obj) {
+			// CR 615.12: "prevent that damage and <rider>" under can't-prevent
+			// runs the rider only; the held damage still stands.
+			continue
+		}
 		if m.repl.ParamStr(cards.PKReplacementResult) == "Updated" {
 			// ReplacementResult$ Updated (CR 616.1: "modifies how an event
 			// occurs") keeps the event even though the body did not rewrite

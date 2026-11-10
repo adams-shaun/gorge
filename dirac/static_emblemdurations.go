@@ -6,8 +6,8 @@ package dirac
 // own.
 
 // embCompact removes player p's emblems whose index bit is in drop, compacting
-// the per-player arrays and moving the UntilEndOfNextTurn flag bits with their
-// survivors. maxEmb is 4, so one uint8 names every index.
+// the per-player records and moving the UntilEndOfNextTurn flag bits with their
+// survivors. maxEmbTotal is 8, so one uint8 names every index.
 func (s *State) embCompact(p, drop uint8) {
 	bits := s.g.embF[p]
 	n := 0
@@ -16,16 +16,14 @@ func (s *State) embCompact(p, drop uint8) {
 		if drop&(1<<uint(i)) != 0 {
 			continue
 		}
-		s.g.emb[p][n], s.g.embC[p][n], s.g.embO[p][n], s.g.embN[p][n] = s.g.emb[p][i], s.g.embC[p][i], s.g.embO[p][i], s.g.embN[p][i]
-		s.g.embT[p][n] = s.g.embT[p][i]
+		s.embPut(p, n, s.embGet(p, i))
 		if bits&(1<<uint(i)) != 0 {
 			keep |= 1 << uint(n)
 		}
 		n++
 	}
 	for i := n; i < int(s.g.nemb[p]); i++ {
-		s.g.emb[p][i], s.g.embC[p][i], s.g.embO[p][i], s.g.embN[p][i] = 0, 0, 0, 0
-		s.g.embT[p][i] = 0
+		s.embPut(p, i, embRec{})
 	}
 	s.g.nemb[p] = uint8(n)
 	s.g.embF[p] = keep
@@ -42,7 +40,7 @@ func (s *State) embCompact(p, drop uint8) {
 //go:noinline
 func (s *State) embTurnStart(k *prep, p uint8) {
 	for i := 0; i < int(s.g.nemb[p]); i++ {
-		if k.t.Emblems[s.g.emb[p][i]-1].UntilEndOfNextTurn {
+		if k.t.Emblems[s.embIdx(p, i)-1].UntilEndOfNextTurn {
 			s.g.embF[p] |= 1 << uint(i)
 		}
 	}
@@ -55,10 +53,10 @@ func (s *State) embTurnStart(k *prep, p uint8) {
 //
 //go:noinline
 func (s *State) dropEndOfNextTurnEmblems(k *prep) {
-	for p := 0; p < 2; p++ {
+	for p := uint8(0); p < 2; p++ {
 		var drop uint8
 		for i := 0; i < int(s.g.nemb[p]); i++ {
-			if s.g.embF[p]&(1<<uint(i)) != 0 && k.t.Emblems[s.g.emb[p][i]-1].UntilEndOfNextTurn {
+			if s.g.embF[p]&(1<<uint(i)) != 0 && k.t.Emblems[s.embIdx(p, i)-1].UntilEndOfNextTurn {
 				drop |= 1 << uint(i)
 			}
 		}
@@ -75,10 +73,10 @@ func (s *State) dropEndOfNextTurnEmblems(k *prep) {
 //
 //go:noinline
 func (s *State) embCtrlDrop(k *prep, o Obj, to uint8) {
-	for p := 0; p < 2; p++ {
+	for p := uint8(0); p < 2; p++ {
 		var drop uint8
 		for i := 0; i < int(s.g.nemb[p]); i++ {
-			if k.t.Emblems[s.g.emb[p][i]-1].AsLongAsControl && s.g.embO[p][i] == o && uint8(p) != to {
+			if k.t.Emblems[s.embIdx(p, i)-1].AsLongAsControl && s.embObj(p, i) == o && uint8(p) != to {
 				drop |= 1 << uint(i)
 			}
 		}

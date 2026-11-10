@@ -58,11 +58,11 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 	}
 	for pp := uint8(0); pp < 2; pp++ {
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
-			e := &k.t.Emblems[s.g.emb[pp][i]-1]
+			e := &k.t.Emblems[s.embIdx(pp, i)-1]
 			if !e.UntilEOT {
 				continue // a permanent emblem's combat damage trigger is not this code's (unverified against gorge)
 			}
-			if e.Capture != kop.RefNone && int(s.g.embN[pp][i]) != int(srcObj)+1 {
+			if e.Capture != kop.RefNone && int(s.embNum(pp, i)) != int(srcObj)+1 {
 				if st := DebugEffEOTTrigStats; st != nil {
 					st.DmgCapSkips++
 				}
@@ -99,12 +99,12 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 				if t.Filter != 0 && !s.matchPermGen(k, t.Filter, src, who, NoSlot, layerFull) {
 					continue
 				}
-				c := s.g.embC[pp][i]
+				c := s.embCard(pp, i)
 				cd := &k.t.Cards[c]
 				for ab := range cd.Abilities {
 					la := &cd.Abilities[ab]
 					if la.Kind == kop.AbTriggered && la.AFlags&kop.AfLatent != 0 && la.Trig.Event == kop.TrigDamageDone && la.Trig.Zone == kop.ZoneCommand {
-						o := s.g.embO[pp][i]
+						o := s.embObj(pp, i)
 						if st := DebugEffEOTTrigStats; st != nil {
 							st.DmgFires++
 							if amt > 1 {
@@ -182,19 +182,19 @@ func (s *State) emblemAtkListeners(k *prep, f func(l trigListener, a *kop.Abilit
 	}
 	for pp := uint8(0); pp < 2; pp++ {
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
-			e := &k.t.Emblems[s.g.emb[pp][i]-1]
+			e := &k.t.Emblems[s.embIdx(pp, i)-1]
 			for j := range e.Abilities {
 				ea := &e.Abilities[j]
 				if ea.Kind != kop.AbTriggered || ea.Trig.Event != kop.TrigAttacks && !(ea.Trig.Event == kop.TrigAttackersDeclared && ea.Trig.Flags2&kop.Tf2DefPlayer != 0) {
 					continue
 				}
-				c := s.g.embC[pp][i]
+				c := s.embCard(pp, i)
 				cd := &k.t.Cards[c]
 				for ab := range cd.Abilities {
 					la := &cd.Abilities[ab]
 					if la.Kind == kop.AbTriggered && la.AFlags&kop.AfLatent != 0 && la.Trig.Event == ea.Trig.Event && la.Trig.Zone == kop.ZoneCommand {
 						n0 := s.npend
-						f(trigListener{obj: s.g.embO[pp][i], sl: NoSlot, ctrl: pp, card: c, ab: uint8(ab)}, la)
+						f(trigListener{obj: s.embObj(pp, i), sl: NoSlot, ctrl: pp, card: c, ab: uint8(ab)}, la)
 						for x := n0; x < s.npend; x++ {
 							s.pend[x].srcVer++ // the emblem's creator left its zone: the entry carries the version after it
 						}

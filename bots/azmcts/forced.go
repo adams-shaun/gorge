@@ -39,7 +39,7 @@ func selectForced(nd *node, pt *Point, opts Options, st *Stats) *edge {
 		if !hasKey(pt.Keys, kid.key) || float64(kid.n) >= forcedVisits(opts.ForcedK, kid.prior, total) {
 			continue
 		}
-		if s := edgeScore(kid, parentQ, pt.Opp, opts); best == nil || s > bestScore {
+		if s := edgeScore(kid, parentQ, pt.Opp, -1, opts); best == nil || s > bestScore {
 			best, bestScore = kid, s
 		}
 	}

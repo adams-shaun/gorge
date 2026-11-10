@@ -41,8 +41,8 @@ func (lc *lowerCtx) sameNameT0Filter() (*lFilter, error) {
 
 // Two ChangeZoneAll ChangeType$ spellings of "the target and every other
 // card with its name". The graveyard one (Rat King, Verminister) lowers to
-// one PredSameNameT0 card clause; the Legions to Ashes one also needs
-// ControlledBy TargetedController, which the kernel's filters do not read.
+// one PredSameNameT0 card clause; the Legions to Ashes one is the battlefield
+// token sweep (sameNameT0TokenFilter).
 const (
 	czaSameNameGrave  = "TargetedCard.Self,Card.NotDefinedTargeted+sharesNameWith Targeted"
 	czaSameNameTokens = "TargetedCard.Self,Card.NotDefinedTargeted+token+sharesNameWith Targeted+ControlledBy TargetedController"
@@ -55,7 +55,7 @@ func (lc *lowerCtx) changeZoneAllFilter(ps *params) (*lFilter, error) {
 	case czaSameNameGrave:
 		return lc.sameNameT0CardFilter(ps)
 	case czaSameNameTokens:
-		return nil, refuse("ChangeZoneAll same-name tokens ControlledBy TargetedController")
+		return lc.sameNameT0TokenFilter(ps)
 	default:
 		return lc.filter(ct)
 	}
@@ -80,6 +80,44 @@ func (lc *lowerCtx) sameNameT0CardFilter(ps *params) (*lFilter, error) {
 	ps.consume("Defined")
 	f.Clauses[0].CmpStat = cmpSameNameT0
 	return f, nil
+}
+
+// sameNameT0TokenFilter lowers czaSameNameTokens (Legions to Ashes): a
+// battlefield sweep taking target 0 itself and every token with its name that
+// the target's controller controls, as two OR'd clauses: A is Permanent
+// targetedBy (the spell's one target), B is Permanent.token+OppCtrl reading
+// PredSameNameT0 (the target, or a permanent with its name; State.sameNameT0).
+//
+// "ControlledBy TargetedController" is OppCtrl only under this gate: dirac is
+// a two-player engine, the one target is an opponent-controlled permanent
+// (every clause of its ValidTgts reads OppCtrl), and the spell resolves only
+// while that target is legal (CR 608.2b), so its controller is then the
+// caster's opponent. The sweep collects its whole match mask before it moves
+// anything (czallBattleHalf), so the target is still on the battlefield while
+// every candidate is matched.
+func (lc *lowerCtx) sameNameT0TokenFilter(ps *params) (*lFilter, error) {
+	const word = "same-name tokens ControlledBy TargetedController"
+	if strings.TrimSpace(ps.str("Origin")) != "Battlefield" || ps.peek("Defined") != "" {
+		return nil, refuse("%s beyond a battlefield sweep", word)
+	}
+	if len(lc.ab.Targets) != 1 || lc.ab.Targets[0].F == nil || lc.ab.Targets[0].F.Players != 0 || len(lc.ab.Targets[0].F.Clauses) == 0 {
+		return nil, refuse("%s without one opponent-controlled target", word)
+	}
+	for _, c := range lc.ab.Targets[0].F.Clauses {
+		if c.Ctrl != whoOpp {
+			return nil, refuse("%s without one opponent-controlled target", word)
+		}
+	}
+	a, err := lc.filter("Permanent.targetedBy")
+	if err != nil || len(a.Clauses) != 1 {
+		return nil, refuse("%s: Permanent.targetedBy", word)
+	}
+	b, err := lc.filter("Permanent.token+OppCtrl")
+	if err != nil || len(b.Clauses) != 1 {
+		return nil, refuse("%s: Permanent.token+OppCtrl", word)
+	}
+	b.Clauses[0].CmpStat = cmpSameNameT0
+	return &lFilter{Clauses: []lClause{a.Clauses[0], b.Clauses[0]}}, nil
 }
 
 // ownerRoleF2 reads an Owner role (OwnedBy TriggeredDefendingPlayer, OwnedBy

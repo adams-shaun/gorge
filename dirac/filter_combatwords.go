@@ -403,10 +403,10 @@ func (s *State) hostLeft(k *prep, o Obj) {
 		})
 		s.refreshTy(k)
 	}
-	for p := 0; p < 2; p++ {
+	for p := uint8(0); p < 2; p++ {
 		var drop uint8
 		for i := 0; i < int(s.g.nemb[p]); i++ {
-			if k.t.Emblems[s.g.emb[p][i]-1].HostBound() && s.g.embO[p][i] == o {
+			if k.t.Emblems[s.embIdx(p, i)-1].HostBound() && s.embObj(p, i) == o {
 				drop |= 1 << uint(i)
 			}
 		}
@@ -442,7 +442,7 @@ func (s *State) hostEmblemDone(e *stackEntry, p uint8, emb uint8) bool {
 		return true // CR 611.2b: its player no longer controls the host
 	}
 	for i := 0; i < int(s.g.nemb[p]); i++ {
-		if s.g.emb[p][i] == emb && s.g.embO[p][i] == e.obj {
+		if s.embIdx(p, i) == emb && s.embObj(p, i) == e.obj {
 			return true
 		}
 	}

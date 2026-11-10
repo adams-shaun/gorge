@@ -20,7 +20,7 @@ func (b *objBits) clr(o Obj)      { b[o/64] &^= 1 << (o % 64) }
 func (b *objBits) has(o Obj) bool { return b[o/64]&(1<<(o%64)) != 0 }
 
 // statSrc is one static ability in force: on a permanent (sl) or an
-// emblem (sl == NoSlot). emb is the emblem's handle (player<<3 | index+1,
+// emblem (sl == NoSlot). emb is the emblem's handle (player<<4 | index+1,
 // 0 = not an emblem), the key into State.g.embN.
 type statSrc struct {
 	a    *kop.Ability
@@ -52,12 +52,12 @@ func (s *State) eachStatic(k *prep, f func(st statSrc) bool) {
 	}
 	for pp := uint8(0); pp < 2; pp++ {
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
-			e := &k.t.Emblems[s.g.emb[pp][i]-1]
+			e := &k.t.Emblems[s.embIdx(pp, i)-1]
 			sl, obj := NoSlot, NoObj
 			if e.HostBound() {
 				// a host-bound emblem reads its host as the source
 				// (filter_combatwords.go)
-				if obj = s.g.embO[pp][i]; s.objs[obj].zone != kop.ZoneBattlefield {
+				if obj = s.embObj(pp, i); s.objs[obj].zone != kop.ZoneBattlefield {
 					continue
 				}
 				sl = s.objs[obj].slot
@@ -65,7 +65,7 @@ func (s *State) eachStatic(k *prep, f func(st statSrc) bool) {
 			for j := range e.Abilities {
 				a := &e.Abilities[j]
 				if a.Kind == kop.AbStatic {
-					if !f(statSrc{a: a, sl: sl, ctrl: pp, obj: obj, emb: pp<<3 | uint8(i+1)}) {
+					if !f(statSrc{a: a, sl: sl, ctrl: pp, obj: obj, emb: pp<<4 | uint8(i+1)}) {
 						return
 					}
 				}
@@ -146,7 +146,7 @@ func (s *State) lossAt(k *prep, sl Slot) (ts uint16, lost bool) {
 
 // grantTs is the layer timestamp of a static ability's grant: its source
 // permanent's, or when the emblem statSrc names, the effect's CR 613.7
-// timestamp recorded when it was created (State.g.embT). An emblem is a
+// timestamp recorded when it was created (State.g.embT and the cold records). An emblem is a
 // continuous effect created at resolution (gorge's AddContinuous ClockTick),
 // so it is newer than every effect that was already on the battlefield when
 // it entered -- and older than one that comes later.
@@ -155,8 +155,8 @@ func (s *State) grantTs(st statSrc) uint16 {
 		return s.layerTs(st.sl)
 	}
 	if st.emb != 0 {
-		if p, i := st.emb>>3, st.emb&7; p < 2 && i > 0 && i <= maxEmb {
-			return s.g.embT[p][i-1]
+		if p, i := st.emb>>4, int(st.emb&15); p < 2 && i > 0 && i <= int(s.g.nemb[p]) {
+			return s.embStamp(p, i-1)
 		}
 	}
 	return 0

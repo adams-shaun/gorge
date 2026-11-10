@@ -30,6 +30,18 @@ func damageReplacementPrevents(r cards.Repl) bool {
 	return r.With != nil && r.With.API == "ReplaceDamage"
 }
 
+// damageReplacementPreventsWithRider reports the "prevent that damage and
+// <rider>" shape (PreventionEffect$ True with a ReplaceWith$ body that is not
+// itself a prevention, The Mindskinner). Under a can't-prevent effect CR
+// 615.12 drops the prevention but keeps the rider: the body runs and the
+// held damage event stands.
+func damageReplacementPreventsWithRider(r cards.Repl) bool {
+	// Exact "True": every corpus line spells it so (the strings ratchet
+	// admits no new fold call here).
+	return r.ParamStr(cards.PKPreventionEffect) == "True" &&
+		!damageReplacementPrevents(r) && r.With != nil
+}
+
 func (e *Engine) applicableDamageReplacements(ev events.Event, matches []replMatch) []replMatch {
 	out := matches[:0]
 	for _, m := range matches {
@@ -630,6 +642,10 @@ func (e *Engine) applyChosenDamageReplacement(ev *events.Event, m replMatch) boo
 		return e.applyReplaceSplitDamageBody(ev, m)
 	}
 	e.runReplaceWith(e.replCtx(m, *ev), ev.Obj, m.repl.With, ev)
+	if damageReplacementPreventsWithRider(*m.repl) && e.cantPreventDamage(e.inFlightDamageSource(), ev.Obj) {
+		// CR 615.12: the rider ran, the damage still stands.
+		return false
+	}
 	return m.repl.With.API != "ReplaceEffect"
 }
 

@@ -165,6 +165,11 @@ func (s *State) genViewHash(h uint64) uint64 {
 	h = hbytes(h, unsafe.Pointer(&g.embO[0]), uintptr(len(g.embO))*unsafe.Sizeof(g.embO[0]))
 	h = hbytes(h, unsafe.Pointer(&g.embN[0]), uintptr(len(g.embN))*unsafe.Sizeof(g.embN[0])) // the frozen chosen number
 	h = hbytes(h, unsafe.Pointer(&g.embT[0]), uintptr(len(g.embT))*unsafe.Sizeof(g.embT[0])) // the layer timestamp
+	for p := uint8(0); p < MaxSeats; p++ {
+		if live := s.embColdLive(p); len(live) > 0 {
+			h = hbytes(h, unsafe.Pointer(&live[0]), uintptr(len(live))*unsafe.Sizeof(live[0])) // emblems past maxEmb
+		}
+	}
 	h = hmix(h, uint64(g.nemb[0])|uint64(g.nemb[1])<<8|uint64(g.died)<<16|uint64(g.attacked[0])<<24|
 		uint64(g.attacked[1])<<32|uint64(g.nused)<<40|uint64(g.oppAtt)<<48)
 	if g.spent != [MaxSeats]uint16{} || g.hist != [MaxSeats][3]uint8{} {
