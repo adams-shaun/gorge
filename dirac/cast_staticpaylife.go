@@ -36,11 +36,35 @@ func (s *State) FeatMayPayLifeCast(p uint8, o Obj) bool {
 	return found
 }
 
-// StallPayLifeShared: a pay-life library static and a second play permission
-// admit the same card (Gwenom's emblem beside Madame Web, Clairvoyant). gorge
-// offers two casts there, the plain one paying mana and the alternative paying
-// life (AltCostIndex 1); the kernel joins the permissions into one offer, so
-// the game stalls loudly rather than let the cast skip both payments.
+// StallPayLifeShared: a pay-life library static and a different play
+// permission admit the same card (Gwenom's emblem beside Madame Web,
+// Clairvoyant). gorge offers two casts there, the plain one paying mana and
+// the alternative paying life (AltCostIndex 1); the kernel joins the
+// permissions into one offer, so the game stalls loudly rather than let the
+// cast skip both payments. Pay-life statics alone (Gwenom's emblem twice,
+// Peter Parker's Camera copying its trigger) stall nowhere: gorge lists one
+// life alternative per Effect and fanPayLifeAlts offers one cast each.
 const StallPayLifeShared = 153
 
 func init() { stallNames[StallPayLifeShared] = "paylifeshared" }
+
+// payLifeAltMax bounds the pay-life alternatives offered apart: the canonical
+// alternative-cost index is a nibble (canon/translate.go).
+const payLifeAltMax = 15
+
+// fanPayLifeAlts turns the one cast offerPlay added at d.Options[n0] into
+// alts casts, targets 1..alts: the 1-based AltCostIndex of gorge's option for
+// each pay-life Effect (CR 118.9). All cost the same life, so the one
+// affordability check stands for each; a land's play-land option stays single
+// (an alternative cost applies to a spell). The apply side ignores the target
+// of a may-play cast.
+func fanPayLifeAlts(d *Decision, n0, alts int) {
+	if int(d.N) != n0+1 || d.Options[n0].Kind() != AkCast {
+		return
+	}
+	a := d.Options[n0]
+	d.Options[n0] = MakeAction(AkCast, a.Source(), 1, a.Mode())
+	for i := 2; i <= alts; i++ {
+		d.add(MakeAction(AkCast, a.Source(), uint8(i), a.Mode()))
+	}
+}
