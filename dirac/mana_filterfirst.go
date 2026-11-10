@@ -176,29 +176,36 @@ func (s *State) windowFiltFirst(k *prep, p uint8, sl Slot, useful *kop.ManaCost,
 	s.filtDo(k, p, filtStep{sl: sl, ans: uint8(1 + c), gap: true})
 }
 
-// windowFiltFirstFallback is windowFiltFirst for a cast's fallback window (a
-// PaymentFallback with no ManaPayment, altAddWindowTap): the ask carries no
-// owed pips, so it answers the lowest colour of the source, narrowed only
-// to what the clamp keeps once it has decided (windowUseful, gorge
+// windowFiltFirstFallback is windowFiltFirst for a window whose ask carries no
+// owed pips (a PaymentFallback with no ManaPayment: a cast's altAddWindowTap,
+// and every noOwed window that keeps a clamp: convoke, Spree, a lowered or free
+// cast, waterbend, pain): it answers the lowest colour of the source, narrowed
+// only to what the clamp keeps once it has decided (windowUseful, gorge
 // paymentUsefulColours). Gorge asks the colour after the fee is paid, so the
-// clamp reads the pool the fee leaves: an unsettled generic leaves every
-// colour listed, and Abzan Devotee's {W}{B}{G} answers {W} while a {B} pip is
-// still owed (CR 601.2g).
+// clamp reads the pool the fee leaves, spent as filtDo spends it (the
+// restricted batches the activation admits first, then the pool): an unsettled
+// generic leaves every colour listed, and Abzan Devotee's {W}{B}{G} answers {W}
+// while a {B} pip is still owed (CR 601.2g).
 func (s *State) windowFiltFirstFallback(k *prep, p uint8, sl Slot, useful *kop.ManaCost) {
 	mask := uint8(s.filtAb(k, sl).ManaColors)
-	pool := &s.pl[SeatIx(p)].pool
-	saved := *pool
-	if _, pip := s.filtPip(k, sl); !pip {
-		fee := s.filtFee(k, sl) // filtDo's order: generic in C W U B R G
-		for _, c := range [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G} {
-			for fee > 0 && pool[c] > 0 {
-				pool[c]--
+	var want uint8
+	var decided bool
+	if _, pip := s.filtPip(k, sl); pip {
+		want, decided = s.windowUseful(k, p, useful)
+	} else {
+		c := s.fork()
+		pool := &c.pl[SeatIx(p)].pool
+		fee := s.filtFee(k, sl)
+		fee -= c.filtFeeRestr(k, p, sl, fee) // filtDo's fee: restricted batches first
+		for _, col := range [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G} {
+			for fee > 0 && pool[col] > 0 {
+				pool[col]--
 				fee--
 			}
 		}
+		want, decided = c.windowUseful(k, p, useful)
+		s.unfork()
 	}
-	want, decided := s.windowUseful(k, p, useful)
-	*pool = saved
 	if decided && mask&want != 0 {
 		mask &= want
 	}
