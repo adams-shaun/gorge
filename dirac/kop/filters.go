@@ -128,6 +128,16 @@ type Filter struct {
 	// the restricted-mana pool matches it against a special action's paid
 	// object. 0 for every ordinary card filter.
 	Special SpecialMask
+	// PickSumMax caps the total printed mana value of the cards a pick has
+	// chosen: a candidate fits only while the picked cards' values plus its
+	// own stay at most N (WithTotalCMC$). VConst with N = 0 is the zero
+	// Filter's "no cap"; kgen refuses a zero budget, so a cap is positive.
+	// Table data read by State.pickFits (dirac/zone_each.go), not State.
+	PickSumMax ValueRef
+	// PickDistinctPower requires a picked card's printed power to differ
+	// from every card already picked (WithDifferentPowers$). False is the
+	// zero Filter's "no requirement".
+	PickDistinctPower bool
 }
 
 // SpecialMask is a set of CR 116.2 special actions a RestrictValid$ Static.*

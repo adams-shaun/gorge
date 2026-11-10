@@ -456,7 +456,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		f := s.prog(k)[r.pc].F
 		for i := 0; i < int(s.g.nlook); i++ {
 			o := s.resArm().look[i]
-			if s.g.lookSel&(1<<i) == 0 && s.matchCardGen(k, f, s.objs[o].card, s.objs[o].owner(), r.e.ctrl, o) {
+			if s.g.lookSel&(1<<i) == 0 && s.matchCardGen(k, f, s.objs[o].card, s.objs[o].owner(), r.e.ctrl, o) && s.pickFits(k, f, o, true) {
 				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
 			}
 		}
@@ -1660,7 +1660,7 @@ func (s *State) searchCands(k *prep, d *Decision) {
 		if s.picksHas(o) {
 			continue
 		}
-		if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) {
+		if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) && s.pickFits(k, in.F, o, false) {
 			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
 		}
 	}
@@ -2012,7 +2012,7 @@ func (s *State) digHasPick(k *prep) bool {
 	f := s.prog(k)[s.res.pc].F
 	for i := 0; i < int(s.g.nlook); i++ {
 		o := s.resArm().look[i]
-		if s.g.lookSel&(1<<i) == 0 && s.matchCardGen(k, f, s.objs[o].card, s.objs[o].owner(), s.res.e.ctrl, o) {
+		if s.g.lookSel&(1<<i) == 0 && s.matchCardGen(k, f, s.objs[o].card, s.objs[o].owner(), s.res.e.ctrl, o) && s.pickFits(k, f, o, true) {
 			return true
 		}
 	}

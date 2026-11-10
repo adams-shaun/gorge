@@ -355,6 +355,10 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-mkm", "unless_addcounter_sanctuary_wall", full},                           // Sanctuary Wall's tap ability pays the stun counter on its target, and the body puts the second stun counter on the Wall
 		{"custom", "counted_proliferate_planeswalker_types", full},                      // Tam, the Possibility proliferates once per planeswalker type among its controller's planeswalkers (two Ajanis count once, CR 205.3j) and Tromell, Seymour's Butler once per nontoken creature that entered under you this turn: each a fresh proliferate ask, none at zero (CR 701.34a)
 		{"custom", "tannuk_steadfast_second_hand_warp_grant", full},                     // Tannuk, Steadfast Second on the battlefield: an artifact or red creature card in hand is warp-cast at {2}{R}, exiled at the next end step and recast from exile on a later turn, the grant read live (CR 702.185a)
+		{"std-otj", "lively_dirge_hidden_pick_total_cmc", full},                         // Lively Dirge's Spree return mode takes creature cards whose printed mana values total 4 or less from the graveyard into one hidden pick: the running sum limits the second card to a 1-drop
+		{"std-tmt", "michelangelos_technique_dig_total_cmc"},                            // Michelangelo's Technique looks at eight and takes creature cards whose total mana value is 6 or less: the bound narrows the second pick as the first sums in
+		{"std-dsk", "rip_spawn_hunter_dig_distinct_powers"},                             // Rip, Spawn Hunter's Dig takes creature and Vehicle cards with pairwise different powers: a second card of a power already taken is not offered
+		{"custom", "ao_the_dawn_sky_dig_total_cmc", full},                               // Ao, the Dawn Sky's dies trigger takes nonland permanents with total mana value 4 or less: the bound rides the pick filter's head, not the instruction
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {

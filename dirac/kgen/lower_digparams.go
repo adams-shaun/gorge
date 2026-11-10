@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"strconv"
 	"strings"
 )
 
@@ -84,4 +85,62 @@ func (lc *lowerCtx) digImprint(ps *params, dest int, take lValue) (bool, error) 
 		}
 	}
 	return false, nil
+}
+
+// pickTotalCMC reads WithTotalCMC$: a cumulative printed-mana-value budget
+// over the cards a pick takes (gorge effDig's and effHiddenPick's MaxSum).
+// The kernel carries the bound in the pick filter's head
+// (kop.Filter.PickSumMax), so it must be a positive constant; an SVar or X
+// value refuses by name. The distinct-name walks own their own pick-set
+// state, so the parameter refuses beside DifferentNames$.
+func pickTotalCMC(ps *params) (lValue, bool, error) {
+	v, ok := ps.get("WithTotalCMC")
+	if !ok {
+		return lValue{}, false, nil
+	}
+	if _, bad := ps.m["DifferentNames"]; bad {
+		return lValue{}, false, refuse("WithTotalCMC$ beside DifferentNames$")
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(v))
+	if err != nil || n <= 0 {
+		return lValue{}, false, refuse("WithTotalCMC$ %q is not a positive constant", v)
+	}
+	return cst(n), true, nil
+}
+
+// digDifferentPowers reads Dig's WithDifferentPowers$ True: the take must
+// have pairwise different printed powers (gorge digGreedyTake /
+// digSetOptionPowers). The flag rides the pick filter's head
+// (kop.Filter.PickDistinctPower); the distinct-name walk is not advised of
+// it, so it refuses beside DifferentNames$.
+func digDifferentPowers(ps *params) (bool, error) {
+	v, ok := ps.get("WithDifferentPowers")
+	if !ok {
+		return false, nil
+	}
+	if _, bad := ps.m["DifferentNames"]; bad {
+		return false, refuse("WithDifferentPowers$ beside DifferentNames$")
+	}
+	if strings.TrimSpace(v) != "True" {
+		return false, refuse("Dig WithDifferentPowers$ %q", v)
+	}
+	return true, nil
+}
+
+// pickConstraintFilter puts the read constraints on a pick's filter head,
+// creating the match-all clause a lone bound needs (a Dig with no
+// ChangeValid$). A pick with neither constraint keeps its filter.
+func pickConstraintFilter(f *lFilter, budget lValue, hasBudget, distinct bool) *lFilter {
+	if !hasBudget && !distinct {
+		return f
+	}
+	if f == nil {
+		f = &lFilter{Clauses: []lClause{{}}}
+	}
+	if hasBudget {
+		b := budget
+		f.PickSumMax = &b
+	}
+	f.PickDistinctPower = distinct
+	return f
 }

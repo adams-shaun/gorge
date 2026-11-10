@@ -1148,6 +1148,16 @@ func (cb *cardBuilder) filterZones(f *lFilter, zones []kop.Zone) (kop.FilterID, 
 		}
 		kf.Or = next
 		kf.Each = f.Each && i == 0
+		if i == 0 && f.PickSumMax != nil {
+			// the pick-set bound rides the head clause (kop.Filter.PickSumMax;
+			// WithTotalCMC$, kernel State.pickFits)
+			if kf.PickSumMax, err = cb.value(*f.PickSumMax); err != nil {
+				return 0, err
+			}
+		}
+		if i == 0 {
+			kf.PickDistinctPower = f.PickDistinctPower
+		}
 		if kf.Flags2&kop.F2SameNameAsSource != 0 || kf.Pred == kop.PredNamed {
 			cb.out.readsName = true
 		}

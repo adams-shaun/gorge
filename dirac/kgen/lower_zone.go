@@ -508,6 +508,14 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					return refuse("ChangeZone Optional$ %q", opt)
 				}
 			}
+			// WithTotalCMC$ is the same cumulative budget a Dig reads; it
+			// rides the pick filter's head (kop.Filter.PickSumMax) and the
+			// kernel sums the hidden pick's chosen cards (State.pickFits).
+			budget, hasBudget, err := pickTotalCMC(ps)
+			if err != nil {
+				return err
+			}
+			f = pickConstraintFilter(f, budget, hasBudget, false)
 			cs := "from=Graveyard|" + strings.Join(flags, "|")
 			if counterKind != "" && dest == zBattlefield {
 				cs += "|counters=" + counterKind
@@ -1185,6 +1193,17 @@ func (lc *lowerCtx) dig(ps *params) error {
 			return err
 		}
 	}
+	// WithTotalCMC$/WithDifferentPowers$ ride the pick filter's head; the
+	// kernel narrows the candidates and the running take (State.pickFits).
+	budget, hasBudget, err := pickTotalCMC(ps)
+	if err != nil {
+		return err
+	}
+	distinct, err := digDifferentPowers(ps)
+	if err != nil {
+		return err
+	}
+	in.F = pickConstraintFilter(in.F, budget, hasBudget, distinct)
 	if lp, ok := ps.get("LibraryPosition"); ok {
 		if dest != zLibrary && dest2 != zLibrary {
 			return refuse("LibraryPosition without a library destination")
