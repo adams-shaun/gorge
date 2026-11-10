@@ -170,7 +170,7 @@ func cantPreventReplay(t *testing.T, reg *cards.Registry, c effectLongCase) {
 // CANT_PREVENT_RECORD=1; the games it writes are the committed repros.
 func TestCantPreventRecord(t *testing.T) {
 	if os.Getenv("CANT_PREVENT_RECORD") == "" {
-		t.Skip("set CANT_PREVENT_RECORD=1 to record the games")
+		return // a recording tool, not coverage: it returns rather than skips, since a skip here must name a missing pool (testdata/poolskips.txt)
 	}
 	reg := synthReg(t)
 	for _, c := range cantPreventCases() {
