@@ -668,6 +668,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if k.embComb && s.idemEmblemHeld(k, p, uint8(in.C)+1) {
 			break // static_emblemcombat.go
 		}
+		if k.t.Emblems[in.C].NotHere && s.hostHere(e) {
+			break // a registration made with its host on the battlefield ends with it (kop.Emblem.NotHere)
+		}
 		if n := int(s.g.nemb[p]); n < s.embCap() {
 			s.g.embF[p] &^= 1 << n // a new emblem has begun no turn yet
 			r := embRec{idx: uint8(in.C) + 1, c: e.card, obj: e.obj}
@@ -679,6 +682,12 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				r.num = 0
 				if o := s.objRefObj(cr); o != NoObj {
 					r.num = uint8(o) + 1
+				}
+			}
+			if em := &k.t.Emblems[in.C]; em.Capture2 != kop.RefNone || em.CaptureRem {
+				if !s.embRemFill(em, &r) { // static_emblemrem.go
+					s.capFull(StallEmbRem)
+					break
 				}
 			}
 			s.embPut(p, n, r)

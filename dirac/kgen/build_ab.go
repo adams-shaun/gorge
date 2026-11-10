@@ -71,12 +71,20 @@ func (cb *cardBuilder) abilities() error {
 		ke.UntilNextTurn = e.UntilNextTurn
 		ke.WhileHost = e.WhileHost
 		ke.CaptureLapse = e.CaptureLapse
+		ke.CaptureRem, ke.Source, ke.NumAmount, ke.Once, ke.NotHere = e.CaptureRem, e.Source, e.NumAmount, e.Once, e.NotHere
 		if e.CaptureSet {
 			r, err := cb.ref(e.Capture)
 			if err != nil {
 				return bfail(cb.node, "%v", err)
 			}
 			ke.Capture = r
+		}
+		if e.Capture2Set {
+			r, err := cb.ref(e.Capture2)
+			if err != nil {
+				return bfail(cb.node, "%v", err)
+			}
+			ke.Capture2 = r
 		}
 		for _, s := range e.Statics {
 			ka, add, err := cb.static(s)
@@ -3870,6 +3878,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+	case "ExileEmbRem":
+		// OpExt ExtExileEmbRem over the firing emblem's remembered set (lower_effectremember.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtExileEmbRem))
 	case "SacrificeDelayed":
 		// OpExt ExtSacDelayed over the group's survivors
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtSacDelayed))

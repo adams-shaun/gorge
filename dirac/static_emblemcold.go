@@ -14,14 +14,15 @@ const maxEmbCold = 4
 // maxEmbTotal is the most emblems one player can hold.
 const maxEmbTotal = maxEmb + maxEmbCold
 
-// embRec is one emblem past maxEmb, the same five fields genState keeps for
-// the first maxEmb: the Emblems index+1, the creating card and its object,
-// the frozen chosen number and the layer timestamp.
+// embRec is one emblem past maxEmb, the same fields genState keeps for the
+// first maxEmb: the Emblems index+1, the creating card and its object, the
+// frozen chosen number, the layer timestamp and the remembered slots 1..3
+// (object + 1; static_emblemrem.go).
 type embRec struct {
 	idx uint8
 	obj Obj
 	num uint8
-	_   uint8
+	rem [embRemSlots - 1]uint8
 	c   CardID
 	t   uint16
 }
@@ -107,13 +108,20 @@ func (s *State) embStamp(p uint8, i int) uint16 {
 
 // embGet is player p's emblem i as a record.
 func (s *State) embGet(p uint8, i int) embRec {
-	return embRec{idx: s.embIdx(p, i), obj: s.embObj(p, i), num: s.embNum(p, i), c: s.embCard(p, i), t: s.embStamp(p, i)}
+	r := embRec{idx: s.embIdx(p, i), obj: s.embObj(p, i), num: s.embNum(p, i), c: s.embCard(p, i), t: s.embStamp(p, i)}
+	for j := range r.rem {
+		r.rem[j] = s.embRemGet(p, i, j+1)
+	}
+	return r
 }
 
 // embPut sets player p's emblem i.
 func (s *State) embPut(p uint8, i int, r embRec) {
 	if i < maxEmb {
 		s.g.emb[p][i], s.g.embC[p][i], s.g.embO[p][i], s.g.embN[p][i], s.g.embT[p][i] = r.idx, r.c, r.obj, r.num, r.t
+		for j, v := range r.rem {
+			s.embRemSet(p, i, j+1, v)
+		}
 		return
 	}
 	*s.embRecAt(p, i) = r

@@ -50,8 +50,8 @@ func (s *State) embCaptureLapse(k *prep, o Obj) {
 			continue
 		}
 		for i := 0; i < int(s.g.nemb[p]); i++ {
-			if e := &k.t.Emblems[s.embIdx(p, i)-1]; e.CaptureLapse && s.embNum(p, i) == uint8(o)+1 {
-				s.embSetNum(p, i, 0)
+			if e := &k.t.Emblems[s.embIdx(p, i)-1]; e.CaptureLapse {
+				s.embRemDrop(p, i, o) // every slot naming o (static_emblemrem.go)
 			}
 		}
 	}

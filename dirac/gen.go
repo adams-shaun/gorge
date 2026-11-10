@@ -1967,6 +1967,8 @@ type genState struct {
 	nul     uint8
 	dmk     [dmkBytes]uint8 // per-player damage-doubling marks, a bit per (controller, player) (repl_dmgmark.go)
 	rsv     [rsvN]uint8
+	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
+	embX [MaxSeats][maxEmb][embRemSlots - 2]uint8
 }
 
 const (
@@ -1974,7 +1976,7 @@ const (
 	// rsvN pads the reserved block to 80 bytes (genState's 5 bytes of tail
 	// padding absorb the rest of the alignment): 64, plus the 16 that carry
 	// State's growth for MaxObj 236 to a multiple of 64 so perms keeps its phase.
-	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 2 - MaxSeats*kop.NumManaKinds - ulBytes - dmkBytes
+	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2))
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).

@@ -46,6 +46,12 @@ func (s *State) fireEmblemsObj(k *prep, ev kop.TrigEvent, evSl Slot, evObj Obj) 
 				if ea.Kind != kop.AbTriggered || ea.Trig.Event != ev {
 					continue
 				}
+				if e.Capture != kop.RefNone && !s.embRemHolds(pp, i, evObj) {
+					continue // the trigger's ValidCard$ ...IsRemembered (static_emblemrem.go)
+				}
+				if e.Source && s.embObj(pp, i) != evObj {
+					continue // ValidCard$ Card.EffectSource: the object that made the emblem
+				}
 				if ea.Trig.Filter != 0 && !s.matchPermGen(k, ea.Trig.Filter, evSl, pp, NoSlot, layerFull) {
 					continue
 				}
@@ -55,7 +61,11 @@ func (s *State) fireEmblemsObj(k *prep, ev kop.TrigEvent, evSl Slot, evObj Obj) 
 					la := &cd.Abilities[ab]
 					if la.Kind == kop.AbTriggered && la.AFlags&kop.AfLatent != 0 && la.Trig.Event == ev && la.Trig.Zone == kop.ZoneCommand {
 						o := s.embObj(pp, i)
+						n0 := s.npend
 						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, evObj, s.perms[evSl].ctrl, 0)
+						if e.CaptureRem && s.npend > n0 {
+							s.embRemCarry(pp, i, &s.pend[n0]) // trig_emblemrem.go
+						}
 						break
 					}
 				}

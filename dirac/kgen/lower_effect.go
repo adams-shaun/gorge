@@ -602,6 +602,9 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 	if err := lc.notPresentAsPresent(ps); err != nil { // lower_condnotpresent.go
 		return lCond{}, err
 	}
+	if c, ok, err := lc.effectPairCondition(ps); ok || err != nil { // lower_effectremember.go
+		return c, err
+	}
 	if cp, ok := ps.get("ConditionPresent"); ok {
 		if d, ok := ps.get("ConditionDefined"); ok && strings.TrimSpace(d) == "Collected" {
 			return lc.collectedCondition(ps, cp) // lower_collectedevidence.go

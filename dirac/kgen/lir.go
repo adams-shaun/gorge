@@ -1043,6 +1043,21 @@ type lEmblem struct {
 	// CaptureLapse: the capture ends when the object leaves the battlefield
 	// (ForgetOnMoved$ / ExileOnMoved$ Battlefield; kop.Emblem.CaptureLapse)
 	CaptureLapse bool
+	// Capture2: the second target slot an Effect remembers beside Capture
+	// (T'Pring: RememberObjects$ Targeted over both fighters; kop.Emblem.Capture2)
+	Capture2    lRef
+	Capture2Set bool
+	// CaptureRem: the emblem remembers the resolution's remembered set
+	// (RememberObjects$ RememberedLKI; kop.Emblem.CaptureRem)
+	CaptureRem bool
+	// Source: the trigger fires for the emblem's own creator (ValidCard$
+	// Card.EffectSource; kop.Emblem.Source)
+	Source bool
+	// NotHere: made only while the host is off the battlefield (kop.Emblem.NotHere)
+	NotHere bool
+	// NumAmount and Once: the frozen number rides the trigger as its amount,
+	// and the emblem ends after it fires once (OneOff$ True)
+	NumAmount, Once bool
 }
 
 type refusal struct {

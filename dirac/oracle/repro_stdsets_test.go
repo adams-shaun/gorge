@@ -381,6 +381,14 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-tmt", "manhole_missile_hand_to_bottom"},                                   // Manhole Missile's optional hand-to-library move with LibraryPosition$ -1 puts the picked card at the bottom and remembers it, so the gated draw happens (gorge handLibraryTail)
 		{"std-dsk", "winter_opponent_max_hand_size_delirium"},                           // Winter, Misanthropic Guide with delirium: the opponent's maximum hand size is seven minus the card types in Winter's controller's graveyard, so the opponent discards down to it at cleanup
 		{"std-dsk", "rip_spawn_hunter_second_pick_repeated_power", full},                // Rip, Spawn Hunter's Dig after a first take: a card whose power was already taken is not offered again, so only Done remains
+		// The Eagles Are Coming! returns a creature, and the Effect's next-upkeep trigger makes a Bird Soldier for it: the Effect's remembered count rides the trigger (CR 603.7)
+		{"custom", "effect_trig_remember_eagles_bird_per_returned_creature"},
+		// T'Pring, Never Parted makes two creatures fight, and the Effect draws a card for each that dies this turn (CR 603.7, 701.14)
+		{"custom", "effect_trig_remember_tpring_draws_when_a_fighter_dies"},
+		// Mysterio, Master of Illusion dies with its Illusion tokens out: gorge's Effect registration ends with the source, so the leave trigger never exiles them (CR 603.7)
+		{"custom", "effect_trig_remember_mysterio_tokens_stay_when_it_dies"},
+		// Mysterio dies with its enters trigger on the stack, returns, and dies again: the registration made while it was gone exiles the token it remembered (CR 603.7, 400.7)
+		{"custom", "effect_trig_remember_mysterio_exiles_tokens_of_a_registration_made_after_it_left"},
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {

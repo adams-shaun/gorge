@@ -632,6 +632,12 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			// size (the fire-time capture excluded; the kernel seeds none).
 			// S marks the ctx-only read for refuseCtxRememberedCount.
 			v = lValue{Kind: vRememberedCount, S: "ctx"}
+			if lc.effCount {
+				// an Effect trigger's body (The Eagles Are Coming!): the set's
+				// size the Effect froze, which the emblem carries as the
+				// trigger amount (lower_effectremember.go)
+				v = lValue{Kind: vTriggerAmount}
+			}
 			break
 		}
 		if spec, ok := strings.CutPrefix(rest, "Valid "); ok {

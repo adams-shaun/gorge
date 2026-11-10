@@ -610,7 +610,7 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 			s.fireGraveDies(k, sl)
 		}
 	}
-	if !merged && s.subs[kop.TrigLeaves].any() {
+	if !merged && (s.subs[kop.TrigLeaves].any() || k.gen != nil && k.gen.embObjEv&(1<<kop.TrigLeaves) != 0) {
 		if k.gen != nil && k.gen.anyBatch {
 			s.fireLeavesBatched(k, sl, z)
 		} else {
