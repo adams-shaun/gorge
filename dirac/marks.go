@@ -434,7 +434,7 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 			h = hbytes(h, unsafe.Pointer(s.roBody()), unsafe.Sizeof(replBody{}))
 			h = hbytes(h, unsafe.Pointer(&s.combatArm().divAmt), unsafe.Sizeof(s.combatArm().divAmt))
 		}
-		h = hbytes(h, unsafe.Pointer(&g.may[0]), uintptr(g.nmay)*unsafe.Sizeof(g.may[0]))
+		h = hbytes(h, unsafe.Pointer(&g.may[0]), uintptr(min(int(g.nmay), maxMay))*unsafe.Sizeof(g.may[0]))
 		if cl := s.mayColdLive(); len(cl) > 0 {
 			h = hbytes(h, unsafe.Pointer(&cl[0]), uintptr(len(cl))*unsafe.Sizeof(cl[0]))
 		}

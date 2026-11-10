@@ -2,6 +2,7 @@ package dirac
 
 import (
 	"testing"
+	"unsafe"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -77,5 +78,16 @@ func TestMayCapCold(t *testing.T) {
 	s.mayAt(23).turn++
 	if s.DecisionHash(&d) == h {
 		t.Fatalf("a cold record's change left the hash alone")
+	}
+	// the hot records end at maxMay: the bytes after g.may (a dead
+	// delayed-program slot here) stay out of the hash however many cold
+	// records are live
+	h = s.DecisionHash(&d)
+	if s.g.ndp != 0 || int(s.g.nmay) <= maxMay {
+		t.Fatalf("precondition: %d live delayed programs, %d records; want 0 and past %d", s.g.ndp, s.g.nmay, maxMay)
+	}
+	*(*byte)(unsafe.Pointer(&s.g.dp[0])) ^= 0xff
+	if s.DecisionHash(&d) != h {
+		t.Fatalf("a dead delayed-program slot after the hot records moved the hash")
 	}
 }
