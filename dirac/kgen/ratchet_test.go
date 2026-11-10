@@ -114,7 +114,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Boommobile: an artifact's resolving mana restricted to activated abilities, kop.SpmActivated; the merge with land: land's 21792 + 1 = 21793, DFT 250 -> 251).
 	// +6 (a static's granted Exalted lowers as a latent Attacks trigger: First Sliver's Chosen, Merchant of Truth, Order of Sacred Dusk, Sublime Archangel, Xenk, Paladin Unbroken, Zarda, the Power Princess; ALL 21873 -> 21879).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21886, 34442},
+	"ALL": {21889, 34442},
 	"BIG": {23, 30},
 	"BLB": {258, 278},
 	"BRO": {210, 280},
@@ -138,11 +138,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SOS": {253, 270},
 	"SPM": {164, 192},
 	"TDM": {254, 276},
-	"TLA": {256, 285},
+	"TLA": {257, 285},
 	"TMT": {174, 194},
 	"TRC": {289, 337},
 	"TRK": {311, 311},
-	"WOE": {255, 281},
+	"WOE": {256, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory
