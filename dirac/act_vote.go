@@ -17,8 +17,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // The ballot is recomputed for each ask; nothing changes between the asks.
 
 // raVote is the vote ask. It sits past the ask families that offset from
-// raGenManifestDread (+1..+3, +40..+45, +50, +60, +61, +70..+76).
-const raVote = raGenManifestDread + 77
+// raGenManifestDread (+1..+3, +40..+45, +50, +60, +61, +70..+77).
+const raVote = raGenManifestDread + 78
 
 // voteBallot is the vote's candidates: the battlefield slots matching in.F
 // for the resolving controller.
