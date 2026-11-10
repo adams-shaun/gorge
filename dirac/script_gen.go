@@ -151,8 +151,7 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	// one-mana any/fixed-colour tap it adds (availFor's, which the plain walk
 	// leaves out: mana_tapsdefer.go)
 	for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
-		pc := s.manaPCGen(k, b.first())
-		a.addUnits(s.srcMaskAt(pc, b.first()), srcYield(pc))
+		s.addTapsDeferUnits(k, b.first(), a)
 	}
 	if k.ctrMana {
 		s.availCtr(k, p, a) // a counter-cost source (mana_countercost.go)

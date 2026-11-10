@@ -134,6 +134,24 @@ func tapsDeferColour(c kop.ColorMask) bool {
 	return c == kop.ColAny || c != 0 && c&^kop.ColAny == 0 && c&(c-1) == 0
 }
 
+// addTapsDeferUnits adds the census unit of the Taps-deferred gap at sl to a:
+// its own mana and the extra a StatTapExtra carrier brings with the tap
+// (Badgermole Cub; gorge's relaxed alternative carries it too,
+// potential_plan.go potentialTapExtra). A source the extra cannot be priced on
+// stalls (srcExtra).
+func (s *State) addTapsDeferUnits(k *prep, sl Slot, a *avail) {
+	pc := s.manaPCGen(k, sl)
+	a.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))
+	if k.gen.anyTapExtra {
+		xv := s.srcExtra(k, sl, pc)
+		for c := range xv {
+			if xv[c] > 0 {
+				a.addUnits(1<<c, xv[c])
+			}
+		}
+	}
+}
+
 // deferGapAnswers is how many colour answers a Taps-deferred gap's
 // activation poses: one per colour its production names (gorge's search
 // branches on the mana ask's options, manaChoiceColours W U B R G).
@@ -153,6 +171,7 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 	}
 	col := bits.TrailingZeros8(mask)
 	s.pl[p].pool[col]++
+	s.addExtra(k, p, sl, pc) // the tap's StatTapExtra mana floats beside it (addTapsDeferUnits)
 	s.artTag(k, p, sl, col)
 	if k.painMana && pc.painCol != 0 && pc.painOnly {
 		s.painDamage(k, sl, p, int(pc.painN)) // a pain-only source's rider resolves with its mana (Elves of Deep Shadow)
