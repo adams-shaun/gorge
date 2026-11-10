@@ -81,7 +81,8 @@ func (s *State) healMarked(sl Slot) {
 // the ask inside a damage event is not modelled.
 func (s *State) selfDamageCounters(k *prep, sl Slot, n int) {
 	kind := int(kop.CtrP1P1)
-	if k.gen.anyRepl&(rbCtrOn|rbPlusCtrEOT) != 0 {
+	// a prohibited placement (CantPutCounter) places nothing, so it asks no order
+	if k.gen.anyRepl&(rbCtrOn|rbPlusCtrEOT) != 0 && !s.putCounterBlocked(k, sl, kind) {
 		if c := s.ctrGather(k, sl, kind); c.ok && c.n == 2 && c.mixed() {
 			s.capFull(StallReplCtr)
 			return
@@ -93,7 +94,7 @@ func (s *State) selfDamageCounters(k *prep, sl Slot, n int) {
 	}
 	m := s.placeCounters(k, sl, kind, n, adder, ctrPutBy)
 	if m > 0 && k.anyCtrAdded {
-		s.ctrNote(k, sl, kind)
+		s.ctrNoteBy(k, sl, kind, adder) // the ledger's actor is the putter used above, not counterAdder()
 	}
 	s.g.lastCK = kop.CtrP1P1
 	if m > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
