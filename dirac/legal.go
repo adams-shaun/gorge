@@ -473,7 +473,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		if p.flags&pfTapped != 0 {
 			return false
 		}
-		if p.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 {
+		if s.activationSick(k, sl) {
 			return false
 		}
 	}
@@ -1536,7 +1536,7 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 	if k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 		return false
 	}
-	if ab.Cost.Flags&kop.CostTap != 0 && (pp.flags&pfTapped != 0 || pp.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0) {
+	if ab.Cost.Flags&kop.CostTap != 0 && (pp.flags&pfTapped != 0 || s.activationSick(k, sl)) {
 		return false
 	}
 	if ab.Trig.Cond != 0 && !s.condEval(k, ab.Trig.Cond, evalCtx{src: pp.obj, srcSl: sl, ctrl: pp.ctrl}) {

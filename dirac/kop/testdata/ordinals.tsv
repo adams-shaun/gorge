@@ -1091,12 +1091,14 @@ StackKwSplitSecond	int16	6
 StackKwStorm	int16	5
 StatAlternativeCost	StaticKind	5
 StatAnyTypeCreatures	StaticKind	239
+StatAsIfHaste	StaticKind	231
 StatBeamGrant	StaticKind	253
 StatCDAPT	StaticKind	10
 StatCanAttackDefender	StaticKind	250
 StatCantActivate	StaticKind	236
 StatCantAttack	StaticKind	8
 StatCantBeBeamedUp	StaticKind	244
+StatCantBeSuspected	StaticKind	230
 StatCantBeCast	StaticKind	16
 StatCantBlock	StaticKind	3
 StatCantBlockBy	StaticKind	4

@@ -875,6 +875,13 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	if m.Special != "" {
 		return fmt.Errorf("mana %s has no kop form", m.Special)
 	}
+	if m.RestrictAb != nil && m.Restrict == nil && !m.NonSpell {
+		// an activated-only restriction (Shang-Chi, Master of Kung Fu's
+		// RestrictValid$ Activated.Creature): its spell half matches no
+		// spell (the clause manaRestrict lowers Spell.isCastFaceDown to),
+		// so ManaRestrict marks the source restricted and pays no spell
+		m.Restrict = &lFilter{Clauses: []lClause{{NotTypes: tAnyCard}}}
+	}
 	if m.RestrictAb != nil && m.Restrict == nil {
 		return fmt.Errorf("mana spend restriction on activated abilities has no kop form")
 	}
@@ -1839,6 +1846,16 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "CantGainLife":
 		st.Kind = kop.StatCantGainLife
+	case "ActivateAbilityAsIfHaste":
+		st.Kind = kop.StatAsIfHaste // static_asifhaste.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+	case "CantBeSuspected":
+		st.Kind = kop.StatCantBeSuspected // act_suspect.go suspectOne
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 	case "ManaConvert":
 		st.Kind = kop.StatAnyTypeCreatures // lower_manaconvert.go
 	case "CantDraw":

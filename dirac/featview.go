@@ -460,7 +460,7 @@ func (s *State) FeatManaSources(p uint8) int {
 func (s *State) featManaActivatable(k *prep, sl Slot) bool {
 	pm := &s.perms[sl]
 	tapOK := pm.flags&pfTapped == 0 &&
-		!(pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0)
+		!(s.activationSick(k, sl))
 	if k.gen != nil && s.manaGranted(k, sl) {
 		return tapOK
 	}

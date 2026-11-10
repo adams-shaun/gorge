@@ -58,7 +58,7 @@ func (s *State) canTapForManaPC(k *prep, sl Slot, pc *pcard) bool {
 	if pc.manaAb < 0 || !(pc.manaTap || pc.manaSac) || p.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
 		return false
 	}
-	if p.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 {
+	if s.activationSick(k, sl) {
 		return false
 	}
 	return true

@@ -14,7 +14,7 @@ func (s *State) untapCostOK(k *prep, sl Slot) bool {
 	if p.flags&pfTapped == 0 {
 		return false
 	}
-	return p.flags&pfSick == 0 || !s.isCreature(k, sl) || s.kw(k, sl)&kop.KwHaste != 0
+	return !s.activationSick(k, sl)
 }
 
 // untapCost pays {Q}: the source untaps (gorge cast_commit's "untapped as

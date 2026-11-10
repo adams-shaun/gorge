@@ -146,7 +146,7 @@ func (s *State) windowUnpricedOpenIf(k *prep, e *stackEntry, open bool) bool {
 // mana keeps a pool-short candidate on the menu once the census is incomplete.
 func (s *State) restrManaUntapped(k *prep, sl Slot) bool {
 	pm := &s.perms[sl]
-	if pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 || s.genLost(k, sl) || DebugNoRestrManaOpen {
+	if pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) || DebugNoRestrManaOpen {
 		return false
 	}
 	cd := &k.t.Cards[s.cardAt(sl)]
@@ -936,7 +936,7 @@ func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
 		return false
 	}
 	pm := &s.perms[sl]
-	if pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 ||
+	if pm.flags&pfTapped != 0 || s.activationSick(k, sl) ||
 		s.genLost(k, sl) || pm.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
 		return false
 	}

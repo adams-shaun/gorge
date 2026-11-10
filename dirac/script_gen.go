@@ -98,7 +98,7 @@ func (s *State) gapMask(k *prep, p uint8, bit uint32) slotMask {
 			continue
 		}
 		pm := &s.perms[sl]
-		if pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 || s.genLost(k, sl) ||
+		if pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) ||
 			k.gen.anyCantAct && s.actForbidden(k, sl, true) { // a CantBeActivated lock (cast_cantactivate.go)
 			continue
 		}
