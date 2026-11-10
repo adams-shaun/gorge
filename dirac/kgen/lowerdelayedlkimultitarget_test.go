@@ -14,9 +14,8 @@ func delayedLKIProbe(tgt, body string) string {
 		"ManaCost:2 U",
 		"Types:Instant",
 		"A:SP$ ChangeZone | " + tgt + " | Origin$ Battlefield | Destination$ Exile | RememberChanged$ True | SubAbility$ DBDel | SpellDescription$ probe",
-		"SVar:DBDel:DB$ DelayedTrigger | Mode$ Phase | Phase$ End of Turn | Execute$ TrigReturn | RememberObjects$ RememberedLKI | SubAbility$ DBCleanup",
+		"SVar:DBDel:DB$ DelayedTrigger | Mode$ Phase | Phase$ End of Turn | Execute$ TrigReturn | RememberObjects$ RememberedLKI",
 		"SVar:TrigReturn:" + body,
-		"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True",
 		"Oracle:probe",
 	}, "\n")
 }
