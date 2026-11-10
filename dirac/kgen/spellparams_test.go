@@ -18,19 +18,19 @@ var spellParamForms = []formCase{
 
 func TestSpellParamForms(t *testing.T) { checkForms(t, spellParamForms) }
 
-// TestNotSubtypeLimit: a clause keeps up to three distinct negated subtypes
-// (NotSub and NotSubs); a repeated word adds nothing and a fourth refuses.
+// TestNotSubtypeLimit: a clause keeps up to five distinct negated subtypes
+// (NotSub and NotSubs); a repeated word adds nothing and a sixth refuses.
 func TestNotSubtypeLimit(t *testing.T) {
 	known := func(string) bool { return true }
-	c, err := parseClause("Creature.nonVampire+nonWerewolf+nonZombie+nonVampire", known)
+	c, err := parseClause("Creature.nonVampire+nonWerewolf+nonZombie+nonHuman+nonBear+nonVampire", known)
 	if err != nil {
-		t.Fatalf("three distinct negations: %v", err)
+		t.Fatalf("five distinct negations: %v", err)
 	}
-	if c.NotSubtype != "Vampire" || c.MoreNotSubtype != [2]string{"Werewolf", "Zombie"} {
+	if c.NotSubtype != "Vampire" || c.MoreNotSubtype != [4]string{"Werewolf", "Zombie", "Human", "Bear"} {
 		t.Fatalf("negations = %q %v", c.NotSubtype, c.MoreNotSubtype)
 	}
-	_, err = parseClause("Creature.nonVampire+nonWerewolf+nonZombie+nonHuman", known)
-	if err == nil || !strings.Contains(err.Error(), "four negated subtypes") {
-		t.Fatalf("four negations: got %v", err)
+	_, err = parseClause("Creature.nonVampire+nonWerewolf+nonZombie+nonHuman+nonBear+nonSpirit", known)
+	if err == nil || !strings.Contains(err.Error(), "six negated subtypes") {
+		t.Fatalf("six negations: got %v", err)
 	}
 }

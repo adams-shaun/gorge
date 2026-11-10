@@ -210,7 +210,7 @@ type lClause struct {
 	Subtype2   string // a second subtype it must also have (a Spider Hero); the kernel filter's Pred slot carries it
 	// MoreNotSubtype are further subtypes it must not have, filled only
 	// once NotSubtype is (kop.Filter.NotSubs)
-	MoreNotSubtype [2]string
+	MoreNotSubtype [4]string
 	Ctrl           uint8 // controller selector
 	Owner          uint8 // owner selector
 	Flags          uint64
@@ -1110,7 +1110,7 @@ func cmpStatName(st uint8) string {
 }
 
 // addNotSub records one more negated subtype: the first in NotSubtype, up to
-// two more in MoreNotSubtype (the kernel filter's NotSub and NotSubs). A word
+// four more in MoreNotSubtype (the kernel filter's NotSub and NotSubs). A word
 // already negated adds nothing.
 func (c *lClause) addNotSub(w string) error {
 	if c.NotSubtype == "" {
@@ -1129,5 +1129,5 @@ func (c *lClause) addNotSub(w string) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("four negated subtypes")
+	return fmt.Errorf("six negated subtypes")
 }

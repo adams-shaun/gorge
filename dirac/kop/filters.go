@@ -111,8 +111,8 @@ type Filter struct {
 	NotSub uint8   // must not have subtype index NotSub-1
 	// NotSubs are further subtypes the object must not have (index-1; 0 =
 	// unused), filled only beside NotSub ("non-Vampire, non-Werewolf,
-	// non-Zombie")
-	NotSubs [2]uint8
+	// non-Zombie, non-Human, non-Bear")
+	NotSubs [4]uint8
 	Flags2  FilterFlags2 // more boolean conditions
 	PredV   ValueRef     // the bound for the *V predicates
 	Or      FilterID     // the next alternative: the object matches if this OR Filters[Or] matches (0 = none)
