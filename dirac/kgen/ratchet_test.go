@@ -119,8 +119,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (the merge with land: this branch's Hollow Marauder lowers OTJ 244 -> 245 and Madame Null lowers TMT 176 -> 177 beside land's; merged ALL 22036 -> 22038).
 	// +8 (a reflected TapsForMana body over every land or Mountain,Forest,Plains lowers, priced on the pick: Mana Flare, Heartbeat of Spring, Dictate of Karametra, Zhur-Taa Ancient, Nikya of the Old Ways, Keeper of Progenitus, Mirari's Wake, Zendikar Resurgent; ALL 22097 -> 22105).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22107, 34442},
-	"BIG": {25, 30},
+	"ALL": {22114, 34442},
+	"BIG": {26, 30},
 	"BLB": {261, 278},
 	"BRO": {214, 280},
 	"DFT": {252, 276},
@@ -135,7 +135,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"LCI": {258, 290},
 	"MKM": {250, 279},
 	"MOM": {198, 296},
-	"MSH": {244, 276},
+	"MSH": {245, 276},
 	"NEO": {200, 287},
 	"ONE": {197, 271},
 	"OTJ": {247, 276},
@@ -143,7 +143,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SOS": {256, 270},
 	"SPM": {167, 192},
 	"TDM": {256, 276},
-	"TLA": {260, 285},
+	"TLA": {261, 285},
 	"TMT": {180, 194},
 	"TRC": {295, 337},
 	"TRK": {311, 311},
