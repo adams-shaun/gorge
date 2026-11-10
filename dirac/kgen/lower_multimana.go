@@ -40,7 +40,10 @@ import (
 // A plain fixed-colour {T} first ability beside "{T}, tap an untapped creature
 // you control: Add one mana of any color" (Scene of the Crime) is accepted by
 // manaGapModelled (tapXGapMana): the kernel's tap-another gap kind reads the
-// card's second ability (mana_tapanother.go tapXAbOf).
+// card's second ability (mana_tapanother.go tapXAbOf). So is "{T}, remove N
+// counters from this: Add <fixed colour>" beside a plain {T} first ability
+// (Weather Maker's {C}{C}; ctrTapGapMana): the kernel's counter gap kind
+// reads the card's second ability (mana_countercost.go ctrAbOf).
 //
 // Every other shape (a second ability with a sacrifice or counter cost, or
 // another tap-another one (gorge's census leaves a counter or tap-another one a
