@@ -34,7 +34,7 @@ func (s *State) addManaRestr(k *prep, p uint8, col, n int, f kop.FilterID) {
 		// gorge tags a resolving DB$ Mana by its source (effects.ManaProducerTag):
 		// an artifact's units are typed, spent after the plain ones (rbTyped), as
 		// floatRestrV records for a mana ability
-		s.g.poolArt[p&1] |= poolArtRestr
+		s.g.poolArt[SeatIx(p)] |= poolArtRestr
 	}
 	if k.gen == nil || n > 255 || !s.addRestr(k, p, f, col, uint8(n)) {
 		s.capFull(StallRestrSrc)

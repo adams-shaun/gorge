@@ -33,7 +33,7 @@ func (s *State) discover(k *prep, in *kop.Instr) {
 		}
 		if k.gen != nil && k.gen.anyKwAct {
 			p := s.playerRef(k, in.Obj)
-			if p > 1 {
+			if p >= MaxSeats {
 				p = s.res.e.ctrl
 			}
 			s.fireKwAct(k, kop.TrigDiscover, p, int16(s.value(k, in.A))) // trig_modes.go
@@ -41,7 +41,7 @@ func (s *State) discover(k *prep, in *kop.Instr) {
 		return
 	}
 	p := s.playerRef(k, in.Obj)
-	if p > 1 {
+	if p >= MaxSeats {
 		p = s.res.e.ctrl
 	}
 	n := s.value(k, in.A)

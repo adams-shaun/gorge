@@ -10,7 +10,10 @@ import (
 //
 //go:noinline
 func (s *State) dropEOTEmblems(k *prep) {
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		var drop uint8
 		for i := 0; i < int(s.g.nemb[p]); i++ {
 			if k.t.Emblems[s.embIdx(p, i)-1].UntilEOT {
@@ -32,7 +35,10 @@ func (s *State) dropEOTEmblems(k *prep) {
 //
 //go:noinline
 func (s *State) fireEmblemsObj(k *prep, ev kop.TrigEvent, evSl Slot, evObj Obj) {
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
 			e := &k.t.Emblems[s.embIdx(pp, i)-1]
 			for j := range e.Abilities {

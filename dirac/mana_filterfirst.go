@@ -96,7 +96,7 @@ func (s *State) filtUsable(k *prep, sl Slot) bool {
 func (s *State) filtFirstMask(k *prep, p uint8) slotMask {
 	var m slotMask
 	other := -1
-	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
 		if !k.gen.has(s.cardAt(sl), gfFilt) || !s.filtUsable(k, sl) {
 			continue
@@ -120,9 +120,9 @@ func (s *State) filtFirstMask(k *prep, p uint8) slotMask {
 // own fee, so it adds nothing a fee of one could need), plus the
 // counter-cost sources.
 func (s *State) filtOtherMana(k *prep, p uint8) int {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	n := poolTotal(pl) + s.rbTotal(p, s.rbAll(p))
-	for b := s.ctrlM[p&1].and(s.occ); b.any(); b = b.rest() {
+	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
 		sl := b.first()
 		if s.perms[sl].flags&pfTapped == 0 && s.canTapForMana(k, sl) {
 			n += int(max(s.manaPCGen(k, sl).manaN, 1))
@@ -144,7 +144,7 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 // manaAbilityPayablePool). It is still no unit of the census above.
 func (s *State) windowFiltFirstUsable(k *prep, p uint8, sl Slot) bool {
 	c := s.cardAt(sl)
-	return k.gen.has(c, gfFilt) && s.filtFirstOnly(k, sl) && s.filtUsable(k, sl) && poolTotal(&s.pl[p&1]) >= s.filtFee(k, sl)
+	return k.gen.has(c, gfFilt) && s.filtFirstOnly(k, sl) && s.filtUsable(k, sl) && poolTotal(&s.pl[SeatIx(p)]) >= s.filtFee(k, sl)
 }
 
 // windowFiltFirst activates that filter in the window, for the first colour it

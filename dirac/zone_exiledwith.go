@@ -311,7 +311,10 @@ func (s *State) exwCount(ctx evalCtx) int {
 		trig, fire = ctx.e.kind == seTrigger, ctx.e.srcVer
 	}
 	n := 0
-	for p := 0; p < 2; p++ {
+	for p := 0; p < int(s.nSeats()); p++ {
+		if s.out(uint8(p)) {
+			continue
+		}
 		pl := &s.pl[p]
 		for j := 0; j < int(pl.exileN); j++ {
 			if o := pl.exile[j]; ctx.uncounted != o+1 && s.exwHas(o, ctx.src, trig, fire) {

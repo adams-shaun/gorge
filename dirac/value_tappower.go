@@ -64,7 +64,10 @@ func (s *State) graveExileCands(k *prep, in *kop.Instr, d *Decision) {
 		nz = 1
 	}
 	for zi := 0; zi < nz; zi++ {
-		for p := uint8(0); p < 2; p++ {
+		for p := uint8(0); p < s.nSeats(); p++ {
+			if s.out(p) {
+				continue
+			}
 			pl := &s.pl[p]
 			var list []Obj
 			if zi == 0 {

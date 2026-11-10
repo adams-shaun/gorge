@@ -10,15 +10,14 @@ import (
 // extra, one mana of the type an artifact token produced, lowers to a
 // StatTapExtra with StTapReflect over the token filter (gorge
 // pay.PaymentPlanReflectedTapMana folds it per colour a token's tap makes; the
-// kernel reads a choice source as one making n+1 mana of one colour,
-// dirac/mana_taprefl.go). Out-of-shape variants still refuse by name: a
-// reflected body over every land (Mana Flare), an extra of the colour chosen on
-// an Aura, which also needs its SetColor lowered (Shimmerwilds Growth), and an
-// extra of any colour (Buried in the Garden).
+// kernel prices it on the pick, dirac/mana_tapextra.go). Out-of-shape variants
+// still refuse by name: an extra of the colour chosen on an Aura, which also
+// needs its SetColor lowered (Shimmerwilds Growth), and an extra of any colour
+// (Buried in the Garden). A reflected body over a land lowers, as
+// TestLowerTapsformanaAnycolour asserts.
 func TestLowerTapsformanaChoice(t *testing.T) {
 	want := map[string][]string{
 		"Roxanne, Starfall Savant": nil,
-		"Mana Flare":               {`TapsForMana reflected mana over ValidCard$ "Land"`},
 		"Shimmerwilds Growth":      {"trigger mode TapsForMana", `SetColor "ChosenColor"`},
 		"Buried in the Garden":     {"trigger mode TapsForMana"},
 	}

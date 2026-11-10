@@ -197,11 +197,11 @@ func (s *State) canonKey(d *Decision, a Action) uint32 {
 		case ChAltAdd: // canonical value = option position
 			return uint32(AkChoose)<<24 | uint32(a.Mode())
 		case ChOptional: // canonical Yes before No
-			return uint32(AkChoose)<<24 | uint32(1-a.Mode())
+			return uint32(AkChoose)<<24 | uint32(1-a.Mode()) // seat-ok: a yes/no option, not a seat
 		case ChOptDiscMay: // canonical Yes before No
-			return uint32(AkChoose)<<24 | uint32(1-a.Mode())
+			return uint32(AkChoose)<<24 | uint32(1-a.Mode()) // seat-ok: a yes/no option, not a seat
 		case ChGenDigOpt: // canonical Yes before No
-			return uint32(AkChoose)<<24 | uint32(1-a.Mode())
+			return uint32(AkChoose)<<24 | uint32(1-a.Mode()) // seat-ok: a yes/no option, not a seat
 		}
 	case AkOrder: // (Order, source, -, occurrence)
 		return uint32(a) & 0xffff00ff

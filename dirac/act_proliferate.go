@@ -141,7 +141,7 @@ func (s *State) answerProlif(k *prep, a Action) {
 
 // prolifApply gives recipient o another counter of each kind it has.
 func (s *State) prolifApply(k *prep, o uint8) {
-	if o >= PlayerTarget0 {
+	if isPlayerOrNone(o) {
 		p := CodeSeat(o)
 		if s.g.poison[p] > 0 {
 			s.addPoison(p, 1)

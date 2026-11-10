@@ -55,7 +55,7 @@ func (s *State) scriptCtr(k *prep, p uint8) slotMask {
 	if !k.ctrMana || DebugNoCtrMana {
 		return m
 	}
-	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
 		c := s.cardAt(sl)
 		a := k.ctrAbOf(c)

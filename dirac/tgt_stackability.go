@@ -19,10 +19,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // maxStackTgt is the number of stack indexes the code space (and gorge's
 // RefStack range) names.
-const maxStackTgt = int(PlayerTarget0 - StackTarget0)
+const maxStackTgt = int(PlayerTarget0 - StackTarget0) // seat-ok: the stack-code span, not a seat
 
 // isStackTarget reports whether target byte c names a stack ability.
-func isStackTarget(c uint8) bool { return c >= StackTarget0 && c < PlayerTarget0 }
+func isStackTarget(c uint8) bool { return c >= StackTarget0 && c < PlayerTarget0 } // seat-ok: the stack-code span, not a seat
 
 // StackTargetIndex is isStackTarget for the kernel's clients (the search
 // bots): the stack index, from the bottom, that target byte c names. A byte
@@ -217,8 +217,8 @@ func (s *State) tgtCtrlSlot(k *prep, i int) uint8 {
 	if t == NoTarget {
 		return 255
 	}
-	if t >= PlayerTarget0 {
-		return t - PlayerTarget0
+	if isPlayerOrNone(t) {
+		return CodeSeat(t)
 	}
 	if isStackTarget(t) {
 		return s.stackTgtCtrl(i)

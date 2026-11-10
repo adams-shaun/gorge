@@ -4016,6 +4016,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.C = 6 // choosePutCounterPick
 		case "FaceDownPick":
 			ki.C = 7 // chooseFaceDownPick: the cloak-from-hand pick (gorge's face_down_choice)
+		case "CopyPick":
+			ki.C = 8 // chooseCopyPick: the CopyPermanent Choices$ pick (gorge's copypermanent_choice)
 		}
 	case "ChooseEachType":
 		ki.Op = kop.OpChooseEachType
@@ -4133,7 +4135,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		default:
 			return ki, fmt.Errorf("override duration %q", in.CS)
 		}
-	case "CopyAsToken", "CopyNamed":
+	case "CopyAsToken", "CopyNamed", "CopyPicked":
 		ki.Op = kop.OpCopyAsTokenEx
 		cf := 0
 		if _, ok := fl["SacAtEndStep"]; ok {
@@ -4145,6 +4147,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if _, ok := fl["SacAtEndDly"]; ok {
 			cf |= kop.CpSacAtEndDly
 		}
+		if _, ok := fl["SacAtUpkeep"]; ok {
+			cf |= kop.CpSacAtUpkeep
+		}
 		if _, ok := fl["Remember"]; ok {
 			cf |= kop.CpRemember
 		}
@@ -4153,6 +4158,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, ok := fl["NonRemCtrl"]; ok {
 			cf |= kop.CopyNonRemCtrl
+		}
+		if _, ok := fl["Attacking"]; ok {
+			cf |= kop.CopyAttacking // ExtCopyPicked only (lower_copypicked.go)
 		}
 		pk, ok := fl["Pump"]
 		pe, eot := fl["PumpEOT"]
@@ -4182,6 +4190,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, err
 			}
 			ki.C = int16(i + 1)
+		}
+		if in.Op == "CopyPicked" {
+			// kop.ExtCopyPicked: Obj the picked card, B and C as above
+			ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCopyPicked))
 		}
 		if in.Op == "CopyNamed" {
 			// kop.ExtCopyNamed: B holds the named card's pool index (the

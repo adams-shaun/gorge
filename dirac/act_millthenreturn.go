@@ -39,10 +39,10 @@ func (s *State) breachCand(k *prep, o Obj) bool {
 // graveyard holds a candidate; false: every player is done.
 func (s *State) breachNext(k *prep) bool {
 	e := &s.res.e
-	for i := s.g.pickLeft; i < 2; i++ {
-		p := e.ctrl
-		if i == 1 {
-			p = 1 - e.ctrl
+	for i := s.g.pickLeft; i < s.nSeats(); i++ {
+		p := (e.ctrl + i) % s.nSeats() // each player in turn order from the controller
+		if s.out(p) {
+			continue
 		}
 		pl := &s.pl[p]
 		for _, o := range pl.grave[:pl.graveN] {

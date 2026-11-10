@@ -103,7 +103,7 @@ func (s *State) copyCtrl(in *kop.Instr) uint8 {
 	} else if l := s.remLKIRec(o); l != nil {
 		ctrl = l.ctrl
 	}
-	return 1 - ctrl
+	return s.nextAlive(ctrl) // two live seats only (kop.TwoSeatInstr: CopyNonRemCtrl)
 }
 
 // copyPumpEnter grants token slot sl the PumpKeywords$ keyword named by the

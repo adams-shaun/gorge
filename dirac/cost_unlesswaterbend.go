@@ -58,7 +58,7 @@ func (s *State) unlessWaterbendOwed(p uint8, n int) int {
 	if DebugUnlessWaterbendNoPool {
 		return n
 	}
-	return max(n-poolTotal(&s.pl[p&1]), 0)
+	return max(n-poolTotal(&s.pl[SeatIx(p)]), 0)
 }
 
 // unlessWaterbendCand reports whether sl can be tapped for the waterbend:
@@ -71,7 +71,7 @@ func (s *State) unlessWaterbendCand(k *prep, sl Slot) bool {
 // battlefield (ctrlM) order.
 func (s *State) unlessWaterbendCands(k *prep, p uint8, each func(Slot)) int {
 	n := 0
-	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		if sl := m.first(); s.unlessWaterbendCand(k, sl) {
 			if each != nil {
 				each(sl)

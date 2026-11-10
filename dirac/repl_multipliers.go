@@ -159,7 +159,7 @@ func (s *State) dblDmgN2(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp
 	if k.gen.anyFiltRepl {
 		return s.dblDmgN(k, srcCtrl, srcSl, srcCard, rcp, sl, combat)
 	}
-	if rcp == srcCtrl || srcCtrl > 1 {
+	if rcp == srcCtrl || srcCtrl >= MaxSeats {
 		return 0
 	}
 	return s.replN(k, srcCtrl, rbDblDmg)

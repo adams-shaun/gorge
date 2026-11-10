@@ -104,7 +104,6 @@ type genPrep struct {
 	anyMinBlk                bool // a card has a printed MinMaxBlocker floor (CardDef.MinBlockers; combat.go)
 	anyUntapOther            bool // a card has a StatUntapOther static (static_untapother.go)
 	anyTapExtra              bool // a card has a StatTapExtra static (mana_tapextra.go)
-	anyTapRefl               bool // a card has a reflected StatTapExtra static (mana_taprefl.go)
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
 	anyCantGain, anyCantDraw bool // StatCantGainLife / StatCantDraw statics (static_cantdraw.go)
 	anyAsIfHaste             bool // a StatAsIfHaste static (static_asifhaste.go)
@@ -692,7 +691,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyMaxBlk = tableHasStatic(t, kop.StatMaxBlockers)
 	g.anyUntapOther = tableHasStatic(t, kop.StatUntapOther)
 	g.anyTapExtra = tableHasStatic(t, kop.StatTapExtra) || p.manaEach // an all-at-once source's own extra (mana_eachcolour.go)
-	g.anyTapRefl = tableHasTapRefl(t)
 	g.anyDisETB = tableHasStatic(t, kop.StatDisableETB)
 	g.anyCantGain = tableHasStatic(t, kop.StatCantGainLife)
 	g.anyCantDraw = tableHasStatic(t, kop.StatCantDraw)
@@ -1221,7 +1219,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		prepManaGate(g, c, CardID(i), pc)
 		prepManaRefl(g, c, CardID(i), pc)
 		g.prepRestrSrc(c, CardID(i), pc)
-		prepManaTapRefl(g, p, CardID(i), pc)
 		// latent triggered abilities are not subscriptions
 		pc.trigMask = 0
 		for j := range c.Abilities {
@@ -2207,11 +2204,6 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 			}
 			n := s.dynManaN(k, a, sl)
 			return &k.gen.varPC[int(vi)+min(max(n, 0), maxDynMana)]
-		}
-	}
-	if k.gen.anyTapRefl {
-		if ri := k.gen.tapReflVar(c); ri >= 0 && s.tapReflFolds(k, sl) {
-			return &k.gen.varPC[ri] // one more mana of the picked colour (mana_taprefl.go)
 		}
 	}
 	if k.gen.blgOn {

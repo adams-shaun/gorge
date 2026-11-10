@@ -245,10 +245,10 @@ func b2u(b bool) uint8 {
 // copyGroup is target code c's controller seat (gorge
 // candidateControllerSeat: a player its own seat, an object its controller).
 func (s *State) copyGroup(c uint8) uint8 {
-	if c >= PlayerTarget0 {
-		return (c - PlayerTarget0) & 1
+	if isPlayerOrNone(c) {
+		return SeatIx(CodeSeat(c))
 	}
-	return s.ctrlOfObj(Obj(c)) & 1
+	return SeatIx(s.ctrlOfObj(Obj(c)))
 }
 
 // copyHold is the resolution that made a copy, waiting while the copy's

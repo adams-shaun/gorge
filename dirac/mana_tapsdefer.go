@@ -94,7 +94,7 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 		return slotMask{}
 	}
 	var m slotMask
-	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
 		if !s.planDeferred(k, p, sl) {
 			continue
@@ -141,7 +141,7 @@ func tapsDeferColour(c kop.ColorMask) bool {
 // stalls (srcExtra).
 func (s *State) addTapsDeferUnits(k *prep, sl Slot, a *avail) {
 	pc := s.manaPCGen(k, sl)
-	a.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))
+	a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 	if k.gen.anyTapExtra {
 		xv := s.srcExtra(k, sl, pc)
 		for c := range xv {

@@ -106,13 +106,15 @@ func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [ko
 		if a.StFlags&kop.StTapReflect != 0 {
 			// one mana of the type the tap produced: fixed for a source of one
 			// type, the pick's otherwise (and a filter's colour is picked after
-			// its tap); a choice source's folded view already counts it
-			// (mana_taprefl.go)
-			if pc.reflFold {
+			// its tap; an all-at-once source's types come together, gorge
+			// defers it)
+			m := srcMask(pc)
+			if !colour && m&(m-1) != 0 && pc.manaXv == [kop.NumManaKinds]uint8{} && s.tapExtraPlain(pc) {
+				// one plain tap of several colours: srcReflectPick prices
+				// the extra as one more of the pick (no fixed vector: not a hit)
 				return true
 			}
-			m := srcMask(pc)
-			if colour || m == 0 || m&(m-1) != 0 {
+			if colour || m == 0 || m&(m-1) != 0 || pc.manaXv != [kop.NumManaKinds]uint8{} {
 				hit = true
 				xv = [kop.NumManaKinds]uint8{}
 				return false
@@ -172,9 +174,6 @@ func (s *State) srcExtraPick(k *prep, sl Slot, pc *pcard, col int) (xv [kop.NumM
 			return true
 		}
 		if a.StFlags&kop.StTapReflect != 0 {
-			if pc.reflFold {
-				return true // the folded view's own mana (mana_taprefl.go)
-			}
 			xv[col] += uint8(a.B) // the type this tap made
 			hit = true
 			return true
@@ -238,10 +237,46 @@ func (s *State) tapExtraStall(k *prep, sl Slot) {
 	}
 }
 
-// addExtra floats the extra mana of sl's tap in p's pool.
+// srcReflectPick is the mana the reflected StatTapExtra carriers (StTapReflect)
+// reaching the tap of sl add of the colour that tap picks, for a source that is
+// one plain single-type-per-tap unit of several colours (a dual land, an
+// any-colour source): the extra is one more of the pick, so the unit makes
+// manaN+r of it (gorge folds the extra into each single-colour production,
+// pay.PaymentPlanProductions). Zero for every other source: a one-type source
+// carries it as a fixed vector (srcExtraTapped), an all-at-once, sacrificed,
+// restricted or painful one stalls.
+func (s *State) srcReflectPick(k *prep, sl Slot, pc *pcard) (r uint8) {
+	if k.gen == nil || !k.gen.anyTapExtra || pc == nil || pc.manaAb < 0 || pc.manaSacOnly ||
+		pc.manaXv != [kop.NumManaKinds]uint8{} || !s.tapExtraPlain(pc) {
+		return 0
+	}
+	if m := srcMask(pc); m&(m-1) == 0 {
+		return 0
+	}
+	ctl := s.perms[sl].ctrl
+	s.eachStatic(k, func(st statSrc) bool {
+		if a := &st.a.Static; a.StFlags&kop.StTapReflect != 0 && s.tapExtraReaches(k, st, sl, ctl) {
+			r += uint8(a.B)
+		}
+		return true
+	})
+	return r
+}
+
+// srcYieldAt is srcYield plus the pick's reflected extra (srcReflectPick): the
+// census unit of a source's tap.
+func (s *State) srcYieldAt(k *prep, sl Slot, pc *pcard) uint8 {
+	return srcYield(pc) + s.srcReflectPick(k, sl, pc)
+}
+
+// addExtra floats the extra mana of sl's tap in p's pool. A reflected extra of
+// a several-colour source depends on the pick this caller does not know.
 func (s *State) addExtra(k *prep, p uint8, sl Slot, pc *pcard) {
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return
+	}
+	if s.srcReflectPick(k, sl, pc) > 0 {
+		s.capFull(StallTapExtra)
 	}
 	xv := s.srcExtra(k, sl, pc)
 	for c := range xv {
@@ -254,7 +289,16 @@ func (s *State) addExtra(k *prep, p uint8, sl Slot, pc *pcard) {
 // tap, its {C} ability all of them (srcExtraPain).
 func (s *State) addExtraCol(k *prep, p uint8, sl Slot, pc *pcard, col int) {
 	if pc.painCol == 0 {
-		s.addExtra(k, p, sl, pc)
+		if k.gen == nil || !k.gen.anyTapExtra {
+			return
+		}
+		xv := s.srcExtra(k, sl, pc)
+		for c := range xv {
+			s.pl[p].pool[c] += xv[c]
+		}
+		if r := s.srcReflectPick(k, sl, pc); r > 0 {
+			s.poolAdd(p, col, int(r))
+		}
 		return
 	}
 	if k.gen == nil || !k.gen.anyTapExtra {
@@ -304,7 +348,7 @@ func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 		s.removePainAvail(k, a, sl, pc)
 		return
 	}
-	a.remove(s.srcMaskAt(pc, sl), srcYield(pc))
+	a.remove(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return
 	}

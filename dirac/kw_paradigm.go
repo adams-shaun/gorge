@@ -86,7 +86,7 @@ func (s *State) noteParadigmCast(k *prep, o Obj, caster uint8, from kop.Zone) {
 		return
 	}
 	if s.g.hist[caster][histCastN] >= castRingN {
-		caster ^= 1
+		caster = s.nextAlive(caster) // storage only: another seat's ring
 	}
 	s.noteCast(o, caster, from)
 }
@@ -96,7 +96,7 @@ func (s *State) noteParadigmCast(k *prep, o Obj, caster uint8, from kop.Zone) {
 // since the last TurnChange). The ring stalls rather than truncating, so
 // an absent entry is a real absence.
 func (s *State) stackedThisTurn(o Obj) bool {
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
 		for _, r := range s.castPushes(p) {
 			if r.obj == uint8(o)+1 {
 				return true

@@ -13,7 +13,7 @@ import (
 //
 //go:noinline
 func (s *State) countGraveExile(k *prep, p uint8, f kop.FilterID) int {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	n := 0
 	for i := 0; i < int(pl.graveN); i++ {
 		if o := pl.grave[i]; s.matchCardGen(k, f, s.objs[o].card, p, p, o) {
@@ -32,7 +32,7 @@ func (s *State) graveExileOptions(k *prep, d *Decision, p uint8) {
 		d.Sub = ChCostExile // an unless exile: gorge's exilecost
 	}
 	f := s.genPickFilter(k)
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	for i := 0; i < int(pl.graveN); i++ {
 		if o := pl.grave[i]; s.matchCardGen(k, f, s.objs[o].card, p, p, o) {
 			d.add(MakeAction(AkChoose, uint8(o), 0, 0))

@@ -33,8 +33,8 @@ func (s *State) noteCmdDamagePass(r *dmgRec) {
 	}
 	for m := s.occ; m.any(); m = m.rest() {
 		a := m.first()
-		if n := r.dealtPl[a]; n > 0 && s.perms[a].atk >= PlayerTarget0 {
-			s.noteCmdDamage(a, s.perms[a].atk-PlayerTarget0, int(n))
+		if n := r.dealtPl[a]; n > 0 && isPlayerOrNone(s.perms[a].atk) {
+			s.noteCmdDamage(a, CodeSeat(s.perms[a].atk), int(n))
 		}
 	}
 }
@@ -45,7 +45,10 @@ func (s *State) cmdDamageSBA(k *prep) {
 	if s.cfg&cfgCommander == 0 {
 		return
 	}
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		if (s.pl[p].cmdDmg[0] >= 21 || s.pl[p].cmdDmg[1] >= 21) && !s.pl[p].lost && !s.cantLose(k, p) {
 			s.pl[p].lost = true
 		}

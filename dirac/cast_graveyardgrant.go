@@ -13,7 +13,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // mayPlayGrave records a permission for each graveyard card matching F.
 func (s *State) mayPlayGrave(k *prep, in *kop.Instr) {
 	ctrl := s.res.e.ctrl
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		pl := &s.pl[p]
 		for i := 0; i < int(pl.graveN); i++ {
 			o := pl.grave[i]

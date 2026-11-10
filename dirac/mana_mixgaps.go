@@ -91,7 +91,7 @@ func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p)).or(s.mixDeferred(k, p, true))
 	}
 	if len(k.gen.grantPC) != 0 && s.grantsLive(k) {
-		for b := s.ctrlM[p&1].and(s.occ); b.any(); b = b.rest() {
+		for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
 			if sl := b.first(); s.grantGapUsable(k, sl) {
 				m = m.with(sl)
 			}
@@ -353,7 +353,7 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 				return
 			}
 		}
-		s.pl[p&1].pool[o.ans] += o.n
+		s.pl[SeatIx(p)].pool[o.ans] += o.n
 		// The tap brings its tap-extra too (gorge addTapExtra): a granted
 		// source's is the grant's own extra (Honest Work's Humble Merchant
 		// tapped under Badgermole Cub). The search priced the prefix without

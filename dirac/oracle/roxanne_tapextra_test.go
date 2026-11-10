@@ -16,8 +16,8 @@ import (
 // mana of any colour, and gorge's planner folds the extra into each colour's
 // alternative (pay.PaymentPlanReflectedTapMana over the production the
 // alternative names), so the tap is two mana of one colour of the payer's
-// choice. The kernel reads it as one source making n+1 mana of one colour
-// (mana_taprefl.go). TestStdSetReprosLockstep replays the repro;
+// choice. The kernel prices it on the pick, as one more mana of the colour the
+// tap makes (mana_tapextra.go). TestStdSetReprosLockstep replays the repro;
 // TestRoxanneReprosReach requires the recorded game to tap an artifact token
 // for two mana, since a lockstep entry alone would pass a script that never
 // did.

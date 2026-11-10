@@ -230,7 +230,10 @@ func (s *State) entryComp(k *prep, o Obj, ctrl uint8, skip Slot, fixEarly bool) 
 	if ob.zone == kop.ZoneBattlefield {
 		fo = o
 	}
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		if own == pp && early {
 			self()
 		}

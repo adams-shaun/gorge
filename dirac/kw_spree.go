@@ -149,7 +149,7 @@ func (s *State) charmTargetAskDead(k *prep) bool {
 		// restriction admits, CR 106.6), which this gate's payable check
 		// reads like any other pool unit (legal.go castAffordsR)
 		var av avail
-		pl := &s.pl[e.ctrl&1]
+		pl := &s.pl[SeatIx(e.ctrl)]
 		for c := 0; c < kop.NumManaKinds; c++ {
 			if pl.pool[c] > 0 {
 				av.addUnits(1<<c, pl.pool[c])

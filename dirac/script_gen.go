@@ -50,7 +50,7 @@ func (s *State) liveGrantGap(k *prep, p uint8) bool {
 	if k.gen == nil || len(k.gen.grantPC) == 0 || !s.grantsLive(k) {
 		return false
 	}
-	for m := s.ctrlM[p&1].and(s.occ); m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
 		sl := m.first()
 		if s.grantGapUsable(k, sl) {
 			return true
@@ -92,7 +92,7 @@ func (s *State) scriptAny(k *prep) bool {
 // activated now.
 func (s *State) gapMask(k *prep, p uint8, bit uint32) slotMask {
 	var m slotMask
-	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
 		if !k.gen.has(s.cardAt(sl), bit) {
 			continue
@@ -112,7 +112,7 @@ func (s *State) gapMask(k *prep, p uint8, bit uint32) slotMask {
 func (s *State) eachColorOut(k *prep, p uint8, sl Slot) kop.ColorMask {
 	a := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.eachCol(s.cardAt(sl))]
 	var m kop.ColorMask
-	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		o := b.first()
 		if s.matchPerm(k, a.ManaAmong, o, p, sl) {
 			m |= s.colorsAt(k, o)
@@ -310,8 +310,8 @@ func (s *State) walkKey(a Action, p uint8, i int) uint64 {
 	ob := &s.objs[Obj(a.Source())]
 	switch {
 	case (isCastKind(a.Kind()) || a.Kind() == AkPlot || a.Kind() == AkSneak) && ob.zone == kop.ZoneHand:
-		for h := 0; h < int(s.pl[p&1].handN); h++ {
-			if s.pl[p&1].hand[h] == Obj(a.Source()) {
+		for h := 0; h < int(s.pl[SeatIx(p)].handN); h++ {
+			if s.pl[SeatIx(p)].hand[h] == Obj(a.Source()) {
 				k := uint64(h)<<16 | uint64(i)
 				if a.Mode() == 0 && a.Target() != 0 || a.Kind() == AkPlot || a.Kind() == AkSneak || a.Kind() == AkCast && a.Mode()&castWarp != 0 {
 					k |= 1 << 15 // an alternative cost's cast follows the card's plain one, though the kernel offers it first
@@ -383,7 +383,7 @@ func (s *State) restrictedGrantLive(k *prep, p uint8) bool {
 	if k.gen == nil || len(k.gen.grantRestr) == 0 {
 		return false
 	}
-	for m := s.ctrlM[p&1].and(s.occ); m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
 		var gi [maxGrants]int16
 		for i, n := 0, s.grantIdxs(k, m.first(), &gi); i < n; i++ {
 			if k.gen.grantRestr[gi[i]] != 0 {
@@ -554,7 +554,7 @@ func (s *State) grantGapLive(k *prep, p uint8) bool {
 	if !s.grantsLive(k) {
 		return false
 	}
-	for m := s.ctrlM[p&1].and(s.occ); m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
 		sl := m.first()
 		if s.grantGapUsable(k, sl) {
 			return true

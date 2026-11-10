@@ -139,8 +139,8 @@ func (s *State) flushHeldDiscard(k *prep) {
 // (an each-player op, or several targeted players; a single-player ask must not
 // pick up a stale repNext).
 func (s *State) discardChained(k *prep, in *kop.Instr) bool {
-	if in.Obj == kop.RefEachPlayer {
-		return true
+	if in.Obj == kop.RefEachPlayer || MaxSeats > 2 && in.Obj == kop.RefEachOpponent && in.F == 0 && in.C == kop.ChooseSelf {
+		return true // each player, or each opponent at more than two seats (interp.go OpDiscard)
 	}
 	sl, ok := tgtSlot(in.Obj)
 	return ok && k.gen != nil && s.res.e.xi != 0 && s.slotHasExtra(&s.res.e, uint8(sl))

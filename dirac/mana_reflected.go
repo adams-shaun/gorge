@@ -74,7 +74,7 @@ func (s *State) reflColours(k *prep, sl Slot, c CardID) kop.ColorMask {
 	}
 	p := s.perms[sl].ctrl
 	var m kop.ColorMask
-	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		o := b.first()
 		if s.matchPerm(k, f, o, p, sl) {
 			m |= s.colorsAt(k, o)
@@ -112,7 +112,7 @@ func (s *State) payRestrX(k *prep, p, m uint8, cost *kop.ManaCost, x int, o Obj,
 		h := s.hybResolveRider(k, p, *cost, x, anyColor)
 		cost = &h
 	}
-	sv := s.rb[p&1]
+	sv := s.rb[SeatIx(p)]
 	var pk planner
 	s.tapForPK(k, p, cost, x, o, false, anyColor, &pk)
 	if pk.rbOn {
@@ -205,7 +205,7 @@ func (rs *reflSearch) tick() bool {
 
 // reflDo plays step st for p.
 func (s *State) reflDo(k *prep, p uint8, st reflStep) {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	s.perms[st.sl].flags |= pfTapped
 	s.touchSl(st.sl)
 	s.manaTapped(k, st.sl)
@@ -245,9 +245,9 @@ func (rs *reflSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		return false
 	}
 	p := rs.p
-	pl := &t.pl[p&1]
-	key := reflKey{pool: pl.pool, rb: t.rb[p&1]}
-	for b := t.ctrlM[p&1].and(t.occ); b.any(); b = b.rest() {
+	pl := &t.pl[SeatIx(p)]
+	key := reflKey{pool: pl.pool, rb: t.rb[SeatIx(p)]}
+	for b := t.ctrlM[SeatIx(p)].and(t.occ); b.any(); b = b.rest() {
 		if sl := b.first(); t.perms[sl].flags&pfTapped != 0 {
 			key.tapped = key.tapped.with(sl)
 		}
@@ -273,7 +273,7 @@ func (rs *reflSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		}
 	}
 	var order [MaxPerm]Slot
-	n := t.battlefieldOrder(p, t.ctrlM[p&1].and(t.occ), order[:], 0)
+	n := t.battlefieldOrder(p, t.ctrlM[SeatIx(p)].and(t.occ), order[:], 0)
 	for i := 0; i < n; i++ {
 		sl := order[i]
 		if !rs.gaps.has(sl) || t.perms[sl].flags&pfTapped != 0 {

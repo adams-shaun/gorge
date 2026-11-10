@@ -298,7 +298,7 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 	if in.B.N&kop.TokAttackAsk != 0 && !s.tokenCombatWindow(p) {
 		return
 	}
-	atk := PlayerTarget0 + (1 - p&1)
+	atk := PlayerCode(s.nextAlive(SeatIx(p)))
 	if s.g.tokDefSet {
 		atk = s.g.tokDef
 	}
@@ -367,11 +367,11 @@ func (s *State) abilityAffordsSacSelf(k *prep, sl Slot, a *kop.Ability, cost *ko
 //
 //go:noinline
 func (s *State) tapForSacSelf(k *prep, p uint8, cost *kop.ManaCost, x int, sl Slot) {
-	held := s.ctrlM[p&1].has(sl)
-	s.ctrlM[p&1].clr(sl)
+	held := s.ctrlM[SeatIx(p)].has(sl)
+	s.ctrlM[SeatIx(p)].clr(sl)
 	s.tapFor(k, p, cost, x, NoObj)
 	if held {
-		s.ctrlM[p&1].set(sl)
+		s.ctrlM[SeatIx(p)].set(sl)
 	}
 }
 
@@ -417,7 +417,10 @@ func (s *State) hostLeft(k *prep, o Obj) {
 		})
 		s.refreshTy(k)
 	}
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		var drop uint8
 		for i := 0; i < int(s.g.nemb[p]); i++ {
 			if k.t.Emblems[s.embIdx(p, i)-1].HostBound() && s.embObj(p, i) == o {

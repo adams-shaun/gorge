@@ -53,7 +53,10 @@ func (s *State) embTurnStart(k *prep, p uint8) {
 //
 //go:noinline
 func (s *State) dropEndOfNextTurnEmblems(k *prep) {
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		var drop uint8
 		for i := 0; i < int(s.g.nemb[p]); i++ {
 			if s.g.embF[p]&(1<<uint(i)) != 0 && k.t.Emblems[s.embIdx(p, i)-1].UntilEndOfNextTurn {
@@ -73,7 +76,10 @@ func (s *State) dropEndOfNextTurnEmblems(k *prep) {
 //
 //go:noinline
 func (s *State) embCtrlDrop(k *prep, o Obj, to uint8) {
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		var drop uint8
 		for i := 0; i < int(s.g.nemb[p]); i++ {
 			if k.t.Emblems[s.embIdx(p, i)-1].AsLongAsControl && s.embObj(p, i) == o && uint8(p) != to {

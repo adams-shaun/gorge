@@ -1172,7 +1172,7 @@ func (s *State) addRestrChV(k *prep, p uint8, f kop.FilterID, v, ch uint8, col i
 	}
 	kind, ok := k.gen.restrKindV(f, v)
 	if !ok || !s.rbPut(p, kind, ch, col, n) {
-		s.pl[p&1].pool[col] += n
+		s.pl[SeatIx(p)].pool[col] += n
 		return false
 	}
 	return true
@@ -1247,8 +1247,8 @@ func (s *State) restrSpendable(k *prep, p uint8, c CardID, og restrOrigin) uint8
 		return 0
 	}
 	var m uint8
-	for i := range s.rb[p&1] {
-		b := &s.rb[p&1][i]
+	for i := range s.rb[SeatIx(p)] {
+		b := &s.rb[SeatIx(p)][i]
 		if b.kind == 0 {
 			break
 		}
@@ -1374,7 +1374,7 @@ func (s *State) floatRestrAb(k *prep, p uint8, sl Slot, ab *kop.Ability, col int
 
 func (s *State) floatRestrV(k *prep, p uint8, sl Slot, f kop.FilterID, v uint8, col int, n uint8) bool {
 	if k.artMana && k.cards[s.cardAt(sl)].manaTyped {
-		s.g.poolArt[p&1] |= poolArtRestr
+		s.g.poolArt[SeatIx(p)] |= poolArtRestr
 	}
 	return s.addRestrSrcV(k, p, sl, f, v, col, n)
 }
@@ -1707,9 +1707,9 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slo
 	cd := &k.t.Cards[s.cardAt(sl)]
 	if !anyR.has(sl) && !tapsDef.has(sl) {
 		var held [kop.NumManaKinds]uint8
-		rb := s.rb[p&1]
+		rb := s.rb[SeatIx(p)]
 		s.tapGap(k, p, sl, restr, &held)
-		if restr.has(sl) && s.rb[p&1] == rb && !k.gen.has(s.cardAt(sl), gfDeferred) {
+		if restr.has(sl) && s.rb[SeatIx(p)] == rb && !k.gen.has(s.cardAt(sl), gfDeferred) {
 			a := &cd.Abilities[k.gen.restr(s.cardAt(sl))]
 			spill[bits.TrailingZeros8(uint8(a.ManaColors))] += max(a.ManaN, 1)
 		}
@@ -1806,7 +1806,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR,
 				*dead = false
 				if t.rbAny(p&1) || spill != ([kop.NumManaKinds]uint8{}) {
 					for c := range spill {
-						t.pl[p&1].pool[c] -= spill[c] // restricted mana the byte spilled pays nothing either
+						t.pl[SeatIx(p)].pool[c] -= spill[c] // restricted mana the byte spilled pays nothing either
 					}
 					*dead = !t.scriptCompletes(k, p, a)
 				}
@@ -2232,7 +2232,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			// resolved remainder: {R/W}{R/W} evoked with Flamebraider's two
 			// floating {R} taps nothing more, and {1}{U/R}{U/R} cast with its
 			// {W}{U} and a Treasure's {U} taps no further
-			pl := &s.pl[p&1]
+			pl := &s.pl[SeatIx(p)]
 			var tk [maxRB][kop.NumManaKinds]uint8
 			s.rbTake(p, m, &tk)
 			defer func() {
@@ -2243,7 +2243,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 				for i := range tk {
 					for c, n := range tk[i] {
 						pl.pool[c] -= n
-						s.rb[p&1][i].n[c] += n
+						s.rb[SeatIx(p)][i].n[c] += n
 					}
 				}
 			}()

@@ -95,7 +95,10 @@ func (s *State) ctrGather(k *prep, sl Slot, kind int) (c ctrCands) {
 	if g.anyRepl&rbCtrOn == 0 {
 		return c
 	}
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		var bf [MaxPerm]Slot
 		for _, b := range bf[:s.battlefieldOrder(p, s.statM.and(s.ctrlM[p]), bf[:], 0)] {
 			if g.replBits[s.cardAt(b)]&rbCtrOn == 0 || s.genLost(k, b) {

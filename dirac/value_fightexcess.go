@@ -11,8 +11,8 @@ var DebugUnspentRedOff bool
 
 // pmUnspentR << p in State.pmOn: player p keeps unspent red until the turn
 // change (the Effect UnspentMana Red of The Last Agni Kai). pmOn uses only
-// bits 0-1 for the persistent-mana flags, so this is 0 B.
-const pmUnspentR = 4
+// bits 0 to MaxSeats-1 for the persistent-mana flags, so this is 0 B.
+const pmUnspentR = 1 << MaxSeats
 
 // unspentRedOn marks p's red as kept through every step boundary this turn
 // (persistKeep keeps the whole red slot; persistTurn clears pmOn).
@@ -20,7 +20,7 @@ func (s *State) unspentRedOn(p uint8) {
 	if DebugUnspentRedOff {
 		return
 	}
-	s.pmOn |= pmUnspentR << (p & 1)
+	s.pmOn |= pmUnspentR << SeatIx(p)
 }
 
 // fightExcessRec records the excess of the hit that dealt pa (the damage

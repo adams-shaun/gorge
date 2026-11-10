@@ -689,7 +689,10 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 			}
 		}
 	}
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		q := &s.pl[pp]
 		for i := 0; i < int(q.graveN); i++ {
 			try(q.grave[i])

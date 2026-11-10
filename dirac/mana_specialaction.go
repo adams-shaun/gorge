@@ -24,8 +24,8 @@ func (s *State) restrPoolNonSpell(k *prep, p uint8) uint8 {
 		return 0
 	}
 	var m uint8
-	for i := range s.rb[p&1] {
-		b := &s.rb[p&1][i]
+	for i := range s.rb[SeatIx(p)] {
+		b := &s.rb[SeatIx(p)][i]
 		if b.kind == 0 {
 			break
 		}
@@ -113,8 +113,8 @@ func (s *State) restrPoolSpecial(k *prep, p uint8, sp kop.SpecialMask, sl Slot) 
 		return 0
 	}
 	var m uint8
-	for i := range s.rb[p&1] {
-		b := &s.rb[p&1][i]
+	for i := range s.rb[SeatIx(p)] {
+		b := &s.rb[SeatIx(p)][i]
 		if b.kind == 0 {
 			break
 		}
@@ -161,7 +161,7 @@ func (s *State) specialAffords(k *prep, p uint8, cost *kop.ManaCost, sp kop.Spec
 		return s.poolPays(p, cost)
 	}
 	var a avail
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	for c := 0; c < kop.NumManaKinds; c++ {
 		if pl.pool[c] > 0 {
 			a.addUnits(1<<c, pl.pool[c])

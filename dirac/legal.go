@@ -1296,7 +1296,10 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 	case kop.TgtGraveExileCard:
 		n = s.graveExileCardCands(k, t, p, src, self, out, n) // tgt_graveexilecard.go
 	case kop.TgtCard:
-		for pp := 0; pp < 2; pp++ {
+		for pp := 0; pp < int(s.nSeats()); pp++ {
+			if s.out(uint8(pp)) {
+				continue
+			}
 			pl := &s.pl[pp]
 			for i := 0; i < int(pl.graveN); i++ {
 				o := pl.grave[i]
@@ -1535,7 +1538,7 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 	if ab.Cost.Flags&kop.CostOncePerTurn != 0 && j < 8 && pp.actUsed&(1<<j) != 0 {
 		return false // Gravestone Strider, used this turn
 	}
-	if ab.Cost.Flags&kop.CostPayLife != 0 && int(s.pl[p&1].life) < int(ab.Cost.N) {
+	if ab.Cost.Flags&kop.CostPayLife != 0 && int(s.pl[SeatIx(p)].life) < int(ab.Cost.N) {
 		return false
 	}
 	if k.gen.anyCantAct && s.actForbidden(k, sl, true) {

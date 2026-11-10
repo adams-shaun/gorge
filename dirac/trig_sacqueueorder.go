@@ -40,7 +40,10 @@ var DebugGyBfOwnerEntry bool
 //go:noinline
 func (s *State) gameGraveCands(k *prep, in *kop.Instr, d *Decision) {
 	ctrl := s.res.e.ctrl
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		pl := &s.pl[p]
 		for _, o := range pl.grave[:pl.graveN] {
 			if s.picksHas(o) {

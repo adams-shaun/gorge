@@ -39,7 +39,10 @@ func (s *State) fireSacCold(k *prep, sl Slot) {
 func (s *State) fireSacAll(k *prep, hit slotMask) {
 	var ord [MaxPerm]Slot
 	n := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		n = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), ord[:], n)
 	}
 	for _, sl := range ord[:n] {
