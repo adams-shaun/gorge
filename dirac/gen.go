@@ -334,6 +334,8 @@ type genPrep struct {
 	// anyTapsDefer / anyTapsPain: some card has a lowered Taps watcher of
 	// class kop.TapPlanDefer / TapPlanPain (gfTapsDefer / gfTapsPain; mana_tapsdefer.go)
 	anyTapsDefer, anyTapsPain bool
+	// anyManaRider: some card has a counter-rider mana ability (mana_rider.go); it sets anyTapsDefer too
+	anyManaRider bool
 	// anySelfTaps: some card has a lowered self Taps watcher (TfSelf). kgen
 	// lowers one only on a card with no printed mana ability, so it can only
 	// defer a granted mana ability's tap (act_waterbend.go windowCensusComplete).
@@ -1081,6 +1083,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.anyOwnReduce = true
 				}
 			case kop.AbMana:
+				if _, _, ok := manaCtrRider(a); ok {
+					g.anyManaRider, g.anyTapsDefer = true, true // a planner-deferred source (mana_rider.go)
+				}
 				if a.ManaDeferred && a.AFlags&kop.AfLatent == 0 {
 					// a scripted-prefix gap beside the restricted ones (mana_deferred.go),
 					// and no filter: gapOthers must see it so filtOnly is false

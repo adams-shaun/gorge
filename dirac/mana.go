@@ -253,7 +253,7 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 	// battlefield fact, so its gate lifts out of the loop: without a live
 	// TrigTaps listener every source is an ordinary unit, and the potential
 	// walks count a deferred source's tap regardless.
-	deferSkip := k.gen != nil && k.gen.anyTapsDefer && s.subs[kop.TrigTaps].any() && s.g.availX&(availWalk|availHyp) == 0
+	deferSkip := s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0
 	var deferGap slotMask
 	if deferSkip {
 		// Only the production the script route models is a census gap the
@@ -983,12 +983,12 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// A Taps-deferred source's classification (mana_tapsdefer.go) is a
 	// battlefield fact, so its gate lifts out of the loop: without a live
 	// TrigTaps listener every source is an ordinary census unit.
-	deferSkip := !pk.tapsIn && k.gen != nil && k.gen.anyTapsDefer && s.subs[kop.TrigTaps].any()
+	deferSkip := !pk.tapsIn && s.deferLive(k)
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
 		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) || k.restrSrc && s.restrOnlyUsable(k, p, sl, &rd) {
-			if deferSkip && s.tapsDeferred(k, p, sl) {
+			if deferSkip && s.planDeferred(k, p, sl) {
 				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go)
 			}
 			order[no] = sl

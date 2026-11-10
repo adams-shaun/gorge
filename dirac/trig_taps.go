@@ -22,6 +22,9 @@ func (s *State) manaTapped(k *prep, sl Slot) {
 	if k.gen != nil && k.gen.manaTaps {
 		s.fireTaps(k, sl)
 	}
+	if k.gen != nil && k.gen.anyManaRider {
+		s.manaRider(k, sl) // a counter rider resolves with the mana (mana_rider.go)
+	}
 }
 
 // fireTapsBy is fireTaps with the tapper (gorge TapActor, read by a Taps

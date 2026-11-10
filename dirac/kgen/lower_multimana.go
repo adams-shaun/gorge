@@ -55,7 +55,7 @@ func (lc *lowerCtx) refuseMultiMana() {
 		}
 	}
 	ms = slices.DeleteFunc(ms, func(a *lAbility) bool { return a != ms[0] && redundantMana(ms[0], a) })
-	if lc.refuseEachMana(ms) || lc.refuseGatedMana(ms) || lc.refuseReflectedMana(ms) {
+	if lc.refuseEachMana(ms) || lc.refuseGatedMana(ms) || lc.refuseReflectedMana(ms) || lc.refuseCtrRiderBeside(ms) {
 		return
 	}
 	if len(ms) < 2 {
