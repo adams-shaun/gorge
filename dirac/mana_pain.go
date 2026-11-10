@@ -338,6 +338,7 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 		pk.uobj[pk.nu] = s.perms[sl].obj
 	}
 	pk.utyp[pk.nu] = uint8(ti)
+	pk.rAb[pk.nu] = -1
 	pk.nu++
 	return true
 }

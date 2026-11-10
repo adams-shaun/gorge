@@ -68,6 +68,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtDividedCounters:
 		s.divCounters(k, in) // ctr_divided.go
 		return true, true
+	case kop.ExtStackExileMark:
+		s.stackExileMark(k, in) // repl_stackexile.go
+		return true, true
 	case kop.ExtPlotGrant:
 		s.plotGrant(k) // kw_plot.go
 		return true, true
@@ -209,6 +212,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.distPickStart(k, in), true // ctr_distpick.go
 	case kop.ExtCopyNamed:
 		return !s.copyNamed(k, in), true // copy_named.go
+	case kop.ExtCopyPicked:
+		return !s.copyPicked(k, in), true // copy_picked.go
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }

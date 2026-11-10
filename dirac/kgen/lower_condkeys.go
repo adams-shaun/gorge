@@ -20,6 +20,9 @@ func (lc *lowerCtx) nodeConditionZone(ps *params, c lCond, spec string) (lCond, 
 	if !ok {
 		return c, nil
 	}
+	if d := strings.TrimSpace(ps.m["ConditionDefined"]); d == "TriggeredCard" && strings.TrimSpace(zone) == "Stack" && spec == "Card.inZoneStack" {
+		return c, nil // lowerCond rewrote the pair into the filter (lower_effect.go)
+	}
 	if d, ok := ps.m["ConditionDefined"]; ok && strings.TrimSpace(d) != "" {
 		return lCond{}, refuse("ConditionPresent$ with ConditionZone$ %q and ConditionDefined$ %q", zone, d)
 	}

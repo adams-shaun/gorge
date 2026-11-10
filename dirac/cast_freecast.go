@@ -49,7 +49,8 @@ const sfFreeGY uint8 = 1 << 4
 // predicate every stack exit reads (finishResolve, the held-spell exit,
 // counterAt), so a new exit cannot miss the rider.
 func (e *stackEntry) exilesOnLeave() bool {
-	return e.flags&sfFlashback != 0 || e.flags&sfFree != 0 && e.flags&sfFreeGY != 0 && !DebugM11NoReplaceGY
+	return e.flags&sfFlashback != 0 || e.flags&sfFree != 0 && e.flags&sfFreeGY != 0 && !DebugM11NoReplaceGY ||
+		e.kind == seSpell && e.remVer&spellExileLeave != 0 // an Effect's exile-instead mark (repl_stackexile.go)
 }
 
 // Debug switches for the mutation test (the counters live on

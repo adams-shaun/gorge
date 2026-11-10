@@ -650,6 +650,13 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 		// is still exiled with the source (a resolution-time read of the
 		// source's own exile link, lower_rempersist.go)
 		lc.exwOK = hasD && strings.TrimSpace(d0) == "Remembered" && strings.TrimSpace(cp) == "Card.ExiledWithSource" && lc.remPersistShape()
+		if z, ok := ps.m["ConditionZone"]; ok && strings.TrimSpace(z) == "Stack" && strings.TrimSpace(cp) == "Card" && hasD && strings.TrimSpace(d0) == "TriggeredCard" {
+			// "the triggering card is on the stack" (gorge conditionMetZone
+			// over the defined group): Card.inZoneStack's read, the spelling
+			// Goliath Daydreamer uses (lower_effectstackexile.go)
+			cp = "Card.inZoneStack"
+			ps.consume("ConditionZone")
+		}
 		f, err := lc.filter(cp)
 		lc.exwOK = false
 		lc.spellProvOK = false

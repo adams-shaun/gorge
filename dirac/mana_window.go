@@ -273,7 +273,11 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				continue
 			}
 			if k.gen.anyFiltFirst && k.gen.has(s.cardAt(sl), gfFilt) && s.filtFirstOnly(k, sl) {
-				s.windowFiltFirst(k, p, sl, useful, noOwed && !clamp) // mana_filterfirst.go
+				if noOwed && clamp {
+					s.windowFiltFirstFallback(k, p, sl, useful) // mana_filterfirst.go
+				} else {
+					s.windowFiltFirst(k, p, sl, useful, noOwed && !clamp) // mana_filterfirst.go
+				}
 				continue
 			}
 			if k.gen.anyMultiR && s.scriptWide(k, p).has(sl) {
@@ -1482,8 +1486,11 @@ func (s *State) payRestrRider(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj
 // ordinary mana of its colour.
 func (s *State) payRestrSpend(k *prep, p, m uint8, cost *kop.ManaCost, x int, o Obj, anyColor bool) {
 	pl := &s.pl[p]
-	if k.gen.rs != nil && k.gen.rs.wide || s.rbColours(p, m) > 1 {
-		s.payRestrX(k, p, m, cost, x, o, anyColor) // several restricted colours (mana_reflected.go)
+	if k.gen.rs != nil && (k.gen.rs.wide || k.gen.rs.over) || s.rbColours(p, m) > 1 {
+		// a widened pair or a restricted ability of several mana may leave
+		// restricted units in the pool; several restricted colours
+		// (mana_reflected.go)
+		s.payRestrX(k, p, m, cost, x, o, anyColor)
 		return
 	}
 	var tk [maxRB][kop.NumManaKinds]uint8
@@ -2382,9 +2389,10 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 			continue
 		}
 		tapped, ext, tcol := false, false, 0
+		abi := int8(-1)
 		for i := 0; i < pk.rtapN; i++ {
 			if pk.rtap[i].sl == sl {
-				tapped, ext, tcol = true, pk.rtap[i].ext, int(pk.rtap[i].col)
+				tapped, ext, tcol, abi = true, pk.rtap[i].ext, int(pk.rtap[i].col), pk.rtap[i].ab
 			}
 		}
 		if !tapped {
@@ -2394,7 +2402,10 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 		if rec == nil {
 			continue
 		}
-		ab := &k.t.Cards[c].Abilities[rec.ab]
+		if abi < 0 {
+			abi = rec.ab // a record whose unit was not tagged: the first ability
+		}
+		ab := &k.t.Cards[c].Abilities[abi]
 		n := max(ab.ManaN, 1)
 		// a widened unit's tap made the colour the plan chose: when that
 		// colour is none the card's own census ability makes (Turtle Lair's
@@ -2893,7 +2904,16 @@ func (s *State) manaStep(k *prep) bool {
 				c := xFolded(cost, int(e.x))
 				// a behold carrier's fallback window has no ManaPayment: a source answers
 				// its lowest colour, not the owed pip (windowCol)
-				s.windowTapUseful(k, e.ctrl, &c, &c, true, anyColor, cd.BeholdN != 0 && s.bld().pipN == 0, false)
+				ok, _ := s.windowTapUseful(k, e.ctrl, &c, &c, true, anyColor, cd.BeholdN != 0 && s.bld().pipN == 0, false)
+				if !ok && !s.winPaused() {
+					// the fallback window ran out of useful sources (a colour
+					// answered with no owed pip strands the payment): gorge
+					// reverses the cast, keeping the window's taps and floating
+					// mana (CR 733.1, as the altAbort window above)
+					s.releaseCostTaps(k, &saved)
+					s.reverseCast(k)
+					return true
+				}
 			} else {
 				if s.rbAny(e.ctrl) {
 					// the plan taps only for what the admitted restricted mana

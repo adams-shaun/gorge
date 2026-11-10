@@ -1,0 +1,11 @@
+# a first-only filter's fee in a fallback window with restricted mana floating
+# (Abzan Devotee, Guidelight Optimizer: its {U} spends on an artifact spell or
+# an activated ability; dirac/mana_filterfallbackrestr_test.go)
+Abzan Devotee
+Guidelight Optimizer
+Doom Blade
+Grizzly Bears
+Plains
+Swamp
+Island
+Forest

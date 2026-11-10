@@ -616,14 +616,18 @@ type planner struct {
 	// whose mana floats restricted (restrPairUnit)
 	rbOn bool
 	// rkind: the restricted record kind (rkWiden, rkExt) of each unit's
-	// source, 0 for a plain one; rtap: the restricted-kind units a tap made,
-	// with the colour each made (witnessManaRestricted)
+	// source, 0 for a plain one; rAb: the restricted ability each unit taps
+	// (a view's manaAb; -1 none); rtap: the restricted-kind units a tap made,
+	// with the colour each made and the ability it activated
+	// (witnessManaRestricted)
 	rkind [maxUnits]uint8
+	rAb   [maxUnits]int8
 	rtapN int
 	rtap  [maxUnits]struct {
 		sl  Slot
 		col uint8
 		ext bool
+		ab  int8
 	}
 	// keepCols: bestCol is the search's witness (limitPlan), not the least
 	// colours the taps would choose
@@ -1059,6 +1063,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	var pcs [MaxPerm]*pcard
 	var granted [MaxPerm]bool
 	var rv [MaxPerm]uint8
+	var ra [MaxPerm]int8      // the ability a restricted view is (restrViewW)
 	var rk, dm [MaxPerm]uint8 // a restricted source's record kind and unadmitted ranking colours (restrViewW)
 	var intr [MaxPerm]uint8   // a widened source's intrinsic colours: its granted basic land types' (static_landtype.go)
 	var tapsPain [4]pcard     // pain-only views of the sources a Pain-class Taps watcher prices (mana_tapsdefer.go)
@@ -1079,7 +1084,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			}
 			granted[i] = s.manaGranted(k, sl)
 			if k.restrSrc && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
-				if v, kd, ab, dmask := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
+				if v, kd, ab, dmask, abi := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
+					ra[i] = abi
 					if kd == rkWiden && pcs[i].blgFirst != 0 {
 						// the restricted view is the card's: the intrinsic
 						// abilities a granted basic land type gives (Jasmine
@@ -1194,10 +1200,10 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				} else if pass == 2 || (pass == 0) == choice {
 					continue
 				}
-				if pc.wideN != 0 && rv[i] == rkWiden && s.restrPairUnit(k, sl, pc, pk, i, true) {
+				if pc.wideN != 0 && rv[i] == rkWiden && s.restrPairUnit(k, sl, pc, pk, i, true, ra[i]) {
 					continue
 				}
-				if pc.wideN != 0 && rv[i] == 0 && k.gen != nil && k.gen.anyGatePair && k.gen.flags[s.cardAt(sl)]&(gfManaGate|gfManaDynPair) != 0 && debugGatedPair != 2 && s.restrPairUnit(k, sl, pc, pk, i, false) {
+				if pc.wideN != 0 && rv[i] == 0 && k.gen != nil && k.gen.anyGatePair && k.gen.flags[s.cardAt(sl)]&(gfManaGate|gfManaDynPair) != 0 && debugGatedPair != 2 && s.restrPairUnit(k, sl, pc, pk, i, false, -1) {
 					continue // a gated same-colour larger ability: the pair, its larger alternative ordinary mana (mana_gate.go)
 				}
 				cr := s.isCreature(k, sl)
@@ -1237,10 +1243,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					xc, xp, _ := s.srcExtraPain(k, sl, pc)
 					fl = painFlexAll(pc, xc, xp) // the withheld painful alternative's colours still count
 				}
+				rb := pc.restrFloat
 				ti := -1
 				for t := 0; t < pk.nt; t++ {
 					ty := &pk.types[t]
-					if ty.mask == mask && ty.dmask == dmk && ty.n == pc.manaN && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv {
+					if ty.mask == mask && ty.dmask == dmk && ty.n == pc.manaN && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.rb == rb {
 						ti = t
 						break
 					}
@@ -1251,7 +1258,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					}
 					ti = pk.nt
 					pk.nt++
-					pk.types[ti] = utype{mask: mask, dmask: dmk, n: pc.manaN, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: sac, first: first, printed: printed, xv: xv, xmask: xm, xt: xt}
+					pk.types[ti] = utype{mask: mask, dmask: dmk, n: pc.manaN, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: sac, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, rb: rb}
 					if sac {
 						pk.types[ti].irr = 10
 						if cr {
@@ -1276,6 +1283,10 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				pk.utyp[pk.nu] = uint8(ti)
 				pk.rkind[pk.nu] = rv[i]
+				pk.rAb[pk.nu] = pc.manaAb
+				if rv[i] == rkWiden && k.gen != nil && k.gen.rs != nil {
+					pk.rAb[pk.nu] = ra[i] // the widened view's restricted ability
+				}
 				pk.nu++
 				if sac {
 					// a last-resort source has no normal alternative, so
@@ -1345,15 +1356,21 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				sl  Slot
 				col uint8
 				ext bool
-			}{sl, uint8(col), r == rkExt}
+				ab  int8
+			}{sl, uint8(col), r == rkExt, pk.rAb[u]}
 			pk.rtapN++
 		}
 		s.pl[p].pool[col] += ty.n
 		if ty.rb && DebugRestrictedSource != 5 {
-			// a restricted source's larger alternative: its mana floats
-			// restricted (restrPairUnit)
+			// a restricted source's larger alternative (or its sole ability of
+			// more than one mana): its mana floats restricted (restrPairUnit,
+			// prepRestrSrc's rkExt over)
 			s.pl[p].pool[col] -= ty.n
-			if !s.floatRestrOnly(k, p, sl, &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab], col, ty.n) {
+			abi := pk.rAb[u]
+			if abi < 0 {
+				abi = k.gen.restrRecOf(s.cardAt(sl)).ab
+			}
+			if !s.floatRestrOnly(k, p, sl, &k.t.Cards[s.cardAt(sl)].Abilities[abi], col, ty.n) {
 				s.capFull(StallRestrSrc)
 			}
 			pk.rbOn = true

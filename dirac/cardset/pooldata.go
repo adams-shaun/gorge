@@ -341,7 +341,7 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 						usesOverride[int(in.C)-1] = true // the copy exceptions
 					}
 				case kop.OpExt:
-					if x := kop.ExtOp(in.A.N); (x == kop.ExtCopyAllEach || x == kop.ExtCloneCopy) && in.C > 0 {
+					if x := kop.ExtOp(in.A.N); (x == kop.ExtCopyAllEach || x == kop.ExtCloneCopy || x == kop.ExtCopyPicked) && in.C > 0 {
 						usesOverride[int(in.C)-1] = true // the copy exceptions
 					} else if x == kop.ExtCopyNamed && uint16(in.C)>>kop.CopyNamedExcShift > 0 {
 						usesOverride[int(uint16(in.C)>>kop.CopyNamedExcShift)-1] = true

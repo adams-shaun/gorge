@@ -3672,6 +3672,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// Obj the triggering spell (the kernel reads the entry's trigObj)
 		ki.Op, ki.B = kop.OpExt, ki.A
 		ki.A = kop.Const(int(kop.ExtEffEtbCtr))
+	case "StackExileMark":
+		// OpExt ExtStackExileMark, C the kop.StackExile* bits (repl_stackexile.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtStackExileMark)), int16(in.C)
 	case "EffFinalityCtr":
 		// OpExt ExtFinalityCtr, Obj the triggering spell
 		// (the kernel reads the entry's trigObj); the spell enters with one
@@ -4013,6 +4016,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.C = 6 // choosePutCounterPick
 		case "FaceDownPick":
 			ki.C = 7 // chooseFaceDownPick: the cloak-from-hand pick (gorge's face_down_choice)
+		case "CopyPick":
+			ki.C = 8 // chooseCopyPick: the CopyPermanent Choices$ pick (gorge's copypermanent_choice)
 		}
 	case "ChooseEachType":
 		ki.Op = kop.OpChooseEachType
@@ -4130,7 +4135,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		default:
 			return ki, fmt.Errorf("override duration %q", in.CS)
 		}
-	case "CopyAsToken", "CopyNamed":
+	case "CopyAsToken", "CopyNamed", "CopyPicked":
 		ki.Op = kop.OpCopyAsTokenEx
 		cf := 0
 		if _, ok := fl["SacAtEndStep"]; ok {
@@ -4150,6 +4155,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, ok := fl["NonRemCtrl"]; ok {
 			cf |= kop.CopyNonRemCtrl
+		}
+		if _, ok := fl["Attacking"]; ok {
+			cf |= kop.CopyAttacking // ExtCopyPicked only (lower_copypicked.go)
 		}
 		pk, ok := fl["Pump"]
 		pe, eot := fl["PumpEOT"]
@@ -4179,6 +4187,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, err
 			}
 			ki.C = int16(i + 1)
+		}
+		if in.Op == "CopyPicked" {
+			// kop.ExtCopyPicked: Obj the picked card, B and C as above
+			ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCopyPicked))
 		}
 		if in.Op == "CopyNamed" {
 			// kop.ExtCopyNamed: B holds the named card's pool index (the
