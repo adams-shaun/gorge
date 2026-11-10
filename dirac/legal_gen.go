@@ -84,6 +84,9 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			if host == NoSlot && k.gen.globGrant {
 				host = s.grantHostGen(k, sl, c, ab)
 			}
+			if host == NoSlot {
+				host = s.selfGrantHost(k, sl, c, ab)
+			}
 			if host == NoSlot || a.Cost.Flags&kop.CostTapHost != 0 && s.perms[host].flags&pfTapped != 0 {
 				return
 			}
@@ -91,7 +94,11 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 				return // only a permanent the payer controls can be sacrificed or exiled (CR 701.21a, 118.3)
 			}
 			if s.cfg&cfgGorgeUnpriced != 0 && !s.poolPays(p, &a.Cost.Mana) {
-				return // gorge offers it only when the pool pays (Config.GorgeUnpriced)
+				// gorge's granted-keyword offer prices the real pool only
+				// (rules.offerCastable with no hypothetical bound), the same
+				// gate the Equipment-granted path above follows; a source-paid
+				// price here would offer an activation gorge withholds.
+				return
 			}
 			if s.canActivate(k, sl, 255, a, sorc, &av) {
 				// two copies of one grantor give the same ability: the second is the

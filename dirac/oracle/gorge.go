@@ -785,6 +785,16 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(grantor), 255), opt: o.Index})
 				continue
 			}
+			if o.Keyword != "" && o.SVar == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.AltCostIndex == 0 && g.selfKeywordGrant(o.Obj, o.Keyword) {
+				// A line an effect on the permanent itself grants it while
+				// the permanent keeps its abilities (Domesticated
+				// Watercourse's Animate: "becomes an Equipment with equip
+				// {2}"): the latent-ability activation, the object as its
+				// own grantor. A static Equip grant has another source and
+				// keeps the anchored note below.
+				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(o.Obj), 255), opt: o.Index})
+				continue
+			}
 			if o.SVar != "" || o.Keyword != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Ability > 0x7F {
 				note("ability/anchored")
 				continue
@@ -1760,4 +1770,25 @@ func (g *GorgeSide) maxSpeedOrdinal(id state.ObjID, sv string) (int, bool) {
 		n++
 	}
 	return 0, false
+}
+
+// selfKeywordGrant reports whether a continuous effect on object id itself
+// grants it the derived keyword line line and leaves its abilities alone
+// (Domesticated Watercourse's Animate registers Source: id, Affects:
+// Card.Self, Layer: LAbilities, AddKeywords: "Equip:2"). A printed static is
+// not in RegisteredContinuous, and a static another permanent grants carries
+// that source, so neither matches.
+func (g *GorgeSide) selfKeywordGrant(id state.ObjID, line string) bool {
+	line = strings.TrimSpace(line)
+	for _, ce := range g.E.RegisteredContinuous() {
+		if ce.Source != id || ce.Layer != state.LAbilities || ce.RemoveAbilities || ce.GrantedStatic || !strings.EqualFold(strings.TrimSpace(ce.Affects), "Card.Self") {
+			continue
+		}
+		for _, kw := range ce.AddKeywords {
+			if strings.EqualFold(strings.TrimSpace(kw), line) {
+				return true
+			}
+		}
+	}
+	return false
 }

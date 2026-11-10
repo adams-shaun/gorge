@@ -508,6 +508,14 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					return refuse("ChangeZone Optional$ %q", opt)
 				}
 			}
+			// WithTotalCMC$ is the same cumulative budget a Dig reads; it
+			// rides the pick filter's head (kop.Filter.PickSumMax) and the
+			// kernel sums the hidden pick's chosen cards (State.pickFits).
+			budget, hasBudget, err := pickTotalCMC(ps)
+			if err != nil {
+				return err
+			}
+			f = pickConstraintFilter(f, budget, hasBudget, false)
 			cs := "from=Graveyard|" + strings.Join(flags, "|")
 			if counterKind != "" && dest == zBattlefield {
 				cs += "|counters=" + counterKind
@@ -1185,6 +1193,20 @@ func (lc *lowerCtx) dig(ps *params) error {
 			return err
 		}
 	}
+	// WithTotalCMC$/WithDifferentPowers$ ride the pick filter's head; the
+	// kernel narrows the candidates and the running take (State.pickFits).
+	budget, hasBudget, err := pickTotalCMC(ps)
+	if err != nil {
+		return err
+	}
+	distinct, err := digDifferentPowers(ps)
+	if err != nil {
+		return err
+	}
+	if err := digBoundShape(who, take, hasBudget, distinct); err != nil { // lower_digparams.go
+		return err
+	}
+	in.F = pickConstraintFilter(in.F, budget, hasBudget, distinct)
 	if lp, ok := ps.get("LibraryPosition"); ok {
 		if dest != zLibrary && dest2 != zLibrary {
 			return refuse("LibraryPosition without a library destination")
@@ -2526,6 +2548,7 @@ func (lc *lowerCtx) animate(ps *params) error {
 		return err
 	}
 	var guard lCond
+	selfDefined := false
 	if d, ok := ps.get("Defined"); ok && strings.HasPrefix(d, "Targeted.") {
 		// Defined$ Targeted.<spec>: the chain's target if it matches spec
 		// at resolution (gorge definedSpec with a property filter; Azure
@@ -2570,9 +2593,31 @@ func (lc *lowerCtx) animate(ps *params) error {
 			return nil
 		})
 	}
-	obj, err := lc.objOrTarget(ps, "Self", zBattlefield)
-	if err != nil {
-		return err
+	if d, ok := ps.get("Defined"); ok && strings.HasPrefix(d, "Self.") {
+		// Defined$ Self.<qualifier>: the source if it matches the qualifier
+		// at resolution (gorge triggeredCardQualified's definedSpecSelf base;
+		// Iron Man Armor's "if this Equipment isn't a creature"). The whole
+		// animation, its optional election and its end-step rider sit behind
+		// the guard, as gorge's empty set reaches none of them.
+		q := strings.TrimSpace(strings.TrimPrefix(d, "Self."))
+		if q == "" || strings.Contains(q, " & ") {
+			return refuse("Defined$ %q", d)
+		}
+		f, err := lc.filter("Card." + q)
+		if err != nil {
+			return err
+		}
+		ps.consume("Defined")
+		selfDefined = true
+		guard = lCond{Kind: cRefMatches, Ref: lRef{Kind: rSelf}, F: f, Op: opGE, A: cst(1)}
+	}
+	obj := lRef{Kind: rSelf}
+	if !selfDefined {
+		var err error
+		obj, err = lc.objOrTarget(ps, "Self", zBattlefield)
+		if err != nil {
+			return err
+		}
 	}
 	_, optional := ps.m["Optional"]
 	ps.consume("OptionQuestion") // prompt text only (gorge combatfx.go); the yes/no is the same
@@ -2602,26 +2647,28 @@ func (lc *lowerCtx) animate(ps *params) error {
 	if err != nil {
 		return err
 	}
-	if optional {
+	return lc.guardBlock(guard, func() error {
+		if optional {
+			if chosen {
+				return refuse("Animate Optional$ with a chosen colour")
+			}
+			if err := lc.mayGate(ps, kop.MayGuardMove, lRef{Kind: rYou}); err != nil {
+				return err
+			}
+		}
 		if chosen {
-			return refuse("Animate Optional$ with a chosen colour")
+			if o.MustBeBlocked {
+				return refuse("Animate HiddenKeywords$ must be blocked with a chosen colour")
+			}
+			lc.emitChosenColorAnimate(obj, o, dur)
+		} else {
+			lc.emitOverride(obj, o, dur)
 		}
-		if err := lc.mayGate(ps, kop.MayGuardMove, lRef{Kind: rYou}); err != nil {
-			return err
+		if atEOT != nil {
+			atEOT()
 		}
-	}
-	if chosen {
-		if o.MustBeBlocked {
-			return refuse("Animate HiddenKeywords$ must be blocked with a chosen colour")
-		}
-		lc.emitChosenColorAnimate(obj, o, dur)
-	} else {
-		lc.emitOverride(obj, o, dur)
-	}
-	if atEOT != nil {
-		atEOT()
-	}
-	return nil
+		return nil
+	})
 }
 
 // animateOverride reads an Animate / AnimateAll grant as an override and
@@ -2863,6 +2910,29 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		}
 		_, err := lc.definedValid(&cards.SA{API: "CopyPermanent"}, ps)
 		return err
+	}
+	if d, ok := ps.get("Defined"); ok && strings.TrimSpace(d) == "ExiledWith" {
+		// every card exiled with the source, copied (gorge's exiledWithSet;
+		// The Cloning of Shredder's chapters II and III). A Choices$ pool is
+		// left unread and refuses by name: gorge asks the controller to pick
+		// one of the set, which this op does not pose.
+		ps.consume("Defined")
+		exc, hasExc, err := lc.copyExceptions(ps)
+		if err != nil {
+			return err
+		}
+		f, err := lc.exiledWithFilter() // lower_exw.go
+		if err != nil {
+			return err
+		}
+		in := lInstr{Op: "CopyExiledWith", F: f}
+		if hasExc {
+			lc.out.overrides = append(lc.out.overrides, exc)
+			in.C = len(lc.out.overrides) // index+1
+			in.Note = "except " + overrideString(exc)
+		}
+		lc.emit(in)
+		return nil
 	}
 	var obj lRef
 	var named *namedCopy
@@ -3923,9 +3993,9 @@ func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride, 
 		// keyword/P/T walks honour OvGate (statCond); a player-hexproof or
 		// stack-keyword static reads no gate and would be live unanimated.
 		// Two walks read no OvGate: the attached-grant walk (grantsBetween)
-		// reads no statCond, so a granted ability or trigger
-		// (AddAbility$/AddTrigger$) beside the pump would reach the equipped
-		// creature unanimated; and the layer walk's lfxApplies gates a
+		// now reads statCond, but its StatOverride arm still does not, so a
+		// granted ability or trigger (AddAbility$/AddTrigger$) is refused
+		// here until that is checked; and the layer walk's lfxApplies gates a
 		// collected subtype grant (AddType$ subtype or ChosenType) on Cond2
 		// only, so it would apply unanimated whenever the walk is on: refuse
 		// both.

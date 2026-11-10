@@ -165,7 +165,10 @@ func (s *State) digMayStop(k *prep) bool {
 
 // digForced takes every matching looked-at card of a mandatory dig that
 // has no more of them than it takes (s.g.pickLeft), reporting whether it
-// did; the caller finishes the dig.
+// did; the caller finishes the dig. Under a pick-set bound
+// (kop.Filter.PickSumMax / PickDistinctPower) the walk is gorge's greedy
+// forced take: a card joins only while the running sum and distinct powers
+// still admit it, so a non-fitting card is skipped rather than taken.
 //
 //go:noinline
 func (s *State) digForced(k *prep) bool {
@@ -173,19 +176,35 @@ func (s *State) digForced(k *prep) bool {
 		return false
 	}
 	f := s.prog(k)[s.res.pc].F
-	var m uint32
-	n := 0
+	b := k.t.Filters[f].PickSumMax
+	hasBudget := b.K == kop.VConst && b.N > 0
+	save := s.g.lookSel
+	n, eligible := 0, 0
 	for i := 0; i < int(s.g.nlook); i++ {
 		o := s.resArm().look[i]
-		if s.g.lookSel&(1<<i) == 0 && s.matchCardGen(k, f, s.objs[o].card, s.objs[o].owner(), s.res.e.ctrl, o) {
-			m |= 1 << i
+		if save&(1<<i) != 0 || !s.matchCardGen(k, f, s.objs[o].card, s.objs[o].owner(), s.res.e.ctrl, o) {
+			continue
+		}
+		// gorge's budgetEligible test is the card's own mana value against
+		// the budget, independent of the running sum
+		if hasBudget && int(k.t.Cards[s.objs[o].card].Cost.MV()) > int(b.N) {
+			continue
+		}
+		eligible++
+		// gorge's greedy forced take: the accepted simulated picks are the
+		// bits set so far, so the candidate is packed only once it fits
+		if s.pickFits(k, f, o, true) {
+			s.g.lookSel |= 1 << i
 			n++
 		}
 	}
-	if n > int(s.g.pickLeft) {
+	// gorge asks when the eligible pool is larger than the take (takeChoice)
+	// or, under a budget, when the greedy take skips an affordable card
+	// (askBudget). Without a budget a same-power skip is the forced take.
+	if eligible > int(s.g.pickLeft) || hasBudget && n != eligible {
+		s.g.lookSel = save
 		return false
 	}
-	s.g.lookSel |= m
 	s.g.pickLeft -= uint8(n)
 	return true
 }

@@ -15,12 +15,11 @@ import (
 // The remaining words return joined for pumpKeywords. Any other
 // activated-keyword head stays there and refuses by name.
 //
-// Only beside the same Animate's RemoveAllAbilities$ (o.LoseAbilities, read
-// first): gorge then never offers the granted equip, and the kernel offers
-// none either (a granted activation needs an attached host), so the latent
-// is never activated in either engine. Without the loss gorge offers it as a
-// keyword option the oracle has no canonical form for and the kernel does
-// not host (Domesticated Watercourse), so that refuses.
+// The kernel hosts the latent on the animated permanent itself while that
+// permanent has not lost its abilities (a self-granted override record from
+// its own card: Domesticated Watercourse's equip {2}). Beside the same
+// Animate's RemoveAllAbilities$ the loss means the kernel hosts nothing and
+// gorge offers nothing (The Irencrag's Everflame).
 func (lc *lowerCtx) animateGrantedKeywordAbilities(kw string, o *lOverride) (string, error) {
 	var rest []string
 	for _, w := range strings.Split(kw, "&") {
@@ -28,9 +27,6 @@ func (lc *lowerCtx) animateGrantedKeywordAbilities(kw string, o *lOverride) (str
 		if cards.KeywordHead(w) != "Equip" {
 			rest = append(rest, w)
 			continue
-		}
-		if !o.LoseAbilities {
-			return "", refuse("Animate Keywords$ %q without RemoveAllAbilities$: a self-granted equip the kernel does not host", w)
 		}
 		sa := cards.GrantedKeywordAbility(w)
 		if sa == nil || sa.Kind != "AB" {

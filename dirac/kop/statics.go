@@ -71,7 +71,8 @@ type Static struct {
 	OvGate uint8
 	// GrantCost: a StatFbGrant's own flashback cost when StFbOwnCost is set
 	// (AddKeyword$ Flashback:1, Iroh, Grand Lotus's Lessons); otherwise the
-	// grant costs each card's mana cost.
+	// grant costs each card's mana cost. A StatWarpGrant's warp cost
+	// (AddKeyword$ Warp:2 R, Tannuk, Steadfast Second).
 	GrantCost ManaCost
 }
 
@@ -467,6 +468,30 @@ const StatBeamGrant StaticKind = 253
 // for a grant its own permanent makes.
 const StBeamGranted StaticFlags = 1 << 0
 
+// StatTapPower: a Mode$ TapPowerValue static: the candidate matching
+// Filter (ValidCard$, read with the static's controller and source as its
+// context) contributes its power plus the static's bonus when tapped to pay
+// an action in StFlags' scope (Crew, Saddle or Station). Value$ Toughness
+// makes that candidate's contribution its toughness (StTapPowerTough), a
+// literal Value$ N adds N, and a Value$ SVar naming the tapped creature
+// (Count$CardPower/Twice) is Static.VA under StDynamic and is evaluated with
+// the candidate as its source. Filter2 is the host subtype the action's own
+// permanent must have (Sulu's Station+Spacecraft does not apply to a Planet);
+// 0 admits any host. gorge statics_assignment.go
+// tapPowerValueFor, read by Crew/Saddle payment and by Station's amount.
+// Explicit ordinal: the StaticKind iota tail stays untouched.
+const StatTapPower StaticKind = 255
+
+// StatTapPower's scope bits in Static.StFlags (kind-specific aliases, as
+// StTapOnC aliases StOncePerTurn). StDynamic (1<<0) marks Static.VA as the
+// dynamic value.
+const (
+	StTapPowerCrew    = StOncePerTurn          // Activated.Crew
+	StTapPowerSaddle  = StAnyManaType          // Activated.Saddle
+	StTapPowerStation = StWithoutManaCost      // Activated.Station
+	StTapPowerTough   = StFunctionsInGraveyard // Value$ Toughness: replace the base power with toughness
+)
+
 // StatTapExtra: whenever the static's controller taps a permanent matching
 // Filter for mana, they add A-coloured mana, B of it (A is a mana index W U B R
 // G C), once per tap (a Mode$ TapsForMana | Static$ True trigger whose body is
@@ -515,6 +540,13 @@ const StatAnyTypeCreatures StaticKind = 239
 // cost is the card's mana cost, or GrantCost under StFbOwnCost (gorge
 // flashbackCost). Explicit ordinal: the StaticKind iota tail stays untouched.
 const StatFbGrant StaticKind = 242
+
+// StatWarpGrant: each card in its controller's hand matching Filter has warp
+// at Static.GrantCost (a Continuous static's AffectedZone$ Hand AddKeyword$
+// Warp; CR 702.185a; Tannuk, Steadfast Second). Read live from the
+// battlefield at the hand offer and the cost builder, never stamped on the
+// card. Explicit ordinal: the StaticKind iota tail stays untouched.
+const StatWarpGrant StaticKind = 240
 
 // StFbOwnCost on a StatFbGrant static: the flashback costs Static.GrantCost,
 // not the card's mana cost.

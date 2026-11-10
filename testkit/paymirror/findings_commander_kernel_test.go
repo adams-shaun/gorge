@@ -15,7 +15,7 @@ import (
 //   - 4130, 2138, 4139: the findings are no longer reached, so each seed keeps an
 //     empty pin and asserts a clean, control-equivalent game;
 //   - 25 seq 273: Master of Dark Rites, equivalent;
-//   - 4129 seq 4550: Demonic Tutor, equivalent (the Ogre pay-life-only witness
+//   - 4129 seq 4556: Demonic Tutor, equivalent (the Ogre pay-life-only witness
 //     stays pinned by TestWitnessReadsPayLifeOnlySources).
 func TestCommanderFindingsMirrorKernel(t *testing.T) {
 	t.Parallel()
@@ -34,7 +34,7 @@ func TestCommanderFindingsMirrorKernel(t *testing.T) {
 		{2138, []string{"vivi-ornitier-cedh", "hearthhull-worldseed-landfall", "pro-shaper", "foundations-keen-engineering"}, 0, ""},
 		{25, []string{"foundations-reign-of-dragons", "hearthhull-worldseed-landfall", "avengers-assemble", "rakdos-muscle-scam-exe"}, 273, ""},
 		{4139, []string{"foundations-wretched-ranks", "deadly-disguise", "foundations-reign-of-dragons", "ulalek-eldrazi"}, 0, ""},
-		{4129, []string{"rakdos-muscle-scam-exe", "pro-shaper", "foundations-reign-of-dragons", "foundations-wretched-ranks"}, 4550, ""},
+		{4129, []string{"rakdos-muscle-scam-exe", "pro-shaper", "foundations-reign-of-dragons", "foundations-wretched-ranks"}, 4556, ""},
 	} {
 		reports := findingGame(t, d, GameSpec{Seed: tc.seed, Decks: tc.decks, Commander: true, Policy: "bot"})
 		if len(reports) == 0 {

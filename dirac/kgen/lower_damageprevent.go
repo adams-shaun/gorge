@@ -29,6 +29,11 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	if ps.is("Duration", "UntilTheEndOfYourNextUntap") {
 		return lc.skipUntapEffect(ps)
 	}
+	if ps.is("Duration", "AsLongAsControl") {
+		if ok, err := lc.untapLockEffect(ps); ok || err != nil { // lower_untaplock.go
+			return err
+		}
+	}
 	if _, ok := ps.get("Duration"); ok {
 		return refuse("Effect replacement Duration$")
 	}

@@ -460,15 +460,11 @@ func TestSynthReachReportsEveryStage(t *testing.T) {
 
 // TestEachPlayerDiscardMovesTogether: each player chooses a discard with the
 // earlier player's cards still in hand, then everything moves at once (CR 101.4).
-// std-dsk pair 21 became a refused matchup (The Mindskinner's prevent-and-mill
-// beside The Rollercrusher Ride's damage doubler, StallReplPlus) when
-// 1b07ad252 lowered Mindskinner and the pool re-dealt; pair 22 reaches the
-// ask-pair with the earlier player's hand unchanged.
+// Each recorded game has two players' discards move together.
 func TestEachPlayerDiscardMovesTogether(t *testing.T) {
-	synthPairs(t, "std-dsk", []int{22, 36, 44}, nil)
-	synthPairs(t, "std-fin", []int{1, 12}, nil)
-	synthPairs(t, "std-otj", []int{2}, nil)
-	synthPairs(t, "std-woe", []int{84}, nil)
+	for _, pool := range []string{"std-dsk", "std-fin", "std-otj", "std-woe"} {
+		pinnedGames(t, pool, Config{GorgeAutopaySurface: true}, eachPlayerDiscarded)
+	}
 }
 
 // TestWaterbendAskRequiresTheTapsThePaymentNeeds: Done waits for the taps the mana
@@ -504,15 +500,17 @@ func waterbendPairs(t *testing.T, name string) {
 
 // TestAbilityPlanLeavesOutCommittedPermanents: the settled cost's plan is made
 // without the permanents tapped for the ability's costs, and stands if others pay
-// (CR 601.2g-h, 602.2b).
+// (CR 601.2g-h, 602.2b): a land's {4},{T} ability.
 func TestAbilityPlanLeavesOutCommittedPermanents(t *testing.T) {
-	synthPairs(t, "std-tla", []int{240}, nil)
+	pinnedGames(t, "std-tla", Config{GorgeAutopaySurface: true},
+		anyOf(activated("Airship Engine Room"), activated("Meditation Pools"), activated("North Pole Gates")))
 }
 
 // TestGrantedManaPricesAnImpendedCast: the search through granted mana prices an
-// impended cast at its alternative cost (CR 118.9, 702.176a).
+// impended cast at its alternative cost (CR 118.9, 702.176a): an Overlord cast for
+// its impending cost.
 func TestGrantedManaPricesAnImpendedCast(t *testing.T) {
-	synthPairs(t, "std-dsk", []int{11, 43, 292, 479}, nil)
+	pinnedGames(t, "std-dsk", Config{GorgeAutopaySurface: true}, impendedCast)
 }
 
 // TestShuffledPairReachesTheLibraryInOrder: Floodpits Drowner and its target reach
@@ -580,16 +578,16 @@ func TestBiteHitsEachObjectOfItsTargetSlot(t *testing.T) {
 // TestStrandedPaymentReversesFirst: a helper or tap-cost answer that leaves too little
 // mana is undone before any mana is activated (CR 601.2g-h, 602.2b, 733.1).
 func TestStrandedPaymentReversesFirst(t *testing.T) {
-	synthPairs(t, "std-ecl", []int{14, 200, 252, 353, 358}, nil)
-	synthPairs(t, "std-dsk", []int{29}, nil)
+	pinnedGames(t, "std-ecl", Config{GorgeAutopaySurface: true}, anyActivated)
+	pinnedGames(t, "std-dsk", Config{GorgeAutopaySurface: true}, anyActivated)
 }
 
 // TestStateBasedActionsRepeatAfterTriggerPlacement: a final chapter removed for want of
 // a legal target leaves its Saga to be sacrificed before anyone receives priority
 // (CR 117.5, 603.3d, 714.4).
 func TestStateBasedActionsRepeatAfterTriggerPlacement(t *testing.T) {
-	synthPairs(t, "std-fin", []int{8, 18, 32, 33, 38, 42}, nil)
-	synthPairs(t, "std-spm", []int{93, 101, 310, 320}, nil)
+	pinnedGames(t, "std-fin", Config{GorgeAutopaySurface: true}, sagaLeftBattlefield)
+	pinnedGames(t, "std-spm", Config{GorgeAutopaySurface: true}, sagaLeftBattlefield)
 }
 
 // TestEnteringPowerIsTheLivePermanents: "draw cards equal to its power" reads the

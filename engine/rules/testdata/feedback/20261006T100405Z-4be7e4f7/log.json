@@ -4537,6 +4537,15 @@
     },
     {
       "seq": 751,
+      "kind": 30,
+      "obj": 37,
+      "counter": "remembered",
+      "ids": [
+        98
+      ]
+    },
+    {
+      "seq": 752,
       "kind": 2,
       "obj": 73,
       "to": 4,
@@ -4544,17 +4553,26 @@
       "secret": true
     },
     {
-      "seq": 752,
+      "seq": 753,
+      "kind": 30,
+      "obj": 37,
+      "counter": "remembered",
+      "ids": [
+        73
+      ]
+    },
+    {
+      "seq": 754,
       "kind": 20,
       "text": "choose"
     },
     {
-      "seq": 753,
+      "seq": 755,
       "kind": 21,
       "text": "choose:[1]"
     },
     {
-      "seq": 754,
+      "seq": 756,
       "kind": 30,
       "obj": 37,
       "counter": "chosen",
@@ -4563,39 +4581,31 @@
       ]
     },
     {
-      "seq": 755,
+      "seq": 757,
       "kind": 26
     },
     {
-      "seq": 756,
+      "seq": 758,
+      "kind": 30,
+      "obj": 37,
+      "counter": "clear-remembered"
+    },
+    {
+      "seq": 759,
       "kind": 30,
       "obj": 37,
       "counter": "clear-chosen-card"
     },
     {
-      "seq": 757,
+      "seq": 760,
       "kind": 2,
       "obj": 204,
       "from": 5,
       "to": 4
     },
     {
-      "seq": 758,
-      "kind": 10
-    },
-    {
-      "seq": 759,
-      "kind": 10
-    },
-    {
-      "seq": 760,
-      "kind": 20,
-      "text": "priority"
-    },
-    {
       "seq": 761,
-      "kind": 21,
-      "text": "priority:[];announce:1e28b9f5b03e2c0617ab4330054a198c5a324a75c38d0e7d4a7f640218f1d9a5"
+      "kind": 10
     },
     {
       "seq": 762,
@@ -4603,6 +4613,20 @@
     },
     {
       "seq": 763,
+      "kind": 20,
+      "text": "priority"
+    },
+    {
+      "seq": 764,
+      "kind": 21,
+      "text": "priority:[];announce:a409be96dacb4d070f1c92827adde4a74d75940d94126d125c3fcb5dc0475213"
+    },
+    {
+      "seq": 765,
+      "kind": 10
+    },
+    {
+      "seq": 766,
       "kind": 11,
       "obj": 41,
       "from": 1,
@@ -4610,100 +4634,100 @@
       "text": "Goblin Recruiter"
     },
     {
-      "seq": 764,
+      "seq": 767,
       "kind": 20,
       "text": "choose"
     },
     {
-      "seq": 765,
+      "seq": 768,
       "kind": 21,
       "text": "choose:[4]"
     },
     {
-      "seq": 766,
+      "seq": 769,
       "kind": 6,
       "obj": 54
     },
     {
-      "seq": 767,
+      "seq": 770,
       "kind": 13,
       "amount": 1,
       "counter": "R"
     },
     {
-      "seq": 768,
+      "seq": 771,
       "kind": 6,
       "obj": 24
     },
     {
-      "seq": 769,
+      "seq": 772,
       "kind": 13,
       "amount": 1,
       "counter": "R"
     },
     {
-      "seq": 770,
+      "seq": 773,
       "kind": 13,
       "amount": -2,
       "counter": "R"
     },
     {
-      "seq": 771,
+      "seq": 774,
       "kind": 10
     },
     {
-      "seq": 772,
+      "seq": 775,
       "kind": 20,
       "text": "priority"
-    },
-    {
-      "seq": 773,
-      "kind": 21,
-      "text": "priority:[0]"
-    },
-    {
-      "seq": 774,
-      "kind": 10,
-      "player": 1,
-      "amount": 1
-    },
-    {
-      "seq": 775,
-      "kind": 10,
-      "player": 1,
-      "amount": 1
     },
     {
       "seq": 776,
+      "kind": 21,
+      "text": "priority:[0]"
+    },
+    {
+      "seq": 777,
+      "kind": 10,
+      "player": 1,
+      "amount": 1
+    },
+    {
+      "seq": 778,
+      "kind": 10,
+      "player": 1,
+      "amount": 1
+    },
+    {
+      "seq": 779,
       "kind": 20,
       "player": 1,
       "text": "priority"
     },
     {
-      "seq": 777,
+      "seq": 780,
       "kind": 21,
       "player": 1,
       "text": "priority:[0]"
     },
     {
-      "seq": 778,
+      "seq": 781,
       "kind": 12,
       "obj": 41,
       "text": "Goblin Recruiter"
     },
     {
-      "seq": 779,
+      "seq": 782,
       "kind": 2,
       "obj": 41,
       "from": 5,
       "to": 2
     },
     {
-      "seq": 780,
+      "seq": 783,
       "kind": 10
     },
     {
-      "seq": 781,
+      "seq": 784,
       "kind": 27,
       "obj": 41,
       "text": "triggered ability",
@@ -4712,77 +4736,77 @@
       ]
     },
     {
-      "seq": 782,
+      "seq": 785,
       "kind": 10
     },
     {
-      "seq": 783,
+      "seq": 786,
       "kind": 20,
       "text": "priority"
-    },
-    {
-      "seq": 784,
-      "kind": 21,
-      "text": "priority:[0]"
-    },
-    {
-      "seq": 785,
-      "kind": 10,
-      "player": 1,
-      "amount": 1
-    },
-    {
-      "seq": 786,
-      "kind": 10,
-      "player": 1,
-      "amount": 1
     },
     {
       "seq": 787,
-      "kind": 20,
-      "player": 1,
-      "text": "priority"
-    },
-    {
-      "seq": 788,
       "kind": 21,
-      "player": 1,
       "text": "priority:[0]"
     },
     {
+      "seq": 788,
+      "kind": 10,
+      "player": 1,
+      "amount": 1
+    },
+    {
       "seq": 789,
-      "kind": 12,
-      "obj": 205
+      "kind": 10,
+      "player": 1,
+      "amount": 1
     },
     {
       "seq": 790,
       "kind": 20,
-      "text": "choose"
+      "player": 1,
+      "text": "priority"
     },
     {
       "seq": 791,
       "kind": 21,
-      "text": "choose:[5]"
+      "player": 1,
+      "text": "priority:[0]"
     },
     {
       "seq": 792,
+      "kind": 12,
+      "obj": 205
+    },
+    {
+      "seq": 793,
+      "kind": 20,
+      "text": "choose"
+    },
+    {
+      "seq": 794,
+      "kind": 21,
+      "text": "choose:[5]"
+    },
+    {
+      "seq": 795,
       "kind": 2,
       "obj": 76
     },
     {
-      "seq": 793,
+      "seq": 796,
       "kind": 87,
       "obj": 41
     },
     {
-      "seq": 794,
+      "seq": 797,
       "kind": 22,
       "ids": [
         76
       ]
     },
     {
-      "seq": 795,
+      "seq": 798,
       "kind": 1,
       "ids": [
         42,
@@ -4876,7 +4900,7 @@
       "secret": true
     },
     {
-      "seq": 796,
+      "seq": 799,
       "kind": 39,
       "ids": [
         76,
@@ -4970,396 +4994,396 @@
       "secret": true
     },
     {
-      "seq": 797,
+      "seq": 800,
       "kind": 2,
       "obj": 205,
       "from": 5,
       "to": 4
     },
     {
-      "seq": 798,
-      "kind": 10
-    },
-    {
-      "seq": 799,
-      "kind": 10
-    },
-    {
-      "seq": 800,
-      "kind": 20,
-      "text": "priority"
-    },
-    {
       "seq": 801,
-      "kind": 21,
-      "text": "priority:[0]"
+      "kind": 10
     },
     {
       "seq": 802,
-      "kind": 10,
-      "player": 1,
-      "amount": 1
+      "kind": 10
     },
     {
       "seq": 803,
+      "kind": 20,
+      "text": "priority"
+    },
+    {
+      "seq": 804,
+      "kind": 21,
+      "text": "priority:[0]"
+    },
+    {
+      "seq": 805,
       "kind": 10,
       "player": 1,
       "amount": 1
     },
     {
-      "seq": 804,
+      "seq": 806,
+      "kind": 10,
+      "player": 1,
+      "amount": 1
+    },
+    {
+      "seq": 807,
       "kind": 20,
       "player": 1,
       "text": "priority"
     },
     {
-      "seq": 805,
+      "seq": 808,
       "kind": 21,
       "player": 1,
       "text": "priority:[0]"
     },
     {
-      "seq": 806,
+      "seq": 809,
       "kind": 8,
       "step": 4
     },
     {
-      "seq": 807,
-      "kind": 10
-    },
-    {
-      "seq": 808,
-      "kind": 10
-    },
-    {
-      "seq": 809,
-      "kind": 20,
-      "text": "priority"
-    },
-    {
       "seq": 810,
-      "kind": 21,
-      "text": "priority:[0]"
+      "kind": 10
     },
     {
       "seq": 811,
-      "kind": 10,
-      "player": 1,
-      "amount": 1
+      "kind": 10
     },
     {
       "seq": 812,
+      "kind": 20,
+      "text": "priority"
+    },
+    {
+      "seq": 813,
+      "kind": 21,
+      "text": "priority:[0]"
+    },
+    {
+      "seq": 814,
       "kind": 10,
       "player": 1,
       "amount": 1
     },
     {
-      "seq": 813,
+      "seq": 815,
+      "kind": 10,
+      "player": 1,
+      "amount": 1
+    },
+    {
+      "seq": 816,
       "kind": 20,
       "player": 1,
       "text": "priority"
     },
     {
-      "seq": 814,
+      "seq": 817,
       "kind": 21,
       "player": 1,
       "text": "priority:[0]"
     },
     {
-      "seq": 815,
+      "seq": 818,
       "kind": 8,
       "step": 5
     },
     {
-      "seq": 816,
+      "seq": 819,
       "kind": 10
     },
     {
-      "seq": 817,
+      "seq": 820,
       "kind": 20,
       "text": "attackers"
     },
     {
-      "seq": 818,
+      "seq": 821,
       "kind": 21,
       "text": "attackers:[]"
     },
     {
-      "seq": 819,
+      "seq": 822,
       "kind": 16,
       "player": 1
     },
     {
-      "seq": 820,
+      "seq": 823,
       "kind": 10
     },
     {
-      "seq": 821,
+      "seq": 824,
       "kind": 20,
       "text": "priority"
-    },
-    {
-      "seq": 822,
-      "kind": 21,
-      "text": "priority:[0]"
-    },
-    {
-      "seq": 823,
-      "kind": 10,
-      "player": 1,
-      "amount": 1
-    },
-    {
-      "seq": 824,
-      "kind": 10,
-      "player": 1,
-      "amount": 1
     },
     {
       "seq": 825,
+      "kind": 21,
+      "text": "priority:[0]"
+    },
+    {
+      "seq": 826,
+      "kind": 10,
+      "player": 1,
+      "amount": 1
+    },
+    {
+      "seq": 827,
+      "kind": 10,
+      "player": 1,
+      "amount": 1
+    },
+    {
+      "seq": 828,
       "kind": 20,
       "player": 1,
       "text": "priority"
     },
     {
-      "seq": 826,
+      "seq": 829,
       "kind": 21,
       "player": 1,
       "text": "priority:[0]"
     },
     {
-      "seq": 827,
+      "seq": 830,
       "kind": 8,
       "step": 8
     },
     {
-      "seq": 828,
-      "kind": 10
-    },
-    {
-      "seq": 829,
-      "kind": 10
-    },
-    {
-      "seq": 830,
-      "kind": 20,
-      "text": "priority"
-    },
-    {
       "seq": 831,
-      "kind": 21,
-      "text": "priority:[0]"
+      "kind": 10
     },
     {
       "seq": 832,
-      "kind": 10,
-      "player": 1,
-      "amount": 1
+      "kind": 10
     },
     {
       "seq": 833,
+      "kind": 20,
+      "text": "priority"
+    },
+    {
+      "seq": 834,
+      "kind": 21,
+      "text": "priority:[0]"
+    },
+    {
+      "seq": 835,
       "kind": 10,
       "player": 1,
       "amount": 1
     },
     {
-      "seq": 834,
+      "seq": 836,
+      "kind": 10,
+      "player": 1,
+      "amount": 1
+    },
+    {
+      "seq": 837,
       "kind": 20,
       "player": 1,
       "text": "priority"
     },
     {
-      "seq": 835,
+      "seq": 838,
       "kind": 21,
       "player": 1,
       "text": "priority:[0]"
     },
     {
-      "seq": 836,
+      "seq": 839,
       "kind": 8,
       "step": 9
     },
     {
-      "seq": 837,
+      "seq": 840,
       "kind": 28
     },
     {
-      "seq": 838,
-      "kind": 10
-    },
-    {
-      "seq": 839,
-      "kind": 10
-    },
-    {
-      "seq": 840,
-      "kind": 20,
-      "text": "priority"
-    },
-    {
       "seq": 841,
-      "kind": 21,
-      "text": "priority:[0]"
+      "kind": 10
     },
     {
       "seq": 842,
-      "kind": 10,
-      "player": 1,
-      "amount": 1
+      "kind": 10
     },
     {
       "seq": 843,
+      "kind": 20,
+      "text": "priority"
+    },
+    {
+      "seq": 844,
+      "kind": 21,
+      "text": "priority:[0]"
+    },
+    {
+      "seq": 845,
       "kind": 10,
       "player": 1,
       "amount": 1
     },
     {
-      "seq": 844,
+      "seq": 846,
+      "kind": 10,
+      "player": 1,
+      "amount": 1
+    },
+    {
+      "seq": 847,
       "kind": 20,
       "player": 1,
       "text": "priority"
     },
     {
-      "seq": 845,
+      "seq": 848,
       "kind": 21,
       "player": 1,
       "text": "priority:[0]"
     },
     {
-      "seq": 846,
+      "seq": 849,
       "kind": 8,
       "step": 10
     },
     {
-      "seq": 847,
-      "kind": 10
-    },
-    {
-      "seq": 848,
-      "kind": 10
-    },
-    {
-      "seq": 849,
-      "kind": 20,
-      "text": "priority"
-    },
-    {
       "seq": 850,
-      "kind": 21,
-      "text": "priority:[0]"
+      "kind": 10
     },
     {
       "seq": 851,
-      "kind": 10,
-      "player": 1,
-      "amount": 1
+      "kind": 10
     },
     {
       "seq": 852,
+      "kind": 20,
+      "text": "priority"
+    },
+    {
+      "seq": 853,
+      "kind": 21,
+      "text": "priority:[0]"
+    },
+    {
+      "seq": 854,
       "kind": 10,
       "player": 1,
       "amount": 1
     },
     {
-      "seq": 853,
+      "seq": 855,
+      "kind": 10,
+      "player": 1,
+      "amount": 1
+    },
+    {
+      "seq": 856,
       "kind": 20,
       "player": 1,
       "text": "priority"
     },
     {
-      "seq": 854,
+      "seq": 857,
       "kind": 21,
       "player": 1,
       "text": "priority:[0]"
     },
     {
-      "seq": 855,
+      "seq": 858,
       "kind": 8,
       "step": 11
     },
     {
-      "seq": 856,
+      "seq": 859,
       "kind": 10
     },
     {
-      "seq": 857,
+      "seq": 860,
       "kind": 9,
       "player": 1,
       "amount": 8
     },
     {
-      "seq": 858,
+      "seq": 861,
       "kind": 8
     },
     {
-      "seq": 859,
+      "seq": 862,
       "kind": 7,
       "obj": 176
     },
     {
-      "seq": 860,
+      "seq": 863,
       "kind": 7,
       "obj": 179
     },
     {
-      "seq": 861,
+      "seq": 864,
       "kind": 7,
       "obj": 167
     },
     {
-      "seq": 862,
+      "seq": 865,
       "kind": 8,
       "step": 1
     },
     {
-      "seq": 863,
+      "seq": 866,
       "kind": 10,
       "player": 1
     },
     {
-      "seq": 864,
+      "seq": 867,
       "kind": 10,
       "player": 1
     },
     {
-      "seq": 865,
+      "seq": 868,
       "kind": 20,
       "player": 1,
       "text": "priority"
     },
     {
-      "seq": 866,
+      "seq": 869,
       "kind": 21,
       "player": 1,
       "text": "priority:[3]"
     },
     {
-      "seq": 867,
+      "seq": 870,
       "kind": 10,
       "amount": 1
     },
     {
-      "seq": 868,
+      "seq": 871,
       "kind": 10,
       "amount": 1
     },
     {
-      "seq": 869,
+      "seq": 872,
       "kind": 20,
       "text": "priority"
     },
     {
-      "seq": 870,
+      "seq": 873,
       "kind": 21,
       "text": "priority:[0]"
     },
     {
-      "seq": 871,
+      "seq": 874,
       "kind": 8,
       "step": 2
     },
     {
-      "seq": 872,
+      "seq": 875,
       "kind": 3,
       "player": 1,
       "obj": 194,
@@ -5367,73 +5391,56 @@
       "secret": true
     },
     {
-      "seq": 873,
+      "seq": 876,
       "kind": 10,
       "player": 1
     },
     {
-      "seq": 874,
+      "seq": 877,
       "kind": 10,
       "player": 1
     },
     {
-      "seq": 875,
+      "seq": 878,
       "kind": 20,
       "player": 1,
       "text": "priority"
     },
     {
-      "seq": 876,
+      "seq": 879,
       "kind": 21,
       "player": 1,
       "text": "priority:[3]"
     },
     {
-      "seq": 877,
+      "seq": 880,
       "kind": 10,
       "amount": 1
     },
     {
-      "seq": 878,
+      "seq": 881,
       "kind": 10,
       "amount": 1
     },
     {
-      "seq": 879,
+      "seq": 882,
       "kind": 20,
       "text": "priority"
     },
     {
-      "seq": 880,
+      "seq": 883,
       "kind": 21,
       "text": "priority:[0]"
     },
     {
-      "seq": 881,
+      "seq": 884,
       "kind": 8,
       "step": 3
     },
     {
-      "seq": 882,
-      "kind": 10,
-      "player": 1
-    },
-    {
-      "seq": 883,
-      "kind": 10,
-      "player": 1
-    },
-    {
-      "seq": 884,
-      "kind": 20,
-      "player": 1,
-      "text": "priority"
-    },
-    {
       "seq": 885,
-      "kind": 21,
-      "player": 1,
-      "text": "priority:[0]"
+      "kind": 10,
+      "player": 1
     },
     {
       "seq": 886,
@@ -5442,15 +5449,15 @@
     },
     {
       "seq": 887,
-      "kind": 2,
-      "obj": 181,
-      "from": 1,
-      "to": 2
+      "kind": 20,
+      "player": 1,
+      "text": "priority"
     },
     {
       "seq": 888,
-      "kind": 23,
-      "player": 1
+      "kind": 21,
+      "player": 1,
+      "text": "priority:[0]"
     },
     {
       "seq": 889,
@@ -5459,15 +5466,15 @@
     },
     {
       "seq": 890,
-      "kind": 20,
-      "player": 1,
-      "text": "priority"
+      "kind": 2,
+      "obj": 181,
+      "from": 1,
+      "to": 2
     },
     {
       "seq": 891,
-      "kind": 21,
-      "player": 1,
-      "text": "priority:[];payment:046ad8ffb9870acf7abb8458bc0e718471f0e5be96ce5ddce8da514f043e50ff:51ad037f1c4e6d2c95cfbb23978db77c1432d1c1924f1bbe493582261ce5fa95"
+      "kind": 23,
+      "player": 1
     },
     {
       "seq": 892,
@@ -5476,6 +5483,23 @@
     },
     {
       "seq": 893,
+      "kind": 20,
+      "player": 1,
+      "text": "priority"
+    },
+    {
+      "seq": 894,
+      "kind": 21,
+      "player": 1,
+      "text": "priority:[];payment:fd279db4e98eac22997f493c5396efc569ddc92eac799e5e7eeabc5a3b7cd5b6:a168103c1a91e94d2259fcd729b9d690704d28077bf8fb81870344b52bf356a7"
+    },
+    {
+      "seq": 895,
+      "kind": 10,
+      "player": 1
+    },
+    {
+      "seq": 896,
       "kind": 11,
       "player": 1,
       "obj": 101,
@@ -5484,536 +5508,536 @@
       "text": "Sai, Master Thopterist"
     },
     {
-      "seq": 894,
+      "seq": 897,
       "kind": 6,
       "obj": 176
     },
     {
-      "seq": 895,
+      "seq": 898,
       "kind": 13,
       "player": 1,
       "amount": 1,
       "counter": "U"
     },
     {
-      "seq": 896,
+      "seq": 899,
       "kind": 6,
       "obj": 167
     },
     {
-      "seq": 897,
+      "seq": 900,
       "kind": 13,
       "player": 1,
       "amount": 1,
       "counter": "U"
     },
     {
-      "seq": 898,
+      "seq": 901,
       "kind": 6,
       "obj": 181
     },
     {
-      "seq": 899,
+      "seq": 902,
       "kind": 13,
       "player": 1,
       "amount": 1,
       "counter": "U"
     },
     {
-      "seq": 900,
+      "seq": 903,
       "kind": 13,
       "player": 1,
       "amount": -3,
       "counter": "U"
     },
     {
-      "seq": 901,
+      "seq": 904,
       "kind": 10,
       "player": 1
     },
     {
-      "seq": 902,
+      "seq": 905,
       "kind": 20,
       "player": 1,
       "text": "priority"
     },
     {
-      "seq": 903,
+      "seq": 906,
       "kind": 21,
       "player": 1,
       "text": "priority:[1]"
     },
     {
-      "seq": 904,
+      "seq": 907,
       "kind": 10,
       "amount": 1
     },
     {
-      "seq": 905,
+      "seq": 908,
       "kind": 10,
       "amount": 1
     },
     {
-      "seq": 906,
+      "seq": 909,
       "kind": 20,
       "text": "priority"
     },
     {
-      "seq": 907,
+      "seq": 910,
       "kind": 21,
       "text": "priority:[0]"
     },
     {
-      "seq": 908,
+      "seq": 911,
       "kind": 12,
       "obj": 101,
       "text": "Sai, Master Thopterist"
     },
     {
-      "seq": 909,
+      "seq": 912,
       "kind": 2,
       "obj": 101,
       "from": 5,
       "to": 2
     },
     {
-      "seq": 910,
-      "kind": 10,
-      "player": 1
-    },
-    {
-      "seq": 911,
-      "kind": 10,
-      "player": 1
-    },
-    {
-      "seq": 912,
-      "kind": 20,
-      "player": 1,
-      "text": "priority"
-    },
-    {
       "seq": 913,
-      "kind": 21,
-      "player": 1,
-      "text": "priority:[1]"
+      "kind": 10,
+      "player": 1
     },
     {
       "seq": 914,
       "kind": 10,
-      "amount": 1
+      "player": 1
     },
     {
       "seq": 915,
-      "kind": 10,
-      "amount": 1
-    },
-    {
-      "seq": 916,
-      "kind": 20,
-      "text": "priority"
-    },
-    {
-      "seq": 917,
-      "kind": 21,
-      "text": "priority:[0]"
-    },
-    {
-      "seq": 918,
-      "kind": 8,
-      "step": 4
-    },
-    {
-      "seq": 919,
-      "kind": 10,
-      "player": 1
-    },
-    {
-      "seq": 920,
-      "kind": 10,
-      "player": 1
-    },
-    {
-      "seq": 921,
       "kind": 20,
       "player": 1,
       "text": "priority"
     },
     {
-      "seq": 922,
+      "seq": 916,
       "kind": 21,
       "player": 1,
       "text": "priority:[1]"
     },
     {
-      "seq": 923,
+      "seq": 917,
       "kind": 10,
       "amount": 1
     },
     {
-      "seq": 924,
+      "seq": 918,
       "kind": 10,
       "amount": 1
     },
     {
-      "seq": 925,
+      "seq": 919,
       "kind": 20,
       "text": "priority"
     },
     {
-      "seq": 926,
+      "seq": 920,
       "kind": 21,
       "text": "priority:[0]"
     },
     {
-      "seq": 927,
+      "seq": 921,
       "kind": 8,
-      "step": 5
+      "step": 4
     },
     {
-      "seq": 928,
+      "seq": 922,
       "kind": 10,
       "player": 1
     },
     {
+      "seq": 923,
+      "kind": 10,
+      "player": 1
+    },
+    {
+      "seq": 924,
+      "kind": 20,
+      "player": 1,
+      "text": "priority"
+    },
+    {
+      "seq": 925,
+      "kind": 21,
+      "player": 1,
+      "text": "priority:[1]"
+    },
+    {
+      "seq": 926,
+      "kind": 10,
+      "amount": 1
+    },
+    {
+      "seq": 927,
+      "kind": 10,
+      "amount": 1
+    },
+    {
+      "seq": 928,
+      "kind": 20,
+      "text": "priority"
+    },
+    {
       "seq": 929,
+      "kind": 21,
+      "text": "priority:[0]"
+    },
+    {
+      "seq": 930,
+      "kind": 8,
+      "step": 5
+    },
+    {
+      "seq": 931,
+      "kind": 10,
+      "player": 1
+    },
+    {
+      "seq": 932,
       "kind": 20,
       "player": 1,
       "text": "attackers"
     },
     {
-      "seq": 930,
+      "seq": 933,
       "kind": 21,
       "player": 1,
       "text": "attackers:[]"
     },
     {
-      "seq": 931,
-      "kind": 16
-    },
-    {
-      "seq": 932,
-      "kind": 10,
-      "player": 1
-    },
-    {
-      "seq": 933,
-      "kind": 20,
-      "player": 1,
-      "text": "priority"
-    },
-    {
       "seq": 934,
-      "kind": 21,
-      "player": 1,
-      "text": "priority:[1]"
+      "kind": 16
     },
     {
       "seq": 935,
       "kind": 10,
-      "amount": 1
+      "player": 1
     },
     {
       "seq": 936,
+      "kind": 20,
+      "player": 1,
+      "text": "priority"
+    },
+    {
+      "seq": 937,
+      "kind": 21,
+      "player": 1,
+      "text": "priority:[1]"
+    },
+    {
+      "seq": 938,
       "kind": 10,
       "amount": 1
     },
     {
-      "seq": 937,
+      "seq": 939,
+      "kind": 10,
+      "amount": 1
+    },
+    {
+      "seq": 940,
       "kind": 20,
       "text": "priority"
     },
     {
-      "seq": 938,
+      "seq": 941,
       "kind": 21,
       "text": "priority:[0]"
     },
     {
-      "seq": 939,
+      "seq": 942,
       "kind": 8,
       "step": 8
     },
     {
-      "seq": 940,
-      "kind": 10,
-      "player": 1
-    },
-    {
-      "seq": 941,
-      "kind": 10,
-      "player": 1
-    },
-    {
-      "seq": 942,
-      "kind": 20,
-      "player": 1,
-      "text": "priority"
-    },
-    {
       "seq": 943,
-      "kind": 21,
-      "player": 1,
-      "text": "priority:[1]"
+      "kind": 10,
+      "player": 1
     },
     {
       "seq": 944,
       "kind": 10,
-      "amount": 1
+      "player": 1
     },
     {
       "seq": 945,
+      "kind": 20,
+      "player": 1,
+      "text": "priority"
+    },
+    {
+      "seq": 946,
+      "kind": 21,
+      "player": 1,
+      "text": "priority:[1]"
+    },
+    {
+      "seq": 947,
       "kind": 10,
       "amount": 1
     },
     {
-      "seq": 946,
+      "seq": 948,
+      "kind": 10,
+      "amount": 1
+    },
+    {
+      "seq": 949,
       "kind": 20,
       "text": "priority"
     },
     {
-      "seq": 947,
+      "seq": 950,
       "kind": 21,
       "text": "priority:[0]"
     },
     {
-      "seq": 948,
+      "seq": 951,
       "kind": 8,
       "step": 9
     },
     {
-      "seq": 949,
+      "seq": 952,
       "kind": 28
     },
     {
-      "seq": 950,
-      "kind": 10,
-      "player": 1
-    },
-    {
-      "seq": 951,
-      "kind": 10,
-      "player": 1
-    },
-    {
-      "seq": 952,
-      "kind": 20,
-      "player": 1,
-      "text": "priority"
-    },
-    {
       "seq": 953,
-      "kind": 21,
-      "player": 1,
-      "text": "priority:[1]"
+      "kind": 10,
+      "player": 1
     },
     {
       "seq": 954,
       "kind": 10,
-      "amount": 1
+      "player": 1
     },
     {
       "seq": 955,
+      "kind": 20,
+      "player": 1,
+      "text": "priority"
+    },
+    {
+      "seq": 956,
+      "kind": 21,
+      "player": 1,
+      "text": "priority:[1]"
+    },
+    {
+      "seq": 957,
       "kind": 10,
       "amount": 1
     },
     {
-      "seq": 956,
+      "seq": 958,
+      "kind": 10,
+      "amount": 1
+    },
+    {
+      "seq": 959,
       "kind": 20,
       "text": "priority"
     },
     {
-      "seq": 957,
+      "seq": 960,
       "kind": 21,
       "text": "priority:[0]"
     },
     {
-      "seq": 958,
+      "seq": 961,
       "kind": 8,
       "step": 10
     },
     {
-      "seq": 959,
-      "kind": 10,
-      "player": 1
-    },
-    {
-      "seq": 960,
-      "kind": 10,
-      "player": 1
-    },
-    {
-      "seq": 961,
-      "kind": 20,
-      "player": 1,
-      "text": "priority"
-    },
-    {
       "seq": 962,
-      "kind": 21,
-      "player": 1,
-      "text": "priority:[1]"
+      "kind": 10,
+      "player": 1
     },
     {
       "seq": 963,
       "kind": 10,
-      "amount": 1
-    },
-    {
-      "seq": 964,
-      "kind": 10,
-      "amount": 1
-    },
-    {
-      "seq": 965,
-      "kind": 20,
-      "text": "priority"
-    },
-    {
-      "seq": 966,
-      "kind": 21,
-      "text": "priority:[0]"
-    },
-    {
-      "seq": 967,
-      "kind": 8,
-      "step": 11
-    },
-    {
-      "seq": 968,
-      "kind": 10,
       "player": 1
     },
     {
-      "seq": 969,
-      "kind": 9,
-      "amount": 9
-    },
-    {
-      "seq": 970,
-      "kind": 8
-    },
-    {
-      "seq": 971,
-      "kind": 7,
-      "obj": 54
-    },
-    {
-      "seq": 972,
-      "kind": 7,
-      "obj": 24
-    },
-    {
-      "seq": 973,
-      "kind": 8,
-      "step": 1
-    },
-    {
-      "seq": 974,
-      "kind": 10
-    },
-    {
-      "seq": 975,
-      "kind": 10
-    },
-    {
-      "seq": 976,
-      "kind": 20,
-      "text": "priority"
-    },
-    {
-      "seq": 977,
-      "kind": 21,
-      "text": "priority:[2]"
-    },
-    {
-      "seq": 978,
-      "kind": 10,
-      "player": 1,
-      "amount": 1
-    },
-    {
-      "seq": 979,
-      "kind": 10,
-      "player": 1,
-      "amount": 1
-    },
-    {
-      "seq": 980,
+      "seq": 964,
       "kind": 20,
       "player": 1,
       "text": "priority"
     },
     {
-      "seq": 981,
+      "seq": 965,
       "kind": 21,
       "player": 1,
       "text": "priority:[1]"
     },
     {
+      "seq": 966,
+      "kind": 10,
+      "amount": 1
+    },
+    {
+      "seq": 967,
+      "kind": 10,
+      "amount": 1
+    },
+    {
+      "seq": 968,
+      "kind": 20,
+      "text": "priority"
+    },
+    {
+      "seq": 969,
+      "kind": 21,
+      "text": "priority:[0]"
+    },
+    {
+      "seq": 970,
+      "kind": 8,
+      "step": 11
+    },
+    {
+      "seq": 971,
+      "kind": 10,
+      "player": 1
+    },
+    {
+      "seq": 972,
+      "kind": 9,
+      "amount": 9
+    },
+    {
+      "seq": 973,
+      "kind": 8
+    },
+    {
+      "seq": 974,
+      "kind": 7,
+      "obj": 54
+    },
+    {
+      "seq": 975,
+      "kind": 7,
+      "obj": 24
+    },
+    {
+      "seq": 976,
+      "kind": 8,
+      "step": 1
+    },
+    {
+      "seq": 977,
+      "kind": 10
+    },
+    {
+      "seq": 978,
+      "kind": 10
+    },
+    {
+      "seq": 979,
+      "kind": 20,
+      "text": "priority"
+    },
+    {
+      "seq": 980,
+      "kind": 21,
+      "text": "priority:[2]"
+    },
+    {
+      "seq": 981,
+      "kind": 10,
+      "player": 1,
+      "amount": 1
+    },
+    {
       "seq": 982,
+      "kind": 10,
+      "player": 1,
+      "amount": 1
+    },
+    {
+      "seq": 983,
+      "kind": 20,
+      "player": 1,
+      "text": "priority"
+    },
+    {
+      "seq": 984,
+      "kind": 21,
+      "player": 1,
+      "text": "priority:[1]"
+    },
+    {
+      "seq": 985,
       "kind": 8,
       "step": 2
     },
     {
-      "seq": 983,
+      "seq": 986,
       "kind": 3,
       "obj": 76,
       "to": 1,
       "secret": true
     },
     {
-      "seq": 984,
+      "seq": 987,
       "kind": 10
     },
     {
-      "seq": 985,
+      "seq": 988,
       "kind": 10
     },
     {
-      "seq": 986,
+      "seq": 989,
       "kind": 20,
       "text": "priority"
     },
     {
-      "seq": 987,
+      "seq": 990,
       "kind": 21,
       "text": "priority:[2]"
     },
     {
-      "seq": 988,
+      "seq": 991,
       "kind": 10,
       "player": 1,
       "amount": 1
     },
     {
-      "seq": 989,
+      "seq": 992,
       "kind": 10,
       "player": 1,
       "amount": 1
     },
     {
-      "seq": 990,
+      "seq": 993,
       "kind": 20,
       "player": 1,
       "text": "priority"
     },
     {
-      "seq": 991,
+      "seq": 994,
       "kind": 21,
       "player": 1,
       "text": "priority:[1]"
     },
     {
-      "seq": 992,
+      "seq": 995,
       "kind": 8,
       "step": 3
     },
     {
-      "seq": 993,
+      "seq": 996,
       "kind": 10
     },
     {
-      "seq": 994,
+      "seq": 997,
       "kind": 27,
       "obj": 37,
       "text": "triggered ability",
@@ -6022,75 +6046,75 @@
       ]
     },
     {
-      "seq": 995,
+      "seq": 998,
       "kind": 10
     },
     {
-      "seq": 996,
+      "seq": 999,
       "kind": 20,
       "text": "priority"
     },
     {
-      "seq": 997,
+      "seq": 1000,
       "kind": 21,
       "text": "priority:[2]"
     },
     {
-      "seq": 998,
+      "seq": 1001,
       "kind": 10,
       "player": 1,
       "amount": 1
     },
     {
-      "seq": 999,
+      "seq": 1002,
       "kind": 10,
       "player": 1,
       "amount": 1
     },
     {
-      "seq": 1000,
+      "seq": 1003,
       "kind": 20,
       "player": 1,
       "text": "priority"
     },
     {
-      "seq": 1001,
+      "seq": 1004,
       "kind": 21,
       "player": 1,
       "text": "priority:[1]"
     },
     {
-      "seq": 1002,
+      "seq": 1005,
       "kind": 12,
       "obj": 206
     },
     {
-      "seq": 1003,
+      "seq": 1006,
       "kind": 20,
       "text": "choose"
     },
     {
-      "seq": 1004,
+      "seq": 1007,
       "kind": 21,
       "text": "choose:[1]"
     },
     {
-      "seq": 1005,
+      "seq": 1008,
       "kind": 2,
       "obj": 206,
       "from": 5,
       "to": 4
     },
     {
-      "seq": 1006,
+      "seq": 1009,
       "kind": 10
     },
     {
-      "seq": 1007,
+      "seq": 1010,
       "kind": 10
     },
     {
-      "seq": 1008,
+      "seq": 1011,
       "kind": 20,
       "text": "priority"
     }
@@ -7241,195 +7265,195 @@
       ]
     },
     {
-      "seq": 752,
+      "seq": 754,
       "player": 0,
       "choices": [
         1
       ]
     },
     {
-      "seq": 760,
+      "seq": 763,
       "player": 0,
       "choices": null,
       "announce": {
-        "action_id": "1e28b9f5b03e2c0617ab4330054a198c5a324a75c38d0e7d4a7f640218f1d9a5"
+        "action_id": "a409be96dacb4d070f1c92827adde4a74d75940d94126d125c3fcb5dc0475213"
       }
     },
     {
-      "seq": 764,
+      "seq": 767,
       "player": 0,
       "choices": [
         4
       ]
     },
     {
-      "seq": 772,
+      "seq": 775,
       "player": 0,
       "choices": [
         0
       ]
     },
     {
-      "seq": 776,
+      "seq": 779,
       "player": 1,
       "choices": [
         0
       ]
     },
     {
-      "seq": 783,
+      "seq": 786,
       "player": 0,
-      "choices": [
-        0
-      ]
-    },
-    {
-      "seq": 787,
-      "player": 1,
       "choices": [
         0
       ]
     },
     {
       "seq": 790,
+      "player": 1,
+      "choices": [
+        0
+      ]
+    },
+    {
+      "seq": 793,
       "player": 0,
       "choices": [
         5
       ]
     },
     {
-      "seq": 800,
+      "seq": 803,
       "player": 0,
       "choices": [
         0
       ]
     },
     {
-      "seq": 804,
+      "seq": 807,
       "player": 1,
       "choices": [
         0
       ]
     },
     {
-      "seq": 809,
+      "seq": 812,
       "player": 0,
       "choices": [
         0
       ]
     },
     {
-      "seq": 813,
+      "seq": 816,
       "player": 1,
       "choices": [
         0
       ]
     },
     {
-      "seq": 817,
+      "seq": 820,
       "player": 0,
       "choices": null
     },
     {
-      "seq": 821,
+      "seq": 824,
       "player": 0,
       "choices": [
         0
       ]
     },
     {
-      "seq": 825,
+      "seq": 828,
       "player": 1,
       "choices": [
         0
       ]
     },
     {
-      "seq": 830,
+      "seq": 833,
       "player": 0,
       "choices": [
         0
       ]
     },
     {
-      "seq": 834,
+      "seq": 837,
       "player": 1,
       "choices": [
         0
       ]
     },
     {
-      "seq": 840,
+      "seq": 843,
       "player": 0,
       "choices": [
         0
       ]
     },
     {
-      "seq": 844,
+      "seq": 847,
       "player": 1,
       "choices": [
         0
       ]
     },
     {
-      "seq": 849,
+      "seq": 852,
       "player": 0,
       "choices": [
         0
       ]
     },
     {
-      "seq": 853,
+      "seq": 856,
       "player": 1,
       "choices": [
         0
       ]
     },
     {
-      "seq": 865,
+      "seq": 868,
       "player": 1,
       "choices": [
         3
       ]
     },
     {
-      "seq": 869,
+      "seq": 872,
       "player": 0,
       "choices": [
         0
       ]
     },
     {
-      "seq": 875,
+      "seq": 878,
       "player": 1,
       "choices": [
         3
       ]
     },
     {
-      "seq": 879,
+      "seq": 882,
       "player": 0,
       "choices": [
         0
       ]
     },
     {
-      "seq": 884,
+      "seq": 887,
       "player": 1,
       "choices": [
         0
       ]
     },
     {
-      "seq": 890,
+      "seq": 893,
       "player": 1,
       "choices": null,
       "payment": {
-        "action_id": "046ad8ffb9870acf7abb8458bc0e718471f0e5be96ce5ddce8da514f043e50ff",
+        "action_id": "fd279db4e98eac22997f493c5396efc569ddc92eac799e5e7eeabc5a3b7cd5b6",
         "plan": {
           "version": 1,
-          "id": "51ad037f1c4e6d2c95cfbb23978db77c1432d1c1924f1bbe493582261ce5fa95",
+          "id": "a168103c1a91e94d2259fcd729b9d690704d28077bf8fb81870344b52bf356a7",
           "cost": {
             "generic": 2,
             "mana": [
@@ -7476,7 +7500,7 @@
             },
             {
               "source": 181,
-              "source_zone_seq": 887,
+              "source_zone_seq": 890,
               "ability": {
                 "kind": "intrinsic",
                 "intrinsic": "basic_land"
@@ -7511,159 +7535,159 @@
       }
     },
     {
-      "seq": 902,
+      "seq": 905,
       "player": 1,
       "choices": [
         1
       ]
     },
     {
-      "seq": 906,
+      "seq": 909,
       "player": 0,
       "choices": [
         0
       ]
     },
     {
-      "seq": 912,
+      "seq": 915,
       "player": 1,
       "choices": [
         1
       ]
     },
     {
-      "seq": 916,
+      "seq": 919,
       "player": 0,
       "choices": [
         0
       ]
     },
     {
-      "seq": 921,
+      "seq": 924,
       "player": 1,
       "choices": [
         1
       ]
     },
     {
-      "seq": 925,
+      "seq": 928,
       "player": 0,
       "choices": [
         0
       ]
     },
     {
-      "seq": 929,
+      "seq": 932,
       "player": 1,
       "choices": null
     },
     {
-      "seq": 933,
+      "seq": 936,
       "player": 1,
       "choices": [
         1
       ]
     },
     {
-      "seq": 937,
+      "seq": 940,
       "player": 0,
       "choices": [
         0
       ]
     },
     {
-      "seq": 942,
+      "seq": 945,
       "player": 1,
       "choices": [
         1
       ]
     },
     {
-      "seq": 946,
+      "seq": 949,
       "player": 0,
       "choices": [
         0
       ]
     },
     {
-      "seq": 952,
+      "seq": 955,
       "player": 1,
       "choices": [
         1
       ]
     },
     {
-      "seq": 956,
+      "seq": 959,
       "player": 0,
       "choices": [
         0
       ]
     },
     {
-      "seq": 961,
+      "seq": 964,
       "player": 1,
       "choices": [
         1
       ]
     },
     {
-      "seq": 965,
+      "seq": 968,
       "player": 0,
       "choices": [
         0
       ]
     },
     {
-      "seq": 976,
+      "seq": 979,
       "player": 0,
       "choices": [
         2
       ]
     },
     {
-      "seq": 980,
+      "seq": 983,
       "player": 1,
       "choices": [
         1
       ]
     },
     {
-      "seq": 986,
+      "seq": 989,
       "player": 0,
       "choices": [
         2
       ]
     },
     {
-      "seq": 990,
+      "seq": 993,
       "player": 1,
       "choices": [
         1
       ]
     },
     {
-      "seq": 996,
+      "seq": 999,
       "player": 0,
       "choices": [
         2
-      ]
-    },
-    {
-      "seq": 1000,
-      "player": 1,
-      "choices": [
-        1
       ]
     },
     {
       "seq": 1003,
+      "player": 1,
+      "choices": [
+        1
+      ]
+    },
+    {
+      "seq": 1006,
       "player": 0,
       "choices": [
         1
       ]
     }
   ],
-  "head": "f704ee3621c92588",
+  "head": "028ae2d3af35af77",
   "intent_count": 191,
   "turn": 9,
   "step": "main1",

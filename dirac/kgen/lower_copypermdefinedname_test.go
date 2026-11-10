@@ -65,9 +65,21 @@ func TestLowerCopypermDefinedname(t *testing.T) {
 			t.Errorf("a name the universe lacks must lower to no copy (tokens %v):\n%s", c.Tokens, ir)
 		}
 	})
+	forest := "Name:Forest\nManaCost:no cost\nTypes:Basic Land Forest\n"
+	t.Run("named card is a basic land", func(t *testing.T) {
+		c, ir := cnLower(t, "SP$ CopyPermanent | Cost$ B | DefinedName$ Forest", cnMutavault, forest)
+		if r := lowerRefusals(c); len(r) != 0 {
+			t.Fatalf("refused: %v", r)
+		}
+		if !strings.Contains(ir, "CopyNamed") {
+			t.Errorf("IR lacks the named copy:\n%s", ir)
+		}
+		if len(c.Tokens) != 1 || c.Tokens[0] != copyCardKey+"Forest" {
+			t.Errorf("tokens %v, want [%s]", c.Tokens, copyCardKey+"Forest")
+		}
+	})
 	maker := "Name:Maker\nManaCost:no cost\nTypes:Land\nA:AB$ Token | Cost$ T | TokenScript$ no_such_token\n"
 	broken := "Name:Broken\nManaCost:no cost\nTypes:Land\nA:AB$ NoSuchApi | Cost$ T\n"
-	forest := "Name:Forest\nManaCost:no cost\nTypes:Basic Land Forest\n"
 	badger := "Name:Giant Badger\nManaCost:1 G G\nTypes:Creature Badger\nPT:2/2\n"
 	for _, v := range []struct{ name, line, want string }{
 		{"num copies", "SP$ CopyPermanent | Cost$ B | DefinedName$ Mutavault | NumCopies$ 2", `DefinedName$ "Mutavault" beside NumCopies$`},
@@ -78,7 +90,6 @@ func TestLowerCopypermDefinedname(t *testing.T) {
 		{"controller", "SP$ CopyPermanent | Cost$ B | DefinedName$ Mutavault | Controller$ Opponent", `CopyPermanent Controller "Opponent"`},
 		{"named card does not lower", "SP$ CopyPermanent | Cost$ B | DefinedName$ Broken", `DefinedName$ "Broken": the named card does not lower`},
 		{"named card makes tokens", "SP$ CopyPermanent | Cost$ B | DefinedName$ Maker", `DefinedName$ "Maker"`},
-		{"named card is a basic land", "SP$ CopyPermanent | Cost$ B | DefinedName$ Forest", `DefinedName$ "Forest": the named card is a basic land`},
 		{"named card is not a land", "SP$ CopyPermanent | Cost$ B | DefinedName$ Giant Badger", `DefinedName$ "Giant Badger": the named card is not a land`},
 	} {
 		t.Run(v.name, func(t *testing.T) {

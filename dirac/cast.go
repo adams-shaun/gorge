@@ -65,7 +65,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		}
 		if mode&castWarp != 0 {
 			e.mode |= modeWarped
+			if s.g.warpGrant {
+				e.trigPl = trigPlWarpG // the grant's warp instance (kw_warpgrant.go)
+			}
 		}
+		s.g.warpGrant = false
 		if mode&castWarpRecast != 0 {
 			e.mode |= modeWarpRecast
 		}
@@ -162,6 +166,12 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		if s.bld().altAdd != buildBeamGrant && !s.FeatPoolPays(p, o, mode&3) {
 			s.lowerWitness(k, p)
 		}
+	} else if mode&castMayPlay != 0 && mode&castFree != 0 && s.cfg&(cfgGorgeLowering|cfgGorgeAutopay) != 0 && s.freeAltAddLowers(k, p, c, o) {
+		// a free may-play cast still owing an either-or part only its mana
+		// pays (Silvergill Mentor from Maralen's exile) is priced by gorge's
+		// witness at that part (potentialAltAddPlan), so the oracle lowers it
+		s.bld().bfl |= bflLowered
+		s.lowerWitness(k, p)
 	} else if s.cfg&cfgGorgeAutopay != 0 && s.cfg&cfgGorgeLowering == 0 && mode == 0 && ob.zone == kop.ZoneHand && k.t.Cards[c].Cost.X != 0 {
 		// the autopay surface's plain {X} cast is one the floating pool alone
 		// pays at X = 0 (gorge's planner prices no {X} spell, FeatPlannedCast):
@@ -551,7 +561,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		} else if e.flags&sfFlashback != 0 && k.gen != nil && k.gen.anyFbGrant && !cd.BeamMeUp {
 			c = s.fbGrantCost(k, e.ctrl, e.obj, s.bld().fbGrants != 0) // or a live grant's own cost (kw_fbgrant.go)
 		}
-		if e.mode&modeWarped != 0 && cd.HasWarp {
+		if e.mode&modeWarped != 0 && e.trigPl == trigPlWarpG {
+			c = s.warpGrantCost(k, e) // a battlefield grant's warp cost (kw_warpgrant.go)
+		} else if e.mode&modeWarped != 0 && cd.HasWarp {
 			c = cd.WarpCost // the hand's warp cost (CR 702.185a)
 		}
 		if cd.Impending > 0 && e.impended() {

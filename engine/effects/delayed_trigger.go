@@ -376,6 +376,15 @@ func effDelayedTriggerSpellCast(h Host, c *Ctx, dp *DelayedTriggerParams) {
 	if dp.ThisTurn {
 		text += "|TT=" + strconv.Itoa(int(h.Game().Turn))
 	}
+	// A granted ability's Execute lives on the GRANTOR's face, not on the
+	// grantee Ctx.Source names (Way of the Cryomancer grants a Jace token
+	// its "next instant or sorcery" copy). Carry the grantor as the LAST
+	// trailer so the registration can resolve the body and its SVar table
+	// against the face that owns them; absent for every non-granted
+	// registration.
+	if c.Grantor != 0 {
+		text += "|GB=" + strconv.FormatUint(uint64(c.Grantor), 10)
+	}
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 		Player: c.Controller, Step: h.Game().Step, Counter: exec, Text: text})
 }

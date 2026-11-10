@@ -1,0 +1,19 @@
+# the hand warp grant pool: Tannuk, Steadfast Second over artifact cards and
+# red creature cards without printed warp, two printed warps the grant's
+# {2}{R} neither covers nor is covered by (two warp rows), a printed warp equal
+# to it, Lightning Strike to take Tannuk off the battlefield, and Blaze, whose
+# {X} witness announced at X=0 leaves mana floating for a recast or a second
+# warp row (rows only the floating pool offers), for the oracle's constructed
+# lockstep (dirac/oracle/warpgrant_test.go)
+Blaze
+Galvanizing Sawship
+Island
+Kavaron Harrier
+Kavaron Skywarden
+Lightning Strike
+Mechanozoa
+Mountain
+Nebula Dragon
+Nova Hellkite
+Pinnacle Emissary
+Tannuk, Steadfast Second

@@ -203,7 +203,7 @@ func (s *State) infectCombat(k *prep, r *dmgRec) {
 			r.poison[pl] += int16(s.toxicAt(k, ev.src))
 			continue
 		}
-		if !(s.infectAt(k, ev.src) || s.witherAt(k, ev.src)) || !s.isCreature(k, ev.dst) {
+		if !s.combatHitIsCounters(k, ev) {
 			continue
 		}
 		r.toPerm[ev.dst] -= ev.n
@@ -214,6 +214,12 @@ func (s *State) infectCombat(k *prep, r *dmgRec) {
 			r.dtPerm.clr(ev.dst)
 		}
 	}
+}
+
+// combatHitIsCounters: combat event ev puts -1/-1 counters on a creature
+// (an infect or wither source) instead of marking damage.
+func (s *State) combatHitIsCounters(k *prep, ev *dmgEv) bool {
+	return k.gen.anyInfect && (s.infectAt(k, ev.src) || s.witherAt(k, ev.src)) && s.isCreature(k, ev.dst)
 }
 
 // prepPoison: a table whose programs give poison counters (OpPoison) or

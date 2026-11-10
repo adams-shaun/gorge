@@ -189,6 +189,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm = 1 << 4
 		case mode&dirac.FeatCastWarp != 0:
 			cm, _ = CastModeCode("warped") // a hand cast for its warp cost (kw_warp.go)
+			cm |= tgt << 4                 // the warp instance, gorge's AltCostIndex (kw_warpgrant.go)
 		case mode&1 != 0 && r.S.FeatOptCostCard(dirac.Obj(src)):
 			cm = CastModeOther | 1<<4 // gorge's "optionalcost" cast, AltCostIndex 1 (CR 601.2b; cost_optional.go)
 		case mode&1 != 0 && r.S.FeatOffspringCast(dirac.Obj(src)):

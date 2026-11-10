@@ -513,7 +513,14 @@ func (a *avail) maxXAnyColor(cost *kop.ManaCost) int {
 
 // --- the planner (gorge engine/rules/pay PlanPaymentCost, tap-only units) ---
 
-const maxUnits = 48
+// maxUnits bounds the planner's census. It is MaxPerm, not a smaller budget: a
+// player controls at most MaxPerm battlefield slots and each source is one
+// unit, so the census never truncates. gorge's census
+// (paymentPlanManaUnitsOnlyCompute) is uncapped, and the key-8 tie-break must
+// see every source: cutting the list at 48 dropped the least-ObjID source of a
+// board with more than 48 lands (Generated Horizons' Forest tokens), so the
+// kernel tapped a different Forest than gorge did.
+const maxUnits = MaxPerm
 
 // maxTypes bounds the planner's unit types: sixteen ordinary shapes plus a
 // painland pair per painful card (mana_pain.go)

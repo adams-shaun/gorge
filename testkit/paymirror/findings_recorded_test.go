@@ -26,7 +26,7 @@ import (
 //     first. The offer proves every planned step with the card on the stack
 //     (paymentPlanHoldsOnStack), so no planned cast in the game falls back or
 //     mismatches.
-//   - 12603 seq 4628 (Ashnod's Altar), commander4: cast from exile under Party
+//   - 12603 seq 4634 (Ashnod's Altar), commander4: cast from exile under Party
 //     Thrasher, which grants convoke only to a spell cast from exile, so the plan
 //     prices all of {3}; the seat's convoke tap then has the engine plan the cast
 //     again (CR 702.51a), and run A pays by that witness (Report.ARearm).
@@ -42,7 +42,7 @@ import (
 var recordedWant = map[uint64]map[uint64]string{ // seed -> seq -> verdict key ("" = equivalent)
 	12468: {},
 	11828: {},
-	12603: {4628: ""},
+	12603: {4634: ""},
 	10877: {2842: ""},
 }
 

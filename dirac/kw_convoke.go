@@ -265,7 +265,7 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	if k.gen == nil || !k.gen.anyConvoke || e.kind != seSpell || !s.tapPaysEntry(k, e) {
 		return false
 	}
-	if cd := &k.t.Cards[e.card]; harmonizeEntry(cd, e) || cd.Impending != 0 || cd.HasPlot || cd.HasSneak || cd.HasWarp ||
+	if cd := &k.t.Cards[e.card]; harmonizeEntry(cd, e) || cd.Impending != 0 || cd.HasPlot || cd.HasSneak || cd.HasWarp || e.trigPl == trigPlWarpG ||
 		cd.Mayhem || cd.HasWebSling || cd.HasMayFlash {
 		// kgen refuses these routes beside a printed Convoke or Improvise, so
 		// a live one is a grant. gorge's convokeAsk offers harmonize and

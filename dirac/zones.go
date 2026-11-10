@@ -654,6 +654,9 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		p.flags &^= pfPanhGone
 	}
 	s.touch(o)
+	if s.g.nul != 0 {
+		s.untapLockLeft(o) // the lock ends with its target (act_untaplock.go)
+	}
 	if p.flags&pfSick != 0 {
 		s.objs[o].of |= ofSickLeft
 	} else {

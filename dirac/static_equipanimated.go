@@ -3,14 +3,17 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // prepEquipAnim sets genPrep.equipAnim: CR 704.5p's Equipment arm of sba is
-// reachable only when an Equipment can be a creature. That takes an Equipment
-// card (kop.TEquipment: an Equipment can be attached without ever having an
-// Equip ability, by its own ETB trigger or an effect — Cryptic Coat) or an
-// Equip ability (kop.AfEquip), and an animator that can reach an Equipment: an
-// override that adds or sets the Creature type and is carried by an Equipment
-// itself (Ensouled Scimitar), by an effect on another object (Karn's Touch,
-// Relic's Roar), by a static whose affected filter admits an artifact (Ensoul
-// Artifact) or by a copy's exception. A creature-land or Vehicle animating itself (Soulstone
+// reachable only when a permanent can gain or lose the Equipment type while
+// it is attached. That takes an Equipment card (kop.TEquipment: an Equipment
+// can be attached without ever having an Equip ability, by its own ETB trigger
+// or an effect — Cryptic Coat) or an Equip ability (kop.AfEquip), and an
+// animator that can reach an Equipment: an override that adds or sets the
+// Creature type and is carried by an Equipment itself (Ensouled Scimitar), by
+// an effect on another object (Karn's Touch, Relic's Roar), by a static whose
+// affected filter admits an artifact (Ensoul Artifact) or by a copy's
+// exception; or the reverse, an override that adds or sets Equipment
+// (Domesticated Watercourse's Animate), whose end leaves an attachment with no
+// Equipment type. A creature-land or Vehicle animating itself (Soulstone
 // Sanctuary, Tangle Tumbler) and a static over creatures only (Witness
 // Protection) cannot, so FDN and BLB leave the flag false and keep the arm off
 // sba's per-permanent path. (An Equip never targets its own Equipment: kgen
@@ -34,6 +37,13 @@ func prepEquipAnim(t *kop.Table, g *genPrep) {
 	}
 	creatureOvr := func(o uint16) bool {
 		return int(o) < len(t.Overrides) && (t.Overrides[o].AddTypes|t.Overrides[o].SetTypes)&kop.TCreature != 0
+	}
+	// equipmentOvr: the override makes a permanent an Equipment (Domesticated
+	// Watercourse's Animate). When its duration ends the derived types lose
+	// Equipment and an attachment left behind is illegal (CR 704.5p, the
+	// "lost Equipment" half sbaAttachedCreature models).
+	equipmentOvr := func(o uint16) bool {
+		return int(o) < len(t.Overrides) && (t.Overrides[o].AddTypes|t.Overrides[o].SetTypes)&kop.TEquipment != 0
 	}
 	// filterMayEquip: the filter can match an Equipment (an alternative, or no
 	// type restriction, or an artifact/Equipment type)
@@ -71,7 +81,7 @@ func prepEquipAnim(t *kop.Table, g *genPrep) {
 				return
 			}
 			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 &&
-				creatureOvr(a.Static.Override-1) && filterMayEquip(a.Static.Filter) {
+				(creatureOvr(a.Static.Override-1) && filterMayEquip(a.Static.Filter) || equipmentOvr(a.Static.Override-1)) {
 				g.equipAnim = true
 				return
 			}
@@ -85,12 +95,12 @@ func prepEquipAnim(t *kop.Table, g *genPrep) {
 					return
 				}
 				switch {
-				case in.Op == kop.OpOverride && creatureOvr(uint16(in.C)):
-					if in.Obj != kop.RefSelf || c.Types&kop.TEquipment != 0 {
+				case in.Op == kop.OpOverride && (creatureOvr(uint16(in.C)) || equipmentOvr(uint16(in.C))):
+					if equipmentOvr(uint16(in.C)) || in.Obj != kop.RefSelf || c.Types&kop.TEquipment != 0 {
 						g.equipAnim = true
 						return
 					}
-				case in.Op == kop.OpOverrideAll && creatureOvr(uint16(in.C)) && filterMayEquip(in.F):
+				case in.Op == kop.OpOverrideAll && (creatureOvr(uint16(in.C)) && filterMayEquip(in.F) || equipmentOvr(uint16(in.C))):
 					g.equipAnim = true
 					return
 				}

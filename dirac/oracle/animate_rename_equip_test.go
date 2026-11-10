@@ -54,6 +54,18 @@ func animateRenameEquipCases() []animateRenameEquipCase {
 			append(deckOf(8, "Grizzly Bears"), deckOf(16, "Forest")...),
 		},
 		reached: everflame,
+	}, {
+		// Domesticated Watercourse's Animate keeps its abilities and grants
+		// it equip {2}, so gorge offers the equip and the kernel hosts the
+		// latent on the animated permanent itself; the policy activates the
+		// highest mode (the equip) and attaches it to a creature.
+		name:   "animate_equip_domesticated_watercourse_equips_a_creature",
+		prefer: []string{"Merfolk of the Pearl Trident", "Typhoid Rats", "Dark Ritual", "Domesticated Watercourse"},
+		decks: [2][]string{
+			append(deckOf(4, "Domesticated Watercourse"), append(deckOf(4, "Dark Ritual"), append(deckOf(4, "Merfolk of the Pearl Trident"), append(deckOf(4, "Typhoid Rats"), append(deckOf(16, "Island"), deckOf(8, "Swamp")...)...)...)...)...),
+			deckOf(40, "Forest"),
+		},
+		reached: watercourseEquipped,
 	}}
 }
 
@@ -92,6 +104,31 @@ func everflame(g *GorgeSide) bool {
 		}
 		ch := g.E.Chars(o.ID)
 		if named && ch != nil && slices.Contains(ch.Types, "Equipment") && slices.Contains(ch.Types, "Legendary") {
+			return true
+		}
+	}
+	return false
+}
+
+// watercourseEquipped: Domesticated Watercourse on the battlefield is an
+// Equipment artifact (its Animate resolved) attached to a creature.
+func watercourseEquipped(g *GorgeSide) bool {
+	gm := g.E.G
+	for i := range gm.Objs {
+		o := &gm.Objs[i]
+		if o.Zone != state.ZBattlefield || o.Face() == nil || o.Face().Name != "Domesticated Watercourse" || o.AttachedTo == 0 {
+			continue
+		}
+		// Chars returns an engine-owned view the next call may reuse, so
+		// read the Equipment check before asking about the host.
+		if ch := g.E.Chars(o.ID); ch == nil || !slices.Contains(ch.Types, "Equipment") {
+			continue
+		}
+		host := gm.Obj(o.AttachedTo)
+		if host == nil || host.Zone != state.ZBattlefield {
+			continue
+		}
+		if hch := g.E.Chars(host.ID); hch != nil && slices.Contains(hch.Types, "Creature") {
 			return true
 		}
 	}

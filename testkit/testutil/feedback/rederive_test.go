@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules"
 )
@@ -85,6 +86,9 @@ func rederive(dir string) error {
 		}
 		if in.Seq != d.Seq {
 			moved++
+			if err := rebindPaymentIDs(e, &in, d); err != nil {
+				return fmt.Errorf("intent %d (seq %d -> %d): %w", i, in.Seq, d.Seq, err)
+			}
 		}
 		in.Seq = d.Seq
 		if err := e.Submit(in); err != nil {
@@ -125,6 +129,62 @@ func rederive(dir string) error {
 	// Only the "events" count moves; the rest of match.json is kept byte for byte.
 	mout := eventsCountRE.ReplaceAll(mraw, []byte(fmt.Sprintf(`"events": %d,`, len(e.L.Events))))
 	return os.WriteFile(mp, mout, 0o644)
+}
+
+// rebindPaymentIDs re-keys a re-sequenced intent's payment/announce ids: they
+// hash the decision Seq (decision.PaymentActionID / PaymentPlanID), so a pure
+// reorder moves them too. The recorded action id must equal an offered cast's
+// id under the RECORDED seq, so the intent can never be re-pointed at a
+// different cast; anything else refuses.
+func rebindPaymentIDs(e *rules.Engine, in *decision.Intent, d *decision.Decision) error {
+	if in.Announce == nil && in.Payment == nil {
+		return nil
+	}
+	recorded := ""
+	if in.Announce != nil {
+		recorded = in.Announce.ActionID
+	} else {
+		recorded = in.Payment.ActionID
+	}
+	for _, a := range e.EnsurePaymentActions() {
+		old, err := decision.PaymentActionID(decision.PaymentPlanV1, in.Seq, d.Player, a.Cast)
+		if err != nil || old != recorded {
+			continue
+		}
+		if in.Announce != nil {
+			in.Announce = &decision.AnnounceSelection{ActionID: a.ID}
+			return nil
+		}
+		// The plan's SourceZoneSeq stamps are event seqs, which shift too: the
+		// recorded plan must equal exactly one offered plan with the id and those
+		// stamps blanked (same sources, abilities, mana, pool).
+		want := planShape(in.Payment.Plan)
+		var hit *decision.PaymentPlan
+		for k := range a.Plans {
+			if got := planShape(a.Plans[k]); got.Equal(&want) {
+				if hit != nil {
+					return fmt.Errorf("recorded plan matches two offered plans of action %q", a.ID)
+				}
+				hit = &a.Plans[k]
+			}
+		}
+		if hit == nil {
+			return fmt.Errorf("recorded plan %q matches no offered plan of action %q", in.Payment.Plan.ID, a.ID)
+		}
+		in.Payment = &decision.PaymentSelection{ActionID: a.ID, Plan: decision.ClonePaymentPlan(*hit)}
+		return nil
+	}
+	return fmt.Errorf("recorded payment action %q matches no offered cast at the recorded seq", recorded)
+}
+
+// planShape is a plan with its seq-bound fields (ID, SourceZoneSeq) blanked.
+func planShape(p decision.PaymentPlan) decision.PaymentPlan {
+	q := decision.ClonePaymentPlan(p)
+	q.ID = ""
+	for i := range q.Activations {
+		q.Activations[i].SourceZoneSeq = 0
+	}
+	return q
 }
 
 var eventsCountRE = regexp.MustCompile(`"events": [0-9]+,`)

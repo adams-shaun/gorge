@@ -623,7 +623,16 @@ type DelayedTrigger struct {
 	// Zero when creator and affected object are the same, which keeps every
 	// dash/warp/encore registration byte-identical. Folded from the
 	// DelayedRegister event's Text ("|CR=<id>"); replay rebuilds it.
-	Creator    ObjID
+	Creator ObjID
+	// Grantor is the object whose face owns Execute when this registration
+	// came from a GRANTED ability: a granted activation's Ctx.Source is the
+	// grantee (the permanent the ability was activated from), while the SVar
+	// table holding the Execute body lives on the grantor (Way of the
+	// Cryomancer's EffTrigCopy is on the enchantment, not the Jace token it
+	// granted the ability to). Zero when the ability is the source's own,
+	// which keeps every earlier registration byte-identical. Folded from the
+	// DelayedRegister event's Text ("|GB=<id>"); replay rebuilds it.
+	Grantor    ObjID
 	Controller PlayerID
 	Execute    string // the SVar name of the ability to run when it fires
 	Remembered []Target

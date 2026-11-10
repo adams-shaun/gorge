@@ -103,17 +103,76 @@ func (s *State) selfDamageCounters(k *prep, sl Slot, n int) {
 }
 
 // selfDamageCombat is replCombatGen's arm for combat event i of r to a
-// self-damage host, before replDamage: a heal host's second event of the
-// pass would heal the first, which the kernel has not marked yet (gorge
-// deals the pass event by event): that stalls. true when the pass stalled.
+// self-damage host, before replDamage: a heal host's second event of a pass
+// inside the CR 616.1 ordered walk (s.g.ro.on) is not modelled: that stalls.
+// Outside the walk healCombat does the pass's heals. true when the pass
+// stalled.
 func (s *State) selfDamageCombat(k *prep, r *dmgRec, i int) bool {
 	ev := &r.ev[i]
-	if ev.dst == NoSlot || !s.selfDamageHost(k, ev.dst, rbHealSelf) {
+	if !s.g.ro.on || ev.dst == NoSlot || !s.selfDamageHost(k, ev.dst, rbHealSelf) {
 		return false
 	}
 	for j := 0; j < i; j++ {
 		if r.ev[j].dst == ev.dst && r.ev[j].n > 0 {
 			s.capFull(StallReplPlus)
+			return true
+		}
+	}
+	return false
+}
+
+// healCombat applies a heal host's per-event heal to the pass r after
+// prevention (non-ordered pass). gorge deals the pass event by event and each
+// event's heal wipes the damage and the deathtouch mark of the events before
+// it, so of the live events to one host only the last one gorge deals keeps
+// its damage and its deathtouch mark (healDealtAfter orders them). Infect/wither
+// hits to a creature are counters, which no heal removes (infectCombat takes
+// them out of toPerm itself). It never touches dealt, dealtPl or ev.n: every
+// event was dealt (lifelink, damage triggers).
+func (s *State) healCombat(k *prep, r *dmgRec) {
+	for i := 0; i < r.nev; i++ {
+		ev := &r.ev[i]
+		if ev.n <= 0 || ev.dst == NoSlot || !s.selfDamageHost(k, ev.dst, rbHealSelf) {
+			continue
+		}
+		dt := s.kw(k, ev.src)&kop.KwDeathtouch != 0
+		if s.healDealtAfter(r, i) {
+			if !s.combatHitIsCounters(k, ev) {
+				r.toPerm[ev.dst] -= ev.n
+			}
+			if dt {
+				s.touchSl(ev.dst)
+				s.perms[ev.dst].cseen |= cseenDT // gorge lists the healed mark at 0
+			}
+			continue
+		}
+		if dt {
+			r.dtPerm.set(ev.dst)
+		} else {
+			r.dtPerm.clr(ev.dst)
+		}
+	}
+}
+
+// healDealtAfter: gorge deals another live event of r to event i's host after
+// event i. gorge's pass (rules/combat.go damageStep) lists each attacker's own
+// assignments, then its blockers' hit-backs in block declaration order (bord);
+// the kernel adds the blockers' events in slot order, so a blocker's event is
+// ranked by bord, after every attacker's event.
+func (s *State) healDealtAfter(r *dmgRec, i int) bool {
+	rank := func(ev *dmgEv) int {
+		if p := &s.perms[ev.src]; p.flags&pfBlocking != 0 && p.blocking == ev.dst {
+			return 1 + int(p.bord)
+		}
+		return 0
+	}
+	ri := rank(&r.ev[i])
+	for j := 0; j < r.nev; j++ {
+		o := &r.ev[j]
+		if j == i || o.dst != r.ev[i].dst || o.n <= 0 {
+			continue
+		}
+		if rj := rank(o); rj > ri || rj == ri && j > i {
 			return true
 		}
 	}

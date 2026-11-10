@@ -456,7 +456,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		f := s.prog(k)[r.pc].F
 		for i := 0; i < int(s.g.nlook); i++ {
 			o := s.resArm().look[i]
-			if s.g.lookSel&(1<<i) == 0 && s.matchCardGen(k, f, s.objs[o].card, s.objs[o].owner(), r.e.ctrl, o) {
+			if s.g.lookSel&(1<<i) == 0 && s.matchCardGen(k, f, s.objs[o].card, s.objs[o].owner(), r.e.ctrl, o) && s.pickFits(k, f, o, true) {
 				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
 			}
 		}
@@ -899,14 +899,18 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.g.pickLeft--
 		var d Decision
 		s.searchCands(k, &d)
-		if s.g.pickLeft == 0 || d.N == 0 {
+		// A pick whose pool an answer emptied still poses its Done while Max
+		// is unreached (the option builder's Done): gorge keeps the
+		// multi-pick decision open until the chooser stops.
+		in := &s.prog(k)[s.res.pc]
+		if s.g.pickLeft == 0 || d.N == 0 && (s.g.pickF&kop.SrMandatory != 0 || !s.exactlyMayStop(in)) {
 			s.finishSearch(k)
 		}
 	case raGenDig:
 		if a.Kind() == AkChoose {
 			s.digPick(Obj(a.Source()))
 			s.g.pickLeft--
-			if s.g.pickLeft > 0 && s.digHasPick(k) {
+			if s.g.pickLeft > 0 && (s.digHasPick(k) || s.digBoundOpen(k)) {
 				return
 			}
 		}
@@ -1572,6 +1576,11 @@ func (s *State) searchPick(k *prep) bool {
 		s.finishSearchNow(k)
 		return true
 	}
+	if !eachOp(k, &s.prog(k)[s.res.pc]) && int(s.g.pickLeft) > int(d.N) {
+		// gorge caps a pick's Max to the candidates it has: a pick of every
+		// candidate completes rather than posing a Done
+		s.g.pickLeft = uint8(d.N)
+	}
 	s.res.ask, s.res.askP = raGenSearch, s.chooserOf(k, p)
 	return false
 }
@@ -1660,7 +1669,7 @@ func (s *State) searchCands(k *prep, d *Decision) {
 		if s.picksHas(o) {
 			continue
 		}
-		if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) {
+		if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) && s.pickFits(k, in.F, o, false) {
 			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
 		}
 	}
@@ -1986,6 +1995,7 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 		if n == 0 || take == 0 || !s.digHasPick(k) || s.digForced(k) {
 			return !s.finishDig(k)
 		}
+		s.digBoundMax(k) // zone_each.go
 		// the controller picks, whoever's library it is (gorge
 		// digChooser: the resolving controller, CR 701.29a; Coral
 		// Fighters looks at the defending player's library)
@@ -2012,7 +2022,7 @@ func (s *State) digHasPick(k *prep) bool {
 	f := s.prog(k)[s.res.pc].F
 	for i := 0; i < int(s.g.nlook); i++ {
 		o := s.resArm().look[i]
-		if s.g.lookSel&(1<<i) == 0 && s.matchCardGen(k, f, s.objs[o].card, s.objs[o].owner(), s.res.e.ctrl, o) {
+		if s.g.lookSel&(1<<i) == 0 && s.matchCardGen(k, f, s.objs[o].card, s.objs[o].owner(), s.res.e.ctrl, o) && s.pickFits(k, f, o, true) {
 			return true
 		}
 	}

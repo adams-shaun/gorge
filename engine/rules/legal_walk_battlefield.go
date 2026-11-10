@@ -224,15 +224,18 @@ func (w *legalWalk) battlefieldWalk() {
 						// before the per-ability gates (the zone can be large).
 						continue
 					}
-					if e.printedAbilitiesGone(o) {
-						// CR 613.1f: a permanent that lost all abilities has no
-						// printed activated abilities either.
+					if e.faceDownPrintedHides(o) {
 						// CR 708.8: a face-down permanent's printed activated abilities
 						// and mana abilities do not exist while it is face down, and
 						// turn-face-up (CR 708.6) is not implemented -- nothing on a
 						// face-down permanent is offered at all.
 						continue
 					}
+					// CR 613.1f: a permanent that lost all abilities has no printed
+					// activated abilities (the pile loop below walks none), but a
+					// keyword the same or a later effect granted survives in the
+					// derived list and is offered by the granted-keyword loop.
+					printedLost := e.printedAbilitiesLost(o)
 					// One object's ability block: served from the recorded
 					// priority walk when it read no pricing pool there
 					// (walk_block_reuse.go), else walked and recorded.
@@ -250,7 +253,7 @@ func (w *legalWalk) battlefieldWalk() {
 					// pile top's.
 					pileSkip, faceFacts := w.pileAbilitiesEmpty(o, id, f, z)
 					pileMark := len(*out)
-					for i, pn := 0, o.PileAbilityCount(); i < pn && (!pileSkip || walkSkipVerify); i++ {
+					for i, pn := 0, pileAbilityBound(o, printedLost); i < pn && (!pileSkip || walkSkipVerify); i++ {
 						pa, okAb := o.PileAbilityAt(i)
 						if !okAb {
 							continue

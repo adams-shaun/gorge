@@ -22,16 +22,10 @@ func (lc *lowerCtx) exiledWithMove(ps *params, origin, dest int, flags []string,
 			return refuse("Defined$ ExiledWith with %s$", k)
 		}
 	}
-	lc.exwOK, lc.exwSynth = true, true
-	f, err := lc.filter("Card.ExiledWithSource")
-	lc.exwOK, lc.exwSynth = false, false
+	f, err := lc.exiledWithFilter()
 	if err != nil {
 		return err
 	}
-	// the sweep keeps the predicate form (PredN 1: a resolving trigger's fire
-	// ver counts too, as exiledWithSet passes it), not the flag
-	f.Clauses[0].Flags &^= fExiledWith
-	f.Clauses[0].CmpStat, f.Clauses[0].CmpN = cmpExiledWith, 1
 	ps.consume("Defined")
 	cs := "from=Exile"
 	if len(flags) != 0 {
@@ -39,6 +33,26 @@ func (lc *lowerCtx) exiledWithMove(ps *params, origin, dest int, flags []string,
 	}
 	lc.emit(lInstr{Op: "ChangeZoneAll", F: f, C: dest, CS: cs, Note: "Defined$ ExiledWith: the cards exiled with this source"})
 	return nil
+}
+
+// exiledWithFilter builds the exiled-with set as a filter in the predicate
+// form (PredN 1: a resolving trigger's fire ver counts too, as exiledWithSet
+// passes it), not the flag, and marks the card as a reader so its own exile
+// records the link (genPrep.exwRec; zone_exiledwith.go). Shared by the
+// ChangeZone sweep and CopyPermanent's copy of the set.
+func (lc *lowerCtx) exiledWithFilter() (*lFilter, error) {
+	lc.exwOK, lc.exwSynth = true, true
+	f, err := lc.filter("Card.ExiledWithSource")
+	lc.exwOK, lc.exwSynth = false, false
+	if err != nil {
+		return nil, err
+	}
+	if f.Players != 0 || len(f.Clauses) != 1 {
+		return nil, refuse("Defined$ ExiledWith: not one card filter")
+	}
+	f.Clauses[0].Flags &^= fExiledWith
+	f.Clauses[0].CmpStat, f.Clauses[0].CmpN = cmpExiledWith, 1
+	return f, nil
 }
 
 // exwCheck refuses a card that reads the link (lc.out.ExiledWith) and exiles

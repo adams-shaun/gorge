@@ -413,7 +413,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			// (CR 400.7, 608.2b)
 			break
 		}
-		if !s.moveObj(k, in.Obj, o, kop.ZoneExile, in.Op == kop.OpExileEx && in.C&kop.MvRemember != 0) {
+		if !s.moveObj(k, in.Obj, o, kop.ZoneExile) {
 			break
 		}
 		if in.Op == kop.OpExileEx {
@@ -1206,15 +1206,18 @@ func (s *State) remember(o Obj) {
 }
 
 // moveObj moves object o (named by ref r) to zone z of its owner; it
-// reports whether it moved. commit: the resolving spell exiling itself
-// moves now instead of at finishResolve, because a later instruction of
-// the same resolution reads it from exile (RememberChanged$ then
-// Defined$ Remembered: Esper Origins' return, CR 702.34a, 406.2).
-func (s *State) moveObj(k *prep, r kop.Ref, o Obj, z kop.Zone, commit bool) bool {
+// reports whether it moved. The resolving spell exiling itself ("Exile
+// CARDNAME": Restorative Burst, Eldritch Evolution, Time Spiral; gorge
+// ChangeZone Origin$ Stack) moves now, not at finishResolve: a later
+// instruction of the same resolution reads it from exile (RememberChanged$
+// then Defined$ Remembered: Esper Origins' return, CR 702.34a, 406.2), and
+// a pick after it (Time Spiral's untap) sees it in exile, off the stack, as
+// gorge does (CR 608.2c). finishResolve skips a spell no longer on the stack.
+func (s *State) moveObj(k *prep, r kop.Ref, o Obj, z kop.Zone) bool {
 	ob := &s.objs[o]
 	switch ob.zone {
 	case kop.ZoneStack:
-		if commit && z == kop.ZoneExile && o == s.res.e.obj && s.res.e.kind == seSpell {
+		if z == kop.ZoneExile && o == s.res.e.obj && s.res.e.kind == seSpell {
 			// finishResolve's stack exit, now; sfFlashback stays unset (the
 			// cast-from-graveyard provenance is beginCast's, cast.go)
 			if k.gen != nil && k.gen.anyFaces {
@@ -1227,13 +1230,6 @@ func (s *State) moveObj(k *prep, r kop.Ref, o Obj, z kop.Zone, commit bool) bool
 				s.placeFromK(k, o, z, false, from, false)
 			}
 			return true
-		}
-		if z == kop.ZoneExile && o == s.res.e.obj && s.res.e.kind == seSpell {
-			// the resolving spell exiles itself ("Exile CARDNAME":
-			// Restorative Burst, Retrieve, Eldritch Evolution; gorge
-			// ChangeZone Origin$ Stack): it rests in exile instead of
-			// the graveyard, as OpEndTurn's exile does
-			s.res.e.flags |= sfFlashback
 		}
 		return false
 	case kop.ZoneNone:

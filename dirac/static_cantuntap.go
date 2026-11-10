@@ -23,6 +23,9 @@ func (s *State) untapBlocked(k *prep, sl Slot) bool {
 	if s.perms[sl].flags&pfTapped == 0 {
 		return false // no Untap event: gorge TryUntap returns early
 	}
+	if s.g.nul != 0 && s.untapLocked(s.perms[sl].obj, true) {
+		return true // Spider-Woman's lock (act_untaplock.go)
+	}
 	for pp := uint8(0); pp < MaxSeats; pp++ {
 		var bf [MaxPerm]Slot
 		m := s.statM.and(s.ctrlM[pp]).with(sl).and(s.ctrlM[pp]) // untapCands' scan shape

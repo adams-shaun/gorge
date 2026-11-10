@@ -32,13 +32,17 @@ const (
 	modeWarped     = 1 << 7
 )
 
-// offerWarpHand offers hand card o's warp cast. The caller has already
-// checked the card's timing and the cast prohibition; a warp cast is
-// offered even when the mana cost is not payable, so the caller runs this
-// before its plain affordability gate.
+// offerWarpHand offers hand card o's warp casts, one per warp instance
+// (warpInstances: the printed one, then a battlefield grant's; kw_warpgrant.go),
+// the instance's index on the action target (gorge's AltCostIndex). The
+// caller has already checked the card's timing and the cast prohibition; a
+// warp cast is offered even when the mana cost is not payable, so the caller
+// runs this before its plain affordability gate.
 func (s *State) offerWarpHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
-	cd := &k.t.Cards[c]
-	wc := s.adjustCost(k, p, c, o, cd.WarpCost) // the reduction applies to an alternative cost too (CR 601.2f)
+	wi := s.warpInstances(k, p, o)
+	if wi.n == 0 {
+		return
+	}
 	var ha avail
 	if len(k.gen.grantPC) != 0 && s.g.availX&availWalk != 0 {
 		// gorge's potential walk counts a restricted mana ability only for
@@ -47,16 +51,33 @@ func (s *State) offerWarpHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av
 		s.walkHandAvail(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}, &ha)
 		av = &ha
 	}
-	if !av.affords(&wc, pipMaskOf(&wc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &wc, av)) {
+	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) || s.castHeldOut(o) {
 		return
 	}
-	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastable(k, c, p, o, &wc, av) {
-		return
+	for i := uint8(0); i < wi.n; i++ {
+		wc := s.adjustCost(k, p, c, o, wi.cost[i]) // the reduction applies to an alternative cost too (CR 601.2f)
+		if i > 0 {
+			// gorge's potential walk marks a second warp row of the same
+			// card ambiguous with the first (rules potential_plan.go: same
+			// kind, object and mode, AltCostIndex > 0) and leaves it
+			// unpriced: it is a priority option only while the floating
+			// pool alone pays it, the real-pool walk's offer
+			pa := s.poolAvailPlus(p, nil)
+			if s.rbAny(p) {
+				s.restrAvail(k, p, c, s.restrOriginOfObj(o), &pa)
+			}
+			if !pa.affords(&wc, pipMaskOf(&wc), 0) {
+				continue
+			}
+		}
+		if !av.affords(&wc, pipMaskOf(&wc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &wc, av)) {
+			continue
+		}
+		if !s.altAddCastable(k, c, p, o, &wc, av) {
+			continue
+		}
+		d.add(MakeAction(AkCast, uint8(o), i, castWarp))
 	}
-	if s.castHeldOut(o) {
-		return
-	}
-	d.add(MakeAction(AkCast, uint8(o), 0, castWarp))
 }
 
 // offerWarpRecasts offers casting p's warp-exiled cards from exile on a

@@ -124,6 +124,9 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	// the copy was not warped and is not a warp recast (CR 702.185a):
 	// the cast's provenance does not copy, so no delayed exile is armed
 	ce.mode &^= modeWarped | modeWarpRecast
+	if ce.trigPl == trigPlWarpG {
+		ce.trigPl = 0 // nor warped through a grant (kw_warpgrant.go)
+	}
 	if ce.trigPl == trigPlAirbend {
 		ce.trigPl = 0 // nor airbent (act_airbend.go)
 	}

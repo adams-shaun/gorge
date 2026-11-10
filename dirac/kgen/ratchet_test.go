@@ -118,35 +118,36 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the merge with land: this branch's Tam, Mindful First-Year static Hexproof:CardColors lower beside land's Amalia Benavides Aguirre / Hulkling / Burgeoning Bruiser lowers, disjoint; merged ECL 238 -> 239, ALL 21989 -> 21990).
 	// +2 (the merge with land: this branch's Hollow Marauder lowers OTJ 244 -> 245 and Madame Null lowers TMT 176 -> 177 beside land's; merged ALL 22036 -> 22038).
 	// +8 (a reflected TapsForMana body over every land or Mountain,Forest,Plains lowers, priced on the pick: Mana Flare, Heartbeat of Spring, Dictate of Karametra, Zhur-Taa Ancient, Nikya of the Old Ways, Keeper of Progenitus, Mirari's Wake, Zendikar Resurgent; ALL 22097 -> 22105).
-	// +1 (Roxanne, Starfall Savant: a reflected TapsForMana body over an artifact token lowers; OTJ 247 -> 248, ALL 22106 -> 22107).
+	// +3 (lt-low-tappower-station: Tapestry Warden, Sulu, Heroic Helmsman and Stoic Star-Captain lower their TapPowerValue lines to StatTapPower statics; ALL 22092 -> 22095).
+	// +3 (the merge with land: this branch's three TapPowerValue statics beside land's 22114; merged ALL 22114 -> 22117).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22107, 34442},
-	"BIG": {25, 30},
+	"ALL": {22125, 34442},
+	"BIG": {26, 30},
 	"BLB": {261, 278},
 	"BRO": {214, 280},
 	"DFT": {252, 276},
 	"DMU": {194, 270},
-	"DSK": {247, 276},
+	"DSK": {248, 276},
 	"ECL": {242, 273},
-	"EOE": {246, 266},
+	"EOE": {248, 266},
 	"FDN": {517, 517},
 	"FIN": {274, 312},
-	"FRA": {253, 269},
+	"FRA": {254, 269},
 	"HOB": {157, 172},
 	"LCI": {258, 290},
 	"MKM": {250, 279},
 	"MOM": {198, 296},
-	"MSH": {244, 276},
-	"NEO": {200, 287},
+	"MSH": {245, 276},
+	"NEO": {201, 287},
 	"ONE": {197, 271},
 	"OTJ": {248, 276},
 	"SNC": {186, 266},
 	"SOS": {256, 270},
 	"SPM": {167, 192},
 	"TDM": {256, 276},
-	"TLA": {260, 285},
-	"TMT": {180, 194},
-	"TRC": {295, 337},
+	"TLA": {261, 285},
+	"TMT": {182, 194},
+	"TRC": {296, 337},
 	"TRK": {311, 311},
 	"WOE": {261, 281},
 }

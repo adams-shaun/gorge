@@ -23,9 +23,10 @@ var delaySpellDecks = [2][]cardset.Entry{
 	{
 		{Name: "Teach by Example", Count: 4}, {Name: "Twinferno", Count: 4},
 		{Name: "Najal, the Storm Runner", Count: 2}, {Name: "Mercurial Spelldancer", Count: 3},
-		{Name: "Doublecast", Count: 2}, {Name: "Shock", Count: 4}, {Name: "Opt", Count: 2},
+		{Name: "Doublecast", Count: 2}, {Name: "Way of the Cryomancer", Count: 3},
+		{Name: "Shock", Count: 4}, {Name: "Opt", Count: 2},
 		{Name: "Burst Lightning", Count: 3}, {Name: "Rimefire Torque", Count: 1},
-		{Name: "Island", Count: 8}, {Name: "Mountain", Count: 7},
+		{Name: "Island", Count: 8}, {Name: "Mountain", Count: 4},
 	},
 	{
 		{Name: "Summon: G.F. Cerberus", Count: 3}, {Name: "Pigment Wrangler", Count: 3},
@@ -37,30 +38,33 @@ var delaySpellDecks = [2][]cardset.Entry{
 
 // delaySpellReg is a live SpellCast registration as gorge holds it.
 type delaySpellReg struct {
-	src  state.ObjID
-	ctrl state.PlayerID
+	src     state.ObjID
+	ctrl    state.PlayerID
+	granted bool // registered by a granted ability (DelayedRegister Text "|GB=")
 }
 
 // delaySpellTally counts the arms. The event cursor resets when a side is
 // rebuilt (the log rewinds).
 type delaySpellTally struct {
-	evAt       int
-	live       map[uint32]delaySpellReg // SpellCast registrations live at the last check
-	lastCaster state.PlayerID
-	lastIS     bool
-	castPushes int      // DelayedPushes since the last cast
-	skipWait   []uint32 // live registrations a non-instant/sorcery cast must leave alone
-	registered int
-	fired      int
-	copies     int
-	two        int // casts that fired two registrations
-	skipped    int // a non-instant/sorcery cast by a registration's controller
-	oppCast    int // an instant or sorcery cast by the other player while a registration is live
-	oppPush    int // a push for a registration whose controller did not cast (must be 0)
-	wrongFire  int // a push for a cast that was not an instant or sorcery (must be 0)
-	expired    int // a SpellCast registration removed at a turn change
-	srcGone    int // a push whose registration's source is off the stack and battlefield
-	maxNdp     int
+	evAt        int
+	live        map[uint32]delaySpellReg // SpellCast registrations live at the last check
+	lastCaster  state.PlayerID
+	lastIS      bool
+	castPushes  int      // DelayedPushes since the last cast
+	skipWait    []uint32 // live registrations a non-instant/sorcery cast must leave alone
+	registered  int
+	fired       int
+	copies      int
+	two         int // casts that fired two registrations
+	skipped     int // a non-instant/sorcery cast by a registration's controller
+	oppCast     int // an instant or sorcery cast by the other player while a registration is live
+	oppPush     int // a push for a registration whose controller did not cast (must be 0)
+	wrongFire   int // a push for a cast that was not an instant or sorcery (must be 0)
+	granted     int // registrations made by a GRANTED delayed SpellCast ability (Way of the Cryomancer)
+	grantedFire int // those registrations that fired
+	expired     int // a SpellCast registration removed at a turn change
+	srcGone     int // a push whose registration's source is off the stack and battlefield
+	maxNdp      int
 }
 
 func delaySpellIS(g *state.Game, id state.ObjID) bool {
@@ -90,6 +94,9 @@ func (p *delaySpellTally) check(ref *GorgeSide, _ Side) *Divergence {
 		case events.DelayedRegister:
 			if strings.HasPrefix(e.Text, "SpellCast:") {
 				p.registered++
+				if strings.Contains(e.Text, "|GB=") {
+					p.granted++
+				}
 			}
 		case events.PutOnStack:
 			p.lastCaster, p.castPushes = e.Player, 0
@@ -110,6 +117,9 @@ func (p *delaySpellTally) check(ref *GorgeSide, _ Side) *Divergence {
 				continue
 			}
 			p.fired++
+			if r.granted {
+				p.grantedFire++
+			}
 			if p.castPushes++; p.castPushes == 2 {
 				p.two++
 			}
@@ -137,7 +147,7 @@ func (p *delaySpellTally) check(ref *GorgeSide, _ Side) *Divergence {
 	clear(p.live)
 	for i := range g.Delayed {
 		if dt := &g.Delayed[i]; dt.EventMode == "SpellCast" {
-			p.live[dt.ID] = delaySpellReg{src: dt.Source, ctrl: dt.Controller}
+			p.live[dt.ID] = delaySpellReg{src: dt.Source, ctrl: dt.Controller, granted: dt.Grantor != 0}
 		}
 	}
 	// A non-instant/sorcery cast leaves its controller's registrations
@@ -355,12 +365,13 @@ func TestDelayspellLockstep(t *testing.T) {
 			t.Errorf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
 		}
 	}
-	t.Logf("%d games: %d registered, %d fired (%d copies), %d two-on-one-cast, %d skipped by a non-matching cast, %d opponent casts (%d pushes), %d wrong fires, %d expired, %d fired after the source left, max ndp %d",
-		delaySpellSeeds, p.registered, p.fired, p.copies, p.two, p.skipped, p.oppCast, p.oppPush, p.wrongFire, p.expired, p.srcGone, p.maxNdp)
+	t.Logf("%d games: %d registered (%d granted), %d fired (%d granted), %d copies, %d two-on-one-cast, %d skipped by a non-matching cast, %d opponent casts (%d pushes), %d wrong fires, %d expired, %d fired after the source left, max ndp %d",
+		delaySpellSeeds, p.registered, p.granted, p.fired, p.grantedFire, p.copies, p.two, p.skipped, p.oppCast, p.oppPush, p.wrongFire, p.expired, p.srcGone, p.maxNdp)
 	for _, c := range []struct {
 		name string
 		n    int
 	}{{"registered", p.registered}, {"fired", p.fired}, {"copies", p.copies}, {"two registrations on one cast", p.two},
+		{"granted registrations", p.granted}, {"granted fires", p.grantedFire},
 		{"skipped by a non-matching cast", p.skipped}, {"opponent's cast", p.oppCast}, {"expired", p.expired}, {"source gone", p.srcGone}} {
 		if c.n < 10 {
 			t.Errorf("%s: %d, want at least 10", c.name, c.n)

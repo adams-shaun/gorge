@@ -170,6 +170,10 @@ type prep struct {
 	// manaOne: some card's printed mana ability makes several mana of one
 	// chosen colour (pcard.manaOne): availFor's one-colour census can stall
 	manaOne bool
+	// anyTapPowerStatic: some card has a StatTapPower static
+	// (value_tappower.go): guards the tap-power static walk without forcing
+	// the generated extension on a table that has none
+	anyTapPowerStatic bool
 	// anyUncounter: some card carries ReplSpellsCantBeCountered; OpCounter
 	// scans the battlefield for it (repl_uncounterable.go)
 	anyUncounter bool
@@ -401,6 +405,10 @@ func prepare(t *kop.Table) *prep {
 			p.phyMana = p.phyMana || t.Cards[i].Abilities[j].Cost.Mana.Phyrexian() // an activation's {W/P}
 		}
 	}
+	// the TapPowerValue static walk reads this even for a table with no
+	// generated extension: forcing prepareGen here would switch every static
+	// and cost path to the generated forms (value_tappower.go)
+	p.anyTapPowerStatic = tableHasStatic(t, kop.StatTapPower)
 	p.gen = prepareGen(t, p)
 	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
 	p.availExt = p.painMana || p.phyMana

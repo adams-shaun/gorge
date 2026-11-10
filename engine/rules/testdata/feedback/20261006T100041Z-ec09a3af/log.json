@@ -4537,6 +4537,15 @@
     },
     {
       "seq": 751,
+      "kind": 30,
+      "obj": 37,
+      "counter": "remembered",
+      "ids": [
+        98
+      ]
+    },
+    {
+      "seq": 752,
       "kind": 2,
       "obj": 73,
       "to": 4,
@@ -4544,7 +4553,16 @@
       "secret": true
     },
     {
-      "seq": 752,
+      "seq": 753,
+      "kind": 30,
+      "obj": 37,
+      "counter": "remembered",
+      "ids": [
+        73
+      ]
+    },
+    {
+      "seq": 754,
       "kind": 20,
       "text": "choose"
     }
@@ -5695,7 +5713,7 @@
       ]
     }
   ],
-  "head": "ae7ccc58a48d749e",
+  "head": "4d8752d6fe5a49e2",
   "intent_count": 142,
   "turn": 7,
   "step": "main1",
