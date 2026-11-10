@@ -449,3 +449,21 @@ func TestHandPickEntersTogetherLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "hand_pick_enters_together", "std-msh", Config{GorgeAutopaySurface: true})
 }
+
+// Ambulatory Reactor grants artifact creatures a {C} spendable only on artifact spells and
+// artifact sources' abilities. Floated in the granted-mana prefix search for an artifact
+// play, that {C} cannot pay Skycloud Expanse's {1}: the land's activation is no artifact
+// source's (CR 106.6), so neither engine funds the filter with it.
+func TestRestrictedGrantPaysNoLandFeeLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "restricted_grant_pays_no_land_fee", "std-trc", Config{})
+}
+
+// Toxic Deluge's additional cost is an announced X life, so X = 0 always pays and the
+// cast costs exactly {2}{B}. With Skycloud Expanse's filter a source the planner's census
+// misses, gorge's prefix search prices the cast as it does any other, and both engines
+// offer it.
+func TestAnnouncedLifeCastBehindAFilterLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "announced_life_cast_behind_filter", "std-trc", Config{})
+}

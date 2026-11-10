@@ -24,5 +24,12 @@ func (s *State) grantRelaxedAffords(k *prep, p uint8, a Action, cost *kop.ManaCo
 	if k.tapMana {
 		s.availTapX(k, p, &av) // the relaxed census counts a tap-another source as a free any-colour unit (mana_tapanother.go)
 	}
+	if k.gen.anyFilt && s.filtRelaxable(k, s.scriptFilt(k, p)) {
+		// the relaxed proof also appends each subset of the census's paid
+		// alternatives, charging their fees (paymentPlanRelaxProof): Hidden
+		// Grotto's {1},{T} makes the {U} a Forest board lacks, as
+		// relaxRestrRefuses reads it
+		s.availFilt(k, p, &av)
+	}
 	return av.affords(cost, pipMaskOf(cost), 0)
 }

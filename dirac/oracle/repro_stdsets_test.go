@@ -397,6 +397,10 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "cryoshatter_on_restricted_mana_source_does_not_fund_a_cast"},               // Cryoshatter on an untapped Steelswarm Operator: the tap fires its unvetted Taps watcher, so gorge's census leaves out the Operator's restricted {U} too and it funds no Mechan Navigator on the autopay surface
 		{"std-blb", "grant_restricted_to_creatures_funds_no_instant_in_a_filter_prefix", full}, // CR 106.6: Clement's creature-spell-only {G} or {U} beside Hidden Grotto's filter: the prefix search's priced node cannot spend the grant on Spellgyre, so its {U}{U} is not offered
 		{"std-otj", "great_train_heist_third_mode_treasure", full},                             // Great Train Heist's third Spree mode, then a Reckless Lackey connects: the player-capture emblem fires and the tapped Treasure is made on both engines (CR 603.7, 611.2a)
+		{"std-ecl", "lone_beheld_elf_leaves_the_counter_removal_asked"},                        // Champions of the Perfect cast through Dawnhand Dissident, the Dissident the lone Elf to behold: recording it left no pick open, so the three counters are asked and the cast completes (CR 601.2b, 601.2h)
+		{"std-sos", "artifact_restricted_red_is_spent_after_plain_red"},                        // Tablet of Discovery's instant-and-sorcery-only {R}{R} beside a land's {R}: a prepared Rampant Growth spends the plain {R} first (an artifact's unit is typed), so the {R}{R} left cannot help cast Topiary Lecturer
+		{"std-blb", "refused_creature_grant_prices_no_unreduced_target", full},                 // CR 106.6: Dire Downdraft with {G}{G}{U} floating beside Clement's creature-spell-only grant: only the attacking Clement keeps its {1} reduction, so it is the one target offered
+		{"std-blb", "relaxed_proof_counts_a_filter_beside_a_refused_grant"},                    // Lilysplash Mentor's {1}{G}{U} on a Forest board beside Clement's creature-spell-only grant: gorge's relaxed proof counts Hidden Grotto's {1},{T} filter for the {U}, so the activation is searched and offered
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {

@@ -537,6 +537,10 @@ type grantStep struct {
 	cand Slot // stepTapX: the permanent its cost taps
 	pain bool // the source's painful printed ability (mana_grantpain.go)
 	sac  bool // a granted sacrifice-only ability: the source was sacrificed (mana_grantcost.go)
+	// restr: a restricted grant's mana the play may spend, floated into the
+	// pool; a filter's fee spends it only where the restriction admits the
+	// filter's activation (filtBranch)
+	restr bool
 }
 
 const (
@@ -1090,7 +1094,7 @@ func (g *grantSrch) branchSel(t *State, i int, sl Slot, gi int16, mask, n uint8,
 			}
 		}
 		t.addXv(g.p&1, &xv)
-		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl}
+		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl, restr: gi >= 0 && !skip && g.k.gen.grantRestr[gi] != 0}
 		g.np++
 		if g.next(t, sl) {
 			return true
@@ -1182,7 +1186,22 @@ func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
 	for j := 0; j < n; j++ {
 		c := order[j]
 		u := t.fork()
+		// the restricted mana the filter's activation may not spend stands
+		// aside while its fee is paid (CR 106.6: gorge pays an activation's
+		// cost from the mana its restriction admits, so Ambulatory Reactor's
+		// artifact-only {C} pays no land's fee)
+		barred := g.feeBarred(u, sl)
+		for c, n := range barred {
+			u.pl[SeatIx(g.p)].pool[c] -= n
+		}
+		if !u.filtPaid(g.k, g.p, sl) {
+			t.unfork()
+			return false
+		}
 		u.filtDo(g.k, g.p, filtStep{sl: sl, gap: true, ans: 1 + c})
+		for c, n := range barred {
+			u.pl[SeatIx(g.p)].pool[c] += n
+		}
 		g.path[g.np] = grantStep{i: uint8(i), col: c, gi: stepFilt, sl: sl}
 		g.np++
 		var ok bool
@@ -1198,6 +1217,23 @@ func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
 		g.np--
 	}
 	return false
+}
+
+// feeBarred is the restricted grant mana the prefix floated (grantStep.restr)
+// that the activation of filter sl may not spend: it stays in the pool for
+// the play, but its fee is paid without it.
+func (g *grantSrch) feeBarred(t *State, sl Slot) (out [kop.NumManaKinds]uint8) {
+	d := payDesc{class: pdAct, card: t.cardAt(sl), src: sl}
+	for _, st := range g.path[:g.np] {
+		if !st.restr {
+			continue
+		}
+		r := g.k.gen.grantOf[st.gi]
+		if !t.restrSrcAdmits(g.k, g.p, st.sl, &g.k.t.Cards[r.card].Abilities[r.ab], &d) {
+			out[st.col] = min(out[st.col]+st.n, t.pl[SeatIx(g.p)].pool[st.col])
+		}
+	}
+	return out
 }
 
 // grantAdmits: the play g.d makes may spend granted ability gi's mana (an
