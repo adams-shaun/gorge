@@ -51,12 +51,15 @@ func (lc *lowerCtx) triggerRemembered(rest string) (lValue, error) {
 	}
 	if rest == "CardPower" {
 		// the captured object's power (Thorin, Mountain-king: the creature
-		// the reflexive instance was handed by RememberObjects$ ParentTarget),
-		// read live as gorge's count_ref TriggerRemembered$CardPower does
+		// the reflexive instance was handed by RememberObjects$ ParentTarget).
+		// Refused: gorge keeps the captured ObjID when the creature leaves the
+		// battlefield and reads it in its new zone (Unsummoned: the card in
+		// hand deals its printed power, not its last known power, CR 608.2h),
+		// where the kernel's reflexStale skips the damage.
 		if ab := lc.ab; ab == nil || !ab.Latent || ab.Name != "ReflexiveTrigger" || !ab.ReflexObj {
 			return lValue{}, fmt.Errorf("value head TriggerRemembered$CardPower outside a reflexive trigger handed one object")
 		}
-		return lValue{Kind: vPowerOf, Ref: lRef{Kind: rDelayedRemembered}}, nil
+		return lValue{}, fmt.Errorf("value head TriggerRemembered$CardPower of a captured creature: gorge reads it off the battlefield (printed power from its new zone, not last known)")
 	}
 	switch rest {
 	case "Amount", "CardManaCost", "GreatestCardManaCost":
