@@ -10,73 +10,10 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// synthPairs plays pairs of a synthetic pool in lockstep on the autopay surface
-// and checks each runs clean.
-func synthPairs(t *testing.T, name string, pairs []int, check func(pair int, res *Result)) {
-	t.Helper()
-	synthPairsOn(t, name, Config{GorgeAutopaySurface: true}, pairs, check)
-}
-
-// synthPairsOn is synthPairs on the surface cfg names.
-func synthPairsOn(t *testing.T, name string, cfg Config, pairs []int, check func(pair int, res *Result)) {
-	t.Helper()
-	synthPairsRun(t, name, RunConfig{Config: cfg}, pairs, check)
-}
-
-// synthPairsRun is synthPairsOn with rc's Check at every decision.
-func synthPairsRun(t *testing.T, name string, rc RunConfig, pairs []int, check func(pair int, res *Result)) {
-	t.Helper()
-	synthPairsMulligans(t, name, rc, 1, pairs, check)
-}
-
-// synthPairsMulligans is synthPairsRun with the London mulligans each player may
-// take: a pair is a different game at each count.
-func synthPairsMulligans(t *testing.T, name string, rc RunConfig, mulligans int, pairs []int, check func(pair int, res *Result)) {
-	t.Helper()
-	synthPairsPlayMulligans(t, name, rc, mulligans, pairs, func(i int, res *Result) {
-		if res.Div != nil {
-			t.Errorf("pair %d diverged at %d: %s %s %s %v %v", i, res.Div.At, res.Div.What, res.Div.Field, res.Div.Detail, res.Div.RefOptions, res.Div.KerOptions)
-		}
-		if res.Stall != "" {
-			t.Errorf("pair %d stalled: %s", i, res.Stall)
-		}
-		if check != nil {
-			check(i, res)
-		}
-	})
-}
-
-// synthPairsPlay plays each pair in lockstep and hands the result to each, judging nothing.
-func synthPairsPlay(t *testing.T, name string, rc RunConfig, pairs []int, each func(pair int, res *Result)) {
-	t.Helper()
-	synthPairsPlayMulligans(t, name, rc, 1, pairs, each)
-}
-
-// synthPairsPlayMulligans is synthPairsPlay with the mulligans each player may take.
-func synthPairsPlayMulligans(t *testing.T, name string, rc RunConfig, mulligans int, pairs []int, each func(pair int, res *Result)) {
-	t.Helper()
-	play := newSynthPlayer(t, name, rc, mulligans)
-	for _, i := range pairs {
-		res := play(i)
-		each(i, &res)
-	}
-}
-
-// newSynthPlayer deals the synthetic pool name once and returns a function that plays
-// one of its pairs in lockstep.
-func newSynthPlayer(t *testing.T, name string, rc RunConfig, mulligans int) func(pair int) Result {
-	t.Helper()
-	play := newSynthPlayerOf(t, name, rc, mulligans)
-	return func(i int) Result {
-		_, _, res, err := play(i)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return res
-	}
-}
-
-// newSynthPlayerOf is newSynthPlayer that also returns the pair's matchup and seed, and the error of a pair the set refuses.
+// newSynthPlayerOf deals the synthetic pool name once and returns a function that
+// plays one of its pairs in lockstep, with the pair's matchup and seed, and the error
+// of a pair the set refuses. Only recordPins plays pairs by number: a test pins a
+// recorded game (pinnedGames), never a pair number, which a re-deal moves.
 func newSynthPlayerOf(t *testing.T, name string, rc RunConfig, mulligans int) func(pair int) (*Matchup, uint64, Result, error) {
 	t.Helper()
 	cfg := rc.Config
@@ -245,7 +182,8 @@ func TestGiftTriggerOnTheStack(t *testing.T) {
 func TestEitherOrLoweredOnAWitness(t *testing.T) {
 	t.Parallel()
 	pinnedGames(t, "std-tla", Config{}, anyOf(cardSeen("Deadly Precision"), cardSeen("Redirect Lightning")), onBattlefield("Barrels of Blasting Jelly"))
-	synthPairsOn(t, "std-lci", Config{}, []int{40, 426}, nil)
+	pinnedGames(t, "std-lci", Config{}, anyOf(cardSeen("Bitter Triumph"), cardSeen("Daring Buccaneer"),
+		cardSeen("Dusk Rose Reliquary"), cardSeen("Soaring Stoneglider"), cardSeen("Thunderherd Migration")))
 }
 
 // Two Rests in Peace: a Treasure in a resolution's mana payment waits for its order
@@ -259,10 +197,10 @@ func TestParkedMassAndPayment(t *testing.T) {
 // An Aura whose host dies goes in the next state-based pass, behind that pass's
 // casualties and a token ceasing: Bard the Bowman, who loses Bard's Company's +1/+1
 // with 3 damage marked, ahead of Enchanted River's Grasp (std-hob 161), and an Aura
-// whose host dies ahead of one that was already unattached (std-dft 469).
+// whose host dies ahead of one that was already unattached (std-dft).
 func TestAuraLeavesInThePassAfterItsHostLockstep(t *testing.T) {
 	pinnedGames(t, "std-hob", Config{GorgeAutopaySurface: true}, onBattlefield("Bard the Bowman"), cardOut("Enchanted River's Grasp"))
-	synthPairsOn(t, "std-dft", Config{}, []int{469}, nil)
+	pinnedGames(t, "std-dft", Config{}, auraLeftBattlefield)
 }
 
 // An enchantment animated with a granted set-P/T static (Beorn's Hospitality) that then
