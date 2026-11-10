@@ -70,5 +70,5 @@ func (s *State) grantRefusedPrices(k *prep, p uint8, a Action) bool {
 		return false
 	}
 	cost, _, _, ok := s.grantPlayCost(k, p, a, true)
-	return ok && s.relaxRestrRefuses(k, p, &cost, s.grantPayDesc(a))
+	return ok && s.relaxRestrRefuses(k, p, &cost, s.grantPayDesc(k, a))
 }
