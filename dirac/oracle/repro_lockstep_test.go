@@ -376,3 +376,23 @@ func TestAttackTriggerPumpMissesAnAttackerThatReturnedLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "attack_trigger_pump_misses_returned_attacker", "std-msh", Config{})
 }
+
+// Tarnation Vista beside a Lotus Ring on a creature token: both are census gaps of
+// gorge's (the Vista's each-colour ability, the Ring's granted sacrifice-only mana),
+// and its one prefix search activates the gaps in battlefield order, so the Vista,
+// entered first, taps for its chosen colour before the Ring's bearer is sacrificed,
+// though the Ring alone pays the Equip. The kernel's grant search lists the Vista as
+// a candidate too (CR 601.2g, 605.3a).
+func TestEachColourGapBeforeAGrantedSacrificeSourceLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "each_colour_gap_before_granted_sac_source", "std-big", Config{})
+}
+
+// Nexus of Becoming paid by a plan holding a Treasure beside Tarnation Vista, with Rest
+// in Peace out: gorge activates the plan's sacrificing sources last, so when the
+// Treasure's move waits on a replacement choice every other source, the Vista among
+// them, is already tapped. The kernel taps in that order too (CR 601.2g, 616.1).
+func TestPlanTapsItsSacrificingSourcesLastLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "plan_taps_sacrifice_last", "std-big", Config{})
+}
