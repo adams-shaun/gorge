@@ -243,7 +243,10 @@ func (s *State) ViewHashCached(seat uint8, base *[MaxObj]uint64, c *ObjHashCache
 	}
 	h := hmix(0x7669657768617368, uint64(s.turn)|uint64(s.step)<<16|uint64(s.active)<<24|uint64(s.prio)<<32|
 		uint64(seat)<<40|fl<<48)
-	for p := 0; p < 2; p++ {
+	for p := 0; p < int(s.nSeats()); p++ {
+		if s.out(uint8(p)) {
+			continue
+		}
 		pl := &s.pl[p]
 		h = hmix(h, uint64(uint16(pl.life))|uint64(pl.handN)<<16|uint64(pl.libLen())<<24|uint64(pl.graveN)<<32|
 			uint64(pl.exileN)<<40)
@@ -306,7 +309,10 @@ func (s *State) viewObjects(seat uint8, base *[MaxObj]uint64, c *ObjHashCache) u
 	for i := 0; i < int(pl.handN); i++ {
 		h = hmix(h, oh(pl.hand[i]))
 	}
-	for p := 0; p < 2; p++ {
+	for p := 0; p < int(s.nSeats()); p++ {
+		if s.out(uint8(p)) {
+			continue
+		}
 		pl := &s.pl[p]
 		h = hmix(h, 0x67)
 		for i := 0; i < int(pl.graveN); i++ {

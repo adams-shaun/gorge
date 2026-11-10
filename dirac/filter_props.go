@@ -368,7 +368,10 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 //
 //go:noinline
 func (s *State) exileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]uint8, n int) int {
-	for pp := 0; pp < 2; pp++ {
+	for pp := 0; pp < int(s.nSeats()); pp++ {
+		if s.out(uint8(pp)) {
+			continue
+		}
 		pl := &s.pl[pp]
 		for i := 0; i < int(pl.exileN); i++ {
 			o := pl.exile[i]

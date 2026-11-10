@@ -370,7 +370,10 @@ func (s *State) firePhaseGen(k *prep, st kop.Step) {
 	})
 	for _, c := range k.gen.graveTrig {
 		cd := &k.t.Cards[c]
-		for pp := uint8(0); pp < 2; pp++ {
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
+			if s.out(pp) {
+				continue
+			}
 			pl := &s.pl[pp]
 			for i := 0; i < int(pl.graveN); i++ {
 				o := pl.grave[i]
@@ -402,7 +405,10 @@ func (s *State) fireEmblems(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, extr
 // fireEmblemsAmt is fireEmblems for an event that carries an amount (life
 // gained: Professor Dellian Fel's emblem reads TriggerCount$LifeAmount).
 func (s *State) fireEmblemsAmt(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, amt int16, extra func(a *kop.Ability) bool) {
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
 			c := s.embCard(pp, i)
 			cd := &k.t.Cards[c]

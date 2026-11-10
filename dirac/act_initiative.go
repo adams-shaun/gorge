@@ -207,7 +207,10 @@ func (s *State) resolveVentureTrig(k *prep) bool {
 //
 //go:noinline
 func (s *State) dungeonSBA(k *prep) {
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		r := s.g.room[p]
 		if r == 0 || k.t.Cards[k.gen.dungeon].DungeonNext[r-1] != 0 || s.pl[p].lost {
 			continue

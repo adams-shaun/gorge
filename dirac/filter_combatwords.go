@@ -417,7 +417,10 @@ func (s *State) hostLeft(k *prep, o Obj) {
 		})
 		s.refreshTy(k)
 	}
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		var drop uint8
 		for i := 0; i < int(s.g.nemb[p]); i++ {
 			if k.t.Emblems[s.embIdx(p, i)-1].HostBound() && s.embObj(p, i) == o {

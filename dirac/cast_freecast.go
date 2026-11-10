@@ -123,7 +123,10 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 	case zone == kop.ZoneGraveyard:
 		// gorge AliveFrom(0): seat 0's graveyard then seat 1's, each in
 		// zone order
-		for p := 0; p < 2; p++ {
+		for p := 0; p < int(s.nSeats()); p++ {
+			if s.out(uint8(p)) {
+				continue
+			}
 			pl := &s.pl[p]
 			for i := 0; i < int(pl.graveN); i++ {
 				if !add(pl.grave[i]) {

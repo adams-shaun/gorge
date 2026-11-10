@@ -112,7 +112,10 @@ func (s *State) roleLosers(k *prep) (out [MaxPerm]Slot, cnt int) {
 	// Role's place in it
 	var ord [MaxPerm]Slot
 	n := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		n = s.battlefieldOrder(p, roles.and(s.ctrlM[p]), ord[:], n)
 	}
 	var pos [MaxPerm]uint8

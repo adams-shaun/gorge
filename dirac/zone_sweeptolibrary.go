@@ -28,7 +28,10 @@ func (s *State) libSweep(k *prep, in *kop.Instr) {
 	}
 	var order [MaxPerm]Slot
 	n := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		n = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), order[:], n)
 	}
 	var objs [MaxPerm]Obj
@@ -64,7 +67,10 @@ func (s *State) libSweep(k *prep, in *kop.Instr) {
 			first[p&1] = i
 		}
 	}
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		if first[p] < 0 {
 			continue
 		}

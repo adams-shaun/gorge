@@ -39,7 +39,10 @@ func (s *State) permOrGraveCardCands(k *prep, t *kop.TargetSpec, p uint8, src Sl
 			n++
 		}
 	}
-	for pp := 0; pp < 2; pp++ {
+	for pp := 0; pp < int(s.nSeats()); pp++ {
+		if s.out(uint8(pp)) {
+			continue
+		}
 		pl := &s.pl[pp]
 		for i := 0; i < int(pl.graveN); i++ {
 			o := pl.grave[i]

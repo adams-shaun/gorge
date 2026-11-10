@@ -99,7 +99,10 @@ func (s *State) enterDefense(k *prep, sl Slot, c CardID) {
 func (s *State) addBattleOffers(k *prep, d *Decision, o uint8) {
 	var order [MaxPerm]Slot
 	n := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		var m slotMask
 		for q := s.ctrlM[p]; q.any(); q = q.rest() {
 			if sl := q.first(); s.battleAttackable(k, sl, s.active) {

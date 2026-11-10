@@ -61,7 +61,10 @@ func (s *State) czall3(k *prep, in *kop.Instr, mv int16, z kop.Zone) {
 		var order [MaxPerm]Slot
 		var objs [MaxPerm]Obj
 		n := 0
-		for p := uint8(0); p < 2; p++ {
+		for p := uint8(0); p < s.nSeats(); p++ {
+			if s.out(p) {
+				continue
+			}
 			n = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), order[:], n)
 		}
 		for i := 0; i < n; i++ {
@@ -97,7 +100,10 @@ func (s *State) czall3(k *prep, in *kop.Instr, mv int16, z kop.Zone) {
 		if zi == 1 {
 			zsrc = czallSecondZone(in)
 		}
-		for p := uint8(0); p < 2; p++ {
+		for p := uint8(0); p < s.nSeats(); p++ {
+			if s.out(p) {
+				continue
+			}
 			pl := &s.pl[p]
 			var list [MaxDeck]Obj
 			nl := 0

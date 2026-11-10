@@ -77,7 +77,10 @@ func (s *State) graveTypeAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 		mask = permTypeBits
 	}
 	var types kop.TypeMask
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		pl := &s.pl[pp]
 		for j := 0; j < int(pl.graveN); j++ {
 			o := pl.grave[j]

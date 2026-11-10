@@ -226,7 +226,10 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 			v = s.countPerm(k, x.F, ctx)
 		}
 	case kop.ExCountGraveyard:
-		for pp := uint8(0); pp < 2; pp++ {
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
+			if s.out(pp) {
+				continue
+			}
 			pl := &s.pl[pp]
 			for j := 0; j < int(pl.graveN); j++ {
 				o := pl.grave[j]

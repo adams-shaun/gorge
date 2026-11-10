@@ -224,7 +224,10 @@ func (s *State) enteringDefenderCands(k *prep, ctrl uint8, buf *[MaxOptions]uint
 		buf[n] = uint8(s.perms[sl].obj)
 		n++
 	}
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		var bm slotMask
 		for q := s.ctrlM[p]; q.any(); q = q.rest() {
 			if sl := q.first(); s.battleAttackable(k, sl, ctrl) {
@@ -386,7 +389,10 @@ func (s *State) toLibraryShuffleSelf(k *prep, in *kop.Instr) {
 func (s *State) fireGraveAttackers(k *prep, atk []Slot) {
 	for _, c := range k.gen.graveTrig {
 		cd := &k.t.Cards[c]
-		for pp := uint8(0); pp < 2; pp++ {
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
+			if s.out(pp) {
+				continue
+			}
 			pl := &s.pl[pp]
 			for i := 0; i < int(pl.graveN); i++ {
 				o := pl.grave[i]

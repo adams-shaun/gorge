@@ -157,7 +157,10 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 			return s.exileTypeAgg(k, x, ctx) // zone_exiledwithstatic.go
 		}
 		n := 0
-		for pp := uint8(0); pp < 2; pp++ {
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
+			if s.out(pp) {
+				continue
+			}
 			pl := &s.pl[pp]
 			for j := 0; j < int(pl.exileN); j++ {
 				o := pl.exile[j]

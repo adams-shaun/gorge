@@ -1039,7 +1039,7 @@ func (s *State) FeatStaticKey() uint64 {
 	}
 	h := uint64(0x7374617469636b79)
 	h = hmix(h, uint64(s.g.nemb[0])|uint64(s.g.nemb[1])<<8)
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ { // every seat, a departed one included: a key
 		for i := 0; i < int(s.g.nemb[p]); i++ {
 			h = hmix(h, uint64(s.embIdx(p, i)))
 			h = hmix(h, uint64(s.embNum(p, i)))   // the frozen chosen number
@@ -1205,11 +1205,11 @@ func (s *State) FeatProjObj(o Obj, po *ProjObj) { s.projObj(s.k(), o, po) }
 // step, the active and priority players), leaving p.Objs as it is.
 func (s *State) FeatProjGlobals(p *Projection) {
 	p.NObj = s.nobj
-	for pi := 0; pi < 2; pi++ {
+	for pi := 0; pi < int(s.nSeats()); pi++ { // every seat, a departed one included, as projRest
 		pl := &s.pl[pi]
 		p.Life[pi] = pl.life
 		p.Lands[pi] = pl.landsPlayed
-		p.Pool[pi] = s.poolProj(uint8(pi & 1))
+		p.Pool[pi] = s.poolProj(uint8(pi))
 		p.LibN[pi] = uint8(pl.libLen())
 		p.HandN[pi] = pl.handN
 		p.GraveN[pi] = pl.graveN

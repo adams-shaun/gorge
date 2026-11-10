@@ -15,7 +15,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 func (s *State) rememberLeaveAll(k *prep, mask slotMask, z kop.Zone) {
 	var order [MaxPerm]Slot
 	n := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		n = s.battlefieldOrder(p, mask.and(s.ctrlM[p]), order[:], n)
 	}
 	var objs [MaxPerm]Obj

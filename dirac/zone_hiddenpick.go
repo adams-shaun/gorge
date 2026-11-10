@@ -34,7 +34,10 @@ func (s *State) handTakeAll(k *prep) bool {
 func (s *State) battlefieldCands(k *prep, in *kop.Instr, d *Decision) {
 	var ord [MaxPerm]Slot
 	n := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		if s.g.pickF&kop.SrOwnZone != 0 && p != s.g.pickP {
 			continue // DefinedPlayer$: that player's battlefield only
 		}
