@@ -191,7 +191,7 @@ var opsEntries = []opsDoc{
 	{"ex:ExcessDamage", "ExExcessDamage", "Excess damage recorded by the previous DealDamageEx with DmgTrackExcess."},
 	{"ex:LastLifeLost", "ExLastLifeLost", "Total life lost to the previous OpLoseLife of this program (Exsanguinate)."},
 	{"ex:TokensCreated", "ExTokensCreated", "Tokens created by the previous OpCreateTokenEx with TokRemember."},
-	{"ex:Count", "ExCount (F)", "Battlefield objects matching F, when modified (Add/Mul/Neg)."},
+	{"ex:Count", "ExCount (F)", "Battlefield objects matching F, when modified (Add/Mul/Neg). N 1: the distinct planeswalker subtypes printed on the matching planeswalkers (gorge `Count$Valid <spec>$PlaneswalkerType`; Tam, the Possibility)."},
 	{"ex:X", "ExX", "X, when modified."},
 	{"ex:HandSizeOf", "ExHandSizeOf (Ref)", "Cards in player Ref's hand. Gorge: `Count$CardsInYourHand`, `PlayerCountOpponents$HighestCardsInHand` (two players: the opponent's). Beza."},
 	{"ex:CountExile", "ExCountExile (F)", "Exiled cards matching F, every player's exile (F.Owner narrows). Gorge: `Count$ValidExile`, and with ExCountGraveyard under ExSum `Count$ValidGraveyard,Exile`. Huskburster Swarm."},

@@ -370,9 +370,20 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 			}
 		}
 	}
+	pwTypes := false
 	for i := range dd.Exprs {
 		if x := &dd.Exprs[i]; x.Kind == kop.ExValidAgg && x.N == kop.AggCreatureTypes {
 			choosesType = true // a count of creature types reads every printed one
+		} else if x.Kind == kop.ExCount && x.N == 1 {
+			pwTypes = true // a count of planeswalker types reads every walker's printed ones
+		}
+	}
+	if pwTypes {
+		for _, i := range pool {
+			if dd.Defs[i].Types&kop.TPlaneswalker != 0 {
+				subSet[0] |= dd.CardSubs[i][0]
+				subSet[1] |= dd.CardSubs[i][1]
+			}
 		}
 	}
 	for i := range dd.Filters {

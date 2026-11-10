@@ -1391,6 +1391,11 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 				kind = vSumPower
 			case "DifferentCardManaCost":
 				kind = vDistinctCMC
+			case "PlaneswalkerType":
+				// CR 205.3j: the distinct subtypes printed on the matching
+				// planeswalkers (gorge zoneFold's PlaneswalkerType): kernel
+				// ExCount N=1
+				kind = vPWTypes
 			default:
 				if ck, ok := strings.CutPrefix(agg, "CardCounters."); ok && ck != "ALL" {
 					// gorge zoneFold: CardCounters.<KIND> sums o.Counter(kind).

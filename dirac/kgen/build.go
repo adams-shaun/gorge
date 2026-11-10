@@ -1948,6 +1948,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vYourExtraTurns:     kop.ExYourExtraTurns,
 	vCounterKinds:       kop.ExCounterKinds,
 	vTargetPlayers:      kop.ExTargetPlayers,
+	vPWTypes:            kop.ExCount,
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
@@ -1968,6 +1969,9 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 	}
 	if v.Kind == vExileTypes {
 		e.N = 1 // ExCountExile N 1: the distinct card types, not the count
+	}
+	if v.Kind == vPWTypes {
+		e.N = 1 // ExCount N 1: the distinct planeswalker subtypes, not the count
 	}
 	if v.Kind == vThisTurnEntered {
 		e.N = int16(v.Zone)
