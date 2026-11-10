@@ -2916,31 +2916,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			sb |= kop.SrAltOrigin | int(altZ)<<kop.SrAltZoneShift
 			zone = kop.ZoneNone // the filter matches cards of every elected zone
 		}
-		if _, ok := fl["Side"]; ok {
-			// ChangeZone Origin$ Sideboard / Library,Sideboard
-			// (lower_sideboardsearch.go): the pool is the library (unless
-			// SideOnly) and the sideboard, so the filter matches cards of
-			// either zone
-			if in.Op != "Search" {
-				return ki, fmt.Errorf("Side on a %s", in.Op)
-			}
-			sb |= kop.SrSideboard
-			if _, only := fl["SideOnly"]; only {
-				sb |= kop.SrNoLibrary
-			}
-			if _, ok := fl["Exactly"]; ok {
-				sb |= kop.SrExactly
-			}
-			if _, ok := fl["ChooserOpp"]; ok {
-				sb |= kop.SrChooserOpp
-			}
-			zone = kop.ZoneNone
-		} else {
-			for _, bad := range []string{"SideOnly", "Exactly", "ChooserOpp"} {
-				if _, ok := fl[bad]; ok {
-					return ki, fmt.Errorf("%s without Side", bad)
-				}
-			}
+		if sb, zone, err = sideSearchFlags(in.Op, fl, sb, zone); err != nil {
+			return ki, err
 		}
 		if _, ok := fl["AuraEntry"]; ok {
 			// the hand move of one card whose filter may
@@ -3014,38 +2991,15 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.C = int16(int(zoneMap[in.C]) | (moveFlags()|kop.MvGraveExile)<<3)
 			break
 		}
-		if fl["from"] == "Library,Sideboard" {
-			// library then sideboard (Turtles Forever): B carries
-			// kop.CzLibrarySideboard, the sweep is zone-major over every seat
+		if b, ok := czallTwoZoneB(fl["from"]); ok {
+			// two origins swept zone-major over every seat; the second zone
+			// (or a Cz* selector) rides in B, ZoneNone lets the owner role build
 			if err := objFilter(kop.ZoneNone); err != nil {
 				return ki, err
 			}
 			ki.Op = kop.OpChangeZoneAllEx
 			ki.C = int16(int(zoneMap[in.C]) | (moveFlags()|kop.MvGraveExile)<<3)
-			ki.B = kop.Const(kop.CzLibrarySideboard)
-			break
-		}
-		if fl["from"] == "Graveyard,Hand" {
-			// graveyard then hand (Weftwalking): the second zone rides in B
-			// (czallSecondZone); ZoneHand leaves B.N&CzUntilLeaves clear.
-			if err := objFilter(kop.ZoneNone); err != nil {
-				return ki, err
-			}
-			ki.Op = kop.OpChangeZoneAllEx
-			ki.C = int16(int(zoneMap[in.C]) | (moveFlags()|kop.MvGraveExile)<<3)
-			ki.B = kop.Const(int(kop.ZoneHand))
-			break
-		}
-		if fl["from"] == "Battlefield,Graveyard" {
-			// battlefield then graveyard (Strategic Betrayal): B carries
-			// kop.CzBattleGrave, and ZoneNone lets the owner role build (the
-			// filter's inZoneGraveyard pin keeps the battlefield scan honest).
-			if err := objFilter(kop.ZoneNone); err != nil {
-				return ki, err
-			}
-			ki.Op = kop.OpChangeZoneAllEx
-			ki.C = int16(int(zoneMap[in.C]) | (moveFlags()|kop.MvGraveExile)<<3)
-			ki.B = kop.Const(kop.CzBattleGrave)
+			ki.B = kop.Const(b)
 			break
 		}
 		if err := objFilter(zoneMap[from]); err != nil {

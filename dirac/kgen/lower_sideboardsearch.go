@@ -1,8 +1,10 @@
 package kgen
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/effects"
 )
 
@@ -182,4 +184,51 @@ func (lc *lowerCtx) originLibrarySideboard(ps *params) error {
 	lc.emit(lInstr{Op: "SkipIf", Cond: moved, Skip: 1, Note: "gorge shuffles only the libraries a card was placed into"})
 	lc.emit(lInstr{Op: "Shuffle", Obj: lRef{Kind: rYou}})
 	return nil
+}
+
+// sideSearchFlags packs a sideboard search's flags into the OpSearchEx B word
+// (ChangeZone Origin$ Sideboard / Library,Sideboard): the pool is the library
+// (unless SideOnly) and the sideboard, so the filter matches cards of either
+// zone and the zone becomes ZoneNone. The Side-only flags refuse without Side.
+func sideSearchFlags(op string, fl map[string]string, sb int, zone kop.Zone) (int, kop.Zone, error) {
+	if _, ok := fl["Side"]; !ok {
+		for _, bad := range []string{"SideOnly", "Exactly", "ChooserOpp"} {
+			if _, ok := fl[bad]; ok {
+				return sb, zone, fmt.Errorf("%s without Side", bad)
+			}
+		}
+		return sb, zone, nil
+	}
+	if op != "Search" {
+		return sb, zone, fmt.Errorf("Side on a %s", op)
+	}
+	sb |= kop.SrSideboard
+	if _, only := fl["SideOnly"]; only {
+		sb |= kop.SrNoLibrary
+	}
+	if _, ok := fl["Exactly"]; ok {
+		sb |= kop.SrExactly
+	}
+	if _, ok := fl["ChooserOpp"]; ok {
+		sb |= kop.SrChooserOpp
+	}
+	return sb, kop.ZoneNone, nil
+}
+
+// czallTwoZoneB is the OpChangeZoneAllEx B of a two-origin sweep: graveyard
+// then hand (Weftwalking: the second zone, czallSecondZone; ZoneHand leaves
+// B.N&CzUntilLeaves clear), battlefield then graveyard (Strategic Betrayal:
+// kop.CzBattleGrave; the filter's inZoneGraveyard pin keeps the battlefield
+// scan honest), library then sideboard (Turtles Forever:
+// kop.CzLibrarySideboard).
+func czallTwoZoneB(from string) (int, bool) {
+	switch from {
+	case "Graveyard,Hand":
+		return int(kop.ZoneHand), true
+	case "Battlefield,Graveyard":
+		return kop.CzBattleGrave, true
+	case "Library,Sideboard":
+		return kop.CzLibrarySideboard, true
+	}
+	return 0, false
 }
