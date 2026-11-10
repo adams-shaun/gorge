@@ -426,3 +426,26 @@ func TestPrefixSearchContinuesPastALostTargetLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "prefix_continues_past_a_lost_target", "std-big", Config{GorgeAutopaySurface: true})
 }
+
+// A Command Tower with no commander makes nothing (CR 903.4f), so gorge's census is
+// complete without it: Skycloud Expanse's {1} is funded by an Island and the cast is
+// offered, where the Tower used to leave the census incomplete and unfunded.
+func TestEmptyIdentitySourceIsNoCensusGapLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "empty_identity_tower_beside_filter", "std-trc", Config{})
+}
+
+// Queen's Diamond with no charge counters makes nothing, so it is no census gap either:
+// the prefix funds Skycloud Expanse and never taps the Diamond for no mana.
+func TestZeroAmountSourceIsNoCensusGapLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "zero_amount_source_beside_filter", "std-trc", Config{})
+}
+
+// Worlds Within Worlds puts two Spider-Men and Black Panther onto the battlefield from
+// the hand at once: Black Panther sees each Hero entering beside it (CR 603.6a), so it
+// triggers twice whatever order the cards were picked in.
+func TestHandPickEntersTogetherLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "hand_pick_enters_together", "std-msh", Config{GorgeAutopaySurface: true})
+}

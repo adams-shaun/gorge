@@ -817,7 +817,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	if gapUsed {
 		var d Decision
 		t.restrOptions(k, &d, p) // (restricted mana floating is priced as ordinary: the search reads no restriction)
-		if hasOption(&d, fs.a) {
+		if hasOption(&d, fs.a) && !t.grantRefusedPrices(k, p, fs.a) {
 			return true
 		}
 	}

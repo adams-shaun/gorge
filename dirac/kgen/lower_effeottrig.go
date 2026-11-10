@@ -52,19 +52,14 @@ func eotCombatEmblemRefuse(ab *lAbility) error {
 	return nil
 }
 
-// emblemCapture reads an Effect's RememberObjects$ for the one shape the
-// kernel's emblem remembers: an until-end-of-turn DamageDone trigger over its
-// own ValidTgts$ creature slot, the trigger's source filter being exactly that
-// remembered object (Creature.IsRemembered). It declares the target slot on
-// the chain and returns it. RememberObjects$ TargetedPlayer over a target
-// opponent's damage is lowered as a no-op: gorge's event-trigger registration
-// rebuilds the capture from effectRemembered, which holds objects only, and
-// only its phase-trigger arm appends the remembered players, so the trigger's
-// ValidTarget$ Player.IsRemembered can never match. The target is still
-// declared (the mode's printed target); the caller drops the never-firing
-// effect. Every other RememberObjects$ beside an Effect trigger refuses (the
-// kernel's remembered set is per resolution, so the trigger would read an
-// empty set). drop reports that no emblem is to be created.
+// emblemCapture reads an Effect's RememberObjects$ Targeted/TargetedPlayer for
+// the two captures the kernel's emblem can carry. Targeted is the one
+// battlefield object target (the trigger's ValidSource$ ...IsRemembered is
+// the capture); TargetedPlayer is the one player target (the trigger's
+// ValidTarget$ Player.IsRemembered is rewritten to Player and the emblem's
+// player capture scopes it to that seat). player reports the player form.
+// Every other RememberObjects$ beside an Effect trigger refuses (the kernel's
+// remembered set is per resolution, so the trigger would read an empty set).
 func (lc *lowerCtx) emblemCapture(ps *params, t cards.Trigger, eot bool) (lRef, bool, bool, cards.Trigger, error) {
 	ro, ok := ps.m["RememberObjects"]
 	if !ok {
@@ -78,11 +73,21 @@ func (lc *lowerCtx) emblemCapture(ps *params, t cards.Trigger, eot bool) (lRef, 
 			return lRef{}, false, false, t, refuse("Effect RememberObjects$ TargetedPlayer with ValidTgts$ %q and ValidTarget$ %q",
 				ps.str("ValidTgts"), t.Params["ValidTarget"])
 		}
-		if _, err := lc.objOrTarget(ps, "", zBattlefield); err != nil {
+		ref, err := lc.objOrTarget(ps, "", zBattlefield)
+		if err != nil {
 			return lRef{}, false, false, t, err
 		}
+		if ref.Kind != rTarget {
+			return lRef{}, false, false, t, refuse("Effect RememberObjects$ TargetedPlayer over %s", ref)
+		}
+		cp := make(map[string]string, len(t.Params))
+		for k, v := range t.Params {
+			cp[k] = v
+		}
+		cp["ValidTarget"] = "Player"
+		t.Params = cp
 		ps.consume("RememberObjects")
-		return lRef{}, false, true, t, nil
+		return ref, true, true, t, nil
 	}
 	if strings.TrimSpace(ro) != "Targeted" || !eot || t.Mode != "DamageDone" && t.Mode != "DamageDealtOnce" {
 		return lRef{}, false, false, t, refuse("Effect triggers with RememberObjects$ %q", ro)

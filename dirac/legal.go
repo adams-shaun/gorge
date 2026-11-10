@@ -593,7 +593,7 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 			pc = s.manaPCGen(k, sl)
 		}
 		s.removeSrc(k, &av2, sl, pc)
-		if !av2.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, cost, &av2, sl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, &av2)) {
+		if !av2.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, &av2, sl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, &av2)) {
 			return false
 		}
 		if f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana {
@@ -611,7 +611,7 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 	if f&kop.CostTap != 0 {
 		skip = sl
 	}
-	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, cost, av, skip)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, av)) {
+	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, av, skip)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, av)) {
 		return false
 	}
 	if f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana {

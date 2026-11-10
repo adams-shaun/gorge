@@ -77,7 +77,11 @@ func (cb *cardBuilder) abilities() error {
 			if err != nil {
 				return bfail(cb.node, "%v", err)
 			}
-			ke.Capture = r
+			if e.CaptureIsPlayer {
+				ke.CapturePlayer = r
+			} else {
+				ke.Capture = r
+			}
 		}
 		if e.Capture2Set {
 			r, err := cb.ref(e.Capture2)

@@ -2468,17 +2468,10 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return err
 	}
 	var capture lRef
-	var hasCap bool
+	var hasCap, player bool
 	if mem.kind == memNone {
-		var drop bool
-		if capture, hasCap, drop, t, err = lc.emblemCapture(ps, t, eot); err != nil {
+		if capture, hasCap, player, t, err = lc.emblemCapture(ps, t, eot); err != nil {
 			return err
-		}
-		if drop {
-			// RememberObjects$ TargetedPlayer: gorge's event-trigger registration
-			// drops the player, so the mode's trigger never fires (the target was
-			// still declared in emblemCapture)
-			return nil
 		}
 	}
 	if !hasCap && eot && mem.kind == memNone {
@@ -2507,7 +2500,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 			return err
 		}
 	}
-	if hasCap {
+	if hasCap && !player {
 		if err := emblemCaptureFilter(ab); err != nil {
 			return err
 		}
@@ -2522,7 +2515,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	}
 	ab.Latent = true
 	ab.Name = "EmblemTrigger"
-	em := lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap}
+	em := lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap, CaptureIsPlayer: player}
 	ce := lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}}
 	mem.apply(&em, &ce) // lower_effectremember.go
 	lc.out.Emblems = append(lc.out.Emblems, em)

@@ -13,7 +13,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // the captured object.
 func (s *State) embCaptureOK(k *prep, emb uint8, sl Slot) bool {
 	p, i := emb>>4, int(emb&15)-1
-	if k.t.Emblems[s.embIdx(p, i)-1].Capture == kop.RefNone {
+	e := &k.t.Emblems[s.embIdx(p, i)-1]
+	if e.CapturePlayer != kop.RefNone {
+		return false // a player capture has no object statics
+	}
+	if e.Capture == kop.RefNone {
 		return true
 	}
 	return int(s.embNum(p, i)) == int(s.perms[sl].obj)+1
@@ -50,7 +54,11 @@ func (s *State) embCaptureLapse(k *prep, o Obj) {
 			continue
 		}
 		for i := 0; i < int(s.g.nemb[p]); i++ {
-			if e := &k.t.Emblems[s.embIdx(p, i)-1]; e.CaptureLapse {
+			e := &k.t.Emblems[s.embIdx(p, i)-1]
+			if e.CapturePlayer != kop.RefNone {
+				continue // a player capture is a seat, not an object
+			}
+			if e.CaptureLapse {
 				s.embRemDrop(p, i, o) // every slot naming o (static_emblemrem.go)
 			}
 		}

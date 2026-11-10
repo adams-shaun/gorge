@@ -26,7 +26,7 @@ type EffEOTTrigStats struct {
 	DmgWithListener int // DamageDone emblem triggers queued by an event with a battlefield DamageDone listener (the hook after the listener walk)
 	DmgBeside       int // DamageDone emblem triggers queued beside another pending trigger of the owner's (the trigger_order ask)
 	DmgMulti        int // DamageDone emblem triggers queued with more than 1 damage dealt
-	DmgCapSkips     int // damage events a remembering emblem's trigger passed over because the source was not its remembered object
+	DmgCapSkips     int // damage events a remembering emblem's trigger passed over because the source was not its remembered object, or the recipient was not its remembered player
 }
 
 // DebugInnerLightNoAmount is a mutation switch (TestTheInnerLightMutation):
@@ -66,7 +66,18 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 			if !e.UntilEOT {
 				continue // a permanent emblem's combat damage trigger is not this code's (unverified against gorge)
 			}
-			if e.Capture != kop.RefNone && int(s.embNum(pp, i)) != int(srcObj)+1 {
+			// A player-captured emblem scopes "that player": the recipient must
+			// be the captured seat + 1. An object-captured emblem keeps the
+			// source check. A player capture never fires for damage to a
+			// permanent, even when dpl happens to name a seat.
+			if e.CapturePlayer != kop.RefNone {
+				if !toPlayer || int(s.embNum(pp, i)) != int(dpl)+1 {
+					if st := DebugEffEOTTrigStats; st != nil {
+						st.DmgCapSkips++
+					}
+					continue
+				}
+			} else if e.Capture != kop.RefNone && int(s.embNum(pp, i)) != int(srcObj)+1 {
 				if st := DebugEffEOTTrigStats; st != nil {
 					st.DmgCapSkips++
 				}

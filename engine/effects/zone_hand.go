@@ -443,6 +443,14 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 		// ChangeZoneEffect.changeHiddenOriginResolve 1103 before the choose,
 		// so an accepted search that finds nothing still clears).
 		forgetOther(h, c, cz.Riders.ForgetOtherRemembered)
+		// The answered cards move together (CR 603.6a: each one entering sees
+		// the others entering with it; Worlds Within Worlds' creatures put
+		// onto the battlefield at once), as ChangeZone's several Defined$
+		// objects do.
+		if len(ans) > 1 {
+			h.BeginZoneBatch()
+			defer h.EndZoneBatch()
+		}
 		var moved []state.ObjID
 		for _, id := range ans {
 			if !containsID(hand, id) {

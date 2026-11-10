@@ -507,7 +507,11 @@ func dumpLIR(w io.Writer, c *lCard) {
 			eot = " until=next"
 		}
 		if e.CaptureSet {
-			eot += " remembers=" + e.Capture.String()
+			if e.CaptureIsPlayer {
+				eot += " remembers-player=" + e.Capture.String()
+			} else {
+				eot += " remembers=" + e.Capture.String()
+			}
 			if e.CaptureLapse {
 				eot += " lapses"
 			}
