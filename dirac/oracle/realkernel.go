@@ -428,7 +428,10 @@ func (r *realSide) Project(p *Projection) {
 		p.Active = 0 // gorge's Game.Active before the first turn (kernel Projection names the starter)
 	}
 	p.RNGDraws = kp.Draws
-	p.CmdCasts, p.CmdDamage = kp.CmdCast, kp.CmdDmg
+	for i := range p.CmdCasts {
+		p.CmdCasts[i] = kp.CmdCast[i]
+		copy(p.CmdDamage[i][:], kp.CmdDmg[i][:])
+	}
 	p.Over, p.Winner = kp.Over, kp.Winner
 }
 
