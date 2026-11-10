@@ -1,5 +1,6 @@
 # Whisperer of the Wilds beside Forests and a power-4 gate creature, for the oracle's constructed lockstep
-# (dirac/oracle/gatedpairmana_test.go)
+# (dirac/oracle/gatedpairmana_test.go; Dance of the Tumbleweeds for gatedpairpotential_test.go)
+Dance of the Tumbleweeds
 Forest
 Giant Growth
 Grizzly Bears

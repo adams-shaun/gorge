@@ -152,7 +152,7 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	// leaves out: mana_tapsdefer.go)
 	for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
 		pc := s.manaPCGen(k, b.first())
-		a.addUnits(s.srcMaskAt(pc, b.first()), pc.manaN)
+		a.addUnits(s.srcMaskAt(pc, b.first()), srcYield(pc))
 	}
 	if k.ctrMana {
 		s.availCtr(k, p, a) // a counter-cost source (mana_countercost.go)

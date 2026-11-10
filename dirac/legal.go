@@ -1425,7 +1425,10 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 		if pc.manaMulti && k.gen != nil && done[sl] != ^uint16(0) && pc.manaAb >= 0 {
 			mask = s.potentialFirstMask(k, sl, pc) // the walk below admits its other abilities, each once
 		}
-		add(sl, mask, srcYield(pc))
+		add(sl, mask, pc.manaN)
+		if n := gatePairPotential(pc); n != 0 {
+			add(sl, uint8(pc.wideCol), n) // gorge's walk sums both listed abilities of a gate-on pair
+		}
 		if k.gen != nil && len(k.gen.grantPC) != 0 && s.grantMay(k, sl) && s.ownManaUsable(k, sl) {
 			// a mana ability granted beside the source's own one (an aura's
 			// "{T}: Add two mana of any one color") counts on its own, as

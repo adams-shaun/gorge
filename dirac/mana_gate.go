@@ -211,3 +211,12 @@ func gatedLargerPair(c *kop.CardDef, gj int, pc *pcard) bool {
 // affordability bound: the larger alternative of a gated pair (wideN) holds
 // the census one's. The payment window still pays manaN (ability 0).
 func srcYield(pc *pcard) uint8 { return max(pc.manaN, pc.wideN) }
+
+// gatePairPotential is what a gate-on pair view adds to the potential pool
+// beside its census manaN: gorge's potentialManaFor admits each listed mana
+// ability of a source on its own and sums them, and with the gate on both
+// {T}: Add {G} and {T}: Add {G}{G} are listed (Whisperer: 3 {G}, not the
+// planner's max of 2). Zero for any other view. Only a gate-on pair view
+// reaches the potential walk with wideN set (manaPCGen never returns a
+// restricted record view).
+func gatePairPotential(pc *pcard) uint8 { return pc.wideN }

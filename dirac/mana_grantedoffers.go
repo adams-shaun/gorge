@@ -376,7 +376,7 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || !s.canTapForManaPC(k, sl, pc) {
 			continue
 		}
-		a.addUnits(s.srcMaskAt(pc, sl), pc.manaN)
+		a.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))
 		if pc.manaOne {
 			s.addOneColour(a, pc.manaN)
 		}
