@@ -627,19 +627,27 @@ func (g *grantSrch) visit(t *State) bool {
 	if g.dyn {
 		cost = t.grantDynamicCost(g.k, g.p, g.d.play, g.full)
 	}
-	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && !g.waitsForStack(t) {
-		return true
-	}
 	pl := &t.pl[g.p&1]
-	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN}
+	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, sp: t.sp, hand: pl.handN, gy: pl.graveN}
+	for c := range key.pool {
+		key.pool[c] += g.ghost[c] // gorge's key reads the floated pool, whose restriction it does not (scriptStateKey)
+	}
 	if g.k.artMana {
 		t.artSync(g.p)
 		key.art = t.g.poolArt[g.p&1]
 	}
+	seen := false
 	for i := 0; i < g.nseen; i++ {
 		if g.seen[i] == key {
-			return false
+			seen = true
+			break
 		}
+	}
+	if seen {
+		return false // (gorge's seen check precedes its pricing: scriptSearch.visit)
+	}
+	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && !g.waitsForStack(t) {
+		return true
 	}
 	if g.nseen < len(g.seen) {
 		g.seen[g.nseen] = key
@@ -699,11 +707,17 @@ func (g *grantSrch) visit(t *State) bool {
 		if !grants {
 			continue
 		}
+		pre := g.askNeededFirst(t, i, sl) // (the granted colours the ask answers first)
 		if ppc := t.manaPCGen(g.k, sl); g.dual[i] && !t.ownRestrPrinted(g.k, sl) && grantPainShape(g.k, ppc) {
 			if g.painBranch(t, i, sl, ppc, alts == 1) { // its painful ability's colours too (mana_grantpain.go)
 				return true
 			}
 		} else if g.dual[i] {
+			for j := 0; j < int(g.ng[i]); j++ {
+				if pre[j] != 0 && g.preBranch(t, i, sl, j, pre[j], alts == 1) {
+					return true
+				}
+			}
 			mask, n := uint8(0), uint8(0)
 			if ra := t.ownRestrAb(g.k, sl); ra != nil && !t.ownManaUsable(g.k, sl) {
 				mask, n = uint8(ra.ManaColors)&0x3f, max(ra.ManaN, 1) // the restricted printed ability
@@ -739,11 +753,16 @@ func (g *grantSrch) visit(t *State) bool {
 			if !t.grantCostPayable(g.p, pc) {
 				continue // its life cannot be paid (CR 119.4)
 			}
+			if pre[j] != 0 && g.dual[i] {
+				if mask &^= pre[j]; mask == 0 {
+					continue // all its colours were answered first
+				}
+			}
 			// gorge's search taps a granted census gap whether or not the play may
 			// spend it (the mana floats, the tap fires its triggers); mana the
 			// play's origin or class cannot spend prices nothing
 			g.skipPool = !g.grantAdmits(t, sl, gi)
-			ask := alts == 1 || mask&uint8(kop.ColAny) == uint8(kop.ColAny)
+			ask := alts == 1 || t.srcMaskAt(pc, sl)&uint8(kop.ColAny) == uint8(kop.ColAny)
 			if grantCostLife(pc) > 0 {
 				if g.costBranch(t, i, sl, gi, pc, mask, ask) { // the step pays its life (mana_grantcost.go)
 					return true
@@ -1625,4 +1644,51 @@ func (s *State) filterSource(k *prep, p uint8) bool {
 		}
 	}
 	return false
+}
+
+// askNeededFirst: gorge's search answers the "choose a mana ability" ask in
+// scriptOrderAnswers' order, the answers naming a colour the play's cost needs
+// first (potential_script.go); the printed Any ability's answer names no colour,
+// so a granted fixed-colour ability's needed colours are tried before it, its
+// others after (Clement's {G}{U} for a {1}{G}{U} cast, Helga's own restricted
+// any colour tried last). It returns, per granted ability of candidate i, the
+// colours answered ahead of the printed one.
+func (g *grantSrch) askNeededFirst(t *State, i int, sl Slot) (pre [maxGrants]uint8) {
+	if !g.dual[i] {
+		return pre
+	}
+	var need uint8
+	for c, b := range g.need {
+		if b {
+			need |= 1 << c
+		}
+	}
+	if need == 0 {
+		return pre
+	}
+	var own uint8
+	if ra := t.ownRestrAb(g.k, sl); ra != nil && !t.ownManaUsable(g.k, sl) {
+		own = uint8(ra.ManaColors) & 0x3f
+	} else {
+		own = t.srcMaskAt(t.manaPCGen(g.k, sl), sl)
+	}
+	if own&uint8(kop.ColAny) != uint8(kop.ColAny) && own&need != 0 {
+		return pre // the printed ability names a needed colour itself: engine order
+	}
+	for j := 0; j < int(g.ng[i]); j++ {
+		pc := t.grantView(g.k.gen, g.gi[i][j], sl)
+		if m := t.srcMaskAt(pc, sl); m&uint8(kop.ColAny) != uint8(kop.ColAny) && grantCostLife(pc) == 0 && t.grantCostPayable(g.p, pc) {
+			pre[j] = m & need
+		}
+	}
+	return pre
+}
+
+// preBranch taps granted ability j of candidate i for the colours the ask
+// answers ahead of the printed ability (askNeededFirst).
+func (g *grantSrch) preBranch(t *State, i int, sl Slot, j int, mask uint8, one bool) bool {
+	gi := g.gi[i][j]
+	pc := t.grantView(g.k.gen, gi, sl)
+	g.skipPool = !g.grantAdmits(t, sl, gi)
+	return g.branch(t, i, sl, gi, mask, pc.manaN, one)
 }
