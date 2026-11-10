@@ -164,7 +164,6 @@ func (s *State) faceDownRiders(k *prep, o Obj, sl Slot, tapped, remember bool) {
 		if k.gen != nil && s.subs[kop.TrigTaps].any() {
 			s.fireTaps(k, sl)
 		}
-		s.markTapped(k, sl)
 	}
 	if remember {
 		s.remember(o)

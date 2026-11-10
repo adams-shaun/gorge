@@ -644,10 +644,12 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		was := cp.flags & pfTapped
 		cp.flags |= pfTapped
 		s.touchSl(cd)
-		if was == 0 && s.subs[kop.TrigTaps].any() {
-			s.fireTaps(k, cd)
+		if was == 0 {
+			if s.subs[kop.TrigTaps].any() {
+				s.fireTaps(k, cd)
+			}
+			s.markTapped(k, cd) // only a tap that happens marks
 		}
-		s.markTapped(k, cd)
 	}
 	s.tapBatchClose(tb)
 	ab := k.tapXAbOf(s.cardAt(st.sl))

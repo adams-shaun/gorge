@@ -99,7 +99,6 @@ func (s *State) ninjutsuResolve(k *prep) {
 		if s.subs[kop.TrigTaps].any() {
 			s.fireTaps(k, sl)
 		}
-		s.markTapped(k, sl)
 	}
 	if DebugNinjutsuNoAttack || !s.enteringAttackLegal(k, ctrl, e.trigObj) {
 		return

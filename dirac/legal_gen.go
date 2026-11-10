@@ -450,10 +450,12 @@ func (s *State) tapHostGen(k *prep, e *stackEntry) {
 		was := s.perms[s.objs[h].slot].flags & pfTapped
 		s.perms[s.objs[h].slot].flags |= pfTapped
 		s.touch(h)
-		if was == 0 && s.subs[kop.TrigTaps].any() {
-			s.fireTaps(k, s.objs[h].slot)
+		if was == 0 {
+			if s.subs[kop.TrigTaps].any() {
+				s.fireTaps(k, s.objs[h].slot)
+			}
+			s.markTapped(k, s.objs[h].slot) // only a tap that happens marks
 		}
-		s.markTapped(k, s.objs[h].slot)
 	}
 }
 

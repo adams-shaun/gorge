@@ -2224,14 +2224,16 @@ func (s *State) payPicks(k *prep) {
 					was := s.perms[ob.slot].flags & pfTapped
 					s.perms[ob.slot].flags |= pfTapped
 					s.touch(o)
-					if was == 0 && k.gen != nil && s.subs[kop.TrigTaps].any() {
-						if g := k.gen; g.anyTWTap && s.bld().e.kind == seSpell && s.bld().e.flags&sfKicked != 0 && k.t.Cards[s.bld().e.card].Teamwork != 0 {
-							s.fireTapsTW(k, ob.slot) // a teamwork election pick (trig_params.go)
-						} else {
-							s.fireTaps(k, ob.slot)
+					if was == 0 {
+						if k.gen != nil && s.subs[kop.TrigTaps].any() {
+							if g := k.gen; g.anyTWTap && s.bld().e.kind == seSpell && s.bld().e.flags&sfKicked != 0 && k.t.Cards[s.bld().e.card].Teamwork != 0 {
+								s.fireTapsTW(k, ob.slot) // a teamwork election pick (trig_params.go)
+							} else {
+								s.fireTaps(k, ob.slot)
+							}
 						}
+						s.markTapped(k, ob.slot) // only a tap that happens marks
 					}
-					s.markTapped(k, ob.slot)
 					if k.gen != nil && k.gen.crewBy != nil {
 						s.noteCrewPick(k, ob.slot) // CrewedThisTurn marks (filter_combatwords.go)
 					}

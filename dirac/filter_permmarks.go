@@ -100,12 +100,14 @@ func (s *State) permMarkNewTurn(k *prep) {
 
 // markTapped records that the permanent at sl has become tapped this turn
 // (gorge Facts.TappedTurn; an entry-tapped state is not a tap, CR 603.2e, and
-// its callers do not mark). It is written after the tap's Taps triggers are
-// queued, so a FirstTime$ watcher reads whether an EARLIER tap happened this
-// turn. Every real tap marks, even with no watcher on the battlefield: the
-// watcher may enter later and still needs to know (Captain America, Living
-// Legend). A table without a Taps FirstTime$ line gives the mechanic no mask,
-// so the write is one failed bounds test.
+// its callers do not mark; a tap of an already-tapped permanent is a no-op
+// and does not mark either, since gorge emits no Tap event for it). It is
+// written after the tap's Taps triggers are queued, so a FirstTime$ watcher
+// reads whether an EARLIER tap happened this turn. Every real tap marks, even
+// with no watcher on the battlefield: the watcher may enter later and still
+// needs to know (Captain America, Living Legend). A table without a Taps
+// FirstTime$ line gives the mechanic no mask, so the write is one failed
+// bounds test.
 //
 //go:noinline
 func (s *State) markTapped(k *prep, sl Slot) {

@@ -746,11 +746,13 @@ func (s *State) payWaterbend(k *prep) {
 		was := s.perms[sl].flags & pfTapped
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
-		if was == 0 && k.gen != nil && s.subs[kop.TrigTaps].any() {
-			tb = tb || s.tapBatchOpen(k) // the announcement's taps are one tapping action (gorge EmitConvokeTaps; trig_tapall.go)
-			s.fireTaps(k, sl)
+		if was == 0 {
+			if k.gen != nil && s.subs[kop.TrigTaps].any() {
+				tb = tb || s.tapBatchOpen(k) // the announcement's taps are one tapping action (gorge EmitConvokeTaps; trig_tapall.go)
+				s.fireTaps(k, sl)
+			}
+			s.markTapped(k, sl) // only a tap that happens marks
 		}
-		s.markTapped(k, sl)
 	}
 	s.tapBatchClose(tb)
 	if e := &s.bld().e; DebugWaterbendPaid != nil && (e.kind == seSpell || e.ab != 255 && k.t.Cards[e.card].Abilities[e.ab].Cost.Flags&kop.CostWaterbend != 0) {

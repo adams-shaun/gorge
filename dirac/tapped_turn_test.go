@@ -138,3 +138,166 @@ func TestPermMarkTappedTurn(t *testing.T) {
 		t.Fatalf("a fresh creature's first tap: %d watcher triggers, want 1", n)
 	}
 }
+
+// tappedTurnWatcherTable builds the minimum table with a Taps FirstTime$
+// watcher and a plain creature, and returns the watcher's card id.
+func tappedTurnWatcherTable(t *testing.T) (*scen, CardID) {
+	t.Helper()
+	tbl := &kop.Table{
+		Filters: []kop.Filter{{Types: kop.TCreature, Owner: kop.CtrlYou}},
+		Exprs:   []kop.Expr{{Kind: kop.ExConst, N: 1}},
+		Cards: []kop.CardDef{
+			{Name: "Test Plains", Types: kop.TLand},
+			{Name: "Test Bear", Types: kop.TCreature, Power: 2, Toughness: 2},
+		},
+	}
+	gain := []kop.Instr{{Op: kop.OpGainLife, Obj: kop.RefController, A: kop.Const(1)}}
+	watcher := CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test First Taps Watch", Types: kop.TCreature, Power: 1, Toughness: 1,
+		Abilities: []kop.Ability{{Kind: kop.AbTriggered,
+			Trig: kop.Trigger{Event: kop.TrigTaps, Filter: 0, Flags2: kop.Tf2FirstTime}, Prog: gain}}})
+	sc := newScenTableLib(t, tbl, 0, Config{NoElide: true})
+	if sc.k.gen == nil || sc.k.gen.ix[mechTappedTurn] == arenaNone {
+		t.Fatal("precondition: the table's Taps FirstTime$ line did not bring in mechTappedTurn")
+	}
+	return sc, watcher
+}
+
+// tapByEffect resolves an OpTap on o, failing if it suspends.
+func tapByEffect(t *testing.T, s *State, k *prep, o Obj) {
+	t.Helper()
+	s.res.e.trigObj = o
+	if !s.exec(k, &kop.Instr{Op: kop.OpTap, Obj: kop.RefTriggerObj}) {
+		t.Fatal("the tap suspended")
+	}
+}
+
+// TestPermMarkTappedTurnNoOpTapDoesNotMark: a Tap effect on an already-tapped
+// permanent is no tap at all (gorge emits no Tap event, so no TappedTurn). The
+// later first real tap must still fire the FirstTime$ watcher.
+func TestPermMarkTappedTurnNoOpTapDoesNotMark(t *testing.T) {
+	sc, watcher := tappedTurnWatcherTable(t)
+	s, k := sc.s, sc.k
+	bear := sc.perm(1, 0)
+	sl := sc.slot(bear)
+	// An entry-tapped permanent has no mark: it never became tapped.
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	if s.mSl(k, mechTappedTurn, sl) {
+		t.Fatal("precondition: the entry-tapped permanent already carries the mark")
+	}
+	sc.perm(watcher, 0)
+	if !s.subs[kop.TrigTaps].any() {
+		t.Fatal("precondition: the watcher is not live")
+	}
+	s.npend = 0
+	tapByEffect(t, s, k, bear)
+	if s.mSl(k, mechTappedTurn, sl) {
+		t.Fatal("a no-op tap on an already-tapped permanent set the tapped-this-turn mark")
+	}
+	if n := int(s.npend); n != 0 {
+		t.Fatalf("a no-op tap fired %d Taps triggers, want 0", n)
+	}
+	s.untapEffect(k, sl)
+	if s.perms[sl].flags&pfTapped != 0 {
+		t.Fatal("precondition: the permanent did not untap")
+	}
+	if s.mSl(k, mechTappedTurn, sl) {
+		t.Fatal("the untap left a mark written by the no-op tap")
+	}
+	s.npend = 0
+	tapByEffect(t, s, k, bear)
+	if !s.mSl(k, mechTappedTurn, sl) {
+		t.Fatal("the first real tap did not set the tapped-this-turn mark")
+	}
+	if n := int(s.npend); n != 1 {
+		t.Fatalf("the first real tap fired %d watcher triggers, want 1", n)
+	}
+}
+
+// TestPermMarkTappedTurnEntryStateDoesNotMark: the tapped state a permanent
+// enters with is not a tap (gorge's TapIsEntryState). No watcher is out at the
+// entry; the mark must stay clear so a later real tap fires once.
+func TestPermMarkTappedTurnEntryStateDoesNotMark(t *testing.T) {
+	sc, watcher := tappedTurnWatcherTable(t)
+	s, k := sc.s, sc.k
+	bear := sc.perm(1, 0)
+	sl := sc.slot(bear)
+	s.faceDownRiders(k, bear, sl, true, false) // an entry-tapped state, not a tap
+	if s.perms[sl].flags&pfTapped == 0 {
+		t.Fatal("precondition: the entry rider did not tap the permanent")
+	}
+	if s.mSl(k, mechTappedTurn, sl) {
+		t.Fatal("an entry-tapped state set the tapped-this-turn mark")
+	}
+	sc.perm(watcher, 0) // the watcher enters after the entry
+	s.npend = 0
+	s.untapEffect(k, sl)
+	if s.perms[sl].flags&pfTapped != 0 {
+		t.Fatal("precondition: the permanent did not untap")
+	}
+	tapByEffect(t, s, k, bear)
+	if !s.mSl(k, mechTappedTurn, sl) {
+		t.Fatal("the first real tap did not set the tapped-this-turn mark")
+	}
+	if n := int(s.npend); n != 1 {
+		t.Fatalf("the first real tap after an entry-tapped state fired %d watcher triggers, want 1", n)
+	}
+}
+
+// TestPermMarkTappedTurnNinjutsuEntryDoesNotMark: ninjutsu's entry-tapped state
+// is likewise not a tap, and a watcher entering afterwards must still see the
+// permanent's later real tap.
+func TestPermMarkTappedTurnNinjutsuEntryDoesNotMark(t *testing.T) {
+	sc, watcher := tappedTurnWatcherTable(t)
+	s, k := sc.s, sc.k
+	ninja := sc.hand(1, 0)
+	ob := &s.objs[ninja]
+	s.res.e = stackEntry{obj: ninja, srcVer: ob.ver, ctrl: 0}
+	s.ninjutsuResolve(k)
+	if s.objs[ninja].zone != kop.ZoneBattlefield {
+		t.Fatal("precondition: ninjutsu did not put the card onto the battlefield")
+	}
+	sl := s.objs[ninja].slot
+	if s.perms[sl].flags&pfTapped == 0 {
+		t.Fatal("precondition: ninjutsu did not enter tapped")
+	}
+	if s.mSl(k, mechTappedTurn, sl) {
+		t.Fatal("a ninjutsu entry-tapped state set the tapped-this-turn mark")
+	}
+	sc.perm(watcher, 0)
+	s.npend = 0
+	s.untapEffect(k, sl)
+	if s.perms[sl].flags&pfTapped != 0 {
+		t.Fatal("precondition: the permanent did not untap")
+	}
+	tapByEffect(t, s, k, ninja)
+	if !s.mSl(k, mechTappedTurn, sl) {
+		t.Fatal("the first real tap did not set the tapped-this-turn mark")
+	}
+	if n := int(s.npend); n != 1 {
+		t.Fatalf("the first real tap after a ninjutsu entry fired %d watcher triggers, want 1", n)
+	}
+}
+
+// TestPermMarkTappedTurnLatentGrant: a granted (Latent) Taps FirstTime$ line
+// still gives the table the mark: arenaUses scans every card's abilities, not
+// only the watcher's own line.
+func TestPermMarkTappedTurnLatentGrant(t *testing.T) {
+	tbl := &kop.Table{
+		Filters: []kop.Filter{{Types: kop.TCreature, Owner: kop.CtrlYou}},
+		Exprs:   []kop.Expr{{Kind: kop.ExConst, N: 1}},
+		Cards: []kop.CardDef{
+			{Name: "Test Plains", Types: kop.TLand},
+			{Name: "Test Bear", Types: kop.TCreature, Power: 2, Toughness: 2},
+			{Name: "Test Granted Watch", Types: kop.TCreature, Power: 1, Toughness: 1,
+				Abilities: []kop.Ability{{Kind: kop.AbTriggered, AFlags: kop.AfLatent,
+					Trig: kop.Trigger{Event: kop.TrigTaps, Filter: 0, Flags2: kop.Tf2FirstTime},
+					Prog: []kop.Instr{{Op: kop.OpGainLife, Obj: kop.RefController, A: kop.Const(1)}}}}},
+		},
+	}
+	sc := newScenTableLib(t, tbl, 0, Config{NoElide: true})
+	if sc.k.gen == nil || sc.k.gen.ix[mechTappedTurn] == arenaNone {
+		t.Fatal("a granted (Latent) Taps FirstTime$ line did not bring in mechTappedTurn")
+	}
+}
