@@ -31,8 +31,14 @@ var RealKernelGaps = []string{
 // card resolved in reg by its kernel name, through names (kernel name ->
 // gorge name) when it maps one.
 func KernelMatchup(reg *cards.Registry, tbl *kop.Table, labels [2]string, decks [2][]kop.CardID, names map[string]string, mulligans int) (*Matchup, error) {
-	var gd [2][]*cards.Card
-	for s := 0; s < 2; s++ {
+	return KernelMatchupN(reg, tbl, labels[:], decks[:], names, mulligans)
+}
+
+// KernelMatchupN is KernelMatchup at len(decks) seats (2..MaxSeats), seat s
+// playing decks[s] under labels[s]; at two seats it is KernelMatchup.
+func KernelMatchupN(reg *cards.Registry, tbl *kop.Table, labels []string, decks [][]kop.CardID, names map[string]string, mulligans int) (*Matchup, error) {
+	gd := make([][]*cards.Card, len(decks))
+	for s := range decks {
 		for _, id := range decks[s] {
 			n := tbl.Cards[id].Name
 			if g, ok := names[n]; ok {
@@ -45,7 +51,7 @@ func KernelMatchup(reg *cards.Registry, tbl *kop.Table, labels [2]string, decks 
 			gd[s] = append(gd[s], c)
 		}
 	}
-	return NewMatchup(reg, labels, gd, mulligans)
+	return NewMatchupN(reg, labels, gd, mulligans)
 }
 
 // RealKernel is a SideFactory over package kernel playing tbl. The matchup's
@@ -64,9 +70,13 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 		}
 	}
 	return func(m *Matchup, seed uint64) (Side, error) {
-		var decks [2][]kop.CardID
-		for s := 0; s < 2; s++ {
-			for _, c := range m.Decks[s] {
+		n := m.NSeat()
+		if n > dirac.MaxSeats {
+			return nil, fmt.Errorf("realkernel: a matchup of %d seats; this kernel build holds %d (the dirac_mp build tag holds %d)", n, dirac.MaxSeats, MaxSeats)
+		}
+		var decks [dirac.MaxSeats][]kop.CardID
+		for s := 0; s < n; s++ {
+			for _, c := range m.SeatDeck(s) {
 				id, ok := rev[cardName(c)]
 				if !ok {
 					return nil, fmt.Errorf("realkernel: %q is not in table %s", cardName(c), tbl.Name)
@@ -84,7 +94,7 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 				sides[s] = append(sides[s], id)
 			}
 		}
-		r := &realSide{tbl: tbl, m: m}
+		r := &realSide{tbl: tbl, m: m, n: uint8(n)}
 		m.chars = newCharVocab(tbl)
 		r.gname = make([]string, len(tbl.Cards))
 		r.tidx = make([]uint8, len(tbl.Cards))
@@ -116,7 +126,7 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 			}
 			r.kcfg.SideN[s] = uint8(copy(r.kcfg.Side[s][:], sides[s]))
 		}
-		r.s.Init(tbl, decks[0], decks[1], seed, r.kcfg)
+		r.s.InitN(tbl, decks, uint8(n), seed, r.kcfg)
 		return r, nil
 	}
 }
@@ -134,6 +144,7 @@ type realSide struct {
 	kcfg  dirac.Config // what s was built with
 	tbl   *kop.Table
 	m     *Matchup
+	n     uint8    // seats
 	gname []string // per kernel CardID: the gorge card name
 	tidx  []uint8  // per kernel CardID: the matchup table index
 	d     dirac.Decision
@@ -362,6 +373,9 @@ func (r *realSide) Project(p *Projection) {
 		}
 		p.LibCount[s], p.HandCount[s] = kp.LibN[s], kp.HandN[s]
 	}
+	if r.n > 2 {
+		r.projectMore(p)
+	}
 	p.NStack = kp.NStack
 	_, _, building := r.s.BuildingCast()
 	for i := 0; i < int(kp.NStack) && i < MaxStack; i++ {
@@ -416,6 +430,26 @@ func (r *realSide) Project(p *Projection) {
 	p.RNGDraws = kp.Draws
 	p.CmdCasts, p.CmdDamage = kp.CmdCast, kp.CmdDmg
 	p.Over, p.Winner = kp.Over, kp.Winner
+}
+
+// projectMore fills a game of more than two seats' further-seat fields. The
+// kernel's Projection holds seats 0 and 1, so seats 2 and up read the
+// accessors that index every seat (life, hand, library). Poison, speed,
+// dungeon room, mana pool, lands played and loss stay zero past seat 1: the
+// kernel's accessors for them still fold the seat to its low bit, and its
+// turn order and losing are two-seat, so a game reaching them diverges there.
+func (r *realSide) projectMore(p *Projection) {
+	p.Seats.NSeat = r.n
+	for s := uint8(0); s < r.n && s < MaxSeats; s++ {
+		if s < 2 {
+			p.Seats.Lost[s] = r.s.FeatLost(s)
+			continue
+		}
+		sp := p.seat(int(s))
+		*sp.life = int32(r.s.LifeOf(s))
+		*sp.hand = uint8(r.s.HandSize(s))
+		*sp.lib = uint8(r.s.LibrarySize(s))
+	}
 }
 
 // stackModes is e's chosen modes: its mode byte also carries cast provenance
