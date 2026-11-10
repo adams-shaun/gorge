@@ -71,10 +71,10 @@ func TestFilterWordClasses(t *testing.T) {
 func TestValueHeadClasses(t *testing.T) {
 	lc := &lowerCtx{face: &cards.Face{SVars: map[string]string{}}, known: func(s string) bool { return false }}
 	for body, want := range map[string]valKind{
-		"PlayerCountOpponents$HighestLifeTotal":                      vLifeOf,
-		"PlayerCountOpponents$HighestCardsInHand":                    vHandSizeOf,
-		"PlayerCountOpponents$LowestLifeTotal":                       vLifeOf,
-		"PlayerCountOpponents$HighestValid Land.YouCtrl":             vCount,
+		"PlayerCountOpponents$HighestLifeTotal":                      vOppExtreme,
+		"PlayerCountOpponents$HighestCardsInHand":                    vOppExtreme,
+		"PlayerCountOpponents$LowestLifeTotal":                       vOppExtreme,
+		"PlayerCountOpponents$HighestValid Land.YouCtrl":             vOppExtreme,
 		"PlayerCountOpponents$HighestCounters.Poison":                vHighestOppPoison,
 		"PlayerCountRegisteredOpponents$HasPropertyLostLifeThisTurn": vOppsLostLife,
 		"Count$CardsInYourHand":                                      vHandSizeOf,
@@ -96,8 +96,10 @@ func TestValueHeadClasses(t *testing.T) {
 		t.Errorf("exile $CardTypes outside a static lowered to %s; want a refusal", v)
 	}
 	v, _ := lc.svarValue("PlayerCountOpponents$HighestValid Land.YouCtrl", 0)
-	if v.F == nil || v.F.Clauses[0].Ctrl != whoOpp {
-		t.Errorf("HighestValid Land.YouCtrl: the opponent's lands, got %s", v)
+	// YouCtrl stays the controller word: the kernel rebinds it to each
+	// opponent in turn (value_oppextreme.go, gorge SpecContext(p))
+	if v.F == nil || v.F.Clauses[0].Ctrl != whoYou || v.N != kop.OppExtValid {
+		t.Errorf("HighestValid Land.YouCtrl: each opponent's lands, got %s", v)
 	}
 	for _, bad := range []string{
 		"PlayerCountOpponents$HighestValid Creature.Other+YouCtrl", // source-relative from the opponent's side
@@ -189,7 +191,7 @@ func TestFilterAndValueCarriersAccepted(t *testing.T) {
 		"repl EntersWith F=nil cond=!YourTurn()",                       // Eddymurk Crab
 		"LoseLife obj=Defending",                                       // Agate-Blade Assassin
 		"once=true",                                                    // Moonstone Harbinger
-		"HandSizeOf(EachOpp)",                                          // Beza
+		"OppExtreme",                                                   // Beza
 		"A=OppsLostLife",                                               // Gev
 	} {
 		if !strings.Contains(lir, want) {

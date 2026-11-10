@@ -218,7 +218,13 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			if ferr != nil {
 				return lValue{}, ferr
 			}
-			v = lValue{Kind: vOppExtreme, N: kop.OppExtValid, F: f}
+			// only the controller words are rebound to the opponent: a
+			// player clause or a source-relative word (Other, a compare
+			// against X) would read the controller's side, so it refuses
+			// as opponentView does
+			if _, err = opponentView(f); err == nil {
+				v = lValue{Kind: vOppExtreme, N: kop.OppExtValid, F: f}
+			}
 		case rest == "HighestCounters.Poison":
 			// gorge playerCountExtreme's Counters.Poison arm: the extreme
 			// over the living opponents, in group order. Every other
