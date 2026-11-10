@@ -573,6 +573,10 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 	// the reduction pays for looks affordable.
 	full.Generic = uint8(int(full.Generic) + full.XGeneric(int(e.x)))
 	var av avail
+	// a granted ability that spends only on other payments (Clement's
+	// creature-spell-only {G} or {U}) prices no candidate of this cast: gorge's
+	// probe reads the window's units this payment may spend (CR 106.6)
+	av.xd, av.xdOn = s.payDescNow(NoObj), true
 	s.availForBuilt(k, e, &av)
 	if av.affords(&full, pipMaskOf(&full), 0) {
 		return n
