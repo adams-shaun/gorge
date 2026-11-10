@@ -304,7 +304,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				}
 			}
 		}
-		sacOnly := k.sacOnlyMana && pc.manaSacOnly
+		sacOnly := windowSacOnly(k, pc) // printed or granted (mana_grantcost.go)
 		if k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDyn(k, p, cost, sl) {
 			continue
 		}
@@ -401,7 +401,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if s.buildLive() && s.bld().pickN != 0 && s.waterbendPicked(s.perms[o].obj) {
 			continue // a waterbend pick cannot also pay the mana (gorge convokeCommitted)
 		}
-		if s.windowCanTap(k, o) || k.sacOnlyMana && s.canSacOnlyNowAt(k, o) {
+		if s.windowCanTap(k, o) || s.windowSacNow(k, o) {
 			if s.planDeferred(k, p, o) {
 				continue // the window's answer follows the planner's tier: gorge's bot never picks a deferred source (mana_tapsdefer.go)
 			}
@@ -797,7 +797,7 @@ func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bo
 			}
 		}
 		pc := s.windowGrantPC(k, sl)
-		if gap || k.sacOnlyMana && pc.manaSacOnly || s.perms[sl].flags&pfTapped != 0 ||
+		if gap || windowSacOnly(k, pc) || s.perms[sl].flags&pfTapped != 0 ||
 			k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDynMask(k, p, sl) != 0 {
 			ok, known = false, false
 			break
@@ -2189,16 +2189,19 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			// floating {R} taps nothing more, and {1}{U/R}{U/R} cast with its
 			// {W}{U} and a Treasure's {U} taps no further
 			pl := &s.pl[p&1]
-			rb := s.rb[p&1]
 			var tk [maxRB][kop.NumManaKinds]uint8
 			s.rbTake(p, m, &tk)
 			defer func() {
+				// the units go back to their batches (rbTake left them in
+				// place, emptied), beside the restricted mana the plan's own
+				// taps floated since (witnessManaRestricted): Lilypad
+				// Village's {U} beside the Mentor's {G} (CR 106.6)
 				for i := range tk {
 					for c, n := range tk[i] {
 						pl.pool[c] -= n
+						s.rb[p&1][i].n[c] += n
 					}
 				}
-				s.rb[p&1] = rb
 			}()
 		} else {
 			cost = s.restrShort(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj), cost)

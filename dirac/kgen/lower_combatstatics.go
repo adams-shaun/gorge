@@ -25,14 +25,12 @@ func (lc *lowerCtx) cantAttack(sp *params, st *lStatic) error {
 	if vc == "" {
 		return refuse("CantAttack without ValidCard$")
 	}
+	oppOnly := false
 	if t, ok := sp.get("Target"); ok {
 		if strings.ReplaceAll(t, " ", "") != "You,Planeswalker.YouCtrl" {
 			return refuse("CantAttack Target$ %q", t)
 		}
-		if strings.Contains(vc, "Ctrl") {
-			return refuse("CantAttack Target$ with a controller filter")
-		}
-		vc = addFilterProp(vc, "OppCtrl")
+		oppOnly = true
 	}
 	if ud, ok := sp.get("UnlessDefender"); ok {
 		if vc != "Card.Self" {
@@ -62,6 +60,20 @@ func (lc *lowerCtx) cantAttack(sp *params, st *lStatic) error {
 	f, err := lc.filter(vc)
 	if err != nil {
 		return err
+	}
+	if oppOnly {
+		// every clause also requires an opponent's creature, set on the
+		// lowered filter (not as a textual suffix, which a spaced referent
+		// such as EnchantedBy <Aura.YouCtrl> makes ambiguous)
+		if f.Players != 0 {
+			return refuse("CantAttack Target$ with a player filter %q", vc)
+		}
+		for i := range f.Clauses {
+			if c := &f.Clauses[i]; c.Ctrl != whoAny && c.Ctrl != whoOpp {
+				return refuse("CantAttack Target$ with a controller filter %q", vc)
+			}
+			f.Clauses[i].Ctrl = whoOpp
+		}
 	}
 	st.F = f
 	sp.consume("Secondary")

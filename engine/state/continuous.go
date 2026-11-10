@@ -537,6 +537,16 @@ type ContinuousEffect struct {
 	// MayPlay.
 	MayPlayFree bool
 
+	// MayPlayNoZone marks the grant's MayPlayDontGrantZonePermissions$ True
+	// rider (World War Hulk's "the next red or green creature spell you cast
+	// this turn can be cast without paying its mana cost"): the grant gives
+	// no permission to cast from any zone, it only offers the free
+	// alternative on a cast that is otherwise legal -- from hand, or from
+	// another zone under a separate permission. Set only together with
+	// MayPlay and MayPlayFree, on the Effect-delivery path; every zone
+	// permission reader skips it.
+	MayPlayNoZone bool
+
 	// MayPlayAltCost is an Effect-delivered grant's MayPlayAltManaCost$ text
 	// (Inside Information's PayLife<ConvertedManaCost>, Hama, the
 	// Bloodbender's Waterbend<ConvertedManaCost>): the alternative cost the

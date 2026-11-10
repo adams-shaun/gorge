@@ -1196,6 +1196,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 			}
 		}
+		prepManaDynPair(g, c, CardID(i), pc)
 		prepManaGate(g, c, CardID(i), pc)
 		prepManaRefl(g, c, CardID(i), pc)
 		g.prepRestrSrc(c, CardID(i), pc)
@@ -1923,6 +1924,7 @@ type genState struct {
 	linkImp uint8
 	embF    [MaxSeats]uint8 // bit i: player p's emblem i (UntilEndOfNextTurn) has begun a turn since creation (static_emblemdurations.go)
 	embR    [MaxSeats][maxEmb]Obj
+	nseat   uint8 // seats in this game, set by InitN; read only when MaxSeats > 2 (nSeats)
 	rsv     [rsvN]uint8
 }
 
@@ -1931,7 +1933,7 @@ const (
 	// rsvN pads the reserved block to 80 bytes (genState's 5 bytes of tail
 	// padding absorb the rest of the alignment): 64, plus the 16 that carry
 	// State's growth for MaxObj 236 to a multiple of 64 so perms keeps its phase.
-	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb
+	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 1
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
@@ -2157,6 +2159,9 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 		}
 		if k.gen.flags[c]&gfManaGate != 0 {
 			return s.manaGateView(k, sl, c, vi)
+		}
+		if k.gen.flags[c]&gfManaDynPair != 0 {
+			return s.dynPairView(k, sl, c, vi)
 		}
 		if k.gen.flags[c]&gfManaRefl != 0 {
 			return s.manaReflView(k, sl, c, vi)

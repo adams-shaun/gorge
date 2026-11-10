@@ -474,6 +474,12 @@ const StatTapExtra StaticKind = 254
 // StTapOnC on a StatTapExtra static: it fires only for a tap that makes {C}.
 const StTapOnC StaticFlags = 1 << 1
 
+// StNoPrevCombat (aliases StOncePerTurn, a MayPlayFrom-only bit) on a
+// StatCantPreventDamage static: only combat damage can't be prevented
+// (IsCombat$ True: Frenzied Baloth; gorge cantPreventDamage reads it against
+// combatDamaging). Noncombat damage is prevented as usual.
+const StNoPrevCombat = StOncePerTurn
+
 // StatAnyTypeCreatures: the static's controller may spend mana as though it
 // were mana of any type to cast creature spells (S:Mode$ ManaConvert |
 // ValidPlayer$ You | ValidCard$ Creature.YouCtrl | ValidSA$ Spell |

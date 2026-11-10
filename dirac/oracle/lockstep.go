@@ -253,13 +253,18 @@ func (m *Matchup) instanceTable(o int) int {
 	if o < 0 {
 		return -1
 	}
-	for _, part := range [...]*[2][]uint8{&m.Deck, &m.Side} {
-		for s := range part {
-			if o < len(part[s]) {
-				return int(part[s][o])
-			}
-			o -= len(part[s])
+	for s := 0; s < m.NSeat(); s++ {
+		d := m.seatIx(s)
+		if o < len(d) {
+			return int(d[o])
 		}
+		o -= len(d)
+	}
+	for s := range m.Side {
+		if o < len(m.Side[s]) {
+			return int(m.Side[s][o])
+		}
+		o -= len(m.Side[s])
 	}
 	return -1
 }

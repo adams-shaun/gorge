@@ -149,7 +149,7 @@ func (s *State) shieldOther(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, 
 	}
 	if g.anyRepl&rbPrevNC != 0 && !combat && s.isCreature(k, sl) {
 		for m := s.statM.and(s.ctrlM[rcp]); m.any(); m = m.rest() {
-			if b := m.first(); b != sl && g.replBits[s.cardAt(b)]&rbPrevNC != 0 && !s.genLost(k, b) && !s.noPrev(k) {
+			if b := m.first(); b != sl && g.replBits[s.cardAt(b)]&rbPrevNC != 0 && !s.genLost(k, b) && !s.noPrev(k, combat) {
 				return true
 			}
 		}
@@ -246,11 +246,11 @@ func (s *State) shieldNC(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, sl 
 // spend the counter when no other replacement matches, otherwise stall (an
 // orderable one would have been a candidate and asked).
 func (s *State) shieldFrozen(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, dst Slot, n int) bool {
-	if k.gen.anyRepl&rbShield == 0 || dst == NoSlot || n <= 0 || !s.occ.has(dst) || s.shieldN(dst) <= 0 || s.noPrev(k) {
+	if k.gen.anyRepl&rbShield == 0 || dst == NoSlot || n <= 0 || !s.occ.has(dst) || s.shieldN(dst) <= 0 || s.noPrev(k, true) {
 		return false
 	}
-	if s.kw(k, dst)&kop.KwProtectionAll != 0 && !s.noPrev(k) ||
-		k.gen.anyRepl&rbProtCol != 0 && s.protFrom(k, dst, srcSl, srcCard, s.srcColors(k, srcSl, srcCard)) {
+	if s.kw(k, dst)&kop.KwProtectionAll != 0 && !s.noPrev(k, true) ||
+		k.gen.anyRepl&rbProtCol != 0 && s.protFrom(k, dst, srcSl, srcCard, s.srcColors(k, srcSl, srcCard), true) {
 		return true // protection prevents it before the replacements: keep the counter
 	}
 	if s.shieldOther(k, ctrl, srcSl, srcCard, dst, true, n) {
@@ -280,12 +280,12 @@ func (s *State) shieldCombat(k *prep, r *dmgRec) {
 	var ord [MaxPerm]uint8
 	for _, i := range ord[:s.replOrderOrder(r, &ord)] {
 		ev := &r.ev[i]
-		if ev.n <= 0 || ev.dst == NoSlot || !s.occ.has(ev.dst) || s.shieldN(ev.dst) <= 0 || s.noPrev(k) {
+		if ev.n <= 0 || ev.dst == NoSlot || !s.occ.has(ev.dst) || s.shieldN(ev.dst) <= 0 || s.noPrev(k, true) {
 			continue
 		}
 		d, src := ev.dst, ev.src
-		if s.kw(k, d)&kop.KwProtectionAll != 0 && !s.noPrev(k) ||
-			k.gen.anyRepl&rbProtCol != 0 && s.protFrom(k, d, src, s.cardAt(src), s.colorsGen(k, src)) {
+		if s.kw(k, d)&kop.KwProtectionAll != 0 && !s.noPrev(k, true) ||
+			k.gen.anyRepl&rbProtCol != 0 && s.protFrom(k, d, src, s.cardAt(src), s.colorsGen(k, src), true) {
 			continue
 		}
 		if s.shieldOther(k, s.perms[src].ctrl, src, s.cardAt(src), d, true, int(ev.n)) {

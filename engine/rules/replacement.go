@@ -1108,6 +1108,11 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		X:        o.X,
 		Captured: []state.Target{{Obj: ev.Obj}}})
 	ctx.Repl.Target = target
+	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
+		// The cast's returned cards (castReturned is deleted only after the
+		// move), so CastSA>Returned$CardManaCost works in an ETB replacement.
+		ctx.Paid.Returned = e.castReturned[ev.Obj]
+	}
 	ctx.Repl.Source, ctx.Repl.Amount = e.protectionSource(src), drawMatchAmount(ev)
 	// Replaced names the object the replaced event (ev) was about, so a
 	// ReplaceWith$ that says Defined$ ReplacedCard (the Rest in Peace /

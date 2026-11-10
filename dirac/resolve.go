@@ -210,6 +210,9 @@ func (s *State) resolveTop(k *prep) {
 			if s.res.ask != raNone {
 				return // casualty's copy elects (copy_gen.go); copyResume finishes it
 			}
+			if k.gen != nil && s.parkReturnAsk() {
+				return // the delayed action's sacrifice returned a card whose as-enters choice is asked with it still in exile (zone_untilleavesbatch.go)
+			}
 			s.finishResolve(k, false)
 			return
 		}

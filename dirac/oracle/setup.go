@@ -49,11 +49,54 @@ type Matchup struct {
 	// matchup's own cards when one of them chooses a card name as it enters
 	// (NameUniverseFor), which is what the kernel lists (Table.NameCards).
 	NameUniverse *cards.Universe
+	// More is the seats past the first two of a matchup of more than two
+	// seats (NewMatchupN), in seat order; nil at two seats, so every
+	// two-seat field above reads as it always has.
+	More []MoreSeat
 
 	reg *cards.Registry
 	// chars is the kernel vocabulary the gorge side maps derived
 	// characteristics into (RealKernel sets it; nil: not compared)
 	chars *charVocab
+}
+
+// MaxSeats is the most seats a matchup holds (gorge plays any number; the
+// projection holds this many).
+const MaxSeats = 4
+
+// MoreSeat is one seat past the first two: its deck name, resolved deck and
+// table indices (Matchup.Names, Decks and Deck for seats 0 and 1).
+type MoreSeat struct {
+	Name string
+	Deck []*cards.Card
+	Ix   []uint8
+}
+
+// NSeat is the matchup's seat count.
+func (m *Matchup) NSeat() int { return 2 + len(m.More) }
+
+// SeatName is seat s's deck name.
+func (m *Matchup) SeatName(s int) string {
+	if s < 2 {
+		return m.Names[s]
+	}
+	return m.More[s-2].Name
+}
+
+// SeatDeck is seat s's resolved deck.
+func (m *Matchup) SeatDeck(s int) []*cards.Card {
+	if s < 2 {
+		return m.Decks[s]
+	}
+	return m.More[s-2].Deck
+}
+
+// seatIx is seat s's deck as table indices.
+func (m *Matchup) seatIx(s int) []uint8 {
+	if s < 2 {
+		return m.Deck[s]
+	}
+	return m.More[s-2].Ix
 }
 
 // Corpus is an opened gorge corpus plus a deck directory, with resolved decks
@@ -179,6 +222,72 @@ func (c *Corpus) Matchup(a, b string, mulligans int) (*Matchup, error) {
 	return m, nil
 }
 
+// MatchupN builds the matchup of names, one deck a seat: at two seats it is
+// Matchup. A matchup of more than two seats is Constructed with no
+// sideboards.
+func (c *Corpus) MatchupN(names []string, mulligans int) (*Matchup, error) {
+	if len(names) == 2 {
+		return c.Matchup(names[0], names[1], mulligans)
+	}
+	decks := make([][]*cards.Card, len(names))
+	for s, n := range names {
+		d, err := c.Deck(n)
+		if err != nil {
+			return nil, err
+		}
+		decks[s] = d
+	}
+	return NewMatchupN(c.Reg, names, decks, mulligans)
+}
+
+// NewMatchupN builds a matchup of len(names) seats from resolved decks; at two
+// seats it is NewMatchup.
+func NewMatchupN(reg *cards.Registry, names []string, decks [][]*cards.Card, mulligans int) (*Matchup, error) {
+	if len(names) != len(decks) || len(names) < 2 || len(names) > MaxSeats {
+		return nil, fmt.Errorf("matchup %v: %d names, %d decks: want 2..%d seats", names, len(names), len(decks), MaxSeats)
+	}
+	if len(names) == 2 {
+		return NewMatchup(reg, [2]string{names[0], names[1]}, [2][]*cards.Card{decks[0], decks[1]}, mulligans)
+	}
+	m := &Matchup{Names: [2]string{names[0], names[1]}, Decks: [2][]*cards.Card{decks[0], decks[1]}, Mulligans: mulligans, Commanders: [2]int{-1, -1}, reg: reg}
+	for s := 2; s < len(names); s++ {
+		m.More = append(m.More, MoreSeat{Name: names[s], Deck: decks[s]})
+	}
+	if holdsNameChooserN(decks) {
+		m.NameUniverse = nameUniverseOf(decks)
+	}
+	seen := map[string]bool{}
+	n := 0
+	for _, d := range decks {
+		n += len(d)
+		for _, c := range d {
+			if nm := cardName(c); !seen[nm] {
+				seen[nm] = true
+				m.Table = append(m.Table, nm)
+			}
+		}
+	}
+	sort.Strings(m.Table)
+	if len(m.Table) >= int(NoCardIndex) {
+		return nil, fmt.Errorf("matchup %v: %d distinct cards, the table holds %d", names, len(m.Table), NoCardIndex)
+	}
+	if n >= MaxInst {
+		return nil, fmt.Errorf("matchup %v: %d deck cards, a projection holds %d instances", names, n, MaxInst)
+	}
+	for s, d := range decks {
+		ix := make([]uint8, 0, len(d))
+		for _, c := range d {
+			ix = append(ix, uint8(sort.SearchStrings(m.Table, cardName(c))))
+		}
+		if s < 2 {
+			m.Deck[s] = ix
+		} else {
+			m.More[s-2].Ix = ix
+		}
+	}
+	return m, nil
+}
+
 // NewMatchup builds a matchup from resolved decks.
 func NewMatchup(reg *cards.Registry, names [2]string, decks [2][]*cards.Card, mulligans int) (*Matchup, error) {
 	return NewMatchupSide(reg, names, decks, [2][]*cards.Card{}, mulligans)
@@ -226,6 +335,11 @@ func NewMatchupSide(reg *cards.Registry, names [2]string, decks, sideboards [2][
 // enters (an ETB replacement whose effect is NameCard: Kai Winn, Faithless
 // Leader).
 func holdsNameChooser(decks [2][]*cards.Card) bool {
+	return holdsNameChooserN(decks[:])
+}
+
+// holdsNameChooserN is holdsNameChooser over any number of decks.
+func holdsNameChooserN(decks [][]*cards.Card) bool {
 	for _, d := range decks {
 		for _, c := range d {
 			if c == nil {
@@ -256,6 +370,11 @@ func NameUniverseFor(reg *cards.Registry, decks [2][]*cards.Card) *cards.Univers
 	if !holdsNameChooser(decks) {
 		return reg.Universe()
 	}
+	return nameUniverseOf(decks[:])
+}
+
+// nameUniverseOf is the universe of decks' distinct cards.
+func nameUniverseOf(decks [][]*cards.Card) *cards.Universe {
 	seen := map[string]bool{}
 	var cs []*cards.Card
 	for _, d := range decks {
@@ -278,6 +397,10 @@ func (m *Matchup) Config(seed uint64) rules.Config {
 	cfg := rules.Config{
 		Seed: seed, Names: []string{"p0", "p1"}, Decks: [][]*cards.Card{m.Decks[0], m.Decks[1]},
 		Mulligans: m.Mulligans,
+	}
+	for s := 2; s < m.NSeat(); s++ {
+		cfg.Names = append(cfg.Names, fmt.Sprintf("p%d", s))
+		cfg.Decks = append(cfg.Decks, m.SeatDeck(s))
 	}
 	if m.Commander {
 		cfg.Format, cfg.StartingLife = rules.FormatCommander, 40

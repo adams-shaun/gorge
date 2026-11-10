@@ -232,5 +232,6 @@ func runUnrefuse(card string, w io.Writer) error {
 		return err
 	}
 	fmt.Fprintf(w, "kgen: %s is no longer refused: make dirac-tables, then rebuild what plays it\n", card)
+	fmt.Fprintf(w, "kgen: unrefuse only when the defect is fixed: add the passing test and a row in dirac/support/unrefused.tsv (TestUnrefusalNeedsProof fails without one); if only the pinned game moved, re-record it with pool custom instead\n")
 	return nil
 }

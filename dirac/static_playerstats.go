@@ -76,6 +76,6 @@ func (s *State) maxHand(k *prep, p uint8) int {
 // Not modelled: gorge never protects against a dead source object and
 // honours cantPreventDamage (CR 702.16e); neither is reachable in the
 // pool, and a damage call here does not say whether its source is live.
-func (s *State) plProtected(k *prep, srcCtrl, rcp uint8) bool {
-	return srcCtrl != rcp && s.replN(k, rcp, rbPlProt) > 0 && !s.noPrev(k) // CR 615.12
+func (s *State) plProtected(k *prep, srcCtrl, rcp uint8, combat bool) bool {
+	return srcCtrl != rcp && s.replN(k, rcp, rbPlProt) > 0 && !s.noPrev(k, combat) // CR 615.12
 }

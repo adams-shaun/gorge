@@ -717,8 +717,13 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.Obj != kop.RefNone {
 			tobj, amt = s.reflexCapture(in.Obj) // zone_rememberwrites.go: RememberObjects$ Targeted
 		}
+		biteLKI := tobj != NoObj && s.reflexBites(k, e.card, uint8(in.C))
 		for i := 0; i < n; i++ {
+			m := s.npend
 			s.enqueue(e.obj, e.srcVer, e.card, uint8(in.C), e.ctrl, tobj, e.ctrl, amt)
+			if biteLKI && s.npend > m {
+				s.pend[m].li = s.snapLKI(tobj) // zone_rememberwrites.go: the captured creature's last known power
+			}
 		}
 	case kop.OpDelayedProgram:
 		o := s.delayedRegObj(in.Obj)
@@ -1035,23 +1040,29 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 		defer s.tapBatchClose(s.tapBatchOpen(k)) // one Tap resolution is one tapping action (trig_tapall.go)
 	}
 	var hr holdRec
-	if returnToBattlefield(in) || in.Op == kop.OpCopyAsTokenEx {
+	carry := returnToBattlefield(in)
+	if carry || in.Op == kop.OpCopyAsTokenEx {
 		hr = s.holdEntries() // gorge's zone batch: the targets enter together (CR 603.6a)
 	} else {
 		hr = s.holdOpen(k)
 	}
-	defer s.holdClose(k, hr)
+	if !carry {
+		defer s.holdClose(k, hr)
+	}
 	if s.leaveTogether(k, in, i) {
+		if carry {
+			s.holdClose(k, hr)
+		}
 		return false
 	}
 	if in.Op == kop.OpCopyAsTokenEx {
 		s.g.tokFrz, s.g.tokFrzOn = s.statM, true // copy_eachtarget.go tokSrcM
 	}
 	s.g.inLoop = true
-	w := eachSusp{slot: i, t: saveT, v: saveV, bad: saveBad}
+	w := eachSusp{slot: i, t: saveT, v: saveV, bad: saveBad, hold: hr}
 	n0 := s.g.nask
-	if ok := s.exec(k, in); !ok && s.eachParks(in) || ok && s.eachReturnParks(k, in, n0) {
-		w.j = 1 // copy_eachtarget.go: the extra targets wait for the answer
+	if ok := s.exec(k, in); !ok && (s.eachParks(in) || s.eachReturnParked(in)) || ok && s.eachReturnParks(k, in, n0) {
+		w.j = 1 // the extra targets wait for the answer (copy_eachtarget.go, zone_eachreturnask.go)
 		s.g.each = w
 		s.g.inLoop = false
 		return true
