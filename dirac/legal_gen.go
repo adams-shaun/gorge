@@ -84,9 +84,6 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			if host == NoSlot && k.gen.globGrant {
 				host = s.grantHostGen(k, sl, c, ab)
 			}
-			if host == NoSlot && s.ovSelfGrants(k, sl, c, ab) {
-				host = sl // grant_ovself.go
-			}
 			if host == NoSlot || a.Cost.Flags&kop.CostTapHost != 0 && s.perms[host].flags&pfTapped != 0 {
 				return
 			}

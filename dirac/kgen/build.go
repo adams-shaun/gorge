@@ -267,6 +267,21 @@ func colorMask(s string) kop.ColorMask {
 
 // typeMask maps the LIR type bits (whose low byte matches kop's) and the
 // supertypes.
+// subtypeTypeBits is the kernel type bits a subtype list carries: Aura and
+// Equipment are TypeMask bits as well as subtypes.
+func subtypeTypeBits(subs []string) kop.TypeMask {
+	var m kop.TypeMask
+	for _, s := range subs {
+		switch s {
+		case "Aura":
+			m |= kop.TAura
+		case "Equipment":
+			m |= kop.TEquipment
+		}
+	}
+	return m
+}
+
 func typeMask(t uint16) kop.TypeMask {
 	m := kop.TypeMask(t & 0xff)
 	if t&tLegendary != 0 {
@@ -409,14 +424,7 @@ func (cb *cardBuilder) record() error {
 	if c.Token {
 		d.Types |= kop.TToken
 	}
-	for _, s := range c.Subtypes {
-		switch s {
-		case "Aura":
-			d.Types |= kop.TAura
-		case "Equipment":
-			d.Types |= kop.TEquipment
-		}
-	}
+	d.Types |= subtypeTypeBits(c.Subtypes)
 	if cb.out.subs, err = cb.subIndexes(c.Subtypes); err != nil {
 		return err
 	}
@@ -2102,7 +2110,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 		cb.out.ovVals = append(cb.out.ovVals, ko.PA, ko.TA)
 	}
 	ko.HasTypes, ko.SetTypes = o.HasSetTypes, typeMask(o.SetTypes)
-	ko.AddTypes = typeMask(o.AddTypes)
+	ko.AddTypes = typeMask(o.AddTypes) | subtypeTypeBits(o.AddSubtypes) // an added Equipment subtype is the kernel's TEquipment too (The Irencrag)
 	ko.HasSub = o.HasSetSubtypes
 	ko.AllCreatureTypes = o.AllCreatureTypes
 	ko.RemoveCreatureSub = o.RemoveCreatureSub
