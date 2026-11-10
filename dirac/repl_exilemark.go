@@ -280,7 +280,10 @@ func (s *State) parkedWaiting() bool {
 func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask, askAfter *bool) bool {
 	var order [MaxPerm]Slot
 	n := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		n = s.battlefieldOrder(p, die.or(*gy).and(s.ctrlM[p]), order[:], n)
 	}
 	fresh := false

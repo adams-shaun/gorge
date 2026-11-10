@@ -178,6 +178,16 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 		return s.returnPickOptions(k, d, pc) // a Return<N/Spec> part (act_energy.go)
 	}
 	n, f := int(pc.N), pc.Filter
+	if pc.ExileGSelf {
+		// ExileFromGrave<1/CARDNAME> first (gorge exAsk's unasked singleton),
+		// then the N other cards: the source is the first exile pick.
+		if !s.picked(e.obj) {
+			s.bld().pickK, s.bld().pickLeft = pkExile, 1
+			s.recordPick(e.obj)
+			s.bld().pickK = 0
+		}
+		n++
+	}
 	if pc.Flags&kop.CostForage != 0 {
 		if s.forageFood() {
 			return false

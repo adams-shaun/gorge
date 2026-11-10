@@ -84,7 +84,7 @@ func (s *State) tapXSources(k *prep, p uint8, cands bool) slotMask {
 	if !k.tapMana || DebugNoTapMana {
 		return m
 	}
-	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
 		a := k.tapXAbOf(s.cardAt(sl))
 		if a == nil {
@@ -152,7 +152,7 @@ func (s *State) tapXCands(k *prep, p uint8, sl Slot, out *[MaxPerm]Slot) int {
 	if s.buildLive() {
 		spoken = s.convokeHidden()
 	}
-	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		x := b.first()
 		if x == sl && ab.Cost.Flags&kop.CostTap != 0 || s.perms[x].flags&pfTapped != 0 || spoken.has(x) || !s.matchPerm(k, f, x, p, sl) {
 			continue
@@ -388,7 +388,7 @@ func (t *State) gorgeTargetOrder(d *Decision) {
 		case c == NoTarget:
 			keys[i] = 0 // gorge scriptAnswers tries the empty answer of an up-to-one ask first
 		case isPlayerTarget(c):
-			keys[i] = 1<<8 + uint32(c-PlayerTarget0)
+			keys[i] = 1<<8 + uint32(CodeSeat(c))
 		case c < MaxObj && t.objs[c].zone == kop.ZoneBattlefield && t.objs[c].slot != NoSlot:
 			pm := &t.perms[t.objs[c].slot]
 			keys[i] = 1<<24 | uint32(pm.ctrl)<<20 | uint32(pm.ts)
@@ -675,9 +675,9 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			return true
 		}
 	}
-	pl := &t.pl[p&1]
-	key := tapXKey{pool: pl.pool, art: t.g.poolArt[p&1], sp: t.sp, hand: pl.handN, gy: pl.graveN}
-	for b := t.ctrlM[p&1].and(t.occ); b.any(); b = b.rest() {
+	pl := &t.pl[SeatIx(p)]
+	key := tapXKey{pool: pl.pool, art: t.g.poolArt[SeatIx(p)], sp: t.sp, hand: pl.handN, gy: pl.graveN}
+	for b := t.ctrlM[SeatIx(p)].and(t.occ); b.any(); b = b.rest() {
 		if sl := b.first(); t.perms[sl].flags&pfTapped != 0 {
 			key.tapped = key.tapped.with(sl)
 		}
@@ -700,7 +700,7 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	var cols [5]uint8
 	rs.cols(&cols)
 	var order [MaxPerm]Slot
-	n := t.battlefieldOrder(p, t.ctrlM[p&1].and(t.occ), order[:], 0)
+	n := t.battlefieldOrder(p, t.ctrlM[SeatIx(p)].and(t.occ), order[:], 0)
 	for i := 0; i < n; i++ {
 		sl := order[i]
 		if !rs.gaps.has(sl) || sl == rs.own {

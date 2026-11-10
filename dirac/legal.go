@@ -97,7 +97,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			s.availFor(k, p, &av)
 			haveAv = true
 		}
-		if k.gen != nil && k.gen.anyWarp && k.t.Cards[c].HasWarp {
+		if k.gen != nil && k.gen.anyWarp && (k.t.Cards[c].HasWarp || k.gen.anyWarpGrant) {
 			// before the plain affordability gate: a warp cast is offered
 			// even when the mana cost is not payable (CR 702.185a)
 			s.offerWarpHand(k, d, p, o, c, &av) // kw_warp.go
@@ -1296,7 +1296,10 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 	case kop.TgtGraveExileCard:
 		n = s.graveExileCardCands(k, t, p, src, self, out, n) // tgt_graveexilecard.go
 	case kop.TgtCard:
-		for pp := 0; pp < 2; pp++ {
+		for pp := 0; pp < int(s.nSeats()); pp++ {
+			if s.out(uint8(pp)) {
+				continue
+			}
 			pl := &s.pl[pp]
 			for i := 0; i < int(pl.graveN); i++ {
 				o := pl.grave[i]
@@ -1535,7 +1538,7 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 	if ab.Cost.Flags&kop.CostOncePerTurn != 0 && j < 8 && pp.actUsed&(1<<j) != 0 {
 		return false // Gravestone Strider, used this turn
 	}
-	if ab.Cost.Flags&kop.CostPayLife != 0 && int(s.pl[p&1].life) < int(ab.Cost.N) {
+	if ab.Cost.Flags&kop.CostPayLife != 0 && int(s.pl[SeatIx(p)].life) < int(ab.Cost.N) {
 		return false
 	}
 	if k.gen.anyCantAct && s.actForbidden(k, sl, true) {
@@ -1654,6 +1657,12 @@ func (s *State) applyPriority(k *prep, a Action) {
 		}
 		if a.Target() == castAltTgt && a.Mode() == 0 && k.gen != nil && k.gen.altFree != nil {
 			s.g.altCast = true // the card's own mana alternative cost (cast_altfree.go)
+		}
+		if a.Mode()&castWarp != 0 && a.Mode() != castAirbend && k.gen != nil && k.gen.anyWarpGrant {
+			// the warp instance the action names (kw_warpgrant.go): a grant's
+			// marks the entry for the cost builder
+			wi := s.warpInstances(k, s.prio, Obj(a.Source()))
+			s.g.warpGrant = a.Target() < wi.n && wi.grant[a.Target()]
 		}
 		if a.Mode() == 2 && k.gen != nil && k.gen.anyBeam {
 			s.noteBeamCast(k, a) // kw_beammeup.go

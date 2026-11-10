@@ -45,7 +45,10 @@ func (s *State) canAtkDefGen(k *prep, sl Slot) bool {
 //
 //go:noinline
 func (s *State) embCaptureLapse(k *prep, o Obj) {
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		for i := 0; i < int(s.g.nemb[p]); i++ {
 			if e := &k.t.Emblems[s.embIdx(p, i)-1]; e.CaptureLapse && s.embNum(p, i) == uint8(o)+1 {
 				s.embSetNum(p, i, 0)

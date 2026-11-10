@@ -179,7 +179,10 @@ func (s *State) mayRaiseSeen(k *prep, p uint8, zones uint16, seen *objBits) {
 			seen.set(o)
 		}
 	}
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		q := &s.pl[pp]
 		for i := 0; i < int(q.graveN); i++ {
 			chk(q.grave[i])

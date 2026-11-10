@@ -47,7 +47,7 @@ func hybFacesOf(c *kop.ManaCost) (n int, f hybFaces) {
 // takes its second colour), c's other fields unchanged.
 func (f *hybFaces) resolve(c kop.ManaCost, n, m int) kop.ManaCost {
 	for i := 0; i < n; i++ {
-		c.Pips[f[i][m>>uint(i)&1]]++
+		c.Pips[f[i][m>>uint(i)&1]]++ // seat-ok: a hybrid half, not a seat
 	}
 	c.Hyb = [maxHyb]kop.ColorMask{}
 	c.HybOrd = 0

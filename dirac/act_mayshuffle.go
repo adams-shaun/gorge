@@ -29,10 +29,10 @@ func (s *State) parentTargetOK(t *kop.TargetSpec, code uint8) bool {
 	if !isPlayerTarget(p) {
 		return false
 	}
-	if code == NoTarget || code >= PlayerTarget0 {
+	if code == NoTarget || isPlayerOrNone(code) {
 		return false
 	}
-	return s.objs[code].owner() == p-PlayerTarget0
+	return s.objs[code].owner() == CodeSeat(p)
 }
 
 // execOblige runs the oblige ops (execCold7's default branch, cold). done=false
@@ -158,7 +158,7 @@ func (s *State) shuffleRefs(k *prep, e *stackEntry, slot uint8, refs *[maxXTgt +
 			continue
 		}
 		c := x.code[j]
-		if c == NoTarget || c >= PlayerTarget0 || s.objs[c].zone == kop.ZoneNone {
+		if c == NoTarget || isPlayerOrNone(c) || s.objs[c].zone == kop.ZoneNone {
 			continue
 		}
 		refs[n] = Obj(c)
@@ -202,7 +202,7 @@ func (s *State) doMayShuffleMove(refs *[maxXTgt + 1]Obj, legal *[maxXTgt + 1]boo
 	if n > 0 {
 		s.libTopInOrder(moved[:n], movedFrom[:n])
 	}
-	var owners [2]uint8
+	var owners [MaxSeats]uint8
 	no := 0
 	for i := 0; i < nr; i++ {
 		o := s.objs[refs[i]].owner()

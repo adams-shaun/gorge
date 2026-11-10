@@ -158,8 +158,8 @@ func (s *State) attacksGate(f kop.TrigFlags2, ctrl uint8, def uint8) bool {
 // planeswalker ctrl controls (Tf2AtkYourPW), or an opponent player
 // (Tf2AtkOpp).
 func (s *State) attackedMatch(f kop.TrigFlags2, ctrl uint8, def uint8) bool {
-	if def >= PlayerTarget0 {
-		p := def - PlayerTarget0
+	if isPlayerOrNone(def) {
+		p := CodeSeat(def)
 		return p == ctrl && f&kop.Tf2AtkYou != 0 || p != ctrl && f&kop.Tf2AtkOpp != 0
 	}
 	if f&kop.Tf2AtkYourPW == 0 {

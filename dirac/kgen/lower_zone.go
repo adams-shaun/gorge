@@ -392,7 +392,8 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if av, ok := ps.get("OriginAlternative"); ok {
 				alt := strings.TrimSpace(av)
 				// The Graveyard,Hand pair is Agency Outfitter's two-name
-				// battlefield search; every other list stays refused.
+				// battlefield search and Say Its Name's one-card search by
+				// name; every other list stays refused.
 				pair := alt == "Graveyard,Hand"
 				if alt != "Graveyard" && alt != "Hand" && !pair {
 					return refuse("OriginAlternative$ %q", av)
@@ -408,9 +409,10 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					return refuse("OriginAlternative$ with DefinedPlayer$")
 				case arm != nil:
 					return refuse("OriginAlternative$ with WithCountersType$")
-				case pair && !(dest == zBattlefield && isConstN(n, 2)):
-					// the pair is only Agency Outfitter's two-name battlefield
-					// search; the other carriers are a later lowering.
+				case pair && !(dest == zBattlefield && (isConstN(n, 1) || isConstN(n, 2))):
+					// the pair is only the two battlefield searches (Agency
+					// Outfitter's two names, Say Its Name's one); the other
+					// carriers are a later lowering.
 					return refuse("OriginAlternative$ with ChangeNum$ %v", n)
 				case !pair && !isConstN(n, 1):
 					return refuse("OriginAlternative$ with ChangeNum$ %v", n)
@@ -2864,10 +2866,18 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 	}
 	var obj lRef
 	var named *namedCopy
+	var picked bool
 	var err error
 	if n, ok := ps.get("DefinedName"); ok {
 		// the source is a card of the name universe, not an object (lower_copynamed.go)
 		if named, err = lc.copyNamedCard(ps, n); err != nil {
+			return err
+		}
+	} else if _, ok := ps.m["Choices"]; ok {
+		// the controller's one pick, copied (lower_copypicked.go)
+		picked = true
+		obj, err = lc.copyChoicePick(ps)
+		if err != nil {
 			return err
 		}
 	} else if obj, err = lc.objOrTarget(ps, "", zBattlefield); err != nil {
@@ -2876,6 +2886,9 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 	in := lInstr{Op: "CopyAsToken", Obj: obj, A: cst(1)}
 	if named != nil {
 		in.Op = "CopyNamed"
+	}
+	if picked {
+		in.Op = "CopyPicked"
 	}
 	var flags []string
 	if ps.str("Controller") == "NonRememberedController" {
@@ -2904,6 +2917,9 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 	if err != nil {
 		return err
 	}
+	if hasExc && picked {
+		return refuse("CopyPermanent Choices$ beside copy exceptions")
+	}
 	if hasExc && (named == nil || named.found) {
 		lc.out.overrides = append(lc.out.overrides, exc)
 		in.C = len(lc.out.overrides) // index+1
@@ -2928,6 +2944,13 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 				return refuse("CopyPermanent AtEOT %q beside AtEOTTrig$", a)
 			}
 			flags = append(flags, "SacAtEndDly")
+		case "SacrificeUpkeep":
+			// gorge atEOTRiders: the same untracked sacrifice body at the next
+			// upkeep of any player (kop.CpSacAtUpkeep; Firion)
+			if _, ok := ps.m["AtEOTTrig"]; ok {
+				return refuse("CopyPermanent AtEOT %q beside AtEOTTrig$", a)
+			}
+			flags = append(flags, "SacAtUpkeep")
 		default:
 			return refuse("CopyPermanent AtEOT %q", a)
 		}
@@ -2957,6 +2980,15 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 	}
 	if ps.is("RememberTokens", "True") {
 		flags = append(flags, "Remember")
+	}
+	if picked {
+		atk, err := lc.copyChoiceAttacking(ps)
+		if err != nil {
+			return err
+		}
+		if atk {
+			flags = append(flags, "Attacking")
+		}
 	}
 	if v, ok := ps.get("TokenTapped"); ok {
 		// the token enters tapped (gorge copypermanent.go's CopyTokenTapped)

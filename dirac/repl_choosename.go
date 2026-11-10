@@ -57,7 +57,7 @@ func (s *State) nameOptions(k *prep, d *Decision, kind uint8) {
 		names = k.t.NameCardsAny
 	}
 	if kind == akNameLook {
-		if s.pl[1-d.Player&1].handN > 0 {
+		if s.pl[s.nextAlive(SeatIx(d.Player))].handN > 0 { // the one opponent: Spyglass's ChoosePlayer is two-seat only (lower_chooseplayer.go)
 			d.Sub = ChGenLookAck // gorge's one-option look_ack before the look (poseLookAck)
 			d.add(MakeAction(AkChoose, 0, 0, 0))
 			return

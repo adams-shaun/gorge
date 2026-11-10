@@ -11,7 +11,8 @@ import (
 // hostExileScen is hostSacScen with Deconstruction Hammer's granted cost
 // turned into Exile<1/OriginalHost> (kop.CostHostExile), the shape The
 // Dominion Bracelet's granted ability lowers to (no corpus card with that cost
-// lowers whole: its effect, ControlPlayer, is not modelled).
+// lowers whole: its effect, ControlPlayer, is refused by design -- see
+// TestControlPlayerRefusedByDesign).
 func hostExileScen(t *testing.T) (sc *scen, giant, hammer Obj) {
 	t.Helper()
 	deck := []cardset.Entry{{Name: "Deconstruction Hammer", Count: 8}, {Name: "Hill Giant", Count: 10}, {Name: "Plains", Count: 11}, {Name: "Mountain", Count: 11}}

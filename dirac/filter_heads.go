@@ -37,7 +37,7 @@ func (s *State) ctrlRoleF2(f kop.FilterFlags2, ctrl uint8) bool {
 		// second player)
 		var codes [kop.MaxTargets + maxXTgt]uint8
 		for _, c := range codes[:s.chainTargets(e, &codes)] {
-			if c == PlayerTarget0+ctrl {
+			if c == PlayerCode(ctrl) {
 				return true
 			}
 		}
@@ -59,7 +59,7 @@ func (s *State) costTargetMatch(k *prep, f kop.FilterID, p uint8, t uint8) bool 
 // costTargetMatchSrc is costTargetMatch for a filter read against the cost
 // static's source permanent src (a Card.Self ValidTarget$: Terror of the Peaks).
 func (s *State) costTargetMatchSrc(k *prep, f kop.FilterID, p uint8, t uint8, src Slot) bool {
-	if t >= PlayerTarget0 {
+	if isPlayerOrNone(t) {
 		return false
 	}
 	ob := &s.objs[t]

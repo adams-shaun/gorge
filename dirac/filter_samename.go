@@ -14,7 +14,7 @@ func (s *State) sameNameT0(sl Slot) bool {
 	}
 	e := &s.res.e
 	t := e.tgt[0]
-	if t == NoTarget || t >= PlayerTarget0 {
+	if t == NoTarget || isPlayerOrNone(t) {
 		return false
 	}
 	ob := &s.objs[t]
@@ -43,7 +43,7 @@ func (s *State) sameNameT0Card(c CardID, o Obj, fd bool) bool {
 		return false
 	}
 	t := s.res.e.tgt[0]
-	if t == NoTarget || t >= PlayerTarget0 {
+	if t == NoTarget || isPlayerOrNone(t) {
 		return false
 	}
 	if Obj(t) == o {

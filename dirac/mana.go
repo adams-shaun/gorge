@@ -292,7 +292,7 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 			s.addPainAvail(k, sl, pc, p, a, nil, true)
 			continue
 		}
-		a.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))
+		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 		if pc.manaOne {
 			s.addOneColour(a, pc.manaN)
 		}
@@ -874,7 +874,7 @@ func (s *State) payFromPool(p uint8, cost *kop.ManaCost, x int) {
 	if g > 0 {
 		panic("kernel: payment failed (generic)")
 	}
-	if s.g.poolArt[p&1]|s.fbR[p&1]|(s.pmOn>>(p&1))&1 != 0 {
+	if s.g.poolArt[SeatIx(p)]|s.fbR[SeatIx(p)]|(s.pmOn>>SeatIx(p))&1 != 0 {
 		s.artSync(p)
 	}
 }
@@ -968,7 +968,7 @@ func (s *State) payFromPoolAnyColor(p uint8, cost *kop.ManaCost, x int) {
 	if g > 0 {
 		panic("kernel: payment failed (generic)")
 	}
-	if s.g.poolArt[p&1]|s.fbR[p&1]|(s.pmOn>>(p&1))&1 != 0 {
+	if s.g.poolArt[SeatIx(p)]|s.fbR[SeatIx(p)]|(s.pmOn>>SeatIx(p))&1 != 0 {
 		s.artSync(p)
 	}
 }
@@ -1224,8 +1224,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					printed = mask &^ intr[i] // the restricted ability's colours and the own printed ones follow
 				}
 				var xv [kop.NumManaKinds]uint8
-				var xm, xt uint8
+				var xm, xt, tn uint8 = 0, 0, pc.manaN
 				if k.gen != nil && k.gen.anyTapExtra && !sacOnly {
+					tn += s.srcReflectPick(k, sl, pc) // a several-colour source under a reflect carrier: one more of its pick
 					if pc.painCol != 0 {
 						xv, _, _ = s.srcExtraPain(k, sl, pc) // phase 0: the painland's normal {C} ability
 					} else {
@@ -1247,7 +1248,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				ti := -1
 				for t := 0; t < pk.nt; t++ {
 					ty := &pk.types[t]
-					if ty.mask == mask && ty.dmask == dmk && ty.n == pc.manaN && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.rb == rb {
+					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.rb == rb {
 						ti = t
 						break
 					}
@@ -1258,7 +1259,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					}
 					ti = pk.nt
 					pk.nt++
-					pk.types[ti] = utype{mask: mask, dmask: dmk, n: pc.manaN, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: sac, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, rb: rb}
+					pk.types[ti] = utype{mask: mask, dmask: dmk, n: tn, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: sac, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, rb: rb}
 					if sac {
 						pk.types[ti].irr = 10
 						if cr {
@@ -1266,8 +1267,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 						}
 					}
 					pk.maxXt = pk.maxXt || xt != 0
-					if int(pc.manaN)+int(xt) > pk.maxN {
-						pk.maxN = int(pc.manaN) + int(xt)
+					if int(tn)+int(xt) > pk.maxN {
+						pk.maxN = int(tn) + int(xt)
 					}
 				}
 				pk.types[ti].avail++

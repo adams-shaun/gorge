@@ -115,6 +115,7 @@ const (
 	ChGenDigOpt                               // mode 1 = yes / 0 = no: ChangeNum$ All beside Optional$ (gorge effDig's allOrNothing election, "yes"/"no")
 	ChGenFaceDownPick                         // source = the hand card picked to enter face down (gorge effCloak's "face_down_choice" pick, CR 701.58a; face_manifest.go)
 	ChGenDistPick                             // source = a creature picked to share a divided counter total, Done after the first (gorge putCounterPickDistribute's "counter_dist" KChoose, Min 1; ctr_distpick.go)
+	ChGenCopyPick                             // source = the permanent a CopyPermanent Choices$ copies (gorge's "copypermanent_choice" KChoose, whose options are "permanent"; copy_picked.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -1011,8 +1012,8 @@ func (s *State) xtLegalBase(k *prep, e *stackEntry, j int) bool {
 	if c == NoTarget {
 		return false
 	}
-	if c >= PlayerTarget0 {
-		return !s.pl[c-PlayerTarget0].lost
+	if isPlayerOrNone(c) {
+		return !s.pl[CodeSeat(c)].lost
 	}
 	if s.objs[c].ver != s.xtOf(e).ver[j] {
 		return false
@@ -1486,7 +1487,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		ctrl = e.ctrl
 	}
 	if in.B.N&kop.RetUnderOpponent != 0 {
-		ctrl = 1 - e.ctrl // GainControl$ ChosenPlayer: the one opponent (kop.RetUnderOpponent)
+		ctrl = s.nextAlive(e.ctrl) // GainControl$ ChosenPlayer: the one opponent (kop.RetUnderOpponent)
 	}
 	if z == kop.ZoneBattlefield && fl&kop.MvTransformed != 0 {
 		s.enterTransformed(k, o)
@@ -1634,7 +1635,10 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 		if zi == 1 {
 			zsrc = czallSecondZone(in)
 		}
-		for p := uint8(0); p < 2; p++ {
+		for p := uint8(0); p < s.nSeats(); p++ {
+			if s.out(p) {
+				continue
+			}
 			if only != 255 && p != only {
 				continue
 			}
@@ -2018,8 +2022,13 @@ func (s *State) copyCardToken(k *prep, in *kop.Instr, c CardID) bool {
 	if v <= 0 && in.B.N&(kop.CpSacAtEndDly|kop.CpExileAtEnd) != 0 {
 		// X = 0 makes no copy, but the AtEOT$ rider's delayed trigger is
 		// created all the same (CR 603.7): it goes on the stack at the end
-		// step and does nothing (gorge scheduleAtEOTNone)
-		s.delayEmpty(e)
+		// step (SacrificeUpkeep: the upkeep) and does nothing (gorge
+		// scheduleAtEOTNone)
+		if sacAtUpkeepOf(in.B.N) {
+			s.delayEmptyUpkeep(e)
+		} else {
+			s.delayEmpty(e)
+		}
 	}
 	tc, n, rewritten, ok := s.copyTokenRewrite(k, e.ctrl, c, v, true)
 	if !ok {
@@ -2031,7 +2040,11 @@ func (s *State) copyCardToken(k *prep, in *kop.Instr, c CardID) bool {
 		if in.B.N&kop.CpSacAtEndDly != 0 {
 			// no copy is left for the AtEOT$ Sacrifice group, which gorge
 			// still registers (CR 603.7); the other riders have no copy
-			s.delayEmpty(e)
+			if sacAtUpkeepOf(in.B.N) {
+				s.delayEmptyUpkeep(e)
+			} else {
+				s.delayEmpty(e)
+			}
 		}
 		return false
 	}
@@ -2127,6 +2140,9 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 		s.perms[sl].gty |= s.perms[tmpl].gty & gtyProvMask
 	}
 	s.touch(t)
+	if uint16(in.B.N)&(kop.CopyAttacking|0x3f<<kop.CopyPumpShift) == kop.CopyAttacking && s.occ.has(sl) {
+		s.copyEnterAttacking(k, sl, e.ctrl) // ExtCopyPicked's TokenAttacking$ True (copy_picked.go)
+	}
 	// a token that elected a copy as it entered (ctr_entryperkind.go): the
 	// elected template is its basis and replaces the copy's own exceptions
 	elected := k.gen.anyBecomeCopy && s.perms[sl].ovr.flags&ovCopy != 0
@@ -2162,7 +2178,8 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	if uint16(in.B.N)>>kop.CopyPumpShift&0x3f != 0 {
 		s.copyPumpEnter(k, sl, in) // PumpKeywords$: a permanent, non-copiable grant
 	}
-	if fl&(kop.CpSacAtEnd|kop.CpExileAtEnd) != 0 {
+	upk := sacAtUpkeepOf(int16(fl))
+	if fl&(kop.CpSacAtEnd|kop.CpExileAtEnd) != 0 && !upk {
 		act := kop.OpSacrifice
 		// AtEOTTrig$ Sacrifice is the token's own granted trigger: its source
 		// stays the token. Only the AtEOT$ rider is sourced on its creator
@@ -2185,7 +2202,12 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 		// one resolution's copies share one delayed triggered ability (CR 603.7;
 		// gorge effCopyPermanent registers one group): a later copy joins the
 		// first one's trigger
-		if eb == nil || eb.n < 2 || !s.sacAtEndJoin(t, dlyUntracked) {
+		switch {
+		case upk:
+			if eb == nil || eb.n < 2 || !s.sacAtEndJoin(t, dlyUpkeep) {
+				s.sacAtUpkeepUntracked(t, e.ctrl) // trig_upkeepsac.go
+			}
+		case eb == nil || eb.n < 2 || !s.sacAtEndJoin(t, dlyUntracked):
 			s.sacAtEndUntracked(t, e.ctrl) // trig_tokenateot.go
 		}
 	}
@@ -2249,14 +2271,14 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool 
 		if n <= 0 {
 			continue
 		}
-		if code >= PlayerTarget0 {
+		if isPlayerOrNone(code) {
 			if inf {
-				s.addPoison(code-PlayerTarget0, n) // CR 702.90b
+				s.addPoison(CodeSeat(code), n) // CR 702.90b
 			} else {
-				s.loseLife(k, code-PlayerTarget0, n)
+				s.loseLife(k, CodeSeat(code), n)
 			}
 			toPl = true
-			plM |= 1 << (code - PlayerTarget0)
+			plM |= 1 << CodeSeat(code)
 		} else {
 			ob := &s.objs[code]
 			if ob.zone != kop.ZoneBattlefield {

@@ -32,7 +32,7 @@ func (s *State) noteScry(k *prep, op kop.Op, p uint8) {
 	if op == kop.OpSurveil {
 		sh = 4
 	}
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	if pl.scry>>sh&15 == 15 {
 		s.capFull(StallTables) // loud: the nibble holds fifteen
 		return

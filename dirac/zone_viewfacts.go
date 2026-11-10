@@ -76,7 +76,7 @@ func (s *State) FeatResolving() bool {
 
 // FeatLifeThisTurn is what p gained and lost this turn.
 func (s *State) FeatLifeThisTurn(p uint8) (gained, lost int32) {
-	return int32(s.pl[p&1].lifeGained), int32(s.pl[p&1].lifeLost)
+	return int32(s.pl[SeatIx(p)].lifeGained), int32(s.pl[SeatIx(p)].lifeLost)
 }
 
 // ObjVer counts object o's zone changes (CR 400.7). It wraps at 256.

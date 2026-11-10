@@ -523,6 +523,35 @@ func SetMatchup(set cardset.Set, c *Corpus, a, b string, mulligans int) (*Matchu
 	return m, tbl, nil
 }
 
+// SetMatchupN is SetMatchup for a pod of len(names) decks (2..MaxSeats): one
+// table over every deck (set.MatchupN) and the gorge matchup built from that
+// table's decks (KernelMatchupN), seat s playing names[s]. At two seats it is
+// SetMatchup.
+func SetMatchupN(set cardset.Set, c *Corpus, names []string, mulligans int) (*Matchup, *kop.Table, error) {
+	if len(names) == 2 {
+		return SetMatchup(set, c, names[0], names[1], mulligans)
+	}
+	es := make([][]cardset.Entry, len(names))
+	for s, n := range names {
+		f, err := c.deckFile(n)
+		if err != nil {
+			return nil, nil, fmt.Errorf("deck %s: %w", n, err)
+		}
+		for _, e := range f.Cards {
+			es[s] = append(es[s], cardset.Entry{Name: e.Name, Count: e.Count})
+		}
+	}
+	tbl, ids, err := set.MatchupN(es)
+	if err != nil {
+		return nil, nil, err
+	}
+	m, err := KernelMatchupN(c.Reg, tbl, names, ids, nil, mulligans)
+	if err != nil {
+		return nil, nil, err
+	}
+	return m, tbl, nil
+}
+
 // FDNMatchup is SetMatchup over the "fdn" set.
 func FDNMatchup(c *Corpus, a, b string, mulligans int) (*Matchup, *kop.Table, error) {
 	return SetMatchup(fdnSet(), c, a, b, mulligans)

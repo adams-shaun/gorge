@@ -56,7 +56,7 @@ func (s *State) peekMayReveal(k *prep, in *kop.Instr, p uint8) bool {
 
 // askOptionsPeekReveal poses the yes (naming the top card) and no options.
 func (s *State) askOptionsPeekReveal(d *Decision) {
-	pl := &s.pl[s.res.askP&1]
+	pl := &s.pl[SeatIx(s.res.askP)]
 	d.Sub = ChGenPeekReveal
 	d.add(MakeAction(AkChoose, uint8(pl.lib[int(pl.libLo)]), 0, 1))
 	d.add(MakeAction(AkChoose, 0, 0, 0))
@@ -65,7 +65,7 @@ func (s *State) askOptionsPeekReveal(d *Decision) {
 // applyAskPeekReveal applies the answer: a yes remembers the top card.
 func (s *State) applyAskPeekReveal(k *prep, a Action) {
 	if a.Mode() == 1 {
-		pl := &s.pl[s.res.askP&1]
+		pl := &s.pl[SeatIx(s.res.askP)]
 		if pl.libLen() > 0 {
 			s.remember(pl.lib[int(pl.libLo)])
 		}

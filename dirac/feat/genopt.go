@@ -22,6 +22,8 @@ func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 		o.kind = okDig
 	case dirac.ChGenBolster:
 		o.kind = okCounterPick
+	case dirac.ChGenCopyPick:
+		o.kind = okPermanent // gorge's CopyPermanent Choices$ pick
 	case dirac.ChGenProlif:
 		o.kind = okProliferate
 		if src >= dirac.PlayerTarget0 {

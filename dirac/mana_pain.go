@@ -140,7 +140,7 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 		s.loseLife(k, p, n) // a paid life cost, not damage (CR 119.4)
 		return
 	}
-	code := PlayerTarget0 + p
+	code := PlayerCode(p)
 	// No CR 616.1 order ask here, unlike the dealHits batch and the other
 	// direct replDamage sites (repl_plus.go): the mana step is not a
 	// program step, so a parked event has no op whose re-execution would deal

@@ -31,7 +31,7 @@ func beholdPayKind(kind int, bn int16) int {
 //go:noinline
 func (s *State) unlessBeholdCands(k *prep, p uint8, f kop.FilterID, d *Decision) int {
 	n := 0
-	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		if s.matchPerm(k, f, sl, p&1, NoSlot) {
 			n++
@@ -40,7 +40,7 @@ func (s *State) unlessBeholdCands(k *prep, p uint8, f kop.FilterID, d *Decision)
 			}
 		}
 	}
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	for i := 0; i < int(pl.handN); i++ {
 		if o := pl.hand[i]; s.matchCardGen(k, f, s.objs[o].card, p&1, p&1, o) {
 			n++

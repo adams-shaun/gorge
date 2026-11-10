@@ -96,7 +96,10 @@ func (s *State) cloneOptions(k *prep, d *Decision) {
 		ctrl = s.res.askP // a returned card's or a copy token's controller, not the resolving spell's
 	}
 	var ord [MaxPerm]Slot
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), ord[:], 0)
 		for _, sl := range ord[:n] {
 			t := s.perms[sl].obj

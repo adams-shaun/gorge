@@ -18,7 +18,10 @@ func (s *State) sweepHits(k *prep, f kop.FilterID, ord *[MaxPerm]Slot) int {
 		}
 	}
 	n := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		n = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), ord[:], n)
 	}
 	return n
@@ -94,7 +97,10 @@ func (s *State) fireGraveSac(k *prep, sl Slot) {
 	ev := &s.perms[sl]
 	for _, c := range k.gen.graveTrig {
 		cd := &k.t.Cards[c]
-		for pp := uint8(0); pp < 2; pp++ {
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
+			if s.out(pp) {
+				continue
+			}
 			pl := &s.pl[pp]
 			for i := 0; i < int(pl.graveN); i++ {
 				o := pl.grave[i]
@@ -121,7 +127,10 @@ func (s *State) fireGraveDies(k *prep, sl Slot) {
 	ev := &s.perms[sl]
 	for _, c := range k.gen.graveTrig {
 		cd := &k.t.Cards[c]
-		for pp := uint8(0); pp < 2; pp++ {
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
+			if s.out(pp) {
+				continue
+			}
 			pl := &s.pl[pp]
 			for i := 0; i < int(pl.graveN); i++ {
 				o := pl.grave[i]

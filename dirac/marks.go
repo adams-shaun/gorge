@@ -175,7 +175,7 @@ func (s *State) genViewHash(h uint64) uint64 {
 	if g.spent != [MaxSeats]uint16{} || g.hist != [MaxSeats][3]uint8{} {
 		// the turn history bank: only a table that reads it keeps it
 		h = hbytes(h, unsafe.Pointer(&g.hist), unsafe.Sizeof(g.hist))
-		for p := uint8(0); p < 2; p++ {
+		for p := uint8(0); p < MaxSeats; p++ {
 			if r := s.castPushes(p); len(r) > 0 {
 				h = hbytes(h, unsafe.Pointer(&r[0]), uintptr(len(r))*unsafe.Sizeof(r[0]))
 			}
@@ -226,12 +226,12 @@ func (s *State) ViewHashCached(seat uint8, base *[MaxObj]uint64, c *ObjHashCache
 		c.part = [2]objPart{}
 	}
 	var o uint64
-	if pc := c; pc != nil && s.line != 0 && pc.part[seat&1].ok && pc.part[seat&1].at == s.touchN {
-		o = pc.part[seat&1].h
+	if pc := c; pc != nil && s.line != 0 && pc.part[SeatIx(seat)].ok && pc.part[SeatIx(seat)].at == s.touchN {
+		o = pc.part[SeatIx(seat)].h
 	} else {
 		o = s.viewObjects(seat, base, c)
 		if c != nil && s.line != 0 {
-			c.part[seat&1] = objPart{ok: true, at: s.touchN, h: o}
+			c.part[SeatIx(seat)] = objPart{ok: true, at: s.touchN, h: o}
 		}
 	}
 	var fl uint64
@@ -243,7 +243,10 @@ func (s *State) ViewHashCached(seat uint8, base *[MaxObj]uint64, c *ObjHashCache
 	}
 	h := hmix(0x7669657768617368, uint64(s.turn)|uint64(s.step)<<16|uint64(s.active)<<24|uint64(s.prio)<<32|
 		uint64(seat)<<40|fl<<48)
-	for p := 0; p < 2; p++ {
+	for p := 0; p < int(s.nSeats()); p++ {
+		if s.out(uint8(p)) {
+			continue
+		}
 		pl := &s.pl[p]
 		h = hmix(h, uint64(uint16(pl.life))|uint64(pl.handN)<<16|uint64(pl.libLen())<<24|uint64(pl.graveN)<<32|
 			uint64(pl.exileN)<<40)
@@ -302,11 +305,14 @@ func (s *State) viewObjects(seat uint8, base *[MaxObj]uint64, c *ObjHashCache) u
 		return h
 	}
 	h := uint64(0x6f626a7300)
-	pl := &s.pl[seat&1]
+	pl := &s.pl[SeatIx(seat)]
 	for i := 0; i < int(pl.handN); i++ {
 		h = hmix(h, oh(pl.hand[i]))
 	}
-	for p := 0; p < 2; p++ {
+	for p := 0; p < int(s.nSeats()); p++ {
+		if s.out(uint8(p)) {
+			continue
+		}
 		pl := &s.pl[p]
 		h = hmix(h, 0x67)
 		for i := 0; i < int(pl.graveN); i++ {

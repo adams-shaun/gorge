@@ -92,7 +92,7 @@ func (s *State) evalV(k *prep, v kop.ValueRef, ctx evalCtx) int {
 		}
 		return t
 	case kop.VTargetPower, kop.VTargetToughness:
-		if e == nil || e.tgt[0] >= PlayerTarget0 {
+		if e == nil || isPlayerOrNone(e.tgt[0]) {
 			return 0
 		}
 		o := Obj(e.tgt[0])
@@ -126,7 +126,7 @@ func (s *State) evalV(k *prep, v kop.ValueRef, ctx evalCtx) int {
 		}
 		return s.perms[ctx.srcSl].ctrN(s, int(v.N))
 	case kop.VCountersTarget:
-		if e == nil || e.tgt[0] >= PlayerTarget0 {
+		if e == nil || isPlayerOrNone(e.tgt[0]) {
 			return 0
 		}
 		if sl := s.slotIfSame(Obj(e.tgt[0]), e.tver[0]); sl != NoSlot {
@@ -226,7 +226,10 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 			v = s.countPerm(k, x.F, ctx)
 		}
 	case kop.ExCountGraveyard:
-		for pp := uint8(0); pp < 2; pp++ {
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
+			if s.out(pp) {
+				continue
+			}
 			pl := &s.pl[pp]
 			for j := 0; j < int(pl.graveN); j++ {
 				o := pl.grave[j]
@@ -324,7 +327,7 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 	case kop.ExLifeGainedThisTurn:
 		v = int(s.pl[ctx.ctrl].lifeGained)
 	case kop.ExOppLifeLostThisTurn:
-		v = int(s.pl[1-ctx.ctrl].lifeLost)
+		v = s.oppsLifeLost(ctx.ctrl)
 	case kop.ExCountersOn:
 		v = s.refCounters(k, x, x.Ref, x.Ctr, ctx)
 	case kop.ExCreaturesDied:
@@ -467,7 +470,7 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 		if e == &s.res.e {
 			t = s.tgtCode(sl)
 		}
-		if t == NoTarget || t >= PlayerTarget0 {
+		if t == NoTarget || isPlayerOrNone(t) {
 			return NoObj
 		}
 		return Obj(t)
@@ -497,7 +500,7 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 	case kop.RefController, kop.RefSelf:
 		return ctx.ctrl
 	case kop.RefOpponent, kop.RefEachOpponent, kop.RefDefendingPlayer:
-		return 1 - ctx.ctrl
+		return s.oneOppOf(k, r, ctx.ctrl, ctx.src) // a single-player read (resolve.go oneOpp)
 	case kop.RefEach:
 		return s.g.eachPl // the player of the OpRepeatEachPlayer in progress
 	}
@@ -523,8 +526,8 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 		if t == NoTarget {
 			return 255
 		}
-		if t >= PlayerTarget0 {
-			return t - PlayerTarget0
+		if isPlayerOrNone(t) {
+			return CodeSeat(t)
 		}
 		if r == kop.RefTargetOwner {
 			return s.objs[t].owner()
@@ -688,7 +691,7 @@ func (s *State) countRefMatchesN(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx
 		}
 		sl, _ := tgtSlot(r)
 		t := ctx.e.tgt[sl]
-		if t == NoTarget || t >= PlayerTarget0 {
+		if t == NoTarget || isPlayerOrNone(t) {
 			return 0
 		}
 		if s.g.tli != 0 && s.objs[Obj(t)].zone != kop.ZoneBattlefield {

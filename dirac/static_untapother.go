@@ -17,9 +17,15 @@ func (s *State) untapOthers(k *prep) {
 	if DebugUntapOtherOff {
 		return
 	}
-	q := 1 - s.active
+	// every other living player's battlefield, in AliveFrom(0) order (gorge
+	// finishUntapStep's foreign scan), each in battlefield order
 	var ord [MaxPerm]Slot
-	n := s.battlefieldOrder(q, s.ctrlM[q], ord[:], 0)
+	n := 0
+	for q := uint8(0); q < s.nSeats(); q++ {
+		if q != s.active && !s.out(q) {
+			n = s.battlefieldOrder(q, s.ctrlM[q], ord[:], n)
+		}
+	}
 	var up slotMask
 	for _, sl := range ord[:n] {
 		p := &s.perms[sl]

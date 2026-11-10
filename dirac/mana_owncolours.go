@@ -40,7 +40,7 @@ func (s *State) selfGrantLive(k *prep, p uint8) bool {
 	if !k.gen.anySelfGrant {
 		return false
 	}
-	for m := s.ctrlM[p&1].and(s.occ); m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
 		sl := m.first()
 		var gi [maxGrants]int16
 		n := s.grantIdxs(k, sl, &gi)

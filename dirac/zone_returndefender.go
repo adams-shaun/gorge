@@ -32,7 +32,7 @@ func (s *State) returnDefenderAsk(k *prep, in *kop.Instr, host Slot) bool {
 		ctrl = s.res.e.ctrl
 	}
 	if in.B.N&kop.RetUnderOpponent != 0 {
-		ctrl = 1 - s.res.e.ctrl
+		ctrl = s.nextAlive(s.res.e.ctrl) // two live seats only (kop.TwoSeatInstr: RetUnderOpponent)
 	}
 	if ctrl != s.active || s.step < kop.StepAttackers || s.step > kop.StepEndCombat {
 		return false

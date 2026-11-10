@@ -4,3 +4,4 @@
 # TestUnrefusalNeedsProof fails for a card that had an entry at the merge base with land and has none now
 # without a row here. An entry that went stale only because the pinned game moved is re-recorded
 # (pool custom, see checkRefusedRepro), not unrefused.
+Lluwen, Imperfect Naturalist	TestHiddenPickLibraryPositionTopLluwen	the hidden public-origin pick now applies LibraryPosition$ (engine/effects/zone_hidden.go places what it moved), so the picked card lands on top of the library as dirac puts it

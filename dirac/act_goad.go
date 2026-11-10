@@ -31,6 +31,11 @@ func prepGoad(t *kop.Table, g *genPrep) {
 			}
 		}
 	}
+	if MaxSeats > 2 && g.anyGoad {
+		// the goad marks are two arena mechs, goad[0] and goad[1], and
+		// attackOffersN does not drop the goader as a defender (CR 701.15b)
+		g.twoSeatOnly = true
+	}
 }
 
 // goadOn reports whether goad bookkeeping is live for k's table.

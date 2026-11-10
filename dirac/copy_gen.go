@@ -124,6 +124,9 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	// the copy was not warped and is not a warp recast (CR 702.185a):
 	// the cast's provenance does not copy, so no delayed exile is armed
 	ce.mode &^= modeWarped | modeWarpRecast
+	if ce.trigPl == trigPlWarpG {
+		ce.trigPl = 0 // nor warped through a grant (kw_warpgrant.go)
+	}
 	if ce.trigPl == trigPlAirbend {
 		ce.trigPl = 0 // nor airbent (act_airbend.go)
 	}
@@ -245,10 +248,10 @@ func b2u(b bool) uint8 {
 // copyGroup is target code c's controller seat (gorge
 // candidateControllerSeat: a player its own seat, an object its controller).
 func (s *State) copyGroup(c uint8) uint8 {
-	if c >= PlayerTarget0 {
-		return (c - PlayerTarget0) & 1
+	if isPlayerOrNone(c) {
+		return SeatIx(CodeSeat(c))
 	}
-	return s.ctrlOfObj(Obj(c)) & 1
+	return SeatIx(s.ctrlOfObj(Obj(c)))
 }
 
 // copyHold is the resolution that made a copy, waiting while the copy's

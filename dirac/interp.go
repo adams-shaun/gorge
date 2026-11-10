@@ -157,6 +157,13 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			// Defined$ Player loop; act_eachdiscard.go)
 			return s.startEachDiscard(k, in, s.res.e.ctrl)
 		}
+		if MaxSeats > 2 && in.Obj == kop.RefEachOpponent && in.F == 0 && in.C == kop.ChooseSelf {
+			// each opponent discards (gorge effDiscard over Defined$
+			// Opponent, AliveFrom(controller) without it): every opponent
+			// chooses in turn, then the cards move at once. At two seats the
+			// one opponent's discard below is the same.
+			return s.discardSeq(k, in, s.oppsFrom(s.res.e.ctrl))
+		}
 		p := s.playerRef(k, in.Obj)
 		if p == 255 {
 			break

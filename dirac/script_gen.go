@@ -50,7 +50,7 @@ func (s *State) liveGrantGap(k *prep, p uint8) bool {
 	if k.gen == nil || len(k.gen.grantPC) == 0 || !s.grantsLive(k) {
 		return false
 	}
-	for m := s.ctrlM[p&1].and(s.occ); m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
 		sl := m.first()
 		if s.grantGapUsable(k, sl) {
 			return true
@@ -92,7 +92,7 @@ func (s *State) scriptAny(k *prep) bool {
 // activated now.
 func (s *State) gapMask(k *prep, p uint8, bit uint32) slotMask {
 	var m slotMask
-	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
 		if !k.gen.has(s.cardAt(sl), bit) {
 			continue
@@ -112,7 +112,7 @@ func (s *State) gapMask(k *prep, p uint8, bit uint32) slotMask {
 func (s *State) eachColorOut(k *prep, p uint8, sl Slot) kop.ColorMask {
 	a := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.eachCol(s.cardAt(sl))]
 	var m kop.ColorMask
-	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		o := b.first()
 		if s.matchPerm(k, a.ManaAmong, o, p, sl) {
 			m |= s.colorsAt(k, o)
@@ -128,12 +128,7 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 		return
 	}
 	for b := s.scriptGaps(k, p); b.any(); b = b.rest() {
-		out := s.eachColorOut(k, p, b.first())
-		for c := 0; c < 5; c++ {
-			if out&(1<<c) != 0 {
-				a.addUnits(1<<c, 1)
-			}
-		}
+		s.eachGapUnits(k, p, b.first(), a)
 	}
 	// a restricted source (Giada): the prefix search prices with its mana
 	// as with any gap's (the restriction is not read there), and an Angel
@@ -297,6 +292,10 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			if s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef) {
 				continue // no script within gorge's budget (mana_window.go scriptDeadEndAny)
 			}
+		} else if !restr.any() && !s.scriptCtr(k, p).any() && s.eachFeeBoard(k, p) {
+			if !s.eachScript(k, a, p, false) {
+				continue // no script within gorge's search budget (mana_eachfee.go)
+			}
 		} else if restr.any() && s.scriptDeadEnd(k, a, p, restr) {
 			continue
 		}
@@ -310,8 +309,8 @@ func (s *State) walkKey(a Action, p uint8, i int) uint64 {
 	ob := &s.objs[Obj(a.Source())]
 	switch {
 	case (isCastKind(a.Kind()) || a.Kind() == AkPlot || a.Kind() == AkSneak) && ob.zone == kop.ZoneHand:
-		for h := 0; h < int(s.pl[p&1].handN); h++ {
-			if s.pl[p&1].hand[h] == Obj(a.Source()) {
+		for h := 0; h < int(s.pl[SeatIx(p)].handN); h++ {
+			if s.pl[SeatIx(p)].hand[h] == Obj(a.Source()) {
 				k := uint64(h)<<16 | uint64(i)
 				if a.Mode() == 0 && a.Target() != 0 || a.Kind() == AkPlot || a.Kind() == AkSneak || a.Kind() == AkCast && a.Mode()&castWarp != 0 {
 					k |= 1 << 15 // an alternative cost's cast follows the card's plain one, though the kernel offers it first
@@ -383,7 +382,7 @@ func (s *State) restrictedGrantLive(k *prep, p uint8) bool {
 	if k.gen == nil || len(k.gen.grantRestr) == 0 {
 		return false
 	}
-	for m := s.ctrlM[p&1].and(s.occ); m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
 		var gi [maxGrants]int16
 		for i, n := 0, s.grantIdxs(k, m.first(), &gi); i < n; i++ {
 			if k.gen.grantRestr[gi[i]] != 0 {
@@ -423,12 +422,7 @@ func (s *State) tapGap(k *prep, p uint8, sl Slot, restr slotMask, held *[kop.Num
 		held[col] += max(ab.ManaN, 1)
 		return
 	}
-	out := s.eachColorOut(k, p, sl)
-	for c := 0; c < 5; c++ {
-		if out&(1<<c) != 0 {
-			s.pl[p].pool[c]++
-		}
-	}
+	s.eachProduce(k, p, sl, s.eachDefaultAns(k, p, sl)) // (a fee-paid each-colour gap: mana_eachfee.go)
 }
 
 // scriptPrefix plays gorge's script for play a: p's gaps tapped in
@@ -496,6 +490,10 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		s.scriptPrefixAny(k, a, p, restr, anyR, tapsDef)
 		return
 	}
+	if !restr.any() && !ctr.any() && s.eachFeeBoard(k, p) {
+		s.eachScript(k, a, p, true) // a fee-paid each-colour gap (Tarnation Vista): gorge's search, mana_eachfee.go
+		return
+	}
 	var d Decision
 	s.plainOptions(k, &d, 0)
 	var order [MaxPerm]Slot
@@ -554,7 +552,7 @@ func (s *State) grantGapLive(k *prep, p uint8) bool {
 	if !s.grantsLive(k) {
 		return false
 	}
-	for m := s.ctrlM[p&1].and(s.occ); m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
 		sl := m.first()
 		if s.grantGapUsable(k, sl) {
 			return true

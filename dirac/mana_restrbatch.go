@@ -37,11 +37,11 @@ func (b *rbatch) units() int {
 
 // rbAny: p has restricted mana floating.
 func (s *State) rbAny(p uint8) bool {
-	for i := range s.rb[p&1] {
-		if s.rb[p&1][i].kind == 0 {
+	for i := range s.rb[SeatIx(p)] {
+		if s.rb[SeatIx(p)][i].kind == 0 {
 			return false
 		}
-		if s.rb[p&1][i].units() != 0 {
+		if s.rb[SeatIx(p)][i].units() != 0 {
 			return true
 		}
 	}
@@ -93,9 +93,9 @@ func (s *State) rbUnits(p, m uint8, t *[kop.NumManaKinds]uint8) {
 // rbTotal is how much restricted mana p's batches in mask m hold.
 func (s *State) rbTotal(p, m uint8) int {
 	t := 0
-	for i := range s.rb[p&1] {
+	for i := range s.rb[SeatIx(p)] {
 		if m&(1<<i) != 0 {
-			t += s.rb[p&1][i].units()
+			t += s.rb[SeatIx(p)][i].units()
 		}
 	}
 	return t
@@ -106,7 +106,7 @@ func (s *State) rbTotal(p, m uint8) int {
 // of that restriction and type when no later batch holds colour col, else a new
 // one. False when every batch is taken.
 func (s *State) rbPut(p uint8, kind, ch uint8, col int, n uint8) bool {
-	rb := &s.rb[p&1]
+	rb := &s.rb[SeatIx(p)]
 	free := maxRB
 	for i := maxRB - 1; i >= 0; i-- {
 		b := &rb[i]
@@ -138,12 +138,12 @@ func (s *State) rbPut(p uint8, kind, ch uint8, col int, n uint8) bool {
 // in place, emptied, so what the payment leaves floats back where it was
 // (rbSettle).
 func (s *State) rbTake(p, m uint8, tk *[maxRB][kop.NumManaKinds]uint8) {
-	pl := &s.pl[p&1]
-	for i := range s.rb[p&1] {
+	pl := &s.pl[SeatIx(p)]
+	for i := range s.rb[SeatIx(p)] {
 		if m&(1<<i) == 0 {
 			continue
 		}
-		b := &s.rb[p&1][i]
+		b := &s.rb[SeatIx(p)][i]
 		for c, n := range b.n {
 			tk[i][c] += n
 			pl.pool[c] += n
@@ -155,9 +155,9 @@ func (s *State) rbTake(p, m uint8, tk *[maxRB][kop.NumManaKinds]uint8) {
 // rbTakeNew moves into p's pool the restricted mana p's batches gained since
 // sv (a plan's own restricted taps: restrPairUnit), recording it in tk.
 func (s *State) rbTakeNew(p uint8, sv *[maxRB]rbatch, tk *[maxRB][kop.NumManaKinds]uint8) {
-	pl := &s.pl[p&1]
-	for i := range s.rb[p&1] {
-		b := &s.rb[p&1][i]
+	pl := &s.pl[SeatIx(p)]
+	for i := range s.rb[SeatIx(p)] {
+		b := &s.rb[SeatIx(p)][i]
 		for c := range b.n {
 			if d := b.n[c] - sv[i].n[c]; d != 0 && b.n[c] > sv[i].n[c] {
 				tk[i][c] += d
@@ -175,7 +175,7 @@ func (s *State) rbTakeNew(p uint8, sv *[maxRB]rbatch, tk *[maxRB][kop.NumManaKin
 // emitRestrictedManaSpend); pre is the pool before the payment spent. typed:
 // the restricted mana is a typed source's (rbTyped).
 func (s *State) rbSettle(p uint8, tk *[maxRB][kop.NumManaKinds]uint8, ord, pre *[kop.NumManaKinds]uint8, typed bool) {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	for c := 0; c < kop.NumManaKinds; c++ {
 		spent := pre[c] - pl.pool[c]
 		if typed {
@@ -190,20 +190,20 @@ func (s *State) rbSettle(p uint8, tk *[maxRB][kop.NumManaKinds]uint8, ord, pre *
 			spent -= d
 			if left := n - d; left != 0 {
 				pl.pool[c] -= left
-				s.rb[p&1][i].n[c] += left
+				s.rb[SeatIx(p)][i].n[c] += left
 			}
 		}
 	}
 	s.rbCompact(p)
 	if !s.rbAny(p) {
-		s.g.poolArt[p&1] &^= poolArtRestr
+		s.g.poolArt[SeatIx(p)] &^= poolArtRestr
 	}
 }
 
 // rbTyped: p's restricted mana came from a typed source (poolArtRestr), so
 // gorge spends the plain units of its colour first.
 func (s *State) rbTyped(p uint8) bool {
-	return s.g.poolArt[p&1]&poolArtRestr != 0 && !DebugRestrTypedFirst
+	return s.g.poolArt[SeatIx(p)]&poolArtRestr != 0 && !DebugRestrTypedFirst
 }
 
 // rbSpendN spends up to n of p's restricted mana in the batches of mask m, in
@@ -211,11 +211,11 @@ func (s *State) rbTyped(p uint8) bool {
 // before ordinary mana), returning how much it spent.
 func (s *State) rbSpendN(p, m uint8, n int) int {
 	spent := 0
-	for i := range s.rb[p&1] {
+	for i := range s.rb[SeatIx(p)] {
 		if m&(1<<i) == 0 {
 			continue
 		}
-		b := &s.rb[p&1][i]
+		b := &s.rb[SeatIx(p)][i]
 		for c := range b.n {
 			d := min(n-spent, int(b.n[c]))
 			b.n[c] -= uint8(d)
@@ -224,15 +224,15 @@ func (s *State) rbSpendN(p, m uint8, n int) int {
 	}
 	s.rbCompact(p)
 	if !s.rbAny(p) {
-		s.g.poolArt[p&1] &^= poolArtRestr
+		s.g.poolArt[SeatIx(p)] &^= poolArtRestr
 	}
 	return spent
 }
 
 // rbHash folds p's restricted batches into a word for the state hash.
 func (s *State) rbHash(p uint8) (h uint64, ok bool) {
-	for i := range s.rb[p&1] {
-		b := &s.rb[p&1][i]
+	for i := range s.rb[SeatIx(p)] {
+		b := &s.rb[SeatIx(p)][i]
 		if b.kind == 0 {
 			break
 		}

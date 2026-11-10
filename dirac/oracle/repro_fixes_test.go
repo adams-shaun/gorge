@@ -776,6 +776,7 @@ func TestStdDftReprosLockstep(t *testing.T) {
 		{"actonly_pool_pays_surveyor_grave_grant", true, false}, // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Leonin Surveyor's max-speed graveyard activation
 		{"actonly_pool_pays_grave_return", false, false},        // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Deathless Pilot's graveyard return
 		{"actonly_pool_pays_battlefield_grant", true, false},    // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Hour of Victory's max-speed battlefield grant
+		{"outside_grants_distinct_codes", true, false},          // CR 205.3m, 613.1d: two Lifecraft Engines under one seat grant Kangaroo and Badger (different outside codes) to one Vehicle creature; a ChosenType read on it compares them instead of stalling as outsidetype
 	})
 }
 

@@ -360,6 +360,11 @@ func (n *Net) state(s *dirac.State, d *dirac.Decision, seat uint8) {
 func (n *Net) prepParts(s *dirac.State, d *dirac.Decision, seat uint8) {
 	g := n.w.g
 	p := n.enc.EncodeParts(s, d, seat)
+	if seat > 1 {
+		// the per-seat caches (ptab, pver, pvec, pvv) hold two seats: seat
+		// 2 would alias seat 0's rows silently
+		panic(fmt.Sprintf("neteval: seat %d: the parts caches hold two seats", seat))
+	}
 	se := seat & 1
 	n.parts, n.partSeat = p, se
 	n.ext = featSlice(p.Ext)

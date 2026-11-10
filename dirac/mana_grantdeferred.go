@@ -48,7 +48,7 @@ func (s *State) deferBesideGrant(k *prep, p uint8) bool {
 	if !s.scriptDeferred(k, p).any() {
 		return false
 	}
-	for m := s.ctrlM[p&1].and(s.occ); m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
 		var gi [maxGrants]int16
 		if s.grantIdxs(k, m.first(), &gi) > 0 {
 			return true

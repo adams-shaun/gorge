@@ -189,6 +189,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm = 1 << 4
 		case mode&dirac.FeatCastWarp != 0:
 			cm, _ = CastModeCode("warped") // a hand cast for its warp cost (kw_warp.go)
+			cm |= tgt << 4                 // the warp instance, gorge's AltCostIndex (kw_warpgrant.go)
 		case mode&1 != 0 && r.S.FeatOptCostCard(dirac.Obj(src)):
 			cm = CastModeOther | 1<<4 // gorge's "optionalcost" cast, AltCostIndex 1 (CR 601.2b; cost_optional.go)
 		case mode&1 != 0 && r.S.FeatOffspringCast(dirac.Obj(src)):
@@ -734,6 +735,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("player"), RefNone, RefPlayer+Ref(src-dirac.PlayerTarget0), 0), true
 		}
 		return Pack(kind("card"), src, RefNone, 0), true
+	case dirac.ChGenCopyPick:
+		// gorge's CopyPermanent Choices$ pick: its options are "permanent"
+		return Pack(kind("permanent"), src, RefNone, 0), true
 	case dirac.ChGenFaceDownPick:
 		// gorge's face_down_choice pick: the hand card to put onto the
 		// battlefield face down (CR 701.58a)

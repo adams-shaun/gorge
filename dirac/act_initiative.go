@@ -79,7 +79,7 @@ func (s *State) DungeonRoom(p uint8) uint8 { return s.g.room[SeatIx(p)] }
 // takeInitiative is OpTakeInitiative; false: the venture asks.
 func (s *State) takeInitiative(k *prep, in *kop.Instr) bool {
 	p := s.playerRef(k, in.Obj)
-	if p > 1 {
+	if p >= MaxSeats {
 		return true
 	}
 	s.g.initH = p + 1
@@ -169,7 +169,7 @@ func (s *State) initUpkeep(k *prep) {
 func (s *State) initCombat(k *prep, r *dmgRec) {
 	var def uint8
 	if MaxSeats == 2 {
-		def = 1 - s.active
+		def = NextSeat(s.active)
 		if s.g.initH != def+1 || DebugNoInitSteal {
 			return
 		}
@@ -182,7 +182,7 @@ func (s *State) initCombat(k *prep, r *dmgRec) {
 	}
 	for i := 0; i < r.nev; i++ {
 		ev := &r.ev[i]
-		if ev.dst == NoSlot && ev.n > 0 && s.perms[ev.src].ctrl == s.active && s.perms[ev.src].atk == PlayerTarget0+def {
+		if ev.dst == NoSlot && ev.n > 0 && s.perms[ev.src].ctrl == s.active && s.perms[ev.src].atk == PlayerCode(def) {
 			s.g.initH = s.active + 1
 			s.initVentureTrig(s.active)
 			return
@@ -207,7 +207,10 @@ func (s *State) resolveVentureTrig(k *prep) bool {
 //
 //go:noinline
 func (s *State) dungeonSBA(k *prep) {
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		r := s.g.room[p]
 		if r == 0 || k.t.Cards[k.gen.dungeon].DungeonNext[r-1] != 0 || s.pl[p].lost {
 			continue

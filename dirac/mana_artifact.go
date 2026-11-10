@@ -42,7 +42,7 @@ var DebugRestrTypedFirst bool
 // p's pool. It is called after the unit is added.
 func (s *State) artTag(k *prep, p uint8, sl Slot, col int) {
 	if k.artMana && k.cards[s.cardAt(sl)].manaTyped {
-		s.g.poolArt[p&1] |= 1 << col
+		s.g.poolArt[SeatIx(p)] |= 1 << col
 		if k.cards[s.cardAt(sl)].castSrc&csTreasure != 0 {
 			if n := &s.g.poolTre[SeatIx(p)][col]; *n < 255 {
 				*n++
@@ -75,18 +75,18 @@ func (s *State) treSync(p uint8) {
 
 // artSync drops the slots of p's pool that have emptied.
 func (s *State) artSync(p uint8) {
-	if s.fbR[p&1]|(s.pmOn>>(p&1))&1 != 0 {
+	if s.fbR[SeatIx(p)]|(s.pmOn>>SeatIx(p))&1 != 0 {
 		s.persistSync(p) // ordinary mana is spent first (kw_firebend.go, mana_persistent.go)
 	}
-	a := s.g.poolArt[p&1]
+	a := s.g.poolArt[SeatIx(p)]
 	for c := 0; c < kop.NumManaKinds; c++ {
-		if a&(1<<c) != 0 && s.pl[p&1].pool[c] == 0 {
+		if a&(1<<c) != 0 && s.pl[SeatIx(p)].pool[c] == 0 {
 			a &^= 1 << c
 		}
 	}
-	s.g.poolArt[p&1] = a
+	s.g.poolArt[SeatIx(p)] = a
 	s.treSync(p)
-	if s.pl[p&1].pool[kop.R] == 0 {
-		s.g.defSrc[p&1] = 0 // the deferred source's {R} is spent (mana_deferred.go)
+	if s.pl[SeatIx(p)].pool[kop.R] == 0 {
+		s.g.defSrc[SeatIx(p)] = 0 // the deferred source's {R} is spent (mana_deferred.go)
 	}
 }

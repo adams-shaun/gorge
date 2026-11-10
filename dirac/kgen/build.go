@@ -1051,6 +1051,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		if c.ExileHand {
 			out.ExileHand, zone = true, kop.ZoneHand
 		}
+		out.ExileGSelf = c.ExileGSelf
 		if out.Filter, err = cb.filter(c.ExileG, zone); err != nil {
 			return out, err
 		}

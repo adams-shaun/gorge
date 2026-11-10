@@ -18,7 +18,7 @@ var DebugMayDeciderCtrl bool
 //go:noinline
 func (s *State) drawAsks(k *prep, in, next *kop.Instr) bool {
 	if s.value(k, next.A) > 0 {
-		if p := s.playerRef(k, next.Obj); p <= 1 && s.pl[p].libLen() > 0 {
+		if p := s.playerRef(k, next.Obj); p < MaxSeats && s.pl[p].libLen() > 0 {
 			return true
 		}
 	}
@@ -36,7 +36,7 @@ func (s *State) damageAsks(k *prep, next *kop.Instr) bool {
 		return false
 	}
 	if sl, ok := tgtSlot(next.Obj); ok {
-		if t := s.tgtCode(sl); t >= PlayerTarget0 && t != NoTarget {
+		if t := s.tgtCode(sl); isPlayerOrNone(t) && t != NoTarget {
 			return true
 		}
 	} else if next.Obj == kop.RefController {
@@ -55,7 +55,7 @@ func (s *State) mayAsker(k *prep, in *kop.Instr) uint8 {
 		return s.res.e.ctrl
 	}
 	p := s.playerRef(k, in.Obj)
-	if p > 1 {
+	if p >= MaxSeats {
 		s.capFull(StallLowering)
 		return 255
 	}

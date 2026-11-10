@@ -11,15 +11,19 @@ var DebugLowLifeMax bool
 //
 //go:noinline
 func (s *State) lowestLife() int {
-	a, b := int(s.pl[0].life), int(s.pl[1].life)
-	if DebugLowLifeMax {
-		if b > a {
-			return b
+	a := 0
+	first := true
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
 		}
-		return a
-	}
-	if b < a {
-		return b
+		b := int(s.pl[p].life)
+		switch {
+		case first:
+			a, first = b, false
+		case DebugLowLifeMax && b > a, !DebugLowLifeMax && b < a:
+			a = b
+		}
 	}
 	return a
 }

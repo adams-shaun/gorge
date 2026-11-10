@@ -413,6 +413,12 @@ const (
 	CpTapped // the token enters tapped (TokenTapped$ True; gorge copypermanent.go CopyTokenTapped)
 )
 
+// CpSacAtUpkeep: both CpSacAtEndDly and CpExileAtEnd, which no other rider
+// sets together: sacrifice the token at the beginning of the next upkeep
+// (AtEOT$ SacrificeUpkeep, the same untracked one-shot delayed registration;
+// Firion, Wild Rose Warrior).
+const CpSacAtUpkeep = CpSacAtEndDly | CpExileAtEnd
+
 // CopyPumpShift: OpCopyAsTokenEx B.N >> 8 (as uint16) names the keyword of
 // PumpKeywords$: the log2 of its KwMask bit, plus one; 0 =
 // none. Each created token gains it as a permanent keyword override record

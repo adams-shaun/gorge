@@ -134,7 +134,10 @@ func (s *State) sagaBusy(k *prep, sl Slot) bool {
 //go:noinline
 func (s *State) sagaSBA(k *prep) bool {
 	changed := false
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		var ord [MaxPerm]Slot
 		n := s.battlefieldOrder(p, s.ctrlM[p], ord[:], 0)
 		for _, sl := range ord[:n] {
@@ -164,7 +167,10 @@ func (s *State) sagasDue(k *prep) (m slotMask) {
 	if !k.anySaga {
 		return m
 	}
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		var ord [MaxPerm]Slot
 		n := s.battlefieldOrder(p, s.ctrlM[p], ord[:], 0)
 		for _, sl := range ord[:n] {

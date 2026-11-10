@@ -113,7 +113,7 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 // tokens under p's control creates (doubled once per Doubling Season p
 // controls; the filtered and x3 multipliers: repl_multipliers.go).
 func (s *State) replTokens(k *prep, p uint8, tok CardID, n int) int {
-	if k.gen == nil || k.gen.anyRepl&rbDblTok == 0 || n <= 0 || p > 1 {
+	if k.gen == nil || k.gen.anyRepl&rbDblTok == 0 || n <= 0 || p >= MaxSeats {
 		return n
 	}
 	if k.gen.anyTokRew {
@@ -227,7 +227,7 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 		ev.n = s.sat16(n)
 		r.dealt[ev.src] = s.addSat16(r.dealt[ev.src], d)
 		if ev.dst == NoSlot {
-			r.toPl[code-PlayerTarget0] = s.addSat16(r.toPl[code-PlayerTarget0], d)
+			r.toPl[CodeSeat(code)] = s.addSat16(r.toPl[CodeSeat(code)], d)
 			r.dealtPl[ev.src] = s.addSat16(r.dealtPl[ev.src], d)
 		} else {
 			r.toPerm[ev.dst] = s.addSat16(r.toPerm[ev.dst], d)
@@ -474,7 +474,7 @@ func (s *State) replOrderFreeze(k *prep, r *dmgRec, first bool) {
 		fe.card = s.cardAt(ev.src)
 		fe.ctrl = s.perms[ev.src].ctrl
 		if ev.dst == NoSlot {
-			fe.apl = s.perms[ev.src].atk - PlayerTarget0
+			fe.apl = CodeSeat(s.perms[ev.src].atk)
 		}
 		kw := s.kw(k, ev.src)
 		fe.ll, fe.dt = kw&kop.KwLifelink != 0, kw&kop.KwDeathtouch != 0
@@ -718,8 +718,8 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 		return 0
 	}
 	if ev.dst == NoSlot {
-		s.noteCmdDamage(ev.src, src.atk-PlayerTarget0, n)
-		s.loseLife(k, src.atk-PlayerTarget0, n)
+		s.noteCmdDamage(ev.src, CodeSeat(src.atk), n)
+		s.loseLife(k, CodeSeat(src.atk), n)
 	} else {
 		sl := ev.dst
 		p := &s.perms[sl]
@@ -893,9 +893,9 @@ func (s *State) damageSeqNext(k *prep, n int) {
 			s.g.dmgSeqPl &^= b
 			p := s.active
 			if b == 2 {
-				p = 1 - s.active
+				p = NextSeat(s.active)
 			}
-			s.damageTo(k, PlayerTarget0+p, n)
+			s.damageTo(k, PlayerCode(p), n)
 			if s.g.nc.n != 0 {
 				return
 			}
@@ -924,7 +924,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 	g := k.gen
 	ro := &s.g.ro
 	plusOnly := replPlusOnly(g)
-	if !plusOnly && g.anyRepl&(rbDblDmg|rbPrevNC|rbShield|rbPrevCol|rbPrevDmgTo) == 0 || n <= 0 || ctrl > 1 || ro.n > 0 || ro.on || s.g.nc.n > 0 {
+	if !plusOnly && g.anyRepl&(rbDblDmg|rbPrevNC|rbShield|rbPrevCol|rbPrevDmgTo) == 0 || n <= 0 || ctrl >= MaxSeats || ro.n > 0 || ro.on || s.g.nc.n > 0 {
 		return false
 	}
 	rcp := uint8(255)
@@ -949,7 +949,10 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 	plusAdd := 0
 	var prev, shld, plus uint8
 	var cand [4]Obj
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
 		var bf [MaxPerm]Slot
 		for _, b := range bf[:s.battlefieldOrder(p, s.statM.and(s.ctrlM[p]), bf[:], 0)] {
 			rb := g.replBits[s.cardAt(b)]
@@ -1069,8 +1072,8 @@ func (s *State) dealNC(k *prep) {
 		return
 	}
 	code := nc.code
-	if code >= PlayerTarget0 {
-		s.loseLife(k, code-PlayerTarget0, n)
+	if isPlayerOrNone(code) {
+		s.loseLife(k, CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]
 		if ob.zone != kop.ZoneBattlefield {
@@ -1094,7 +1097,7 @@ func (s *State) dealNC(k *prep) {
 	}
 	if s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any() || k.gen != nil && k.gen.graveDmg {
 		if ob := &s.objs[nc.src]; !nc.spell && ob.zone == kop.ZoneBattlefield {
-			s.fireDamage(k, ob.slot, int16(n), code >= PlayerTarget0, false, code)
+			s.fireDamage(k, ob.slot, int16(n), isPlayerOrNone(code), false, code)
 		} else if nc.spell || ob.zone != kop.ZoneBattlefield { // an ability whose source is gone too (pair 3334)
 			s.fireDamageSrc(k, nc.src, nc.ctrl, int16(n), dmgPl(code), code, nil)
 		}

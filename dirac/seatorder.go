@@ -35,6 +35,12 @@ func SeatIx(p uint8) uint8 { return p % MaxSeats }
 // Every seat has one: the code space holds MaxSeats player codes.
 func PlayerCode(p uint8) uint8 { return PlayerTarget0 + p }
 
+// isPlayerOrNone reports whether target byte c is at or above the player
+// codes: a player, a departed stack target (0xFE) or NoTarget. It is the raw
+// "c >= PlayerTarget0" range test, named so it reads the same at every seat
+// count; isPlayerTarget is the test for a player alone.
+func isPlayerOrNone(c uint8) bool { return c >= PlayerTarget0 }
+
 // CodeSeat is the seat a player target code names; c must satisfy
 // isPlayerTarget.
 func CodeSeat(c uint8) uint8 { return c - PlayerTarget0 }
@@ -169,6 +175,27 @@ func (s *State) blockAtkM(k *prep) slotMask {
 	return m
 }
 
+// seatMax is the largest per-seat count in per (max8(per[0], per[1]) at two
+// seats).
+func seatMax(per *[MaxSeats]uint8) uint8 {
+	m := per[0]
+	for _, v := range per[1:] {
+		m = max8(m, v)
+	}
+	return m
+}
+
+// seatCount is the number of seats seen marks.
+func seatCount(seen *[MaxSeats]bool) uint8 {
+	d := uint8(0)
+	for _, b := range seen {
+		if b {
+			d++
+		}
+	}
+	return d
+}
+
 // seatSeq is an ordered set of seats, at most MaxSeats, returned by value
 // (an each-player or each-opponent expansion, in gorge's order).
 type seatSeq struct {
@@ -284,15 +311,20 @@ func (s *State) repPending() bool { return s.g.repNext != 255 }
 // dmgSeat is the player a damage trigger names as "that player" (its
 // trigger player): the damaged seat when the recipient rcp is a player. At
 // two seats the old reading stays, the source controller's opponent. At more
-// seats a recipient that is no player (a permanent, or a batch's aggregate)
-// has no single damaged seat; the next seat stands in, and the cards that
-// read it there are still two-seat.
-func dmgSeat(rcp, srcCtrl uint8) uint8 {
+// seats a permanent recipient carries its controller (the referent's
+// controller, as ddoRecipient queues an object referent and gorge's
+// TriggeredTargetController reads it). A batch's aggregate (NoTarget) names
+// no single damaged seat; the next seat stands in there, and every line that
+// reads a recipient's player skips the aggregate fire (ddoLine).
+func (s *State) dmgSeat(rcp, srcCtrl uint8) uint8 {
 	if MaxSeats == 2 {
 		return 1 - srcCtrl
 	}
 	if isPlayerTarget(rcp) {
 		return CodeSeat(rcp)
+	}
+	if isObjTarget(rcp) && s.objs[rcp].zone == kop.ZoneBattlefield {
+		return s.perms[s.objs[rcp].slot].ctrl
 	}
 	return NextSeat(srcCtrl)
 }

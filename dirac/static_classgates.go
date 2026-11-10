@@ -20,6 +20,7 @@ const (
 	sclsPTRel                      // a static basePTGen/ptGen can read: P/T delta, CDA P/T, override, subtype grant (kprio2 sbaPTQuiet)
 	sclsExMay                      // the card's own StatMayPlayFrom that works from exile
 	sclsFbGrant                    // StatFbGrant (kw_fbgrant.go)
+	sclsWarpG                      // StatWarpGrant (kw_warpgrant.go)
 )
 
 // prepStaticClasses fills g.sCls.
@@ -65,6 +66,8 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 				m |= sclsReduce // cost_reduceability.go
 			case kop.StatFbGrant:
 				m |= sclsFbGrant
+			case kop.StatWarpGrant:
+				m |= sclsWarpG
 			}
 		}
 		g.sCls[i] = m
@@ -95,7 +98,10 @@ func (s *State) eachStaticC(k *prep, cls uint16, f func(st statSrc) bool) {
 			}
 		}
 	}
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
 			e := &k.t.Emblems[s.embIdx(pp, i)-1]
 			for j := range e.Abilities {

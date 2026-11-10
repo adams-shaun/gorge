@@ -164,7 +164,7 @@ func (s *State) selfPrepared(x *kop.Expr, ctx evalCtx) int {
 		v = 1
 	}
 	if x.N == 1 {
-		v ^= 1
+		v ^= 1 // seat-ok: a boolean flip, not a seat
 	}
 	if st := DebugPrepareStats; st != nil {
 		if v == 1 {

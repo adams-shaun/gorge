@@ -102,6 +102,15 @@ func (lc *lowerCtx) copyExceptions(ps *params) (*lOverride, bool, error) {
 		}
 		exc.HasSetColors, exc.SetColors, hasExc = true, cols, true
 	}
+	if v, ok := ps.get("AddStaticAbilities"); ok {
+		// "except it has '<this Equipment's equip abilities cost {N} less>'"
+		// (CR 707.9b; lower_copygrants.go)
+		bit, err := lc.copyEquipGrant(v)
+		if err != nil {
+			return nil, false, err
+		}
+		exc.GrantStatics, hasExc = bit, true
+	}
 	if ps.is("RemoveCost", "True") {
 		// "with no mana cost" (CR 707.9b; embalm / eternalize): mana value 0
 		exc.NoCost, hasExc = true, true

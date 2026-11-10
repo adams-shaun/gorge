@@ -370,7 +370,10 @@ func (s *State) firePhaseGen(k *prep, st kop.Step) {
 	})
 	for _, c := range k.gen.graveTrig {
 		cd := &k.t.Cards[c]
-		for pp := uint8(0); pp < 2; pp++ {
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
+			if s.out(pp) {
+				continue
+			}
 			pl := &s.pl[pp]
 			for i := 0; i < int(pl.graveN); i++ {
 				o := pl.grave[i]
@@ -402,7 +405,10 @@ func (s *State) fireEmblems(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, extr
 // fireEmblemsAmt is fireEmblems for an event that carries an amount (life
 // gained: Professor Dellian Fel's emblem reads TriggerCount$LifeAmount).
 func (s *State) fireEmblemsAmt(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, amt int16, extra func(a *kop.Ability) bool) {
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
 			c := s.embCard(pp, i)
 			cd := &k.t.Cards[c]
@@ -478,7 +484,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 	}
 	srcObj := s.perms[src].obj
 	srcCtrl := s.perms[src].ctrl
-	dpl := 1 - srcCtrl // the player dealt damage (a to-player event)
+	dpl := s.dmgSeat(rcp, srcCtrl) // the player dealt damage (a to-player event)
 	if pl, ok := recipientPlayer(rcp); ok {
 		dpl = pl
 	}
@@ -523,7 +529,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 				// damageCauseMatches.
 				return
 			}
-			tobj, tpl, n := srcObj, 1-srcCtrl, amt
+			tobj, tpl, n := srcObj, s.dmgSeat(rcp, srcCtrl), amt
 			if k.gen.anyDmgRef {
 				var ok bool
 				if n, tobj, tpl, ok = s.ddoLine(k, l, a, src, srcObj, srcCtrl, amt, rcp, rl); !ok {
@@ -566,13 +572,13 @@ func dmgPlayers(toPlayer bool, srcCtrl uint8, rcp uint8) uint8 {
 	if pl, ok := recipientPlayer(rcp); ok {
 		return 1 << pl
 	}
-	return 1 << (1 - srcCtrl)
+	return 1 << NextSeat(srcCtrl) // the aggregate: dmgSeat's stand-in
 }
 
 // dmgPl is the player mask fireDamageSrc takes for one damage target code.
 func dmgPl(code uint8) uint8 {
-	if code >= PlayerTarget0 {
-		return 1 << (code - PlayerTarget0)
+	if isPlayerOrNone(code) {
+		return 1 << CodeSeat(code)
 	}
 	return 0
 }
@@ -605,7 +611,7 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 			}
 			// "to an opponent": one of the listener's opponents was dealt it
 			// (a Firebrand pinging its own controller is not: pair 63811)
-			if t.Flags2&kop.Tf2ToOpponent != 0 && plM&(1<<(1-l.ctrl)) == 0 || t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl {
+			if t.Flags2&kop.Tf2ToOpponent != 0 && !oppDamaged(plM, l.ctrl) || t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl {
 				return
 			}
 			if t.Filter != 0 && !s.matchCardGen(k, t.Filter, s.objs[o].card, ctrl, l.ctrl, o) || !s.trigOK(k, l, a) {
@@ -614,7 +620,7 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 			if t.Flags4 != 0 && !s.singleCauseOK(k, rcp) {
 				return // ValidCause$ Spell.numTargets EQ1 + TargetRelativeToCause$ (trig_params.go)
 			}
-			tobj, tpl, n := o, 1-ctrl, amt
+			tobj, tpl, n := o, s.dmgSeat(rcp, ctrl), amt
 			if k.gen.anyDmgRef {
 				var ok bool
 				if n, tobj, tpl, ok = s.ddoLine(k, l, a, NoSlot, o, ctrl, amt, rcp, rl); !ok {
@@ -835,15 +841,15 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 					if rlp != nil {
 						rlp.at = uint8(i + 1)
 					}
-					s.fireDamageEvGen(k, sl, ev.n, ev.dst == NoSlot, true, &latch, s.combatRcp(&r.ev[i]), rlp)
+					s.fireDamageEvGen(k, sl, ev.n, ev.dst == NoSlot, true, &latch, s.combatRcp(k, &r.ev[i]), rlp)
 				}
 			}
 		}
 		if !life || dealt {
 			continue // dealt: the life changes were made per event (dealCombatEvent)
 		}
-		if r.dealtPl[sl] > 0 && s.perms[sl].atk >= PlayerTarget0 && !r.infM.has(sl) {
-			s.loseLife(k, s.perms[sl].atk-PlayerTarget0, int(r.dealtPl[sl]))
+		if r.dealtPl[sl] > 0 && isPlayerOrNone(s.perms[sl].atk) && !r.infM.has(sl) {
+			s.loseLife(k, CodeSeat(s.perms[sl].atk), int(r.dealtPl[sl]))
 			if int(s.npend)-loPl >= 2 {
 				s.pendListenerOrder(loPl)
 			}

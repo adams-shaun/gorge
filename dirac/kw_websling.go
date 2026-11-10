@@ -63,7 +63,7 @@ func (s *State) altReturnable(k *prep, sl Slot, e *stackEntry) bool {
 // webSlingHasReturn reports whether p controls a creature the return can
 // take (gorge offerCastable's nonManaCastable Return census).
 func (s *State) webSlingHasReturn(k *prep, p uint8) bool {
-	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
+	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		if s.webSlingReturnable(k, m.first()) {
 			return true
 		}

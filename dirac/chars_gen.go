@@ -52,7 +52,10 @@ func (s *State) eachStatic(k *prep, f func(st statSrc) bool) {
 			}
 		}
 	}
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
 			e := &k.t.Emblems[s.embIdx(pp, i)-1]
 			sl, obj := NoSlot, NoObj
@@ -157,7 +160,7 @@ func (s *State) grantTs(st statSrc) uint16 {
 		return s.layerTs(st.sl)
 	}
 	if st.emb != 0 {
-		if p, i := st.emb>>4, int(st.emb&15); p < 2 && i > 0 && i <= int(s.g.nemb[p]) {
+		if p, i := st.emb>>4, int(st.emb&15); p < MaxSeats && i > 0 && i <= int(s.g.nemb[p]) {
 			return s.embStamp(p, i-1)
 		}
 	}

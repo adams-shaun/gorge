@@ -204,7 +204,7 @@ func (s *State) changeSpeedOp(k *prep, in *kop.Instr) {
 			}
 			continue
 		}
-		if in.B.N&2 != 0 && s.speedOf(1-p) >= v {
+		if in.B.N&2 != 0 && s.speedMatched(p, v) {
 			if SpeedCounting {
 				SpeedCounts[SpeedCntDecreaseHeld].Add(1)
 			}
@@ -239,4 +239,15 @@ func (s *State) maxSpeedGate(sl Slot, a *kop.Ability) bool {
 		}
 	}
 	return true
+}
+
+// speedMatched reports whether a player other than p still in the game has
+// speed v or more (bit 1 of OpChangeSpeed: p's must exceed every other's).
+func (s *State) speedMatched(p uint8, v int) bool {
+	for q := uint8(0); q < s.nSeats(); q++ {
+		if q != p && !s.out(q) && s.speedOf(q) >= v {
+			return true
+		}
+	}
+	return false
 }

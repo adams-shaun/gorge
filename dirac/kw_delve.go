@@ -69,7 +69,7 @@ func (s *State) delveOfferCredit(k *prep, p uint8, c CardID, o Obj, fromHand boo
 	if k.gen == nil || !k.gen.anyDelve || !s.hasCastDelve(k, p, c, o, fromHand) {
 		return cost
 	}
-	cost.Generic -= min(cost.Generic, s.pl[p&1].graveN)
+	cost.Generic -= min(cost.Generic, s.pl[SeatIx(p)].graveN)
 	return cost
 }
 
@@ -81,7 +81,7 @@ func (s *State) tbDelveCredit(k *prep, p uint8, c CardID, o Obj, fromHand bool) 
 	if !s.hasCastDelve(k, p, c, o, fromHand) {
 		return 0
 	}
-	return int(s.pl[p&1].graveN)
+	return int(s.pl[SeatIx(p)].graveN)
 }
 
 // tbLeafCredited reports whether a base cost's delve credit already priced
@@ -145,7 +145,7 @@ func (s *State) delveOptions(k *prep, d *Decision) bool {
 	if k.gen == nil || !k.gen.anyDelve || e.kind != seSpell || !s.hasCastDelve(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl)) {
 		return false
 	}
-	pl := &s.pl[e.ctrl&1]
+	pl := &s.pl[SeatIx(e.ctrl)]
 	if pl.graveN == 0 {
 		return false
 	}

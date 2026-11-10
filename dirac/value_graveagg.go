@@ -25,7 +25,10 @@ func (s *State) graveAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 	}
 	best, n := 0, 0
 	var seen uint64
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
 		pl := &s.pl[pp]
 		for j := 0; j < int(pl.graveN); j++ {
 			o := pl.grave[j]

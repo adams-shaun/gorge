@@ -15,7 +15,7 @@ var DebugReferentOwnerSwap bool
 //go:noinline
 func (s *State) cardRoleF2(f2 kop.FilterFlags2, owner uint8) bool {
 	if DebugReferentOwnerSwap {
-		owner ^= 1
+		owner ^= 1 // seat-ok: a test-only mutation (DebugReferentOwnerSwap)
 	}
 	return s.ctrlRoleF2(f2, owner)
 }
