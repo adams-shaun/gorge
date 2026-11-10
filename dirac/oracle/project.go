@@ -133,6 +133,30 @@ type Projection struct {
 	// They stay last: ProjectionHash drops them while they are zero.
 	CmdCasts  [2]uint8
 	CmdDamage [2][2]uint8
+	// Seats is a game of more than two seats' further seats (zero at two
+	// seats). It stays last: ProjectionHash drops it while it is zero, so a
+	// two-seat projection hashes as it did before it existed.
+	Seats SeatsProj
+}
+
+// SeatsProj is the per-seat state of seats 2 and up, and every seat's loss.
+type SeatsProj struct {
+	NSeat uint8
+	Lost  [MaxSeats]bool
+	More  [MaxSeats - 2]SeatProj
+}
+
+// SeatProj is one further seat's Projection fields (Life .. LibCount, CmdCasts).
+type SeatProj struct {
+	Life        int32
+	Poison      int16
+	Speed       uint8
+	Room        uint8
+	LandsPlayed uint8
+	Pool        [6]int16
+	HandCount   uint8
+	LibCount    uint8
+	CmdCasts    uint8
 }
 
 // identity is a game's stable map between gorge objects and canonical card
@@ -159,7 +183,10 @@ type identity struct {
 // leaves the plain deck order.
 func (id *identity) setLayout(m *Matchup) {
 	if m != nil {
-		id.gen = len(m.Deck[0]) + len(m.Deck[1]) + len(m.Side[0]) + len(m.Side[1])
+		id.gen = len(m.Side[0]) + len(m.Side[1])
+		for s := 0; s < m.NSeat(); s++ {
+			id.gen += len(m.seatIx(s))
+		}
 	}
 	if m == nil || len(m.Side[0])+len(m.Side[1]) == 0 {
 		return
@@ -307,7 +334,7 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 	}
 	nDeck := 0
 	if m != nil {
-		nDeck = len(m.Deck[0]) + len(m.Deck[1]) + len(m.Side[0]) + len(m.Side[1])
+		nDeck = id.gen
 	}
 	for inst, oid := range id.obj {
 		o := g.Obj(oid)
@@ -425,29 +452,36 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 	if g.HasInitiative {
 		p.Initiative = int8(g.Initiative)
 	}
-	for s := 0; s < 2 && s < len(g.Players); s++ {
+	if n := len(g.Players); n > 2 {
+		p.Seats.NSeat = uint8(n)
+	}
+	for s := 0; s < MaxSeats && s < len(g.Players); s++ {
 		pl := &g.Players[s]
-		p.Life[s] = pl.Life
-		p.Speed[s] = uint8(pl.Speed)
+		sp := p.seat(s)
+		if p.Seats.NSeat != 0 {
+			p.Seats.Lost[s] = pl.Lost
+		}
+		*sp.life = pl.Life
+		*sp.speed = uint8(pl.Speed)
 		if do := g.Obj(pl.DungeonObj); pl.DungeonObj != 0 && do != nil && do.Face() != nil {
-			p.Room[s] = dungeonRoomIndex(do.Face(), pl.DungeonRoom)
+			*sp.room = dungeonRoomIndex(do.Face(), pl.DungeonRoom)
 		}
 		if state.PlayerID(s) == g.Active {
 			// Only the active player's count is game state: gorge resets
 			// a player's count at their own turn, the kernel at every turn.
-			p.LandsPlayed[s] = uint8(pl.LandsPlayed)
+			*sp.lands = uint8(pl.LandsPlayed)
 		}
 		for k := 0; k < 6; k++ {
-			p.Pool[s][k] = int16(pl.Pool[k])
+			sp.pool[k] = int16(pl.Pool[k])
 		}
 		for _, ct := range pl.Counters {
 			if ct.Kind == "POISON" {
-				p.Poison[s] += int16(ct.N)
+				*sp.poison += int16(ct.N)
 			}
 		}
 		lib := g.Zone(state.ZLibrary, state.PlayerID(s))
-		p.LibCount[s] = uint8(len(lib))
-		p.HandCount[s] = uint8(len(g.Zone(state.ZHand, state.PlayerID(s))))
+		*sp.lib = uint8(len(lib))
+		*sp.hand = uint8(len(g.Zone(state.ZHand, state.PlayerID(s))))
 		for i, oid := range lib {
 			if r := id.ref(g, oid); r < MaxInst && i < 255 {
 				p.Cards[r].Pos = uint8(i)
@@ -514,6 +548,25 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 	return charErr
 }
 
+// seatFields points at seat s's per-seat Projection fields.
+type seatFields struct {
+	life               *int32
+	poison             *int16
+	speed, room, lands *uint8
+	pool               *[6]int16
+	hand, lib, casts   *uint8
+}
+
+// seat is seat s's fields: the two-seat arrays for seats 0 and 1, Seats.More
+// past them.
+func (p *Projection) seat(s int) seatFields {
+	if s < 2 {
+		return seatFields{&p.Life[s], &p.Poison[s], &p.Speed[s], &p.Room[s], &p.LandsPlayed[s], &p.Pool[s], &p.HandCount[s], &p.LibCount[s], &p.CmdCasts[s]}
+	}
+	m := &p.Seats.More[s-2]
+	return seatFields{&m.Life, &m.Poison, &m.Speed, &m.Room, &m.LandsPlayed, &m.Pool, &m.HandCount, &m.LibCount, &m.CmdCasts}
+}
+
 // projectCommander fills p's commander bookkeeping from g. A seat's
 // CmdDamage is indexed by the match-wide dense commander index, every
 // seat's Commanders in seat order: the slot is mapped to its owner's seat.
@@ -524,13 +577,16 @@ func projectCommander(g *state.Game, p *Projection) {
 			owner = append(owner, s)
 		}
 	}
-	for s := 0; s < 2 && s < len(g.Players); s++ {
+	for s := 0; s < MaxSeats && s < len(g.Players); s++ {
 		pl := &g.Players[s]
 		var n int32
 		for _, c := range pl.CmdCasts {
 			n += c
 		}
-		p.CmdCasts[s] = uint8(min(max(n, 0), 255))
+		*p.seat(s).casts = uint8(min(max(n, 0), 255))
+		if s >= 2 {
+			continue // CmdDamage is the two-seat game's
+		}
 		for k, d := range pl.CmdDamage {
 			if k < len(owner) && owner[k] < 2 {
 				q := owner[k]
