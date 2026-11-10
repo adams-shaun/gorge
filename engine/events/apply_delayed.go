@@ -511,6 +511,9 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		// still moves) even when its Self leg does not.
 		o.PushSourceStamped = true
 		o.PushSourceIncarnation = registration.SourceIncarnation
+		if src := g.Obj(o.Source); src != nil {
+			o.PushSourceOnBattlefield = src.Zone == state.ZBattlefield
+		}
 	}
 	o.Remembered = rememberedFrom(e.IDs)
 	if monarchSteal {
