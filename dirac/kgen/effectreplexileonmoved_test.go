@@ -71,20 +71,20 @@ func TestLowerEffectReplExileonmoved(t *testing.T) {
 
 	// Out-of-shape variants of Lilah's script refuse by name.
 	const base = "Name:Exile Bf Probe\nManaCost:1 U R\nTypes:Legendary Creature Human Rogue\nPT:3/3\n" +
-		"T:Mode$ SpellCast | ValidCard$ Instant.MultiColor | Execute$ TrigEffect | TriggerZones$ Battlefield | TriggerDescription$ probe\n" +
-		"SVar:TrigEffect:DB$ Effect | ReplacementEffects$ MoveToExileReplace | RememberObjects$ TriggeredCard | ConditionDefined$ TriggeredCard | ConditionPresent$ Card | ConditionZone$ Stack | ExileOnMoved$ Stack\n" +
-		"SVar:MoveToExileReplace:Event$ Moved | ValidCard$ Card.IsRemembered+YouOwn | Origin$ Stack | Destination$ Graveyard | Fizzle$ False | ReplaceWith$ ReplaceExile | Description$ probe\n" +
-		"SVar:ReplaceExile:DB$ ChangeZone | Defined$ ReplacedCard | Origin$ Stack | Destination$ Exile\n"
+		"T:Mode$ SpellCast | ValidCard$ Instant.MultiColor | Execute$ TrigXm | TriggerZones$ Battlefield | TriggerDescription$ probe\n" +
+		"SVar:TrigXm:DB$ Effect | ConditionZone$ Stack | ConditionPresent$ Card | ConditionDefined$ TriggeredCard | RememberObjects$ TriggeredCard | ReplacementEffects$ ReplXm | ExileOnMoved$ Stack\n" +
+		"SVar:ReplXm:Event$ Moved | Origin$ Stack | Destination$ Graveyard | ValidCard$ Card.IsRemembered+YouOwn | Fizzle$ False | ReplaceWith$ BodyXm | Description$ probe\n" +
+		"SVar:BodyXm:DB$ ChangeZone | Origin$ Stack | Destination$ Exile | Defined$ ReplacedCard\n"
 	if r := exileBfSynth(t, base); len(r) != 0 {
 		t.Fatalf("the probe script itself refuses: %q", keclReason(r))
 	}
 	for _, c := range []struct{ name, from, to, want string }{
 		{"Fizzle$ True", "Fizzle$ False", "Fizzle$ True", "Effect stack-exile replacement Fizzle$"},
 		{"any owner", "Card.IsRemembered+YouOwn", "Card.IsRemembered", "Effect stack-exile replacement ValidCard$"},
-		{"origin", "Origin$ Stack | Destination$ Graveyard", "Origin$ Hand | Destination$ Graveyard", "Effect stack-exile replacement Origin$"},
-		{"body to hand", "Origin$ Stack | Destination$ Exile", "Origin$ Stack | Destination$ Hand", "Effect stack-exile replacement body"},
-		{"body extra key", "Destination$ Exile\n", "Destination$ Exile | Tapped$ True | Foo$ Bar\n", "Effect stack-exile replacement body"},
-		{"no condition", " | ConditionDefined$ TriggeredCard | ConditionPresent$ Card | ConditionZone$ Stack", "", "Effect stack-exile condition"},
+		{"origin", "Event$ Moved | Origin$ Stack", "Event$ Moved | Origin$ Hand", "Effect stack-exile replacement Origin$"},
+		{"body to hand", "Origin$ Stack | Destination$ Exile | Defined", "Origin$ Stack | Destination$ Hand | Defined", "Effect stack-exile replacement body"},
+		{"body extra key", "Defined$ ReplacedCard\n", "Defined$ ReplacedCard | Tapped$ True | Foo$ Bar\n", "Effect stack-exile replacement body"},
+		{"no condition", "ConditionZone$ Stack | ConditionPresent$ Card | ConditionDefined$ TriggeredCard | ", "", "Effect stack-exile condition"},
 	} {
 		src := strings.Replace(base, c.from, c.to, 1)
 		if src == base {
