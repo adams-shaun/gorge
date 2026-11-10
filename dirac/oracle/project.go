@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/kop"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -16,9 +17,9 @@ import (
 
 // Projection limits.
 const (
-	MaxInst  = 236 // card instances (Ref 0..235)
-	MaxStack = 48  // dirac.MaxStack: every kernel stack entry is compared
-	MaxTgts  = 4   // kop.MaxTargets is 5, but a choose-two Command projects <= 3 targets
+	MaxInst  = dirac.MaxObj // card instances (Ref 0..MaxInst-1)
+	MaxStack = 48           // dirac.MaxStack: every kernel stack entry is compared
+	MaxTgts  = 4            // kop.MaxTargets is 5, but a choose-two Command projects <= 3 targets
 )
 
 // Zone codes (gorge's state.Zone numbering).
