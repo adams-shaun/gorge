@@ -90,7 +90,7 @@ help:
 	@echo "  make report         — print card coverage against implemented primitives"
 	@echo "  make dirac-tables   — write dirac's binary card tables under the corpus (gitignored, keyed by corpus and kgen sources)"
 	@echo "  make dirac-slices   — play dirac against gorge on the committed FDN and BLB slices, both surfaces"
-	@echo "  make dirac-mp-check — vet and test dirac's four-seat-slot size class (build tag dirac_mp)"
+	@echo "  make dirac-mp-check — vet, test and lockstep-play dirac's four-seat-slot size class (build tag dirac_mp)"
 	@echo "  make fresh-clone-check — build, vet and test dirac with no corpus: tests needing tables skip, none fail"
 	@echo "  make enginebench-pair BASE=main CAND=. — paired engine-speed comparison (cmd/enginebench)"
 	@echo "  make enginebench-profile [REV=.]       — CPU/alloc profiles of the bench rows, tops printed"
@@ -230,12 +230,28 @@ dirac-slices: dirac-tables
 		$(BIN_DIR)/kfuzz -kernel $$set -first-pair 0 -pairs 1500 -seed 1 -keep-going -surface $$surface -mulligans 1 -shrink 0 -workers 4 -absolute -v || exit 1; \
 	done; done
 
-.PHONY: dirac-mp-check
+.PHONY: dirac-mp-check dirac-mp-lockstep
 # The dirac_mp size class (four seat slots) vets and plays: its State fits the bar, its layout
-# pin holds, and two-seat random games run. Needs dirac-tables for the games.
-dirac-mp-check:
+# pin holds, two-seat random games run, and it plays in lockstep with gorge (dirac-mp-lockstep).
+dirac-mp-check: dirac-tables
 	go vet -tags dirac_mp ./dirac/...
 	GOMAXPROCS=4 GOMEMLIMIT=3GiB go test -tags dirac_mp -trimpath -failfast -timeout 2m -run 'TestStateSize|TestStateLayoutPinnedMP|TestRandomGames' ./dirac
+	$(MAKE) --no-print-directory dirac-mp-lockstep
+
+# The dirac_mp build in lockstep with gorge, absolutely: 4-seat vanilla pods under the random and
+# heuristic policies, and the FDN and BLB slices at two seats (the mp build plays a two-seat game
+# as the default build does). A divergence, a hang, an unmodelled stall or an error fails; a
+# capacity stall is counted. Needs dirac-tables. scripts/dirac-gate.sh runs it as step "mp".
+dirac-mp-lockstep:
+	go build -trimpath -tags dirac_mp -o $(BIN_DIR)/kfuzz-mp ./dirac/oracle/cmd/kfuzz
+	@for pol in random heuristic; do \
+		echo "kfuzz-mp: vanilla, 4 seats, policy $$pol"; \
+		GOMAXPROCS=4 GOMEMLIMIT=3GiB $(BIN_DIR)/kfuzz-mp -kernel vanilla -seats 4 -pairs 100 -seed 1 -keep-going -policy $$pol -shrink 0 || exit 1; \
+	done
+	@for set in fdn blb; do \
+		echo "kfuzz-mp: $$set, 2 seats, autopay"; \
+		GOMAXPROCS=4 GOMEMLIMIT=3GiB $(BIN_DIR)/kfuzz-mp -kernel $$set -first-pair 0 -pairs 200 -seed 1 -keep-going -surface autopay -mulligans 1 -shrink 0 -workers 4 -absolute || exit 1; \
+	done
 
 .PHONY: fresh-clone-check
 fresh-clone-check:
