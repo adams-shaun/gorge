@@ -248,6 +248,9 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		if dirac.IsObjTarget(tgt) {
 			return Pack(ActAttack, src, Ref(tgt), 0) // a planeswalker
 		}
+		if tgt >= dirac.PlayerTarget0 && tgt <= dirac.PlayerTarget0+(dirac.MaxSeats-1) {
+			return Pack(ActAttack, src, RefPlayer+Ref(dirac.CodeSeat(tgt)), 0) // the defending player
+		}
 		return Pack(ActAttack, src, RefPlayer+Ref(1-r.D.Player), 0)
 	case dirac.AkBlock:
 		return Pack(ActBlock, src, tgt, 0)

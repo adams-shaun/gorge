@@ -42,7 +42,15 @@ func (s *State) eachTrigger(k *prep, ev kop.TrigEvent, f func(l trigListener, a 
 // their count.
 func (s *State) listenerOrder(m slotMask, ord *[MaxPerm]Slot) int {
 	n := s.battlefieldOrder(0, m.and(s.ctrlM[0]), ord[:], 0)
-	return s.battlefieldOrder(1, m.and(s.ctrlM[1]), ord[:], n)
+	if MaxSeats == 2 {
+		return s.battlefieldOrder(1, m.and(s.ctrlM[1]), ord[:], n)
+	}
+	// every seat's listeners, seat by seat (a third or fourth seat's
+	// permanents trigger too)
+	for p := uint8(1); p < s.nSeats(); p++ {
+		n = s.battlefieldOrder(p, m.and(s.ctrlM[p]), ord[:], n)
+	}
+	return n
 }
 
 // slotTriggers calls f for the triggered abilities at slot sl that ev
