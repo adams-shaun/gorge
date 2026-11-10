@@ -48,7 +48,9 @@ func (s *State) fbLive(k *prep, o Obj) bool {
 // fbGrantCost is the mana cost of o's granted flashback instance cast by p:
 // the card's mana cost, or a live grant's own cost (StFbOwnCost) when no
 // stamped grant (marked) is beside it. It reads the card, not its zone, so the
-// cost builder asks it with the spell on the stack.
+// cost builder asks it with the spell on the stack. A stamp beside an own-cost
+// static never plays (StallFbGrantStamp refuses the pair at its start), so
+// marked here means a stamp on a table with no own-cost static.
 func (s *State) fbGrantCost(k *prep, p uint8, o Obj, marked bool) kop.ManaCost {
 	c := s.objs[o].card
 	if !marked && k.gen != nil && k.gen.anyFbGrant {
@@ -57,4 +59,35 @@ func (s *State) fbGrantCost(k *prep, p uint8, o Obj, marked bool) kop.ManaCost {
 		}
 	}
 	return k.t.Cards[c].Cost
+}
+
+// StallFbGrantStamp: a table holding a stamped flashback grant (an
+// OpGrantKeyword of kop.KwFlashbackOwnCost: Snapcaster Mage, Past in Flames)
+// beside a StatFbGrant static with a cost of its own (StFbOwnCost: Iroh,
+// Grand Lotus). gorge lists both granted instances, at the mana cost and at
+// the static's cost (cast_altcost.go extraFlashbackCosts); fbInstances models
+// one granted instance, so the pair is refused at its start (initStall).
+const StallFbGrantStamp = 155
+
+func init() { stallNames[StallFbGrantStamp] = "fbgrantstamp" }
+
+// prepFbStamp sets genPrep.fbStampOwnCost when t holds both halves of
+// StallFbGrantStamp.
+func prepFbStamp(t *kop.Table, g *genPrep) {
+	if !g.anyFbGrant || !grantsKw(t, kop.KwFlashbackOwnCost) {
+		return
+	}
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			if fbOwnCostStatic(&t.Cards[i].Abilities[j]) {
+				g.fbStampOwnCost = true
+				return
+			}
+		}
+	}
+}
+
+// fbOwnCostStatic is true of a flashback-granting static with its own cost.
+func fbOwnCostStatic(x *kop.Ability) bool {
+	return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatFbGrant && x.Static.StFlags&kop.StFbOwnCost != 0
 }

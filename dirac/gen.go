@@ -150,6 +150,7 @@ type genPrep struct {
 	anyInfect      bool
 	infectStall    bool
 	twoSeatOnly    bool           // a card plays only two seats (stallclass.go prepTwoSeat): StallTwoSeat in a larger game
+	fbStampOwnCost bool           // a stamped flashback grant beside an own-cost flashback static (kw_fbgrant.go prepFbStamp): StallFbGrantStamp
 	anyWitherGrant bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyEOTEmb      bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb       bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
@@ -1405,6 +1406,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepReplMult(t, g)
 	prepInfect(t, g)
 	prepTwoSeat(t, g) // stallclass.go
+	prepFbStamp(t, g) // kw_fbgrant.go
 	prepPoison(t, g)
 	prepLayerWalk(t, g)
 	prepChooseType(t, g) // act_choosetype.go
