@@ -30,6 +30,7 @@ func IsOpponent(p, q uint8) bool { return p != q }
 func SeatIx(p uint8) uint8 { return p % MaxSeats }
 
 // PlayerCode is seat p's target code (CR 115.1: a player can be a target).
+// Only seats 0 and 1 have one: the code space holds two player codes.
 func PlayerCode(p uint8) uint8 { return PlayerTarget0 + p }
 
 // CodeSeat is the seat a player target code names; c must satisfy
