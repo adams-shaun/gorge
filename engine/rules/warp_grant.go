@@ -1,8 +1,6 @@
 package rules
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -31,17 +29,11 @@ func grantedWarpCost(e altRowReader, id state.ObjID) (Cost, bool) {
 	var best Cost
 	found := false
 	for _, k := range e.derivedWith(id, 0).Keywords {
-		if !strings.EqualFold(cardsKeywordHead(k), "Warp") {
+		head := cardsKeywordHead(k)
+		if head != kwhWarp.S || len(k) <= len(head)+1 {
 			continue
 		}
-		i := strings.IndexByte(k, ':')
-		if i < 0 {
-			continue
-		}
-		raw := strings.TrimSpace(k[i+1:])
-		if raw == "" {
-			continue
-		}
+		raw := k[len(head)+1:]
 		c := ParseCost(raw)
 		if len(c.Unknown) != 0 {
 			continue
