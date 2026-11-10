@@ -124,7 +124,7 @@ func tapPowerSelfValue(v lValue) bool {
 
 // tapPowerValueStatic lowers Mode$ TapPowerValue (graveexile, Tapestry
 // Warden, Sulu): one StatTapPower static per ValidSA$ alternative. Filter is
-// ValidCard$, AddSub the alternative's host subtype, Amount the value
+// ValidCard$, Filter2 the alternative's host subtype, Amount the value
 // (Toughness sentinel, a literal 1..127, or a lowered SVar read over the
 // tapped creature). The kernel reads the same static walk for the Crew/Saddle
 // payment and for Station's amount at resolution (gorge

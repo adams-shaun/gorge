@@ -21,7 +21,7 @@ var DebugIgnoreGraveExile bool
 // (station true, flags 0). The callers add the candidate's power, except for
 // Value$ Toughness, which replaces it: this returns the difference from plain
 // power. One static per ValidSA$ alternative: Filter matches the candidate,
-// AddSub the action's host subtype (Spacecraft on Sulu's station static), and
+// Filter2 the action's host permanent (Spacecraft on Sulu's station static), and
 // the value is a literal A or Static.VA, evaluated with the candidate as its
 // source (Sulu's Count$CardPower/Twice). gorge
 // statics_assignment.go tapPowerValueFor.
@@ -74,16 +74,27 @@ func (s *State) tapPowerRead(k *prep, sl Slot, flags kop.CostFlags, station bool
 	}
 	switch {
 	case v == int(kop.TapPowToughness):
-		base = t
+		if !DebugToughAssignOff {
+			base = t
+		}
 	case v != 0:
 		added += v
 	}
 	if !k.anyTapPowerStatic {
 		return base, added
 	}
-	s.eachStatic(k, func(st statSrc) bool {
+	visit := func(st statSrc) bool {
 		a := st.a
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatTapPower || !s.statCond(k, st) {
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatTapPower {
+			return true
+		}
+		if k.gen == nil {
+			// no generated extension: a static with a gate or a condition
+			// needs one, so it cannot hold here
+			if a.Static.OvGate != 0 || a.Static.Cond2 != 0 {
+				return true
+			}
+		} else if !s.statCond(k, st) {
 			return true
 		}
 		if !tapPowerScopeHit(&a.Static, flags, station) {
@@ -92,22 +103,42 @@ func (s *State) tapPowerRead(k *prep, sl Slot, flags kop.CostFlags, station bool
 		// the qualifier names the action's own permanent; a gone host reads
 		// every qualifier as met, as gorge's tapPowerValueFor does
 		if a.Static.Filter2 != 0 && host != NoSlot &&
-			!s.matchPermGen(k, a.Static.Filter2, host, st.ctrl, st.sl, layerFull) {
+			!s.matchPerm(k, a.Static.Filter2, host, st.ctrl, st.sl) {
 			return true
 		}
-		if !s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerFull) {
+		if !s.matchPerm(k, a.Static.Filter, sl, st.ctrl, st.sl) {
 			return true
 		}
 		switch {
 		case a.Static.StFlags&kop.StTapPowerTough != 0:
-			base = t
+			if !DebugToughAssignOff {
+				base = t
+			}
 		case a.Static.StFlags&kop.StDynamic != 0:
 			added += s.evalV(k, a.Static.VA, evalCtx{src: s.perms[sl].obj, srcSl: sl, ctrl: st.ctrl})
 		default:
 			added += int(a.Static.A)
 		}
 		return true
-	})
+	}
+	if k.gen != nil {
+		s.eachStatic(k, visit)
+		return base, added
+	}
+	// a table with no generated extension: genLost and eachStatic read it, so
+	// walk the statics directly (a lose-all override skips the permanent,
+	// CR 613.1f, as tapPowerLost does)
+	for m := s.statM; m.any(); m = m.rest() {
+		ssl := m.first()
+		if s.perms[ssl].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
+			continue
+		}
+		pp := &s.perms[ssl]
+		cd := &k.t.Cards[s.cardAt(ssl)]
+		for i := range cd.Abilities {
+			visit(statSrc{a: &cd.Abilities[i], sl: ssl, ctrl: pp.ctrl, obj: pp.obj})
+		}
+	}
 	return base, added
 }
 
