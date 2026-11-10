@@ -8,15 +8,15 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// ptEqGtScen is a scenario over synthetic pool pool holding the named cards
+// ptEqGtScen is a scenario over the ptcompare fixture pool holding the named cards
 // (one Forest to fill the libraries): the ids by name.
-func ptEqGtScen(t *testing.T, pool string, names ...string) (*scen, map[string]CardID) {
+func ptEqGtScen(t *testing.T, names ...string) (*scen, map[string]CardID) {
 	t.Helper()
 	deck := []cardset.Entry{{Name: "Forest", Count: 1}}
 	for _, n := range names {
 		deck = append(deck, cardset.Entry{Name: n, Count: 1})
 	}
-	tbl, da, _, err := cardsettest.Synth(t, pool).Matchup(deck, deck)
+	tbl, da, _, err := cardsettest.Set(t, "ptcompare").Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestPTCompareEqGtKernel(t *testing.T) {
 		dies  bool
 	}{{"nineteen", 19, false}, {"twenty", 20, true}, {"twenty-one", 21, false}} {
 		t.Run(amalia+" "+c.name, func(t *testing.T) {
-			sc, id := ptEqGtScen(t, "std-lci", amalia, bystander)
+			sc, id := ptEqGtScen(t, amalia, bystander)
 			am := sc.perm(id[amalia], 0)
 			mine, theirs := sc.perm(id[bystander], 0), sc.perm(id[bystander], 1)
 			sl := sc.slot(am)
@@ -90,7 +90,7 @@ func TestPTCompareEqGtKernel(t *testing.T) {
 		want int
 	}{{"Misty Knight, Hero for Hire", 1}, {"Echo, Perceptive Prodigy", 1}, {atlas, 0}, {"Kree Sentinel", 1}} {
 		t.Run(hulk+" "+c.name, func(t *testing.T) {
-			sc, id := ptEqGtScen(t, "std-msh", hulk, c.name)
+			sc, id := ptEqGtScen(t, hulk, c.name)
 			hk := sc.perm(id[hulk], 0)
 			if pw, tg := sc.s.ptGen(sc.k, sc.slot(hk)); pw != 2 || tg != 3 {
 				t.Fatalf("Hulkling is %d/%d, want 2/3", pw, tg)
