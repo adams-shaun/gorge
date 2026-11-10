@@ -759,7 +759,6 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 	}
 	var atk [MaxPerm]Slot
 	na := s.battlefieldOrder(s.active, s.occ.and(s.ctrlM[s.active]), atk[:], 0)
-	def := 1 - s.active
 	for _, a := range atk[:na] {
 		if s.perms[a].flags&pfAttacking == 0 {
 			continue
@@ -767,7 +766,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 		add(a)
 		var bl [MaxPerm]Slot
 		nb := 0
-		for bm := s.occ.and(s.ctrlM[def]); bm.any(); bm = bm.rest() {
+		for bm := s.occ.and(s.oppsM(s.active)); bm.any(); bm = bm.rest() {
 			b := bm.first()
 			if s.perms[b].flags&pfBlocking == 0 || s.perms[b].blocking != a {
 				continue
@@ -792,12 +791,12 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 	life := s.subs[kop.TrigLifeLost].or(s.subs[kop.TrigLifeGained]).any() || k.gen.anyRepl&rbPlusLife != 0 ||
 		k.gen.embCombatEv&(1<<kop.TrigLifeGained) != 0
 	if !life && !dealt {
-		for pp := uint8(0); pp < 2; pp++ {
+		for pp := uint8(0); pp < MaxSeats; pp++ {
 			if r.toPl[pp] > 0 {
 				s.loseLife(k, pp, int(r.toPl[pp]))
 			}
 		}
-		for pp := uint8(0); pp < 2; pp++ {
+		for pp := uint8(0); pp < MaxSeats; pp++ {
 			if r.gain[pp] > 0 {
 				s.gainLife(k, pp, int(r.gain[pp]))
 			}

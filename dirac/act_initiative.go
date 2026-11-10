@@ -167,9 +167,18 @@ func (s *State) initUpkeep(k *prep) {
 //
 //go:noinline
 func (s *State) initCombat(k *prep, r *dmgRec) {
-	def := 1 - s.active
-	if s.g.initH != def+1 || DebugNoInitSteal {
-		return
+	var def uint8
+	if MaxSeats == 2 {
+		def = 1 - s.active
+		if s.g.initH != def+1 || DebugNoInitSteal {
+			return
+		}
+	} else {
+		// the initiative's holder, when an opponent holds it
+		def = s.g.initH - 1
+		if s.g.initH == 0 || def == s.active || DebugNoInitSteal {
+			return
+		}
 	}
 	for i := 0; i < r.nev; i++ {
 		ev := &r.ev[i]

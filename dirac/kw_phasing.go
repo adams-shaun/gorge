@@ -160,8 +160,14 @@ func (s *State) phaseOut(k *prep, sl Slot, indirect bool) {
 		s.nAttackers--
 	}
 	s.occ.clr(sl)
-	s.ctrlM[0].clr(sl)
-	s.ctrlM[1].clr(sl)
+	if MaxSeats == 2 {
+		s.ctrlM[0].clr(sl)
+		s.ctrlM[1].clr(sl)
+	} else {
+		for q := range s.ctrlM {
+			s.ctrlM[q].clr(sl)
+		}
+	}
 	for m := s.occ; m.any(); m = m.rest() {
 		q := m.first()
 		qp := &s.perms[q]

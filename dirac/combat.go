@@ -305,7 +305,7 @@ func (s *State) fireAttacksGen(k *prep) {
 	}
 	var atk [MaxPerm]Slot
 	na := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < MaxSeats; p++ {
 		var am slotMask
 		for x := s.ctrlM[p].and(s.occ); x.any(); x = x.rest() {
 			if sl := x.first(); s.perms[sl].flags&pfAttacking != 0 {
@@ -796,9 +796,9 @@ func (s *State) addSat16(a int16, n int) int16 {
 type dmgRec struct {
 	toPerm  [MaxPerm]int16
 	dtPerm  slotMask // dealt deathtouch damage
-	toPl    [2]int16
-	poison  [2]int16 // infect/toxic poison, added after the pass (kw_infect.go)
-	gain    [2]int16 // lifelink
+	toPl    [MaxSeats]int16
+	poison  [MaxSeats]int16 // infect/toxic poison, added after the pass (kw_infect.go)
+	gain    [MaxSeats]int16 // lifelink
 	dealt   [MaxPerm]int16
 	dealtPl [MaxPerm]int16
 	// ev lists each (source, amount) damage event in assignment order (a
@@ -867,7 +867,6 @@ func (s *State) dealsNow(k *prep, sl Slot, first bool) bool {
 // choice for a non-trampler with 2+ blockers, the kernel does not).
 func (s *State) combatDamage(k *prep, first bool) bool {
 	var r dmgRec
-	def := 1 - s.active
 	am := s.ctrlM[s.active]
 	for am.any() {
 		a := am.first()
@@ -896,7 +895,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		// blockers in block order
 		var bl [MaxPerm]Slot
 		nb := 0
-		bm := s.ctrlM[def]
+		bm := s.oppsM(s.active)
 		for bm.any() {
 			b := bm.first()
 			bm = bm.rest()
@@ -981,7 +980,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		}
 	}
 	// blockers
-	bm := s.ctrlM[def]
+	bm := s.oppsM(s.active)
 	for bm.any() {
 		b := bm.first()
 		bm = bm.rest()
@@ -1056,9 +1055,13 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 	}
 	if k.gen != nil {
 		s.combatEventsGen(k, &r, false)
-		for pp := uint8(0); pp < 2; pp++ {
+		for pp := uint8(0); pp < MaxSeats; pp++ {
 			if r.poison[pp] > 0 {
-				s.g.ctrAdder = 2 - pp // the attackers' controller puts them (1-pp, +1)
+				if MaxSeats == 2 {
+					s.g.ctrAdder = 2 - pp // the attackers' controller puts them (1-pp, +1)
+				} else {
+					s.g.ctrAdder = s.active + 1 // the attackers' controller puts them
+				}
 				s.addPoison(pp, int(r.poison[pp]))
 				s.g.ctrAdder = 0
 			}
@@ -1068,12 +1071,12 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		}
 		return false
 	}
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < MaxSeats; pp++ {
 		if r.toPl[pp] > 0 {
 			s.loseLife(k, pp, int(r.toPl[pp]))
 		}
 	}
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < MaxSeats; pp++ {
 		if r.gain[pp] > 0 {
 			s.gainLife(k, pp, int(r.gain[pp]))
 		}
@@ -1225,7 +1228,7 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 // liveBlockers writes attacker a's blockers in block order.
 func (s *State) liveBlockers(a Slot, bl *[MaxPerm]Slot) int {
 	nb := 0
-	for bm := s.ctrlM[1-s.active]; bm.any(); bm = bm.rest() {
+	for bm := s.oppsM(s.active); bm.any(); bm = bm.rest() {
 		b := bm.first()
 		if s.perms[b].flags&pfBlocking != 0 && s.perms[b].blocking == a {
 			bl[nb] = b

@@ -54,7 +54,7 @@ func combatDeck() []CardID {
 
 // combatThrough plays the games on past the first declare-blockers step
 // with attackers.
-const combatThrough = false
+const combatThrough = true
 
 // castRank orders the spells the policy casts: the dearest first.
 var castRank = map[string]int{"Colossal Dreadmaw": 0, "Giant Spider": 1, "Grizzly Bears": 2}
@@ -78,6 +78,50 @@ func gorgeAttacking(e *rules.Engine) bool {
 		}
 	}
 	return false
+}
+
+// anyDown reports whether some player is at 0 life or less: the games are
+// compared up to the first loss (a player leaving a game of more than two
+// is not modelled here).
+func anyDown(lives []int) bool {
+	for _, l := range lives {
+		if l <= 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// gorgeBoard and kernelBoard list each seat's creatures on the
+// battlefield, by name, sorted.
+func gorgeBoard(e *rules.Engine, n int) string {
+	var b []string
+	for p := 0; p < n; p++ {
+		var c []string
+		for _, id := range e.G.Zone(state.ZBattlefield, state.PlayerID(p)) {
+			if o := e.G.Obj(id); o != nil && o.Card != nil && o.Card.Faces[0].Name != "Forest" {
+				c = append(c, o.Card.Faces[0].Name)
+			}
+		}
+		sort.Strings(c)
+		b = append(b, strings.Join(c, ","))
+	}
+	return " board " + strings.Join(b, "|")
+}
+
+func kernelBoard(s *State, n int) string {
+	var b []string
+	for p := 0; p < n; p++ {
+		var c []string
+		for m := s.ctrlM[p]; m.any(); m = m.rest() {
+			if nm := v.Table.Cards[s.cardAt(m.first())].Name; nm != "Forest" {
+				c = append(c, nm)
+			}
+		}
+		sort.Strings(c)
+		b = append(b, strings.Join(c, ","))
+	}
+	return " board " + strings.Join(b, "|")
 }
 
 func lifeDet(lives []int) string {
@@ -138,14 +182,14 @@ func gorgeCombatGame(t *testing.T, n int, seed uint64, limit int) []combatEv {
 	for len(out) < limit && !e.G.Over {
 		e.Advance()
 		d := e.Pending()
-		if d == nil || !combatThrough && e.G.Step == state.StepDeclareBlockers && d.Kind == decision.KPriority && gorgeAttacking(e) {
+		if d == nil || anyDown(lives()) || !combatThrough && e.G.Step == state.StepDeclareBlockers && d.Kind == decision.KPriority && gorgeAttacking(e) {
 			break
 		}
 		ev := combatEv{turn: int(e.G.Turn), active: int(e.G.Active), player: int(d.Player), sp: len(e.G.Stack)}
 		var ch []int
 		switch d.Kind {
 		case decision.KPriority:
-			ev.kind, ev.det = "priority", lifeDet(lives())
+			ev.kind, ev.det = "priority", lifeDet(lives())+gorgeBoard(e, n)
 			main := d.Player == e.G.Active && len(e.G.Stack) == 0 && (e.G.Step == state.StepMain1 || e.G.Step == state.StepMain2)
 			pick := -1
 			for _, o := range d.Options {
@@ -234,7 +278,13 @@ func gorgeCombatGame(t *testing.T, n int, seed uint64, limit int) []combatEv {
 					usedB[o.Obj], usedA[o.Attacker] = true, true
 				}
 			}
-			ev.det = fmt.Sprintf("attackers %d blockable %d pairs %d blocks %d", nAtk, len(atk), len(d.Options), len(ch))
+			tr := 0
+			for _, i := range ch {
+				if name(d.Options[i].Attacker) == "Colossal Dreadmaw" {
+					tr++
+				}
+			}
+			ev.det = fmt.Sprintf("attackers %d blockable %d pairs %d blocks %d tramplers %d", nAtk, len(atk), len(d.Options), len(ch), tr)
 		default:
 			t.Fatalf("n=%d seed %d: unexpected gorge decision %v", n, seed, d.Kind)
 		}
@@ -274,7 +324,7 @@ func kernelCombatGame(t *testing.T, n int, seed uint64, limit int) []combatEv {
 	quota := 0
 	for len(out) < limit && !s.Over() {
 		s.StepOne(&d)
-		if d.Kind == DkNone || !combatThrough && s.step == kop.StepBlockers && d.Kind == DkPriority && s.nAttackers > 0 {
+		if d.Kind == DkNone || anyDown(lives()) || !combatThrough && s.step == kop.StepBlockers && d.Kind == DkPriority && s.nAttackers > 0 {
 			break
 		}
 		ev := combatEv{turn: int(s.turn), active: int(s.active), player: int(d.Player), sp: int(s.sp)}
@@ -282,7 +332,7 @@ func kernelCombatGame(t *testing.T, n int, seed uint64, limit int) []combatEv {
 		switch d.Kind {
 		case DkPriority:
 			inDecl = false
-			ev.kind, ev.det = "priority", lifeDet(lives())
+			ev.kind, ev.det = "priority", lifeDet(lives())+kernelBoard(s, n)
 			best := -1
 			rank := func(x Action) int {
 				switch x.Kind() {
@@ -366,7 +416,8 @@ func kernelCombatGame(t *testing.T, n int, seed uint64, limit int) []combatEv {
 				}
 				quota = blockQuota(nAtk)
 				ev.kind = "block"
-				ev.det = fmt.Sprintf("attackers %d blockable %d pairs %d blocks %d", nAtk, len(atk), int(d.N)-1, blockable(&d, quota, cardName))
+				nb, tr := blockable(&d, quota, cardName)
+				ev.det = fmt.Sprintf("attackers %d blockable %d pairs %d blocks %d tramplers %d", nAtk, len(atk), int(d.N)-1, nb, tr)
 			}
 			a = MakeAction(AkDone, 0, 0, 0)
 			if len(usedB) < quota {
@@ -410,10 +461,9 @@ func nextBlock(d *Decision, usedB, usedA map[uint8]bool, name func(uint8) string
 }
 
 // blockable is how many blocks the policy makes from the first pose of a
-// blockers decision, at most limit.
-func blockable(d *Decision, limit int, name func(uint8) string) int {
+// blockers decision, at most limit, and how many of them block a trampler.
+func blockable(d *Decision, limit int, name func(uint8) string) (c, tr int) {
 	usedB, usedA := map[uint8]bool{}, map[uint8]bool{}
-	c := 0
 	for c < limit {
 		x, ok := nextBlock(d, usedB, usedA, name)
 		if !ok {
@@ -421,8 +471,11 @@ func blockable(d *Decision, limit int, name func(uint8) string) int {
 		}
 		usedB[x.Source()], usedA[x.Target()] = true, true
 		c++
+		if name(x.Target()) == "Colossal Dreadmaw" {
+			tr++
+		}
 	}
-	return c
+	return
 }
 
 func compareCombatGames(t *testing.T, n int, seed uint64, limit int) []combatEv {
@@ -492,4 +545,46 @@ func TestNSeatBlockerRounds(t *testing.T) {
 			t.Fatalf("n=%d: no combat asked two defenders", n)
 		}
 	}
+}
+
+// TestNSeatTrampleToOwnDefender: a blocked trampler assigns its excess to
+// the player it attacks (CR 702.19c), not to another defending player, at 3
+// and 4 seats; the compared life totals check every seat.
+func TestNSeatTrampleToOwnDefender(t *testing.T) {
+	for _, n := range []int{3, 4} {
+		hits := 0
+		for seed := uint64(1); seed <= 32 && hits == 0; seed++ {
+			evs := compareCombatGames(t, n, seed, 2000)
+			for i, e := range evs {
+				if e.kind != "block" || strings.HasSuffix(e.det, "tramplers 0") {
+					continue
+				}
+				before, after := lifeAt(evs, i, -1, e.player), -1
+				for j := i + 1; j < len(evs) && evs[j].turn == e.turn; j++ {
+					after = lifeAt(evs, j, 1, e.player)
+				}
+				if after >= 0 && after < before {
+					hits++
+				}
+			}
+		}
+		if hits == 0 {
+			t.Fatalf("n=%d: no blocked trampler reached its defender", n)
+		}
+	}
+}
+
+// lifeAt is seat p's life at the nearest priority event from i in
+// direction dir, or -1.
+func lifeAt(evs []combatEv, i, dir, p int) int {
+	for j := i; j >= 0 && j < len(evs); j += dir {
+		if evs[j].kind == "priority" {
+			f := strings.Fields(strings.TrimPrefix(evs[j].det, "life "))[0]
+			l := strings.Split(f, "/")
+			var v int
+			fmt.Sscan(l[p], &v)
+			return v
+		}
+	}
+	return -1
 }

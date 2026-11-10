@@ -683,12 +683,12 @@ func (s *State) sba(k *prep) bool {
 		}
 		// gorge's order (rules/sba.go): the creature casualties (lethal
 		// damage, zero toughness), then planeswalkers with no loyalty, then
-		// defeated battles (to exile), then unattached Auras; within each, player 0's battlefield list then
-		// player 1's. The graveyard and the pending triggers follow it.
+		// defeated battles (to exile), then unattached Auras; within each, each seat's battlefield
+		// list in seat order. The graveyard and the pending triggers follow it.
 		var order [MaxPerm]Slot
 		n := 0
 		for _, gm := range [4]slotMask{die, pwz.andNot(die), bat.andNot(die.or(pwz)), aur.andNot(die.or(pwz).or(bat))} {
-			for p := uint8(0); p < 2; p++ {
+			for p := uint8(0); p < MaxSeats; p++ {
 				n = s.battlefieldOrder(p, gm.and(s.ctrlM[p]), order[:], n)
 			}
 		}
@@ -772,7 +772,7 @@ func (s *State) enchantLegal(k *prep, sl Slot) bool {
 func (s *State) leaveAll(k *prep, mask slotMask, z kop.Zone) {
 	var order [MaxPerm]Slot
 	n := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < MaxSeats; p++ {
 		n = s.battlefieldOrder(p, mask.and(s.ctrlM[p]), order[:], n)
 	}
 	if len(s.cold.parked) != 0 && z == kop.ZoneGraveyard && s.res.active {
@@ -1117,7 +1117,7 @@ func (s *State) applyLegend(k *prep, a Action) {
 	var zs [MaxPerm]kop.Zone
 	var order [MaxPerm]Slot
 	n := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < MaxSeats; p++ {
 		n = s.battlefieldOrder(p, die.and(s.ctrlM[p]), order[:], n)
 	}
 	// the non-kept legends in battlefield (entry) order, as gorge walks g.ids
@@ -1140,7 +1140,7 @@ func (s *State) applyLegend(k *prep, a Action) {
 	sag := s.legSaga.and(s.occ).andNot(die).andNot(out)
 	s.legSaga = slotMask{}
 	nl := n
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < MaxSeats; p++ {
 		n = s.battlefieldOrder(p, sag.and(s.ctrlM[p]), order[:], n)
 	}
 	for i := nl; i < n; i++ {
