@@ -127,6 +127,29 @@ func digDifferentPowers(ps *params) (bool, error) {
 	return true, nil
 }
 
+// digBoundShape refuses a pick-set bound on the Dig shapes whose kernel arm
+// never asks the per-card pickFits: ChangeNum$ All (every matching card is
+// taken at once, and its Optional$ election is one yes/no, where gorge drops
+// the all-or-nothing election and takes its bounded greedy instead), and a
+// Dig over each player or each opponent (the kernel's multi-seat walk takes
+// only forced windows, and a bounded take can leave a choice).
+func digBoundShape(who lRef, take lValue, hasBudget, distinct bool) error {
+	if !hasBudget && !distinct {
+		return nil
+	}
+	name := "WithTotalCMC$"
+	if !hasBudget {
+		name = "WithDifferentPowers$"
+	}
+	if take.Kind == vConst && take.N == -1 {
+		return refuse("%s beside ChangeNum$ All", name)
+	}
+	if who.Kind == rEachPlayer || who.Kind == rEachOpp {
+		return refuse("%s on an each-player Dig", name)
+	}
+	return nil
+}
+
 // pickConstraintFilter puts the read constraints on a pick's filter head,
 // creating the match-all clause a lone bound needs (a Dig with no
 // ChangeValid$). A pick with neither constraint keeps its filter.

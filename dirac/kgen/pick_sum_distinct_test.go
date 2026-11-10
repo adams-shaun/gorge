@@ -115,3 +115,21 @@ func TestPickDifferentPowers(t *testing.T) {
 	})
 	kp.refusedWith(t, rip, "Dig WithDifferentPowers$")
 }
+
+// TestPickBoundShapes: a bound on a Dig arm that never consults the
+// per-card fit refuses by name: ChangeNum$ All (with or without Optional$)
+// and a Dig over each player.
+func TestPickBoundShapes(t *testing.T) {
+	const michel, rip = "Michelangelo's Technique", "Rip, Spawn Hunter"
+	for _, c := range []struct{ card, key, val, want string }{
+		{michel, "ChangeNum", "All", "WithTotalCMC$ beside ChangeNum$ All"},
+		{rip, "ChangeNum", "All", "WithDifferentPowers$ beside ChangeNum$ All"},
+		{michel, "Defined", "Player", "WithTotalCMC$ on an each-player Dig"},
+		{rip, "Defined", "Player", "WithDifferentPowers$ on an each-player Dig"},
+	} {
+		kp := kfhBuild(t, []string{c.card}, func(p *pool) {
+			editDigParam(p, c.card, c.key, c.val)
+		})
+		kp.refusedWith(t, c.card, c.want)
+	}
+}

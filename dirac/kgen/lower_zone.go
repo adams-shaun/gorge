@@ -1203,6 +1203,9 @@ func (lc *lowerCtx) dig(ps *params) error {
 	if err != nil {
 		return err
 	}
+	if err := digBoundShape(who, take, hasBudget, distinct); err != nil { // lower_digparams.go
+		return err
+	}
 	in.F = pickConstraintFilter(in.F, budget, hasBudget, distinct)
 	if lp, ok := ps.get("LibraryPosition"); ok {
 		if dest != zLibrary && dest2 != zLibrary {
