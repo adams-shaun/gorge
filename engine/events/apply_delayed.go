@@ -501,25 +501,6 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		// current one and the ability resolves doing nothing (CR 400.7).
 		o.SourceIncarnation = registration.SourceIncarnation
 	}
-	if registration != nil && registration.Creator == 0 {
-		// A delayed trigger's Defined$ Self names the object that registered
-		// it, so compare the body against that registration-time incarnation.
-		// The push-time stamp would already be the new incarnation when the
-		// source left and returned before the push, hiding the change; CR
-		// 400.7/603.7c says Self does not name the returned object. Do not set
-		// o.SourceIncarnation: the ability still resolves (a chosen saddler
-		// still moves) even when its Self leg does not.
-		o.PushSourceStamped = true
-		o.PushSourceIncarnation = registration.SourceIncarnation
-		if src := g.Obj(o.Source); src != nil {
-			o.PushSourceOnBattlefield = src.Zone == state.ZBattlefield
-			// The zone stamp stampPushedAbilitySources would have written
-			// (it skips an already-stamped object): a source off the
-			// battlefield that left and re-entered that zone while the
-			// trigger waited is a new object too (sourceReturnedSincePush).
-			o.PushSourceZoneGen, o.PushSourceZone = src.ZoneGen, src.Zone
-		}
-	}
 	o.Remembered = rememberedFrom(e.IDs)
 	if monarchSteal {
 		o.Remembered = []state.Target{{Player: state.PlayerID(e.Amount), IsPlayer: true}}

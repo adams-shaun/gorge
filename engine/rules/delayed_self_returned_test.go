@@ -59,28 +59,14 @@ func movesSince(e *Engine, mark int, id state.ObjID) int {
 }
 
 // TestDelayedSelfSkipsReturnedSource: the source crossed the battlefield
-// boundary before the delayed trigger resolved, so the body's Defined$ Self
-// names a new object and the blink does nothing.
+// boundary after the delayed trigger went on the stack (Fortune, Loyal Steed's
+// first trigger blinks it ahead of the second), so the body's Defined$ Self
+// names a new object and the blink does nothing. The referent is the source
+// as it stood when the trigger fired, the same reference point dirac's
+// delayed program takes.
 func TestDelayedSelfSkipsReturnedSource(t *testing.T) {
 	t.Parallel()
 	e, src := delayedSelfFixture(t)
-	before := e.G.Obj(src).Incarnation
-
-	// Round-trip the source through exile and back: a new battlefield object.
-	e.emit(events.Event{Kind: events.MoveZone, Obj: src, From: state.ZBattlefield, To: state.ZExile})
-	e.emit(events.Event{Kind: events.MoveZone, Obj: src, From: state.ZExile, To: state.ZBattlefield})
-	o := e.G.Obj(src)
-	if o == nil || o.Zone != state.ZBattlefield {
-		t.Fatalf("precondition: source zone = %v, want battlefield after the round trip", o)
-	}
-	if o.Incarnation == before {
-		t.Fatalf("precondition: incarnation = %d before and after the round trip, want a new one", before)
-	}
-	if len(e.G.Delayed) != 1 {
-		t.Fatalf("precondition: delayed registrations = %d after the round trip, want one", len(e.G.Delayed))
-	}
-
-	mark := len(e.L.Events)
 	driveToEndStep(t, e)
 	for e.putTriggersOnStack() {
 		answerTriggerOrders(t, e)
@@ -91,6 +77,20 @@ func TestDelayedSelfSkipsReturnedSource(t *testing.T) {
 	if len(e.G.Stack) == 0 {
 		t.Fatal("the delayed trigger never reached the stack")
 	}
+	before := e.G.Obj(src).Incarnation
+
+	// Round-trip the source through exile and back while the trigger waits.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: src, From: state.ZBattlefield, To: state.ZExile})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: src, From: state.ZExile, To: state.ZBattlefield})
+	o := e.G.Obj(src)
+	if o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: source zone = %v, want battlefield after the round trip", o)
+	}
+	if o.Incarnation == before {
+		t.Fatalf("precondition: incarnation = %d before and after the round trip, want a new one", before)
+	}
+
+	mark := len(e.L.Events)
 	passUntilStackEmpty(t, e, 40)
 	if n := movesSince(e, mark, src); n != 0 {
 		t.Fatalf("returned source moved %d times in the delayed resolution, want none (CR 603.7c)", n)
