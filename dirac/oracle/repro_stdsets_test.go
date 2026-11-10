@@ -240,6 +240,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-trc", "granted_artifact_mana_pays_an_equip_activation"},                   // Ambulatory Reactor's {C} for artifact spells and abilities of artifact sources, tapped through a vehicle first in battlefield order: the activated half of the restriction rides with the mana, so Skullclamp's equip is paid from it (CR 106.6, 602.2)
 		{"custom", "granted_artifact_only_mana_battery_bearer"},                         // Battery Bearer's {C} that can't be spent on a nonartifact spell, granted to creatures: it pays artifact spells and any ability (CR 106.6)
 		{"custom", "granted_combo_gu_asks_green_first_thranduil", full},                 // Thranduil the Strategist's {G} or {U} on its Elves: the colour ask lists the card's own order, G then U
+		{"custom", "imprint_mill_patient_naturalist_land_to_hand"},                      // Patient Naturalist mills three cards with a land among them: the imprinted land goes to the hand and no Treasure is made, both engines agreeing through the pick and past it
+		{"custom", "imprint_mill_patient_naturalist_no_land_makes_a_treasure"},          // Patient Naturalist mills three cards with no land among them: the pick finds nothing and the Treasure is made
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {
