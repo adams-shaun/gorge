@@ -645,6 +645,7 @@ func (e *Engine) describeTargetEffect(p state.PlayerID, source state.ObjID, sa *
 			n := int(amount)
 			out.Damage.Amount = &n
 		}
+		out.Damage.Prevented = e.damagePreventedPermanents(e.protectionSource(source))
 	}
 	return out
 }

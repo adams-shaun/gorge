@@ -649,6 +649,13 @@ type DamageEffect struct {
 	// consumers must check null before arithmetic. This is not a lethal-damage
 	// claim.
 	Amount *int `json:"amount"`
+	// Prevented names the battlefield permanents whose own replacement
+	// prevents every damage dealt to them, with no rider that changes them
+	// (Phyrexian Vindicator): the damage is spent on nothing. Server-side
+	// only (json:"-"), like TargetEffect.Host. The bot leaves them last, so
+	// two such permanents do not bounce the redirected damage between
+	// themselves forever.
+	Prevented []state.ObjID `json:"-"`
 }
 
 // WindowReason is a closed-vocabulary explanation for one withheld option.
