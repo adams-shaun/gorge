@@ -17,7 +17,7 @@ const PayAddCounter = 16
 
 // PayBSubAddCounter marks a PayTapX unless-cost whose B.N is an AddCounter
 // encoding (PayAddCounterB).
-const PayBSubAddCounter = 13
+const PayBSubAddCounter = 15
 
 // PayAddCounterB packs the counter kind and recipient into a B.N. The
 // recipient is RefSelf or one of RefTarget0..RefTarget2; ok is false for any
