@@ -594,10 +594,10 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 	}
 	switch p {
 	case "attackingYou":
-		// gorge attackingYou: attacking the source's controller (o.Attacking
-		// names the defending seat, a planeswalker's controller or a
-		// battle's protector too). In two players every attacker attacks
-		// the non-active player's side, so it is an attacking creature the
+		// gorge attackingYou: attacking "you", the evaluating player
+		// (o.Attacking names the defending seat, a planeswalker's
+		// controller or a battle's protector too). In two players every
+		// attacker attacks the non-active player's side, so it is an attacking creature the
 		// controller's opponent controls (Confront the Assault)
 		c.Flags |= fAttacking
 		return c.setWho(&c.Ctrl, whoOpp)
