@@ -697,6 +697,8 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"behold_or_mana_abort_window_tap_another_pick", true, false},            // CR 601.2g, 733.1: Mudbutton Cursetosser's chosen {2} part falls back to the manual window, which poses Springleaf Drum's tap-another pick before it reverses the unpayable cast
 		{"delayed_dies_trigger_last_known_power_m1m1", false, false},             // CR 608.2h: End-Blaze Epiphany's delayed dies trigger exiles the graveyard-bound creature's last-known 2 power (a -1/-1 counter), not its printed 3
 		{"delayed_dies_trigger_last_known_power_aura", false, false},             // CR 608.2h: ... and its last-known 3 power with a +1/+0 Aura attached, not the printed 2
+		{"tapx_pick_strands_mana_aborts_activation", false, false},               // CR 601.2h, 602.2b, 733.1: Wanderbrine Trapper's tap-another pick takes Great Forest Druid, the only mana source, so its {1} cannot be paid and the activation is reversed at the target ask
+		{"tapx_pick_strands_mana_aborts_activation_second", false, false},        // ... and the same reversal in a second game (pair 372)
 	})
 }
 
