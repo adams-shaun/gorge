@@ -23,14 +23,22 @@ func TestLowerNmanaNotFixedSet(t *testing.T) {
 		t.Fatal(err)
 	}
 	seen := map[string]int{}
+	for _, c := range lw.cards {
+		if c.Name != citadel && c.Name != operator {
+			continue
+		}
+		seen[c.Name]++
+		if len(c.Refusals) != 0 {
+			t.Errorf("%s refused at lowering: %v", c.Name, c.Refusals)
+		}
+	}
 	for _, b := range bs {
 		n := b.def.Name
 		if n != citadel && n != operator {
 			continue
 		}
-		seen[n]++
 		if len(b.refusals) != 0 {
-			t.Errorf("%s refused: %v", n, b.refusals)
+			t.Errorf("%s refused at build: %v", n, b.refusals)
 		}
 	}
 	for _, n := range []string{citadel, operator} {
