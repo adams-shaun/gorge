@@ -10,10 +10,10 @@ import (
 //
 //go:noinline
 func (s *State) dropEOTEmblems(k *prep) {
-	for p := 0; p < 2; p++ {
+	for p := uint8(0); p < 2; p++ {
 		var drop uint8
 		for i := 0; i < int(s.g.nemb[p]); i++ {
-			if k.t.Emblems[s.g.emb[p][i]-1].UntilEOT {
+			if k.t.Emblems[s.embIdx(p, i)-1].UntilEOT {
 				drop |= 1 << uint(i)
 			}
 		}
@@ -34,7 +34,7 @@ func (s *State) dropEOTEmblems(k *prep) {
 func (s *State) fireEmblemsObj(k *prep, ev kop.TrigEvent, evSl Slot, evObj Obj) {
 	for pp := uint8(0); pp < 2; pp++ {
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
-			e := &k.t.Emblems[s.g.emb[pp][i]-1]
+			e := &k.t.Emblems[s.embIdx(pp, i)-1]
 			for j := range e.Abilities {
 				ea := &e.Abilities[j]
 				if ea.Kind != kop.AbTriggered || ea.Trig.Event != ev {
@@ -43,12 +43,12 @@ func (s *State) fireEmblemsObj(k *prep, ev kop.TrigEvent, evSl Slot, evObj Obj) 
 				if ea.Trig.Filter != 0 && !s.matchPermGen(k, ea.Trig.Filter, evSl, pp, NoSlot, layerFull) {
 					continue
 				}
-				c := s.g.embC[pp][i]
+				c := s.embCard(pp, i)
 				cd := &k.t.Cards[c]
 				for ab := range cd.Abilities {
 					la := &cd.Abilities[ab]
 					if la.Kind == kop.AbTriggered && la.AFlags&kop.AfLatent != 0 && la.Trig.Event == ev && la.Trig.Zone == kop.ZoneCommand {
-						o := s.g.embO[pp][i]
+						o := s.embObj(pp, i)
 						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, evObj, s.perms[evSl].ctrl, 0)
 						break
 					}

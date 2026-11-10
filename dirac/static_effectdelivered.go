@@ -11,10 +11,10 @@ package dirac
 //
 //go:noinline
 func (s *State) dropNextTurnEmblems(k *prep) {
-	p := int(s.nextActive())
+	p := s.nextActive()
 	var drop uint8
 	for i := 0; i < int(s.g.nemb[p]); i++ {
-		if k.t.Emblems[s.g.emb[p][i]-1].UntilNextTurn {
+		if k.t.Emblems[s.embIdx(p, i)-1].UntilNextTurn {
 			drop |= 1 << uint(i)
 		}
 	}

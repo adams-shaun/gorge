@@ -181,10 +181,10 @@ func (s *State) l6Walk(k *prep, sl Slot, w *l6walk) (kw kop.KwMask, lts uint16, 
 	}
 	for pp := uint8(0); pp < 2; pp++ {
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
-			e := &k.t.Emblems[s.g.emb[pp][i]-1]
+			e := &k.t.Emblems[s.embIdx(pp, i)-1]
 			for j := range e.Abilities {
 				if a := &e.Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && (a.Static.Kw != 0 || a.Static.Override > 0) {
-					s.l6static(k, sl, w, statSrc{a: a, sl: NoSlot, ctrl: pp, obj: NoObj, emb: pp<<3 | uint8(i+1)}, s.g.embT[pp][i])
+					s.l6static(k, sl, w, statSrc{a: a, sl: NoSlot, ctrl: pp, obj: NoObj, emb: pp<<4 | uint8(i+1)}, s.embStamp(pp, i))
 				}
 			}
 		}

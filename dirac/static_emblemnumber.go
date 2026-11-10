@@ -30,18 +30,18 @@ func (s *State) freezeEmbNum(k *prep, v kop.ValueRef, ctx evalCtx) uint8 {
 }
 
 // embNumAt is the frozen number of the emblem statSrc.emb names
-// (player<<3 | index+1, 0 = not an emblem).
+// (player<<4 | index+1, 0 = not an emblem).
 //
 //go:noinline
 func (s *State) embNumAt(emb uint8) uint8 {
 	if emb == 0 {
 		return 0
 	}
-	p, i := emb>>3, int(emb&7)-1
+	p, i := emb>>4, int(emb&15)-1
 	if p > 1 || i < 0 || i >= int(s.g.nemb[p]) {
 		return 0
 	}
-	return s.g.embN[p][i]
+	return s.embNum(p, i)
 }
 
 // DebugEmbNumLive is the mutation hook: the read
@@ -61,11 +61,11 @@ func (s *State) embNumLive(k *prep, emb uint8) uint8 {
 	if emb == 0 {
 		return 0
 	}
-	p, i := emb>>3, int(emb&7)-1
+	p, i := emb>>4, int(emb&15)-1
 	if p > 1 || i < 0 || i >= int(s.g.nemb[p]) {
 		return 0
 	}
-	c, idx := s.g.embC[p][i], s.g.emb[p][i]-1
+	c, idx := s.embCard(p, i), s.embIdx(p, i)-1
 	if int(c) >= len(k.t.Cards) {
 		return s.embNumAt(emb)
 	}
