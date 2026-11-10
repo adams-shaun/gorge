@@ -63,12 +63,15 @@ func castSkipsStatic(st statSrc, mode uint8, lifeOnly bool) bool {
 	return lifeOnly && !life
 }
 
-// StallPayLifeShared: a pay-life library static and a second permission that
-// waives the mana cost admit the same card. gorge offers the plain cast and the
-// life alternative (AltCostIndex 1) apart; the kernel tells the two apart by
-// castFree, which both would carry here, so the game stalls loudly rather than
-// let the cast skip the life. Beside a permission that does not waive the mana
-// (Madame Web, Clairvoyant) the two casts are offered apart (priorityMayPlay).
+// StallPayLifeShared: two of the casts gorge lists for one card would carry
+// the same kernel mode (castMayPlay|castFree). That is a pay-life library
+// static beside a second permission that waives the mana cost (gorge: the
+// free plain cast and the life alternative), or two pay-life statics (Peter
+// Parker's Camera copying Gwenom's attack trigger: one alternative per static,
+// AltCostIndex 1 and 2). The game stalls loudly rather than let a cast skip
+// the life. Beside a permission that does not waive the mana (Madame Web,
+// Clairvoyant) the plain cast and the life one are offered apart
+// (priorityMayPlay).
 const StallPayLifeShared = 153
 
 func init() { stallNames[StallPayLifeShared] = "paylifeshared" }

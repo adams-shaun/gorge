@@ -1,6 +1,7 @@
 package dirac
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -152,19 +153,21 @@ func TestPlayFromTopEmblem(t *testing.T) {
 		}
 	})
 
-	t.Run("pay life beside a free permission stalls", func(t *testing.T) {
-		sc, o := payLifeBeside(t, kop.StWithoutManaCost, 0)
-		s := sc.s
-		if s.Stalled() {
-			t.Fatalf("stalled (%s) before the offer", StallName(s.StallReason()))
-		}
-		if got := payLifeCastModes(sc, o); len(got) != 1 || got[0] != castMayPlay|castFree {
-			t.Fatalf("offered %v, want the one joined free cast: the precondition", got)
-		}
-		if s.StallReason() != StallPayLifeShared {
-			t.Fatalf("stall reason %q, want %q: the plain and life casts share one mode", StallName(s.StallReason()), StallName(StallPayLifeShared))
-		}
-	})
+	for _, flags := range []kop.StaticFlags{kop.StWithoutManaCost, kop.StMayPayLife} {
+		t.Run(fmt.Sprintf("pay life beside a free or second pay-life permission stalls (flags %d)", flags), func(t *testing.T) {
+			sc, o := payLifeBeside(t, flags, 0)
+			s := sc.s
+			if s.Stalled() {
+				t.Fatalf("stalled (%s) before the offer", StallName(s.StallReason()))
+			}
+			if got := payLifeCastModes(sc, o); len(got) != 1 || got[0] != castMayPlay|castFree {
+				t.Fatalf("offered %v, want the one joined free cast: the precondition", got)
+			}
+			if s.StallReason() != StallPayLifeShared {
+				t.Fatalf("stall reason %q, want %q: two of gorge's casts share one mode", StallName(s.StallReason()), StallName(StallPayLifeShared))
+			}
+		})
+	}
 
 	t.Run("pay-life canon follows the payable life", func(t *testing.T) {
 		sc := newScenTable(t, playTopTable(kop.StMayPayLife), Config{NoElide: true})

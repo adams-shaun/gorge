@@ -9,18 +9,20 @@ type mayParts struct{ grant, free, anyMana bool }
 // mayPlayParts joins the parts of every permission admitting o into one
 // offer: a free-only static (Weftwalking) opens no zone but waives the cost
 // of the cast another static grants (CR 118.9). A pay-life static (Gwenom)
-// is reported apart in life: gorge offers its alternative beside the plain
-// cast another permission grants (AltCostIndex 1 and 0).
-func (s *State) mayPlayParts(k *prep, p uint8, o Obj) (rest mayParts, life bool) {
+// is counted apart in life: gorge offers its alternative beside the plain
+// cast another permission grants (AltCostIndex 1 and 0), and one alternative
+// per such static (AltCostIndex 1, 2: Gwenom's Effect copied).
+func (s *State) mayPlayParts(k *prep, p uint8, o Obj) (rest mayParts, life int) {
 	s.mayPlayStatics(k, p, o, func(st statSrc) bool {
 		fl := st.a.Static.StFlags
 		if fl&kop.StRemove6Counters != 0 && s.creatureCounters(k, p) < int(st.a.Static.A) {
 			return true // the extra cost can't be paid (Quilled Greatwurm)
 		}
 		if fl&kop.StMayPayLife != 0 {
-			// the mana value in life can't be paid, or it is the life alternative (cast_staticpaylife.go)
-			life = life || s.payLifeOfferable(k, p, o)
-			return true
+			if s.payLifeOfferable(k, p, o) {
+				life++ // the life alternative, offered apart (cast_staticpaylife.go)
+			}
+			return true // else the mana value in life can't be paid
 		}
 		if fl&kop.StFreeOnly == 0 || s.objs[o].zone == kop.ZoneHand {
 			rest.grant = true // a free-only static opens no zone; a hand cast is already legal

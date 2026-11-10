@@ -653,11 +653,11 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 		// the parts of every permission admitting o join into one offer; a
 		// pay-life static's alternative is offered apart (mayPlayParts)
 		rest, life := s.mayPlayParts(k, p, o)
-		if !rest.grant && !life {
+		if !rest.grant && life == 0 {
 			return
 		}
-		if life && rest.free {
-			s.capFull(StallPayLifeShared) // the plain cast and the life alternative share one mode (cast_staticpaylife.go)
+		if life > 1 || life > 0 && rest.free {
+			s.capFull(StallPayLifeShared) // two of the casts gorge lists would share one mode (cast_staticpaylife.go)
 		}
 		seen.set(o)
 		if rest.grant {
@@ -667,7 +667,7 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 			}
 			s.offerPlay(k, d, p, o, mode, sorc, landOK, rest.anyMana, false, s.mayPlayUnpriced(k, p, o, rest.anyMana, av), av)
 		}
-		if life && !(rest.grant && rest.free) {
+		if life > 0 && !(rest.grant && rest.free) {
 			s.offerPlay(k, d, p, o, castMayPlay|castFree, sorc, landOK, false, false, false, av) // the mana part is replaced by the life (CR 118.9)
 		}
 	}
