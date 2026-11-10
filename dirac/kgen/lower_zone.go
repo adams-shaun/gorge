@@ -402,6 +402,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				// leaves nothing behind). dirac/ctr_search.go.
 				lc.emit(*arm)
 			}
+			if err := lc.rememberSearcher(ps, obj, flags); err != nil { // lower_remembersearcher.go
+				return err
+			}
 			lc.emit(lInstr{Op: "Search", Obj: obj, A: n, F: f, C: dest, CS: strings.Join(flags, "|")})
 			if clear != nil {
 				lc.emit(*clear)

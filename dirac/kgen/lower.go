@@ -403,8 +403,9 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseRememberedPower() // value_countheads.go
 	lc.refuseMultiMana()
 	lc.refuseCtxRememberedCount()
-	lc.refuseRemLKIPT()              // value_remlki.go
-	lc.refuseRememberAmountObjects() // lower_remembered.go
+	lc.refuseRemLKIPT()                // value_remlki.go
+	lc.refuseRememberAmountObjects()   // lower_remembered.go
+	lc.refuseRememberSearcherObjects() // lower_remembersearcher.go
 	lc.refuseOnceTwice()
 	lc.refusePlotCombos()
 	lc.refuseHarmonizeCombos()

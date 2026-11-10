@@ -19,7 +19,7 @@ const notePutRememberPut = "remember put"
 // only. Every shape beside the bare Min 1 / Max 1 controller pick refuses.
 func (lc *lowerCtx) putCounterChoices(ps *params) error {
 	for _, k := range []string{"Defined", "ValidTgts", "MinChoiceAmount", "ChoiceAmount", "Chooser", "ForColor",
-		"CounterTypes", "RememberPut", "RememberCards", "RememberAmount", "CounterNumPerDefined", "Optional"} {
+		"CounterTypes", "RememberPut", "RememberAmount", "CounterNumPerDefined", "Optional"} {
 		if _, ok := ps.m[k]; ok {
 			return refuse("PutCounter Choices$ with %s$", k)
 		}
@@ -48,9 +48,20 @@ func (lc *lowerCtx) putCounterChoices(ps *params) error {
 	if err != nil {
 		return err
 	}
+	put := lInstr{Op: "PutCounter", Obj: lRef{Kind: rChosen}, A: n, CS: ct}
+	if v, ok := ps.get("RememberCards"); ok {
+		// RememberCards$ names the recipient that took the counters (gorge
+		// rememberPlaced): the same B=2 arm RememberPut$ uses, remembered
+		// when the CounterNum$ amount is > 0.
+		if v != "True" {
+			return refuse("PutCounter Choices$ with RememberCards$ %q", v)
+		}
+		put.B, put.Note = cst(2), notePutRememberPut
+		ps.consume("RememberCards")
+	}
 	ps.consume("Choices", "ChoiceTitle")
 	lc.emit(lInstr{Op: "ChooseCard", Obj: lRef{Kind: rYou}, F: f, C: zBattlefield, CS: "PutCounterPick"})
-	lc.emit(lInstr{Op: "PutCounter", Obj: lRef{Kind: rChosen}, A: n, CS: ct})
+	lc.emit(put)
 	return nil
 }
 
