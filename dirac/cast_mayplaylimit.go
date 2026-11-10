@@ -68,7 +68,7 @@ func (s *State) removeMay(i int) {
 	if s.mayAt(i).kind&kop.MayPlayLimitMask != 0 {
 		s.spendGrant(i)
 		if s.mayAt(i).until&mayUntilHead != 0 && i+1 < int(s.g.nmay) {
-			if nx := s.mayAt(i+1); nx.until&mayUntilHead == 0 && nx.kind&kop.MayPlayLimitMask != 0 {
+			if nx := s.mayAt(i + 1); nx.until&mayUntilHead == 0 && nx.kind&kop.MayPlayLimitMask != 0 {
 				nx.until |= mayUntilHead
 			}
 		}
