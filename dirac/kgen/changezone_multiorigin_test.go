@@ -25,7 +25,7 @@ Types:Instant
 A:SP$ ChangeZone | FIND | SubAbility$ DBPick
 SVar:DBPick:DB$ ChangeZone | PICK | SubAbility$ DBAll
 SVar:DBAll:DB$ ChangeZoneAll | ALL | SubAbility$ DBClean
-SVar:DBClean:DB$ Cleanup | ClearRemembered$ True
+SVar:DBClean:DB$ Cleanup | ClearChosenCard$ False | ClearRemembered$ True
 Oracle:probe
 `
 
