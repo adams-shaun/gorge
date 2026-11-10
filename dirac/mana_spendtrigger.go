@@ -12,8 +12,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // planned sources into the pool and spending the pool at once, so the
 // observed source's batch is spent exactly when this cast's payment tapped
 // the source: the planner's tap sites (mana.go plan, mana_window.go windowTap)
-// record it beside the Treasure bit (noteTapSrc), and the SpellCast match
-// reads the record (castProvOK) while the cast's build is still live.
+// record it (noteTapSrc), and the SpellCast match reads the record
+// (castProvOK) while the cast's build is still live.
 // Guards: genPrep.castTapOn (some card carries the reader).
 
 // pcard.castSrc bits.
@@ -50,14 +50,12 @@ func prepManaSrc(t *kop.Table, g *genPrep, p *prep) {
 }
 
 // noteTapSrc records that the cast being built tapped the source at sl for
-// mana: a Treasure (CastSpecTreasure) and an observed source (the SpellCast
-// reader's own source). A second observed source in one cast stalls loudly.
+// mana: an observed source (the SpellCast reader's own source). A Treasure's
+// mana is marked when it is spent, not when it is tapped (treSync). A
+// second observed source in one cast stalls loudly.
 //
 //go:noinline
 func (s *State) noteTapSrc(k *prep, pc *pcard, sl Slot) {
-	if pc.castSrc&csTreasure != 0 {
-		s.bld().bfl |= bflTre
-	}
 	if pc.castSrc&csObserved != 0 {
 		if s.bld().obsSl != 0 && s.bld().obsSl != sl+1 {
 			s.capFull(StallObsSrc)

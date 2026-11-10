@@ -265,6 +265,7 @@ func (s *State) endStep(next kop.Step) {
 	s.pl[1].pool = [kop.NumManaKinds]uint8{}
 	s.rbClear(uint8(1))
 	s.g.poolArt = [MaxSeats]uint8{}
+	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
 	s.step = next
 	s.ctl = ctlStepBegin
 }
@@ -394,6 +395,7 @@ func (s *State) finishCleanup(k *prep) {
 		s.rbClear(uint8(1))
 		s.fbR = [MaxSeats]uint8{} // already 0 (end of combat dropped it); explicit
 		s.g.poolArt = [MaxSeats]uint8{}
+		s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
 	}
 	// CR 514.3a: the state-based check follows the 514.1/514.2 actions; when
 	// one is performed the active player gets priority even with an empty
