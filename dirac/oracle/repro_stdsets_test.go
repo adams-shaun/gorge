@@ -271,6 +271,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "static_can_attack_defender_modified_guardians_of_oboro"},            // Guardians of Oboro under an Aura is a modified Defender creature: it attacks as though it lacked defender (CR 702.3b)
 		{"custom", "static_untap_other_own_creatures_prop_room"},                        // Prop Room untaps the Savannah Lions its controller attacked with during the other player's untap step (CR 502.3)
 		{"std-dsk", "graveexile_pick_count_is_the_trigger_amount"},                      // Nashi, Searcher in the Dark deals combat damage: it mills that many cards and takes a legendary or enchantment card from among them to hand, the pick's count the damage dealt
+		{"std-tla", "iroh_grand_lotus_grave_flashback"},                                 // Iroh, Grand Lotus on the battlefield: on its controller's turn only, a graveyard Lightning Strike or Pillar Launch has flashback at its mana cost and a Lesson at {1}, and each is exiled after (CR 702.34a)
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {

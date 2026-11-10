@@ -548,6 +548,8 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		c := cd.Cost
 		if e.flags&sfFlashback != 0 && ((cd.Keywords&kop.KwFlashback != 0 || cd.BeamMeUp) && e.flags&sfFbGranted == 0 || cd.Harmonize) {
 			c = cd.AltCost // a granted flashback costs the mana cost
+		} else if e.flags&sfFlashback != 0 && k.gen != nil && k.gen.anyFbGrant && !cd.BeamMeUp {
+			c = s.fbGrantCost(k, e.ctrl, e.obj, s.bld().fbGrants != 0) // or a live grant's own cost (kw_fbgrant.go)
 		}
 		if e.mode&modeWarped != 0 && cd.HasWarp {
 			c = cd.WarpCost // the hand's warp cost (CR 702.185a)

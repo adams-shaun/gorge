@@ -229,6 +229,7 @@ type genPrep struct {
 	anySplit       bool           // some card is a split card (kop.FaceSplit: its mana value off the stack; face_castface.go)
 	anyTwobrid     bool           // some card has a twobrid pip in its printed cost (kop.ManaCost.Tb; mana_twobrid.go)
 	anyBeamGrant   bool           // some card has a StatBeamGrant static
+	anyFbGrant     bool           // some card has a StatFbGrant static (kw_fbgrant.go)
 	partyRole      [4]uint8       // the matchup subtype index of Cleric, Rogue, Warrior, Wizard (subOutside: absent; act_remember.go partySize)
 	outlawSub      [5]uint8       // the matchup subtype index of Assassin, Mercenary, Pirate, Rogue, Warlock (subOutside: absent; filter_valueheads.go PredOutlaw)
 	anyRemSac      bool           // some OpSacrifice remembers what it sacrifices (B.N&1, RememberSacrificed$; act_remember.go)
@@ -1055,6 +1056,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatBeamGrant:
 					g.anyBeam = true
 					pc.hasStat = true // scanned through statM (kw_beammeup.go)
+				case kop.StatFbGrant:
+					g.anyFbGrant = true
+					pc.hasStat = true // scanned through statM (kw_fbgrant.go)
 				case kop.StatCantPutCounter:
 					g.anyCtrBlock = true
 					pc.hasStat = true // scanned through statM (ctr_cantput.go)

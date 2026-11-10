@@ -2244,6 +2244,8 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			// The default.
 		} else if az == "Stack" && !sp.is("MayPlay", "True") {
 			return nil, lc.stackKwGrant(sp, st, aff) // lower_stackkw.go
+		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Flashback") {
+			return nil, lc.graveFbGrant(sp, st, aff) // lower_fbgrant.go
 		} else if !sp.is("MayPlay", "True") {
 			return nil, refuse("AffectedZone %q without MayPlay", az)
 		}
