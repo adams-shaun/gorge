@@ -43,6 +43,7 @@ var klibtopLimited = map[string]bool{"Assemble the Players": true, "Johann, Appr
 
 type klibtopStats struct {
 	games, divs, libCasts, libLands, spentTurns, twoPlays int
+	twoCasts                                              int // decisions offering two casts of one top card (maylooktop_lockstep_test.go)
 }
 
 // klibtopPolicy plays whenever it can, preferring the card on top of a

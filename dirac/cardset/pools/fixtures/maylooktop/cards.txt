@@ -2,13 +2,16 @@
 # Gwenom, Remorseless (an attack trigger lets the controller look at and play
 # the top card of their library for the turn, Gwenom paying life for mana)
 # beside creatures, instants, sorceries and lands, for the oracle's
-# constructed lockstep (dirac/oracle/maylooktop_lockstep_test.go)
+# constructed lockstep (dirac/oracle/maylooktop_lockstep_test.go); Madame Web,
+# Clairvoyant and a Spider meet Gwenom's pay-life permission over one top card
 Burst Lightning
 Doom Blade
+Giant Spider
 Gray Ogre
 Gwenom, Remorseless
 Hill Giant
 Island
+Madame Web, Clairvoyant
 Mountain
 Swamp
 The Belligerent
