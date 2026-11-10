@@ -1065,7 +1065,7 @@ func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
 		ev.Kind == events.ControlChange || ev.Kind == events.Damage || ev.Kind == events.DeclareAttackers ||
 		(ev.IsActivationMint() && len(e.G.Delayed) > 0) ||
 		(ev.Kind != events.DelayedRemove && e.hasEffectRepeatDelayed()) {
-		e.checkEventDelayedTriggers(*ev, lki)
+		e.checkEventDelayedTriggers(*ev, lki, lkiPower, lkiToughness, lkiPTValid)
 	}
 	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the one
 	// event that places a lore counter -- the LORE CounterChange (the entry

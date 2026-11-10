@@ -1092,6 +1092,16 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			}
 			e.bindDelayedSourceDamageLKI(id, &pt)
 			e.bindReflexiveContext(id, &pt)
+			// A delayed event trigger's own Ctx.LKI (the departing event
+			// object's pre-move snapshot, checkEventDelayedTriggers) rides
+			// the minted stack object exactly as a face trigger's does, so a
+			// delayed dies body's TriggeredCard$CardPower reads the power the
+			// creature had on the battlefield (CR 608.2h), not the printed
+			// face of the card now in the graveyard. A Mode$ Phase
+			// registration has no event snapshot and this is a no-op.
+			if pt.Delayed {
+				e.keepTriggerLKI(id, &pt)
+			}
 			e.recordTriggerLine(id, pt)
 			announce(id, false)
 		}

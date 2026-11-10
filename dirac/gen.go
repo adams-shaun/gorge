@@ -169,7 +169,7 @@ type genPrep struct {
 	globGrant      bool           // a global override static grants an ability (Ygra; static_layerwalk.go globalGrants)
 	anyHist        bool           // some trigger reads the turn history bank (expend, the N-th spell; value_turnhistory.go)
 	anyPrevFrom    bool           // some program grants KwPreventCombatDamageFrom (repl_regenerate.go)
-	anyTokRew      bool           // a ReplRewriteTokens ability (repl_tokrewrite.go)
+	anyTokRew      bool           // a ReplRewriteTokens or ReplAddToken ability (repl_tokrewrite.go, repl_tokorder.go)
 	anyFiltRepl    bool           // a filtered damage doubler or token multiplier, or an x3 one (repl_multipliers.go)
 	untapRepl      bool           // a ReplOthersDoesntUntap or ReplAnyUntap card: the untap step runs untapStepGen (act_energy.go)
 	anyUntapBlock  bool           // some card has ReplAnyUntap: every untap site consults State.untapBlocked (static_cantuntap.go)
@@ -229,6 +229,7 @@ type genPrep struct {
 	anySplit       bool           // some card is a split card (kop.FaceSplit: its mana value off the stack; face_castface.go)
 	anyTwobrid     bool           // some card has a twobrid pip in its printed cost (kop.ManaCost.Tb; mana_twobrid.go)
 	anyBeamGrant   bool           // some card has a StatBeamGrant static
+	anyFbGrant     bool           // some card has a StatFbGrant static (kw_fbgrant.go)
 	partyRole      [4]uint8       // the matchup subtype index of Cleric, Rogue, Warrior, Wizard (subOutside: absent; act_remember.go partySize)
 	outlawSub      [5]uint8       // the matchup subtype index of Assassin, Mercenary, Pirate, Rogue, Warlock (subOutside: absent; filter_valueheads.go PredOutlaw)
 	anyRemSac      bool           // some OpSacrifice remembers what it sacrifices (B.N&1, RememberSacrificed$; act_remember.go)
@@ -939,7 +940,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplPreventMillOpps:
 					g.replBits[i] |= rbPrevMill
 					pc.hasStat = true
-				case kop.ReplDoubleTokens, kop.ReplRewriteTokens:
+				case kop.ReplDoubleTokens, kop.ReplRewriteTokens, kop.ReplAddToken:
 					g.replBits[i] |= rbDblTok
 					pc.hasStat = true
 				case kop.ReplDoubleCounters:
@@ -1055,6 +1056,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatBeamGrant:
 					g.anyBeam = true
 					pc.hasStat = true // scanned through statM (kw_beammeup.go)
+				case kop.StatFbGrant:
+					g.anyFbGrant = true
+					pc.hasStat = true // scanned through statM (kw_fbgrant.go)
 				case kop.StatCantPutCounter:
 					g.anyCtrBlock = true
 					pc.hasStat = true // scanned through statM (ctr_cantput.go)
@@ -1834,10 +1838,11 @@ type genState struct {
 	// the token with them (CR 707.9, 614.12).
 	entExc   uint32
 	enterCtr struct {
-		n    uint8
-		kind kop.CounterKind
-		tap  bool
-		ctrl bool
+		n     uint8
+		kind  kop.CounterKind
+		tap   bool
+		ctrl  bool
+		kind2 uint8 // a second kind to enter with, n of it, plus one (0: none; a Return's WithCountersType$ pair)
 	} // counters/tapped for the next enter (OpReturnEx)
 	// entrySelf is the slot+1 of the permanent whose entry counters are being
 	// placed (0: none). Its own general AddCounter replacement does not apply

@@ -143,7 +143,7 @@ func TestVisionsOfDuplicityFlashbackCostIsPrintedNotPolluted(t *testing.T) {
 		t.Fatalf("flashbackCost reported Unknown %v, want none", c.Unknown)
 	}
 	// The cost string the offer/charge path uses is the same printed field.
-	if got, want := e.flashbackCostString(f), "8 U U"; got != want {
+	if got, want := flashbackCostString(f), "8 U U"; got != want {
 		t.Fatalf("flashbackCostString = %q, want %q", got, want)
 	}
 	replayCheck(t, e, cfg)

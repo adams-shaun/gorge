@@ -22,6 +22,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 	// (gorge's own payment asks); the others ran on autopay.
 	const full = "full"
 	for _, c := range [][]string{
+		{"std-big", "worldwalker_helm_map_follows_the_first_of_two_foods"},              // Worldwalker Helm beside Bristlebud Farmer's two Foods: the Map is made once for the Token resolution, entering after the first Food (CR 614.1a, 616)
+		{"std-big", "worldwalker_helm_copy_makes_its_map_before_the_copy"},              // Worldwalker Helm copying an artifact token: gorge makes the Map first, then the copy (CR 707.2, 111.5)
 		{"std-eoe", "restricted_grant_untap_trigger_cannot_fund_equip"},                 // Mm'menon's spell-only blue on Nanoform Sentinel, whose tap untaps a land, leaves Illvoi Light Jammer's Equip {3} unpayable: gorge's relaxed proof runs no prefix search
 		{"std-eoe", "tap_another_source_pays_equip_beside_granted_mana"},                // Gene Pollinator and four lands pay Meltstrider's Gear's Equip {5} beside Mm'menon's spell-only grant: the grant cap keeps the play
 		{"std-tla", "waterbend_min_taps_filter"},                                        // Barrels of Blasting Jelly adds nothing to what the window can pay
@@ -44,6 +46,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-blb", "parting_gust_return_counter"},                                      // Parting Gust returns a creature under its owner's control: the owner puts its counter, so their Stocking the Pantry triggers
 		{"std-blb", "calamitous_tide_leave_together", full},                             // Calamitous Tide bounces Dour Port-Mage with Plumecreed Mentor: one departure, so the Port-Mage sees the Mentor leave
 		{"std-sos", "treasure_mana_token_ceases_quietly", full},                         // a Treasure sacrificed for mana ceases to exist in the graveyard: Garrison Excavator's cards-leave-your-graveyard trigger stays quiet
+		{"std-tdm", "return_enters_with_hexproof_and_indestructible_counters"},          // Perennation returns a milled card with a hexproof and an indestructible counter: both are part of its entry, in that order (CR 122.6, 614.1c)
 		{"std-tdm", "thunder_of_unity_saga_etb"},                                        // a chapter of Thunder of Unity with no other enters watcher out: the creature cast afterwards still drains
 		{"std-tdm", "twobrid_window_taps_flexible_source"},                              // a twobrid cast's manual window taps the flexible source for its first owed colour, stranding the pip only that source could make: both engines reverse the cast and keep the tap and its mana (CR 601.2g-h, 733.1)
 		{"std-trk", "beam_grant_lone_grantor"},                                          // Scotty the only creature, Open Communications in the graveyard: the grant has no creature to return
@@ -197,6 +200,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "mkm_expedited_inheritance_past_16_permissions"},                     // kfuzz std-mkm heuristic pair 88: Expedited Inheritance exiles the cards of a long run of damaged deaths and each takes a play-from-exile permission, 40 live at the peak: the cold buffer holds the records past the 16 in the State, so the game plays on with no capacity stall
 		{"custom", "cosmium_confluence_destroys_two_enchantments"},                      // Cosmium Confluence chooses its destroy mode twice and its search mode once: the two enchantments are the two instances' targets, the groups asked in printed order (CR 700.2d, 601.2c)
 		{"custom", "moment_of_reckoning_destroys_twice"},                                // Moment of Reckoning chooses its destroy mode twice: each instance destroys its own target (CR 700.2d)
+		{"custom", "cost_static_attacking_you_reads_the_caster"},                        // Red Alert! exiled from seat 1 by Vulcan Mind-Meld and cast by seat 0 while seat 0 attacks seat 1: the "creature attacking you" discount reads the caster, so one Plains cannot pay its {2}{R} (CR 601.2a, 601.2f)
 		{"custom", "season_of_loss_sacrifices_three_times"},                             // Season of Loss chooses its one-pawprint mode three times and its two-pawprint mode once: five pawprints, nothing left to add (CR 700.2i, 107.18)
 		{"custom", "put_counter_choice_remembers_the_recipient_season_of_gathering"},    // Season of Gathering puts three +1/+1 counters on a creature you control, each pick remembered so it gains vigilance and trample until end of turn, then destroys every artifact or enchantment (CR 700.2i, 122.1)
 		{"custom", "put_counter_choice_remembers_the_recipient_kaylas_command"},         // Kayla's Command chooses the token and counter modes: the +1/+1 counter goes on a creature you control, which is remembered and gains double strike until end of turn (CR 700.2, 122.1)
@@ -267,6 +271,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "static_can_attack_defender_modified_guardians_of_oboro"},            // Guardians of Oboro under an Aura is a modified Defender creature: it attacks as though it lacked defender (CR 702.3b)
 		{"custom", "static_untap_other_own_creatures_prop_room"},                        // Prop Room untaps the Savannah Lions its controller attacked with during the other player's untap step (CR 502.3)
 		{"std-dsk", "graveexile_pick_count_is_the_trigger_amount"},                      // Nashi, Searcher in the Dark deals combat damage: it mills that many cards and takes a legendary or enchantment card from among them to hand, the pick's count the damage dealt
+		{"std-tla", "iroh_grand_lotus_grave_flashback"},                                 // Iroh, Grand Lotus on the battlefield: on its controller's turn only, a graveyard Lightning Strike or Pillar Launch has flashback at its mana cost and a Lesson at {1}, and each is exiled after (CR 702.34a)
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {

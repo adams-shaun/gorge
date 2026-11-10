@@ -110,7 +110,13 @@ func (s *State) entryWinOpen(k *prep, sl Slot, p *perm) {
 		if !s.entryAcc(rk, rn) {
 			s.placeEntryCounters(k, sl, rk, rn, p.ctrl)
 		}
+		if k2 := int(e.kind2) - 1; k2 >= 0 { // the pair's second kind (returnEntryCount)
+			if !s.entryAcc(k2, rn) {
+				s.placeEntryCounters(k, sl, k2, rn, p.ctrl)
+			}
+		}
 	}
+	e.kind2 = 0
 	if pc := &k.cards[p.card]; pc.enterCtr != 0 {
 		ck := int(pc.enterCK)
 		if !s.entryAcc(ck, int(pc.enterCtr)) {
@@ -273,4 +279,17 @@ func (s *State) cloneTokenElected(sl Slot, t Obj, tmpl Slot) {
 	p := &s.perms[sl]
 	p.card = s.perms[tmpl].card
 	s.objs[t].card = p.card
+}
+
+// returnEntryCount decodes an OpReturnEx's counter operand (a is its A, v the
+// evaluated amount): the per-kind count and the second kind's entry-counter
+// byte (kind+1, 0 for none). A constant carries the pair as count | (second
+// kind + 1)<<8, read as unsigned (kop.RetCounterPairShift; WithCountersType$ with
+// two kinds, gorge entryWithCounters); any other operand is a plain count.
+func returnEntryCount(v int, a kop.ValueRef) (n int, kind2 uint8) {
+	if a.K != kop.VConst {
+		return v, 0
+	}
+	w := int(uint16(a.N))
+	return w & (1<<kop.RetCounterPairShift - 1), uint8(w >> kop.RetCounterPairShift)
 }

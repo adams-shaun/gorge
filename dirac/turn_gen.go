@@ -101,8 +101,12 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	} else if n := s.g.enterCtr.n; n > 0 {
 		if face == 0 {
 			s.placeEntryCounters(k, sl, int(s.g.enterCtr.kind), int(n), p.ctrl)
+			if k2 := s.g.enterCtr.kind2; k2 != 0 {
+				s.g.enterCtr.kind2 = 0
+				s.placeEntryCounters(k, sl, int(k2)-1, int(n), p.ctrl) // the pair's second kind, script order
+			}
 		}
-		s.g.enterCtr.n = 0
+		s.g.enterCtr.n, s.g.enterCtr.kind2 = 0, 0
 	}
 	if k.gen.anyEffEtbCtr && face == 0 && s.res.active && s.res.e.kind == seSpell && s.res.e.obj == o {
 		s.effEtbEnter(k, sl, p) // ctr_effectentry.go: after the printed counters, before the entry's triggers
@@ -1211,9 +1215,16 @@ func (s *State) leyCard(k *prep, p, skip uint8) Obj {
 // game. ley[0] is 1 once the starting player is done, ley[1] the current
 // player's declined Leylines.
 func (s *State) nextLeyline(k *prep) {
-	if s.g.ley[0] == 0 {
+	if MaxSeats == 2 {
+		if s.g.ley[0] == 0 {
+			s.g.ley = [MaxSeats]uint8{1, 0}
+			s.g.leyP = 1 - s.startPl
+			return
+		}
+	} else if p := s.nextAlive(s.g.leyP); p != s.startPl {
+		// gorge asks over AliveFrom(starting player)
 		s.g.ley = [MaxSeats]uint8{1, 0}
-		s.g.leyP = 1 - s.startPl
+		s.g.leyP = p
 		return
 	}
 	s.g.leyOn = false

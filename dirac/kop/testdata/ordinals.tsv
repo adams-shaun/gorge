@@ -950,12 +950,13 @@ RefTriggerSource	Ref	21
 RefTriggerTgtCtrl	Ref	33
 RepeatEachSeatOrder	untyped int	2
 ReplAddCountersOn	ReplKind	21
+ReplAddToken	ReplKind	35
 ReplAfterEnter	untyped int	1
 ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	35
+ReplCount	ReplKind	36
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamagePlus	ReplKind	16
@@ -1000,6 +1001,7 @@ ReplSpellsCantBeCountered	ReplKind	27
 ReplTurnUpProgram	ReplKind	25
 RetAttachShift	untyped int	8
 RetAttachTo	untyped int	2048
+RetCounterPairShift	untyped int	8
 RetFromLibrary	untyped int	16384
 RetShuffleOwed	untyped int	8192
 RetUnderOpponent	untyped int	4096
@@ -1045,6 +1047,7 @@ StBeamGranted	StaticFlags	1
 StCasterActive	StaticFlags	64
 StDynamic	StaticFlags	1
 StEmbNum	StaticFlags	16384
+StFbOwnCost	StaticFlags	1
 StFreeOnly	StaticFlags	128
 StFunctionsInExile	StaticFlags	1024
 StFunctionsInGraveyard	StaticFlags	16
@@ -1099,6 +1102,7 @@ StatControl	StaticKind	17
 StatCount	StaticKind	19
 StatDisableETB	StaticKind	234
 StatExtraLandPlay	StaticKind	12
+StatFbGrant	StaticKind	242
 StatGoad	StaticKind	249
 StatIncreaseCost	StaticKind	9
 StatMaxBlockers	StaticKind	241
@@ -1251,6 +1255,7 @@ TokSacAtEnd	untyped int	8
 TokTapped	untyped int	1
 TrAttacking	untyped int	2
 TrHasteEOT	untyped int	4
+TrList	untyped int	8
 TrTapped	untyped int	1
 TrigAbCastExhaust	int16	1
 TrigAbCastLoyalty	int16	2

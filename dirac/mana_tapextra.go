@@ -259,6 +259,10 @@ func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 			return
 		}
 	}
+	if k.painMana && pc.painCol != 0 {
+		s.removePainAvail(k, a, sl, pc)
+		return
+	}
 	a.remove(s.srcMaskAt(pc, sl), srcYield(pc))
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return
@@ -267,6 +271,42 @@ func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 	for c := range xv {
 		if xv[c] > 0 {
 			a.remove(1<<c, xv[c])
+		}
+	}
+}
+
+// removePainAvail takes out of a the units addPainAvail added for the painful
+// source at sl: its pain-widened mask (painAvailMask, which holds the colours
+// of its life-paid ability beside the printed ones), not srcMaskAt's printed
+// one, which names no group of a. A Haunted Screen reserved as a tap candidate
+// no longer makes the {G} its life-paid ability adds (CR 601.2g-h). The modal
+// case addPainAvail holds out or counts in nModal is left as it stands.
+func (s *State) removePainAvail(k *prep, a *avail, sl Slot, pc *pcard) {
+	p := s.perms[sl].ctrl
+	m := s.painAvailMask(pc, p)
+	if m != 0 {
+		n := uint8(1)
+		if pc.painOnly {
+			n = max(pc.manaN, 1)
+		}
+		a.remove(m, n)
+	}
+	if m == 0 || k.gen == nil || !k.gen.anyTapExtra {
+		return
+	}
+	xc, xp, ok := s.srcExtraPain(k, sl, pc)
+	if !ok {
+		return
+	}
+	both := m&(1<<kop.C) != 0
+	colours := m&^(1<<kop.C) != 0
+	for c := range xc {
+		n := xp[c]
+		if both && !colours {
+			n = xc[c]
+		}
+		if n > 0 {
+			a.remove(1<<c, n)
 		}
 	}
 }

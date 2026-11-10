@@ -508,6 +508,16 @@ type grantKey struct {
 	bf uint64
 }
 
+// folded is the key as gorge's scriptStateKey reads it: the unspendable
+// units counted in the pool, whose restriction its key does not carry.
+func (k grantKey) folded() grantKey {
+	for c := range k.pool {
+		k.pool[c] += k.ghost[c]
+	}
+	k.ghost = [kop.NumManaKinds]uint8{}
+	return k
+}
+
 // grantStep is one prefix activation: candidate i tapped for n mana of
 // colour col.
 type grantStep struct {
@@ -651,19 +661,34 @@ func (g *grantSrch) visit(t *State) bool {
 	if g.dyn {
 		cost = t.grantDynamicCost(g.k, g.p, g.d.play, g.full)
 	}
-	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && !g.waitsForStack(t) {
-		return true
-	}
 	pl := &t.pl[g.p&1]
 	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(g.p)}
 	if g.k.artMana {
 		t.artSync(g.p)
 		key.art = t.g.poolArt[g.p&1]
 	}
+	// gorge's key reads the floated pool, whose restriction it does not
+	// (scriptStateKey): a state that differs from a seen one only in which
+	// pool units are the play's unspendable ones (ghost) is that state, and
+	// gorge drops it before pricing. A state equal in the ghost too is priced
+	// first: dirac's seen key leaves out what gorge's also reads (counters,
+	// snow) and what its verdict reads (waitsForStack), so a repeat of it may
+	// still be the answer.
+	same := false
+	fk := key.folded()
 	for i := 0; i < g.nseen; i++ {
-		if g.seen[i] == key {
-			return false
+		switch e := g.seen[i]; {
+		case e == key:
+			same = true
+		case e.folded() == fk:
+			return false // (gorge's seen check precedes its pricing: scriptSearch.visit)
 		}
+	}
+	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && !g.waitsForStack(t) {
+		return true
+	}
+	if same {
+		return false
 	}
 	if g.nseen < len(g.seen) {
 		g.seen[g.nseen] = key
@@ -697,23 +722,28 @@ func (g *grantSrch) visit(t *State) bool {
 			continue // sacrificed by an earlier step (mana_grantcost.go)
 		}
 		grants := t.grantTapOK(g.k, sl)
+		fok := g.filt[i] && t.filtPaid(g.k, g.p, sl)
 		if !grants && !tx {
 			if g.ng[i] > 0 && g.sacOnlyVisit(t, i, sl) { // no {T} in its cost: tapped or sick alike (mana_grantcost.go)
 				return true
 			}
-			continue
+			if !(fok && t.filtUsable(g.k, sl)) {
+				continue // (a summoning-sick Changeling's filter stays: only its granted {T} ability is out, CR 302.6)
+			}
 		}
 		// several abilities (its own beside a grant, two grants): the
 		// "choose a mana ability" ask, one node, the printed ability's
 		// answers first (gorge flattens a Combo's colours into that ask;
 		// an Any ability still asks its colour)
-		fok := g.filt[i] && t.filtPaid(g.k, g.p, sl)
 		alts := 0
 		if grants {
 			alts = t.grantAlts(g.k, g.p, sl, &g.gi[i], int(g.ng[i]))
 		}
 		if g.dual[i] {
 			alts++
+			if t.ownManaUsable(g.k, sl) && t.ownRestrAb(g.k, sl) != nil {
+				alts++ // (the restricted printed ability beside the usable one is an answer of the ask)
+			}
 		}
 		if fok {
 			alts++
@@ -728,6 +758,9 @@ func (g *grantSrch) visit(t *State) bool {
 			return true
 		}
 		if !grants {
+			if fok && g.filtBranch(t, i, sl) {
+				return true
+			}
 			continue
 		}
 		// gorge's "choose a mana ability" ask lists the answers of the source's
@@ -747,7 +780,7 @@ func (g *grantSrch) visit(t *State) bool {
 			} else if g.dual[i] {
 				mask, n := uint8(0), uint8(0)
 				if ra := t.ownRestrAb(g.k, sl); ra != nil && !t.ownManaUsable(g.k, sl) {
-					mask, n = uint8(ra.ManaColors)&0x3f, max(ra.ManaN, 1) // the restricted printed ability
+					mask, n = uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra) // the restricted printed ability
 					// gorge's search taps it first whether or not the play may spend
 					// it; mana the play cannot spend prices nothing
 					g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
@@ -765,7 +798,7 @@ func (g *grantSrch) visit(t *State) bool {
 				// the usable one, whether or not the play may spend it
 				if ra := t.ownRestrAb(g.k, sl); ra != nil {
 					g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
-					if g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, max(ra.ManaN, 1), false) {
+					if g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra), ra.ManaColors&kop.ColAny == kop.ColAny) {
 						return true
 					}
 				}
@@ -1754,4 +1787,14 @@ func (s *State) filterSource(k *prep, p uint8) bool {
 		}
 	}
 	return false
+}
+
+// restrAbN is the mana a tap of sl's printed restricted ability ra makes: an
+// evaluated amount (Helga's X, her power) is read off the board, where kgen's
+// ManaN is the placeholder 1 for every dynamic ability.
+func (s *State) restrAbN(k *prep, sl Slot, ra *kop.Ability) uint8 {
+	if ra.AFlags&kop.AfManaDynamic != 0 {
+		return uint8(min(max(s.dynManaN(k, ra, sl), 1), maxDynMana))
+	}
+	return uint8(max(ra.ManaN, 1))
 }

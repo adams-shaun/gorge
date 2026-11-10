@@ -1520,8 +1520,8 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	if k.gen != nil && k.gen.anyMayLimit {
 		s.countMayPlayLand(k, o, from)
 	}
-	if n := s.value(k, in.A); n > 0 {
-		s.g.enterCtr.n, s.g.enterCtr.kind = uint8(n), kop.CounterKind(in.B.N)
+	if n, k2 := returnEntryCount(s.value(k, in.A), in.A); n > 0 {
+		s.g.enterCtr.n, s.g.enterCtr.kind, s.g.enterCtr.kind2 = uint8(n), kop.CounterKind(in.B.N), k2
 	}
 	var sl Slot
 	switch {
@@ -1537,7 +1537,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		s.enterOnto(host)
 		sl = s.enterMoved(k, o, ctrl, fl&kop.MvTapped != 0, from)
 	}
-	s.g.enterCtr.n = 0
+	s.g.enterCtr.n, s.g.enterCtr.kind2 = 0, 0
 	s.g.retMiss = false
 	if fl&kop.MvAttacking != 0 && s.enterAttacking(k, sl, ctrl) {
 		return true // the CR 508.4 defender ask (zone_changezoneparams.go)
@@ -2000,7 +2000,7 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 		// step and does nothing (gorge scheduleAtEOTNone)
 		s.delayEmpty(e)
 	}
-	tc, n, rewritten, ok := s.copyTokenRewrite(k, e.ctrl, c, v)
+	tc, n, rewritten, ok := s.copyTokenRewrite(k, e.ctrl, c, v, true)
 	if !ok {
 		return false // StallTokRewrite
 	}
@@ -2012,6 +2012,12 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 			// still registers (CR 603.7); the other riders have no copy
 			s.delayEmpty(e)
 		}
+		return false
+	}
+	// gorge's copy proposal puts the adder's token first, the copies after it
+	// (continueCopyTokenProposal), so it is made before them and an as-enters
+	// ask that parks the copies leaves it behind (repl_tokorder.go mintTokAdds)
+	if s.mintTokAdds(k, &kop.Instr{Op: kop.OpCreateToken}, e.ctrl, c, n) || s.g.stalled != 0 {
 		return false
 	}
 	return s.copyTokens(k, in, c, n)

@@ -498,8 +498,8 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 		out := make([]kop.Ability, len(abs))
 		for k, ab := range abs {
 			out[k] = ab
-			if ab.Kind == kop.AbReplacement && ab.Repl.Kind == kop.ReplRewriteTokens {
-				out[k].Repl.C = int16(id[int(ab.Repl.C)]) // the token it makes
+			if ab.Kind == kop.AbReplacement && (ab.Repl.Kind == kop.ReplRewriteTokens || ab.Repl.Kind == kop.ReplAddToken) {
+				out[k].Repl.C = int16(id[int(ab.Repl.C)]) // the token it makes or adds
 			}
 			out[k].Prog = make([]kop.Instr, len(ab.Prog))
 			copy(out[k].Prog, ab.Prog)

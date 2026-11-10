@@ -1353,7 +1353,7 @@ func (s *State) flashbackCostOf(k *prep, o Obj) kop.ManaCost {
 	if cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp && !s.fbGranted(k, o) {
 		return cd.AltCost
 	}
-	return cd.Cost
+	return s.fbGrantCost(k, s.objs[o].owner(), o, s.fbGranted(k, o)) // the mana cost, or a live grant's own (kw_fbgrant.go)
 }
 
 // FeatGrantedOff is the keywords an object off the battlefield has been
@@ -1373,7 +1373,11 @@ func (s *State) FeatGrantedOffRep(o Obj) (kop.KwMask, FeatKwReps) {
 	if !s.g.on {
 		return 0, rep
 	}
-	n := s.fbGrants(s.k(), o)
+	k := s.k()
+	n := s.fbGrants(k, o)
+	if s.fbLive(k, o) {
+		n++ // a live static's grant (kw_fbgrant.go), listed after the stamped ones
+	}
 	if n == 0 {
 		return 0, rep
 	}

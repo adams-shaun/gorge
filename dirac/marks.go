@@ -471,6 +471,10 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 			fl |= 1 << i
 		}
 	}
+	for i := 2; i < MaxSeats; i++ {
+		// the seats past the second (none at two seats)
+		h = hmix(h, uint64(s.mullOrder[i])|uint64(b2u(s.mullKept[i]))<<8|uint64(b2u(s.mullMull[i]))<<9)
+	}
 	// arm A of scr: the division is read only while a combat damage pass
 	// holds it (zero otherwise, as it was before the overlay)
 	var dd slotMask
