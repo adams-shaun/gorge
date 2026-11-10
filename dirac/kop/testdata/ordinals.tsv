@@ -1000,6 +1000,7 @@ ReplSpellsCantBeCountered	ReplKind	27
 ReplTurnUpProgram	ReplKind	25
 RetAttachShift	untyped int	8
 RetAttachTo	untyped int	2048
+RetCounterPairShift	untyped int	8
 RetFromLibrary	untyped int	16384
 RetShuffleOwed	untyped int	8192
 RetUnderOpponent	untyped int	4096
