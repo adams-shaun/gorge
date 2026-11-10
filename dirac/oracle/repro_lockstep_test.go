@@ -518,3 +518,12 @@ func TestGraveyardActivationRestrictedSourceRelaxedLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "graveyard_activation_restricted_source_relaxed", "std-tla", Config{})
 }
+
+// TestTokenCopyOfBackFaceMVLockstep: Ember Island Production's token copy
+// of Avatar Kuruk (The Legend of Kuruk transformed) has mana value 0, so
+// Epic Downfall's "mana value 3 or greater" cannot target it, while the
+// transformed Kuruk itself reads its front face's {2}{U}{U} (CR 712.8e).
+func TestTokenCopyOfBackFaceMVLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "token_copy_of_back_face_has_no_mana_value", "std-tla", Config{GorgeAutopaySurface: true})
+}

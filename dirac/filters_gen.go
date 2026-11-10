@@ -430,8 +430,8 @@ func (s *State) nameCardAt(sl Slot) CardID {
 // cmcPerm is sl's mana value for a filter: a face-down permanent has none
 // (CR 708.2), so 0.
 func (s *State) cmcPerm(k *prep, sl Slot) int {
-	if s.faceDown(k, sl) || s.cpxNoCost(k, sl) {
-		return 0
+	if s.faceDown(k, sl) || s.cpxNoCost(k, sl) || s.copiesBackFace(k, sl) {
+		return 0 // CR 712.8e: a copy of a back face has no mana cost
 	}
 	c := s.cardAt(sl)
 	if DebugFaceTransformStats != nil && k.t.Cards[c].Face != 0 {
