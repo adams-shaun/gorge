@@ -85,7 +85,7 @@ func (lc *lowerCtx) refuseMultiMana() {
 	}
 	for i, a := range ms[1:] {
 		if !manaGapModelled(ms[0], a) {
-			lc.refuseNode("card", "%d mana abilities: mana ability %d (cost %v, produces %s) is not modelled beside the first", len(ms), i+1, a.Cost.Mana, a.Mana.Colors)
+			lc.refuseNode("card", "%d mana abilities: mana ability %d (cost %v, produces %s) is not modelled beside the first: %s", len(ms), i+1, a.Cost.Mana, a.Mana.Colors, manaGapWhy(ms[0], a))
 			return
 		}
 	}
@@ -254,6 +254,33 @@ func manaGapModelled(first, a *lAbility) bool {
 		return a.Mana.Choice && amt.Kind == vConst && amt.N > 1 && amt.N <= maxComboMana
 	}
 	return false
+}
+
+// manaGapWhy names what a, a second mana ability manaGapModelled refuses,
+// needs beyond the kernel's one-unit-per-permanent source model (the
+// reasons the kernel's lockstep games and activation walk show):
+//
+//   - a cost beyond {T}: tapping another creature (Scene of the Crime) or
+//     removing counters (Weather Maker): the kernel's mana walk cannot
+//     activate it, and gorge's planner takes it as an alternative;
+//   - a spend-restricted ability of several mana of the first ability's own
+//     fixed colour (Tablet of Discovery): the kernel's restricted pair unit
+//     plans only the any-colour larger alternative, so the planner taps
+//     differently from gorge's;
+//   - an evaluated amount of the first ability's fixed colour (Itlimoc,
+//     Cradle of the Sun): the kernel plans the first ability alone, gorge's
+//     planner the larger of the two.
+func manaGapWhy(first, a *lAbility) string {
+	m := a.Mana
+	switch {
+	case !plainTapMana(a, false) && !plainTapMana(a, true):
+		return "a cost beyond {T} the kernel's mana walk cannot activate"
+	case m.Restrict != nil && m.Amount.Kind == vConst && m.Amount.N > 1 && len(m.Colors) == 1 && m.Colors != "WUBRG" && !m.Choice:
+		return "a restricted fixed colour of several mana: the kernel's restricted pair unit plans only an any-colour one"
+	case m.Amount.Kind > vConst && len(m.Colors) == 1 && m.Colors == first.Mana.Colors && plainTapMana(a, false):
+		return "an evaluated amount of the first ability's colour: the kernel plans the first ability alone"
+	}
+	return "a shape beyond the restricted, filter and pain gaps"
 }
 
 // restrictedComboModelled: a, a restricted {T} ability of a Combo of any
