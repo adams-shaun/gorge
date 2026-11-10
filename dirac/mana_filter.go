@@ -643,6 +643,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 			fs.fees += s.filtFee(k, b.first())
 		}
 	}
+	hadOther := fs.other.any() // a dropped gap still asks for the dead-end check
 	if gapFilteredPlay(a) && (fs.gaps.any() || fs.other.any()) {
 		d := s.grantPayDesc(k, a)
 		fs.gaps, fs.other = s.gapSpendableMask(k, fs.gaps, &d), s.gapSpendableMask(k, fs.other, &d)
@@ -659,7 +660,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	if fs.spill != 0 {
 		s.capFull(fs.spill) // (the fork the step ran on latched it; the real state must)
 	}
-	if !apply && (k.restrSrc || fs.other.any()) && s.filtDeadEnd(k, p, a, &fs) {
+	if !apply && (k.restrSrc || hadOther) && s.filtDeadEnd(k, p, a, &fs) {
 		return false
 	}
 	if apply {

@@ -588,6 +588,7 @@ func (g *grantSrch) candidates(s *State) {
 	g.n = 0
 	holders := 0
 	plain := g.d.hasPlay && gapFilteredPlay(g.d.play)
+	var dropped slotMask
 	for i := 0; i < n; i++ {
 		sl := order[i]
 		if sl == g.ex {
@@ -606,6 +607,7 @@ func (g *grantSrch) candidates(s *State) {
 			if fm.has(sl) {
 				g.funding += s.filtFee(g.k, sl)
 			}
+			dropped = dropped.with(sl) // (nor a funding source: it makes no mana the play spends)
 			continue
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
@@ -646,7 +648,7 @@ func (g *grantSrch) candidates(s *State) {
 	}
 	for i := 0; i < n; i++ {
 		sl := order[i]
-		if sl == g.ex || seen(sl) || !s.canTapForMana(g.k, sl) {
+		if sl == g.ex || seen(sl) || dropped.has(sl) || !s.canTapForMana(g.k, sl) {
 			continue
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n], g.def[g.n] = sl, 0, true, false, false, false
