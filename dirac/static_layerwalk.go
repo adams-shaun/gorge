@@ -37,6 +37,17 @@ const (
 // reaches walks (refreshTy) and the grant is ordered with the setter.
 const fxNeedSubSet uint8 = 1 << 5
 
+// outsMax is the outside-type grants one dchars holds; a fifth sets
+// nOuts = outsOver (act_choosetype.go lfxChosen).
+const outsMax = 4
+
+// outsOver marks more outside-type grants than dchars holds.
+const outsOver uint8 = 255
+
+// outGrant is one AddChosen static's outside-type grant: the granted
+// type's perm.chosen code and the static's source slot+1.
+type outGrant struct{ code, src uint8 }
+
 // dchars is one permanent's characteristics as the walk builds them. A
 // stack local: it never escapes.
 type dchars struct {
@@ -45,8 +56,8 @@ type dchars struct {
 	all    bool // every creature type (CR 702.73a / an all-creature-types effect)
 	subs   kop.SubMask
 	bp, bt int
-	outSrc uint8 // the sole source slot+1 of the outside grants in out, 255 for several (act_choosetype.go)
-	out    uint8 // an AddChosen grant of a type outside the matchup: 0 none, the source slot+1, 255 two sources (act_choosetype.go)
+	outs   [outsMax]outGrant // AddChosen grants of types outside the matchup (act_choosetype.go)
+	nOuts  uint8             // grants held in outs; outsOver = more than outsMax
 }
 
 // walk stop points.
