@@ -1,8 +1,8 @@
 {
   "about": "dirac's per-set support, rendered by scripts/docs_sets.py. corpus and sets are the table in dirac/docs/support.md (corpus is its ALL row): scripts/docs_sets.py --refresh-dirac copies it and docs_sets_test.py holds this file to it. A card is supported when kgen lowers it, it is not refused by name, and clean lockstep games evidence it; lowered counts every card kgen can represent, refused and unverified included. commit is the gorge revision the counts were read at. lockstep is make dirac-slices on the full surface: seeded games played in both engines, compared at every decision.",
   "date": "2026-11-10",
-  "commit": "c2f2afa3b",
-  "corpus": {"cards": 34442, "lowered": 22022, "refused": 25, "unverified": 16908, "supported": 5089},
+  "commit": "8322fcb21",
+  "corpus": {"cards": 34442, "lowered": 22034, "refused": 25, "unverified": 16920, "supported": 5089},
   "lockstep": {
     "BLB": {"games": 1500, "agree": 1500, "stalls": 0, "disagree": 0},
     "FDN": {"games": 1494, "agree": 1491, "stalls": 3, "disagree": 0}
@@ -19,7 +19,7 @@
     "FRA": {"cards": 269, "lowered": 251, "refused": 0, "unverified": 12, "supported": 239},
     "HOB": {"cards": 172, "lowered": 157, "refused": 0, "unverified": 4, "supported": 153},
     "LCI": {"cards": 290, "lowered": 257, "refused": 1, "unverified": 27, "supported": 229},
-    "MKM": {"cards": 279, "lowered": 246, "refused": 1, "unverified": 35, "supported": 210},
+    "MKM": {"cards": 279, "lowered": 247, "refused": 1, "unverified": 36, "supported": 210},
     "MSH": {"cards": 276, "lowered": 241, "refused": 1, "unverified": 8, "supported": 232},
     "OTJ": {"cards": 276, "lowered": 244, "refused": 1, "unverified": 2, "supported": 241},
     "SOS": {"cards": 270, "lowered": 255, "refused": 0, "unverified": 6, "supported": 249},
@@ -27,7 +27,7 @@
     "TDM": {"cards": 276, "lowered": 255, "refused": 3, "unverified": 7, "supported": 245},
     "TLA": {"cards": 285, "lowered": 260, "refused": 1, "unverified": 8, "supported": 251},
     "TMT": {"cards": 194, "lowered": 176, "refused": 1, "unverified": 5, "supported": 170},
-    "TRC": {"cards": 337, "lowered": 293, "refused": 0, "unverified": 27, "supported": 266},
+    "TRC": {"cards": 337, "lowered": 294, "refused": 0, "unverified": 28, "supported": 266},
     "TRK": {"cards": 311, "lowered": 311, "refused": 0, "unverified": 0, "supported": 311},
     "WOE": {"cards": 281, "lowered": 258, "refused": 0, "unverified": 12, "supported": 246}
   }
