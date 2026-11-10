@@ -113,7 +113,7 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 // tokens under p's control creates (doubled once per Doubling Season p
 // controls; the filtered and x3 multipliers: repl_multipliers.go).
 func (s *State) replTokens(k *prep, p uint8, tok CardID, n int) int {
-	if k.gen == nil || k.gen.anyRepl&rbDblTok == 0 || n <= 0 || p > 1 {
+	if k.gen == nil || k.gen.anyRepl&rbDblTok == 0 || n <= 0 || p >= MaxSeats {
 		return n
 	}
 	if k.gen.anyTokRew {
@@ -893,7 +893,7 @@ func (s *State) damageSeqNext(k *prep, n int) {
 			s.g.dmgSeqPl &^= b
 			p := s.active
 			if b == 2 {
-				p = 1 - s.active
+				p = NextSeat(s.active)
 			}
 			s.damageTo(k, PlayerCode(p), n)
 			if s.g.nc.n != 0 {
@@ -924,7 +924,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 	g := k.gen
 	ro := &s.g.ro
 	plusOnly := replPlusOnly(g)
-	if !plusOnly && g.anyRepl&(rbDblDmg|rbPrevNC|rbShield|rbPrevCol|rbPrevDmgTo) == 0 || n <= 0 || ctrl > 1 || ro.n > 0 || ro.on || s.g.nc.n > 0 {
+	if !plusOnly && g.anyRepl&(rbDblDmg|rbPrevNC|rbShield|rbPrevCol|rbPrevDmgTo) == 0 || n <= 0 || ctrl >= MaxSeats || ro.n > 0 || ro.on || s.g.nc.n > 0 {
 		return false
 	}
 	rcp := uint8(255)

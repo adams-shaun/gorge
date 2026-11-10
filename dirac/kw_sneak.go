@@ -260,7 +260,7 @@ func (s *State) enteringAttackLegal(k *prep, ctrl uint8, d Obj) bool {
 		return false
 	}
 	ob := &s.objs[d]
-	return ob.zone == kop.ZoneBattlefield && s.typesGen(k, ob.slot)&kop.TPlaneswalker != 0 && s.ctrlM[1-ctrl&1].has(ob.slot)
+	return ob.zone == kop.ZoneBattlefield && s.typesGen(k, ob.slot)&kop.TPlaneswalker != 0 && s.oppsM(ctrl).has(ob.slot)
 }
 
 // the per-permanent `sneaked` mark (CR 702.190a), one slot

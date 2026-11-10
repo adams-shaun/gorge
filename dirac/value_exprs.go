@@ -176,12 +176,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.attackedTurn(k, x, ctx) // value_turntallies.go
 	case kop.ExOppsLostLife:
 		if x.N == 1 {
-			return int(s.g.cdLeg >> (1 - ctx.ctrl) & 1) // dealt combat damage by a legendary creature (value_turntallies.go)
+			return s.oppsLostLife(ctx.ctrl, true) // dealt combat damage by a legendary creature (value_turntallies.go)
 		}
-		if s.pl[1-ctx.ctrl].lifeLost > 0 {
-			return 1
-		}
-		return 0
+		return s.oppsLostLife(ctx.ctrl, false)
 	case kop.ExNotOwnLibMV:
 		return s.notOwnLibMV(k) // value_objectmv.go
 	case kop.ExCounterKinds:
@@ -292,4 +289,32 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.exprKvf(k, x, ctx) // filter_valueheads.go
 	}
 	panic("kernel: expr kind not implemented")
+}
+
+// oppsLostLife is ExOppsLostLife: the number of p's opponents who lost life
+// this turn, or (leg) who were dealt combat damage by a legendary creature
+// (genState.cdLeg bit q).
+func (s *State) oppsLostLife(p uint8, leg bool) int {
+	c := 0
+	for q := uint8(0); q < s.nSeats(); q++ {
+		if q == p {
+			continue
+		}
+		if leg && s.g.cdLeg>>q&1 != 0 || !leg && s.pl[q].lifeLost > 0 {
+			c++
+		}
+	}
+	return c
+}
+
+// oppsLifeLost is the life p's opponents lost this turn (gorge
+// LifeOppsLostThisTurn sums over the opponents).
+func (s *State) oppsLifeLost(p uint8) int {
+	v := 0
+	for q := uint8(0); q < s.nSeats(); q++ {
+		if q != p {
+			v += int(s.pl[q].lifeLost)
+		}
+	}
+	return v
 }

@@ -201,28 +201,39 @@ func (s *State) setEnterAttacker(k *prep, sl Slot, atk uint8) {
 
 // enteringDefenderCands lists the CR 508.4 defenders a creature entering
 // attacking under ctrl may attack, in gorge enteringDefenders order: the
-// opponent player first (the fallback chooseEnteringDefender moves to the
+// opponent players first (the fallback chooseEnteringDefender moves to the
 // front), then each face-up planeswalker the opponent controls, then every
 // battle it protects (gorge battleDefenders, CR 310.7), each seat's
 // battlefield in entry order.
 func (s *State) enteringDefenderCands(k *prep, ctrl uint8, buf *[MaxOptions]uint8) int {
-	opp := 1 - ctrl&1
-	if s.pl[opp].lost {
-		return 0
-	}
-	buf[0] = PlayerCode(opp)
-	n := 1
-	var order [MaxPerm]Slot
-	var m slotMask
-	for q := s.ctrlM[opp]; q.any(); q = q.rest() {
-		if sl := q.first(); s.typesGen(k, sl)&kop.TPlaneswalker != 0 && !s.faceDown(k, sl) {
-			m = m.with(sl)
+	n := 0
+	for opp := uint8(0); opp < s.nSeats(); opp++ {
+		if opp != ctrl && !s.pl[opp].lost {
+			buf[n] = PlayerCode(opp) // each opponent player, AliveFrom(0)
+			n++
 		}
 	}
-	c := s.battlefieldOrder(opp, m, order[:], 0)
-	for _, sl := range order[:c] {
-		buf[n] = uint8(s.perms[sl].obj)
-		n++
+	if n == 0 {
+		return 0
+	}
+	var order [MaxPerm]Slot
+	for opp := uint8(0); opp < s.nSeats(); opp++ {
+		if opp == ctrl || s.pl[opp].lost {
+			continue
+		}
+		var m slotMask
+		for q := s.ctrlM[opp]; q.any(); q = q.rest() {
+			if sl := q.first(); s.typesGen(k, sl)&kop.TPlaneswalker != 0 && !s.faceDown(k, sl) {
+				m = m.with(sl)
+			}
+		}
+		c := s.battlefieldOrder(opp, m, order[:], 0)
+		for _, sl := range order[:c] {
+			if n < MaxOptions {
+				buf[n] = uint8(s.perms[sl].obj)
+				n++
+			}
+		}
 	}
 	for p := uint8(0); p < s.nSeats(); p++ {
 		if s.out(p) {
@@ -234,7 +245,7 @@ func (s *State) enteringDefenderCands(k *prep, ctrl uint8, buf *[MaxOptions]uint
 				bm = bm.with(sl)
 			}
 		}
-		c = s.battlefieldOrder(p, bm, order[:], 0)
+		c := s.battlefieldOrder(p, bm, order[:], 0)
 		for _, sl := range order[:c] {
 			buf[n] = uint8(s.perms[sl].obj)
 			n++

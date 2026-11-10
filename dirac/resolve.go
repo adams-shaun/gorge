@@ -944,19 +944,22 @@ func (s *State) players(k *prep, r kop.Ref) seatSeq {
 // first-player reads).
 func (s *State) oneOpp(k *prep, r kop.Ref) uint8 {
 	e := &s.res.e
+	return s.oneOppOf(k, r, e.ctrl, e.obj)
+}
+
+// oneOppOf is oneOpp for controller ctrl and source obj.
+func (s *State) oneOppOf(k *prep, r kop.Ref, ctrl uint8, obj Obj) uint8 {
 	if MaxSeats == 2 {
-		return 1 - e.ctrl
+		return NextSeat(ctrl)
 	}
-	if r == kop.RefDefendingPlayer {
-		if e.obj != NoObj {
-			if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].flags&pfAttacking != 0 {
-				if p := s.atkSeat(k, ob.slot); p != NoTarget {
-					return p
-				}
+	if r == kop.RefDefendingPlayer && obj != NoObj {
+		if ob := &s.objs[obj]; ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].flags&pfAttacking != 0 {
+			if p := s.atkSeat(k, ob.slot); p != NoTarget {
+				return p
 			}
 		}
 	}
-	return s.nextAlive(e.ctrl)
+	return s.nextAlive(ctrl)
 }
 
 // tgtCode is the resolving entry's target i, or NoTarget when it was

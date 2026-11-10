@@ -61,7 +61,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		case 1:
 			kw = 0
 		case 2:
-			ctrl = 1 - ctrl
+			ctrl = 1 - ctrl // seat-ok: a test-only mutation (DebugDmgSrcPlLKI)
 		}
 		infect = k.t.Cards[s.objs[o].card].Infect
 	default:

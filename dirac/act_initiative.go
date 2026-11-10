@@ -79,7 +79,7 @@ func (s *State) DungeonRoom(p uint8) uint8 { return s.g.room[SeatIx(p)] }
 // takeInitiative is OpTakeInitiative; false: the venture asks.
 func (s *State) takeInitiative(k *prep, in *kop.Instr) bool {
 	p := s.playerRef(k, in.Obj)
-	if p > 1 {
+	if p >= MaxSeats {
 		return true
 	}
 	s.g.initH = p + 1
@@ -169,7 +169,7 @@ func (s *State) initUpkeep(k *prep) {
 func (s *State) initCombat(k *prep, r *dmgRec) {
 	var def uint8
 	if MaxSeats == 2 {
-		def = 1 - s.active
+		def = NextSeat(s.active)
 		if s.g.initH != def+1 || DebugNoInitSteal {
 			return
 		}

@@ -484,7 +484,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 	}
 	srcObj := s.perms[src].obj
 	srcCtrl := s.perms[src].ctrl
-	dpl := 1 - srcCtrl // the player dealt damage (a to-player event)
+	dpl := s.dmgSeat(rcp, srcCtrl) // the player dealt damage (a to-player event)
 	if pl, ok := recipientPlayer(rcp); ok {
 		dpl = pl
 	}
@@ -529,7 +529,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 				// damageCauseMatches.
 				return
 			}
-			tobj, tpl, n := srcObj, 1-srcCtrl, amt
+			tobj, tpl, n := srcObj, s.dmgSeat(rcp, srcCtrl), amt
 			if k.gen.anyDmgRef {
 				var ok bool
 				if n, tobj, tpl, ok = s.ddoLine(k, l, a, src, srcObj, srcCtrl, amt, rcp, rl); !ok {
@@ -572,7 +572,7 @@ func dmgPlayers(toPlayer bool, srcCtrl uint8, rcp uint8) uint8 {
 	if pl, ok := recipientPlayer(rcp); ok {
 		return 1 << pl
 	}
-	return 1 << (1 - srcCtrl)
+	return 1 << NextSeat(srcCtrl) // the aggregate: dmgSeat's stand-in
 }
 
 // dmgPl is the player mask fireDamageSrc takes for one damage target code.
@@ -611,7 +611,7 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 			}
 			// "to an opponent": one of the listener's opponents was dealt it
 			// (a Firebrand pinging its own controller is not: pair 63811)
-			if t.Flags2&kop.Tf2ToOpponent != 0 && plM&(1<<(1-l.ctrl)) == 0 || t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl {
+			if t.Flags2&kop.Tf2ToOpponent != 0 && !oppDamaged(plM, l.ctrl) || t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl {
 				return
 			}
 			if t.Filter != 0 && !s.matchCardGen(k, t.Filter, s.objs[o].card, ctrl, l.ctrl, o) || !s.trigOK(k, l, a) {
@@ -620,7 +620,7 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 			if t.Flags4 != 0 && !s.singleCauseOK(k, rcp) {
 				return // ValidCause$ Spell.numTargets EQ1 + TargetRelativeToCause$ (trig_params.go)
 			}
-			tobj, tpl, n := o, 1-ctrl, amt
+			tobj, tpl, n := o, s.dmgSeat(rcp, ctrl), amt
 			if k.gen.anyDmgRef {
 				var ok bool
 				if n, tobj, tpl, ok = s.ddoLine(k, l, a, NoSlot, o, ctrl, amt, rcp, rl); !ok {
@@ -841,7 +841,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 					if rlp != nil {
 						rlp.at = uint8(i + 1)
 					}
-					s.fireDamageEvGen(k, sl, ev.n, ev.dst == NoSlot, true, &latch, s.combatRcp(&r.ev[i]), rlp)
+					s.fireDamageEvGen(k, sl, ev.n, ev.dst == NoSlot, true, &latch, s.combatRcp(k, &r.ev[i]), rlp)
 				}
 			}
 		}

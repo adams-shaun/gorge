@@ -280,7 +280,7 @@ func (s *State) applyAskCold2(k *prep, a Action) bool {
 	case raGenRearrShuffle:
 		s.res.ask = raNone
 		if a.Mode() == 1 {
-			if p := s.playerRef(k, s.prog(k)[s.res.pc].Obj); p <= 1 {
+			if p := s.playerRef(k, s.prog(k)[s.res.pc].Obj); p < MaxSeats {
 				s.shuffleLib(p)
 			}
 		}
@@ -295,7 +295,7 @@ func (s *State) applyAskCold2(k *prep, a Action) bool {
 			s.continueRes(k, 0)
 			break
 		}
-		if s.demonstrateCopy(k, 2) {
+		if s.demonstrateCopy(k, demoStart) {
 			s.continueRes(k, 0)
 		}
 	default:
@@ -458,7 +458,7 @@ func (s *State) execUnread(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpUntapChoose:
 		return s.untapChoose(k, in), true
 	case kop.OpLookAck:
-		if p := s.playerRef(k, in.Obj); p <= 1 && !DebugNoLookAck && (in.C == 0 && s.pl[p].handN > 0 || in.C == 1 && s.value(k, in.A) > 0 && s.pl[p].libLen() > 0) {
+		if p := s.playerRef(k, in.Obj); p < MaxSeats && !DebugNoLookAck && (in.C == 0 && s.pl[p].handN > 0 || in.C == 1 && s.value(k, in.A) > 0 && s.pl[p].libLen() > 0) {
 			s.res.ask, s.res.askP = raGenLookAck, s.res.e.ctrl
 			return false, true
 		}

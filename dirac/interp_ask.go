@@ -2481,7 +2481,7 @@ func (s *State) pileMove(o Obj, z kop.Zone) {
 // two seats it is the controller's opponent, the one player it can target.
 func (s *State) targetedExiler(ctrl uint8) uint8 {
 	if MaxSeats == 2 {
-		return 1 - ctrl
+		return NextSeat(ctrl)
 	}
 	for i := range s.res.e.tgt {
 		if t := s.tgtCode(i); isPlayerTarget(t) {

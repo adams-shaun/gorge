@@ -186,10 +186,16 @@ func (s *State) sameReferent(r *dmgRec, ev *dmgEv, rcp uint8) bool {
 }
 
 // combatRcp is the recipient code of combat event ev (its player the
-// defending player, 1 - the active player).
-func (s *State) combatRcp(ev *dmgEv) uint8 {
+// defending player: the player attacker ev.src attacks, CR 510.1).
+func (s *State) combatRcp(k *prep, ev *dmgEv) uint8 {
 	if ev.dst == NoSlot {
-		return PlayerCode(1 - s.active)
+		if MaxSeats == 2 {
+			return PlayerCode(NextSeat(s.active))
+		}
+		if p := s.atkSeat(k, ev.src); p != NoTarget {
+			return PlayerCode(p)
+		}
+		return PlayerCode(s.nextAlive(s.active))
 	}
 	return uint8(s.perms[ev.dst].obj)
 }

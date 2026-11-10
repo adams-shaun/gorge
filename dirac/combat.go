@@ -74,8 +74,8 @@ func (s *State) declareMustAttack(k *prep) {
 				continue // CR 508.1d: no declaration obeys it alone (combat_alone.go)
 			}
 			s.perms[sl].flags |= pfAttacking
-			s.perms[sl].atk = PlayerCode(1 - s.active)
-			s.perms[sl].bord = s.nAttackers // declaration order (fireAttacksGen)
+			s.perms[sl].atk = PlayerCode(s.nextAlive(s.active)) // two live seats only: mustAttackAsked asks at more
+			s.perms[sl].bord = s.nAttackers                     // declaration order (fireAttacksGen)
 			s.touchSl(sl)
 			s.nAttackers++
 		}
@@ -97,7 +97,7 @@ func (s *State) anyAttacker(k *prep) bool {
 func (s *State) attackerOptions(k *prep, d *Decision) bool {
 	d.Kind, d.Player = DkAttackers, s.active
 	m := s.ctrlM[s.active]
-	def := 1 - s.active
+	def := NextSeat(s.active) // read on the two-seat path only (MaxSeats > 2 offers attackOffersN)
 	// one attacker's offers are at most the player and every other
 	// permanent (its walkers, any attackable battle)
 	room := MaxOptions - 1 - (MaxSeats - 1 + s.occ.count())
@@ -1139,7 +1139,7 @@ func (s *State) fireDamage(k *prep, src Slot, amt int16, toPlayer, combat bool, 
 			} else if !s.matchPerm(k, a.Trig.Filter, src, lp.ctrl, ls) {
 				continue
 			}
-			s.enqueue(lp.obj, s.objs[lp.obj].ver, s.cardAt(ls), uint8(i), lp.ctrl, s.perms[src].obj, 1-s.perms[src].ctrl, amt)
+			s.enqueue(lp.obj, s.objs[lp.obj].ver, s.cardAt(ls), uint8(i), lp.ctrl, s.perms[src].obj, s.dmgSeat(rcp, s.perms[src].ctrl), amt)
 		}
 	}
 }

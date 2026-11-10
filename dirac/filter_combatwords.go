@@ -298,7 +298,7 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 	if in.B.N&kop.TokAttackAsk != 0 && !s.tokenCombatWindow(p) {
 		return
 	}
-	atk := PlayerCode(1 - SeatIx(p))
+	atk := PlayerCode(s.nextAlive(SeatIx(p)))
 	if s.g.tokDefSet {
 		atk = s.g.tokDef
 	}

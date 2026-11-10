@@ -36,9 +36,14 @@ func (s *State) spellStackIndex(src Obj) int {
 	return -1
 }
 
-// demonstrateCopy mints the demonstrate copies after a yes answer: left 2 is
-// the caster's and then the living opponent's, 1 the opponent's alone. False:
-// a copy's election is posed, or the game stalled.
+// demoStart is demonstrateCopy's left after the yes answer: every copy is
+// still to make.
+const demoStart = 255
+
+// demonstrateCopy mints the demonstrate copies after a yes answer: the
+// caster's, then each living opponent's in turn order (gorge effDemonstrate);
+// left is how many are still to make (demoStart: all of them). False: a
+// copy's election is posed, or the game stalled.
 func (s *State) demonstrateCopy(k *prep, left uint8) bool {
 	in := &s.prog(k)[s.res.pc]
 	si := s.spellStackIndex(s.objRefObj(in.Obj))
@@ -46,11 +51,25 @@ func (s *State) demonstrateCopy(k *prep, left uint8) bool {
 		return true
 	}
 	caster := s.res.e.ctrl
-	alive := !s.pl[caster^1].lost
-	if left == 2 {
-		if !s.mintSpellCopy(k, si, caster) || s.copyElect(k, b2u(alive)) {
+	var who seatSeq
+	who.add(caster)
+	opps := s.oppsFrom(caster)
+	for i := uint8(0); i < opps.n; i++ {
+		if q := opps.at(i); !s.pl[q].lost {
+			who.add(q)
+		}
+	}
+	if left == demoStart {
+		left = who.n
+	}
+	for left > 0 && left <= who.n {
+		if !s.mintSpellCopy(k, si, who.at(who.n-left)) {
+			return false
+		}
+		left--
+		if s.copyElect(k, left) {
 			return false
 		}
 	}
-	return !alive || s.mintSpellCopy(k, si, caster^1) && !s.copyElect(k, 0)
+	return true
 }

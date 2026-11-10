@@ -325,7 +325,7 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 	case kop.ExLifeGainedThisTurn:
 		v = int(s.pl[ctx.ctrl].lifeGained)
 	case kop.ExOppLifeLostThisTurn:
-		v = int(s.pl[1-ctx.ctrl].lifeLost)
+		v = s.oppsLifeLost(ctx.ctrl)
 	case kop.ExCountersOn:
 		v = s.refCounters(k, x, x.Ref, x.Ctr, ctx)
 	case kop.ExCreaturesDied:
@@ -498,7 +498,7 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 	case kop.RefController, kop.RefSelf:
 		return ctx.ctrl
 	case kop.RefOpponent, kop.RefEachOpponent, kop.RefDefendingPlayer:
-		return 1 - ctx.ctrl
+		return s.oneOppOf(k, r, ctx.ctrl, ctx.src) // a single-player read (resolve.go oneOpp)
 	case kop.RefEach:
 		return s.g.eachPl // the player of the OpRepeatEachPlayer in progress
 	}

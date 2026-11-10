@@ -48,7 +48,7 @@ func (s *State) NextTurnPlayer() uint8 {
 	if s.pl[s.active].extraTurns > 0 {
 		return s.active
 	}
-	return 1 - s.active
+	return s.nextAlive(s.active)
 }
 
 // OutlastsTurn reports whether option a of the pending priority decision

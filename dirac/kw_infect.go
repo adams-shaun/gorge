@@ -110,7 +110,7 @@ func (s *State) infectCounters(k *prep, sl Slot, n int) {
 	s.g.lastCK = kop.CtrM1M1
 	adder := s.res.e.ctrl // the damage source's controller (gorge infect.go publishes it)
 	if !s.res.active {
-		adder = 1 - s.perms[sl].ctrl // combat: the opposing creature dealt it
+		adder = s.combatFoe(k, sl) // combat: the opposing creature dealt it
 	}
 	m := s.placeCounters(k, sl, int(kop.CtrM1M1), n, adder, ctrPutBy)
 	if m > 0 && k.anyCtrAdded {
@@ -236,4 +236,21 @@ func prepPoison(t *kop.Table, g *genPrep) {
 		g.anyInfect = true
 		g.infectStall = g.infectStall || prolif
 	}
+}
+
+// combatFoe is the controller of the creature that dealt combat damage to
+// the creature at sl: the active player when sl blocks, else the player its
+// attack is against (the controller of a blocker of that attack, CR 509.1a).
+func (s *State) combatFoe(k *prep, sl Slot) uint8 {
+	c := s.perms[sl].ctrl
+	if MaxSeats == 2 {
+		return NextSeat(c)
+	}
+	if c != s.active {
+		return s.active
+	}
+	if p := s.atkSeat(k, sl); p != NoTarget {
+		return p
+	}
+	return s.nextAlive(c)
 }

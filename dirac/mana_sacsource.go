@@ -560,8 +560,8 @@ func (s *State) flushPrefixTriggers(k *prep) {
 	for s.npend != 0 {
 		p := s.active
 		n := s.pendCount(p)
-		if n == 0 {
-			p = 1 - p
+		for i := uint8(1); n == 0 && i < s.aliveCount(); i++ {
+			p = s.nextAlive(p) // APNAP: the next player in turn order with a trigger
 			n = s.pendCount(p)
 		}
 		if n != 1 {
