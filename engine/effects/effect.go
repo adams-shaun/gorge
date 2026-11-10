@@ -26,6 +26,29 @@ func chosenNameReadByParams(params map[string]string) bool {
 	return false
 }
 
+// withRememberedPlayers is the player half of an Effect registration's
+// capture. effectRemembered records objects only; an Effect's
+// RememberObjects$ TargetedPlayer/Targeted names the player the
+// registration must carry (CR 611.2a: the Effect's own memory), so the
+// Phase and event arms append the player targets here. The input's
+// backing array is never extended: slices.Clip copies before the first
+// append, the same discipline the Phase arm used inline.
+func withRememberedPlayers(ids []state.Target, players []state.PlayerID) []state.Target {
+	if len(players) == 0 {
+		return ids
+	}
+	out := slices.Clip(ids)
+	for _, p := range players {
+		if slices.ContainsFunc(out, func(t state.Target) bool {
+			return t.IsPlayer && t.Player == p
+		}) {
+			continue
+		}
+		out = append(out, state.Target{IsPlayer: true, Player: p})
+	}
+	return out
+}
+
 // effectChosenNameSuffix is the "|CN=<name>" tail an Effect-delivered trigger
 // registration carries when its body reads Card.NamedCard: the name is
 // snapshotted at registration (Forge copies the named card onto the effect
@@ -590,12 +613,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// scan's ValidPlayer$ Player.IsRemembered gate and the body's
 			// Defined$ Player.IsRemembered read this set, the Effect's own
 			// memory (CR 611.2a), not the source card's.
-			phaseIDs := regIDs
-			for _, p := range effectRememberedPlayers(h, c, sa) {
-				if !slices.ContainsFunc(phaseIDs, func(t state.Target) bool { return t.IsPlayer && t.Player == p }) {
-					phaseIDs = append(slices.Clip(phaseIDs), state.Target{IsPlayer: true, Player: p})
-				}
-			}
+			phaseIDs := withRememberedPlayers(regIDs, effectRememberedPlayers(h, c, sa))
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: step, Counter: exec,
@@ -619,10 +637,14 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if !resolveOwners() {
 				continue
 			}
+			// The Effect's remembered players join the capture here too
+			// (Great Train Heist's RememberObjects$ TargetedPlayer under a
+			// DamageDone trigger's ValidTarget$ Player.IsRemembered).
+			eventIDs := withRememberedPlayers(regIDs, effectRememberedPlayers(h, c, sa))
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: h.Game().Step, Counter: exec,
-					IDs: encodeRemembered(regIDs), Text: tr.Mode + ":" + name + expiry + odSuffix + efMarker + cnSuffix})
+					IDs: encodeRemembered(eventIDs), Text: tr.Mode + ":" + name + expiry + odSuffix + efMarker + cnSuffix})
 			}
 			registered = true
 		}

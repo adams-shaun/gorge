@@ -442,11 +442,25 @@ func DamageMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, ev e
 			if !e.MatchesSpec(v, ev.Obj, source, ctrl, SpecOpts{DelayedRemembered: remembered}) {
 				return false
 			}
-		} else if !effects.MatchesPlayerSpecCtx(e.Game(), v, ev.Player, ctrl, effects.PlayerSpecCtx{
-			Source: source, DefendingPlayer: damageDefendingPlayer(e, ev), DelayedRemembered: remembered,
-			Layers: e.BoardLayers(),
-		}) {
-			return false
+		} else {
+			pc := effects.PlayerSpecCtx{
+				Source: source, DefendingPlayer: damageDefendingPlayer(e, ev), DelayedRemembered: remembered,
+				Layers: e.BoardLayers(),
+			}
+			// A delayed registration's capture IS the Effect's own memory
+			// (CR 611.2a): Player.IsRemembered names that set, not the source
+			// card's own list. The phase arm (rules.checkDelayedTriggers)
+			// binds the same two fields. Bind only when the registration
+			// actually captured something: a printed DamageDone line passes
+			// remembered == nil and must keep reading its own source
+			// object's memory.
+			if len(remembered) > 0 {
+				pc.Remembered = remembered
+				pc.RememberedBound = true
+			}
+			if !effects.MatchesPlayerSpecCtx(e.Game(), v, ev.Player, ctrl, pc) {
+				return false
+			}
 		}
 	}
 	if !damageCauseMatches(e, t, source, ev) {
