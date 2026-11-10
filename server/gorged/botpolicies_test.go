@@ -133,7 +133,7 @@ func TestBuildBotPolicyListFiltersAndOrders(t *testing.T) {
 	if e, _ := bots.Lookup(production); e.Tier != bots.Production {
 		t.Fatalf("%q is not production", production)
 	}
-	// "az-redeal" is experimental and constructed-only; use it as the second
+	// "az-redeal" is experimental, a search seat; use it as the second
 	// offered name so both tier ordering and field carrying are observable.
 	src, ok := bots.Lookup("az-redeal")
 	if !ok || src.Tier != bots.Experimental {
@@ -152,7 +152,7 @@ func TestBuildBotPolicyListFiltersAndOrders(t *testing.T) {
 	}
 	got := list.Policies[1]
 	if !got.Search || got.Tier != string(bots.Experimental) ||
-		len(got.Formats) != 1 || got.Formats[0] != "constructed" ||
+		len(got.Formats) != 2 || got.Formats[0] != "constructed" || got.Formats[1] != "commander" ||
 		got.CostScope == "" || got.MeanMS == 0 {
 		t.Fatalf("az-redeal entry lost fields in conversion: %+v", got)
 	}
@@ -219,23 +219,23 @@ func TestCreateGameRefusesAnUnofferedPolicy(t *testing.T) {
 }
 
 // TestCreateGameRefusesAFormatThePolicyLacks proves the create flow refuses
-// a policy that cannot play the requested format, naming both. "az-redeal" is
+// a policy that cannot play the requested format, naming both. "sb-tactical" is
 // constructed-only (asserted as a precondition), so a commander request must
 // be refused and create no table.
 func TestCreateGameRefusesAFormatThePolicyLacks(t *testing.T) {
-	search, ok := bots.Lookup("az-redeal")
+	search, ok := bots.Lookup("sb-tactical")
 	if !ok {
-		t.Fatal("bots registry has no \"az-redeal\" entry")
+		t.Fatal("bots registry has no \"sb-tactical\" entry")
 	}
 	if contains(search.Formats, host.FormatCommander.String()) {
-		t.Fatal("\"az-redeal\" unexpectedly supports commander; the test would be vacuous")
+		t.Fatal("\"sb-tactical\" unexpectedly supports commander; the test would be vacuous")
 	}
 	r, gate := freshGameLock(t)
-	c := config{mulligans: 0, botPolicy: host.BotPolicy, botPolicies: []string{host.BotPolicy, "az-redeal"}}
+	c := config{mulligans: 0, botPolicy: host.BotPolicy, botPolicies: []string{host.BotPolicy, "sb-tactical"}}
 	create := c.createGame(r, gate, []string{"a", "b"}, []string{"c", "d"}, view.Omniscient)
-	_, err := create(httpapi.CreateGameOptions{Format: host.FormatCommander, BotPolicy: "az-redeal"})
+	_, err := create(httpapi.CreateGameOptions{Format: host.FormatCommander, BotPolicy: "sb-tactical"})
 	if err == nil {
-		t.Fatalf("az-redeal accepted on a commander request; want a refusal")
+		t.Fatalf("sb-tactical accepted on a commander request; want a refusal")
 	}
 	if !strings.Contains(err.Error(), "does not support the commander format") {
 		t.Fatalf("error %q does not name the format refusal", err)

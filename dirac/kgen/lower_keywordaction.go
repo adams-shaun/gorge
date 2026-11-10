@@ -252,6 +252,10 @@ func (lc *lowerCtx) explore(ps *params) error {
 		if t.F == nil || len(t.F.Clauses) == 0 || t.Zone != zBattlefield || !t.Max.isConst() || t.Max.N > 1 {
 			return refuse("Explore of target slot %d", obj.N)
 		}
+	case rRemembered:
+		if err := lc.exploreRememberedOne(); err != nil { // lower_exploreremembered.go
+			return err
+		}
 	default:
 		return refuse("Explore of %s", obj)
 	}

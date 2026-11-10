@@ -1,0 +1,13 @@
+{
+  "card": "Ambulatory Reactor",
+  "class": "options",
+  "why": "the kernel's cast census counts the Reactor's artifact-only granted mana as plain mana outside an alternative-cost payment, so it offers a non-artifact spell gorge cannot pay for (seen beside Forsaken Monument's extra colourless)",
+  "repro": {
+    "pool": "std-trc",
+    "surface": "full",
+    "seed": 1,
+    "pair": 18,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

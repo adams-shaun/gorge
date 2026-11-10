@@ -1106,10 +1106,11 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			if !s.floatRestrAb(k, g.p&1, sl, ra, int(st.col), st.n) {
 				s.capFull(StallRestrSrc)
 			}
-		} else if r := restrOfStep(k, st); r != 0 {
+		} else if ab := restrAbOfStep(k, st); ab != nil {
 			// a restricted grant floats beside the pool (State.rb), spendable only
-			// as its restriction allows; never a silent spill into the pool
-			if !s.addRestr(k, g.p&1, r, int(st.col), st.n) {
+			// as its restriction allows (both halves, spells and activated
+			// abilities); never a silent spill into the pool
+			if !s.floatRestrAb(k, g.p&1, sl, ab, int(st.col), st.n) {
 				s.capFull(StallRestrSrc)
 			}
 		} else {
@@ -1214,8 +1215,8 @@ func (s *State) tapGrantedGap(k *prep, p uint8, sl Slot) {
 		xv := s.srcExtraPick(k, sl, pc, int(order[0]))
 		s.addXv(p&1, &xv)
 	}
-	if r := k.gen.grantRestr[gi[0]]; r != 0 {
-		if !s.addRestr(k, p&1, r, int(order[0]), n) {
+	if ab := restrAbOfGrant(k, gi[0]); ab != nil {
+		if !s.floatRestrAb(k, p&1, sl, ab, int(order[0]), n) {
 			s.capFull(StallRestrSrc)
 		}
 		return
@@ -1232,13 +1233,25 @@ func (s *State) stepView(k *prep, sl Slot, gi int16) *pcard {
 	return s.grantView(k.gen, gi, sl)
 }
 
-// restrOfStep is the spend restriction of the granted ability a prefix step
-// tapped (0: none, or the candidate's own printed ability).
-func restrOfStep(k *prep, st *grantStep) kop.FilterID {
+// restrAbOfStep is the granted mana ability a prefix step tapped when it
+// carries a spend restriction (nil: none, or the candidate's own printed
+// ability).
+func restrAbOfStep(k *prep, st *grantStep) *kop.Ability {
 	if st.gi < 0 {
-		return 0
+		return nil
 	}
-	return k.gen.grantRestr[st.gi]
+	return restrAbOfGrant(k, st.gi)
+}
+
+// restrAbOfGrant is grant gi's mana ability when it carries a spend
+// restriction (nil: none), so every float of its mana names both halves of
+// the restriction (spells and activated abilities).
+func restrAbOfGrant(k *prep, gi int16) *kop.Ability {
+	if k.gen.grantRestr[gi] == 0 {
+		return nil
+	}
+	r := k.gen.grantOf[gi]
+	return &k.t.Cards[r.card].Abilities[r.ab]
 }
 
 // grantPlayCost is the mana cost gorge's prefix search prices for p's

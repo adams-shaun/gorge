@@ -66,11 +66,11 @@ func TestHostedAZEntryIsRegistered(t *testing.T) {
 	if e.Caretaker != "bot" {
 		t.Errorf("Caretaker = %q, want bot (spec §3.1)", e.Caretaker)
 	}
-	if !reflect.DeepEqual(e.Formats, []string{"constructed"}) {
-		t.Errorf("Formats = %v, want [constructed]: every az measurement is 1v1 constructed", e.Formats)
+	if !reflect.DeepEqual(e.Formats, []string{"constructed", "commander"}) {
+		t.Errorf("Formats = %v, want [constructed commander]: 1v1 constructed and Commander pods", e.Formats)
 	}
-	if e.MaxSeats != 2 {
-		t.Errorf("MaxSeats = %d, want 2 (spec §3.1)", e.MaxSeats)
+	if e.MaxSeats != 4 {
+		t.Errorf("MaxSeats = %d, want 4 (a Commander pod)", e.MaxSeats)
 	}
 	if e.Cost.MeanMS == 0 || e.Cost.Scope != "per searched decision" {
 		t.Errorf("Cost = %+v, want the measured ~250 ms mean per searched decision", e.Cost)

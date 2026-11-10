@@ -2078,7 +2078,9 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 	sp.consume("Mode", "Description")
 	switch s.Mode {
 	case "CantBlockBy":
-		if sp.str("ValidAttacker") != "Card.IsRemembered" {
+		// Creature.IsRemembered names the same attackers as Card.IsRemembered
+		// (an attacker is a creature); Speed, Young Avenger spells it so.
+		if va := sp.str("ValidAttacker"); va != "Card.IsRemembered" && va != "Creature.IsRemembered" {
 			return refuse("Effect CantBlockBy shape")
 		}
 		exile, hasExile := ps.get("ExileOnMoved")
@@ -2091,8 +2093,12 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 			// House-Mouse: Creature.power<op><N> (lower_cantblockpower.go, the
 			// blocker's CURRENT power). The only ValidBlocker$ the kernel
 			// holds besides the chosen-colour form (colorGrantEffect); the
-			// ExileOnMoved$ Battlefield shape only.
-			if !hasExile {
+			// ExileOnMoved$ Battlefield shape, or (Speed, Young Avenger) a
+			// targeted creature with no ExileOnMoved$ and no Duration$: the
+			// grant matches the remembered object id, which a zone change
+			// replaces, so it lapses on departure either way, and it ends at
+			// the turn's end as the exile form does.
+			if !hasExile && !lc.cantBlockTargetedUntilEOT(ps, obj) {
 				return refuse("Effect CantBlockBy ValidBlocker %q", vb)
 			}
 			c, err := lc.cantBlockValidBlocker(vb)
@@ -2104,6 +2110,8 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		switch {
 		case hasExile && strings.TrimSpace(exile) == "Battlefield":
 			// ends for each permanent as it leaves (CR 611.2c), as a record does
+		case !hasExile && exHaste:
+			// the targeted haste or power-compare form checked above
 		case !hasExile && lc.cantBlockAttackingTarget(ps, obj):
 			// (Gossip's Talent) ExileOnMoved$ is
 			// unread here because gorge's CantBlockBy matches the remembered

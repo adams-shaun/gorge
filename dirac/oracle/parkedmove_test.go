@@ -245,7 +245,7 @@ func TestGiftTriggerOnTheStack(t *testing.T) {
 func TestEitherOrLoweredOnAWitness(t *testing.T) {
 	t.Parallel()
 	pinnedGames(t, "std-tla", Config{}, anyOf(cardSeen("Deadly Precision"), cardSeen("Redirect Lightning")), onBattlefield("Barrels of Blasting Jelly"))
-	synthPairsOn(t, "std-lci", Config{}, []int{40, 425}, nil)
+	synthPairsOn(t, "std-lci", Config{}, []int{40, 426}, nil)
 }
 
 // Two Rests in Peace: a Treasure in a resolution's mana payment waits for its order
