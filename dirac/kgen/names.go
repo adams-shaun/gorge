@@ -91,7 +91,7 @@ func init() {
 		"kop.ReplDoubleCountersOn", kop.ReplDoubleCountersOn, "kop.ReplAddCountersOn", kop.ReplAddCountersOn, "kop.ReplOnePoison", kop.ReplOnePoison, "kop.ReplDoubleCountersYou", kop.ReplDoubleCountersYou,
 		"kop.ReplOthersDoesntUntap", kop.ReplOthersDoesntUntap, "kop.ReplLifeDouble", kop.ReplLifeDouble, "kop.ReplLifeLossDouble", kop.ReplLifeLossDouble,
 		"kop.ReplLifePlus", kop.ReplLifePlus, "kop.ReplTurnUpProgram", kop.ReplTurnUpProgram, "kop.ReplCantTurnUp", kop.ReplCantTurnUp,
-		"kop.ReplSpellsCantBeCountered", kop.ReplSpellsCantBeCountered, "kop.ReplAnyUntap", kop.ReplAnyUntap, "kop.ReplDrawMore", kop.ReplDrawMore, "kop.ReplRewriteTokens", kop.ReplRewriteTokens, "kop.ReplMayNotUntap", kop.ReplMayNotUntap, "kop.ReplDestroyHeal", kop.ReplDestroyHeal, "kop.ReplDiscardOppToBattlefield", kop.ReplDiscardOppToBattlefield, "kop.ReplPreventMillOpps", kop.ReplPreventMillOpps, "kop.ReplAddToken", kop.ReplAddToken)
+		"kop.ReplSpellsCantBeCountered", kop.ReplSpellsCantBeCountered, "kop.ReplAnyUntap", kop.ReplAnyUntap, "kop.ReplDrawMore", kop.ReplDrawMore, "kop.ReplRewriteTokens", kop.ReplRewriteTokens, "kop.ReplMayNotUntap", kop.ReplMayNotUntap, "kop.ReplDestroyHeal", kop.ReplDestroyHeal, "kop.ReplDiscardOppToBattlefield", kop.ReplDiscardOppToBattlefield, "kop.ReplPreventMillOpps", kop.ReplPreventMillOpps, "kop.ReplAddToken", kop.ReplAddToken, "kop.ReplPreventDamageCounters", kop.ReplPreventDamageCounters, "kop.ReplDamageHealFirst", kop.ReplDamageHealFirst)
 	enum[kop.AbilityKind]("kop.AbSpell", kop.AbSpell, "kop.AbActivated", kop.AbActivated, "kop.AbMana", kop.AbMana,
 		"kop.AbTriggered", kop.AbTriggered, "kop.AbStatic", kop.AbStatic, "kop.AbReplacement", kop.AbReplacement,
 		"kop.AbAltCost", kop.AbAltCost)
@@ -103,7 +103,7 @@ func init() {
 	enum[kop.TargetKind]("kop.TgtNone", kop.TgtNone, "kop.TgtObject", kop.TgtObject, "kop.TgtPlayer", kop.TgtPlayer,
 		"kop.TgtAny", kop.TgtAny, "kop.TgtSpell", kop.TgtSpell, "kop.TgtCard", kop.TgtCard, "kop.TgtStackObj", kop.TgtStackObj, "kop.TgtStackAb", kop.TgtStackAb,
 		"kop.TgtPermOrSpell", kop.TgtPermOrSpell, "kop.TgtCopyAb", kop.TgtCopyAb, "kop.TgtCopyTrig", kop.TgtCopyTrig,
-		"kop.TgtStackObjTrig", kop.TgtStackObjTrig, "kop.TgtSpellTgting", kop.TgtSpellTgting, "kop.TgtPermOrGraveCard", kop.TgtPermOrGraveCard)
+		"kop.TgtStackObjTrig", kop.TgtStackObjTrig, "kop.TgtSpellTgting", kop.TgtSpellTgting, "kop.TgtPermOrGraveCard", kop.TgtPermOrGraveCard, "kop.TgtGraveExileCard", kop.TgtGraveExileCard)
 	enum[kop.CtrlSel]("kop.CtrlAny", kop.CtrlAny, "kop.CtrlYou", kop.CtrlYou, "kop.CtrlOpp", kop.CtrlOpp, "kop.CtrlEachPl", kop.CtrlEachPl, "kop.CtrlHitBySrc", kop.CtrlHitBySrc)
 	enum[kop.Pred]("kop.PredNone", kop.PredNone, "kop.PredPowerLE", kop.PredPowerLE, "kop.PredPowerGE", kop.PredPowerGE,
 		"kop.PredToughnessLE", kop.PredToughnessLE, "kop.PredCMCLE", kop.PredCMCLE, "kop.PredCMCGE", kop.PredCMCGE,

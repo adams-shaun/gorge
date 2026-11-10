@@ -391,7 +391,7 @@ func (s *State) damageHit(k *prep, h *dmgHit) int {
 	if !s.occ.has(a) || !s.occ.has(b) {
 		return 0
 	}
-	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 && n > 0 {
+	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 && n > 0 {
 		n = s.replDamage(k, s.perms[a].ctrl, a, s.cardAt(a), uint8(s.perms[b].obj), false, n)
 	}
 	if n <= 0 {

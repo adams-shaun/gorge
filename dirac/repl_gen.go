@@ -75,6 +75,11 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbPrevMill != 0 && sl == NoSlot && rcp != srcCtrl && s.preventMill(k, srcCtrl, rcp, combat, n) {
 		return 0 // The Mindskinner: prevented, the opponent mills that many (repl_preventmill.go)
 	}
+	if g.anyRepl&rbSelfDmg != 0 && sl != NoSlot {
+		if n = s.selfDamage(k, sl, combat, n); n <= 0 {
+			return 0 // Anti-Venom: prevented, that many +1/+1 counters (repl_selfdamage.go)
+		}
+	}
 	if g.anyRepl&rbShield != 0 && !combat && sl != NoSlot && s.shieldN(sl) > 0 && !s.noPrev(k, combat) {
 		n = s.shieldNC(k, srcCtrl, srcSl, srcCard, sl, n) // CR 122.1c (combat: shieldCombat)
 		if k.anyRedNC && !combat && n > 0 {
@@ -203,7 +208,14 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 			s.preventCombatEv(k, r, ev) // combat_prevention.go
 			continue
 		}
+		if k.gen.anyRepl&rbHealSelf != 0 && s.selfDamageCombat(k, r, i) {
+			return // a heal host's second event of the pass (repl_selfdamage.go)
+		}
 		n := s.replDamage(k, src.ctrl, ev.src, s.cardAt(ev.src), code, true, int(ev.n))
+		if n == 0 && ev.dst != NoSlot && k.gen.anyRepl&rbPrevCtrSelf != 0 && s.selfDamageHost(k, ev.dst, rbPrevCtrSelf) {
+			s.preventCombatEv(k, r, ev) // this event only: each puts its own counters (repl_selfdamage.go)
+			continue
+		}
 		if n == 0 && ev.dst != NoSlot {
 			r.prevent(ev.dst) // protection from everything: all of its damage
 			continue

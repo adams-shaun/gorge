@@ -962,9 +962,10 @@ ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	36
+ReplCount	ReplKind	38
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
+ReplDamageHealFirst	ReplKind	37
 ReplDamagePlus	ReplKind	16
 ReplDestroyHeal	ReplKind	32
 ReplDiscardOppToBattlefield	ReplKind	33
@@ -1000,6 +1001,7 @@ ReplOnePoison	ReplKind	22
 ReplOppsCantWinGame	ReplKind	9
 ReplOthersDoesntUntap	ReplKind	15
 ReplOthersEnterProgram	ReplKind	7
+ReplPreventDamageCounters	ReplKind	36
 ReplPreventMillOpps	ReplKind	34
 ReplPreventNoncombatToOthers	ReplKind	11
 ReplRewriteTokens	ReplKind	30
@@ -1247,6 +1249,7 @@ TgtCopyAb	TargetKind	236
 TgtCopyTrig	TargetKind	237
 TgtNone	TargetKind	0
 TgtObject	TargetKind	1
+TgtGraveExileCard	TargetKind	241
 TgtPermOrGraveCard	TargetKind	240
 TgtPermOrSpell	TargetKind	235
 TgtPlayer	TargetKind	2
@@ -1369,6 +1372,7 @@ W7NotChosenType	int16	6
 W7SharesCrTrigObj	int16	21
 W7SharesNameLegend	int16	10
 W7WithDisguise	int16	22
+W7WithFlashback	int16	26
 W7WithWarp	int16	11
 WhoseAny	Whose	0
 WhoseEnchCtrl	Whose	3

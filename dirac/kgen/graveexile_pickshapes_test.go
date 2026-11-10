@@ -1,8 +1,11 @@
 package kgen
 
 import (
+	"slices"
 	"strings"
 	"testing"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // graveExilePickProbe is an enters-trigger creature that mills, then poses a
@@ -93,17 +96,75 @@ func TestGraveExilePickTriggerCount(t *testing.T) {
 	}
 }
 
+// graveExileTgtScript is a sorcery returning a target card over Origin$
+// Graveyard,Exile; TGT is its ValidTgts$ and EXTRA any further params.
+const graveExileTgtScript = `Name:Grave Exile Tgt Probe
+ManaCost:1 R
+Types:Sorcery
+A:SP$ ChangeZone | Origin$ Graveyard,Exile | Destination$ Hand | ValidTgts$ TGT EXTRA | SpellDescription$ probe
+Oracle:probe
+`
+
+func graveExileTgt(tgt, extra string) string {
+	return strings.Replace(strings.Replace(graveExileTgtScript, "TGT", tgt, 1), " EXTRA", extra, 1)
+}
+
 // TestGraveExileTargetedReturn: a targeted return over Graveyard,Exile whose
-// target alternatives name different zones (Sorceress's Schemes) needs a
-// target slot spanning two zones. The kernel's TgtCard slot holds one zone
-// (legal.go targetOK: ob.zone == the filter's zone), so the card is refused;
-// this pins that stop until the slot grows a second zone.
+// target alternatives name different zones (Sorceress's Schemes) lowers to the
+// one two-zone slot, kop.TgtGraveExileCard: a 3-clause Or chain, each clause
+// with its own zone, the exile clause reading the withFlashback word. The
+// shapes the kernel does not read (an alternative with no zone word, the
+// exile alternative first, an untargeted pick) still refuse by name.
 func TestGraveExileTargetedReturn(t *testing.T) {
 	c := lowerCorpusCard(t, "Sorceress's Schemes")
-	if len(c.Refusals) == 0 {
-		t.Fatal("Sorceress's Schemes lowers: drop this stop and add a lockstep repro")
+	for _, rf := range c.Refusals {
+		t.Errorf("Sorceress's Schemes refused: %s", rf.Reason)
 	}
-	if !strings.Contains(c.Refusals[0].Reason, "Origin$ Graveyard,Exile") {
-		t.Errorf("first refusal %q, want the Graveyard,Exile origin", c.Refusals[0].Reason)
+	pt := newPoolTables(&lowered{cards: []*lCard{c}}, nil)
+	b := buildCard(pt, c)
+	if len(b.refusals) != 0 {
+		t.Fatalf("build refused: %v", b.refusals)
+	}
+	var specs []kop.TargetSpec
+	for _, a := range b.def.Abilities {
+		specs = append(specs, a.Targets[:a.NTargets]...)
+	}
+	if len(specs) != 1 || specs[0].Kind != kop.TgtGraveExileCard {
+		t.Fatalf("target specs %+v, want one TgtGraveExileCard", specs)
+	}
+	var zones []kop.Zone
+	var last kop.Filter
+	for id := specs[0].Filter; ; {
+		f := pt.filters[id]
+		zones = append(zones, f.Zone)
+		last = f
+		if f.Or == 0 {
+			break
+		}
+		id = f.Or
+	}
+	want := []kop.Zone{kop.ZoneGraveyard, kop.ZoneGraveyard, kop.ZoneExile}
+	if !slices.Equal(zones, want) {
+		t.Errorf("chain zones %v, want %v", zones, want)
+	}
+	if last.Pred != kop.PredWord7 || last.PredN != kop.W7WithFlashback {
+		t.Errorf("exile clause pred %v/%d, want PredWord7/W7WithFlashback", last.Pred, last.PredN)
+	}
+
+	for _, tc := range []struct{ tgt, extra, want string }{
+		{"Instant.inZoneGraveyard+YouCtrl,Sorcery+YouCtrl", "", "has no inZone word"},
+		{"Card.withFlashback+inZoneExile+YouCtrl,Instant.inZoneGraveyard+YouCtrl", "", "names Exile first"},
+		{"Instant.inZoneGraveyard+inZoneExile+YouCtrl", "", "names two zones"},
+		{"Instant.inZoneHand+YouCtrl", "", "names zone"},
+		{"Instant.inZoneGraveyard+YouCtrl", " | Optional$ True", "Optional$"},
+		{"Instant.inZoneGraveyard+YouCtrl", " | TgtZone$ Graveyard,Exile", "TgtZone$"},
+	} {
+		rf := lowerScript(t, "Grave Exile Tgt Probe", graveExileTgt(tc.tgt, tc.extra))
+		if len(rf) == 0 || !strings.Contains(strings.Join(rf, "|"), tc.want) {
+			t.Errorf("%q%s: refusals %v, want one naming %q", tc.tgt, tc.extra, rf, tc.want)
+		}
+	}
+	if rf := lowerScript(t, "Grave Exile Tgt Probe", graveExileTgt("Instant.inZoneGraveyard+YouCtrl,Card.withFlashback+inZoneExile+YouCtrl", "")); len(rf) != 0 {
+		t.Errorf("the two-zone probe refused: %v", rf)
 	}
 }

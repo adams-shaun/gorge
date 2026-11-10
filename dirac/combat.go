@@ -1019,7 +1019,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		if k.gen.anyRepl&rbShield != 0 {
 			s.shieldCombat(k, &r) // CR 122.1c, event by event (ctr_shield.go)
 		}
-		if k.gen.anyRepl&(rbDblDmg|rbProtAll|rbProtCol|rbPlusDmg|rbPrevCol|rbPrevMill) != 0 {
+		if k.gen.anyRepl&(rbDblDmg|rbProtAll|rbProtCol|rbPlusDmg|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
 			s.replCombatGen(k, &r) // amounts first, then prevention
 		}
 		s.preventCombatGen(k, &r)

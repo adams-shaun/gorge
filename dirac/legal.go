@@ -1206,6 +1206,9 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 	if t.Kind == kop.TgtPermOrGraveCard {
 		return s.targetOKPermOrGraveCard(k, t, p, src, self, o) // tgt_permorgravecard.go
 	}
+	if t.Kind == kop.TgtGraveExileCard {
+		return s.targetOKGraveExileCard(k, t, p, src, self, o) // tgt_graveexilecard.go
+	}
 	ob := &s.objs[o]
 	switch t.Kind {
 	case kop.TgtObject, kop.TgtAny:
@@ -1290,6 +1293,8 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 		n = s.permOrSpellCands(k, t, p, src, self, out, n) // tgt_permorspell.go
 	case kop.TgtPermOrGraveCard:
 		n = s.permOrGraveCardCands(k, t, p, src, self, out, n) // tgt_permorgravecard.go
+	case kop.TgtGraveExileCard:
+		n = s.graveExileCardCands(k, t, p, src, self, out, n) // tgt_graveexilecard.go
 	case kop.TgtCard:
 		for pp := 0; pp < 2; pp++ {
 			pl := &s.pl[pp]

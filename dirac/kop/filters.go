@@ -417,6 +417,14 @@ const W7EnteredFromBF int16 = 24
 // writer earlier in the same chain). kgen lowers it only inside such a chain.
 const W7Imprinted int16 = 25
 
+// W7WithFlashback (PredWord7 sub-kind 26): the card was printed with
+// Flashback (CardDef.Keywords&KwFlashback; gorge's exact keyword word
+// withFlashback, objectHasKeyword reads the printed face). A battlefield
+// permanent that is face down or lost all abilities has none; off the
+// battlefield the printed card counts in any zone. Sorceress's Schemes,
+// Runic Repetition.
+const W7WithFlashback int16 = 26
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go

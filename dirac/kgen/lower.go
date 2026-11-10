@@ -100,6 +100,8 @@ type lowerCtx struct {
 
 	// permOrGraveCard: lowering a ValidTgts$ ChangeZone over Origin$ Battlefield,Graveyard (lower_originmulti.go)
 	permOrGraveCard bool
+	// graveExileCard: lowering a ValidTgts$ ChangeZone over Origin$ Graveyard,Exile (lower_graveexiletgt.go)
+	graveExileCard bool
 
 	// deferTrig: the TriggersWhenSpent$ rider the face's deferred mana ability queued (lower_deferredmana.go)
 	deferTrig *cards.Trigger
@@ -593,6 +595,7 @@ func (lc *lowerCtx) guard(node string, fn func() error) {
 	lc.chainT = nil
 	lc.remTgt = 0
 	lc.permOrGraveCard = false
+	lc.graveExileCard = false
 }
 
 // lowerRecord fills the static card record.

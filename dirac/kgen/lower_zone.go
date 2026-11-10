@@ -72,6 +72,13 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	if dualDef {
 		dual = false
 	}
+	gxTgt := false
+	if _, has := ps.m["ValidTgts"]; dual && has {
+		if err := lc.graveExileTarget(ps); err != nil { // lower_graveexiletgt.go
+			return err
+		}
+		gxTgt, dual = true, false // a known-origin targeted move, not a pick
+	}
 	if dual && !everyRememberedOrImprinted(ps.str("ChangeType")) {
 		return refuse("ChangeZone Origin$ Graveyard,Exile ChangeType$ %q without IsRemembered", ps.str("ChangeType"))
 	}
@@ -85,7 +92,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		origin = zAny
 	}
-	if dualDef {
+	if dualDef || gxTgt {
 		ps.get("Origin") // read
 		origin = zAny
 	} else if !dual && !hg && !bg {
