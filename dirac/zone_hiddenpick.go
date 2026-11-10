@@ -54,15 +54,22 @@ func (s *State) battlefieldCands(k *prep, in *kop.Instr, d *Decision) {
 
 // pickLeaves moves a picked permanent from the battlefield to zone z
 // (gorge settleChangeZoneMoveAs: one move per picked card, in pick order),
-// remembering it with SrRemember.
+// remembering it with SrRemember. parked reports a CR 903.9b commander move
+// that waits for its owner's answer (cmdZoneReplace): the card is still on
+// the battlefield and is neither remembered nor dropped from the look list
+// until the answered move happens.
 //
 //go:noinline
-func (s *State) pickLeaves(k *prep, o Obj, z kop.Zone) {
+func (s *State) pickLeaves(k *prep, o Obj, z kop.Zone) (parked bool) {
 	s.leave(k, s.objs[o].slot, z, false)
+	if p := &s.g.pre; p.kind == akCmdZone && p.state == preCmdZone && p.obj == o && s.res.ask == raGenCmdZone {
+		return true
+	}
 	if s.g.pickF&kop.SrRemember != 0 {
 		s.remember(o)
 	}
 	s.forgetFound(k, o)
+	return false
 }
 
 // chooserOf is who answers a search / choose-move over player p's zone:

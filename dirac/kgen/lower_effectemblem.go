@@ -208,6 +208,7 @@ func (lc *lowerCtx) effectEmblemStatic(s cards.Static) (lStatic, error) {
 func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, error) {
 	var keys map[string]bool
 	checkKeys := true
+	libTop, libPayLife := false, false // the library-top look-and-play grant (lower_effectlibtop.go)
 	switch s.Mode {
 	case "CantBlockBy":
 		keys = map[string]bool{"Mode": true, "ValidAttacker": true, "ValidBlocker": true, "Description": true, "Secondary": true}
@@ -229,6 +230,10 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		s.Params = cp
 	case "Continuous":
 		checkKeys = false
+		if rest, pay, ok := effectLibTopPlay(s); ok {
+			s, libTop, libPayLife = rest, true, pay
+			break
+		}
 		// a body that is only the view-only face-down
 		// battlefield look lowers to no static (gorge's effEffect registers
 		// nothing for it: mayLookAtExileGrantFromLine accepts only Exile).
@@ -247,6 +252,8 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 				}
 			}
 		}
+	case "CantPreventDamage":
+		keys = map[string]bool{"Mode": true, "Description": true, "Secondary": true} // the global form (gorge cantPreventDamage: no Affected$)
 	case "CanAttackDefender":
 		// gorge canAttackDefenderGrantParamsReadableKeys
 		keys = map[string]bool{"Mode": true, "ValidCard": true, "ValidCards": true, "ValidTarget": true, "ValidAttacked": true, "Description": true, "Secondary": true}
@@ -271,7 +278,14 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		return lStatic{}, refuse("Effect static %s lowers to %d statics", s.Mode, len(sts))
 	}
 	st := sts[0]
-	if s.Mode == "Continuous" {
+	if libTop {
+		if st.Kind != "MayPlayFrom" {
+			return lStatic{}, refuse("Effect static library-top play lowered to %s", st.Kind)
+		}
+		if libPayLife {
+			st.Flags = append(st.Flags, "MayPayLife")
+		}
+	} else if s.Mode == "Continuous" {
 		switch st.Kind {
 		case "CantBlock", "ExtraLandPlay", "NoMaxHandSize", "Continuous", "Override":
 		default:

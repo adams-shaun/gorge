@@ -113,6 +113,12 @@ type TriggerContext struct {
 	// capture a printed trigger of that mode makes -- so the two referents
 	// cannot share one slot.
 	DelayedRemembered []state.Target
+	// DelayedCaptureOnly marks a delayed body whose registration remembered
+	// only its creating trigger's event capture (state.DelayedTrigger.
+	// CaptureOnly): Defined$ Remembered and the host-remembered player
+	// derivations read what the body itself remembered, with no fallback to
+	// the capture. Triggered*/Spawner>/DelayTriggerRemembered are unaffected.
+	DelayedCaptureOnly bool
 	// DelayedRememberedStamps is the registration's Incarnation stamp of
 	// each DelayedRemembered object (state.DelayedTrigger.RememberedStamps):
 	// ChangeZone's Defined$ DelayTriggerRemembered[LKI] mover skips an object

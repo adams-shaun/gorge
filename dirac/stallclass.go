@@ -86,7 +86,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallEntryOrder, StallCopyAllAsk, StallCloneLayer, StallTokRewrite,
 	StallGravePower, // no longer raised: FeatCDAPT evaluates every lowered CDA amount
 	StallLandGrant,  // gorge offers both productions of a land with a granted basic type; pcard holds one (static_landtype.go:148,161)
-	StallOutsideType, StallExileOnMoved, StallMultiRetarget, StallL6Walk, StallLowering,
+	StallOutsideType, StallExileOnMoved, StallMultiRetarget, StallL6Walk, StallLowering, StallPayLifeShared, StallNoPrevent,
 	StallStackKwGrant, // a granted convoke/improvise on a Harmonize or alternative-cost cast: gorge's announcement for those routes is unverified (kw_convoke.go)
 }
 

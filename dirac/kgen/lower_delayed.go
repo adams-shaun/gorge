@@ -1,6 +1,8 @@
 package kgen
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -300,7 +302,7 @@ func (lc *lowerCtx) delayedDies(ps *params, exec *cards.SA) error {
 func (lc *lowerCtx) delayedStepRemember(arm, ro string, exec *cards.SA) (lRef, error) {
 	switch ro {
 	case "":
-		if lc.chainReadsRemembered(exec) {
+		if lc.chainReadsRemembered(exec) && !(arm == "end-of-combat" && lc.captureOnlyBodyLocal(exec)) {
 			return lRef{}, refuse("delayed %s trigger body reads Remembered", arm)
 		}
 		return lRef{}, nil
@@ -328,4 +330,65 @@ func (lc *lowerCtx) delayedStepRemember(arm, ro string, exec *cards.SA) (lRef, e
 		return lRef{}, refuse("delayed %s trigger RememberObjects %q: a set of several objects (the record holds one)", arm, ro)
 	}
 	return lc.delayedRemember(ro, exec)
+}
+
+// captureOnlyBodyLocal reports whether a step-keyed delayed trigger with no
+// RememberObjects$ reads a body-local remembered set: its registration is
+// capture-only (a trigger's chain that remembered nothing before the
+// registration; gorge state.DelayedTrigger.CaptureOnly, Forge's delayed
+// trigger remembers nothing) and every Remembered read of the body follows
+// the body's own Remember* write, so it reads exactly what the body
+// remembered and never the creating trigger's event capture, which the
+// kernel's program does not carry (Fortune, Loyal Steed's exile-and-return).
+// A body that reads before it writes, or a registration whose chain wrote
+// earlier, is not this shape.
+func (lc *lowerCtx) captureOnlyBodyLocal(exec *cards.SA) bool {
+	if lc.ab == nil || lc.ab.Trigger == nil {
+		return false
+	}
+	found := false
+	for n := lc.chainRoot; n != nil; n = n.Sub {
+		if n == lc.curNode {
+			found = true
+			break
+		}
+		if r, w := lc.nodeRememberUse(n); r || w {
+			return false
+		}
+	}
+	if !found {
+		return false
+	}
+	written := false
+	for n := exec; n != nil; n = n.Sub {
+		r, w := lc.nodeRememberUse(n)
+		if r && !written {
+			return false
+		}
+		written = written || w
+	}
+	return true
+}
+
+// nodeRememberUse reads one SA link for the remembered set: reads is a
+// Remembered spelling in a value (or a card SVar it names that mentions
+// Remember), writes a Remember* key (RememberChanged$ ...). A Cleanup's
+// ClearRemembered$ is neither.
+func (lc *lowerCtx) nodeRememberUse(n *cards.SA) (reads, writes bool) {
+	for _, part := range strings.Split(n.Line, "|") {
+		key, val, _ := strings.Cut(part, "$")
+		key, val = strings.TrimSpace(key), strings.TrimSpace(val)
+		switch {
+		case key == "ClearRemembered":
+			continue
+		case strings.HasPrefix(key, "Remember") && !strings.HasPrefix(key, "Remembered"):
+			writes = true
+		case strings.Contains(key, "Remembered"):
+			reads = true
+		}
+		if strings.Contains(val, "Remember") {
+			reads = true
+		}
+	}
+	return reads || lc.chainReadsRememberedSVar(n), writes
 }

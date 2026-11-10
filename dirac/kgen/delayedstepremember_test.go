@@ -55,23 +55,66 @@ func delayedStepProbe(phase, ro string) string {
 	}, "\n")
 }
 
-// TestDelayedStepRememberFortuneStillRefused: Fortune, Loyal Steed's end of
-// combat body remembers what it exiles and returns it, but gorge's body
-// starts from the attack trigger's capture (every attacker and the
-// defending player), which the kernel's program does not carry: the arm
-// still refuses a body that reads Remembered.
-func TestDelayedStepRememberFortuneStillRefused(t *testing.T) {
+// TestDelayedStepRememberFortuneLowers: Fortune, Loyal Steed's end of combat
+// body remembers what it exiles (itself and the chosen saddler) and returns
+// exactly that. The registration is capture-only (the attack trigger's
+// capture is no memory of the delayed trigger), so the body reads a
+// body-local set the kernel's program carries: it lowers, each referent of
+// `Defined$ Self & ChosenCard` its own remembering exile, then the return of
+// the remembered set.
+func TestDelayedStepRememberFortuneLowers(t *testing.T) {
 	cs := lowerNamed(t, []string{"Fortune, Loyal Steed"})
 	if len(cs) != 1 {
 		t.Fatalf("lowered %d cards, want 1", len(cs))
 	}
-	want := "delayed end-of-combat trigger body reads Remembered"
 	for _, r := range cs[0].Refusals {
-		if strings.Contains(r.Reason, want) {
-			return
+		t.Errorf("refused: %s", r.Reason)
+	}
+	var sb strings.Builder
+	dumpLIR(&sb, cs[0])
+	for _, want := range []string{
+		"DelayedTrigger C=3 CS=NextEndCombat",
+		"Exile obj=Self CS=Remember|from=Battlefield",
+		"Exile obj=Chosen CS=Remember|from=Battlefield",
+		"Return obj=Remembered C=1",
+	} {
+		if !strings.Contains(sb.String(), want) {
+			t.Errorf("lowered IR lacks %q:\n%s", want, sb.String())
 		}
 	}
-	t.Errorf("refusals %v, want %q", cs[0].Refusals, want)
+}
+
+// delayedBodyProbe is a creature whose attack trigger registers an
+// end-of-combat delayed program with no RememberObjects$ and the given
+// two-link body (head, then a sub-ability).
+func delayedBodyProbe(head, sub string) string {
+	return strings.Join([]string{
+		"Name:Probe",
+		"ManaCost:1 R",
+		"Types:Creature Human",
+		"PT:2/2",
+		"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ ProbeDelay | TriggerDescription$ probe",
+		"SVar:ProbeDelay:DB$ DelayedTrigger | Mode$ Phase | Phase$ EndCombat | Execute$ ProbeHead",
+		"SVar:ProbeHead:" + head + " | SubAbility$ ProbeSub",
+		"SVar:ProbeSub:" + sub,
+		"Oracle:probe",
+	}, "\n")
+}
+
+// TestDelayedStepRememberReadBeforeWriteRefused: the capture-only reading
+// holds only for a body whose every Remembered read follows its own write; a
+// body that reads Remembered first still refuses.
+func TestDelayedStepRememberReadBeforeWriteRefused(t *testing.T) {
+	const want = "delayed end-of-combat trigger body reads Remembered"
+	for name, c := range map[string]struct{ head, sub string }{
+		"read first":        {"DB$ ChangeZone | Defined$ Remembered | Origin$ All | Destination$ Battlefield", "DB$ ChangeZone | Defined$ Self | Origin$ Battlefield | Destination$ Exile | RememberChanged$ True"},
+		"read beside write": {"DB$ ChangeZone | Defined$ Self | Origin$ Battlefield | Destination$ Exile | RememberChanged$ True | ChangeNum$ Count$Remembered", "DB$ Cleanup | ClearRemembered$ True"},
+	} {
+		got := abReasons(abLower(t, delayedBodyProbe(c.head, c.sub), false))
+		if !strings.Contains(got, want) {
+			t.Errorf("%s: refusals %q, want %q", name, got, want)
+		}
+	}
 }
 
 // TestDelayedStepRememberRefusesSets: the delayed record carries one object,

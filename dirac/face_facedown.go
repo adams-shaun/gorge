@@ -269,7 +269,7 @@ func (s *State) offerTurnUpSl(k *prep, d *Decision, p uint8, sl Slot) {
 			}
 		}
 		if fam := cd.MorphFamily; fam != 0 {
-			cost := cd.MorphCost
+			cost := s.morphCostAt(k, sl)
 			if turnUpHybOK(&cost) && s.turnUpOffered(k, p, &cost, turnUpSpecial(fam+2, cd.MorphFamily), sl, true) {
 				d.add(MakeAction(AkTurnFaceUp, uint8(pm.obj), 0, fam+2))
 			}
@@ -279,7 +279,7 @@ func (s *State) offerTurnUpSl(k *prep, d *Decision, p uint8, sl Slot) {
 	if cd.MorphFamily == 0 {
 		return
 	}
-	cost := cd.MorphCost
+	cost := s.morphCostAt(k, sl)
 	if !turnUpHybOK(&cost) || !s.turnUpOffered(k, p, &cost, turnUpSpecial(0, cd.MorphFamily), sl, true) {
 		return
 	}
@@ -339,7 +339,7 @@ func (s *State) turnUpCost(k *prep, sl Slot, mode uint8) (cost kop.ManaCost, meg
 		if prov || cd.MorphFamily == 0 {
 			return
 		}
-		return cd.MorphCost, cd.MorphFamily == kop.MorphMegamorph, true, true
+		return s.morphCostAt(k, sl), cd.MorphFamily == kop.MorphMegamorph, true, true
 	case 1, 2: // manifest/cloak: the printed mana cost (CR 701.40b, 701.58b)
 		if !prov || (mode == 1) != s.manifested(sl) {
 			return
@@ -353,7 +353,7 @@ func (s *State) turnUpCost(k *prep, sl Slot, mode uint8) (cost kop.ManaCost, meg
 		if !prov || cd.MorphFamily != fam {
 			return
 		}
-		return cd.MorphCost, fam == kop.MorphMegamorph, true, true
+		return s.morphCostAt(k, sl), fam == kop.MorphMegamorph, true, true
 	}
 	return
 }

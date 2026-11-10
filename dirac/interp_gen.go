@@ -114,6 +114,7 @@ const (
 	ChGenDelve                                // source = a graveyard card exiled toward a granted-delve cast's generic cost, one pick per decision (gorge delveAsk's multi-pick KChoose; kw_delve.go)
 	ChGenDigOpt                               // mode 1 = yes / 0 = no: ChangeNum$ All beside Optional$ (gorge effDig's allOrNothing election, "yes"/"no")
 	ChGenFaceDownPick                         // source = the hand card picked to enter face down (gorge effCloak's "face_down_choice" pick, CR 701.58a; face_manifest.go)
+	ChGenDistPick                             // source = a creature picked to share a divided counter total, Done after the first (gorge putCounterPickDistribute's "counter_dist" KChoose, Min 1; ctr_distpick.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -2255,7 +2256,7 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool 
 	if k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go
 	}
-	if s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() {
+	if s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() || k.gen.graveDmg {
 		agg := refLatch{agg: true} // the once-per-batch lines take the total, the rest wait for the pass below
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
 			s.fireDamageEvGen(k, sl, int16(total), toPl, false, nil, NoTarget, &agg)

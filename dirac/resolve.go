@@ -872,7 +872,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 	if k.gen != nil && k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go
 	}
-	if s.subs[kop.TrigDamageDone].any() || k.gen != nil && s.subs[kop.TrigDamageDealtOnce].any() {
+	if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) {
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
 			s.fireDamage(k, sl, int16(n), code >= PlayerTarget0, false, code)
 		} else if k.gen != nil && e.obj != NoObj {

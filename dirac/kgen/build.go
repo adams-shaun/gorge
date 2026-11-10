@@ -559,6 +559,9 @@ func (cb *cardBuilder) record() error {
 		if d.MorphCost, err = manaCostOf(*c.MorphCost); err != nil {
 			return err
 		}
+		if d.MorphReduce, err = cb.value(c.MorphReduce); err != nil {
+			return err
+		}
 	}
 	if c.Flashback != nil {
 		d.Keywords |= kop.KwFlashback
@@ -1248,6 +1251,16 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			return kf, fmt.Errorf("subtype %q", c.NotSubtype)
 		}
 		kf.NotSub = uint8(i + 1)
+	}
+	for j, w := range c.MoreNotSubtype {
+		if w == "" {
+			continue
+		}
+		i, ok := cb.pt.sub(w)
+		if !ok {
+			return kf, fmt.Errorf("subtype %q", w)
+		}
+		kf.NotSubs[j] = uint8(i + 1)
 	}
 	if c.Flags&fWarped != 0 && zone != kop.ZoneBattlefield {
 		// the kernel's warp mark is the pending warp exile of a

@@ -25,7 +25,10 @@ func (lc *lowerCtx) manaEffect(ps *params) error {
 	default:
 		return refuse("DB$ Mana outside a triggered ability")
 	}
-	if lc.out.Types&tArtifact != 0 && !lc.fbGranted { // a granted Firebending's source is the attacker, not this host (lower_firegrant.go)
+	rv, _ := ps.get("RestrictValid")
+	if lc.out.Types&tArtifact != 0 && !lc.fbGranted && !dbManaActOnly(rv) { // a granted Firebending's source is the attacker, not this host (lower_firegrant.go)
+		// An activated-only restriction (kop.SpmActivated) is the one typed
+		// shape the kernel records: addManaRestr sets poolArtRestr.
 		// an artifact source's mana is typed (gorge effects.ManaProducerTag
 		// reads the printed face) and gorge's planned payment refuses a
 		// pool holding typed mana (pay.PlanPoolOK); the kernel's pool
@@ -146,7 +149,7 @@ func (lc *lowerCtx) manaChoiceEffect(ps *params, prod string, persist lValue, re
 	if colors == "" || strings.Trim(colors, "WUBRG") != "" {
 		return refuse("mana choice over %q", prod)
 	}
-	if restrict != nil && mode == 1 {
+	if restrict != nil && mode == 1 && !restrictActOnly(restrict) { // the activated-only marker lowers: Boommobile
 		// Ashling, Rimebound (Produced$ Any, Amount$ 2): its restricted
 		// units float beside the flip trigger's pay-{R} cost and Furnace
 		// Whelp-style paid abilities, where gorge's offers differ from the

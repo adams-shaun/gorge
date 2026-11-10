@@ -539,7 +539,7 @@ func (s *State) sba(k *prep) bool {
 						s.cfgx |= cfgxDestroyHealPass // CR 614.1: the counters leave, so a 0-toughness creature still dies next pass
 						continue
 					}
-					if p.flags&pfRegen != 0 {
+					if s.canRegen(sl) {
 						s.regenerate(sl)
 						continue
 					}

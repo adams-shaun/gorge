@@ -296,6 +296,9 @@ func (s *State) mintTokens(k *prep, in *kop.Instr, p uint8, n int) bool {
 			if in.B.N&kop.TokRememberObj != 0 {
 				s.remember(o)
 			}
+			if in.B.N&kop.TokImprintObj != 0 {
+				s.imprint(o) // zone_imprint.go
+			}
 		}
 		sl := s.enter(k, o, p, tapped, kop.ZoneLibrary)
 		if in.Op == kop.OpCreateTokenEx && in.B.N&(kop.TokSacAtEnd|kop.TokExileAtEnd) != 0 {

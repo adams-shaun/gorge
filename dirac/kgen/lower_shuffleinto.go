@@ -20,6 +20,9 @@ import (
 // restrict the candidates to one owner with TargetsWithDefinedController$
 // ParentTarget or a filter whose every clause is YouOwn/YouCtrl.
 func (lc *lowerCtx) shuffleInto(ps *params, origin int) error {
+	if origin == zStack {
+		return lc.spellToLibrary(ps)
+	}
 	if origin != zBattlefield && origin != zGraveyard {
 		return refuse("shuffled move from %s", zoneLabel[origin])
 	}
@@ -115,5 +118,28 @@ func (lc *lowerCtx) shuffleIntoMulti(ps *params, origin int, obj lRef, t *lTarge
 		asker = lRef{Kind: rYou}
 	}
 	lc.emit(lInstr{Op: "MayShuffleMove", Obj: asker, C: obj.N, A: cst(may)})
+	return nil
+}
+
+// spellToLibrary lowers the resolving spell's own shuffle into its owner's
+// library (ChangeZone Origin$ Stack Destination$ Library Shuffle$ True
+// Defined$ Parent, the sub-ability of Blue Sun's Zenith): OpExt ExtSpellToLib.
+// Gorge's Defined$ Parent names the ability's source, here the spell. Only a
+// spell's own chain lowers; a library position or any other selector refuses.
+func (lc *lowerCtx) spellToLibrary(ps *params) error {
+	if lc.ab.Kind != akSpell {
+		return refuse("shuffled move from Stack outside a spell")
+	}
+	if d := ps.str("Defined"); d != "Parent" && d != "Self" {
+		return refuse("shuffled move from Stack of %q", d)
+	}
+	if ps.str("Destination") != "Library" {
+		return refuse("shuffled move from Stack to %s", ps.str("Destination"))
+	}
+	if lp, ok := ps.get("LibraryPosition"); ok && strings.TrimSpace(lp) != "0" {
+		return refuse("shuffled move from Stack with LibraryPosition$")
+	}
+	ps.consume("Defined", "Origin", "Destination", "Shuffle")
+	lc.emit(lInstr{Op: "SpellToLib", Note: "the resolving spell shuffles itself into its owner's library"})
 	return nil
 }

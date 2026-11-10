@@ -875,6 +875,13 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			if x.a == a {
 				have = true
 			}
+			if pa.Kind == "cast" && pa.Mode == "mayplay" && strings.Contains(pa.Label, "(alternative cost") &&
+				x.a.Kind() == ActCast && x.a.Src() == a.Src() && x.a.Mode()&0xf == a.Mode() && x.a.Mode()>>4 != 0 {
+				// the witness of a may-play alternative cast the walk already
+				// offers: the planner's action carries no AltCostIndex, so it
+				// reads as the plain may-play cast beside the offered alternative
+				have = true
+			}
 		}
 		if have {
 			continue
@@ -1479,7 +1486,7 @@ func (g *GorgeSide) answer(fr *frame, pe prioEntry) {
 // play was then paid (the script reached a priority decision that prices it).
 func (g *GorgeSide) scriptCompletes(pe prioEntry) bool {
 	c := &GorgeSide{E: g.E.Clone(), M: g.M, Cfg: g.Cfg, hyp: false}
-	c.id = identity{inst: append([]Ref(nil), g.id.inst...), obj: append([]state.ObjID(nil), g.id.obj...), scanned: g.id.scanned, lay: g.id.lay, ncard: g.id.ncard}
+	c.id = identity{inst: append([]Ref(nil), g.id.inst...), obj: append([]state.ObjID(nil), g.id.obj...), scanned: g.id.scanned, lay: g.id.lay, ncard: g.id.ncard, gen: g.id.gen}
 	if g.hyp {
 		// A hypothetical engine's chance state does not survive Clone's
 		// plain submit path; run the probe through SubmitHypothetical too.
@@ -1502,7 +1509,7 @@ func (g *GorgeSide) scriptCompletes(pe prioEntry) bool {
 // only passed until the game ended.
 func (g *GorgeSide) lowerCompletes(pe prioEntry) bool {
 	c := &GorgeSide{E: g.E.Clone(), M: g.M, Cfg: g.Cfg, hyp: g.hyp}
-	c.id = identity{inst: append([]Ref(nil), g.id.inst...), obj: append([]state.ObjID(nil), g.id.obj...), scanned: g.id.scanned, lay: g.id.lay, ncard: g.id.ncard}
+	c.id = identity{inst: append([]Ref(nil), g.id.inst...), obj: append([]state.ObjID(nil), g.id.obj...), scanned: g.id.scanned, lay: g.id.lay, ncard: g.id.ncard, gen: g.id.gen}
 	return func() (ok bool) {
 		defer func() {
 			if recover() != nil {

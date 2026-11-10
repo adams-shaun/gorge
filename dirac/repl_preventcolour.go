@@ -39,11 +39,11 @@ func (s *State) prevColHit(k *prep, sl Slot, c CardID, t prevTgt) bool {
 		m |= s.g.prevCol[i].col
 	}
 	if m != 0 && s.srcColors(k, sl, c)&m != 0 && !DebugNoPrevCol {
-		return true
+		return !s.noPrev(k) // CR 615.12
 	}
 	for i := range s.g.prevCol {
 		if r := &s.g.prevCol[i]; r.sc != 0 && s.prevScopeHit(k, r.sc, r.ctl, sl, t) {
-			return true
+			return !s.noPrev(k)
 		}
 	}
 	return false
@@ -71,6 +71,9 @@ func (s *State) prevColCands(k *prep, col kop.ColorMask, srcSl Slot, t prevTgt, 
 			}
 		} else if r.col == 0 || r.col&col == 0 || DebugNoPrevCol {
 			continue
+		}
+		if s.noPrev(k) {
+			return n // CR 615.12: no record prevents
 		}
 		if n == len(cand) {
 			s.capFull(StallReplCands) // loud: never truncate the candidates

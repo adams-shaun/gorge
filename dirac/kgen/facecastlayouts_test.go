@@ -112,18 +112,3 @@ func TestFaceTokens(t *testing.T) {
 		}
 	}
 }
-
-// TestSpellManaRefused: a spell that adds mana (SP$ Mana: Manamorphose,
-// Seasonal Ritual) is refused; it used to lower to a mana record on a
-// spell that resolves doing nothing.
-func TestSpellManaRefused(t *testing.T) {
-	for _, c := range lowerNamed(t, []string{"Manamorphose"}) {
-		ok := false
-		for _, r := range c.Refusals {
-			ok = ok || strings.Contains(r.Reason, "SP$ Mana")
-		}
-		if !ok {
-			t.Fatalf("Manamorphose not refused for SP$ Mana: %v", c.Refusals)
-		}
-	}
-}

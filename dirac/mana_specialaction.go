@@ -39,6 +39,7 @@ func (s *State) restrPoolNonSpell(k *prep, p uint8) uint8 {
 // restrNonSpellKind: a source of the table with the spend restriction batch kind kind names admits a
 // non-spell payment.
 func (s *State) restrNonSpellKind(k *prep, kind uint8) bool {
+	// the SpmActivated marker batch holds no AfManaNonSpell ability: refused here on purpose
 	for i := range k.t.Cards {
 		abs := k.t.Cards[i].Abilities
 		for j := range abs {
@@ -131,7 +132,7 @@ func (s *State) restrSpecialFilter(k *prep, p uint8, src Slot, f kop.FilterID, s
 	for ; f != 0; f = k.t.Filters[f].Or {
 		fl := k.t.Filters[f]
 		if fl.Special&sp == 0 {
-			continue
+			continue // sp never holds kop.SpmActivated: refused here on purpose
 		}
 		fl.Special = 0
 		fl.Zone = kop.ZoneNone

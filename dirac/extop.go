@@ -119,6 +119,11 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtMustBeBlocked:
 		s.mustBlockExt(k, in) // combat_mustbeblocked.go
 		return true, true
+	case kop.ExtSpellToLib:
+		s.spellToLib(k) // act_spelltolib.go
+		return true, true
+	case kop.ExtVote:
+		return s.voteStart(k, in), true // act_vote.go
 	case kop.ExtAttacksIfAble:
 		s.attacksIfAbleExt(k, in) // combat_attacksifable.go
 		return true, true
@@ -130,6 +135,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtDigImprint:
 		return true, true // read by the dig it follows (zone_digimprint.go)
+	case kop.ExtRememberSearcher:
+		s.rememberSearcher() // zone_remembersearcher.go
+		return true, true
 	case kop.ExtSuspect:
 		s.suspectExt(k, in) // act_suspect.go
 		return true, true
@@ -194,6 +202,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtTurnFaceUp:
 		return s.extTurnFaceUp(k, in), true // face_turnupeffect.go
+	case kop.ExtDistCounters:
+		return s.distPickStart(k, in), true // ctr_distpick.go
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }

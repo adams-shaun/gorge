@@ -269,11 +269,13 @@ DmgLE	DmgCmp	2
 DmgLT	DmgCmp	6
 DmgMapped	untyped int	4
 DmgNE	DmgCmp	4
+DmgNoRegen	untyped int	32
 DmgRemember	untyped int	8
 DmgTrackExcess	untyped int	1
 DpGroup	untyped int	1
 DpMany	untyped int	3
 DpTrack	untyped int	2
+DrawRememberAll	untyped int	2
 DuDugMark	untyped int	256
 DuFoundAttacking	untyped int	512
 DuFoundTapped	untyped int	64
@@ -415,6 +417,7 @@ ExtCounterAll	ExtOp	226
 ExtCounterLose	ExtOp	41
 ExtCounterPlusEOT	ExtOp	247
 ExtDigImprint	ExtOp	282
+ExtDistCounters	ExtOp	310
 ExtDividedCounters	ExtOp	30
 ExtEachDamage	ExtOp	2
 ExtEffEtbCtr	ExtOp	197
@@ -442,16 +445,19 @@ ExtPreventColor	ExtOp	1
 ExtPreventDamageScope	ExtOp	246
 ExtPutCounterExisting	ExtOp	253
 ExtRecruit	ExtOp	94
+ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
 ExtSearchCounters	ExtOp	252
 ExtSuspect	ExtOp	190
 ExtSweepFrom	ExtOp	97
 ExtToGraveyard	ExtOp	192
+ExtSpellToLib	ExtOp	308
 ExtTokenPT	ExtOp	170
 ExtTurnFaceUp	ExtOp	254
 ExtTwoPilesSac	ExtOp	4
 ExtUnlockDoor	ExtOp	227
+ExtVote	ExtOp	311
 F2AttachedToT0	FilterFlags2	512
 F2BasePermanent	FilterFlags2	8388608
 F2Basic	FilterFlags2	131072
@@ -998,6 +1004,7 @@ SacSumMV	untyped int	8
 SacSumPower	untyped int	2
 SacSumToughness	untyped int	4
 SacrificedFood	untyped int	2
+SpmActivated	SpecialMask	32
 SpmCloakUp	SpecialMask	8
 SpmDisguiseUp	SpecialMask	2
 SpmManifestUp	SpecialMask	4
@@ -1038,6 +1045,7 @@ StEmbNum	StaticFlags	16384
 StFreeOnly	StaticFlags	128
 StFunctionsInExile	StaticFlags	1024
 StFunctionsInGraveyard	StaticFlags	16
+StMayPayLife	StaticFlags	8192
 StMayRaise	StaticFlags	32768
 StOncePerTurn	StaticFlags	2
 StPanhETB	StaticFlags	2048
@@ -1076,6 +1084,7 @@ StatCantBlockBy	StaticKind	4
 StatCantDraw	StaticKind	248
 StatCantGainLife	StaticKind	247
 StatCantPhaseIn	StaticKind	238
+StatCantPreventDamage	StaticKind	232
 StatCantPutCounter	StaticKind	252
 StatCantSacrifice	StaticKind	237
 StatCantTarget	StaticKind	235
@@ -1231,6 +1240,7 @@ TokAttach	untyped int	32
 TokAttackAsk	untyped int	128
 TokAttacking	untyped int	64
 TokExileAtEnd	untyped int	16
+TokImprintObj	untyped int	16384
 TokRemember	untyped int	2
 TokRememberObj	untyped int	4
 TokSacAtEnd	untyped int	8

@@ -1746,7 +1746,13 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			continue
 		}
 		if s.objs[o].zone == kop.ZoneBattlefield {
-			s.pickLeaves(k, o, z) // a hidden pick from the battlefield (trig_delayedtiming.go)
+			if s.pickLeaves(k, o, z) { // a hidden pick from the battlefield (trig_delayedtiming.go)
+				// a CR 903.9b commander move: the cards from this one on wait on
+				// the battlefield for the answer (zone_cmdzone.go)
+				n := copy(s.resArm().look[:], s.resArm().look[i:s.g.nlook])
+				s.g.nlook = uint8(n)
+				return
+			}
 			continue
 		}
 		ep := p
@@ -2253,9 +2259,16 @@ func (s *State) cardCands(k *prep, f kop.FilterID, p uint8, d *Decision) int {
 		}
 	}
 	if z == kop.ZoneNone || z == kop.ZoneBattlefield {
+		// A creature that crewed or saddled the resolving source this turn
+		// (F2CrewedSrc: Fortune, Loyal Steed's "up to one creature that
+		// saddled it") is relative to the source, which no other pick reads.
+		src := NoSlot
+		if chainFlags2(k.t, f)&kop.F2CrewedSrc != 0 {
+			src = s.objRef(k, kop.RefSelf) // filter_combatwords.go
+		}
 		for m := s.occ; m.any(); m = m.rest() {
 			sl := m.first()
-			if s.matchPermGen(k, f, sl, p, NoSlot, layerFull) {
+			if s.matchPermGen(k, f, sl, p, src, layerFull) {
 				add(s.perms[sl].obj)
 			}
 		}

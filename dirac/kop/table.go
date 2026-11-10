@@ -379,6 +379,10 @@ type CardDef struct {
 	// MorphFamily 0). MorphFamily says which (CardDef.Face*Family).
 	MorphCost   ManaCost
 	MorphFamily uint8
+	// MorphReduce (zero K = none) is the turn-up cost's printed generic
+	// reduction, evaluated for the permanent's controller and subtracted
+	// from MorphCost's generic, floored at zero (dirac/face_morphreduce.go).
+	MorphReduce ValueRef
 	// CostEmpty is an EMPTY printed mana-cost text, the one case gorge's
 	// manifestFaceUpCost rejects outright (strings.TrimSpace(f.ManaCost)=="");
 	// Cost is also the zero ManaCost for {0} and for a printed "no cost", so

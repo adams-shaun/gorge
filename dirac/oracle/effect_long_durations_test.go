@@ -189,7 +189,7 @@ func TestEffectLongDurationsReprosReach(t *testing.T) {
 // EFFECT_LONG_DURATIONS_RECORD=1; the games it writes are the committed repros.
 func TestEffectLongDurationsRecord(t *testing.T) {
 	if os.Getenv("EFFECT_LONG_DURATIONS_RECORD") == "" {
-		t.Skip("set EFFECT_LONG_DURATIONS_RECORD=1 to record the games")
+		return // a recording tool, not coverage: it returns rather than skips, since a skip here must name a missing pool (testdata/poolskips.txt)
 	}
 	reg := synthReg(t)
 	for _, c := range effectLongCases() {

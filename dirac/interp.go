@@ -29,7 +29,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			}
 			for i := 0; i < n && !s.over; i++ {
 				if in.C&kop.MvRemember != 0 {
-					s.drawRemember(p) // RememberDrawn$ (zone_rememberwrites.go)
+					s.drawRemember(p, in.C&kop.DrawRememberAll != 0) // RememberDrawn$ (zone_rememberwrites.go)
 				} else {
 					s.draw(p)
 				}
@@ -693,7 +693,7 @@ func (s *State) destroy(k *prep, sl Slot) {
 	if s.destroyHeal(k, sl) {
 		return
 	}
-	if s.perms[sl].flags&pfRegen != 0 {
+	if s.canRegen(sl) {
 		s.regenerate(sl)
 		return
 	}

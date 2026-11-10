@@ -2499,5 +2499,7 @@ func (s *State) poolRPays(k *prep, p uint8, c CardID, o Obj) bool {
 		return false
 	}
 	cost := s.buildCost(k)
-	return cost.X == 0 && av.affords(&cost, pipMaskOf(&cost), 0)
+	// an {X} (a warp cost's) is priced at X = 0, as gorge's witness plans it
+	// before the announcement (CR 601.2b)
+	return av.affords(&cost, pipMaskOf(&cost), 0)
 }

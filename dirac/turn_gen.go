@@ -628,6 +628,7 @@ func (s *State) newTurnGen() {
 	s.g.enteredN = 0
 	s.g.enteredFull = false
 	s.mSlZero(s.k(), mechExileEx)
+	s.mSlZero(s.k(), mechNoRegen) // repl_noregen.go
 	clear(s.cold.exMark)
 	s.mustBlockNewTurn(s.k()) // combat_mustbeblocked.go
 	if k := s.k(); k.gen != nil && k.gen.anyPermMark {

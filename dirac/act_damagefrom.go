@@ -69,6 +69,19 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		infect = k.t.Cards[s.objs[o].card].Infect
 	}
 	card := s.objs[o].card
+	if sli, ok := tgtSlot(kop.Ref(in.C)); ok {
+		// the any-target form (Scourge of Valkas): the slot names a player,
+		// handled below as each-opponent is, or a permanent
+		code := s.tgtCode(sli)
+		if code == NoTarget {
+			s.g.plusBatchAsked = false
+			return
+		}
+		if isObjTarget(code) {
+			s.dmgSrcObject(k, Obj(code), o, sl, kw, ctrl, infect, int(n))
+			return
+		}
+	}
 	p0, p1 := s.eachPlayers(k, kop.Ref(in.C))
 	// A pure plus-N competition poses gorge's no-op CR 616.1 order ask before
 	// the pass deals (repl_plus.go): the op parks and the answer
@@ -112,7 +125,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		if k.gen != nil && k.gen.anyPermMark && sl != NoSlot {
 			s.markDealt(k, sl, false)
 		}
-		if s.subs[kop.TrigDamageDone].any() || k.gen != nil && s.subs[kop.TrigDamageDealtOnce].any() {
+		if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) {
 			if sl != NoSlot {
 				s.fireDamage(k, sl, int16(m), true, false, code)
 			} else if k.gen != nil {
@@ -127,3 +140,54 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 // (a mutation: the owntgt lockstep must then diverge).
 // Test-only; never set outside the oracle tests.
 var DebugDmgAmountPlusOne bool
+
+// dmgSrcObject is dmgSrcPlayers' permanent recipient: the trigger object o
+// deals n damage to the permanent dst (CR 120.3). A source still on the
+// battlefield deals through the ordinary hit batch (replacements, infect,
+// deathtouch, lifelink and the damage triggers as any creature's damage).
+// A source that left is dealt from its last known information (CR 113.7a,
+// 608.2h), kw/ctrl/infect read by the caller, with the same order as
+// damageTo for the resolving source.
+func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl uint8, infect bool, n int) {
+	if s.objs[dst].zone != kop.ZoneBattlefield {
+		s.g.plusBatchAsked = false
+		return
+	}
+	dsl := s.objs[dst].slot
+	if sl != NoSlot {
+		var hb hitBatch
+		hb.add(s, sl, dsl, n)
+		s.dealHits(k, hb.h[:hb.n]) // clears plusBatchAsked itself unless the batch parked
+		return
+	}
+	card := s.objs[o].card
+	code := uint8(dst)
+	if s.replPlusSrcPass(k, ctrl, NoSlot, card, kw, []uint8{code}, []int{n}) {
+		return
+	}
+	m := n
+	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
+		m = s.replDamage(k, ctrl, NoSlot, card, code, false, m)
+	}
+	s.g.plusBatchAsked = false
+	if m <= 0 {
+		return
+	}
+	s.touchSl(dsl)
+	if k.gen != nil && k.gen.anyInfect && infect && s.isCreature(k, dsl) {
+		s.dmgCountersIf(k, dsl, m)
+		s.infectCounters(k, dsl, m)
+	} else {
+		s.dmgPerm(k, dsl, &s.perms[dsl], m)
+	}
+	if kw&kop.KwDeathtouch != 0 {
+		s.perms[dsl].markDT(1)
+	}
+	s.res.lastDmg = int16(m)
+	if kw&kop.KwLifelink != 0 {
+		s.gainLife(k, ctrl, m)
+	}
+	if k.gen != nil && (s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any()) {
+		s.fireDamageSrc(k, o, ctrl, int16(m), 0, code, nil)
+	}
+}

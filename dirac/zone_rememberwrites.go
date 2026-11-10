@@ -12,19 +12,33 @@ import (
 var DebugNoRemWrites3 bool
 
 // drawRemember draws one card for p and remembers it when it reached the
-// hand (gorge effDraw: the top card, unless the library was empty).
+// hand (gorge effDraw: the top card, unless the library was empty). all is
+// RememberDrawn$ AllReplaced: every card the draw and its replacement body
+// moved into p's hand, in library order (gorge draw.go recordDrawn), not only
+// the pre-draw top card.
 //
 //go:noinline
-func (s *State) drawRemember(p uint8) {
+func (s *State) drawRemember(p uint8, all bool) {
 	pl := &s.pl[p]
 	if pl.libLo == pl.libHi {
 		s.draw(p)
 		return
 	}
-	o := pl.lib[pl.libLo]
+	lo, hi := pl.libLo, pl.libHi
 	s.draw(p)
-	if s.objs[o].zone == kop.ZoneHand && !DebugNoRemWrites3 {
-		s.remember(o)
+	if DebugNoRemWrites3 {
+		return
+	}
+	if !all {
+		if o := pl.lib[lo]; s.objs[o].zone == kop.ZoneHand {
+			s.remember(o)
+		}
+		return
+	}
+	for i := lo; i < hi; i++ {
+		if o := pl.lib[i]; s.objs[o].zone == kop.ZoneHand {
+			s.remember(o)
+		}
 	}
 }
 

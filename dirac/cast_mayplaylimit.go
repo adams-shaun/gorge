@@ -90,4 +90,7 @@ func (s *State) damageDealt(k *prep, in *kop.Instr, o Obj) {
 	if in.C&kop.DmgExileIfDealt != 0 && s.objs[o].zone == kop.ZoneBattlefield {
 		s.markExileEx(k, s.objs[o].slot)
 	}
+	if in.C&kop.DmgNoRegen != 0 {
+		s.markNoRegen(k, o) // repl_noregen.go
+	}
 }

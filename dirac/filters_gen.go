@@ -138,6 +138,11 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 		if fl.Sub != 0 && !has(fl.Sub-1) || fl.NotSub != 0 && has(fl.NotSub-1) {
 			return false
 		}
+		for _, n := range fl.NotSubs {
+			if n != 0 && has(n-1) {
+				return false
+			}
+		}
 	}
 	if fl.Flags2 != 0 && !s.flags2Perm(k, fl.Flags2, sl, src, layer) {
 		return false
@@ -547,6 +552,11 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	}
 	if fl.NotSub != 0 && !fd && int(fl.NotSub-1) < len(k.t.Subtypes) && cd.Subtypes.Has(int(fl.NotSub-1)) {
 		return false
+	}
+	for _, n := range fl.NotSubs {
+		if n != 0 && !fd && int(n-1) < len(k.t.Subtypes) && cd.Subtypes.Has(int(n-1)) {
+			return false
+		}
 	}
 	if fl.Zone != kop.ZoneNone && o != NoObj && s.objs[o].zone != fl.Zone {
 		return false

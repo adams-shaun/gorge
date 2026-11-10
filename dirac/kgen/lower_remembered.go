@@ -83,8 +83,8 @@ func (lc *lowerCtx) refuseCtxRememberedCount() {
 }
 
 // rememberParam reads a Remember*$ param that only means True
-// (Draw RememberDrawn$, Surveil RememberMoved$, SacrificeAll RememberSacrificed$);
-// any other value refuses.
+// (Surveil RememberMoved$, SacrificeAll RememberSacrificed$); any other value
+// refuses. Draw's RememberDrawn$ also takes AllReplaced (rememberDrawn).
 func rememberParam(ps *params, name string) (bool, error) {
 	v, ok := ps.get(name)
 	if !ok {
@@ -96,13 +96,33 @@ func rememberParam(ps *params, name string) (bool, error) {
 	return true, nil
 }
 
-// remember3 maps a Draw/Surveil/SacrificeAll CS "Remember" to kop.MvRemember
-// on the instruction; any other CS refuses.
+// rememberDrawn reads Draw's RememberDrawn$: True remembers the card the
+// draw itself moved, AllReplaced every card the draw and its replacement body
+// moved into the drawing player's hand (gorge draw.go recordDrawn).
+func rememberDrawn(ps *params) (remember, all bool, err error) {
+	v, ok := ps.get("RememberDrawn")
+	if !ok {
+		return false, false, nil
+	}
+	switch v {
+	case "True":
+		return true, false, nil
+	case "AllReplaced":
+		return true, true, nil
+	default:
+		return false, false, refuse("RememberDrawn %q", v)
+	}
+}
+
+// remember3 maps a Draw/Surveil/SacrificeAll CS "Remember" (or a Draw's
+// "RememberAll") to its remember bits on the instruction; any other CS refuses.
 func remember3(cs string, ki *kop.Instr) error {
 	switch cs {
 	case "":
 	case "Remember":
 		ki.C |= kop.MvRemember
+	case "RememberAll":
+		ki.C |= kop.MvRemember | kop.DrawRememberAll
 	default:
 		return fmt.Errorf("remember write %q", cs)
 	}

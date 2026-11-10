@@ -399,11 +399,13 @@ func (lc *lowerCtx) lowerTail() {
 	}
 	lc.lowerGift()
 	lc.refuseCrossAbilityRemembered()
+	lc.refuseCrossAbilityImprinted()
 	lc.refuseRememberedPower() // value_countheads.go
 	lc.refuseMultiMana()
 	lc.refuseCtxRememberedCount()
-	lc.refuseRemLKIPT()              // value_remlki.go
-	lc.refuseRememberAmountObjects() // lower_remembered.go
+	lc.refuseRemLKIPT()                // value_remlki.go
+	lc.refuseRememberAmountObjects()   // lower_remembered.go
+	lc.refuseRememberSearcherObjects() // lower_remembersearcher.go
 	lc.refuseOnceTwice()
 	lc.refusePlotCombos()
 	lc.refuseHarmonizeCombos()
@@ -1060,8 +1062,11 @@ func (lc *lowerCtx) lowerKeywords() {
 			// CR 702.37/702.168/702.169: the keyword parameter is the
 			// turn-face-up cost. The kernel's turn-up action spends only
 			// mana (an {X} is announced first), so non-mana parameters refuse.
-			mc, err := parseManaCost(param)
-			if err != nil || param == "" || strings.Contains(param, ":") || mc.None {
+			// A printed generic reduction rides the second colon field
+			// (lower_morphreduce.go).
+			cs, red, rok := lc.morphReduceParam(param)
+			mc, err := parseManaCost(cs)
+			if !rok || err != nil || cs == "" || strings.Contains(cs, ":") || mc.None || red.Kind != vNone && (mc.X || mc.Generic == 0) {
 				lc.refuseNode(node, "%s cost %q", strings.ToLower(head), param)
 				continue
 			}
@@ -1069,7 +1074,7 @@ func (lc *lowerCtx) lowerKeywords() {
 				lc.refuseNode(node, "second face-down keyword")
 				continue
 			}
-			lc.out.MorphCost = &mc
+			lc.out.MorphCost, lc.out.MorphReduce = &mc, red
 			switch head {
 			case "Morph":
 				lc.out.MorphFamily = kop.MorphMorph
@@ -1261,10 +1266,11 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Madness = &mc
 		case head == "Warp":
 			// CR 702.185a: an alternative hand cost. The recast from exile
-			// pays the mana cost, and the cost is paid from the pool, so an
-			// X warp cost (Broodguard Elite) has no fixed price to plan.
+			// pays the mana cost. An {X} in the warp cost is announced like
+			// a printed one (CR 601.2b): the cast's X ask prices the
+			// replaced cost (kernel cast.go buildCostPreRaw).
 			mc, err := parseManaCost(param)
-			if err != nil || param == "" || strings.Contains(param, ":") || mc.X {
+			if err != nil || param == "" || strings.Contains(param, ":") || mc.XX || mc.XXX {
 				lc.refuseNode(node, "warp cost %q", param)
 				continue
 			}
@@ -1285,12 +1291,11 @@ func (lc *lowerCtx) lowerKeywords() {
 		case head == "Sneak" && sneakLowered:
 			// CR 702.190a: an alternative hand cost paid in the caster's own
 			// declare-blockers step, plus the mandatory return of an
-			// unblocked attacker (dirac/kw_sneak.go). X, hybrid (the
-			// pip announcement for an alternative cost is unported),
-			// CardManaCost, a ":" rider (the granted form) and any non-mana
-			// part are refused.
+			// unblocked attacker (dirac/kw_sneak.go). X, CardManaCost, a ":"
+			// rider (the granted form) and any non-mana part are refused;
+			// a hybrid pip is announced like a printed cost's.
 			mc, err := parseManaCost(param)
-			if err != nil || param == "" || strings.Contains(param, ":") || mc.X || mc.None || len(mc.Hybrid) != 0 {
+			if err != nil || param == "" || strings.Contains(param, ":") || mc.X || mc.None {
 				lc.refuseNode(node, "sneak cost %q", param)
 				continue
 			}
@@ -1470,6 +1475,14 @@ func (lc *lowerCtx) lowerKeywords() {
 			// the sentence to the MustBlock head; the attacker-oriented
 			// requirement, one blocker satisfies it)
 			lc.out.MustBeBlocked = true
+		case head == "Miracle":
+			// CR 702.94a: a revealed first draw triggers, and the card may
+			// be cast as that trigger resolves. gorge instead asks as the
+			// offer is put on the stack and casts the card there and then,
+			// with no stack object; the kernel has no cast begun from
+			// trigger placement, so it is refused by name until both
+			// engines resolve the trigger on the stack.
+			lc.refuseNode(node, "keyword %q: gorge casts at trigger placement, not as the trigger resolves (CR 702.94a)", head)
 		default:
 			lc.refuseNode(node, "keyword %q", head)
 		}
@@ -2723,12 +2736,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	if ab.Ninjutsu {
 		return lc.ninjutsuBody(ps) // lower_ninjutsu.go
 	}
-	if sa.API == "Mana" && ab.Kind == akSpell {
-		// a spell that adds mana (Manamorphose, Seasonal Ritual): the mana
-		// ability record would resolve as a spell that does nothing
-		return refuse("SP$ Mana")
-	}
-	if sa.API == "Mana" {
+	if sa.API == "Mana" && ab.Kind != akSpell {
 		return lc.lowerMana(sa, ps, ab)
 	}
 	if sa.API == "ManaReflected" && ab.Kind == akMana {
