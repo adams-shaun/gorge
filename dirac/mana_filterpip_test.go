@@ -103,3 +103,23 @@ func TestEvendoFilterGatedOnStation(t *testing.T) {
 		}
 	}
 }
+
+// TestEvendoFilterFeeSpendsGreen: the filter's {G} is a coloured pip, paid
+// only with green (CR 601.2h, 106.1b), so with {W} and {G} floating its
+// activation spends the {G} and keeps the {W}; a generic fee paid in
+// C W U B R G order would spend the {W}. Evendo then adds a G for each of the
+// four Bears.
+func TestEvendoFilterFeeSpendsGreen(t *testing.T) {
+	sc, evendo, _, _ := evendoScen(t, 12, kop.G)
+	sc.s.pl[0].pool[kop.W]++
+	if pool := sc.s.pl[0].pool; pool[kop.W] != 1 || pool[kop.G] != 1 {
+		t.Fatalf("pool %v, want one W and one G floating", pool)
+	}
+	sc.s.filtDo(sc.k, 0, filtStep{sl: sc.slot(evendo), gap: true, ans: 1 + kop.G})
+	if !sc.tapped(evendo) {
+		t.Fatal("Evendo untapped after its filter's activation")
+	}
+	if pool := sc.s.pl[0].pool; pool[kop.W] != 1 || pool[kop.G] != 4 {
+		t.Errorf("pool %v after the activation, want the W kept and four G (the {G} fee spent)", pool)
+	}
+}
