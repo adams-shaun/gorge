@@ -175,7 +175,9 @@ func TestAZRedealFourSeatCommanderGame(t *testing.T) {
 	// as the wrapped bot and leave every count below at zero).
 	searched := run.searched()
 	for _, kind := range []string{"priority", "attackers", "blockers", "target"} {
-		if searched[kind] == 0 {
+		// A different simulation budget plays a different game: the kinds a
+		// measurement run meets are reported, not required.
+		if searched[kind] == 0 && os.Getenv("AZREDEAL_POD_SIMS") == "" {
 			t.Errorf("the seat never searched a %s decision (searched: %v)", kind, searched)
 		}
 	}
