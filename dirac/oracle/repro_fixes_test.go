@@ -662,6 +662,10 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"choco_comet_x_witness_sacrifice_before_push", false, false},
 		// CR 601.2g, 603.3b: Choco-Comet's largest-X witness would sacrifice the Treasure into Al Bhed Salvagers' lethal drain before the cast, so gorge plans X=5 from the lands and keeps the Treasure
 		{"x_witness_lethal_sacrifice_trigger_keeps_treasure", false, false},
+		// CR 106.6, 601.2g: Sage's Nouliths' equip {3}, paid by Cargo Ship's
+		// floating artifact-only {C} beside two of A Realm Reborn's granted
+		// taps, passes the planner's relaxed proof: the pool counts
+		{"relaxed_proof_spends_floating_artifact_mana", false, false},
 	})
 }
 
