@@ -210,7 +210,7 @@ func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer
 	if f&(kop.F2BlockedBySrc|kop.F2DamagedBy|kop.F2CrewedSrc|kop.F2Warped) != 0 && !s.coldF2Perm(k, f, sl, src) {
 		return false // filter_combatwords.go, trig_gravedrawn.go
 	}
-	if f&(kop.F2TgtPlayerCtrl|kop.F2DefendingCtrl) != 0 && !s.ctrlRoleF2(f, p.ctrl) {
+	if f&(kop.F2TgtPlayerCtrl|kop.F2DefendingCtrl) != 0 && !s.ctrlRoleF2(k, f, p.ctrl) {
 		return false // filter_heads.go
 	}
 	if f&(kop.F2Basic|kop.F2Legendary) != 0 && !s.superGen(k, f, sl) {
@@ -430,8 +430,8 @@ func (s *State) nameCardAt(sl Slot) CardID {
 // cmcPerm is sl's mana value for a filter: a face-down permanent has none
 // (CR 708.2), so 0.
 func (s *State) cmcPerm(k *prep, sl Slot) int {
-	if s.faceDown(k, sl) || s.cpxNoCost(k, sl) {
-		return 0
+	if s.faceDown(k, sl) || s.cpxNoCost(k, sl) || s.copiesBackFace(k, sl) {
+		return 0 // CR 712.8e: a copy of a back face has no mana cost
 	}
 	c := s.cardAt(sl)
 	if DebugFaceTransformStats != nil && k.t.Cards[c].Face != 0 {
@@ -607,7 +607,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		if f2&(kop.F2Emblem|kop.F2Kicked|kop.F2CastByYou|kop.F2ChosenColor|kop.F2Saddled|kop.F2Sneaked|kop.F2Unblocked|kop.F2BlockedBySrc|kop.F2DamagedBy|kop.F2CrewedSrc|kop.F2Warped) != 0 {
 			return false
 		}
-		if f2&(kop.F2TgtPlayerCtrl|kop.F2DefendingCtrl) != 0 && !s.cardRoleF2(f2, owner) {
+		if f2&(kop.F2TgtPlayerCtrl|kop.F2DefendingCtrl) != 0 && !s.cardRoleF2(k, f2, owner) {
 			return false // an Owner role off the battlefield (filter_referents.go)
 		}
 		if f2&(kop.F2WithFlying|kop.F2WithoutFlying) != 0 && !s.cardFlyingOK(f2, pc, fd) {

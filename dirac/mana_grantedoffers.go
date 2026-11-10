@@ -263,12 +263,28 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	if !own {
 		mask, n = 0, 0
 	}
+	// A sacrifice-only grant (Lotus Ring's "Sacrifice this creature: Add three
+	// mana of any one color") costs no {T}: the source taps for its other
+	// ability, then is sacrificed (CR 602.2, 605.1a), so that grant is a unit
+	// of its own beside the tap's, the sacrifice made once.
+	var sMask, sN uint8
 	for i := 0; i < ng; i++ {
 		pc := s.grantView(k.gen, gi[i], sl)
+		if pc.grantSac && s.grantSacLive(sl, pc) {
+			sMask |= s.srcMaskAt(pc, sl)
+			sN = max(sN, pc.manaN)
+			continue
+		}
 		mask |= s.srcMaskAt(pc, sl)
 		n = max(n, pc.manaN)
 	}
+	if mask == 0 {
+		mask, n, sMask, sN = sMask, sN, 0, 0
+	}
 	s.addGrantUnits(a, mask, n)
+	if sMask != 0 {
+		s.addGrantUnits(a, sMask, sN)
+	}
 	s.availGrantExtra(k, sl, pc, &gi, ng, own, a)
 }
 
@@ -318,7 +334,7 @@ func (s *State) castGrantAvail(k *prep, p uint8, o Obj, av, fav *avail) *avail {
 	if k.gen == nil || !k.gen.anyTapExtra || !k.gen.anyGrantRestr() {
 		return av
 	}
-	s.walkHandAvail(k, p, s.grantPayDescOf(MakeAction(AkCast, uint8(o), 0, 0)), fav)
+	s.walkHandAvail(k, p, s.grantPayDescOf(k, MakeAction(AkCast, uint8(o), 0, 0)), fav)
 	fav.delve = av.delve
 	return fav
 }
@@ -794,6 +810,7 @@ func (g *grantSrch) visit(t *State) bool {
 			lo, hi = 1, 2
 		}
 		for g.sel = lo; g.sel <= hi; g.sel++ {
+			blgExtra, blgN := uint8(0), uint8(0)
 			if ppc := t.manaPCGen(g.k, sl); g.dual[i] && !t.ownRestrPrinted(g.k, sl) && grantPainShape(g.k, ppc) {
 				if g.painBranch(t, i, sl, ppc, alts == 1) { // its painful ability's colours too (mana_grantpain.go)
 					return true
@@ -808,6 +825,14 @@ func (g *grantSrch) visit(t *State) bool {
 				} else {
 					ppc := t.manaPCGen(g.k, sl)
 					mask, n = t.srcMaskAt(ppc, sl), ppc.manaN
+					if base := &g.k.cards[t.cardAt(sl)]; g.k.gen.blgOn && ppc != base && base.manaAb >= 0 && !base.manaChosen && mask&^srcMask(base) != 0 {
+						// a granted basic land type's intrinsic abilities (CR 305.7)
+						// follow the printed ones in gorge's ask (its printed
+						// restricted and filter abilities too): White Lotus
+						// Hideout's {C} first, an Island's {U} before the grants
+						blgExtra, blgN = mask&^srcMask(base), n
+						mask, n = srcMask(base), base.manaN
+					}
 				}
 				if g.branch(t, i, sl, -1, mask, n, alts == 1) {
 					return true
@@ -825,6 +850,9 @@ func (g *grantSrch) visit(t *State) bool {
 				}
 			}
 			if fok && g.filtBranch(t, i, sl) { // (listed after the printed ability, before the grants)
+				return true
+			}
+			if blgExtra != 0 && g.branch(t, i, sl, -1, blgExtra, blgN, false) {
 				return true
 			}
 			for j := 0; j < int(g.ng[i]); j++ {
@@ -1259,18 +1287,20 @@ func (g *grantSrch) grantAdmits(t *State, sl Slot, gi int16) bool {
 // grantPayDesc is the payment play a makes, for a granted source's spend
 // restriction: a cast is read as paid (cast=true: the spell is on the
 // stack when the prefix's mana is spent), an activation as an ability.
-func (s *State) grantPayDesc(a Action) payDesc {
-	d := s.grantPayDescOf(a)
+func (s *State) grantPayDesc(k *prep, a Action) payDesc {
+	d := s.grantPayDescOf(k, a)
 	d.play, d.hasPlay = a, true
 	return d
 }
 
-func (s *State) grantPayDescOf(a Action) payDesc {
+func (s *State) grantPayDescOf(k *prep, a Action) payDesc {
 	o := Obj(a.Source())
 	switch a.Kind() {
 	case AkCast, AkCastCasualty, AkCastConspire:
 		og := restrOrigin{from: s.objs[o].zone}
-		return payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: og}
+		// a face cast's spend restriction reads the face being cast (CR
+		// 715.3b, 709.3a): Storm Reading's mana value, not Galvanic Giant's
+		return payDesc{class: pdSpell, card: s.castFaceCard(k, a), src: NoSlot, og: og}
 	case AkActivate:
 		d := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
 		if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {
@@ -1444,7 +1474,7 @@ func (s *State) grantTapXPrefix(k *prep, a Action, p uint8) {
 	if !ok {
 		return
 	}
-	desc := s.grantPayDesc(a)
+	desc := s.grantPayDesc(k, a)
 	var gaps, tx slotMask
 	tx = s.scriptTapXModelled(k, p)
 	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
@@ -1560,6 +1590,22 @@ func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop
 	return cost, ex, need, ok
 }
 
+// castFaceCard is the card cast action a puts on the stack: for a face cast
+// (an Adventure or split half from the hand, a Room's other door) the face,
+// else the object's card.
+func (s *State) castFaceCard(k *prep, a Action) CardID {
+	c := s.objs[a.Source()].card
+	if a.Mode()&castFace == 0 || a.Mode()&3 != 0 {
+		return c
+	}
+	if cd := &k.t.Cards[c]; roomDef(k, c) {
+		return cd.Faces[a.Target()] // a room_alt cast: the other door, whichever door the card shows
+	} else if len(cd.Faces) == 2 && a.Target() == 1 {
+		return cd.Faces[1]
+	}
+	return c
+}
+
 // grantPlayCostRaise is grantPlayCost with raiseO set as the caller left it.
 func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cost kop.ManaCost, ex Slot, need [kop.NumManaKinds]bool, ok bool) {
 	ex = NoSlot
@@ -1582,12 +1628,7 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			// a face cast (an Adventure from the hand) pays the face's own
 			// cost, not the front's: the search priced it as the front and
 			// removed a cast gorge offers
-			c := s.objs[a.Source()].card
-			if cd := &k.t.Cards[c]; roomDef(k, c) {
-				c = cd.Faces[a.Target()] // a room_alt cast: the other door, whichever door the card shows
-			} else if len(cd.Faces) == 2 && a.Target() == 1 {
-				c = cd.Faces[1]
-			}
+			c := s.castFaceCard(k, a)
 			return s.adjustCost(k, p, c, Obj(a.Source()), k.cards[c].cost), ex, need, true
 		}
 		if a.Mode() == 0 && a.Kind() == AkCast {

@@ -34,13 +34,17 @@ func (lc *lowerCtx) discardedIsCost() bool {
 }
 
 // targetMVReadable: Targeted$CardManaCost of a battlefield or graveyard
-// target slot (the kernel's targetMV). A stack target is refused: a
-// spell's mana value counts its X (CR 202.3e), which the printed total
-// does not hold.
+// target slot, or of exactly one spell on the stack (the kernel's
+// targetMV). A spell on the stack adds its announced X to the printed
+// total (CR 202.3e; objMV), and once it has left the stack the printed
+// total is the whole mana value: Unravel reads its countered target.
 func (lc *lowerCtx) targetMVReadable(ref lRef) bool {
 	if ref.Kind != rTarget || ref.N < 0 || ref.N >= len(lc.ab.Targets) || ref.N > 2 {
 		return false
 	}
 	t := lc.ab.Targets[ref.N]
-	return !t.Spell && (t.Zone == zBattlefield || t.Zone == zGraveyard)
+	if t.Spell {
+		return !t.StackAb && t.Zone == zStack && isConstN(t.Min, 1) && isConstN(t.Max, 1)
+	}
+	return t.Zone == zBattlefield || t.Zone == zGraveyard
 }

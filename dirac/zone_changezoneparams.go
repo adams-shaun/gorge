@@ -94,6 +94,11 @@ func (s *State) askOptionsCzParams(k *prep, d *Decision) bool {
 		d.Sub = ChGenEnterDefender
 		var buf [MaxOptions]uint8
 		n := s.enteringDefenderCands(k, s.res.askP, &buf)
+		if MaxSeats > 2 && s.res.e.kind == seTrigger {
+			if fb := s.enterDefenderFallback(k, s.res.askP); fb != NoTarget {
+				n = enterDefenderOrder(&buf, n, fb) // gorge chooseEnteringDefender: fallback first
+			}
+		}
 		for i := 0; i < n; i++ {
 			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}

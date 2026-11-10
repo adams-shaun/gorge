@@ -63,6 +63,9 @@ func (s *State) resolveTop(k *prep) {
 		// resolution drops any left over by an aborted one (repl_gen.go); the
 		// looked-at cards are the resolution's too (arm C of scr)
 		s.scrResEnter()
+		if k.gen.anyTgtSpent {
+			s.snapTgtSpent(&e) // the target's spend, before a counter removes its entry
+		}
 		if k.gen.anyCastSpent && DebugOpusLive {
 			s.res.e.trigAmt = s.liveSpentAmt(k, &e) // TestOpusMutation only
 		}
@@ -314,6 +317,9 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 				}
 			}
 		}
+	}
+	if k.gen != nil && k.gen.anyTgtSpent {
+		s.g.tgtSpent = 0 // the snapshot is the resolution's
 	}
 	s.res.active = false
 	if k.anyStateCtr {
@@ -946,13 +952,21 @@ func (s *State) players(k *prep, r kop.Ref) seatSeq {
 // first-player reads).
 func (s *State) oneOpp(k *prep, r kop.Ref) uint8 {
 	e := &s.res.e
-	return s.oneOppOf(k, r, e.ctrl, e.obj)
+	if !s.res.active {
+		return s.oneOppOf(k, r, nil, e.ctrl, e.obj)
+	}
+	return s.oneOppOf(k, r, e, e.ctrl, e.obj)
 }
 
-// oneOppOf is oneOpp for controller ctrl and source obj.
-func (s *State) oneOppOf(k *prep, r kop.Ref, ctrl uint8, obj Obj) uint8 {
+// oneOppOf is oneOpp for entry e (nil: none), controller ctrl and source
+// obj. Past two seats an attack trigger's defending player is the one bound
+// as it was queued (defSeat), else the seat its attacking source attacks.
+func (s *State) oneOppOf(k *prep, r kop.Ref, e *stackEntry, ctrl uint8, obj Obj) uint8 {
 	if MaxSeats == 2 {
 		return NextSeat(ctrl)
+	}
+	if r == kop.RefDefendingPlayer && e != nil && e.kind == seTrigger && e.defSeat != 0 {
+		return e.defSeat - 1
 	}
 	if r == kop.RefDefendingPlayer && obj != NoObj {
 		if ob := &s.objs[obj]; ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].flags&pfAttacking != 0 {

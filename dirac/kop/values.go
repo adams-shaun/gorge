@@ -100,6 +100,12 @@ const (
 	// the face's colours off the battlefield, so a SpellCast trigger's
 	// spell on the stack reads its printed colours)
 	ExNumColorsOf
+	// ExTgtSpent: the mana spent to cast the spell the resolving spell's
+	// target slot names, snapshotted as the resolution starts (0 with no
+	// snapshot). The counter it targets removes the spell's entry before a
+	// later condition can read the spend (gorge targetManaSpentLKI; EOE
+	// Unravel).
+	ExTgtSpent
 	ExCount_
 )
 

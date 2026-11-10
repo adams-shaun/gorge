@@ -163,7 +163,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		// a pool that pays the printed cost leaves no witness to tap, and the
 		// cast still has no plan: an either-or part chosen after it goes
 		// through the window (bsPay)
-		if s.bld().altAdd != buildBeamGrant && !s.FeatPoolPays(p, o, mode&3) {
+		pm := mode & 3
+		if s.g.bargainCast {
+			pm |= 4 // the bargained price (FeatPoolPays mode bit 2)
+		}
+		if s.bld().altAdd != buildBeamGrant && !s.FeatPoolPays(p, o, pm) {
 			s.lowerWitness(k, p)
 		}
 	} else if mode&castMayPlay != 0 && mode&castFree != 0 && s.cfg&(cfgGorgeLowering|cfgGorgeAutopay) != 0 && s.freeAltAddLowers(k, p, c, o) {
@@ -2010,7 +2014,7 @@ func (s *State) takePending(k *prep, i int) {
 	// resolves doing nothing to the new object (CR 400.7: resolveDelayed and
 	// resolveTrig check the version), as gorge's resolveTop does.
 	*s.bld() = build{e: stackEntry{kind: seTrigger, obj: pt.obj, srcVer: pt.srcVer, card: pt.card, ab: pt.ab, ctrl: pt.ctrl,
-		trigObj: pt.trigObj, trigPl: pt.trigPl, trigAmt: pt.trigAmt, li: pt.li, remVer: pt.remVer, remSet: pt.skw&skwRem != 0, x: pt.x, trigMV: pt.trigMV, grp: pt.grp, skw: pt.skw &^ (skwRem | skwMany)}}
+		trigObj: pt.trigObj, trigPl: pt.trigPl, trigAmt: pt.trigAmt, li: pt.li, remVer: pt.remVer, remSet: pt.skw&skwRem != 0, x: pt.x, trigMV: pt.trigMV, grp: pt.grp, skw: pt.skw &^ (skwRem | skwMany), defSeat: pt.defSeat}}
 	if pt.skw&skwMany != 0 {
 		s.dpManyVers(&s.bld().e)
 	}

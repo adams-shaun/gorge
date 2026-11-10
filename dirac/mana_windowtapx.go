@@ -73,12 +73,13 @@ func (s *State) trigWindowTap(k *prep, p uint8, cost *kop.ManaCost) (paused bool
 // clamp keeps. A second tap-another ability beside a plain first (Scene of the
 // Crime, kop.SecondTapXManaAb) is not offered here: the window takes the
 // source's plain first ability (windowCanTap), and its tap-another one is not
-// modelled in the windows. Nor is a sacrifice-another source (Bolg's
-// Company, kop.SacXEachManaAb): the window leaves it out.
+// modelled in the windows. A sacrifice-another source (Bolg's Company,
+// kop.SacXEachManaAb) is listed by the cast and activation windows only; the
+// unless, ward and trigger-cost windows leave it out.
 //
 //go:noinline
 func (s *State) windowTapXOffer(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
-	if !k.tapMana || !s.scriptTapX(k, p).has(o) || k.tapXSecond(s.cardAt(o)) || k.sacXOf(s.cardAt(o)) {
+	if !k.tapMana || !s.scriptTapX(k, p).has(o) || k.tapXSecond(s.cardAt(o)) || k.sacXOf(s.cardAt(o)) && s.g.winMode != winNone {
 		return false
 	}
 	return !decided || s.windowSrcMask(k, o)&want != 0

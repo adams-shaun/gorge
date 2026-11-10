@@ -55,9 +55,29 @@ func (s *State) mayPlayUnpriced(k *prep, p uint8, o Obj, anyMana bool, av *avail
 			// priced rather than ambiguous (Storied Veteran beside
 			// The Holodeck). A top-of-library cast has no such plan
 			// (Boltwave beside Madame Web and Johann).
+			// A folded offer whose RaiseCost$ removes counters (Quilled
+			// Greatwurm's own permission beside Muldrotha's) is a
+			// non-mana part the builder declines (pay.PlanNonManaAdmissible),
+			// so that cast stays ambiguous.
 			unpriced = s.mayPlayOffers(k, p, o) >= 2 &&
-				!(s.mayPlayFolds(k, p, o) && mayPlayPlannedZone(s.objs[o].zone))
+				!(s.mayPlayFolds(k, p, o) && mayPlayPlannedZone(s.objs[o].zone) && !s.mayPlayFoldRemoves(k, p, o))
 		}
 	}
 	return unpriced
+}
+
+// mayPlayFoldRemoves reports whether an unlimited static folded into p's
+// empty-key may-play offer of o raises its cost by removing counters
+// (StRemove6Counters), a part gorge's payment builder does not plan.
+func (s *State) mayPlayFoldRemoves(k *prep, p uint8, o Obj) bool {
+	found := false
+	s.mayPlayStatics(k, p, o, func(st statSrc) bool {
+		fl := st.a.Static.StFlags
+		if fl&kop.StOncePerTurn == 0 && fl&kop.StRemove6Counters != 0 && s.creatureCounters(k, p) >= int(st.a.Static.A) {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
 }

@@ -77,6 +77,9 @@ func tapeBoardCompetes(e *Engine) bool {
 	if tapeReplMayAsk(e, "AddCounter") || tapeReplMayAsk(e, "PayLife") || tapeAnyReplBodyMayAsk(e) {
 		return true
 	}
+	if tapeSelfExileMayAsk(e) {
+		return true
+	}
 	cand := false
 	for p := 0; p < len(e.G.Players) && !cand; p++ {
 		for _, id := range e.G.Zone(state.ZExile, state.PlayerID(p)) {
@@ -100,6 +103,45 @@ func tapeBoardCompetes(e *Engine) bool {
 					tapeEntryMayAsk(e, en.Obj) {
 					return true
 				}
+			}
+		}
+	}
+	return false
+}
+
+// tapeSelfExileMayAsk is the same-resolution half of that return gate: an
+// "exile until this leaves the battlefield" ability that also targets its own
+// host (Vault 13: Dweller's Journey's chapter I, whose targets may include the
+// Saga itself) exiles the host in the same resolution, so every card it just
+// exiled returns before the resolution ends (CR 610.3a) -- and an exiled card
+// that asks as it enters (an Aura choosing what it enchants, CR 303.4f) asks
+// there. The holder's ExileReturn list is still empty when the predicate
+// runs, so the board walk above cannot see it; the resolving object's own
+// targets are read instead.
+func tapeSelfExileMayAsk(e *Engine) bool {
+	n := len(e.G.Stack)
+	if n == 0 {
+		return false
+	}
+	o := e.G.Obj(e.G.Stack[n-1])
+	if o == nil || o.Source == 0 {
+		return false
+	}
+	self := false
+	for _, list := range [2][]state.Target{o.Targets, o.SubTargets} {
+		for _, t := range list {
+			if !t.IsPlayer && t.Obj == o.Source {
+				self = true
+			}
+		}
+	}
+	if !self {
+		return false
+	}
+	for _, list := range [2][]state.Target{o.Targets, o.SubTargets} {
+		for _, t := range list {
+			if !t.IsPlayer && t.Obj != o.Source && tapeEntryMayAsk(e, t.Obj) {
+				return true
 			}
 		}
 	}

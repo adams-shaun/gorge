@@ -141,7 +141,7 @@ func init() {
 		"kop.ExHighestOppPoison", kop.ExHighestOppPoison, "kop.ExThisTurnEntered", kop.ExThisTurnEntered,
 		"kop.ExThisTurnCastSpec", kop.ExThisTurnCastSpec, "kop.ExCommittedCrime", kop.ExCommittedCrime,
 		"kop.ExSelfPrepared", kop.ExSelfPrepared, "kop.ExThisTurnActGrave", kop.ExThisTurnActGrave, "kop.ExSneaked", kop.ExSneaked, "kop.ExTriggerSpellMVLKI", kop.ExTriggerSpellMVLKI,
-		"kop.ExPoisonOf", kop.ExPoisonOf, "kop.ExProduct", kop.ExProduct, "kop.ExAttackersAll", kop.ExAttackersAll, "kop.ExRefCount", kop.ExRefCount, "kop.ExNumColorsOf", kop.ExNumColorsOf,
+		"kop.ExPoisonOf", kop.ExPoisonOf, "kop.ExProduct", kop.ExProduct, "kop.ExAttackersAll", kop.ExAttackersAll, "kop.ExRefCount", kop.ExRefCount, "kop.ExNumColorsOf", kop.ExNumColorsOf, "kop.ExTgtSpent", kop.ExTgtSpent,
 		"kop.ExCountHand", kop.ExCountHand, "kop.ExYourTurns", kop.ExYourTurns, "kop.ExLowestLife", kop.ExLowestLife, "kop.ExOppsAttacked", kop.ExOppsAttacked, "kop.ExRedNCDmg", kop.ExRedNCDmg, "kop.ExVoid", kop.ExVoid, "kop.ExYourExtraTurns", kop.ExYourExtraTurns,
 		"kop.ExRevolt", kop.ExRevolt, "kop.ExLeftZone", kop.ExLeftZone, "kop.ExCtrAdded", kop.ExCtrAdded,
 		"kop.ExCastFromGrave", kop.ExCastFromGrave, "kop.ExFirstCast", kop.ExFirstCast, "kop.ExIfCastOwnMain", kop.ExIfCastOwnMain, "kop.ExExiledWithN", kop.ExExiledWithN,

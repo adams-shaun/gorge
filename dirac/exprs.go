@@ -505,7 +505,7 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 	case kop.RefController, kop.RefSelf:
 		return ctx.ctrl
 	case kop.RefOpponent, kop.RefEachOpponent, kop.RefDefendingPlayer:
-		return s.oneOppOf(k, r, ctx.ctrl, ctx.src) // a single-player read (resolve.go oneOpp)
+		return s.oneOppOf(k, r, ctx.e, ctx.ctrl, ctx.src) // a single-player read (resolve.go oneOpp)
 	case kop.RefEach:
 		return s.g.eachPl // the player of the OpRepeatEachPlayer in progress
 	}

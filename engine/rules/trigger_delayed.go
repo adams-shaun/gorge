@@ -611,6 +611,19 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 				continue
 			}
 		}
+		// CR 508.1: a batch "whenever you attack" registration (Dalkovan
+		// Encampment's Effect) is one triggering condition for the whole
+		// declaration, whose DeclareAttackers events are grouped per
+		// defender: it fires on the first event only, the latch the printed
+		// and granted walks keep, keyed apart from them by the registration.
+		var latch triggerKey
+		if ev.Kind == events.DeclareAttackers {
+			latch = triggerKey{Source: dt.Source, Idx: -1 - int(dt.ID)}
+			if grantedAttackersBatchFired(e, t, latch) {
+				continue
+			}
+			latchGrantedAttackersBatch(e, t, latch)
+		}
 		refs := e.triggerReferents(t, dt.Source, ev, referentsArg)
 		refs.DelayedObject = ev.Obj
 		// The REGISTRATION's capture rides its own referent field, never

@@ -22,7 +22,7 @@ var paramreadformsForms = []formCase{
 	{card: "Industrial Advancement", form: "Sacrificed$CardManaCost of a trigger's own IfPaid Sacrifice cost (ExRemLKIPT N 3)", lir: "Dig obj=You A=RemLKIPT(n=3)"},
 	{card: "Bolg of the North", form: "Spawner>Sacrificed$CardPower in a reflexive trigger (the parent's sacrificed power captured as the trigger's amount; gorge reads LKI)", lir: "TriggerAmount"},
 	{card: "Divine Offering", form: "Targeted$CardManaCost of a battlefield target (ExMVOf RefTarget0, kernel targetMV)", lir: "GainLife obj=You A=MVOf(Target0)"},
-	{card: "Hisoka, Minamo Sensei", form: "Targeted$CardManaCost of a spell target (X counts on the stack): kept refused", refused: "Targeted$CardManaCost"},
+	{card: "Hisoka, Minamo Sensei", form: "Targeted$CardManaCost of a spell target lowers (kernel targetMV adds the stack X); the card stays refused on Discarded$CardManaCost", refused: "Discarded$CardManaCost"},
 	{card: "Murasa Behemoth", form: "static IsPresent$ PresentZone$ Graveyard (a graveyard count condition)", lir: "cond=Value(op1,CountGraveyard({types=0x1 owner=1}),1)"},
 	{card: "Dreadlight Monstrosity", form: "activation IsPresent$ PresentZone$ Exile (an exile count condition)", lir: "cond=Value(op1,CountExile({types=0x0 owner=1}),1)"},
 	{card: "Malakir Blood-Priest", form: "Count$Party (ExParty)", lir: "Party"},

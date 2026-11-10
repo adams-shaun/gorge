@@ -3045,6 +3045,20 @@ func (s *State) manaStep(k *prep) bool {
 			s.tapForSacSelf(k, e.ctrl, &cost, int(e.x), sl) // filter_combatwords.go
 		case a.Cost.Flags&kop.CostTapX != 0 && s.committedPicks():
 			s.tapForTapKept(k, e.ctrl, &cost, int(e.x), a, sl, &saved) // cost_tapkept.go
+		case s.sacXWindowPays(k, e, &cost):
+			// a sacrifice-another source (Bolg's Company) the planner cannot
+			// price: gorge's planner declines the activation, so it pays
+			// through the manual CR 601.2g window, which lists the source in
+			// its battlefield place (mana_windowtapx.go). A pick it pauses on
+			// re-enters here with the walk's mana already floating.
+			ok := s.windowTapHeldOK(k, e.ctrl, &cost)
+			if !s.winPaused() {
+				s.bld().bfl &^= bflMsDone
+				if !ok {
+					s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
+					return true
+				}
+			}
 		default:
 			s.tapFor(k, e.ctrl, &cost, int(e.x), NoObj)
 		}
@@ -3321,7 +3335,30 @@ func (s *State) castTapX(k *prep) bool {
 		return false
 	}
 	b := s.bld()
+	if b.e.kind == seAbility {
+		// an activation's window lists them only beside a sacrifice-another
+		// source, the one case it is modelled for (sacXWindowPays)
+		return b.stage == bsMana && b.bfl&bflManaStep != 0 && s.sacXLive(k, b.e.ctrl)
+	}
 	return b.e.kind == seSpell && (b.stage == bsMana || b.stage == bsPay || b.stage == bsAltAdd)
+}
+
+// sacXWindowPays: the activation being built pays through the manual window
+// because a live sacrifice-another source (Bolg's Company) is the planner's
+// census gap and the planner alone cannot pay cost (gorge armAbilityAutoPay
+// declines, manaWindowAsk poses the window). A pick the window paused on
+// (bflMsDone, which only the window's pause sets on an activation) keeps the
+// build on the window.
+func (s *State) sacXWindowPays(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
+	if s.bld().bfl&bflMsDone != 0 {
+		return true
+	}
+	if !k.tapMana || DebugNoSacXMana || cost.X != 0 || !s.sacXLive(k, e.ctrl) {
+		return false
+	}
+	chk := planner{dry: true, noGrant: true}
+	s.tapForPK(k, e.ctrl, cost, int(e.x), NoObj, false, false, &chk)
+	return chk.needT != 0 && !chk.found
 }
 
 // isFork: s is a probe copy (fork), whose window never waits on an answer.
@@ -3362,6 +3399,9 @@ func (s *State) castWinTapPause(sl Slot, col uint8) bool {
 func (s *State) castWinTapOptions(k *prep, d *Decision) bool {
 	p := s.bld().e.ctrl
 	d.Kind, d.Sub, d.Player = DkChoose, ChWindowTap, p
+	if k.sacXOf(s.cardAt(s.g.winSrc)) {
+		d.Sub = ChCostSacrifice // a sacrifice-another source asks which to sacrifice (gorge's "sacrifice" choose)
+	}
 	s.winTapOptions(k, p, d)
 	return true
 }

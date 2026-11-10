@@ -271,10 +271,6 @@ func prepTwoSeat(t *kop.Table, g *genPrep) {
 			return
 		}
 	}
-	// A filter reading the defending player (kop.F2DefendingCtrl) marks its
-	// card (kgen markDefending): a pool table interns its filters across
-	// every card, so a filter scan would stall a game none of whose cards
-	// reads one.
 }
 
 // cardTwoSeat reports whether c plays only in a two-seat game (kop.CardTwoSeat).

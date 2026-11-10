@@ -2386,12 +2386,6 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 	if strings.Contains(expr, "attackingYou") {
 		lc.twoSeat("attackingYou read as an attacker an opponent controls")
 	}
-	for _, c := range f.Clauses {
-		if c.Ctrl == whoDefending || c.Owner == whoDefending {
-			lc.twoSeat(twoSeatDefending)
-			break
-		}
-	}
 	for i := range f.Clauses {
 		c := &f.Clauses[i]
 		if c.Flags&fNamedAsSource != 0 {

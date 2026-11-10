@@ -299,12 +299,12 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		// gorge greatestPowerControlledByTargeted: a battlefield creature a
 		// player target of the current entry controls that no OTHER such
 		// creature out-powers; ties match; no player target matches nothing
-		if s.isCreature(k, sl) && s.ctrlRoleF2(kop.F2TgtPlayerCtrl, s.perms[sl].ctrl) {
+		if s.isCreature(k, sl) && s.ctrlRoleF2(k, kop.F2TgtPlayerCtrl, s.perms[sl].ctrl) {
 			ans = true
 			pw := s.power(k, sl)
 			for m := s.occ; m.any(); m = m.rest() {
 				o2 := m.first()
-				if o2 != sl && s.isCreature(k, o2) && s.ctrlRoleF2(kop.F2TgtPlayerCtrl, s.perms[o2].ctrl) && s.power(k, o2) > pw {
+				if o2 != sl && s.isCreature(k, o2) && s.ctrlRoleF2(k, kop.F2TgtPlayerCtrl, s.perms[o2].ctrl) && s.power(k, o2) > pw {
 					ans = false
 					break
 				}

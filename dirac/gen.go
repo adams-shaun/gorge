@@ -185,6 +185,7 @@ type genPrep struct {
 	anyCastSpent   bool           // some SpellCast trigger carries Tf2CastSpent (opus)
 	anySpentGate   bool           // some SpellCast trigger carries a Spell.ManaSpent gate in Trigger.N (trig_spentvalid.go)
 	anySpent       bool           // some expression reads the mana spent to cast a spell (ExCastManaSpent; copy_asenters.go)
+	anyTgtSpent    bool           // some expression reads the resolving spell's target spell's spend (ExTgtSpent; resolve.go snapTgtSpent)
 	anyBecomeCopy  bool           // some enters program is OpBecomeCopy (an as-enters clone): a permanent it made a copy is projected as its printed card, and a token copy of a clone is asked its election (ctr_entryperkind.go)
 	anyEntryMerge  bool           // the table has an AddCounter replacement and more than one source of entry counters: enterGen merges them into one put per kind (ctr_entryperkind.go)
 	anyEffEtbCtr   bool           // some instruction is ExtEffEtbCtr: enterGen puts a cast spell's pending extra counters on (ctr_effectentry.go)
@@ -601,6 +602,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if t.Exprs[i].Kind == kop.ExCastManaSpent {
 			g.anySpent, g.anyHist = true, true // recorded at payment by histCast
+		}
+		if t.Exprs[i].Kind == kop.ExTgtSpent {
+			g.anyTgtSpent, g.anySpent, g.anyHist = true, true, true // the target spell's spend is recorded at its payment
 		}
 	}
 	if tableNthFiltered(t) {
@@ -1834,6 +1838,7 @@ type genState struct {
 	beamGrant      bool                    // the beam me up cast beginCast starts is the granted instance of a card that prints the keyword (kw_beammeup.go; padding)
 	impCast        bool                    // the cast beginCast starts is for the card's impending cost (castImpTgt; kw_impending.go; padding)
 	warpGrant      bool                    // the warp cast beginCast starts pays a battlefield grant's instance (kw_warpgrant.go; padding)
+	bargainCast    bool                    // the permission cast beginCast starts is bargained: the pool it checks pays the bargained price (offerBargainPlay; kw_bargain.go; padding)
 	noUntapL       uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step (padding)
 	yourTurns      [MaxSeats]uint8         // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)
 	extraTurnBegun uint8                   // ExYourExtraTurns: bit p, player p has begun an extra turn this game (CR 500.7; value_exprs.go)
@@ -1965,17 +1970,29 @@ type genState struct {
 	ul      [maxUntapLock]untapLock           // source-bound untap locks (act_untaplock.go)
 	nul     uint8
 	dmk     [dmkBytes]uint8 // per-player damage-doubling marks, a bit per (controller, player) (repl_dmgmark.go)
-	rsv     [rsvN]uint8
+	// tgtSpent: the resolving spell's target spell's cast spend + 1,
+	// saturating at 255 (0 = no snapshot; resolve.go snapTgtSpent). Read by
+	// ExTgtSpent after the counter removed the target's stack entry (EOE
+	// Unravel; gorge targetManaSpentLKI).
+	tgtSpent uint8
+	rsv      [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
 	embX [MaxSeats][maxEmb][embRemSlots - 2]uint8
+	// atkDef is the defending seat + 1 of the attack event whose triggers are
+	// being checked (fireAttacksGen), 0 outside it: gorge binds a trigger's
+	// DefendingPlayer from that event, and an IsPresent$ checked as the
+	// trigger fires reads it (defendingSeatF2). Set only when MaxSeats > 2.
+	// Taken from rsv.
+	atkDef uint8
 }
 
 const (
 	maxImp = 16
-	// rsvN pads the reserved block to 80 bytes (genState's 5 bytes of tail
-	// padding absorb the rest of the alignment): 64, plus the 16 that carry
-	// State's growth for MaxObj 236 to a multiple of 64 so perms keeps its phase.
-	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2))
+	// rsvN pads the reserved block to 80 bytes (genState's tail padding
+	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
+	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
+	// keeps its phase.
+	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2)-1)
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
@@ -2088,7 +2105,7 @@ const (
 	StallOptions       = 48  // a combat declaration has more attack or block pairs than MaxOptions (combat.go optionsFull)
 	StallRoleMulti     = 49  // an AttachedTo$ token mint would create a number of tokens other than one (static_roletokens.go)
 	StallSrcMark       = 50  // more than maxSrcMark DamagedBy / CrewedThisTurn sources marked permanents this turn (genState.marks; filter_combatwords.go)
-	StallDefenderPW    = 51  // a TriggeredDefender damage whose attacker attacks a planeswalker or battle (or left): gorge damages the defending seat instead (OpAtkPWGuard; filter_combatwords.go)
+	StallDefenderPW    = 51  // a TriggeredDefender damage whose attacker attacks a planeswalker or battle (or left): gorge damages the defending seat instead (OpAtkPWGuard; filter_combatwords.go); past two seats, a trigger with no bound defending player read for an entering attacker's defender (enterDefenderFallback) or a defending player's permanent (defendingSeatF2)
 	StallTokAtkAsk     = 52  // a TokenAttacking$ True mint while the opponent has a planeswalker or battle: gorge asks the CR 508.4 defender (filter_combatwords.go)
 	StallDmgLatch      = 53  // a ninth DamageDealtOnce listener of one source in one combat damage batch (triggers_gen.go dmgLatch)
 	StallReplCands     = 54  // a fifth competing replacement candidate for one event or untap (replOrd.cand; repl_gen.go, act_energy.go)
@@ -2741,15 +2758,19 @@ func (s *State) ceaseTokensGen() {
 	for i0 > 0 && s.objs[i0-1].of&(ofToken|ofCopy) != 0 {
 		i0--
 	}
+	k := s.k()
 	for i := i0; i < int(s.nobj); i++ {
 		ob := &s.objs[i]
 		if ob.of&(ofToken|ofCopy) == 0 {
 			continue
 		}
+		if s.mObj(k, mechSBAChain, Obj(i)) {
+			continue // gorge's sbaChain: it ceases at the pass that destroys nothing (sbaChainEnd)
+		}
 		switch ob.zone {
 		case kop.ZoneLibrary, kop.ZoneHand, kop.ZoneGraveyard, kop.ZoneExile:
 			if ob.zone == kop.ZoneExile && ob.of&ofCopy != 0 {
-				if k := s.k(); k.gen != nil && k.gen.anyPrepare { // CR 722.3c: a linked prepared copy waits in exile
+				if k.gen != nil && k.gen.anyPrepare { // CR 722.3c: a linked prepared copy waits in exile
 					if _, ok := s.preparedCopyLive(k, Obj(i)); ok {
 						continue
 					}

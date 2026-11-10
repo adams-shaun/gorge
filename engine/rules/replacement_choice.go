@@ -404,8 +404,10 @@ func (e *Engine) askReplacementChoiceIn(p state.PlayerID, fromEmit bool) events.
 		d.Prompt = "Several replacement effects would modify this counter event: choose which applies."
 	case replChoiceAddCounter:
 		d.Prompt = "Several replacement effects would modify how many counters are put: choose which applies first."
+		indices = addCounterUnapplied(rc)
 	case replChoiceEntryOrder:
 		d.Prompt = "Several replacement effects would modify how many counters this permanent enters with: choose which applies first."
+		indices = addCounterUnapplied(rc)
 	case replChoiceToken:
 		d.Prompt = "Several replacement effects would modify this token creation: choose which applies first."
 	case replChoiceScry:
@@ -911,7 +913,8 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 			return events.Event{}
 		}
 	case replChoiceAddCounter:
-		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) {
+		open := addCounterUnapplied(rc)
+		if chosen[0].Index < 0 || chosen[0].Index >= len(open) {
 			e.triggerBefore = before
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "counter replacement-order answer out of range"})
@@ -919,7 +922,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 		}
 		damaging, combat, override := e.damaging, e.combatDamaging, e.dmgSrcOverride
 		e.damaging, e.combatDamaging, e.dmgSrcOverride = rc.damaging, rc.combatDamaging, rc.dmgSrcOverride
-		m := rc.cands[chosen[0].Index]
+		m := rc.cands[open[chosen[0].Index]]
 		if n, ok := e.applyAddCounterBody(rc.ev, m, rc.ev.Amount); ok {
 			rc.ev.Amount = n
 		}
@@ -927,13 +930,14 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 		e.continueAddCounterReplacements(rc)
 		e.damaging, e.combatDamaging, e.dmgSrcOverride = damaging, combat, override
 	case replChoiceEntryOrder:
-		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) || rc.stage == nil {
+		open := addCounterUnapplied(rc)
+		if chosen[0].Index < 0 || chosen[0].Index >= len(open) || rc.stage == nil {
 			e.triggerBefore = before
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "entry counter replacement-order answer out of range"})
 			return events.Event{}
 		}
-		e.resumeEntryCounterOrder(rc, chosen[0].Index)
+		e.resumeEntryCounterOrder(rc, open[chosen[0].Index])
 	case replChoiceToken:
 		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.applicable) {
 			e.triggerBefore = before
@@ -1036,4 +1040,26 @@ func (e *Engine) askNextReplacementChoice() {
 	// competition asked just above re-set e.pending, which makes this inert
 	// until that answer lands and calls this tail again.
 	e.settlePendingLifeExchange()
+}
+
+// addCounterUnapplied lists the candidates of an AddCounter (or entry-counter)
+// order competition
+// that have not yet applied to its event. A re-posed remainder (CR 616.1e:
+// after one replacement applies, the affected player chooses again among the
+// ones still applicable) offers only those: each replacement modifies one
+// event at most once (CR 616.1), so offering an applied one again let an
+// answer re-pick it forever (Conclave Mentor beside Hardened Scales and
+// Doubling Season).
+func addCounterUnapplied(rc replChoice) []int {
+	out := make([]int, 0, len(rc.cands))
+	applied := rc.appliedRepls
+	if rc.kind == replChoiceEntryOrder && rc.stage != nil {
+		applied = rc.stage.applied
+	}
+	for i, m := range rc.cands {
+		if !sameReplMatchIn(applied, m) {
+			out = append(out, i)
+		}
+	}
+	return out
 }

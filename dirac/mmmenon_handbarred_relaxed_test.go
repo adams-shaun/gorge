@@ -42,7 +42,7 @@ func TestRelaxedProofCountsTapAnotherUnitAndRefusesHandBarredGrant(t *testing.T)
 	if !ok {
 		t.Fatal("precondition: the equip has no mana cost")
 	}
-	if sc.s.grantRelaxedAffords(sc.k, 0, equip, &cost, ex, sc.s.grantPayDesc(equip), availWalk) {
+	if sc.s.grantRelaxedAffords(sc.k, 0, equip, &cost, ex, sc.s.grantPayDesc(sc.k, equip), availWalk) {
 		t.Fatal("the relaxed proof pays Equip {2} from one tap-another unit alone")
 	}
 }
