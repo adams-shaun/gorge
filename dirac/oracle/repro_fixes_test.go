@@ -429,6 +429,10 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// the offer is present from exile with an empty pool and six
 		// graveyard cards (the hand walk already priced this).
 		{"mayplay_twobrid_delve_offer", true, false},
+		// CR 601.2g, 605.3a: Mardu Devotee's {1} mana ability's own fee is
+		// paid from a Plains, so its {B} funds Caustic Exhale's {1} arm and
+		// the cast is offered with nothing floated (std-tdm pair 419).
+		{"fee_filter_source_funds_cast_offer", false, false},
 		// CR 601.2g with CR 107.4e: the reversed twobrid cast's window taps
 		// Opulent Palace's "Combo B G U" while both G and U are owed; gorge's
 		// ask lists the Combo's printed order, so its answer is G, and the

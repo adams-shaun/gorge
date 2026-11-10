@@ -2041,7 +2041,14 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 		for i := range m {
 			m[i] += extra[i]
 		}
-		out = append(out, pay.Alt{Activation: decision.PaymentActivation{Source: id},
+		// The relaxed alternative's production rides on the plan's activation
+		// exactly as a census unit's does (pay/planalts.go): the witness gate
+		// (potentialWitnessOffers) prices the play from the pool plus every
+		// activation's Produces, so an empty field would hide a fee-only
+		// source's mana and reject the very plan the relaxed proof is asking
+		// about. The alternative is never executed -- paymentPlanRelaxProof
+		// discards every Plan -- so this only feeds that gate.
+		out = append(out, pay.Alt{Activation: decision.PaymentActivation{Source: id, Produces: pay.ManaAmount(m)},
 			Mana: m, Creature: creature, Ma: ma, Tier: pay.TierNormal, Flex: 1, FlexAll: 1})
 	}
 	if !any {
