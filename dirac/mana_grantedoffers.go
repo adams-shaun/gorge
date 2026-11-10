@@ -263,12 +263,28 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	if !own {
 		mask, n = 0, 0
 	}
+	// A sacrifice-only grant (Lotus Ring's "Sacrifice this creature: Add three
+	// mana of any one color") costs no {T}: the source taps for its other
+	// ability, then is sacrificed (CR 602.2, 605.1a), so that grant is a unit
+	// of its own beside the tap's, the sacrifice made once.
+	var sMask, sN uint8
 	for i := 0; i < ng; i++ {
 		pc := s.grantView(k.gen, gi[i], sl)
+		if pc.grantSac && s.grantSacLive(sl, pc) {
+			sMask |= s.srcMaskAt(pc, sl)
+			sN = max(sN, pc.manaN)
+			continue
+		}
 		mask |= s.srcMaskAt(pc, sl)
 		n = max(n, pc.manaN)
 	}
+	if mask == 0 {
+		mask, n, sMask, sN = sMask, sN, 0, 0
+	}
 	s.addGrantUnits(a, mask, n)
+	if sMask != 0 {
+		s.addGrantUnits(a, sMask, sN)
+	}
 	s.availGrantExtra(k, sl, pc, &gi, ng, own, a)
 }
 
