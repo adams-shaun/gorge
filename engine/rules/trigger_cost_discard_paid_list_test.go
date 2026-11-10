@@ -11,14 +11,14 @@ import (
 // U.S.S. Enterprise-C-shaped: one trigger of each mode, each paying
 // `Discard<1/Hand>` and drawing `Discarded$Amount` cards.
 const enterpriseEtb = "Name:Enterprise Etb\nManaCost:3 U\nTypes:Creature Human\nPT:1/1\n" +
-	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | OptionalDecider$ You | Execute$ TrigDiscard | TriggerDescription$ When it enters, you may discard your hand. If you do, draw a card for each card discarded this way.\n" +
-	"SVar:TrigDiscard:AB$ Draw | Cost$ Discard<1/Hand> | NumCards$ X\n" +
+	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | OptionalDecider$ You | Execute$ PayHand | TriggerDescription$ When it enters, you may discard your hand. If you do, draw a card for each card discarded this way.\n" +
+	"SVar:PayHand:AB$ Draw | Cost$ Discard<1/Hand> | NumCards$ X\n" +
 	"SVar:X:Discarded$Amount\n" +
 	"Oracle:x\n"
 
 const enterpriseDies = "Name:Enterprise Dies\nManaCost:3 U\nTypes:Creature Human\nPT:1/1\n" +
-	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Secondary$ True | OptionalDecider$ You | Execute$ TrigDiscard | TriggerDescription$ When it dies, you may discard your hand. If you do, draw a card for each card discarded this way.\n" +
-	"SVar:TrigDiscard:AB$ Draw | Cost$ Discard<1/Hand> | NumCards$ X\n" +
+	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Secondary$ True | OptionalDecider$ You | Execute$ PayHand | TriggerDescription$ When it dies, you may discard your hand. If you do, draw a card for each card discarded this way.\n" +
+	"SVar:PayHand:AB$ Draw | Cost$ Discard<1/Hand> | NumCards$ X\n" +
 	"SVar:X:Discarded$Amount\n" +
 	"Oracle:x\n"
 
@@ -89,8 +89,8 @@ func TestTriggerCostDiscardHandAmountDiesTrigger(t *testing.T) {
 func TestTriggerCostDiscardCardManaCostReadsThePaidCard(t *testing.T) {
 	t.Parallel()
 	const script = "Name:Pricey Discarder\nManaCost:3 U\nTypes:Creature Human\nPT:1/1\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | OptionalDecider$ You | Execute$ TrigDiscard | TriggerDescription$ When it enters, you may discard a card. If you do, draw cards equal to its mana value.\n" +
-		"SVar:TrigDiscard:AB$ Draw | Cost$ Discard<1/Card> | NumCards$ X\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | OptionalDecider$ You | Execute$ PayHand | TriggerDescription$ When it enters, you may discard a card. If you do, draw cards equal to its mana value.\n" +
+		"SVar:PayHand:AB$ Draw | Cost$ Discard<1/Card> | NumCards$ X\n" +
 		"SVar:X:Discarded$CardManaCost\n" +
 		"Oracle:x\n"
 	const pricey = "Name:Pricey Fodder\nManaCost:3\nTypes:Artifact\nOracle:x\n"
