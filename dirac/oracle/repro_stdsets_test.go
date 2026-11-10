@@ -248,6 +248,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "imprint_mill_patient_naturalist_no_land_makes_a_treasure"},          // Patient Naturalist mills three cards with no land among them: the pick finds nothing and the Treasure is made
 		{"custom", "departed_source_counters_after_slot_reuse"},                         // Jadzia Dax, Living Legacy's first-main trigger waits on the stack while Impossible Choice destroys her and its two Officer tokens take her permanent slot: the trigger still adds {G} for her four last counters, read from the departure snapshot (CR 608.2h)
 		{"custom", "gogo_copies_ability_x_times", full},                                 // Gogo, Master of Mimicry paying X of two or more off the mana a small Blaze left floating, copying a Prodigal Sorcerer ping that many times: each copy is minted and its new target asked in turn (CR 707.10c); played on its own decks' table because Blaze and Prodigal Sorcerer are in no Standard pool
+		{"custom", "cmd5_search_second_pick_swamps_share_a_land_type", full},            // kfuzz cmd5 heuristic pair 42: Myriad Landscape finds a Swamp, then a second Swamp (CR 701.23, 205.3i); the matchup table keeps the basic land types the search compares
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {
