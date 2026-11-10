@@ -92,6 +92,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallLandGrant,  // gorge offers both productions of a land with a granted basic type; pcard holds one (static_landtype.go:148,161)
 	StallOutsideType, StallExileOnMoved, StallMultiRetarget, StallL6Walk, StallLowering, StallPayLifeShared, StallNoPrevent,
 	StallDmgMarkOrder, // a damage event the per-player mark and another replacement both match: gorge asks the CR 616.1 order, which the mark has no candidate for (repl_dmgmark.go)
+	StallFbGrantStamp, // a stamped flashback grant beside an own-cost flashback static: gorge offers both granted instances (kw_fbgrant.go)
 	StallStackKwGrant, // a granted convoke/improvise on a Harmonize or alternative-cost cast: gorge's announcement for those routes is unverified (kw_convoke.go)
 }
 
@@ -114,6 +115,8 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 		return StallReplPlus // repl_preventmill.go: gorge asks the order of a prevent-and-mill and an amount change
 	case g.anyRepl&rbSelfDmg != 0 && g.anyRepl&rbSelfDmgCompete != 0:
 		return StallReplPlus // repl_selfdamage.go: gorge asks the order of a self-damage replacement and another damage replacement
+	case g.fbStampOwnCost:
+		return StallFbGrantStamp // kw_fbgrant.go prepFbStamp
 	}
 	return StallNone
 }
@@ -195,6 +198,14 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 		})
 		b = abilityOn(func(x *kop.Ability) bool {
 			return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatContinuous && (x.Static.AddSub.Any() || x.Static.AddChosen) && filterReadsSub(t, x.Static.Filter)
+		})
+	case StallFbGrantStamp:
+		text = "a stamped flashback grant beside a flashback static with its own cost: gorge offers both granted instances, the kernel prices one (CR 702.34a)"
+		a = abilityOn(fbOwnCostStatic)
+		b = abilityOn(func(x *kop.Ability) bool {
+			return progHas(x, func(in *kop.Instr) bool {
+				return in.Op == kop.OpGrantKeyword && (kop.KwMask(uint16(in.C))|kop.KwMask(uint16(in.B.N))<<16)&kop.KwFlashbackOwnCost != 0
+			})
 		})
 	}
 	r = &kop.PairRefusal{Reason: StallName(why), Why: text}

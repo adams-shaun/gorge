@@ -111,6 +111,60 @@ func (e *Engine) captureSourceCharLKI(src state.ObjID) {
 			pt.sourceCharLKI, pt.sourceCharLKIValid = take(), true
 		}
 	}
+	for i := range e.G.Delayed {
+		if dt := &e.G.Delayed[i]; dt.EventMode == "SpellCast" && dt.Source == src {
+			if e.delayedSourceCharLKI == nil {
+				e.delayedSourceCharLKI = make(map[state.ObjID]sourceCharSnapshot)
+			}
+			e.delayedSourceCharLKI[src] = take() // the last departure wins
+			break
+		}
+	}
+}
+
+// delayedSourceCharLKIFor returns the departure snapshot of a delayed
+// registration's source, when the source is no longer on the battlefield. A
+// source back on the battlefield reads live.
+func (e *Engine) delayedSourceCharLKIFor(source state.ObjID) (sourceCharSnapshot, bool) {
+	snap, ok := e.delayedSourceCharLKI[source]
+	if !ok {
+		return sourceCharSnapshot{}, false
+	}
+	if o := e.G.Obj(source); o != nil && o.Zone == state.ZBattlefield {
+		return sourceCharSnapshot{}, false
+	}
+	return snap, true
+}
+
+// delayedSpellMatchSpec is the filter context of a delayed SpellCast
+// registration's ValidCard$ match. A source that has left the battlefield
+// answers its characteristic heads (Count$CardPower, CardToughness,
+// CardCounters.<KIND>) from its departure snapshot (CR 608.2h: Loki
+// Laufeyson's "mana value less than or equal to Loki's power"); every other
+// body, and a source still on the battlefield, resolves live as specCtx does.
+func (e *Engine) delayedSpellMatchSpec(dt *state.DelayedTrigger) effects.SpecContext {
+	sc := e.specCtx(dt.Source, dt.Controller)
+	snap, ok := e.delayedSourceCharLKIFor(dt.Source)
+	if !ok {
+		return sc
+	}
+	sc.SourceLKIValid = true
+	sc.SourcePower, sc.SourceToughness, sc.SourceCounters = snap.power, snap.toughness, snap.counters
+	sc.SourceChosenType, sc.SourceChosenColor = snap.chosenType, snap.chosenColor
+	live := sc.Resolve
+	sc.Resolve = func(name string) (int32, bool) {
+		if o := e.G.Obj(dt.Source); o != nil {
+			if f := o.Face(); f != nil {
+				if body, ok := f.SVars[name]; ok {
+					if n, ok := snap.count(body); ok {
+						return n, true
+					}
+				}
+			}
+		}
+		return live(name)
+	}
+	return sc
 }
 
 // SourceLeftBattlefieldSince reports whether the source of the stack object

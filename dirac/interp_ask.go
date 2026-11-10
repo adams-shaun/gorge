@@ -1766,7 +1766,16 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 	p := s.g.pickP
 	z := kop.Zone(s.g.pickZ)
 	fl := s.g.pickF
-	if z == kop.ZoneLibrary && s.g.nlook > 1 && (s.searchZone(k) == kop.ZoneHand || fl&kop.SrNoShuffle != 0) {
+	// The current instruction is only needed for a library destination; a
+	// direct moveFound (no resolving program) has none.
+	var in *kop.Instr
+	if z == kop.ZoneLibrary {
+		if prog := s.prog(k); int(s.res.pc) < len(prog) {
+			in = &prog[s.res.pc]
+		}
+	}
+	handBottom := in != nil && in.Op == kop.OpChooseMove && in.B.N&kop.SrHandBottom != 0 && s.searchZone(k) == kop.ZoneHand
+	if z == kop.ZoneLibrary && s.g.nlook > 1 && !handBottom && (s.searchZone(k) == kop.ZoneHand || fl&kop.SrNoShuffle != 0) {
 		s.reverseLook() // act_mayask.go: the first answered ends on top (an unshuffled search too)
 	}
 	// CR 603.6a: the cards a search puts onto the battlefield enter together, so
@@ -1879,9 +1888,13 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.remember(o) // RememberChanged$ (gorge settleHandMove's eventRemember)
 			}
 		case kop.ZoneLibrary:
-			s.placeFromK(k, o, kop.ZoneLibrary, false, from, false)
+			// a hand move with LibraryPosition$ -1 goes to the bottom
+			// (gorge handLibraryTail -> libraryOrderPlacement bottom=true);
+			// every other library destination stays on top
+			bottom := from == kop.ZoneHand && in != nil && in.B.N&kop.SrHandBottom != 0
+			s.placeFromK(k, o, kop.ZoneLibrary, bottom, from, false)
 			if fl&kop.SrRemember != 0 {
-				s.remember(o) // Shuffle$ False's library-to-library search
+				s.remember(o) // Shuffle$ False's library-to-library search, or a hand move's RememberChanged$
 			}
 		default:
 			s.placeFromK(k, o, zz, bb, from, false)

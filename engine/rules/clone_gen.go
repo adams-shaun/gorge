@@ -468,6 +468,15 @@ func cloneFieldsEngineResolution(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			c.sourceCharLKI[k0] = nv0
 		}
 	}
+	if e.delayedSourceCharLKI != nil {
+		c.delayedSourceCharLKI = make(map[state.ObjID]sourceCharSnapshot, len(e.delayedSourceCharLKI))
+		for k0, v0 := range e.delayedSourceCharLKI {
+			var nv0 sourceCharSnapshot
+			nv0 = v0
+			nv0.counters = append([]state.Counter(nil), v0.counters...)
+			c.delayedSourceCharLKI[k0] = nv0
+		}
+	}
 	if e.damageSourceLKI != nil {
 		c.damageSourceLKI = make(map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI, len(e.damageSourceLKI))
 		for k0, v0 := range e.damageSourceLKI {

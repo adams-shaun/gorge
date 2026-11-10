@@ -17,9 +17,25 @@ package dirac
 // lkiDepart marks a departure snapshot of an ability's source (lkiRec.bits).
 const lkiDepart uint8 = 1 << 4
 
+// delaySpellRefs is whether a delayed SpellCast registration names o as its
+// source: its filter bound (Loki's cmcLEX) reads the source's last known
+// power once o has left (trig_delayedspell.go).
+func (s *State) delaySpellRefs(o Obj) bool {
+	for i := uint8(0); i < s.g.ndp; i++ {
+		if d := &s.g.dp[i]; d.n&dpSpell != 0 && d.src == o {
+			return true
+		}
+	}
+	return false
+}
+
 // srcEntryLive is whether an ability sourced by o at version ver is on the
-// stack, pending, resolving or being built (settleSrcKw's holders).
+// stack, pending, resolving or being built (settleSrcKw's holders), or a
+// delayed SpellCast registration names o.
 func (s *State) srcEntryLive(o Obj, ver uint8) bool {
+	if s.delaySpellRefs(o) {
+		return true
+	}
 	for i := 0; i < min(int(s.sp), MaxStack); i++ {
 		if e := &s.stack[i]; e.kind != seSpell && e.obj == o && e.srcVer == ver {
 			return true

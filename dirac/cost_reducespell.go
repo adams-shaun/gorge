@@ -210,12 +210,16 @@ func (s *State) offerBargainOnly(k *prep, d *Decision, p uint8, o Obj, c CardID,
 // paymentPlanTargetDependentFor reads the RaiseCost group too), and its
 // potential planner prices one from the composed cost (gorgeLowers,
 // witnessAtCheapest).
+//
+// Only a ZoneCommand static prices the card's own cast: a battlefield one
+// (ZoneNone) taxes spells that target the permanent carrying it, which its
+// cast from hand is not (CR 601.2f; cost_raise.go's own-cast split).
 func tgtDepCost(a *kop.Ability) bool {
 	if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatIncreaseCost && a.Static.StFlags&kop.StRaisePerTarget != 0 {
 		return true // priced by the targets chosen: "more for each target beyond the first"
 	}
 	return a.Kind == kop.AbStatic && (a.Static.Kind == kop.StatReduceCost || a.Static.Kind == kop.StatIncreaseCost) &&
-		a.Static.StFlags&kop.StTargetsFilter2 != 0 && a.Static.StFlags&kop.StRaiseLife == 0 // (a life raise prices no mana: cost_raiselife.go)
+		a.Static.Zone == kop.ZoneCommand && a.Static.StFlags&kop.StTargetsFilter2 != 0 && a.Static.StFlags&kop.StRaiseLife == 0 // (a life raise prices no mana: cost_raiselife.go)
 }
 
 // cardTgtDepCost: cd carries such a static.

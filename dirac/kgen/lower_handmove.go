@@ -16,8 +16,8 @@ func lineReadsX(v string) bool {
 	return false
 }
 
-// handMove lowers a hidden-origin ChangeZone Origin$ Hand -> Battlefield or
-// Exile: gorge effChangeZoneHand / effChangeZoneHandOwners (both
+// handMove lowers a hidden-origin ChangeZone Origin$ Hand -> Battlefield,
+// Exile or Library: gorge effChangeZoneHand / effChangeZoneHandOwners (both
 // handMoveOwnersWalk): the hand's owner is the controller, or the player a
 // ValidTgts$ names (DefinedPlayer$ Targeted beside it is that target); the
 // chooser is the owner unless Chooser$ You (the controller); ChangeNum$ (a
@@ -27,9 +27,10 @@ func lineReadsX(v string) bool {
 // the bound taking them all unasked; a markerless line's optionality is
 // gorge's reading of its SpellDescription$ and Oracle text
 // (handMoveTextOptional, copied in handTextOptional), refused when that
-// reading is unknown. Battlefield entries are the owner's (tapped with
-// Tapped$); RememberChanged$ remembers the moved cards. Refused: a filter
-// that may admit an Aura onto the battlefield in a move of more than one card, counters / StaticEffect$,
+// reading is unknown. A library destination with the Bottom flag goes to the
+// bottom (LibraryPosition$ -1), else the top. Battlefield entries are the
+// owner's (tapped with Tapped$); RememberChanged$ remembers the moved cards.
+// Refused: a filter that may admit an Aura onto the battlefield in a move of more than one card, counters / StaticEffect$,
 // other selectors and every other parameter.
 func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, counterKind string, override *lOverride, dest int) error {
 	if counterKind != "" || override != nil {
@@ -49,7 +50,10 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 		return refuse("hand move ChangeNum$ %v", n)
 	}
 	for _, fl := range flags {
-		if fl != "Tapped" && fl != "Mandatory" && fl != "Remember" {
+		if fl == "Bottom" && dest != zLibrary {
+			return refuse("hand move Bottom flag to %s", zoneLabel[dest])
+		}
+		if fl != "Tapped" && fl != "Mandatory" && fl != "Remember" && fl != "Bottom" {
 			return refuse("hand move flag %s", fl)
 		}
 	}
@@ -69,7 +73,8 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 		return refuse("hand move of %d cards shuffled into the library", n.N)
 	}
 	// gorge handLibraryTail puts the answered cards on top in answer order
-	// (the first answered on top; kernel moveFound)
+	// (the first answered on top; kernel moveFound), or on the bottom in
+	// answer order with LibraryPosition$ -1
 	if dest == zBattlefield {
 		for _, c := range f.Clauses {
 			if c.Types == 0 || c.Types&tEnchantment != 0 {
@@ -138,9 +143,6 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 		verb := "put"
 		if dest == zExile {
 			verb = "exile"
-		}
-		if dest == zLibrary {
-			return refuse("markerless hand move to the library")
 		}
 		opt, known := handTextOptional(ps.str("SpellDescription")+"\n"+lc.face.Oracle, verb)
 		if !known {
@@ -293,10 +295,12 @@ func handPhraseMentionsHand(text, phrase string) bool {
 // library"; gorge zone_change.go routes an Origin$ Hand ChangeZone without
 // ChangeType$/Defined$/DefinedPlayer$/ValidTgts$ to effChangeZoneHand,
 // whose pool is the whole hand). It is the hand move over ChangeType$
-// Card. Reorder$ is read only by gorge's library-search placement
-// (zone_library.go placeLibraryObjects), never on this path: consumed.
+// Card. LibraryPosition$ 0 puts the cards on top and -1 on the bottom
+// (gorge handLibraryTail's libraryOrderPlacement). Reorder$ is read only by
+// gorge's library-search placement (zone_library.go placeLibraryObjects),
+// never on this path: consumed.
 func (lc *lowerCtx) handPutBack(ps *params, origin, dest, pos int, flags []string, counterKind string, override *lOverride) (bool, error) {
-	if origin != zHand || dest != zLibrary || pos != 0 {
+	if origin != zHand || dest != zLibrary || pos != 0 && pos != -1 {
 		return false, nil
 	}
 	for _, k := range []string{"ChangeType", "Defined", "DefinedPlayer", "ValidTgts", "Hidden"} {
@@ -307,6 +311,9 @@ func (lc *lowerCtx) handPutBack(ps *params, origin, dest, pos int, flags []strin
 	n, err := lc.amount(ps, "ChangeNum", 1)
 	if err != nil {
 		return true, err
+	}
+	if pos == -1 {
+		flags = append(flags, "Bottom")
 	}
 	if ps.is("Mandatory", "True") {
 		flags = append(flags, "Mandatory")

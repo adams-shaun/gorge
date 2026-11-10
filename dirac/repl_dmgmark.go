@@ -32,11 +32,11 @@ const dmkBytes = (MaxSeats*MaxSeats + 2*MaxSeats + 7) / 8 // genState.dmk: taken
 
 // StallDmgMark is a second mark of one controller on one player while the
 // first is live (genState.dmk).
-const StallDmgMark = 156
+const StallDmgMark = 157
 
 // StallDmgMarkOrder is a damage event the mark and another replacement both
 // match: gorge asks the CR 616.1 order, which the mark has no candidate for.
-const StallDmgMarkOrder = 157
+const StallDmgMarkOrder = 158
 
 func init() {
 	stallNames[StallDmgMark] = "dmgmark"

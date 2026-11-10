@@ -154,6 +154,10 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		// the sweep's park halts the program at the OpExt (a copy's
 		// as-enters ask, copy_allpark.go); the answer arm resumes it
 		return !s.copyAllEach(k, in), true // copy_definedvalid.go
+	case kop.ExtCopyExiledWith:
+		// the exiled-with set is read once, seat 0 first; a parks only when
+		// no later copy remains, so the ordinary copy ask resumes it
+		return !s.copyExiledWith(k, in), true // copy_exiledwith.go
 	case kop.ExtCopyAbility:
 		return s.copyAbility(k, in), true // copy_ability.go
 	case kop.ExtEffEtbCtr:
