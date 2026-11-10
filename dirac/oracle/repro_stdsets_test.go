@@ -359,6 +359,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-tmt", "michelangelos_technique_dig_total_cmc"},                            // Michelangelo's Technique looks at eight and takes creature cards whose total mana value is 6 or less: the bound narrows the second pick as the first sums in
 		{"std-dsk", "rip_spawn_hunter_dig_distinct_powers"},                             // Rip, Spawn Hunter's Dig takes creature and Vehicle cards with pairwise different powers: a second card of a power already taken is not offered
 		{"custom", "ao_the_dawn_sky_dig_total_cmc", full},                               // Ao, the Dawn Sky's dies trigger takes nonland permanents with total mana value 4 or less: the bound rides the pick filter's head, not the instruction
+		{"std-otj", "mayplay_spree_cast_filter_prefix_search", full},                    // Dance of the Tumbleweeds may-played from exile, its only green a Conduit Pylons filter: gorge prices a may-play cast at its printed cost and searches the filter prefix even though every Spree mode adds mana
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {
