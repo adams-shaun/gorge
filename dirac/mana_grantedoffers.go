@@ -496,6 +496,16 @@ type grantKey struct {
 	sp, hand, gy uint8
 }
 
+// folded is the key as gorge's scriptStateKey reads it: the unspendable
+// units counted in the pool, whose restriction its key does not carry.
+func (k grantKey) folded() grantKey {
+	for c := range k.pool {
+		k.pool[c] += k.ghost[c]
+	}
+	k.ghost = [kop.NumManaKinds]uint8{}
+	return k
+}
+
 // grantStep is one prefix activation: candidate i tapped for n mana of
 // colour col.
 type grantStep struct {
@@ -628,26 +638,33 @@ func (g *grantSrch) visit(t *State) bool {
 		cost = t.grantDynamicCost(g.k, g.p, g.d.play, g.full)
 	}
 	pl := &t.pl[g.p&1]
-	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, sp: t.sp, hand: pl.handN, gy: pl.graveN}
-	for c := range key.pool {
-		key.pool[c] += g.ghost[c] // gorge's key reads the floated pool, whose restriction it does not (scriptStateKey)
-	}
+	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN}
 	if g.k.artMana {
 		t.artSync(g.p)
 		key.art = t.g.poolArt[g.p&1]
 	}
-	seen := false
+	// gorge's key reads the floated pool, whose restriction it does not
+	// (scriptStateKey): a state that differs from a seen one only in which
+	// pool units are the play's unspendable ones (ghost) is that state, and
+	// gorge drops it before pricing. A state equal in the ghost too is priced
+	// first: dirac's seen key leaves out what gorge's also reads (counters,
+	// snow) and what its verdict reads (waitsForStack), so a repeat of it may
+	// still be the answer.
+	same := false
+	fk := key.folded()
 	for i := 0; i < g.nseen; i++ {
-		if g.seen[i] == key {
-			seen = true
-			break
+		switch e := g.seen[i]; {
+		case e == key:
+			same = true
+		case e.folded() == fk:
+			return false // (gorge's seen check precedes its pricing: scriptSearch.visit)
 		}
-	}
-	if seen {
-		return false // (gorge's seen check precedes its pricing: scriptSearch.visit)
 	}
 	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && !g.waitsForStack(t) {
 		return true
+	}
+	if same {
+		return false
 	}
 	if g.nseen < len(g.seen) {
 		g.seen[g.nseen] = key
@@ -1704,7 +1721,7 @@ func (g *grantSrch) preBranch(t *State, i int, sl Slot, j int, mask uint8, one b
 // ManaN is the placeholder 1 for every dynamic ability.
 func (s *State) restrAbN(k *prep, sl Slot, ra *kop.Ability) uint8 {
 	if ra.AFlags&kop.AfManaDynamic != 0 {
-		return uint8(max(s.dynManaN(k, ra, sl), 1))
+		return uint8(min(max(s.dynManaN(k, ra, sl), 1), maxDynMana))
 	}
 	return uint8(max(ra.ManaN, 1))
 }
