@@ -3,11 +3,12 @@
   "class": "projection-Cards.Zone",
   "why": "the engines' state differs at projection Cards[].Zone; 12 games in the corpus",
   "repro": {
-    "pool": "std-blb",
+    "pool": "custom",
     "surface": "full",
-    "seed": 1,
-    "pair": 1657,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 0,
+    "file": "festival_of_embers_may_raise_unmodelled"
   }
 }

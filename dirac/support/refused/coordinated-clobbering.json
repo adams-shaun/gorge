@@ -3,11 +3,12 @@
   "class": "options-options",
   "why": "gorge offers a sorcery with an untapped-creature target only when some payment leaves that creature untapped (it taps sources before the cast), so Enduring Vitality's own mana, the sole untapped creature and the target, never reaches an offer; dirac pays with the target after choosing it (CR 601.2c, 601.2h) and offers a cast gorge never lists",
   "repro": {
-    "pool": "std-dsk",
+    "pool": "custom",
     "surface": "full",
-    "seed": 2,
-    "pair": 3455,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 0,
+    "file": "coordinated_clobbering_untapped_target_offered_before_payment"
   }
 }

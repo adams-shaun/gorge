@@ -333,6 +333,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				if k.gen != nil && k.gen.anyAbReduce {
 					m = s.abReduced(k, a, sl, p, m) // the cost statics compose after it
 				}
+				if k.gen != nil && k.gen.anyWaterbend && waterbendIsX(a) {
+					m = s.waterbendCredit(k, p, sl, a, m) // gorge mana.go: Waterbend<X>'s offer credit at the floor (act_waterbend.go)
+				}
 				if !s.poolPaysAct(k, p, &m, payDesc{class: pdAct, card: cid, src: sl}) {
 					// gorge's planner declines an {X} activation (PlanCostDetail
 					// cost:x, Domesticated Hydra's {X}{G}{G}{G}: Monstrosity X,

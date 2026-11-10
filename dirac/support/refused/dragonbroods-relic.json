@@ -3,11 +3,12 @@
   "class": "projection-Cards.Chars.Colors",
   "why": "the engines' state differs at projection Cards[].Chars.Colors; 30 games in the corpus",
   "repro": {
-    "pool": "std-tdm",
+    "pool": "custom",
     "surface": "autopay",
-    "seed": 1,
-    "pair": 1,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 1
+    "mulligans": 1,
+    "file": "dragonbroods_relic_colours_differ"
   }
 }

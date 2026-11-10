@@ -3,11 +3,12 @@
   "class": "unmodelled-tokenpt",
   "why": "gorge does something the kernel does not model here (stall tokenpt); 26 games in the corpus",
   "repro": {
-    "pool": "std-tdm",
+    "pool": "custom",
     "surface": "autopay",
-    "seed": 1,
-    "pair": 5,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 0,
+    "file": "elspeth_storm_slayer_token_pt_unmodelled"
   }
 }

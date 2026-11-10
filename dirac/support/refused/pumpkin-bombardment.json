@@ -3,11 +3,12 @@
   "class": "options",
   "why": "the engines offer different options; 6 games in the corpus",
   "repro": {
-    "pool": "std-spm",
+    "pool": "custom",
     "surface": "full",
-    "seed": 1,
-    "pair": 123,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 0,
+    "file": "pumpkin_bombardment_offers_differ"
   }
 }

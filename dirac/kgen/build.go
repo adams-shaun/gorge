@@ -882,6 +882,9 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		// other counted part.
 		set(kop.CostWaterbend, c.Waterbend)
 	}
+	if c.WaterbendX {
+		set(kop.CostWaterbend, 0) // N 0: the announced X is the amount (Cost.Mana.X)
+	}
 	if c.SacSelf {
 		out.Flags |= kop.CostSacSelf
 	}

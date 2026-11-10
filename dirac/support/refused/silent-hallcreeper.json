@@ -3,11 +3,12 @@
   "class": "projection-Cards.Flags",
   "why": "the engines' state differs at projection Cards[].Flags; 17 games in the corpus",
   "repro": {
-    "pool": "std-dsk",
+    "pool": "custom",
     "surface": "full",
-    "seed": 1,
-    "pair": 1318,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 0,
+    "file": "silent_hallcreeper_card_flags_differ"
   }
 }
