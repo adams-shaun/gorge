@@ -96,20 +96,29 @@ type restrData struct {
 	// more mana than its census one (pcard.wideN): a tap of it can overpay,
 	// and what it overpays floats restricted
 	wide bool
+	// over: some record is an rkExt ability of more than one mana whose
+	// source has no census alternative (Steelswarm Operator's activation
+	// {U}{U}): a tap of it can overpay too, so its unit floats restricted
+	// and the window payment takes payRestrX's route
+	over bool
 }
 
 // restrSrcAb: a is a plain tap mana ability with a spend restriction that
 // gorge's planner counts per payment (not a reflected one).
 func restrSrcAb(a *kop.Ability) bool {
 	return a.Kind == kop.AbMana && a.ManaRestrict != 0 && !restrWideAnyMana(a) &&
-		a.AFlags&^(kop.AfManaNonSpell|kop.AfManaDynamic|kop.AfManaChoice) == 0 &&
-		a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && a.ManaColors&0x3f != 0
+		a.AFlags&^(kop.AfManaNonSpell|kop.AfManaDynamic|kop.AfManaChoice|kop.AfManaChosen) == 0 &&
+		a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
+		(a.ManaColors&0x3f != 0 || a.AFlags&kop.AfManaChosen != 0)
 }
 
 // oneColour: m holds exactly one colour bit.
 func oneColour(m kop.ColorMask) bool { return m != 0 && m&(m-1) == 0 }
 
-// prepRestrSrc records card c's restricted planner source (its first).
+// prepRestrSrc records card c's restricted planner sources: every restricted
+// ability, so a card with two whose restrictions are disjoint by payment class
+// (Steelswarm Operator's spell-only {U} and activation-only {U}{U}) plans the
+// one its payment admits (restrViewW).
 func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 	for j := range c.Abilities {
 		a := &c.Abilities[j]
@@ -129,7 +138,8 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 			for n := 0; n <= maxDynMana; n++ {
 				g.rs.views = append(g.rs.views, pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: uint8(n), manaTap: true, manaDyn: true})
 			}
-		case pc.manaAb >= 0 && pc.manaTap && !pc.manaChosen && !pc.manaMulti && pc.painCol == 0:
+		case pc.manaAb >= 0 && pc.manaTap && !pc.manaMulti && pc.painCol == 0 &&
+			(!pc.manaChosen || a.AFlags&kop.AfManaChosen != 0):
 			rec.kind = rkWiden
 			v := *pc
 			if !a.ManaEach {
@@ -138,9 +148,17 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 				// the extra colours twice.
 				v.manaCol |= a.ManaColors & 0x3f
 			}
-			if n > pc.manaN && a.AFlags&kop.AfManaChoice == 0 &&
+			switch {
+			case pc.manaChosen && a.AFlags&kop.AfManaChosen != 0 && n > pc.manaN && a.AFlags&kop.AfManaChoice == 0:
+				// a chosen-colour larger alternative beside the chosen census
+				// ability (Sunken Citadel's {C}{C} beside its {C}): the pair's
+				// larger type takes the permanent's chosen colour at runtime
+				// (restrPairUnit, srcMaskAt)
+				v.wideN, v.wideCol, v.wideChosen = n, a.ManaColors&kop.ColAny, true
+				g.rs.wide = true
+			case n > pc.manaN && a.AFlags&kop.AfManaChoice == 0 &&
 				(a.ManaColors&kop.ColAny == kop.ColAny ||
-					!a.ManaEach && oneColour(a.ManaColors&kop.ColAny) && a.ManaColors&kop.ColAny == pc.manaCol&kop.ColAny) {
+					!a.ManaEach && oneColour(a.ManaColors&kop.ColAny) && a.ManaColors&kop.ColAny == pc.manaCol&kop.ColAny):
 				// several mana of one colour beside the census ability's one,
 				// of any colour or of the census ability's own single colour
 				// (Tablet of Discovery's {R}{R} beside {R}): gorge's planner
@@ -152,15 +170,33 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 		default:
 			rec.kind = rkExt
 			v := pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: n, manaTap: true}
+			if a.AFlags&kop.AfManaChosen != 0 {
+				v.manaChosen = true
+			}
 			if a.ManaEach {
 				prepEachMana(a, &v)
+			}
+			firstSpellOnly := false
+			for i := range g.rs.recs {
+				rec := &g.rs.recs[i]
+				if rec.card == id && rec.kind != rkDyn && c.Abilities[rec.ab].ManaRestrictAb == 0 {
+					firstSpellOnly = true
+				}
+			}
+			if n > 1 && a.ManaRestrictAb != 0 && firstSpellOnly {
+				// the activation-only larger ability beside a spell-only first
+				// one (Steelswarm Operator's {U}{U}): a tap of it can overpay,
+				// so its unit floats restricted (plan) and the window payment
+				// takes payRestrX's route. A sole restricted ability of more
+				// than one mana keeps the old unit.
+				v.restrFloat = true
+				g.rs.over = true
 			}
 			g.rs.views = append(g.rs.views, v)
 		}
 		g.rs.recs = append(g.rs.recs, rec)
 		g.rs.ext = g.rs.ext || rec.kind != rkWiden || g.rs.views[rec.view].wideN != 0
 		g.rs.nonSpell = g.rs.nonSpell || a.AFlags&kop.AfManaNonSpell != 0 || a.ManaRestrictAb != 0
-		return
 	}
 }
 
@@ -384,33 +420,43 @@ func (s *State) restrView(k *prep, p uint8, sl Slot, own *pcard, d *payDesc) (v 
 func (s *State) restrViewW(k *prep, p uint8, sl Slot, own *pcard, d *payDesc) (v *pcard, kind uint8, ab *kop.Ability, dmask uint8) {
 	g := k.gen
 	c := s.cardAt(sl)
-	rec := g.restrRecOf(c)
-	if rec == nil {
-		return nil, 0, nil, 0
+	// a card may hold several restricted abilities (Steelswarm Operator):
+	// the first whose half admits the payment is the source's unit. A
+	// widened record the payment may not spend still ranks as the source it
+	// is (dmask), so it is remembered when no record admits.
+	for i := range g.rs.recs {
+		rec := &g.rs.recs[i]
+		if rec.card != c {
+			continue
+		}
+		a := &k.t.Cards[c].Abilities[rec.ab]
+		switch rec.kind {
+		case rkWiden:
+			if own.manaAb < 0 || !s.canTapForManaPC(k, sl, own) {
+				continue
+			}
+			if !s.restrSrcAdmits(k, p, sl, a, d) {
+				if dmask == 0 {
+					dmask = srcMask(&g.rs.views[rec.view])
+				}
+				continue
+			}
+		default:
+			if !s.restrUsable(k, sl) || !s.restrSrcAdmits(k, p, sl, a, d) {
+				continue
+			}
+		}
+		view := rec.view
+		if rec.kind == rkDyn {
+			n := s.dynManaN(k, a, sl)
+			if n <= 0 {
+				continue
+			}
+			view += int32(min(n, maxDynMana))
+		}
+		return &g.rs.views[view], rec.kind, a, 0
 	}
-	ab = &k.t.Cards[c].Abilities[rec.ab]
-	switch rec.kind {
-	case rkWiden:
-		if own.manaAb < 0 || !s.canTapForManaPC(k, sl, own) {
-			return nil, 0, nil, 0
-		}
-		if !s.restrSrcAdmits(k, p, sl, ab, d) {
-			return nil, 0, nil, srcMask(&g.rs.views[rec.view])
-		}
-	default:
-		if !s.restrUsable(k, sl) || !s.restrSrcAdmits(k, p, sl, ab, d) {
-			return nil, 0, nil, 0
-		}
-	}
-	view := rec.view
-	if rec.kind == rkDyn {
-		n := s.dynManaN(k, ab, sl)
-		if n <= 0 {
-			return nil, 0, nil, 0
-		}
-		view += int32(min(n, maxDynMana))
-	}
-	return &g.rs.views[view], rec.kind, ab, 0
+	return nil, 0, nil, dmask
 }
 
 // restrOnlyUsable: the source at sl has no census mana ability and a
@@ -482,8 +528,9 @@ func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot)
 				// the larger alternative holds everything the census one
 				// makes (its colours include them), so the source counts as
 				// wideN mana of one colour of its choosing
-				t.addUnits(uint8(v.wideCol), v.wideN)
-				if v.wideCol == kop.ColAny {
+				mb := s.restrWideMask(v, sl)
+				t.addUnits(mb, v.wideN)
+				if !v.wideChosen && v.wideCol == kop.ColAny {
 					s.addOneColour(&t, v.wideN) // a fixed colour is no free choice
 				}
 				break
@@ -491,7 +538,7 @@ func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot)
 			t.addUnits(s.srcMaskAt(v, sl), v.manaN)
 			t.addXv(v)
 		case rkExt:
-			t.addUnits(srcMask(v), v.manaN)
+			t.addUnits(s.srcMaskAt(v, sl), v.manaN)
 			t.addXv(v)
 		case rkDyn:
 			if nm == len(multi) {
@@ -503,6 +550,16 @@ func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot)
 		}
 	}
 	return t, multi, nm
+}
+
+// restrWideMask is the colour mask of a widened source's larger alternative:
+// wideCol, or for a chosen-colour one the permanent's chosen colour (and the
+// ability's printed one) at sl (Sunken Citadel).
+func (s *State) restrWideMask(v *pcard, sl Slot) uint8 {
+	if v.wideChosen {
+		return s.srcMaskAt(v, sl)
+	}
+	return uint8(v.wideCol)
 }
 
 // addXv adds an all-at-once source's fixed rest (pcard.manaXv) to a: a
@@ -860,12 +917,17 @@ func (s *State) poolPaysAct(k *prep, p uint8, cost *kop.ManaCost, d payDesc) boo
 func (s *State) restrPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int, restricted bool) bool {
 	own := s.manaPCGen(k, sl)
 	ma, na := s.srcMaskAt(own, sl), own.manaN
-	mb, nb := uint8(v.wideCol), v.wideN
+	mb, nb := s.restrWideMask(v, sl), v.wideN
 	if ma&^mb != 0 || own.manaAb < 0 || restricted && DebugRestrictedSource == 4 {
 		return false // not the shape kgen lowers: the ordinary widened unit
 	}
 	cr := s.isCreature(k, sl)
 	dmk := srcMask(v) // the colours both alternatives rank over
+	if v.wideChosen {
+		// both alternatives make the permanent's chosen colour (and any
+		// printed one), read at this slot: the pair type ranks over it
+		dmk = mb
+	}
 	var xv [kop.NumManaKinds]uint8
 	var xm, xt uint8
 	if k.gen != nil && k.gen.anyTapExtra {
@@ -911,6 +973,12 @@ func (s *State) restrPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int, re
 	}
 	pk.utyp[pk.nu] = uint8(ta)
 	pk.rkind[pk.nu] = 0
+	pk.rAb[pk.nu] = v.manaAb
+	if k.gen.rs != nil {
+		if rec := k.gen.restrRecOf(s.cardAt(sl)); rec != nil {
+			pk.rAb[pk.nu] = rec.ab // the pair's restricted alternative
+		}
+	}
 	pk.nu++
 	for c := 0; c < 5; c++ {
 		if (dmk|xm)&(1<<c) != 0 {

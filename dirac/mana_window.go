@@ -1486,8 +1486,11 @@ func (s *State) payRestrRider(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj
 // ordinary mana of its colour.
 func (s *State) payRestrSpend(k *prep, p, m uint8, cost *kop.ManaCost, x int, o Obj, anyColor bool) {
 	pl := &s.pl[p]
-	if k.gen.rs != nil && k.gen.rs.wide || s.rbColours(p, m) > 1 {
-		s.payRestrX(k, p, m, cost, x, o, anyColor) // several restricted colours (mana_reflected.go)
+	if k.gen.rs != nil && (k.gen.rs.wide || k.gen.rs.over) || s.rbColours(p, m) > 1 {
+		// a widened pair or a restricted ability of several mana may leave
+		// restricted units in the pool; several restricted colours
+		// (mana_reflected.go)
+		s.payRestrX(k, p, m, cost, x, o, anyColor)
 		return
 	}
 	var tk [maxRB][kop.NumManaKinds]uint8
@@ -2386,9 +2389,10 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 			continue
 		}
 		tapped, ext, tcol := false, false, 0
+		abi := int8(-1)
 		for i := 0; i < pk.rtapN; i++ {
 			if pk.rtap[i].sl == sl {
-				tapped, ext, tcol = true, pk.rtap[i].ext, int(pk.rtap[i].col)
+				tapped, ext, tcol, abi = true, pk.rtap[i].ext, int(pk.rtap[i].col), pk.rtap[i].ab
 			}
 		}
 		if !tapped {
@@ -2398,7 +2402,10 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 		if rec == nil {
 			continue
 		}
-		ab := &k.t.Cards[c].Abilities[rec.ab]
+		if abi < 0 {
+			abi = rec.ab // a record whose unit was not tagged: the first ability
+		}
+		ab := &k.t.Cards[c].Abilities[abi]
 		n := max(ab.ManaN, 1)
 		// a widened unit's tap made the colour the plan chose: when that
 		// colour is none the card's own census ability makes (Turtle Lair's

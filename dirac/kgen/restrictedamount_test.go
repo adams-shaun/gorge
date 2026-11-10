@@ -5,8 +5,9 @@ import "testing"
 // TestRestrictedAmountLowering: a restricted Produced$ Any ability of a
 // literal amount above one beside a fixed first ability (Intrepid
 // Stablemaster) lowers, with its amount in ManaN; an ability restricted to
-// activations only (Sunken Citadel) stays refused. (Hermitic Herbalist's
-// Combo of any colours: restrictedcombo_test.go.)
+// activations only (Sunken Citadel) lowers too, as a restricted pair
+// (lower_nmana_notfixedset_test.go). (Hermitic Herbalist's Combo of any
+// colours: restrictedcombo_test.go.)
 func TestRestrictedAmountLowering(t *testing.T) {
 	lw := lowerNamedPool(t, []string{"Intrepid Stablemaster", "Sunken Citadel"})
 	_, bs, _, err := buildPool(lw)
@@ -36,8 +37,8 @@ func TestRestrictedAmountLowering(t *testing.T) {
 		t.Fatalf("Intrepid Stablemaster built %d times", seen)
 	}
 	for _, c := range lw.cards {
-		if c.Name == "Sunken Citadel" && len(c.Refusals) == 0 {
-			t.Errorf("%s was accepted", c.Name)
+		if c.Name == "Sunken Citadel" && len(c.Refusals) != 0 {
+			t.Errorf("Sunken Citadel refused: %v", c.Refusals)
 		}
 	}
 }

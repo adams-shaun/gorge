@@ -104,6 +104,17 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// the kernel's per-count pair view (mana_dynpair.go) plans it
 		return
 	}
+	if len(ms) == 2 && (restrictedFirstPair(ms[0], ms[1]) || restrictedFixedPair(ms[0], ms[1])) {
+		// a restricted pair whose two abilities are disjoint by payment class:
+		// a spell-only {T} ability of one mana then an activation-only one of
+		// several (Steelswarm Operator: {U} for artifact spells, {U}{U} to
+		// activate artifact abilities), or a chosen/fixed first ability then
+		// an activation-only larger one (Sunken Citadel: chosen 1, chosen 2
+		// for abilities of land sources). The kernel plans whichever ability
+		// the payment admits (mana_restrictedsource.go prepRestrSrc,
+		// restrViewW); the fixed spell-only pair is Tablet of Discovery.
+		return
+	}
 	if len(ms) == 2 && chosenTapMana(ms[0]) && feeEachAmongMana(ms[1]) {
 		// Tarnation Vista: gorge's census leaves the {N},{T} each-colour ability
 		// an unrelaxable paid gap (its Special production names no colour), which
@@ -293,6 +304,15 @@ func manaGapModelled(first, a *lAbility) bool {
 		// once-only gap its prefix search activates (the kernel's counter
 		// gap kind, read at the card's ctrAb ability, mana_countercost.go)
 		return ctrTapGapModelled(first, a)
+	case restrictedFirstPair(first, a):
+		// a spell-only first ability beside an activation-only larger one of
+		// the same colour (Steelswarm Operator): the kernel plans each
+		// restricted ability for the payment class its half admits
+		return true
+	case activationOnlyTapMana(a):
+		// a chosen or fixed larger activation-only ability beside a same-colour
+		// first one (Sunken Citadel): the kernel's restricted pair unit
+		return restrictedFixedPair(first, a)
 	case plainTapMana(a, false):
 		// a restricted {T} ability, amount 1 (Courtyard, whose restriction
 		// also names activated abilities; the Villages)
@@ -393,6 +413,9 @@ func ctrTapGapModelled(first, a *lAbility) bool {
 //     gorge's planner the larger of the two.
 func manaGapWhy(first, a *lAbility) string {
 	m := a.Mana
+	if activationOnlyTapMana(a) && !restrictedFirstPair(first, a) && !restrictedFixedPair(first, a) {
+		return "an activation-only restricted ability of several mana: the kernel plans it only as a chosen or same-colour pair of two to four mana (or an activation-only larger ability beside a spell-only first one of that colour)"
+	}
 	switch {
 	case !plainTapMana(a, false) && !plainTapMana(a, true):
 		if a.Cost.SubCtr != 0 {
@@ -407,16 +430,66 @@ func manaGapWhy(first, a *lAbility) string {
 	return "a shape beyond the restricted, filter and pain gaps"
 }
 
-// restrictedFixedPair: a, a spell-only restricted {T} ability of several mana
-// (at most maxRestrictedAmount) of one fixed colour, beside a first ability of
-// that same colour (Tablet of Discovery's {R}{R} beside {R}) is the kernel's
+// activationOnlyTapMana: a is a plain {T} mana ability whose spend
+// restriction names activated abilities only (RestrictValid$ Activated.<spec>;
+// its spell half is nil before build_ab synthesizes the no-spell marker), its
+// amount and production aside. Chosen reads as a production, not a cost.
+func activationOnlyTapMana(a *lAbility) bool {
+	if a == nil || a.Mana == nil || a.Mana.RestrictAb == nil || a.Mana.Restrict != nil || a.Mana.NonSpell {
+		return false
+	}
+	c := *a
+	m := *a.Mana
+	m.RestrictAb = nil
+	if m.Colors == "Chosen" {
+		m.Colors = "C"
+	}
+	c.Mana = &m
+	return plainTapMana(&c, false)
+}
+
+// spellOnlyMana: a's spend restriction names spells only.
+func spellOnlyMana(a *lAbility) bool {
+	return a != nil && a.Mana != nil && a.Mana.Restrict != nil && a.Mana.RestrictAb == nil && !a.Mana.NonSpell
+}
+
+// restrictedFixedPair: a, a restricted {T} ability of several literal mana
+// (at most maxRestrictedAmount) of one fixed colour or the first ability's
+// chosen colour, beside a first ability of that same colour, is the kernel's
 // restricted pair unit with a single-colour larger alternative
-// (mana_restrictedsource.go prepRestrSrc). A different colour, or an
-// activation-only restriction, is not modelled.
+// (mana_restrictedsource.go prepRestrSrc, restrPairUnit). Either a spell-only
+// restriction (Tablet of Discovery's {R}{R} beside {R}) or an activation-only
+// one (Sunken Citadel's chosen {C}{C} beside its chosen {C}); a different
+// colour, a both-halves restriction, or a larger amount is not modelled.
 func restrictedFixedPair(first, a *lAbility) bool {
-	return len(a.Mana.Colors) == 1 && strings.Contains("WUBRG", a.Mana.Colors) && a.Mana.Colors == first.Mana.Colors &&
-		!a.Mana.Choice && !first.Mana.Choice && !a.Mana.Each && !first.Mana.Each && a.Mana.RestrictAb == nil && !a.Mana.NonSpell &&
-		a.Mana.Amount.N <= maxRestrictedAmount
+	if a.Mana.Choice || first.Mana.Choice || a.Mana.Each || first.Mana.Each || a.Mana.NonSpell ||
+		a.Mana.Amount.Kind != vConst || a.Mana.Amount.N < 2 || a.Mana.Amount.N > maxRestrictedAmount {
+		return false
+	}
+	if !(spellOnlyMana(a) || activationOnlyTapMana(a)) {
+		return false
+	}
+	if chosenTapMana(first) && a.Mana.Colors == "Chosen" && a.Mana.Special == "" {
+		return true
+	}
+	return plainTapMana(first, false) && unrestrictedOne(first) && len(a.Mana.Colors) == 1 &&
+		strings.Contains("WUBRG", a.Mana.Colors) && a.Mana.Colors == first.Mana.Colors
+}
+
+// restrictedFirstPair: first is a spell-only restricted {T} ability of one
+// fixed colour, then a is an activation-only restricted {T} ability of the
+// same colour and two to maxRestrictedAmount mana (Steelswarm Operator's
+// artifact-spell {U} then artifact-activation {U}{U}). The kernel records both
+// abilities and plans whichever half its payment class admits
+// (mana_restrictedsource.go prepRestrSrc, restrViewW).
+func restrictedFirstPair(first, a *lAbility) bool {
+	if first.Mana.Choice || a.Mana.Choice || first.Mana.Each || a.Mana.Each || first.Mana.NonSpell || a.Mana.NonSpell ||
+		!spellOnlyMana(first) || !plainTapMana(first, false) || !activationOnlyTapMana(a) ||
+		first.Mana.Amount.Kind != vConst || first.Mana.Amount.N != 1 ||
+		a.Mana.Amount.Kind != vConst || a.Mana.Amount.N < 2 || a.Mana.Amount.N > maxRestrictedAmount {
+		return false
+	}
+	return len(first.Mana.Colors) == 1 && strings.Contains("WUBRG", first.Mana.Colors) && a.Mana.Colors == first.Mana.Colors
 }
 
 // restrictedComboModelled: a, a restricted {T} ability of a Combo of any

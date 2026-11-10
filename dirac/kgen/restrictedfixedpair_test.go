@@ -8,9 +8,10 @@ import (
 // TestRestrictedFixedColourPairShape: a spell-restricted {T} ability of two to
 // four mana of the first ability's own fixed colour is the kernel's restricted
 // pair unit (Tablet of Discovery's {R}{R} beside {R}); a different colour, an
-// amount above four, a Combo, an unrestricted or activation-restricted second
-// ability and a Combo first ability stay refused, the colour case with the
-// several-mana refusal text.
+// amount above four, a Combo, an unrestricted second ability, a both-halves
+// restriction and a Combo first ability stay refused, the colour case with the
+// several-mana refusal text. An activation-only second ability is the
+// activation-restriction slice's pair (lower_nmana_notfixedset_test.go).
 func TestRestrictedFixedColourPairShape(t *testing.T) {
 	first := comboAb("R", 1, false, false)
 	if !plainTapMana(first, false) || !unrestrictedOne(first) {
@@ -31,7 +32,7 @@ func TestRestrictedFixedColourPairShape(t *testing.T) {
 		"other colour":        {comboAb("G", 1, false, false), comboAb("R", 2, false, true)},
 		"combo":               {first, comboAb("R", 2, true, true)},
 		"unrestricted":        {first, comboAb("R", 2, false, false)},
-		"activation restrict": {first, abAlso},
+		"spell and activated": {first, abAlso},
 		"non-spell restrict":  {first, nonSpell},
 		"combo first":         {firstCombo, comboAb("R", 2, false, true)},
 	}
