@@ -287,6 +287,12 @@ const (
 	RetShuffleOwed = 1 << 13
 )
 
+// RetCounterPairShift: an OpReturnEx whose WithCountersType$ names two kinds
+// (Perennation) carries its constant A as count | (second kind + 1)<<8 (read
+// as unsigned) and the first kind in B.N, as for one kind. Both enter with the
+// permanent, each of count, first kind first (CR 122.6, 614.1c).
+const RetCounterPairShift = 8
+
 // RetUnderOpponent is OpReturnEx's B.N flag for GainControl$ ChosenPlayer
 // after a one-opponent ChoosePlayer (Zuko, Conflicted: "return it to the
 // battlefield under an opponent's control"; CR 110.2a): the returned object

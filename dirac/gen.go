@@ -1834,10 +1834,11 @@ type genState struct {
 	// the token with them (CR 707.9, 614.12).
 	entExc   uint32
 	enterCtr struct {
-		n    uint8
-		kind kop.CounterKind
-		tap  bool
-		ctrl bool
+		n     uint8
+		kind  kop.CounterKind
+		tap   bool
+		ctrl  bool
+		kind2 uint8 // a second kind to enter with, n of it, plus one (0: none; a Return's WithCountersType$ pair)
 	} // counters/tapped for the next enter (OpReturnEx)
 	// entrySelf is the slot+1 of the permanent whose entry counters are being
 	// placed (0: none). Its own general AddCounter replacement does not apply

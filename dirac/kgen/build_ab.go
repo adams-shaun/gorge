@@ -2334,6 +2334,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	}
 	counters := func() error {
 		if k, ok := fl["counters"]; ok {
+			if strings.Contains(k, ",") {
+				return cb.counterPair(&ki, in, k) // lower_counterlist.go
+			}
 			ck, err := counterKind(k)
 			if err != nil {
 				return err

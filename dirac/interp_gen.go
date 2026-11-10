@@ -1520,8 +1520,8 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	if k.gen != nil && k.gen.anyMayLimit {
 		s.countMayPlayLand(k, o, from)
 	}
-	if n := s.value(k, in.A); n > 0 {
-		s.g.enterCtr.n, s.g.enterCtr.kind = uint8(n), kop.CounterKind(in.B.N)
+	if n, k2 := returnEntryCount(s.value(k, in.A), in.A); n > 0 {
+		s.g.enterCtr.n, s.g.enterCtr.kind, s.g.enterCtr.kind2 = uint8(n), kop.CounterKind(in.B.N), k2
 	}
 	var sl Slot
 	switch {
@@ -1537,7 +1537,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		s.enterOnto(host)
 		sl = s.enterMoved(k, o, ctrl, fl&kop.MvTapped != 0, from)
 	}
-	s.g.enterCtr.n = 0
+	s.g.enterCtr.n, s.g.enterCtr.kind2 = 0, 0
 	s.g.retMiss = false
 	if fl&kop.MvAttacking != 0 && s.enterAttacking(k, sl, ctrl) {
 		return true // the CR 508.4 defender ask (zone_changezoneparams.go)
