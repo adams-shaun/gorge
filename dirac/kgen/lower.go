@@ -2388,7 +2388,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 	}
 	for _, c := range f.Clauses {
 		if c.Ctrl == whoDefending || c.Owner == whoDefending {
-			lc.twoSeat("the defending player read as the non-active player (kop.F2DefendingCtrl)")
+			lc.twoSeat(twoSeatDefending)
 			break
 		}
 	}

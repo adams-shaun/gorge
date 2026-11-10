@@ -368,6 +368,7 @@ ExMorbid	ExprKind	8
 ExNone	ExprKind	0
 ExNotOwnLibMV	ExprKind	226
 ExNumColorsOf	ExprKind	57
+ExOppExtreme	ExprKind	220
 ExOppLifeLostThisTurn	ExprKind	17
 ExOppsAttacked	ExprKind	229
 ExOppsLostLife	ExprKind	28
@@ -804,6 +805,12 @@ OpUntapAll	Op	100
 OpUntapChoose	Op	154
 OpWard	Op	38
 OpWarpExile	Op	135
+OppExtAmount	untyped int	1
+OppExtGrave	untyped int	4
+OppExtHand	untyped int	3
+OppExtLife	untyped int	2
+OppExtLowest	untyped int	256
+OppExtValid	untyped int	5
 OppsHitLegendary	untyped int	1
 OptAll	untyped int	16
 OptAny	untyped int	8

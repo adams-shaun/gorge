@@ -197,35 +197,28 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		lc.twoSeat("the melee capture counted as one")
 		v = cst(1)
 	case "PlayerCountOpponents":
-		// Two players: the highest among the opponents is the opponent's.
-		lc.twoSeat("an opponents extreme read as the one opponent's figure")
+		// the living opponents in seat order (gorge opponentGroup): seat-exact
 		switch {
-		case rest == "HighestLifeTotal":
-			v = lValue{Kind: vLifeOf, Ref: lRef{Kind: rEachOpp}}
-		case rest == "HighestCardsInHand", rest == "LowestCardsInHand":
-			v = lValue{Kind: vHandSizeOf, Ref: lRef{Kind: rEachOpp}}
-		case rest == "LowestLifeTotal":
-			v = lValue{Kind: vLifeOf, Ref: lRef{Kind: rEachOpp}}
 		case rest == "Amount":
-			// gorge opponentGroup: the living players other than the
-			// controller -- one while a two-player game goes on
-			v = cst(1)
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtAmount}
+		case rest == "HighestLifeTotal":
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtLife}
+		case rest == "LowestLifeTotal":
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtLife | kop.OppExtLowest}
+		case rest == "HighestCardsInHand":
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtHand}
+		case rest == "LowestCardsInHand":
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtHand | kop.OppExtLowest}
 		case rest == "HighestCardsInGraveyard":
-			f, ferr := lc.filter("Card.OppOwn")
-			if ferr != nil {
-				return lValue{}, ferr
-			}
-			v = lValue{Kind: vCountGraveyard, F: f}
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtGrave}
 		case strings.HasPrefix(rest, "HighestValid "):
-			// the filter is read from the opponent's side: "YouCtrl" there
-			// is the opponent's
+			// the filter is read from each opponent's side: "YouCtrl"
+			// there is that opponent's (gorge SpecContext(p))
 			f, ferr := lc.filter(strings.TrimPrefix(rest, "HighestValid "))
 			if ferr != nil {
 				return lValue{}, ferr
 			}
-			if f, err = opponentView(f); err == nil {
-				v = lValue{Kind: vCount, F: f}
-			}
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtValid, F: f}
 		case rest == "HighestCounters.Poison":
 			// gorge playerCountExtreme's Counters.Poison arm: the extreme
 			// over the living opponents, in group order. Every other
