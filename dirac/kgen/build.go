@@ -1149,7 +1149,6 @@ func (cb *cardBuilder) filterZones(f *lFilter, zones []kop.Zone) (kop.FilterID, 
 		if err != nil {
 			return 0, err
 		}
-		cb.markDefending(kf)
 		kf.Or = next
 		kf.Each = f.Each && i == 0
 		if i == 0 && f.PickSumMax != nil {

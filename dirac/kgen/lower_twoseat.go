@@ -35,21 +35,3 @@ func (lc *lowerCtx) oppCountBound(v lValue) lValue {
 	lc.twoSeat("a target bound of the opponents' count read as one")
 	return cst(1)
 }
-
-// twoSeatDefending is the reason a card is two-seat only when one of its
-// filters reads the defending player as the one non-active player.
-const twoSeatDefending = "the defending player read as the non-active player (kop.F2DefendingCtrl)"
-
-// markDefending marks the card two-seat only when kf reads the defending
-// player (kop.F2DefendingCtrl). The mark is the card's, not the table's: a
-// pool interns its filters across cards, so the kernel reads the cards'
-// marks (prepTwoSeat), never a filter's.
-func (cb *cardBuilder) markDefending(kf kop.Filter) {
-	if kf.Flags2&kop.F2DefendingCtrl == 0 || cb.c == nil {
-		return
-	}
-	if !slices.Contains(cb.c.TwoSeatWhy, twoSeatDefending) {
-		cb.c.TwoSeatWhy = append(cb.c.TwoSeatWhy, twoSeatDefending)
-	}
-	cb.c.TwoSeat, cb.out.def.TwoSeat = true, true
-}
