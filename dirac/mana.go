@@ -1197,7 +1197,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				if pc.wideN != 0 && rv[i] == rkWiden && s.restrPairUnit(k, sl, pc, pk, i, true) {
 					continue
 				}
-				if pc.wideN != 0 && rv[i] == 0 && k.gen != nil && k.gen.anyGatePair && k.gen.flags[s.cardAt(sl)]&gfManaGate != 0 && debugGatedPair != 2 && s.restrPairUnit(k, sl, pc, pk, i, false) {
+				if pc.wideN != 0 && rv[i] == 0 && k.gen != nil && k.gen.anyGatePair && k.gen.flags[s.cardAt(sl)]&(gfManaGate|gfManaDynPair) != 0 && debugGatedPair != 2 && s.restrPairUnit(k, sl, pc, pk, i, false) {
 					continue // a gated same-colour larger ability: the pair, its larger alternative ordinary mana (mana_gate.go)
 				}
 				cr := s.isCreature(k, sl)
