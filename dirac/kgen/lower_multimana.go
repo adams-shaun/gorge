@@ -394,7 +394,9 @@ func ctrTapGapModelled(first, a *lAbility) bool {
 // reasons the kernel's lockstep games and activation walk show):
 //
 //   - a cost beyond {T} other than the two below (a sacrifice, a mana
-//     payment with a rider, ...): the kernel's mana walk cannot activate it;
+//     payment with a rider, ...): the kernel's mana walk cannot activate it
+//     (a first and only all-at-once "{T}, Sacrifice another <filter>" is
+//     modelled: refuseEachMana's sacEachMana);
 //   - a cost of {T} plus removing counters other than ctrTapGapModelled's
 //     (Vivid Crag's any colour, Throne of Makindi's restricted two): gorge's
 //     census leaves it a relaxable once-only gap whose prefix script
@@ -792,13 +794,14 @@ func (lc *lowerCtx) refuseEachMana(ms []*lAbility) bool {
 			// Gutsy Explorer; Tin Street Gossip's Static.isTurnFaceUp clause)
 			// is a restricted planner unit (kernel mana_restrictedsource.go).
 			lc.refuseNode("card", "mana ability adding several colours at once under a spend restriction")
-		case !plainTapMana(a, false) && !ctrEachMana(a) && !filtEachMana(a):
+		case !plainTapMana(a, false) && !ctrEachMana(a) && !filtEachMana(a) && !sacEachMana(a):
 			// gorge's planner defers any cost beyond {T} (a filter's fee, a
 			// sacrifice of another permanent, removed counters): a census gap.
-			// The kernel's gap searches model the counter removal (ctrEachMana)
-			// and a generic fee (filtEachMana); a sacrifice of another
-			// permanent (Bolg's Company) has no gap kind: the kernel's mana
-			// walk cannot activate a sacrifice cost (manaGapWhy).
+			// The kernel's gap searches model the counter removal (ctrEachMana),
+			// a generic fee (filtEachMana) and {T} plus a sacrifice of exactly
+			// one other permanent (sacEachMana, Bolg's Company); a sacrifice of
+			// another permanent in any other shape (a fee beside it, two of them)
+			// has no gap kind (manaGapWhy).
 			if a.Cost.Sac != nil && !a.Cost.SacSelf {
 				lc.refuseNode("card", "mana ability adding several colours at once from a cost beyond {T}: a sacrifice of another permanent (no sacrifice gap kind in the kernel's prefix search)")
 			} else {
@@ -826,6 +829,31 @@ func ctrEachMana(a *lAbility) bool {
 	c := *a
 	c.Cost.Tap, c.Cost.SubCtr, c.Cost.SubCtrKnd, c.TurnOnce = true, 0, "", false
 	return plainTapMana(&c, false)
+}
+
+// sacEachMana: a is "{T}, Sacrifice another <filter>: Add {c1}{c2}..."
+// (Bolg's Company's "{T}, Sacrifice another Goblin: Add {B}{R}"): {T} plus a
+// sacrifice of exactly one other permanent, no mana, otherwise a plain {T}
+// all-at-once production. gorge's census defers it and relaxes it to one free
+// fixed production (paymentPlanRelaxedAlternatives); the kernel's tap-another
+// search activates it (kop.SacXEachManaAb, mana_tapanother.go).
+func sacEachMana(a *lAbility) bool {
+	if !a.Cost.Tap || a.Cost.Sac == nil || a.Cost.SacSelf || a.Cost.SacN != 1 || a.Cost.SacX || a.Cost.SacExile {
+		return false
+	}
+	c := *a
+	c.Cost.Sac, c.Cost.SacN = nil, 0
+	m := a.Mana
+	if !plainTapMana(&c, false) || m.Choice || m.Restrict != nil || m.RestrictAb != nil || m.NonSpell ||
+		!m.Amount.isConst() || m.Amount.N != 1 || len(m.Colors) < 2 || strings.Trim(m.Colors, "WUBRG") != "" {
+		return false
+	}
+	for i := 0; i < len(m.Colors); i++ {
+		if strings.IndexByte(m.Colors[i+1:], m.Colors[i]) >= 0 {
+			return false // a duplicated colour (one colour twice): gorge's relaxed production differs
+		}
+	}
+	return true
 }
 
 // filtEachMana: a is "{N}, {T}: Add {c1}{c2}..." (Skycloud Expanse's {1},{T}:

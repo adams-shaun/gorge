@@ -226,8 +226,9 @@ type prep struct {
 	// once each turn (pcard.ctrMana; mana_countercost.go): guards the
 	// prefix-search gap, the -0/-1 toughness read and its SBA
 	ctrMana bool
-	// tapMana: some card's mana ability taps another permanent (kop.TapXManaAb;
-	// mana_tapanother.go): a prefix-search gap kind
+	// tapMana: some card's mana ability taps another permanent (kop.TapXManaAb)
+	// or sacrifices one (kop.SacXEachManaAb; mana_tapanother.go): a
+	// prefix-search gap kind
 	tapMana bool
 	// tapXAb: per card, the index of its tap-another-permanent mana ability
 	// (the first mana ability, or a later one beside a plain first,
@@ -317,7 +318,7 @@ func prepare(t *kop.Table) *prep {
 					}
 					pc.manaOne = manaOneColour(a, pc.manaN)
 					p.manaOne = p.manaOne || pc.manaOne
-					if a.ManaEach && !kop.CtrEachManaAb(a) && !kop.FilterEachManaAb(a) { // (a counter-cost one keeps its whole mask: mana_countercost.go; a filter's is mana_filtereach.go's)
+					if a.ManaEach && !kop.CtrEachManaAb(a) && !kop.FilterEachManaAb(a) && !kop.SacXEachManaAb(a) { // (a counter-cost one keeps its whole mask: mana_countercost.go; a filter's is mana_filtereach.go's; a sacrifice-another one's mana_tapanother.go's)
 						prepEachMana(a, pc)
 						p.manaEach = true
 					}
@@ -332,7 +333,7 @@ func prepare(t *kop.Table) *prep {
 						p.ctrMana = true
 						p.ctrAb[i] = int8(j)
 					}
-					if kop.TapXMana(a) {
+					if kop.TapXMana(a) || kop.SacXEachManaAb(a) { // (a sacrifice-another one is the tap-another search's too)
 						p.tapMana = true // (read per card through p.tapXAb, not a pcard field: the hot record stays as it was)
 						p.tapXAb[i] = int8(j)
 					}

@@ -37,9 +37,12 @@ type otherStep struct {
 }
 
 // mixBoard: p's census gaps mix filters, restricted any-colour sources and
-// tap-another-permanent sources, or a filter beside a deferred source
-// (mixDeferred), and hold nothing else.
+// tap-another-permanent sources (no sacrifice-another one), or a filter beside
+// a deferred source (mixDeferred), and hold nothing else.
 func (s *State) mixBoard(k *prep, p uint8) bool {
+	if k.tapMana && s.sacXLive(k, p) {
+		return false // a sacrifice-another source is the tap-another search's alone (mana_tapanother.go): no mix models it
+	}
 	if k.gen != nil && k.gen.anyMultiR && s.wide2Board(k, p) {
 		return true // any-colour restricted gaps, a second-ability wide one among them (mana_restrictedcombo.go)
 	}

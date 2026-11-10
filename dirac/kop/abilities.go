@@ -266,13 +266,29 @@ func FilterManaAb(a *Ability) bool {
 // (Azorius Chancery) is not: it has no fee.
 func FilterEachManaAb(a *Ability) bool { return a.ManaEach && FilterManaAb(a) }
 
+// SacXEachManaAb reports whether mana ability a is "{T}, Sacrifice another
+// <filter>: Add <c1><c2>..." (Bolg's Company's "{T}, Sacrifice another Goblin:
+// Add {B}{R}"): a mana-free {T} plus a sacrifice of exactly one permanent
+// matching Cost.Filter (its Other clause leaves the source out), two or more
+// distinct WUBRG colours once each, unrestricted, no choice. gorge's census
+// defers it (a census gap) and relaxes it to one free fixed production; the
+// kernel activates it in the tap-another search (kernel mana_tapanother.go).
+func SacXEachManaAb(a *Ability) bool {
+	c := a.ManaColors
+	return a.Kind == AbMana && a.ManaEach && a.Cost.Flags == CostTap|CostSac && a.Cost.N == 1 && a.Cost.Filter != 0 && !a.Cost.ExileBf &&
+		a.Cost.Mana == (ManaCost{}) && a.ManaRestrict == 0 && a.ManaN <= 1 && a.AFlags == 0 && len(a.Prog) == 0 &&
+		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield) &&
+		c&^ColAny == 0 && c&(c-1) != 0
+}
+
 // ManaAbilityHonoured reports whether the kernel can activate ability j of
 // cd, an AbMana. It is true for any other ability kind.
 //
 //   - the first mana ability: a mana-free {T}, {T} + sacrifice this,
 //     sacrifice this alone (pcard.manaTap / manaSac / manaSacOnly), a counter
 //     placed on or removed from the source once a turn (CtrManaAb), the tap-another-
-//     permanent shape of TapXManaAb, or a filter (FilterManaAb);
+//     permanent shape of TapXManaAb, the sacrifice-another all-at-once shape
+//     of SacXEachManaAb, or a filter (FilterManaAb);
 //   - a granted (latent) one: a mana-free {T}, {T} + pay N life, or
 //     sacrifice this alone (genPrep.grantPC; dirac mana_grantcost.go);
 //   - any later own mana ability: a {T} (a fixed-colour set, a restricted,
@@ -305,7 +321,7 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	switch {
 	case plain && (f == CostTap || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
-	case CtrManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a):
+	case CtrManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a):
 		return true
 	}
 	return false

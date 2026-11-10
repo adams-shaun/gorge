@@ -36,10 +36,35 @@ import (
 // Everything is behind prep.tapMana. Not modelled: the counters and the
 // battlefield members gorge's dedup key reads beside (pool, tapped set,
 // stack, hand and graveyard sizes).
+//
+// A sacrifice-another source (Bolg's Company: "{T}, Sacrifice another Goblin:
+// Add {B}{R}", kop.SacXEachManaAb) is one more source kind of this search.
+// gorge's census defers it (pay.PaymentPlanShapeTierOf: a Sac part that is not
+// the source) and relaxes it to one free fixed alternative of its whole
+// production (paymentPlanRelaxedAlternatives), so the gaps walk counts one of
+// each of its colours (addTapXUnits). Activating it asks which permanent to
+// sacrifice (pay.ManaCostChoiceStages: a "sacrifice" choose, only with two or
+// more candidates, battlefield order, pay.ManaSacrificeCandidates), and asks
+// no colour; it commits in gorge's order (commitManaDiscard): the source's
+// {T}, the sacrifice (whose dies triggers queue), the mana (sacXDo). A path
+// that sacrifices the searched ability's own source dead-ends at the next node
+// (gorge scriptSearch.leftOwnZone). The manual ward and unless windows do not
+// offer it (windowTapXOffer), nor does the grant search (grantTapXGaps).
 
 // DebugNoTapMana hides the tap-another-permanent gaps (the caretaker
 // mutation test proves the pool's plays need them).
 var DebugNoTapMana bool
+
+// DebugNoSacXMana hides only the sacrifice-another sources (kop.SacXEachManaAb;
+// the Bolg's Company mutation test proves the pool's plays need them).
+var DebugNoSacXMana bool
+
+// sacXOf: card c's tap-another gap is the sacrifice-another all-at-once shape
+// (kop.SacXEachManaAb: Bolg's Company).
+func (k *prep) sacXOf(c CardID) bool {
+	a := k.tapXAbOf(c)
+	return a != nil && kop.SacXEachManaAb(a)
+}
 
 // debugTapXMutate selects a lockstep mutation: 1 = the first colour always
 // (the search ignores the play's pips), 2 = the last creature candidate.
@@ -87,7 +112,7 @@ func (s *State) tapXSources(k *prep, p uint8, cands bool) slotMask {
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
 		a := k.tapXAbOf(s.cardAt(sl))
-		if a == nil {
+		if a == nil || DebugNoSacXMana && kop.SacXEachManaAb(a) {
 			continue
 		}
 		pm := &s.perms[sl]
@@ -101,6 +126,16 @@ func (s *State) tapXSources(k *prep, p uint8, cands bool) slotMask {
 		}
 	}
 	return m
+}
+
+// sacXLive: p has a live sacrifice-another source (Bolg's Company).
+func (s *State) sacXLive(k *prep, p uint8) bool {
+	for b := s.scriptTapX(k, p); b.any(); b = b.rest() {
+		if k.sacXOf(s.cardAt(b.first())) {
+			return true
+		}
+	}
+	return false
 }
 
 // tapXTwoLive: a no-{T} two-permanent mana source (Baylen) is activatable now
@@ -140,9 +175,13 @@ func (s *State) tapXEachGaps(k *prep, p uint8) slotMask {
 // tapXCands lists the permanents source sl's tap cost can tap, in gorge's
 // candidate order (battlefield entry): p's untapped permanents matching the
 // cost's filter, the source itself excluded (its own {T} is paid first;
-// pay.ManaTapCandidates claims it).
+// pay.ManaTapCandidates claims it). A sacrifice-another source's are the
+// permanents its sacrifice can take (sacXCands).
 func (s *State) tapXCands(k *prep, p uint8, sl Slot, out *[MaxPerm]Slot) int {
 	ab := k.tapXAbOf(s.cardAt(sl))
+	if ab.Cost.Flags&kop.CostSac != 0 {
+		return s.sacXCands(k, p, sl, ab, out)
+	}
 	f := ab.Cost.Filter
 	var m slotMask
 	// A creature the cast being paid for announced for convoke is tapped when
@@ -162,14 +201,52 @@ func (s *State) tapXCands(k *prep, p uint8, sl Slot, out *[MaxPerm]Slot) int {
 	return s.battlefieldOrder(p, m, out[:], 0)
 }
 
+// sacXCands lists the permanents sacrifice-another source sl's cost can
+// sacrifice, in gorge's candidate order (pay.ManaSacrificeCandidates: p's
+// battlefield in entry order): those matching the cost's filter, never the
+// source, none a CantSacrifice static withholds, none the cast being paid
+// announced for convoke (it is tapped when that payment settles: CastCommitted).
+// Tapped ones are candidates.
+func (s *State) sacXCands(k *prep, p uint8, sl Slot, ab *kop.Ability, out *[MaxPerm]Slot) int {
+	var spoken, m slotMask
+	if s.buildLive() {
+		spoken = s.convokeHidden()
+	}
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
+		x := b.first()
+		if x == sl || spoken.has(x) || !s.matchPerm(k, ab.Cost.Filter, x, p, sl) || s.sacBlocked(k, x) {
+			continue
+		}
+		m = m.with(x)
+	}
+	return s.battlefieldOrder(p, m, out[:], 0)
+}
+
 // availTapX adds p's tap-another-permanent sources' mana to the gaps walk:
 // the relaxed census counts each as a free any-colour unit (a second
-// ability's beside its source's own planner unit).
+// ability's beside its source's own planner unit), a sacrifice-another one
+// as one of each of its colours (addTapXUnits).
 //
 //go:noinline
 func (s *State) availTapX(k *prep, p uint8, av *avail) {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
-		av.addUnits(tapXUnit(k.tapXAbOf(s.cardAt(b.first()))))
+		addTapXUnits(av, k.tapXAbOf(s.cardAt(b.first())))
+	}
+}
+
+// addTapXUnits adds tap-another ability a's relaxed unit to av: one unit of
+// its colours, or for a sacrifice-another all-at-once one (Bolg's Company)
+// one of each colour (gorge's relaxed alternative is the whole {B}{R}).
+func addTapXUnits(av *avail, a *kop.Ability) {
+	cols, n := tapXUnit(a)
+	if !kop.SacXEachManaAb(a) {
+		av.addUnits(cols, n)
+		return
+	}
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if cols&(1<<c) != 0 {
+			av.addUnits(1<<c, n)
+		}
 	}
 }
 
@@ -250,7 +327,10 @@ type tapXKey struct {
 type tapXSearch struct {
 	a     Action
 	p     uint8
-	own   Slot  // the source whose {T} is the play's own cost (NoSlot: none)
+	own   Slot // the source whose {T} is the play's own cost (NoSlot: none)
+	sac   bool // a sacrifice-another source is among the gaps (leftOwnZone reads srcObj)
+	src   Obj  // the searched ability's source (NoObj: a cast)
+	srcZ  kop.Zone
 	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
 	gaps  slotMask
 	need  [kop.NumManaKinds]bool // the play's announced colours (scriptNeedColours)
@@ -312,9 +392,14 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	var rs tapXSearch
 	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p))
 	rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
-	rs.own = NoSlot
+	rs.own, rs.src = NoSlot, NoObj
 	if a.Kind() == AkActivate {
 		_, rs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
+		rs.src = Obj(a.Source())
+		rs.srcZ = s.objs[rs.src].zone
+	}
+	for b := rs.gaps; b.any() && !rs.sac; b = b.rest() {
+		rs.sac = k.sacXOf(s.cardAt(b.first()))
 	}
 	t := s.fork()
 	defer s.unfork()
@@ -479,6 +564,9 @@ func (rs *tapXSearch) settle(k *prep, t *State, gapUsed bool) bool {
 	if !rs.tick() { // the ask
 		return false
 	}
+	if rs.leftOwnZone(t) {
+		return false
+	}
 	if d.Kind == DkTarget {
 		t.gorgeTargetOrder(&d)
 	}
@@ -510,6 +598,13 @@ func (rs *tapXSearch) cols(out *[5]uint8) {
 	needFirst(out[:], rs.need)
 }
 
+// leftOwnZone: the path sacrificed the searched ability's own source (a
+// sacrifice-another cost took it), so no continuation plays it (gorge
+// scriptSearch.leftOwnZone, CR 602.2b): the node is spent, the line ends.
+func (rs *tapXSearch) leftOwnZone(t *State) bool {
+	return rs.sac && rs.src != NoObj && t.objs[rs.src].zone != rs.srcZ
+}
+
 func (rs *tapXSearch) tick() bool {
 	if rs.nodes >= potentialScriptNodes {
 		return false
@@ -536,6 +631,10 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		s.sba(k)              // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
 		return
 	}
+	if k.sacXOf(s.cardAt(st.sl)) {
+		s.sacXDo(k, p, st.sl, st.cand)
+		return
+	}
 	tb := s.tapBatchOpen(k) // the ability's elected taps are one tapping action (gorge mana_activation.go; trig_tapall.go)
 	for _, cd := range [2]Slot{st.cand, st.cand2} {
 		if cd == NoSlot {
@@ -560,6 +659,28 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 	s.poolAdd(p, int(st.col), int(n))
 	s.tapExtraStall(k, st.sl)
 	s.artTag(k, p, st.sl, int(st.col))
+}
+
+// sacXDo activates sacrifice-another source sl for p, sacrificing cand, in
+// gorge's commit order (commitManaDiscard): the source's {T}, then the
+// sacrifice (its Sacrificed and dies triggers queue), then every colour of the
+// production. The script returns to priority after the step, so the SBAs and
+// the queued triggers settle before the next node (as ctrGap's step does).
+func (s *State) sacXDo(k *prep, p uint8, sl, cand Slot) {
+	ab := k.tapXAbOf(s.cardAt(sl))
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	s.sacFilterSource(k, cand)
+	cols, n := tapXUnit(ab)
+	for col := 0; col < kop.NumManaKinds; col++ {
+		if cols&(1<<col) != 0 {
+			s.poolAdd(p, col, int(n))
+			s.artTag(k, p, sl, col)
+		}
+	}
+	s.tapExtraStall(k, sl)
+	s.sba(k)
 }
 
 // tapXSecond: card c's tap-another ability is a later one beside a plain {T}
@@ -658,6 +779,9 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	if !rs.tick() { // a payer priority node
 		return false
 	}
+	if rs.leftOwnZone(t) {
+		return false
+	}
 	p := rs.p
 	// gorge asks two questions at a node, either side of its dedup: is the
 	// play offered as is (the floating pool alone pays it) before, and does
@@ -736,6 +860,21 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		}
 		var cs [MaxPerm]Slot
 		nc := t.tapXCands(k, p, sl, &cs)
+		if k.sacXOf(t.cardAt(sl)) {
+			// a sacrifice-another source: the "sacrifice" ask only with two or
+			// more candidates, in battlefield order, and no colour ask (the
+			// production is fixed). An answer that takes the play's own
+			// source is tried: the next node ends it (leftOwnZone)
+			if nc > 1 && !rs.tick() {
+				return false
+			}
+			for ci := 0; ci < nc; ci++ {
+				if rs.try(k, t, tapXStep{sl: sl, cand: cs[ci], cand2: NoSlot}) {
+					return true
+				}
+			}
+			continue
+		}
 		if k.tapXAbOf(t.cardAt(sl)).Cost.N == 2 {
 			// a two-permanent cost (Baylen): two candidates are tapped with no
 			// ask; more are asked as one "choose 2" whose answers gorge's
