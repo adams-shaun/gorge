@@ -70,6 +70,24 @@ func format1Ref(r Ref) Ref {
 	return r
 }
 
+// UnmarshalJSON decodes a repro and maps a format-1 one's actions to the
+// current Refs (format1Ref), so every reader of a recorded repro (ReadRepro,
+// the pinned-game files) sees the same bytes. The file keeps its format-1
+// bytes; the decoded repro says koracle-repro-2.
+func (r *Repro) UnmarshalJSON(b []byte) error {
+	type plain Repro // no methods: no recursion into this one
+	var p plain
+	if err := json.Unmarshal(b, &p); err != nil {
+		return err
+	}
+	if p.Format == reproFormat1 {
+		p.Actions = format1Actions(p.Actions)
+		p.Format = reproFormat
+	}
+	*r = Repro(p)
+	return nil
+}
+
 // format1Actions returns as with each action's source and target mapped by
 // format1Ref (kind and mode are not Refs).
 func format1Actions(as []Canon) []Canon {
@@ -169,12 +187,7 @@ func ReadRepro(path string) (*Repro, error) {
 	if err := json.Unmarshal(b, &r); err != nil {
 		return nil, err
 	}
-	switch r.Format {
-	case reproFormat:
-	case reproFormat1:
-		r.Actions = format1Actions(r.Actions)
-		r.Format = reproFormat
-	default:
+	if r.Format != reproFormat {
 		return nil, fmt.Errorf("repro %s: format %q, want %q", path, r.Format, reproFormat)
 	}
 	return &r, nil
