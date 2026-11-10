@@ -504,11 +504,13 @@ func (e *Engine) paymentPlanRelaxProof(c paymentPlanCensus, verdict func() Payme
 // can fund (the X announcement then offers every value up to it, so no X is
 // lost); an X the sources cannot pay even at its minimum is insufficient.
 // Convoke, improvise and delve are OPTIONAL credits (CR 702.51a, 702.66a)
-// announced after the mode's cost is chosen, so a mode cast is planned at
-// its raw cost WITHOUT the credit: a cast that lands payable that way is
-// offered, and the commitment stays with convokeAsk. When even the no-credit
-// payment is insufficient the old non-proof verdict ("unsupported",
-// "cost:credit") stands: the credit may still pay it.
+// announced after the mode's cost is chosen. An alternative-cost keyword
+// mode (altcast_modes.go: evoke, dash, warp, impending, ...) replaces the
+// printed cost with a keyword cost whose offer gate prices no credit, so it
+// is planned at that raw cost WITHOUT the credit: a cast that lands payable
+// that way is offered, and the commitment stays with convokeAsk. When even
+// the no-credit payment is insufficient the old non-proof verdict
+// ("unsupported", "cost:credit") stands: the credit may still pay it.
 //
 // Every witness is then checked against the offer gate itself: the play
 // must be offered by the potential walk priced with exactly the floating
@@ -524,16 +526,17 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 		return PaymentPlanOutcome{Reason: "unsupported"}
 	}
 	f := obj.Face()
-	// A plain cast keeps the cast planner's own answer: its offer base
-	// commits the convoke/improvise credit (castOfferBase) and that planner
-	// declines the credit-bearing shape (shape:contribution), so the mode
-	// witness must not second-guess it. A mode cast charges the raw
-	// alternative cost the credit is optional on, so plan its no-credit
-	// payment and keep the old unknown verdict -- never a proof -- when that
-	// payment fails.
+	// A convoke/improvise/delve credit is an optional announcement that
+	// reprices the cast. A printed-cost cast keeps the cast planner's own
+	// answer: its offer base commits the credit (castOfferBase) and that
+	// planner declines the credit-bearing shape (shape:contribution), so the
+	// mode witness must not second-guess it. An alternative-cost keyword
+	// mode charges the cost its offer gate prices WITHOUT the credit, so
+	// plan that no-credit payment and keep the old unknown verdict -- never
+	// a proof -- when it fails.
 	credit := !e.planIgnoreCredit && (e.hasCastConvoke(id) || e.hasCastImprovise(id) || e.hasCastDelve(id, false))
 	if credit {
-		if o.Mode == "" && o.AltCostIndex == 0 {
+		if m := altCastFor(o.Mode); m == nil || !m.potential {
 			return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:credit"}
 		}
 		defer func() {
