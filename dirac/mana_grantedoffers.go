@@ -678,7 +678,7 @@ func (g *grantSrch) visit(t *State) bool {
 		tx := g.tapx[i] && t.scriptTapX(g.k, g.p).has(sl)
 		grants := t.canTapForMana(g.k, sl)
 		fok := g.filt[i] && t.filtPaid(g.k, g.p, sl)
-		if !grants && !tx && !fok {
+		if !grants && !tx && !(fok && t.filtUsable(g.k, sl)) {
 			continue // (a summoning-sick Changeling's filter stays: only its granted {T} ability is out, CR 302.6)
 		}
 		// several abilities (its own beside a grant, two grants): the
