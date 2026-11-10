@@ -52,7 +52,7 @@ func (s *State) eachChosenMask(k *prep, sl Slot) uint8 {
 // fee may spend among it, holds sl's fee: the one condition under which the
 // activation offers the fee-paid ability.
 func (s *State) eachFeePayable(k *prep, p uint8, sl Slot, fee int) bool {
-	return poolTotal(&s.pl[p&1])+s.filtFeeRestrN(k, p, sl) >= fee
+	return poolTotal(&s.pl[SeatIx(p)])+s.filtFeeRestrN(k, p, sl) >= fee
 }
 
 // eachGapUnits adds the units gap sl's tap can add to a gaps walk: its colours,
@@ -88,7 +88,7 @@ func (s *State) eachFeeBoard(k *prep, p uint8) bool {
 // colours; a fee-paid one's chosen colour (ans 0) or, its fee paid from the
 // pool, its each-colour set (ans 1).
 func (s *State) eachProduce(k *prep, p uint8, sl Slot, ans uint8) {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	if fee := s.eachFee(k, sl); fee > 0 {
 		if ans == 0 {
 			pc := s.manaPCGen(k, sl)
@@ -170,7 +170,7 @@ func (fs *eachSearch) visit(k *prep, t *State, d *Decision) bool {
 	if hasOption(d, fs.a) {
 		return true
 	}
-	key := eachKey{pool: t.pl[fs.p&1].pool}
+	key := eachKey{pool: t.pl[SeatIx(fs.p)].pool}
 	for i := 0; i < fs.n; i++ {
 		if t.perms[fs.order[i]].flags&pfTapped != 0 {
 			key.tapped |= 1 << i
