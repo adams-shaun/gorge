@@ -146,3 +146,80 @@ func (s *State) plainPlanLeavesTaps(k *prep, p uint8, part *kop.Cost, cost *kop.
 	}
 	return left >= int(part.N)
 }
+
+// tapForSpellTaps is tapForRider for a plain cast of a spellFixedTapsOnly card
+// when the printed plan taps too many of the candidates its additional cost
+// needs: gorge's witness is planReserving's, the first assignment of N candidates
+// (battlefield order, up to planReservationLimit) held back from the mana that
+// has a plan. Forest and Island kept apart from Forest, Island and Haunted Screen
+// leave Fear of Exposure's two permanents to tap (CR 601.2g-h). It reports false
+// when the plain plan leaves the candidates, or no assignment has a plan, and
+// taps nothing then.
+func (s *State) tapForSpellTaps(k *prep, p uint8, cost *kop.ManaCost, x int, excl Obj, anyColor bool) bool {
+	e := &s.bld().e
+	if e.kind != seSpell || e.mode != 0 || e.flags&(sfKicked|sfFlashback|sfMayPlay) != 0 || s.bld().altAdd != 0 || anyColor || x != 0 || !spellFixedTapsOnly(k, e.card) {
+		return false
+	}
+	part := spellAddCost(k, e.card)
+	var pk planner
+	pk.dry = true
+	s.tapForPK(k, p, cost, x, excl, false, anyColor, &pk)
+	if !pk.found {
+		return false
+	}
+	var cands [MaxPerm]Slot
+	nc := 0
+	for m := s.ctrlM[p]; m.any(); m = m.rest() {
+		if c := m.first(); s.perms[c].flags&pfTapped == 0 && s.matchPerm(k, part.Filter, c, p, NoSlot) {
+			cands[nc] = c
+			nc++
+		}
+	}
+	for i := 1; i < nc; i++ {
+		for j := i; j > 0 && s.perms[cands[j]].ts < s.perms[cands[j-1]].ts; j-- {
+			cands[j], cands[j-1] = cands[j-1], cands[j]
+		}
+	}
+	n := int(part.N)
+	left := 0
+	for i := 0; i < nc; i++ {
+		if !pk.planUses(cands[i]) {
+			left++
+		}
+	}
+	if left >= n || n > nc {
+		return false
+	}
+	var idx [MaxPerm]uint8
+	for i := 0; i < n; i++ {
+		idx[i] = uint8(i)
+	}
+	for tries := 0; tries < planReservationLimit; tries++ {
+		var held slotMask
+		for i := 0; i < n; i++ {
+			held.set(cands[idx[i]])
+		}
+		s.holdSlots(held, true)
+		var r planner
+		r.dry = true
+		s.tapForPK(k, p, cost, x, excl, false, anyColor, &r)
+		if r.found {
+			s.tapForRider(k, p, cost, x, excl, anyColor)
+			s.holdSlots(held, false)
+			return true
+		}
+		s.holdSlots(held, false)
+		i := n - 1
+		for i >= 0 && int(idx[i]) == nc-n+i {
+			i--
+		}
+		if i < 0 {
+			return false
+		}
+		idx[i]++
+		for j := i + 1; j < n; j++ {
+			idx[j] = idx[j-1] + 1
+		}
+	}
+	return false
+}

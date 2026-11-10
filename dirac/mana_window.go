@@ -2241,7 +2241,9 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		return
 	}
 	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 {
-		s.tapForRider(k, p, &cost, x, excl, anyColor)
+		if !s.tapForSpellTaps(k, p, &cost, x, excl, anyColor) {
+			s.tapForRider(k, p, &cost, x, excl, anyColor)
+		}
 		return
 	}
 	pool := s.pl[p].pool

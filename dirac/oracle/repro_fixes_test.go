@@ -802,6 +802,8 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"tapxtype_cost_reserves_tap_candidates", false, false},         // CR 601.2g-h: Fear of Exposure's tap-two is priced from its composed cost, so the granted-mana prefix taps Enduring Vitality's creatures in battlefield order and leaves the rest for the pick
 		{"tapxtype_restricted_source_not_free", false, false},           // CR 601.2g-h: Creeping Peeper's enchantment-only {U} paying Fear of Exposure is not also one of the two permanents it taps, so three mana sources and Patchwork Beastie do not cast it
 		{"grant_prefix_paid_life_trigger", false, false},                // CR 119.4, 603.3, 307.1: Haunted Screen's 1 life in Overlord of the Hauntwoods' granted-mana prefix stacks Marina Vendrell's Grimoire's trigger, so the prefix taps on and passes for it to resolve before the cast
+		{"tapxtype_lands_need_green_pip", false, false},                 // CR 601.2g-h: Fear of Exposure's {G} has no source among p1's untapped permanents, so tapping two of them for the cost does not make it castable
+		{"tapxtype_floating_mana_beside_tapped_lands", false, false},    // CR 601.2g-h: floating U, B and G pay Fear of Exposure's mana cost, so two untapped lands remain to tap for its additional cost
 	})
 }
 
