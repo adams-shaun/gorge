@@ -78,6 +78,18 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		}
 		text = text[:i]
 	}
+	// A granted ability's Execute body lives on the GRANTOR's face, not on
+	// the grantee Source names, so the registration carries it as
+	// "|GB=<id>" appended after |TT=. It strips here, with |CR=, before
+	// every other LastIndex can swallow it; an old log has no such spelling
+	// and decodes with Grantor zero exactly as before.
+	grantor := state.ObjID(0)
+	if i := strings.LastIndex(text, "|GB="); i >= 0 {
+		if n, err := strconv.ParseUint(strings.TrimSpace(text[i+4:]), 10, 32); err == nil {
+			grantor = state.ObjID(n)
+		}
+		text = text[:i]
+	}
 	// An Effect-created trigger whose body reads Card.NamedCard snapshots the
 	// host's chosen name at registration ("|CN=<name>", appended LAST so a
 	// later ClearNamedCard$ cannot retract the effect's referent). It strips
@@ -296,6 +308,7 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		Phase:               e.Step,
 		Source:              e.Obj,
 		Creator:             creator,
+		Grantor:             grantor,
 		Controller:          e.Player,
 		Execute:             e.Counter,
 		Remembered:          rememberedFrom(e.IDs),
@@ -436,7 +449,18 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		// Venture | Dungeon$ Undercity would be.
 		sa = &cards.SA{Kind: "DB", API: "Venture", Params: map[string]string{"Dungeon": "Undercity"}}
 	} else {
-		sa = ResolveSVarAcrossFaces(src, e.Counter)
+		// A registration made by a GRANTED ability carries the grantor: the
+		// Execute body lives on the grantor's face while e.Obj stays the
+		// grantee (a delayed trigger's source, CR 603.7d), exactly as
+		// GrantTriggerPush resolves a cross-object grant. A grantor that no
+		// longer resolves falls back to the source's own table.
+		resolver := src
+		if registration != nil && registration.Grantor != 0 {
+			if grantor := g.Obj(registration.Grantor); grantor != nil && grantor.Face() != nil {
+				resolver = grantor
+			}
+		}
+		sa = ResolveSVarAcrossFaces(resolver, e.Counter)
 	}
 	if sa == nil {
 		return

@@ -10,20 +10,21 @@ import (
 // TestDelayspellRefusals: a Mode$ SpellCast DelayedTrigger lowers only as
 // the ThisTurn$ True, ValidActivatingPlayer$ You, non-Static$ registration
 // with a characteristic-only filter (or a source-power bound) and a body
-// naming no SVar, outside a granted ability; the latent keeps its SpellCast
-// trigger.
+// naming no SVar; the latent keeps its SpellCast trigger. A granted ability
+// lowers the same way: the body's SVar table is the grantor's face (Way of
+// the Cryomancer's EffTrigCopy), which is what the lowered chain reads.
 // Flamehold Grappler (ValidCard$ Card) is accepted now that lowers a
 // permanent-spell copy (C&2).
 func TestDelayspellRefusals(t *testing.T) {
 	checkCarrier(t,
 		[]string{"Teach by Example", "Twinferno", "Najal, the Storm Runner", "Mercurial Spelldancer",
 			"Doublecast", "Summon: G.F. Cerberus", "Pigment Wrangler", "Rimefire Torque",
-			"Flamehold Grappler", "Loki Laufeyson", "Mistrise Village", "Theorist's Proxy"},
+			"Flamehold Grappler", "Loki Laufeyson", "Mistrise Village", "Theorist's Proxy",
+			"Way of the Cryomancer"},
 		map[string]string{
-			"Narset Transcendent":   "delayed SpellCast without ThisTurn$",
-			"Way of the Cryomancer": "delayed SpellCast in a granted ability",
-			"Storm King's Thunder":  `delayed SpellCast body reads "X"`,
-			"Sea Gate Stormcaller":  `delayed SpellCast body reads "X"`,
+			"Narset Transcendent":  "delayed SpellCast without ThisTurn$",
+			"Storm King's Thunder": `delayed SpellCast body reads "X"`,
+			"Sea Gate Stormcaller": `delayed SpellCast body reads "X"`,
 		},
 		[]string{
 			"DelayedTrigger C=1 CS=NextSpellCast",

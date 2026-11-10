@@ -23,7 +23,8 @@ var delaySpellDecks = [2][]cardset.Entry{
 	{
 		{Name: "Teach by Example", Count: 4}, {Name: "Twinferno", Count: 4},
 		{Name: "Najal, the Storm Runner", Count: 2}, {Name: "Mercurial Spelldancer", Count: 3},
-		{Name: "Doublecast", Count: 2}, {Name: "Shock", Count: 4}, {Name: "Opt", Count: 2},
+		{Name: "Doublecast", Count: 2}, {Name: "Way of the Cryomancer", Count: 3},
+		{Name: "Shock", Count: 4}, {Name: "Opt", Count: 2},
 		{Name: "Burst Lightning", Count: 3}, {Name: "Rimefire Torque", Count: 1},
 		{Name: "Island", Count: 8}, {Name: "Mountain", Count: 7},
 	},
