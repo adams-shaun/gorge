@@ -186,7 +186,7 @@ func (s *State) windowFiltFirst(k *prep, p uint8, sl Slot, useful *kop.ManaCost,
 // still owed (CR 601.2g).
 func (s *State) windowFiltFirstFallback(k *prep, p uint8, sl Slot, useful *kop.ManaCost) {
 	mask := uint8(s.filtAb(k, sl).ManaColors)
-	pool := &s.pl[p&1].pool
+	pool := &s.pl[SeatIx(p)].pool
 	saved := *pool
 	if _, pip := s.filtPip(k, sl); !pip {
 		fee := s.filtFee(k, sl) // filtDo's order: generic in C W U B R G
