@@ -2022,8 +2022,13 @@ func (s *State) copyCardToken(k *prep, in *kop.Instr, c CardID) bool {
 	if v <= 0 && in.B.N&(kop.CpSacAtEndDly|kop.CpExileAtEnd) != 0 {
 		// X = 0 makes no copy, but the AtEOT$ rider's delayed trigger is
 		// created all the same (CR 603.7): it goes on the stack at the end
-		// step and does nothing (gorge scheduleAtEOTNone)
-		s.delayEmpty(e)
+		// step (SacrificeUpkeep: the upkeep) and does nothing (gorge
+		// scheduleAtEOTNone)
+		if sacAtUpkeepOf(in.B.N) {
+			s.delayEmptyUpkeep(e)
+		} else {
+			s.delayEmpty(e)
+		}
 	}
 	tc, n, rewritten, ok := s.copyTokenRewrite(k, e.ctrl, c, v, true)
 	if !ok {
@@ -2035,7 +2040,11 @@ func (s *State) copyCardToken(k *prep, in *kop.Instr, c CardID) bool {
 		if in.B.N&kop.CpSacAtEndDly != 0 {
 			// no copy is left for the AtEOT$ Sacrifice group, which gorge
 			// still registers (CR 603.7); the other riders have no copy
-			s.delayEmpty(e)
+			if sacAtUpkeepOf(in.B.N) {
+				s.delayEmptyUpkeep(e)
+			} else {
+				s.delayEmpty(e)
+			}
 		}
 		return false
 	}
@@ -2169,7 +2178,8 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	if uint16(in.B.N)>>kop.CopyPumpShift&0x3f != 0 {
 		s.copyPumpEnter(k, sl, in) // PumpKeywords$: a permanent, non-copiable grant
 	}
-	if fl&(kop.CpSacAtEnd|kop.CpExileAtEnd) != 0 {
+	upk := sacAtUpkeepOf(int16(fl))
+	if fl&(kop.CpSacAtEnd|kop.CpExileAtEnd) != 0 && !upk {
 		act := kop.OpSacrifice
 		// AtEOTTrig$ Sacrifice is the token's own granted trigger: its source
 		// stays the token. Only the AtEOT$ rider is sourced on its creator
@@ -2192,7 +2202,12 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 		// one resolution's copies share one delayed triggered ability (CR 603.7;
 		// gorge effCopyPermanent registers one group): a later copy joins the
 		// first one's trigger
-		if eb == nil || eb.n < 2 || !s.sacAtEndJoin(t, dlyUntracked) {
+		switch {
+		case upk:
+			if eb == nil || eb.n < 2 || !s.sacAtEndJoin(t, dlyUpkeep) {
+				s.sacAtUpkeepUntracked(t, e.ctrl) // trig_upkeepsac.go
+			}
+		case eb == nil || eb.n < 2 || !s.sacAtEndJoin(t, dlyUntracked):
 			s.sacAtEndUntracked(t, e.ctrl) // trig_tokenateot.go
 		}
 	}

@@ -4147,6 +4147,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if _, ok := fl["SacAtEndDly"]; ok {
 			cf |= kop.CpSacAtEndDly
 		}
+		if _, ok := fl["SacAtUpkeep"]; ok {
+			cf |= kop.CpSacAtUpkeep
+		}
 		if _, ok := fl["Remember"]; ok {
 			cf |= kop.CpRemember
 		}

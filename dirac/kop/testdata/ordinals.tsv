@@ -151,6 +151,7 @@ CpOneOne	untyped int	8
 CpRemember	untyped int	4
 CpSacAtEnd	untyped int	2
 CpSacAtEndDly	untyped int	64
+CpSacAtUpkeep	untyped int	80
 CpTapped	untyped int	128
 CtrAddedFormCreature	untyped int	0
 CtrAddedFormSelf	untyped int	1

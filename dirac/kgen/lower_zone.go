@@ -2944,6 +2944,13 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 				return refuse("CopyPermanent AtEOT %q beside AtEOTTrig$", a)
 			}
 			flags = append(flags, "SacAtEndDly")
+		case "SacrificeUpkeep":
+			// gorge atEOTRiders: the same untracked sacrifice body at the next
+			// upkeep of any player (kop.CpSacAtUpkeep; Firion)
+			if _, ok := ps.m["AtEOTTrig"]; ok {
+				return refuse("CopyPermanent AtEOT %q beside AtEOTTrig$", a)
+			}
+			flags = append(flags, "SacAtUpkeep")
 		default:
 			return refuse("CopyPermanent AtEOT %q", a)
 		}

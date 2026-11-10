@@ -196,6 +196,7 @@ func lowerPool(p *pool) *lowered {
 			tokSet[t] = true
 		}
 	}
+	injectEquipGrants(lw.cards)
 	var keys []string
 	for k := range tokSet {
 		keys = append(keys, k)

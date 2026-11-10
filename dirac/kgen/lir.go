@@ -993,8 +993,13 @@ type lCard struct {
 	Nightbound     bool     // K:Nightbound (CR 702.145e-g)
 	Abilities      []*lAbility
 	Statics        []lStatic
-	Repls          []lRepl
-	Tokens         []string // token script keys this card creates
+	// EquipGrants: the OvGate-gated equip cost reductions a copy exception of
+	// this card grants its token (CopyPermanent AddStaticAbilities$, Firion);
+	// lowerPool adds each to every pool card with an Equip ability
+	// (lower_copygrants.go)
+	EquipGrants []lStatic
+	Repls       []lRepl
+	Tokens      []string // token script keys this card creates
 	// Faces is a multi-face card's faces: the
 	// pool names of every face, Faces[0] the front (the card itself), the
 	// others face keys lowered as extra pool entries beside the tokens;

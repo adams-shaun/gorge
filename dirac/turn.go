@@ -165,6 +165,9 @@ func (s *State) beginStep(k *prep) {
 		if k.gen != nil && k.gen.anyDelayUp {
 			s.fireDelayedUpkeep(k)
 		}
+		if s.ndly != 0 {
+			s.fireDlyUpkeep(k) // AtEOT$ SacrificeUpkeep (trig_upkeepsac.go)
+		}
 		if initOn(k) {
 			s.initUpkeep(k) // CR 726.2 (act_initiative.go)
 		}
@@ -934,8 +937,8 @@ func (s *State) fireDelayed(k *prep) {
 	}
 	for i := 0; i < int(n); i++ {
 		d := s.dly[i]
-		if d.when == dlyGrpFollow {
-			fol[nf] = d // carried by its head's trigger (trig_tokenateot.go)
+		if d.when == dlyGrpFollow || d.when == dlyUpkeep {
+			fol[nf] = d // carried by its head's trigger (trig_tokenateot.go), or due at the next upkeep (trig_upkeepsac.go)
 			nf++
 			continue
 		}

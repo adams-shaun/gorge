@@ -24,6 +24,14 @@ func (s *State) ovGranted(k *prep, sl Slot, g uint8) bool {
 			hit = true
 		}
 	})
+	// a copy exception's grant (CopyPermanent AddStaticAbilities$) is a
+	// copiable value (CR 707.9b): layer 1, so a loss of all abilities (layer 6)
+	// ends it, whatever the timestamps
+	for i := 0; i < int(s.g.nfx) && !hit && !lost; i++ {
+		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyExc && k.t.Overrides[r.r.idx-1].GrantStatics&g != 0 {
+			hit = true
+		}
+	}
 	return hit
 }
 
