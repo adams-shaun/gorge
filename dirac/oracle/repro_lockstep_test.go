@@ -492,3 +492,11 @@ func TestBlinkedSourceEndsAbilityLossLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "blinked_source_ends_ability_loss", "std-msh", Config{GorgeAutopaySurface: true})
 }
+
+// TestFreeCastAltAddNoPartPayableLockstep: under Omniscience, Eaten Alive with
+// no creature to sacrifice and no mana for its {3}{B} part is not offered; the
+// free alternative cost replaces the mana cost only (CR 118.9d, 601.2b).
+func TestFreeCastAltAddNoPartPayableLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "free_cast_alt_add_no_part_payable", "std-fdn", Config{GorgeAutopaySurface: true})
+}

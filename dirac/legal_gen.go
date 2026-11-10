@@ -172,6 +172,9 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 	if mode&castFree != 0 && !s.altAddCastableFrom(k, c, p, o, &kop.ManaCost{}, &kop.ManaCost{}, true, anyMana, av) {
 		return // a free cast still owes its either-or additional cost (CR 601.2b, 118.9d): Mudbutton Cursetosser's behold or {2}
 	}
+	if mode&castFree != 0 && s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.objs[o].zone == kop.ZoneHand && s.altFreePartUnpooled(k, p, c, o) {
+		return // a free cast from the hand is gorge's alternative cost (Omniscience); it shares its play with the printed cast, so gorge's planner never prices it ("ambiguous"): only a pool that pays its either-or part offers it
+	}
 	if mode&castFree == 0 {
 		cost := s.adjustFit(k, av, p, c, o, pc.cost, true)
 		if anyMana {

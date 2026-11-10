@@ -440,7 +440,7 @@ func (w *legalWalk) handWalk() {
 			// beginCast then asked a sacrifice decision with zero options
 			// that no answer could escape. castable is the same gate every
 			// other "cast" option uses.
-			if w.offerCastable(p, id, gate, altScope, false) && targetsAvailable() {
+			if w.altAddOfferCastable(p, id, f, gate, altScope) && targetsAvailable() {
 				// AltCostIndex is i+1, not i: the zero value must mean "the
 				// card's own cost" so every other Option literal in the tree
 				// (play_land, activate, pass, and the base "cast" option
@@ -783,4 +783,23 @@ func (w *legalWalk) handAltCastRows(id state.ObjID, f *cards.Face, ph printedHea
 				Label: "Cast " + f.Name + " (" + label + ")", Obj: id, Mode: ka.mode, AltCostIndex: ci})
 		}
 	}
+}
+
+// altAddOfferCastable is offerCastable for a cast at cost whose face may carry
+// an either-or additional cost (AlternateAdditionalCost): an alternative cost
+// or a free cast replaces the mana cost only (CR 118.9d), so the gate is
+// existential over the parts, as the plain and may-play gates are, and a cast
+// none of whose parts can be paid is not offered (Eaten Alive under
+// Omniscience with no creature and no mana; CR 601.2b, 601.2f).
+func (w *legalWalk) altAddOfferCastable(p state.PlayerID, id state.ObjID, f *cards.Face, cost Cost, scope costScope) bool {
+	parts := altAddCostParts(f)
+	if len(parts) == 0 {
+		return w.offerCastable(p, id, cost, scope, false)
+	}
+	for _, part := range parts {
+		if w.offerCastable(p, id, cost.Plus(w.e.parseCost(part)), scope, false) {
+			return true
+		}
+	}
+	return false
 }
