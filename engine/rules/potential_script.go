@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -107,7 +108,7 @@ func (e *Engine) scriptSpendableGaps(p state.PlayerID, o decision.Option, gaps [
 	desc := paymentDescriptor{ID: o.Obj, Class: pay.PurposeSpell, Cost: &cost}
 	var out []state.ObjID
 	for i, id := range gaps {
-		if e.untappedManaSourceFor(p, id, desc) {
+		if e.gapSpendableFor(p, id, desc) {
 			if out != nil {
 				out = append(out, id)
 			}
@@ -121,6 +122,18 @@ func (e *Engine) scriptSpendableGaps(p state.PlayerID, o decision.Option, gaps [
 		return gaps
 	}
 	return out
+}
+
+// gapSpendableFor reports whether one of id's mana abilities the census reads
+// (its own membership walk, which ignores the live pool so a filter's fee may
+// be funded later) makes mana desc's payment can spend.
+func (e *Engine) gapSpendableFor(p state.PlayerID, id state.ObjID, desc paymentDescriptor) bool {
+	for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
+		if valid := effects.ManaOf(ma).RestrictValid; valid == "" || pay.RestrictValidMatches(asPayer(e), p, desc, valid, id) {
+			return true
+		}
+	}
+	return false
 }
 
 // scriptSearch is the depth-first search behind potentialPrefixScript and
