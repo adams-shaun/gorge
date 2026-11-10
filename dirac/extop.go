@@ -135,6 +135,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtDigImprint:
 		return true, true // read by the dig it follows (zone_digimprint.go)
+	case kop.ExtRememberSearcher:
+		s.rememberSearcher() // zone_remembersearcher.go
+		return true, true
 	case kop.ExtSuspect:
 		s.suspectExt(k, in) // act_suspect.go
 		return true, true

@@ -151,6 +151,7 @@ var ChooseKinds = []string{
 	"setstate_pick",    // gorge setStateChoose's pick (SetState Choices$; Hustle // Bustle)
 	"face_down_choice", // gorge effCloak's cloak-from-hand pick (chooseFromZoneForFaceDown, CR 701.58a)
 	"ward_waterbend",   // gorge kw_ward.go's Ward—Waterbend pick (The Unagi of Kyoshi Island)
+	"counter_dist",     // gorge's distribute-counters pick among the chosen permanents (Vastwood Hydra)
 	"vote_card",        // gorge effCardVote's ballot pick (CR 701.38a)
 }
 
