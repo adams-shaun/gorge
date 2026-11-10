@@ -14,8 +14,8 @@ import (
 // Grizzly Bears and a Savannah Lions is paid by nothing else.
 func CheckEachColourFee(t *testing.T, tbl *kop.Table, id map[string]CardID) {
 	t.Helper()
-	board := func(cfg Config, tender bool) (*scen, Obj, Obj, Obj) {
-		sc := newScenTableLib(t, tbl, id["Mountain"], cfg)
+	// vistaIn puts an untapped Vista that chose red onto seat 0's battlefield
+	vistaIn := func(sc *scen) Obj {
 		vista := sc.perm(id["Tarnation Vista"], 0)
 		vsl := sc.slot(vista)
 		d := sc.s.Step() // its as-enters colour choice: red, no {G} or {W} of its own
@@ -29,6 +29,11 @@ func CheckEachColourFee(t *testing.T, tbl *kop.Table, id map[string]CardID) {
 			t.Fatalf("the Vista chose colour %d, want red", sc.s.perms[vsl].chosen)
 		}
 		sc.s.perms[vsl].flags &^= pfTapped // it enters tapped
+		return vista
+	}
+	board := func(cfg Config, tender bool) (*scen, Obj, Obj, Obj) {
+		sc := newScenTableLib(t, tbl, id["Mountain"], cfg)
+		vista := vistaIn(sc)
 		sc.perm(id["Grizzly Bears"], 0)
 		sc.perm(id["Savannah Lions"], 0)
 		sc.perm(id["Mountain"], 0)
@@ -139,5 +144,34 @@ func CheckEachColourFee(t *testing.T, tbl *kop.Table, id map[string]CardID) {
 	wantF[kop.G], wantF[kop.W] = 1, 1
 	if !sc.tapped(tender) || sc.s.pl[0].pool != wantF {
 		t.Errorf("the Tender-only prefix: tapped %v pool %v, want it tapped for {G}{W}", sc.tapped(tender), sc.s.pl[0].pool)
+	}
+
+	// (g) three Vistas, nothing floating: gorge's search is depth first with the
+	// chosen {T} listed first, so the first two tap for {R} (the second's ask
+	// is posed, its chosen {T} answered first) and the third's each-colour
+	// ability is the first path that pays: its fee is one of those {R}, the
+	// other floats. A first-fit tap (the second Vista's each-colour ability,
+	// funded by the first's {R}) would stop with the third untapped.
+	sc = newScenTableLib(t, tbl, id["Mountain"], Config{NoElide: true})
+	var vistas [3]Obj
+	for i := range vistas {
+		vistas[i] = vistaIn(sc)
+	}
+	sc.perm(id["Grizzly Bears"], 0)
+	sc.perm(id["Savannah Lions"], 0)
+	wolf = sc.hand(id["Watchwolf"], 0)
+	if !offersCast(sc.s, wolf) {
+		t.Fatal("Watchwolf not offered with three Vistas")
+	}
+	sc.s.scriptPrefix(sc.k, MakeAction(AkCast, uint8(wolf), 0, 0), 0)
+	var wantG [kop.NumManaKinds]uint8
+	wantG[kop.R], wantG[kop.G], wantG[kop.W] = 1, 1, 1
+	for i, v := range vistas {
+		if !sc.tapped(v) {
+			t.Errorf("three Vistas: Vista %d untapped after the prefix", i)
+		}
+	}
+	if sc.s.pl[0].pool != wantG {
+		t.Errorf("three Vistas: the prefix leaves the pool %v, want {R}{G}{W}", sc.s.pl[0].pool)
 	}
 }
