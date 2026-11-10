@@ -201,6 +201,12 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"x_cast_rider_keeping_plan_lowered", false, false},             // CR 609.4b, 601.2b: the same cast played: its payment taps the rider's keeping plan, not the smaller-X witness
 		{"copy_keyword_exception_returns_when_loss_ends", false, false}, // CR 707.9b, 613.1f: Mockingbird copying Shoreline Looter, made to lose all abilities until its controller's next turn, has its copy exception's flying again when the loss ends
 		{"any_one_colour_restricted_x_colour_choice", false, false},     // CR 106.6, 601.2b: Helga's two restricted mana count in the {X} ceiling of Mockingbird's cast, so its witness taps every source for X = 4
+		// CR 106.6, 601.2g-h: Helga's own restricted any colour is tried before Clement's creature-only {G}, which reaches the same floated pool and tapped set, so gorge's search drops the state unpriced and offers no offspring cast of Bushy Bodyguard
+		{"seen_state_drops_granted_colour_after_printed_any", true, false},
+		// CR 106.6, 601.2g-h: gorge's search answers Helga's "choose a mana ability" ask with the colour the cost names first, so Clement's {G}{U} and Burrowguard Mentor's {G} find their prefix, while Thistledown Players' {W} leaves her own any colour first and the granted {G} is a seen state: no prefix
+		{"needed_granted_colour_answered_before_printed_any", false, false},
+		// CR 106.6, 302.6, 601.2g-h: Rockface Village's {R},{T} pump is paid by Helga's two restricted {R}, Clement's {G}, a Forest's {G} for Three Tree Mascot's summoning-sick Changeling filter, whose {1} needs no tap
+		{"sick_changeling_filter_pays_prefix_activation", true, false},
 	})
 }
 
