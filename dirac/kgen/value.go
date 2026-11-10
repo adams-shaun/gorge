@@ -66,6 +66,32 @@ func (lc *lowerCtx) value(raw string) (lValue, error) {
 	return v, nil
 }
 
+// targetedCastSpentValue lowers Targeted$CastTotalManaSpent: the resolving
+// spell's target spell's cast spend, snapshotted as the resolution starts,
+// before the counter that removes its stack entry (gorge
+// targetManaSpentLKI). The kernel holds one snapshot of target slot 0, so the
+// spell must have exactly one target slot, a spell on the stack, declared at
+// cast (EOE Unravel).
+func (lc *lowerCtx) targetedCastSpentValue() (lValue, error) {
+	if lc.ab == nil || lc.ab.Kind != akSpell || lc.ab.Latent {
+		return lValue{}, refuse("Targeted$CastTotalManaSpent outside a resolving spell")
+	}
+	if len(lc.chainT) != 1 {
+		return lValue{}, refuse("Targeted$CastTotalManaSpent over %d target slots", len(lc.chainT))
+	}
+	if lc.chainT[0] != 0 {
+		return lValue{}, refuse("Targeted$CastTotalManaSpent of target slot %d, not the snapshot's slot 0", lc.chainT[0])
+	}
+	tg := lc.ab.Targets[lc.chainT[0]]
+	if tg.AtRes {
+		return lValue{}, refuse("Targeted$CastTotalManaSpent of a target chosen at resolution")
+	}
+	if !tg.Spell || tg.Zone != zStack || tg.StackAb || !isConstN(tg.Min, 1) || !isConstN(tg.Max, 1) {
+		return lValue{}, refuse("Targeted$CastTotalManaSpent of a target slot that is not exactly one spell on the stack")
+	}
+	return lValue{Kind: vTgtSpent}, nil
+}
+
 // svarValue lowers an SVar value body.
 func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	if depth > 4 {
@@ -339,26 +365,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vTriggerAmount}
 		case "CastTotalManaSpent":
 			if head == "Targeted" {
-				// the resolving spell's target spell: its cast spend is
-				// snapshotted as the resolution starts, before the counter
-				// that removes its stack entry (gorge
-				// targetManaSpentLKI). The kernel holds one snapshot, so the
-				// spell must have exactly one target slot, a spell on the
-				// stack (EOE Unravel).
-				if lc.ab == nil || lc.ab.Kind != akSpell || lc.ab.Latent {
-					err = refuse("Targeted$CastTotalManaSpent outside a resolving spell")
-					break
-				}
-				if len(lc.chainT) != 1 {
-					err = refuse("Targeted$CastTotalManaSpent over %d target slots", len(lc.chainT))
-					break
-				}
-				tg := lc.ab.Targets[lc.chainT[0]]
-				if !tg.Spell || tg.Zone != zStack || tg.StackAb || !isConstN(tg.Min, 1) || !isConstN(tg.Max, 1) {
-					err = refuse("Targeted$CastTotalManaSpent of a target slot that is not exactly one spell on the stack")
-					break
-				}
-				v = lValue{Kind: vTgtSpent}
+				v, err = lc.targetedCastSpentValue()
 				break
 			}
 			// opus: the spell's pool mana spent, snapshotted as the

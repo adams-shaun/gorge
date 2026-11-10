@@ -1974,10 +1974,11 @@ type genState struct {
 
 const (
 	maxImp = 16
-	// rsvN pads the reserved block to 80 bytes (genState's 5 bytes of tail
-	// padding absorb the rest of the alignment): 64, plus the 16 that carry
-	// State's growth for MaxObj 236 to a multiple of 64 so perms keeps its phase.
-	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 2 - MaxSeats*kop.NumManaKinds - ulBytes - dmkBytes - 1
+	// rsvN pads the reserved block to 80 bytes (genState's tail padding
+	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
+	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
+	// keeps its phase.
+	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 2 - MaxSeats*kop.NumManaKinds - ulBytes - dmkBytes
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
