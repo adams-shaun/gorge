@@ -615,7 +615,7 @@ func (s *State) tappedOf(p uint8) slotMask {
 // bfObjKey hashes p's battlefield objects, each with its slot (FNV-1a).
 func (s *State) bfObjKey(p uint8) uint64 {
 	h := uint64(14695981039346656037)
-	for b := s.ctrlM[p&1].and(s.occ); b.any(); b = b.rest() {
+	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
 		sl := b.first()
 		h = (h ^ uint64(sl)<<16 ^ uint64(s.perms[sl].obj)) * 1099511628211
 	}

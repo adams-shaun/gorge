@@ -183,7 +183,7 @@ func (g *grantSrch) sacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, mas
 	needFirst(order[:no], g.need)
 	for _, c := range order[:no] {
 		u := t.fork()
-		u.pl[g.p&1].pool[c] += pn
+		u.pl[SeatIx(g.p)].pool[c] += pn
 		u.artTag(g.k, g.p, sl, int(c))
 		u.grantSacDo(g.k, sl)
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl, sac: true}
@@ -227,7 +227,7 @@ func (s *State) grantSacApply(k *prep, p uint8, st *grantStep) {
 			s.capFull(StallRestrSrc) // never a silent spill
 		}
 	} else {
-		s.pl[p&1].pool[st.col] += st.n
+		s.pl[SeatIx(p)].pool[st.col] += st.n
 	}
 	s.grantSacDo(k, st.sl)
 }
