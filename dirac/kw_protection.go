@@ -86,11 +86,25 @@ func (s *State) protGranted(k *prep, sl, srcSl Slot, srcCard CardID) bool {
 // replacement bit the damage sites gate on.
 func prepProtGrant(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
-		for j := range t.Cards[i].Abilities {
-			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.ProtFrom != 0 {
-				g.anyProtGrant, g.anyProtF = true, true
-				g.replBits[i] |= rbProtCol
-			}
+		if protGrantIn(t.Cards[i].Abilities) {
+			g.anyProtGrant, g.anyProtF = true, true
+			g.replBits[i] |= rbProtCol
 		}
 	}
+	for i := range t.Emblems {
+		if protGrantIn(t.Emblems[i].Abilities) {
+			g.anyProtGrant, g.anyProtF = true, true
+		}
+	}
+}
+
+// protGrantIn reports whether any ability is a Continuous static granting
+// protection from a quality.
+func protGrantIn(abs []kop.Ability) bool {
+	for j := range abs {
+		if a := &abs[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.ProtFrom != 0 {
+			return true
+		}
+	}
+	return false
 }

@@ -78,7 +78,7 @@ type Static struct {
 	// its other parts: the affected objects have protection from the sources
 	// this filter matches (CR 702.16; the grant's AddKeyword$ Protection:
 	// <spec>, Sword of Wealth and Power's instants and sorceries). 0 = none.
-	// Read behind genPrep.anyProtF (kernel kw_protection.go).
+	// The granted read is armed by genPrep.anyProtGrant (kernel kw_protection.go prepProtGrant); anyProtF opens the target, block and attach sites.
 	ProtFrom FilterID
 }
 

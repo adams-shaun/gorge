@@ -10,11 +10,12 @@ import "strings"
 // derived keyword through protectionQuality and sourceHasQuality, a filter
 // over the source; the kernel reads kop.Static.ProtFrom the same way it
 // reads a printed CardDef.ProtFrom. Only plain type and colour terms
-// lower: a subtype term would need the matchup's subtype remap, and a
+// lower, and only in the bare "Protection:<spec>" form: a subtype term would need the matchup's subtype remap, and a
 // controller or player term (Player.Opponent) is a different rule.
 func (lc *lowerCtx) splitProtGrant(kw string) (string, *lFilter, error) {
 	var rest []string
 	var out *lFilter
+	hostOK := lc.out.Types&tArtifact != 0
 	for _, k := range strings.Split(kw, "&") {
 		k = strings.TrimSpace(k)
 		head, param, ok := strings.Cut(k, ":")
@@ -22,8 +23,18 @@ func (lc *lowerCtx) splitProtGrant(kw string) (string, *lFilter, error) {
 			rest = append(rest, k)
 			continue
 		}
-		spec, _, _ := strings.Cut(param, ":")
-		spec = strings.TrimSpace(spec)
+		// Only an Equipment's grant is lockstep-verified; an Aura's grant
+		// (Spirit Mantle) stays refused until it has a repro.
+		if !hostOK {
+			return "", nil, refuse("keyword %q: a granted protection from a non-artifact host", k)
+		}
+		// A trailing description or exception field (an Aura's "doesn't
+		// remove CARDNAME", CR 702.16n and p) is not modelled by the
+		// kernel's enforcement sites, so such a grant stays refused.
+		if strings.Contains(param, ":") {
+			return "", nil, refuse("keyword %q: protection with a description or exception field", k)
+		}
+		spec := strings.TrimSpace(param)
 		f, err := lc.filter(spec)
 		if err == nil {
 			err = plainQuality(f)
