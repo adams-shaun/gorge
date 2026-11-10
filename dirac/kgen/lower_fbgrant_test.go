@@ -17,7 +17,7 @@ func fbGrantCard(t *testing.T, statics ...string) (*lCard, []built, error) {
 		src += s + "\n"
 	}
 	byName := map[string]*cards.Card{}
-	for _, s := range []string{src, "Name:Study Probe\nManaCost:2 R\nTypes:Instant Lesson\nA:SP$ Draw | NumCards$ 1 | SpellDescription$ Draw a card.\n"} {
+	for _, s := range []string{src, "Name:Study Probe\nManaCost:2 R\nTypes:Instant Lesson\nA:SP$ Draw | NumCards$ 1 | SpellDescription$ The caster draws one card.\n"} {
 		card, diags := cards.ParseBytes("probe.txt", []byte(s))
 		if card == nil {
 			t.Fatalf("parse: %v", diags)
