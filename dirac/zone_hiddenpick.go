@@ -79,7 +79,7 @@ func (s *State) chooserOf(k *prep, p uint8) uint8 {
 		return s.res.e.ctrl
 	}
 	if in := &s.prog(k)[s.res.pc]; in.Op == kop.OpSearchEx && in.B.N&kop.SrChooserOpp != 0 {
-		return 1 - s.res.e.ctrl // Chooser$ Opponent (gorge searchChooser); read from B, pickF's bit 0 is SrTapped
+		return s.playerRef(k, kop.RefOpponent) // Chooser$ Opponent (gorge searchChooser); read from B, pickF's bit 0 is SrTapped
 	}
 	return p
 }
