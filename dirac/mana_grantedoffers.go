@@ -1106,10 +1106,11 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			if !s.floatRestrAb(k, g.p&1, sl, ra, int(st.col), st.n) {
 				s.capFull(StallRestrSrc)
 			}
-		} else if r := restrOfStep(k, st); r != 0 {
+		} else if ab := restrAbOfStep(k, st); ab != nil {
 			// a restricted grant floats beside the pool (State.rb), spendable only
-			// as its restriction allows; never a silent spill into the pool
-			if !s.addRestr(k, g.p&1, r, int(st.col), st.n) {
+			// as its restriction allows (both halves, spells and activated
+			// abilities); never a silent spill into the pool
+			if !s.floatRestrAb(k, g.p&1, sl, ab, int(st.col), st.n) {
 				s.capFull(StallRestrSrc)
 			}
 		} else {
@@ -1232,13 +1233,15 @@ func (s *State) stepView(k *prep, sl Slot, gi int16) *pcard {
 	return s.grantView(k.gen, gi, sl)
 }
 
-// restrOfStep is the spend restriction of the granted ability a prefix step
-// tapped (0: none, or the candidate's own printed ability).
-func restrOfStep(k *prep, st *grantStep) kop.FilterID {
-	if st.gi < 0 {
-		return 0
+// restrAbOfStep is the granted mana ability a prefix step tapped when it
+// carries a spend restriction (nil: none, or the candidate's own printed
+// ability).
+func restrAbOfStep(k *prep, st *grantStep) *kop.Ability {
+	if st.gi < 0 || k.gen.grantRestr[st.gi] == 0 {
+		return nil
 	}
-	return k.gen.grantRestr[st.gi]
+	r := k.gen.grantOf[st.gi]
+	return &k.t.Cards[r.card].Abilities[r.ab]
 }
 
 // grantPlayCost is the mana cost gorge's prefix search prices for p's

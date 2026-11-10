@@ -12,12 +12,16 @@ import "strings"
 // (pay.PaymentAbility excludes grants) and prices the play after a
 // scripted prefix activates the granted sources (potentialPrefixScript),
 // which the kernel copies for that one shape (grantPrefix / grantSearch).
-// Any other shape -- a spend restriction (Clement's "spend only on
-// creature spells"), a mana fee or a dynamic amount (Evendo's "{G}, {T}:
-// Add {G} for each creature"), a sacrifice, life or other non-tap part
-// (a granted Treasure ability, Forgotten Monument's "{T}, Pay 1 life"), a
-// chosen colour -- would be counted as plain mana or not at all, so it is
-// refused.
+// A spend restriction on spells and abilities (Clement's "spend only on
+// creature spells", Ambulatory Reactor's artifact spells and abilities of
+// artifact sources) rides the same search: the tapped grant floats its mana
+// in a restricted batch (State.rb) spendable only as the restriction
+// allows. Any other shape -- a mana fee or a dynamic amount (Evendo's
+// "{G}, {T}: Add {G} for each creature"), a sacrifice, life or other
+// non-tap part (a granted Treasure ability, Lotus Ring's sacrifice,
+// Forgotten Monument's "{T}, Pay 1 life": the search's steps tap the
+// source and nothing else), a chosen colour -- would be counted as plain
+// mana or not at all, so it is refused.
 
 // grantedManaShape reports why granted mana ability ab is outside the
 // kernel's granted-source shape ("" when it is a plain tap ability).
@@ -38,10 +42,9 @@ func grantedManaShape(ab *lAbility) string {
 	if ab.Mana == nil {
 		return "granted mana ability without a production"
 	}
-	if ab.Mana.RestrictAb != nil || ab.Mana.Restrict != nil && !filterReadsSpellProv(ab.Mana.Restrict) {
-		// a cast-provenance restriction (Mm'menon's Spell.!wasCastFromYourHand)
-		// rides the grant prefix search; any other
-		// restriction is not modelled there
+	if ab.Mana.RestrictAb != nil && ab.Mana.Restrict == nil || filterHasSpecial(ab.Mana.Restrict) || filterHasSpecial(ab.Mana.RestrictAb) {
+		// an activated-only restriction has no kop form, and a Static.*
+		// clause is not a spell or ability filter
 		return "granted mana ability with a spend restriction"
 	}
 	if ab.Mana.Special == "ReflectedSelf" && ab.Mana.SpecialF == nil {
@@ -55,13 +58,6 @@ func grantedManaShape(ab *lAbility) string {
 	}
 	if ab.Mana.Colors == "" || ab.Mana.Colors == "Chosen" {
 		return "granted mana ability of a chosen colour"
-	}
-	if ab.Mana.Choice && !colorsInWUBRGOrder(ab.Mana.Colors) {
-		// gorge's activation ask lists a Combo's colours in the card's own
-		// order and its prefix search tries them so (Thranduil's "{G} or
-		// {U}": G first); the kernel keeps a colour MASK and tries W U B
-		// R G, exact only when the two orders agree
-		return "granted mana ability with a colour choice out of WUBRG order"
 	}
 	return ""
 }
