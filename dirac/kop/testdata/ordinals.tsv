@@ -414,6 +414,7 @@ ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
 ExtCopyAbility	ExtOp	191
 ExtCopyAllEach	ExtOp	224
+ExtCopyNamed	ExtOp	314
 ExtCopyTokenCtr	ExtOp	172
 ExtCounterAll	ExtOp	226
 ExtCounterLose	ExtOp	41

@@ -226,7 +226,7 @@ func copyExcOf(in *kop.Instr) int16 {
 	case kop.OpCopyAsTokenEx:
 		return in.C
 	case kop.OpExt:
-		if x := kop.ExtOp(in.A.N); x == kop.ExtCopyAllEach || x == kop.ExtCloneCopy {
+		if x := kop.ExtOp(in.A.N); x == kop.ExtCopyAllEach || x == kop.ExtCloneCopy || x == kop.ExtCopyNamed {
 			return in.C
 		}
 	case kop.OpBecomeCopy:

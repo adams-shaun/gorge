@@ -207,6 +207,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.extTurnFaceUp(k, in), true // face_turnupeffect.go
 	case kop.ExtDistCounters:
 		return s.distPickStart(k, in), true // ctr_distpick.go
+	case kop.ExtCopyNamed:
+		return !s.copyNamed(k, in), true // copy_named.go
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }
