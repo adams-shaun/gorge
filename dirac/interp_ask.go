@@ -194,22 +194,24 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	if life != 0 && int(s.pl[p&1].life) < int(life) {
 		return false
 	}
-	if !s.anyManaSource(k, p) {
+	other := payDesc{class: pdOther}
+	if !s.anyManaSource(k, p, &other) {
 		return false
 	}
 	c := manaOf(amt, pips)
 	var av avail
-	other := payDesc{class: pdOther}
 	s.availPotentialFor(k, p, &av, &other)
 	return av.affords(&c, pipMaskOf(&c), 0)
 }
 
-// anyManaSource reports whether p has an untapped source to fund a payment with:
+// anyManaSource reports whether p has an untapped source to fund payment d with:
 // a tap source, the untapped sacrifice-only arm, a gap source with its cost payable,
-// a deferred source, or a restricted mana ability.
+// a deferred source, or a restricted mana ability d may spend (gorge
+// untappedManaSourceFor: a source whose every ability's RestrictValid$ refuses d
+// adds nothing to it, CR 106.6).
 //
 //go:noinline
-func (s *State) anyManaSource(k *prep, p uint8) bool {
+func (s *State) anyManaSource(k *prep, p uint8, d *payDesc) bool {
 	if k.gen == nil {
 		return false
 	}
@@ -236,13 +238,13 @@ func (s *State) anyManaSource(k *prep, p uint8) bool {
 		if c := s.cardAt(sl); k.gen.eachCol(c) >= 0 && s.potentialAdmits(k, p, sl, int(k.gen.eachCol(c)), &k.t.Cards[c].Abilities[k.gen.eachCol(c)], nil) {
 			return true
 		}
-		// gorge untappedManaSource: any available mana ability counts here,
-		// whatever its RestrictValid$ (availPotentialFor prices the
-		// restriction against this payment next), so a source whose only
-		// ability is restricted (Hydraulic Helper) funds a trigger's cost.
+		// gorge untappedManaSourceFor: an available mana ability counts when its
+		// RestrictValid$ admits this payment, so a source whose only ability is
+		// restricted to something else (Queen's Diamond's commander-only mana)
+		// is no source for a trigger's cost, while Hydraulic Helper's still is.
 		cd := &k.t.Cards[s.cardAt(sl)]
 		for j := range cd.Abilities {
-			if ab := &cd.Abilities[j]; j < 16 && ab.Kind == kop.AbMana && ab.AFlags&kop.AfLatent == 0 && ab.ManaRestrict != 0 && s.potentialAdmits(k, p, sl, j, ab, nil) {
+			if ab := &cd.Abilities[j]; j < 16 && ab.Kind == kop.AbMana && ab.AFlags&kop.AfLatent == 0 && ab.ManaRestrict != 0 && s.restrSrcAdmits(k, p, sl, ab, d) && s.potentialAdmits(k, p, sl, j, ab, nil) {
 				return true
 			}
 		}
