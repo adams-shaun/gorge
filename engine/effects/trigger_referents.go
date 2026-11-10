@@ -119,7 +119,7 @@ type TriggerContext struct {
 	// derivations read what the body itself remembered, with no fallback to
 	// the capture. Triggered*/Spawner>/DelayTriggerRemembered are unaffected.
 	DelayedCaptureOnly bool
-	// DelayedRememberedStamps is the registration's Incarnation stamp of
+	// DelayedRememberedStamps is the registration's Incarnation and ZoneGen stamp of
 	// each DelayedRemembered object (state.DelayedTrigger.RememberedStamps):
 	// ChangeZone's Defined$ DelayTriggerRemembered[LKI] mover skips an object
 	// that has become a new object since (CR 400.7).
