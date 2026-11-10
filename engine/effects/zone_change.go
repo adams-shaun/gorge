@@ -1343,7 +1343,7 @@ func changeZoneAttachLegal(h Host, c *Ctx, moved state.ObjID, targets []state.Ta
 	}
 	kept := targets[:0]
 	for _, t := range targets {
-		if attachableTo(h.Game(), o, h.Game().Obj(t.Obj)) {
+		if attachableToLayers(h.Game(), c.Layers, o, h.Game().Obj(t.Obj)) {
 			kept = append(kept, t)
 		}
 	}

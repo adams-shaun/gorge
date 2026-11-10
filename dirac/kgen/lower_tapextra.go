@@ -68,12 +68,15 @@ var tapReflectLandFilters = cards.NewNameSet("Land.Basic", "Land", "Mountain,For
 
 // tapExtraReflected lowers a reflected TapsForMana body (gorge
 // pay.PaymentPlanReflectedTapMana) to a StTapReflect StatTapExtra: one mana
-// of the type the tap produced. Only a land filter lowers
-// (tapReflectLandFilters): gorge folds the extra per production
-// (pay.PaymentPlanReflectedMana over each single-colour alternative of a
-// choice source), so the kernel prices it on the pick; a source making several
-// types in one tap stays the kernel's StallTapExtra. A nonland filter
-// refuses. The extra goes to the tapping
+// of the type the tap produced. A land filter lowers (tapReflectLandFilters):
+// gorge folds the extra per production (pay.PaymentPlanReflectedMana over each
+// single-colour alternative of a choice source), so the kernel prices it on
+// the pick; a source making several types in one tap stays the kernel's
+// StallTapExtra. ValidCard$ Artifact.token (Roxanne, Starfall Savant) reaches a
+// source that makes any colour (Meteorite): the planner reads it as one tap of
+// one more mana of the colour picked (dirac mana_tapextra.go); a token whose
+// extra it cannot price that way (a Treasure) stalls there, as every other
+// shape. Any other filter refuses. The extra goes to the tapping
 // player: either the controller's own taps (Activator$ You, Defined$ You) or
 // every player's (no Activator$, Defined$ TriggeredActivator or
 // TriggeredCardController, the payer of a planned tap), StTapAnyPlayer.
@@ -93,7 +96,7 @@ func (lc *lowerCtx) tapExtraReflected(t cards.Trigger) error {
 		return refuse("TapsForMana reflected mana with Activator$ %q", v)
 	}
 	tp.consume("Activator")
-	if v := strings.TrimSpace(tp.str("ValidCard")); !tapReflectLandFilters.Has(v) {
+	if v := strings.TrimSpace(tp.str("ValidCard")); !tapReflectLandFilters.Has(v) && v != "Artifact.token" {
 		return refuse("TapsForMana reflected mana over ValidCard$ %q: not a land filter", v)
 	}
 	var err error

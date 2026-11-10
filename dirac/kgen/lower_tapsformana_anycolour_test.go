@@ -11,9 +11,11 @@ import (
 // StTapReflect (gorge pay.PaymentPlanReflectedTapMana folds it per production),
 // StTapAnyPlayer when it reaches every player's taps (Lavaleaper, Mana Flare,
 // Heartbeat of Spring, Keeper of Progenitus), not for the controller's own
-// (Nikya of the Old Ways). Out-of-shape variants still refuse by name: a
-// nonland filter (Kinnan, Roxanne), a reflected body with a rider (Winter's
-// Night), and an any-colour extra (Buried in the Garden, lt-low-tapsformana-choice's).
+// (Nikya of the Old Ways, Roxanne, Starfall Savant's artifact-token body, the
+// lt-low-tapsformana-choice lowering). Out-of-shape variants still refuse by
+// name: a nonland filter that is not Artifact.token (Kinnan), a reflected body
+// with a rider (Winter's Night), and an any-colour extra (Buried in the
+// Garden, lt-low-tapsformana-choice's).
 func TestLowerTapsformanaAnycolour(t *testing.T) {
 	const anyPlayer, own = "any", "own"
 	want := map[string]string{
@@ -23,7 +25,7 @@ func TestLowerTapsformanaAnycolour(t *testing.T) {
 		"Keeper of Progenitus":     anyPlayer,
 		"Nikya of the Old Ways":    own,
 		"Kinnan, Bonder Prodigy":   "not a land filter",
-		"Roxanne, Starfall Savant": "not a land filter",
+		"Roxanne, Starfall Savant": own,
 		"Winter's Night":           "trigger mode TapsForMana",
 		"Buried in the Garden":     "trigger mode TapsForMana",
 	}

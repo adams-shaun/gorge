@@ -200,7 +200,27 @@ func (s *State) tapExtraReaches(k *prep, st statSrc, sl Slot, ctl uint8) bool {
 		st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 {
 		return false
 	}
-	return s.matchPermGen(k, a.Filter, sl, st.ctrl, st.sl, layerFull)
+	if !s.matchPermGen(k, a.Filter, sl, st.ctrl, st.sl, layerFull) {
+		return false
+	}
+	s.tapExtraEchoStall(k, st)
+	return true
+}
+
+// tapExtraEchoStall stalls (StallTapExtra) when a Panharmonicon static echoes
+// the TapsForMana trigger st lowers (Annie Joins Up beside Roxanne, Starfall
+// Savant, CR 603.2d): gorge resolves the trigger once per placement (rules
+// statics_echo.go), so the tap floats one more extra per echo that its planner
+// does not price (paymentPlanTapObservers folds it once), and the kernel's one
+// fixed extra models neither half.
+func (s *State) tapExtraEchoStall(k *prep, st statSrc) {
+	if k.gen == nil || !k.gen.anyPanharm {
+		return
+	}
+	l := trigListener{obj: s.perms[st.sl].obj, sl: st.sl, ctrl: st.ctrl, card: s.cardAt(st.sl)}
+	if s.panharmEchoes(k, l, kop.TrigTaps, NoObj, st.ctrl) > 0 {
+		s.capFull(StallTapExtra)
+	}
 }
 
 // subXv takes a plan type's fixed extra back out of p's pool.

@@ -120,9 +120,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +8 (a reflected TapsForMana body over every land or Mountain,Forest,Plains lowers, priced on the pick: Mana Flare, Heartbeat of Spring, Dictate of Karametra, Zhur-Taa Ancient, Nikya of the Old Ways, Keeper of Progenitus, Mirari's Wake, Zendikar Resurgent; ALL 22097 -> 22105).
 	// +3 (lt-low-tappower-station: Tapestry Warden, Sulu, Heroic Helmsman and Stoic Star-Captain lower their TapPowerValue lines to StatTapPower statics; ALL 22092 -> 22095).
 	// +3 (the merge with land: this branch's three TapPowerValue statics beside land's 22114; merged ALL 22114 -> 22117).
-	// +1 (the merge with land: this branch's Lightning, Army of One lowers beside land's 22133; merged ALL 22133 -> 22134).
+	// +1 (the merge with land: this branch's Lightning, Army of One lowers beside land's 22134 (OTJ 249); merged ALL 22134 -> 22135).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22134, 34442},
+	"ALL": {22135, 34442},
 	"BIG": {26, 30},
 	"BLB": {261, 278},
 	"BRO": {214, 280},
@@ -141,7 +141,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"MSH": {245, 276},
 	"NEO": {201, 287},
 	"ONE": {197, 271},
-	"OTJ": {248, 276},
+	"OTJ": {249, 276},
 	"SNC": {186, 266},
 	"SOS": {256, 270},
 	"SPM": {167, 192},
