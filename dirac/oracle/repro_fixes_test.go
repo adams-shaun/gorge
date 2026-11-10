@@ -335,6 +335,10 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"deferred_red_funds_first_filter_fee", false, false},        // ... and the Goggles' {R} alone funds the Mascot's {1}, so An Offer You Can't Refuse's {U} is offered
 		{"counter_gap_beside_deferred_script", false, false},         // CR 601.2g: Ramos, Dragon Engine's counter-cost mana beside the Goggles pays Zetalpa, Primal Dawn: the deferred script's dead-end check plays the counter gap as the prefix does
 		{"deferred_gap_beside_granted_mana", false, false},           // CR 601.2g-h, 605.1a: gorge's prefix search taps New Horizons' Mountain for {R}{R} and Pyromancer's Goggles' deferred {R}, both census gaps, so Lathliss, Dragon Queen's {4}{R}{R} is offered
+		// CR 119.4: a granted source that costs no life taps at a life total
+		// below zero (Herald of Eternal Dawn), so Imprisoned in the Moon's land
+		// pays Cathar Commando's {1} through the prefix search
+		{"granted_source_taps_at_negative_life", true, false},
 	})
 }
 
