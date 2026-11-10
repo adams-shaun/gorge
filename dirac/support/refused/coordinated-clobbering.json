@@ -5,10 +5,10 @@
   "repro": {
     "pool": "custom",
     "surface": "full",
-    "seed": 2,
+    "seed": 0,
     "pair": 0,
     "policy": "random",
     "mulligans": 0,
-    "file": "refused_coordinated_clobbering_target_tapped_by_own_mana"
+    "file": "coordinated_clobbering_untapped_target_offered_before_payment"
   }
 }

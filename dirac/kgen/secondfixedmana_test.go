@@ -7,15 +7,17 @@ import (
 
 // TestSecondFixedManaAbility: a second mana ability beside a plain first one
 // that the kernel cannot play as gorge's planner does stays refused, and the
-// refusal names what the second ability needs: a cost beyond {T} (Weather
-// Maker's counters, Abandoned Outpost's sacrifice) and an
-// evaluated amount of the first ability's colour (Itlimoc, Cradle of the Sun,
+// refusal names what the second ability needs: a cost beyond {T} (Mirrodin's
+// Core's counter and any colour, Abandoned Outpost's sacrifice), a
+// spend-restricted fixed colour of several mana other than the first ability's
+// or above maxRestrictedAmount (Tablet of Discovery's {R}{R} is modelled) and
+// an evaluated amount of the first ability's colour (Itlimoc, Cradle of the Sun,
 // the back of Growing Rites of Itlimoc). Lowering any of them diverged from
 // gorge in lockstep, or the kernel's mana walk refuses the cost, so each
 // refusal is by name.
 func TestSecondFixedManaAbility(t *testing.T) {
 	want := map[string]string{
-		"Weather Maker":            "a cost beyond {T} the kernel's mana walk cannot activate: its tap-another and counter gap kinds read only the first mana ability",
+		"Mirrodin's Core":          "a cost beyond {T} the kernel's mana walk cannot activate: its counter gap kind reads a second ability only for a fixed unrestricted colour",
 		"Abandoned Outpost":        "a cost beyond {T} the kernel's mana walk cannot activate",
 		"Growing Rites of Itlimoc": "an evaluated amount of the first ability's colour",
 	}
@@ -52,8 +54,8 @@ func TestSecondFixedManaAbility(t *testing.T) {
 	}
 	// the generic wording is a prefix of the tap-another/counter one, so pin
 	// that a sacrifice cost does not carry the gap-kind tail
-	if g := got["Abandoned Outpost"]; strings.Contains(g, "gap kinds") {
-		t.Errorf("Abandoned Outpost refusals %q name the tap-another and counter gap kinds, its cost is a sacrifice", g)
+	if g := got["Abandoned Outpost"]; strings.Contains(g, "gap kind") {
+		t.Errorf("Abandoned Outpost refusals %q name the counter gap kind, its cost is a sacrifice", g)
 	}
 	if seen != len(want) {
 		t.Fatalf("refused %d of %d cards", seen, len(want))

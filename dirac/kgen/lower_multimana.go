@@ -40,7 +40,10 @@ import (
 // A plain fixed-colour {T} first ability beside "{T}, tap an untapped creature
 // you control: Add one mana of any color" (Scene of the Crime) is accepted by
 // manaGapModelled (tapXGapMana): the kernel's tap-another gap kind reads the
-// card's second ability (mana_tapanother.go tapXAbOf).
+// card's second ability (mana_tapanother.go tapXAbOf). So is "{T}, remove N
+// counters from this: Add <fixed colour>" beside a plain {T} first ability
+// (Weather Maker's {C}{C}; ctrTapGapMana): the kernel's counter gap kind
+// reads the card's second ability (mana_countercost.go ctrAbOf).
 //
 // Every other shape (a second ability with a sacrifice or counter cost, or
 // another tap-another one (gorge's census leaves a counter or tap-another one a
@@ -229,6 +232,13 @@ func manaGapModelled(first, a *lAbility) bool {
 		// its prefix search activates (the kernel's tap-another gap kind,
 		// read at the card's tapX ability, mana_tapanother.go tapXAb)
 		return a.Mana.Colors == "WUBRG" && !a.Mana.Choice && unrestrictedOne(a) && len(first.Mana.Colors) == 1 && !first.Mana.Choice
+	case ctrTapGapMana(a):
+		// {T}, remove N counters from this: a fixed colour of ManaN mana,
+		// unrestricted, beside a plain {T} first ability of one colour or
+		// any (Weather Maker's {C}{C}): gorge's census leaves it a relaxable
+		// once-only gap its prefix search activates (the kernel's counter
+		// gap kind, read at the card's ctrAb ability, mana_countercost.go)
+		return ctrTapGapModelled(first, a)
 	case plainTapMana(a, false):
 		// a restricted {T} ability, amount 1 (Courtyard, whose restriction
 		// also names activated abilities; the Villages)
@@ -283,19 +293,41 @@ func tapXGapMana(a *lAbility) bool {
 	return plainTapMana(&b, false)
 }
 
+// ctrTapGapMana: a is a {T} ability whose cost also removes counters from its
+// source, its cost otherwise plain.
+func ctrTapGapMana(a *lAbility) bool {
+	if a.Cost.SubCtr < 1 || a.TurnOnce {
+		return false
+	}
+	b := *a
+	b.Cost.SubCtr, b.Cost.SubCtrKnd = 0, ""
+	return plainTapMana(&b, false)
+}
+
+// ctrTapGapModelled: the counter-cost {T} ability a beside the plain first
+// ability first is the shape kop.SecondCtrTapManaAb reads: a fixed colour of a
+// literal amount, unrestricted, the first ability one mana of one colour or
+// any (unrestricted, not a choice).
+func ctrTapGapModelled(first, a *lAbility) bool {
+	m, f := a.Mana, first.Mana
+	return len(m.Colors) == 1 && !m.Choice && !m.Each && m.Restrict == nil && m.RestrictAb == nil && m.Amount.Kind == vConst && m.Amount.N >= 1 && m.Amount.N <= maxRestrictedAmount &&
+		!f.Choice && (len(f.Colors) == 1 || f.Colors == "WUBRG")
+}
+
 // manaGapWhy names what a, a second mana ability manaGapModelled refuses,
 // needs beyond the kernel's one-unit-per-permanent source model (the
 // reasons the kernel's lockstep games and activation walk show):
 //
 //   - a cost beyond {T} other than the two below (a sacrifice, a mana
 //     payment with a rider, ...): the kernel's mana walk cannot activate it;
-//   - a cost of {T} plus removing counters (Weather Maker): gorge's census
-//     leaves it a relaxable once-only gap (pay.PlanLastResortCostOK refuses
-//     both parts) whose prefix script activates the source, answers the
-//     ability ask with the second ability, then its colour; the kernel's
-//     counter gap kind (mana_countercost.go) reads only a source's first
-//     mana ability (pcard.manaAb), so it cannot play it. (The tap-another
-//     shape, Scene of the Crime, is modelled: tapXGapMana.)
+//   - a cost of {T} plus removing counters other than ctrTapGapModelled's
+//     (Vivid Crag's any colour, Throne of Makindi's restricted two): gorge's
+//     census leaves it a relaxable once-only gap whose prefix script
+//     activates the source, answers the ability ask with the second ability,
+//     then its colour; the kernel's counter gap kind (mana_countercost.go)
+//     reads a second ability only for a fixed unrestricted colour.
+//     (Weather Maker's {C}{C} is modelled: ctrTapGapMana; so is the
+//     tap-another shape, Scene of the Crime: tapXGapMana.)
 //   - a spend-restricted ability of several mana of a fixed colour other than
 //     the first ability's, or above maxRestrictedAmount (the same colour up to
 //     that is Tablet of Discovery's modelled pair, restrictedFixedPair): the
@@ -309,7 +341,7 @@ func manaGapWhy(first, a *lAbility) string {
 	switch {
 	case !plainTapMana(a, false) && !plainTapMana(a, true):
 		if a.Cost.SubCtr != 0 {
-			return "a cost beyond {T} the kernel's mana walk cannot activate: its tap-another and counter gap kinds read only the first mana ability"
+			return "a cost beyond {T} the kernel's mana walk cannot activate: its counter gap kind reads a second ability only for a fixed unrestricted colour"
 		}
 		return "a cost beyond {T} the kernel's mana walk cannot activate"
 	case m.Restrict != nil && m.Amount.Kind == vConst && m.Amount.N > 1 && len(m.Colors) == 1 && m.Colors != "WUBRG" && !m.Choice:

@@ -1,0 +1,6 @@
+# an activated ability's Waterbend<X> cost with XMin$ 1, for the oracle's
+# constructed lockstep (dirac/oracle/waterbendx_test.go)
+Katara, Water Tribe's Hope
+Grizzly Bears
+Plains
+Island

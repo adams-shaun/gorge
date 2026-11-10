@@ -3,11 +3,12 @@
   "class": "unmodelled",
   "why": "numtimes: gorge announces more repetitions than the kernel counts",
   "repro": {
-    "pool": "tail-19",
+    "pool": "custom",
     "surface": "autopay",
-    "seed": 1,
-    "pair": 47,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 1
+    "mulligans": 1,
+    "file": "primal_adversary_repetitions_undercounted"
   }
 }

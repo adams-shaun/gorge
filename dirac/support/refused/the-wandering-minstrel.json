@@ -3,11 +3,12 @@
   "class": "projection-Pool",
   "why": "the engines' state differs at projection Pool[][]",
   "repro": {
-    "pool": "std-fin",
+    "pool": "custom",
     "surface": "autopay",
-    "seed": 1,
-    "pair": 549,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 0,
+    "file": "the_wandering_minstrel_entry_order_unmodelled"
   }
 }

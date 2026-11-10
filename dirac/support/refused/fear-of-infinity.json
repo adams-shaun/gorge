@@ -3,11 +3,12 @@
   "class": "options",
   "why": "the engines offer different options; 3 games in the corpus",
   "repro": {
-    "pool": "std-dsk",
+    "pool": "custom",
     "surface": "full",
-    "seed": 1,
-    "pair": 1001,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 1
+    "mulligans": 1,
+    "file": "fear_of_infinity_offers_differ"
   }
 }

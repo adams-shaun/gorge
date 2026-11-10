@@ -260,12 +260,13 @@ func FilterManaAb(a *Ability) bool {
 //     sacrifice this alone (pcard.manaTap / manaSac / manaSacOnly), a counter
 //     placed on or removed from the source once a turn (CtrManaAb), the tap-another-
 //     permanent shape of TapXManaAb, or a filter (FilterManaAb);
-//   - a granted (latent) one: a mana-free {T} or {T} + pay N life
-//     (genPrep.grantPC; dirac mana_grantcost.go);
+//   - a granted (latent) one: a mana-free {T}, {T} + pay N life, or
+//     sacrifice this alone (genPrep.grantPC; dirac mana_grantcost.go);
 //   - any later own mana ability: a {T} (a fixed-colour set, a restricted,
 //     filter or each-colour gap), {T} + pay life (a pain alternative), or the
 //     TapXManaAb shape beside a plain fixed-colour {T} first one
-//     (SecondTapXManaAb); the shape guards in dirac/kgen refuseMultiMana
+//     (SecondTapXManaAb), or the CtrTapSecondManaAb shape beside a plain {T}
+//     first one (SecondCtrTapManaAb); the shape guards in dirac/kgen refuseMultiMana
 //     choose among those.
 func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	a := &cd.Abilities[j]
@@ -275,8 +276,8 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	f := a.Cost.Flags
 	plain := a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
 	if a.AFlags&AfLatent != 0 {
-		// {T}, or {T} + pay N life (Forgotten Monument)
-		return plain && (f == CostTap || f == CostTap|CostPayLife && a.Cost.N >= 1)
+		// {T}, {T} + pay N life (Forgotten Monument), or sacrifice this alone (Lotus Ring)
+		return plain && (f == CostTap || f == CostTap|CostPayLife && a.Cost.N >= 1 || f == CostSacSelf)
 	}
 	first := -1
 	for i := range cd.Abilities {
@@ -286,7 +287,7 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 		}
 	}
 	if j != first {
-		return f == CostTap || f == CostTap|CostPayLife || SecondTapXManaAb(cd, first, j)
+		return f == CostTap || f == CostTap|CostPayLife || SecondTapXManaAb(cd, first, j) || SecondCtrTapManaAb(cd, first, j)
 	}
 	switch {
 	case plain && (f == CostTap || f == CostTap|CostSacSelf || f == CostSacSelf):
@@ -308,6 +309,40 @@ func SecondTapXManaAb(cd *CardDef, first, j int) bool {
 		return false
 	}
 	return TapXManaAb(&cd.Abilities[j]) && plainFixedTapAb(&cd.Abilities[first])
+}
+
+// CtrTapSecondManaAb reports whether mana ability a is "{T}, Remove N counters
+// from this: Add <fixed colour>" with no once-each-turn limit (Weather Maker's
+// "{T}, Remove two charge counters: Add {C}{C}"): a mana-free cost of the
+// source's own {T} and counters, a fixed unrestricted production of one colour
+// ({C} counts), ManaN of it. Its {T} is the source's, so the limit is the tap
+// alone. Kernel mana_countercost.go reads it, through prep.ctrAb, as a
+// counter-cost gap beside a plain first ability (SecondCtrTapManaAb).
+func CtrTapSecondManaAb(a *Ability) bool {
+	c := a.ManaColors
+	return a.Kind == AbMana && a.Cost.Flags == CostTap|CostRemoveCtr && a.Cost.N > 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
+		a.AFlags == 0 && a.ManaRestrict == 0 && !a.ManaEach && c != 0 && c&(c-1) == 0 && a.ManaN >= 1 && len(a.Prog) == 0 &&
+		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
+}
+
+// SecondCtrTapManaAb reports whether ability j of cd, a later mana ability
+// than its first (index first), is the CtrTapSecondManaAb shape beside a plain
+// {T} first one (plainTapAb): the first ability is a planner source as usual,
+// the second a counter-cost gap of the same permanent.
+func SecondCtrTapManaAb(cd *CardDef, first, j int) bool {
+	if first < 0 || j <= first || j >= len(cd.Abilities) || cd.Abilities[j].Kind != AbMana {
+		return false
+	}
+	return CtrTapSecondManaAb(&cd.Abilities[j]) && plainTapAb(&cd.Abilities[first])
+}
+
+// plainTapAb: a is a mana-free {T} ability of one fixed colour or any one
+// colour, amount one, unrestricted (the plain first ability a second
+// CtrTapSecondManaAb one is modelled beside: Weather Maker's any colour).
+func plainTapAb(a *Ability) bool {
+	c := a.ManaColors
+	return a.Cost.Flags == CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && a.AFlags == 0 && a.ManaRestrict == 0 &&
+		(c != 0 && c&(c-1) == 0 || c == ColAny) && a.ManaN <= 1 && len(a.Prog) == 0
 }
 
 // plainFixedTapAb: a is a mana-free {T} ability of one fixed colour, amount

@@ -3,11 +3,12 @@
   "class": "options",
   "why": "the engines offer different options; 49 games in the corpus",
   "repro": {
-    "pool": "std-mkm",
+    "pool": "custom",
     "surface": "autopay",
-    "seed": 1,
-    "pair": 71,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 0,
+    "file": "push_offers_differ"
   }
 }

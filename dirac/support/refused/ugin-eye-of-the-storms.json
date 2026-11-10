@@ -3,11 +3,12 @@
   "class": "unmodelled-tokatkask",
   "why": "gorge does something the kernel does not model here (stall tokatkask); 11 games in the corpus",
   "repro": {
-    "pool": "std-tdm",
+    "pool": "custom",
     "surface": "full",
-    "seed": 1,
-    "pair": 800,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 0,
+    "file": "ugin_eye_of_the_storms_token_attack_unmodelled"
   }
 }

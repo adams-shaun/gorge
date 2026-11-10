@@ -3,11 +3,12 @@
   "class": "unmodelled-clonelayer",
   "why": "gorge does something the kernel does not model here (stall clonelayer); 23 games in the corpus",
   "repro": {
-    "pool": "std-otj",
+    "pool": "custom",
     "surface": "autopay",
-    "seed": 1,
-    "pair": 1180,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 0,
+    "file": "visage_bandit_clone_layer_unmodelled"
   }
 }

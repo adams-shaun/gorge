@@ -18,9 +18,10 @@ import "strings"
 // in a restricted batch (State.rb) spendable only as the restriction
 // allows. "{T}, Pay N life" rides it too (Forgotten Monument's Caves: the
 // step pays the life, CR 119.4, and is skipped when the payer's life is
-// below N; dirac mana_grantcost.go). Lotus Ring's sacrifice-only ability is
-// refused by its own reason: the manual mana window of a resolution-time
-// payment would have to offer the sacrifice too. Any other shape -- a mana
+// below N; dirac mana_grantcost.go), and so does "Sacrifice this" alone
+// (Lotus Ring's equipped creature: the step sacrifices the source, tapped
+// or summoning-sick alike, CR 602.2b, and a resolution-time payment's
+// manual mana window sacrifices it too). Any other shape -- a mana
 // fee or a dynamic amount (Evendo's "{G}, {T}: Add {G} for each creature"),
 // {T} with a sacrifice (a granted Treasure ability) or another non-tap part,
 // a chosen colour -- would be counted as plain mana or not at all, so it is
@@ -33,12 +34,6 @@ func grantedManaShape(ab *lAbility) string {
 		return ""
 	}
 	c := &ab.Cost
-	if c.SacSelf && !c.Tap {
-		// the prefix search could sacrifice the source, but a resolution-time
-		// payment's manual mana window (a trigger's "you may pay") never offers
-		// such a source, and gorge's does
-		return "granted sacrifice-only mana ability: the kernel's manual mana window cannot activate it"
-	}
 	if !grantedManaCostShape(c) || c.Untap || c.Sac != nil || c.DiscardN > 0 || c.DiscardSelf || c.Loyalty != 0 || c.SubCtr > 0 ||
 		c.TapN > 0 || c.TapHost || c.SacHost || c.TapPowN > 0 || c.Forage != nil || c.ExileG != nil || c.Energy != 0 ||
 		c.ReturnSelf || c.ExileSelf || c.Return != nil || c.DrawN > 0 {
@@ -72,11 +67,21 @@ func grantedManaShape(ab *lAbility) string {
 }
 
 // grantedManaCostShape reports whether c's tap, sacrifice and life parts are
-// one of the two granted shapes the kernel's grant search steps pay: {T}
-// alone, or {T} + pay N life (Forgotten Monument; the step pays the life).
-// The other cost parts are grantedManaShape's.
+// one of the three granted shapes the kernel's grant search steps pay: {T}
+// alone, {T} + pay N life (Forgotten Monument; the step pays the life), or
+// sacrifice this alone (Lotus Ring; the step sacrifices the source, tapped
+// or not). The other cost parts are grantedManaShape's.
 func grantedManaCostShape(c *lCost) bool {
-	return c.Tap && !c.SacSelf && !c.LifeX && c.PayLife >= 0 && c.PayLife <= 255
+	if c.LifeX {
+		return false
+	}
+	switch {
+	case c.Tap && !c.SacSelf:
+		return c.PayLife >= 0 && c.PayLife <= 255
+	case c.SacSelf && !c.Tap:
+		return c.PayLife == 0
+	}
+	return false
 }
 
 // colorsInWUBRGOrder reports whether the colour letters of s are in W U
