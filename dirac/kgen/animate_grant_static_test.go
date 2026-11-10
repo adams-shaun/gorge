@@ -77,7 +77,7 @@ func TestLowerAnimateGrantStatic(t *testing.T) {
 		{
 			name: "anthem granting the chosen type reads no gate",
 			body: "K:ETBReplacement:Copy:ChooseCT\n" +
-				"SVar:ChooseCT:DB$ ChooseType | Defined$ You | Type$ Creature | AILogic$ MostProminentInComputerDeck | SpellDescription$ test\n" +
+				"SVar:ChooseCT:DB$ ChooseType | Type$ Creature | Defined$ You | SpellDescription$ probe pick a type\n" +
 				"A:AB$ Animate | Cost$ 1 | Duration$ Permanent | staticAbilities$ Static | SpellDescription$ test\n" +
 				"SVar:Static:Mode$ Continuous | Affected$ Creature.Other+YouCtrl | AddPower$ 1 | AddType$ ChosenType | Description$ test\n",
 			want: "grants a subtype the kernel does not gate",
