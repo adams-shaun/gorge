@@ -132,15 +132,15 @@ func (s *State) filtUnits(k *prep, sl Slot) int {
 	if a.AFlags&kop.AfManaDynamic != 0 {
 		return s.dynManaN(k, a, sl)
 	}
-	if comboFiltAb(a) {
-		return int(a.ManaN)
-	}
 	if a.ManaEach {
 		n := 0
 		for _, v := range filtEachVec(a) {
 			n += int(v)
 		}
 		return n // an all-at-once filter's whole vector (mana_filtereach.go)
+	}
+	if a.AFlags&kop.AfManaChoice == 0 {
+		return int(max(a.ManaN, 1)) // a pip-fee filter's N of its one chosen colour
 	}
 	return 1
 }

@@ -435,6 +435,33 @@ func pipMaskOf(c *kop.ManaCost) uint8 {
 	return m
 }
 
+// onceUsed reports whether a once-per-game ability a has been activated for
+// the permanent at sl. The card's first such ability is held in pfOnceGame;
+// the second and third in the arena's mechOnce2/mechOnce3 slot masks (a pool
+// with no card holding two of them uses neither, and mSl reads false).
+func (s *State) onceUsed(k *prep, sl Slot, a *kop.Ability) bool {
+	switch a.Once {
+	case 2:
+		return s.mSl(k, mechOnce2, sl)
+	case 3:
+		return s.mSl(k, mechOnce3, sl)
+	default:
+		return s.perms[sl].flags&pfOnceGame != 0
+	}
+}
+
+// onceUse marks a's activation for the permanent at sl.
+func (s *State) onceUse(k *prep, sl Slot, a *kop.Ability) {
+	switch a.Once {
+	case 2:
+		s.mSlSet(k, mechOnce2, sl)
+	case 3:
+		s.mSlSet(k, mechOnce3, sl)
+	default:
+		s.perms[sl].flags |= pfOnceGame
+	}
+}
+
 // canActivate checks an activated ability's timing, non-mana costs, mana
 // affordability and target feasibility.
 func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool, av *avail) bool {
@@ -521,7 +548,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if f&kop.CostLoyalty != 0 && (!sorc || p.flags&pfLoyaltyUsed != 0) {
 		return false
 	}
-	if f&kop.CostOncePerGame != 0 && p.flags&pfOnceGame != 0 {
+	if f&kop.CostOncePerGame != 0 && s.onceUsed(k, sl, a) {
 		return false
 	}
 	mana := a.Cost.Mana
@@ -1532,11 +1559,14 @@ func (s *State) filtFeeOwed(k *prep, sl Slot, c CardID) bool {
 // admitting the payment.
 func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Ability, d *payDesc) bool {
 	pp := &s.perms[sl]
-	if ab.Cost.Flags&^(kop.CostTap|kop.CostSacSelf|kop.CostPayLife|kop.CostOncePerTurn) != 0 && !s.potentialGapCost(k, p, sl, j, ab) || pp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.genLost(k, sl) {
+	if ab.Cost.Flags&^(kop.CostTap|kop.CostSacSelf|kop.CostPayLife|kop.CostOncePerTurn|kop.CostOncePerGame) != 0 && !s.potentialGapCost(k, p, sl, j, ab) || pp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.genLost(k, sl) {
 		return false
 	}
 	if ab.Cost.Flags&kop.CostOncePerTurn != 0 && j < 8 && pp.actUsed&(1<<j) != 0 {
 		return false // Gravestone Strider, used this turn
+	}
+	if ab.Cost.Flags&kop.CostOncePerGame != 0 && s.onceUsed(k, sl, ab) {
+		return false // Loot, the Pathfinder's exhaust mana ability
 	}
 	if ab.Cost.Flags&kop.CostPayLife != 0 && int(s.pl[SeatIx(p)].life) < int(ab.Cost.N) {
 		return false
@@ -1550,7 +1580,7 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 	if ab.Trig.Cond != 0 && !s.condEval(k, ab.Trig.Cond, evalCtx{src: pp.obj, srcSl: sl, ctrl: pp.ctrl}) {
 		return false
 	}
-	if col, ok := fixedPipFilt(ab); ok && k.gen.anyFiltPip && s.filtPipHeld(k, pp.ctrl, sl, col) < 1 {
+	if col, ok := pipFilt(ab); ok && k.gen.anyFiltPip && s.filtPipHeld(k, pp.ctrl, sl, col) < 1 {
 		return false // gorge lists the granted filter only while the live pool pays its pip (mana_filterpip.go)
 	}
 	return d == nil || ab.ManaRestrict == 0 || s.restrSrcAdmits(k, p, sl, ab, d)

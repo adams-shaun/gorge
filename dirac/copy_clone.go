@@ -314,7 +314,7 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 			DebugCloneCopyStats.Stacked++
 		}
 		s.touchSl(sl)
-		s.onceBasisBegin(sl)
+		s.onceBasisBegin(k, sl)
 		keptN = 0
 		if self {
 			// CR 707.2, 707.9b: the become object copies its own copiable
@@ -489,7 +489,7 @@ func (s *State) cloneCleanup(k *prep) {
 			p.ovr.flags |= ovCopy
 			p.ovr.copyOf = l.card
 		}
-		s.onceBasisEnd(sl, l.kind != copyNone)
+		s.onceBasisEnd(k, sl, l.kind != copyNone)
 		if l.kind == copyNone {
 			s.cloneRestore(sl)
 		} else if l.kind == copyPerm {
@@ -701,17 +701,54 @@ func (s *State) cloneBased(sl Slot) bool {
 	return false
 }
 
+// onceBits packs a permanent's activate-only-once marks: bit 0 is
+// pfOnceGame (the card's first such ability), bit 1 mechOnce2, bit 2
+// mechOnce3.
+func (s *State) onceBits(k *prep, sl Slot) uint8 {
+	var b uint8
+	if s.perms[sl].flags&pfOnceGame != 0 {
+		b |= 1
+	}
+	if s.mSl(k, mechOnce2, sl) {
+		b |= 2
+	}
+	if s.mSl(k, mechOnce3, sl) {
+		b |= 4
+	}
+	return b
+}
+
+// setOnceBits replaces a permanent's activate-only-once marks with b.
+func (s *State) setOnceBits(k *prep, sl Slot, b uint8) {
+	p := &s.perms[sl]
+	p.flags &^= pfOnceGame
+	if b&1 != 0 {
+		p.flags |= pfOnceGame
+	}
+	if b&2 != 0 {
+		s.mSlSet(k, mechOnce2, sl)
+	} else {
+		s.mSlClr(k, mechOnce2, sl)
+	}
+	if b&4 != 0 {
+		s.mSlSet(k, mechOnce3, sl)
+	} else {
+		s.mSlClr(k, mechOnce3, sl)
+	}
+}
+
 // onceBasisBegin: a new copy makes the permanent's abilities new ones that
 // nothing has activated (CR 613.1a; gorge activationUsedSince counts the
 // events since the newest ClonePermanent), so its "activate only once"
-// mark (Power-up, CR 702.193a) is clear. The first copy layer keeps the
-// printed abilities' mark aside, which returns once the layer ends.
-func (s *State) onceBasisBegin(sl Slot) {
-	p := &s.perms[sl]
-	if p.flags&pfOnceGame == 0 {
+// marks (Power-up, CR 702.193a; the second and third once-only abilities)
+// are clear. The first copy layer keeps the printed abilities' marks aside,
+// which return once the layer ends.
+func (s *State) onceBasisBegin(k *prep, sl Slot) {
+	bits := s.onceBits(k, sl)
+	if bits == 0 {
 		return
 	}
-	p.flags &^= pfOnceGame
+	s.setOnceBits(k, sl, 0)
 	if s.cloneBased(sl) {
 		return
 	}
@@ -719,7 +756,7 @@ func (s *State) onceBasisBegin(sl Slot) {
 		s.stall(StallTables)
 		return
 	}
-	s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxOnceStash}
+	s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxOnceStash, r: ovRec{fl: bits}}
 	s.g.nfx++
 	s.fxM.set(sl)
 }
@@ -728,18 +765,20 @@ func (s *State) onceBasisBegin(sl Slot) {
 // copy layer left (a live Aegis copy or a permanent marker) the printed
 // mark stays aside; with none the printed abilities and their mark come
 // back.
-func (s *State) onceBasisEnd(sl Slot, remains bool) {
-	p := &s.perms[sl]
-	p.flags &^= pfOnceGame
+func (s *State) onceBasisEnd(k *prep, sl Slot, remains bool) {
+	s.setOnceBits(k, sl, 0)
 	if remains {
 		return
 	}
+	var bits uint8
 	stashed := false
 	for i := 0; s.fxM.has(sl) && i < int(s.g.nfx); i++ {
-		stashed = stashed || s.g.fx[i].sl == sl && s.g.fx[i].kind == fxOnceStash
+		if s.g.fx[i].sl == sl && s.g.fx[i].kind == fxOnceStash {
+			stashed, bits = true, s.g.fx[i].r.fl
+		}
 	}
 	if stashed {
 		s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.sl == sl && r.kind == fxOnceStash })
-		p.flags |= pfOnceGame
+		s.setOnceBits(k, sl, bits)
 	}
 }

@@ -218,7 +218,7 @@ import (
 // +3 (an Effect's trigger bound to a remembered set: the cards listed at ratchet_test.go's ALL pin; ALL build-level 22145 -> 22148).
 // +2 (the optional copy-instead CreateToken replacement: the cards listed at ratchet_test.go's ALL pin; ALL build-level 22149 -> 22151).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22160, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22163, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

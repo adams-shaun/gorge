@@ -3221,7 +3221,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		s.perms[sl].flags |= pfSkipUntap
 	}
 	if f&kop.CostOncePerGame != 0 {
-		s.perms[sl].flags |= pfOnceGame
+		s.onceUse(k, sl, a)
 	}
 	if f&kop.CostRemoveCtr != 0 {
 		s.perms[sl].seeCtr(s)

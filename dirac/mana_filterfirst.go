@@ -47,13 +47,16 @@ var DebugFiltFirstNoLimit bool
 
 // prepFiltFirst records ability j of card c, its first mana ability, as a
 // filter (genPrep.filt, gfFilt).
-func (g *genPrep) prepFiltFirst(c CardID, j int) {
+func (g *genPrep) prepFiltFirst(c CardID, j int, a *kop.Ability) {
 	if j >= 8 {
 		panic("kernel: a once-each-turn filter mana ability past ability 7 (perm.actUsed)")
 	}
 	g.smallFor(c).filt = int8(j)
 	g.setFlag(c, gfFilt)
 	g.anyFilt, g.anyFiltFirst = true, true
+	if _, pip := pipFilt(a); pip {
+		g.anyFiltPip = true
+	}
 }
 
 // filtAb is the filter ability of the card at sl.
@@ -79,6 +82,9 @@ func (s *State) filtFirstOnly(k *prep, sl Slot) bool {
 // static (cast_cantactivate.go), as a plain mana source is not.
 func (s *State) filtUsable(k *prep, sl Slot) bool {
 	if s.genLost(k, sl) || k.gen.anyCantAct && s.actForbidden(k, sl, true) {
+		return false
+	}
+	if a := s.filtAb(k, sl); a.Cost.Flags&kop.CostOncePerGame != 0 && s.onceUsed(k, sl, a) {
 		return false
 	}
 	pm := &s.perms[sl]
@@ -144,7 +150,7 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 // manaAbilityPayablePool). It is still no unit of the census above.
 func (s *State) windowFiltFirstUsable(k *prep, p uint8, sl Slot) bool {
 	c := s.cardAt(sl)
-	return k.gen.has(c, gfFilt) && s.filtFirstOnly(k, sl) && s.filtUsable(k, sl) && poolTotal(&s.pl[SeatIx(p)]) >= s.filtFee(k, sl)
+	return k.gen.has(c, gfFilt) && s.filtFirstOnly(k, sl) && s.filtUsable(k, sl) && s.filtPaid(k, p, sl)
 }
 
 // windowFiltFirst activates that filter in the window, for the first colour it

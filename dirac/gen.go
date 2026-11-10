@@ -78,6 +78,7 @@ type genPrep struct {
 	anyRemPersist   bool // a card's enters trigger remembers what its leaves trigger reads (CardDef.RemPersist; zone_rememberpersist.go)
 	anyNinjutsu     bool // a card has a K:Ninjutsu ability (kop.AfNinjutsu; kw_ninjutsu.go)
 	anyPowerUp      bool // a card has a printed PowerUp$ ability (kw_powerup.go)
+	anyManaOnce     bool // a card's first mana ability is activate-only-once (Loot, the Pathfinder; mana.go canTapForManaPC)
 	anyStackTgt     bool // some target slot is a TgtStackObj (tgt_stackability.go)
 	anyCopyAb       bool // some target slot is a TgtCopyAb or TgtCopyTrig (copy_ability.go)
 	anyBestow       bool // a card has printed bestow (CardDef.HasBestow; kw_bestow.go)
@@ -1146,6 +1147,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 				if firstMana && a.AFlags&kop.AfLatent == 0 {
 					firstMana = false
+					if a.Cost.Flags&kop.CostOncePerGame != 0 {
+						g.anyManaOnce = true
+					}
 					if restrWideAnyMana(a) {
 						// a census gap the prefix search branches on (mana_window.go restrWideAnyMana)
 						g.smallFor(CardID(i)).anyR = int8(j)
@@ -1160,7 +1164,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 							g.anyRestrScript = true
 						}
 					} else if kop.FilterManaAb(a) {
-						g.prepFiltFirst(CardID(i), j) // a filter first and only (mana_filterfirst.go)
+						g.prepFiltFirst(CardID(i), j, a) // a filter first and only (mana_filterfirst.go)
 					}
 				} else if restrAnyTapMana(a) && !restrSrcAb(a) && (!restrWideAnyMana(a) || wideBesideAny(&t.Cards[i], a)) && g.anyR(CardID(i)) < 0 && firstManaAb(&t.Cards[i]) >= 0 {
 					g.smallFor(CardID(i)).anyR = int8(j)

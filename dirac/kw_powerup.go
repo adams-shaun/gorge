@@ -123,6 +123,15 @@ func PowerUpState(s *State, o Obj) (used, entered bool, zone kop.Zone) {
 	if ob.zone != kop.ZoneBattlefield {
 		return false, false, ob.zone
 	}
+	if k := s.k(); k != nil {
+		cd := &k.t.Cards[ob.card]
+		for i := range cd.Abilities {
+			a := &cd.Abilities[i]
+			if a.Kind == kop.AbActivated && a.Cost.Flags&kop.CostPowerUp != 0 {
+				return s.onceUsed(k, ob.slot, a), s.g.zoneTurn.has(o), ob.zone
+			}
+		}
+	}
 	return s.perms[ob.slot].flags&pfOnceGame != 0, s.g.zoneTurn.has(o), ob.zone
 }
 

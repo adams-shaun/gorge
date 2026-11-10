@@ -657,6 +657,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		case 0:
 		case 1:
 			ka.Cost.Flags |= kop.CostOncePerGame
+			ka.Once = uint8(a.Once)
 		default:
 			return ka, fmt.Errorf("activation limit %d", a.Limit)
 		}

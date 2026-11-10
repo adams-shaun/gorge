@@ -729,6 +729,7 @@ type lAbility struct {
 	Exhaust         bool    // Exhaust$ True (CR 702.177a): the AbilityCast class test (kop.Ability.Exhaust)
 	CantCopy        bool    // CantCopy$ True: "this ability can't be copied" (kop.Ability.CantCopy)
 	Limit           int     // activations per game (0 = unlimited)
+	Once            int     // the ordinal among the card's activate-only-once abilities (1..3; 0 = none)
 	EvidenceTargets bool    // CollectEvidence<X> with SVar:X AllTargeted$CardManaCost (a spell's mandatory additional cost; kop.EvidenceTargetsMV)
 	PowerUp         bool    // PowerUp$ True (CR 702.193): once per object stint, cost reduced on its entry turn
 	TurnOnce        bool    // ActivationLimit$ 1: once each turn
