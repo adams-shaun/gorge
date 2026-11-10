@@ -3740,10 +3740,18 @@ func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) er
 	}
 	name := strings.TrimSpace(v)
 	if strings.Contains(name, ",") {
-		return lc.animateGrantStatics(ps, name, o)
+		return lc.animateGrantStatics(ps, name, o, false)
 	}
 	ss, ok := cards.ParseStaticLines(lc.face.SVars[name])
 	if ok && len(ss) == 1 && ss[0].Mode == "Continuous" {
+		if aff, has := ss[0].Params["Affected"]; has && strings.TrimSpace(aff) != "Card.Self" {
+			// The static reaches other permanents (an anthem, keyword grant
+			// or equipped pump): the animated object HAS it, so lower it as
+			// an ordinary static of the source switched on by the override
+			// record (animateGrantStatics). A self P/T setter stays the live
+			// P/T grant.
+			return lc.animateGrantStatics(ps, name, o, true)
+		}
 		return lc.animateLivePT(name, ss[0], o, obj)
 	}
 	if !ok || len(ss) != 1 || ss[0].Mode != "CantBlockBy" {
@@ -3764,18 +3772,21 @@ func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) er
 	return nil
 }
 
-// animateGrantStatics lowers an Animate's staticAbilities$ list of
+// animateGrantStatics lowers an Animate's staticAbilities$ grants: the
 // permission and land-play statics (Nog, Ambitious Cadet's "You may play
 // lands from your graveyard" and "You may play an additional land on each of
-// your turns"; gorge registerAnimateStaticAbilities registers each body as a
-// continuous effect of the animated object for the animation's lifetime). Each
-// body lowers as the printed static it reads as (a may-play permission, an
-// extra land play) on the source card, switched on by a bit of the override
-// record the Animate applies (kop.Static.OvGate, kop.Override.GrantStatics),
-// so the grant is source-scoped and lasts as long as the record. Only a
-// permanent grant on Self reaches the source.
-func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride) error {
-	if ps.str("Duration") != "Permanent" || ps.str("Defined") != "Self" {
+// your turns") and, for a single non-self body, an anthem, keyword grant or
+// equipped pump (Tenth District Hero's "Other creatures you control have
+// indestructible", The Irencrag's "Equipped creature gets +3/+3"); gorge
+// registerAnimateStaticAbilities registers each body as a continuous effect
+// of the animated object for the animation's lifetime. Each body lowers as
+// the printed static it reads as on the source card, switched on by a bit of
+// the override record the Animate applies (kop.Static.OvGate,
+// kop.Override.GrantStatics), so the grant is source-scoped and lasts as long
+// as the record. Only a permanent grant on Self reaches the source.
+func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride, single bool) error {
+	d := ps.str("Defined")
+	if ps.str("Duration") != "Permanent" || d != "Self" && !(single && d == "") {
 		return refuse("Animate staticAbilities$ %q beside a duration other than Permanent on Self", names)
 	}
 	for _, name := range strings.Split(names, ",") {
@@ -3786,7 +3797,7 @@ func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride) 
 		}
 		_, may := ss[0].Params["MayPlay"]
 		_, land := ss[0].Params["AdjustLandPlays"]
-		if may == land {
+		if may == land && (!single || !animatePumpOrKeywordStatic(ss[0])) {
 			return refuse("Animate staticAbilities$ %q shape", name)
 		}
 		gated := 0
@@ -3810,6 +3821,17 @@ func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride) 
 		o.GrantStatics |= bit
 	}
 	return nil
+}
+
+// animatePumpOrKeywordStatic reports whether an Animate staticAbilities$
+// grant single body is a Continuous static lowerStatic lowers as an anthem,
+// keyword grant or equipped pump (AddKeyword$, AddPower$/AddToughness$)
+// rather than a permission.
+func animatePumpOrKeywordStatic(st cards.Static) bool {
+	if strings.TrimSpace(st.Params["AddKeyword"]) != "" {
+		return true
+	}
+	return strings.TrimSpace(st.Params["AddPower"]) != "" || strings.TrimSpace(st.Params["AddToughness"]) != ""
 }
 
 // animateGraveMayPlay lowers an Animate over Defined$ ValidGraveyard <spec>
