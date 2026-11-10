@@ -12,13 +12,8 @@ import (
 // Forests for p0.
 func optReduceScen(t *testing.T, forests int) (*scen, Obj) {
 	t.Helper()
-	deck := []cardset.Entry{{Name: "Bite Down on Crime", Count: 1}, {Name: "Lumbering Laundry", Count: 6}, {Name: "Forest", Count: 20}}
-	set := cardsettest.Synth(t, "std-mkm")
-	for _, e := range deck {
-		if i, ok := set.Lookup(e.Name); !ok || !set.Supported()[i] {
-			t.Skipf("%s not in the std-mkm table", e.Name)
-		}
-	}
+	deck := []cardset.Entry{{Name: "Bite Down on Crime", Count: 1}, {Name: "Volcanic Dragon", Count: 2}, {Name: "Grizzly Bears", Count: 2}, {Name: "Forest", Count: 20}}
+	set := cardsettest.Set(t, "optcost")
 	tbl, da, _, err := set.Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
@@ -28,9 +23,9 @@ func optReduceScen(t *testing.T, forests int) (*scen, Obj) {
 		id[tbl.Cards[c].Name] = c
 	}
 	sc := newScenTableLib(t, tbl, id["Forest"], Config{NoElide: true})
-	sc.perm(id["Lumbering Laundry"], 0)
-	sc.perm(id["Lumbering Laundry"], 1)
-	sc.grave(id["Lumbering Laundry"], 0, 2) // mana value 10 to collect evidence 6
+	sc.perm(id["Grizzly Bears"], 0)
+	sc.perm(id["Grizzly Bears"], 1)
+	sc.grave(id["Volcanic Dragon"], 0, 2) // mana value 12 to collect evidence 6
 	for i := 0; i < forests; i++ {
 		sc.perm(id["Forest"], 0)
 	}
