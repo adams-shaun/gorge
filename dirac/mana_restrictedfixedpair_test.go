@@ -14,7 +14,7 @@ import (
 // ("any one colour of my choosing") group, which would let a cost take {G}{G}
 // from it (CR 106.6, 601.2g-h).
 func TestRestrictedFixedColourPairView(t *testing.T) {
-	set := cardsettest.Synth(t, "std-sos")
+	set := cardsettest.Set(t, "restrictedfixedpair")
 	tbl, err := set.Pool()
 	if err != nil {
 		t.Fatal(err)
@@ -36,7 +36,7 @@ func TestRestrictedFixedColourPairView(t *testing.T) {
 		}
 	}
 	if found != 7 {
-		t.Fatalf("std-sos table lacks Tablet, Mountain or an instant (found mask %d)", found)
+		t.Fatalf("restrictedfixedpair table lacks Tablet, Mountain or an instant (found mask %d)", found)
 	}
 	sc := newScenTableLib(t, tbl, mountain, Config{})
 	g := sc.k.gen

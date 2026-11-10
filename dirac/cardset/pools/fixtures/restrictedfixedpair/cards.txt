@@ -1,0 +1,7 @@
+# a mana source whose spend-restricted ability makes several mana of the same
+# fixed colour as its plain {T} one (Tablet of Discovery's {R}{R} beside {R}):
+# the kernel's restricted pair unit with a single-colour larger alternative;
+# the kernel test is dirac/mana_restrictedfixedpair_test.go
+Mountain
+Tablet of Discovery
+Lightning Bolt
