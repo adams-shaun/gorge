@@ -88,7 +88,7 @@ func (s *State) Init(tbl *Table, deckA, deckB []CardID, seed uint64, cfg Config)
 		for _, c := range decks[p] {
 			o := Obj(s.nobj)
 			s.nobj++
-			s.objs[o] = object{card: c, chosen: 255, zone: kop.ZoneLibrary, slot: NoSlot, acts: uint8(p) << 7}
+			s.objs[o] = object{card: c, chosen: 255, zone: kop.ZoneLibrary, slot: NoSlot, acts: uint8(p) << objOwnerShift}
 			s.touch(o)
 			s.pl[p].libBottom(o)
 		}

@@ -346,7 +346,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 					continue
 				}
 			}
-			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedPoolOK(p, a) {
+			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedPoolOK(k, p, sl, a) {
 				continue // a max-speed grant is offered from the floating pool alone (kw_maxspeed.go)
 			}
 			if s.canActivate(k, sl, ai, a, sorc, &av) {
@@ -1411,6 +1411,9 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 			pc = s.manaPCGen(k, sl)
 		}
 		if !s.canTapForManaPC(k, sl, pc) || pc.manaAb < 0 && s.perms[sl].ovr.flags&ovCopy == 0 || payment && k.gen != nil && s.openManaRefused(k, p, sl, d) {
+			if k.gen != nil && !s.canTapForManaPC(k, sl, pc) {
+				s.potentialGrantSac(k, sl, payment, add, &open) // a granted sacrifice-only ability, tapped or not (mana_grantcost.go)
+			}
 			continue
 		}
 		if pc.manaAb >= 0 {

@@ -48,7 +48,7 @@ func FirstPolicy() Policy {
 // with no canonical form (a manual mana tap) falls back to the seeded
 // random policy.
 func HeuristicPolicy(seed uint64) Policy {
-	h := &heurPolicy{bots: [2]*heuristic.Bot{heuristic.NewBot(seed ^ 1).EnableAutoPayMana(), heuristic.NewBot(seed ^ 2).EnableAutoPayMana()},
+	h := &heurPolicy{bots: botsFor(heuristic.NewBot, seed),
 		rnd: RandomPolicy(seed)}
 	return h
 }
@@ -59,7 +59,7 @@ func HeuristicPolicy(seed uint64) Policy {
 // lockstep run under it compares more of each card's surface. Coverage
 // (CoverageOf) reports which cards and abilities a run exercised.
 func ExplorePolicy(seed uint64) Policy {
-	return &heurPolicy{bots: [2]*heuristic.Bot{heuristic.NewExploreBot(seed ^ 1).EnableAutoPayMana(), heuristic.NewExploreBot(seed ^ 2).EnableAutoPayMana()},
+	return &heurPolicy{bots: botsFor(heuristic.NewExploreBot, seed),
 		rnd: RandomPolicy(seed)}
 }
 
@@ -73,7 +73,7 @@ func PolicyFallbacks(p Policy) int {
 }
 
 type heurPolicy struct {
-	bots  [2]*heuristic.Bot
+	bots  [MaxSeats]*heuristic.Bot
 	rnd   Policy
 	seq   uint64
 	queue []Canon
@@ -157,4 +157,14 @@ func (h *heurPolicy) translate(c *PickCtx, d *decision.Decision) []Canon {
 		out = append(out, Pack(ActDone, RefNone, RefNone, 0))
 	}
 	return out
+}
+
+// botsFor is one bot a seat, seat s's seeded seed^(s+1): seats 0 and 1 are
+// the two-seat game's bots, unchanged.
+func botsFor(mk func(uint64) *heuristic.Bot, seed uint64) [MaxSeats]*heuristic.Bot {
+	var b [MaxSeats]*heuristic.Bot
+	for s := range b {
+		b[s] = mk(seed ^ uint64(s+1)).EnableAutoPayMana()
+	}
+	return b
 }

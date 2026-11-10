@@ -278,7 +278,7 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 		if !grantOK && k.gen != nil && s.manaGranted(k, sl) {
 			continue // a source whose only mana ability is granted: grantCap/grantPrefix's search, not another gap's
 		}
-		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) {
+		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) && !(dual && s.grantSacLive(sl, pc)) {
 			continue
 		}
 		if deferSkip && deferGap.has(sl) {

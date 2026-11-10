@@ -396,6 +396,10 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || !s.canTapForManaPC(k, sl, pc) {
 			continue
 		}
+		if k.painMana && pc.painCol != 0 {
+			s.addPainAvail(k, sl, pc, p&1, a, nil, false) // the planner's census has a pain ability (Spire of Industry's any colour for 1 life), as ungrAvail counts it
+			continue
+		}
 		a.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))
 		if pc.manaOne {
 			s.addOneColour(a, pc.manaN)
@@ -431,6 +435,7 @@ type grantSrch struct {
 	d        payDesc
 	n        int
 	cand     [MaxPerm]Slot
+	cobj     [MaxPerm]Obj              // the candidate's object at the root: a sacrificed one's slot may hold another (mana_grantcost.go)
 	gi       [MaxPerm][maxGrants]int16 // each candidate's granted abilities (grantPC indices)
 	ng       [MaxPerm]uint8
 	dual     [MaxPerm]bool // the candidate's own ability is tried first
@@ -494,6 +499,9 @@ type grantKey struct {
 	ghost [kop.NumManaKinds]uint8
 	// gorge's key counts the stack, hand and graveyard too (scriptStateKey)
 	sp, hand, gy uint8
+	// bf: p's battlefield objects (gorge's key lists each by id): a token a
+	// sacrifice's dies trigger made is a new state (mana_grantcost.go)
+	bf uint64
 }
 
 // grantStep is one prefix activation: candidate i tapped for n mana of
@@ -510,6 +518,7 @@ type grantStep struct {
 	act  Action
 	cand Slot // stepTapX: the permanent its cost taps
 	pain bool // the source's painful printed ability (mana_grantpain.go)
+	sac  bool // a granted sacrifice-only ability: the source was sacrificed (mana_grantcost.go)
 }
 
 const (
@@ -554,6 +563,7 @@ func (g *grantSrch) candidates(s *State) {
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), !tm.has(sl) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
 		g.def[g.n] = ng == 0 && dm.has(sl)
+		g.cobj[g.n] = s.perms[sl].obj
 		g.none[g.n] = ng == 0 && nm.has(sl)
 		g.gap[g.n] = true
 		if fm.has(sl) {
@@ -606,6 +616,16 @@ func (s *State) tappedOf(p uint8) slotMask {
 	return m
 }
 
+// bfObjKey hashes p's battlefield objects, each with its slot (FNV-1a).
+func (s *State) bfObjKey(p uint8) uint64 {
+	h := uint64(14695981039346656037)
+	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
+		sl := b.first()
+		h = (h ^ uint64(sl)<<16 ^ uint64(s.perms[sl].obj)) * 1099511628211
+	}
+	return h
+}
+
 // node charges one search node; false when the budget is spent.
 func (g *grantSrch) node() bool {
 	if g.nodes >= potentialScriptNodes {
@@ -631,7 +651,7 @@ func (g *grantSrch) visit(t *State) bool {
 		return true
 	}
 	pl := &t.pl[g.p&1]
-	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN}
+	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(g.p)}
 	if g.k.artMana {
 		t.artSync(g.p)
 		key.art = t.g.poolArt[g.p&1]
@@ -645,6 +665,7 @@ func (g *grantSrch) visit(t *State) bool {
 		g.seen[g.nseen] = key
 		g.nseen++
 	}
+	sacd := g.sacrificed()
 	for i := 0; i < g.gapN; i++ {
 		sl := g.cand[i]
 		if g.ng[i] == 0 && g.filt[i] && g.k.gen.anyFiltFirst && t.filtFirstOnly(g.k, sl) {
@@ -668,8 +689,14 @@ func (g *grantSrch) visit(t *State) bool {
 			continue
 		}
 		tx := g.tapx[i] && t.scriptTapX(g.k, g.p).has(sl)
-		grants := t.canTapForMana(g.k, sl)
+		if sacd && (!t.occ.has(sl) || t.perms[sl].obj != g.cobj[i]) {
+			continue // sacrificed by an earlier step (mana_grantcost.go)
+		}
+		grants := t.grantTapOK(g.k, sl)
 		if !grants && !tx {
+			if g.ng[i] > 0 && g.sacOnlyVisit(t, i, sl) { // no {T} in its cost: tapped or sick alike (mana_grantcost.go)
+				return true
+			}
 			continue
 		}
 		// several abilities (its own beside a grant, two grants): the
@@ -744,6 +771,12 @@ func (g *grantSrch) visit(t *State) bool {
 			// play's origin or class cannot spend prices nothing
 			g.skipPool = !g.grantAdmits(t, sl, gi)
 			ask := alts == 1 || mask&uint8(kop.ColAny) == uint8(kop.ColAny)
+			if pc.grantSac {
+				if g.sacBranch(t, i, sl, gi, pc, mask, ask) { // the step sacrifices the source (mana_grantcost.go)
+					return true
+				}
+				continue
+			}
 			if grantCostLife(pc) > 0 {
 				if g.costBranch(t, i, sl, gi, pc, mask, ask) { // the step pays its life (mana_grantcost.go)
 					return true
@@ -808,10 +841,12 @@ func (g *grantSrch) waitsForStack(t *State) bool {
 		// new object (CR 400.7), so gorge's search finds no such play
 		return true
 	}
-	// a stack the prefix grew, or a trigger's answer that may have moved the
-	// play's own card (Gran-Gran's loot discarding the spell: gorge prices a
-	// cast from a card no longer in its origin zone as unsupported)
-	if t.sp <= g.sp0 && !g.answered() {
+	// a stack the prefix grew, a sacrificed source (the play's only target,
+	// or the equipped creature: mana_grantcost.go), or a trigger's answer that
+	// may have moved the play's own card (Gran-Gran's loot discarding the
+	// spell: gorge prices a cast from a card no longer in its origin zone as
+	// unsupported)
+	if t.sp <= g.sp0 && !g.answered() && !g.sacrificed() {
 		return false
 	}
 	var d Decision
@@ -1148,6 +1183,14 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			s.filtDo(k, g.p, filtStep{sl: sl, gap: true, ans: 1 + st.col})
 			if !s.filtNoTap(k, sl) {
 				s.manaTapped(k, sl) // (a once-each-turn filter taps nothing)
+			}
+			continue
+		}
+		if st.sac {
+			s.grantSacApply(k, g.p, st) // the mana, the sacrifice, the state-based check (mana_grantcost.go)
+			if s.npend != 0 {
+				passed = true
+				s.tapXNext(g.p, &d)
 			}
 			continue
 		}

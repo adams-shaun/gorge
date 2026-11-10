@@ -57,7 +57,12 @@ type pcard struct {
 	// ({T}, Pay 1 life: Starting Town) instead of dealing damage (gorge's
 	// Consequence{Life}: the same last-resort cost and lethal guard;
 	// mana_pain.go)
-	painLife    bool
+	painLife bool
+	// grantSac: a granted mana ability whose cost is sacrificing the source
+	// alone (Lotus Ring's equipped creature; mana_grantcost.go). Only the
+	// grant search, the gap readers and the manual window read it: the
+	// printed sacrifice readers (manaSacOnly) never see a grant.
+	grantSac    bool
 	trigMask    uint32 // bit per kop.TrigEvent the card's triggers listen to
 	hasStat     bool
 	grantStat   bool  // an override static or a continuous static with a Grant
@@ -309,7 +314,8 @@ func prepare(t *kop.Table) *prep {
 					}
 					pc.manaTap = a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
 					pc.manaSac = a.Cost.Flags == kop.CostTap|kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
-					pc.manaSacOnly = !DebugIgnoreSpawnMana && a.Cost.Flags == kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
+					// (a latent one is another permanent's: Lotus Ring's sacrifice-only ability is its equipped creature's, mana_grantcost.go)
+					pc.manaSacOnly = !DebugIgnoreSpawnMana && a.AFlags&kop.AfLatent == 0 && a.Cost.Flags == kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
 					p.sacMana = p.sacMana || pc.manaSac || pc.manaSacOnly
 					p.sacOnlyMana = p.sacOnlyMana || pc.manaSacOnly
 					if ctrManaAb(a) {

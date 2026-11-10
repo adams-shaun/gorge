@@ -19,10 +19,11 @@ type Obj uint8
 const (
 	NoSlot Slot = 255
 	NoObj  Obj  = 255
-	// PlayerTarget0 / PlayerTarget1 encode a player in an Action's target
-	// byte and in stack target records.
-	PlayerTarget0 uint8 = 0xFC
-	PlayerTarget1 uint8 = 0xFD
+	// PlayerTarget0.. encode a player in an Action's target byte and in
+	// stack target records; PlayerTarget0 and StackTarget0 are set per size
+	// class (seats_default.go, seats_mp.go). PlayerTarget1 is seat 1's code;
+	// PlayerCode(p) is the spelling that holds at every seat count.
+	PlayerTarget1 uint8 = PlayerTarget0 + 1
 	NoTarget      uint8 = 0xFF
 	// StackTarget0 encodes the activated or triggered ability at stack
 	// index i (from the bottom) as StackTarget0+i in a target byte, the
@@ -30,7 +31,6 @@ const (
 	// below MaxObj are objects, StackTarget0..PlayerTarget0-1 stack
 	// abilities, PlayerTarget0.. players (0xFE is a departed stack
 	// target, 0xFF none).
-	StackTarget0 uint8 = 0xEC
 )
 
 // isObjTarget reports whether target byte c names an object (a card or
@@ -41,7 +41,7 @@ func isObjTarget(c uint8) bool { return c < MaxObj }
 // isPlayerTarget reports whether target byte c names a player, not an
 // object, a stack ability or no target. A raw "c >= PlayerTarget0" also
 // admits NoTarget, so the player-range test goes through here.
-func isPlayerTarget(c uint8) bool { return c >= PlayerTarget0 && c <= PlayerTarget1 }
+func isPlayerTarget(c uint8) bool { return c >= PlayerTarget0 && c <= PlayerTarget0+(MaxSeats-1) }
 
 // IsObjTarget is isObjTarget for the kernel's clients (the search bots, the
 // feature encoders, the oracle).

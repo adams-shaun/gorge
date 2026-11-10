@@ -5,6 +5,8 @@ package canon
 
 import (
 	"fmt"
+
+	"github.com/adams-shaun/gorge/dirac"
 )
 
 // Ref is a canonical reference, the source/target byte of a Canon and the
@@ -14,8 +16,8 @@ import (
 type Ref = uint8
 
 const (
-	RefStack  Ref = 0xEC
-	RefPlayer Ref = 0xFC
+	RefStack  Ref = dirac.StackTarget0  // one definition per size class (dirac seats_*.go)
+	RefPlayer Ref = dirac.PlayerTarget0 // seat p is RefPlayer+p
 	RefNone   Ref = 0xFF
 )
 
