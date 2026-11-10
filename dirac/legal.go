@@ -1537,13 +1537,10 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 // turn (Wall of Roots). They are the shapes kop.ManaAbilityHonoured lists.
 func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Ability) bool {
 	c := s.cardAt(sl)
-	if k.cards[c].manaAb != int8(j) {
-		return false
-	}
 	switch {
-	case kop.CtrManaAb(ab):
+	case k.cards[c].manaAb == int8(j) && kop.CtrManaAb(ab):
 		return ab.Cost.Flags&kop.CostRemoveCtr == 0 || s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) >= int(ab.Cost.N)
-	case k.tapMana && kop.TapXMana(ab):
+	case k.tapMana && kop.TapXMana(ab) && int(k.tapXAb[c]) == j: // the first mana ability or a second beside a plain one (mana_tapanother.go tapXAbOf)
 		var cs [MaxPerm]Slot
 		return s.tapXCands(k, p, sl, &cs) >= int(ab.Cost.N)
 	}

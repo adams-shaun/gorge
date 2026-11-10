@@ -217,8 +217,14 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			// a permission whose alternative cost is life (CR 118.9): gorge's
 			// "mayplay" option at AltCostIndex 1 (cast_staticpaylife.go); the
 			// plain cast beside it (no castFree) is AltCostIndex 0 below
+			// (the target is the 1-based alternative when several statics
+			// offer one each; 0 is the sole one)
 			cm, _ = CastModeCode("mayplay")
-			cm |= 1 << 4
+			idx := tgt
+			if idx == 0 {
+				idx = 1
+			}
+			cm |= idx << 4
 		case mode&8 != 0:
 			cm, _ = CastModeCode("mayplay") // a generated table's play permission (castMayPlay)
 		}

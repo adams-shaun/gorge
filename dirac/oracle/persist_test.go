@@ -46,8 +46,8 @@ type persistProbe struct {
 	r           *rand.Rand
 	rs          *realSide
 	tbl         *kop.Table
-	prev        [2][kop.NumManaKinds]uint8
-	born        [2]kop.Step
+	prev        [dirac.MaxSeats][kop.NumManaKinds]uint8
+	born        [dirac.MaxSeats]kop.Step
 	spent, both bool
 }
 

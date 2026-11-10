@@ -169,11 +169,6 @@ func buildCard(pt *poolTables, c *lCard) built {
 	for j := range cb.out.def.Abilities {
 		// the kernel's mana walk silently dropped a
 		// mana ability whose cost it does not read; refuse it instead
-		if why := cb.filterRefusal(j); why != "" {
-			cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit mana ability", Reason: why})
-			cb.out.def.Abilities = nil
-			break
-		}
 		if a := &cb.out.def.Abilities[j]; !kop.ManaAbilityHonoured(&cb.out.def, j) {
 			cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit mana ability",
 				Reason: "mana ability cost " + kop.ManaCostShape(a) + ": the kernel's mana walk cannot activate it"})
@@ -2193,34 +2188,4 @@ func putsTimeCounters(d *kop.CardDef) bool {
 		}
 	}
 	return false
-}
-
-// filterRefusal names why kop ability j, a card's first mana ability, is a
-// filter the kernel does not model (kop.FilterManaAb):
-// "{1}, {T}, sacrifice this" (Omni-Cheese Pizza: the search would sacrifice
-// on its State copies). A Produced$ Combo's printed colour order is not a
-// refusal: kop.Ability.ManaColOrd records it. "" otherwise.
-func (cb *cardBuilder) filterRefusal(j int) string {
-	cd := &cb.out.def
-	a := &cd.Abilities[j]
-	if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
-		return ""
-	}
-	for i := range cd.Abilities {
-		if cd.Abilities[i].Kind == kop.AbMana {
-			if i != j {
-				return ""
-			}
-			break
-		}
-	}
-	if a.Cost.Flags == kop.CostTap|kop.CostSacSelf {
-		b := *a
-		b.Cost.Flags = kop.CostTap
-		if kop.FilterManaAb(&b) {
-			return "filter mana ability with a sacrifice (" + kop.ManaCostShape(a) + ")"
-		}
-		return ""
-	}
-	return ""
 }

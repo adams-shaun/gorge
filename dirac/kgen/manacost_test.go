@@ -98,18 +98,14 @@ func TestManaCostPoolsHaveNoDroppedAbility(t *testing.T) {
 func TestManaCostShapesAcceptedAndRefused(t *testing.T) {
 	accept := []string{"Saruli Caretaker", "Springleaf Drum", "Citanul Stalwart", "Dragonbroods' Relic",
 		"Gene Pollinator", "Jaspera Sentinel", "Loam Dryad", "Black Lotus", "Wall of Roots", "Llanowar Elves", "Baylen, the Haymaker", "Birchlore Rangers",
-		"Three Tree Mascot", "Abzan Devotee", "Prophetic Prism", "Giant's Boulder", // (the last four: kop.FilterManaAb)
+		"Three Tree Mascot", "Abzan Devotee", "Prophetic Prism", "Giant's Boulder", "Omni-Cheese Pizza", // (the last five: kop.FilterManaAb)
 		"Jeskai Devotee", "Mardu Devotee", "Sultai Devotee", "Temur Devotee"} // (kop.Ability.ManaColOrd)
 	refuse := map[string]string{
 		"Heritage Druid": "TapX", "Ashnod's Altar": "Sac", "Mana Confluence": "T+PayLife",
 		"Cabal Coffers": "T+Mana", "Agent of Stromgald": "Mana", "Gilded Goose": "T+Sac", "Druids' Repository": "RemoveCtr",
 		"Moonsnare Prototype": "T+TapX",
 	}
-	// a filter first the kernel does not model, refused by name (build.go
-	// filterRefusal)
-	named := map[string]string{
-		"Omni-Cheese Pizza": "filter mana ability with a sacrifice",
-	}
+	named := map[string]string{}
 	names := append([]string(nil), accept...)
 	for n := range refuse {
 		names = append(names, n)

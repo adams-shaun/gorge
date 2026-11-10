@@ -72,7 +72,8 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 			return true
 		}
 	} else if targeted {
-		if !t.spellTargetsFeasible(k, c, p) {
+		// the X-bound target is judged at the X the fork's mana still pays
+		if !t.spellTargetsFeasible(k, c, p) || !t.spellXBoundPayable(k, c, p, cost) {
 			return true
 		}
 	}
@@ -159,7 +160,7 @@ func (s *State) smallerXWitness(k *prep, p uint8, c CardID, cost *kop.ManaCost, 
 			var buf [MaxOptions]uint8
 			ok = t.targetCands(k, &k.t.Cards[c].BestowTgt, p, NoSlot, t.bld().e.obj, &buf) != 0
 		} else if ok && targeted {
-			ok = t.spellTargetsFeasible(k, c, p)
+			ok = t.spellTargetsFeasible(k, c, p) && t.spellXBoundPayable(k, c, p, cost)
 		}
 		s.unfork()
 		if ok {

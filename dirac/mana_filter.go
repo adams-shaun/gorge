@@ -524,7 +524,7 @@ func (s *State) gapOthers(k *prep, p uint8) slotMask {
 	for b := m; b.any(); b = b.rest() {
 		sl := b.first()
 		c := s.cardAt(sl)
-		if ab := k.cards[c].manaAb; ab >= 0 && kop.TapXMana(&k.t.Cards[c].Abilities[ab]) && !live.has(sl) {
+		if k.tapXAbOf(c) != nil && !live.has(sl) {
 			m = m.without(sl)
 		}
 	}
@@ -719,6 +719,12 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		xv := s.filtExtra(k, st.sl)
 		s.addXv(p, &xv)
 		s.artTag(k, p, st.sl, int(st.ans-1)) // an artifact's mana is typed (Three Tree Mascot, Prophetic Prism; mana_artifact.go)
+		if s.filtAb(k, st.sl).Cost.Flags&kop.CostSacSelf != 0 {
+			// {1}, {T}, sacrifice this (Omni-Cheese Pizza): the sacrifice is
+			// part of the activation cost (CR 602.2b, 605.1a), taken after the
+			// mana is added, as a Treasure's is (fundSac)
+			s.sacFilterSource(k, st.sl)
+		}
 	case st.gap:
 		pc := s.manaPCGen(k, st.sl)
 		c := bits.TrailingZeros8(s.srcMaskAt(pc, st.sl))

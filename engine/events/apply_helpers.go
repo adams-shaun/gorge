@@ -78,7 +78,7 @@ func registrationStamps(fromEvent, live []state.TargetStamp) []state.TargetStamp
 }
 
 // rememberedStampsFrom records each remembered object's Incarnation at a
-// delayed trigger's registration (state.DelayedTrigger.RememberedStamps,
+// delayed trigger's registration with its ZoneGen (state.DelayedTrigger.RememberedStamps,
 // CR 400.7). Player references and unknown ids carry no stamp.
 func rememberedStampsFrom(g *state.Game, ids []state.ObjID) []state.TargetStamp {
 	var out []state.TargetStamp
@@ -87,7 +87,7 @@ func rememberedStampsFrom(g *state.Game, ids []state.ObjID) []state.TargetStamp 
 			continue
 		}
 		if o := g.Obj(id); o != nil {
-			out = append(out, state.TargetStamp{Obj: id, Incarnation: o.Incarnation})
+			out = append(out, state.TargetStamp{Obj: id, Incarnation: o.Incarnation, ZoneGen: o.ZoneGen})
 		}
 	}
 	return out

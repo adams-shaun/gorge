@@ -656,8 +656,11 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 		if !rest.grant && life == 0 {
 			return
 		}
-		if life > 1 || life > 0 && rest.free {
-			s.capFull(StallPayLifeShared) // two of the casts gorge lists would share one mode (cast_staticpaylife.go)
+		// pay-life statics alone offer one life alternative each (fanPayLifeAlts);
+		// beside another permission only a single one is offered apart, and a
+		// waived mana cost would share its mode (cast_staticpaylife.go)
+		if life > payLifeAltMax || rest.grant && life > 0 && (life > 1 || rest.free) {
+			s.capFull(StallPayLifeShared)
 		}
 		seen.set(o)
 		if rest.grant {
@@ -668,7 +671,11 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 			s.offerPlay(k, d, p, o, mode, sorc, landOK, rest.anyMana, false, s.mayPlayUnpriced(k, p, o, rest.anyMana, av), av)
 		}
 		if life > 0 && !(rest.grant && rest.free) {
+			n0 := int(d.N)
 			s.offerPlay(k, d, p, o, castMayPlay|castFree, sorc, landOK, false, false, false, av) // the mana part is replaced by the life (CR 118.9)
+			if life > 1 && !rest.grant && life <= payLifeAltMax {
+				fanPayLifeAlts(d, n0, life)
+			}
 		}
 	}
 	for pp := uint8(0); pp < 2; pp++ {

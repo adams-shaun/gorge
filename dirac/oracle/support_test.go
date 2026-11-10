@@ -244,6 +244,10 @@ func sampleOf(slugs map[string]bool, n int) map[string]bool {
 }
 
 func checkRefusedEntry(t *testing.T, e *cardset.RefusedEntry) {
+	if e.Repro.Pool == "custom" {
+		checkRefusedRepro(t, e)
+		return
+	}
 	r := openRefusedRun(t, e)
 	if err := refusedPlayable(r); err != nil {
 		t.Fatal(err)
@@ -280,6 +284,47 @@ func checkRefusedEntry(t *testing.T, e *cardset.RefusedEntry) {
 		return
 	}
 	t.Errorf("stale: %d pairs of %s with %s dealt in and none implicates it: go run ./dirac/cmd/kgen -unrefuse %q", played, e.Repro.Pool, e.Card, e.Card)
+}
+
+// checkRefusedRepro is checkRefusedEntry for an entry pinned to a recorded game (pool
+// custom): the game is replayed by its script on a raw table of its own decks' cards,
+// and only a divergence that implicates the card keeps the refusal. There is no pool
+// to search, so a clean replay is staleness.
+func checkRefusedRepro(t *testing.T, e *cardset.RefusedEntry) {
+	if e.Repro.File == "" {
+		t.Fatalf("%s: a custom repro names no file", e.Card)
+	}
+	r, err := ReadRepro(filepath.Join("testdata", "repro", e.Repro.File+".repro.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := r.Matchup(synthReg(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	set := cardset.Raw(printedDelveSet(t, r.Cards))
+	entries := func(names []string) []cardset.Entry {
+		es := make([]cardset.Entry, len(names))
+		for i, n := range names {
+			es[i] = cardset.Entry{Name: n, Count: 1}
+		}
+		return es
+	}
+	tbl, _, _, err := set.Matchup(entries(r.Cards[0]), entries(r.Cards[1]))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rc := r.RunConfig()
+	rc.MaxDecisions = len(r.Actions) + 200
+	k, err := SetSide(set, tbl, rc.Config)(m, r.Seed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer CloseSide(k)
+	res := Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
+	if !gameImplicates(&res, m, e.Card) {
+		t.Errorf("stale: %s's recorded game %s no longer diverges with it implicated: go run ./dirac/cmd/kgen -unrefuse %q", e.Card, e.Repro.File, e.Card)
+	}
 }
 
 // refusedPlayable: an entry naming a card kgen does not lower has nothing to replay.

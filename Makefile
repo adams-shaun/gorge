@@ -90,6 +90,7 @@ help:
 	@echo "  make report         — print card coverage against implemented primitives"
 	@echo "  make dirac-tables   — write dirac's binary card tables under the corpus (gitignored, keyed by corpus and kgen sources)"
 	@echo "  make dirac-slices   — play dirac against gorge on the committed FDN and BLB slices, both surfaces"
+	@echo "  make dirac-mp-check — vet and test dirac's four-seat-slot size class (build tag dirac_mp)"
 	@echo "  make fresh-clone-check — build, vet and test dirac with no corpus: tests needing tables skip, none fail"
 	@echo "  make enginebench-pair BASE=main CAND=. — paired engine-speed comparison (cmd/enginebench)"
 	@echo "  make enginebench-profile [REV=.]       — CPU/alloc profiles of the bench rows, tops printed"
@@ -228,6 +229,13 @@ dirac-slices: dirac-tables
 	@for set in fdn blb; do for surface in autopay full; do \
 		$(BIN_DIR)/kfuzz -kernel $$set -first-pair 0 -pairs 1500 -seed 1 -keep-going -surface $$surface -mulligans 1 -shrink 0 -workers 4 -absolute -v || exit 1; \
 	done; done
+
+.PHONY: dirac-mp-check
+# The dirac_mp size class (four seat slots) vets and plays: its State fits the bar, its layout
+# pin holds, and two-seat random games run. Needs dirac-tables for the games.
+dirac-mp-check:
+	go vet -tags dirac_mp ./dirac/...
+	GOMAXPROCS=4 GOMEMLIMIT=3GiB go test -tags dirac_mp -trimpath -failfast -timeout 2m -run 'TestStateSize|TestStateLayoutPinnedMP|TestRandomGames' ./dirac
 
 .PHONY: fresh-clone-check
 fresh-clone-check:

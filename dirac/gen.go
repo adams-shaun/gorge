@@ -1158,6 +1158,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					var gp pcard
 					gp.manaAb, gp.manaCol, gp.manaN = int8(j), a.ManaColors, max(a.ManaN, 1)
 					gp.manaTap = a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
+					prepGrantCost(&gp, a) // {T} + pay N life, sacrifice this alone (mana_grantcost.go)
 					self := a.AFlags&kop.AfManaReflect != 0 && a.ManaAmong == 0
 					if self {
 						g.prepSelfGrant(gp) // mana_owncolours.go

@@ -613,9 +613,17 @@ func (lc *lowerCtx) eachDamageRemembered() ([]int, error) {
 // target is captured into the pending trigger (lInstr Obj). Absent, or a
 // Remembered… value (lower_trigremembered.go), returns the zero ref; another
 // value stays unread.
+//
+// RememberObjects$ ParentTarget (Thorin, Mountain-king) is gorge's
+// parentLinkTargets at the untargeted ImmediateTrigger: the nearest targeting
+// link's set, the chain's last target slot (the Attach's own creature), which
+// must be one battlefield object.
 func (lc *lowerCtx) reflexRememberTargeted(ps *params, lat *lAbility, n lValue) (lRef, error) {
 	v, ok := ps.m["RememberObjects"]
-	if v = strings.TrimSpace(v); !ok || v != "Targeted" {
+	if v = strings.TrimSpace(v); ok && v == "ParentTarget" {
+		return lc.reflexRememberParentTarget(ps, lat, n)
+	}
+	if !ok || v != "Targeted" {
 		return lRef{}, nil
 	}
 	if len(lc.chainT) != 1 {
@@ -631,6 +639,31 @@ func (lc *lowerCtx) reflexRememberTargeted(ps *params, lat *lAbility, n lValue) 
 	}
 	if _, ok := ps.m["RememberEach"]; ok {
 		return lRef{}, refuse("ImmediateTrigger RememberObjects$ Targeted with RememberEach$")
+	}
+	ps.consume("RememberObjects")
+	lat.ReflexObj = true
+	return lRef{Kind: rTarget, N: slot}, nil
+}
+
+// reflexRememberParentTarget is reflexRememberTargeted's RememberObjects$
+// ParentTarget arm: the chain's last target slot, one battlefield object.
+func (lc *lowerCtx) reflexRememberParentTarget(ps *params, lat *lAbility, n lValue) (lRef, error) {
+	slot := lc.lastTarget()
+	if slot < 0 {
+		return lRef{}, refuse("ImmediateTrigger RememberObjects$ ParentTarget without a parent target")
+	}
+	t := lc.ab.Targets[slot]
+	if t.Zone != zBattlefield || t.AtRes || t.F == nil || t.F.Players != 0 {
+		return lRef{}, refuse("ImmediateTrigger RememberObjects$ ParentTarget of a non-battlefield target")
+	}
+	if !t.Max.isConst() || t.Max.N != 1 {
+		return lRef{}, refuse("ImmediateTrigger RememberObjects$ ParentTarget over a several-object slot")
+	}
+	if !n.isConst() || n.N != 1 {
+		return lRef{}, refuse("ImmediateTrigger RememberObjects$ ParentTarget with TriggerAmount$ %s", n)
+	}
+	if _, ok := ps.m["RememberEach"]; ok {
+		return lRef{}, refuse("ImmediateTrigger RememberObjects$ ParentTarget with RememberEach$")
 	}
 	ps.consume("RememberObjects")
 	lat.ReflexObj = true

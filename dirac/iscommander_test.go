@@ -17,7 +17,7 @@ func TestIsCommanderWordOnBattlefield(t *testing.T) {
 	fid := kop.FilterID(len(tbl.Filters) - 1)
 
 	sc := newScenTableLib(t, &tbl, v.LegendaryBear, Config{
-		NoElide: true, Commander: true, Commanders: [2]int16{0, 0},
+		NoElide: true, Commander: true, Commanders: [MaxSeats]int16{0, 0},
 	})
 	if sc.s.pl[0].cmd == NoObj {
 		t.Fatal("Commander game seated no commander for seat 0")
