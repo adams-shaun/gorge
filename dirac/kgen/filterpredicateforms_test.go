@@ -34,7 +34,7 @@ var filterpredicateformsForms = []formCase{
 	{card: "Mesa Lynx", form: "a printed static's EffectZone$ Battlefield (the default)"},
 	{card: "Glistener Seer", form: "SubCounter<1/OIL/CARDNAME> (the source, gorge SubCounterTargetsSource)"},
 	{card: "Catalyst Elemental", form: "mana Produced$ G G (one colour twice = two of it)"},
-	{card: "Azorius Signet", form: "mana W U (simultaneous colours from a cost beyond {T}): kept refused", refused: "mana ability adding several colours at once from a cost beyond {T}"},
+	{card: "Azorius Signet", form: "mana W U (simultaneous colours from a fee beside {T}: a first-only filter gap)"},
 	{card: "Into the Story", form: "PlayerCountOpponents$HighestCardsInGraveyard (the opponent's graveyard)"},
 	{card: "Company Commander", form: "PlayerCountOpponents$Amount (one opponent)"},
 	{card: "Bloodghast", form: "PlayerCountOpponents$LowestLifeTotal (the opponent's life)"},
