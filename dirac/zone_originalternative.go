@@ -77,7 +77,7 @@ func (s *State) altPending(k *prep) bool {
 		return false
 	}
 	s.g.lookSel = 0
-	s.res.ask, s.res.askP = raGenKczZones, s.chooserOf(s.g.pickP)
+	s.res.ask, s.res.askP = raGenKczZones, s.chooserOf(k, s.g.pickP)
 	return true
 }
 

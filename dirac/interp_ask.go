@@ -427,8 +427,8 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 	case raGenSearch:
 		// gorge's kinds: a library search, a hand move, else a hidden pick
 		switch s.searchZone(k) {
-		case kop.ZoneLibrary:
-			d.Sub = ChGenSearch
+		case kop.ZoneLibrary, kop.ZoneSideboard:
+			d.Sub = ChGenSearch // a sideboard search is effSearchLibrary too (zone_sideboardsearch.go)
 		case kop.ZoneHand:
 			d.Sub = ChGenHandMove
 			if s.g.pickF&kop.SrReveal != 0 {
@@ -444,7 +444,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			d.Sub = ChGenSearch // an OriginAlternative$ search is effSearchLibrary whichever zones were elected
 		}
 		s.searchCands(k, d)
-		if s.g.pickF&kop.SrMandatory == 0 || d.N == 0 {
+		if s.g.pickF&kop.SrMandatory == 0 && s.exactlyMayStop(&s.prog(k)[r.pc]) || d.N == 0 {
 			d.add(MakeAction(AkDone, 0, 0, 0))
 		}
 	case raGenDig:
@@ -1513,7 +1513,9 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 	if altOp(in) {
 		s.altBegin() // OriginAlternative$ (zone_originalternative.go)
 	}
-	if s.g.pickF&kop.SrDifferentNames != 0 {
+	if sideOp(in) {
+		s.sideClamp(k, in) // zone_sideboardsearch.go: the pool is the library and the sideboard
+	} else if s.g.pickF&kop.SrDifferentNames != 0 {
 		s.clampDistinctNames(k, in)
 	}
 	if eachOp(k, in) {
@@ -1560,7 +1562,7 @@ func (s *State) searchPick(k *prep) bool {
 		s.finishSearchNow(k)
 		return true
 	}
-	s.res.ask, s.res.askP = raGenSearch, s.chooserOf(p)
+	s.res.ask, s.res.askP = raGenSearch, s.chooserOf(k, p)
 	return false
 }
 
@@ -1585,6 +1587,9 @@ func (s *State) searchZone(k *prep) kop.Zone {
 	if in.B.N&kop.SrAltOrigin != 0 {
 		return s.altSearchZone(in) // OriginAlternative$: the elected zones (zone_originalternative.go)
 	}
+	if in.B.N&(kop.SrSideboard|kop.SrNoLibrary) == kop.SrSideboard|kop.SrNoLibrary {
+		return kop.ZoneSideboard // Origin$ Sideboard alone: the library is not searched (zone_sideboardsearch.go)
+	}
 	return kop.ZoneLibrary
 }
 
@@ -1600,6 +1605,10 @@ func (s *State) searchCands(k *prep, d *Decision) {
 	}
 	if altOp(in) {
 		s.altOriginCands(k, in, d)
+		return
+	}
+	if sideOp(in) {
+		s.sideCands(k, in, d) // zone_sideboardsearch.go
 		return
 	}
 	p := s.g.pickP
@@ -1713,7 +1722,7 @@ func (s *State) finishSearchNow(k *prep) {
 // at the ask).
 func (s *State) finishSearchTail(k *prep) {
 	if k.gen != nil && k.gen.anyKwAct && s.searchZone(k) == kop.ZoneLibrary && s.g.pickF&kop.SrGraveExile == 0 {
-		if q := s.chooserOf(s.g.pickP); q == s.g.pickP {
+		if q := s.chooserOf(k, s.g.pickP); q == s.g.pickP {
 			s.fireKwAct(k, kop.TrigSearchedLibrary, q, 0) // trig_modes.go
 		}
 	}

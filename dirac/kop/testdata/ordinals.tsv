@@ -239,6 +239,7 @@ CtrlHitBySrc	CtrlSel	4
 CtrlOpp	CtrlSel	2
 CtrlYou	CtrlSel	1
 CzBattleGrave	untyped int	8
+CzLibrarySideboard	untyped int	16
 CzUntilLeaves	untyped int	1
 DelayBeginCombat	untyped int	6
 DelayDiesThisTurn	untyped int	5
@@ -456,10 +457,10 @@ ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
 ExtSearchCounters	ExtOp	252
+ExtSpellToLib	ExtOp	308
 ExtSuspect	ExtOp	190
 ExtSweepFrom	ExtOp	97
 ExtToGraveyard	ExtOp	192
-ExtSpellToLib	ExtOp	308
 ExtTokenPT	ExtOp	170
 ExtTurnFaceUp	ExtOp	254
 ExtTwoPilesSac	ExtOp	4
@@ -1025,9 +1026,11 @@ SrAltOrigin	untyped int	16
 SrAltZoneShift	untyped int	5
 SrAttacking	untyped int	4096
 SrAuraEntry	untyped int	8
+SrChooserOpp	untyped int	1
 SrChooserYou	untyped int	64
 SrConfirm	untyped int	16
 SrDifferentNames	untyped int	8192
+SrExactly	untyped int	4
 SrForgetChanged	untyped int	2
 SrForgetOther	untyped int	1024
 SrGameGrave	untyped int	8
@@ -1035,6 +1038,7 @@ SrGraveExile	untyped int	512
 SrHandGrave	untyped int	4
 SrImprint	untyped int	256
 SrMandatory	untyped int	4
+SrNoLibrary	untyped int	2048
 SrNoShuffle	untyped int	16384
 SrOwnZone	untyped int	256
 SrRandom	untyped int	32768
@@ -1042,6 +1046,7 @@ SrRemember	untyped int	32
 SrReveal	untyped int	128
 SrShareLandType	untyped int	512
 SrShuffleOptional	untyped int	8
+SrSideboard	untyped int	1024
 SrTapped	untyped int	1
 SrThenTop	untyped int	2
 SrUnderYourControl	untyped int	2048

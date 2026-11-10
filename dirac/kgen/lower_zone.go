@@ -61,6 +61,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	if strings.TrimSpace(ps.m["Origin"]) == "Battlefield,Stack" {
 		return lc.permOrSpellMove(ps) // lower_permorspell.go
 	}
+	if so := sideboardOrigin(ps); so != sideNone {
+		return lc.sideboardSearch(ps, so) // lower_sideboardsearch.go
+	}
 	dual := strings.TrimSpace(ps.str("Origin")) == "Graveyard,Exile"
 	// a delayed program's return of the object its registration remembered
 	// (The Guardian of Forever): a known-origin move that takes the object
@@ -1045,6 +1048,9 @@ func (lc *lowerCtx) changeZoneAll(ps *params) error {
 	}
 	if strings.TrimSpace(ps.str("Origin")) == "Battlefield,Graveyard" {
 		return lc.originBattleGrave(ps) // lower_changezoneall.go
+	}
+	if strings.TrimSpace(ps.str("Origin")) == "Library,Sideboard" {
+		return lc.originLibrarySideboard(ps) // lower_sideboardsearch.go
 	}
 	lc.exwOK = true // a ChangeZoneAll sweep is a resolution-time mover: ExiledWithSource reads the resolving source
 	f, err := lc.changeZoneAllFilter(ps)

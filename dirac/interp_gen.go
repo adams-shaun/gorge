@@ -1615,7 +1615,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	}
 	nz, zbase := 1, fl.Zone
 	if mv&kop.MvGraveExile != 0 {
-		nz, zbase = 2, kop.ZoneGraveyard // graveexile: Graveyard then Exile
+		nz, zbase = 2, czallFirstZone(in) // graveexile: Graveyard then Exile; Library then Sideboard
 		if in.B.N == kop.CzBattleGrave {
 			// Battlefield,Graveyard (Strategic Betrayal): the battlefield
 			// half first, one simultaneous departure, then the graveyard
@@ -1661,6 +1661,8 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					list[n] = pl.lib[i]
 					n++
 				}
+			case kop.ZoneSideboard:
+				n = s.sideboardList(p, list[:]) // zone_sideboardsearch.go
 			}
 			nl := 0 // library-bound cards, compacted into list[:nl]
 			for i := 0; i < n; i++ {

@@ -74,9 +74,12 @@ func (s *State) pickLeaves(k *prep, o Obj, z kop.Zone) (parked bool) {
 
 // chooserOf is who answers a search / choose-move over player p's zone:
 // p, or the resolving controller with SrChooserYou (gorge Chooser$ You).
-func (s *State) chooserOf(p uint8) uint8 {
+func (s *State) chooserOf(k *prep, p uint8) uint8 {
 	if s.g.pickF&kop.SrChooserYou != 0 {
 		return s.res.e.ctrl
+	}
+	if in := &s.prog(k)[s.res.pc]; in.Op == kop.OpSearchEx && in.B.N&kop.SrChooserOpp != 0 {
+		return 1 - s.res.e.ctrl // Chooser$ Opponent (gorge searchChooser); read from B, pickF's bit 0 is SrTapped
 	}
 	return p
 }

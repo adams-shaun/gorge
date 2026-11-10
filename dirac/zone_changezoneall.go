@@ -187,10 +187,22 @@ func (s *State) overrideRemembered(k *prep, in *kop.Instr) {
 // ZoneHand is Graveyard,Hand (Weftwalking). B.N's CzUntilLeaves bit is
 // never set on the dual shape.
 func czallSecondZone(in *kop.Instr) kop.Zone {
-	if in.B.N == int16(kop.ZoneHand) {
+	switch in.B.N {
+	case int16(kop.ZoneHand):
 		return kop.ZoneHand
+	case kop.CzLibrarySideboard:
+		return kop.ZoneSideboard // Library,Sideboard (Turtles Forever)
 	}
 	return kop.ZoneExile
+}
+
+// czallFirstZone is the first source zone of a MvGraveExile sweep: the
+// graveyard, or the library for Library,Sideboard.
+func czallFirstZone(in *kop.Instr) kop.Zone {
+	if in.B.N == kop.CzLibrarySideboard {
+		return kop.ZoneLibrary
+	}
+	return kop.ZoneGraveyard
 }
 
 // czallPend collects the library-bound cards of a two-zone sweep per owner
