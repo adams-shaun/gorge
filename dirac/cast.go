@@ -734,12 +734,12 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				if e.kind == seAbility && k.gen != nil && k.gen.anyLoyaltyX && s.loyaltyXOptions(k, d) {
 					return true // a planeswalker's [-X] (cost_loyaltyx.go)
 				}
-				if k.gen == nil || !k.gen.anyLifeX || !s.lifeXBuilding(k) {
+				if (k.gen == nil || !k.gen.anyLifeX || !s.lifeXBuilding(k)) && (k.gen == nil || !k.gen.anySacX || !s.sacXBuilding(k)) {
 					s.nextStage(k)
 					continue
 				}
-				// an announced PayLife<X> with no {X} mana asks X below
-				// (cost_paylifex.go)
+				// an announced PayLife<X> or Sac<X/Spec> with no {X} mana
+				// asks X below (cost_paylifex.go, cost_sacx.go)
 			}
 			// X is announced (CR 601.2b) before the payment window opens, so it is
 			// bounded by what that window can pay (CR 601.2g; gorge xAsk).
@@ -779,6 +779,9 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if k.gen != nil && k.gen.anyLifeX {
 				mx = s.lifeXClamp(k, &cost, mx) // PayLife<X> bounds the ask by life
 			}
+			if k.gen != nil && k.gen.anySacX {
+				mx = s.sacXClamp(k, &cost, mx) // Sac<X/Spec> bounds the ask by the sacrifice candidates
+			}
 			d.Kind, d.Sub, d.Player = DkChoose, ChX, e.ctrl
 			hi := s.xReducedCeiling(k, e, &cost, &av, mx)
 			if np := s.convokeXCredit(k); np > 0 {
@@ -787,7 +790,12 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if e.kind == seAbility && k.gen != nil && k.gen.anyLoyaltyX {
 				mx, hi = s.counterXClamp(k, mx, hi) // a shared {X} / SubCounter<X/KIND> is bounded by the source's counters
 			}
-			s.addXOptions(k, d, e, mx, hi, &av)
+			if k.gen != nil && k.gen.anySacX && cost.X != 0 {
+				hi = s.sacXClamp(k, &cost, hi) // (announced only, hi is the clamped mx already)
+			}
+			if !s.addXOptions(k, d, e, mx, hi, &av) {
+				return s.ctl == ctlBuild // false: no X above the floor is payable, the cast reversed (cost_sacx.go)
+			}
 			s.bld().stage = bsX | 0x80 // awaiting X
 			return true
 		case bsCosts:
@@ -2004,6 +2012,9 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 			}
 			s.bld().pickK = rest & -rest
 			s.bld().pickLeft = pc.N
+			if s.bld().pickK == pkSac && pc.N == 0 {
+				s.bld().pickLeft = e.x // Sac<X/Spec>: the announced X (cost_sacx.go; 0 asks nothing)
+			}
 		}
 		if s.bld().pickLeft == 0 {
 			s.bld().donePicks |= s.bld().pickK &^ pickSubCtr // a posed counter pick stepped again owes no done bit

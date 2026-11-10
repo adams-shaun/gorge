@@ -519,6 +519,12 @@ func costString(c lCost) string {
 	if c.Sac != nil {
 		p = append(p, fmt.Sprintf("Sac%d%s", c.SacN, c.Sac))
 	}
+	if c.SacX {
+		p = append(p, "SacX")
+	}
+	if c.XMin > 0 {
+		p = append(p, fmt.Sprintf("XMin%d", c.XMin))
+	}
 	if c.DiscardN > 0 {
 		p = append(p, fmt.Sprintf("Discard%d", c.DiscardN))
 	}

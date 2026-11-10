@@ -166,7 +166,7 @@ func (m ManaCost) Resolve(c int) ManaCost {
 type Cost struct {
 	Mana   ManaCost
 	Flags  CostFlags
-	N      uint8 // count for Sac / RemoveCtr / AddCtr / Discard / PayLife / TapX / ExileGrave
+	N      uint8 // count for Sac (0: the announced X, Sac<X/Spec>) / RemoveCtr / AddCtr / Discard / PayLife / TapX / ExileGrave
 	Ctr    CounterKind
 	Filter FilterID
 	// Host names a cost part paid on the permanent that granted the ability
@@ -198,6 +198,13 @@ type Cost struct {
 	// an empty hand pays with nothing). A table byte, not a CostFlags bit
 	// (the words are full).
 	DiscardHand bool
+	// XMin: the announced X's floor (CR 107.3, 601.2b; gorge Cost.XMin /
+	// XMin$): the X ask offers nothing below it, and an offer that cannot
+	// pay it is not made. 0 means no floor. A table byte, not a CostFlags
+	// bit (the words are full); a uint8 as X is everywhere in the kernel.
+	// Only a cost that announces X by a mana {X} or an announced sacrifice
+	// (CostSac with N 0) carries it.
+	XMin uint8
 }
 
 // CostHostSac: sacrifice the granting host (Sac<1/OriginalHost>: Deconstruction

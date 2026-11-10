@@ -1686,9 +1686,22 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				mana = append(mana, t) // a Phyrexian pip
 				continue
 			}
+			if strings.HasPrefix(t, "XMin") {
+				if err := xminToken(&c, t); err != nil {
+					return c, err
+				}
+				continue
+			}
 			return c, refuse("cost token %q", t)
 		}
 		parts := strings.Split(arg, "/")
+		if head == "Sac" && parts[0] == "X" {
+			// Sac<X/Spec> (lower_xminsacx.go): the announced count
+			if err := lc.sacXCost(&c, parts, t); err != nil {
+				return c, err
+			}
+			continue
+		}
 		if head == "CollectEvidence" {
 			// CollectEvidence<N> (CR 701.59a): exile graveyard cards with
 			// total mana value N or greater (gorge cost.parse's Evidence
@@ -1862,6 +1875,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				continue
 			}
 			// gorge cost.parse folds a cost spec's ";" alternation to ","
+			if c.SacX {
+				return c, refuse("sacrifice cost %q beside a second sacrifice part", t)
+			}
 			f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
 			if err != nil {
 				return c, err
@@ -2188,6 +2204,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 	} else {
 		c.Mana.None = true
 	}
+	if err := lc.announcedXCheck(&c, s); err != nil {
+		return c, err
+	}
 	return c, nil
 }
 
@@ -2434,6 +2453,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		cost, err := lc.costHand(c)
 		lc.unblockedOK, lc.actCost = false, false
 		if err != nil {
+			return err
+		}
+		if err := xminParam(&cost, ps, ab.Kind == akActivated); err != nil {
 			return err
 		}
 		if err := discardHandCost(&cost); err != nil {

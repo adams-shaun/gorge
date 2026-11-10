@@ -323,8 +323,8 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				s.availFor(k, p, &av)
 				haveAv = true
 			}
-			if a.Cost.Mana.X > 0 && s.cfg&cfgGorgeUnpriced != 0 {
-				m := a.Cost.Mana
+			if (a.Cost.Mana.X > 0 || sacXCost(&a.Cost)) && s.cfg&cfgGorgeUnpriced != 0 {
+				m := xFloorCost(a.Cost.Mana, costXMin(&a.Cost)) // (an announced Sac<X> is "cost:x" to the planner too; the pool pays the cheapest legal announcement; cost_sacx.go)
 				if k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
 					m = s.powerUpReduced(k, s.perms[sl].obj, m) // CR 702.193b: gorge prices the reduced cost (legal_walk_battlefield.go)
 				}
@@ -551,7 +551,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		}
 	}
 	if mana.MV() > 0 || mana.X > 0 {
-		manaCost := mana
+		manaCost := xFloorCost(mana, costXMin(&a.Cost)) // the cheapest legal announcement (cost_sacx.go)
 		if f&kop.CostWaterbend != 0 && k.gen != nil && k.gen.anyWaterbend {
 			manaCost = s.waterbendCredit(k, p.ctrl, sl, a, manaCost)
 		}
@@ -564,6 +564,9 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		} else if !s.abilityAffords(k, sl, a, &manaCost, av) {
 			return false
 		}
+	}
+	if mana.X == 0 && sacXCost(&a.Cost) && k.gen != nil && k.gen.anySacX {
+		return s.sacXTargetsFeasible(k, a, p.ctrl, sl) // cost_sacx.go
 	}
 	return s.abilityTargetsFeasible(k, a, p.ctrl, sl, 0xff) && s.xBoundPayable(k, a, 0, p.ctrl, sl, &mana)
 }
@@ -764,6 +767,9 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 	}
 	if cd.Cost.X != 0 {
 		return s.xWitnessOffered(k, p, c, o)
+	}
+	if sacXCost(spellAddCost(k, c)) {
+		return false // an announced Sac<X/Spec>: the potential planner's composition declines it too, so only the floating pool offers it (cost_sacx.go)
 	}
 	if cd.HasAltAdd {
 		cost := s.altAddPlanCost(k, p, c, o)

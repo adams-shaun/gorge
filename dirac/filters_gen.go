@@ -337,7 +337,7 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		s.g.probe = probe{kind: probeSpell, src: NoSlot, card: c, ctrl: p}
 	}
 	ok := false
-	for x := 0; !ok && x < 255 && pot.affords(cost, pm, cost.XGeneric(x)); x++ {
+	for x := costXMin(&a.Cost); !ok && x < 255 && pot.affords(cost, pm, cost.XGeneric(x)); x++ { // from the floor (cost_sacx.go)
 		s.g.probe.x = uint8(x + 1)
 		ok = s.abilityTargetsFeasible(k, a, p, src, 0xff)
 	}
