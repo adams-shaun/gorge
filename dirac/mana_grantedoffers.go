@@ -587,7 +587,7 @@ func (g *grantSrch) candidates(s *State) {
 	em := s.scriptGaps(g.k, g.p) // (mana_granteach.go)
 	g.n = 0
 	holders := 0
-	plain := g.d.hasPlay && g.d.play.Kind() == AkCast && g.d.play.Mode() == 0
+	plain := g.d.hasPlay && gapFilteredPlay(g.d.play)
 	for i := 0; i < n; i++ {
 		sl := order[i]
 		if sl == g.ex {
@@ -597,16 +597,16 @@ func (g *grantSrch) candidates(s *State) {
 		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) {
 			continue
 		}
+		if ng > 0 {
+			holders++ // (a dropped holder still makes this the grant search's play)
+		}
 		if plain && !s.gapSpendable(g.k, sl, &g.d) {
-			// gorge's prefix search drops a gap whose mana the plain cast
+			// gorge's prefix search drops a gap whose mana the play
 			// cannot spend (scriptSpendableGaps); its fee still counts
 			if fm.has(sl) {
 				g.funding += s.filtFee(g.k, sl)
 			}
 			continue
-		}
-		if ng > 0 {
-			holders++
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
 		g.def[g.n] = ng == 0 && dm.has(sl)
@@ -627,6 +627,9 @@ func (g *grantSrch) candidates(s *State) {
 	// non-gaps sit after every gap in battlefield order, exactly the walk
 	// order that loop reads.
 	g.gapN = g.n
+	if g.gapN == 0 {
+		return // every gap dropped: gorge's search runs on none
+	}
 	if !s.filtFunded(g.k, g.p, fm) {
 		g.funding = 0 // (gorge's unrelaxable census funds no fee)
 	}
