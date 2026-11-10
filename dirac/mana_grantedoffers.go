@@ -587,6 +587,7 @@ func (g *grantSrch) candidates(s *State) {
 	em := s.scriptGaps(g.k, g.p) // (mana_granteach.go)
 	g.n = 0
 	holders := 0
+	plain := g.d.hasPlay && g.d.play.Kind() == AkCast && g.d.play.Mode() == 0
 	for i := 0; i < n; i++ {
 		sl := order[i]
 		if sl == g.ex {
@@ -594,6 +595,14 @@ func (g *grantSrch) candidates(s *State) {
 		}
 		ng := s.grantIdxs(g.k, sl, &g.gi[g.n])
 		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) {
+			continue
+		}
+		if plain && !s.gapSpendable(g.k, sl, &g.d) {
+			// gorge's prefix search drops a gap whose mana the plain cast
+			// cannot spend (scriptSpendableGaps); its fee still counts
+			if fm.has(sl) {
+				g.funding += s.filtFee(g.k, sl)
+			}
 			continue
 		}
 		if ng > 0 {

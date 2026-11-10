@@ -643,6 +643,13 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 			fs.fees += s.filtFee(k, b.first())
 		}
 	}
+	if a.Kind() == AkCast && a.Mode() == 0 && (fs.gaps.any() || fs.other.any()) {
+		d := s.grantPayDesc(k, a)
+		fs.gaps, fs.other = s.gapSpendableMask(k, fs.gaps, &d), s.gapSpendableMask(k, fs.other, &d)
+		if !fs.gaps.any() && !fs.other.any() {
+			return false
+		}
+	}
 	t := s.fork()
 	defer s.unfork()
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
@@ -1071,6 +1078,47 @@ func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
 			if fs.try(k, t, st, funded, true) {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+// gapSpendableMask drops from m each source whose every mana ability, printed
+// or granted, carries a spend restriction payment d refuses (CR 106.6):
+// gorge's prefix search (scriptSpendableGaps) never activates such a gap for
+// a plain cast, since it can only float mana the cast may not spend.
+func (s *State) gapSpendableMask(k *prep, m slotMask, d *payDesc) slotMask {
+	out := m
+	for b := m; b.any(); b = b.rest() {
+		if sl := b.first(); !s.gapSpendable(k, sl, d) {
+			out = out.andNot(slotMask{}.with(sl))
+		}
+	}
+	return out
+}
+
+// gapSpendable: some mana ability of the source at sl, printed or granted,
+// is unrestricted or admits payment d (gorge gapSpendableFor's walk of the
+// census's own membership, which reads every mana ability).
+func (s *State) gapSpendable(k *prep, sl Slot, d *payDesc) bool {
+	p := s.perms[sl].ctrl
+	if !s.genLost(k, sl) {
+		cd := &k.t.Cards[s.cardAt(sl)]
+		for j := range cd.Abilities {
+			if a := &cd.Abilities[j]; a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 &&
+				(a.ManaRestrict == 0 || s.restrSrcAdmits(k, p, sl, a, d)) {
+				return true
+			}
+		}
+	}
+	if k.gen == nil || len(k.gen.grantPC) == 0 {
+		return false
+	}
+	var gi [maxGrants]int16
+	for i, n := 0, s.grantIdxs(k, sl, &gi); i < n; i++ {
+		r := k.gen.grantOf[gi[i]]
+		if k.gen.grantRestr[gi[i]] == 0 || s.restrSrcAdmits(k, p, sl, &k.t.Cards[r.card].Abilities[r.ab], d) {
+			return true
 		}
 	}
 	return false
