@@ -18,7 +18,7 @@ func (s *State) fireBlockedGen(k *prep) {
 	na := 0
 	var bl [MaxPerm]Slot
 	nb := 0
-	for m := s.ctrlM[1-s.active]; m.any(); m = m.rest() {
+	for m := s.oppsM(s.active); m.any(); m = m.rest() {
 		if b := m.first(); s.perms[b].flags&pfBlocking != 0 && s.perms[b].blocking != NoSlot {
 			j := nb
 			for j > 0 && s.perms[bl[j-1]].bord > s.perms[b].bord {
@@ -77,7 +77,7 @@ func (s *State) fireBlockedGen(k *prep) {
 func (s *State) fireBlocksGen(k *prep) {
 	var bl [MaxPerm]Slot
 	nb := 0
-	for m := s.ctrlM[1-s.active]; m.any(); m = m.rest() {
+	for m := s.oppsM(s.active); m.any(); m = m.rest() {
 		if b := m.first(); s.perms[b].flags&pfBlocking != 0 && s.perms[b].blocking != NoSlot {
 			j := nb
 			for j > 0 && s.perms[bl[j-1]].bord > s.perms[b].bord {

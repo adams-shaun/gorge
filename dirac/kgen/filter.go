@@ -207,6 +207,7 @@ type lClause struct {
 	Subtype    string // must have this subtype ("" = none)
 	Name       string // named<Name>, normalised (lower.go: the source's own name keeps fNamedAsSource, another is named-other)
 	NotSubtype string // must not have this subtype
+	Subtype2   string // a second subtype it must also have (a Spider Hero); the kernel filter's Pred slot carries it
 	// MoreNotSubtype are further subtypes it must not have, filled only
 	// once NotSubtype is (kop.Filter.NotSubs)
 	MoreNotSubtype [2]string
@@ -299,6 +300,9 @@ func (c lClause) String() string {
 	if c.Subtype != "" {
 		fmt.Fprintf(&b, " sub=%s", c.Subtype)
 	}
+	if c.Subtype2 != "" {
+		fmt.Fprintf(&b, " sub2=%s", c.Subtype2)
+	}
 	if c.NotSubtype != "" {
 		fmt.Fprintf(&b, " notsub=%s", c.NotSubtype)
 	}
@@ -350,7 +354,7 @@ var propWords = map[string]uint64{
 	// every object but the source's live host
 	"!EnchantedBy": fNotAttachedBy, "!EquippedBy": fNotAttachedBy, "!AttachedBy": fNotAttachedBy,
 	"ChosenType": fChosenType, "ChosenColor": fChosenColor, "IsRemembered": fRemembered,
-	"!IsRemembered": fNotRemembered, "ChosenCard": fChosenCard, "nonChosenCard": fNotChosenCard,
+	"!IsRemembered": fNotRemembered, "ChosenCard": fChosenCard, "nonChosenCard": fNotChosenCard, "!ChosenCard": fNotChosenCard,
 	"AttachedTo ParentTarget": fAttachedToParentTarget, "targetedBy": fTargetedBy, "Basic": fBasic,
 	"SharesColorWithOther Remembered": fSharesColorWithOtherRemembered,
 	"NotDefinedTriggeredCard":         fNotTriggerObj,
@@ -594,10 +598,10 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 	}
 	switch p {
 	case "attackingYou":
-		// gorge attackingYou: attacking the source's controller (o.Attacking
-		// names the defending seat, a planeswalker's controller or a
-		// battle's protector too). In two players every attacker attacks
-		// the non-active player's side, so it is an attacking creature the
+		// gorge attackingYou: attacking "you", the evaluating player
+		// (o.Attacking names the defending seat, a planeswalker's
+		// controller or a battle's protector too). In two players every
+		// attacker attacks the non-active player's side, so it is an attacking creature the
 		// controller's opponent controls (Confront the Assault)
 		c.Flags |= fAttacking
 		return c.setWho(&c.Ctrl, whoOpp)
@@ -1037,13 +1041,22 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		return nil
 	}
 	if knownSub(p) {
-		if c.Subtype != "" {
-			return fmt.Errorf("two subtypes")
-		}
-		c.Subtype = p
-		return nil
+		return c.addSubtype(p)
 	}
 	return fmt.Errorf("unknown property %q", p)
+}
+
+// addSubtype fills the clause's first free subtype slot; a third refuses.
+func (c *lClause) addSubtype(p string) error {
+	switch {
+	case c.Subtype == "":
+		c.Subtype = p
+	case c.Subtype2 == "":
+		c.Subtype2 = p
+	default:
+		return fmt.Errorf("three subtypes")
+	}
+	return nil
 }
 
 func (c *lClause) setWho(dst *uint8, v uint8) error {
@@ -1072,6 +1085,9 @@ func (f *lFilter) subtypes() []string {
 	for _, c := range f.Clauses {
 		if c.Subtype != "" {
 			out = append(out, c.Subtype)
+		}
+		if c.Subtype2 != "" {
+			out = append(out, c.Subtype2)
 		}
 		if c.NotSubtype != "" {
 			out = append(out, c.NotSubtype)

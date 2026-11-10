@@ -44,11 +44,14 @@ func xFolded(cost kop.ManaCost, x int) kop.ManaCost {
 // xWindowPay pays an announced X through gorge's manual CR 601.2g window, which its
 // planner leaves such a cost to (pay.PlanCostDetail "cost:x"): the first useful
 // source, repeated until the pool pays. It reports false when the sources run out;
-// what the window tapped stays tapped and its mana floats (CR 733.1).
+// what the window tapped stays tapped and its mana floats (CR 733.1). The window
+// has no auto-fill option, so gorge's answerer (payexec.WindowAnswer) takes a
+// planner-deferred source (Twitching Doll) in its battlefield place, the unit
+// availXWindow counted for the announcement.
 func (s *State) xWindowPay(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
 	c := xFolded(*cost, int(e.x))
 	anyColor := s.bld().bfl&bflAnyColor != 0
-	ok, held := s.windowTapRider(k, e.ctrl, &c, !anyColor, anyColor)
+	ok, held := s.windowTapWalk(k, e.ctrl, &c, &c, !anyColor, anyColor, false, false, true)
 	for col := range held {
 		s.pl[e.ctrl].pool[col] += held[col]
 	}
@@ -198,6 +201,17 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 			a.addUnits(1<<kop.R, 1)
 		}
 	}
+	// A counter-rider or Taps-deferred source (Twitching Doll's "{T}: Add one
+	// mana of any color. Put a nest counter on this", a Taps watcher's Defer
+	// source) is deferred by the planner the same way, and CR 601.2g's window
+	// still taps it (mana_rider.go, mana_tapsdefer.go): gorge's xAsk reads the
+	// window, so the ask counts this unit too.
+	if s.g.availX&3 == 0 {
+		for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
+			pc := s.manaPCGen(k, b.first())
+			a.addUnits(s.srcMaskAt(pc, b.first()), srcYield(pc))
+		}
+	}
 	if k.gen == nil || k.gen.anyContGrant || len(k.gen.grantPC) == 0 {
 		return
 	}
@@ -237,20 +251,29 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 		}
 	}
 	picks := s.convokePickCount() > 0
+	wbX := s.waterbendXBuilding(k) && s.waterbendPickCount() > 0 // a Waterbend<X> pick pays one generic of X (act_waterbend.go)
+	if wbX {
+		hi = min(maxXAsk, max(hi, mx+s.waterbendPickCount()))
+	}
 	base := s.buildCost(k)
 	anyColor := s.bld().bfl&bflAnyColor != 0
 	// pays: X = x is payable. An announced convoke pick pays one generic of
 	// the X total, so the pool owes the post-pick cost, and a pick the total
 	// cannot absorb is rejected (gorge xAsk, convokeAbsorbs with xOpen false).
 	pays := func(x int) bool {
-		if !picks {
+		if !picks && !wbX {
 			return x <= mx || s.xReducedPays(k, av, x)
 		}
 		c := base
 		if k.gen != nil && s.statM.any() {
 			c = s.xHypoCost(k, x) // the stat-reduction alternative: the cost at this X
 		}
-		c, ok := s.convokeXCost(k, c, x)
+		var ok bool
+		if wbX {
+			c, ok = s.waterbendXCost(c, x)
+		} else {
+			c, ok = s.convokeXCost(k, c, x)
+		}
 		if !ok {
 			return false
 		}

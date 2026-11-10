@@ -203,7 +203,7 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		// static's RaiseCost$ is added before the cost statics apply, and
 		// the spell ability's extras follow in "mayplay" scope.
 		base = pay.RawBaseCost(asPayer(e), p, cast.Object)
-		if free, ok := e.mayPlayGrant(p, cast.Object); ok && free {
+		if e.mayPlayFreeCast(p, cast.Object) {
 			base = Cost{}
 		}
 		if raise, hasRaise, priced := e.mayPlayRaiseCost(p, cast.Object); hasRaise {
@@ -299,7 +299,16 @@ func (e *Engine) planCastAltAdd(statics costStaticViews, p state.PlayerID, cast 
 		// list nor the planner carried the cast). NonManaCastable above is the
 		// free part's own payability gate; the parts with mana still take the
 		// offer gate. CR 601.2b/h.
-		if got.Plan != nil && got.Reason == "" && (nonMana || e.potentialWitnessOffers(p, opt, *got.Plan)) {
+		//
+		// A relaxed proof run (PotentialPaymentPlans' unpayability proof) reads
+		// only whether the part is payable with its uncovered sources taken as
+		// free units, and its plans are never executed: a relaxed unit produces
+		// nothing in the plan's activations, so the offer gate below would
+		// price the witness short of mana the unit stands for and the proof
+		// would call a Springleaf Drum-funded cast unpayable, never searching
+		// the prefix that pays it. The gate is skipped there as the single-cost
+		// arm's is (potentialModeCastPlan).
+		if got.Plan != nil && got.Reason == "" && (nonMana || len(e.PaymentPlanRelaxed) != 0 || e.potentialWitnessOffers(p, opt, *got.Plan)) {
 			return got
 		}
 	}
@@ -950,7 +959,7 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 		settleBase, settleScope = e.flashbackCost(cast.Object), spellScope("flashback")
 	} else if o := e.G.Obj(cast.Object); o != nil && plannedMayPlayZone(o.Zone) {
 		settleScope = spellScope("mayplay")
-		if free, granted := e.mayPlayGrant(p, cast.Object); granted && free {
+		if e.mayPlayFreeCast(p, cast.Object) {
 			settleBase = Cost{}
 		}
 		if raise, hasRaise, priced := e.mayPlayRaiseCost(p, cast.Object); hasRaise {

@@ -9,6 +9,7 @@
 #      file-name rule) in every package that holds one, plus ./internal/archtest. The committed repro
 #      tables (TestStd*ReprosLockstep in ./dirac/oracle) are skipped here: the dirac gate runs them.
 #      About 40 s on 8 cores, answered from the test cache on a rerun.
+#   2b. A card unrefused since the merge base needs a row in dirac/support/unrefused.tsv (TestUnrefusalNeedsProof).
 #   3. base's own scripts/dirac-gate.sh, as a landing runs it: State size, allocs, instructions against
 #      the merge base, lockstep, refused entries, synthetic pools, the repro tables. It needs the deck
 #      pools (GORGE_POOLS) for the refused entries.
@@ -53,11 +54,20 @@ cpkgs=$(git grep -lE "^func Test[A-Za-z0-9_]*($C)" -- '*_test.go' | xargs -n1 di
 R='^TestStd[A-Za-z]*ReprosLockstep'
 out=$(go test -timeout 10m -run "$C" -skip "$R" $cpkgs ./internal/archtest 2>&1) || bad "census tests: $(grep -E -A8 -- '^--- FAIL|^FAIL|panic' <<<"$out" | head -40)"
 
+echo "== 2b unrefusals carry proof"
+out=$(KERNEL_UNREFUSE_BASE="$base" go test -timeout 5m -run '^TestUnrefusalNeedsProof$' ./dirac/oracle 2>&1) || bad "unrefusal proof: $(grep -E -A8 -- '^--- FAIL|^FAIL|panic|^    ' <<<"$out" | head -30)"
+
 echo "== 3 dirac gate ($base's copy)"
 gate=$(mktemp "${TMPDIR:-/tmp}/precheck-dirac-gate.XXXXXX") || exit 2
 trap 'rm -f -- "$gate"' EXIT
 git show "$base:scripts/dirac-gate.sh" >"$gate" || exit 2
-out=$(bash "$gate" "$base" 2>&1)
+# PRECHECK_DIRAC_GATE names a program that runs the same gate elsewhere (another machine) and prints its
+# output and exits with its code; it is called with the base and must itself fall back to a local run.
+if [ -n "${PRECHECK_DIRAC_GATE:-}" ] && [ -x "$PRECHECK_DIRAC_GATE" ]; then
+	out=$("$PRECHECK_DIRAC_GATE" "$base" 2>&1)
+else
+	out=$(bash "$gate" "$base" 2>&1)
+fi
 rc=$?
 grep -E '^(==|dirac gate|State|Benchmark|fdn:|blb:|std-|  )' <<<"$out" | head -60
 [ "$rc" -eq 0 ] || bad "dirac gate rc=$rc"

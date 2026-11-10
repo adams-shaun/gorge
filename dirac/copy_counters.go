@@ -31,7 +31,7 @@ func (s *State) copyTokenCtr(k *prep, in *kop.Instr) {
 	// a clean copy instruction: the copy path reads B as CopyFlags and C as
 	// the copy-exception override, neither of which this op carries
 	cin := kop.Instr{Op: kop.OpCopyAsTokenEx, Obj: in.Obj, A: kop.Const(1)}
-	tc, n, rewritten, ok := s.copyTokenRewrite(k, e.ctrl, c, 1)
+	tc, n, rewritten, ok := s.copyTokenRewrite(k, e.ctrl, c, 1, false)
 	if !ok {
 		return
 	}

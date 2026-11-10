@@ -329,7 +329,6 @@ ExCountGraveyard	ExprKind	4
 ExCountHand	ExprKind	250
 ExCount_	ExprKind	58
 ExCounterKinds	ExprKind	225
-ExTargetPlayers	ExprKind	224
 ExCountersOn	ExprKind	18
 ExCreaturesDied	ExprKind	19
 ExCtrAdded	ExprKind	243
@@ -345,6 +344,7 @@ ExGraveAgg	ExprKind	43
 ExGraveTypes	ExprKind	41
 ExHandSizeOf	ExprKind	26
 ExHighestOppPoison	ExprKind	45
+ExIfCastOwnMain	ExprKind	224
 ExKicked	ExprKind	7
 ExLastLifeLost	ExprKind	22
 ExLeftZone	ExprKind	249
@@ -383,6 +383,7 @@ ExSneaked	ExprKind	51
 ExStartingLife	ExprKind	14
 ExSum	ExprKind	25
 ExSumPower	ExprKind	5
+ExTargetPlayers	ExprKind	223
 ExThisTurnActGrave	ExprKind	50
 ExThisTurnCast	ExprKind	33
 ExThisTurnCastSpec	ExprKind	47
@@ -951,12 +952,13 @@ RefTriggerSource	Ref	21
 RefTriggerTgtCtrl	Ref	33
 RepeatEachSeatOrder	untyped int	2
 ReplAddCountersOn	ReplKind	21
+ReplAddToken	ReplKind	35
 ReplAfterEnter	untyped int	1
 ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	35
+ReplCount	ReplKind	36
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamagePlus	ReplKind	16
@@ -1001,6 +1003,7 @@ ReplSpellsCantBeCountered	ReplKind	27
 ReplTurnUpProgram	ReplKind	25
 RetAttachShift	untyped int	8
 RetAttachTo	untyped int	2048
+RetCounterPairShift	untyped int	8
 RetFromLibrary	untyped int	16384
 RetShuffleOwed	untyped int	8192
 RetUnderOpponent	untyped int	4096
@@ -1046,11 +1049,13 @@ StBeamGranted	StaticFlags	1
 StCasterActive	StaticFlags	64
 StDynamic	StaticFlags	1
 StEmbNum	StaticFlags	16384
+StFbOwnCost	StaticFlags	1
 StFreeOnly	StaticFlags	128
 StFunctionsInExile	StaticFlags	1024
 StFunctionsInGraveyard	StaticFlags	16
 StMayPayLife	StaticFlags	8192
 StMayRaise	StaticFlags	32768
+StNoPrevCombat	StaticFlags	2
 StOncePerTurn	StaticFlags	2
 StPanhETB	StaticFlags	2048
 StRaiseLife	StaticFlags	2048
@@ -1096,10 +1101,12 @@ StatCastWithFlash	StaticKind	6
 StatCombatDmgToughness	StaticKind	245
 StatContinuous	StaticKind	1
 StatControl	StaticKind	17
-StatCount	StaticKind	19
+StatCount	StaticKind	20
 StatDisableETB	StaticKind	234
 StatExtraLandPlay	StaticKind	12
+StatFbGrant	StaticKind	242
 StatGoad	StaticKind	249
+StatHexproofOwnColors	StaticKind	19
 StatIncreaseCost	StaticKind	9
 StatMaxBlockers	StaticKind	241
 StatMayPlayFrom	StaticKind	13
@@ -1251,6 +1258,7 @@ TokSacAtEnd	untyped int	8
 TokTapped	untyped int	1
 TrAttacking	untyped int	2
 TrHasteEOT	untyped int	4
+TrList	untyped int	8
 TrTapped	untyped int	1
 TrigAbCastExhaust	int16	1
 TrigAbCastLoyalty	int16	2

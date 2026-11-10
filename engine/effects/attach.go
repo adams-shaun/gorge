@@ -275,8 +275,19 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 		// Chosen remembers BOTH the entering Aura and the Cat token, and only
 		// the Aura is the object to attach). Widening the first-take to every
 		// selector would attach the attachments to each other.
-		plural := ap.objectKind == attachObjectAttachedTo
+		//
+		// ParentTarget / ParentTargeted is plural too: it names the parent
+		// link's answered target set, which the card text attaches as a whole
+		// (Thorin, Mountain-king's "attach any number of target Equipment you
+		// control to target creature you control").
+		plural := ap.objectKind == attachObjectAttachedTo || ap.objectKind == attachObjectParentTarget
 		if ts, ok := definedSpec(h, c, ap.Object); ok {
+			// An Object$ TriggeredCard referent that changed zones since the
+			// trigger fired is a new object the ability cannot find (CR 400.7);
+			// the destination-side Defined$ strip below is the same rule.
+			if triggeredCardFamilySelector(ap.Object) {
+				ts = dropTriggerRememberedMoved(c, ts)
+			}
 			os := objectsOf(ts)
 			if len(os) > 0 {
 				obj = os[0].Obj
@@ -401,7 +412,15 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 	var legalT []state.Target
 	destCandidatesFor := func(attachObj state.ObjID) []state.Target {
 		var out []state.Target
-		for _, t := range Defined(h, c, sa) {
+		defined := Defined(h, c, sa)
+		// An entering Ninja that returns to hand and re-enters before the
+		// attach trigger resolves is a new object (CR 400.7), not the Ninja
+		// the trigger names: drop the TriggeredCard referent the same way
+		// PutCounter, Pump and ChangeZone do.
+		if triggeredCardFamilyDefined(DefinedRefOf(sa)) {
+			defined = dropTriggerRememberedMoved(c, defined)
+		}
+		for _, t := range defined {
 			if t.IsPlayer {
 				// A player is a legal bearer only when the attaching object's
 				// OWN Enchant spec names a player (an Enchant:Player /

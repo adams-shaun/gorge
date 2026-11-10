@@ -16,7 +16,7 @@ func (s *State) fireDefPlayer(k *prep, l trigListener, a *kop.Ability, grp []Slo
 	if len(grp) == 0 || isObjTarget(s.perms[grp[0]].atk) {
 		return
 	}
-	def := s.perms[grp[0]].atk - PlayerTarget0
+	def := CodeSeat(s.perms[grp[0]].atk)
 	if a.Trig.Flags2&kop.Tf2AtkOpp != 0 && def == l.ctrl {
 		return
 	}

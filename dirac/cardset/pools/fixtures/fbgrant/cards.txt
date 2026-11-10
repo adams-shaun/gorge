@@ -1,0 +1,14 @@
+# the graveyard flashback grant pool: Iroh, Grand Lotus over plain instants and
+# sorceries, a printed flashback, and Lessons, with creatures that float mana,
+# for the oracle's constructed lockstep
+# (dirac/oracle/fbgrant_test.go)
+Boomerang Basics
+Burning-Tree Emissary
+Forest
+How to Start a Riot
+Iroh, Grand Lotus
+Island
+Mountain
+Opt
+Rockalanche
+Think Twice

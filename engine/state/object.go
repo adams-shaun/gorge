@@ -43,9 +43,9 @@ type TargetStamp struct {
 	// it advances on every zone change (not only the battlefield crossing
 	// Incarnation marks), so the resolution recheck drops a target that
 	// changed zones since, whatever zones it passed through. Only the
-	// target stamps (foldTargetsChosen, a StackCopy's named targets) and
-	// the trigger fire-time stamps set it; the remembered-list stamps that
-	// share the type leave it zero and nothing judges them by it.
+	// target stamps (foldTargetsChosen, a StackCopy's named targets), the
+	// trigger fire-time stamps and the delayed-trigger remembered-list
+	// stamps (DelayedTrigger.RememberedStamps) set it.
 	ZoneGen uint32
 }
 
@@ -138,6 +138,11 @@ type LKIObject struct {
 	Controller PlayerID
 	Owner      PlayerID
 	Snapshot   Object
+	// Colors is the WUBRG letter set the object had through layer 5 on the
+	// battlefield (CR 613.1e); meaningful only when ColorsKnown. Only a
+	// Destroy RememberLKI$ capture sets it.
+	Colors      string
+	ColorsKnown bool
 }
 
 // CastFlags bits record how an object was cast. Several can be set at once

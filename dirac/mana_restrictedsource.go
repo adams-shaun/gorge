@@ -106,6 +106,9 @@ func restrSrcAb(a *kop.Ability) bool {
 		a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && a.ManaColors&0x3f != 0
 }
 
+// oneColour: m holds exactly one colour bit.
+func oneColour(m kop.ColorMask) bool { return m != 0 && m&(m-1) == 0 }
+
 // prepRestrSrc records card c's restricted planner source (its first).
 func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 	for j := range c.Abilities {
@@ -135,9 +138,13 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 				// the extra colours twice.
 				v.manaCol |= a.ManaColors & 0x3f
 			}
-			if n > pc.manaN && a.ManaColors&kop.ColAny == kop.ColAny && a.AFlags&kop.AfManaChoice == 0 {
-				// two mana of one colour beside the census ability's one:
-				// gorge's planner offers both alternatives (restrPairUnit)
+			if n > pc.manaN && a.AFlags&kop.AfManaChoice == 0 &&
+				(a.ManaColors&kop.ColAny == kop.ColAny ||
+					!a.ManaEach && oneColour(a.ManaColors&kop.ColAny) && a.ManaColors&kop.ColAny == pc.manaCol&kop.ColAny) {
+				// several mana of one colour beside the census ability's one,
+				// of any colour or of the census ability's own single colour
+				// (Tablet of Discovery's {R}{R} beside {R}): gorge's planner
+				// offers both alternatives (restrPairUnit)
 				v.wideN, v.wideCol = n, a.ManaColors&kop.ColAny
 				g.rs.wide = true
 			}
@@ -476,7 +483,9 @@ func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot)
 				// makes (its colours include them), so the source counts as
 				// wideN mana of one colour of its choosing
 				t.addUnits(uint8(v.wideCol), v.wideN)
-				s.addOneColour(&t, v.wideN)
+				if v.wideCol == kop.ColAny {
+					s.addOneColour(&t, v.wideN) // a fixed colour is no free choice
+				}
 				break
 			}
 			t.addUnits(s.srcMaskAt(v, sl), v.manaN)
@@ -780,6 +789,15 @@ func (s *State) actRestrAffords(k *prep, sl Slot, cost *kop.ManaCost, av *avail,
 func (s *State) actPoolAffords(k *prep, sl Slot, cost *kop.ManaCost, av *avail) bool {
 	p := s.perms[sl].ctrl
 	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl}
+	return s.actPoolAffordsDesc(k, p, cost, d, av)
+}
+
+// actPoolAffordsDesc: av, with the floating restricted batches d admits
+// counted, pays cost: the same test for an activation whose source is not on
+// the battlefield (a graveyard card, src NoSlot), CR 106.6.
+//
+//go:noinline
+func (s *State) actPoolAffordsDesc(k *prep, p uint8, cost *kop.ManaCost, d payDesc, av *avail) bool {
 	m := s.restrPoolAct(k, p, &d)
 	if m == 0 {
 		return false

@@ -439,6 +439,20 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		}
 		ts.TFlags |= kop.TgfBoundsV
 		ts.UpTo = true
+	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && t.Divided == 0 && t.Mode < 0 && t.ParentPlus1 == 0 &&
+		t.Min.isConst() && t.Min.N == 1 && !t.Max.isConst() && !plainX(t.Max) && tgtBoundReads(t.Max):
+		// one target at least, up to a value read as the slot is announced
+		// (Return to Dust: TargetMin$ 1, TargetMax$ the own-main-phase count).
+		// The slot is mandatory: the kernel's bound check asks MinV
+		// candidates (tgtBoundsFeasible) and the ask closes at MaxV.
+		var err error
+		if ts.MinV, err = cb.value(t.Min); err != nil {
+			return ts, fmt.Errorf("target count %s..%s: %w", t.Min, t.Max, err)
+		}
+		if ts.MaxV, err = cb.value(t.Max); err != nil {
+			return ts, fmt.Errorf("target count %s..%s: %w", t.Min, t.Max, err)
+		}
+		ts.TFlags |= kop.TgfBoundsV
 	default:
 		return ts, fmt.Errorf("target count %s..%s", t.Min, t.Max)
 	}
@@ -531,7 +545,7 @@ func plainX(v lValue) bool {
 
 func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
-	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked:
+	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain:
 		return true
 	case vSum, vProduct:
 		for _, sv := range v.Sub {
@@ -1638,8 +1652,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		for _, fl := range s.Flags {
 			switch fl {
-			case "Bargained":
-				st.StFlags |= kop.StBargained // lower_reducespell.go
+			case "Bargained", "OptPaid":
+				st.StFlags |= kop.StBargained // lower_reducespell.go, lower_optcost.go
 			case "ReduceColor":
 				st.StFlags |= kop.StReduceColor
 				st.B = int16(s.RedCol)
@@ -1666,6 +1680,20 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "BeamGrant":
 		st.Kind = kop.StatBeamGrant
+	case "FbGrant":
+		st.Kind = kop.StatFbGrant // kw_fbgrant.go
+		if st.Filter, err = filter(s.F, kop.ZoneGraveyard); err != nil {
+			return ka, nil, err
+		}
+		for _, fl := range s.Flags {
+			if fl != "OwnCost" {
+				return ka, nil, fmt.Errorf("FbGrant flag %q", fl)
+			}
+			st.StFlags |= kop.StFbOwnCost
+			if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
+				return ka, nil, err
+			}
+		}
 	case "TapExtra":
 		st.Kind = kop.StatTapExtra
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -1811,6 +1839,12 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		st.Kind = kop.StatCantDraw
 	case "CantPreventDamage":
 		st.Kind = kop.StatCantPreventDamage // static_cantprevent.go
+		for _, fl := range s.Flags {
+			if fl != "NoPrevCombat" {
+				return ka, nil, fmt.Errorf("CantPreventDamage flag %q", fl)
+			}
+			st.StFlags |= kop.StNoPrevCombat
+		}
 	case "MinMaxBlocker":
 		st.Kind = kop.StatMaxBlockers
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -1823,6 +1857,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "DisableTriggers":
 		st.Kind = kop.StatDisableETB
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+	case "HexproofOwnColors":
+		st.Kind = kop.StatHexproofOwnColors
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
@@ -2150,6 +2189,18 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 			return ka, fmt.Errorf("token %q", r.S)
 		}
 		rp.C = int16(idx) // a pool token index; the matchup remaps it
+	case "AddToken":
+		rp.Kind = kop.ReplAddToken
+		idx, ok := cb.pt.tokenIdx[r.S]
+		if !ok {
+			return ka, fmt.Errorf("token %q", r.S)
+		}
+		rp.C = int16(idx) // a pool token index; the matchup remaps it
+		if r.F != nil {
+			if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
+				return ka, err
+			}
+		}
 	case "DoubleCounters":
 		rp.Kind = kop.ReplDoubleCounters
 	case "GraveToLibrary":
@@ -2328,6 +2379,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	}
 	counters := func() error {
 		if k, ok := fl["counters"]; ok {
+			if strings.Contains(k, ",") {
+				return cb.counterPair(&ki, in, k) // lower_counterlist.go
+			}
 			ck, err := counterKind(k)
 			if err != nil {
 				return err
@@ -3262,11 +3316,18 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, fmt.Errorf("token %q", in.CS)
 		}
 		ki.C = int16(idx)
-		if in.C&(6|24|32|64|128|256|512|1024|2048) == 0 {
+		if in.C&(6|24|32|64|128|256|512|1024|2048) == 0 { // tokListBit rides the core op
 			// the core's CreateToken: B.N = TokenRider flags.
 			ki.Op = kop.OpCreateToken
+			b := 0
 			if in.C&1 != 0 {
-				ki.B = kop.Const(kop.TrTapped)
+				b |= kop.TrTapped
+			}
+			if in.C&tokListBit != 0 {
+				b |= kop.TrList
+			}
+			if b != 0 {
+				ki.B = kop.Const(b)
 			}
 			break
 		}
@@ -3769,6 +3830,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, err
 		}
 		ki.C = int16(r)
+		if in.Note == attachRememberNote {
+			ki.B = kop.Const(1) // remember each object attached
+		}
 	case "ClearCounters":
 		ki.Op = kop.OpClearCounters
 	case "RemoveCounterAll":

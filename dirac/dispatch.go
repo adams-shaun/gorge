@@ -164,12 +164,10 @@ func (s *State) execCold5(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpSetLife:
 		// the amount is read once, before any change (gorge
 		// NumResolvedStrict ahead of the acting-player walk)
-		p1, p2 := s.players(k, in.Obj)
+		q := s.players(k, in.Obj)
 		n := s.value(k, in.A)
-		for _, p := range [2]uint8{p1, p2} {
-			if p > 1 {
-				continue
-			}
+		for i := uint8(0); i < q.n; i++ {
+			p := q.s[i]
 			if d := n - int(s.pl[p].life); d > 0 {
 				s.gainLife(k, p, d)
 			} else {
@@ -187,12 +185,10 @@ func (s *State) execCold5(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpFog:
 		s.g.fog = true
 	case kop.OpPoison:
-		p1, p2 := s.players(k, in.Obj)
+		q := s.players(k, in.Obj)
 		n := s.value(k, in.A)
-		for _, p := range [2]uint8{p1, p2} {
-			if p <= 1 {
-				s.addPoison(p, n)
-			}
+		for i := uint8(0); i < q.n; i++ {
+			s.addPoison(q.s[i], n)
 		}
 	default:
 		return s.execCold6(k, in)

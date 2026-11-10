@@ -300,22 +300,24 @@ func delayedManaSpentSuffix(c *Ctx, remembered []state.Target) string {
 }
 
 // delayedRegisterStampSuffix encodes a Phase DelayedTrigger registration's
-// remembered stamps into the event Text: one "<id>:<incarnation>" pair per
-// remembered object the state knows. An object that changed zones between the
+// remembered stamps into the event Text: one "<id>:<incarnation>:<zonegen>"
+// triple per remembered object the state knows. ZoneGen advances on every zone
+// change, so the body-time check drops an object that moved by any route since
+// (graveyard to exile included, CR 400.7). An object that changed zones between the
 // trigger firing and the start of its resolution keeps the fire-time stamp
 // (TriggerContext.TriggerRememberedStamps, CR 400.7): it is a new object the
-// delayed trigger cannot find. Any other takes the live incarnation, the value
+// delayed trigger cannot find. Any other takes the live stamps, the values
 // events.rememberedStampsFrom derives at the fold, so a move the resolution itself
 // makes names the object it moved (CR 400.7j: Salvation Swan exiling the Bird
 // whose entering fired it returns that Bird). An empty remembered set of known
 // objects carries no suffix.
 func delayedRegisterStampSuffix(h Host, c *Ctx, remembered []state.Target) string {
-	var byID map[state.ObjID]uint32
+	var byID map[state.ObjID]state.TargetStamp
 	if len(c.TriggerRememberedMoved) > 0 {
-		byID = make(map[state.ObjID]uint32, len(c.TriggerRememberedMoved))
+		byID = make(map[state.ObjID]state.TargetStamp, len(c.TriggerRememberedMoved))
 		for _, s := range c.TriggerRememberedStamps {
 			if slices.Contains(c.TriggerRememberedMoved, s.Obj) {
-				byID[s.Obj] = s.Incarnation
+				byID[s.Obj] = s
 			}
 		}
 	}
@@ -328,11 +330,11 @@ func delayedRegisterStampSuffix(h Host, c *Ctx, remembered []state.Target) strin
 		if o == nil {
 			continue
 		}
-		inc := o.Incarnation
+		inc, zg := o.Incarnation, o.ZoneGen
 		if s, ok := byID[t.Obj]; ok {
-			inc = s
+			inc, zg = s.Incarnation, s.ZoneGen
 		}
-		parts = append(parts, strconv.FormatUint(uint64(t.Obj), 10)+":"+strconv.FormatUint(uint64(inc), 10))
+		parts = append(parts, strconv.FormatUint(uint64(t.Obj), 10)+":"+strconv.FormatUint(uint64(inc), 10)+":"+strconv.FormatUint(uint64(zg), 10))
 	}
 	if len(parts) == 0 {
 		return ""

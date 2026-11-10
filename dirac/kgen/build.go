@@ -267,6 +267,21 @@ func colorMask(s string) kop.ColorMask {
 
 // typeMask maps the LIR type bits (whose low byte matches kop's) and the
 // supertypes.
+// subtypeTypeBits is the kernel type bits a subtype list carries: Aura and
+// Equipment are TypeMask bits as well as subtypes.
+func subtypeTypeBits(subs []string) kop.TypeMask {
+	var m kop.TypeMask
+	for _, s := range subs {
+		switch s {
+		case "Aura":
+			m |= kop.TAura
+		case "Equipment":
+			m |= kop.TEquipment
+		}
+	}
+	return m
+}
+
 func typeMask(t uint16) kop.TypeMask {
 	m := kop.TypeMask(t & 0xff)
 	if t&tLegendary != 0 {
@@ -409,14 +424,7 @@ func (cb *cardBuilder) record() error {
 	if c.Token {
 		d.Types |= kop.TToken
 	}
-	for _, s := range c.Subtypes {
-		switch s {
-		case "Aura":
-			d.Types |= kop.TAura
-		case "Equipment":
-			d.Types |= kop.TEquipment
-		}
-	}
+	d.Types |= subtypeTypeBits(c.Subtypes)
 	if cb.out.subs, err = cb.subIndexes(c.Subtypes); err != nil {
 		return err
 	}
@@ -882,6 +890,9 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		// other counted part.
 		set(kop.CostWaterbend, c.Waterbend)
 	}
+	if c.WaterbendX {
+		set(kop.CostWaterbend, 0) // N 0: the announced X is the amount (Cost.Mana.X)
+	}
 	if c.SacSelf {
 		out.Flags |= kop.CostSacSelf
 	}
@@ -1156,6 +1167,24 @@ var flag1 = map[uint64]kop.FilterFlags{
 	fExiledWith: kop.FExiledWith, fNotAttacking: kop.FNotAttacking, fNotAttachedBy: kop.FNotAttachedBySrc,
 }
 
+// clauseSubtype2 puts a clause's second subtype on kf: it takes the one Pred
+// slot (kernel PredSubtype: Table.Subtypes index N, read on a permanent and on a
+// card in any other zone), so it refuses beside any other predicate.
+func (cb *cardBuilder) clauseSubtype2(c lClause, kf *kop.Filter) error {
+	if c.Subtype2 == "" {
+		return nil
+	}
+	i, ok := cb.pt.sub(c.Subtype2)
+	if !ok {
+		return fmt.Errorf("subtype %q", c.Subtype2)
+	}
+	if kf.Pred != kop.PredNone || c.Name != "" && c.Flags&fNamedAsSource == 0 {
+		return fmt.Errorf("two subtypes beside a compare")
+	}
+	kf.Pred, kf.PredN = kop.PredSubtype, int16(i)
+	return nil
+}
+
 func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	var kf kop.Filter
 	kf.Zone = zone
@@ -1343,27 +1372,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			kf.Pred, kf.PredN, kf.PredV = kop.PredPowerGEV, 2, v
 			break
 		}
-		if c.CmpV != nil {
-			bound := *c.CmpV
-			if c.CmpOp == opGT && !bound.Neg {
-				// power is an integer: > X is >= X+1 (Ensign Harry Kim,
-				// Operations' powerGTY over his own power)
-				bound.Add++
-			} else if c.CmpOp != opGE {
-				return kf, fmt.Errorf("power compare against a value")
-			}
-			if zone != kop.ZoneBattlefield && zone != kop.ZoneNone {
-				return kf, fmt.Errorf("power compare against a value")
-			}
-			// a power >= a value: a permanent's (Gix's Command's greatest
-			// power; kernel predPermCold, or powerGEVFrom in the filter's
-			// source context), or an object's where it now is, a departed
-			// trigger object's last known power (kernel cardPowerGEV)
-			v, err := cb.value(bound)
-			if err != nil {
-				return kf, err
-			}
-			kf.Pred, kf.PredV = kop.PredPowerGEV, v
+		if done, err := cb.powerBattlefieldClause(c, zone, &kf); err != nil {
+			return kf, err
+		} else if done {
 			break
 		}
 		op, n := intCmpGELE(c.CmpOp, c.CmpN) // powers are integers: LT n is LE n-1
@@ -1403,6 +1414,11 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 				return kf, err
 			}
 			kf.Pred, kf.PredV = kop.PredToughnessLEV, v
+			break
+		}
+		if done, err := cb.toughnessGTClause(c, zone, &kf); err != nil {
+			return kf, err
+		} else if done {
 			break
 		}
 		op, n := c.CmpOp, c.CmpN
@@ -1606,6 +1622,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			return kf, fmt.Errorf("counter compare %d", c.CmpOp)
 		}
 	}
+	if err := cb.clauseSubtype2(c, &kf); err != nil {
+		return kf, err
+	}
 	if c.Name != "" && c.Flags&fNamedAsSource == 0 {
 		// a named<X> clause, the source's own name included
 		// (gorge wordNamed -> sharesName, CR 201.2), any zone: Pred = PredNamed, PredN = the
@@ -1647,6 +1666,59 @@ func tgtRefOf(n int) kop.Ref {
 		return kop.RefTarget4
 	}
 	return kop.RefTarget0 + kop.Ref(n)
+}
+
+// powerBattlefieldClause lowers a clause's power compare against a value, or
+// a battlefield power == a constant, into kf (done false: not one of these).
+// A power >= a value is a permanent's (Gix's Command's greatest power; kernel
+// predPermCold, or powerGEVFrom in the filter's source context), or an
+// object's where it now is, a departed trigger object's last known power
+// (kernel cardPowerGEV); > X lowers as >= X+1 (power is an integer; Ensign
+// Harry Kim, Operations' powerGTY over his own power). A battlefield power ==
+// a constant (Amalia Benavides Aguirre's powerEQ20) is PredPowerGEV with
+// PredN 3.
+func (cb *cardBuilder) powerBattlefieldClause(c lClause, zone kop.Zone, kf *kop.Filter) (done bool, err error) {
+	if c.CmpV == nil && c.CmpX == "" && c.CmpOp == opEQ && zone == kop.ZoneBattlefield {
+		kf.Pred, kf.PredN, kf.PredV = kop.PredPowerGEV, 3, kop.Const(c.CmpN)
+		return true, nil
+	}
+	if c.CmpV == nil {
+		return false, nil
+	}
+	bound := *c.CmpV
+	if c.CmpOp == opGT && !bound.Neg {
+		bound.Add++
+	} else if c.CmpOp != opGE {
+		return false, fmt.Errorf("power compare against a value")
+	}
+	if zone != kop.ZoneBattlefield && zone != kop.ZoneNone {
+		return false, fmt.Errorf("power compare against a value")
+	}
+	v, err := cb.value(bound)
+	if err != nil {
+		return false, err
+	}
+	kf.Pred, kf.PredV = kop.PredPowerGEV, v
+	return true, nil
+}
+
+// toughnessGTClause lowers a toughness > a value (Hulkling's toughnessGTZ;
+// kernel predPermCold, or cardToughnessGEV for a departed trigger object's
+// last known toughness) into kf (done false: not this shape). Toughness is an
+// integer, so > X is >= X+1: PredToughnessLEV with PredN 3 (toughness >=
+// PredV).
+func (cb *cardBuilder) toughnessGTClause(c lClause, zone kop.Zone, kf *kop.Filter) (done bool, err error) {
+	if c.CmpV == nil || c.CmpOp != opGT || c.CmpV.Neg || (zone != kop.ZoneBattlefield && zone != kop.ZoneNone) {
+		return false, nil
+	}
+	bound := *c.CmpV
+	bound.Add++
+	v, err := cb.value(bound)
+	if err != nil {
+		return false, err
+	}
+	kf.Pred, kf.PredN, kf.PredV = kop.PredToughnessLEV, 3, v
+	return true, nil
 }
 
 // tgtSlotOfRef is the target slot a kop target ref names (ok false: not one).
@@ -1839,6 +1911,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vLeftZone:           kop.ExLeftZone,
 	vCastFromGrave:      kop.ExCastFromGrave,
 	vFirstCast:          kop.ExFirstCast,
+	vIfCastOwnMain:      kop.ExIfCastOwnMain,
 	vCtrAdded:           kop.ExCtrAdded,
 	vSacrificedThisTurn: kop.ExSacrificedThisTurn,
 	vDiscardedThisTurn:  kop.ExDiscardedThisTurn,
@@ -2039,7 +2112,14 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 		cb.out.ovVals = append(cb.out.ovVals, ko.PA, ko.TA)
 	}
 	ko.HasTypes, ko.SetTypes = o.HasSetTypes, typeMask(o.SetTypes)
-	ko.AddTypes = typeMask(o.AddTypes)
+	// an Equipment subtype the override adds or sets is the kernel's
+	// TEquipment too (The Irencrag, Domesticated Watercourse)
+	ko.AddTypes = typeMask(o.AddTypes) | subtypeTypeBits(o.AddSubtypes)
+	if o.HasSetSubtypes && o.HasSetTypes {
+		ko.SetTypes |= subtypeTypeBits(o.SetSubtypes)
+	} else if o.HasSetSubtypes {
+		ko.AddTypes |= subtypeTypeBits(o.SetSubtypes)
+	}
 	ko.HasSub = o.HasSetSubtypes
 	ko.AllCreatureTypes = o.AllCreatureTypes
 	ko.RemoveCreatureSub = o.RemoveCreatureSub

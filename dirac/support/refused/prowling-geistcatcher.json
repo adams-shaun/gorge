@@ -3,11 +3,12 @@
   "class": "projection",
   "why": "gorge puts the +1/+1 counter when the sacrificed creature was a token; the kernel does not",
   "repro": {
-    "pool": "tail-47",
+    "pool": "custom",
     "surface": "autopay",
-    "seed": 1,
-    "pair": 72,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 1
+    "mulligans": 1,
+    "file": "prowling_geistcatcher_token_sacrifice_counter"
   }
 }

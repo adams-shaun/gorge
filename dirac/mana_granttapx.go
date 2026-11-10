@@ -13,8 +13,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // play; it now lists the tap-another source as a candidate whose printed
 // ability is tried first: the permanent to tap (an ask with two or more
 // candidates, battlefield order), then the colour (W U B R G), as tapXSearch
-// does (mana_tapanother.go). A two-permanent cost (Baylen) is not modelled
-// here: it stays out of the grant search as before.
+// does (mana_tapanother.go). A second tap-another ability beside a plain
+// first (Scene of the Crime) is a candidate too: its ability ask lists the
+// plain {C} first, then the tap-another ability. A two-permanent cost (Baylen)
+// is not modelled here: it stays out of the grant search, priced by the
+// tap-another search alone (tapXOffGrant).
 
 // stepTapX is the gi of a prefix step that activates a candidate's
 // tap-another-permanent ability (cand the permanent it taps, col its colour).
@@ -30,7 +33,7 @@ func (s *State) grantTapXGaps(k *prep, p uint8) slotMask {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
 		sl := b.first()
 		c := s.cardAt(sl)
-		if a := &k.t.Cards[c].Abilities[k.cards[c].manaAb]; a.Cost.N == 1 && a.Cost.Flags&kop.CostTap != 0 {
+		if a := k.tapXAbOf(c); a.Cost.N == 1 && a.Cost.Flags&kop.CostTap != 0 {
 			m = m.with(sl)
 		}
 	}
@@ -84,4 +87,16 @@ func (g *grantSrch) tapXBranch(t *State, i int, sl Slot) bool {
 // the grants, must not keep a play that search gave up on.
 func (s *State) tapXOffGrant(k *prep, p uint8) bool {
 	return s.scriptTapXModelled(k, p).andNot(s.grantTapXGaps(k, p)).any()
+}
+
+// tapXSecondLive: p has a live tap-another source that is a later ability
+// beside a plain {T} first (Scene of the Crime), which the grant search
+// activates beside the grants.
+func (s *State) tapXSecondLive(k *prep, p uint8) bool {
+	for b := s.grantTapXGaps(k, p); b.any(); b = b.rest() {
+		if k.tapXSecond(s.cardAt(b.first())) {
+			return true
+		}
+	}
+	return false
 }

@@ -10,7 +10,7 @@ import (
 //go:noinline
 func (s *State) countHand(k *prep, x *kop.Expr, ctx evalCtx) int {
 	v := 0
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < MaxSeats; pp++ {
 		pl := &s.pl[pp]
 		for j := 0; j < int(pl.handN); j++ {
 			o := pl.hand[j]

@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // Tap-another-permanent mana (Saruli Caretaker, Springleaf
 // Drum: "{T}, Tap an untapped creature you control: Add one mana of any
@@ -43,6 +47,20 @@ var debugTapXMutate int
 
 const maxTapXPath = 24
 
+// tapXAbOf is card c's tap-another-permanent mana ability (prep.tapXAb): its
+// first mana ability (Saruli Caretaker), or a later one beside a plain {T}
+// first (Scene of the Crime, kop.SecondTapXManaAb), nil none. The later one's
+// source is a planner unit too (its first ability's {C}): gorge's relaxed
+// census appends the gap's free any-colour unit beside it (rules
+// paymentPlanRelaxProof), and the prefix search answers the activation's
+// "which ability" ask with this one (CR 605.3b, 601.2g).
+func (k *prep) tapXAbOf(c CardID) *kop.Ability {
+	if int(c) >= len(k.tapXAb) || k.tapXAb[c] < 0 {
+		return nil
+	}
+	return &k.t.Cards[c].Abilities[k.tapXAb[c]]
+}
+
 // scriptTapX: p's tap-another-permanent sources that can be activated now
 // (untapped, not summoning sick, with an untapped candidate), a slot mask.
 //
@@ -68,12 +86,11 @@ func (s *State) tapXSources(k *prep, p uint8, cands bool) slotMask {
 	}
 	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
 		sl := b.first()
-		c := s.cardAt(sl)
-		if k.cards[c].manaAb < 0 || !kop.TapXMana(&k.t.Cards[c].Abilities[k.cards[c].manaAb]) {
+		a := k.tapXAbOf(s.cardAt(sl))
+		if a == nil {
 			continue
 		}
 		pm := &s.perms[sl]
-		a := &k.t.Cards[c].Abilities[k.cards[c].manaAb]
 		if a.Cost.Flags&kop.CostTap != 0 && (pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0) || s.genLost(k, sl) ||
 			k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) { // the source's lock only: the tapped permanent activates nothing
 			continue // (a cost with no {T} needs neither an untapped nor an unsick source)
@@ -94,8 +111,7 @@ func (s *State) tapXSources(k *prep, p uint8, cands bool) slotMask {
 //go:noinline
 func (s *State) tapXTwoLive(k *prep, p uint8) bool {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
-		c := s.cardAt(b.first())
-		if k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.Flags&kop.CostTap == 0 {
+		if k.tapXAbOf(s.cardAt(b.first())).Cost.Flags&kop.CostTap == 0 {
 			return true
 		}
 	}
@@ -126,8 +142,8 @@ func (s *State) tapXEachGaps(k *prep, p uint8) slotMask {
 // cost's filter, the source itself excluded (its own {T} is paid first;
 // pay.ManaTapCandidates claims it).
 func (s *State) tapXCands(k *prep, p uint8, sl Slot, out *[MaxPerm]Slot) int {
-	c := s.cardAt(sl)
-	f := k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.Filter
+	ab := k.tapXAbOf(s.cardAt(sl))
+	f := ab.Cost.Filter
 	var m slotMask
 	// A creature the cast being paid for announced for convoke is tapped when
 	// that payment settles, so it is not untapped to tap again here (CR 601.2g-h;
@@ -138,7 +154,7 @@ func (s *State) tapXCands(k *prep, p uint8, sl Slot, out *[MaxPerm]Slot) int {
 	}
 	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
 		x := b.first()
-		if x == sl && k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.Flags&kop.CostTap != 0 || s.perms[x].flags&pfTapped != 0 || spoken.has(x) || !s.matchPerm(k, f, x, p, sl) {
+		if x == sl && ab.Cost.Flags&kop.CostTap != 0 || s.perms[x].flags&pfTapped != 0 || spoken.has(x) || !s.matchPerm(k, f, x, p, sl) {
 			continue
 		}
 		m = m.with(x)
@@ -147,14 +163,19 @@ func (s *State) tapXCands(k *prep, p uint8, sl Slot, out *[MaxPerm]Slot) int {
 }
 
 // availTapX adds p's tap-another-permanent sources' mana to the gaps walk:
-// the relaxed census counts each as a free any-colour unit.
+// the relaxed census counts each as a free any-colour unit (a second
+// ability's beside its source's own planner unit).
 //
 //go:noinline
 func (s *State) availTapX(k *prep, p uint8, av *avail) {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
-		pc := &k.cards[s.cardAt(b.first())]
-		av.addUnits(uint8(pc.manaCol), pc.manaN)
+		av.addUnits(tapXUnit(k.tapXAbOf(s.cardAt(b.first()))))
 	}
+}
+
+// tapXUnit is the colours and amount of tap-another ability a's unit.
+func tapXUnit(a *kop.Ability) (uint8, uint8) {
+	return uint8(a.ManaColors), max(a.ManaN, 1)
 }
 
 // scriptCtrModelled is scriptCtr on the boards the search models: the counter-cost
@@ -214,6 +235,7 @@ const (
 	tapXAnswer              // act answers the ask then pending
 	tapXPass                // p passes with a trigger of the path on the stack
 	tapXEach                // an each-colour gap (a Bloom Tender) taps for its colours
+	tapXPlain               // a second-ability source answers its ability ask with its plain first ability (tapXPlainDo)
 )
 
 type tapXKey struct {
@@ -342,7 +364,7 @@ func (s *State) tapXPlay(k *prep, p uint8, path []tapXStep) {
 		if !s.tapXNext(p, &d) {
 			break
 		}
-		if st.kind == tapXAct || st.kind == tapXEach {
+		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain {
 			s.tapXDo(k, p, st)
 		} else if hasOption(&d, st.act) {
 			s.Apply(st.act)
@@ -505,6 +527,10 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		s.tapGap(k, p, st.sl, slotMask{}, &held)
 		return
 	}
+	if st.kind == tapXPlain {
+		s.tapXPlainDo(k, p, st.sl, st.col)
+		return
+	}
 	if st.cand == NoSlot {
 		s.ctrGap(k, p, st.sl) // a counter-cost gap: its counter, its use, its mana
 		s.sba(k)              // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
@@ -524,15 +550,92 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		}
 	}
 	s.tapBatchClose(tb)
-	if c := s.cardAt(st.sl); k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.Flags&kop.CostTap != 0 {
+	ab := k.tapXAbOf(s.cardAt(st.sl))
+	if ab.Cost.Flags&kop.CostTap != 0 {
 		s.perms[st.sl].flags |= pfTapped
 		s.touchSl(st.sl)
 		s.manaTapped(k, st.sl)
 	}
-	pc := &k.cards[s.cardAt(st.sl)]
-	s.poolAdd(p, int(st.col), int(max(pc.manaN, 1)))
+	_, n := tapXUnit(ab)
+	s.poolAdd(p, int(st.col), int(n))
 	s.tapExtraStall(k, st.sl)
 	s.artTag(k, p, st.sl, int(st.col))
+}
+
+// tapXSecond: card c's tap-another ability is a later one beside a plain {T}
+// first (Scene of the Crime), so activating the source asks which ability.
+func (k *prep) tapXSecond(c CardID) bool {
+	return int(c) < len(k.tapXAb) && k.tapXAb[c] >= 0 && k.tapXAb[c] != k.cards[c].manaAb
+}
+
+// tapXPlainDo plays a second-ability source's first ability (its {T}: Add
+// {C}): the answer gorge's prefix search tries first at the source's ability
+// ask (scriptAnswers in the ask's order), and its only one once the tap-another
+// cost has nothing left to tap. The source taps and its colour floats: its
+// fixed colour, or the colour asked when the plain ability is an any-colour one
+// (Weather Maker's, beside its counter ability: mana_countercost.go).
+func (s *State) tapXPlainDo(k *prep, p uint8, sl Slot, ask uint8) {
+	pc := &k.cards[s.cardAt(sl)]
+	col := bits.TrailingZeros8(uint8(pc.manaCol))
+	if pc.manaCol&(pc.manaCol-1) != 0 {
+		col = int(ask)
+	}
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	s.poolAdd(p, col, int(max(pc.manaN, 1)))
+	s.tapExtraStall(k, sl)
+	s.artTag(k, p, sl, col)
+}
+
+// tapXAbilityAsk branches a second-ability gap source sl at a search node on
+// its ability ask (rules scriptSearch.visit, an activation of a census gap,
+// then scriptAnswers over the ask): the plain first ability first, and the
+// caller then tries the tap-another one when it has a candidate (live). With
+// one payable ability nothing is asked. handled: the search found a path
+// (found) or ran out of nodes (!found); the caller returns found then.
+func (rs *tapXSearch) tapXAbilityAsk(k *prep, t *State, sl Slot, live bool) (found, handled bool) {
+	if !k.tapXSecond(t.cardAt(sl)) || !t.canTapForMana(k, sl) {
+		return false, false
+	}
+	if live && !rs.tick() { // the ability ask
+		return false, true
+	}
+	if rs.try(k, t, tapXStep{kind: tapXPlain, sl: sl, cand: NoSlot, cand2: NoSlot}) {
+		return true, true
+	}
+	return false, false
+}
+
+// ctrAbilityAsk branches a second-ability counter gap sl (kop.SecondCtrTapManaAb)
+// at a search node on its ability ask: the plain first ability first, behind
+// the colour ask its any-colour production poses, the colours in the order of
+// the play's announced ones (cols). The caller then tries the counter ability.
+// handled: the search found a path (found) or ran out of nodes (!found); the
+// caller returns found then.
+func (rs *tapXSearch) ctrAbilityAsk(k *prep, t *State, sl Slot, cols *[5]uint8) (found, handled bool) {
+	c := t.cardAt(sl)
+	if !k.ctrSecond(c) {
+		return false, false
+	}
+	if !rs.tick() { // the ability ask
+		return false, true
+	}
+	if mc := k.cards[c].manaCol; mc&(mc-1) != 0 {
+		if !rs.tick() { // the colour ask
+			return false, true
+		}
+		for i := 0; i < 5; i++ {
+			if rs.try(k, t, tapXStep{kind: tapXPlain, sl: sl, cand: NoSlot, cand2: NoSlot, col: cols[i]}) {
+				return true, true
+			}
+		}
+		return false, false
+	}
+	if rs.try(k, t, tapXStep{kind: tapXPlain, sl: sl, cand: NoSlot, cand2: NoSlot}) {
+		return true, true
+	}
+	return false, false
 }
 
 func (rs *tapXSearch) try(k *prep, t *State, st tapXStep) bool {
@@ -612,18 +715,28 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			continue
 		}
 		if ctr.has(sl) {
-			// a counter-cost gap has one answer and asks nothing
+			// a counter-cost gap has one answer and asks nothing, unless it is
+			// a second ability beside a plain first one: activating the source
+			// then asks which ability, and gorge's search tries the plain one
+			// first (with its colour ask when it makes any colour), so a later
+			// gap's counters may pay where this one's would have
+			if found, handled := rs.ctrAbilityAsk(k, t, sl, &cols); handled {
+				return found
+			}
 			if rs.try(k, t, tapXStep{sl: sl, cand: NoSlot, cand2: NoSlot}) {
 				return true
 			}
 			continue
+		}
+		if found, handled := rs.tapXAbilityAsk(k, t, sl, live.has(sl)); handled {
+			return found
 		}
 		if !live.has(sl) {
 			continue
 		}
 		var cs [MaxPerm]Slot
 		nc := t.tapXCands(k, p, sl, &cs)
-		if sc := k.cards[t.cardAt(sl)].manaAb; k.t.Cards[t.cardAt(sl)].Abilities[sc].Cost.N == 2 {
+		if k.tapXAbOf(t.cardAt(sl)).Cost.N == 2 {
 			// a two-permanent cost (Baylen): two candidates are tapped with no
 			// ask; more are asked as one "choose 2" whose answers gorge's
 			// scriptAnswers enumerates as every pair of its candidates in

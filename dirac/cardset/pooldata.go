@@ -119,7 +119,15 @@ func (s dataSet) AbilityOrigin(i, ab int) uint8 {
 }
 
 func (s dataSet) Matchup(a, b []Entry) (*kop.Table, []kop.CardID, []kop.CardID, error) {
-	return s.matchup(a, b, false)
+	t, ids, err := s.matchup([][]Entry{a, b}, false)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return t, ids[0], ids[1], nil
+}
+
+func (s dataSet) MatchupN(decks [][]Entry) (*kop.Table, [][]kop.CardID, error) {
+	return s.matchup(decks, false)
 }
 
 func (s dataSet) Pool() (*kop.Table, error) {
@@ -127,7 +135,7 @@ func (s dataSet) Pool() (*kop.Table, error) {
 	for i := range all {
 		all[i] = Entry{Name: s.d.Names[i], Count: 1}
 	}
-	t, _, _, err := s.matchup(all, nil, true)
+	t, _, err := s.matchup([][]Entry{all, nil}, true)
 	return t, err
 }
 
@@ -225,7 +233,7 @@ func (s dataSet) abReduceGuard(pool []int) error {
 	return AbReduceRefusal(reducers, costed)
 }
 
-func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []kop.CardID, error) {
+func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardID, error) {
 	dd := s.d
 	var pool []int
 	seen := map[int]bool{}
@@ -240,14 +248,14 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 			add(int(t))
 		}
 	}
-	for _, d := range [][]Entry{a, b} {
+	for _, d := range decks {
 		for _, e := range d {
 			i, ok := s.Lookup(e.Name)
 			if !ok {
-				return nil, nil, nil, fmt.Errorf("card %q is not in the pool", e.Name)
+				return nil, nil, fmt.Errorf("card %q is not in the pool", e.Name)
 			}
 			if !s.plays[i] && !inert {
-				return nil, nil, nil, &RefusedError{Card: e.Name, Status: dd.Status[i], Reason: dd.Reason[i]}
+				return nil, nil, &RefusedError{Card: e.Name, Status: dd.Status[i], Reason: dd.Reason[i]}
 			}
 			add(i)
 		}
@@ -255,17 +263,17 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 	sort.Ints(pool)
 	if !inert {
 		if err := s.layerGuard(pool); err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		if err := s.roomNameGuard(pool); err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		if err := s.abReduceGuard(pool); err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 	}
 	if len(pool) >= int(kop.NoCard) {
-		return nil, nil, nil, fmt.Errorf("matchup needs %d cards", len(pool))
+		return nil, nil, fmt.Errorf("matchup needs %d cards", len(pool))
 	}
 	id := map[int]kop.CardID{}
 	for j, i := range pool {
@@ -410,7 +418,7 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 		}
 	}
 	if len(t.Subtypes) > kop.MaxSubtypes {
-		return nil, nil, nil, fmt.Errorf("matchup needs %d subtypes", len(t.Subtypes))
+		return nil, nil, fmt.Errorf("matchup needs %d subtypes", len(t.Subtypes))
 	}
 	// A filter naming a subtype no object in this matchup can have keeps
 	// the sentinel NoSubtype: Sub never matches, NotSub always passes.
@@ -444,18 +452,7 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 				f.NotSubs[i] = subOf(n - 1)
 			}
 		}
-		if f.Pred == kop.PredHistoric && f.PredN > 0 {
-			// PredN is the pool's Saga subtype index+1; the matchup's compact
-			// table renumbers subtypes, so the pool index would test an
-			// arbitrary other subtype (an all-creature-types permanent
-			// satisfies any creature type). A matchup with no Saga keeps 0:
-			// the clause is artifact or legendary only.
-			if m, ok := subMap[uint8(f.PredN-1)]; ok {
-				f.PredN = int16(m) + 1
-			} else {
-				f.PredN = 0
-			}
-		}
+		remapSubtypePreds(f, subMap)
 		if f.Pred == kop.PredNamed {
 			// PredN is a pool index; the table's CardIDs are the matchup's
 			// compact ids (inert: the pool's stable PoolID), so the
@@ -490,8 +487,8 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 		out := make([]kop.Ability, len(abs))
 		for k, ab := range abs {
 			out[k] = ab
-			if ab.Kind == kop.AbReplacement && ab.Repl.Kind == kop.ReplRewriteTokens {
-				out[k].Repl.C = int16(id[int(ab.Repl.C)]) // the token it makes
+			if ab.Kind == kop.AbReplacement && (ab.Repl.Kind == kop.ReplRewriteTokens || ab.Repl.Kind == kop.ReplAddToken) {
+				out[k].Repl.C = int16(id[int(ab.Repl.C)]) // the token it makes or adds
 			}
 			out[k].Prog = make([]kop.Instr, len(ab.Prog))
 			copy(out[k].Prog, ab.Prog)
@@ -552,11 +549,11 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 	}
 	if !inert {
 		if err := s.interactionGuard(t, pool); err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 	}
 	if err := s.nameChoices(t, pool, id); err != nil { // pooldata_names.go
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	deck := func(d []Entry) []kop.CardID {
 		var out []kop.CardID
@@ -568,5 +565,34 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 		}
 		return out
 	}
-	return t, deck(a), deck(b), nil
+	out := make([][]kop.CardID, len(decks))
+	for p, d := range decks {
+		out[p] = deck(d)
+	}
+	return t, out, nil
+}
+
+// remapSubtypePreds renumbers the pool subtype index a filter's Pred slot
+// carries into the matchup's compact subtype table. PredSubtype's PredN is the
+// pool index (a clause's second subtype); one no object here can have maps past
+// every subtype (NoSubtype-1, as Sub's sentinel). PredHistoric's PredN is the
+// pool's Saga subtype index+1; the compact table renumbers subtypes, so the
+// pool index would test an arbitrary other subtype (an all-creature-types
+// permanent satisfies any creature type). A matchup with no Saga keeps 0: the
+// clause is artifact or legendary only.
+func remapSubtypePreds(f *kop.Filter, subMap map[uint8]uint8) {
+	switch {
+	case f.Pred == kop.PredSubtype:
+		if m, ok := subMap[uint8(f.PredN)]; ok {
+			f.PredN = int16(m)
+		} else {
+			f.PredN = NoSubtype - 1
+		}
+	case f.Pred == kop.PredHistoric && f.PredN > 0:
+		if m, ok := subMap[uint8(f.PredN-1)]; ok {
+			f.PredN = int16(m) + 1
+		} else {
+			f.PredN = 0
+		}
+	}
 }

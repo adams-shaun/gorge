@@ -1,3 +1,5 @@
+//go:build !dirac_mp
+
 package dirac
 
 import (

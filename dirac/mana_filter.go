@@ -135,6 +135,13 @@ func (s *State) filtUnits(k *prep, sl Slot) int {
 	if comboFiltAb(a) {
 		return int(a.ManaN)
 	}
+	if a.ManaEach {
+		n := 0
+		for _, v := range filtEachVec(a) {
+			n += int(v)
+		}
+		return n // an all-at-once filter's whole vector (mana_filtereach.go)
+	}
 	return 1
 }
 
@@ -161,7 +168,7 @@ func (s *State) filtRelaxable(k *prep, f slotMask) bool {
 //go:noinline
 func (s *State) availFilt(k *prep, p uint8, a *avail) {
 	for b := s.scriptFilt(k, p); b.any(); b = b.rest() {
-		a.addUnits(uint8(s.filtAb(k, b.first()).ManaColors), uint8(s.filtUnits(k, b.first())))
+		addFiltUnits(a, s.filtAb(k, b.first()), uint8(s.filtUnits(k, b.first())))
 		a.total -= s.filtFee(k, b.first())
 	}
 }
@@ -236,7 +243,7 @@ func (s *State) faceReachable(k *prep, p uint8, av *avail, r *kop.ManaCost, extr
 					t.addUnits(1<<c, n)
 				}
 			}
-			t.addUnits(uint8(s.filtAb(k, sl).ManaColors), uint8(s.filtUnits(k, sl)))
+			addFiltUnits(&t, s.filtAb(k, sl), uint8(s.filtUnits(k, sl)))
 		}
 		if t.affords(r, pipMaskOf(r), extra) {
 			return true
@@ -343,7 +350,7 @@ func (s *State) filtActivate(k *prep, t *avail, filt *[maxFaceFilters]Slot, set 
 				}
 				t.total -= fee
 				a := s.filtAb(k, sl)
-				t.addUnits(uint8(a.ManaColors), uint8(units))
+				addFiltUnits(t, a, uint8(units))
 				if manaOneColour(a, uint8(units)) {
 					s.addOneColour(t, uint8(units))
 				}
@@ -524,7 +531,7 @@ func (s *State) gapOthers(k *prep, p uint8) slotMask {
 	for b := m; b.any(); b = b.rest() {
 		sl := b.first()
 		c := s.cardAt(sl)
-		if ab := k.cards[c].manaAb; ab >= 0 && kop.TapXMana(&k.t.Cards[c].Abilities[ab]) && !live.has(sl) {
+		if k.tapXAbOf(c) != nil && !live.has(sl) {
 			m = m.without(sl)
 		}
 	}
@@ -698,6 +705,10 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		}
 		if k.artMana {
 			s.artSync(p) // a slot the fee emptied no longer holds an artifact's mana
+		}
+		if s.filtAb(k, st.sl).ManaEach {
+			s.filtEachDo(k, p, st.sl) // every colour at once, whatever ans names (mana_filtereach.go)
+			break
 		}
 		if st.alloc != ([kop.NumManaKinds]uint8{}) {
 			// a combination filter: its allocation, each colour registered
@@ -967,6 +978,10 @@ func (fs *filtSearch) settle(k *prep, t *State, funded int, gapUsed bool) bool {
 // askManaColor offers effects.ComboColours in script order). A combination
 // filter (Baxter Building) asks for a whole allocation instead (filtCombo).
 func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
+	if t.filtAb(k, sl).ManaEach {
+		// a fixed production: no colour ask, one activation (mana_filtereach.go)
+		return fs.try(k, t, filtStep{sl: sl, ans: 1, gap: true}, funded, true)
+	}
 	if !fs.tick() {
 		return false
 	}

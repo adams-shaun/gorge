@@ -564,6 +564,9 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 	if c, ok := ps.get("ConditionPlayerTurn"); ok {
 		return lc.playerTurnCondition(ps, c)
 	}
+	if err := lc.notPresentAsPresent(ps); err != nil { // lower_condnotpresent.go
+		return lCond{}, err
+	}
 	if cp, ok := ps.get("ConditionPresent"); ok {
 		if d, ok := ps.get("ConditionDefined"); ok && strings.TrimSpace(d) == "Collected" {
 			return lc.collectedCondition(ps, cp) // lower_collectedevidence.go

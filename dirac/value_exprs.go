@@ -117,6 +117,11 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 			return s.evalV(k, x.Sub[0], ctx)
 		}
 		return s.evalV(k, x.Sub[1], ctx)
+	case kop.ExIfCastOwnMain:
+		if s.castInOwnMain(ctx) { // value_ifcastmain.go
+			return s.evalV(k, x.Sub[0], ctx)
+		}
+		return s.evalV(k, x.Sub[1], ctx)
 	case kop.ExChosenMode:
 		return s.chosenModeOf(ctx.srcSl) // face_siegemode.go
 	case kop.ExChosenNumber:

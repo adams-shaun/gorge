@@ -548,6 +548,8 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		c := cd.Cost
 		if e.flags&sfFlashback != 0 && ((cd.Keywords&kop.KwFlashback != 0 || cd.BeamMeUp) && e.flags&sfFbGranted == 0 || cd.Harmonize) {
 			c = cd.AltCost // a granted flashback costs the mana cost
+		} else if e.flags&sfFlashback != 0 && k.gen != nil && k.gen.anyFbGrant && !cd.BeamMeUp {
+			c = s.fbGrantCost(k, e.ctrl, e.obj, s.bld().fbGrants != 0) // or a live grant's own cost (kw_fbgrant.go)
 		}
 		if e.mode&modeWarped != 0 && cd.HasWarp {
 			c = cd.WarpCost // the hand's warp cost (CR 702.185a)
@@ -694,7 +696,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				return true
 			}
 			if s.costPickOptions(k, d, kop.CostTapX) {
-				return true
+				return s.ctl == ctlBuild // false: a short tap cost reversed the build (sacShort)
 			}
 			if k.gen != nil && k.gen.anyWaterbend && s.waterbendOptions(k, d) {
 				return true
@@ -751,6 +753,9 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			// bounded by what that window can pay (CR 601.2g; gorge xAsk).
 			var av avail
 			s.availXWindow(k, e.ctrl, &av)
+			if s.bld().pickN != 0 {
+				s.excludePickedSources(k, &av) // a waterbend/convoke pick cannot also tap for mana
+			}
 			if e.kind == seAbility {
 				s.excludeTapSource(k, &av)
 				if m := s.restrActNow(k, e.ctrl); m != 0 {
@@ -995,6 +1000,17 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if k.gen != nil && k.gen.anyWaterbend && s.waterbendTargetAbort(k) {
 				// the same census after a waterbend ability's picks
 				// (act_waterbend.go)
+				if !t.UpTo {
+					s.reverseCast(k)
+					return false
+				}
+				s.bld().ti = kop.MaxTargets
+				s.nextStage(k)
+				continue
+			}
+			if k.gen != nil && s.tapXTargetAbort(k) {
+				// the same census after an ability's tap-another picks took
+				// the mana sources its cost needs (cast_tapxtarget.go)
 				if !t.UpTo {
 					s.reverseCast(k)
 					return false
@@ -1490,7 +1506,7 @@ func (s *State) finishBuild(k *prep) {
 			// (pair 4512); the window offers only the sources still useful
 			// (pairs 10163 20476)
 			xc := xFolded(cost, int(e.x))
-			if !s.loweredWindowOK(k, e.ctrl, &xc, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0) || s.winPaused() {
+			if !s.loweredWindowOK(k, e.ctrl, &xc, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0, cost.X != 0) || s.winPaused() {
 				return // stranded: the cast was reversed; or the window waits on a tap-another pick
 			}
 		} else if (k.t.Cards[e.card].HasModeCost || wbSpell) && cost.X == 0 {
@@ -1600,6 +1616,7 @@ func (s *State) finishBuild(k *prep) {
 		if !early {
 			cost = s.buildCostCharge(k)
 		}
+		cost = s.waterbendXCharge(k, &e, cost) // a Waterbend<X> pick pays one generic of the folded X (act_waterbend.go)
 		if m := s.restrActNow(k, e.ctrl); m != 0 {
 			s.payRestrSpend(k, e.ctrl, m, &cost, int(e.x), NoObj, false) // an ability its restriction admits spends it first
 		} else {
@@ -1911,8 +1928,14 @@ func (s *State) placeTriggers(k *prep, d *Decision) bool {
 	p := s.active
 	n := s.pendCount(p)
 	if n == 0 {
-		p = 1 - p
-		n = s.pendCount(p)
+		// CR 603.3b: APNAP order, each player in turn order from the
+		// active player (gorge sortPendingTriggers over AliveFrom(Active))
+		for {
+			p = s.nextAlive(p)
+			if n = s.pendCount(p); n != 0 || MaxSeats == 2 {
+				break
+			}
+		}
 	}
 	if s.orderLeft == 0 && n >= 2 {
 		// gorge KTriggerOrder is one Min=Max=n multi-select over the
@@ -2039,9 +2062,11 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 		}
 		d.N = 0
 		s.costCands(k, pc, src, d)
-		if s.bld().pickK == pkSac && int(d.N) < int(s.bld().pickLeft) || s.bld().pickK == pkDiscard && d.N == 0 {
-			// no card left to discard: a free cast begun without the offer's cost census
-			// (Wishing Well's Play) reverses here, as gorge's discardAsk aborts (CR 733.1)
+		if s.bld().pickK == pkSac && int(d.N) < int(s.bld().pickLeft) || s.bld().pickK == pkDiscard && d.N == 0 ||
+			s.bld().pickK == pkTapX && e.kind == seSpell && int(d.N) < int(s.bld().pickLeft) {
+			// no card left to discard, or too few permanents to tap: a free cast begun without
+			// the offer's cost census (Wishing Well's Play, a discover's Guardian of the Great
+			// Door) reverses here, as gorge's discardAsk and tapPermanentCostAsk abort (CR 733.1)
 			s.sacShort(k, d)
 			return true
 		}

@@ -494,11 +494,23 @@ func matchMana(d *decision.Decision, act decision.PaymentActivation) ([]int, boo
 		},
 	}
 	costly := act.Consequence != nil
+	// A granted option names an ability a payment plan cannot (it may carry a
+	// spend restriction the plan never priced): prefer any other option, and
+	// admit a granted one only when no class matches without it.
+	if pick, ok := pickManaClass(d, classes, costly, false); ok {
+		return pick, true
+	}
+	return pickManaClass(d, classes, costly, true)
+}
+
+// pickManaClass returns the first class's best option; granted options are
+// skipped unless admitGranted.
+func pickManaClass(d *decision.Decision, classes []func(o *decision.Option) bool, costly, admitGranted bool) ([]int, bool) {
 	for _, cls := range classes {
 		best := -1
 		for i := range d.Options {
 			o := &d.Options[i]
-			if !cls(o) {
+			if (o.Granted && !admitGranted) || !cls(o) {
 				continue
 			}
 			if best < 0 {

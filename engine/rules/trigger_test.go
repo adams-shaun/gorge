@@ -530,8 +530,9 @@ Oracle:x
 
 func TestLandPlayedTriggerIgnoresTheSeparateLandPlayedEvent(t *testing.T) {
 	t.Parallel()
-	// The bookkeeping LandPlayed event carries no Obj, so it must never by
-	// itself satisfy a LandPlayed trigger's ValidCard$.
+	// The LandPlayed trigger is answered from the land-play MoveZone; the
+	// bookkeeping LandPlayed event (which carries an Obj only as off-hand /
+	// not-owned provenance) must never by itself satisfy its ValidCard$.
 	src := `Name:Ranger
 ManaCost:1 G
 Types:Creature Human

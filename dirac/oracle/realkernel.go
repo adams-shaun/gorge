@@ -31,8 +31,14 @@ var RealKernelGaps = []string{
 // card resolved in reg by its kernel name, through names (kernel name ->
 // gorge name) when it maps one.
 func KernelMatchup(reg *cards.Registry, tbl *kop.Table, labels [2]string, decks [2][]kop.CardID, names map[string]string, mulligans int) (*Matchup, error) {
-	var gd [2][]*cards.Card
-	for s := 0; s < 2; s++ {
+	return KernelMatchupN(reg, tbl, labels[:], decks[:], names, mulligans)
+}
+
+// KernelMatchupN is KernelMatchup at len(decks) seats (2..MaxSeats), seat s
+// playing decks[s] under labels[s]; at two seats it is KernelMatchup.
+func KernelMatchupN(reg *cards.Registry, tbl *kop.Table, labels []string, decks [][]kop.CardID, names map[string]string, mulligans int) (*Matchup, error) {
+	gd := make([][]*cards.Card, len(decks))
+	for s := range decks {
 		for _, id := range decks[s] {
 			n := tbl.Cards[id].Name
 			if g, ok := names[n]; ok {
@@ -45,7 +51,7 @@ func KernelMatchup(reg *cards.Registry, tbl *kop.Table, labels [2]string, decks 
 			gd[s] = append(gd[s], c)
 		}
 	}
-	return NewMatchup(reg, labels, gd, mulligans)
+	return NewMatchupN(reg, labels, gd, mulligans)
 }
 
 // RealKernel is a SideFactory over package kernel playing tbl. The matchup's
@@ -64,9 +70,13 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 		}
 	}
 	return func(m *Matchup, seed uint64) (Side, error) {
-		var decks [2][]kop.CardID
-		for s := 0; s < 2; s++ {
-			for _, c := range m.Decks[s] {
+		n := m.NSeat()
+		if n > dirac.MaxSeats {
+			return nil, fmt.Errorf("realkernel: a matchup of %d seats; this kernel build holds %d (the dirac_mp build tag holds %d)", n, dirac.MaxSeats, MaxSeats)
+		}
+		var decks [dirac.MaxSeats][]kop.CardID
+		for s := 0; s < n; s++ {
+			for _, c := range m.SeatDeck(s) {
 				id, ok := rev[cardName(c)]
 				if !ok {
 					return nil, fmt.Errorf("realkernel: %q is not in table %s", cardName(c), tbl.Name)
@@ -84,7 +94,7 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 				sides[s] = append(sides[s], id)
 			}
 		}
-		r := &realSide{tbl: tbl, m: m}
+		r := &realSide{tbl: tbl, m: m, n: uint8(n)}
 		m.chars = newCharVocab(tbl)
 		r.gname = make([]string, len(tbl.Cards))
 		r.tidx = make([]uint8, len(tbl.Cards))
@@ -116,7 +126,7 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 			}
 			r.kcfg.SideN[s] = uint8(copy(r.kcfg.Side[s][:], sides[s]))
 		}
-		r.s.Init(tbl, decks[0], decks[1], seed, r.kcfg)
+		r.s.InitN(tbl, decks, uint8(n), seed, r.kcfg)
 		return r, nil
 	}
 }
@@ -134,6 +144,7 @@ type realSide struct {
 	kcfg  dirac.Config // what s was built with
 	tbl   *kop.Table
 	m     *Matchup
+	n     uint8    // seats
 	gname []string // per kernel CardID: the gorge card name
 	tidx  []uint8  // per kernel CardID: the matchup table index
 	d     dirac.Decision
@@ -349,18 +360,32 @@ func (r *realSide) Project(p *Projection) {
 	}
 	p.Initiative = r.s.Initiative() // CR 726 (act_initiative.go)
 	p.DayNight = r.s.DayNight()     // CR 731 (kw_daynight.go)
-	for s := 0; s < 2; s++ {
-		p.Room[s] = r.s.DungeonRoom(uint8(s))
-		p.Life[s] = int32(kp.Life[s])
-		p.Poison[s] = int16(r.s.Poison(uint8(s))) // infect / toxic (kw_infect.go)
-		p.Speed[s] = uint8(r.s.Speed(uint8(s)))   // CR 702.179 (kw_speed.go)
+	for s := 0; s < int(r.n) && s < MaxSeats; s++ {
+		sp := p.seat(s)
+		*sp.room = r.s.DungeonRoom(uint8(s))
+		*sp.life = int32(kp.Life[s])
+		*sp.poison = int16(r.s.Poison(uint8(s))) // infect / toxic (kw_infect.go)
+		if s < 2 {
+			// the kernel packs speed for two seats; a further seat's stays zero
+			*sp.speed = uint8(r.s.Speed(uint8(s))) // CR 702.179 (kw_speed.go)
+		}
 		if uint8(s) == kp.Active {
-			p.LandsPlayed[s] = kp.Lands[s] // the active player's only (project.go)
+			*sp.lands = kp.Lands[s] // the active player's only (project.go)
 		}
 		for k := 0; k < 6 && k < len(kp.Pool[s]); k++ {
-			p.Pool[s][k] = int16(kp.Pool[s][k])
+			sp.pool[k] = int16(kp.Pool[s][k])
 		}
-		p.LibCount[s], p.HandCount[s] = kp.LibN[s], kp.HandN[s]
+		*sp.lib, *sp.hand = kp.LibN[s], kp.HandN[s]
+		*sp.casts = kp.CmdCast[s]
+		for q := 0; q < int(r.n) && q < MaxSeats; q++ {
+			*p.cmdDamage(s, q) = kp.CmdDmg[s][q]
+		}
+	}
+	if r.n > 2 {
+		p.Seats.NSeat = r.n
+		for s := 0; s < int(r.n) && s < MaxSeats; s++ {
+			p.Seats.Lost[s] = r.s.FeatLost(uint8(s))
+		}
 	}
 	p.NStack = kp.NStack
 	_, _, building := r.s.BuildingCast()
@@ -414,7 +439,6 @@ func (r *realSide) Project(p *Projection) {
 		p.Active = 0 // gorge's Game.Active before the first turn (kernel Projection names the starter)
 	}
 	p.RNGDraws = kp.Draws
-	p.CmdCasts, p.CmdDamage = kp.CmdCast, kp.CmdDmg
 	p.Over, p.Winner = kp.Over, kp.Winner
 }
 

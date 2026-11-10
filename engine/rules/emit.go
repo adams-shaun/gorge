@@ -682,6 +682,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.sourceControllerLKI, ev.Obj)
 		delete(e.sourceCharLKI, ev.Obj)
 		delete(e.damageSourceLKI, ev.Obj)
+		delete(e.reflexiveRememberedPT, ev.Obj)
 	}
 	if ev.Kind == events.MoveZone && lki != nil && lki.Zone == state.ZBattlefield {
 		// ChangeZone's Duration$ UntilHostLeavesPlay (the Oblivion Ring /

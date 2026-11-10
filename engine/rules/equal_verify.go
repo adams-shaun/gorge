@@ -20,11 +20,11 @@ import (
 // it is compared here.
 
 const (
-	continuousEffectFieldCount = 133
+	continuousEffectFieldCount = 134
 	attackOfferFieldCount      = 4
 	blockChargeFieldCount      = 7
 	objectTypesFieldCount      = 3
-	optionFieldCount           = 46
+	optionFieldCount           = 47
 	grantFieldCount            = 3
 )
 
@@ -141,6 +141,7 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		a.MayPlayPlayerTurn == b.MayPlayPlayerTurn &&
 		a.ControllerTurnOnly == b.ControllerTurnOnly &&
 		a.MayPlayFree == b.MayPlayFree &&
+		a.MayPlayNoZone == b.MayPlayNoZone &&
 		a.MayPlayAltCost == b.MayPlayAltCost &&
 		a.MayPlayValidAfterStack == b.MayPlayValidAfterStack &&
 		cards.TriggerEqual(a.AddTrigger, b.AddTrigger) &&
@@ -282,6 +283,7 @@ func optionEqual(a, b *decision.Option) bool {
 		a.GrantSource == b.GrantSource &&
 		a.GainedSource == b.GainedSource &&
 		a.GainedIdx == b.GainedIdx &&
+		a.Granted == b.Granted &&
 		sliceEq(a.GrantStatics, b.GrantStatics) &&
 		a.PlanBacked == b.PlanBacked &&
 		a.Value == b.Value &&

@@ -81,7 +81,7 @@ func (e *Engine) castsNoManaCostByPaying(p state.PlayerID, opt *decision.Option)
 		return false
 	}
 	if opt.Mode == "mayplay" {
-		if free, ok := e.mayPlayGrant(p, opt.Obj); ok && free {
+		if e.mayPlayFreeCast(p, opt.Obj) {
 			return false
 		}
 	}

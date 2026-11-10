@@ -28,7 +28,7 @@ func (s *State) nthDrawOK(t *kop.Trigger, who uint8) bool {
 func (s *State) fireGraveDrawn(k *prep, who uint8, amt int16) {
 	for _, c := range k.gen.graveTrig {
 		cd := &k.t.Cards[c]
-		for pp := uint8(0); pp < 2; pp++ {
+		for pp := uint8(0); pp < MaxSeats; pp++ {
 			pl := &s.pl[pp]
 			for i := 0; i < int(pl.graveN); i++ {
 				o := pl.grave[i]

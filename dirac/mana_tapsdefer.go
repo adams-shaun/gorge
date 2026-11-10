@@ -84,7 +84,11 @@ func (s *State) tapsDeferred(k *prep, p uint8, sl Slot) bool {
 // census gap the prefix search branches on (potentialPrefixScript) is a
 // source whose missed ability is a plain one-mana-of-any-colour tap
 // (Firdoch Core), whose relaxed alternatives (paymentPlanRelaxedAlternatives)
-// are one mana per colour: any other production stays unmodelled.
+// are one mana per colour, or a plain one-mana tap of one fixed colour
+// (Llanowar Elves under Cryoshatter): its one relaxed alternative, no colour
+// ask (deferGapAnswers is 1). Left out, that source kept its census unit and
+// the offer priced a plain cast with it, which gorge's census never lists and
+// its autopay surface never scripts. Any other production stays unmodelled.
 func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 	if k.gen == nil || !k.gen.anyTapsDefer {
 		return slotMask{}
@@ -107,7 +111,7 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			continue
 		}
 		pc := s.manaPCGen(k, sl)
-		if pc.manaAb < 0 || !pc.manaTap || pc.manaN != 1 || pc.manaCol != kop.ColAny ||
+		if pc.manaAb < 0 || !pc.manaTap || pc.manaN != 1 || !tapsDeferColour(pc.manaCol) ||
 			pc.manaChosen || pc.manaOne || pc.manaMulti || pc.manaDyn {
 			continue
 		}
@@ -124,6 +128,30 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 	return m
 }
 
+// tapsDeferColour is the production scriptTapsDefer models: any colour, or
+// exactly one of WUBRG.
+func tapsDeferColour(c kop.ColorMask) bool {
+	return c == kop.ColAny || c != 0 && c&^kop.ColAny == 0 && c&(c-1) == 0
+}
+
+// addTapsDeferUnits adds the census unit of the Taps-deferred gap at sl to a:
+// its own mana and the extra a StatTapExtra carrier brings with the tap
+// (Badgermole Cub; gorge's relaxed alternative carries it too,
+// potential_plan.go potentialTapExtra). A source the extra cannot be priced on
+// stalls (srcExtra).
+func (s *State) addTapsDeferUnits(k *prep, sl Slot, a *avail) {
+	pc := s.manaPCGen(k, sl)
+	a.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))
+	if k.gen.anyTapExtra {
+		xv := s.srcExtra(k, sl, pc)
+		for c := range xv {
+			if xv[c] > 0 {
+				a.addUnits(1<<c, xv[c])
+			}
+		}
+	}
+}
+
 // deferGapAnswers is how many colour answers a Taps-deferred gap's
 // activation poses: one per colour its production names (gorge's search
 // branches on the mana ask's options, manaChoiceColours W U B R G).
@@ -136,13 +164,18 @@ func (s *State) deferGapAnswers(k *prep, sl Slot) uint8 {
 // and the prefix player tap it first, so manaTapped has queued the
 // watcher's trigger for flushPrefixTriggers to place before the play).
 func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
-	mask := uint8(s.manaPCGen(k, sl).manaCol)
+	pc := s.manaPCGen(k, sl)
+	mask := uint8(pc.manaCol)
 	for i := 0; i < c; i++ {
 		mask &= mask - 1
 	}
 	col := bits.TrailingZeros8(mask)
 	s.pl[p].pool[col]++
+	s.addExtra(k, p, sl, pc) // the tap's StatTapExtra mana floats beside it (addTapsDeferUnits)
 	s.artTag(k, p, sl, col)
+	if k.painMana && pc.painCol != 0 && pc.painOnly {
+		s.painDamage(k, sl, p, int(pc.painN)) // a pain-only source's rider resolves with its mana (Elves of Deep Shadow)
+	}
 }
 
 // planTiered is plan with gorge's tiers: the sources a Taps watcher

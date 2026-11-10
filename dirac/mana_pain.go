@@ -553,11 +553,12 @@ func (s *State) availCastWindowFor(k *prep, p uint8, a *avail) {
 // gorge then aborts the cast (CR 733.1), keeping the taps, the floated mana and
 // the damage. It reports false after reversing. On true the cost is paid and
 // left as it was, for the cast's recorded spend, and the restricted mana held
-// out of it floats in the pool.
+// out of it floats in the pool. xAnnounced: the cost folds an announced X, whose
+// window may tap a planner-deferred source (windowTapWalk).
 //
 //go:noinline
-func (s *State) loweredWindowOK(k *prep, p uint8, cost *kop.ManaCost, anyType, anyColor bool) bool {
-	ok, held := s.windowTapUseful(k, p, cost, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
+func (s *State) loweredWindowOK(k *prep, p uint8, cost *kop.ManaCost, anyType, anyColor, xAnnounced bool) bool {
+	ok, held := s.windowTapWalk(k, p, cost, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false, xAnnounced)
 	if ok && s.winPaused() {
 		for c := range held {
 			s.pl[p].pool[c] += held[c]

@@ -153,13 +153,13 @@ func (w *legalWalk) mayPlaySpellWalk() {
 			// (mayPlayPermissions); an untyped offer keeps the aggregate read
 			// every existing grant used.
 			if off.key == "" {
-				if free, ok := e.mayPlayGrant(p, id); ok && free {
+				if e.mayPlayFreeCast(p, id) {
 					// MayPlayWithoutManaCost$ True (the kw-mayplay predicate): the
 					// mana part is free, exactly as beginCast's "mayplay" case will
 					// charge it; non-mana additional costs still apply (CR 118.9).
 					base = Cost{}
 				}
-			} else if off.free {
+			} else if off.free || e.mayPlayNoZoneFreeID(p, id) {
 				base = Cost{}
 			}
 			// CR 118.3a: the granting static's RaiseCost$ surcharge is added on

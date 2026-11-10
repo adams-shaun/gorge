@@ -28,6 +28,12 @@ func (s *State) FeatMayPayLifeCast(p uint8, o Obj) bool {
 			return true
 		}
 	}
+	return s.payLifeStaticAdmits(k, p, o)
+}
+
+// payLifeStaticAdmits reports whether a library-top static with
+// kop.StMayPayLife lets p play o and the life covers its mana value.
+func (s *State) payLifeStaticAdmits(k *prep, p uint8, o Obj) bool {
 	found := false
 	s.mayPlayStatics(k, p, o, func(st statSrc) bool {
 		found = st.a.Static.StFlags&kop.StMayPayLife != 0 && s.payLifeOfferable(k, p, o)
@@ -36,11 +42,59 @@ func (s *State) FeatMayPayLifeCast(p uint8, o Obj) bool {
 	return found
 }
 
-// StallPayLifeShared: a pay-life library static and a second play permission
-// admit the same card (Gwenom's emblem beside Madame Web, Clairvoyant). gorge
-// offers two casts there, the plain one paying mana and the alternative paying
-// life (AltCostIndex 1); the kernel joins the permissions into one offer, so
-// the game stalls loudly rather than let the cast skip both payments.
+// castLifeOnly reports whether a may-play cast with mode is the life
+// alternative of a pay-life static admitting o (castMayPlay|castFree beside
+// it): castFlagsGen then walks to that static only, so the build pays the
+// life (bld().payLifeMV) whatever permission is walked first.
+func (s *State) castLifeOnly(k *prep, p uint8, o Obj, mode uint8) bool {
+	return mode&castFree != 0 && s.objs[o].zone != kop.ZoneHand && s.payLifeStaticAdmits(k, p, o)
+}
+
+// castSkipsStatic reports whether castFlagsGen passes over static st for a
+// cast with mode: a plain cast (no castFree) never goes through a pay-life
+// static, so it neither pays life nor spends that permission (gorge's
+// AltCostIndex 0 beside Gwenom's alternative, priorityMayPlay); the life
+// alternative (lifeOnly) goes through the pay-life static only.
+func castSkipsStatic(st statSrc, mode uint8, lifeOnly bool) bool {
+	life := st.a.Static.StFlags&kop.StMayPayLife != 0
+	if mode&castFree == 0 {
+		return life
+	}
+	return lifeOnly && !life
+}
+
+// StallPayLifeShared: a pay-life library static beside a second permission
+// would make two of the casts gorge lists for one card carry the same kernel
+// mode (castMayPlay|castFree): the second permission waives the mana cost (the
+// free plain cast and the life alternative), or several pay-life statics sit
+// beside it (one alternative per static, AltCostIndex 1, 2, ...). The game
+// stalls loudly rather than let a cast skip the life. Beside a permission that
+// does not waive the mana (Madame Web, Clairvoyant) the plain cast and the
+// life one are offered apart (priorityMayPlay). Pay-life statics alone
+// (Gwenom's emblem twice, Peter Parker's Camera copying its trigger) stall
+// nowhere: gorge lists one life alternative per Effect and fanPayLifeAlts
+// offers one cast each.
 const StallPayLifeShared = 153
 
 func init() { stallNames[StallPayLifeShared] = "paylifeshared" }
+
+// payLifeAltMax bounds the pay-life alternatives offered apart: the canonical
+// alternative-cost index is a nibble (canon/translate.go).
+const payLifeAltMax = 15
+
+// fanPayLifeAlts turns the one cast offerPlay added at d.Options[n0] into
+// alts casts, targets 1..alts: the 1-based AltCostIndex of gorge's option for
+// each pay-life Effect (CR 118.9). All cost the same life, so the one
+// affordability check stands for each; a land's play-land option stays single
+// (an alternative cost applies to a spell). The apply side ignores the target
+// of a may-play cast.
+func fanPayLifeAlts(d *Decision, n0, alts int) {
+	if int(d.N) != n0+1 || d.Options[n0].Kind() != AkCast {
+		return
+	}
+	a := d.Options[n0]
+	d.Options[n0] = MakeAction(AkCast, a.Source(), 1, a.Mode())
+	for i := 2; i <= alts; i++ {
+		d.add(MakeAction(AkCast, a.Source(), uint8(i), a.Mode()))
+	}
+}

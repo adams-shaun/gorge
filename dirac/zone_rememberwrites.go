@@ -108,6 +108,66 @@ func (s *State) reflexCapture(r kop.Ref) (Obj, int16) {
 	return Obj(c), int16(ob.ver)
 }
 
+// A Bite from the capture (Thorin, Mountain-king: "that creature deals
+// damage equal to its power") uses the creature's last known power once it
+// has left (CR 608.2h; gorge rules rememberedPTLKI): OpReflexiveTrigger
+// snapshots the captured creature into the entry's LKI record (li) as the
+// trigger is put on the stack, the same instant gorge captures it, and the
+// stale Bite deals that power from the gone creature. A pump between the
+// queueing and the departure is seen by neither side.
+
+// DebugNoReflexBiteLKI (test-only mutation) skips the gone capture's bite,
+// as before the last known power was kept.
+var DebugNoReflexBiteLKI bool
+
+// reflexBites reports whether latent ability ab of card c bites from its
+// captured object (an OpBite of RefDelayedRemembered): only that body takes
+// the snapshot, so no other reflexive entry gains an LKI record.
+func (s *State) reflexBites(k *prep, c CardID, ab uint8) bool {
+	abs := k.t.Cards[c].Abilities
+	if int(ab) >= len(abs) {
+		return false
+	}
+	for i := range abs[ab].Prog {
+		if in := &abs[ab].Prog[i]; in.Op == kop.OpBite && in.Obj == kop.RefDelayedRemembered {
+			return true
+		}
+	}
+	return false
+}
+
+// reflexBiteGone is OpBite from a reflexive capture that left the
+// battlefield: the creature, by its snapshot, deals its last known power to
+// the creature or planeswalker in Ref C (dmgSrcObject's departed-source
+// path: its last known keywords and controller). It reports false (the bite
+// is skipped as before) without a snapshot of that capture.
+//
+//go:noinline
+func (s *State) reflexBiteGone(k *prep, in *kop.Instr) bool {
+	e := &s.res.e
+	if e.li == 0 || e.remSet || e.trigObj == NoObj || DebugNoReflexBiteLKI {
+		return false
+	}
+	l := s.lk(e.li)
+	if l.obj != e.trigObj || l.ver != uint8(e.trigAmt) {
+		return false
+	}
+	b := s.objRef(k, kop.Ref(in.C))
+	if b == NoSlot || !s.isCreature(k, b) && s.typesAt(k, b)&kop.TPlaneswalker == 0 {
+		return true
+	}
+	n := int(l.power)
+	if DebugDmgAmountPlusOne {
+		n++
+	}
+	if n <= 0 {
+		return true
+	}
+	o := e.trigObj
+	s.dmgSrcObject(k, s.perms[b].obj, o, NoSlot, l.kw, l.ctrl, k.t.Cards[s.objs[o].card].Infect, n)
+	return true
+}
+
 // reflexStale reports the resolving reflexive entry's captured object gone:
 // none was captured, or it changed zones since (its ver moved).
 func (s *State) reflexStale() bool {

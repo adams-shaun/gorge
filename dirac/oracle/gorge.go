@@ -1521,12 +1521,26 @@ func (g *GorgeSide) lowerCompletes(pe prioEntry) bool {
 }
 
 // passOthers passes priority for the other players while a trigger the
-// script stacked resolves, as the search assumed (scriptSearch.visit), and
-// returns the decision then pending.
+// script stacked resolves, and answers a trigger order of theirs in option
+// order, as the search assumed (scriptSearch.visit), and returns the
+// decision then pending.
 func (g *GorgeSide) passOthers(p state.PlayerID, pe prioEntry) *decision.Decision {
 	e := g.E
 	d := e.Pending()
-	for guard := 0; d != nil && !e.G.Over && d.Player != p && d.Kind == decision.KPriority && guard < 8; guard++ {
+	for guard := 0; d != nil && !e.G.Over && d.Player != p && (d.Kind == decision.KPriority || d.Kind == decision.KTriggerOrder) && guard < 8; guard++ {
+		if d.Kind == decision.KTriggerOrder {
+			order := make([]int, 0, len(d.Options))
+			for _, o := range d.Options {
+				order = append(order, o.Index)
+			}
+			g.Stats.Internal++
+			if err := g.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: order}); err != nil {
+				g.fail(fmt.Errorf("oracle: script of %v: other player's trigger order refused: %w", pe.a, err))
+				return nil
+			}
+			d = e.Pending()
+			continue
+		}
 		pass := -1
 		for _, o := range d.Options {
 			if o.Kind == "pass" {

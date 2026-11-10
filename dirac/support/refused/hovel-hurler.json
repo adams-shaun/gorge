@@ -3,11 +3,12 @@
   "class": "projection-Cards.Power",
   "why": "the engines' state differs at projection Cards[].Power; 2 games in the corpus",
   "repro": {
-    "pool": "std-ecl",
+    "pool": "custom",
     "surface": "full",
-    "seed": 1,
-    "pair": 2247,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 0,
+    "file": "hovel_hurler_power_differs"
   }
 }

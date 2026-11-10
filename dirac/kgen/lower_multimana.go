@@ -37,8 +37,16 @@ import (
 //     last-resort Consequence{Life: N} beside its normal alternatives,
 //     which the kernel models as a pain source (mana_pain.go painLife).
 //
-// Every other shape (a second ability with a sacrifice, counter or
-// tap-another cost (gorge's census leaves a counter or tap-another one a
+// A plain fixed-colour {T} first ability beside "{T}, tap an untapped creature
+// you control: Add one mana of any color" (Scene of the Crime) is accepted by
+// manaGapModelled (tapXGapMana): the kernel's tap-another gap kind reads the
+// card's second ability (mana_tapanother.go tapXAbOf). So is "{T}, remove N
+// counters from this: Add <fixed colour>" beside a plain {T} first ability
+// (Weather Maker's {C}{C}; ctrTapGapMana): the kernel's counter gap kind
+// reads the card's second ability (mana_countercost.go ctrAbOf).
+//
+// Every other shape (a second ability with a sacrifice or counter cost, or
+// another tap-another one (gorge's census leaves a counter or tap-another one a
 // relaxable gap its prefix search activates, not a planner alternative); an
 // unrestricted choice beside a fixed one; a paid fixed-colour or hybrid
 // filter; a dynamic fixed colour) is refused.
@@ -78,6 +86,14 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// three-colour life ability (Haunted Screen): gorge's last-resort
 		// Consequence{Life: N} beside its normal alternatives, priced and
 		// guarded as a painland's damage (kernel painLife)
+		return
+	}
+	if len(ms) == 2 && dynamicLargerSameColour(ms[0], ms[1]) {
+		// {T}: Add {G}, then {T}: Add {G} for each creature you control
+		// (Itlimoc, Cradle of the Sun): gorge's census unit holds both
+		// alternatives (the evaluated one at its count, payment_plan.go's
+		// evaluated-amount layer) and the planner takes the best per payment;
+		// the kernel's per-count pair view (mana_dynpair.go) plans it
 		return
 	}
 	if len(ms) > 2 && !anyRFiltMana(ms) || !plainTapMana(ms[0], false) || !unrestrictedOne(ms[0]) {
@@ -217,6 +233,22 @@ func plainTapMana(a *lAbility, paid bool) bool {
 // gap the kernel models or the frozen pools prove (refuseMultiMana).
 func manaGapModelled(first, a *lAbility) bool {
 	switch {
+	case dynamicLargerSameColour(first, a):
+		return true
+	case tapXGapMana(a):
+		// {T}, tap an untapped creature you control: one mana of any
+		// colour, unrestricted, beside a plain {T} first ability (Scene of
+		// the Crime): gorge's census leaves it a relaxable once-only gap
+		// its prefix search activates (the kernel's tap-another gap kind,
+		// read at the card's tapX ability, mana_tapanother.go tapXAb)
+		return a.Mana.Colors == "WUBRG" && !a.Mana.Choice && unrestrictedOne(a) && len(first.Mana.Colors) == 1 && !first.Mana.Choice
+	case ctrTapGapMana(a):
+		// {T}, remove N counters from this: a fixed colour of ManaN mana,
+		// unrestricted, beside a plain {T} first ability of one colour or
+		// any (Weather Maker's {C}{C}): gorge's census leaves it a relaxable
+		// once-only gap its prefix search activates (the kernel's counter
+		// gap kind, read at the card's ctrAb ability, mana_countercost.go)
+		return ctrTapGapModelled(first, a)
 	case plainTapMana(a, false):
 		// a restricted {T} ability, amount 1 (Courtyard, whose restriction
 		// also names activated abilities; the Villages)
@@ -238,6 +270,9 @@ func manaGapModelled(first, a *lAbility) bool {
 		if a.Mana.Choice {
 			return restrictedComboModelled(first, a)
 		}
+		if restrictedFixedPair(first, a) {
+			return true
+		}
 		return a.Mana.Colors == "WUBRG" && !a.Mana.Choice && a.Mana.Amount.N <= maxRestrictedAmount &&
 			!first.Mana.Choice && (first.Mana.Colors == "WUBRG" || len(first.Mana.Colors) == 1 && strings.Contains("WUBRG", first.Mana.Colors))
 	case plainTapMana(a, true):
@@ -257,40 +292,87 @@ func manaGapModelled(first, a *lAbility) bool {
 	return false
 }
 
+// tapXGapMana: a is a {T} ability whose cost also taps exactly one untapped
+// permanent the controller controls, its cost otherwise plain.
+func tapXGapMana(a *lAbility) bool {
+	if a.Cost.TapN != 1 || a.Cost.TapPowN != 0 {
+		return false
+	}
+	b := *a
+	b.Cost.TapN, b.Cost.TapF = 0, nil
+	return plainTapMana(&b, false)
+}
+
+// ctrTapGapMana: a is a {T} ability whose cost also removes counters from its
+// source, its cost otherwise plain.
+func ctrTapGapMana(a *lAbility) bool {
+	if a.Cost.SubCtr < 1 || a.TurnOnce {
+		return false
+	}
+	b := *a
+	b.Cost.SubCtr, b.Cost.SubCtrKnd = 0, ""
+	return plainTapMana(&b, false)
+}
+
+// ctrTapGapModelled: the counter-cost {T} ability a beside the plain first
+// ability first is the shape kop.SecondCtrTapManaAb reads: a fixed colour of a
+// literal amount, unrestricted, the first ability one mana of one colour or
+// any (unrestricted, not a choice).
+func ctrTapGapModelled(first, a *lAbility) bool {
+	m, f := a.Mana, first.Mana
+	return len(m.Colors) == 1 && !m.Choice && !m.Each && m.Restrict == nil && m.RestrictAb == nil && m.Amount.Kind == vConst && m.Amount.N >= 1 && m.Amount.N <= maxRestrictedAmount &&
+		!f.Choice && (len(f.Colors) == 1 || f.Colors == "WUBRG")
+}
+
 // manaGapWhy names what a, a second mana ability manaGapModelled refuses,
 // needs beyond the kernel's one-unit-per-permanent source model (the
 // reasons the kernel's lockstep games and activation walk show):
 //
 //   - a cost beyond {T} other than the two below (a sacrifice, a mana
 //     payment with a rider, ...): the kernel's mana walk cannot activate it;
-//   - a cost of {T} plus tapping another creature (Scene of the Crime) or
-//     removing counters (Weather Maker): gorge's census leaves it a
-//     relaxable once-only gap (pay.PlanLastResortCostOK refuses both parts)
-//     whose prefix script activates the source, answers the ability ask with
-//     the second ability, then its colour; the kernel's tap-another and
-//     counter gap kinds (mana_tapanother.go, mana_countercost.go) read only
-//     a source's first mana ability (pcard.manaAb), so neither can play it;
-//   - a spend-restricted ability of several mana of the first ability's own
-//     fixed colour (Tablet of Discovery): the kernel's restricted pair unit
-//     plans only the any-colour larger alternative, so the planner taps
-//     differently from gorge's;
-//   - an evaluated amount of the first ability's fixed colour (Itlimoc,
-//     Cradle of the Sun): the kernel plans the first ability alone, gorge's
-//     planner the larger of the two.
+//   - a cost of {T} plus removing counters other than ctrTapGapModelled's
+//     (Vivid Crag's any colour, Throne of Makindi's restricted two): gorge's
+//     census leaves it a relaxable once-only gap whose prefix script
+//     activates the source, answers the ability ask with the second ability,
+//     then its colour; the kernel's counter gap kind (mana_countercost.go)
+//     reads a second ability only for a fixed unrestricted colour.
+//     (Weather Maker's {C}{C} is modelled: ctrTapGapMana; so is the
+//     tap-another shape, Scene of the Crime: tapXGapMana.)
+//   - a spend-restricted ability of several mana of a fixed colour other than
+//     the first ability's, or above maxRestrictedAmount (the same colour up to
+//     that is Tablet of Discovery's modelled pair, restrictedFixedPair): the
+//     kernel's restricted pair unit plans only an any-colour larger
+//     alternative beyond it, so the planner taps differently from gorge's;
+//   - an evaluated amount of the first ability's fixed colour the kernel's
+//     per-count pair view does not play (dynamicLargerSameColour models
+//     Itlimoc, Cradle of the Sun): the kernel plans the first ability alone,
+//     gorge's planner the larger of the two.
 func manaGapWhy(first, a *lAbility) string {
 	m := a.Mana
 	switch {
 	case !plainTapMana(a, false) && !plainTapMana(a, true):
-		if a.Cost.TapN != 0 || a.Cost.SubCtr != 0 {
-			return "a cost beyond {T} the kernel's mana walk cannot activate: its tap-another and counter gap kinds read only the first mana ability"
+		if a.Cost.SubCtr != 0 {
+			return "a cost beyond {T} the kernel's mana walk cannot activate: its counter gap kind reads a second ability only for a fixed unrestricted colour"
 		}
 		return "a cost beyond {T} the kernel's mana walk cannot activate"
 	case m.Restrict != nil && m.Amount.Kind == vConst && m.Amount.N > 1 && len(m.Colors) == 1 && m.Colors != "WUBRG" && !m.Choice:
-		return "a restricted fixed colour of several mana: the kernel's restricted pair unit plans only an any-colour one"
+		return "a restricted fixed colour of several mana: the kernel's restricted pair unit plans only an any-colour one or the first ability's own colour up to four"
 	case m.Amount.Kind > vConst && len(m.Colors) == 1 && m.Colors == first.Mana.Colors && plainTapMana(a, false):
 		return "an evaluated amount of the first ability's colour: the kernel plans the first ability alone"
 	}
 	return "a shape beyond the restricted, filter and pain gaps"
+}
+
+// restrictedFixedPair: a, a spell-only restricted {T} ability of several mana
+// (at most maxRestrictedAmount) of one fixed colour, beside a first ability of
+// that same colour (Tablet of Discovery's {R}{R} beside {R}) is the kernel's
+// restricted pair unit with a single-colour larger alternative
+// (mana_restrictedsource.go prepRestrSrc). A different colour, or an
+// activation-only restriction, is not modelled.
+func restrictedFixedPair(first, a *lAbility) bool {
+	return len(a.Mana.Colors) == 1 && strings.Contains("WUBRG", a.Mana.Colors) && a.Mana.Colors == first.Mana.Colors &&
+		!a.Mana.Choice && !first.Mana.Choice && !a.Mana.Each && !first.Mana.Each && a.Mana.RestrictAb == nil && !a.Mana.NonSpell &&
+		a.Mana.Amount.N <= maxRestrictedAmount
 }
 
 // restrictedComboModelled: a, a restricted {T} ability of a Combo of any
@@ -319,6 +401,38 @@ const maxRestrictedAmount = 4
 // Building's four mana in any combination). gorge's scriptAnswers enumerates
 // at most 64 per-unit combinations, so the kernel's search does too.
 const maxComboMana = 4
+
+// dynamicLargerSameColour reports the pair refuseMultiMana names: a plain
+// unrestricted {T}: Add one mana of a fixed colour, then a plain {T}: Add that
+// same colour for each permanent matching a filter that tapping cannot change
+// (Itlimoc, Cradle of the Sun: a creature you control). gorge prices the
+// evaluated ability once, against a probe with every permanent tapped
+// (paymentPlanStableAmount), so the amount is the same at planning and at
+// activation only when the filter reads no tapped state.
+func dynamicLargerSameColour(first, a *lAbility) bool {
+	m, f := a.Mana, a.Mana.Amount
+	if !plainTapMana(first, false) || !unrestrictedOne(first) || !plainTapMana(a, false) || a.Mana.Restrict != nil || a.Mana.RestrictAb != nil {
+		return false
+	}
+	if len(first.Mana.Colors) != 1 || !strings.Contains("WUBRG", first.Mana.Colors) || first.Mana.Choice || first.Mana.Each {
+		return false
+	}
+	if m.Colors != first.Mana.Colors || m.Choice || m.Each || f.Kind != vCount || f.F == nil {
+		return false
+	}
+	return f.Add == 0 && f.Mul == 0 && f.Div == 0 && !f.Neg && len(f.Sub) == 0 && untappedStableFilter(f.F)
+}
+
+// untappedStableFilter: f reads no tapped or untapped clause, so tapping the
+// permanents of a payment cannot change the count it matches.
+func untappedStableFilter(f *lFilter) bool {
+	for _, c := range f.Clauses {
+		if c.Flags&(fTapped|fUntapped) != 0 {
+			return false
+		}
+	}
+	return len(f.Clauses) > 0
+}
 
 // unrestrictedOne: a's mana is unrestricted, amount 1.
 func unrestrictedOne(a *lAbility) bool {
@@ -560,11 +674,18 @@ func (lc *lowerCtx) refuseEachMana(ms []*lAbility) bool {
 			// Gutsy Explorer; Tin Street Gossip's Static.isTurnFaceUp clause)
 			// is a restricted planner unit (kernel mana_restrictedsource.go).
 			lc.refuseNode("card", "mana ability adding several colours at once under a spend restriction")
-		case !plainTapMana(a, false) && !ctrEachMana(a):
+		case !plainTapMana(a, false) && !ctrEachMana(a) && !filtEachMana(a):
 			// gorge's planner defers any cost beyond {T} (a filter's fee, a
-			// sacrifice of another permanent, removed counters): a census gap
-			// the kernel's gap searches model for one colour only
-			lc.refuseNode("card", "mana ability adding several colours at once from a cost beyond {T}")
+			// sacrifice of another permanent, removed counters): a census gap.
+			// The kernel's gap searches model the counter removal (ctrEachMana)
+			// and a generic fee (filtEachMana); a sacrifice of another
+			// permanent (Bolg's Company) has no gap kind: the kernel's mana
+			// walk cannot activate a sacrifice cost (manaGapWhy).
+			if a.Cost.Sac != nil && !a.Cost.SacSelf {
+				lc.refuseNode("card", "mana ability adding several colours at once from a cost beyond {T}: a sacrifice of another permanent (no sacrifice gap kind in the kernel's prefix search)")
+			} else {
+				lc.refuseNode("card", "mana ability adding several colours at once from a cost beyond {T}")
+			}
 		case !m.Amount.isConst() || m.Amount.N < 1 || m.Amount.N > maxEachMana:
 			lc.refuseNode("card", "mana ability adding several colours at once, %v of each", m.Amount)
 		default:
@@ -587,6 +708,26 @@ func ctrEachMana(a *lAbility) bool {
 	c := *a
 	c.Cost.Tap, c.Cost.SubCtr, c.Cost.SubCtrKnd, c.TurnOnce = true, 0, "", false
 	return plainTapMana(&c, false)
+}
+
+// filtEachMana: a is "{N}, {T}: Add {c1}{c2}..." (Skycloud Expanse's {1},{T}:
+// Add {W}{U}): a generic-only fee, one of each of two or more distinct WUBRG
+// colours, unrestricted, the card's first mana ability. gorge's planner census
+// skips its paid cost; its relaxed alternative is one fixed production (fee
+// charged as generic, once: its {T}), which the kernel's first-only filter gap
+// activates (kop.FilterEachManaAb, mana_filtereach.go).
+func filtEachMana(a *lAbility) bool {
+	m := a.Mana
+	if !plainTapMana(a, true) || a.Cost.Mana.Generic < 1 || m.Choice || m.Restrict != nil || m.RestrictAb != nil || m.NonSpell ||
+		!m.Amount.isConst() || m.Amount.N != 1 || len(m.Colors) < 2 || strings.Trim(m.Colors, "WUBRG") != "" {
+		return false
+	}
+	for i := 0; i < len(m.Colors); i++ {
+		if strings.IndexByte(m.Colors[i+1:], m.Colors[i]) >= 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // filterHasSpecial reports whether f carries a RestrictValid$ Static.*

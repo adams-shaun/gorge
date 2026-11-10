@@ -127,11 +127,17 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		var lki *state.Object
 		var lkiPower, lkiToughness int32
 		var lkiValid bool
+		var lkiEntry state.LKIObject
 		if rememberLKI {
 			cp := o.CloneDeep()
 			lki = &cp
 			lkiPower, lkiToughness = h.Power(id), h.Toughness(id)
 			lkiValid = true
+			// CR 608.2h: the controller and layer-5 colours the permanent had
+			// on the battlefield; the graveyard card answers neither (the Move
+			// resets the controller to the owner, colours fall back to printed).
+			lkiEntry = state.LKIObject{Obj: id, Controller: o.Controller, Owner: o.Owner,
+				Colors: LiveColors(h, o), ColorsKnown: true}
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
@@ -143,6 +149,7 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 				if rememberLKI {
 					c.LKI = lki
 					c.Snap.Power, c.Snap.Toughness, c.Snap.PTValid = lkiPower, lkiToughness, lkiValid
+					c.Snap.ChangeZone = append(c.Snap.ChangeZone, lkiEntry)
 				}
 				c.Remembered = append(c.Remembered, state.Target{Obj: id})
 				eventRemember(h, c, id)

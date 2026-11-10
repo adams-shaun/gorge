@@ -236,6 +236,16 @@ func (s *State) windowTapRiderUseful(k *prep, p uint8, cost, useful *kop.ManaCos
 // noOwed is gorge's trigger-cost manual window, whose decision has no
 // ManaPayment, so a source answers its lowest colour (windowCol).
 func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential bool) (ok bool, held [kop.NumManaKinds]uint8) {
+	return s.windowTapWalk(k, p, cost, useful, clamp, anyColor, noOwed, potential, false)
+}
+
+// windowTapWalk is windowTapUseful; takeDeferred is an announced X's window
+// (gorge's announcedManaWindowAsk), whose answer (payexec.WindowAnswer) is the
+// auto-fill option while gorge's planner prices what is owed, else the first
+// source listed. The planner never taps a deferred source (planDeferred), so
+// the walk skips one while the rest still cover the cost (windowPlanCovers),
+// and once they do not takes it in its battlefield place like any other.
+func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential, takeDeferred bool) (ok bool, held [kop.NumManaKinds]uint8) {
 	for !s.windowSpellSettled(k, p, cost, anyColor) {
 		if potential {
 			var pot avail
@@ -247,7 +257,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 		}
 		var order [MaxPerm]Slot
 		n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
-		sl, gap := s.windowPick(k, p, order[:n], useful, clamp, anyColor)
+		sl, gap := s.windowPick(k, p, order[:n], useful, clamp, anyColor, takeDeferred && s.deferLive(k) && !s.windowPlanCovers(k, p, cost, anyColor))
 		if sl == NoSlot {
 			return false, held
 		}
@@ -304,7 +314,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				}
 			}
 		}
-		sacOnly := k.sacOnlyMana && pc.manaSacOnly
+		sacOnly := windowSacOnly(k, pc) // printed or granted (mana_grantcost.go)
 		if k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDyn(k, p, cost, sl) {
 			continue
 		}
@@ -389,10 +399,23 @@ func (s *State) restrPoolAdmits(k *prep, p uint8) uint8 {
 	return s.restrPoolNonSpell(k, p)
 }
 
+// windowPlanCovers reports whether p's pool and planner census (availFor, which
+// leaves a deferred source out) cover cost: gorge's window then offers its
+// auto-fill plan (announcedAutoFillPlan), which the answer takes.
+func (s *State) windowPlanCovers(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) bool {
+	var a avail
+	s.availFor(k, p, &a)
+	if anyColor {
+		return a.affordsAnyColor(cost, 0)
+	}
+	return a.affords(cost, pipMaskOf(cost), 0)
+}
+
 // windowPick is the window's next source among order (p's battlefield, in
 // order): the first usable one, or a window gap (gap true); NoSlot when
-// none is left.
-func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost, clamp, anyColor bool) (sl Slot, gap bool) {
+// none is left. A planner-deferred source is skipped unless takeDeferred
+// (windowTapWalk).
+func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost, clamp, anyColor, takeDeferred bool) (sl Slot, gap bool) {
 	want, decided := uint8(0), false
 	if clamp && !anyColor {
 		want, decided = s.windowUseful(k, p, useful)
@@ -401,8 +424,8 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if s.buildLive() && s.bld().pickN != 0 && s.waterbendPicked(s.perms[o].obj) {
 			continue // a waterbend pick cannot also pay the mana (gorge convokeCommitted)
 		}
-		if s.windowCanTap(k, o) || k.sacOnlyMana && s.canSacOnlyNowAt(k, o) {
-			if s.planDeferred(k, p, o) {
+		if s.windowCanTap(k, o) || s.windowSacNow(k, o) {
+			if !takeDeferred && s.planDeferred(k, p, o) {
 				continue // the window's answer follows the planner's tier: gorge's bot never picks a deferred source (mana_tapsdefer.go)
 			}
 			if decided && (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) && !s.windowRestrUseful(k, o, want) {
@@ -775,7 +798,7 @@ func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bo
 	for !s.windowSpellSettled(k, p, cost, anyColor) {
 		var order [MaxPerm]Slot
 		n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
-		sl, gap := s.windowPick(k, p, order[:n], cost, true, anyColor)
+		sl, gap := s.windowPick(k, p, order[:n], cost, true, anyColor, false)
 		if sl == NoSlot {
 			ok = false
 			break
@@ -797,7 +820,7 @@ func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bo
 			}
 		}
 		pc := s.windowGrantPC(k, sl)
-		if gap || k.sacOnlyMana && pc.manaSacOnly || s.perms[sl].flags&pfTapped != 0 ||
+		if gap || windowSacOnly(k, pc) || s.perms[sl].flags&pfTapped != 0 ||
 			k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDynMask(k, p, sl) != 0 {
 			ok, known = false, false
 			break
@@ -842,6 +865,12 @@ func (s *State) windowDryFilter(k *prep, p uint8, cost *kop.ManaCost, sl Slot) {
 		}
 	}
 	ab := s.filtAb(k, sl)
+	if ab.ManaEach {
+		for c, n := range filtEachVec(ab) {
+			pl.pool[c] += n // every colour at once (mana_filtereach.go)
+		}
+		return
+	}
 	mask := uint8(ab.ManaColors)
 	col := bits.TrailingZeros8(mask)
 	// The demand is the pool the payment may spend (windowUseful, CR 106.6):
@@ -1140,7 +1169,7 @@ func (s *State) addRestrChV(k *prep, p uint8, f kop.FilterID, v, ch uint8, col i
 // poolProj is p's pool as gorge's Players[p].Pool holds it: the
 // restricted mana counted with its colour.
 func (s *State) poolProj(p uint8) [kop.NumManaKinds]uint8 {
-	m := s.pl[p&1].pool
+	m := s.pl[SeatIx(p)].pool
 	s.rbUnits(p, s.rbAll(p), &m)
 	return m
 }
@@ -2189,16 +2218,19 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			// floating {R} taps nothing more, and {1}{U/R}{U/R} cast with its
 			// {W}{U} and a Treasure's {U} taps no further
 			pl := &s.pl[p&1]
-			rb := s.rb[p&1]
 			var tk [maxRB][kop.NumManaKinds]uint8
 			s.rbTake(p, m, &tk)
 			defer func() {
+				// the units go back to their batches (rbTake left them in
+				// place, emptied), beside the restricted mana the plan's own
+				// taps floated since (witnessManaRestricted): Lilypad
+				// Village's {U} beside the Mentor's {G} (CR 106.6)
 				for i := range tk {
 					for c, n := range tk[i] {
 						pl.pool[c] -= n
+						s.rb[p&1][i].n[c] += n
 					}
 				}
-				s.rb[p&1] = rb
 			}()
 		} else {
 			cost = s.restrShort(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj), cost)
@@ -2237,17 +2269,14 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		s.lowerXEats(k, p, &cost, x, excl, anyColor)
 		return
 	}
-	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 {
-		s.tapForRider(k, p, &cost, x, excl, anyColor)
+	untapped := s.untappedRestrSrcs(k, p)
+	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 && !s.anyRestrEach(k, untapped) {
+		if !s.tapForSpellTaps(k, p, &cost, x, excl, anyColor) {
+			s.tapForRider(k, p, &cost, x, excl, anyColor)
+		}
 		return
 	}
 	pool := s.pl[p].pool
-	var untapped slotMask
-	for m := s.ctrlM[p].and(s.occ); m.any(); m = m.rest() {
-		if sl := m.first(); s.perms[sl].flags&pfTapped == 0 && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
-			untapped = untapped.or(slotBit(sl))
-		}
-	}
 	var pk planner
 	s.tapForPK(k, p, &cost, x, excl, false, anyColor, &pk)
 	s.witnessManaRestricted(k, p, &pool, untapped, &pk)
@@ -2381,6 +2410,10 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 			continue
 		}
 		col := tcol
+		if ab.ManaEach {
+			s.witnessEachRestricted(k, p, pool, sl, ab, n)
+			continue
+		}
 		if uint8(ab.ManaColors)&(1<<col) != 0 && s.pl[p].pool[col] >= pool[col]+n {
 			s.pl[p].pool[col] -= n
 			if !s.floatRestrAb(k, p, sl, ab, col, n) {
@@ -2818,7 +2851,12 @@ func (s *State) manaStep(k *prep) bool {
 			// runs here, at the mana stage, so a tap-another source's pick
 			// is posed instead of walked over.
 			c := xFolded(cost, int(e.x))
-			noOwed := s.bld().altAdd == 1 && s.bld().pipN == 0 && s.altAddFreePart(k, e.ctrl, e.card, e.obj)
+			// The plan was armed for the first payable part (planCastAltAdd): the free
+			// one when it can be paid, else the mana part. A chosen part other than the
+			// armed one changes the cost (the {2} chosen beside a payable behold, or the
+			// behold chosen when only the {2} was payable), so the plan falls back to a
+			// window with no ManaPayment (CR 601.2g).
+			noOwed := s.bld().pipN == 0 && (s.bld().altAdd == 1) == s.altAddFreePart(k, e.ctrl, e.card, e.obj)
 			ok, _ := s.windowTapUseful(k, e.ctrl, &c, &c, true, anyColor, noOwed, false)
 			if !s.winPaused() {
 				if !ok || s.bld().altAdd == 0 {
@@ -2845,8 +2883,17 @@ func (s *State) manaStep(k *prep) bool {
 			// gorge's plan does.
 			if cd.BeholdN == 0 || s.altAddFreePart(k, e.ctrl, e.card, e.obj) {
 				c := xFolded(cost, int(e.x))
-				s.windowTapRider(k, e.ctrl, &c, true, anyColor)
+				// a behold carrier's fallback window has no ManaPayment: a source answers
+				// its lowest colour, not the owed pip (windowCol)
+				s.windowTapUseful(k, e.ctrl, &c, &c, true, anyColor, cd.BeholdN != 0 && s.bld().pipN == 0, false)
 			} else {
+				if s.rbAny(e.ctrl) {
+					// the plan taps only for what the admitted restricted mana
+					// leaves (pay.PlanPool), as the plain branch below does
+					if m := s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)); m != 0 {
+						cost = s.restrShortAdm(e.ctrl, m, cost)
+					}
+				}
 				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 			}
 		} else {
@@ -2872,7 +2919,7 @@ func (s *State) manaStep(k *prep) bool {
 		// itself (windowSpellSettled), so it takes the cost before
 		// restrShortAdm: handed the shortened cost it would count that mana
 		// twice and clear a payment the planner's plain pool cannot fund.
-		strandCost := cost
+		strandCost := s.waterbendXCharge(k, e, cost)
 		if m := s.restrActNow(k, e.ctrl); m != 0 {
 			cost = s.restrShortAdm(e.ctrl, m, cost) // the sources tap for what the restricted mana leaves (pay.PlanPool)
 		}
@@ -2899,7 +2946,7 @@ func (s *State) manaStep(k *prep) bool {
 			s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
 			return true
 		case cost.X != 0 && s.cfg&cfgGorgeSurface != 0:
-			cc := s.buildCostCharge(k)
+			cc := s.waterbendXCharge(k, e, s.buildCostCharge(k))
 			if !s.xWindowPay(k, e, &cc) {
 				s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
 				return true

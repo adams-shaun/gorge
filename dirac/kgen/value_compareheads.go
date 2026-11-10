@@ -63,7 +63,7 @@ func (lc *lowerCtx) sacrificedTypeFilter(spec string) (*lFilter, bool) {
 	if (c.Types != 0 && c.Types != tCreature) || c.Subtype == "" || !effects.CreatureTypeWords(c.Subtype) {
 		return nil, false
 	}
-	if c.TypesAll != 0 || c.NotTypes != 0 || c.Name != "" || c.NotSubtype != "" ||
+	if c.TypesAll != 0 || c.NotTypes != 0 || c.Name != "" || c.NotSubtype != "" || c.Subtype2 != "" ||
 		c.Ctrl != whoAny || c.Owner != whoAny || c.Flags != 0 || c.CmpStat != cmpNone ||
 		c.CmpOp != 0 || c.CmpN != 0 || c.CmpX != "" || c.CmpV != nil || c.CmpCounter != "" ||
 		c.Colors != "" || c.NotColors != "" || c.BasePermanent || c.SpellBase || c.Unblocked {

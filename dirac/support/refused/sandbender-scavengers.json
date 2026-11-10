@@ -3,11 +3,12 @@
   "class": "projection-NStack",
   "why": "the engines' state differs at projection NStack; 18 games in the corpus",
   "repro": {
-    "pool": "std-tla",
+    "pool": "custom",
     "surface": "autopay",
-    "seed": 1,
-    "pair": 405,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 1
+    "mulligans": 1,
+    "file": "sandbender_scavengers_stack_differs"
   }
 }

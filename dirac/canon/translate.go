@@ -213,11 +213,18 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			// CR 118.9), after its other alternative costs (none in FDN
 			// the kernel offers): mode "", AltCostIndex 1
 			cm = 1 << 4
-		case mode&8 != 0 && r.S.FeatMayPayLifeCast(r.D.Player, dirac.Obj(src)):
+		case mode&0x18 == 0x18 && r.S.FeatMayPayLifeCast(r.D.Player, dirac.Obj(src)):
 			// a permission whose alternative cost is life (CR 118.9): gorge's
-			// "mayplay" option at AltCostIndex 1 (cast_staticpaylife.go)
+			// "mayplay" option at AltCostIndex 1 (cast_staticpaylife.go); the
+			// plain cast beside it (no castFree) is AltCostIndex 0 below
+			// (the target is the 1-based alternative when several statics
+			// offer one each; 0 is the sole one)
 			cm, _ = CastModeCode("mayplay")
-			cm |= 1 << 4
+			idx := tgt
+			if idx == 0 {
+				idx = 1
+			}
+			cm |= idx << 4
 		case mode&8 != 0:
 			cm, _ = CastModeCode("mayplay") // a generated table's play permission (castMayPlay)
 		}
@@ -240,6 +247,9 @@ func (r *Translator) Action(a dirac.Action) Canon {
 	case dirac.AkAttack:
 		if dirac.IsObjTarget(tgt) {
 			return Pack(ActAttack, src, Ref(tgt), 0) // a planeswalker
+		}
+		if tgt >= dirac.PlayerTarget0 && tgt <= dirac.PlayerTarget0+(dirac.MaxSeats-1) {
+			return Pack(ActAttack, src, RefPlayer+Ref(dirac.CodeSeat(tgt)), 0) // the defending player
 		}
 		return Pack(ActAttack, src, RefPlayer+Ref(1-r.D.Player), 0)
 	case dirac.AkBlock:

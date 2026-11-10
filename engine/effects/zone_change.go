@@ -290,11 +290,11 @@ func SourceIsNewObject(g *state.Game, ro *state.Object) bool {
 }
 
 // dropDelayedRememberedMoved removes from a Defined$
-// DelayTriggerRemembered[LKI] mover's list every object whose Incarnation
-// differs from the delayed trigger registration's stamp
-// (TriggerContext.DelayedRememberedStamps): that object left its zone and
-// came back, so it is a new object the delayed trigger cannot find (CR
-// 400.7). Nine-Lives Familiar died, was returned by another effect and died
+// DelayTriggerRemembered[LKI] mover's list every object whose Incarnation or
+// ZoneGen differs from the delayed trigger registration's stamp
+// (TriggerContext.DelayedRememberedStamps): that object changed zones since
+// (back from the battlefield, or graveyard to exile), so it is a new object
+// the delayed trigger cannot find (CR 400.7). Nine-Lives Familiar died, was returned by another effect and died
 // again: its first death's "return it at the beginning of the next end step"
 // returns nothing. An object without a stamp is kept.
 func dropDelayedRememberedMoved(h Host, c *Ctx, targets []state.Target) []state.Target {
@@ -309,7 +309,7 @@ func dropDelayedRememberedMoved(h Host, c *Ctx, targets []state.Target) []state.
 			if o := h.Game().Obj(t.Obj); o != nil {
 				for _, s := range stamps {
 					if s.Obj == t.Obj {
-						moved = s.Incarnation != o.Incarnation
+						moved = s.Incarnation != o.Incarnation || s.ZoneGen != o.ZoneGen
 						break
 					}
 				}

@@ -4,6 +4,10 @@ import (
 	"strings"
 )
 
+// tokListBit is a CreateToken lInstr.C bit: the token is one of a TokenScript$
+// list (kop.TrList).
+const tokListBit = 4096
+
 // tokenList lowers a comma-listed TokenScript$ (Reckoner Bankbuster's
 // "c_a_treasure_sac,c_1_1_pilot_crewbuff"): gorge's runTokenMints creates
 // each listed script in order, TokenAmount$ of each, inside one zone batch,
@@ -34,7 +38,7 @@ func (lc *lowerCtx) tokenList(ps *params, list string) error {
 	}
 	for _, s := range scripts {
 		lc.out.Tokens = append(lc.out.Tokens, s)
-		lc.emit(lInstr{Op: "CreateToken", Obj: lRef{Kind: rYou}, A: cst(1), CS: s})
+		lc.emit(lInstr{Op: "CreateToken", Obj: lRef{Kind: rYou}, A: cst(1), CS: s, C: tokListBit})
 	}
 	return nil
 }

@@ -8,10 +8,10 @@ package dirac
 // posed starting player first, as Init poses it. It lives in this last
 // file, out of line, so the hot files keep their layout.
 func (s *State) ChooseStarter(p uint8) bool {
-	if p > 1 || s.mullMax == 0 || s.ctl != ctlMullDeclare || s.mullCur != 0 || s.Decisions != 0 {
+	if p >= s.nSeats() || s.mullMax == 0 || s.ctl != ctlMullDeclare || s.mullCur != 0 || s.Decisions != 0 {
 		return false
 	}
 	s.startPl = p
-	s.mullOrder = [MaxSeats]uint8{p, 1 - p}
+	s.mullOrder = mullOrderFrom(p, s.nSeats())
 	return true
 }

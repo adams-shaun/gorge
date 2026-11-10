@@ -320,7 +320,7 @@ func (s *State) BuildTargetSlot() (slot int, ok bool) {
 // included), and its restricted part per colour (every batch's).
 func (s *State) PoolOf(p uint8) (pool, restr [kop.NumManaKinds]uint8) {
 	s.rbUnits(p, s.rbAll(p), &restr)
-	return s.poolProj(p & 1), restr
+	return s.poolProj(p), restr
 }
 
 // StackLen is the number of stack entries; StackEntry is entry i (bottom

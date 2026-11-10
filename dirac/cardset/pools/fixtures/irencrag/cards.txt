@@ -1,0 +1,8 @@
+# The Irencrag pool: a legendary creature entering fires its Animate (become
+# Everflame, gain equip {3} and "Equipped creature gets +3/+3", lose all
+# other abilities), a vanilla creature to equip and Plains
+# (dirac/static_ovgate_loss_test.go)
+Grizzly Bears
+Isamaru, Hound of Konda
+Plains
+The Irencrag

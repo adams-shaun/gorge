@@ -888,6 +888,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.ForgetCounter = forgetCounter
 				grant.ImprintOnHost = imprintOnHost
 				grant.Chosen, grant.ChosenBound = effectChosenSnapshot(h, c, grant.Affects)
+				if grant.MayPlayNoZone {
+					// "The next red or green creature spell you cast": the
+					// first qualifying cast ends the grant (rules'
+					// effectCastSweep).
+					grant.ForgetOnCast = forgetOnCast
+				}
 				if grant.MayPlayCheckSVar != "" {
 					// Same binding as the plain grant above: the gate reads
 					// the RESOLVING face's SVar table.

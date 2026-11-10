@@ -11,7 +11,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // exwPickCands lists into d the exile cards matching the pick's filter.
 func (s *State) exwPickCands(k *prep, in *kop.Instr, d *Decision) {
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < MaxSeats; pp++ {
 		pl := &s.pl[pp]
 		for _, o := range pl.exile[:pl.exileN] {
 			if s.picksHas(o) {
@@ -33,7 +33,7 @@ func (s *State) randomExilePick(k *prep) {
 	in := &s.prog(k)[s.res.pc]
 	var rest [2 * MaxDeck]Obj
 	m := 0
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < MaxSeats; pp++ {
 		pl := &s.pl[pp]
 		for _, o := range pl.exile[:pl.exileN] {
 			if s.matchCardGen(k, in.F, s.objs[o].card, pp, s.res.e.ctrl, o) {

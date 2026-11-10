@@ -60,7 +60,7 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 	if latch != nil {
 		seen = latch.n
 	}
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
 			e := &k.t.Emblems[s.embIdx(pp, i)-1]
 			if !e.UntilEOT {
@@ -145,7 +145,7 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 						if DebugInnerLightNoAmount {
 							n = 0
 						}
-						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, srcObj, 1-srcCtrl, n)
+						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, srcObj, dmgSeat(rcp, srcCtrl), n)
 						break
 					}
 				}
@@ -202,7 +202,7 @@ func (s *State) emblemAtkListeners(k *prep, f func(l trigListener, a *kop.Abilit
 	if DebugIgnoreAtkEmblem {
 		return
 	}
-	for pp := uint8(0); pp < 2; pp++ {
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
 			e := &k.t.Emblems[s.embIdx(pp, i)-1]
 			for j := range e.Abilities {

@@ -16,17 +16,24 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 	switch in.Op {
 	case kop.OpNop:
 	case kop.OpDealDamage:
+		if MaxSeats > 2 && in.Obj == kop.RefEachOpponent {
+			// each opponent in turn, AliveFrom(controller) without it
+			q := s.oppsFrom(e.ctrl)
+			n := s.value(k, in.A)
+			for i := uint8(0); i < q.n; i++ {
+				s.damageTo(k, PlayerCode(q.s[i]), n)
+			}
+			break
+		}
 		code := s.refCode(k, in.Obj)
 		if code != NoTarget {
 			s.damageTo(k, code, s.value(k, in.A))
 		}
 	case kop.OpDraw:
-		p1, p2 := s.players(k, in.Obj)
+		q := s.players(k, in.Obj)
 		n := s.value(k, in.A)
-		for _, p := range [2]uint8{p1, p2} {
-			if p == 255 {
-				continue
-			}
+		for i := uint8(0); i < q.n; i++ {
+			p := q.s[i]
 			for i := 0; i < n && !s.over; i++ {
 				if in.C&kop.MvRemember != 0 {
 					s.drawRemember(p, in.C&kop.DrawRememberAll != 0) // RememberDrawn$ (zone_rememberwrites.go)
@@ -128,24 +135,17 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.res.lastTok = o
 		}
 	case kop.OpGainLife:
-		p1, p2 := s.players(k, in.Obj)
+		q := s.players(k, in.Obj)
 		n := s.value(k, in.A)
-		if p1 != 255 {
-			s.gainLife(k, p1, n)
-		}
-		if p2 != 255 {
-			s.gainLife(k, p2, n)
+		for i := uint8(0); i < q.n; i++ {
+			s.gainLife(k, q.s[i], n)
 		}
 	case kop.OpLoseLife:
-		p1, p2 := s.players(k, in.Obj)
+		q := s.players(k, in.Obj)
 		n := s.value(k, in.A)
 		lost := 0
-		if p1 != 255 {
-			s.loseLife(k, p1, n)
-			lost += max(n, 0)
-		}
-		if p2 != 255 {
-			s.loseLife(k, p2, n)
+		for i := uint8(0); i < q.n; i++ {
+			s.loseLife(k, q.s[i], n)
 			lost += max(n, 0)
 		}
 		if k.gen != nil {
@@ -235,15 +235,13 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		s.res.askP = p
 		return false
 	case kop.OpMill:
-		p1, p2 := s.players(k, in.Obj)
+		q := s.players(k, in.Obj)
 		n := s.value(k, in.A)
 		if in.C&kop.MvMayMill != 0 && n > 0 {
-			return s.mayMill(p1, p2, n)
+			return s.mayMill(q, n)
 		}
-		for _, p := range [2]uint8{p1, p2} {
-			if p == 255 {
-				continue
-			}
+		for i := uint8(0); i < q.n; i++ {
+			p := q.s[i]
 			pl := &s.pl[p]
 			if k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 {
 				s.millShuffling(k, p, n, int(in.C))
@@ -263,7 +261,10 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		}
 	case kop.OpFight, kop.OpBite:
 		a := s.objRef(k, in.Obj)
-		if in.Obj == kop.RefDelayedRemembered && a != NoSlot && s.reflexStale() {
+		if in.Obj == kop.RefDelayedRemembered && (a == NoSlot || s.reflexStale()) {
+			if in.Op == kop.OpBite && s.reflexBiteGone(k, in) {
+				break // the gone capture dealt its last known power (zone_rememberwrites.go)
+			}
 			a = NoSlot // the reflexive capture changed zones since (zone_rememberwrites.go)
 		}
 		if in.Op == kop.OpBite && s.biteEachTarget(k, in, a) {
@@ -438,7 +439,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		// (the replacement path freezes the same order in damageSeqStart).
 		var ord [MaxPerm]Slot
 		hi := 0
-		for p := uint8(0); p < 2; p++ {
+		for p := uint8(0); p < s.nSeats(); p++ {
 			hi = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), ord[:], hi)
 		}
 		for _, sl := range ord[:hi] {
@@ -447,8 +448,10 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if in.B.N&1 != 0 {
 			// then each player, the controller first (gorge validPlayers:
 			// AliveFrom the controller)
-			s.damageTo(k, PlayerTarget0+e.ctrl, n)
-			s.damageTo(k, PlayerTarget0+1-e.ctrl, n)
+			q := s.aliveFrom(e.ctrl)
+			for i := uint8(0); i < q.n; i++ {
+				s.damageTo(k, PlayerCode(q.s[i]), n)
+			}
 		}
 	case kop.OpDestroyAll:
 		if in.C != 0 {
@@ -913,19 +916,18 @@ func (s *State) applyResolve(k *prep, a Action) {
 		}
 		in := &s.prog(k)[r.pc]
 		chained := s.discardChained(k, in)
-		if chained && s.g.repNext != 255 {
+		if chained && s.repPending() {
 			// the next player chooses with these picks still in hand
 			s.holdDiscard(r.arr[:r.peekI])
 			r.peekI = 0
-			p := s.g.repNext
-			s.g.repNext = 255
-			if !s.discardChain(k, in, p, 255) {
+			p := s.repPop()
+			if !s.discardChain(k, in, p) {
 				return // the next player's ask is live
 			}
 			break
 		}
 		if chained {
-			s.flushHeldDiscard(k, r.chosen^1)
+			s.flushHeldDiscard(k)
 		}
 		// a competing pick waits for its order ask, and the picks behind it, or
 		// behind a held pick's ask, wait too (discardPicks)
@@ -1013,8 +1015,7 @@ func (s *State) applyResolve(k *prep, a Action) {
 			// stale OpRepeatEachPlayer remainder and re-ask the same player
 			in := &s.prog(k)[r.pc]
 			if in.Obj == kop.RefEachPlayer || in.Obj == kop.RefEachOpponent {
-				p := s.g.repNext
-				s.g.repNext = 255
+				p := s.repPop()
 				if !s.startOptSac(k, in, p) {
 					return // the next player's ask is live
 				}

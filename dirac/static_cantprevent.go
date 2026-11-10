@@ -28,23 +28,27 @@ func init() { stallNames[StallNoPrevent] = "noprevent" }
 // is ignored. It must make the shield prevent again.
 var DebugNoPreventOff bool
 
-// noPrev reports whether damage can't be prevented now.
-func (s *State) noPrev(k *prep) bool {
-	return k.gen != nil && k.gen.anyNoPrev && s.noPrevLive(k)
+// noPrev reports whether damage can't be prevented now; combat says the
+// damage being prevented is combat damage (a StNoPrevCombat static, IsCombat$
+// True, reaches only that: gorge cantPreventDamage's combatDamaging).
+func (s *State) noPrev(k *prep, combat bool) bool {
+	return k.gen != nil && k.gen.anyNoPrev && s.noPrevLive(k, combat)
 }
 
 // noPrevLive: a functioning StatCantPreventDamage static (a battlefield
 // permanent that has not lost its abilities, its Cond2 holding, or an
-// emblem) is in force.
+// emblem) is in force, a combat-only one (StNoPrevCombat) only for combat
+// damage.
 //
 //go:noinline
-func (s *State) noPrevLive(k *prep) bool {
+func (s *State) noPrevLive(k *prep, combat bool) bool {
 	if DebugNoPreventOff {
 		return false
 	}
 	hit := false
 	s.eachStatic(k, func(st statSrc) bool {
-		if st.a.Kind == kop.AbStatic && st.a.Static.Kind == kop.StatCantPreventDamage && s.statCond(k, st) {
+		if st.a.Kind == kop.AbStatic && st.a.Static.Kind == kop.StatCantPreventDamage &&
+			(combat || st.a.Static.StFlags&kop.StNoPrevCombat == 0) && s.statCond(k, st) {
 			hit = true
 			return false
 		}
@@ -56,7 +60,7 @@ func (s *State) noPrevLive(k *prep) bool {
 // fogNoPrev stalls a Fog's combat damage step while damage can't be
 // prevented (gorge's fogActive ignores the static).
 func (s *State) fogNoPrev(k *prep) {
-	if s.noPrev(k) {
+	if s.noPrev(k, true) {
 		s.capFull(StallNoPrevent)
 	}
 }

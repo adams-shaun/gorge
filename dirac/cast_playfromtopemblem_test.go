@@ -105,24 +105,67 @@ func TestPlayFromTopEmblem(t *testing.T) {
 		}
 	})
 
-	t.Run("pay life beside a second permission stalls", func(t *testing.T) {
-		tbl := playTopTable(0) // a plain library permission, walked first
-		pl := playTopTable(kop.StMayPayLife)
-		tbl.Emblems = append(tbl.Emblems, pl.Emblems[len(pl.Emblems)-1])
-		sc := newScenTable(t, tbl, Config{NoElide: true})
+	t.Run("pay life beside a second permission offers both casts", func(t *testing.T) {
+		sc, o := payLifeBeside(t, 0, 2)
 		s, k := sc.s, sc.k
-		o := playTopPutOnTop(sc, v.ThinkTwice)
-		n := uint8(len(k.t.Emblems))
-		s.g.emb[0][0], s.g.emb[0][1], s.g.nemb[0] = n-1, n, 2
-		s.pl[0].life = 20
+		mv := int(k.t.Cards[v.ThinkTwice].Cost.MV())
+		if mv == 0 || s.objs[o].zone != kop.ZoneLibrary {
+			t.Fatalf("precondition: Think Twice mana value %d in zone %v", mv, s.objs[o].zone)
+		}
+		if got := payLifeCastModes(sc, o); len(got) != 2 || got[0] != castMayPlay || got[1] != castMayPlay|castFree {
+			t.Fatalf("cast modes %v, want the plain cast %d then the life alternative %d", got, castMayPlay, castMayPlay|castFree)
+		}
+		if s.Stalled() {
+			t.Fatalf("stalled (%s)", StallName(s.StallReason()))
+		}
+		sc, o = payLifeBeside(t, 0, 0) // no lands: the mana cast can't be paid
+		if got := payLifeCastModes(sc, o); len(got) != 1 || got[0] != castMayPlay|castFree {
+			t.Fatalf("with no mana offered %v, want only the life alternative", got)
+		}
+		sc, o = payLifeBeside(t, 0, 2)
+		sc.s.pl[0].life = int16(mv - 1)
+		if got := payLifeCastModes(sc, o); len(got) != 1 || got[0] != castMayPlay {
+			t.Fatalf("at %d life offered %v, want only the plain cast", mv-1, got)
+		}
+	})
+
+	t.Run("pay life beside a second permission: each cast pays its own cost", func(t *testing.T) {
+		for _, mode := range []uint8{castMayPlay | castFree, castMayPlay} {
+			sc, o := payLifeBeside(t, 0, 2)
+			s := sc.s
+			mv := int(sc.k.t.Cards[v.ThinkTwice].Cost.MV())
+			if tapped, floating := sc.tappedAndFloating(0); tapped != 0 || floating != 0 {
+				t.Fatalf("precondition: %d tapped, %d floating", tapped, floating)
+			}
+			payLifeCast(t, sc, o, mode)
+			payLifeBuild(t, sc, o)
+			if s.Stalled() {
+				t.Fatalf("mode %d stalled (%s)", mode, StallName(s.StallReason()))
+			}
+			tapped, floating := sc.tappedAndFloating(0)
+			if mode&castFree != 0 && (int(s.pl[0].life) != 20-mv || tapped != 0) {
+				t.Fatalf("life alternative: life %d (want %d), %d lands tapped (want 0)", s.pl[0].life, 20-mv, tapped)
+			}
+			if mode&castFree == 0 && (s.pl[0].life != 20 || tapped+floating < mv) {
+				t.Fatalf("plain cast: life %d (want 20), %d tapped %d floating (want %d mana spent)", s.pl[0].life, tapped, floating, mv)
+			}
+		}
+	})
+
+	// a second permission that waives the mana cost: the plain cast and the
+	// life alternative would share one mode (two pay-life statics alone offer
+	// one alternative each instead: TestPlayFromTopEmblemTwoPayLife)
+	t.Run("pay life beside a free permission stalls", func(t *testing.T) {
+		sc, o := payLifeBeside(t, kop.StWithoutManaCost, 0)
+		s := sc.s
 		if s.Stalled() {
 			t.Fatalf("stalled (%s) before the offer", StallName(s.StallReason()))
 		}
-		if got := playTopOffers(sc, o); len(got) != 1 {
-			t.Fatalf("offered %v, want the joined offer of the two permissions: the precondition", got)
+		if got := payLifeCastModes(sc, o); len(got) != 1 || got[0] != castMayPlay|castFree {
+			t.Fatalf("offered %v, want the one joined free cast: the precondition", got)
 		}
 		if s.StallReason() != StallPayLifeShared {
-			t.Fatalf("stall reason %q, want %q: the joined offer would pay neither mana nor life", StallName(s.StallReason()), StallName(StallPayLifeShared))
+			t.Fatalf("stall reason %q, want %q: two of gorge's casts share one mode", StallName(s.StallReason()), StallName(StallPayLifeShared))
 		}
 	})
 
@@ -141,4 +184,62 @@ func TestPlayFromTopEmblem(t *testing.T) {
 			t.Fatalf("a pay-life cast at %d life owing %d", s.pl[0].life, mv)
 		}
 	})
+}
+
+// payLifeBeside is a scenario with Think Twice on player 0's library top, a
+// library permission with flags walked first and a pay-life one beside it,
+// both in force, life 20 and n Islands.
+func payLifeBeside(t *testing.T, flags kop.StaticFlags, n int) (*scen, Obj) {
+	t.Helper()
+	tbl := playTopTable(flags)
+	pl := playTopTable(kop.StMayPayLife)
+	tbl.Emblems = append(tbl.Emblems, pl.Emblems[len(pl.Emblems)-1])
+	sc := newScenTable(t, tbl, Config{NoElide: true})
+	sc.lands(0, v.Island, n)
+	o := playTopPutOnTop(sc, v.ThinkTwice)
+	k := uint8(len(sc.k.t.Emblems))
+	sc.s.g.emb[0][0], sc.s.g.emb[0][1], sc.s.g.nemb[0] = k-1, k, 2
+	sc.s.pl[0].life = 20
+	return sc, o
+}
+
+// payLifeCastModes is the modes of the casts of o player 0 is offered, in order.
+func payLifeCastModes(sc *scen, o Obj) (modes []uint8) {
+	var d Decision
+	var av avail
+	sc.s.priorityGen(sc.k, &d, 0, true, &av, false)
+	for i := 0; i < int(d.N); i++ {
+		if a := d.Options[i]; a.Kind() == AkCast && Obj(a.Source()) == o {
+			modes = append(modes, a.Mode())
+		}
+	}
+	return modes
+}
+
+// payLifeBuild steps the cast of o until the spell is on the stack.
+func payLifeBuild(t *testing.T, sc *scen, o Obj) {
+	t.Helper()
+	for i := 0; i < 8 && sc.s.objs[o].zone != kop.ZoneStack; i++ {
+		d := sc.s.Step()
+		if d.N == 0 {
+			break
+		}
+		sc.s.Apply(d.Options[0])
+	}
+	if sc.s.objs[o].zone != kop.ZoneStack {
+		t.Fatalf("the spell did not reach the stack (zone %v)", sc.s.objs[o].zone)
+	}
+}
+
+// payLifeCast applies player 0's cast of o with mode at the next decision.
+func payLifeCast(t *testing.T, sc *scen, o Obj, mode uint8) {
+	t.Helper()
+	d := sc.s.Step()
+	for i := 0; i < int(d.N); i++ {
+		if a := d.Options[i]; a.Kind() == AkCast && Obj(a.Source()) == o && a.Mode() == mode {
+			sc.s.Apply(a)
+			return
+		}
+	}
+	t.Fatalf("no cast of %d with mode %d among %v", o, mode, d.Options[:d.N])
 }

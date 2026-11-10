@@ -13,10 +13,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // eachSusp is an each-target loop parked on a copy token's as-enters ask.
 type eachSusp struct {
-	j    uint8 // the next extra target index plus one; 0 = no loop parked
-	slot uint8 // the target slot being walked
-	t, v uint8 // the slot's own target and version, restored when the loop ends
-	bad  uint8 // res.bad before the loop
+	j    uint8   // the next extra target index plus one; 0 = no loop parked
+	slot uint8   // the target slot being walked
+	t, v uint8   // the slot's own target and version, restored when the loop ends
+	bad  uint8   // res.bad before the loop
+	hold holdRec // a return's entry frame, kept open across the ask (on: it is ours to close)
 }
 
 // DebugCopyEachNoPark is the mutation switch: the loop runs on past a copy
@@ -56,12 +57,15 @@ func (s *State) eachRun(k *prep, in *kop.Instr, i uint8, j0 int, w eachSusp) boo
 		e.tgt[i], e.tver[i] = s.xtOf(e).code[j], s.xtOf(e).ver[j]
 		s.res.bad &^= 1 << i
 		n0 := s.g.nask
-		if ok := s.exec(k, in); !ok && s.eachParks(in) || ok && s.eachReturnParks(k, in, n0) {
+		if ok := s.exec(k, in); !ok && (s.eachParks(in) || s.eachReturnParked(in)) || ok && s.eachReturnParks(k, in, n0) {
 			w.j = uint8(j + 2)
 			s.g.each = w
 			s.g.inLoop = false
 			return true
 		}
+	}
+	if w.hold.on {
+		s.holdClose(k, w.hold) // the targets still enter together (CR 603.6a)
 	}
 	e.tgt[i], e.tver[i], s.res.bad = w.t, w.v, w.bad
 	s.g.inLoop = false
@@ -80,7 +84,9 @@ func (s *State) eachResume(k *prep, in *kop.Instr) bool {
 	if k.gen.anyBatch {
 		defer s.batchClose(s.batchOpen())
 	}
-	if returnToBattlefield(in) {
+	if returnToBattlefield(in) && w.hold.on {
+		// the frame stayed open across the ask; eachRun closes it
+	} else if returnToBattlefield(in) {
 		defer s.holdClose(k, s.holdEntries()) // as execEachTarget: the targets enter together
 	} else {
 		defer s.holdClose(k, s.holdOpen(k))

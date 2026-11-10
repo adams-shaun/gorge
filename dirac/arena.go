@@ -222,6 +222,11 @@ func (s *State) arenaClrSlot(sl Slot) {
 	for i := range ms {
 		ms[i] = ms[i].without(sl)
 	}
+	for i := range s.cold.exMark {
+		if r := &s.cold.exMark[i]; r.sl == sl {
+			r.live = false // the last permanent's exile-instead records end with it (repl_exilemark.go)
+		}
+	}
 }
 
 // mSlMask returns mechanic m's mask (empty when the table does not use m).

@@ -839,8 +839,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.pickLeft > 0 && s.countSacLeft(k, s.g.pickP, s.genPickFilter(k)) > 0 {
 			return
 		}
-		p := s.g.repNext
-		s.g.repNext = 255
+		p := s.repPop()
 		if !s.startSac(k, &s.prog(k)[r.pc], p) {
 			return
 		}
@@ -951,7 +950,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				return
 			}
 		}
-		r.ask, r.askP = raGenPileChoose, 1-r.e.ctrl
+		r.ask, r.askP = raGenPileChoose, s.nextAlive(r.e.ctrl) // gorge twoPilesPlayer: the first live opponent
 	case raGenPileChoose:
 		// mode 0: the face-down pile (the picks), 1: the face-up pile. The
 		// chosen pile goes to its zone first: the picks in pick order
@@ -1399,8 +1398,7 @@ func (s *State) startSac(k *prep, in *kop.Instr, p uint8) bool {
 		n := s.value(k, in.A)
 		if n <= 0 {
 			// gorge effSacrifice: an Amount$ of 0 or less sacrifices nothing and asks nothing
-			p = s.g.repNext
-			s.g.repNext = 255
+			p = s.repPop()
 			continue
 		}
 		cnt := s.countSac(k, p, in.F, src)
@@ -1418,8 +1416,7 @@ func (s *State) startSac(k *prep, in *kop.Instr, p uint8) bool {
 				s.addSac(sl)
 			}
 		}
-		p = s.g.repNext
-		s.g.repNext = 255
+		p = s.repPop()
 	}
 	s.flushSac(k)
 	return true
@@ -1449,15 +1446,19 @@ func (s *State) flushSac(k *prep) {
 	// gorge's earlier emits did; the parked ones are sacrificed and move after
 	// the answer, in the same batch.
 	w, parked := s.sacParkFrom(k, ord[:n])
-	for _, sl := range ord[:w] {
-		s.fireSac(k, sl)
-	}
 	var zs [MaxPerm]kop.Zone
-	for i, sl := range ord[:w] {
-		zs[i] = s.dieZone(k, sl)
-	}
-	for i, sl := range ord[:w] {
-		s.fireLeave(k, sl, zs[i])
+	if w > 1 && s.subs[kop.TrigSacrificed].any() {
+		s.sacEachDeparture(k, ord[:w], &zs) // one walk per departure (trig_sacqueueorder.go)
+	} else {
+		for _, sl := range ord[:w] {
+			s.fireSac(k, sl)
+		}
+		for i, sl := range ord[:w] {
+			zs[i] = s.dieZone(k, sl)
+		}
+		for i, sl := range ord[:w] {
+			s.fireLeave(k, sl, zs[i])
+		}
 	}
 	for i, sl := range ord[:w] {
 		s.removePerm(k, sl, zs[i], false)
@@ -1740,6 +1741,12 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 	if z == kop.ZoneLibrary && s.g.nlook > 1 && (s.searchZone(k) == kop.ZoneHand || fl&kop.SrNoShuffle != 0) {
 		s.reverseLook() // act_mayask.go: the first answered ends on top (an unshuffled search too)
 	}
+	// CR 603.6a: the cards a search puts onto the battlefield enter together, so
+	// each one's enters check sees the whole batch (gorge's zone batch): Roiling
+	// Canopy's "five other Forests" holds for both of two Forests entering as
+	// the sixth. The checks fire when the walk ends or suspends.
+	var eb entBatch
+	defer s.fireEntries(k, &eb)
 	for i := 0; i < int(s.g.nlook); i++ {
 		o := s.resArm().look[i]
 		if z == kop.ZoneNone {
@@ -1821,7 +1828,15 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.handGraveArm(k) // WithCountersType$ on a hand/graveyard pick
 			}
 			s.enterOnto(host)
-			sl := s.enter(k, o, ep, fl&kop.SrTapped != 0, from)
+			var sl Slot
+			if s.g.nlook > 1 && host == NoSlot && s.g.entHost == 0 && !(s.g.pre.ordMid && s.g.pre.obj == o) {
+				sl = s.enterHeld(k, &eb, o, ep, fl&kop.SrTapped != 0, from)
+				if from == kop.ZoneGraveyard {
+					s.fireLeavesGraveyardSelf(k, sl, o) // trig_leftgraveyard.go, as enter does
+				}
+			} else {
+				sl = s.enter(k, o, ep, fl&kop.SrTapped != 0, from)
+			}
 			if s.g.pre.obj == o {
 				s.g.pre = preAsk{}
 			}
@@ -1877,16 +1892,17 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 // --- dig ---
 
 func (s *State) startDig(k *prep, in *kop.Instr) bool {
-	first, second := s.eachPlayers(k, in.Obj)
+	q := s.eachPlayers(k, in.Obj)
 	if in.Obj == kop.RefEachPlayer {
 		// a Dig's Defined$ Player is the seat-order sweep, AliveFrom(0), not
 		// AliveFrom(controller): the remember order it builds is the order
 		// the chained Play's candidates carry (CastFreeIndex; Etali pair 99)
-		first, second = 0, 1
+		q = s.aliveFrom(0)
 	}
-	if first == 255 {
-		first = s.res.e.ctrl
+	if q.n == 0 {
+		q = seatOne(s.res.e.ctrl)
 	}
+	single := q.n == 1
 	s.res.left = 0 // the parked-tail marker (zone_parkedtail.go)
 	take := int(in.B.N)
 	if in.B.K != kop.VConst {
@@ -1895,10 +1911,8 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 			take = 0 // gorge effDig: a negative ChangeNum takes nothing, not the -1 "all" sentinel
 		}
 	}
-	for _, p := range [2]uint8{first, second} {
-		if p == 255 {
-			continue
-		}
+	for i := uint8(0); i < q.n; i++ {
+		p := q.s[i]
 		pl := &s.pl[p]
 		n := s.value(k, in.A)
 		if n < 0 {
@@ -1918,7 +1932,7 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 			s.resArm().look[i] = pl.lib[int(pl.libLo)+i]
 			s.resArm().lookOrig[i] = uint8(i)
 		}
-		if take == -1 && second == 255 && (in.C>>3)&kop.DigOptional != 0 && s.g.nlook > 0 && s.digHasPick(k) {
+		if take == -1 && single && (in.C>>3)&kop.DigOptional != 0 && s.g.nlook > 0 && s.digHasPick(k) {
 			// ChangeNum$ All beside Optional$ True (gorge effDig's
 			// allOrNothing election): one yes/no, never a subset. Yes takes
 			// every matching card; no leaves the looked-at window in place
@@ -1935,7 +1949,7 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 					s.g.lookSel |= 1 << i
 				}
 			}
-			if s.finishDigAt(k, second == 255, false) && s.res.ask != raNone {
+			if s.finishDigAt(k, single, false) && s.res.ask != raNone {
 				// a taken card's as-enters ask or a commander's CR 903.9b
 				// park stops the each-player loop here; the answer re-runs
 				// this player's window (not the next player's)
@@ -1947,7 +1961,7 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 			take = n
 		}
 		s.g.pickLeft = uint8(take)
-		if second != 255 {
+		if !single {
 			panic("kernel: an each-player dig with a choice")
 		}
 		if n == 0 || take == 0 || !s.digHasPick(k) || s.digForced(k) {
@@ -2224,7 +2238,7 @@ func (s *State) digRestOut(n int) {
 
 func (s *State) startChooseEach(k *prep, in *kop.Instr) bool {
 	s.g.nchosen = 0
-	first, _ := s.eachPlayers(k, in.Obj)
+	first := s.eachPlayers(k, in.Obj).at(0)
 	if first == 255 {
 		return true
 	}
@@ -2398,7 +2412,7 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 		if fl&kop.DigFaceDown != 0 && z == kop.ZoneExile {
 			exiler := s.res.e.ctrl
 			if fl&kop.DigExilerOther != 0 {
-				exiler = 1 - exiler // DefinedExiler$ Targeted: the opponent exiled it
+				exiler = s.targetedExiler(exiler) // DefinedExiler$ Targeted: the targeted player exiled it
 			}
 			s.faceDownExile(o, s.res.e.obj, exiler) // zone_exilefacedown.go
 		}
@@ -2438,4 +2452,19 @@ func (s *State) pileMove(o Obj, z kop.Zone) {
 	}
 	from := s.detach(o)
 	s.placeFrom(o, z, false, from, false)
+}
+
+// targetedExiler is DefinedExiler$ Targeted: the resolving entry's first
+// player target (gorge's Targeted reads the targets' players in order). At
+// two seats it is the controller's opponent, the one player it can target.
+func (s *State) targetedExiler(ctrl uint8) uint8 {
+	if MaxSeats == 2 {
+		return 1 - ctrl
+	}
+	for i := range s.res.e.tgt {
+		if t := s.tgtCode(i); isPlayerTarget(t) {
+			return CodeSeat(t)
+		}
+	}
+	return NextSeat(ctrl)
 }

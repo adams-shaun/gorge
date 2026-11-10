@@ -62,6 +62,13 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		return lc.permOrSpellMove(ps) // lower_permorspell.go
 	}
 	dual := strings.TrimSpace(ps.str("Origin")) == "Graveyard,Exile"
+	// a delayed program's return of the object its registration remembered
+	// (The Guardian of Forever): a known-origin move that takes the object
+	// from either zone, not a pick (dualDelayedReturn)
+	dualDef := dual && dualDelayedReturn(ps)
+	if dualDef {
+		dual = false
+	}
 	if dual && !everyRememberedOrImprinted(ps.str("ChangeType")) {
 		return refuse("ChangeZone Origin$ Graveyard,Exile ChangeType$ %q without IsRemembered", ps.str("ChangeType"))
 	}
@@ -75,7 +82,10 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		origin = zAny
 	}
-	if !dual && !hg && !bg {
+	if dualDef {
+		ps.get("Origin") // read
+		origin = zAny
+	} else if !dual && !hg && !bg {
 		if origin, err = zoneOf(ps, "Origin", zNone); err != nil {
 			return err
 		}
@@ -199,8 +209,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		if !ps.is("Hidden", "True") {
 			return refuse("Origin$ Graveyard,Exile without Hidden$")
 		}
-		if dest != zHand && dest != zBattlefield {
+		if dest != zHand && dest != zBattlefield && dest != zLibrary {
 			return refuse("Origin$ Graveyard,Exile to %s", zoneLabel[dest])
+		}
+		if dest == zLibrary && pos != 0 {
+			return refuse("Origin$ Graveyard,Exile to Library LibraryPosition$ %d", pos)
 		}
 		if ct == "" {
 			return refuse("ChangeType$ empty")
@@ -769,6 +782,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	if origin != zNone && origin != zAny {
 		in.CS = strings.TrimPrefix(in.CS+"|from="+zoneLabel[origin], "|")
 	}
+	if dualDef {
+		in.CS = strings.TrimPrefix(in.CS+"|from=Graveyard,Exile", "|") // the object may have moved from one zone to the other
+	}
 	if origin == zLibrary && (in.Op == "Bounce" || in.Op == "Return") {
 		if v, ok := ps.get("NoLooking"); ok && v != "True" {
 			// NoLooking$ True on a Defined$ fetch (the second half of a
@@ -781,6 +797,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 	}
 	if counterKind != "" {
+		if err := withCountersList(counterKind, in.Op, in.C); err != nil { // lower_counterlist.go
+			return err
+		}
 		if in.Op != "Return" || in.C != zBattlefield && dest != zExile {
 			if dest != zExile {
 				return refuse("WithCounters on a %s move", in.Op)
@@ -2405,6 +2424,15 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if err != nil {
 		return err
 	}
+	if !hasCap && eot {
+		var src bool
+		if t, src, err = effectSourceTrigger(ps, t); err != nil {
+			return err
+		}
+		if src {
+			capture, hasCap = lRef{Kind: rSelf}, true // the emblem remembers the Effect's source object
+		}
+	}
 	saved := len(lc.out.Abilities)
 	lc.capRem = hasCap && t.Mode == "DamageDealtOnce"
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
@@ -2526,6 +2554,7 @@ func (lc *lowerCtx) animate(ps *params) error {
 		return err
 	}
 	_, optional := ps.m["Optional"]
+	ps.consume("OptionQuestion") // prompt text only (gorge combatfx.go); the yes/no is the same
 	if optional && obj.Kind != rSelf {
 		// gorge asks only while some Defined object is still there
 		// (animateWouldChange): MayGuardMove tests that for the one source
@@ -2714,12 +2743,28 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 			o.PVal, o.TVal = pv, tv
 		}
 	}
+	if n, ok := ps.get("Name"); ok {
+		// a literal layer-3 rename (gorge combatfx.go: a chooser token is
+		// not a rename there; refuse it here rather than mint a name card)
+		n = strings.TrimSpace(n)
+		if strings.EqualFold(n, "ChosenName") || strings.EqualFold(n, "Chosen") || n == "" {
+			return nil, "", false, refuse("Animate Name$ %q", n)
+		}
+		o.Name = n
+		lc.out.Tokens = append(lc.out.Tokens, nameCardKey+n)
+	}
 	if k, ok := ps.get("Keywords"); ok {
-		ks, err := pumpKeywords(k)
+		k, err := lc.animateGrantedKeywordAbilities(k, o) // lower_animatekwability.go
 		if err != nil {
 			return nil, "", false, err
 		}
-		o.AddKw = ks
+		if k != "" {
+			ks, err := pumpKeywords(k)
+			if err != nil {
+				return nil, "", false, err
+			}
+			o.AddKw = ks
+		}
 	}
 	if tr, ok := ps.get("Triggers"); ok {
 		idx, err := lc.latentTrigger(tr)
@@ -3698,12 +3743,15 @@ func (lc *lowerCtx) twoPilesSac(ps *params) error {
 
 // animateRemoveKeywords reads an Animate's RemoveKeywords$ (gorge
 // animateGrant.removeKeywords: layer-6 keyword removal, CR 613.1f) and its
-// staticAbilities$ grant, of which only the plain "can't be blocked" static
-// (Mode$ CantBlockBy | ValidAttacker$ Creature.Self, Surge Engine) is read:
-// the kernel's KwUnblockable. A host-bound duration refuses (the override's
-// WhileHost sets no keyword record). Surge Engine. A Mode$ Continuous
-// static that only sets the object's own P/T is the live P/T grant
-// (animateLivePT).
+// staticAbilities$ grant, read by one of four routes: a comma list of
+// permission/land-play statics, or a single Mode$ Continuous body over other
+// permanents (an anthem, keyword grant or equipped pump), each lowered as an
+// OvGate-gated static of the source (animateGrantStatics); a single
+// Mode$ Continuous body that only sets the object's own P/T, the live P/T
+// grant (animateLivePT); and the plain "can't be blocked" static
+// (Mode$ CantBlockBy | ValidAttacker$ Creature.Self, Surge Engine), the
+// kernel's KwUnblockable, where a host-bound duration refuses (the override's
+// WhileHost sets no keyword record).
 func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) error {
 	if v, ok := ps.get("RemoveKeywords"); ok {
 		// Only Surge Engine's shape (beside a CantBlockBy grant) has a
@@ -3724,10 +3772,18 @@ func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) er
 	}
 	name := strings.TrimSpace(v)
 	if strings.Contains(name, ",") {
-		return lc.animateGrantStatics(ps, name, o)
+		return lc.animateGrantStatics(ps, name, o, false)
 	}
 	ss, ok := cards.ParseStaticLines(lc.face.SVars[name])
 	if ok && len(ss) == 1 && ss[0].Mode == "Continuous" {
+		if aff, has := ss[0].Params["Affected"]; has && strings.TrimSpace(aff) != "Card.Self" {
+			// The static reaches other permanents (an anthem, keyword grant
+			// or equipped pump): the animated object HAS it, so lower it as
+			// an ordinary static of the source switched on by the override
+			// record (animateGrantStatics). A self P/T setter stays the live
+			// P/T grant.
+			return lc.animateGrantStatics(ps, name, o, true)
+		}
 		return lc.animateLivePT(name, ss[0], o, obj)
 	}
 	if !ok || len(ss) != 1 || ss[0].Mode != "CantBlockBy" {
@@ -3748,18 +3804,21 @@ func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) er
 	return nil
 }
 
-// animateGrantStatics lowers an Animate's staticAbilities$ list of
+// animateGrantStatics lowers an Animate's staticAbilities$ grants: the
 // permission and land-play statics (Nog, Ambitious Cadet's "You may play
 // lands from your graveyard" and "You may play an additional land on each of
-// your turns"; gorge registerAnimateStaticAbilities registers each body as a
-// continuous effect of the animated object for the animation's lifetime). Each
-// body lowers as the printed static it reads as (a may-play permission, an
-// extra land play) on the source card, switched on by a bit of the override
-// record the Animate applies (kop.Static.OvGate, kop.Override.GrantStatics),
-// so the grant is source-scoped and lasts as long as the record. Only a
-// permanent grant on Self reaches the source.
-func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride) error {
-	if ps.str("Duration") != "Permanent" || ps.str("Defined") != "Self" {
+// your turns") and, for a single non-self body, an anthem, keyword grant or
+// equipped pump (Tenth District Hero's "Other creatures you control have
+// indestructible", The Irencrag's "Equipped creature gets +3/+3"); gorge
+// registerAnimateStaticAbilities registers each body as a continuous effect
+// of the animated object for the animation's lifetime. Each body lowers as
+// the printed static it reads as on the source card, switched on by a bit of
+// the override record the Animate applies (kop.Static.OvGate,
+// kop.Override.GrantStatics), so the grant is source-scoped and lasts as long
+// as the record. Only a permanent grant on Self reaches the source.
+func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride, single bool) error {
+	d := ps.str("Defined")
+	if ps.str("Duration") != "Permanent" || d != "Self" && !(single && d == "") {
 		return refuse("Animate staticAbilities$ %q beside a duration other than Permanent on Self", names)
 	}
 	for _, name := range strings.Split(names, ",") {
@@ -3770,7 +3829,7 @@ func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride) 
 		}
 		_, may := ss[0].Params["MayPlay"]
 		_, land := ss[0].Params["AdjustLandPlays"]
-		if may == land {
+		if may == land && (!single || !animatePumpOrKeywordStatic(ss[0])) {
 			return refuse("Animate staticAbilities$ %q shape", name)
 		}
 		gated := 0
@@ -3789,11 +3848,41 @@ func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride) 
 		if len(lc.out.Statics) != before+1 {
 			return refuse("Animate staticAbilities$ %q lowered to %d statics", name, len(lc.out.Statics)-before)
 		}
+		// A single body must lower to the layer P/T/keyword kind, whose
+		// keyword/P/T walks honour OvGate (statCond); a player-hexproof or
+		// stack-keyword static reads no gate and would be live unanimated.
+		// Two walks read no OvGate: the attached-grant walk (grantsBetween)
+		// reads no statCond, so a granted ability or trigger
+		// (AddAbility$/AddTrigger$) beside the pump would reach the equipped
+		// creature unanimated; and the layer walk's lfxApplies gates a
+		// collected subtype grant (AddType$ subtype or ChosenType) on Cond2
+		// only, so it would apply unanimated whenever the walk is on: refuse
+		// both.
+		if k := lc.out.Statics[before].Kind; single && !may && !land && k != "Continuous" {
+			return refuse("Animate staticAbilities$ %q lowers to ungated static kind %s", name, k)
+		}
+		if single && !may && !land && len(lc.out.Statics[before].Grant) != 0 {
+			return refuse("Animate staticAbilities$ %q grants an ability the kernel does not gate", name)
+		}
+		if st := &lc.out.Statics[before]; single && !may && !land && (len(st.AddSub) != 0 || st.AddChosen) {
+			return refuse("Animate staticAbilities$ %q grants a subtype the kernel does not gate", name)
+		}
 		bit := uint8(1) << gated
 		lc.out.Statics[before].OvGate = bit
 		o.GrantStatics |= bit
 	}
 	return nil
+}
+
+// animatePumpOrKeywordStatic reports whether an Animate staticAbilities$
+// grant single body is a Continuous static lowerStatic lowers as an anthem,
+// keyword grant or equipped pump (AddKeyword$, AddPower$/AddToughness$)
+// rather than a permission.
+func animatePumpOrKeywordStatic(st cards.Static) bool {
+	if strings.TrimSpace(st.Params["AddKeyword"]) != "" {
+		return true
+	}
+	return strings.TrimSpace(st.Params["AddPower"]) != "" || strings.TrimSpace(st.Params["AddToughness"]) != ""
 }
 
 // animateGraveMayPlay lowers an Animate over Defined$ ValidGraveyard <spec>
