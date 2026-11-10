@@ -28,7 +28,7 @@ func tablePlotGrant(t *kop.Table) bool {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
-				if in.Ext() == kop.ExtPlotGrant {
+				if in.Ext() == kop.ExtPlotGrant || in.Ext() == kop.ExtStackExileMark && in.C&kop.StackExilePlot != 0 {
 					return true
 				}
 			}
@@ -51,16 +51,27 @@ func (s *State) plotGrant(k *prep) {
 		if ob.zone != kop.ZoneExile {
 			continue
 		}
-		if s.mayFull() {
-			s.capFull(StallMayPlay)
+		if !s.plotOne(k, o) {
 			return
 		}
-		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurPlot, turn: s.turn}
-		s.g.nmay++
-		if k.cards[ob.card].plotTrig {
-			s.fireBecomesPlotted(k, o) // kw_plot.go
-		}
 	}
+}
+
+// plotOne makes the exiled object o plotted: a DurPlot record stamped with
+// this turn, then the card's own BecomesPlotted triggers. It reports false
+// when the permission pool is full (stalled).
+func (s *State) plotOne(k *prep, o Obj) bool {
+	ob := &s.objs[o]
+	if s.mayFull() {
+		s.capFull(StallMayPlay)
+		return false
+	}
+	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurPlot, turn: s.turn}
+	s.g.nmay++
+	if k.cards[ob.card].plotTrig {
+		s.fireBecomesPlotted(k, o) // kw_plot.go
+	}
+	return true
 }
 
 // Plot (CR 702.170): a sorcery-speed special action from hand pays

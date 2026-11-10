@@ -462,6 +462,7 @@ ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
 ExtSearchCounters	ExtOp	252
 ExtSpellToLib	ExtOp	308
+ExtStackExileMark	ExtOp	315
 ExtSuspect	ExtOp	190
 ExtSweepFrom	ExtOp	97
 ExtToGraveyard	ExtOp	192
@@ -1089,6 +1090,11 @@ StTapReflect	StaticFlags	4
 StTargetsFilter2	StaticFlags	64
 StWithoutManaCost	StaticFlags	8
 StYouHexproof	StaticFlags	512
+StackExileDream	untyped int	2
+StackExileGrant	untyped int	4
+StackExileOwn	untyped int	8
+StackExileResolved	untyped int	16
+StackExilePlot	untyped int	1
 StackKwCascade	int16	3
 StackKwCasualty	int16	2
 StackKwConspire	int16	8

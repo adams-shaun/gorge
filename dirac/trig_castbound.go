@@ -38,7 +38,9 @@ func tableFilterDynamic(t *kop.Table, f kop.FilterID) bool {
 func (s *State) castFilterOK(k *prep, f kop.FilterID, e *stackEntry, l trigListener) bool {
 	if k.gen.castBoundSrc && featFilterDynamic(k, f) && !filterChosenType(k.t, f) {
 		cx := evalCtx{src: l.obj, srcSl: l.sl, ctrl: l.ctrl}
-		return s.matchCardGenAt(k, f, e.card, e.ctrl, l.ctrl, e.obj, &cx)
+		return s.matchCardGenAt(k, f, e.card, s.objs[e.obj].owner(), l.ctrl, e.obj, &cx)
 	}
-	return s.matchCardTgt(k, f, e.card, e.ctrl, l.ctrl, e.obj, l.sl, l.obj)
+	// the cast card's owner, which is not its caster when a permission cast it
+	// from another player's graveyard (Nita, Forum Conciliator's YouDontOwn)
+	return s.matchCardTgt(k, f, e.card, s.objs[e.obj].owner(), l.ctrl, e.obj, l.sl, l.obj)
 }

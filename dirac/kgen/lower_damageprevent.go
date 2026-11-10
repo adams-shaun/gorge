@@ -20,6 +20,9 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	if ok, err := lc.effectEtbCounters(ps); ok || err != nil { // lower_effetbctr.go
 		return err
 	}
+	if ok, err := lc.effectStackExile(ps); ok || err != nil { // lower_effectstackexile.go
+		return err
+	}
 	if ok, err := lc.effectCounterPlusEOT(ps); ok || err != nil { // lower_ctrpluseot.go
 		return err
 	}

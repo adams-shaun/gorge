@@ -68,6 +68,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtDividedCounters:
 		s.divCounters(k, in) // ctr_divided.go
 		return true, true
+	case kop.ExtStackExileMark:
+		s.stackExileMark(k, in) // repl_stackexile.go
+		return true, true
 	case kop.ExtPlotGrant:
 		s.plotGrant(k) // kw_plot.go
 		return true, true

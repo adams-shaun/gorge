@@ -3672,6 +3672,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// Obj the triggering spell (the kernel reads the entry's trigObj)
 		ki.Op, ki.B = kop.OpExt, ki.A
 		ki.A = kop.Const(int(kop.ExtEffEtbCtr))
+	case "StackExileMark":
+		// OpExt ExtStackExileMark, C the kop.StackExile* bits (repl_stackexile.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtStackExileMark)), int16(in.C)
 	case "EffFinalityCtr":
 		// OpExt ExtFinalityCtr, Obj the triggering spell
 		// (the kernel reads the entry's trigObj); the spell enters with one

@@ -146,6 +146,7 @@ func (s *State) spendMayKind(k *prep, o Obj, p uint8, mode uint8) bool {
 	if r.kind&mayKindRaise != 0 {
 		s.g.raiseB = uint8(r.turn) // the cast's surcharge (cast_whileexiled.go)
 	}
+	s.stampMayExile(k, i) // repl_stackexile.go
 	s.removeMay(i)
 	return true
 }

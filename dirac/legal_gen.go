@@ -317,6 +317,7 @@ func (s *State) spendMayRecord(k *prep, o Obj, p uint8) bool {
 	for i := 0; i < int(s.g.nmay); i++ {
 		if s.mayAt(i).obj == o && s.mayAt(i).ctrl == p && s.mayAt(i).ver == s.objs[o].ver &&
 			!ownWalkerRecord(*s.mayAt(i)) && !s.mayLimitSpent(*s.mayAt(i)) && !(k.gen.anyMayWhileSrc && s.maySrcDead(*s.mayAt(i))) {
+			s.stampMayExile(k, i) // repl_stackexile.go
 			s.removeMay(i)
 			return true
 		}

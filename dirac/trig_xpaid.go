@@ -132,7 +132,7 @@ func (s *State) spellHoldLeaves(k *prep) {
 	// spellRestZone: the flashback family and the Play rider's
 	// ReplaceGraveyard$ both exile a held spell's card, and a copy of a
 	// spell is exiled as it leaves the stack (CR 707.10a).
-	if s.spellRestExiles(e) {
+	if s.spellRestExiles(e) || e.markExiles(false) {
 		z = kop.ZoneExile
 	}
 	if k.gen != nil && k.gen.anyFaces {
@@ -145,6 +145,7 @@ func (s *State) spellHoldLeaves(k *prep) {
 		s.omenToLibrary(e.obj) // face_omen.go
 	} else {
 		s.placeFrom(e.obj, z, false, kop.ZoneStack, false)
+		s.markedPlot(k, e) // repl_stackexile.go
 	}
 }
 

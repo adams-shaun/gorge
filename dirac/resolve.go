@@ -296,7 +296,7 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 			s.touch(e.obj)
 			ob.zone = kop.ZoneNone
 			z := kop.ZoneGraveyard
-			if s.spellRestExiles(e) {
+			if s.spellRestExiles(e) || e.markExiles(fizzled) { // markExiles: repl_stackexile.go
 				z = kop.ZoneExile
 			}
 			if k.gen != nil && k.gen.anyFaces {
@@ -309,6 +309,9 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 				s.omenToLibrary(e.obj) // face_omen.go
 			} else {
 				s.placeFromK(k, e.obj, z, false, kop.ZoneStack, false)
+				if !fizzled {
+					s.markedPlot(k, e) // repl_stackexile.go
+				}
 			}
 		}
 	}
