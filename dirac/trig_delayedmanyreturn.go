@@ -23,30 +23,7 @@ func (s *State) delayedManyLive() {
 	e := &s.res.e
 	s.g.nrem = 0
 	for i := 0; i < 4; i++ {
-		var o Obj
-		var ver uint8
-		switch i {
-		case 0:
-			o, ver = e.trigObj, e.remVer
-		case 1:
-			o = Obj(e.trigAmt - 1)
-			if e.trigAmt <= 0 {
-				o = NoObj
-			}
-		case 2:
-			o = Obj(e.x - 1)
-			if e.x == 0 {
-				o = NoObj
-			}
-		default:
-			o = Obj(e.trigMV - 1)
-			if e.trigMV == 0 {
-				o = NoObj
-			}
-		}
-		if i > 0 {
-			ver = e.tver[i-1]
-		}
+		o, ver := e.dpManyCarrier(i)
 		if o == NoObj || s.objs[o].ver != ver {
 			continue
 		}

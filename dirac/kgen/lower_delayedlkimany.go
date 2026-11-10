@@ -17,6 +17,11 @@ import "github.com/adams-shaun/gorge/engine/cards"
 //   - a body of one ChangeZone Origin$ Exile, Destination$ Battlefield of
 //     Defined$ DelayTriggerRememberedLKI and nothing else.
 //
+// Capacity: the carrier holds four objects, so Hide on the Ceiling with X >= 5
+// and Eerie Interlude exiling five or more are counted supported but stall
+// (StallDProg, declared, never a partial return); dirac.TestDelayedManyCapacity
+// pins it.
+//
 // It returns the reason the chain is another shape, "" when it is this one.
 func (lc *lowerCtx) delayedLKIManyShape(exec *cards.SA) string {
 	if len(lc.ab.Targets) != 1 {

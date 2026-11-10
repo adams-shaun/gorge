@@ -58,6 +58,18 @@ func TestLowerDelayedLkiMultitarget(t *testing.T) {
 			t.Errorf("%s: refusals %q, want %q and %q", label, got, name, c.want)
 		}
 	}
+	// a second target slot beside the multi-object one is another shape
+	twoSlots := strings.Replace(delayedLKIProbe(two, delayedLKIBody), "| SubAbility$ DBDel |",
+		"| SubAbility$ DBTap |", 1) + "\nSVar:DBTap:DB$ Tap | ValidTgts$ Creature | SubAbility$ DBDel"
+	if got := abReasons(abLower(t, twoSlots, false)); !strings.Contains(got, name) || !strings.Contains(got, "not exactly one target slot") {
+		t.Errorf("a second target slot: refusals %q", got)
+	}
+	// a second remembering write: the set is no longer the slot's exile alone
+	twoWrites := strings.Replace(delayedLKIProbe(two, delayedLKIBody), "| SubAbility$ DBDel |",
+		"| SubAbility$ DBMore |", 1) + "\nSVar:DBMore:DB$ ChangeZone | Defined$ Self | Origin$ Battlefield | Destination$ Exile | RememberChanged$ True | SubAbility$ DBDel"
+	if got := abReasons(abLower(t, twoWrites, false)); !strings.Contains(got, name) || !strings.Contains(got, "the remembered set is not the target slot's exile") {
+		t.Errorf("a second remembering write: refusals %q", got)
+	}
 	// a slot that exiles nothing it remembers is another shape
 	noRemember := strings.Replace(delayedLKIProbe(two, delayedLKIBody), " | RememberChanged$ True", "", 1)
 	if got := abReasons(abLower(t, noRemember, false)); !strings.Contains(got, name) || !strings.Contains(got, "the remembered set is not the target slot's exile") {
