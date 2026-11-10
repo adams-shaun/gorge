@@ -54,12 +54,12 @@ func TestLowerEffectReplNamed(t *testing.T) {
 	const eclipse = "Name:Exile Bf Probe\nManaCost:1 B B\nTypes:Sorcery\n" +
 		"A:SP$ Effect | ReplacementEffects$ DeathRep | SpellDescription$ probe\n" +
 		"SVar:DeathRep:Event$ Moved | ValidLKI$ Creature.OppCtrl | Origin$ Battlefield | Destination$ Graveyard | ReplaceWith$ Exile | Description$ probe\n" +
-		"SVar:Exile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | Defined$ ReplacedCard\n"
+		"SVar:Exile:DB$ ChangeZone | Destination$ Exile | Origin$ Battlefield | Defined$ ReplacedCard\n"
 	const dog = "Name:Exile Bf Probe\nManaCost:1 W\nTypes:Creature Squirrel\nPT:2/2\n" +
 		"A:AB$ Effect | Cost$ 4 W | ReplacementEffects$ Plus | SpellDescription$ probe\n" +
 		"SVar:Plus:Event$ AddCounter | ActiveZones$ Battlefield | ValidCard$ Creature.YouCtrl+inZoneBattlefield | ValidCounterType$ P1P1 | ReplaceWith$ More | Description$ probe\n" +
-		"SVar:More:DB$ ReplaceCounter | ValidCounterType$ P1P1 | ChooseCounter$ True | Amount$ Y\n" +
-		"SVar:Y:ReplaceCount$CounterNum/Plus.1\n"
+		"SVar:More:DB$ ReplaceCounter | ValidCounterType$ P1P1 | ChooseCounter$ True | Amount$ Z\n" +
+		"SVar:Z:ReplaceCount$CounterNum/Plus.1\n"
 	for _, base := range []string{eclipse, dog} {
 		if r := exileBfSynth(t, base); len(r) != 0 {
 			t.Fatalf("the probe script itself refuses: %q", keclReason(r))
