@@ -98,6 +98,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Hundred-Battle Veteran: the self-pump gate counts the different counter kinds among your creatures; TDM 249 -> 250, ALL 21682 -> 21683).
 	// +1 (Hawkeye, Young Avenger: the damage-plus operand reads the replacement host's power; MSH 234 -> 235, ALL 21683 -> 21684).
 	// +1 (Hermitic Herbalist: a restricted Combo of any colours, amount 2, beside {T}: any colour is a wide census gap; TLA 253 -> 254, ALL 21706 -> 21707).
+	// +1 (Tablet of Discovery: a spell-only fixed-colour ability of several mana beside the same colour's {T} one is a restricted pair unit; SOS 254 -> 255, ALL 21928 -> 21929).
 	// +2 (the merge with land: this branch's Origin$ Battlefield,Graveyard ChangeZoneAll sweep
 	// (Strategic Betrayal; TDM 250 -> 251) beside land's game-wide Exile->Graveyard hidden pick
 	// (Binding Negotiation; OTJ 241 -> 242); merged ALL 21707 -> 21709).
@@ -114,7 +115,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Boommobile: an artifact's resolving mana restricted to activated abilities, kop.SpmActivated; the merge with land: land's 21792 + 1 = 21793, DFT 250 -> 251).
 	// +6 (a static's granted Exalted lowers as a latent Attacks trigger: First Sliver's Chosen, Merchant of Truth, Order of Sacred Dusk, Sublime Archangel, Xenk, Paladin Unbroken, Zarda, the Power Princess; ALL 21873 -> 21879).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21928, 34442},
+	"ALL": {21929, 34442},
 	"BIG": {23, 30},
 	"BLB": {260, 278},
 	"BRO": {212, 280},
@@ -135,7 +136,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"ONE": {196, 271},
 	"OTJ": {244, 276},
 	"SNC": {186, 266},
-	"SOS": {254, 270},
+	"SOS": {255, 270},
 	"SPM": {164, 192},
 	"TDM": {254, 276},
 	"TLA": {258, 285},
