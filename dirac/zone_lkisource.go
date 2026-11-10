@@ -65,12 +65,21 @@ func (s *State) srcDepartHold() {
 	}
 }
 
-// srcDepartRec is the departure snapshot of ability e's source, or nil.
-func (s *State) srcDepartRec(e *stackEntry) *lkiRec {
+// srcDepartIdx is the pool index (lk's, 1-based) of the departure snapshot of
+// ability e's source, 0 when there is none.
+func (s *State) srcDepartIdx(e *stackEntry) uint8 {
 	for i := range s.g.lki {
 		if r := &s.g.lki[i]; r.ref != 0 && r.bits&lkiDepart != 0 && r.obj == e.obj && r.ver == e.srcVer {
-			return r
+			return uint8(i + 1)
 		}
+	}
+	return 0
+}
+
+// srcDepartRec is the departure snapshot of ability e's source, or nil.
+func (s *State) srcDepartRec(e *stackEntry) *lkiRec {
+	if i := s.srcDepartIdx(e); i != 0 {
+		return s.lk(i)
 	}
 	return nil
 }

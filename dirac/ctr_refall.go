@@ -4,6 +4,19 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+// lkiCountersAll is the sum of every counter but a Class's level on LKI record
+// i (lk's 1-based index), the CtrAll read of a snapshot.
+func (s *State) lkiCountersAll(i uint8) int {
+	l := s.lk(i)
+	n := int(l.p1p1)
+	for j := range l.ck {
+		if l.ck[j] != 0 && kop.CounterKind(l.ck[j]) != kop.CtrLevel {
+			n += int(l.cn[j])
+		}
+	}
+	return n + s.ctrOverSum(l.obj, i)
+}
+
 // refCountersAll is refCounters for kop.CtrAll: every counter on the
 // object summed (gorge Object.Counter("ALL") / sumCounters, Warden of the
 // Inner Sky). The kernel's level slot is a designation, not a counter
@@ -22,14 +35,7 @@ func (s *State) refCountersAll(x *kop.Expr, r kop.Ref, ctx evalCtx) int {
 		return 0 // TestValueHeadsTrackedObjectMutation: the attacker's live counter read
 	}
 	if !live && (r == kop.RefDelayedRemembered || r == kop.RefTriggerObj && !DebugTrigCtrLive) && e != nil && e.li != 0 {
-		l := s.lk(e.li)
-		n := int(l.p1p1)
-		for i := range l.ck {
-			if l.ck[i] != 0 && kop.CounterKind(l.ck[i]) != kop.CtrLevel {
-				n += int(l.cn[i])
-			}
-		}
-		return n + s.ctrOverSum(l.obj, e.li)
+		return s.lkiCountersAll(e.li)
 	}
 	var o Obj
 	if r == kop.RefSelf {
