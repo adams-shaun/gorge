@@ -13,8 +13,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // play; it now lists the tap-another source as a candidate whose printed
 // ability is tried first: the permanent to tap (an ask with two or more
 // candidates, battlefield order), then the colour (W U B R G), as tapXSearch
-// does (mana_tapanother.go). A two-permanent cost (Baylen) is not modelled
-// here: it stays out of the grant search as before.
+// does (mana_tapanother.go). A two-permanent cost (Baylen) and a second
+// tap-another ability beside a plain first (Scene of the Crime, whose ability
+// ask lists its {C}, the tap-another ability and the grants) are not modelled
+// here: they stay out of the grant search, priced by the tap-another search
+// alone (tapXOffGrant).
 
 // stepTapX is the gi of a prefix step that activates a candidate's
 // tap-another-permanent ability (cand the permanent it taps, col its colour).
@@ -30,7 +33,7 @@ func (s *State) grantTapXGaps(k *prep, p uint8) slotMask {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
 		sl := b.first()
 		c := s.cardAt(sl)
-		if a := k.tapXAbOf(c); a.Cost.N == 1 && a.Cost.Flags&kop.CostTap != 0 {
+		if a := k.tapXAbOf(c); a.Cost.N == 1 && a.Cost.Flags&kop.CostTap != 0 && !k.tapXSecond(c) {
 			m = m.with(sl)
 		}
 	}
