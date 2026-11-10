@@ -53,6 +53,9 @@ type HBotParityResult struct {
 type HBotParityOptions struct {
 	HoldInstant bool        // gorge TimingRules.HoldInstant; mk must arm the kernel bot too
 	Set         cardset.Set // the set the pairing's decks come from (nil: the FDN pool)
+	// Observe, when set, sees each gorge decision as it is asked, with gorge's
+	// bot's answer as canonical actions (a test's reach condition reads it).
+	Observe func(c *PickCtx, gorge []Canon)
 }
 
 // HBotParityGame plays pairing (a, b) of the FDN pool under cfg with gorge's
@@ -82,7 +85,7 @@ func HBotParityGameOpts(c *Corpus, a, b string, seed uint64, cfg Config, maxDeci
 	}
 	defer CloseSide(side)
 	k := side.(*realSide)
-	pol := &hbotParityPol{k: k, bot: mk(tbl), names: NewSBTCards(c.Reg, tbl, nil)}
+	pol := &hbotParityPol{k: k, bot: mk(tbl), names: NewSBTCards(c.Reg, tbl, nil), observe: opt.Observe}
 	for p := 0; p < 2; p++ {
 		pol.gbots[p] = heuristic.NewBot(SeatSeed(seed, p)).EnableAutoPayMana()
 		if opt.HoldInstant {
@@ -109,6 +112,7 @@ type hbotParityPol struct {
 	unoffered int
 	manual    int
 	dbg       string
+	observe   func(c *PickCtx, gorge []Canon)
 	// scratch for the kernel bot's whole answer
 	ts dirac.State
 	td dirac.Decision
@@ -120,6 +124,9 @@ func (p *hbotParityPol) Pick(c *PickCtx) Canon {
 		p.gseq = gd.Seq
 		var manual bool
 		p.queue, manual = p.gorgeAnswer(c, gd)
+		if p.observe != nil {
+			p.observe(c, p.queue)
+		}
 		var dbg []string
 		// hbot.Debugf is a package global: touch it only when debugging, so
 		// parallel parity runs (the oracle tests) never write it.
