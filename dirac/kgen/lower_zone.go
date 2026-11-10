@@ -3714,12 +3714,15 @@ func (lc *lowerCtx) twoPilesSac(ps *params) error {
 
 // animateRemoveKeywords reads an Animate's RemoveKeywords$ (gorge
 // animateGrant.removeKeywords: layer-6 keyword removal, CR 613.1f) and its
-// staticAbilities$ grant, of which only the plain "can't be blocked" static
-// (Mode$ CantBlockBy | ValidAttacker$ Creature.Self, Surge Engine) is read:
-// the kernel's KwUnblockable. A host-bound duration refuses (the override's
-// WhileHost sets no keyword record). Surge Engine. A Mode$ Continuous
-// static that only sets the object's own P/T is the live P/T grant
-// (animateLivePT).
+// staticAbilities$ grant, read by one of four routes: a comma list of
+// permission/land-play statics, or a single Mode$ Continuous body over other
+// permanents (an anthem, keyword grant or equipped pump), each lowered as an
+// OvGate-gated static of the source (animateGrantStatics); a single
+// Mode$ Continuous body that only sets the object's own P/T, the live P/T
+// grant (animateLivePT); and the plain "can't be blocked" static
+// (Mode$ CantBlockBy | ValidAttacker$ Creature.Self, Surge Engine), the
+// kernel's KwUnblockable, where a host-bound duration refuses (the override's
+// WhileHost sets no keyword record).
 func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) error {
 	if v, ok := ps.get("RemoveKeywords"); ok {
 		// Only Surge Engine's shape (beside a CantBlockBy grant) has a
@@ -3815,6 +3818,12 @@ func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride, 
 		}
 		if len(lc.out.Statics) != before+1 {
 			return refuse("Animate staticAbilities$ %q lowered to %d statics", name, len(lc.out.Statics)-before)
+		}
+		// A single body must lower to the layer P/T/keyword kind, whose
+		// kernel walk honours OvGate (statCond); a player-hexproof or
+		// stack-keyword static reads no gate and would be live unanimated.
+		if k := lc.out.Statics[before].Kind; single && !may && !land && k != "Continuous" {
+			return refuse("Animate staticAbilities$ %q lowers to ungated static kind %s", name, k)
 		}
 		bit := uint8(1) << gated
 		lc.out.Statics[before].OvGate = bit

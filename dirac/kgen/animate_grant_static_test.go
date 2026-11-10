@@ -42,6 +42,18 @@ func TestLowerAnimateGrantStatic(t *testing.T) {
 			want: "shape",
 		},
 		{
+			name: "player hexproof reads no gate",
+			body: "A:AB$ Animate | Cost$ 1 | Duration$ Permanent | staticAbilities$ Static | SpellDescription$ test\n" +
+				"SVar:Static:Mode$ Continuous | Affected$ You | AddKeyword$ Hexproof | Description$ test\n",
+			want: "ungated static kind PlayerHexproof",
+		},
+		{
+			name: "stack keyword reads no gate",
+			body: "A:AB$ Animate | Cost$ 1 | Duration$ Permanent | staticAbilities$ Static | SpellDescription$ test\n" +
+				"SVar:Static:Mode$ Continuous | Affected$ Card.wasCastByYou | AffectedZone$ Stack | AddKeyword$ Cascade | Description$ test\n",
+			want: "ungated static kind StackKw",
+		},
+		{
 			name: "comma list stays a permission shape",
 			body: "A:AB$ Animate | Cost$ 1 | Defined$ Self | Duration$ Permanent | staticAbilities$ A,B | SpellDescription$ test\n" +
 				"SVar:A:Mode$ Continuous | Affected$ Creature.Other+YouCtrl | AddKeyword$ Indestructible | Description$ test\n" +
