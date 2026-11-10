@@ -35,7 +35,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		if e == &s.res.e {
 			t = s.tgtCode(i)
 		}
-		if t >= PlayerTarget0 && t != NoTarget {
+		if isPlayerTarget(t) {
 			return 1
 		}
 		return 0
