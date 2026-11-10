@@ -1904,7 +1904,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				continue
 			}
 			// gorge cost.parse folds a cost spec's ";" alternation to ","
-			if c.SacX {
+			if c.SacX || c.SacExile {
 				return c, refuse("sacrifice cost %q beside a second sacrifice part", t)
 			}
 			f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
@@ -2121,10 +2121,38 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		case "Exile":
 			// Exile<1/CARDNAME[/description]> (gorge exAsk takes the
 			// source from the battlefield); any other Exile<> refuses
-			if len(parts) < 2 || len(parts) > 3 || n != 1 || parts[1] != "CARDNAME" && parts[1] != "NICKNAME" || c.ExileSelf {
+			if len(parts) < 2 || len(parts) > 3 || n < 1 || c.ExileSelf {
 				return c, refuse("cost token %q", t)
 			}
-			c.ExileSelf = true
+			switch parts[1] {
+			case "CARDNAME", "NICKNAME":
+				if n != 1 {
+					return c, refuse("cost token %q", t)
+				}
+				c.ExileSelf = true
+			case "OriginalHost":
+				// Exile<1/OriginalHost> (The Dominion Bracelet): the granting
+				// Equipment's exile, the sacrifice-host part with the exile
+				// destination (gorge bindGrantedCostReferents binds it)
+				if n != 1 || c.SacHost || !lc.actCost {
+					return c, refuse("cost token %q", t)
+				}
+				c.SacHost, c.HostExile = true, true
+			default:
+				// Exile<N/Spec> from the battlefield: the Sac<N/Spec> pick
+				// with the exile destination (kop.Cost.ExileBf)
+				if !lc.actCost && !lc.lifeXSpell {
+					return c, refuse("exile cost %q outside an activated ability's or a spell's own cost", t)
+				}
+				if c.Sac != nil || c.SacX {
+					return c, refuse("exile cost %q beside a sacrifice part", t)
+				}
+				f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
+				if err != nil {
+					return c, err
+				}
+				c.Sac, c.SacN, c.SacExile = f, n, true
+			}
 		case "PayEnergy":
 			// gorge cost.Energy: a constant N; PayEnergy<X> refuses
 			if len(parts) != 1 || n < 1 || c.Energy != 0 {
@@ -2645,6 +2673,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		}
 		if cost.ExileSelf && ab.Zone != 0 && ab.Zone != zBattlefield {
 			return refuse("exile-self cost outside a battlefield ability")
+		}
+		if (cost.SacExile || cost.HostExile) && ab.Zone != 0 && ab.Zone != zBattlefield {
+			return refuse("exile cost from the battlefield outside a battlefield ability")
 		}
 		if cost.Untap && (ab.Kind != akActivated || ab.Zone != 0 && ab.Zone != zBattlefield || cost.Tap) {
 			// a mana ability's {Q} would ride autopay, which never untaps

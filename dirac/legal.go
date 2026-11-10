@@ -500,7 +500,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 			return false
 		}
 	}
-	if f&kop.CostSac != 0 && s.countSac(k, p.ctrl, a.Cost.Filter, sl) < int(a.Cost.N) {
+	if f&kop.CostSac != 0 && s.countCostSac(k, p.ctrl, &a.Cost, sl) < int(a.Cost.N) {
 		return false
 	}
 	if f&(costObjFlags|kop.CostPayEnergy) != 0 && !s.costObjPayable(k, p.ctrl, &a.Cost, p.obj, NoObj) {

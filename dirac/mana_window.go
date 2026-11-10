@@ -3234,6 +3234,9 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 	if a.Cost.Host == kop.CostHostSac {
 		s.sacHostCost(k, e)
 	}
+	if a.Cost.Host == kop.CostHostExile {
+		s.exileHostCost(k, e) // cost_exilebf.go
+	}
 	if a.Evidence != 0 {
 		s.payCostEvidence(k) // cost_collectevidence.go
 	}

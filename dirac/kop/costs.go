@@ -170,7 +170,7 @@ type Cost struct {
 	Ctr    CounterKind
 	Filter FilterID
 	// Host names a cost part paid on the permanent that granted the ability
-	// (an Equipment's or Aura's static): CostHostSac. The CostFlags words are
+	// (an Equipment's or Aura's static): CostHostSac or CostHostExile. The CostFlags words are
 	// full, so the part rides its own byte. Only a granted ability reads it.
 	Host uint8
 	// PutLibSelf: PutCardToLibFromGrave<1/-1/CARDNAME>, the source card in
@@ -205,12 +205,27 @@ type Cost struct {
 	// Only a cost that announces X by a mana {X} or an announced sacrifice
 	// (CostSac with N 0) carries it.
 	XMin uint8
+	// ExileBf: the CostSac part (N permanents the payer controls matching
+	// Filter) is exiled, not sacrificed (Exile<N/Spec> from the battlefield,
+	// CR 118.3, 602.2b, 406.2; gorge cost.parse's exileBattlefieldCost part,
+	// exAsk over the battlefield zone). It is the sacrifice's pick with the
+	// exile destination: no Sacrificed trigger, and a CantSacrifice static
+	// does not withhold a candidate. A table byte, not a CostFlags bit (the
+	// words are full). Only a printed activated ability's or a permanent
+	// spell's own additional cost carries it.
+	ExileBf bool
 }
 
 // CostHostSac: sacrifice the granting host (Sac<1/OriginalHost>: Deconstruction
 // Hammer's granted ability). The host must be the payer's own permanent on the
 // battlefield (CR 701.21a); the one candidate is settled unasked.
 const CostHostSac uint8 = 1
+
+// CostHostExile: exile the granting host (Exile<1/OriginalHost>: The Dominion
+// Bracelet's granted ability). The host must be the payer's own permanent on
+// the battlefield; the one candidate is settled unasked, and it moves to
+// exile without being sacrificed (no Sacrificed trigger).
+const CostHostExile uint8 = 2
 
 // CostSubCtrPick: remove Cost.N counters of kind Cost.Ctr
 // (or any kind for CtrAll) from the source (Cost.Filter 0) or from the

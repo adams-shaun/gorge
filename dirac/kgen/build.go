@@ -901,7 +901,11 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	}
 	if c.SacHost {
 		out.Host = kop.CostHostSac
+		if c.HostExile {
+			out.Host = kop.CostHostExile
+		}
 	}
+	out.ExileBf = c.SacExile
 	if c.XMin > 0 {
 		out.XMin = uint8(c.XMin) // the announced X's floor (kernel cost_sacx.go)
 	}

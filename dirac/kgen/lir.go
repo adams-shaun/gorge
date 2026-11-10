@@ -504,7 +504,9 @@ type lCost struct {
 	TapN           int     // tap N untapped creatures you control matching TapF
 	TapF           *lFilter
 	TapHost        bool // tap the granting host (tapXType<1/OriginalHost>)
-	SacHost        bool // sacrifice the granting host (Sac<1/OriginalHost>)
+	SacHost        bool // sacrifice the granting host (Sac<1/OriginalHost>), or exile it when HostExile (Exile<1/OriginalHost>)
+	HostExile      bool // SacHost's part exiles the granting host (kop.CostHostExile; an activated ability's cost only)
+	SacExile       bool // Sac/SacN's part is Exile<N/Spec> from the battlefield (kop.Cost.ExileBf; an activated ability's or a spell's additional cost only)
 	TapPowN        int  // tap any number of untapped creatures you control matching TapPowF with total power >= TapPowN (Crew, Saddle; lower_tappower.go)
 	TapPowF        *lFilter
 	TapPowCrew     bool     // the tap-power cost is Crew (graveexile: candidates' TapPowerCrew applies)
@@ -539,7 +541,7 @@ type lCost struct {
 func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && c.Loyalty == 0 && !c.LoyaltyX &&
-		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && c.TapPowN == 0 && !c.Exert &&
+		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
 		c.Forage == nil && c.ExileG == nil && c.ExileHandN == 0 && c.Energy == 0 && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.ExileTrigNew &&
 		!c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil

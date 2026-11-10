@@ -539,7 +539,7 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 // Abhorrent Oculus's exile) is "shape:additional_cost", offered by the pool only.
 func planDeclinesAddCost(k *prep, c CardID) bool {
 	ac := spellAddCost(k, c)
-	return ac.Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered) != 0 || sacXCost(ac) // an announced Sac<X/Spec> is not "cost:sacrifice" admissible (PlanNonManaAdmissible; cost_sacx.go)
+	return ac.Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered) != 0 || ac.ExileBf || sacXCost(ac) // an Exile<N/Spec> part is "cost:exile" (cost_exilebf.go); an announced Sac<X/Spec> is not "cost:sacrifice" admissible (PlanNonManaAdmissible; cost_sacx.go)
 }
 
 // plannedCastCost is the cost gorge's cast planner prices for p's cast of
@@ -649,7 +649,7 @@ func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 	}
 	if modal {
 		// gorge's PlanTargetPaidManaHalf funds the mana without life and energy
-		return spellAddCost(k, c).Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered|kop.CostPayLife|kop.CostPayEnergy) != 0 || sacXCost(spellAddCost(k, c))
+		return spellAddCost(k, c).Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered|kop.CostPayLife|kop.CostPayEnergy) != 0 || spellAddCost(k, c).ExileBf || sacXCost(spellAddCost(k, c))
 	}
 	if planDeclinesAddCost(k, c) {
 		// The spell's own Cost$ is separate from an AlternateAdditionalCost

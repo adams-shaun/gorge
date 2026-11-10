@@ -87,8 +87,8 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			if host == NoSlot || a.Cost.Flags&kop.CostTapHost != 0 && s.perms[host].flags&pfTapped != 0 {
 				return
 			}
-			if a.Cost.Host == kop.CostHostSac && s.perms[host].ctrl != p {
-				return // only a permanent the payer controls can be sacrificed (CR 701.21a)
+			if a.Cost.Host != 0 && s.perms[host].ctrl != p {
+				return // only a permanent the payer controls can be sacrificed or exiled (CR 701.21a, 118.3)
 			}
 			if s.cfg&cfgGorgeUnpriced != 0 && !s.poolPays(p, &a.Cost.Mana) {
 				return // gorge offers it only when the pool pays (Config.GorgeUnpriced)
@@ -578,10 +578,15 @@ func (s *State) paySacsGen(k *prep) {
 	if k.gen.anyBatch {
 		defer s.batchClose(s.sacBatchOpen()) // gorge emitSacrifices: one sacrifice batch (act_proliferate.go)
 	}
+	exile := s.pickExiles(k)
 	for i := 0; i < int(s.bld().pickN); i++ {
 		o := s.bld().picks[i]
 		if s.bld().pickKs[i] == pkSac && s.objs[o].zone == kop.ZoneBattlefield {
 			s.snapSacPick(o) // RefSacrificed (CR 707.10: a copy keeps it)
+			if exile {
+				s.leave(k, s.objs[o].slot, kop.ZoneExile, false) // Exile<N/Spec>: no sacrifice (cost_exilebf.go)
+				continue
+			}
 			s.fireSac(k, s.objs[o].slot)
 			if !s.parkCost(k, o, parkLeave, 0) {
 				s.leave(k, s.objs[o].slot, kop.ZoneGraveyard, false)

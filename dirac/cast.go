@@ -2085,6 +2085,9 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 		d.Sub = ChCostDiscard
 	case pkSac:
 		d.Sub = ChCostSacrifice
+		if pc.ExileBf {
+			d.Sub = ChCostExile // Exile<N/Spec> from the battlefield: gorge's exile ask (cost_exilebf.go)
+		}
 	default:
 		d.Sub = ChCostTap
 	}
@@ -2110,7 +2113,7 @@ func (s *State) costCands(k *prep, c *kop.Cost, src Slot, d *Decision) {
 		for m := s.ctrlM[e.ctrl]; m.any(); m = m.rest() {
 			sl := m.first()
 			o := s.perms[sl].obj
-			if s.picked(o) || !s.matchPerm(k, c.Filter, sl, e.ctrl, src) || s.bld().pickK == pkSac && s.sacBlocked(k, sl) {
+			if s.picked(o) || !s.matchPerm(k, c.Filter, sl, e.ctrl, src) || s.bld().pickK == pkSac && !c.ExileBf && s.sacBlocked(k, sl) {
 				continue
 			}
 			if s.bld().pickK == pkTapX && (s.perms[sl].flags&pfTapped != 0 || (sl == src && c.Flags&kop.CostTap != 0)) {
@@ -2219,6 +2222,10 @@ func (s *State) payPicks(k *prep) {
 				// mana (paySacsGen): a sacrificed Elf still counts for
 				// Elvish Archdruid's mana (pair 9100)
 				if ob.zone == kop.ZoneBattlefield && k.gen == nil {
+					if s.pickExiles(k) {
+						s.leave(k, ob.slot, kop.ZoneExile, false) // Exile<N/Spec>: no sacrifice (cost_exilebf.go)
+						continue
+					}
 					s.fireSac(k, ob.slot)
 					s.leave(k, ob.slot, kop.ZoneGraveyard, false)
 				}
@@ -2333,7 +2340,7 @@ func (s *State) pickCostPayable(k *prep, p uint8, c *kop.Cost, exclude Obj) bool
 			return false
 		}
 	}
-	if f&kop.CostSac != 0 && s.countSac(k, p, c.Filter, NoSlot) < int(c.N) {
+	if f&kop.CostSac != 0 && s.countCostSac(k, p, c, NoSlot) < int(c.N) {
 		return false
 	}
 	if f&kop.CostTapX != 0 && s.countUntapped(k, p, c.Filter, NoSlot) < int(c.N) {
