@@ -6,10 +6,18 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+// dmkSet reports whether the pair (controller c, player p) is marked.
+func dmkSet(s *State, c, p uint8) bool {
+	i, m := dmkBit(c, p)
+	return s.g.dmk[i]&m != 0
+}
+
 // TestDmgMarkLifetime: a mark is the resolving controller's on the player the
 // trigger names; two controllers' marks on one player are two doublings; the
-// controller's marks end at the cleanup before their next turn and no other's;
-// the same controller marking the same player again stalls StallDmgMark.
+// controller's marks end at the cleanup before their next turn and no other's
+// (until your next turn, not until end of turn: the mark made in its
+// controller's turn survives that turn's cleanup); the same controller marking
+// the same player again stalls StallDmgMark.
 func TestDmgMarkLifetime(t *testing.T) {
 	var s State
 	in := &kop.Instr{Obj: kop.RefTriggerPlayer}
@@ -17,6 +25,9 @@ func TestDmgMarkLifetime(t *testing.T) {
 		s.res.e.ctrl, s.res.e.trigPl = ctrl, victim
 		s.dmgMarkAdd(nil, in)
 	}
+	s.g.nseat = MaxSeats
+	last := uint8(MaxSeats - 1) // the seat whose turn precedes seat 0's
+	s.active = 0
 	mark(0, 1)
 	if s.dmgMarkN(1) != 1 || s.dmgMarkN(0) != 0 {
 		t.Fatalf("marks on seat 1 / seat 0 = %d / %d, want 1 / 0", s.dmgMarkN(1), s.dmgMarkN(0))
@@ -25,15 +36,20 @@ func TestDmgMarkLifetime(t *testing.T) {
 	if s.dmgMarkN(1) != 2 {
 		t.Fatalf("marks on seat 1 = %d, want 2 (one per controller)", s.dmgMarkN(1))
 	}
-	s.active = 0 // seat 0's turn: the cleanup before seat 1's turn ends seat 1's marks only
+	// Seat 0's turn is ending: the next cleanup-before-a-turn is seat 1's.
 	s.dmgMarkEnd()
-	if s.dmgMarkN(1) != 1 {
-		t.Fatalf("marks on seat 1 = %d after seat 1's marks ended, want seat 0's alone", s.dmgMarkN(1))
+	if !dmkSet(&s, 0, 1) || dmkSet(&s, 1, 1) {
+		t.Fatalf("after the cleanup of seat 0's turn: seat 0's mark %v (want kept), seat 1's %v (want ended)", dmkSet(&s, 0, 1), dmkSet(&s, 1, 1))
 	}
-	s.active = 1 // the cleanup before seat 0's turn
+	s.active = last // the last seat's turn is ending: seat 0's next turn follows
 	s.dmgMarkEnd()
 	if s.dmgMarkN(1) != 0 || s.g.dmk != [dmkBytes]uint8{} {
 		t.Fatalf("marks %v remain after both controllers' next turns", s.g.dmk)
+	}
+	mark(0, 1) // made in the last seat's turn: ends at its cleanup (seat 0's next turn follows)
+	s.dmgMarkEnd()
+	if s.g.dmk != [dmkBytes]uint8{} {
+		t.Fatalf("marks %v remain after the cleanup before their controller's turn", s.g.dmk)
 	}
 	mark(0, 1)
 	mark(0, 1)

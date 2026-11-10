@@ -91,7 +91,13 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 		n = s.replPlus(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n)
 	}
 	if g.anyRepl&rbDblDmg != 0 && (rcp != srcCtrl || g.anyFiltRepl || g.anyDmgMark) {
-		for c := s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat); c > 0 && n < 1<<12; c-- {
+		c := s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat)
+		if g.anyDmgMark {
+			if m := s.dmgMarkN(rcp); m > 0 && s.dmgMarkDirect(k, m, c-m, rcp, sl, combat) {
+				return 0 // the mark beside another replacement: gorge asks (repl_dmgmark.go)
+			}
+		}
+		for ; c > 0 && n < 1<<12; c-- {
 			n *= 2
 		}
 	}
