@@ -1722,16 +1722,20 @@ func (s *State) grantsFixedMana(k *prep, sl Slot) bool {
 // filterSource: p controls a permanent with a second mana ability that costs
 // mana (a filter: {1}, {T}: add one mana of any color). affordsUngrantedFor
 // counts a source's first mana ability only, so its verdict on a play such a
-// source funds is not gorge's. A counters-gated filter whose gate fails is no
-// mana ability (CR 702.184a): Uthros, Titanic Godcore or Evendo, Waking Haven
-// below its STATION threshold beside Mm'menon's hand-barred grant leaves a
-// hand warp cast to the prune (CR 106.6, 702.185a).
+// source funds is not gorge's. A filter that cannot be activated now (tapped,
+// or a summoning-sick creature, CR 302.6) funds nothing, and a counters-gated
+// filter whose gate fails is no mana ability (CR 702.184a): beside Mm'menon's
+// hand-barred grant, either leaves a hand warp cast to the prune (CR 106.6,
+// 702.185a).
 func (s *State) filterSource(k *prep, p uint8) bool {
 	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
 		sl := m.first()
 		c := s.cardAt(sl)
 		if k.cards[c].manaAb < 0 {
 			continue
+		}
+		if pm := &s.perms[sl]; pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 {
+			continue // a filter that cannot be activated now funds nothing (gapMask)
 		}
 		cd := &k.t.Cards[c]
 		seen := false
