@@ -62,13 +62,6 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		return lc.permOrSpellMove(ps) // lower_permorspell.go
 	}
 	dual := strings.TrimSpace(ps.str("Origin")) == "Graveyard,Exile"
-	// a delayed program's return of the object its registration remembered
-	// (The Guardian of Forever): a known-origin move that takes the object
-	// from either zone, not a pick (dualDelayedReturn)
-	dualDef := dual && dualDelayedReturn(ps)
-	if dualDef {
-		dual = false
-	}
 	if dual && !everyRemembered(ps.str("ChangeType")) {
 		return refuse("ChangeZone Origin$ Graveyard,Exile ChangeType$ %q without IsRemembered", ps.str("ChangeType"))
 	}
@@ -82,10 +75,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		origin = zAny
 	}
-	if dualDef {
-		ps.get("Origin") // read
-		origin = zAny
-	} else if !dual && !hg && !bg {
+	if !dual && !hg && !bg {
 		if origin, err = zoneOf(ps, "Origin", zNone); err != nil {
 			return err
 		}
@@ -778,9 +768,6 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	}
 	if origin != zNone && origin != zAny {
 		in.CS = strings.TrimPrefix(in.CS+"|from="+zoneLabel[origin], "|")
-	}
-	if dualDef {
-		in.CS = strings.TrimPrefix(in.CS+"|from=Graveyard,Exile", "|") // the object may have moved from one zone to the other
 	}
 	if origin == zLibrary && (in.Op == "Bounce" || in.Op == "Return") {
 		if v, ok := ps.get("NoLooking"); ok && v != "True" {

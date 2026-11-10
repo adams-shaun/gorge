@@ -7,7 +7,7 @@ package kgen
 // each name one object.
 func delayedObjOnly(ro string) bool {
 	switch ro {
-	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy", "Targeted", "ParentTarget", "RememberedLKI", "SacrificedCards":
+	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy", "Targeted", "ParentTarget", "RememberedLKI":
 		return true
 	}
 	return false

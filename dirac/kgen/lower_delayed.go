@@ -178,13 +178,13 @@ func (lc *lowerCtx) delayedRemember(ro string, exec *cards.SA) (lRef, error) {
 		}
 		return lRef{Kind: rRemembered}, nil
 	case "SacrificedCards":
-		// the one object an activation cost sacrificed (the kernel's
-		// entry LKI record, sacrificedIsCost); read as the card it is when
-		// the ability resolves, which is what gorge stamps
-		if lc.ab.Kind != akActivated || !lc.sacrificedIsCost() {
-			return lRef{}, refuse("delayed trigger RememberObjects %q without exactly one sacrifice paid as the ability's own cost", ro)
-		}
-		return lRef{Kind: rSacrificed}, nil
+		// the card an activation cost sacrificed. gorge returns it from
+		// either zone its Origin$ names even after it went from the
+		// graveyard to exile in between (a registration's incarnation stamp
+		// advances only across the battlefield boundary), where CR 400.7
+		// makes it a new object; the kernel drops a program whose object
+		// changed zones. Left refused until the two agree.
+		return lRef{}, refuse("delayed trigger RememberObjects %q: gorge still finds the card after it moved between graveyard and exile (CR 400.7), the kernel's program does not", ro)
 	case "TriggeredCard", "TriggeredCardLKICopy":
 		// gorge effDelayedTrigger's RememberObjects$ replaces the chain's
 		// capture with the trigger's card (knownDefinedTargets). The delayed
