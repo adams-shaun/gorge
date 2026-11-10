@@ -31,5 +31,8 @@ func (s *State) grantRelaxedAffords(k *prep, p uint8, a Action, cost *kop.ManaCo
 		// relaxRestrRefuses reads it
 		s.availFilt(k, p, &av)
 	}
-	return av.affords(cost, pipMaskOf(cost), 0)
+	// a restricted planner source the activation may spend is a census unit
+	// of its own (Jasmine Dragon Tea Shop's any colour for an Ally source's
+	// ability, Merchant of Many Hats' {2}{B} from the graveyard; CR 106.6)
+	return av.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && s.restrSrcAffords(k, p, d, cost, &av, NoSlot, 0)
 }

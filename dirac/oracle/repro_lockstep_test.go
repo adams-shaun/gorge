@@ -509,3 +509,12 @@ func TestFilterBesideCounterSourceShortLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "filter_beside_counter_source_short_of_counters", "std-fdn", Config{})
 }
+
+// TestGraveyardActivationRestrictedSourceRelaxedLockstep: Merchant of Many
+// Hats' {2}{B} from the graveyard beside a granted {C} (Honest Work) is
+// searched, not proven insufficient: Jasmine Dragon Tea Shop's Ally-only
+// any colour pays an Ally source's ability (CR 106.6, 605.3a).
+func TestGraveyardActivationRestrictedSourceRelaxedLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "graveyard_activation_restricted_source_relaxed", "std-tla", Config{})
+}
