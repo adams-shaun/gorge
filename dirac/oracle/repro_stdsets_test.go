@@ -215,6 +215,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "imprint_token_counters_iroh_tea_master_ally"},                       // Iroh, Tea Master gives a permanent away and makes the 1/1 Ally: its +1/+1 counters go on the imprinted token only, and the cleanup clears the imprint (the imprinted set apart from the remembered given-away permanent)
 		{"custom", "imprint_exile_return_sirens_ruse"},                                  // Siren's Ruse exiles a creature you control and returns the imprinted card to the battlefield, both engines agreeing through the return and past it
 		{"custom", "imprint_token_counters_summoners_sending_spirit"},                   // Summoner's Sending exiles a creature card from a graveyard and makes a Spirit that takes a +1/+1 counter off the imprinted token when the exiled card's mana value is 4 or more
+		{"custom", "warp_x_broodguard_elite"},                                           // Broodguard Elite warped for {X}{G} at several X, once with a floating {G} that pays it at X = 0: the X is announced like a printed one, and that cast taps nothing more (CR 601.2b, 702.185a)
+		{"custom", "disguise_reduced_turn_up_fugitive_codebreaker"},                     // Fugitive Codebreaker turned face up from Priest of Urabrask's {R}{R}{R} with Lightning Bolts in its owner's graveyard: the disguise cost is reduced by {1} for each (CR 601.2f, 702.168c)
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {

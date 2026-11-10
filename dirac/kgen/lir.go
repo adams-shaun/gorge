@@ -891,6 +891,7 @@ type lCard struct {
 	ModeCost       [4]manaCost // Spree/Tiered: mode i's ModeCost$
 	MorphCost      *manaCost   // K:Morph / K:Megamorph / K:Disguise turn-face-up cost
 	MorphFamily    uint8       // kop.Morph*: which face-down keyword the cost belongs to
+	MorphReduce    lValue      // the turn-up cost's printed generic reduction (lower_morphreduce.go)
 	Flashback      *manaCost
 	RemPersist     bool      // the enters/leaves remembered pair, or a Saga's chapter pair (lower_rempersist.go)
 	RemSeed        uint32    // RemPersist: the abilities that start with the kept set (CardDef.RemSeed)

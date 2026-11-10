@@ -559,6 +559,9 @@ func (cb *cardBuilder) record() error {
 		if d.MorphCost, err = manaCostOf(*c.MorphCost); err != nil {
 			return err
 		}
+		if d.MorphReduce, err = cb.value(c.MorphReduce); err != nil {
+			return err
+		}
 	}
 	if c.Flashback != nil {
 		d.Keywords |= kop.KwFlashback

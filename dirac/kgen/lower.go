@@ -1062,8 +1062,11 @@ func (lc *lowerCtx) lowerKeywords() {
 			// CR 702.37/702.168/702.169: the keyword parameter is the
 			// turn-face-up cost. The kernel's turn-up action spends only
 			// mana (an {X} is announced first), so non-mana parameters refuse.
-			mc, err := parseManaCost(param)
-			if err != nil || param == "" || strings.Contains(param, ":") || mc.None {
+			// A printed generic reduction rides the second colon field
+			// (lower_morphreduce.go).
+			cs, red, rok := lc.morphReduceParam(param)
+			mc, err := parseManaCost(cs)
+			if !rok || err != nil || cs == "" || strings.Contains(cs, ":") || mc.None || red.Kind != vNone && (mc.X || mc.Generic == 0) {
 				lc.refuseNode(node, "%s cost %q", strings.ToLower(head), param)
 				continue
 			}
@@ -1071,7 +1074,7 @@ func (lc *lowerCtx) lowerKeywords() {
 				lc.refuseNode(node, "second face-down keyword")
 				continue
 			}
-			lc.out.MorphCost = &mc
+			lc.out.MorphCost, lc.out.MorphReduce = &mc, red
 			switch head {
 			case "Morph":
 				lc.out.MorphFamily = kop.MorphMorph
@@ -1263,10 +1266,11 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Madness = &mc
 		case head == "Warp":
 			// CR 702.185a: an alternative hand cost. The recast from exile
-			// pays the mana cost, and the cost is paid from the pool, so an
-			// X warp cost (Broodguard Elite) has no fixed price to plan.
+			// pays the mana cost. An {X} in the warp cost is announced like
+			// a printed one (CR 601.2b): the cast's X ask prices the
+			// replaced cost (kernel cast.go buildCostPreRaw).
 			mc, err := parseManaCost(param)
-			if err != nil || param == "" || strings.Contains(param, ":") || mc.X {
+			if err != nil || param == "" || strings.Contains(param, ":") || mc.XX || mc.XXX {
 				lc.refuseNode(node, "warp cost %q", param)
 				continue
 			}
