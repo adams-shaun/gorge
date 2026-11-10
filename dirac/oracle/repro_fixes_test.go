@@ -690,6 +690,8 @@ func TestStdFraReprosLockstep(t *testing.T) {
 		{"sacrificed_mana_source_moves_its_aura", false, false},       // CR 704.3, 704.5m: the check after a mana source's sacrifice while paying a cast takes its Aura before the cast's next choice
 		{"flashback_dynamic_source_graveyard_amount", true, false},    // CR 117.1d, 605.3a: Bestial Incursion's flashback is paid by Loot, the Nexus tapped at its graveyard-time amount (Tarmogoyf one point larger), a lowered potential play and not a planned cast
 		{"entry_counters_skip_entrants_own_replacement", true, false}, // CR 614.12: Generous Revival returns Yoshimaru, Beloved Companion with a +1/+1 counter; its own "that many plus one" does not apply, since the replacement affects a general subset, not only itself
+		{"search_enters_together_canopy_two_forests", true, false},    // CR 603.2, 603.4: Hexhaven Invigorator's search puts two Forests onto the battlefield together, making six, so each sees five others and Roiling Canopy triggers twice
+		{"search_enters_together_canopy_order_ask", true, false},      // CR 603.2, 603.4: the same search puts Forests #8 and #9 on beside three other lands, and both Canopy triggers are ordered
 	})
 }
 
