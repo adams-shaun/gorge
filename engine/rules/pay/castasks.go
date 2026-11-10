@@ -170,7 +170,7 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 	// ones alone (Kappa Cannoneer at {3}{U} admits three artifacts, not four).
 	colourSlots := int32(0)
 	for _, o := range d.Options {
-		if strings.HasPrefix(o.Kind, "convoke_") && o.Kind != "convoke_generic" || strings.HasPrefix(o.Kind, "activation_creature") {
+		if len(o.Kind) == len("convoke_W") && o.Kind[:len("convoke_")] == "convoke_" || o.Kind == "activation_creature" {
 			colourSlots = mana.Colored.Total()
 			break
 		}
