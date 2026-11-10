@@ -912,10 +912,18 @@ func (s *State) regenerate(sl Slot) {
 	s.spendRegenShield(sl)
 	s.leaveCombat(sl) // CR 701.19b: regeneration removes it from combat
 	p.flags &^= pfDeathtouched | pfDtMore
-	if p.flags&pfTapped == 0 && s.g.on && s.subs[kop.TrigTaps].any() {
-		defer s.fireTaps(s.k(), sl) // gorge regeneration taps it (EmitTap)
+	wasUntapped := p.flags&pfTapped == 0
+	fire := wasUntapped && s.g.on && s.subs[kop.TrigTaps].any()
+	if fire {
+		defer func() {
+			s.fireTaps(s.k(), sl) // gorge regeneration taps it (EmitTap)
+			s.markTapped(s.k(), sl)
+		}()
 	}
 	p.flags |= pfTapped
+	if wasUntapped && !fire {
+		s.markTapped(s.k(), sl)
+	}
 	p.damage = 0
 }
 

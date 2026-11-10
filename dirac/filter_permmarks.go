@@ -27,6 +27,7 @@ var permMarkMech = [4]mech{mechAttacked, mechDealtTurn, mechDealtAny, mechDealtC
 func prepPermMark(g *genPrep) {
 	g.anyPermMark = g.ix[mechAttacked] != arenaNone || g.ix[mechDealtTurn] != arenaNone ||
 		g.ix[mechDealtAny] != arenaNone || g.ix[mechDealtCombat] != arenaNone
+	g.anyTappedTurn = g.ix[mechTappedTurn] != arenaNone
 }
 
 // permMarkUses reports which marks some table filter reads (arenaUses).
@@ -94,4 +95,19 @@ func (s *State) permMarkNewTurn(k *prep) {
 	}
 	s.mSlZero(k, mechAttacked)
 	s.mSlZero(k, mechDealtTurn)
+	s.mSlZero(k, mechTappedTurn)
+}
+
+// markTapped records that the permanent at sl has become tapped this turn
+// (gorge Facts.TappedTurn; an entry-tapped state is not a tap, CR 603.2e, and
+// its callers do not mark). It is written after the tap's Taps triggers are
+// queued, so a FirstTime$ watcher reads whether an EARLIER tap happened this
+// turn. Every real tap marks, even with no watcher on the battlefield: the
+// watcher may enter later and still needs to know (Captain America, Living
+// Legend). A table without a Taps FirstTime$ line gives the mechanic no mask,
+// so the write is one failed bounds test.
+//
+//go:noinline
+func (s *State) markTapped(k *prep, sl Slot) {
+	s.mSlSet(k, mechTappedTurn, sl)
 }

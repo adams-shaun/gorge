@@ -267,6 +267,7 @@ type genPrep struct {
 	anyMayWhileSrc bool           // some OpMayPlay lasts DurWhileSrcMay (cast_whilesource.go)
 	anyGoad        bool           // some program is OpGoad (act_goad.go)
 	anyPermMark    bool           // the table gives some kop.PredPermMark mark an arena mask (filter_permmarks.go)
+	anyTappedTurn  bool           // the table gives mechTappedTurn an arena mask (a Taps FirstTime$ line; filter_permmarks.go)
 	anyCombatHit   bool           // some card records its combat hits on players (cdRec) or some expression reads the legendary-hit bit (value_turntallies.go)
 	cdLegOn        bool           // some expression is ExOppsLostLife N 1: record cdLeg
 	anyAddPhase    bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)

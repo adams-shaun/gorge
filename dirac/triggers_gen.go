@@ -268,6 +268,9 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		if k.gen.anyTWTap && !twTapOK(a, amt) {
 			return // Teamwork$ True: only a teamwork-cost tap (trig_params.go)
 		}
+		if a.Trig.Flags2&kop.Tf2FirstTime != 0 && s.mSl(k, mechTappedTurn, evSl) {
+			return // an earlier tap this turn: FirstTime$ is false (gorge Facts.TappedTurn)
+		}
 		amt = 0                                  // the tapper (fireTapsBy), not an amount
 		tapAll = a.Trig.Flags2&kop.Tf2Batch != 0 // Mode$ TapAll: the tap batch's latch, not the zone batch's (trig_tapall.go)
 	}

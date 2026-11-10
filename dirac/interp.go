@@ -322,6 +322,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			if was == 0 && k.gen != nil && s.subs[kop.TrigTaps].any() {
 				s.fireTapsBy(k, sl, s.effTapper(sl))
 			}
+			s.markTapped(k, sl)
 		}
 	case kop.OpUntap:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {

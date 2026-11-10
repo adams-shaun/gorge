@@ -278,6 +278,9 @@ func (s *State) finishAttacks(k *prep) {
 			s.fireTapsMask(k, tapped) // gorge taps the attackers after the declaration's triggers
 			s.tapBatchClose(tb)
 		}
+		for m := tapped; m.any(); m = m.rest() {
+			s.markTapped(k, m.first()) // after the declaration's Taps triggers
+		}
 	} else if s.nAttackers > 0 && s.subs[kop.TrigAttackersDeclared].any() {
 		s.firePlayer(k, kop.TrigAttackersDeclared, s.active, int16(s.nAttackers))
 	}

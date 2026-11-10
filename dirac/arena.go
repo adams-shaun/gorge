@@ -39,6 +39,7 @@ const (
 	mechAttacksIfAble               // slots whose permanent attacks this turn if able (CR 508.1d; combat_attacksifable.go)
 	mechBlocksIfAble                // slots whose permanent blocks this turn if able (CR 509.1c; combat_blocksifable.go)
 	mechNoRegen                     // slots whose creature can't be regenerated this turn (CR 701.19c; repl_noregen.go)
+	mechTappedTurn                  // slots whose permanent has become tapped this turn (Taps FirstTime$; filter_permmarks.go)
 	numMech
 )
 
@@ -72,9 +73,10 @@ var mechWidth = [numMech]uint8{
 	mechAttacksIfAble:   wSlot,
 	mechBlocksIfAble:    wSlot,
 	mechNoRegen:         wSlot,
+	mechTappedTurn:      wSlot,
 }
 
-var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen"}
+var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "tappedTurn"}
 
 // arenaNone is the index of a mechanic the table does not use.
 const arenaNone = 0xFF
@@ -99,6 +101,9 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 			a := &t.Cards[i].Abilities[j]
 			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigBecomeMonstrous {
 				u[mechMonstrous] = true
+			}
+			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Flags2&kop.Tf2FirstTime != 0 {
+				u[mechTappedTurn] = true
 			}
 			for _, in := range a.Prog {
 				switch in.Op {

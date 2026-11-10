@@ -3200,6 +3200,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		if was == 0 && k.gen != nil && s.subs[kop.TrigTaps].any() {
 			s.fireTaps(k, sl)
 		}
+		s.markTapped(k, sl)
 	}
 	if f&kop.CostUntapSelf != 0 && sl != NoSlot {
 		s.untapCost(k, sl)

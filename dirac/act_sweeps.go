@@ -173,5 +173,6 @@ func (s *State) tapAll(k *prep, in *kop.Instr) {
 		if s.subs[kop.TrigTaps].any() {
 			s.fireTapsBy(k, sl, s.effTapper(sl))
 		}
+		s.markTapped(k, sl)
 	}
 }

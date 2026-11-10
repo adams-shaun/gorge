@@ -453,6 +453,7 @@ func (s *State) tapHostGen(k *prep, e *stackEntry) {
 		if was == 0 && s.subs[kop.TrigTaps].any() {
 			s.fireTaps(k, s.objs[h].slot)
 		}
+		s.markTapped(k, s.objs[h].slot)
 	}
 }
 

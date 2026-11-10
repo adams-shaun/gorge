@@ -2231,6 +2231,7 @@ func (s *State) payPicks(k *prep) {
 							s.fireTaps(k, ob.slot)
 						}
 					}
+					s.markTapped(k, ob.slot)
 					if k.gen != nil && k.gen.crewBy != nil {
 						s.noteCrewPick(k, ob.slot) // CrewedThisTurn marks (filter_combatwords.go)
 					}

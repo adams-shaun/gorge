@@ -93,6 +93,7 @@ func (s *State) windowRestrDyn(k *prep, p uint8, cost *kop.ManaCost, sl Slot) bo
 	n := v.manaN
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
+	s.markTapped(k, sl)
 	if !s.floatRestrAb(k, p, sl, ab, col, n) {
 		s.capFull(StallRestrSrc)
 	}

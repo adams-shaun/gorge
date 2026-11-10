@@ -37,6 +37,7 @@ func (s *State) tapCostPerm(k *prep, sl Slot, o Obj) {
 	if k.gen != nil && s.subs[kop.TrigTaps].any() {
 		s.fireTaps(k, sl)
 	}
+	s.markTapped(k, sl)
 }
 
 // a gated mana ability (IsPresent$ on a mana ability; gorge

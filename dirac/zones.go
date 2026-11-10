@@ -637,6 +637,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	}
 	p := &s.perms[sl]
 	o := p.obj
+	s.mSlClr(k, mechTappedTurn, sl) // the permanent leaves: its tapped-this-turn mark ends (filter_permmarks.go)
 	// a permanent that lost its abilities has no "from anywhere" line (CR 613.1f)
 	s.g.graveKept = k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 && s.genLost(k, sl)
 	// CR 603.10a: the departure-time creature status, read before the
