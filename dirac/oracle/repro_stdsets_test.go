@@ -221,6 +221,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "disguise_reduced_turn_up_fugitive_codebreaker"},                     // Fugitive Codebreaker turned face up from Priest of Urabrask's {R}{R}{R} with Lightning Bolts in its owner's graveyard: the disguise cost is reduced by {1} for each (CR 601.2f, 702.168c)
 		{"custom", "bilbos_gambit_gift_promised_players_cannot_cast"},                   // Bilbo's Gambit returns a Lightning Bolt to its owner's hand with the gift promised: players can't cast spells this turn, so the other seat's second Bolt is not offered (an end-of-turn emblem)
 		{"custom", "calamitys_wake_players_cannot_cast_noncreature_spells"},             // Calamity's Wake resolves while the other seat holds a Lightning Bolt and an untapped Mountain: no noncreature spell can be cast this turn (an end-of-turn emblem)
+		{"custom", "fra_fifth_one_colour_source"},                                       // Intrepid Stablemaster beside four other sources making all their mana in one colour: the fifth is priced (colour multisets per amount), not a capacity stall
+		{"custom", "tmt_dynamic_mana_past_40"},                                          // Improvised Arsenal's mana amount grows past 40 as its copies and the enchanted creature grow: the autopay variants cover it, not a capacity stall
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {
