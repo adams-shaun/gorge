@@ -1011,19 +1011,27 @@ func (s *State) windowGapAnyColour(k *prep, p uint8, sl Slot, cost, useful *kop.
 // windowAffords: gorge's mana window pays cost from p's sources counting
 // the Tenders' mana (availFor does not), simulated on a copy.
 func (s *State) windowAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
-	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || s.scriptDeferred(k, p).any()) {
+	return s.windowAffordsTake(k, p, cost, false)
+}
+
+// windowAffordsTake is windowAffords; takeDeferred is an unless / ward window
+// (payWindow), which taps a planner-deferred source (a counter-rider mana
+// source, Twitching Doll) once the rest cannot cover the cost: gorge's
+// unlessWindowUnits lists it, so the pay is offered (CR 118.3, 605.3b).
+func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred bool) bool {
+	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.scriptTapsDefer(k, p).any()) {
 		return false
 	}
 	t := s.fork()
 	defer s.unfork()
-	ok, _ := t.windowTap(k, p, cost, false)
+	ok, _ := t.windowTapWalk(k, p, cost, cost, false, false, false, false, takeDeferred)
 	return ok
 }
 
 // windowAffordsN is windowAffords for an unless cost of amt with pips.
 func (s *State) windowAffordsN(k *prep, p uint8, amt int, pips int16) bool {
 	c := manaOf(amt, pips)
-	return s.windowAffords(k, p, &c)
+	return s.windowAffordsTake(k, p, &c, true)
 }
 
 // restrTapMana: a is a plain tap mana ability with a spend restriction
