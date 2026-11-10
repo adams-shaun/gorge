@@ -64,3 +64,34 @@ func (s *State) cardPowerGEV(k *prep, fl *kop.Filter, c CardID, owner uint8, o O
 	}
 	return pw >= s.evalV(k, fl.PredV, cx)
 }
+
+// cardToughnessGEV is PredToughnessLEV with PredN 3 on a card off the
+// battlefield: its toughness is at least the value PredV, the printed
+// toughness (a face-down card a 2/2), or the last known toughness while
+// matchTrigLKI reads a departed trigger object (CR 608.2h; Hulkling,
+// Burgeoning Bruiser's toughnessGTZ as >= Z+1). A card that prints no
+// toughness never matches.
+//
+//go:noinline
+func (s *State) cardToughnessGEV(k *prep, fl *kop.Filter, c CardID, owner uint8, o Obj, fd bool, ctx *evalCtx) bool {
+	if s.xBoundPending(fl) {
+		return true
+	}
+	if k.t.Cards[c].NoPT && !fd {
+		return false
+	}
+	t := int(k.cards[c].tough)
+	if fd {
+		t = 2
+	} else if k.cda && k.gen.has(c, gfCDAPT) {
+		_, t = s.cardCDAPT(k, c, owner, o)
+	}
+	if s.g.tli&tliOn != 0 {
+		_, t = s.lkiPT()
+	}
+	cx := s.ctxCur()
+	if ctx != nil {
+		cx = *ctx
+	}
+	return t >= s.evalV(k, fl.PredV, cx)
+}

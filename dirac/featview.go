@@ -885,7 +885,7 @@ func (s *State) FeatDerivedLive() bool {
 // count holds it until the state-based check (a token sacrificed to
 // Liliana, Dreadhorde General's -4 while the next player chooses).
 func (s *State) FeatZoneList(p uint8, z kop.Zone, dst []Obj) []Obj {
-	pl := &s.pl[p&1]
+	pl := &s.pl[SeatIx(p)]
 	var src []Obj
 	switch z {
 	case kop.ZoneHand:

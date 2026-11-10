@@ -70,7 +70,7 @@ type ProjStack struct {
 type Projection struct {
 	NObj   uint8
 	Objs   [MaxObj]ProjObj
-	Life   [2]int16
+	Life   [MaxSeats]int16
 	NStack uint8
 	Stack  [MaxStack]ProjStack
 	Turn   uint16
@@ -78,19 +78,19 @@ type Projection struct {
 	Active uint8 // the starting player before the first turn (gorge view.Project)
 	Prio   uint8
 	Draws  uint64 // RNG draws (gorge Engine.RNGDraws)
-	Lands  [2]uint8
-	Pool   [2][kop.NumManaKinds]uint8
-	LibN   [2]uint8
-	HandN  [2]uint8
-	GraveN [2]uint8
-	ExileN [2]uint8
+	Lands  [MaxSeats]uint8
+	Pool   [MaxSeats][kop.NumManaKinds]uint8
+	LibN   [MaxSeats]uint8
+	HandN  [MaxSeats]uint8
+	GraveN [MaxSeats]uint8
+	ExileN [MaxSeats]uint8
 	Over   bool
 	Winner int8
 	// CmdCast is each seat's commander casts from the command zone (CR
 	// 903.8); CmdDmg[p][q] the combat damage player p was dealt by seat q's
 	// commander (CR 903.10a)
-	CmdCast [2]uint8
-	CmdDmg  [2][2]uint8
+	CmdCast [MaxSeats]uint8
+	CmdDmg  [MaxSeats][MaxSeats]uint8
 	// Chars is each battlefield object's derived characteristics, by Obj
 	// index; only ProjectChars (the oracle's) fills it.
 	Chars [MaxObj]ProjChars
@@ -299,7 +299,7 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 // and the non-object fields.
 func (s *State) projRest(p *Projection, lib bool) {
 	// battlefield positions: each controller's list, in entry order
-	for pi := 0; pi < 2; pi++ {
+	for pi := 0; pi < int(s.nSeats()); pi++ {
 		var order [MaxPerm]Slot
 		n := 0
 		pm := s.ctrlM[pi].and(s.occ)
@@ -320,7 +320,7 @@ func (s *State) projRest(p *Projection, lib bool) {
 			p.Objs[s.perms[order[i]].obj].ZoneIdx = uint8(i)
 		}
 	}
-	for pi := 0; pi < 2; pi++ {
+	for pi := 0; pi < int(s.nSeats()); pi++ {
 		pl := &s.pl[pi]
 		for i := pl.libLo; lib && i < pl.libHi; i++ {
 			p.Objs[pl.lib[i]].ZoneIdx = i - pl.libLo
@@ -336,7 +336,7 @@ func (s *State) projRest(p *Projection, lib bool) {
 		}
 		p.Life[pi] = pl.life
 		p.Lands[pi] = pl.landsPlayed
-		p.Pool[pi] = s.poolProj(uint8(pi & 1))
+		p.Pool[pi] = s.poolProj(uint8(pi))
 		p.LibN[pi] = uint8(pl.libLen())
 		p.HandN[pi] = pl.handN
 		p.GraveN[pi] = pl.graveN

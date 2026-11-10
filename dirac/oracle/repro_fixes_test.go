@@ -376,6 +376,13 @@ func TestStdHobReprosLockstep(t *testing.T) {
 		// the opponent's last life, so the spell stays in hand and the game
 		// ends there rather than at a hybrid pip ask.
 		{"lowered_hybrid_cast_lethal_sacrifice_trigger", false, false},
+		// CR 106.4, 601.2h: Smaug, Wicked Worm's "mana from a Treasure was
+		// spent" reads the mana the cast spent, not the Treasures tapped
+		// before it: three Treasures sacrificed at priority leave their {G}
+		// floating beside the Swamps' {B}, and Inside Information's {X}{B}{B}
+		// is paid from the plain {B} (a plain unit goes before a Treasure's).
+		{"floating_treasure_mana_unspent_by_cast", false, false},
+		{"floating_treasure_mana_unspent_by_cast_two", false, false}, // ... and An Unexpected Party's
 	})
 }
 

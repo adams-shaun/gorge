@@ -1,0 +1,11 @@
+# Battlefield power == N and toughness > a value in filters (Amalia
+# Benavides Aguirre's powerEQ20, Hulkling, Burgeoning Bruiser's toughnessGTZ)
+# beside creatures of other sizes (dirac/pt_compare_eqgt_test.go)
+Amalia Benavides Aguirre
+Colossadactyl
+Hulkling, Burgeoning Bruiser
+Misty Knight, Hero for Hire
+Echo, Perceptive Prodigy
+Agent of Atlas
+Kree Sentinel
+Forest
