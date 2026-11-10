@@ -821,6 +821,12 @@ func (w *legalWalk) exileCastsWalk() {
 			}
 		}
 		wc, ok := keywordAltCost(f, "Warp")
+		if !ok && e.warpRecastAvailable(id) {
+			// A card warped through a hand grant (Tannuk) prints no Warp: the
+			// log-derived provenance alone entitles the recast, which pays the
+			// normal cost (the restriction check reads it as its base).
+			wc, ok = pay.RawBaseCost(asPayer(e), p, id), true
+		}
 		if !ok || !e.warpRecastAvailable(id) || w.castRestrictedCost(p, id, wc) || e.castSuppressed(p, id) {
 			continue
 		}

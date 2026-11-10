@@ -592,10 +592,10 @@ func (w *legalWalk) handWalk() {
 		// below.
 		for i := range altCastModes {
 			ka := &altCastModes[i]
-			if !ka.handLoop || !ph.has(ka.ph) {
+			if !ka.handLoop || (!ph.has(ka.ph) && ka.id != altWarp) {
 				continue
 			}
-			alt, ok := ka.faceCost(f, w.e.walkFaceFactsOf(f))
+			alt, ok := e.altRowCost(ka, id, f)
 			if !ok || w.castRestrictedCost(p, id, alt) ||
 				!w.offerCastable(p, id, alt, spellScope(ka.mode), false) ||
 				(!ka.untargeted && !targetsAvailable()) {
