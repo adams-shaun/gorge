@@ -159,6 +159,13 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.
 				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: o.Owner, Text: "entered tapped"})
 			}
 		}
+		// LibraryPosition$ on a library-bound pick (Lluwen, Imperfect
+		// Naturalist's "on top of your library"): the object-target path's
+		// placement tail. Absent is Forge's TOP default; each card goes to its
+		// owner's library, one owner's cards as a block in answer order.
+		if to == state.ZLibrary && len(moved) > 0 {
+			placeTargetedLibraryObjects(h, c, cz, moved)
+		}
 		// Explicit Reveal$ on the pick (Karn, the Great Creator's [-2]): the
 		// same public Note payload the library search's reveal emits. No
 		// default auto-reveal here: the pick's origin zones are public, so
