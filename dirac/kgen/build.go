@@ -2110,7 +2110,14 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 		cb.out.ovVals = append(cb.out.ovVals, ko.PA, ko.TA)
 	}
 	ko.HasTypes, ko.SetTypes = o.HasSetTypes, typeMask(o.SetTypes)
-	ko.AddTypes = typeMask(o.AddTypes) | subtypeTypeBits(o.AddSubtypes) // an added Equipment subtype is the kernel's TEquipment too (The Irencrag)
+	// an Equipment subtype the override adds or sets is the kernel's
+	// TEquipment too (The Irencrag, Domesticated Watercourse)
+	ko.AddTypes = typeMask(o.AddTypes) | subtypeTypeBits(o.AddSubtypes)
+	if o.HasSetSubtypes && o.HasSetTypes {
+		ko.SetTypes |= subtypeTypeBits(o.SetSubtypes)
+	} else if o.HasSetSubtypes {
+		ko.AddTypes |= subtypeTypeBits(o.SetSubtypes)
+	}
 	ko.HasSub = o.HasSetSubtypes
 	ko.AllCreatureTypes = o.AllCreatureTypes
 	ko.RemoveCreatureSub = o.RemoveCreatureSub

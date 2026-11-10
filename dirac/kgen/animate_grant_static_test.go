@@ -9,9 +9,10 @@ import (
 // is a Continuous static over other permanents lowers that body as an ordinary
 // source static gated by the override record the animation applies
 // (kop.Static.OvGate): Tenth District Hero's indestructible anthem and The
-// Irencrag's equipped pump. With the Animate's Name$, its Equip:N keyword and
-// OptionQuestion$ read, both cards lower whole; a body that is not an anthem,
-// keyword grant or equipped pump still refuses by name.
+// Irencrag's equipped pump. With the Animate's Name$, its Equip:N keyword
+// (beside RemoveAllAbilities$ only) and OptionQuestion$ read, both cards lower
+// whole; a body that is not an anthem, keyword grant or equipped pump still
+// refuses by name.
 func TestLowerAnimateGrantStatic(t *testing.T) {
 	const base = "Name:Animate Grant Probe\nManaCost:1\nTypes:Creature Human\nPT:1/1\n"
 	for _, tc := range []struct {
@@ -105,7 +106,12 @@ func TestLowerAnimateGrantStatic(t *testing.T) {
 		},
 		{
 			name: "Equip beside a plain keyword",
-			body: "A:AB$ Animate | Cost$ 1 | Defined$ Self | Keywords$ Equip:3 & Vigilance | Duration$ Permanent | SpellDescription$ test\n",
+			body: "A:AB$ Animate | Cost$ 1 | Defined$ Self | RemoveAllAbilities$ True | Keywords$ Equip:3 & Vigilance | Duration$ Permanent | SpellDescription$ test\n",
+		},
+		{
+			name: "Equip without the loss of abilities refuses",
+			body: "A:AB$ Animate | Cost$ 1 | Defined$ Self | Keywords$ Equip:2 | Duration$ Permanent | SpellDescription$ test\n",
+			want: `Animate Keywords$ "Equip:2" without RemoveAllAbilities$`,
 		},
 	} {
 		got := keclReason(keclSynth(t, "Animate Grant Probe", base+tc.body))

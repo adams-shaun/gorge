@@ -80,6 +80,12 @@ func TestOvGateStaticOutlivesOwnLoseAbilities(t *testing.T) {
 		t.Fatal("Everflame is not an Equipment")
 	}
 
+	s.pl[0].pool[kop.W] = 3
+	if sc.grantedActOffered(ir) {
+		t.Fatal("Everflame's granted equip is offered: gorge offers none beside the same Animate's RemoveAllAbilities$")
+	}
+	s.pl[0].pool[kop.W] = 0
+
 	s.attachTo(sc.k, isl, bsl)
 	if s.perms[isl].attached != bsl {
 		t.Fatalf("precondition: Everflame is not attached to Grizzly Bears (attached to %d)", s.perms[isl].attached)
@@ -92,4 +98,16 @@ func TestOvGateStaticOutlivesOwnLoseAbilities(t *testing.T) {
 	if p, tt := s.pt(sc.k, bsl); p != 2 || tt != 2 {
 		t.Fatalf("Grizzly Bears %d/%d after The Irencrag left, want 2/2", p, tt)
 	}
+}
+
+// grantedActOffered reports whether the next decision offers a granted
+// activation (mode 0x80|ab) of o hosted by o itself.
+func (sc *scen) grantedActOffered(o Obj) bool {
+	d := sc.s.Step()
+	for i := 0; i < int(d.N); i++ {
+		if a := d.Options[i]; a.Kind() == AkActivate && Obj(a.Source()) == o && Obj(a.Target()) == o && a.Mode()&0x80 != 0 {
+			return true
+		}
+	}
+	return false
 }

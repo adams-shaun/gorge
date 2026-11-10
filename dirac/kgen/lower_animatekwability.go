@@ -14,6 +14,13 @@ import (
 // expander's Name "Equip" (set by attach) so build marks it kop.AfEquip.
 // The remaining words return joined for pumpKeywords. Any other
 // activated-keyword head stays there and refuses by name.
+//
+// Only beside the same Animate's RemoveAllAbilities$ (o.LoseAbilities, read
+// first): gorge then never offers the granted equip, and the kernel offers
+// none either (a granted activation needs an attached host), so the latent
+// is never activated in either engine. Without the loss gorge offers it as a
+// keyword option the oracle has no canonical form for and the kernel does
+// not host (Domesticated Watercourse), so that refuses.
 func (lc *lowerCtx) animateGrantedKeywordAbilities(kw string, o *lOverride) (string, error) {
 	var rest []string
 	for _, w := range strings.Split(kw, "&") {
@@ -21,6 +28,9 @@ func (lc *lowerCtx) animateGrantedKeywordAbilities(kw string, o *lOverride) (str
 		if cards.KeywordHead(w) != "Equip" {
 			rest = append(rest, w)
 			continue
+		}
+		if !o.LoseAbilities {
+			return "", refuse("Animate Keywords$ %q without RemoveAllAbilities$: a self-granted equip the kernel does not host", w)
 		}
 		sa := cards.GrantedKeywordAbility(w)
 		if sa == nil || sa.Kind != "AB" {
