@@ -1411,6 +1411,9 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 			pc = s.manaPCGen(k, sl)
 		}
 		if !s.canTapForManaPC(k, sl, pc) || pc.manaAb < 0 && s.perms[sl].ovr.flags&ovCopy == 0 || payment && k.gen != nil && s.openManaRefused(k, p, sl, d) {
+			if k.gen != nil && !s.canTapForManaPC(k, sl, pc) {
+				s.potentialGrantSac(k, sl, payment, add, &open) // a granted sacrifice-only ability, tapped or not (mana_grantcost.go)
+			}
 			continue
 		}
 		if pc.manaAb >= 0 {

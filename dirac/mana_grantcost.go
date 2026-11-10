@@ -91,6 +91,28 @@ func (s *State) grantTapOK(k *prep, sl Slot) bool {
 // payment, or the source's sacrifice).
 func grantHasCost(pc *pcard) bool { return grantCostLife(pc) > 0 || pc.grantSac }
 
+// potentialGrantSac adds sl's live granted sacrifice-only abilities to gorge's
+// potential pool (availPotentialFor): its walk admits a sacrifice cost with no
+// {T}, so a tapped or sick source counts (an any-colour one is open). A
+// restricted grant is left out of a payment's pool.
+func (s *State) potentialGrantSac(k *prep, sl Slot, payment bool, add func(Slot, uint8, uint8), open *bool) {
+	if len(k.gen.grantPC) == 0 || !s.grantSacOK(k, sl) {
+		return
+	}
+	var gi [maxGrants]int16
+	for i, n := 0, s.grantIdxs(k, sl, &gi); i < n; i++ {
+		gv := s.grantView(k.gen, gi[i], sl)
+		if !gv.grantSac || payment && k.gen.grantRestr[gi[i]] != 0 {
+			continue
+		}
+		if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
+			*open = true
+			continue
+		}
+		add(sl, s.srcMaskAt(gv, sl), gv.manaN)
+	}
+}
+
 // windowSacOnly: the manual window's view pc is a sacrifice-only mana
 // ability, printed (Eldrazi Spawn) or granted (Lotus Ring): the window
 // sacrifices the source instead of tapping it.
