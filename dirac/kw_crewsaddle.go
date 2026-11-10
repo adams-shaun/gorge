@@ -61,7 +61,7 @@ func (s *State) tapPowerPayable(k *prep, a *kop.Ability, src Slot) bool {
 		n++
 		sum += s.power(k, sl)
 		if tp != 0 {
-			sum += s.tapPowerValue(k, sl, a.Cost.Flags)
+			sum += s.tapPowerValue(k, sl, a.Cost.Flags, false, src)
 		}
 	}
 	return n > 0 && sum >= int(a.Cost.N)
@@ -93,7 +93,7 @@ func (s *State) tapPowerOptions(k *prep, d *Decision) bool {
 		if ob := &s.objs[s.bld().picks[i]]; ob.zone == kop.ZoneBattlefield {
 			sum += s.power(k, ob.slot)
 			if tp != 0 {
-				sum += s.tapPowerValue(k, ob.slot, pc.Flags)
+				sum += s.tapPowerValue(k, ob.slot, pc.Flags, false, src)
 			}
 		}
 	}
@@ -109,7 +109,7 @@ func (s *State) tapPowerOptions(k *prep, d *Decision) bool {
 		cand[nc] = sl
 		pw[nc] = s.power(k, sl)
 		if tp != 0 {
-			pw[nc] += s.tapPowerValue(k, sl, pc.Flags)
+			pw[nc] += s.tapPowerValue(k, sl, pc.Flags, false, src)
 		}
 		if pw[nc] > 0 {
 			rest += pw[nc]

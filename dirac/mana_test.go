@@ -47,6 +47,36 @@ func TestAutopayLexTieBreak(t *testing.T) {
 	}
 }
 
+// The census holds every source, not the first 48: with 60 Forests, the key-8
+// tie-break sees the least ObjID even when it entered last. f[0] is allocated
+// first (the least ObjID) but enters at position 60. gorge's uncapped census
+// (paymentPlanManaUnitsOnlyCompute) offers it to the same tie-break, so the
+// kernel must tap it.
+func TestAutopayCensusPastFortyEight(t *testing.T) {
+	sc := newScen(t, Config{})
+	f := make([]Obj, 60)
+	for i := range f {
+		f[i] = sc.obj(v.Forest, 0)
+	}
+	for i := 1; i < len(f); i++ {
+		sc.enterAs(f[i], 0)
+	}
+	sc.enterAs(f[0], 0)
+	if n := sc.s.ctrlM[0].count(); n != 60 || n <= 48 {
+		t.Fatalf("%d Forests on the battlefield, want 60 (more than 48)", n)
+	}
+	c := cost(1)
+	sc.s.pay(sc.k, 0, &c, 0, NoObj)
+	if !sc.tapped(f[0]) {
+		t.Fatalf("the least-ObjID Forest did not tap")
+	}
+	for i := 1; i < len(f); i++ {
+		if sc.tapped(f[i]) {
+			t.Fatalf("Forest %d (entry position %d) tapped beside f[0]", i, i)
+		}
+	}
+}
+
 // HandReserve (key 6): a {G}{G} card in hand keeps the Forest untapped.
 func TestAutopayHandReserve(t *testing.T) {
 	sc := newScen(t, Config{})

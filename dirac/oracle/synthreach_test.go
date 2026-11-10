@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/events"
@@ -172,6 +173,81 @@ func impendedCast(ref *GorgeSide) bool {
 			if o := g.Obj(id); o != nil && o.CastFlags&state.FlagImpending != 0 {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+// hybridCast is the condition that a spell with a two-colour hybrid symbol in its
+// mana cost (CR 107.4e) is on the stack.
+func hybridCast(ref *GorgeSide) bool {
+	for _, id := range ref.E.G.Zone(state.ZStack, 0) {
+		o := ref.E.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		for _, sym := range strings.Fields(o.Face().ManaCost) {
+			if len(sym) == 2 && strings.ContainsRune("WUBRG", rune(sym[0])) && strings.ContainsRune("WUBRG", rune(sym[1])) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// eachPlayerDiscarded is the condition that two players' discards moved together:
+// discards of cards of different owners within a few events of each other (CR 101.4).
+func eachPlayerDiscarded(ref *GorgeSide) bool {
+	evs := ref.E.L.Events
+	owner := func(i int) (state.PlayerID, bool) {
+		if !events.IsDiscard(evs[i]) {
+			return 0, false
+		}
+		o := ref.E.G.Obj(evs[i].Obj)
+		if o == nil {
+			return 0, false
+		}
+		return o.Owner, true
+	}
+	for i := range evs {
+		a, ok := owner(i)
+		if !ok {
+			continue
+		}
+		for j := i + 1; j < min(len(evs), i+6); j++ {
+			if b, ok := owner(j); ok && b != a {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// anyActivated is the condition that some activated ability was put on the stack.
+func anyActivated(ref *GorgeSide) bool {
+	for i := range ref.E.L.Events {
+		if ref.E.L.Events[i].Kind == events.AbilityPush {
+			return true
+		}
+	}
+	return false
+}
+
+// sagaLeftBattlefield is the condition that a Saga left the battlefield (CR 714.4).
+func sagaLeftBattlefield(ref *GorgeSide) bool { return leftBattlefield(ref, "Saga") }
+
+// auraLeftBattlefield is the condition that an Aura left the battlefield.
+func auraLeftBattlefield(ref *GorgeSide) bool { return leftBattlefield(ref, "Aura") }
+
+// leftBattlefield reports whether a permanent with the given type left the battlefield.
+func leftBattlefield(ref *GorgeSide, typ string) bool {
+	for i := range ref.E.L.Events {
+		ev := &ref.E.L.Events[i]
+		if ev.Kind != events.MoveZone || ev.From != state.ZBattlefield {
+			continue
+		}
+		if o := ref.E.G.Obj(ev.Obj); o != nil && o.Face() != nil && slices.Contains(o.Face().Types, typ) {
+			return true
 		}
 	}
 	return false

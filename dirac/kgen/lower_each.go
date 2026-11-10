@@ -55,7 +55,7 @@ func eachPickGate(ps *params, origin, dest int, n lValue) error {
 	default:
 		return refuse("EACH pick %s->%s", zoneLabel[origin], zoneLabel[dest])
 	}
-	for _, k := range []string{"DifferentNames", "Shuffle", "NoShuffle", "OriginAlternative", "RememberChanged", "ForgetChanged", "AtRandom", "WithTotalCMC"} {
+	for _, k := range []string{"DifferentNames", "Shuffle", "NoShuffle", "OriginAlternative", "RememberChanged", "ForgetChanged", "AtRandom", "WithTotalCMC", "WithDifferentPowers"} {
 		if _, ok := ps.m[k]; ok && !(k == "Shuffle" && ps.is("Shuffle", "True")) {
 			return refuse("EACH pick with %s$", k)
 		}

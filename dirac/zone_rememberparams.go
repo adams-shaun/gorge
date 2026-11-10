@@ -61,7 +61,7 @@ func (s *State) forgetOtherMove(k *prep, in *kop.Instr) bool {
 		if in.C&kop.MvFromGraveyard != 0 && s.objs[o].zone != kop.ZoneGraveyard {
 			continue // moved since: a new object (CR 400.7), as execGen's OpExile
 		}
-		if s.moveObj(k, in.Obj, o, kop.ZoneExile, false) && in.C&kop.MvRemember != 0 {
+		if s.moveObj(k, in.Obj, o, kop.ZoneExile) && in.C&kop.MvRemember != 0 {
 			s.remember(o)
 		}
 	}

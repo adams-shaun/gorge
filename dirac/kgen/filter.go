@@ -249,6 +249,12 @@ type lFilter struct {
 	// Each: Forge's "EACH A & B" list (lowerCtx.pickFilter). Every clause is
 	// one listed type, in order, and a pick takes one card per clause.
 	Each bool
+	// PickSumMax and PickDistinctPower are the pick-set constraints carried
+	// on the head clause (kop.Filter.PickSumMax / PickDistinctPower):
+	// WithTotalCMC$ and WithDifferentPowers$ on a Dig or a hidden pick. Nil
+	// PickSumMax and false PickDistinctPower leave the filter unchanged.
+	PickSumMax        *lValue
+	PickDistinctPower bool
 }
 
 const (

@@ -809,7 +809,8 @@ func (s *State) grantsBetween(k *prep, sl Slot, lo, hi uint32, kinds uint8, lts 
 					}
 				}
 			case kop.StatContinuous:
-				if a.Static.Grant != 0 && s.matchPermGen(k, a.Static.Filter, sl, s.perms[src].ctrl, src, layerKw) {
+				st := statSrc{a: a, sl: src, ctrl: s.perms[src].ctrl, obj: s.perms[src].obj}
+				if a.Static.Grant != 0 && s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, src, layerKw) {
 					prev := s.g.grantSrc
 					s.g.grantSrc = uint8(s.perms[src].obj) + 1
 					f(cid, a.Static.Grant-1, 1)
@@ -888,6 +889,29 @@ func (s *State) grantedHost(k *prep, sl Slot, c CardID) Slot {
 		}
 	}
 	return host
+}
+
+// selfGrantHost returns sl when a live override record on sl made by sl's
+// own card grants it ability (c, ab) and sl has not lost its abilities
+// (Domesticated Watercourse's "becomes an Equipment with equip {2}"); else
+// NoSlot. A loss in the same record (The Irencrag's Everflame) hosts nothing:
+// gorge offers no equip there.
+func (s *State) selfGrantHost(k *prep, sl Slot, c CardID, ab uint8) Slot {
+	if !s.fxM.has(sl) || s.genLost(k, sl) || s.cardAt(sl) != c {
+		return NoSlot
+	}
+	for i := 0; i < int(s.g.nfx); i++ {
+		r := &s.g.fx[i]
+		if r.sl != sl || r.kind != fxOverride || r.r.idx == 0 || r.r.src != c {
+			continue
+		}
+		for _, g := range k.t.Overrides[r.r.idx-1].Grant {
+			if g == ab+1 {
+				return sl
+			}
+		}
+	}
+	return NoSlot
 }
 
 // applyOverride records override idx (from card src) on sl.

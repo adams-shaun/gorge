@@ -358,8 +358,12 @@ func (s *State) projRest(p *Projection, lib bool) {
 		}
 	}
 	k := s.k()
-	p.NStack = s.sp
-	for i := 0; i < int(s.sp); i++ {
+	sp := s.sp
+	if s.res.active && sp > 0 && s.stack[sp-1].kind == seSpell && s.objs[s.stack[sp-1].obj].zone != kop.ZoneStack {
+		sp-- // the resolving spell left the stack mid-resolution (moveObj's self-exile); gorge's g.Stack has no such object
+	}
+	p.NStack = sp
+	for i := 0; i < int(sp); i++ {
 		e := &s.stack[i]
 		p.Stack[i] = ProjStack{Kind: e.kind, Source: e.obj, Card: e.card, Ability: e.ab, Ctrl: e.ctrl, Targets: e.tgt, Mode: e.mode, X: e.x}
 		if e.x != 0 && e.kind == seTrigger {

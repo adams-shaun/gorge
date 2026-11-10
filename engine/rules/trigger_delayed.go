@@ -67,12 +67,30 @@ func (e *Engine) collectExpiredDelayedTriggers() {
 	}
 }
 
+// delayedSVarHost is the face whose SVars own a delayed registration's Execute
+// body: the GRANTOR for a registration made by a granted ability (a granted
+// activation's Ctx.Source is the grantee, while the body lives on the
+// grantor's face, Way of the Cryomancer's EffTrigCopy), the source itself
+// otherwise. A grantor id that no longer resolves falls back to the source,
+// and a grantor that changed zones but still resolves keeps its unchanged
+// face SVars. Matching, Ctx.Source and the stack source stay on dt.Source
+// (CR 603.7d).
+func (e *Engine) delayedSVarHost(dt *state.DelayedTrigger) *state.Object {
+	if dt.Grantor != 0 {
+		if o := e.G.Obj(dt.Grantor); o != nil && o.Face() != nil {
+			return o
+		}
+	}
+	return e.G.Obj(dt.Source)
+}
+
 func (e *Engine) delayedRegistrationLive(dt *state.DelayedTrigger) bool {
 	if int(dt.Controller) >= len(e.G.Players) || e.G.Players[dt.Controller].Lost {
 		return false
 	}
 	src := e.G.Obj(dt.Source)
-	if src == nil || src.Face() == nil || events.ResolveSVarAcrossFaces(src, dt.Execute) == nil {
+	if src == nil || src.Face() == nil ||
+		events.ResolveSVarAcrossFaces(e.delayedSVarHost(dt), dt.Execute) == nil {
 		return false
 	}
 	// The sole lifetime predicate is shared by collection and both fire-time
@@ -288,7 +306,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		}
 		// The creating face need not be the current one: an Adventure card is
 		// back to its creature face once the spell has resolved.
-		sa := events.ResolveSVarAcrossFaces(src, dt.Execute)
+		sa := events.ResolveSVarAcrossFaces(e.delayedSVarHost(dt), dt.Execute)
 		if src.Face() == nil || sa == nil {
 			remove = append(remove, dt.ID)
 			continue
@@ -482,7 +500,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 			remove = append(remove, dt.ID)
 			continue
 		}
-		sa := events.ResolveSVarAcrossFaces(src, dt.Execute)
+		sa := events.ResolveSVarAcrossFaces(e.delayedSVarHost(dt), dt.Execute)
 		if sa == nil {
 			remove = append(remove, dt.ID)
 			continue
@@ -651,7 +669,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 				trigger:      t,
 				remembered:   remembered,
 				referents:    r,
-				svars:        src.Face().SVars,
+				svars:        e.delayedSVarHost(dt).Face().SVars,
 				static:       strings.TrimSpace(t.ParamStr(cards.PKStatic)) != "",
 				lki:          fireLKI,
 				lkiPower:     firePower,

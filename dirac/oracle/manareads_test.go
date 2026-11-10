@@ -2,16 +2,12 @@ package oracle
 
 import "testing"
 
-// lockstepWithCard plays games of synthetic pool name in lockstep on the surface cfg
-// names. With a card named, the games are recorded ones in which it reaches the stack,
-// so a deal that drifts cannot move them; with none, they are the pairs given.
-func lockstepWithCard(t *testing.T, name string, cfg Config, card string, pairs ...int) {
+// lockstepWithCard plays recorded games of synthetic pool name in lockstep on the
+// surface cfg names, in each of which card reaches the stack, so a deal that drifts
+// cannot move them.
+func lockstepWithCard(t *testing.T, name string, cfg Config, card string) {
 	t.Helper()
-	if card != "" {
-		pinnedGames(t, name, cfg, onStack(card))
-		return
-	}
-	synthPairsRun(t, name, RunConfig{Config: cfg}, pairs, nil)
+	pinnedGames(t, name, cfg, onStack(card))
 }
 
 // A may-play over a remembered nonland card reads the card's type once, as the
@@ -33,11 +29,12 @@ func TestFloatingRestrictedManaPaysAnActivation(t *testing.T) {
 
 // The prefix search activates every source the planner's census misses before it
 // funds a fee: a restricted any-colour source, a source that taps another
-// permanent and a granted mana ability all stand beside a filter as gaps.
+// permanent and a granted mana ability all stand beside a filter as gaps: Daily
+// Bugle Building's and White Lotus Hideout's {1},{T} any-colour filters.
 func TestFilterSearchActivatesTheOtherGaps(t *testing.T) {
 	t.Parallel()
-	lockstepWithCard(t, "std-spm", Config{GorgeAutopaySurface: true}, "", 419, 193)
-	lockstepWithCard(t, "std-tla", Config{GorgeAutopaySurface: true}, "", 171)
+	pinnedGames(t, "std-spm", Config{GorgeAutopaySurface: true}, onBattlefield("Daily Bugle Building"))
+	pinnedGames(t, "std-tla", Config{GorgeAutopaySurface: true}, onBattlefield("White Lotus Hideout"))
 }
 
 // A filter's fee may be paid with the restricted mana its restriction admits, so
@@ -51,10 +48,10 @@ func TestFilterFeeReadsRestrictedMana(t *testing.T) {
 
 // Under an any-type rider a pip is spent from the first of W U B R G C the pool
 // holds, and only then does the generic part take what is left, so {C} survives
-// a pip a coloured unit could pay.
+// a pip a coloured unit could pay: Black Cat, Cunning Thief's rider.
 func TestAnyTypeRiderSpendsPipsBeforeGeneric(t *testing.T) {
 	t.Parallel()
-	lockstepWithCard(t, "std-spm", Config{}, "", 15)
+	pinnedGames(t, "std-spm", Config{}, cardOut("Black Cat, Cunning Thief"))
 }
 
 // An attached mana grant counts beside the host's own ability (New Horizons on a
@@ -74,7 +71,7 @@ func TestAttachedGrantAndCounteredSpellController(t *testing.T) {
 // activation past the fourth play is not offered.
 func TestHybridCastTakesASearchSlotWhenUnrelaxable(t *testing.T) {
 	t.Parallel()
-	lockstepWithCard(t, "std-spm", Config{GorgeAutopaySurface: true}, "", 226)
+	pinnedGames(t, "std-spm", Config{GorgeAutopaySurface: true}, hybridCast)
 }
 
 // A plain cast beside a free one is a play of its own: gorge's potential planner

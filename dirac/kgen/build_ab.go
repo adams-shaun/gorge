@@ -1712,6 +1712,47 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, err
 			}
 		}
+	case "TapPower":
+		// a Mode$ TapPowerValue static: Filter is ValidCard$, AddSub the
+		// host subtype its ValidSA$ qualifier names, A the literal bonus or
+		// TapPowToughness, and VA the tapped creature's own value under
+		// StDynamic (kop.StatTapPower; kernel value_tappower.go)
+		st.Kind = kop.StatTapPower
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		if s.F2 != nil {
+			if st.Filter2, err = filter(s.F2, kop.ZoneBattlefield); err != nil {
+				return ka, nil, err
+			}
+		}
+		for _, fl := range s.Flags {
+			switch fl {
+			case "Crew":
+				st.StFlags |= kop.StTapPowerCrew
+			case "Saddle":
+				st.StFlags |= kop.StTapPowerSaddle
+			case "Station":
+				st.StFlags |= kop.StTapPowerStation
+			case "Toughness":
+				st.StFlags |= kop.StTapPowerTough
+			default:
+				return ka, nil, fmt.Errorf("tap power flag %q", fl)
+			}
+		}
+		if s.Amount.Kind != vNone {
+			if s.Amount.isConst() {
+				st.A = int16(s.Amount.N)
+			} else {
+				st.StFlags |= kop.StDynamic
+				if st.VA, err = cb.value(s.Amount); err != nil {
+					return ka, nil, err
+				}
+			}
+		}
+		if s.Amount.Kind != vNone && st.StFlags&kop.StTapPowerTough != 0 {
+			return ka, nil, fmt.Errorf("tap power static with both a value and Toughness")
+		}
 	case "WarpGrant":
 		st.Kind = kop.StatWarpGrant // kw_warpgrant.go
 		if st.Filter, err = filter(s.F, kop.ZoneHand); err != nil {
@@ -4143,7 +4184,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		default:
 			return ki, fmt.Errorf("override duration %q", in.CS)
 		}
-	case "CopyAsToken", "CopyNamed", "CopyPicked":
+	case "CopyAsToken", "CopyNamed", "CopyPicked", "CopyExiledWith":
 		ki.Op = kop.OpCopyAsTokenEx
 		cf := 0
 		if _, ok := fl["SacAtEndStep"]; ok {
@@ -4216,6 +4257,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			}
 			ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCopyNamed))
 			ki.B, ki.C = kop.Const(idx), int16(int(ki.C)<<kop.CopyNamedExcShift|int(uint16(ki.B.N)))
+		}
+		if in.Op == "CopyExiledWith" {
+			// kop.ExtCopyExiledWith: F the exiled-with set, B and C as above
+			ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCopyExiledWith))
+			if err := objFilter(kop.ZoneExile); err != nil {
+				return ki, err
+			}
 		}
 	case "CopyAsTokenCtr":
 		// dirac/copy_counters.go: Obj the source, B the

@@ -392,6 +392,7 @@ ExSneaked	ExprKind	51
 ExStartingLife	ExprKind	14
 ExSum	ExprKind	25
 ExSumPower	ExprKind	5
+ExTapPower	ExprKind	222
 ExTargetPlayers	ExprKind	223
 ExThisTurnActGrave	ExprKind	50
 ExThisTurnCast	ExprKind	33
@@ -424,6 +425,7 @@ ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
 ExtCopyAbility	ExtOp	191
 ExtCopyAllEach	ExtOp	224
+ExtCopyExiledWith	ExtOp	258
 ExtCopyNamed	ExtOp	314
 ExtCopyPicked	ExtOp	316
 ExtCopyTokenCtr	ExtOp	172
@@ -1091,6 +1093,10 @@ StRemove6Counters	StaticFlags	32
 StSeatActive	StaticFlags	16384
 StTapAnyPlayer	StaticFlags	8
 StTapOnC	StaticFlags	2
+StTapPowerCrew	StaticFlags	2
+StTapPowerSaddle	StaticFlags	4
+StTapPowerStation	StaticFlags	8
+StTapPowerTough	StaticFlags	16
 StTapReflect	StaticFlags	4
 StTargetsFilter2	StaticFlags	64
 StWithoutManaCost	StaticFlags	8
@@ -1098,8 +1104,8 @@ StYouHexproof	StaticFlags	512
 StackExileDream	untyped int	2
 StackExileGrant	untyped int	4
 StackExileOwn	untyped int	8
-StackExileResolved	untyped int	16
 StackExilePlot	untyped int	1
+StackExileResolved	untyped int	16
 StackKwCascade	int16	3
 StackKwCasualty	int16	2
 StackKwConspire	int16	8
@@ -1118,8 +1124,8 @@ StatCanAttackDefender	StaticKind	250
 StatCantActivate	StaticKind	236
 StatCantAttack	StaticKind	8
 StatCantBeBeamedUp	StaticKind	244
-StatCantBeSuspected	StaticKind	230
 StatCantBeCast	StaticKind	16
+StatCantBeSuspected	StaticKind	230
 StatCantBlock	StaticKind	3
 StatCantBlockBy	StaticKind	4
 StatCantDraw	StaticKind	248
@@ -1152,6 +1158,7 @@ StatReduceAbility	StaticKind	233
 StatReduceCost	StaticKind	2
 StatStackKw	StaticKind	251
 StatTapExtra	StaticKind	254
+StatTapPower	StaticKind	255
 StatUntapOther	StaticKind	246
 StatWarpGrant	StaticKind	240
 StepAttackers	Step	5
@@ -1265,9 +1272,9 @@ TgtAny	TargetKind	3
 TgtCard	TargetKind	5
 TgtCopyAb	TargetKind	236
 TgtCopyTrig	TargetKind	237
+TgtGraveExileCard	TargetKind	241
 TgtNone	TargetKind	0
 TgtObject	TargetKind	1
-TgtGraveExileCard	TargetKind	241
 TgtPermOrGraveCard	TargetKind	240
 TgtPermOrSpell	TargetKind	235
 TgtPlayer	TargetKind	2

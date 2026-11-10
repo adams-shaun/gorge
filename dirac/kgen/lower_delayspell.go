@@ -16,14 +16,6 @@ import (
 // CopySpellAbility's Defined$ TriggeredSpellAbility), and the kernel reads
 // the filter at the cast (dirac/trig_delayedspell.go).
 func (lc *lowerCtx) delayedSpellCast(ps *params) error {
-	if lc.granted > 0 {
-		// gorge's registration names the grantee as its source, and the
-		// grantee's face has none of the grantor's SVars: Execute$ cannot be
-		// resolved at fire time (Way of the Cryomancer). The table-level
-		// refusal is a defect to fix in gorge's granted registration, not a
-		// lowering this build can carry.
-		return refuse("delayed SpellCast in a granted ability")
-	}
 	_, static := ps.get("Static")
 	if static && !ps.is("Static", "True") {
 		return refuse("delayed SpellCast Static$")

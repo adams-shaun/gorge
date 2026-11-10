@@ -9,7 +9,6 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/dirac/search/hbot"
-	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // TestHBotParity plays FDN pairings in lockstep with gorge's heuristic
@@ -238,31 +237,22 @@ func BenchmarkHBotCombatPick(b *testing.B) {
 // doesn't count (Enduring Vitality), and a resolution's tap payment asks the same way
 // (std-eoe).
 func TestHBotTapsHelpersThatMakeNoManaFirst(t *testing.T) {
+	const helper = "Choose permanents to tap"
+	tapcost := func(also ...hbotCond) hbotCond { return answersWith("choose:tapcost", also...) }
 	for _, tc := range []struct {
-		pool  string
-		seed  uint64
-		pairs []int
-	}{{"std-dsk", 1, []int{337, 387}}, {"std-tla", 1, []int{120}}, {"std-eoe", 78, []int{6, 8, 24}}} {
-		c := &Corpus{Reg: synthReg(t), decks: map[string][]*cards.Card{}}
-		set := cardsettest.Synth(t, tc.pool)
-		pool, files, err := SynthPool(c.Reg, set, 1, SynthDecks)
-		if err != nil {
-			t.Fatal(err)
-		}
-		c.AddDecks(files)
-		mk := func(tbl *kop.Table) KernelBot { return hbot.New(HBotFacts(c.Reg, tbl, nil)) }
-		for _, i := range tc.pairs {
-			p := PairingsFrom(pool, i, 1, tc.seed)[0]
-			res, err := HBotParityGameOpts(c, p.A, p.B, p.Seed, Config{GorgeAutopaySurface: true, PassElision: true}, 20000, mk, HBotParityOptions{Set: set})
-			if err != nil {
-				t.Fatalf("%s pair %d: %v", tc.pool, i, err)
-			}
-			for _, r := range res.Recs {
-				if !r.Agree && (strings.Contains(r.Where, "gorge choose:tapcost") || strings.Contains(r.Where, "gorge choose:waterbend")) {
-					t.Errorf("%s pair %d: %s", tc.pool, i, r.Where)
-				}
-			}
-		}
+		pool    string
+		seed    uint64
+		reached []hbotCond
+	}{
+		{"std-dsk", 1, []hbotCond{tapcost(promptIs(helper))}},
+		{"std-dsk", 1, []hbotCond{tapcost(promptIs(helper), decidesWith("Enduring Vitality"))}},
+		{"std-tla", 1, []hbotCond{tapcost(), answersWith("choose:waterbend_generic")}},
+		// a resolution's unless cost paid by tapping (pay/unlessflow.go)
+		{"std-eoe", 78, []hbotCond{tapcost(promptIs("Tap untapped permanents you control to pay the cost"))}},
+	} {
+		pinnedHBotGames(t, hbotPinRun{Pool: tc.pool, ScanSeed: tc.seed}, Config{GorgeAutopaySurface: true, PassElision: true}, func(r ParityRec) bool {
+			return !r.Agree && (strings.Contains(r.Where, "gorge choose:tapcost") || strings.Contains(r.Where, "gorge choose:waterbend"))
+		}, tc.reached...)
 	}
 }
 
@@ -272,26 +262,10 @@ func TestHBotTapsHelpersThatMakeNoManaFirst(t *testing.T) {
 func TestHBotFloatsTheColourTheCardNeeds(t *testing.T) {
 	for _, tc := range []struct {
 		pool string
-		pair int
 		card string
-	}{{"std-tla", 87, "Earth King's Lieutenant"}, {"std-otj", 29, "Snakeskin Veil"}} {
-		c := &Corpus{Reg: synthReg(t), decks: map[string][]*cards.Card{}}
-		set := cardsettest.Synth(t, tc.pool)
-		pool, files, err := SynthPool(c.Reg, set, 1, SynthDecks)
-		if err != nil {
-			t.Fatal(err)
-		}
-		c.AddDecks(files)
-		mk := func(tbl *kop.Table) KernelBot { return hbot.New(HBotFacts(c.Reg, tbl, nil)) }
-		p := PairingsFrom(pool, tc.pair, 1, 78)[0]
-		res, err := HBotParityGameOpts(c, p.A, p.B, p.Seed, Config{GorgeAutopaySurface: true, PassElision: true}, 20000, mk, HBotParityOptions{Set: set})
-		if err != nil {
-			t.Fatalf("%s pair %d: %v", tc.pool, tc.pair, err)
-		}
-		for _, r := range res.Recs {
-			if !r.Agree && strings.Contains(r.Where, "gorge cast("+tc.card) {
-				t.Errorf("%s pair %d: %s", tc.pool, tc.pair, r.Where)
-			}
-		}
+	}{{"std-tla", "Earth King's Lieutenant"}, {"std-otj", "Snakeskin Veil"}} {
+		pinnedHBotGames(t, hbotPinRun{Pool: tc.pool, ScanSeed: 78}, Config{GorgeAutopaySurface: true, PassElision: true}, func(r ParityRec) bool {
+			return !r.Agree && strings.Contains(r.Where, "gorge cast("+tc.card)
+		}, casts(tc.card))
 	}
 }

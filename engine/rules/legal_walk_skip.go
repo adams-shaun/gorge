@@ -184,3 +184,13 @@ func grantedKWHeadMatch(k string) bool {
 	}
 	return false
 }
+
+// pileAbilityBound is the number of printed pile abilities the offer walk
+// visits for o: none once o lost its printed abilities (CR 613.1f), which
+// leaves only the derived granted-keyword lines to offer.
+func pileAbilityBound(o *state.Object, printedLost bool) int {
+	if printedLost {
+		return 0
+	}
+	return o.PileAbilityCount()
+}
