@@ -28,11 +28,11 @@ import (
 type attachObjectKind uint8
 
 const (
-	attachObjectSelf       attachObjectKind = iota // absent, or Self
-	attachObjectRemembered                         // Remembered
-	attachObjectAttachedTo                         // the plural "AttachedTo <referent>" family
-	attachObjectDefined                            // any other definedSpec selector
-	attachObjectParentTarget                       // ParentTarget / ParentTargeted: the parent link's whole set
+	attachObjectSelf         attachObjectKind = iota // absent, or Self
+	attachObjectRemembered                           // Remembered
+	attachObjectAttachedTo                           // the plural "AttachedTo <referent>" family
+	attachObjectDefined                              // any other definedSpec selector
+	attachObjectParentTarget                         // ParentTarget / ParentTargeted: the parent link's whole set
 )
 
 // AttachParams is one Attach ability's parameters, compiled once.
