@@ -248,6 +248,27 @@ const SrAltZoneShift = 5
 // offers the library, the graveyard and the hand.
 const SrAltGraveHand = int(ZoneLibrary)
 
+// Sideboard searches (OpSearchEx B only; ChangeZone Origin$ Sideboard, or
+// Library,Sideboard). The pool is the fetching player's library (unless
+// SrNoLibrary) then the cards outside the game they own, in object order
+// (gorge effSearchLibrary's candidate walk: the library first, then each
+// other origin zone). Read from the instruction's B, never ORed into pickF.
+// Bit 0 is OpChooseMove's UntilLeaves link and bit 2 its SrHandGrave, neither
+// of which an OpSearchEx carries; bits 10 and 11 are the entry counter kind's
+// top bits on an OpChooseMove, unread on a search.
+const (
+	SrChooserOpp = 1 << 0  // an opponent answers the pick (Chooser$ Opponent), not the fetching player
+	SrExactly    = 1 << 2  // Exactly$ True: exactly A cards are found or none (the pick offers Done only before the first card)
+	SrSideboard  = 1 << 10 // the pool includes the fetcher's sideboard, after the library
+	SrNoLibrary  = 1 << 11 // with SrSideboard: the library is not searched (Origin$ Sideboard alone): no look, no shuffle
+)
+
+// CzLibrarySideboard is OpChangeZoneAllEx's B for a MvGraveExile sweep whose
+// origin is Library,Sideboard (Turtles Forever's put-back): every seat's
+// library, then every seat's sideboard (gorge effChangeZoneAll's zone-major
+// walk). Clear of CzUntilLeaves (bit 0), CzBattleGrave and ZoneHand.
+const CzLibrarySideboard = 16
+
 // RetAttachTo (OpReturnEx B.N, A counters absent):
 // AttachedTo$ -- the returned permanent enters attached to the permanent the
 // Ref in B.N bits 8..10 names (RefSelf, or a target slot; the low byte stays

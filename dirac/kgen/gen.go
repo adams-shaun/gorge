@@ -218,6 +218,10 @@ func lowerPool(p *pool) *lowered {
 			lw.tokens = append(lw.tokens, nameCard(lw.cards, k))
 			continue
 		}
+		if strings.HasPrefix(k, copyCardKey) {
+			lw.tokens = append(lw.tokens, lowerCopyCardEntry(p, k)) // lower_copynamed.go
+			continue
+		}
 		c, _ := p.reg.Token(k)
 		lw.tokens = append(lw.tokens, lowerCard(p, k, c, true))
 	}

@@ -431,6 +431,13 @@ const ExChromaOf ExprKind = 231
 // value is 0 or 1.
 const ExOppsAttacked ExprKind = 229
 
+// ExIfCastOwnMain (high expr kind): Sub[0] if the resolving or announcing
+// spell was cast, is read in a main phase and its controller is the active
+// player, else Sub[1] (gorge Count$IfCastInOwnMainPhase.<yes>.<no>). The read
+// is live, not a stamp of the cast's phase: a spell cast in a main phase that
+// resolves in another step reads Sub[1]. A stack copy was never cast.
+const ExIfCastOwnMain ExprKind = 224
+
 // ExVoid (high expr kind): Sub[0] if the Void of Edge of
 // Eternities holds, else Sub[1] (gorge Count$Void.<yes>.<no>,
 // cov3BranchHoldsVoid). Void holds when a nonland permanent left the
@@ -463,6 +470,13 @@ const ExYourExtraTurns ExprKind = 227
 // a Class level is no counter. Explicit ordinal, the iota tail stays
 // untouched.
 const ExCounterKinds ExprKind = 225
+
+// ExTargetPlayers: 1 when target slot Ref holds a player, else 0 (an unfilled
+// optional slot, or one whose player is no longer a legal target on
+// resolution, CR 608.2b). gorge TargetedPlayer$Amount over a slot of an
+// opponents-only ValidTgts$ in a two-player game, where the slot holds at
+// most the one opponent. Explicit ordinal, the iota tail stays untouched.
+const ExTargetPlayers ExprKind = 223
 
 // ExNotOwnLibMV: the summed mana value of the library cards in the
 // resolution's remembered set that the repeated player (an OpRepeatEachPlayer

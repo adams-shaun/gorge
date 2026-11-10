@@ -65,6 +65,9 @@ func (s *State) suspectOne(k *prep, sl Slot, set bool) {
 	if s.mSl(k, mechSuspected, sl) == set {
 		return
 	}
+	if set && s.cantSuspect(k, sl) {
+		return // Airtight Alibi (gorge suppressSuspectedEvent)
+	}
 	if set {
 		s.mSlSet(k, mechSuspected, sl)
 	} else {
@@ -75,7 +78,9 @@ func (s *State) suspectOne(k *prep, sl Slot, set bool) {
 
 // suspectWouldChange is the OpMayAsk guard of an Optional$ suspect (gorge
 // alterAttributeWouldChange): the election is posed only when the next
-// ExtSuspect would flip some object.
+// ExtSuspect would flip some object. A StatCantBeSuspected static is not read
+// here: gorge reads it only at the emit choke point, so the ask is still posed
+// and suspectOne then swallows the answer.
 func (s *State) suspectWouldChange(k *prep, next *kop.Instr) bool {
 	set := next.C&1 == 0
 	if next.Obj == kop.RefNone {
@@ -90,4 +95,17 @@ func (s *State) suspectWouldChange(k *prep, next *kop.Instr) bool {
 	}
 	sl := s.objRef(k, next.Obj)
 	return sl != NoSlot && s.mSl(k, mechSuspected, sl) != set
+}
+
+// DebugCantSuspectOff is a mutation switch: a StatCantBeSuspected static
+// forbids nothing, so the creature Airtight Alibi enchants becomes
+// suspected and the lockstep repro diverges.
+var DebugCantSuspectOff bool
+
+// cantSuspect reports whether a StatCantBeSuspected static (S:Mode$
+// CantBeSuspected, gorge rules/cantbesuspected.go) forbids the permanent at
+// sl from becoming suspected (CR 701.60). Only the set direction reads it:
+// a designation already held stays (gorge gates the event only).
+func (s *State) cantSuspect(k *prep, sl Slot) bool {
+	return k.gen != nil && k.gen.anyCantSuspect && !DebugCantSuspectOff && s.staticFlagGen(k, kop.StatCantBeSuspected, sl)
 }

@@ -116,37 +116,38 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (a filter whose activation cost sacrifices its source lowers, kop.FilterManaAb: Omni-Cheese Pizza (TMT 174 -> 175), Chromatic Star, Golden Egg; ALL 21930 -> 21933).
 	// +3 (a battlefield power == a constant and a toughness > a value lower: Amalia Benavides Aguirre (LCI 255 -> 256), Hulkling, Burgeoning Bruiser (MSH 240 -> 241), Savage Swipe's powerEQ2 condition; ALL 21945 -> 21948).
 	// +1 (the merge with land: this branch's Tam, Mindful First-Year static Hexproof:CardColors lower beside land's Amalia Benavides Aguirre / Hulkling / Burgeoning Bruiser lowers, disjoint; merged ECL 238 -> 239, ALL 21989 -> 21990).
-	// +1 (Agency Outfitter: the OriginAlternative$ Graveyard,Hand pair lowers; MKM 245 -> 246, ALL 21990 -> 21991).
+	// +2 (the merge with land: this branch's Hollow Marauder lowers OTJ 244 -> 245 and Madame Null lowers TMT 176 -> 177 beside land's; merged ALL 22036 -> 22038).
+	// +1 (Agency Outfitter: the OriginAlternative$ Graveyard,Hand pair lowers; the merge with land: land's 22059 + 1 = 22060, MKM 248 -> 249).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21991, 34442},
+	"ALL": {22060, 34442},
 	"BIG": {25, 30},
-	"BLB": {260, 278},
+	"BLB": {261, 278},
 	"BRO": {214, 280},
 	"DFT": {252, 276},
 	"DMU": {194, 270},
 	"DSK": {245, 276},
-	"ECL": {239, 273},
-	"EOE": {244, 266},
+	"ECL": {242, 273},
+	"EOE": {245, 266},
 	"FDN": {517, 517},
 	"FIN": {271, 312},
-	"FRA": {250, 269},
+	"FRA": {251, 269},
 	"HOB": {157, 172},
 	"LCI": {257, 290},
-	"MKM": {246, 279},
+	"MKM": {249, 279},
 	"MOM": {198, 296},
-	"MSH": {241, 276},
-	"NEO": {199, 287},
-	"ONE": {196, 271},
-	"OTJ": {244, 276},
+	"MSH": {243, 276},
+	"NEO": {200, 287},
+	"ONE": {197, 271},
+	"OTJ": {245, 276},
 	"SNC": {186, 266},
 	"SOS": {255, 270},
-	"SPM": {164, 192},
+	"SPM": {165, 192},
 	"TDM": {255, 276},
 	"TLA": {260, 285},
-	"TMT": {176, 194},
-	"TRC": {292, 337},
+	"TMT": {180, 194},
+	"TRC": {294, 337},
 	"TRK": {311, 311},
-	"WOE": {257, 281},
+	"WOE": {261, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory

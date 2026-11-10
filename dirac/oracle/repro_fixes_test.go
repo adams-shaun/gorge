@@ -218,6 +218,9 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"granted_mana_ask_tries_needed_colour_first", false, false},
 		{"clone_template_entry_condition_mockingbird_cutthroat", false, false},
 		{"clone_template_entry_condition_mockingbird_sparkshooter", false, false},
+		// CR 603.3b: Season of Loss makes each player sacrifice a creature, so Scavenger's Talent's die trigger and its per-sacrifice triggers are all queued: gorge walks each departure's triggers in line order (the die trigger first)
+		{"sacrifice_triggers_walk_order_batch_sacrifice_283", true, false},
+		{"sacrifice_triggers_walk_order_batch_sacrifice_1088", false, false},
 	})
 }
 
@@ -355,6 +358,7 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"mmmenon_hand_barred_blue_not_spent_on_hand_cast", true, false},       // CR 106.6, 602.2b: Mm'menon's hand-barred granted blue is no relaxed unit for Atomic Microsizer's Equip {2} nor Sinister Cryologist's hand warp, and the tap-another search alone (Gene Pollinator tapping Nanoform Sentinel) may not keep the play gorge's one prefix search gave up on
 		{"mmmenon_hand_barred_blue_not_spent_on_hand_cast_full", false, false}, // ... and Biosynthic Burst from the hand, on the full surface
 		{"mmmenon_library_top_cast_binned_by_prefix_draw", true, false},        // CR 400.7: Mechan Navigator's tap draws the library-top Cryogen Relic and discards it, so the cast the granted blue would pay no longer exists
+		{"plan_tap_skips_granted_mana_ability", true, false},                   // CR 106.6, 702.185a: the plan's All-Fates Scroll tap is its printed any-colour ability, not Mm'menon's granted hand-barred {U} the wheel also lists, so the Starwinder warp cast from hand is paid and made
 	})
 }
 
@@ -401,6 +405,7 @@ func TestStdBigReprosLockstep(t *testing.T) {
 		{"granted_sac_dies_token_copy_is_equip_target", true, false},        // CR 603.10a, 400.7: the prefix sacrifices the Lotus Ring-equipped Vaultborn Tyrant and its dies trigger's token copy, a new object, is the other Ring's Equip target; the search keys a payer state on its battlefield objects as gorge's scriptStateKey does
 		{"granted_sac_mana_two_replacements", false, false},                 // CR 616.1, 602.2b: Lotus Ring's granted sacrifice mana, activated as the prefix with two Rest in Peace out, is asked which replacement applies and the script answers the first, so Oltec Matterweaver is exiled
 		{"granted_sac_mana_sba_ask_after", false, false},                    // CR 704.3, 616.1: the sacrificed Construct token's death leaves its sibling too small, and the check's own replacement ask is answered first by the script, so both tokens are exiled and cease
+		{"granted_sac_mana_offer_beside_trigger", false, false},             // CR 602.2b, 605.3a: with a trigger on the stack, the offer search of Esoteric Duplicator's {2} through Lotus Ring's granted sacrifice runs the sacrifice's replacement-order ask on its trial game, and the two sides agree on whether the activation is offered
 	})
 }
 
@@ -425,6 +430,10 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 		// the offer is present from exile with an empty pool and six
 		// graveyard cards (the hand walk already priced this).
 		{"mayplay_twobrid_delve_offer", true, false},
+		// CR 601.2g, 605.3a: Mardu Devotee's {1} mana ability's own fee is
+		// paid from a Plains, so its {B} funds Caustic Exhale's {1} arm and
+		// the cast is offered with nothing floated (std-tdm pair 419).
+		{"fee_filter_source_funds_cast_offer", false, false},
 		// CR 601.2g with CR 107.4e: the reversed twobrid cast's window taps
 		// Opulent Palace's "Combo B G U" while both G and U are owed; gorge's
 		// ask lists the Combo's printed order, so its answer is G, and the
@@ -694,6 +703,8 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"behold_or_mana_abort_window_tap_another_pick", true, false},            // CR 601.2g, 733.1: Mudbutton Cursetosser's chosen {2} part falls back to the manual window, which poses Springleaf Drum's tap-another pick before it reverses the unpayable cast
 		{"delayed_dies_trigger_last_known_power_m1m1", false, false},             // CR 608.2h: End-Blaze Epiphany's delayed dies trigger exiles the graveyard-bound creature's last-known 2 power (a -1/-1 counter), not its printed 3
 		{"delayed_dies_trigger_last_known_power_aura", false, false},             // CR 608.2h: ... and its last-known 3 power with a +1/+0 Aura attached, not the printed 2
+		{"tapx_pick_strands_mana_aborts_activation", false, false},               // CR 601.2h, 602.2b, 733.1: Wanderbrine Trapper's tap-another pick takes Great Forest Druid, the only mana source, so its {1} cannot be paid and the activation is reversed at the target ask
+		{"tapx_pick_strands_mana_aborts_activation_second", false, false},        // ... and the same reversal in a second game (pair 372)
 	})
 }
 
@@ -727,6 +738,7 @@ func TestStdLciReprosLockstep(t *testing.T) {
 		{"aura_type_add_filter_drops_after_transform", true, false},   // CR 613.1d, 704.5m: Zoetic Glyph's "enchanted artifact is a 5/4 Golem creature" stops applying when Matzalantli transforms into a land, so the land stays and only the Glyph falls off
 		{"aura_type_add_drops_after_device_transform", true, false},   // CR 613.1d, 704.5m: Zoetic Glyph's "enchanted artifact" override stops applying when Dowsing Device transforms into Geode Grotto, so the land stays on the battlefield
 		{"granted_tap_pay_life_mana_prefix", true, false},             // CR 119.4, 605.1a: Cavernous Maw's "{T}, Pay 1 life: Add one mana of any color" granted by Forgotten Monument is the prefix paying Restless Vents' {B}, and its life is paid
+		{"granted_prefix_one_part_additional_cost", false, false},     // CR 601.2g-h, 605.1a: Dusk Rose Reliquary's {W} beside Hidden Necropolis (printed {B} only) and Forgotten Monument's granted any-colour Cave ability: the one-part additional-cost shape is lowered, so the grant search prices its printed {W} and floats the granted mana as the prefix, where the witness found no plan and panicked
 	})
 }
 
@@ -815,6 +827,11 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"grant_prefix_paid_life_trigger", false, false},                // CR 119.4, 603.3, 307.1: Haunted Screen's 1 life in Overlord of the Hauntwoods' granted-mana prefix stacks Marina Vendrell's Grimoire's trigger, so the prefix taps on and passes for it to resolve before the cast
 		{"tapxtype_lands_need_green_pip", false, false},                 // CR 601.2g-h: Fear of Exposure's {G} has no source among p1's untapped permanents, so tapping two of them for the cost does not make it castable
 		{"tapxtype_floating_mana_beside_tapped_lands", false, false},    // CR 601.2g-h: floating U, B and G pay Fear of Exposure's mana cost, so two untapped lands remain to tap for its additional cost
+		{"rider_mana_extends_x_announcement", false, false},             // CR 601.2b, 601.2g: Twitching Doll's counter-rider mana is a source the window taps, so Valgavoth's Onslaught's {X}{X} is offered for 2 beside four floating mana (mana_rider.go)
+		{"rider_mana_extends_x_announcement_second", false, false},      // CR 601.2b, 601.2g: the same counter-rider unit makes X = 1 payable from the floating {G}, the Doll and Abandoned Campground (mana_rider.go)
+		{"rider_mana_pays_x_announcement", false, false},                // CR 601.2g: the same game answering X = 2: the window, with no auto-fill plan for {4}{G}, taps Strangled Cemetery then the Doll (its nest counter) and the spell stays on the stack
+		{"rider_mana_pays_x_announcement_second", false, false},         // CR 601.2g: the second game answering X = 1: the Doll, first in battlefield order once the planner census falls short, then Abandoned Campground pay it
+		{"x_witness_skips_deferred_rider_source", false, false},         // CR 601.2b, 605.3b: the {X} cast witness prices the planner's census, which never lists Twitching Doll's counter-rider mana, so The Rollercrusher Ride's lowered cast taps three lands for X = 0 and leaves the Doll untapped
 	})
 }
 

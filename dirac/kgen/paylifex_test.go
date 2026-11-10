@@ -20,8 +20,8 @@ func kpaylifexReasons(rs []refusal) string {
 
 // TestPaylifexCarriers: the announced PayLife<X> (SVar X Count$xPaid) on
 // two spells and an activated ability lowers to CostPayLife with Cost.N 0;
-// Madame Null's trigger cost (SVar X TriggeredCard$CardPower) and every
-// other body or ability kind refuse.
+// Madame Null's trigger cost (SVar X TriggeredCard$CardPower) lowers as a
+// resolution payment instead, and every other body or ability kind refuses.
 func TestPaylifexCarriers(t *testing.T) {
 	read := func(dir, file string) string {
 		b, err := os.ReadFile(filepath.Join(tableCorpus(t), "cardsfolder", dir, file))
@@ -63,8 +63,8 @@ func TestPaylifexCarriers(t *testing.T) {
 		}
 	}
 	_, rs := kwardpowBuild(t, "Madame Null, Power Broker", read("m", "madame_null_power_broker.txt"))
-	if all := kpaylifexReasons(rs); !strings.Contains(all, "PayLife<X> with SVar X") {
-		t.Errorf("Madame Null: refusals %q, want the PayLife<X> with SVar X refusal", all)
+	if all := kpaylifexReasons(rs); all != "" {
+		t.Errorf("Madame Null: refusals %q, want none (the trigger's own power-valued life cost lowers)", all)
 	}
 	// a Count$xPaid body on a trigger's own cost, a mana ability and a
 	// literal beside the X form refuse by name

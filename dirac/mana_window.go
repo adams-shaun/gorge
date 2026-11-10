@@ -146,7 +146,7 @@ func (s *State) windowUnpricedOpenIf(k *prep, e *stackEntry, open bool) bool {
 // mana keeps a pool-short candidate on the menu once the census is incomplete.
 func (s *State) restrManaUntapped(k *prep, sl Slot) bool {
 	pm := &s.perms[sl]
-	if pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 || s.genLost(k, sl) || DebugNoRestrManaOpen {
+	if pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) || DebugNoRestrManaOpen {
 		return false
 	}
 	cd := &k.t.Cards[s.cardAt(sl)]
@@ -236,6 +236,16 @@ func (s *State) windowTapRiderUseful(k *prep, p uint8, cost, useful *kop.ManaCos
 // noOwed is gorge's trigger-cost manual window, whose decision has no
 // ManaPayment, so a source answers its lowest colour (windowCol).
 func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential bool) (ok bool, held [kop.NumManaKinds]uint8) {
+	return s.windowTapWalk(k, p, cost, useful, clamp, anyColor, noOwed, potential, false)
+}
+
+// windowTapWalk is windowTapUseful; takeDeferred is an announced X's window
+// (gorge's announcedManaWindowAsk), whose answer (payexec.WindowAnswer) is the
+// auto-fill option while gorge's planner prices what is owed, else the first
+// source listed. The planner never taps a deferred source (planDeferred), so
+// the walk skips one while the rest still cover the cost (windowPlanCovers),
+// and once they do not takes it in its battlefield place like any other.
+func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential, takeDeferred bool) (ok bool, held [kop.NumManaKinds]uint8) {
 	for !s.windowSpellSettled(k, p, cost, anyColor) {
 		if potential {
 			var pot avail
@@ -247,7 +257,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 		}
 		var order [MaxPerm]Slot
 		n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
-		sl, gap := s.windowPick(k, p, order[:n], useful, clamp, anyColor)
+		sl, gap := s.windowPick(k, p, order[:n], useful, clamp, anyColor, takeDeferred && s.deferLive(k) && !s.windowPlanCovers(k, p, cost, anyColor))
 		if sl == NoSlot {
 			return false, held
 		}
@@ -389,10 +399,23 @@ func (s *State) restrPoolAdmits(k *prep, p uint8) uint8 {
 	return s.restrPoolNonSpell(k, p)
 }
 
+// windowPlanCovers reports whether p's pool and planner census (availFor, which
+// leaves a deferred source out) cover cost: gorge's window then offers its
+// auto-fill plan (announcedAutoFillPlan), which the answer takes.
+func (s *State) windowPlanCovers(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) bool {
+	var a avail
+	s.availFor(k, p, &a)
+	if anyColor {
+		return a.affordsAnyColor(cost, 0)
+	}
+	return a.affords(cost, pipMaskOf(cost), 0)
+}
+
 // windowPick is the window's next source among order (p's battlefield, in
 // order): the first usable one, or a window gap (gap true); NoSlot when
-// none is left.
-func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost, clamp, anyColor bool) (sl Slot, gap bool) {
+// none is left. A planner-deferred source is skipped unless takeDeferred
+// (windowTapWalk).
+func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost, clamp, anyColor, takeDeferred bool) (sl Slot, gap bool) {
 	want, decided := uint8(0), false
 	if clamp && !anyColor {
 		want, decided = s.windowUseful(k, p, useful)
@@ -402,7 +425,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			continue // a waterbend pick cannot also pay the mana (gorge convokeCommitted)
 		}
 		if s.windowCanTap(k, o) || s.windowSacNow(k, o) {
-			if s.planDeferred(k, p, o) {
+			if !takeDeferred && s.planDeferred(k, p, o) {
 				continue // the window's answer follows the planner's tier: gorge's bot never picks a deferred source (mana_tapsdefer.go)
 			}
 			if decided && (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) && !s.windowRestrUseful(k, o, want) {
@@ -775,7 +798,7 @@ func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bo
 	for !s.windowSpellSettled(k, p, cost, anyColor) {
 		var order [MaxPerm]Slot
 		n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
-		sl, gap := s.windowPick(k, p, order[:n], cost, true, anyColor)
+		sl, gap := s.windowPick(k, p, order[:n], cost, true, anyColor, false)
 		if sl == NoSlot {
 			ok = false
 			break
@@ -842,6 +865,12 @@ func (s *State) windowDryFilter(k *prep, p uint8, cost *kop.ManaCost, sl Slot) {
 		}
 	}
 	ab := s.filtAb(k, sl)
+	if ab.ManaEach {
+		for c, n := range filtEachVec(ab) {
+			pl.pool[c] += n // every colour at once (mana_filtereach.go)
+		}
+		return
+	}
 	mask := uint8(ab.ManaColors)
 	col := bits.TrailingZeros8(mask)
 	// The demand is the pool the payment may spend (windowUseful, CR 106.6):
@@ -907,7 +936,7 @@ func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
 		return false
 	}
 	pm := &s.perms[sl]
-	if pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 ||
+	if pm.flags&pfTapped != 0 || s.activationSick(k, sl) ||
 		s.genLost(k, sl) || pm.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
 		return false
 	}

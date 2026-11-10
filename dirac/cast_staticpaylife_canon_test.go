@@ -18,7 +18,11 @@ func TestPayLifeAltCanon(t *testing.T) {
 	d := &dirac.Decision{Kind: dirac.DkPriority, Player: 0}
 	tr := &canon.Translator{S: s, D: d}
 	mp, _ := canon.CastModeCode("mayplay")
-	const may = 8 // castMayPlay
+	const may = 0x18                                                   // castMayPlay|castFree: the mode a pay-life alternative is offered with
+	plain := tr.Action(dirac.MakeAction(dirac.AkCast, uint8(o), 0, 8)) // the plain cast beside the alternatives: AltCostIndex 0
+	if plain.Mode() != mp {
+		t.Fatalf("plain mayplay cast mode %#x, want %#x", plain.Mode(), mp)
+	}
 	c0 := tr.Action(dirac.MakeAction(dirac.AkCast, uint8(o), 0, may))
 	c1 := tr.Action(dirac.MakeAction(dirac.AkCast, uint8(o), 1, may))
 	c2 := tr.Action(dirac.MakeAction(dirac.AkCast, uint8(o), 2, may))

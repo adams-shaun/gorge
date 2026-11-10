@@ -267,6 +267,21 @@ func colorMask(s string) kop.ColorMask {
 
 // typeMask maps the LIR type bits (whose low byte matches kop's) and the
 // supertypes.
+// subtypeTypeBits is the kernel type bits a subtype list carries: Aura and
+// Equipment are TypeMask bits as well as subtypes.
+func subtypeTypeBits(subs []string) kop.TypeMask {
+	var m kop.TypeMask
+	for _, s := range subs {
+		switch s {
+		case "Aura":
+			m |= kop.TAura
+		case "Equipment":
+			m |= kop.TEquipment
+		}
+	}
+	return m
+}
+
 func typeMask(t uint16) kop.TypeMask {
 	m := kop.TypeMask(t & 0xff)
 	if t&tLegendary != 0 {
@@ -409,14 +424,7 @@ func (cb *cardBuilder) record() error {
 	if c.Token {
 		d.Types |= kop.TToken
 	}
-	for _, s := range c.Subtypes {
-		switch s {
-		case "Aura":
-			d.Types |= kop.TAura
-		case "Equipment":
-			d.Types |= kop.TEquipment
-		}
-	}
+	d.Types |= subtypeTypeBits(c.Subtypes)
 	if cb.out.subs, err = cb.subIndexes(c.Subtypes); err != nil {
 		return err
 	}
@@ -1159,6 +1167,24 @@ var flag1 = map[uint64]kop.FilterFlags{
 	fExiledWith: kop.FExiledWith, fNotAttacking: kop.FNotAttacking, fNotAttachedBy: kop.FNotAttachedBySrc,
 }
 
+// clauseSubtype2 puts a clause's second subtype on kf: it takes the one Pred
+// slot (kernel PredSubtype: Table.Subtypes index N, read on a permanent and on a
+// card in any other zone), so it refuses beside any other predicate.
+func (cb *cardBuilder) clauseSubtype2(c lClause, kf *kop.Filter) error {
+	if c.Subtype2 == "" {
+		return nil
+	}
+	i, ok := cb.pt.sub(c.Subtype2)
+	if !ok {
+		return fmt.Errorf("subtype %q", c.Subtype2)
+	}
+	if kf.Pred != kop.PredNone || c.Name != "" && c.Flags&fNamedAsSource == 0 {
+		return fmt.Errorf("two subtypes beside a compare")
+	}
+	kf.Pred, kf.PredN = kop.PredSubtype, int16(i)
+	return nil
+}
+
 func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	var kf kop.Filter
 	kf.Zone = zone
@@ -1596,6 +1622,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			return kf, fmt.Errorf("counter compare %d", c.CmpOp)
 		}
 	}
+	if err := cb.clauseSubtype2(c, &kf); err != nil {
+		return kf, err
+	}
 	if c.Name != "" && c.Flags&fNamedAsSource == 0 {
 		// a named<X> clause, the source's own name included
 		// (gorge wordNamed -> sharesName, CR 201.2), any zone: Pred = PredNamed, PredN = the
@@ -1882,6 +1911,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vLeftZone:           kop.ExLeftZone,
 	vCastFromGrave:      kop.ExCastFromGrave,
 	vFirstCast:          kop.ExFirstCast,
+	vIfCastOwnMain:      kop.ExIfCastOwnMain,
 	vCtrAdded:           kop.ExCtrAdded,
 	vSacrificedThisTurn: kop.ExSacrificedThisTurn,
 	vDiscardedThisTurn:  kop.ExDiscardedThisTurn,
@@ -1898,6 +1928,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vChromaOf:           kop.ExChromaOf,
 	vYourExtraTurns:     kop.ExYourExtraTurns,
 	vCounterKinds:       kop.ExCounterKinds,
+	vTargetPlayers:      kop.ExTargetPlayers,
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
@@ -2081,7 +2112,14 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 		cb.out.ovVals = append(cb.out.ovVals, ko.PA, ko.TA)
 	}
 	ko.HasTypes, ko.SetTypes = o.HasSetTypes, typeMask(o.SetTypes)
-	ko.AddTypes = typeMask(o.AddTypes)
+	// an Equipment subtype the override adds or sets is the kernel's
+	// TEquipment too (The Irencrag, Domesticated Watercourse)
+	ko.AddTypes = typeMask(o.AddTypes) | subtypeTypeBits(o.AddSubtypes)
+	if o.HasSetSubtypes && o.HasSetTypes {
+		ko.SetTypes |= subtypeTypeBits(o.SetSubtypes)
+	} else if o.HasSetSubtypes {
+		ko.AddTypes |= subtypeTypeBits(o.SetSubtypes)
+	}
 	ko.HasSub = o.HasSetSubtypes
 	ko.AllCreatureTypes = o.AllCreatureTypes
 	ko.RemoveCreatureSub = o.RemoveCreatureSub

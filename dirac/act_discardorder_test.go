@@ -109,10 +109,10 @@ func TestCleanupDiscardParksLaterPicksExileOrder(t *testing.T) {
 func TestHeldDiscardParksLaterPicksExileOrder(t *testing.T) {
 	s, k, _, instant, creature := newDiscardOrderScen(t)
 	if len(s.cold.discHeld) == 0 {
-		s.cold.discHeld = make([]uint8, 1+maxDiscHeld) // the scenario table has no Discard op
+		s.cold.discHeld = make([]uint8, discHeldLen) // the scenario table has no Discard op
 	}
 	s.holdDiscard([]Obj{instant, creature})
-	s.flushHeldDiscard(k, 1)
+	s.flushHeldDiscard(k)
 	if !s.parkedWaiting() {
 		t.Fatal("no parked discard after the flush")
 	}

@@ -1008,6 +1008,17 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.nextStage(k)
 				continue
 			}
+			if k.gen != nil && s.tapXTargetAbort(k) {
+				// the same census after an ability's tap-another picks took
+				// the mana sources its cost needs (cast_tapxtarget.go)
+				if !t.UpTo {
+					s.reverseCast(k)
+					return false
+				}
+				s.bld().ti = kop.MaxTargets
+				s.nextStage(k)
+				continue
+			}
 			if k.gen != nil && k.gen.anyCharmNum {
 				if a := s.buildAbility(k); a != nil && !s.charmSeqPrime(k, a, ti) {
 					return false // a sequential charm ask (modal_charmseq.go)
@@ -1495,7 +1506,7 @@ func (s *State) finishBuild(k *prep) {
 			// (pair 4512); the window offers only the sources still useful
 			// (pairs 10163 20476)
 			xc := xFolded(cost, int(e.x))
-			if !s.loweredWindowOK(k, e.ctrl, &xc, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0) || s.winPaused() {
+			if !s.loweredWindowOK(k, e.ctrl, &xc, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0, cost.X != 0) || s.winPaused() {
 				return // stranded: the cast was reversed; or the window waits on a tap-another pick
 			}
 		} else if (k.t.Cards[e.card].HasModeCost || wbSpell) && cost.X == 0 {

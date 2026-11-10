@@ -145,6 +145,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if !cav.affords(cost, pipMaskOf(cost), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, cav)) {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
+				s.offerOptCostOnly(k, d, p, o, c, &av)
 			}
 			continue
 		}
@@ -472,7 +473,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		if p.flags&pfTapped != 0 {
 			return false
 		}
-		if p.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 {
+		if s.activationSick(k, sl) {
 			return false
 		}
 	}
@@ -1171,8 +1172,8 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 	if t.ParentPlus1 != 0 && !s.parentTargetOK(t, code) {
 		return false
 	}
-	if code >= PlayerTarget0 && code <= PlayerTarget1 {
-		pp := code - PlayerTarget0
+	if isPlayerTarget(code) {
+		pp := CodeSeat(code)
 		if pp != p && k.gen != nil && k.gen.anyRepl&rbPlHex != 0 && s.playerHexproof(k, pp) {
 			return false
 		}
@@ -1254,9 +1255,11 @@ func (s *State) stackCtrl(o Obj) uint8 {
 func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]uint8) int {
 	n := 0
 	if t.Kind == kop.TgtAny || t.Kind == kop.TgtPlayer {
-		for pp := uint8(0); pp < 2; pp++ {
-			if s.targetOK(k, t, p, src, self, PlayerTarget0+pp) {
-				out[n] = PlayerTarget0 + pp
+		// every seat still in the game, in seat order (gorge offers
+		// AliveFrom(0), target_legal.go)
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
+			if !s.out(pp) && s.targetOK(k, t, p, src, self, PlayerCode(pp)) {
+				out[n] = PlayerCode(pp)
 				n++
 			}
 		}
@@ -1533,7 +1536,7 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 	if k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 		return false
 	}
-	if ab.Cost.Flags&kop.CostTap != 0 && (pp.flags&pfTapped != 0 || pp.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0) {
+	if ab.Cost.Flags&kop.CostTap != 0 && (pp.flags&pfTapped != 0 || s.activationSick(k, sl)) {
 		return false
 	}
 	if ab.Trig.Cond != 0 && !s.condEval(k, ab.Trig.Cond, evalCtx{src: pp.obj, srcSl: sl, ctrl: pp.ctrl}) {

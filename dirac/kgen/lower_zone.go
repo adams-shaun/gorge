@@ -61,6 +61,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	if strings.TrimSpace(ps.m["Origin"]) == "Battlefield,Stack" {
 		return lc.permOrSpellMove(ps) // lower_permorspell.go
 	}
+	if so := sideboardOrigin(ps); so != sideNone {
+		return lc.sideboardSearch(ps, so) // lower_sideboardsearch.go
+	}
 	dual := strings.TrimSpace(ps.str("Origin")) == "Graveyard,Exile"
 	// a delayed program's return of the object its registration remembered
 	// (The Guardian of Forever): a known-origin move that takes the object
@@ -1051,6 +1054,9 @@ func (lc *lowerCtx) changeZoneAll(ps *params) error {
 	}
 	if strings.TrimSpace(ps.str("Origin")) == "Battlefield,Graveyard" {
 		return lc.originBattleGrave(ps) // lower_changezoneall.go
+	}
+	if strings.TrimSpace(ps.str("Origin")) == "Library,Sideboard" {
+		return lc.originLibrarySideboard(ps) // lower_sideboardsearch.go
 	}
 	lc.exwOK = true // a ChangeZoneAll sweep is a resolution-time mover: ExiledWithSource reads the resolving source
 	f, err := lc.changeZoneAllFilter(ps)
@@ -2430,6 +2436,15 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if err != nil {
 		return err
 	}
+	if !hasCap && eot {
+		var src bool
+		if t, src, err = effectSourceTrigger(ps, t); err != nil {
+			return err
+		}
+		if src {
+			capture, hasCap = lRef{Kind: rSelf}, true // the emblem remembers the Effect's source object
+		}
+	}
 	saved := len(lc.out.Abilities)
 	lc.capRem = hasCap && t.Mode == "DamageDealtOnce"
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
@@ -2551,6 +2566,7 @@ func (lc *lowerCtx) animate(ps *params) error {
 		return err
 	}
 	_, optional := ps.m["Optional"]
+	ps.consume("OptionQuestion") // prompt text only (gorge combatfx.go); the yes/no is the same
 	if optional && obj.Kind != rSelf {
 		// gorge asks only while some Defined object is still there
 		// (animateWouldChange): MayGuardMove tests that for the one source
@@ -2739,12 +2755,28 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 			o.PVal, o.TVal = pv, tv
 		}
 	}
+	if n, ok := ps.get("Name"); ok {
+		// a literal layer-3 rename (gorge combatfx.go: a chooser token is
+		// not a rename there; refuse it here rather than mint a name card)
+		n = strings.TrimSpace(n)
+		if strings.EqualFold(n, "ChosenName") || strings.EqualFold(n, "Chosen") || n == "" {
+			return nil, "", false, refuse("Animate Name$ %q", n)
+		}
+		o.Name = n
+		lc.out.Tokens = append(lc.out.Tokens, nameCardKey+n)
+	}
 	if k, ok := ps.get("Keywords"); ok {
-		ks, err := pumpKeywords(k)
+		k, err := lc.animateGrantedKeywordAbilities(k, o) // lower_animatekwability.go
 		if err != nil {
 			return nil, "", false, err
 		}
-		o.AddKw = ks
+		if k != "" {
+			ks, err := pumpKeywords(k)
+			if err != nil {
+				return nil, "", false, err
+			}
+			o.AddKw = ks
+		}
 	}
 	if tr, ok := ps.get("Triggers"); ok {
 		idx, err := lc.latentTrigger(tr)
@@ -2823,11 +2855,21 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		_, err := lc.definedValid(&cards.SA{API: "CopyPermanent"}, ps)
 		return err
 	}
-	obj, err := lc.objOrTarget(ps, "", zBattlefield)
-	if err != nil {
+	var obj lRef
+	var named *namedCopy
+	var err error
+	if n, ok := ps.get("DefinedName"); ok {
+		// the source is a card of the name universe, not an object (lower_copynamed.go)
+		if named, err = lc.copyNamedCard(ps, n); err != nil {
+			return err
+		}
+	} else if obj, err = lc.objOrTarget(ps, "", zBattlefield); err != nil {
 		return err
 	}
 	in := lInstr{Op: "CopyAsToken", Obj: obj, A: cst(1)}
+	if named != nil {
+		in.Op = "CopyNamed"
+	}
 	var flags []string
 	if ps.str("Controller") == "NonRememberedController" {
 		// each player other than the remembered permanent's controller
@@ -2854,7 +2896,7 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 	if err != nil {
 		return err
 	}
-	if hasExc {
+	if hasExc && (named == nil || named.found) {
 		lc.out.overrides = append(lc.out.overrides, exc)
 		in.C = len(lc.out.overrides) // index+1
 		in.Note = "except " + overrideString(exc)
@@ -2932,6 +2974,15 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		}
 		lc.emit(lInstr{Op: "CopyAsTokenCtr", Obj: obj, A: cst(1), B: amt, CS: ct})
 		return nil
+	}
+	if named != nil {
+		if !named.found {
+			return nil // gorge copies nothing for a name its universe lacks
+		}
+		flags = append(flags, "card="+strings.TrimPrefix(named.key, copyCardKey))
+		if !slices.Contains(lc.out.Tokens, named.key) {
+			lc.out.Tokens = append(lc.out.Tokens, named.key)
+		}
 	}
 	in.CS = strings.Join(flags, "|")
 	lc.emit(in)

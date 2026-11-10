@@ -343,6 +343,8 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 				case kop.OpExt:
 					if x := kop.ExtOp(in.A.N); (x == kop.ExtCopyAllEach || x == kop.ExtCloneCopy) && in.C > 0 {
 						usesOverride[int(in.C)-1] = true // the copy exceptions
+					} else if x == kop.ExtCopyNamed && uint16(in.C)>>kop.CopyNamedExcShift > 0 {
+						usesOverride[int(uint16(in.C)>>kop.CopyNamedExcShift)-1] = true
 					}
 				case kop.OpBecomeCopy:
 					if x := in.C >> 1; x > 0 {
@@ -452,18 +454,7 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 				f.NotSubs[i] = subOf(n - 1)
 			}
 		}
-		if f.Pred == kop.PredHistoric && f.PredN > 0 {
-			// PredN is the pool's Saga subtype index+1; the matchup's compact
-			// table renumbers subtypes, so the pool index would test an
-			// arbitrary other subtype (an all-creature-types permanent
-			// satisfies any creature type). A matchup with no Saga keeps 0:
-			// the clause is artifact or legendary only.
-			if m, ok := subMap[uint8(f.PredN-1)]; ok {
-				f.PredN = int16(m) + 1
-			} else {
-				f.PredN = 0
-			}
-		}
+		remapSubtypePreds(f, subMap)
 		if f.Pred == kop.PredNamed {
 			// PredN is a pool index; the table's CardIDs are the matchup's
 			// compact ids (inert: the pool's stable PoolID), so the
@@ -511,6 +502,9 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 				case kop.OpExt:
 					if in.Ext() == kop.ExtEndure {
 						in.B.N = int16(id[int(in.B.N)]) // the Spirit token
+					}
+					if in.Ext() == kop.ExtCopyNamed {
+						in.B.N = int16(id[int(in.B.N)]) // the named card's entry, a table token
 					}
 				}
 			}
@@ -563,6 +557,11 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 			return nil, nil, err
 		}
 	}
+	if !inert {
+		if err := copyNamedGuard(t); err != nil { // pooldata_names.go
+			return nil, nil, err
+		}
+	}
 	if err := s.nameChoices(t, pool, id); err != nil { // pooldata_names.go
 		return nil, nil, err
 	}
@@ -581,4 +580,29 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 		out[p] = deck(d)
 	}
 	return t, out, nil
+}
+
+// remapSubtypePreds renumbers the pool subtype index a filter's Pred slot
+// carries into the matchup's compact subtype table. PredSubtype's PredN is the
+// pool index (a clause's second subtype); one no object here can have maps past
+// every subtype (NoSubtype-1, as Sub's sentinel). PredHistoric's PredN is the
+// pool's Saga subtype index+1; the compact table renumbers subtypes, so the
+// pool index would test an arbitrary other subtype (an all-creature-types
+// permanent satisfies any creature type). A matchup with no Saga keeps 0: the
+// clause is artifact or legendary only.
+func remapSubtypePreds(f *kop.Filter, subMap map[uint8]uint8) {
+	switch {
+	case f.Pred == kop.PredSubtype:
+		if m, ok := subMap[uint8(f.PredN)]; ok {
+			f.PredN = int16(m)
+		} else {
+			f.PredN = NoSubtype - 1
+		}
+	case f.Pred == kop.PredHistoric && f.PredN > 0:
+		if m, ok := subMap[uint8(f.PredN-1)]; ok {
+			f.PredN = int16(m) + 1
+		} else {
+			f.PredN = 0
+		}
+	}
 }

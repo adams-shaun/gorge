@@ -98,7 +98,7 @@ func (s *State) gapMask(k *prep, p uint8, bit uint32) slotMask {
 			continue
 		}
 		pm := &s.perms[sl]
-		if pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 || s.genLost(k, sl) ||
+		if pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) ||
 			k.gen.anyCantAct && s.actForbidden(k, sl, true) { // a CantBeActivated lock (cast_cantactivate.go)
 			continue
 		}
@@ -148,11 +148,10 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 		a.addUnits(1<<bits.TrailingZeros8(uint8(ab.ManaColors)), max(ab.ManaN, 1))
 	}
 	// a Taps-deferred source (Firdoch Core): its relaxed census unit, the
-	// one any-colour mana its tap adds (availFor's, which the plain walk
+	// one-mana any/fixed-colour tap it adds (availFor's, which the plain walk
 	// leaves out: mana_tapsdefer.go)
 	for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
-		pc := s.manaPCGen(k, b.first())
-		a.addUnits(s.srcMaskAt(pc, b.first()), srcYield(pc))
+		s.addTapsDeferUnits(k, b.first(), a)
 	}
 	if k.ctrMana {
 		s.availCtr(k, p, a) // a counter-cost source (mana_countercost.go)
@@ -287,8 +286,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				continue // no script within gorge's search budget
 			}
 		} else if tx.any() && s.tapXBoard(k, p) {
-			if !s.tapXScript(k, a, p, false) {
-				continue // no script within gorge's budget (mana_tapanother.go)
+			if !s.tapXScript(k, a, p, false) && !(s.tapXSecondLive(k, p) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p)) {
+				continue // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go)
 			}
 		} else if k.gen.anyRefl && s.reflBoard(k, p, restr, anyR) {
 			if found, dead := s.reflScript(k, a, p, false); !found || dead {

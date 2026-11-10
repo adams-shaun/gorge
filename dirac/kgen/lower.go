@@ -127,6 +127,7 @@ type lowerCtx struct {
 	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
 	exwStatic      bool      // lowering a Mode$ Continuous static: ExiledWithSource reads the static's own source
 	spellBaseOK    bool      // the filter being read is a ReduceCost ValidTarget$: a Spell head may lower (lower_trigger.go)
+	trigBodyCost   bool      // the cost parser is reading a printed trigger's own body Cost$ (PayLife<X> by a value, lowerCtx.effect)
 	trigOwnCost    bool      // payInstr: the cost is a printed trigger's own Cost$ (first instruction of its body)
 	trigXMax       *lValue   // payInstr: the XMax$ cap of a trigger's own announced {X} cost (Shanna); nil = none read
 	trigRemX       bool      // the ImmediateTrigger's RememberSVarAmount$ X is the announced X (lower_zone.go immediateTrigger)
@@ -207,6 +208,9 @@ type lowerCtx struct {
 	// repeatPl > 0 while a RepeatEach-over-players body is lowered: its
 	// Defined$ Player.IsRemembered is the repeated player (lower_repeatplayers.go)
 	repeatPl int
+	// repeatCard > 0 while a RepeatEach-over-cards body is lowered: its
+	// Token AttachedTo$ Remembered is the repeated card (lower_repeatcards.go)
+	repeatCard int
 	// repeatOpp: that body repeats over the controller's opponents
 	repeatOpp bool
 	// rollName is the ResultSVar$ of a RollDice lowered in ability rollAb:
@@ -2131,6 +2135,21 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				// Count$xPaid body is read (pay.FixLifeXCost folds any other
 				// into a fixed amount), on a spell or an activated ability
 				if x, ok := lc.face.SVars["X"]; ok && strings.TrimSpace(x) != "Count$xPaid" {
+					// A printed trigger's own "pay life equal to its power": gorge
+					// folds the body into a fixed amount as the cost window opens
+					// (evalTriggerCostFixedX), so the kernel reads the same value as
+					// the payment is offered. Only the power of the card an enters
+					// trigger fires for lowers (the shape played against gorge); every
+					// other body or trigger refuses by name.
+					if lc.trigBodyCost && lc.ab.Trigger != nil && lc.ab.Trigger.Event == "ETB" && strings.TrimSpace(x) == "TriggeredCard$CardPower" &&
+						c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LoyaltyX {
+						v, verr := lc.svarValue(x, 0)
+						if verr != nil {
+							return c, verr
+						}
+						c.LifeBy = &v
+						continue
+					}
 					return c, refuse("life cost PayLife<X> with SVar X %q", x)
 				}
 				if !lc.lifeXSpell && !lc.actCost {

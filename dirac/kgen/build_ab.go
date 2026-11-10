@@ -439,6 +439,20 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		}
 		ts.TFlags |= kop.TgfBoundsV
 		ts.UpTo = true
+	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && t.Divided == 0 && t.Mode < 0 && t.ParentPlus1 == 0 &&
+		t.Min.isConst() && t.Min.N == 1 && !t.Max.isConst() && !plainX(t.Max) && tgtBoundReads(t.Max):
+		// one target at least, up to a value read as the slot is announced
+		// (Return to Dust: TargetMin$ 1, TargetMax$ the own-main-phase count).
+		// The slot is mandatory: the kernel's bound check asks MinV
+		// candidates (tgtBoundsFeasible) and the ask closes at MaxV.
+		var err error
+		if ts.MinV, err = cb.value(t.Min); err != nil {
+			return ts, fmt.Errorf("target count %s..%s: %w", t.Min, t.Max, err)
+		}
+		if ts.MaxV, err = cb.value(t.Max); err != nil {
+			return ts, fmt.Errorf("target count %s..%s: %w", t.Min, t.Max, err)
+		}
+		ts.TFlags |= kop.TgfBoundsV
 	default:
 		return ts, fmt.Errorf("target count %s..%s", t.Min, t.Max)
 	}
@@ -531,7 +545,7 @@ func plainX(v lValue) bool {
 
 func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
-	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked:
+	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain:
 		return true
 	case vSum, vProduct:
 		for _, sv := range v.Sub {
@@ -733,9 +747,11 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 	if a.ResolveCount {
 		// kernel countResolve runs in trigResolveOK before the
 		// intervening-if: a trigger with one would count a resolution
-		// gorge may not (refused)
-		if a.Trigger == nil || a.Latent || ka.Trig.Cond != 0 {
-			return ka, fmt.Errorf("Count$ResolvedThisTurn on a latent, conditional or non-trigger ability")
+		// gorge may not (refused). An activated ability counts as it
+		// resolves (resolve.go), after the fizzle check, as gorge's Resolve
+		// event does
+		if a.Latent || a.Kind == akTriggered && (a.Trigger == nil || ka.Trig.Cond != 0) || a.Kind != akTriggered && a.Kind != akActivated {
+			return ka, fmt.Errorf("Count$ResolvedThisTurn on a latent, conditional or non-printed-ability")
 		}
 		ka.AFlags |= kop.AfResolveCount
 	}
@@ -860,6 +876,13 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	}
 	if m.Special != "" {
 		return fmt.Errorf("mana %s has no kop form", m.Special)
+	}
+	if m.RestrictAb != nil && m.Restrict == nil && !m.NonSpell {
+		// an activated-only restriction (Shang-Chi, Master of Kung Fu's
+		// RestrictValid$ Activated.Creature): its spell half matches no
+		// spell (the clause manaRestrict lowers Spell.isCastFaceDown to),
+		// so ManaRestrict marks the source restricted and pays no spell
+		m.Restrict = &lFilter{Clauses: []lClause{{NotTypes: tAnyCard}}}
 	}
 	if m.RestrictAb != nil && m.Restrict == nil {
 		return fmt.Errorf("mana spend restriction on activated abilities has no kop form")
@@ -1638,8 +1661,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		for _, fl := range s.Flags {
 			switch fl {
-			case "Bargained":
-				st.StFlags |= kop.StBargained // lower_reducespell.go
+			case "Bargained", "OptPaid":
+				st.StFlags |= kop.StBargained // lower_reducespell.go, lower_optcost.go
 			case "ReduceColor":
 				st.StFlags |= kop.StReduceColor
 				st.B = int16(s.RedCol)
@@ -1687,10 +1710,16 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		st.A, st.B = int16(s.TapCol), int16(s.TapAmt)
 		for _, fl := range s.Flags {
-			if fl != "TapOnC" {
+			switch fl {
+			case "TapOnC":
+				st.StFlags |= kop.StTapOnC
+			case "TapReflect":
+				st.StFlags |= kop.StTapReflect
+			case "TapAnyPlayer":
+				st.StFlags |= kop.StTapAnyPlayer
+			default:
 				return ka, nil, fmt.Errorf("tap extra flag %q", fl)
 			}
-			st.StFlags |= kop.StTapOnC
 		}
 	case "CantBeCast":
 		st.Kind = kop.StatCantBeCast
@@ -1819,6 +1848,16 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "CantGainLife":
 		st.Kind = kop.StatCantGainLife
+	case "ActivateAbilityAsIfHaste":
+		st.Kind = kop.StatAsIfHaste // static_asifhaste.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+	case "CantBeSuspected":
+		st.Kind = kop.StatCantBeSuspected // act_suspect.go suspectOne
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 	case "ManaConvert":
 		st.Kind = kop.StatAnyTypeCreatures // lower_manaconvert.go
 	case "CantDraw":
@@ -2391,6 +2430,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.C, ki.A = kop.OpCharm, int16(in.C), skip()
 	case "Branch":
 		ki.Op, ki.C, ki.A = kop.OpBranch, int16(in.C), skip()
+	case "RepeatEachCard":
+		ki.Op, ki.B = kop.OpRepeatEach, skip() // act_repeatcards.go
+		if in.F != nil {
+			if err := objFilter(zBattlefield); err != nil {
+				return ki, err
+			}
+		}
 	case "RepeatEach":
 		ki.Op, ki.A, ki.C = kop.OpRepeatEachPlayer, skip(), int16(in.C)
 		if in.F != nil {
@@ -2900,6 +2946,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			sb |= kop.SrAltOrigin | int(altZ)<<kop.SrAltZoneShift
 			zone = kop.ZoneNone // the filter matches cards of every elected zone
 		}
+		if sb, zone, err = sideSearchFlags(in.Op, fl, sb, zone); err != nil {
+			return ki, err
+		}
 		if _, ok := fl["AuraEntry"]; ok {
 			// the hand move of one card whose filter may
 			// admit an Aura (CR 303.4f/g, kernel zone_handmoveaura.go)
@@ -2972,27 +3021,15 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.C = int16(int(zoneMap[in.C]) | (moveFlags()|kop.MvGraveExile)<<3)
 			break
 		}
-		if fl["from"] == "Graveyard,Hand" {
-			// graveyard then hand (Weftwalking): the second zone rides in B
-			// (czallSecondZone); ZoneHand leaves B.N&CzUntilLeaves clear.
+		if b, ok := czallTwoZoneB(fl["from"]); ok {
+			// two origins swept zone-major over every seat; the second zone
+			// (or a Cz* selector) rides in B, ZoneNone lets the owner role build
 			if err := objFilter(kop.ZoneNone); err != nil {
 				return ki, err
 			}
 			ki.Op = kop.OpChangeZoneAllEx
 			ki.C = int16(int(zoneMap[in.C]) | (moveFlags()|kop.MvGraveExile)<<3)
-			ki.B = kop.Const(int(kop.ZoneHand))
-			break
-		}
-		if fl["from"] == "Battlefield,Graveyard" {
-			// battlefield then graveyard (Strategic Betrayal): B carries
-			// kop.CzBattleGrave, and ZoneNone lets the owner role build (the
-			// filter's inZoneGraveyard pin keeps the battlefield scan honest).
-			if err := objFilter(kop.ZoneNone); err != nil {
-				return ki, err
-			}
-			ki.Op = kop.OpChangeZoneAllEx
-			ki.C = int16(int(zoneMap[in.C]) | (moveFlags()|kop.MvGraveExile)<<3)
-			ki.B = kop.Const(kop.CzBattleGrave)
+			ki.B = kop.Const(b)
 			break
 		}
 		if err := objFilter(zoneMap[from]); err != nil {
@@ -4060,7 +4097,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		default:
 			return ki, fmt.Errorf("override duration %q", in.CS)
 		}
-	case "CopyAsToken":
+	case "CopyAsToken", "CopyNamed":
 		ki.Op = kop.OpCopyAsTokenEx
 		cf := 0
 		if _, ok := fl["SacAtEndStep"]; ok {
@@ -4109,6 +4146,20 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, err
 			}
 			ki.C = int16(i + 1)
+		}
+		if in.Op == "CopyNamed" {
+			// kop.ExtCopyNamed: B holds the named card's pool index (the
+			// matchup remaps it to its CardID), C the flags and exception;
+			// A held the count (one), now the sub-op
+			idx, ok := cb.pt.tokenIdx[copyCardKey+fl["card"]]
+			if !ok {
+				return ki, fmt.Errorf("copied card %q", fl["card"])
+			}
+			if cf := int(uint16(ki.B.N)); cf>>8 != 0 || int(ki.C) > 0xff {
+				return ki, fmt.Errorf("named copy flags %#x or exception override %d past a byte", cf, ki.C)
+			}
+			ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCopyNamed))
+			ki.B, ki.C = kop.Const(idx), int16(int(ki.C)<<kop.CopyNamedExcShift|int(uint16(ki.B.N)))
 		}
 	case "CopyAsTokenCtr":
 		// dirac/copy_counters.go: Obj the source, B the

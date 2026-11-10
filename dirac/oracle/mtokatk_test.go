@@ -9,7 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The token-attacking lockstep: Leonin Warleader's
+// The token-attacking lockstep: Leonin Warleader's and Warren Warleader's
+// (a charm mode of an AttackersDeclared trigger)
 // TokenAttacking$ True mint and Adeline's
 // RememberedPlayer one (a RepeatEach over the opponents), each token
 // entering tapped and attacking the controller's opponent without being
@@ -21,7 +22,7 @@ import (
 var kmtokatkDecks = [][2][]cardset.Entry{{
 	{
 		{Name: "Leonin Warleader", Count: 4}, {Name: "Adeline, Resplendent Cathar", Count: 4}, {Name: "Savannah Lions", Count: 4},
-		{Name: "Raid Bombardment", Count: 3}, {Name: "Gray Ogre", Count: 3}, {Name: "Shock", Count: 2},
+		{Name: "Raid Bombardment", Count: 3}, {Name: "Gray Ogre", Count: 1}, {Name: "Warren Warleader", Count: 2}, {Name: "Shock", Count: 2},
 		{Name: "Plains", Count: 14}, {Name: "Mountain", Count: 6},
 	},
 	{
@@ -36,7 +37,7 @@ var kmtokatkDecks = [][2][]cardset.Entry{{
 		{Name: "Plains", Count: 12}, {Name: "Forest", Count: 4}, {Name: "Mountain", Count: 4},
 	},
 	{
-		{Name: "Adeline, Resplendent Cathar", Count: 4}, {Name: "Walking Corpse", Count: 4}, {Name: "Gray Ogre", Count: 4},
+		{Name: "Adeline, Resplendent Cathar", Count: 4}, {Name: "Walking Corpse", Count: 4}, {Name: "Gray Ogre", Count: 2}, {Name: "Warren Warleader", Count: 2},
 		{Name: "Hill Giant", Count: 4}, {Name: "Coral Merfolk", Count: 4},
 		{Name: "Plains", Count: 8}, {Name: "Swamp", Count: 6}, {Name: "Mountain", Count: 6},
 	},
@@ -142,7 +143,7 @@ func TestMtokatkLockstep(t *testing.T) {
 		}
 	}
 	t.Logf("%d games; tokens entered attacking %v; blocked %d; stacked %v", games, tal.entered, tal.blocked, tal.stacked)
-	for _, name := range []string{"Cat Token", "Human Token"} {
+	for _, name := range []string{"Cat Token", "Human Token", "Rabbit Token"} {
 		if tal.entered[name] < 5 {
 			t.Errorf("%s entered attacking %d times, want at least 5", name, tal.entered[name])
 		}

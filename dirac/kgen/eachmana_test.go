@@ -46,7 +46,7 @@ func TestEachColourManaLowers(t *testing.T) {
 		t.Errorf("B B: %+v refusals %v", def.Abilities[0], rs)
 	}
 	for _, c := range []struct{ name, src, want string }{
-		{"fee", head + "A:AB$ Mana | Cost$ 1 T | Produced$ W U | SpellDescription$ Filter.\n", "several colours at once from a cost beyond {T}"},
+		{"coloured fee", head + "A:AB$ Mana | Cost$ W T | Produced$ W U | SpellDescription$ Filter.\n", "several colours at once from a cost beyond {T}"},
 		{"sacrifice", head + "A:AB$ Mana | Cost$ T Sac<1/Artifact.Other/another artifact> | Produced$ B R | SpellDescription$ Sac.\n", "several colours at once from a cost beyond {T}"},
 		{"restricted to abilities", head + "A:AB$ Mana | Cost$ T | Produced$ G U | RestrictValid$ Activated | SpellDescription$ Abilities only.\n", "several colours at once under a spend restriction"},
 		{"second ability", head + "A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Colourless.\nA:AB$ Mana | Cost$ T | Produced$ W U | SpellDescription$ Pair.\n", "several colours at once beside another mana ability"},

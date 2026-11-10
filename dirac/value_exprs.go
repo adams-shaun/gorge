@@ -23,6 +23,22 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	switch x.Kind {
 	case kop.ExOppsAttacked:
 		return s.exOppsAttacked(ctx) // value_oppsattacked.go
+	case kop.ExTargetPlayers:
+		// TargetedPlayer$Amount of an opponents-only slot: whether the slot
+		// holds a player (gorge counts the resolution's player targets)
+		e := ctx.e
+		i, ok := tgtSlot(x.Ref)
+		if e == nil || !ok {
+			return 0
+		}
+		t := e.tgt[i]
+		if e == &s.res.e {
+			t = s.tgtCode(i)
+		}
+		if isPlayerTarget(t) {
+			return 1
+		}
+		return 0
 	case kop.ExScriedThisTurn:
 		return int(s.pl[ctx.ctrl&1].scry>>(4*(x.N&1))) & 15
 	case kop.ExDilemmasFaced:
@@ -98,6 +114,11 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.countHand(k, x, ctx) // cast_altfree.go
 	case kop.ExVoid:
 		if s.voidHolds(k) {
+			return s.evalV(k, x.Sub[0], ctx)
+		}
+		return s.evalV(k, x.Sub[1], ctx)
+	case kop.ExIfCastOwnMain:
+		if s.castInOwnMain(ctx) { // value_ifcastmain.go
 			return s.evalV(k, x.Sub[0], ctx)
 		}
 		return s.evalV(k, x.Sub[1], ctx)

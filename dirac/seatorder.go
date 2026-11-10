@@ -168,3 +168,140 @@ func (s *State) blockAtkM(k *prep) slotMask {
 	}
 	return m
 }
+
+// seatSeq is an ordered set of seats, at most MaxSeats, returned by value
+// (an each-player or each-opponent expansion, in gorge's order).
+type seatSeq struct {
+	s [MaxSeats]uint8
+	n uint8
+}
+
+// seatOne is the set holding p alone, or the empty set when p is 255.
+func seatOne(p uint8) seatSeq {
+	if p == 255 {
+		return seatSeq{}
+	}
+	return seatSeq{s: [MaxSeats]uint8{p}, n: 1}
+}
+
+// at is the i-th seat of q, or 255 past its end.
+func (q seatSeq) at(i uint8) uint8 {
+	if i >= q.n {
+		return 255
+	}
+	return q.s[i]
+}
+
+// add appends p to q.
+func (q *seatSeq) add(p uint8) {
+	q.s[q.n] = p
+	q.n++
+}
+
+// aliveFrom is every seat still in the game in turn order from p (gorge
+// state.Game.AliveFrom): "each player" from the resolving controller.
+func (s *State) aliveFrom(p uint8) seatSeq {
+	if MaxSeats == 2 {
+		return seatSeq{s: [MaxSeats]uint8{p, 1 - p}, n: 2}
+	}
+	var q seatSeq
+	n := s.nSeats()
+	for i := uint8(0); i < n; i++ {
+		x := p + i
+		if x >= n {
+			x -= n
+		}
+		if !s.out(x) {
+			q.add(x)
+		}
+	}
+	return q
+}
+
+// oppsFrom is p's opponents still in the game, in turn order after p (gorge
+// reads "each opponent" as AliveFrom(p) without p; CR 102.3).
+func (s *State) oppsFrom(p uint8) seatSeq {
+	if MaxSeats == 2 {
+		return seatSeq{s: [MaxSeats]uint8{1 - p}, n: 1}
+	}
+	q := s.aliveFrom(p)
+	if q.n > 0 && q.s[0] == p {
+		copy(q.s[:], q.s[1:])
+		q.n--
+	}
+	return q
+}
+
+// The each-player chain (g.repNext) holds the seats still to come after the
+// one acting now. At two seats that is at most one seat, kept as itself
+// (255: none). At more seats it packs up to MaxSeats-1 seats, two bits each
+// from the low end, under a count in the top two bits; distinct seats never
+// spell 255. seatsPack and seatsPop are that byte's encoding, shared with
+// other one-byte seat chains (the may-mill asks' g.pickZ).
+
+// seatsPack packs q's seats from index i on.
+func seatsPack(q seatSeq, i uint8) uint8 {
+	if MaxSeats == 2 {
+		return q.at(i)
+	}
+	if i >= q.n {
+		return 255
+	}
+	b, m := uint8(0), uint8(0)
+	for j := i; j < q.n; j++ {
+		b |= (q.s[j] & 3) << (2 * m)
+		m++
+	}
+	return m<<6 | b
+}
+
+// seatsPop takes a packed chain's next seat (255: none).
+func seatsPop(c *uint8) uint8 {
+	b := *c
+	if MaxSeats == 2 || b == 255 {
+		*c = 255
+		return b
+	}
+	m := b >> 6
+	p := b & 3
+	if m <= 1 {
+		*c = 255
+	} else {
+		*c = (m-1)<<6 | (b&0x3f)>>2
+	}
+	return p
+}
+
+// repRest queues q's seats from index i on as the chain's remainder.
+func (s *State) repRest(q seatSeq, i uint8) { s.g.repNext = seatsPack(q, i) }
+
+// repPop takes the chain's next seat (255: none).
+func (s *State) repPop() uint8 { return seatsPop(&s.g.repNext) }
+
+// repPending reports whether the chain has a seat to come.
+func (s *State) repPending() bool { return s.g.repNext != 255 }
+
+// dmgSeat is the player a damage trigger names as "that player" (its
+// trigger player): the damaged seat when the recipient rcp is a player. At
+// two seats the old reading stays, the source controller's opponent. At more
+// seats a recipient that is no player (a permanent, or a batch's aggregate)
+// has no single damaged seat; the next seat stands in, and the cards that
+// read it there are still two-seat.
+func dmgSeat(rcp, srcCtrl uint8) uint8 {
+	if MaxSeats == 2 {
+		return 1 - srcCtrl
+	}
+	if isPlayerTarget(rcp) {
+		return CodeSeat(rcp)
+	}
+	return NextSeat(srcCtrl)
+}
+
+// oppDamaged reports whether damage mask plM (bit q: seat q was dealt
+// damage) holds an opponent of seat p.
+func oppDamaged(plM, p uint8) bool {
+	if MaxSeats == 2 {
+		return plM&(1<<(1-p)) != 0
+	}
+	return plM&^(1<<p) != 0
+}

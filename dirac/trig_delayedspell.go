@@ -52,8 +52,18 @@ func (s *State) fireDelayedSpell(k *prep, e *stackEntry) {
 	keep := 0
 	for i := 0; i < n; i++ {
 		d := s.g.dp[i]
+		// The filter's source-relative bound (Loki's cmcLEX) reads the
+		// registration's source, not the resolving entry's context: at a
+		// cast nothing is resolving, and a source off the battlefield has
+		// no slot (NoSlot reads its card's printed power, as the cast does
+		// in gorge's spec context).
+		srcSl := NoSlot
+		if d.src != NoObj {
+			srcSl = s.slotIfSame(d.src, s.objs[d.src].ver)
+		}
+		ctx := evalCtx{src: d.src, srcSl: srcSl, ctrl: d.ctrl}
 		due := d.n&dpSpell != 0 && (d.ctrl == e.ctrl || DebugDelaySpellAnyCaster) &&
-			s.matchCardGen(k, k.t.Cards[d.card].Abilities[d.ab].Trig.Filter, e.card, e.ctrl, d.ctrl, e.obj)
+			s.matchCardGenAt(k, k.t.Cards[d.card].Abilities[d.ab].Trig.Filter, e.card, e.ctrl, d.ctrl, e.obj, &ctx)
 		if due {
 			m := s.npend
 			s.enqueue(d.src, s.objs[d.src].ver, d.card, d.ab, d.ctrl, e.obj, e.ctrl, 0)

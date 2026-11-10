@@ -433,6 +433,16 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vLibrarySizeOf, Ref: ref}
 		case "CardsInHand":
 			v = lValue{Kind: vHandSizeOf, Ref: ref}
+		case "Amount":
+			// gorge counts the player targets of the resolution (the
+			// Hollow Marauder family): over an opponents-only slot two-player
+			// that is whether the slot holds the one opponent. A slot that may
+			// hold the controller counts up to two and refuses.
+			if f := lc.ab.Targets[t].F; f == nil || f.Players != plOpp || len(f.Clauses) != 0 {
+				err = refuse("TargetedPlayer$%s of a slot that is not opponents-only", rest)
+				break
+			}
+			v = lValue{Kind: vTargetPlayers, Ref: ref}
 		case "LifeLostThisTurn":
 			// Thought-Stalker Warlock: lowered only for an opponents-only
 			// player slot, where two-player it is the controller's
@@ -1039,8 +1049,8 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		// same count the You.descended trigger gate lowers (CR 700.11)
 		return lc.countValue("ThisTurnEntered_Graveyard_Permanent.YouOwn+nonToken", depth)
 	case "ResolvedThisTurn":
-		if lc.ab == nil || lc.ab.Kind != akTriggered || lc.ab.Latent {
-			return lValue{}, fmt.Errorf("Count$ResolvedThisTurn outside a printed triggered ability")
+		if lc.ab == nil || lc.ab.Kind != akTriggered && lc.ab.Kind != akActivated || lc.ab.Latent {
+			return lValue{}, fmt.Errorf("Count$ResolvedThisTurn outside a printed triggered or activated ability")
 		}
 		lc.ab.ResolveCount = true
 		return lValue{Kind: vResolvedThisTurn}, nil
@@ -1237,7 +1247,7 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		kind    valKind
 		bargain bool
 	}{{"Kicked.", vKicked, false}, {"Teamwork.", vKicked, false}, {"Morbid.", vMorbid, false}, {"PromisedGift.", vPromisedGift, false},
-		{"CommittedCrimeThisTurn.", vCommittedCrime, false}, {"Void.", vVoid, false},
+		{"CommittedCrimeThisTurn.", vCommittedCrime, false}, {"Void.", vVoid, false}, {"IfCastInOwnMainPhase.", vIfCastOwnMain, false},
 		{"wasCastFromGraveyard.", vCastFromGrave, false},
 		{"Bargained.", vKicked, true}, {"Bargain.", vKicked, true}, {"OptionalGenericCostPaid.", vKicked, false}} {
 		if !strings.HasPrefix(rest, cv.pre) {
@@ -1248,6 +1258,10 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 			// kernel reads the resolving stack entry, so only a spell
 			// ability has the same object.
 			return lValue{}, refuse("Count$%s outside a spell ability", strings.TrimSuffix(cv.pre, "."))
+		}
+		if cv.kind == vIfCastOwnMain && (lc.ab == nil || lc.ab.Kind != akSpell) {
+			// the kernel reads the spell entry under resolution or announcement
+			return lValue{}, refuse("Count$IfCastInOwnMainPhase outside a spell ability")
 		}
 		if cv.pre == "Teamwork." && lc.out.Teamwork == 0 {
 			return lValue{}, refuse("Count$%s without Teamwork", rest)
@@ -1262,12 +1276,12 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		}
 		parts := strings.Split(strings.TrimPrefix(rest, cv.pre), ".")
 		if len(parts) != 2 {
-			if cv.kind == vCommittedCrime || cv.kind == vVoid {
+			if cv.kind == vCommittedCrime || cv.kind == vVoid || cv.kind == vIfCastOwnMain {
 				return lValue{}, refuse("Count$%s arms %q", strings.TrimSuffix(cv.pre, "."), rest)
 			}
 			return lValue{}, fmt.Errorf("Count$%s", rest)
 		}
-		if cv.kind == vCommittedCrime || cv.kind == vVoid {
+		if cv.kind == vCommittedCrime || cv.kind == vVoid || cv.kind == vIfCastOwnMain {
 			// gorge cov3BranchHoldsCommittedCrimeThisTurn / ...HoldsVoid: two
 			// arms, read as integers here (an SVar arm refuses)
 			for _, p := range parts {

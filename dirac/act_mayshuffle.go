@@ -26,7 +26,7 @@ func (s *State) parentTargetOK(t *kop.TargetSpec, code uint8) bool {
 		return false
 	}
 	p := e.tgt[i]
-	if p == NoTarget || p < PlayerTarget0 || p > PlayerTarget1 {
+	if !isPlayerTarget(p) {
 		return false
 	}
 	if code == NoTarget || code >= PlayerTarget0 {

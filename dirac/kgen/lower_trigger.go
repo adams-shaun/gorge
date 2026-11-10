@@ -1841,8 +1841,12 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		if st.F, err = readF("ValidCard"); err != nil {
 			return nil, err
 		}
-		if st.Amount, err = lc.value(sp.str("Amount")); err != nil {
-			return nil, err
+		if opt, err := lc.reduceOptPaid(sp, &st); err != nil {
+			return nil, err // lower_optcost.go
+		} else if !opt {
+			if st.Amount, err = lc.value(sp.str("Amount")); err != nil {
+				return nil, err
+			}
 		}
 		if a, ok := sp.get("Activator"); ok && a != "You" {
 			return nil, refuse("ReduceCost Activator %q", a)
@@ -2164,6 +2168,18 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	case "DisableTriggers":
 		if err := lc.disableTriggersStatic(sp, &st); err != nil {
 			return nil, err // lower_disabletriggers.go
+		}
+	case "ActivateAbilityAsIfHaste", "CantBeSuspected":
+		// gorge activatesAsIfHaste (rules/activateasifhaste.go) skips an
+		// unscoped static (fail closed); cantBeSuspected
+		// (rules/cantbesuspected.go) reads an unscoped one as blanket. The
+		// corpus always scopes both: refuse the bare form rather than pick.
+		sp.consume("Secondary")
+		if st.F, err = readF("ValidCard"); err != nil {
+			return nil, err
+		}
+		if st.F == nil || len(st.F.Clauses) == 0 || st.F.Players != 0 {
+			return nil, refuse("%s ValidCard %q", s.Mode, s.Params["ValidCard"])
 		}
 	default:
 		return nil, refuse("static mode %s", s.Mode)

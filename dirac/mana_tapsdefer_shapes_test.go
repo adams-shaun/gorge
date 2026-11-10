@@ -8,8 +8,8 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// The Taps-deferred script gap is only the plain one-mana-any-colour shape
-// (Firdoch Core). A production it does not model keeps its ordinary census
+// The Taps-deferred script gap is only the plain one-mana tap of any colour
+// (Firdoch Core) or of one fixed colour (Llanowar Elves). A production it does not model keeps its ordinary census
 // unit in availFor (the skip is keyed on the script mask); a restricted one
 // would float plain pool mana; and the anyR arm of tapGapChoice taps and fires
 // the Taps watchers exactly once. Each test mutates a copied tapsdefer table,
@@ -52,22 +52,26 @@ func rewriteMana(tbl *kop.Table, c CardID, f func(a *kop.Ability)) {
 	panic("no mana ability")
 }
 
-// TestTapsDeferUnmodelledProductionKeepsItsCensusUnit: a fixed-colour
-// deferred source (the Core rewritten to "{T}: Add {G}") is no script gap,
-// so availFor must still count it; dropping every deferred source from the
-// walk made a play only it funds unofferable.
+// TestTapsDeferUnmodelledProductionKeepsItsCensusUnit: a two-mana deferred
+// source (the Core rewritten to "{T}: Add {G}{G}") is no script gap, so
+// availFor must still count it; dropping every deferred source from the
+// walk made a play only it funds unofferable. (A one-mana fixed-colour tap
+// is a modelled gap: mana_tapsdefer_mono_test.go.)
 func TestTapsDeferUnmodelledProductionKeepsItsCensusUnit(t *testing.T) {
 	tbl, id := tapsDeferShapeTable(t, func(tbl *kop.Table, id map[string]CardID) {
-		rewriteMana(tbl, id["Firdoch Core"], func(a *kop.Ability) { a.ManaColors = kop.ColG })
+		rewriteMana(tbl, id["Firdoch Core"], func(a *kop.Ability) { a.ManaColors, a.ManaN = kop.ColG, 2 })
 	})
 	sc := newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true})
 	core := sc.perm(id["Firdoch Core"], 0)
 	sc.perm(id["Judge of Currents"], 0)
 	if !sc.s.tapsDeferred(sc.k, 0, sc.slot(core)) {
-		t.Fatal("precondition: the fixed-colour Core is not a deferred source under Judge of Currents")
+		t.Fatal("precondition: the two-mana Core is not a deferred source under Judge of Currents")
+	}
+	if pc := sc.s.manaPCGen(sc.k, sc.slot(core)); pc.manaN != 2 {
+		t.Fatalf("precondition: the Core's production is %d mana, want 2", pc.manaN)
 	}
 	if sc.s.scriptTapsDefer(sc.k, 0).has(sc.slot(core)) {
-		t.Fatal("a fixed-colour production is in the script gap mask: tapDeferFloat would make any colour of it")
+		t.Fatal("a two-mana production is in the script gap mask: tapDeferFloat floats one mana of it")
 	}
 	var a avail
 	sc.s.g.availX = availGaps

@@ -84,7 +84,7 @@ func (s *State) waterbendManaSource(k *prep, sl Slot) bool {
 		return s.poolPays(p, &k.t.Cards[r.card].Abilities[r.ab].Cost.Mana)
 	}
 	cd := &k.t.Cards[s.cardAt(sl)]
-	sick := pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0
+	sick := s.activationSick(k, sl)
 	for j := range cd.Abilities {
 		a := &cd.Abilities[j]
 		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
@@ -571,7 +571,7 @@ func (s *State) sacAnyManaGap(k *prep, p uint8) bool {
 			}
 			if a.Cost.Flags&kop.CostTap != 0 {
 				if pm := &s.perms[sl]; pm.flags&pfTapped != 0 ||
-					pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 {
+					s.activationSick(k, sl) {
 					continue
 				}
 			}
@@ -616,7 +616,7 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 		// effect grants it in the same layer (Honest Work's Humble Merchant):
 		// gorge's census lists that source too, so a lost printed source is
 		// skipped only when no grant survives.
-		if pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 ||
+		if pm.flags&pfTapped != 0 || s.activationSick(k, sl) ||
 			lost && !s.manaGranted(k, sl) {
 			continue
 		}

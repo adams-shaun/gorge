@@ -482,6 +482,11 @@ type Option struct {
 	// printed and SVar-granted ability). A human client never sees them.
 	GainedSource state.ObjID `json:"-"`
 	GainedIdx    int         `json:"-"`
+	// Granted is server-side only (json:"-"): a "mana" wheel option whose
+	// ability a payment plan cannot name -- a granted, merged or foreign
+	// ability (pay.PaymentAbility). A plan-driven answerer prefers the other
+	// options, since a grant may carry a spend restriction the plan never priced.
+	Granted bool `json:"-"`
 	// GrantStatics is server-side only (json:"-") and carries, on an
 	// "ability" option whose whole activation is an Effect granting
 	// continuous statics to its target, the resolved Mode$ values of those

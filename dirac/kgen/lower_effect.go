@@ -1042,6 +1042,13 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		n++
 		in.CS, in.A = "PayLife", cst(c.PayLife)
 	}
+	if c.LifeBy != nil {
+		// PayLife<X> of a trigger's own cost: the amount is the value read as
+		// the cost is offered (kernel interp_ask.go execPay evaluates in.A);
+		// beside any other part the count below refuses
+		n++
+		in.CS, in.A = "PayLife", *c.LifeBy
+	}
 	if c.Energy > 0 {
 		n++
 		in.CS, in.A = "PayEnergy", cst(c.Energy)
@@ -1255,8 +1262,10 @@ func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 			parse := lc.cost
 			if lc.ab.Kind == akTriggered && len(lc.ab.Prog) == 0 {
 				parse = lc.costUnless
+				lc.trigBodyCost = true
 			}
 			cost, err := parse(c)
+			lc.trigBodyCost = false
 			if err != nil {
 				return err
 			}
@@ -3321,6 +3330,12 @@ func (lc *lowerCtx) token(ps *params) error {
 			}
 		case "Self":
 			dst = lRef{Kind: rSelf}
+		case "Remembered":
+			// the repeated card of a RepeatEach over cards (lower_repeatcards.go)
+			if lc.repeatCard == 0 {
+				return refuse("Token AttachedTo %q", v)
+			}
+			dst = lRef{Kind: rEach}
 		default:
 			return refuse("Token AttachedTo %q", v)
 		}

@@ -91,7 +91,7 @@ func (s *State) tapXSources(k *prep, p uint8, cands bool) slotMask {
 			continue
 		}
 		pm := &s.perms[sl]
-		if a.Cost.Flags&kop.CostTap != 0 && (pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0) || s.genLost(k, sl) ||
+		if a.Cost.Flags&kop.CostTap != 0 && (pm.flags&pfTapped != 0 || s.activationSick(k, sl)) || s.genLost(k, sl) ||
 			k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) { // the source's lock only: the tapped permanent activates nothing
 			continue // (a cost with no {T} needs neither an untapped nor an unsick source)
 		}

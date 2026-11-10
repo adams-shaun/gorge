@@ -386,10 +386,14 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 			a.addUnits(1<<i, pl.pool[i])
 		}
 	}
+	var deferGap slotMask
+	if s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0 {
+		deferGap = s.scriptTapsDefer(k, p&1) // as availFor: gorge's census never lists a planner-deferred source (a counter rider, a Taps watcher), so the witness never pays with it
+	}
 	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
-		if pm.flags&pfTapped != 0 || s.manaGranted(k, sl) {
+		if pm.flags&pfTapped != 0 || s.manaGranted(k, sl) || deferGap.has(sl) {
 			continue
 		}
 		pc := s.manaPCGen(k, sl)
@@ -575,7 +579,7 @@ func (g *grantSrch) candidates(s *State) {
 		if ng > 0 {
 			holders++
 		}
-		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), !tm.has(sl) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
+		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
 		g.def[g.n] = ng == 0 && dm.has(sl)
 		g.cobj[g.n] = s.perms[sl].obj
 		g.none[g.n] = ng == 0 && nm.has(sl)
@@ -670,10 +674,13 @@ func (g *grantSrch) visit(t *State) bool {
 	// gorge's key reads the floated pool, whose restriction it does not
 	// (scriptStateKey): a state that differs from a seen one only in which
 	// pool units are the play's unspendable ones (ghost) is that state, and
-	// gorge drops it before pricing. A state equal in the ghost too is priced
-	// first: dirac's seen key leaves out what gorge's also reads (counters,
-	// snow) and what its verdict reads (waitsForStack), so a repeat of it may
-	// still be the answer.
+	// gorge drops it before pricing. Its offered check comes before the seen
+	// check, though: the priority options price a cast against the floating
+	// pool alone (legalActions), so a unit that is spendable here where the
+	// seen state's was not still offers the play when the pool pays it. A
+	// state equal in the ghost too is priced first: dirac's seen key leaves
+	// out what gorge's also reads (counters, snow) and what its verdict reads
+	// (waitsForStack), so a repeat of it may still be the answer.
 	same := false
 	fk := key.folded()
 	for i := 0; i < g.nseen; i++ {
@@ -681,7 +688,8 @@ func (g *grantSrch) visit(t *State) bool {
 		case e == key:
 			same = true
 		case e.folded() == fk:
-			return false // (gorge's seen check precedes its pricing: scriptSearch.visit)
+			// (gorge's seen check precedes its pricing: scriptSearch.visit)
+			return t.floatPaysPlay(g.k, g.p, &cost, g.d) && !g.waitsForStack(t)
 		}
 	}
 	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && !g.waitsForStack(t) {
@@ -753,6 +761,14 @@ func (g *grantSrch) visit(t *State) bool {
 		}
 		if alts > 1 && !g.node() {
 			return false
+		}
+		if tx && g.k.tapXSecond(t.cardAt(sl)) && g.dual[i] {
+			// a second-ability tap-another source: its plain {T} ability is the
+			// ask's first answer (mana_tapanother.go tapXPlainDo)
+			ppc := t.manaPCGen(g.k, sl)
+			if g.branch(t, i, sl, -1, t.srcMaskAt(ppc, sl), ppc.manaN, false) {
+				return true
+			}
 		}
 		if tx && g.tapXBranch(t, i, sl) { // the printed tap-another ability first (mana_granttapx.go)
 			return true
@@ -1152,12 +1168,16 @@ func (s *State) stepColours(k *prep, sl Slot, gi int16, mask uint8, out *[kop.Nu
 // filtBranch is the filter's colour ask at candidate i (slot sl): its fee comes out
 // of the pool, then the colours in turn (gorge's askManaColor, mana_filter.go).
 func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
-	if !g.node() {
+	each := t.filtAb(g.k, sl).ManaEach // a fixed production: no colour ask, one branch (mana_filtereach.go)
+	if !each && !g.node() {
 		return false
 	}
 	var order [5]uint8
 	n := manaColourOrder(t.filtAb(g.k, sl), &order)
 	needFirst(order[:n], g.need)
+	if each {
+		n = 1
+	}
 	for j := 0; j < n; j++ {
 		c := order[j]
 		u := t.fork()
@@ -1590,7 +1610,7 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			}
 			return cost, ex, need, true
 		}
-		if c := s.objs[a.Source()].card; s.fixedTapsCast(k, a) {
+		if c := s.objs[a.Source()].card; s.fixedTapsCast(k, a) || s.altAddOneCast(k, a) {
 			// a fixed tap of other permanents beside the printed cost: gorge's
 			// potential planner prices the composed cost (cost_fixedtaps.go), so
 			// the prefix search taps a granted source the census misses (CR 601.2g-h)
@@ -1767,7 +1787,7 @@ func (s *State) filterSource(k *prep, p uint8) bool {
 		if k.cards[c].manaAb < 0 {
 			continue
 		}
-		if pm := &s.perms[sl]; pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 {
+		if pm := &s.perms[sl]; pm.flags&pfTapped != 0 || s.activationSick(k, sl) {
 			continue // a filter that cannot be activated now funds nothing (gapMask)
 		}
 		cd := &k.t.Cards[c]
@@ -1797,4 +1817,20 @@ func (s *State) restrAbN(k *prep, sl Slot, ra *kop.Ability) uint8 {
 		return uint8(min(max(s.dynManaN(k, ra, sl), 1), maxDynMana))
 	}
 	return uint8(max(ra.ManaN, 1))
+}
+
+// floatPaysPlay reports whether p's floating pool alone pays cost for the
+// play d describes, the restricted batches it may spend included (CR 106.6):
+// gorge's priority options price a cast against that pool (legalActions).
+func (s *State) floatPaysPlay(k *prep, p uint8, cost *kop.ManaCost, d payDesc) bool {
+	var av avail
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if n := s.pl[SeatIx(p)].pool[c]; n > 0 {
+			av.addUnits(1<<c, n)
+		}
+	}
+	if m := s.restrFloatAdmits(k, SeatIx(p), &d); m != 0 {
+		s.restrAvailAdd(SeatIx(p), m, &av)
+	}
+	return av.affords(cost, pipMaskOf(cost), 0)
 }

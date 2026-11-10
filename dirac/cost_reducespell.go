@@ -45,7 +45,42 @@ func reduceColorTake(base *kop.ManaCost, b int16) int {
 // StBargained discount (CR 702.166). The election degrades to the plain cast
 // when no sacrifice candidate remains (bargainOptions clears cas).
 func (s *State) bargainCharge(k *prep, c CardID) bool {
-	return s.ctl == ctlBuild && s.bld().cas != 0 && s.bld().cas < casConspire && s.bld().e.card == c && s.bld().e.kind == seSpell && k.t.Cards[c].Bargain
+	if s.ctl != ctlBuild || s.bld().e.card != c || s.bld().e.kind != seSpell {
+		return false
+	}
+	if !k.t.Cards[c].Bargain {
+		return s.optPaidCharge(k, c)
+	}
+	return s.bld().cas != 0 && s.bld().cas < casConspire
+}
+
+// optPaidCharge: the spell being built is the optional-cost cast of an
+// OptionalCost card (the kicked cast, cost_optional.go). A self ReduceCost
+// reading the optional cost's paid arm (Bite Down on Crime) rides the
+// StBargained flag and prices only that cast, as gorge's costAmountCtx seeds
+// the election for the optional-cost variant alone. A card never has a
+// Bargain and an OptionalCost part (kgen refuses it).
+func (s *State) optPaidCharge(k *prep, c CardID) bool {
+	return s.bld().e.flags&sfKicked != 0 && k.gen != nil && k.gen.anyOptCost && optCostCard(k, c)
+}
+
+// offerOptCostOnly offers the optional-cost cast of o when the plain cast is
+// unaffordable but the cast priced with the paid-arm reduction is: the
+// bargained cast's rule (offerBargainOnly), for the OptionalCost card.
+func (s *State) offerOptCostOnly(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
+	if k.gen == nil || !k.gen.anyOptCost || !optCostCard(k, c) || s.rbAny(p) {
+		return
+	}
+	cost := s.bargainedPrice(k, p, c, o, k.cards[c].cost)
+	if !av.affords(&cost, pipMaskOf(&cost), 0) {
+		return
+	}
+	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastable(k, c, p, o, &cost, av) || s.castHeldOut(o) {
+		return
+	}
+	if s.optCostOffer(k, p, c, o) {
+		d.add(MakeAction(AkCast, uint8(o), 0, 1))
+	}
 }
 
 // raiseTargetOK: a RaiseCost static with a ValidTarget$ (Dragon's Prey)

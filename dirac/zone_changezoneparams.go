@@ -8,8 +8,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // raGenMayMill is OpMill with MvMayMill: the acting player's yes/no before
 // milling (gorge effMill's mill_optional, ChGenConfirm; yes then no). The
-// player asked is s.g.pickP, the player after it s.g.pickZ (255: none) and
-// the amount s.g.pickLeft.
+// player asked is s.g.pickP, the players after it s.g.pickZ (a packed seat
+// chain, seatsPack; 255: none) and the amount s.g.pickLeft.
 const raGenMayMill = raGenManifestDread + 3
 
 // mayMill starts the per-player mill_optional asks. gorge asks each acting
@@ -18,17 +18,15 @@ const raGenMayMill = raGenManifestDread + 3
 // posed.
 //
 //go:noinline
-func (s *State) mayMill(p1, p2 uint8, n int) bool {
-	if p1 == 255 {
-		p1, p2 = p2, 255
-	}
-	if p1 == 255 {
+func (s *State) mayMill(q seatSeq, n int) bool {
+	if q.n == 0 {
 		return true
 	}
 	if n > 255 {
 		n = 255
 	}
-	s.g.pickP, s.g.pickZ, s.g.pickLeft = p1, p2, uint8(n)
+	p1 := q.s[0]
+	s.g.pickP, s.g.pickZ, s.g.pickLeft = p1, seatsPack(q, 1), uint8(n)
 	s.res.ask, s.res.askP = raGenMayMill, p1
 	return false
 }
@@ -113,12 +111,12 @@ func (s *State) applyAskCzParams(k *prep, a Action) bool {
 	switch s.res.ask {
 	case raGenMayMill:
 		s.res.ask = raNone
-		p, next := s.g.pickP, s.g.pickZ
+		p := s.g.pickP
 		if a.Mode() != 0 {
 			s.millTop(p, int(s.g.pickLeft), int(s.prog(k)[s.res.pc].C))
 		}
-		if next != 255 {
-			s.g.pickP, s.g.pickZ = next, 255
+		if next := seatsPop(&s.g.pickZ); next != 255 {
+			s.g.pickP = next
 			s.res.ask, s.res.askP = raGenMayMill, next
 			return true
 		}
