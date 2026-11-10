@@ -238,9 +238,11 @@ func TestEffectReplNamedRecord(t *testing.T) {
 }
 
 // TestEffectReplNamedPoolLockstep plays both replacements, Prairie Dog beside
-// Brad Boimler and a counter doubler (Dr. Joseph M'Benga) on one side and
-// Malicious Eclipse with creature removal on the other, over many seeds: the
-// kernel agrees with gorge at every decision, and the pool reaches both (the
+// a counter doubler (Dr. Joseph M'Benga: two candidates for the CR 616.1 ask,
+// the most the kernel models; Brad Boimler too makes three, a declared stall)
+// on one side and Malicious Eclipse with creature removal on the other, over
+// many seeds: the kernel agrees with gorge at every decision and models every
+// game to its end (a stall is not agreement), and the pool reaches both (the
 // plus-one made a placement larger, a creature went to exile for the scope).
 func TestEffectReplNamedPoolLockstep(t *testing.T) {
 	reg := synthReg(t)
@@ -252,24 +254,46 @@ func TestEffectReplNamedPoolLockstep(t *testing.T) {
 		return o
 	}
 	decks := [2][]string{
-		cat(deckOf(5, "Prairie Dog"), deckOf(3, "Brad Boimler, Eager Ensign"), deckOf(3, "Twiddle"), deckOf(4, "Battlegrowth"),
+		cat(deckOf(5, "Prairie Dog"), deckOf(3, "Llanowar Elves"), deckOf(3, "Twiddle"), deckOf(4, "Battlegrowth"),
 			deckOf(3, "Servant of the Scale"), deckOf(3, "Dr. Joseph M'Benga"), deckOf(3, "Contentious Plan"), deckOf(8, "Plains"), deckOf(8, "Forest")),
 		cat(deckOf(4, "Doom Blade"), deckOf(4, "Malicious Eclipse"), deckOf(8, "Grizzly Bears"), deckOf(6, "Swamp"), deckOf(6, "Forest")),
 	}
 	c := effectReplNamedCases()[1].effectLongCase
 	set := printedDelveSet(t, decks)
-	plus, exiled := dirac.TurnReplStats.Plus.Load(), dirac.TurnReplStats.Exiled.Load()
+	// Two Prairie Dog activations beside a doubler are three candidates for
+	// the ask, which the kernel declares a stall (StallReplCtr): such a game
+	// is counted apart and credits no coverage. Any other stall fails.
+	stalled, agreed, plus, exiled, asked := 0, 0, int64(0), int64(0), int64(0)
 	for seed := uint64(1); seed <= 250; seed++ {
 		r := &Repro{Format: reproFormat, Decks: [2]string{"pool_0", "pool_1"}, Cards: decks, Seed: seed, PassElision: true, Surface: "autopay", Kernel: "custom"}
+		p0, e0, a0 := dirac.TurnReplStats.Plus.Load(), dirac.TurnReplStats.Exiled.Load(), dirac.TurnReplStats.Asked.Load()
 		res, _ := effectLongPlay(t, reg, c, r, set, castFirstPolicy(seed))
 		if res.Div != nil {
 			t.Fatalf("seed %d: divergence at %d: %s %s %v", seed, res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
 		}
+		if res.StallUnmodelled {
+			if res.Stall != "kernel replctr" {
+				t.Fatalf("seed %d: the kernel stalled (%s): the game is not an agreed one", seed, res.Stall)
+			}
+			stalled++
+			continue
+		}
+		agreed++
+		plus += dirac.TurnReplStats.Plus.Load() - p0
+		exiled += dirac.TurnReplStats.Exiled.Load() - e0
+		asked += dirac.TurnReplStats.Asked.Load() - a0
 	}
-	if dirac.TurnReplStats.Plus.Load() == plus {
-		t.Error("no placement got Prairie Dog's one more: the pool does not exercise it")
+	t.Logf("%d agreed games, %d ended on the three-candidate counter-order stall", agreed, stalled)
+	if agreed < 150 {
+		t.Errorf("only %d of 250 games were modelled to their end", agreed)
 	}
-	if dirac.TurnReplStats.Exiled.Load() == exiled {
-		t.Error("no creature was exiled by Malicious Eclipse's scope: the pool does not exercise it")
+	if plus == 0 {
+		t.Error("no agreed game had a placement get Prairie Dog's one more: the pool does not exercise it")
+	}
+	if exiled == 0 {
+		t.Error("no agreed game had a creature exiled by Malicious Eclipse's scope: the pool does not exercise it")
+	}
+	if asked == 0 {
+		t.Error("no agreed game had two Eclipses' scopes on one dying creature (the CR 616.1 order ask): the pool does not exercise it")
 	}
 }

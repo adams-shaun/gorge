@@ -17,9 +17,9 @@ import (
 var DebugTurnReplOff bool
 
 // TurnReplStats counts the lockstep tests' coverage: opposing creatures sent
-// to exile by the scope record, and placements the creature counter-plus-one
-// made larger.
-var TurnReplStats struct{ Exiled, Plus atomic.Int64 }
+// to exile by the scope record, placements the creature counter-plus-one made
+// larger, and CR 616.1 order asks that offered a scope record as a candidate.
+var TurnReplStats struct{ Exiled, Plus, Asked atomic.Int64 }
 
 // StallTurnRepl is a second scope record or creature counter record past what
 // the cold table holds: the exile-instead table is full.
@@ -73,26 +73,25 @@ func (s *State) turnRepl(k *prep, in *kop.Instr) {
 	}
 }
 
+// exScopeHit reports whether scope record r makes creature sl's move to the
+// graveyard an exile: its controller is an opponent of the effect's.
+func (s *State) exScopeHit(k *prep, r *exMarkRec, sl Slot) bool {
+	return r.live && r.sl == slotExScope && r.pl != s.perms[sl].ctrl && s.isCreature(k, sl)
+}
+
 // exScopeN is how many live scope records make creature sl's move to the
-// graveyard an exile: its controller is an opponent of the effect's. Each is
-// its own CR 616.1 replacement, counted with the marks and the leave
-// replacements by dieZone (a competition stalls there: the scope has no
-// candidate for gorge's order ask).
+// graveyard an exile. Each is its own CR 616.1 replacement: dieZone counts
+// them with the marks and the leave replacements, and a competition is asked
+// (graveMoveCompetes, exileOrderOptions) like two marks on one creature.
 func (s *State) exScopeN(k *prep, sl Slot) int {
 	if DebugTurnReplOff || len(s.cold.exMark) == 0 {
 		return 0
 	}
 	n := 0
 	for i := range s.cold.exMark {
-		if r := &s.cold.exMark[i]; r.live && r.sl == slotExScope && r.pl != s.perms[sl].ctrl {
+		if s.exScopeHit(k, &s.cold.exMark[i], sl) {
 			n++
 		}
-	}
-	if n != 0 && !s.isCreature(k, sl) {
-		return 0
-	}
-	if n != 0 {
-		TurnReplStats.Exiled.Add(1)
 	}
 	return n
 }

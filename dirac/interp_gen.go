@@ -1347,6 +1347,9 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 		scopeN = s.exScopeN(k, sl) // an opponent's creature this turn (repl_turnrepl.go)
 	}
 	n += scopeN
+	if scopeN > 0 {
+		TurnReplStats.Exiled.Add(1)
+	}
 	if graveLib {
 		n++
 	}

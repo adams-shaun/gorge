@@ -191,6 +191,9 @@ func (s *State) graveMoveCompetes(k *prep, o Obj) bool {
 	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && s.mSl(k, mechExileEx, ob.slot) {
 		n += s.exMarkCount(ob.slot)
 	}
+	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && g.ix[mechExileEx] != arenaNone {
+		n += s.exScopeN(k, ob.slot) // an Effect's turn-long scope (repl_turnrepl.go)
+	}
 	return n > 1 && !s.moveAnswered(o)
 }
 
@@ -336,9 +339,14 @@ func (s *State) exileOrderOptions(k *prep, d *Decision) {
 	if ob.zone == kop.ZoneBattlefield {
 		d.Player = s.perms[ob.slot].ctrl
 		for i := range s.cold.exMark {
-			if r := &s.cold.exMark[i]; r.live && r.sl == ob.slot {
-				d.add(MakeAction(AkChoose, uint8(r.src), 0, uint8(i)))
+			r := &s.cold.exMark[i]
+			if !(r.live && r.sl == ob.slot) {
+				if DebugTurnReplOff || !s.exScopeHit(k, r, ob.slot) {
+					continue
+				}
+				TurnReplStats.Asked.Add(1)
 			}
+			d.add(MakeAction(AkChoose, uint8(r.src), 0, uint8(i)))
 		}
 	}
 	r := &s.cold.parked[0]
