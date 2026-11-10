@@ -217,6 +217,7 @@ func (s *State) grantSacDo(k *prep, sl Slot) {
 		s.ceaseManaToken(o)
 	}
 	s.sba(k)
+	s.answerOrderAsksFirst(k)
 }
 
 // grantSacApply replays prefix step st, a granted sacrifice-only ability,

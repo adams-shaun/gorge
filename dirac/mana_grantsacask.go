@@ -36,3 +36,24 @@ func (s *State) leaveAskedFirst(k *prep, sl Slot) {
 	s.settleExileMarks(sl, mode)
 	s.leave(k, sl, kop.ZoneGraveyard, false)
 }
+
+// answerOrderAsksFirst answers the order asks the state-based check after the
+// sacrifice parked (a second creature of the board dying to the lost bonus,
+// CR 704.3) with the first option each, as the script does, and runs the check
+// again after each answer as the priority step would. The answers are no
+// decisions of the play.
+func (s *State) answerOrderAsksFirst(k *prep) {
+	n := s.Decisions
+	for guard := 0; guard < 8 && s.ctl == ctlExileOrder && !s.over; guard++ {
+		var d Decision
+		s.exileOrderOptions(k, &d)
+		if d.N == 0 {
+			break
+		}
+		s.Apply(d.Options[0])
+		if s.ctl == ctlPriority {
+			s.sba(k)
+		}
+	}
+	s.Decisions = n
+}
