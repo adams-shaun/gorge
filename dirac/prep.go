@@ -219,13 +219,18 @@ type prep struct {
 	// (the first mana ability, or a later one beside a plain first,
 	// kop.SecondTapXManaAb), -1 none: cold, read through tapXAbOf
 	tapXAb []int8
+	// ctrAb: per card, the index of its counter-cost mana ability (the first
+	// mana ability, kop.CtrManaAb, or a later {T} one beside a plain {T}
+	// first, kop.SecondCtrTapManaAb), -1 none: cold, read through ctrAbOf
+	// (mana_countercost.go)
+	ctrAb []int8
 }
 
 func prepare(t *kop.Table) *prep {
 	if len(t.Filters) == 0 {
 		t.Filters = []kop.Filter{{}}
 	}
-	p := &prep{t: t, nsub: uint8(len(t.Subtypes)), cards: make([]pcard, len(t.Cards)), selfCast: prepSelfCast(t), eachPay: prepEachPay(t), tapXAb: make([]int8, len(t.Cards))}
+	p := &prep{t: t, nsub: uint8(len(t.Subtypes)), cards: make([]pcard, len(t.Cards)), selfCast: prepSelfCast(t), eachPay: prepEachPay(t), tapXAb: make([]int8, len(t.Cards)), ctrAb: make([]int8, len(t.Cards))}
 	p.w8 = tableWord8(t) // filter_props.go
 	typedSub := typedManaSubtypes(t)
 	p.speed, p.engines = prepSpeed(t)
@@ -262,7 +267,7 @@ func prepare(t *kop.Table) *prep {
 		p.offspring = p.offspring || c.Offspring
 		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go)
 		pc.spellAb, pc.manaAb = -1, -1
-		p.tapXAb[i] = -1
+		p.tapXAb[i], p.ctrAb[i] = -1, -1
 		// the card's mana is typed by its types (mana_artifact.go) whether
 		// the producing ability is printed or granted: the tag rides the
 		// source, not the ability (effects.ManaProducerTag)
@@ -310,6 +315,7 @@ func prepare(t *kop.Table) *prep {
 					if ctrManaAb(a) {
 						pc.ctrMana = true
 						p.ctrMana = true
+						p.ctrAb[i] = int8(j)
 					}
 					if kop.TapXMana(a) {
 						p.tapMana = true // (read per card through p.tapXAb, not a pcard field: the hot record stays as it was)
@@ -324,6 +330,10 @@ func prepare(t *kop.Table) *prep {
 					if p.tapXAb[i] < 0 && kop.SecondTapXManaAb(c, int(pc.manaAb), j) {
 						p.tapMana = true // a second tap-another ability: the card's tapX gap (mana_tapanother.go)
 						p.tapXAb[i] = int8(j)
+					}
+					if p.ctrAb[i] < 0 && kop.SecondCtrTapManaAb(c, int(pc.manaAb), j) {
+						p.ctrMana = true // a second counter-cost ability: the card's counter gap (mana_countercost.go)
+						p.ctrAb[i] = int8(j)
 					}
 				}
 			case kop.AbTriggered:

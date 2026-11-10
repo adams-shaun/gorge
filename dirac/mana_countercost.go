@@ -29,8 +29,25 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // source, once each turn, with a fixed production.
 func ctrManaAb(a *kop.Ability) bool { return kop.CtrManaAb(a) }
 
-// scriptCtr: p's counter-cost sources that can be activated now (no {T}:
-// summoning sickness does not matter, CR 302.6), a slot mask.
+// ctrAbOf is card c's counter-cost mana ability (prep.ctrAb): its first mana
+// ability (Wall of Roots, Ramos), or a later {T} one beside a plain {T} first
+// (Weather Maker), nil none.
+func (k *prep) ctrAbOf(c CardID) *kop.Ability {
+	if int(c) >= len(k.ctrAb) || k.ctrAb[c] < 0 {
+		return nil
+	}
+	return &k.t.Cards[c].Abilities[k.ctrAb[c]]
+}
+
+// ctrSecond: card c's counter-cost ability is a later one beside a plain {T}
+// first (Weather Maker), so activating the source asks which ability.
+func (k *prep) ctrSecond(c CardID) bool {
+	return int(c) < len(k.ctrAb) && k.ctrAb[c] >= 0 && k.ctrAb[c] != k.cards[c].manaAb
+}
+
+// scriptCtr: p's counter-cost sources that can be activated now (a Wall of
+// Roots has no {T}: summoning sickness does not matter, CR 302.6; a source
+// whose cost taps it must be untapped and, a creature, not sick), a slot mask.
 //
 //go:noinline
 func (s *State) scriptCtr(k *prep, p uint8) slotMask {
@@ -40,12 +57,16 @@ func (s *State) scriptCtr(k *prep, p uint8) slotMask {
 	}
 	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
 		sl := b.first()
-		pc := &k.cards[s.cardAt(sl)]
-		if !pc.ctrMana || s.perms[sl].actUsed&(1<<uint(pc.manaAb)) != 0 || s.genLost(k, sl) || k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {
+		c := s.cardAt(sl)
+		a := k.ctrAbOf(c)
+		if a == nil || s.perms[sl].actUsed&(1<<uint(k.ctrAb[c])) != 0 || s.genLost(k, sl) || k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 			continue
 		}
-		if c := &k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb].Cost; c.Flags&kop.CostRemoveCtr != 0 && s.perms[sl].ctrN(s, int(c.Ctr)) < int(c.N) {
+		if a.Cost.Flags&kop.CostRemoveCtr != 0 && s.perms[sl].ctrN(s, int(a.Cost.Ctr)) < int(a.Cost.N) {
 			continue // too few counters to remove (legal.go actCostOK's CostRemoveCtr)
+		}
+		if a.Cost.Flags&kop.CostTap != 0 && !s.canTapForMana(k, sl) {
+			continue // its {T}: the source is untapped and not summoning sick (the second ability beside a plain {T} first)
 		}
 		m = m.with(sl)
 	}
@@ -57,17 +78,23 @@ func (s *State) scriptCtr(k *prep, p uint8) slotMask {
 //go:noinline
 func (s *State) availCtr(k *prep, p uint8, av *avail) {
 	for b := s.scriptCtr(k, p); b.any(); b = b.rest() {
-		pc := &k.cards[s.cardAt(b.first())]
-		if k.t.Cards[s.cardAt(b.first())].Abilities[pc.manaAb].ManaEach {
-			for c := 0; c < kop.NumManaKinds; c++ {
-				if uint8(pc.manaCol)&(1<<c) != 0 {
-					av.addUnits(1<<c, pc.manaN) // every colour at once, not a choice of one
-				}
-			}
-			continue
-		}
-		av.addUnits(uint8(pc.manaCol), pc.manaN)
+		addCtrUnits(av, k.ctrAbOf(s.cardAt(b.first())))
 	}
+}
+
+// addCtrUnits adds counter-cost ability a's mana to av: every colour at once
+// for the all-at-once shape (Ramos), else one unit of its fixed colour.
+func addCtrUnits(av *avail, a *kop.Ability) {
+	cols, n := tapXUnit(a)
+	if a.ManaEach {
+		for c := 0; c < kop.NumManaKinds; c++ {
+			if cols&(1<<c) != 0 {
+				av.addUnits(1<<c, n) // every colour at once, not a choice of one
+			}
+		}
+		return
+	}
+	av.addUnits(cols, n)
 }
 
 // windowCtrOffer: counter-cost source o is one gorge's ward or unless window
@@ -79,7 +106,7 @@ func (s *State) windowCtrOffer(k *prep, p uint8, o Slot, decided bool, want uint
 	if !k.ctrMana || !s.scriptCtr(k, p).has(o) {
 		return false
 	}
-	return !decided || uint8(k.cards[s.cardAt(o)].manaCol)&want != 0
+	return !decided || uint8(k.ctrAbOf(s.cardAt(o)).ManaColors)&want != 0
 }
 
 // ctrGap activates counter-cost source sl for p: its counters, its use this
@@ -88,8 +115,8 @@ func (s *State) windowCtrOffer(k *prep, p uint8, o Slot, decided bool, want uint
 //
 //go:noinline
 func (s *State) ctrGap(k *prep, p uint8, sl Slot) {
-	pc := &k.cards[s.cardAt(sl)]
-	a := &k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb]
+	c := s.cardAt(sl)
+	a := k.ctrAbOf(c)
 	pm := &s.perms[sl]
 	if a.Cost.Flags&kop.CostRemoveCtr != 0 {
 		pm.seeCtr(s) // the activation path's CostRemoveCtr (mana_window.go)
@@ -100,12 +127,26 @@ func (s *State) ctrGap(k *prep, p uint8, sl Slot) {
 			s.ctrNoteBy(k, sl, int(a.Cost.Ctr), p) // a cost: gorge pay_engine publishes the payer
 		}
 	}
-	pm.actUsed |= 1 << uint(pc.manaAb)
+	if a.Cost.Flags&kop.CostOncePerTurn != 0 {
+		pm.actUsed |= 1 << uint(k.ctrAb[c])
+	}
+	taps := a.Cost.Flags&kop.CostTap != 0
+	if taps {
+		pm.flags |= pfTapped // the second ability's {T} (Weather Maker)
+		s.manaTapped(k, sl)
+	}
 	s.touchSl(sl)
-	for c := 0; c < kop.NumManaKinds; c++ {
-		if uint8(pc.manaCol)&(1<<c) != 0 {
-			s.poolAdd(p&1, c, int(pc.manaN))
+	cols, n := tapXUnit(a)
+	for col := 0; col < kop.NumManaKinds; col++ {
+		if cols&(1<<col) != 0 {
+			s.poolAdd(p&1, col, int(n))
+			if taps {
+				s.artTag(k, p, sl, col)
+			}
 		}
+	}
+	if taps {
+		s.tapExtraStall(k, sl)
 	}
 }
 

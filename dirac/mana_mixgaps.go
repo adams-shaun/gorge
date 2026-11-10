@@ -340,7 +340,7 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 	case otherTapX:
 		s.tapXDo(k, p, tapXStep{sl: st.sl, cand: o.cand, cand2: o.cand2, col: o.ans})
 	case otherTapXPlain:
-		s.tapXPlainDo(k, p, st.sl)
+		s.tapXPlainDo(k, p, st.sl, o.ans)
 	case otherGrant:
 		s.perms[st.sl].flags |= pfTapped
 		s.touchSl(st.sl)
