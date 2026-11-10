@@ -441,13 +441,7 @@ func (s *State) parkMills(k *prep, p uint8, n int, c int) bool {
 	if pl.libLo >= pl.libHi || !s.graveMoveCompetes(k, pl.lib[pl.libLo]) {
 		return false
 	}
-	x := uint8(0)
-	if c&kop.MvRemember != 0 {
-		x = 1
-	}
-	if c&kop.MvImprint != 0 {
-		x |= 2
-	}
+	x := millParkX(c)
 	for i := 0; i < n && int(pl.libLo)+i < int(pl.libHi); i++ {
 		o := pl.lib[int(pl.libLo)+i]
 		if s.park(k, o, parkMill, x) {
@@ -568,14 +562,7 @@ func (s *State) runParkedMill(k *prep, o Obj, x uint8) {
 	s.touch(o)
 	s.objs[o].zone = kop.ZoneNone
 	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
-	c := 0
-	if x&1 != 0 {
-		c |= kop.MvRemember
-	}
-	if x&2 != 0 {
-		c |= kop.MvImprint
-	}
-	s.millMark(o, c)
+	s.millMark(o, millParkFlags(x))
 }
 
 // leaveParked is leave to the graveyard inside a resolution, parked when its

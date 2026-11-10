@@ -60,6 +60,28 @@ func (s *State) millMark(o Obj, c int) {
 	}
 }
 
+// millParkX packs OpMill's mark flags into a parked mill's x byte (bit 0
+// MvRemember, bit 1 MvImprint) and millParkFlags unpacks it.
+func millParkX(c int) (x uint8) {
+	if c&kop.MvRemember != 0 {
+		x = 1
+	}
+	if c&kop.MvImprint != 0 {
+		x |= 2
+	}
+	return x
+}
+
+func millParkFlags(x uint8) (c int) {
+	if x&1 != 0 {
+		c |= kop.MvRemember
+	}
+	if x&2 != 0 {
+		c |= kop.MvImprint
+	}
+	return c
+}
+
 // askOptionsCzParams builds this file's resolution asks' options; false:
 // not one of them.
 //

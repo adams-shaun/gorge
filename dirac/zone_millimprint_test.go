@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	v "github.com/adams-shaun/gorge/dirac/vanilla"
 )
@@ -81,30 +80,30 @@ func TestMillImprintDirectAndMay(t *testing.T) {
 	}
 }
 
-// TestMillImprintParked: a milled card whose graveyard move competes (two
-// Rest in Peace) is parked; the imprint mark rides in the parked record and
-// is applied when its turn runs.
+// TestMillImprintParked: a milled card whose graveyard move competes is
+// parked with the mill's mark flags in its x byte; the imprint mark survives
+// the round trip and is applied when the parked move runs.
 func TestMillImprintParked(t *testing.T) {
-	deck := []cardset.Entry{{Name: "Rest in Peace", Count: 2}, {Name: "Swamp", Count: 8}}
-	tbl, da, _, err := cardsettest.Synth(t, "std-big").Matchup(deck, deck)
-	if err != nil {
-		t.Fatal(err)
-	}
-	id := map[string]CardID{}
-	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
+	for _, c := range []int{0, kop.MvRemember, kop.MvImprint, kop.MvImprint | kop.MvRemember} {
+		if got := millParkFlags(millParkX(c)); got != c {
+			t.Fatalf("flags %b came back as %b through the parked byte", c, got)
+		}
 	}
 	for _, flags := range []int{kop.MvImprint, kop.MvImprint | kop.MvRemember, kop.MvRemember} {
-		sc := newScenTableLib(t, tbl, id["Swamp"], Config{NoElide: true})
-		sc.perm(id["Rest in Peace"], 0)
-		sc.perm(id["Rest in Peace"], 1)
+		prog := []kop.Instr{{Op: kop.OpMill, Obj: kop.RefController, A: kop.Const(3), C: int16(flags)}}
+		sc := czScen(t, prog)
 		s, k := sc.s, sc.k
 		top := topCards(s, 0, 3)
 		if s.g.nimp != 0 || s.g.nrem != 0 {
 			t.Fatal("precondition: sets not empty")
 		}
-		if !s.parkMills(k, 0, 3, flags) {
-			t.Fatalf("flags %b: the mill's first card has no order ask", flags)
+		if len(s.cold.parked) == 0 {
+			s.cold.parked = make([]parkedMove, maxParked) // a table with no replacement effects lays out no queue
+		}
+		for _, o := range top {
+			if !s.parkMillQuiet(o, millParkX(flags)) {
+				t.Fatal("parked queue full")
+			}
 		}
 		var q []parkedMove
 		for i := range s.cold.parked {
@@ -118,12 +117,17 @@ func TestMillImprintParked(t *testing.T) {
 		for _, r := range q {
 			s.runParked(k, r)
 		}
+		for _, o := range top {
+			if s.objs[o].zone != kop.ZoneGraveyard {
+				t.Fatalf("flags %b: parked mill left object %d in zone %d", flags, o, s.objs[o].zone)
+			}
+		}
 		if flags&kop.MvImprint != 0 {
 			wantImprinted(t, s, "parked", top)
 		} else if s.g.nimp != 0 {
 			t.Fatalf("flags %b: imprinted %d", flags, s.g.nimp)
 		}
-		if want := flags & kop.MvRemember; (want != 0) != (s.g.nrem == 3) || s.g.nrem != 0 && s.g.nrem != 3 {
+		if wantRem := flags&kop.MvRemember != 0; wantRem != (s.g.nrem == 3) || !wantRem && s.g.nrem != 0 {
 			t.Fatalf("flags %b: remembered %d", flags, s.g.nrem)
 		}
 	}
