@@ -115,7 +115,8 @@ type scriptSearch struct {
 	budget    int
 	turn      int32
 	step      state.Step
-	stack     int // the stack height at the decision
+	stack     int        // the stack height at the decision
+	ownZone   state.Zone // the zone the searched ability's source is activated from
 	nodes     int
 	limited   bool // the budget ran out
 	approx    bool // a branch assumed an answer it did not enumerate
@@ -132,6 +133,9 @@ func (e *Engine) newScriptSearch(p state.PlayerID, a decision.PotentialAction, a
 		return nil
 	}
 	sr := &scriptSearch{p: p, play: a, altCost: altCost, budget: budget, turn: e.G.Turn, step: e.G.Step, stack: len(e.G.Stack), seen: map[string]bool{}}
+	if o := e.G.Obj(a.Obj); o != nil {
+		sr.ownZone = o.Zone
+	}
 	if altCost <= 0 {
 		sr.need = scriptNeedColours(e, e.G.Obj(a.Obj), p, a)
 	}
@@ -250,6 +254,21 @@ func (sr *scriptSearch) tappedOwnSource(c *Engine) bool {
 	}
 	o := c.G.Obj(sr.play.Obj)
 	return o != nil && o.Tapped && sr.ownTapSource(c, sr.play.Obj)
+}
+
+// leftOwnZone reports whether the path has moved the source of the searched
+// ability out of the zone it was activated from: a granted sacrifice-only
+// mana ability (Lotus Ring's) activated on the Equipment that is itself a
+// creature token (a Lost Jitte copy the Ring equips) sacrifices the very
+// permanent whose Equip is the play, so no continuation offers it. The
+// search tries the next source (another creature the Ring equips) instead of
+// ending in a dead-end script that hides every other prefix.
+func (sr *scriptSearch) leftOwnZone(c *Engine) bool {
+	if sr.play.Kind != "ability" {
+		return false
+	}
+	o := c.G.Obj(sr.play.Obj)
+	return o == nil || o.Zone != sr.ownZone
 }
 
 // tapsOwnSource reports whether answer in to the activation's ask taps the
@@ -384,6 +403,9 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 	}
 	if sr.tappedOwnSource(c) {
 		return false // a forced tap (no ask) of the play's own {T} source: no continuation pays it (CR 602.2b)
+	}
+	if sr.leftOwnZone(c) {
+		return false // the prefix sacrificed the play's own source: the play is gone, whichever way the rest pays (CR 602.2b)
 	}
 	if d.Kind != decision.KPriority {
 		// An ask the activation poses: branch over its answers.
