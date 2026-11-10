@@ -38,9 +38,18 @@ func tableFilterDynamic(t *kop.Table, f kop.FilterID) bool {
 func (s *State) castFilterOK(k *prep, f kop.FilterID, e *stackEntry, l trigListener) bool {
 	if k.gen.castBoundSrc && featFilterDynamic(k, f) && !filterChosenType(k.t, f) {
 		cx := evalCtx{src: l.obj, srcSl: l.sl, ctrl: l.ctrl}
-		return s.matchCardGenAt(k, f, e.card, s.objs[e.obj].owner(), l.ctrl, e.obj, &cx)
+		return s.matchCardGenAt(k, f, e.card, s.castOwner(e), l.ctrl, e.obj, &cx)
 	}
-	// the cast card's owner, which is not its caster when a permission cast it
-	// from another player's graveyard (Nita, Forum Conciliator's YouDontOwn)
-	return s.matchCardTgt(k, f, e.card, s.objs[e.obj].owner(), l.ctrl, e.obj, l.sl, l.obj)
+	return s.matchCardTgt(k, f, e.card, s.castOwner(e), l.ctrl, e.obj, l.sl, l.obj)
+}
+
+// castOwner is the owner of the spell e being matched: its card's owner while
+// the card is on the stack, which is not its caster when a permission cast it
+// from another player's graveyard (Nita, Forum Conciliator's YouDontOwn); the
+// caster for an entry with no card on the stack.
+func (s *State) castOwner(e *stackEntry) uint8 {
+	if int(e.obj) < len(s.objs) && s.objs[e.obj].zone == kop.ZoneStack {
+		return s.objs[e.obj].owner()
+	}
+	return e.ctrl
 }
