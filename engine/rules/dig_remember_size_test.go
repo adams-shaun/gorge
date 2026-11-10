@@ -11,8 +11,8 @@ import (
 // expandTheSphere is the Forge script's rules lines, inline.
 const expandTheSphere = "Name:Expand the Sphere\nManaCost:3 G\nTypes:Sorcery\n" +
 	"A:SP$ Dig | DigNum$ 6 | ChangeNum$ 2 | Optional$ True | ForceRevealToController$ True | ChangeValid$ Land | DestinationZone$ Battlefield | Tapped$ True | RestRandomOrder$ True | RememberChanged$ True | SubAbility$ DBProl\n" +
-	"SVar:DBProl:DB$ Proliferate | Amount$ Number$2/Minus.Y | StackDescription$ None | SubAbility$ DBCleanup\n" +
-	"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\n" +
+	"SVar:DBProl:DB$ Proliferate | Amount$ Number$2/Minus.Y | StackDescription$ None | SubAbility$ DBClear\n" +
+	"SVar:DBClear:DB$ Cleanup | ClearRemembered$ True\n" +
 	"SVar:Y:Count$RememberedSize\nOracle:x\n"
 
 // digRememberSizeRun casts Expand the Sphere, takes picks lands from the Dig,
