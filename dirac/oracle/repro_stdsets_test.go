@@ -217,6 +217,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "imprint_token_counters_summoners_sending_spirit"},                   // Summoner's Sending exiles a creature card from a graveyard and makes a Spirit that takes a +1/+1 counter off the imprinted token when the exiled card's mana value is 4 or more
 		{"custom", "warp_x_broodguard_elite"},                                           // Broodguard Elite warped for {X}{G} at several X, once with a floating {G} that pays it at X = 0: the X is announced like a printed one, and that cast taps nothing more (CR 601.2b, 702.185a)
 		{"custom", "disguise_reduced_turn_up_fugitive_codebreaker"},                     // Fugitive Codebreaker turned face up from Priest of Urabrask's {R}{R}{R} with Lightning Bolts in its owner's graveyard: the disguise cost is reduced by {1} for each (CR 601.2f, 702.168c)
+		{"custom", "effect_capture_trigger_flickers_the_dealer"},                        // Long River Lurker's Effect remembers its target: the creature is unblockable, and its combat damage triggers the optional flicker once, for that creature alone (CR 603.7, 611.2, 400.7)
+		{"custom", "effect_capture_static_lets_a_defender_attack"},                      // The Pride of Hull Clade targets itself: the Effect lets it attack as though it lacked defender, and its one combat damage trigger draws (CR 702.3b, 611.2)
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {

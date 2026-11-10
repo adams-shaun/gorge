@@ -70,6 +70,7 @@ func (cb *cardBuilder) abilities() error {
 		ke.UntilEOT = e.UntilEOT
 		ke.UntilNextTurn = e.UntilNextTurn
 		ke.WhileHost = e.WhileHost
+		ke.CaptureLapse = e.CaptureLapse
 		if e.CaptureSet {
 			r, err := cb.ref(e.Capture)
 			if err != nil {

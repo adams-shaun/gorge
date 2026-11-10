@@ -57,7 +57,7 @@ func prepMcombat(t *kop.Table, g *genPrep) {
 	}
 	for i := range t.Emblems {
 		e := &t.Emblems[i]
-		g.anyWhileHost = g.anyWhileHost || e.HostBound()
+		g.anyWhileHost = g.anyWhileHost || e.HostBound() || e.CaptureLapse
 		g.anyEmbCtrl = g.anyEmbCtrl || e.AsLongAsControl
 	}
 	for i := range t.Cards {
@@ -414,6 +414,7 @@ func (s *State) hostLeft(k *prep, o Obj) {
 			s.embCompact(uint8(p), drop)
 		}
 	}
+	s.embCaptureLapse(k, o) // static_emblemcapture.go
 }
 
 // ovCantAttack reports whether an override record on the permanent at sl

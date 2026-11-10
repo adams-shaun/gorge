@@ -193,6 +193,12 @@ type Emblem struct {
 	// player (CR 611.2b; gorge's continuousLive and expireAsLongAsControl),
 	// and its statics read the host as their source.
 	AsLongAsControl bool
+	// CaptureLapse: the emblem's Capture ends when the captured object
+	// leaves the battlefield (the Effect's ForgetOnMoved$ / ExileOnMoved$
+	// Battlefield): State.g.embN is zeroed, so the emblem's statics and
+	// triggers apply to nothing. Without it the capture names the object
+	// across zone changes (gorge matches the object, not a version).
+	CaptureLapse bool
 }
 
 // HostBound reports whether the emblem's lifetime follows its host object:

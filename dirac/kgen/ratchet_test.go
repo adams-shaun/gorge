@@ -112,10 +112,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +9 (the merge with land: land's +9 beside the +15 above; merged ALL 21709 -> 21733, FRA 246 -> 247 measured).
 	// +5 (the merge with land: this branch's +5 beside land's +26, disjoint; merged ALL 21784 -> 21789 measured).
 	// +1 (Boommobile: an artifact's resolving mana restricted to activated abilities, kop.SpmActivated; the merge with land: land's 21792 + 1 = 21793, DFT 250 -> 251).
+	// +2 (an Effect's static beside its trigger over one captured creature: Long River Lurker, The Pride of Hull Clade; ALL 21872 -> 21874, BLB 258 -> 259, MKM 243 -> 244).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21872, 34442},
+	"ALL": {21874, 34442},
 	"BIG": {23, 30},
-	"BLB": {258, 278},
+	"BLB": {259, 278},
 	"BRO": {208, 280},
 	"DFT": {252, 276},
 	"DMU": {194, 270},
@@ -127,7 +128,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FRA": {249, 269},
 	"HOB": {155, 172},
 	"LCI": {253, 290},
-	"MKM": {243, 279},
+	"MKM": {244, 279},
 	"MOM": {198, 296},
 	"MSH": {239, 276},
 	"NEO": {198, 287},

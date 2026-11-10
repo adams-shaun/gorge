@@ -494,6 +494,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 		}
 		if e.CaptureSet {
 			eot += " remembers=" + e.Capture.String()
+			if e.CaptureLapse {
+				eot += " lapses"
+			}
 		}
 		fmt.Fprintf(w, "  emblem[%d] trigger=%d statics=%d%s\n", i, e.Trigger, len(e.Statics), eot)
 	}

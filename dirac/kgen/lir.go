@@ -1008,6 +1008,9 @@ type lEmblem struct {
 	// emblem's own capture, lowered without the Remembered flag
 	Capture    lRef
 	CaptureSet bool
+	// CaptureLapse: the capture ends when the object leaves the battlefield
+	// (ForgetOnMoved$ / ExileOnMoved$ Battlefield; kop.Emblem.CaptureLapse)
+	CaptureLapse bool
 }
 
 type refusal struct {

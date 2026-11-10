@@ -17,7 +17,7 @@ import (
 // the emblem's owner). An AttackersDeclared one counts
 // every attacker of the declaration.
 func eotCombatEmblemRefuse(ab *lAbility) error {
-	if t := ab.Trigger; t != nil && (t.Event == "DamageDone" || t.Event == "AttackersDeclared" || t.Event == "Attacks") {
+	if t := ab.Trigger; t != nil && (t.Event == "DamageDone" || t.Event == "DamageDealtOnce" || t.Event == "AttackersDeclared" || t.Event == "Attacks") {
 		// the hooks read only these fields: any other trigger rider (an
 		// intervening if, once per turn, your turn only, a batch, ...)
 		// would be dropped
@@ -36,6 +36,10 @@ func eotCombatEmblemRefuse(ab *lAbility) error {
 		// ValidAttackers$; the per-defender line is walked with the
 		// declaration's groups (fireAttacksGen)
 		return refuse("Effect AttackersDeclared trigger with ValidAttackers or AttackedTarget")
+	}
+	if ab.Trigger != nil && ab.Trigger.Event == "DamageDealtOnce" && ab.Trigger.F2 != nil {
+		// the hook fires for any recipient and carries no recipient filter
+		return refuse("Effect DamageDealtOnce trigger with ValidTarget")
 	}
 	if ab.Trigger == nil || ab.Trigger.Event != "DamageDone" {
 		return nil
@@ -59,11 +63,13 @@ func (lc *lowerCtx) emblemCapture(ps *params, t cards.Trigger, eot bool) (lRef, 
 	if !ok {
 		return lRef{}, false, nil
 	}
-	if strings.TrimSpace(ro) != "Targeted" || !eot || t.Mode != "DamageDone" {
+	if strings.TrimSpace(ro) != "Targeted" || !eot || t.Mode != "DamageDone" && t.Mode != "DamageDealtOnce" {
 		return lRef{}, false, refuse("Effect triggers with RememberObjects$ %q", ro)
 	}
 	var ref lRef
-	if _, ok := ps.m["ValidTgts"]; !ok {
+	if lc.pairCap != nil {
+		ref = *lc.pairCap // resolved once by the static-and-trigger pair
+	} else if _, ok := ps.m["ValidTgts"]; !ok {
 		var err error
 		if ref, err = lc.parentCapture(); err != nil {
 			return lRef{}, false, err
@@ -104,7 +110,7 @@ func (lc *lowerCtx) parentCapture() (lRef, error) {
 // the type check. Any other Remembered read in the trigger refuses.
 func emblemCaptureFilter(ab *lAbility) error {
 	t := ab.Trigger
-	if t == nil || t.Event != "DamageDone" || t.F == nil || len(t.F.Clauses) != 1 || t.F.Players != 0 ||
+	if t == nil || t.Event != "DamageDone" && t.Event != "DamageDealtOnce" || t.F == nil || len(t.F.Clauses) != 1 || t.F.Players != 0 ||
 		t.F.Clauses[0].Flags&fRemembered == 0 {
 		return refuse("Effect RememberObjects$ Targeted beside a trigger that is not ValidSource$ ...IsRemembered")
 	}
@@ -112,10 +118,15 @@ func emblemCaptureFilter(ab *lAbility) error {
 	f.Clauses = append([]lClause(nil), f.Clauses...)
 	f.Clauses[0].Flags &^= fRemembered
 	t.F = &f
+	// a DamageDealtOnce body may read the set its own links wrote (lowerCtx.capRem
+	// made the first read the damage source); a read before any write is the
+	// capture the kernel does not seed
+	written := false
 	for _, in := range ab.Prog {
-		if kremReads(in.String()) {
+		if kremReads(in.String()) && !written {
 			return refuse("Effect trigger body reads Remembered beside RememberObjects$ Targeted")
 		}
+		written = written || t.Event == "DamageDealtOnce" && kremWrites(in)
 	}
 	return nil
 }

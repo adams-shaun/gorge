@@ -1977,6 +1977,9 @@ func (lc *lowerCtx) effectStaticBodies(list string) ([]cards.Static, error) {
 
 func (lc *lowerCtx) effectAPI(ps *params) error {
 	if tr, ok := ps.get("Triggers"); ok {
+		if _, st := ps.m["StaticAbilities"]; st && ps.m["RememberObjects"] != "" {
+			return lc.effectStaticTriggerPair(ps, tr) // lower_effectcaptured.go
+		}
 		return lc.emblem(ps, tr)
 	}
 	// EffectOwner$ (CR 611.2): effEffect resolves the created effect's owner
@@ -2361,7 +2364,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return refuse("Effect triggers without a permanent duration")
 	}
 	ps.consume("Name", "Image", "Stackable")
-	if sa, ok := ps.get("StaticAbilities"); ok {
+	if sa, ok := ps.get("StaticAbilities"); ok && lc.pairCap == nil {
 		// Osteomancer Adept: gorge's effEffect Notes its may-play grant as
 		// unimplemented and offers NOTHING through it (the RaiseCost$
 		// Forage rider; mayplay_effect_riders_test.go
@@ -2376,7 +2379,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if !ok {
 		return refuse("emblem trigger %q", tr)
 	}
-	if (eot || next) && t.Mode != "SpellCast" && t.Mode != "ChangesZone" && t.Mode != "Sacrificed" && t.Mode != "DamageDone" &&
+	if (eot || next) && t.Mode != "SpellCast" && t.Mode != "ChangesZone" && t.Mode != "Sacrificed" && t.Mode != "DamageDone" && !(t.Mode == "DamageDealtOnce" && lc.pairCap != nil) &&
 		t.Mode != "AttackersDeclared" && t.Mode != "AttackersDeclaredOneTarget" && t.Mode != "Attacks" {
 		// an until-end-of-turn Effect's trigger (gorge: the effect leaves
 		// the command zone at cleanup) is the kernel's EOT emblem, and an
@@ -2395,7 +2398,10 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return err
 	}
 	saved := len(lc.out.Abilities)
-	if err := lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") }); err != nil {
+	lc.capRem = hasCap && t.Mode == "DamageDealtOnce"
+	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
+	lc.capRem = false
+	if err != nil {
 		return err
 	}
 	if len(lc.out.Abilities) != saved+1 {
