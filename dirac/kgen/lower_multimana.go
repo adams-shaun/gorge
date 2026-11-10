@@ -366,13 +366,15 @@ func (lc *lowerCtx) refuseGatedMana(ms []*lAbility) bool {
 	if gatedLargerSameColour(ms) {
 		// Whisperer of the Wilds: gorge's planner lists the source with
 		// both alternatives while the gate holds and takes the one that
-		// ranks best per payment (fewest sources, then least surplus), a
-		// per-tap yield choice. The kernel's source model is one yield per
-		// view (pcard.manaN), read as such by every affordability bound and
-		// the payment window, which answers the first ability: a view of
-		// two would overpay a payment gorge makes with the one, a view of
-		// one could not afford what gorge affords.
-		lc.refuseNode("card", "gated {T} ability making several mana of the colour a plain {T} ability makes one of (a per-tap yield choice the kernel's mana source model does not hold)")
+		// ranks best per payment (fewest sources, then least surplus); the
+		// payment window answers the first ability. The kernel's gate-on
+		// view is the restricted source's pair unit without the restricted
+		// float (prepManaGate: the first ability's manaN beside the larger
+		// one's wideN), the affordability bounds read the larger amount.
+		// An amount above maxEachMana is outside the byte-sized unit.
+		if ms[1].Mana.Amount.N > maxEachMana {
+			lc.refuseNode("card", "gated {T} ability making more than four mana of the colour a plain {T} ability makes one of")
+		}
 		return true
 	}
 	for _, a := range ms {

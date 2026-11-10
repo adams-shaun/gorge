@@ -93,6 +93,7 @@ type genPrep struct {
 	anyOwnReduce    bool // a card has an activated ability with its own ReduceCost$ (kop.Ability.OwnReduce; cost_ownreduce.go)
 	anyAbReduce     bool // a card has a StatReduceAbility static (cost_reduceability.go)
 	anyVergeOrder   bool // a gated Verge whose first ability is not its lowest colour: the window activates ability 0 (mana_gate.go)
+	anyGatePair     bool // a gated same-colour larger mana ability is a pair unit (Whisperer of the Wilds; mana_gate.go)
 	anyLandwalk     bool // a card has printed landwalk (repl_regenerate.go)
 	anyEvasion      bool // a card has a printed CardDef.Evasion keyword (act_remember.go)
 	anyAloneAtk     bool // a card has printed "can't attack alone" (CardDef.AloneAtk; combat_alone.go)

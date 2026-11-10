@@ -1,0 +1,7 @@
+# Whisperer of the Wilds beside Forests and a power-4 gate creature, for the oracle's constructed lockstep
+# (dirac/oracle/gatedpairmana_test.go)
+Forest
+Giant Growth
+Grizzly Bears
+Leatherback Baloth
+Whisperer of the Wilds

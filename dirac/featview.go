@@ -790,7 +790,7 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
 			s.addPainAvail(k, sl, pc, p&1, av, ms, false) // the planner's census has a pain ability (mana_pain.go)
 			continue
 		}
-		av.addUnits(s.srcMaskAt(pc, sl), pc.manaN)
+		av.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))
 		if pc.manaOne {
 			s.addOneColour(av, pc.manaN)
 		}
