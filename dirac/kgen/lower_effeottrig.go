@@ -57,41 +57,35 @@ func eotCombatEmblemRefuse(ab *lAbility) error {
 // own ValidTgts$ creature slot, the trigger's source filter being exactly that
 // remembered object (Creature.IsRemembered). It declares the target slot on
 // the chain and returns it. RememberObjects$ TargetedPlayer over a target
-// opponent's damage is the two-seat form: the kernel's capture holds an
-// object, so the trigger's ValidTarget$ Player.IsRemembered is rewritten to
-// Player (in two seats the only player a creature the controller controls can
-// damage in combat is the targeted opponent) and the card is marked
-// two-seat-only. Every other RememberObjects$ beside an Effect trigger refuses
-// (the kernel's remembered set is per resolution, so the trigger would read an
-// empty set).
-func (lc *lowerCtx) emblemCapture(ps *params, t cards.Trigger, eot bool) (lRef, bool, cards.Trigger, error) {
+// opponent's damage is lowered as a no-op: gorge's event-trigger registration
+// rebuilds the capture from effectRemembered, which holds objects only, and
+// only its phase-trigger arm appends the remembered players, so the trigger's
+// ValidTarget$ Player.IsRemembered can never match. The target is still
+// declared (the mode's printed target); the caller drops the never-firing
+// effect. Every other RememberObjects$ beside an Effect trigger refuses (the
+// kernel's remembered set is per resolution, so the trigger would read an
+// empty set). drop reports that no emblem is to be created.
+func (lc *lowerCtx) emblemCapture(ps *params, t cards.Trigger, eot bool) (lRef, bool, bool, cards.Trigger, error) {
 	ro, ok := ps.m["RememberObjects"]
 	if !ok {
-		return lRef{}, false, t, nil
+		return lRef{}, false, false, t, nil
 	}
 	if strings.TrimSpace(ro) == "TargetedPlayer" {
 		if !eot || t.Mode != "DamageDone" && t.Mode != "DamageDealtOnce" {
-			return lRef{}, false, t, refuse("Effect triggers with RememberObjects$ %q", ro)
+			return lRef{}, false, false, t, refuse("Effect triggers with RememberObjects$ %q", ro)
 		}
 		if ps.str("ValidTgts") != "Opponent" || strings.TrimSpace(t.Params["ValidTarget"]) != "Player.IsRemembered" {
-			return lRef{}, false, t, refuse("Effect RememberObjects$ TargetedPlayer with ValidTgts$ %q and ValidTarget$ %q",
+			return lRef{}, false, false, t, refuse("Effect RememberObjects$ TargetedPlayer with ValidTgts$ %q and ValidTarget$ %q",
 				ps.str("ValidTgts"), t.Params["ValidTarget"])
 		}
 		if _, err := lc.objOrTarget(ps, "", zBattlefield); err != nil {
-			return lRef{}, false, t, err
+			return lRef{}, false, false, t, err
 		}
-		cp := make(map[string]string, len(t.Params))
-		for k, v := range t.Params {
-			cp[k] = v
-		}
-		cp["ValidTarget"] = "Player"
-		t.Params = cp
 		ps.consume("RememberObjects")
-		lc.twoSeat("Effect RememberObjects$ TargetedPlayer read as the one opponent")
-		return lRef{}, false, t, nil
+		return lRef{}, false, true, t, nil
 	}
 	if strings.TrimSpace(ro) != "Targeted" || !eot || t.Mode != "DamageDone" && t.Mode != "DamageDealtOnce" {
-		return lRef{}, false, t, refuse("Effect triggers with RememberObjects$ %q", ro)
+		return lRef{}, false, false, t, refuse("Effect triggers with RememberObjects$ %q", ro)
 	}
 	var ref lRef
 	if lc.pairCap != nil {
@@ -99,19 +93,19 @@ func (lc *lowerCtx) emblemCapture(ps *params, t cards.Trigger, eot bool) (lRef, 
 	} else if _, ok := ps.m["ValidTgts"]; !ok {
 		var err error
 		if ref, err = lc.parentCapture(); err != nil {
-			return lRef{}, false, t, err
+			return lRef{}, false, false, t, err
 		}
 	} else {
 		var err error
 		if ref, err = lc.objOrTarget(ps, "", zBattlefield); err != nil {
-			return lRef{}, false, t, err
+			return lRef{}, false, false, t, err
 		}
 	}
 	if ref.Kind != rTarget {
-		return lRef{}, false, t, refuse("Effect RememberObjects$ Targeted over %s", ref)
+		return lRef{}, false, false, t, refuse("Effect RememberObjects$ Targeted over %s", ref)
 	}
 	ps.consume("RememberObjects")
-	return ref, true, t, nil
+	return ref, true, false, t, nil
 }
 
 // parentCapture is an Effect link's RememberObjects$ Targeted with no target
