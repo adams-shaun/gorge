@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -142,7 +143,13 @@ func emblemCaptureFilter(ab *lAbility) error {
 // spelling or key in the trigger body refuses; nothing else is touched.
 func effectSourceTrigger(ps *params, t cards.Trigger) (cards.Trigger, bool, error) {
 	has := false
-	for k, v := range t.Params {
+	keys := make([]string, 0, len(t.Params))
+	for k := range t.Params {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys) // the refusal text reaches the census: name the same key every run
+	for _, k := range keys {
+		v := t.Params[k]
 		if strings.Contains(v, "EffectSource") {
 			has = true
 			if k != "ValidSource" || v != "Card.EffectSource" || t.Mode != "DamageDone" {

@@ -452,28 +452,7 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 				f.NotSubs[i] = subOf(n - 1)
 			}
 		}
-		if f.Pred == kop.PredSubtype {
-			// PredN is the pool's subtype index (a clause's second subtype);
-			// the compact table renumbers them. One no object here can have
-			// maps past every subtype (NoSubtype-1, as Sub's sentinel).
-			if m, ok := subMap[uint8(f.PredN)]; ok {
-				f.PredN = int16(m)
-			} else {
-				f.PredN = NoSubtype - 1
-			}
-		}
-		if f.Pred == kop.PredHistoric && f.PredN > 0 {
-			// PredN is the pool's Saga subtype index+1; the matchup's compact
-			// table renumbers subtypes, so the pool index would test an
-			// arbitrary other subtype (an all-creature-types permanent
-			// satisfies any creature type). A matchup with no Saga keeps 0:
-			// the clause is artifact or legendary only.
-			if m, ok := subMap[uint8(f.PredN-1)]; ok {
-				f.PredN = int16(m) + 1
-			} else {
-				f.PredN = 0
-			}
-		}
+		remapSubtypePreds(f, subMap)
 		if f.Pred == kop.PredNamed {
 			// PredN is a pool index; the table's CardIDs are the matchup's
 			// compact ids (inert: the pool's stable PoolID), so the
@@ -591,4 +570,29 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 		out[p] = deck(d)
 	}
 	return t, out, nil
+}
+
+// remapSubtypePreds renumbers the pool subtype index a filter's Pred slot
+// carries into the matchup's compact subtype table. PredSubtype's PredN is the
+// pool index (a clause's second subtype); one no object here can have maps past
+// every subtype (NoSubtype-1, as Sub's sentinel). PredHistoric's PredN is the
+// pool's Saga subtype index+1; the compact table renumbers subtypes, so the
+// pool index would test an arbitrary other subtype (an all-creature-types
+// permanent satisfies any creature type). A matchup with no Saga keeps 0: the
+// clause is artifact or legendary only.
+func remapSubtypePreds(f *kop.Filter, subMap map[uint8]uint8) {
+	switch {
+	case f.Pred == kop.PredSubtype:
+		if m, ok := subMap[uint8(f.PredN)]; ok {
+			f.PredN = int16(m)
+		} else {
+			f.PredN = NoSubtype - 1
+		}
+	case f.Pred == kop.PredHistoric && f.PredN > 0:
+		if m, ok := subMap[uint8(f.PredN-1)]; ok {
+			f.PredN = int16(m) + 1
+		} else {
+			f.PredN = 0
+		}
+	}
 }

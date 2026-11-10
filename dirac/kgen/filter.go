@@ -1041,17 +1041,22 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		return nil
 	}
 	if knownSub(p) {
-		switch {
-		case c.Subtype == "":
-			c.Subtype = p
-		case c.Subtype2 == "":
-			c.Subtype2 = p
-		default:
-			return fmt.Errorf("three subtypes")
-		}
-		return nil
+		return c.addSubtype(p)
 	}
 	return fmt.Errorf("unknown property %q", p)
+}
+
+// addSubtype fills the clause's first free subtype slot; a third refuses.
+func (c *lClause) addSubtype(p string) error {
+	switch {
+	case c.Subtype == "":
+		c.Subtype = p
+	case c.Subtype2 == "":
+		c.Subtype2 = p
+	default:
+		return fmt.Errorf("three subtypes")
+	}
+	return nil
 }
 
 func (c *lClause) setWho(dst *uint8, v uint8) error {
