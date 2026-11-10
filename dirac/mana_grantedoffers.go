@@ -794,6 +794,7 @@ func (g *grantSrch) visit(t *State) bool {
 			lo, hi = 1, 2
 		}
 		for g.sel = lo; g.sel <= hi; g.sel++ {
+			blgExtra, blgN := uint8(0), uint8(0)
 			if ppc := t.manaPCGen(g.k, sl); g.dual[i] && !t.ownRestrPrinted(g.k, sl) && grantPainShape(g.k, ppc) {
 				if g.painBranch(t, i, sl, ppc, alts == 1) { // its painful ability's colours too (mana_grantpain.go)
 					return true
@@ -808,6 +809,14 @@ func (g *grantSrch) visit(t *State) bool {
 				} else {
 					ppc := t.manaPCGen(g.k, sl)
 					mask, n = t.srcMaskAt(ppc, sl), ppc.manaN
+					if base := &g.k.cards[t.cardAt(sl)]; g.k.gen.blgOn && ppc != base && base.manaAb >= 0 && !base.manaChosen && mask&^srcMask(base) != 0 {
+						// a granted basic land type's intrinsic abilities (CR 305.7)
+						// follow the printed ones in gorge's ask (its printed
+						// restricted and filter abilities too): White Lotus
+						// Hideout's {C} first, an Island's {U} before the grants
+						blgExtra, blgN = mask&^srcMask(base), n
+						mask, n = srcMask(base), base.manaN
+					}
 				}
 				if g.branch(t, i, sl, -1, mask, n, alts == 1) {
 					return true
@@ -825,6 +834,9 @@ func (g *grantSrch) visit(t *State) bool {
 				}
 			}
 			if fok && g.filtBranch(t, i, sl) { // (listed after the printed ability, before the grants)
+				return true
+			}
+			if blgExtra != 0 && g.branch(t, i, sl, -1, blgExtra, blgN, false) {
 				return true
 			}
 			for j := 0; j < int(g.ng[i]); j++ {

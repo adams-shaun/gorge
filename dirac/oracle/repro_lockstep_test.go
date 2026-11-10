@@ -545,3 +545,13 @@ func TestFlashbackGrantedInstanceNotPrintedOfferLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "flashback_granted_instance_not_printed_offer", "std-tla", Config{})
 }
+
+// TestGrantedLandTypeManaAfterPrintedLockstep: White Lotus Hideout with a
+// granted basic land type beside Great Divide Guide's grant. gorge's "choose
+// a mana ability" ask lists the printed {C}, the Lesson-only and the filter
+// abilities before the type's intrinsic {U} (CR 305.7), and the prefix search
+// for Earthen Ally's activation walks them in that order.
+func TestGrantedLandTypeManaAfterPrintedLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "granted_land_type_mana_after_printed_abilities", "std-tla", Config{})
+}
