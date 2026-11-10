@@ -686,6 +686,7 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 		// live controller to the owner).
 		if defined == "Remembered" || defined == "RememberedLKI" {
 			o = rememberedControllerLKI(c, o)
+			memberSc = withLKIColors(c, o, memberSc)
 		}
 		// CR 608.2h: "if it was kicked" asks about the source as it last
 		// existed once it has left (Sphinx of Lost Truths killed in response).
