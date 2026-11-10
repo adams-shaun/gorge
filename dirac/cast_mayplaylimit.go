@@ -41,21 +41,21 @@ func grantUntil(u, kind uint8, headed *bool) uint8 {
 //
 //go:noinline
 func (s *State) spendGrant(i int) {
-	if s.g.may[i].kind&kop.MayPlayLimitMask == 0 {
+	if s.mayAt(i).kind&kop.MayPlayLimitMask == 0 {
 		return
 	}
 	lo := i
-	for lo > 0 && s.g.may[lo].until&mayUntilHead == 0 && s.g.may[lo-1].kind&kop.MayPlayLimitMask != 0 {
+	for lo > 0 && s.mayAt(lo).until&mayUntilHead == 0 && s.mayAt(lo-1).kind&kop.MayPlayLimitMask != 0 {
 		lo--
 	}
 	hi := i
-	for hi+1 < int(s.g.nmay) && s.g.may[hi+1].until&mayUntilHead == 0 && s.g.may[hi+1].kind&kop.MayPlayLimitMask != 0 {
+	for hi+1 < int(s.g.nmay) && s.mayAt(hi+1).until&mayUntilHead == 0 && s.mayAt(hi+1).kind&kop.MayPlayLimitMask != 0 {
 		hi++
 	}
 	// only limited records carry the count: a record with no cap compares
 	// its until byte exactly (Warp, Plot, Prepared), so it is never raised
 	for j := lo; j <= hi; j++ {
-		if m := &s.g.may[j]; m.kind&kop.MayPlayLimitMask != 0 && m.until&mayUntilUsed != mayUntilUsed {
+		if m := s.mayAt(j); m.kind&kop.MayPlayLimitMask != 0 && m.until&mayUntilUsed != mayUntilUsed {
 			m.until += mayUntilOne
 		}
 	}
@@ -65,15 +65,15 @@ func (s *State) spendGrant(i int) {
 // a use, the record leaves the pool, and a grant head passes its mark on to
 // the next record of the same grant.
 func (s *State) removeMay(i int) {
-	if s.g.may[i].kind&kop.MayPlayLimitMask != 0 {
+	if s.mayAt(i).kind&kop.MayPlayLimitMask != 0 {
 		s.spendGrant(i)
-		if s.g.may[i].until&mayUntilHead != 0 && i+1 < int(s.g.nmay) {
-			if nx := &s.g.may[i+1]; nx.until&mayUntilHead == 0 && nx.kind&kop.MayPlayLimitMask != 0 {
+		if s.mayAt(i).until&mayUntilHead != 0 && i+1 < int(s.g.nmay) {
+			if nx := s.mayAt(i+1); nx.until&mayUntilHead == 0 && nx.kind&kop.MayPlayLimitMask != 0 {
 				nx.until |= mayUntilHead
 			}
 		}
 	}
-	copy(s.g.may[i:], s.g.may[i+1:s.g.nmay])
+	s.mayShiftDown(i)
 	s.g.nmay--
 }
 

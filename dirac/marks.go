@@ -435,6 +435,9 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 			h = hbytes(h, unsafe.Pointer(&s.combatArm().divAmt), unsafe.Sizeof(s.combatArm().divAmt))
 		}
 		h = hbytes(h, unsafe.Pointer(&g.may[0]), uintptr(g.nmay)*unsafe.Sizeof(g.may[0]))
+		if cl := s.mayColdLive(); len(cl) > 0 {
+			h = hbytes(h, unsafe.Pointer(&cl[0]), uintptr(len(cl))*unsafe.Sizeof(cl[0]))
+		}
 		h = hmix(h, uint64(g.nask)|uint64(g.ctlRet)<<8|uint64(g.nmay)<<16|uint64(g.nrem)<<24|uint64(g.nchosen)<<32|uint64(g.priSave)<<40|uint64(g.askPrio)<<48|uint64(g.holdPrio)<<56)
 		h = hbytes(h, unsafe.Pointer(&g.rem[0]), uintptr(g.nrem)*unsafe.Sizeof(g.rem[0]))
 		h = hbytes(h, unsafe.Pointer(&g.chosen[0]), uintptr(g.nchosen)*unsafe.Sizeof(g.chosen[0]))

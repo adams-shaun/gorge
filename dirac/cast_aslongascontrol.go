@@ -34,12 +34,12 @@ func (s *State) mayWhileSrcCtrlDrop(o Obj, to uint8) {
 	}
 	n := 0
 	for i := 0; i < int(s.g.nmay); i++ {
-		r := s.g.may[i]
+		r := *s.mayAt(i)
 		if r.dur() == kop.DurWhileSrcMay && Obj(uint8(r.turn)) == o && r.ctrl != to &&
 			(s.objs[o].of&ofToken == 0 || s.objs[o].ver == uint8(r.turn>>8)) {
 			continue
 		}
-		s.g.may[n] = r
+		*s.mayAt(n) = r
 		n++
 	}
 	s.g.nmay = uint8(n)

@@ -34,7 +34,7 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 	landOK := sorc && pl.landsPlayed < s.landLimit(k, p)
 	// play permissions
 	for i := 0; i < int(s.g.nmay); i++ {
-		r := s.g.may[i]
+		r := *s.mayAt(i)
 		ob := &s.objs[r.obj]
 		if r.ctrl != p || ob.ver != r.ver || (ob.zone != kop.ZoneExile && ob.zone != kop.ZoneGraveyard) {
 			continue
@@ -309,8 +309,8 @@ func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
 // (a static permitted the play). The cast path and playLandNow share it.
 func (s *State) spendMayRecord(k *prep, o Obj, p uint8) bool {
 	for i := 0; i < int(s.g.nmay); i++ {
-		if s.g.may[i].obj == o && s.g.may[i].ctrl == p && s.g.may[i].ver == s.objs[o].ver &&
-			!ownWalkerRecord(s.g.may[i]) && !s.mayLimitSpent(s.g.may[i]) && !(k.gen.anyMayWhileSrc && s.maySrcDead(s.g.may[i])) {
+		if s.mayAt(i).obj == o && s.mayAt(i).ctrl == p && s.mayAt(i).ver == s.objs[o].ver &&
+			!ownWalkerRecord(*s.mayAt(i)) && !s.mayLimitSpent(*s.mayAt(i)) && !(k.gen.anyMayWhileSrc && s.maySrcDead(*s.mayAt(i))) {
 			s.removeMay(i)
 			return true
 		}
@@ -624,7 +624,7 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 	// offers one may-play cast per card: Zul Ashur's record beside
 	// Muldrotha's creature static, pair 91243)
 	for i := 0; i < int(s.g.nmay); i++ {
-		if r := s.g.may[i]; r.ctrl == p && s.objs[r.obj].ver == r.ver &&
+		if r := *s.mayAt(i); r.ctrl == p && s.objs[r.obj].ver == r.ver &&
 			!ownWalkerRecord(r) &&
 			!(k.gen.anyMayLimit && s.mayLimitSpent(r)) &&
 			!(k.gen.anyMayWhileSrc && s.maySrcDead(r)) {

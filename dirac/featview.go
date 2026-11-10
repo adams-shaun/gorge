@@ -1516,7 +1516,7 @@ func (s *State) FeatMayPlayUntyped(p uint8, o Obj) bool {
 	ob := &s.objs[o]
 	k := s.k()
 	for i := 0; i < int(s.g.nmay); i++ {
-		if r := s.g.may[i]; r.obj == o && r.ctrl == p && r.ver == ob.ver && !ownWalkerRecord(r) {
+		if r := *s.mayAt(i); r.obj == o && r.ctrl == p && r.ver == ob.ver && !ownWalkerRecord(r) {
 			if k.gen != nil && k.gen.anyMayLimit && s.mayLimitSpent(r) {
 				continue // the record's cap is reached; another grant may still offer
 			}

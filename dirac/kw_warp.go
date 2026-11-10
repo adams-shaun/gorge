@@ -99,7 +99,7 @@ func (s *State) offerWarpRecasts(k *prep, d *Decision, p uint8, sorc bool) {
 func (s *State) warpRecastRecord(p uint8, o Obj) bool {
 	ob := &s.objs[o]
 	for i := 0; i < int(s.g.nmay); i++ {
-		r := s.g.may[i]
+		r := *s.mayAt(i)
 		if r.obj == o && r.ctrl == p && r.ver == ob.ver && r.until == kop.DurWarp && s.turn > r.turn {
 			return true
 		}
@@ -121,7 +121,7 @@ func (s *State) warpRecastLive(r mayPlay) bool {
 func (s *State) refreshWarpRecast(o Obj) {
 	ob := &s.objs[o]
 	for i := 0; i < int(s.g.nmay); i++ {
-		r := &s.g.may[i]
+		r := s.mayAt(i)
 		if r.obj == o && r.ctrl == ob.owner() && r.until == kop.DurWarp {
 			r.ver = ob.ver
 		}
@@ -143,11 +143,11 @@ func (s *State) registerWarpExile(o Obj, ctrl uint8) {
 // (CR 702.185a: the owner may cast it, not the spell's controller).
 func (s *State) warpRecastGrant(o Obj) {
 	ob := &s.objs[o]
-	if s.g.nmay >= maxMay {
+	if s.mayFull() {
 		s.capFull(StallMayPlay)
 		return
 	}
-	s.g.may[s.g.nmay] = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurWarp, turn: s.turn}
+	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurWarp, turn: s.turn}
 	s.g.nmay++
 }
 

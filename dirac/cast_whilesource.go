@@ -38,7 +38,7 @@ func prepMayWhileSrc(t *kop.Table, g *genPrep) {
 //go:noinline
 func (s *State) mayWhileSrcStamp(from uint8, src Obj) {
 	for i := int(from); i < int(s.g.nmay); i++ {
-		if r := &s.g.may[i]; r.dur() == kop.DurWhileSrcMay {
+		if r := s.mayAt(i); r.dur() == kop.DurWhileSrcMay {
 			r.turn = uint16(src) | uint16(s.objs[src].ver)<<8
 		}
 	}

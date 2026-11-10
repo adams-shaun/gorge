@@ -188,7 +188,7 @@ func (s *State) defeatQueue(k *prep, o Obj) {
 	if ob.zone != kop.ZoneExile || cd.FaceMode != kop.FaceTransform || len(cd.Faces) != 2 || cd.Faces[0] != ob.card {
 		return
 	}
-	if s.g.nmay >= maxMay {
+	if s.mayFull() {
 		s.capFull(StallMayPlay)
 		return
 	}
@@ -200,7 +200,7 @@ func (s *State) defeatQueue(k *prep, o Obj) {
 		// a resolution's SBA tail is asked before this step's priority.
 		kind = defeatDeferred
 	}
-	s.g.may[s.g.nmay] = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurDefeated, kind: kind}
+	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurDefeated, kind: kind}
 	s.g.nmay++
 }
 
@@ -208,8 +208,8 @@ func (s *State) defeatQueue(k *prep, o Obj) {
 // whole batch at one step head (or after a resolution), not one per step.
 func (s *State) wakeDefeat() {
 	for i := 0; i < int(s.g.nmay); i++ {
-		if s.g.may[i].until == kop.DurDefeated {
-			s.g.may[i].kind &^= defeatDeferred
+		if s.mayAt(i).until == kop.DurDefeated {
+			s.mayAt(i).kind &^= defeatDeferred
 		}
 	}
 }
@@ -218,7 +218,7 @@ func (s *State) wakeDefeat() {
 // defeatedCasts queue order: records are appended in exile order), or -1.
 func (s *State) firstDefeat() int {
 	for i := 0; i < int(s.g.nmay); i++ {
-		if s.g.may[i].until == kop.DurDefeated {
+		if s.mayAt(i).until == kop.DurDefeated {
 			return i
 		}
 	}
@@ -227,7 +227,7 @@ func (s *State) firstDefeat() int {
 
 // dropMay removes may record i, keeping the queue order.
 func (s *State) dropMay(i int) {
-	copy(s.g.may[i:], s.g.may[i+1:s.g.nmay])
+	s.mayShiftDown(i)
 	s.g.nmay--
 }
 
@@ -241,7 +241,7 @@ func (s *State) defeatAsk(k *prep, d *Decision) bool {
 		if i < 0 {
 			return false
 		}
-		r := s.g.may[i]
+		r := *s.mayAt(i)
 		if r.kind&defeatDeferred != 0 {
 			return false // queued during this step: the next step's head asks
 		}
@@ -259,7 +259,7 @@ func (s *State) defeatAsk(k *prep, d *Decision) bool {
 			s.dropMay(i) // gorge asks only when the back face's targets exist
 			continue
 		}
-		s.g.may[i].kind = defeatPosed
+		s.mayAt(i).kind = defeatPosed
 		s.g.ctlRet = s.ctl
 		s.ctl = ctlGenAsk
 		return s.genAskOptions(k, d)
@@ -269,10 +269,10 @@ func (s *State) defeatAsk(k *prep, d *Decision) bool {
 // defeatPosedOptions fills the ask for the posed DurDefeated record.
 func (s *State) defeatPosedOptions(d *Decision) bool {
 	i := s.firstDefeat()
-	if i < 0 || s.g.may[i].kind != defeatPosed {
+	if i < 0 || s.mayAt(i).kind != defeatPosed {
 		return false
 	}
-	r := s.g.may[i]
+	r := *s.mayAt(i)
 	d.Kind, d.Sub, d.Player = DkChoose, ChDefeatCast, r.ctrl
 	d.add(MakeAction(AkChoose, uint8(r.obj), 0, 1))
 	d.add(MakeAction(AkChoose, uint8(r.obj), 0, 0))
@@ -284,10 +284,10 @@ func (s *State) defeatPosedOptions(d *Decision) bool {
 // casts it free (CR 310.11/712), bypassing the timing gate.
 func (s *State) applyDefeat(k *prep, a Action) bool {
 	i := s.firstDefeat()
-	if i < 0 || s.g.may[i].kind != defeatPosed {
+	if i < 0 || s.mayAt(i).kind != defeatPosed {
 		return false
 	}
-	r := s.g.may[i]
+	r := *s.mayAt(i)
 	s.dropMay(i)
 	s.ctl = s.g.ctlRet
 	if a.Mode() == 0 {

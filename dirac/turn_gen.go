@@ -704,7 +704,7 @@ func (s *State) cleanupGen(k *prep) {
 	}
 	n := 0
 	for i := 0; i < int(s.g.nmay); i++ {
-		r := s.g.may[i]
+		r := *s.mayAt(i)
 		keep := r.dur() == kop.DurYourNextTurn && !(s.active == r.ctrl && s.turn > r.turn) ||
 			r.until == kop.DurWarp && s.warpRecastLive(r) ||
 			r.until == kop.DurAirbend && s.warpRecastLive(r) ||
@@ -715,7 +715,7 @@ func (s *State) cleanupGen(k *prep) {
 			r.until == kop.DurPermanent && s.plotLive(r) // a while-exiled permission (cast_whileexiled.go)
 		if keep {
 			r.until &^= mayUntilUsed // a grant's cap counts per turn (cast_mayplaylimit.go)
-			s.g.may[n] = r
+			*s.mayAt(n) = r
 			n++
 		}
 	}
