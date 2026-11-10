@@ -32,7 +32,7 @@ func (s *State) targetOKGraveExileCard(k *prep, t *kop.TargetSpec, p uint8, src 
 //
 //go:noinline
 func (s *State) graveExileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]uint8, n int) int {
-	for pp := 0; pp < 2; pp++ {
+	for pp := 0; pp < MaxSeats; pp++ {
 		pl := &s.pl[pp]
 		for i := 0; i < int(pl.graveN); i++ {
 			o := pl.grave[i]
