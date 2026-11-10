@@ -167,59 +167,17 @@ func (s *State) tapForSpellTaps(k *prep, p uint8, cost *kop.ManaCost, x int, exc
 	if !pk.found {
 		return false
 	}
-	var cands [MaxPerm]Slot
-	nc := 0
-	for m := s.ctrlM[p]; m.any(); m = m.rest() {
-		if c := m.first(); s.perms[c].flags&pfTapped == 0 && s.matchPerm(k, part.Filter, c, p, NoSlot) {
-			cands[nc] = c
-			nc++
-		}
-	}
-	for i := 1; i < nc; i++ {
-		for j := i; j > 0 && s.perms[cands[j]].ts < s.perms[cands[j-1]].ts; j-- {
-			cands[j], cands[j-1] = cands[j-1], cands[j]
-		}
-	}
+	cands, nc := s.tapCandsByEntry(k, p, part.Filter, NoSlot, NoSlot)
 	n := int(part.N)
-	left := 0
-	for i := 0; i < nc; i++ {
-		if !pk.planUses(cands[i]) {
-			left++
-		}
-	}
-	if left >= n || n > nc {
+	if pk.unplannedCount(&cands, nc) >= n || n > nc {
 		return false
 	}
-	var idx [MaxPerm]uint8
-	for i := 0; i < n; i++ {
-		idx[i] = uint8(i)
+	held, _, ok := s.firstHeldPlan(k, p, cost, x, excl, anyColor, &cands, nc, n)
+	if !ok {
+		return false
 	}
-	for tries := 0; tries < planReservationLimit; tries++ {
-		var held slotMask
-		for i := 0; i < n; i++ {
-			held.set(cands[idx[i]])
-		}
-		s.holdSlots(held, true)
-		var r planner
-		r.dry = true
-		s.tapForPK(k, p, cost, x, excl, false, anyColor, &r)
-		if r.found {
-			s.tapForRider(k, p, cost, x, excl, anyColor)
-			s.holdSlots(held, false)
-			return true
-		}
-		s.holdSlots(held, false)
-		i := n - 1
-		for i >= 0 && int(idx[i]) == nc-n+i {
-			i--
-		}
-		if i < 0 {
-			return false
-		}
-		idx[i]++
-		for j := i + 1; j < n; j++ {
-			idx[j] = idx[j-1] + 1
-		}
-	}
-	return false
+	s.holdSlots(held, true)
+	s.tapForRider(k, p, cost, x, excl, anyColor)
+	s.holdSlots(held, false)
+	return true
 }
