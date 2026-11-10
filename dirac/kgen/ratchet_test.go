@@ -121,13 +121,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (lt-low-tappower-station: Tapestry Warden, Sulu, Heroic Helmsman and Stoic Star-Captain lower their TapPowerValue lines to StatTapPower statics; ALL 22092 -> 22095).
 	// +3 (the merge with land: this branch's three TapPowerValue statics beside land's 22114; merged ALL 22114 -> 22117).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22138, 34442},
+	"ALL": {22139, 34442},
 	"BIG": {26, 30},
 	"BLB": {261, 278},
 	"BRO": {214, 280},
 	"DFT": {252, 276},
 	"DMU": {194, 270},
-	"DSK": {248, 276},
+	"DSK": {249, 276},
 	"ECL": {242, 273},
 	"EOE": {248, 266},
 	"FDN": {517, 517},
