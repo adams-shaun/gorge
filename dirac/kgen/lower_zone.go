@@ -62,7 +62,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		return lc.permOrSpellMove(ps) // lower_permorspell.go
 	}
 	dual := strings.TrimSpace(ps.str("Origin")) == "Graveyard,Exile"
-	if dual && !everyRemembered(ps.str("ChangeType")) {
+	if dual && !everyRememberedOrImprinted(ps.str("ChangeType")) {
 		return refuse("ChangeZone Origin$ Graveyard,Exile ChangeType$ %q without IsRemembered", ps.str("ChangeType"))
 	}
 	hg := strings.TrimSpace(ps.str("Origin")) == "Hand,Graveyard" // lower_handgravepick.go

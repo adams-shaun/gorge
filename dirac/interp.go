@@ -246,10 +246,10 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			}
 			pl := &s.pl[p]
 			if k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 {
-				s.millShuffling(k, p, n, in.C&kop.MvRemember != 0)
+				s.millShuffling(k, p, n, int(in.C))
 				continue
 			}
-			if k.gen != nil && len(s.cold.parked) != 0 && s.parkMills(k, p, n, in.C&kop.MvRemember != 0) {
+			if k.gen != nil && len(s.cold.parked) != 0 && s.parkMills(k, p, n, int(in.C)) {
 				continue
 			}
 			for i := 0; i < n && pl.libLo < pl.libHi; i++ {
@@ -258,9 +258,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				s.touch(o)
 				s.objs[o].zone = kop.ZoneNone
 				s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
-				if in.C&kop.MvRemember != 0 {
-					s.remember(o) // RememberMilled$ (Sphinx's Tutelage)
-				}
+				s.millMark(o, int(in.C))
 			}
 		}
 	case kop.OpFight, kop.OpBite:

@@ -3,6 +3,8 @@ package kgen
 import (
 	"fmt"
 	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // lower_imprintzone.go: the Imprint$ writers of a Token (ImprintTokens$) and
@@ -66,6 +68,46 @@ func (lc *lowerCtx) changeZoneImprint(ps *params, in *lInstr) error {
 	return nil
 }
 
+// millImprint reads Mill's Imprint$ True: each milled card joins the imprinted
+// set (kop.MvImprint on OpMill C), wherever a replacement sends it. The reads
+// that follow sit in the same chain (Patient Naturalist's IsImprinted pick).
+func (lc *lowerCtx) millImprint(ps *params, in *lInstr) error {
+	v, ok := ps.get("Imprint")
+	if !ok {
+		return nil
+	}
+	if v != "True" {
+		return refuse("Mill Imprint$ %q", v)
+	}
+	if err := lc.openImprint("Mill Imprint$"); err != nil {
+		return err
+	}
+	in.CS = strings.TrimPrefix(in.CS+"|ImprintMove", "|")
+	return nil
+}
+
+// imprintedFilterGate refuses a filter naming IsImprinted outside a chain
+// that opened the imprinted set: the kernel's set lives for one resolution.
+func (lc *lowerCtx) imprintedFilterGate(expr string) error {
+	if strings.Contains(expr, "IsImprinted") && !lc.digImprintSetLive() {
+		return refuse("filter %q: IsImprinted outside a chain that writes the imprinted set", expr)
+	}
+	return nil
+}
+
+// filterReadsImprinted reports whether f carries the IsImprinted word.
+func filterReadsImprinted(f *lFilter) bool {
+	if f == nil {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.CmpStat == cmpWord7 && c.CmpN == int(kop.W7Imprinted) {
+			return true
+		}
+	}
+	return false
+}
+
 // imprintWriter reports whether in adds to the resolution's imprinted set.
 func imprintWriter(in lInstr) bool {
 	switch in.Op {
@@ -75,6 +117,8 @@ func imprintWriter(in lInstr) bool {
 		return strings.Contains(in.CS, "ImprintMove")
 	case "DigImprint":
 		return true
+	case "Mill":
+		return strings.Contains(in.CS, "ImprintMove")
 	}
 	return false
 }
@@ -88,7 +132,7 @@ func imprintWriter(in lInstr) bool {
 func unclearedImprint(prog []lInstr) bool {
 	writes, clears := false, false
 	for j, in := range prog {
-		writes = writes || in.Op == "CreateToken" && in.C&2048 != 0 || in.Op == "Exile" && strings.Contains(in.CS, "ImprintMove")
+		writes = writes || in.Op == "CreateToken" && in.C&2048 != 0 || in.Op == "Exile" && strings.Contains(in.CS, "ImprintMove") || in.Op == "Mill" && strings.Contains(in.CS, "ImprintMove")
 		if in.Op != "ClearImprinted" || in.Cond.Kind != cNone {
 			continue
 		}
@@ -109,7 +153,7 @@ func (lc *lowerCtx) refuseCrossAbilityImprinted() {
 	for _, a := range lc.out.Abilities {
 		reads, writes := false, false
 		for _, in := range a.Prog {
-			reads = reads || in.Obj.Kind == rImprinted || in.Obj2.Kind == rImprinted
+			reads = reads || in.Obj.Kind == rImprinted || in.Obj2.Kind == rImprinted || filterReadsImprinted(in.F)
 			writes = writes || imprintWriter(in)
 		}
 		if unclearedImprint(a.Prog) {

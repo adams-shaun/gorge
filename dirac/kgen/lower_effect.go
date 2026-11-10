@@ -1439,6 +1439,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if ps.is("RememberMilled", "True") {
 			in.CS = "Remember"
 		}
+		if err := lc.millImprint(ps, &in); err != nil { // lower_imprintzone.go
+			return err
+		}
 		if err := lc.mayGate(ps, kop.MayGuardMill, who); err != nil {
 			return err
 		}

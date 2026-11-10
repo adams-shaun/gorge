@@ -12,6 +12,16 @@ const StallImprint = 145
 
 func init() { stallNames[StallImprint] = "imprint" }
 
+// impHas reports whether o is in the resolution's imprinted set.
+func (s *State) impHas(o Obj) bool {
+	for i := 0; i < int(s.g.nimp); i++ {
+		if s.g.imp[i] == o {
+			return true
+		}
+	}
+	return false
+}
+
 // imprint adds o to the imprinted set, once.
 func (s *State) imprint(o Obj) {
 	for i := 0; i < int(s.g.nimp); i++ {

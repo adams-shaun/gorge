@@ -141,7 +141,7 @@ func followsLive(k *prep, c CardID, ab uint8) bool {
 // shuffle does not change which cards are milled (CR 701.17a).
 //
 //go:noinline
-func (s *State) millShuffling(k *prep, p uint8, n int, remember bool) {
+func (s *State) millShuffling(k *prep, p uint8, n int, c int) {
 	pl := &s.pl[p]
 	var top [MaxObj]Obj
 	m := copy(top[:min(n, len(top))], pl.lib[pl.libLo:pl.libHi])
@@ -150,9 +150,7 @@ func (s *State) millShuffling(k *prep, p uint8, n int, remember bool) {
 		s.touch(o)
 		s.objs[o].zone = kop.ZoneNone
 		s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
-		if remember {
-			s.remember(o)
-		}
+		s.millMark(o, c)
 	}
 }
 

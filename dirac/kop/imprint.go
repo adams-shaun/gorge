@@ -9,9 +9,11 @@ package kop
 // single object is read; none when the set is empty).
 const RefImprinted Ref = 35
 
-// MvImprint (OpExileEx C): the moved objects join the resolution's imprinted
-// set (Imprint$ True); independent of MvRemember. Bit 13 is MvFromGraveyard;
-// 14 is unused by the unshifted OpExileEx C and keeps it positive in int16.
+// MvImprint (OpExileEx C, OpMill C): the moved (milled) objects join the
+// resolution's imprinted set (Imprint$ True); independent of MvRemember. Bit
+// 13 is MvFromGraveyard; 14 is unused by the unshifted OpExileEx C and keeps
+// it positive in int16. OpMill C uses only MvRemember (bit 0) and MvMayMill
+// (bit 8).
 const MvImprint = 1 << 14
 
 // ExtClearImprinted forgets the resolution's imprinted objects (Cleanup

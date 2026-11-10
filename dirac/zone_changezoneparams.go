@@ -34,7 +34,7 @@ func (s *State) mayMill(p1, p2 uint8, n int) bool {
 }
 
 // millTop mills player p's top n cards one at a time (OpMill's loop).
-func (s *State) millTop(p uint8, n int, remember bool) {
+func (s *State) millTop(p uint8, n int, c int) {
 	pl := &s.pl[p]
 	for i := 0; i < n && pl.libLo < pl.libHi; i++ {
 		o := pl.lib[pl.libLo]
@@ -42,9 +42,21 @@ func (s *State) millTop(p uint8, n int, remember bool) {
 		s.touch(o)
 		s.objs[o].zone = kop.ZoneNone
 		s.placeFrom(o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
-		if remember {
-			s.remember(o)
-		}
+		s.millMark(o, c)
+	}
+}
+
+// millMark records a milled card o in the sets OpMill's flags name: the
+// remembered set (MvRemember, RememberMilled$ of Sphinx's Tutelage) and the
+// imprinted set (MvImprint, Imprint$ True of Patient Naturalist). The card
+// that was milled is marked wherever a replacement sent it (gorge imprints
+// the id it milled). All four mill paths call it right after the move.
+func (s *State) millMark(o Obj, c int) {
+	if c&kop.MvRemember != 0 {
+		s.remember(o)
+	}
+	if c&kop.MvImprint != 0 {
+		s.imprint(o)
 	}
 }
 
@@ -81,7 +93,7 @@ func (s *State) applyAskCzParams(k *prep, a Action) bool {
 		s.res.ask = raNone
 		p, next := s.g.pickP, s.g.pickZ
 		if a.Mode() != 0 {
-			s.millTop(p, int(s.g.pickLeft), s.prog(k)[s.res.pc].C&kop.MvRemember != 0)
+			s.millTop(p, int(s.g.pickLeft), int(s.prog(k)[s.res.pc].C))
 		}
 		if next != 255 {
 			s.g.pickP, s.g.pickZ = next, 255

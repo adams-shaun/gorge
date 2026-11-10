@@ -33,7 +33,7 @@ func (s *State) preventMill(k *prep, srcCtrl, rcp uint8, n int) bool {
 		return true
 	}
 	if k.gen.anyRepl&rbGraveLib != 0 {
-		s.millShuffling(k, rcp, n, false)
+		s.millShuffling(k, rcp, n, 0)
 		return true
 	}
 	pl := &s.pl[rcp]

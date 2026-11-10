@@ -154,7 +154,7 @@ func TestMillPastTheParkedQueueStalls(t *testing.T) {
 		pl.libBottom(o)
 	}
 	lib := int(pl.libHi - pl.libLo)
-	if !s.parkMills(k, 0, lib, false) {
+	if !s.parkMills(k, 0, lib, 0) {
 		t.Fatal("the mill's first card has no order ask")
 	}
 	if s.g.stalled != StallReplCands {

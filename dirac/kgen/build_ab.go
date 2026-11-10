@@ -3058,6 +3058,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				ki.C |= kop.MvRemember
 			case "Optional":
 				ki.C |= kop.MvMayMill
+			case "ImprintMove":
+				ki.C |= kop.MvImprint
 			default:
 				return ki, fmt.Errorf("mill %s", in.CS)
 			}

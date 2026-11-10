@@ -107,6 +107,8 @@ func filterWordPred3(p string) (n int, ok bool) {
 		return int(kop.W7EnteredFromBF), true
 	case "BottomLibrary":
 		return int(kop.W7BottomLibrary), true
+	case "IsImprinted":
+		return int(kop.W7Imprinted), true // gated to a chain that writes the set (lower_imprintzone.go)
 	case "sharesCreatureTypeWith TriggeredAttacker", "sharesCreatureTypeWith TriggeredAttackerLKICopy":
 		// the Attacks trigger's attacker (lowerCtx.referentGate holds it to
 		// an Attacks trigger's body, where trigObj is that attacker)

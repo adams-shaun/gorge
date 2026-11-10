@@ -410,6 +410,11 @@ const W7FaceUpDisguise int16 = 23
 // ledger). Read off the battlefield only: kgen refuses it on a permanent.
 const W7EnteredFromBF int16 = 24
 
+// W7Imprinted (PredWord7 sub-kind 25): the object is in the resolution's
+// imprinted set (gorge's IsImprinted; genState.imp, written by an Imprint$
+// writer earlier in the same chain). kgen lowers it only inside such a chain.
+const W7Imprinted int16 = 25
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go
