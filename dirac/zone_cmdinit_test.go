@@ -13,7 +13,7 @@ import (
 const cmdTestSeed = 9031
 
 // cmdTestCommanders are each seat's commander index into its 100-card deck.
-var cmdTestCommanders = [2]int16{37, 62}
+var cmdTestCommanders = [MaxSeats]int16{37, 62}
 
 // cmdTestDecks are two 100-card kernel decks; the card at each seat's
 // commander index is a creature.
@@ -128,7 +128,7 @@ func TestCommanderGenesisCommandZone(t *testing.T) {
 		if pl.cmd != want || s.objs[want].zone != kop.ZoneCommand {
 			t.Fatalf("seat %d: cmd %d zone %v, want object %d in the command zone", p, pl.cmd, s.objs[want].zone, want)
 		}
-		if pl.cmdCast != 0 || pl.cmdAsk != 0 || pl.cmdDmg != [2]uint8{} {
+		if pl.cmdCast != 0 || pl.cmdAsk != 0 || pl.cmdDmg != [MaxSeats]uint8{} {
 			t.Fatalf("seat %d: commander bookkeeping not zero", p)
 		}
 		if pl.libLen() != 99-7 || pl.handN != 7 || pl.life != 40 {

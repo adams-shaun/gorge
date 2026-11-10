@@ -1,0 +1,11 @@
+# a filter whose activation cost sacrifices its source
+# (Omni-Cheese Pizza: "{1}, {T}, Sacrifice this artifact: Add one mana of any
+# color"; dirac/mana_filtersac_test.go)
+# Pizza, a Sacrificed watcher (Moonstone Eulogist: a counter and a life), the
+# spell only the Pizza's colour pays (Doom Blade) and its target.
+Omni-Cheese Pizza
+Moonstone Eulogist
+Doom Blade
+Grizzly Bears
+Plains
+Swamp

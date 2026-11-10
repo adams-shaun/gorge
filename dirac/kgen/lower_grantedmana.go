@@ -16,12 +16,15 @@ import "strings"
 // creature spells", Ambulatory Reactor's artifact spells and abilities of
 // artifact sources) rides the same search: the tapped grant floats its mana
 // in a restricted batch (State.rb) spendable only as the restriction
-// allows. Any other shape -- a mana fee or a dynamic amount (Evendo's
-// "{G}, {T}: Add {G} for each creature"), a sacrifice, life or other
-// non-tap part (a granted Treasure ability, Lotus Ring's sacrifice,
-// Forgotten Monument's "{T}, Pay 1 life": the search's steps tap the
-// source and nothing else), a chosen colour -- would be counted as plain
-// mana or not at all, so it is refused.
+// allows. "{T}, Pay N life" rides it too (Forgotten Monument's Caves: the
+// step pays the life, CR 119.4, and is skipped when the payer's life is
+// below N; dirac mana_grantcost.go). Lotus Ring's sacrifice-only ability is
+// refused by its own reason: the manual mana window of a resolution-time
+// payment would have to offer the sacrifice too. Any other shape -- a mana
+// fee or a dynamic amount (Evendo's "{G}, {T}: Add {G} for each creature"),
+// {T} with a sacrifice (a granted Treasure ability) or another non-tap part,
+// a chosen colour -- would be counted as plain mana or not at all, so it is
+// refused.
 
 // grantedManaShape reports why granted mana ability ab is outside the
 // kernel's granted-source shape ("" when it is a plain tap ability).
@@ -30,8 +33,14 @@ func grantedManaShape(ab *lAbility) string {
 		return ""
 	}
 	c := &ab.Cost
-	if !c.Tap || c.Untap || c.SacSelf || c.Sac != nil || c.DiscardN > 0 || c.DiscardSelf || c.Loyalty != 0 || c.SubCtr > 0 ||
-		c.PayLife > 0 || c.TapN > 0 || c.TapHost || c.SacHost || c.TapPowN > 0 || c.Forage != nil || c.ExileG != nil || c.Energy != 0 ||
+	if c.SacSelf && !c.Tap {
+		// the prefix search could sacrifice the source, but a resolution-time
+		// payment's manual mana window (a trigger's "you may pay") never offers
+		// such a source, and gorge's does
+		return "granted sacrifice-only mana ability: the kernel's manual mana window cannot activate it"
+	}
+	if !grantedManaCostShape(c) || c.Untap || c.Sac != nil || c.DiscardN > 0 || c.DiscardSelf || c.Loyalty != 0 || c.SubCtr > 0 ||
+		c.TapN > 0 || c.TapHost || c.SacHost || c.TapPowN > 0 || c.Forage != nil || c.ExileG != nil || c.Energy != 0 ||
 		c.ReturnSelf || c.ExileSelf || c.Return != nil || c.DrawN > 0 {
 		return "granted mana ability whose cost is not {T}"
 	}
@@ -60,6 +69,14 @@ func grantedManaShape(ab *lAbility) string {
 		return "granted mana ability of a chosen colour"
 	}
 	return ""
+}
+
+// grantedManaCostShape reports whether c's tap, sacrifice and life parts are
+// one of the two granted shapes the kernel's grant search steps pay: {T}
+// alone, or {T} + pay N life (Forgotten Monument; the step pays the life).
+// The other cost parts are grantedManaShape's.
+func grantedManaCostShape(c *lCost) bool {
+	return c.Tap && !c.SacSelf && !c.LifeX && c.PayLife >= 0 && c.PayLife <= 255
 }
 
 // colorsInWUBRGOrder reports whether the colour letters of s are in W U

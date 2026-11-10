@@ -2615,6 +2615,14 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			ab.Limit = 1
 			ab.Exhaust = true
 		}
+		if v, ok := ps.get("CantCopy"); ok {
+			// gorge SpellCopyAllowed reads "True" or "true"; the kernel's
+			// ExtCopyAbility reads the table byte of the copied entry
+			if v != "True" && v != "true" {
+				return refuse("CantCopy$ %q", v)
+			}
+			ab.CantCopy = true
+		}
 		if v, ok := ps.get("PowerUp"); ok {
 			// CR 702.193a: activate only once per object stint; CR 702.193b
 			// reduces the cost by the permanent's mana cost on its entry turn.

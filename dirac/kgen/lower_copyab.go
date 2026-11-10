@@ -9,6 +9,7 @@ package kgen
 // the source's derived types to the wrapper), so ValidTgts$ Card / Card,Emblem
 // name every source and a bare card type (Card.Creature, Artifact) filters by
 // the source's types; anything else refuses. MayChooseTarget$ must be True.
+// Amount$ is the copy count (default 1; Gogo's X, Mister Fantastic's 2).
 func (lc *lowerCtx) copyAbility(ps *params) error {
 	var kind uint8
 	switch tt := ps.str("TargetType"); tt {
@@ -19,7 +20,7 @@ func (lc *lowerCtx) copyAbility(ps *params) error {
 	default:
 		return refuse("CopySpellAbility TargetType %q", tt)
 	}
-	for _, k := range []string{"Amount", "Defined", "Controller", "CopyForEachCanTarget", "TargetMin", "TargetMax"} {
+	for _, k := range []string{"Defined", "Controller", "CopyForEachCanTarget", "TargetMin", "TargetMax"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("CopySpellAbility of an ability with %s$", k)
 		}
@@ -39,6 +40,10 @@ func (lc *lowerCtx) copyAbility(ps *params) error {
 		return refuse("CopySpellAbility of an ability whose ValidTgts$ %q reads more than the source's types", vt)
 	}
 	t := lc.addTarget(lTarget{F: f, Zone: zStack, Spell: true, StackAb: true, AbOnly: true, CopyAb: kind})
-	lc.emit(lInstr{Op: "CopyAbility", Obj: lRef{Kind: rTarget, N: t}, C: 1})
+	n, err := lc.amount(ps, "Amount", 1)
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "CopyAbility", Obj: lRef{Kind: rTarget, N: t}, A: n, C: 1})
 	return nil
 }

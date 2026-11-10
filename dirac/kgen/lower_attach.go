@@ -10,9 +10,25 @@ package kgen
 // destination itself, attaches nothing. Optional$, Choices$, Move$,
 // RememberAttached$ and plural Object$ selectors (Valid ..., AttachedTo
 // ...) are refused.
+//
+// Object$ ParentTarget alone is plural (gorge attachObjectParentTarget: every
+// object of the parent link's answered set, Thorin, Mountain-king's "attach
+// any number of target Equipment"): its object slot may take several objects,
+// which the kernel's AttachObj attaches each, and RememberAttached$ True
+// remembers each object attached (B = 1).
 func (lc *lowerCtx) attachObject(ps *params, o string) error {
+	remember := false
+	if o == "ParentTarget" {
+		if v, ok := ps.get("RememberAttached"); ok {
+			if v != "True" {
+				return refuse("Attach Object %q with RememberAttached$ %q", o, v)
+			}
+			ps.consume("RememberAttached")
+			remember = true
+		}
+	}
 	for _, k := range []string{"Optional", "Choices", "Move", "RememberAttached", "PlayerChoices", "Unattach"} {
-		if _, ok := ps.get(k); ok {
+		if _, ok := ps.get(k); ok && !(k == "RememberAttached" && remember) {
 			return refuse("Attach Object %q with %s$", o, k)
 		}
 	}
@@ -70,7 +86,7 @@ func (lc *lowerCtx) attachObject(ps *params, o string) error {
 			if f := lc.ab.Targets[r.N].F; f == nil || len(f.Clauses) == 0 || lc.ab.Targets[r.N].Zone != zBattlefield {
 				return refuse("Attach Object %q: target slot %d is not a permanent", o, r.N)
 			}
-			if mx := lc.ab.Targets[r.N].Max; !mx.isConst() || mx.N > 1 {
+			if mx := lc.ab.Targets[r.N].Max; (!mx.isConst() || mx.N > 1) && !(o == "ParentTarget" && r == obj) {
 				// "any number of target Equipment" attaches them all
 				return refuse("Attach Object %q: target slot %d takes several objects", o, r.N)
 			}
@@ -81,9 +97,17 @@ func (lc *lowerCtx) attachObject(ps *params, o string) error {
 	if obj == dest {
 		return refuse("Attach Object %q onto itself", o)
 	}
-	lc.emit(lInstr{Op: "AttachObj", Obj: dest, Obj2: obj})
+	in := lInstr{Op: "AttachObj", Obj: dest, Obj2: obj}
+	if remember {
+		in.Note = attachRememberNote
+	}
+	lc.emit(in)
 	return nil
 }
+
+// attachRememberNote marks an AttachObj that remembers each object it
+// attached (RememberAttached$ True; kremWrites sees "remember").
+const attachRememberNote = "remember attached"
 
 // attachChoices lowers `DB$ Attach | Choices$ <filter> | Defined$ <dest>`
 // with no Object$ (Zack Fair, Vow to Erebor, Winter Soldier): "(you may)

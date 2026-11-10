@@ -275,7 +275,12 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 		// Chosen remembers BOTH the entering Aura and the Cat token, and only
 		// the Aura is the object to attach). Widening the first-take to every
 		// selector would attach the attachments to each other.
-		plural := ap.objectKind == attachObjectAttachedTo
+		//
+		// ParentTarget / ParentTargeted is plural too: it names the parent
+		// link's answered target set, which the card text attaches as a whole
+		// (Thorin, Mountain-king's "attach any number of target Equipment you
+		// control to target creature you control").
+		plural := ap.objectKind == attachObjectAttachedTo || ap.objectKind == attachObjectParentTarget
 		if ts, ok := definedSpec(h, c, ap.Object); ok {
 			os := objectsOf(ts)
 			if len(os) > 0 {

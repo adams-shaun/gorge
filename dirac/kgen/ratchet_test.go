@@ -114,8 +114,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +5 (the merge with land: this branch's +5 beside land's +26, disjoint; merged ALL 21784 -> 21789 measured).
 	// +1 (Boommobile: an artifact's resolving mana restricted to activated abilities, kop.SpmActivated; the merge with land: land's 21792 + 1 = 21793, DFT 250 -> 251).
 	// +6 (a static's granted Exalted lowers as a latent Attacks trigger: First Sliver's Chosen, Merchant of Truth, Order of Sacred Dusk, Sublime Archangel, Xenk, Paladin Unbroken, Zarda, the Power Princess; ALL 21873 -> 21879).
+	// +3 (a filter whose activation cost sacrifices its source lowers, kop.FilterManaAb: Omni-Cheese Pizza (TMT 174 -> 175), Chromatic Star, Golden Egg; ALL 21930 -> 21933).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21929, 34442},
+	"ALL": {21939, 34442},
 	"BIG": {23, 30},
 	"BLB": {260, 278},
 	"BRO": {212, 280},
@@ -125,11 +126,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"ECL": {237, 273},
 	"EOE": {242, 266},
 	"FDN": {517, 517},
-	"FIN": {270, 312},
+	"FIN": {271, 312},
 	"FRA": {249, 269},
 	"HOB": {156, 172},
-	"LCI": {254, 290},
-	"MKM": {244, 279},
+	"LCI": {255, 290},
+	"MKM": {245, 279},
 	"MOM": {198, 296},
 	"MSH": {240, 276},
 	"NEO": {198, 287},
@@ -140,8 +141,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SPM": {164, 192},
 	"TDM": {254, 276},
 	"TLA": {258, 285},
-	"TMT": {174, 194},
-	"TRC": {290, 337},
+	"TMT": {175, 194},
+	"TRC": {291, 337},
 	"TRK": {311, 311},
 	"WOE": {256, 281},
 }

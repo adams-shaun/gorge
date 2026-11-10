@@ -3,11 +3,12 @@
   "class": "options",
   "why": "the kernel's cast census counts the Reactor's artifact-only granted mana as plain mana outside an alternative-cost payment, so it offers a non-artifact spell gorge cannot pay for (seen beside Forsaken Monument's extra colourless)",
   "repro": {
-    "pool": "std-trc",
+    "pool": "custom",
     "surface": "full",
-    "seed": 1,
-    "pair": 18,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 0,
+    "file": "ambulatory_reactor_restricted_grant_beside_forsaken_monument"
   }
 }

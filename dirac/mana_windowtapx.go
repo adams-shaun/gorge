@@ -70,11 +70,14 @@ func (s *State) trigWindowTap(k *prep, p uint8, cost *kop.ManaCost) (paused bool
 
 // windowTapXOffer: source o is a tap-another-permanent source the window lists
 // and can take now (one permanent to tap), and its colours add something the
-// clamp keeps.
+// clamp keeps. A second tap-another ability beside a plain first (Scene of the
+// Crime, kop.SecondTapXManaAb) is not offered here: the window takes the
+// source's plain first ability (windowCanTap), and its tap-another one is not
+// modelled in the windows.
 //
 //go:noinline
 func (s *State) windowTapXOffer(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
-	if !k.tapMana || !s.scriptTapX(k, p).has(o) {
+	if !k.tapMana || !s.scriptTapX(k, p).has(o) || k.tapXSecond(s.cardAt(o)) {
 		return false
 	}
 	return !decided || s.windowSrcMask(k, o)&want != 0
@@ -84,8 +87,7 @@ func (s *State) windowTapXOffer(k *prep, p uint8, o Slot, decided bool, want uin
 // or two (Supportive Parents, whose window pick is gorge's one "choose 2", asked
 // a permanent at a time).
 func (s *State) winTapN(k *prep, sl Slot) int {
-	c := s.cardAt(sl)
-	return int(k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.N)
+	return int(k.tapXAbOf(s.cardAt(sl)).Cost.N)
 }
 
 // winTapPick records pick a of the window's tap-another source; true when the
