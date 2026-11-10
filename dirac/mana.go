@@ -645,6 +645,9 @@ type planner struct {
 	noGrant bool
 	// maxXt: some unit type carries a fixed extra (mana_tapextra.go)
 	maxXt bool
+	// noChosenPair: the census-only trial of a payment whose chosen-colour
+	// widened pair gorge's census omits (plan)
+	noChosenPair bool
 }
 
 // pay pays cost (+x generic) for p: floating pool first, then gorge's
@@ -1092,17 +1095,24 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			granted[i] = s.manaGranted(k, sl)
 			if k.restrSrc && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
 				if v, kd, ab, dmask, abi := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
-					ra[i] = abi
-					if kd == rkWiden && pcs[i].blgFirst != 0 {
-						// the restricted view is the card's: the intrinsic
-						// abilities a granted basic land type gives (Jasmine
-						// Dragon Tea Shop as an Island) rank first, gorge's
-						// key 8 comparing an ability's kind before its mana
-						intr[i] = uint8(pcs[i].manaCol&0x1f) &^ s.blgPrintedMask(k, sl)
-					}
-					pcs[i], rk[i], rv[i] = v, kd, kd
-					if kd == rkDyn {
-						pk.rdyn, pk.rdynOn, pk.rF, pk.rV = sl, true, ab.ManaRestrict, k.gen.restrVarOf(ab)
+					if pk.noChosenPair && v.wideChosen {
+						// The census-only trial: gorge's census omits a choice-shaped
+						// larger alternative whose amount is not 1
+						// (payment_plan.go paymentPlanManaUnitsOnlyCompute), so for
+						// this search the source is only its ordinary ability.
+					} else {
+						ra[i] = abi
+						if kd == rkWiden && pcs[i].blgFirst != 0 {
+							// the restricted view is the card's: the intrinsic
+							// abilities a granted basic land type gives (Jasmine
+							// Dragon Tea Shop as an Island) rank first, gorge's
+							// key 8 comparing an ability's kind before its mana
+							intr[i] = uint8(pcs[i].manaCol&0x1f) &^ s.blgPrintedMask(k, sl)
+						}
+						pcs[i], rk[i], rv[i] = v, kd, kd
+						if kd == rkDyn {
+							pk.rdyn, pk.rdynOn, pk.rF, pk.rV = sl, true, ab.ManaRestrict, k.gen.restrVarOf(ab)
+						}
 					}
 				} else if dmask != 0 {
 					// the restricted alternative may not spend this payment:
@@ -1116,6 +1126,26 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			}
 		} else {
 			pcs[i] = &k.cards[s.cardAt(sl)]
+		}
+	}
+	// A chosen-colour widened pair is no unit of gorge's census while the
+	// plain census pays (see the scan above): search once without it, and
+	// fall back to the pair only when that plan proves no payer.
+	if !pk.noChosenPair && k.restrSrc {
+		chosen := false
+		for i := 0; i < no && !chosen; i++ {
+			chosen = rv[i] == rkWiden && pcs[i].wideChosen
+		}
+		if chosen {
+			tp := *pk
+			tp.noChosenPair = true
+			tp.try = true // a census plan the pair must widen is not a panic
+			s.plan(k, p, &tp, exclude)
+			if tp.found {
+				tp.noChosenPair, tp.try = false, pk.try
+				*pk = tp
+				return
+			}
 		}
 	}
 	for phase := 0; phase < 3; phase++ {

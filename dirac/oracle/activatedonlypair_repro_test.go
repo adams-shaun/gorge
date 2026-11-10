@@ -46,6 +46,16 @@ func activatedOnlyCases() []activatedOnlyCase {
 		},
 		{
 			effectLongCase: effectLongCase{
+				name:    "sunken_citadel_two_untapped_pair",
+				decks:   [2][]string{append(append(deckOf(8, "Sunken Citadel"), deckOf(8, "Kher Keep")...), deckOf(4, "Ornithopter")...), deckOf(20, "Plains")},
+				surface: "autopay",
+				reached: citadelTwoCensusTaps,
+			},
+			activate: "Kher Keep",
+			color:    3, // red: Kher Keep's {1}{R} activation
+		},
+		{
+			effectLongCase: effectLongCase{
 				name:    "steelswarm_operator_two_restricted_abilities",
 				prefer:  []string{"Steelswarm Operator", "Wayfarer's Bauble"},
 				decks:   [2][]string{append(append(deckOf(8, "Island"), deckOf(8, "Steelswarm Operator")...), deckOf(4, "Wayfarer's Bauble")...), deckOf(20, "Plains")},
@@ -81,6 +91,35 @@ func citadelSecondAbilityUsed(g *GorgeSide) bool {
 		}
 	}
 	return citadel && haven
+}
+
+// citadelTwoCensusTaps: one Kher Keep activation was paid by two Sunken
+// Citadel taps, each for its census one mana, not by a Plains payment. The
+// taps may come before the push (the payment is taken first) or between the
+// push and the Keep's own tap; count either window around the Keep's tap.
+func citadelTwoCensusTaps(g *GorgeSide) bool {
+	in := func(e *events.Event) string {
+		if o := g.E.G.Obj(e.Obj); o != nil && o.Face() != nil {
+			return o.Face().Name
+		}
+		return ""
+	}
+	citadels := 0
+	keepTap := false
+	for i := range g.E.L.Events {
+		e := &g.E.L.Events[i]
+		switch {
+		case e.Kind == events.Tap && in(e) == "Sunken Citadel":
+			citadels++
+		case e.Kind == events.AbilityPush && in(e) == "Kher Keep":
+			citadels = 0
+		case e.Kind == events.Tap && in(e) == "Kher Keep":
+			if citadels >= 2 {
+				keepTap = true
+			}
+		}
+	}
+	return keepTap
 }
 
 // operatorSecondAbilityUsed: Wayfarer's Bauble was cast (the spell-only {U}
