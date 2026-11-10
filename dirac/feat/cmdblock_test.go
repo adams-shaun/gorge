@@ -26,7 +26,7 @@ func TestCommanderBlockRelativeSeats(t *testing.T) {
 		other[i] = vanilla.GrizzlyBears
 	}
 	s := dirac.NewConfig(vanilla.Table, deck, other, 9031,
-		dirac.Config{NoElide: true, Commander: true, Commanders: [2]int16{0, 0}})
+		dirac.Config{NoElide: true, Commander: true, Commanders: [dirac.MaxSeats]int16{0, 0}})
 	if !s.FeatCommanderGame() {
 		t.Fatal("setup: not a Commander game")
 	}

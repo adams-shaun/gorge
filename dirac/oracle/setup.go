@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/rules"
@@ -304,9 +305,15 @@ func (m *Matchup) Config(seed uint64) rules.Config {
 	return cfg
 }
 
-// kernelCommanders is m's commander as dirac.Config carries it.
-func (m *Matchup) kernelCommanders() (bool, [2]int16) {
-	return m.Commander, [2]int16{int16(m.Commanders[0]), int16(m.Commanders[1])}
+// kernelCommanders is m's commander as dirac.Config carries it: seats 0 and 1,
+// and -1 in any further seat slot.
+func (m *Matchup) kernelCommanders() (bool, [dirac.MaxSeats]int16) {
+	var c [dirac.MaxSeats]int16
+	for i := range c {
+		c[i] = -1
+	}
+	c[0], c[1] = int16(m.Commanders[0]), int16(m.Commanders[1])
+	return m.Commander, c
 }
 
 // cardName is a compiled card's front face name.
