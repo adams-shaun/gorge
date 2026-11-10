@@ -56,7 +56,7 @@ type coldArrays struct {
 // coldLayout is the lengths of a table's cold arrays.
 type coldLayout struct {
 	ms, mo, exw, atkGrp, exH, entered, exMark, parked, castRing, discHeld, copyHeld int
-	may                                                                             int // mayPlay records past maxMay; the first thing in the buffer (may_cold.go)
+	may                                                                             int // mayPlay records past maxMay; the first thing in the buffer (cast_maycold.go)
 	words                                                                           int
 }
 
