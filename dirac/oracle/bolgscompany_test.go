@@ -22,8 +22,7 @@ import (
 // (the Mountain's {R} cast Bolg's Company, then pays beside it). The Goblins it
 // sacrifices are Fearsome Goblin Pairs ({2}{B/R}, castable from Swamps), whose
 // dies trigger (amass Goblins 4) goes on the stack before the sorcery-speed
-// cast. (Every card is in the std-hob synthetic pool; Exiled Boggart and Ball
-// Lightning, the brief's picks, are not.)
+// cast. (Every card is in the std-hob synthetic pool.)
 var kbolgDecks = [2][]cardset.Entry{
 	{
 		{Name: "Bolg's Company", Count: 6}, {Name: "Fearsome Goblin Pair", Count: 10}, {Name: "Desolation of Smaug", Count: 3},
