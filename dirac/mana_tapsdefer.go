@@ -141,7 +141,7 @@ func tapsDeferColour(c kop.ColorMask) bool {
 // stalls (srcExtra).
 func (s *State) addTapsDeferUnits(k *prep, sl Slot, a *avail) {
 	pc := s.manaPCGen(k, sl)
-	a.addUnits(s.srcMaskAt(pc, sl), srcYield(pc))
+	a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 	if k.gen.anyTapExtra {
 		xv := s.srcExtra(k, sl, pc)
 		for c := range xv {

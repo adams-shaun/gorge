@@ -7,20 +7,25 @@ import (
 )
 
 // TestLowerTapsformanaAnycolour: a static TapsForMana trigger adding one mana
-// of the type a basic land produced, to whoever tapped it (Lavaleaper),
-// lowers to a StatTapExtra of one mana with StTapReflect and StTapAnyPlayer
-// (gorge pay.PaymentPlanReflectedTapMana folds it). Out-of-shape variants
-// still refuse by name: a reflected body over every land, whose sources may
-// make several types (Mana Flare, Nikya of the Old Ways), a reflected body
-// with a rider (Winter's Night), and an any-colour extra (Buried in the
-// Garden, lt-low-tapsformana-choice's).
+// of the type a land produced lowers to a StatTapExtra of one mana with
+// StTapReflect (gorge pay.PaymentPlanReflectedTapMana folds it per production),
+// StTapAnyPlayer when it reaches every player's taps (Lavaleaper, Mana Flare,
+// Heartbeat of Spring, Keeper of Progenitus), not for the controller's own
+// (Nikya of the Old Ways). Out-of-shape variants still refuse by name: a
+// nonland filter (Kinnan, Roxanne), a reflected body with a rider (Winter's
+// Night), and an any-colour extra (Buried in the Garden, lt-low-tapsformana-choice's).
 func TestLowerTapsformanaAnycolour(t *testing.T) {
+	const anyPlayer, own = "any", "own"
 	want := map[string]string{
-		"Lavaleaper":            "",
-		"Mana Flare":            `TapsForMana reflected mana over ValidCard$ "Land"`,
-		"Nikya of the Old Ways": `TapsForMana reflected mana over ValidCard$ "Land"`,
-		"Winter's Night":        "trigger mode TapsForMana",
-		"Buried in the Garden":  "trigger mode TapsForMana",
+		"Lavaleaper":               anyPlayer,
+		"Mana Flare":               anyPlayer,
+		"Heartbeat of Spring":      anyPlayer,
+		"Keeper of Progenitus":     anyPlayer,
+		"Nikya of the Old Ways":    own,
+		"Kinnan, Bonder Prodigy":   "not a land filter",
+		"Roxanne, Starfall Savant": "not a land filter",
+		"Winter's Night":           "trigger mode TapsForMana",
+		"Buried in the Garden":     "trigger mode TapsForMana",
 	}
 	var names []string
 	for n := range want {
@@ -34,7 +39,7 @@ func TestLowerTapsformanaAnycolour(t *testing.T) {
 			continue
 		}
 		seen++
-		if reason != "" {
+		if reason != anyPlayer && reason != own {
 			refused := false
 			for _, r := range c.Refusals {
 				refused = refused || strings.Contains(r.Reason, reason)
@@ -53,11 +58,14 @@ func TestLowerTapsformanaAnycolour(t *testing.T) {
 				continue
 			}
 			n++
-			if !slices.Contains(st.Flags, "TapReflect") || !slices.Contains(st.Flags, "TapAnyPlayer") || st.TapAmt != 1 {
-				t.Errorf("%s: TapExtra flags %v amount %d, want TapReflect, TapAnyPlayer and one mana", c.Name, st.Flags, st.TapAmt)
+			if !slices.Contains(st.Flags, "TapReflect") || st.TapAmt != 1 {
+				t.Errorf("%s: TapExtra flags %v amount %d, want TapReflect and one mana", c.Name, st.Flags, st.TapAmt)
+			}
+			if got := slices.Contains(st.Flags, "TapAnyPlayer"); got != (reason == anyPlayer) {
+				t.Errorf("%s: TapAnyPlayer = %v, want %v (flags %v)", c.Name, got, reason == anyPlayer, st.Flags)
 			}
 			if st.F == nil {
-				t.Errorf("%s: TapExtra without its basic-land filter", c.Name)
+				t.Errorf("%s: TapExtra without its land filter", c.Name)
 			}
 		}
 		if n != 1 {

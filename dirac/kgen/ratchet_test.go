@@ -117,8 +117,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (a battlefield power == a constant and a toughness > a value lower: Amalia Benavides Aguirre (LCI 255 -> 256), Hulkling, Burgeoning Bruiser (MSH 240 -> 241), Savage Swipe's powerEQ2 condition; ALL 21945 -> 21948).
 	// +1 (the merge with land: this branch's Tam, Mindful First-Year static Hexproof:CardColors lower beside land's Amalia Benavides Aguirre / Hulkling / Burgeoning Bruiser lowers, disjoint; merged ECL 238 -> 239, ALL 21989 -> 21990).
 	// +2 (the merge with land: this branch's Hollow Marauder lowers OTJ 244 -> 245 and Madame Null lowers TMT 176 -> 177 beside land's; merged ALL 22036 -> 22038).
+	// +8 (a reflected TapsForMana body over every land or Mountain,Forest,Plains lowers, priced on the pick: Mana Flare, Heartbeat of Spring, Dictate of Karametra, Zhur-Taa Ancient, Nikya of the Old Ways, Keeper of Progenitus, Mirari's Wake, Zendikar Resurgent; ALL 22097 -> 22105).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22097, 34442},
+	"ALL": {22105, 34442},
 	"BIG": {25, 30},
 	"BLB": {261, 278},
 	"BRO": {214, 280},

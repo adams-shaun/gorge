@@ -10,9 +10,9 @@ import (
 // tapExtraStatic lowers a `Mode$ TapsForMana | Static$ True` trigger to the
 // StatTapExtra static when gorge's planner folds it into a tap's production
 // (pay.PaymentPlanFoldableTapMana: one literal symbol and amount, no other
-// parameter), or a reflected body over basic lands (Lavaleaper:
-// pay.PaymentPlanReflectedTapMana, one mana of the type the tap produced,
-// which a basic land's one type fixes). Anything else keeps refusing: an
+// parameter), or a reflected body over lands (Lavaleaper, Mana Flare:
+// pay.PaymentPlanReflectedTapMana, one mana of the type the tap produced).
+// Anything else keeps refusing: an
 // any-colour body is a deferred source in gorge, planned by hand in the mana
 // window.
 func (lc *lowerCtx) tapExtraStatic(t cards.Trigger) error {
@@ -62,12 +62,18 @@ func (lc *lowerCtx) tapExtraStatic(t cards.Trigger) error {
 	return nil
 }
 
+// tapReflectLandFilters are the ValidCard$ filters of a reflected TapsForMana
+// body that reach lands only.
+var tapReflectLandFilters = cards.NewNameSet("Land.Basic", "Land", "Mountain,Forest,Plains")
+
 // tapExtraReflected lowers a reflected TapsForMana body (gorge
 // pay.PaymentPlanReflectedTapMana) to a StTapReflect StatTapExtra: one mana
-// of the type the tap produced. Only ValidCard$ Land.Basic lowers, since a
-// basic land makes one type, so gorge folds the extra as a fixed vector
-// (pay.PaymentPlanReflectedMana); a filter reaching a source that makes
-// several types leaves the extra the pick's. The extra goes to the tapping
+// of the type the tap produced. Only a land filter lowers
+// (tapReflectLandFilters): gorge folds the extra per production
+// (pay.PaymentPlanReflectedMana over each single-colour alternative of a
+// choice source), so the kernel prices it on the pick; a source making several
+// types in one tap stays the kernel's StallTapExtra. A nonland filter
+// refuses. The extra goes to the tapping
 // player: either the controller's own taps (Activator$ You, Defined$ You) or
 // every player's (no Activator$, Defined$ TriggeredActivator or
 // TriggeredCardController, the payer of a planned tap), StTapAnyPlayer.
@@ -87,8 +93,8 @@ func (lc *lowerCtx) tapExtraReflected(t cards.Trigger) error {
 		return refuse("TapsForMana reflected mana with Activator$ %q", v)
 	}
 	tp.consume("Activator")
-	if v := strings.TrimSpace(tp.str("ValidCard")); v != "Land.Basic" {
-		return refuse("TapsForMana reflected mana over ValidCard$ %q: a source making several types", v)
+	if v := strings.TrimSpace(tp.str("ValidCard")); !tapReflectLandFilters.Has(v) {
+		return refuse("TapsForMana reflected mana over ValidCard$ %q: not a land filter", v)
 	}
 	var err error
 	if st.F, err = lc.filter(tp.str("ValidCard")); err != nil {
