@@ -910,7 +910,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if a.Kind() == AkChoose {
 			s.digPick(Obj(a.Source()))
 			s.g.pickLeft--
-			if s.g.pickLeft > 0 && s.digHasPick(k) {
+			if s.g.pickLeft > 0 && (s.digHasPick(k) || s.digBoundOpen(k)) {
 				return
 			}
 		}
@@ -1995,6 +1995,7 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 		if n == 0 || take == 0 || !s.digHasPick(k) || s.digForced(k) {
 			return !s.finishDig(k)
 		}
+		s.digBoundMax(k) // zone_each.go
 		// the controller picks, whoever's library it is (gorge
 		// digChooser: the resolving controller, CR 701.29a; Coral
 		// Fighters looks at the defending player's library)

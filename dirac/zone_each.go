@@ -131,3 +131,36 @@ func (s *State) pickFits(k *prep, f kop.FilterID, o Obj, dig bool) bool {
 	}
 	return true
 }
+
+// digBoundOpen reports a may-stop Dig whose pick filter carries a pick-set
+// bound: gorge poses its take as one multi-select of Max = min(ChangeNum,
+// the cards that match and fit the budget on their own), so a pick that
+// leaves nothing fitting the running sum or the taken powers still poses
+// the Done-only decision until Max is reached (digBoundMax caps pickLeft
+// to that Max when the ask is posed).
+func (s *State) digBoundOpen(k *prep) bool {
+	fl := &k.t.Filters[s.prog(k)[s.res.pc].F]
+	b := fl.PickSumMax
+	return (b.K == kop.VConst && b.N > 0 || fl.PickDistinctPower) && s.digMayStop(k)
+}
+
+// digBoundMax caps a bounded may-stop Dig's pickLeft to gorge's Max: the
+// looked-at cards that match the filter and whose own mana value fits the
+// budget (the distinct-power bound narrows no card on its own). It runs
+// before the first pick, while no card is selected.
+func (s *State) digBoundMax(k *prep) {
+	if !s.digBoundOpen(k) {
+		return
+	}
+	f := s.prog(k)[s.res.pc].F
+	n := 0
+	for i := 0; i < int(s.g.nlook); i++ {
+		o := s.resArm().look[i]
+		if s.g.lookSel&(1<<i) == 0 && s.matchCardGen(k, f, s.objs[o].card, s.objs[o].owner(), s.res.e.ctrl, o) && s.pickFits(k, f, o, true) {
+			n++
+		}
+	}
+	if n < int(s.g.pickLeft) {
+		s.g.pickLeft = uint8(n)
+	}
+}
