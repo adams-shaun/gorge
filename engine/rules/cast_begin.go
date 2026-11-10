@@ -181,7 +181,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 			cost = alts[opt.AltCostIndex-1].cost
 			altKey = alts[opt.AltCostIndex-1].key
 		}
-	} else if opt.AltCostIndex > 0 {
+	} else if opt.AltCostIndex > 0 && opt.Mode != altMode(altWarp) {
 		if alts := e.alternativeCosts(p, id); opt.AltCostIndex-1 < len(alts) {
 			cost = alts[opt.AltCostIndex-1].cost
 			announceAlt = &alts[opt.AltCostIndex-1]
@@ -425,7 +425,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 				}
 			}
 		} else if m != nil {
-			if c, ok := altRowCost(e, m, id, f); ok {
+			if c, ok := altRowCost(e, m, id, f, opt.AltCostIndex); ok {
 				cost = c
 			}
 		}

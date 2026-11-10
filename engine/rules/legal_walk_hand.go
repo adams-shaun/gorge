@@ -595,14 +595,15 @@ func (w *legalWalk) handWalk() {
 			if !ka.handLoop || (!ph.has(ka.ph) && ka.id != altWarp) {
 				continue
 			}
-			alt, ok := altRowCost(e, ka, id, f)
-			if !ok || w.castRestrictedCost(p, id, alt) ||
-				!w.offerCastable(p, id, alt, spellScope(ka.mode), false) ||
-				(!ka.untargeted && !targetsAvailable()) {
-				continue
+			for ci, alt := range altRowCosts(e, ka, id, f) {
+				if w.castRestrictedCost(p, id, alt) ||
+					!w.offerCastable(p, id, alt, spellScope(ka.mode), false) ||
+					(!ka.untargeted && !targetsAvailable()) {
+					continue
+				}
+				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
+					Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode, AltCostIndex: ci})
 			}
-			*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
-				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
 		}
 		// Cleave (CR 702.148a, engine/rules/cleave.go): the cleave ability's
 		// Cost$ replaces the mana cost, and the offer's target census reads

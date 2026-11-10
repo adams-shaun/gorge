@@ -1263,7 +1263,7 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 	if m := altCastFor(string(mode)); m != nil && m.potential {
 		// The alternative-cost keyword family (engine/rules/altcast_modes.go): the
 		// same reader the offer and beginCast use.
-		return altRowCost(e, m, id, f)
+		return altRowCost(e, m, id, f, o.AltCostIndex)
 	}
 	return Cost{}, false
 }
