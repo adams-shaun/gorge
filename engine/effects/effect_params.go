@@ -215,6 +215,9 @@ type effectTriggerLine struct {
 	IsPresent      string
 	PresentZone    string
 	PresentCompare string
+	// ValidSource is ValidSource$, trimmed: who a damage-mode body names as
+	// the dealer.
+	ValidSource string
 }
 
 // readEffectTriggerLine reads one parsed Triggers$ body's parameters.
@@ -235,6 +238,7 @@ func readEffectTriggerLine(tr *cards.Trigger) effectTriggerLine {
 		IsPresent:       strings.TrimSpace(tr.ParamStr(cards.PKIsPresent)),
 		PresentZone:     strings.TrimSpace(tr.ParamStr(cards.PKPresentZone)),
 		PresentCompare:  strings.TrimSpace(tr.ParamStr(cards.PKPresentCompare)),
+		ValidSource:     strings.TrimSpace(tr.ParamStr(cards.PKValidSource)),
 	}
 }
 

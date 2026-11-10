@@ -300,6 +300,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		tl := readEffectTriggerLine(&tr)
+		if effectTriggerDealerIsEffect(tr.Mode, tl) {
+			// Card.Self is the Effect card, which never deals damage: inert.
+			// Any real grant rides a sibling (Pride of Hull Clade's Animate).
+			registered = true
+			continue
+		}
 		exec := tl.Execute
 		if exec == "" {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
