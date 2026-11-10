@@ -1095,10 +1095,11 @@ StatCastWithFlash	StaticKind	6
 StatCombatDmgToughness	StaticKind	245
 StatContinuous	StaticKind	1
 StatControl	StaticKind	17
-StatCount	StaticKind	19
+StatCount	StaticKind	20
 StatDisableETB	StaticKind	234
 StatExtraLandPlay	StaticKind	12
 StatGoad	StaticKind	249
+StatHexproofOwnColors	StaticKind	19
 StatIncreaseCost	StaticKind	9
 StatMaxBlockers	StaticKind	241
 StatMayPlayFrom	StaticKind	13

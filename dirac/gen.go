@@ -114,6 +114,7 @@ type genPrep struct {
 	anyMadness               bool // a card has printed madness (CardDef.HasMadness; kw_madness.go)
 	anyMiracle               bool // a card has printed miracle (CardDef.HasMiracle; kw_miracle.go)
 	anyHexCol                bool // a card has printed hexproof from a colour (CardDef.HexColors; kw_hexproofcolor.go)
+	anyHexOwn                bool // a card has a StatHexproofOwnColors static (kw_hexproofcolor.go)
 	anyProtCol               bool // a card has printed protection from a colour (CardDef.ProtColors; kw_protection.go)
 	// grantTrigEv: events (bit per TrigEvent) of triggered abilities a
 	// Continuous static grants to the permanent its source is attached to
@@ -710,6 +711,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyLinkRet = tableLinkRet(t)
 	g.anyLinkCtr = tableLinkCtr(t)
 	prepStaticClasses(t, g)
+	prepHexOwn(t, g) // kw_hexproofcolor.go
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]

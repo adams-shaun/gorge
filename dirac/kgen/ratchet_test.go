@@ -114,15 +114,16 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Boommobile: an artifact's resolving mana restricted to activated abilities, kop.SpmActivated; the merge with land: land's 21792 + 1 = 21793, DFT 250 -> 251).
 	// +6 (a static's granted Exalted lowers as a latent Attacks trigger: First Sliver's Chosen, Merchant of Truth, Order of Sacred Dusk, Sublime Archangel, Xenk, Paladin Unbroken, Zarda, the Power Princess; ALL 21873 -> 21879).
 	// +3 (a filter whose activation cost sacrifices its source lowers, kop.FilterManaAb: Omni-Cheese Pizza (TMT 174 -> 175), Chromatic Star, Golden Egg; ALL 21930 -> 21933).
+	// +1 (Tam, Mindful First-Year: a static AddKeyword$ Hexproof:CardColors lowers as kop.StatHexproofOwnColors, the own-colours hexproof static; ECL 237 -> 238, ALL 21943 -> 21944).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21943, 34442},
+	"ALL": {21944, 34442},
 	"BIG": {23, 30},
 	"BLB": {260, 278},
 	"BRO": {214, 280},
 	"DFT": {252, 276},
 	"DMU": {194, 270},
 	"DSK": {243, 276},
-	"ECL": {237, 273},
+	"ECL": {238, 273},
 	"EOE": {242, 266},
 	"FDN": {517, 517},
 	"FIN": {271, 312},
