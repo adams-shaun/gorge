@@ -137,6 +137,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 	if k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
 		return
 	}
+	s.offerBargainPlay(k, d, p, o, c, mode, anyMana, av) // kw_bargain.go
 	if mode&castFree == 0 {
 		base := pc.cost
 		if k.gen.anyConvoke && s.tapPays(k, p, c, o, false) {
