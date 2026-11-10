@@ -138,6 +138,7 @@ type lowerCtx struct {
 	unlessSubs     []usGate  // UnlessResolveSubs$ gates awaiting their chain level's end (lower_unlesssubs.go)
 	reflexMulti    bool      // lowering a NumTimes reflexive latent: a multi-pick charm may lower on it (lower_numtimes.go)
 	numTimesK      int       // lowering a NumTimes latent for the announced count k: Count$TriggerRememberAmount is k (lower_numtimes.go)
+	remLKMVN       int       // RememberedLKI$CardManaCost reads admitted (value_remlkimv.go)
 	remLKN         int       // RememberedLKI$ P/T reads lc.value produced: refuseRemLKIPT refuses unless each one sits in an ability program (value_remlki.go)
 	p              *pool
 	name           string
@@ -408,6 +409,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseMultiMana()
 	lc.refuseCtxRememberedCount()
 	lc.refuseRemLKIPT()                // value_remlki.go
+	lc.refuseRemLKIMV()                // value_remlkimv.go
 	lc.refuseRememberAmountObjects()   // lower_remembered.go
 	lc.refuseRememberSearcherObjects() // lower_remembersearcher.go
 	lc.refuseOnceTwice()
