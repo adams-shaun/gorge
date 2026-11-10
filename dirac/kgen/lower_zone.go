@@ -2864,10 +2864,18 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 	}
 	var obj lRef
 	var named *namedCopy
+	var picked bool
 	var err error
 	if n, ok := ps.get("DefinedName"); ok {
 		// the source is a card of the name universe, not an object (lower_copynamed.go)
 		if named, err = lc.copyNamedCard(ps, n); err != nil {
+			return err
+		}
+	} else if _, ok := ps.m["Choices"]; ok {
+		// the controller's one pick, copied (lower_copypicked.go)
+		picked = true
+		obj, err = lc.copyChoicePick(ps)
+		if err != nil {
 			return err
 		}
 	} else if obj, err = lc.objOrTarget(ps, "", zBattlefield); err != nil {
@@ -2876,6 +2884,9 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 	in := lInstr{Op: "CopyAsToken", Obj: obj, A: cst(1)}
 	if named != nil {
 		in.Op = "CopyNamed"
+	}
+	if picked {
+		in.Op = "CopyPicked"
 	}
 	var flags []string
 	if ps.str("Controller") == "NonRememberedController" {
@@ -2903,6 +2914,9 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 	exc, hasExc, err := lc.copyExceptions(ps)
 	if err != nil {
 		return err
+	}
+	if hasExc && picked {
+		return refuse("CopyPermanent Choices$ beside copy exceptions")
 	}
 	if hasExc && (named == nil || named.found) {
 		lc.out.overrides = append(lc.out.overrides, exc)
@@ -2957,6 +2971,15 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 	}
 	if ps.is("RememberTokens", "True") {
 		flags = append(flags, "Remember")
+	}
+	if picked {
+		atk, err := lc.copyChoiceAttacking(ps)
+		if err != nil {
+			return err
+		}
+		if atk {
+			flags = append(flags, "Attacking")
+		}
 	}
 	if v, ok := ps.get("TokenTapped"); ok {
 		// the token enters tapped (gorge copypermanent.go's CopyTokenTapped)

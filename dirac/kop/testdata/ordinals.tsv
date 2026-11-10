@@ -103,6 +103,7 @@ CondRefMatches	CondKind	6
 CondThreshold	CondKind	4
 CondValue	CondKind	2
 CondYourTurn	CondKind	5
+CopyAttacking	untyped int	16384
 CopyCardKeyPrefix	untyped string	"copycard:"
 CopyNamedExcShift	untyped int	8
 CopyNonRemCtrl	untyped int	32768
@@ -423,6 +424,7 @@ ExtColorGrant	ExtOp	6
 ExtCopyAbility	ExtOp	191
 ExtCopyAllEach	ExtOp	224
 ExtCopyNamed	ExtOp	314
+ExtCopyPicked	ExtOp	315
 ExtCopyTokenCtr	ExtOp	172
 ExtCounterAll	ExtOp	226
 ExtCounterLose	ExtOp	41

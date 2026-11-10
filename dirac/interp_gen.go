@@ -2127,6 +2127,10 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 		s.perms[sl].gty |= s.perms[tmpl].gty & gtyProvMask
 	}
 	s.touch(t)
+	if uint16(in.B.N)&(kop.CopyAttacking|0x3f<<kop.CopyPumpShift) == kop.CopyAttacking && s.occ.has(sl) && !s.pl[1-e.ctrl&1].lost {
+		// ExtCopyPicked's TokenAttacking$ True: enters attacking the opponent (copy_picked.go)
+		s.setEnterAttacker(k, sl, PlayerTarget0+(1-e.ctrl&1))
+	}
 	// a token that elected a copy as it entered (ctr_entryperkind.go): the
 	// elected template is its basis and replaces the copy's own exceptions
 	elected := k.gen.anyBecomeCopy && s.perms[sl].ovr.flags&ovCopy != 0
