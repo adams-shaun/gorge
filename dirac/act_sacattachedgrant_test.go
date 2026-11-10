@@ -102,11 +102,11 @@ func TestActivateSacAttachedAuraCostFromGrantedMana(t *testing.T) {
 	if !ok {
 		t.Fatal("grantPlayCost refused the activation")
 	}
-	if s.affordsUngrantedPlay(k, 0, a, &cost, ex, s.grantPayDesc(a)) {
+	if s.affordsUngrantedPlay(k, 0, a, &cost, ex, s.grantPayDesc(k, a)) {
 		t.Fatal("the printed sources price the activation: the granted mana is not the board's only funding")
 	}
 	var g grantSrch
-	if !s.grantSearch(k, 0, &cost, ex, s.grantPayDesc(a), need, &g) {
+	if !s.grantSearch(k, 0, &cost, ex, s.grantPayDesc(k, a), need, &g) {
 		t.Fatal("the grant search does not pay the activation its granted Food mana can fund")
 	}
 	// and the priority decision must offer it

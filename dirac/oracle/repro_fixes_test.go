@@ -342,6 +342,7 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 func TestStdEoeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-eoe", []stdRepro{
+		{"station_departed_creature_reads_toughness_static", true, false},      // CR 702.184a, 608.2h: Survey Mechan, tapped to station Uthros Scanship and then sacrificed, stations with its toughness under Tapestry Warden
 		{"restricted_grant_no_unit_for_hand_cast_x", false, false},             // Mm'menon grants an untapped Specimen Freighter blue for spells not cast from hand, so Zero Point Ballad from hand has no extra mana to announce X with
 		{"restricted_grant_no_unit_for_hand_cast_x_two", false, false},         // ... and Devastating Onslaught's X likewise stops one short
 		{"restricted_grant_no_unit_for_hand_cast_pip", true, false},            // ... and a hand warp's {U/R} pip asks one colour, not the blue the Freighter's grant cannot pay a hand cast with (CR 106.6)
@@ -418,6 +419,7 @@ func TestStdBigReprosLockstep(t *testing.T) {
 		{"replacement_answer_mid_payment_pays_through_window", true, false}, // gorge's payment plan stops at a step that poses a decision, so Legion Extruder's second Treasure, behind Rest in Peace's order ask, is activated by the manual window, which asks its colour
 		{"sba_batch_asks_before_tokens_cease", true, false},                 // CR 704.3: three Golems destroyed at once under Rest in Peace are each asked which replacement applies, and the two already in exile cease at the next check, not between the asks
 		{"ability_target_before_cost_replacement", true, false},             // CR 601.2c: Harvester of Misery's target is a target of the ability before Rest in Peace asks where its discarded source goes
+		{"cleanup_repeat_empties_window_mana", true, false},                 // CR 500.4, 514.3b: the mana Lotus Ring made in a cleanup priority window (a discard set off Hostile Investigator) empties as that step ends, before the repeated step's discard
 		{"rest_in_peace_ask_between_cost_parts", true, false},               // CR 602.2b: the {T} part is paid before the discard, so the replacement ask the discard raises with two Rest in Peace sees Fomori Vault already tapped
 		{"granted_sac_only_mana_prefix", true, false},                       // CR 602.2b, 704.5n: Lotus Ring's granted "Sacrifice this creature: Add three mana of any one color" is the prefix paying an activation, the equipped Hostile Investigator sacrificed and the Ring unattached
 		{"granted_sac_only_mana_window", true, false},                       // CR 602.2b, 605.3a: Esoteric Duplicator's resolution-time {2} is paid in the manual mana window by sacrificing the Lost Jitte token Lotus Ring equips, a tapped creature whose granted ability has no {T}
@@ -695,6 +697,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"mayplay_convoke_announcement_filtered_by_cost", false, false},   // CR 601.2f: Unexpected Assistance cast from Sanar's exile with Convoke offers no generic tap once the {3} is paid, as gorge refuses it
 		{"subcounter_wildcard_flying_counter_kind", false, false},         // CR 122.1b: Reaping Willow's remove-any-two-counters cost names a Flying counter by its own kind, not as a +1/+1 counter
 
+		{"behold_part_chosen_unpayable_by_grant_caster", true, false},              // CR 601.2h, 733.1: Silvergill Mentor cast from Maralen's exile by its non-owner, who controls no Merfolk; gorge offers the behold part last and choosing it reverses the cast
 		{"free_cast_owes_either_or_additional_cost", true, false},                  // CR 601.2b, 118.9d: Kinsbaile Aspirant cast free from Maralen's exile still owes behold or {2}; with neither payable it is not offered
 		{"behold_or_mana_fallback_window_colour", true, false},                     // CR 601.2g: a plan that fell back when the chosen mana part changed the cost has no ManaPayment, so the window answers the source's lowest colour, not the owed pip
 		{"behold_or_mana_window_tap_another_source", false, false},                 // CR 601.2g: the fallback window lists a tap-another source (Springleaf Drum) at its battlefield place, so it taps that source and its creature before a later land
@@ -727,6 +730,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 		{"behold_or_mana_abort_window_tap_another_pick", true, false},            // CR 601.2g, 733.1: Mudbutton Cursetosser's chosen {2} part falls back to the manual window, which poses Springleaf Drum's tap-another pick before it reverses the unpayable cast
 		{"delayed_dies_trigger_last_known_power_m1m1", false, false},             // CR 608.2h: End-Blaze Epiphany's delayed dies trigger exiles the graveyard-bound creature's last-known 2 power (a -1/-1 counter), not its printed 3
 		{"delayed_dies_trigger_last_known_power_aura", false, false},             // CR 608.2h: ... and its last-known 3 power with a +1/+0 Aura attached, not the printed 2
+		{"delayed_dies_trigger_power_read_at_death", true, false},                // CR 603.10a, 608.2h: Squawkroaster's Vivid power is read as it dies, after Vibrance was sacrificed, not as End-Blaze Epiphany registered the trigger
 		{"tapx_pick_strands_mana_aborts_activation", false, false},               // CR 601.2h, 602.2b, 733.1: Wanderbrine Trapper's tap-another pick takes Great Forest Druid, the only mana source, so its {1} cannot be paid and the activation is reversed at the target ask
 		{"tapx_pick_strands_mana_aborts_activation_second", false, false},        // ... and the same reversal in a second game (pair 372)
 	})
@@ -863,6 +867,7 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"convoke_granted_impending_cast_plan_full_m1", false, false},   // CR 702.176a, 702.51a: Dazzling Theater grants Overlord of the Mistmoors convoke, but its {2}{W}{W} impending cost is payable without the optional credit, so the mode cast keeps its no-credit witness and is offered
 		{"convoke_granted_impending_cast_plan_autopay_m0", true, false}, // the same at the other seat: two Overlords' impended casts priced without the granted convoke
 		{"convoke_granted_impending_cast_plan_autopay_m1", true, false}, // and the post-attack window with the Overlord already on the battlefield: the hand's impending cast is offered beside the empty pool
+		{"convoke_granted_impending_cast_menu", true, false},            // CR 702.176a, 702.51a: Overlord of the Mistmoors cast for its impending cost under Dazzling Theater's granted convoke poses the convoke announcement priced from the impending cost, as gorge's convoke ask does
 	})
 }
 

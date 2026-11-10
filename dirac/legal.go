@@ -1675,7 +1675,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 	case AkCastConspire:
 		s.beginConspireCast(k, Obj(a.Source())) // CR 702.78a; kw_conspire.go
 	case AkCastCasualty:
-		s.beginCasualtyCast(k, Obj(a.Source()))
+		s.beginCasualtyCast(k, Obj(a.Source()), a.Mode())
 	case AkActivate:
 		if k.gen != nil && s.activateGen(k, a) {
 			break

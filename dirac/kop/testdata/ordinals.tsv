@@ -952,6 +952,7 @@ RefLibTop	Ref	30
 RefNone	Ref	0
 RefOppNonRemCtrl	Ref	245
 RefOpponent	Ref	6
+RefPromised	Ref	36
 RefRemembered	Ref	18
 RefRememberedController	Ref	28
 RefRememberedOwner	Ref	34
@@ -986,7 +987,8 @@ ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	38
+ReplCopyFirstToken	ReplKind	38
+ReplCount	ReplKind	39
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamageHealFirst	ReplKind	37

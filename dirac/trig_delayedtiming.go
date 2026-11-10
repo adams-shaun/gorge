@@ -98,7 +98,7 @@ func (s *State) fireDelayedWhen(k *prep, at int) {
 		if d.n&dpCountMask == 2 {
 			amt = s.dpSecond(&d) // Mobilize 2's second token (kw_mobilize.go)
 		}
-		sv := s.objs[d.src].ver
+		sv := d.sv
 		if d.n&dpTrack != 0 {
 			sv, amt = d.vers[0], dpTrackAmt // a tracked promise: resolves doing nothing if the object left
 		}

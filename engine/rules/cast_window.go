@@ -172,7 +172,7 @@ func (e *Engine) castWindowReflectedUnits(pc *pendingCast, units []windowManaUni
 				if n <= 0 {
 					continue
 				}
-				c := windowManaAlt{Ma: a.Ma, Amt: a.Amt, Life: a.Life, LifeKeep: a.LifeKeep, CostGeneric: a.CostGeneric}
+				c := windowManaAlt{Ma: a.Ma, Amt: a.Amt, Life: a.Life, LifeKeep: a.LifeKeep, CostGeneric: a.CostGeneric, CostColored: a.CostColored}
 				c.Counts[i] = 1
 				concrete = append(concrete, c)
 			}
@@ -267,6 +267,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 			}
 			lifeCost := int32(0)
 			genericCost := int32(0)
+			var coloredCost state.Mana
 			free := pay.ManaFreeCost(cost)
 			switch {
 			case free:
@@ -275,7 +276,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				// withholds is added here (the skip test runs below, after
 				// the production is parsed).
 			case castWindowGenericCostShape(cost):
-				genericCost = cost.Generic
+				genericCost, coloredCost = cost.Generic, cost.Colored
 			default:
 				// The PayLife<N> and self-sacrifice arms are the paid-cost
 				// census layer's shared shape test (paid_mana_census.go).
@@ -327,11 +328,11 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 					}
 					var single [6]int32
 					single[colour] = 1
-					windowUnits = appendCastWindowAlt(windowUnits, id, ma, single, amt, lifeCost, genericCost)
+					windowUnits = appendCastWindowAlt(windowUnits, id, ma, single, amt, lifeCost, genericCost, coloredCost)
 				}
 				continue
 			}
-			windowUnits = appendCastWindowAlt(windowUnits, id, ma, counts, amt, lifeCost, genericCost)
+			windowUnits = appendCastWindowAlt(windowUnits, id, ma, counts, amt, lifeCost, genericCost, coloredCost)
 		}
 	}
 	return windowUnits
@@ -575,10 +576,11 @@ func castWindowPayLifeCost(c Cost) bool {
 		len(c.Sac) == 0 && pay.CastWindowOtherPartsAbsent(c)
 }
 
-// castWindowGenericCostShape reports whether c is a literal generic <N>
-// activation cost this probe can price: exactly one literal generic mana and
-// nothing else (bar the tap). A coloured pip, an {X} component or any other
-// part is refused.
+// castWindowGenericCostShape reports whether c is a literal mana activation
+// cost this probe can price: literal generic and coloured mana and nothing
+// else (bar the tap). An {X} component, a hybrid or Phyrexian pip or any other
+// part is refused. The coloured pips are carried on the alt beside the generic
+// (Uthros, Titanic Godcore's {U}, {T}), paid from the window's pool like it.
 //
 // The pool is deliberately NOT consulted here: the fee may be funded by an
 // earlier same-window activation, which the cast-only eligibility search
@@ -587,14 +589,14 @@ func castWindowPayLifeCost(c Cost) bool {
 // (manaAbilityPayablePool), so promising only a source the search can actually
 // fund stays sound.
 func castWindowGenericCostShape(c Cost) bool {
-	return c.Generic > 0 && c.Colored == (state.Mana{}) &&
+	return (c.Generic > 0 || c.Colored != (state.Mana{})) &&
 		len(c.Sac) == 0 && pay.CastWindowOtherPartsAbsent(c)
 }
 
 // appendCastWindowAlt merges one production alternative into the unit for id
 // (creating it if absent), so the affordability search can never tap the same
 // permanent twice through two separate unit entries.
-func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, counts [6]int32, amt, life, costGeneric int32) []windowManaUnit {
+func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, counts [6]int32, amt, life, costGeneric int32, costColored state.Mana) []windowManaUnit {
 	idx := -1
 	for i := range units {
 		if units[i].ID == id {
@@ -606,7 +608,7 @@ func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, c
 		units = append(units, windowManaUnit{ID: id})
 		idx = len(units) - 1
 	}
-	units[idx].Alts = append(units[idx].Alts, windowManaAlt{Ma: ma, Counts: counts, Amt: amt, Life: life, CostGeneric: costGeneric})
+	units[idx].Alts = append(units[idx].Alts, windowManaAlt{Ma: ma, Counts: counts, Amt: amt, Life: life, CostGeneric: costGeneric, CostColored: costColored})
 	return units
 }
 
@@ -665,7 +667,7 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 	for _, u := range units {
 		fee := int32(0)
 		for _, a := range u.Alts {
-			fee = max(fee, a.CostGeneric)
+			fee = max(fee, a.Fee())
 		}
 		budget += int(fee)
 	}
@@ -775,7 +777,7 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 				continue
 			}
 			for _, a := range ordered[i].Alts {
-				freeAlt := a.CostGeneric == 0 && a.Life == 0
+				freeAlt := a.Fee() == 0 && a.Life == 0
 				if freeAlt && prevFree > i {
 					continue
 				}
@@ -791,7 +793,7 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 				// Pay a generic activation fee from mana the live activation
 				// gate can spend. Track the same spent colours in the spell
 				// pool; fees reduce that pool, they are not extra spell pips.
-				activationFee, feeOK := resolveMana((Cost{Generic: a.CostGeneric}),
+				activationFee, feeOK := resolveMana((Cost{Generic: a.CostGeneric, Colored: a.CostColored}),
 					activationPool, activationSnow, [7]state.Mana{}, lifeLeft, nil)
 
 				if !feeOK {
@@ -816,8 +818,10 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 						pay.ManaAdd(afterFee, produced), afterFeeSnow, lifeLeft-a.Life, next, remaining-1)
 				}
 				found := tryFee(activationFee.Pool, activationFee.Snow)
-				if !found && a.CostGeneric > 0 {
-					found = forEachFeeSplit(activationPool, a.CostGeneric, func(afterFee state.Mana) bool {
+				if !found && a.CostGeneric > 0 && manaCovers(activationPool, a.CostColored) {
+					// The coloured pips have one way to be paid; only the
+					// generic part's colours are the payer's to split.
+					found = forEachFeeSplit(manaSub(activationPool, a.CostColored), a.CostGeneric, func(afterFee state.Mana) bool {
 						return afterFee != activationFee.Pool && tryFee(afterFee, activationSnow)
 					})
 				}
@@ -872,6 +876,16 @@ func forEachFeeSplit(pool state.Mana, n int32, try func(state.Mana) bool) bool {
 	return walk(0, n, pool)
 }
 
+// manaCovers reports whether pool holds every unit of need, colour by colour.
+func manaCovers(pool, need state.Mana) bool {
+	for i := range need {
+		if pool[i] < need[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func manaSub(a, b state.Mana) state.Mana {
 	var m state.Mana
 	for i := range m {
@@ -889,13 +903,13 @@ func manaSub(a, b state.Mana) state.Mana {
 func castWindowUnitLess(a, b windowManaUnit) bool {
 	ka, kb := int32(-1), int32(-1)
 	for _, x := range a.Alts {
-		if ka < 0 || x.CostGeneric < ka {
-			ka = x.CostGeneric
+		if ka < 0 || x.Fee() < ka {
+			ka = x.Fee()
 		}
 	}
 	for _, x := range b.Alts {
-		if kb < 0 || x.CostGeneric < kb {
-			kb = x.CostGeneric
+		if kb < 0 || x.Fee() < kb {
+			kb = x.Fee()
 		}
 	}
 	if ka != kb {

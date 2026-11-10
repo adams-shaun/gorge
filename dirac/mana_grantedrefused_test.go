@@ -67,13 +67,13 @@ func TestFilterSearchDoesNotRepriceAGrantRefusedActivation(t *testing.T) {
 		t.Fatal("grantPlayCost refused the Earthbend activation")
 	}
 	var g grantSrch
-	if s.grantSearch(k, 0, &cost, ex, s.grantPayDesc(a), need, &g) {
+	if s.grantSearch(k, 0, &cost, ex, s.grantPayDesc(k, a), need, &g) {
 		t.Fatal("the grant search pays the play: this board does not refuse it")
 	}
 	if g.nodes != potentialScriptNodes {
 		t.Fatalf("the grant search spent %d nodes, want the %d-node budget exhausted", g.nodes, potentialScriptNodes)
 	}
-	if s.affordsUngrantedPlay(k, 0, a, &cost, ex, s.grantPayDesc(a)) {
+	if s.affordsUngrantedPlay(k, 0, a, &cost, ex, s.grantPayDesc(k, a)) {
 		t.Fatal("the printed sources price the play: the grant search's refusal is not the board's")
 	}
 	granted := func() slotMask {

@@ -163,7 +163,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		// a pool that pays the printed cost leaves no witness to tap, and the
 		// cast still has no plan: an either-or part chosen after it goes
 		// through the window (bsPay)
-		if s.bld().altAdd != buildBeamGrant && !s.FeatPoolPays(p, o, mode&3) {
+		pm := mode & 3
+		if s.g.bargainCast {
+			pm |= 4 // the bargained price (FeatPoolPays mode bit 2)
+		}
+		if s.bld().altAdd != buildBeamGrant && !s.FeatPoolPays(p, o, pm) {
 			s.lowerWitness(k, p)
 		}
 	} else if mode&castMayPlay != 0 && mode&castFree != 0 && s.cfg&(cfgGorgeLowering|cfgGorgeAutopay) != 0 && s.freeAltAddLowers(k, p, c, o) {

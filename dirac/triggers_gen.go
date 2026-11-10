@@ -145,6 +145,9 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 	if k.gen.anyGameOnce && a.Trig.Flags3&kop.Tf3GameOnce != 0 {
 		s.markGameOnce(l)
 	}
+	if k.gift && a.AFlags&kop.AfGift != 0 {
+		tpl = s.promisedAt(l.obj) // the promised opponent, snapshotted at queue (kw_gift.go)
+	}
 	n := s.npend
 	s.enqueueLKI(l.obj, s.objs[l.obj].ver, l.card, l.ab, l.ctrl, tobj, tpl, amt)
 	if s.npend > n {

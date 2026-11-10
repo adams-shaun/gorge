@@ -524,6 +524,20 @@ func (s *State) filtOnly(k *prep, p uint8) bool {
 // not fund it (mana_deferred.go).
 func (s *State) gapOthers(k *prep, p uint8) slotMask {
 	m := s.gapMask(k, p, gfGapOther)
+	if k.ctrMana && m.any() {
+		// A counter-cost source with too few counters to remove (Ramos,
+		// Dragon Engine with one +1/+1 counter) cannot be activated either:
+		// gorge's census lists no ability of it, so a filter beside it is
+		// still a filter-only board.
+		live := s.scriptCtr(k, p)
+		for b := m; b.any(); b = b.rest() {
+			sl := b.first()
+			c := s.cardAt(sl)
+			if k.ctrAbOf(c) != nil && int(k.ctrAb[c]) == int(k.gen.gapOther(c)) && !live.has(sl) {
+				m = m.without(sl)
+			}
+		}
+	}
 	if !k.tapMana {
 		return m
 	}

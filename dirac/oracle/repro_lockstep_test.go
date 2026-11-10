@@ -492,3 +492,29 @@ func TestBlinkedSourceEndsAbilityLossLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "blinked_source_ends_ability_loss", "std-msh", Config{GorgeAutopaySurface: true})
 }
+
+// TestFreeCastAltAddNoPartPayableLockstep: under Omniscience, Eaten Alive with
+// no creature to sacrifice and no mana for its {3}{B} part is not offered; the
+// free alternative cost replaces the mana cost only (CR 118.9d, 601.2b).
+func TestFreeCastAltAddNoPartPayableLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "free_cast_alt_add_no_part_payable", "std-fdn", Config{GorgeAutopaySurface: true})
+}
+
+// TestFilterBesideCounterSourceShortLockstep: Three Tree Mascot's {1} filter
+// pays Infernal Vessel's {B} beside Ramos, Dragon Engine with one +1/+1
+// counter; a counter-cost source that cannot remove its counters is no
+// census gap, so the board is still a filter-only one (CR 605.3a, 602.2b).
+func TestFilterBesideCounterSourceShortLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "filter_beside_counter_source_short_of_counters", "std-fdn", Config{})
+}
+
+// TestGraveyardActivationRestrictedSourceRelaxedLockstep: Merchant of Many
+// Hats' {2}{B} from the graveyard beside a granted {C} (Honest Work) is
+// searched, not proven insufficient: Jasmine Dragon Tea Shop's Ally-only
+// any colour pays an Ally source's ability (CR 106.6, 605.3a).
+func TestGraveyardActivationRestrictedSourceRelaxedLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "graveyard_activation_restricted_source_relaxed", "std-tla", Config{})
+}

@@ -270,12 +270,12 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		return lRef{Kind: rEachOpp}, nil
 	case "Promised":
 		// the opponent the gift was promised to (CR 702.174a; gorge
-		// Object.GiftPromisedTo): in a two-player game, the opponent
+		// Object.GiftPromisedTo): the spell's election, or a permanent's
+		// gift trigger's queue-time snapshot (kop.RefPromised)
 		if !lc.out.Gift {
 			return lRef{}, refuse("Defined$ Promised without a gift")
 		}
-		lc.twoSeat("the gift's promised opponent read as the one opponent")
-		return lRef{Kind: rEachOpp}, nil
+		return lRef{Kind: rPromised}, nil
 	}
 	if lc.targetedDefined != "" && v == lc.targetedDefined {
 		// Defined$ Targeted.<qualifier> (graveexile): the node's one target slot,

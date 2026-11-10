@@ -655,6 +655,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.oppsNonRemCtrl().at(0) // filter_defined.go: the first of the set
 	case kop.RefSrcOwner:
 		return s.srcOwner()
+	case kop.RefPromised:
+		return s.promisedSeat(k, e) // kw_gift.go
 	}
 	if k.gen != nil {
 		return s.refPlayer(k, r, s.ctxEntry(&s.res.e))
@@ -912,7 +914,7 @@ func (s *State) refCode(k *prep, r kop.Ref) uint8 {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised:
 		p := s.playerRef(k, r)
 		if p == 255 {
 			return NoTarget

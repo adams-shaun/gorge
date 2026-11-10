@@ -1014,6 +1014,18 @@ var priorityFlowVerify bool
 // here rather than straight to advanceStep is what makes that happen;
 // without it the next turn simply begins.
 func (e *Engine) repeatCleanup() {
+	if e.cleanupWindow {
+		// CR 500.4, 514.3b: a priority window was open, so the cleanup step
+		// ends here and a new one begins; mana made in the window empties
+		// as the step ends. A loss that poses a replacement order parks;
+		// the answer's Advance re-enters through priorityRound, the window
+		// now closed.
+		e.cleanupWindow = false
+		e.finishStepBoundary(state.StepCleanup, state.StepCleanup)
+		if e.pending != nil {
+			return
+		}
+	}
 	e.cleanupWindow = false
 	e.cleanupStep()
 	if e.pending != nil {

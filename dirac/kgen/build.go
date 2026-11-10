@@ -1831,6 +1831,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefLibTop, nil
 	case rOppNonRemCtrl:
 		return kop.RefOppNonRemCtrl, nil
+	case rPromised:
+		return kop.RefPromised, nil
 	case rSrcOwner:
 		return kop.RefSrcOwner, nil
 	case rTriggerAttackers:

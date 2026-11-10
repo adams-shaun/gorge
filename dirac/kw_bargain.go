@@ -89,3 +89,26 @@ func (s *State) bargainElected(k *prep, e *stackEntry) bool {
 func (s *State) FeatBargainCard(o Obj) bool {
 	return s.k().t.Cards[s.objs[o].card].Bargain
 }
+
+// offerBargainPlay offers the bargained cast of o through a permission
+// (Johann, Apprentice Sorcerer's library-top cast): gorge's permission walk
+// prices the bargained mode apart from the plain one, from the same base, so
+// a card the bargain discount alone makes payable is still offered. The
+// action is the hand's AkCastCasualty, its mode the permission's
+// (beginCasualtyCast).
+func (s *State) offerBargainPlay(k *prep, d *Decision, p uint8, o Obj, c CardID, mode uint8, anyMana bool, av *avail) {
+	if !k.bargain || mode != castMayPlay || anyMana || !s.bargainOffer(k, p, c) {
+		return
+	}
+	cost := s.bargainedPrice(k, p, c, o, k.cards[c].cost)
+	if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
+		return
+	}
+	if !s.spellTargetsFeasibleFrom(k, c, p, o) || !s.spellCostsFeasible(k, c, p, o) ||
+		!s.altAddCastableFrom(k, c, p, o, &cost, &k.cards[c].cost, true, false, av) || s.castHeldOut(o) {
+		return
+	}
+	if s.bargainOffers(k, p, o) {
+		d.add(MakeAction(AkCastCasualty, uint8(o), 0, mode))
+	}
+}

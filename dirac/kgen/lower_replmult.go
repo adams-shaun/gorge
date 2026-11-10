@@ -84,6 +84,9 @@ func (lc *lowerCtx) tokenRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	if rp.str("ActiveZones") != "Battlefield" {
 		return refuse("repl-hard: CreateToken ActiveZones")
 	}
+	if w != nil && w.API == "ReplaceToken" && isCopyFirstBody(w) {
+		return lc.tokenCopyFirst(rp, w, rl)
+	}
 	for _, k := range []string{"Layer", "Optional", "IsPresent"} {
 		if _, ok := rp.get(k); ok {
 			return refuse("repl-hard: CreateToken %s", k)
@@ -306,4 +309,70 @@ func (lc *lowerCtx) selfDamageRepl(rp *params, w *cards.SA, rl *lRepl) (bool, er
 	}
 	rl.Kind = "PreventDamageCounters"
 	return true, nil
+}
+
+// copyFirstGate is the SVar both copy-instead replacements read: the tokens its
+// controller owns that entered the battlefield this turn (gorge's per-add
+// zone-entry list), none of them yet.
+const copyFirstGate = "Count$ThisTurnEntered_Battlefield_Card.tokenCreated+YouOwn"
+
+// isCopyFirstBody reports a ReplaceToken body whose copy source is the
+// permanent its replacement is attached to (Type$ ReplaceToken, TokenScript$
+// Chosen, ValidChoices$ Card.EquippedBy / Card.EnchantedBy): the
+// Mirrormind Crown / Moonlit Meditation shape. Esix and Fractal Bloom choose
+// among other creatures and stay refused (tokenRepl's own checks).
+func isCopyFirstBody(w *cards.SA) bool {
+	vc := strings.TrimSpace(w.Params["ValidChoices"])
+	return strings.TrimSpace(w.Params["Type"]) == "ReplaceToken" && strings.EqualFold(strings.TrimSpace(w.Params["TokenScript"]), "Chosen") &&
+		(vc == "Card.EquippedBy" || vc == "Card.EnchantedBy")
+}
+
+// tokenCopyFirst lowers the optional copy-instead CreateToken replacement of an
+// Equipment or Aura: "the first time you would create one or more tokens each
+// turn, you may instead create that many tokens that are copies of the
+// equipped creature / enchanted permanent" (R:Event$ CreateToken | ValidPlayer$
+// You | Optional$ True | Layer$ Copy | CheckSVar$ X | SVarCompare$ EQ0, X the
+// tokens its controller owns that entered this turn: copyFirstGate). gorge
+// (replacement_token.go poseChosenTokenReplacement) asks the controller for each
+// token's creation while the gate is open, decline first; one accepted token
+// closes the gate, so a creation of several tokens makes one copy and plain
+// tokens after it. The gate lowers to the replacement's Repl.Cond.
+// The Crown's IsPresent$ Card.Self+AttachedTo Creature is the attachment the
+// copy source needs (an Equipment attaches to creatures only).
+func (lc *lowerCtx) tokenCopyFirst(rp *params, w *cards.SA, rl *lRepl) error {
+	vc := strings.TrimSpace(w.Params["ValidChoices"])
+	if !withIs(w, "ReplaceToken", map[string]string{"Type": "ReplaceToken", "ValidChoices": w.Params["ValidChoices"], "TokenScript": w.Params["TokenScript"]}) {
+		return refuse("repl-hard: CreateToken copy replacement shape")
+	}
+	if rp.str("Layer") != "Copy" || !rp.is("Optional", "True") {
+		return refuse("repl-hard: CreateToken copy replacement Layer/Optional")
+	}
+	if vp := rp.str("ValidPlayer"); vp != "You" {
+		return refuse("repl-hard: CreateToken copy ValidPlayer %q", vp)
+	}
+	if e, ok := rp.get("EffectOnly"); ok && strings.TrimSpace(e) != "True" {
+		return refuse("repl-hard: CreateToken EffectOnly %q", e)
+	}
+	if ip, ok := rp.get("IsPresent"); ok {
+		if vc != "Card.EquippedBy" || strings.TrimSpace(ip) != "Card.Self+AttachedTo Creature" {
+			return refuse("repl-hard: CreateToken copy IsPresent %q", ip)
+		}
+	}
+	cs, ok := rp.get("CheckSVar")
+	if !ok || strings.TrimSpace(cs) != "X" || strings.TrimSpace(lc.face.SVars["X"]) != copyFirstGate || strings.TrimSpace(rp.str("SVarCompare")) != "EQ0" {
+		return refuse("repl-hard: CreateToken copy gate")
+	}
+	// gorge's tokenCreated is the token flag (effects/filter.go), the word
+	// kgen lowers as "token"; no other card's tokenCreated is read here
+	v, err := lc.value(strings.Replace(copyFirstGate, "tokenCreated", "token", 1))
+	if err != nil {
+		return err
+	}
+	op, b, err := lc.cmpSpec("EQ0")
+	if err != nil {
+		return err
+	}
+	rl.Cond = lCond{Kind: cValue, A: v, Op: op, B: b}
+	rl.Kind = "CopyFirstToken"
+	return nil
 }

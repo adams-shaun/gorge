@@ -174,7 +174,7 @@ type genPrep struct {
 	globGrant      bool           // a global override static grants an ability (Ygra; static_layerwalk.go globalGrants)
 	anyHist        bool           // some trigger reads the turn history bank (expend, the N-th spell; value_turnhistory.go)
 	anyPrevFrom    bool           // some program grants KwPreventCombatDamageFrom (repl_regenerate.go)
-	anyTokRew      bool           // a ReplRewriteTokens or ReplAddToken ability (repl_tokrewrite.go, repl_tokorder.go)
+	anyTokRew      bool           // a ReplRewriteTokens, ReplAddToken or ReplCopyFirstToken ability (repl_tokrewrite.go, repl_tokorder.go)
 	anyPlusCre     bool           // some program is ExtTurnRepl TurnReplPlusCreatureCtr: the cold buffer holds its per-player count and source (repl_turnrepl.go)
 	anyDmgMark     bool           // some program is ExtDmgMark: every damage site reads the per-player marks (repl_dmgmark.go)
 	anyFiltRepl    bool           // a filtered damage doubler or token multiplier, or an x3 one (repl_multipliers.go)
@@ -963,7 +963,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplDamageHealFirst:
 					g.replBits[i] |= rbHealSelf
 					pc.hasStat = true
-				case kop.ReplDoubleTokens, kop.ReplRewriteTokens, kop.ReplAddToken:
+				case kop.ReplDoubleTokens, kop.ReplRewriteTokens, kop.ReplAddToken, kop.ReplCopyFirstToken:
 					g.replBits[i] |= rbDblTok
 					pc.hasStat = true
 				case kop.ReplDoubleCounters:
@@ -1562,6 +1562,7 @@ type dprog struct {
 	vers [4]uint8
 	n    uint8
 	ext  uint8 // dpExtBeginCombat/dpExtYourEndStep (trig_delaybegincombat.go, trig_delayedtiming.go): n's timing bits are full
+	sv   uint8 // the source's ver at registration (CR 603.7c): a delayed body's Self names that object, not the one at fire
 }
 
 // usedRec marks a once-per-turn use (a trigger, a MayPlay static).
@@ -1833,6 +1834,7 @@ type genState struct {
 	beamGrant      bool                    // the beam me up cast beginCast starts is the granted instance of a card that prints the keyword (kw_beammeup.go; padding)
 	impCast        bool                    // the cast beginCast starts is for the card's impending cost (castImpTgt; kw_impending.go; padding)
 	warpGrant      bool                    // the warp cast beginCast starts pays a battlefield grant's instance (kw_warpgrant.go; padding)
+	bargainCast    bool                    // the permission cast beginCast starts is bargained: the pool it checks pays the bargained price (offerBargainPlay; kw_bargain.go; padding)
 	noUntapL       uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step (padding)
 	yourTurns      [MaxSeats]uint8         // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)
 	extraTurnBegun uint8                   // ExYourExtraTurns: bit p, player p has begun an extra turn this game (CR 500.7; value_exprs.go)

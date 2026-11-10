@@ -318,7 +318,7 @@ func (s *State) castGrantAvail(k *prep, p uint8, o Obj, av, fav *avail) *avail {
 	if k.gen == nil || !k.gen.anyTapExtra || !k.gen.anyGrantRestr() {
 		return av
 	}
-	s.walkHandAvail(k, p, s.grantPayDescOf(MakeAction(AkCast, uint8(o), 0, 0)), fav)
+	s.walkHandAvail(k, p, s.grantPayDescOf(k, MakeAction(AkCast, uint8(o), 0, 0)), fav)
 	fav.delve = av.delve
 	return fav
 }
@@ -1259,18 +1259,20 @@ func (g *grantSrch) grantAdmits(t *State, sl Slot, gi int16) bool {
 // grantPayDesc is the payment play a makes, for a granted source's spend
 // restriction: a cast is read as paid (cast=true: the spell is on the
 // stack when the prefix's mana is spent), an activation as an ability.
-func (s *State) grantPayDesc(a Action) payDesc {
-	d := s.grantPayDescOf(a)
+func (s *State) grantPayDesc(k *prep, a Action) payDesc {
+	d := s.grantPayDescOf(k, a)
 	d.play, d.hasPlay = a, true
 	return d
 }
 
-func (s *State) grantPayDescOf(a Action) payDesc {
+func (s *State) grantPayDescOf(k *prep, a Action) payDesc {
 	o := Obj(a.Source())
 	switch a.Kind() {
 	case AkCast, AkCastCasualty, AkCastConspire:
 		og := restrOrigin{from: s.objs[o].zone}
-		return payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: og}
+		// a face cast's spend restriction reads the face being cast (CR
+		// 715.3b, 709.3a): Storm Reading's mana value, not Galvanic Giant's
+		return payDesc{class: pdSpell, card: s.castFaceCard(k, a), src: NoSlot, og: og}
 	case AkActivate:
 		d := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
 		if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {
@@ -1444,7 +1446,7 @@ func (s *State) grantTapXPrefix(k *prep, a Action, p uint8) {
 	if !ok {
 		return
 	}
-	desc := s.grantPayDesc(a)
+	desc := s.grantPayDesc(k, a)
 	var gaps, tx slotMask
 	tx = s.scriptTapXModelled(k, p)
 	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
@@ -1560,6 +1562,22 @@ func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop
 	return cost, ex, need, ok
 }
 
+// castFaceCard is the card cast action a puts on the stack: for a face cast
+// (an Adventure or split half from the hand, a Room's other door) the face,
+// else the object's card.
+func (s *State) castFaceCard(k *prep, a Action) CardID {
+	c := s.objs[a.Source()].card
+	if a.Mode()&castFace == 0 || a.Mode()&3 != 0 {
+		return c
+	}
+	if cd := &k.t.Cards[c]; roomDef(k, c) {
+		return cd.Faces[a.Target()] // a room_alt cast: the other door, whichever door the card shows
+	} else if len(cd.Faces) == 2 && a.Target() == 1 {
+		return cd.Faces[1]
+	}
+	return c
+}
+
 // grantPlayCostRaise is grantPlayCost with raiseO set as the caller left it.
 func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cost kop.ManaCost, ex Slot, need [kop.NumManaKinds]bool, ok bool) {
 	ex = NoSlot
@@ -1582,12 +1600,7 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			// a face cast (an Adventure from the hand) pays the face's own
 			// cost, not the front's: the search priced it as the front and
 			// removed a cast gorge offers
-			c := s.objs[a.Source()].card
-			if cd := &k.t.Cards[c]; roomDef(k, c) {
-				c = cd.Faces[a.Target()] // a room_alt cast: the other door, whichever door the card shows
-			} else if len(cd.Faces) == 2 && a.Target() == 1 {
-				c = cd.Faces[1]
-			}
+			c := s.castFaceCard(k, a)
 			return s.adjustCost(k, p, c, Obj(a.Source()), k.cards[c].cost), ex, need, true
 		}
 		if a.Mode() == 0 && a.Kind() == AkCast {
