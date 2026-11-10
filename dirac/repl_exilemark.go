@@ -349,11 +349,7 @@ func (s *State) exileOrderOptions(k *prep, d *Decision) {
 func (s *State) applyExileOrder(k *prep, a Action) {
 	r := s.cold.parked[0]
 	if ob := &s.objs[r.obj]; ob.zone == kop.ZoneBattlefield {
-		for i := range s.cold.exMark {
-			if m := &s.cold.exMark[i]; m.live && m.sl == ob.slot {
-				m.live = i == int(a.Mode())
-			}
-		}
+		s.settleExileMarks(ob.slot, int(a.Mode()))
 	}
 	s.cold.parked[0].kind = parkAnswered
 	s.ctl = ctlPriority
@@ -400,6 +396,15 @@ func (s *State) applyExileOrder(k *prep, a Action) {
 		s.finishResolve(k, false)
 	} else if s.res.active {
 		s.continueRes(k, 0)
+	}
+}
+
+// settleExileMarks keeps the mark the answer (mode) chose on sl, and no other.
+func (s *State) settleExileMarks(sl Slot, mode int) {
+	for i := range s.cold.exMark {
+		if m := &s.cold.exMark[i]; m.live && m.sl == sl {
+			m.live = i == mode
+		}
 	}
 }
 

@@ -2240,19 +2240,14 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		s.lowerXEats(k, p, &cost, x, excl, anyColor)
 		return
 	}
-	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 {
+	untapped := s.untappedRestrSrcs(k, p)
+	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 && !s.anyRestrEach(k, untapped) {
 		if !s.tapForSpellTaps(k, p, &cost, x, excl, anyColor) {
 			s.tapForRider(k, p, &cost, x, excl, anyColor)
 		}
 		return
 	}
 	pool := s.pl[p].pool
-	var untapped slotMask
-	for m := s.ctrlM[p].and(s.occ); m.any(); m = m.rest() {
-		if sl := m.first(); s.perms[sl].flags&pfTapped == 0 && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
-			untapped = untapped.or(slotBit(sl))
-		}
-	}
 	var pk planner
 	s.tapForPK(k, p, &cost, x, excl, false, anyColor, &pk)
 	s.witnessManaRestricted(k, p, &pool, untapped, &pk)
@@ -2386,6 +2381,10 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 			continue
 		}
 		col := tcol
+		if ab.ManaEach {
+			s.witnessEachRestricted(k, p, pool, sl, ab, n)
+			continue
+		}
 		if uint8(ab.ManaColors)&(1<<col) != 0 && s.pl[p].pool[col] >= pool[col]+n {
 			s.pl[p].pool[col] -= n
 			if !s.floatRestrAb(k, p, sl, ab, col, n) {
@@ -2859,6 +2858,13 @@ func (s *State) manaStep(k *prep) bool {
 				// its lowest colour, not the owed pip (windowCol)
 				s.windowTapUseful(k, e.ctrl, &c, &c, true, anyColor, cd.BeholdN != 0 && s.bld().pipN == 0, false)
 			} else {
+				if s.rbAny(e.ctrl) {
+					// the plan taps only for what the admitted restricted mana
+					// leaves (pay.PlanPool), as the plain branch below does
+					if m := s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)); m != 0 {
+						cost = s.restrShortAdm(e.ctrl, m, cost)
+					}
+				}
 				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 			}
 		} else {

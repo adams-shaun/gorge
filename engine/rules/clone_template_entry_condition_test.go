@@ -17,15 +17,19 @@ func TestCloneTemplateEntryConditionReadsTemplateSVars(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name string
+		tpl  string
+		x    int
 		lost bool
 		want int32
 	}{
-		{"no opponent lost life", false, 0},
-		{"an opponent lost life", true, 1},
+		{"Cindering Cutthroat/no opponent lost life", "Cindering Cutthroat", 2, false, 0},
+		{"Cindering Cutthroat/an opponent lost life", "Cindering Cutthroat", 2, true, 1},
+		{"Frilled Sparkshooter/no opponent lost life", "Frilled Sparkshooter", 4, false, 0},
+		{"Frilled Sparkshooter/an opponent lost life", "Frilled Sparkshooter", 4, true, 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			e := handEngine(t, corpusAlternativeCard(t, "Mockingbird"))
-			tpl := e.G.AddObject(corpusAlternativeCard(t, "Cindering Cutthroat"), 1)
+			tpl := e.G.AddObject(corpusAlternativeCard(t, tc.tpl), 1)
 			tpl.Zone = state.ZBattlefield
 			e.G.SetZone(state.ZBattlefield, 1, []state.ObjID{tpl.ID})
 			if tc.lost {
@@ -35,13 +39,13 @@ func TestCloneTemplateEntryConditionReadsTemplateSVars(t *testing.T) {
 				t.Fatalf("precondition: opponent LifeLostThisTurn = %d, lost = %v", lost, tc.lost)
 			}
 			id := e.G.Zone(state.ZHand, 0)[0]
-			e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MU] = 2, 1
+			e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MU] = int32(tc.x), 1
 			castMode(t, e, id, "")
 			d := e.Pending()
 			if d == nil || d.Kind != decision.KChoose || len(d.Options) < 3 || d.Options[0].Kind != "x" {
 				t.Fatalf("expected X payment choice, got %+v", d)
 			}
-			submitChoices(t, e, 2)
+			submitChoices(t, e, tc.x)
 			resolveTopProbe(e)
 			d = e.Pending()
 			if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" {
@@ -54,12 +58,12 @@ func TestCloneTemplateEntryConditionReadsTemplateSVars(t *testing.T) {
 				}
 			}
 			if choice < 0 {
-				t.Fatalf("precondition: Cindering Cutthroat not offered: %+v", d.Options)
+				t.Fatalf("precondition: %s not offered: %+v", tc.tpl, d.Options)
 			}
 			submitChoices(t, e, choice)
 			settleDrain(e)
-			if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield || o.Face().Name != "Cindering Cutthroat" {
-				t.Fatalf("precondition: Mockingbird did not enter as the Cutthroat: %+v", o)
+			if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield || o.Face().Name != tc.tpl {
+				t.Fatalf("precondition: Mockingbird did not enter as %s: %+v", tc.tpl, o)
 			}
 			if got := e.G.Obj(id).Counter("P1P1"); got != tc.want {
 				t.Fatalf("copy P1P1 counters = %d, want %d", got, tc.want)
