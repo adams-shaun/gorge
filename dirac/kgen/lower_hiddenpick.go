@@ -168,14 +168,15 @@ func graveToBattlefieldFlags(flags []string) bool {
 // graveExilePick lowers the hidden pick over Origin$ Graveyard,Exile (graveexile):
 // gorge effHiddenPick's game-wide pool walks Graveyard then Exile, each
 // player in seat order (zone_hidden.go:33), and the fetch player is the
-// controller. Only ChangeType$ with a card filter, Hidden$ True, and a Hand
-// or Battlefield destination are read; a constant ChangeNum$; Mandatory$,
-// Optional$ True/You, RememberChanged$, ForgetOtherRemembered$.
+// controller. Only ChangeType$ with a card filter, Hidden$ True, and a Hand,
+// Battlefield or top-of-library destination are read; a constant ChangeNum$ or
+// the trigger's amount (the up-to count is evaluated when the pick starts);
+// Mandatory$, Optional$ True/You, RememberChanged$, ForgetOtherRemembered$.
 func (lc *lowerCtx) graveExilePick(ps *params, f *lFilter, n lValue, flags []string, counterKind string, override *lOverride, dest int) error {
 	if counterKind != "" || override != nil {
 		return refuse("Graveyard,Exile pick with counters/override")
 	}
-	if !n.isConst() || n.N < 1 || n.N > 255 {
+	if n.Kind != vTriggerAmount && (!n.isConst() || n.N < 1 || n.N > 255) {
 		return refuse("Graveyard,Exile pick ChangeNum$ %v", n)
 	}
 	if f.Players != 0 || len(f.Clauses) == 0 {
@@ -193,8 +194,14 @@ func (lc *lowerCtx) graveExilePick(ps *params, f *lFilter, n lValue, flags []str
 	if _, ok := ps.get("Chooser"); ok {
 		return refuse("Graveyard,Exile pick with Chooser$")
 	}
-	if _, ok := ps.get("LibraryPosition"); ok {
-		return refuse("Graveyard,Exile pick with LibraryPosition$")
+	if lp, ok := ps.get("LibraryPosition"); ok {
+		// the caller admits only the top (0) for a library destination; the
+		// kernel's pick into a library places on top without a shuffle
+		if dest != zLibrary || strings.TrimSpace(lp) != "0" {
+			return refuse("Graveyard,Exile pick with LibraryPosition$ %q", lp)
+		}
+	} else if dest == zLibrary {
+		return refuse("Graveyard,Exile pick to Library without LibraryPosition$")
 	}
 	if _, ok := ps.get("AnyNumber"); ok {
 		return refuse("Graveyard,Exile pick with AnyNumber$")

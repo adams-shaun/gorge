@@ -13,13 +13,17 @@ import (
 // run's knobs and the canonical action prefix that reached the divergence.
 // It is the JSON a fuzz run writes and `kfuzz -repro` replays.
 type Repro struct {
-	Format      string      `json:"format"` // "koracle-repro-2"
-	Decks       [2]string   `json:"decks"`
-	Cards       [2][]string `json:"cards"` // each deck's card names in decklist order
-	Seed        uint64      `json:"seed"`
-	Mulligans   int         `json:"mulligans"`
-	PassElision bool        `json:"pass_elision"`
-	MaxTurns    int32       `json:"max_turns,omitempty"`
+	Format string      `json:"format"` // "koracle-repro-2"
+	Decks  [2]string   `json:"decks"`
+	Cards  [2][]string `json:"cards"` // each deck's card names in decklist order
+	// MoreDecks and MoreCards are a game of more than two seats' further
+	// seats, as Decks and Cards; a two-seat repro has neither.
+	MoreDecks   []string   `json:"more_decks,omitempty"`
+	MoreCards   [][]string `json:"more_cards,omitempty"`
+	Seed        uint64     `json:"seed"`
+	Mulligans   int        `json:"mulligans"`
+	PassElision bool       `json:"pass_elision"`
+	MaxTurns    int32      `json:"max_turns,omitempty"`
 	// Commander and Commanders are Matchup.Commander and Commanders: a repro
 	// written without them is a Constructed game.
 	Commander  bool  `json:"commander,omitempty"`
@@ -108,6 +112,14 @@ func NewRepro(m *Matchup, seed uint64, rc RunConfig, res *Result) *Repro {
 			r.Cards[s] = append(r.Cards[s], cardName(c))
 		}
 	}
+	for s := 2; s < m.NSeat(); s++ {
+		r.MoreDecks = append(r.MoreDecks, m.SeatName(s))
+		var names []string
+		for _, c := range m.SeatDeck(s) {
+			names = append(names, cardName(c))
+		}
+		r.MoreCards = append(r.MoreCards, names)
+	}
 	r.setActions(res.Actions)
 	return r
 }
@@ -133,9 +145,14 @@ func (r *Repro) RunConfig() RunConfig {
 // Matchup rebuilds the repro's matchup from its card names (Lookup against
 // the corpus, the same resolution deck files get).
 func (r *Repro) Matchup(reg *cards.Registry) (*Matchup, error) {
-	var decks [2][]*cards.Card
-	for s := 0; s < 2; s++ {
-		for _, n := range r.Cards[s] {
+	if len(r.MoreCards) != len(r.MoreDecks) {
+		return nil, fmt.Errorf("repro: %d further decks, %d further card lists", len(r.MoreDecks), len(r.MoreCards))
+	}
+	names := append([]string{r.Decks[0], r.Decks[1]}, r.MoreDecks...)
+	lists := append([][]string{r.Cards[0], r.Cards[1]}, r.MoreCards...)
+	decks := make([][]*cards.Card, len(lists))
+	for s, l := range lists {
+		for _, n := range l {
 			c, ok := reg.Lookup(n)
 			if !ok {
 				return nil, fmt.Errorf("repro: card %q not in the corpus", n)
@@ -143,7 +160,7 @@ func (r *Repro) Matchup(reg *cards.Registry) (*Matchup, error) {
 			decks[s] = append(decks[s], c)
 		}
 	}
-	m, err := NewMatchup(reg, r.Decks, decks, r.Mulligans)
+	m, err := NewMatchupN(reg, names, decks, r.Mulligans)
 	if err != nil {
 		return nil, err
 	}

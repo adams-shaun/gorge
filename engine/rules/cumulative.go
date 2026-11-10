@@ -2390,6 +2390,15 @@ func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
 			e.emit(events.ReturnCost(id, o.Zone))
 		}
 	}
+	// The settled discards are this body's "Discarded" paid list (the
+	// castDiscarded discipline): `Discarded$<X>` reads them. Recorded before
+	// the pay so the body, resumed after it, sees them.
+	if len(tc.discards) > 0 {
+		if e.castDiscarded == nil {
+			e.castDiscarded = make(map[state.ObjID][]state.ObjID)
+		}
+		e.castDiscarded[rp.obj] = append(e.castDiscarded[rp.obj], tc.discards...)
+	}
 	pay.PayDiscardCost(asPayer(e), tc.discards, "")
 	// The cost's own Draw components (the pay arm's draw half -- Ambergris'
 	// "discard your hand. If you do, draw two cards"). The pay gate resolved

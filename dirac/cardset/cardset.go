@@ -39,6 +39,11 @@ type Set interface {
 	// card this set does not play is a *RefusedError.
 	Matchup(a, b []Entry) (*kop.Table, []kop.CardID, []kop.CardID, error)
 
+	// MatchupN is Matchup for any number of decks: one table over every
+	// deck's cards, and each deck as CardIDs in the order given. Two decks
+	// build the table Matchup builds.
+	MatchupN(decks [][]Entry) (*kop.Table, [][]kop.CardID, error)
+
 	// Pool builds one kop.Table over the whole pool: every pool card and
 	// every token they make, pool index i at CardID PoolID(i).
 	Pool() (*kop.Table, error)

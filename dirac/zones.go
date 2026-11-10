@@ -342,7 +342,7 @@ func (s *State) newToken(c CardID, p uint8) Obj {
 	if int(s.nobj) < MaxObj {
 		o := Obj(s.nobj)
 		s.nobj++
-		s.objs[o] = object{card: c, chosen: 255, of: ofToken, slot: NoSlot, acts: p << 7}
+		s.objs[o] = object{card: c, chosen: 255, of: ofToken, slot: NoSlot, acts: p << objOwnerShift}
 		s.touch(o)
 		return o
 	}
@@ -352,7 +352,7 @@ func (s *State) newToken(c CardID, p uint8) Obj {
 		panic("kernel: object table full")
 	}
 	s.reuseObj(o)
-	s.objs[o] = object{card: c, chosen: 255, of: ofToken, slot: NoSlot, acts: p << 7, ver: s.objs[o].ver + 1}
+	s.objs[o] = object{card: c, chosen: 255, of: ofToken, slot: NoSlot, acts: p << objOwnerShift, ver: s.objs[o].ver + 1}
 	s.touch(o)
 	return o
 }

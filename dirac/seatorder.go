@@ -30,9 +30,32 @@ func IsOpponent(p, q uint8) bool { return p != q }
 func SeatIx(p uint8) uint8 { return p % MaxSeats }
 
 // PlayerCode is seat p's target code (CR 115.1: a player can be a target).
-// Only seats 0 and 1 have one: the code space holds two player codes.
+// Every seat has one: the code space holds MaxSeats player codes.
 func PlayerCode(p uint8) uint8 { return PlayerTarget0 + p }
 
 // CodeSeat is the seat a player target code names; c must satisfy
 // isPlayerTarget.
 func CodeSeat(c uint8) uint8 { return c - PlayerTarget0 }
+
+// nSeats is the number of seats in this game. The default build plays two
+// and never reads the byte; the multiplayer build reads what InitN set.
+func (s *State) nSeats() uint8 {
+	if MaxSeats == 2 {
+		return 2
+	}
+	return s.g.nseat
+}
+
+// mullOrderFrom is the mulligan order of n seats: turn order from the
+// starting player p (CR 103.5: the starting player decides first, then each
+// other player in turn order).
+func mullOrderFrom(p, n uint8) [MaxSeats]uint8 {
+	if MaxSeats == 2 {
+		return [MaxSeats]uint8{p, 1 - p}
+	}
+	var o [MaxSeats]uint8
+	for i := uint8(0); i < n; i++ {
+		o[i] = (p + i) % n
+	}
+	return o
+}

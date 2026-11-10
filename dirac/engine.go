@@ -23,6 +23,21 @@ func NewConfig(tbl *Table, deckA, deckB []CardID, seed uint64, cfg Config) *Stat
 
 // Init is NewConfig into an existing State.
 func (s *State) Init(tbl *Table, deckA, deckB []CardID, seed uint64, cfg Config) {
+	s.InitN(tbl, [MaxSeats][]CardID{deckA, deckB}, 2, seed, cfg)
+}
+
+// InitN starts a game of n seats (2 <= n <= MaxSeats) into an existing
+// State: seat p plays decks[p]. Genesis follows gorge's genesisDeal: the
+// toss is the first RNG draw, IntN over the seat count, then each seat in
+// index order shuffles its library and draws 7. Objects are laid out deck by
+// deck in seat order, then the sideboards. At two seats it is exactly Init.
+func (s *State) InitN(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64, cfg Config) {
+	if n < 2 || n > MaxSeats {
+		panic("kernel: seat count out of range")
+	}
+	if n > 2 && cfg.Commander {
+		panic("kernel: Commander plays two seats")
+	}
 	clear(s.perms[:s.permHi])
 	s.stateCore = stateCore{}
 	// the last-bearer pad's empty sentinel: a zero
@@ -76,19 +91,20 @@ func (s *State) Init(tbl *Table, deckA, deckB []CardID, seed uint64, cfg Config)
 	s.win = -1
 	s.rng = newRNG(seed)
 	s.rng.rec = cfg.RecordChance
-	decks := [2][]CardID{deckA, deckB}
-	for p := 0; p < 2; p++ {
+	s.g.nseat = n
+	ns := int(s.nSeats())
+	for p := 0; p < ns; p++ {
 		if len(decks[p]) > MaxDeck {
 			panic("kernel: deck larger than MaxDeck")
 		}
 		s.pl[p].life = int16(s.startingLife())
 		s.pl[p].cmd = NoObj
 	}
-	for p := 0; p < 2; p++ {
+	for p := 0; p < ns; p++ {
 		for _, c := range decks[p] {
 			o := Obj(s.nobj)
 			s.nobj++
-			s.objs[o] = object{card: c, chosen: 255, zone: kop.ZoneLibrary, slot: NoSlot, acts: uint8(p) << 7}
+			s.objs[o] = object{card: c, chosen: 255, zone: kop.ZoneLibrary, slot: NoSlot, acts: uint8(p) << objOwnerShift}
 			s.touch(o)
 			s.pl[p].libBottom(o)
 		}
@@ -99,8 +115,8 @@ func (s *State) Init(tbl *Table, deckA, deckB []CardID, seed uint64, cfg Config)
 			s.stall(why) // loud; a built matchup refuses first (stallclass.go)
 		}
 	}
-	toss := uint8(s.rng.IntN(2))
-	for p := uint8(0); p < 2; p++ {
+	toss := uint8(s.rng.IntN(ns))
+	for p := uint8(0); p < uint8(ns); p++ {
 		if s.cfg&cfgCommander != 0 {
 			s.cmdGenesis(p, cfg.Commanders[p])
 		}
@@ -117,7 +133,7 @@ func (s *State) Init(tbl *Table, deckA, deckB []CardID, seed uint64, cfg Config)
 	// (the mulligan round and the opening-hand Leyline asks come first)
 	s.active = 0
 	if s.mullMax > 0 {
-		s.mullOrder = [MaxSeats]uint8{toss, 1 - toss}
+		s.mullOrder = mullOrderFrom(toss, uint8(ns))
 		s.mullCur = 0
 		s.ctl = ctlMullDeclare
 		return

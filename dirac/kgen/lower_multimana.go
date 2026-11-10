@@ -88,6 +88,14 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// guarded as a painland's damage (kernel painLife)
 		return
 	}
+	if len(ms) == 2 && dynamicLargerSameColour(ms[0], ms[1]) {
+		// {T}: Add {G}, then {T}: Add {G} for each creature you control
+		// (Itlimoc, Cradle of the Sun): gorge's census unit holds both
+		// alternatives (the evaluated one at its count, payment_plan.go's
+		// evaluated-amount layer) and the planner takes the best per payment;
+		// the kernel's per-count pair view (mana_dynpair.go) plans it
+		return
+	}
 	if len(ms) > 2 && !anyRFiltMana(ms) || !plainTapMana(ms[0], false) || !unrestrictedOne(ms[0]) {
 		lc.refuseNode("card", "%d mana abilities: not a fixed-colour set, nor a plain {T} ability beside one modelled gap", len(ms))
 		return
@@ -225,6 +233,8 @@ func plainTapMana(a *lAbility, paid bool) bool {
 // gap the kernel models or the frozen pools prove (refuseMultiMana).
 func manaGapModelled(first, a *lAbility) bool {
 	switch {
+	case dynamicLargerSameColour(first, a):
+		return true
 	case tapXGapMana(a):
 		// {T}, tap an untapped creature you control: one mana of any
 		// colour, unrestricted, beside a plain {T} first ability (Scene of
@@ -333,9 +343,10 @@ func ctrTapGapModelled(first, a *lAbility) bool {
 //     that is Tablet of Discovery's modelled pair, restrictedFixedPair): the
 //     kernel's restricted pair unit plans only an any-colour larger
 //     alternative beyond it, so the planner taps differently from gorge's;
-//   - an evaluated amount of the first ability's fixed colour (Itlimoc,
-//     Cradle of the Sun): the kernel plans the first ability alone, gorge's
-//     planner the larger of the two.
+//   - an evaluated amount of the first ability's fixed colour the kernel's
+//     per-count pair view does not play (dynamicLargerSameColour models
+//     Itlimoc, Cradle of the Sun): the kernel plans the first ability alone,
+//     gorge's planner the larger of the two.
 func manaGapWhy(first, a *lAbility) string {
 	m := a.Mana
 	switch {
@@ -390,6 +401,38 @@ const maxRestrictedAmount = 4
 // Building's four mana in any combination). gorge's scriptAnswers enumerates
 // at most 64 per-unit combinations, so the kernel's search does too.
 const maxComboMana = 4
+
+// dynamicLargerSameColour reports the pair refuseMultiMana names: a plain
+// unrestricted {T}: Add one mana of a fixed colour, then a plain {T}: Add that
+// same colour for each permanent matching a filter that tapping cannot change
+// (Itlimoc, Cradle of the Sun: a creature you control). gorge prices the
+// evaluated ability once, against a probe with every permanent tapped
+// (paymentPlanStableAmount), so the amount is the same at planning and at
+// activation only when the filter reads no tapped state.
+func dynamicLargerSameColour(first, a *lAbility) bool {
+	m, f := a.Mana, a.Mana.Amount
+	if !plainTapMana(first, false) || !unrestrictedOne(first) || !plainTapMana(a, false) || a.Mana.Restrict != nil || a.Mana.RestrictAb != nil {
+		return false
+	}
+	if len(first.Mana.Colors) != 1 || !strings.Contains("WUBRG", first.Mana.Colors) || first.Mana.Choice || first.Mana.Each {
+		return false
+	}
+	if m.Colors != first.Mana.Colors || m.Choice || m.Each || f.Kind != vCount || f.F == nil {
+		return false
+	}
+	return f.Add == 0 && f.Mul == 0 && f.Div == 0 && !f.Neg && len(f.Sub) == 0 && untappedStableFilter(f.F)
+}
+
+// untappedStableFilter: f reads no tapped or untapped clause, so tapping the
+// permanents of a payment cannot change the count it matches.
+func untappedStableFilter(f *lFilter) bool {
+	for _, c := range f.Clauses {
+		if c.Flags&(fTapped|fUntapped) != 0 {
+			return false
+		}
+	}
+	return len(f.Clauses) > 0
+}
 
 // unrestrictedOne: a's mana is unrestricted, amount 1.
 func unrestrictedOne(a *lAbility) bool {

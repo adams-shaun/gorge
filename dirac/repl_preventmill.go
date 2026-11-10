@@ -20,11 +20,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // gorge's body runs at the proposal. A combat pass the order ask paused is
 // recomputed on its resume (replOrd), so a mill there would run twice: that
 // state stalls, as the order ask with this replacement is not modelled.
-func (s *State) preventMill(k *prep, srcCtrl, rcp uint8, n int) bool {
+func (s *State) preventMill(k *prep, srcCtrl, rcp uint8, combat bool, n int) bool {
 	if s.replN(k, srcCtrl, rbPrevMill) == 0 {
 		return false
 	}
-	if s.noPrev(k) {
+	if s.noPrev(k, combat) {
 		s.capFull(StallNoPrevent) // gorge prevents and mills anyway (static_cantprevent.go)
 		return true
 	}

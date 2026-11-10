@@ -356,7 +356,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		//   - a watcher over your own creatures (every clause YouCtrl) or
 		//     over the equipped creature (every clause EquippedBy), with no
 		//     ValidPlayer$ (any tapper): Captain America, Living Legend's
-		//     Creature.YouCtrl, Hawkeye's Bow's Creature.EquippedBy.
+		//     Creature.YouCtrl, Hawkeye's Bow's Creature.EquippedBy, and
+		//     Cryoshatter's Card.AttachedBy when its body defers the tap.
 		// FirstTime$ True ("the first time it has become tapped this turn",
 		// gorge Facts.TappedTurn) needs a per-object bit the kernel keeps
 		// nowhere (perm.flags holds no free bit): 16 State bytes, a
@@ -375,22 +376,23 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				if vp != "" {
 					return refuse("Taps ValidPlayer %q", vp)
 				}
+				// AttachedBy lowers to the same flag as EquippedBy
+				// (filter.go): the enchanted-permanent watcher. Its deferring
+				// bodies (Cryoshatter's destroy) lower, as gorge's planner
+				// defers any tap a non-damage watcher sees; a damage body
+				// (Psychic Venom's payer damage) has a payment tiering the
+				// kernel does not mirror yet, so it refuses.
+				tp8, pn := tapsPlanClass(t.Effect)
+				att := strings.Contains(vc, "AttachedBy")
 				for _, c := range tr.F.Clauses {
 					ok := c.Owner == whoAny && c.CmpStat == cmpNone && c.Special == 0
-					// AttachedBy lowers to the same flag as EquippedBy
-					// (filter.go), but it is the enchanted-permanent watcher
-					// family (Psychic Venom's payer damage), whose payment
-					// tiering the kernel does not mirror yet: not this
-					// ticket's shape (YouCtrl, EquippedBy), so it refuses.
-					att := strings.Contains(vc, "AttachedBy")
 					switch {
 					case ok && c.Ctrl == whoYou && c.Flags == 0 && !att:
-					case ok && c.Ctrl == whoAny && c.Flags == fEquippedBy && !att:
+					case ok && c.Ctrl == whoAny && c.Flags == fEquippedBy && (!att || tp8 == kop.TapPlanDefer):
 					default:
 						return refuse("Taps ValidCard %q", vc)
 					}
 				}
-				tp8, pn := tapsPlanClass(t.Effect)
 				tr.TapPlan, tr.TapPainN = uint8(tp8), pn
 				break
 			}
@@ -2082,7 +2084,14 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			return nil, refuse("%s ValidPlayer %q", s.Mode, v)
 		}
 		sp.consume("ValidPlayer", "Secondary")
-	case "CantPreventDamage": // the blanket form only: ValidSource$, IsCombat$, EffectZone$, Affected$ stay unread (gorge cantPreventDamage)
+	case "CantPreventDamage": // the blanket form, or IsCombat$ True (combat damage only: Frenzied Baloth); ValidSource$, EffectZone$, Affected$ stay unread (gorge cantPreventDamage)
+		if c, ok := sp.get("IsCombat"); ok {
+			if !strings.EqualFold(strings.TrimSpace(c), "True") {
+				return nil, refuse("CantPreventDamage IsCombat %q", c)
+			}
+			sp.consume("IsCombat")
+			st.Flags = append(st.Flags, "NoPrevCombat")
+		}
 		sp.consume("Secondary")
 	case "CantPutCounter":
 		// gorge PutCounterBlocked's object form (rules/layers_restrict.go):
