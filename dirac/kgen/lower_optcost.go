@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -114,6 +115,37 @@ func (lc *lowerCtx) optCostRead(rest string) error {
 		}
 	}
 	return nil
+}
+
+// reduceOptPaid lowers a self ReduceCost static whose Amount$ is
+// Count$OptionalGenericCostPaid.<paid>.0 (Bite Down on Crime: "costs {2} less
+// if evidence was collected"). gorge seeds the pending cast's optional-cost
+// election while it prices the optional cast (rules costAmountCtx) and reads
+// the unpaid arm for every other cast, so the static is the paid arm exactly
+// on the optional-cost cast: a literal reduction that prices only that cast
+// (flag OptPaid, the Bargain-gated static's carrier, kop.StBargained). The
+// unpaid arm must be 0, since the plain cast then pays the full cost. Returns
+// true when it read the Amount$.
+func (lc *lowerCtx) reduceOptPaid(sp *params, st *lStatic) (bool, error) {
+	body, ok := lc.face.SVars[strings.TrimSpace(sp.m["Amount"])]
+	if !ok || !strings.HasPrefix(body, "Count$OptionalGenericCostPaid.") {
+		return false, nil
+	}
+	sp.consume("Amount", "Relative") // gorge lists Relative$ as readable and never reads it
+	if !lc.faceOptCost() {
+		return true, refuse("Count$OptionalGenericCostPaid without an OptionalCost static")
+	}
+	if strings.TrimSpace(sp.m["ValidCard"]) != "Card.Self" || strings.TrimSpace(sp.m["EffectZone"]) != "All" {
+		return true, refuse("ReduceCost reading Count$OptionalGenericCostPaid beside ValidCard %q EffectZone %q (only a self static with EffectZone$ All)", sp.m["ValidCard"], sp.m["EffectZone"])
+	}
+	parts := strings.Split(strings.TrimPrefix(body, "Count$OptionalGenericCostPaid."), ".")
+	if len(parts) != 2 || !isIntLit(parts[0]) || parts[1] != "0" || parts[0] == "0" || len(parts[0]) > 2 {
+		return true, refuse("ReduceCost reading %s (only a literal paid arm and an unpaid arm of 0)", body)
+	}
+	n, _ := strconv.Atoi(parts[0])
+	st.Amount = cst(n)
+	st.Flags = append(st.Flags, "OptPaid")
+	return true, nil
 }
 
 // optCostCond lowers Condition$ OptionalCost (gorge conditions.go: the

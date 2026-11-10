@@ -145,6 +145,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if !cav.affords(cost, pipMaskOf(cost), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, cav)) {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
+				s.offerOptCostOnly(k, d, p, o, c, &av)
 			}
 			continue
 		}

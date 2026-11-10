@@ -344,6 +344,7 @@ ExGraveAgg	ExprKind	43
 ExGraveTypes	ExprKind	41
 ExHandSizeOf	ExprKind	26
 ExHighestOppPoison	ExprKind	45
+ExIfCastOwnMain	ExprKind	224
 ExKicked	ExprKind	7
 ExLastLifeLost	ExprKind	22
 ExLeftZone	ExprKind	249

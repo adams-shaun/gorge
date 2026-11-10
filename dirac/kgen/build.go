@@ -1911,6 +1911,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vLeftZone:           kop.ExLeftZone,
 	vCastFromGrave:      kop.ExCastFromGrave,
 	vFirstCast:          kop.ExFirstCast,
+	vIfCastOwnMain:      kop.ExIfCastOwnMain,
 	vCtrAdded:           kop.ExCtrAdded,
 	vSacrificedThisTurn: kop.ExSacrificedThisTurn,
 	vDiscardedThisTurn:  kop.ExDiscardedThisTurn,

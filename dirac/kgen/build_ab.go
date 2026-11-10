@@ -439,6 +439,20 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		}
 		ts.TFlags |= kop.TgfBoundsV
 		ts.UpTo = true
+	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && t.Divided == 0 && t.Mode < 0 && t.ParentPlus1 == 0 &&
+		t.Min.isConst() && t.Min.N == 1 && !t.Max.isConst() && !plainX(t.Max) && tgtBoundReads(t.Max):
+		// one target at least, up to a value read as the slot is announced
+		// (Return to Dust: TargetMin$ 1, TargetMax$ the own-main-phase count).
+		// The slot is mandatory: the kernel's bound check asks MinV
+		// candidates (tgtBoundsFeasible) and the ask closes at MaxV.
+		var err error
+		if ts.MinV, err = cb.value(t.Min); err != nil {
+			return ts, fmt.Errorf("target count %s..%s: %w", t.Min, t.Max, err)
+		}
+		if ts.MaxV, err = cb.value(t.Max); err != nil {
+			return ts, fmt.Errorf("target count %s..%s: %w", t.Min, t.Max, err)
+		}
+		ts.TFlags |= kop.TgfBoundsV
 	default:
 		return ts, fmt.Errorf("target count %s..%s", t.Min, t.Max)
 	}
@@ -531,7 +545,7 @@ func plainX(v lValue) bool {
 
 func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
-	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked:
+	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain:
 		return true
 	case vSum, vProduct:
 		for _, sv := range v.Sub {
@@ -1638,8 +1652,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		for _, fl := range s.Flags {
 			switch fl {
-			case "Bargained":
-				st.StFlags |= kop.StBargained // lower_reducespell.go
+			case "Bargained", "OptPaid":
+				st.StFlags |= kop.StBargained // lower_reducespell.go, lower_optcost.go
 			case "ReduceColor":
 				st.StFlags |= kop.StReduceColor
 				st.B = int16(s.RedCol)
