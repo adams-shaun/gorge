@@ -346,7 +346,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 					continue
 				}
 			}
-			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedPoolOK(p, a) {
+			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedPoolOK(k, p, sl, a) {
 				continue // a max-speed grant is offered from the floating pool alone (kw_maxspeed.go)
 			}
 			if s.canActivate(k, sl, ai, a, sorc, &av) {
@@ -1411,6 +1411,9 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 			pc = s.manaPCGen(k, sl)
 		}
 		if !s.canTapForManaPC(k, sl, pc) || pc.manaAb < 0 && s.perms[sl].ovr.flags&ovCopy == 0 || payment && k.gen != nil && s.openManaRefused(k, p, sl, d) {
+			if k.gen != nil && !s.canTapForManaPC(k, sl, pc) {
+				s.potentialGrantSac(k, sl, payment, add, &open) // a granted sacrifice-only ability, tapped or not (mana_grantcost.go)
+			}
 			continue
 		}
 		if pc.manaAb >= 0 {
@@ -1425,7 +1428,8 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 					done[sl] &^= s.filtPipBit(k, sl) // a one-pip filter joins below once the pool pays it (mana_filterpip.go)
 				}
 				cd := &k.t.Cards[c]
-				dynamic = pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) && cd.Abilities[pc.manaAb].AFlags&kop.AfManaDynamic != 0
+				dynamic = pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) && cd.Abilities[pc.manaAb].AFlags&kop.AfManaDynamic != 0 ||
+					k.gen.flags[c]&gfManaDynPair != 0 // gorge's potentialAmount reads the second ability's Count$ as indeterminate: unbounded (mana_dynpair.go)
 			}
 		}
 		if dynamic || !pc.manaMulti && (pc.manaCol == kop.ColAny && !pc.manaChosen || pc.manaChosen && !payment) {
@@ -1539,11 +1543,11 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 // beyond a tap, a self-sacrifice and life, is one gorge's potential-mana walk
 // admits while its cost can be paid: a tap-another-permanent source with a permanent to
 // tap (Springleaf Drum, Baylen's tokens), or a counter cost put on its source once each
-// turn (Wall of Roots). They are the shapes kop.ManaAbilityHonoured lists.
+// turn (Wall of Roots) or with its {T} (Weather Maker's second ability). They are the shapes kop.ManaAbilityHonoured lists.
 func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Ability) bool {
 	c := s.cardAt(sl)
 	switch {
-	case k.cards[c].manaAb == int8(j) && kop.CtrManaAb(ab):
+	case int(k.ctrAb[c]) == j && (kop.CtrManaAb(ab) || kop.CtrTapSecondManaAb(ab)):
 		return ab.Cost.Flags&kop.CostRemoveCtr == 0 || s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) >= int(ab.Cost.N)
 	case k.tapMana && kop.TapXMana(ab) && int(k.tapXAb[c]) == j: // the first mana ability or a second beside a plain one (mana_tapanother.go tapXAbOf)
 		var cs [MaxPerm]Slot

@@ -304,7 +304,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				}
 			}
 		}
-		sacOnly := k.sacOnlyMana && pc.manaSacOnly
+		sacOnly := windowSacOnly(k, pc) // printed or granted (mana_grantcost.go)
 		if k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDyn(k, p, cost, sl) {
 			continue
 		}
@@ -401,7 +401,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if s.buildLive() && s.bld().pickN != 0 && s.waterbendPicked(s.perms[o].obj) {
 			continue // a waterbend pick cannot also pay the mana (gorge convokeCommitted)
 		}
-		if s.windowCanTap(k, o) || k.sacOnlyMana && s.canSacOnlyNowAt(k, o) {
+		if s.windowCanTap(k, o) || s.windowSacNow(k, o) {
 			if s.planDeferred(k, p, o) {
 				continue // the window's answer follows the planner's tier: gorge's bot never picks a deferred source (mana_tapsdefer.go)
 			}
@@ -797,7 +797,7 @@ func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bo
 			}
 		}
 		pc := s.windowGrantPC(k, sl)
-		if gap || k.sacOnlyMana && pc.manaSacOnly || s.perms[sl].flags&pfTapped != 0 ||
+		if gap || windowSacOnly(k, pc) || s.perms[sl].flags&pfTapped != 0 ||
 			k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDynMask(k, p, sl) != 0 {
 			ok, known = false, false
 			break

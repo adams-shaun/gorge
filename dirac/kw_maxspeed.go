@@ -47,12 +47,13 @@ func (s *State) replHostLive(k *prep, a *kop.Ability, b Slot) bool {
 var DebugSpeedGrantLands bool
 
 // maxSpeedGraveOK: a graveyard ability gated on max speed is offered to p
-// (speed 4, the floating pool pays its mana cost).
-func (s *State) maxSpeedGraveOK(p uint8, a *kop.Ability) bool {
+// (speed 4, the floating pool pays its mana cost, the restricted batches the
+// activation may spend included: CR 106.6).
+func (s *State) maxSpeedGraveOK(k *prep, p uint8, card CardID, a *kop.Ability) bool {
 	if s.speedOf(p) < speedMaxV {
 		return false
 	}
-	if !DebugSpeedGrantLands && !s.poolPays(p, &a.Cost.Mana) {
+	if !DebugSpeedGrantLands && !s.poolPaysAct(k, p, &a.Cost.Mana, payDesc{class: pdAct, card: card, src: NoSlot}) {
 		return false
 	}
 	if SpeedCounting {
@@ -62,7 +63,8 @@ func (s *State) maxSpeedGraveOK(p uint8, a *kop.Ability) bool {
 }
 
 // maxSpeedPoolOK: a battlefield max-speed gated ability is offered only when
-// the floating pool pays its mana cost (true when it has none).
-func (s *State) maxSpeedPoolOK(p uint8, a *kop.Ability) bool {
-	return DebugSpeedGrantLands || s.poolPays(p, &a.Cost.Mana)
+// the floating pool pays its mana cost, the restricted batches the activation
+// may spend included (true when it has none).
+func (s *State) maxSpeedPoolOK(k *prep, p uint8, sl Slot, a *kop.Ability) bool {
+	return DebugSpeedGrantLands || s.poolPaysAct(k, p, &a.Cost.Mana, payDesc{class: pdAct, card: s.cardAt(sl), src: sl})
 }

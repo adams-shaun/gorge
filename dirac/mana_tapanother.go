@@ -528,7 +528,7 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		return
 	}
 	if st.kind == tapXPlain {
-		s.tapXPlainDo(k, p, st.sl)
+		s.tapXPlainDo(k, p, st.sl, st.col)
 		return
 	}
 	if st.cand == NoSlot {
@@ -571,10 +571,15 @@ func (k *prep) tapXSecond(c CardID) bool {
 // tapXPlainDo plays a second-ability source's first ability (its {T}: Add
 // {C}): the answer gorge's prefix search tries first at the source's ability
 // ask (scriptAnswers in the ask's order), and its only one once the tap-another
-// cost has nothing left to tap. The source taps and its fixed colour floats.
-func (s *State) tapXPlainDo(k *prep, p uint8, sl Slot) {
+// cost has nothing left to tap. The source taps and its colour floats: its
+// fixed colour, or the colour asked when the plain ability is an any-colour one
+// (Weather Maker's, beside its counter ability: mana_countercost.go).
+func (s *State) tapXPlainDo(k *prep, p uint8, sl Slot, ask uint8) {
 	pc := &k.cards[s.cardAt(sl)]
 	col := bits.TrailingZeros8(uint8(pc.manaCol))
+	if pc.manaCol&(pc.manaCol-1) != 0 {
+		col = int(ask)
+	}
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
@@ -595,6 +600,37 @@ func (rs *tapXSearch) tapXAbilityAsk(k *prep, t *State, sl Slot, live bool) (fou
 	}
 	if live && !rs.tick() { // the ability ask
 		return false, true
+	}
+	if rs.try(k, t, tapXStep{kind: tapXPlain, sl: sl, cand: NoSlot, cand2: NoSlot}) {
+		return true, true
+	}
+	return false, false
+}
+
+// ctrAbilityAsk branches a second-ability counter gap sl (kop.SecondCtrTapManaAb)
+// at a search node on its ability ask: the plain first ability first, behind
+// the colour ask its any-colour production poses, the colours in the order of
+// the play's announced ones (cols). The caller then tries the counter ability.
+// handled: the search found a path (found) or ran out of nodes (!found); the
+// caller returns found then.
+func (rs *tapXSearch) ctrAbilityAsk(k *prep, t *State, sl Slot, cols *[5]uint8) (found, handled bool) {
+	c := t.cardAt(sl)
+	if !k.ctrSecond(c) {
+		return false, false
+	}
+	if !rs.tick() { // the ability ask
+		return false, true
+	}
+	if mc := k.cards[c].manaCol; mc&(mc-1) != 0 {
+		if !rs.tick() { // the colour ask
+			return false, true
+		}
+		for i := 0; i < 5; i++ {
+			if rs.try(k, t, tapXStep{kind: tapXPlain, sl: sl, cand: NoSlot, cand2: NoSlot, col: cols[i]}) {
+				return true, true
+			}
+		}
+		return false, false
 	}
 	if rs.try(k, t, tapXStep{kind: tapXPlain, sl: sl, cand: NoSlot, cand2: NoSlot}) {
 		return true, true
@@ -679,7 +715,14 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			continue
 		}
 		if ctr.has(sl) {
-			// a counter-cost gap has one answer and asks nothing
+			// a counter-cost gap has one answer and asks nothing, unless it is
+			// a second ability beside a plain first one: activating the source
+			// then asks which ability, and gorge's search tries the plain one
+			// first (with its colour ask when it makes any colour), so a later
+			// gap's counters may pay where this one's would have
+			if found, handled := rs.ctrAbilityAsk(k, t, sl, &cols); handled {
+				return found
+			}
 			if rs.try(k, t, tapXStep{sl: sl, cand: NoSlot, cand2: NoSlot}) {
 				return true
 			}

@@ -14,6 +14,55 @@ type Pairing struct {
 	Index int
 	A, B  string
 	Seed  uint64
+	// More is a pod's further decks, seats 2 and up (PodAt); empty for a pair.
+	More [MaxSeats - 2]string
+}
+
+// Decks is the pairing's decks in seat order.
+func (p Pairing) Decks() []string {
+	out := []string{p.A, p.B}
+	for _, n := range p.More {
+		if n != "" {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// PodsFrom is PairingsFrom for games of seats seats: at two seats it is
+// PairingsFrom, and past two each pod is PodAt.
+func PodsFrom(pool []PoolDeck, first, n int, seed uint64, seats int) []Pairing {
+	if seats <= 2 {
+		return PairingsFrom(pool, first, n, seed)
+	}
+	out := make([]Pairing, 0, n)
+	if len(pool) < seats {
+		return out
+	}
+	for p := first; p < first+n; p++ {
+		out = append(out, PodAt(pool, p, seed, seats))
+	}
+	return out
+}
+
+// PodAt is pod p of seats distinct decks from pool (len(pool) >= seats > 2):
+// a pure function of (seed, p), drawn from the generator PairingAt uses, the
+// seats' decks in seat order, then the seed.
+func PodAt(pool []PoolDeck, p int, seed uint64, seats int) Pairing {
+	r := rand.New(rand.NewPCG(seed, uint64(p)))
+	idx := make([]int, len(pool))
+	for i := range idx {
+		idx[i] = i
+	}
+	names := make([]string, seats)
+	for s := range names {
+		k := s + r.IntN(len(idx)-s)
+		idx[s], idx[k] = idx[k], idx[s]
+		names[s] = pool[idx[s]].Name
+	}
+	out := Pairing{Index: p, A: names[0], B: names[1], Seed: r.Uint64()}
+	copy(out.More[:], names[2:])
+	return out
 }
 
 // Pairings draws n deck pairs from pool exactly as gorge self-play draws its
@@ -133,7 +182,7 @@ func Fuzz(c *Corpus, pairs []Pairing, mk SideFactory, fc FuzzConfig, progress fu
 						}
 					}()
 					d.i = i
-					d.m, d.err = c.Matchup(p.A, p.B, fc.Mulligans)
+					d.m, d.err = c.MatchupN(p.Decks(), fc.Mulligans)
 					if d.err == nil {
 						var k Side
 						if k, d.err = mk(d.m, p.Seed); d.err == nil {

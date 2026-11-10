@@ -369,6 +369,9 @@ func TestStdBigReprosLockstep(t *testing.T) {
 		{"sba_batch_asks_before_tokens_cease", true, false},                 // CR 704.3: three Golems destroyed at once under Rest in Peace are each asked which replacement applies, and the two already in exile cease at the next check, not between the asks
 		{"ability_target_before_cost_replacement", true, false},             // CR 601.2c: Harvester of Misery's target is a target of the ability before Rest in Peace asks where its discarded source goes
 		{"rest_in_peace_ask_between_cost_parts", true, false},               // CR 602.2b: the {T} part is paid before the discard, so the replacement ask the discard raises with two Rest in Peace sees Fomori Vault already tapped
+		{"granted_sac_only_mana_prefix", true, false},                       // CR 602.2b, 704.5n: Lotus Ring's granted "Sacrifice this creature: Add three mana of any one color" is the prefix paying an activation, the equipped Hostile Investigator sacrificed and the Ring unattached
+		{"granted_sac_only_mana_window", true, false},                       // CR 602.2b, 605.3a: Esoteric Duplicator's resolution-time {2} is paid in the manual mana window by sacrificing the Lost Jitte token Lotus Ring equips, a tapped creature whose granted ability has no {T}
+		{"granted_sac_dies_token_copy_is_equip_target", true, false},        // CR 603.10a, 400.7: the prefix sacrifices the Lotus Ring-equipped Vaultborn Tyrant and its dies trigger's token copy, a new object, is the other Ring's Equip target; the search keys a payer state on its battlefield objects as gorge's scriptStateKey does
 	})
 }
 
@@ -713,6 +716,9 @@ func TestStdDftReprosLockstep(t *testing.T) {
 		{"own_counter_replacement_does_not_apply_to_own_entry", false, false}, // CR 614.12: Caradora's "a creature or Vehicle you control" plus-one does not apply to the +1/+1 counter Thunderous Velocipede grants it as it enters; a general subset excludes the entrant itself
 		{"returned_aura_host_before_paid_draw", false, false},                 // CR 303.4f, 610.3: sacrificing Perilous Snare pays Chandra's "if you do, draw": its exiled Aura's host answer comes before the draw, as gorge asks it mid-payment
 		{"lost_abilities_tappower_bonus", false, false},                       // CR 613.1f: a Pilot token under Flood the Engine loses the TapPowerValue static, so it contributes its printed power to a Saddle cost
+		{"actonly_pool_pays_surveyor_grave_grant", true, false},               // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Leonin Surveyor's max-speed graveyard activation
+		{"actonly_pool_pays_grave_return", false, false},                      // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Deathless Pilot's graveyard return
+		{"actonly_pool_pays_battlefield_grant", true, false},                  // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Hour of Victory's max-speed battlefield grant
 	})
 }
 
@@ -722,7 +728,9 @@ func TestStdTmtReprosLockstep(t *testing.T) {
 	reg := synthReg(t)
 	set := cardsettest.Synth(t, "std-tmt")
 	for _, c := range []stdRepro{
-		{"put_counters_from_unheard_kind_order", false, false}, // CR 603.3b: Donatello, Mutant Mechanic copies a dead artifact's +1/+1 and stun counters while a +1/+1 trigger listens: the stun is heard by none, so gorge's insertion order is unobservable
+		{"put_counters_from_unheard_kind_order", false, false},                 // CR 603.3b: Donatello, Mutant Mechanic copies a dead artifact's +1/+1 and stun counters while a +1/+1 trigger listens: the stun is heard by none, so gorge's insertion order is unobservable
+		{"second_ability_counter_cost_taps_source_for_generic", true, false},   // CR 605.3b, 601.2g: Weather Maker beside a plain {T} first ability: its "{T}, remove two charge counters: Add {C}{C}" pays Frog Butler's {2} reach activation when every land is tapped, so gorge offers it
+		{"second_ability_counter_gap_tries_plain_ability_first", false, false}, // CR 605.3b, 601.2g: two Weather Makers pay Metalhead: gorge's prefix search answers the first one's ability ask with its plain ability (the colour ask behind it), then the second one's with its counters, so only the second loses them
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if res := replayReproRes(t, reg, set, c.name, c.autopay); res.Stall != "" {

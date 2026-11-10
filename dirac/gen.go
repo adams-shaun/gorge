@@ -1196,6 +1196,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 			}
 		}
+		prepManaDynPair(g, c, CardID(i), pc)
 		prepManaGate(g, c, CardID(i), pc)
 		prepManaRefl(g, c, CardID(i), pc)
 		g.prepRestrSrc(c, CardID(i), pc)
@@ -2157,6 +2158,9 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 		}
 		if k.gen.flags[c]&gfManaGate != 0 {
 			return s.manaGateView(k, sl, c, vi)
+		}
+		if k.gen.flags[c]&gfManaDynPair != 0 {
+			return s.dynPairView(k, sl, c, vi)
 		}
 		if k.gen.flags[c]&gfManaRefl != 0 {
 			return s.manaReflView(k, sl, c, vi)

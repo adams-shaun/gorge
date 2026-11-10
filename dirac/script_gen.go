@@ -52,7 +52,7 @@ func (s *State) liveGrantGap(k *prep, p uint8) bool {
 	}
 	for m := s.ctrlM[p&1].and(s.occ); m.any(); m = m.rest() {
 		sl := m.first()
-		if s.grantIdx(k, sl) >= 0 && s.canTapForMana(k, sl) {
+		if s.grantGapUsable(k, sl) {
 			return true
 		}
 	}
@@ -543,7 +543,7 @@ func (s *State) grantGapLive(k *prep, p uint8) bool {
 	}
 	for m := s.ctrlM[p&1].and(s.occ); m.any(); m = m.rest() {
 		sl := m.first()
-		if s.grantIdx(k, sl) >= 0 && s.canTapForMana(k, sl) {
+		if s.grantGapUsable(k, sl) {
 			return true
 		}
 	}

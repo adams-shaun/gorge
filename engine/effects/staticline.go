@@ -300,6 +300,7 @@ func mayPlayFreeGrantFromLine(params map[string]string) (state.ContinuousEffect,
 		AffectedZone:           strings.TrimSpace(params["AffectedZone"]),
 		MayPlay:                true,
 		MayPlayFree:            true,
+		MayPlayNoZone:          strings.TrimSpace(params["MayPlayDontGrantZonePermissions"]) == "True",
 		MayPlayLimit:           limit,
 		MayPlayPlayerTurn:      playerTurn,
 		MayPlayValidAfterStack: afterStack,
@@ -475,6 +476,23 @@ func mayPlayParamsScan(params map[string]string, allowFree, allowAfterStack bool
 			if allowAfterStack || strings.TrimSpace(params[key]) == "" {
 				return false, false, 0, false, "", false
 			}
+		case mayPlayParamNoZone:
+			// MayPlayDontGrantZonePermissions$ True rides the Effect-delivered
+			// FREE grant as the registered effect's MayPlayNoZone (World War
+			// Hulk): rules offers the free alternative on a cast that is
+			// otherwise legal and never a cast from a zone. Any other value,
+			// the plain/alt-cost grant and the printed route (whose own
+			// mayPlayStatic reads the key) fail closed.
+			if !allowAfterStack || !allowFree || strings.TrimSpace(params[key]) != "True" {
+				return false, false, 0, false, "", false
+			}
+		case mayPlayParamValidSA:
+			// ValidSA$ Spell limits the grant to casting. Read only beside the
+			// no-zone-permission bit (checked after the loop): a land play is
+			// then never offered by the grant anyway, so the limit is exact.
+			if !allowAfterStack || strings.TrimSpace(params[key]) != "Spell" {
+				return false, false, 0, false, "", false
+			}
 		case mayPlayParamSecondary:
 			// Secondary$ is Forge's display-only renderer bit
 			// (CardTraitBase.isSecondary, read only by Card.java's getText
@@ -483,6 +501,10 @@ func mayPlayParamsScan(params map[string]string, allowFree, allowAfterStack bool
 		default:
 			return false, false, 0, false, "", false
 		}
+	}
+	noZone := strings.TrimSpace(params["MayPlayDontGrantZonePermissions"]) == "True"
+	if _, has := params["ValidSA"]; has && !noZone {
+		return false, false, 0, false, "", false
 	}
 	limit = 0
 	if raw, okv := params["MayPlayLimit"]; okv {
@@ -501,7 +523,7 @@ func mayPlayParamsScan(params map[string]string, allowFree, allowAfterStack bool
 		_, _ = cond, okv
 		return false, false, 0, false, "", false
 	}
-	if allowAfterStack && strings.Contains(params["AffectedZone"], "Library") &&
+	if allowAfterStack && !noZone && strings.Contains(params["AffectedZone"], "Library") &&
 		!strings.Contains(params["Affected"], "TopLibrary") {
 		// The library is hidden: an Effect grant over it is readable only
 		// when its Affected$ pins the top card (the rules walks offer that
@@ -1184,6 +1206,8 @@ const (
 	mayPlayParamAltManaCost
 	mayPlayParamPrintedGate
 	mayPlayParamMayLookAt
+	mayPlayParamValidSA
+	mayPlayParamNoZone
 )
 
 var mayPlayParamCodes = state.NewStrCodes(
@@ -1209,4 +1233,6 @@ var mayPlayParamCodes = state.NewStrCodes(
 	state.StrEntry[mayPlayParamCode]{Key: "PresentCompare", Val: mayPlayParamPrintedGate},
 	state.StrEntry[mayPlayParamCode]{Key: "PresentZone", Val: mayPlayParamPrintedGate},
 	state.StrEntry[mayPlayParamCode]{Key: "MayLookAt", Val: mayPlayParamMayLookAt},
+	state.StrEntry[mayPlayParamCode]{Key: "ValidSA", Val: mayPlayParamValidSA},
+	state.StrEntry[mayPlayParamCode]{Key: "MayPlayDontGrantZonePermissions", Val: mayPlayParamNoZone},
 )

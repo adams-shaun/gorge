@@ -84,7 +84,7 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 			// resolution remembered ("return up to THAT MANY target cards":
 			// TargetMax$ X over TriggerRemembered$Amount), which rides the
 			// minted object's own Remembered (engine/rules/reflexive.go).
-			reflexiveCaptured(ctx)
+			reflexiveCaptured(ctx, nil)
 		}
 	}
 	// The pending cast's own multikicker count (engine/rules/cast.go's multikickAsk):

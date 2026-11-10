@@ -153,7 +153,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		if abilityXAnnounced(o) {
 			ctx.XAnnounced = true
 		}
-		reflexiveCaptured(ctx)
+		reflexiveCaptured(ctx, e.reflexiveRememberedPT[rp.obj])
 		if rp.kind == "optional" {
 			// CR 400.7: the CR 603.5 yes resumes before any of the body ran, so
 			// this is the resolution-start list resolveTop computes.

@@ -49,7 +49,7 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 	landKeep := func(o *state.Object) bool { return o.Face() != nil && o.Face().IsLand() }
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
-		if !ce.MayPlay || !mayPlayEffectSeatOpen(ce, p) {
+		if !ce.MayPlay || ce.MayPlayNoZone || !mayPlayEffectSeatOpen(ce, p) {
 			continue
 		}
 		if ce.MayPlayPlayerTurn && e.G.Active != p {
@@ -429,7 +429,7 @@ func (e *Engine) mayPlaySpellIdsBoard(p state.PlayerID, board bool) []mayPlaySpe
 	spellKeep := func(o *state.Object) bool { return o.Face() != nil && !o.Face().IsLand() }
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
-		if !ce.MayPlay || !mayPlayEffectSeatOpen(ce, p) {
+		if !ce.MayPlay || ce.MayPlayNoZone || !mayPlayEffectSeatOpen(ce, p) {
 			continue
 		}
 		if ce.MayPlayPlayerTurn && e.G.Active != p {
