@@ -44,8 +44,9 @@ func greatTrainHeistReached(g *GorgeSide) bool {
 }
 
 // greatTrainHeistPolicy plays a land, casts Great Train Heist in a combat
-// phase (mode 0 and Done), and otherwise passes; the game needs no other play.
-func greatTrainHeistPolicy(m *Matchup) Policy {
+// phase (the one Spree mode given, then Done), and otherwise passes; the game
+// needs no other play. picked is set when it answers that mode pick.
+func greatTrainHeistPolicy(m *Matchup, mode int, picked *bool) Policy {
 	return PolicyFunc(func(c *PickCtx) Canon {
 		switch c.D.Kind {
 		case DPriority:
@@ -71,7 +72,8 @@ func greatTrainHeistPolicy(m *Matchup) Policy {
 			}
 		case DModes:
 			for _, o := range c.D.Options {
-				if o.Kind() == ActMode && o.Mode() == 0 {
+				if o.Kind() == ActMode && int(o.Mode()) == mode {
+					*picked = true
 					return o
 				}
 			}
@@ -96,6 +98,13 @@ func TestGreatTrainHeistReproRecord(t *testing.T) {
 	if os.Getenv("GREAT_TRAIN_HEIST_RECORD") == "" {
 		return // a recording tool, not coverage
 	}
+	recordGreatTrainHeist(t, greatTrainHeistRepro, 0, greatTrainHeistReached)
+}
+
+// recordGreatTrainHeist plays the case's policy (the Spree mode given) until a
+// game reaches the state its reached check names, and writes the repro.
+func recordGreatTrainHeist(t *testing.T, repro string, mode int, reachedBy func(g *GorgeSide) bool) {
+	t.Helper()
 	reg := synthReg(t)
 	c := greatTrainHeistCase()
 	set := cardsettest.Synth(t, "std-otj")
@@ -122,19 +131,19 @@ func TestGreatTrainHeistReproRecord(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		reached := false
+		reached, picked := false, false
 		rc := RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 20}
-		rc.Finish = func(g *GorgeSide) { reached = greatTrainHeistReached(g) }
-		res := Lockstep(m, r.Seed, k, greatTrainHeistPolicy(m), rc)
+		rc.Finish = func(g *GorgeSide) { reached = reachedBy(g) }
+		res := Lockstep(m, r.Seed, k, greatTrainHeistPolicy(m, mode, &picked), rc)
 		CloseSide(k)
 		if res.Div != nil {
 			t.Fatalf("seed %d: divergence at %d: %s %s %v", seed, res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
 		}
-		if !reached {
+		if !reached || !picked {
 			continue
 		}
 		r.setActions(res.Actions)
-		if err := r.Write(filepath.Join("testdata", "repro", greatTrainHeistRepro+".repro.json")); err != nil {
+		if err := r.Write(filepath.Join("testdata", "repro", repro+".repro.json")); err != nil {
 			t.Fatal(err)
 		}
 		t.Logf("seed %d: %d decisions", seed, len(res.Actions))

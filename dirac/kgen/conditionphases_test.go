@@ -102,10 +102,10 @@ func TestConditionPhasesPlayerTurn(t *testing.T) {
 			"ConditionPlayerTurn": "True",
 			"ConditionPhases":     "BeginCombat->Bogus",
 		})
-		if _, err := lc.playerTurnCondition(ps, "True"); err == nil || !strings.Contains(err.Error(), "ConditionPhases$") {
+		if _, err := lc.playerTurnCondition(ps, "True"); err == nil || !strings.Contains(err.Error(), "unknown phase") {
 			t.Fatalf("unparseable ConditionPhases$: err %v", err)
 		}
-		if _, err := lc.phasesCondition("Bogus"); err == nil || !strings.Contains(err.Error(), "ConditionPhases$") {
+		if _, err := lc.phasesCondition("Bogus"); err == nil || !strings.Contains(err.Error(), "unknown phase") {
 			t.Fatalf("lone unparseable ConditionPhases$: err %v", err)
 		}
 	})
