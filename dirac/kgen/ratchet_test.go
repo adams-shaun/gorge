@@ -117,7 +117,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (a battlefield power == a constant and a toughness > a value lower: Amalia Benavides Aguirre (LCI 255 -> 256), Hulkling, Burgeoning Bruiser (MSH 240 -> 241), Savage Swipe's powerEQ2 condition; ALL 21945 -> 21948).
 	// +1 (the merge with land: this branch's Tam, Mindful First-Year static Hexproof:CardColors lower beside land's Amalia Benavides Aguirre / Hulkling / Burgeoning Bruiser lowers, disjoint; merged ECL 238 -> 239, ALL 21989 -> 21990).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22022, 34442},
+	"ALL": {22034, 34442},
 	"BIG": {25, 30},
 	"BLB": {260, 278},
 	"BRO": {214, 280},
@@ -131,7 +131,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FRA": {251, 269},
 	"HOB": {157, 172},
 	"LCI": {257, 290},
-	"MKM": {246, 279},
+	"MKM": {247, 279},
 	"MOM": {198, 296},
 	"MSH": {241, 276},
 	"NEO": {199, 287},
@@ -143,7 +143,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TDM": {255, 276},
 	"TLA": {260, 285},
 	"TMT": {176, 194},
-	"TRC": {293, 337},
+	"TRC": {294, 337},
 	"TRK": {311, 311},
 	"WOE": {258, 281},
 }
