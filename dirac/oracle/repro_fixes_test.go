@@ -722,7 +722,8 @@ func TestStdTmtReprosLockstep(t *testing.T) {
 	reg := synthReg(t)
 	set := cardsettest.Synth(t, "std-tmt")
 	for _, c := range []stdRepro{
-		{"put_counters_from_unheard_kind_order", false, false}, // CR 603.3b: Donatello, Mutant Mechanic copies a dead artifact's +1/+1 and stun counters while a +1/+1 trigger listens: the stun is heard by none, so gorge's insertion order is unobservable
+		{"put_counters_from_unheard_kind_order", false, false},               // CR 603.3b: Donatello, Mutant Mechanic copies a dead artifact's +1/+1 and stun counters while a +1/+1 trigger listens: the stun is heard by none, so gorge's insertion order is unobservable
+		{"second_ability_counter_cost_taps_source_for_generic", true, false}, // CR 605.3b, 601.2g: Weather Maker beside a plain {T} first ability: its "{T}, remove two charge counters: Add {C}{C}" pays Frog Butler's {2} reach activation when every land is tapped, so gorge offers it
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if res := replayReproRes(t, reg, set, c.name, c.autopay); res.Stall != "" {
