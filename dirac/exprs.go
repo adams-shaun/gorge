@@ -305,6 +305,8 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 		if x.Kind == kop.ExToughnessOf {
 			v = t
 		}
+	case kop.ExTapPower:
+		v = s.tapPowerAt(k, x.Ref, ctx)
 	case kop.ExLifeOf:
 		if p := s.refPlayer(k, x.Ref, ctx); p != 255 {
 			v = int(s.pl[p].life)

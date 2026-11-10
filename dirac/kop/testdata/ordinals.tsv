@@ -390,6 +390,7 @@ ExSneaked	ExprKind	51
 ExStartingLife	ExprKind	14
 ExSum	ExprKind	25
 ExSumPower	ExprKind	5
+ExTapPower	ExprKind	222
 ExTargetPlayers	ExprKind	223
 ExThisTurnActGrave	ExprKind	50
 ExThisTurnCast	ExprKind	33
@@ -1086,6 +1087,10 @@ StRemove6Counters	StaticFlags	32
 StSeatActive	StaticFlags	16384
 StTapAnyPlayer	StaticFlags	8
 StTapOnC	StaticFlags	2
+StTapPowerCrew	StaticFlags	2
+StTapPowerSaddle	StaticFlags	4
+StTapPowerStation	StaticFlags	8
+StTapPowerTough	StaticFlags	16
 StTapReflect	StaticFlags	4
 StTargetsFilter2	StaticFlags	64
 StWithoutManaCost	StaticFlags	8
@@ -1147,6 +1152,7 @@ StatReduceAbility	StaticKind	233
 StatReduceCost	StaticKind	2
 StatStackKw	StaticKind	251
 StatTapExtra	StaticKind	254
+StatTapPower	StaticKind	255
 StatUntapOther	StaticKind	246
 StepAttackers	Step	5
 StepBeginCombat	Step	4

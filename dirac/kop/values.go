@@ -253,6 +253,16 @@ const ExConverge ExprKind = 245
 // already tracks. The new ordinals are numbered explicitly, clear of the iota
 // lists other files append to.
 
+// ExTapPower: the tap-power total of the object Ref names: its layer-derived
+// power plus every StatTapPower static that scopes the action (CR
+// 702.184a's Station, Crew, Saddle) and matches it. Ref is the tapped
+// creature (RefTriggerObj for Station, where the picked creature rides the
+// ability entry), and the host the action's own permanent. This is the one
+// read Station's PutCounter amount (vTapPower) and the Crew/Saddle payment
+// share, so a Tapestry Warden contributes toughness and Sulu twice his power
+// to both. Explicit ordinal clear of the iota tail. Kernel value_tappower.go.
+const ExTapPower ExprKind = 222
+
 // ExPow: Count$<base>/Pow.<operand>, the saturating integer power of the
 // running value (gorge engine/effects/count_operand.go applyCountOp `Pow.`:
 // logarithmic exponentiation, clamped at each multiply). Sub[0] is the base,

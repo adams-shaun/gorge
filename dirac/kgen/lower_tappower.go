@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -68,53 +67,125 @@ func tapPowerAlone(c lCost) bool {
 		c.ExileG == nil && c.Energy == 0 && !c.ReturnSelf && !c.ExileSelf && c.Return == nil
 }
 
-// tapPowerValueStatic lowers Mode$ TapPowerValue (graveexile): the card's own Crew
-// and/or Saddle tap-power cost values its power as N greater (gorge
-// statics_assignment.go:233, statics.go:689). The bonus is a per-card
-// constant added only while paying a Crew or Saddle cost, so Station never
-// sees it; Value$ Toughness (gorge statics_assignment.go:269-271) makes the
-// card crew / saddle with its toughness rather than its power
-// (kop.TapPowToughness). Any other ValidSA (Station, a non-self ValidCard)
-// refuses.
+// tapPowerScope is one ValidSA$ alternative: the action kind and the host
+// subtype it names (Spacecraft, Vehicle, Mount), if any.
+type tapPowerScope struct {
+	kind string
+	host string
+}
+
+// tapPowerScopes parses a TapPowerValue ValidSA$ into one static per
+// alternative. Forge spells the value as a comma-separated OR list of
+// "Activated.<kind>[+<qualifier>]"; an empty value admits every activated
+// action, as gorge's tapPowerSAScope does. Any other shape (a Spell scope,
+// a kind this build cannot classify) refuses.
+func tapPowerScopes(validSA string) ([]tapPowerScope, error) {
+	v := strings.TrimSpace(validSA)
+	if v == "" {
+		return []tapPowerScope{{kind: "Crew"}, {kind: "Saddle"}, {kind: "Station"}}, nil
+	}
+	var out []tapPowerScope
+	for _, alt := range strings.Split(v, ",") {
+		alt = strings.TrimSpace(alt)
+		kind, rest, ok := strings.Cut(alt, ".")
+		if !ok || kind != "Activated" {
+			return nil, refuse("TapPowerValue ValidSA %q", alt)
+		}
+		token, qualifier, _ := strings.Cut(rest, "+")
+		switch token = strings.TrimSpace(token); token {
+		case "Crew", "Saddle", "Station":
+		default:
+			return nil, refuse("TapPowerValue ValidSA %q", alt)
+		}
+		sc := tapPowerScope{kind: token, host: strings.TrimSpace(qualifier)}
+		out = append(out, sc)
+	}
+	if len(out) == 0 {
+		return nil, refuse("TapPowerValue without a ValidSA action")
+	}
+	return out, nil
+}
+
+// tapPowerSelfValue reports whether v reads only the tapped creature: every
+// ref is the candidate (rSelf in the SVar, evaluated with the candidate as its
+// source). Sulu's Value$ X = Count$CardPower/Twice is that shape; a body
+// naming a target or the trigger's object is not the candidate and refuses.
+func tapPowerSelfValue(v lValue) bool {
+	if v.Ref.Kind != rNone && v.Ref.Kind != rSelf {
+		return false
+	}
+	for _, s := range v.Sub {
+		if !tapPowerSelfValue(s) {
+			return false
+		}
+	}
+	return true
+}
+
+// tapPowerValueStatic lowers Mode$ TapPowerValue (graveexile, Tapestry
+// Warden, Sulu): one StatTapPower static per ValidSA$ alternative. Filter is
+// ValidCard$, AddSub the alternative's host subtype, Amount the value
+// (Toughness sentinel, a literal 1..127, or a lowered SVar read over the
+// tapped creature). The kernel reads the same static walk for the Crew/Saddle
+// payment and for Station's amount at resolution (gorge
+// statics_assignment.go tapPowerValueFor). The old per-card TapPowerCrew /
+// TapPowerSaddle constants stay in kop.Card for existing tables but are no
+// longer emitted: the static path replaces them with identical results.
 func (lc *lowerCtx) tapPowerValueStatic(s cards.Static) error {
 	ps := newParams(s.Params)
 	ps.consume("Mode", "Description")
-	if ps.str("ValidCard") != "Card.Self" {
-		return refuse("TapPowerValue ValidCard %q", ps.str("ValidCard"))
+	f, err := lc.filter(ps.str("ValidCard"))
+	if err != nil {
+		return err
 	}
 	ps.consume("ValidCard")
-	n, tough := int(kop.TapPowToughness), ps.str("Value") == "Toughness"
-	if !tough {
-		var err error
-		n, err = strconv.Atoi(ps.str("Value"))
-		if err != nil || n <= 0 || n > 127 {
-			return refuse("TapPowerValue Value %q", ps.str("Value"))
+
+	var flags []string
+	var amount lValue
+	switch v := strings.TrimSpace(ps.str("Value")); v {
+	case "Toughness":
+		flags = append(flags, "Toughness")
+	default:
+		if n, err := strconv.Atoi(v); err == nil {
+			if n <= 0 || n > 127 {
+				return refuse("TapPowerValue Value %q", v)
+			}
+			amount = cst(n)
+			break
 		}
+		body, ok := lc.face.SVars[v]
+		if !ok {
+			return refuse("TapPowerValue Value %q", v)
+		}
+		val, err := lc.svarValue(body, 0)
+		if err != nil {
+			return refuse("TapPowerValue Value %q: %v", v, err)
+		}
+		if !tapPowerSelfValue(val) {
+			return refuse("TapPowerValue Value %q reads beyond the tapped creature", v)
+		}
+		amount = val
 	}
 	ps.consume("Value")
-	crew, saddle := false, false
-	for _, v := range strings.Split(ps.str("ValidSA"), ",") {
-		switch v {
-		case "Activated.Crew+Vehicle":
-			crew = true
-		case "Activated.Saddle+Mount":
-			saddle = true
-		default:
-			return refuse("TapPowerValue ValidSA %q", v)
-		}
-	}
-	if !crew && !saddle {
-		return refuse("TapPowerValue without a Crew or Saddle cost")
+
+	scopes, err := tapPowerScopes(ps.str("ValidSA"))
+	if err != nil {
+		return err
 	}
 	ps.consume("ValidSA")
 	if left := ps.unread(); len(left) > 0 {
 		return refuse("TapPowerValue unread params %v", left)
 	}
-	if crew {
-		lc.out.TapPowerCrew = n
-	}
-	if saddle {
-		lc.out.TapPowerSaddle = n
+	for _, sc := range scopes {
+		st := lStatic{Kind: "TapPower", F: f, Amount: amount}
+		if sc.host != "" {
+			if st.F2, err = lc.filter(sc.host); err != nil {
+				return err
+			}
+		}
+		st.Flags = append(st.Flags, sc.kind)
+		st.Flags = append(st.Flags, flags...)
+		lc.out.Statics = append(lc.out.Statics, st)
 	}
 	return nil
 }

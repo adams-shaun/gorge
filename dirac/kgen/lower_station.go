@@ -36,7 +36,10 @@ func (lc *lowerCtx) lowerStation(param string) error {
 	if err != nil {
 		return err
 	}
-	pw := lValue{Kind: vPowerOf, Ref: lRef{Kind: rTriggered}}
+	// power plus every Station-scoped TapPowerValue bonus, read at
+	// resolution (Tapestry Warden's toughness, Sulu's tripled power): the
+	// kernel's vTapPower is the same read the Crew/Saddle payment uses
+	pw := lValue{Kind: vTapPower, Ref: lRef{Kind: rTriggered}}
 	amount := lValue{Kind: vCompare, N: 0, Op: opGE, Sub: []lValue{pw, {Kind: vBranches, Sub: []lValue{pw, cst(0)}}}}
 	ab := &lAbility{Kind: akActivated, Index: len(lc.out.Abilities), Name: "Station", Cost: cost, Sorcery: true, Station: true}
 	ab.Prog = []lInstr{{Op: "PutCounter", Obj: lRef{Kind: rSelf}, A: amount, CS: "CHARGE", Note: "Station: the tapped creature's power, at resolution"}}
