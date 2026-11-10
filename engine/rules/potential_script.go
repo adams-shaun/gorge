@@ -92,20 +92,31 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 }
 
 // scriptSpendableGaps drops from gaps each source whose every mana ability
-// makes mana the plain cast o cannot spend (CR 106.6): Mm'menon's granted
+// makes mana the play o cannot spend (CR 106.6): Mm'menon's granted
 // "{T}: Add {U}. Spend this mana only to cast a spell from anywhere other
 // than your hand" on an artifact, for a cast from the hand. Activating such a
 // source can only float mana the cast refuses, so a prefix through it pays
 // nothing the prefix without it does not; the search would spend its node
 // budget on those dead branches (and on the triggers their taps set off)
-// before reaching the source that pays. Only a plain cast of the printed cost
+// before reaching the source that pays. An activation is filtered the same
+// way (Lilysplash Mentor's {1}{G}{U} beside Frogs whose granted Clement mana
+// spends only on creature spells, with Hidden Grotto's filter the source that
+// pays). Only a plain cast of the printed cost or an activation's printed cost
 // is filtered; any other play keeps every gap.
 func (e *Engine) scriptSpendableGaps(p state.PlayerID, o decision.Option, gaps []state.ObjID) []state.ObjID {
-	if o.Kind != "cast" || o.Mode != "" || o.AltCostIndex != 0 {
+	if o.Mode != "" || o.AltCostIndex != 0 {
 		return gaps
 	}
-	cost := e.castOfferBase(p, o.Obj)
-	desc := paymentDescriptor{ID: o.Obj, Class: pay.PurposeSpell, Cost: &cost}
+	var desc paymentDescriptor
+	switch o.Kind {
+	case "cast":
+		cost := e.castOfferBase(p, o.Obj)
+		desc = paymentDescriptor{ID: o.Obj, Class: pay.PurposeSpell, Cost: &cost}
+	case "ability":
+		desc = paymentDescriptor{ID: o.Obj, Class: pay.PurposeActivated}
+	default:
+		return gaps
+	}
 	var out []state.ObjID
 	for i, id := range gaps {
 		if e.gapSpendableFor(p, id, desc) {

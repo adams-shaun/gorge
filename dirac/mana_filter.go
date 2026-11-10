@@ -643,7 +643,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 			fs.fees += s.filtFee(k, b.first())
 		}
 	}
-	if a.Kind() == AkCast && a.Mode() == 0 && (fs.gaps.any() || fs.other.any()) {
+	if gapFilteredPlay(a) && (fs.gaps.any() || fs.other.any()) {
 		d := s.grantPayDesc(k, a)
 		fs.gaps, fs.other = s.gapSpendableMask(k, fs.gaps, &d), s.gapSpendableMask(k, fs.other, &d)
 		if !fs.gaps.any() && !fs.other.any() {
@@ -1083,10 +1083,17 @@ func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
 	return false
 }
 
+// gapFilteredPlay: play a is one whose prefix search keeps only the gaps
+// its payment can spend (gorge scriptSpendableGaps): a plain cast of the
+// printed cost, or an activation.
+func gapFilteredPlay(a Action) bool {
+	return a.Kind() == AkActivate || a.Kind() == AkCast && a.Mode() == 0
+}
+
 // gapSpendableMask drops from m each source whose every mana ability, printed
 // or granted, carries a spend restriction payment d refuses (CR 106.6):
 // gorge's prefix search (scriptSpendableGaps) never activates such a gap for
-// a plain cast, since it can only float mana the cast may not spend.
+// the play, since it can only float mana the payment may not spend.
 func (s *State) gapSpendableMask(k *prep, m slotMask, d *payDesc) slotMask {
 	out := m
 	for b := m; b.any(); b = b.rest() {
