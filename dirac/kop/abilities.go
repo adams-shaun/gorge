@@ -234,11 +234,12 @@ func TapXMana(a *Ability) bool { return TapXManaAb(a) || TapXManaTwo(a) }
 // (Produced$ Combo, AfManaChoice). gorge's planner census misses it (a paid
 // census gap); the kernel runs gorge's prefix search over it (kernel
 // mana_filter.go, mana_filterfirst.go). {1}, {T}, sacrifice this
-// (Omni-Cheese Pizza) is not modelled: dirac/kgen refuses it by name.
+// (Omni-Cheese Pizza, Chromatic Star, Golden Egg) is one too: the kernel
+// sacrifices the source as the activation is applied (sacFilterSource).
 func FilterManaAb(a *Ability) bool {
 	m := &a.Cost.Mana
 	if a.Kind != AbMana || m.Generic == 0 || m.X != 0 || m.Hyb != ([4]ColorMask{}) || m.Tb != 0 || m.Pips != ([NumManaKinds]uint8{}) ||
-		a.Cost.Flags != CostOncePerTurn && a.Cost.Flags != CostTap || a.ManaRestrict != 0 || a.ManaN > 1 || len(a.Prog) != 0 ||
+		a.Cost.Flags != CostOncePerTurn && a.Cost.Flags != CostTap && a.Cost.Flags != CostTap|CostSacSelf || a.ManaRestrict != 0 || a.ManaN > 1 || len(a.Prog) != 0 ||
 		a.Gate.Ctr != 0 || a.Trig.Cond != 0 || a.ActZone != ZoneNone && a.ActZone != ZoneBattlefield {
 		return false
 	}
