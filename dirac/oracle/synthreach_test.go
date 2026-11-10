@@ -158,3 +158,21 @@ func activated(name string) func(ref *GorgeSide) bool {
 		return false
 	}
 }
+
+// impendedCast is the condition that a spell was cast for its impending cost (CR
+// 702.176a): an object on the stack or battlefield carries FlagImpending.
+func impendedCast(ref *GorgeSide) bool {
+	g := ref.E.G
+	zones := [][]state.ObjID{g.Zone(state.ZStack, 0)}
+	for p := range g.Players {
+		zones = append(zones, g.Zone(state.ZBattlefield, state.PlayerID(p)))
+	}
+	for _, ids := range zones {
+		for _, id := range ids {
+			if o := g.Obj(id); o != nil && o.CastFlags&state.FlagImpending != 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
