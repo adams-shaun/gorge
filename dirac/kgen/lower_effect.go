@@ -334,8 +334,10 @@ func (lc *lowerCtx) damagedPlayerIsTriggerPlayer() bool {
 // With more seats the kernel resolves it to the defending seat of the attack
 // event that queued the trigger (stackEntry.defSeat: for a declaration, its
 // first event's seat, as gorge's batch trigger latches there), else the
-// defender of an attacking source; another attacker's Attacks trigger, or an
-// AttackerBlocked one, marks the card two-seat only.
+// defender of an attacking source. Another attacker's Attacks trigger is
+// queued with its own event, so its defSeat is the seat that attacker
+// attacks; another attacker's AttackerBlocked trigger is queued at blocks
+// with no seat bound and marks the card two-seat only.
 func (lc *lowerCtx) ownAttackTrigger() bool {
 	tr := lc.ab.Trigger
 	if tr == nil {
@@ -353,7 +355,7 @@ func (lc *lowerCtx) ownAttackTrigger() bool {
 			}
 			self = self && c.Flags&fSelf != 0
 		}
-		if !self {
+		if !self && tr.Event == "AttackerBlocked" {
 			lc.twoSeat("the defending player of another attacker read as the one opponent")
 		}
 		return true
