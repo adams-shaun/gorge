@@ -256,6 +256,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "gogo_copies_ability_x_times", full},                                 // Gogo, Master of Mimicry paying X of two or more off the mana a small Blaze left floating, copying a Prodigal Sorcerer ping that many times: each copy is minted and its new target asked in turn (CR 707.10c); played on its own decks' table because Blaze and Prodigal Sorcerer are in no Standard pool
 		{"custom", "cmd5_search_second_pick_swamps_share_a_land_type", full},            // kfuzz cmd5 heuristic pair 42: Myriad Landscape finds a Swamp, then a second Swamp (CR 701.23, 205.3i); the matchup table keeps the basic land types the search compares
 		{"std-lci", "free_cast_unpayable_tap_cost_returns_to_hand"},                     // CR 601.2b, 118.3, 733.1, 701.57a: a discover's free cast of Guardian of the Great Door with one untapped permanent left cannot pay its tap four: the cast is reversed and the card goes to hand
+		{"std-dsk", "graveexile_pick_count_is_the_trigger_amount"},                      // Nashi, Searcher in the Dark deals combat damage: it mills that many cards and takes a legendary or enchantment card from among them to hand, the pick's count the damage dealt
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {

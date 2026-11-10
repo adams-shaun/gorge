@@ -1,0 +1,13 @@
+{
+  "card": "Lluwen, Imperfect Naturalist",
+  "class": "lockstep",
+  "why": "gorge's hidden Graveyard,Exile pick never applies LibraryPosition$ (engine/effects/zone_hidden.go reaches no library placement), so the picked card lands at the bottom of the library where the card puts it on top; dirac places it on top",
+  "repro": {
+    "pool": "std-ecl",
+    "surface": "full",
+    "seed": 1,
+    "pair": 34,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

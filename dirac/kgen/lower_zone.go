@@ -209,8 +209,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		if !ps.is("Hidden", "True") {
 			return refuse("Origin$ Graveyard,Exile without Hidden$")
 		}
-		if dest != zHand && dest != zBattlefield {
+		if dest != zHand && dest != zBattlefield && dest != zLibrary {
 			return refuse("Origin$ Graveyard,Exile to %s", zoneLabel[dest])
+		}
+		if dest == zLibrary && pos != 0 {
+			return refuse("Origin$ Graveyard,Exile to Library LibraryPosition$ %d", pos)
 		}
 		if ct == "" {
 			return refuse("ChangeType$ empty")
