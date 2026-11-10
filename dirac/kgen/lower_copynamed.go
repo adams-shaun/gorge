@@ -89,15 +89,6 @@ func (lc *lowerCtx) copyNamedCard(ps *params, raw string) (*namedCopy, error) {
 	if !c.Faces[0].IsLand() {
 		return nil, refuse("CopyPermanent DefinedName$ %q: the named card is not a land", name)
 	}
-	// A basic land token (Generated Horizons' Forest) is paid with in a different
-	// order by gorge's planner than by the kernel: measured, 87 of 150 seeds of
-	// its lockstep game diverge at the first cast that taps a Forest beside the
-	// token. Mutavault, a nonbasic land, plays 150 of 150 clean.
-	for _, w := range c.Faces[0].Types {
-		if w == "Basic" || w == "Plains" || w == "Island" || w == "Swamp" || w == "Mountain" || w == "Forest" {
-			return nil, refuse("CopyPermanent DefinedName$ %q: the named card is a basic land", name)
-		}
-	}
 	key := copyCardKey + c.Faces[0].Name
 	e := lowerCopyCardEntry(lc.p, key)
 	if len(e.Refusals) > 0 {
