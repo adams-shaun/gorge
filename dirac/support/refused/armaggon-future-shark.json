@@ -3,11 +3,12 @@
   "class": "decision",
   "why": "the engines pose different decisions; 15 games in the corpus",
   "repro": {
-    "pool": "std-tmt",
+    "pool": "custom",
     "surface": "autopay",
-    "seed": 1,
-    "pair": 5,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 0,
+    "file": "armaggon_future_shark_poses_a_different_decision"
   }
 }

@@ -3,11 +3,12 @@
   "class": "projection-NStack",
   "why": "the engines' state differs at projection NStack; 11 games in the corpus",
   "repro": {
-    "pool": "std-msh",
+    "pool": "custom",
     "surface": "full",
-    "seed": 1,
-    "pair": 1,
+    "seed": 0,
+    "pair": 0,
     "policy": "random",
-    "mulligans": 1
+    "mulligans": 1,
+    "file": "the_mighty_thor_jane_foster_stack_differs"
   }
 }
