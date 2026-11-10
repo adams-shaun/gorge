@@ -336,7 +336,7 @@ ExCountAtLeast	ExprKind	30
 ExCountExile	ExprKind	27
 ExCountGraveyard	ExprKind	4
 ExCountHand	ExprKind	250
-ExCount_	ExprKind	58
+ExCount_	ExprKind	59
 ExCounterKinds	ExprKind	225
 ExCountersOn	ExprKind	18
 ExCreaturesDied	ExprKind	19
@@ -395,6 +395,7 @@ ExSum	ExprKind	25
 ExSumPower	ExprKind	5
 ExTapPower	ExprKind	222
 ExTargetPlayers	ExprKind	223
+ExTgtSpent	ExprKind	58
 ExThisTurnActGrave	ExprKind	50
 ExThisTurnCast	ExprKind	33
 ExThisTurnCastSpec	ExprKind	47

@@ -63,6 +63,9 @@ func (s *State) resolveTop(k *prep) {
 		// resolution drops any left over by an aborted one (repl_gen.go); the
 		// looked-at cards are the resolution's too (arm C of scr)
 		s.scrResEnter()
+		if k.gen.anyTgtSpent {
+			s.snapTgtSpent(&e) // the target's spend, before a counter removes its entry
+		}
 		if k.gen.anyCastSpent && DebugOpusLive {
 			s.res.e.trigAmt = s.liveSpentAmt(k, &e) // TestOpusMutation only
 		}
@@ -314,6 +317,9 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 				}
 			}
 		}
+	}
+	if k.gen != nil && k.gen.anyTgtSpent {
+		s.g.tgtSpent = 0 // the snapshot is the resolution's
 	}
 	s.res.active = false
 	if k.anyStateCtr {

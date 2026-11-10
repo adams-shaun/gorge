@@ -282,6 +282,14 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 			return int(e.x)
 		}
 		return 0
+	case kop.ExTgtSpent:
+		// the resolving spell's target spell's spend, snapshotted as the
+		// resolution started (snapTgtSpent; 0 with no snapshot, as gorge's
+		// absent target spend)
+		if s.g.tgtSpent == 0 {
+			return 0
+		}
+		return int(s.g.tgtSpent) - 1
 	case kop.ExConverge:
 		return s.exConverge(k, ctx) // mana_converge.go
 	case kop.ExAdamant:

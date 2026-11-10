@@ -184,6 +184,7 @@ type genPrep struct {
 	anyCastSpent   bool           // some SpellCast trigger carries Tf2CastSpent (opus)
 	anySpentGate   bool           // some SpellCast trigger carries a Spell.ManaSpent gate in Trigger.N (trig_spentvalid.go)
 	anySpent       bool           // some expression reads the mana spent to cast a spell (ExCastManaSpent; copy_asenters.go)
+	anyTgtSpent    bool           // some expression reads the resolving spell's target spell's spend (ExTgtSpent; resolve.go snapTgtSpent)
 	anyBecomeCopy  bool           // some enters program is OpBecomeCopy (an as-enters clone): a permanent it made a copy is projected as its printed card, and a token copy of a clone is asked its election (ctr_entryperkind.go)
 	anyEntryMerge  bool           // the table has an AddCounter replacement and more than one source of entry counters: enterGen merges them into one put per kind (ctr_entryperkind.go)
 	anyEffEtbCtr   bool           // some instruction is ExtEffEtbCtr: enterGen puts a cast spell's pending extra counters on (ctr_effectentry.go)
@@ -600,6 +601,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if t.Exprs[i].Kind == kop.ExCastManaSpent {
 			g.anySpent, g.anyHist = true, true // recorded at payment by histCast
+		}
+		if t.Exprs[i].Kind == kop.ExTgtSpent {
+			g.anyTgtSpent, g.anySpent, g.anyHist = true, true, true // the target spell's spend is recorded at its payment
 		}
 	}
 	if tableNthFiltered(t) {
@@ -1960,7 +1964,12 @@ type genState struct {
 	ul      [maxUntapLock]untapLock           // source-bound untap locks (act_untaplock.go)
 	nul     uint8
 	dmk     [dmkBytes]uint8 // per-player damage-doubling marks, a bit per (controller, player) (repl_dmgmark.go)
-	rsv     [rsvN]uint8
+	// tgtSpent: the resolving spell's target spell's cast spend + 1,
+	// saturating at 255 (0 = no snapshot; resolve.go snapTgtSpent). Read by
+	// ExTgtSpent after the counter removed the target's stack entry (EOE
+	// Unravel; gorge targetManaSpentLKI).
+	tgtSpent uint8
+	rsv      [rsvN]uint8
 }
 
 const (
@@ -1968,7 +1977,7 @@ const (
 	// rsvN pads the reserved block to 80 bytes (genState's 5 bytes of tail
 	// padding absorb the rest of the alignment): 64, plus the 16 that carry
 	// State's growth for MaxObj 236 to a multiple of 64 so perms keeps its phase.
-	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 2 - MaxSeats*kop.NumManaKinds - ulBytes - dmkBytes
+	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 2 - MaxSeats*kop.NumManaKinds - ulBytes - dmkBytes - 1
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
