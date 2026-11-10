@@ -14,11 +14,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // resolution; the shapes that would pose one stall instead (copyTokenCtr's
 // stance), so it is false unless the stall left the resolution halted.
 func (s *State) copyNamed(k *prep, in *kop.Instr) bool {
-	c := CardID(in.F)
+	c := CardID(uint16(in.B.N))
 	if int(c) >= len(k.t.Cards) {
 		return false
 	}
-	cin := kop.Instr{Op: kop.OpCopyAsTokenEx, A: kop.Const(1), B: in.B, C: in.C}
+	cin := kop.Instr{Op: kop.OpCopyAsTokenEx, A: kop.Const(1), B: kop.Const(int(uint16(in.C) & 0xff)), C: int16(uint16(in.C) >> kop.CopyNamedExcShift)}
 	if k.cards[c].types&kop.TAura != 0 && k.t.Cards[c].Enchant.Kind == kop.TgtObject || s.enterChoiceKind(k, c) != 0 ||
 		k.gen != nil && k.gen.anyBecomeCopy && s.cloneTokenAsk(k, &cin, c) != 0 {
 		s.stall(StallCopyAllAsk)

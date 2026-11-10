@@ -1,6 +1,8 @@
 package canon
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -44,6 +46,9 @@ func (r *Translator) BindSet(set cardset.Set, tbl *kop.Table, reg *cards.Registr
 	ward := make([]uint8, len(tbl.Cards))
 	for i := range tbl.Cards {
 		ward[i] = 255
+		if n, ok := strings.CutPrefix(tbl.Cards[i].Name, kop.CopyCardKeyPrefix); ok {
+			r.GName[i] = n // a named-card copy's entry (kop.ExtCopyNamed) is the corpus card of that name
+		}
 		if reg == nil {
 			continue
 		}

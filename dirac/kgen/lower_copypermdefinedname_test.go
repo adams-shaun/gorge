@@ -21,7 +21,7 @@ func cnCard(t *testing.T, src string) *cards.Card {
 	return c
 }
 
-const cnMutavault = "Name:Mutavault\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\n"
+const cnMutavault = "Name:Mutavault\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ C | Amount$ 1\n"
 
 // cnLower lowers a sorcery whose one spell ability is `line`, over a registry
 // holding the named extra cards, and returns it with its dumped IR.
@@ -65,8 +65,10 @@ func TestLowerCopypermDefinedname(t *testing.T) {
 			t.Errorf("a name the universe lacks must lower to no copy (tokens %v):\n%s", c.Tokens, ir)
 		}
 	})
-	maker := "Name:Maker\nManaCost:1\nTypes:Artifact\nA:AB$ Draw | Cost$ T\nS:Mode$ Continuous | Affected$ Card.Self | AddAbility$ X\nSVar:X:AB$ Token | Cost$ T | TokenScript$ no_such_token\n"
-	broken := "Name:Broken\nManaCost:1\nTypes:Artifact\nA:AB$ NoSuchApi | Cost$ T\n"
+	maker := "Name:Maker\nManaCost:no cost\nTypes:Land\nA:AB$ Token | Cost$ T | TokenScript$ no_such_token\n"
+	broken := "Name:Broken\nManaCost:no cost\nTypes:Land\nA:AB$ NoSuchApi | Cost$ T\n"
+	forest := "Name:Forest\nManaCost:no cost\nTypes:Basic Land Forest\n"
+	badger := "Name:Giant Badger\nManaCost:1 G G\nTypes:Creature Badger\nPT:2/2\n"
 	for _, v := range []struct{ name, line, want string }{
 		{"num copies", "SP$ CopyPermanent | Cost$ B | DefinedName$ Mutavault | NumCopies$ 2", `DefinedName$ "Mutavault" beside NumCopies$`},
 		{"target", "SP$ CopyPermanent | Cost$ B | DefinedName$ Mutavault | ValidTgts$ Opponent | Controller$ TargetedPlayer", `DefinedName$ "Mutavault" beside ValidTgts$`},
@@ -76,9 +78,11 @@ func TestLowerCopypermDefinedname(t *testing.T) {
 		{"controller", "SP$ CopyPermanent | Cost$ B | DefinedName$ Mutavault | Controller$ Opponent", `CopyPermanent Controller "Opponent"`},
 		{"named card does not lower", "SP$ CopyPermanent | Cost$ B | DefinedName$ Broken", `DefinedName$ "Broken": the named card does not lower`},
 		{"named card makes tokens", "SP$ CopyPermanent | Cost$ B | DefinedName$ Maker", `DefinedName$ "Maker"`},
+		{"named card is a basic land", "SP$ CopyPermanent | Cost$ B | DefinedName$ Forest", `DefinedName$ "Forest": the named card is a basic land`},
+		{"named card is not a land", "SP$ CopyPermanent | Cost$ B | DefinedName$ Giant Badger", `DefinedName$ "Giant Badger": the named card is not a land`},
 	} {
 		t.Run(v.name, func(t *testing.T) {
-			c, _ := cnLower(t, v.line, cnMutavault, maker, broken)
+			c, _ := cnLower(t, v.line, cnMutavault, maker, broken, badger, forest)
 			var got []string
 			for _, r := range lowerRefusals(c) {
 				got = append(got, r.Reason)
@@ -108,14 +112,17 @@ func TestLowerCopypermDefinednameMutableExplorer(t *testing.T) {
 	if found == nil {
 		t.Fatal("no ExtCopyNamed instruction built")
 	}
-	if found.B.N&kop.CpTapped == 0 {
-		t.Errorf("B.N %#x lacks CpTapped", found.B.N)
+	if found.C&kop.CpTapped == 0 {
+		t.Errorf("C %#x lacks CpTapped", found.C)
 	}
-	tok := int(found.F)
+	tok := int(found.B.N)
 	if tok < len(all) && all[tok].Name != copyCardKey+"Mutavault" {
-		t.Errorf("F %d names %q, want %s", tok, all[tok].Name, copyCardKey+"Mutavault")
+		t.Errorf("B.N %d names %q, want %s", tok, all[tok].Name, copyCardKey+"Mutavault")
 	}
 	if tok >= len(all) {
-		t.Fatalf("F %d is outside the %d-entry pool", tok, len(all))
+		t.Fatalf("B.N %d is outside the %d-entry pool", tok, len(all))
+	}
+	if found.F != 0 {
+		t.Errorf("F = %d: instruction walkers read it as a filter", found.F)
 	}
 }

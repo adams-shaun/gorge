@@ -3,6 +3,7 @@ package kgen
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -12,7 +13,7 @@ import (
 // the kernel has a CardID to mint the token copy from (kop.ExtCopyNamed).
 
 // copyCardKey prefixes the token key of a card a CopyPermanent copies by name.
-const copyCardKey = "copycard:"
+const copyCardKey = kop.CopyCardKeyPrefix
 
 // namedCard is the card gorge's CopyPermanent DefinedName$ resolves name to:
 // the first card of the whole corpus whose primary face name matches
@@ -58,12 +59,12 @@ type namedCopy struct {
 // copyNamedCard reads CopyPermanent's DefinedName$ source. A name the
 // universe does not hold makes gorge copy nothing (its Note path), which
 // found = false lowers to: no instruction. A named card is lowered only when
-// it is one plain face that makes no token of its own and lowers cleanly,
+// it is one plain land face that makes no token of its own and lowers cleanly,
 // and the shapes the op does not carry (a target, Defined$, Choices$, a copy
 // count, counters) refuse by name.
 func (lc *lowerCtx) copyNamedCard(ps *params, raw string) (*namedCopy, error) {
 	name := strings.TrimSpace(raw)
-	for _, k := range []string{"ValidTgts", "Defined", "Choices", "Populate", "NumCopies", "WithCountersType"} {
+	for _, k := range []string{"ValidTgts", "Defined", "Choices", "Populate", "NumCopies", "WithCountersType", "PumpKeywords"} {
 		if _, ok := ps.m[k]; ok {
 			return nil, refuse("CopyPermanent DefinedName$ %q beside %s$", name, k)
 		}
@@ -80,6 +81,22 @@ func (lc *lowerCtx) copyNamedCard(ps *params, raw string) (*namedCopy, error) {
 	}
 	if len(c.Faces) != 1 || c.AlternateMode != "" {
 		return nil, refuse("CopyPermanent DefinedName$ %q: not a single-face card", name)
+	}
+	// Only a land is read: its copy has no as-enters choice, no Aura host and
+	// no characteristic-defining ability to differ between the engines. Other
+	// permanents (Giant Badger, Tarmogoyf, a planeswalker's token) refuse until
+	// each is played against gorge.
+	if !c.Faces[0].IsLand() {
+		return nil, refuse("CopyPermanent DefinedName$ %q: the named card is not a land", name)
+	}
+	// A basic land token (Generated Horizons' Forest) is paid with in a different
+	// order by gorge's planner than by the kernel: measured, 87 of 150 seeds of
+	// its lockstep game diverge at the first cast that taps a Forest beside the
+	// token. Mutavault, a nonbasic land, plays 150 of 150 clean.
+	for _, w := range c.Faces[0].Types {
+		if w == "Basic" || w == "Plains" || w == "Island" || w == "Swamp" || w == "Mountain" || w == "Forest" {
+			return nil, refuse("CopyPermanent DefinedName$ %q: the named card is a basic land", name)
+		}
 	}
 	key := copyCardKey + c.Faces[0].Name
 	e := lowerCopyCardEntry(lc.p, key)

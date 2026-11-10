@@ -103,6 +103,8 @@ CondRefMatches	CondKind	6
 CondThreshold	CondKind	4
 CondValue	CondKind	2
 CondYourTurn	CondKind	5
+CopyCardKeyPrefix	untyped string	"copycard:"
+CopyNamedExcShift	untyped int	8
 CopyNonRemCtrl	untyped int	32768
 CopyPumpEOT	untyped int	16384
 CopyPumpShift	untyped int	8
