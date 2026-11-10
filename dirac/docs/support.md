@@ -75,12 +75,12 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | what differed | cards |
 |---|---:|
 | decision | 2 |
-| options | 6 |
+| options | 5 |
 | options-options | 1 |
 | projection | 1 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Damage | 1 |
-| projection-Cards.Flags | 3 |
+| projection-Cards.Flags | 4 |
 | projection-Cards.Power | 1 |
 | projection-Cards.Zone | 1 |
 | projection-NStack | 2 |
