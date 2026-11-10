@@ -132,6 +132,9 @@ func (s *State) filtUnits(k *prep, sl Slot) int {
 	if a.AFlags&kop.AfManaDynamic != 0 {
 		return s.dynManaN(k, a, sl)
 	}
+	if comboFiltAb(a) {
+		return int(a.ManaN)
+	}
 	if a.ManaEach {
 		n := 0
 		for _, v := range filtEachVec(a) {
