@@ -315,6 +315,8 @@ func (s *State) copyResume(k *prep) {
 		var more bool
 		if in.Op == kop.OpDemonstrate {
 			more = s.demonstrateCopy(k, left)
+		} else if in.Ext() == kop.ExtCopyAbility {
+			more = s.copyAbilityN(k, in, int(left))
 		} else {
 			more = s.copySpells(k, in, int(left))
 		}

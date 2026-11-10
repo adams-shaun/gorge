@@ -72,6 +72,10 @@ type Ability struct {
 	// test of Mode$ AbilityCast ValidSA$ Activated.Exhaust. AbilityFlags
 	// has no free bit; this is a table byte, not State.
 	Exhaust bool
+	// CantCopy: "this ability can't be copied" (CantCopy$ True; gorge
+	// SpellCopyAllowed): an ExtCopyAbility naming its stack entry copies
+	// nothing. A table byte, not State (AbilityFlags has no free bit).
+	CantCopy bool
 	// Evidence: CollectEvidence<N> in the activation cost (CR 701.59a; gorge
 	// cast_targets.go evidenceAsk); 0 = none. A table byte: CostFlags has no
 	// free bit.

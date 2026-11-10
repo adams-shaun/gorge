@@ -15,6 +15,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // original's targets (the copyab mutation test).
 var DebugCopyAbNoRetarget bool
 
+// DebugCopyAbOneCopy makes the copy count one whatever Amount$ says, and
+// DebugCopyAbIgnoreCantCopy copies an ability that can't be copied (the
+// copyab amount mutation test).
+var DebugCopyAbOneCopy, DebugCopyAbIgnoreCantCopy bool
+
 // copyAbKind reports whether target kind kd is a TgtCopyAb or TgtCopyTrig.
 func copyAbKind(kd kop.TargetKind) bool { return kd == kop.TgtCopyAb || kd == kop.TgtCopyTrig }
 
@@ -70,44 +75,65 @@ func (s *State) copyDeclSlotAb(k *prep, e *stackEntry) int {
 	return -1
 }
 
-// copyAbility is ExtCopyAbility: one copy of the stack ability that target
-// slot in.B names, controlled by the resolving controller, minted below the
-// resolving entry (which leaves the top when it finishes) with the original's
-// source, ability, X, modes, targets and trigger context. C bit 0
-// (MayChooseTarget$) poses the new-target election (false: posed). A target no
-// longer on the stack copies nothing.
+// copyAbility is ExtCopyAbility: in.B copies (Amount$, read once) of the stack
+// ability that target slot in.C>>1 names, controlled by the resolving
+// controller, each minted below the resolving entry (which leaves the top when
+// it finishes) with the original's source, ability, X, modes, targets and
+// trigger context. C bit 0 (MayChooseTarget$) poses the new-target election
+// after each copy (false: posed). A target no longer on the stack, or an
+// ability that can't be copied, copies nothing.
 func (s *State) copyAbility(k *prep, in *kop.Instr) bool {
-	slot := int(in.B.N)
+	n := s.value(k, in.B)
+	if DebugCopyAbOneCopy && n > 1 {
+		n = 1
+	}
+	return s.copyAbilityN(k, in, min(n, 255))
+}
+
+// copyAbilityN makes n copies, one at a time as gorge does: mint, ask, mint,
+// ask. Each pass finds the target again by its stack identity, because the
+// copies already made shift the indices; copyResume re-enters it with the
+// copies still owed once an election closes.
+func (s *State) copyAbilityN(k *prep, in *kop.Instr, n int) bool {
+	slot := int(in.C >> 1)
 	e := &s.res.e
-	c := s.tgtCode(slot)
-	if !isStackTarget(c) {
-		return true
-	}
-	si := s.stackTgtIdx(c, e.tver[slot])
-	if si < 0 || si >= int(s.sp)-1 {
-		return true
-	}
-	if int(s.sp) >= MaxStack {
-		s.capFull(StallStack)
-		return true
-	}
-	ce := s.stack[si]
-	s.stackSid(&ce)
-	ce.ctrl = e.ctrl
-	ce.flags &= sfKicked                 // a copy is not cast: no cast provenance (CR 707.10)
-	ce.prov, ce.spc, ce.etbSrc = 0, 0, 0 // a copy is not the remembered card: no rider count, no rider source
-	if ce.xi != 0 {
-		from := s.g.xtp[ce.xi-1]
-		ce.xi = 0
-		xt := s.xtMut(&ce)
-		if xt == nil {
+	for c := n - 1; c >= 0; c-- {
+		tc := s.tgtCode(slot)
+		if !isStackTarget(tc) {
 			return true
 		}
-		*xt = from
+		si := s.stackTgtIdx(tc, e.tver[slot])
+		if si < 0 || si >= int(s.sp)-1 {
+			return true
+		}
+		if !DebugCopyAbIgnoreCantCopy && s.stack[si].ab < abCascade && k.t.Cards[s.stack[si].card].Abilities[s.stack[si].ab].CantCopy {
+			return true // gorge SpellCopyAllowed: the target stays legal, nothing is copied
+		}
+		if int(s.sp) >= MaxStack {
+			s.capFull(StallStack)
+			return true
+		}
+		ce := s.stack[si]
+		s.stackSid(&ce)
+		ce.ctrl = e.ctrl
+		ce.flags &= sfKicked                 // a copy is not cast: no cast provenance (CR 707.10)
+		ce.prov, ce.spc, ce.etbSrc = 0, 0, 0 // a copy is not the remembered card: no rider count, no rider source
+		if ce.xi != 0 {
+			from := s.g.xtp[ce.xi-1]
+			ce.xi = 0
+			xt := s.xtMut(&ce)
+			if xt == nil {
+				return true
+			}
+			*xt = from
+		}
+		top := s.sp - 1
+		s.stack[top+1] = s.stack[top]
+		s.stack[top] = ce
+		s.sp++
+		if in.C&1 != 0 && !DebugCopyAbNoRetarget && s.copyDeclSlot(k, &ce) >= 0 && s.copyElect(k, uint8(c)) {
+			return false
+		}
 	}
-	top := s.sp - 1
-	s.stack[top+1] = s.stack[top]
-	s.stack[top] = ce
-	s.sp++
-	return !(in.C&1 != 0 && !DebugCopyAbNoRetarget && s.copyDeclSlot(k, &ce) >= 0 && s.copyElect(k, 0))
+	return true
 }
