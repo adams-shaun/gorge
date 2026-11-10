@@ -16,7 +16,7 @@ import (
 // it (CR 605.3b).
 func TestManaAbilityRider(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Twitching Doll", Count: 1}, {Name: "Forest", Count: 19}}
-	tbl, da, _, err := cardsettest.Synth(t, "std-dsk").Matchup(deck, deck)
+	tbl, da, _, err := cardsettest.Set(t, "manarider").Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
 	}
