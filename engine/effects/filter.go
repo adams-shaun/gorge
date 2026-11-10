@@ -2828,7 +2828,12 @@ type SpecContext struct {
 	// CombatDamageHits is the per-turn combat-to-player ledger for
 	// resolution-time predicates that refer to damage dealt by Source.
 	CombatDamageHits []CombatDamageHit
-	Resolve          func(name string) (int32, bool)
+	// CounterAdds is the per-turn counter-placement ledger the
+	// countersReceivedThisTurn word reads (filter_word_counters_received.go);
+	// nil when the site that built the context did not bind it, which the word
+	// reads as "no counters were put".
+	CounterAdds []CounterAdd
+	Resolve     func(name string) (int32, bool)
 	// The source's chosen-type/colour LKI (SourceLKIValid,
 	// SourceChosenType, SourceChosenColor) rides the embedded
 	// TriggerContext, so a resolving Ctx's SpecContext carries it with no

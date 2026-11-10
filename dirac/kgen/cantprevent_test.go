@@ -18,7 +18,7 @@ func TestCantPreventDamageLowers(t *testing.T) {
 	for _, c := range []struct{ name, line, want string }{
 		{"printed blanket lowers", "S:Mode$ CantPreventDamage | Description$ x", ""},
 		{"printed source-scoped refuses", "S:Mode$ CantPreventDamage | ValidSource$ Card.Self | Description$ x", "ValidSource"},
-		{"printed combat-only refuses", "S:Mode$ CantPreventDamage | IsCombat$ True | Description$ x", "IsCombat"},
+		{"printed combat-only lowers", "S:Mode$ CantPreventDamage | IsCombat$ True | Description$ x", ""},
 		{"printed stack-zone refuses", "S:Mode$ CantPreventDamage | EffectZone$ Stack | Description$ x", "EffectZone"},
 		{"effect blanket lowers", "A:AB$ Effect | Cost$ T | StaticAbilities$ STNoPrev | SpellDescription$ x\nSVar:STNoPrev:Mode$ CantPreventDamage | Description$ x", ""},
 		{"effect affected refuses", "A:AB$ Effect | Cost$ T | StaticAbilities$ STNoPrev | SpellDescription$ x\nSVar:STNoPrev:Mode$ CantPreventDamage | Affected$ Creature | Description$ x", "Affected"},

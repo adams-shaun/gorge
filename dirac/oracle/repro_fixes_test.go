@@ -201,6 +201,17 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"x_cast_rider_keeping_plan_lowered", false, false},             // CR 609.4b, 601.2b: the same cast played: its payment taps the rider's keeping plan, not the smaller-X witness
 		{"copy_keyword_exception_returns_when_loss_ends", false, false}, // CR 707.9b, 613.1f: Mockingbird copying Shoreline Looter, made to lose all abilities until its controller's next turn, has its copy exception's flying again when the loss ends
 		{"any_one_colour_restricted_x_colour_choice", false, false},     // CR 106.6, 601.2b: Helga's two restricted mana count in the {X} ceiling of Mockingbird's cast, so its witness taps every source for X = 4
+		// CR 614.12, 707.2: the cards one return instruction returns each make
+		// their as-enters choice before any of them is on the battlefield, so
+		// Mockingbird's copy election is asked with the other targets still in
+		// the graveyard
+		{"return_batch_asenters_two_creatures", false, false},
+		{"return_batch_asenters_three_creatures", false, false},
+		{"return_batch_asenters_three_creatures_m1", false, false},
+		{"restricted_witness_tap_survives_hybrid_lowering", false, false},
+		{"granted_mana_ask_tries_needed_colour_first", false, false},
+		{"clone_template_entry_condition_mockingbird_cutthroat", false, false},
+		{"clone_template_entry_condition_mockingbird_sparkshooter", false, false},
 	})
 }
 
@@ -326,6 +337,9 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"warp_cast_from_hand_spends_no_hand_barred_grant", true, false},       // CR 106.6, 702.185a: a warp cast is from the hand, so Nanoform Sentinel's Mm'menon-granted blue cannot pay Codecracker Hound's warp {2}{U} beside two Plains; the warp cast is not offered
 		{"relaxed_proof_refuses_restricted_grant", true, false},                // CR 106.6, 602.2b: Mm'menon's spell-only granted blue is no relaxed unit for Atomic Microsizer's Equip {2}, so gorge proves it unpayable off Godless Shrine alone and never searches the Nanoform Sentinel untap line
 		{"station_monitor_hand_cast_needs_no_hand_barred_grant", false, false}, // CR 106.6: Mm'menon's hand-barred granted blue is no relaxed unit for Station Monitor's plain hand cast, so neither copy is offered
+		{"warp_hand_cast_no_hand_barred_grant_offer", true, false},             // CR 106.6, 702.185a: with every land tapped, only Mm'menon's hand-barred granted blue on the artifacts could pay Sinister Cryologist's warp {U}, and a warp cast is from the hand, so it is not offered
+		{"warp_hand_cast_gated_filter_no_stand_down", true, false},             // CR 106.6, 702.184a: ... and Evendo, Waking Haven's {G},{T} filter is no mana ability below STATION 12, so it does not shield Mechanozoa's and Starbreach Whale's hand warp casts from the prune
+		{"warp_hand_cast_tapped_filter_no_stand_down", false, false},           // CR 106.6, 302.6: ... and a tapped Uthros, Titanic Godcore past STATION 12 funds nothing either, so it does not shield Sinister Cryologist's hand warp cast from the prune
 		{"ward_pays_through_tap_another_source", true, false},                  // CR 601.2g, 702.21a: the ward {2} pay answer opens the mana window, whose census leaves out Gene Pollinator's tap-another-permanent mana, so the spell is paid not countered
 		{"ward_pays_through_tap_another_source_two", true, false},              // ... and Sunset Saboteur's attack trigger is paid the same way
 		{"ward_failed_pay_skips_unspendable_grant", true, false},               // CR 106.6: the failed pay arm taps what the window lists, not Mm'menon's granted artifact blue a ward cannot spend
@@ -716,9 +730,13 @@ func TestStdDftReprosLockstep(t *testing.T) {
 		{"own_counter_replacement_does_not_apply_to_own_entry", false, false}, // CR 614.12: Caradora's "a creature or Vehicle you control" plus-one does not apply to the +1/+1 counter Thunderous Velocipede grants it as it enters; a general subset excludes the entrant itself
 		{"returned_aura_host_before_paid_draw", false, false},                 // CR 303.4f, 610.3: sacrificing Perilous Snare pays Chandra's "if you do, draw": its exiled Aura's host answer comes before the draw, as gorge asks it mid-payment
 		{"lost_abilities_tappower_bonus", false, false},                       // CR 613.1f: a Pilot token under Flood the Engine loses the TapPowerValue static, so it contributes its printed power to a Saddle cost
-		{"actonly_pool_pays_surveyor_grave_grant", true, false},               // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Leonin Surveyor's max-speed graveyard activation
-		{"actonly_pool_pays_grave_return", false, false},                      // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Deathless Pilot's graveyard return
-		{"actonly_pool_pays_battlefield_grant", true, false},                  // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Hour of Victory's max-speed battlefield grant
+		// CR 614.12, 610.3: a delayed sacrifice's returning card is asked its
+		// as-enters choice with the card still in exile, before the delayed
+		// trigger leaves the stack
+		{"until_leaves_return_asenters_in_exile", false, false},
+		{"actonly_pool_pays_surveyor_grave_grant", true, false}, // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Leonin Surveyor's max-speed graveyard activation
+		{"actonly_pool_pays_grave_return", false, false},        // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Deathless Pilot's graveyard return
+		{"actonly_pool_pays_battlefield_grant", true, false},    // CR 106.6, 602.1: Boommobile's floating activated-only mana pays Hour of Victory's max-speed battlefield grant
 	})
 }
 
@@ -731,6 +749,7 @@ func TestStdTmtReprosLockstep(t *testing.T) {
 		{"put_counters_from_unheard_kind_order", false, false},                 // CR 603.3b: Donatello, Mutant Mechanic copies a dead artifact's +1/+1 and stun counters while a +1/+1 trigger listens: the stun is heard by none, so gorge's insertion order is unobservable
 		{"second_ability_counter_cost_taps_source_for_generic", true, false},   // CR 605.3b, 601.2g: Weather Maker beside a plain {T} first ability: its "{T}, remove two charge counters: Add {C}{C}" pays Frog Butler's {2} reach activation when every land is tapped, so gorge offers it
 		{"second_ability_counter_gap_tries_plain_ability_first", false, false}, // CR 605.3b, 601.2g: two Weather Makers pay Metalhead: gorge's prefix search answers the first one's ability ask with its plain ability (the colour ask behind it), then the second one's with its counters, so only the second loses them
+		{"attach_triggered_card_moved_skips_ninja", true, false},               // CR 400.7: Quintessential Katana's "attach to the entering Ninja" trigger waits on the stack while that Ninja returns to hand and re-enters, so its TriggeredCardLKICopy is a new object and the attach finds nothing
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if res := replayReproRes(t, reg, set, c.name, c.autopay); res.Stall != "" {

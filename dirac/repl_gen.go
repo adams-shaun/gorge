@@ -57,25 +57,25 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	} else {
 		return n
 	}
-	if g.anyRepl&rbPlProt != 0 && sl == NoSlot && s.plProtected(k, srcCtrl, rcp) {
+	if g.anyRepl&rbPlProt != 0 && sl == NoSlot && s.plProtected(k, srcCtrl, rcp, combat) {
 		return 0 // protection from each opponent prevents it first (CR 702.16e; static_playerstats.go)
 	}
-	if g.anyRepl&rbPrevCol != 0 && s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}) {
+	if g.anyRepl&rbPrevCol != 0 && s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) {
 		return 0 // Ext PreventColor (cast_altfree.go)
 	}
-	if g.anyRepl&rbProtAll != 0 && sl != NoSlot && s.kw(k, sl)&kop.KwProtectionAll != 0 && !s.noPrev(k) {
+	if g.anyRepl&rbProtAll != 0 && sl != NoSlot && s.kw(k, sl)&kop.KwProtectionAll != 0 && !s.noPrev(k, combat) {
 		return 0 // protection from everything prevents it first (CR 702.16e; gorge emit)
 	}
-	if g.anyRepl&rbProtCol != 0 && sl != NoSlot && s.protFrom(k, sl, srcSl, srcCard, s.srcColors(k, srcSl, srcCard)) {
+	if g.anyRepl&rbProtCol != 0 && sl != NoSlot && s.protFrom(k, sl, srcSl, srcCard, s.srcColors(k, srcSl, srcCard), combat) {
 		return 0 // protection from the source's colour, likewise
 	}
-	if sl != NoSlot && s.prevAnyTo(k, sl) {
+	if sl != NoSlot && s.prevAnyTo(k, sl, combat) {
 		return 0 // "Prevent all damage that would be dealt to CARDNAME." (combat_prevention.go)
 	}
-	if g.anyRepl&rbPrevMill != 0 && sl == NoSlot && rcp != srcCtrl && s.preventMill(k, srcCtrl, rcp, n) {
+	if g.anyRepl&rbPrevMill != 0 && sl == NoSlot && rcp != srcCtrl && s.preventMill(k, srcCtrl, rcp, combat, n) {
 		return 0 // The Mindskinner: prevented, the opponent mills that many (repl_preventmill.go)
 	}
-	if g.anyRepl&rbShield != 0 && !combat && sl != NoSlot && s.shieldN(sl) > 0 && !s.noPrev(k) {
+	if g.anyRepl&rbShield != 0 && !combat && sl != NoSlot && s.shieldN(sl) > 0 && !s.noPrev(k, combat) {
 		n = s.shieldNC(k, srcCtrl, srcSl, srcCard, sl, n) // CR 122.1c (combat: shieldCombat)
 		if k.anyRedNC && !combat && n > 0 {
 			s.tallyRedNC(k, srcCtrl, srcSl, srcCard, n)
@@ -93,7 +93,7 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbPrevNC != 0 && !combat && sl != NoSlot && s.isCreature(k, sl) {
 		for m := s.statM.and(s.ctrlM[rcp]); m.any(); m = m.rest() {
 			b := m.first()
-			if b != sl && g.replBits[s.cardAt(b)]&rbPrevNC != 0 && !s.genLost(k, b) && !s.noPrev(k) {
+			if b != sl && g.replBits[s.cardAt(b)]&rbPrevNC != 0 && !s.genLost(k, b) && !s.noPrev(k, combat) {
 				return 0
 			}
 		}
@@ -194,11 +194,11 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 		} else {
 			code = uint8(s.perms[ev.dst].obj)
 		}
-		if k.gen.anyRepl&rbPrevCol != 0 && s.prevColHit(k, ev.src, s.cardAt(ev.src), prevTgt{s.recipientCtl(ev.dst, code), ev.dst}) {
+		if k.gen.anyRepl&rbPrevCol != 0 && s.prevColHit(k, ev.src, s.cardAt(ev.src), prevTgt{s.recipientCtl(ev.dst, code), ev.dst}, true) {
 			s.preventCombatEv(k, r, ev) // Ext PreventColor: this source's event only
 			continue
 		}
-		if k.gen.anyRepl&rbProtCol != 0 && ev.dst != NoSlot && s.protFrom(k, ev.dst, ev.src, s.cardAt(ev.src), s.colorsGen(k, ev.src)) {
+		if k.gen.anyRepl&rbProtCol != 0 && ev.dst != NoSlot && s.protFrom(k, ev.dst, ev.src, s.cardAt(ev.src), s.colorsGen(k, ev.src), true) {
 			// protection from the source's colour prevents this event only
 			s.preventCombatEv(k, r, ev) // combat_prevention.go
 			continue
@@ -371,7 +371,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 	if fe.dst == NoSlot {
 		rcp = fe.apl
 	} else {
-		if s.kw(k, fe.dst)&kop.KwProtectionAll != 0 && !s.noPrev(k) || g.anyRepl&rbProtCol != 0 && s.protFrom(k, fe.dst, fsl, fe.card, col) {
+		if s.kw(k, fe.dst)&kop.KwProtectionAll != 0 && !s.noPrev(k, true) || g.anyRepl&rbProtCol != 0 && s.protFrom(k, fe.dst, fsl, fe.card, col, true) {
 			return 0 // prevented before the replacements (gorge emit)
 		}
 		rcp = s.perms[fe.dst].ctrl
@@ -420,7 +420,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		ro.pcol = 0
 		var cand [4]Obj
 		var pm uint8
-		if n = s.prevColCands(k, col, fsl, prevTgt{rcp, fe.dst}, &ro.cand, n, &cand, &pm); n < 0 {
+		if n = s.prevColCands(k, col, fsl, prevTgt{rcp, fe.dst}, true, &ro.cand, n, &cand, &pm); n < 0 {
 			return 0
 		}
 		ro.prev |= pm
@@ -429,7 +429,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 	// CR 122.1c: gorge appends the shield counter's prevention after the
 	// printed and granted-keyword matches (replacement.go), so it is the
 	// last candidate here too.
-	if fe.dst != NoSlot && g.anyRepl&rbShield != 0 && s.shieldN(fe.dst) > 0 && !s.noPrev(k) {
+	if fe.dst != NoSlot && g.anyRepl&rbShield != 0 && s.shieldN(fe.dst) > 0 && !s.noPrev(k, true) {
 		if n == len(ro.cand) {
 			s.capFull(StallShield) // loud: never truncate the candidates
 			return n
@@ -582,7 +582,7 @@ func (s *State) replOrderMark(src, dst Slot) {
 func (s *State) replCandLive(k *prep, i int) bool {
 	ro := &s.g.ro
 	if ro.pcol&(1<<i) != 0 {
-		return (ro.askD == NoSlot || s.occ.has(ro.askD)) && !s.noPrev(k) // an effect record: it lasts the turn
+		return (ro.askD == NoSlot || s.occ.has(ro.askD)) && !s.noPrev(k, true) // an effect record: it lasts the turn
 	}
 	ob := &s.objs[ro.cand[i]]
 	if ob.zone != kop.ZoneBattlefield || ro.askD != NoSlot && !s.occ.has(ro.askD) {
@@ -590,7 +590,7 @@ func (s *State) replCandLive(k *prep, i int) bool {
 	}
 	sl := ob.slot
 	if ro.shld&(1<<i) != 0 {
-		return s.occ.has(ro.askD) && s.shieldN(ro.askD) > 0 && !s.noPrev(k)
+		return s.occ.has(ro.askD) && s.shieldN(ro.askD) > 0 && !s.noPrev(k, true)
 	}
 	if ro.plus&(1<<i) != 0 {
 		return s.perms[sl].ctrl == ro.actl && k.gen.replBits[s.cardAt(sl)]&rbPlusDmg != 0 && !s.genLost(k, sl)
@@ -881,14 +881,14 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 	sl := NoSlot
 	if code >= PlayerTarget0 && code <= PlayerTarget1 {
 		rcp = code - PlayerTarget0
-		if g.anyRepl&rbPlProt != 0 && s.plProtected(k, ctrl, rcp) {
+		if g.anyRepl&rbPlProt != 0 && s.plProtected(k, ctrl, rcp, false) {
 			return false // prevented before the replacements (replDamage)
 		}
 	} else if int(code) < MaxObj && s.objs[code].zone == kop.ZoneBattlefield {
 		sl = s.objs[code].slot
 		rcp = s.perms[sl].ctrl
-		if g.anyRepl&rbProtAll != 0 && s.kw(k, sl)&kop.KwProtectionAll != 0 && !s.noPrev(k) ||
-			g.anyRepl&rbProtCol != 0 && s.protFrom(k, sl, srcSl, srcCard, s.srcColors(k, srcSl, srcCard)) {
+		if g.anyRepl&rbProtAll != 0 && s.kw(k, sl)&kop.KwProtectionAll != 0 && !s.noPrev(k, false) ||
+			g.anyRepl&rbProtCol != 0 && s.protFrom(k, sl, srcSl, srcCard, s.srcColors(k, srcSl, srcCard), false) {
 			return false
 		}
 	} else {
@@ -913,7 +913,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 				}
 				cand[c] = s.perms[b].obj
 				c++
-			} else if rb&rbPrevNC != 0 && crt && p == rcp && b != sl && !s.noPrev(k) {
+			} else if rb&rbPrevNC != 0 && crt && p == rcp && b != sl && !s.noPrev(k, false) {
 				if c == len(cand) {
 					s.capFull(StallReplCands) // loud: never truncate the candidates
 					return false
@@ -950,7 +950,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 	// the recipient's own printed K:Prevent "all damage" line (replDamage's
 	// prevAnyTo arm): a printed match, so it is offered before the shield
 	// (gorge appends the shield after the printed matches)
-	if sl != NoSlot && s.prevAnyTo(k, sl) {
+	if sl != NoSlot && s.prevAnyTo(k, sl, false) {
 		if c == len(cand) {
 			s.capFull(StallReplCands) // loud: never truncate the candidates
 			return false
@@ -963,12 +963,12 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code uin
 	if g.anyRepl&rbPrevCol != 0 {
 		// Ext PreventColor's effect records (cast_altfree.go)
 		var unused [4]Obj
-		if c = s.prevColCands(k, s.srcColors(k, srcSl, srcCard), srcSl, prevTgt{rcp, sl}, &cand, c, &unused, &pcol); c < 0 {
+		if c = s.prevColCands(k, s.srcColors(k, srcSl, srcCard), srcSl, prevTgt{rcp, sl}, false, &cand, c, &unused, &pcol); c < 0 {
 			return false
 		}
 		prev |= pcol
 	}
-	if sl != NoSlot && g.anyRepl&rbShield != 0 && s.shieldN(sl) > 0 && !s.noPrev(k) {
+	if sl != NoSlot && g.anyRepl&rbShield != 0 && s.shieldN(sl) > 0 && !s.noPrev(k, false) {
 		if c == len(cand) {
 			s.capFull(StallShield) // loud: never truncate the candidates
 			return false
