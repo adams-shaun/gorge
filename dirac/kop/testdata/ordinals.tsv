@@ -390,6 +390,7 @@ ExScriedThisTurn	ExprKind	238
 ExSelfPrepared	ExprKind	49
 ExSneaked	ExprKind	51
 ExStartingLife	ExprKind	14
+ExStepIn	ExprKind	221
 ExSum	ExprKind	25
 ExSumPower	ExprKind	5
 ExTapPower	ExprKind	222

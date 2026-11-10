@@ -314,6 +314,28 @@ func (sr *scriptSearch) waitsForStack(c *Engine) bool {
 	return false
 }
 
+// targetsGone reports whether the path has left the searched play with no
+// legal target: a sacrificed mana source that was the only creature an
+// activation could target (Collector's Cage after its controller sacrifices
+// the creature carrying a granted sacrifice-for-mana ability). The pool
+// prices the play, but it cannot be activated or cast without a target (CR
+// 601.2c, 602.2b), so the line continues (a dies trigger may make a new
+// target) instead of ending in a script the play cannot follow.
+func (sr *scriptSearch) targetsGone(c *Engine) bool {
+	o := c.G.Obj(sr.play.Obj)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	switch {
+	case sr.play.Kind == "ability":
+		pa, ok := o.PileAbilityAt(sr.play.Ability)
+		return ok && pa.SA != nil && !c.abilityTargetsAvailable(sr.p, sr.play.Obj, pa.SA)
+	case sr.play.Kind == "cast" && sr.play.Mode == "":
+		return !c.castTargetsAvailable(sr.p, sr.play.Obj, o.Face().SpellAbility())
+	}
+	return false
+}
+
 func (sr *scriptSearch) offered(o *decision.Option) bool {
 	a := sr.play
 	if sr.printedOnly && (o.SVar != "" || o.GainedSource != 0) {
@@ -442,7 +464,7 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 		// planner's "insufficient" below covers every other continuation.
 		gaps = c.scriptNodeGaps(p)
 	}
-	if (gapUsed || sr.nodePlans) && !sr.waitsForStack(c) && sr.priced(c) {
+	if (gapUsed || sr.nodePlans) && !sr.waitsForStack(c) && !sr.targetsGone(c) && sr.priced(c) {
 		return true
 	}
 	// The uncovered sources first; then the others (under gapsOnly, while

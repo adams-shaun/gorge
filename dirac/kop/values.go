@@ -209,6 +209,14 @@ type Cond struct {
 	Sub  [2]CondID // CondAnd's operands (zero for every other kind)
 }
 
+// ExStepIn is 1 while the game's current step is one of the kop.Step bits
+// in N, else 0 (gorge ConditionPhases$ <list>; the step set is the ONE
+// phase-name parser, engine/state.ParsePhases, mapped onto this numbering).
+// The kernel numbers first-strike and regular combat damage as separate
+// steps where gorge has one combat-damage step, so a gorge combat-damage
+// step sets both bits. Explicit ordinal, the iota tail stays untouched.
+const ExStepIn ExprKind = 221
+
 // ExPhaseCount reads the turn's phase ledger (gorge Game.CombatsThisTurn,
 // EndStepsThisTurn): N 0 the combat phases begun this turn (FirstCombat$ is
 // == 1); N 1 the finished end steps (Count$FinishedEndOfTurnsThisTurn, the

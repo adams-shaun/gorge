@@ -415,3 +415,14 @@ func TestChosenPairTrialKeepsTheHandReserveLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "chosen_pair_trial_hand_reserve", "std-lci", Config{})
 }
+
+// Collector's Cage's {1}, {T} counter ability while the only creature its controller has
+// carries Lotus Ring's granted "Sacrifice this creature: Add three mana": the sacrifice
+// floats the mana but leaves the ability no target, so gorge's prefix search goes on
+// through a pass, and the dies trigger's token copy is the target. The search stopped at
+// the priced node, and the autopay surface dropped a play the kernel offers (CR 601.2c,
+// 602.2b).
+func TestPrefixSearchContinuesPastALostTargetLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "prefix_continues_past_a_lost_target", "std-big", Config{GorgeAutopaySurface: true})
+}

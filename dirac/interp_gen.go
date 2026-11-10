@@ -1238,7 +1238,7 @@ func (s *State) moveObj(k *prep, r kop.Ref, o Obj, z kop.Zone) bool {
 	case kop.ZoneNone:
 		return false
 	case kop.ZoneBattlefield:
-		if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell {
+		if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell && !s.delayedSelfStale(k, &s.res.e) {
 			return false
 		}
 		if z == kop.ZoneGraveyard {

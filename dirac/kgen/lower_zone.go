@@ -2463,9 +2463,15 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	// RememberObjects$ Targeted beside ValidTgts$ (The Inner Light: "choose
 	// target creature. Whenever it deals combat damage to a player this
 	// turn"): the chain's target slot is the emblem's capture
-	capture, hasCap, err := lc.emblemCapture(ps, t, eot)
+	capture, hasCap, drop, t, err := lc.emblemCapture(ps, t, eot)
 	if err != nil {
 		return err
+	}
+	if drop {
+		// RememberObjects$ TargetedPlayer: gorge's event-trigger registration
+		// drops the player, so the mode's trigger never fires (the target was
+		// still declared in emblemCapture)
+		return nil
 	}
 	if !hasCap && eot {
 		var src bool

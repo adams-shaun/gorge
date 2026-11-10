@@ -3,6 +3,9 @@ package kgen
 import (
 	"sort"
 	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // aiHintSVars reports whether an AddSVar$ value names only SVars of this
@@ -62,25 +65,94 @@ func (lc *lowerCtx) bareCondition(ps *params, c string) (lCond, error) {
 	return lCond{}, refuse("Condition$ %q", c)
 }
 
-// playerTurnCondition lowers a lone ConditionPlayerTurn$ True|False (gorge
-// conditions.go: g.Active compared with the resolving controller); beside
-// any other Condition*$ gate it refuses.
-func (lc *lowerCtx) playerTurnCondition(ps *params, v string) (lCond, error) {
-	var beside []string
+// conditionKeysBesides returns ps's Condition*$ keys other than
+// ConditionDescription$ and the allowed ones, sorted. A refusal that names
+// the first unlisted key iterates the sorted list, never the map.
+func conditionKeysBesides(ps *params, allowed ...string) []string {
+	skip := map[string]bool{"ConditionDescription": true}
+	for _, k := range allowed {
+		skip[k] = true
+	}
+	var out []string
 	for k := range ps.m {
-		if strings.HasPrefix(k, "Condition") && k != "ConditionPlayerTurn" && k != "ConditionDescription" {
-			beside = append(beside, k)
+		if strings.HasPrefix(k, "Condition") && !skip[k] {
+			out = append(out, k)
 		}
 	}
-	if len(beside) > 0 {
-		sort.Strings(beside)
+	sort.Strings(out)
+	return out
+}
+
+// phaseStepBits maps gorge's step numbering (engine/state Step) onto the
+// kernel's (kop.Step). The two orders are equal through declare blockers;
+// the kernel then models first-strike and regular combat damage as separate
+// steps where gorge has one combat-damage step, so every later gorge step
+// shifts by one. The zero Step is StepUntap, so a zero entry means "not
+// mapped" and is never a valid mask. Read-only; never ranged where order
+// could reach an event.
+var phaseStepBits = [state.StepCleanup + 1]int{
+	state.StepUntap:            1 << kop.StepUntap,
+	state.StepUpkeep:           1 << kop.StepUpkeep,
+	state.StepDraw:             1 << kop.StepDraw,
+	state.StepMain1:            1 << kop.StepMain1,
+	state.StepBeginCombat:      1 << kop.StepBeginCombat,
+	state.StepDeclareAttackers: 1 << kop.StepAttackers,
+	state.StepDeclareBlockers:  1 << kop.StepBlockers,
+	// gorge's one combat-damage step is both of the kernel's damage steps
+	state.StepCombatDamage: 1<<kop.StepFirstStrikeDamage | 1<<kop.StepDamage,
+	state.StepEndCombat:    1 << kop.StepEndCombat,
+	state.StepMain2:        1 << kop.StepMain2,
+	state.StepEnd:          1 << kop.StepEnd,
+	state.StepCleanup:      1 << kop.StepCleanup,
+}
+
+// phasesCondition lowers ConditionPhases$ <list> (gorge conditions.go's
+// phase gate) to a vStepIn test. The list parses through the ONE shared
+// phase-name parser, state.ParsePhases: an unknown name, an empty resolved
+// set, or a step the kernel does not model refuses.
+func (lc *lowerCtx) phasesCondition(spec string) (lCond, error) {
+	set, unknown := state.ParsePhases(spec)
+	if len(unknown) > 0 {
+		return lCond{}, refuse("ConditionPhases$ %q: unknown phase %q", spec, unknown[0])
+	}
+	if set.Empty() {
+		return lCond{}, refuse("ConditionPhases$ %q names no step", spec)
+	}
+	var mask int
+	for _, st := range set.Steps() {
+		if int(st) >= len(phaseStepBits) || phaseStepBits[st] == 0 {
+			return lCond{}, refuse("ConditionPhases$ step %d", st)
+		}
+		mask |= phaseStepBits[st]
+	}
+	return lCond{Kind: cValue, A: lValue{Kind: vStepIn, N: mask}, Op: opEQ, B: cst(1)}, nil
+}
+
+// playerTurnCondition lowers a lone ConditionPlayerTurn$ True|False (gorge
+// conditions.go: g.Active compared with the resolving controller), or that
+// turn test conjoined with ConditionPhases$ (Great Train Heist: the extra
+// combat only in its controller's combat phase). Beside any third
+// Condition*$ gate it refuses.
+func (lc *lowerCtx) playerTurnCondition(ps *params, v string) (lCond, error) {
+	if beside := conditionKeysBesides(ps, "ConditionPlayerTurn", "ConditionPhases"); len(beside) > 0 {
 		return lCond{}, refuse("ConditionPlayerTurn$ beside %s$", beside[0])
 	}
+	var turn lCond
 	switch strings.ToLower(strings.TrimSpace(v)) {
 	case "true":
-		return lCond{Kind: cYourTurn}, nil
+		turn = lCond{Kind: cYourTurn}
 	case "false":
-		return lCond{Kind: cYourTurn, Neg: true}, nil
+		turn = lCond{Kind: cYourTurn, Neg: true}
+	default:
+		return lCond{}, refuse("ConditionPlayerTurn$ %q", v)
 	}
-	return lCond{}, refuse("ConditionPlayerTurn$ %q", v)
+	spec, ok := ps.get("ConditionPhases")
+	if !ok {
+		return turn, nil
+	}
+	phases, err := lc.phasesCondition(spec)
+	if err != nil {
+		return lCond{}, err
+	}
+	return andCond(turn, phases), nil
 }
