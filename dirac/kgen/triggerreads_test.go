@@ -31,10 +31,10 @@ func TestTargetedPlayerAmount(t *testing.T) {
 	}
 	probe := func(name, tgts string) []refusal {
 		src := "Name:" + name + "\nManaCost:2 B\nTypes:Creature Specter\nPT:2/2\n" +
-			"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDiscard | TriggerDescription$ x\n" +
-			"SVar:TrigDiscard:DB$ Discard | " + tgts + " | NumCards$ 1 | RememberDiscarded$ True | SubAbility$ DBDraw\n" +
-			"SVar:DBDraw:DB$ Draw | NumCards$ Y | Defined$ You | SubAbility$ DBCleanup\n" +
-			"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\n" +
+			"T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Origin$ Any | Execute$ TrigDiscard | TriggerDescription$ probe\n" +
+			"SVar:TrigDiscard:DB$ Discard | " + tgts + " | NumCards$ 1 | RememberDiscarded$ True | SubAbility$ DrawThem\n" +
+			"SVar:DrawThem:DB$ Draw | Defined$ You | NumCards$ Y | SubAbility$ Wipe\n" +
+			"SVar:Wipe:DB$ Cleanup | ClearRemembered$ True\n" +
 			"SVar:Y:TargetedPlayer$Amount\n"
 		_, rs := kwardpowBuild(t, name, src)
 		return rs
