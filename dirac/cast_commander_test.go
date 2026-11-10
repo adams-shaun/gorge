@@ -35,7 +35,7 @@ func newCommanderScen(t *testing.T, tbl *kop.Table, cmdCard CardID, commander bo
 	}
 	deck[0] = cmdCard
 	s := new(State)
-	s.Init(tbl, deck[:], deck[:], 1, Config{NoElide: true, Commander: commander, Commanders: [2]int16{0, 0}})
+	s.Init(tbl, deck[:], deck[:], 1, Config{NoElide: true, Commander: commander, Commanders: [MaxSeats]int16{0, 0}})
 	for p := uint8(0); p < 2; p++ {
 		pl := &s.pl[p]
 		for pl.handN > 0 {

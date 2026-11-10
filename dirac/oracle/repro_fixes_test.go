@@ -60,6 +60,8 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"sacrifice_menu_keeps_stolen_creature", true, false},
 		{"ward_cannot_counter_uncounterable_spell", false, false}, // CR 101.2, 702.21a: Long Goodbye can't be countered, so an unpaid ward leaves it on the stack
 		{"most_creatures_counts_layer_types", false, false},       // CR 613.1d, 205.1: No Witnesses counts a solved Case (a Creature by its static) among the most creatures
+		// CR 605.3b, 601.2g: Leering Onlooker's {2}{B}{B} is paid by two Scenes of the Crime's second ability (tap a creature: any colour) after the first Scene's ability ask is answered with its {C}
+		{"second_tapx_mana_ability", true, false},
 	})
 }
 
@@ -683,6 +685,7 @@ func TestStdLciReprosLockstep(t *testing.T) {
 		{"aura_override_stops_when_host_leaves_filter", true, false},  // CR 704.5m, 613.1d: Zoetic Glyph's "enchanted artifact" override stops adding the Creature type once Treasure Map transforms into Treasure Cove, so the land is not a 0-toughness creature
 		{"aura_type_add_filter_drops_after_transform", true, false},   // CR 613.1d, 704.5m: Zoetic Glyph's "enchanted artifact is a 5/4 Golem creature" stops applying when Matzalantli transforms into a land, so the land stays and only the Glyph falls off
 		{"aura_type_add_drops_after_device_transform", true, false},   // CR 613.1d, 704.5m: Zoetic Glyph's "enchanted artifact" override stops applying when Dowsing Device transforms into Geode Grotto, so the land stays on the battlefield
+		{"granted_tap_pay_life_mana_prefix", true, false},             // CR 119.4, 605.1a: Cavernous Maw's "{T}, Pay 1 life: Add one mana of any color" granted by Forgotten Monument is the prefix paying Restless Vents' {B}, and its life is paid
 	})
 }
 

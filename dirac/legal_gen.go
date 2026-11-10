@@ -650,7 +650,7 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 		// free-only static (Weftwalking) opens no zone but waives the cost of
 		// the cast another static grants (CR 118.9)
 		grant, free, anyMana := false, false, false
-		nst, payLife := 0, false
+		nst, nPL, payLife := 0, 0, false
 		s.mayPlayStatics(k, p, o, func(st statSrc) bool {
 			fl := st.a.Static.StFlags
 			if fl&kop.StRemove6Counters != 0 && s.creatureCounters(k, p) < int(st.a.Static.A) {
@@ -661,6 +661,7 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 					return true // the mana value in life can't be paid (cast_staticpaylife.go)
 				}
 				free, payLife = true, true // the mana part is replaced by the life
+				nPL++
 			}
 			nst++
 			if fl&kop.StFreeOnly == 0 || s.objs[o].zone == kop.ZoneHand {
@@ -673,8 +674,16 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 		if !grant {
 			return
 		}
+		// several pay-life statics and nothing else: one life alternative each
+		// (cast_staticpaylife.go); a pay-life static beside any other
+		// permission stalls, gorge offers the plain cast and the life one apart
+		payAlts := 0
 		if payLife && nst > 1 {
-			s.capFull(StallPayLifeShared) // gorge offers the plain cast and the life alternative apart (cast_staticpaylife.go)
+			if nPL != nst || nPL > payLifeAltMax {
+				s.capFull(StallPayLifeShared)
+			} else {
+				payAlts = nPL
+			}
 		}
 		seen.set(o)
 		mode := castMayPlay
@@ -703,7 +712,11 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 					!(s.mayPlayFolds(k, p, o) && mayPlayPlannedZone(s.objs[o].zone))
 			}
 		}
+		n0 := int(d.N)
 		s.offerPlay(k, d, p, o, mode, sorc, landOK, anyMana, false, unpriced, av)
+		if payAlts > 1 {
+			fanPayLifeAlts(d, n0, payAlts)
+		}
 	}
 	for pp := uint8(0); pp < 2; pp++ {
 		q := &s.pl[pp]

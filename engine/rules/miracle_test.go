@@ -300,3 +300,55 @@ func TestMiracleCastDeclinedKeepsCardInHand(t *testing.T) {
 		t.Fatalf("after the decline the active player should have priority: %+v", d)
 	}
 }
+
+// An engine answering its asks synchronously (SetTapeAnswerer, the all-bot
+// path) serves the X ask of a miracle cast begun at the MiracleCast trigger's
+// resolution in place, as the tape path does, rather than failing it as an
+// ask the ask-free predicate missed (CR 702.94a, 107.3).
+func TestMiracleXCastServedInline(t *testing.T) {
+	t.Parallel()
+	e, cfg, en, _ := entreatCorpusEngine(t, 104)
+	moveToLibraryTop(t, e, en)
+	addMana(t, e, 0, "WWWW")
+	e.pendingTriggers = nil
+	e.emit(events.Event{Kind: events.Draw, Player: 0, Obj: en, From: state.ZLibrary, To: state.ZHand, Secret: true})
+	e.pending = nil
+	e.Advance()
+	if d := e.Pending(); d == nil || d.Kind != decision.KTriggerOptional {
+		t.Fatalf("offer decision %+v", d)
+	}
+	submitChoices(t, e, 0) // reveal: yes
+	miracleTriggerOnStack(t, e, en)
+	asked := map[string]bool{}
+	SetTapeAnswerer(e, func(d *decision.Decision, reject error) (decision.Intent, bool) {
+		if reject != nil {
+			return decision.Intent{}, false
+		}
+		in := decision.Intent{Seq: d.Seq, Player: d.Player}
+		switch {
+		case d.Kind == decision.KTriggerOptional && d.ResumeKind == "miracle":
+			asked["cast"] = true
+			in.Choices = []int{miracleOption(t, d, "yes")}
+		case d.Kind == decision.KChoose && len(d.Options) == 3 && d.Options[0].Kind == "x":
+			asked["x"] = true
+			in.Choices = []int{2}
+		default:
+			t.Fatalf("unexpected inline ask %+v", d)
+		}
+		return in, true
+	})
+	passUntilStackEmpty(t, e, 20)
+	if !asked["cast"] || !asked["x"] {
+		t.Fatalf("inline asks %v, want the cast and its X", asked)
+	}
+	angels := 0
+	for _, tok := range e.G.Zone(state.ZBattlefield, 0) {
+		if f := e.G.Obj(tok).Face(); f != nil && f.Name == "Angel Token" {
+			angels++
+		}
+	}
+	if z := e.G.Obj(en).Zone; z != state.ZGraveyard || angels != 2 {
+		t.Fatalf("Entreat the Angels in %s with %d Angels, want resolved with X=2", z, angels)
+	}
+	replayCheck(t, e, cfg)
+}

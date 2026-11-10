@@ -86,7 +86,7 @@ func TestDiracCoreEdgesSynthetic(t *testing.T) {
 // rawTableReaders are the selectors that reach a set playing every lowered card,
 // evidence or not.
 var rawTableReaders = map[string]bool{
-	"cardset.RawByName": true, "cardset.SynthByName": true,
+	"cardset.RawByName": true, "cardset.SynthByName": true, "cardset.Raw": true,
 	"cardsettest.Synth": true,
 }
 

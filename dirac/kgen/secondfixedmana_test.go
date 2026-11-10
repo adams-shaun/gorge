@@ -8,7 +8,7 @@ import (
 // TestSecondFixedManaAbility: a second mana ability beside a plain first one
 // that the kernel cannot play as gorge's planner does stays refused, and the
 // refusal names what the second ability needs: a cost beyond {T} (Weather
-// Maker's counters, Scene of the Crime's tapped creature), a spend-restricted
+// Maker's counters, Abandoned Outpost's sacrifice), a spend-restricted
 // fixed colour of several mana (Tablet of Discovery's {R}{R}). Lowering any of
 // them diverged from gorge in lockstep, or the kernel's mana walk refuses the
 // cost, so each refusal is by name. An evaluated amount of the first ability's
@@ -19,7 +19,6 @@ import (
 func TestSecondFixedManaAbility(t *testing.T) {
 	want := map[string]string{
 		"Weather Maker":       "a cost beyond {T} the kernel's mana walk cannot activate: its tap-another and counter gap kinds read only the first mana ability",
-		"Scene of the Crime":  "a cost beyond {T} the kernel's mana walk cannot activate: its tap-another and counter gap kinds read only the first mana ability",
 		"Abandoned Outpost":   "a cost beyond {T} the kernel's mana walk cannot activate",
 		"Tablet of Discovery": "a restricted fixed colour of several mana",
 		"Vault of Catlacan":   "a shape beyond the restricted, filter and pain gaps",
