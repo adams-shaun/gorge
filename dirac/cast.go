@@ -694,7 +694,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				return true
 			}
 			if s.costPickOptions(k, d, kop.CostTapX) {
-				return true
+				return s.ctl == ctlBuild // false: a short tap cost reversed the build (sacShort)
 			}
 			if k.gen != nil && k.gen.anyWaterbend && s.waterbendOptions(k, d) {
 				return true
@@ -2039,9 +2039,11 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 		}
 		d.N = 0
 		s.costCands(k, pc, src, d)
-		if s.bld().pickK == pkSac && int(d.N) < int(s.bld().pickLeft) || s.bld().pickK == pkDiscard && d.N == 0 {
-			// no card left to discard: a free cast begun without the offer's cost census
-			// (Wishing Well's Play) reverses here, as gorge's discardAsk aborts (CR 733.1)
+		if s.bld().pickK == pkSac && int(d.N) < int(s.bld().pickLeft) || s.bld().pickK == pkDiscard && d.N == 0 ||
+			s.bld().pickK == pkTapX && e.kind == seSpell && int(d.N) < int(s.bld().pickLeft) {
+			// no card left to discard, or too few permanents to tap: a free cast begun without
+			// the offer's cost census (Wishing Well's Play, a discover's Guardian of the Great
+			// Door) reverses here, as gorge's discardAsk and tapPermanentCostAsk abort (CR 733.1)
 			s.sacShort(k, d)
 			return true
 		}
