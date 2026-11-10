@@ -9,7 +9,7 @@ package kop
 // picked (CpSacAtEndDly, CpExileAtEnd: gorge scheduleAtEOTNone, CR 603.7).
 // An Aura or a card with an as-enters choice or a clone election stalls
 // (StallCopyAllAsk) rather than ask. dirac/copy_picked.go.
-const ExtCopyPicked ExtOp = 315
+const ExtCopyPicked ExtOp = 316
 
 // CopyAttacking: ExtCopyPicked B.N bit 14 (the bit CopyPumpEOT is beside a
 // pump keyword, which this op never carries): the token enters tapped or
