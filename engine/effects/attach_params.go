@@ -32,6 +32,7 @@ const (
 	attachObjectRemembered                         // Remembered
 	attachObjectAttachedTo                         // the plural "AttachedTo <referent>" family
 	attachObjectDefined                            // any other definedSpec selector
+	attachObjectParentTarget                       // ParentTarget / ParentTargeted: the parent link's whole set
 )
 
 // AttachParams is one Attach ability's parameters, compiled once.
@@ -289,6 +290,8 @@ func compileAttach(sa *cards.SA, tp *TargetParams) *AttachParams {
 		p.objectKind = attachObjectRemembered
 	case strings.HasPrefix(p.Object, "AttachedTo "):
 		p.objectKind = attachObjectAttachedTo
+	case p.Object == "ParentTarget" || p.Object == "ParentTargeted":
+		p.objectKind = attachObjectParentTarget
 	default:
 		p.objectKind = attachObjectDefined
 	}
