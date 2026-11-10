@@ -3511,7 +3511,7 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 			return err
 		}
 	}
-	if ab.Kind == akMana && len(ab.Prog) > 0 && !painRider(ab) {
+	if ab.Kind == akMana && len(ab.Prog) > 0 && !painRider(ab) && !ctrRiderMana(ab) { // (lower_manarider.go)
 		// CR 605.3b: a mana ability's rider (Chromatic Sphere's draw, a
 		// depletion counter) resolves with it at activation. The kernel's
 		// autopay adds the mana and runs no program, so the ability is

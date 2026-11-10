@@ -396,9 +396,9 @@ func (s *State) fireEmblems(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, extr
 func (s *State) fireEmblemsAmt(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, amt int16, extra func(a *kop.Ability) bool) {
 	for pp := uint8(0); pp < 2; pp++ {
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
-			c := s.g.embC[pp][i]
+			c := s.embCard(pp, i)
 			cd := &k.t.Cards[c]
-			e := &k.t.Emblems[s.g.emb[pp][i]-1]
+			e := &k.t.Emblems[s.embIdx(pp, i)-1]
 			for j := range e.Abilities {
 				ea := &e.Abilities[j]
 				if ea.Kind != kop.AbTriggered || ea.Trig.Event != ev || !whoseOK(ea.Trig.Whose, pp, who) || !extra(ea) {
@@ -408,7 +408,7 @@ func (s *State) fireEmblemsAmt(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, a
 				for ab := range cd.Abilities {
 					la := &cd.Abilities[ab]
 					if la.Kind == kop.AbTriggered && la.AFlags&kop.AfLatent != 0 && la.Trig.Event == ev && la.Trig.Zone == kop.ZoneCommand {
-						o := s.g.embO[pp][i]
+						o := s.embObj(pp, i)
 						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, tobj, who, amt)
 						break
 					}

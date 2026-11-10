@@ -134,7 +134,7 @@ func (s *State) spendMayKind(k *prep, o Obj, p uint8, mode uint8) bool {
 	if i < 0 {
 		return false
 	}
-	r := s.g.may[i]
+	r := *s.mayAt(i)
 	if r.payLife() {
 		s.bld().payLifeMV = true
 	}
@@ -156,7 +156,7 @@ func (s *State) spendMayKind(k *prep, o Obj, p uint8, mode uint8) bool {
 func (s *State) mayKindAt(k *prep, o Obj, p uint8, mode uint8) int {
 	free := mode&castFree != 0
 	for i := 0; i < int(s.g.nmay); i++ {
-		r := s.g.may[i]
+		r := *s.mayAt(i)
 		if r.obj != o || r.ctrl != p || r.ver != s.objs[o].ver || (r.kind&kop.MayPlayFree != 0) != free || s.mayLimitSpent(r) ||
 			k.gen.anyMayWhileSrc && s.maySrcDead(r) {
 			continue
@@ -181,10 +181,10 @@ func (s *State) mayRaiseOwed(k *prep, p uint8, a Action) uint8 {
 		return 0
 	}
 	i := s.mayKindAt(k, Obj(a.Source()), p, a.Mode())
-	if i < 0 || s.g.may[i].kind&mayKindRaise == 0 {
+	if i < 0 || s.mayAt(i).kind&mayKindRaise == 0 {
 		return 0
 	}
-	return uint8(s.g.may[i].turn)
+	return uint8(s.mayAt(i).turn)
 }
 
 // mayPlayAnyType reports whether a permission lets p spend mana of any type on the
@@ -192,7 +192,7 @@ func (s *State) mayRaiseOwed(k *prep, p uint8, a Action) uint8 {
 func (s *State) mayPlayAnyType(k *prep, p uint8, o Obj) bool {
 	if k.gen.anyMayKind {
 		for i := 0; i < int(s.g.nmay); i++ {
-			if r := s.g.may[i]; r.obj == o && r.ctrl == p && r.ver == s.objs[o].ver && r.kind&kop.MayPlayAnyType != 0 && !s.mayLimitSpent(r) {
+			if r := *s.mayAt(i); r.obj == o && r.ctrl == p && r.ver == s.objs[o].ver && r.kind&kop.MayPlayAnyType != 0 && !s.mayLimitSpent(r) {
 				return true
 			}
 		}

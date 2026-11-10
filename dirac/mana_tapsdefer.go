@@ -92,7 +92,7 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 	var m slotMask
 	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
 		sl := b.first()
-		if !s.tapsDeferred(k, p, sl) {
+		if !s.planDeferred(k, p, sl) {
 			continue
 		}
 		c := s.cardAt(sl)

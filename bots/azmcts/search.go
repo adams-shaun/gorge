@@ -294,6 +294,7 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 		res.Stats.ForcedSearched = 1
 	}
 	countSearched(&res.Stats, kind)
+	opts.MaxN = maxNApplies(root.Engine.G, opts, &res.Stats)
 	rng := rand.New(rand.NewPCG(opts.Seed^opts.ChoiceSalt, opts.Seed^0x9e3779b97f4a7c15))
 	treePrior := prior
 	if opts.Noise {
@@ -308,6 +309,7 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 		root: rootPt, rootCands: cands, rootDec: root.Decision, stats: &res.Stats, line: opts.Line,
 		envBoard: &envBoard, enumBoard: &enumBoard, views: views,
 		horizon: int32(horizon), mulligan: opts.mulligan,
+		maxN: opts.MaxN,
 	}
 	if opts.OpponentNodes {
 		cfg.oppNodes = true
@@ -396,4 +398,27 @@ func splitmix(x uint64) uint64 {
 	x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9
 	x = (x ^ (x >> 27)) * 0x94d049bb133111eb
 	return x ^ (x >> 31)
+}
+
+// maxNApplies reports whether Options.MaxN takes effect in g: asked for,
+// with the opponents in the tree, and more than two living seats. Above
+// maxVecSeats seats it counts a fallback to paranoid search in st.
+func maxNApplies(g *state.Game, opts Options, st *Stats) bool {
+	if !opts.MaxN || !opts.OpponentNodes {
+		return false
+	}
+	living := 0
+	for i := range g.Players {
+		if !g.Players[i].Lost {
+			living++
+		}
+	}
+	if living <= 2 {
+		return false
+	}
+	if len(g.Players) > maxVecSeats {
+		st.MaxNFallbacks++
+		return false
+	}
+	return true
 }

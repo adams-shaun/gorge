@@ -170,6 +170,7 @@ func foldKeywordTriggerPush(g *state.Game, e *Event) {
 	flanking := false
 	gift := e.Counter == "GiftAbility"
 	melee := e.Counter == "__kwMeleeGranted"
+	exalted := e.Counter == "__kwExaltedGranted"
 	if sa == nil {
 		// A granted Melee instance has no printed SVar. Rebuild its
 		// pump from the logged marker; IDs holds one player ref per
@@ -177,6 +178,14 @@ func foldKeywordTriggerPush(g *state.Game, e *Event) {
 		if e.Counter == "__kwMeleeGranted" {
 			sa = &cards.SA{Kind: "DB", API: "Pump", Params: map[string]string{
 				"Defined": "Self", "NumAtt": cards.MeleePumpCount, "NumDef": cards.MeleePumpCount}}
+		}
+		// A granted Exalted instance (rules.pushTrigger's __kwExaltedGranted
+		// payload) is rebuilt into the printed K:Exalted expansion's body
+		// (engine/cards/kw_exalted.go); the declaration's attackers and the
+		// defending player ride Remembered (IDs).
+		if exalted {
+			sa = &cards.SA{Kind: "DB", API: "Pump", Params: map[string]string{
+				"Defined": "TriggeredAttacker", "NumAtt": "+1", "NumDef": "+1"}}
 		}
 		// A granted ward (rules.pushTrigger's __kwWard: payload) has no
 		// SVar to resolve: the ability is rebuilt structurally from the
@@ -442,7 +451,7 @@ func foldKeywordTriggerPush(g *state.Game, e *Event) {
 	if !gift && keywordTriggerBindsSource(e.Counter, sa) {
 		o.SourceIncarnation = incarnation
 	}
-	if conspire || casualty || demonstrate || storm || flanking || melee || cipher || gift {
+	if conspire || casualty || demonstrate || storm || flanking || melee || exalted || cipher || gift {
 		o.Remembered = rememberedFrom(e.IDs)
 	}
 }

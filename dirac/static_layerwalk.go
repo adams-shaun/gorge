@@ -167,7 +167,7 @@ func (s *State) lfxCollect(k *prep, sl Slot, fx *[maxLfx]lfx) int {
 		// emblems' subtype grants (timestamp 0: oldest)
 		for pp := uint8(0); pp < 2; pp++ {
 			for i := 0; i < int(s.g.nemb[pp]); i++ {
-				e := &k.t.Emblems[s.g.emb[pp][i]-1]
+				e := &k.t.Emblems[s.embIdx(pp, i)-1]
 				for j := range e.Abilities {
 					a := &e.Abilities[j]
 					if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || !a.Static.AddSub.Any() {

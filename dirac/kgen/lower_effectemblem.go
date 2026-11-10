@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -8,16 +9,15 @@ import (
 
 // effectStaticEOT lowers an Effect with neither ValidTgts$ nor
 // RememberObjects$ whose StaticAbilities$ bodies are modes gorge's effEffect
-// REGISTERS (effects/effect.go: the CantBlockBy and MustAttack restriction
-// cases, the AddHiddenKeyword$ / AdjustLandPlays$ / SetMaxHandSize$ special
-// grants, and the general Mode$ Continuous layer grant) as emblems of the
-// already-lowered statics. Lifetime follows the Effect's Duration$: absent /
-// EndOfTurn / UntilEndOfTurn / UntilYourNextEndStep are the kernel's EOT
-// emblem; UntilYourNextTurn is the next-turn emblem; every other spelling is
-// refused because the kernel cannot model its boundary. Direct CantBlock /
-// CantAttack / CantBeCast modes stay refused: gorge's effEffect falls them to
-// effectUnsupportedStatic Notes, so lowering them here would grant an effect
-// the reference engine does not apply.
+// REGISTERS (effects/effect.go: the CantBlockBy, MustAttack and CantBeCast
+// restriction cases, the AddHiddenKeyword$ / AdjustLandPlays$ /
+// SetMaxHandSize$ special grants, and the general Mode$ Continuous layer
+// grant) as emblems of the already-lowered statics. Lifetime follows the
+// Effect's Duration$: absent / EndOfTurn / UntilEndOfTurn /
+// UntilYourNextEndStep are the kernel's EOT emblem; UntilYourNextTurn is the
+// next-turn emblem; every other spelling is refused because the kernel
+// cannot model its boundary. The direct CantBlock / CantAttack modes stay
+// refused until their own lowering reads them from an emblem.
 func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 	// an Effect whose only statics are ReduceCost
 	// Count$ChosenNumber bodies freezes its SetChosenNumber$ at resolution
@@ -117,7 +117,15 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 		sts = append(sts, st)
 	}
 	ps.consume("Name", "Image", "Stackable")
-	if left := ps.unread(); len(left) > 0 {
+	left := ps.unread()
+	if allCantBeCast(ss) {
+		// the Effect's own ConditionPresent$ (Bilbo's Gambit: the gift was
+		// promised) guards the whole node; the node's condition read runs
+		// after this lowering and the node's own unread check refuses what
+		// it does not read
+		left = slices.DeleteFunc(left, func(k string) bool { return strings.HasPrefix(k, "Condition") })
+	}
+	if len(left) > 0 {
 		return refuse("Effect static unread %v", left)
 	}
 	if len(sts) == 0 {
@@ -252,6 +260,10 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 				}
 			}
 		}
+	case "CantBeCast":
+		// gorge cantBeCastParamsReadableKeys; the lowering consumes the
+		// subset the kernel's cast gate reads, the rest refuses as unread
+		keys = map[string]bool{"Mode": true, "ValidCard": true, "Caster": true, "Origin": true, "NumLimitEachTurn": true, "AffectedZone": true, "Phases": true, "Condition": true, "ClassBand": true, "IsPresent": true, "PresentCompare": true, "PresentZone": true, "CheckSVar": true, "SVarCompare": true, "Description": true}
 	case "CantPreventDamage":
 		keys = map[string]bool{"Mode": true, "Description": true, "Secondary": true} // the global form (gorge cantPreventDamage: no Affected$)
 	case "CanAttackDefender":
@@ -284,6 +296,11 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		}
 		if libPayLife {
 			st.Flags = append(st.Flags, "MayPayLife")
+		}
+	} else if s.Mode == "CantBeCast" {
+		if st.Kind != "CantBeCast" || st.Zone == zAny {
+			// Card.Self binds the card's own object; an emblem has none
+			return lStatic{}, refuse("Effect static CantBeCast lowered to %s over its own card", st.Kind)
 		}
 	} else if s.Mode == "Continuous" {
 		switch st.Kind {
@@ -435,4 +452,15 @@ func emblemFiltersRefuseHost(where string, fs ...*lFilter) error {
 		}
 	}
 	return nil
+}
+
+// allCantBeCast reports whether every StaticAbilities$ body is Mode$
+// CantBeCast (a non-empty list).
+func allCantBeCast(ss []cards.Static) bool {
+	for _, s := range ss {
+		if s.Mode != "CantBeCast" {
+			return false
+		}
+	}
+	return len(ss) > 0
 }

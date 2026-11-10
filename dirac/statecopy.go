@@ -56,6 +56,8 @@ type coldArrays struct {
 // coldLayout is the lengths of a table's cold arrays.
 type coldLayout struct {
 	ms, mo, exw, atkGrp, exH, entered, exMark, parked, castRing, discHeld, copyHeld int
+	may                                                                             int // mayPlay records past maxMay; the first thing in the buffer (cast_maycold.go)
+	emb                                                                             int // embRec records for emblems past maxEmb, both players; right after the may records (static_emblemcold.go)
 	words                                                                           int
 }
 
@@ -90,12 +92,20 @@ func prepCold(g *genPrep, l *coldLayout) {
 	if g.anyCopyElect {
 		l.copyHeld = 1
 	}
+	if g.anyMayCold {
+		l.may = maxMayCold
+	}
+	if g.anyEmbCold {
+		l.emb = MaxSeats * maxEmbCold
+	}
 }
 
 // place points c's arrays into b, or just counts them if b is nil, and returns
 // the words they take.
 func (l *coldLayout) place(c *coldArrays, b []uint64) int {
 	at := 0
+	_ = coldView[mayPlay](b, &at, l.may) // first: mayCold reads it at the buffer start
+	_ = coldView[embRec](b, &at, l.emb)  // next: embCold finds it after the may records
 	c.ms = coldView[slotMask](b, &at, l.ms)
 	c.mo = coldView[objBits](b, &at, l.mo)
 	c.exw = coldView[exwRec](b, &at, l.exw)

@@ -39,6 +39,7 @@ var (
 	kwhEnlist           = newKWHead("Enlist")
 	kwhEquip            = newKWHead("Equip")
 	kwhEscape           = newKWHead("Escape")
+	kwhExalted          = newKWHead("Exalted")
 	kwhExploit          = newKWHead("Exploit")
 	kwhFear             = newKWHead("Fear")
 	kwhFirebending      = newKWHead("Firebending")

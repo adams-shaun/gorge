@@ -69,6 +69,8 @@ type genPrep struct {
 	anyMayPlay      bool
 	anyMayRaise     bool     // some may-play static owes a non-mana RaiseCost$ (cost_mayplayraise.go)
 	anyMayKind      bool     // some OpMayPlay grants a record with a kind rider (cast_maypermission.go)
+	anyEmbCold      bool     // some activated or triggered ability creates an emblem: the cold buffer holds maxEmbCold more per player (static_emblemcold.go)
+	anyMayCold      bool     // some OpMayPlay grants over a remembered set: the cold buffer holds maxMayCold more records (cast_maycold.go)
 	anyMayLimit     bool     // some OpMayPlay record carries a MayPlayLimit cap (cast_maypermission.go)
 	sCls            []uint16 // per card: its static classes (static_classgates.go scls*)
 	anyGraveAct     bool
@@ -332,6 +334,8 @@ type genPrep struct {
 	// anyTapsDefer / anyTapsPain: some card has a lowered Taps watcher of
 	// class kop.TapPlanDefer / TapPlanPain (gfTapsDefer / gfTapsPain; mana_tapsdefer.go)
 	anyTapsDefer, anyTapsPain bool
+	// anyManaRider: some card has a counter-rider mana ability (mana_rider.go); it sets anyTapsDefer too
+	anyManaRider bool
 	// anySelfTaps: some card has a lowered self Taps watcher (TfSelf). kgen
 	// lowers one only on a card with no printed mana ability, so it can only
 	// defer a granted mana ability's tap (act_waterbend.go windowCensusComplete).
@@ -679,6 +683,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyRemDisc = tableRemembersDiscards(t)
 	g.anySpellMana = prepDbMana(t) // mana_dbresolve.go
 	g.anyMayKind = tableMayPlayKinds(t)
+	g.anyMayCold = tableMayPlayRemembered(t)
+	g.anyEmbCold = tableEmblemRepeats(t)
 	g.anyMayRaise = tableMayRaise(t)
 	if tableCastFromGrave(t) {
 		g.anyCastProv = true // castFromGrave reads the cast's zone (cast_mayplayoffers.go)
@@ -1077,6 +1083,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.anyOwnReduce = true
 				}
 			case kop.AbMana:
+				if _, _, ok := manaCtrRider(a); ok {
+					g.anyManaRider, g.anyTapsDefer = true, true // a planner-deferred source (mana_rider.go)
+				}
 				if a.ManaDeferred && a.AFlags&kop.AfLatent == 0 {
 					// a scripted-prefix gap beside the restricted ones (mana_deferred.go),
 					// and no filter: gapOthers must see it so filtOnly is false
@@ -1393,7 +1402,7 @@ const (
 	maxOvr    = 8  // distinct override records on one permanent (identical ones merge: ovRec.n)
 	maxMay    = 16 // play-from-zone permissions (8 before kcaps2x: StallMayPlay was hit, validaggs)
 	maxDProg  = 6  // delayed programs
-	maxEmb    = 4  // emblems per player
+	maxEmb    = 4  // emblems per player in State; a table that repeats them keeps maxEmbCold more (static_emblemcold.go)
 	maxDmgMap = 8  // damage-map entries
 	maxXTgt   = 7  // objects of multi-object target slots beyond the first
 	maxUsed   = 16 // once-per-turn records
@@ -1974,7 +1983,7 @@ const (
 	StallRemember = 7  // maxRem remembered or chosen objects of one resolution
 	StallMayPlay  = 8  // maxMay play-from-zone permissions
 	StallDProg    = 9  // maxDProg delayed programs
-	StallEmblem   = 10 // maxEmb emblems of one player
+	StallEmblem   = 10 // embCap emblems of one player
 	StallDmgMap   = 11 // maxDmgMap damage-map entries
 	StallXTgt     = 12 // maxXTgt extra objects of multi-object target slots
 	StallUsed     = 13 // maxUsed once-per-turn records
@@ -2154,9 +2163,11 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 }
 
 // maxDynMana caps a dynamic mana ability's amount as an autopay source; a
-// larger amount stalls StallDynMana. 40 (a whole 40-card deck: The Core's
-// permanent cards in your graveyard reached 21).
-const maxDynMana = 40
+// larger amount stalls StallDynMana. 255, what a mana count byte holds
+// (pcard.manaN, a pool's colour): a runaway Improvised Arsenal game passed
+// 40, then 130, then 300; The Core's permanent cards in your graveyard
+// reached 21.
+const maxDynMana = 255
 
 // dynManaN evaluates a dynamic mana ability's amount and stalls when it is
 // above maxDynMana: a larger amount is never silently truncated, whichever

@@ -112,21 +112,22 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +9 (the merge with land: land's +9 beside the +15 above; merged ALL 21709 -> 21733, FRA 246 -> 247 measured).
 	// +5 (the merge with land: this branch's +5 beside land's +26, disjoint; merged ALL 21784 -> 21789 measured).
 	// +1 (Boommobile: an artifact's resolving mana restricted to activated abilities, kop.SpmActivated; the merge with land: land's 21792 + 1 = 21793, DFT 250 -> 251).
-	// +2 (an Effect's static beside its trigger over one captured creature: Long River Lurker, The Pride of Hull Clade; ALL 21872 -> 21874, BLB 258 -> 259, MKM 243 -> 244).
+	// +6 (a static's granted Exalted lowers as a latent Attacks trigger: First Sliver's Chosen, Merchant of Truth, Order of Sacred Dusk, Sublime Archangel, Xenk, Paladin Unbroken, Zarda, the Power Princess; ALL 21873 -> 21879).
+	// +2 (an Effect's static beside its trigger over one captured creature: Long River Lurker, The Pride of Hull Clade; the merge with land: land's 21890 + 2 = 21892, BLB 258 -> 259, MKM +1).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21874, 34442},
+	"ALL": {21892, 34442},
 	"BIG": {23, 30},
 	"BLB": {259, 278},
-	"BRO": {208, 280},
+	"BRO": {210, 280},
 	"DFT": {252, 276},
 	"DMU": {194, 270},
-	"DSK": {242, 276},
+	"DSK": {243, 276},
 	"ECL": {237, 273},
 	"EOE": {240, 266},
 	"FDN": {517, 517},
 	"FIN": {270, 312},
 	"FRA": {249, 269},
-	"HOB": {155, 172},
+	"HOB": {156, 172},
 	"LCI": {253, 290},
 	"MKM": {244, 279},
 	"MOM": {198, 296},
@@ -138,11 +139,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SOS": {253, 270},
 	"SPM": {164, 192},
 	"TDM": {254, 276},
-	"TLA": {256, 285},
+	"TLA": {257, 285},
 	"TMT": {174, 194},
-	"TRC": {288, 337},
+	"TRC": {289, 337},
 	"TRK": {311, 311},
-	"WOE": {255, 281},
+	"WOE": {256, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory

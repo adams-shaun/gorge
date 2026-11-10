@@ -2653,6 +2653,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if (in.C == 0 || in.C == 1) && (in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredNew) && fl["from"] == "Graveyard" {
 			ki.C = kop.LibTopGrave + int16(in.C) // dirac/zone_tolibrarygrave.go
 		}
+		if _, rem := fl["Remember"]; rem && in.C == 1 && in.Obj.Kind == rDelayedRemembered && fl["from"] == "Battlefield" {
+			ki.C = kop.LibBottomRememberBF // dirac/zone_tolibrarybfremember.go
+		}
 		if _, ok := fl["TopShuffle"]; ok {
 			ki.C = kop.LibTopShuffle
 			if (in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredNew) && fl["from"] == "Graveyard" {
@@ -4194,6 +4197,11 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtDigImprint)) // marks the Dig before it (zone_digimprint.go)
 	case "RememberSearcher":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberSearcher)) // zone_remembersearcher.go
+	case "RememberAll":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberAll)) // lower_rememberwritersmass.go
+		if err := objFilter(kop.ZoneBattlefield); err != nil {
+			return ki, err
+		}
 	case "AddTurn":
 		ki.Op = kop.OpAddTurn
 	case "EndTurn":

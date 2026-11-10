@@ -208,9 +208,10 @@ import (
 // SubCounter<X/KIND> and ExileFromStack<1/Card.Self>; ALL build-level 21709 -> 21724).
 // +5 (the merge with land: this branch's +5 beside land's +26, disjoint; merged ALL build-level 21784 -> 21789).
 // +1 (Boommobile: kop.SpmActivated; the merge with land: land's 21792 + 1 = 21793).
-// +2 (Long River Lurker, The Pride of Hull Clade: an Effect's static beside its trigger over one captured creature; ALL build-level 21872 -> 21874).
+// +6 (a static's granted Exalted: the cards listed at ratchet_test.go's ALL pin; ALL build-level 21873 -> 21879).
+// +2 (Long River Lurker, The Pride of Hull Clade: an Effect's static beside its trigger over one captured creature; the merge with land: land's 21890 + 2 = 21892).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21874, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21892, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

@@ -82,11 +82,11 @@ func (s *State) airbend(k *prep, in *kop.Instr) {
 		if ob.zone != kop.ZoneExile || ob.of&(ofToken|ofCopy) != 0 {
 			continue
 		}
-		if s.g.nmay >= maxMay {
+		if s.mayFull() {
 			s.capFull(StallMayPlay)
 			return
 		}
-		s.g.may[s.g.nmay] = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurAirbend, turn: s.turn}
+		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurAirbend, turn: s.turn}
 		s.g.nmay++
 	}
 }
@@ -133,7 +133,7 @@ func (s *State) offerAirbendCasts(k *prep, d *Decision, p uint8, sorc bool) {
 func (s *State) airbendRecord(p uint8, o Obj) bool {
 	ob := &s.objs[o]
 	for i := 0; i < int(s.g.nmay); i++ {
-		r := s.g.may[i]
+		r := *s.mayAt(i)
 		if r.obj == o && r.ctrl == p && r.ver == ob.ver && r.until == kop.DurAirbend {
 			return true
 		}
@@ -146,7 +146,7 @@ func (s *State) airbendRecord(p uint8, o Obj) bool {
 func (s *State) refreshAirbend(o Obj) {
 	ob := &s.objs[o]
 	for i := 0; i < int(s.g.nmay); i++ {
-		r := &s.g.may[i]
+		r := s.mayAt(i)
 		if r.obj == o && r.ctrl == ob.owner() && r.until == kop.DurAirbend {
 			r.ver = ob.ver
 		}

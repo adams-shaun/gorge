@@ -69,8 +69,8 @@ func (s *State) canTapForManaPC(k *prep, sl Slot, pc *pcard) bool {
 type avail struct {
 	total int
 	n     int
-	mask  [16]uint8 // distinct production masks (nine on a five-gain-land board: pair 5901)
-	cnt   [16]uint8
+	mask  [16]uint8  // distinct production masks (nine on a five-gain-land board: pair 5901)
+	cnt   [16]uint16 // wide enough that eight 255-mana sources never saturate
 	// pain: the painful units' budget when their summed damage could be
 	// lethal (mana_pain.go painTight): their colours are
 	// then held out of mask/cnt and affordsPlain enumerates how many of
@@ -104,8 +104,8 @@ type avail struct {
 }
 
 // maxOneColour bounds a player's one-colour sources; one more stalls
-// StallDynMana.
-const maxOneColour = 4
+// StallDynMana. oneColourFits tries at most C(n+4,4) colour multisets, 495 at 8.
+const maxOneColour = 8
 
 // manaOneColour reports whether a makes n mana all in one colour it chooses
 // (Kami of Whispered Hopes, "X mana of any one color"), as opposed to a Combo's
@@ -125,35 +125,71 @@ func (s *State) addOneColour(a *avail, n uint8) {
 }
 
 // oneColourFits: a, with each of ns a unit of that many mana of one colour,
-// meets cost's Hall bound.
+// meets cost's Hall bound. ns is sorted ascending: sources of equal amount
+// are interchangeable, so the search tries each multiset of colours per
+// distinct amount rather than each colour per source.
 func (a avail) oneColourFits(cost *kop.ManaCost, pipMask uint8, extra int, ns []uint8) bool {
 	if len(ns) == 0 {
 		return a.hallUnits(cost, pipMask, extra)
 	}
-	for c := 0; c < 5; c++ {
-		b := a
-		b.addUnits(1<<c, ns[0])
-		if b.oneColourFits(cost, pipMask, extra, ns[1:]) {
+	g := 1
+	for g < len(ns) && ns[g] == ns[0] {
+		g++
+	}
+	return a.oneColourSplit(cost, pipMask, extra, ns[0], g, 0, ns[g:])
+}
+
+// oneColourSplit gives g sources of amount n to the colours from c on, then
+// fits the sources rest.
+func (a avail) oneColourSplit(cost *kop.ManaCost, pipMask uint8, extra int, n uint8, g, c int, rest []uint8) bool {
+	if c == 4 {
+		for ; g > 0; g-- {
+			a.addUnits(1<<c, n)
+		}
+		return a.oneColourFits(cost, pipMask, extra, rest)
+	}
+	b := a
+	for k := 0; ; k++ {
+		if b.oneColourSplit(cost, pipMask, extra, n, g-k, c+1, rest) {
 			return true
 		}
+		if k == g {
+			return false
+		}
+		b.addUnits(1<<c, n)
 	}
-	return false
 }
 
 //go:noinline
 func (a *avail) oneColourPays(cost *kop.ManaCost, pipMask uint8, extra int) bool {
 	b := *a
-	for _, n := range a.one[:a.nOne] {
+	ns := a.one
+	sorted := ns[:a.nOne]
+	for i := 1; i < len(sorted); i++ {
+		for j := i; j > 0 && sorted[j] < sorted[j-1]; j-- {
+			sorted[j], sorted[j-1] = sorted[j-1], sorted[j]
+		}
+	}
+	for _, n := range sorted {
 		b.remove(uint8(kop.ColAny), n)
 	}
-	return b.oneColourFits(cost, pipMask, extra, a.one[:a.nOne])
+	return b.oneColourFits(cost, pipMask, extra, sorted)
+}
+
+// satAdd is a+n held at the top of a count: a wrapped count would read as a
+// short board. The top is out of reach of any board (255 mana a source).
+func satAdd(a uint16, n uint8) uint16 {
+	if s := int(a) + int(n); s < 65535 {
+		return uint16(s)
+	}
+	return 65535
 }
 
 func (a *avail) addUnits(mask, n uint8) {
 	a.total += int(n)
 	for i := 0; i < a.n; i++ {
 		if a.mask[i] == mask {
-			a.cnt[i] += n
+			a.cnt[i] = satAdd(a.cnt[i], n)
 			return
 		}
 	}
@@ -161,21 +197,24 @@ func (a *avail) addUnits(mask, n uint8) {
 		// fold into the last group: an overcount only for exotic boards
 		// with more than 16 distinct production masks
 		a.mask[a.n-1] |= mask
-		a.cnt[a.n-1] += n
+		a.cnt[a.n-1] = satAdd(a.cnt[a.n-1], n)
 		return
 	}
-	a.mask[a.n], a.cnt[a.n] = mask, n
+	a.mask[a.n], a.cnt[a.n] = mask, uint16(n)
 	a.n++
 }
 
 // remove takes n units of mask out (a source paying its own {T} cost).
-func (a *avail) remove(mask, n uint8) {
+func (a *avail) remove(mask, n uint8) { a.removeWide(mask, uint16(n)) }
+
+// removeWide is remove for a group's whole count, which can pass a byte.
+func (a *avail) removeWide(mask uint8, n uint16) {
 	for i := 0; i < a.n; i++ {
 		if a.mask[i] == mask && a.cnt[i] >= n {
 			a.cnt[i] -= n
 			a.total -= int(n)
-			if a.nOne != 0 && mask == uint8(kop.ColAny) {
-				a.dropOneColour(n)
+			if a.nOne != 0 && mask == uint8(kop.ColAny) && n <= 255 {
+				a.dropOneColour(uint8(n))
 			}
 			return
 		}
@@ -214,7 +253,7 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 	// battlefield fact, so its gate lifts out of the loop: without a live
 	// TrigTaps listener every source is an ordinary unit, and the potential
 	// walks count a deferred source's tap regardless.
-	deferSkip := k.gen != nil && k.gen.anyTapsDefer && s.subs[kop.TrigTaps].any() && s.g.availX&(availWalk|availHyp) == 0
+	deferSkip := s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0
 	var deferGap slotMask
 	if deferSkip {
 		// Only the production the script route models is a census gap the
@@ -944,12 +983,12 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// A Taps-deferred source's classification (mana_tapsdefer.go) is a
 	// battlefield fact, so its gate lifts out of the loop: without a live
 	// TrigTaps listener every source is an ordinary census unit.
-	deferSkip := !pk.tapsIn && k.gen != nil && k.gen.anyTapsDefer && s.subs[kop.TrigTaps].any()
+	deferSkip := !pk.tapsIn && s.deferLive(k)
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
 		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) || k.restrSrc && s.restrOnlyUsable(k, p, sl, &rd) {
-			if deferSkip && s.tapsDeferred(k, p, sl) {
+			if deferSkip && s.planDeferred(k, p, sl) {
 				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go)
 			}
 			order[no] = sl

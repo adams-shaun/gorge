@@ -1037,7 +1037,7 @@ func (lc *lowerCtx) lowerKeywords() {
 			// CR 702.121a: gorge kwMelee expands it into an Attacks Self
 			// trigger (Keyword$ Melee) pumping Self by cards.MeleePumpCount,
 			// lowered from that line (mlTrigger). gorge's granted walk
-			// (rules/melee.go checkGrantedMeleeTriggers) discounts the
+			// (rules/melee.go checkGrantedAttackPumpTriggers) discounts the
 			// printed line only while it exists, so a grant on top of it
 			// is its own instance (CR 702.121b), as the kernel lists it
 			// (lower_meleegrant.go), and the only one on a face-down or

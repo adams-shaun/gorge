@@ -215,7 +215,7 @@ func (s *State) faceReachable(k *prep, p uint8, av *avail, r *kop.ManaCost, extr
 			t.total -= fee
 			if nh != 0 && t.total == 0 {
 				// the fee took every unit that could pay it: none stays for the face
-				t.cnt = [16]uint8{}
+				t.cnt = [16]uint16{}
 				t.nOne = 0
 			}
 			for c, n := range held {

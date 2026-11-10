@@ -309,6 +309,17 @@ type Options struct {
 	// bot's). Its points are capped at Limit in enumeration order even
 	// under PriorTopK. OpponentMirror changes both.
 	OpponentNodes bool
+	// MaxN replaces paranoid search at the opponents' points (OpponentNodes)
+	// with max^n. Off (the default), every opponent maximises 1 - Q, so
+	// with more than two seats the opponents act as one coalition against
+	// the searching seat. On, in a game with more than two living seats,
+	// every leaf also carries a value vector over the seats (Leaf.Vec,
+	// relative to the searching seat in turn order), backed up beside the
+	// scalar, and an opponent's point maximises its own component. With two
+	// living seats the two coincide and the scalar path runs unchanged; a
+	// game of more than maxVecSeats seats runs paranoid and counts
+	// Stats.MaxNFallbacks. It acts only with OpponentNodes.
+	MaxN bool
 	// SkipPass makes the search's world engines auto-pass every priority
 	// window outside a main phase with an empty stack (rules.Engine.SetSkipPass):
 	// no legal-action walk, payment build or bot answer is paid for it, and the
@@ -505,6 +516,10 @@ type Stats struct {
 	// Both stay 0 with the option off.
 	OppPoints   int
 	OppExpanded int
+	// MaxNFallbacks counts searches that asked for Options.MaxN in a game
+	// of more seats than a value vector holds (maxVecSeats) and ran
+	// paranoid instead.
+	MaxNFallbacks int
 
 	// The walk's cost counters. They count work, not outcomes: the node
 	// cache (Options.NodeCache) changes them, and EnvSteps above, and
@@ -688,6 +703,7 @@ func (s *Stats) Add(o Stats) {
 	s.EarlyStops += o.EarlyStops
 	s.OppPoints += o.OppPoints
 	s.OppExpanded += o.OppExpanded
+	s.MaxNFallbacks += o.MaxNFallbacks
 	s.Truncated += o.Truncated
 	s.RootTruncated += o.RootTruncated
 	s.LeafPlies += o.LeafPlies

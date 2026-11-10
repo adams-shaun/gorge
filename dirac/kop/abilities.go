@@ -86,7 +86,7 @@ type Ability struct {
 	GrantedKw bool
 	// MeleeGrant: the trigger a granted Melee gives its holder (CR
 	// 702.121a; a static's AddKeyword$ Melee). gorge queues it in its own
-	// keyword walk (rules/melee.go checkGrantedMeleeTriggers), not among the
+	// keyword walk (rules/melee.go checkGrantedAttackPumpTriggers), not among the
 	// AddTrigger$ grants: CardDef.AtkFace places it (kw_melee.go). A table
 	// byte: AbilityFlags has no free bit.
 	MeleeGrant bool
