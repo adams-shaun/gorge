@@ -225,6 +225,8 @@ func czallTwoZoneB(from string) (int, bool) {
 	switch from {
 	case "Graveyard,Hand":
 		return int(kop.ZoneHand), true
+	case "Hand,Graveyard":
+		return kop.CzHandGrave, true
 	case "Battlefield,Graveyard":
 		return kop.CzBattleGrave, true
 	case "Library,Sideboard":

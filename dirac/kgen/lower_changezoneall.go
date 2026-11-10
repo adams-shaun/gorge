@@ -263,23 +263,47 @@ func czallBuild3(ki *kop.Instr, dest kop.Zone, forget, untilLeaves bool) error {
 	return nil
 }
 
-// originGraveHand admits ONLY Origin$ Graveyard,Hand, Destination$ Library,
-// ChangeType$ Card.YouOwn, Shuffle$ True, no other rules key (Weftwalking,
-// Midnight Clock). It sweeps your graveyard then your hand into your library
-// (kop.MvGraveExile with the second zone Hand in B) and shuffles you. Every
-// other Graveyard,Hand shape refuses by name.
+// originGraveHand admits two Graveyard/Hand shapes into the Library, each
+// with Shuffle$ True and no other rules key; every other one refuses by name.
+//
+//   - Origin$ Graveyard,Hand, ChangeType$ Card.YouOwn (Weftwalking, Midnight
+//     Clock): sweeps your graveyard then your hand into your library
+//     (kop.MvGraveExile with the second zone Hand in B) and shuffles you.
+//   - Origin$ Hand,Graveyard or Graveyard,Hand, ChangeType$ Card with
+//     UseAllOriginZones$ True (Echo of Eons): every player's cards, the hands
+//     first for Hand,Graveyard (kop.CzHandGrave: the pre-shuffle library order
+//     follows the move order). The kernel shuffles both libraries itself, in
+//     gorge's order (kop.CzShuffleEach), so no Shuffle is emitted.
 func (lc *lowerCtx) originGraveHand(ps *params) error {
+	origin := strings.TrimSpace(ps.str("Origin"))
 	for _, k := range sortedParamKeys(ps.m) {
 		switch k {
-		case "Origin", "Destination", "ChangeType", "Shuffle", "SubAbility":
+		case "Origin", "Destination", "ChangeType", "Shuffle", "SubAbility", "UseAllOriginZones":
 		default:
 			if !ignoredParams[k] {
-				return refuse("ChangeZoneAll Origin$ Graveyard,Hand with %s$", k)
+				return refuse("ChangeZoneAll Origin$ %s with %s$", origin, k)
 			}
 		}
 	}
-	if ps.str("Destination") != "Library" || ps.str("ChangeType") != "Card.YouOwn" || !ps.is("Shuffle", "True") {
-		return refuse("ChangeZoneAll Origin$ Graveyard,Hand outside Destination$ Library, ChangeType$ Card.YouOwn, Shuffle$ True")
+	if ps.str("Destination") != "Library" || !ps.is("Shuffle", "True") {
+		return refuse("ChangeZoneAll Origin$ %s outside Destination$ Library, Shuffle$ True", origin)
+	}
+	if v, ok := ps.get("UseAllOriginZones"); ok {
+		if v != "True" || ps.str("ChangeType") != "Card" {
+			return refuse("ChangeZoneAll Origin$ %s UseAllOriginZones$ %q outside ChangeType$ Card", origin, v)
+		}
+		f, err := lc.filter("Card")
+		if err != nil {
+			return err
+		}
+		if len(f.Clauses) == 0 || f.Players != 0 {
+			return refuse("ChangeZoneAll Origin$ %s filter shape", origin)
+		}
+		lc.emit(lInstr{Op: "ChangeZoneAll", F: f, C: zLibrary, CS: "from=" + origin + "|ShuffleEach"})
+		return nil
+	}
+	if origin != "Graveyard,Hand" || ps.str("ChangeType") != "Card.YouOwn" {
+		return refuse("ChangeZoneAll Origin$ %s outside Graveyard,Hand, ChangeType$ Card.YouOwn", origin)
 	}
 	f, err := lc.filter("Card.YouOwn")
 	if err != nil {

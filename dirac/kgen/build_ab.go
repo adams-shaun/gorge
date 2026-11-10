@@ -3059,6 +3059,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			}
 			ki.Op = kop.OpChangeZoneAllEx
 			ki.C = int16(int(zoneMap[in.C]) | (moveFlags()|kop.MvGraveExile)<<3)
+			if _, ok := fl["ShuffleEach"]; ok {
+				b |= kop.CzShuffleEach // the kernel shuffles both libraries after the sweep
+			}
 			ki.B = kop.Const(b)
 			break
 		}

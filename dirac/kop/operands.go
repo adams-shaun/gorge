@@ -269,6 +269,18 @@ const (
 // walk). Clear of CzUntilLeaves (bit 0), CzBattleGrave and ZoneHand.
 const CzLibrarySideboard = 16
 
+// CzHandGrave and CzShuffleEach are OpChangeZoneAllEx B flags of a MvGraveExile
+// sweep into the library, clear of every Cz* code above (Echo of Eons).
+// CzHandGrave scans every seat's hand, then every seat's graveyard (Origin$
+// Hand,Graveyard: the library order before the shuffle follows the move
+// order). CzShuffleEach ends the sweep with both libraries shuffled, the owner
+// of the first card moved first, then the other seat (UseAllOriginZones$ with
+// Shuffle$ True; gorge changeZoneAllShuffleLibraries).
+const (
+	CzHandGrave   = 32
+	CzShuffleEach = 64
+)
+
 // RetAttachTo (OpReturnEx B.N, A counters absent):
 // AttachedTo$ -- the returned permanent enters attached to the permanent the
 // Ref in B.N bits 8..10 names (RefSelf, or a target slot; the low byte stays

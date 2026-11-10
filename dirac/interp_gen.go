@@ -1672,6 +1672,9 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 				if !s.matchCardGen(k, in.F, s.objs[o].card, p, e.ctrl, o) || s.tokenLeftBattlefield(o) || s.instantStays(k, o, z) {
 					continue
 				}
+				if in.B.N&kop.CzShuffleEach != 0 && mv&kop.MvGraveExile != 0 {
+					carry.noteFirst(s, o) // zone_changezoneall.go
+				}
 				if z == kop.ZoneBattlefield && s.occ.full() {
 					// a mass return onto a full battlefield: the kernel's
 					// capacity, a draw like the token makers' (enter panics)
@@ -1807,6 +1810,9 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 		}
 	}
 	pend.place(s, &carry)
+	if mv&kop.MvGraveExile != 0 && in.B.N&kop.CzShuffleEach != 0 {
+		carry.shuffleEach(s) // after the placement: each library shuffles once all cards are in
+	}
 	if resume {
 		s.holdBatch(&eb)
 		s.fireHeld(k, s.g.retTS)
