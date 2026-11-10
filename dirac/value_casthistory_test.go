@@ -67,7 +67,7 @@ func TestExpendFiresOnceAtTheNth(t *testing.T) {
 		t.Fatalf("spells cast this turn %v, want 3 and 1", sc.s.g.hist)
 	}
 	sc.s.newTurnGen()
-	if sc.s.g.spent != [2]uint16{} || sc.s.g.hist != [2][3]uint8{} {
+	if sc.s.g.spent != [MaxSeats]uint16{} || sc.s.g.hist != [MaxSeats][3]uint8{} {
 		t.Fatalf("the history bank survived the turn: %v %v", sc.s.g.spent, sc.s.g.hist)
 	}
 	histCastAb(sc, 0, pl, 4)

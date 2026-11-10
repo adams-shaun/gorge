@@ -32,7 +32,7 @@ func (s *State) supportOptions(k *prep, in *kop.Instr, d *Decision) {
 		s.rmctrOptions(k, in, d) // ctr_removechoices.go
 		return
 	}
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < MaxSeats; p++ {
 		for m := s.ctrlM[p].and(s.occ); m.any(); m = m.rest() {
 			sl := m.first()
 			o := uint8(s.perms[sl].obj)

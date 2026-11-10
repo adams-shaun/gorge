@@ -19,7 +19,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | FRA | 269 | 249 | 0 | 10 | 239 |
 | HOB | 172 | 156 | 0 | 3 | 153 |
 | LCI | 290 | 255 | 1 | 25 | 229 |
-| MKM | 279 | 244 | 1 | 33 | 210 |
+| MKM | 279 | 245 | 1 | 34 | 210 |
 | MSH | 276 | 240 | 1 | 7 | 232 |
 | OTJ | 276 | 244 | 1 | 2 | 241 |
 | SOS | 270 | 254 | 0 | 5 | 249 |
@@ -27,10 +27,10 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TDM | 276 | 254 | 3 | 6 | 245 |
 | TLA | 285 | 258 | 1 | 6 | 251 |
 | TMT | 194 | 175 | 1 | 4 | 170 |
-| TRC | 337 | 291 | 0 | 25 | 266 |
+| TRC | 337 | 291 | 1 | 24 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 |
 | WOE | 281 | 256 | 0 | 10 | 246 |
-| ALL | 34442 | 21935 | 24 | 16822 | 5089 |
+| ALL | 34442 | 21940 | 25 | 16826 | 5089 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -70,12 +70,12 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-24 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+25 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 2 |
-| options | 5 |
+| options | 6 |
 | options-options | 1 |
 | projection | 1 |
 | projection-Cards.Chars.Colors | 1 |

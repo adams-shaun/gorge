@@ -215,13 +215,17 @@ type prep struct {
 	// tapMana: some card's mana ability taps another permanent (kop.TapXManaAb;
 	// mana_tapanother.go): a prefix-search gap kind
 	tapMana bool
+	// tapXAb: per card, the index of its tap-another-permanent mana ability
+	// (the first mana ability, or a later one beside a plain first,
+	// kop.SecondTapXManaAb), -1 none: cold, read through tapXAbOf
+	tapXAb []int8
 }
 
 func prepare(t *kop.Table) *prep {
 	if len(t.Filters) == 0 {
 		t.Filters = []kop.Filter{{}}
 	}
-	p := &prep{t: t, nsub: uint8(len(t.Subtypes)), cards: make([]pcard, len(t.Cards)), selfCast: prepSelfCast(t), eachPay: prepEachPay(t)}
+	p := &prep{t: t, nsub: uint8(len(t.Subtypes)), cards: make([]pcard, len(t.Cards)), selfCast: prepSelfCast(t), eachPay: prepEachPay(t), tapXAb: make([]int8, len(t.Cards))}
 	p.w8 = tableWord8(t) // filter_props.go
 	typedSub := typedManaSubtypes(t)
 	p.speed, p.engines = prepSpeed(t)
@@ -258,6 +262,7 @@ func prepare(t *kop.Table) *prep {
 		p.offspring = p.offspring || c.Offspring
 		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go)
 		pc.spellAb, pc.manaAb = -1, -1
+		p.tapXAb[i] = -1
 		// the card's mana is typed by its types (mana_artifact.go) whether
 		// the producing ability is printed or granted: the tag rides the
 		// source, not the ability (effects.ManaProducerTag)
@@ -307,7 +312,8 @@ func prepare(t *kop.Table) *prep {
 						p.ctrMana = true
 					}
 					if kop.TapXMana(a) {
-						p.tapMana = true // (read per card by kop.TapXManaAb, not a pcard field: the hot record stays as it was)
+						p.tapMana = true // (read per card through p.tapXAb, not a pcard field: the hot record stays as it was)
+						p.tapXAb[i] = int8(j)
 					}
 					if d, ok := manaPain(a); ok {
 						pc.painCol, pc.painN, pc.painOnly = a.ManaColors, d, true
@@ -315,6 +321,10 @@ func prepare(t *kop.Table) *prep {
 					}
 				} else if a.AFlags&kop.AfLatent == 0 {
 					p.multiMana = true
+					if p.tapXAb[i] < 0 && kop.SecondTapXManaAb(c, int(pc.manaAb), j) {
+						p.tapMana = true // a second tap-another ability: the card's tapX gap (mana_tapanother.go)
+						p.tapXAb[i] = int8(j)
+					}
 				}
 			case kop.AbTriggered:
 				pc.trigMask |= 1 << a.Trig.Event & (1<<nSubEvents - 1) // TrigGiveGift: no subscription (kw_gift.go)

@@ -49,8 +49,8 @@ type firebendProbe struct {
 	r      *rand.Rand
 	rs     *realSide
 	tbl    *kop.Table
-	prev   [2]uint8
-	born   [2]kop.Step
+	prev   [dirac.MaxSeats]uint8
+	born   [dirac.MaxSeats]kop.Step
 	seen   bool
 	gameOK bool
 }
@@ -82,7 +82,7 @@ func (p *firebendProbe) pick(c *PickCtx) Canon {
 	switch {
 	case len(atk) > 0 && p.r.IntN(4) != 0:
 		a = atk[p.r.IntN(len(atk))]
-	case len(casts) > 0 && step >= kop.StepAttackers && fb != [2]uint8{} && p.r.IntN(3) != 0:
+	case len(casts) > 0 && step >= kop.StepAttackers && fb != [dirac.MaxSeats]uint8{} && p.r.IntN(3) != 0:
 		a = casts[p.r.IntN(len(casts))]
 	case len(casts) > 0 && step == kop.StepAttackers && p.rs.s.StackLen() > 0:
 		// a firebending trigger on the stack: answer it, preferring Marsh Gas

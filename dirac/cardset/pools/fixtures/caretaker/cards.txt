@@ -4,6 +4,8 @@
 # mana of any color") in a Pauper Spy-like deck (Balustrade Spy needs {B},
 # beside few Swamps and Elves of Deep Shadow), against a blue-red tempo deck
 # (dirac/oracle/caretaker_test.go); Wall of Roots and the pain boards of dirac/caretaker_test.go.
+# Scene of the Crime's second tap-another ability beside its plain {C}, with a creature
+# to tap and a blue spell only it pays (dirac/mana_tapanother_second_test.go).
 Saruli Caretaker
 Springleaf Drum
 Balustrade Spy
@@ -29,3 +31,6 @@ Swamp
 Forest
 Island
 Mountain
+Scene of the Crime
+Aftermath Analyst
+Bubble Smuggler

@@ -524,7 +524,7 @@ func (s *State) gapOthers(k *prep, p uint8) slotMask {
 	for b := m; b.any(); b = b.rest() {
 		sl := b.first()
 		c := s.cardAt(sl)
-		if ab := k.cards[c].manaAb; ab >= 0 && kop.TapXMana(&k.t.Cards[c].Abilities[ab]) && !live.has(sl) {
+		if k.tapXAbOf(c) != nil && !live.has(sl) {
 			m = m.without(sl)
 		}
 	}

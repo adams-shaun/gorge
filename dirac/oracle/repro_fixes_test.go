@@ -60,6 +60,8 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"sacrifice_menu_keeps_stolen_creature", true, false},
 		{"ward_cannot_counter_uncounterable_spell", false, false}, // CR 101.2, 702.21a: Long Goodbye can't be countered, so an unpaid ward leaves it on the stack
 		{"most_creatures_counts_layer_types", false, false},       // CR 613.1d, 205.1: No Witnesses counts a solved Case (a Creature by its static) among the most creatures
+		// CR 605.3b, 601.2g: Leering Onlooker's {2}{B}{B} is paid by two Scenes of the Crime's second ability (tap a creature: any colour) after the first Scene's ability ask is answered with its {C}
+		{"second_tapx_mana_ability", true, false},
 	})
 }
 

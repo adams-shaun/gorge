@@ -35,10 +35,10 @@ func prepPoisonHigh(t *kop.Table, g *genPrep) {
 //go:noinline
 func (s *State) highestOppPoison(ctrl uint8) int {
 	if DebugPoisonHighSelf {
-		return int(s.g.poison[ctrl&1])
+		return int(s.g.poison[SeatIx(ctrl)])
 	}
 	best := 0
-	for p := uint8(0); p < 2; p++ {
+	for p := uint8(0); p < MaxSeats; p++ {
 		if p == ctrl || s.pl[p].lost {
 			continue
 		}
