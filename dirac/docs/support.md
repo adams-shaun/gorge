@@ -8,7 +8,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 
 | list | cards | lowered | refused | unverified | supported |
 |---|---:|---:|---:|---:|---:|
-| BIG | 30 | 23 | 1 | 1 | 21 |
+| BIG | 30 | 24 | 1 | 2 | 21 |
 | BLB | 278 | 260 | 3 | 5 | 252 |
 | DFT | 276 | 252 | 0 | 6 | 246 |
 | DSK | 276 | 243 | 4 | 22 | 217 |
