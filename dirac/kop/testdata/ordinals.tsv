@@ -445,6 +445,7 @@ ExtPreventColor	ExtOp	1
 ExtPreventDamageScope	ExtOp	246
 ExtPutCounterExisting	ExtOp	253
 ExtRecruit	ExtOp	94
+ExtRememberAll	ExtOp	306
 ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32

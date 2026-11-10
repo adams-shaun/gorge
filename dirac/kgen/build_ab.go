@@ -4196,6 +4196,11 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtDigImprint)) // marks the Dig before it (zone_digimprint.go)
 	case "RememberSearcher":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberSearcher)) // zone_remembersearcher.go
+	case "RememberAll":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberAll)) // lower_rememberwritersmass.go
+		if err := objFilter(kop.ZoneBattlefield); err != nil {
+			return ki, err
+		}
 	case "AddTurn":
 		ki.Op = kop.OpAddTurn
 	case "EndTurn":

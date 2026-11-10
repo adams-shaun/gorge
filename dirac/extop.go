@@ -138,6 +138,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtRememberSearcher:
 		s.rememberSearcher() // zone_remembersearcher.go
 		return true, true
+	case kop.ExtRememberAll:
+		s.rememberAll(k, in) // act_rememberall.go
+		return true, true
 	case kop.ExtSuspect:
 		s.suspectExt(k, in) // act_suspect.go
 		return true, true

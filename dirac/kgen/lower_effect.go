@@ -1327,8 +1327,12 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			return err
 		}
 		in := lInstr{Op: "Destroy", Obj: obj, C: nr}
-		if err := destroyRememberLKI(ps, &in); err != nil { // lower_handmove.go
+		if done, err := lc.destroyRememberLKIDestroyed(ps, &in); err != nil { // lower_rememberwritersmass.go
 			return err
+		} else if !done {
+			if err := destroyRememberLKI(ps, &in); err != nil { // lower_handmove.go
+				return err
+			}
 		}
 		if err := destroyRememberDestroyed(ps, &in); err != nil { // lower_remembered.go
 			return err
@@ -2881,6 +2885,9 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 			return refuse("PumpAll ValidTgts$ %q: not a player target", vt)
 		}
 		scope = lRef{Kind: rTarget, N: lc.addTarget(lTarget{F: pf})}
+	}
+	if err := lc.pumpAllRemember(ps, f, scope); err != nil { // lower_rememberwritersmass.go
+		return err
 	}
 	att, def := cst(0), cst(0)
 	if a, ok := ps.get("NumAtt"); ok {
