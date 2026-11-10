@@ -1338,6 +1338,18 @@ func effectTriggerBody(h Host, c *Ctx, name string) string {
 	return c.SVars[name]
 }
 
+// effectTriggerDealerIsEffect reports whether an Effect-owned trigger body
+// names the Effect card itself as the damage dealer: Mode$ DamageDone with
+// ValidSource$ Card.Self. In Forge that Card.Self is the Effect card in the
+// command zone, which never deals damage, so the body never triggers (CR
+// 603.2) -- The Pride of Hull Clade's Effect copy of TrigDamage, whose real
+// trigger is the Animate grant on the targeted creature. Registering it with
+// the resolving source as Card.Self would fire it a second time whenever that
+// source is also the targeted creature.
+func effectTriggerDealerIsEffect(mode string, tl effectTriggerLine) bool {
+	return mode == "DamageDone" && strings.EqualFold(tl.ValidSource, "Card.Self")
+}
+
 // effectSelfExileOnCastTrigger reports whether tr is the Effect self-exile
 // idiom: a SpellCast trigger whose Execute$ body moves the Effect itself out
 // of the Command zone into exile (Forge's effect token; TARDIS's

@@ -227,6 +227,17 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 				Text: "unmodelled DelayedTrigger DelayedTriggerDefinedPlayer$ " + dp.DefinedPlayer})
 		}
 	}
+	// A capture-only registration (Fortune, Loyal Steed): no RememberObjects$,
+	// and the chain wrote nothing of its own, so the only memory is the
+	// creating trigger's event capture. Forge's delayed trigger then
+	// remembers nothing; the body's Defined$ Remembered reads what the body
+	// itself remembered (state.DelayedTrigger.CaptureOnly). Rides a bare
+	// "|CO", appended immediately before |RN= so the decode strips it right
+	// after.
+	if dp.RememberObjects == "" && !dp.RememberChainFalse && len(c.Captured) > 0 &&
+		len(excludeCaptureOccurrences(c.Remembered, c.Captured)) == 0 {
+		text += "|CO"
+	}
 	// RememberNumber$ True (Mana Drain, Plasm Capture, Scattering Stroke):
 	// Forge's DelayedTriggerEffect copies the host's remembered Integers onto
 	// the delayed trigger, which its body reads back through

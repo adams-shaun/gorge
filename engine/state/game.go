@@ -612,6 +612,12 @@ type DelayedTrigger struct {
 	Controller PlayerID
 	Execute    string // the SVar name of the ability to run when it fires
 	Remembered []Target
+	// CaptureOnly marks a registration whose memory is nothing but its
+	// creating trigger's event capture (no RememberObjects$, and the chain
+	// remembered nothing of its own): the body's Defined$ Remembered reads
+	// only what the body itself remembered, never the capture. Replay
+	// rebuilds it from the DelayedRegister Text's "|CO" suffix.
+	CaptureOnly bool
 	// RememberedStamps holds, for every object in Remembered at
 	// registration, its Incarnation then (events' DelayedRegister fold). A
 	// body that acts on the remembered objects (ChangeZone's Defined$

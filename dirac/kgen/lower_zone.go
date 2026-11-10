@@ -29,6 +29,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	if _, ok := ps.m["DestAltSVar"]; ok {
 		return lc.czAltDest(ps) // lower_czaltdest.go
 	}
+	if isSelfAndChosen(ps) {
+		return lc.selfAndChosenExile(ps) // lower_selfchosen.go
+	}
 	if v, ok := ps.m["Unearth"]; ok {
 		// K:Unearth's expansion (gorge cards/kw_unearth.go: AB$ ChangeZone
 		// Origin$ Graveyard Destination$ Battlefield Defined$ Self

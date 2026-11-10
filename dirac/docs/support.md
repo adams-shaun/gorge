@@ -21,7 +21,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | LCI | 290 | 253 | 1 | 23 | 229 |
 | MKM | 279 | 242 | 1 | 31 | 210 |
 | MSH | 276 | 239 | 1 | 6 | 232 |
-| OTJ | 276 | 242 | 1 | 0 | 241 |
+| OTJ | 276 | 243 | 1 | 1 | 241 |
 | SOS | 270 | 253 | 0 | 4 | 249 |
 | SPM | 192 | 164 | 1 | 5 | 158 |
 | TDM | 276 | 254 | 3 | 6 | 245 |
