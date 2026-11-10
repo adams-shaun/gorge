@@ -57,8 +57,7 @@ func (s *State) scriptGapAvail(k *prep, p uint8, sl Slot, a *avail) {
 		}
 	}
 	if s.scriptTapXModelled(k, p).has(sl) {
-		pc := &k.cards[c]
-		a.addUnits(uint8(pc.manaCol), pc.manaN)
+		a.addUnits(tapXUnit(k.tapXAbOf(c)))
 	}
 }
 

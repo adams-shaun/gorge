@@ -3769,6 +3769,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, err
 		}
 		ki.C = int16(r)
+		if in.Note == attachRememberNote {
+			ki.B = kop.Const(1) // remember each object attached
+		}
 	case "ClearCounters":
 		ki.Op = kop.OpClearCounters
 	case "RemoveCounterAll":

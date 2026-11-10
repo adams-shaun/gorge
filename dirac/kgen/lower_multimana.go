@@ -37,8 +37,13 @@ import (
 //     last-resort Consequence{Life: N} beside its normal alternatives,
 //     which the kernel models as a pain source (mana_pain.go painLife).
 //
-// Every other shape (a second ability with a sacrifice, counter or
-// tap-another cost (gorge's census leaves a counter or tap-another one a
+// A plain fixed-colour {T} first ability beside "{T}, tap an untapped creature
+// you control: Add one mana of any color" (Scene of the Crime) is accepted by
+// manaGapModelled (tapXGapMana): the kernel's tap-another gap kind reads the
+// card's second ability (mana_tapanother.go tapXAbOf).
+//
+// Every other shape (a second ability with a sacrifice or counter cost, or
+// another tap-another one (gorge's census leaves a counter or tap-another one a
 // relaxable gap its prefix search activates, not a planner alternative); an
 // unrestricted choice beside a fixed one; a paid fixed-colour or hybrid
 // filter; a dynamic fixed colour) is refused.
@@ -217,6 +222,13 @@ func plainTapMana(a *lAbility, paid bool) bool {
 // gap the kernel models or the frozen pools prove (refuseMultiMana).
 func manaGapModelled(first, a *lAbility) bool {
 	switch {
+	case tapXGapMana(a):
+		// {T}, tap an untapped creature you control: one mana of any
+		// colour, unrestricted, beside a plain {T} first ability (Scene of
+		// the Crime): gorge's census leaves it a relaxable once-only gap
+		// its prefix search activates (the kernel's tap-another gap kind,
+		// read at the card's tapX ability, mana_tapanother.go tapXAb)
+		return a.Mana.Colors == "WUBRG" && !a.Mana.Choice && unrestrictedOne(a) && len(first.Mana.Colors) == 1 && !first.Mana.Choice
 	case plainTapMana(a, false):
 		// a restricted {T} ability, amount 1 (Courtyard, whose restriction
 		// also names activated abilities; the Villages)
@@ -257,19 +269,30 @@ func manaGapModelled(first, a *lAbility) bool {
 	return false
 }
 
+// tapXGapMana: a is a {T} ability whose cost also taps exactly one untapped
+// permanent the controller controls, its cost otherwise plain.
+func tapXGapMana(a *lAbility) bool {
+	if a.Cost.TapN != 1 || a.Cost.TapPowN != 0 {
+		return false
+	}
+	b := *a
+	b.Cost.TapN, b.Cost.TapF = 0, nil
+	return plainTapMana(&b, false)
+}
+
 // manaGapWhy names what a, a second mana ability manaGapModelled refuses,
 // needs beyond the kernel's one-unit-per-permanent source model (the
 // reasons the kernel's lockstep games and activation walk show):
 //
 //   - a cost beyond {T} other than the two below (a sacrifice, a mana
 //     payment with a rider, ...): the kernel's mana walk cannot activate it;
-//   - a cost of {T} plus tapping another creature (Scene of the Crime) or
-//     removing counters (Weather Maker): gorge's census leaves it a
-//     relaxable once-only gap (pay.PlanLastResortCostOK refuses both parts)
-//     whose prefix script activates the source, answers the ability ask with
-//     the second ability, then its colour; the kernel's tap-another and
-//     counter gap kinds (mana_tapanother.go, mana_countercost.go) read only
-//     a source's first mana ability (pcard.manaAb), so neither can play it;
+//   - a cost of {T} plus removing counters (Weather Maker): gorge's census
+//     leaves it a relaxable once-only gap (pay.PlanLastResortCostOK refuses
+//     both parts) whose prefix script activates the source, answers the
+//     ability ask with the second ability, then its colour; the kernel's
+//     counter gap kind (mana_countercost.go) reads only a source's first
+//     mana ability (pcard.manaAb), so it cannot play it. (The tap-another
+//     shape, Scene of the Crime, is modelled: tapXGapMana.)
 //   - a spend-restricted ability of several mana of the first ability's own
 //     fixed colour (Tablet of Discovery): the kernel's restricted pair unit
 //     plans only the any-colour larger alternative, so the planner taps
@@ -281,7 +304,7 @@ func manaGapWhy(first, a *lAbility) string {
 	m := a.Mana
 	switch {
 	case !plainTapMana(a, false) && !plainTapMana(a, true):
-		if a.Cost.TapN != 0 || a.Cost.SubCtr != 0 {
+		if a.Cost.SubCtr != 0 {
 			return "a cost beyond {T} the kernel's mana walk cannot activate: its tap-another and counter gap kinds read only the first mana ability"
 		}
 		return "a cost beyond {T} the kernel's mana walk cannot activate"

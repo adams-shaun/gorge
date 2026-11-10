@@ -26,7 +26,7 @@ func millImprintShape(c *lCard) (mill, read, clear bool) {
 // Cleanup clears it (Patient Naturalist and its siblings); outside such a
 // chain, the word and the writer's other spellings refuse by name.
 func TestMillImprintWriterAndFilter(t *testing.T) {
-	for _, name := range []string{"Patient Naturalist", "Blanchwood Prowler"} {
+	for _, name := range []string{"Patient Naturalist", "Blanchwood Prowler", "Ravenous Gigamole", "Fallaji Archaeologist"} {
 		c := lowerCorpusCard(t, name)
 		for _, rf := range c.Refusals {
 			t.Errorf("%s refused: %s", name, rf.Reason)
@@ -35,22 +35,9 @@ func TestMillImprintWriterAndFilter(t *testing.T) {
 			t.Errorf("%s: imprinting Mill %v, IsImprinted read %v, ClearImprinted %v; want all three", name, mill, read, clear)
 		}
 	}
-	// Gigamole's Mill and pick lower; its PutCounter beside ConditionNotPresent$
-	// is another family's refusal, which also drops the Cleanup node.
-	gm := lowerCorpusCard(t, "Ravenous Gigamole")
-	if mill, read, _ := millImprintShape(gm); !mill || !read {
-		t.Errorf("Ravenous Gigamole: imprinting Mill %v, IsImprinted read %v; want both", mill, read)
-	}
-	for _, rf := range gm.Refusals {
-		if !strings.Contains(rf.Reason, "ConditionNotPresent") && !strings.Contains(rf.Reason, "imprints without an unconditional Cleanup") {
-			t.Errorf("Ravenous Gigamole refused beyond the PutCounter condition: %s", rf.Reason)
-		}
-	}
-	for _, name := range []string{"Fallaji Archaeologist", "Ballad of the Black Flag"} {
-		c := lowerCorpusCard(t, name)
-		for _, rf := range c.Refusals {
-			t.Logf("%s refuses: %s", name, rf.Reason)
-		}
+	c := lowerCorpusCard(t, "Ballad of the Black Flag")
+	for _, rf := range c.Refusals {
+		t.Logf("Ballad of the Black Flag refuses: %s", rf.Reason)
 	}
 
 	const src = `Name:Mill Imprint Probe
