@@ -84,8 +84,7 @@ func (s *State) windowTapXOffer(k *prep, p uint8, o Slot, decided bool, want uin
 // or two (Supportive Parents, whose window pick is gorge's one "choose 2", asked
 // a permanent at a time).
 func (s *State) winTapN(k *prep, sl Slot) int {
-	c := s.cardAt(sl)
-	return int(k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.N)
+	return int(k.tapXAbOf(s.cardAt(sl)).Cost.N)
 }
 
 // winTapPick records pick a of the window's tap-another source; true when the

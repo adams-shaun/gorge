@@ -226,7 +226,7 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 			}
 			return false
 		}
-		if c := t.cardAt(sl); k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.N == 2 {
+		if k.tapXAbOf(t.cardAt(sl)).Cost.N == 2 {
 			// two permanents: no ask for exactly two, else one "choose 2" whose
 			// answers scriptAnswers enumerates as every pair of its candidates
 			// in lexicographic order, 64 at most (tapXSearch.visit)

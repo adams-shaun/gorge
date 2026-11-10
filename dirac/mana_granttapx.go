@@ -30,7 +30,7 @@ func (s *State) grantTapXGaps(k *prep, p uint8) slotMask {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
 		sl := b.first()
 		c := s.cardAt(sl)
-		if a := &k.t.Cards[c].Abilities[k.cards[c].manaAb]; a.Cost.N == 1 && a.Cost.Flags&kop.CostTap != 0 {
+		if a := k.tapXAbOf(c); a.Cost.N == 1 && a.Cost.Flags&kop.CostTap != 0 {
 			m = m.with(sl)
 		}
 	}

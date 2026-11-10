@@ -217,6 +217,13 @@ func plainTapMana(a *lAbility, paid bool) bool {
 // gap the kernel models or the frozen pools prove (refuseMultiMana).
 func manaGapModelled(first, a *lAbility) bool {
 	switch {
+	case tapXGapMana(a):
+		// {T}, tap an untapped creature you control: one mana of any
+		// colour, unrestricted, beside a plain {T} first ability (Scene of
+		// the Crime): gorge's census leaves it a relaxable once-only gap
+		// its prefix search activates (the kernel's tap-another gap kind,
+		// read at the card's tapX ability, mana_tapanother.go tapXAb)
+		return a.Mana.Colors == "WUBRG" && !a.Mana.Choice && unrestrictedOne(a) && len(first.Mana.Colors) == 1 && !first.Mana.Choice
 	case plainTapMana(a, false):
 		// a restricted {T} ability, amount 1 (Courtyard, whose restriction
 		// also names activated abilities; the Villages)
@@ -255,6 +262,17 @@ func manaGapModelled(first, a *lAbility) bool {
 		return a.Mana.Choice && amt.Kind == vConst && amt.N > 1 && amt.N <= maxComboMana
 	}
 	return false
+}
+
+// tapXGapMana: a is a {T} ability whose cost also taps exactly one untapped
+// permanent the controller controls, its cost otherwise plain.
+func tapXGapMana(a *lAbility) bool {
+	if a.Cost.TapN != 1 || a.Cost.TapPowN != 0 {
+		return false
+	}
+	b := *a
+	b.Cost.TapN, b.Cost.TapF = 0, nil
+	return plainTapMana(&b, false)
 }
 
 // manaGapWhy names what a, a second mana ability manaGapModelled refuses,
