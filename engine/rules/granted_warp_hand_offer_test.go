@@ -20,7 +20,7 @@ func TestGrantedWarpHandOffer(t *testing.T) {
 	if _, printed := e.G.Obj(id).Face().KeywordParam("Warp"); printed {
 		t.Fatal("Goblin Piker prints Warp; the test needs a granted warp")
 	}
-	if _, ok := e.grantedWarpCost(id); !ok {
+	if _, ok := grantedWarpCost(e, id); !ok {
 		t.Fatalf("no granted warp cost; derived keywords %v", e.Keywords(id))
 	}
 	// Two mana pays the printed {1}{R} but not the granted {2}{R}.
@@ -30,14 +30,17 @@ func TestGrantedWarpHandOffer(t *testing.T) {
 		t.Fatal("warped row offered with only 2 mana floating; the grant costs {2}{R}")
 	}
 	addMana(t, e, 0, "R")
+	if got := e.G.Players[0].Pool.Total(); got != 3 {
+		t.Fatalf("pool before the warp cast: %d, want the 3 floated", got)
+	}
 	submitChoices(t, e, castModeOption(t, e, id, "warped"))
 	passUntilStackEmpty(t, e, 40)
 	o := e.G.Obj(id)
 	if o.Zone != state.ZBattlefield || o.CastFlags&state.FlagWarped == 0 {
 		t.Fatalf("Goblin Piker zone %s flags %d, want a warped permanent", o.Zone, o.CastFlags)
 	}
-	if got := e.G.Players[0].ManaUnits(); got != ([7]state.Mana{}) {
-		t.Fatalf("mana left after the {2}{R} warp cast: %v", got)
+	if got := e.G.Players[0].Pool.Total(); got != 0 {
+		t.Fatalf("pool after the {2}{R} warp cast: %v (3 floated, the granted cost charges all 3)", e.G.Players[0].Pool)
 	}
 	driveToStepAll(t, e, e.G.Turn, 0, state.StepEnd)
 	passUntilStackEmpty(t, e, 40)
@@ -66,4 +69,38 @@ func grantedWarpOffered(e *Engine, id state.ObjID) bool {
 		}
 	}
 	return false
+}
+
+// TestGrantedWarpCheaperInstanceWins: a card that prints Warp and is granted
+// another cost prices its warp row at the cheaper instance. Red Tiger Mechan
+// prints {1}{R} (cheaper than Tannuk's {2}{R}); Spirited Simulacrum prints {4}
+// (dearer), so the grant's {2}{R} is the row.
+func TestGrantedWarpCheaperInstanceWins(t *testing.T) {
+	t.Parallel()
+	e, _, _ := altCostEngine(t, 954, []string{"Tannuk, Steadfast Second", "Red Tiger Mechan", "Spirited Simulacrum"}, nil, nil)
+	findCardObj(t, e, 0, "Tannuk, Steadfast Second", state.ZBattlefield)
+	m := altCastFor("warped")
+	for _, tc := range []struct {
+		name string
+		size int32
+	}{{"Red Tiger Mechan", 2}, {"Spirited Simulacrum", 3}} {
+		id := findCardObj(t, e, 0, tc.name, state.ZHand)
+		f := e.G.Obj(id).Face()
+		if _, printed := f.KeywordParam("Warp"); !printed {
+			t.Fatalf("%s prints no Warp", tc.name)
+		}
+		if c, ok := altRowCost(e, m, id, f); !ok || costSize(c) != tc.size {
+			t.Fatalf("%s warp row cost %v ok=%v, want size %d", tc.name, c, ok, tc.size)
+		}
+	}
+	id := findCardObj(t, e, 0, "Spirited Simulacrum", state.ZHand)
+	addMana(t, e, 0, "R")
+	addMana(t, e, 0, "R")
+	if grantedWarpOffered(e, id) {
+		t.Fatal("warped row offered with 2 mana; the cheaper instance costs {2}{R}")
+	}
+	addMana(t, e, 0, "R")
+	if !grantedWarpOffered(e, id) {
+		t.Fatal("warped row not offered at the granted {2}{R} with 3 mana floating")
+	}
 }

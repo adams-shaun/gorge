@@ -595,7 +595,7 @@ func (w *legalWalk) handWalk() {
 			if !ka.handLoop || (!ph.has(ka.ph) && ka.id != altWarp) {
 				continue
 			}
-			alt, ok := e.altRowCost(ka, id, f)
+			alt, ok := altRowCost(e, ka, id, f)
 			if !ok || w.castRestrictedCost(p, id, alt) ||
 				!w.offerCastable(p, id, alt, spellScope(ka.mode), false) ||
 				(!ka.untargeted && !targetsAvailable()) {

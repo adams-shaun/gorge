@@ -820,17 +820,25 @@ func (w *legalWalk) exileCastsWalk() {
 				}
 			}
 		}
-		wc, ok := keywordAltCost(f, "Warp")
-		if !ok && e.warpRecastAvailable(id) {
-			// A card warped through a hand grant (Tannuk) prints no Warp: the
-			// log-derived provenance alone entitles the recast, which pays the
-			// normal cost (the restriction check reads it as its base).
-			wc, ok = pay.RawBaseCost(asPayer(e), p, id), true
-		}
-		if !ok || !e.warpRecastAvailable(id) || w.castRestrictedCost(p, id, wc) || e.castSuppressed(p, id) {
+		// A card warped through a hand grant (Tannuk) prints no Warp: the
+		// log-derived provenance alone entitles the recast, which pays the
+		// normal cost (the restriction check reads it as its base). The
+		// timing gate runs first so the log scan is paid once, and only for
+		// a card that could be cast now.
+		wc, printed := keywordAltCost(f, "Warp")
+		instantSpeed := f.IsInstant() || e.hasKeywordH(id, kwhFlash)
+		if !printed && !instantSpeed && !sorcery {
 			continue
 		}
-		instantSpeed := f.IsInstant() || e.hasKeywordH(id, kwhFlash)
+		if !e.warpRecastAvailable(id) {
+			continue
+		}
+		if !printed {
+			wc = pay.RawBaseCost(asPayer(e), p, id)
+		}
+		if w.castRestrictedCost(p, id, wc) || e.castSuppressed(p, id) {
+			continue
+		}
 		if !instantSpeed && !sorcery {
 			continue
 		}
