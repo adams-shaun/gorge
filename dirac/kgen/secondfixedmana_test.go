@@ -18,6 +18,7 @@ func TestSecondFixedManaAbility(t *testing.T) {
 	want := map[string]string{
 		"Weather Maker":            "a cost beyond {T} the kernel's mana walk cannot activate: its tap-another and counter gap kinds read only the first mana ability",
 		"Scene of the Crime":       "a cost beyond {T} the kernel's mana walk cannot activate: its tap-another and counter gap kinds read only the first mana ability",
+		"Abandoned Outpost":        "a cost beyond {T} the kernel's mana walk cannot activate",
 		"Tablet of Discovery":      "a restricted fixed colour of several mana",
 		"Growing Rites of Itlimoc": "an evaluated amount of the first ability's colour",
 	}
@@ -51,6 +52,11 @@ func TestSecondFixedManaAbility(t *testing.T) {
 		if !strings.Contains(got[n], "not modelled beside the first: "+w) {
 			t.Errorf("%s refusals %q, want one naming %q", n, got[n], w)
 		}
+	}
+	// the generic wording is a prefix of the tap-another/counter one, so pin
+	// that a sacrifice cost does not carry the gap-kind tail
+	if g := got["Abandoned Outpost"]; strings.Contains(g, "gap kinds") {
+		t.Errorf("Abandoned Outpost refusals %q name the tap-another and counter gap kinds, its cost is a sacrifice", g)
 	}
 	if seen != len(want) {
 		t.Fatalf("refused %d of %d cards", seen, len(want))
