@@ -101,9 +101,17 @@ func TestUntapLock(t *testing.T) {
 	if sc.tapped(tgt) {
 		t.Fatal("the untap step left the creature tapped with its source gone")
 	}
+	// the source's departure ended its record: a card that returns is a new
+	// object the lock does not follow (CR 400.7, 611.2b)
+	if s.g.nul != 0 {
+		t.Fatalf("records %d with the source gone, want 0", s.g.nul)
+	}
 	// the target leaves: its record goes
+	tap()
+	src2 := sc.perm(lc, 0)
+	sc.lockOn(tgt, src2, 0, kop.SkipUntapLockStep)
 	if s.g.nul != 1 {
-		t.Fatalf("records %d with the source gone and the target in play, want 1 (kept: a card source can return)", s.g.nul)
+		t.Fatalf("records %d after a fresh lock, want 1", s.g.nul)
 	}
 	s.leave(sc.k, slot, kop.ZoneGraveyard, false)
 	if s.g.nul != 0 {

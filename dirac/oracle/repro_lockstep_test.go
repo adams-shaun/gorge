@@ -555,3 +555,13 @@ func TestGrantedLandTypeManaAfterPrintedLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "granted_land_type_mana_after_printed_abilities", "std-tla", Config{})
 }
+
+// TestTyLeeLockOnHerselfEndsWhenSheLeavesLockstep: Ty Lee, Chi Blocker taps
+// herself as she enters, later goes to her owner's library and is cast again.
+// The returned card is a new object (CR 400.7): the first lock forgot her as
+// she left (ForgetOnMoved$ Battlefield) and its "for as long as you control"
+// source is gone (CR 611.2b), so she untaps in her controller's untap step.
+func TestTyLeeLockOnHerselfEndsWhenSheLeavesLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "ty_lee_lock_on_herself_ends_when_she_leaves", "std-tla", Config{GorgeAutopaySurface: true})
+}
