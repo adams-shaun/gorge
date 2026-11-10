@@ -771,6 +771,9 @@ func (s *State) value(k *prep, v kop.ValueRef) int {
 			if dsl := s.selfCountersLKI(&s.res.e, s.res.e.obj); dsl != NoSlot {
 				return s.perms[dsl].ctrN(s, int(v.N)) // a departed source's last counters (CR 608.2h)
 			}
+			if n, ok := s.selfDepartCtr(&s.res.e, s.res.e.obj, kop.CounterKind(v.N)); ok {
+				return n // its slot was reused: the departure snapshot's (ctr_selfdepart.go)
+			}
 			if k.gen != nil && s.res.e.li != 0 && s.res.e.kind == seAbility {
 				return s.lkiCounter(s.res.e.li, kop.CounterKind(v.N)) // a sacrificed source's last counters (Ravenous Amulet)
 			}

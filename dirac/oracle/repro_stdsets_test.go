@@ -246,6 +246,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"custom", "granted_combo_gu_asks_green_first_thranduil", full},                 // Thranduil the Strategist's {G} or {U} on its Elves: the colour ask lists the card's own order, G then U
 		{"custom", "imprint_mill_patient_naturalist_land_to_hand"},                      // Patient Naturalist mills three cards with a land among them: the imprinted land goes to the hand and no Treasure is made, both engines agreeing through the pick and past it
 		{"custom", "imprint_mill_patient_naturalist_no_land_makes_a_treasure"},          // Patient Naturalist mills three cards with no land among them: the pick finds nothing and the Treasure is made
+		{"custom", "departed_source_counters_after_slot_reuse"},                         // Jadzia Dax, Living Legacy's first-main trigger waits on the stack while Impossible Choice destroys her and its two Officer tokens take her permanent slot: the trigger still adds {G} for her four last counters, read from the departure snapshot (CR 608.2h)
 	} {
 		pool, name := c[0], c[1]
 		if len(c) > 3 || len(c) == 3 && c[2] != full {

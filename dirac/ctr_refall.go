@@ -41,6 +41,11 @@ func (s *State) refCountersAll(x *kop.Expr, r kop.Ref, ctx evalCtx) int {
 	if r == kop.RefSelf {
 		sl = s.selfCountersLKI(e, o) // a departed source's last counters (CR 608.2h)
 	}
+	if sl == NoSlot && r == kop.RefSelf {
+		if n, ok := s.selfDepartCtr(e, o, kop.CtrAll); ok {
+			return n // its slot was reused: the departure snapshot's (ctr_selfdepart.go)
+		}
+	}
 	if sl == NoSlot {
 		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {
 			return 0
