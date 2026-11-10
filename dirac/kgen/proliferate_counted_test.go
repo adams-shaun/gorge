@@ -7,15 +7,15 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-const prolifCountedHead = "Name:Probe\nManaCost:1 G U\nTypes:Legendary Creature Gorgon Wizard\nPT:2/4\n"
+const prolifCountedHead = "Name:Probe\nManaCost:1 G\nTypes:Creature Wizard\nPT:1/1\n"
 
 // TestProliferateCountedAmount: an Amount$ naming an SVar count of the
 // distinct planeswalker types lowers to Proliferate over that value (the
 // ExCount N 1 expression); a paid X and a non-count SVar still refuse.
 func TestProliferateCountedAmount(t *testing.T) {
 	c := abLower(t, prolifCountedHead+
-		"A:AB$ Proliferate | Cost$ W U B R G T | Amount$ X | SpellDescription$ x\n"+
-		"SVar:X:Count$Valid Planeswalker.YouCtrl$PlaneswalkerType\nOracle:x\n", false)
+		"A:AB$ Proliferate | Cost$ W U B R G T | Amount$ ProbeWalkerTypes | SpellDescription$ x\n"+
+		"SVar:ProbeWalkerTypes:Count$Valid Planeswalker.YouCtrl$PlaneswalkerType\nOracle:x\n", false)
 	if len(c.Refusals) != 0 {
 		t.Fatalf("counted proliferate refused: %s", abReasons(c))
 	}
@@ -39,14 +39,14 @@ func TestProliferateCountedAmount(t *testing.T) {
 		t.Errorf("PWTypes builds to %+v, %v; want ExCount N 1", e, err)
 	}
 	inline := abLower(t, prolifCountedHead+
-		"A:AB$ Proliferate | Cost$ 1 | Amount$ Number$2/Minus.Y | SpellDescription$ x\n"+
-		"SVar:Y:Count$RememberedSize\nOracle:x\n", false)
+		"A:AB$ Proliferate | Cost$ 1 | Amount$ Number$2/Minus.ProbeRem | SpellDescription$ x\n"+
+		"SVar:ProbeRem:Count$RememberedSize\nOracle:x\n", false)
 	if why := abReasons(inline); !strings.Contains(why, "Proliferate Amount$") {
 		t.Errorf("inline Number$ amount: refusals %q, want a Proliferate Amount$ refusal", why)
 	}
 	for amt, svar := range map[string]string{
-		"X": "Count$xPaid",
-		"Y": "Count$Valid Planeswalker.YouCtrl$NoSuchAggregate",
+		"ProbePaid": "Count$xPaid",
+		"ProbeAgg":  "Count$Valid Planeswalker.YouCtrl$NoSuchAggregate",
 	} {
 		r := abLower(t, prolifCountedHead+
 			"A:AB$ Proliferate | Cost$ 1 | Amount$ "+amt+" | SpellDescription$ x\n"+
