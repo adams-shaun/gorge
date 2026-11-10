@@ -72,7 +72,7 @@ func TestRememberWritersMass(t *testing.T) {
 	if got := probeRefusals(lowerProbe(t, destroyLKIProbe, "Destroy Probe", "")); !strings.Contains(got, "reads Remembered written by another ability") {
 		t.Errorf("the same chain without a writer: refusals %q, want the cross-ability read", got)
 	}
-	lkiRead := strings.Replace(destroyLKIProbe, "DB$ Draw |", "DB$ Draw | NumCards$ X |", 1) + "SVar:X:RememberedLKI$CardPower\n"
+	lkiRead := strings.Replace(destroyLKIProbe, "DB$ Draw |", "DB$ Draw | NumCards$ N |", 1) + "SVar:N:RememberedLKI$CardCMC\n"
 	for _, tc := range []struct{ script, params, want string }{
 		{destroyLKIProbe, "| RememberLKI$ True | TargetMin$ 0 | TargetMax$ 2 ", `Destroy RememberLKI$ with TargetMax$ "2"`},
 		{lkiRead, "| RememberLKI$ True ", "Destroy RememberLKI$ beside a remembered characteristic read"},
