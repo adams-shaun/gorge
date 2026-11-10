@@ -700,6 +700,9 @@ func (s *State) cleanupGen(k *prep) {
 	if k.gen.anyColGrant {
 		s.cgClear() // static_colourgrant.go
 	}
+	if k.gen.anyDmgMark {
+		s.dmgMarkEnd() // Duration$ UntilYourNextTurn (repl_dmgmark.go)
+	}
 	if k.gen.anyNTEmb {
 		s.dropNextTurnEmblems(k) // Duration$ UntilYourNextTurn (static_effectdelivered.go)
 	}

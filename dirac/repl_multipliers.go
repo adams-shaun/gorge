@@ -156,13 +156,17 @@ func (s *State) dblDmgN(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp 
 // filtered doubler: the source controller's doublers when the recipient is
 // the opponent or theirs.
 func (s *State) dblDmgN2(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool) int {
+	m := 0
+	if k.gen.anyDmgMark {
+		m = s.dmgMarkN(rcp) // repl_dmgmark.go
+	}
 	if k.gen.anyFiltRepl {
-		return s.dblDmgN(k, srcCtrl, srcSl, srcCard, rcp, sl, combat)
+		return m + s.dblDmgN(k, srcCtrl, srcSl, srcCard, rcp, sl, combat)
 	}
 	if rcp == srcCtrl || srcCtrl >= MaxSeats {
-		return 0
+		return m
 	}
-	return s.replN(k, srcCtrl, rbDblDmg)
+	return m + s.replN(k, srcCtrl, rbDblDmg)
 }
 
 // dblDmgLive reports whether the doubler at b still matches the asked

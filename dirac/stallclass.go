@@ -79,6 +79,7 @@ var stallCapacityReasons = [...]uint8{
 	StallTwoSeat,   // a two-seat-only table in a larger game (stallclass.go): a declared limit
 	StallAddPhase,  // a fifth genState.xph entry or a 256th grant; its one non-capacity site moved to StallLowering
 	StallUntapLock, // a fifth source-bound untap lock at once (genState.ul; act_untaplock.go)
+	StallDmgMark,   // a second mark of one controller on one player while the first is live (genState.dmk; repl_dmgmark.go)
 }
 
 var stallUnmodelledReasons = [...]uint8{
@@ -90,6 +91,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallGravePower, // no longer raised: FeatCDAPT evaluates every lowered CDA amount
 	StallLandGrant,  // gorge offers both productions of a land with a granted basic type; pcard holds one (static_landtype.go:148,161)
 	StallOutsideType, StallExileOnMoved, StallMultiRetarget, StallL6Walk, StallLowering, StallPayLifeShared, StallNoPrevent,
+	StallDmgMarkOrder, // a damage event the per-player mark and another replacement both match: gorge asks the CR 616.1 order, which the mark has no candidate for (repl_dmgmark.go)
 	StallStackKwGrant, // a granted convoke/improvise on a Harmonize or alternative-cost cast: gorge's announcement for those routes is unverified (kw_convoke.go)
 }
 

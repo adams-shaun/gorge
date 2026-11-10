@@ -71,6 +71,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtStackExileMark:
 		s.stackExileMark(k, in) // repl_stackexile.go
 		return true, true
+	case kop.ExtDmgMark:
+		s.dmgMarkAdd(k, in) // repl_dmgmark.go
+		return true, true
 	case kop.ExtPlotGrant:
 		s.plotGrant(k) // kw_plot.go
 		return true, true

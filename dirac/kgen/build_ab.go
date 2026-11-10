@@ -3724,6 +3724,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "StackExileMark":
 		// OpExt ExtStackExileMark, C the kop.StackExile* bits (repl_stackexile.go)
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtStackExileMark)), int16(in.C)
+	case "DmgMark":
+		// OpExt ExtDmgMark, Obj the damaged player (dirac/repl_dmgmark.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtDmgMark))
 	case "EffFinalityCtr":
 		// OpExt ExtFinalityCtr, Obj the triggering spell
 		// (the kernel reads the entry's trigObj); the spell enters with one

@@ -434,6 +434,7 @@ ExtCounterPlusEOT	ExtOp	247
 ExtDigImprint	ExtOp	282
 ExtDistCounters	ExtOp	310
 ExtDividedCounters	ExtOp	30
+ExtDmgMark	ExtOp	317
 ExtEachDamage	ExtOp	2
 ExtEffEtbCtr	ExtOp	197
 ExtEndure	ExtOp	9
