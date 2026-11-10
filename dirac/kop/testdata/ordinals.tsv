@@ -474,6 +474,7 @@ ExtSweepFrom	ExtOp	97
 ExtToGraveyard	ExtOp	192
 ExtTokenPT	ExtOp	170
 ExtTurnFaceUp	ExtOp	254
+ExtTurnRepl	ExtOp	318
 ExtTwoPilesSac	ExtOp	4
 ExtUnlockDoor	ExtOp	227
 ExtVote	ExtOp	311
@@ -1360,6 +1361,8 @@ TrigTransformed	TrigEvent	28
 TrigTurnFaceUp	TrigEvent	27
 TrigUnlockDoor	TrigEvent	30
 TrigUntaps	TrigEvent	17
+TurnReplExileOpp	untyped int	1
+TurnReplPlusCreatureCtr	untyped int	2
 U	untyped int	1
 VCardsInHand	VKind	7
 VConst	VKind	0

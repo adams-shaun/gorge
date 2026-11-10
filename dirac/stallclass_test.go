@@ -18,7 +18,7 @@ import (
 // budget ran out and gorge has no such limit. Unmodelled: gorge does something here
 // the kernel does not.
 var (
-	capacityStalls = []string{"twoseat", "ctradded", "addphase", "untaplock", "dmgmark", "board", "pending", "stack", "tables", "loop", "delayed", "remember", "imprint",
+	capacityStalls = []string{"twoseat", "ctradded", "addphase", "untaplock", "turnrepl", "dmgmark", "board", "pending", "stack", "tables", "loop", "delayed", "remember", "imprint",
 		"mayplay", "dprog", "emblem", "dmgmap", "xtgt", "used", "kwrepx", "links", "free", "ask", "counters", "lki", "tappick",
 		"regen", "look", "grants", "acts", "linger", "sac", "entered", "convoke", "castring", "pt", "actring", "charmopts",
 		"reflatch", "zone", "options", "srcmark", "dmglatch", "replcands", "replplusbatch", "prevcol", "colgrant", "restrx", "obssrc", "dynmana", "tapextra", "planalts",

@@ -127,7 +127,7 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 					if in.Ext() == kop.ExtBlocksIfAble {
 						u[mechBlocksIfAble] = true // combat_blocksifable.go
 					}
-					if in.Ext() == kop.ExtExileExMark {
+					if in.Ext() == kop.ExtExileExMark || in.Ext() == kop.ExtTurnRepl && in.C == kop.TurnReplExileOpp {
 						u[mechExileEx] = true
 					}
 					if in.Ext() == kop.ExtSuspect && in.C&1 == 0 {

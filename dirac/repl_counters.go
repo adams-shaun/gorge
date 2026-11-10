@@ -210,6 +210,10 @@ func (s *State) replCtrOnX(k *prep, sl Slot, kind, n int, noEO bool) int {
 	eotPlus := 0
 	if !DebugCtrPlusEOTOff && g.anyRepl&rbPlusCtrEOT != 0 {
 		eotPlus = int(s.g.plusCtr[ctrl])
+		if g.anyPlusCre {
+			cn, _ := s.plusCreN(k, sl, kind) // Prairie Dog's (repl_turnrepl.go)
+			eotPlus += int(cn)
+		}
 		plus += eotPlus
 		plusN += eotPlus
 		plusPos += eotPlus
@@ -223,6 +227,10 @@ func (s *State) replCtrOnX(k *prep, sl Slot, kind, n int, noEO bool) int {
 	}
 	if eotPlus > 0 {
 		CtrPlusEOTStats.Applied.Add(int64(eotPlus))
+		if g.anyPlusCre {
+			cn, _ := s.plusCreN(k, sl, kind)
+			TurnReplStats.Plus.Add(int64(cn))
+		}
 	}
 	if plus != 0 {
 		n += plus

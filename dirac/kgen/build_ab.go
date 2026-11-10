@@ -3879,6 +3879,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventDamageScope)), int16(in.C)
 	case "CounterPlusEOT":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCounterPlusEOT))
+	case "TurnRepl":
+		// OpExt ExtTurnRepl, C the kop.TurnRepl* kind (dirac/repl_turnrepl.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtTurnRepl)), int16(in.C)
 	case "Vote":
 		// OpExt ExtVote, F the ballot (battlefield permanents), C bit 0
 		// exile the most-voted

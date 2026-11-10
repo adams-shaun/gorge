@@ -91,6 +91,15 @@ func (s *State) ctrGather(k *prep, sl Slot, kind int) (c ctrCands) {
 			}
 			c.add(s.g.plusSrc[ctrl], false, 1)
 		}
+		if g.anyPlusCre {
+			cn, src := s.plusCreN(k, sl, kind) // Prairie Dog's (repl_turnrepl.go)
+			for i := uint8(0); i < cn && c.ok; i++ {
+				if src == NoObj {
+					c.ok = false // activations of two Prairie Dogs
+				}
+				c.add(src, false, 1)
+			}
+		}
 	}
 	if g.anyRepl&rbCtrOn == 0 {
 		return c
@@ -226,6 +235,10 @@ func (s *State) ctrOrderApply(k *prep, sl Slot, kind, n int) (int, bool) {
 	}
 	if !DebugCtrPlusEOTOff && k.gen.anyRepl&rbPlusCtrEOT != 0 {
 		CtrPlusEOTStats.Applied.Add(int64(s.g.plusCtr[s.perms[sl].ctrl]))
+		if k.gen.anyPlusCre {
+			cn, _ := s.plusCreN(k, sl, kind)
+			TurnReplStats.Plus.Add(int64(cn))
+		}
 	}
 	ro.replHdr = replHdr{}
 	return n, true

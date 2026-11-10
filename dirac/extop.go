@@ -221,6 +221,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return !s.copyNamed(k, in), true // copy_named.go
 	case kop.ExtCopyPicked:
 		return !s.copyPicked(k, in), true // copy_picked.go
+	case kop.ExtTurnRepl:
+		s.turnRepl(k, in) // repl_turnrepl.go
+		return true, true
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }

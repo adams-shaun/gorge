@@ -175,6 +175,7 @@ type genPrep struct {
 	anyHist        bool           // some trigger reads the turn history bank (expend, the N-th spell; value_turnhistory.go)
 	anyPrevFrom    bool           // some program grants KwPreventCombatDamageFrom (repl_regenerate.go)
 	anyTokRew      bool           // a ReplRewriteTokens or ReplAddToken ability (repl_tokrewrite.go, repl_tokorder.go)
+	anyPlusCre     bool           // some program is ExtTurnRepl TurnReplPlusCreatureCtr: the cold buffer holds its per-player count and source (repl_turnrepl.go)
 	anyDmgMark     bool           // some program is ExtDmgMark: every damage site reads the per-player marks (repl_dmgmark.go)
 	anyFiltRepl    bool           // a filtered damage doubler or token multiplier, or an x3 one (repl_multipliers.go)
 	untapRepl      bool           // a ReplOthersDoesntUntap or ReplAnyUntap card: the untap step runs untapStepGen (act_energy.go)
@@ -636,6 +637,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepEvoke(t, g)        // kw_evoke.go
 	prepEffEtbCtr(t, p, g) // ctr_effectentry.go: the rider counts, and the prepared bodies the entry order is asked over
 	prepCtrPlusEOT(t, g)   // ctr_pluseot.go
+	prepTurnRepl(t, g)     // repl_turnrepl.go
 	prepGrantPanharm(t, g) // act_grantpanharm.go
 	prepStaticTrig(t, g)   // trig_mayplaystatic.go
 	prepCrewSaddle(t, g)
