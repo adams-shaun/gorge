@@ -619,10 +619,10 @@ type DelayedTrigger struct {
 	// rebuilds it from the DelayedRegister Text's "|CO" suffix.
 	CaptureOnly bool
 	// RememberedStamps holds, for every object in Remembered at
-	// registration, its Incarnation then (events' DelayedRegister fold). A
-	// body that acts on the remembered objects (ChangeZone's Defined$
-	// DelayTriggerRemembered[LKI]) skips one whose Incarnation has moved
-	// since: Nine-Lives Familiar's "return it" finds nothing once the card
+	// registration, its Incarnation and ZoneGen then (events' DelayedRegister
+	// fold). A body that acts on the remembered objects (ChangeZone's Defined$
+	// DelayTriggerRemembered[LKI]) skips one whose Incarnation or ZoneGen has
+	// moved since: Nine-Lives Familiar's "return it" finds nothing once the card
 	// was returned by another effect and died again, because the card in the
 	// graveyard is a new object (CR 400.7). Keyed by Obj, so DelayedForget's
 	// removal from Remembered leaves it consistent.

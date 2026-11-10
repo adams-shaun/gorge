@@ -91,7 +91,7 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		frozenChosenNameBound = true
 		text = text[:i]
 	}
-	// The registration's remembered stamps ("|RS=<id>:<inc>[,...]", the
+	// The registration's remembered stamps ("|RS=<id>:<inc>:<zonegen>[,...]", the
 	// trigger-time stamps the registering trigger carried, CR 400.7) are
 	// appended LAST by the Phase registration, so they strip FIRST -- before
 	// the |RN= strip below, whose LastIndex would otherwise swallow them.
@@ -243,29 +243,37 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 	forget := strip("|FM=")
 	duration := strip("|DU=")
 	// The |RS= suffix replaces the fold-time live stamping entirely when
-	// present: it carries one "<id>:<incarnation>" pair per remembered
+	// present: it carries one "<id>:<incarnation>:<zonegen>" triple per remembered
 	// object the registering trigger knew -- trigger-time stamps (CR 400.7)
 	// for the remembered set the trigger itself captured, live incarnations
 	// for the rest -- which is exactly rememberedStampsFrom over the same
 	// IDs for a registration with no trigger stamps. A malformed pair
 	// degrades to no stamp for that object (an unstamped remembered object
-	// is kept by the movers, the pre-existing contract), never a panic.
+	// is kept by the movers, the pre-existing contract), never a panic. The
+	// third field is optional: a registration logged before it existed (or
+	// one whose third field is malformed) takes the object's live ZoneGen at
+	// the fold -- not 0, which a never-moved object legitimately holds.
 	var rememberedStamps []state.TargetStamp
 	if stampText != "" {
 		for _, part := range strings.Split(stampText, ",") {
-			idText, incText, ok := strings.Cut(part, ":")
+			idText, rest, ok := strings.Cut(part, ":")
 			if !ok {
 				continue
 			}
+			incText, zgText, hasZG := strings.Cut(rest, ":")
 			id, err1 := strconv.ParseUint(idText, 10, 32)
 			inc, err2 := strconv.ParseUint(incText, 10, 32)
 			if err1 != nil || err2 != nil {
 				continue
 			}
-			rememberedStamps = append(rememberedStamps, state.TargetStamp{
-				Obj:         state.ObjID(id),
-				Incarnation: uint32(inc),
-			})
+			st := state.TargetStamp{Obj: state.ObjID(id), Incarnation: uint32(inc)}
+			zg, err3 := strconv.ParseUint(zgText, 10, 32)
+			if hasZG && err3 == nil {
+				st.ZoneGen = uint32(zg)
+			} else if o := g.Obj(st.Obj); o != nil {
+				st.ZoneGen = o.ZoneGen
+			}
+			rememberedStamps = append(rememberedStamps, st)
 		}
 	}
 	maxTurn := int32(0)
