@@ -96,6 +96,16 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// the kernel's per-count pair view (mana_dynpair.go) plans it
 		return
 	}
+	if len(ms) == 2 && chosenTapMana(ms[0]) && feeEachAmongMana(ms[1]) {
+		// Tarnation Vista: gorge's census leaves the {N},{T} each-colour ability
+		// an unrelaxable paid gap (its Special production names no colour), which
+		// the prefix search reaches by the activation's own ability and fee asks;
+		// the kernel's each-colour gap (script_gen.go) is a fee-free {T} tapped in
+		// battlefield order, and a fee-paid kind needs a genPrep flag (all 32 of
+		// cardflags.go's uint32 are taken), so widening that word comes first
+		lc.refuseNode("card", "2 mana abilities: a chosen-colour {T} beside a {N},{T} each-colour-among ability: a fee-paid each-colour gap the kernel does not model (no free genPrep flag bit)")
+		return
+	}
 	if len(ms) > 2 && !anyRFiltMana(ms) || !plainTapMana(ms[0], false) || !unrestrictedOne(ms[0]) {
 		lc.refuseNode("card", "%d mana abilities: not a fixed-colour set, nor a plain {T} ability beside one modelled gap", len(ms))
 		return
@@ -106,6 +116,31 @@ func (lc *lowerCtx) refuseMultiMana() {
 			return
 		}
 	}
+}
+
+// chosenTapMana: a is a bare "{T}: Add one mana of the chosen color".
+func chosenTapMana(a *lAbility) bool {
+	if a.Mana.Colors != "Chosen" || a.Mana.Special != "" || a.Mana.Choice || a.Mana.Each || !unrestrictedOne(a) {
+		return false
+	}
+	c := *a
+	m := *a.Mana
+	m.Colors = "C"
+	c.Mana = &m
+	return plainTapMana(&c, false)
+}
+
+// feeEachAmongMana: a is "{N}, {T}: For each color among <permanents>, add one
+// mana of that color" (Tarnation Vista's second ability): a generic fee only.
+func feeEachAmongMana(a *lAbility) bool {
+	if a.Mana.Special != "EachColorAmong" || a.Mana.Restrict != nil || a.Mana.RestrictAb != nil {
+		return false
+	}
+	c := *a
+	m := *a.Mana
+	m.Special, m.SpecialF = "", nil
+	c.Mana = &m
+	return plainTapMana(&c, true)
 }
 
 // primaryMana reports whether a is a first mana ability the kernel's pain
