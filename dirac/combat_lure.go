@@ -24,7 +24,7 @@ func prepLure(t *kop.Table, g *genPrep) {
 
 // lureAttackers is the attacking lure creatures (abilities not lost).
 func (s *State) lureAttackers(k *prep) (m slotMask) {
-	for am := s.ctrlM[s.active]; am.any(); am = am.rest() {
+	for am := s.blockAtkM(k); am.any(); am = am.rest() {
 		a := am.first()
 		if s.perms[a].flags&pfAttacking != 0 && k.t.Cards[s.cardAt(a)].Lure && !s.genLost(k, a) {
 			m = m.with(a)
@@ -43,7 +43,7 @@ func (s *State) blockPairOK(k *prep, b, a Slot) bool {
 //
 //go:noinline
 func (s *State) blockerOptionsLure(k *prep, d *Decision, lure slotMask) bool {
-	def := 1 - s.active
+	def := s.blockDef()
 	owed := false
 	for bm := s.ctrlM[def]; bm.any(); bm = bm.rest() {
 		b := bm.first()
@@ -58,7 +58,7 @@ func (s *State) blockerOptionsLure(k *prep, d *Decision, lure slotMask) bool {
 			}
 		}
 		owed = owed || duty
-		for am := s.ctrlM[s.active]; am.any(); am = am.rest() {
+		for am := s.blockAtkM(k); am.any(); am = am.rest() {
 			a := am.first()
 			if duty && !lure.has(a) || !s.blockPairOK(k, b, a) {
 				continue

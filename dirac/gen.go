@@ -1931,6 +1931,7 @@ type genState struct {
 	embR    [MaxSeats][maxEmb]Obj
 	nseat   uint8                             // seats in this game, set by InitN; read only when MaxSeats > 2 (nSeats)
 	poolTre [MaxSeats][kop.NumManaKinds]uint8 // per player and colour, the floating units a Treasure produced (mana_artifact.go artTag/treSync)
+	blkDef  uint8                             // the defending player declaring blockers; read only when MaxSeats > 2 (blockDef)
 	rsv     [rsvN]uint8
 }
 
@@ -1939,7 +1940,7 @@ const (
 	// rsvN pads the reserved block to 80 bytes (genState's 5 bytes of tail
 	// padding absorb the rest of the alignment): 64, plus the 16 that carry
 	// State's growth for MaxObj 236 to a multiple of 64 so perms keeps its phase.
-	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 1 - MaxSeats*kop.NumManaKinds
+	rsvN = 80 - maxImp - 2 - MaxSeats - MaxSeats*maxEmb - 2 - MaxSeats*kop.NumManaKinds
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).

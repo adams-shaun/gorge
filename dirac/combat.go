@@ -62,7 +62,7 @@ func (s *State) staticFlag(k *prep, sk kop.StaticKind, sl Slot) bool {
 // applies to before the attackers decision (the requirement is satisfied
 // by construction; gorge marks such options Required).
 func (s *State) declareMustAttack(k *prep) {
-	if !s.statM.any() && !(k.embComb && s.anyEmb()) && !goadOn(k) && !attackDutyOn(k) || s.cfg&cfgGorgeMustAttack != 0 {
+	if !s.statM.any() && !(k.embComb && s.anyEmb()) && !goadOn(k) && !attackDutyOn(k) || s.mustAttackAsked() {
 		return
 	}
 	m := s.ctrlM[s.active]
@@ -100,7 +100,7 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 	def := 1 - s.active
 	// one attacker's offers are at most the player and every other
 	// permanent (its walkers, any attackable battle)
-	room := MaxOptions - 1 - (1 + s.occ.count())
+	room := MaxOptions - 1 - (MaxSeats - 1 + s.occ.count())
 	gd := goadOn(k)
 	for m.any() {
 		sl := m.first()
@@ -112,6 +112,13 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 			return s.optionsFull(d)
 		}
 		o := uint8(s.perms[sl].obj)
+		if MaxSeats > 2 {
+			s.attackOffersN(k, d, o, gd && s.goadedAt(k, sl))
+			if k.gen != nil && k.gen.anyBattle {
+				s.addBattleOffers(k, d, o) // CR 310.7
+			}
+			continue
+		}
 		// defenders: the defending player, then each planeswalker they
 		// control in slot order
 		d.add(MakeAction(AkAttack, o, PlayerTarget0+def, 0))
@@ -128,10 +135,43 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 			s.addBattleOffers(k, d, o) // CR 310.7
 		}
 	}
-	if (s.cfg&cfgGorgeMustAttack == 0 || !s.mustAttackLeft(k)) && !s.loneAloneAttacker(k) {
+	if (!s.mustAttackAsked() || !s.mustAttackLeft(k)) && !s.loneAloneAttacker(k) {
 		d.add(MakeAction(AkDone, 0, 0, 0))
 	}
 	return true
+}
+
+// mustAttackAsked reports whether a creature that must attack is declared
+// in the attackers decision (Done withheld until it is) rather than before
+// it: Config.GorgeMustAttack, and always in a game of more than two seats,
+// where the requirement leaves the defender to choose (gorge marks every
+// pair of such a creature Required).
+func (s *State) mustAttackAsked() bool {
+	return s.cfg&cfgGorgeMustAttack != 0 || MaxSeats > 2 && s.nSeats() > 2
+}
+
+// attackOffersN appends attacker o's offers at more than two seats: each
+// opponent still in the game in ascending seat order (gorge
+// attackOffersCompute walks AliveFrom(0)), the player and then each
+// planeswalker that player controls in slot order. A goaded attacker is
+// offered players only (CR 508.1d, as at two seats).
+//
+//go:noinline
+func (s *State) attackOffersN(k *prep, d *Decision, o uint8, goaded bool) {
+	for q := uint8(0); q < s.nSeats(); q++ {
+		if q == s.active || s.out(q) {
+			continue
+		}
+		d.add(MakeAction(AkAttack, o, PlayerCode(q), 0))
+		if goaded {
+			continue
+		}
+		for pm := s.ctrlM[q]; pm.any(); pm = pm.rest() {
+			if w := pm.first(); s.typesAt(k, w)&kop.TPlaneswalker != 0 {
+				d.add(MakeAction(AkAttack, o, uint8(s.perms[w].obj), 0))
+			}
+		}
+	}
 }
 
 // mustAttackLeft reports whether a creature that must attack and can is
@@ -417,7 +457,7 @@ func (s *State) menaceImpossible(k *prep, a Slot) bool {
 		return true // a floor above the cap: gorge's max < min, never offered (combat_maxblockers.go)
 	}
 	n := 0
-	for bm := s.ctrlM[1-s.active]; bm.any(); bm = bm.rest() {
+	for bm := s.ctrlM[s.blockDef()]; bm.any(); bm = bm.rest() {
 		b := bm.first()
 		p := &s.perms[b]
 		if p.flags&pfTapped != 0 || !s.isCreature(k, b) || s.kw(k, b)&kop.KwCantBlock != 0 {
@@ -465,7 +505,7 @@ func (s *State) blockForbidden(k *prep, b, a Slot) bool {
 }
 
 func (s *State) anyBlock(k *prep) bool {
-	def := 1 - s.active
+	def := s.blockDef()
 	bm := s.ctrlM[def]
 	for bm.any() {
 		b := bm.first()
@@ -473,7 +513,7 @@ func (s *State) anyBlock(k *prep) bool {
 		if !s.blockerReady(k, b) {
 			continue
 		}
-		am := s.ctrlM[s.active]
+		am := s.blockAtkM(k)
 		for am.any() {
 			a := am.first()
 			am = am.rest()
@@ -486,7 +526,7 @@ func (s *State) anyBlock(k *prep) bool {
 }
 
 func (s *State) blockerOptions(k *prep, d *Decision) bool {
-	def := 1 - s.active
+	def := s.blockDef()
 	d.Kind, d.Player = DkBlockers, def
 	if k.gen != nil && k.gen.anyMustBlock {
 		if mb := s.mustBlockAttackers(k); mb.any() || s.blockDuty(k).any() {
@@ -505,7 +545,7 @@ func (s *State) blockerOptions(k *prep, d *Decision) bool {
 		if !s.blockerReady(k, b) {
 			continue
 		}
-		am := s.ctrlM[s.active]
+		am := s.blockAtkM(k)
 		for am.any() {
 			a := am.first()
 			am = am.rest()
@@ -601,7 +641,7 @@ func (s *State) blocksCompletable(k *prep, xb, xa Slot) bool {
 	}
 	var free [MaxPerm]Slot
 	nf := 0
-	for bm := s.ctrlM[1-s.active]; bm.any(); bm = bm.rest() {
+	for bm := s.ctrlM[s.blockDef()]; bm.any(); bm = bm.rest() {
 		b := bm.first()
 		if b != xb && s.blockerReady(k, b) {
 			free[nf] = b
@@ -640,6 +680,10 @@ func (s *State) augment(k *prep, i int, def, free *[MaxPerm]Slot, nf int, match 
 
 func (s *State) applyBlock(k *prep, a Action) {
 	if a.Kind() == AkDone {
+		if MaxSeats > 2 {
+			s.blockRound(k, s.g.blkDef)
+			return
+		}
 		s.finishBlocks(k)
 		return
 	}
@@ -656,6 +700,23 @@ func (s *State) applyBlock(k *prep, a Action) {
 	s.lastPick = b
 }
 
+// blockRound asks the next defending player after seat from, in turn order
+// (CR 802.4: APNAP from the active player), that has a legal block, and
+// finishes the declaration once none is left (gorge askBlockers skips a
+// defender with no attacker or no legal block option).
+//
+//go:noinline
+func (s *State) blockRound(k *prep, from uint8) {
+	for q := s.nextAlive(from); q != s.active; q = s.nextAlive(q) {
+		s.g.blkDef = q
+		if s.anyBlock(k) {
+			s.ctl = ctlBlockers
+			return
+		}
+	}
+	s.finishBlocks(k)
+}
+
 // finishBlocks validates menace (an attacker with menace blocked by exactly
 // one creature has that block removed), marks blocked attackers, fires
 // block triggers and opens the step's priority round.
@@ -669,7 +730,7 @@ func (s *State) finishBlocks(k *prep) {
 			continue
 		}
 		if ap.nblock > 0 && int(ap.nblock) < s.minBlockers(k, a) {
-			bm := s.ctrlM[1-s.active]
+			bm := s.oppsM(s.active)
 			for bm.any() {
 				b := bm.first()
 				bm = bm.rest()
@@ -697,7 +758,7 @@ func (s *State) finishBlocks(k *prep) {
 		s.fireUnblocked(k)
 	}
 	// first strike among blockers
-	bm := s.ctrlM[1-s.active]
+	bm := s.oppsM(s.active)
 	for bm.any() {
 		b := bm.first()
 		bm = bm.rest()
@@ -1299,7 +1360,7 @@ func (s *State) anyFirstStrike(k *prep) bool {
 		if s.kw(k, a)&fs != 0 {
 			return true
 		}
-		for bm := s.ctrlM[1-s.active]; bm.any(); bm = bm.rest() {
+		for bm := s.oppsM(s.active); bm.any(); bm = bm.rest() {
 			b := bm.first()
 			if s.perms[b].flags&pfBlocking != 0 && s.perms[b].blocking == a && s.kw(k, b)&fs != 0 {
 				return true

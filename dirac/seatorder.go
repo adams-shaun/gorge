@@ -1,5 +1,7 @@
 package dirac
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // Seat helpers. The kernel plays two seats today; these name what raw seat
 // arithmetic (1-p, p&1, PlayerTarget0+p) means, in terms that stay true at
 // MaxSeats seats, and compile to the raw form at MaxSeats == 2. Use them in
@@ -103,4 +105,66 @@ func (s *State) aliveCount() uint8 {
 		}
 	}
 	return c
+}
+
+// blockDef is the defending player declaring blockers now (CR 509.1: each
+// defending player declares; gorge asks them one at a time, askBlockers).
+// At two seats it is the active player's one opponent.
+func (s *State) blockDef() uint8 {
+	if MaxSeats == 2 {
+		return 1 - s.active
+	}
+	return s.g.blkDef
+}
+
+// oppsM is the permanents p's opponents control: at two seats the other
+// seat's, at more the union of every other seat's.
+func (s *State) oppsM(p uint8) slotMask {
+	if MaxSeats == 2 {
+		return s.ctrlM[1-p]
+	}
+	var m slotMask
+	for q := uint8(0); q < s.nSeats(); q++ {
+		if q != p {
+			m = m.or(s.ctrlM[q])
+		}
+	}
+	return m
+}
+
+// atkSeat is the player attacker a's attack is against (CR 506.2): the
+// attacked player, or the controller of the attacked planeswalker, or the
+// protector of the attacked battle (CR 310.8). A walker that has left
+// leaves its attacker with no defending player here, NoTarget.
+func (s *State) atkSeat(k *prep, a Slot) uint8 {
+	if MaxSeats == 2 {
+		return 1 - s.active
+	}
+	t := s.perms[a].atk
+	if isPlayerTarget(t) {
+		return CodeSeat(t)
+	}
+	q := s.attackedPerm(k, a)
+	if q == NoSlot {
+		return NoTarget
+	}
+	if s.typesAt(k, q)&kop.TBattle != 0 && s.perms[q].chosen&protChosen == protChosen {
+		return s.perms[q].chosen &^ protChosen
+	}
+	return s.perms[q].ctrl
+}
+
+// blockAtkM is the active player's permanents an attacker among which is
+// attacking the defender declaring blockers now; at two seats every one.
+func (s *State) blockAtkM(k *prep) slotMask {
+	m := s.ctrlM[s.active]
+	if MaxSeats == 2 {
+		return m
+	}
+	for x := m; x.any(); x = x.rest() {
+		if a := x.first(); s.perms[a].flags&pfAttacking != 0 && s.atkSeat(k, a) != s.g.blkDef {
+			m.clr(a)
+		}
+	}
+	return m
 }

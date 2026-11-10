@@ -211,7 +211,9 @@ func (s *State) beginStep(k *prep) {
 	case kop.StepBlockers:
 		s.lastPick = NoSlot
 		s.blockSeq = 0
-		if s.anyBlock(k) {
+		if MaxSeats > 2 {
+			s.blockRound(k, s.active)
+		} else if s.anyBlock(k) {
 			s.ctl = ctlBlockers
 		} else {
 			s.finishBlocks(k)
