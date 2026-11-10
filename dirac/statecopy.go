@@ -57,7 +57,7 @@ type coldArrays struct {
 type coldLayout struct {
 	ms, mo, exw, atkGrp, exH, entered, exMark, parked, castRing, discHeld, copyHeld int
 	may                                                                             int // mayPlay records past maxMay; the first thing in the buffer (cast_maycold.go)
-	emb                                                                             int // embRec records for emblems past maxEmb, both players; right after the may records (emblem_cold.go)
+	emb                                                                             int // embRec records for emblems past maxEmb, both players; right after the may records (static_emblemcold.go)
 	words                                                                           int
 }
 

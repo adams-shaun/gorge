@@ -69,7 +69,7 @@ type genPrep struct {
 	anyMayPlay      bool
 	anyMayRaise     bool     // some may-play static owes a non-mana RaiseCost$ (cost_mayplayraise.go)
 	anyMayKind      bool     // some OpMayPlay grants a record with a kind rider (cast_maypermission.go)
-	anyEmbCold      bool     // some activated or triggered ability creates an emblem: the cold buffer holds maxEmbCold more per player (emblem_cold.go)
+	anyEmbCold      bool     // some activated or triggered ability creates an emblem: the cold buffer holds maxEmbCold more per player (static_emblemcold.go)
 	anyMayCold      bool     // some OpMayPlay grants over a remembered set: the cold buffer holds maxMayCold more records (cast_maycold.go)
 	anyMayLimit     bool     // some OpMayPlay record carries a MayPlayLimit cap (cast_maypermission.go)
 	sCls            []uint16 // per card: its static classes (static_classgates.go scls*)
@@ -1395,7 +1395,7 @@ const (
 	maxOvr    = 8  // distinct override records on one permanent (identical ones merge: ovRec.n)
 	maxMay    = 16 // play-from-zone permissions (8 before kcaps2x: StallMayPlay was hit, validaggs)
 	maxDProg  = 6  // delayed programs
-	maxEmb    = 4  // emblems per player in State; a table that repeats them keeps maxEmbCold more (emblem_cold.go)
+	maxEmb    = 4  // emblems per player in State; a table that repeats them keeps maxEmbCold more (static_emblemcold.go)
 	maxDmgMap = 8  // damage-map entries
 	maxXTgt   = 7  // objects of multi-object target slots beyond the first
 	maxUsed   = 16 // once-per-turn records
