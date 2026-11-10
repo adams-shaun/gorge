@@ -23,10 +23,12 @@ const (
 // chain moves on; a live ask records the player still to come in g.repNext for
 // applyResolve's raDiscard resume.
 func (s *State) startEachDiscard(k *prep, in *kop.Instr, p uint8) bool {
-	first, second := s.eachPlayers(k, in.Obj)
+	// two seats only: the held discard (coldArrays.discHeld) keeps one
+	// earlier player's picks, so a third player's ask has no room yet
+	q := s.eachPlayers(k, in.Obj)
 	next := uint8(255)
-	if p == first {
-		next = second
+	if p == q.at(0) {
+		next = q.at(1)
 	}
 	return s.discardChain(k, in, p, next)
 }

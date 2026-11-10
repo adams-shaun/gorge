@@ -23,7 +23,7 @@ func (s *State) fireGraveDamage(k *prep, src Slot, o Obj, ctrl uint8, amt int16,
 	toPlayer := plM != 0
 	for _, c := range k.gen.graveTrig {
 		cd := &k.t.Cards[c]
-		for pp := uint8(0); pp < 2; pp++ {
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
 			pl := &s.pl[pp]
 			for i := 0; i < int(pl.graveN); i++ {
 				ob := pl.grave[i]
@@ -45,7 +45,7 @@ func (s *State) fireGraveDamage(k *prep, src Slot, o Obj, ctrl uint8, amt int16,
 					if t.Flags&kop.TfToPlayer != 0 && !toPlayer && t.Filter2 == 0 {
 						continue
 					}
-					if t.Flags2&kop.Tf2ToOpponent != 0 && plM&(1<<(1-pp)) == 0 || t.Flags2&kop.Tf2YourTurn != 0 && s.active != pp {
+					if t.Flags2&kop.Tf2ToOpponent != 0 && !oppDamaged(plM, pp) || t.Flags2&kop.Tf2YourTurn != 0 && s.active != pp {
 						continue
 					}
 					l := trigListener{obj: ob, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}
@@ -61,7 +61,7 @@ func (s *State) fireGraveDamage(k *prep, src Slot, o Obj, ctrl uint8, amt int16,
 					if !s.trigOK(k, l, a) {
 						continue
 					}
-					tobj, tpl, n := o, 1-ctrl, amt
+					tobj, tpl, n := o, dmgSeat(rcp, ctrl), amt
 					if k.gen.anyDmgRef {
 						var ok bool
 						if n, tobj, tpl, ok = s.ddoLine(k, l, a, src, o, ctrl, amt, rcp, nil); !ok {

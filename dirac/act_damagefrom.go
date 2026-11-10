@@ -82,7 +82,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 			return
 		}
 	}
-	p0, p1 := s.eachPlayers(k, kop.Ref(in.C))
+	q := s.eachPlayers(k, kop.Ref(in.C))
 	// A pure plus-N competition poses gorge's no-op CR 616.1 order ask before
 	// the pass deals (repl_plus.go): the op parks and the answer
 	// re-executes it, which deals the summed amount; two competing player
@@ -90,23 +90,23 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	// stall. The flag clears with the pass's events, below and at the early
 	// returns, so a later op of the same resolution never inherits it.
 	var (
-		plCodes [2]uint8
-		plAmts  [2]int
+		plCodes [MaxSeats]uint8
+		plAmts  [MaxSeats]int
 	)
-	plCodes[0], plAmts[0] = PlayerTarget0+p0, int(n)
+	// the first seat is coded even when the set is empty, as before (its
+	// code then names no player and the pass sees it as such)
+	plCodes[0], plAmts[0] = PlayerTarget0+q.at(0), int(n)
 	ne := 1
-	if p1 <= 1 {
-		plCodes[1], plAmts[1] = PlayerTarget0+p1, int(n)
+	for i := uint8(1); i < q.n; i++ {
+		plCodes[i], plAmts[i] = PlayerCode(q.s[i]), int(n)
 		ne++
 	}
 	if s.replPlusSrcPass(k, ctrl, sl, card, kw, plCodes[:ne], plAmts[:ne]) {
 		return // parked: runProg pauses on nc.n; a multi-event pass stalls loud
 	}
-	for _, p := range [2]uint8{p0, p1} {
-		if p > 1 {
-			continue
-		}
-		code := PlayerTarget0 + p
+	for i := uint8(0); i < q.n; i++ {
+		p := q.s[i]
+		code := PlayerCode(p)
 		m := n
 		if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
 			if m = s.replDamage(k, ctrl, sl, card, code, false, m); m <= 0 {
