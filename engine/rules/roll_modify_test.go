@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -76,11 +77,14 @@ func zombieTokens(e *Engine) int {
 // a seed search; asserted by every test that depends on it).
 const nightShiftSeed = 4
 
-// chooseAsks counts the KChoose asks posed so far.
+// chooseAsks counts the KChoose asks posed so far, including one a direct
+// (kernel-less) resolveTop could not serve: that logs the "ask answered with
+// its default" Note instead of a pending decision.
 func chooseAsks(e *Engine) int {
 	n := 0
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.DecisionAsk && ev.Text == string(decision.KChoose) {
+		if ev.Kind == events.DecisionAsk && ev.Text == string(decision.KChoose) ||
+			ev.Kind == events.Note && strings.HasPrefix(ev.Text, "ask answered with its default") {
 			n++
 		}
 	}
@@ -222,7 +226,15 @@ func TestNightShiftNotOfferedWhenUnaffordableOrOpposing(t *testing.T) {
 	}
 	asks = chooseAsks(e)
 	kangarooEnters(t, e)
-	passUntilStackEmpty(t, e, 60)
+	for i := 0; i < 30 && len(e.G.Stack) > 0; i++ {
+		if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
+			t.Fatalf("an opponent's Night Shift offered seat 0 a modification: %+v", d)
+		}
+		passOnce(t, e)
+	}
+	if len(e.G.Stack) != 0 {
+		t.Fatal("precondition: the roll trigger never resolved")
+	}
 	if nat, res := lastDie(t, e); nat != res {
 		t.Fatalf("opposing Night Shift modified seat 0's die: natural %d result %d", nat, res)
 	}

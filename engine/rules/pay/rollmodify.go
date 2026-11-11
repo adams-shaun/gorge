@@ -1,9 +1,6 @@
 package pay
 
 import (
-	"strconv"
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -12,23 +9,25 @@ import (
 // Shift of the Living Dead's RollModifyCost SVar, CR 706.2). Only the fixed
 // PayLife<N> shape is modelled; any other cost is neither payable nor paid.
 
-// rollModifyLife extracts N from a "PayLife<N>" cost (bare digits, N >= 1).
+// rollModifyLife extracts N from a "PayLife<N>" cost (bare digits, N >= 1,
+// at most six of them so the sum cannot overflow).
 func rollModifyLife(cost string) (int32, bool) {
-	rest, ok := strings.CutPrefix(strings.TrimSpace(cost), "PayLife<")
-	if !ok {
+	const head = "PayLife<"
+	if len(cost) < len(head)+2 || cost[:len(head)] != head || cost[len(cost)-1] != '>' {
 		return 0, false
 	}
-	inner, ok := strings.CutSuffix(rest, ">")
-	if !ok || inner == "" {
+	digits := cost[len(head) : len(cost)-1]
+	if len(digits) > 6 {
 		return 0, false
 	}
-	for _, r := range inner {
-		if r < '0' || r > '9' {
+	n := int32(0)
+	for i := 0; i < len(digits); i++ {
+		if digits[i] < '0' || digits[i] > '9' {
 			return 0, false
 		}
+		n = n*10 + int32(digits[i]-'0')
 	}
-	n, err := strconv.Atoi(inner)
-	return int32(n), err == nil && n >= 1
+	return n, n >= 1
 }
 
 // RollModifyCostPayable reports whether p can pay cost now: a PayLife<N> with
