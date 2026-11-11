@@ -352,18 +352,19 @@ func (g *Game) boardGame() {
 		}
 		pl.Lost = gm.Over && !gm.Draw && gm.Winner != state.PlayerID(p)
 		pl.Commanders, pl.CmdCasts, pl.CmdDamage = pl.Commanders[:0], pl.CmdCasts[:0], pl.CmdDamage[:0]
-		// the projection carries a seat's totals; a partner (slot 1, CR
-		// 702.124) takes its own count out of them, the first commander the rest
-		part := func(total, partner uint8, j uint8) int32 {
-			if j == 1 {
-				return int32(partner)
+		// the projection carries a seat's totals, saturating at 255; a partner
+		// (slot 1, CR 702.124) takes its own count out of them, the first
+		// commander the rest, or its exact count once a total has saturated
+		part := func(total uint8, exact func(j uint8) uint8, j uint8) int32 {
+			if j == 1 || total == 255 {
+				return int32(exact(j))
 			}
-			return int32(total) - int32(partner)
+			return int32(total) - int32(exact(1))
 		}
 		for j := uint8(0); j < 2; j++ {
 			if c := g.s.FeatCommanderN(uint8(p), j); c != dirac.NoObj {
 				pl.Commanders = append(pl.Commanders, g.ids.obj(uint8(c)))
-				pl.CmdCasts = append(pl.CmdCasts, part(kp.CmdCast[p], g.s.FeatCommanderCastN(uint8(p), 1), j))
+				pl.CmdCasts = append(pl.CmdCasts, part(kp.CmdCast[p], func(j uint8) uint8 { return g.s.FeatCommanderCastN(uint8(p), j) }, j))
 			}
 		}
 		// CmdDamage is dense over the match's commanders, seat order then each
@@ -371,7 +372,7 @@ func (g *Game) boardGame() {
 		for q := range gm.Players {
 			for j := uint8(0); j < 2; j++ {
 				if g.s.FeatCommanderN(uint8(q), j) != dirac.NoObj {
-					pl.CmdDamage = append(pl.CmdDamage, part(kp.CmdDmg[p][q], g.s.FeatCommanderDamageN(uint8(p), uint8(q), 1), j))
+					pl.CmdDamage = append(pl.CmdDamage, part(kp.CmdDmg[p][q], func(j uint8) uint8 { return g.s.FeatCommanderDamageN(uint8(p), uint8(q), j) }, j))
 				}
 			}
 		}

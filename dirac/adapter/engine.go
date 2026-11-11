@@ -230,6 +230,11 @@ func checkCommander(c game.Config) error {
 				return fmt.Errorf("seat %d: commander index %d is outside its %d-card deck", i, ix, len(c.Decks[i]))
 			}
 		}
+		// the pair gate gorge's deck layer applies (CR 903.3, 702.124): two
+		// distinct cards that may be commanders together
+		if len(cs) == 2 && (cs[0] == cs[1] || !deck.IsPartnerPair(c.Decks[i][cs[0]], c.Decks[i][cs[1]])) {
+			return fmt.Errorf("seat %d: commanders %d and %d are not a legal partner pair", i, cs[0], cs[1])
+		}
 	}
 	if len(c.Commanders) > len(c.Decks) {
 		return fmt.Errorf("dirac plays two seats, the table names commanders for seat %d", len(c.Decks))

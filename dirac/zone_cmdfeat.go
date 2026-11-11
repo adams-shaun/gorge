@@ -15,25 +15,36 @@ func (s *State) FeatCommanderGame() bool { return s.cfg&cfgCommander != 0 }
 // (CR 903.8), both commanders of a partner pair together.
 func (s *State) FeatCommanderCast(p uint8) uint8 {
 	p = SeatIx(p)
-	return satAdd8(*s.cmdCastAt(p, 0), *s.cmdCastAt(p, 1))
+	return satAdd8(s.pl[p].cmdCast, s.cmdCast2(p))
 }
 
 // FeatCommanderCastN is the casts from the command zone of seat p's
-// commander in slot j: its own tax count (CR 903.8).
-func (s *State) FeatCommanderCastN(p, j uint8) uint8 { return *s.cmdCastAt(SeatIx(p), int(j&1)) }
+// commander in slot j: its own tax count (CR 903.8); 0 for an empty slot 1,
+// as in every game without a partner record.
+func (s *State) FeatCommanderCastN(p, j uint8) uint8 {
+	if j&1 == 0 {
+		return s.pl[SeatIx(p)].cmdCast
+	}
+	return s.cmdCast2(SeatIx(p))
+}
 
 // FeatCommanderDamage is the combat damage player p has taken from seat q's
 // commander (CR 903.10a); of a partner pair, the larger tally, the one
 // nearer the 21 that loses.
 func (s *State) FeatCommanderDamage(p, q uint8) uint8 {
 	p, q = SeatIx(p), SeatIx(q)
-	return max(*s.cmdDmgAt(p, q, 0), *s.cmdDmgAt(p, q, 1))
+	return max(s.pl[p].cmdDmg[q], s.cmdDmg2(p, q))
 }
 
 // FeatCommanderDamageN is the combat damage player p has taken from seat q's
-// commander in slot j (CR 903.10a: each commander's own tally).
+// commander in slot j (CR 903.10a: each commander's own tally); 0 for an
+// empty slot 1, as in every game without a partner record.
 func (s *State) FeatCommanderDamageN(p, q, j uint8) uint8 {
-	return *s.cmdDmgAt(SeatIx(p), SeatIx(q), int(j&1))
+	p, q = SeatIx(p), SeatIx(q)
+	if j&1 == 0 {
+		return s.pl[p].cmdDmg[q]
+	}
+	return s.cmdDmg2(p, q)
 }
 
 // FeatLost reports whether seat p has left the game.
