@@ -46,7 +46,11 @@ func (s *State) InitN(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64
 		s.g.attLKI[i].obj, s.g.attLKI[i].host = NoObj, NoObj
 	}
 	s.tbl = registerTable(tbl)
-	s.resetCold(&s.k().cold)
+	lay := &s.k().cold
+	if cfg.Commander {
+		lay = &s.k().coldCmd // a partner pair's bookkeeping (zone_cmdpartner.go)
+	}
+	s.resetCold(lay)
 	s.initPartners()
 	s.g.on = s.k().gen != nil
 	s.g.enteredOn = s.g.on && s.k().gen.enteredNeed
