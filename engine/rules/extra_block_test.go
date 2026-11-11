@@ -15,19 +15,19 @@ import (
 
 const (
 	twinsSrc = "Name:Ghastbark Twins\nManaCost:5 G G\nTypes:Creature Treefolk\nPT:7/7\nK:Trample\n" +
-		"S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 | Description$ CARDNAME can block an additional creature each combat.\nOracle:x\n"
+		"S:Mode$ Continuous | CanBlockAmount$ 1 | AffectedDefined$ Self | Description$ Blocks one extra attacker.\nOracle:x\n"
 	plainSevenSrc = "Name:Plain Seven\nManaCost:5 G G\nTypes:Creature Treefolk\nPT:7/7\nOracle:x\n"
 	atk22Src      = "Name:Atk Two\nManaCost:1 R\nTypes:Creature Goblin\nPT:2/2\nOracle:x\n"
 	atk33Src      = "Name:Atk Three\nManaCost:2 R\nTypes:Creature Goblin\nPT:3/3\nOracle:x\n"
 	atk44Src      = "Name:Atk Four\nManaCost:3 R\nTypes:Creature Goblin\nPT:4/4\nOracle:x\n"
 	teamBlockSrc  = "Name:Team Sentinel\nManaCost:2 W\nTypes:Creature Human\nPT:1/1\n" +
-		"S:Mode$ Continuous | Affected$ Creature.YouCtrl | CanBlockAmount$ 1 | Description$ Each creature you control can block an additional creature each combat.\nOracle:x\n"
+		"S:Mode$ Continuous | CanBlockAmount$ 1 | Affected$ Creature.YouCtrl | Description$ Your creatures block one extra attacker.\nOracle:x\n"
 	anyBlockSrc = "Name:Wall of Glare\nManaCost:1 W\nTypes:Creature Wall\nPT:0/4\n" +
-		"S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAny$ True | Description$ CARDNAME can block any number of creatures.\nOracle:x\n"
+		"S:Mode$ Continuous | CanBlockAny$ True | AffectedDefined$ Self | Description$ Blocks without limit.\nOracle:x\n"
 	xBlockSrc = "Name:X Blocker\nManaCost:2 W\nTypes:Creature Human\nPT:2/2\n" +
-		"S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ X | Description$ CARDNAME can block X additional creatures.\nSVar:X:Count$Valid Creature\nOracle:x\n"
+		"S:Mode$ Continuous | CanBlockAmount$ X | AffectedDefined$ Self | Description$ Blocks X extra attackers.\nSVar:X:Count$Valid Creature\nOracle:x\n"
 	gatedBlockSrc = "Name:Gated Blocker\nManaCost:2 W\nTypes:Creature Human\nPT:2/2\n" +
-		"S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 | Condition$ Blessing | Description$ x\nOracle:x\n"
+		"S:Mode$ Continuous | CanBlockAmount$ 1 | Condition$ Blessing | AffectedDefined$ Self | Description$ x\nOracle:x\n"
 )
 
 // extraBlockTable seats two attackers (sources given) on seat 0 and the
