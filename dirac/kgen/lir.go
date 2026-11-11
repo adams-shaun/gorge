@@ -1014,6 +1014,7 @@ type lCard struct {
 	TapPowerCrew   int      // S:Mode$ TapPowerValue for Crew (graveexile)
 	TapPowerSaddle int      // S:Mode$ TapPowerValue for Saddle (graveexile)
 	MinBlockers    int      // S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b)
+	ExtraBlocks    int      // S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 (CR 509.1a)
 	Lure           bool     // the all-must-block keyword: every able creature blocks it (CR 509.1c)
 	MustBeBlocked  bool     // the must-be-blocked keyword (CR 509.1c)
 	Daybound       bool     // K:Daybound (CR 702.145a-d)

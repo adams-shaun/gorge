@@ -230,7 +230,7 @@ func (s *State) mcombatF2(k *prep, f kop.FilterFlags2, sl, src Slot) bool {
 		if p.flags&pfAttacking == 0 {
 			return false
 		}
-		if src != NoSlot && (s.perms[src].flags&pfBlocking == 0 || s.perms[src].blocking != sl) {
+		if src != NoSlot && !s.blocks(src, sl) {
 			return false
 		}
 	}

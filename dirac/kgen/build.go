@@ -829,6 +829,7 @@ func (cb *cardBuilder) record() error {
 	d.TapPowerCrew = int8(c.TapPowerCrew)
 	d.TapPowerSaddle = int8(c.TapPowerSaddle)
 	d.MinBlockers = uint8(c.MinBlockers)
+	d.ExtraBlocks = uint8(c.ExtraBlocks)
 	d.Lure = c.Lure
 	d.MustBeBlocked = c.MustBeBlocked
 	d.Daybound, d.Nightbound = c.Daybound, c.Nightbound

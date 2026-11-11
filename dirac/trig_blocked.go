@@ -16,22 +16,11 @@ import (
 func (s *State) fireBlockedGen(k *prep) {
 	var atk [MaxPerm]Slot
 	na := 0
-	var bl [MaxPerm]Slot
-	nb := 0
-	for m := s.oppsM(s.active); m.any(); m = m.rest() {
-		if b := m.first(); s.perms[b].flags&pfBlocking != 0 && s.perms[b].blocking != NoSlot {
-			j := nb
-			for j > 0 && s.perms[bl[j-1]].bord > s.perms[b].bord {
-				bl[j] = bl[j-1]
-				j--
-			}
-			bl[j] = b
-			nb++
-		}
-	}
+	var ps [2 * MaxPerm]blkPair
+	nb := s.blockPairs(&ps)
 	var seen slotMask
-	for _, b := range bl[:nb] {
-		a := s.perms[b].blocking
+	for _, pr := range ps[:nb] {
+		a := pr.a
 		if seen.has(a) || s.perms[a].flags&pfBlocked == 0 {
 			continue
 		}
@@ -51,11 +40,11 @@ func (s *State) fireBlockedGen(k *prep) {
 				return // an unblocked-attacker line (fireUnblocked)
 			}
 			if a.Trig.Flags2&kop.Tf2PerPair != 0 {
-				s.firePairTrig(k, l, a, bl[:nb])
+				s.firePairTrig(k, l, a, ps[:nb])
 				return
 			}
 			for _, as := range atk[:na] {
-				if a.Trig.Flags2&kop.Tf2BlockedBySelf != 0 && (s.perms[l.sl].flags&pfBlocking == 0 || s.perms[l.sl].blocking != as) {
+				if a.Trig.Flags2&kop.Tf2BlockedBySelf != 0 && !s.blocks(l.sl, as) {
 					continue
 				}
 				s.objTrigGen(k, kop.TrigBecomesBlocked, l, a, as, s.perms[as].obj, s.perms[as].ctrl, 0)
@@ -75,19 +64,8 @@ func (s *State) fireBlockedGen(k *prep) {
 //
 //go:noinline
 func (s *State) fireBlocksGen(k *prep) {
-	var bl [MaxPerm]Slot
-	nb := 0
-	for m := s.oppsM(s.active); m.any(); m = m.rest() {
-		if b := m.first(); s.perms[b].flags&pfBlocking != 0 && s.perms[b].blocking != NoSlot {
-			j := nb
-			for j > 0 && s.perms[bl[j-1]].bord > s.perms[b].bord {
-				bl[j] = bl[j-1]
-				j--
-			}
-			bl[j] = b
-			nb++
-		}
-	}
+	var ps [2 * MaxPerm]blkPair
+	nb := s.blockPairs(&ps)
 	if nb == 0 {
 		return
 	}
@@ -96,8 +74,8 @@ func (s *State) fireBlocksGen(k *prep) {
 	isBlocks := func(a *kop.Ability) bool { return a.Trig.Event == kop.TrigBlocks }
 	for _, sl := range ord[:n] {
 		s.slotTriggers(k, sl, isBlocks, func(l trigListener, a *kop.Ability) {
-			for _, b := range bl[:nb] {
-				at := s.perms[b].blocking
+			for _, pr := range ps[:nb] {
+				b, at := pr.b, pr.a
 				if !s.objEventMatch(k, l, a, b) {
 					continue
 				}
@@ -124,9 +102,9 @@ func (s *State) fireBlocksGen(k *prep) {
 // listener (gorge seeds it as Remembered/TriggerCard).
 //
 //go:noinline
-func (s *State) firePairTrig(k *prep, l trigListener, a *kop.Ability, bl []Slot) {
-	for _, b := range bl {
-		at := s.perms[b].blocking
+func (s *State) firePairTrig(k *prep, l trigListener, a *kop.Ability, ps []blkPair) {
+	for _, pr := range ps {
+		b, at := pr.b, pr.a
 		if a.Trig.Filter2 != 0 && !s.matchPermGen(k, a.Trig.Filter2, b, l.ctrl, l.sl, layerFull) {
 			continue
 		}

@@ -1471,6 +1471,19 @@ func (e *Engine) extraPhaseBoundary(leaving state.Step) (state.Step, bool) {
 		} else {
 			resume = ep.AfterStep + 1
 		}
+		if followedByMainBeforeCombat(ep) {
+			// "After this main phase, an additional combat followed by an
+			// additional main phase" cast in the FIRST main phase: the
+			// additional main is spliced before the ordinary combat, which
+			// still follows it (Relentless Assault ruling). It is its own
+			// one-step grant spliced at the same point as the completing one
+			// (AfterStep, so older pending grants spliced there still follow
+			// it, CR 500.8), resuming at the splice point's natural
+			// successor; the step-2 scan below enters it.
+			e.emit(events.Event{Kind: events.ExtraPhase, Player: ep.Player, Obj: ep.Source,
+				Amount: 1, Step: ep.AfterStep,
+				IDs: []state.ObjID{state.ObjID(ep.FollowedBy), state.ObjID(ep.AfterStep + 1)}})
+		}
 	}
 	// 2. Splicing the next pending grant: MOST RECENTLY created first (CR
 	// 500.8; the queue is in creation order, so scan from the back), spliced
@@ -1491,6 +1504,14 @@ func (e *Engine) extraPhaseBoundary(leaving state.Step) (state.Step, bool) {
 		return resume, true
 	}
 	return 0, false
+}
+
+// followedByMainBeforeCombat reports a completing grant whose FollowedBy$ main
+// phase is an ADDITIONAL one that precedes the ordinary combat: spliced after
+// the first main phase and followed by the second. The linear walk would
+// leave that main phase for the end step, skipping the ordinary combat.
+func followedByMainBeforeCombat(ep state.ExtraPhase) bool {
+	return ep.HasFollowedBy && ep.AfterStep == state.StepMain1 && ep.FollowedBy == state.StepMain2
 }
 
 // consumedExtraPhaseEvent builds the -1 (consume) / -2 (complete) message

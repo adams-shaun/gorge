@@ -99,6 +99,8 @@ var stallUnmodelledReasons = [...]uint8{
 	StallRestrDefer,   // a non-spell payment only a Taps-deferred restricted source funds: gorge pays it by its prefix search (mana_tapsdefer.go)
 	StallDiamondMix,   // a Lion's Eye Diamond beside another census-gap kind: gorge's one prefix search activates both (mana_diamondmix.go)
 	StallStackKwGrant, // a granted convoke/improvise on a Harmonize or alternative-cost cast: gorge's announcement for those routes is unverified (kw_convoke.go)
+	// a requirement- or lure-maximising block declaration with a two-attacker blocker ready: gorge offers its second block too (combat_extrablock.go)
+	StallExtraBlockReq,
 }
 
 // initStall is the reason a game of nseat players on this table stalls at its

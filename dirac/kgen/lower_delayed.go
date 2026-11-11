@@ -312,7 +312,9 @@ func (lc *lowerCtx) delayedDies(ps *params, exec *cards.SA) error {
 //     carried);
 //   - Targeted / ParentTarget in a chain that declares no target slot
 //     (gorge names an empty set): the body must read none;
-//   - the trigger's attacker: the trigger object (RefTriggerObj);
+//   - the trigger's attacker or blocker: the trigger object (RefTriggerObj),
+//     the pair's other member in an AttackerBlockedByCreature trigger
+//     (Deathgazer);
 //   - the end-step forms (delayedRemember), except a remembered set, which
 //     can hold several objects and refuses by name.
 func (lc *lowerCtx) delayedStepRemember(arm, ro string, exec *cards.SA) (lRef, error) {
@@ -333,7 +335,7 @@ func (lc *lowerCtx) delayedStepRemember(arm, ro string, exec *cards.SA) (lRef, e
 			}
 			return lRef{}, nil
 		}
-	case "TriggeredAttackerLKICopy", "TriggeredAttacker":
+	case "TriggeredAttackerLKICopy", "TriggeredAttacker", "TriggeredBlockerLKICopy", "TriggeredBlocker":
 		r, err := lc.defined(ro)
 		if err != nil {
 			return lRef{}, err

@@ -740,15 +740,11 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 				s.lingerPut(q, o)
 			}
 		}
-		if qp.blocking == sl {
-			// the attacker left: the blocker stays blocking (CR 506.4) but blocks nothing
-			qp.blocking = NoSlot
-			s.touchSl(q)
-		}
-		if p.flags&pfBlocking != 0 && p.blocking == q && qp.nblock > 0 {
-			qp.nblock--
-			s.touchSl(q)
-		}
+		// the attacker left: the blocker stays blocking (CR 506.4) but blocks nothing
+		s.forgetBlocked(q, sl)
+	}
+	if p.flags&pfBlocking != 0 {
+		s.releaseBlocked(sl)
 	}
 	if p.ck[ctrSlots-1] != 0 {
 		s.ctrOverRelease(o)

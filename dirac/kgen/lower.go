@@ -795,6 +795,9 @@ var expandedKeywords = map[string]bool{
 	// Hideaway (CR 702.75a): gorge kwHideaway's ETB trigger, DB$ Hideaway
 	// (lower_hideaway.go)
 	"Hideaway": true,
+	// Annihilator (CR 702.86a): gorge kwAnnihilator's Attacks Self trigger,
+	// DB$ Sacrifice of the defending player's permanents (Annihilator$ N)
+	"Annihilator": true,
 	// Cumulative upkeep (CR 702.24a): gorge kwCumulativeUpkeep expands it into
 	// an upkeep trigger whose body is DB$ CumulativeUpkeep (lower_cumulative.go)
 	"Cumulative upkeep": true,
@@ -1486,6 +1489,8 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Leyline = true
+		case head == "MayEffectFromOpeningHand":
+			lc.refuseNode(node, "%s", refuseOpeningGated(param)) // (lower_gemstone.go)
 		case strings.HasPrefix(k, "A deck can have any number of cards named"):
 			// Deck construction only.
 		case k == "Daybound" || k == "Nightbound":
