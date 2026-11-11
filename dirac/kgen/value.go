@@ -262,6 +262,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			// over the living opponents, in group order. Every other
 			// Counters.<kind> stays refused.
 			v = lValue{Kind: vHighestOppPoison}
+		case strings.HasPrefix(rest, "Condition"):
+			v, err = lc.oppCastCondValue(rest) // value_oppcondition.go
 		default:
 			err = fmt.Errorf("PlayerCountOpponents$%s", rest)
 		}
