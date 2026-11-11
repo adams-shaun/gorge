@@ -222,13 +222,6 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 	//   - PlayerCountDefinedRegistered.Other$: living players minus the
 	//     resolving controller (Ludevic, Necro-Alchemist's "a player other
 	//     than you lost life this turn").
-	// PlayerCountDefinedNonTriggeredTarget$<Property> — "each other player
-	// than the one the trigger refers to" (Battle Angels of Tyr's three
-	// conditions read the damaged player's hand/lands/life against EVERY
-	// other player). The referent is the already-captured Ctx.TriggerTarget;
-	// with no triggered player the group is every living player. Dispatched
-	// beside the DefinedRegistered arms so the two defined-player groups share
-	// one property grammar.
 	if rest, ok := strings.CutPrefix(head, "PlayerCountDefinedNonTriggeredTarget$"); ok {
 		av, aok := playerCountNonTriggeredTarget(h, g, c, rest, arg)
 		return av, aok, true
