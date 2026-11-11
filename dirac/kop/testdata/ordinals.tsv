@@ -837,6 +837,7 @@ PayBSubEvidenceX	untyped int	11
 PayBSubExileHand	untyped int	9
 PayBSubSacHost	untyped int	7
 PayBSubStackSelf	untyped int	13
+PayBSubTapXVar	untyped int	16
 PayBSubTrigNew	untyped int	3
 PayBSubTrigNewEvidence	untyped int	10
 PayBSubWaterbend	untyped int	12
