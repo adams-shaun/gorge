@@ -822,10 +822,11 @@ func (s *State) finishBlocks(k *prep) {
 			for bm.any() {
 				b := bm.first()
 				bm = bm.rest()
-				if s.perms[b].blocking == a && s.perms[b].flags&pfBlocking != 0 {
-					s.perms[b].flags &^= pfBlocking
-					s.perms[b].blocking = NoSlot
-					s.touchSl(b)
+				if s.blocks(b, a) {
+					s.forgetBlocked(b, a)
+					if s.perms[b].blocking == NoSlot {
+						s.perms[b].flags &^= pfBlocking
+					}
 				}
 			}
 			ap.nblock = 0
@@ -990,7 +991,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		for bm.any() {
 			b := bm.first()
 			bm = bm.rest()
-			if s.perms[b].flags&pfBlocking != 0 && s.perms[b].blocking == a {
+			if s.blocks(b, a) {
 				bl[nb] = b
 				nb++
 			}
@@ -1324,7 +1325,7 @@ func (s *State) liveBlockers(a Slot, bl *[MaxPerm]Slot) int {
 	nb := 0
 	for bm := s.oppsM(s.active); bm.any(); bm = bm.rest() {
 		b := bm.first()
-		if s.perms[b].flags&pfBlocking != 0 && s.perms[b].blocking == a {
+		if s.blocks(b, a) {
 			bl[nb] = b
 			nb++
 		}
@@ -1459,7 +1460,7 @@ func (s *State) anyFirstStrike(k *prep) bool {
 		}
 		for bm := s.oppsM(s.active); bm.any(); bm = bm.rest() {
 			b := bm.first()
-			if s.perms[b].flags&pfBlocking != 0 && s.perms[b].blocking == a && s.kw(k, b)&fs != 0 {
+			if s.blocks(b, a) && s.kw(k, b)&fs != 0 {
 				return true
 			}
 		}

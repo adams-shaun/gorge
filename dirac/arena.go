@@ -247,6 +247,9 @@ func (s *State) arenaClrSlot(sl Slot) {
 	for i := range ms {
 		ms[i] = ms[i].without(sl)
 	}
+	if r := s.xblkRecs(); len(r) > 0 {
+		r[sl] = xblkRec{}
+	}
 	for i := range s.cold.exMark {
 		if r := &s.cold.exMark[i]; r.sl == sl {
 			r.live = false // the last permanent's exile-instead records end with it (repl_exilemark.go)
