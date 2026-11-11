@@ -6,6 +6,13 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// condSplitHost is what condSplitLiveSub reads: the evaluator's Host plus the
+// engine's mana-amount ctx builder (the one place the eval ctx is made).
+type condSplitHost interface {
+	effects.Host
+	manaAmountCtx(p state.PlayerID, source state.ObjID) *effects.Ctx
+}
+
 // condSplitLiveSub is the production a Condition-split mana ability ma of
 // source id would make instead of its own on the live board, or nil.
 //
@@ -24,7 +31,7 @@ import (
 // provably fails is not counted, so an unlucky Gemstone stays {C}. The
 // root's own production is always counted by the caller: counting it beside
 // the sub only over-produces.
-func (e *Engine) condSplitLiveSub(p state.PlayerID, id state.ObjID, ma *cards.SA) *cards.SA {
+func condSplitLiveSub(h condSplitHost, p state.PlayerID, id state.ObjID, ma *cards.SA) *cards.SA {
 	if ma == nil || ma.API != "Mana" || !effects.ActivationOf(ma).Cond.Any() {
 		return nil
 	}
@@ -32,11 +39,11 @@ func (e *Engine) condSplitLiveSub(p state.PlayerID, id state.ObjID, ma *cards.SA
 	if sub == nil || !effects.ActivationOf(sub).Cond.Any() {
 		return nil
 	}
-	ctx := e.manaAmountCtx(p, id)
-	if o := e.G.Obj(id); o != nil && o.Face() != nil {
+	ctx := h.manaAmountCtx(p, id)
+	if o := h.Game().Obj(id); o != nil && o.Face() != nil {
 		effects.SetSVars(ctx, o.Face().SVars)
 	}
-	if met, resolved := effects.ConditionMet(e, ctx, sub); met || !resolved {
+	if met, resolved := effects.ConditionMet(h, ctx, sub); met || !resolved {
 		return sub
 	}
 	return nil

@@ -217,7 +217,7 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 							e.addPotentialManaOf(&out, ma)
 							// A Condition-split ability adds its sub's production instead
 							// when the gate holds (mana_condsplit.go): count both.
-							if sub := e.condSplitLiveSub(p, id, ma); sub != nil {
+							if sub := condSplitLiveSub(e, p, id, ma); sub != nil {
 								e.addPotentialManaOf(&out, sub)
 							}
 						}

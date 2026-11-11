@@ -2113,7 +2113,7 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 	// Tears' land drop) adds its sub's production INSTEAD when the gate holds
 	// (CR 605.1a): the sub's productions are further alternatives, so the
 	// relaxation still only over-produces (mana_condsplit.go).
-	if sub := e.condSplitLiveSub(p, id, ma); sub != nil {
+	if sub := condSplitLiveSub(e, p, id, ma); sub != nil {
 		if subAmt := availableAmount(sub); subAmt <= 0 || !relaxedAddProduction(effects.ManaOf(sub), subAmt, add) {
 			return nil, 0, 0, false, false
 		}
