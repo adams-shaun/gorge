@@ -124,11 +124,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (the optional copy-instead CreateToken replacement of an Equipment or Aura gated on no token of yours having entered this turn, kop.ReplCopyFirstToken: Mirrormind Crown, Moonlit Meditation; ECL 242 -> 243, EOE 248 -> 249, ALL 22149 -> 22151).
 	// +2 (a Taps FirstTime$ watcher lowers on the arena's per-slot tapped-this-turn mark: Captain America, Living Legend (MSH 245 -> 246) and Tale of Katara and Toph's granted self line; ALL 22165 -> 22167).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22167, 34442},
+	"ALL": {22170, 34442},
 	"BIG": {26, 30},
 	"BLB": {261, 278},
 	"BRO": {215, 280},
-	"DFT": {252, 276},
+	"DFT": {254, 276},
 	"DMU": {194, 270},
 	"DSK": {249, 276},
 	"ECL": {243, 273},

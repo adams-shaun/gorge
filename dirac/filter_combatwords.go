@@ -310,19 +310,14 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 }
 
 // enterDefenderFallback is gorge's enteringDefenderFallback past two seats:
-// a trigger's captured defending player (the seat its triggering attacker
-// attacks, a planeswalker's or battle's attack naming that seat), else the
-// first CR 508.4 candidate. A trigger the kernel cannot read that seat for
-// (its attacker has left combat, or an event other than Attacks) stalls
-// (StallDefenderPW). NoTarget: none.
+// a trigger's defending player, bound as it was queued (defSeat: an attack
+// trigger's event seat), else the first CR 508.4 candidate. A trigger with
+// no bound defending player (an event other than an attack declaration)
+// stalls (StallDefenderPW). NoTarget: none.
 func (s *State) enterDefenderFallback(k *prep, p uint8) uint8 {
 	if e := &s.res.e; s.res.active && e.kind == seTrigger {
-		if e.ab < abCascade && k.t.Cards[e.card].Abilities[e.ab].Trig.Event == kop.TrigAttacks && e.trigObj != NoObj {
-			if ob := &s.objs[e.trigObj]; ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].flags&pfAttacking != 0 {
-				if q := s.atkSeat(k, ob.slot); q != NoTarget {
-					return PlayerCode(q)
-				}
-			}
+		if e.defSeat != 0 {
+			return PlayerCode(e.defSeat - 1)
 		}
 		s.capFull(StallDefenderPW)
 		return NoTarget

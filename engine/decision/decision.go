@@ -610,6 +610,14 @@ type TargetEffect struct {
 	// wire and the canonical Board encoding never carry it. Empty when the
 	// source declares none.
 	AttachLogic string `json:"-"`
+	// Host is the object the targeting spell or ability belongs to: the
+	// spell itself, or an ability's source permanent. Server-side only
+	// (json:"-") like AttachLogic, so both adapters read it identically and
+	// the wire never carries it. The bot reads it so an "up to" removal ask
+	// is not filled from its own host: an exile "until this leaves the
+	// battlefield" aimed at its own host brings both straight back. Zero
+	// when unknown.
+	Host state.ObjID `json:"-"`
 	// Desc is the script's noun for the legal target set (Forge
 	// ValidTgtsDesc); presentation only, never a legality fact. Absent when
 	// the script supplies none.
@@ -641,6 +649,13 @@ type DamageEffect struct {
 	// consumers must check null before arithmetic. This is not a lethal-damage
 	// claim.
 	Amount *int `json:"amount"`
+	// Prevented names the battlefield permanents whose own replacement
+	// prevents every damage dealt to them, with no rider that changes them
+	// (Phyrexian Vindicator): the damage is spent on nothing. Server-side
+	// only (json:"-"), like TargetEffect.Host. The bot leaves them last, so
+	// two such permanents do not bounce the redirected damage between
+	// themselves forever.
+	Prevented []state.ObjID `json:"-"`
 }
 
 // WindowReason is a closed-vocabulary explanation for one withheld option.

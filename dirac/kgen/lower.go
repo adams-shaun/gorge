@@ -419,7 +419,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseRemLKIMV()                // value_remlkimv.go
 	lc.refuseRememberAmountObjects()   // lower_remembered.go
 	lc.refuseRememberSearcherObjects() // lower_remembersearcher.go
-	lc.refuseOnceTwice()
+	lc.numberOnceAbilities()
 	lc.refusePlotCombos()
 	lc.refuseHarmonizeCombos()
 	lc.refuseMayhemCombos()

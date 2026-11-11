@@ -757,16 +757,29 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// default the other shapes keep. An explicit Duration$ wins.
 				untilEOT = true
 			}
-			effectContinuous(h, state.ContinuousEffect{
+			// The move-driven lifetimes ride this form too: Ty Lee's lock on a
+			// target that leaves the battlefield ends with ForgetOnMoved$
+			// Battlefield (CR 400.7), and "for as long as you control" a source
+			// that left and came back is over, the returned card being a new
+			// object (CR 611.2b), so the registration is anchored to the
+			// source's incarnation.
+			ce := state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
 				UntilEOT: untilEOT, Duration: dur,
 				Name:              effectName,
 				Remembered:        remembered,
+				ForgetOnMoved:     forgetOn,
+				ExileOnMoved:      exileOn,
+				ForgetCounter:     forgetCounter,
 				RememberedPlayers: effectRememberedPlayers(h, c, sa),
 				ImprintOnHost:     imprintOnHost,
 				ReplacementEvent:  event, ReplacementParams: params,
 				Chosen: chosenSnap, ChosenBound: chosenBound,
-			})
+			}
+			if IsAsLongAsControlDuration(rawDur) {
+				ce.SourceIncarnation = effectHostIncarnation(h, c)
+			}
+			effectContinuous(h, ce)
 			registered = true
 		} else if name != "" {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,

@@ -78,6 +78,7 @@ type genPrep struct {
 	anyRemPersist   bool // a card's enters trigger remembers what its leaves trigger reads (CardDef.RemPersist; zone_rememberpersist.go)
 	anyNinjutsu     bool // a card has a K:Ninjutsu ability (kop.AfNinjutsu; kw_ninjutsu.go)
 	anyPowerUp      bool // a card has a printed PowerUp$ ability (kw_powerup.go)
+	anyManaOnce     bool // a card's first mana ability is activate-only-once (Loot, the Pathfinder; mana.go canTapForManaPC)
 	anyStackTgt     bool // some target slot is a TgtStackObj (tgt_stackability.go)
 	anyCopyAb       bool // some target slot is a TgtCopyAb or TgtCopyTrig (copy_ability.go)
 	anyBestow       bool // a card has printed bestow (CardDef.HasBestow; kw_bestow.go)
@@ -1151,6 +1152,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 				if firstMana && a.AFlags&kop.AfLatent == 0 {
 					firstMana = false
+					if a.Cost.Flags&kop.CostOncePerGame != 0 {
+						g.anyManaOnce = true
+					}
 					if restrWideAnyMana(a) {
 						// a census gap the prefix search branches on (mana_window.go restrWideAnyMana)
 						g.smallFor(CardID(i)).anyR = int8(j)
@@ -1165,7 +1169,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 							g.anyRestrScript = true
 						}
 					} else if kop.FilterManaAb(a) {
-						g.prepFiltFirst(CardID(i), j) // a filter first and only (mana_filterfirst.go)
+						g.prepFiltFirst(CardID(i), j, a) // a filter first and only (mana_filterfirst.go)
 					}
 				} else if restrAnyTapMana(a) && !restrSrcAb(a) && (!restrWideAnyMana(a) || wideBesideAny(&t.Cards[i], a)) && g.anyR(CardID(i)) < 0 && firstManaAb(&t.Cards[i]) >= 0 {
 					g.smallFor(CardID(i)).anyR = int8(j)
@@ -1975,6 +1979,12 @@ type genState struct {
 	rsv      [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
 	embX [MaxSeats][maxEmb][embRemSlots - 2]uint8
+	// atkDef is the defending seat + 1 of the attack event whose triggers are
+	// being checked (fireAttacksGen), 0 outside it: gorge binds a trigger's
+	// DefendingPlayer from that event, and an IsPresent$ checked as the
+	// trigger fires reads it (defendingSeatF2). Set only when MaxSeats > 2.
+	// Taken from rsv.
+	atkDef uint8
 }
 
 const (
@@ -1983,7 +1993,7 @@ const (
 	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
 	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
 	// keeps its phase.
-	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2))
+	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2)-1)
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
@@ -2096,7 +2106,7 @@ const (
 	StallOptions       = 48  // a combat declaration has more attack or block pairs than MaxOptions (combat.go optionsFull)
 	StallRoleMulti     = 49  // an AttachedTo$ token mint would create a number of tokens other than one (static_roletokens.go)
 	StallSrcMark       = 50  // more than maxSrcMark DamagedBy / CrewedThisTurn sources marked permanents this turn (genState.marks; filter_combatwords.go)
-	StallDefenderPW    = 51  // a TriggeredDefender damage whose attacker attacks a planeswalker or battle (or left): gorge damages the defending seat instead (OpAtkPWGuard; filter_combatwords.go); past two seats, an entering attacker's trigger defender, or an Attacks trigger's defending player (defendingSeatF2), the kernel cannot read (enterDefenderFallback)
+	StallDefenderPW    = 51  // a TriggeredDefender damage whose attacker attacks a planeswalker or battle (or left): gorge damages the defending seat instead (OpAtkPWGuard; filter_combatwords.go); past two seats, a trigger with no bound defending player read for an entering attacker's defender (enterDefenderFallback) or a defending player's permanent (defendingSeatF2)
 	StallTokAtkAsk     = 52  // a TokenAttacking$ True mint while the opponent has a planeswalker or battle: gorge asks the CR 508.4 defender (filter_combatwords.go)
 	StallDmgLatch      = 53  // a ninth DamageDealtOnce listener of one source in one combat damage batch (triggers_gen.go dmgLatch)
 	StallReplCands     = 54  // a fifth competing replacement candidate for one event or untap (replOrd.cand; repl_gen.go, act_energy.go)
@@ -2749,15 +2759,19 @@ func (s *State) ceaseTokensGen() {
 	for i0 > 0 && s.objs[i0-1].of&(ofToken|ofCopy) != 0 {
 		i0--
 	}
+	k := s.k()
 	for i := i0; i < int(s.nobj); i++ {
 		ob := &s.objs[i]
 		if ob.of&(ofToken|ofCopy) == 0 {
 			continue
 		}
+		if s.mObj(k, mechSBAChain, Obj(i)) {
+			continue // gorge's sbaChain: it ceases at the pass that destroys nothing (sbaChainEnd)
+		}
 		switch ob.zone {
 		case kop.ZoneLibrary, kop.ZoneHand, kop.ZoneGraveyard, kop.ZoneExile:
 			if ob.zone == kop.ZoneExile && ob.of&ofCopy != 0 {
-				if k := s.k(); k.gen != nil && k.gen.anyPrepare { // CR 722.3c: a linked prepared copy waits in exile
+				if k.gen != nil && k.gen.anyPrepare { // CR 722.3c: a linked prepared copy waits in exile
 					if _, ok := s.preparedCopyLive(k, Obj(i)); ok {
 						continue
 					}

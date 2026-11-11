@@ -664,6 +664,7 @@ func (s *State) sba(k *prep) bool {
 			// checkSagas. A token Saga sacrificed below ceases on the next
 			// pass either way; the order is only observable when both act.
 			if k.gen != nil {
+				s.sbaChainEnd(k)
 				s.ceaseTokensGen()
 			}
 			if k.anySaga && s.sagaSBA(k) {

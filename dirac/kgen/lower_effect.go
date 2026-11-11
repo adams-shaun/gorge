@@ -331,9 +331,13 @@ func (lc *lowerCtx) damagedPlayerIsTriggerPlayer() bool {
 // source itself (ValidCard$ Card.Self), or an AttackersDeclared trigger of
 // its controller's attack: the defending player is then the controller's
 // opponent (two players), which is what kop.RefDefendingPlayer resolves to.
-// With more seats the kernel resolves it to the defender of an attacking
-// source (seat-exact for the source's own attack); any other attacker, or the
-// declaration as a whole, marks the card two-seat only.
+// With more seats the kernel resolves it to the defending seat of the attack
+// event that queued the trigger (stackEntry.defSeat: for a declaration, its
+// first event's seat, as gorge's batch trigger latches there), else the
+// defender of an attacking source. Another attacker's Attacks trigger is
+// queued with its own event, so its defSeat is the seat that attacker
+// attacks; another attacker's AttackerBlocked trigger is queued at blocks
+// with no seat bound and marks the card two-seat only.
 func (lc *lowerCtx) ownAttackTrigger() bool {
 	tr := lc.ab.Trigger
 	if tr == nil {
@@ -351,16 +355,12 @@ func (lc *lowerCtx) ownAttackTrigger() bool {
 			}
 			self = self && c.Flags&fSelf != 0
 		}
-		if !self {
+		if !self && tr.Event == "AttackerBlocked" {
 			lc.twoSeat("the defending player of another attacker read as the one opponent")
 		}
 		return true
 	case "AttackersDeclared":
-		if tr.Whose != whoYou {
-			return false
-		}
-		lc.twoSeat("the defending player of a declaration read as the one opponent")
-		return true
+		return tr.Whose == whoYou
 	}
 	return false
 }

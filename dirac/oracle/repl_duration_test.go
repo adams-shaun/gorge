@@ -104,10 +104,12 @@ func walkDurationLock(g *GorgeSide, src, victim, spell string, leaves bool) dura
 }
 
 // durationHeld: the lock held the victim tapped through at least one of its
-// controller's untap steps, and nothing untapped it.
+// controller's untap steps, and nothing untapped it while its source stayed.
+// A source that leaves (a second copy's legend rule) ends the lock (CR
+// 611.2b), so the walk stops reading untaps there.
 func durationHeld(src, victim string) func(g *GorgeSide) bool {
 	return func(g *GorgeSide) bool {
-		r := walkDurationLock(g, src, victim, "", false)
+		r := walkDurationLock(g, src, victim, "", true)
 		return r.heldSteps >= 1 && r.untapsOn == 0 && r.effectUntaps == 0
 	}
 }

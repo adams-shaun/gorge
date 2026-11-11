@@ -263,12 +263,28 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	if !own {
 		mask, n = 0, 0
 	}
+	// A sacrifice-only grant (Lotus Ring's "Sacrifice this creature: Add three
+	// mana of any one color") costs no {T}: the source taps for its other
+	// ability, then is sacrificed (CR 602.2, 605.1a), so that grant is a unit
+	// of its own beside the tap's, the sacrifice made once.
+	var sMask, sN uint8
 	for i := 0; i < ng; i++ {
 		pc := s.grantView(k.gen, gi[i], sl)
+		if pc.grantSac && s.grantSacLive(sl, pc) {
+			sMask |= s.srcMaskAt(pc, sl)
+			sN = max(sN, pc.manaN)
+			continue
+		}
 		mask |= s.srcMaskAt(pc, sl)
 		n = max(n, pc.manaN)
 	}
+	if mask == 0 {
+		mask, n, sMask, sN = sMask, sN, 0, 0
+	}
 	s.addGrantUnits(a, mask, n)
+	if sMask != 0 {
+		s.addGrantUnits(a, sMask, sN)
+	}
 	s.availGrantExtra(k, sl, pc, &gi, ng, own, a)
 }
 
@@ -571,6 +587,8 @@ func (g *grantSrch) candidates(s *State) {
 	em := s.scriptGaps(g.k, g.p) // (mana_granteach.go)
 	g.n = 0
 	holders := 0
+	plain := g.d.hasPlay && gapFilteredPlay(g.d.play)
+	var dropped slotMask
 	for i := 0; i < n; i++ {
 		sl := order[i]
 		if sl == g.ex {
@@ -581,7 +599,16 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		if ng > 0 {
-			holders++
+			holders++ // (a dropped holder still makes this the grant search's play)
+		}
+		if plain && !s.gapSpendable(g.k, sl, &g.d) {
+			// gorge's prefix search drops a gap whose mana the play
+			// cannot spend (scriptSpendableGaps); its fee still counts
+			if fm.has(sl) {
+				g.funding += s.filtFee(g.k, sl)
+			}
+			dropped = dropped.with(sl) // (nor a funding source: it makes no mana the play spends)
+			continue
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
 		g.def[g.n] = ng == 0 && dm.has(sl)
@@ -602,6 +629,9 @@ func (g *grantSrch) candidates(s *State) {
 	// non-gaps sit after every gap in battlefield order, exactly the walk
 	// order that loop reads.
 	g.gapN = g.n
+	if g.gapN == 0 {
+		return // every gap dropped: gorge's search runs on none
+	}
 	if !s.filtFunded(g.k, g.p, fm) {
 		g.funding = 0 // (gorge's unrelaxable census funds no fee)
 	}
@@ -618,7 +648,7 @@ func (g *grantSrch) candidates(s *State) {
 	}
 	for i := 0; i < n; i++ {
 		sl := order[i]
-		if sl == g.ex || seen(sl) || !s.canTapForMana(g.k, sl) {
+		if sl == g.ex || seen(sl) || dropped.has(sl) || !s.canTapForMana(g.k, sl) {
 			continue
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n], g.def[g.n] = sl, 0, true, false, false, false
@@ -794,6 +824,7 @@ func (g *grantSrch) visit(t *State) bool {
 			lo, hi = 1, 2
 		}
 		for g.sel = lo; g.sel <= hi; g.sel++ {
+			blgExtra, blgN := uint8(0), uint8(0)
 			if ppc := t.manaPCGen(g.k, sl); g.dual[i] && !t.ownRestrPrinted(g.k, sl) && grantPainShape(g.k, ppc) {
 				if g.painBranch(t, i, sl, ppc, alts == 1) { // its painful ability's colours too (mana_grantpain.go)
 					return true
@@ -808,6 +839,14 @@ func (g *grantSrch) visit(t *State) bool {
 				} else {
 					ppc := t.manaPCGen(g.k, sl)
 					mask, n = t.srcMaskAt(ppc, sl), ppc.manaN
+					if base := &g.k.cards[t.cardAt(sl)]; g.k.gen.blgOn && ppc != base && base.manaAb >= 0 && !base.manaChosen && mask&^srcMask(base) != 0 {
+						// a granted basic land type's intrinsic abilities (CR 305.7)
+						// follow the printed ones in gorge's ask (its printed
+						// restricted and filter abilities too): White Lotus
+						// Hideout's {C} first, an Island's {U} before the grants
+						blgExtra, blgN = mask&^srcMask(base), n
+						mask, n = srcMask(base), base.manaN
+					}
 				}
 				if g.branch(t, i, sl, -1, mask, n, alts == 1) {
 					return true
@@ -825,6 +864,9 @@ func (g *grantSrch) visit(t *State) bool {
 				}
 			}
 			if fok && g.filtBranch(t, i, sl) { // (listed after the printed ability, before the grants)
+				return true
+			}
+			if blgExtra != 0 && g.branch(t, i, sl, -1, blgExtra, blgN, false) {
 				return true
 			}
 			for j := 0; j < int(g.ng[i]); j++ {

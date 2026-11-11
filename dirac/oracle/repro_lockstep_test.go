@@ -518,3 +518,50 @@ func TestGraveyardActivationRestrictedSourceRelaxedLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "graveyard_activation_restricted_source_relaxed", "std-tla", Config{})
 }
+
+// TestTokenCopyOfBackFaceMVLockstep: Ember Island Production's token copy
+// of Avatar Kuruk (The Legend of Kuruk transformed) has mana value 0, so
+// Epic Downfall's "mana value 3 or greater" cannot target it, while the
+// transformed Kuruk itself reads its front face's {2}{U}{U} (CR 712.8e).
+func TestTokenCopyOfBackFaceMVLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "token_copy_of_back_face_has_no_mana_value", "std-tla", Config{GorgeAutopaySurface: true})
+}
+
+// TestMayPlayFoldCounterRaiseAmbiguousLockstep: Quilled Greatwurm in the
+// graveyard beside Muldrotha has two may-play offers; the folded one (its
+// own permission) raises the cost by removing six counters, which gorge's
+// payment builder does not plan, so the autopay surface offers neither.
+func TestMayPlayFoldCounterRaiseAmbiguousLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "mayplay_fold_with_counter_raise_ambiguous", "std-fdn", Config{GorgeAutopaySurface: true})
+}
+
+// TestFlashbackGrantedInstanceNotPrintedOfferLockstep: Fire Nation Attacks
+// prints flashback {8}{R} and Iroh grants another at its mana cost. gorge's
+// prefix search for the printed instance must not stop when the cheaper
+// granted instance becomes castable: that is a different option (CR 702.34a).
+func TestFlashbackGrantedInstanceNotPrintedOfferLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "flashback_granted_instance_not_printed_offer", "std-tla", Config{})
+}
+
+// TestGrantedLandTypeManaAfterPrintedLockstep: White Lotus Hideout with a
+// granted basic land type beside Great Divide Guide's grant. gorge's "choose
+// a mana ability" ask lists the printed {C}, the Lesson-only and the filter
+// abilities before the type's intrinsic {U} (CR 305.7), and the prefix search
+// for Earthen Ally's activation walks them in that order.
+func TestGrantedLandTypeManaAfterPrintedLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "granted_land_type_mana_after_printed_abilities", "std-tla", Config{})
+}
+
+// TestTyLeeLockOnHerselfEndsWhenSheLeavesLockstep: Ty Lee, Chi Blocker taps
+// herself as she enters, later goes to her owner's library and is cast again.
+// The returned card is a new object (CR 400.7): the first lock forgot her as
+// she left (ForgetOnMoved$ Battlefield) and its "for as long as you control"
+// source is gone (CR 611.2b), so she untaps in her controller's untap step.
+func TestTyLeeLockOnHerselfEndsWhenSheLeavesLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "ty_lee_lock_on_herself_ends_when_she_leaves", "std-tla", Config{GorgeAutopaySurface: true})
+}

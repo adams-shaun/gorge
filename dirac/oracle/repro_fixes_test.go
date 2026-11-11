@@ -335,6 +335,10 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 		{"deferred_red_funds_first_filter_fee", false, false},        // ... and the Goggles' {R} alone funds the Mascot's {1}, so An Offer You Can't Refuse's {U} is offered
 		{"counter_gap_beside_deferred_script", false, false},         // CR 601.2g: Ramos, Dragon Engine's counter-cost mana beside the Goggles pays Zetalpa, Primal Dawn: the deferred script's dead-end check plays the counter gap as the prefix does
 		{"deferred_gap_beside_granted_mana", false, false},           // CR 601.2g-h, 605.1a: gorge's prefix search taps New Horizons' Mountain for {R}{R} and Pyromancer's Goggles' deferred {R}, both census gaps, so Lathliss, Dragon Queen's {4}{R}{R} is offered
+		// CR 119.4: a granted source that costs no life taps at a life total
+		// below zero (Herald of Eternal Dawn), so Imprisoned in the Moon's land
+		// pays Cathar Commando's {1} through the prefix search
+		{"granted_source_taps_at_negative_life", true, false},
 	})
 }
 
@@ -343,6 +347,7 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-eoe", []stdRepro{
 		{"station_departed_creature_reads_toughness_static", true, false},      // CR 702.184a, 608.2h: Survey Mechan, tapped to station Uthros Scanship and then sacrificed, stations with its toughness under Tapestry Warden
+		{"tapx_search_key_reads_new_token", false, false},                      // CR 601.2g-h: Gene Pollinator taps Seedship Agrarian; its trigger's Lander sets off Tezzeret's, and the prefix search tells that state from the first by the new token, as gorge's key lists the battlefield
 		{"restricted_grant_no_unit_for_hand_cast_x", false, false},             // Mm'menon grants an untapped Specimen Freighter blue for spells not cast from hand, so Zero Point Ballad from hand has no extra mana to announce X with
 		{"restricted_grant_no_unit_for_hand_cast_x_two", false, false},         // ... and Devastating Onslaught's X likewise stops one short
 		{"restricted_grant_no_unit_for_hand_cast_pip", true, false},            // ... and a hand warp's {U/R} pip asks one colour, not the blue the Freighter's grant cannot pay a hand cast with (CR 106.6)
@@ -407,6 +412,11 @@ func TestStdHobReprosLockstep(t *testing.T) {
 		// is paid from the plain {B} (a plain unit goes before a Treasure's).
 		{"floating_treasure_mana_unspent_by_cast", false, false},
 		{"floating_treasure_mana_unspent_by_cast_two", false, false}, // ... and An Unexpected Party's
+		// CR 601.2g, 602.2b: no plan pays Goblin Plate Mail's equip without
+		// Bolg's Company, so the activation is paid through the manual
+		// window, which activates it in its battlefield place and asks which
+		// of two Goblins to sacrifice
+		{"window_sacrifices_another_for_activation", false, false},
 	})
 }
 
@@ -428,7 +438,9 @@ func TestStdBigReprosLockstep(t *testing.T) {
 		{"granted_sac_mana_two_replacements", false, false},                 // CR 616.1, 602.2b: Lotus Ring's granted sacrifice mana, activated as the prefix with two Rest in Peace out, is asked which replacement applies and the script answers the first, so Oltec Matterweaver is exiled
 		{"granted_sac_mana_sba_ask_after", false, false},                    // CR 704.3, 616.1: the sacrificed Construct token's death leaves its sibling too small, and the check's own replacement ask is answered first by the script, so both tokens are exiled and cease
 		{"granted_sac_mana_offer_beside_trigger", false, false},             // CR 602.2b, 605.3a: with a trigger on the stack, the offer search of Esoteric Duplicator's {2} through Lotus Ring's granted sacrifice runs the sacrifice's replacement-order ask on its trial game, and the two sides agree on whether the activation is offered
-		{"prefix_search_skips_sacrificing_own_source", true, false},         // CR 602.2b: Lost Jitte's Equip {1} is paid by sacrificing the Bat token Lotus Ring equips, not by sacrificing the Jitte token itself (a prefix that removes the play's own source offers nothing)
+		{"prefix_search_skips_sacrificing_own_source", true, false},
+		{"granted_sac_beside_own_tap_counts_both", false, false},    // CR 602.2, 605.1a: Ancient Cornucopia equipped with Lotus Ring taps for its own mana and is then sacrificed for the Ring's three (no {T} in that cost), so Vaultborn Tyrant's seven is offered
+		{"sba_chain_tokens_wait_through_new_casualty", true, false}, // CR 704.3, 704.5d: combat casualties under two Rest in Peace are asked one by one; a creature that comes to die between the asks parks too, and the tokens already exiled by the earlier answers still wait for the pass that destroys nothing         // CR 602.2b: Lost Jitte's Equip {1} is paid by sacrificing the Bat token Lotus Ring equips, not by sacrificing the Jitte token itself (a prefix that removes the play's own source offers nothing)
 	})
 }
 
@@ -616,6 +628,10 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"equip_unattach_waits_for_legend_ask", true, false},    // CR 704.3, 704.5n: Magitek Scythe stays on Serah Farron, transformed beside another Crystallized Serah, until the legend answer
 		// CR 510.2, 301.7b, 608.2h: Blitzball's "dealt combat damage by a legendary creature" reads the crewed Prima Vista as the creature it was
 		{"blitzball_counts_crewed_legendary_vehicle", false, false},
+		// CR 614.1, 120.3: Lightning, Army of One's Stagger doubles damage to a
+		// permanent the player it hit controls, so Giott's regular-step hit on
+		// the blocking Matoya is doubled
+		{"stagger_doubles_damage_to_the_hit_players_permanent", false, false},
 		// CR 113.7a, 608.2h, 702.15b: Phoenix's chapter I, pending when the legend rule bins it, deals damage with the Phoenix's lifelink
 		{"delayed_trigger_departed_source_lifelink", false, false},
 		{"effect_lifelink_follows_source_controller", false, false},  // CR 702.15b: Phoenix's chapter damage, after Stiltzkin gave Phoenix away with the ability on the stack, gains life for Phoenix's controller
@@ -650,6 +666,10 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"choco_comet_x_witness_sacrifice_before_push", false, false},
 		// CR 601.2g, 603.3b: Choco-Comet's largest-X witness would sacrifice the Treasure into Al Bhed Salvagers' lethal drain before the cast, so gorge plans X=5 from the lands and keeps the Treasure
 		{"x_witness_lethal_sacrifice_trigger_keeps_treasure", false, false},
+		// CR 106.6, 601.2g: Sage's Nouliths' equip {3}, paid by Cargo Ship's
+		// floating artifact-only {C} beside two of A Realm Reborn's granted
+		// taps, passes the planner's relaxed proof: the pool counts
+		{"relaxed_proof_spends_floating_artifact_mana", false, false},
 	})
 }
 
@@ -868,6 +888,9 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		{"convoke_granted_impending_cast_plan_autopay_m0", true, false}, // the same at the other seat: two Overlords' impended casts priced without the granted convoke
 		{"convoke_granted_impending_cast_plan_autopay_m1", true, false}, // and the post-attack window with the Overlord already on the battlefield: the hand's impending cast is offered beside the empty pool
 		{"convoke_granted_impending_cast_menu", true, false},            // CR 702.176a, 702.51a: Overlord of the Mistmoors cast for its impending cost under Dazzling Theater's granted convoke poses the convoke announcement priced from the impending cost, as gorge's convoke ask does
+		// CR 303.4f: Meathook Massacre II returns Duskmourn's Domination under
+		// its controller, who is asked its host with the control already moved
+		{"gain_control_aura_return_host_ask_controller", false, false},
 	})
 }
 

@@ -9,15 +9,15 @@ import (
 // expansion (one AB$ whose tapXType<Any/...+withTotalPowerGE<N>> cost is
 // TapPowN / TapPowF), the Saddle body is OpSaddle, Card.Self+IsSaddled is
 // the F2Saddled flag, and Exhaust$ True is an activate-only-once limit. The
-// refused shapes: a card with two activate-only-once abilities (the kernel
-// keeps one bit per permanent), a Crewed trigger, the tapXType X form.
+// refused shapes: a Crewed trigger, the tapXType X form. A card with two or
+// three activate-only-once abilities lowers with ordinals
+// (TestOnceAbilityOrdinals).
 func TestAggregateTaps(t *testing.T) {
 	floors := map[string]int{"Sleek Schooner": 1, "Smuggler's Copter": 1, "Bridled Bighorn": 2, "Seraphic Steed": 4}
 	exhaust := map[string]bool{"Skystreak Engineer": true, "Rocketeer Boostbuggy": true}
 	refuse := map[string]string{
-		"Draconautics Engineer": "two activate-only-once",
-		"Speedway Fanatic":      "trigger mode Crewed",
-		"Burn at the Stake":     "tapXType<X/Creature>",
+		"Speedway Fanatic":  "trigger mode Crewed",
+		"Burn at the Stake": "tapXType<X/Creature>",
 	}
 	var names []string
 	for _, m := range []map[string]int{floors} {

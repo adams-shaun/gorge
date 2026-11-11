@@ -952,13 +952,21 @@ func (s *State) players(k *prep, r kop.Ref) seatSeq {
 // first-player reads).
 func (s *State) oneOpp(k *prep, r kop.Ref) uint8 {
 	e := &s.res.e
-	return s.oneOppOf(k, r, e.ctrl, e.obj)
+	if !s.res.active {
+		return s.oneOppOf(k, r, nil, e.ctrl, e.obj)
+	}
+	return s.oneOppOf(k, r, e, e.ctrl, e.obj)
 }
 
-// oneOppOf is oneOpp for controller ctrl and source obj.
-func (s *State) oneOppOf(k *prep, r kop.Ref, ctrl uint8, obj Obj) uint8 {
+// oneOppOf is oneOpp for entry e (nil: none), controller ctrl and source
+// obj. Past two seats an attack trigger's defending player is the one bound
+// as it was queued (defSeat), else the seat its attacking source attacks.
+func (s *State) oneOppOf(k *prep, r kop.Ref, e *stackEntry, ctrl uint8, obj Obj) uint8 {
 	if MaxSeats == 2 {
 		return NextSeat(ctrl)
+	}
+	if r == kop.RefDefendingPlayer && e != nil && e.kind == seTrigger && e.defSeat != 0 {
+		return e.defSeat - 1
 	}
 	if r == kop.RefDefendingPlayer && obj != NoObj {
 		if ob := &s.objs[obj]; ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].flags&pfAttacking != 0 {

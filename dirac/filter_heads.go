@@ -53,26 +53,21 @@ func (s *State) ctrlRoleF2(k *prep, f kop.FilterFlags2, ctrl uint8) bool {
 	return true
 }
 
-// defendingSeatF2 is the defending player of the current entry's Attacks
-// trigger past two seats (gorge TriggeredDefendingPlayer, CR 508.5): the seat
-// its attacker attacks, a planeswalker or battle naming its controller or
-// protector (atkSeat), read like enterDefenderFallback. gorge binds that
-// player when the trigger is queued; the kernel keeps no copy, so a read with
-// no entry (an IsPresent$ condition checked as the trigger fires), from any
-// other entry, or after the attacker has left combat stalls the game
-// (StallDefenderPW, a declared limit) and answers NoTarget, which matches no
-// seat.
+// defendingSeatF2 is the defending player of an Attacks trigger past two
+// seats (gorge TriggeredDefendingPlayer, CR 508.5), bound when the trigger is
+// queued: while the trigger fires (an IsPresent$ condition) it is the
+// checked event's seat (g.atkDef), afterwards the current entry's defSeat.
+// A read with neither stalls the game (StallDefenderPW, a declared limit)
+// and answers NoTarget, which matches no seat.
 func (s *State) defendingSeatF2(k *prep) uint8 {
 	if DebugDefendingActiveOpp {
 		return (s.active + 1) % s.nSeats() // seat-ok: a test-only mutation (DebugDefendingActiveOpp)
 	}
-	if e := s.curEntry(); e != nil && e.kind == seTrigger && e.ab < abCascade && e.trigObj != NoObj &&
-		k.t.Cards[e.card].Abilities[e.ab].Trig.Event == kop.TrigAttacks {
-		if ob := &s.objs[e.trigObj]; ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].flags&pfAttacking != 0 {
-			if q := s.atkSeat(k, ob.slot); q != NoTarget {
-				return q
-			}
-		}
+	if s.g.atkDef != 0 {
+		return s.g.atkDef - 1
+	}
+	if e := s.curEntry(); e != nil && e.kind == seTrigger && e.defSeat != 0 {
+		return e.defSeat - 1
 	}
 	s.capFull(StallDefenderPW)
 	return NoTarget

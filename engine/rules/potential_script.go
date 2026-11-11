@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -74,15 +75,76 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	if len(gaps) == 0 {
 		return nil, false
 	}
+	gaps = e.scriptSpendableGaps(p, o, gaps)
+	if len(gaps) == 0 {
+		return nil, false
+	}
 	a := decision.PotentialAction{Kind: o.Kind, Obj: o.Obj, Ability: o.Ability, Mode: o.Mode}
 	sr := e.newScriptSearch(p, a, o.AltCostIndex, potentialScriptNodes)
 	if sr == nil {
 		return nil, false
 	}
 	sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == "ability"
+	sr.instance, sr.instanced = o.Cost, o.Kind == "cast"
 	sr.passes = true
 	script, found := sr.run(e)
 	return script, found && len(script) > 0
+}
+
+// scriptSpendableGaps drops from gaps each source whose every mana ability
+// makes mana the play o cannot spend (CR 106.6): Mm'menon's granted
+// "{T}: Add {U}. Spend this mana only to cast a spell from anywhere other
+// than your hand" on an artifact, for a cast from the hand. Activating such a
+// source can only float mana the cast refuses, so a prefix through it pays
+// nothing the prefix without it does not; the search would spend its node
+// budget on those dead branches (and on the triggers their taps set off)
+// before reaching the source that pays. An activation is filtered the same
+// way (Lilysplash Mentor's {1}{G}{U} beside Frogs whose granted Clement mana
+// spends only on creature spells, with Hidden Grotto's filter the source that
+// pays). Only a plain cast of the printed cost or an activation's printed cost
+// is filtered; any other play keeps every gap.
+func (e *Engine) scriptSpendableGaps(p state.PlayerID, o decision.Option, gaps []state.ObjID) []state.ObjID {
+	if o.Mode != "" || o.AltCostIndex != 0 {
+		return gaps
+	}
+	var desc paymentDescriptor
+	switch o.Kind {
+	case "cast":
+		cost := e.castOfferBase(p, o.Obj)
+		desc = paymentDescriptor{ID: o.Obj, Class: pay.PurposeSpell, Cost: &cost}
+	case "ability":
+		desc = paymentDescriptor{ID: o.Obj, Class: pay.PurposeActivated}
+	default:
+		return gaps
+	}
+	var out []state.ObjID
+	for i, id := range gaps {
+		if e.gapSpendableFor(p, id, desc) {
+			if out != nil {
+				out = append(out, id)
+			}
+			continue
+		}
+		if out == nil {
+			out = append(make([]state.ObjID, 0, len(gaps)), gaps[:i]...)
+		}
+	}
+	if out == nil {
+		return gaps
+	}
+	return out
+}
+
+// gapSpendableFor reports whether one of id's mana abilities the census reads
+// (its own membership walk, which ignores the live pool so a filter's fee may
+// be funded later) makes mana desc's payment can spend.
+func (e *Engine) gapSpendableFor(p state.PlayerID, id state.ObjID, desc paymentDescriptor) bool {
+	for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
+		if valid := effects.ManaOf(ma).RestrictValid; valid == "" || pay.RestrictValidMatches(asPayer(e), p, desc, valid, id) {
+			return true
+		}
+	}
+	return false
 }
 
 // scriptSearch is the depth-first search behind potentialPrefixScript and
@@ -108,6 +170,13 @@ type scriptSearch struct {
 	// printedOnly: the play is a printed ability, and a granted one sharing its
 	// Ability is another option (only a printed ability reaches the planner).
 	printedOnly bool
+	// instance, when instanced, is the Option.Cost of the cast instance the
+	// play denotes: a printed flashback ("") or a further granted one (CR
+	// 702.34a, 113.2c). Each instance is its own permission with its own
+	// cost, so the cheaper granted instance appearing is not the printed
+	// play being offered.
+	instance  string
+	instanced bool
 	// nodePlans asks the planner at every payer priority node; unproven
 	// records a node verdict that was neither a witness nor a proof.
 	nodePlans bool
@@ -339,6 +408,9 @@ func (sr *scriptSearch) targetsGone(c *Engine) bool {
 func (sr *scriptSearch) offered(o *decision.Option) bool {
 	a := sr.play
 	if sr.printedOnly && (o.SVar != "" || o.GainedSource != 0) {
+		return false
+	}
+	if sr.instanced && o.Cost != sr.instance {
 		return false
 	}
 	return o.Kind == a.Kind && o.Obj == a.Obj && o.Ability == a.Ability && o.Mode == a.Mode && (sr.altCost < 0 || o.AltCostIndex == sr.altCost)

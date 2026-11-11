@@ -1,3 +1,13 @@
 # fx-msh: the unverified MSH cards, reach-limited first; enablers after the tab
 Agent Maria Hill	Atlantis Attacks;Cruel Alliance;Earth's Mightiest Heroes;Go Nuts!
 Ironheart, Clever Champion
+Spider-Woman, Secret Agent
+Armor Wars
+Hulkling, Burgeoning Bruiser
+Loki Laufeyson
+Shang-Chi, Master of Kung Fu
+Speed, Young Avenger
+The Astonishing Ant-Man
+The Serpent Society
+The Wondrous Wasp
+Wolverine, Fierce Fighter

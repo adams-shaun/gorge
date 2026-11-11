@@ -811,6 +811,11 @@ func (g *Game) fillTargetEffect(d *decision.Decision) {
 	activated := valid && (abs[card].Abilities[ab].Kind == kop.AbActivated || abs[card].Abilities[ab].Kind == kop.AbMana)
 	sa := g.buildingSA(card, ab)
 	g.chooseTargetEffect(d, card, sa)
+	// gorge's TargetEffect.Host: the object casting or activating, which the
+	// bot never adds past Min to an up-to removal of its own
+	if d.TargetEffect != nil && src != dirac.NoObj {
+		d.TargetEffect.Host = g.ids.obj(uint8(src))
+	}
 	// gorge's cast-time ask names no source for an activated ability, whose object
 	// is not yet minted, an Attach excepted
 	if activated && (d.TargetEffect == nil || d.TargetEffect.API != "Attach") {
