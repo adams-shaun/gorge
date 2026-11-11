@@ -67,6 +67,7 @@ func (s *State) multikickMax(k *prep) int {
 		return 0
 	}
 	var av avail
+	fromHand := s.castFromHandBy(e, e.ctrl)
 	fromSources := cd.Cost.X != 0
 	if fromSources {
 		// An {X} multikicked cast's oracle witness taps for the X too, so its
@@ -86,12 +87,23 @@ func (s *State) multikickMax(k *prep) int {
 				av.addUnits(1<<uint(c), n)
 			}
 		}
+		// a twobrid multikicker cost takes the delve credit per face (the
+		// affordsTb leaf, gorge FeasibleAny's delve argument); the plain
+		// generic credit is gateDelveCredit's below.
+		av.delve = s.tbDelveCredit(k, e.ctrl, e.card, e.obj, fromHand)
 	}
 	save := s.multikickCount(e)
 	max := 0
 	for n := 1; n <= maxMultikick; n++ {
 		s.setMultikick(e, n)
 		cost := s.buildCost(k)
+		// gorge countCandPayable takes the cast's delve credit before the
+		// mana gate, so a granted Delve (Teval) raises the payable count;
+		// the delve picks are announced after this ask, so the bound reads
+		// the whole graveyard, as gorge's does. K'rrik's PayLifeInsteadOf:B
+		// grant is no dirac static (kgen refuses it), so no life credit is
+		// folded here.
+		cost = s.gateDelveCredit(k, e.ctrl, e.card, e.obj, fromHand, cost)
 		if !av.affords(&cost, pipMaskOf(&cost), 0) {
 			break
 		}
