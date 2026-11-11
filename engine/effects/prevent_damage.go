@@ -193,21 +193,29 @@ func effPreventDamage(h Host, c *Ctx, sa *cards.SA) {
 			recs[i].share = total
 		}
 	}
+	// CombatDamage$ True ("prevent the next N combat damage ..."): the shield
+	// matches combat damage only (the registered replacement's IsCombat$ gate,
+	// which rules' shield match reads; Decorated Griffin).
+	combatOnly := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKCombatDamage)), "True")
 	for _, rec := range recs {
 		if rec.share <= 0 {
 			continue
 		}
+		params := map[string]string{
+			"PreventionShield":     "True",
+			"PreventionSubAbility": rider,
+		}
+		if combatOnly {
+			params["IsCombat"] = "True"
+		}
 		ce := state.ContinuousEffect{
 			Source: c.Source, Controller: c.Controller,
 			UntilEOT: true, Duration: "UntilEOT",
-			ReplacementEvent: "DamageDone",
-			ReplacementParams: map[string]string{
-				"PreventionShield":     "True",
-				"PreventionSubAbility": rider,
-			},
-			ReplacementBody: shieldBody,
-			ChosenNumber:    rec.share,
-			ShieldTargets:   riderObjs,
+			ReplacementEvent:  "DamageDone",
+			ReplacementParams: params,
+			ReplacementBody:   shieldBody,
+			ChosenNumber:      rec.share,
+			ShieldTargets:     riderObjs,
 			// Engine-runtime slices must never alias a Ctx's backing array
 			// (clone.go deep-copies the params map for the same reason).
 			ShieldTargetPlayers: append([]state.PlayerID(nil), riderPlayers...),

@@ -12,6 +12,7 @@ func TestPreventNextLowers(t *testing.T) {
 		{"any target", "A:SP$ PreventDamage | ValidTgts$ Any | Amount$ 3 | SpellDescription$ Probe."},
 		{"creature target", "A:SP$ PreventDamage | ValidTgts$ Creature | Amount$ 3 | SpellDescription$ Probe."},
 		{"you", "A:SP$ PreventDamage | Defined$ You | Amount$ 2 | SpellDescription$ Probe."},
+		{"combat only", "A:SP$ PreventDamage | Defined$ You | Amount$ 1 | CombatDamage$ True | SpellDescription$ Probe."},
 	} {
 		src := "Name:Probe Salve\nManaCost:W\nTypes:Instant\n" + tc.line + "\nOracle:Probe.\n"
 		c := lowerScriptCard(t, "Probe Salve", src)
@@ -24,6 +25,9 @@ func TestPreventNextLowers(t *testing.T) {
 			for _, in := range ab.Prog {
 				if in.Op == "PreventNext" {
 					n++
+					if want := tc.name == "combat only"; (in.C == 1) != want {
+						t.Errorf("%s: C = %d", tc.name, in.C)
+					}
 				}
 			}
 		}
@@ -39,7 +43,7 @@ func TestPreventNextRefusals(t *testing.T) {
 	for _, tc := range []struct{ line, want string }{
 		{"A:SP$ PreventDamage | ValidTgts$ Any | Amount$ 3 | PreventionSubAbility$ Rider | ShieldEffectTarget$ ParentTarget | SpellDescription$ Probe.", "PreventionSubAbility: a rider"},
 		{"A:SP$ PreventDamage | ValidTgts$ Creature | Amount$ 1 | Radiance$ True | SpellDescription$ Probe.", "Radiance"},
-		{"A:SP$ PreventDamage | Defined$ You | Amount$ 1 | CombatDamage$ True | SpellDescription$ Probe.", "CombatDamage: a combat-damage-only shield"},
+		{"A:SP$ PreventDamage | Defined$ You | Amount$ 1 | CombatDamage$ False | SpellDescription$ Probe.", "CombatDamage$ \"False\""},
 		{"A:SP$ PreventDamage | Defined$ Valid Creature & Player | Amount$ 1 | SpellDescription$ Probe.", "a set of recipients"},
 	} {
 		src := "Name:Probe Salve\nManaCost:W\nTypes:Instant\n" + tc.line + "\nOracle:Probe.\n"

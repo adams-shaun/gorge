@@ -49,6 +49,9 @@ func init() { stallNames[StallPrevNext] = "prevnext" }
 // source, col the damage left (0: spent), ctl the recipient's damage code.
 const prevNextSc uint8 = 1 << 7
 
+// prevNextCmb marks a depleting shield that matches combat damage only.
+const prevNextCmb uint8 = 1 << 6
+
 // DebugNoPrevNext (the prevent-the-next-N lockstep mutation): the shields are
 // installed but prevent nothing.
 var DebugNoPrevNext bool
@@ -78,6 +81,9 @@ func (s *State) prevNextAdd(k *prep, in *kop.Instr) {
 	for i := range s.g.prevCol {
 		if r := &s.g.prevCol[i]; r.col == 0 && r.sc == 0 {
 			r.obj, r.col, r.sc, r.ctl = s.res.e.obj, kop.ColorMask(n), prevNextSc, code
+			if in.C&1 != 0 {
+				r.sc |= prevNextCmb
+			}
 			return
 		}
 	}
@@ -102,7 +108,7 @@ func (s *State) pnxLive() bool {
 func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code, rcp uint8, sl Slot, combat bool, n int) (int, bool) {
 	hit, at := 0, -1
 	for i := range s.g.prevCol {
-		if r := &s.g.prevCol[i]; r.sc&prevNextSc != 0 && r.col != 0 && r.ctl == code {
+		if r := &s.g.prevCol[i]; r.sc&prevNextSc != 0 && r.col != 0 && r.ctl == code && (combat || r.sc&prevNextCmb == 0) {
 			hit++
 			at = i
 		}
@@ -189,7 +195,7 @@ func (s *State) prevNextCands(k *prep, code uint8, combat bool, cand *[4]Obj, c 
 	}
 	start := c
 	for i := range s.g.prevCol {
-		if r := &s.g.prevCol[i]; r.sc&prevNextSc != 0 && r.col != 0 && r.ctl == code {
+		if r := &s.g.prevCol[i]; r.sc&prevNextSc != 0 && r.col != 0 && r.ctl == code && (combat || r.sc&prevNextCmb == 0) {
 			if c == len(cand) {
 				s.capFull(StallReplCands) // loud: never truncate the candidates
 				return -1

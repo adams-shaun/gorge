@@ -18,7 +18,7 @@ var kprevnextDecks = [2][]cardset.Entry{
 	{
 		{Name: "Healing Salve", Count: 4}, {Name: "Alabaster Potion", Count: 3}, {Name: "Battlefield Medic", Count: 3},
 		{Name: "Combat Medic", Count: 3}, {Name: "Mending Hands", Count: 2}, {Name: "Esper Battlemage", Count: 2},
-		{Name: "Withstand", Count: 2}, {Name: "Hold at Bay", Count: 1}, {Name: "Alabaster Wall", Count: 2},
+		{Name: "Withstand", Count: 2}, {Name: "Hold at Bay", Count: 1}, {Name: "Alabaster Wall", Count: 1}, {Name: "Decorated Griffin", Count: 1},
 		{Name: "Savannah Lions", Count: 4}, {Name: "Serra Angel", Count: 2}, {Name: "Plains", Count: 12},
 	},
 	{
@@ -43,7 +43,7 @@ var kprevnextBurnDecks = [2][]cardset.Entry{
 
 // kprevnextShapeDecks spreads the shapes: tap, mana, life, sacrifice, discard and
 // pay-life costs, a trigger (Dawnfluke), artifacts, a land, a creature-only target
-// and the legendary / artifact filters.
+// the legendary / artifact filters and a combat-only shield.
 var kprevnextShapeDecks = [2][]cardset.Entry{
 	{
 		{Name: "Abuna Acolyte", Count: 1}, {Name: "Amulet of Kroog", Count: 1}, {Name: "Atalya, Samite Master", Count: 1},
@@ -55,7 +55,7 @@ var kprevnextShapeDecks = [2][]cardset.Entry{
 		{Name: "Militant Monk", Count: 1}, {Name: "Orim's Touch", Count: 1}, {Name: "Daru Healer", Count: 1},
 		{Name: "Master Healer", Count: 1}, {Name: "Revered Elder", Count: 1}, {Name: "Samite Healer", Count: 1},
 		{Name: "Troubled Healer", Count: 1}, {Name: "Argivian Blacksmith", Count: 1}, {Name: "Eiganjo Castle", Count: 1},
-		{Name: "Oasis", Count: 1}, {Name: "Plains", Count: 12},
+		{Name: "Oasis", Count: 1}, {Name: "Decorated Griffin", Count: 1}, {Name: "Plains", Count: 11},
 	},
 	kprevnextDecks[1],
 }

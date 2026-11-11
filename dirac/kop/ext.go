@@ -728,7 +728,8 @@ func init() { extOpNames[ExtCopyExiledWith] = "CopyExiledWith" }
 // this turn to the player or permanent Obj (gorge effects/prevent_damage.go
 // effPreventDamage: one this-turn DamageDone shield per recipient that
 // prevents only the next N damage, depletes across events and lets the rest
-// through). B is the amount, read once as the effect resolves; a recipient
+// through). B is the amount, read once as the effect resolves; C 1: the shield
+// matches combat damage only (CombatDamage$ True); a recipient
 // that is not on the battlefield (or a player who has lost) takes no shield,
 // and an amount of zero or less installs nothing. A record is a recipient
 // code and the damage it has left in genState.pnx (eight a turn; a ninth

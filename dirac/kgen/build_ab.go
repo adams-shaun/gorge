@@ -4043,12 +4043,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "PreventDamageScope":
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventDamageScope)), int16(in.C)
 	case "PreventNext":
-		// OpExt ExtPreventNext on Obj, B the amount (dirac/repl_prevnext.go)
+		// OpExt ExtPreventNext on Obj, B the amount, C 1 for combat damage only (dirac/repl_prevnext.go)
 		v, err := cb.value(in.A)
 		if err != nil {
 			return ki, err
 		}
-		ki.Op, ki.A, ki.B = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), v
+		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), v, int16(in.C&1)
 	case "CounterPlusEOT":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCounterPlusEOT))
 	case "TurnRepl":

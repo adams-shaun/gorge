@@ -295,6 +295,9 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 	// would let unrelated remembered state widen the promise. A shield with
 	// neither list (unreachable from the registering primitive) fails closed.
 	if strings.EqualFold(strings.TrimSpace(r.ParamStr(cards.PKPreventionShield)), "True") {
+		if strings.EqualFold(strings.TrimSpace(r.ParamStr(cards.PKIsCombat)), "True") && !e.combatDamaging {
+			return false // a combat-damage-only shield (CombatDamage$ True)
+		}
 		if ev.Obj != 0 {
 			for _, id := range remembered {
 				if id == ev.Obj {

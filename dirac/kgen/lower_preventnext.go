@@ -1,5 +1,7 @@
 package kgen
 
+import "strings"
+
 // api PreventDamage (CR 615.7; gorge effects/prevent_damage.go
 // effPreventDamage) as OpExt ExtPreventNext: "prevent the next N damage that
 // would be dealt to <one recipient> this turn". The recipient is the ability's
@@ -11,9 +13,8 @@ package kgen
 // Shapes the kernel has no record for stay refused, each with its true reason
 // (the refusal class is still api:PreventDamage): a divided total over any
 // number of targets, a set of recipients (Defined$ Valid ..., Radiance), a
-// random recipient, a rider run per application, and CombatDamage$ True
-// (gorge's effPreventDamage does not read it: the shield it installs prevents
-// noncombat damage too, which the card does not say).
+// random recipient and a rider run per application. CombatDamage$ True is a
+// shield that matches combat damage only (C 1; Decorated Griffin).
 func (lc *lowerCtx) preventNext(ps *params) error {
 	for _, k := range []struct{ key, why string }{
 		{"DividedAsYouChoose", "a total divided among any number of targets"},
@@ -22,7 +23,6 @@ func (lc *lowerCtx) preventNext(ps *params) error {
 		{"Radiance", "a shield for every creature sharing a colour with the target"},
 		{"Random", "a random recipient"},
 		{"PreventionSubAbility", "a rider run at each application"},
-		{"CombatDamage", "a combat-damage-only shield (gorge installs no such filter)"},
 	} {
 		if _, ok := ps.m[k.key]; ok {
 			return refuse("api PreventDamage: %s: %s", k.key, k.why)
@@ -37,6 +37,13 @@ func (lc *lowerCtx) preventNext(ps *params) error {
 			return refuse("api PreventDamage: Defined$ %q is a set of recipients", d)
 		}
 	}
+	combat := 0
+	if v, ok := ps.get("CombatDamage"); ok {
+		if strings.TrimSpace(v) != "True" {
+			return refuse("api PreventDamage: CombatDamage$ %q", v)
+		}
+		combat = 1
+	}
 	n, err := lc.amount(ps, "Amount", 0)
 	if err != nil {
 		return err
@@ -48,6 +55,6 @@ func (lc *lowerCtx) preventNext(ps *params) error {
 	if obj.Kind != rTarget && obj.Kind != rYou && obj.Kind != rSelf {
 		return refuse("api PreventDamage: recipient %s", obj)
 	}
-	lc.emit(lInstr{Op: "PreventNext", Obj: obj, A: n, Note: "prevent the next A damage that would be dealt to Obj this turn"})
+	lc.emit(lInstr{Op: "PreventNext", Obj: obj, A: n, C: combat, Note: "prevent the next A damage that would be dealt to Obj this turn"})
 	return nil
 }
