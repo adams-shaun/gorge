@@ -209,10 +209,11 @@ func fill(t *testing.T, v reflect.Value) {
 // rulesOnly names the rules.Config fields game.Config does not carry, and why
 // each is safe to leave out.
 var rulesOnly = map[string]string{
-	"PlanarDecks": "no host table plays Planechase",
-	"NamedCorpus": "the oracle harness's own corpus",
-	"Spare":       "a batch runner's recycled storage",
-	"LoopGuard":   "derived from GuardDisabled and NoObjectCap",
+	"PlanarDecks":    "no host table plays Planechase",
+	"NamedCorpus":    "the oracle harness's own corpus",
+	"Spare":          "a batch runner's recycled storage",
+	"LoopGuard":      "derived from GuardDisabled and NoObjectCap",
+	"CommanderCasts": "an oracle scenario's restated commander tax",
 }
 
 // gameOnly names the game.Config fields with no rules.Config counterpart.
