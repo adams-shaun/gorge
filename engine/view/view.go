@@ -246,7 +246,9 @@ type PlayerView struct {
 	// instead. Hand is a hidden zone under CR 400.2 and is gated on "is this
 	// the viewer's own seat", widened by CR 720.4 to a seat the viewer
 	// controls (you may look at all cards that player could see), unlike Pool
-	// (next field), which is public.
+	// (next field), which is public. Another seat's Hand lists only the cards
+	// a live reveal grant shows (Telepathy), and HandSize still carries the
+	// count.
 	Hand        []CardView `json:"hand"`
 	Battlefield []CardView `json:"battlefield"`
 	Graveyard   []CardView `json:"graveyard"`
@@ -765,6 +767,12 @@ func projectInto(dst *View, g *state.Game, ch Chars, viewer state.PlayerID, d *d
 				pv.Hand = pr.cardViews(prev.Hand, nil, seatCosts, p.ID, false, &m.alsoVisible)
 			} else {
 				pv.Hand = pr.cardViews(prev.Hand, g.Zone(state.ZHand, p.ID), seatCosts, p.ID, false, &m.alsoVisible)
+			}
+		default:
+			// Another seat's hand lists only the cards a live reveal grant
+			// shows every seat (Telepathy; CR 400.2); nil when none.
+			if !noLists && !pr.hideHand && pr.handRevealer != nil {
+				pv.Hand = pr.revealedHandViews(prev.Hand, g.Zone(state.ZHand, p.ID), p.ID, &m.alsoVisible)
 			}
 		}
 		// The library CONTENTS are the viewer's own seat only (CR 400.2),
