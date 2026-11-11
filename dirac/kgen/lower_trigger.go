@@ -1610,7 +1610,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// (checkBlocksTriggers); the kernel's remembered set is empty
 		return refuse("Blocks trigger body reads Remembered")
 	}
-	if tr.ByCreature && lc.saReadsRemembered(t.Effect) {
+	if tr.ByCreature && lc.byCreatureReadsRemembered(t.Effect) {
 		// gorge seeds the pair's other member as Remembered
 		// (queueAttackerBlockedTrigger); the kernel's remembered set is empty
 		return refuse("AttackerBlockedByCreature trigger body reads Remembered")
@@ -3948,6 +3948,30 @@ func (lc *lowerCtx) cloneEnterCounterRider(ps *params, sa *cards.SA) error {
 		return refuse("ETB copy chained rider cleanup unread params %v", left)
 	}
 	return nil
+}
+
+// byCreatureReadsRemembered is saReadsRemembered for an
+// AttackerBlockedByCreature body, minus the spellings that name the pair
+// member without reading the trigger's remembered set: a delayed trigger's
+// RememberObjects$ Triggered{Attacker,Blocker}[LKICopy] (delayedStepRemember
+// binds the object at registration, Deathgazer's destroy at end of combat)
+// and the delayed body's Defined$ DelayTriggerRememberedLKI.
+func (lc *lowerCtx) byCreatureReadsRemembered(sa *cards.SA) bool {
+	strip := strings.NewReplacer(
+		"RememberObjects$ TriggeredAttackerLKICopy", "", "RememberObjects$ TriggeredBlockerLKICopy", "",
+		"RememberObjects$ TriggeredAttacker", "", "RememberObjects$ TriggeredBlocker", "",
+		"DelayTriggerRememberedLKI", "")
+	for ; sa != nil; sa = sa.Sub {
+		if strings.Contains(strip.Replace(sa.Line), "Remember") {
+			return true
+		}
+	}
+	for _, v := range lc.face.SVars {
+		if strings.Contains(strip.Replace(v), "Remember") {
+			return true
+		}
+	}
+	return false
 }
 
 // saReadsRemembered reports whether an ability chain (or any SVar of the
