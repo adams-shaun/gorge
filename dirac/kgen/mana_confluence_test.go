@@ -11,7 +11,7 @@ import (
 // cost; a second mana ability beside it, a restriction or a fee still refuses.
 func TestSoleLifeTapMana(t *testing.T) {
 	const head = "Name:Life Probe\nManaCost:no cost\nTypes:Land\n"
-	def, rs := kwardpowBuild(t, "Life Probe", head+"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ Any | Amount$ 1 | SpellDescription$ Add one mana of any color.\n")
+	def, rs := kwardpowBuild(t, "Life Probe", head+"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ Any | Amount$ 1 | SpellDescription$ x.\n")
 	if len(rs) != 0 {
 		t.Fatalf("Mana Confluence's shape refused: %v", rs)
 	}

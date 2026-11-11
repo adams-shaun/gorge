@@ -242,7 +242,8 @@ func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 	if s.g.availX&availWin != 0 {
 		// an unless / ward window's affordability: gorge's shared census
 		// (windowManaUnitsWith) lists a painland by its normal ability alone
-		// and a pain-only source by its colour, with no lethal guard
+		// and a pain-only source by its colour, with no lethal guard (a
+		// paid-life one, Mana Confluence, is painAvailMaskAt's)
 		if pc.painOnly {
 			return uint8(pc.painCol) & 0x3f
 		}
@@ -256,6 +257,36 @@ func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 		m |= uint8(pc.painCol) & 0x3f
 	}
 	return m
+}
+
+// painAvailMaskAt is painAvailMask for the source at sl. An unless / ward
+// window counts a paid-life pain-only source (Mana Confluence) through gorge's
+// paid-cost layer (appendPaidManaUnits, paidCostShape): in battlefield order,
+// each source counts only while the life the earlier counted ones commit and
+// its own leave the payer alive (life - committed > cost).
+func (s *State) painAvailMaskAt(k *prep, sl Slot, pc *pcard, p uint8) uint8 {
+	if s.g.availX&availWin == 0 || !pc.painOnly || !pc.painLife {
+		return s.painAvailMask(pc, p)
+	}
+	committed := 0
+	for m := s.ctrlM[p]; m.any(); m = m.rest() {
+		x := m.first()
+		xp := s.manaPCAt(k, x)
+		if !xp.painOnly || !xp.painLife || !s.canTapForManaPC(k, x, xp) {
+			continue
+		}
+		ok := int(s.pl[p].life)-committed > int(xp.painN)
+		if x == sl {
+			if !ok {
+				return 0
+			}
+			break
+		}
+		if ok {
+			committed += int(xp.painN)
+		}
+	}
+	return s.painAvailMask(pc, p)
 }
 
 // painUnit registers pain source sl (pcs index i) in a last-resort phase:
