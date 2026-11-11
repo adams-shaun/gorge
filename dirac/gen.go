@@ -105,6 +105,7 @@ type genPrep struct {
 	anyProwessGrant bool // some Continuous static grants prowess: onCast counts one trigger per static (kw_prowess.go)
 
 	anyMinBlk                bool // a card has a printed MinMaxBlocker floor (CardDef.MinBlockers; combat.go)
+	anyExtraBlock            bool // a card has a printed CardDef.ExtraBlocks (combat_extrablock.go)
 	anyUntapOther            bool // a card has a StatUntapOther static (static_untapother.go)
 	anyTapExtra              bool // a card has a StatTapExtra static (mana_tapextra.go)
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
@@ -276,6 +277,7 @@ type genPrep struct {
 	anyCombatHit   bool           // some card records its combat hits on players (cdRec) or some expression reads the legendary-hit bit (value_turntallies.go)
 	cdLegOn        bool           // some expression is ExOppsLostLife N 1: record cdLeg
 	anyAddPhase    bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
+	anySkipPhase   bool           // some program is ExtSkipPhase (act_skipphase.go)
 	anyAttackedObj bool           // the table gives mechAttackedObj an arena mask: finishAttacks marks the declared attackers
 	anySuspect     bool           // the table gives mechSuspected an arena mask (act_suspect.go)
 	anySacSub      bool           // some ExRefCount is a Sacrificed$Valid type read (N 1): snapLKI captures the subtype set (value_countheads.go, zone_lki.go)
@@ -358,9 +360,13 @@ type genPrep struct {
 	// anyManaRider: some card has a counter-rider mana ability (mana_rider.go); it sets anyTapsDefer too
 	anyManaRider bool
 	// anySelfTaps: some card has a lowered self Taps watcher (TfSelf). kgen
-	// lowers one only on a card with no printed mana ability, so it can only
-	// defer a granted mana ability's tap (act_waterbend.go windowCensusComplete).
+	// lowers one on a card with a printed mana ability only as the vetted
+	// "deals N damage to you" line (TapPlanPain, City of Brass: priced, never a
+	// gap), so any other can only defer a granted mana ability's tap
+	// (act_waterbend.go windowCensusComplete).
 	anySelfTaps bool
+	// anyDiscHand: some card carries gfDiscHand (mana_discardhand.go).
+	anyDiscHand bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
 	// a potential play's scripted prefix (script_gen.go)
@@ -839,6 +845,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.MinBlockers != 0 {
 			g.anyMinBlk = true
 		}
+		if c.ExtraBlocks != 0 {
+			g.anyExtraBlock = true
+		}
 		if c.HasMadness {
 			g.anyMadness = true
 		}
@@ -1156,6 +1165,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfDeferred|gfGapOther)
 					g.anyDeferred, g.anyRestrScript, g.anyWindowGap = true, true, true
 				}
+				if kop.DiscardHandManaAb(a) {
+					g.setFlag(CardID(i), gfDiscHand) // a prefix-search gap alone, never a planner unit (mana_discardhand.go)
+					g.anyDiscHand = true
+				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).eachCol = int8(j)
 					g.setFlag(CardID(i), gfEachCol)
@@ -1446,6 +1459,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepPermMark(g)          // filter_permmarks.go; reads g.ix
 	prepTurnTallies(t, p, g) // value_turntallies.go; reads g.ix
 	prepAddPhase(t, g)       // act_addphase.go
+	prepSkipPhase(t, g)      // act_skipphase.go
 	prepAirbend(t, g)
 	prepMayWhileSrc(t, g) // cast_whilesource.go
 	prepInit(t, g)        // act_initiative.go
@@ -1610,6 +1624,10 @@ type xTargets struct {
 // genState is the generated-table part of State.
 type genState struct {
 	graveKept bool // removePerm: this move to a graveyard takes no "from anywhere" redirect
+	// cskip: the combat-phase skips (act_skipphase.go). Bit p: player p skips the
+	// combat phases of their next turn; bit 4+p: player p is skipping the combat
+	// phases of the turn being played. Fills the padding byte after graveKept.
+	cskip     uint8
 	fx        [maxFx]fxRec
 	nfx       uint8
 	xtp       [maxXTPool]xTargets // stackEntry.xi - 1 indexes it

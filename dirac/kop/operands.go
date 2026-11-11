@@ -3,12 +3,16 @@ package kop
 // C of an ExtAddPhase: the extra phase's kind (ExtraPhase$ Combat,
 // Upkeep, End of Turn) in bits 0-1, its splice point (AfterPhase$, the LAST
 // step of the named phase, a Step) in bits 4-7. The omitted AfterPhase$ (the
-// step the grant resolves in) is not lowered: its carrier, Full Throttle,
-// stays refused for its Effect.
+// step the grant resolves in) lowers only as AddPhaseCombatMain; its other
+// carrier, Full Throttle, stays refused for its Effect.
 const (
 	AddPhaseCombat = 0 // BeginCombat..EndCombat
 	AddPhaseUpkeep = 1 // Upkeep alone
 	AddPhaseEnd    = 2 // End alone
+	// AddPhaseCombatMain: an extra combat followed by an additional main phase
+	// (FollowedBy$ Main2, Relentless Assault). The splice point is the main
+	// phase the grant resolves in; the nibble is ignored.
+	AddPhaseCombatMain = 3
 )
 
 // AtEOT$ on a ChangeZoneAll sweep onto the battlefield.
@@ -59,6 +63,13 @@ const MayGuardStackSpell = 9
 // OpPutCounter whose Defined target is live (a dead source has no slot), else
 // nothing is asked and the counter is not put.
 const MayGuardPut = 10
+
+// MayGuardMoveRemembered: the OpMayAsk guard of an optional move of the card a
+// looking Peek remembered, from the library (Into the Wilds; gorge
+// moveDefinedLibraryObjects' Optional$ ask over a Defined$ Remembered fetch):
+// the next op's Obj is an object, else (an empty remembered set) nothing is
+// asked and the move is skipped.
+const MayGuardMoveRemembered = 11
 
 // MayGuardAnimateAll: the OpMayAsk guard of Animate over Defined$ Valid: the
 // next op is an OpOverrideAll whose F has at least one battlefield hit (gorge
@@ -245,6 +256,14 @@ const (
 	SrShareLandType = 1 << 9  // OpSearchEx only: ShareLandType$ True -- every found card shares a land type with the others, so a later pick is offered only the cards sharing a printed subtype with every earlier one (gorge rules.validateSearch through effects.SharedLandTypes; kgen lowers it only over a basic-land filter). Read from the instruction's B, never ORed into pickF
 	SrAltOrigin     = 1 << 4  // OpSearchEx only (bits 4..11 are OpChooseMove's entry counter kind, unread on a library search): OriginAlternative$ -- the searcher first elects which of the library and the alternative zone to search (gorge originAlternativeZones), the pool is the elected zones' cards (library first), the shuffle is owed only when the library was elected. B bits 5..7 (SrAltZoneShift) hold the alternative zone (Graveyard or Hand); SrAltGraveHand there names the Graveyard,Hand pair, so the election offers three zones; read from the instruction, never ORed into pickF
 )
+
+// SrAltAll (OpSearchEx with SrAltOrigin only): the zone election is settled
+// as every zone before the pick, nobody is asked -- ChangeZone Origin$
+// Library,Graveyard with no OriginAlternative$ (gorge originAlternativeZones
+// returns the parsed zones unchanged), so the pool is the library then the
+// graveyard and the shuffle is owed (Journey for the Elixir). B bit 3 also
+// lands in pickF as SrGameGrave, which only an OpChooseMove reads.
+const SrAltAll = 1 << 3
 
 // SrAltZoneShift is the shift of SrAltOrigin's alternative zone in B.N.
 const SrAltZoneShift = 5

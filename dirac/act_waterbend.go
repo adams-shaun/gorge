@@ -680,6 +680,7 @@ func (s *State) selfTapsDefer(k *prep, sl Slot) bool {
 	for j := range cd.Abilities {
 		a := &cd.Abilities[j]
 		if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Flags&kop.TfSelf != 0 &&
+			a.Trig.TapPlan != kop.TapPlanPain && // (the vetted self damage, City of Brass: a priced last-resort source, not a gap)
 			a.AFlags&kop.AfLatent == 0 &&
 			(a.Trig.Zone == kop.ZoneNone || a.Trig.Zone == kop.ZoneBattlefield) {
 			return true

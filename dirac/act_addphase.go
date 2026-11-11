@@ -24,8 +24,22 @@ import (
 // place. A fifth distinct entry is a loud stall.
 //
 // xph[i].at: bits 0-3 the splice point (a Step), bits 4-5 the kind
-// (kop.AddPhaseCombat/Upkeep/End), bit 6 a phase of this entry is running.
-// xph[i].n: the grants of the entry still pending.
+// (kop.AddPhaseCombat/Upkeep/End/CombatMain), bit 6 a phase of this entry is
+// running, bit 7 (CombatMain only) the entry's additional main phase is the
+// one running. xph[i].n: the grants of the entry still pending.
+//
+// kop.AddPhaseCombatMain (FollowedBy$ Main2, Relentless Assault): an extra
+// combat followed by an additional main phase, splice point the main phase it
+// resolves in. Cast in the second main phase the combat resumes at that main
+// phase and the ordinary walk takes the end step after it. Cast in the first,
+// gorge (extraPhaseBoundary, followedByMainBeforeCombat) splices the main
+// phase as a one-step grant that resumes at the ordinary combat; here the
+// entry stays queued with bit 7 set for the main phase and resumes at its
+// splice point's successor. The kind holds the queue to its own entry: any
+// other grant beside it, a grant outside a main phase, or n > 1 is a loud
+// StallLowering (the interleavings of gorge's scan are not reproduced; an
+// unmodelled rule, not a capacity limit). StallAddPhase is the queue's
+// capacity alone.
 //
 // The walk is advance's alone (as gorge's is advanceStep's tail): the jumps
 // outside it (declare attackers with no attacker, regular combat damage to
@@ -35,7 +49,8 @@ import (
 
 const (
 	xphConsumed = 1 << 6
-	xphAtMask   = 0x3f // splice point and kind
+	xphFollow   = 1 << 7 // a CombatMain entry past its combat: its additional main phase is the one running
+	xphAtMask   = 0x3f   // splice point and kind
 )
 
 // StallAddPhase: a fifth distinct pending extra-phase entry, or a run of more
@@ -94,8 +109,11 @@ func addPhaseEntry(kind uint8) kop.Step {
 	return kop.StepBeginCombat
 }
 
-func addPhaseEnd(kind uint8) kop.Step {
-	switch kind {
+func addPhaseEnd(at uint8) kop.Step {
+	if at&xphFollow != 0 {
+		return kop.StepMain2
+	}
+	switch at >> 4 & 3 {
 	case kop.AddPhaseUpkeep:
 		return kop.StepUpkeep
 	case kop.AddPhaseEnd:
@@ -113,6 +131,22 @@ func (s *State) addPhaseGrant(k *prep, in *kop.Instr) {
 	}
 	at := uint8(in.C>>4)&15 | uint8(in.C&3)<<4
 	g := &s.g
+	if in.C&3 == kop.AddPhaseCombatMain {
+		// the splice point is the step the grant resolves in, a main phase
+		// (the lowering's ConditionPhases$ gate keeps it there)
+		at = uint8(s.step) | kop.AddPhaseCombatMain<<4
+		if s.step != kop.StepMain1 && s.step != kop.StepMain2 || g.nxph > 0 || n > 1 {
+			s.capFull(StallLowering) // an interleaving gorge's scan plays that the kernel does not reproduce: not a capacity limit
+			return
+		}
+	} else {
+		for i := 0; i < int(g.nxph); i++ {
+			if g.xph[i].at>>4&3 == kop.AddPhaseCombatMain {
+				s.capFull(StallLowering) // another grant beside a CombatMain entry: unmodelled, not a capacity limit
+				return
+			}
+		}
+	}
 	if g.nxph > 0 && g.xph[g.nxph-1].at == at {
 		e := &g.xph[g.nxph-1]
 		if t := int(e.n) + n; t <= 255 {
@@ -143,14 +177,24 @@ func (s *State) addPhaseNext(next kop.Step) kop.Step {
 	}
 	g := &s.g
 	completed := false
-	var compAfter, resume kop.Step
+	var compAfter, resume, forced kop.Step
 	for i := 0; i < int(g.nxph); {
 		e := &g.xph[i]
-		if e.at&xphConsumed != 0 && addPhaseEnd(e.at>>4&3) == leaving {
+		if e.at&xphConsumed != 0 && addPhaseEnd(e.at) == leaving {
 			compAfter = kop.Step(e.at & 15)
 			resume = compAfter + 1
 			if DebugAddPhaseResumeWrong {
 				resume = leaving + 1
+			}
+			if e.at>>4&3 == kop.AddPhaseCombatMain && e.at&xphFollow == 0 {
+				if compAfter == kop.StepMain1 {
+					// the additional main phase before the ordinary combat
+					e.at |= xphFollow
+					forced = kop.StepMain2
+					i++
+					continue
+				}
+				resume = kop.StepMain2
 			}
 			completed = true
 			e.at &^= xphConsumed
@@ -163,8 +207,11 @@ func (s *State) addPhaseNext(next kop.Step) kop.Step {
 		}
 		i++
 	}
-	found := false
-	for i := int(g.nxph) - 1; i >= 0; i-- {
+	found := forced != 0
+	if found {
+		next = forced
+	}
+	for i := int(g.nxph) - 1; i >= 0 && !found; i-- {
 		e := &g.xph[i]
 		sp := kop.Step(e.at & 15)
 		if e.n == 0 || sp != leaving && !(completed && sp == compAfter) {
@@ -182,6 +229,7 @@ func (s *State) addPhaseNext(next kop.Step) kop.Step {
 	if !found && completed && resume <= kop.StepCleanup {
 		next = resume
 	}
+	next = s.skipCombatNext(next)
 	switch next {
 	case kop.StepBeginCombat:
 		if g.phCnt&15 < 15 {

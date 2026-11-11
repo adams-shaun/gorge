@@ -206,17 +206,11 @@ func (s *State) ctrlUncombat(sl Slot) {
 	if p.flags&pfAttacking != 0 {
 		s.nAttackers--
 		for m := s.occ; m.any(); m = m.rest() {
-			if q := m.first(); s.perms[q].blocking == sl {
-				s.perms[q].blocking = NoSlot
-				s.touchSl(q)
-			}
+			s.forgetBlocked(m.first(), sl)
 		}
 	}
-	if p.flags&pfBlocking != 0 && p.blocking != NoSlot {
-		if a := &s.perms[p.blocking]; a.nblock > 0 {
-			a.nblock--
-			s.touchSl(p.blocking)
-		}
+	if p.flags&pfBlocking != 0 {
+		s.releaseBlocked(sl)
 	}
 	p.flags &^= pfAttacking | pfBlocking | pfBlocked
 	p.blocking = NoSlot

@@ -1,0 +1,15 @@
+# An UntapOtherPlayer static whose ValidCard$ reads a +1/+1 counter on the
+# controller's own creatures (Ivorytusk Fortress): those creatures untap
+# during each other player's untap step too, after the active player's
+# untap action (gorge finishUntapStep). Battlegrowth puts the counters on;
+# decks play it in dirac/oracle/ivorytusk_test.go.
+Ivorytusk Fortress
+Battlegrowth
+Grizzly Bears
+Llanowar Elves
+Hill Giant
+Shock
+Forest
+Plains
+Swamp
+Mountain

@@ -16,7 +16,7 @@ func TestGorgeKwMapping(t *testing.T) {
 		{"Flying", kop.KwFlying}, {"First Strike", kop.KwFirstStrike}, {"Ward:2", kop.KwWard},
 		{"Kicker:1 G", kop.KwKicker}, {"Flashback:3 R", kop.KwFlashback}, {"Hexproof:Instant", kop.KwHexproofFromInstants},
 		{"Protection from red", kop.KwProtRed}, {"Equip:1", 0}, {"Enchant:Creature", 0}, {"Cycling:2", 0}, {"TypeCycling:Basic:1 R", 0},
-		{"Job select", 0}, {"Battle cry", 0}, {"Gift", 0},
+		{"Job select", 0}, {"Battle cry", 0}, {"Gift", 0}, {"Annihilator:2", 0},
 	} {
 		got, ok := gorgeKw(c.kw)
 		if !ok || got != c.want {
@@ -25,7 +25,7 @@ func TestGorgeKwMapping(t *testing.T) {
 	}
 	// a gorge keyword with no kernel bit is a projection error, never a
 	// silent drop
-	for _, kw := range []string{"Annihilator:2", "Rampage:2", "Flanking"} {
+	for _, kw := range []string{"Rampage:2", "Flanking"} {
 		if _, ok := gorgeKw(kw); ok {
 			t.Errorf("gorgeKw(%q) mapped; want an error", kw)
 		}

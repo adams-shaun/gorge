@@ -224,6 +224,19 @@ type ExtraTurn struct {
 	SkipUntap bool
 }
 
+// Game.PhaseSkips bits (events.SkipPhase, CR 614.10): the seat's combat
+// phases are skipped from its next turn (pending) through that turn (live).
+const (
+	SkipCombatPending uint8 = 1 << iota
+	SkipCombatLive
+)
+
+// CombatSkipped reports whether seat skips every combat phase of the turn it
+// is taking now.
+func (g *Game) CombatSkipped(seat PlayerID) bool {
+	return g.PhaseSkips[seat]&SkipCombatLive != 0
+}
+
 // ExtraPhase is one pending Forge AddPhaseEffect grant (DB$ AddPhase: "after
 // this phase, there is an additional combat phase", 56 corpus SA lines). It
 // is deliberately a queue entry, like ExtraTurn: several grants can be
@@ -390,6 +403,11 @@ type Game struct {
 	ExtraTurns map[PlayerID]int
 	// SkipTurns counts each player's pending skipped turns, folded from SkipTurn events.
 	SkipTurns map[PlayerID]int
+	// PhaseSkips is each player's CR 614.10 combat-phase skip, folded from
+	// SkipPhase events (False Peace): SkipCombatPending from the grant until the
+	// player's next turn begins, SkipCombatLive for that whole turn. Nil when no
+	// skip was ever granted.
+	PhaseSkips map[PlayerID]uint8
 	// ExtraTurnQueue is the ORDERED pending extra turns, in creation order:
 	// one entry per un-consumed ExtraTurn grant (+Amount event), appended on
 	// the grant and removed (the seat's LAST entry) on the -1 consumption.
@@ -1114,6 +1132,12 @@ func (g *Game) CloneIntoDirty(objs []Object, dirty int) *Game {
 		c.SkipTurns = make(map[PlayerID]int, len(g.SkipTurns))
 		for p, n := range g.SkipTurns {
 			c.SkipTurns[p] = n
+		}
+	}
+	if g.PhaseSkips != nil {
+		c.PhaseSkips = make(map[PlayerID]uint8, len(g.PhaseSkips))
+		for p, n := range g.PhaseSkips {
+			c.PhaseSkips[p] = n
 		}
 	}
 	if g.ExtraTurns != nil {

@@ -179,11 +179,13 @@ var gorgeKwElsewhere = map[string]string{
 	"MustBlock":                         "CardDef.MustBeBlocked (CR 509.1c; compared through the block options and Done, combat_mustbeblocked.go)",
 	"CARDNAME must be blocked if able.": "the arena mark mechMustBlocked an Animate's HiddenKeywords$ sets (ExtMustBeBlocked; compared through the block options and Done)",
 	"HIDDEN CARDNAME must be blocked if able.": "the arena mark mechMustBlocked a Pump / PumpAll KW$ sets (ExtMustBeBlocked; compared through the block options and Done)",
-	"Hideaway":   "its ETB trigger (OpExt ExtHideaway; the keyword has no other rules effect)",
-	"Backup":     "gorge kwBackup's expansion: an ETB trigger putting a +1/+1 counter and granting the attack trigger (kgen lowers the expansion's nodes; animgb_test.go), no battlefield characteristic",
-	"Job select": "gorge kwJobSelect's expansion: an enters trigger making a 1/1 Hero token and attaching the Equipment to it (kgen lowers the expansion's nodes; compared through the stack, the token and the attachment), no battlefield characteristic",
-	"Battle cry": "gorge kwBattleCry's expansion: an Attacks trigger pumping the other attackers (kgen lowers the expansion's nodes; compared through the stack and the attackers' power), no battlefield characteristic",
-	"Gift":       "CardDef.Gift (a cast-time promise and its GiftAbility; compared through the gift election and the stack; kw_gift.go), no battlefield characteristic",
+	"Hideaway":          "its ETB trigger (OpExt ExtHideaway; the keyword has no other rules effect)",
+	"Backup":            "gorge kwBackup's expansion: an ETB trigger putting a +1/+1 counter and granting the attack trigger (kgen lowers the expansion's nodes; animgb_test.go), no battlefield characteristic",
+	"Job select":        "gorge kwJobSelect's expansion: an enters trigger making a 1/1 Hero token and attaching the Equipment to it (kgen lowers the expansion's nodes; compared through the stack, the token and the attachment), no battlefield characteristic",
+	"Battle cry":        "gorge kwBattleCry's expansion: an Attacks trigger pumping the other attackers (kgen lowers the expansion's nodes; compared through the stack and the attackers' power), no battlefield characteristic",
+	"Cumulative upkeep": "gorge kwCumulativeUpkeep's expansion: an upkeep trigger putting an age counter and charging the generic cost once per counter, else sacrificing (ExtCumulative, dirac/trig_cumulative.go; compared through the age counters, the pay and decline options and the sacrifice), no battlefield characteristic",
+	"Annihilator":       "gorge kwAnnihilator's expansion: an Attacks trigger making the defending player sacrifice N permanents (kgen lowers the expansion's node, Annihilator$ N as the Sacrifice count; compared through the stack and the sacrifice choice), no battlefield characteristic",
+	"Gift":              "CardDef.Gift (a cast-time promise and its GiftAbility; compared through the gift election and the stack; kw_gift.go), no battlefield characteristic",
 }
 
 // gorgeKw maps one gorge keyword to its kernel bit. ok is false for a

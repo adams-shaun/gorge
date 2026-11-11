@@ -169,16 +169,10 @@ func (s *State) phaseOut(k *prep, sl Slot, indirect bool) {
 		}
 	}
 	for m := s.occ; m.any(); m = m.rest() {
-		q := m.first()
-		qp := &s.perms[q]
-		if qp.blocking == sl {
-			qp.blocking = NoSlot
-			s.touchSl(q)
-		}
-		if p.flags&pfBlocking != 0 && p.blocking == q && qp.nblock > 0 {
-			qp.nblock--
-			s.touchSl(q)
-		}
+		s.forgetBlocked(m.first(), sl)
+	}
+	if p.flags&pfBlocking != 0 {
+		s.releaseBlocked(sl)
 	}
 	p.flags &^= pfAttacking | pfBlocking | pfBlocked | pfDealtFirst
 	p.blocking, p.nblock = NoSlot, 0

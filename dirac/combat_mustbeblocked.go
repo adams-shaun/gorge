@@ -159,7 +159,7 @@ func (m *mbSearch) mbInit(s *State, k *prep, lure, mb, duty slotMask, xb, xa Slo
 	}
 	for bm := s.ctrlM[def]; bm.any(); bm = bm.rest() {
 		b := bm.first()
-		if p := &s.perms[b]; p.flags&pfBlocking != 0 && (m.lure.has(p.blocking) || m.duty.has(b)) {
+		if p := &s.perms[b]; p.flags&pfBlocking != 0 && (m.lure.has(p.blocking) || m.lure.has(s.xblkOf(b)) || m.duty.has(b)) {
 			score++ // a lure duty blocker blocking a lure attacker, or a duty blocker blocking
 		}
 		if p := &s.perms[b]; p.flags&pfBlocking != 0 || b == xb {

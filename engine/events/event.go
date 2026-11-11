@@ -1340,10 +1340,18 @@ const (
 	// ManaAbilityActivation so every earlier ordinal, hash chain and golden
 	// replay is unchanged.
 	ExileTurnFaceUp
+	// SkipPhase arms a CR 614.10 phase skip (Forge DB$ SkipPhase, False Peace's
+	// "target player skips all combat phases of their next turn"): Player is
+	// the skipping seat and Step the phase's first step (StepBeginCombat, the
+	// only phase modelled). Apply folds it into state.Game.PhaseSkips, where it
+	// waits for the seat's next turn; the TurnChange fold makes it live for that
+	// turn and drops it at the turn after. Appended after ExileTurnFaceUp so
+	// every earlier ordinal, hash chain and golden replay is unchanged.
+	SkipPhase
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(ExileTurnFaceUp) + 1
+	NumKinds = int(SkipPhase) + 1
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving

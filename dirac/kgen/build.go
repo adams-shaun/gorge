@@ -382,6 +382,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"WISH":       kop.CtrWish,       // Wishclaw Talisman's named counter (CR 122.1)
 	"SKEWER":     kop.CtrSkewer,     // Rotisserie Elemental's named counter (CR 122.1)
 	"NEST":       kop.CtrNest,       // Twitching Doll's named counter (CR 122.1)
+	"AGE":        kop.CtrAge,        // cumulative upkeep's age counter (CR 702.24a; Mystic Remora)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -835,6 +836,7 @@ func (cb *cardBuilder) record() error {
 	d.TapPowerCrew = int8(c.TapPowerCrew)
 	d.TapPowerSaddle = int8(c.TapPowerSaddle)
 	d.MinBlockers = uint8(c.MinBlockers)
+	d.ExtraBlocks = uint8(c.ExtraBlocks)
 	d.Lure = c.Lure
 	d.MustBeBlocked = c.MustBeBlocked
 	d.Daybound, d.Nightbound = c.Daybound, c.Nightbound

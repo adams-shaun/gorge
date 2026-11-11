@@ -32,6 +32,20 @@ func (s *State) optMoveAsks(k *prep, in, next *kop.Instr) bool {
 	return false
 }
 
+// optMoveRememberedAsks is optMoveAsks for the card the resolution remembered
+// out of the library (Into the Wilds' looked-at top card): gorge's Defined$
+// library fetch (moveDefinedLibraryObjects) poses its one confirmation whenever
+// the remembered set names an object, and consumes an empty set unasked, so the
+// move is skipped as a "no" would skip it. The Return's Origin$ check then
+// stops an object that is no longer in the library.
+func (s *State) optMoveRememberedAsks(k *prep, in, next *kop.Instr) bool {
+	if s.objRefObj(next.Obj) != NoObj {
+		return true
+	}
+	s.res.pc += uint8(s.value(k, in.A))
+	return false
+}
+
 // An optional ChooseCard among the looked-at library cards (Thunderous
 // Debut's "reveal up to two creature cards from among them"): the
 // instruction has C = chooseLibUpTo, A = the window (the preceding Peek's
