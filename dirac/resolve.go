@@ -335,6 +335,13 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 
 func (s *State) resolveWard(k *prep) {
 	e := &s.res.e
+	if wardIsGrantedLife(e.trigAmt) {
+		// a granted ward--pay N life: N sits in the low byte beside the grant
+		// bits; the printed life ward's path charges it
+		e.trigAmt = -int16(e.trigAmt & 0xff)
+		s.resolveWardLife(k)
+		return
+	}
 	if wardIsGranted(e.trigAmt) {
 		e.trigAmt &^= wardGrantedBits
 	}

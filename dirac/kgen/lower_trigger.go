@@ -1624,6 +1624,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 
 // lowerStatic lowers an S: line.
 func (lc *lowerCtx) lowerStatic(s cards.Static) error {
+	if s.Mode == "FlipCoinMod" {
+		return lc.flipCoinModStatic(s) // lower_turnfacts.go
+	}
 	if s.Mode == "TapPowerValue" {
 		return lc.tapPowerValueStatic(s) // lower_hiddenpick.go
 	}
@@ -2027,6 +2030,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		}
 		if st.Cost.Forage != nil || st.Cost.ExileG != nil || st.Cost.Energy != 0 || st.Cost.Return != nil {
 			return nil, refuse("alternative cost with a forage / exile-from-graveyard part")
+		}
+	case "Activations":
+		if err := activationLimitStatic(s, sp, &st); err != nil {
+			return nil, err
 		}
 	case "Panharmonicon":
 		// gorge panharmoniconEchoes: a battlefield static whose ValidCard$
@@ -2464,7 +2471,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		if aff == "You" {
 			return nil, refuse("player keyword")
 		}
-		rest, ward, err := splitWardGrant(k)
+		rest, ward, wardLife, err := splitWardGrant(k)
 		if err != nil {
 			return nil, err
 		}
@@ -2514,12 +2521,14 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			}
 			st.Grant = append(st.Grant, idx)
 		}
-		if ward > 0 {
-			// CR 702.21a: a granted ward {N} (Sheltered by Ghosts' Aura,
-			// Coppercoat Vanguard's anthem): the KwWard bit plus the static's
-			// own amount (kop.Static.Ward; kernel kw_ward.go)
+		if ward > 0 || wardLife > 0 {
+			// CR 702.21a: a granted ward {N} or ward—pay N life (Sheltered by
+			// Ghosts' Aura, Coppercoat Vanguard's anthem): the KwWard bit plus
+			// the static's own amount (kop.Static.Ward / WardLife; kernel
+			// kw_ward.go)
 			st.Kw = append(st.Kw, "Ward")
 			st.Ward = ward
+			st.WardLife = wardLife
 		}
 	}
 	if t, ok := sp.get("AddType"); ok {
@@ -4046,13 +4055,13 @@ func (lc *lowerCtx) transformedSecondaryConflict(t cards.Trigger) bool {
 	return false
 }
 
-// splitWardGrant takes a Continuous static's "Ward:N" term (one, N a
-// literal mana amount) out of an AddKeyword$ list: the rest of the list and
-// N (0: none). A ward with another cost (life, a non-mana part) or two ward
-// terms are refused.
-func splitWardGrant(kw string) (string, int, error) {
+// splitWardGrant takes a Continuous static's "Ward:N" or "Ward:PayLife<N>"
+// term (one) out of an AddKeyword$ list: the rest of the list and the mana N
+// or life N (0: none). A ward with another cost or two ward terms are
+// refused.
+func splitWardGrant(kw string) (string, int, int, error) {
 	var rest []string
-	ward := 0
+	ward, wardLife := 0, 0
 	for _, k := range strings.Split(kw, "&") {
 		k = strings.TrimSpace(k)
 		v, ok := strings.CutPrefix(k, "Ward:")
@@ -4060,13 +4069,25 @@ func splitWardGrant(kw string) (string, int, error) {
 			rest = append(rest, k)
 			continue
 		}
+		if life, ok := strings.CutPrefix(v, "PayLife<"); ok {
+			body, ok := strings.CutSuffix(life, ">")
+			if !ok {
+				return "", 0, 0, refuse("keyword %q", k)
+			}
+			n, err := strconv.Atoi(body)
+			if err != nil || n < 1 || n > 255 || ward != 0 || wardLife != 0 {
+				return "", 0, 0, refuse("keyword %q", k)
+			}
+			wardLife = n
+			continue
+		}
 		n, err := strconv.Atoi(v)
-		if err != nil || n < 1 || n > 255 || ward != 0 {
-			return "", 0, refuse("keyword %q", k)
+		if err != nil || n < 1 || n > 255 || ward != 0 || wardLife != 0 {
+			return "", 0, 0, refuse("keyword %q", k)
 		}
 		ward = n
 	}
-	return strings.Join(rest, " & "), ward, nil
+	return strings.Join(rest, " & "), ward, wardLife, nil
 }
 
 // removeAnyCounterN parses `RemoveAnyCounter<N/Any/Creature>` for N in 1..255

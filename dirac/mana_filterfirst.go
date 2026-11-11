@@ -84,7 +84,7 @@ func (s *State) filtUsable(k *prep, sl Slot) bool {
 	if s.genLost(k, sl) || k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 		return false
 	}
-	if a := s.filtAb(k, sl); a.Cost.Flags&kop.CostOncePerGame != 0 && s.onceUsed(k, sl, a) {
+	if a := s.filtAb(k, sl); a.Cost.Flags&kop.CostOncePerGame != 0 && s.onceBlocked(k, sl, a) {
 		return false
 	}
 	pm := &s.perms[sl]

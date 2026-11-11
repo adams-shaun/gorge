@@ -12,5 +12,10 @@ func (lc *lowerCtx) thisTurnActivatedValue(spec string) (lValue, error) {
 	if spec == "Activated.YouCtrl+inZoneGraveyard" {
 		return lValue{Kind: vThisTurnActGrave}, nil
 	}
-	return lValue{}, refuse("other:count ThisTurnActivated %q: only Activated.YouCtrl+inZoneGraveyard is lowered", spec)
+	if spec == "Activated.Exhaust+YouCtrl" {
+		// Elvish Refueler's this turn's Exhaust activations, read by its
+		// Activations static's LT1 gate (dirac/static_turnbits.go).
+		return lValue{Kind: vThisTurnActExhaust}, nil
+	}
+	return lValue{}, refuse("other:count ThisTurnActivated %q: only Activated.YouCtrl+inZoneGraveyard and Activated.Exhaust+YouCtrl are lowered", spec)
 }

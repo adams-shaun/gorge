@@ -622,6 +622,9 @@ func (s *State) newTurnGen() {
 	clear(s.cold.castRing)
 	s.g.actRing = [MaxSeats][actRingN]uint8{}
 	s.g.actN = [MaxSeats]uint8{}
+	if k := s.k(); k.gen != nil && k.gen.anyTurnF {
+		s.g.turnF = 0 // coin flips and Exhaust activations end with the turn (static_turnbits.go)
+	}
 	s.g.spent = [MaxSeats]uint16{}
 	if k := s.k(); k.gen != nil && k.gen.anyGameOnce {
 		s.keepGameOnce() // GameActivationLimit records outlive the turn (trig_params.go)

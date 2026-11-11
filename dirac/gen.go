@@ -50,6 +50,7 @@ type genPrep struct {
 	fxNeed          uint8 // CR 613 layer walk triggers (static_layerwalk.go fxNeed* bits); 0: the fixed-order code
 	enteredNeed     bool  // some expression reads the ring
 	actRingOn       bool  // some expression reads the ring (ExThisTurnActGrave): the activation push records it
+	anyTurnF        bool  // some table reads this turn's per-player coin-flip or Exhaust-activation bits (genState.turnF; static_turnbits.go)
 	castTapOn       bool  // castRingOn, or some card carries a Tf2ManaFromSelf reader: the planner's tap sites record a Treasure or observed source (noteTapSrc)
 	anyManaHaste    bool  // some mana ability carries a ManaHasteValid rider (mana_spentrider.go)
 	castRingOn      bool  // some expression reads the ring (ExThisTurnCastSpec): the push records it
@@ -702,6 +703,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyMaxBlk = tableHasStatic(t, kop.StatMaxBlockers)
 	g.anyUntapOther = tableHasStatic(t, kop.StatUntapOther)
 	g.anyTapExtra = tableHasStatic(t, kop.StatTapExtra) || p.manaEach // an all-at-once source's own extra (mana_eachcolour.go)
+	g.anyTurnF = tableHasStatic(t, kop.StatFlipCoinMod) || tableHasStatic(t, kop.StatActivationLimit)
+	for i := range t.Exprs {
+		if t.Exprs[i].Kind == kop.ExThisTurnActExhaust {
+			g.anyTurnF = true // a standalone Count$ThisTurnActivated exhaust reader records the bit too (static_turnbits.go)
+		}
+	}
 	g.anyDisETB = tableHasStatic(t, kop.StatDisableETB)
 	g.anyCantGain = tableHasStatic(t, kop.StatCantGainLife)
 	g.anyCantDraw = tableHasStatic(t, kop.StatCantDraw)
@@ -1063,7 +1070,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatReduceAbility:
 					g.anyAbReduce = true
 				case kop.StatContinuous:
-					if a.Static.Ward != 0 {
+					if a.Static.Ward != 0 || a.Static.WardLife != 0 {
 						g.anyWardGrant = true
 					}
 					if a.Static.Kw&kop.KwProwess != 0 {
@@ -1981,7 +1988,11 @@ type genState struct {
 	// ExTgtSpent after the counter removed the target's stack entry (EOE
 	// Unravel; gorge targetManaSpentLKI).
 	tgtSpent uint8
-	rsv      [rsvN]uint8
+	// turnF: per player this turn's facts (static_turnbits.go). Bit p: player p
+	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bits
+	// 4-7 are free. Cleared at the turn change. Taken from rsv.
+	turnF uint8
+	rsv   [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
 	embX [MaxSeats][maxEmb][embRemSlots - 2]uint8
 	// atkDef is the defending seat + 1 of the attack event whose triggers are
@@ -1993,12 +2004,13 @@ type genState struct {
 }
 
 const (
-	maxImp = 16
+	maxImp     = 16
+	turnFBytes = 1 // genState.turnF, taken from rsv
 	// rsvN pads the reserved block to 80 bytes (genState's tail padding
 	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
 	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
 	// keeps its phase.
-	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2)-1)
+	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2)-1-turnFBytes)
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).

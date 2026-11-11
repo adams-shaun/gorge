@@ -8,10 +8,11 @@ import (
 
 // triggeredTargetCtrl rewrites the filter word "ControlledBy
 // TriggeredTarget" (gorge controlReferentPlayers: the trigger's target
-// player) to OppCtrl inside a combat-damage-to-a-player trigger whose
-// source is the controller's own (Self or YouCtrl): two-player, the player
-// such a creature deals combat damage to is the controller's opponent.
-// Anywhere else the word is left for the parser to refuse.
+// player) to trigPlayerCtrlWord (kop.PredTrigPlayerCtrl: the trigger
+// entry's trigger player, the damaged seat at any seat count, dirac
+// dmgSeat) inside a combat-damage-to-a-player trigger whose source is the
+// controller's own (Self or YouCtrl). Anywhere else the word is left for
+// the parser to refuse.
 func (lc *lowerCtx) triggeredTargetCtrl(expr string) string {
 	const word = "ControlledBy TriggeredTarget"
 	if !strings.Contains(expr, word) || lc.ab == nil || lc.ab.Trigger == nil {
@@ -24,9 +25,21 @@ func (lc *lowerCtx) triggeredTargetCtrl(expr string) string {
 	if c := t.F.Clauses[0]; c.Flags&fSelf == 0 && c.Ctrl != whoYou {
 		return expr
 	}
-	lc.twoSeat("ControlledBy TriggeredTarget read as OppCtrl")
-	return strings.ReplaceAll(expr, word, "OppCtrl")
+	for _, alt := range strings.Split(expr, ",") {
+		typ, rest, ok := strings.Cut(strings.TrimSpace(alt), ".")
+		if !ok || rest != word || strings.ContainsAny(typ, "+_ ") || typ == "Card" {
+			// the predicate is the clause's one comparison, read on the
+			// battlefield: any other shape keeps the two-player reading
+			lc.twoSeat("ControlledBy TriggeredTarget read as OppCtrl")
+			return strings.ReplaceAll(expr, word, "OppCtrl")
+		}
+	}
+	return strings.ReplaceAll(expr, word, trigPlayerCtrlWord)
 }
+
+// trigPlayerCtrlWord is the filter word triggeredTargetCtrl writes: kgen's
+// own spelling, no Forge property.
+const trigPlayerCtrlWord = "kgenTrigPlayerCtrl"
 
 // sameNameT0Filter is Maelstrom Pulse's DestroyAll ValidCards$
 // "TargetedCard.Self,Permanent.NotDefinedTargeted+sharesNameWith Targeted"
@@ -182,4 +195,44 @@ func (lc *lowerCtx) referentGate(expr string) error {
 		return refuse("filter %q: AttachedTo Targeted beside the node's own target", expr)
 	}
 	return nil
+}
+
+// targetedPlayerView reads a ThisTargetedPlayer$Valid spec, whose "You" is
+// the targeted player (gorge evalPlayerRefProperty), as that player's
+// battlefield at any seat count: a YouCtrl clause becomes the
+// TargetedPlayerCtrl role (kop.F2TgtPlayerCtrl: the controller is a player
+// target of the resolving entry), a clause with no controller stays. It is
+// exact when the entry has the one player slot, as the entry's other targets
+// are objects. nil means the spec reads another role (an opponent of the
+// targeted player, an owner, a source-relative word) or the ability has a
+// second player slot, and the caller keeps the
+// one-opponent view, which marks the card for the one-opponent game.
+func (lc *lowerCtx) targetedPlayerView(f *lFilter) *lFilter {
+	if f == nil || f.Players != 0 || len(f.Clauses) == 0 {
+		return nil
+	}
+	players := 0
+	for _, t := range lc.ab.Targets {
+		if t.F != nil && t.F.Players != 0 {
+			players++
+		}
+	}
+	if players != 1 {
+		return nil
+	}
+	out := &lFilter{}
+	for _, c := range f.Clauses {
+		if c.Flags != 0 || c.CmpX != "" || c.Owner != whoAny {
+			return nil
+		}
+		switch c.Ctrl {
+		case whoAny:
+		case whoYou:
+			c.Ctrl = whoTgtPlayer
+		default:
+			return nil
+		}
+		out.Clauses = append(out.Clauses, c)
+	}
+	return out
 }

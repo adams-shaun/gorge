@@ -429,7 +429,6 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		// gorge count_ref_property.go:727: the TargetedPlayer ref; Valid <spec>
 		// counts the targeted player's battlefield with that player as You.
 		// Two-player that is the opponent's only for an opponents-only slot.
-		lc.twoSeat("the targeted player's battlefield read as the opponent's")
 		spec, ok := strings.CutPrefix(rest, "Valid ")
 		t := lc.lastTarget()
 		if !ok || t < 0 {
@@ -442,6 +441,13 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		if ferr != nil {
 			return lValue{}, ferr
 		}
+		// the entry's one player slot: the targeted player's own battlefield
+		// at any seat count; else the one opponent, a two-seat read
+		if tv := lc.targetedPlayerView(f); tv != nil {
+			v = lValue{Kind: vCount, F: tv}
+			break
+		}
+		lc.twoSeat("the targeted player's battlefield read as the opponent's")
 		if f, err = opponentView(f); err == nil {
 			v = lValue{Kind: vCount, F: f}
 		}

@@ -164,10 +164,11 @@ func tgtSetLIR(t lTarget) string {
 // damaged player, or a damaged object's controller; the same predicate is
 // rechecked on resolution (rules/stack.go, CR 608.2b). Only a DamageDone /
 // DamageDealtOnce trigger whose recipient filter is exactly "an opponent"
-// (ValidTarget$ Opponent) is read: in the kernel's two-player game the
-// damaged recipient is then always the one opponent, so "controlled by
-// TriggeredTarget" is exactly "controlled by an opponent", and the kernel's
-// slot filter (rechecked on resolution) carries it. Anything else refuses.
+// (ValidTarget$ Opponent) is read: the slot reads an opponent's permanent
+// whose controller is the damaged seat (OppCtrl with
+// kop.PredTrigPlayerCtrl, the trigger entry's trigger player at any seat
+// count), and the kernel's slot filter (rechecked on resolution) carries
+// it. Anything else refuses.
 func (lc *lowerCtx) tgtCtrlTriggeredTarget(t *lTarget) error {
 	tr := (*lTrigger)(nil)
 	if lc.ab != nil {
@@ -193,8 +194,10 @@ func (lc *lowerCtx) tgtCtrlTriggeredTarget(t *lTarget) error {
 		if err := c.setWho(&c.Ctrl, whoOpp); err != nil {
 			return err
 		}
+		if err := c.setCmp(cmpTrigPlayerCtrl, 0, 0, "", ""); err != nil {
+			return refuse("TargetsWithDefinedController$ TriggeredTarget: %v", err)
+		}
 	}
-	lc.twoSeat("TargetsWithDefinedController$ TriggeredTarget read as OppCtrl")
 	t.F = &nf
 	return nil
 }

@@ -13,7 +13,7 @@ import (
 var handmoveformsCarriers = map[string]struct{ form, lir string }{
 	"Aboshan, Cephalid Emperor": {"api:TapAll ValidCards$ (OpTapAll)", "TapAll F={types=0x2 WithoutFlying}"},
 	"Ashmouth Hound":            {"Mode$ AttackerBlockedByCreature, both anchors (Tf2PerPair)", "pairs anchor-blocker=true"},
-	"Bottle of Suleiman":        {"api:FlipCoin, Win and Lose branches", "RollDie A=2 B=0 // flip a coin: 1 heads (win), 2 tails\n     1 SkipIf if=Value(op3,RollResult,1) skip=1"},
+	"Bottle of Suleiman":        {"api:FlipCoin, Win and Lose branches", "RollDie A=2 B=0 C=1 // flip a coin: 1 heads (win), 2 tails\n     1 SkipIf if=Value(op3,RollResult,1) skip=1"},
 	"Balduvian Rage":            {"DelayedTrigger Phase$ Upkeep NextTurn$ (kop.DelayUpkeep)", "DelayedTrigger C=1 CS=NextUpkeep"},
 	"Peek":                      {"api:RevealHand (Look$: gorge's look_ack, OpLookAck)", "F={players=3} unique=false same=false diff=false divided=0 spell=false\n     0 LookAck obj=Target0 // look at the hand\n     1 Draw obj=You A=1"},
 	"Brittle Effigy":            {"cost Exile<1/CARDNAME> (CostExileSelf)", "ExileSelf"},

@@ -134,31 +134,32 @@ const (
 	cmpToughness
 	cmpHasX // the printed mana cost has {X} (hasXCost; no operator)
 	cmpPowerLTToughness
-	cmpMultiColor    // MultiColor: two or more colours (no operator)
-	cmpHistoric      // Historic: artifact, legendary or Saga (no operator)
-	cmpEquipped      // equipped: an Equipment is attached (no operator)
-	cmpEnchanted     // enchanted: an Aura is attached (no operator)
-	cmpHasKw         // with<Keyword>: has keyword bit CmpN (no operator)
-	cmpAttached      // Attached: attached to a permanent (no operator)
-	cmpActiveCtrl    // ActivePlayerCtrl: the active player controls it (no operator)
-	cmpModified      // modified: a counter, an Equipment, or an Aura its controller controls (no operator)
-	cmpHasCounters   // HasCounters: any counter, internal markers included (no operator)
-	cmpMonstrous     // IsMonstrous: the CR 701.37b monstrous designation (no operator)
-	cmpNoCounters    // !HasCounters: no counter at all (no operator)
-	cmpLacksKw       // !with<Keyword>: lacks keyword bit CmpN (no operator)
-	cmpOutlaw        // Outlaw (CmpN 0) / !Outlaw (CmpN 1): an Assassin, Mercenary, Pirate, Rogue or Warlock (no operator)
-	cmpMonoColor     // MonoColor: exactly one colour (no operator)
-	cmpSameNameT0    // target 0 or a permanent sharing its name (Maelstrom Pulse)
-	cmpTotalPT       // totalPT_<op><n>: power plus toughness (Cut Down)
-	cmpBlocked       // blocked: attacking with a blocker recorded (no operator; Tactical Advantage)
-	cmpSolved        // IsSolved (CmpN 1) / !IsSolved (CmpN 0): a Case's solved designation
-	cmpAdventureCard // AdventureCard: an adventurer card, every zone (no operator)
-	cmpSuspected     // IsSuspected (CmpN 1) / !IsSuspected (CmpN 0): the CR 701.60 suspected designation
-	cmpExiledWith    // ExiledWithSource (CmpN 0) / Defined$ ExiledWith (CmpN 1): exiled with the reading source (no operator)
-	cmpWasCast       // wasCast / !wasCast / wasCastFromGraveyard read as the permanent enters from its own spell (CmpN: wasCast* origin | wasCastNot, origin 3 = wasCastFromYourGraveyard; no operator)
-	cmpWasCastSpell  // wasCastFromYourHand[ByYou] / !wasCastFromYourHand / wasCastFromExile / CastSa Spell.MayPlaySource (or wasCast beside them) read on a spell on the stack (CmpN: spell* origin | spellNot; no operator)
-	cmpPermMark      // attackedThisTurn / dealtDamageThisTurn / dealtDamagetoAny / dealtCombatDamagetoAny, with or without ! (CmpN: kop.PermMark* | kop.PermMarkNot; no operator)
-	cmpTriggerObj    // the resolving trigger's object, wherever it is now (ChooseFromDefined$ TriggeredCards; kernel isTriggerObj; no operator)
+	cmpMultiColor     // MultiColor: two or more colours (no operator)
+	cmpHistoric       // Historic: artifact, legendary or Saga (no operator)
+	cmpEquipped       // equipped: an Equipment is attached (no operator)
+	cmpEnchanted      // enchanted: an Aura is attached (no operator)
+	cmpHasKw          // with<Keyword>: has keyword bit CmpN (no operator)
+	cmpAttached       // Attached: attached to a permanent (no operator)
+	cmpActiveCtrl     // ActivePlayerCtrl: the active player controls it (no operator)
+	cmpModified       // modified: a counter, an Equipment, or an Aura its controller controls (no operator)
+	cmpHasCounters    // HasCounters: any counter, internal markers included (no operator)
+	cmpTrigPlayerCtrl // the trigger's damaged player controls it (kop.PredTrigPlayerCtrl; no operator)
+	cmpMonstrous      // IsMonstrous: the CR 701.37b monstrous designation (no operator)
+	cmpNoCounters     // !HasCounters: no counter at all (no operator)
+	cmpLacksKw        // !with<Keyword>: lacks keyword bit CmpN (no operator)
+	cmpOutlaw         // Outlaw (CmpN 0) / !Outlaw (CmpN 1): an Assassin, Mercenary, Pirate, Rogue or Warlock (no operator)
+	cmpMonoColor      // MonoColor: exactly one colour (no operator)
+	cmpSameNameT0     // target 0 or a permanent sharing its name (Maelstrom Pulse)
+	cmpTotalPT        // totalPT_<op><n>: power plus toughness (Cut Down)
+	cmpBlocked        // blocked: attacking with a blocker recorded (no operator; Tactical Advantage)
+	cmpSolved         // IsSolved (CmpN 1) / !IsSolved (CmpN 0): a Case's solved designation
+	cmpAdventureCard  // AdventureCard: an adventurer card, every zone (no operator)
+	cmpSuspected      // IsSuspected (CmpN 1) / !IsSuspected (CmpN 0): the CR 701.60 suspected designation
+	cmpExiledWith     // ExiledWithSource (CmpN 0) / Defined$ ExiledWith (CmpN 1): exiled with the reading source (no operator)
+	cmpWasCast        // wasCast / !wasCast / wasCastFromGraveyard read as the permanent enters from its own spell (CmpN: wasCast* origin | wasCastNot, origin 3 = wasCastFromYourGraveyard; no operator)
+	cmpWasCastSpell   // wasCastFromYourHand[ByYou] / !wasCastFromYourHand / wasCastFromExile / CastSa Spell.MayPlaySource (or wasCast beside them) read on a spell on the stack (CmpN: spell* origin | spellNot; no operator)
+	cmpPermMark       // attackedThisTurn / dealtDamageThisTurn / dealtDamagetoAny / dealtCombatDamagetoAny, with or without ! (CmpN: kop.PermMark* | kop.PermMarkNot; no operator)
+	cmpTriggerObj     // the resolving trigger's object, wherever it is now (ChooseFromDefined$ TriggeredCards; kernel isTriggerObj; no operator)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -726,6 +727,10 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 	case "Attached":
 		// gorge objectAttachedToSource: the candidate is attached to the source
 		return c.setCmp(cmpAttached, 0, 0, "", "")
+	case trigPlayerCtrlWord:
+		// triggeredTargetCtrl's rewrite of ControlledBy TriggeredTarget in a
+		// damage-to-a-player trigger: the damaged player controls it
+		return c.setCmp(cmpTrigPlayerCtrl, 0, 0, "", "")
 	case "ActivePlayerCtrl", "ControlledBy Player.Active":
 		// gorge wordActivePlayerCtrl: its controller is the active player
 		return c.setCmp(cmpActiveCtrl, 0, 0, "", "")

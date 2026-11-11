@@ -251,6 +251,9 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if isCastKind(a.Kind()) && a.Mode()&castMayPlay == 0 && k.gen.anyOptCost && optCostCard(k, s.objs[Obj(a.Source())].card) {
 			continue // nor for an OptionalCost card: the planner declines it (shape:optional_cost, cost_optional.go); a may-play cast it composes (potentialModeCastPlan)
 		}
+		if s.objPartCast(k, a) && !k.t.Cards[s.objs[Obj(a.Source())].card].HasAltAdd || s.contribCast(k, p, a) {
+			continue // nor for an exile, forage, return, blight or evidence part (shape:additional_cost; objPartCast), nor a contribution (shape:contribution); a forage-or-pay either-or (Feed the Cycle) stays with gorge's offer gate, which searches the filter script for its paid part (payment_plan.go altAdd)
+		}
 		kk := s.walkKey(a, p, i)
 		j := nc
 		for ; j > 0 && key[j-1] > kk; j-- {
@@ -624,12 +627,32 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 	}
 	for i := 0; i < int(walk.N); i++ {
 		a := walk.Options[i]
+		if s.objPartCast(k, a) {
+			// gorge's potential planner refuses the shape before any prefix
+			// search (potentialPlayVerdictShared, "shape:additional_cost"), so
+			// only the printed sources price it (Fear of Abduction's exile
+			// beside Enduring Vitality's creatures; CR 601.2g-h)
+			if !s.objPartPrinted(k, p, a) {
+				d.remove(a)
+				capSpent.add(a)
+			}
+			continue
+		}
 		cost, ex, need, ok := s.grantPlayCost(k, p, a, true)
 		if !ok {
 			continue
 		}
 		if s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(k, a)) {
 			continue // priced by the printed sources, restricted ones the play may spend included
+		}
+		if s.contribCast(k, p, a) {
+			// a convoke, improvise or delve cast (Dazzling Theater's granted
+			// convoke): gorge's potential planner refuses the shape
+			// ("shape:contribution") before any prefix search, so the printed
+			// sources did not price it and it is not offered (CR 702.51a)
+			d.remove(a)
+			capSpent.add(a)
+			continue
 		}
 		if !s.grantRelaxedAffords(k, p, a, &cost, ex, s.grantPayDesc(k, a), m) {
 			d.remove(a) // gorge's relaxed proof: insufficient, no prefix search (mana_grantrelaxed.go)
@@ -662,6 +685,38 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			}
 		}
 	}
+}
+
+// objPartCast reports a plain cast a whose spell carries a cost part the
+// planner never composes (an exile from the battlefield or the graveyard, a
+// forage, a return, a blight, collected evidence): gorge's potential planner
+// prices it from the printed sources only.
+func (s *State) objPartCast(k *prep, a Action) bool {
+	if a.Kind() != AkCast || a.Mode() != 0 || k.t == nil {
+		return false
+	}
+	c := s.objs[a.Source()].card
+	ac := spellAddCost(k, c)
+	return ac.Flags&costObjFlags != 0 || ac.ExileBf || k.gen != nil && k.gen.anyEvTargets && spellEvidenceTargets(&k.t.Cards[c])
+}
+
+// contribCast reports a cast a gorge's planners decline as "shape:contribution"
+// (kw_delve.go contribPays).
+func (s *State) contribCast(k *prep, p uint8, a Action) bool {
+	if !isCastKind(a.Kind()) {
+		return false
+	}
+	o := Obj(a.Source())
+	return s.contribPays(k, p, s.objs[o].card, o, s.objs[o].zone == kop.ZoneHand)
+}
+
+// objPartPrinted reports whether the printed sources pay objPartCast a's
+// mana, as the offer gate prices it (legal.go).
+func (s *State) objPartPrinted(k *prep, p uint8, a Action) bool {
+	o := Obj(a.Source())
+	c := s.objs[o].card
+	cost := s.featCost(k, p, c, o, k.cards[c].cost)
+	return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
 }
 
 // grantActScript reports whether gorge's one prefix search finds a script for

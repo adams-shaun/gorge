@@ -280,7 +280,10 @@ func TestTgtctrlLockstep(t *testing.T) {
 
 // ktgtctrlAnyCtrl is a TABLE mutation: every carrier slot (a damage-to-an-
 // opponent trigger's object target) gets a copy of its filter with the
-// controller predicate cleared, so it admits any creature.
+// controller predicate cleared, so it admits any creature. The predicate is
+// either the OppCtrl filter (Ctrl == CtrlOpp) or, since kgen lowers
+// "ControlledBy TriggeredTarget" as the damaged player's control at any seat
+// count, kop.PredTrigPlayerCtrl; both are cleared.
 func ktgtctrlAnyCtrl(tbl *kop.Table) *kop.Table {
 	t2 := *tbl
 	t2.Filters = append([]kop.Filter(nil), tbl.Filters...)
@@ -295,11 +298,20 @@ func ktgtctrlAnyCtrl(tbl *kop.Table) *kop.Table {
 			}
 			for s := 0; s < int(a.NTargets); s++ {
 				ts := &a.Targets[s]
-				if ts.Kind != kop.TgtObject || t2.Filters[ts.Filter].Ctrl != kop.CtrlOpp {
+				if ts.Kind != kop.TgtObject {
 					continue
 				}
 				f := t2.Filters[ts.Filter]
-				f.Ctrl = kop.CtrlAny
+				hit := false
+				if f.Ctrl == kop.CtrlOpp {
+					f.Ctrl, hit = kop.CtrlAny, true
+				}
+				if f.Pred == kop.PredTrigPlayerCtrl {
+					f.Pred, hit = kop.PredNone, true
+				}
+				if !hit {
+					continue
+				}
 				ts.Filter = kop.FilterID(len(t2.Filters))
 				t2.Filters = append(t2.Filters, f)
 			}

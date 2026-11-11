@@ -197,8 +197,9 @@ func TestThisTurnCastCtrlTrig(t *testing.T) {
 	}
 }
 
-// TestThisTurnActivated: only Activated.YouCtrl+inZoneGraveyard lowers
-// (Laboratory Drudge, kop.ExThisTurnActGrave); every other
+// TestThisTurnActivated: only Activated.YouCtrl+inZoneGraveyard (Laboratory
+// Drudge, kop.ExThisTurnActGrave) and Activated.Exhaust+YouCtrl (Elvish
+// Refueler, kop.ExThisTurnActExhaust) lower; every other
 // Count$ThisTurnActivated_ spec refuses with a named reason.
 func TestThisTurnActivated(t *testing.T) {
 	lc := &lowerCtx{face: &cards.Face{SVars: map[string]string{}}, known: func(string) bool { return false }}

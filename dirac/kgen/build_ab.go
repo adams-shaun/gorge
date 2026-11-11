@@ -582,6 +582,10 @@ func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
 	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain:
 		return true
+	case vOppExtreme:
+		// the asking player's living opponents (PlayerCountPlayers$Amount
+		// is their count plus one): gorge's bound context holds the asker
+		return v.N == kop.OppExtAmount
 	case vSum, vProduct:
 		for _, sv := range v.Sub {
 			if !tgtBoundReads(sv) {
@@ -1608,6 +1612,10 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	}
 	var add []uint8
 	switch s.Kind {
+	case "FlipCoinMod":
+		st.Kind = kop.StatFlipCoinMod // static_turnbits.go
+	case "ActivationLimit":
+		st.Kind = kop.StatActivationLimit // static_turnbits.go
 	case "Continuous":
 		st.Kind = kop.StatContinuous
 		if s.F != nil && s.F.Players != 0 {
@@ -1631,6 +1639,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 		st.Ward = uint8(s.Ward)
+		st.WardLife = uint8(s.WardLife)
 		if add, err = cb.subIndexes(s.AddSub); err != nil {
 			return ka, nil, err
 		}
@@ -4205,7 +4214,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "CreateEmblem":
 		ki.Op, ki.C = kop.OpCreateEmblem, int16(in.C)
 	case "RollDie":
-		ki.Op = kop.OpRollDie
+		ki.Op, ki.C = kop.OpRollDie, int16(in.C)
 	case "OverrideAll":
 		ki.Op = kop.OpOverrideAll
 		i, err := cb.override(cb.c.overrides[in.C])
