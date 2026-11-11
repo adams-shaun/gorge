@@ -114,7 +114,10 @@ func TestReproFireballXRaisePlainNoPanic(t *testing.T) {
 // TestReproFireballXRaiseLockstep plays gorge and the kernel in lockstep on both
 // surfaces over the same decks: no divergence, and at least one Fireball cast
 // is reversed at its payment by the targets' raise, so the reversal itself is
-// compared (the gorge side reverses; the kernel matched it already).
+// compared (the gorge side reverses; the kernel matched it already). Both
+// lockstep surfaces pay an X cast through xWindowPay before the plain branch,
+// so this guards the reversal's agreement with gorge, not the fix itself:
+// TestReproFireballXRaisePlainNoPanic is the test that fails without it.
 func TestReproFireballXRaiseLockstep(t *testing.T) {
 	if isolate(t) {
 		return

@@ -2934,20 +2934,8 @@ func (s *State) manaStep(k *prep) bool {
 					cost = s.restrShortAdm(e.ctrl, m, cost)
 				}
 			}
-			if s.raisePerTargetCharge(e.card, e.ctrl) > 0 {
-				// "costs {1} more for each target beyond the first" (Fireball):
-				// the targets chosen after the X was announced raise the price
-				// past what the sources make. CR 601.2c lets the player choose
-				// any number of targets and 601.2h finds the cost unpayable
-				// afterwards, so the cast is reversed (CR 733.1) where the plan
-				// would find none (mana_tapfortry.go).
-				if !s.tapForTry(k, e.ctrl, &cost, int(e.x), e.obj, anyColor) {
-					s.releaseCostTaps(k, &saved)
-					s.reverseCast(k)
-					return true
-				}
-			} else {
-				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
+			if s.tapForSpellPlain(k, e, &cost, anyColor, &saved) {
+				return true
 			}
 		}
 		s.bld().bfl &^= bflManaStep
