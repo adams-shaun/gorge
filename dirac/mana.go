@@ -68,6 +68,9 @@ func (s *State) canTapForManaPC(k *prep, sl Slot, pc *pcard) bool {
 	if s.activationSick(k, sl) {
 		return false
 	}
+	if pc.painOnly && pc.painLife && int(s.pl[SeatIx(p.ctrl)].life) < int(pc.painN) {
+		return false // CR 119.4: its only ability's life cannot be paid (Mana Confluence at 0 life)
+	}
 	return true
 }
 

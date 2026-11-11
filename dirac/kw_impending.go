@@ -181,6 +181,9 @@ func (s *State) offerAltHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av 
 	if k.t.Cards[c].HasEvoke {
 		s.offerEvokeHand(k, d, p, o, c, av) // kw_evoke.go
 	}
+	if k.t.Cards[c].HasDash {
+		s.offerDashHand(k, d, p, o, c, av) // kw_dash.go
+	}
 	if k.gen.altFree != nil && k.gen.altFree[c] != 0 {
 		s.offerAltFreeHand(k, d, p, o, c, av) // cast_altfree.go
 	}

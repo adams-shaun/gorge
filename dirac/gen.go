@@ -216,6 +216,7 @@ type genPrep struct {
 	anyCantTgt     bool           // some card has a StatCantTarget (tgt_canttarget.go cantTargetGen)
 	anyFaces       bool           // some card has faces (CardDef.Faces; face_multiface.go)
 	anyWarp        bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
+	anyDash        bool           // some card has dash (CardDef.HasDash; kw_dash.go)
 	anyEvoke       bool           // some card has evoke (CardDef.HasEvoke) or some expression is ExAdamant (kw_evoke.go)
 	anyImpending   bool           // some card has impending (CardDef.Impending; kw_impending.go)
 	anyPrepare     bool           // some card is a preparation front (FacePrepare; face_prepare.go)
@@ -781,6 +782,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.HasEvoke {
 			g.anyEvoke = true
+			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
+		}
+		if c.HasDash {
+			g.anyDash = true
 			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
 		}
 		if c.HasPlot {
@@ -1874,7 +1879,7 @@ type genState struct {
 	impCast        bool                    // the cast beginCast starts is for the card's impending cost (castImpTgt; kw_impending.go; padding)
 	warpGrant      bool                    // the warp cast beginCast starts pays a battlefield grant's instance (kw_warpgrant.go; padding)
 	bargainCast    bool                    // the permission cast beginCast starts is bargained: the pool it checks pays the bargained price (offerBargainPlay; kw_bargain.go; padding)
-	noUntapL       uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step (padding)
+	noUntapL       uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step; bit 4+p their creatures (SkipUntapPlayerCL; padding)
 	yourTurns      [MaxSeats]uint8         // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)
 	extraTurnBegun uint8                   // ExYourExtraTurns: bit p, player p has begun an extra turn this game (CR 500.7; value_exprs.go)
 	dayNight       uint8                   // CR 731: bits 0-1 the designation (dnDay, dnNight), bits 2-3 the last turn's active player's spells, at most 2 (kw_daynight.go; padding)

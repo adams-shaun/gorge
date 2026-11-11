@@ -429,7 +429,7 @@ func (s *State) activateGen(k *prep, a Action) bool {
 		host := Obj(a.Target())
 		hc := s.objs[host].card
 		if s.objs[host].zone == kop.ZoneBattlefield {
-			hc = s.cardAt(s.objs[host].slot)
+			hc = s.grantCardAt(k, s.objs[host].slot, a.Mode()&^0x80)
 		}
 		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: hc, ab: a.Mode() &^ 0x80, ctrl: s.prio, trigObj: host}}
 	} else if ob.zone != kop.ZoneBattlefield {

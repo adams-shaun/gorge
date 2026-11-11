@@ -282,7 +282,7 @@ func CloneIfNew(sa *cards.SA) []string { return CloneOf(sa).IfNew }
 // cloneETBShapeOK is ETBShapeOK's computation: rules' etbCloneWhitelist's
 // POSITIVE key whitelist (Choices$, AddKeywords$, AddTypes$,
 // SpellDescription$, AddStaticAbilities$, IntoPlayTapped$, AddTriggers$,
-// AddSVars$, SetPower$/SetToughness$ (literal), SetColor$/AddColors$ and
+// AddSVars$, AddAbilities$, SetPower$/SetToughness$ (literal), SetColor$/AddColors$ and
 // NonLegendary$ True -- the CR 707.9b exceptions CopyExcept writes) plus its
 // text-only value checks. The key scan only answers a boolean, so the map's
 // iteration order cannot reach an event.
@@ -386,7 +386,7 @@ func CloneKnownKeys() []string { return slices.Clone(cloneKnownKeys[:]) }
 // CloneETBSubChainOK's (the "enters with additional counters" rider).
 var cloneETBShapeKeys = state.NewNameSet(
 	"Choices", "AddKeywords", "AddTypes", "SpellDescription",
-	"AddStaticAbilities", "IntoPlayTapped", "AddTriggers", "AddSVars", "SubAbility",
+	"AddStaticAbilities", "IntoPlayTapped", "AddTriggers", "AddSVars", "AddAbilities", "SubAbility",
 	"SetPower", "SetToughness", "SetColor", "AddColors", "NonLegendary",
 	"ChoiceZone", "NewName", "ChoiceTitle", "RememberCloneOrigin",
 )

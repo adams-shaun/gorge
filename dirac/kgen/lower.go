@@ -207,6 +207,9 @@ type lowerCtx struct {
 	// exiled card is lowered (lower_exilegrant.go): the one place an
 	// ExileFromHand<1/Card> cost and a paid Play of Card.Self lower
 	grantExile bool
+	// altCostHand while a spell's own AlternativeCost static's Cost$ is
+	// lowered: an ExileFromHand<1/Spec> part keeps its filter (lower_trigger.go)
+	altCostHand bool
 	// grantAttached while the trigger an Equipment's or Aura's static grants
 	// its attached permanent is lowered (AffectedDefined$ Equipped/Enchanted)
 	grantAttached bool
@@ -435,6 +438,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseWebSlingCombos()
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
+	lc.refuseDashCombos()          // lower_dash.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
 }
@@ -574,7 +578,7 @@ func (lc *lowerCtx) refuseMayFlashCombos() {
 	}
 	if out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Flashback != nil || out.SpellCost != nil || out.AltAddCost != nil || out.Convoke || out.Improvise ||
 		out.Offspring != nil || out.Gift || out.MorphCost != nil || out.Sneak != nil || out.Bestow != nil || out.Impending != nil || out.Mayhem != nil ||
-		out.Harmonize != nil || out.Madness != nil || out.Casualty != 0 || out.Bargain || out.OptCost != nil || out.Teamwork != 0 || out.Spree || out.WebSling != nil || out.Evoke != nil {
+		out.Harmonize != nil || out.Madness != nil || out.Casualty != 0 || out.Bargain || out.OptCost != nil || out.Teamwork != 0 || out.Spree || out.WebSling != nil || out.Evoke != nil || out.Dash != nil {
 		lc.refuseNode("K:MayFlashCost", "MayFlashCost beside an alternative or additional cost")
 	}
 	if out.Cost.X {
@@ -1430,6 +1434,22 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.MayFlash = &mc
+		case head == "Dash":
+			// CR 702.109a: an alternative hand cost; the permanent gains
+			// haste and returns to its owner's hand at the next end step
+			// (dirac/kw_dash.go). Hybrid pips are announced as for any cost;
+			// X, CardManaCost, a ":" or "<" rider and any non-mana part are
+			// refused.
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.ContainsAny(param, ":<") || mc.X || mc.None {
+				lc.refuseNode(node, "dash cost %q", param)
+				continue
+			}
+			if lc.out.Dash != nil {
+				lc.refuseNode(node, "two Dash keywords")
+				continue
+			}
+			lc.out.Dash = &mc
 		case head == "Evoke":
 			// CR 702.74a: an alternative hand cost; the permanent is
 			// sacrificed as it enters (dirac/kw_evoke.go). Hybrid
@@ -2065,6 +2085,12 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			// hand, and a printed trigger's own cost (costParts gates the
 			// place; cost_exilefromhand.go) keeps its own count. A filtered
 			// spec, ExileFromHand<1/All> and CARDNAME stay refused.
+			if lc.altCostHand {
+				if err := lc.altExileHandCost(&c, parts, n, t); err != nil {
+					return c, err
+				}
+				continue
+			}
 			if len(parts) < 2 || len(parts) > 3 || n <= 0 || parts[1] != "Card" {
 				return c, refuse("exile cost %q", t)
 			}
@@ -2379,7 +2405,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		// Cost.Filter: alone among the counted parts (dirac/kgen/build.go
 		// cost)
 		parts := 0
-		for _, on := range []bool{c.Forage != nil, c.ExileG != nil, c.Sac != nil, c.DiscardN > 0, c.Loyalty != 0, c.SubCtr > 0, c.SubAmongN > 0, c.PayLife > 0, c.TapN > 0, c.EvidenceN > 0} {
+		for _, on := range []bool{c.Forage != nil, c.ExileG != nil, c.Sac != nil, c.DiscardN > 0, c.Loyalty != 0, c.SubCtr > 0, c.SubAmongN > 0, c.PayLife > 0 && !lc.altLifeShared(&c), c.TapN > 0, c.EvidenceN > 0} {
 			if on {
 				parts++
 			}
@@ -2678,6 +2704,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		c, ok := ps.get("Cost")
 		if !ok {
 			return refuse("activated ability without Cost$")
+		}
+		if err := handManaRefusal(ab.Kind, c); err != nil {
+			return err
 		}
 		lc.unblockedOK = strings.TrimSpace(sa.Params["Keyword"]) == "Ninjutsu"
 		lc.actCost = ab.Kind == akActivated

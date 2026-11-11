@@ -564,6 +564,12 @@ const (
 	// stack object (gorge Static$ True), its body "the spell that fired it
 	// can't be countered" while that spell is on the stack; one-shot
 	DelaySpellUncounter = 8
+	// DelayPlayerUpkeep: the next upkeep of the player the registering
+	// instruction's Obj names (gorge Phase$ Untap, ValidPlayer$
+	// Player.IsRemembered over a targeted player: Exhaustion's end of its
+	// untap denial, which fires as that player's upkeep begins); one-shot, no
+	// remembered object
+	DelayPlayerUpkeep = 9
 )
 
 // DpGroup is OpDelayedProgram B's group flag: the program remembers the
