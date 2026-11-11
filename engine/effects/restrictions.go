@@ -1624,6 +1624,23 @@ func CanAttackIfHasteParamsReadable(params map[string]string) bool {
 	return true
 }
 
+var attackRequirementParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", "ValidAttacker", "Description", "Secondary")
+
+// AttackRequirementParamsReadable is the parameter whitelist a face
+// AttackRequirement static must pass before combat's AttackRequirementClauses
+// publishes it: the mode, the two creature scopes (ValidCard$ the creatures
+// that must attack, ValidAttacker$ the attackers that trigger the duty) and
+// display text. Any other term is a condition this build does not evaluate;
+// enforcing the duty blanket would over-restrict, so the line is skipped.
+func AttackRequirementParamsReadable(params map[string]string) bool {
+	for k := range params {
+		if !attackRequirementParamsReadableKeys.Has(k) {
+			return false
+		}
+	}
+	return true
+}
+
 var cantChangeLifeParamsReadableKeys = state.NewNameSet("Mode", "ValidPlayer", "Description", "Secondary")
 
 var cantPlayLandParamsReadableKeys = map[string]struct{}{

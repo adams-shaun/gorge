@@ -393,13 +393,16 @@ func (d *Decision) fitRequiredPreferred(choices []int) []int {
 		(!d.HasBudget2() || sum2 <= d.MaxSum2) &&
 		(d.MinSum <= 0 || sum >= d.MinSum || (d.AllowNone && len(choices) == 0)) &&
 		d.RequiredChosen(choices) >= d.RequiredQuota() &&
+		d.AttackRequirementsSatisfied(choices) &&
 		d.ChargeOptionsFit(choices) &&
 		!d.groupCapExceeded(choices) &&
 		d.setPropAnswerAdmits(choices) {
 		return choices
 	}
 
-	out := d.requiredCore()
+	// An AttackRequirement closure the required core activates is completed
+	// before the fold, so a preferred pick cannot spend the room it needs.
+	out := d.repairAttackRequirements(d.requiredCore(), false)
 	sum, sum2 = 0, 0
 	life := d.PayerLifeBound()
 	spentLife := int32(0)
@@ -609,7 +612,9 @@ func (d *Decision) fitRequiredPreferred(choices []int) []int {
 			out = d.requiredCore()
 		}
 	}
-	return out
+	// A preferred pick may have activated a closure the room no longer
+	// completes: add the missing members, or drop the triggering attackers.
+	return d.repairAttackRequirements(out, true)
 }
 
 // maxChoices is Max floored at 0: Validate rejects any answer longer than a

@@ -210,3 +210,137 @@ func TestInstillEnergyHastesEnchantedCreature(t *testing.T) {
 		t.Fatal("Instill Energy: the enchanted sick bear is not in the KAttackers offer list")
 	}
 }
+
+// warsTollBoard is seat 0's real War's Toll against seat 1's three creatures:
+// two able ones and one tapped one (not "able", CR 508.1d, so exempt). Seat 1
+// is active at declare attackers with the KAttackers decision pending.
+func warsTollBoard(t *testing.T) (*Engine, []state.ObjID, state.ObjID) {
+	t.Helper()
+	reg := testutil.CorpusRegistry(t)
+	e := huntTwoSeat(t)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "War's Toll"))
+	var able []state.ObjID
+	for range 2 {
+		id := onBoardCard(t, e, 1, card(t, huntSickBear))
+		e.G.Obj(id).SummonSick = false
+		able = append(able, id)
+	}
+	tapped := onBoardCard(t, e, 1, card(t, huntSickBear))
+	e.G.Obj(tapped).SummonSick = false
+	e.G.Obj(tapped).Tapped = true
+	e.G.Active = 1
+	e.G.Step = state.StepDeclareAttackers
+	if len(e.activeStatics("AttackRequirement")) == 0 {
+		t.Fatal("precondition: the AttackRequirement static is not active")
+	}
+	e.askAttackers()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers {
+		t.Fatalf("expected an attackers decision, got %+v", d)
+	}
+	if len(d.AttackRequirements) == 0 {
+		t.Fatal("precondition: the decision publishes no AttackRequirement closure")
+	}
+	for _, o := range d.Options {
+		if o.Obj == tapped {
+			t.Fatalf("precondition: the tapped creature is offered: %+v", o)
+		}
+	}
+	return e, able, tapped
+}
+
+func huntOptionOf(d *decision.Decision, obj state.ObjID) int {
+	for _, o := range d.Options {
+		if o.Obj == obj {
+			return o.Index
+		}
+	}
+	return -1
+}
+
+// TestAttackRequirementWholeDeclaration: under War's Toll one able attacker
+// alone is rejected, all able attackers are accepted and so is the empty
+// declaration.
+func TestAttackRequirementWholeDeclaration(t *testing.T) {
+	e, able, _ := warsTollBoard(t)
+	d := e.Pending()
+	one := []int{huntOptionOf(d, able[0])}
+	both := []int{huntOptionOf(d, able[0]), huntOptionOf(d, able[1])}
+	if one[0] < 0 || both[1] < 0 {
+		t.Fatalf("precondition: able creatures not offered: %+v", d.Options)
+	}
+	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: one}); err == nil {
+		t.Fatal("Validate accepted one able attacker under War's Toll")
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: one}); err == nil {
+		t.Fatal("the engine accepted one able attacker under War's Toll")
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: both}); err != nil {
+		t.Fatalf("both able attackers rejected: %v", err)
+	}
+	for _, id := range able {
+		if !e.G.Obj(id).IsAttacking {
+			t.Fatalf("creature %d is not attacking", id)
+		}
+	}
+	e2, _, _ := warsTollBoard(t)
+	d2 := e2.Pending()
+	if err := e2.Submit(decision.Intent{Seq: d2.Seq, Player: d2.Player, Choices: nil}); err != nil {
+		t.Fatalf("the empty declaration was rejected: %v", err)
+	}
+}
+
+// TestAttackRequirementBotAnswerPassesValidator: the one-home test -- the
+// real bot's answers, run through the real validator, never livelock, and the
+// board ends with zero or all able members attacking.
+func TestAttackRequirementBotAnswerPassesValidator(t *testing.T) {
+	for seed := uint64(1); seed <= 4; seed++ {
+		e, able, _ := warsTollBoard(t)
+		bot := newTestBot(seed)
+		for i := 0; i < 16; i++ {
+			d := e.Pending()
+			if d == nil || e.G.Step != state.StepDeclareAttackers || d.Kind == decision.KPriority {
+				break
+			}
+			in := bot.answer(e, d)
+			if err := e.Submit(in); err != nil {
+				t.Fatalf("seed %d: the bot's own %v answer %v was rejected: %v", seed, d.Kind, in.Choices, err)
+			}
+		}
+		n := 0
+		for _, id := range able {
+			if e.G.Obj(id).IsAttacking {
+				n++
+			}
+		}
+		if n != 0 && n != len(able) {
+			t.Fatalf("seed %d: %d of %d able creatures attack, want none or all", seed, n, len(able))
+		}
+	}
+}
+
+// TestAttackRequirementRepairCompletesClause: decision.FitRequired -- the repair
+// the bot's Clamp calls -- completes a partial answer to the full declaration.
+func TestAttackRequirementRepairCompletesClause(t *testing.T) {
+	e, able, _ := warsTollBoard(t)
+	d := e.Pending()
+	got := d.FitRequired([]int{huntOptionOf(d, able[0])})
+	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: got}); err != nil {
+		t.Fatalf("FitRequired returned %v which Validate rejects: %v", got, err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("FitRequired = %v, want both able creatures", got)
+	}
+}
+
+// TestHuntStaticsCorpusCardsCompile: the three real cards report no unsupported
+// primitive.
+func TestHuntStaticsCorpusCardsCompile(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	for _, name := range []string{"Angel of Jubilation", "Instill Energy", "War's Toll"} {
+		c := mustCorpusCard(t, reg, name)
+		if u := reg.Unsupported(c, effects.Supported()); len(u) != 0 {
+			t.Errorf("%s: Unsupported = %v", name, u)
+		}
+	}
+}

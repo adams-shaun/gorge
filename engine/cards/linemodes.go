@@ -316,7 +316,8 @@ const (
 	StaticCantChangeLife        StaticMode = 33
 	StaticCantPayLife           StaticMode = 34
 	StaticCanAttackIfHaste      StaticMode = 35
-	StaticModeCount                        = 36 // one past the last; sizes a dense per-StaticMode array
+	StaticAttackRequirement     StaticMode = 36
+	StaticModeCount                        = 37 // one past the last; sizes a dense per-StaticMode array
 )
 
 var staticModeNames = [StaticModeCount]string{
@@ -355,6 +356,7 @@ var staticModeNames = [StaticModeCount]string{
 	StaticCantChangeLife:        "CantChangeLife",
 	StaticCantPayLife:           "CantPayLife",
 	StaticCanAttackIfHaste:      "CanAttackIfHaste",
+	StaticAttackRequirement:     "AttackRequirement",
 }
 
 var staticModeCodes = func() StrCodes[StaticMode] {

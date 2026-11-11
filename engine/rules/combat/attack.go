@@ -103,7 +103,7 @@ func canAttackIfHaste(b Board, id state.ObjID, defender state.PlayerID, battle s
 		if !b.MatchesStaticSpec(spec, id, sv) {
 			continue
 		}
-		if tgt := strings.TrimSpace(sv.ParamStr(cards.PKValidTarget)); tgt != "" && !blind {
+		if tgt := sv.ParamStr(cards.PKValidTarget); tgt != "" && !blind {
 			ok := effects.MatchesPlayerSpecCtx(b.Game(), tgt, defender, sv.Controller, b.PlayerSpecCtx(sv.Source))
 			if !ok && battle != 0 {
 				ok = b.MatchesSpec(tgt, battle, sv.Source, sv.Controller, nil, nil, false)
