@@ -292,6 +292,12 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 			continue
 		}
 		if deferSkip && deferGap.has(sl) {
+			if dual && s.grantIdx(k, sl) >= 0 {
+				// its granted ability is a census gap of its own, which the
+				// grant search taps (Enduring Vitality on Twitching Doll):
+				// the permanent still taps once for the play (CR 605.1a)
+				s.availGrant(k, sl, pc, a)
+			}
 			continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go); the script route offers and prices the modelled gap, and the potential walks (availWalk, its hyp bound) still count it, its census gate downstream
 		}
 		if dual {

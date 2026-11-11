@@ -220,6 +220,14 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// the battlefield (kernel tliRemLKI); every other characteristic
 		// is read live, as Remembered's
 		return lRef{Kind: rRemembered}, nil
+	case "DirectRemembered":
+		// gorge definedAliases: DirectRemembered is RememberedLKI. Lowered
+		// only as the remembered-persist leave return (Fiend Hunter), where
+		// both read the source's persistent set as Remembered does
+		if !lc.remPersistShape() {
+			return lRef{}, refuse("Defined$ %q outside the remembered-persist enters/leaves pair", v)
+		}
+		return lRef{Kind: rRemembered}, nil
 	case "Imprinted":
 		// DigUntil's ImprintFound$ chain (lower_digimprint.go): gorge
 		// effectRemembered reads the source's seek-found Imprint, which the

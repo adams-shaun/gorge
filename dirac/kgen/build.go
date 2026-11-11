@@ -1887,6 +1887,8 @@ func (cb *cardBuilder) value(v lValue) (kop.ValueRef, error) {
 			return kop.ValueRef{}, err
 		}
 		return kop.ValueRef{K: kop.VCountersSelf, N: int16(k)}, nil
+	case v.Kind == vLastDamage && plain:
+		return kop.ValueRef{K: kop.VLastDamage}, nil
 	case v.Kind == vLifeGainedThisTurn && plain:
 		return kop.ValueRef{K: kop.VLifeGainedTurn}, nil
 	case v.Kind == vCount && plain:

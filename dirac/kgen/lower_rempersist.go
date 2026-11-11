@@ -25,7 +25,7 @@ import (
 // RememberChanged$); T1: Mode$ ChangesZone, Origin$ Battlefield,
 // Destination$ Any or Graveyard (the dies form, Hoarding Dragon),
 // ValidCard$ Card.Self, whose body is ChangeZone Defined$
-// Remembered Origin$ Exile to the battlefield or hand, optionally followed
+// Remembered (or DirectRemembered) Origin$ Exile to the battlefield or hand, optionally followed
 // by Cleanup ClearRemembered$ True — or Unidentified Hovership's manifest
 // form: the body is ManifestDread DefinedPlayer$ RememberedOwner (Amount$
 // 1, one dread), optionally followed by the same Cleanup. Every other
@@ -64,7 +64,10 @@ func (lc *lowerCtx) remPersistShape() bool {
 	r := t1.Effect
 	switch {
 	case r != nil && r.API == "ChangeZone":
-		if !is(r.Params, "Defined", "Remembered") || !is(r.Params, "Origin", "Exile") ||
+		// DirectRemembered: gorge's alias of RememberedLKI (effects
+		// definedAliases), the same source-persistent set Remembered reads
+		// here; the return's controller is the owner either way (Fiend Hunter)
+		if !(is(r.Params, "Defined", "Remembered") || is(r.Params, "Defined", "DirectRemembered")) || !is(r.Params, "Origin", "Exile") ||
 			!(is(r.Params, "Destination", "Battlefield") || is(r.Params, "Destination", "Hand")) {
 			return false
 		}

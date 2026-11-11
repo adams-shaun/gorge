@@ -217,9 +217,9 @@ import (
 // +3 (the merge with land: the same three statics beside land's 22114; merged ALL build-level 22114 -> 22117).
 // +3 (an Effect's trigger bound to a remembered set: the cards listed at ratchet_test.go's ALL pin; ALL build-level 22145 -> 22148).
 // +2 (the optional copy-instead CreateToken replacement: the cards listed at ratchet_test.go's ALL pin; ALL build-level 22149 -> 22151).
-// +1 (Count$TotalDamageReceivedThisTurn lowered: Tangled Colony; ALL build-level 22176 -> 22177).
+// +1 (Count$TotalDamageReceivedThisTurn lowered: Tangled Colony; merged with land ALL build-level 22180 -> 22181).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{22177, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{22181, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

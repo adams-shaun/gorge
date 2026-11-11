@@ -207,6 +207,8 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 		{"blb_sac_cost_exile_return_after_all_sacrificed_sword", true, false},
 		// CR 601.2a, 601.2f, 106.6: Head of the Homestead pays its hybrid pips through Helga's floating restricted {G}, so the spell is on the stack when the target/pip asks come
 		{"target_dependent_cost_spell_on_stack_at_first_ask", false, false},
+		// CR 601.2b, 601.2f-h: Feed the Cycle's forage-or-pay {B} either-or stays with gorge's offer gate, which pays {1}{B}{B} through Hidden Grotto's filter, so the script search offers the cast
+		{"forage_or_pay_cast_keeps_filter_script", false, false},
 		// CR 601.2c, 733.1: Wishing Well casts Sazacap's Brew from the graveyard with the hand empty, so its discard cost is unpayable and the cast is reversed at the target ask, after the gift election
 		{"free_cast_unpayable_cost_aborts_at_target", true, false},
 		{"common_good_double_x_no_autopay_panic", false, false},         // CR 601.2b: For the Common Good paid with two Treasures whose largest X eats both targets: the witness is the smaller X that consumes one, not the unpayable X = 0 that keeps both
@@ -891,6 +893,20 @@ func TestStdDskReprosLockstep(t *testing.T) {
 		// CR 303.4f: Meathook Massacre II returns Duskmourn's Domination under
 		// its controller, who is asked its host with the control already moved
 		{"gain_control_aura_return_host_ask_controller", false, false},
+		// CR 601.2g, 605.3b: the grant search prices each step on the census,
+		// which never lists Twitching Doll's counter-rider mana, so Cynical
+		// Loner's prefix taps Overlord of the Hauntwoods for the {B} first
+		{"grant_prefix_census_skips_rider_source", false, false},
+		// CR 605.1a: Twitching Doll under Enduring Vitality still taps once for
+		// its granted ability, so Tyvar, the Pummeler's {3}{G}{G} is offered
+		{"rider_source_keeps_granted_unit", true, false},
+		{"grant_prefix_census_skips_rider_source_second", false, false},
+		// CR 601.2g-h: gorge's potential planner refuses an exile cost part and a
+		// contribution before any prefix search, so Fear of Abduction and an
+		// impending Overlord of the Mistmoors under Dazzling Theater's convoke are
+		// not offered when only Enduring Vitality's creatures make their {W}
+		{"exile_part_cast_takes_no_grant_prefix", false, false},
+		{"granted_convoke_cast_takes_no_grant_prefix", false, false},
 	})
 }
 
