@@ -1,12 +1,99 @@
-# phase.rs and ManaBrew
+# Engine integration notes
 
-We read both engines' source in November 2026 to plan a follower for each. These are the findings
-that matter to the follower, written for the engines' own authors. Each section says what we read,
-what fits the protocol well, and the hurdles we expect. All of it comes from reading the code and
-building it. We haven't yet run a scenario through either engine, so treat the rest as a plan.
+How each engine is wired into the harness: where its driver lives, which of the engine's own extension
+points the driver uses, what it pins, and what had to change in the engine (if anything). Forge and
+XMage are the two working followers, so their sections double as worked examples for a new engine.
+The phase.rs and ManaBrew sections are plans, written from reading and building their code in
+November 2026; neither has replayed a scenario yet.
 
-If you work on either engine and something here is wrong, or you'd like to own the follower
+If you work on one of these engines and something here is wrong, or you'd like to own the follower
 yourselves, please [open an issue](https://github.com/adams-shaun/gorge-compliance/issues).
+
+| Engine | Where the driver lives | Engine changes | Pins |
+|---|---|---|---|
+| Forge | `forge-oracle/` in [our Forge fork](https://github.com/adams-shaun/forge) | None for testing; the fork also carries card-script fixes and card support | `FORGE_ORACLE_REF` (driver), gorge's `FORGE_REF` (scripts) |
+| XMage | `oracle/xmageoracle/` in gorge-compliance | None: upstream XMage, unmodified | `XMAGE_REF` |
+| phase.rs | planned: `followers/phase/` in gorge-compliance | None planned | planned: `PHASE_PIN` (engine commit + card-data hash) |
+| ManaBrew | planned: a crate in a ManaBrew fork | Three small hooks, meant for upstream | planned: ManaBrew commit + gorge's `FORGE_REF` |
+
+## Who leads
+
+In every comparison, **gorge leads and the other engine follows**. gorge plays the game, with its own
+exploring bot making every choice, and records each decision. The follower replays the position and
+those decisions; it never chooses anything itself. A prompt with no recorded answer is a strict miss,
+not an invitation to improvise.
+
+That shapes what the harness can and can't see:
+
+- **It sees** every place where the follower, given the same choices, reaches a different state, and
+  every prompt one engine poses and the other doesn't (`decision_shape`).
+- **It can't see** a line of play gorge's bot never takes, or a legal action gorge fails to offer: the
+  follower is never asked to try it. Coverage is the positions gorge reaches.
+- **The follower's AI never plays.** XMage's and Forge's AIs only fill in when a driver runs loose,
+  which new followers shouldn't do.
+
+The one exception is dirac, which is compared in [lockstep](../lockstep.md) rather than through this
+protocol. There gorge also leads by default, but `kfuzz -lead kernel` lets dirac choose and gorge follow.
+
+## Forge
+
+**Driver.** `forge-oracle/` in our fork, about 4,800 lines of Java for scenario replay (plus a bridge
+that lets Forge's AI play whole matches against a gorge bot, which this harness doesn't use). It's GPL,
+like Forge, so it and its output stay out of the Apache-2.0 repositories. `scripts/forge-oracle-setup.sh`
+builds it at `FORGE_ORACLE_REF`, and `scripts/forge-oracle-run.sh` is the runner.
+
+**Forge's own extension points it uses.** No engine change was needed for testing:
+
+- **Decisions.** `ScriptedController` extends Forge's `PlayerControllerAi`, so every question Forge asks
+  a player (targets, modes, costs, blockers, ordering) arrives as a method call the driver answers from
+  `gorge_decisions`. `ScriptedCostDecision` does the same for cost payment.
+- **Placing a board.** `SetupBuilder` adds cards straight to each player's zones, while Forge's trigger
+  handler has `ChangesZone`, `ChangesZoneAll` and `CounterAdded` triggers suppressed (`suppressMode`), so
+  nothing enters with an ETB trigger. It then runs Forge's own end-of-turn cleanup to clear the
+  placement's "this turn" history, and starts the game with `setupFirstTurn`.
+- **Randomness.** `MyRandom.setRandom`, seeded from a CRC32 of the item id, so reruns are identical.
+- **Driving.** `StepMachine` advances Forge's phase handler and takes a snapshot at each checkpoint.
+
+**What the fork carries besides the driver.**
+
+- **Card-script fixes.** Where a Forge script disagrees with the printed card, we fix it on the fork as
+  well as reporting it upstream, so the comparison isn't measuring a known script bug.
+- **Card support** for new cards gorge needed, with the small engine additions that came with them.
+- **The pin rule.** gorge compiles Forge's scripts at its `FORGE_REF`. The runner refuses to start
+  unless `FORGE_REF` is an ancestor of the driver's commit and the `cardsfolder` and `tokenscripts` trees
+  are byte-identical at both (`forge-oracle-setup.sh --check-pin`). Otherwise a script difference would
+  look like an engine disagreement.
+
+**Known quirks**, recorded in the registry so the classifier doesn't call them bugs: Forge skips a combat
+damage step when no creature is left in combat (`SkipsDamageStep`), gives priority in cleanup after an
+end-the-turn effect (`StopsInCleanup`), poses trailing cleanup discards (`TrailingMisses`), acts on only
+some `cast_mode` values (`CastModes`), and stops a tape at the scenario turn plus four (`TurnCapMsg`).
+
+## XMage
+
+**Driver.** `oracle/xmageoracle/src/org/mage/test/oracle/ScenarioReplay.java` in gorge-compliance, with
+its own tests beside it. There is no XMage fork: `scripts/xmage-oracle-setup.sh` clones upstream
+[magefree/mage](https://github.com/magefree/mage) at `XMAGE_REF`, builds its `Mage.Tests` module, and
+compiles the driver against it. `scripts/xmage-oracle-run.sh` is the runner.
+
+**XMage's own extension points it uses.** XMage's unit-test framework is the seam:
+
+- **Placing a board and acting.** `ScenarioReplay` extends `CardTestPlayerBase`, the base class of
+  XMage's own card tests. Its `addCard` places cards directly into zones, and `castSpell`,
+  `activateAbility`, `addTarget`, `setChoice` and `setModeChoice` script the actions and answers.
+- **Decisions.** `ScriptedChoicePlayer` extends the framework's `TestPlayer` and answers the prompts the
+  framework's scripting doesn't reach. Strict choose mode makes an unanswered prompt an error instead of
+  an AI guess.
+- **Randomness.** `RandomUtil.setSeed`.
+- **Card data.** XMage's own card database, copied per run.
+
+**What the harness adds for XMage.** `xengine xprep` rewrites each item for XMage before it's sent:
+XMage's card spellings, the answer order its prompts expect, and refusals for cards XMage doesn't have
+(`xmage_lacks_card`). Whole-game tapes are off by default (`XENGINE_XMAGE_TAPES=1` turns them on).
+
+**Known quirks**: XMage taps mana and casts within one priority out of turn (`TapsWithCast`), matches a
+scripted trigger order by text or source name (`TriggerOrderByName`), and reports a missing card as
+`Couldn't find a card:` (`LacksCardMsg`).
 
 ## phase.rs
 
