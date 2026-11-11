@@ -231,3 +231,40 @@ func drainAnsweringFirst(t *testing.T, e *Engine, limit int) {
 		t.Fatalf("stack not empty after %d answers", limit)
 	}
 }
+
+// TestBringerOfGreenZenithsTwilightAltCost: the registry flip this head makes
+// for Bringer of Green Zenith's Twilight (Count$AltCost.5.X, an SVar operand)
+// is real: the {W}{U}{B}{R}{G} cast reads X as 5 and enters with twice that
+// (10 counters); the {X}{G}{G} cast at X=2 enters with 2.
+func TestBringerOfGreenZenithsTwilightAltCost(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	for _, tc := range []struct {
+		name string
+		alt  int
+		mana string
+		want int32
+	}{
+		{"alternative WUBRG", 1, "WUBRG", 10},
+		{"mana cost at X=2", 0, "GGGG", 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e, cfg := corpusEngineCfg(t, reg, []*cards.Card{lookup(t, reg, "Bringer of Green Zenith's Twilight")}, nil)
+			id := moveByName(t, e, 0, "Bringer of Green Zenith's Twilight", state.ZHand)
+			addMana(t, e, 0, tc.mana)
+			castWithAltIndex(t, e, id, tc.alt)
+			if tc.alt == 0 {
+				announceXCast(t, e, id, 2)
+			}
+			drainAnsweringFirst(t, e, 20)
+			o := e.G.Obj(id)
+			if o.Zone != state.ZBattlefield {
+				t.Fatalf("precondition: Bringer zone=%s, want battlefield", o.Zone)
+			}
+			if got := o.Counter("P1P1"); got != tc.want {
+				t.Fatalf("Bringer P1P1=%d, want %d", got, tc.want)
+			}
+			replayCheck(t, e, cfg)
+		})
+	}
+}
