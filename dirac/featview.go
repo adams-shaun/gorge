@@ -1484,8 +1484,8 @@ func (s *State) FeatAbilityPoolPays(p uint8, o Obj, ab uint8, host Obj) bool {
 		if host == NoObj || s.objs[host].zone != kop.ZoneBattlefield || s.objs[host].slot == NoSlot {
 			return false
 		}
-		c = s.cardAt(s.objs[host].slot)
 		ab &^= 0x80
+		c = s.grantCardAt(k, s.objs[host].slot, ab)
 	}
 	abs := k.t.Cards[c].Abilities
 	if int(ab) >= len(abs) {

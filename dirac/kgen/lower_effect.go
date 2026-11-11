@@ -100,6 +100,26 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{}, err
 		}
 		return lRef{Kind: rTriggerAttackers}, nil
+	case "TriggeredAttackerController":
+		// gorge definedSpecTriggeredCombatantController: the attacker's
+		// controller, which an Attacks or Blocks trigger binds as its
+		// trigger player (the kernel queues both with the attacker's
+		// controller, so the Blocks pair's attacker too)
+		if tr := lc.ab.Trigger; tr != nil && (tr.Event == "Attacks" || tr.Event == "Blocks") {
+			return lRef{Kind: rTriggeredPlayer}, nil
+		}
+		return lRef{}, refuse("Defined$ %q outside an Attacks or Blocks trigger", v)
+	case "TriggeredBlockerController":
+		// gorge definedSpecTriggeredCombatantController: the controller of
+		// the captured blocker, read live. A Blocks trigger over the
+		// source's own host (ValidCard$ Card.AttachedBy: the enchanted or
+		// equipped creature) names the host's controller, the one
+		// RefAttachedCtrl reads (Contaminated Bond)
+		if tr := lc.ab.Trigger; tr != nil && tr.Event == "Blocks" && tr.F != nil && len(tr.F.Clauses) == 1 &&
+			tr.F.Players == 0 && tr.F.Clauses[0] == (lClause{Flags: fEquippedBy}) {
+			return lRef{Kind: rAttachedCtrl}, nil
+		}
+		return lRef{}, refuse("Defined$ %q outside a Blocks trigger over the attached creature", v)
 	case "TriggeredBlocker", "TriggeredBlockerLKICopy":
 		// gorge TriggerBlocker of a Blocks trigger: the source itself when
 		// the trigger is "whenever this blocks" (ValidCard$ Card.Self)
@@ -159,7 +179,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// or damage to an opponent from a source the listener controls.
 		// seat-exact: with more seats the kernel's trigger player is the
 		// damaged seat itself (dirac dmgSeat).
-		if lc.damagedPlayerIsTriggerPlayer() {
+		if lc.damagedPlayerIsTriggerPlayer() || ddoPlayerReferent(lc.ab.Trigger) {
 			return lRef{Kind: rTriggeredPlayer}, nil
 		}
 		return lRef{}, refuse("Defined$ %q outside a damage trigger the kernel's trigger object or player names", v)
@@ -2897,9 +2917,10 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		lc.emit(lInstr{Op: "PumpUntilEOT", Obj: obj, A: att, B: def})
 	}
 	kw, hasKW := ps.get("KW")
-	mustBlock := false
+	mustBlock, noCombat := false, false
 	if hasKW {
-		kw, mustBlock = splitMustBeBlocked(kw)
+		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
+		kw, noCombat = splitKWSentence(kw, cantAttackOrBlockKW)
 	}
 	if hasKW && kw != "" {
 		rest, fbs, err := splitFirebendingGrant(kw)
@@ -2936,20 +2957,36 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		}
 		lc.emit(lInstr{Op: "MustBeBlocked", Obj: obj})
 	}
+	if noCombat {
+		if zone != zBattlefield || !lc.pumpObjectRef(obj) {
+			return refuse("Pump KW$ can't attack or block on a non-permanent subject")
+		}
+		// the Animate HiddenKeywords$ pair (animateHiddenKeywords): the
+		// kernel's until-end-of-turn KwCantBlock grant, and the override
+		// record's CantAttack (there is no kernel keyword bit for the attack half)
+		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: "CantBlock"})
+		lc.emitOverride(obj, &lOverride{CantAttack: true}, "EOT")
+	}
 	return nil
 }
+
+// cantAttackOrBlockKW is the Pump keyword sentence for "can't attack or block
+// this turn" (CR 508.1, 509.1: Alchemist's Vial). Like mustBeBlockedKW it is a
+// mark, not a keyword bit.
+const cantAttackOrBlockKW = "HIDDEN CARDNAME can't attack or block."
 
 // mustBeBlockedKW is the one Pump / PumpAll keyword sentence that is a mark,
 // not a keyword bit (CR 509.1c, ExtMustBeBlocked).
 const mustBeBlockedKW = "HIDDEN CARDNAME must be blocked if able."
 
-// splitMustBeBlocked takes mustBeBlockedKW out of a KW$ list: the rest of
-// the list (possibly empty) and whether the sentence was there. Any other
-// spelling stays in the list, where pumpKeywords refuses it.
-func splitMustBeBlocked(kw string) (rest string, found bool) {
+// splitKWSentence takes one mark sentence (mustBeBlockedKW,
+// cantAttackOrBlockKW) out of a KW$ list: the rest of the list (possibly
+// empty) and whether the sentence was there. Any other spelling stays in the
+// list, where pumpKeywords refuses it.
+func splitKWSentence(kw, sentence string) (rest string, found bool) {
 	var keep []string
 	for _, k := range strings.Split(kw, "&") {
-		if strings.TrimSpace(k) == mustBeBlockedKW {
+		if strings.TrimSpace(k) == sentence {
 			found = true
 			continue
 		}
@@ -3035,7 +3072,7 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	}
 	mustBlock := false
 	if kw, ok := ps.get("KW"); ok {
-		kw, mustBlock = splitMustBeBlocked(kw)
+		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		if mustBlock && scope.Kind != rNone {
 			return refuse("PumpAll KW$ must be blocked if able with a ValidTgts$ player scope")
 		}

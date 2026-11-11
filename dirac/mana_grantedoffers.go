@@ -237,6 +237,11 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 			}
 		}
 	}
+	// CR 605.1a, 601.2g-h: the plain payment taps the printed ability of a dual
+	// source (manaPCGen), so the plain X ceiling must not credit its granted one.
+	if a.xPlain && own && ng > 0 {
+		ng = 0
+	}
 	if ng == 0 && k.painMana && pc.painCol != 0 {
 		s.addPainAvail(k, sl, pc, s.perms[sl].ctrl, a, nil, false)
 		return
@@ -1671,6 +1676,8 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.ImpendingCost), ex, need, true
 			case a.Target() == castEvokeTgt && cd.HasEvoke:
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.EvokeCost), ex, need, true
+			case a.Target() == castDashTgt && cd.HasDash:
+				return s.adjustCost(k, p, c, Obj(a.Source()), cd.DashCost), ex, need, true
 			}
 		}
 		if a.Mode()&1 != 0 {
@@ -1752,7 +1759,7 @@ func (s *State) playNeed(k *prep, a Action) (need [kop.NumManaKinds]bool) {
 			need = s.abilityNeed(k, Obj(a.Source()), a.Mode())
 		}
 	case AkCast:
-		if a.Mode() == 0 && a.Target() != castImpTgt && a.Target() != castEvokeTgt {
+		if a.Mode() == 0 && a.Target() != castImpTgt && a.Target() != castEvokeTgt && a.Target() != castDashTgt {
 			need = grantNeedColours(k.cards[s.objs[a.Source()].card].cost)
 		}
 	}

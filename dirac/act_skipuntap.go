@@ -10,6 +10,10 @@ import (
 // permanent starts without it. Bit 15 of perm.flags (pfRegenX holds 13-14).
 const pfSkipUntap uint16 = 1 << 15
 
+// noUntapCreat shifts a seat's bit in gen.noUntapL from its lands to its
+// creatures (SkipUntapPlayerCL): bits 0-3 the lands, bits 4-7 the creatures.
+const noUntapCreat = 1 << 4
+
 // prepSkipUntap sets genPrep.anySkipUntap when a program makes a
 // "doesn't untap during your next untap step" effect (OpSkipUntap).
 func prepSkipUntap(t *kop.Table, g *genPrep) {
@@ -35,8 +39,14 @@ func prepSkipUntap(t *kop.Table, g *genPrep) {
 // of a player's end with that player's next untap step.
 func (s *State) skipUntap(k *prep, in *kop.Instr) {
 	p := s.res.e.ctrl
-	if in.C >= kop.SkipUntapLockStep {
+	if in.C == kop.SkipUntapLockStep || in.C == kop.SkipUntapLockAny {
 		s.untapLockAdd(k, in) // act_untaplock.go
+		return
+	}
+	if in.C == kop.SkipUntapPlayerCL {
+		if q := s.playerRef(k, in.Obj); q != 255 {
+			s.g.noUntapL |= 1<<q | noUntapCreat<<q
+		}
 		return
 	}
 	if in.C == 1 {
@@ -53,8 +63,14 @@ func (s *State) skipUntap(k *prep, in *kop.Instr) {
 // OpSkipUntap effect of the active player on it, or on their lands).
 func (s *State) skipsUntap(k *prep, sl Slot) bool {
 	a := s.active
-	return s.perms[sl].cseen&(cseenSkipUntap0<<a) != 0 || s.g.nul != 0 && s.untapLocked(s.perms[sl].obj, false) ||
-		s.g.noUntapL&(1<<a) != 0 && s.perms[sl].ctrl == a && s.typesGen(k, sl)&kop.TLand != 0
+	if s.perms[sl].cseen&(cseenSkipUntap0<<a) != 0 || s.g.nul != 0 && s.untapLocked(s.perms[sl].obj, false) {
+		return true
+	}
+	if s.g.noUntapL == 0 || s.perms[sl].ctrl != a {
+		return false
+	}
+	ty := s.typesGen(k, sl)
+	return s.g.noUntapL&(1<<a) != 0 && ty&kop.TLand != 0 || s.g.noUntapL&(noUntapCreat<<a) != 0 && ty&kop.TCreature != 0
 }
 
 // expireSkipUntap ends the active player's OpSkipUntap effects as their
@@ -64,7 +80,7 @@ func (s *State) skipsUntap(k *prep, sl Slot) bool {
 //go:noinline
 func (s *State) expireSkipUntap() {
 	a := s.active
-	s.g.noUntapL &^= 1 << a
+	s.g.noUntapL &^= 1<<a | noUntapCreat<<a
 	for m := s.occ; m.any(); m = m.rest() {
 		sl := m.first()
 		if s.perms[sl].cseen&(cseenSkipUntap0<<a) != 0 {

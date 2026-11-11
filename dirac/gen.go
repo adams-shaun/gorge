@@ -216,6 +216,7 @@ type genPrep struct {
 	anyCantTgt     bool           // some card has a StatCantTarget (tgt_canttarget.go cantTargetGen)
 	anyFaces       bool           // some card has faces (CardDef.Faces; face_multiface.go)
 	anyWarp        bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
+	anyDash        bool           // some card has dash (CardDef.HasDash; kw_dash.go)
 	anyEvoke       bool           // some card has evoke (CardDef.HasEvoke) or some expression is ExAdamant (kw_evoke.go)
 	anyImpending   bool           // some card has impending (CardDef.Impending; kw_impending.go)
 	anyPrepare     bool           // some card is a preparation front (FacePrepare; face_prepare.go)
@@ -369,6 +370,8 @@ type genPrep struct {
 	anySelfTaps bool
 	// anyDiscHand: some card carries gfDiscHand (mana_discardhand.go).
 	anyDiscHand bool
+	// dhMix: a Diamond beside another census-gap kind (mana_diamondmix.go prepDiamondMix): StallDiamondMix
+	dhMix bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
 	// a potential play's scripted prefix (script_gen.go)
@@ -482,6 +485,7 @@ const (
 	rbPrevMill                        // ReplPreventMillOpps (repl_preventmill.go)
 	rbPrevCtrSelf                     // ReplPreventDamageCounters (repl_selfdamage.go)
 	rbHealSelf                        // ReplDamageHealFirst (repl_selfdamage.go)
+	rbPayETB                          // ReplPayBeforeETB (repl_paybeforeetb.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -785,6 +789,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.anyEvoke = true
 			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
 		}
+		if c.HasDash {
+			g.anyDash = true
+			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
+		}
 		if c.HasPlot {
 			g.anyPlot = true
 		}
@@ -1040,6 +1048,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.destroyHeal[i] = a.Repl.Filter
 				case kop.ReplDiscardOppToBattlefield:
 					g.replBits[i] |= rbDiscETB
+				case kop.ReplPayBeforeETB:
+					g.replBits[i] |= rbPayETB
 				case kop.ReplGraveToLibrary:
 					g.replBits[i] |= rbGraveLib
 				case kop.ReplMayNotUntap:
@@ -1440,6 +1450,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	// a filter a reducer takes to nothing is the source's own mana (mana_filterfree.go)
 	prepFiltFree(t, g, p)
 	g.anyScriptGap = g.anyEachCol || g.anyRestrScript || g.anyAnyR || g.anyFilt || p.tapMana // (a tap-another-permanent mana gap: mana_tapanother.go)
+	// a Diamond beside another census-gap kind (mana_diamondmix.go)
+	prepDiamondMix(t, g, p)
 	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
 	prepDmgMark(t, g) // repl_dmgmark.go
@@ -1877,7 +1889,7 @@ type genState struct {
 	impCast        bool                    // the cast beginCast starts is for the card's impending cost (castImpTgt; kw_impending.go; padding)
 	warpGrant      bool                    // the warp cast beginCast starts pays a battlefield grant's instance (kw_warpgrant.go; padding)
 	bargainCast    bool                    // the permission cast beginCast starts is bargained: the pool it checks pays the bargained price (offerBargainPlay; kw_bargain.go; padding)
-	noUntapL       uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step (padding)
+	noUntapL       uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step; bit 4+p their creatures (SkipUntapPlayerCL; padding)
 	yourTurns      [MaxSeats]uint8         // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)
 	extraTurnBegun uint8                   // ExYourExtraTurns: bit p, player p has begun an extra turn this game (CR 500.7; value_exprs.go)
 	dayNight       uint8                   // CR 731: bits 0-1 the designation (dnDay, dnNight), bits 2-3 the last turn's active player's spells, at most 2 (kw_daynight.go; padding)

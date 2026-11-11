@@ -2048,10 +2048,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			// a free alternative cost (kernel CardDef.AltFree)
 			st.Cost = lCost{}
 			sp.consume("Cost")
-		} else if st.Cost, err = lc.cost(sp.str("Cost")); err != nil {
+		} else if st.Cost, err = lc.altCostCost(sp.str("Cost")); err != nil {
 			return nil, err
 		}
-		if st.Cost.Forage != nil || st.Cost.ExileG != nil || st.Cost.Energy != 0 || st.Cost.Return != nil {
+		if st.Cost.Forage != nil || st.Cost.ExileG != nil && !st.Cost.ExileHand || st.Cost.Energy != 0 || st.Cost.Return != nil {
 			return nil, refuse("alternative cost with a forage / exile-from-graveyard part")
 		}
 	case "Activations":
@@ -3117,6 +3117,12 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			}
 			break
 		}
+		if ok, err := lc.payBeforeETB(rp, r.With, &rl); ok || err != nil { // lower_paybeforeetb.go
+			if err != nil {
+				return err
+			}
+			break
+		}
 		if rp.str("Destination") != "Battlefield" {
 			return refuse("repl-hard: Moved to %s", rp.str("Destination"))
 		}
@@ -4058,7 +4064,15 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 	if err != nil {
 		return err
 	}
+	grant, err := lc.cloneEnterGrant(ps) // lower_cloneentergrant.go
+	if err != nil {
+		return err
+	}
 	in := lInstr{Op: "BecomeCopy", Obj: lRef{Kind: rReplaced}, F: f}
+	if grant != nil {
+		lc.out.overrides = append(lc.out.overrides, grant)
+		in.A = cst(len(lc.out.overrides)) // index+1
+	}
 	if rememberCounters {
 		in.B = cst(int(kop.BecomeCopyCtr))
 		in.Note = "with the copy origin's counters"

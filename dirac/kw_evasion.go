@@ -58,6 +58,62 @@ func (s *State) landwalkGranted(k *prep, b, a Slot) bool {
 	return hit
 }
 
+// islandSub is the filter Sub value (subtype index+1) of the matchup's Island
+// subtype, 0 when it has none: no land filter then names it.
+func islandSub(k *prep) uint8 {
+	if i := k.gen.blgSub[1]; i != subOutside {
+		return i + 1
+	}
+	return 0
+}
+
+// landwalkNames reports whether an Or-chain link of the land filter f is the
+// bare subtype filter of subtype index sub-1 (Landwalk:Island lowers to a
+// clause with only Sub set; kgen TestLacksIslandwalkFilterShape).
+func landwalkNames(t *kop.Table, f kop.FilterID, sub uint8) bool {
+	for f != 0 {
+		fl := t.Filters[f]
+		next := fl.Or
+		fl.Or, fl.Zone = 0, kop.ZoneNone
+		if fl.Sub == sub && sub != 0 {
+			fl.Sub = 0
+			if fl == (kop.Filter{}) {
+				return true
+			}
+		}
+		f = next
+	}
+	return false
+}
+
+// hasIslandwalk: the permanent at sl has a Landwalk keyword naming the
+// subtype sub-1 among its derived keywords (gorge keywordPredicateMatches
+// over the layer-6 keyword list): its printed landwalk unless it lost its
+// abilities, or a Continuous static's grant (the rules landwalkGranted reads).
+//
+//go:noinline
+func (s *State) hasIslandwalk(k *prep, sl Slot) bool {
+	sub := islandSub(k)
+	if f := k.t.Cards[s.cardAt(sl)].Landwalk; f != 0 && !s.genLost(k, sl) && landwalkNames(k.t, f, sub) {
+		return true
+	}
+	lts, lost := s.lossAt(k, sl)
+	hit := false
+	s.eachStatic(k, func(st statSrc) bool {
+		ab := st.a
+		if ab.Kind != kop.AbStatic || ab.Static.Kind != kop.StatContinuous || ab.Static.Landwalk == 0 ||
+			!landwalkNames(k.t, ab.Static.Landwalk, sub) || lost && s.grantTs(st) < lts {
+			return true
+		}
+		if s.statCond(k, st) && s.matchPermGen(k, ab.Static.Filter, sl, st.ctrl, st.sl, layerKw) {
+			hit = true
+			return false
+		}
+		return true
+	})
+	return hit
+}
+
 // landwalkGrantIn reports whether any ability is a Continuous static
 // granting landwalk.
 func landwalkGrantIn(abs []kop.Ability) bool {

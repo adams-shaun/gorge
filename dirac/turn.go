@@ -1050,8 +1050,8 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 		if k.gen != nil && k.gen.anyWarp && s.objs[ref].zone == kop.ZoneExile {
 			s.warpRecastGrant(ref)
 		}
-	case kop.OpBounce:
-		s.leave(k, sl, kop.ZoneHand, false)
+	case kop.OpBounce, opDashReturn:
+		s.leave(k, sl, kop.ZoneHand, false) // opDashReturn: CR 702.109a's end-step return (kw_dash.go)
 	default:
 		panic("kernel: delayed trigger action not implemented: " + kop.Op(e.trigAmt).String())
 	}

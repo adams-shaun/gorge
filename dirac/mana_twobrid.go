@@ -157,7 +157,8 @@ func (s *State) pipOptionsTb(k *prep, d *Decision, cost kop.ManaCost, av *avail)
 			r := s.buildCostFaces(k, face, m, rem)
 			// a face the mana window can reach through a filter or a converting source is
 			// offered as gorge's castWindowReachable offers it (Jeskai Devotee's {1} for {R})
-			x := r.XGeneric(int(e.x))
+			r = r.AtX(int(e.x))
+			x := 0
 			if grave > 0 {
 				cr := min(int(r.Generic)+x, grave)
 				g := min(int(r.Generic), cr)

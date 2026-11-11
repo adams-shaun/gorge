@@ -41,7 +41,7 @@ func (s *State) histCast(k *prep, e *stackEntry, cost *kop.ManaCost) {
 	}
 	spent := cost.MV()
 	if e.flags&sfFree == 0 {
-		spent += cost.XGeneric(int(e.x))
+		spent += cost.XAmount(int(e.x))
 	}
 	spentMana := spent
 	if k.gen.anyConvoke && harmonizeEntry(&k.t.Cards[e.card], e) {
