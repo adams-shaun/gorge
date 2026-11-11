@@ -599,7 +599,7 @@ LibTopGrave	untyped int	10
 LibTopShuffle	untyped int	4
 LibTopShuffleGrave	untyped int	8
 LibTopShuffleSelf	untyped int	5
-MaxSubtypes	untyped int	128
+MaxSubtypes	untyped int	192
 MaxTargets	untyped int	5
 MayGuardAnimateAll	untyped int	7
 MayGuardAttach	untyped int	1
