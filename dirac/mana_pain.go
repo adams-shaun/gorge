@@ -50,6 +50,15 @@ func manaLifePain(a *kop.Ability) (uint8, bool) {
 	return a.Cost.N, true
 }
 
+// primaryTapAb reports whether a is a bare {T} ability for one mana of any
+// colour, {C}, or a colour set (a plain mana ability with no rider, cost
+// part, restriction or flag): the shape a self Pain-class Taps line prices
+// (prepSelfTapsPain; kgen selfPainPlainMana).
+func primaryTapAb(a *kop.Ability) bool {
+	return a.Kind == kop.AbMana && a.AFlags == 0 && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 && len(a.Prog) == 0 &&
+		a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && max(a.ManaN, 1) == 1 && a.ManaColors != 0
+}
+
 // primaryNormalAb reports whether b is the normal alternative the kernel
 // prices for a pain source: a bare {T} for one mana of {C}, one WUBRG
 // colour, or a two-colour choice (kgen primaryMana). prepPainMana and
@@ -135,6 +144,14 @@ func prepPainMana(c *kop.CardDef, pc *pcard) bool {
 func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 	if DebugNoPainDamage {
 		return
+	}
+	if k.gen != nil && k.gen.anyTapsPain && k.gen.flags[s.cardAt(sl)]&gfTapsPain != 0 {
+		if _, ok := selfTapsPainN(&k.t.Cards[s.cardAt(sl)]); ok {
+			// the pain is the source's own Taps line (City of Brass,
+			// prepSelfTapsPain), a real trigger the tap queues and the stack
+			// resolves: dealing it here too would count it twice
+			return
+		}
 	}
 	if s.manaPCAt(k, sl).painLife {
 		s.loseLife(k, p, n) // a paid life cost, not damage (CR 119.4)

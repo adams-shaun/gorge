@@ -358,8 +358,10 @@ type genPrep struct {
 	// anyManaRider: some card has a counter-rider mana ability (mana_rider.go); it sets anyTapsDefer too
 	anyManaRider bool
 	// anySelfTaps: some card has a lowered self Taps watcher (TfSelf). kgen
-	// lowers one only on a card with no printed mana ability, so it can only
-	// defer a granted mana ability's tap (act_waterbend.go windowCensusComplete).
+	// lowers one on a card with a printed mana ability only as the vetted
+	// "deals N damage to you" line (TapPlanPain, City of Brass: priced, never a
+	// gap), so any other can only defer a granted mana ability's tap
+	// (act_waterbend.go windowCensusComplete).
 	anySelfTaps bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
