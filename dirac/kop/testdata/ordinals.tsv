@@ -270,6 +270,7 @@ DiscoverRemBottom	untyped int	241
 DivLKIP1P1	untyped int	255
 DivMaxV	untyped int	254
 DivValue	untyped int	253
+DmgDivideEvenly	untyped int	64
 DmgEQ	DmgCmp	3
 DmgExileIfDealt	untyped int	16
 DmgExileIfDiesThisTurn	untyped int	2
@@ -316,6 +317,7 @@ EvHorsemanship	uint8	1
 EvIntimidate	uint8	2
 EvSkulk	uint8	4
 EvidenceTargetsMV	untyped int	255
+ExActivations	ExprKind	60
 ExAdamant	ExprKind	244
 ExAttackedThisTurn	ExprKind	9
 ExAttackedTurn	ExprKind	235
@@ -336,7 +338,7 @@ ExCountAtLeast	ExprKind	30
 ExCountExile	ExprKind	27
 ExCountGraveyard	ExprKind	4
 ExCountHand	ExprKind	250
-ExCount_	ExprKind	60
+ExCount_	ExprKind	62
 ExCounterKinds	ExprKind	225
 ExCountersOn	ExprKind	18
 ExCreaturesDied	ExprKind	19
@@ -345,6 +347,7 @@ ExDevotion	ExprKind	38
 ExDilemmasFaced	ExprKind	239
 ExDiscardedThisTurn	ExprKind	241
 ExDistinctCMC	ExprKind	6
+ExDmgAmountReceived	ExprKind	219
 ExDrawnThisTurn	ExprKind	40
 ExExcessDamage	ExprKind	21
 ExExiledWithN	ExprKind	246
@@ -359,6 +362,7 @@ ExLastLifeLost	ExprKind	22
 ExLeftZone	ExprKind	249
 ExLibrarySizeOf	ExprKind	13
 ExLifeGainedThisTurn	ExprKind	16
+ExLifeLostLastTurn	ExprKind	61
 ExLifeLostThisTurn	ExprKind	24
 ExLifeOf	ExprKind	12
 ExLowestLife	ExprKind	252
@@ -834,6 +838,7 @@ PayBSubEvidenceX	untyped int	11
 PayBSubExileHand	untyped int	9
 PayBSubSacHost	untyped int	7
 PayBSubStackSelf	untyped int	13
+PayBSubTapXVar	untyped int	16
 PayBSubTrigNew	untyped int	3
 PayBSubTrigNewEvidence	untyped int	10
 PayBSubWaterbend	untyped int	12

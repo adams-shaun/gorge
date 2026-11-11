@@ -566,6 +566,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		switch rest {
 		case "LifeLostThisTurn":
 			v = lValue{Kind: vLifeLostThisTurn}
+		case "LifeLostLastTurn":
+			// gorge Engine.LifeLostLastTurn: the controller's losses in the
+			// previous turn's window (Paladin of Atonement's upkeep CheckSVar).
+			v = lValue{Kind: vLifeLostLastTurn}
 		case "HasPropertyActive":
 			v = lValue{Kind: vYourTurns, N: 1} // 1 on the controller's turn
 		case "CardsDiscardedThisTurn":
@@ -953,6 +957,11 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lc.castBattlefieldValue(spec)
 	}
 	switch rest {
+	case "TotalDamageReceivedThisTurn":
+		// the positive damage the source received this turn (gorge
+		// Object.DamageReceivedThisTurn; CardDef.DmgAmt)
+		lc.out.DmgAmt = true
+		return lValue{Kind: vDmgAmount}, nil
 	case "FinishedEndOfTurnsThisTurn":
 		return finishedEndStepsValue(), nil // lower_addphase.go
 	case "OffspringPaid":
@@ -1034,6 +1043,8 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vPowerOf, Ref: lRef{Kind: rSelf}}, nil
 	case "CardToughness":
 		return lValue{Kind: vToughnessOf, Ref: lRef{Kind: rSelf}}, nil
+	case "TotalDamageDoneByThisTurn":
+		return lc.totalDamageValue()
 	case "LifeYouGainedThisTurn":
 		return lValue{Kind: vLifeGainedThisTurn}, nil
 	case "LifeYouLostThisTurn":

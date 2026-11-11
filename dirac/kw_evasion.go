@@ -12,14 +12,57 @@ import (
 //
 //go:noinline
 func (s *State) landwalkEvades(k *prep, b, a Slot) bool {
-	f := k.t.Cards[s.cardAt(a)].Landwalk
-	if f == 0 || s.genLost(k, a) {
-		return false
+	if f := k.t.Cards[s.cardAt(a)].Landwalk; f != 0 && !s.genLost(k, a) && s.landwalkHit(k, f, b, a) {
+		return true
 	}
+	return s.landwalkGranted(k, b, a)
+}
+
+// landwalkHit: the defending player (blocker b's controller) controls a land
+// matching the landwalk filter f of attacker a.
+func (s *State) landwalkHit(k *prep, f kop.FilterID, b, a Slot) bool {
 	def := s.perms[b].ctrl
 	for m := s.ctrlM[def]; m.any(); m = m.rest() {
 		sl := m.first()
 		if s.typesAt(k, sl)&kop.TLand != 0 && s.matchPerm(k, f, sl, s.perms[a].ctrl, a) {
+			return true
+		}
+	}
+	return false
+}
+
+// landwalkGranted: a Continuous static's Landwalk, granted to attacker a,
+// matches a land the defending player controls (CR 702.14; Goblin King's
+// mountainwalk). A grant is a layer-6 effect, so it does not survive a later
+// loss of a's abilities (the rule kwGen and protGranted use).
+//
+//go:noinline
+func (s *State) landwalkGranted(k *prep, b, a Slot) bool {
+	lts, lost := s.lossAt(k, a)
+	hit := false
+	s.eachStatic(k, func(st statSrc) bool {
+		ab := st.a
+		if ab.Kind != kop.AbStatic || ab.Static.Kind != kop.StatContinuous || ab.Static.Landwalk == 0 {
+			return true
+		}
+		if lost && s.grantTs(st) < lts {
+			return true
+		}
+		if s.statCond(k, st) && s.matchPermGen(k, ab.Static.Filter, a, st.ctrl, st.sl, layerKw) &&
+			s.landwalkHit(k, ab.Static.Landwalk, b, a) {
+			hit = true
+			return false
+		}
+		return true
+	})
+	return hit
+}
+
+// landwalkGrantIn reports whether any ability is a Continuous static
+// granting landwalk.
+func landwalkGrantIn(abs []kop.Ability) bool {
+	for j := range abs {
+		if a := &abs[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.Landwalk != 0 {
 			return true
 		}
 	}

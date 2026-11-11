@@ -809,6 +809,7 @@ func (cb *cardBuilder) record() error {
 	d.SelfFlash = c.SelfFlash
 	d.Gift = c.Gift
 	d.SpentSelf = c.SpentSelf
+	d.DmgAmt = c.DmgAmt
 	if c.CastBF != nil {
 		// Count$LastStateBattlefieldWithFallback: the
 		// filter frozen at beginCast into the spell entry's trigMV
@@ -827,6 +828,7 @@ func (cb *cardBuilder) record() error {
 	d.Evasion = c.Evasion
 	d.Wither = c.Wither
 	d.AloneAtk = c.AloneAtk
+	d.AloneBlk = c.AloneBlk
 	d.Engines = c.Engines
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)
@@ -1893,6 +1895,8 @@ func (cb *cardBuilder) value(v lValue) (kop.ValueRef, error) {
 			return kop.ValueRef{}, err
 		}
 		return kop.ValueRef{K: kop.VCountersSelf, N: int16(k)}, nil
+	case v.Kind == vLastDamage && plain:
+		return kop.ValueRef{K: kop.VLastDamage}, nil
 	case v.Kind == vLifeGainedThisTurn && plain:
 		return kop.ValueRef{K: kop.VLifeGainedTurn}, nil
 	case v.Kind == vCount && plain:
@@ -1979,6 +1983,9 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vTgtSpent:           kop.ExTgtSpent,
 	vOppExtreme:         kop.ExOppExtreme,
 	vThisTurnActExhaust: kop.ExThisTurnActExhaust,
+	vActivations:        kop.ExActivations,
+	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
+	vDmgAmount:          kop.ExDmgAmountReceived,
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {

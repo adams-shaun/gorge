@@ -183,6 +183,10 @@ const (
 	vTgtSpent            // the mana spent to cast the spell the resolving spell targets (Targeted$CastTotalManaSpent)
 	vOppExtreme          // a figure over the controller's living opponents, kop.OppExt* in N, F for OppExtValid (PlayerCountOpponents$)
 	vThisTurnActExhaust  // 1 if the controller activated an Exhaust ability this turn (Count$ThisTurnActivated_Activated.Exhaust+YouCtrl)
+	vActivations         // the resolving activated ability's source's non-mana activations this turn, this one included (ConditionActivationLimit$)
+	vLifeLostLastTurn    // life the controller lost during the previous turn (PlayerCountPropertyYou$LifeLostLastTurn)
+	vLastDamage          // damage the spell's previous DealDamage landed (kop.VLastDamage; value_totaldamage.go)
+	vDmgAmount           // the positive damage the source received this turn (Count$TotalDamageReceivedThisTurn)
 	vCount_
 )
 
@@ -190,7 +194,7 @@ var valNames = [...]string{"None", "Const", "X", "Count", "CountGraveyard", "Sum
 	"Morbid", "AttackedThisTurn", "PowerOf", "ToughnessOf", "LifeOf", "LibrarySizeOf", "StartingLife",
 	"TriggerAmount", "LifeGainedThisTurn", "OppLifeLostThisTurn", "CountersOn", "CreaturesDied",
 	"RememberedCount", "ExcessDamage", "LastLifeLost", "TokensCreated", "CountCast", "LifeLostThisTurn", "Sum",
-	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn", "TgtSpent", "OppExtreme", "ThisTurnActExhaust"}
+	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn", "TgtSpent", "OppExtreme", "ThisTurnActExhaust", "Activations", "LifeLostLastTurn", "LastDamage", "DmgAmount"}
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
 // that order, then negated when Neg.
@@ -540,6 +544,7 @@ type lCost struct {
 	DrawN          int      // Draw<N/You>: draw N cards (a trigger's own cost only)
 	EvidenceN      int      // CollectEvidence<N>: exile graveyard cards with total mana value >= N (CR 701.59a)
 	EvidenceX      bool     // CollectEvidence<X>: the announced X (a trigger's own cost only)
+	TapXVar        bool     // tapXType<X/Spec>: tap any number, X the count tapped (a trigger's own cost only; shares TapF)
 	ExileTrigNew   bool     // ExileAnyGrave<1/Card.TriggeredNewCard>: exile the triggered card from any graveyard (a dies trigger's own cost)
 	PutLibSelf     bool     // PutCardToLibFromGrave<1/-1/CARDNAME>: the source card goes from its graveyard to the bottom of its owner's library (a graveyard activated ability's cost)
 	BeholdN        int      // Behold<N/Type>: reveal or choose N permanents or hand cards matching BeholdF (CR 701.4a; a spell's additional, optional, may-flash or flashback cost part)
@@ -554,7 +559,7 @@ func (c lCost) pureMana() bool {
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && c.Loyalty == 0 && !c.LoyaltyX &&
 		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
 		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && !c.ReturnSelf &&
-		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.ExileTrigNew &&
+		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
 		!c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil
 }
 
@@ -820,6 +825,8 @@ type lStatic struct {
 	Override     *lOverride
 	// ProtFrom: a Continuous grant's protection qualities (kop.Static.ProtFrom)
 	ProtFrom *lFilter
+	// Landwalk: a Continuous grant's landwalk land filter (kop.Static.Landwalk)
+	Landwalk *lFilter
 	Grant    []int    // latent abilities the affected objects gain
 	Flags    []string // kind-specific flags
 	Note     string
@@ -880,7 +887,7 @@ type lOverride struct {
 	KeepP, KeepT      bool     // a set of base toughness / power only (Maha)
 	RemoveKw          []string // RemoveKeyword$: keywords removed (layer 6)
 	Dedup             bool     // share a byte-identical pool record across cards (Earthbend)
-	WhileHost         bool     // Duration$ UntilHostLeavesPlay
+	WhileHost         bool     // Duration$ UntilHostLeavesPlay / AsLongAsInPlay
 	WhileTapped       bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
 	CantAttack        bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
 	MustBeBlocked     bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
@@ -989,6 +996,7 @@ type lCard struct {
 	DungeonNext    []uint8  // a dungeon entry's room arrows (CardDef.DungeonNext; lower_initiative.go)
 	TypeValid      []uint16 // an as-enters ChooseType's ValidTypes$ vocabulary indexes (CardDef.TypeValid; lower_choosetype.go)
 	SpentSelf      bool     // the card reads Count$CastTotalManaSpent in a spell chain or a self-ETB trigger: gorge's planner declines its cast (CardDef.SpentSelf)
+	DmgAmt         bool     // the card reads Count$TotalDamageReceivedThisTurn (CardDef.DmgAmt)
 	CastBF         *lFilter // the card reads Count$LastStateBattlefieldWithFallback <spec> in a spell's own program (CardDef.CastBF)
 	Gift           bool     // K:Gift (CR 702.174): the GiftAbility body is spliced at the head of the spell, or is the permanent's ETB gift trigger
 	Landwalk       *lFilter // K:Landwalk:<land filter> (CR 702.14)
@@ -1004,6 +1012,7 @@ type lCard struct {
 	Evasion        uint8    // printed Horsemanship / Intimidate (kop.Ev* bits)
 	Wither         bool     // printed K:Wither (CR 702.80)
 	AloneAtk       bool     // the printed can't-attack-alone keyword (CR 506.5)
+	AloneBlk       bool     // the printed can't-block-alone keyword, and the compound's block half (CR 506.5)
 	Engines        bool     // printed K:Start your engines (CR 702.179a)
 	AtkFace        bool     // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
 	SagaN          int      // K:Chapter:<count>: the final chapter number (CR 714.1)

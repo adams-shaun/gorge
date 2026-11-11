@@ -40,6 +40,10 @@ type DealDamageParams struct {
 	// text (the named total divided among the chosen targets).
 	Divided      bool
 	DividedTotal ParamText
+	// DivideEvenlyDown is DivideEvenly$ RoundedDown (Fireball's "divided
+	// evenly, rounded down, among any number of targets"): the amount is
+	// divided by the number of legal targets at resolution, rounded down.
+	DivideEvenlyDown bool
 	// RememberDamaged is a non-empty RememberDamaged$.
 	RememberDamaged bool
 	// ExcessSVar$ and ExcessSVarCondition$ (CR 120.10), trimmed.
@@ -86,7 +90,7 @@ var dealDamageKnownKeys = [...]string{
 	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOpponentTurn", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn",
 	"ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc",
 	"DamageMap", "DamageSource", "Defined", "DefinedCards", "DefinedDesc", "DefinedTarget",
-	"Description", "DividedAsYouChoose", "ExcessSVar",
+	"Description", "DivideEvenly", "DividedAsYouChoose", "ExcessSVar",
 	"ExcessSVarCondition", "Exclude", "Exhaust", "ForgetOtherTargets", "FromDesc", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC",
@@ -152,6 +156,7 @@ func compileDealDamage(sa *cards.SA) *DealDamageParams {
 		p.Divided = true
 		p.DividedTotal = div
 	}
+	p.DivideEvenlyDown = strings.TrimSpace(sa.ParamStr(cards.PKDivideEvenly)) == "RoundedDown"
 	p.RememberDamaged = strings.TrimSpace(sa.ParamStr(cards.PKRememberDamaged)) != ""
 	p.ExcessSVar = strings.TrimSpace(sa.ParamStr(cards.PKExcessSVar))
 	p.ExcessSVarCondition = strings.TrimSpace(sa.ParamStr(cards.PKExcessSVarCondition))

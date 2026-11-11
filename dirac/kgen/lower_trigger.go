@@ -1820,6 +1820,9 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	switch s.Mode {
 	case "Continuous":
 		lc.grantInner = nil
+		if err := extraBlockRefusal(sp); err != nil {
+			return nil, err // lower_extrablock.go
+		}
 		goad := sp.is("Goad", "True")
 		sp.consume("Goad")
 		sts, err := lc.continuous(sp, &st)
@@ -2289,7 +2292,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			st.Kind = "" // view-only: lower to nothing
 			return nil, nil
 		}
-		if faceDownLookOnly(sp.m) {
+		if faceDownLookOnly(sp.m) || handRevealOnly(sp.m) { // lower_handreveal.go
 			sp.consume("AffectedZone")
 			st.Kind = "" // view-only: lower to nothing
 			return nil, nil
@@ -2482,6 +2485,10 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		rest, melee := splitMeleeGrant(rest)
 		rest, exalted := splitExaltedGrant(rest)
 		rest, st.ProtFrom, err = lc.splitProtGrant(rest) // lower_protgrant.go
+		if err != nil {
+			return nil, err
+		}
+		rest, st.Landwalk, err = lc.splitLandwalkGrant(rest, aff) // lower_landwalkgrant.go
 		if err != nil {
 			return nil, err
 		}

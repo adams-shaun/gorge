@@ -6,6 +6,7 @@
 package events
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -111,16 +112,26 @@ func foldCombatRetarget(g *state.Game, e *Event) {
 		// BlockedBy would leave a former blocker's IsBlocking set while the
 		// attacker reads unblocked -- the two records diverged. A zero
 		// tombstone (an already-removed blocker) names no object and is
-		// skipped. A blocker here blocks only this attacker (the build has no
-		// "blocks an additional creature" keyword), so clearing the flag is
-		// exact, not a partial update.
-		for _, bid := range o.BlockedBy {
-			if b := g.Obj(bid); b != nil {
-				b.IsBlocking = false
-			}
-		}
+		// skipped. A blocker that still blocks another attacker
+		// (CanBlockAmount$) keeps IsBlocking.
+		former := o.BlockedBy
 		o.Attacking = e.Player
 		o.BlockedBy = nil
+		for _, bid := range former {
+			b := g.Obj(bid)
+			if b == nil {
+				continue
+			}
+			// CR 509.1a / CanBlockAmount$: a blocker of several attackers
+			// still blocks while another attacker lists it.
+			b.IsBlocking = false
+			for i := range g.Objs {
+				if other := &g.Objs[i]; other.IsAttacking && slices.Contains(other.BlockedBy, bid) {
+					b.IsBlocking = true
+					break
+				}
+			}
+		}
 	}
 }
 

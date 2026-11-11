@@ -906,6 +906,15 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		ka.ManaN = 1
 		return nil
 	}
+	if m.Special == "ReflectedImprint" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
+		// (Chrome Mox) a printed AfManaReflect with no ManaAmong filter
+		// reads the colours of the cards its source imprinted (kernel
+		// mana_imprint.go; lower_imprintmox.go)
+		ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect
+		ka.ManaColors = kop.ColAny
+		ka.ManaN = 1
+		return nil
+	}
 	if m.Special == "ReflectedSelf" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
 		// a granted "any of this creature's colors" (Katilda): AfManaReflect
 		// with no ManaAmong filter reads the grantee's own colours
@@ -1656,6 +1665,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			st.Grant = uint8(j + 1)
 		}
 		if st.ProtFrom, err = filter(s.ProtFrom, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		if st.Landwalk, err = filter(s.Landwalk, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
 		if s.Override != nil {
@@ -2595,7 +2607,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		} else if in.Op == "UnlessSwitched" {
 			ki.Op = kop.OpUnlessSwitched
 		}
-		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "DamageYou": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "Waterbend": kop.PayTapX, "AddCounter": kop.PayAddCounter, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileStackSelf": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
+		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "DamageYou": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "TapXVar": kop.PayTapX, "Waterbend": kop.PayTapX, "AddCounter": kop.PayAddCounter, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileStackSelf": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
 		if pk == 0 {
 			return ki, fmt.Errorf("pay kind %q", in.CS)
 		}
@@ -2646,6 +2658,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if in.CS == "DamageYou" {
 			ki.B = kop.Const(kop.PayBSubDamage) // the resolving source deals A damage to the payer, not a draw (cost_restokens.go)
+		}
+		if in.CS == "TapXVar" {
+			ki.B = kop.Const(kop.PayBSubTapXVar) // tap any number, X the count (cost_tapxvar.go)
 		}
 		if in.CS == "Waterbend" {
 			ki.B = kop.Const(kop.PayBSubWaterbend) // an unless Waterbend<N>, not a tapXType (cost_unlesswaterbend.go)
@@ -2792,6 +2807,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		cb.inDamageMap = false
 	case "DealDamageDivided":
 		ki.Op = kop.OpDealDamageDivided
+		if _, ok := fl["DivideEvenly"]; ok {
+			ki.C = kop.DmgDivideEvenly
+		}
 	case "DealDamageFrom":
 		ki.Op = kop.OpDealDamageFrom
 		if in.CS == "players" {

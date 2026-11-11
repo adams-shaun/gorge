@@ -127,6 +127,9 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	if in.Op == kop.OpIfPaid || in.Op == kop.OpUnlessSwitched {
 		skip |= pfIfPaid
 	}
+	if kind == kop.PayTapX && pips == kop.PayBSubTapXVar && p != 255 {
+		return s.execTapXVar(k, p, skip, in.F) // tapXType<X/Spec> (cost_tapxvar.go)
+	}
 	if kind == kop.PayTapX && in.Op == kop.OpIfPaid && s.canPayGen(k, p, kind, amt, pips, in.F) {
 		// gorge's literal tap election IS the payment (cumulative.go:1386):
 		// there is no pay/decline ask when it can be paid. An unpayable one
@@ -390,6 +393,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
 			}
 		}
+		s.tapXVarDone(k, d) // closes a tapXType<X/Spec> pick (cost_tapxvar.go)
 	case raGenDigArrange:
 		d.Sub = ChArrange
 		for i := 0; i < int(s.g.nlook); i++ {
@@ -437,6 +441,8 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			d.Sub = ChGenHandMove
 			if s.g.pickF&kop.SrReveal != 0 {
 				d.Sub = ChGenReveal
+			} else if s.imprintMoxPick(k) {
+				d.Sub = ChGenImprint // mana_imprint.go
 			}
 		default:
 			d.Sub = ChGenHiddenPick
@@ -812,6 +818,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		}
 		o := Obj(a.Source())
+		if s.tapXVarPick(k) {
+			s.applyTapXVarPick(k, a) // tapXType<X/Spec> (cost_tapxvar.go)
+			return
+		}
 		if s.g.pickZ == payKindBehold {
 			s.g.pickLeft = 0 // beholding moves and marks nothing (cost_unlessbehold.go)
 			s.payDone(k, true)
@@ -1342,6 +1352,9 @@ func (s *State) payDone(k *prep, paid bool) {
 			s.loseLife(k, s.g.pickP, int(life)) // the mana-and-life cost's life (Zoraline)
 		}
 		s.trigXBind(k) // a PayManaX cost: the announced X is Count$xPaid
+	}
+	if paid && s.g.pickZ == kop.PayTapX && s.res.e.kind == seTrigger {
+		s.tapXVarBind(k) // tapXType<X/Spec>: the count tapped is Count$xPaid
 	}
 	if paid && s.g.pickZ == payKindEvidence && s.res.e.kind == seTrigger {
 		s.evidenceXBind(k) // CollectEvidence<X>: the announced X is Count$xPaid

@@ -49,6 +49,10 @@ func prepManaRefl(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 	if ra < 0 || g.has(id, gfManaVar) || pc.manaAb < 0 {
 		return
 	}
+	if c.Abilities[ra].ManaAmong == 0 {
+		prepManaImprint(g, id, pc) // the imprint mox (mana_imprint.go)
+		return
+	}
 	g.setFlag(id, gfManaVar|gfManaRefl)
 	g.smallFor(id).manaVar = int16(len(g.varPC))
 	for m := 0; m < 32; m++ {
@@ -71,6 +75,9 @@ func (s *State) reflColours(k *prep, sl Slot, c CardID) kop.ColorMask {
 			f = a.ManaAmong
 			break
 		}
+	}
+	if f == 0 {
+		return s.imprintColours(k, sl) // the imprint mox (mana_imprint.go)
 	}
 	p := s.perms[sl].ctrl
 	var m kop.ColorMask
