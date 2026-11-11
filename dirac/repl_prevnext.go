@@ -40,7 +40,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // StallPrevNext is a damage event a depleting prevent-the-next-N shield and
 // another damage replacement both match (gorge asks the CR 616.1 order, and
 // it changes the amount prevented and what is left), or an amount past 255
-// (an Obj byte holds the pool).
+// (a record's col byte holds the pool).
 const StallPrevNext = 171
 
 func init() { stallNames[StallPrevNext] = "prevnext" }

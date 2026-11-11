@@ -729,14 +729,14 @@ func init() { extOpNames[ExtCopyExiledWith] = "CopyExiledWith" }
 // effPreventDamage: one this-turn DamageDone shield per recipient that
 // prevents only the next N damage, depletes across events and lets the rest
 // through). B is the amount, read once as the effect resolves; C 1: the shield
-// matches combat damage only (CombatDamage$ True); a recipient
-// that is not on the battlefield (or a player who has lost) takes no shield,
-// and an amount of zero or less installs nothing. A record is a recipient
-// code and the damage it has left in genState.pnx (eight a turn; a ninth
-// stalls StallPrevNext), spent records free their slot. A shield that has
-// to be ordered against another damage replacement (CR 616.1: another
-// shield, a colour or scope prevention, a doubler, a SHIELD counter) stalls
-// StallPrevNext: the order changes what is prevented. dirac/repl_prevnext.go.
+// matches combat damage only (CombatDamage$ True). A recipient that is not on
+// the battlefield (or a player who has lost) takes no shield, and an amount of
+// zero or less installs nothing. A shield is a genState.prevCol record (three a
+// turn of any kind; a fourth stalls StallPrevCol). A shield that has to be
+// ordered against another damage replacement (CR 616.1: a colour or scope
+// prevention, a doubler, a SHIELD counter) stalls StallPrevNext: the order
+// changes what is prevented; two or more shields on one recipient are asked in
+// order. dirac/repl_prevnext.go.
 const ExtPreventNext ExtOp = 305
 
 func init() { extOpNames[ExtPreventNext] = "PreventNext" }
