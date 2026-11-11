@@ -106,6 +106,7 @@ func (s *State) srcInfect(k *prep) bool {
 func (s *State) infectCounters(k *prep, sl Slot, n int) {
 	if n > 0 {
 		s.g.dmgTurn.set(s.perms[sl].obj) // infect damage is dealt damage (gorge events.foldDamage records it before the counter branch)
+		s.recordDmgAmt(k, sl, n)         // a reader card's amount (dmg_amount.go)
 	}
 	s.g.lastCK = kop.CtrM1M1
 	adder := s.res.e.ctrl // the damage source's controller (gorge infect.go publishes it)

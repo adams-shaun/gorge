@@ -286,6 +286,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 			return int(e.x)
 		}
 		return 0
+	case kop.ExDmgAmountReceived:
+		return s.dmgAmountReceived(ctx.src) // dmg_amount.go
 	case kop.ExTgtSpent:
 		// the resolving spell's target spell's spend, snapshotted as the
 		// resolution started (snapTgtSpent; 0 with no snapshot, as gorge's

@@ -345,6 +345,7 @@ ExDevotion	ExprKind	38
 ExDilemmasFaced	ExprKind	239
 ExDiscardedThisTurn	ExprKind	241
 ExDistinctCMC	ExprKind	6
+ExDmgAmountReceived	ExprKind	219
 ExDrawnThisTurn	ExprKind	40
 ExExcessDamage	ExprKind	21
 ExExiledWithN	ExprKind	246
