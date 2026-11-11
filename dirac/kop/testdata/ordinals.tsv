@@ -336,7 +336,7 @@ ExCountAtLeast	ExprKind	30
 ExCountExile	ExprKind	27
 ExCountGraveyard	ExprKind	4
 ExCountHand	ExprKind	250
-ExCount_	ExprKind	60
+ExCount_	ExprKind	61
 ExCounterKinds	ExprKind	225
 ExCountersOn	ExprKind	18
 ExCreaturesDied	ExprKind	19
@@ -359,6 +359,7 @@ ExLastLifeLost	ExprKind	22
 ExLeftZone	ExprKind	249
 ExLibrarySizeOf	ExprKind	13
 ExLifeGainedThisTurn	ExprKind	16
+ExLifeLostLastTurn	ExprKind	60
 ExLifeLostThisTurn	ExprKind	24
 ExLifeOf	ExprKind	12
 ExLowestLife	ExprKind	252
