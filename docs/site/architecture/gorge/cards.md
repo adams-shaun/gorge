@@ -106,7 +106,7 @@ Types:Creature Goblin
 PT:1/1
 K:Haste
 T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDamage | TriggerDescription$ When CARDNAME enters, it deals 1 damage to any target.
-SVar:TrigDamage:DB$ DealDamage | ValidTgts$ Any | NumDmg$ 1
+SVar:TrigDamage:DB$ DealDamage | NumDmg$ 1 | ValidTgts$ Any
 ```
 
 `cards.ParseBytes` ([`engine/cards/parse.go`](https://github.com/adams-shaun/gorge/blob/main/engine/cards/parse.go))
