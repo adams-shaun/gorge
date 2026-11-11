@@ -1428,6 +1428,7 @@ W7GreatestPowerTgt	int16	12
 W7Imprinted	int16	25
 W7InZone	int16	4
 W7IsCommander	int16	16
+W7LacksIslandwalk	int16	27
 W7NoAbilities	int16	15
 W7NoName	int16	1
 W7NoNameTwin	int16	9
