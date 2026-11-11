@@ -1842,24 +1842,6 @@ func (lc *lowerCtx) costUnless(s string) (lCost, error) {
 	return c, lc.costParts(c)
 }
 
-// discardUnlessLifted reports whether every Discard<> token in an UnlessCost$
-// uses a selection method lifts (Random or Hand).
-func discardUnlessLifted(s string) bool {
-	saw := false
-	for _, t := range costTokens(strings.TrimSpace(s)) {
-		head, arg, hasArg := strings.Cut(t, "<")
-		if head != "Discard" || !hasArg {
-			continue
-		}
-		saw = true
-		parts := strings.Split(strings.TrimSuffix(arg, ">"), "/")
-		if len(parts) < 2 || (parts[1] != "Random" && parts[1] != "Hand") {
-			return false
-		}
-	}
-	return saw
-}
-
 // costParts refuses the cost parts only an activated or hand ability may pay.
 func (lc *lowerCtx) costParts(c lCost) error {
 	if c.DiscardSelf {
@@ -3514,13 +3496,6 @@ func (lc *lowerCtx) lastTarget() int {
 		return -1
 	}
 	return lc.chainT[len(lc.chainT)-1]
-}
-
-func (lc *lowerCtx) firstTarget() int {
-	if len(lc.chainT) == 0 {
-		return -1
-	}
-	return lc.chainT[0]
 }
 
 // newLatent starts a latent ability (a program an op reaches by index) and

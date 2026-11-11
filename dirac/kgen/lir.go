@@ -2,7 +2,6 @@ package kgen
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -223,12 +222,6 @@ type lValue struct {
 }
 
 func cst(n int) lValue { return lValue{Kind: vConst, N: n} }
-
-// sameValue reports whether a and b lower to the same amount. It is the
-// divided-total check: gorge's target ask clamps a divided slot's target count
-// to the announced total, so only a slot whose TargetMax$ is the divided
-// total's own value reads exactly (Ureni's TargetMax$ X / DividedAsYouChoose$ X).
-func sameValue(a, b lValue) bool { return reflect.DeepEqual(a, b) }
 
 func (v lValue) isConst() bool {
 	return v.Kind == vConst && v.Mul == 0 && v.Div == 0 && v.Add == 0 && !v.Neg

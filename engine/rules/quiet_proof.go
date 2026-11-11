@@ -591,17 +591,6 @@ func (e *Engine) quietHandBlocker(p state.PlayerID, ceiling int32, unbounded, so
 	return qbNone
 }
 
-// quietFaceGrantedHead reports whether the object's face carries any of the
-// four expanded keyword heads (Cycling, TypeCycling, Saddle, Crew) or any
-// dynamic keyword state that could produce a granted ability offer.
-func quietFaceGrantedHead(o *state.Object) bool {
-	f := o.Face()
-	if f == nil {
-		return true
-	}
-	return quietFaceGrantedHeadFacts(o, f, walkFaceFactsOfFace(f))
-}
-
 // quietFaceGrantedHeadFacts is quietFaceGrantedHead with the face and its
 // facts already in hand (ff may be nil: the raw-list fallback runs).
 func quietFaceGrantedHeadFacts(o *state.Object, f *cards.Face, ff *walkFaceFacts) bool {
@@ -617,22 +606,6 @@ func quietFaceGrantedHeadFacts(o *state.Object, f *cards.Face, ff *walkFaceFacts
 		}
 	}
 	return objectGrantedKWMaybe(o, f, ff)
-}
-
-// walkFaceFactsOfFace reads f's facts off the published slot only, without
-// an engine: quietFaceGrantedHead is called from a per-object scan that may
-// not have one. A face another configuration published with current
-// keywords is served; else nil (the caller recomputes from the raw lists).
-func walkFaceFactsOfFace(f *cards.Face) *walkFaceFacts {
-	if f == nil {
-		return nil
-	}
-	if p := f.ExtSlot().Load(); p != nil {
-		if ff := (*walkFaceFacts)(p); ff.currentFor(f) {
-			return ff
-		}
-	}
-	return nil
 }
 
 // quietGrantedZoneBlocker covers mayPlayLandWalk, mayhemLandWalk and
