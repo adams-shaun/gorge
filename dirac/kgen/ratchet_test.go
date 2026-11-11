@@ -124,10 +124,10 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (the optional copy-instead CreateToken replacement of an Equipment or Aura gated on no token of yours having entered this turn, kop.ReplCopyFirstToken: Mirrormind Crown, Moonlit Meditation; ECL 242 -> 243, EOE 248 -> 249, ALL 22149 -> 22151).
 	// +1 (Fiend Hunter's Defined$ DirectRemembered leave return lowers as the remembered-persist pair; ALL 22176 -> 22177).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22177, 34442},
+	"ALL": {22180, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
-	"BRO": {215, 280},
+	"BRO": {216, 280},
 	"DFT": {255, 276},
 	"DMU": {194, 270},
 	"DSK": {249, 276},
