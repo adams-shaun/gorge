@@ -435,6 +435,16 @@ const W7Imprinted int16 = 25
 // Runic Repetition.
 const W7WithFlashback int16 = 26
 
+// W7LacksIslandwalk (PredWord7 sub-kind 27): the negated exact-keyword word
+// !hasKeywordLandwalk:Island; the kernel reads the Island subtype off the
+// matchup table (genPrep.blgSub; a matchup without one has no islandwalk). A battlefield permanent has islandwalk when its printed
+// CardDef.Landwalk, unless it lost its abilities, or a Continuous static's
+// granted Static.Landwalk, is a land filter naming that subtype (an Or-chain
+// link counts), as gorge's keywordPredicateMatches reads a derived
+// Landwalk:Island; the predicate holds when it has none. Off the battlefield
+// the printed Landwalk alone counts. Stormtide Leviathan.
+const W7LacksIslandwalk int16 = 27
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go
