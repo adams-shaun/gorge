@@ -22,7 +22,11 @@ import (
 // and a coloured one, luck counters by the opening-hand route, on both surfaces)
 // is then to be written, as TestRiverOfTearsDeferredManaLockstep is.
 func TestGemstoneCavernsDeferredManaLockstep(t *testing.T) {
+	_ = corpusDirOrSkip(t)
 	set, err := cardset.RawByName("gemstonecaverns")
+	if errors.Is(err, cardset.ErrNoCorpus) {
+		t.Skip(err)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}

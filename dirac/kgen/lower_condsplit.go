@@ -43,14 +43,14 @@ func (lc *lowerCtx) condSplitRoot(sa *cards.SA, ps *params, ab *lAbility) (*lSpl
 	if !ab.Cost.Tap || !plainTapCost(ab.Cost) {
 		return nil, refuse("%s: root cost beyond {T}", shape)
 	}
-	for k := range ps.m {
+	for _, k := range sortedParamKeys(ps.m) {
 		switch k {
 		case "AB", "Cost", "Produced", "ConditionCheckSVar", "ConditionSVarCompare", "SubAbility", "SpellDescription":
 		default:
 			return nil, refuse("%s: root param %s$", shape, k)
 		}
 	}
-	for k := range sub.Params {
+	for _, k := range sortedParamKeys(sub.Params) {
 		switch k {
 		case "DB", "Produced", "ConditionCheckSVar", "ConditionSVarCompare":
 		default:
