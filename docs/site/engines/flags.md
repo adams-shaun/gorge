@@ -19,6 +19,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-dir` | string | `.cards` | corpus directory (holds ir.gob.gz / cardsfolder) |
 | `-format` | string | `constructed` | game format: constructed or commander (40 life, commanders in the command zone) |
 | `-games` | int | `1` | number of games to play |
+| `-mulligans` | int | `0` | London mulligans each seat may take before turn 1 (default 0, none) |
 | `-sb-agent` | string | repeatable | register a SpellBench v2 stdio agent: name=/path/to/agent (repeatable) |
 | `-seats` | int | `4` | number of seats |
 | `-seed` | uint64 | `0` | base seed; game i uses seed+i for both the engine and its bot |
@@ -175,6 +176,8 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-features` | bool | `false` | vanilla/fdn: also assert the network inputs (dirac/feat vs policynet) at every decision |
 | `-first-game` | int | `0` | -v2 transcript: index of the first pool pair (repro anchor) |
 | `-first-pair` | int | `0` | index of the first pair |
+| `-focus` | string | none | -synth: deal a focus pool instead: every deck holds -focus-per-deck cards of this list (one card a line, enablers after a tab, ';'-separated) beside the enablers they name; the run is named after the file (fx-dsk.txt: fx-dsk) |
+| `-focus-per-deck` | int | `oracle.FocusPerDeck` | -focus: focus cards per deck |
 | `-game-timeout` | duration | `30*time.Second` | a game with no result after this long, twice (one retry), is recorded as a hang and the run moves on; a hang fails the run (0: no watchdog) |
 | `-games` | int | `100` | -v2 transcript: seeded games per answerer |
 | `-implicates-all` | bool | `false` | pool runs: name every implicated card instead of the top ten, and print one line per game that fails -absolute: bad-game, pair, seed, outcome, class, the implicated cards joined by \|, the sources of its latest actions joined by \|, the cards of both decks joined by \|, tab-separated; a game that recorded an unknown option kind also prints unknown-game, pair, seed, the kinds joined by \| |
@@ -192,11 +195,13 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-pairs-file` | string | none | pool runs: play these pairs instead of drawing from pool.tsv: deckA<TAB>deckB[<TAB>seed] per line (oracle.ExplicitPairs); -first-pair skips lines and -pairs, when given, caps them |
 | `-pass-elision` | bool | `false` | elide priority decisions whose only option is pass (must match the kernel's) |
 | `-play-refused` | bool | `false` | pool runs: play the pairs holding a card refused by name too, as scripts/dirac-first-refusals.py settle does |
+| `-pods` | int | `0` | -seats above 2: pods to play (one game each; 0: -pairs) |
 | `-policy` | string | `random` | random, heuristic, explore (gorge's coverage-exploration bot, cmd/cardfuzz's) or first |
 | `-pool` | string | none | pool.tsv (default: <decks>/../pool.tsv) |
 | `-reach` | string | none | -synth: write one row per card of the list here: card, how far it got, decks, games, plays in clean games |
 | `-replay` | string | none | re-execute this kernel game (koracle-game-2) in gorge and report |
 | `-repro` | string | none | re-run this repro in lockstep and report |
+| `-seats` | int | `2` | seats a game: 2 plays deck pairs; 3 or 4 plays pods of distinct decks (oracle.PodAt): -kernel gorge in any build, -kernel vanilla or a -synth pool in a build with -tags dirac_mp |
 | `-seed` | uint64 | `1` | base seed: pairs and game seeds derive from it (the pairing rule) |
 | `-set` | string | `fdn` | the generated card set the fdn kernel plays (a name in dirac/cardset) |
 | `-shrink` | int | `200` | shrink reruns for the first divergence (0: none) |
