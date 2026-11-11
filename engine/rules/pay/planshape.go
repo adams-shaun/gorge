@@ -772,7 +772,7 @@ func UnlessManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, 
 	// with 0 life (a fixed life it lacks plus the "leave the payer alive"
 	// alt guard), taken as ONE read instead of threading a new parameter
 	// through every caller.
-	if e.Eval().LifeChangeForbidden(p) {
+	if e.Eval().LifePaymentForbidden(p, SAOther) {
 		life = 0
 	}
 	payable := func(pool state.Mana, lifeNow int32) bool {

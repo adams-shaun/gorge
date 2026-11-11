@@ -1590,6 +1590,23 @@ func PanharmoniconParamsReadable(params map[string]string) bool {
 
 var cantGainLifeParamsReadableKeys = state.NewNameSet("Mode", "ValidPlayer", "Description", "Secondary")
 
+var cantPayLifeParamsReadableKeys = state.NewNameSet("Mode", "ValidPlayer", "ValidCause", "ForCost", "Description", "Secondary")
+
+// CantPayLifeParamsReadable is the parameter whitelist a face CantPayLife
+// static must pass before rules' playerLifePayForbidden enforces it: the mode,
+// the payer scope (ValidPlayer$), the cause scoping the cost path evaluates
+// (ValidCause$, ForCost$) and display text. Any other term names a condition
+// this build does not evaluate; enforcing it blanket would over-restrict, so
+// the line is skipped (the permissive direction for a restriction).
+func CantPayLifeParamsReadable(params map[string]string) bool {
+	for k := range params {
+		if !cantPayLifeParamsReadableKeys.Has(k) {
+			return false
+		}
+	}
+	return true
+}
+
 var cantChangeLifeParamsReadableKeys = state.NewNameSet("Mode", "ValidPlayer", "Description", "Secondary")
 
 var cantPlayLandParamsReadableKeys = map[string]struct{}{

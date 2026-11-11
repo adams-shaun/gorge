@@ -94,12 +94,13 @@ func containsObjID(ids []state.ObjID, id state.ObjID) bool {
 	return false
 }
 
-// LifeChangeForbidden (pay.Eval) reports whether a CantChangeLife static
-// applies to p; rules' playerLifeChangeForbidden is the one answer, shared with
-// the replacement site, so an offer gate and the charged payment cannot disagree.
-func (pe *payEval) LifeChangeForbidden(p state.PlayerID) bool {
+// LifePaymentForbidden (pay.Eval) reports whether p can pay no life in a
+// payment of this kind: the CantChangeLife/CantLoseLife read (shared with the
+// replacement site, every cause) or the cause-scoped CantPayLife read, so an
+// offer gate and the charged payment cannot disagree.
+func (pe *payEval) LifePaymentForbidden(p state.PlayerID, kind pay.SAKind) bool {
 	e := (*Engine)(pe)
-	return e.playerLifeChangeForbidden(p) || e.playerLifeLossForbidden(p)
+	return e.playerLifeChangeForbidden(p) || e.playerLifeLossForbidden(p) || playerLifePayForbidden(e, p, kind)
 }
 
 // Conv (pay.Engine; formerly paymentConv) is the conversion set for p paying id (kind selects the

@@ -70,7 +70,7 @@ func (w *legalWalk) reducedOptionalCastable(p state.PlayerID, id state.ObjID, ba
 		return false
 	}
 	budget := w.e.G.Players[p].Life - max(base.Life, 0)
-	if w.e.playerLifeChangeForbidden(p) || w.e.playerLifeLossForbidden(p) {
+	if asEval(w.e).LifePaymentForbidden(p, pay.SASpell) {
 		budget = 0
 	}
 	left := base.Colored
@@ -109,7 +109,7 @@ func (e *Engine) lifePayable(p state.PlayerID, n int32) bool {
 	if n <= 0 {
 		return true
 	}
-	return e.G.Players[p].Life >= n && !e.playerLifeChangeForbidden(p) && !e.playerLifeLossForbidden(p)
+	return e.G.Players[p].Life >= n && !asEval(e).LifePaymentForbidden(p, pay.SASpell)
 }
 
 // withDefiler returns m with the answered Defiler reductions added. Every

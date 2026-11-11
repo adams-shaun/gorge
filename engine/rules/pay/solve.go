@@ -262,7 +262,7 @@ func takeUnit(rem, sn *state.Mana, typed *[7]state.Mana, i int) {
 // on the battlefield resolve byte-identically.
 //
 // A payer under a CantChangeLife static never reaches this function: every
-// offer and payment site asks Eval.LifeChangeForbidden first and takes
+// offer and payment site asks Eval.LifePaymentForbidden first and takes
 // ResolveManaNoLifePay (below) instead.
 func ResolveMana(c cost.Cost, pool, snow state.Mana, typed [7]state.Mana, life int32, conv *Conv) (Payment, bool) {
 	return ResolveManaWith(c, pool, snow, typed, life, false, PipRider{}, conv)
