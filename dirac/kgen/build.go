@@ -1977,6 +1977,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vOppExtreme:         kop.ExOppExtreme,
 	vThisTurnActExhaust: kop.ExThisTurnActExhaust,
 	vActivations:        kop.ExActivations,
+	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
 	vDmgAmount:          kop.ExDmgAmountReceived,
 }
 

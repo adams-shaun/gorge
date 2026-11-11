@@ -171,7 +171,10 @@ const AfNinjutsu AbilityFlags = AfStation << 1
 // among the colours of the controller's permanents matching ManaAmong
 // (AB$ ManaReflected, ReflectProperty$ Is; Plaza of Heroes). The colours
 // are read at each use; none, and the ability adds nothing (gorge lists no
-// such ability). Kernel mana_reflected.go.
+// such ability). Kernel mana_reflected.go. A printed one with no ManaAmong
+// filter reads the colours of the cards its source imprinted (Chrome Mox;
+// kernel mana_imprint.go); a granted one with none, the grantee's own
+// colours (Katilda; kernel mana_owncolours.go).
 const AfManaReflect AbilityFlags = AfNinjutsu << 1
 
 // AfManaNonSpell the restricted mana ability

@@ -25,6 +25,7 @@ package rules
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strconv"
@@ -962,9 +963,10 @@ func (e *Engine) attackRestrictGroup(defender state.PlayerID, battle state.ObjID
 // Decision.Validate only checks the shape of each selected option, so reject
 // other combinations here before the intent is recorded or consumed. Multiple blockers
 // may still choose the same attacker, but CR 702.111b requires either zero or
-// at least two of them when that attacker has Menace. The only modelled
-// additional-block capability is a single BlockAllDefined$ resolution that
-// defines several attackers (combat.MustBlockAllPair).
+// at least two of them when that attacker has Menace. The modelled
+// additional-block capabilities are a single BlockAllDefined$ resolution that
+// defines several attackers (combat.MustBlockAllPair) and the CanBlockAmount$
+// / CanBlockAny$ statics (combat.BlockCapacity).
 func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) error {
 	blockCounts := make(map[state.ObjID]int, len(in.Choices))
 	chosen := d.Chosen(in)
@@ -989,7 +991,8 @@ func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) erro
 		byAttacker[o.Attacker]++
 	}
 	for _, o := range chosen {
-		if blockCounts[o.Obj] > 1 && (!o.BlockMustAll || !combat.MustBlockAllPair(asBoard(e), o.Obj, o.Attacker)) {
+		if blockCounts[o.Obj] > 1 && (!o.BlockMustAll || !combat.MustBlockAllPair(asBoard(e), o.Obj, o.Attacker)) &&
+			blockCounts[o.Obj] > combat.BlockCapacity(asBoard(e), o.Obj) {
 			return fmt.Errorf("blocker %d declared against more than one attacker without pair-specific BlockAllDefined permission", o.Obj)
 		}
 	}
@@ -1294,19 +1297,7 @@ func (e *Engine) askBlockers() {
 				break
 			}
 		}
-		groupLimits := make(map[string]int)
-		for _, opt := range opts {
-			if !opt.BlockMustAll {
-				continue
-			}
-			group := opt.Group
-			groupLimits[group]++
-		}
-		for group, limit := range groupLimits {
-			if limit < 2 {
-				delete(groupLimits, group)
-			}
-		}
+		groupLimits := maps.Collect(blockerGroupLimits(asBoard(e), opts))
 		if len(groupLimits) == 0 {
 			groupLimits = nil
 		}
@@ -2340,7 +2331,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 			if !e.actsThisDamageStep(bid, firstStrike) {
 				continue
 			}
-			if a.Band != 0 && len(e.bandBlockedAttackers(bid)) > 1 {
+			if len(e.blockedAttackers(bid)) > 1 {
 				continue // CR 510.1d / 702.22k: divided below, once per blocker
 			}
 			if bp := e.combatDamageAmount(bid); bp > 0 {

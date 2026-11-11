@@ -441,6 +441,8 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			d.Sub = ChGenHandMove
 			if s.g.pickF&kop.SrReveal != 0 {
 				d.Sub = ChGenReveal
+			} else if s.imprintMoxPick(k) {
+				d.Sub = ChGenImprint // mana_imprint.go
 			}
 		default:
 			d.Sub = ChGenHiddenPick

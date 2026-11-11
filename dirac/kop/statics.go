@@ -80,6 +80,12 @@ type Static struct {
 	// <spec>, Sword of Wealth and Power's instants and sorceries). 0 = none.
 	// The granted read is armed by genPrep.anyProtGrant (kernel kw_protection.go prepProtGrant); anyProtF opens the target, block and attach sites.
 	ProtFrom FilterID
+	// Landwalk: a StatContinuous grant of landwalk besides its other parts:
+	// the affected creatures can't be blocked while the defending player
+	// controls a land this filter matches (CR 702.14; AddKeyword$
+	// Landwalk:<land spec>, Goblin King's mountainwalk). 0 = none. Armed by
+	// genPrep.anyLandwalk; read by State.landwalkGranted (kw_evasion.go).
+	Landwalk FilterID
 	// WardLife: a StatContinuous grant's "ward—pay N life" amount
 	// (AddKeyword$ Ward:PayLife<N>; Kw holds KwWard; CR 702.21a). Like Ward,
 	// each such static is its own ward instance; 0 = no life ward.

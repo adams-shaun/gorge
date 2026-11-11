@@ -2488,6 +2488,10 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		if err != nil {
 			return nil, err
 		}
+		rest, st.Landwalk, err = lc.splitLandwalkGrant(rest, aff) // lower_landwalkgrant.go
+		if err != nil {
+			return nil, err
+		}
 		if rest != "" {
 			if st.Kw, err = pumpKeywords(rest); err != nil {
 				return nil, err

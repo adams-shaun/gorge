@@ -604,6 +604,7 @@ var opsEntries = []opsDoc{
 	{"card:Toxic", "CardDef.Toxic", "Printed toxic N, instances summed (CR 702.164): a player it deals combat damage to also gets N poison counters. Gorge: rules/combat.go runCombatAssignments, ToxicValue. Bilious Skulldweller."},
 	{"card:HexColors", "CardDef.HexColors", "Printed hexproof from a colour (CR 702.11d): a spell or ability of that colour an opponent controls can't target it. Not when it has lost its abilities. Gorge: rules/protection.go hexproofBlocksTarget. Knight of Grace."},
 	{"card:ProtColors", "CardDef.ProtColors", "Printed protection from a colour (CR 702.16; \"each color\" is all five): a source of one of those colours can't damage (prevented), block, target or enchant it. Not when it has lost its abilities. Gorge: rules/protection.go protectedFrom. White Knight."},
+	{"st:Landwalk", "Static.Landwalk", "A Continuous static's granted landwalk (AddKeyword$ Landwalk:<land spec>, CR 702.14): the affected creatures can't be blocked while the defending player controls a land matching this battlefield filter (as CardDef.Landwalk reads it). A layer-6 grant: it does not survive a later loss of the recipient's abilities. Only a global grant lowers (not an Equipment's or Aura's). Gorge: rules/combat/block.go LandwalkEvades over the derived keywords. Goblin King, Lord of Atlantis."},
 	{"card:ProtFrom", "CardDef.ProtFrom", "Printed K:Protection:<spec> (CR 702.16): a source matching this filter (types, subtypes, colours) can't damage (prevented), block, target or enchant it. Not when it has lost its abilities. Gorge: rules/protection.go sourceHasQuality. Tel-Jilad Chosen."},
 	{"card:Landwalk", "CardDef.Landwalk", "The printed landwalk keyword (CR 702.14): the creature can't be blocked while the defending player controls a land matching this battlefield filter (its printed or granted subtypes). Not when it has lost its abilities. Gorge: rules/combat/block.go LandwalkEvades. Bog Raiders."},
 	{"card:SelfFlash", "CardDef.SelfFlash", "A CastWithFlash EffectZone$ All self grant (\"you may cast this spell as though it had flash if you control a Faerie\"): the card's own StatCastWithFlash ability, gated by IsPresent$ read for the caster with no battlefield source, lets it be cast at instant speed from any zone it is cast from, never granting other spells flash. Gorge: rules/statics_cast.go withSelfStatics + castWithFlashTargets. Illusion Spinners, Bard's Company, Serpent of the Pass."},
@@ -1151,6 +1152,9 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 				if st.ProtFrom != 0 {
 					add("st:ProtFrom", name)
 				}
+				if st.Landwalk != 0 {
+					add("st:Landwalk", name)
+				}
 				if st.Zone != 0 {
 					add("st:Zone", name)
 				}
@@ -1158,6 +1162,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 				filt(st.Filter)
 				filt(st.Filter2)
 				filt(st.ProtFrom)
+				filt(st.Landwalk)
 				val(st.VA)
 				val(st.VB)
 			}

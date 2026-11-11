@@ -470,6 +470,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 		if s.ProtFrom != nil {
 			fmt.Fprintf(w, " protfrom=%s", s.ProtFrom)
 		}
+		if s.Landwalk != nil {
+			fmt.Fprintf(w, " landwalk=%s", s.Landwalk)
+		}
 		if s.OutlivesLoss {
 			fmt.Fprintf(w, " outlivesloss")
 		}

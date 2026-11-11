@@ -109,7 +109,7 @@ func valueRd(v lValue) condRd {
 	var r condRd
 	switch v.Kind {
 	case vNone, vConst, vX, vCountGraveyard, vAttackedThisTurn, vLifeOf, vLibrarySizeOf, vStartingLife,
-		vLifeGainedThisTurn, vOppLifeLostThisTurn, vCreaturesDied, vLifeLostThisTurn, vHandSizeOf,
+		vLifeGainedThisTurn, vOppLifeLostThisTurn, vCreaturesDied, vLifeLostThisTurn, vLifeLostLastTurn, vHandSizeOf,
 		vOppsLostLife, vDrawnThisTurn, vGraveTypes, vGraveAgg, vYourSpeed, vHighestOppPoison,
 		vKicked, vMorbid, vSum, vPromisedGift, vCompare, vBranches, vCommittedCrime, vCountersOn,
 		vLowestLife, vOppsAttacked:
