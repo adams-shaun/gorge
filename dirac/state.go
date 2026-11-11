@@ -404,6 +404,7 @@ type player struct {
 	exileN      uint8
 	pool        [kop.NumManaKinds]uint8
 	landsPlayed uint8
+	landsHeld   uint8 // the lands played in this seat's last own turn, kept through the others' turns (gorge resets LandsPlayed only at the seat's own turn: mana_condsplit.go)
 	drawnTurn   uint8
 	mulls       uint8
 	lost        bool

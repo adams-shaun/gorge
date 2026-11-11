@@ -74,7 +74,14 @@ func (s *State) splitGateOn(k *prep, sl Slot, a *kop.Ability) bool {
 	case kop.SplitGateCounter:
 		return s.perms[sl].ctrN(s, int(a.SplitCtr)) >= 1
 	case kop.SplitGateLands:
-		return s.pl[SeatIx(s.perms[sl].ctrl)].landsPlayed >= 1
+		// gorge's PlayerCountPropertyYou$LandsPlayed is Player.LandsPlayed, reset only
+		// when the seat's own turn begins: on an opponent's turn it still holds the
+		// count of the seat's last own turn (landsHeld), not CR 305.2's "this turn"
+		pl := &s.pl[SeatIx(s.perms[sl].ctrl)]
+		if s.perms[sl].ctrl == s.active {
+			return pl.landsPlayed >= 1
+		}
+		return pl.landsHeld >= 1
 	}
 	return false
 }
