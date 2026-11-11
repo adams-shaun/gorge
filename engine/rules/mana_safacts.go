@@ -43,8 +43,8 @@ type manaSAFacts struct {
 	noIsPresent bool
 	// noCheckSVar: CheckSVar$ is absent (manaSVarGateOK is true).
 	noCheckSVar bool
-	// noLimit: neither ActivationLimit$ nor a non-empty GameActivationLimit$
-	// is present (the walk's limit block is skipped).
+	// noLimit: none of ActivationLimit$, a non-empty GameActivationLimit$ or
+	// Exhaust$ is present (the walk's limit block is skipped).
 	noLimit bool
 	// cost is the ability's compiled Cost$.
 	cost *compiledCost
@@ -122,7 +122,7 @@ func buildManaSAFactsValue(ab *cards.SA, mp *effects.ManaParams, costOf func(str
 	_, check := ab.Param(cards.PKCheckSVar)
 	f.noCheckSVar = !check
 	_, limited := ab.Param(cards.PKActivationLimit)
-	f.noLimit = !limited && ab.ParamStr(cards.PKGameActivationLimit) == ""
+	f.noLimit = !limited && ab.ParamStr(cards.PKGameActivationLimit) == "" && !ab.ExhaustValue()
 	f.plainSym, f.plainAmt = plainManaShape(ab, mp)
 	f.static = computeManaStaticFacts(mp, &f.cost.Cost)
 	f.potential = computePotentialManaAdd(mp)
