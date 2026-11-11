@@ -8,29 +8,19 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// gdSearchScen is a std-trk table with Genesis Device's activated search armed
-// (res at its OpSearchEx) over a creature host.
-func gdSearchScen(t *testing.T) (sc *scen, id map[string]CardID, host Obj) {
+// gdSearchScen is an FDN table plus a source card shaped like Genesis Device's
+// activated search (an AbActivated ability whose OpSearchEx moves tapped, SrTapped,
+// onto the battlefield), armed in the resolver, with two Trufflesnout hosts so an
+// Aura's entry asks (CR 303.4f). Genesis Device itself is only in the synthetic
+// std-trk pool, which archtest bars from tests that are not on its list.
+func gdSearchScen(t *testing.T) (sc *scen, id map[string]CardID, hosts [2]Obj) {
 	t.Helper()
-	set := cardsettest.Synth(t, "std-trk")
-	creature := ""
-	for i, n := range set.Names()[:set.NumCards()] {
-		if d := set.Def(i); set.Supported()[i] && d.Types == kop.TCreature && len(d.Abilities) == 0 {
-			creature = n
-			break
-		}
-	}
-	deck := []cardset.Entry{{Name: "Genesis Device", Count: 1}, {Name: "De-evolve", Count: 1}, {Name: "Vengeance Mission", Count: 1}, {Name: "Forest", Count: 4}}
-	if creature != "" {
-		deck = append(deck, cardset.Entry{Name: creature, Count: 2})
-	}
+	deck := []cardset.Entry{{Name: "Witness Protection", Count: 1}, {Name: "Eager Trufflesnout", Count: 2}, {Name: "Plains", Count: 16}}
+	set := cardsettest.Set(t, "fdn")
 	for _, e := range deck {
 		if i, ok := set.Lookup(e.Name); !ok || !set.Supported()[i] {
-			t.Skipf("%s not in the std-trk table", e.Name)
+			t.Skipf("%s not in the FDN table", e.Name)
 		}
-	}
-	if creature == "" {
-		t.Skip("no vanilla creature in the std-trk table")
 	}
 	tbl, da, _, err := set.Matchup(deck, deck)
 	if err != nil {
@@ -40,39 +30,34 @@ func gdSearchScen(t *testing.T) (sc *scen, id map[string]CardID, host Obj) {
 	for _, c := range da {
 		id[tbl.Cards[c].Name] = c
 	}
+	src := CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Genesis Search", Types: kop.TCreature | kop.TArtifact, Abilities: []kop.Ability{
+		{Kind: kop.AbActivated, Prog: []kop.Instr{{Op: kop.OpSearchEx}}}}})
 	sc = newScenTable(t, tbl, Config{NoElide: true})
 	s := sc.s
-	gd := id["Genesis Device"]
-	pc := -1
-	for i, in := range tbl.Cards[gd].Abilities[0].Prog {
-		if in.Op == kop.OpSearchEx {
-			pc = i
-		}
-	}
-	if pc < 0 {
-		t.Fatal("Genesis Device's activated ability has no OpSearchEx")
-	}
-	sc.perm(id[creature], 0) // two hosts: the Aura asks (CR 303.4f)
-	host = sc.perm(id[creature], 1)
-	s.res = resCtx{e: stackEntry{kind: seAbility, obj: NoObj, card: gd, ab: 0, ctrl: 0, trigObj: NoObj},
-		active: true, lastTok: NoObj, eachObj: NoObj, pc: uint8(pc)}
+	hosts = [2]Obj{sc.perm(id["Eager Trufflesnout"], 0), sc.perm(id["Eager Trufflesnout"], 1)}
+	s.res = resCtx{e: stackEntry{kind: seAbility, obj: NoObj, card: src, ab: 0, ctrl: 0, trigObj: NoObj},
+		active: true, lastTok: NoObj, eachObj: NoObj}
 	s.res.e.tgt = noTargets
 	s.ctl = ctlResolve
 	s.g.pickP, s.g.pickZ, s.g.pickF = 0, uint8(kop.ZoneBattlefield), kop.SrTapped
-	return sc, id, host
+	if !s.handAuraArmed(sc.k) {
+		t.Fatal("want the OpSearchEx armed")
+	}
+	return sc, id, hosts
 }
 
-// TestGenesisDeviceSearchAuraParkNoReWalk: Genesis Device's search puts a look
-// of [enchantment, Aura, card] onto the battlefield; the Aura parks at its
-// enchant ask, and the answer's re-run walks only the cards still to move, so
-// the enchantment that entered is not left again ("kernel: place into
-// unsupported zone", kplay pair 1230).
+// TestGenesisDeviceSearchAuraParkNoReWalk: a Genesis Device-shaped search puts a
+// look of [land, Aura, land] onto the battlefield; the Aura parks at its
+// enchant ask, and the answer's re-run walks only the cards still to move, so the
+// land that entered is not left again ("kernel: place into unsupported
+// zone", kplay pair 1230; fixed by 7e7458e2be's trim of the look at the park).
 func TestGenesisDeviceSearchAuraParkNoReWalk(t *testing.T) {
-	sc, id, host := gdSearchScen(t)
+	sc, id, hosts := gdSearchScen(t)
 	s := sc.s
-	a := sc.obj(id["Vengeance Mission"], 0)
-	b := sc.obj(id["De-evolve"], 0)
-	c := sc.obj(id["Forest"], 0)
+	a := sc.obj(id["Plains"], 0)
+	b := sc.obj(id["Witness Protection"], 0)
+	c := sc.obj(id["Plains"], 0)
 	look := []Obj{a, b, c}
 	for _, o := range look {
 		s.place(o, kop.ZoneLibrary, false)
@@ -81,13 +66,10 @@ func TestGenesisDeviceSearchAuraParkNoReWalk(t *testing.T) {
 		}
 	}
 	if a == b || s.objs[a].card == s.objs[b].card {
-		t.Fatal("Vengeance Mission and De-evolve are not distinct")
+		t.Fatal("the land and the Aura are not distinct")
 	}
 	copy(s.resArm().look[:], look)
 	s.g.nlook = 3
-	if !s.handAuraArmed(sc.k) {
-		t.Fatal("want the OpSearchEx armed")
-	}
 
 	s.moveFoundAns(sc.k, NoSlot)
 	if s.res.ask != raGenEnchant {
@@ -99,27 +81,21 @@ func TestGenesisDeviceSearchAuraParkNoReWalk(t *testing.T) {
 	if s.g.nlook != 2 || s.resArm().look[0] != b {
 		t.Fatalf("nlook %d look[0] %d, want 2 starting at the parked Aura %d", s.g.nlook, s.resArm().look[0], b)
 	}
-	aSlot := sc.slot(a)
+	aSlot, host := sc.slot(a), sc.slot(hosts[1])
 
 	s.res.ask = raNone
-	s.moveFoundAns(sc.k, sc.slot(host))
+	s.moveFoundAns(sc.k, host)
 	if !sc.onBF(a) || sc.slot(a) != aSlot {
 		t.Fatalf("A on bf %v slot %d, want still in slot %d", sc.onBF(a), sc.slot(a), aSlot)
 	}
-	if !sc.onBF(b) || s.perms[sc.slot(b)].attached != sc.slot(host) {
-		t.Fatalf("Aura on bf %v attached %d, want attached to %d", sc.onBF(b), s.perms[sc.slot(b)].attached, sc.slot(host))
+	if !sc.onBF(b) || s.perms[sc.slot(b)].attached != host {
+		t.Fatalf("Aura on bf %v attached %d, want attached to %d", sc.onBF(b), s.perms[sc.slot(b)].attached, host)
 	}
 	if !sc.onBF(c) {
 		t.Fatalf("the third card is in zone %d, want the battlefield", s.objs[c].zone)
 	}
-	n := 0
-	for _, o := range look {
-		if sc.onBF(o) {
-			n++
-		}
-	}
-	if n != 3 || s.g.nlook != 0 {
-		t.Fatalf("%d of the look on the battlefield, nlook %d, want 3 and 0", n, s.g.nlook)
+	if s.g.nlook != 0 {
+		t.Fatalf("nlook %d after the answer, want 0", s.g.nlook)
 	}
 }
 
@@ -129,8 +105,8 @@ func TestGenesisDeviceSearchAuraParkNoReWalk(t *testing.T) {
 func TestPickLeavesNeverTargetsBattlefield(t *testing.T) {
 	sc, id, _ := gdSearchScen(t)
 	s := sc.s
-	a := sc.perm(id["Vengeance Mission"], 0)
-	c := sc.obj(id["Forest"], 0)
+	a := sc.perm(id["Plains"], 0)
+	c := sc.obj(id["Plains"], 0)
 	s.place(c, kop.ZoneLibrary, false)
 	if !sc.onBF(a) || s.objs[c].zone != kop.ZoneLibrary {
 		t.Fatal("want A on the battlefield and C in the library")
