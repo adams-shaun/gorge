@@ -81,10 +81,13 @@ func lifePainLandAb(c *kop.CardDef, a *kop.Ability) bool {
 	if _, ok := manaLifePain(a); !ok {
 		return false
 	}
-	n := 0
+	n, self := 0, -1
 	first := true
 	for j := range c.Abilities {
 		b := &c.Abilities[j]
+		if b == a {
+			self = j
+		}
 		if b.Kind != kop.AbMana || b.AFlags&kop.AfLatent != 0 {
 			continue
 		}
@@ -93,7 +96,23 @@ func lifePainLandAb(c *kop.CardDef, a *kop.Ability) bool {
 			first = primaryNormalAb(b)
 		}
 	}
-	return n == 2 && first
+	// (n == 1: Mana Confluence's sole paid-life ability, no normal alternative)
+	return n == 2 && first || n == 1 && self >= 0 && kop.SoleLifeManaAb(c, self)
+}
+
+// prepPainOnlyLife prices a card whose only mana ability is "{T}, Pay N life:
+// Add one mana" (Mana Confluence, kop.SoleLifeManaAb) as a pain-only source
+// paying life: gorge's last-resort Consequence{Life: N} with no normal
+// alternative, a pain-only source's tier (Elves of Deep Shadow) with
+// Starting Town's life cost (painLife). It reports whether it did.
+func prepPainOnlyLife(c *kop.CardDef, pc *pcard) bool {
+	if pc.manaAb < 0 || pc.painCol != 0 || !kop.SoleLifeManaAb(c, int(pc.manaAb)) {
+		return false
+	}
+	a := &c.Abilities[pc.manaAb]
+	pc.painCol, pc.painN, pc.painOnly, pc.painLife = a.ManaColors, a.Cost.N, true, true
+	pc.manaTap = true // its {T} is an ordinary one: the life is the painful alternative's cost
+	return true
 }
 
 // prepPainMana sets pc's pain alternative: the card's mana abilities are a
@@ -223,7 +242,8 @@ func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 	if s.g.availX&availWin != 0 {
 		// an unless / ward window's affordability: gorge's shared census
 		// (windowManaUnitsWith) lists a painland by its normal ability alone
-		// and a pain-only source by its colour, with no lethal guard
+		// and a pain-only source by its colour, with no lethal guard (a
+		// paid-life one, Mana Confluence, is painAvailMaskAt's)
 		if pc.painOnly {
 			return uint8(pc.painCol) & 0x3f
 		}
@@ -237,6 +257,40 @@ func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 		m |= uint8(pc.painCol) & 0x3f
 	}
 	return m
+}
+
+// painAvailMaskAt is painAvailMask for the source at sl. An unless / ward
+// window counts a paid-life pain-only source (Mana Confluence) through gorge's
+// paid-cost layer (appendPaidManaUnits, paidCostShape): in battlefield order
+// (zone order, battlefieldOrder: a reused slot is not entry order), every
+// tappable paid-life alternative counts only while life - committed > its
+// cost, and commits its life when it counts. Starting Town's "{T}, Pay 1
+// life" alternative (painLife, not painOnly) commits life too, so a later
+// source sees less.
+func (s *State) painAvailMaskAt(k *prep, sl Slot, pc *pcard, p uint8) uint8 {
+	if s.g.availX&availWin == 0 || !pc.painOnly || !pc.painLife {
+		return s.painAvailMask(pc, p)
+	}
+	var ord [MaxPerm]Slot
+	n := s.battlefieldOrder(p, s.ctrlM[p], ord[:], 0)
+	committed := 0
+	for _, x := range ord[:n] {
+		xp := s.manaPCAt(k, x)
+		if !xp.painLife || xp.painCol == 0 || !s.canTapForManaPC(k, x, xp) {
+			continue
+		}
+		ok := int(s.pl[p].life)-committed > int(xp.painN)
+		if x == sl {
+			if !ok {
+				return 0
+			}
+			break
+		}
+		if ok {
+			committed += int(xp.painN)
+		}
+	}
+	return s.painAvailMask(pc, p)
 }
 
 // painUnit registers pain source sl (pcs index i) in a last-resort phase:

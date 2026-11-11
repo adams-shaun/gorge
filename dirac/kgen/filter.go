@@ -955,6 +955,12 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 			c.NotTypes |= bits
 			return nil
 		}
+		if w == "hasKeywordLandwalk:Island" {
+			// gorge's '!' over the parameterised exact-keyword word (only
+			// the Island parameter is read; the kernel finds the Island
+			// subtype in the matchup table, kop.W7LacksIslandwalk)
+			return c.setCmp(cmpWord7, 0, int(kop.W7LacksIslandwalk), "", "")
+		}
 		if w == "IsCommander" {
 			// gorge's negated IsCommander: lowered to "always holds" on the
 			// assumption that no object is a commander (kop.W7IsCommander);

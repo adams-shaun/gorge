@@ -244,7 +244,7 @@ var replaceEffectKnownKeys = [...]string{
 	"VarType", "VarValue",
 	"VoteMessage",
 	"WithoutManaCost",
-	"XMax",
+	"XColor", "XMax",
 	"XMin",
 }
 

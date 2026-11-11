@@ -149,7 +149,7 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]uint8, n int, free bo
 		if e.flags&sfKicked != 0 && !free {
 			cost = addCost(cost, cd.Kicker)
 		}
-		cost.Generic = uint8(int(cost.Generic) + cost.XGeneric(int(e.x)))
+		cost = cost.AtX(int(e.x))
 		if av.affords(&cost, pipMaskOf(&cost), 0) {
 			buf[m] = buf[i]
 			m++

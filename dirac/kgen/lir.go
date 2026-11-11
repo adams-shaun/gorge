@@ -577,6 +577,11 @@ type manaCost struct {
 	XXX       bool // a third {X} symbol (X and XX set too)
 	None      bool // "no cost": cannot be cast
 	C         int  // colorless-specific pips
+	// XColor is Forge's XColor$ as one WUBRG letter: every announced {X} is
+	// that colour's pip, not generic (CR 107.3, 601.2b; Consume Spirit).
+	// Zero when absent. Only a one-colour value is lowered; the multi-colour
+	// Soul Burn shape is refused by name.
+	XColor byte
 }
 
 func (m manaCost) String() string {
@@ -695,6 +700,7 @@ type lTrigger struct {
 	DefPlayer                 int   // AttackersDeclared per defender, the player only: 1 any player, 2 an opponent of the controller, 3 the controller (AttackedTarget$)
 	PerRef                    bool  // DamageDone lowered from Mode$ DamageDoneOnce: once per damaged referent per batch (kernel Tf2PerReferent)
 	SrcInPlay                 bool  // DamageDone ValidSource$ carries inZoneBattlefield: a source that is not a permanent never matches (kernel Tf2SrcInPlay)
+	SelfPlayerRef             bool  // PerRef from a plain self-source DamageDone to any player that reads the damaged player (lower_damagedoneonce.go selfPlayerRefShape)
 	DmgGate                   int16 // PerRef: DamageAmount$ gate (kop.DmgGate), 0 = none
 	ResolvedLimit             bool  // ResolvedLimit$ 1: the source's limited lines resolve at most once each turn
 	Convoked                  bool  // ETB TfSelf: the trigger amount is Convoked$Amount, bound as it triggers (kernel Tf2Convoked)
@@ -959,6 +965,7 @@ type lCard struct {
 	MayFlashBehold *lFilter  // K:MayFlashCost:Behold<1/Type>: the extra is beholding one of these, no mana (MayFlash is empty)
 	FbBeholdN      int       // K:Flashback:<mana> Behold<N/Type>: the flashback cast also beholds N of FbBeholdF (lower_fbcost.go, CardDef.FbBehold)
 	FbBeholdF      *lFilter
+	Dash           *manaCost // K:Dash:<cost> (CR 702.109a): the hand's alternative cost; the permanent gains haste and returns to its owner's hand at the next end step
 	Evoke          *manaCost // K:Evoke:<cost> (CR 702.74a): the hand's alternative cost; the permanent is sacrificed as it enters
 	Bestow         *manaCost // K:Bestow:<cost> (CR 702.103a): the hand's alternative cost of the Aura cast
 	BestowT        *lTarget  // the bestowed Aura's enchant creature target (gorge bestowedAttachSA)

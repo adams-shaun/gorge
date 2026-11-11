@@ -22,10 +22,10 @@ import (
 // parameter accepted into etbCloneWhitelist) or narrow silently.
 var etbCloneCleanNames = []string{
 	"Activated Sleeper", "Altered Ego", "Auton Soldier", "Body Double", "Callidus Assassin", "Chameleon, Master of Disguise", "Clever Impersonator", "Clone", "Colossal Clone Master", "Copy Artifact", "Copy Enchantment", "Copy Land",
-	"Copycrook", "Dack's Duplicate", "Deceptive Frostkite", "Dominion Saboteur", "Echoing Deeps", "Ezri Dax, Newly Joined", "Flesh Duplicate", "Glasspool Mimic",
-	"Jwari Shapeshifter", "Lazotep Convert", "Malleable Impostor", "Masterwork of Ingenuity", "Mirror Image", "Mirrorhall Mimic",
+	"Copycrook", "Dack's Duplicate", "Deceptive Frostkite", "Dominion Saboteur", "Echoing Deeps", "Evil Twin", "Ezri Dax, Newly Joined", "Flesh Duplicate", "Gigantoplasm", "Glasspool Mimic",
+	"Jwari Shapeshifter", "Lazotep Convert", "Malleable Impostor", "Masterwork of Ingenuity", "Mercurial Pretender", "Mirror Image", "Mirrorhall Mimic",
 	"Mirrormade", "Mocking Doppelganger", "Mockingbird", "Naga Fleshcrafter", "Omni-Changeling",
-	"Phantasmal Image", "Phyrexian Metamorph", "Pirated Copy", "Progenitor Mimic", "Quicksilver Gargantuan", "Sakashima of a Thousand Faces", "Sakashima's Protege", "Sakashima's Student", "Sculpting Steel",
+	"Phantasmal Image", "Phyrexian Metamorph", "Pirated Copy", "Progenitor Mimic", "Quicksilver Gargantuan", "Sakashima of a Thousand Faces", "Sakashima the Impostor", "Sakashima's Protege", "Sakashima's Student", "Sculpting Steel",
 	"Stunt Double", "Superior Spider-Man", "Surgical Metamorph", "Synth Infiltrator", "The Master, Formed Anew", "Vesuva", "Vesuvan Doppelganger", "Visage Bandit", "Voq, Torchbearer", "Waxen Shapethief",
 }
 

@@ -1,0 +1,12 @@
+# DB$ SkipPhase, all combat phases of the next turn, with an extra combat it also skips (dirac/oracle/skipphase_test.go)
+False Peace
+Empty City Ruse
+Aurelia, the Warleader
+Isamaru, Hound of Konda
+Savannah Lions
+Hill Giant
+Grizzly Bears
+Lightning Bolt
+Mountain
+Plains
+Forest

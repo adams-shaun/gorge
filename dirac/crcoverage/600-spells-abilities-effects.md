@@ -252,7 +252,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 614.7a | follows | `dirac/repl_gen.go#State.replDamage` | - | 0 damage is no event, never replaced |
 | 614.8 | follows | `dirac/interp.go#State.destroy` `dirac/repl_regenerate.go#State.regenAll` `dirac/repl_regenerate.go#State.addRegenShield` | `TestRegenerateShieldsStack` `TestRegenNinthShieldStalls` | a shield replaces destruction (destroy effects, DestroyAll, lethal-damage SBA); no umbra armor in tables; eight shields per permanent, a ninth stalls (StallRegen) |
 | 614.9 | follows | `dirac/repl_exilemark.go#State.exileExMark` `dirac/interp_gen.go#State.markExileEx` | `TestExileexmarkLockstep` `TestExileexmarkMutation` | a Pump's or Fight's ReplaceDyingDefined$ Targeted registers the until-end-of-turn "exile instead of dying" replacement (gorge registerReplaceDying) as the per-slot exile mark; a Fight marks only while both fighters are creatures on the battlefield (gorge fightPairs); a second mark on one creature stalls (CR 616.1, StallReplLeave); damage redirect via ReplaceEffect is not modelled |
-| 614.10 | n/a | - | - | SkipPhase API unregistered (LOUD) |
+| 614.10 | partial | `dirac/act_skipphase.go#State.skipCombatNext` | `TestSkipphaseLockstep` | all combat phases of the next turn only (False Peace, Empty City Ruse), as gorge |
 | 614.10a-614.10b | n/a | - | - | not audited |
 | 614.11 | n/a | - | - | draw replaced on an empty library |
 | 614.11a-614.11b | n/a | - | - | not audited |

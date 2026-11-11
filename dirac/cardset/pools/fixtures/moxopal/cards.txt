@@ -1,0 +1,16 @@
+# A mana ability gated on metalcraft (Mox Opal: activate only while its
+# controller controls three or more artifacts, CR 602.5b, 207.2c). The gate
+# opens and closes as artifacts enter and are destroyed (Shatter); gorge's
+# offer, payment window and planner census all read it. Decks play it in
+# dirac/oracle/mox_opal_test.go.
+Mox Opal
+Memnite
+Ornithopter
+Shatter
+Serra Angel
+Air Elemental
+Grizzly Bears
+Hill Giant
+Plains
+Mountain
+Forest

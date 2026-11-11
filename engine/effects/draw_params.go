@@ -253,7 +253,7 @@ var drawKnownKeys = [...]string{
 	"ValidTgtsDesc",
 	"VoteMessage",
 	"WithoutManaCost",
-	"XMax",
+	"XColor", "XMax",
 	"XMin",
 }
 

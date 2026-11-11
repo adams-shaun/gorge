@@ -158,6 +158,9 @@ var classTiers = map[string]string{
 	`param:Tap.ConditionPresent`:             "G",
 	`param:Animate.Colors`:                   "G",
 	`trig:TurnFaceUp`:                        "M10b",
+
+	// the Targeted.Other PumpAll pair outside lower_pumpallother.go's shape
+	`other:PumpAll Targeted.Other beyond a constant pump of the one tar`: "O",
 }
 
 // genOtherPrefixes are the `other:` classes the design session's

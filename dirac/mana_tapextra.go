@@ -424,7 +424,7 @@ func (s *State) removePainAvail(k *prep, a *avail, sl Slot, pc *pcard) {
 // counted as a modal source (avail.nModal) that painTight splits by group,
 // where the board allows it (modal), else the table stalls.
 func (s *State) addPainAvail(k *prep, sl Slot, pc *pcard, p uint8, a *avail, ms *modalSet, tight bool) {
-	m := s.painAvailMask(pc, p)
+	m := s.painAvailMaskAt(k, sl, pc, p)
 	if m != 0 {
 		n := uint8(1)
 		if pc.painOnly {
