@@ -123,11 +123,12 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (an Effect's trigger bound to a remembered set: The Eagles Are Coming!, Mysterio, Master of Illusion, T'Pring, Never Parted; ALL 22145 -> 22148, HOB 158 -> 159, SPM 168 -> 169, TRC 297 -> 298).
 	// +2 (the optional copy-instead CreateToken replacement of an Equipment or Aura gated on no token of yours having entered this turn, kop.ReplCopyFirstToken: Mirrormind Crown, Moonlit Meditation; ECL 242 -> 243, EOE 248 -> 249, ALL 22149 -> 22151).
 	// +2 (an upkeep CheckSVar over the life you lost last turn, kop.ExLifeLostLastTurn: Paladin of Atonement, First Response; ALL 22176 -> 22178).
+	// +1 (Fiend Hunter's Defined$ DirectRemembered leave return lowers as the remembered-persist pair; ALL 22176 -> 22177).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22178, 34442},
+	"ALL": {22182, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
-	"BRO": {215, 280},
+	"BRO": {216, 280},
 	"DFT": {255, 276},
 	"DMU": {194, 270},
 	"DSK": {249, 276},

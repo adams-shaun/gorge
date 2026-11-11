@@ -1820,6 +1820,9 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	switch s.Mode {
 	case "Continuous":
 		lc.grantInner = nil
+		if err := extraBlockRefusal(sp); err != nil {
+			return nil, err // lower_extrablock.go
+		}
 		goad := sp.is("Goad", "True")
 		sp.consume("Goad")
 		sts, err := lc.continuous(sp, &st)
