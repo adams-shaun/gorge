@@ -97,7 +97,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallDmgMarkOrder, // a damage event the per-player mark and another replacement both match: gorge asks the CR 616.1 order, which the mark has no candidate for (repl_dmgmark.go)
 	StallFbGrantStamp, // a stamped flashback grant beside an own-cost flashback static: gorge offers both granted instances (kw_fbgrant.go)
 	StallRestrDefer,   // a non-spell payment only a Taps-deferred restricted source funds: gorge pays it by its prefix search (mana_tapsdefer.go)
-	StallDiamondMix,   // a Lion's Eye Diamond beside another census-gap kind: gorge's one prefix search activates both (mana_discardhand_mix.go)
+	StallDiamondMix,   // a Lion's Eye Diamond beside another census-gap kind: gorge's one prefix search activates both (mana_diamondmix.go)
 	StallStackKwGrant, // a granted convoke/improvise on a Harmonize or alternative-cost cast: gorge's announcement for those routes is unverified (kw_convoke.go)
 }
 
@@ -121,7 +121,7 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 	case g.anyRepl&rbSelfDmg != 0 && g.anyRepl&rbSelfDmgCompete != 0:
 		return StallReplPlus // repl_selfdamage.go: gorge asks the order of a self-damage replacement and another damage replacement
 	case g.dhMix:
-		return StallDiamondMix // mana_discardhand_mix.go prepDiamondMix
+		return StallDiamondMix // mana_diamondmix.go prepDiamondMix
 	case g.fbStampOwnCost:
 		return StallFbGrantStamp // kw_fbgrant.go prepFbStamp
 	}

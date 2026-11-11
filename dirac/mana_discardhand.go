@@ -18,7 +18,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 // Modelled only when the Diamonds are p's only census gaps (dhBoard); a table
 // holding a Diamond beside another gap kind is refused at its start
-// (StallDiamondMix, mana_discardhand_mix.go).
+// (StallDiamondMix, mana_diamondmix.go).
 
 // maxDHGaps bounds the Diamonds one search walks.
 const maxDHGaps = 4

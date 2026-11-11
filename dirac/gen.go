@@ -365,7 +365,7 @@ type genPrep struct {
 	anySelfTaps bool
 	// anyDiscHand: some card carries gfDiscHand (mana_discardhand.go).
 	anyDiscHand bool
-	// dhMix: a Diamond beside another census-gap kind (mana_discardhand_mix.go prepDiamondMix): StallDiamondMix
+	// dhMix: a Diamond beside another census-gap kind (mana_diamondmix.go prepDiamondMix): StallDiamondMix
 	dhMix bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
@@ -1434,7 +1434,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	// a filter a reducer takes to nothing is the source's own mana (mana_filterfree.go)
 	prepFiltFree(t, g, p)
 	g.anyScriptGap = g.anyEachCol || g.anyRestrScript || g.anyAnyR || g.anyFilt || p.tapMana // (a tap-another-permanent mana gap: mana_tapanother.go)
-	// a Diamond beside another census-gap kind (mana_discardhand_mix.go)
+	// a Diamond beside another census-gap kind (mana_diamondmix.go)
 	prepDiamondMix(t, g, p)
 	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
