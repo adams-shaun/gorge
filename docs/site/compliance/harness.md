@@ -85,7 +85,8 @@ interactions between cards go untested.
 3. **Follow.** XMage and Forge each replay the tapes. XMage is driven by the Java
    driver. Forge is driven by a harness in
    [our Forge fork](https://github.com/adams-shaun/forge). Their output is never
-   committed, because Forge is GPL-3.0.
+   committed, because Forge is GPL-3.0. Any engine can join as a follower:
+   [Bring your engine](engines/index.md) is written for their authors.
 4. **Diff and classify.** `xengine diff` compares each follower's snapshots
    with gorge's stored result and gives each item a class, written as a repro
    directory: `agree`, `diverge`, `rng`, `projection_gap`, `decision_shape`,

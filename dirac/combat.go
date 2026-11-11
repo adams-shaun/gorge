@@ -1323,7 +1323,7 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 		}
 		// a casualty's order ask is posed inside the check (CR 616.1)
 		switch s.ctl {
-		case ctlExileOrder, ctlCmdZone0, ctlCmdZone1:
+		case ctlExileOrder, ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3:
 			ask = s.ctl
 		}
 		s.ctl = ctl

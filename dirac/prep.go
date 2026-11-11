@@ -241,6 +241,8 @@ type prep struct {
 	// first, kop.SecondCtrTapManaAb), -1 none: cold, read through ctrAbOf
 	// (mana_countercost.go)
 	ctrAb []int8
+
+	coldCmd coldLayout // the table's cold layout plus the partner record, a Commander game's (zone_cmdpartner.go)
 }
 
 func prepare(t *kop.Table) *prep {
@@ -425,5 +427,13 @@ func prepare(t *kop.Table) *prep {
 	p.restrSrc = p.gen != nil && p.gen.anyRestrSrc
 	p.embComb = prepEmbComb(t, p)
 	p.cold.size()
+	// Only a Commander game can seat a partner pair, so only its layout
+	// carries the record: a non-Commander State's cold buffer stays empty,
+	// as InitN's equality test compares every State byte, slice header
+	// included. Both layouts are table-level, so Init and InitN of the same
+	// table with the same Config select the same pointer.
+	p.coldCmd = p.cold
+	p.coldCmd.partner = 1
+	p.coldCmd.size()
 	return p
 }

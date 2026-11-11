@@ -48,7 +48,7 @@ func RecordKernelActions(m *Matchup, tbl *kop.Table, names map[string]string, de
 	elide := cfg.PassElision
 	g := &KernelGame{Format: gameFormat, Decks: m.Names, Seed: seed, Mulligans: m.Mulligans, PassElision: cfg.PassElision,
 		AutopaySurface: cfg.GorgeAutopaySurface, Winner: -1}
-	g.Commander, g.Commanders = m.commanderFields()
+	g.Commander, g.Commanders, g.Partners = m.commanderFields()
 	for s := 0; s < 2; s++ {
 		for _, c := range m.Decks[s] {
 			g.Cards[s] = append(g.Cards[s], cardName(c))

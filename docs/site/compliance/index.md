@@ -35,6 +35,10 @@ Agreement is evidence, not proof. A ruling that gorge is wrong rests on the prin
 
     Focused tests while you work, the full suite after merge and in CI.
 
+- :material-puzzle-plus: **[Bring your engine](engines/index.md)**
+
+    Write a rules engine? Replay gorge's games in it and see where the two disagree.
+
 </div>
 
 </div>
