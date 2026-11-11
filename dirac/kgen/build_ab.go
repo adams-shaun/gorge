@@ -1983,10 +1983,14 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	case "CantPreventDamage":
 		st.Kind = kop.StatCantPreventDamage // static_cantprevent.go
 		for _, fl := range s.Flags {
-			if fl != "NoPrevCombat" {
+			switch fl {
+			case "NoPrevCombat":
+				st.StFlags |= kop.StNoPrevCombat
+			case "NoPrevSpellSelf":
+				st.StFlags |= kop.StNoPrevSpellSelf
+			default:
 				return ka, nil, fmt.Errorf("CantPreventDamage flag %q", fl)
 			}
-			st.StFlags |= kop.StNoPrevCombat
 		}
 	case "MinMaxBlocker":
 		st.Kind = kop.StatMaxBlockers
@@ -3648,6 +3652,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, err
 		}
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtEachDamage)), int16(r)|int16(in.C)<<8
+	case "Cumulative":
+		// (Mystic Remora) OpExt ExtCumulative, C the instructions skipped
+		// when the source is gone (lower_cumulative.go)
+		if in.C < 1 || in.C > 3 {
+			return ki, fmt.Errorf("Cumulative skip %d", in.C)
+		}
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtCumulative)), int16(in.C)
 	case "NumTimes":
 		// (Tranquil Frillback) OpExt ExtNumTimes, B the unit's packed
 		// pips; C = the unit's generic | the announcement maximum << 4 | the

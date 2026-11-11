@@ -379,6 +379,16 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	return false
 }
 
+// DiscardHandManaAb reports whether a is Lion's Eye Diamond's mana ability:
+// discard your hand and sacrifice this, nothing else, a printed ability (kgen
+// lowers it only with InstantSpeed$ True). gorge lists it in no payment window
+// and no planner census (pay.InstantSpeedOnly); only a potential play's prefix
+// search activates it (kernel mana_discardhand.go).
+func DiscardHandManaAb(a *Ability) bool {
+	return a.Kind == AbMana && a.Cost.DiscardHand && a.Cost.Flags == CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
+		a.AFlags&AfLatent == 0
+}
+
 // SecondTapXManaAb reports whether ability j of cd, a later mana ability than
 // its first (index first), is the TapXManaAb shape beside a plain first one
 // (Scene of the Crime: "{T}: Add {C}", then "{T}, tap an untapped creature you

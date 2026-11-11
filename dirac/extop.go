@@ -85,6 +85,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtNumTimes:
 		return s.numTimesStart(k, in), true // cast_announcetimes.go
+	case kop.ExtCumulative:
+		s.cumulativeStart(k, in) // trig_cumulative.go
+		return true, true
 	case kop.ExtCloneCopy:
 		if in.B.N&kop.ClonePick != 0 {
 			return s.clonePick(k, in), true // copy_clone.go
