@@ -3786,14 +3786,16 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 		}
 	}
 	if ab.Kind == akMana && len(ab.Prog) > 0 && !painRider(ab) && !ctrRiderMana(ab) { // (lower_manarider.go)
-		// CR 605.3b: a mana ability's rider (Chromatic Sphere's draw, a
-		// depletion counter) resolves with it at activation. The kernel's
-		// autopay adds the mana and runs no program, so the ability is
-		// refused rather than lowered without its rider. The one rider
-		// the kernel prices is a painland's "deals N damage to you"
-		// (painRider; gorge's last-resort Consequence{Damage: N},
-		// dirac/mana_pain.go).
-		return refuse("mana ability with a rider program")
+		// CR 605.3b: a mana ability's rider resolves with it at activation.
+		// The bounded shapes the kernel runs are a draw, a self-sacrifice
+		// once the source's last counter is gone, and each opponent gaining
+		// life (riderMana); a conditional rider (Avid Reclaimer's Nissa
+		// clause) is still refused rather than lowered without its rider.
+		kind, ctr, n, ok := riderMana(ab)
+		if !ok {
+			return refuse("mana ability with a conditional or unbounded rider program")
+		}
+		m.Rider, m.RiderCtr, m.RiderN = kind, ctr, n
 	}
 	if err := lc.manaSpentRiders(ps, ab, m); err != nil {
 		return err

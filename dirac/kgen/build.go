@@ -384,6 +384,8 @@ var counterKinds = map[string]kop.CounterKind{
 	"NEST":       kop.CtrNest,       // Twitching Doll's named counter (CR 122.1)
 	"AGE":        kop.CtrAge,        // cumulative upkeep's age counter (CR 702.24a; Mystic Remora)
 	"LUCK":       kop.CtrLuck,       // Gemstone Caverns' named counter (CR 122.1; the Condition-split mana gate, lower_condsplit.go)
+	"DEPLETION":  kop.CtrDepletion,  // Peat Bog's depletion counter (CR 122.1; mana_rider.go)
+	"MINING":     kop.CtrMining,     // Gemstone Mine's mining counter (CR 122.1; mana_rider.go)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {

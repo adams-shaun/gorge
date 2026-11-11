@@ -271,6 +271,15 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				s.ctrGap(k, p, sl) // the counter, the use, the mana (mana_countercost.go)
 				continue
 			}
+			if a, ok := s.riderAbilityOf(k, sl); ok && s.scriptTapsDefer(k, p).has(sl) {
+				ans := 0
+				if !a.ManaEach && (uint8(a.ManaColors) == uint8(kop.ColAny) || a.AFlags&kop.AfManaChoice != 0) {
+					pc := s.manaPCGen(k, sl)
+					ans = riderAnswerBit(uint8(a.ManaColors), s.windowCol(k, p, cost, sl, pc, anyColor, noOwed))
+				}
+				s.riderGap(k, p, sl, ans)
+				continue
+			}
 			if (s.g.winMode != winNone || s.castTapX(k)) && s.scriptTapX(k, p).has(sl) {
 				if s.windowTapXGo(k, p, cost, useful, sl, clamp, anyColor, noOwed) {
 					return s.g.winMode == winNone, held // the pick is posed (a cast pauses, not fails); the answer runs the walk on
@@ -426,6 +435,10 @@ func (s *State) windowPlanCovers(k *prep, p uint8, cost *kop.ManaCost, anyColor 
 // (windowTapWalk).
 func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost, clamp, anyColor, takeDeferred bool) (sl Slot, gap bool) {
 	want, decided := uint8(0), false
+	var tapsDef slotMask
+	if takeDeferred {
+		tapsDef = s.scriptTapsDefer(k, p)
+	}
 	if clamp && !anyColor {
 		want, decided = s.windowUseful(k, p, useful)
 	}
@@ -447,6 +460,11 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		}
 		if s.windowCtrOffer(k, p, o, decided, want) {
 			return o, true // a counter-cost source (mana_countercost.go)
+		}
+		if tapsDef.has(o) {
+			if _, ok := s.riderAbilityOf(k, o); ok {
+				return o, true // a bounded rider source: its own cost, mana and rider (mana_rider.go)
+			}
 		}
 		if k.gen != nil && k.gen.anyRestrSrc {
 			if m := s.windowRestrDynMask(k, p, o); m != 0 && (!decided || m&want != 0) {
@@ -1684,6 +1702,8 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 			return 0
 		}
 		off, c = 1, c-1
+	} else if a, ok := s.riderAbilityOf(k, sl); ok {
+		mask = uint8(a.ManaColors)
 	} else {
 		mask = uint8(s.manaPCGen(k, sl).manaCol)
 	}
@@ -1724,13 +1744,20 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slo
 		}
 		return
 	}
-	s.perms[sl].flags |= pfTapped
-	s.touchSl(sl)
-	s.manaTapped(k, sl)
 	if tapsDef.has(sl) {
+		if _, ok := s.riderAbilityOf(k, sl); ok {
+			s.riderGap(k, p, sl, c)
+			return
+		}
+		s.perms[sl].flags |= pfTapped
+		s.touchSl(sl)
+		s.manaTapped(k, sl)
 		s.tapDeferFloat(k, p, sl, c)
 		return
 	}
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
 	if ab := &cd.Abilities[k.gen.anyR(s.cardAt(sl))]; restrWideAnyMana(ab) {
 		if s.wideSecond(k, sl) { // its first ability's colours, then the multisets (mana_restrictedcombo.go)
 			s.wide2Float(k, p, sl, c, spill)

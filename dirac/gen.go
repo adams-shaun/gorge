@@ -1167,7 +1167,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.anyOwnReduce = true
 				}
 			case kop.AbMana:
-				if _, _, ok := manaCtrRider(a); ok {
+				if _, _, ok := manaCtrRider(a); ok || kop.ManaRiderAb(a) {
 					g.anyManaRider, g.anyTapsDefer = true, true // a planner-deferred source (mana_rider.go)
 				}
 				if a.ManaDeferred && a.AFlags&kop.AfLatent == 0 {

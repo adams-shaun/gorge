@@ -296,7 +296,7 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 			}
 			continue
 		}
-		if deferSkip && deferGap.has(sl) {
+		if deferSkip && deferGap.has(sl) && s.planDeferred(k, p, sl) {
 			if dual && s.grantIdx(k, sl) >= 0 {
 				// its granted ability is a census gap of its own, which the
 				// grant search taps (Enduring Vitality on Twitching Doll):

@@ -127,6 +127,18 @@ type Ability struct {
 	// a spell matching this filter, paid with this ability's mana, gains
 	// haste until end of turn as it enters (0 = no rider). A table field.
 	ManaHasteValid FilterID
+	// ManaRider is the rider a mana ability runs with its mana (CR 605.3b):
+	// a draw (Chromatic Sphere), a self-sacrifice once its last counter is
+	// gone (Peat Bog), or each opponent gaining life (Grove of the
+	// Burnwillows). ManaRiderNone = no rider. A table field, not State;
+	// dirac mana_rider.go runs it at activation.
+	ManaRider uint8
+	// ManaRiderCtr is the source's own counter kind a deplete rider reads
+	// (ManaRiderDeplete): the ability is sacrificed once that count is 0.
+	ManaRiderCtr CounterKind
+	// ManaRiderN is the count a draw or life rider uses (ManaRiderDraw,
+	// ManaRiderOppGainLife). A table byte.
+	ManaRiderN uint8
 	// RepMax: a charm that may choose a mode more than once (CanRepeatModes$)
 	// has RepMax[m] > 0, the most times mode m can be chosen. stackEntry.mode
 	// then holds a COUNT per mode instead of a bitmask: mode m's count sits
@@ -147,6 +159,19 @@ const (
 	TimingInstant               // any time with priority
 	TimingLand                  // a land play
 )
+
+// ManaRider values (Ability.ManaRider): the rider a mana ability runs with
+// its mana (CR 605.3b).
+const (
+	ManaRiderNone        uint8 = iota
+	ManaRiderDraw              // draw ManaRiderN cards
+	ManaRiderDeplete           // sacrifice the source once its ManaRiderCtr count is 0
+	ManaRiderOppGainLife       // each opponent gains ManaRiderN life
+)
+
+// ManaRiderAb reports whether a mana ability carries a rider the kernel runs
+// at activation (kgen riderMana; dirac mana_rider.go).
+func ManaRiderAb(a *Ability) bool { return a.Kind == AbMana && a.ManaRider != ManaRiderNone }
 
 // AbilityFlags (Ability.AFlags).
 type AbilityFlags uint16
@@ -342,6 +367,26 @@ func SacXEachManaAb(a *Ability) bool {
 		c&^ColAny == 0 && c&(c-1) != 0
 }
 
+// riderManaCostOK reports whether a's cost is one the kernel's rider
+// activation pays (never a payment witness unit: gorge defers the source):
+//   - a bare {T} (Grove of the Burnwillows' life rider, Twitching Doll's
+//     counter rider);
+//   - {T} + remove N counters from the source (the depletion lands);
+//   - {N}, {T}, sacrifice this (Chromatic Sphere and the eggs), the fee paid
+//     from the floating pool.
+func riderManaCostOK(a *Ability) bool {
+	f := a.Cost.Flags
+	switch {
+	case f == CostTap:
+		return a.Cost.Mana.MV() == 0
+	case f == CostTap|CostRemoveCtr:
+		return a.Cost.N > 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
+	case f == CostTap|CostSacSelf:
+		return a.Cost.Mana.X == 0 && a.Cost.Mana.Hyb[0] == 0 && a.Cost.Mana.Tb == 0
+	}
+	return false
+}
+
 // ManaAbilityHonoured reports whether the kernel can activate ability j of
 // cd, an AbMana. It is true for any other ability kind.
 //
@@ -377,7 +422,8 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 		}
 	}
 	if j != first {
-		return f == CostTap || f == CostTap|CostPayLife || SecondTapXManaAb(cd, first, j) || SecondCtrTapManaAb(cd, first, j)
+		return f == CostTap || f == CostTap|CostPayLife || SecondTapXManaAb(cd, first, j) || SecondCtrTapManaAb(cd, first, j) ||
+			ManaRiderAb(a) && f == CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && plainTapAb(&cd.Abilities[first])
 	}
 	if _, ok := PipFeeManaAb(a); ok {
 		return true
@@ -386,6 +432,8 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
 	case CtrManaAb(a), TapXManaAb(a), TapXManaTwo(a), FilterManaAb(a), SacXEachManaAb(a), SoleLifeManaAb(cd, j):
+		return true
+	case ManaRiderAb(a) && riderManaCostOK(a):
 		return true
 	}
 	return false

@@ -5,13 +5,12 @@ import (
 	"testing"
 )
 
-// TestManaRiderRefused (kmanaprog): a mana ability whose chain carries
-// a rider (CR 605.3b: it resolves with the mana) is refused, since the
-// kernel's autopay adds the mana and runs no program -- except a painland's
-// "deals N damage to you" (painRider, TestPainlandLowered).
+// TestManaRiderRefused (kmanaprog): a mana ability whose chain carries a
+// conditional rider the kernel does not model (Avid Reclaimer's Nissa clause)
+// is refused; the bounded draw, depletion and opponent-life riders lower
+// (riderMana, TestManaRiderProgram).
 func TestManaRiderRefused(t *testing.T) {
-	want := map[string]bool{"Chromatic Sphere": true, "Peat Bog": true,
-		"Eumidian Hatchery": true, "Grove of the Burnwillows": true}
+	want := map[string]bool{"Avid Reclaimer": true, "Eumidian Hatchery": true}
 	var names []string
 	for n := range want {
 		names = append(names, n)
@@ -24,7 +23,7 @@ func TestManaRiderRefused(t *testing.T) {
 		seen++
 		found := false
 		for _, r := range c.Refusals {
-			found = found || strings.Contains(r.Reason, "mana ability with a rider program")
+			found = found || strings.Contains(r.Reason, "conditional or unbounded rider program")
 		}
 		if !found {
 			t.Errorf("%s: not refused as a mana ability with a rider (%v)", c.Name, c.Refusals)

@@ -241,6 +241,10 @@ type prep struct {
 	// first, kop.SecondCtrTapManaAb), -1 none: cold, read through ctrAbOf
 	// (mana_countercost.go)
 	ctrAb []int8
+	// riderAb: per card, the index of its bounded mana-ability rider (the
+	// first kop.ManaRiderAb ability), -1 none. Cold; read through riderAbOf
+	// (mana_rider.go).
+	riderAb []int8
 
 	coldCmd coldLayout // the table's cold layout plus the partner record, a Commander game's (zone_cmdpartner.go)
 }
@@ -249,7 +253,7 @@ func prepare(t *kop.Table) *prep {
 	if len(t.Filters) == 0 {
 		t.Filters = []kop.Filter{{}}
 	}
-	p := &prep{t: t, nsub: uint8(len(t.Subtypes)), cards: make([]pcard, len(t.Cards)), selfCast: prepSelfCast(t), eachPay: prepEachPay(t), tapXAb: make([]int8, len(t.Cards)), ctrAb: make([]int8, len(t.Cards))}
+	p := &prep{t: t, nsub: uint8(len(t.Subtypes)), cards: make([]pcard, len(t.Cards)), selfCast: prepSelfCast(t), eachPay: prepEachPay(t), tapXAb: make([]int8, len(t.Cards)), ctrAb: make([]int8, len(t.Cards)), riderAb: make([]int8, len(t.Cards))}
 	p.w8 = tableWord8(t) // filter_props.go
 	typedSub := typedManaSubtypes(t)
 	p.speed, p.engines = prepSpeed(t)
@@ -286,7 +290,7 @@ func prepare(t *kop.Table) *prep {
 		p.offspring = p.offspring || c.Offspring
 		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go)
 		pc.spellAb, pc.manaAb = -1, -1
-		p.tapXAb[i], p.ctrAb[i] = -1, -1
+		p.tapXAb[i], p.ctrAb[i], p.riderAb[i] = -1, -1, -1
 		// the card's mana is typed by its types (mana_artifact.go) whether
 		// the producing ability is printed or granted: the tag rides the
 		// source, not the ability (effects.ManaProducerTag)
@@ -313,6 +317,9 @@ func prepare(t *kop.Table) *prep {
 					}
 				}
 			case kop.AbMana:
+				if a.ManaRider != kop.ManaRiderNone && a.AFlags&kop.AfLatent == 0 && p.riderAb[i] < 0 {
+					p.riderAb[i] = int8(j)
+				}
 				if pc.manaAb < 0 {
 					pc.manaAb = int8(j)
 					pc.manaCol = a.ManaColors

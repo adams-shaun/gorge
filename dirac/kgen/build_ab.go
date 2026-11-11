@@ -967,6 +967,20 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	}
 	ka.ManaEach = m.Each
 	ka.ManaDeferred = m.Deferred
+	ka.ManaRider = uint8(m.Rider)
+	if m.RiderCtr != "" {
+		k, err := counterKind(m.RiderCtr)
+		if err != nil {
+			return err
+		}
+		ka.ManaRiderCtr = k
+	}
+	if m.RiderN > 0 {
+		if m.RiderN > 255 {
+			return fmt.Errorf("mana rider count %d", m.RiderN)
+		}
+		ka.ManaRiderN = uint8(m.RiderN)
+	}
 	if sp := m.Split; sp != nil {
 		ka.SplitGate, ka.SplitCols = sp.Gate, colorMask(sp.Cols)
 		if sp.Ctr != "" {
