@@ -244,14 +244,15 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   cleanup-step priority after a legend-rule ask is NOT followed (finishCleanupStep
   returns early on the pending ask and the step then ends); no pool reaches it.
 
+## Still open
+
 - A prevent-the-next-N shield (Healing Salve, Combat Medic; `effPreventDamage`) is
   registered for the recipient's object, so a creature that leaves the
   battlefield and returns the same turn keeps it (CR 400.7: it is a new object).
   dirac keys its record by the same object code (dirac/repl_prevnext.go) and
   copies that.
-
-## Still open
-
+  Follow-up: check `Incarnation` in `damageReplacementMatches` for shield ObjIDs
+  and keep dirac in step.
 - Two or more "can't be countered" replacements matching one Counter event
   (a spell's own plus a battlefield Chimil / Sphinx of the Final Word, or two
   such sources): gorge CounterAllowed parks the event

@@ -196,7 +196,7 @@ func effPreventDamage(h Host, c *Ctx, sa *cards.SA) {
 	// CombatDamage$ True ("prevent the next N combat damage ..."): the shield
 	// matches combat damage only (the registered replacement's IsCombat$ gate,
 	// which rules' shield match reads; Decorated Griffin).
-	combatOnly := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKCombatDamage)), "True")
+	combatOnly := compilePreventDamageParams(sa).CombatOnly
 	for _, rec := range recs {
 		if rec.share <= 0 {
 			continue

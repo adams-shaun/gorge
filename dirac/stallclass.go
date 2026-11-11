@@ -103,7 +103,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallExtraBlockReq,
 	// a card with the pay-before-entering replacement entered other than by its cast spell resolving: gorge asks its controller with the move pending, which the kernel's entry does not model (repl_paybeforeetb.go)
 	StallPayETB,
-	StallPrevNext, // a depleting prevent-the-next-N shield and another damage replacement match one event, or a ninth live shield (repl_prevnext.go)
+	StallPrevNext, // a depleting prevent-the-next-N shield and another damage replacement match one event, or a shield amount past 255 (repl_prevnext.go)
 }
 
 // initStall is the reason a game of nseat players on this table stalls at its

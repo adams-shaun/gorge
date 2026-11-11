@@ -70,7 +70,11 @@ func (s *State) sweepReplCompete(k *prep, src Slot) bool {
 	if g.anyRepl&rbPrevCol != 0 && src != NoSlot {
 		col := s.srcColors(k, src, s.cardAt(src))
 		for i := range s.g.prevCol {
-			if r := &s.g.prevCol[i]; r.col != 0 && r.col&col != 0 && r.sc&prevNextSc == 0 || r.sc != 0 {
+			r := &s.g.prevCol[i]
+			if r.sc&prevNextSc != 0 && r.col == 0 {
+				continue // a spent shield matches nothing
+			}
+			if r.col != 0 && r.col&col != 0 && r.sc&prevNextSc == 0 || r.sc != 0 {
 				c++
 			}
 		}
