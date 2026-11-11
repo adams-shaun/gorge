@@ -30,10 +30,10 @@ const (
 	// podSeed is the game seed, chosen by measurement: seat 0 sees an
 	// attack to block and a target to choose in it, so all four searched
 	// kinds occur. Every seat's seed derives from it.
-	podSeed = 3
+	podSeed = 1
 	// podLostSeed is the seed of the elimination game, chosen by measurement:
 	// an opponent goes out first, then seat 0, and the game plays on.
-	podLostSeed = 10
+	podLostSeed = 16
 	// podMaxTurns and podMaxIntents cap the game so a stall fails fast.
 	podMaxTurns, podMaxIntents = 200, 100000
 )
