@@ -52,7 +52,7 @@ func TestCondSplitKgenLowers(t *testing.T) {
 		}
 	}
 	// a plain mana ability carries no arm
-	def, rs := kwardpowBuild(t, "Test Plain", "Name:Test Plain\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ U | SpellDescription$ Add {U}.\n")
+	def, rs := kwardpowBuild(t, "Test Plain", "Name:Test Plain\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ U | SpellDescription$ One blue.\n")
 	if _, ab := mana(&def); len(rs) != 0 || ab.SplitGate != kop.SplitGateNone || ab.SplitCols != 0 {
 		t.Errorf("plain mana ability: %+v, refusals %v", ab, rs)
 	}
