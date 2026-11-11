@@ -118,7 +118,14 @@
 // Payment windows and colour asks those routes pose are answered beneath
 // the surface (Stats.Internal); a planned cast that falls back to the
 // manual window is answered by its auto-fill, else a source making an owed
-// colour (Stats.Fallbacks). Plays the planner cannot price (Reason
+// colour (Stats.Fallbacks).
+//
+// A fallback payment window can list a hand-zone source (Elvish Spirit Guide
+// or Simian Spirit Guide) that the kernel cannot pay with, so kgen refuses
+// those cards rather than lower an inert ability (TestSpiritGuideGorgeWindow
+// measures the window, TestSpiritGuideRefusal the refusal).
+//
+// Plays the planner cannot price (Reason
 // unsupported/ambiguous, or a dead-end script) are not options: gorge's
 // auto-pay surface cannot make them (Stats.Unpriced lists them: Luminous
 // Rebuke's target-dependent cost, Eaten Alive's optional cost, the bait
