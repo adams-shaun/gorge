@@ -110,7 +110,7 @@ func runAloneBlock(t *testing.T, seeds int, mutate bool) *kaloneblockStats {
 		t.Fatal(err)
 	}
 	// Precondition: the table carries the lowered keyword on both sides, so
-	// the lockstep below reads the IR the brief names, not a plain creature.
+	// the lockstep below reads the alone keywords (AloneAtk, AloneBlk), not a plain creature.
 	for _, name := range []string{"Bonded Horncrest", "Craven Hulk"} {
 		i := slices.Index(set.Names(), name)
 		if i < 0 {
