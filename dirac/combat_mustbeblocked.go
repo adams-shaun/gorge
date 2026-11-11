@@ -325,7 +325,9 @@ func (s *State) blockerOptionsReq(k *prep, d *Decision, mb slotMask) bool {
 	if s.menaceDeficit(k, NoSlot, NoSlot, nil) == 0 && s.blocksCompletable(k, NoSlot, NoSlot) && !s.loneAloneBlocker(k) {
 		var m mbSearch
 		cur, _ := m.mbInit(s, k, lure, mb, duty, NoSlot, NoSlot)
-		if cur >= q || DebugMustBlockGreedy && cur >= 1 || d.N == 0 {
+		// an alone-block fence can drop every pair mbReach counted toward q
+		// (it does not read CR 506.5): the declaration then closes as it is.
+		if cur >= q || DebugMustBlockGreedy && cur >= 1 || k.gen.anyAloneBlk && d.N == 0 {
 			d.add(MakeAction(AkDone, 0, 0, 0))
 		}
 	}
