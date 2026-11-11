@@ -83,7 +83,9 @@ var gorgeKwExact = map[string]kop.KwMask{
 	// KwCantBlock plus the override record's CantAttack (masked like
 	// every kwStaticBits keyword: compared through the combat options)
 	"CARDNAME can't attack or block.": kop.KwCantBlock,
-	"Hexproof:Instant":                kop.KwHexproofFromInstants, "HexproofFromInstants": kop.KwHexproofFromInstants,
+	// a Pump KW$ grant (Alchemist's Vial): the same kernel pair
+	"HIDDEN CARDNAME can't attack or block.": kop.KwCantBlock,
+	"Hexproof:Instant":                       kop.KwHexproofFromInstants, "HexproofFromInstants": kop.KwHexproofFromInstants,
 	"Protection from black": kop.KwProtBlack, "ProtectionFromBlack": kop.KwProtBlack,
 	"Protection from red": kop.KwProtRed, "ProtectionFromRed": kop.KwProtRed,
 	"Prevent all combat damage that would be dealt to CARDNAME.":              kop.KwPreventCombatDamageTo,

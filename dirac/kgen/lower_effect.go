@@ -2897,9 +2897,10 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		lc.emit(lInstr{Op: "PumpUntilEOT", Obj: obj, A: att, B: def})
 	}
 	kw, hasKW := ps.get("KW")
-	mustBlock := false
+	mustBlock, noCombat := false, false
 	if hasKW {
 		kw, mustBlock = splitMustBeBlocked(kw)
+		kw, noCombat = splitCantAttackOrBlock(kw)
 	}
 	if hasKW && kw != "" {
 		rest, fbs, err := splitFirebendingGrant(kw)
@@ -2936,7 +2937,36 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		}
 		lc.emit(lInstr{Op: "MustBeBlocked", Obj: obj})
 	}
+	if noCombat {
+		if zone != zBattlefield || !lc.pumpObjectRef(obj) {
+			return refuse("Pump KW$ can't attack or block on a non-permanent subject")
+		}
+		// the Animate HiddenKeywords$ pair (animateHiddenKeywords): the
+		// kernel's until-end-of-turn KwCantBlock grant, and the override
+		// record's CantAttack (there is no kernel keyword bit for the attack half)
+		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: "CantBlock"})
+		lc.emitOverride(obj, &lOverride{CantAttack: true}, "EOT")
+	}
 	return nil
+}
+
+// cantAttackOrBlockKW is the Pump keyword sentence for "can't attack or block
+// this turn" (CR 508.1, 509.1: Alchemist's Vial). Like mustBeBlockedKW it is a
+// mark, not a keyword bit.
+const cantAttackOrBlockKW = "HIDDEN CARDNAME can't attack or block."
+
+// splitCantAttackOrBlock takes cantAttackOrBlockKW out of a KW$ list: the rest
+// of the list (possibly empty) and whether the sentence was there.
+func splitCantAttackOrBlock(kw string) (rest string, found bool) {
+	var keep []string
+	for _, k := range strings.Split(kw, "&") {
+		if strings.TrimSpace(k) == cantAttackOrBlockKW {
+			found = true
+			continue
+		}
+		keep = append(keep, strings.TrimSpace(k))
+	}
+	return strings.Join(keep, " & "), found
 }
 
 // mustBeBlockedKW is the one Pump / PumpAll keyword sentence that is a mark,
