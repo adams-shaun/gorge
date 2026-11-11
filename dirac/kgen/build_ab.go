@@ -1857,6 +1857,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StRaiseOpp
 			case "CasterActive":
 				st.StFlags |= kop.StCasterActive
+			case "NamedCard":
+				st.B |= kop.CantCastNamed
 			default:
 				return ka, nil, fmt.Errorf("cant be cast flag %q", fl)
 			}

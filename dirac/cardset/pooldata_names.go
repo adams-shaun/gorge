@@ -36,13 +36,13 @@ func activatesOffBattlefield(cd *kop.CardDef) bool {
 }
 
 // choosesNameKind is choosesName, and whether the choice is over every card's
-// name, lands included (ExtChooseName B >= 1: Sorcerous Spyglass).
+// name, lands included (ExtChooseName B = 1 or 2: Sorcerous Spyglass).
 func choosesNameKind(cd *kop.CardDef) (names, anyCard bool) {
 	for _, ab := range cd.Abilities {
 		for _, in := range ab.Prog {
 			if in.Op == kop.OpExt && in.Ext() == kop.ExtChooseName {
 				names = true
-				anyCard = anyCard || in.B.N >= 1
+				anyCard = anyCard || in.B.N == 1 || in.B.N == 2
 			}
 		}
 	}
