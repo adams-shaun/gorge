@@ -68,17 +68,6 @@ func (s *State) tgtBoundsV(k *prep, t *kop.TargetSpec, e *stackEntry, mt *multiT
 	}
 	if t.Divide == kop.DivValue {
 		lo, hi = s.divValueClamp(k, t, e, lo, hi)
-		if hi > maxXTgt+1 {
-			// the division arrays hold nine objects: a maximum above that is
-			// harmless until nine-plus candidates could be picked (a value
-			// maximum like Rolling Thunder's all-targets count is far above)
-			var buf [MaxOptions]uint8
-			if s.multiCands(k, t, mt.slot, &buf) > maxXTgt+1 {
-				s.capFull(StallXTgt)
-			}
-			hi = maxXTgt + 1
-			lo = min(lo, hi)
-		}
 	}
 	mt.min, mt.max = uint8(lo), uint8(hi)
 }
