@@ -513,6 +513,13 @@ func oracleSeatRef(p int, rel string) string {
 	return fmt.Sprintf("p%d:%s", p, rel)
 }
 
+// oracleSnapTally is the string-keyed, non-zero tally the oracle snapshot
+// reports for Commander-only bookkeeping: commander front-face name (or
+// "pN:name" for damage taken) -> count. It is an alias, so a snapshot map is
+// the plain map[string]int32 the JSON shape and gorge-compliance's decoder
+// expect.
+type oracleSnapTally = map[string]int32
+
 func (r *oracleRun) objName(o *state.Object) string {
 	if o == nil || o.Face() == nil {
 		return ""

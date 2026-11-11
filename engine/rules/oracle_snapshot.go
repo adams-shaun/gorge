@@ -51,11 +51,11 @@ type OracleSnapPlayer struct {
 	// CommanderCasts is how many times each of this seat's commanders has been
 	// cast from the command zone (Player.CmdCasts, CR 903.8): commander front-face
 	// name -> count, non-zero entries only, nil when none.
-	CommanderCasts map[string]int32 `json:"commander_casts,omitempty"`
+	CommanderCasts oracleSnapTally `json:"commander_casts,omitempty"`
 	// CommanderDamage is the combat damage this seat has taken from each
 	// commander (Player.CmdDamage, CR 903.10a): "pN:<front-face name>", N the
 	// commander's owner, -> damage, non-zero entries only, nil when none.
-	CommanderDamage map[string]int32 `json:"commander_damage,omitempty"`
+	CommanderDamage oracleSnapTally `json:"commander_damage,omitempty"`
 	// Lost marks a seat that has lost the game (CR 104.3). Only a game of
 	// three or more seats goes on past it (CR 800.4a), so it is false in
 	// every two-seat checkpoint but a game-over one.
@@ -300,7 +300,7 @@ func (r *oracleRun) frontFaceName(o *state.Object) string {
 // walks Player.Commanders, CmdCasts and CmdDamage exactly as genesis sized
 // them (the damage index is commanderDenseIndex's match-wide order: seat
 // order, then each seat's Commander order).
-func (r *oracleRun) cmdTallies(i int) (casts, damage map[string]int32) {
+func (r *oracleRun) cmdTallies(i int) (casts, damage oracleSnapTally) {
 	g := r.e.G
 	for k, id := range g.Players[i].Commanders {
 		if k >= len(g.Players[i].CmdCasts) {
@@ -308,7 +308,7 @@ func (r *oracleRun) cmdTallies(i int) (casts, damage map[string]int32) {
 		}
 		if n := g.Players[i].CmdCasts[k]; n != 0 {
 			if casts == nil {
-				casts = map[string]int32{}
+				casts = oracleSnapTally{}
 			}
 			casts[r.frontFaceName(g.Obj(id))] = n
 		}
@@ -319,9 +319,9 @@ func (r *oracleRun) cmdTallies(i int) (casts, damage map[string]int32) {
 			if dense < len(g.Players[i].CmdDamage) {
 				if n := g.Players[i].CmdDamage[dense]; n != 0 {
 					if damage == nil {
-						damage = map[string]int32{}
+						damage = oracleSnapTally{}
 					}
-					damage[fmt.Sprintf("p%d:%s", s, r.frontFaceName(g.Obj(id)))] = n
+					damage[oracleSeatRef(s, r.frontFaceName(g.Obj(id)))] = n
 				}
 			}
 			dense++
