@@ -33,11 +33,15 @@ type spiritGuideObs struct {
 	rawActivateOffer  int // raw priority decisions listing the guide's activate
 	castNoLandOneGuid int // canonical cast offered with no untapped land and no pool: only a guide could pay
 	castWithLand      int
+	noSourceGuide     int // priorities with a hand guide, no untapped caster source, an empty pool and another card in hand (the state castNoLandOneGuid needs)
 	windows           int // internal asks answered beneath the surface
 	windowListsGuide  int
 	windowPicksGuide  int
 	fallbacks         int
-	taps              int // planned sources tapped out of band (tapOnTarget runs)
+	taps              int // caster battlefield sources tapped out of band at a target ask (tapOne / tapAll runs)
+	fallbackNoBF      int // fallback windows with no untapped caster battlefield source (only the guide can pay)
+	fallbackBF        int // fallback windows with an untapped caster battlefield source left
+	fallbackBFPicks   int // of those, the windows the oracle answered with the guide anyway
 	sample            []string
 }
 
@@ -91,12 +95,34 @@ func spiritGuideTargetDeck(guide string) []string {
 	return d
 }
 
-func runSpiritGuideProbe(t *testing.T, guide string, seeds int, tapOnTarget bool) *spiritGuideObs {
+// tapMode is the out-of-band change a probe run makes at a target ask (after the
+// cast was announced and its plan chosen, before the plan executes).
+type tapMode int
+
+const (
+	tapNone tapMode = iota
+	tapOne          // the caster's first untapped battlefield source (a planned source, or not)
+	tapAll          // every untapped battlefield source of the caster: the forced state, no battlefield source left
+)
+
+// casterSources lists me's own untapped battlefield mana sources (not the
+// other seats' permanents pay.BattlefieldManaSourceIDs appends).
+func casterSources(g *GorgeSide, me state.PlayerID) []state.ObjID {
+	var ids []state.ObjID
+	for _, id := range pay.BattlefieldManaSourceIDs(g.E.G, me) {
+		if ob := g.E.G.Obj(id); ob != nil && ob.Controller == me && !ob.Tapped {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+func runSpiritGuideProbe(t *testing.T, guide string, seeds int, mode tapMode) *spiritGuideObs {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
 	obs := &spiritGuideObs{}
 	deck := spiritGuideDeck(guide)
-	if tapOnTarget {
+	if mode != tapNone {
 		deck = spiritGuideTargetDeck(guide)
 	}
 	var decks [2][]*cards.Card
@@ -124,14 +150,25 @@ func runSpiritGuideProbe(t *testing.T, guide string, seeds int, tapOnTarget bool
 			if d.PaymentFallback != nil {
 				obs.fallbacks++
 			}
+			bf := len(casterSources(g, d.Player)) > 0
 			listed := false
 			for _, o := range d.Options {
 				if o.Obj != 0 && isHandGuide(g, o.Obj) {
 					listed = true
 					if o.Index == idx {
+						if d.PaymentFallback != nil && bf {
+							obs.fallbackBFPicks++
+						}
 						obs.windowPicksGuide++
 						obs.note("window pick: " + d.Prompt + " -> " + o.Label)
 					}
+				}
+			}
+			if d.PaymentFallback != nil {
+				if bf {
+					obs.fallbackBF++
+				} else {
+					obs.fallbackNoBF++
 				}
 			}
 			if listed {
@@ -147,20 +184,23 @@ func runSpiritGuideProbe(t *testing.T, guide string, seeds int, tapOnTarget bool
 				break
 			}
 			obs.decisions++
-			if tapOnTarget && cd.Kind == DTarget {
-				// The post-offer change of the payment-plan tests (a planned
-				// source tapped after the cast was announced): the plan stops
-				// with source_changed and the manual window opens.
+			if mode != tapNone && cd.Kind == DTarget {
+				// A source of the caster tapped after the cast was announced
+				// (the payment-plan tests tap the plan's own source, which
+				// this probe cannot name: tapOne taps the first source, tapAll
+				// every one): a plan whose source changed stops and the manual
+				// window opens. Only the caster's own sources are touched.
 				me := state.PlayerID(cd.Player)
 				hasGuide := false
 				for _, id := range g.E.G.Zone(state.ZHand, me) {
 					hasGuide = hasGuide || isHandGuide(g, id)
 				}
 				if hasGuide {
-					for _, id := range pay.BattlefieldManaSourceIDs(g.E.G, me) {
-						if !g.E.G.Obj(id).Tapped {
-							g.E.Emit(events.Event{Kind: events.Tap, Obj: id})
-							taps++
+					for _, id := range casterSources(g, me) {
+						g.E.Emit(events.Event{Kind: events.Tap, Obj: id})
+						taps++
+						if mode == tapOne {
+							break
 						}
 					}
 				}
@@ -183,7 +223,10 @@ func runSpiritGuideProbe(t *testing.T, guide string, seeds int, tapOnTarget bool
 							}
 						}
 					}
-					lands := len(pay.BattlefieldManaSourceIDs(g.E.G, me))
+					lands := len(casterSources(g, me))
+					if lands == 0 && g.E.G.Players[me].Pool.Total() == 0 && len(g.E.G.Zone(state.ZHand, me)) > guides {
+						obs.noSourceGuide++
+					}
 					for _, o := range cd.Options {
 						if o.Kind() == ActCast {
 							if lands == 0 && g.E.G.Players[me].Pool.Total() == 0 {
@@ -209,27 +252,36 @@ func runSpiritGuideProbe(t *testing.T, guide string, seeds int, tapOnTarget bool
 
 // TestSpiritGuideGorgeWindow records, for both guides, whether gorge's
 // payment windows ever list or are answered with a hand-zone Spirit Guide:
-// first in natural play, then with a planned source tapped after the cast was
-// announced (the payment-plan tests' own fallback trigger).
+// first in natural play, then with a caster source tapped after the cast was
+// announced, once the first source only (a window can open with other
+// battlefield sources left) and once every source (the forced state: nothing
+// on the battlefield can pay).
 func TestSpiritGuideGorgeWindow(t *testing.T) {
 	for _, guide := range []string{"Elvish Spirit Guide", "Simian Spirit Guide"} {
-		nat := runSpiritGuideProbe(t, guide, 120, false)
+		nat := runSpiritGuideProbe(t, guide, 120, tapNone)
 		t.Logf("natural   %s: %+v", guide, *nat)
 		if nat.guideInHand == 0 || nat.rawActivateOffer != nat.guideInHand {
 			t.Fatalf("%s: gorge's raw priority offered the guide's activate %d of %d times", guide, nat.rawActivateOffer, nat.guideInHand)
 		}
+		if nat.noSourceGuide == 0 {
+			t.Fatalf("%s: the state castNoLandOneGuid needs (a hand guide, no caster source, empty pool, another card in hand) never occurred: the assertion below would be vacuous", guide)
+		}
 		if nat.castNoLandOneGuid != 0 {
 			t.Errorf("%s: a cast was offered with only a hand guide to pay it", guide)
 		}
-		inj := runSpiritGuideProbe(t, guide, 120, true)
-		t.Logf("injected  %s: %+v", guide, *inj)
-		if inj.taps == 0 || inj.fallbacks == 0 {
-			t.Fatalf("%s: the injected tap produced %d taps, %d fallback windows: the probe measured nothing", guide, inj.taps, inj.fallbacks)
+		one := runSpiritGuideProbe(t, guide, 120, tapOne)
+		t.Logf("tapOne    %s: %+v", guide, *one)
+		all := runSpiritGuideProbe(t, guide, 120, tapAll)
+		t.Logf("tapAll    %s: %+v", guide, *all)
+		for name, o := range map[string]*spiritGuideObs{"tapOne": one, "tapAll": all} {
+			if o.taps == 0 || o.fallbacks == 0 {
+				t.Fatalf("%s %s: %d taps, %d fallback windows: the probe measured nothing", guide, name, o.taps, o.fallbacks)
+			}
 		}
-		// The measured counterexample to an inert lowering: gorge's fallback
-		// window lists the hand guide, and the oracle's answer takes it.
-		if inj.windowListsGuide == 0 || inj.windowPicksGuide == 0 {
-			t.Errorf("%s: fallback windows listed the hand guide %d times and answered with it %d times, want both > 0 (the premise of the refusal)", guide, inj.windowListsGuide, inj.windowPicksGuide)
+		// The forced state: no caster battlefield source left, the fallback
+		// window lists the hand guide and the oracle's answer takes it.
+		if all.fallbackNoBF == 0 || all.windowListsGuide == 0 || all.windowPicksGuide == 0 {
+			t.Errorf("%s tapAll: %d no-source fallback windows, the guide listed %d and answered %d times, want all > 0", guide, all.fallbackNoBF, all.windowListsGuide, all.windowPicksGuide)
 		}
 	}
 }
