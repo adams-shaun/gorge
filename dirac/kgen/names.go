@@ -120,7 +120,7 @@ func init() {
 		"kop.PredOutlaw", kop.PredOutlaw, "kop.PredMonoColor", kop.PredMonoColor,
 		"kop.PredSameNameT0", kop.PredSameNameT0, "kop.PredCountersLT", kop.PredCountersLT, "kop.PredToughnessLEV", kop.PredToughnessLEV,
 		"kop.PredTotalPT", kop.PredTotalPT, "kop.PredBlocked", kop.PredBlocked, "kop.PredSolved", kop.PredSolved,
-		"kop.PredAdventureCard", kop.PredAdventureCard, "kop.PredSuspected", kop.PredSuspected, "kop.PredExiledWith", kop.PredExiledWith, "kop.PredWasCastEnter", kop.PredWasCastEnter, "kop.PredWasCastSpell", kop.PredWasCastSpell, "kop.PredNotF2", kop.PredNotF2, "kop.PredFaceDown", kop.PredFaceDown, "kop.PredPowerGTBase", kop.PredPowerGTBase, "kop.PredPermMark", kop.PredPermMark, "kop.PredWord7", kop.PredWord7,
+		"kop.PredAdventureCard", kop.PredAdventureCard, "kop.PredSuspected", kop.PredSuspected, "kop.PredTrigPlayerCtrl", kop.PredTrigPlayerCtrl, "kop.PredExiledWith", kop.PredExiledWith, "kop.PredWasCastEnter", kop.PredWasCastEnter, "kop.PredWasCastSpell", kop.PredWasCastSpell, "kop.PredNotF2", kop.PredNotF2, "kop.PredFaceDown", kop.PredFaceDown, "kop.PredPowerGTBase", kop.PredPowerGTBase, "kop.PredPermMark", kop.PredPermMark, "kop.PredWord7", kop.PredWord7,
 		"kop.PredTriggerObj", kop.PredTriggerObj)
 	enum[kop.ExprKind]("kop.ExNone", kop.ExNone, "kop.ExConst", kop.ExConst, "kop.ExX", kop.ExX, "kop.ExCount", kop.ExCount,
 		"kop.ExCountGraveyard", kop.ExCountGraveyard, "kop.ExSumPower", kop.ExSumPower, "kop.ExDistinctCMC", kop.ExDistinctCMC,

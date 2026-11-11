@@ -500,6 +500,12 @@ const (
 	PredSolved Pred = 252
 )
 
+// PredTrigPlayerCtrl: a battlefield permanent whose controller is the
+// current trigger entry's trigger player, the player a damage trigger's
+// damage was dealt to (gorge ControlledBy TriggeredTarget, CR 603.2):
+// false with no trigger entry and off the battlefield. Explicit ordinal.
+const PredTrigPlayerCtrl Pred = 239
+
 // PredSuspected: PredN 1, a suspected battlefield permanent; PredN 0, anything
 // else, off the battlefield too (gorge IsSuspected / !IsSuspected:
 // Object.Suspected, false off the battlefield).

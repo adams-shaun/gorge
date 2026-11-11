@@ -105,6 +105,9 @@ func (s *State) predPermCold(k *prep, fl *kop.Filter, sl Slot) bool {
 	if fl.Pred == kop.PredSuspected {
 		return s.suspected(k, sl) == (fl.PredN == 1)
 	}
+	if fl.Pred == kop.PredTrigPlayerCtrl {
+		return s.trigPlayerCtrl(sl)
+	}
 	if fl.Pred == kop.PredPermMark {
 		return s.permMarkRead(k, fl, sl) // filter_permmarks.go
 	}
@@ -214,3 +217,18 @@ func (s *State) typesAllCMCCard(k *prep, fl *kop.Filter, c CardID, o Obj, fd boo
 	}
 	return s.cardMV(k, c, o, fd) <= int(fl.PredV.N)
 }
+
+// trigPlayerCtrl is kop.PredTrigPlayerCtrl: sl's controller is the trigger
+// player of the current trigger entry (built or resolving), the damaged
+// seat of a damage trigger. No trigger entry matches nothing.
+func (s *State) trigPlayerCtrl(sl Slot) bool {
+	if DebugTrigPlayerNextSeat {
+		return s.perms[sl].ctrl != s.active // seat-ok: a test-only mutation, the two-seat OppCtrl reading
+	}
+	e := s.curEntry()
+	return e != nil && e.kind == seTrigger && s.perms[sl].ctrl == e.trigPl
+}
+
+// DebugTrigPlayerNextSeat is a test-only mutation: PredTrigPlayerCtrl reads
+// any player but the active one, the two-seat reduction.
+var DebugTrigPlayerNextSeat bool

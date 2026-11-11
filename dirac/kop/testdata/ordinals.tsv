@@ -911,6 +911,7 @@ PredTotalPT	Pred	250
 PredToughnessGE	Pred	15
 PredToughnessLE	Pred	3
 PredToughnessLEV	Pred	34
+PredTrigPlayerCtrl	Pred	239
 PredTriggerObj	Pred	240
 PredTypesAll	Pred	24
 PredTypesAllCMCLE	Pred	242

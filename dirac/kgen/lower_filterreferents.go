@@ -8,10 +8,11 @@ import (
 
 // triggeredTargetCtrl rewrites the filter word "ControlledBy
 // TriggeredTarget" (gorge controlReferentPlayers: the trigger's target
-// player) to OppCtrl inside a combat-damage-to-a-player trigger whose
-// source is the controller's own (Self or YouCtrl): two-player, the player
-// such a creature deals combat damage to is the controller's opponent.
-// Anywhere else the word is left for the parser to refuse.
+// player) to trigPlayerCtrlWord (kop.PredTrigPlayerCtrl: the trigger
+// entry's trigger player, the damaged seat at any seat count, dirac
+// dmgSeat) inside a combat-damage-to-a-player trigger whose source is the
+// controller's own (Self or YouCtrl). Anywhere else the word is left for
+// the parser to refuse.
 func (lc *lowerCtx) triggeredTargetCtrl(expr string) string {
 	const word = "ControlledBy TriggeredTarget"
 	if !strings.Contains(expr, word) || lc.ab == nil || lc.ab.Trigger == nil {
@@ -24,9 +25,21 @@ func (lc *lowerCtx) triggeredTargetCtrl(expr string) string {
 	if c := t.F.Clauses[0]; c.Flags&fSelf == 0 && c.Ctrl != whoYou {
 		return expr
 	}
-	lc.twoSeat("ControlledBy TriggeredTarget read as OppCtrl")
-	return strings.ReplaceAll(expr, word, "OppCtrl")
+	for _, alt := range strings.Split(expr, ",") {
+		typ, rest, ok := strings.Cut(strings.TrimSpace(alt), ".")
+		if !ok || rest != word || strings.ContainsAny(typ, "+_ ") || typ == "Card" {
+			// the predicate is the clause's one comparison, read on the
+			// battlefield: any other shape keeps the two-player reading
+			lc.twoSeat("ControlledBy TriggeredTarget read as OppCtrl")
+			return strings.ReplaceAll(expr, word, "OppCtrl")
+		}
+	}
+	return strings.ReplaceAll(expr, word, trigPlayerCtrlWord)
 }
+
+// trigPlayerCtrlWord is the filter word triggeredTargetCtrl writes: kgen's
+// own spelling, no Forge property.
+const trigPlayerCtrlWord = "kgenTrigPlayerCtrl"
 
 // sameNameT0Filter is Maelstrom Pulse's DestroyAll ValidCards$
 // "TargetedCard.Self,Permanent.NotDefinedTargeted+sharesNameWith Targeted"
