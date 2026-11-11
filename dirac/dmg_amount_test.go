@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -13,22 +12,7 @@ import (
 // 5), the record clears at the turn change, and a fifth reader-card object
 // damaged in one turn stalls by name.
 func TestDmgAmountRecord(t *testing.T) {
-	set := cardsettest.Synth(t, "std-woe")
-	deck := []cardset.Entry{{Name: "Tangled Colony", Count: 5}, {Name: "Plains", Count: 12}}
-	for _, e := range deck {
-		if i, ok := set.Lookup(e.Name); !ok || !set.Supported()[i] {
-			t.Skipf("%s not in the std-woe table", e.Name)
-		}
-	}
-	tbl, da, _, err := set.Matchup(deck, deck)
-	if err != nil {
-		t.Fatal(err)
-	}
-	id := map[string]CardID{}
-	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
-	}
-	sc := newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true})
+	sc, id := newSetScenTweak(t, "turnrec", []cardset.Entry{{Name: "Tangled Colony", Count: 5}, {Name: "Plains", Count: 12}}, nil)
 	tc := id["Tangled Colony"]
 	// the card is the table's reader, and the table opened the sites
 	if !sc.k.t.Cards[tc].DmgAmt || !sc.k.gen.anyDmgAmt {
