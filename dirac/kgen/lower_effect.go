@@ -1448,13 +1448,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		lc.emit(in)
 	case "DestroyAll":
-		var f *lFilter
-		var err error
-		if vc := ps.str("ValidCards"); vc == "TargetedCard.Self,Permanent.NotDefinedTargeted+sharesNameWith Targeted" {
-			f, err = lc.sameNameT0Filter() // lower_choosetype.go
-		} else {
-			f, err = lc.filter(vc)
-		}
+		f, err := lc.destroyAllFilter(ps) // lower_destroyalltargeted.go
 		if err != nil {
 			return err
 		}
@@ -2994,6 +2988,9 @@ func pumpKeywords(kw string) ([]string, error) {
 }
 
 func (lc *lowerCtx) pumpAll(ps *params) error {
+	if spec, ok := targetedOtherSpec(ps.m["ValidCards"]); ok {
+		return lc.pumpAllOtherThanTarget(ps, spec) // lower_pumpallother.go
+	}
 	f, err := lc.filter(ps.str("ValidCards"))
 	if err != nil {
 		return err

@@ -1557,7 +1557,7 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 	s.g.pickF = uint16(in.C>>3) | uint16(in.B.N)&(kop.SrAttacking|kop.SrDifferentNames|kop.SrNoShuffle|kop.SrRandom|kop.SrGameGrave)
 	s.g.nlook = 0
 	if altOp(in) {
-		s.altBegin() // OriginAlternative$ (zone_originalternative.go)
+		s.altBegin(in) // OriginAlternative$ (zone_originalternative.go)
 	}
 	if sideOp(in) {
 		s.sideClamp(k, in) // zone_sideboardsearch.go: the pool is the library and the sideboard

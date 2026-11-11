@@ -125,9 +125,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (ConditionActivationLimit$ lowers to kop.ExActivations on a card whose one non-mana activated ability it gates: Dragon Whelp; DMU 194 -> 195, ALL 22176 -> 22177).
 	// +1 (Fiend Hunter's Defined$ DirectRemembered leave return lowers as the remembered-persist pair; ALL 22176 -> 22177).
 	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
-	// +2 (DB$ SkipPhase, all combat phases of the next turn: False Peace, Empty City Ruse; ALL 22203 -> 22205).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22269, 34442},
+	"ALL": {22286, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},

@@ -1,0 +1,13 @@
+# the Origin$ Library,Graveyard search pool: Journey for the Elixir's two
+# merged library-and-graveyard searches into the hand, beside self-mill and
+# looting that put basic lands and Jiang Yanggu into the graveyard
+# (dirac/oracle/libgrave_test.go)
+Forest
+Grizzly Bears
+Island
+Jiang Yanggu
+Journey for the Elixir
+Llanowar Elves
+Merfolk Looter
+Mulch
+Thought Scour

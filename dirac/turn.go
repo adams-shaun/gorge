@@ -447,6 +447,7 @@ func (s *State) clearCombat() {
 			s.touchSl(sl)
 		}
 	}
+	s.xblkClear()
 	s.nAttackers = 0
 	s.fsStep = false
 }

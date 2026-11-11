@@ -92,9 +92,13 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		origin = zAny
 	}
+	lg := isOriginLibraryGrave(ps) // lower_libgrave.go
 	if dualDef || gxTgt {
 		ps.get("Origin") // read
 		origin = zAny
+	} else if lg {
+		ps.get("Origin") // read
+		origin = zLibrary
 	} else if !dual && !hg && !bg {
 		if origin, err = zoneOf(ps, "Origin", zNone); err != nil {
 			return err
@@ -423,6 +427,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					return refuse("OriginAlternative$ with ChangeNum$ %v", n)
 				}
 				flags = append(flags, "alt="+alt)
+			}
+			if lg {
+				if flags, err = libGraveFlags(ps, dest, n, obj, arm != nil, flags); err != nil { // lower_libgrave.go
+					return err
+				}
 			}
 			if flags, err = shareLandType(ps, f, flags); err != nil { // lower_sharelandtype.go
 				return err

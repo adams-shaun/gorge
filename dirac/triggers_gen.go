@@ -798,7 +798,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 		nb := 0
 		for bm := s.occ.and(s.oppsM(s.active)); bm.any(); bm = bm.rest() {
 			b := bm.first()
-			if s.perms[b].flags&pfBlocking == 0 || s.perms[b].blocking != a {
+			if !s.blocks(b, a) {
 				continue
 			}
 			j := nb

@@ -105,6 +105,7 @@ type genPrep struct {
 	anyProwessGrant bool // some Continuous static grants prowess: onCast counts one trigger per static (kw_prowess.go)
 
 	anyMinBlk                bool // a card has a printed MinMaxBlocker floor (CardDef.MinBlockers; combat.go)
+	anyExtraBlock            bool // a card has a printed CardDef.ExtraBlocks (combat_extrablock.go)
 	anyUntapOther            bool // a card has a StatUntapOther static (static_untapother.go)
 	anyTapExtra              bool // a card has a StatTapExtra static (mana_tapextra.go)
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
@@ -843,6 +844,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.MinBlockers != 0 {
 			g.anyMinBlk = true
+		}
+		if c.ExtraBlocks != 0 {
+			g.anyExtraBlock = true
 		}
 		if c.HasMadness {
 			g.anyMadness = true

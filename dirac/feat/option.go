@@ -353,6 +353,9 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 // firstShare is a damage split's first blocker share (gorge's division
 // option Amount): split idx of the attacker's power among its blockers.
 func (e *Encoder) firstShare(atk uint8, idx int) int32 {
+	if int(atk) < int(e.kp.NObj) && e.po(atk).Flags&dirac.ProjBlocking != 0 {
+		return int32(idx) // a two-attacker blocker's division: the first share is the option index
+	}
 	n := 0
 	for i := 0; i < int(e.kp.NObj); i++ {
 		if e.po(uint8(i)).Blocks == dirac.Obj(atk) {
