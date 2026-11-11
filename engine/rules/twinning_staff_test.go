@@ -21,7 +21,7 @@ import (
 
 const staffEchoFixture = "Name:Staff Echo Fixture\nManaCost:U\nTypes:Instant\n" +
 	"A:SP$ CopySpellAbility | ValidTgts$ Instant,Sorcery | TargetType$ Spell | SpellDescription$ Copy target instant or sorcery spell.\n" +
-	"Oracle:Copy target instant or sorcery spell.\n"
+	"Oracle:Echoes a spell (test fixture).\n"
 
 // staffGame seats Twinning Staff on the battlefields named by staffs (seat
 // ids, one Staff each), seat 0's other cards in hand, and funds seat 0.
