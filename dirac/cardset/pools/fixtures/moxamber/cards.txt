@@ -1,0 +1,15 @@
+# the Mox Amber pool: its one mana ability reads the colours among the
+# controller's legendary creatures and planeswalkers (a one-colour legend, a
+# two-colour one, a planeswalker); Lightning Bolt kills a legend, so the
+# colours move mid-game, for the oracle's constructed lockstep
+# (dirac/oracle/moxamber_test.go)
+Mox Amber
+Isamaru, Hound of Konda
+Bartolomé del Presidio
+Jace Beleren
+Lightning Bolt
+Grizzly Bears
+Mountain
+Plains
+Swamp
+Island

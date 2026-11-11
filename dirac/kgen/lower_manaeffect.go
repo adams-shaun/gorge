@@ -17,6 +17,8 @@ func (lc *lowerCtx) manaEffect(ps *params) error {
 		// (CR 605.1a): gorge resolves it on the stack (lower_dbmanacontext.go)
 	case lc.ab.Kind == akActivated:
 		return refuse(refuseDbManaMA)
+	case lc.ab.Kind == akMana && lc.conditionalManaSplit(ps):
+		return refuse(refuseConditionalMana) // (lower_gemstone.go)
 	case lc.ab.Kind == akMana:
 		// CR 605.1a: an activated ability that could add mana is a mana
 		// ability, and gorge's payment machinery treats its mana apart from

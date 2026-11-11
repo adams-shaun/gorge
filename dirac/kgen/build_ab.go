@@ -3129,6 +3129,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, fmt.Errorf("alt origin %q", az)
 			}
 			sb |= kop.SrAltOrigin | int(altZ)<<kop.SrAltZoneShift
+			if _, ok := fl["altAll"]; ok {
+				// Origin$ Library,Graveyard (lower_libgrave.go): every zone, no election
+				if altZ != kop.ZoneGraveyard {
+					return ki, fmt.Errorf("altAll with alt origin %q", az)
+				}
+				sb |= kop.SrAltAll
+			}
 			zone = kop.ZoneNone // the filter matches cards of every elected zone
 		}
 		if sb, zone, err = sideSearchFlags(in.Op, fl, sb, zone); err != nil {
@@ -3825,6 +3832,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// OpExt ExtAddPhase, B the count, C the kind | splice point
 		ki.Op, ki.B, ki.C = kop.OpExt, ki.A, int16(in.C)
 		ki.A = kop.Const(int(kop.ExtAddPhase))
+	case "SkipPhase":
+		// OpExt ExtSkipPhase, Obj the skipping player (dirac/act_skipphase.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtSkipPhase))
 	case "PlotGrant":
 		// (Kellan Joins Up) OpExt ExtPlotGrant, Obj the
 		// Remembered ref

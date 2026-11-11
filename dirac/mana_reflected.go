@@ -49,8 +49,11 @@ func prepManaRefl(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 	if ra < 0 || g.has(id, gfManaVar) || pc.manaAb < 0 {
 		return
 	}
-	if c.Abilities[ra].ManaAmong == 0 {
-		prepManaImprint(g, id, pc) // the imprint mox (mana_imprint.go)
+	if c.Abilities[ra].ManaAmong == 0 || loneManaAb(c) {
+		// the imprint mox (mana_imprint.go), or a filter-reflected ability
+		// that is the card's only mana ability (Mox Amber): the same
+		// per-colour views, the colours read from the filter (reflColours)
+		prepManaImprint(g, id, pc)
 		return
 	}
 	g.setFlag(id, gfManaVar|gfManaRefl)
@@ -62,6 +65,17 @@ func prepManaRefl(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 		g.varPC = append(g.varPC, v)
 	}
 	g.anyVergeOrder, g.anyRefl = true, true
+}
+
+// loneManaAb reports whether c has exactly one non-latent mana ability.
+func loneManaAb(c *kop.CardDef) bool {
+	n := 0
+	for j := range c.Abilities {
+		if a := &c.Abilities[j]; a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 {
+			n++
+		}
+	}
+	return n == 1
 }
 
 // reflColours is the colours the reflected ability of the source at sl

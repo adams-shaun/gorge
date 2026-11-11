@@ -250,7 +250,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 614.7a | follows | `engine/effects/damage.go#emitObjectDamage` | `TestCR120_8ZeroDamageHasNoEventToReplace` | 0 damage is no event, never replaced (cr-g06) |
 | 614.8 | partial | `engine/effects/regeneration.go#ReplaceDestroyLine` `engine/effects/regeneration.go#ReplaceDestruction` `engine/effects/regeneration.go#ReplaceUmbraArmor` | `TestDestroyLineSparesFromDestroyEffects` `TestDestroyLineSparesFromLethalDamage` | fixed order: R:Event$ Destroy lines in scan order, then shield, then umbra |
 | 614.9 | follows | `engine/effects/replacement.go#effReplaceEffect` | `TestCR614RememberedDamageRedirectToObject` `TestCR614RememberedDamageRedirectToPlayer` `TestCR614RememberedDamageSkipsLostPlayer` | damage redirect via ReplaceEffect |
-| 614.10 | follows | `engine/rules/turn.go#Engine.beginTurn` | - | SkipPhase API unregistered (LOUD) |
+| 614.10 | partial | `engine/effects/skipphase.go#effSkipPhase` `engine/rules/turn.go#skipCombatPhase` | `TestFalsePeaceSkipsTheTargetsNextCombats` | all combat phases of the next turn only (False Peace, Empty City Ruse); other SkipPhase shapes are a loud Note |
 | 614.10a-614.10b | unknown | - | - | not audited |
 | 614.11 | follows | `engine/rules/replacement.go#Engine.applyNonMoveReplacements` `engine/rules/replacement_match.go#drawMatchAmount` | `TestLivingConundrumSkipsTheDrawOnAnEmptyLibrary` `TestThoughtReflectionDrawsMeetNotionThief` | draw replaced on an empty library |
 | 614.11a-614.11b | unknown | - | - | not audited |

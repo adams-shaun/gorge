@@ -481,6 +481,7 @@ ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
 ExtSearchCounters	ExtOp	252
+ExtSkipPhase	ExtOp	313
 ExtSpellToLib	ExtOp	308
 ExtStackExileMark	ExtOp	315
 ExtSuspect	ExtOp	190
@@ -1067,6 +1068,7 @@ SpmManifestUp	SpecialMask	4
 SpmMorphUp	SpecialMask	1
 SpmTurnFaceUp	SpecialMask	15
 SpmUnlock	SpecialMask	16
+SrAltAll	untyped int	8
 SrAltGraveHand	int	1
 SrAltOrigin	untyped int	16
 SrAltZoneShift	untyped int	5

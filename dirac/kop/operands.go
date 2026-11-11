@@ -257,6 +257,14 @@ const (
 	SrAltOrigin     = 1 << 4  // OpSearchEx only (bits 4..11 are OpChooseMove's entry counter kind, unread on a library search): OriginAlternative$ -- the searcher first elects which of the library and the alternative zone to search (gorge originAlternativeZones), the pool is the elected zones' cards (library first), the shuffle is owed only when the library was elected. B bits 5..7 (SrAltZoneShift) hold the alternative zone (Graveyard or Hand); SrAltGraveHand there names the Graveyard,Hand pair, so the election offers three zones; read from the instruction, never ORed into pickF
 )
 
+// SrAltAll (OpSearchEx with SrAltOrigin only): the zone election is settled
+// as every zone before the pick, nobody is asked -- ChangeZone Origin$
+// Library,Graveyard with no OriginAlternative$ (gorge originAlternativeZones
+// returns the parsed zones unchanged), so the pool is the library then the
+// graveyard and the shuffle is owed (Journey for the Elixir). B bit 3 also
+// lands in pickF as SrGameGrave, which only an OpChooseMove reads.
+const SrAltAll = 1 << 3
+
 // SrAltZoneShift is the shift of SrAltOrigin's alternative zone in B.N.
 const SrAltZoneShift = 5
 

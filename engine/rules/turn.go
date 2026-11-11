@@ -1406,11 +1406,23 @@ func (e *Engine) advanceStep() {
 	} else {
 		next = skipFirstDrawStep(e.G, next)
 	}
+	next = skipCombatPhase(e.G, next)
 	e.setStep(next)
 	if e.pending != nil {
 		return
 	}
 	e.finishEnteredStep()
+}
+
+// skipCombatPhase is the CR 614.10 skip of the combat phase (DB$ SkipPhase,
+// False Peace): a walk that would enter the beginning of combat step while the
+// active player skips combat phases enters the postcombat main phase instead.
+// Free function over the game, like skipFirstDrawStep.
+func skipCombatPhase(g *state.Game, next state.Step) state.Step {
+	if next == state.StepBeginCombat && g.CombatSkipped(g.Active) {
+		return state.StepMain2
+	}
+	return next
 }
 
 // extraPhaseBoundary is the extra-phase consumer (Forge AddPhaseEffect, DB$
@@ -1495,6 +1507,26 @@ func (e *Engine) extraPhaseBoundary(leaving state.Step) (state.Step, bool) {
 			continue
 		}
 		if ep.AfterStep != leaving && !(completed && ep.AfterStep == completedAfter) {
+			continue
+		}
+		if ep.Entry == state.StepBeginCombat && e.G.CombatSkipped(e.G.Active) {
+			// CR 614.10: an extra combat phase of a player who skips combat
+			// phases is skipped too. A grant without a delayed-trigger rider
+			// is consumed and completed at once (the phase it was followed by
+			// still comes), and the scan restarts over the shorter queue; one
+			// with a rider stays pending, unspent, so the rider (registered at
+			// consumption) never outlives a combat that does not begin.
+			if ep.Execute == "" && !ep.HasDelayedPhase && ep.ValidPlayer == "" && !ep.DelayedStatic {
+				e.emit(consumedExtraPhaseEvent(ep, -1))
+				e.emit(consumedExtraPhaseEvent(ep, -2))
+				completed, completedAfter = true, ep.AfterStep
+				if ep.HasFollowedBy {
+					resume = ep.FollowedBy
+				} else {
+					resume = ep.AfterStep + 1
+				}
+				i = len(e.G.ExtraPhases)
+			}
 			continue
 		}
 		e.emit(consumedExtraPhaseEvent(ep, -1))
