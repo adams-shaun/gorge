@@ -270,6 +270,7 @@ DiscoverRemBottom	untyped int	241
 DivLKIP1P1	untyped int	255
 DivMaxV	untyped int	254
 DivValue	untyped int	253
+DmgDivideEvenly	untyped int	64
 DmgEQ	DmgCmp	3
 DmgExileIfDealt	untyped int	16
 DmgExileIfDiesThisTurn	untyped int	2
