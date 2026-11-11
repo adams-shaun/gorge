@@ -225,6 +225,9 @@ func (s *State) resolveTop(k *prep) {
 			if k.gen != nil && s.parkReturnAsk() {
 				return // the delayed action's sacrifice returned a card whose as-enters choice is asked with it still in exile (zone_untilleavesbatch.go)
 			}
+			if s.g.nask != 0 && s.midResAsk(k) {
+				return // the returned card's as-enters choice (a shock land's life) is asked with the trigger still on the stack; raGenEnterAsk's answer finishes it
+			}
 			s.finishResolve(k, false)
 			return
 		}

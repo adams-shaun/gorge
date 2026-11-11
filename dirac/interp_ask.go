@@ -1151,6 +1151,10 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.unparkTail(k) {
 			return // a dig's raGenDigArrange
 		}
+		if s.res.e.ab == abDelayed {
+			s.finishResolve(k, false) // the delayed action ran in resolveDelayed; only the pop is owed (resolve.go)
+			return
+		}
 		s.continueRes(k, 0)
 	case raGenRetChoice:
 		o := s.g.pre.obj
