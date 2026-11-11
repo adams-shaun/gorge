@@ -906,6 +906,15 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		ka.ManaN = 1
 		return nil
 	}
+	if m.Special == "ReflectedImprint" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
+		// (Chrome Mox) a printed AfManaReflect with no ManaAmong filter
+		// reads the colours of the cards its source imprinted (kernel
+		// mana_imprint.go; lower_imprintmox.go)
+		ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect
+		ka.ManaColors = kop.ColAny
+		ka.ManaN = 1
+		return nil
+	}
 	if m.Special == "ReflectedSelf" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
 		// a granted "any of this creature's colors" (Katilda): AfManaReflect
 		// with no ManaAmong filter reads the grantee's own colours

@@ -1,0 +1,16 @@
+# the Chrome Mox pool: its enters trigger may exile a nonartifact, nonland
+# card from the hand (mono-coloured and two-colour ones), its mana ability
+# reads that card's colours; Shatter and Boomerang make it leave (a recast
+# Mox reads only its new imprint), for the oracle's constructed lockstep
+# (dirac/oracle/chromemox_test.go)
+Chrome Mox
+Lightning Bolt
+Grizzly Bears
+Boros Swiftblade
+Shatter
+Boomerang
+Hill Giant
+Mountain
+Forest
+Plains
+Island

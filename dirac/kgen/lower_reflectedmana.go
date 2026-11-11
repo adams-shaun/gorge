@@ -31,6 +31,15 @@ func (lc *lowerCtx) lowerManaReflected(sa *cards.SA, ps *params, ab *lAbility) e
 		m := &lMana{Colors: "WUBRG", Choice: true, Amount: cst(1), Special: "ReflectedSelf"}
 		return lc.finishMana(sa, ps, ab, m)
 	}
+	if valid == "Defined.Imprinted" && lc.imprintMox && lc.granted == 0 {
+		// (Chrome Mox) the colours of the card the enters trigger exiled,
+		// read through its reverse exiled-with record (lower_imprintmox.go;
+		// kernel mana_imprint.go). The card records what it exiles and
+		// its text names ExiledWithSource, so the record is the reverse one
+		m := &lMana{Colors: "WUBRG", Choice: true, Amount: cst(1), Special: "ReflectedImprint"}
+		lc.out.ExiledWith, lc.out.ExwWord = true, true
+		return lc.finishMana(sa, ps, ab, m)
+	}
 	if valid == "" || strings.HasPrefix(valid, "Defined.") {
 		return refuse("ManaReflected Valid$ %q", valid)
 	}
@@ -51,7 +60,7 @@ func (lc *lowerCtx) lowerManaReflected(sa *cards.SA, ps *params, ab *lAbility) e
 
 // reflTapMana: a is the lowered reflected ability, cost {T} alone.
 func reflTapMana(a *lAbility) bool {
-	if a.Mana == nil || a.Mana.Special != "Reflected" {
+	if a.Mana == nil || a.Mana.Special != "Reflected" && a.Mana.Special != "ReflectedImprint" {
 		return false
 	}
 	c := &a.Cost
@@ -75,6 +84,17 @@ func reflTapMana(a *lAbility) bool {
 // (kernel mana_reflected.go). It reports whether ms holds a
 // reflected ability (the caller then has nothing to add).
 func (lc *lowerCtx) refuseReflectedMana(ms []*lAbility) bool {
+	for _, a := range ms {
+		if a.Mana.Special != "ReflectedImprint" {
+			continue
+		}
+		// the imprint mox's one ability (lower_imprintmox.go): the kernel
+		// models it alone, {T} its whole cost
+		if len(ms) != 1 || !reflTapMana(a) {
+			lc.refuseNode("card", "imprint-reflected mana ability beside another mana ability or with a cost beyond {T}")
+		}
+		return true
+	}
 	at := -1
 	for i, a := range ms {
 		if a.Mana.Special == "Reflected" {
