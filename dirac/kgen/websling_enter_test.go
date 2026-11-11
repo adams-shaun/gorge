@@ -11,7 +11,7 @@ import (
 // entering trigger's ValidCard$ (PredWasCastEnter bit 16, composed with
 // wasCast).
 var kwebslingEnterForms = []formCase{
-	{card: "Spiders-Man, Heroic Horde", form: "ChangesZone ValidCard$ Card.Self+wasCast+webSlinged (PredWasCastEnter PredN 16)", lir: "trigger ETB F={types=0x0 Self cmp(28 0 16  )}"},
+	{card: "Spiders-Man, Heroic Horde", form: "ChangesZone ValidCard$ Card.Self+wasCast+webSlinged (PredWasCastEnter PredN 16)", lir: "trigger ETB F={types=0x0 Self cmp(29 0 16  )}"},
 }
 
 // TestWebSlingedEnterWordLowers: Spiders-Man lowers with the webSlinged bit;

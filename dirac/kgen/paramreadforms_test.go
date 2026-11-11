@@ -40,7 +40,7 @@ var paramreadformsForms = []formCase{
 	{card: "Boggart Ram-Gang", form: "printed Wither (CardDef.Wither)", lir: " wither"},
 	{card: "Geralf's Messenger", form: "K:Undying lowered from gorge's expanded dies trigger", lir: "Return obj=TriggeredNew A=1 C=1 CS=from=Graveyard|counters=P1P1"},
 	{card: "Batterskull", form: "K:Living Weapon lowered from gorge's expanded ETB trigger", lir: "CreateToken obj=You A=1 C=4 CS=b_0_0_phyrexian_germ\n     1 Attach obj=Remembered"},
-	{card: "Ashling, the Extinguisher", form: "ControlledBy TriggeredTarget in its own combat-damage-to-a-player trigger (OppCtrl)", lir: "F={types=0x2 ctrl=2}"},
+	{card: "Ashling, the Extinguisher", form: "ControlledBy TriggeredTarget in its own combat-damage-to-a-player trigger (PredTrigPlayerCtrl)", lir: "F={types=0x2 cmp(16 0 0  )}"},
 	{card: "Chalice of the Void", form: "an {X}{X} cost (ManaCost.X = 2)", lir: "cost={0XX}"},
 	{card: "Feral Lightning", form: "Token AtEOT$ Exile (TokExileAtEnd)", lir: "CreateToken obj=You A=3 C=16"},
 	{card: "Lowland Oaf", form: "Pump AtEOT$ Sacrifice (OpAtEOT after the pump)", lir: "1 GrantKeyword obj=Target0 CS=Flying\n     2 AtEOT obj=Target0"},

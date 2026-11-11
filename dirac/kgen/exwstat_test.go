@@ -56,7 +56,7 @@ func TestExwStaticsLowering(t *testing.T) {
 		"Veteran Survivor":  {"cond=Value(op1,ExiledWithN,3)"},
 		"Quilled Greatwurm": {"amount=6 zone=3"},
 		// the Defined$ ExiledWith sweep keeps the predicate form (PredN 1)
-		"The Princess Takes Flight": {"ChangeZoneAll", "cmp(27 0 1"},
+		"The Princess Takes Flight": {"ChangeZoneAll", "cmp(28 0 1"},
 	} {
 		for _, w := range wants {
 			if !strings.Contains(dump[name], w) {
