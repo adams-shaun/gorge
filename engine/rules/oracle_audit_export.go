@@ -164,6 +164,16 @@ func logReplayGame(cfg Config, log []events.Event) *state.Game {
 	for p := range g.Players {
 		if len(cmdIDs[p]) > 0 {
 			g.Players[p].CmdCasts = make([]int32, len(cmdIDs[p]))
+			// The same genesis seed New applies before the opening deal: a
+			// scenario's restated cast history (CR 903.8) is not in the log,
+			// so the replay reads it from Config like the commander list.
+			if p < len(cfg.CommanderCasts) {
+				for k := range g.Players[p].CmdCasts {
+					if k < len(cfg.CommanderCasts[p]) {
+						g.Players[p].CmdCasts[k] += cfg.CommanderCasts[p][k]
+					}
+				}
+			}
 			for _, ev := range log {
 				if ev.Kind != events.PutOnStack || ev.Player != state.PlayerID(p) || ev.From != state.ZCommand {
 					continue

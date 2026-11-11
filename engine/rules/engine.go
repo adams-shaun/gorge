@@ -57,6 +57,13 @@ type Config struct {
 	// range for its deck is a config error degraded the same way New degrades
 	// more decks than seats: the offending entry is skipped, not a crash.
 	Commanders [][]int
+	// CommanderCasts holds, for each seat i, parallel to Commanders[i], how
+	// many times that commander was cast from the command zone before the
+	// game began: an oracle scenario's restated commander tax (CR 903.8).
+	// Genesis configuration like Sideboards: nil (every Config but such a
+	// scenario's) changes nothing, and a replay that is handed the same
+	// Config seeds the same counts.
+	CommanderCasts [][]int32
 	// Mulligans is the number of London mulligans each player may take in the
 	// pre-game round between the opening deal and turn 1. 0 (the zero value)
 	// skips the round entirely, so every Config that never sets it is

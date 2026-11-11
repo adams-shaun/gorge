@@ -12,6 +12,155 @@ import (
 // clamps to it, so a larger setup value is a scenario typo, not a request.
 const maxSetupSpeed = 4
 
+// maxSetupCommanders is CR 903.3c's bound: a commander deck has one commander
+// or a partner pair, so genesis seats no more whole.
+const maxSetupCommanders = 2
+
+// maxSetupCommanderDamage is CR 704.6c's threshold minus one: 21 combat damage
+// from one commander loses the game at the first state-based check, so no
+// setup can stand on it.
+const maxSetupCommanderDamage = 20
+
+// validateSetupCommanders rejects a seat's Commander fields the runner cannot
+// place: any of them in a constructed scenario, a name that is not one of the
+// seat's non-command placements (or is placed more than once, or is already a
+// command placement), more than two commanders, a cast count below 1, or a
+// damage amount outside 1..maxSetupCommanderDamage. The damage KEY's existence
+// is checked after binding, when the setup refs exist. It runs before the game
+// is built so a typo fails loudly rather than silently placing nothing.
+func validateSetupCommanders(p int, s oracleSeat, commander bool) error {
+	if !commander {
+		if len(s.Commanders) > 0 {
+			return harnessf("setup: p%d commanders needs a commander-format scenario", p)
+		}
+		if len(s.CommanderCasts) > 0 {
+			return harnessf("setup: p%d commander_casts needs a commander-format scenario", p)
+		}
+		if len(s.CommanderDamage) > 0 {
+			return harnessf("setup: p%d commander_damage needs a commander-format scenario", p)
+		}
+		return nil
+	}
+	seen := map[string]bool{}
+	for _, name := range s.Commanders {
+		key := cards.NormalizeName(name)
+		if key == "" {
+			return harnessf("setup: p%d commanders has an empty name", p)
+		}
+		if seen[key] {
+			return harnessf("setup: p%d commanders lists %q more than once", p, name)
+		}
+		seen[key] = true
+		for _, cmd := range s.Command {
+			if cards.NormalizeName(cmd) == key {
+				return harnessf("setup: p%d commanders names %q, which is already a command placement", p, name)
+			}
+		}
+		switch n := setupPlacementCount(s, name); {
+		case n == 0:
+			return harnessf("setup: p%d commanders names %q, which is not one of its placements", p, name)
+		case n > 1:
+			return harnessf("setup: p%d commanders names %q, which is placed more than once", p, name)
+		}
+	}
+	if n := len(s.Command) + len(s.Commanders); n > maxSetupCommanders {
+		return harnessf("setup: p%d has %d commanders (want at most %d; CR 903.3c)", p, n, maxSetupCommanders)
+	}
+	for _, name := range sortedSetupKeys(s.CommanderCasts) {
+		n := s.CommanderCasts[name]
+		if n < 1 {
+			return harnessf("setup: p%d commander_casts %q = %d (want at least 1; CR 903.8)", p, name, n)
+		}
+		if !setupIsCommander(s, name) {
+			return harnessf("setup: p%d commander_casts names %q, which is not one of its commanders", p, name)
+		}
+	}
+	for _, key := range sortedSetupKeys(s.CommanderDamage) {
+		n := s.CommanderDamage[key]
+		if n < 1 || n > maxSetupCommanderDamage {
+			return harnessf("setup: p%d commander_damage %q = %d (want 1..%d; CR 903.10a)", p, key, n, maxSetupCommanderDamage)
+		}
+	}
+	return nil
+}
+
+// setupPlacementCount counts the seat's non-command placements named name. A
+// commanders entry must name exactly one of them: zero is unplaced and two is
+// ambiguous.
+func setupPlacementCount(s oracleSeat, name string) int {
+	n := 0
+	for _, list := range [][]string{s.Battlefield, s.Hand, s.Graveyard, s.Library, s.LibraryTop, s.Exile} {
+		for _, placed := range list {
+			if cards.NormalizeName(placed) == cards.NormalizeName(name) {
+				n++
+			}
+		}
+	}
+	return n
+}
+
+// setupCommanderListed reports whether s.Commanders lists name: the placement
+// is a commander even though setup moves it out of the command zone.
+func setupCommanderListed(s oracleSeat, name string) bool {
+	for _, n := range s.Commanders {
+		if cards.NormalizeName(n) == cards.NormalizeName(name) {
+			return true
+		}
+	}
+	return false
+}
+
+// setupIsCommander reports whether name is one of the seat's commanders: a
+// command placement or a Commanders entry.
+func setupIsCommander(s oracleSeat, name string) bool {
+	for _, n := range s.Command {
+		if cards.NormalizeName(n) == cards.NormalizeName(name) {
+			return true
+		}
+	}
+	return setupCommanderListed(s, name)
+}
+
+// setupCommanderCast reads m's count for the named commander, matching names
+// as the rest of setup does (case and punctuation folded) and falling back to
+// sorted keys so no map range decides which duplicate spelling wins.
+func setupCommanderCast(m map[string]int32, name string) int32 {
+	if n, ok := m[name]; ok {
+		return n
+	}
+	for _, key := range sortedSetupKeys(m) {
+		if cards.NormalizeName(key) == cards.NormalizeName(name) {
+			return m[key]
+		}
+	}
+	return 0
+}
+
+// setupCommanderCasts builds Config.CommanderCasts, parallel to commanders (the
+// Config.Commanders indices in placement order, which is the order
+// legalCommandersFor returns). It returns nil when no seat names a count, so
+// every other Config is unchanged.
+func setupCommanderCasts(sc oracleScenario, seats int, commanders [][]int, decks [][]*cards.Card) [][]int32 {
+	var out [][]int32
+	for p := 0; p < seats; p++ {
+		s := sc.Setup[oracleSeatRef(p, "")]
+		if len(s.CommanderCasts) == 0 {
+			continue
+		}
+		if out == nil {
+			out = make([][]int32, seats)
+		}
+		out[p] = make([]int32, len(commanders[p]))
+		for k, idx := range commanders[p] {
+			if idx < 0 || idx >= len(decks[p]) || decks[p][idx] == nil || len(decks[p][idx].Faces) == 0 {
+				continue
+			}
+			out[p][k] = setupCommanderCast(s.CommanderCasts, decks[p][idx].Faces[0].Name)
+		}
+	}
+	return out
+}
+
 // validateSetupState rejects a seat's counters/speed that the runner cannot
 // place: a counters key naming no battlefield card of that seat, a kind with
 // no name, a non-positive amount, or a speed outside 0..4. It runs before the

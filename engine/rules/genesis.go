@@ -505,6 +505,16 @@ func (e *Engine) genesisDeal(cfg Config, tossAsk bool) *Engine {
 		e.G.Players[p].Commanders = myCmds
 		if len(myCmds) > 0 {
 			e.G.Players[p].CmdCasts = make([]int32, len(myCmds))
+			// An oracle scenario's restated cast history (CR 903.8): the
+			// Config seed is parallel to Commanders, which legalCommandersFor
+			// returns in Config order, so k lines up with myCmds[k].
+			if i < len(cfg.CommanderCasts) {
+				for k := range myCmds {
+					if k < len(cfg.CommanderCasts[i]) {
+						e.G.Players[p].CmdCasts[k] += cfg.CommanderCasts[i][k]
+					}
+				}
+			}
 		}
 		if totalCmd > 0 {
 			e.G.Players[p].CmdDamage = make([]int32, totalCmd)
