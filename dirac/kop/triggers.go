@@ -219,6 +219,7 @@ const (
 	DmgRemember                        // an object dealt the damage on the battlefield joins the remembered set, only when damage above 0 was dealt after prevention and replacement (RememberDamaged$, gorge; a player is not stored)
 	DmgExileIfDealt                    // with DmgExileIfDiesThisTurn: the exile-instead applies only when damage above 0 was dealt to the object (ReplaceDyingDefined$ Remembered, gorge; Targeted covers every target)
 	DmgNoRegen                         // a creature dealt damage above 0 can't be regenerated this turn (Incinerate's follow-up: the arena's mechNoRegen mark, cleared at the turn's cleanup and when the slot takes a new permanent)
+	DmgDivideEvenly                    // OpDealDamageDivided only: no division is chosen; A is divided by the slot's legal targets at resolution, rounded down, each taking the quotient (Fireball's DivideEvenly$ RoundedDown; gorge divideEvenlyDown)
 )
 
 // TrigFlags2 (Trigger.Flags2).

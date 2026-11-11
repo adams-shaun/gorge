@@ -68,15 +68,26 @@ func (lc *lowerCtx) raiseCost(sp *params, st *lStatic) error {
 // each target beyond the first" (Officious Interrogation): a self spell raise
 // with Cost$ (digits and colour letters), Relative$ True and Amount$
 // TargetedObjects$Amount/Minus.1, no other parameter. st.Amount is the generic
-// per charge, st.RaiseCol the pips per charge. false, nil for any other
-// static, which keeps its existing path (and refusal).
+// per charge, st.RaiseCol the pips per charge. A Cost$-less raise (Fireball's
+// "costs {1} more for each target beyond the first", Amount$ an SVar reading
+// the targets less one) charges one generic per target: gorge composeRaiseCost
+// adds the Amount$ itself as generic mana when no Cost$ names the cost. false,
+// nil for any other static, which keeps its existing path (and refusal).
 func (lc *lowerCtx) raisePerTarget(sp *params, st *lStatic) (bool, error) {
-	cost, ok := sp.m["Cost"]
-	if !ok || sp.str("Relative") != "True" || sp.str("ValidCard") != "Card.Self" ||
-		sp.str("Type") != "Spell" || sp.str("EffectZone") != "All" {
+	// A Cost$-less static reads the map, not sp.get: a read marks the key
+	// used, and a static that is not this shape must keep Relative$ and
+	// EffectZone$ unread so its own path still refuses them (Hum of the
+	// Radix). The Cost$ shape reads as it always did.
+	cost, hasCost := sp.m["Cost"]
+	str := func(k string) string { return strings.TrimSpace(sp.m[k]) }
+	if hasCost {
+		str = sp.str
+	}
+	if str("Relative") != "True" || str("ValidCard") != "Card.Self" ||
+		str("Type") != "Spell" || str("EffectZone") != "All" {
 		return false, nil
 	}
-	amt := sp.str("Amount")
+	amt := str("Amount")
 	if body, ok := lc.face.SVars[amt]; ok {
 		amt = body
 	}
@@ -90,7 +101,10 @@ func (lc *lowerCtx) raisePerTarget(sp *params, st *lStatic) (bool, error) {
 			return false, nil
 		}
 	}
-	generic := 0
+	generic := 1 // Cost$ absent: one generic per charge
+	if hasCost {
+		generic = 0
+	}
 	var cnt [6]int
 	for _, tok := range strings.Fields(cost) {
 		if n, err := strconv.Atoi(tok); err == nil && n >= 0 && tok[0] != '+' && tok[0] != '-' {
@@ -114,9 +128,7 @@ func (lc *lowerCtx) raisePerTarget(sp *params, st *lStatic) (bool, error) {
 		}
 		st.RaiseCol |= uint16(n) << (kop.ReduceColorBits * i)
 	}
-	for _, k := range []string{"Cost", "Amount", "Relative"} {
-		sp.consume(k)
-	}
+	sp.consume("Cost", "Amount", "Relative", "EffectZone", "ValidCard", "Type")
 	st.Amount = cst(generic)
 	st.Zone = zAny // EffectZone$ All with Card.Self: the card's own raise
 	st.Flags = append(st.Flags, "RaisePerTarget")

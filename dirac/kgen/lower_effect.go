@@ -2419,6 +2419,11 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 		}
 		in.Op = "DealDamageDivided"
 	}
+	if de, ok := ps.get("DivideEvenly"); ok {
+		if err := lc.divideEvenly(ps, de, &in); err != nil { // lower_divideevenly.go
+			return err
+		}
+	}
 	if ps.is("DamageMap", "True") {
 		in.Note = "damage map: dealt together with the following DealDamage nodes"
 	}
