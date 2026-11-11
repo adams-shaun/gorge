@@ -12,18 +12,18 @@ import (
 // Mercurial Pretender: "You may have this enter as a copy of a creature you
 // control, except it has '{2}{U}{U}: Return this creature to its owner's
 // hand.'" gorge offers the as-enters copy election (AddAbilities$ is inside
-// its ETB Clone scope) and registers the grant as a layer-6 AddAbilities
-// effect on the copy (effects/clone.go); the kernel applies it as a
+// its ETB Clone scope) and folds the grant into the copy's copiable values
+// (CR 707.9b; effects/clone.go): one of the copy's own abilities, priced off
+// every source the controller can tap; the kernel applies it as a
 // permanent override record from the printed card when a template is picked,
 // hosts the ability on the copy and reads it from the printed card (dirac
 // copy_asenters.go, chars_gen.go grantCardAt). The expected answer at every
 // decision is gorge's: the copy election, the bounce's offer and its
 // resolution.
 //
-// A granted activation is offered on the lockstep surface only while the
-// floating pool pays it (gorge prices a grant off the pool; the kernel's
-// cfgGorgeUnpriced mirrors that), so seat 0 floats {B}{B}{U}{U} with a Dark
-// Ritual and a Manamorphose (blue twice) once a Pretender copy is out.
+// Seat 0 also floats {B}{B}{U}{U} with a Dark Ritual and a Manamorphose (blue
+// twice) once a Pretender copy is out: the bounce is then paid from the pool.
+// mercurialclone_test.go adds a Clone copying the Pretender copy.
 var kmercurialDecks = [2][]cardset.Entry{
 	{
 		{Name: "Mercurial Pretender", Count: 6}, {Name: "Grizzly Bears", Count: 6},

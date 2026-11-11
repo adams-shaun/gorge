@@ -525,6 +525,9 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 			st.Source = id.ref(g, o.Source)
 			if src := g.Obj(o.Source); src != nil {
 				st.Ability = abilityIndex(src.Face(), o.Ability)
+				if st.Ability != 255 && copyGrantedAbilityOf(src, int(st.Ability)) {
+					st.Ability = 255 // an as-enters copy's AddAbilities$: the kernel's latent ability
+				}
 			}
 		} else {
 			st.Source = id.ref(g, sid)

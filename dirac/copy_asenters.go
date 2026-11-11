@@ -145,11 +145,12 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 	s.subscribe(sl, &k.cards[c], true)
 	// the template's copy exceptions, then the op's own (CR 707.9b)
 	s.copyExcAdd(k, sl, src, uint8(in.C>>1))
+	s.copyGrantsAdd(k, sl, src)
 	if in.A.K == kop.VConst && in.A.N > 0 {
-		// AddAbilities$ (Mercurial Pretender): gorge's layer-6 grant on the
-		// copy, from the entering card's own ability table, for as long as
-		// the copy stays (kgen lower_cloneentergrant.go; grantCardAt)
-		s.applyOverride(k, sl, int(in.A.N)-1, p.card, false)
+		// AddAbilities$ (Mercurial Pretender): a copiable value (CR 707.9b),
+		// from the entering card's own ability table, for as long as the copy
+		// stays (kgen lower_cloneentergrant.go; grantCardAt)
+		s.applyOverrideFl(k, sl, int(in.A.N)-1, p.card, ovCopyGrant)
 	}
 	if k.gen.anyCloneCopy {
 		s.clonePermNote(sl, t, c, uint8(in.C>>1), s.tick()) // the marker a later cleanup settle re-bases from

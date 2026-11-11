@@ -795,6 +795,14 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(o.Obj), 255), opt: o.Index})
 				continue
 			}
+			if o.SVar == "" && o.Keyword == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.AltCostIndex == 0 && g.copyGrantedAbility(o.Obj, o.Ability) {
+				// An as-enters copy's AddAbilities$ (Mercurial Pretender, and a
+				// copy of it): a copiable value gorge lists among the face's own
+				// abilities, the kernel's latent-ability activation with the
+				// object as its own grantor.
+				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(o.Obj), 255), opt: o.Index})
+				continue
+			}
 			if o.SVar != "" || o.Keyword != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Ability > 0x7F {
 				note("ability/anchored")
 				continue
@@ -877,6 +885,9 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				continue
 			}
 			a = Pack(ActActivate, ref(pa.Obj), RefNone, uint8(pa.Ability))
+			if g.copyGrantedAbility(pa.Obj, pa.Ability) {
+				a = Pack(ActActivate, ref(pa.Obj), ref(pa.Obj), 255) // as the offer above
+			}
 		default:
 			continue
 		}
@@ -1770,6 +1781,31 @@ func (g *GorgeSide) maxSpeedOrdinal(id state.ObjID, sv string) (int, bool) {
 		n++
 	}
 	return 0, false
+}
+
+// copyGrantedAbility reports whether ability i of object id's face is one a
+// copy effect's AddAbilities$ added (CR 707.9b): its text is the body of a
+// named SVar on the face, which no printed A: line of a corpus card is.
+func (g *GorgeSide) copyGrantedAbility(id state.ObjID, i int) bool {
+	return copyGrantedAbilityOf(g.E.G.Obj(id), i)
+}
+
+// copyGrantedAbilityOf is copyGrantedAbility over the object itself.
+func copyGrantedAbilityOf(o *state.Object, i int) bool {
+	if o == nil || o.Face() == nil || i < 0 || i >= len(o.Face().Abilities) {
+		return false
+	}
+	sa := o.Face().Abilities[i]
+	if sa == nil || sa.Kind != "AB" {
+		return false
+	}
+	line := strings.TrimSpace(sa.Line)
+	for _, body := range o.Face().SVars {
+		if line != "" && strings.TrimSpace(body) == line {
+			return true
+		}
+	}
+	return false
 }
 
 // selfKeywordGrant reports whether a continuous effect on object id itself
