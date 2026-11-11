@@ -2,7 +2,9 @@ package kgen
 
 // drainMana lowers api:DrainMana (gorge effDrainMana: each defined player
 // loses all unspent mana) to ExtDrainMana. Power Sink names the targeted
-// spell's controller; Mana Short the target player; Worldpurge every player.
+// spell's controller; Mana Short the target player. Defined$ Player (every
+// player) refuses: the kernel resolves one player (playerRef has no
+// RefEachPlayer arm).
 // Forge's optional DrainMana$ True (the drained mana is added to the
 // activator) and RememberDrainedMana$ True change the effect and stay
 // refused.
@@ -21,7 +23,7 @@ func (lc *lowerCtx) drainMana(ps *params) error {
 		return err
 	}
 	switch r.Kind {
-	case rYou, rEachPlayer, rEachOpp, rTarget, rTargetController, rTriggeredPlayer, rDefending:
+	case rYou, rEachOpp, rTarget, rTargetController, rTriggeredPlayer, rDefending:
 	default:
 		return refuse("DrainMana Defined$ %q is not a player selector", d)
 	}

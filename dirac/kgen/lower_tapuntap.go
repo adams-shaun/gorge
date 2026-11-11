@@ -58,7 +58,7 @@ func (lc *lowerCtx) tapAll(ps *params) error {
 			return err
 		}
 		switch r.Kind {
-		case rYou, rEachPlayer, rEachOpp, rTarget, rTargetController, rTriggeredPlayer, rDefending:
+		case rYou, rEachOpp, rTarget, rTargetController, rTriggeredPlayer, rDefending:
 			in.Obj = r
 		default:
 			return refuse("TapAll Defined$ %q is not a player selector", d)
