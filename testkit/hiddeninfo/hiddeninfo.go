@@ -114,6 +114,10 @@ func (o *Oracle) Observe(d *decision.Decision) []events.Event {
 			if ctl, ok := g.LiveController(obj.Owner); ok {
 				o.learn(obj, bit(ctl))
 			}
+			// A live reveal grant (Telepathy) shows the card to every seat.
+			if o.e.HandCardRevealed(obj.ID) {
+				o.learn(obj, everyone)
+			}
 		case !obj.Zone.Hidden():
 			o.learn(obj, everyone)
 		}

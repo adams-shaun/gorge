@@ -366,6 +366,12 @@ type projector struct {
 	revealer interface {
 		LibraryTopRevealed(state.PlayerID) bool
 	}
+	// handRevealer is ch's optional "play with your hand revealed" read
+	// (rules.Engine.HandCardRevealed, CR 400.2), nil when ch lacks it -- a
+	// seat's hand is then hidden from every other seat.
+	handRevealer interface {
+		HandCardRevealed(state.ObjID) bool
+	}
 }
 
 func newProjector(g *state.Game, ch Chars, viewer state.PlayerID, sc *projScratch) projector {
@@ -379,6 +385,9 @@ func newProjector(g *state.Game, ch Chars, viewer state.PlayerID, sc *projScratc
 	})
 	p.revealer, _ = ch.(interface {
 		LibraryTopRevealed(state.PlayerID) bool
+	})
+	p.handRevealer, _ = ch.(interface {
+		HandCardRevealed(state.ObjID) bool
 	})
 	p.vchars, _ = ch.(interface {
 		ViewCharacteristics(state.ObjID) (string, bool, []string, int32, int32)
@@ -447,6 +456,37 @@ func (p *projector) cardViews(buf []CardView, ids []state.ObjID, includeAbilityC
 		if !p.zoneCard(&out[n], id, includeAbilityCosts, abilityPlayer, revealFaceDown, alsoVisible) {
 			out = out[:n]
 		}
+	}
+	return out
+}
+
+// revealedHandViews is cardViews over the hand cards a live reveal grant
+// shows every seat (handRevealer), or nil when none is revealed -- so a hidden
+// hand still marshals null. Counting first keeps the hidden case from
+// touching buf (no allocation).
+func (p *projector) revealedHandViews(buf []CardView, ids []state.ObjID, owner state.PlayerID, alsoVisible *seatSet) []CardView {
+	n := 0
+	for _, id := range ids {
+		if p.handRevealer.HandCardRevealed(id) {
+			n++
+		}
+	}
+	if n == 0 {
+		return nil
+	}
+	out := refill(buf, n)
+	for _, id := range ids {
+		if !p.handRevealer.HandCardRevealed(id) {
+			continue
+		}
+		k := len(out)
+		out = out[:k+1]
+		if !p.zoneCard(&out[k], id, false, owner, false, alsoVisible) {
+			out = out[:k]
+		}
+	}
+	if len(out) == 0 {
+		return nil
 	}
 	return out
 }

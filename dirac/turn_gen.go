@@ -62,6 +62,9 @@ func (s *State) placeEntryCounters(k *prep, sl Slot, kind, n int, ctrl uint8) in
 // it resets the slot's generated state, records how the permanent arrived,
 // and applies the as-enters replacements (its own and other permanents').
 func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
+	if face == 0 {
+		s.payETBStray(k, o) // repl_paybeforeetb.go
+	}
 	s.touch(o)
 	s.clearFx(sl)
 	s.arenaClrSlot(sl) // the slot takes a new permanent: no mechanic's mark for the last one survives (arena.go)

@@ -116,6 +116,9 @@ func (s *State) resolveTop(k *prep) {
 	case seSpell:
 		if k.cards[e.card].types&(kop.TInstant|kop.TSorcery) == 0 {
 			// permanent spell
+			if k.gen != nil && !e.faceDown() && s.payETBStart(k, &e) {
+				return // Mox Diamond's optional land discard, then the entry or the graveyard (repl_paybeforeetb.go)
+			}
 			if k.gen != nil && !e.faceDown() && s.preEnterAsk(k, &e) {
 				return
 			}
@@ -155,6 +158,9 @@ func (s *State) resolveTop(k *prep) {
 						sl = s.enter(k, e.obj, e.ctrl, false, kop.ZoneStack)
 					}
 				}
+			}
+			if k.gen != nil && s.g.pre.kind == akPayETB {
+				s.g.pre = preAsk{} // the gate's record ends with the entry
 			}
 			if k.gen != nil && k.gen.anyManaHaste {
 				s.manaHasteEnter(k, sl, &e) // mana_spentrider.go
@@ -530,6 +536,9 @@ func (s *State) runProg(k *prep) {
 		s.res.pc++
 		s.loopBack(k)
 	}
+	if k.gen != nil && s.payETBGate(k) {
+		return // the pay-before-entering program paid: the resolution re-runs to enter the card (repl_paybeforeetb.go)
+	}
 	s.finishResolve(k, false)
 }
 
@@ -667,6 +676,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.srcOwner()
 	case kop.RefPromised:
 		return s.promisedSeat(k, e) // kw_gift.go
+	case kop.RefAttachedCtrl:
+		return s.attachedCtrl(s.objRefObj(kop.RefAttached))
 	}
 	if k.gen != nil {
 		return s.refPlayer(k, r, s.ctxEntry(&s.res.e))

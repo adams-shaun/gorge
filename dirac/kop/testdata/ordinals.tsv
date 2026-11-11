@@ -952,6 +952,7 @@ ReduceAbPowerUp	untyped int	4
 ReduceAbUnlock	untyped int	2
 ReduceColorBits	untyped int	2
 RefAttached	Ref	11
+RefAttachedCtrl	Ref	37
 RefChosen	Ref	13
 RefController	Ref	5
 RefDefendingPlayer	Ref	15
@@ -1003,7 +1004,7 @@ ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
 ReplCopyFirstToken	ReplKind	38
-ReplCount	ReplKind	39
+ReplCount	ReplKind	40
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamageHealFirst	ReplKind	37
@@ -1042,6 +1043,7 @@ ReplOnePoison	ReplKind	22
 ReplOppsCantWinGame	ReplKind	9
 ReplOthersDoesntUntap	ReplKind	15
 ReplOthersEnterProgram	ReplKind	7
+ReplPayBeforeETB	ReplKind	39
 ReplPreventDamageCounters	ReplKind	36
 ReplPreventMillOpps	ReplKind	34
 ReplPreventNoncombatToOthers	ReplKind	11

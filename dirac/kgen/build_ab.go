@@ -2375,6 +2375,11 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplGraveToLibrary
 	case "DiscardOppToBattlefield":
 		rp.Kind = kop.ReplDiscardOppToBattlefield
+	case "PayBeforeETB":
+		rp.Kind = kop.ReplPayBeforeETB
+		if ka.Prog, err = cb.prog(r.Prog); err != nil {
+			return ka, err
+		}
 	case "DestroyHeal":
 		rp.Kind = kop.ReplDestroyHeal
 		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {

@@ -745,7 +745,9 @@ export interface PlayerView {
    * instead. Hand is a hidden zone under CR 400.2 and is gated on "is this
    * the viewer's own seat", widened by CR 720.4 to a seat the viewer
    * controls (you may look at all cards that player could see), unlike Pool
-   * (next field), which is public.
+   * (next field), which is public. Another seat's Hand lists only the cards
+   * a live reveal grant shows (Telepathy), and HandSize still carries the
+   * count.
    */
   hand: CardView[];
   battlefield: CardView[];

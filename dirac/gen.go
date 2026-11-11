@@ -483,6 +483,7 @@ const (
 	rbPrevMill                        // ReplPreventMillOpps (repl_preventmill.go)
 	rbPrevCtrSelf                     // ReplPreventDamageCounters (repl_selfdamage.go)
 	rbHealSelf                        // ReplDamageHealFirst (repl_selfdamage.go)
+	rbPayETB                          // ReplPayBeforeETB (repl_paybeforeetb.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -1045,6 +1046,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.destroyHeal[i] = a.Repl.Filter
 				case kop.ReplDiscardOppToBattlefield:
 					g.replBits[i] |= rbDiscETB
+				case kop.ReplPayBeforeETB:
+					g.replBits[i] |= rbPayETB
 				case kop.ReplGraveToLibrary:
 					g.replBits[i] |= rbGraveLib
 				case kop.ReplMayNotUntap:
