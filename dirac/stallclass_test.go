@@ -28,7 +28,7 @@ var (
 		"shield", "replctr", "replleave", "copyface", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
 		"endure", "linkctr", "numtimes", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",
 		"mayraise", "uncounterorder", "entryorder", "copyallask", "clonelayer", "gravepower", "landgrant",
-		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "tokrewrite", "stackkwgrant", "paylifeshared", "noprevent", "dmgmarkorder", "fbgrantstamp", "restrdefer", "diamondmix", "extrablockreq"}
+		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "tokrewrite", "stackkwgrant", "paylifeshared", "noprevent", "dmgmarkorder", "fbgrantstamp", "restrdefer", "diamondmix", "extrablockreq", "paybeforeetb"}
 )
 
 // Every registered reason has a class, and it is the one the lists above name.
