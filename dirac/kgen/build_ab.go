@@ -1613,9 +1613,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	var add []uint8
 	switch s.Kind {
 	case "FlipCoinMod":
-		st.Kind = kop.StatFlipCoinMod // turn_facts.go
+		st.Kind = kop.StatFlipCoinMod // static_turnbits.go
 	case "ActivationLimit":
-		st.Kind = kop.StatActivationLimit // turn_facts.go
+		st.Kind = kop.StatActivationLimit // static_turnbits.go
 	case "Continuous":
 		st.Kind = kop.StatContinuous
 		if s.F != nil && s.F.Players != 0 {

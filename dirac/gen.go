@@ -50,7 +50,7 @@ type genPrep struct {
 	fxNeed          uint8 // CR 613 layer walk triggers (static_layerwalk.go fxNeed* bits); 0: the fixed-order code
 	enteredNeed     bool  // some expression reads the ring
 	actRingOn       bool  // some expression reads the ring (ExThisTurnActGrave): the activation push records it
-	anyTurnF        bool  // some table reads this turn's per-player coin-flip or Exhaust-activation bits (genState.turnF; turn_facts.go)
+	anyTurnF        bool  // some table reads this turn's per-player coin-flip or Exhaust-activation bits (genState.turnF; value_turnfacts.go)
 	castTapOn       bool  // castRingOn, or some card carries a Tf2ManaFromSelf reader: the planner's tap sites record a Treasure or observed source (noteTapSrc)
 	anyManaHaste    bool  // some mana ability carries a ManaHasteValid rider (mana_spentrider.go)
 	castRingOn      bool  // some expression reads the ring (ExThisTurnCastSpec): the push records it
@@ -706,7 +706,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyTurnF = tableHasStatic(t, kop.StatFlipCoinMod) || tableHasStatic(t, kop.StatActivationLimit)
 	for i := range t.Exprs {
 		if t.Exprs[i].Kind == kop.ExThisTurnActExhaust {
-			g.anyTurnF = true // a standalone Count$ThisTurnActivated exhaust reader records the bit too (turn_facts.go)
+			g.anyTurnF = true // a standalone Count$ThisTurnActivated exhaust reader records the bit too (value_turnfacts.go)
 		}
 	}
 	g.anyDisETB = tableHasStatic(t, kop.StatDisableETB)
@@ -1988,7 +1988,7 @@ type genState struct {
 	// ExTgtSpent after the counter removed the target's stack entry (EOE
 	// Unravel; gorge targetManaSpentLKI).
 	tgtSpent uint8
-	// turnF: per player this turn's facts (turn_facts.go). Bit p: player p
+	// turnF: per player this turn's facts (value_turnfacts.go). Bit p: player p
 	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bits
 	// 4-7 are free. Cleared at the turn change. Taken from rsv.
 	turnF uint8

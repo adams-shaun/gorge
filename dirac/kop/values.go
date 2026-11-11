@@ -109,7 +109,7 @@ const (
 	// ExThisTurnActExhaust: 1 if the evaluating controller has activated an
 	// Exhaust ability this turn, else 0 (Count$ThisTurnActivated_
 	// Activated.Exhaust+YouCtrl; the kernel keeps one bit per player, so a
-	// second activation still reads 1). dirac/turn_facts.go.
+	// second activation still reads 1). dirac/static_turnbits.go.
 	ExThisTurnActExhaust
 	ExCount_
 )

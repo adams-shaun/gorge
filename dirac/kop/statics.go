@@ -623,7 +623,7 @@ const StatCantBeSuspected StaticKind = 230
 // FlipCoinMod static shape (a first flip each turn comes up heads by
 // effects/elements/flipcoin.go FlipCoinForced). The kernel only needs the
 // source and its controller; kgen validates the rest of the shape at
-// lowering time. dirac/turn_facts.go.
+// lowering time. dirac/static_turnbits.go.
 const StatFlipCoinMod StaticKind = 226
 
 // StatActivationLimit (an explicit ordinal clear of the iota tail): during
@@ -632,5 +632,5 @@ const StatFlipCoinMod StaticKind = 226
 // not been activated (S:Mode$ Activations | ValidSA$ Activated.Exhaust |
 // MinLimit$ -1; gorge rules/legal_loyalty.go additionalActivationLimit's
 // unbounded arm). The bit and the exhaust class are kernel facts
-// (dirac/turn_facts.go); kgen validates the static shape at lowering time.
+// (dirac/static_turnbits.go); kgen validates the static shape at lowering time.
 const StatActivationLimit StaticKind = 227

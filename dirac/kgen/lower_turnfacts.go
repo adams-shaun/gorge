@@ -10,7 +10,7 @@ import (
 // Figaro's Two-Headed Coin): ValidPlayer$ You, CheckSVar$
 // Count$YouFlipThisTurn, SVarCompare$ EQ0 and Result$ True. The kernel's
 // flip site reads the controller and the card, and the turn bit it keeps
-// replaces the CheckSVar (dirac/turn_facts.go flipForced). Any other shape
+// replaces the CheckSVar (dirac/value_turnfacts.go flipForced). Any other shape
 // refuses by name rather than force a flip the card does not grant.
 func (lc *lowerCtx) flipCoinModStatic(s cards.Static) error {
 	sp := newParams(s.Params)

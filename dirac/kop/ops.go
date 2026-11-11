@@ -373,5 +373,5 @@ func (o Op) Known() bool {
 // RollDieCoin marks Instr.C of an OpRollDie as a coin flip (gorge's
 // effects.FlipCoin, one rng draw where heads is 1), not a die roll: the
 // kernel records the flip on the turn facts and applies a FlipCoinMod static
-// (dirac/turn_facts.go). A die roll leaves C 0.
+// (dirac/static_turnbits.go). A die roll leaves C 0.
 const RollDieCoin int16 = 1

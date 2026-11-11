@@ -2036,7 +2036,7 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		// unbounded MinLimit$ -1 shape, Exhaust abilities on the
 		// controller's own turn while CheckSVar$ X (the turn's Exhaust
 		// activations) is below one. The kernel reads the turn bit and the
-		// active player directly (dirac/turn_facts.go exhaustOnceWaived);
+		// active player directly (dirac/value_turnfacts.go exhaustOnceWaived);
 		// the lowered condition keeps the same expression for any other
 		// reader of the static.
 		if v := strings.TrimSpace(sp.str("ValidSA")); v != "Activated.Exhaust" {
