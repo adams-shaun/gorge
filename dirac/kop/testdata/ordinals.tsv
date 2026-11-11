@@ -67,6 +67,7 @@ CastSpecYou	untyped int	1
 CfChosen	untyped int	8
 CfCloakCtrl	untyped int	16
 CfCloakRemembered	untyped int	32
+CfManifestRemembered	untyped int	64
 CfRemember	untyped int	4
 CfShuffle	untyped int	2
 CfTapped	untyped int	1

@@ -1269,6 +1269,9 @@ func (lc *lowerCtx) dig(ps *params) error {
 	if err != nil {
 		return err
 	}
+	if err := digNoLooking(ps); err != nil { // lower_digparams.go
+		return err
+	}
 	for _, k := range []string{"Optional", "RestRandomOrder", "ForceRevealToController", "Reveal", "RememberChanged"} {
 		if ps.is(k, "True") && !(k == "Reveal" && noReveal) {
 			flags = append(flags, k)

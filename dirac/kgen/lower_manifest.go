@@ -17,6 +17,9 @@ import (
 // from the top of their library. Defined$ object manifests, Choices$ and
 // RememberManifested$ are gorge's unimplemented shapes and refuse.
 func (lc *lowerCtx) manifest(ps *params) error {
+	if strings.TrimSpace(ps.str("Defined")) == "Remembered" {
+		return lc.manifestRemembered(ps)
+	}
 	for _, k := range []string{"Defined", "Choices", "RememberManifested"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("Manifest %s$", k)
@@ -43,6 +46,30 @@ func (lc *lowerCtx) manifest(ps *params) error {
 		return err
 	}
 	lc.emit(lInstr{Op: "Manifest", Obj: ref, A: n})
+	return nil
+}
+
+// manifestRemembered lowers Manifest Defined$ Remembered (gorge
+// effManifest's manifestObjects, CR 701.40a; Write into Being): each
+// remembered card manifests from where it sits under the resolving
+// controller. gorge ignores Amount$ for a defined set, so only the default 1
+// (or none) is read; DefinedPlayer$, Choices$ and RememberManifested$ beside
+// it refuse.
+func (lc *lowerCtx) manifestRemembered(ps *params) error {
+	for _, k := range []string{"Choices", "DefinedPlayer", "RememberManifested"} {
+		if _, ok := ps.get(k); ok {
+			return refuse("Manifest Defined$ Remembered with %s$", k)
+		}
+	}
+	if v, ok := ps.get("Amount"); ok {
+		switch strings.TrimSpace(v) {
+		case "", "1":
+		default:
+			return refuse("Manifest Defined$ Remembered with Amount$ %q", strings.TrimSpace(v))
+		}
+	}
+	lc.emit(lInstr{Op: "Manifest", Obj: lRef{Kind: rYou}, A: cst(1), C: kop.CfManifestRemembered,
+		Note: "manifest each remembered card under the resolving controller"})
 	return nil
 }
 

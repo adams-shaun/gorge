@@ -3475,6 +3475,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.B = kop.Const(i + 1)
 	case "Manifest":
 		ki.Op = kop.OpManifest
+		if in.C != 0 {
+			ki.B = kop.Const(in.C) // CfManifestRemembered
+		}
 	case "Cloak":
 		ki.Op = kop.OpCloak
 		ki.B = kop.Const(in.C)
