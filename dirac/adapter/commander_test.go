@@ -95,7 +95,7 @@ func checkServedCommander(t *testing.T, e *Engine, c game.Config) {
 		answerFirst(t, g)
 	}
 
-	// a third seat, partners, and a bad index are refused with the reason
+	// a third seat, three commanders, and a bad index are refused with the reason
 	c3 := c
 	c3.Decks = append(append([][]*cards.Card{}, c.Decks...), c.Decks[0])
 	c3.Names = append(append([]string{}, c.Names...), "p2")
@@ -103,9 +103,9 @@ func checkServedCommander(t *testing.T, e *Engine, c game.Config) {
 		t.Error("a 3-seat commander table was accepted")
 	}
 	cp := c
-	cp.Commanders = [][]int{{c.Commanders[0][0], 1}, c.Commanders[1]}
+	cp.Commanders = [][]int{{c.Commanders[0][0], 1, 2}, c.Commanders[1]}
 	if _, err := e.New(cp); err == nil {
-		t.Error("a partner pair was accepted")
+		t.Error("three commanders were accepted")
 	}
 	cb := c
 	cb.Commanders = [][]int{{len(c.Decks[0])}, c.Commanders[1]}

@@ -60,6 +60,7 @@ type coldLayout struct {
 	may                                                                             int // mayPlay records past maxMay; the first thing in the buffer (cast_maycold.go)
 	emb                                                                             int // embRec records for emblems past maxEmb, both players; right after the may records (static_emblemcold.go)
 	ctrP                                                                            int // bytes of the per-player creature counter-plus-one record, right after the emblem records (repl_turnrepl.go)
+	partner                                                                         int // cmdPartner records (0 or 1), right after the xblk records (zone_cmdpartner.go)
 	words                                                                           int
 }
 
@@ -112,10 +113,11 @@ func prepCold(g *genPrep, l *coldLayout) {
 // the words they take.
 func (l *coldLayout) place(c *coldArrays, b []uint64) int {
 	at := 0
-	_ = coldView[mayPlay](b, &at, l.may)  // first: mayCold reads it at the buffer start
-	_ = coldView[embRec](b, &at, l.emb)   // next: embCold finds it after the may records
-	_ = coldView[uint8](b, &at, l.ctrP)   // then plusCreCold, after the emblem records
-	_ = coldView[xblkRec](b, &at, l.xblk) // then xblkRecs, after the counter record
+	_ = coldView[mayPlay](b, &at, l.may)        // first: mayCold reads it at the buffer start
+	_ = coldView[embRec](b, &at, l.emb)         // next: embCold finds it after the may records
+	_ = coldView[uint8](b, &at, l.ctrP)         // then plusCreCold, after the emblem records
+	_ = coldView[xblkRec](b, &at, l.xblk)       // then xblkRecs, after the counter record
+	_ = coldView[cmdPartner](b, &at, l.partner) // then partnerCold, after the xblk records
 	c.ms = coldView[slotMask](b, &at, l.ms)
 	c.mo = coldView[objBits](b, &at, l.mo)
 	c.exw = coldView[exwRec](b, &at, l.exw)

@@ -28,6 +28,8 @@ type Repro struct {
 	// written without them is a Constructed game.
 	Commander  bool  `json:"commander,omitempty"`
 	Commanders []int `json:"commanders,omitempty"`
+	// Partners is Matchup.Partners, absent when neither seat has one.
+	Partners []int `json:"partners,omitempty"`
 	// Surface is the option surface both sides offered ("autopay" or "full"):
 	// the same actions on the other surface are another game. Kernel is the side
 	// the game was played against, as kfuzz names it ("synth std-trk", "set
@@ -109,7 +111,7 @@ func format1Actions(as []Canon) []Canon {
 func NewRepro(m *Matchup, seed uint64, rc RunConfig, res *Result) *Repro {
 	r := &Repro{Format: reproFormat, Decks: m.Names, Seed: seed, Mulligans: m.Mulligans,
 		PassElision: rc.PassElision, MaxTurns: rc.MaxTurns, Surface: SurfaceName(rc.Config), Divergence: res.Div}
-	r.Commander, r.Commanders = m.commanderFields()
+	r.Commander, r.Commanders, r.Partners = m.commanderFields()
 	for s := 0; s < 2; s++ {
 		for _, c := range m.Decks[s] {
 			r.Cards[s] = append(r.Cards[s], cardName(c))
@@ -167,24 +169,32 @@ func (r *Repro) Matchup(reg *cards.Registry) (*Matchup, error) {
 	if err != nil {
 		return nil, err
 	}
-	m.setCommander(r.Commander, r.Commanders)
+	m.setCommander(r.Commander, r.Commanders, r.Partners)
 	return m, nil
 }
 
-// commanderFields is m's commander as a repro or game record writes it
-// (nil Commanders for a Constructed matchup).
-func (m *Matchup) commanderFields() (bool, []int) {
+// commanderFields is m's commanders as a repro or game record writes them
+// (nil Commanders for a Constructed matchup, nil partners when neither seat
+// has one, so a one-commander record reads as it did).
+func (m *Matchup) commanderFields() (bool, []int, []int) {
 	if !m.Commander {
-		return false, nil
+		return false, nil, nil
 	}
-	return true, []int{m.Commanders[0], m.Commanders[1]}
+	var partners []int
+	if m.Partners[0] >= 0 || m.Partners[1] >= 0 {
+		partners = []int{m.Partners[0], m.Partners[1]}
+	}
+	return true, []int{m.Commanders[0], m.Commanders[1]}, partners
 }
 
 // setCommander restores what commanderFields recorded.
-func (m *Matchup) setCommander(on bool, ix []int) {
-	m.Commander, m.Commanders = on, [2]int{-1, -1}
+func (m *Matchup) setCommander(on bool, ix, partners []int) {
+	m.Commander, m.Commanders, m.Partners = on, [2]int{-1, -1}, [2]int{-1, -1}
 	for s := 0; s < 2 && s < len(ix); s++ {
 		m.Commanders[s] = ix[s]
+	}
+	for s := 0; s < 2 && s < len(partners); s++ {
+		m.Partners[s] = partners[s]
 	}
 }
 

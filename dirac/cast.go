@@ -1689,8 +1689,8 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 	if s.cfg&cfgCommander != 0 && s.bld().origin == kop.ZoneCommand {
 		// CR 903.8 counts a cast as it is committed to the stack; a
 		// reversed cast never reaches here
-		if pl := &s.pl[e.ctrl]; pl.cmd == e.obj && pl.cmdCast < 255 {
-			pl.cmdCast++
+		if j := s.cmdSlot(e.ctrl, e.obj); j >= 0 && *s.cmdCastAt(e.ctrl, j) < 255 {
+			*s.cmdCastAt(e.ctrl, j)++
 		}
 	}
 	pc := &k.cards[e.card]
