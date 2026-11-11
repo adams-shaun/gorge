@@ -3,12 +3,16 @@ package kop
 // C of an ExtAddPhase: the extra phase's kind (ExtraPhase$ Combat,
 // Upkeep, End of Turn) in bits 0-1, its splice point (AfterPhase$, the LAST
 // step of the named phase, a Step) in bits 4-7. The omitted AfterPhase$ (the
-// step the grant resolves in) is not lowered: its carrier, Full Throttle,
-// stays refused for its Effect.
+// step the grant resolves in) lowers only as AddPhaseCombatMain; its other
+// carrier, Full Throttle, stays refused for its Effect.
 const (
 	AddPhaseCombat = 0 // BeginCombat..EndCombat
 	AddPhaseUpkeep = 1 // Upkeep alone
 	AddPhaseEnd    = 2 // End alone
+	// AddPhaseCombatMain: an extra combat followed by an additional main phase
+	// (FollowedBy$ Main2, Relentless Assault). The splice point is the main
+	// phase the grant resolves in; the nibble is ignored.
+	AddPhaseCombatMain = 3
 )
 
 // AtEOT$ on a ChangeZoneAll sweep onto the battlefield.

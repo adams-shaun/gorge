@@ -1857,6 +1857,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StRaiseOpp
 			case "CasterActive":
 				st.StFlags |= kop.StCasterActive
+			case "NamedCard":
+				st.B |= kop.CantCastNamed
 			default:
 				return ka, nil, fmt.Errorf("cant be cast flag %q", fl)
 			}
@@ -2727,6 +2729,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, ok := fl["NoRegen"]; ok {
 			c |= kop.DmgNoRegen
+		}
+		if _, ok := fl["NoRegenTarget"]; ok {
+			c |= kop.DmgNoRegenTarget
 		}
 		if strings.HasPrefix(in.Note, "damage map") || cb.inDamageMap {
 			c |= kop.DmgMapped

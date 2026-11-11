@@ -6,6 +6,7 @@ AbSpell	AbilityKind	0
 AbStatic	AbilityKind	4
 AbTriggered	AbilityKind	3
 AddPhaseCombat	untyped int	0
+AddPhaseCombatMain	untyped int	3
 AddPhaseEnd	untyped int	2
 AddPhaseUpkeep	untyped int	1
 AfCharmTrigger	AbilityFlags	64
@@ -48,6 +49,7 @@ BncFromLibrary	untyped int	4096
 BncShuffleOwed	untyped int	16384
 C	untyped int	5
 CantActNamed	untyped int	4
+CantCastNamed	untyped int	1
 CantLoseLife	untyped int	1
 CantTgtActivated	untyped int	2
 CantTgtSpell	untyped int	1
@@ -282,6 +284,7 @@ DmgLT	DmgCmp	6
 DmgMapped	untyped int	4
 DmgNE	DmgCmp	4
 DmgNoRegen	untyped int	32
+DmgNoRegenTarget	untyped int	128
 DmgRemember	untyped int	8
 DmgTrackExcess	untyped int	1
 DpGroup	untyped int	1

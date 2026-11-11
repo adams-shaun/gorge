@@ -31,6 +31,7 @@ const (
 	akName       uint8 = 11 // an as-enters nonland card name (OpExt ExtChooseName; repl_choosename.go)
 	akNameAny    uint8 = 12 // an as-enters name of any card, lands included (ExtChooseName B = 1)
 	akNameLook   uint8 = 13 // akNameAny after a look_ack at the opponent's hand (ExtChooseName B = 2; Sorcerous Spyglass)
+	akNameHand   uint8 = 15 // a nonland name among the opponents' revealed hands (ExtChooseName B = 3; Alhammarret, High Arbiter)
 	// akEtbOrder is the CR 616.1 order between a cast spell's effect-carried
 	// enters-with counters and the entrant's own prepared enter body, asked
 	// with the spell still on the stack (s.g.pre only; repl_etborder.go)
@@ -304,6 +305,9 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					s.execGen(k, in)
 					continue
 				}
+			}
+			if kind == akNameHand && s.nameHandNone(k, s.perms[sl].ctrl) {
+				continue // nothing nonland was revealed: gorge poses no ask
 			}
 			if s.g.pre.state == 2 && s.g.pre.obj == s.perms[sl].obj {
 				s.perms[sl].chosen = s.g.pre.val // asked on the stack

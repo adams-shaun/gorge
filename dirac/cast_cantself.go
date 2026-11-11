@@ -4,6 +4,13 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+// DebugCantCastNamedCount turns on CantCastNamedHeld, the count of casts a
+// named CantBeCast static (Alhammarret, High Arbiter) withheld; oracle tests only.
+var (
+	DebugCantCastNamedCount bool
+	CantCastNamedHeld       int
+)
+
 // castForbidden reports whether a StatCantBeCast forbids player p casting
 // card c (object o) -- gorge castRestricted: an active static (a
 // battlefield permanent's, or an emblem's) whose caster relation (Caster$:
@@ -26,6 +33,12 @@ func (s *State) castForbidden(k *prep, p uint8, c CardID, o Obj) bool {
 		if st.StFlags&kop.StRaiseYou != 0 && stc.ctrl != p || st.StFlags&kop.StRaiseOpp != 0 && stc.ctrl == p {
 			return true
 		}
+		if st.B&kop.CantCastNamed != 0 {
+			// Alhammarret, High Arbiter: only the card the source named as it entered
+			if n, ok := s.chosenNameOf(stc.sl); !ok || n != c {
+				return true
+			}
+		}
 		ctx := s.ctxStatic(stc)
 		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) {
 			return true
@@ -34,6 +47,9 @@ func (s *State) castForbidden(k *prep, p uint8, c CardID, o Obj) bool {
 			return true // static_castlimit.go: the cap does not bind yet
 		}
 		if s.matchSpellCardOffer(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl) {
+			if DebugCantCastNamedCount && st.B&kop.CantCastNamed != 0 {
+				CantCastNamedHeld++
+			}
 			hit = true
 			return false
 		}
