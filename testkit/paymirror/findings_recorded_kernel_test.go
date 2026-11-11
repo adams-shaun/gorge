@@ -9,7 +9,7 @@ import "testing"
 // cast is a mismatch, the live-vs-clone control is equivalent, and each named
 // cast gets its root-caused verdict:
 //
-//   - 10860 seq 4668: Worldly Tutor (the Command Tower production fix),
+//   - 10860 seq 4389: Worldly Tutor (the Command Tower production fix),
 //     equivalent. The seq moves whenever a rule change shifts this game's log or
 //     the bots' trajectory; a move keeps the card and the verdict;
 //   - 11056: the Artisan finding is no longer reached; a clean,
@@ -22,7 +22,7 @@ import "testing"
 //
 // recordedKernelWant holds those pins.
 var recordedKernelWant = map[uint64]map[uint64]string{ // seed -> seq -> verdict key ("" = equivalent)
-	10860: {4668: ""},
+	10860: {4389: ""},
 	11056: {},
 	10056: {},
 	8175:  {},
