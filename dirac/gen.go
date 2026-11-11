@@ -205,7 +205,6 @@ type genPrep struct {
 	anyUnblocked   bool           // some trigger fires for unblocked attackers (kop.Tf2Unblocked; act_discover.go)
 	anyOrCopy      bool           // some SpellCast trigger fires for spell copies too (kop.Tf2OrCopy; act_discover.go)
 	anySkipUntap   bool           // some program skips a next untap step (OpSkipUntap): the untap step runs untapStepGen (act_discover.go)
-	anyEcho        bool           // some trigger is gated by CondEchoOwed (trig_echo.go)
 	anyDelayUp     bool           // some program registers an upkeep or end-of-combat delayed program (kop.DelayUpkeep, kop.DelayEndCombat; trig_delayedtiming.go)
 	anyDelayDies   bool           // some program registers a delayed dies program (kop.DelayDiesThisTurn; trig_delayeddies.go)
 	anyDelaySpell  bool           // some program registers a delayed SpellCast program (kop.DelaySpellCast; trig_delayedspell.go)
@@ -642,7 +641,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			}
 		}
 	}
-	g.anyEcho = tableHasEcho(t)
 	g.anyDelayUp = tableDelaysUpkeep(t) // true with anyDelaySpell: fireDelayedGen must keep the SpellCast records
 	g.anyDelaySpell = tableDelaysSpell(t)
 	g.anyDelayDies = tableDelaysDies(t)
@@ -1721,11 +1719,6 @@ type genState struct {
 	untapSl   Slot
 	untapAns  uint8
 	untapOn   bool
-
-	// echoOwed: the active player's permanents that came under their control
-	// since the beginning of their previous turn, captured as their untap step
-	// begins and read as their upkeep's echo gate (trig_echo.go)
-	echoOwed slotMask
 
 	lki [maxLKI]lkiRec // the shared LKI pool (zone_lki.go)
 	// lkiPad: the 192-bit SubMask grew each LKI record by 8 bytes (31 x 8 = 248); these 8 carry
