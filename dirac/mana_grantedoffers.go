@@ -237,6 +237,11 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 			}
 		}
 	}
+	// CR 605.1a, 601.2g-h: the plain payment taps the printed ability of a dual
+	// source (manaPCGen), so the plain X ceiling must not credit its granted one.
+	if a.xPlain && own && ng > 0 {
+		ng = 0
+	}
 	if ng == 0 && k.painMana && pc.painCol != 0 {
 		s.addPainAvail(k, sl, pc, s.perms[sl].ctrl, a, nil, false)
 		return

@@ -102,6 +102,8 @@ type avail struct {
 	// a pointer, so an avail on the stack keeps no reference to a local.
 	xd   payDesc
 	xdOn bool
+	// xPlain: set by availXWindow on the plain configuration: a source with its own ability counts that ability only, the one the planner taps (a grant-only source still counts, plan's phase 2 taps it)
+	xPlain bool
 	// delve: the graveyard credit a granted-delve cast prices its twobrid
 	// faces against (gorge FeasibleAny's delve argument): the payer's
 	// graveyard size while the cast carries the granted keyword, else 0. Set
