@@ -947,6 +947,16 @@ func (lc *lowerCtx) staticEffectOverride(name string) (*lOverride, error) {
 		}
 		o.AddKw = ks
 	}
+	if c, ok := sp.get("AddColor"); ok {
+		// "is a black Zombie in addition to its other colors" (Rise from
+		// the Grave): gorge parseStaticEffectGrant AddColor$ adds in layer 5
+		// (CR 613.1e), the record's AddColors; an empty set refuses
+		cols, ok := colorWordSet(c)
+		if !ok || cols == "" {
+			return nil, refuse("StaticEffect AddColor$ %q", c)
+		}
+		o.AddColors = cols
+	}
 	if sp.is("RemoveCardTypes", "True") {
 		// "it's an <type> (it's no longer a creature)": the added types
 		// replace the card types (the override static's RemoveCardTypes$
