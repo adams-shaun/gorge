@@ -542,3 +542,9 @@ const ExTargetPlayers ExprKind = 223
 // Card.IsRemembered+!RememberedPlayerOwn$CardManaCost. No parameters.
 // Explicit ordinal, the iota tail stays untouched.
 const ExNotOwnLibMV ExprKind = 226
+
+// ExDmgAmountReceived: the positive damage the source object received this
+// turn, saturating at 255 (gorge Object.DamageReceivedThisTurn,
+// Count$TotalDamageReceivedThisTurn). A source with no record reads 0.
+// Explicit ordinal, the iota tail stays untouched. Kernel value_dmgamount.go.
+const ExDmgAmountReceived ExprKind = 219

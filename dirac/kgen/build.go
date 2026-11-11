@@ -802,6 +802,7 @@ func (cb *cardBuilder) record() error {
 	d.SelfFlash = c.SelfFlash
 	d.Gift = c.Gift
 	d.SpentSelf = c.SpentSelf
+	d.DmgAmt = c.DmgAmt
 	if c.CastBF != nil {
 		// Count$LastStateBattlefieldWithFallback: the
 		// filter frozen at beginCast into the spell entry's trigMV
@@ -1975,6 +1976,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vOppExtreme:         kop.ExOppExtreme,
 	vThisTurnActExhaust: kop.ExThisTurnActExhaust,
 	vActivations:        kop.ExActivations,
+	vDmgAmount:          kop.ExDmgAmountReceived,
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {

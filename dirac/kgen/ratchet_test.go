@@ -124,8 +124,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (the optional copy-instead CreateToken replacement of an Equipment or Aura gated on no token of yours having entered this turn, kop.ReplCopyFirstToken: Mirrormind Crown, Moonlit Meditation; ECL 242 -> 243, EOE 248 -> 249, ALL 22149 -> 22151).
 	// +1 (ConditionActivationLimit$ lowers to kop.ExActivations on a card whose one non-mana activated ability it gates: Dragon Whelp; DMU 194 -> 195, ALL 22176 -> 22177).
 	// +1 (Fiend Hunter's Defined$ DirectRemembered leave return lowers as the remembered-persist pair; ALL 22176 -> 22177).
+	// +1 (the merge with land: Count$TotalDamageReceivedThisTurn lowered: Tangled Colony beside land's 22180; ALL 22180 -> 22181, WOE 261 -> 262).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {22181, 34442},
+	"ALL": {22185, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {216, 280},
@@ -143,7 +144,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"MOM": {199, 296},
 	"MSH": {246, 276},
 	"NEO": {201, 287},
-	"ONE": {197, 271},
+	"ONE": {198, 271},
 	"OTJ": {251, 276},
 	"SNC": {187, 266},
 	"SOS": {256, 270},
@@ -153,7 +154,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TMT": {183, 194},
 	"TRC": {298, 337},
 	"TRK": {311, 311},
-	"WOE": {261, 281},
+	"WOE": {262, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory
