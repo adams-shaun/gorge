@@ -20,6 +20,11 @@ type CompiledCost struct {
 	BareTap bool
 	// BeyondTap caches ManaCostBeyondTap(Cost) (the marker test).
 	BeyondTap bool
+	// XColor is the ability's XColor$ (Forge's SpellAbility.getXColor), parsed
+	// once with its Cost$: the one-colour mask the {X} must be paid with, zero
+	// when absent or multi-colour (unmodelled, see Cost.XColors). Only an
+	// ability's compiled cost (abilityCost) sets it.
+	XColor uint8
 	// text memoizes FormatCost(Cost) (the mana activation's cost marker):
 	// the Cost is frozen, so its text never changes; set once, read by any
 	// engine.
@@ -154,15 +159,30 @@ func AbilityCompiledCost(e Engine, sa *cards.SA) *CompiledCost {
 	if v, ok := slot.Load(raw); ok {
 		return v.(*CompiledCost)
 	}
-	c := CompiledCostOf(e, raw)
-	// XColor$ rides the ability beside its Cost$ text (Consume Spirit,
-	// Crimson Hellkite). The configured entry is shared, so attach it to a
-	// fresh compiled copy; only a one-colour mask is modelled (Cost.XColors).
-	if m := xColorMask(sa.ParamStr(cards.PKXColor)); m != 0 && m&(m-1) == 0 {
-		cp := CompiledCostFromCost(c.Cost)
-		cp.Cost.XColors = m
-		c = cp
+	return storeAbilityCost(slot, raw, abilityCost(sa, CompiledCostOf(e, raw)))
+}
+
+// abilityCost is c with sa's XColor$ attached: the ONE place an ability's
+// compiled cost is finished, so AbilityCompiledCost and AbilityCostOf store
+// the same entry in the shared, first-writer-wins cost slot whichever runs
+// first. XColor$ rides the ability beside its Cost$ text (Consume Spirit,
+// Crypt Rats, Crimson Hellkite); the configured entry is shared, so a mask
+// goes on a fresh compiled copy. Cost.XColors is set only when the cost has
+// an {X} for it to colour (WithX folds nothing otherwise).
+func abilityCost(sa *cards.SA, c *CompiledCost) *CompiledCost {
+	m := xColorMask(sa.ParamStr(cards.PKXColor))
+	if m == 0 || m&(m-1) != 0 {
+		return c
 	}
+	cp := CompiledCostFromCost(c.Cost)
+	if cp.Cost.X > 0 {
+		cp.Cost.XColors = m
+	}
+	cp.XColor = m
+	return cp
+}
+
+func storeAbilityCost(slot *cards.Slot, raw string, c *CompiledCost) *CompiledCost {
 	if slot == nil {
 		return c
 	}
@@ -179,7 +199,12 @@ func FaceCostOf(f *cards.Face) *CompiledCost {
 // AbilityCostOf is AbilityCompiledCost for a caller without an engine, on
 // FaceCostOf's terms.
 func AbilityCostOf(sa *cards.SA) *CompiledCost {
-	return slotCost(sa.CostSlot(), sa.ParamStr(cards.PKCost))
+	raw := sa.ParamStr(cards.PKCost)
+	slot := sa.CostSlot()
+	if v, ok := slot.Load(raw); ok {
+		return v.(*CompiledCost)
+	}
+	return storeAbilityCost(slot, raw, abilityCost(sa, CompiledCostFor(nil, raw)))
 }
 
 func slotCost(slot *cards.Slot, raw string) *CompiledCost {

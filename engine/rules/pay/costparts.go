@@ -294,12 +294,12 @@ func WithSpellAbilityExtras(f *cards.Face, cost costvocab.Cost) costvocab.Cost {
 	if sa == nil {
 		return cost
 	}
-	// XColor$ is the colour(s) the {X} must be paid with (Forge's
+	// XColor$ is the colour the {X} must be paid with (Forge's
 	// SpellAbility.getXColor; Consume Spirit's "Spend only black mana on
-	// X"). It rides the ability, not the cost text. Only a one-colour mask
-	// is modelled by cost.Cost.WithX; a multi-colour one is left zero, the
-	// pre-existing behaviour (see Cost.XColors).
-	if m := xColorMask(sa.ParamStr(cards.PKXColor)); m&(m-1) == 0 {
+	// X"). It rides the ability, parsed once into its compiled cost
+	// (CompiledCost.XColor; zero when absent or multi-colour, unmodelled).
+	// A zero leaves the incoming cost's mask alone (split.go nests calls).
+	if m := AbilityCostOf(sa).XColor; m != 0 {
 		cost.XColors = m
 	}
 	sc := sa.ParamStr(cards.PKCost)
