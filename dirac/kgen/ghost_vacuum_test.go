@@ -8,7 +8,8 @@ import (
 // TestGhostVacuumSweep pins a ChangeZoneAll sweep
 // onto the battlefield reads WithCountersType$ and StaticEffect$ as per
 // entrant riders (kop.MvEntryRiders). Ghost Vacuum's neighbour Grimoire of
-// the Dead stays refused for its own reason; Shilgengar's ChangeZoneAll arm
+// the Dead's AddColor$ rider lowers now (its STUDY counter refuses at emit,
+// past this stage); Shilgengar's ChangeZoneAll arm
 // lowers, and its Angel sacrifice gate lowers with it.
 func TestGhostVacuumSweep(t *testing.T) {
 	cs := lowerNamed(t, []string{"Ghost Vacuum", "Grimoire of the Dead", "Shilgengar, Sire of Famine"})
@@ -35,8 +36,8 @@ func TestGhostVacuumSweep(t *testing.T) {
 			}
 		case "Grimoire of the Dead":
 			seen++
-			if !strings.Contains(got, "AddColor") {
-				t.Errorf("Grimoire of the Dead: want a refusal naming AddColor, got %q", got)
+			if strings.Contains(got, "AddColor") {
+				t.Errorf("Grimoire of the Dead: AddColor$ refused: %q", got)
 			}
 		case "Shilgengar, Sire of Famine":
 			seen++

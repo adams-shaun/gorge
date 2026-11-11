@@ -188,6 +188,7 @@ type genPrep struct {
 	anySpentGate   bool           // some SpellCast trigger carries a Spell.ManaSpent gate in Trigger.N (trig_spentvalid.go)
 	anySpent       bool           // some expression reads the mana spent to cast a spell (ExCastManaSpent; copy_asenters.go)
 	anyTgtSpent    bool           // some expression reads the resolving spell's target spell's spend (ExTgtSpent; resolve.go snapTgtSpent)
+	anyDmgAmt      bool           // some card reads the damage its object received this turn (CardDef.DmgAmt; value_dmgamount.go)
 	anyBecomeCopy  bool           // some enters program is OpBecomeCopy (an as-enters clone): a permanent it made a copy is projected as its printed card, and a token copy of a clone is asked its election (ctr_entryperkind.go)
 	anyEntryMerge  bool           // the table has an AddCounter replacement and more than one source of entry counters: enterGen merges them into one put per kind (ctr_entryperkind.go)
 	anyEffEtbCtr   bool           // some instruction is ExtEffEtbCtr: enterGen puts a cast spell's pending extra counters on (ctr_effectentry.go)
@@ -609,6 +610,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if t.Exprs[i].Kind == kop.ExTgtSpent {
 			g.anyTgtSpent, g.anySpent, g.anyHist = true, true, true // the target spell's spend is recorded at its payment
 		}
+		// value_dmgamount.go: every damage site records the amount for a reader card
+		g.anyDmgAmt = g.anyDmgAmt || t.Exprs[i].Kind == kop.ExDmgAmountReceived
 	}
 	if tableNthFiltered(t) {
 		g.castRingOn, g.anyHist = true, true
@@ -1992,7 +1995,12 @@ type genState struct {
 	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bits
 	// 4-7 are free. Cleared at the turn change. Taken from rsv.
 	turnF uint8
-	rsv   [rsvN]uint8
+	// dmgAmt: the positive damage each reader card's object (CardDef.DmgAmt)
+	// received this turn, o = Obj+1 (0 empty) and n saturating at 255
+	// (value_dmgamount.go). Written only under genPrep.anyDmgAmt; cleared at the
+	// turn change. Taken from rsv.
+	dmgAmt [dmgAmtN]struct{ o, n uint8 }
+	rsv    [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
 	embX [MaxSeats][maxEmb][embRemSlots - 2]uint8
 	// atkDef is the defending seat + 1 of the attack event whose triggers are
@@ -2004,13 +2012,15 @@ type genState struct {
 }
 
 const (
-	maxImp     = 16
-	turnFBytes = 1 // genState.turnF, taken from rsv
+	maxImp      = 16
+	turnFBytes  = 1 // genState.turnF, taken from rsv
+	dmgAmtN     = 4 // genState.dmgAmt: reader-card records (value_dmgamount.go)
+	dmgAmtBytes = dmgAmtN * 2
 	// rsvN pads the reserved block to 80 bytes (genState's tail padding
 	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
 	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
 	// keeps its phase.
-	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2)-1-turnFBytes)
+	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2)-1-turnFBytes-dmgAmtBytes)
 )
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).

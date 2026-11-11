@@ -1,0 +1,8 @@
+# the DivideEvenly pool: X damage divided evenly, rounded down, among any number of targets, and
+# a spell costing {1} more for each target beyond the first (dirac/oracle/divideevenly_test.go)
+Fireball
+Raging Goblin
+Savannah Lions
+Shock
+Mountain
+Plains

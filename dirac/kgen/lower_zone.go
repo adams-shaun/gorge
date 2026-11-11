@@ -947,6 +947,16 @@ func (lc *lowerCtx) staticEffectOverride(name string) (*lOverride, error) {
 		}
 		o.AddKw = ks
 	}
+	if c, ok := sp.get("AddColor"); ok {
+		// "is a black Zombie in addition to its other colors" (Rise from
+		// the Grave): gorge parseStaticEffectGrant AddColor$ adds in layer 5
+		// (CR 613.1e), the record's AddColors; an empty set refuses
+		cols, ok := colorWordSet(c)
+		if !ok || cols == "" {
+			return nil, refuse("StaticEffect AddColor$ %q", c)
+		}
+		o.AddColors = cols
+	}
 	if sp.is("RemoveCardTypes", "True") {
 		// "it's an <type> (it's no longer a creature)": the added types
 		// replace the card types (the override static's RemoveCardTypes$
@@ -2702,6 +2712,11 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 		case "Permanent", "UntilYourNextTurn":
 		case "UntilHostLeavesPlay":
 			o.WhileHost, d = true, "WhileHost" // lower_tokenattacking.go
+		case "AsLongAsInPlay":
+			// "for as long as CARDNAME remains on the battlefield" (Awakener
+			// Druid, Skilled Animator): the ANIMATING source is the host, the
+			// same lifetime UntilHostLeavesPlay names (gorge animateHostScoped).
+			o.WhileHost, d = true, "WhileHost"
 		case "UntilUntaps":
 			// "for as long as CARDNAME remains tapped" (Hedge Whisperer):
 			// host-bound, and also ended by the host's untap (gorge
@@ -2813,10 +2828,12 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 				return nil, "", false, refuse("Animate Toughness$ %q: %v", tS, err)
 			}
 		}
-		if o.WhileHost && !(o.WhileTapped && pv.isConst() && tv.isConst()) {
-			// the applied record keeps the host in its P/T fields: only a
-			// constant P/T, read from the table, fits (UntilUntaps alone)
-			return nil, "", false, refuse("Animate Duration UntilHostLeavesPlay with a P/T set")
+		if o.WhileHost && !(pv.isConst() && tv.isConst()) {
+			// the applied record keeps the host's object and version in its P/T
+			// fields, so a host-bound P/T must come from the table (SetP/SetT);
+			// a value read at resolution has no room (gorge registers the P/T
+			// half with the host as DurationSource)
+			return nil, "", false, refuse("Animate host-bound duration with a non-constant P/T")
 		}
 		if o.LivePT {
 			return nil, "", false, refuse("Animate Power$/Toughness$ beside a granted static's P/T")

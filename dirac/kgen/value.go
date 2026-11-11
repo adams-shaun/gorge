@@ -947,6 +947,11 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lc.castBattlefieldValue(spec)
 	}
 	switch rest {
+	case "TotalDamageReceivedThisTurn":
+		// the positive damage the source received this turn (gorge
+		// Object.DamageReceivedThisTurn; CardDef.DmgAmt)
+		lc.out.DmgAmt = true
+		return lValue{Kind: vDmgAmount}, nil
 	case "FinishedEndOfTurnsThisTurn":
 		return finishedEndStepsValue(), nil // lower_addphase.go
 	case "OffspringPaid":

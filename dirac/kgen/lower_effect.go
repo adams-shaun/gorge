@@ -605,6 +605,9 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 	if c, ok := ps.get("Condition"); ok {
 		return lc.bareCondition(ps, c)
 	}
+	if c, ok := ps.get("ConditionActivationLimit"); ok {
+		return lc.activationLimitCondition(ps, c) // lower_activationcount.go
+	}
 	if c, ok := ps.get("ConditionPlayerTurn"); ok {
 		return lc.playerTurnCondition(ps, c)
 	}
@@ -1238,6 +1241,16 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		}
 		in.CS, in.A, in.B = "SubCounter", cst(c.SubCtr), cst(ck)
 		c.SubCtr = 0
+		n++
+	}
+	if c.TapXVar {
+		// tapXType<X/Spec> as a printed trigger's own whole cost (lower_tapxvar.go)
+		if !lc.trigOwnCost || n != 0 || c.TapF == nil {
+			return in, refuse("resolution tapXType<X> cost shape")
+		}
+		in.CS, in.A, in.F = "TapXVar", cst(0), c.TapF
+		lc.trigXPaid = true
+		c.TapXVar = false
 		n++
 	}
 	if c.TapN > 0 {
@@ -2418,6 +2431,11 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 			return refuse("divided over a value total that is not TargetMax$")
 		}
 		in.Op = "DealDamageDivided"
+	}
+	if de, ok := ps.get("DivideEvenly"); ok {
+		if err := lc.divideEvenly(ps, de, &in); err != nil { // lower_divideevenly.go
+			return err
+		}
 	}
 	if ps.is("DamageMap", "True") {
 		in.Note = "damage map: dealt together with the following DealDamage nodes"

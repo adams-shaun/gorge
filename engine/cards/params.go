@@ -351,6 +351,7 @@ const (
 	PKDefinedPiles
 	PKDiscardValid
 	PKDiscardValidDesc
+	PKDivideEvenly
 	PKDontPlaneswalkAway
 	PKDungeon
 	PKEachExistingCounter
@@ -1224,6 +1225,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKDefinedPiles:                     "DefinedPiles",
 	PKDiscardValid:                     "DiscardValid",
 	PKDiscardValidDesc:                 "DiscardValidDesc",
+	PKDivideEvenly:                     "DivideEvenly",
 	PKDontPlaneswalkAway:               "DontPlaneswalkAway",
 	PKDungeon:                          "Dungeon",
 	PKEachExistingCounter:              "EachExistingCounter",
