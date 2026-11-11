@@ -1,0 +1,13 @@
+# A land whose own "whenever CARDNAME becomes tapped" line fires off its own
+# mana ability: City of Brass's "it deals 1 damage to you" (CR 603.2, 605.1b).
+# gorge's planner prices the source as last resort at its damage. Decks play it
+# in dirac/oracle/city_of_brass_test.go.
+City of Brass
+Serra Angel
+Air Elemental
+Grizzly Bears
+Llanowar Elves
+Hill Giant
+Plains
+Mountain
+Forest

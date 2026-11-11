@@ -402,6 +402,9 @@ func prepare(t *kop.Table) *prep {
 		}
 	}
 	for i := range t.Cards {
+		if prepSelfTapsPain(&t.Cards[i], &p.cards[i]) {
+			p.painMana = true
+		}
 		p.phyMana = p.phyMana || t.Cards[i].Cost.Phyrexian()
 		for j := range t.Cards[i].Abilities {
 			p.phyMana = p.phyMana || t.Cards[i].Abilities[j].Cost.Mana.Phyrexian() // an activation's {W/P}

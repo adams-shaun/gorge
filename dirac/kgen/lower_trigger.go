@@ -417,7 +417,22 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		for _, a := range lc.face.Abilities {
 			if a.API == "Mana" || a.API == "ManaReflected" {
-				return refuse("Taps trigger on a card with a mana ability")
+				// The card's own {T} for mana fires its own Taps line (CR 603.2,
+				// 605.1b). gorge's planner prices the source only for the vetted
+				// "deals N damage to you" body (City of Brass, last resort at N;
+				// pay.PaymentPlanSelfDamageTrigger): any other body defers the
+				// source in gorge's census, a tier the kernel does not mirror.
+				n, ok := selfTapsPain(t)
+				if ok {
+					for _, m := range lc.face.Abilities {
+						ok = ok && (m.API != "Mana" && m.API != "ManaReflected" || selfPainPlainMana(m))
+					}
+				}
+				if !ok {
+					return refuse("Taps trigger on a card with a mana ability whose body is not a literal \"deals N damage to you\" or a plain {T} mana ability")
+				}
+				tr.TapPlan, tr.TapPainN = uint8(kop.TapPlanPain), n
+				break
 			}
 		}
 	case "Blocks":
