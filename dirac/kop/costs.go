@@ -205,6 +205,12 @@ type Cost struct {
 	// Only a cost that announces X by a mana {X} or an announced sacrifice
 	// (CostSac with N 0) carries it.
 	XMin uint8
+	// XColor: 1 + the colour (W..G) the cost's mana {X} must be paid in,
+	// an activated ability's XColor$ ("Spend only black mana on X"; gorge
+	// pay.AbilityXColor, Cost.XColor). 0 means any mana. A table byte, not a
+	// CostFlags bit (the words are full); only an activated ability's own
+	// cost of one {X} beside nothing but mana and {T} carries it.
+	XColor uint8
 	// ExileBf: the CostSac part (N permanents the payer controls matching
 	// Filter) is exiled, not sacrificed (Exile<N/Spec> from the battlefield,
 	// CR 118.3, 602.2b, 406.2; gorge cost.parse's exileBattlefieldCost part,

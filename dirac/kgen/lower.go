@@ -2614,6 +2614,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if err := xminParam(&cost, ps, ab.Kind == akActivated); err != nil {
 			return err
 		}
+		if err := xcolorParam(&cost, ps, ab.Kind == akActivated); err != nil {
+			return err // lower_xcolor.go
+		}
 		if err := discardHandCost(&cost); err != nil {
 			return err
 		}

@@ -919,6 +919,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.XMin > 0 {
 		out.XMin = uint8(c.XMin) // the announced X's floor (kernel cost_sacx.go)
 	}
+	out.XColor = uint8(c.XColor) // the {X}'s one colour (kernel cost_xcolor.go)
 	if c.Sac != nil {
 		set(kop.CostSac, c.SacN) // SacN 0 (SacX): the announced X (kernel cost_sacx.go)
 		// You can only sacrifice what you control: say so in the filter, as

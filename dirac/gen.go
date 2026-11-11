@@ -309,6 +309,7 @@ type genPrep struct {
 	anyLifeX       bool           // some spell or ability costs an announced PayLife<X> (Cost.N 0; cost_paylifex.go)
 	anySacX        bool           // some spell or ability costs an announced Sac<X/Spec> (CostSac with Cost.N 0; cost_sacx.go)
 	anyXMin        bool           // some spell or ability floors its announced X (Cost.XMin; cost_sacx.go)
+	anyXColor      bool           // some ability pays its {X} in one colour (Cost.XColor; cost_xcolor.go)
 	anyCopyCast    bool           // some OpCastFree casts a copy (C bit 6; cast_copycast.go)
 	anyExileGrant  bool           // some program holds an ExtGrantExile (cast_exilegrant.go)
 	anyNumTimes    bool           // some ability announces a pay-N-times count (Ext NumTimes; cast_announcetimes.go)
@@ -674,6 +675,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepLoyaltyX(t, g)
 	prepLifeX(t, g)
 	prepSacX(t, g)
+	prepXColor(t, g)
 	prepDiscarded(t, g)
 	prepUniqueChain(t, g)
 	prepTgtSet(t, g) // tgt_setconstraints.go

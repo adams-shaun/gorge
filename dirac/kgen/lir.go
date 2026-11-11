@@ -492,6 +492,7 @@ type lCost struct {
 	SacN           int
 	SacX           bool     // Sac<X/Spec>: sacrifice the announced X permanents matching Sac (kop.CostSac with N 0; SacN stays 0)
 	XMin           int      // XMin<N> / XMin$ N: the announced X's floor (kop.Cost.XMin)
+	XColor         int      // XColor$: 1 + the colour (W..G) the {X} is paid in (kop.Cost.XColor; lower_xcolor.go)
 	DiscardN       int      // discard N cards (any)
 	DiscardSpec    string   // Discard<N/Spec>: "" (Card, any card), "Random" or "Hand"
 	DiscardHand    bool     // Discard<N/Hand> as an activated ability's cost: the whole hand (kop.Cost.DiscardHand)
